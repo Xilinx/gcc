@@ -3145,7 +3145,8 @@ ira (FILE *f)
 	{
 	  timevar_push (TV_JUMP);
 	  rebuild_jump_labels (get_insns ());
-	  purge_all_dead_edges ();
+	  if (purge_all_dead_edges ())
+	    delete_unreachable_blocks ();
 	  timevar_pop (TV_JUMP);
 	}
     }

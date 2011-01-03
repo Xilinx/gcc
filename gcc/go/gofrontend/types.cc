@@ -543,14 +543,16 @@ Type::are_assignable(const Type* lhs, const Type* rhs, std::string* reason)
 	  || lhs->interface_type() != NULL))
     return true;
 
-  // An untyped constant may be assigned to a numeric type if it is
-  // representable in that type.
-  if (rhs->is_abstract()
+  // An untyped numeric constant may be assigned to a numeric type if
+  // it is representable in that type.
+  if ((rhs->is_abstract()
+       && (rhs->integer_type() != NULL
+	   || rhs->float_type() != NULL
+	   || rhs->complex_type() != NULL))
       && (lhs->integer_type() != NULL
 	  || lhs->float_type() != NULL
 	  || lhs->complex_type() != NULL))
     return true;
-
 
   // Give some better error messages.
   if (reason != NULL && reason->empty())
@@ -3251,26 +3253,35 @@ class Call_multiple_result_type : public Type
  protected:
   bool
   do_has_pointer() const
-  { gcc_unreachable(); }
+  {
+    gcc_assert(saw_errors());
+    return false;
+  }
 
   tree
   do_get_tree(Gogo*);
 
   tree
   do_get_init_tree(Gogo*, tree, bool)
-  { gcc_unreachable(); }
+  {
+    gcc_assert(saw_errors());
+    return error_mark_node;
+  }
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*)
-  { gcc_unreachable(); }
+  {
+    gcc_assert(saw_errors());
+    return Expression::make_error(UNKNOWN_LOCATION);
+  }
 
   void
   do_reflection(Gogo*, std::string*) const
-  { gcc_unreachable(); }
+  { gcc_assert(saw_errors()); }
 
   void
   do_mangled_name(Gogo*, std::string*) const
-  { gcc_unreachable(); }
+  { gcc_assert(saw_errors()); }
 
  private:
   // The expression being called.
@@ -3698,6 +3709,8 @@ Struct_type::is_unexported_local_field(Gogo* gogo,
 void
 Struct_type::finalize_methods(Gogo* gogo)
 {
+  if (this->all_methods_ != NULL)
+    return;
   Type::finalize_methods(gogo, this, this->location_, &this->all_methods_);
 }
 
@@ -4355,8 +4368,12 @@ Array_type::get_length_tree(Gogo* gogo)
 	  // expression.  FIXME: This won't work in general.
 	  Translate_context context(gogo, NULL, NULL, NULL_TREE);
 	  tree len = this->length_->get_tree(&context);
-	  len = convert_to_integer(integer_type_node, len);
-	  this->length_tree_ = save_expr(len);
+	  if (len != error_mark_node)
+	    {
+	      len = convert_to_integer(integer_type_node, len);
+	      len = save_expr(len);
+	    }
+	  this->length_tree_ = len;
 	}
     }
   return this->length_tree_;
@@ -5540,7 +5557,7 @@ Interface_type::finalize_methods()
       const Typed_identifier* p = &this->methods_->at(from);
       if (!p->name().empty())
 	{
-	  size_t i = 0;
+	  size_t i;
 	  for (i = 0; i < to; ++i)
 	    {
 	      if (this->methods_->at(i).name() == p->name())
@@ -5586,7 +5603,30 @@ Interface_type::finalize_methods()
 	   q != methods->end();
 	   ++q)
 	{
-	  if (q->name().empty() || this->find_method(q->name()) == NULL)
+	  if (q->name().empty())
+	    {
+	      if (q->type() == p->type())
+		error_at(p->location(), "interface inheritance loop");
+	      else
+		{
+		  size_t i;
+		  for (i = from + 1; i < this->methods_->size(); ++i)
+		    {
+		      const Typed_identifier* r = &this->methods_->at(i);
+		      if (r->name().empty() && r->type() == q->type())
+			{
+			  error_at(p->location(),
+				   "inherited interface listed twice");
+			  break;
+			}
+		    }
+		  if (i == this->methods_->size())
+		    this->methods_->push_back(Typed_identifier(q->name(),
+							       q->type(),
+							       p->location()));
+		}
+	    }
+	  else if (this->find_method(q->name()) == NULL)
 	    this->methods_->push_back(Typed_identifier(q->name(), q->type(),
 						       p->location()));
 	  else
@@ -6507,22 +6547,22 @@ Named_type::message_name() const
 Type*
 Named_type::named_base()
 {
-  if (this->seen_)
+  if (this->seen_ > 0)
     return this;
-  this->seen_ = true;
+  ++this->seen_;
   Type* ret = this->type_->base();
-  this->seen_ = false;
+  --this->seen_;
   return ret;
 }
 
 const Type*
 Named_type::named_base() const
 {
-  if (this->seen_)
+  if (this->seen_ > 0)
     return this;
-  this->seen_ = true;
+  ++this->seen_;
   const Type* ret = this->type_->base();
-  this->seen_ = false;
+  --this->seen_;
   return ret;
 }
 
@@ -6532,11 +6572,11 @@ Named_type::named_base() const
 bool
 Named_type::is_named_error_type() const
 {
-  if (this->seen_)
+  if (this->seen_ > 0)
     return false;
-  this->seen_ = true;
+  ++this->seen_;
   bool ret = this->type_->is_error_type();
-  this->seen_ = false;
+  --this->seen_;
   return ret;
 }
 
@@ -6615,6 +6655,9 @@ Named_type::is_unexported_local_method(Gogo* gogo,
 void
 Named_type::finalize_methods(Gogo* gogo)
 {
+  if (this->all_methods_ != NULL)
+    return;
+
   if (this->local_methods_ != NULL
       && (this->points_to() != NULL || this->interface_type() != NULL))
     {
@@ -6683,11 +6726,11 @@ Named_type::interface_method_table(Gogo* gogo, const Interface_type* interface,
 bool
 Named_type::named_type_has_hidden_fields(std::string* reason) const
 {
-  if (this->seen_)
+  if (this->seen_ > 0)
     return false;
-  this->seen_ = true;
+  ++this->seen_;
   bool ret = this->type_->has_hidden_fields(this, reason);
-  this->seen_ = false;
+  --this->seen_;
   return ret;
 }
 
@@ -6819,6 +6862,19 @@ Named_type::do_verify()
   return true;
 }
 
+// Return whether this type is or contains a pointer.
+
+bool
+Named_type::do_has_pointer() const
+{
+  if (this->seen_ > 0)
+    return false;
+  ++this->seen_;
+  bool ret = this->type_->has_pointer();
+  --this->seen_;
+  return ret;
+}
+
 // Return a hash code.  This is used for method lookup.  We simply
 // hash on the name itself.
 
@@ -6889,18 +6945,24 @@ Named_type::do_get_tree(Gogo* gogo)
     case TYPE_FUNCTION:
       // GENERIC can't handle a pointer to a function type whose
       // return type is a pointer to the function type itself.  It
-      // does into infinite loops when walking the types.
-      if (this->seen_)
+      // goes into an infinite loop when walking the types.
+      if (this->seen_ > 0)
 	{
 	  Function_type* fntype = this->type_->function_type();
 	  if (fntype->results() != NULL
 	      && fntype->results()->size() == 1
 	      && fntype->results()->front().type()->forwarded() == this)
 	    return ptr_type_node;
+
+	  // We can legitimately see ourselves here twice when a named
+	  // type is defined using a struct which refers to the named
+	  // type.  If we see ourselves too often we are in a loop.
+	  if (this->seen_ > 3)
+	    return ptr_type_node;
 	}
-      this->seen_ = true;
+      ++this->seen_;
       t = Type::get_named_type_tree(gogo, this->type_);
-      this->seen_ = false;
+      --this->seen_;
       if (t == error_mark_node)
 	return error_mark_node;
       t = build_variant_type_copy(t);
@@ -6910,11 +6972,17 @@ Named_type::do_get_tree(Gogo* gogo)
       // Don't recur infinitely if a pointer type refers to itself.
       // Ideally we would build a circular data structure here, but
       // GENERIC can't handle them.
-      if (this->seen_)
-	return ptr_type_node;
-      this->seen_ = true;
+      if (this->seen_ > 0)
+	{
+	  if (this->type_->points_to()->forwarded() == this)
+	    return ptr_type_node;
+
+	  if (this->seen_ > 3)
+	    return ptr_type_node;
+	}
+      ++this->seen_;
       t = Type::get_named_type_tree(gogo, this->type_);
-      this->seen_ = false;
+      --this->seen_;
       if (t == error_mark_node)
 	return error_mark_node;
       t = build_variant_type_copy(t);
@@ -6973,11 +7041,10 @@ Named_type::do_get_tree(Gogo* gogo)
 	// definition of T2 may refer to T1, then we must simply
 	// return the type for T2 here.  It's not precisely correct,
 	// but it's as close as we can get with GENERIC.
-	bool was_seen = this->seen_;
-	this->seen_ = true;
+	++this->seen_;
 	t = Type::get_named_type_tree(gogo, this->type_);
-	this->seen_ = was_seen;
-	if (was_seen)
+	--this->seen_;
+	if (this->seen_ > 0)
 	  return t;
 	if (t == error_mark_node)
 	  return error_mark_node;
@@ -7600,13 +7667,14 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
 
   bool receiver_can_be_pointer = (expr->type()->points_to() != NULL
 				  || expr->is_addressable());
+  std::vector<const Named_type*> seen;
   bool is_method = false;
   bool found_pointer_method = false;
   std::string ambig1;
   std::string ambig2;
-  if (Type::find_field_or_method(type, name, receiver_can_be_pointer, NULL,
-				 &is_method, &found_pointer_method,
-				 &ambig1, &ambig2))
+  if (Type::find_field_or_method(type, name, receiver_can_be_pointer,
+				 &seen, NULL, &is_method,
+				 &found_pointer_method, &ambig1, &ambig2))
     {
       Expression* ret;
       if (!is_method)
@@ -7663,8 +7731,10 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
 	  else
 	    {
 	      std::string unpacked = Gogo::unpack_hidden_name(name);
+	      seen.clear();
 	      is_unexported = Type::is_unexported_field_or_method(gogo, type,
-								  unpacked);
+								  unpacked,
+								  &seen);
 	    }
 	  if (is_unexported)
 	    error_at(location, "reference to unexported field or method %qs",
@@ -7682,13 +7752,16 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
 // ambiguity.  If a method is found, sets *IS_METHOD to true;
 // otherwise, if a field is found, set it to false.  If
 // RECEIVER_CAN_BE_POINTER is false, then the receiver is a value
-// whose address can not be taken.  When returning false, this sets
-// *FOUND_POINTER_METHOD if we found a method we couldn't use because
-// it requires a pointer.  LEVEL is used for recursive calls, and can
-// be NULL for a non-recursive call.  When this function returns false
-// because it finds that the name is ambiguous, it will store a path
-// to the ambiguous names in *AMBIG1 and *AMBIG2.  If the name is not
-// found at all, *AMBIG1 and *AMBIG2 will be unchanged.
+// whose address can not be taken.  SEEN is used to avoid infinite
+// recursion on invalid types.
+
+// When returning false, this sets *FOUND_POINTER_METHOD if we found a
+// method we couldn't use because it requires a pointer.  LEVEL is
+// used for recursive calls, and can be NULL for a non-recursive call.
+// When this function returns false because it finds that the name is
+// ambiguous, it will store a path to the ambiguous names in *AMBIG1
+// and *AMBIG2.  If the name is not found at all, *AMBIG1 and *AMBIG2
+// will be unchanged.
 
 // This function just returns whether or not there is a field or
 // method, and whether it is a field or method.  It doesn't build an
@@ -7701,6 +7774,7 @@ bool
 Type::find_field_or_method(const Type* type,
 			   const std::string& name,
 			   bool receiver_can_be_pointer,
+			   std::vector<const Named_type*>* seen,
 			   int* level,
 			   bool* is_method,
 			   bool* found_pointer_method,
@@ -7727,6 +7801,17 @@ Type::find_field_or_method(const Type* type,
 	  // else.
 	  *found_pointer_method = true;
 	}
+
+      for (std::vector<const Named_type*>::const_iterator p = seen->begin();
+	   p != seen->end();
+	   ++p)
+	{
+	  if (*p == nt)
+	    {
+	      // We've already seen this type when searching for methods.
+	      return false;
+	    }
+	}
     }
 
   // Interface types can have methods.
@@ -7746,6 +7831,9 @@ Type::find_field_or_method(const Type* type,
   if (fields == NULL)
     return false;
 
+  if (nt != NULL)
+    seen->push_back(nt);
+
   int found_level = 0;
   bool found_is_method = false;
   std::string found_ambig1;
@@ -7758,6 +7846,8 @@ Type::find_field_or_method(const Type* type,
       if (pf->field_name() == name)
 	{
 	  *is_method = false;
+	  if (nt != NULL)
+	    seen->pop_back();
 	  return true;
 	}
 
@@ -7778,6 +7868,7 @@ Type::find_field_or_method(const Type* type,
       bool subfound = Type::find_field_or_method(fnt,
 						 name,
 						 receiver_can_be_pointer,
+						 seen,
 						 &sublevel,
 						 &sub_is_method,
 						 found_pointer_method,
@@ -7834,6 +7925,9 @@ Type::find_field_or_method(const Type* type,
   // FOUND_AMBIG2 are not empty.  If we found the field, FOUND_LEVEL
   // is not 0 and FOUND_AMBIG1 and FOUND_AMBIG2 are empty.
 
+  if (nt != NULL)
+    seen->pop_back();
+
   if (found_level == 0)
     return false;
   else if (!found_ambig1.empty())
@@ -7858,13 +7952,28 @@ Type::find_field_or_method(const Type* type,
 
 bool
 Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
-				    const std::string& name)
+				    const std::string& name,
+				    std::vector<const Named_type*>* seen)
 {
   type = type->deref();
 
   const Named_type* nt = type->named_type();
-  if (nt != NULL && nt->is_unexported_local_method(gogo, name))
-    return true;
+  if (nt != NULL)
+    {
+      if (nt->is_unexported_local_method(gogo, name))
+	return true;
+
+      for (std::vector<const Named_type*>::const_iterator p = seen->begin();
+	   p != seen->end();
+	   ++p)
+	{
+	  if (*p == nt)
+	    {
+	      // We've already seen this type.
+	      return false;
+	    }
+	}
+    }
 
   const Interface_type* it = type->interface_type();
   if (it != NULL && it->is_unexported_method(gogo, name))
@@ -7881,6 +7990,9 @@ Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
   if (fields == NULL)
     return false;
 
+  if (nt != NULL)
+    seen->push_back(nt);
+
   for (Struct_field_list::const_iterator pf = fields->begin();
        pf != fields->end();
        ++pf)
@@ -7891,10 +8003,17 @@ Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
 	{
 	  Named_type* subtype = pf->type()->deref()->named_type();
 	  gcc_assert(subtype != NULL);
-	  if (Type::is_unexported_field_or_method(gogo, subtype, name))
-	    return true;
+	  if (Type::is_unexported_field_or_method(gogo, subtype, name, seen))
+	    {
+	      if (nt != NULL)
+		seen->pop_back();
+	      return true;
+	    }
 	}
     }
+
+  if (nt != NULL)
+    seen->pop_back();
 
   return false;
 }
@@ -8013,7 +8132,8 @@ Forward_declaration_type::add_method(const std::string& name,
 				     Function* function)
 {
   Named_object* no = this->named_object();
-  gcc_assert(no->is_type_declaration());
+  if (no->is_unknown())
+    no->declare_as_type();
   return no->type_declaration_value()->add_method(name, function);
 }
 
@@ -8026,7 +8146,8 @@ Forward_declaration_type::add_method_declaration(const std::string& name,
 						 source_location location)
 {
   Named_object* no = this->named_object();
-  gcc_assert(no->is_type_declaration());
+  if (no->is_unknown())
+    no->declare_as_type();
   Type_declaration* td = no->type_declaration_value();
   return td->add_method_declaration(name, type, location);
 }
@@ -8061,6 +8182,7 @@ Forward_declaration_type::do_get_tree(Gogo* gogo)
   tree id = no->get_id(gogo);
   tree decl = build_decl(no->location(), TYPE_DECL, id, type_tree);
   TYPE_NAME(type_tree) = decl;
+  layout_type(type_tree);
   return type_tree;
 }
 

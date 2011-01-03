@@ -59,23 +59,20 @@ along with GCC; see the file COPYING3.  If not see
 
 enum upper_128bits_state
 {
-  unknown = 0,		/* Unknown.  */
-  unused,		/* Not used or not referenced.  */
-  used			/* Used or referenced.  */
+  unknown = 0,
+  unused,
+  used
 };
 
 typedef struct block_info_def
 {
-  /* State of the upper 128bits of any AVX registers at exit.  */
+  /* State of the upper 128bits of AVX registers at exit.  */
   enum upper_128bits_state state;
-  /* If the upper 128bits of any AVX registers are referenced.  */
-  enum upper_128bits_state referenced;
-  /* Number of vzerouppers in this block.  */
-  unsigned int count;
+  /* TRUE if state of the upper 128bits of AVX registers is unchanged
+     in this block.  */
+  bool unchanged;
   /* TRUE if block has been processed.  */
   bool processed;
-  /* TRUE if block has been rescanned.  */
-  bool rescanned;
 } *block_info;
 
 #define BLOCK_INFO(B)   ((block_info) (B)->aux)
@@ -116,8 +113,7 @@ check_avx256_stores (rtx dest, const_rtx set, void *data)
    in basic block BB.  Delete it if upper 128bit AVX registers are
    unused.  If it isn't deleted, move it to just before a jump insn.
    
-   UPPER_128BITS_LIVE is TRUE if the upper 128bits of any AVX registers
-   are live at entry.  */
+   STATE is state of the upper 128bits of AVX registers at entry.  */
 
 static void
 move_or_delete_vzeroupper_2 (basic_block bb,
@@ -127,12 +123,23 @@ move_or_delete_vzeroupper_2 (basic_block bb,
   rtx vzeroupper_insn = NULL_RTX;
   rtx pat;
   int avx256;
-  enum upper_128bits_state referenced = BLOCK_INFO (bb)->referenced;
-  int count = BLOCK_INFO (bb)->count;
+  bool unchanged;
+
+  if (BLOCK_INFO (bb)->unchanged)
+    {
+      if (dump_file)
+	fprintf (dump_file, " [bb %i] unchanged: upper 128bits: %d\n",
+		 bb->index, state);
+
+      BLOCK_INFO (bb)->state = state;
+      return;
+    }
 
   if (dump_file)
     fprintf (dump_file, " [bb %i] entry: upper 128bits: %d\n",
 	     bb->index, state);
+
+  unchanged = true;
 
   /* BB_END changes when it is deleted.  */
   bb_end = BB_END (bb);
@@ -187,28 +194,25 @@ move_or_delete_vzeroupper_2 (basic_block bb,
 	      && XINT (XVECEXP (pat, 0, 0), 1) == UNSPECV_VZEROALL)
 	    {
 	      state = unused;
+	      unchanged = false;
 
 	      /* Delete pending vzeroupper insertion.  */
 	      if (vzeroupper_insn)
 		{
-		  count--;
 		  delete_insn (vzeroupper_insn);
 		  vzeroupper_insn = NULL_RTX;
 		}
 	    }
-	  else if (state != used && referenced != unused)
+	  else if (state != used)
 	    {
-	      /* No need to call note_stores if the upper 128bits of
-		 AVX registers are never referenced.  */
 	      note_stores (pat, check_avx256_stores, &state);
 	      if (state == used)
-		referenced = used;
+		unchanged = false;
 	    }
 	  continue;
 	}
 
       /* Process vzeroupper intrinsic.  */
-      count++;
       avx256 = INTVAL (XVECEXP (pat, 0, 0));
 
       if (state == unused)
@@ -217,7 +221,10 @@ move_or_delete_vzeroupper_2 (basic_block bb,
 	     256bit AVX register.  We only need to check if callee
 	     returns 256bit AVX register.  */
 	  if (avx256 == callee_return_avx256)
-	    state = used;
+	    {
+	      state = used;
+	      unchanged = false;
+	    }
 
 	  /* Remove unnecessary vzeroupper since upper 128bits are
 	     cleared.  */
@@ -226,7 +233,6 @@ move_or_delete_vzeroupper_2 (basic_block bb,
 	      fprintf (dump_file, "Delete redundant vzeroupper:\n");
 	      print_rtl_single (dump_file, insn);
 	    }
-	  count--;
 	  delete_insn (insn);
 	}
       else
@@ -246,40 +252,36 @@ move_or_delete_vzeroupper_2 (basic_block bb,
 		  fprintf (dump_file, "Delete callee pass vzeroupper:\n");
 		  print_rtl_single (dump_file, insn);
 		}
-	      count--;
 	      delete_insn (insn);
 	    }
 	  else
-	    vzeroupper_insn = insn;
+	    {
+	      vzeroupper_insn = insn;
+	      unchanged = false;
+	    }
 	}
     }
 
   BLOCK_INFO (bb)->state = state;
-
-  if (BLOCK_INFO (bb)->referenced == unknown)
-    {
-      /* The upper 128bits of AVX registers are never referenced if
-	 REFERENCED isn't updated.  */
-      if (referenced == unknown)
-	referenced = unused;
-      BLOCK_INFO (bb)->referenced = referenced;
-      BLOCK_INFO (bb)->count = count;
-    }
+  BLOCK_INFO (bb)->unchanged = unchanged;
 
   if (dump_file)
-    fprintf (dump_file, " [bb %i] exit: upper 128bits: %d\n",
-	     bb->index, state);
+    fprintf (dump_file, " [bb %i] exit: %s: upper 128bits: %d\n",
+	     bb->index, unchanged ? "unchanged" : "changed",
+	     state);
 }
 
 /* Helper function for move_or_delete_vzeroupper.  Process vzeroupper
-   in BLOCK and its predecessor blocks recursively.  */
+   in BLOCK and check its predecessor blocks.  Treat UNKNOWN state
+   as USED if UNKNOWN_IS_UNUSED is true.  */
 
 static void
-move_or_delete_vzeroupper_1 (basic_block block)
+move_or_delete_vzeroupper_1 (basic_block block, bool unknown_is_unused)
 {
   edge e;
   edge_iterator ei;
-  enum upper_128bits_state state;
+  enum upper_128bits_state state, old_state, new_state;
+  bool seen_unknown;
 
   if (dump_file)
     fprintf (dump_file, " Process [bb %i]: status: %d\n",
@@ -288,83 +290,42 @@ move_or_delete_vzeroupper_1 (basic_block block)
   if (BLOCK_INFO (block)->processed)
     return;
 
-  BLOCK_INFO (block)->processed = true;
+  state = unused;
 
-  state = unknown;
-
-  /* Process all predecessor edges of this block.  */
+  /* Check all predecessor edges of this block.  */
+  seen_unknown = false;
   FOR_EACH_EDGE (e, ei, block->preds)
     {
       if (e->src == block)
 	continue;
-      move_or_delete_vzeroupper_1 (e->src);
       switch (BLOCK_INFO (e->src)->state)
 	{
 	case unknown:
-	  if (state == unused)
-	    state = unknown;
+	  if (!unknown_is_unused)
+	    seen_unknown = true;
+	case unused:
 	  break;
 	case used:
 	  state = used;
-	  break;
-	case unused:
-	  break;
+	  goto done;
 	}
     }
 
-  /* If state of any predecessor edges is unknown, we need to rescan.  */
-  if (state == unknown)
-    cfun->machine->rescan_vzeroupper_p = 1;
+  if (seen_unknown)
+    state = unknown;
 
-  /* Process this block.  */
+done:
+  old_state = BLOCK_INFO (block)->state;
   move_or_delete_vzeroupper_2 (block, state);
-}
+  new_state = BLOCK_INFO (block)->state;
 
-/* Helper function for move_or_delete_vzeroupper.  Rescan vzeroupper
-   in BLOCK and its predecessor blocks recursively.  */
+  if (state != unknown || new_state == used)
+    BLOCK_INFO (block)->processed = true;
 
-static void
-rescan_move_or_delete_vzeroupper (basic_block block)
-{
-  edge e;
-  edge_iterator ei;
-  enum upper_128bits_state state;
-
-  if (dump_file)
-    fprintf (dump_file, " Rescan [bb %i]: status: %d\n",
-	     block->index, BLOCK_INFO (block)->rescanned);
-
-  if (BLOCK_INFO (block)->rescanned)
-    return;
-
-  BLOCK_INFO (block)->rescanned = true;
-
-  state = unused;
-
-  /* Rescan all predecessor edges of this block.  */
-  FOR_EACH_EDGE (e, ei, block->preds)
-    {
-      if (e->src == block)
-	continue;
-      rescan_move_or_delete_vzeroupper (e->src);
-      /* For rescan, UKKNOWN state is treated as UNUSED.  */
-      if (BLOCK_INFO (e->src)->state == used)
-	state = used;
-    }
-
-  /* Rescan this block only if there are vzerouppers or the upper
-     128bits of AVX registers are referenced.  */
-  if (BLOCK_INFO (block)->count == 0
-      && (state == used || BLOCK_INFO (block)->referenced != used))
-    {
-      if (state == used)
-	BLOCK_INFO (block)->state = state;
-      if (dump_file)
-	fprintf (dump_file, " [bb %i] exit: upper 128bits: %d\n",
-		 block->index, BLOCK_INFO (block)->state);
-    }
-  else
-    move_or_delete_vzeroupper_2 (block, state);
+  /* Need to rescan if the upper 128bits of AVX registers are changed
+     to USED at exit.  */
+  if (new_state != old_state && new_state == used)
+    cfun->machine->rescan_vzeroupper_p = 1;
 }
 
 /* Go through the instruction stream looking for vzeroupper.  Delete
@@ -377,7 +338,7 @@ move_or_delete_vzeroupper (void)
   edge e;
   edge_iterator ei;
   basic_block bb;
-  unsigned int count = 0;
+  unsigned int count;
 
   /* Set up block info for each basic block.  */
   alloc_aux_for_blocks (sizeof (struct block_info_def));
@@ -392,28 +353,30 @@ move_or_delete_vzeroupper (void)
 				   cfun->machine->caller_pass_avx256_p
 				   ? used : unused);
       BLOCK_INFO (e->dest)->processed = true;
-      BLOCK_INFO (e->dest)->rescanned = true;
     }
 
   /* Process all basic blocks.  */
+  count = 0;
+  do
+    {
+      if (dump_file)
+	fprintf (dump_file, "Process all basic blocks: trip %d\n",
+		 count);
+      cfun->machine->rescan_vzeroupper_p = 0;
+      FOR_EACH_BB (bb)
+	move_or_delete_vzeroupper_1 (bb, false);
+    }
+  while (cfun->machine->rescan_vzeroupper_p && count++ < 20);
+
+  /* FIXME: Is 20 big enough?  */
+  if (count >= 20)
+    gcc_unreachable ();
+
   if (dump_file)
     fprintf (dump_file, "Process all basic blocks\n");
 
   FOR_EACH_BB (bb)
-    {
-      move_or_delete_vzeroupper_1 (bb);
-      count += BLOCK_INFO (bb)->count;
-    }
-
-  /* Rescan all basic blocks if needed.  */
-  if (count && cfun->machine->rescan_vzeroupper_p)
-    {
-      if (dump_file)
-	fprintf (dump_file, "Rescan all basic blocks\n");
-
-      FOR_EACH_BB (bb)
-	rescan_move_or_delete_vzeroupper (bb);
-    }
+    move_or_delete_vzeroupper_1 (bb, true);
 
   free_aux_for_blocks ();
 }
@@ -24142,9 +24105,9 @@ enum ix86_builtins
   IX86_BUILTIN_WRGSBASE64,
 
   /* RDRND instructions.  */
-  IX86_BUILTIN_RDRAND16,
-  IX86_BUILTIN_RDRAND32,
-  IX86_BUILTIN_RDRAND64,
+  IX86_BUILTIN_RDRAND16_STEP,
+  IX86_BUILTIN_RDRAND32_STEP,
+  IX86_BUILTIN_RDRAND64_STEP,
 
   /* F16C instructions.  */
   IX86_BUILTIN_CVTPH2PS,
@@ -24435,11 +24398,6 @@ static const struct builtin_description bdesc_special_args[] =
   { OPTION_MASK_ISA_FSGSBASE | OPTION_MASK_ISA_64BIT, CODE_FOR_wrfsbasedi, "__builtin_ia32_wrfsbase64", IX86_BUILTIN_WRFSBASE64, UNKNOWN, (int) VOID_FTYPE_UINT64 },
   { OPTION_MASK_ISA_FSGSBASE | OPTION_MASK_ISA_64BIT, CODE_FOR_wrgsbasesi, "__builtin_ia32_wrgsbase32", IX86_BUILTIN_WRGSBASE32, UNKNOWN, (int) VOID_FTYPE_UNSIGNED },
   { OPTION_MASK_ISA_FSGSBASE | OPTION_MASK_ISA_64BIT, CODE_FOR_wrgsbasedi, "__builtin_ia32_wrgsbase64", IX86_BUILTIN_WRGSBASE64, UNKNOWN, (int) VOID_FTYPE_UINT64 },
-
-  /* RDRND */
-  { OPTION_MASK_ISA_RDRND, CODE_FOR_rdrandhi, "__builtin_ia32_rdrand16", IX86_BUILTIN_RDRAND16, UNKNOWN, (int) UINT16_FTYPE_VOID },
-  { OPTION_MASK_ISA_RDRND, CODE_FOR_rdrandsi, "__builtin_ia32_rdrand32", IX86_BUILTIN_RDRAND32, UNKNOWN, (int) UNSIGNED_FTYPE_VOID },
-  { OPTION_MASK_ISA_RDRND | OPTION_MASK_ISA_64BIT, CODE_FOR_rdranddi, "__builtin_ia32_rdrand64", IX86_BUILTIN_RDRAND64, UNKNOWN, (int) UINT64_FTYPE_VOID },
 };
 
 /* Builtins with variable number of arguments.  */
@@ -25447,6 +25405,15 @@ ix86_init_mmx_sse_builtins (void)
   /* PCLMUL */
   def_builtin_const (OPTION_MASK_ISA_PCLMUL, "__builtin_ia32_pclmulqdq128",
 		     V2DI_FTYPE_V2DI_V2DI_INT, IX86_BUILTIN_PCLMULQDQ128);
+
+  /* RDRND */
+  def_builtin (OPTION_MASK_ISA_RDRND, "__builtin_ia32_rdrand16_step",
+	       INT_FTYPE_PUSHORT, IX86_BUILTIN_RDRAND16_STEP);
+  def_builtin (OPTION_MASK_ISA_RDRND, "__builtin_ia32_rdrand32_step",
+	       INT_FTYPE_PUNSIGNED, IX86_BUILTIN_RDRAND32_STEP);
+  def_builtin (OPTION_MASK_ISA_RDRND | OPTION_MASK_ISA_64BIT,
+	       "__builtin_ia32_rdrand64_step", INT_FTYPE_PULONGLONG,
+	       IX86_BUILTIN_RDRAND64_STEP);
 
   /* MMX access to the vec_init patterns.  */
   def_builtin_const (OPTION_MASK_ISA_MMX, "__builtin_ia32_vec_init_v2si",
@@ -26703,7 +26670,6 @@ ix86_expand_special_args_builtin (const struct builtin_description *d,
       break;
     case UINT64_FTYPE_VOID:
     case UNSIGNED_FTYPE_VOID:
-    case UINT16_FTYPE_VOID:
       nargs = 0;
       klass = load;
       memory = 0;
@@ -27214,6 +27180,51 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
             emit_insn (pat);
           return target;
         }
+
+    case IX86_BUILTIN_RDRAND16_STEP:
+      icode = CODE_FOR_rdrandhi_1;
+      mode0 = HImode;
+      goto rdrand_step;
+
+    case IX86_BUILTIN_RDRAND32_STEP:
+      icode = CODE_FOR_rdrandsi_1;
+      mode0 = SImode;
+      goto rdrand_step;
+
+    case IX86_BUILTIN_RDRAND64_STEP:
+      icode = CODE_FOR_rdranddi_1;
+      mode0 = DImode;
+
+rdrand_step:
+      op0 = gen_reg_rtx (mode0);
+      emit_insn (GEN_FCN (icode) (op0));
+
+      op1 = gen_reg_rtx (SImode);
+      emit_move_insn (op1, CONST1_RTX (SImode));
+
+      /* Emit SImode conditional move.  */
+      if (mode0 == HImode)
+	{
+	  op2 = gen_reg_rtx (SImode);
+	  emit_insn (gen_zero_extendhisi2 (op2, op0));
+	}
+      else if (mode0 == SImode)
+	op2 = op0;
+      else
+	op2 = gen_rtx_SUBREG (SImode, op0, 0);
+
+      pat = gen_rtx_GEU (VOIDmode, gen_rtx_REG (CCCmode, FLAGS_REG),
+			 const0_rtx);
+      emit_insn (gen_rtx_SET (VOIDmode, op1,
+			      gen_rtx_IF_THEN_ELSE (SImode, pat, op2, op1)));
+      emit_move_insn (target, op1);
+
+      arg0 = CALL_EXPR_ARG (exp, 0);
+      op1 = expand_normal (arg0);
+      if (!address_operand (op1, VOIDmode))
+	op1 = copy_addr_to_reg (op1);
+      emit_move_insn (gen_rtx_MEM (mode0, op1), op0);
+      return target;
 
     default:
       break;
