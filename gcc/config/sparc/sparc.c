@@ -5017,7 +5017,7 @@ init_cumulative_args (struct sparc_args *cum, tree fntype,
 		      tree fndecl ATTRIBUTE_UNUSED)
 {
   cum->words = 0;
-  cum->prototype_p = fntype && TYPE_ARG_TYPES (fntype);
+  cum->prototype_p = fntype && prototype_p (fntype);
   cum->libcall_p = fntype == 0;
 }
 
@@ -9534,6 +9534,7 @@ sparc_file_end (void)
 	  make_decl_one_only (decl, DECL_ASSEMBLER_NAME (decl));
 	  DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
 	  DECL_VISIBILITY_SPECIFIED (decl) = 1;
+	  resolve_unique_section (decl, 0, flag_function_sections);
 	  allocate_struct_function (decl, true);
 	  cfun->is_thunk = 1;
 	  current_function_decl = decl;

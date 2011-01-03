@@ -1,8 +1,175 @@
+2010-12-26  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* init.c (create_tree_of_subclasses_inherited_from): Use
+	class_superclass_of_class instead of assuming a class is
+	unresolved when it could be resolved.  Tidied up assignment and
+	check.
+	(__objc_tree_insert_class): Enhanced DEBUG_PRINTF.
+	(objc_tree_insert_class): Tidied up loop; return immediately upon
+	inserting a class.
+	(__objc_exec_class): Do not set __objc_class_tree_list.
+	
+2010-12-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* selector.c (sel_getTypedSelector): Return NULL if given a NULL
+	argument.
+	(sel_registerTypedName): Same.
+	(sel_registerName): Same.
+	* objc/runtime.h: Updated documentation.
+	
+2010-12-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc/runtime.h (class_addIvar): Updated documentation.  The
+	alignment is actually the log_2 of the alignment in bytes.
+	* ivars.c (class_addIvar): Corresponding change to the
+	implementation.
+	
+2010-12-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc/runtime.h (sel_getType): Renamed to sel_getTypeEncoding to
+	be consistent with method_getTypeEncoding and
+	ivar_getTypeEncoding.
+	(sel_copyTypedSelectorList, sel_getTypedSelector): New.
+	* selector.c (sel_getType): Renamed to sel_getTypeEncoding.
+	(sel_copyTypedSelectorList, sel_getTypedSelector): New.
+	(sel_get_type): Updated call to sel_getType.
+	
+2010-12-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc/runtime.h (class_conformsToProtocol,
+	class_copyProtocolList): Updated documentation.
+
+2010-12-23  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* init.c (create_tree_of_subclasses_inherited_from): Updated
+	DEBUG_PRINTF messages.
+	(__objc_tree_insert_class): Same.
+	(__objc_send_load_using_method_list): Same.
+	(__objc_send_load): Same.
+	(__objc_exec_class): Same.  In particular, do not print the module
+	name since it is no longer used.
+	* sendmsg.c (__objc_send_initialize): Added DEBUG_PRINTFs for
+	tracking +initialize calls.
+	(__objc_update_dispatch_table_for_class): Added DEBUG_PRINTFs for
+	tracking updates of dispatch tables.
+	(__objc_install_dispatch_table_for_class): Same.
+	
+2010-12-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Makefile.in (libobjc$(libsuffix).la): Link with -Wc,-shared-libgcc.
+	(libobjc_gc$(libsuffix).la): Likewise.
+
+2010-12-23  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* sendmsg.c (class_addMethod): Return NO if the method already
+	exists in the class.
+
+2010-12-22  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* init.c (duplicate_classes): New.
+	(__objc_exec_class): Initialize duplicate_classes.
+	(__objc_create_classes_tree): Ignore classes in the
+	duplicate_classes table.
+	(__objc_call_load_callback): Same.
+	(__objc_init_class): If a duplicate class is found, add it to
+	duplicate_classes instead of aborting.  Return YES if the class is
+	not a duplicate, and NO if it is.
+	* objc-private/runtime.h (__objc_init_class): Updated prototype.
+
+2010-12-22  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-private/objc-list.h: Reindented file.  No code changes.
+	* objc-private/sarray.h: Same change.
+
+2010-12-22  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-private/accessors.h: Removed 'extern "C"' guards.  This
+	file is never compiled with C++.
+	* objc-private/hash.h: Same change.
+	* objc-private/objc-list.h: Same change.
+	* objc-private/objc-sync.h: Same change.
+	* objc-private/protocols.h: Same change.
+	* objc-private/runtime.h: Same change.
+	* objc-private/sarray.h: Same change.
+	* objc-private/selector.h: Same change.
+
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR libobjc/18764
+	* class.c (__objc_add_class_to_hash): Return YES if the class was
+	added, and NO if it already existed.
+	* init.c (__objc_init_class): If __objc_add_class_to_hash returns
+	NO, then abort the program with an error message.
+	* objc-private/runtime.h (__objc_add_class_to_hash): Updated
+	declaration.
+
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>	
+
+	* init.c (_objc_load_callback): Initialize with 0.
+	(__objc_call_callback): Renamed to __objc_call_load_callback.
+	Check _objc_load_callback only once, and if it is not set, return
+	immediately.
+	(objc_send_load): Updated call to __objc_call_callback.
+	
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR libobjc/16110
+	* init.c (__objc_send_message_in_list): Renamed to
+	__objc_send_load_using_method_list.  Do not take an 'op' argument.
+	Register the 'load' selector if needed.
+	(__objc_send_load): Do not register the 'load' selector.  Updated
+	call to __objc_send_message_in_list.
+	(__objc_create_classes_tree): Add the class of any claimed
+	category that was loaded in the module to the list of classes for
+	which we try to execute +load.
+	
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-private/common.h: When DEBUG is defined, include <stdio.h>.
+	Updated comments.
+	* init.c (__objc_tree_insert_class): Use %p, not %x, when printing
+	a pointer using DEBUG_PRINTF.
+	
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR libobjc/45953
+	* selector.c (__sel_register_typed_name): When registering a new
+	selector with the same name as an existing one, reuse the existing
+	name string.  Also updated types, casts and comments in the whole
+	function.
+
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-private/module-abi-8.h (struct objc_symtab): Declare 'refs'
+	to be 'struct objc_selector *' and not 'SEL'.
+	* init.c (__objc_exec_class): Call
+	__objc_register_selectors_from_module instead of iterating over
+	each selector and calling __sel_register_typed_name for each.
+	* objc-private/selector.h: Declare
+	__objc_register_selectors_from_module instead of
+	__sel_register_typed_name.
+	* selector.c (__objc_register_selectors_from_module): New.
+	(__sel_register_typed_name): Made static.
+	
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* linking.m: Do not include objc/NXConstStr.h.
+
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+	
+	* objc-private/runtime.h (DEBUG_PRINTF): Moved from here ...
+	* objc-private/common.h (DEBUG_PRINTF): To here.
+	* hash.c: Do not include objc-private/runtime.h and objc/thr.h.
+	
+2010-12-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* hash.c: Tidied up comments and indentation.  No code changes.
+
 2010-12-19  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	PR libobjc/47012
 	* accessors.m (objc_getProperty): If not atomic, do not
-	retain/autorelease the returned value. (Problem reported by
+	retain/autorelease the returned value.
 
 2010-12-19  Nicola Pero  <nicola.pero@meta-innovation.com>
 

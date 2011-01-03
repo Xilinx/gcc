@@ -175,12 +175,13 @@ object_getClass (id object)
    "<null selector>".  */
 objc_EXPORT const char *sel_getName (SEL selector);
 
-/* Return the type of a given selector.
+/* Return the type of a given selector.  Return NULL if selector is
+   NULL.
 
    Compatibility Note: the Apple/NeXT runtime has untyped selectors,
    so it does not have this function, which is specific to the GNU
    Runtime.  */
-objc_EXPORT const char *sel_getType (SEL selector);
+objc_EXPORT const char *sel_getTypeEncoding (SEL selector);
 
 /* This is the same as sel_registerName ().  Please use
    sel_registerName () instead.  */
@@ -188,11 +189,16 @@ objc_EXPORT SEL sel_getUid (const char *name);
 
 /* Register a selector with a given name (but unspecified types).  If
    you know the types, it is better to call sel_registerTypedName().
-   If a selector with this name already exists, it is returned.  */
+   If a selector with this name and no types already exists, it is
+   returned.  Note that this function should really be called
+   'objc_registerSelector'.  Return NULL if 'name' is NULL.  */
 objc_EXPORT SEL sel_registerName (const char *name);
 
 /* Register a selector with a given name and types.  If a selector
-   with this name and types already exists, it is returned.
+   with this name and types already exists, it is returned.  Note that
+   this function should really be called 'objc_registerTypedSelector',
+   and it's called 'sel_registerTypedName' only for consistency with
+   'sel_registerName'.  Return NULL if 'name' is NULL.
 
    Compatibility Note: the Apple/NeXT runtime has untyped selectors,
    so it does not have this function, which is specific to the GNU
@@ -202,6 +208,37 @@ objc_EXPORT SEL sel_registerTypedName (const char *name, const char *type);
 /* Return YES if first_selector is the same as second_selector, and NO
    if not.  */
 objc_EXPORT BOOL sel_isEqual (SEL first_selector, SEL second_selector);
+
+/* Return all the selectors with the supplied name.  In the GNU
+   runtime, selectors are typed and there may be multiple selectors
+   with the same name but a different type.  The return value of the
+   function is a pointer to an area, allocated with malloc(), that
+   contains all the selectors with the supplier name known to the
+   runtime.  The list is terminated by NULL.  Optionally, if you pass
+   a non-NULL 'numberOfReturnedSelectors' pointer, the unsigned int
+   that it points to will be filled with the number of selectors
+   returned.
+
+   Compatibility Note: the Apple/NeXT runtime has untyped selectors,
+   so it does not have this function, which is specific to the GNU
+   Runtime.  */
+objc_EXPORT SEL * sel_copyTypedSelectorList (const char *name,
+					     unsigned int *numberOfReturnedSelectors);
+
+/* Return a selector with name 'name' and a non-zero type encoding, if
+   any such selector is registered with the runtime.  If there is no
+   such selector, NULL is returned.  Return NULL if 'name' is NULL.
+
+   This is useful if you have the name of the selector, and would
+   really like to get a selector for it that includes the type
+   encoding.  Unfortunately, if the program contains multiple selector
+   with the same name but different types, sel_getTypedSelector
+   returns a random one of them, which may not be the right one.
+
+   Compatibility Note: the Apple/NeXT runtime has untyped selectors,
+   so it does not have this function, which is specific to the GNU
+   Runtime.  */
+objc_EXPORT SEL sel_getTypedSelector (const char *name);
 
 
 /** Implementation: the following functions are in objects.c.  */
@@ -315,14 +352,16 @@ objc_EXPORT Ivar * class_copyIvarList (Class class_, unsigned int *numberOfRetur
    using objc_allocateClassPair() and has not been registered with the
    runtime using objc_registerClassPair() yet.  You can not add
    instance variables to classes already registered with the runtime.
-   'size' is the size of the instance variable, 'alignment' the
-   alignment, and 'type' the type encoding of the variable type.  You
-   can use sizeof(), __alignof__() and @encode() to determine the
-   right 'size', 'alignment' and 'type' for your instance variable.
-   For example, to add an instance variable name "my_variable" and of
-   type 'id', you can use:
+   'size' is the size of the instance variable, 'log_2_of_alignment'
+   the alignment as a power of 2 (so 0 means alignment to a 1 byte
+   boundary, 1 means alignment to a 2 byte boundary, 2 means alignment
+   to a 4 byte boundary, etc), and 'type' the type encoding of the
+   variable type.  You can use sizeof(), log2(__alignof__()) and
+   @encode() to determine the right 'size', 'alignment' and 'type' for
+   your instance variable.  For example, to add an instance variable
+   name "my_variable" and of type 'id', you can use:
 
-   class_addIvar (class, "my_variable", sizeof (id), __alignof__ (id), 
+   class_addIvar (class, "my_variable", sizeof (id), log2 ( __alignof__ (id)),
                   @encode (id));
 
    Return YES if the variable was added, and NO if not.  In
@@ -331,7 +370,7 @@ objc_EXPORT Ivar * class_copyIvarList (Class class_, unsigned int *numberOfRetur
    'type' is NULL, or 'size' is 0.
  */
 objc_EXPORT BOOL class_addIvar (Class class_, const char * ivar_name, size_t size,
-				unsigned char alignment, const char *type);
+				unsigned char log_2_of_alignment, const char *type);
 
 /* Return the name of the property.  Return NULL if 'property' is
    NULL.  */
@@ -768,7 +807,11 @@ objc_EXPORT Protocol **objc_copyProtocolList (unsigned int *numberOfReturnedProt
 objc_EXPORT BOOL class_addProtocol (Class class_, Protocol *protocol);
 
 /* Return YES if the class 'class_' conforms to Protocol 'protocol',
-   and NO if not.  */
+   and NO if not.  This function does not check superclasses; if you
+   want to check for superclasses (in the way that [NSObject
+   +conformsToProtocol:] does) you need to iterate over the class
+   hierarchy using class_getSuperclass(), and call
+   class_conformsToProtocol() for each of them.  */
 objc_EXPORT BOOL class_conformsToProtocol (Class class_, Protocol *protocol);
 
 /* Return all the protocols that the class conforms to.  The return
@@ -777,7 +820,9 @@ objc_EXPORT BOOL class_conformsToProtocol (Class class_, Protocol *protocol);
    class.  It does not include protocols adopted by superclasses.  The
    list is terminated by NULL.  Optionally, if you pass a non-NULL
    'numberOfReturnedProtocols' pointer, the unsigned int that it
-   points to will be filled with the number of protocols returned.  */
+   points to will be filled with the number of protocols returned.
+   This function does not return protocols that superclasses conform
+   to.  */
 objc_EXPORT Protocol **class_copyProtocolList (Class class_, unsigned int *numberOfReturnedProtocols);
 
 /* Return YES if protocol 'protocol' conforms to protocol

@@ -23,16 +23,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
-#include "tree.h"
 #include "tree-flow.h"
 #include "cfgloop.h"
 #include "tree-data-ref.h"
-#include "tree-pretty-print.h"
+#include "tree-scalar-evolution.h"
 #include "gimple-pretty-print.h"
 #include "tree-pass.h"
-#include "tree-scalar-evolution.h"
-#include "hashtab.h"
 #include "langhooks.h"
 #include "tree-vectorizer.h"
 
@@ -205,7 +201,7 @@ reduction_phi (htab_t reduction_list, gimple phi)
 {
   struct reduction_info tmpred, *red;
 
-  if (htab_elements (reduction_list) == 0)
+  if (htab_elements (reduction_list) == 0 || phi == NULL)
     return NULL;
 
   tmpred.reduc_phi = phi;
@@ -252,7 +248,8 @@ name_to_copy_elt_hash (const void *aa)
 static bool
 loop_parallel_p (struct loop *loop, struct obstack * parloop_obstack)
 {
-  VEC (ddr_p, heap) * dependence_relations;
+  VEC (loop_p, heap) *loop_nest;
+  VEC (ddr_p, heap) *dependence_relations;
   VEC (data_reference_p, heap) *datarefs;
   lambda_trans_matrix trans;
   bool ret = false;
@@ -270,7 +267,8 @@ loop_parallel_p (struct loop *loop, struct obstack * parloop_obstack)
      the iterations are independent.  */
   datarefs = VEC_alloc (data_reference_p, heap, 10);
   dependence_relations = VEC_alloc (ddr_p, heap, 10 * 10);
-  compute_data_dependences_for_loop (loop, true, &datarefs,
+  loop_nest = VEC_alloc (loop_p, heap, 3);
+  compute_data_dependences_for_loop (loop, true, &loop_nest, &datarefs,
 				     &dependence_relations);
   if (dump_file && (dump_flags & TDF_DETAILS))
     dump_data_dependence_relations (dump_file, dependence_relations);
@@ -288,6 +286,7 @@ loop_parallel_p (struct loop *loop, struct obstack * parloop_obstack)
     fprintf (dump_file,
 	     "  FAILED: data dependencies exist across iterations\n");
 
+  VEC_free (loop_p, heap, loop_nest);
   free_dependence_relations (dependence_relations);
   free_data_refs (datarefs);
 
