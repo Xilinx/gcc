@@ -32,7 +32,7 @@ FLEX_C_FLAGS := -g -O2 -fomit-frame-pointer -gtoggle -DIN_GCC -W -Wall -Wwrite-s
 
 GPY_CFLAGS := -std=gnu99 -I${srcdir}/python
 
-py-lexer.o: $(srcdir)/python/py-lexer.l parser.o
+py-lexer.o: $(srcdir)/python/py-lexer.l py-parser.o
 	$(FLEX) --outfile=lex.py.c $(srcdir)/python/py-lexer.l
 	$(CC) $(GPY_CFLAGS) $(FLEX_C_FLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ lex.py.c
@@ -131,16 +131,15 @@ doc/python.pdf:
 python.html: 
 
 python.install-common: installdirs
-	for name in $(PYTHON_EXECS); \
-	do \
-	   if [ -f $$name ] ; then \
-	    name2="`echo \`basename $$name\` | sed -e '$(program_transform_name)' `"; \
-	    rm -f $(DESTDIR)$(bindir)/$$name2$(exeext); \
-	    echo $(INSTALL_PROGRAM) $$name$(exeext) $(DESTDIR)$(bindir)/$$name2$(exeext); \
-	    $(INSTALL_PROGRAM) $$name$(exeext) $(DESTDIR)$(bindir)/$$name2$(exeext); \
-	    chmod a+x $(DESTDIR)$(bindir)/$$name2$(exeext); \
-	  fi ; \
-	done
+	-rm -f $(DESTDIR)$(bindir)/$(GCCPY_INSTALL_NAME)$(exeext)
+	-rm -f $(DESTDIR)$(bindir)/$(GCCPY_TARGET_INSTALL_NAME)$(exeext)
+	$(INSTALL_PROGRAM) gccpy$(exeext) $(DESTDIR)$(bindir)/$(GCCPY_INSTALL_NAME)$(exeext)
+	if test -f $(DESTDIR)$(bindir)$(GCCPY_TARGET_INSTALL_NAME)$(exeext); then \
+	  :; \
+	else \
+	  cd $(DESTDIR)$(bindir) && \
+	   $(LN) $(GCCPY_INSTALL_NAME)$(exeext) $(GCCPY_TARGET_INSTALL_NAME)$(exeext); \
+	fi
 
 python.install-plugin:
 
