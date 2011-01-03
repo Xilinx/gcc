@@ -38,6 +38,11 @@ extern void fatal_error (const char *, ...);
 #define MELT_PUBLIC_VISIBILITY
 #endif
 
+#define MELT_GENERATE_RUNTIME 0
+
+#if MELT_GENERATE_RUNTIME
+#warning MELT has some runtime generated
+#endif /* MELT_GENERATE_RUNTIME*/
 
 /* we need PPL because some static inline functions use it below
    (e.g. melt_raw_new_ppl_empty_constraint_system). This is notably
@@ -185,6 +190,7 @@ extern int melt_debug_garbcoll;
 
 union meltparam_un
 {
+
   /* for melt value pointers, we pass the address of a local, to be
      compatible with our copying garbage collector */
   melt_ptr_t *meltbp_aptr;	/* letter p */

@@ -1,5 +1,11 @@
 
 2011-01-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_GENERATE_RUNTIME): Define as 0 temporarily.
+
+	* melt/warmelt-outobj.melt (runtypesupport_param): New function.
+	(runtypesupport_docmd): Call it, to generate meltrunsup-param.h in the future.
+
+2011-01-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h: Rename BPARSTR_* as MELTBPARSTR_* everywhere.
 	Remove old backward compatibility hacks.

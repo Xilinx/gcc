@@ -5885,6 +5885,94 @@ notice for file named $NAME.}#
     )
   )
 
+
+;; internal function to generate parameter passing support
+(defun runtypesupport_param (sbuf outname bitup)
+  (debug_msg outname "runtypesupport_param outname start")
+  (assert_msg "check bitup" (==i (multiple_length bitup) 2))
+  (debug_msg bitup "runtypesupport_param bitup")
+  (let 
+      ( 
+       (ctygtytup (multiple_nth bitup 0))
+       (valdesctup (multiple_nth bitup 1))
+       )
+;;;;;;;;;;;;;;;;
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_strconst 
+     sbuf
+     "/* support for MELT parameter passing*/")
+    (add2sbuf_indentnl sbuf 0)
+    ;; emit the enumeration for parameter types
+    (add2sbuf_strconst sbuf "enum /* generated enumeration for MELT parameters */ {")
+    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_strconst sbuf "MELTBPAR__NONE=0,")
+    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_strconst sbuf "MELTBPAR_PTR,")
+    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_strconst sbuf "#define MELTBPARSTR_PTR \"\\001\" /*for MELT values*/")
+    (add2sbuf_indentnl sbuf 1)
+    (foreach_in_multiple
+     (ctygtytup)
+     (curctyp :long tix)
+     (debug_msg curctyp "runtypesupport_param curctyp")
+     (add2sbuf_strconst sbuf "/*gtyctype #")
+     (add2sbuf_longdec sbuf (+i 1 tix))
+     (add2sbuf_strconst sbuf " ")
+     (add2sbuf_ccomstring sbuf (get_field :named_name curctyp))
+     (add2sbuf_strconst sbuf "*/")
+     (add2sbuf_indentnl sbuf 1)
+     ;; emit the :ctype_parchar
+     (add2sbuf_string sbuf (get_field :ctype_parchar curctyp))
+     (add2sbuf_strconst sbuf "   /*=")
+     (add2sbuf_longdec sbuf (+i 2 tix))
+     (add2sbuf_strconst sbuf "*/,")
+     (add2sbuf_indentnl sbuf 1)
+     ;; emit the :ctype_parstring
+     (add2sbuf_strconst sbuf "#define ")
+     (add2sbuf_string sbuf (get_field :ctype_parstring curctyp))
+     (add2sbuf_strconst sbuf "  \"\\x")
+     (add2sbuf_longhex sbuf  (+i 2 tix))
+     (add2sbuf_strconst sbuf "\"")
+     (add2sbuf_indentnl sbuf 1)
+     )
+    (add2sbuf_strconst sbuf " MELTBPAR__LAST}; /*end enum for MELT parameters*/")
+    (add2sbuf_indentnl sbuf 1)
+    ;; emit the union for parameters
+    (add2sbuf_strconst sbuf "union meltparam_en /* generated union for MELT parameters */ {")
+    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_strconst sbuf "void* meltbp_any;")
+    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_strconst sbuf "/* for MELT values, pass the adress of a local*/")
+    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_strconst sbuf "melt_ptr_t *meltbp_aptr;")
+    (add2sbuf_indentnl sbuf 1)
+    (foreach_in_multiple
+     (ctygtytup)
+     (curctyp :long tix)
+     (debug_msg curctyp "runtypesupport_param curctyp")
+     (add2sbuf_indentnl sbuf 1)
+     (add2sbuf_strconst sbuf "/*gtyctype #")
+     (add2sbuf_longdec sbuf (+i 1 tix))
+     (add2sbuf_strconst sbuf " ")
+     (add2sbuf_ccomstring sbuf (get_field :named_name curctyp))
+     (add2sbuf_strconst sbuf "*/")
+     (add2sbuf_indentnl sbuf 1)
+     (add2sbuf_string sbuf (get_field :ctype_cname curctyp))
+     (add2sbuf_strconst sbuf " ")
+     (add2sbuf_string sbuf (get_field :ctype_argfield curctyp))
+     (add2sbuf_strconst sbuf ";")
+     (add2sbuf_indentnl sbuf 1)
+     (add2sbuf_string sbuf (get_field :ctype_cname curctyp))
+     (add2sbuf_strconst sbuf " *")
+     (add2sbuf_string sbuf (get_field :ctype_resfield curctyp))
+     (add2sbuf_strconst sbuf ";")     
+     )					;end foreach_in_multiple
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_strconst sbuf "}; /* end generated union for MELT parameters */")
+    (add2sbuf_indentnl sbuf 0)
+    )
+  )
+
 (defun runtypesupport_docmd (cmd moduldata)
   (debug_msg cmd "start runtypesupport_docmd cmd")
   (debug_msg moduldata "start runtypesupport_docmd moduldata")
@@ -5935,6 +6023,11 @@ notice for file named $NAME.}#
        runtypesupport_scanforw
        (tuple sortedctygtytuple sortedvaldesctuple)
        outarg "-scanforw.h")
+      ;; generate the parameter passing support e.g. union meltparam_un...
+      (generate_runtypesupport
+       runtypesupport_param
+       (tuple sortedctygtytuple sortedvaldesctuple)
+       outarg "-param.h")
       ;;
       ;;
       (debug_msg outarg "runtypesupport_docmd done outarg")
