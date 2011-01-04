@@ -442,8 +442,8 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 
-.PHONY: generate-meltrun
-generate-meltrun: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
+.PHONY: meltrun-generate
+meltrun-generate: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
                   melt-all-sources melt-all-modules  $(melt_make_cc1_dependency)
 	rm -f $(wildcard meltrunsup*)
 	$(melt_make_cc1)  $(melt_make_cc1flags) \
@@ -454,6 +454,7 @@ generate-meltrun: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
 	      $(meltarg_source_path)=melt-sources:. \
 	      $(meltarg_output)=meltrunsup  \
 	      empty-file-for-melt.c
+	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then cp -v meltrunsup*.h $(GCCMELTRUNGEN_DEST) ; fi
 
 ### MELT cleanup
 .PHONY: melt-clean

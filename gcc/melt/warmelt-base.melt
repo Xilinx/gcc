@@ -1177,6 +1177,130 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 )
 (install_value_descriptor valdesc_object)
 
+;;;;;;;;;;;;;;;; objects map values
+
+(definstance valdesc_mapobjects class_value_descriptor
+  :doc #{$VALDESC_BOX describes object-keyed map values.}#
+  :named_name '"VALDESC_mapobjects"
+  :valdesc_objmagic '"MELTOBMAG_MAPOBJECTS"
+  :valdesc_struct '"meltmapobjects_st"
+  :valdesc_unionmem '"u_mapobjects"
+  :valdesc_membchunk #{$' /* from VALDESC_MAPOBJECTS */
+  meltobject_ptr_t discr;
+  unsigned count;
+  unsigned char lenix;
+  struct entryobjectsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
+    entab;
+  /* the following field is usually the value of entab (for
+     objects in the young zone), to allocate the object and its fields
+     at once; hence its GTY-ed length is zero */
+  struct entryobjectsmelt_st GTY ((length ("0"))) map_space[FLEXIBLE_DIM];
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_MAPOBJECTS */
+     int siz = melt_primtab[src->lenix];
+     dst->discr = src->discr;
+     dst->count = src->count;
+     dst->lenix = src->lenix;
+     if (siz > 0 && src->entab)
+       {
+       /* Don't need a cleared allocation.  */
+         dst->entab = ggc_alloc_vec_entryobjectsmelt_st (siz);
+         memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
+       }
+     else
+       dst->entab = NULL;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_MAPOBJECTS */
+    int siz, ix;
+    if (!src->entab)
+      break;
+    siz = melt_primtab[src->lenix];
+    gcc_assert (siz > 0);
+    if (melt_is_young (src->entab))
+      {
+        struct entryobjectsmelt_st *newtab = 
+          /* Don't need a cleared allocation!  */
+          ggc_alloc_vec_entryobjectsmelt_st (siz);
+        memcpy (newtab, src->entab,
+                siz * sizeof (struct entryobjectsmelt_st));
+        src->entab = newtab;
+      }
+    for (ix = 0; ix < siz; ix++)
+      {
+        meltobject_ptr_t at = src->entab[ix].e_at;
+        if (!at || at == (void *) HTAB_DELETED_ENTRY)
+          {
+            src->entab[ix].e_va = NULL;
+            continue;
+          }
+        MELT_FORWARDED (at);
+        src->entab[ix].e_at = at;
+        MELT_FORWARDED (src->entab[ix].e_va);
+      }
+  }#
+)
+(install_value_descriptor valdesc_mapobjects)
+
+;;;;;;;;;;;;;;;; string map values
+(definstance valdesc_mapstrings class_value_descriptor
+  :doc #{$VALDESC_BOX describes string-keyed map values.}#
+  :named_name '"VALDESC_mapstrings"
+  :valdesc_objmagic '"MELTOBMAG_MAPSTRINGS"
+  :valdesc_struct '"meltmapstrings_st"
+  :valdesc_unionmem '"u_mapstrings"
+  :valdesc_membchunk #{$' /* from VALDESC_MAPSTRINGS */
+  meltobject_ptr_t discr;
+  unsigned count;
+  unsigned char lenix;
+  struct entrystringsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
+    entab;
+  }#
+  :valdesc_copychunk #{$' /* from VALDESC_MAPSTRINGS */
+        int siz = melt_primtab[src->lenix];
+        dst->discr = src->discr;
+        dst->count = src->count;
+        dst->lenix = src->lenix;
+        if (siz > 0 && src->entab)
+          {
+          /* Don't need a cleared allocation.  */
+            dst->entab = ggc_alloc_vec_entrystringsmelt_st (siz);
+            memcpy (dst->entab, src->entab, siz * sizeof (dst->entab[0]));
+          }
+        else
+          dst->entab = NULL;
+  }#
+  :valdesc_forwchunk #{$' /* from VALDESC_MAPSTRINGS */
+     int ix, siz;
+     if (!src->entab)
+       break;
+     siz = melt_primtab[src->lenix];
+     gcc_assert (siz > 0);
+     if (melt_is_young (src->entab))
+       {
+         struct entrystringsmelt_st *newtab
+           /* Don't need a cleared allocation!  */
+           = ggc_alloc_vec_entrystringsmelt_st (siz);
+         memcpy (newtab, src->entab,
+                 siz * sizeof (struct entrystringsmelt_st));
+         src->entab = newtab;
+       }
+     for (ix = 0; ix < siz; ix++)
+       {
+         const char *at = src->entab[ix].e_at;
+         if (!at || at == (void *) HTAB_DELETED_ENTRY)
+           {
+             src->entab[ix].e_va = NULL;
+             continue;
+           }
+         if (melt_is_young ((const void *) at))
+           src->entab[ix].e_at = (const char *) ggc_strdup (at);
+         MELT_FORWARDED (src->entab[ix].e_va);
+       }
+  }#
+)
+(install_value_descriptor valdesc_mapobjects)
+
+
 ;;;;;;;;;;;;;;;; decaying value
 (definstance valdesc_decay class_value_descriptor
   :doc #{$VALDESC_DECAY describes decaying values.}#
@@ -2067,6 +2191,8 @@ polyhedron values.}#
  valdesc_pair
  valdesc_list
  valdesc_int
+ valdesc_mapobjects
+ valdesc_mapstrings
  valdesc_mixint
  valdesc_mixloc
  valdesc_mixbigint

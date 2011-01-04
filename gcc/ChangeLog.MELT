@@ -1,4 +1,14 @@
 
+2011-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.tpl (meltrun-generate): Rename generate-meltrun.
+	Use the GCCMELRUNGEN_DEST variable.
+
+	* melt-build.mk: Regenerate.
+
+	* melt/warmelt-base.melt (valdesc_mapobjects, valdesc_mapstrings):
+	New.
+
 2011-01-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_GENERATE_RUNTIME): Define as 0 temporarily.
 
