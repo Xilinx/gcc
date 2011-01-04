@@ -5893,9 +5893,9 @@ notice for file named $NAME.}#
   (debug_msg bitup "runtypesupport_param bitup")
   (let 
       ( 
-       (ctygtytup (multiple_nth bitup 0))
+       (ctytup (multiple_nth bitup 0))
        (valdesctup (multiple_nth bitup 1))
-       (:long numdelta 3)
+       (:long numdelta 1)
        )
 ;;;;;;;;;;;;;;;;
     (add2sbuf_indentnl sbuf 0)
@@ -5909,7 +5909,7 @@ notice for file named $NAME.}#
     (add2sbuf_strconst sbuf "MELTBPAR__NONE=0,")
     (add2sbuf_indentnl sbuf 1)
     (foreach_in_multiple
-     (ctygtytup)
+     (ctytup)
      (curctyp :long tix)
      (debug_msg curctyp "runtypesupport_param curctyp")
      (add2sbuf_strconst sbuf "/*gtyctype #")
@@ -5965,7 +5965,7 @@ notice for file named $NAME.}#
     (add2sbuf_strconst sbuf "long *meltbp_longptr;")
     (add2sbuf_indentnl sbuf 1)
     (foreach_in_multiple
-     (ctygtytup)
+     (ctytup)
      (curctyp :long tix)
      (debug_msg curctyp "runtypesupport_param curctyp")
      (add2sbuf_indentnl sbuf 1)
@@ -6000,7 +6000,7 @@ notice for file named $NAME.}#
 		    ))
 	(dictypgty (retrieve_dictionnary_ctype_gty))
 	(rawctypgtylist (list))
-	(dictyp (retrieve_dictionnary_ctype_gty))
+	(dictyp (retrieve_dictionnary_ctype))
 	(rawctyplist (list))
 	)
     (debug_msg dictypgty "runtypesupport_docmd dictypgty")
