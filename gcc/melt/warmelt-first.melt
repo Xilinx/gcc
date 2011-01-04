@@ -1895,6 +1895,9 @@ the routine pointer and the constants inside MELT function closure values. See a
 (definstance container_ctype_gty_dict class_container
   :container_value (make_mapstring discr_map_strings 60))
 
+(definstance container_ctype_dict class_container
+  :container_value (make_mapstring discr_map_strings 60))
+
 ;;; by having the install_ctype_descr called inside each ctype
 ;;; initialization, we are sure it is called once for each, because
 ;;; ctype-s are predefined
@@ -1912,6 +1915,9 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
     (unsafe_put_fields ckw :symb_data ctyp)
     (if (is_a altkw class_keyword)
 	(put_fields altkw :symb_data ctyp))
+    (mapstring_putstr (get_field :container_value container_ctype_dict)
+		      (get_field :named_name ckw)
+		      ctyp)
     (if (is_a ctyp class_ctype_gty)
 	(mapstring_putstr (get_field :container_value container_ctype_gty_dict)
 			  (get_field :named_name ckw)
@@ -2131,7 +2137,7 @@ Keyword is :loop.}#
   :predef CTYPE_LOOP
   :named_name  '"CTYPE_LOOP"
   :ctype_keyword ':loop
-  :ctype_cname '"loop"
+  :ctype_cname '"loop_p"
   :ctype_parchar '"MELTBPAR_LOOP"
   :ctype_parstring '"MELTBPARSTR_LOOP"
   :ctype_argfield '"meltbp_loop"
@@ -3698,7 +3704,13 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  )
 
 (defun retrieve_dictionnary_ctype_gty ()
+  :doc #{Retrieve the dictionnary of GTY-ed ctypes.}#
   (get_field :container_value container_ctype_gty_dict)
+)
+
+(defun retrieve_dictionnary_ctype ()
+  :doc #{Retrieve the dictionnary of all ctypes.}#
+  (get_field :container_value container_ctype_dict)
 )
 
 ;;;;;; export the above classes
@@ -3976,6 +3988,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  post_initialization
  put_env
  register_option
+ retrieve_dictionnary_ctype
  retrieve_dictionnary_ctype_gty
  routine_every
  )

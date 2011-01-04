@@ -5895,6 +5895,7 @@ notice for file named $NAME.}#
       ( 
        (ctygtytup (multiple_nth bitup 0))
        (valdesctup (multiple_nth bitup 1))
+       (:long numdelta 3)
        )
 ;;;;;;;;;;;;;;;;
     (add2sbuf_indentnl sbuf 0)
@@ -5907,10 +5908,6 @@ notice for file named $NAME.}#
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf "MELTBPAR__NONE=0,")
     (add2sbuf_indentnl sbuf 1)
-    (add2sbuf_strconst sbuf "MELTBPAR_PTR,")
-    (add2sbuf_indentnl sbuf 1)
-    (add2sbuf_strconst sbuf "#define MELTBPARSTR_PTR \"\\001\" /*for MELT values*/")
-    (add2sbuf_indentnl sbuf 1)
     (foreach_in_multiple
      (ctygtytup)
      (curctyp :long tix)
@@ -5921,30 +5918,51 @@ notice for file named $NAME.}#
      (add2sbuf_ccomstring sbuf (get_field :named_name curctyp))
      (add2sbuf_strconst sbuf "*/")
      (add2sbuf_indentnl sbuf 1)
-     ;; emit the :ctype_parchar
-     (add2sbuf_string sbuf (get_field :ctype_parchar curctyp))
-     (add2sbuf_strconst sbuf "   /*=")
-     (add2sbuf_longdec sbuf (+i 2 tix))
-     (add2sbuf_strconst sbuf "*/,")
-     (add2sbuf_indentnl sbuf 1)
-     ;; emit the :ctype_parstring
-     (add2sbuf_strconst sbuf "#define ")
-     (add2sbuf_string sbuf (get_field :ctype_parstring curctyp))
-     (add2sbuf_strconst sbuf "  \"\\x")
-     (add2sbuf_longhex sbuf  (+i 2 tix))
-     (add2sbuf_strconst sbuf "\"")
-     (add2sbuf_indentnl sbuf 1)
+     (let ( (ctypchar  (get_field :ctype_parchar curctyp))
+	    (ctypstr (get_field :ctype_parstring curctyp))
+	    )
+       ;; emit the :ctype_parchar
+       (cond
+	( ctypchar
+	  (add2sbuf_string sbuf ctypchar)
+	  (add2sbuf_strconst sbuf "   /*=")
+	  (add2sbuf_longdec sbuf (+i numdelta tix))
+	  (add2sbuf_strconst sbuf "*/,")
+	  )
+	(:else
+	 (add2sbuf_strconst sbuf "   /*-- non parameter --*/")))
+       (add2sbuf_indentnl sbuf 0)
+       ;; emit the :ctype_parstring
+       (cond
+	(ctypstr
+	 (add2sbuf_strconst sbuf "#define ")
+	 (add2sbuf_string sbuf ctypstr)
+	 (add2sbuf_strconst sbuf "  \"\\x")
+	 (add2sbuf_longhex sbuf  (+i numdelta tix))
+	 (add2sbuf_strconst sbuf "\"")
+	 )
+	(:else
+	 (add2sbuf_strconst sbuf "   /*-- non paramstr --*/")))	 
+       (add2sbuf_indentnl sbuf 0)
+       (add2sbuf_indentnl sbuf 1)
+       )
      )
     (add2sbuf_strconst sbuf " MELTBPAR__LAST}; /*end enum for MELT parameters*/")
-    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_indentnl sbuf 0)
     ;; emit the union for parameters
-    (add2sbuf_strconst sbuf "union meltparam_en /* generated union for MELT parameters */ {")
+    (add2sbuf_strconst sbuf "union meltparam_un /* generated union for MELT parameters */ {")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf "void* meltbp_any;")
     (add2sbuf_indentnl sbuf 1)
-    (add2sbuf_strconst sbuf "/* for MELT values, pass the adress of a local*/")
+    (add2sbuf_strconst sbuf "/* for MELT values, pass the address of a local*/")
     (add2sbuf_indentnl sbuf 1)
     (add2sbuf_strconst sbuf "melt_ptr_t *meltbp_aptr;")
+    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_strconst sbuf "/* for MELT longs */")
+    (add2sbuf_strconst sbuf "long meltbp_long;")
+    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_strconst sbuf "long *meltbp_longptr;")
     (add2sbuf_indentnl sbuf 1)
     (foreach_in_multiple
      (ctygtytup)
@@ -5982,6 +6000,8 @@ notice for file named $NAME.}#
 		    ))
 	(dictypgty (retrieve_dictionnary_ctype_gty))
 	(rawctypgtylist (list))
+	(dictyp (retrieve_dictionnary_ctype_gty))
+	(rawctyplist (list))
 	)
     (debug_msg dictypgty "runtypesupport_docmd dictypgty")
     (debug_msg outarg "runtypesupport_docmd outarg")
@@ -5991,8 +6011,17 @@ notice for file named $NAME.}#
      (list_append rawctypgtylist curcty)
      )
     (debug_msg rawctypgtylist "runtypesupport_docmd rawctypgtylist")
+    (foreach_in_mapstring
+     (dictyp)
+     (curstr curcty)
+     (list_append rawctyplist curcty)
+     )
+    (debug_msg rawctyplist "runtypesupport_docmd rawctyplist")
     (let ( (sortedctygtytuple 
 	    (multiple_sort (list_to_multiple rawctypgtylist discr_multiple)
+			   compare_named_alpha discr_multiple)) 
+	   (sortedctytuple 
+	    (multiple_sort (list_to_multiple rawctyplist discr_multiple)
 			   compare_named_alpha discr_multiple))
 	   (rawvaldesctuple  
 	    (list_to_multiple (retrieve_value_descriptor_list)))
@@ -6024,9 +6053,10 @@ notice for file named $NAME.}#
        (tuple sortedctygtytuple sortedvaldesctuple)
        outarg "-scanforw.h")
       ;; generate the parameter passing support e.g. union meltparam_un...
+      ;; we pass all the ctype-s
       (generate_runtypesupport
        runtypesupport_param
-       (tuple sortedctygtytuple sortedvaldesctuple)
+       (tuple sortedctytuple sortedvaldesctuple)
        outarg "-param.h")
       ;;
       ;;

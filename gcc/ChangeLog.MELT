@@ -1,6 +1,14 @@
 
 2011-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (retrieve_dictionnary_ctype): Add new
+	exported function.
+
+	* melt/warmelt-outobj.melt (runtypesupport_param): Use it to
+	generate union meltparam_un.
+
+2011-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-base.melt (valdesc_mapobjects, valdesc_mapstrings):
 	Correct typos.
 
