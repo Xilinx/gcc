@@ -22,14 +22,31 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef GIMPLE_PARSER_H
 #define GIMPLE_PARSER_H
 
+#include <stdio.h>
 #include "cpplib.h"
 #include "vec.h"
 
-struct gimple_parser;
-typedef cpp_token gimple_token;
+
+/* A GIMPLE token.  */
+
+typedef struct GTY(()) gimple_token {
+  /* Token type.  */
+  ENUM_BITFIELD (cpp_ttype) type : 8;
+
+  /* Token flags used by the cpp_token structure.  */
+  unsigned char flags;
+
+  /* Source location where this token was found.  */
+  location_t location;
+
+  /* The value associated with this token, if any.  */
+  tree value;
+} gimple_token;
 
 DEF_VEC_O (gimple_token);
 DEF_VEC_ALLOC_O (gimple_token, gc);
+
+struct gimple_parser;
 
 /* The GIMPLE lexer.  */
 
@@ -47,7 +64,7 @@ typedef struct GTY(()) gimple_lexer {
   VEC(gimple_token, gc) *tokens;
 
   /* Token to be consumed by the parser.  */
-  size_t cur_token_ix;
+  unsigned cur_token_ix;
 } gimple_lexer;
 
 
@@ -67,5 +84,5 @@ typedef struct GTY(()) gimple_parser {
 
 /* In parser.c  */
 extern void gimple_main (void);
- 
+
 #endif /* GIMPLE_PARSER_H  */

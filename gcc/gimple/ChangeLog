@@ -1,3 +1,70 @@
+2011-01-04  Diego Novillo  <dnovillo@google.com>
+
+	* lang-specs.h: Make .gimple files use the @gimple spec.
+	* parser.h: Include stdio.h.
+	(struct gimple_token): New.
+	* gimple-lang.c	(handle_leaf_attribute): Tidy.
+	* parser.c (gl_eof_token): New.
+	(gl_token_as_text): New.
+	(gl_at_eof): New.
+	(gl_consume_token): New.
+	Replace calls to cpp_get_token with this everywhere.
+	Re-arrange calls to cpp_peek_token to call this and avoid
+	having to peek and consume separately.
+	(gl_tree_code_for_token): New.
+	(gl_gimple_code_for_token): New.
+	(gl_token_starts_type): New.
+	(gl_dump_token): New.
+	(gl_dump): New.
+	(gp_dump): New.
+	(gl_consume_expected_token): New.
+	(gp_parse_expect_subcode): Rename from gimple_parse_expect_subcode.
+	Call error_at instead of error.
+	(gp_parse_expect_lhs): Rename from gimple_parse_expect_lhs.
+	(gp_parse_expect_rhs1): Rename from gimple_parse_expect_rhs1.
+	(gp_parse_expect_rhs2): Rename from gimple_parse_expect_rhs2.
+	(gp_parse_assign_stmt): Rename from gimple_parse_assign_stmt.
+	(gp_parse_expect_op1): Rename from gimple_parse_expect_op1.
+	(gp_parse_expect_op2): Rename from gimple_parse_expect_op2.
+	(gp_parse_expect_true_label): Rename from
+	gimple_parse_expect_true_label.
+	(gp_parse_expect_false_label): Rename from
+	gimple_parse_expect_false_label.
+	(gp_parse_cond_stmt): Rename from gimple_parse_cond_stmt.
+	(gp_parse_goto_stmt): Rename from gimple_parse_goto_stmt.
+	(gp_parse_label_stmt): Rename from gimple_parse_label_stmt.
+	(gp_parse_switch_stmt): Rename from gimple_parse_switch_stmt.
+	(gp_parse_expect_function_name): Rename from
+	gimple_parse_expect_function_name.
+	(gp_parse_expect_return_var): Rename from
+	gimple_parse_expect_return_var.
+	(gp_parse_expect_argument): Rename from gimple_parse_expect_argument.
+	(gp_parse_call_stmt): Rename from gimple_parse_call_stmt.
+	(gp_parse_return_stmt): Rename from gimple_parse_return_stmt.
+	(gp_parse_stmt): Rename from gimple_parse_stmt.
+	(gp_parse_expect_field_decl): Rename from
+	gimple_parse_expect_field_decl.
+	(gp_parse_record_type): Rename from gimple_parse_record_type.
+	Check that we do not run out of tokens.
+	(gp_parse_union_type): Rename from gimple_parse_union_type.
+	Check that we do not run out of tokens.
+	(gp_parse_expect_const_decl): Rename from
+	gimple_parse_expect_const_decl.
+	(gp_parse_enum_type): Rename from gimple_parse_enum_type.
+	Check that we don't run out of tokens.
+	(gp_parse_type): Rename from gimple_parse_type.
+	(narrowest_unsigned_type): Copy over from c-family/c-lex.c.
+	(narrowest_signed_type): Likewise.
+	(gl_interpret_integer): New.
+	(gl_interpret_float): New.
+	(gl_lex_charconst): New.
+	(gl_lex_string): New.
+	(gl_lex_token): New.
+	(gl_lex): Re-organize.  Call gl_lex_token.
+	(gp_parse): Call gl_token_starts_type to determine whether
+	to parse a type or a statement.
+	(gp_init): Receive file name to parse as input.  Update users.
+
 2010-12-20  Diego Novillo  <dnovillo@google.com>
 
 	* parser.h (gimple_parser): Remove field debug_p.

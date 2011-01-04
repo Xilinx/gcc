@@ -36,95 +36,230 @@ along with GCC; see the file COPYING3.  If not see
    that needs to access it.  */
 static GTY(()) gimple_parser *parser_gc_root__;
 
-/* Consumes a token if the EXPECTED_TOKEN_TYPE is exactly the one we 
-   are looking for. The token is obtained by reading it from the reader P.  */
+/* Declare debugging functions to make them available in the debugger.  */
+extern void gl_dump_token (FILE *, gimple_token *);
+extern void gl_dump (FILE *, gimple_lexer *); 
+extern void gp_dump (FILE *, gimple_parser *);
+
+/* EOF token.  */
+static gimple_token gl_eof_token = { CPP_EOF, 0, 0, 0 };
+
+/* Return the string representation of token TOKEN.  */
+
+static const char *
+gl_token_as_text (const gimple_token *token)
+{
+  switch (token->type)
+    {
+    case CPP_NAME:
+      return IDENTIFIER_POINTER (token->value);
+
+    case CPP_STRING:
+    case CPP_STRING16:
+    case CPP_STRING32:
+    case CPP_WSTRING:
+    case CPP_UTF8STRING:
+      return TREE_STRING_POINTER (token->value);
+      break;
+
+    default:
+      return cpp_type2name (token->type, token->flags);
+    }
+}
+
+
+/* Return true if we have reached the end of LEXER's token buffer.  */
+
+static bool
+gl_at_eof (gimple_lexer *lexer)
+{
+  return lexer->cur_token_ix >= VEC_length (gimple_token, lexer->tokens);
+}
+
+
+/* Consume the next token from LEXER.  */
+
+static gimple_token *
+gl_consume_token (gimple_lexer *lexer)
+{
+  if (gl_at_eof (lexer))
+    return &gl_eof_token;
+
+  return VEC_index (gimple_token, lexer->tokens, lexer->cur_token_ix++);
+}
+
+
+/* Return the tree code for TOKEN.  Returns LAST_AND_UNUSED_TREE_CODE
+   if no match is found.  */
+
+static enum tree_code
+gl_tree_code_for_token (const gimple_token *token)
+{
+  enum tree_code code;
+  const char *s;
+
+  s = gl_token_as_text (token);
+  for (code = ERROR_MARK; code < LAST_AND_UNUSED_TREE_CODE; code++)
+    if (strcasecmp (s, tree_code_name[code]) == 0)
+      break;
+
+  return code;
+}
+
+
+/* Return the gimple code for TOKEN.  Returns LAST_AND_UNUSED_GIMPLE_CODE
+   if no match is found.  */
+
+static enum gimple_code
+gl_gimple_code_for_token (const gimple_token *token)
+{
+  enum gimple_code code;
+  const char *s;
+
+  s = gl_token_as_text (token);
+  for (code = GIMPLE_ERROR_MARK; code < LAST_AND_UNUSED_GIMPLE_CODE; code++)
+    if (strcasecmp (s, gimple_code_name[code]) == 0)
+      break;
+
+  return code;
+}
+
+
+/* Return true if TOKEN is the start of a type declaration.  */
+
+static bool
+gl_token_starts_type (gimple_token *token)
+{
+  enum tree_code code = gl_tree_code_for_token (token);
+  return code == RECORD_TYPE || code == UNION_TYPE || code == ENUMERAL_TYPE;
+}
+
+
+/* Dump TOKEN to FILE.  If FILE is NULL, stderr is used.  */
+
+void
+gl_dump_token (FILE *file, gimple_token *token)
+{
+  if (file == NULL)
+    file = stderr;
+
+  fprintf (file, "%s", gl_token_as_text (token));
+
+  if (token->type == CPP_CLOSE_BRACE || token->type == CPP_SEMICOLON)
+    fprintf (file, "\n");
+  else
+    {
+      fprintf (file, " ");
+      fflush (file);
+    }
+}
+
+
+/* Dump debugging information about LEXER to FILE.  If FILE is NULL,
+   stderr is used.  */
+
+void
+gl_dump (FILE *file, gimple_lexer *lexer)
+{
+  unsigned i;
+  gimple_token *token;
+
+  if (file == NULL)
+    file = stderr;
+
+  fprintf (file, "%s: %u tokens, current token index: %u\n",
+	   lexer->filename, VEC_length (gimple_token, lexer->tokens),
+	   lexer->cur_token_ix);
+
+  for (i = 0; VEC_iterate (gimple_token, lexer->tokens, i, token); i++)
+    gl_dump_token (file, token);
+}
+
+
+/* Dump debugging information about PARSER to FILE.  If FILE is
+   NULL, stderr is used.  */
+
+void
+gp_dump (FILE *file, gimple_parser *parser)
+{
+  gl_dump (file, parser->lexer);
+}
+
+
+/* Returns the next token from LEXER if its type is the same as 
+   EXPECTED.  Otherwise, it issues an error message.  */
  
 static const gimple_token * 
-gimple_parse_expect_token (cpp_reader *p, enum cpp_ttype expected_token_type)
+gl_consume_expected_token (gimple_lexer *lexer, enum cpp_ttype expected)
 {
-  const gimple_token *next_token;
-
-  next_token = cpp_peek_token (p, 0);
-
-  /* If the token type does not match then we must report an error,
-     otherwise consume the token.  */
-
-  /* FIXME The error reported should be more precise to help 
-     diagnostics similar to that reported by other front ends in
-     the same case.  */
-
-  if (next_token->type != expected_token_type)
-    error ("expected token type %s instead of %s",
-	    cpp_type2name (expected_token_type, 0),
-	    cpp_type2name (next_token->type, 0));
-  else
-    next_token = cpp_get_token_with_location (p, &input_location);
+  const gimple_token *next_token = gl_consume_token (lexer);
+  if (next_token->type != expected)
+    error_at (next_token->location,
+	      "token '%s' is not of the expected type '%s'",
+	      gl_token_as_text (next_token), cpp_type2name (expected, 0));
 
   return next_token;
 }
 
 
-/* Helper for gimple_parse_assign_stmt and gimple_parse_cond_stmt.
-   Peeks a token by reading from reader P and looks it up to match 
+/* Helper for gp_parse_assign_stmt and gp_parse_cond_stmt.
+   Peeks a token by reading from reader PARSER and looks it up to match 
    against the tree codes.  */
 
 static void
-gimple_parse_expect_subcode (cpp_reader *p)
+gp_parse_expect_subcode (gimple_parser *parser)
 {
   const gimple_token *next_token;
-  const char *text;
-  int i;
+  enum tree_code code;
 
-  gimple_parse_expect_token (p, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
 
   /* Peeks a token and looks it up for a match.  */
- 
-  next_token = cpp_peek_token (p, 0);
-  text = (const char *) cpp_token_as_text (p, next_token);
-  for (i = ERROR_MARK; i < LAST_AND_UNUSED_TREE_CODE; i++)
-    if (strcasecmp (text, tree_code_name[i]) == 0)
-      break;
+  next_token = gl_consume_token (parser->lexer);
+  code = gl_tree_code_for_token (next_token);
 
   /* If none of the tree codes match, then report an error. Otherwise
      consume this token.  */
-  if (i == LAST_AND_UNUSED_TREE_CODE)
-    error ("Expected token should be one of the tree codes");
-  else
-    next_token = cpp_get_token (p);
+  if (code == LAST_AND_UNUSED_TREE_CODE)
+    error_at (next_token->location, 
+	      "Unmatched tree code for token '%s'",
+	      gl_token_as_text (next_token));
 
-  gimple_parse_expect_token (p, CPP_COMMA);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
 
   /* FIXME From this function we should return the tree code since it
      can be used by the other helper functions to recognize precisely.  */
 }
 
-/* Helper for gimple_parse_assign_stmt. The token read from reader P should 
+
+/* Helper for gp_parse_assign_stmt. The token read from reader PARSER should 
    be the lhs of the tuple.  */
 
 static void 
-gimple_parse_expect_lhs (cpp_reader *p)
+gp_parse_expect_lhs (gimple_parser *parser)
 {  
   const gimple_token *next_token;
 
   /* Just before the name of the identifier we might get the symbol 
      of dereference too. If we do get it then consume that token, else
      continue recognizing the name.  */
-  next_token = cpp_peek_token (p, 0);
+  next_token = gl_consume_token (parser->lexer);
   if (next_token->type == CPP_MULT)
-    next_token = cpp_get_token (p);
+    next_token = gl_consume_token (parser->lexer);
 
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_COMMA);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
 }
 
-/* Helper for gimple_parse_assign_stmt. The token read from reader P should 
+/* Helper for gp_parse_assign_stmt. The token read from reader PARSER should 
    be the first operand in rhs of the tuple.  */
 
 static void 
-gimple_parse_expect_rhs1 (cpp_reader *p)
+gp_parse_expect_rhs1 (gimple_parser *parser)
 {
   const gimple_token *next_token;
-  next_token = cpp_peek_token (p, 0);
+
+  next_token = gl_consume_token (parser->lexer);
 
   /* Currently there is duplication in the following blocks but there
      would be more stuff added here as we go on.  */
@@ -134,349 +269,337 @@ gimple_parse_expect_rhs1 (cpp_reader *p)
     {
     case CPP_MULT:
     case CPP_AND:
-      next_token = cpp_get_token (p);
-      gimple_parse_expect_token (p, CPP_NAME);
+      gl_consume_expected_token (parser->lexer, CPP_NAME);
       break;
 
     case CPP_NAME:
     case CPP_NUMBER:
     case CPP_STRING:
-      next_token = cpp_get_token (p);
+      next_token = gl_consume_token (parser->lexer);
       break;
 
     default:
       break;
     }
 
-  gimple_parse_expect_token (p, CPP_COMMA); 
+  gl_consume_expected_token (parser->lexer, CPP_COMMA); 
 }
 
 
-/* Helper for gimple_parse_assign_stmt. The token read from reader P should 
+/* Helper for gp_parse_assign_stmt. The token read from reader PARSER should 
    be the second operand in rhs of the tuple.  */
 
 static void 
-gimple_parse_expect_rhs2 (cpp_reader *p)
+gp_parse_expect_rhs2 (gimple_parser *parser)
 {
   const gimple_token *next_token;
-  next_token = cpp_peek_token (p, 0);
+  next_token = gl_consume_token (parser->lexer);
 
   /* ??? Can there be more possibilities than these ?  */
-
   switch (next_token->type)
     {
     case CPP_NAME:
       /* Handle a special case, this can be NULL too.  */
 
     case CPP_NUMBER:
-      next_token = cpp_get_token (p);
       break;
 
     default:
       break;
     }
 
-  gimple_parse_expect_token (p, CPP_GREATER);  
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);  
 }
 
-/* Parse a gimple_assign tuple that is read from the reader P. For now we 
+/* Parse a gimple_assign tuple that is read from the reader PARSER. For now we 
    only recognize the tuple. Refer gimple.def for the format of this tuple.  */
 
 static void 
-gimple_parse_assign_stmt (cpp_reader *p)
+gp_parse_assign_stmt (gimple_parser *parser)
 {
-  gimple_parse_expect_subcode (p);
-  gimple_parse_expect_lhs (p);
-  gimple_parse_expect_rhs1 (p);
-  gimple_parse_expect_rhs2 (p);
+  gp_parse_expect_subcode (parser);
+  gp_parse_expect_lhs (parser);
+  gp_parse_expect_rhs1 (parser);
+  gp_parse_expect_rhs2 (parser);
 }
 
-/* Helper for gimple_parse_cond_stmt. The token read from reader P should
+/* Helper for gp_parse_cond_stmt. The token read from reader PARSER should
    be the first operand in the tuple.  */
 static void
-gimple_parse_expect_op1 (cpp_reader *p)
+gp_parse_expect_op1 (gimple_parser *parser)
 {
   const gimple_token *next_token;
-  next_token = cpp_peek_token (p, 0);
+  next_token = gl_consume_token (parser->lexer);
 
   switch (next_token->type)
     {
     case CPP_NAME:
     case CPP_NUMBER:
-      next_token = cpp_get_token (p);
       break;
 
     default:
       break;
     }
 
-  gimple_parse_expect_token (p, CPP_COMMA);  
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);  
 }
 
-/* Helper for gimple_parse_cond_stmt. The token read from reader P should
+/* Helper for gp_parse_cond_stmt. The token read from reader PARSER should
    be the second operand in the tuple.  */
 
 static void
-gimple_parse_expect_op2 (cpp_reader *p)
+gp_parse_expect_op2 (gimple_parser *parser)
 {
   const gimple_token *next_token;
-  next_token = cpp_peek_token (p, 0);
+  next_token = gl_consume_token (parser->lexer);
 
   switch (next_token->type)
     {
     case CPP_NAME:
     case CPP_NUMBER:
     case CPP_STRING:
-      next_token = cpp_get_token (p);
       break;
 
     case CPP_AND:
-      next_token = cpp_get_token (p);
-      gimple_parse_expect_token (p, CPP_NAME);
+      next_token = gl_consume_token (parser->lexer);
+      gl_consume_expected_token (parser->lexer, CPP_NAME);
       break;
 
     default:
       break;
     }
 
-  gimple_parse_expect_token (p, CPP_COMMA);  
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);  
 }
 
-/* Helper for gimple_parse_cond_stmt. The token read from reader P should
+/* Helper for gp_parse_cond_stmt. The token read from reader PARSER should
    be the true label in the tuple that means the label where the control
    jumps if the condition evaluates to true.  */
 
 static void
-gimple_parse_expect_true_label (cpp_reader *p)
+gp_parse_expect_true_label (gimple_parser *parser)
 {
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_GREATER);
-  gimple_parse_expect_token (p, CPP_COMMA);  
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);  
 }
 
-/* Helper for gimple_parse_cond_stmt. The token read from reader P should
+/* Helper for gp_parse_cond_stmt. The token read from reader PARSER should
    be the false label in the tuple that means the label where the control
    jumps if the condition evaluates to false.  */
 
 static void
-gimple_parse_expect_false_label (cpp_reader *p)
+gp_parse_expect_false_label (gimple_parser *parser)
 {
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_RSHIFT);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
 }
 
-/* Parse a gimple_cond tuple that is read from the reader P. For now we only 
+/* Parse a gimple_cond tuple that is read from the reader PARSER. For now we only 
    recognize the tuple. Refer gimple.def for the format of this tuple.  */
 
 static void
-gimple_parse_cond_stmt (cpp_reader *p)
+gp_parse_cond_stmt (gimple_parser *parser)
 {
-  gimple_parse_expect_subcode (p);
-  gimple_parse_expect_op1 (p);
-  gimple_parse_expect_op2 (p);
-  gimple_parse_expect_true_label (p);
-  gimple_parse_expect_false_label (p);
+  gp_parse_expect_subcode (parser);
+  gp_parse_expect_op1 (parser);
+  gp_parse_expect_op2 (parser);
+  gp_parse_expect_true_label (parser);
+  gp_parse_expect_false_label (parser);
 }
 
-/* Parse a gimple_goto tuple that is read from the reader P. For now we only 
+/* Parse a gimple_goto tuple that is read from the reader PARSER. For now we only 
    recognize the tuple. Refer gimple.def for the format of this tuple.  */
 
 static void
-gimple_parse_goto_stmt (cpp_reader *p)
+gp_parse_goto_stmt (gimple_parser *parser)
 {
-  gimple_parse_expect_token (p, CPP_LSHIFT);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_RSHIFT);
+  gl_consume_expected_token (parser->lexer, CPP_LSHIFT);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
 }
 
-/* Parse a gimple_label tuple that is read from the reader P. For now we only 
+/* Parse a gimple_label tuple that is read from the reader PARSER. For now we only 
    recognize the tuple. Refer gimple.def for the format of this tuple.  */
 
 static void
-gimple_parse_label_stmt (cpp_reader *p)
+gp_parse_label_stmt (gimple_parser *parser)
 {
-  gimple_parse_expect_token (p, CPP_LSHIFT);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_RSHIFT);  
+  gl_consume_expected_token (parser->lexer, CPP_LSHIFT);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_RSHIFT);  
 }
 
-/* Parse a gimple_switch tuple that is read from the reader P. For now we only 
+/* Parse a gimple_switch tuple that is read from the reader PARSER. For now we only 
    recognize the tuple. Refer gimple.def for the format of this tuple.  */
 
 static void
-gimple_parse_switch_stmt (cpp_reader *p)
+gp_parse_switch_stmt (gimple_parser *parser)
 {
   const gimple_token *next_token;
 
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_COMMA);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_COLON);
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_COLON);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
 
-  for (;;)
+  while (!gl_at_eof (parser->lexer))
     {
-      next_token = cpp_peek_token (p, 0);
+      next_token = gl_consume_token (parser->lexer);
       
       if (next_token->type == CPP_GREATER)
         {
-          next_token = cpp_get_token (p);
-          gimple_parse_expect_token (p, CPP_COMMA);
-          gimple_parse_expect_token (p, CPP_NAME);
-          gimple_parse_expect_token (p, CPP_NUMBER);
-          gimple_parse_expect_token (p, CPP_COLON);
-          gimple_parse_expect_token (p, CPP_LESS);
-          gimple_parse_expect_token (p, CPP_NAME);  
+          gl_consume_expected_token (parser->lexer, CPP_COMMA);
+          gl_consume_expected_token (parser->lexer, CPP_NAME);
+          gl_consume_expected_token (parser->lexer, CPP_NUMBER);
+          gl_consume_expected_token (parser->lexer, CPP_COLON);
+          gl_consume_expected_token (parser->lexer, CPP_LESS);
+          gl_consume_expected_token (parser->lexer, CPP_NAME);  
         }
       else if (next_token->type == CPP_RSHIFT)
         {
-          next_token = cpp_get_token (p);
+          next_token = gl_consume_token (parser->lexer);
           break;
         }
       else
-        error ("Incorrect use of the gimple_switch statement");
+        error_at (next_token->location, 
+	          "Incorrect use of the gimple_switch statement");
     }
 }
 
-/* Helper for gimple_parse_call_stmt. The token read from reader P should
+/* Helper for gp_parse_call_stmt. The token read from reader PARSER should
    be the name of the function called.  */
 
 static void
-gimple_parse_expect_function_name (cpp_reader *p)
+gp_parse_expect_function_name (gimple_parser *parser)
 {
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_COMMA);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
 }
 
-/* Helper for gimple_parse_call_stmt. The token read from reader P should
+/* Helper for gp_parse_call_stmt. The token read from reader PARSER should
    be the identifier in which the value is returned.  */
 
 static void
-gimple_parse_expect_return_var (cpp_reader *p)
+gp_parse_expect_return_var (gimple_parser *parser)
 {
   const gimple_token *next_token;
 
-  next_token = cpp_peek_token (p, 0);
+  next_token = gl_consume_token (parser->lexer);
 
   if (next_token->type == CPP_NAME)
-    next_token = cpp_get_token (p);
+    next_token = gl_consume_token (parser->lexer);
   
   /* There may be no variable in which the return value is collected.
      In that case this field in the tuple will contain NULL. We need 
      to handle it too.  */
 }
 
-/* Helper for gimple_parse_call_stmt. The token read from reader P should
+
+/* Helper for gp_parse_call_stmt. The token read from reader PARSER should
    be the argument in the function call.  */
 
 static void
-gimple_parse_expect_argument (cpp_reader *p)
+gp_parse_expect_argument (gimple_parser *parser)
 {
   const gimple_token *next_token;
 
-  next_token = cpp_peek_token (p, 0);
+  next_token = gl_consume_token (parser->lexer);
 
   switch (next_token->type)
     {
     case CPP_NUMBER:
     case CPP_NAME:
-      next_token = cpp_get_token (p);
       break;
 
     case CPP_MULT:
-      next_token = cpp_get_token (p);
-      gimple_parse_expect_token (p, CPP_NAME);
+      next_token = gl_consume_token (parser->lexer);
+      gl_consume_expected_token (parser->lexer, CPP_NAME);
       break;
 
     default:
-      error ("Incorrect way to specify an argument");
+      error_at (next_token->location, "Incorrect way to specify an argument");
       break;
     }
 }
 
-/* Parse a gimple_call tuple that is read from the reader P. For now we only 
-   recognize the tuple. Refer gimple.def for the format of this tuple.  */
+
+/* Parse a gimple_call tuple that is read from PARSER.  */
 
 static void
-gimple_parse_call_stmt (cpp_reader *p)
+gp_parse_call_stmt (gimple_parser *parser)
 {
   const gimple_token *next_token;
 
-  gimple_parse_expect_function_name (p);
-  gimple_parse_expect_return_var (p);
+  gp_parse_expect_function_name (parser);
+  gp_parse_expect_return_var (parser);
   
-  for (;;)
+  while (!gl_at_eof (parser->lexer))
     {
-      next_token = cpp_peek_token (p, 0);
+      next_token = gl_consume_token (parser->lexer);
       if (next_token->type == CPP_GREATER)
-        {
-          next_token = cpp_get_token (p);
-          break;
-        }
+	break;
       else if (next_token->type == CPP_COMMA)
         {
-          next_token = cpp_get_token (p);
-          gimple_parse_expect_argument (p);
+          next_token = gl_consume_token (parser->lexer);
+          gp_parse_expect_argument (parser);
         }
     } 
 }
 
-/* Parse a gimple_return tuple that is read from the reader P. For now we only 
-   recognize the tuple. Refer gimple.def for the format of this tuple.  */
+
+/* Parse a gimple_return tuple that is read from PARSER.  */
 
 static void
-gimple_parse_return_stmt (cpp_reader *p)
+gp_parse_return_stmt (gimple_parser *parser)
 {
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_GREATER);  
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);  
 }
 
-/* The TOK read from the reader P is looked up for a match.  Calls the 
+
+/* The TOKEN read from the reader PARSER is looked up for a match.  Calls the 
    corresponding function to do the parsing for the match.  Gets called
    for recognizing the statements in a function body.  */
 
 static void 
-gimple_parse_stmt (cpp_reader *p, const gimple_token *tok)
+gp_parse_stmt (gimple_parser *parser, const gimple_token *token)
 {
-  const char *text;
-  int i;
-  text = (const char *) cpp_token_as_text (p, tok);
-  for (i = GIMPLE_ERROR_MARK; i < LAST_AND_UNUSED_GIMPLE_CODE; i++)
-    if (strcasecmp (text, gimple_code_name[i]) == 0)
-      break;
+  enum gimple_code code = gl_gimple_code_for_token (token);
 
-  if (i == LAST_AND_UNUSED_GIMPLE_CODE)
-    error ("Invalid gimple code used"); 
+  if (code == LAST_AND_UNUSED_GIMPLE_CODE)
+    error_at (token->location, "Invalid gimple code used"); 
   else
     {
-    switch (i)
+    switch (code)
       {
         case GIMPLE_ASSIGN:
-          gimple_parse_assign_stmt (p);
+          gp_parse_assign_stmt (parser);
           break;
         case GIMPLE_COND:
-          gimple_parse_cond_stmt (p);
+          gp_parse_cond_stmt (parser);
           break;
         case GIMPLE_LABEL:
-          gimple_parse_label_stmt (p);
+          gp_parse_label_stmt (parser);
           break;
         case GIMPLE_GOTO:
-          gimple_parse_goto_stmt (p);
+          gp_parse_goto_stmt (parser);
           break;
         case GIMPLE_SWITCH:
-          gimple_parse_switch_stmt (p);
+          gp_parse_switch_stmt (parser);
           break;
         case GIMPLE_CALL:
-          gimple_parse_call_stmt (p);
+          gp_parse_call_stmt (parser);
           break;
         case GIMPLE_RETURN:
-          gimple_parse_return_stmt (p);
+          gp_parse_return_stmt (parser);
           break;
         default:
           break;
@@ -485,69 +608,69 @@ gimple_parse_stmt (cpp_reader *p, const gimple_token *tok)
 }
 
 
-/* Helper for gimple_parse_expect_record_type and
-   gimple_parse_expect_union_type. The field_decl's
-   are read from cpp_reader P.  */
+/* Helper for gp_parse_expect_record_type and
+   gp_parse_expect_union_type. The field_decl's
+   are read from gimple_parser PARSER.  */
  
 static void
-gimple_parse_expect_field_decl (cpp_reader *p)
+gp_parse_expect_field_decl (gimple_parser *parser)
 {
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_COMMA);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NUMBER);
-  gimple_parse_expect_token (p, CPP_RSHIFT);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NUMBER);
+  gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
 
 }
 
 
-/* The tuple syntax can be extended to types and declarations. The description
-   of how it can be done is provided before each recognizer function.  */ 
+/* The tuple syntax can be extended to types and declarations. The
+   description of how it can be done is provided before each
+   recognizer function.  */ 
 
 /* <RECORD_TYPE<Name,Size,Field1,Field2,...FieldN>>
    where each of the FIELDi is a FIELD_DECL or a VAR_DECL, the representation 
    of which is given below.  
 
-   For Ex: 
+   Example:
    Given a source code declaration as :
 
    struct some_struct {
-   int first_var;
-   float second_var;
+    int first_var;
+    float second_var;
    };
 
-   The tuple representation is done as :
-   RECORD_TYPE <some_struct,8,FIELD_DECL<first_var,INTEGER_TYPE<4>>,FIELD_DECL<second_var,REAL_TYPE<4>>>
-*/   
+   The gimple representation should read:
+   RECORD_TYPE <some_struct, 8,
+      FIELD_DECL <first_var, INTEGER_TYPE<4>>,
+      FIELD_DECL <second_var,REAL_TYPE<4>>>
+*/
 
-/* Recognizer function for Record declarations. The record tuple is read
-   from cpp_reader P.  */
- 
+/* Recognizer function for structure declarations. The structure tuple
+   is read from PARSER.  */
+
 static void
-gimple_parse_record_type (cpp_reader *p)
+gp_parse_record_type (gimple_parser *parser)
 {
   const gimple_token *next_token;
 
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_COMMA);
-  gimple_parse_expect_token (p, CPP_NUMBER);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
+  gl_consume_expected_token (parser->lexer, CPP_NUMBER);
 
-  for (;;)
+  while (!gl_at_eof (parser->lexer))
     {
-      next_token = cpp_peek_token (p, 0);
+      next_token = gl_consume_token (parser->lexer);
       if (next_token->type == CPP_GREATER)
-        {
-          next_token = cpp_get_token (p);
-          break;
-        }
+	break;
       else if (next_token->type == CPP_COMMA)
         {
-          next_token = cpp_get_token (p);
-          gimple_parse_expect_field_decl (p);
+          next_token = gl_consume_token (parser->lexer);
+          gp_parse_expect_field_decl (parser);
         }
     }  
 }
@@ -569,46 +692,43 @@ gimple_parse_record_type (cpp_reader *p)
 */
 
 /* Recognizer function for Union declarations. The union tuple is read
-   from cpp_reader P.  */
+   from gimple_parser PARSER.  */
 
 static void
-gimple_parse_union_type (cpp_reader *p)
+gp_parse_union_type (gimple_parser *parser)
 {
   const gimple_token *next_token;
 
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_COMMA);
-  gimple_parse_expect_token (p, CPP_NUMBER);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
+  gl_consume_expected_token (parser->lexer, CPP_NUMBER);
 
-  for (;;)
+  while (!gl_at_eof (parser->lexer))
     {
-      next_token = cpp_peek_token (p, 0);
+      next_token = gl_consume_token (parser->lexer);
       if (next_token->type == CPP_GREATER)
-        {
-          next_token = cpp_get_token (p);
-          break;
-        }
+	break;
       else if (next_token->type == CPP_COMMA)
         {
-          next_token = cpp_get_token (p);
-          gimple_parse_expect_field_decl (p);
+          next_token = gl_consume_token (parser->lexer);
+          gp_parse_expect_field_decl (parser);
         }
     }  
 }
 
 
-/* Helper for gimple_parse_enum_type. It is used to recognize a field in the
-   enumeral. The field is read from the cpp_reader P.  */  
+/* Helper for gp_parse_enum_type. It is used to recognize a field in the
+   enumeral. The field is read from the gimple_parser PARSER.  */  
 
 static void
-gimple_parse_expect_const_decl (cpp_reader *p)
+gp_parse_expect_const_decl (gimple_parser *parser)
 {
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_COMMA);
-  gimple_parse_expect_token (p, CPP_NUMBER);
-  gimple_parse_expect_token (p, CPP_GREATER);  
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
+  gl_consume_expected_token (parser->lexer, CPP_NUMBER);
+  gl_consume_expected_token (parser->lexer, CPP_GREATER);  
 }
 
 
@@ -628,103 +748,451 @@ gimple_parse_expect_const_decl (cpp_reader *p)
 */
 
 static void
-gimple_parse_enum_type (cpp_reader *p)
+gp_parse_enum_type (gimple_parser *parser)
 {
   const gimple_token *next_token;
 
-  gimple_parse_expect_token (p, CPP_LESS);
-  gimple_parse_expect_token (p, CPP_NAME);
-  gimple_parse_expect_token (p, CPP_COMMA);
-  gimple_parse_expect_token (p, CPP_NUMBER);
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
+  gl_consume_expected_token (parser->lexer, CPP_NUMBER);
 
-  for (;;)
+  while (!gl_at_eof (parser->lexer))
     {
-      next_token = cpp_peek_token (p, 0);
+      next_token = gl_consume_token (parser->lexer);
       if (next_token->type == CPP_RSHIFT)
-	{
-	  next_token = cpp_get_token (p);
-	  break;
-	}
+	break;
       else if (next_token->type == CPP_COMMA)
 	{
-	  next_token = cpp_get_token (p);
-	  gimple_parse_expect_const_decl (p);
+	  next_token = gl_consume_token (parser->lexer);
+	  gp_parse_expect_const_decl (parser);
 	}
     }  
 }
 
 
-/* The TOK read from the reader P is looked up for a match. Calls the
-   corresponding function to do the parsing for the match. Gets called
-   for recognizing the type and variable declarations. */
+/* The token TOKEN read from the reader PARSER is looked up for a match.
+   Calls the corresponding function to do the parsing for the match.
+   Gets called for recognizing the type and variable declarations. */
 
 static void
-gimple_parse_type (cpp_reader *p, const gimple_token *tok)
+gp_parse_type (gimple_parser *parser, const gimple_token *token)
 {
-  const char *text;
-  int i;
-
-  text = (const char *) cpp_token_as_text (p, tok);
-
-  for (i = ERROR_MARK; i < LAST_AND_UNUSED_TREE_CODE; i++)
-    if (strcasecmp (text, tree_code_name[i]) == 0)
+  enum tree_code code = gl_tree_code_for_token (token);
+  switch (code)
+    {
+    case RECORD_TYPE:
+      gp_parse_record_type (parser);
       break;
 
-  if (i == LAST_AND_UNUSED_TREE_CODE)
-    error ("Invalid type code used");
-  else
-    {
-      switch (i)
-	{
-	case RECORD_TYPE:
-	  gimple_parse_record_type (p);
-	  break;
+    case UNION_TYPE:
+      gp_parse_union_type (parser);
+      break;
 
-	case UNION_TYPE:
-	  gimple_parse_union_type (p);
-	  break;
+    case ENUMERAL_TYPE:
+      gp_parse_enum_type (parser);
+      break;
 
-	case ENUMERAL_TYPE:
-	  gimple_parse_enum_type (p);
-	  break;
-
-	default:
-	  break;
-	}
-    }      
+    default:
+      break;
+    }
 }
 
 
-/* Initialize the lexer.  */
+/* Initialize the lexer.  PARSER points to the main parsing object.
+   FNAME is the name of the input gimple file being compiled.  */
 
 static gimple_lexer *
-gl_init (gimple_parser *p)
+gl_init (gimple_parser *parser, const char *fname)
 {
-  gimple_lexer *l;
+  gimple_lexer *lexer;
 
-  l = ggc_alloc_cleared_gimple_lexer ();
-  l->parser = p;
-  l->filename = main_input_filename;
-  l->reader = cpp_create_reader (CLK_GNUC99, p->ident_hash, p->line_table);
-  l->filename = cpp_read_main_file (l->reader, l->filename);
-  l->cur_token_ix = 0;
+  lexer = ggc_alloc_cleared_gimple_lexer ();
+  lexer->parser = parser;
+  lexer->filename = fname;
+  /* FIXME.  Choose GNU C99 for now, a better default should be
+     used here.  */
+  lexer->reader = cpp_create_reader (CLK_GNUC99, parser->ident_hash,
+				     parser->line_table);
+  lexer->filename = cpp_read_main_file (lexer->reader, lexer->filename);
+  lexer->cur_token_ix = 0;
 
-  return l;
+  return lexer;
 }
 
 
-/* Initialize the parser data structures.  */
+/* Initialize the parser data structures.  FNAME is the name of the input
+   gimple file being compiled.  */
 
 static gimple_parser *
-gp_init (void)
+gp_init (const char *fname)
 {
-  gimple_parser *p = ggc_alloc_cleared_gimple_parser ();
-  line_table = p->line_table = ggc_alloc_cleared_line_maps ();
-  p->ident_hash = ident_hash;
-  linemap_init (p->line_table);
-  p->lexer = gl_init (p);
+  gimple_parser *parser = ggc_alloc_cleared_gimple_parser ();
+  line_table = parser->line_table = ggc_alloc_cleared_line_maps ();
+  parser->ident_hash = ident_hash;
+  linemap_init (parser->line_table);
+  parser->lexer = gl_init (parser, fname);
 
-  return p;
+  return parser;
+}
+
+
+/* FIXME.  Copied over from c-family/c-lex.c.  Adapt to GIMPLE.
+   Returns the narrowest unsigned type, starting with the
+   minimum specified by cpplib FLAGS, that can fit HIGH:LOW, or
+   itk_none if there isn't one.  */
+
+static enum integer_type_kind
+narrowest_unsigned_type (unsigned HOST_WIDE_INT low,
+			 unsigned HOST_WIDE_INT high,
+			 unsigned int flags)
+{
+  int itk;
+
+  if ((flags & CPP_N_WIDTH) == CPP_N_SMALL)
+    itk = itk_unsigned_int;
+  else if ((flags & CPP_N_WIDTH) == CPP_N_MEDIUM)
+    itk = itk_unsigned_long;
+  else
+    itk = itk_unsigned_long_long;
+
+  for (; itk < itk_none; itk += 2 /* skip unsigned types */)
+    {
+      tree upper;
+
+      if (integer_types[itk] == NULL_TREE)
+	continue;
+      upper = TYPE_MAX_VALUE (integer_types[itk]);
+
+      if ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) > high
+	  || ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) == high
+	      && TREE_INT_CST_LOW (upper) >= low))
+	return (enum integer_type_kind) itk;
+    }
+
+  return itk_none;
+}
+
+
+/* Ditto, but narrowest signed type.
+   FIXME.  Copied over from c-family/c-lex.c.  Adapt to GIMPLE.  */
+
+static enum integer_type_kind
+narrowest_signed_type (unsigned HOST_WIDE_INT low,
+		       unsigned HOST_WIDE_INT high, unsigned int flags)
+{
+  int itk;
+
+  if ((flags & CPP_N_WIDTH) == CPP_N_SMALL)
+    itk = itk_int;
+  else if ((flags & CPP_N_WIDTH) == CPP_N_MEDIUM)
+    itk = itk_long;
+  else
+    itk = itk_long_long;
+
+
+  for (; itk < itk_none; itk += 2 /* skip signed types */)
+    {
+      tree upper;
+
+      if (integer_types[itk] == NULL_TREE)
+	continue;
+      upper = TYPE_MAX_VALUE (integer_types[itk]);
+
+      if ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) > high
+	  || ((unsigned HOST_WIDE_INT) TREE_INT_CST_HIGH (upper) == high
+	      && TREE_INT_CST_LOW (upper) >= low))
+	return (enum integer_type_kind) itk;
+    }
+
+  return itk_none;
+}
+
+
+/* Interpret TOKEN, an integer with FLAGS as classified by cpplib.  */
+
+static tree
+gl_interpret_integer (gimple_lexer *lexer, const cpp_token *token,
+		      unsigned int flags)
+{
+  tree value, type;
+  enum integer_type_kind itk;
+  cpp_num integer;
+  cpp_options *options = cpp_get_options (lexer->reader);
+
+  integer = cpp_interpret_integer (lexer->reader, token, flags);
+  integer = cpp_num_sign_extend (integer, options->precision);
+
+  /* The type of a constant with a U suffix is straightforward.  */
+  if (flags & CPP_N_UNSIGNED)
+    itk = narrowest_unsigned_type (integer.low, integer.high, flags);
+  else
+    itk = narrowest_signed_type (integer.low, integer.high, flags);
+
+  if (itk == itk_none)
+    itk = (flags & CPP_N_UNSIGNED) ? itk_unsigned_int128 : itk_int128;
+
+  type = integer_types[itk];
+  value = build_int_cst_wide (type, integer.low, integer.high);
+
+  /* Convert imaginary to a complex type.  */
+  if (flags & CPP_N_IMAGINARY)
+    value = build_complex (NULL_TREE, build_int_cst (type, 0), value);
+
+  return value;
+}
+
+
+/* Interpret TOKEN, a floating point number with FLAGS as classified
+   by cpplib.  */
+
+static tree
+gl_interpret_float (const cpp_token *token, unsigned int flags)
+{
+  tree type;
+  tree const_type;
+  tree value;
+  REAL_VALUE_TYPE real;
+  REAL_VALUE_TYPE real_trunc;
+  char *copy;
+  size_t copylen;
+
+  /* Decode type based on width and properties. */
+  if (flags & CPP_N_DFLOAT)
+    {
+      if ((flags & CPP_N_WIDTH) == CPP_N_LARGE)
+	type = dfloat128_type_node;
+      else if ((flags & CPP_N_WIDTH) == CPP_N_SMALL)
+	type = dfloat32_type_node;
+      else
+	type = dfloat64_type_node;
+    }
+  else if ((flags & CPP_N_WIDTH) == CPP_N_LARGE)
+    type = long_double_type_node;
+  else if ((flags & CPP_N_WIDTH) == CPP_N_SMALL
+      || flag_single_precision_constant)
+    type = float_type_node;
+  else
+    type = double_type_node;
+
+  const_type = excess_precision_type (type);
+  if (!const_type)
+    const_type = type;
+
+  /* Copy the constant to a nul-terminated buffer.  If the constant
+     has any suffixes, cut them off; REAL_VALUE_ATOF/ REAL_VALUE_HTOF
+     can't handle them.  */
+  copylen = token->val.str.len;
+  if (flags & CPP_N_DFLOAT)
+    copylen -= 2;
+  else
+    {
+      if ((flags & CPP_N_WIDTH) != CPP_N_MEDIUM)
+	/* Must be an F or L or machine defined suffix.  */
+	copylen--;
+      if (flags & CPP_N_IMAGINARY)
+	/* I or J suffix.  */
+	copylen--;
+    }
+
+  copy = (char *) alloca (copylen + 1);
+  memcpy (copy, token->val.str.text, copylen);
+  copy[copylen] = '\0';
+
+  real_from_string3 (&real, copy, TYPE_MODE (const_type));
+  if (const_type != type)
+    real_convert (&real_trunc, TYPE_MODE (type), &real);
+
+  /* Create a node with determined type and value.  */
+  value = build_real (const_type, real);
+  if (flags & CPP_N_IMAGINARY)
+    value = build_complex (NULL_TREE, convert (const_type, integer_zero_node),
+			   value);
+
+  if (type != const_type)
+    value = build1 (EXCESS_PRECISION_EXPR, type, value);
+
+  return value;
+}
+
+
+/* Converts a (possibly wide) character constant TOKEN from LEXER
+   into a tree.  */
+
+static tree
+gl_lex_charconst (gimple_lexer *lexer, const cpp_token *token)
+{
+  cppchar_t result;
+  tree type, value;
+  unsigned int chars_seen;
+  int unsignedp = 0;
+
+  result = cpp_interpret_charconst (lexer->reader, token,
+				    &chars_seen, &unsignedp);
+  type = char_type_node;
+
+  /* Cast to cppchar_signed_t to get correct sign-extension of RESULT
+     before possibly widening to HOST_WIDE_INT for build_int_cst.  */
+  if (unsignedp || (cppchar_signed_t) result >= 0)
+    value = build_int_cst_wide (type, result, 0);
+  else
+    value = build_int_cst_wide (type, (cppchar_signed_t) result, -1);
+
+  return value;
+}
+
+
+/* Convert a series of STRING, WSTRING, STRING16, STRING32 and/or
+   UTF8STRING tokens into a tree, performing string constant
+   concatenation.  TOKEN is the first of these.  Return a tree
+   representing the string.  */
+
+static tree
+gl_lex_string (gimple_lexer *lexer, const cpp_token *token)
+{
+  tree value;
+  size_t concats = 0;
+  struct obstack str_ob;
+  cpp_string istr;
+  enum cpp_ttype type = token->type;
+
+  /* Try to avoid the overhead of creating and destroying an obstack
+     for the common case of just one string.  */
+  cpp_string str = token->val.str;
+  cpp_string *strs = &str;
+
+ retry:
+  token = cpp_get_token (lexer->reader);
+  switch (token->type)
+    {
+    case CPP_PADDING:
+      goto retry;
+
+    default:
+      break;
+
+    case CPP_WSTRING:
+    case CPP_STRING16:
+    case CPP_STRING32:
+    case CPP_UTF8STRING:
+      if (type != token->type)
+	{
+	  if (type == CPP_STRING)
+	    type = token->type;
+	  else
+	    error ("unsupported non-standard concatenation of string literals");
+	}
+
+    case CPP_STRING:
+      if (!concats)
+	{
+	  gcc_obstack_init (&str_ob);
+	  obstack_grow (&str_ob, &str, sizeof (cpp_string));
+	}
+
+      concats++;
+      obstack_grow (&str_ob, &token->val.str, sizeof (cpp_string));
+      goto retry;
+    }
+
+  /* We have read one more token than we want.  */
+  _cpp_backup_tokens (lexer->reader, 1);
+  if (concats)
+    strs = XOBFINISH (&str_ob, cpp_string *);
+
+  if (cpp_interpret_string (lexer->reader, strs, concats + 1, &istr, type))
+    {
+      value = build_string (istr.len, (const char *) istr.text);
+      free (CONST_CAST (unsigned char *, istr.text));
+    }
+  else
+    {
+      /* Callers cannot generally handle error_mark_node in this context,
+	 so return the empty string instead.  cpp_interpret_string has
+	 issued an error.  */
+      value = build_string (1, "");
+    }
+
+  if (concats)
+    obstack_free (&str_ob, 0);
+
+  return value;
+}
+
+
+/* Get a single token from LEXER and save it in *TOKEN.  Return false if
+   we read EOF, true otherwise.  */
+
+static bool
+gl_lex_token (gimple_lexer *lexer, gimple_token *token)
+{
+  const cpp_token *cpp_tok;
+
+retry:
+  cpp_tok = cpp_get_token_with_location (lexer->reader, &token->location);
+  token->type = cpp_tok->type;
+  token->flags = cpp_tok->flags;
+  token->value = NULL;
+
+  switch (token->type)
+    {
+    case CPP_PADDING:
+      goto retry;
+
+    case CPP_NAME:
+      token->value = HT_IDENT_TO_GCC_IDENT (HT_NODE (cpp_tok->val.node.node));
+      break;
+
+    case CPP_NUMBER:
+      {
+	unsigned int flags = cpp_classify_number (lexer->reader, cpp_tok);
+
+	switch (flags & CPP_N_CATEGORY)
+	  {
+	  case CPP_N_INVALID:
+	    /* cpplib has issued an error.  */
+	    token->value = error_mark_node;
+	    break;
+
+	  case CPP_N_INTEGER:
+	    token->value = gl_interpret_integer (lexer, cpp_tok, flags);
+	    break;
+
+	  case CPP_N_FLOATING:
+	    token->value = gl_interpret_float (cpp_tok, flags);
+	    break;
+
+	  default:
+	    gcc_unreachable ();
+	  }
+      }
+      break;
+
+    case CPP_CHAR:
+    case CPP_WCHAR:
+    case CPP_CHAR16:
+    case CPP_CHAR32:
+      token->value = gl_lex_charconst (lexer, cpp_tok);
+      break;
+
+    case CPP_STRING:
+    case CPP_WSTRING:
+    case CPP_STRING16:
+    case CPP_STRING32:
+    case CPP_UTF8STRING:
+      token->value = gl_lex_string (lexer, cpp_tok);
+      break;
+
+    case CPP_EOF:
+      /* We've reached the end.  Stop getting tokens.  */
+      return false;
+
+    default:
+      break;
+    }
+
+  /* Keep getting tokens.  */
+  return true;
 }
 
 
@@ -733,44 +1201,29 @@ gp_init (void)
 static void
 gl_lex (gimple_lexer *lexer)
 {
-  const gimple_token *gimple_tok;
+  gimple_token token;
 
   timevar_push (TV_CPP);
 
-  do
-    {
-      location_t loc;
-
-      gimple_tok = cpp_get_token_with_location (lexer->reader, &loc);
-      if (gimple_tok->type != CPP_EOF)
-	VEC_safe_push (gimple_token, gc, lexer->tokens, gimple_tok);
-    }
-  while (gimple_tok->type != CPP_EOF);
+  while (gl_lex_token (lexer, &token))
+    VEC_safe_push (gimple_token, gc, lexer->tokens, &token);
 
   timevar_pop (TV_CPP);
 }
 
-
-/* Consume the next token from PARSER.  */
-
-static gimple_token *
-gl_consume_token (gimple_lexer *lexer)
-{
-  return VEC_index (gimple_token, lexer->tokens, lexer->cur_token_ix++);
-}
 
 /* Parse the translation unit in PARSER.  */
 
 static void
 gp_parse (gimple_parser *parser)
 {
-  while (!VEC_empty (gimple_token, parser->lexer->tokens))
+  while (!gl_at_eof (parser->lexer))
     {
-      gimple_token *tok = gl_consume_token (parser->lexer);
-      if (1)
-	gimple_parse_type (parser->lexer->reader, tok);
+      gimple_token *token = gl_consume_token (parser->lexer);
+      if (gl_token_starts_type (token))
+	gp_parse_type (parser, token);
       else
-	gimple_parse_stmt (parser->lexer->reader, tok);
+	gp_parse_stmt (parser, token);
     }
 }
 
@@ -793,8 +1246,7 @@ gimple_main (void)
 {
   gimple_parser *parser;
 
-  parser_gc_root__ = parser = gp_init ();
-
+  parser_gc_root__ = parser = gp_init (main_input_filename);
   if (parser->lexer->filename == NULL)
     return;
 
