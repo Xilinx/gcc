@@ -1,8 +1,13 @@
 
 2011-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (valdesc_mapobjects, valdesc_mapstrings):
+	Correct typos.
+
+2011-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-build.tpl (meltrun-generate): Rename generate-meltrun.
-	Use the GCCMELRUNGEN_DEST variable.
+	Use the GCCMELTRUNGEN_DEST variable.
 
 	* melt-build.mk: Regenerate.
 
@@ -13,7 +18,8 @@
 	* melt-runtime.h (MELT_GENERATE_RUNTIME): Define as 0 temporarily.
 
 	* melt/warmelt-outobj.melt (runtypesupport_param): New function.
-	(runtypesupport_docmd): Call it, to generate meltrunsup-param.h in the future.
+	(runtypesupport_docmd): Call it, to generate meltrunsup-param.h in
+	the future.
 
 2011-01-03  Basile Starynkevitch  <basile@starynkevitch.net>
 

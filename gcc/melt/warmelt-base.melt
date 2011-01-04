@@ -1181,7 +1181,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
 (definstance valdesc_mapobjects class_value_descriptor
   :doc #{$VALDESC_BOX describes object-keyed map values.}#
-  :named_name '"VALDESC_mapobjects"
+  :named_name '"VALDESC_MAPOBJECTS"
   :valdesc_objmagic '"MELTOBMAG_MAPOBJECTS"
   :valdesc_struct '"meltmapobjects_st"
   :valdesc_unionmem '"u_mapobjects"
@@ -1244,7 +1244,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 ;;;;;;;;;;;;;;;; string map values
 (definstance valdesc_mapstrings class_value_descriptor
   :doc #{$VALDESC_BOX describes string-keyed map values.}#
-  :named_name '"VALDESC_mapstrings"
+  :named_name '"VALDESC_MAPSTRINGS"
   :valdesc_objmagic '"MELTOBMAG_MAPSTRINGS"
   :valdesc_struct '"meltmapstrings_st"
   :valdesc_unionmem '"u_mapstrings"
@@ -1298,7 +1298,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
        }
   }#
 )
-(install_value_descriptor valdesc_mapobjects)
+(install_value_descriptor valdesc_mapstrings)
 
 
 ;;;;;;;;;;;;;;;; decaying value
