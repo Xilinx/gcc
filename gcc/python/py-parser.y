@@ -246,7 +246,7 @@ funcdef: DEF funcname '(' parameter_list_stmt ')' ':' suite
        ;
 
 suite: stmt_list NEWLINE
-     | NEWLINE suite_statement_list DEDENT
+     | NEWLINE INDENT suite_statement_list DEDENT
      {
        $$ = VEC_pop( gpy_sym, gpy_symbol_stack );
        printf("poping suite!\n");
@@ -266,8 +266,7 @@ suite_statement_list: suite_statement_list indent_stmt
 		   }
                    ;
 
-indent_stmt: INDENT statement
-           { $$=$2; }
+indent_stmt: statement
            ;
 
 statement: stmt_list NEWLINE
