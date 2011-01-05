@@ -1,3 +1,41 @@
+2011-01-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt14.adb: New test.
+
+2011-01-05  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/46017
+	* gfortran.dg/allocate_error_2.f90:  New test.
+
+2011-01-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47024
+	* gfortran.dg/storage_size_3.f08: New.
+
+2011-01-04  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47154
+	* gfortran.dg/namelist_68.f90: New test.
+
+2011-01-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_convert8.ad[sb]: New test.
+
+2011-01-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46448
+	* gfortran.dg/class_34.f90: New.
+
+2011-01-04  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.dg/torture/builtin-cproj-1.c: On the __SPU__ target, do not
+	use __builtin_inff.  Skip all single-precision tests that require
+	Infinity.
+
+2011-01-03  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* g++.dg/torture/pr46111.C: Add dg-require-effective-target pthread.
+
 2011-01-03  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/47148

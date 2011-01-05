@@ -1,3 +1,21 @@
+2011-01-05  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/46017
+	* resolve.c (resolve_allocate_deallocate): Follow references to
+	check for duplicate occurence of allocation/deallocation objects.
+
+2011-01-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47024
+	* trans-decl.c (gfc_trans_deferred_vars): Initialize the _vpr component
+	of polymorphic allocatables according to their declared type.
+
+2011-01-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46448
+	* class.c (gfc_find_derived_vtab): Set the module field for the copying
+	routine to make sure it receives module name mangling.
+
 2011-01-03  Jakub Jelinek  <jakub@redhat.com>
 
 	* gfortranspec.c (lang_specific_driver): Update copyright notice

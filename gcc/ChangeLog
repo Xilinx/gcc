@@ -1,3 +1,72 @@
+2011-01-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/47005
+	* tree-sra.c (struct access): Add 'non_addressable' bit.
+	(create_access): Set it for a DECL_NONADDRESSABLE_P field.
+	(decide_one_param_reduction): Return 0 if the parameter is passed by
+	reference and one of the accesses in the group is non_addressable.
+
+2011-01-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/47056
+	* cgraphbuild.c (mark_address): Remove ATTRIBUTE_UNUSED markers.
+	(mark_load): Likewise.  Handle FUNCTION_DECL specially.
+	(mark_store): Likewise.  Pass STMT to ipa_record_reference.
+
+2011-01-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* dwarf2out.c (rtl_for_decl_init): Strip no-op conversions off the
+	initializer.  Skip view conversions from aggregate types.
+
+2011-01-04  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR bootstrap/47055
+	* libgcov.c (gcov_exit): Check for HAS_DRIVE_SPEC.
+
+2011-01-04  Philipp Thomas <pth@suse.de>
+
+	* config/microblaze/microbalse.opt (mxl-float-convert): Fix
+	obvious typo.
+
+2011-01-04  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* function.c (thread_prologue_and_epilogue_insns): Do not crash
+	on empty epilogue sequences.
+
+2011-01-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/vxworks.opt (Bdynamic, Bstatic, Xbind-lazy, Xbind-now,
+	non-static): New Driver options.
+
+2011-01-04  Jie Zhang  <jie@codesourcery.com>
+
+	PR driver/47137
+	* gcc.c (default_compilers[]): Set combinable field to 0
+	for all assembly languages.
+
+2011-01-04  Mingjie Xing  <mingjie.xing@gmail.com>
+
+	* config/mips/loongson3a.md: New file.
+	* config/mips/mips.md: Include loongson3a.md.
+	* config/mips/mips.c (mips_multipass_dfa_lookahead): Return 4 when
+	TUNE_LOONGSON_3A.
+
+2011-01-03  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/47017
+	* expr.c (expand_expr_real_1) <MEM_REF>: Call memory_address_addr_space
+	instead of convert_memory_address_addr_space on the base expression.
+
+2011-01-03  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (spu_option_override): Update error text
+	for bad -march= / -mtune= values.
+
+2011-01-03  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (asm_file_start): Only reset flag_var_tracking
+	if branch-hint optimization will be performed.
+
 2011-01-03  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/47148
@@ -41,7 +110,7 @@
 
 	* lto-cgraph.c (input_cgraph_opt_section): Use the correct section type.
 
-2010-01-03  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+2011-01-03  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	* tree-vect-generic.c (expand_vector_operations_1): When using vector/
 	vector optab to expand vector/scalar shift, update gimple to vector.

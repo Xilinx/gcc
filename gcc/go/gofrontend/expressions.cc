@@ -2680,7 +2680,8 @@ Const_expression::do_get_tree(Translate_context* context)
   // object is an abstract int or float, we try to get the abstract
   // value.  Otherwise we may lose something in the conversion.
   if (this->type_ != NULL
-      && this->constant_->const_value()->type()->is_abstract())
+      && (this->constant_->const_value()->type() == NULL
+	  || this->constant_->const_value()->type()->is_abstract()))
     {
       Expression* expr = this->constant_->const_value()->expr();
       mpz_t ival;
@@ -7964,13 +7965,13 @@ Builtin_call_expression::do_get_tree(Translate_context* context)
 	Expression* arg1 = args->front();
 	Expression* arg2 = args->back();
 
-	Array_type* at = arg1->type()->array_type();
-	Type* element_type = at->element_type();
-
 	tree arg1_tree = arg1->get_tree(context);
 	tree arg2_tree = arg2->get_tree(context);
 	if (arg1_tree == error_mark_node || arg2_tree == error_mark_node)
 	  return error_mark_node;
+
+	Array_type* at = arg1->type()->array_type();
+	Type* element_type = at->element_type();
 
 	arg2_tree = Expression::convert_for_assignment(context, at,
 						       arg2->type(),
@@ -8725,7 +8726,10 @@ Call_expression::do_get_tree(Translate_context* context)
 						       arg_val,
 						       location);
 	  if (args[i] == error_mark_node)
-	    return error_mark_node;
+	    {
+	      delete[] args;
+	      return error_mark_node;
+	    }
 	}
       gcc_assert(pp == params->end());
       gcc_assert(i == nargs);
@@ -8733,7 +8737,10 @@ Call_expression::do_get_tree(Translate_context* context)
 
   tree rettype = TREE_TYPE(TREE_TYPE(fntype->get_tree(gogo)));
   if (rettype == error_mark_node)
-    return error_mark_node;
+    {
+      delete[] args;
+      return error_mark_node;
+    }
 
   tree fn;
   if (has_closure)
@@ -8748,7 +8755,10 @@ Call_expression::do_get_tree(Translate_context* context)
     gcc_unreachable();
 
   if (fn == error_mark_node || TREE_TYPE(fn) == error_mark_node)
-    return error_mark_node;
+    {
+      delete[] args;
+      return error_mark_node;
+    }
 
   // This is to support builtin math functions when using 80387 math.
   tree fndecl = fn;
@@ -8898,10 +8908,16 @@ Call_result_expression::do_type()
   // Call_expression::do_must_eval_in_order when there is an error.
   Call_expression* ce = this->call_->call_expression();
   if (ce == NULL)
-    return Type::make_error_type();
+    {
+      this->set_is_error();
+      return Type::make_error_type();
+    }
   Function_type* fntype = ce->get_function_type();
   if (fntype == NULL)
-    return Type::make_error_type();
+    {
+      this->set_is_error();
+      return Type::make_error_type();
+    }
   const Typed_identifier_list* results = fntype->results();
   if (results == NULL)
     {
@@ -8952,7 +8968,11 @@ Call_result_expression::do_get_tree(Translate_context* context)
   tree call_tree = this->call_->get_tree(context);
   if (call_tree == error_mark_node)
     return error_mark_node;
-  gcc_assert(TREE_CODE(TREE_TYPE(call_tree)) == RECORD_TYPE);
+  if (TREE_CODE(TREE_TYPE(call_tree)) != RECORD_TYPE)
+    {
+      gcc_assert(saw_errors());
+      return error_mark_node;
+    }
   tree field = TYPE_FIELDS(TREE_TYPE(call_tree));
   for (unsigned int i = 0; i < this->index_; ++i)
     {

@@ -541,7 +541,7 @@ spu_option_override (void)
       else if (strcmp (&spu_arch_string[0], "celledp") == 0)
         spu_arch = PROCESSOR_CELLEDP;
       else
-        error ("unknown architecture %qs", &spu_arch_string[0]);
+        error ("bad value (%s) for -march= switch", spu_arch_string);
     }
 
   /* Determine processor to tune for.  */
@@ -552,7 +552,7 @@ spu_option_override (void)
       else if (strcmp (&spu_tune_string[0], "celledp") == 0)
         spu_tune = PROCESSOR_CELLEDP;
       else
-        error ("unknown architecture %qs", &spu_tune_string[0]);
+        error ("bad value (%s) for -mtune= switch", spu_tune_string);
     }
 
   /* Change defaults according to the processor architecture.  */
@@ -7014,9 +7014,17 @@ static void
 asm_file_start (void)
 {
   /* Variable tracking should be run after all optimizations which
-     change order of insns.  It also needs a valid CFG. */
-  spu_flag_var_tracking = flag_var_tracking;
-  flag_var_tracking = 0;
+     change order of insns.  It also needs a valid CFG.  Therefore,
+     *if* we make nontrivial changes in machine-dependent reorg,
+     run variable tracking after those.  However, if we do not run
+     our machine-dependent reorg pass, we must still run the normal
+     variable tracking pass (or else we will ICE in final since
+     debug insns have not been removed).  */
+  if (TARGET_BRANCH_HINTS && optimize)
+    {
+      spu_flag_var_tracking = flag_var_tracking;
+      flag_var_tracking = 0;
+    }
 
   default_file_start ();
 }
