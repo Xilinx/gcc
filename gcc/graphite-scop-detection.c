@@ -1332,6 +1332,16 @@ is_valid_loop_p (refined_region_p region, loop_p loop)
   return true;
 }
 
+/* Get the outermost loop in REGION for BB lying inside the same REGION.
+   Currently the function can handle only canonical regions.  For non-canonical
+   regions results may differ depending on a particular basic block.  */
+static struct loop *
+get_outermost_loop_in_region (refined_region_p region,
+                             basic_block bb ATTRIBUTE_UNUSED)
+{
+  return region->entry->loop_father;
+}
+
 /* Check if STMT in BB can be represented by the polyhedral model.
    The function is currently incomplete as it requires the data
    reference and SCEV representation checks added.  */
@@ -1339,9 +1349,10 @@ is_valid_loop_p (refined_region_p region, loop_p loop)
 static bool
 is_valid_stmt_p (refined_region_p region, basic_block bb, gimple stmt)
 {
-  struct loop *loop;
+  struct loop *loop, *outermost_loop;
   
   loop = bb->loop_father;
+  outermost_loop = get_outermost_loop_in_region (region, bb);
 
   if (gimple_has_volatile_ops (stmt)
       || (gimple_code (stmt) == GIMPLE_CALL
@@ -1353,7 +1364,7 @@ is_valid_stmt_p (refined_region_p region, basic_block bb, gimple stmt)
     return true;
 
   /* Are data references simple?  */
-  if (!stmt_has_simple_data_refs_p (loop, stmt))
+  if (!stmt_has_simple_data_refs_p (outermost_loop, stmt))
     return false;
 
   /* Perform operation specific checks.  */
