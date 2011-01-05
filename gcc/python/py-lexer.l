@@ -275,7 +275,8 @@ else                    { LANG_TOKEN_ACTION; return ELSE; }
 {WHITESPACE}+           {
                           if (indentation_mode == true)
                             {
-                              fprintf(stdout, "DEBUG: determine INDENT: '%s' (%i) (%d)\n", yytext, yytext[0], strlen(yytext));
+                              fprintf(stdout, "DEBUG: determine INDENT: '%s' (%i) (%d)\n",
+				      yytext, yytext[0], strlen(yytext));
                               for (unsigned int i = 0; i < strlen(yytext); i++)
                                 {
                                   if (yytext[i] == ' ')
