@@ -5572,6 +5572,8 @@ notice for file named $NAME.}#
      (add2sbuf_indentnl sbuf 0)
      )
     (add2sbuf_indentnl sbuf 0)
+;;;;;;;;;;;
+    (add2sbuf_indentnl sbuf 0)
     (add2sbuf_strconst sbuf "/* value GTY types */")
     (foreach_in_multiple
      (valdesctup)
@@ -5617,6 +5619,19 @@ notice for file named $NAME.}#
      (add2sbuf_string sbuf (get_field :valdesc_struct curvaldesc))
      (add2sbuf_strconst sbuf " */")
      (add2sbuf_indentnl sbuf 0)
+     (let ( (dclchk (get_field :valdesc_declchunk curvaldesc))
+	    )
+       (if dclchk
+	   (progn
+	     (add2sbuf_strconst sbuf "/* decl. chunk */")
+	     (add2sbuf_indentnl sbuf 0)
+	     (add2sbuf_string sbuf dclchk)
+	     (add2sbuf_indentnl sbuf 0)
+	     )
+	 (add2sbuf_strconst sbuf "/* no decl. chunk */")
+	 )
+       (add2sbuf_indentnl sbuf 0)
+       )
      )
     (add2sbuf_indentnl sbuf 0)
     (debug_msg outname "runtypesupport_gtystruct outname end")

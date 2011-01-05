@@ -1,6 +1,11 @@
 
 2011-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (runtypesupport_gtystruct):
+	Use valdesc_declchunk field.
+
+2011-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-base.melt (class_value_descriptor): Add
 	valdesc_declchunk field.
 	(valdesc_object, valdesc_multiple, valdesc_closure)
