@@ -1392,7 +1392,10 @@ is_valid_stmt_p (refined_region_p region, basic_block bb, gimple stmt)
           return false;
 
 	FOR_EACH_SSA_TREE_OPERAND (op, stmt, op_iter, SSA_OP_ALL_USES)
-	  if (!is_valid_expr_p (region, loop, op)
+	  /* Follow the old behaviour and always use the entry BB as
+	     instantiate_below during instantiation.  */
+	  /* if (!is_valid_expr_p (region, loop, op) */
+	  if (!graphite_can_represent_expr (ENTRY_BLOCK_PTR, loop, op)
 	      /* We can not handle REAL_TYPE. Failed for pr39260.  */
 	      || TREE_CODE (TREE_TYPE (op)) == REAL_TYPE)
 	    return false;
@@ -1419,6 +1422,7 @@ static bool
 is_valid_bb_p (refined_region_p region, basic_block bb)
 {
   int succ_len = VEC_length (edge, bb->succs);
+  int pred_len = VEC_length (edge, bb->preds);
   gimple_stmt_iterator gsi;
   struct loop *loop = bb->loop_father;
 
@@ -1427,15 +1431,19 @@ is_valid_bb_p (refined_region_p region, basic_block bb)
   if (succ_len > 2 || succ_len == 0)
     return false;
 
-  if (succ_len == 2)
+  /* Ensure that the basic block with two or more entry edges conforms to the
+     requirements of structured code.  */
+  if (pred_len >= 2)
     {
-      /* Is BB the exiting block of a loop?  */
-      if (!loop_exits_from_bb_p (loop, bb))
+      basic_block dom = get_immediate_dominator (CDI_DOMINATORS, bb);
+      basic_block post = get_immediate_dominator (CDI_POST_DOMINATORS, dom);
+
+      if (post != bb)
 	return false;
     }
 
-  /* BB is the header of a loop.  Do validity checks on it.  */
-  if (bb == bb->loop_father->header && !is_valid_loop_p (region, loop))
+  /* BB is the header of a loop.  */
+  if (bb == loop->header && !is_valid_loop_p (region, loop))
     return false;
 
   /* Are there any harmful BBs in the region?  */
@@ -1490,7 +1498,12 @@ find_scops_new (VEC (sd_region, heap) **sd_scops)
   VEC (refined_region_p, heap) *check = VEC_alloc (refined_region_p, heap, 3);
 
   /* Build new region tree.  */
-  refined_region_p new_region = calculate_region_tree ();
+  refined_region_p new_region;
+
+  calculate_dominance_info (CDI_DOMINATORS);
+  calculate_dominance_info (CDI_POST_DOMINATORS);
+
+  new_region = calculate_region_tree ();
 
   /* Print the region tree with all the basic blocks its regions contain.  */
   if (dump_file && (dump_flags & TDF_DETAILS))
