@@ -1,7 +1,7 @@
 // Low-level functions for atomic operations: version for CPUs providing
 // atomic builtins -*- C++ -*-
 
-// Copyright (C) 2006, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2006, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -22,10 +22,6 @@
 // a copy of the GCC Runtime Library Exception along with this program;
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
-
-/** @file ext/atomicity.h
- *  This file is a GNU extension to the Standard C++ Library.
- */
 
 #include <bits/c++config.h>
 #include <bits/atomic_word.h>

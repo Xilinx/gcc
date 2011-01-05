@@ -12154,7 +12154,7 @@ mips_multipass_dfa_lookahead (void)
   if (TUNE_SB1)
     return 4;
 
-  if (TUNE_LOONGSON_2EF)
+  if (TUNE_LOONGSON_2EF || TUNE_LOONGSON_3A)
     return 4;
 
   if (TUNE_OCTEON)
@@ -16386,12 +16386,12 @@ void mips_function_profiler (FILE *file)
 
 /* Implement TARGET_SHIFT_TRUNCATION_MASK.  We want to keep the default
    behaviour of TARGET_SHIFT_TRUNCATION_MASK for non-vector modes even
-   when TARGET_LOONGSON_2EF is true.  */
+   when TARGET_LOONGSON_VECTORS is true.  */
 
 static unsigned HOST_WIDE_INT
 mips_shift_truncation_mask (enum machine_mode mode)
 {
-  if (TARGET_LOONGSON_2EF && VECTOR_MODE_P (mode))
+  if (TARGET_LOONGSON_VECTORS && VECTOR_MODE_P (mode))
     return 0;
 
   return GET_MODE_BITSIZE (mode) - 1;

@@ -1,6 +1,6 @@
 /* Conditional constant propagation pass for the GNU compiler.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010 Free Software Foundation, Inc.
+   2010, 2011 Free Software Foundation, Inc.
    Adapted from original RTL SSA-CCP by Daniel Berlin <dberlin@dberlin.org>
    Adapted to GIMPLE trees by Diego Novillo <dnovillo@redhat.com>
 
@@ -1764,8 +1764,8 @@ bit_value_binop_1 (enum tree_code code, tree type,
 		   tree r1type, double_int r1val, double_int r1mask,
 		   tree r2type, double_int r2val, double_int r2mask)
 {
-  bool uns = (TREE_CODE (type) == INTEGER_TYPE
-	      && TYPE_IS_SIZETYPE (type) ? 0 : TYPE_UNSIGNED (type));
+  bool uns = (TREE_CODE (r1type) == INTEGER_TYPE
+	      && TYPE_IS_SIZETYPE (r1type) ? 0 : TYPE_UNSIGNED (r1type));
   /* Assume we'll get a constant result.  Use an initial varying value,
      we fall back to varying in the end if necessary.  */
   *mask = double_int_minus_one;
@@ -2156,9 +2156,10 @@ evaluate_stmt (gimple stmt)
 	      if (INTEGRAL_TYPE_P (TREE_TYPE (rhs1))
 		  || POINTER_TYPE_P (TREE_TYPE (rhs1)))
 		{
+		  tree lhs = gimple_assign_lhs (stmt);
 		  tree rhs2 = gimple_assign_rhs2 (stmt);
 		  val = bit_value_binop (subcode,
-					 TREE_TYPE (rhs1), rhs1, rhs2);
+					 TREE_TYPE (lhs), rhs1, rhs2);
 		}
 	      break;
 

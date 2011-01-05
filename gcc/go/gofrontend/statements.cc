@@ -108,7 +108,8 @@ Statement::traverse_expression_list(Traverse* traverse,
 {
   if (expr_list == NULL)
     return TRAVERSE_CONTINUE;
-  if ((traverse->traverse_mask() & Traverse::traverse_expressions) == 0)
+  if ((traverse->traverse_mask()
+       & (Traverse::traverse_types | Traverse::traverse_expressions)) == 0)
     return TRAVERSE_CONTINUE;
   return expr_list->traverse(traverse);
 }
@@ -299,6 +300,19 @@ Temporary_statement::type() const
   return this->type_ != NULL ? this->type_ : this->init_->type();
 }
 
+// Return the tree for the temporary variable.
+
+tree
+Temporary_statement::get_decl() const
+{
+  if (this->decl_ == NULL)
+    {
+      gcc_assert(saw_errors());
+      return error_mark_node;
+    }
+  return this->decl_;
+}
+
 // Traversal.
 
 int
@@ -326,6 +340,9 @@ Temporary_statement::do_traverse_assignments(Traverse_assignments* tassign)
 void
 Temporary_statement::do_determine_types()
 {
+  if (this->type_ != NULL && this->type_->is_abstract())
+    this->type_ = this->type_->make_non_abstract_type();
+
   if (this->init_ != NULL)
     {
       if (this->type_ == NULL)
@@ -338,10 +355,10 @@ Temporary_statement::do_determine_types()
     }
 
   if (this->type_ == NULL)
-    this->type_ = this->init_->type();
-
-  if (this->type_->is_abstract())
-    this->type_ = this->type_->make_non_abstract_type();
+    {
+      this->type_ = this->init_->type();
+      gcc_assert(!this->type_->is_abstract());
+    }
 }
 
 // Check types.
@@ -350,7 +367,18 @@ void
 Temporary_statement::do_check_types(Gogo*)
 {
   if (this->type_ != NULL && this->init_ != NULL)
-    gcc_assert(Type::are_assignable(this->type_, this->init_->type(), NULL));
+    {
+      std::string reason;
+      if (!Type::are_assignable(this->type_, this->init_->type(), &reason))
+	{
+	  if (reason.empty())
+	    error_at(this->location(), "incompatible types in assignment");
+	  else
+	    error_at(this->location(), "incompatible types in assignment (%s)",
+		     reason.c_str());
+	  this->set_is_error();
+	}
+    }
 }
 
 // Return a tree.
@@ -898,6 +926,8 @@ Tuple_map_assignment_statement::do_lower(Gogo*, Block* enclosing)
       return Statement::make_error_statement(loc);
     }
   Map_type* map_type = map_index->get_map_type();
+  if (map_type == NULL)
+    return Statement::make_error_statement(loc);
 
   Block* b = new Block(enclosing, loc);
 
@@ -1042,6 +1072,8 @@ Map_assignment_statement::do_lower(Gogo*, Block* enclosing)
       return Statement::make_error_statement(loc);
     }
   Map_type* map_type = map_index->get_map_type();
+  if (map_type == NULL)
+    return Statement::make_error_statement(loc);
 
   Block* b = new Block(enclosing, loc);
 
@@ -2567,6 +2599,8 @@ Return_statement::do_get_tree(Translate_context* context)
 {
   Function* function = context->function()->func_value();
   tree fndecl = function->get_decl();
+  if (fndecl == error_mark_node || DECL_RESULT(fndecl) == error_mark_node)
+    return error_mark_node;
 
   const Typed_identifier_list* results = this->results_;
 
@@ -2580,6 +2614,8 @@ Return_statement::do_get_tree(Translate_context* context)
       tree set;
       if (retval == NULL_TREE)
 	set = NULL_TREE;
+      else if (retval == error_mark_node)
+	return error_mark_node;
       else
 	set = fold_build2_loc(this->location(), MODIFY_EXPR, void_type_node,
 			      DECL_RESULT(fndecl), retval);
@@ -2591,13 +2627,13 @@ Return_statement::do_get_tree(Translate_context* context)
     {
       gcc_assert(!VOID_TYPE_P(TREE_TYPE(TREE_TYPE(fndecl))));
       tree val = (*this->vals_->begin())->get_tree(context);
-      if (val == error_mark_node)
-	return error_mark_node;
       gcc_assert(results != NULL && results->size() == 1);
       val = Expression::convert_for_assignment(context,
 					       results->begin()->type(),
 					       (*this->vals_->begin())->type(),
 					       val, this->location());
+      if (val == error_mark_node)
+	return error_mark_node;
       tree set = build2(MODIFY_EXPR, void_type_node,
 			DECL_RESULT(fndecl), val);
       SET_EXPR_LOCATION(set, this->location());
@@ -2618,11 +2654,11 @@ Return_statement::do_get_tree(Translate_context* context)
 	{
 	  gcc_assert(pv != this->vals_->end());
 	  tree val = (*pv)->get_tree(context);
-	  if (val == error_mark_node)
-	    return error_mark_node;
 	  val = Expression::convert_for_assignment(context, pr->type(),
 						   (*pv)->type(), val,
 						   this->location());
+	  if (val == error_mark_node)
+	    return error_mark_node;
 	  tree set = build2(MODIFY_EXPR, void_type_node,
 			    build3(COMPONENT_REF, TREE_TYPE(field),
 				   retvar, field, NULL_TREE),
@@ -2978,7 +3014,8 @@ int
 Case_clauses::Case_clause::traverse(Traverse* traverse)
 {
   if (this->cases_ != NULL
-      && (traverse->traverse_mask() & Traverse::traverse_expressions) != 0)
+      && (traverse->traverse_mask()
+	  & (Traverse::traverse_types | Traverse::traverse_expressions)) != 0)
     {
       if (this->cases_->traverse(traverse) == TRAVERSE_EXIT)
 	return TRAVERSE_EXIT;
@@ -3909,7 +3946,8 @@ int
 Select_clauses::Select_clause::traverse(Traverse* traverse)
 {
   if (!this->is_lowered_
-      && (traverse->traverse_mask() & Traverse::traverse_expressions) != 0)
+      && (traverse->traverse_mask()
+	  & (Traverse::traverse_types | Traverse::traverse_expressions)) != 0)
     {
       if (this->channel_ != NULL)
 	{
@@ -4131,6 +4169,14 @@ Select_clauses::get_tree(Translate_context* context,
 	  default_clause = &*p;
 	  --count;
 	  continue;
+	}
+
+      if (p->channel()->type()->channel_type() == NULL)
+	{
+	  // We should have given an error in the send or receive
+	  // statement we created via lowering.
+	  gcc_assert(saw_errors());
+	  return error_mark_node;
 	}
 
       tree channel_tree = p->channel()->get_tree(context);

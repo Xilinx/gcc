@@ -1,7 +1,7 @@
 # generated automatically by aclocal 1.11.1 -*- Autoconf -*-
 
 # Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-# 2005, 2006, 2007, 2008, 2009  Free Software Foundation, Inc.
+# 2005, 2006, 2007, 2008, 2009, 2010  Free Software Foundation, Inc.
 # This file is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -654,13 +654,7 @@ AC_SUBST([am__tar])
 AC_SUBST([am__untar])
 ]) # _AM_PROG_TAR
 
-m4_include([../libtool.m4])
-m4_include([../ltoptions.m4])
-m4_include([../ltsugar.m4])
-m4_include([../ltversion.m4])
-m4_include([../lt~obsolete.m4])
-m4_include([crossconfig.m4])
-m4_include([linkage.m4])
+m4_include([../config/acx.m4])
 m4_include([../config/enable.m4])
 m4_include([../config/futex.m4])
 m4_include([../config/iconv.m4])
@@ -674,4 +668,11 @@ m4_include([../config/no-executables.m4])
 m4_include([../config/override.m4])
 m4_include([../config/stdint.m4])
 m4_include([../config/unwind_ipinfo.m4])
+m4_include([../libtool.m4])
+m4_include([../ltoptions.m4])
+m4_include([../ltsugar.m4])
+m4_include([../ltversion.m4])
+m4_include([../lt~obsolete.m4])
+m4_include([crossconfig.m4])
+m4_include([linkage.m4])
 m4_include([acinclude.m4])

@@ -3793,9 +3793,12 @@ resolve_operator (gfc_expr *e)
 	sprintf (msg, _("Operand of user operator '%s' at %%L is %s"),
 		 e->value.op.uop->name, gfc_typename (&op1->ts));
       else
-	sprintf (msg, _("Operands of user operator '%s' at %%L are %s/%s"),
-		 e->value.op.uop->name, gfc_typename (&op1->ts),
-		 gfc_typename (&op2->ts));
+	{
+	  sprintf (msg, _("Operands of user operator '%s' at %%L are %s/%s"),
+		   e->value.op.uop->name, gfc_typename (&op1->ts),
+		   gfc_typename (&op2->ts));
+	  e->value.op.uop->op->sym->attr.referenced = 1;
+	}
 
       goto bad_op;
 
@@ -11784,7 +11787,9 @@ resolve_symbol (gfc_symbol *sym)
       for (ns = gfc_current_ns->parent; ns; ns = ns->parent)
 	{
 	  symtree = gfc_find_symtree (ns->sym_root, sym->name);
-	  if (symtree && symtree->n.sym->generic)
+	  if (symtree && (symtree->n.sym->generic ||
+			  (symtree->n.sym->attr.flavor == FL_PROCEDURE
+			   && sym->ns->construct_entities)))
 	    {
 	      this_symtree = gfc_find_symtree (gfc_current_ns->sym_root,
 					       sym->name);

@@ -15446,12 +15446,12 @@ loc_list_from_tree (tree loc, int want_address)
       /* FALLTHRU */
 
     case PARM_DECL:
+    case RESULT_DECL:
       if (DECL_HAS_VALUE_EXPR_P (loc))
 	return loc_list_from_tree (DECL_VALUE_EXPR (loc),
 				   want_address);
       /* FALLTHRU */
 
-    case RESULT_DECL:
     case FUNCTION_DECL:
       {
 	rtx rtl;
@@ -17651,7 +17651,7 @@ static inline void
 add_prototyped_attribute (dw_die_ref die, tree func_type)
 {
   if (get_AT_unsigned (comp_unit_die (), DW_AT_language) == DW_LANG_C89
-      && TYPE_ARG_TYPES (func_type) != NULL)
+      && prototype_p (func_type))
     add_AT_flag (die, DW_AT_prototyped, 1);
 }
 
@@ -18900,7 +18900,6 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
   char label_id[MAX_ARTIFICIAL_LABEL_BYTES];
   tree origin = decl_ultimate_origin (decl);
   dw_die_ref subr_die;
-  tree fn_arg_types;
   tree outer_scope;
   dw_die_ref old_die = lookup_decl_die (decl);
   int declaration = (current_function_decl != decl
@@ -19238,8 +19237,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	 void_type_node 2) an unprototyped function declaration (not a
 	 definition).  This just means that we have no info about the
 	 parameters at all.  */
-      fn_arg_types = TYPE_ARG_TYPES (TREE_TYPE (decl));
-      if (fn_arg_types != NULL)
+      if (prototype_p (TREE_TYPE (decl)))
 	{
 	  /* This is the prototyped case, check for....  */
 	  if (stdarg_p (TREE_TYPE (decl)))
@@ -20251,12 +20249,22 @@ gen_tagged_type_die (tree type,
 
 static void
 gen_type_die_with_usage (tree type, dw_die_ref context_die,
-				enum debug_info_usage usage)
+			 enum debug_info_usage usage)
 {
   struct array_descr_info info;
 
   if (type == NULL_TREE || type == error_mark_node)
     return;
+
+  if (TYPE_NAME (type) != NULL_TREE
+      && TREE_CODE (TYPE_NAME (type)) == TYPE_DECL
+      && is_redundant_typedef (TYPE_NAME (type))
+      && DECL_ORIGINAL_TYPE (TYPE_NAME (type)))
+    /* The DECL of this type is a typedef we don't want to emit debug
+       info for but we want debug info for its underlying typedef.
+       This can happen for e.g, the injected-class-name of a C++
+       type.  */
+    type = DECL_ORIGINAL_TYPE (TYPE_NAME (type));
 
   /* If TYPE is a typedef type variant, let's generate debug info
      for the parent typedef which TYPE is a type of.  */

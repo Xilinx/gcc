@@ -1654,8 +1654,18 @@ Parse::init_vars_from_map(const Typed_identifier_list* vars, Type* type,
 
   if (!this->gogo_->in_global_scope())
     this->gogo_->add_statement(s);
-  else
+  else if (!val_no->is_sink())
     val_no->var_value()->add_preinit_statement(s);
+  else if (!no->is_sink())
+    no->var_value()->add_preinit_statement(s);
+  else
+    {
+      // Execute the map index expression just so that we can fail if
+      // the map is nil.
+      Named_object* dummy = this->create_dummy_global(Type::lookup_bool_type(),
+						      NULL, location);
+      dummy->var_value()->add_preinit_statement(s);
+    }
 
   return true;
 }
@@ -1705,8 +1715,16 @@ Parse::init_vars_from_receive(const Typed_identifier_list* vars, Type* type,
 
   if (!this->gogo_->in_global_scope())
     this->gogo_->add_statement(s);
-  else
+  else if (!val_no->is_sink())
     val_no->var_value()->add_preinit_statement(s);
+  else if (!no->is_sink())
+    no->var_value()->add_preinit_statement(s);
+  else
+    {
+      Named_object* dummy = this->create_dummy_global(Type::lookup_bool_type(),
+						      NULL, location);
+      dummy->var_value()->add_preinit_statement(s);
+    }
 
   return true;
 }
@@ -1757,8 +1775,15 @@ Parse::init_vars_from_type_guard(const Typed_identifier_list* vars,
 
   if (!this->gogo_->in_global_scope())
     this->gogo_->add_statement(s);
-  else
+  else if (!val_no->is_sink())
     val_no->var_value()->add_preinit_statement(s);
+  else if (!no->is_sink())
+    no->var_value()->add_preinit_statement(s);
+  else
+    {
+      Named_object* dummy = this->create_dummy_global(type, NULL, location);
+      dummy->var_value()->add_preinit_statement(s);
+    }
 
   return true;
 }
@@ -1780,17 +1805,7 @@ Parse::init_var(const Typed_identifier& tid, Type* type, Expression* init,
 	  if (!this->gogo_->in_global_scope())
 	    this->gogo_->add_statement(Statement::make_statement(init));
 	  else
-	    {
-	      // Create a dummy global variable to force the
-	      // initializer to be run in the right place.
-	      Variable* var = new Variable(type, init, true, false, false,
-					   location);
-	      static int count;
-	      char buf[30];
-	      snprintf(buf, sizeof buf, "_.%d", count);
-	      ++count;
-	      return this->gogo_->add_variable(buf, var);
-	    }
+	    return this->create_dummy_global(type, init, location);
 	}
       return this->gogo_->add_sink();
     }
@@ -1816,6 +1831,22 @@ Parse::init_var(const Typed_identifier& tid, Type* type, Expression* init,
   Variable* var = new Variable(type, init, this->gogo_->in_global_scope(),
 			       false, false, location);
   return this->gogo_->add_variable(tid.name(), var);
+}
+
+// Create a dummy global variable to force an initializer to be run in
+// the right place.  This is used when a sink variable is initialized
+// at global scope.
+
+Named_object*
+Parse::create_dummy_global(Type* type, Expression* init,
+			   source_location location)
+{
+  Variable* var = new Variable(type, init, true, false, false, location);
+  static int count;
+  char buf[30];
+  snprintf(buf, sizeof buf, "_.%d", count);
+  ++count;
+  return this->gogo_->add_variable(buf, var);
 }
 
 // SimpleVarDecl = identifier ":=" Expression .
@@ -3794,6 +3825,7 @@ Parse::expr_switch_body(const Label* label, Expression* switch_val,
   this->push_break_statement(statement, label);
 
   Case_clauses* case_clauses = new Case_clauses();
+  bool saw_default = false;
   while (!this->peek_token()->is_op(OPERATOR_RCURLY))
     {
       if (this->peek_token()->is_eof())
@@ -3802,7 +3834,7 @@ Parse::expr_switch_body(const Label* label, Expression* switch_val,
 	    error_at(this->location(), "missing %<}%>");
 	  return NULL;
 	}
-      this->expr_case_clause(case_clauses);
+      this->expr_case_clause(case_clauses, &saw_default);
     }
   this->advance_token();
 
@@ -3817,7 +3849,7 @@ Parse::expr_switch_body(const Label* label, Expression* switch_val,
 // FallthroughStat = "fallthrough" .
 
 void
-Parse::expr_case_clause(Case_clauses* clauses)
+Parse::expr_case_clause(Case_clauses* clauses, bool* saw_default)
 {
   source_location location = this->location();
 
@@ -3847,6 +3879,16 @@ Parse::expr_case_clause(Case_clauses* clauses)
       is_fallthrough = true;
       if (this->advance_token()->is_op(OPERATOR_SEMICOLON))
 	this->advance_token();
+    }
+
+  if (is_default)
+    {
+      if (*saw_default)
+	{
+	  error_at(location, "multiple defaults in switch");
+	  return;
+	}
+      *saw_default = true;
     }
 
   if (is_default || vals != NULL)
@@ -3905,6 +3947,7 @@ Parse::type_switch_body(const Label* label, const Type_switch& type_switch,
   this->push_break_statement(statement, label);
 
   Type_case_clauses* case_clauses = new Type_case_clauses();
+  bool saw_default = false;
   while (!this->peek_token()->is_op(OPERATOR_RCURLY))
     {
       if (this->peek_token()->is_eof())
@@ -3912,7 +3955,7 @@ Parse::type_switch_body(const Label* label, const Type_switch& type_switch,
 	  error_at(this->location(), "missing %<}%>");
 	  return NULL;
 	}
-      this->type_case_clause(switch_no, case_clauses);
+      this->type_case_clause(switch_no, case_clauses, &saw_default);
     }
   this->advance_token();
 
@@ -3926,7 +3969,8 @@ Parse::type_switch_body(const Label* label, const Type_switch& type_switch,
 // TypeCaseClause  = TypeSwitchCase ":" [ StatementList ] .
 
 void
-Parse::type_case_clause(Named_object* switch_no, Type_case_clauses* clauses)
+Parse::type_case_clause(Named_object* switch_no, Type_case_clauses* clauses,
+			bool* saw_default)
 {
   source_location location = this->location();
 
@@ -3969,6 +4013,12 @@ Parse::type_case_clause(Named_object* switch_no, Type_case_clauses* clauses)
   if (is_default)
     {
       gcc_assert(types.empty());
+      if (*saw_default)
+	{
+	  error_at(location, "multiple defaults in type switch");
+	  return;
+	}
+      *saw_default = true;
       clauses->add(NULL, false, true, statements, location);
     }
   else if (!types.empty())
@@ -4045,6 +4095,7 @@ Parse::select_stat(const Label* label)
   this->push_break_statement(statement, label);
 
   Select_clauses* select_clauses = new Select_clauses();
+  bool saw_default = false;
   while (!this->peek_token()->is_op(OPERATOR_RCURLY))
     {
       if (this->peek_token()->is_eof())
@@ -4052,7 +4103,7 @@ Parse::select_stat(const Label* label)
 	  error_at(this->location(), "expected %<}%>");
 	  return;
 	}
-      this->comm_clause(select_clauses);
+      this->comm_clause(select_clauses, &saw_default);
     }
 
   this->advance_token();
@@ -4067,7 +4118,7 @@ Parse::select_stat(const Label* label)
 // CommClause = CommCase [ StatementList ] .
 
 void
-Parse::comm_clause(Select_clauses* clauses)
+Parse::comm_clause(Select_clauses* clauses, bool* saw_default)
 {
   source_location location = this->location();
   bool is_send = false;
@@ -4097,6 +4148,16 @@ Parse::comm_clause(Select_clauses* clauses)
 
       this->statement_list();
       statements = this->gogo_->finish_block(this->location());
+    }
+
+  if (is_default)
+    {
+      if (*saw_default)
+	{
+	  error_at(location, "multiple defaults in select");
+	  return;
+	}
+      *saw_default = true;
     }
 
   if (got_case)
