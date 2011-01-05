@@ -1,6 +1,13 @@
 
 2011-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (class_value_descriptor): Add
+	valdesc_declchunk field.
+	(valdesc_object, valdesc_multiple, valdesc_closure)
+	(valdesc_routine): Fill it.
+
+2011-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-first.melt (ctype_value): The argfield is meltbp_vptr.
 
 	* melt/warmelt-outobj.melt (runtypesupport_param): Generates

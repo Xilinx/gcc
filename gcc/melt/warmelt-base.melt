@@ -1088,7 +1088,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   its magic number. $VALDESC_STRUCT is the GTY-ed struct
   name. $VALDESC_UNIONMEM is the union member name inside union
   melt_un. $VALDESC_MEMBCHUNK is the code chunk of the structure
-  members after the discriminant. $VALDESC_GTY is the optional GTY
+  members after the discriminant. $VALDESC_DECLCHUNK is the code chunk
+  for declarations, e.g. macros, outside of the GTY-ed
+  structure. $VALDESC_GTY is the optional GTY
   argument. $VALDESC_COPYCHUNK is the code chunk copying src to an
   allocated dst. $VALDESC_FORWCHUNK is the code chunk formarding
   internal pointers.}#
@@ -1099,6 +1101,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 	   valdesc_unionmem
 	   valdesc_gty
 	   valdesc_membchunk
+	   valdesc_declchunk
 	   valdesc_copychunk
 	   valdesc_forwchunk
 	   )
@@ -1138,12 +1141,14 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_struct '"meltobject_st"
   :valdesc_unionmem '"u_object"
   :valdesc_membchunk #{$' /* from VALDESC_OBJECT */
-#define meltobj_class discr
   unsigned obj_hash;		/* hash code of the object */
   unsigned short obj_num;
-#define meltobj_magic obj_num
   unsigned short obj_len;
   melt_ptr_t GTY ((length ("%h.obj_len"))) obj_vartab[FLEXIBLE_DIM];
+  }#
+  :valdesc_declchunk #{$' /* decl VALDESC_OBJECT */
+#define meltobj_class discr
+#define meltobj_magic obj_num
 #define MELT_OBJECT_STRUCT(N) {			\
   meltobject_ptr_t meltobj_class;		\
   unsigned obj_hash;				\
@@ -1353,6 +1358,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_membchunk #{$' /* from VALDESC_MULTIPLE */
     unsigned nbval;
     melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+  }#
+  :valdesc_declchunk #{$'  /* decl VALDESC_MULTIPLE */
 #define MELT_MULTIPLE_STRUCT(N) {               \
     meltobject_ptr_t discr;                     \
     unsigned nbval;                             \
@@ -1393,6 +1400,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     meltroutine_ptr_t rout;
     unsigned nbval;
     melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
+  }#
+  :valdesc_declchunk #{$' /* decl VALDESC_CLOSURE */
 #define MELT_CLOSURE_STRUCT(N) {                \
     meltobject_ptr_t discr;                     \
     unsigned nbval;                             \
@@ -1435,7 +1444,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     melt_ptr_t routdata;
     unsigned nbval;
     melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
-
+  }#
+  :valdesc_declchunk #{$' /* decl VALDESC_ROUTINE */
 /* unsafely set inside the meltroutine_st pointed by Rptr the
    routine function pointer to Rout */
 #define MELT_ROUTINE_SET_ROUTCODE(Rptr,Rout) do {	\
@@ -1486,6 +1496,8 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_unionmem '"u_string"
   :valdesc_membchunk #{$' /* from VALDESC_STRING */  
     char val[FLEXIBLE_DIM];	/* null terminated */
+  }#
+  :valdesc_declchunk #{$' /* decl VALDESC_STRING */
 #define MELT_STRING_STRUCT(N) {			\
   meltobject_ptr_t discr;			\
   char val[(N)+1];	/* null terminated */	\
