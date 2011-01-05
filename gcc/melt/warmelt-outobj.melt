@@ -5986,7 +5986,7 @@ notice for file named $NAME.}#
 	 (add2sbuf_indentnl sbuf 1)
 	 (add2sbuf_string sbuf (get_field :ctype_cname curctyp))
 	 (add2sbuf_strconst sbuf " *")
-	 (add2sbuf_string sbuf )
+	 (add2sbuf_string sbuf restyp)
 	 (add2sbuf_strconst sbuf ";")     
 	 )
 	(:else
