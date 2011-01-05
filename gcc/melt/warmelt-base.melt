@@ -1737,7 +1737,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_SPEC_FILE"
   :valdesc_struct '"meltspecialfile_st"
   :valdesc_unionmem '"u_special_file"
-  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_FILE */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
@@ -1766,7 +1766,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_SPEC_RAWFILE"
   :valdesc_struct '"meltspecialrawfile_st"
   :valdesc_unionmem '"u_special_rawfile"
-  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
@@ -1794,7 +1794,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_SPEC_MPFR"
   :valdesc_struct '"meltspecialmpfr_st"
   :valdesc_unionmem '"u_special_mpfr"
-  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_MPFR */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
@@ -1822,7 +1822,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_COEFFICIENT"
   :valdesc_struct '"meltspecialpplcoefficient_st"
   :valdesc_unionmem '"u_special_ppl_coefficient"
-  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
@@ -1851,7 +1851,7 @@ linear expression values.}#
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_LINEAR_EXPRESSION"
   :valdesc_struct '"meltspecialppllinearexpression_st"
   :valdesc_unionmem '"u_special_ppl_linear_expression"
-  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
@@ -1880,7 +1880,7 @@ constraints values.}#
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_CONSTRAINT"
   :valdesc_struct '"meltspecialpplconstraint_st"
   :valdesc_unionmem '"u_special_ppl_constraint"
-  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
@@ -1909,7 +1909,7 @@ constraint systems values.}#
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM"
   :valdesc_struct '"meltspecialpplconstaintsystem_st"
   :valdesc_unionmem '"u_special_ppl_constraint_system"
-  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
@@ -1938,7 +1938,7 @@ generators values.}#
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_GENERATOR"
   :valdesc_struct '"meltspecialpplgenerator_st"
   :valdesc_unionmem '"u_special_ppl_generator"
-  :valdesc_gty #{$' mark_hook ("melt_mark_special"}#
+  :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
@@ -1965,9 +1965,9 @@ generators values.}#
 generator systems values.}#
   :named_name '"VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM"
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_GENERATOR_SYSTEM"
-  :valdesc_struct '"meltspecialpplconstaintsystem_st"
+  :valdesc_struct '"meltspecialpplgeneratorsystem_st"
   :valdesc_unionmem '"u_special_ppl_generator_system"
-  :valdesc_gty #{$'mark_hook ("melt_mark_special"}#
+  :valdesc_gty #{$'mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
@@ -1996,7 +1996,7 @@ polyhedron values.}#
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_POLYHEDRON"
   :valdesc_struct '"meltspecialpplpolyhedron_st"
   :valdesc_unionmem '"u_special_ppl_polyhedron"
-  :valdesc_gty #{$'mark_hook ("melt_mark_special"}#
+  :valdesc_gty #{$'mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;

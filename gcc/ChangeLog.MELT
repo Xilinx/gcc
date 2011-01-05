@@ -1,6 +1,10 @@
 
 2011-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt: Typos in valdesc_*.
+
+2011-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (runtypesupport_gtystruct):
 	Use valdesc_declchunk field.
 
