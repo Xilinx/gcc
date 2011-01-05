@@ -1940,7 +1940,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctype_parchar '"MELTBPAR_PTR"
   :ctype_parstring '"MELTBPARSTR_PTR"
   ;; value have to be passed specially, we need to pass the address of the pointer
-  :ctype_argfield '"meltbp_aptr"
+  :ctype_argfield '"meltbp_vptr"
   :ctype_resfield '"meltbp_aptr"
   :ctype_marker '"gt_ggc_mx_melt_un"
   )

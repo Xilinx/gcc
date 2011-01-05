@@ -1,6 +1,13 @@
 
 2011-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (ctype_value): The argfield is meltbp_vptr.
+
+	* melt/warmelt-outobj.melt (runtypesupport_param): Generates
+	meltrunsup-param.h correctly.
+
+2011-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (runtypesupport_param): Typos.
 
 2011-01-04  Basile Starynkevitch  <basile@starynkevitch.net>
