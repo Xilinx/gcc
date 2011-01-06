@@ -1,5 +1,5 @@
 /* Integrated Register Allocator (IRA) reloading .
-   Copyright (C) 2009, 2010
+   Copyright (C) 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -48,10 +48,13 @@ along with GCC; see the file COPYING3.  If not see
 
 static bitmap pseudos_to_localize;
 static bitmap regs_to_load;
+static bitmap regs_to_load_alt;
 static bitmap regs_to_store;
+static bitmap regs_to_store_alt;
 static int *pseudo_nuses;
 static int *pseudo_nsets;
 static rtx *reg_map;
+static rtx *alt_reg_map;
 
 /* Return true if REG is a pseudo which should be localized, return false
    otherwise.  */
@@ -124,12 +127,20 @@ assign_stack_slots (void)
    localization.  */
 
 static void
-identify_singleton_uses (rtx use)
+identify_singleton_uses (rtx use, bitmap subregs_to_decompose, int df_flags)
 {
   if (GET_CODE (use) == SUBREG)
     use = SUBREG_REG (use);
 
   if (GET_CODE (use) != REG)
+    return;
+
+  /* If this reference is an implicit use via a subreg and the referenced
+     subreg is marked for decomposition, then we can ignore the implicit
+     use as it will disappear when the subreg is decomposed.  */
+  if (((df_flags & (DF_REF_SUBREG | DF_REF_READ_WRITE))
+       == (DF_REF_SUBREG | DF_REF_READ_WRITE))
+      && bitmap_bit_p (subregs_to_decompose, REGNO (use)))
     return;
 
   if (bitmap_bit_p (pseudos_to_localize, REGNO (use)))
@@ -187,16 +198,35 @@ no_uses_after_this_set (rtx dest, rtx start, rtx stop)
    localization.  */
 
 static void
-collect_loads (rtx use)
+collect_loads (rtx use, bitmap subregs_to_decompose, int df_flags)
 {
+  rtx orig = use;
+  bool alt = false;
+
   if (GET_CODE (use) == SUBREG)
     use = SUBREG_REG (use);
 
   if (GET_CODE (use) != REG)
     return;
 
+  /* If this reference is an implicit use via a subreg and the referenced
+     subreg is marked for decomposition, then we can ignore the implicit
+     use as it will disappear when the subreg is decomposed.  */
+  if (((df_flags & (DF_REF_SUBREG | DF_REF_READ_WRITE))
+       == (DF_REF_SUBREG | DF_REF_READ_WRITE))
+      && bitmap_bit_p (subregs_to_decompose, REGNO (use)))
+    return;
+
+  /* If this is the high word access of a double word pseudo that was marked
+     for decomposition, then use the _alt arrays as needed.  */
+  if (GET_CODE (orig) == SUBREG
+      && GET_MODE_SIZE (GET_MODE (orig)) < GET_MODE_SIZE (GET_MODE (use))
+      && bitmap_bit_p (subregs_to_decompose, REGNO (use))
+      && SUBREG_BYTE (orig) != 0)
+   alt = true;
+
   if (bitmap_bit_p (pseudos_to_localize, REGNO (use)))
-    bitmap_set_bit (regs_to_load, REGNO (use));
+    bitmap_set_bit ((alt ? regs_to_load_alt : regs_to_load), REGNO (use));
 
   return;
 }
@@ -205,29 +235,61 @@ collect_loads (rtx use)
    the pseudo before INSN.  */
 
 static int
-emit_localizing_loads (rtx use, rtx insn)
+emit_localizing_loads (rtx use,
+		       rtx insn,
+		       bitmap subregs_to_decompose,
+		       int df_flags)
 {
+  rtx orig = use;
+  bool alt = false;
+  bool decompose = false;
+
   if (GET_CODE (use) == SUBREG)
     use = SUBREG_REG (use);
 
   if (GET_CODE (use) != REG)
-    return 0 ;
+    return 0;
+
+  /* If this reference is an implicit use via a subreg and the referenced
+     subreg is marked for decomposition, then we can ignore the implicit
+     use as it will disappear when the subreg is decomposed.  */
+  if (((df_flags & (DF_REF_SUBREG | DF_REF_READ_WRITE))
+       == (DF_REF_SUBREG | DF_REF_READ_WRITE))
+      && bitmap_bit_p (subregs_to_decompose, REGNO (use)))
+    return 0;
+
+  /* If this is word access of a double word pseudo that was marked for
+     decomposition, then decompose the double-word access to single word
+     accesses.  */
+  if (GET_CODE (orig) == SUBREG
+      && GET_MODE_SIZE (GET_MODE (orig)) < GET_MODE_SIZE (GET_MODE (use))
+      && bitmap_bit_p (subregs_to_decompose, REGNO (use)))
+    decompose = true;
+
+  /* If this is the high word access of a double word pseudo that was marked
+     for decomposition, then use the _alt arrays as needed.  */
+  if (decompose && SUBREG_BYTE (orig) != 0)
+   alt = true;
 
   if (bitmap_bit_p (pseudos_to_localize, REGNO (use)))
     {
-
-
       /* If this pseudo still needs a load, emit it.  */
-      if (bitmap_bit_p (regs_to_load, REGNO (use)))
+      if (bitmap_bit_p ((alt ? regs_to_load_alt : regs_to_load), REGNO (use)))
 	{
 	  rtx insns, temp;
-	  rtx mem = VEC_index (reg_equivs_t, reg_equivs, REGNO (use))->memory_loc;
+	  rtx mem
+	    = VEC_index (reg_equivs_t, reg_equivs, REGNO (use))->memory_loc;
 	  int nuses = pseudo_nuses[REGNO (use)];
 	  int nsets = pseudo_nsets[REGNO (use)];
 	  int occurrences = count_occurrences (PATTERN (insn), use, 0);
 
 	  mem = copy_rtx (mem);
-	    
+
+	  /* If we're decomposing a SUBREG, then the memory address needs
+ 	     adjustment.  */
+	  if (decompose)
+	    mem = adjust_address_nv (mem, GET_MODE (orig), SUBREG_BYTE (orig));
+
 	  /* validate_replace_rtx internally calls df_insn_rescan, which is
 	     unsafe as our caller is iterating over the existing DF info.  So
 	     we have to turn off insn rescanning temporarily.  */
@@ -238,56 +300,83 @@ emit_localizing_loads (rtx use, rtx insn)
 	     with its equivalent memory location.  */
 	  if (nsets == 0
 	      && (occurrences == nuses || nuses == 2)
-	      && validate_replace_rtx (use, mem, insn))
+	      && validate_replace_rtx ((decompose ? orig : use), mem, insn))
 	    {
 	      df_clear_flags (DF_NO_INSN_RESCAN);
 	    }
 	  else
 	    {
 	      /* Create a new pseudo and record it in our map.  */
-	      if (reg_map [(REGNO (use))] == NULL)
-		reg_map [REGNO (use)] = gen_reg_rtx (GET_MODE (use));
+	      if ((alt ? alt_reg_map[(REGNO (use))] : reg_map [(REGNO (use))])
+		   == NULL)
+		{
+		  if (alt)
+		    alt_reg_map [REGNO (use)] = gen_reg_rtx (GET_MODE (orig));
+		  else
+		    reg_map [REGNO (use)]= gen_reg_rtx ((decompose
+							 ? GET_MODE (orig) 
+							 : GET_MODE (use)));
+		}
 
 	      df_clear_flags (DF_NO_INSN_RESCAN);
 	      start_sequence ();
-	      emit_move_insn (reg_map [REGNO (use)], mem);
+	      emit_move_insn ((alt
+			       ? alt_reg_map [REGNO (use)] 
+			       : reg_map [REGNO (use)]),
+			       mem);
 	      insns = get_insns();
 	      end_sequence ();
 	      emit_insn_before (insns, insn);
 
 	      /* Inform the DF framework about the new insns.  */
-	      for (temp = insns; temp != insn; temp = NEXT_INSN (temp))
-		{
-	          df_insn_rescan (temp);
-		}
+	      for (temp = insns; temp != insn; temp = NEXT_INSN (insns))
+	        df_insn_rescan (temp);
 
 	      /* Note it is no longer necessary to load this pseudo.  */
-	      bitmap_clear_bit (regs_to_load, REGNO (use));
+	      bitmap_clear_bit ((alt ? regs_to_load_alt : regs_to_load),
+				REGNO (use));
 	    }
 	}
 
       /* Replace the original pseudo with the new one.  */
-      if (reg_map [REGNO (use)])
-	replace_rtx (insn, use, reg_map [REGNO (use)]);
+      if ((alt ? alt_reg_map [REGNO (use)] : reg_map [REGNO (use)]))
+	replace_rtx (insn,
+		     (decompose ? orig : use),
+		     (alt ? alt_reg_map [REGNO (use)] : reg_map [REGNO (use)]));
       return 1;
     }
   return 0;
 }
 
-/* DEST is an output for INSN (passed in DATA).  If the output is marked
+/* DEST is an output for INSN.  If the output is marked
    for localizing, then we need to rename it to the new block-local
    pseudo.  This finishes the localization of unallocated globals.  */
 
 static int
-rename_sets (rtx dest, rtx insn)
+rename_sets (rtx dest, rtx insn, bitmap subregs_to_decompose, int df_flags)
 {
   rtx orig = dest;
+  bool decompose = false;
+  bool alt = false;
 
   if (GET_CODE (dest) == SUBREG)
     dest = SUBREG_REG (dest);
 
   if (GET_CODE (dest) != REG)
     return 0;
+
+  /* If this is word access of a double word pseudo that was marked for
+     decomposition, then decompose the double-word access to single word
+     accesses.  */
+  if (GET_CODE (orig) == SUBREG
+      && GET_MODE_SIZE (GET_MODE (orig)) < GET_MODE_SIZE (GET_MODE (dest))
+      && bitmap_bit_p (subregs_to_decompose, REGNO (dest)))
+    decompose = true;
+
+  /* If this is the high word access of a double word pseudo that was marked
+     for decomposition, then use the _alt arrays as needed.  */
+  if (decompose && SUBREG_BYTE (orig) != 0)
+    alt = true;
 
   /* If DEST isn't maked for spilling, then there is nothing to do.  */
   if (! bitmap_bit_p (pseudos_to_localize, REGNO (dest)))
@@ -299,7 +388,7 @@ rename_sets (rtx dest, rtx insn)
     {
       /* This must be treated as a USE too.
          ?!? Does this need to integrated with the use processing?  */
-      emit_localizing_loads (dest, insn);
+      emit_localizing_loads (dest, insn, subregs_to_decompose, df_flags);
     }
   else if (GET_CODE (orig) == SUBREG
 	   && (GET_MODE_SIZE (GET_MODE (orig)))
@@ -307,19 +396,28 @@ rename_sets (rtx dest, rtx insn)
     {
       /* This must be treated as a USE too.
          ?!? Does this need to integrated with the use processing?  */
-      emit_localizing_loads (dest, insn);
+      if (!decompose)
+	emit_localizing_loads (dest, insn, subregs_to_decompose, df_flags);
     }
 
   /* ?!? I'm not entirely sure this can still happen.  */
-  if (reg_map [(REGNO (dest))] == NULL)
-    reg_map [REGNO (dest)] = gen_reg_rtx (GET_MODE (dest));
+  if ((alt ? alt_reg_map [(REGNO (dest))] : reg_map [(REGNO (dest))]) == NULL)
+    {
+      if (alt)
+	alt_reg_map [REGNO (dest)] = gen_reg_rtx (GET_MODE (orig));
+      else
+        reg_map [REGNO (dest)] = gen_reg_rtx (decompose 
+					      ? GET_MODE (orig) 
+					      : GET_MODE (dest));
+    }
 
-
-  replace_rtx (insn, dest, reg_map [REGNO (dest)]);
+  replace_rtx (insn,
+	       (decompose ? orig : dest),
+	       (alt ? alt_reg_map [REGNO (dest)] : reg_map [REGNO (dest)]));
   return 1;
 }
 
-/* Store each pseudo set by the current insn (passed in DATA) that is
+/* Store each pseudo set by the current insn that is
    marked for localizing into memory after INSN. 
 
    Return 0 if INSN does not need rescanning.
@@ -329,12 +427,17 @@ rename_sets (rtx dest, rtx insn)
    Return -1 if INSN should be deleted.  */
 
 static int
-emit_localizing_stores (rtx dest, rtx insn, rtx tail)
+emit_localizing_stores (rtx dest,
+			rtx insn,
+			rtx tail,
+			bitmap subregs_to_decompose)
 {
   unsigned int regno;
   int retval = 0;
   rtx insns;
   rtx orig = dest;
+  bool decompose = false;
+  bool alt = false;
 
   if (GET_CODE (dest) == SUBREG)
     dest = SUBREG_REG (dest);
@@ -350,9 +453,28 @@ emit_localizing_stores (rtx dest, rtx insn, rtx tail)
   if (! bitmap_bit_p (pseudos_to_localize, regno))
     return retval;
 
+  /* If this is word access of a double word pseudo that was marked for
+     decomposition, then decompose the double-word access to single word
+     accesses.  */
+  if (GET_CODE (orig) == SUBREG
+      && GET_MODE_SIZE (GET_MODE (orig)) < GET_MODE_SIZE (GET_MODE (dest))
+      && bitmap_bit_p (subregs_to_decompose, regno))
+    decompose = true;
+
+  /* If this is the high word access of a double word pseudo that was marked
+     for decomposition, then use the _alt arrays as needed.  */
+  if (decompose && SUBREG_BYTE (orig) != 0)
+    alt = true;
+
+  /* IF this register is marked for decomposition and INSN is a naked
+     CLOBBER, then mark INSN for deletion since it's not needed anymore.  */
+  if (bitmap_bit_p (subregs_to_decompose, regno)
+      && GET_CODE (PATTERN (insn)) == CLOBBER)
+    retval = -1;
+
   /* DEST is marked for spilling, if we have not emitted a spill store yet for
      DEST, then do so now.  Note we do not change INSN at this time.  */
-  if (bitmap_bit_p (regs_to_store, regno))
+  if (bitmap_bit_p ((alt ? regs_to_store_alt : regs_to_store), regno))
     {
       int nuses = pseudo_nuses[REGNO (dest)];
       int nsets = pseudo_nsets[REGNO (dest)];
@@ -363,22 +485,30 @@ emit_localizing_stores (rtx dest, rtx insn, rtx tail)
 
       mem = copy_rtx (mem);
 
+      /* If we're decomposing a SUBREG, then the memory address needs
+	 adjustment.  */
+      if (decompose)
+	mem = adjust_address_nv (mem, GET_MODE (orig), SUBREG_BYTE (orig));
+
       /* Note that we have stored this register so that we don't try to
          store it again.  */
-      bitmap_clear_bit (regs_to_store, regno);
+      bitmap_clear_bit ((alt ? regs_to_store_alt : regs_to_store), regno);
 
       /* validate_replace_rtx internally calls df_insn_rescan, which is
 	 unsafe as our caller is iterating over the existing DF info.  So
 	 we have to turn off insn rescanning temporarily.  */
       df_set_flags (DF_NO_INSN_RESCAN);
+
       /* If this insn both uses and sets a pseudo we want to localize and
 	 contains all the uses and sets, then try to replace the pseudo
 	 with its equivalent memory location.  */
       if (nuses
 	  && nsets == 1
 	  && (occurrences == nuses
-	      || (occurrences == 1 && nuses == 2 && ! no_uses_after_this_set (dest, insn, tail)))
-	  && validate_replace_rtx (dest, mem, insn))
+	      || (occurrences == 1
+		  && nuses == 2
+		  && ! no_uses_after_this_set (dest, insn, tail)))
+	  && validate_replace_rtx ((decompose ? orig : dest), mem, insn))
 	{
 	  pseudo_nsets[REGNO (dest)]--;
 	  df_clear_flags (DF_NO_INSN_RESCAN);
@@ -387,9 +517,9 @@ emit_localizing_stores (rtx dest, rtx insn, rtx tail)
       /* Similarly if this insn sets a pseudo we want to localize and
 	 there are no uses after this set, then try to replace the pseudo
 	 with its equivalent memory location.  */
-      else if ((nsets == 1 || (nsets == 2 && nuses == 0))
+      else if ((nsets == 1 || nuses == 0)
 	       && no_uses_after_this_set (dest, insn, tail)
-	       && validate_replace_rtx (dest, mem, insn))
+	       && validate_replace_rtx ((decompose ? orig : dest), mem, insn))
 	{
 	  pseudo_nsets[REGNO (dest)]--;
 	  df_clear_flags (DF_NO_INSN_RESCAN);
@@ -399,7 +529,7 @@ emit_localizing_stores (rtx dest, rtx insn, rtx tail)
 	{
 	  df_clear_flags (DF_NO_INSN_RESCAN);
           start_sequence ();
-          emit_move_insn (mem, dest);
+          emit_move_insn (mem, (decompose ? orig : dest));
           insns = get_insns();
           end_sequence ();
 
@@ -435,9 +565,9 @@ emit_localizing_stores (rtx dest, rtx insn, rtx tail)
   else if (GET_CODE (orig) == SUBREG
 	   && (GET_MODE_SIZE (GET_MODE (orig))
 		< GET_MODE_SIZE (GET_MODE (dest))))
-    bitmap_set_bit (regs_to_load, regno);
+    bitmap_set_bit ((alt ? regs_to_load_alt : regs_to_load), regno);
   else if (retval == 0)
-    bitmap_clear_bit (regs_to_load, REGNO (dest));
+    bitmap_clear_bit ((alt ? regs_to_load_alt : regs_to_load), REGNO (dest));
   return retval;
 }
 
@@ -795,6 +925,21 @@ build_conflicts_for_new_allocnos (rtx head, rtx tail,
   BITMAP_FREE (live);
 }
 
+/* REF is a use or a set.  For whatever registers REF refers to set the
+   appropriate bit in MAP.  */
+
+static void
+record_a_use_or_set (bitmap map, rtx ref)
+{
+  if (GET_CODE (ref) == SUBREG)
+    ref = SUBREG_REG (ref);
+
+  if (GET_CODE (ref) != REG)
+    return;
+
+  bitmap_set_bit (map, REGNO (ref));
+}
+
 /* Emit trivial spill code for unallocated pseudos which are live at one or
    more basic block boundaries appearing in BB.
 
@@ -812,19 +957,10 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
   int orig_max_reg_num = max_reg_num ();
   int i;
   rtx insn, head, tail;
+  bitmap subreg = BITMAP_ALLOC (NULL);
+  bitmap full = BITMAP_ALLOC (NULL);
 
-  regs_to_store = BITMAP_ALLOC (NULL);
-  regs_to_load = BITMAP_ALLOC (NULL);
-  pseudo_nuses = (int *) xmalloc (max_reg_num () * sizeof (int));
-  memset (pseudo_nuses, 0, max_reg_num () * sizeof (int));
-  pseudo_nsets = (int *) xmalloc (max_reg_num () * sizeof (int));
-  memset (pseudo_nsets, 0, max_reg_num () * sizeof (int));
-
-  reg_map = (rtx *) xmalloc (sizeof (rtx) * orig_max_reg_num);
-  memset (reg_map, 0, sizeof (rtx) * orig_max_reg_num);
-   
-  bitmap_copy (regs_to_store, pseudos_to_localize);
-
+  /* Get the head and tail insns of this region.  */
   head = BB_HEAD (bb);
   for (;;)
     {
@@ -842,6 +978,84 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
       bb = bb->next_bb;
     }
 
+  /* We can decompose some additional double-word SUBREGs here since we're
+     looking at a smaller window of insns than lower-subreg.  However, this
+     method is also simpler, so in some ways its not as aggresive as
+     lower-subreg. 
+
+     For each pseudo, we want to know if the pseudo was used in its full
+     mode and if it was used in a partial mode via a subreg.  */
+  for (insn = tail; insn != PREV_INSN (head); insn = PREV_INSN (insn))
+    {
+      df_ref *def_rec, *use_rec;
+
+      /* We want to ignore naked CLOBBERs since they generate no code and
+	 would impede decomposing double-word subregs.  */
+      if (!NONDEBUG_INSN_P (insn) || GET_CODE (PATTERN (insn)) == CLOBBER)
+	continue;
+
+      /* For each def, see if it is a partial subreg store and if the size
+	 of the outer mode is half the size of the inner mode and the size
+	 of the outer mode is the same as a word.  Note that for stores we
+	 see the SUBREG itself which makes this easy.  */
+      for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
+	if ((DF_REF_FLAGS (*def_rec) & (DF_REF_SUBREG | DF_REF_PARTIAL))
+	     == (DF_REF_SUBREG | DF_REF_PARTIAL)
+	    && (GET_MODE_BITSIZE (GET_MODE (DF_REF_REG (*def_rec))) * 2
+		== GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (DF_REF_REG (*def_rec)))))
+	    && (GET_MODE_BITSIZE (GET_MODE (DF_REF_REG (*def_rec)))
+		== GET_MODE_BITSIZE (word_mode)))
+	  record_a_use_or_set (subreg, DF_REF_REG (*def_rec));
+	else
+	  record_a_use_or_set (full, DF_REF_REG (*def_rec));
+
+
+      /* Similarly for each use, except the use might be implied by a
+         write to a SUBREG.  In that case we will not see the SUBREG
+	 expression, but instead will see a full word read marked with
+	 DF_REF_READ_WRITE.  We want to consider those SUBREG reads
+         as they'll disappear if we decompose the SUBREG.  */
+      for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
+	if ((DF_REF_FLAGS (*use_rec) & (DF_REF_SUBREG | DF_REF_PARTIAL))
+	     == (DF_REF_SUBREG | DF_REF_PARTIAL)
+	    && (GET_MODE_BITSIZE (GET_MODE (DF_REF_REG (*use_rec))) * 2
+		== GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (DF_REF_REG (*use_rec)))))
+	    && (GET_MODE_BITSIZE (GET_MODE (DF_REF_REG (*use_rec)))))
+	  record_a_use_or_set (subreg, DF_REF_REG (*use_rec));
+	else if ((DF_REF_FLAGS (*use_rec) & (DF_REF_SUBREG | DF_REF_READ_WRITE))
+	    == (DF_REF_SUBREG | DF_REF_READ_WRITE)
+	   && (GET_MODE_BITSIZE (GET_MODE (DF_REF_REG (*use_rec))) 
+	       == 2 * GET_MODE_BITSIZE (word_mode)))
+	  record_a_use_or_set (subreg, DF_REF_REG (*use_rec));
+	else
+	  record_a_use_or_set (full, DF_REF_REG (*use_rec));
+    }
+
+  /* Now eliminate any pseudos that were used in their full width
+     for the candidates to decompose.  */
+  bitmap_and_compl_into (subreg, full);
+
+  /* Eliminate regs not marked for localization from the
+     candidates to decompose.  */
+  bitmap_and_into (subreg, pseudos_to_localize);
+
+  regs_to_store = BITMAP_ALLOC (NULL);
+  regs_to_store_alt = BITMAP_ALLOC (NULL);
+  regs_to_load = BITMAP_ALLOC (NULL);
+  regs_to_load_alt = BITMAP_ALLOC (NULL);
+  pseudo_nuses = (int *) xmalloc (max_reg_num () * sizeof (int));
+  memset (pseudo_nuses, 0, max_reg_num () * sizeof (int));
+  pseudo_nsets = (int *) xmalloc (max_reg_num () * sizeof (int));
+  memset (pseudo_nsets, 0, max_reg_num () * sizeof (int));
+
+  reg_map = (rtx *) xmalloc (sizeof (rtx) * orig_max_reg_num);
+  memset (reg_map, 0, sizeof (rtx) * orig_max_reg_num);
+  alt_reg_map = (rtx *) xmalloc (sizeof (rtx) * orig_max_reg_num);
+  memset (alt_reg_map, 0, sizeof (rtx) * orig_max_reg_num);
+   
+  bitmap_copy (regs_to_store, pseudos_to_localize);
+  bitmap_copy (regs_to_store_alt, pseudos_to_localize);
+
   /* First walk over the insns in this region and identify singleton
      uses of registers in PSEUDOS_TO_LOCALIZE.  We want to know if a
      use is a singleton so that we can change the use to a MEM.  We
@@ -856,9 +1070,9 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 
       bitmap_set_bit (visited, BLOCK_FOR_INSN (insn)->index);
 
-      /* If we have traversed into a new basic block, then reset NO_USES_AFTER_LAST_SET for any
-	 pseudo we want to localize that is live-out on the edge(s) that we did NOT
-	 traverse.  */
+      /* If we have traversed into a new basic block, then reset
+	 NO_USES_AFTER_LAST_SET for any pseudo we want to localize
+	 that is live-out on the edge(s) that we did NOT traverse.  */
       if (bb != BLOCK_FOR_INSN (insn))
 	{
 	  edge e;
@@ -866,20 +1080,35 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 
 	  bb = BLOCK_FOR_INSN (insn);
 	  FOR_EACH_EDGE (e, ei, bb->succs)
-	    bitmap_ior_and_into (regs_to_store, pseudos_to_localize, DF_LIVE_IN (e->dest));
+	    {
+	      bitmap_ior_and_into (regs_to_store,
+				   pseudos_to_localize,
+				   DF_LIVE_IN (e->dest));
+	      bitmap_ior_and_into (regs_to_store_alt,
+				   pseudos_to_localize,
+				   DF_LIVE_IN (e->dest));
+	    }
 	}
+
+      /* We don't want CLOBBERS to be counted as they generate no code.  */
+      if (GET_CODE (PATTERN (insn)) == CLOBBER)
+	continue;
 
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
 	identify_singleton_sets (DF_REF_REG (*def_rec));
 
       for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
-	identify_singleton_uses (DF_REF_REG (*use_rec));
+	identify_singleton_uses (DF_REF_REG (*use_rec),
+				 subreg,
+				 DF_REF_FLAGS (*use_rec));
     }
 
   /* Next emit a store after the last assignment of each pseudo in
      PSEUDOS_TO_LOCALIZE within the region.  Collect list of pseudos
      we'll need to load as well.  */
-  for (bb = BLOCK_FOR_INSN (tail), insn = tail; insn != PREV_INSN (BB_HEAD (BLOCK_FOR_INSN (head))); insn = PREV_INSN (insn))
+  for (bb = BLOCK_FOR_INSN (tail), insn = tail;
+       insn != PREV_INSN (BB_HEAD (BLOCK_FOR_INSN (head)));
+       insn = PREV_INSN (insn))
     {
       df_ref *def_rec, *use_rec;
       int status;
@@ -887,9 +1116,9 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
       if (!NONDEBUG_INSN_P (insn))
 	continue;
 
-      /* If we have traversed into a new basic block, then reset regs_to_store for any
-	 pseudo we want to localize that is live-out on the edge(s) that we did NOT
-	 traverse.  */
+      /* If we have traversed into a new basic block, then reset REGS_TO_STORE
+	 for any pseudo we want to localize that is live-out on the edge(s)
+	 that we did NOT traverse.  */
       if (bb != BLOCK_FOR_INSN (insn))
 	{
 	  edge e;
@@ -899,16 +1128,28 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 	  FOR_EACH_EDGE (e, ei, bb->succs)
 	    {
 	      if ((e->flags & EDGE_FALLTHRU) == 0)
-		bitmap_ior_and_into (regs_to_store, pseudos_to_localize, DF_LIVE_IN (e->dest));
+		{
+		  bitmap_ior_and_into (regs_to_store,
+				       pseudos_to_localize,
+				       DF_LIVE_IN (e->dest));
+		  bitmap_ior_and_into (regs_to_store_alt,
+				       pseudos_to_localize,
+				       DF_LIVE_IN (e->dest));
+		}
 	    }
 	}
 
       status = 0;
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
-	status |= emit_localizing_stores (DF_REF_REG (*def_rec), insn, tail);
+	status |= emit_localizing_stores (DF_REF_REG (*def_rec),
+					  insn, tail, subreg);
 
-      /* A return status of -1 indicates INSN should be removed.  */
-      if (status == -1 && single_set (insn))
+      /* A return status of -1 indicates INSN should be removed, including
+	 naked CLOBBERS.  Do not delete other assignments that are not
+	 simple SET insns.  */
+      if (status == -1
+	  && (GET_CODE (PATTERN (insn)) == CLOBBER
+	      || single_set (insn)))
 	{
 	  set_insn_deleted (insn);
 	  continue;
@@ -920,14 +1161,16 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 	df_insn_rescan (insn);
 
       for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
-	collect_loads (DF_REF_REG (*use_rec));
+	collect_loads (DF_REF_REG (*use_rec), subreg, DF_REF_FLAGS (*use_rec));
     }
 
   /* Now walk forward through the region emitting loads before
      the first use of each pseudo that we're localizing and change
      each reference from an unallocated pseudo to a new block local
      spill register.  */
-  for (insn = head; insn != NEXT_INSN (BB_END (BLOCK_FOR_INSN (tail))); insn = NEXT_INSN (insn))
+  for (insn = head;
+       insn != NEXT_INSN (BB_END (BLOCK_FOR_INSN (tail)));
+       insn = NEXT_INSN (insn))
     {
       df_ref *def_rec, *use_rec;
       int need_rescan;
@@ -937,10 +1180,16 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 
       need_rescan = 0;
       for (use_rec = DF_INSN_USES (insn); *use_rec; use_rec++)
-	need_rescan |= emit_localizing_loads (DF_REF_REG (*use_rec), insn);
+	need_rescan |= emit_localizing_loads (DF_REF_REG (*use_rec),
+					      insn,
+					      subreg,
+					      DF_REF_FLAGS (*use_rec));
 
       for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
-	need_rescan |= rename_sets (DF_REF_REG (*def_rec), insn);
+	need_rescan |= rename_sets (DF_REF_REG (*def_rec),
+				    insn,
+				    subreg,
+				    DF_REF_FLAGS (*def_rec));
 
       if (need_rescan)
 	df_insn_rescan (insn);
@@ -974,44 +1223,93 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 	{
 	  int nregno;
 
-	  if (reg_map[i] == 0)
-	    continue;
-
-	  nregno = REGNO (reg_map[i]);
-	  setup_reg_classes (nregno, reg_preferred_class (i), reg_alternate_class (i), ira_class_translate [reg_preferred_class (i)]);
-	  VEC_index (reg_equivs_t, reg_equivs, nregno)->invariant
-	    = VEC_index (reg_equivs_t, reg_equivs, i)->invariant;
-	  VEC_index (reg_equivs_t, reg_equivs, nregno)->constant
-	    = VEC_index (reg_equivs_t, reg_equivs, i)->constant;
-	  VEC_index (reg_equivs_t, reg_equivs, nregno)->mem
-	    = VEC_index (reg_equivs_t, reg_equivs, i)->mem;
-	  VEC_index (reg_equivs_t, reg_equivs, nregno)->alt_mem_list
-	    = VEC_index (reg_equivs_t, reg_equivs, i)->alt_mem_list;
-	  VEC_index (reg_equivs_t, reg_equivs, nregno)->address
-	    = VEC_index (reg_equivs_t, reg_equivs, i)->address;
-	  VEC_index (reg_equivs_t, reg_equivs, nregno)->memory_loc
-	    = VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc;
-	  /* ?!? I don't recall why this was originally necessary.  Definitely
-	     need to retest and understand or make it go away.  */
-	  VEC_index (reg_equivs_t, reg_equivs, i)->init = NULL;
+	  if (reg_map[i] != 0)
+	    {
+	      nregno = REGNO (reg_map[i]);
+	      setup_reg_classes (nregno,
+				 reg_preferred_class (i),
+				 reg_alternate_class (i),
+				 ira_class_translate [reg_preferred_class (i)]);
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->invariant
+		= VEC_index (reg_equivs_t, reg_equivs, i)->invariant;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->constant
+		= VEC_index (reg_equivs_t, reg_equivs, i)->constant;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->mem
+		= VEC_index (reg_equivs_t, reg_equivs, i)->mem;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->alt_mem_list
+		= VEC_index (reg_equivs_t, reg_equivs, i)->alt_mem_list;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->address
+		= VEC_index (reg_equivs_t, reg_equivs, i)->address;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->memory_loc
+		= VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc;
+	      /* ?!? I don't recall why this was originally necessary.
+		 Definitely need to retest and understand or delete it.  */
+	      VEC_index (reg_equivs_t, reg_equivs, i)->init = NULL;
 #if 0
-	  VEC_index (reg_equivs_t, reg_equivs, nregno)->init
-	    = VEC_index (reg_equivs_t, reg_equivs, i)->init;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->init
+		= VEC_index (reg_equivs_t, reg_equivs, i)->init;
 #endif
-	  reg_max_ref_width[nregno] = reg_max_ref_width[i];
-	  reg_renumber[nregno] = reg_renumber[i];
-	  REG_N_CALLS_CROSSED (nregno) = REG_N_CALLS_CROSSED (i);
-	  REG_FREQ (nregno) = (pseudo_nuses[i] + pseudo_nsets[i]) * REG_FREQ_FROM_BB (bb);
+	      reg_max_ref_width[nregno] = reg_max_ref_width[i];
+	      reg_renumber[nregno] = reg_renumber[i];
+	      REG_N_CALLS_CROSSED (nregno) = REG_N_CALLS_CROSSED (i);
+	      REG_FREQ (nregno) = ((pseudo_nuses[i] + pseudo_nsets[i])
+				   * REG_FREQ_FROM_BB (bb));
 
-	  /* We don't really care other than to be sure there's a set and ref.  */
-	  SET_REG_N_SETS (nregno, 1);
-	  SET_REG_N_REFS (nregno, 1);
+	      /* We don't really care other than to be sure there's a set
+		 and ref.  */
+	      SET_REG_N_SETS (nregno, 1);
+	      SET_REG_N_REFS (nregno, 1);
 
-	  /* The new register is always local to this block.  */
-	  REG_BASIC_BLOCK (nregno) = REG_BLOCK_GLOBAL;
+	      /* The new register is always local to this block.  */
+	      REG_BASIC_BLOCK (nregno) = REG_BLOCK_GLOBAL;
 
-	  /* Create a new allocno for the new register.  */
-	  copy_allocno_for_spilling (nregno, i);
+	      /* Create a new allocno for the new register.  */
+	      copy_allocno_for_spilling (nregno, i);
+	    }
+
+	  if (alt_reg_map[i] != 0)
+	    {
+	      nregno = REGNO (alt_reg_map[i]);
+	      setup_reg_classes (nregno,
+				 reg_preferred_class (i),
+				 reg_alternate_class (i),
+				 ira_class_translate [reg_preferred_class (i)]);
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->invariant
+		= VEC_index (reg_equivs_t, reg_equivs, i)->invariant;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->constant
+		= VEC_index (reg_equivs_t, reg_equivs, i)->constant;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->mem
+		= VEC_index (reg_equivs_t, reg_equivs, i)->mem;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->alt_mem_list
+		= VEC_index (reg_equivs_t, reg_equivs, i)->alt_mem_list;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->address
+		= VEC_index (reg_equivs_t, reg_equivs, i)->address;
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->memory_loc
+		= VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc;
+	      /* ?!? I don't recall why this was originally necessary.
+		 Definitely need to retest and understand or delete it.  */
+	      VEC_index (reg_equivs_t, reg_equivs, i)->init = NULL;
+#if 0
+	      VEC_index (reg_equivs_t, reg_equivs, nregno)->init
+		= VEC_index (reg_equivs_t, reg_equivs, i)->init;
+#endif
+	      reg_max_ref_width[nregno] = reg_max_ref_width[i];
+	      reg_renumber[nregno] = reg_renumber[i];
+	      REG_N_CALLS_CROSSED (nregno) = REG_N_CALLS_CROSSED (i);
+	      REG_FREQ (nregno) = ((pseudo_nuses[i] + pseudo_nsets[i])
+				   * REG_FREQ_FROM_BB (bb));
+
+	      /* We don't really care other than to be sure there's a set
+		 and ref.  */
+	      SET_REG_N_SETS (nregno, 1);
+	      SET_REG_N_REFS (nregno, 1);
+
+	      /* The new register is always local to this block.  */
+	      REG_BASIC_BLOCK (nregno) = REG_BLOCK_GLOBAL;
+
+	      /* Create a new allocno for the new register.  */
+	      copy_allocno_for_spilling (nregno, i);
+	    }
 	}
 
       /* Now look for any pseudos >= orig_max_reg_num which do not have
@@ -1044,7 +1342,10 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 	 We wait until after we've created all the new allocnos for this block
 	 so that we can update the conflict graph with a single backwards walk
 	 through this block.  */
-      build_conflicts_for_new_allocnos (head, tail, pseudos_to_localize, orig_max_reg_num);
+      build_conflicts_for_new_allocnos (head,
+					tail,
+					pseudos_to_localize,
+					orig_max_reg_num);
 
       /* We added new live-range objects, so rebuild the chains.  */
       ira_rebuild_start_finish_chains ();
@@ -1052,14 +1353,24 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 
   free (reg_map);
   reg_map = NULL;
+  free (alt_reg_map);
+  alt_reg_map = NULL;
   BITMAP_FREE (regs_to_store);
   regs_to_store = NULL;
+  BITMAP_FREE (regs_to_store_alt);
+  regs_to_store_alt = NULL;
   BITMAP_FREE (regs_to_load);
   regs_to_load = NULL;
+  BITMAP_FREE (regs_to_load_alt);
+  regs_to_load_alt = NULL;
   free (pseudo_nuses);
   pseudo_nuses = NULL;
   free (pseudo_nsets);
   pseudo_nsets = NULL;
+  BITMAP_FREE (subreg);
+  subreg = NULL;
+  BITMAP_FREE (full);
+  full = NULL;
 }
 
 void
