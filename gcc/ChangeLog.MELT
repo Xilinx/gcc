@@ -1,9 +1,18 @@
 
 2011-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-first.melt (class_ctype_gty): Add
+	ctypg_mapunimemb field.
+	(ctype_*) Fill in appropriately.
+
+	* melt/warmelt-outobj.melt (runtypesupport_gtystruct): Use it.
+	Generate value union.
+
+2011-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* Makefile.in (upgrade-warmelt): Do meltrun-generate.
 
-	* melt/warmelt-first.melt (class_ctype_gty): Added
+	* melt/warmelt-first.melt (class_ctype_gty): Add
 	ctypg_boxedunimemb field.
 	(ctype_*) Fill in appropriately.
 

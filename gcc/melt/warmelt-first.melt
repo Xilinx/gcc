@@ -390,6 +390,7 @@ or data. A possible alternate keyword is given by $CTYPE_ALTKEYWORD.
 	   ctypg_mapstruct 		;struct name map values
 	   ctypg_boxdiscr		;discriminant for boxed values
 	   ctypg_mapdiscr		;discriminant for map values
+	   ctypg_mapunimemb		;union member name for map values
 	   ctypg_boxfun			;name of boxing function
 	   ctypg_unboxfun		;name of content unboxing function
 	   ctypg_newmapfun		;name of map creating function
@@ -1982,6 +1983,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctypg_mapstruct '"meltmaptrees_st"
   :ctypg_boxdiscr  discr_tree
   :ctypg_mapdiscr  discr_map_trees
+  :ctypg_mapunimemb    '"u_maptrees"
   :ctypg_boxfun        '"meltgc_new_tree"
   :ctypg_unboxfun      '"melt_tree_content"
   :ctypg_newmapfun     '"meltgc_new_maptrees"
@@ -2016,6 +2018,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctypg_mapstruct '"meltmapgimples_st"
   :ctypg_boxdiscr  discr_gimple
   :ctypg_mapdiscr  discr_map_gimples
+  :ctypg_mapunimemb    '"u_mapgimples"
   :ctypg_boxfun        '"meltgc_new_gimple"
   :ctypg_unboxfun      '"melt_gimple_content"
   :ctypg_newmapfun     '"meltgc_new_mapgimples"
@@ -2052,6 +2055,7 @@ Keyword is :gimple_seq.}#
   :ctypg_mapstruct '"meltmapgimpleseqs_st"
   :ctypg_boxdiscr  discr_gimple_seq
   :ctypg_mapdiscr  discr_map_gimple_seqs
+  :ctypg_mapunimemb    '"u_mapgimpleseqs"	
   :ctypg_boxfun        '"meltgc_new_gimpleseq"
   :ctypg_unboxfun      '"melt_gimpleseq_content"
   :ctypg_newmapfun     '"meltgc_new_mapgimpleseqs"
@@ -2088,6 +2092,7 @@ Keyword is :basic_block.}#
   :ctypg_mapstruct '"meltmapbasicblocks_st"
   :ctypg_boxdiscr  discr_basic_block
   :ctypg_mapdiscr  discr_map_basic_blocks
+  :ctypg_mapunimemb    '"u_mapbasicblocks"
   :ctypg_boxfun        '"meltgc_new_basicblock"
   :ctypg_unboxfun      '"melt_basicblock_content"
   :ctypg_newmapfun     '"meltgc_new_mapbasicblocks"
@@ -2123,6 +2128,7 @@ Keyword is :edge.}#
   :ctypg_mapstruct '"meltmapedges_st"
   :ctypg_boxdiscr  discr_edge
   :ctypg_mapdiscr  discr_map_edges
+  :ctypg_mapunimemb    '"u_mapedges"
   :ctypg_boxfun        '"meltgc_new_edge"
   :ctypg_unboxfun      '"melt_edge_content"
   :ctypg_newmapfun     '"meltgc_new_mapedges"
@@ -2158,6 +2164,7 @@ Keyword is :loop.}#
   :ctypg_mapstruct '"meltmaploops_st"
   :ctypg_boxdiscr  discr_loop
   :ctypg_mapdiscr  discr_map_loops
+  :ctypg_mapunimemb    '"u_maploops"
   :ctypg_boxfun        '"meltgc_new_loop"
   :ctypg_unboxfun      '"melt_loop_content"
   :ctypg_newmapfun     '"meltgc_new_maploops"
@@ -2193,6 +2200,7 @@ Keyword is :rtx.}#
   :ctypg_mapstruct '"meltmaprtxs_st"
   :ctypg_boxdiscr  discr_rtx
   :ctypg_mapdiscr  discr_map_rtxs
+  :ctypg_mapunimemb    '"u_maprtxs"
   :ctypg_boxfun        '"meltgc_new_rtx"
   :ctypg_unboxfun      '"melt_rtx_content"
   :ctypg_newmapfun     '"meltgc_new_maprtxs"
@@ -2228,6 +2236,7 @@ Keyword is :bitmap.}#
   :ctypg_mapstruct '"meltmapbitmaps_st"
   :ctypg_boxdiscr  discr_bitmap
   :ctypg_mapdiscr  discr_map_bitmaps
+  :ctypg_mapunimemb    '"u_mapbitmaps"
   :ctypg_boxfun        '"meltgc_new_bitmap"
   :ctypg_unboxfun      '"melt_bitmap_content"
   :ctypg_newmapfun     '"meltgc_new_mapbitmaps"
@@ -2263,6 +2272,7 @@ Keyword is :rtvec.}#
   :ctypg_mapstruct '"meltmaprtvecs_st"
   :ctypg_boxdiscr  discr_rtvec
   :ctypg_mapdiscr  discr_map_rtvecs
+  :ctypg_mapunimemb    '"u_maprtvecs"
   :ctypg_boxfun        '"meltgc_new_rtvec"
   :ctypg_unboxfun      '"melt_rtvec_content"
   :ctypg_newmapfun     '"meltgc_new_maprtvecs"
