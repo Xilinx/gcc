@@ -1,6 +1,12 @@
 
 2011-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build.tpl: Prefix use of $(MELT_MAKE_MODULE) with +.
+
+	* melt-build.mk: Regenerate.
+
+2011-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-module.mk ($(MELTSTAMP)): Backslashify the sole recipe.
 
 2011-01-06  Basile Starynkevitch  <basile@starynkevitch.net>

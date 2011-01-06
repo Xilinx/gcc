@@ -68,6 +68,7 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 
 ##
 ## the invoking command could set MELT_MAKE_MODULE_XTRAMAKEFLAGS=-j2
+##always prefix $(MELT_MAKE_MODULE) with a + in this file.
 MELT_MAKE_MODULE=$(MAKE) -f $(melt_make_module_makefile) $(MELT_MAKE_MODULE_XTRAMAKEFLAGS) VPATH=$(VPATH):.
 
 ## The base name of the MELT translator files
@@ -97,7 +98,7 @@ MELT_GENERATED_[+mkvarsuf+]_BASE= \
 melt-stage0-static/[+base+]-0.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+].0.c \
@@ -107,7 +108,7 @@ melt-stage0-static/[+base+]-0.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
 melt-stage0-dynamic/[+base+]-0.d.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	$(MELT_MAKE_MODULE) melt_module_dynamic \
+	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+].0.c \
@@ -171,7 +172,7 @@ $(MELT_STAGE_ZERO):
               $(wildcard [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+]+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=[+melt_stage+]/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=[+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c \
@@ -181,7 +182,7 @@ $(MELT_STAGE_ZERO):
               $(wildcard [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+]+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	$(MELT_MAKE_MODULE) melt_module_withoutline \
+	+$(MELT_MAKE_MODULE) melt_module_withoutline \
               GCCMELT_MODULE_WORKSPACE=[+melt_stage+]/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=[+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c \
@@ -309,7 +310,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 melt-modules/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-tempbuild melt-run.h melt-runtime.h 
-	$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
 	      GCCMELT_MODULE_SOURCE=$< \
@@ -318,7 +319,7 @@ melt-modules/[+base+].so: melt-sources/[+base+].c \
 melt-modules/[+base+].n.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-run.h melt-runtime.h 
-	$(MELT_MAKE_MODULE) melt_module_withoutline \
+	+$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -352,7 +353,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 melt-modules/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-run.h melt-runtime.h melt-tempbuild
-	$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -361,7 +362,7 @@ melt-modules/[+base+].so: melt-sources/[+base+].c \
 melt-modules/[+base+].n.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild
-	$(MELT_MAKE_MODULE) melt_module_withoutline \
+	+$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
