@@ -385,6 +385,7 @@ or data. A possible alternate keyword is given by $CTYPE_ALTKEYWORD.
 	   ctypg_mapmagic		;MELT obmag for magic values
 ;;; structnames are C struct like meltint_st for boxed
 	   ctypg_boxedstruct		;struct name for boxed values
+	   ctypg_boxedunimemb		;union member name for boxed values
 	   ctypg_entrystruct 		;struct name for hash entry
 	   ctypg_mapstruct 		;struct name map values
 	   ctypg_boxdiscr		;discriminant for boxed values
@@ -1976,6 +1977,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctypg_boxedmagic '"MELTOBMAG_TREE"
   :ctypg_mapmagic '"MELTOBMAG_MAPTREES"
   :ctypg_boxedstruct '"melttree_st"
+  :ctypg_boxedunimemb '"u_tree"
   :ctypg_entrystruct '"entrytreemelt_st"
   :ctypg_mapstruct '"meltmaptrees_st"
   :ctypg_boxdiscr  discr_tree
@@ -2009,6 +2011,7 @@ Also add the ctype as symbol data in the keyword and the alternate keyword if pr
   :ctypg_boxedmagic '"MELTOBMAG_GIMPLE"
   :ctypg_mapmagic '"MELTOBMAG_MAPGIMPLES"
   :ctypg_boxedstruct '"meltgimple_st"
+  :ctypg_boxedunimemb '"u_gimple"
   :ctypg_entrystruct '"entrygimplemelt_st"
   :ctypg_mapstruct '"meltmapgimples_st"
   :ctypg_boxdiscr  discr_gimple
@@ -2044,6 +2047,7 @@ Keyword is :gimple_seq.}#
   :ctypg_boxedmagic '"MELTOBMAG_GIMPLESEQ"
   :ctypg_mapmagic '"MELTOBMAG_MAPGIMPLESEQS"
   :ctypg_boxedstruct '"meltgimpleseq_st"
+  :ctypg_boxedunimemb '"u_gimpleseq"
   :ctypg_entrystruct '"entrygimpleseqmelt_st"
   :ctypg_mapstruct '"meltmapgimpleseqs_st"
   :ctypg_boxdiscr  discr_gimple_seq
@@ -2079,6 +2083,7 @@ Keyword is :basic_block.}#
   :ctypg_boxedmagic '"MELTOBMAG_BASICBLOCK"
   :ctypg_mapmagic '"MELTOBMAG_MAPBASICBLOCKS"
   :ctypg_boxedstruct '"meltbasicblock_st"
+  :ctypg_boxedunimemb '"u_basicblock"
   :ctypg_entrystruct '"entrybasicblockmelt_st"
   :ctypg_mapstruct '"meltmapbasicblocks_st"
   :ctypg_boxdiscr  discr_basic_block
@@ -2113,6 +2118,7 @@ Keyword is :edge.}#
   :ctypg_boxedmagic '"MELTOBMAG_EDGE"
   :ctypg_mapmagic '"MELTOBMAG_MAPEDGES"
   :ctypg_boxedstruct '"meltedge_st"
+  :ctypg_boxedunimemb '"u_edge"
   :ctypg_entrystruct '"entryedgemelt_st"
   :ctypg_mapstruct '"meltmapedges_st"
   :ctypg_boxdiscr  discr_edge
@@ -2147,6 +2153,7 @@ Keyword is :loop.}#
   :ctypg_boxedmagic '"MELTOBMAG_LOOP"
   :ctypg_mapmagic '"MELTOBMAG_MAPLOOPS"
   :ctypg_boxedstruct '"meltloop_st"
+  :ctypg_boxedunimemb '"u_loop"
   :ctypg_entrystruct '"entryloopmelt_st"
   :ctypg_mapstruct '"meltmaploops_st"
   :ctypg_boxdiscr  discr_loop
@@ -2181,6 +2188,7 @@ Keyword is :rtx.}#
   :ctypg_boxedmagic '"MELTOBMAG_RTX"
   :ctypg_mapmagic '"MELTOBMAG_MAPRTXS"
   :ctypg_boxedstruct '"meltrtx_st"
+  :ctypg_boxedunimemb '"u_rtx"
   :ctypg_entrystruct '"entryrtxmelt_st"
   :ctypg_mapstruct '"meltmaprtxs_st"
   :ctypg_boxdiscr  discr_rtx
@@ -2215,6 +2223,7 @@ Keyword is :bitmap.}#
   :ctypg_boxedmagic '"MELTOBMAG_BITMAP"
   :ctypg_mapmagic '"MELTOBMAG_MAPBITMAPS"
   :ctypg_boxedstruct '"meltbitmap_st"
+  :ctypg_boxedunimemb '"u_bitmap"
   :ctypg_entrystruct '"entrybitmapmelt_st"
   :ctypg_mapstruct '"meltmapbitmaps_st"
   :ctypg_boxdiscr  discr_bitmap
@@ -2249,6 +2258,7 @@ Keyword is :rtvec.}#
   :ctypg_boxedmagic '"MELTOBMAG_RTVEC"
   :ctypg_mapmagic '"MELTOBMAG_MAPRTVECS"
   :ctypg_boxedstruct '"meltrtvec_st"
+  :ctypg_boxedunimemb '"u_rtvec"
   :ctypg_entrystruct '"entryrtvecmelt_st"
   :ctypg_mapstruct '"meltmaprtvecs_st"
   :ctypg_boxdiscr  discr_rtvec

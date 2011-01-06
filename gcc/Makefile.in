@@ -5510,7 +5510,7 @@ gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c $(srcdir)/melt-runtime.h gtyp
 upgrade-warmelt: gtyp-real-meltplugin-input.list 
 	$(MAKE) Makefile $(melt_default_modules_list).modlis
 	$(MAKE) warmelt-upgrade-translator
-	$(MAKE) generate-meltrun
+	$(MAKE) meltrun-generate
 	$(MAKE) gt-melt-runtime-plugin.h
 ## copy gt-melt-runtime-plugin.h
 	cp gt-melt-runtime-plugin.h $(srcdir)/melt/generated/

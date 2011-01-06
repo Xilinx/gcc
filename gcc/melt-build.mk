@@ -65,6 +65,7 @@ vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 
 ##
 ## the invoking command could set MELT_MAKE_MODULE_XTRAMAKEFLAGS=-j2
+##always prefix $(MELT_MAKE_MODULE) with a + in this file.
 MELT_MAKE_MODULE=$(MAKE) -f $(melt_make_module_makefile) $(MELT_MAKE_MODULE_XTRAMAKEFLAGS) VPATH=$(VPATH):.
 
 ## The base name of the MELT translator files
