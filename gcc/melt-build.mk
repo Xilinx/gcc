@@ -1765,7 +1765,7 @@ melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 
 ## melt translator warmelt-first # 0
 melt-sources/warmelt-first.melt: $(melt_make_source_dir)/warmelt-first.melt
-	cd melt-sources; rm -f warmelt-first.melt; $(LN_S) $^
+	cd melt-sources; rm -f warmelt-first.melt; $(LN_S) $(realpath $^)
 
 
 
@@ -1805,7 +1805,7 @@ melt-modules/warmelt-first.n.so: melt-sources/warmelt-first.c \
 
 ## melt translator warmelt-base # 1
 melt-sources/warmelt-base.melt: $(melt_make_source_dir)/warmelt-base.melt
-	cd melt-sources; rm -f warmelt-base.melt; $(LN_S) $^
+	cd melt-sources; rm -f warmelt-base.melt; $(LN_S) $(realpath $^)
 
 
 
@@ -1845,7 +1845,7 @@ melt-modules/warmelt-base.n.so: melt-sources/warmelt-base.c \
 
 ## melt translator warmelt-debug # 2
 melt-sources/warmelt-debug.melt: $(melt_make_source_dir)/warmelt-debug.melt
-	cd melt-sources; rm -f warmelt-debug.melt; $(LN_S) $^
+	cd melt-sources; rm -f warmelt-debug.melt; $(LN_S) $(realpath $^)
 
 
 
@@ -1885,7 +1885,7 @@ melt-modules/warmelt-debug.n.so: melt-sources/warmelt-debug.c \
 
 ## melt translator warmelt-macro # 3
 melt-sources/warmelt-macro.melt: $(melt_make_source_dir)/warmelt-macro.melt
-	cd melt-sources; rm -f warmelt-macro.melt; $(LN_S) $^
+	cd melt-sources; rm -f warmelt-macro.melt; $(LN_S) $(realpath $^)
 
 
 
@@ -1925,7 +1925,7 @@ melt-modules/warmelt-macro.n.so: melt-sources/warmelt-macro.c \
 
 ## melt translator warmelt-normal # 4
 melt-sources/warmelt-normal.melt: $(melt_make_source_dir)/warmelt-normal.melt
-	cd melt-sources; rm -f warmelt-normal.melt; $(LN_S) $^
+	cd melt-sources; rm -f warmelt-normal.melt; $(LN_S) $(realpath $^)
 
 
 # included warmelt-predef.melt
@@ -1971,7 +1971,7 @@ melt-modules/warmelt-normal.n.so: melt-sources/warmelt-normal.c \
 
 ## melt translator warmelt-normatch # 5
 melt-sources/warmelt-normatch.melt: $(melt_make_source_dir)/warmelt-normatch.melt
-	cd melt-sources; rm -f warmelt-normatch.melt; $(LN_S) $^
+	cd melt-sources; rm -f warmelt-normatch.melt; $(LN_S) $(realpath $^)
 
 
 
@@ -2011,7 +2011,7 @@ melt-modules/warmelt-normatch.n.so: melt-sources/warmelt-normatch.c \
 
 ## melt translator warmelt-genobj # 6
 melt-sources/warmelt-genobj.melt: $(melt_make_source_dir)/warmelt-genobj.melt
-	cd melt-sources; rm -f warmelt-genobj.melt; $(LN_S) $^
+	cd melt-sources; rm -f warmelt-genobj.melt; $(LN_S) $(realpath $^)
 
 
 
@@ -2051,7 +2051,7 @@ melt-modules/warmelt-genobj.n.so: melt-sources/warmelt-genobj.c \
 
 ## melt translator warmelt-outobj # 7
 melt-sources/warmelt-outobj.melt: $(melt_make_source_dir)/warmelt-outobj.melt
-	cd melt-sources; rm -f warmelt-outobj.melt; $(LN_S) $^
+	cd melt-sources; rm -f warmelt-outobj.melt; $(LN_S) $(realpath $^)
 
 
 
@@ -2095,7 +2095,7 @@ melt-modules/warmelt-outobj.n.so: melt-sources/warmelt-outobj.c \
 
 ## melt application xtramelt-parse-infix-syntax
 melt-sources/xtramelt-parse-infix-syntax.melt: $(melt_make_source_dir)/xtramelt-parse-infix-syntax.melt
-	cd melt-sources; rm -f xtramelt-parse-infix-syntax.melt; $(LN_S) $^
+	cd melt-sources; rm -f xtramelt-parse-infix-syntax.melt; $(LN_S) $(realpath $^)
 
 
 melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-syntax.melt  \
@@ -2135,7 +2135,7 @@ melt-modules/xtramelt-parse-infix-syntax.n.so: melt-sources/xtramelt-parse-infix
 
 ## melt application xtramelt-ana-base
 melt-sources/xtramelt-ana-base.melt: $(melt_make_source_dir)/xtramelt-ana-base.melt
-	cd melt-sources; rm -f xtramelt-ana-base.melt; $(LN_S) $^
+	cd melt-sources; rm -f xtramelt-ana-base.melt; $(LN_S) $(realpath $^)
 
 
 melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt  \
@@ -2175,7 +2175,7 @@ melt-modules/xtramelt-ana-base.n.so: melt-sources/xtramelt-ana-base.c \
 
 ## melt application xtramelt-ana-simple
 melt-sources/xtramelt-ana-simple.melt: $(melt_make_source_dir)/xtramelt-ana-simple.melt
-	cd melt-sources; rm -f xtramelt-ana-simple.melt; $(LN_S) $^
+	cd melt-sources; rm -f xtramelt-ana-simple.melt; $(LN_S) $(realpath $^)
 
 
 melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt  \
@@ -2215,7 +2215,7 @@ melt-modules/xtramelt-ana-simple.n.so: melt-sources/xtramelt-ana-simple.c \
 
 ## melt application xtramelt-c-generator
 melt-sources/xtramelt-c-generator.melt: $(melt_make_source_dir)/xtramelt-c-generator.melt
-	cd melt-sources; rm -f xtramelt-c-generator.melt; $(LN_S) $^
+	cd melt-sources; rm -f xtramelt-c-generator.melt; $(LN_S) $(realpath $^)
 
 
 melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt  \
@@ -2255,7 +2255,7 @@ melt-modules/xtramelt-c-generator.n.so: melt-sources/xtramelt-c-generator.c \
 
 ## melt application xtramelt-opengpu
 melt-sources/xtramelt-opengpu.melt: $(melt_make_source_dir)/xtramelt-opengpu.melt
-	cd melt-sources; rm -f xtramelt-opengpu.melt; $(LN_S) $^
+	cd melt-sources; rm -f xtramelt-opengpu.melt; $(LN_S) $(realpath $^)
 
 
 melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt  \

@@ -282,7 +282,7 @@ melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 
 ## melt translator [+base+] # [+ (. transindex) +]
 melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
-	cd melt-sources; rm -f [+base+].melt; $(LN_S) $^
+	cd melt-sources; rm -f [+base+].melt; $(LN_S) $(realpath $^)
 
 [+FOR includeload+]
 # included [+includeload+]
@@ -334,7 +334,7 @@ melt-modules/[+base+].n.so: melt-sources/[+base+].c \
 
 ## melt application [+base+]
 melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
-	cd melt-sources; rm -f [+base+].melt; $(LN_S) $^
+	cd melt-sources; rm -f [+base+].melt; $(LN_S) $(realpath $^)
 
 
 melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload

@@ -1,4 +1,10 @@
 
+2011-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.tpl: Use $(realpath ...) with $(LN_S)
+
+	* melt-build.mk: Regenerate.
+
 2011-01-05  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-base.melt: Typos in valdesc_*.
