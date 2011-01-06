@@ -1,0 +1,65 @@
+2011-01-06  Diego Novillo  <dnovillo@google.com>
+
+	* lib/dg-pph.exp: New.
+	* g++.dg/dg.exp: Execute tests in pph directory.
+	* g++.dg/pph: New directory.
+	* g++.dg/pph/pph.exp: New.
+	* g++.dg/pph/staticmbrvar.cc: New.
+	* g++.dg/pph/typerefs.cc: New.
+	* g++.dg/pph/tmplclass.cc: New.
+	* g++.dg/pph/system-include.cc: New.
+	* g++.dg/pph/variables.cc: New.
+	* g++.dg/pph/trivial.cc: New.
+	* g++.dg/pph/where.cc: New.
+	* g++.dg/pph/template.cc: New.
+	* g++.dg/pph/cflow.h: New.
+	* g++.dg/pph/simple1.h: New.
+	* g++.dg/pph/simple2.h: New.
+	* g++.dg/pph/chained1.h: New.
+	* g++.dg/pph/meth2.cc: New.
+	* g++.dg/pph/chained2.h: New.
+	* g++.dg/pph/mean.cc: New.
+	* g++.dg/pph/special.cc: New.
+	* g++.dg/pph/nontrivinit.cc: New.
+	* g++.dg/pph/emptyclass.cc: New.
+	* g++.dg/pph/simplecall.cc: New.
+	* g++.dg/pph/autometh.cc: New.
+	* g++.dg/pph/tmplfunc.cc: New.
+	* g++.dg/pph/simple.cc: New.
+	* g++.dg/pph/builtin1.h: New.
+	* g++.dg/pph/builtin2.h: New.
+	* g++.dg/pph/invoke.cc: New.
+	* g++.dg/pph/chained.cc: New.
+	* g++.dg/pph/usearray.cc: New.
+	* g++.dg/pph/builtin3.h: New.
+	* g++.dg/pph/globalref.cc: New.
+	* g++.dg/pph/invoke.h: New.
+	* g++.dg/pph/meth.cc: New.
+	* g++.dg/pph/usearray.h: New.
+	* g++.dg/pph/guarded1.h: New.
+	* g++.dg/pph/guarded2.h: New.
+	* g++.dg/pph/guarded3.h: New.
+	* g++.dg/pph/funcstatic.cc: New.
+	* g++.dg/pph/builtin.cc: New.
+	* g++.dg/pph/hardlookup.cc: New.
+	* g++.dg/pph/functions.cc: New.
+	* g++.dg/pph/incmod.cc: New.
+	* g++.dg/pph/cflow.cc: New.
+	* g++.dg/pph/guarded.cc: New.
+	* g++.dg/pph/incmod.h: New.
+	* g++.dg/pph/paste.cc: New.
+	* g++.dg/pph/incsame.cc: New.
+	* g++.dg/pph/sys-types.cc: New.
+	* g++.dg/pph/incsame.h: New.
+	* g++.dg/pph/field.cc: New.
+	* g++.dg/pph/classshort.cc: New.
+	* g++.dg/pph/variable.cc: New.
+	* g++.dg/pph/tmplsimple.cc: New.
+	* g++.dg/pph/inif.h: New.
+
+
+Copyright (C) 2011 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
