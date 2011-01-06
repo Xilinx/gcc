@@ -110,16 +110,20 @@ $(GCCMELT_MODULE_WORKSPACE)/%.dynpic.o: $(MELTMODULE_SRCDIR)/%.c
 $(GCCMELT_MODULE_WORKSPACE)/%.nolpic.o: $(MELTMODULE_SRCDIR)/%.c
 	$(GCCMELT_CC) $(GCCMELT_CFLAGS) -g -DMELTGCC_NOLINENUMBERING -fPIC -c -o $@ $<
 
+## There is only one make recipe. Trailing backslashes are essential.
+## Even a parallel make should run it in sequence!
 $(MELTSTAMP): $(MELTMODULE_CFILES)
-	echo '/*' generated file $(MELTSTAMP) '*/' > $@-tmp
-	date "+const char melt_compiled_timestamp[]=\"%c $(MELTMODULE)\";" >> $@-tmp
-	echo "const char melt_md5[]=\"\\" >> $@-tmp
-	for f in $(MELTMODULE_CFILES); do \
-	  md5line=`$(MD5SUM) $$f` ; \
-	  printf "%s\\\n" $$md5line >> $@-tmp; \
-	done
-	echo "\";" >> $@-tmp
-	echo "const char melt_csource[]=\"$(MELTMODULE_CFILES)\";" >> $@-tmp
+	echo '/*' generated file $(MELTSTAMP) '*/' > $@-tmp;	\
+	echo "const char melt_compiled_timestamp[]" >> $@-tmp;	\
+	date "+ =\"%c $(MELTMODULE)\";" >> $@-tmp;		\
+	echo "const char melt_md5[]=\"\\" >> $@-tmp;		\
+	for f in $(MELTMODULE_CFILES); do			\
+	  md5line=`$(MD5SUM) $$f` ;				\
+	  printf "%s\\\n" $$md5line >> $@-tmp;			\
+	done;							\
+	echo "\";" >> $@-tmp;					\
+	echo "const char melt_csource[]" >> $@-tmp;		\
+	echo "  = \"$(MELTMODULE_CFILES)\";" >> $@-tmp;		\
 	mv $@-tmp $@
 
 melt_clean: 
