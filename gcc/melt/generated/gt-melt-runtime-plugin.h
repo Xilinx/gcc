@@ -922,7 +922,7 @@ gt_ggc_mx_melt_un (void *x_p)
   union melt_un * const x = (union melt_un *)x_p;
   if (ggc_test_and_set_mark (x))
     {
-      switch ((*x).u_discr->object_magic)
+      switch ((*x).u_discr->meltobj_magic)
         {
         case MELTOBMAG_OBJECT:
           gt_ggc_m_13meltobject_st ((*x).u_object.obj_class);
@@ -1235,8 +1235,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Mon 03 Jan 2011 02:11:25 PM CET
+/* gt-melt-runtime-plugin.h file generated Fri 07 Jan 2011 11:19:01 AM CET
 
-856839630dd83319edf4c59ad69ce35f  melt-runtime.h
-b04657dd7dfe45bd7f76c747a5ce2362  melt-runtime.c
+462c55ad546719d0ceb0daec5064e766  melt-runtime.h
+743b5ec6c0f2651c17ef97f4ecd82d3c  melt-runtime.c
 */

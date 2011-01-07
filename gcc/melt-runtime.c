@@ -3479,14 +3479,21 @@ melt_output_strbuf_to_file (melt_ptr_t sbuf, const char*filnam)
 {
   FILE* fil=0;
   char* namdot=0;
+  char tmpsuffix[64];
+  time_t now = 0;
   /* we don't have any MELT garbage collection roots, because no
      allocation is done! */
-  if (!sbuf || melt_magic_discr (sbuf) != MELTOBMAG_STRBUF) return;
-  if (!filnam || !filnam[0]) return;
-  namdot = concat(filnam, "..out", NULL);
-  /* remove if it existed the temporary namdot file without any
-     checks */
-  (void) remove (namdot);
+  if (!sbuf || melt_magic_discr (sbuf) != MELTOBMAG_STRBUF) 
+    return;
+  if (!filnam || !filnam[0]) 
+    return;
+  /* Use a unique temporary suffix to be more friendly when GCC MELT
+     is invoked by a parallel make.  */
+  memset (tmpsuffix, 0, sizeof(tmpsuffix));
+  time (&now);
+  snprintf (tmpsuffix, sizeof(tmpsuffix)-1, ".%d-%d.tmp", 
+	    (int) getpid(), ((int) now) % 1000);
+  namdot = concat(filnam, tmpsuffix, NULL);
   fil = fopen(namdot, "w");
   if (!fil)
     melt_fatal_error ("failed to open MELT output file %s [%s]",

@@ -92,57 +92,57 @@ MELT_APPLICATION_BASE= \
 ## The cold stage 0 of the translator
 
 MELT_GENERATED_FIRST_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-first.0.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-first.0+*.c)
+                  $(melt_make_source_dir)/generated/warmelt-first-0.c \
+                  $(wildcard $(melt_make_source_dir)/generated/warmelt-first-0+*.c)
 MELT_GENERATED_FIRST_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_FIRST_C_FILES)))
 
 
 MELT_GENERATED_BASE_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-base.0.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-base.0+*.c)
+                  $(melt_make_source_dir)/generated/warmelt-base-0.c \
+                  $(wildcard $(melt_make_source_dir)/generated/warmelt-base-0+*.c)
 MELT_GENERATED_BASE_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_BASE_C_FILES)))
 
 
 MELT_GENERATED_DEBUG_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-debug.0.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-debug.0+*.c)
+                  $(melt_make_source_dir)/generated/warmelt-debug-0.c \
+                  $(wildcard $(melt_make_source_dir)/generated/warmelt-debug-0+*.c)
 MELT_GENERATED_DEBUG_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_DEBUG_C_FILES)))
 
 
 MELT_GENERATED_MACRO_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-macro.0.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-macro.0+*.c)
+                  $(melt_make_source_dir)/generated/warmelt-macro-0.c \
+                  $(wildcard $(melt_make_source_dir)/generated/warmelt-macro-0+*.c)
 MELT_GENERATED_MACRO_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_MACRO_C_FILES)))
 
 
 MELT_GENERATED_NORMAL_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-normal.0.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-normal.0+*.c)
+                  $(melt_make_source_dir)/generated/warmelt-normal-0.c \
+                  $(wildcard $(melt_make_source_dir)/generated/warmelt-normal-0+*.c)
 MELT_GENERATED_NORMAL_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_NORMAL_C_FILES)))
 
 
 MELT_GENERATED_NORMATCH_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-normatch.0.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-normatch.0+*.c)
+                  $(melt_make_source_dir)/generated/warmelt-normatch-0.c \
+                  $(wildcard $(melt_make_source_dir)/generated/warmelt-normatch-0+*.c)
 MELT_GENERATED_NORMATCH_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_NORMATCH_C_FILES)))
 
 
 MELT_GENERATED_GENOBJ_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-genobj.0.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-genobj.0+*.c)
+                  $(melt_make_source_dir)/generated/warmelt-genobj-0.c \
+                  $(wildcard $(melt_make_source_dir)/generated/warmelt-genobj-0+*.c)
 MELT_GENERATED_GENOBJ_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_GENOBJ_C_FILES)))
 
 
 MELT_GENERATED_OUTOBJ_C_FILES= \
-                  $(melt_make_source_dir)/generated/warmelt-outobj.0.c \
-                  $(wildcard $(melt_make_source_dir)/generated/warmelt-outobj.0+*.c)
+                  $(melt_make_source_dir)/generated/warmelt-outobj-0.c \
+                  $(wildcard $(melt_make_source_dir)/generated/warmelt-outobj-0+*.c)
 MELT_GENERATED_OUTOBJ_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_OUTOBJ_C_FILES)))
 
@@ -158,7 +158,7 @@ melt-stage0-static/warmelt-first-0.so: $(MELT_GENERATED_FIRST_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-first.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-first-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-static/warmelt-first-0
 
 ## using dynamic object fields offsets for warmelt-first
@@ -168,7 +168,7 @@ melt-stage0-dynamic/warmelt-first-0.d.so: $(MELT_GENERATED_FIRST_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-first.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-first-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-first-0
 
 melt-stage0-dynamic/warmelt-first-0.so: melt-stage0-dynamic/warmelt-first-0.d.so
@@ -182,7 +182,7 @@ melt-stage0-static/warmelt-base-0.so: $(MELT_GENERATED_BASE_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-base.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-base-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-static/warmelt-base-0
 
 ## using dynamic object fields offsets for warmelt-base
@@ -192,7 +192,7 @@ melt-stage0-dynamic/warmelt-base-0.d.so: $(MELT_GENERATED_BASE_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-base.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-base-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-base-0
 
 melt-stage0-dynamic/warmelt-base-0.so: melt-stage0-dynamic/warmelt-base-0.d.so
@@ -206,7 +206,7 @@ melt-stage0-static/warmelt-debug-0.so: $(MELT_GENERATED_DEBUG_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-debug.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-debug-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-static/warmelt-debug-0
 
 ## using dynamic object fields offsets for warmelt-debug
@@ -216,7 +216,7 @@ melt-stage0-dynamic/warmelt-debug-0.d.so: $(MELT_GENERATED_DEBUG_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-debug.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-debug-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-debug-0
 
 melt-stage0-dynamic/warmelt-debug-0.so: melt-stage0-dynamic/warmelt-debug-0.d.so
@@ -230,7 +230,7 @@ melt-stage0-static/warmelt-macro-0.so: $(MELT_GENERATED_MACRO_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-macro.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-macro-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-static/warmelt-macro-0
 
 ## using dynamic object fields offsets for warmelt-macro
@@ -240,7 +240,7 @@ melt-stage0-dynamic/warmelt-macro-0.d.so: $(MELT_GENERATED_MACRO_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-macro.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-macro-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-macro-0
 
 melt-stage0-dynamic/warmelt-macro-0.so: melt-stage0-dynamic/warmelt-macro-0.d.so
@@ -254,7 +254,7 @@ melt-stage0-static/warmelt-normal-0.so: $(MELT_GENERATED_NORMAL_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normal.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normal-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-static/warmelt-normal-0
 
 ## using dynamic object fields offsets for warmelt-normal
@@ -264,7 +264,7 @@ melt-stage0-dynamic/warmelt-normal-0.d.so: $(MELT_GENERATED_NORMAL_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normal.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normal-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-normal-0
 
 melt-stage0-dynamic/warmelt-normal-0.so: melt-stage0-dynamic/warmelt-normal-0.d.so
@@ -278,7 +278,7 @@ melt-stage0-static/warmelt-normatch-0.so: $(MELT_GENERATED_NORMATCH_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normatch.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normatch-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-static/warmelt-normatch-0
 
 ## using dynamic object fields offsets for warmelt-normatch
@@ -288,7 +288,7 @@ melt-stage0-dynamic/warmelt-normatch-0.d.so: $(MELT_GENERATED_NORMATCH_C_FILES) 
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normatch.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normatch-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-normatch-0
 
 melt-stage0-dynamic/warmelt-normatch-0.so: melt-stage0-dynamic/warmelt-normatch-0.d.so
@@ -302,7 +302,7 @@ melt-stage0-static/warmelt-genobj-0.so: $(MELT_GENERATED_GENOBJ_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-genobj.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-genobj-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-static/warmelt-genobj-0
 
 ## using dynamic object fields offsets for warmelt-genobj
@@ -312,7 +312,7 @@ melt-stage0-dynamic/warmelt-genobj-0.d.so: $(MELT_GENERATED_GENOBJ_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-genobj.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-genobj-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-genobj-0
 
 melt-stage0-dynamic/warmelt-genobj-0.so: melt-stage0-dynamic/warmelt-genobj-0.d.so
@@ -326,7 +326,7 @@ melt-stage0-static/warmelt-outobj-0.so: $(MELT_GENERATED_OUTOBJ_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-outobj.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-outobj-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-static/warmelt-outobj-0
 
 ## using dynamic object fields offsets for warmelt-outobj
@@ -336,7 +336,7 @@ melt-stage0-dynamic/warmelt-outobj-0.d.so: $(MELT_GENERATED_OUTOBJ_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-outobj.0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-outobj-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-outobj-0
 
 melt-stage0-dynamic/warmelt-outobj-0.so: melt-stage0-dynamic/warmelt-outobj-0.d.so
@@ -2355,7 +2355,7 @@ warmelt-upgrade-translator: \
 
 	@echo upgrading MELT translator warmelt-first	
 	for f in melt-sources/warmelt-first*.c ; do \
-	  bf=`basename $$f | sed s/warmelt-first/warmelt-first.0/`; \
+	  bf=`basename $$f | sed s/warmelt-first/warmelt-first-0/`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
@@ -2370,7 +2370,7 @@ warmelt-upgrade-translator: \
 
 	@echo upgrading MELT translator warmelt-base	
 	for f in melt-sources/warmelt-base*.c ; do \
-	  bf=`basename $$f | sed s/warmelt-base/warmelt-base.0/`; \
+	  bf=`basename $$f | sed s/warmelt-base/warmelt-base-0/`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
@@ -2385,7 +2385,7 @@ warmelt-upgrade-translator: \
 
 	@echo upgrading MELT translator warmelt-debug	
 	for f in melt-sources/warmelt-debug*.c ; do \
-	  bf=`basename $$f | sed s/warmelt-debug/warmelt-debug.0/`; \
+	  bf=`basename $$f | sed s/warmelt-debug/warmelt-debug-0/`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
@@ -2400,7 +2400,7 @@ warmelt-upgrade-translator: \
 
 	@echo upgrading MELT translator warmelt-macro	
 	for f in melt-sources/warmelt-macro*.c ; do \
-	  bf=`basename $$f | sed s/warmelt-macro/warmelt-macro.0/`; \
+	  bf=`basename $$f | sed s/warmelt-macro/warmelt-macro-0/`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
@@ -2415,7 +2415,7 @@ warmelt-upgrade-translator: \
 
 	@echo upgrading MELT translator warmelt-normal	
 	for f in melt-sources/warmelt-normal*.c ; do \
-	  bf=`basename $$f | sed s/warmelt-normal/warmelt-normal.0/`; \
+	  bf=`basename $$f | sed s/warmelt-normal/warmelt-normal-0/`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
@@ -2430,7 +2430,7 @@ warmelt-upgrade-translator: \
 
 	@echo upgrading MELT translator warmelt-normatch	
 	for f in melt-sources/warmelt-normatch*.c ; do \
-	  bf=`basename $$f | sed s/warmelt-normatch/warmelt-normatch.0/`; \
+	  bf=`basename $$f | sed s/warmelt-normatch/warmelt-normatch-0/`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
@@ -2445,7 +2445,7 @@ warmelt-upgrade-translator: \
 
 	@echo upgrading MELT translator warmelt-genobj	
 	for f in melt-sources/warmelt-genobj*.c ; do \
-	  bf=`basename $$f | sed s/warmelt-genobj/warmelt-genobj.0/`; \
+	  bf=`basename $$f | sed s/warmelt-genobj/warmelt-genobj-0/`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
@@ -2460,7 +2460,7 @@ warmelt-upgrade-translator: \
 
 	@echo upgrading MELT translator warmelt-outobj	
 	for f in melt-sources/warmelt-outobj*.c ; do \
-	  bf=`basename $$f | sed s/warmelt-outobj/warmelt-outobj.0/`; \
+	  bf=`basename $$f | sed s/warmelt-outobj/warmelt-outobj-0/`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \

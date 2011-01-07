@@ -1,4 +1,75 @@
 
+2011-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (melt_output_strbuf_to_file): Use a unique
+	temporary suffix.
+
+	* melt-build.tpl: Use the -0.c suffix.
+
+	* melt-build.mk: Regenerate.
+
+	* melt/generated/ : warmelt*.0.c renamed as warmelt*-0.c
+
+	* melt/generated/warmelt-base-0.c: Rename and regenerate.
+	* melt/generated/warmelt-debug-0+01.c: Rename and regenerate.
+	* melt/generated/warmelt-debug-0.c: Rename and regenerate.
+	* melt/generated/warmelt-first-0+01.c: Rename and regenerate.
+	* melt/generated/warmelt-first-0+02.c: Rename and regenerate.
+	* melt/generated/warmelt-first-0.c: Rename and regenerate.
+	* melt/generated/warmelt-genobj-0+01.c: Rename and regenerate.
+	* melt/generated/warmelt-genobj-0+02.c: Rename and regenerate.
+	* melt/generated/warmelt-genobj-0+03.c: Rename and regenerate.
+	* melt/generated/warmelt-genobj-0+04.c: Rename and regenerate.
+	* melt/generated/warmelt-genobj-0.c: Rename and regenerate.
+	* melt/generated/warmelt-macro-0+01.c: Rename and regenerate.
+	* melt/generated/warmelt-macro-0+02.c: Rename and regenerate.
+	* melt/generated/warmelt-macro-0+03.c: Rename and regenerate.
+	* melt/generated/warmelt-macro-0.c: Rename and regenerate.
+	* melt/generated/warmelt-normal-0+01.c: Rename and regenerate.
+	* melt/generated/warmelt-normal-0+02.c: Rename and regenerate.
+	* melt/generated/warmelt-normal-0+03.c: Rename and regenerate.
+	* melt/generated/warmelt-normal-0.c: Rename and regenerate.
+	* melt/generated/warmelt-normatch-0+01.c: Rename and regenerate.
+	* melt/generated/warmelt-normatch-0+02.c: Rename and regenerate.
+	* melt/generated/warmelt-normatch-0+03.c: Rename and regenerate.
+	* melt/generated/warmelt-normatch-0.c: Rename and regenerate.
+	* melt/generated/warmelt-outobj-0+01.c: Rename and regenerate.
+	* melt/generated/warmelt-outobj-0+02.c: Rename and regenerate.
+	* melt/generated/warmelt-outobj-0+03.c: Rename and regenerate.
+	* melt/generated/warmelt-outobj-0+04.c: Rename and regenerate.
+	* melt/generated/warmelt-outobj-0.c: Rename and regenerate.
+
+	* melt/generated/warmelt-base.0.c: Remove and rename.
+	* melt/generated/warmelt-debug.0+01.c: Remove and rename.
+	* melt/generated/warmelt-debug.0.c: Remove and rename.
+	* melt/generated/warmelt-first.0+01.c: Remove and rename.
+	* melt/generated/warmelt-first.0+02.c: Remove and rename.
+	* melt/generated/warmelt-first.0.c: Remove and rename.
+	* melt/generated/warmelt-genobj.0+01.c: Remove and rename.
+	* melt/generated/warmelt-genobj.0+02.c: Remove and rename.
+	* melt/generated/warmelt-genobj.0+03.c: Remove and rename.
+	* melt/generated/warmelt-genobj.0+04.c: Remove and rename.
+	* melt/generated/warmelt-genobj.0.c: Remove and rename.
+	* melt/generated/warmelt-macro.0+01.c: Remove and rename.
+	* melt/generated/warmelt-macro.0+02.c: Remove and rename.
+	* melt/generated/warmelt-macro.0+03.c: Remove and rename.
+	* melt/generated/warmelt-macro.0.c: Remove and rename.
+	* melt/generated/warmelt-normal.0+01.c: Remove and rename.
+	* melt/generated/warmelt-normal.0+02.c: Remove and rename.
+	* melt/generated/warmelt-normal.0+03.c: Remove and rename.
+	* melt/generated/warmelt-normal.0.c: Remove and rename.
+	* melt/generated/warmelt-normatch.0+01.c: Remove and rename.
+	* melt/generated/warmelt-normatch.0+02.c: Remove and rename.
+	* melt/generated/warmelt-normatch.0+03.c: Remove and rename.
+	* melt/generated/warmelt-normatch.0.c: Remove and rename.
+	* melt/generated/warmelt-outobj.0+01.c: Remove and rename.
+	* melt/generated/warmelt-outobj.0+02.c: Remove and rename.
+	* melt/generated/warmelt-outobj.0+03.c: Remove and rename.
+	* melt/generated/warmelt-outobj.0+04.c: Remove and rename.
+	* melt/generated/warmelt-outobj.0.c: Remove and rename.
+
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
+
 2011-01-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-first.melt (class_ctype_gty): Add

@@ -84,8 +84,8 @@ MELT_APPLICATION_BASE= \
 ## The cold stage 0 of the translator
 [+FOR melt_translator_file +]
 MELT_GENERATED_[+mkvarsuf+]_C_FILES= \
-                  $(melt_make_source_dir)/generated/[+base+].0.c \
-                  $(wildcard $(melt_make_source_dir)/generated/[+base+].0+*.c)
+                  $(melt_make_source_dir)/generated/[+base+]-0.c \
+                  $(wildcard $(melt_make_source_dir)/generated/[+base+]-0+*.c)
 MELT_GENERATED_[+mkvarsuf+]_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_[+mkvarsuf+]_C_FILES)))
 
@@ -101,7 +101,7 @@ melt-stage0-static/[+base+]-0.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+].0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+]-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-static/[+base+]-0
 
 ## using dynamic object fields offsets for [+base+]
@@ -111,7 +111,7 @@ melt-stage0-dynamic/[+base+]-0.d.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+].0.c \
+	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+]-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/[+base+]-0
 
 melt-stage0-dynamic/[+base+]-0.so: melt-stage0-dynamic/[+base+]-0.d.so
@@ -402,7 +402,7 @@ ENDFOR melt_translator_file+]
 [+FOR melt_translator_file+]
 	@echo upgrading MELT translator [+base+]	
 	for f in melt-sources/[+base+]*.c ; do \
-	  bf=`basename $$f | sed s/[+base+]/[+base+].0/`; \
+	  bf=`basename $$f | sed s/[+base+]/[+base+]-0/`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
             | unifdef -UMELTGCC_NOLINENUMBERING \
