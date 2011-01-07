@@ -5417,7 +5417,7 @@ melt.encap: melt-run.d
 	rm -rf _tempmeltdir*
 	echo melt.encap done
 
-.PHONY: install-all-melt install-melt-headers generate-meltrun upgrade-warmelt upgrade-bigmelt diff-warm-1-2 diff-warm-2-  diff-warmelt-2- install-melt-dynlib install-melt-cfiles install-melt-meltfiles install-melt-otherfiles 
+.PHONY: install-all-melt install-melt-headers meltrun-generate upgrade-warmelt upgrade-bigmelt diff-warm-1-2 diff-warm-2-  diff-warmelt-2- install-melt-dynlib install-melt-cfiles install-melt-meltfiles install-melt-otherfiles 
 
 install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR)
 

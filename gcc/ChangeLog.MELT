@@ -1,6 +1,10 @@
 
 2011-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* Makefile.in: Typo about meltrun-generate
+
+2011-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (melt_output_strbuf_to_file): Use a unique
 	temporary suffix.
 
