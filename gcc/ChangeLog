@@ -1,3 +1,146 @@
+2011-01-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR debug/46704
+	* dwarf2out.c (dwarf2out_finish): Output the debug_aranges section
+	only when it is not empty.
+
+2011-01-06  Changpeng Fang  <changpeng.fang@amd.com>
+
+	Bobcat Enablement
+	* config.gcc (i[34567]86-*-linux* | ...): Add btver1.
+	(case ${target}): Add btver1.
+	* config/i386/driver-i386.c (host_detect_local_cpu): Let
+	-march=native recognize btver1 processors.
+	* config/i386/i386-c.c (ix86_target_macros_internal): Add
+	btver1 def_and_undef
+	* config/i386/i386.c (struct processor_costs btver1_cost): New
+	btver1 cost table.
+	(m_BTVER1): New definition.
+	(m_AMD_MULTIPLE): Includes m_BTVER1.
+	(initial_ix86_tune_features): Add btver1 tune.
+	(processor_target_table): Add btver1 entry.
+	(static const char *const cpu_names): Add btver1 entry.
+	(software_prefetching_beneficial_p): Add btver1.
+	(ix86_option_override_internal): Add btver1 instruction sets.
+	(ix86_issue_rate): Add btver1.
+	(ix86_adjust_cost): Add btver1.
+	* config/i386/i386.h (TARGET_BTVER1): New definition.
+	(enum target_cpu_default): Add TARGET_CPU_DEFAULT_btver1.
+	(enum processor_type): Add PROCESSOR_BTVER1.
+	* config/i386/i386.md (define_attr "cpu"): Add btver1.
+
+2011-01-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/43309
+	* config/i386/i386.c (legitimize_tls_address)
+	<TLS_MODEL_INITIAL_EXEC>: Handle TARGET_64BIT && TARGET_SUN_TLS.
+	* config/i386/i386.md (UNSPEC_TLS_IE_SUN): Declare.
+	(tls_initial_exec_64_sun): New pattern.
+
+2011-01-06  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/invoke.texi (Overall Options): Improve wording and markup
+	of the description of -wrapper.
+
+2011-01-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sol2.opt (G, YP,, Ym,, compat-bsd, pthread, pthreads,
+	rdynamic, threads): New Driver options.
+
+2011-01-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/38118
+	* config/sol2.h (ASM_OUTPUT_ALIGNED_COMMON): Also switch to .bss
+	if coming from .tdata.
+	* config/i386/sol2-10.h (ASM_OUTPUT_ALIGNED_COMMON): Likewise.
+
+2011-01-06  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/47188
+	* collect2.c (main): Do not enable LTOmode when plugin is active.
+
+2011-01-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR other/45915
+	* configure.ac (gcc_cv_as_gnu_unique_object): Only use ldd
+	--version output if supported.
+	* configure: Regenerate.
+
+2011-01-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/linux-android.opt (tno-android-cc, tno-android-ld): New
+	Driver options.
+
+2011-01-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/47150
+	* c-convert.c (convert): When converting a complex expression
+	other than COMPLEX_EXPR to a different complex type, ensure
+	c_save_expr is called instead of save_expr, unless in_late_binary_op.
+	* c-typeck.c (convert_for_assignment): Set in_late_binary_op also
+	when converting COMPLEX_TYPE.
+
+2011-01-06  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/47139
+	* tree-vect-loop.c (vect_is_simple_reduction_1): Check that
+	only the last reduction value is used outside the loop.  Update
+	documentation.
+
+2011-01-05  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/rtems.opt: New.
+	* config.gcc (*-*-rtems*): Use rtems.opt.
+
+2011-01-05  Changpeng Fang  <changpeng.fang@amd.com>
+
+	* config/i386/i386.c (ix86_option_override_internal): Bulldozer
+	processors do not support 3DNow instructions.
+
+2011-01-05  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (spu_option_override): Set parameter
+	PARAM_MAX_COMPLETELY_PEEL_TIMES to 4 instead of 1.
+
+2011-01-05  Jan Hubicka  <jh@suse.cz>
+
+	* lto-wrapper.c (run_gcc): Default to WHOPR mode when none is specified
+	at the command line.
+
+2011-01-05  Martin Jambor  <mjambor@suse.cz>
+
+	PR lto/47162
+	* lto-cgraph.c (output_cgraph_opt_summary_p): Also check for thunk
+	deltas on streamed outgoing edges.
+	(output_node_opt_summary): Output info for outgoing edges only when
+	the node is in new parameter set.
+	(output_cgraph_opt_summary): New parameter set, passed to the two
+	aforementioned functions.  Update its forward declaration and its
+	callee too.
+
+2011-01-05  Tom Tromey  <tromey@redhat.com>
+
+	* c-parser.c (c_parser_omp_atomic): Pass location of assignment
+	operator to c_finish_omp_atomic.
+	* c-typeck.c (lvalue_or_else): Add 'loc' argument.
+	(build_unary_op): Update.
+	(build_modify_expr): Update.
+	(build_asm_expr): Update.
+
+2011-01-05  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (emit_nop_for_insn): Set INSN_LOCATOR for
+	newly inserted insns.
+	(pad_bb): Likewise.
+	(spu_emit_branch_hint): Likewise.
+	(insert_hbrp_for_ilb_runout): Likewise.
+	(spu_machine_dependent_reorg): Call df_finish_pass after
+	schedule_insns returns.
+
+2011-01-05  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (spu_expand_prologue): Support -fstack-usage.
+
 2011-01-05  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR tree-optimization/47005

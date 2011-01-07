@@ -1,3 +1,41 @@
+2011-01-06  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/47195
+	* gfortran.dg/interface_33.f90: Fixed dg-error declarations.
+	* gfortran.dg/defined_operators_1.f90: Split the subroutine
+	from the interface of functions to not hide the errors that
+	shall be tested.
+
+2011-01-06  Jan Hubicka  <jh@suse.cz>
+
+	* testsuite/gcc.dg/lto/pr47188_0.c: New testcase.
+	* testsuite/gcc.dg/lto/pr47188_1.c: New testcase.
+
+2011-01-06  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/33117
+	PR fortran/46478
+	* gfortran.dg/interface_33.f90: New test.
+
+2011-01-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/47150
+	* gcc.c-torture/compile/pr47150.c: New test.
+
+2011-01-06  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/47139
+	* gcc.dg/vect/pr47139.c: New test.
+
+2011-01-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47180
+	* gfortran.dg/extends_type_of_2.f03: New.
+
+2011-01-05  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.dg/stack-usage-1.c (SIZE): Provide proper value for __SPU__.
+
 2011-01-05  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gnat.dg/opt14.adb: New test.
