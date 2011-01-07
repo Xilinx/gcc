@@ -1446,6 +1446,11 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
   }#
   :valdesc_declchunk #{$' /* decl VALDESC_ROUTINE */
+#ifndef meltrout_ptr_t_TYPEDEFINED
+typedef struct meltroutine_st *meltroutine_ptr_t;
+#define  meltroutine_ptr_t_TYPEDEFINED
+#endif
+
 /* unsafely set inside the meltroutine_st pointed by Rptr the
    routine function pointer to Rout */
 #define MELT_ROUTINE_SET_ROUTCODE(Rptr,Rout) do {	\
@@ -1741,7 +1746,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_FILE */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
-    union special_melt_un GTY ((skip)) val;
+    union melt_special_un GTY ((skip)) val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_FILE */
     dst = ggc_alloc_meltspecialfile_st ();
@@ -1770,7 +1775,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
-    union special_melt_un GTY ((skip)) val;
+    union melt_special_un GTY ((skip)) val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
     dst = ggc_alloc_meltspecialrawfile_st ();
@@ -1798,7 +1803,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_MPFR */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
-    union special_melt_un GTY ((skip)) val;
+    union melt_special_un GTY ((skip)) val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_MPFR */
     dst = ggc_alloc_meltspecialmpfr_st ();
@@ -1826,7 +1831,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
-    union special_melt_un GTY ((skip)) val;
+    union melt_special_un GTY ((skip)) val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
     dst = ggc_alloc_meltspecialpplcoefficient_st ();
@@ -1855,7 +1860,7 @@ linear expression values.}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
-    union special_melt_un GTY ((skip)) val;
+    union melt_special_un GTY ((skip)) val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
     dst = ggc_alloc_meltspecialppllinearexpression_st ();
@@ -1884,7 +1889,7 @@ constraints values.}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
-    union special_melt_un GTY ((skip)) val;
+    union melt_special_un GTY ((skip)) val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
     dst = ggc_alloc_meltspecialpplconstraint_st ();
@@ -1913,7 +1918,7 @@ constraint systems values.}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
-    union special_melt_un GTY ((skip)) val;
+    union melt_special_un GTY ((skip)) val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
     dst = ggc_alloc_meltspecialpplconstraintsystem_st ();
@@ -1942,7 +1947,7 @@ generators values.}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
-    union special_melt_un GTY ((skip)) val;
+    union melt_special_un GTY ((skip)) val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
     dst = ggc_alloc_meltspecialpplgenerator_st ();
@@ -1971,7 +1976,7 @@ generator systems values.}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
-    union special_melt_un GTY ((skip)) val;
+    union melt_special_un GTY ((skip)) val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
     dst = ggc_alloc_meltspecialpplgeneratorsystem_st ();
@@ -2000,7 +2005,7 @@ polyhedron values.}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
-    union special_melt_un GTY ((skip)) val;
+    union melt_special_un GTY ((skip)) val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
     dst = ggc_alloc_meltspecialpplpolyhedron_st ();

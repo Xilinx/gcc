@@ -1,6 +1,15 @@
 
 2011-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt: Renamed special_melt_un as
+	melt_special_un.
+
+	* melt/warmelt-outobj.melt (runtypesupport_gtystruct): Generate
+	#ifdef-ed typedefs.
+
+
+2011-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* Makefile.in: Typo about meltrun-generate
 
 2011-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
