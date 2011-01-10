@@ -5531,6 +5531,30 @@ notice for file named $NAME.}#
     (add2sbuf_strconst sbuf "#endif")
     (add2sbuf_indentnl sbuf 0)
     (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_strconst sbuf "#ifndef meltroutine_ptr_t_TYPEDEFINED")
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_strconst sbuf "typedef struct meltroutine_st *meltroutine_ptr_t;")
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_strconst sbuf "#define meltroutine_ptr_t_TYPEDEFINED")
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_strconst sbuf "#endif")
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_strconst sbuf "#ifndef meltroutfun_t_TYPEDEFINED")
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_string sbuf #{$' /* generated meltroutfun_t */
+typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* closp_,
+				  melt_ptr_t firstargp_,
+				  const char xargdescr_[],
+				  union meltparam_un *xargtab_,
+				  const char xresdescr_[],
+				  union meltparam_un *xrestab_);
+		       }#)
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_strconst sbuf "#define meltroutfun_t_TYPEDEFINED")
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_strconst sbuf "#endif")
+    (add2sbuf_indentnl sbuf 0)
+    (add2sbuf_indentnl sbuf 0)
     (add2sbuf_strconst sbuf "/* generated ctype gty structures */")
     (add2sbuf_indentnl sbuf 0)
     (foreach_in_multiple

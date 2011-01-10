@@ -1,4 +1,9 @@
 
+2011-01-10  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (runtypesupport_gtystruct): Generate
+	more #ifdef-ed typedefs.
+
 2011-01-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-base.melt: Renamed special_melt_un as
