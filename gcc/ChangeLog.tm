@@ -1,3 +1,8 @@
+2011-01-10  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_diagnose_transaction): Do not allow asms in
+	atomic transactions.
+
 2010-12-14  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/46654

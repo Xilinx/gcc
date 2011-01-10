@@ -3929,6 +3929,13 @@ ipa_tm_diagnose_transaction (struct cgraph_node *node,
 	      gimple stmt = gsi_stmt (gsi);
 	      tree fndecl;
 
+	      if (gimple_code (stmt) == GIMPLE_ASM)
+		{
+		  error_at (gimple_location (stmt),
+			    "asm not allowed in atomic transaction");
+		  continue;
+		}
+
 	      if (!is_gimple_call (stmt))
 		continue;
 	      fndecl = gimple_call_fndecl (stmt);
