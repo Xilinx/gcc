@@ -1,3 +1,193 @@
+2011-01-10  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/45375
+	* lto-cgraph.c (input_profile_summary): Remove overactive sanity check.
+
+2011-01-10  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/45375
+	* profile.c (read_profile_edge_counts): Ignore profile inconistency
+	when correcting profile.
+
+2011-01-10  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/46083
+	* lto-streamer-out.c (pack_ts_function_decl_value_fields): Store
+	DECL_FINI_PRIORITY.
+	* lto-streamer-in.c (unpack_ts_function_decl_value_fields):
+	Restore DECL_FINI_PRIORITY.
+
+2011-01-10  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/gimple.texi: Fix quoting of multi-word return values in
+	@deftypefn statements.  Ensure presence of return value.  Wrap
+	overlong @deftypefn lines.
+	(is_gimple_operand, is_gimple_min_invariant_address): Remove
+	descriptions of removed functions.
+	* doc/hostconfig.texi (Host Common): Wrap long line, fix quoting
+	of multi-word return value in @deftypefn statement.
+
+2011-01-10  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/gimple.texi (Temporaries, Operands, Compound Lvalues)
+	(Conditional Expressions, Logical Operators)
+	(Statement and operand traversals): Do not indent smallexample
+	code.  Fix duplicate function argument in example.
+
+2011-01-10  Jeff Law  <law@redhat.com>
+
+	* PR tree-optimization/47141
+	* ipa-split.c (split_function): Handle case where we are
+	returning a value and the return block has a virtual operand phi.
+
+2011-01-10  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/47234 
+	* tree-pass.h (TODO_rebuild_cgraph_edges): New TODO.
+	(pass_feedback_split_functions): Declare.
+	* passes.c (init_optimization_passes): Add ipa-split as subpass of
+	tree-profile.
+	* ipa-split.c (gate_split_functions): Update comments; disable
+	split-functions for profile_arc_flag and branch_probabilities.
+	(gate_feedback_split_functions): New function.
+	(execute_feedback_split_functions): New function.
+	(pass_feedback_split_functions): New global var.
+
+2011-01-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR lto/46760
+	* tree-inline.c (tree_can_inline_p): Check e->call_stmt before
+	calling gimple_call_set_cannot_inline.
+
+2011-01-10  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin-sections.def: Remove unused section.
+
+2011-01-10  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR c++/47218
+	* cgraphunit.c (assemble_thunk): Call resolve_unique_section.
+
+2011-01-09  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/47232
+	* c-parser.c (c_parser_declaration_or_fndef): Improved
+	error message.
+
+2011-01-09  Kai Tietz  <kai.tietz@onevision.com>
+
+	* config/i386/winnt.c (i386_pe_start_function): Make sure
+	to switch back to function's section.
+
+2011-01-09  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR gcc/46902
+	PR testsuite/46912
+	* plugin.c: Move include of dlfcn.h from here...
+	* system.h: ... to here.
+
+2011-01-09  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/cpp.texi (C++ Named Operators): Fix markup for header
+	file name.
+	* doc/cppinternals.texi (Top): Wrap node in @ifnottex to avoid
+	two extra empty pages in PDF output.
+
+2011-01-08  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/47078
+	* c-parser.c (c_parser_objc_type_name): If the type is unknown,
+	for error recovery purposes behave as if it was not specified so
+	that the default type is usd.
+
+2011-01-07  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optmization/46469
+	* ipa.c (function_and_variable_visibility): Clear needed flags on
+	nodes with external decls; handle weakrefs merging correctly.
+
+2011-01-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* opts.c (finish_options): Set opts->x_flag_opts_finished to true,
+	not false.
+
+2011-01-07  Jan Hubicka  <jh@suse.cz>
+
+	* doc/invoke.texi: (-flto, -fuse-linker-plugin): Update defaults
+	and no longer claim that gold is required for linker plugin.
+	* configure: Regenerate.
+	* gcc.c (PLUGIN_COND): New macro.
+	(LINK_COMMAND_SPEC): Use it.
+	(main): Default to plugin enabled with HAVE_LTO_PLUGIN is set.
+	* config.in (HAVE_LTO_PLUGIN): New.
+	* configure.ac (--with-lto-plugin): New parameter; autodetect
+	HAVE_LTO_PLUGIN.
+
+2011-01-07  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/46367
+	* ipa-inline.c (cgraph_clone_inlined_nodes): Use original function only
+	when we can update original.
+	(cgraph_mark_inline_edge): Sanity check.
+	* ipa-prop.c (ipa_make_edge_direct_to_target): Sanity check.
+
+2011-01-07  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.h (ASM_COMMENT_START): Define.
+
+2011-01-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR driver/42445
+	* gcc.c (%>S): New.
+	(SWITCH_KEEP_FOR_GCC): Likewise.
+	(set_collect_gcc_options): Check SWITCH_KEEP_FOR_GCC.
+	(do_spec_1): Handle "%>".
+
+	* config/i386/i386.h (CC1_CPU_SPEC): Replace "%<" with "%>".
+
+2011-01-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/47201
+	* config/i386/i386.c (ix86_delegitimize_address): If
+	simplify_gen_subreg fails, return orig_x.
+
+	PR bootstrap/47187
+	* value-prof.c (gimple_stringop_fixed_value): Handle
+	lhs of the call properly.
+
+2011-01-07  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/45375
+	* lto-opt.c (lto_reissue_options): Set flag_shlib.
+
+2011-01-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* target.def (function_switched_text_sections): New hook.
+	* doc/tm.texi: Regenerated.
+	* doc/tm.texi.in (TARGET_ASM_FUNCTION_SWITCHED_TEXT_SECTIONS): New.
+	* final.c (default_function_switched_text_sections): New.
+	(final_scan_insn): Call function_switched_text_sections when a
+	mid-function section change occurs.
+	* output.h (default_function_switched_text_sections): Declare.
+	* config/darwin-protos.h (darwin_function_switched_text_sections):
+	Likewise.
+	* config/darwin.c (darwin_function_switched_text_sections): New.
+	* config/darwin.h (TARGET_ASM_FUNCTION_SWITCHED_TEXT_SECTIONS): New.
+
+2011-01-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* dwarf2out.c (gen_subprogram_die):  Add pubnames with code ranges for
+	DWARF >= 3.  Add pubnames for the primary section and a reduced DIE for
+	the secondary code fragment when outputting for DWARF == 2.
+
+2011-01-07  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/xtensa/xtensa.h (OUTPUT_ADDR_CONST_EXTRA): Remove.
+	* config/xtensa/xtensa-protos.h (xtensa_output_addr_const_extra):
+	Remove.
+	* config/xtensa/xtensa.c (xtensa_output_addr_const_extra): Make static.
+	(TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA): Define.
+
 2011-01-06  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR debug/46704

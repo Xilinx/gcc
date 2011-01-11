@@ -1245,6 +1245,12 @@
 #endif
 
 
+/* Define if your linker supports plugin. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_LTO_PLUGIN
+#endif
+
+
 /* Define to 1 if you have the <malloc.h> header file. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_MALLOC_H

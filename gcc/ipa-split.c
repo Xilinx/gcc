@@ -1016,20 +1016,31 @@ split_function (struct split_point *split_point)
       e->probability = REG_BR_PROB_BASE;
       e->count = new_return_bb->count;
       bitmap_set_bit (split_point->split_bbs, new_return_bb->index);
-      /* We change CFG in a way tree-inline is not able to compensate on while
-	 updating PHIs.  There are only virtuals in return_bb, so recompute
-	 them.  */
+    }
+  /* When we pass around the value, use existing return block.  */
+  else
+    bitmap_set_bit (split_point->split_bbs, return_bb->index);
+
+  /* If RETURN_BB has virtual operand PHIs, they must be removed and the
+     virtual operand marked for renaming as we change the CFG in a way that
+     tree-inline is not able to compensate for. 
+
+     Note this can happen whether or not we have a return value.  If we have
+     a return value, then RETURN_BB may have PHIs for real operands too.  */
+  if (return_bb != EXIT_BLOCK_PTR)
+    {
       for (gsi = gsi_start_phis (return_bb); !gsi_end_p (gsi);)
 	{
 	  gimple stmt = gsi_stmt (gsi);
-	  gcc_assert (!is_gimple_reg (gimple_phi_result (stmt)));
+	  if (is_gimple_reg (gimple_phi_result (stmt)))
+	    {
+	      gsi_next (&gsi);
+	      continue;
+	    }
 	  mark_virtual_phi_result_for_renaming (stmt);
 	  remove_phi_node (&gsi, true);
 	}
     }
-  /* When we pass aorund the value, use existing return block.  */
-  else
-    bitmap_set_bit (split_point->split_bbs, return_bb->index);
 
   /* Now create the actual clone.  */
   rebuild_cgraph_edges ();
@@ -1265,7 +1276,9 @@ execute_split_functions (void)
   /* See if it makes sense to try to split.
      It makes sense to split if we inline, that is if we have direct calls to
      handle or direct calls are possibly going to appear as result of indirect
-     inlining or LTO.
+     inlining or LTO.  Also handle -fprofile-generate as LTO to allow non-LTO
+     training for LTO -fprofile-use build.
+
      Note that we are not completely conservative about disqualifying functions
      called once.  It is possible that the caller is called more then once and
      then inlining would still benefit.  */
@@ -1336,10 +1349,15 @@ execute_split_functions (void)
   return todo;
 }
 
+/* Gate function splitting pass.  When doing profile feedback, we want
+   to execute the pass after profiling is read.  So disable one in 
+   early optimization.  */
+
 static bool
 gate_split_functions (void)
 {
-  return flag_partial_inlining;
+  return (flag_partial_inlining
+	  && !profile_arc_flag && !flag_branch_probabilities);
 }
 
 struct gimple_opt_pass pass_split_functions =
@@ -1349,6 +1367,47 @@ struct gimple_opt_pass pass_split_functions =
   "fnsplit",				/* name */
   gate_split_functions,			/* gate */
   execute_split_functions,		/* execute */
+  NULL,					/* sub */
+  NULL,					/* next */
+  0,					/* static_pass_number */
+  TV_IPA_FNSPLIT,			/* tv_id */
+  PROP_cfg,				/* properties_required */
+  0,					/* properties_provided */
+  0,					/* properties_destroyed */
+  0,					/* todo_flags_start */
+  TODO_dump_func			/* todo_flags_finish */
+ }
+};
+
+/* Gate feedback driven function splitting pass.
+   We don't need to split when profiling at all, we are producing
+   lousy code anyway.  */
+
+static bool
+gate_feedback_split_functions (void)
+{
+  return (flag_partial_inlining
+	  && flag_branch_probabilities);
+}
+
+/* Execute function splitting pass.  */
+
+static unsigned int
+execute_feedback_split_functions (void)
+{
+  unsigned int retval = execute_split_functions ();
+  if (retval)
+    retval |= TODO_rebuild_cgraph_edges;
+  return retval;
+}
+
+struct gimple_opt_pass pass_feedback_split_functions =
+{
+ {
+  GIMPLE_PASS,
+  "feedback_fnsplit",			/* name */
+  gate_feedback_split_functions,	/* gate */
+  execute_feedback_split_functions,	/* execute */
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
