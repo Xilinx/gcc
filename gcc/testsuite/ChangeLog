@@ -1,3 +1,313 @@
+2011-01-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/ipa/pr46984.C: Add dg-require-effective-target lto.
+
+2011-01-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR tree-optimization/46021
+	* gcc.dg/tree-ssa/20040204-1.c: Don't XFAIL on alpha*-*-*,
+	i?86-*-*, x86_64-*-*.
+
+2011-01-10  Jeff Law <law@redhat.com>
+
+	* PR tree-optimization/47141
+	* gcc.c-torture/compile/pr47141.c: New test.
+
+2011-01-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR testsuite/46230
+	* gcc.dg/vect/vect-vfa-slp.c: Remove XFAIL.
+	* gcc.dg/vect/slp-23.c: Remove XFAIL for SLP.
+	* gcc.dg/vect/slp-35.c: Remove XFAILs.
+	* gcc.dg/vect/no-tree-pre-slp-29.c: Likewise.
+
+	PR testsuite/46230
+	* gcc.dg/vect/vect-peel-1.c (main): Prevent initialization loop from
+	being vectorized.  Adjust dg-final pattern.  Remove XFAIL.
+	* gcc.dg/vect/vect-peel-2.c (main): Likewise.
+	* gcc.dg/vect/vect-peel-4.c (main): Prevent initialization loop from
+	being vectorized.  Adjust dg-final pattern.
+
+	PR testsuite/46230
+	* gcc.dg/vect/pr33804.c: XFAIL only for ilp32.
+	* gcc.dg/vect/slp-24.c: Likewise.
+
+2011-01-10  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR c++/47218
+	* g++.dg/other/pr47218-1.C: New test file.
+	* g++.dg/other/pr47218.C: Likewise.
+	* g++.dg/other/pr47218.h: New supporting header.
+
+2011-01-09  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/47232
+	* objc.dg/attributes/invalid-attribute-1.m: New.
+	* obj-c++.dg/attributes/invalid-attribute-1.mm: New.	
+
+2011-01-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47224
+	* gfortran.dg/proc_ptr_comp_28.f90: New.
+
+2011-01-09  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* obj-c++.dg/gnu-api-2-class.mm: Skip for Darwin < 9.
+	* obj-c++.dg/gnu-api-2-ivar.mm: Likewise.
+	* obj-c++.dg/gnu-api-2-method.mm: Likewise.
+	* obj-c++.dg/gnu-api-2-objc.mm: Likewise.
+	* obj-c++.dg/gnu-api-2-object.mm: Likewise.
+	* obj-c++.dg/gnu-api-2-property.mm: Likewise.
+	* obj-c++.dg/gnu-api-2-protocol.mm: Likewise.
+	* obj-c++.dg/gnu-api-2-sel.mm: Likewise.
+	* objc.dg/gnu-api-2-class.m: Likewise.
+	* objc.dg/gnu-api-2-ivar.m: Likewise.
+	* objc.dg/gnu-api-2-method.m: Likewise.
+	* objc.dg/gnu-api-2-objc.m: Likewise.
+	* objc.dg/gnu-api-2-object.m: Likewise.
+	* objc.dg/gnu-api-2-property.m: Likewise.
+	* objc.dg/gnu-api-2-protocol.m: Likewise.
+	* objc.dg/gnu-api-2-sel.m: Likewise.
+
+2011-01-09  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/foreach-1.m: Skip for Darwin < 9.
+	* objc.dg/objc-foreach-4.m: Likewise.
+	* objc.dg/objc-foreach-5.m: Skip for Darwin < 9, adjust headers.
+	* objc.dg/foreach-2.m: Skip for Darwin < 9, return self from init.
+	* objc.dg/foreach-4.m: Likewise.
+	* objc.dg/foreach-5.m: Likewise.
+	* objc.dg/foreach-3.m: Return self from init.
+
+2011-01-09  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/38536
+	* gfortran.dg/iso_c_binding_c_loc_char_1.f03:  New test.
+
+2011-01-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46313
+	* gfortran.dg/class_35.f90: New.
+
+2011-01-08  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/foreach-1.m: Add "-Wall" to flags.
+
+2011-01-08  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/47078
+	* objc.dg/invalid-method-2.m: New.
+	* obj-c++.dg/invalid-method-2.mm: New.
+
+2011-01-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/46896
+	* gfortran.dg/transpose_optimization_2.f90 : New test.
+
+2011-01-08  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optmization/46469
+	* g++.dg/torture/pr46469.C: New testcase.
+
+2011-01-08  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc-obj-c++-shared/next-mapping.h: Move code and definitions for
+	emulation of libobjc-gnu structure layout functionality to ..
+	* objc-obj-c++-shared/objc-test-suite-next-encode-assist.h: New.
+	* objc-obj-c++-shared/objc-test-suite-next-encode-assist-impl.h: New.
+	* objc/execute/bf-common.h: Adjust headers.
+	* objc/execute/bf-1.m: Likewise.
+	* objc/execute/bf-2.m: Likewise.
+	* objc/execute/bf-3.m: Likewise.
+	* objc/execute/bf-4.m: Likewise.
+	* objc/execute/bf-5.m: Likewise.
+	* objc/execute/bf-6.m: Likewise.
+	* objc/execute/bf-7.m: Likewise.
+	* objc/execute/bf-8.m: Likewise.
+	* objc/execute/bf-9.m: Likewise.
+	* objc/execute/bf-10.m: Likewise.
+	* objc/execute/bf-11.m: Likewise.
+	* objc/execute/bf-12.m: Likewise.
+	* objc/execute/bf-13.m: Likewise.
+	* objc/execute/bf-14.m: Likewise.
+	* objc/execute/bf-15.m: Likewise.
+	* objc/execute/bf-16.m: Likewise.
+	* objc/execute/bf-17.m: Likewise.
+	* objc/execute/bf-18.m: Likewise.
+	* objc/execute/bf-19.m: Likewise.
+	* objc/execute/bf-20.m: Likewise.
+	* objc/execute/bf-21.m: Likewise.
+	* objc/execute/bycopy-3.m: Adjust headers, add next-specific code for
+	objc_get_type_qualifiers ().
+
+2011-01-08  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45777
+	* gfortran.dg/dependency_39.f90:  New test.
+
+2011-01-07  Jan Hubicka  <jh@suse.cz>
+
+	Get builtins tests ready for linker plugin.
+	* gcc.c-torture/execute/builtins/memcpy-chk.c (s2,s3,l1): Mark volatile.
+	* gcc.c-torture/execute/builtins/memops-asm-lib.c (my_memcpy, my_bcopy, my_memset,
+	my_bzero): Mark used.
+	* gcc.c-torture/execute/builtins/memset-chk.c (l1, l3): Mark volatile.
+	* gcc.c-torture/execute/builtins/memmove-chk.c (s1,s2,s3,l1): Mark volatile.
+	* gcc.c-torture/execute/builtins/mempcpy-chk.c (s2,s3,l1): Mark volatile
+
+2011-01-07  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/46367
+	* g++.dg/torture/pr46367.C: New file.
+
+2011-01-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/47201
+	* gcc.dg/pr47201.c: New test.
+
+	PR bootstrap/47187
+	* gcc.dg/tree-prof/pr47187.c: New test.
+
+2011-01-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41580
+	* gfortran.dg/extends_type_of_3.f90: New.
+
+2011-01-07  Kai Tietz  <kai.tietz@onevision.com>
+
+	* g++.dg/ext/dllexport-MI1.C: Adjust test.
+	* g++.dg/ext/dllimport-MI1.C: Likewise.
+	* g++.dg/ext/dllimport1.C: Add test for x86_64-*-mingw*.
+	* g++.dg/ext/dllimport10.C: Likewise.
+	* g++.dg/ext/dllimport11.C: Likewise.
+	* g++.dg/ext/dllimport12.C: Likewise.
+	* g++.dg/ext/dllimport13.C: Likewise.
+	* g++.dg/ext/dllimport2.C: Likewise.
+	* g++.dg/ext/dllimport3.C: Likewise.
+	* g++.dg/ext/dllimport4.C: Likewise.
+	* g++.dg/ext/dllimport5.C: Likewise.
+	* g++.dg/ext/dllimport6.C: Likewise.
+	* g++.dg/ext/dllimport8.C: Likewise.
+	* g++.dg/ext/dllimport9.C: Likewise.
+	* g++.dg/ext/selectany2.C: Enable test for x86_64-*-mingw*
+	targets, too. Additionally enable test for i?86-*-mingw*.
+	* g++.dg/ext/selectany1.C: Likewise.
+	Remove guard variable check.
+
+2011-01-07  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47189
+	PR fortran/47194
+	* gfortran.dg/storage_size_3.f08: Extended.
+
+2011-01-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47022
+	* g++.dg/template/stdarg1.C: New test.
+
+2011-01-06  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/47195
+	* gfortran.dg/interface_33.f90: Fixed dg-error declarations.
+	* gfortran.dg/defined_operators_1.f90: Split the subroutine
+	from the interface of functions to not hide the errors that
+	shall be tested.
+
+2011-01-06  Jan Hubicka  <jh@suse.cz>
+
+	* testsuite/gcc.dg/lto/pr47188_0.c: New testcase.
+	* testsuite/gcc.dg/lto/pr47188_1.c: New testcase.
+
+2011-01-06  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/33117
+	PR fortran/46478
+	* gfortran.dg/interface_33.f90: New test.
+
+2011-01-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/47150
+	* gcc.c-torture/compile/pr47150.c: New test.
+
+2011-01-06  Ira Rosen  <irar@il.ibm.com>
+
+	PR tree-optimization/47139
+	* gcc.dg/vect/pr47139.c: New test.
+
+2011-01-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47180
+	* gfortran.dg/extends_type_of_2.f03: New.
+
+2011-01-05  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.dg/stack-usage-1.c (SIZE): Provide proper value for __SPU__.
+
+2011-01-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt14.adb: New test.
+
+2011-01-05  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/46017
+	* gfortran.dg/allocate_error_2.f90:  New test.
+
+2011-01-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47024
+	* gfortran.dg/storage_size_3.f08: New.
+
+2011-01-04  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47154
+	* gfortran.dg/namelist_68.f90: New test.
+
+2011-01-04  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/unchecked_convert8.ad[sb]: New test.
+
+2011-01-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46448
+	* gfortran.dg/class_34.f90: New.
+
+2011-01-04  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.dg/torture/builtin-cproj-1.c: On the __SPU__ target, do not
+	use __builtin_inff.  Skip all single-precision tests that require
+	Infinity.
+
+2011-01-03  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* g++.dg/torture/pr46111.C: Add dg-require-effective-target pthread.
+
+2011-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47148
+	* gcc.c-torture/execute/pr47148.c: New test.
+
+	PR tree-optimization/47155
+	* gcc.c-torture/execute/pr47155.c: New test.
+
+	PR rtl-optimization/47157
+	* gcc.c-torture/compile/pr47157.c: New test.
+
+2011-01-03  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gcc.dg/torture/vector-shift2.c (schar): Define.
+	(main): Always use schar or uchar instead of plain "char" to avoid
+	dependencies on implementation-defined char signedness.
+
+2011-01-03  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/46801
+	* gnat.dg/pack9.adb: Remove xfail.
+
+2011-01-03  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/46984
+	* g++.dg/ipa/pr46984.C: New test.
+
 2011-01-02  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/46408

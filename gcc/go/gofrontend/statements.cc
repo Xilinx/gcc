@@ -108,7 +108,8 @@ Statement::traverse_expression_list(Traverse* traverse,
 {
   if (expr_list == NULL)
     return TRAVERSE_CONTINUE;
-  if ((traverse->traverse_mask() & Traverse::traverse_expressions) == 0)
+  if ((traverse->traverse_mask()
+       & (Traverse::traverse_types | Traverse::traverse_expressions)) == 0)
     return TRAVERSE_CONTINUE;
   return expr_list->traverse(traverse);
 }
@@ -339,6 +340,9 @@ Temporary_statement::do_traverse_assignments(Traverse_assignments* tassign)
 void
 Temporary_statement::do_determine_types()
 {
+  if (this->type_ != NULL && this->type_->is_abstract())
+    this->type_ = this->type_->make_non_abstract_type();
+
   if (this->init_ != NULL)
     {
       if (this->type_ == NULL)
@@ -351,10 +355,10 @@ Temporary_statement::do_determine_types()
     }
 
   if (this->type_ == NULL)
-    this->type_ = this->init_->type();
-
-  if (this->type_->is_abstract())
-    this->type_ = this->type_->make_non_abstract_type();
+    {
+      this->type_ = this->init_->type();
+      gcc_assert(!this->type_->is_abstract());
+    }
 }
 
 // Check types.
@@ -2981,14 +2985,19 @@ tree
 If_statement::do_get_tree(Translate_context* context)
 {
   gcc_assert(this->cond_ == NULL || this->cond_->type()->is_boolean_type());
-  tree ret = build3(COND_EXPR, void_type_node,
-		    (this->cond_ == NULL
-		     ? boolean_true_node
-		     : this->cond_->get_tree(context)),
-		    this->then_block_->get_tree(context),
-		    (this->else_block_ == NULL
-		     ? NULL_TREE
-		     : this->else_block_->get_tree(context)));
+  tree cond_tree = (this->cond_ == NULL
+		    ? boolean_true_node
+		    : this->cond_->get_tree(context));
+  tree then_tree = this->then_block_->get_tree(context);
+  tree else_tree = (this->else_block_ == NULL
+		    ? NULL_TREE
+		    : this->else_block_->get_tree(context));
+  if (cond_tree == error_mark_node
+      || then_tree == error_mark_node
+      || else_tree == error_mark_node)
+    return error_mark_node;
+  tree ret = build3(COND_EXPR, void_type_node, cond_tree, then_tree,
+		    else_tree);
   SET_EXPR_LOCATION(ret, this->location());
   return ret;
 }
@@ -3010,7 +3019,8 @@ int
 Case_clauses::Case_clause::traverse(Traverse* traverse)
 {
   if (this->cases_ != NULL
-      && (traverse->traverse_mask() & Traverse::traverse_expressions) != 0)
+      && (traverse->traverse_mask()
+	  & (Traverse::traverse_types | Traverse::traverse_expressions)) != 0)
     {
       if (this->cases_->traverse(traverse) == TRAVERSE_EXIT)
 	return TRAVERSE_EXIT;
@@ -3941,7 +3951,8 @@ int
 Select_clauses::Select_clause::traverse(Traverse* traverse)
 {
   if (!this->is_lowered_
-      && (traverse->traverse_mask() & Traverse::traverse_expressions) != 0)
+      && (traverse->traverse_mask()
+	  & (Traverse::traverse_types | Traverse::traverse_expressions)) != 0)
     {
       if (this->channel_ != NULL)
 	{
@@ -4163,6 +4174,14 @@ Select_clauses::get_tree(Translate_context* context,
 	  default_clause = &*p;
 	  --count;
 	  continue;
+	}
+
+      if (p->channel()->type()->channel_type() == NULL)
+	{
+	  // We should have given an error in the send or receive
+	  // statement we created via lowering.
+	  gcc_assert(saw_errors());
+	  return error_mark_node;
 	}
 
       tree channel_tree = p->channel()->get_tree(context);

@@ -1,3 +1,21 @@
+2011-01-08  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/47078
+	* parser.c (cp_parser_objc_typename): If the type is unknown, for
+	error recovery purposes behave as if it was not specified so that
+	the default type is used.
+
+2011-01-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47022
+	* pt.c (tsubst_copy_and_build): Use tsubst instead of tsubst_copy
+	for the second build_x_va_arg argument.
+
+2011-01-05  Tom Tromey  <tromey@redhat.com>
+
+	* typeck.c (cp_build_addr_expr_1): Update call to lvalue_error.
+	(lvalue_or_else): Likewise.
+
 2011-01-01  Kai Tietz  <kai.tietz@onevision.com>
 
 	PR target/38662

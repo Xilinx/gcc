@@ -1,6 +1,6 @@
 /* Parser for C and Objective-C.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
    Parser actions based on the old Bison parser; structure somewhat
@@ -1555,8 +1555,7 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
 	case RID_AT_PROPERTY:
 	  if (specs->attrs)
 	    {
-	      c_parser_error (parser, 
-	      		      "attributes may not be specified before" );
+	      c_parser_error (parser, "unexpected attribute");
 	      specs->attrs = NULL;
 	    }
 	  break;
@@ -7482,6 +7481,14 @@ c_parser_objc_type_name (c_parser *parser)
     type_name = c_parser_type_name (parser);
   if (type_name)
     type = groktypename (type_name, NULL, NULL);
+
+  /* If the type is unknown, and error has already been produced and
+     we need to recover from the error.  In that case, use NULL_TREE
+     for the type, as if no type had been specified; this will use the
+     default type ('id') which is good for error recovery.  */
+  if (type == error_mark_node)
+    type = NULL_TREE;
+
   return build_tree_list (quals, type);
 }
 
@@ -9104,6 +9111,9 @@ c_parser_omp_atomic (location_t loc, c_parser *parser)
 	  goto saw_error;
 	}
 
+      /* Arrange to pass the location of the assignment operator to
+	 c_finish_omp_atomic.  */
+      loc = c_parser_peek_token (parser)->location;
       c_parser_consume_token (parser);
       {
 	location_t rhs_loc = c_parser_peek_token (parser)->location;

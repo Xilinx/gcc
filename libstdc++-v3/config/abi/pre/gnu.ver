@@ -1196,6 +1196,9 @@ GLIBCXX_3.4.15 {
     # std::future_category is now a function
     _ZSt15future_categoryv;
 
+    # std::placeholders
+    _ZNSt12placeholders*;
+
 } GLIBCXX_3.4.14;
 
 # Symbols in the support library (libsupc++) have their own tag.
@@ -1373,5 +1376,11 @@ CXXABI_1.3.5 {
 
     # FNV hash.
     _ZSt15_Fnv_hash_bytesPKv*;
+
+    # std::bad_function_call.
+    _ZNSt17bad_function_callD*;
+    _ZTISt17bad_function_call;
+    _ZTSSt17bad_function_call;
+    _ZTVSt17bad_function_call;
 
 } CXXABI_1.3.4;
