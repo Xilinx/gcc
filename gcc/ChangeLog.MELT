@@ -1,4 +1,9 @@
 
+2011-01-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (runtypesupport_gtystruct): Generate
+	typedefs thru quoted code chunks.
+
 2011-01-10  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-outobj.melt (runtypesupport_gtystruct): Generate
