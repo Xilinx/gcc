@@ -4498,6 +4498,13 @@ ipa_tm_execute (void)
       a = cgraph_function_body_availability (node);
       d = get_cg_data (node);
 
+      /* If we saw something that will make us go irrevocable, put it
+	 in the worklist so we can scan the function later
+	 (ipa_tm_scan_irr_function) and mark the irrevocable
+	 blocks.  */
+      if (node->local.tm_may_enter_irr)
+	maybe_push_queue (node, &worklist, &d->in_worklist);
+
       /* Some callees cannot be arbitrarily cloned.  These will always be
 	 irrevocable.  Mark these now, so that we need not scan them.  */
       if (is_tm_irrevocable (node->decl))

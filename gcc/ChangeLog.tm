@@ -1,3 +1,8 @@
+2011-01-11  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_execute): Place possibly irrevocable
+	functions in worklist.
+
 2011-01-10  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_diagnose_transaction): Do not allow asms in
