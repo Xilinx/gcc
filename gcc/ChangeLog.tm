@@ -1,5 +1,10 @@
 2011-01-12  Aldy Hernandez  <aldyh@redhat.com>
 
+	* cp/decl.c (push_cp_library_fn): Mark function as
+	transaction_pure.
+
+2011-01-12  Aldy Hernandez  <aldyh@redhat.com>
+
 	* trans-mem.c (build_tm_store): Build correct type when handling
 	CONSTRUCTORs.
 
