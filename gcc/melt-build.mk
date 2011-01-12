@@ -2100,7 +2100,8 @@ melt-sources/xtramelt-parse-infix-syntax.melt: $(melt_make_source_dir)/xtramelt-
 
 
 melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-syntax.melt  \
-                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
+  melt-modules/warmelt-first.so melt-modules/warmelt-base.so melt-modules/warmelt-debug.so melt-modules/warmelt-macro.so melt-modules/warmelt-normal.so melt-modules/warmelt-normatch.so melt-modules/warmelt-genobj.so melt-modules/warmelt-outobj.so \
+	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) \
@@ -2140,7 +2141,8 @@ melt-sources/xtramelt-ana-base.melt: $(melt_make_source_dir)/xtramelt-ana-base.m
 
 
 melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt  \
-                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
+  melt-modules/warmelt-first.so melt-modules/warmelt-base.so melt-modules/warmelt-debug.so melt-modules/warmelt-macro.so melt-modules/warmelt-normal.so melt-modules/warmelt-normatch.so melt-modules/warmelt-genobj.so melt-modules/warmelt-outobj.so \
+	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) \
@@ -2180,7 +2182,8 @@ melt-sources/xtramelt-ana-simple.melt: $(melt_make_source_dir)/xtramelt-ana-simp
 
 
 melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt  \
-                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
+  melt-modules/warmelt-first.so melt-modules/warmelt-base.so melt-modules/warmelt-debug.so melt-modules/warmelt-macro.so melt-modules/warmelt-normal.so melt-modules/warmelt-normatch.so melt-modules/warmelt-genobj.so melt-modules/warmelt-outobj.so \
+	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) \
@@ -2220,7 +2223,8 @@ melt-sources/xtramelt-c-generator.melt: $(melt_make_source_dir)/xtramelt-c-gener
 
 
 melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt  \
-                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
+  melt-modules/warmelt-first.so melt-modules/warmelt-base.so melt-modules/warmelt-debug.so melt-modules/warmelt-macro.so melt-modules/warmelt-normal.so melt-modules/warmelt-normatch.so melt-modules/warmelt-genobj.so melt-modules/warmelt-outobj.so \
+	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) \
@@ -2260,7 +2264,8 @@ melt-sources/xtramelt-opengpu.melt: $(melt_make_source_dir)/xtramelt-opengpu.mel
 
 
 melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt  \
-                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
+  melt-modules/warmelt-first.so melt-modules/warmelt-base.so melt-modules/warmelt-debug.so melt-modules/warmelt-macro.so melt-modules/warmelt-normal.so melt-modules/warmelt-normatch.so melt-modules/warmelt-genobj.so melt-modules/warmelt-outobj.so \
+	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) \

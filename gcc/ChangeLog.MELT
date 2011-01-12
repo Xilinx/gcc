@@ -1,6 +1,13 @@
 
 2011-01-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-build.tpl: File melt-sources/xtra*.c depends upon
+	melt-modules/warmelt*.so.
+
+	* melt-build.mk: Regenerate.
+
+2011-01-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt: Should generate only two files for the
 	runtime, a header and a code file. Update copyright year.
 	(generate_runtypesupport): Remove function.

@@ -340,7 +340,8 @@ melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
 
 melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
-                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
+ [+FOR melt_translator_file+] melt-modules/[+base+].so[+ENDFOR melt_translator_file+] \
+	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) \
