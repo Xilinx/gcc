@@ -1,7 +1,7 @@
 ;; file warmelt-outobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+    Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -5398,348 +5398,343 @@ notice for file named $NAME.}#
   (add2sbuf_indentnl sbuf 0)
 )
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; internal function to generate ctype support. 
-;;; apply fun to the ctype tuple...
-(defun generate_runtypesupport (fun ctygtytup outarg :cstring suffix)
-  (debug_msg ctygtytup "generate_runtypesupport tuple")
-  (debugcstring suffix "generate_runtypesupport suffix")
-  (assert_msg "check fun" (is_closure fun))
-  (assert_msg "check ctygtytup" (is_multiple ctygtytup))
-  (assert_msg "check outarg" (is_string outarg))
-  (let ( (sbuf (make_strbuf discr_strbuf))
-	 (outname (let ( (nambuf (make_strbuf discr_strbuf)) )
-		    (add2sbuf_string nambuf outarg)
-		    (add2sbuf_strconst nambuf suffix)
-		    (strbuf2string discr_string nambuf)
-		    ))
-	 )
-    (assert_msg "check outname string" (is_string outname))
-    (generate_gplv3plus_copyright_notice_c_comment sbuf outname)
-    (debug_msg outname "generate_runtypesupport before call outname")
-    (fun sbuf outname ctygtytup)
-    (debug_msg outname "generate_runtypesupport after call outname")
-    (code_chunk 
-     enddate
-     #{ /* $ENDDATE + */
-        time_t $ENDDATE#_now = 0;
-	time (&$ENDDATE#_now);
-	meltgc_out_printf 
-	  ($SBUF, 
-	   "\n\n/" 
-	   "** end of %s generated [runtypesupport]\n* on %s" 
-	   "** using GCC %s with MELT"
-	   "**" "/\n",
-	   lbasename (melt_string_str ((melt_ptr_t)$OUTNAME)),
-	   ctime (&$ENDDATE#_now), melt_gccversionstr);
-        /* $ENDDATE - */ }#)
-  (output_sbuf_strval sbuf outname)
-  (informsg_strv "ctype support generated file " outname)
-  ))
 
 ;; internal function to generate the magic enum
-(defun runtypesupport_objmagic (sbuf outname bitup)
-  (debug_msg outname "runtypesupport_objmagic outname start")
-  (assert_msg "check bitup" (==i (multiple_length bitup) 2))
-  (debug_msg bitup "runtypesupport_objmagic bitup")
+(defun generate_runtypesupport_enum_objmagic (ctygtytup valdesctup outarg outbuf)
+  (debug_msg outarg "generate_runtypesupport_enum_objmagic outarg start")
   (let 
       ( 
-       (ctygtytup (multiple_nth bitup 0))
-       (valdesctup (multiple_nth bitup 1))
        (:long curobjmagic 20000)
+       (:long countobjmagic 0)
        )
+    (assert_msg "check ctygtytup" (is_multiple ctygtytup))
+    (assert_msg "check valdesctup" (is_multiple valdesctup))
+    (assert_msg "check outbuf" (is_strbuf outbuf))
     ;;;;;;;;;;;;;;;;
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst sbuf "/* value descriptor object magic */")
+    (add2sbuf_indentnl outbuf 0)
+    (add2sbuf_indentnl outbuf 0)
+    (add2sbuf_string outbuf
+     #{$' /** from generate_runtypesupport_enum_objmagic **/
+     enum meltobmag_en /*generated*/ { MELTOBMAG__NONE = 0,
+     }#)
+    (add2sbuf_indentnl outbuf 0)
+    (add2sbuf_strconst outbuf "/* value descriptor object magic */")
     (foreach_in_multiple
      (valdesctup)
      (curvaldesc :long vix)
-     (debug_msg curvaldesc "runtypesupport_objmagic curvaldesc")
+     (debug_msg curvaldesc "generate_runtypesupport_enum_objmagic curvaldesc")
      (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
-     (add2sbuf_indentnl sbuf 1)
-     (add2sbuf_strconst sbuf "/*valdesc #")
-     (add2sbuf_longdec sbuf (+i 1 vix))
-     (add2sbuf_strconst sbuf " ")
-     (add2sbuf_ccomstring sbuf (get_field :named_name curvaldesc))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_string sbuf (get_field :valdesc_objmagic curvaldesc))
-     (add2sbuf_strconst sbuf " /*valmagic*/ =")
-     (add2sbuf_longdec sbuf curobjmagic)
-     (add2sbuf_strconst sbuf ",")
-     (add2sbuf_indentnl sbuf 2)
+     (add2sbuf_indentnl outbuf 1)
+     (add2sbuf_strconst outbuf "/*valdesc #")
+     (add2sbuf_longdec outbuf (+i 1 vix))
+     (add2sbuf_strconst outbuf " ")
+     (add2sbuf_ccomstring outbuf (get_field :named_name curvaldesc))
+     (add2sbuf_strconst outbuf "*/")
+     (add2sbuf_indentnl outbuf 2)
+     (add2sbuf_string outbuf (get_field :valdesc_objmagic curvaldesc))
+     (add2sbuf_strconst outbuf " /*valmagic*/ =")
+     (add2sbuf_longdec outbuf curobjmagic)
+     (add2sbuf_strconst outbuf ",")
+     (add2sbuf_indentnl outbuf 2)
      (setq curobjmagic (+i 1 curobjmagic))
+     (setq countobjmagic (+i countobjmagic 1))
      )
     ;;;;;;;;;;;;;;;;
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst sbuf "/* ctype gty object magic */")
+    (add2sbuf_indentnl outbuf 0)
+    (add2sbuf_strconst outbuf "/* ctype gty object magic */")
     (foreach_in_multiple
      (ctygtytup)
      (curctyp :long tix)
-     (debug_msg curctyp "runtypesupport_objmagic curctyp")
+     (debug_msg curctyp "generate_runtypesupport_enum_objmagic curctyp")
      (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
-     (add2sbuf_indentnl sbuf 1)
-     (add2sbuf_strconst sbuf "/*gtyctype #")
-     (add2sbuf_longdec sbuf (+i 1 tix))
-     (add2sbuf_strconst sbuf " ")
-     (add2sbuf_ccomstring sbuf (get_field :named_name curctyp))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_string sbuf (get_field :ctypg_boxedmagic curctyp))
-     (add2sbuf_strconst sbuf " /*boxedmagic*/ =")
-     (add2sbuf_longdec sbuf curobjmagic)
-     (add2sbuf_strconst sbuf ",")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_string sbuf (get_field :ctypg_mapmagic curctyp))
-     (add2sbuf_strconst sbuf " /*mapmagic*/ =")
-     (add2sbuf_longdec sbuf (+i curobjmagic 1))
-     (add2sbuf_strconst sbuf ",")
+     (add2sbuf_indentnl outbuf 1)
+     (add2sbuf_strconst outbuf "/*gtyctype #")
+     (add2sbuf_longdec outbuf (+i 1 tix))
+     (add2sbuf_strconst outbuf " ")
+     (add2sbuf_ccomstring outbuf (get_field :named_name curctyp))
+     (add2sbuf_strconst outbuf "*/")
+     (add2sbuf_indentnl outbuf 2)
+     (add2sbuf_string outbuf (get_field :ctypg_boxedmagic curctyp))
+     (add2sbuf_strconst outbuf " /*boxedmagic*/ =")
+     (add2sbuf_longdec outbuf curobjmagic)
+     (add2sbuf_strconst outbuf ",")
+     (add2sbuf_indentnl outbuf 2)
+     (add2sbuf_string outbuf (get_field :ctypg_mapmagic curctyp))
+     (add2sbuf_strconst outbuf " /*mapmagic*/ =")
+     (add2sbuf_longdec outbuf (+i curobjmagic 1))
+     (add2sbuf_strconst outbuf ",")
      (setq curobjmagic (+i curobjmagic 2))
+     (setq countobjmagic (+i countobjmagic 1))
      )
-    (debug_msg outname "runtypesupport_objmagic outname end")
+    (debug_msg outarg "generate_runtypesupport_objmagic outarg end")
+    (add2sbuf_indentnl outbuf 0)
+    (add2sbuf_strconst outbuf " MELTOBMAG__LAST }; /* end generated enum meltobmag_en */")
+    (add2sbuf_indentnl outbuf 0)
+    (add2sbuf_strconst outbuf "#define MELT_COUNT_GENERATED_OBJMAGIC ")
+    (add2sbuf_longdec outbuf countobjmagic)
+    (add2sbuf_indentnl outbuf 0)
+    (add2sbuf_strconst outbuf "/*** end from generate_runtypesupport_enum_objmagic **/")
+    (add2sbuf_indentnl outbuf 0)
+    (add2sbuf_indentnl outbuf 0)
     )
   )
-
-;; internal function to generate the gty struct
-(defun runtypesupport_gtystruct  (sbuf outname bitup)
-  (debug_msg outname "runtypesupport_gtystruct outname start")
-  (debug_msg bitup "runtypesupport_gtystruct bitup start")
-  (add2sbuf_indentnl sbuf 0)
-  (let 
-      ( 
-       (ctygtytup (multiple_nth bitup 0))
-       (valdesctup (multiple_nth bitup 1))
-       )
 ;;;;;;;;;;;;;;;;
-    (add2sbuf_string sbuf #{$' /*generated gtystruct typedefs */
 
+;; internal function to generate the gty struct-s and union-s
+(defun generate_runtypesupport_gty  (ctygtytup valdesctup outarg outbuf)
+  (debug_msg outarg "generate_runtypesupport_gty outarg start")
+  (assert_msg "check ctygtytup" (is_multiple ctygtytup))
+  (assert_msg "check valdesctup" (is_multiple valdesctup))
+  (assert_msg "check outbuf" (is_strbuf outbuf))
+;;;;;;;;;;;;;;;;
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst outbuf "/** generated by generate_runtypesupport_gty **/")
+;;;;
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_string outbuf #{$'
 #ifndef meltobject_ptr_t_TYPEDEFINED
-typedef struct meltobject_st* meltobject_ptr_t;
+typedef struct meltobject_st* meltobject_ptr_t ;
 #define meltobject_ptr_t_TYPEDEFINED
 #endif /*meltobject_ptr_t_TYPEDEFINED*/
-
+}#)
+;;;;
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_string outbuf #{$'
 #ifndef melt_ptr_t_TYPEDEFINED
-typedef union melt_un* melt_ptr_t;
+typedef union melt_un* melt_ptr_t ;
 #define meltobject_ptr_t_TYPEDEFINED
 #endif /*meltobject_ptr_t_TYPEDEFINED*/
-
+}#)
+;;;;
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_string outbuf #{$'
 #ifndef meltroutine_ptr_t_TYPEDEFINED
-typedef struct meltroutine_st *meltroutine_ptr_t;
+typedef struct meltroutine_st *meltroutine_ptr_t ;
 #define meltroutine_ptr_t_TYPEDEFINED
 #endif /*meltroutine_ptr_t_TYPEDEFINED*/
-
+}#)
+;;;;
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_string outbuf 
+#{$'
 #ifndef meltroutfun_t_TYPEDEFINED
 typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* closp_,
-				  melt_ptr_t firstargp_,
-				  const char xargdescr_[],
-				  union meltparam_un *xargtab_,
-				  const char xresdescr_[],
-				  union meltparam_un *xrestab_);
+                                  melt_ptr_t firstargp_,
+                                  const char xargdescr_[],
+                                  union meltparam_un *xargtab_,
+                                  const char xresdescr_[],
+                                  union meltparam_un *xrestab_) ;
 #define meltroutfun_t_TYPEDEFINED
 #endif /*meltroutfun_t_TYPEDEFINED*/
-
-  /* end of generated gtystruct typedefs */
 }#)
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst sbuf "/* generated ctype gty structures */")
-    (add2sbuf_indentnl sbuf 0)
-    (foreach_in_multiple
-     (ctygtytup)
-     (curctyp :long ix)
-     (debug_msg curctyp "runtypesupport_gtystruct curctyp")
-     (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
-     (add2sbuf_indentnl sbuf 0)
-     (add2sbuf_indentnl sbuf 0)
-     (add2sbuf_strconst sbuf "/*gtyctype #")
-     (add2sbuf_longdec sbuf (+i 1 ix))
-     (add2sbuf_strconst sbuf " ")
-     (add2sbuf_ccomstring sbuf (get_field :named_name curctyp))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 0)
-     (add2sbuf_strconst sbuf "struct GTY (()) ")
-     (add2sbuf_string sbuf (get_field :ctypg_boxedstruct curctyp))
-     (add2sbuf_strconst sbuf " { /* when ")
-     (add2sbuf_string sbuf (get_field :ctypg_boxedmagic curctyp))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_strconst sbuf "meltobject_ptr_t discr;")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_string sbuf (get_field :ctype_cname curctyp))
-     (add2sbuf_strconst sbuf " val;")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_strconst sbuf "};")
-     (add2sbuf_indentnl sbuf 0)
-     (add2sbuf_strconst sbuf "struct GTY (()) ")
-     (add2sbuf_string sbuf (get_field :ctypg_entrystruct curctyp))
-     (add2sbuf_strconst sbuf " { /* for ")
-     (add2sbuf_string sbuf (get_field :ctypg_mapmagic curctyp))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_string sbuf (get_field :ctype_cname curctyp))
-     (add2sbuf_strconst sbuf " e_at;")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_strconst sbuf " melt_ptr_t e_va;")
-     (add2sbuf_strconst sbuf "};")
-     (add2sbuf_indentnl sbuf 0)
-     (add2sbuf_strconst sbuf "struct GTY (()) ")
-     (add2sbuf_string sbuf (get_field :ctypg_mapstruct curctyp))
-     (add2sbuf_strconst sbuf " { /* when ")
-     (add2sbuf_string sbuf (get_field :ctypg_mapmagic curctyp))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_strconst sbuf "/* keep in sync with meltmappointers_st */")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_strconst sbuf "meltobject_ptr_t discr;")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_strconst sbuf "unsigned count;")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_strconst sbuf "unsigned char lenix;")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_strconst sbuf "struct ")
-     (add2sbuf_string sbuf (get_field :ctypg_entrystruct curctyp))
-     (add2sbuf_strconst sbuf "* GTY ((length (\"melt_primtab[%h.lenix]\"))) entab;")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_strconst sbuf "};")
-     (add2sbuf_indentnl sbuf 0)
-     )
-    (add2sbuf_indentnl sbuf 0)
+  (add2sbuf_indentnl outbuf 0)
+;;;;
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst outbuf "/* generated ctype gty structures */")
+  (add2sbuf_indentnl outbuf 0)
+  (foreach_in_multiple
+   (ctygtytup)
+   (curctyp :long ix)
+   (debug_msg curctyp "generate_runtypesupport_gty curctyp")
+   (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
+   (add2sbuf_indentnl outbuf 0)
+   (add2sbuf_indentnl outbuf 0)
+   (add2sbuf_strconst outbuf "/*gtyctype #")
+   (add2sbuf_longdec outbuf (+i 1 ix))
+   (add2sbuf_strconst outbuf " ")
+   (add2sbuf_ccomstring outbuf (get_field :named_name curctyp))
+   (add2sbuf_strconst outbuf "*/")
+   (add2sbuf_indentnl outbuf 0)
+   (add2sbuf_strconst outbuf "struct GTY (()) ")
+   (add2sbuf_string outbuf (get_field :ctypg_boxedstruct curctyp))
+   (add2sbuf_strconst outbuf " { /* when ")
+   (add2sbuf_string outbuf (get_field :ctypg_boxedmagic curctyp))
+   (add2sbuf_strconst outbuf "*/")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf "meltobject_ptr_t discr;")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_string outbuf (get_field :ctype_cname curctyp))
+   (add2sbuf_strconst outbuf " val;")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf "};")
+   (add2sbuf_indentnl outbuf 0)
+   (add2sbuf_strconst outbuf "struct GTY (()) ")
+   (add2sbuf_string outbuf (get_field :ctypg_entrystruct curctyp))
+   (add2sbuf_strconst outbuf " { /* for ")
+   (add2sbuf_string outbuf (get_field :ctypg_mapmagic curctyp))
+   (add2sbuf_strconst outbuf "*/")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_string outbuf (get_field :ctype_cname curctyp))
+   (add2sbuf_strconst outbuf " e_at;")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf " melt_ptr_t e_va;")
+   (add2sbuf_strconst outbuf "};")
+   (add2sbuf_indentnl outbuf 0)
+   (add2sbuf_strconst outbuf "struct GTY (()) ")
+   (add2sbuf_string outbuf (get_field :ctypg_mapstruct curctyp))
+   (add2sbuf_strconst outbuf " { /* when ")
+   (add2sbuf_string outbuf (get_field :ctypg_mapmagic curctyp))
+   (add2sbuf_strconst outbuf "*/")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf "/* keep in sync with meltmappointers_st */")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf "meltobject_ptr_t discr;")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf "unsigned count;")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf "unsigned char lenix;")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf "struct ")
+   (add2sbuf_string outbuf (get_field :ctypg_entrystruct curctyp))
+   (add2sbuf_strconst outbuf "* GTY ((length (\"melt_primtab[%h.lenix]\"))) entab;")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf "};")
+   (add2sbuf_indentnl outbuf 0)
+   )
+  (add2sbuf_indentnl outbuf 0)
 ;;;;;;;;;;;
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst sbuf "/* value GTY types */")
-    (foreach_in_multiple
-     (valdesctup)
-     (curvaldesc :long ix)
-     (debug_msg curvaldesc "runtypesupport_gtyvaldesc curvaldesc")
-     (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
-     (add2sbuf_indentnl sbuf 0)
-     (add2sbuf_indentnl sbuf 0)
-     (add2sbuf_strconst sbuf "/*gtyvaldesc #")
-     (add2sbuf_longdec sbuf (+i 1 ix))
-     (add2sbuf_strconst sbuf " ")
-     (add2sbuf_ccomstring sbuf (get_field :named_name curvaldesc))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 0)
-     (add2sbuf_strconst sbuf "struct GTY((")
-     (cond 
-      ( (is_a curvaldesc class_varisized_value_descriptor)
-	(assert_msg "check null valdescgty" 
-		    (null (get_field :valdesc_gty curvaldesc)))
-	(compile_warning 
-	 "we should provide a user option to disable variable GTY for GCC 4.5")
-	(add2sbuf_strconst sbuf "variable")
-	)
-      ( (is_a curvaldesc class_value_descriptor)
-	(let ( (sgty (get_field :valdesc_gty curvaldesc)) 
-	       )
-	  (if (is_string sgty)
-	      (add2sbuf_string sbuf sgty))))
-      (:else
-       (assert_msg "invalid value descriptor" ()))
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst outbuf "/* value GTY types */")
+  (foreach_in_multiple
+   (valdesctup)
+   (curvaldesc :long ix)
+   (debug_msg curvaldesc "runtypesupport_gtyvaldesc curvaldesc")
+   (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
+   (add2sbuf_indentnl outbuf 0)
+   (add2sbuf_indentnl outbuf 0)
+   (add2sbuf_strconst outbuf "/*gtyvaldesc #")
+   (add2sbuf_longdec outbuf (+i 1 ix))
+   (add2sbuf_strconst outbuf " ")
+   (add2sbuf_ccomstring outbuf (get_field :named_name curvaldesc))
+   (add2sbuf_strconst outbuf "*/")
+   (add2sbuf_indentnl outbuf 0)
+   (add2sbuf_strconst outbuf "struct GTY((")
+   (cond 
+    ( (is_a curvaldesc class_varisized_value_descriptor)
+      (assert_msg "check null valdescgty" 
+		  (null (get_field :valdesc_gty curvaldesc)))
+      (compile_warning 
+       "we should provide a user option to disable variable GTY for GCC 4.5")
+      (add2sbuf_strconst outbuf "variable")
       )
-     (add2sbuf_strconst sbuf ")) ")
-     (add2sbuf_string sbuf (get_field :valdesc_struct curvaldesc))
-     (add2sbuf_strconst sbuf " /* when ")
-     (add2sbuf_string sbuf (get_field :valdesc_objmagic curvaldesc))
-     (add2sbuf_strconst sbuf " */ {")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "meltobject_ptr_t discr;")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_string sbuf (get_field :valdesc_membchunk curvaldesc))
-     (add2sbuf_indentnl sbuf 0)
-     (add2sbuf_strconst sbuf "}; /* end ")
-     (add2sbuf_string sbuf (get_field :valdesc_struct curvaldesc))
-     (add2sbuf_strconst sbuf " */")
-     (add2sbuf_indentnl sbuf 0)
-     (let ( (dclchk (get_field :valdesc_declchunk curvaldesc))
-	    )
-       (if dclchk
-	   (progn
-	     (add2sbuf_strconst sbuf "/* decl. chunk */")
-	     (add2sbuf_indentnl sbuf 0)
-	     (add2sbuf_string sbuf dclchk)
-	     (add2sbuf_indentnl sbuf 0)
+    ( (is_a curvaldesc class_value_descriptor)
+      (let ( (sgty (get_field :valdesc_gty curvaldesc)) 
 	     )
-	 (add2sbuf_strconst sbuf "/* no decl. chunk */")
-	 )
-       (add2sbuf_indentnl sbuf 0)
-       )
-     )
-    ;;; generate the melt_un union
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst sbuf "/* our generated MELT union for everything */")
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst sbuf "typdef union")
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst sbuf 
-		       " GTY ((desc (\"%0.u_discr->meltobj_magic\"))) melt_un")
-    
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst sbuf "{ /*generated melt_un*/")
-    (add2sbuf_indentnl sbuf 1)
-    (add2sbuf_strconst sbuf "meltobject_ptr_t GTY ((skip)) u_discr;")
-    (add2sbuf_indentnl sbuf 1)
-    (add2sbuf_strconst sbuf "struct meltforward_st GTY ((skip)) u_forward;")
-    (add2sbuf_indentnl sbuf 1)
-    ;; gty type unions
-    (foreach_in_multiple
-     (ctygtytup)
-     (curctyp :long ix)
-     (debug_msg curctyp "runtypesupport_gtystruct curctyp")
-     (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
-     (add2sbuf_indentnl sbuf 1)
-     (add2sbuf_strconst sbuf "/*union gtyctype #")
-     (add2sbuf_longdec sbuf (+i 1 ix))
-     (add2sbuf_strconst sbuf " ")
-     (add2sbuf_ccomstring sbuf (get_field :named_name curctyp))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 1)
-     (add2sbuf_strconst sbuf "struct ")
-     (add2sbuf_string sbuf (get_field :ctypg_boxedstruct curctyp))
-     (add2sbuf_strconst sbuf " GTY ((tag(\"")
-     (add2sbuf_string sbuf (get_field :ctypg_boxedmagic curctyp))
-     (add2sbuf_strconst sbuf "\"))) ")
-     (add2sbuf_string sbuf (get_field :ctypg_boxedunimemb curctyp))
-     (add2sbuf_strconst sbuf "; /* generated boxed union member */")
-     (add2sbuf_indentnl sbuf 1)
-     (add2sbuf_strconst sbuf "struct ")
-     (add2sbuf_string sbuf (get_field :ctypg_mapstruct curctyp))
-     (add2sbuf_strconst sbuf " GTY ((tag(\"")
-     (add2sbuf_string sbuf (get_field :ctypg_mapmagic curctyp))
-     (add2sbuf_strconst sbuf "\"))) ")
-     (add2sbuf_string sbuf (get_field :ctypg_mapunimemb curctyp))
-     (add2sbuf_strconst sbuf "; /* generated map union member */")
-     (add2sbuf_indentnl sbuf 1)
-     )					;end foreach gty ctype
-    (add2sbuf_indentnl sbuf 1)
-    ;; valdesc union
-    (foreach_in_multiple
-     (valdesctup)
-     (curvaldesc :long vix)
-     (debug_msg curvaldesc "runtypesupport_gtystruct curvaldesc")
-     (add2sbuf_indentnl sbuf 1)
-     (add2sbuf_strconst sbuf "/*union.valdesc #")
-     (add2sbuf_longdec sbuf (+i 1 vix))
-     (add2sbuf_strconst sbuf " ")
-     (add2sbuf_ccomstring sbuf (get_field :named_name curvaldesc))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 1)
-     (add2sbuf_strconst sbuf "struct ")
-     (add2sbuf_string sbuf (get_field :valdesc_struct curvaldesc))
-     (add2sbuf_strconst sbuf " GTY ((tag(\"")
-     (add2sbuf_string sbuf (get_field :valdesc_objmagic curvaldesc))
-     (add2sbuf_strconst sbuf "\"))) ")
-     (add2sbuf_string sbuf (get_field :valdesc_unionmem curvaldesc))
-     (add2sbuf_strconst sbuf "; /* generated value union member */")
-     (add2sbuf_indentnl sbuf 1)
-     )					;end foreach valdesc
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst sbuf "} melt_un_t /*end generated melt_un*/;")
-    ;;;
-    (add2sbuf_indentnl sbuf 0)
-    (debug_msg outname "runtypesupport_gtystruct outname end")
+	(if (is_string sgty)
+	    (add2sbuf_string outbuf sgty))))
+    (:else
+     (assert_msg "invalid value descriptor" ()))
     )
+   (add2sbuf_strconst outbuf ")) ")
+   (add2sbuf_string outbuf (get_field :valdesc_struct curvaldesc))
+   (add2sbuf_strconst outbuf " /* when ")
+   (add2sbuf_string outbuf (get_field :valdesc_objmagic curvaldesc))
+   (add2sbuf_strconst outbuf " */ {")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "meltobject_ptr_t discr;")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_string outbuf (get_field :valdesc_membchunk curvaldesc))
+   (add2sbuf_indentnl outbuf 0)
+   (add2sbuf_strconst outbuf "}; /* end ")
+   (add2sbuf_string outbuf (get_field :valdesc_struct curvaldesc))
+   (add2sbuf_strconst outbuf " */")
+   (add2sbuf_indentnl outbuf 0)
+   (let ( (dclchk (get_field :valdesc_declchunk curvaldesc))
+	  )
+     (if dclchk
+	 (progn
+	   (add2sbuf_strconst outbuf "/* decl. chunk */")
+	   (add2sbuf_indentnl outbuf 0)
+	   (add2sbuf_string outbuf dclchk)
+	   (add2sbuf_indentnl outbuf 0)
+	   )
+       (add2sbuf_strconst outbuf "/* no decl. chunk */")
+       )
+     (add2sbuf_indentnl outbuf 0)
+     )
+   )
+;;; generate the melt_un union
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst outbuf "/* our generated MELT union for everything */")
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst outbuf "typdef union")
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst outbuf 
+		     " GTY ((desc (\"%0.u_discr->meltobj_magic\"))) melt_un")
+    
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst outbuf "{ /*generated melt_un*/")
+  (add2sbuf_indentnl outbuf 1)
+  (add2sbuf_strconst outbuf "meltobject_ptr_t GTY ((skip)) u_discr;")
+  (add2sbuf_indentnl outbuf 1)
+  (add2sbuf_strconst outbuf "struct meltforward_st GTY ((skip)) u_forward;")
+  (add2sbuf_indentnl outbuf 1)
+  ;; gty type unions
+  (foreach_in_multiple
+   (ctygtytup)
+   (curctyp :long ix)
+   (debug_msg curctyp "generate_runtypesupport_gty curctyp")
+   (assert_msg "check curctyp" (is_a curctyp class_ctype_gty))
+   (add2sbuf_indentnl outbuf 1)
+   (add2sbuf_strconst outbuf "/*union gtyctype #")
+   (add2sbuf_longdec outbuf (+i 1 ix))
+   (add2sbuf_strconst outbuf " ")
+   (add2sbuf_ccomstring outbuf (get_field :named_name curctyp))
+   (add2sbuf_strconst outbuf "*/")
+   (add2sbuf_indentnl outbuf 1)
+   (add2sbuf_strconst outbuf "struct ")
+   (add2sbuf_string outbuf (get_field :ctypg_boxedstruct curctyp))
+   (add2sbuf_strconst outbuf " GTY ((tag(\"")
+   (add2sbuf_string outbuf (get_field :ctypg_boxedmagic curctyp))
+   (add2sbuf_strconst outbuf "\"))) ")
+   (add2sbuf_string outbuf (get_field :ctypg_boxedunimemb curctyp))
+   (add2sbuf_strconst outbuf "; /* generated boxed union member */")
+   (add2sbuf_indentnl outbuf 1)
+   (add2sbuf_strconst outbuf "struct ")
+   (add2sbuf_string outbuf (get_field :ctypg_mapstruct curctyp))
+   (add2sbuf_strconst outbuf " GTY ((tag(\"")
+   (add2sbuf_string outbuf (get_field :ctypg_mapmagic curctyp))
+   (add2sbuf_strconst outbuf "\"))) ")
+   (add2sbuf_string outbuf (get_field :ctypg_mapunimemb curctyp))
+   (add2sbuf_strconst outbuf "; /* generated map union member */")
+   (add2sbuf_indentnl outbuf 1)
+   )					;end foreach gty ctype
+  (add2sbuf_indentnl outbuf 1)
+  ;; valdesc union
+  (foreach_in_multiple
+   (valdesctup)
+   (curvaldesc :long vix)
+   (debug_msg curvaldesc "generate_runtypesupport_gty curvaldesc")
+   (add2sbuf_indentnl outbuf 1)
+   (add2sbuf_strconst outbuf "/*union.valdesc #")
+   (add2sbuf_longdec outbuf (+i 1 vix))
+   (add2sbuf_strconst outbuf " ")
+   (add2sbuf_ccomstring outbuf (get_field :named_name curvaldesc))
+   (add2sbuf_strconst outbuf "*/")
+   (add2sbuf_indentnl outbuf 1)
+   (add2sbuf_strconst outbuf "struct ")
+   (add2sbuf_string outbuf (get_field :valdesc_struct curvaldesc))
+   (add2sbuf_strconst outbuf " GTY ((tag(\"")
+   (add2sbuf_string outbuf (get_field :valdesc_objmagic curvaldesc))
+   (add2sbuf_strconst outbuf "\"))) ")
+   (add2sbuf_string outbuf (get_field :valdesc_unionmem curvaldesc))
+   (add2sbuf_strconst outbuf "; /* generated value union member */")
+   (add2sbuf_indentnl outbuf 1)
+   )					;end foreach valdesc
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst outbuf "} melt_un_t /*end generated melt_un*/;")
+;;;
+  (add2sbuf_strconst outbuf "/** end generated by generate_runtypesupport_gty **/")
+;;;;
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_indentnl outbuf 0)
+  (debug_msg outarg "generate_runtypesupport_gty outname end")
   )
+  
+;;;;;;;;;;;;;;;;
+
+
+
 
 ;; internal function to generate forwarding copy cases
 (defun runtypesupport_forwcopy (sbuf outname bitup)
@@ -6123,15 +6118,30 @@ typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* closp_,
   (debug_msg moduldata "start runtypesupport_docmd moduldata")
   (let (
 	(outarg (or (make_stringconst discr_string (melt_argument "output"))
-		    '"meltctype"
+		    '"meltrunsup"
 		    ))
+	(outdeclname (let ( (nambuf (make_strbuf discr_strbuf))
+			    )
+		       (add2sbuf_string nambuf outarg)
+		       (add2sbuf_strconst nambuf ".h")
+		       (strbuf2string nambuf discr_string)
+		       ))
+	(outcodename  (let ( (nambuf (make_strbuf discr_strbuf))
+			    )
+		       (add2sbuf_string nambuf outarg)
+		       (add2sbuf_strconst nambuf ".")
+		       (strbuf2string nambuf discr_string)
+		       ))
 	(dictypgty (retrieve_dictionnary_ctype_gty))
 	(rawctypgtylist (list))
 	(dictyp (retrieve_dictionnary_ctype))
 	(rawctyplist (list))
+	(outdeclbuf (make_strbuf discr_strbuf))
+	(outcodebuf (make_strbuf discr_strbuf))
 	)
     (debug_msg dictypgty "runtypesupport_docmd dictypgty")
     (debug_msg outarg "runtypesupport_docmd outarg")
+    (generate_gplv3plus_copyright_notice_c_comment outdeclbuf outarg)
     (foreach_in_mapstring
      (dictypgty)
      (curstr curcty)
@@ -6160,31 +6170,28 @@ typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* closp_,
       (debug_msg sortedvaldesctuple "runtypesupport_docmd sortedvaldesctuple")
       ;;
       ;; generate the enummagic ie the MELTOBMAG_* enumeration
-      (generate_runtypesupport 
-       runtypesupport_objmagic
-       (tuple sortedctygtytuple sortedvaldesctuple)
-       outarg "-objmagic.h")
+      (generate_runtypesupport_enum_objmagic sortedctygtytuple 
+					     sortedvaldesctuple
+					     outarg outdeclbuf)
       ;; generate the structures
-      (generate_runtypesupport
-       runtypesupport_gtystruct
-       (tuple sortedctygtytuple sortedvaldesctuple)
-       outarg "-gtystruct.h") 
-      ;; generate the forward copying cases
-      (generate_runtypesupport
-       runtypesupport_forwcopy
-       (tuple sortedctygtytuple sortedvaldesctuple)
-       outarg "-forwcopy.h")
-      ;; generate the scanning forward cases
-      (generate_runtypesupport
-       runtypesupport_scanforw
-       (tuple sortedctygtytuple sortedvaldesctuple)
-       outarg "-scanforw.h")
-      ;; generate the parameter passing support e.g. union meltparam_un...
-      ;; we pass all the ctype-s
-      (generate_runtypesupport
-       runtypesupport_param
-       (tuple sortedctytuple sortedvaldesctuple)
-       outarg "-param.h")
+      (generate_runtypesupport_gty sortedctygtytuple sortedvaldesctuple
+				   outarg outdeclbuf) 
+      ;;OLD:: ;; generate the forward copying cases
+      ;;OLD:: (generate_runtypesupport
+      ;;OLD::  runtypesupport_forwcopy
+      ;;OLD::  (tuple sortedctygtytuple sortedvaldesctuple)
+      ;;OLD::  outarg "-forwcopy.h")
+      ;;OLD:: ;; generate the scanning forward cases
+      ;;OLD:: (generate_runtypesupport
+      ;;OLD::  runtypesupport_scanforw
+      ;;OLD::  (tuple sortedctygtytuple sortedvaldesctuple)
+      ;;OLD::  outarg "-scanforw.h")
+      ;;OLD:: ;; generate the parameter passing support e.g. union meltparam_un...
+      ;;OLD:: ;; we pass all the ctype-s
+      ;;OLD:: (generate_runtypesupport
+      ;;OLD::  runtypesupport_param
+      ;;OLD::  (tuple sortedctytuple sortedvaldesctuple)
+      ;;OLD::  outarg "-param.h")
       ;;
       ;;
       (debug_msg outarg "runtypesupport_docmd done outarg")

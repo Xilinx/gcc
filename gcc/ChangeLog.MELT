@@ -1,4 +1,14 @@
 
+2011-01-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt: Should generate only two files for the
+	runtime, a header and a code file. Update copyright year.
+	(generate_runtypesupport): Remove function.
+	(runtypesupport_objmagic): Revamped as...
+	(generate_runtypesupport_enum_objmagic): New.
+	(runtypesupport_gtystruct): Revamped as...
+	(generate_runtypesupport_gty): New.
+
 2011-01-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-outobj.melt (runtypesupport_gtystruct): Generate
