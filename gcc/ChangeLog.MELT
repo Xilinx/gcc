@@ -1,6 +1,13 @@
 
 2011-01-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (runtypesupport_forwcopy): Remove and
+	revamp as...
+	(generate_runtypesupport_forwcopy_fun): New, which generates the
+	entire melt_forwarded_copy function.
+
+2011-01-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-build.tpl: File melt-sources/xtra*.c depends upon
 	melt-modules/warmelt*.so.
 
