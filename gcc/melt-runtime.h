@@ -2753,6 +2753,13 @@ void meltgc_add_out_cstr (melt_ptr_t outbuf_p,
 				const char *str);
 #define meltgc_add_strbuf_cstr(Out,Str) meltgc_add_out_cstr(Out,Str)
 
+/* add safely into OUTBUF the string STR of length SLEN encoded as a C
+   string with backslash escapes */
+void meltgc_add_out_cstr_len (melt_ptr_t outbuf_p,
+			      const char *str, int slen);
+#define meltgc_add_strbuf_cstr_len(Out,Str,Slen) \
+  meltgc_add_out_cstr_len(Out,Str,Slen)
+
 /* add safely into OUTBUF the string STR encoded as the interior of a
    C comment with slash star and star slash replaced by slash plus and
    plus slash */

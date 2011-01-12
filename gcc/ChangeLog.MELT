@@ -1,6 +1,14 @@
 
 2011-01-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (meltgc_add_out_cstr_len): New function declaration.
+	(meltgc_add_strbuf_cstr_len): New macro.
+
+	* melt-runtime.c (meltgc_add_out_cstr_len): New function.
+	(meltgc_add_out_cstr): Call the above one.
+
+2011-01-12  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-outobj.melt (runtypesupport_forwcopy): Remove and
 	revamp as...
 	(generate_runtypesupport_forwcopy_fun): New, which generates the

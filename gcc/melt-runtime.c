@@ -3179,15 +3179,18 @@ meltgc_add_out (melt_ptr_t out_p, const char *str)
     }
 }
 
+
 void
-meltgc_add_out_cstr (melt_ptr_t outbuf_p, const char *str)
+meltgc_add_out_cstr_len (melt_ptr_t outbuf_p, const char *str, int slen)
 {
-  int slen = str ? strlen (str) : 0;
   const char *ps = NULL;
   char *pd = NULL;
   char *cstr = NULL;
-  if (!str || !str[0])
+  if (!str)
     return;
+  if (slen<0) 
+    slen = strlen(str);
+  /* at most four characters e.g. \xAB per original character */
   cstr = (char *) xcalloc (slen + 5, 4);
   pd = cstr;
   for (ps = str; *ps; ps++)
@@ -3226,6 +3229,12 @@ meltgc_add_out_cstr (melt_ptr_t outbuf_p, const char *str)
   free (cstr);
 }
 
+
+void
+meltgc_add_out_cstr (melt_ptr_t outbuf_p, const char *str)
+{
+  meltgc_add_out_cstr_len (outbuf_p, str, -1);
+}
 
 void
 meltgc_add_out_ccomment (melt_ptr_t outbuf_p, const char *str)
