@@ -1,3 +1,8 @@
+2011-01-12  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (build_tm_store): Build correct type when handling
+	CONSTRUCTORs.
+
 2011-01-11  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_execute): Place possibly irrevocable

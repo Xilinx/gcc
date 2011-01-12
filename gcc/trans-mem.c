@@ -2068,7 +2068,7 @@ build_tm_store (location_t loc, tree lhs, tree rhs, gimple_stmt_iterator *gsi)
     {
       /* Handle the easy initialization to zero.  */
       if (CONSTRUCTOR_ELTS (rhs) == 0)
-	rhs = build_int_cst (type, 0);
+	rhs = build_int_cst (simple_type, 0);
       else
 	{
 	  /* ...otherwise punt to the caller and probably use
