@@ -683,6 +683,7 @@
 		   (add2sbuf_strconst sbuf " /*big*/ 256);")
 		   (add2sbuf_indentnl sbuf 1)
 		   (setq ix (+i ix 256))
+		   (void)
 		   )
 		  ;; less big remaining
 		  ((<i ix (-i datalen 128))
@@ -728,8 +729,10 @@
 		   (add2sbuf_strconst sbuf " /*evenlessbig*/ 64);")
 		   (add2sbuf_indentnl sbuf 1)
 		   (setq ix (+i ix 64))
+		   (void)
 		   )
 		  )
+		 (void)
 		 )
 	(add2sbuf_indentnl sbuf 1)
 	))))
@@ -6050,134 +6053,166 @@ melt_forwarded_copy (melt_ptr_t p)
   
 
 
-;; internal function to generate scanning cases
-(defun runtypesupport_scanforw (sbuf outname bitup)
-  (debug_msg outname "runtypesupport_scanforw outname start")
-  (assert_msg "check bitup" (==i (multiple_length bitup) 2))
-  (debug_msg bitup "runtypesupport_scanforw bitup")
-  (let 
-      ( 
-       (ctygtytup (multiple_nth bitup 0))
-       (valdesctup (multiple_nth bitup 1))
-       )
+;; internal function to generate melt_scanning function
+(defun generate_runtypesupport_scanning (ctygtytup valdesctup outname outbuf)
+  (debug_msg outname "generate_runtypesupport_scanning outname start")
 ;;;;;;;;;;;;;;;;
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst 
-     sbuf
-     "/* value descriptor scan forward for melt_scanning  */")
-    (add2sbuf_indentnl sbuf 0)
-    (foreach_in_multiple
-     (valdesctup)
-     (curvaldesc :long vix)
-     (debug_msg curvaldesc "runtypesupport_scanforw curvaldesc")
-     (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
-     (add2sbuf_indentnl sbuf 1)
-     (add2sbuf_strconst sbuf "/*valdesc #")
-     (add2sbuf_longdec sbuf (+i 1 vix))
-     (add2sbuf_strconst sbuf " ")
-     (add2sbuf_ccomstring sbuf (get_field :named_name curvaldesc))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 1)
-     (add2sbuf_strconst sbuf "case ")
-     (add2sbuf_string sbuf (get_field :valdesc_objmagic curvaldesc))
-     (add2sbuf_strconst sbuf ": {")
-     (let ( (fwchk (get_field :valdesc_forwchunk curvaldesc))
-	    )
-       (if fwchk 
-	   (progn
-	     (add2sbuf_indentnl sbuf 2)
-	     (add2sbuf_strconst sbuf "struct ")
-	     (add2sbuf_string sbuf (get_field :valdesc_struct curvaldesc))
-	     (add2sbuf_strconst sbuf "*src = (struct ")
-	     (add2sbuf_string sbuf (get_field :valdesc_struct curvaldesc))
-	     (add2sbuf_strconst sbuf "*) p;")
-	     (add2sbuf_indentnl sbuf 2)
-	     (add2sbuf_string sbuf fwchk)
-	     )))
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "break; }")
-     )
-    ;;;
-    ;;;; forward scan for GTY-ed ctypes
-    (add2sbuf_indentnl sbuf 0)
-    (add2sbuf_strconst 
-     sbuf
-     "/* GTY-ed ctypes scan forward for melt_scanning  */")
-    (add2sbuf_indentnl sbuf 0)
-    (foreach_in_multiple
-     (ctygtytup)
-     (curctyp :long tix)
-     (debug_msg curctyp "runtypesupport_scanforw curctyp")
-     (add2sbuf_strconst sbuf "/*gtyctype #")
-     (add2sbuf_longdec sbuf (+i 1 tix))
-     (add2sbuf_strconst sbuf " ")
-     (add2sbuf_ccomstring sbuf (get_field :named_name curctyp))
-     (add2sbuf_strconst sbuf "*/")
-     (add2sbuf_indentnl sbuf 1)
-     ;;; the boxed ctype case
-     (add2sbuf_strconst sbuf "case ")
-     (add2sbuf_string sbuf (get_field :ctypg_boxedmagic curctyp))
-     (add2sbuf_strconst sbuf ":")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "break;")
-     ;;; the map ctype case
-     (add2sbuf_strconst sbuf "case ")
-     (add2sbuf_string sbuf (get_field :ctypg_mapmagic curctyp))
-     (add2sbuf_strconst sbuf ": {")
-     (add2sbuf_indentnl sbuf 3)
-     (add2sbuf_strconst sbuf "struct ")
-     (add2sbuf_string sbuf (get_field :ctypg_mapstruct curctyp))
-     (add2sbuf_strconst sbuf " *src = (struct ")
-     (add2sbuf_string sbuf (get_field :ctypg_mapstruct curctyp))
-     (add2sbuf_strconst sbuf "*) p;")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "int siz=0, ix=0;")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "if (!src->entab) break;")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "siz = melt_primtab[src->lenix];")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "gcc_assert (siz>0);")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "if (melt_is_young (src->entab))) {")
-     (add2sbuf_indentnl sbuf 4)
-     (add2sbuf_strconst sbuf "struct ")
-     (add2sbuf_string sbuf (get_field :ctypg_entrystruct curctyp))
-     (add2sbuf_strconst sbuf "* newtab = ggc_alloc_vec_ ")
-     (add2sbuf_string sbuf (get_field :ctypg_entrystruct curctyp))
-     (add2sbuf_strconst sbuf " (siz);")
-     (add2sbuf_indentnl sbuf 4)
-     (add2sbuf_strconst sbuf "memcpy (newtab, src->entab, siz * sizeof (struct ")
-     (add2sbuf_string sbuf (get_field :ctypg_entrystruct curctyp))
-     (add2sbuf_strconst sbuf "));")
-     (add2sbuf_indentnl sbuf 4)
-     (add2sbuf_strconst sbuf "src->entab = newtab;")
-     (add2sbuf_indentnl sbuf 4)
-     (add2sbuf_strconst sbuf "} /*end if young entab */")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "for (ix = 0; ix < siz; ix++) {")
-     (add2sbuf_indentnl sbuf 4)
-     (add2sbuf_string sbuf (get_field :ctype_cname curctyp))
-     (add2sbuf_strconst sbuf " at = src->entab[ix].e_at;")
-     (add2sbuf_indentnl sbuf 4)
-     (add2sbuf_strconst sbuf "if (!at || (void*) at == (void*) HTAB_DELETED_ENTRY) {")
-     (add2sbuf_indentnl sbuf 6)
-     (add2sbuf_strconst sbuf "src->entab[ix].e_va = NULL;")
-     (add2sbuf_indentnl sbuf 6)
-     (add2sbuf_strconst sbuf "continue;")
-     (add2sbuf_indentnl sbuf 4)
-     (add2sbuf_strconst sbuf "} /*end if empty at */")
-     (add2sbuf_indentnl sbuf 4)
-     (add2sbuf_strconst sbuf "MELT_FORWARDED (src->entab[ix].e_va);")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "} /*end for ix*/")
-     (add2sbuf_indentnl sbuf 2)
-     (add2sbuf_strconst sbuf "break;")
-     (add2sbuf_indentnl sbuf 0)
-     )
+  (assert_msg "check ctygtytup" (is_multiple ctygtytup))
+  (assert_msg "check valdesctup" (is_multiple valdesctup))
+  (assert_msg "check outbuf" (is_strbuf outbuf))
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst outbuf 
+		     "/** start of code generated by generate_runtypesupport_scanning **/")
+  (add2sbuf_indentnl outbuf 0)
+;;;;;;;;;;;;;;;;
+  (add2sbuf_string outbuf
+#{$' /* header from generate_runtypesupport_scanning */
+/* The melt_scanning routine is mostly Chesney like ; however some types,
+   including objects, strbuf, stringmaps, objectmaps, all the other
+   *maps, contain a pointer to a non value ; this pointer should be
+   carefully updated if it was young. */
+static void
+melt_scanning (melt_ptr_t p)
+{
+  unsigned omagic = 0;
+  if (!p)
+    return;
+  gcc_assert (p != (void *) HTAB_DELETED_ENTRY);
+  gcc_assert (p->u_discr && p->u_discr != (meltobject_ptr_t) 1);
+  MELT_FORWARDED (p->u_discr);
+  gcc_assert (!melt_is_young (p));
+  omagic = p->u_discr->meltobj_magic;
+  switch (omagic)
+    {
+/* end of header from generate_runtypesupport_scanning*/}#)
+;;;;;;;;;;;;;;;;
+  (add2sbuf_indentnl outbuf 0)
+  (foreach_in_multiple
+   (valdesctup)
+   (curvaldesc :long vix)
+   (debug_msg curvaldesc "generate_runtypesupport_scanning curvaldesc")
+   (assert_msg "check curvaldesc" (is_a curvaldesc class_value_descriptor))
+   (add2sbuf_indentnl outbuf 1)
+   (add2sbuf_strconst outbuf "/*valdesc #")
+   (add2sbuf_longdec outbuf (+i 1 vix))
+   (add2sbuf_strconst outbuf " ")
+   (add2sbuf_ccomstring outbuf (get_field :named_name curvaldesc))
+   (add2sbuf_strconst outbuf "*/")
+   (add2sbuf_indentnl outbuf 1)
+   (add2sbuf_strconst outbuf "case ")
+   (add2sbuf_string outbuf (get_field :valdesc_objmagic curvaldesc))
+   (add2sbuf_strconst outbuf ": {")
+   (let ( (fwchk (get_field :valdesc_forwchunk curvaldesc))
+	  )
+     (if fwchk 
+	 (progn
+	   (add2sbuf_indentnl outbuf 2)
+	   (add2sbuf_strconst outbuf "struct ")
+	   (add2sbuf_string outbuf (get_field :valdesc_struct curvaldesc))
+	   (add2sbuf_strconst outbuf "*src = (struct ")
+	   (add2sbuf_string outbuf (get_field :valdesc_struct curvaldesc))
+	   (add2sbuf_strconst outbuf "*) p;")
+	   (add2sbuf_indentnl outbuf 2)
+	   (add2sbuf_string outbuf fwchk)
+	   )))
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "break; }")
+   )
+;;;
+;;;; forward scan for GTY-ed ctypes
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst 
+   outbuf
+   "/* GTY-ed ctypes scan forward for melt_scanning  */")
+  (add2sbuf_indentnl outbuf 0)
+  (foreach_in_multiple
+   (ctygtytup)
+   (curctyp :long tix)
+   (debug_msg curctyp "generate_runtypesupport_scanning curctyp")
+   (add2sbuf_strconst outbuf "/*gtyctype #")
+   (add2sbuf_longdec outbuf (+i 1 tix))
+   (add2sbuf_strconst outbuf " ")
+   (add2sbuf_ccomstring outbuf (get_field :named_name curctyp))
+   (add2sbuf_strconst outbuf "*/")
+   (add2sbuf_indentnl outbuf 1)
+;;; the boxed ctype case
+   (add2sbuf_strconst outbuf "case ")
+   (add2sbuf_string outbuf (get_field :ctypg_boxedmagic curctyp))
+   (add2sbuf_strconst outbuf ":")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "break;")
+;;; the map ctype case
+   (add2sbuf_strconst outbuf "case ")
+   (add2sbuf_string outbuf (get_field :ctypg_mapmagic curctyp))
+   (add2sbuf_strconst outbuf ": {")
+   (add2sbuf_indentnl outbuf 3)
+   (add2sbuf_strconst outbuf "struct ")
+   (add2sbuf_string outbuf (get_field :ctypg_mapstruct curctyp))
+   (add2sbuf_strconst outbuf " *src = (struct ")
+   (add2sbuf_string outbuf (get_field :ctypg_mapstruct curctyp))
+   (add2sbuf_strconst outbuf "*) p;")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "int siz=0, ix=0;")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "if (!src->entab) break;")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "siz = melt_primtab[src->lenix];")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "gcc_assert (siz>0);")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "if (melt_is_young (src->entab))) {")
+   (add2sbuf_indentnl outbuf 4)
+   (add2sbuf_strconst outbuf "struct ")
+   (add2sbuf_string outbuf (get_field :ctypg_entrystruct curctyp))
+   (add2sbuf_strconst outbuf "* newtab = ggc_alloc_vec_ ")
+   (add2sbuf_string outbuf (get_field :ctypg_entrystruct curctyp))
+   (add2sbuf_strconst outbuf " (siz);")
+   (add2sbuf_indentnl outbuf 4)
+   (add2sbuf_strconst outbuf "memcpy (newtab, src->entab, siz * sizeof (struct ")
+   (add2sbuf_string outbuf (get_field :ctypg_entrystruct curctyp))
+   (add2sbuf_strconst outbuf "));")
+   (add2sbuf_indentnl outbuf 4)
+   (add2sbuf_strconst outbuf "src->entab = newtab;")
+   (add2sbuf_indentnl outbuf 4)
+   (add2sbuf_strconst outbuf "} /*end if young entab */")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "for (ix = 0; ix < siz; ix++) {")
+   (add2sbuf_indentnl outbuf 4)
+   (add2sbuf_string outbuf (get_field :ctype_cname curctyp))
+   (add2sbuf_strconst outbuf " at = src->entab[ix].e_at;")
+   (add2sbuf_indentnl outbuf 4)
+   (add2sbuf_strconst outbuf "if (!at || (void*) at == (void*) HTAB_DELETED_ENTRY) {")
+   (add2sbuf_indentnl outbuf 6)
+   (add2sbuf_strconst outbuf "src->entab[ix].e_va = NULL;")
+   (add2sbuf_indentnl outbuf 6)
+   (add2sbuf_strconst outbuf "continue;")
+   (add2sbuf_indentnl outbuf 4)
+   (add2sbuf_strconst outbuf "} /*end if empty at */")
+   (add2sbuf_indentnl outbuf 4)
+   (add2sbuf_strconst outbuf "MELT_FORWARDED (src->entab[ix].e_va);")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "} /*end for ix*/")
+   (add2sbuf_indentnl outbuf 2)
+   (add2sbuf_strconst outbuf "break;")
+   (add2sbuf_indentnl outbuf 0)
+   )					;end foreach ctypgty
+  ;;;;
+   (add2sbuf_string outbuf #{$' /* trailer generated by generate_runtypesupport_scanning */
+    default:
+      /* gcc_unreachable (); */
+      fatal_error ("melt melt_scanning GC: corrupted heap, p=%p omagic=%d\n",
+		   (void *) p, (int) omagic);
+    }
+} /* end of melt_scanning generated by generate_runtypesupport_scanning */
+   }#)
+  (add2sbuf_indentnl outbuf 0)
+  (add2sbuf_strconst outbuf 
+		     "/**end of code generated by generate_runtypesupport_scanning **/")
+  (add2sbuf_indentnl outbuf 0)
 ;;;;
-    )
   )
+  
 
 
 ;; internal function to generate parameter passing support
@@ -6362,17 +6397,10 @@ melt_forwarded_copy (melt_ptr_t p)
       (generate_runtypesupport_forwcopy_fun sortedctygtytuple 
 					     sortedvaldesctuple
 					     outarg outcodebuf)
-      ;;OLD:: ;; generate the scanning forward cases
-      ;;OLD:: (generate_runtypesupport
-      ;;OLD::  runtypesupport_scanforw
-      ;;OLD::  (tuple sortedctygtytuple sortedvaldesctuple)
-      ;;OLD::  outarg "-scanforw.h")
-      ;;OLD:: ;; generate the parameter passing support e.g. union meltparam_un...
-      ;;OLD:: ;; we pass all the ctype-s
-      ;;OLD:: (generate_runtypesupport
-      ;;OLD::  runtypesupport_param
-      ;;OLD::  (tuple sortedctytuple sortedvaldesctuple)
-      ;;OLD::  outarg "-param.h")
+      ;; generate the melt_scanning function
+      (generate_runtypesupport_scanning sortedctygtytuple
+					sortedvaldesctuple
+					outarg outcodebuf)
       ;;
       ;;
       (debug_msg outarg "runtypesupport_docmd done outarg")
