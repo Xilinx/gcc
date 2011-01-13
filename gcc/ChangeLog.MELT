@@ -1,11 +1,16 @@
 
 2011-01-13  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (meltgc_add_ourt_cstr_len): Better signed int
+	compare to avoid warning.
+
+2011-01-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (meltgc_add_out_csubstr_len): New function
 	declaration.
 	(meltgc_add_strbuf_csubstr_len): New macro.
 
-	* melt-runtime.h (meltgc_add_ourt_cstr_len): Duplicate the string
+	* melt-runtime.c (meltgc_add_ourt_cstr_len): Duplicate the string
 	argument.
 	(meltgc_add_out_csubstr_len): New function.
 

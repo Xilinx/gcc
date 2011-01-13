@@ -3194,7 +3194,7 @@ meltgc_add_out_cstr_len (melt_ptr_t outbuf_p, const char *str, int slen)
     return;
   if (slen<0) 
     slen = strlen(str);
-  if (slen<sizeof(tinybuf)-1) {
+  if (slen<(int) sizeof(tinybuf)-1) {
     memset (tinybuf, 0, sizeof(tinybuf));
     memcpy (tinybuf, str, slen);
     dupstr = tinybuf;
