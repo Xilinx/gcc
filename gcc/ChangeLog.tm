@@ -1,3 +1,7 @@
+2011-01-13  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c: Rename all instances of worklist to irr_worklist.
+
 2011-01-12  Aldy Hernandez  <aldyh@redhat.com>
 
 	* cp/decl.c (push_cp_library_fn): Mark function as

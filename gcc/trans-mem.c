@@ -4440,7 +4440,8 @@ static unsigned int
 ipa_tm_execute (void)
 {
   cgraph_node_queue tm_callees = NULL;
-  cgraph_node_queue worklist = NULL;
+  /* List of functions that will go irrevocable.  */
+  cgraph_node_queue irr_worklist = NULL;
 
   struct cgraph_node *node;
   struct tm_ipa_cg_data *d;
@@ -4503,21 +4504,25 @@ ipa_tm_execute (void)
 	 (ipa_tm_scan_irr_function) and mark the irrevocable
 	 blocks.  */
       if (node->local.tm_may_enter_irr)
-	maybe_push_queue (node, &worklist, &d->in_worklist);
+	maybe_push_queue (node, &irr_worklist, &d->in_worklist);
 
       /* Some callees cannot be arbitrarily cloned.  These will always be
 	 irrevocable.  Mark these now, so that we need not scan them.  */
       if (is_tm_irrevocable (node->decl))
-	ipa_tm_note_irrevocable (node, &worklist);
+	ipa_tm_note_irrevocable (node, &irr_worklist);
       else if (a <= AVAIL_NOT_AVAILABLE
 	       && !is_tm_safe_or_pure (node->decl))
-	ipa_tm_note_irrevocable (node, &worklist);
+	ipa_tm_note_irrevocable (node, &irr_worklist);
       else if (a >= AVAIL_OVERWRITABLE)
 	{
 	  if (!tree_versionable_function_p (node->decl))
-	    ipa_tm_note_irrevocable (node, &worklist);
+	    ipa_tm_note_irrevocable (node, &irr_worklist);
 	  else if (!d->is_irrevocable)
-	    ipa_tm_scan_calls_clone (node, &tm_callees);
+	    {
+	      /* Add all nodes called by this function into
+		 tm_callees as well.  */
+	      ipa_tm_scan_calls_clone (node, &tm_callees);
+	    }
 	}
     }
 
@@ -4526,15 +4531,15 @@ ipa_tm_execute (void)
      search of the callgraph, which should allow convergance with a
      minimum number of scans.  But we also don't want the worklist
      array to grow without bound, so we shift the array up periodically.  */
-  for (i = 0; i < VEC_length (cgraph_node_p, worklist); ++i)
+  for (i = 0; i < VEC_length (cgraph_node_p, irr_worklist); ++i)
     {
-      if (i > 256 && i == VEC_length (cgraph_node_p, worklist) / 8)
+      if (i > 256 && i == VEC_length (cgraph_node_p, irr_worklist) / 8)
 	{
-	  VEC_block_remove (cgraph_node_p, worklist, 0, i);
+	  VEC_block_remove (cgraph_node_p, irr_worklist, 0, i);
 	  i = 0;
 	}
 
-      node = VEC_index (cgraph_node_p, worklist, i);
+      node = VEC_index (cgraph_node_p, irr_worklist, i);
       d = get_cg_data (node);
       d->in_worklist = false;
 
@@ -4544,12 +4549,12 @@ ipa_tm_execute (void)
 	  ipa_tm_scan_irr_function (node, false);
 	}
       if (d->in_callee_queue && ipa_tm_scan_irr_function (node, true))
-	ipa_tm_note_irrevocable (node, &worklist);
+	ipa_tm_note_irrevocable (node, &irr_worklist);
     }
 
   /* For every function on the callee list, collect the tm_may_enter_irr
      bit on the node.  */
-  VEC_truncate (cgraph_node_p, worklist, 0);
+  VEC_truncate (cgraph_node_p, irr_worklist, 0);
   for (i = 0; i < VEC_length (cgraph_node_p, tm_callees); ++i)
     {
       node = VEC_index (cgraph_node_p, tm_callees, i);
@@ -4557,22 +4562,22 @@ ipa_tm_execute (void)
 	{
 	  d = get_cg_data (node);
 	  gcc_assert (d->in_worklist == false);
-	  maybe_push_queue (node, &worklist, &d->in_worklist);
+	  maybe_push_queue (node, &irr_worklist, &d->in_worklist);
 	}
     }
 
   /* Propagate the tm_may_enter_irr bit to callers until stable.  */
-  for (i = 0; i < VEC_length (cgraph_node_p, worklist); ++i)
+  for (i = 0; i < VEC_length (cgraph_node_p, irr_worklist); ++i)
     {
       struct cgraph_edge *e;
 
-      if (i > 256 && i == VEC_length (cgraph_node_p, worklist) / 8)
+      if (i > 256 && i == VEC_length (cgraph_node_p, irr_worklist) / 8)
 	{
-	  VEC_block_remove (cgraph_node_p, worklist, 0, i);
+	  VEC_block_remove (cgraph_node_p, irr_worklist, 0, i);
 	  i = 0;
 	}
 
-      node = VEC_index (cgraph_node_p, worklist, i);
+      node = VEC_index (cgraph_node_p, irr_worklist, i);
       d = get_cg_data (node);
       d->in_worklist = false;
       node->local.tm_may_enter_irr = true;
@@ -4580,7 +4585,7 @@ ipa_tm_execute (void)
       for (e = node->callers; e ; e = e->next_caller)
 	if (!is_tm_safe_or_pure (e->caller->decl)
 	    && !e->caller->local.tm_may_enter_irr)
-	  maybe_push_queue (e->caller, &worklist, &d->in_worklist);
+	  maybe_push_queue (e->caller, &irr_worklist, &d->in_worklist);
     }
 
   /* Now validate all tm_safe functions, and all atomic regions in
@@ -4641,7 +4646,7 @@ ipa_tm_execute (void)
 
   /* Free and clear all data structures.  */
   VEC_free (cgraph_node_p, heap, tm_callees);
-  VEC_free (cgraph_node_p, heap, worklist);
+  VEC_free (cgraph_node_p, heap, irr_worklist);
   bitmap_obstack_release (&tm_obstack);
 
   for (node = cgraph_nodes; node; node = node->next)
