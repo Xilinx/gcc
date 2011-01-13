@@ -1,4 +1,39 @@
 
+2011-01-13  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (meltgc_add_out_csubstr_len): New function
+	declaration.
+	(meltgc_add_strbuf_csubstr_len): New macro.
+
+	* melt-runtime.h (meltgc_add_ourt_cstr_len): Duplicate the string
+	argument.
+	(meltgc_add_out_csubstr_len): New function.
+
+	* melt/warmelt-base.melt (add2out_cencsubstring): New primitive.
+
+	* melt/warmelt-outobj.melt (outcinitfill_objinitstring): Output
+	really big string initializations in several calls to memcpy and
+	strncpy, to avoid huge string constants.
+
+	{{regenerated}}
+	* melt/generated/warmelt-base-0.c: Regenerate.
+	* melt/generated/warmelt-debug-0.c: Regenerate.
+	* melt/generated/warmelt-first-0.c: Regenerate.
+	* melt/generated/warmelt-genobj-0.c: Regenerate.
+	* melt/generated/warmelt-macro-0.c: Regenerate.
+	* melt/generated/warmelt-normal-0+01.c: Regenerate.
+	* melt/generated/warmelt-normal-0+02.c: Regenerate.
+	* melt/generated/warmelt-normal-0.c: Regenerate.
+	* melt/generated/warmelt-normatch-0+01.c: Regenerate.
+	* melt/generated/warmelt-normatch-0+03.c: Regenerate.
+	* melt/generated/warmelt-normatch-0.c: Regenerate.
+	* melt/generated/warmelt-outobj-0+01.c: Regenerate.
+	* melt/generated/warmelt-outobj-0+02.c: Regenerate.
+	* melt/generated/warmelt-outobj-0+03.c: Regenerate.
+	* melt/generated/warmelt-outobj-0+04.c: Regenerate.
+	* melt/generated/warmelt-outobj-0.c: Regenerate.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
+
 2011-01-12  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (meltgc_add_out_cstr_len): New function declaration.

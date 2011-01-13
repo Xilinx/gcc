@@ -804,6 +804,13 @@ Returns a boxed integer.}#
   :doc #{Add to output $OUT the C-encoded string value $STR.}#
   #{meltgc_add_out_cstr((melt_ptr_t)($out), melt_string_str((melt_ptr_t)($str)))}#)
 
+;; primitive to add a substring value, C encoded, into a outbuf
+(defprimitive add2out_cencsubstring (out str :long off slen) :void 
+  :doc #{Add to output $OUT the C-encoded substring value $STR at offset $OFF of length $SLEN.}#
+  #{meltgc_add_out_csubstr_len((melt_ptr_t)($OUT),
+			       melt_string_str((melt_ptr_t)($STR)),
+			       ($OFF), ($SLEN))}#)
+
 ;; primitive to add a strbuf, C encoded, into a outbuf
 (defprimitive add2out_cencstrbuf (out asbuf) :void 
   :doc #{Add to output $OUT the C-encoded stringbuffer $ASBUF.}#
@@ -2157,6 +2164,7 @@ polyhedron values.}#
  add2out_ccomstring 
  add2out_cencstrbuf
  add2out_cencstring
+ add2out_cencsubstring
  add2out_cident
  add2out_cidentprefix
  add2out_indent

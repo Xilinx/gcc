@@ -3185,19 +3185,32 @@ meltgc_add_out_cstr_len (melt_ptr_t outbuf_p, const char *str, int slen)
 {
   const char *ps = NULL;
   char *pd = NULL;
-  char *cstr = NULL;
+  char *encstr = NULL;
+  /* duplicate the given string either on stack in tinybuf or in
+     xcalloc-ed buffer */
+  char *dupstr = NULL;
+  char tinybuf[80];
   if (!str)
     return;
   if (slen<0) 
     slen = strlen(str);
+  if (slen<sizeof(tinybuf)-1) {
+    memset (tinybuf, 0, sizeof(tinybuf));
+    memcpy (tinybuf, str, slen);
+    dupstr = tinybuf;
+  }
+  else {
+    dupstr = (char*) xcalloc (slen + 2, 1);
+    memcpy (dupstr, str, slen);
+  }
   /* at most four characters e.g. \xAB per original character */
-  cstr = (char *) xcalloc (slen + 5, 4);
-  pd = cstr;
-  for (ps = str; *ps; ps++)
+  encstr = (char *) xcalloc (slen + 5, 4);
+  pd = encstr;
+  for (ps = dupstr; *ps; ps++)
     {
       switch (*ps)
 	{
-#define ADDS(S) strcpy(pd, S); pd+=sizeof(S)-1; break
+#define ADDS(S) strcpy(pd, S); pd += sizeof(S)-1; break
 	case '\n':
 	  ADDS ("\\n");
 	case '\r':
@@ -3225,10 +3238,23 @@ meltgc_add_out_cstr_len (melt_ptr_t outbuf_p, const char *str, int slen)
 	    }
 	}
     };
-  meltgc_add_out_raw (outbuf_p, cstr);
-  free (cstr);
+  if (dupstr && dupstr != tinybuf)
+    free (dupstr);
+  meltgc_add_out_raw (outbuf_p, encstr);
+  free (encstr);
 }
 
+void meltgc_add_out_csubstr_len (melt_ptr_t outbuf_p,
+				 const char *str, int off, int slen)
+{
+  if (!str) 
+    return;
+  if (off < 0) 
+    off=0;
+  if (slen < 0) 
+    slen = strlen(str+off);
+  meltgc_add_out_cstr_len (outbuf_p, str+off, slen);
+}
 
 void
 meltgc_add_out_cstr (melt_ptr_t outbuf_p, const char *str)

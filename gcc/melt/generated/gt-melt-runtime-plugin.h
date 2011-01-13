@@ -1235,8 +1235,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Fri 07 Jan 2011 11:19:01 AM CET
+/* gt-melt-runtime-plugin.h file generated Thu 13 Jan 2011 02:23:36 PM CET
 
-462c55ad546719d0ceb0daec5064e766  melt-runtime.h
-743b5ec6c0f2651c17ef97f4ecd82d3c  melt-runtime.c
+4676c74f28962999ab10e49cab9629c5  melt-runtime.h
+75f8f67eb06b0c4a62d746a4edbb0e76  melt-runtime.c
 */
