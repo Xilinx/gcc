@@ -1,5 +1,13 @@
 2011-01-13  Aldy Hernandez  <aldyh@redhat.com>
 
+	* builtin-attrs.def (ATTR_TM_PURE_NOTHROW_LIST): Remove duplicated
+	attribute.
+	(ATTR_TM_TMPURE): Rename from ATTR_TM_PURE to avoid confusion with
+	pure attribute.
+	* gtm-builtins.def: Likewise.
+
+2011-01-13  Aldy Hernandez  <aldyh@redhat.com>
+
 	* trans-mem.c: Rename all instances of worklist to irr_worklist.
 
 2011-01-12  Aldy Hernandez  <aldyh@redhat.com>
