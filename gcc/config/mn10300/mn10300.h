@@ -463,6 +463,9 @@ enum reg_class
 
 #define FIRST_PARM_OFFSET(FNDECL) 4
 
+/* But the CFA is at the arg pointer directly, not at the first argument.  */
+#define ARG_POINTER_CFA_OFFSET(FNDECL) 0
+
 #define ELIMINABLE_REGS				\
 {{ ARG_POINTER_REGNUM, STACK_POINTER_REGNUM},	\
  { ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM},	\
@@ -530,9 +533,8 @@ struct cum_arg
 
 /* Length in units of the trampoline for entering a nested function.  */
 
-#define TRAMPOLINE_SIZE 0x1b
-
-#define TRAMPOLINE_ALIGNMENT 32
+#define TRAMPOLINE_SIZE		16
+#define TRAMPOLINE_ALIGNMENT	32
 
 /* A C expression whose value is RTL representing the value of the return
    address for the frame COUNT steps up from the current frame.
@@ -548,7 +550,10 @@ struct cum_arg
    ? gen_rtx_MEM (Pmode, arg_pointer_rtx) \
    : (rtx) 0)
 
-#define INCOMING_RETURN_ADDR_RTX gen_rtx_REG (Pmode, MDR_REGNUM)
+/* The return address is saved both in the stack and in MDR.  Using
+   the stack location is handiest for what unwinding needs.  */
+#define INCOMING_RETURN_ADDR_RTX \
+  gen_rtx_MEM (VOIDmode, gen_rtx_REG (VOIDmode, STACK_POINTER_REGNUM))
 
 /* Maximum number of registers that can appear in a valid memory address.  */
 
@@ -594,19 +599,6 @@ struct cum_arg
 #define SELECT_CC_MODE(OP, X, Y)  mn10300_select_cc_mode (X)
 #define REVERSIBLE_CC_MODE(MODE)  0
 
-#define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2) \
-  ((CLASS1 == CLASS2 && (CLASS1 == ADDRESS_REGS || CLASS1 == DATA_REGS)) ? 2 :\
-   ((CLASS1 == ADDRESS_REGS || CLASS1 == DATA_REGS) && \
-    (CLASS2 == ADDRESS_REGS || CLASS2 == DATA_REGS)) ? 4 : \
-   (CLASS1 == SP_REGS && CLASS2 == ADDRESS_REGS) ? 2 : \
-   (CLASS1 == ADDRESS_REGS && CLASS2 == SP_REGS) ? 4 : \
-   ! TARGET_AM33 ? 6 : \
-   (CLASS1 == SP_REGS || CLASS2 == SP_REGS) ? 6 : \
-   (CLASS1 == CLASS2 && CLASS1 == EXTENDED_REGS) ? 6 : \
-   (CLASS1 == FP_REGS || CLASS2 == FP_REGS) ? 6 : \
-   (CLASS1 == EXTENDED_REGS || CLASS2 == EXTENDED_REGS) ? 4 : \
-   4)
-
 /* Nonzero if access to memory by bytes or half words is no faster
    than accessing full words.  */
 #define SLOW_BYTE_ACCESS 1
@@ -652,8 +644,6 @@ struct cum_arg
 #undef  ASM_OUTPUT_LABELREF
 #define ASM_OUTPUT_LABELREF(FILE, NAME) \
   asm_fprintf (FILE, "%U%s", (*targetm.strip_name_encoding) (NAME))
-
-#define ASM_PN_FORMAT "%s___%lu"
 
 /* This is how we tell the assembler that two symbols have the same value.  */
 
@@ -725,33 +715,7 @@ struct cum_arg
 #undef  PREFERRED_DEBUGGING_TYPE
 #define PREFERRED_DEBUGGING_TYPE DWARF2_DEBUG
 #define DWARF2_DEBUGGING_INFO 1
-
 #define DWARF2_ASM_LINE_DEBUG_INFO 1
-
-/* GDB always assumes the current function's frame begins at the value
-   of the stack pointer upon entry to the current function.  Accessing
-   local variables and parameters passed on the stack is done using the
-   base of the frame + an offset provided by GCC.
-
-   For functions which have frame pointers this method works fine;
-   the (frame pointer) == (stack pointer at function entry) and GCC provides
-   an offset relative to the frame pointer.
-
-   This loses for functions without a frame pointer; GCC provides an offset
-   which is relative to the stack pointer after adjusting for the function's
-   frame size.  GDB would prefer the offset to be relative to the value of
-   the stack pointer at the function's entry.  Yuk!  */
-#define DEBUGGER_AUTO_OFFSET(X) \
-  ((GET_CODE (X) == PLUS ? INTVAL (XEXP (X, 1)) : 0) \
-    + (frame_pointer_needed \
-       ? 0 : - mn10300_initial_offset (FRAME_POINTER_REGNUM, \
-				       STACK_POINTER_REGNUM)))
-
-#define DEBUGGER_ARG_OFFSET(OFFSET, X) \
-  ((GET_CODE (X) == PLUS ? OFFSET : 0) \
-    + (frame_pointer_needed \
-       ? 0 : - mn10300_initial_offset (ARG_POINTER_REGNUM, \
-				       STACK_POINTER_REGNUM)))
 
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */

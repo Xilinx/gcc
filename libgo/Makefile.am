@@ -312,6 +312,7 @@ runtime_files = \
 	runtime/go-breakpoint.c \
 	runtime/go-caller.c \
 	runtime/go-can-convert-interface.c \
+	runtime/go-cgo.c \
 	runtime/go-chan-cap.c \
 	runtime/go-chan-len.c \
 	runtime/go-check-interface.c \
@@ -595,10 +596,17 @@ go_mime_files = \
 if LIBGO_IS_RTEMS
 go_net_fd_os_file = go/net/fd_rtems.go
 go_net_newpollserver_file = go/net/newpollserver_rtems.go
-else
+else # !LIBGO_IS_RTEMS
+if LIBGO_IS_LINUX
 go_net_fd_os_file = go/net/fd_linux.go
 go_net_newpollserver_file = go/net/newpollserver.go
-endif
+else # !LIBGO_IS_LINUX && !LIBGO_IS_RTEMS
+# By default use select with pipes.  Most systems should have
+# something better.
+go_net_fd_os_file = go/net/fd_rtems.go
+go_net_newpollserver_file = go/net/newpollserver.go
+endif # !LIBGO_IS_LINUX
+endif # !LIBGO_IS_RTEMS
 
 go_net_files = \
 	go/net/dial.go \
@@ -680,38 +688,6 @@ go_runtime_files = \
 	go/runtime/softfloat64.go \
 	go/runtime/type.go \
 	version.go
-
-if LIBGO_IS_386
-GOARCH = 386
-else
-if LIBGO_IS_X86_64
-GOARCH = amd64
-else
-if LIBGO_IS_ARM
-GOARCH = arm
-else
-GOARCH = unknown
-endif
-endif
-endif
-
-if LIBGO_IS_LINUX
-GOOS = linux
-else
-if LIBGO_IS_DARWIN
-GOOS = darwin
-else
-if LIBGO_IS_FREEBSD
-GOOS = freebsd
-else
-if LIBGO_IS_RTEMS
-GOOS = rtems
-else
-GOOS = unknown
-endif
-endif
-endif
-endif
 
 version.go: s-version; @true
 s-version: Makefile
@@ -929,52 +905,10 @@ go_debug_pe_files = \
 	go/debug/pe/file.go \
 	go/debug/pe/pe.go
 
-if LIBGO_IS_LINUX
-proc_file = go/debug/proc/proc_linux.go
-if LIBGO_IS_386
-regs_file = go/debug/proc/regs_linux_386.go
-else
-if LIBGO_IS_X86_64
-regs_file = go/debug/proc/regs_linux_amd64.go
-else
-regs_file =
-endif
-endif
-else
-if LIBGO_IS_DARWIN
-proc_file = go/debug/proc/proc_darwin.go
-if LIBGO_IS_386
-regs_file = go/debug/proc/regs_darwin_386.go
-else
-if LIBGO_IS_X86_64
-regs_file = go/debug/proc/regs_darwin_amd64.go
-else
-regs_file =
-endif
-endif
-else
-if LIBGO_IS_FREEBSD
-proc_file = go/debug/proc/proc_freebsd.go
-if LIBGO_IS_386
-regs_file = go/debug/proc/regs_freebsd_386.go
-else
-if LIBGO_IS_X86_64
-regs_file = go/debug/proc/regs_freebsd_amd64.go
-else
-regs_file =
-endif
-endif
-else
-proc_file =
-regs_file =
-endif
-endif
-endif
-
 go_debug_proc_files = \
 	go/debug/proc/proc.go \
-	$(proc_file) \
-	$(regs_file)
+	go/debug/proc/proc_$(GOOS).go \
+	go/debug/proc/regs_$(GOOS)_$(GOARCH).go
 
 go_encoding_ascii85_files = \
 	go/encoding/ascii85/ascii85.go
@@ -1092,60 +1026,113 @@ go_testing_quick_files = \
 go_testing_script_files = \
 	go/testing/script/script.go
 
-if LIBGO_IS_LINUX
-syscall_os_file = syscalls/syscall_linux.go
-if LIBGO_IS_386
-syscall_arch_file = syscalls/syscall_linux_386.go
+# Define Syscall and Syscall6.
+if LIBGO_IS_RTEMS
+syscall_syscall_file = syscalls/syscall_stubs.go
 else
-if LIBGO_IS_X86_64
-syscall_arch_file = syscalls/syscall_linux_amd64.go
-else
-syscall_arch_file =
-endif
-endif
-else
-syscall_os_file =
-syscall_arch_file =
+syscall_syscall_file = syscalls/syscall.go
 endif
 
+# Declare libc functions that vary for largefile systems.
+if LIBGO_IS_LINUX
+# Always use lseek64 on GNU/Linux.
+syscall_filesize_file = syscalls/sysfile_largefile.go
+else # !LIBGO_IS_LINUX
+if LIBGO_IS_SOLARIS
+if LIBGO_IS_386
+# Use lseek64 on 386 Solaris.
+syscall_filesize_flie = syscalls/sysfile_largefile.go
+else # !LIBGO_IS_LINUX && LIBGO_IS_SOLARIS && !LIBGO_IS_386
+# Use lseek on amd64 Solaris.
+syscall_filesize_flie = syscalls/sysfile_regfile.go
+endif # !LIBGO_IS_386
+else # !LIBGO_IS_LINUX && !LIBGO_IS_SOLARIS
+# Use lseek by default.
+syscall_filesize_file = syscalls/sysfile_regfile.go
+endif # !LIBGO_IS_SOLARIS
+endif # !LIBGO_IS_LINUX
+
+
+# Define ForkExec, PtraceForkExec, Exec, and Wait4.
 if LIBGO_IS_RTEMS
 syscall_exec_os_file = syscalls/exec_stubs.go
-syscall_socket_os_file = syscalls/socket_bsd.go
-syscall_socket_epoll_file=
-syscall_sysfile_os_file = syscalls/sysfile_rtems.go
-syscall_syscall_file = syscalls/syscall_stubs.go
-syscall_errstr_file = syscalls/errstr_rtems.go
-syscall_errstr_decl_file = syscalls/errstr_decl_rtems.go
 else
 syscall_exec_os_file = syscalls/exec.go
-syscall_socket_os_file = syscalls/socket_linux.go
-syscall_socket_epoll_file = syscalls/socket_epoll.go
-syscall_sysfile_os_file = syscalls/sysfile_linux.go
-syscall_syscall_file = syscalls/syscall.go
+endif
+
+# Define Sleep.
+if LIBGO_IS_RTEMS
+syscall_sleep_file = syscalls/sleep_rtems.go
+else
+syscall_sleep_file = syscalls/sleep_select.go
+endif
+
+# Define Errstr.
+if LIBGO_IS_RTEMS
+syscall_errstr_file = syscalls/errstr_rtems.go
+else
 syscall_errstr_file = syscalls/errstr.go
+endif
+
+# Declare libc_strerror_r which is the Go name for strerror_r.
+if LIBGO_IS_RTEMS
+# RTEMS uses newlib in which strerror_r returns char *.
+syscall_errstr_decl_file = syscalls/errstr_decl_rtems.go
+else
 if LIBGO_IS_LINUX
+# In Linux the POSIX strerror_r is called __xpg_strerror_r.
 syscall_errstr_decl_file = syscalls/errstr_decl_linux.go
 else
+# On other systems we hope strerror_r is just strerror_r.
 syscall_errstr_decl_file = syscalls/errstr_decl.go
 endif
 endif
+
+# Define socket sizes and types.
+if LIBGO_IS_LINUX
+syscall_socket_os_file = syscalls/socket_linux.go
+else
+if LIBGO_IS_SOLARIS
+syscall_socket_os_file = syscalls/socket_solaris.go
+else
+syscall_socket_os_file = syscalls_socket_bsd.go
+endif
+endif
+
+# Support for epoll.
+if LIBGO_IS_LINUX
+syscall_socket_epoll_file = syscalls/socket_epoll.go
+else
+syscall_socket_epoll_file =
+endif
+
+syscall_arch.go: s-syscall_arch; @true
+s-syscall_arch: Makefile
+	rm -f syscall_arch.go.tmp
+	echo "package syscall" > syscall_arch.go.tmp
+	echo 'const ARCH = "'$(GOARCH)'"' >> syscall_arch.go.tmp
+	echo 'const OS = "'$(GOOS)'"' >> syscall_arch.go.tmp
+	$(SHELL) $(srcdir)/../move-if-change syscall_arch.go.tmp syscall_arch.go
+	$(STAMP) $@
 
 go_syscall_files = \
 	$(syscall_errstr_file) \
 	$(syscall_errstr_decl_file) \
 	syscalls/exec_helpers.go \
 	$(syscall_exec_os_file) \
+	$(syscall_filesize_file) \
+	$(syscall_sleep_file) \
 	syscalls/socket.go \
 	$(syscall_socket_os_file) \
 	$(syscall_socket_epoll_file) \
 	$(syscall_syscall_file) \
 	syscalls/syscall_unix.go \
 	syscalls/stringbyte.go \
-	$(syscall_os_file) \
-	$(syscall_arch_file) \
+	syscalls/syscall_$(GOOS).go \
+	syscalls/syscall_$(GOOS)_$(GOARCH).go \
 	syscalls/sysfile_posix.go \
-	$(syscall_sysfile_os_file) \
-	sysinfo.go
+	sysinfo.go \
+	syscall_arch.go
 go_syscall_c_files = \
 	syscalls/errno.c
 
@@ -1268,7 +1255,8 @@ libgo_go_objs = \
 
 libgo_la_SOURCES = $(runtime_files)
 
-libgo_la_LIBADD = $(libgo_go_objs) $(LIBFFI) $(PTHREAD_LIBS) $(MATH_LIBS)
+libgo_la_LIBADD = \
+	$(libgo_go_objs) $(LIBFFI) $(PTHREAD_LIBS) $(MATH_LIBS) $(NET_LIBS)
 
 libgobegin_a_SOURCES = \
 	runtime/go-main.c
@@ -1283,8 +1271,7 @@ LTGOCOMPILE = $(LIBTOOL) --tag GO --mode=compile $(GOC) $(INCLUDES) \
 	$(AM_GOCFLAGS) $(GOCFLAGS)
 
 GOLINK = $(LIBTOOL) --tag GO --mode-link $(GOC) \
-	$(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_GOCFLAGS) $(LTLDFLAGS) \
-	$(PTHREAD_LIBS) $(MATH_LIBS) -o $@
+	$(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_GOCFLAGS) $(LTLDFLAGS) -o $@
 
 # Build a package.
 BUILDARCHIVE = \
@@ -1315,13 +1302,19 @@ CHECK = \
 	MAKE="$(MAKE)"; \
 	export MAKE; \
 	rm -f $@-log; \
-	echo -n "$(@D) " >$@-log 2>&1; \
 	prefix=`if test "$(@D)" = "regexp"; then echo regexp-test; else dirname $(@D); fi`; \
 	test "$${prefix}" != "." || prefix="$(@D)"; \
-	$(srcdir)/testsuite/gotest --dejagnu=$(use_dejagnu) --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --prefix="libgo_$${prefix}" --pkgfiles="$(go_$(subst /,_,$(@D))_files)" >>$@-log 2>&1; \
-	x=$$?; \
-	cat $@-log; \
-	exit $$x
+	if test "$(use_dejagnu)" = "yes"; then \
+	  $(srcdir)/testsuite/gotest --dejagnu=yes --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --prefix="libgo_$${prefix}" --pkgfiles="$(go_$(subst /,_,$(@D))_files)"; \
+	else \
+	  if $(srcdir)/testsuite/gotest --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --prefix="libgo_$${prefix}" --pkgfiles="$(go_$(subst /,_,$(@D))_files)" >>$@-log 2>&1; then \
+	    echo "PASS: $(@D)"; \
+	  else \
+	    echo "FAIL: $(@D)"; \
+	    cat $@-log; \
+	    exit 1; \
+	  fi; \
+	fi
 
 # Build all packages before checking any.
 CHECK_DEPS = libgo.la libgobegin.a \
@@ -2306,7 +2299,7 @@ testing/script/check: $(CHECK_DEPS)
 .PHONY: testing/script/check
 
 sysinfo.go: $(srcdir)/mksysinfo.sh config.h
-	$(SHELL) $(srcdir)/mksysinfo.sh
+	CC="$(CC)" $(SHELL) $(srcdir)/mksysinfo.sh
 syscalls/libsyscall.a: $(go_syscall_files) $(go_syscall_c_files) sync.gox
 	rm -f syscall.gox syscalls/libsyscall.a
 	test -d syscalls || $(MKDIR_P) syscalls
