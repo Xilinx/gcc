@@ -5100,6 +5100,17 @@ tree_can_inline_p (struct cgraph_edge *e)
       return false;
     }
 
+  /* TM pure functions should not get inlined if the outer function is
+     a TM safe function.  */
+  if (flag_tm
+      && is_tm_pure (callee)
+      && is_tm_safe (caller))
+    {
+      e->inline_failed = CIF_UNSPECIFIED;
+      gimple_call_set_cannot_inline (e->call_stmt, true);
+      return false;
+    }
+
   /* Allow the backend to decide if inlining is ok.  */
   if (!targetm.target_option.can_inline_p (caller, callee))
     {

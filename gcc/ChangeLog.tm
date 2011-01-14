@@ -1,3 +1,11 @@
+2011-01-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/45940
+	* integrate.c (function_attribute_inlinable_p): Remove temporary
+	TM pure handling.
+	* tree-inline.c (tree_can_inline_p): Do not inline some TM pure
+	functions.
+
 2011-01-13  Aldy Hernandez  <aldyh@redhat.com>
 
 	* builtin-attrs.def (ATTR_TM_PURE_NOTHROW_LIST): Remove duplicated
