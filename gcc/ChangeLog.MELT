@@ -1,5 +1,13 @@
 
 2011-01-14  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.tpl: Copy both meltrunsup*.c & meltunsup*.h for
+	meltrun_generate.
+	* melt-build.mk: Regenerate.
+	* melt/warmelt-outobj.melt (runtypesupport_docmd): Write the
+	generated files.
+
+2011-01-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (runtypesupport_param): Revamped as...
 	(generate_runtypesupport_scanning): New revamped function.
 	(runtypesupport_docmd): Call it.

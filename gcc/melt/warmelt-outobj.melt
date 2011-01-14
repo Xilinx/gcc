@@ -6348,13 +6348,13 @@ melt_scanning (melt_ptr_t p)
 			    )
 		       (add2sbuf_string nambuf outarg)
 		       (add2sbuf_strconst nambuf ".h")
-		       (strbuf2string nambuf discr_string)
+		       (strbuf2string discr_string nambuf)
 		       ))
 	(outcodename  (let ( (nambuf (make_strbuf discr_strbuf))
 			    )
 		       (add2sbuf_string nambuf outarg)
 		       (add2sbuf_strconst nambuf "-inc.c")
-		       (strbuf2string nambuf discr_string)
+		       (strbuf2string discr_string nambuf)
 		       ))
 	(dictypgty (retrieve_dictionnary_ctype_gty))
 	(rawctypgtylist (list))
@@ -6412,7 +6412,12 @@ melt_scanning (melt_ptr_t p)
       (generate_runtypesupport_scanning sortedctygtytuple
 					sortedvaldesctuple
 					outarg outcodebuf)
-      ;;
+      ;;;;;;;;;;;;;;;;;;
+      ;; write the files
+      (output_sbuf_strval outdeclbuf outdeclname)
+      (informsg_strv "generated runtype support declaration file" outdeclname)
+      (output_sbuf_strval outcodebuf outcodename)
+      (informsg_strv "generated runtype support implementation file" outcodename)
       ;;
       (debug_msg outarg "runtypesupport_docmd done outarg")
       (compile_warning 
