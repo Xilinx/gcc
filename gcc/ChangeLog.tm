@@ -12,6 +12,7 @@
 
 2011-01-12  Aldy Hernandez  <aldyh@redhat.com>
 
+	PR/46941
 	* cp/decl.c (push_cp_library_fn): Mark function as
 	transaction_pure.
 
