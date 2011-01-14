@@ -1,7 +1,11 @@
 
+2011-01-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (outcinitfill_objinitstring):
+	Add again (void) calls to avoid warnings.
+
 2011-01-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (outcinitfill_objinitstring):
-	Added (void) calls to avoid warnings.
+	Add (void) calls to avoid warnings.
 	(generate_runtypesupport_scanning): New revamped function.
 	(runtypesupport_scanforw): Remove since revamped.
 

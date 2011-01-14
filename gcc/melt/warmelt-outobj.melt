@@ -709,6 +709,7 @@
 		   (add2sbuf_strconst sbuf " /*lessbig*/ 128);")
 		   (add2sbuf_indentnl sbuf 1)
 		   (setq ix (+i ix 128))
+		   (void)
 		   )
 		  ;; even less big remaining
 		  ((<i ix (-i datalen 64))
