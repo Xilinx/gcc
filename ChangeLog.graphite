@@ -1,3 +1,8 @@
+2011-01-13  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* configure: Regenerated.
+	* configure.ac: Use CLOOG_CHECK_VERSION(0,16,1).
+
 2010-12-29  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* configure: Regenerated.

@@ -5971,8 +5971,8 @@ $as_echo "$gcc_cv_cloog_type" >&6; }
     LDFLAGS="${_cloog_saved_LDFLAGS} ${clooglibs} ${ppllibs}"
 
     if test "${cloog_org}" = yes ; then
-      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for version 0.16.0 of CLooG" >&5
-$as_echo_n "checking for version 0.16.0 of CLooG... " >&6; }
+      { $as_echo "$as_me:${as_lineno-$LINENO}: checking for version 0.16.1 of CLooG" >&5
+$as_echo_n "checking for version 0.16.1 of CLooG... " >&6; }
 if test "${gcc_cv_cloog_ct_0_14_0+set}" = set; then :
   $as_echo_n "(cached) " >&6
 else
@@ -5984,7 +5984,7 @@ main ()
 {
 #if CLOOG_VERSION_MAJOR != 0 \
     || CLOOG_VERSION_MINOR != 16 \
-    || CLOOG_VERSION_REVISION < 0
+    || CLOOG_VERSION_REVISION < 1
     choke me
    #endif
   ;
