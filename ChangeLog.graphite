@@ -1,3 +1,8 @@
+2011-01-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* configure: Regenerated.
+	* configure.ac: Check for version 0.11 (or later revision) of PPL.
+
 2011-01-13  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* configure: Regenerated.
