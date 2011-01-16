@@ -1,3 +1,216 @@
+2011-01-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sol2-bi.h (CC1_SPEC): Fix typo.
+
+2011-01-15  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/47276
+	* ipa.c (function_and_variable_visibility): Do not try to mark alias
+	declarations as needed.
+
+2011-01-15  Martin Jambor  <mjambor@suse.cz>
+
+	* common.opt (fdevirtualize): New flag.
+	* doc/invoke.texi (Option Summary): Document it.
+	* opts.c (default_options_table): Add devirtualize flag.
+	* ipa-prop.c (detect_type_change): Return immediately if
+	devirtualize flag is not set.
+	(detect_type_change_ssa): Likewise.
+	(compute_known_type_jump_func): Likewise.
+	(ipa_analyze_virtual_call_uses): Likewise.
+
+2011-01-14  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/45934
+	PR tree-optimization/46302
+	* ipa-prop.c (type_change_info): New type.
+	(stmt_may_be_vtbl_ptr_store): New function.
+	(check_stmt_for_type_change): Likewise.
+	(detect_type_change): Likewise.
+	(detect_type_change_ssa): Likewise.
+	(compute_complex_assign_jump_func): Check for dynamic type change.
+	(compute_complex_ancestor_jump_func): Likewise.
+	(compute_known_type_jump_func): Likewise.
+	(compute_scalar_jump_functions): Likewise.
+	(ipa_analyze_virtual_call_uses): Likewise.
+	(ipa_analyze_node): Push and pop cfun, set current_function_decl.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/i386.h (CC1_CPU_SPEC_1): Don't handle -msse5.
+	* config/i386/i386.opt (msse5): New Alias.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sparc/linux.h (CC1_SPEC): Remove %{sun4:} %{target:}.
+	* config/sparc/linux64.h (CC1_SPEC): Likewise.
+	* config/sparc/netbsd-elf.h (CC1_SPEC32, CC1_SPEC64): Likewise.
+	* config/sparc/sparc.h (CC1_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sparc/linux.h (CC1_SPEC): Don't handle old equivalents of
+	-mcpu options.
+	* config/sparc/linux64.h (CC1_SPEC): Likewise.
+	* config/sparc/netbsd-elf.h (CC1_SPEC32, CC1_SPEC64): Likewise.
+	* config/sparc/sol2-bi.h (CPP_CPU_SPEC, CC1_SPEC): Likewise.
+	* config/sparc/sparc.h (CPP_CPU_SPEC, CC1_SPEC, ASM_CPU_SPEC):
+	Likewise.
+	* config/sparc/t-elf (MULTILIB_MATCHES): Don't handle -mv8.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/rs6000/vxworks.h (CC1_SPEC): Don't handle -fvec or
+	-fvec-eabi.
+
+2011-01-14  Mike Stump  <mikestump@comcast.net>
+
+	* config/alpha/alpha.md (umk_mismatch_args): Don't put a mode on set.
+	* config/fr30/fr30.md: Likweise
+	(movsi_push): Likewise.
+	(movsi_pop): Likewise.
+	(enter_func): Likewise.
+	* config/moxie/moxie.md (movsi_push): Likewise.
+	(movsi_pop): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mips/linux64.h (LINK_SPEC): Remove %{bestGnum}
+	%{no_archive} %{exact_version}.
+	* config/mips/mips.h (LINK_SPEC): Remove %{bestGnum}.
+	* config/mips/netbsd.h (LINK_SPEC): Remove %{bestGnum}
+	%{no_archive} %{exact_version}.
+	* config/mips/openbsd.h (LINK_SPEC): Likewise.
+	* config/mips/sde.h (LINK_SPEC): Remove %{bestGnum}.
+	* config/mips/vxworks.h: Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/microblaze/microblaze.h (ASM_SPEC): Remove
+	%{microblaze1}.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/m32r/little.h (CPP_ENDIAN_SPEC, CC1_ENDIAN_SPEC,
+	ASM_ENDIAN_SPEC, LINK_ENDIAN_SPEC): Remove.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/nwld.h (LINK_SPEC): Check -nodefaultlibs not
+	-nodefaultlib.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/cris/cris.h (ASM_SPEC, CRIS_ASM_SUBTARGET_SPEC): Check
+	for mcpu not cpu.
+	* config/cris/linux.h (CRIS_CPP_SUBTARGET_SPEC,
+	CRIS_CC1_SUBTARGET_SPEC, CRIS_ASM_SUBTARGET_SPEC): Check for mcpu
+	not cpu.
+	(CRIS_LINK_SUBTARGET_SPEC): Don't generate -rpath-link options.
+	Don't handle -shlib.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/avr/avr.h (CPP_SPEC): Don't handle -posix.
+	(CC1_SPEC): Don't handle -profile.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/microblaze/microblaze.h (CC1_SPEC): Remove -gline spec.
+	* config/mips/mips.h (CC1_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/microblaze/microblaze.h (CC1_SPEC): Remove %{save-temps: }.
+	* config/mips/mips.h (CC1_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/linux.h (LINK_SPEC): Don't use %{!ibcs:} conditional.
+	* config/m32r/linux.h (LINK_SPEC): Likewise.
+	* config/mips/linux.h (LINK_SPEC): Likewise.
+	* config/mips/linux64.h (LINK_SPEC): Likewise.
+	* config/sparc/linux.h (LINK_SPEC): Likewise.
+	* config/sparc/linux64.h (LINK_ARCH32_SPEC, LINK_ARCH64_SPEC,
+	LINK_SPEC): Likewise.
+	* config/xtensa/linux.h (LINK_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/linux-elf.h (LINUX_TARGET_LINK_SPEC): Remove
+	%{version:-v}.
+	* config/lm32/uclinux-elf.h (LINK_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sparc/sp-elf.h (ASM_SPEC): Remove %{v:-V}.
+	* config/sparc/sp64-elf.h (ASM_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/linux-elf.h (LINUX_TARGET_LINK_SPEC): Remove %{b}.
+
+2011-01-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_ld_static_dynamic): Solaris 2 ld always
+	supports -Bstatic/-Bdynamic.
+	* configure: Regenerate.
+
+2011-01-14  Jan Hubicka  <jh@suse.cz>
+	Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR target/46037
+	* config/darwin.c (darwin_override_options): Honor flag_gtoggle
+	when checking debug_info_level. Test write_symbols instead of
+	debug_hooks->var_location when setting flag_var_tracking_uninit.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47179
+	* target.def (ref_may_alias_errno): New target hook.
+	* targhooks.h (default_ref_may_alias_errno): Declare.
+	* targhooks.c: Include tree-ssa-alias.h and tree-flow.h.
+	(default_ref_may_alias_errno): New function.
+	* target.h (struct ao_ref_s): Declare.
+	* tree-ssa-alias.c: Include target.h.
+	(call_may_clobber_ref_p_1): Use the ref_may_alias_errno target hook.
+	* Makefile.in (tree-ssa-alias.o): Adjust dependencies.
+	(targhooks.o): Likewise.
+	* doc/tm.texi.in (TARGET_REF_MAY_ALIAS_ERRNO): Document.
+	* doc/tm.texi (TARGET_REF_MAY_ALIAS_ERRNO): Copy documentation.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c  (new_var_info): Use DECL_HARD_REGISTER.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47280
+	* tree-ssa-forwprop.c (associate_plusminus): Cleanup EH and
+	return CFG changes.
+	(tree_ssa_forward_propagate_single_use_vars): Deal with
+	CFG changes from associate_plusminus.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47281
+	Revert
+	2011-01-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46076
+	* tree-ssa.c (useless_type_conversion_p): Conversions from
+	unprototyped to empty argument list function types are useless.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47286
+	* tree-ssa-structalias.c (new_var_info): Register variables are global.
+
+2011-01-14  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/46823
+	* tree-inline.c (expand_call_inline): Get fndecl from call graph edge.
+
 2011-01-13  Anatoly Sokolov  <aesok@post.ru>
 
 	* config/xtensa/xtensa.h (XTENSA_LIBCALL_VALUE, LIBCALL_VALUE,
@@ -31,7 +244,7 @@
 
 2011-01-13  Jeff Law  <law@redhat.com>
 
-	* PR rtl-optimization/39077
+	PR rtl-optimization/39077
 	* doc/invoke.texi (max-gcse-insertion-ratio): Document.
 	* params.h (MAX_GCSE_INSERTION_RATIO): Define.
 	* params.def (PARAM_MAX_GCSE_INSERTION_RATIO): Define.
@@ -468,8 +681,8 @@
 2011-01-06  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR debug/46704
-	* dwarf2out.c (dwarf2out_finish): Output the debug_aranges section
-	only when it is not empty.
+	* dwarf2out.c (dwarf2out_finish): Output the debug_aranges section only
+	when it is not empty.
 
 2011-01-06  Changpeng Fang  <changpeng.fang@amd.com>
 

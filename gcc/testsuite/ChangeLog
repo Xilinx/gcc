@@ -1,3 +1,66 @@
+2011-01-13  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/47276 
+	* gcc.dg/pr47276.c: New testcase.
+
+2011-01-15  Giovanni Funchal  <gafunchal@gmail.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/33558
+	* g++.dg/other/pr33558.C: New.
+	* g++.dg/other/pr33558-2.C: New.
+
+2011-01-14  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/45934
+	PR tree-optimization/46302
+	* g++.dg/ipa/devirt-c-1.C: New test.
+	* g++.dg/ipa/devirt-c-2.C: Likewise.
+	* g++.dg/ipa/devirt-c-3.C: Likewise.
+	* g++.dg/ipa/devirt-c-4.C: Likewise.
+	* g++.dg/ipa/devirt-c-5.C: Likewise.
+	* g++.dg/ipa/devirt-c-6.C: Likewise.
+	* g++.dg/ipa/devirt-6.C: Likewise.
+	* g++.dg/ipa/devirt-d-1.C: Likewise.
+	* g++.dg/torture/pr45934.C: Likewise.
+
+2011-01-14  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/variadic105.C: New.
+
+2011-01-08  Dominique d'Humieres  <dominiq@lps.ens.fr>
+	    Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR objc/45989
+	* objc.dg/gnu-encoding/struct-layout-encoding-1_generate.c
+	(switchfiles): XFAIL
+	objc.dg-struct-layout-encoding-1/t02[57-9]_main.m execution tests
+	on i?86-*-*, x86_64-*-*, and powerpc*-apple-darwin* && ilp32.
+	XFAIL objc.dg-struct-layout-encoding-1/t03[01]_main.m execution
+	tests on i?86-*-* and x86_64-*-*.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47280
+	* g++.dg/opt/pr47280.C: New testcase.
+
+2011-01-14  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-regress1.C: New.
+
+	* g++.dg/ext/flexary2.C: New.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47281
+	* gcc.dg/torture/pr47281.c: New testcase.
+	* gcc.dg/tree-ssa/pr46076.c: XFAIL.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47286
+	* gcc.dg/tree-ssa/pr47286.c: New testcase.
+
 2011-01-13  Kai Tietz  <kai.tietz@onevision.com>
 
 	PR c++/47213
