@@ -1,6 +1,6 @@
 /* Build expressions with type checking for C compiler.
    Copyright (C) 1987, 1988, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -97,9 +97,8 @@ static void add_pending_init (tree, tree, tree, bool, struct obstack *);
 static void set_nonincremental_init (struct obstack *);
 static void set_nonincremental_init_from_string (tree, struct obstack *);
 static tree find_init_member (tree, struct obstack *);
-static void readonly_error (tree, enum lvalue_use);
 static void readonly_warning (tree, enum lvalue_use);
-static int lvalue_or_else (const_tree, enum lvalue_use);
+static int lvalue_or_else (location_t, const_tree, enum lvalue_use);
 static void record_maybe_used_decl (tree);
 static int comptypes_internal (const_tree, const_tree, bool *, bool *);
 
@@ -2267,26 +2266,8 @@ build_indirect_ref (location_t loc, tree ptr, ref_operator errstring)
 	}
     }
   else if (TREE_CODE (pointer) != ERROR_MARK)
-    switch (errstring)
-      {
-         case RO_ARRAY_INDEXING:
-           error_at (loc,
-                     "invalid type argument of array indexing (have %qT)",
-                     type);
-           break;
-         case RO_UNARY_STAR:
-           error_at (loc,
-                     "invalid type argument of unary %<*%> (have %qT)",
-                     type);
-           break;
-         case RO_ARROW:
-           error_at (loc,
-                     "invalid type argument of %<->%> (have %qT)",
-                     type);
-           break;
-         default:
-           gcc_unreachable ();
-      }
+    invalid_indirection_error (loc, type, errstring);
+
   return error_mark_node;
 }
 
@@ -3583,7 +3564,8 @@ build_unary_op (location_t location,
       /* Complain about anything that is not a true lvalue.  In
 	 Objective-C, skip this check for property_refs.  */
       if (!objc_is_property_ref (arg) 
-	  && !lvalue_or_else (arg, ((code == PREINCREMENT_EXPR
+	  && !lvalue_or_else (location,
+			      arg, ((code == PREINCREMENT_EXPR
 				     || code == POSTINCREMENT_EXPR)
 				    ? lv_increment
 				    : lv_decrement)))
@@ -3766,7 +3748,7 @@ build_unary_op (location_t location,
       /* Anything not already handled and not a true memory reference
 	 or a non-lvalue array is an error.  */
       else if (typecode != FUNCTION_TYPE && !flag
-	       && !lvalue_or_else (arg, lv_addressof))
+	       && !lvalue_or_else (location, arg, lv_addressof))
 	return error_mark_node;
 
       /* Move address operations inside C_MAYBE_CONST_EXPR to simplify
@@ -3898,44 +3880,6 @@ lvalue_p (const_tree ref)
     }
 }
 
-/* Give an error for storing in something that is 'const'.  */
-
-static void
-readonly_error (tree arg, enum lvalue_use use)
-{
-  gcc_assert (use == lv_assign || use == lv_increment || use == lv_decrement
-	      || use == lv_asm);
-  /* Using this macro rather than (for example) arrays of messages
-     ensures that all the format strings are checked at compile
-     time.  */
-#define READONLY_MSG(A, I, D, AS) (use == lv_assign ? (A)		\
-				   : (use == lv_increment ? (I)		\
-				   : (use == lv_decrement ? (D) : (AS))))
-  if (TREE_CODE (arg) == COMPONENT_REF)
-    {
-      if (TYPE_READONLY (TREE_TYPE (TREE_OPERAND (arg, 0))))
-	readonly_error (TREE_OPERAND (arg, 0), use);
-      else
-	error (READONLY_MSG (G_("assignment of read-only member %qD"),
-			     G_("increment of read-only member %qD"),
-			     G_("decrement of read-only member %qD"),
-			     G_("read-only member %qD used as %<asm%> output")),
-	       TREE_OPERAND (arg, 1));
-    }
-  else if (TREE_CODE (arg) == VAR_DECL)
-    error (READONLY_MSG (G_("assignment of read-only variable %qD"),
-			 G_("increment of read-only variable %qD"),
-			 G_("decrement of read-only variable %qD"),
-			 G_("read-only variable %qD used as %<asm%> output")),
-	   arg);
-  else
-    error (READONLY_MSG (G_("assignment of read-only location %qE"),
-			 G_("increment of read-only location %qE"),
-			 G_("decrement of read-only location %qE"),
-			 G_("read-only location %qE used as %<asm%> output")),
-	   arg);
-}
-
 /* Give a warning for storing in something that is read-only in GCC
    terms but not const in ISO C terms.  */
 
@@ -3962,15 +3906,16 @@ readonly_warning (tree arg, enum lvalue_use use)
 
 /* Return nonzero if REF is an lvalue valid for this language;
    otherwise, print an error message and return zero.  USE says
-   how the lvalue is being used and so selects the error message.  */
+   how the lvalue is being used and so selects the error message.
+   LOCATION is the location at which any error should be reported.  */
 
 static int
-lvalue_or_else (const_tree ref, enum lvalue_use use)
+lvalue_or_else (location_t loc, const_tree ref, enum lvalue_use use)
 {
   int win = lvalue_p (ref);
 
   if (!win)
-    lvalue_error (use);
+    lvalue_error (loc, use);
 
   return win;
 }
@@ -4858,7 +4803,7 @@ build_modify_expr (location_t location, tree lhs, tree lhs_origtype,
     return error_mark_node;
 
   /* For ObjC properties, defer this check.  */
-  if (!objc_is_property_ref (lhs) && !lvalue_or_else (lhs, lv_assign))
+  if (!objc_is_property_ref (lhs) && !lvalue_or_else (location, lhs, lv_assign))
     return error_mark_node;
 
   if (TREE_CODE (rhs) == EXCESS_PRECISION_EXPR)
@@ -4908,7 +4853,7 @@ build_modify_expr (location_t location, tree lhs, tree lhs_origtype,
 	return result;
 
       /* Else, do the check that we postponed for Objective-C.  */
-      if (!lvalue_or_else (lhs, lv_assign))
+      if (!lvalue_or_else (location, lhs, lv_assign))
 	return error_mark_node;
     }
 
@@ -5329,10 +5274,10 @@ convert_for_assignment (location_t location, tree type, tree rhs,
     {
       tree ret;
       bool save = in_late_binary_op;
-      if (codel == BOOLEAN_TYPE)
+      if (codel == BOOLEAN_TYPE || codel == COMPLEX_TYPE)
 	in_late_binary_op = true;
       ret = convert_and_check (type, orig_rhs);
-      if (codel == BOOLEAN_TYPE)
+      if (codel == BOOLEAN_TYPE || codel == COMPLEX_TYPE)
 	in_late_binary_op = save;
       return ret;
     }
@@ -8536,7 +8481,7 @@ build_asm_expr (location_t loc, tree string, tree outputs, tree inputs,
 	 get an error.  Gross, but ...  */
       STRIP_NOPS (output);
 
-      if (!lvalue_or_else (output, lv_asm))
+      if (!lvalue_or_else (loc, output, lv_asm))
 	output = error_mark_node;
 
       if (output != error_mark_node

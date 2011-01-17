@@ -1,5 +1,5 @@
 /* Conversion of SESE regions to Polyhedra.
-   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Sebastian Pop <sebastian.pop@amd.com>.
 
 This file is part of GCC.
@@ -21,32 +21,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
-#include "ggc.h"
-#include "tree.h"
-#include "rtl.h"
-#include "basic-block.h"
-#include "diagnostic.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
-#include "timevar.h"
 #include "cfgloop.h"
 #include "tree-chrec.h"
 #include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
-#include "tree-pass.h"
 #include "domwalk.h"
-#include "value-prof.h"
-#include "pointer-set.h"
-#include "gimple.h"
 #include "sese.h"
 
 #ifdef HAVE_cloog
 #include "ppl_c.h"
 #include "graphite-ppl.h"
-#include "graphite.h"
 #include "graphite-poly.h"
-#include "graphite-scop-detection.h"
 #include "graphite-sese-to-poly.h"
 
 /* Returns the index of the PHI argument defined in the outermost
@@ -612,7 +599,7 @@ scan_tree_for_params_right_scev (sese s, tree e, int var,
       gcc_assert (TREE_CODE (e) == INTEGER_CST);
 
       mpz_init (val);
-      mpz_set_si (val, int_cst_value (e));
+      tree_int_to_gmp (e, val);
       add_value_to_dim (l, expr, val);
       mpz_clear (val);
     }
@@ -626,16 +613,13 @@ scan_tree_for_params_int (tree cst, ppl_Linear_Expression_t expr, mpz_t k)
 {
   mpz_t val;
   ppl_Coefficient_t coef;
-  int v = int_cst_value (cst);
+  tree type = TREE_TYPE (cst);
 
   mpz_init (val);
-  mpz_set_si (val, 0);
 
   /* Necessary to not get "-1 = 2^n - 1". */
-  if (v < 0)
-    mpz_sub_ui (val, val, -v);
-  else
-    mpz_add_ui (val, val, v);
+  mpz_set_double_int (val, double_int_sext (tree_to_double_int (cst),
+					    TYPE_PRECISION (type)), false);
 
   mpz_mul (val, val, k);
   ppl_new_Coefficient (&coef);
@@ -713,7 +697,7 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	      mpz_t val;
 	      gcc_assert (host_integerp (TREE_OPERAND (e, 1), 0));
 	      mpz_init (val);
-	      mpz_set_si (val, int_cst_value (TREE_OPERAND (e, 1)));
+	      tree_int_to_gmp (TREE_OPERAND (e, 1), val);
 	      mpz_mul (val, val, k);
 	      scan_tree_for_params (s, TREE_OPERAND (e, 0), c, val);
 	      mpz_clear (val);
@@ -728,7 +712,7 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
 	      mpz_t val;
 	      gcc_assert (host_integerp (TREE_OPERAND (e, 0), 0));
 	      mpz_init (val);
-	      mpz_set_si (val, int_cst_value (TREE_OPERAND (e, 0)));
+	      tree_int_to_gmp (TREE_OPERAND (e, 0), val);
 	      mpz_mul (val, val, k);
 	      scan_tree_for_params (s, TREE_OPERAND (e, 1), c, val);
 	      mpz_clear (val);
@@ -845,6 +829,9 @@ scan_tree_for_params (sese s, tree e, ppl_Linear_Expression_t c,
     CASE_CONVERT:
     case NON_LVALUE_EXPR:
       scan_tree_for_params (s, TREE_OPERAND (e, 0), c, k);
+      break;
+
+    case ADDR_EXPR:
       break;
 
    default:
@@ -1614,10 +1601,13 @@ pdr_add_data_dimensions (ppl_Polyhedron_t accesses, data_reference_p dr,
       /* subscript - low >= 0 */
       if (host_integerp (low, 0))
 	{
+	  tree minus_low;
+
 	  ppl_new_Linear_Expression_with_dimension (&expr, accessp_nb_dims);
 	  ppl_set_coef (expr, subscript, 1);
 
-	  ppl_set_inhomogeneous (expr, -int_cst_value (low));
+	  minus_low = fold_build1 (NEGATE_EXPR, TREE_TYPE (low), low);
+	  ppl_set_inhomogeneous_tree (expr, minus_low);
 
 	  ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
 	  ppl_Polyhedron_add_constraint (accesses, cstr);
@@ -1637,7 +1627,7 @@ pdr_add_data_dimensions (ppl_Polyhedron_t accesses, data_reference_p dr,
 	  ppl_new_Linear_Expression_with_dimension (&expr, accessp_nb_dims);
 	  ppl_set_coef (expr, subscript, -1);
 
-	  ppl_set_inhomogeneous (expr, int_cst_value (high));
+	  ppl_set_inhomogeneous_tree (expr, high);
 
 	  ppl_new_Constraint (&cstr, expr, PPL_CONSTRAINT_TYPE_GREATER_OR_EQUAL);
 	  ppl_Polyhedron_add_constraint (accesses, cstr);
@@ -1971,6 +1961,7 @@ build_scop_drs (scop_p scop)
   for (i = 0; VEC_iterate (poly_bb_p, SCOP_BBS (scop), i, pbb); i++)
     if (VEC_empty (data_reference_p, GBB_DATA_REFS (PBB_BLACK_BOX (pbb))))
       {
+	free_gimple_bb (PBB_BLACK_BOX (pbb));
 	VEC_ordered_remove (poly_bb_p, SCOP_BBS (scop), i);
 	i--;
       }
@@ -2857,12 +2848,12 @@ initial_value_for_loop_phi (gimple phi)
   return NULL_TREE;
 }
 
-/* Detect commutative and associative scalar reductions starting at
-   the loop closed phi node STMT.  Return the phi node of the
-   reduction cycle, or NULL.  */
+/* Detect commutative and associative scalar reductions belonging to
+   the SCOP starting at the loop closed phi node STMT.  Return the phi
+   node of the reduction cycle, or NULL.  */
 
 static gimple
-detect_commutative_reduction (gimple stmt, VEC (gimple, heap) **in,
+detect_commutative_reduction (scop_p scop, gimple stmt, VEC (gimple, heap) **in,
 			      VEC (gimple, heap) **out)
 {
   if (scalar_close_phi_node_p (stmt))
@@ -2879,7 +2870,10 @@ detect_commutative_reduction (gimple stmt, VEC (gimple, heap) **in,
       gcc_assert (gimple_phi_num_args (stmt) == 1);
 
       def = SSA_NAME_DEF_STMT (arg);
-      loop_phi = detect_commutative_reduction (def, in, out);
+      if (!stmt_in_sese_p (def, SCOP_REGION (scop)))
+	return NULL;
+
+      loop_phi = detect_commutative_reduction (scop, def, in, out);
 
       if (loop_phi)
 	{
@@ -3018,7 +3012,7 @@ rewrite_commutative_reductions_out_of_ssa_close_phi (scop_p scop,
   VEC (gimple, heap) *in = VEC_alloc (gimple, heap, 10);
   VEC (gimple, heap) *out = VEC_alloc (gimple, heap, 10);
 
-  detect_commutative_reduction (close_phi, &in, &out);
+  detect_commutative_reduction (scop, close_phi, &in, &out);
   res = VEC_length (gimple, in) > 0;
   if (res)
     translate_scalar_reduction_to_array (scop, in, out);

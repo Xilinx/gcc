@@ -53,9 +53,9 @@ Type::base()
   switch (this->classification_)
     {
     case TYPE_NAMED:
-      return static_cast<Named_type*>(this)->real_type()->base();
+      return this->named_type()->named_base();
     case TYPE_FORWARD:
-      return static_cast<Forward_declaration_type*>(this)->real_type()->base();
+      return this->forward_declaration_type()->real_type()->base();
     default:
       return this;
     }
@@ -67,13 +67,9 @@ Type::base() const
   switch (this->classification_)
     {
     case TYPE_NAMED:
-      return static_cast<const Named_type*>(this)->real_type()->base();
+      return this->named_type()->named_base();
     case TYPE_FORWARD:
-      {
-	const Forward_declaration_type* ftype =
-	  static_cast<const Forward_declaration_type*>(this);
-	return ftype->real_type()->base();
-      }
+      return this->forward_declaration_type()->real_type()->base();
     default:
       return this;
     }
@@ -224,7 +220,7 @@ Type::is_error_type() const
     case TYPE_ERROR:
       return true;
     case TYPE_NAMED:
-      return t->named_type()->real_type()->is_error_type();
+      return t->named_type()->is_named_error_type();
     default:
       return false;
     }
@@ -305,16 +301,19 @@ Type::do_traverse(Traverse*)
   return TRAVERSE_CONTINUE;
 }
 
-// Return whether two types are identical.  If REASON is not NULL,
-// optionally set *REASON to the reason the types are not identical.
+// Return whether two types are identical.  If ERRORS_ARE_IDENTICAL,
+// then return true for all erroneous types; this is used to avoid
+// cascading errors.  If REASON is not NULL, optionally set *REASON to
+// the reason the types are not identical.
 
 bool
-Type::are_identical(const Type* t1, const Type* t2, std::string* reason)
+Type::are_identical(const Type* t1, const Type* t2, bool errors_are_identical,
+		    std::string* reason)
 {
   if (t1 == NULL || t2 == NULL)
     {
-      // Something is wrong.  Return true to avoid cascading errors.
-      return true;
+      // Something is wrong.
+      return errors_are_identical ? true : t1 == t2;
     }
 
   // Skip defined forward declarations.
@@ -324,15 +323,18 @@ Type::are_identical(const Type* t1, const Type* t2, std::string* reason)
   if (t1 == t2)
     return true;
 
-  // An undefined forward declaration is an error, so we return true
-  // to avoid cascading errors.
+  // An undefined forward declaration is an error.
   if (t1->forward_declaration_type() != NULL
       || t2->forward_declaration_type() != NULL)
-    return true;
+    return errors_are_identical;
 
   // Avoid cascading errors with error types.
   if (t1->is_error_type() || t2->is_error_type())
-    return true;
+    {
+      if (errors_are_identical)
+	return true;
+      return t1->is_error_type() && t2->is_error_type();
+    }
 
   // Get a good reason for the sink type.  Note that the sink type on
   // the left hand side of an assignment is handled in are_assignable.
@@ -372,25 +374,37 @@ Type::are_identical(const Type* t1, const Type* t2, std::string* reason)
     case TYPE_FUNCTION:
       return t1->function_type()->is_identical(t2->function_type(),
 					       false,
+					       errors_are_identical,
 					       reason);
 
     case TYPE_POINTER:
-      return Type::are_identical(t1->points_to(), t2->points_to(), reason);
+      return Type::are_identical(t1->points_to(), t2->points_to(),
+				 errors_are_identical, reason);
 
     case TYPE_STRUCT:
-      return t1->struct_type()->is_identical(t2->struct_type());
+      return t1->struct_type()->is_identical(t2->struct_type(),
+					     errors_are_identical);
 
     case TYPE_ARRAY:
-      return t1->array_type()->is_identical(t2->array_type());
+      return t1->array_type()->is_identical(t2->array_type(),
+					    errors_are_identical);
 
     case TYPE_MAP:
-      return t1->map_type()->is_identical(t2->map_type());
+      return t1->map_type()->is_identical(t2->map_type(),
+					  errors_are_identical);
 
     case TYPE_CHANNEL:
-      return t1->channel_type()->is_identical(t2->channel_type());
+      return t1->channel_type()->is_identical(t2->channel_type(),
+					      errors_are_identical);
 
     case TYPE_INTERFACE:
-      return t1->interface_type()->is_identical(t2->interface_type());
+      return t1->interface_type()->is_identical(t2->interface_type(),
+						errors_are_identical);
+
+    case TYPE_CALL_MULTIPLE_RESULT:
+      if (reason != NULL)
+	*reason = "invalid use of multiple value function call";
+      return false;
 
     default:
       gcc_unreachable();
@@ -403,7 +417,7 @@ Type::are_identical(const Type* t1, const Type* t2, std::string* reason)
 bool
 Type::are_compatible_for_binop(const Type* lhs, const Type* rhs)
 {
-  if (Type::are_identical(lhs, rhs, NULL))
+  if (Type::are_identical(lhs, rhs, true, NULL))
     return true;
 
   // A constant of abstract bool type may be mixed with any bool type.
@@ -485,14 +499,14 @@ Type::are_assignable(const Type* lhs, const Type* rhs, std::string* reason)
     }
 
   // Identical types are assignable.
-  if (Type::are_identical(lhs, rhs, reason))
+  if (Type::are_identical(lhs, rhs, true, reason))
     return true;
 
   // The types are assignable if they have identical underlying types
   // and either LHS or RHS is not a named type.
   if (((lhs->named_type() != NULL && rhs->named_type() == NULL)
        || (rhs->named_type() != NULL && lhs->named_type() == NULL))
-      && Type::are_identical(lhs->base(), rhs->base(), reason))
+      && Type::are_identical(lhs->base(), rhs->base(), true, reason))
     return true;
 
   // The types are assignable if LHS is an interface type and RHS
@@ -519,6 +533,7 @@ Type::are_assignable(const Type* lhs, const Type* rhs, std::string* reason)
       && (lhs->named_type() == NULL || rhs->named_type() == NULL)
       && Type::are_identical(lhs->channel_type()->element_type(),
 			     rhs->channel_type()->element_type(),
+			     true,
 			     reason))
     return true;
 
@@ -533,14 +548,16 @@ Type::are_assignable(const Type* lhs, const Type* rhs, std::string* reason)
 	  || lhs->interface_type() != NULL))
     return true;
 
-  // An untyped constant may be assigned to a numeric type if it is
-  // representable in that type.
-  if (rhs->is_abstract()
+  // An untyped numeric constant may be assigned to a numeric type if
+  // it is representable in that type.
+  if ((rhs->is_abstract()
+       && (rhs->integer_type() != NULL
+	   || rhs->float_type() != NULL
+	   || rhs->complex_type() != NULL))
       && (lhs->integer_type() != NULL
 	  || lhs->float_type() != NULL
 	  || lhs->complex_type() != NULL))
     return true;
-
 
   // Give some better error messages.
   if (reason != NULL && reason->empty())
@@ -581,7 +598,7 @@ Type::are_convertible(const Type* lhs, const Type* rhs, std::string* reason)
   // The types are convertible if they have identical underlying
   // types.
   if ((lhs->named_type() != NULL || rhs->named_type() != NULL)
-      && Type::are_identical(lhs->base(), rhs->base(), reason))
+      && Type::are_identical(lhs->base(), rhs->base(), true, reason))
     return true;
 
   // The types are convertible if they are both unnamed pointer types
@@ -594,6 +611,7 @@ Type::are_convertible(const Type* lhs, const Type* rhs, std::string* reason)
 	  || rhs->points_to()->named_type() != NULL)
       && Type::are_identical(lhs->points_to()->base(),
 			     rhs->points_to()->base(),
+			     true,
 			     reason))
     return true;
 
@@ -794,6 +812,9 @@ Type::get_tree(Gogo* gogo)
   if (this->forward_declaration_type() != NULL
       || this->named_type() != NULL)
     return this->get_tree_without_hash(gogo);
+
+  if (this->is_error_type())
+    return error_mark_node;
 
   // To avoid confusing GIMPLE, we need to translate all identical Go
   // types to the same GIMPLE type.  We use a hash table to do that.
@@ -2321,7 +2342,7 @@ bool
 Function_type::is_valid_redeclaration(const Function_type* t,
 				      std::string* reason) const
 {
-  if (!this->is_identical(t, false, reason))
+  if (!this->is_identical(t, false, true, reason))
     return false;
 
   // A redeclaration of a function is required to use the same names
@@ -2405,6 +2426,7 @@ Function_type::is_valid_redeclaration(const Function_type* t,
 
 bool
 Function_type::is_identical(const Function_type* t, bool ignore_receiver,
+			    bool errors_are_identical,
 			    std::string* reason) const
 {
   if (!ignore_receiver)
@@ -2419,7 +2441,8 @@ Function_type::is_identical(const Function_type* t, bool ignore_receiver,
 	}
       if (r1 != NULL)
 	{
-	  if (!Type::are_identical(r1->type(), r2->type(), reason))
+	  if (!Type::are_identical(r1->type(), r2->type(), errors_are_identical,
+				   reason))
 	    {
 	      if (reason != NULL && !reason->empty())
 		*reason = "receiver: " + *reason;
@@ -2450,7 +2473,8 @@ Function_type::is_identical(const Function_type* t, bool ignore_receiver,
 	      return false;
 	    }
 
-	  if (!Type::are_identical(p1->type(), p2->type(), NULL))
+	  if (!Type::are_identical(p1->type(), p2->type(),
+				   errors_are_identical, NULL))
 	    {
 	      if (reason != NULL)
 		*reason = _("different parameter types");
@@ -2494,7 +2518,8 @@ Function_type::is_identical(const Function_type* t, bool ignore_receiver,
 	      return false;
 	    }
 
-	  if (!Type::are_identical(res1->type(), res2->type(), NULL))
+	  if (!Type::are_identical(res1->type(), res2->type(),
+				   errors_are_identical, NULL))
 	    {
 	      if (reason != NULL)
 		*reason = _("different result types");
@@ -3233,26 +3258,35 @@ class Call_multiple_result_type : public Type
  protected:
   bool
   do_has_pointer() const
-  { gcc_unreachable(); }
+  {
+    gcc_assert(saw_errors());
+    return false;
+  }
 
   tree
   do_get_tree(Gogo*);
 
   tree
   do_get_init_tree(Gogo*, tree, bool)
-  { gcc_unreachable(); }
+  {
+    gcc_assert(saw_errors());
+    return error_mark_node;
+  }
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*)
-  { gcc_unreachable(); }
+  {
+    gcc_assert(saw_errors());
+    return Expression::make_error(UNKNOWN_LOCATION);
+  }
 
   void
   do_reflection(Gogo*, std::string*) const
-  { gcc_unreachable(); }
+  { gcc_assert(saw_errors()); }
 
   void
   do_mangled_name(Gogo*, std::string*) const
-  { gcc_unreachable(); }
+  { gcc_assert(saw_errors()); }
 
  private:
   // The expression being called.
@@ -3368,6 +3402,7 @@ Struct_type::do_verify()
   Struct_field_list* fields = this->fields_;
   if (fields == NULL)
     return true;
+  bool ret = true;
   for (Struct_field_list::iterator p = fields->begin();
        p != fields->end();
        ++p)
@@ -3377,7 +3412,7 @@ Struct_type::do_verify()
 	{
 	  error_at(p->location(), "struct field type is incomplete");
 	  p->set_type(Type::make_error_type());
-	  return false;
+	  ret = false;
 	}
       else if (p->is_anonymous())
 	{
@@ -3389,7 +3424,7 @@ Struct_type::do_verify()
 	    }
 	}
     }
-  return true;
+  return ret;
 }
 
 // Whether this contains a pointer.
@@ -3413,7 +3448,8 @@ Struct_type::do_has_pointer() const
 // Whether this type is identical to T.
 
 bool
-Struct_type::is_identical(const Struct_type* t) const
+Struct_type::is_identical(const Struct_type* t,
+			  bool errors_are_identical) const
 {
   const Struct_field_list* fields1 = this->fields();
   const Struct_field_list* fields2 = t->fields();
@@ -3429,7 +3465,8 @@ Struct_type::is_identical(const Struct_type* t) const
       if (pf1->field_name() != pf2->field_name())
 	return false;
       if (pf1->is_anonymous() != pf2->is_anonymous()
-	  || !Type::are_identical(pf1->type(), pf2->type(), NULL))
+	  || !Type::are_identical(pf1->type(), pf2->type(),
+				  errors_are_identical, NULL))
 	return false;
       if (!pf1->has_tag())
 	{
@@ -3677,6 +3714,8 @@ Struct_type::is_unexported_local_field(Gogo* gogo,
 void
 Struct_type::finalize_methods(Gogo* gogo)
 {
+  if (this->all_methods_ != NULL)
+    return;
   Type::finalize_methods(gogo, this, this->location_, &this->all_methods_);
 }
 
@@ -3729,6 +3768,19 @@ Struct_type::fill_in_tree(Gogo* gogo, tree type)
   return type;
 }
 
+// Make sure that all structs which must be converted to the backend
+// representation before this one are in fact converted.
+
+void
+Struct_type::convert_prerequisites(Gogo* gogo)
+{
+  for (std::vector<Named_type*>::const_iterator p
+	 = this->prerequisites_.begin();
+       p != this->prerequisites_.end();
+       ++p)
+    (*p)->get_tree(gogo);
+}
+
 // Initialize struct fields.
 
 tree
@@ -3751,13 +3803,16 @@ Struct_type::do_get_init_tree(Gogo* gogo, tree type_tree, bool is_clear)
   bool any_fields_set = false;
   VEC(constructor_elt,gc)* init = VEC_alloc(constructor_elt, gc,
 					    this->fields_->size());
-  Struct_field_list::const_iterator p = this->fields_->begin();
-  for (tree field = TYPE_FIELDS(type_tree);
-       field != NULL_TREE;
-       field = DECL_CHAIN(field), ++p)
+
+  tree field = TYPE_FIELDS(type_tree);
+  for (Struct_field_list::const_iterator p = this->fields_->begin();
+       p != this->fields_->end();
+       ++p, field = DECL_CHAIN(field))
     {
-      gcc_assert(p != this->fields_->end());
       tree value = p->type()->get_init_tree(gogo, is_clear);
+      if (value == error_mark_node)
+	return error_mark_node;
+      gcc_assert(field != NULL_TREE);
       if (value != NULL)
 	{
 	  constructor_elt* elt = VEC_quick_push(constructor_elt, init, NULL);
@@ -3768,7 +3823,7 @@ Struct_type::do_get_init_tree(Gogo* gogo, tree type_tree, bool is_clear)
 	    is_constant = false;
 	}
     }
-  gcc_assert(p == this->fields_->end());
+  gcc_assert(field == NULL_TREE);
 
   if (!any_fields_set)
     {
@@ -4107,9 +4162,10 @@ Type::make_struct_type(Struct_field_list* fields,
 // Whether two array types are identical.
 
 bool
-Array_type::is_identical(const Array_type* t) const
+Array_type::is_identical(const Array_type* t, bool errors_are_identical) const
 {
-  if (!Type::are_identical(this->element_type(), t->element_type(), NULL))
+  if (!Type::are_identical(this->element_type(), t->element_type(),
+			   errors_are_identical, NULL))
     return false;
 
   Expression* l1 = this->length();
@@ -4330,8 +4386,12 @@ Array_type::get_length_tree(Gogo* gogo)
 	  // expression.  FIXME: This won't work in general.
 	  Translate_context context(gogo, NULL, NULL, NULL_TREE);
 	  tree len = this->length_->get_tree(&context);
-	  len = convert_to_integer(integer_type_node, len);
-	  this->length_tree_ = save_expr(len);
+	  if (len != error_mark_node)
+	    {
+	      len = convert_to_integer(integer_type_node, len);
+	      len = save_expr(len);
+	    }
+	  this->length_tree_ = len;
 	}
     }
   return this->length_tree_;
@@ -4425,8 +4485,13 @@ Array_type::do_get_init_tree(Gogo* gogo, tree type_tree, bool is_clear)
       tree value = this->element_type_->get_init_tree(gogo, is_clear);
       if (value == NULL)
 	return NULL;
+      if (value == error_mark_node)
+	return error_mark_node;
 
       tree length_tree = this->get_length_tree(gogo);
+      if (length_tree == error_mark_node)
+	return error_mark_node;
+
       length_tree = fold_convert(sizetype, length_tree);
       tree range = build2(RANGE_EXPR, sizetype, size_zero_node,
 			  fold_build2(MINUS_EXPR, sizetype,
@@ -4920,10 +4985,12 @@ Map_type::do_verify()
 // Whether two map types are identical.
 
 bool
-Map_type::is_identical(const Map_type* t) const
+Map_type::is_identical(const Map_type* t, bool errors_are_identical) const
 {
-  return (Type::are_identical(this->key_type(), t->key_type(), NULL)
-	  && Type::are_identical(this->val_type(), t->val_type(), NULL));
+  return (Type::are_identical(this->key_type(), t->key_type(),
+			      errors_are_identical, NULL)
+	  && Type::are_identical(this->val_type(), t->val_type(),
+				 errors_are_identical, NULL));
 }
 
 // Hash code.
@@ -5062,6 +5129,8 @@ Map_type::do_make_expression_tree(Translate_context* context,
 				context->gogo()->map_descriptor(this),
 				sizetype,
 				expr_tree);
+  if (ret == error_mark_node)
+    return error_mark_node;
   // This can panic if the capacity is out of range.
   TREE_NOTHROW(new_map_fndecl) = 0;
 
@@ -5208,9 +5277,11 @@ Channel_type::do_hash_for_method(Gogo* gogo) const
 // Whether this type is the same as T.
 
 bool
-Channel_type::is_identical(const Channel_type* t) const
+Channel_type::is_identical(const Channel_type* t,
+			   bool errors_are_identical) const
 {
-  if (!Type::are_identical(this->element_type(), t->element_type(), NULL))
+  if (!Type::are_identical(this->element_type(), t->element_type(),
+			   errors_are_identical, NULL))
     return false;
   return (this->may_send_ == t->may_send_
 	  && this->may_receive_ == t->may_receive_);
@@ -5310,6 +5381,8 @@ Channel_type::do_make_expression_tree(Translate_context* context,
 				element_size_tree,
 				sizetype,
 				expr_tree);
+  if (ret == error_mark_node)
+    return error_mark_node;
   // This can panic if the capacity is out of range.
   TREE_NOTHROW(new_channel_fndecl) = 0;
 
@@ -5502,10 +5575,23 @@ Interface_type::finalize_methods()
       const Typed_identifier* p = &this->methods_->at(from);
       if (!p->name().empty())
 	{
-	  if (from != to)
-	    this->methods_->set(to, *p);
+	  size_t i;
+	  for (i = 0; i < to; ++i)
+	    {
+	      if (this->methods_->at(i).name() == p->name())
+		{
+		  error_at(p->location(), "duplicate method %qs",
+			   Gogo::message_name(p->name()).c_str());
+		  break;
+		}
+	    }
+	  if (i == to)
+	    {
+	      if (from != to)
+		this->methods_->set(to, *p);
+	      ++to;
+	    }
 	  ++from;
-	  ++to;
 	  continue;
 	}
       Interface_type* it = p->type()->interface_type();
@@ -5535,7 +5621,30 @@ Interface_type::finalize_methods()
 	   q != methods->end();
 	   ++q)
 	{
-	  if (q->name().empty() || this->find_method(q->name()) == NULL)
+	  if (q->name().empty())
+	    {
+	      if (q->type() == p->type())
+		error_at(p->location(), "interface inheritance loop");
+	      else
+		{
+		  size_t i;
+		  for (i = from + 1; i < this->methods_->size(); ++i)
+		    {
+		      const Typed_identifier* r = &this->methods_->at(i);
+		      if (r->name().empty() && r->type() == q->type())
+			{
+			  error_at(p->location(),
+				   "inherited interface listed twice");
+			  break;
+			}
+		    }
+		  if (i == this->methods_->size())
+		    this->methods_->push_back(Typed_identifier(q->name(),
+							       q->type(),
+							       p->location()));
+		}
+	    }
+	  else if (this->find_method(q->name()) == NULL)
 	    this->methods_->push_back(Typed_identifier(q->name(), q->type(),
 						       p->location()));
 	  else
@@ -5613,7 +5722,8 @@ Interface_type::is_unexported_method(Gogo* gogo, const std::string& name) const
 // Whether this type is identical with T.
 
 bool
-Interface_type::is_identical(const Interface_type* t) const
+Interface_type::is_identical(const Interface_type* t,
+			     bool errors_are_identical) const
 {
   // We require the same methods with the same types.  The methods
   // have already been sorted.
@@ -5628,7 +5738,8 @@ Interface_type::is_identical(const Interface_type* t) const
       if (p1 == this->methods()->end())
 	return false;
       if (p1->name() != p2->name()
-	  || !Type::are_identical(p1->type(), p2->type(), NULL))
+	  || !Type::are_identical(p1->type(), p2->type(),
+				  errors_are_identical, NULL))
 	return false;
     }
   if (p1 != this->methods()->end())
@@ -5667,7 +5778,7 @@ Interface_type::is_compatible_for_assign(const Interface_type* t,
 	}
 
       std::string subreason;
-      if (!Type::are_identical(p->type(), m->type(), &subreason))
+      if (!Type::are_identical(p->type(), m->type(), true, &subreason))
 	{
 	  if (reason != NULL)
 	    {
@@ -5802,7 +5913,7 @@ Interface_type::implements_interface(const Type* t, std::string* reason) const
       Function_type* m_fn_type = m->type()->function_type();
       gcc_assert(p_fn_type != NULL && m_fn_type != NULL);
       std::string subreason;
-      if (!p_fn_type->is_identical(m_fn_type, true, &subreason))
+      if (!p_fn_type->is_identical(m_fn_type, true, true, &subreason))
 	{
 	  if (reason != NULL)
 	    {
@@ -5879,20 +5990,44 @@ Interface_type::fill_in_tree(Gogo* gogo, tree type)
 {
   gcc_assert(this->methods_ != NULL);
 
+  // Because the methods may refer to the interface type itself, we
+  // need to build the interface type first, and then update the
+  // method pointer later.
+
+  tree field_trees = NULL_TREE;
+  tree* pp = &field_trees;
+
+  tree name_tree = get_identifier("__methods");
+  tree methods_field = build_decl(this->location_, FIELD_DECL, name_tree,
+				  ptr_type_node);
+  DECL_CONTEXT(methods_field) = type;
+  *pp = methods_field;
+  pp = &DECL_CHAIN(methods_field);
+
+  name_tree = get_identifier("__object");
+  tree field = build_decl(this->location_, FIELD_DECL, name_tree,
+			  ptr_type_node);
+  DECL_CONTEXT(field) = type;
+  *pp = field;
+
+  TYPE_FIELDS(type) = field_trees;
+
+  layout_type(type);
+
   // Build the type of the table of methods.
 
   tree method_table = make_node(RECORD_TYPE);
 
   // The first field is a pointer to the type descriptor.
-  tree name_tree = get_identifier("__type_descriptor");
+  name_tree = get_identifier("__type_descriptor");
   tree dtype = Type::make_type_descriptor_type()->get_tree(gogo);
   dtype = build_pointer_type(build_qualified_type(dtype, TYPE_QUAL_CONST));
-  tree field = build_decl(this->location_, FIELD_DECL, name_tree, dtype);
+  field = build_decl(this->location_, FIELD_DECL, name_tree, dtype);
   DECL_CONTEXT(field) = method_table;
   TYPE_FIELDS(method_table) = field;
 
   std::string last_name = "";
-  tree* pp = &DECL_CHAIN(field);
+  pp = &DECL_CHAIN(field);
   for (Typed_identifier_list::const_iterator p = this->methods_->begin();
        p != this->methods_->end();
        ++p)
@@ -5912,25 +6047,9 @@ Interface_type::fill_in_tree(Gogo* gogo, tree type)
     }
   layout_type(method_table);
 
-  tree mtype = build_pointer_type(method_table);
-
-  tree field_trees = NULL_TREE;
-  pp = &field_trees;
-
-  name_tree = get_identifier("__methods");
-  field = build_decl(this->location_, FIELD_DECL, name_tree, mtype);
-  DECL_CONTEXT(field) = type;
-  *pp = field;
-  pp = &DECL_CHAIN(field);
-
-  name_tree = get_identifier("__object");
-  field = build_decl(this->location_, FIELD_DECL, name_tree, ptr_type_node);
-  DECL_CONTEXT(field) = type;
-  *pp = field;
-
-  TYPE_FIELDS(type) = field_trees;
-
-  layout_type(type);
+  // Update the type of the __methods field from a generic pointer to
+  // a pointer to the method table.
+  TREE_TYPE(methods_field) = build_pointer_type(method_table);
 
   return type;
 }
@@ -6448,6 +6567,45 @@ Named_type::message_name() const
   return this->named_object_->message_name();
 }
 
+// Return the base type for this type.  We have to be careful about
+// circular type definitions, which are invalid but may be seen here.
+
+Type*
+Named_type::named_base()
+{
+  if (this->seen_ > 0)
+    return this;
+  ++this->seen_;
+  Type* ret = this->type_->base();
+  --this->seen_;
+  return ret;
+}
+
+const Type*
+Named_type::named_base() const
+{
+  if (this->seen_ > 0)
+    return this;
+  ++this->seen_;
+  const Type* ret = this->type_->base();
+  --this->seen_;
+  return ret;
+}
+
+// Return whether this is an error type.  We have to be careful about
+// circular type definitions, which are invalid but may be seen here.
+
+bool
+Named_type::is_named_error_type() const
+{
+  if (this->seen_ > 0)
+    return false;
+  ++this->seen_;
+  bool ret = this->type_->is_error_type();
+  --this->seen_;
+  return ret;
+}
+
 // Add a method to this type.
 
 Named_object*
@@ -6523,6 +6681,9 @@ Named_type::is_unexported_local_method(Gogo* gogo,
 void
 Named_type::finalize_methods(Gogo* gogo)
 {
+  if (this->all_methods_ != NULL)
+    return;
+
   if (this->local_methods_ != NULL
       && (this->points_to() != NULL || this->interface_type() != NULL))
     {
@@ -6591,11 +6752,11 @@ Named_type::interface_method_table(Gogo* gogo, const Interface_type* interface,
 bool
 Named_type::named_type_has_hidden_fields(std::string* reason) const
 {
-  if (this->seen_)
+  if (this->seen_ > 0)
     return false;
-  this->seen_ = true;
+  ++this->seen_;
   bool ret = this->type_->has_hidden_fields(this, reason);
-  this->seen_ = false;
+  --this->seen_;
   return ret;
 }
 
@@ -6724,7 +6885,40 @@ Named_type::do_verify()
 	return false;
     }
 
+  // If this is a struct, then if any of the fields of the struct
+  // themselves have struct type, then this struct must be converted
+  // to the backend representation before the field's type is
+  // converted.  That may seem backward, but it works because if the
+  // field's type refers to this one, e.g., via a pointer, then the
+  // conversion process will pick up the half-built struct and do the
+  // right thing.
+  if (this->struct_type() != NULL)
+    {
+      const Struct_field_list* fields = this->struct_type()->fields();
+      for (Struct_field_list::const_iterator p = fields->begin();
+	   p != fields->end();
+	   ++p)
+	{
+	  Struct_type* st = p->type()->struct_type();
+	  if (st != NULL)
+	    st->add_prerequisite(this);
+	}
+    }
+
   return true;
+}
+
+// Return whether this type is or contains a pointer.
+
+bool
+Named_type::do_has_pointer() const
+{
+  if (this->seen_ > 0)
+    return false;
+  ++this->seen_;
+  bool ret = this->type_->has_pointer();
+  --this->seen_;
+  return ret;
 }
 
 // Return a hash code.  This is used for method lookup.  We simply
@@ -6797,40 +6991,66 @@ Named_type::do_get_tree(Gogo* gogo)
     case TYPE_FUNCTION:
       // GENERIC can't handle a pointer to a function type whose
       // return type is a pointer to the function type itself.  It
-      // does into infinite loops when walking the types.
-      if (this->seen_
-	  && this->function_type()->results() != NULL
-	  && this->function_type()->results()->size() == 1
-	  && (this->function_type()->results()->front().type()->forwarded()
-	      == this))
-	return ptr_type_node;
-      this->seen_ = true;
+      // goes into an infinite loop when walking the types.
+      if (this->seen_ > 0)
+	{
+	  Function_type* fntype = this->type_->function_type();
+	  if (fntype->results() != NULL
+	      && fntype->results()->size() == 1
+	      && fntype->results()->front().type()->forwarded() == this)
+	    return ptr_type_node;
+
+	  // We can legitimately see ourselves here twice when a named
+	  // type is defined using a struct which refers to the named
+	  // type.  If we see ourselves too often we are in a loop.
+	  if (this->seen_ > 3)
+	    return ptr_type_node;
+	}
+      ++this->seen_;
       t = Type::get_named_type_tree(gogo, this->type_);
-      this->seen_ = false;
+      --this->seen_;
       if (t == error_mark_node)
 	return error_mark_node;
       t = build_variant_type_copy(t);
       break;
 
     case TYPE_POINTER:
-      // GENERIC can't handle a pointer type which points to itself.
-      // It goes into infinite loops when walking the types.
-      if (this->seen_ && this->points_to()->forwarded() == this)
-	return ptr_type_node;
-      this->seen_ = true;
+      // Don't recur infinitely if a pointer type refers to itself.
+      // Ideally we would build a circular data structure here, but
+      // GENERIC can't handle them.
+      if (this->seen_ > 0)
+	{
+	  if (this->type_->points_to()->forwarded() == this)
+	    return ptr_type_node;
+
+	  if (this->seen_ > 3)
+	    return ptr_type_node;
+	}
+      ++this->seen_;
       t = Type::get_named_type_tree(gogo, this->type_);
-      this->seen_ = false;
+      --this->seen_;
       if (t == error_mark_node)
 	return error_mark_node;
       t = build_variant_type_copy(t);
       break;
 
     case TYPE_STRUCT:
+      // If there are structs which must be converted first, do them.
+      if (this->seen_ == 0)
+	{
+	  ++this->seen_;
+	  this->type_->struct_type()->convert_prerequisites(gogo);
+	  --this->seen_;
+	}
+
       if (this->named_tree_ != NULL_TREE)
 	return this->named_tree_;
+
       t = make_node(RECORD_TYPE);
       this->named_tree_ = t;
-      this->type_->struct_type()->fill_in_tree(gogo, t);
+      t = this->type_->struct_type()->fill_in_tree(gogo, t);
+      if (t == error_mark_node)
+	return error_mark_node;
       break;
 
     case TYPE_ARRAY:
@@ -6864,6 +7084,8 @@ Named_type::do_get_tree(Gogo* gogo)
 	  t = make_node(RECORD_TYPE);
 	  this->named_tree_ = t;
 	  t = this->type_->interface_type()->fill_in_tree(gogo, t);
+	  if (t == error_mark_node)
+	    return error_mark_node;
 	}
       break;
 
@@ -6874,11 +7096,10 @@ Named_type::do_get_tree(Gogo* gogo)
 	// definition of T2 may refer to T1, then we must simply
 	// return the type for T2 here.  It's not precisely correct,
 	// but it's as close as we can get with GENERIC.
-	bool was_seen = this->seen_;
-	this->seen_ = true;
+	++this->seen_;
 	t = Type::get_named_type_tree(gogo, this->type_);
-	this->seen_ = was_seen;
-	if (was_seen)
+	--this->seen_;
+	if (this->seen_ > 0)
 	  return t;
 	if (t == error_mark_node)
 	  return error_mark_node;
@@ -7475,7 +7696,7 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
 			   const std::string& name,
 			   source_location location)
 {
-  if (type->is_error_type())
+  if (type->deref()->is_error_type())
     return Expression::make_error(location);
 
   const Named_type* nt = type->named_type();
@@ -7501,13 +7722,14 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
 
   bool receiver_can_be_pointer = (expr->type()->points_to() != NULL
 				  || expr->is_addressable());
+  std::vector<const Named_type*> seen;
   bool is_method = false;
   bool found_pointer_method = false;
   std::string ambig1;
   std::string ambig2;
-  if (Type::find_field_or_method(type, name, receiver_can_be_pointer, NULL,
-				 &is_method, &found_pointer_method,
-				 &ambig1, &ambig2))
+  if (Type::find_field_or_method(type, name, receiver_can_be_pointer,
+				 &seen, NULL, &is_method,
+				 &found_pointer_method, &ambig1, &ambig2))
     {
       Expression* ret;
       if (!is_method)
@@ -7564,8 +7786,10 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
 	  else
 	    {
 	      std::string unpacked = Gogo::unpack_hidden_name(name);
+	      seen.clear();
 	      is_unexported = Type::is_unexported_field_or_method(gogo, type,
-								  unpacked);
+								  unpacked,
+								  &seen);
 	    }
 	  if (is_unexported)
 	    error_at(location, "reference to unexported field or method %qs",
@@ -7583,13 +7807,16 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
 // ambiguity.  If a method is found, sets *IS_METHOD to true;
 // otherwise, if a field is found, set it to false.  If
 // RECEIVER_CAN_BE_POINTER is false, then the receiver is a value
-// whose address can not be taken.  When returning false, this sets
-// *FOUND_POINTER_METHOD if we found a method we couldn't use because
-// it requires a pointer.  LEVEL is used for recursive calls, and can
-// be NULL for a non-recursive call.  When this function returns false
-// because it finds that the name is ambiguous, it will store a path
-// to the ambiguous names in *AMBIG1 and *AMBIG2.  If the name is not
-// found at all, *AMBIG1 and *AMBIG2 will be unchanged.
+// whose address can not be taken.  SEEN is used to avoid infinite
+// recursion on invalid types.
+
+// When returning false, this sets *FOUND_POINTER_METHOD if we found a
+// method we couldn't use because it requires a pointer.  LEVEL is
+// used for recursive calls, and can be NULL for a non-recursive call.
+// When this function returns false because it finds that the name is
+// ambiguous, it will store a path to the ambiguous names in *AMBIG1
+// and *AMBIG2.  If the name is not found at all, *AMBIG1 and *AMBIG2
+// will be unchanged.
 
 // This function just returns whether or not there is a field or
 // method, and whether it is a field or method.  It doesn't build an
@@ -7602,6 +7829,7 @@ bool
 Type::find_field_or_method(const Type* type,
 			   const std::string& name,
 			   bool receiver_can_be_pointer,
+			   std::vector<const Named_type*>* seen,
 			   int* level,
 			   bool* is_method,
 			   bool* found_pointer_method,
@@ -7628,6 +7856,17 @@ Type::find_field_or_method(const Type* type,
 	  // else.
 	  *found_pointer_method = true;
 	}
+
+      for (std::vector<const Named_type*>::const_iterator p = seen->begin();
+	   p != seen->end();
+	   ++p)
+	{
+	  if (*p == nt)
+	    {
+	      // We've already seen this type when searching for methods.
+	      return false;
+	    }
+	}
     }
 
   // Interface types can have methods.
@@ -7647,6 +7886,9 @@ Type::find_field_or_method(const Type* type,
   if (fields == NULL)
     return false;
 
+  if (nt != NULL)
+    seen->push_back(nt);
+
   int found_level = 0;
   bool found_is_method = false;
   std::string found_ambig1;
@@ -7659,10 +7901,16 @@ Type::find_field_or_method(const Type* type,
       if (pf->field_name() == name)
 	{
 	  *is_method = false;
+	  if (nt != NULL)
+	    seen->pop_back();
 	  return true;
 	}
 
       if (!pf->is_anonymous())
+	continue;
+
+      if (pf->type()->deref()->is_error_type()
+	  || pf->type()->deref()->is_undefined())
 	continue;
 
       Named_type* fnt = pf->type()->deref()->named_type();
@@ -7675,6 +7923,7 @@ Type::find_field_or_method(const Type* type,
       bool subfound = Type::find_field_or_method(fnt,
 						 name,
 						 receiver_can_be_pointer,
+						 seen,
 						 &sublevel,
 						 &sub_is_method,
 						 found_pointer_method,
@@ -7731,6 +7980,9 @@ Type::find_field_or_method(const Type* type,
   // FOUND_AMBIG2 are not empty.  If we found the field, FOUND_LEVEL
   // is not 0 and FOUND_AMBIG1 and FOUND_AMBIG2 are empty.
 
+  if (nt != NULL)
+    seen->pop_back();
+
   if (found_level == 0)
     return false;
   else if (!found_ambig1.empty())
@@ -7755,13 +8007,28 @@ Type::find_field_or_method(const Type* type,
 
 bool
 Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
-				    const std::string& name)
+				    const std::string& name,
+				    std::vector<const Named_type*>* seen)
 {
   type = type->deref();
 
   const Named_type* nt = type->named_type();
-  if (nt != NULL && nt->is_unexported_local_method(gogo, name))
-    return true;
+  if (nt != NULL)
+    {
+      if (nt->is_unexported_local_method(gogo, name))
+	return true;
+
+      for (std::vector<const Named_type*>::const_iterator p = seen->begin();
+	   p != seen->end();
+	   ++p)
+	{
+	  if (*p == nt)
+	    {
+	      // We've already seen this type.
+	      return false;
+	    }
+	}
+    }
 
   const Interface_type* it = type->interface_type();
   if (it != NULL && it->is_unexported_method(gogo, name))
@@ -7778,18 +8045,30 @@ Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
   if (fields == NULL)
     return false;
 
+  if (nt != NULL)
+    seen->push_back(nt);
+
   for (Struct_field_list::const_iterator pf = fields->begin();
        pf != fields->end();
        ++pf)
     {
-      if (pf->is_anonymous())
+      if (pf->is_anonymous()
+	  && (!pf->type()->deref()->is_error_type()
+	      && !pf->type()->deref()->is_undefined()))
 	{
 	  Named_type* subtype = pf->type()->deref()->named_type();
 	  gcc_assert(subtype != NULL);
-	  if (Type::is_unexported_field_or_method(gogo, subtype, name))
-	    return true;
+	  if (Type::is_unexported_field_or_method(gogo, subtype, name, seen))
+	    {
+	      if (nt != NULL)
+		seen->pop_back();
+	      return true;
+	    }
 	}
     }
+
+  if (nt != NULL)
+    seen->pop_back();
 
   return false;
 }
@@ -7908,7 +8187,8 @@ Forward_declaration_type::add_method(const std::string& name,
 				     Function* function)
 {
   Named_object* no = this->named_object();
-  gcc_assert(no->is_type_declaration());
+  if (no->is_unknown())
+    no->declare_as_type();
   return no->type_declaration_value()->add_method(name, function);
 }
 
@@ -7921,7 +8201,8 @@ Forward_declaration_type::add_method_declaration(const std::string& name,
 						 source_location location)
 {
   Named_object* no = this->named_object();
-  gcc_assert(no->is_type_declaration());
+  if (no->is_unknown())
+    no->declare_as_type();
   Type_declaration* td = no->type_declaration_value();
   return td->add_method_declaration(name, type, location);
 }
@@ -7956,6 +8237,7 @@ Forward_declaration_type::do_get_tree(Gogo* gogo)
   tree id = no->get_id(gogo);
   tree decl = build_decl(no->location(), TYPE_DECL, id, type_tree);
   TYPE_NAME(type_tree) = decl;
+  layout_type(type_tree);
   return type_tree;
 }
 

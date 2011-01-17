@@ -1,5 +1,5 @@
 ;; Predicate definitions for Matsushita MN10300.
-;; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2007, 2010 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -23,18 +23,6 @@
   (match_code "const_int,const_double")
 {
   return (op == CONST1_RTX (SFmode));
-})
-
-;; Return 1 if X is a CONST_INT that is only 8 bits wide.  This is
-;; used for the btst insn which may examine memory or a register (the
-;; memory variant only allows an unsigned 8-bit integer).
-
-(define_predicate "const_8bit_operand"
-  (match_code "const_int")
-{
-  return (GET_CODE (op) == CONST_INT
-	  && INTVAL (op) >= 0
-	  && INTVAL (op) < 256);
 })
 
 ;; Return true if OP is a valid call operand.

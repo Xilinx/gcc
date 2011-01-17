@@ -46,6 +46,14 @@ along with GCC; see the file COPYING3.  If not see
 #define SYSROOT_SUFFIX_SPEC "x86"
 #endif
 
+#ifndef CROSS_DIRECTORY_STRUCTURE
+#undef MD_EXEC_PREFIX
+#define MD_EXEC_PREFIX "/usr/ccs/bin/"
+
+#undef MD_STARTFILE_PREFIX
+#define MD_STARTFILE_PREFIX "/usr/ccs/lib/"
+#endif
+
 #undef STARTFILE_SPEC
 #define STARTFILE_SPEC \
 "%{!shared: \
@@ -75,6 +83,11 @@ crti.o%s \
    -m i386nto \
    %{!shared: --dynamic-linker /usr/lib/ldqnx.so.2}"
 
+#undef	LIB_SPEC
+#define LIB_SPEC "%{!shared:%{!symbolic:-lc}}"
+
+#undef  ASM_SPEC
+#define ASM_SPEC ""
 
 #undef SIZE_TYPE
 #define SIZE_TYPE "unsigned int"
@@ -90,3 +103,6 @@ crti.o%s \
 
 #define NO_IMPLICIT_EXTERN_C 1
 
+#define TARGET_POSIX_IO
+
+#undef DBX_REGISTER_NUMBER

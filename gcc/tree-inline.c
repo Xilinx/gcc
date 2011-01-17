@@ -3281,6 +3281,7 @@ estimate_operator_cost (enum tree_code code, eni_weights *weights,
     CASE_CONVERT:
     case COMPLEX_EXPR:
     case PAREN_EXPR:
+    case VIEW_CONVERT_EXPR:
       return 0;
 
     /* Assign cost of 1 to usual operations.
@@ -3782,14 +3783,19 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   if (gimple_code (stmt) != GIMPLE_CALL)
     goto egress;
 
-  /* First, see if we can figure out what function is being called.
-     If we cannot, then there is no hope of inlining the function.  */
-  fn = gimple_call_fndecl (stmt);
-  if (!fn)
+  /* Objective C and fortran still calls tree_rest_of_compilation directly.
+     Kill this check once this is fixed.  */
+  if (!id->dst_node->analyzed)
     goto egress;
 
-  /* Turn forward declarations into real ones.  */
-  fn = cgraph_node (fn)->decl;
+  cg_edge = cgraph_edge (id->dst_node, stmt);
+  gcc_checking_assert (cg_edge);
+  /* First, see if we can figure out what function is being called.
+     If we cannot, then there is no hope of inlining the function.  */
+  if (cg_edge->indirect_unknown_callee)
+    goto egress;
+  fn = cg_edge->callee->decl;
+  gcc_checking_assert (fn);
 
   /* If FN is a declaration of a function in a nested scope that was
      globally declared inline, we don't set its DECL_INITIAL.
@@ -3802,13 +3808,6 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
       && DECL_ABSTRACT_ORIGIN (fn)
       && gimple_has_body_p (DECL_ABSTRACT_ORIGIN (fn)))
     fn = DECL_ABSTRACT_ORIGIN (fn);
-
-  /* Objective C and fortran still calls tree_rest_of_compilation directly.
-     Kill this check once this is fixed.  */
-  if (!id->dst_node->analyzed)
-    goto egress;
-
-  cg_edge = cgraph_edge (id->dst_node, stmt);
 
   /* First check that inlining isn't simply forbidden in this case.  */
   if (inline_forbidden_into_p (cg_edge->caller->decl, cg_edge->callee->decl))
@@ -5379,7 +5378,8 @@ tree_can_inline_p (struct cgraph_edge *e)
   if (inline_forbidden_into_p (caller, callee))
     {
       e->inline_failed = CIF_UNSPECIFIED;
-      gimple_call_set_cannot_inline (e->call_stmt, true);
+      if (e->call_stmt)
+	gimple_call_set_cannot_inline (e->call_stmt, true);
       return false;
     }
 
@@ -5387,7 +5387,8 @@ tree_can_inline_p (struct cgraph_edge *e)
   if (!targetm.target_option.can_inline_p (caller, callee))
     {
       e->inline_failed = CIF_TARGET_OPTION_MISMATCH;
-      gimple_call_set_cannot_inline (e->call_stmt, true);
+      if (e->call_stmt)
+	gimple_call_set_cannot_inline (e->call_stmt, true);
       e->call_stmt_cannot_inline_p = true;
       return false;
     }
@@ -5404,7 +5405,8 @@ tree_can_inline_p (struct cgraph_edge *e)
 	  || !gimple_check_call_args (e->call_stmt)))
     {
       e->inline_failed = CIF_MISMATCHED_ARGUMENTS;
-      gimple_call_set_cannot_inline (e->call_stmt, true);
+      if (e->call_stmt)
+	gimple_call_set_cannot_inline (e->call_stmt, true);
       e->call_stmt_cannot_inline_p = true;
       return false;
     }

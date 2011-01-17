@@ -294,6 +294,17 @@ DEFHOOK
  section *, (tree decl, enum node_frequency freq, bool startup, bool exit),
  default_function_section)
 
+/* Output the assembler code for function exit.  */
+DEFHOOK
+(function_switched_text_sections,
+ "Used by the target to emit any assembler directives or additional\
+  labels needed when a function is partitioned between different\
+  sections.  Output should be written to @var{file}.  The function\
+  decl is available as @var{decl} and the new section is `cold' if\
+  @var{new_is_cold} is @code{true}.",
+ void, (FILE *file, tree decl, bool new_is_cold),
+ default_function_switched_text_sections)
+
 /* Return a mask describing how relocations should be treated when
    selecting sections.  Bit 1 should be set if global relocations
    should be placed in a read-write section; bit 0 should be set if
@@ -523,6 +534,18 @@ DEFHOOK_UNDOC
  "",
  bool ,(unsigned char code),
  default_print_operand_punct_valid_p)
+
+/* Given a symbol name, perform same mangling as assemble_name and
+   ASM_OUTPUT_LABELREF, returning result as an IDENTIFIER_NODE.  */
+DEFHOOK
+(mangle_assembler_name,
+ "Given a symbol @var{name}, perform same mangling as @code{varasm.c}'s\
+ @code{assemble_name}, but in memory rather than to a file stream, returning\
+ result as an @code{IDENTIFIER_NODE}.  Required for correct LTO symtabs.  The\
+ default implementation calls the @code{TARGET_STRIP_NAME_ENCODING} hook and\
+ then prepends the @code{USER_LABEL_PREFIX}, if any.",
+ tree, (const char *name),
+ default_mangle_assembler_name)
 
 HOOK_VECTOR_END (asm_out)
 
@@ -1496,6 +1519,17 @@ DEFHOOK
  bool, (enum machine_mode mode),
  default_valid_pointer_mode)
 
+/* Disambiguate with errno.  */
+DEFHOOK
+(ref_may_alias_errno,
+ "Define this to return nonzero if the memory reference @var{ref}\
+  may alias with the system C library errno location.  The default\
+  version of this hook assumes the system C library errno location\
+  is either a declaration of type int or accessed by dereferencing\
+  a pointer to int.",
+ bool, (struct ao_ref_s *ref),
+ default_ref_may_alias_errno)
+
 /* Support for named address spaces.  */
 #undef HOOK_PREFIX
 #define HOOK_PREFIX "TARGET_ADDR_SPACE_"
@@ -2228,8 +2262,8 @@ DEFHOOK
 (preferred_rename_class,
  "A target hook that places additional preference on the register\
  class to use when it is necessary to rename a register in class\
- @var{class} to another class, or perhaps @var{NO_REGS}, if no\
- prefered register class is found or hook @code{preferred_rename_class}\
+ @var{rclass} to another class, or perhaps @var{NO_REGS}, if no\
+ preferred register class is found or hook @code{preferred_rename_class}\
  is not implemented.\
  Sometimes returning a more restrictive class makes better code.  For\
  example, on ARM, thumb-2 instructions using @code{LO_REGS} may be\

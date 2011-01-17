@@ -51,9 +51,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "builtins.h"
 
-#ifndef SLOW_UNALIGNED_ACCESS
-#define SLOW_UNALIGNED_ACCESS(MODE, ALIGN) STRICT_ALIGNMENT
-#endif
 
 #ifndef PAD_VARARGS_DOWN
 #define PAD_VARARGS_DOWN BYTES_BIG_ENDIAN
@@ -3068,7 +3065,8 @@ expand_builtin_pow_root (location_t loc, tree arg0, tree arg1, tree type,
 	  if (REAL_VALUES_EQUAL (c, dconsthalf))
 	    op = build_call_nofold_loc (loc, sqrtfn, 1, arg0);
 
-	  else
+	  /* Don't do this optimization if we don't have a sqrt insn.  */
+	  else if (optab_handler (sqrt_optab, mode) != CODE_FOR_nothing)
 	    {
 	      REAL_VALUE_TYPE dconst1_4 = dconst1;
 	      REAL_VALUE_TYPE dconst3_4;
@@ -3114,7 +3112,8 @@ expand_builtin_pow_root (location_t loc, tree arg0, tree arg1, tree type,
 	    op = build_call_nofold_loc (loc, cbrtfn, 1, arg0);
 
 	      /* Now try 1/6.  */
-	  else if (optimize_insn_for_speed_p ())
+	  else if (optimize_insn_for_speed_p ()
+		   && optab_handler (sqrt_optab, mode) != CODE_FOR_nothing)
 	    {
 	      REAL_VALUE_TYPE dconst1_6 = dconst1_3;
 	      SET_REAL_EXP (&dconst1_6, REAL_EXP (&dconst1_6) - 1);

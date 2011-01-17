@@ -173,6 +173,9 @@ struct access
      entirely? */
   unsigned total_scalarization : 1;
 
+  /* Is this access an access to a non-addressable field? */
+  unsigned non_addressable : 1;
+
   /* Is this access currently in the work queue?  */
   unsigned grp_queued : 1;
 
@@ -653,7 +656,8 @@ type_internals_preclude_sra_p (tree type)
 		|| !DECL_FIELD_OFFSET (fld) || !DECL_SIZE (fld)
 		|| !host_integerp (DECL_FIELD_OFFSET (fld), 1)
 		|| !host_integerp (DECL_SIZE (fld), 1)
-		|| (DECL_BIT_FIELD (fld) && AGGREGATE_TYPE_P (ft)))
+		|| (AGGREGATE_TYPE_P (ft)
+		    && int_bit_position (fld) % BITS_PER_UNIT != 0))
 	      return true;
 
 	    if (AGGREGATE_TYPE_P (ft)
@@ -814,6 +818,10 @@ create_access (tree expr, gimple stmt, bool write)
   access->write = write;
   access->grp_unscalarizable_region = unscalarizable_region;
   access->stmt = stmt;
+
+  if (TREE_CODE (expr) == COMPONENT_REF
+      && DECL_NONADDRESSABLE_P (TREE_OPERAND (expr, 1)))
+    access->non_addressable = 1;
 
   return access;
 }
@@ -3563,10 +3571,12 @@ splice_param_accesses (tree parm, bool *ro_grp)
   while (i < access_count)
     {
       bool modification;
+      tree a1_alias_type;
       access = VEC_index (access_p, access_vec, i);
       modification = access->write;
       if (access_precludes_ipa_sra_p (access))
 	return NULL;
+      a1_alias_type = reference_alias_ptr_type (access->expr);
 
       /* Access is about to become group representative unless we find some
 	 nasty overlap which would preclude us from breaking this parameter
@@ -3587,7 +3597,11 @@ splice_param_accesses (tree parm, bool *ro_grp)
 	  else if (ac2->size != access->size)
 	    return NULL;
 
-	  if (access_precludes_ipa_sra_p (ac2))
+	  if (access_precludes_ipa_sra_p (ac2)
+	      || (ac2->type != access->type
+		  && (TREE_ADDRESSABLE (ac2->type)
+		      || TREE_ADDRESSABLE (access->type)))
+	      || (reference_alias_ptr_type (ac2->expr) != a1_alias_type))
 	    return NULL;
 
 	  modification |= ac2->write;
@@ -3659,13 +3673,18 @@ decide_one_param_reduction (struct access *repr)
   for (; repr; repr = repr->next_grp)
     {
       gcc_assert (parm == repr->base);
-      new_param_count++;
+
+      /* Taking the address of a non-addressable field is verboten.  */
+      if (by_ref && repr->non_addressable)
+	return 0;
 
       if (!by_ref || (!repr->grp_maybe_modified
 		      && !repr->grp_not_necessarilly_dereferenced))
 	total_size += repr->size;
       else
 	total_size += cur_parm_size;
+
+      new_param_count++;
     }
 
   gcc_assert (new_param_count > 0);
@@ -3822,6 +3841,7 @@ turn_representatives_into_adjustments (VEC (access_p, heap) *representatives,
 	      adj->base_index = index;
 	      adj->base = repr->base;
 	      adj->type = repr->type;
+	      adj->alias_ptr_type = reference_alias_ptr_type (repr->expr);
 	      adj->offset = repr->offset;
 	      adj->by_ref = (POINTER_TYPE_P (TREE_TYPE (repr->base))
 			     && (repr->grp_maybe_modified

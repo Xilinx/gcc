@@ -873,8 +873,7 @@ class Parser_expression : public Expression
   do_lower(Gogo*, Named_object*, int) = 0;
 
   Type*
-  do_type()
-  { gcc_unreachable(); }
+  do_type();
 
   void
   do_determine_type(const Type_context*)
@@ -1235,7 +1234,10 @@ class Call_expression : public Expression
   Expression*
   do_copy()
   {
-    return Expression::make_call(this->fn_->copy(), this->args_->copy(),
+    return Expression::make_call(this->fn_->copy(),
+				 (this->args_ == NULL
+				  ? NULL
+				  : this->args_->copy()),
 				 this->is_varargs_, this->location());
   }
 
@@ -1343,7 +1345,9 @@ class Func_expression : public Expression
   do_copy()
   {
     return Expression::make_func_reference(this->function_,
-					   this->closure_->copy(),
+					   (this->closure_ == NULL
+					    ? NULL
+					    : this->closure_->copy()),
 					   this->location());
   }
 
@@ -1383,6 +1387,12 @@ class Unknown_expression : public Parser_expression
   void
   set_is_composite_literal_key()
   { this->is_composite_literal_key_ = true; }
+
+  // Note that this expression should no longer be treated as a
+  // composite literal key.
+  void
+  clear_is_composite_literal_key()
+  { this->is_composite_literal_key_ = false; }
 
  protected:
   Expression*

@@ -1,5 +1,6 @@
 /* The implementation of class Object for Objective-C.
-   Copyright (C) 1993, 1994, 1995, 1997, 2002, 2009 Free Software Foundation, Inc.
+   Copyright (C) 1993, 1994, 1995, 1997, 2002, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -30,6 +31,22 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "objc/objc-api.h"
 
 @implementation Object
+
+- (Class)class
+{
+  return object_get_class (self);
+}
+
+- (BOOL)isEqual: (id)anObject
+{
+  return self == anObject;
+}
+
+@end
+
+/* The following methods were deprecated in GCC 4.6.0 and will be
+   removed in the next GCC release.  */
+@implementation Object (Deprecated)
 
 + initialize
 {
@@ -76,11 +93,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
   return [self copy];
 }
 
-- (Class)class
-{
-  return object_get_class(self);
-}
-
 - (Class)superClass
 {
   return object_get_super_class(self);
@@ -104,11 +116,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 - (unsigned int)hash
 {
   return (size_t)self;
-}
-
-- (BOOL)isEqual:anObject
-{
-  return self==anObject;
 }
 
 - (int)compare:(id)anotherObject;
@@ -344,13 +351,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
   class_set_version(self, aVersion);
   return self;
 }
-@end
-
-/* The following methods were deprecated in GCC 4.6.0 and will be
-   removed in the next GCC release.
-*/
-
-@implementation Object (Deprecated)
 
 + (int)streamVersion: (TypedStream*)aStream
 {

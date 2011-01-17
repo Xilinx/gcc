@@ -1,6 +1,6 @@
 /* gfortran header file
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010
+   2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -96,6 +96,13 @@ typedef enum
 { SUCCESS = 1, FAILURE }
 gfc_try;
 
+/* These are flags for identifying whether we are reading a character literal
+   between quotes or normal source code.  */
+   
+typedef enum
+{ NONSTRING = 0, INSTRING_WARN, INSTRING_NOWARN }
+gfc_instring;
+
 /* This is returned by gfc_notification_std to know if, given the flags
    that were given (-std=, -pedantic) we should issue an error, a warning
    or nothing.  */
@@ -113,6 +120,7 @@ typedef enum
 { MATCH_NO = 1, MATCH_YES, MATCH_ERROR }
 match;
 
+/* Used for different Fortran source forms in places like scanner.c.  */
 typedef enum
 { FORM_FREE, FORM_FIXED, FORM_UNKNOWN }
 gfc_source_form;
@@ -160,7 +168,6 @@ typedef enum
 }
 gfc_intrinsic_op;
 
-
 /* This macro is the number of intrinsic operators that exist.
    Assumptions are made about the numbering of the interface_op enums.  */
 #define GFC_INTRINSIC_OPS GFC_INTRINSIC_END
@@ -205,7 +212,6 @@ typedef enum
   ST_GET_FCN_CHARACTERISTICS, ST_NONE
 }
 gfc_statement;
-
 
 /* Types of interfaces that we can have.  Assignment interfaces are
    considered to be intrinsic operators.  */
@@ -716,6 +722,11 @@ typedef struct
   /* Function/subroutine attributes */
   unsigned sequence:1, elemental:1, pure:1, recursive:1;
   unsigned unmaskable:1, masked:1, contained:1, mod_proc:1, abstract:1;
+
+  /* This is set if a contained procedure could be declared pure.  This is
+     used for certain optimizations that require the result or arguments
+     cannot alias.  Note that this is zero for PURE procedures.  */
+  unsigned implicit_pure:1;
 
   /* This is set if the subroutine doesn't return.  Currently, this
      is only possible for intrinsic subroutines.  */
@@ -2068,7 +2079,6 @@ typedef struct gfc_code
   union
   {
     gfc_actual_arglist *actual;
-    gfc_case *case_list;
     gfc_iterator *iterator;
 
     struct
@@ -2082,6 +2092,7 @@ typedef struct gfc_code
     {
       gfc_namespace *ns;
       gfc_association_list *assoc;
+      gfc_case *case_list;
     }
     block;
 
@@ -2332,7 +2343,7 @@ gfc_char_t *gfc_char_to_widechar (const char *);
 #define gfc_get_wide_string(n) XCNEWVEC (gfc_char_t, n)
 
 void gfc_skip_comments (void);
-gfc_char_t gfc_next_char_literal (int);
+gfc_char_t gfc_next_char_literal (gfc_instring);
 gfc_char_t gfc_next_char (void);
 char gfc_next_ascii_char (void);
 gfc_char_t gfc_peek_char (void);
@@ -2530,8 +2541,6 @@ void gfc_free_st_label (gfc_st_label *);
 void gfc_define_st_label (gfc_st_label *, gfc_sl_type, locus *);
 gfc_try gfc_reference_st_label (gfc_st_label *, gfc_sl_type);
 
-gfc_expr * gfc_lval_expr_from_sym (gfc_symbol *);
-
 gfc_namespace *gfc_get_namespace (gfc_namespace *, int);
 gfc_symtree *gfc_new_symtree (gfc_symtree **, const char *);
 gfc_symtree *gfc_find_symtree (gfc_symtree *, const char *);
@@ -2556,8 +2565,6 @@ gfc_symbol *get_iso_c_sym (gfc_symbol *, char *, char *, int);
 int gfc_get_sym_tree (const char *, gfc_namespace *, gfc_symtree **, bool);
 int gfc_get_ha_symbol (const char *, gfc_symbol **);
 int gfc_get_ha_sym_tree (const char *, gfc_symtree **);
-
-int gfc_symbols_could_alias (gfc_symbol *, gfc_symbol *);
 
 void gfc_undo_symbols (void);
 void gfc_commit_symbols (void);
@@ -2695,6 +2702,7 @@ gfc_try gfc_check_assign_symbol (gfc_symbol *, gfc_expr *);
 bool gfc_has_default_initializer (gfc_symbol *);
 gfc_expr *gfc_default_initializer (gfc_typespec *);
 gfc_expr *gfc_get_variable_expr (gfc_symtree *);
+gfc_expr * gfc_lval_expr_from_sym (gfc_symbol *);
 
 gfc_array_spec *gfc_get_full_arrayspec_from_expr (gfc_expr *expr);
 
@@ -2733,6 +2741,7 @@ void gfc_resolve (gfc_namespace *);
 void gfc_resolve_blocks (gfc_code *, gfc_namespace *);
 int gfc_impure_variable (gfc_symbol *);
 int gfc_pure (gfc_symbol *);
+int gfc_implicit_pure (gfc_symbol *);
 int gfc_elemental (gfc_symbol *);
 gfc_try gfc_resolve_iterator (gfc_iterator *, bool);
 gfc_try find_forall_index (gfc_expr *, gfc_symbol *, int);
@@ -2862,6 +2871,7 @@ void gfc_add_component_ref (gfc_expr *, const char *);
 #define gfc_add_size_component(e)     gfc_add_component_ref(e,"_size")
 #define gfc_add_def_init_component(e) gfc_add_component_ref(e,"_def_init")
 gfc_expr *gfc_class_null_initializer (gfc_typespec *);
+unsigned int gfc_hash_value (gfc_symbol *);
 gfc_try gfc_build_class_symbol (gfc_typespec *, symbol_attribute *,
 				gfc_array_spec **, bool);
 gfc_symbol *gfc_find_derived_vtab (gfc_symbol *);

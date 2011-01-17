@@ -1,6 +1,6 @@
 /* Routines for manipulation of expression nodes.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010
+   2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -3227,7 +3227,7 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 {
   symbol_attribute attr;
   gfc_ref *ref;
-  bool is_pure, rank_remap;
+  bool is_pure, is_implicit_pure, rank_remap;
   int proc_pointer;
 
   if (lvalue->symtree->n.sym->ts.type == BT_UNKNOWN
@@ -3311,6 +3311,7 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
     }
 
   is_pure = gfc_pure (NULL);
+  is_implicit_pure = gfc_implicit_pure (NULL);
 
   /* If rvalue is a NULL() or NULLIFY, we're done. Otherwise the type,
      kind, etc for lvalue and rvalue must match, and rvalue must be a
@@ -3519,6 +3520,10 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 		 "procedure at %L", &rvalue->where);
     }
 
+  if (is_implicit_pure && gfc_impure_variable (rvalue->symtree->n.sym))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
+    
+
   if (gfc_has_vector_index (rvalue))
     {
       gfc_error ("Pointer assignment with vector subscript "
@@ -3648,7 +3653,8 @@ gfc_default_initializer (gfc_typespec *ts)
   /* See if we have a default initializer in this, but not in nested
      types (otherwise we could use gfc_has_default_initializer()).  */
   for (comp = ts->u.derived->components; comp; comp = comp->next)
-    if (comp->initializer || comp->attr.allocatable)
+    if (comp->initializer || comp->attr.allocatable
+	|| (comp->ts.type == BT_CLASS && CLASS_DATA (comp)->attr.allocatable))
       break;
 
   if (!comp)
@@ -3665,7 +3671,8 @@ gfc_default_initializer (gfc_typespec *ts)
       if (comp->initializer)
 	ctor->expr = gfc_copy_expr (comp->initializer);
 
-      if (comp->attr.allocatable)
+      if (comp->attr.allocatable
+	  || (comp->ts.type == BT_CLASS && CLASS_DATA (comp)->attr.allocatable))
 	{
 	  ctor->expr = gfc_get_expr ();
 	  ctor->expr->expr_type = EXPR_NULL;
@@ -3702,6 +3709,32 @@ gfc_get_variable_expr (gfc_symtree *var)
     }
 
   return e;
+}
+
+
+gfc_expr *
+gfc_lval_expr_from_sym (gfc_symbol *sym)
+{
+  gfc_expr *lval;
+  lval = gfc_get_expr ();
+  lval->expr_type = EXPR_VARIABLE;
+  lval->where = sym->declared_at;
+  lval->ts = sym->ts;
+  lval->symtree = gfc_find_symtree (sym->ns->sym_root, sym->name);
+
+  /* It will always be a full array.  */
+  lval->rank = sym->as ? sym->as->rank : 0;
+  if (lval->rank)
+    {
+      lval->ref = gfc_get_ref ();
+      lval->ref->type = REF_ARRAY;
+      lval->ref->u.ar.type = AR_FULL;
+      lval->ref->u.ar.dimen = lval->rank;
+      lval->ref->u.ar.where = sym->declared_at;
+      lval->ref->u.ar.as = sym->as;
+    }
+
+  return lval;
 }
 
 
@@ -4432,6 +4465,9 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, const char* context)
 		   sym->name, context, &e->where);
       return FAILURE;
     }
+
+  if (!pointer && gfc_implicit_pure (NULL) && gfc_impure_variable (sym))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
 
   /* Check variable definition context for associate-names.  */
   if (!pointer && sym->assoc)

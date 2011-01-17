@@ -1,5 +1,5 @@
 /* Subroutines for insn-output.c for Tensilica's Xtensa architecture.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Bob Wilson (bwilson@tensilica.com) at Tensilica.
 
@@ -147,6 +147,8 @@ static rtx xtensa_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
 static rtx xtensa_function_incoming_arg (CUMULATIVE_ARGS *,
 					 enum machine_mode, const_tree, bool);
 static rtx xtensa_function_value (const_tree, const_tree, bool);
+static rtx xtensa_libcall_value (enum machine_mode, const_rtx);
+static bool xtensa_function_value_regno_p (const unsigned int);
 static unsigned int xtensa_function_arg_boundary (enum machine_mode,
 						  const_tree);
 static void xtensa_init_builtins (void);
@@ -157,6 +159,7 @@ static bool xtensa_frame_pointer_required (void);
 static rtx xtensa_static_chain (const_tree, bool);
 static void xtensa_asm_trampoline_template (FILE *);
 static void xtensa_trampoline_init (rtx, tree, rtx);
+static bool xtensa_output_addr_const_extra (FILE *, rtx);
 
 static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
   REG_ALLOC_ORDER;
@@ -219,6 +222,11 @@ static const struct default_options xtensa_option_optimization_table[] =
 #define TARGET_RETURN_IN_MEMORY xtensa_return_in_memory
 #undef TARGET_FUNCTION_VALUE
 #define TARGET_FUNCTION_VALUE xtensa_function_value
+#undef TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE xtensa_libcall_value
+#undef TARGET_FUNCTION_VALUE_REGNO_P
+#define TARGET_FUNCTION_VALUE_REGNO_P xtensa_function_value_regno_p
+
 #undef TARGET_SPLIT_COMPLEX_ARG
 #define TARGET_SPLIT_COMPLEX_ARG hook_bool_const_tree_true
 #undef TARGET_MUST_PASS_IN_STACK
@@ -273,6 +281,9 @@ static const struct default_options xtensa_option_optimization_table[] =
 #define TARGET_OPTION_OVERRIDE xtensa_option_override
 #undef TARGET_OPTION_OPTIMIZATION_TABLE
 #define TARGET_OPTION_OPTIMIZATION_TABLE xtensa_option_optimization_table
+
+#undef TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA
+#define TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA xtensa_output_addr_const_extra
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -2437,8 +2448,9 @@ print_operand_address (FILE *file, rtx addr)
     }
 }
 
+/* Implement TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA.  */
 
-bool
+static bool
 xtensa_output_addr_const_extra (FILE *fp, rtx x)
 {
   if (GET_CODE (x) == UNSPEC && XVECLEN (x, 0) == 1)
@@ -3489,6 +3501,24 @@ xtensa_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED,
                       && TYPE_PRECISION (valtype) < BITS_PER_WORD)
                      ? SImode : TYPE_MODE (valtype),
                      outgoing ? GP_OUTGOING_RETURN : GP_RETURN);
+}
+
+/* Worker function for TARGET_LIBCALL_VALUE.  */
+
+static rtx
+xtensa_libcall_value (enum machine_mode mode, const_rtx fun ATTRIBUTE_UNUSED)
+{
+  return gen_rtx_REG ((GET_MODE_CLASS (mode) == MODE_INT
+		       && GET_MODE_SIZE (mode) < UNITS_PER_WORD)
+		      ? SImode : mode, GP_RETURN);
+}
+
+/* Worker function TARGET_FUNCTION_VALUE_REGNO_P.  */
+
+static bool
+xtensa_function_value_regno_p (const unsigned int regno)
+{
+  return (regno == GP_RETURN);
 }
 
 /* The static chain is passed in memory.  Provide rtx giving 'mem'

@@ -152,10 +152,10 @@ static char debug;
 static char nop;
 static char *resolution_file = NULL;
 
-/* Set by default from configure.ac, but can be overridden at runtime
+/* Not used by default, but can be overridden at runtime
    by using -plugin-opt=-sym-style={none,win32,underscore|uscore}
    (in fact, only first letter of style arg is checked.)  */
-static enum symbol_style sym_style = SYM_STYLE;
+static enum symbol_style sym_style = ss_none;
 
 static void
 check_1 (int gate, enum ld_plugin_level level, const char *text)
@@ -249,10 +249,10 @@ parse_table_entry (char *p, struct ld_plugin_symbol *entry,
   entry->visibility = translate_visibility[t];
   p++;
 
-  entry->size = *(uint64_t *) p;
+  memcpy (&entry->size, p, sizeof (uint64_t));
   p += 8;
 
-  aux->slot = *(uint32_t *) p;
+  memcpy (&aux->slot, p, sizeof (uint32_t));
   p += 4;
 
   entry->resolution = LDPR_UNKNOWN;

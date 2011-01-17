@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler for Renesas / SuperH SH 
    non-Linux embedded targets.
-   Copyright (C) 2002, 2003, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2003, 2007, 2010 Free Software Foundation, Inc.
    Contributed by J"orn Rennecke <joern.rennecke@superh.com>
 
 This file is part of GCC.
@@ -21,8 +21,6 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef USER_LABEL_PREFIX
 #define USER_LABEL_PREFIX "_"
-
-#undef TARGET_POSIX_IO
 
 /* While the speed-optimized implementations of udivsi3_i4i / sdivsi3_i4i
    in libgcc are not available for SH2, the space-optimized ones in

@@ -614,6 +614,7 @@ java_init_decl_processing (void)
   integer_zero_node = build_int_cst (NULL_TREE, 0);
   integer_one_node = build_int_cst (NULL_TREE, 1);
   integer_two_node = build_int_cst (NULL_TREE, 2);
+  integer_three_node = build_int_cst (NULL_TREE, 3);
   integer_four_node = build_int_cst (NULL_TREE, 4);
   integer_minus_one_node = build_int_cst (NULL_TREE, -1);
 
@@ -1152,6 +1153,21 @@ java_init_decl_processing (void)
   soft_lrem_node
     = add_builtin_function ("_Jv_remJ", t,
 			    0, NOT_BUILT_IN, NULL, NULL_TREE);
+  /* Initialize va_list_type_node.  */
+  unsigned_type_node = make_unsigned_type (INT_TYPE_SIZE);
+  long_integer_type_node = make_signed_type (LONG_TYPE_SIZE);
+
+  t = targetm.build_builtin_va_list ();
+
+  /* Many back-ends define record types without setting TYPE_NAME.
+     If we copied the record type here, we'd keep the original
+     record type without a name.  This breaks name mangling.  So,
+     don't copy record types and let c_common_nodes_and_builtins()
+     declare the type to be __builtin_va_list.  */
+  if (TREE_CODE (t) != RECORD_TYPE)
+    t = build_variant_type_copy (t);
+
+  va_list_type_node = t;
 
   initialize_builtins ();
 

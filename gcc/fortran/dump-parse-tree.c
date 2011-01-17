@@ -105,6 +105,7 @@ show_typespec (gfc_typespec *ts)
 
     case BT_CHARACTER:
       show_expr (ts->u.cl->length);
+      fprintf(dumpfile, " %d", ts->kind);
       break;
 
     default:
@@ -537,7 +538,7 @@ show_expr (gfc_expr *p)
 	  fputs ("NOT ", dumpfile);
 	  break;
 	case INTRINSIC_PARENTHESES:
-	  fputs ("parens", dumpfile);
+	  fputs ("parens ", dumpfile);
 	  break;
 
 	default:
@@ -693,6 +694,8 @@ show_components (gfc_symbol *sym)
     {
       fprintf (dumpfile, "(%s ", c->name);
       show_typespec (&c->ts);
+      if (c->attr.allocatable)
+	fputs (" ALLOCATABLE", dumpfile);
       if (c->attr.pointer)
 	fputs (" POINTER", dumpfile);
       if (c->attr.proc_pointer)
@@ -1464,7 +1467,7 @@ show_code_node (int level, gfc_code *c)
 	  code_indent (level, 0);
 
 	  fputs ("CASE ", dumpfile);
-	  for (cp = d->ext.case_list; cp; cp = cp->next)
+	  for (cp = d->ext.block.case_list; cp; cp = cp->next)
 	    {
 	      fputc ('(', dumpfile);
 	      show_expr (cp->low);

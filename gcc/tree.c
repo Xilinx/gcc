@@ -6007,15 +6007,16 @@ type_hash_eq (const void *va, const void *vb)
       return TYPE_OFFSET_BASETYPE (a->type) == TYPE_OFFSET_BASETYPE (b->type);
 
     case METHOD_TYPE:
-      return (TYPE_METHOD_BASETYPE (a->type) == TYPE_METHOD_BASETYPE (b->type)
-	      && (TYPE_ARG_TYPES (a->type) == TYPE_ARG_TYPES (b->type)
-		  || (TYPE_ARG_TYPES (a->type)
-		      && TREE_CODE (TYPE_ARG_TYPES (a->type)) == TREE_LIST
-		      && TYPE_ARG_TYPES (b->type)
-		      && TREE_CODE (TYPE_ARG_TYPES (b->type)) == TREE_LIST
-		      && type_list_equal (TYPE_ARG_TYPES (a->type),
-					  TYPE_ARG_TYPES (b->type)))));
-
+      if (TYPE_METHOD_BASETYPE (a->type) == TYPE_METHOD_BASETYPE (b->type)
+	  && (TYPE_ARG_TYPES (a->type) == TYPE_ARG_TYPES (b->type)
+	      || (TYPE_ARG_TYPES (a->type)
+		  && TREE_CODE (TYPE_ARG_TYPES (a->type)) == TREE_LIST
+		  && TYPE_ARG_TYPES (b->type)
+		  && TREE_CODE (TYPE_ARG_TYPES (b->type)) == TREE_LIST
+		  && type_list_equal (TYPE_ARG_TYPES (a->type),
+				      TYPE_ARG_TYPES (b->type)))))
+        break;
+      return 0;
     case ARRAY_TYPE:
       return TYPE_DOMAIN (a->type) == TYPE_DOMAIN (b->type);
 
@@ -8518,8 +8519,12 @@ get_file_function_name (const char *type)
     p = q = ASTRDUP (first_global_object_name);
   /* If the target is handling the constructors/destructors, they
      will be local to this file and the name is only necessary for
-     debugging purposes.  */
-  else if ((type[0] == 'I' || type[0] == 'D') && targetm.have_ctors_dtors)
+     debugging purposes. 
+     We also assign sub_I and sub_D sufixes to constructors called from
+     the global static constructors.  These are always local.  */
+  else if (((type[0] == 'I' || type[0] == 'D') && targetm.have_ctors_dtors)
+	   || (strncmp (type, "sub_", 4) == 0
+	       && (type[4] == 'I' || type[4] == 'D')))
     {
       const char *file = main_input_filename;
       if (! file)
@@ -10935,7 +10940,7 @@ lhd_gcc_personality (void)
 tree
 get_binfo_at_offset (tree binfo, HOST_WIDE_INT offset, tree expected_type)
 {
-  tree type = TREE_TYPE (binfo);
+  tree type = BINFO_TYPE (binfo);
 
   while (true)
     {
@@ -10943,10 +10948,9 @@ get_binfo_at_offset (tree binfo, HOST_WIDE_INT offset, tree expected_type)
       tree fld;
       int i;
 
-      if (type == expected_type)
+      if (TYPE_MAIN_VARIANT (type) == TYPE_MAIN_VARIANT (expected_type))
 	  return binfo;
-      if (TREE_CODE (type) != RECORD_TYPE
-	  || offset < 0)
+      if (offset < 0)
 	return NULL_TREE;
 
       for (fld = TYPE_FIELDS (type); fld; fld = DECL_CHAIN (fld))
@@ -10959,12 +10963,18 @@ get_binfo_at_offset (tree binfo, HOST_WIDE_INT offset, tree expected_type)
 	  if (pos <= offset && (pos + size) > offset)
 	    break;
 	}
-      if (!fld || !DECL_ARTIFICIAL (fld))
+      if (!fld || TREE_CODE (TREE_TYPE (fld)) != RECORD_TYPE)
 	return NULL_TREE;
 
+      if (!DECL_ARTIFICIAL (fld))
+	{
+	  binfo = TYPE_BINFO (TREE_TYPE (fld));
+	  if (!binfo)
+	    return NULL_TREE;
+	}
       /* Offset 0 indicates the primary base, whose vtable contents are
 	 represented in the binfo for the derived class.  */
-      if (offset != 0)
+      else if (offset != 0)
 	{
 	  tree base_binfo, found_binfo = NULL_TREE;
 	  for (i = 0; BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)

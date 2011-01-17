@@ -1,5 +1,5 @@
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-@c 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+@c 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
 @c Free Software Foundation, Inc.
 @c This is part of the GCC manual.
 @c For copying conditions, see the file gcc.texi.
@@ -340,8 +340,8 @@ Objective-C and Objective-C++ Dialects}.
 -fcprop-registers -fcrossjumping @gol
 -fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules @gol
 -fcx-limited-range @gol
--fdata-sections -fdce -fdce @gol
--fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse @gol
+-fdata-sections -fdce -fdce -fdelayed-branch @gol
+-fdelete-null-pointer-checks -fdse -fdevirtualize -fdse @gol
 -fearly-inlining -fipa-sra -fexpensive-optimizations -ffast-math @gol
 -ffinite-math-only -ffloat-store -fexcess-precision=@var{style} @gol
 -fforward-propagate -ffp-contract=@var{style} -ffunction-sections @gol
@@ -1360,16 +1360,17 @@ Display the version number and copyrights of the invoked GCC@.
 
 @item -wrapper
 @opindex wrapper
-Invoke all subcommands under a wrapper program. It takes a single
-comma separated list as an argument, which will be used to invoke
-the wrapper:
+Invoke all subcommands under a wrapper program.  The name of the
+wrapper program and its parameters are passed as a comma separated
+list.
 
 @smallexample
 gcc -c t.c -wrapper gdb,--args
 @end smallexample
 
-This will invoke all subprograms of gcc under "gdb --args",
-thus cc1 invocation will be "gdb --args cc1 ...".
+This will invoke all subprograms of @command{gcc} under
+@samp{gdb --args}, thus the invocation of @command{cc1} will be
+@samp{gdb --args cc1 @dots{}}.
 
 @item -fplugin=@var{name}.so
 Load the plugin code in file @var{name}.so, assumed to be a
@@ -1699,7 +1700,7 @@ have support for @option{-pthread}.
 @opindex fms-extensions
 Accept some non-standard constructs used in Microsoft header files.
 
-It allows for c++ that member-names in structures can be similiar
+In C++ code, this allows member names in structures to be similar
 to previous types declarations.
 
 @smallexample
@@ -4844,7 +4845,7 @@ allocation before or after interprocedural optimization.
 @opindex fstack-usage
 Makes the compiler output stack usage information for the program, on a
 per-function basis.  The filename for the dump is made by appending
-@file{.su} to the AUXNAME.  AUXNAME is generated from the name of
+@file{.su} to the @var{auxname}.  @var{auxname} is generated from the name of
 the output file, if explicitly specified and it is not an executable,
 otherwise it is the basename of the source file.  An entry is made up
 of three fields:
@@ -4952,15 +4953,15 @@ more closely, if you do not optimize.
 
 @item -fdbg-cnt-list
 @opindex fdbg-cnt-list
-Print the name and the counter upperbound for all debug counters.
+Print the name and the counter upper bound for all debug counters.
 
 @item -fdbg-cnt=@var{counter-value-list}
 @opindex fdbg-cnt
-Set the internal debug counter upperbound. @var{counter-value-list}
+Set the internal debug counter upper bound.  @var{counter-value-list}
 is a comma-separated list of @var{name}:@var{value} pairs
-which sets the upperbound of each debug counter @var{name} to @var{value}.
-All debug counters have the initial upperbound of @var{UINT_MAX},
-thus dbg_cnt() returns true always unless the upperbound is set by this option.
+which sets the upper bound of each debug counter @var{name} to @var{value}.
+All debug counters have the initial upper bound of @var{UINT_MAX},
+thus dbg_cnt() returns true always unless the upper bound is set by this option.
 e.g. With -fdbg-cnt=dce:10,tail_call:0
 dbg_cnt(dce) will return true only for first 10 invocations
 and dbg_cnt(tail_call) will return false always.
@@ -5917,6 +5918,7 @@ also turns on the following optimization flags:
 -fcrossjumping @gol
 -fcse-follow-jumps  -fcse-skip-blocks @gol
 -fdelete-null-pointer-checks @gol
+-fdevirtualize @gol
 -fexpensive-optimizations @gol
 -fgcse  -fgcse-lm  @gol
 -finline-small-functions @gol
@@ -6419,6 +6421,14 @@ Some targets, especially embedded ones, disable this option at all levels.
 Otherwise it is enabled at all levels: @option{-O0}, @option{-O1},
 @option{-O2}, @option{-O3}, @option{-Os}.  Passes that use the information
 are enabled independently at different optimization levels.
+
+@item -fdevirtualize
+@opindex fdevirtualize
+Attempt to convert calls to virtual functions to direct calls.  This
+is done both within a procedure and interprocedurally as part of
+indirect inlining (@code{-findirect-inlining}) and interprocedural constant
+propagation (@option{-fipa-cp}).
+Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fexpensive-optimizations
 @opindex fexpensive-optimizations
@@ -7500,7 +7510,7 @@ The only important thing to keep in mind is that to enable link-time
 optimizations the @option{-flto} flag needs to be passed to both the
 compile and the link commands.
 
-To make whole program optimization effective, it is necesary to make
+To make whole program optimization effective, it is necessary to make
 certain whole program assumptions.  The compiler needs to know
 what functions and variables can be accessed by libraries and runtime
 outside of the link time optimized unit.  When supported by the linker,
@@ -7586,23 +7596,21 @@ types in separate translation units to be linked together (undefined
 behavior according to ISO C99 6.2.7), a non-fatal diagnostic may be
 issued.  The behavior is still undefined at runtime.
 
-If object files containing GIMPLE bytecode are stored in a library
-archive, say @file{libfoo.a}, it is possible to extract and use them
-in an LTO link if you are using @command{gold} as the linker (which,
-in turn requires GCC to be configured with @option{--enable-gold}).
-To enable this feature, use the flag @option{-fuse-linker-plugin} at
-link-time:
+If object files containing GIMPLE bytecode are stored in a library archive, say
+@file{libfoo.a}, it is possible to extract and use them in an LTO link if you
+are using a linker with linker plugin support.  To enable this feature, use
+the flag @option{-fuse-linker-plugin} at link-time:
 
 @smallexample
 gcc -o myprog -O2 -flto -fuse-linker-plugin a.o b.o -lfoo
 @end smallexample
 
-With the linker plugin enabled, @command{gold} will extract the needed
+With the linker plugin enabled, the linker will extract the needed
 GIMPLE files from @file{libfoo.a} and pass them on to the running GCC
 to make them part of the aggregated GIMPLE image to be optimized.
 
-If you are not using @command{gold} and/or do not specify
-@option{-fuse-linker-plugin} then the objects inside @file{libfoo.a}
+If you are not using a linker with linker plugin support and/or do not 
+enable linker plugin then the objects inside @file{libfoo.a}
 will be extracted and linked as usual, but they will not participate
 in the LTO optimization process.
 
@@ -7666,13 +7674,20 @@ files in LTO mode (via @option{-flto}).
 Disabled by default.
 
 @item -fuse-linker-plugin
-Enables the extraction of objects with GIMPLE bytecode information
-from library archives.  This option relies on features available only
-in @command{gold}, so to use this you must configure GCC with
-@option{--enable-gold}.  See @option{-flto} for a description on the
-effect of this flag and how to use it.
+Enables the use of linker plugin during link time optimization.  This option
+relies on the linker plugin support in linker that is available in @code{gold}
+or in GNU ld 2.21.51 or newer..
 
-Disabled by default.
+This option enables the extraction of object files with GIMPLE bytecode out of
+library archives. This improves the quality of optimization by exposing more
+code the the link time optimizer.  This information specify what symbols 
+can be accessed externally (by non-LTO object or during dynamic linking).
+Resulting code quality improvements on binaries (and shared libaries that do
+use hidden visibility) is similar to @code{-fwhole-program}.  See
+@option{-flto} for a description on the effect of this flag and how to use it.
+
+Enabled by default when LTO support in GCC is enabled and GCC was compiled
+with linker supporting plugins (GNU ld or @code{gold}).
 
 @item -fcprop-registers
 @opindex fcprop-registers
@@ -7786,10 +7801,10 @@ Sets @option{-fno-math-errno}, @option{-funsafe-math-optimizations},
 
 This option causes the preprocessor macro @code{__FAST_MATH__} to be defined.
 
-This option is not turned on by any @option{-O} option since
-it can result in incorrect output for programs which depend on
-an exact implementation of IEEE or ISO rules/specifications for
-math functions. It may, however, yield faster code for programs
+This option is not turned on by any @option{-O} option besides
+@option{-Ofast} since it can result in incorrect output for programs
+which depend on an exact implementation of IEEE or ISO rules/specifications
+for math functions. It may, however, yield faster code for programs
 that do not require the guarantees of these specifications.
 
 @item -fno-math-errno
@@ -8221,6 +8236,11 @@ order to perform the global common subexpression elimination
 optimization.  If more memory than specified is required, the
 optimization will not be done.
 
+@item max-gcse-insertion-ratio
+If the ratio of expression insertions to deletions is larger than this value
+for any expression, then RTL PRE will insert or remove the expression and thus
+leave partially redundant computations in the instruction stream.  The default value is 20.
+
 @item max-pending-list-length
 The maximum number of pending dependencies scheduling will allow
 before flushing the current state and starting over.  Large functions
@@ -8332,7 +8352,7 @@ late inlining.
 @item comdat-sharing-probability
 @itemx comdat-sharing-probability
 Probability (in percent) that C++ inline function with comdat visibility
-will be shared acroess multiple compilation units.  The default value is 20.
+will be shared across multiple compilation units.  The default value is 20.
 
 @item min-vect-loop-bound
 The minimum number of iterations under which a loop will not get vectorized
@@ -8342,8 +8362,8 @@ to allow vectorization.  The default value is 0.
 
 @item gcse-cost-distance-ratio
 Scaling factor in calculation of maximum distance an expression
-can be moved by GCSE optimizations.  This is currently supported only in
-code hoisting pass.  The bigger the ratio, the more agressive code hoisting
+can be moved by GCSE optimizations.  This is currently supported only in the
+code hoisting pass.  The bigger the ratio, the more aggressive code hoisting
 will be with simple expressions, i.e., the expressions which have cost
 less than @option{gcse-unrestricted-cost}.  Specifying 0 will disable
 hoisting of simple expressions.  The default value is 10.
@@ -8352,7 +8372,7 @@ hoisting of simple expressions.  The default value is 10.
 Cost, roughly measured as the cost of a single typical machine
 instruction, at which GCSE optimizations will not constrain
 the distance an expression can travel.  This is currently
-supported only in code hoisting pass.  The lesser the cost,
+supported only in the code hoisting pass.  The lesser the cost,
 the more aggressive code hoisting will be.  Specifying 0 will
 allow all expressions to travel unrestricted distances.
 The default value is 3.
@@ -8812,12 +8832,12 @@ parameter in order to perform devirtualization.
 stores per a single formal parameter of a function.
 
 @item lto-partitions
-Specify desired nuber of partitions produced during WHOPR copmilation.
-Number of partitions should exceed number of CPUs used for compilatoin.
-Default value is 32.
+Specify desired number of partitions produced during WHOPR compilation.
+The number of partitions should exceed the number of CPUs used for compilation.
+The default value is 32.
 
 @item lto-minpartition
-Size of minimal paritition for WHOPR (in estimated instructions).
+Size of minimal partition for WHOPR (in estimated instructions).
 This prevents expenses of splitting very small programs into too many
 partitions.
 
@@ -9856,10 +9876,10 @@ proper position among the other output files.
 @cindex compiler version, specifying
 @cindex target machine, specifying
 
-The usual way to run GCC is to run the executable called @file{gcc}, or
-@file{<machine>-gcc} when cross-compiling, or
-@file{<machine>-gcc-<version>} to run a version other than the one that
-was installed last.
+The usual way to run GCC is to run the executable called @command{gcc}, or
+@command{@var{machine}-gcc} when cross-compiling, or
+@command{@var{machine}-gcc-@var{version}} to run a version other than the
+one that was installed last.
 
 @node Submodel Options
 @section Hardware Models and Configurations
@@ -12339,10 +12359,10 @@ the system libraries and startup modules.
 @item -mvect8-ret-in-mem
 @opindex mvect8-ret-in-mem
 Return 8-byte vectors in memory instead of MMX registers.  This is the
-default on Solaris~8 and 9 and VxWorks to match the ABI of the Sun
+default on Solaris@tie{}8 and 9 and VxWorks to match the ABI of the Sun
 Studio compilers until version 12.  Later compiler versions (starting
-with Studio 12 Update~1) follow the ABI used by other x86 targets, which
-is the default on Solaris~10 and later.  @emph{Only} use this option if
+with Studio 12 Update@tie{}1) follow the ABI used by other x86 targets, which
+is the default on Solaris@tie{}10 and later.  @emph{Only} use this option if
 you need to remain compatible with existing code produced by those
 previous compiler versions or older versions of GCC.
 
@@ -13938,7 +13958,7 @@ This option is deprecated.  Use @option{-fno-zero-initialized-in-bss} instead.
 Use features of and schedule code for given CPU.
 Supported values are in the format @samp{v@var{X}.@var{YY}.@var{Z}}, 
 where @var{X} is a major version, @var{YY} is the minor version, and 
-@var{Z} is compatiblity code.  Example values are @samp{v3.00.a}, 
+@var{Z} is compatibility code.  Example values are @samp{v3.00.a},
 @samp{v4.00.b}, @samp{v5.00.a}, @samp{v5.00.b}, @samp{v5.00.b}, @samp{v6.00.a}. 
 
 @item -mxl-soft-mul
@@ -13975,7 +13995,7 @@ Use multiply high instructions for high part of 32x32 multiply.
 
 @item -mxl-float-convert
 @opindex mxl-float-convert
-Use hardware floating point converstion instructions.
+Use hardware floating point conversion instructions.
 
 @item -mxl-float-sqrt
 @opindex mxl-float-sqrt
@@ -16066,9 +16086,9 @@ roots.
 @opindex mrecip=opt
 This option allows to control which reciprocal estimate instructions
 may be used.  @var{opt} is a comma separated list of options, that may
-be preceeded by a @code{!} to invert the option:
+be preceded by a @code{!} to invert the option:
 @code{all}: enable all estimate instructions,
-@code{default}: enable the default instructions, equvalent to @option{-mrecip},
+@code{default}: enable the default instructions, equivalent to @option{-mrecip},
 @code{none}: disable all estimate instructions, equivalent to @option{-mno-recip};
 @code{div}: enable the reciprocal approximation instructions for both single and double precision;
 @code{divf}: enable the single precision reciprocal approximation instructions;
@@ -16178,7 +16198,7 @@ selected.
 @opindex mbig-endian-data
 @opindex mlittle-endian-data
 Store data (but not code) in the big-endian format.  The default is
-@option{-mlittle-endian-data}, ie to store data in the little endian
+@option{-mlittle-endian-data}, i.e.@: to store data in the little endian
 format.
 
 @item -msmall-data-limit=@var{N}
@@ -16951,8 +16971,8 @@ the rules of the ABI@.
 @opindex mcpu
 Set the instruction set, register set, and instruction scheduling parameters
 for machine type @var{cpu_type}.  Supported values for @var{cpu_type} are
-@samp{v7}, @samp{cypress}, @samp{v8}, @samp{supersparc}, @samp{sparclite},
-@samp{f930}, @samp{f934}, @samp{hypersparc}, @samp{sparclite86x},
+@samp{v7}, @samp{cypress}, @samp{v8}, @samp{supersparc}, @samp{hypersparc},
+@samp{leon}, @samp{sparclite}, @samp{f930}, @samp{f934}, @samp{sparclite86x},
 @samp{sparclet}, @samp{tsc701}, @samp{v9}, @samp{ultrasparc},
 @samp{ultrasparc3}, @samp{niagara} and @samp{niagara2}.
 
@@ -16965,7 +16985,7 @@ implementations.
 
 @smallexample
     v7:             cypress
-    v8:             supersparc, hypersparc
+    v8:             supersparc, hypersparc, leon
     sparclite:      f930, f934, sparclite86x
     sparclet:       tsc701
     v9:             ultrasparc, ultrasparc3, niagara, niagara2
@@ -17018,9 +17038,9 @@ option @option{-mcpu=@var{cpu_type}} would.
 The same values for @option{-mcpu=@var{cpu_type}} can be used for
 @option{-mtune=@var{cpu_type}}, but the only useful values are those
 that select a particular cpu implementation.  Those are @samp{cypress},
-@samp{supersparc}, @samp{hypersparc}, @samp{f930}, @samp{f934},
-@samp{sparclite86x}, @samp{tsc701}, @samp{ultrasparc},
-@samp{ultrasparc3}, @samp{niagara}, and @samp{niagara2}.
+@samp{supersparc}, @samp{hypersparc}, @samp{leon}, @samp{f930}, @samp{f934},
+@samp{sparclite86x}, @samp{tsc701}, @samp{ultrasparc}, @samp{ultrasparc3},
+@samp{niagara}, and @samp{niagara2}.
 
 @item -mv8plus
 @itemx -mno-v8plus
@@ -18123,7 +18143,7 @@ code, provide near-perfect API export and prevent symbol clashes.
 It is @strong{strongly} recommended that you use this in any shared objects
 you distribute.
 
-Despite the nomenclature, @code{default} always means public ie;
+Despite the nomenclature, @code{default} always means public; i.e.,
 available to be linked against from outside the shared object.
 @code{protected} and @code{internal} are pretty useless in real-world
 usage so the only other commonly used option will be @code{hidden}.
@@ -18151,7 +18171,7 @@ the declarations you wish to set visibility for with (for example)
 @samp{#pragma GCC visibility pop}.
 Bear in mind that symbol visibility should be viewed @strong{as
 part of the API interface contract} and thus all new code should
-always specify visibility when it is not the default ie; declarations
+always specify visibility when it is not the default; i.e., declarations
 only for use within the local DSO should @strong{always} be marked explicitly
 as hidden as so to avoid PLT indirection overheads---making this
 abundantly clear also aids readability and self-documentation of the code.
@@ -18479,7 +18499,7 @@ precompiled header.  The following are known to be safe:
 
 @gccoptlist{-fmessage-length=  -fpreprocessed  -fsched-interblock @gol
 -fsched-spec  -fsched-spec-load  -fsched-spec-load-dangerous @gol
--fsched-verbose=<number>  -fschedule-insns  -fvisibility= @gol
+-fsched-verbose=@var{number}  -fschedule-insns  -fvisibility= @gol
 -pedantic-errors}
 
 @end itemize

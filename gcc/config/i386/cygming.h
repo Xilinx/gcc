@@ -252,6 +252,10 @@ do {						\
   fputs ((NAME), (STREAM));			\
 } while (0)
 
+/* This does much the same in memory rather than to a stream.  */
+#undef TARGET_MANGLE_ASSEMBLER_NAME
+#define TARGET_MANGLE_ASSEMBLER_NAME i386_pe_mangle_assembler_name
+
 
 /* Emit code to check the stack when allocating more than 4000
    bytes in one go.  */
@@ -460,6 +464,9 @@ do {						\
 #define TARGET_VALID_DLLIMPORT_ATTRIBUTE_P i386_pe_valid_dllimport_attribute_p
 #define TARGET_CXX_ADJUST_CLASS_AT_DEFINITION i386_pe_adjust_class_at_definition
 #define TARGET_MANGLE_DECL_ASSEMBLER_NAME i386_pe_mangle_decl_assembler_name
+
+#undef TARGET_ASM_ASSEMBLE_VISIBILITY
+#define TARGET_ASM_ASSEMBLE_VISIBILITY i386_pe_assemble_visibility
 
 /* Static stack checking is supported by means of probes.  */
 #define STACK_CHECK_STATIC_BUILTIN 1

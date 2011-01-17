@@ -458,6 +458,27 @@ case "${host}" in
 esac
 
 
+AC_ARG_ENABLE(libquadmath,
+AS_HELP_STRING([--disable-libquadmath],
+  [do not build libquadmath directory]),
+ENABLE_LIBQUADMATH=$enableval,
+ENABLE_LIBQUADMATH=yes)
+if test "${ENABLE_LIBQUADMATH}" = "no" ; then
+  noconfigdirs="$noconfigdirs target-libquadmath"
+fi
+
+
+AC_ARG_ENABLE(libquadmath-support,
+AS_HELP_STRING([--disable-libquadmath-support],
+  [disable libquadmath support for Fortran]),
+ENABLE_LIBQUADMATH_SUPPORT=$enableval,
+ENABLE_LIBQUADMATH_SUPPORT=yes)
+enable_libquadmath_support=
+if test "${ENABLE_LIBQUADMATH_SUPPORT}" = "no" ; then
+  enable_libquadmath_support=no
+fi
+
+
 AC_ARG_ENABLE(libada,
 [  --enable-libada         build libada directory],
 ENABLE_LIBADA=$enableval,
@@ -485,6 +506,9 @@ no)
   # Make sure we get it printed in the list of not supported target libs.
   # Don't disable libffi, though, other languages use it.
   noconfigdirs="$noconfigdirs `echo ${libgcj} | sed -e 's/target-libffi//'`"
+  # Clear libgcj_saved so that even if java is enabled libffi won't be
+  # built.
+  libgcj_saved=
   ;;
 esac
 
@@ -780,8 +804,8 @@ case "${target}" in
     noconfigdirs="$noconfigdirs readline mmalloc libgui itcl gdb"
     ;;
   ia64*-**-hpux*)
-    # No gdb or ld support yet.
-    noconfigdirs="$noconfigdirs ${libgcj} readline mmalloc libgui itcl gdb ld"
+    # No ld support yet.
+    noconfigdirs="$noconfigdirs ${libgcj} libgui itcl ld"
     ;;
   ia64*-*-*vms*)
     # No gdb or ld support yet.
@@ -891,6 +915,9 @@ case "${target}" in
     ;;
   mt-*-*)
     noconfigdirs="$noconfigdirs sim"
+    ;;
+  picochip-*-*)
+    noconfigdirs="$noconfigdirs target-libiberty"
     ;;
   powerpc-*-aix*)
     # copied from rs6000-*-* entry

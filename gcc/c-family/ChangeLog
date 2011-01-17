@@ -1,3 +1,41 @@
+2011-01-12  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/32511
+	* c-common.c (handle_weak_attribute): Warn instead of error
+	on declaring an inline function weak.
+
+2011-01-05  Tom Tromey  <tromey@redhat.com>
+
+	* c-common.h (lvalue_error): Update.
+	* c-common.c (lvalue_error): Add 'loc' argument.  Call error_at,
+	not error.
+
+2010-12-29  Nicola Pero  <nicola@nicola.brainstorm.co.uk>
+
+	PR objc/47075
+	* c-objc.h (objc_finish_message_expr): Added argument to
+	prototype.
+
+2010-12-22  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.c (handle_nonnull_attribute, handle_sentinel_attribute):
+	Use prototype_p.
+
+2010-12-18  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-objc.h (objc_maybe_warn_exceptions): New.
+	* stub-objc.c (objc_maybe_warn_exceptions): New.	
+
+2010-12-10  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.h (readonly_error): Declare.
+	* c-common.c (readonly_error): Define.
+
+2010-12-09  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.h (invalid_indirection_error): Declare.
+	* c-common.c (invalid_indirection_error): Define.
+
 2010-12-03  Richard Guenther  <rguenther@suse.de>
 
 	PR c/46745

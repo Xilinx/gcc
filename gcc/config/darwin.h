@@ -140,6 +140,11 @@ extern GTY(()) int darwin_ms_struct;
   } while (0)
 
 #define SUBTARGET_C_COMMON_OVERRIDE_OPTIONS do {                        \
+  /* Sort out ObjC exceptions: If the runtime is NeXT we default to	\
+     sjlj for m32 only.  */						\
+  if (!global_options_set.x_flag_objc_sjlj_exceptions)			\
+    global_options.x_flag_objc_sjlj_exceptions = 			\
+				flag_next_runtime && !TARGET_64BIT;	\
     if (flag_mkernel || flag_apple_kext)				\
       {									\
 	if (flag_use_cxa_atexit == 2)					\
@@ -188,10 +193,15 @@ extern GTY(()) int darwin_ms_struct;
 
 #define DSYMUTIL_SPEC \
    "%{!fdump=*:%{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
+    %{v} \
+    %{gdwarf-2:%{!gstabs*:%{!g0: -idsym}}}\
     %{.c|.cc|.C|.cpp|.cp|.c++|.cxx|.CPP|.m|.mm: \
-    %{gdwarf-2:%{!gstabs*:%{!g0: " DSYMUTIL " %{o*:%*}%{!o:a.out}}}}}}}}}}}}"
+    %{gdwarf-2:%{!gstabs*:%{!g0: -dsym}}}}}}}}}}}"
 
 #define LINK_COMMAND_SPEC LINK_COMMAND_SPEC_A DSYMUTIL_SPEC
+
+/* Tell collect2 to run dsymutil for us as necessary.  */
+#define COLLECT_RUN_DSYMUTIL 1
 
 /* We only want one instance of %G, since libSystem (Darwin's -lc) does not depend
    on libgcc.  */
@@ -257,7 +267,7 @@ extern GTY(()) int darwin_ms_struct;
    %{Zdynamic:-dynamic}\
    %{Zexported_symbols_list*:-exported_symbols_list %*} \
    %{Zflat_namespace:-flat_namespace} \
-   %{headerpad_max_install_names*} \
+   %{headerpad_max_install_names} \
    %{Zimage_base*:-image_base %*} \
    %{Zinit*:-init %*} \
    %{!mmacosx-version-min=*:-macosx_version_min %(darwin_minversion)} \
@@ -659,9 +669,13 @@ extern GTY(()) section * darwin_sections[NUM_DARWIN_SECTIONS];
 
 #undef	TARGET_ASM_SELECT_SECTION
 #define TARGET_ASM_SELECT_SECTION machopic_select_section
-#define USE_SELECT_SECTION_FOR_FUNCTIONS
+
 #undef	TARGET_ASM_FUNCTION_SECTION
 #define TARGET_ASM_FUNCTION_SECTION darwin_function_section
+
+#undef	TARGET_ASM_FUNCTION_SWITCHED_TEXT_SECTIONS
+#define TARGET_ASM_FUNCTION_SWITCHED_TEXT_SECTIONS \
+	darwin_function_switched_text_sections
 
 #undef	TARGET_ASM_SELECT_RTX_SECTION
 #define TARGET_ASM_SELECT_RTX_SECTION machopic_select_rtx_section
@@ -958,10 +972,11 @@ __enable_execute_stack (void *addr)                                     \
 
 #define TARGET_HAS_TARGETCM 1
 
-extern void darwin_driver_init (unsigned int *decoded_options_count,
-				struct cl_decoded_option **decoded_options);
+#ifndef USED_FOR_TARGET
+extern void darwin_driver_init (unsigned int *,struct cl_decoded_option **);
 #define GCC_DRIVER_HOST_INITIALIZATION \
   darwin_driver_init (&decoded_options_count, &decoded_options)
+#endif
 
 /* The Apple assembler and linker do not support constructor priorities.  */
 #undef SUPPORTS_INIT_PRIORITY

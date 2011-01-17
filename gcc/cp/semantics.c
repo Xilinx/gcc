@@ -827,21 +827,44 @@ finish_return_stmt (tree expr)
   return r;
 }
 
-/* Begin a for-statement.  Returns a new FOR_STMT if appropriate.  */
+/* Begin the scope of a for-statement or a range-for-statement.
+   Both the returned trees are to be used in a call to
+   begin_for_stmt or begin_range_for_stmt.  */
 
 tree
-begin_for_stmt (void)
+begin_for_scope (tree *init)
+{
+  tree scope = NULL_TREE;
+  if (flag_new_for_scope > 0)
+    scope = do_pushlevel (sk_for);
+
+  if (processing_template_decl)
+    *init = push_stmt_list ();
+  else
+    *init = NULL_TREE;
+
+  return scope;
+}
+
+/* Begin a for-statement.  Returns a new FOR_STMT.
+   SCOPE and INIT should be the return of begin_for_scope,
+   or both NULL_TREE  */
+
+tree
+begin_for_stmt (tree scope, tree init)
 {
   tree r;
 
   r = build_stmt (input_location, FOR_STMT, NULL_TREE, NULL_TREE,
 		  NULL_TREE, NULL_TREE);
 
-  if (flag_new_for_scope > 0)
-    TREE_CHAIN (r) = do_pushlevel (sk_for);
-
-  if (processing_template_decl)
-    FOR_INIT_STMT (r) = push_stmt_list ();
+  if (scope == NULL_TREE)
+    {
+      gcc_assert (!init);
+      scope = begin_for_scope (&init);
+    }
+  FOR_INIT_STMT (r) = init;
+  TREE_CHAIN (r) = scope;
 
   return r;
 }
@@ -925,18 +948,29 @@ finish_for_stmt (tree for_stmt)
 }
 
 /* Begin a range-for-statement.  Returns a new RANGE_FOR_STMT.
+   SCOPE and INIT should be the return of begin_for_scope,
+   or both NULL_TREE  .
    To finish it call finish_for_stmt(). */
 
 tree
-begin_range_for_stmt (void)
+begin_range_for_stmt (tree scope, tree init)
 {
   tree r;
 
   r = build_stmt (input_location, RANGE_FOR_STMT,
 		  NULL_TREE, NULL_TREE, NULL_TREE);
 
-  if (flag_new_for_scope > 0)
-    TREE_CHAIN (r) = do_pushlevel (sk_for);
+  if (scope == NULL_TREE)
+    {
+      gcc_assert (!init);
+      scope = begin_for_scope (&init);
+    }
+
+  /* RANGE_FOR_STMTs do not use nor save the init tree, so we
+     pop it now.  */
+  if (init)
+    pop_stmt_list (init);
+  TREE_CHAIN (r) = scope;
 
   return r;
 }
@@ -1317,7 +1351,7 @@ finish_asm_stmt (int volatile_p, tree string, tree output_operands,
 		     effectively const.  */
 		  || (CLASS_TYPE_P (TREE_TYPE (operand))
 		      && C_TYPE_FIELDS_READONLY (TREE_TYPE (operand)))))
-	    readonly_error (operand, REK_ASSIGNMENT_ASM);
+	    cxx_readonly_error (operand, lv_asm);
 
 	  constraint = TREE_STRING_POINTER (TREE_VALUE (TREE_PURPOSE (t)));
 	  oconstraints[i] = constraint;
@@ -2646,37 +2680,6 @@ finish_base_specifier (tree base, tree access, bool virtual_p)
   return result;
 }
 
-/* Issue a diagnostic that NAME cannot be found in SCOPE.  DECL is
-   what we found when we tried to do the lookup.
-   LOCATION is the location of the NAME identifier;
-   The location is used in the error message*/
-
-void
-qualified_name_lookup_error (tree scope, tree name,
-			     tree decl, location_t location)
-{
-  if (scope == error_mark_node)
-    ; /* We already complained.  */
-  else if (TYPE_P (scope))
-    {
-      if (!COMPLETE_TYPE_P (scope))
-	error_at (location, "incomplete type %qT used in nested name specifier",
-		  scope);
-      else if (TREE_CODE (decl) == TREE_LIST)
-	{
-	  error_at (location, "reference to %<%T::%D%> is ambiguous",
-		    scope, name);
-	  print_candidates (decl);
-	}
-      else
-	error_at (location, "%qD is not a member of %qT", name, scope);
-    }
-  else if (scope != global_namespace)
-    error_at (location, "%qD is not a member of %qD", name, scope);
-  else
-    error_at (location, "%<::%D%> has not been declared", name);
-}
-
 /* If FNS is a member function, a set of member functions, or a
    template-id referring to one or more member functions, return a
    BASELINK for FNS, incorporating the current access context.
@@ -2828,7 +2831,8 @@ finish_id_expression (tree id_expression,
 	 the current class so that we can check later to see if
 	 the meaning would have been different after the class
 	 was entirely defined.  */
-      if (!scope && decl != error_mark_node)
+      if (!scope && decl != error_mark_node
+	  && TREE_CODE (id_expression) == IDENTIFIER_NODE)
 	maybe_note_name_used_in_class (id_expression, decl);
 
       /* Disallow uses of local variables from containing functions, except
@@ -5471,11 +5475,25 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
   if (t == error_mark_node)
     return false;
   if (TREE_CODE (t) == CLEANUP_STMT)
-    /* We can't see a CLEANUP_STMT in a constructor for a literal class,
-       but we can in a constexpr constructor for a non-literal class.  Just
-       ignore it; either all the initialization will be constant, in which
-       case the cleanup can't run, or it can't be constexpr.  */
-    return true;
+    {
+      /* We can't see a CLEANUP_STMT in a constructor for a literal class,
+	 but we can in a constexpr constructor for a non-literal class.  Just
+	 ignore it; either all the initialization will be constant, in which
+	 case the cleanup can't run, or it can't be constexpr.
+	 Still recurse into CLEANUP_BODY.  */
+      t = CLEANUP_BODY (t);
+      if (TREE_CODE (t) == STATEMENT_LIST)
+	{
+	  tree_stmt_iterator i;
+	  for (i = tsi_start (t); !tsi_end_p (i); tsi_next (&i))
+	    {
+	      if (! build_data_member_initialization (tsi_stmt (i), vec))
+		return false;
+	    }
+	  return true;
+	}
+      return build_data_member_initialization (t, vec);
+    }
   if (TREE_CODE (t) == CONVERT_EXPR)
     t = TREE_OPERAND (t, 0);
   if (TREE_CODE (t) == INIT_EXPR
@@ -5483,38 +5501,43 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
     {
       member = TREE_OPERAND (t, 0);
       init = unshare_expr (TREE_OPERAND (t, 1));
-      if (TREE_CODE (member) == INDIRECT_REF)
-	{
-	  /* Don't put out anything for an empty base.  */
-	  gcc_assert (is_empty_class (TREE_TYPE (member)));
-	  return true;
-	}
     }
   else
     {
-      tree memtype;
       gcc_assert (TREE_CODE (t) == CALL_EXPR);
       member = CALL_EXPR_ARG (t, 0);
-      memtype = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (member)));
-      if (TREE_CODE (member) == NOP_EXPR)
+      /* We don't use build_cplus_new here because it complains about
+	 abstract bases.  Leaving the call unwrapped means that it has the
+	 wrong type, but cxx_eval_constant_expression doesn't care.  */
+      init = unshare_expr (t);
+    }
+  if (TREE_CODE (member) == INDIRECT_REF)
+    member = TREE_OPERAND (member, 0);
+  if (TREE_CODE (member) == NOP_EXPR)
+    {
+      tree op = member;
+      STRIP_NOPS (op);
+      if (TREE_CODE (op) == ADDR_EXPR)
 	{
-	  /* We don't put out anything for an empty base.  */
-	  gcc_assert (is_empty_class (memtype));
-	  /* But if the constructor used isn't constexpr, leave in the call
-	     so we complain later.  */
-	  if (potential_constant_expression (t, tf_none))
-	    return true;
+	  gcc_assert (same_type_ignoring_top_level_qualifiers_p
+		      (TREE_TYPE (TREE_TYPE (op)),
+		       TREE_TYPE (TREE_TYPE (member))));
+	  /* Initializing a cv-qualified member; we need to look through
+	     the const_cast.  */
+	  member = op;
 	}
       else
 	{
-	  gcc_assert (TREE_CODE (member) == ADDR_EXPR);
-	  member = TREE_OPERAND (member, 0);
+	  /* We don't put out anything for an empty base.  */
+	  gcc_assert (is_empty_class (TREE_TYPE (TREE_TYPE (member))));
+	  /* But if the initializer isn't constexpr, leave it in so we
+	     complain later.  */
+	  if (potential_constant_expression (init, tf_none))
+	    return true;
 	}
-      /* We don't use build_cplus_new here because it complains about
-	 abstract bases.  T has the wrong type, but
-	 cxx_eval_constant_expression doesn't care.  */
-      init = unshare_expr (t);
     }
+  if (TREE_CODE (member) == ADDR_EXPR)
+    member = TREE_OPERAND (member, 0);
   if (TREE_CODE (member) == COMPONENT_REF)
     member = TREE_OPERAND (member, 1);
   CONSTRUCTOR_APPEND_ELT (*vec, member, init);
@@ -6391,15 +6414,16 @@ cxx_eval_bare_aggregate (const constexpr_call *call, tree t,
    initialization of a non-static data member of array type.  Reduce it to a
    CONSTRUCTOR.
 
-   Note that this is only intended to support the initializations done by
-   defaulted constructors for classes with non-static data members of array
-   type.  In this case, VEC_INIT_EXPR_INIT will either be NULL_TREE for the
-   default constructor, or a COMPONENT_REF for the copy/move
-   constructor.  */
+   Note that apart from value-initialization (when VALUE_INIT is true),
+   this is only intended to support value-initialization and the
+   initializations done by defaulted constructors for classes with
+   non-static data members of array type.  In this case, VEC_INIT_EXPR_INIT
+   will either be NULL_TREE for the default constructor, or a COMPONENT_REF
+   for the copy/move constructor.  */
 
 static tree
 cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
-		     bool allow_non_constant, bool addr,
+		     bool value_init, bool allow_non_constant, bool addr,
 		     bool *non_constant_p)
 {
   tree elttype = TREE_TYPE (atype);
@@ -6412,7 +6436,9 @@ cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
      here, as for a constructor to be constexpr, all members must be
      initialized, which for a defaulted default constructor means they must
      be of a class type with a constexpr default constructor.  */
-  if (!init)
+  if (value_init)
+    gcc_assert (!init);
+  else if (!init)
     {
       VEC(tree,gc) *argvec = make_tree_vector ();
       init = build_special_member_call (NULL_TREE, complete_ctor_identifier,
@@ -6433,11 +6459,20 @@ cxx_eval_vec_init_1 (const constexpr_call *call, tree atype, tree init,
       if (TREE_CODE (elttype) == ARRAY_TYPE)
 	{
 	  /* A multidimensional array; recurse.  */
-	  eltinit = cp_build_array_ref (input_location, init, idx,
-					tf_warning_or_error);
-	  eltinit = cxx_eval_vec_init_1 (call, elttype, eltinit,
+	  if (value_init)
+	    eltinit = NULL_TREE;
+	  else
+	    eltinit = cp_build_array_ref (input_location, init, idx,
+					  tf_warning_or_error);
+	  eltinit = cxx_eval_vec_init_1 (call, elttype, eltinit, value_init,
 					 allow_non_constant, addr,
 					 non_constant_p);
+	}
+      else if (value_init)
+	{
+	  eltinit = build_value_init (elttype, tf_warning_or_error);
+	  eltinit = cxx_eval_constant_expression
+	    (call, eltinit, allow_non_constant, addr, non_constant_p);
 	}
       else if (TREE_CODE (init) == CONSTRUCTOR)
 	{
@@ -6488,8 +6523,9 @@ cxx_eval_vec_init (const constexpr_call *call, tree t,
 {
   tree atype = TREE_TYPE (t);
   tree init = VEC_INIT_EXPR_INIT (t);
-  tree r = cxx_eval_vec_init_1 (call, atype, init, allow_non_constant,
-				addr, non_constant_p);
+  tree r = cxx_eval_vec_init_1 (call, atype, init,
+				VEC_INIT_EXPR_VALUE_INIT (t),
+				allow_non_constant, addr, non_constant_p);
   if (*non_constant_p)
     return t;
   else

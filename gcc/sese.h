@@ -114,15 +114,22 @@ bb_in_sese_p (basic_block bb, sese region)
   return bb_in_region (bb, entry, exit);
 }
 
+/* Returns true when STMT is defined in REGION.  */
+
+static inline bool
+stmt_in_sese_p (gimple stmt, sese region)
+{
+  basic_block bb = gimple_bb (stmt);
+  return bb && bb_in_sese_p (bb, region);
+}
+
 /* Returns true when NAME is defined in REGION.  */
 
 static inline bool
 defined_in_sese_p (tree name, sese region)
 {
   gimple stmt = SSA_NAME_DEF_STMT (name);
-  basic_block bb = gimple_bb (stmt);
-
-  return bb && bb_in_sese_p (bb, region);
+  return stmt_in_sese_p (stmt, region);
 }
 
 /* Returns true when LOOP is in REGION.  */
@@ -406,7 +413,8 @@ scev_analyzable_p (tree def, sese region)
   scev = scalar_evolution_in_region (region, loop, def);
 
   return !chrec_contains_undetermined (scev)
-    && TREE_CODE (scev) != SSA_NAME
+    && (TREE_CODE (scev) != SSA_NAME
+	|| !defined_in_sese_p (scev, region))
     && (tree_does_not_contain_chrecs (scev)
 	|| evolution_function_is_affine_p (scev));
 }

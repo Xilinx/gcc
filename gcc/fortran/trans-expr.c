@@ -1,5 +1,6 @@
 /* Expression translation
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -3078,6 +3079,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 		 argument and another one.  */
 	      if (gfc_get_noncopying_intrinsic_argument (e) != NULL)
 		{
+		  gfc_expr *iarg;
 		  sym_intent intent;
 
 		  if (fsym != NULL)
@@ -3087,6 +3089,25 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 		  if (gfc_check_fncall_dependency (e, intent, sym, args,
 						   NOT_ELEMENTAL))
+		    parmse.force_tmp = 1;
+
+		  iarg = e->value.function.actual->expr;
+
+		  /* Temporary needed if aliasing due to host association.  */
+		  if (sym->attr.contained
+			&& !sym->attr.pure
+			&& !sym->attr.implicit_pure
+			&& !sym->attr.use_assoc
+			&& iarg->expr_type == EXPR_VARIABLE
+			&& sym->ns == iarg->symtree->n.sym->ns)
+		    parmse.force_tmp = 1;
+
+		  /* Ditto within module.  */
+		  if (sym->attr.use_assoc
+			&& !sym->attr.pure
+			&& !sym->attr.implicit_pure
+			&& iarg->expr_type == EXPR_VARIABLE
+			&& sym->module == iarg->symtree->n.sym->module)
 		    parmse.force_tmp = 1;
 		}
 
@@ -3382,7 +3403,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
 	  /* If the lhs of an assignment x = f(..) is allocatable and
 	     f2003 is allowed, we must do the automatic reallocation.
-	     TODO - deal with instrinsics, without using a temporary.  */
+	     TODO - deal with intrinsics, without using a temporary.  */
 	  if (gfc_option.flag_realloc_lhs
 		&& se->ss && se->ss->loop_chain
 		&& se->ss->loop_chain->is_alloc_lhs
@@ -3594,7 +3615,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
 
       if (!se->direct_byref)
 	{
-	  if (sym->attr.dimension || (comp && comp->attr.dimension))
+	  if ((sym->attr.dimension && !comp) || (comp && comp->attr.dimension))
 	    {
 	      if (gfc_option.rtcheck & GFC_RTCHECK_BOUNDS)
 		{
@@ -4452,7 +4473,7 @@ gfc_trans_subcomponent_assign (tree dest, gfc_component * cm, gfc_expr * expr)
 					gfc_class_null_initializer (&cm->ts));
       gfc_add_expr_to_block (&block, tmp);
     }
-  else if (cm->attr.dimension)
+  else if (cm->attr.dimension && !cm->attr.proc_pointer)
     {
       if (cm->attr.allocatable && expr->expr_type == EXPR_NULL)
  	gfc_conv_descriptor_data_set (&block, dest, null_pointer_node);
@@ -4514,26 +4535,30 @@ gfc_trans_structure_assign (tree dest, gfc_expr * expr)
 
   gfc_start_block (&block);
   cm = expr->ts.u.derived->components;
+
+  if (expr->ts.u.derived->from_intmod == INTMOD_ISO_C_BINDING
+      && (expr->ts.u.derived->intmod_sym_id == ISOCBINDING_PTR
+          || expr->ts.u.derived->intmod_sym_id == ISOCBINDING_FUNPTR))
+    {
+      gfc_se se, lse;
+
+      gcc_assert (cm->backend_decl == NULL);
+      gfc_init_se (&se, NULL);
+      gfc_init_se (&lse, NULL);
+      gfc_conv_expr (&se, gfc_constructor_first (expr->value.constructor)->expr);
+      lse.expr = dest;
+      gfc_add_modify (&block, lse.expr,
+		      fold_convert (TREE_TYPE (lse.expr), se.expr));
+
+      return gfc_finish_block (&block);
+    } 
+
   for (c = gfc_constructor_first (expr->value.constructor);
        c; c = gfc_constructor_next (c), cm = cm->next)
     {
       /* Skip absent members in default initializers.  */
       if (!c->expr)
 	continue;
-
-      /* Handle c_null_(fun)ptr.  */
-      if (c && c->expr && c->expr->ts.is_iso_c)
-	{
-	  field = cm->backend_decl;
-	  tmp = fold_build3_loc (input_location, COMPONENT_REF,
-				 TREE_TYPE (field),
-				 dest, field, NULL_TREE);
-	  tmp = fold_build2_loc (input_location, MODIFY_EXPR, TREE_TYPE (tmp),
-				 tmp, fold_convert (TREE_TYPE (tmp),
-						    null_pointer_node));
-	  gfc_add_expr_to_block (&block, tmp);
-	  continue;
-	}
 
       field = cm->backend_decl;
       tmp = fold_build3_loc (input_location, COMPONENT_REF, TREE_TYPE (field),
@@ -4664,8 +4689,10 @@ gfc_conv_expr (gfc_se * se, gfc_expr * expr)
   if (expr->ts.type == BT_DERIVED && expr->ts.u.derived
       && expr->ts.u.derived->attr.is_iso_c)
     {
-      if (expr->symtree->n.sym->intmod_sym_id == ISOCBINDING_NULL_PTR
-          || expr->symtree->n.sym->intmod_sym_id == ISOCBINDING_NULL_FUNPTR)
+      if (expr->expr_type == EXPR_VARIABLE
+	  && (expr->symtree->n.sym->intmod_sym_id == ISOCBINDING_NULL_PTR
+	      || expr->symtree->n.sym->intmod_sym_id
+		 == ISOCBINDING_NULL_FUNPTR))
         {
 	  /* Set expr_type to EXPR_NULL, which will result in
 	     null_pointer_node being used below.  */
@@ -5370,18 +5397,34 @@ arrayfunc_assign_needs_temporary (gfc_expr * expr1, gfc_expr * expr2)
   if (sym->attr.dummy && sym->attr.intent != INTENT_OUT)
     return true;
 
+  /* If the lhs has been host_associated, is in common, a pointer or is
+     a target and the function is not using a RESULT variable, aliasing
+     can occur and a temporary is needed.  */
+  if ((sym->attr.host_assoc
+	   || sym->attr.in_common
+	   || sym->attr.pointer
+	   || sym->attr.cray_pointee
+	   || sym->attr.target)
+	&& expr2->symtree != NULL
+	&& expr2->symtree->n.sym == expr2->symtree->n.sym->result)
+    return true;
+
   /* A PURE function can unconditionally be called without a temporary.  */
   if (expr2->value.function.esym != NULL
       && expr2->value.function.esym->attr.pure)
     return false;
 
-  /* TODO a function that could correctly be declared PURE but is not
-     could do with returning false as well.  */
+  /* Implicit_pure functions are those which could legally be declared
+     to be PURE.  */
+  if (expr2->value.function.esym != NULL
+      && expr2->value.function.esym->attr.implicit_pure)
+    return false;
 
   if (!sym->attr.use_assoc
 	&& !sym->attr.in_common
 	&& !sym->attr.pointer
 	&& !sym->attr.target
+	&& !sym->attr.cray_pointee
 	&& expr2->value.function.esym)
     {
       /* A temporary is not needed if the function is not contained and
@@ -5997,7 +6040,7 @@ gfc_trans_assignment (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
 		      bool dealloc)
 {
   tree tmp;
-  
+
   if (expr1->ts.type == BT_CHARACTER && expr1->ts.deferred)
     {
       gfc_error ("Assignment to deferred-length character variable at %L "
@@ -6115,24 +6158,23 @@ gfc_trans_class_assign (gfc_expr *expr1, gfc_expr *expr2, gfc_exec_op op)
   if (expr2->ts.type != BT_CLASS)
     {
       /* Insert an additional assignment which sets the '_vptr' field.  */
+      gfc_symbol *vtab = NULL;
+      gfc_symtree *st;
+
       lhs = gfc_copy_expr (expr1);
       gfc_add_vptr_component (lhs);
+
       if (expr2->ts.type == BT_DERIVED)
-	{
-	  gfc_symbol *vtab;
-	  gfc_symtree *st;
-	  vtab = gfc_find_derived_vtab (expr2->ts.u.derived);
-	  gcc_assert (vtab);
-	  rhs = gfc_get_expr ();
-	  rhs->expr_type = EXPR_VARIABLE;
-	  gfc_find_sym_tree (vtab->name, vtab->ns, 1, &st);
-	  rhs->symtree = st;
-	  rhs->ts = vtab->ts;
-	}
+	vtab = gfc_find_derived_vtab (expr2->ts.u.derived);
       else if (expr2->expr_type == EXPR_NULL)
-	rhs = gfc_get_int_expr (gfc_default_integer_kind, NULL, 0);
-      else
-	gcc_unreachable ();
+	vtab = gfc_find_derived_vtab (expr1->ts.u.derived);
+      gcc_assert (vtab);
+
+      rhs = gfc_get_expr ();
+      rhs->expr_type = EXPR_VARIABLE;
+      gfc_find_sym_tree (vtab->name, vtab->ns, 1, &st);
+      rhs->symtree = st;
+      rhs->ts = vtab->ts;
 
       tmp = gfc_trans_pointer_assignment (lhs, rhs);
       gfc_add_expr_to_block (&block, tmp);

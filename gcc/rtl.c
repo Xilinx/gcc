@@ -1,6 +1,7 @@
 /* RTL utility routines.
    Copyright (C) 1987, 1988, 1991, 1994, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -431,7 +432,15 @@ rtx_equal_p_cb (const_rtx x, const_rtx y, rtx_equal_p_callback_function cb)
 	case 'n':
 	case 'i':
 	  if (XINT (x, i) != XINT (y, i))
-	    return 0;
+	    {
+#ifndef GENERATOR_FILE
+	      if (((code == ASM_OPERANDS && i == 6)
+		   || (code == ASM_INPUT && i == 1))
+		  && locator_eq (XINT (x, i), XINT (y, i)))
+		break;
+#endif
+	      return 0;
+	    }
 	  break;
 
 	case 'V':
@@ -555,7 +564,15 @@ rtx_equal_p (const_rtx x, const_rtx y)
 	case 'n':
 	case 'i':
 	  if (XINT (x, i) != XINT (y, i))
-	    return 0;
+	    {
+#ifndef GENERATOR_FILE
+	      if (((code == ASM_OPERANDS && i == 6)
+		   || (code == ASM_INPUT && i == 1))
+		  && locator_eq (XINT (x, i), XINT (y, i)))
+		break;
+#endif
+	      return 0;
+	    }
 	  break;
 
 	case 'V':

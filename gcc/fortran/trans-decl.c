@@ -1575,6 +1575,12 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
   fndecl = build_decl (input_location,
 		       FUNCTION_DECL, name, type);
 
+  /* Initialize DECL_EXTERNAL and TREE_PUBLIC before calling decl_attributes;
+     TREE_PUBLIC specifies whether a function is globally addressable (i.e.
+     the the opposite of declaring a function as static in C).  */
+  DECL_EXTERNAL (fndecl) = 1;
+  TREE_PUBLIC (fndecl) = 1;
+
   attributes = add_attributes_to_decl (sym->attr, NULL_TREE);
   decl_attributes (&fndecl, attributes, 0);
 
@@ -1591,12 +1597,6 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
       /* Global declaration, e.g. intrinsic subroutine.  */
       DECL_CONTEXT (fndecl) = NULL_TREE;
     }
-
-  DECL_EXTERNAL (fndecl) = 1;
-
-  /* This specifies if a function is globally addressable, i.e. it is
-     the opposite of declaring static in C.  */
-  TREE_PUBLIC (fndecl) = 1;
 
   /* Set attributes for PURE functions. A call to PURE function in the
      Fortran 95 sense is both pure and without side effects in the C
@@ -1658,6 +1658,15 @@ build_function_decl (gfc_symbol * sym, bool global)
 
   attr = sym->attr;
 
+  /* Initialize DECL_EXTERNAL and TREE_PUBLIC before calling decl_attributes;
+     TREE_PUBLIC specifies whether a function is globally addressable (i.e.
+     the the opposite of declaring a function as static in C).  */
+  DECL_EXTERNAL (fndecl) = 0;
+
+  if (!current_function_decl
+      && !sym->attr.entry_master && !sym->attr.is_main_program)
+    TREE_PUBLIC (fndecl) = 1;
+
   attributes = add_attributes_to_decl (attr, NULL_TREE);
   decl_attributes (&fndecl, attributes, 0);
 
@@ -1706,15 +1715,6 @@ build_function_decl (gfc_symbol * sym, bool global)
 
   /* Don't call layout_decl for a RESULT_DECL.
      layout_decl (result_decl, 0);  */
-
-  /* Set up all attributes for the function.  */
-  DECL_EXTERNAL (fndecl) = 0;
-
-  /* This specifies if a function is globally visible, i.e. it is
-     the opposite of declaring static in C.  */
-  if (!current_function_decl
-      && !sym->attr.entry_master && !sym->attr.is_main_program)
-    TREE_PUBLIC (fndecl) = 1;
 
   /* TREE_STATIC means the function body is defined here.  */
   TREE_STATIC (fndecl) = 1;
@@ -3312,7 +3312,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	    {
 	      /* Nullify and automatic deallocation of allocatable
 		 scalars.  */
-	      tree tmp;
+	      tree tmp = NULL;
 	      gfc_expr *e;
 	      gfc_se se;
 	      stmtblock_t init;
@@ -3337,8 +3337,23 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	      if (!sym->attr.result)
 		tmp = gfc_deallocate_scalar_with_status (se.expr, NULL, true,
 							 NULL, sym->ts);
-	      else
-		tmp = NULL;
+
+	      if (sym->ts.type == BT_CLASS)
+		{
+		  /* Initialize _vptr to declared type.  */
+		  gfc_symbol *vtab = gfc_find_derived_vtab (sym->ts.u.derived);
+		  tree rhs;
+		  e = gfc_lval_expr_from_sym (sym);
+		  gfc_add_vptr_component (e);
+		  gfc_init_se (&se, NULL);
+		  se.want_pointer = 1;
+		  gfc_conv_expr (&se, e);
+		  gfc_free_expr (e);
+		  rhs = gfc_build_addr_expr (TREE_TYPE (se.expr),
+					     gfc_get_symbol_decl (vtab));
+		  gfc_add_modify (&init, se.expr, rhs);
+		}
+
 	      gfc_add_init_cleanup (block, gfc_finish_block (&init), tmp);
 	    }
 	}

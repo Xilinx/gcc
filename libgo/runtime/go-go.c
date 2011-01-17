@@ -25,21 +25,6 @@ extern void *__splitstack_find (void *, void *, size_t *, void **, void **,
 				void **);
 #endif
 
-/* We need to ensure that all callee-saved registers are stored on the
-   stack, in case they hold pointers.  */
-
-#if defined(__i386__)
- #ifndef __PIC__
-  #define SAVE_REGS asm ("" : : : "esi", "edi", "ebx")
- #else
-  #define SAVE_REGS asm ("" : : : "esi", "edi")
- #endif
-#elif defined(__x86_64__)
- #define SAVE_REGS asm ("" : : : "r12", "r13", "r14", "r15", "rbp", "rbx")
-#else
- #error must define SAVE_REGS
-#endif
-
 /* We stop the threads by sending them the signal GO_SIG_STOP and we
    start them by sending them the signal GO_SIG_START.  */
 
@@ -107,10 +92,10 @@ remove_current_thread (void)
   if (list_entry->next != NULL)
     list_entry->next->prev = list_entry->prev;
 
+  runtime_MCache_ReleaseAll (mcache);
+
   i = pthread_mutex_unlock (&__go_thread_ids_lock);
   __go_assert (i == 0);
-
-  runtime_MCache_ReleaseAll (mcache);
 
   runtime_lock (&runtime_mheap);
   mstats.heap_alloc += mcache->local_alloc;
@@ -225,13 +210,12 @@ __go_go (void (*pfn) (void*), void *arg)
 
   newm->list_entry = list_entry;
 
+  newm->mcache = runtime_allocmcache ();
+
   /* Add the thread to the list of all threads, marked as tentative
      since it is not yet ready to go.  */
   i = pthread_mutex_lock (&__go_thread_ids_lock);
   __go_assert (i == 0);
-
-  /* We use __go_thread_ids_lock as a lock for mheap.cachealloc.  */
-  newm->mcache = runtime_allocmcache ();
 
   if (__go_all_thread_ids != NULL)
     __go_all_thread_ids->prev = list_entry;
@@ -345,7 +329,7 @@ __go_run_goroutine_gc (int r)
      needed if we are called directly, since otherwise we might miss
      something that a function somewhere up the call stack is holding
      in a register.  */
-  SAVE_REGS;
+  __builtin_unwind_init ();
 
   stop_for_gc ();
 
@@ -434,7 +418,7 @@ __go_scanstacks (void (*scan) (byte *, int64))
   struct __go_thread_id *p;
 
   /* Make sure all the registers for this thread are on the stack.  */
-  SAVE_REGS;
+  __builtin_unwind_init ();
 
   me = pthread_self ();
   for (p = __go_all_thread_ids; p != NULL; p = p->next)

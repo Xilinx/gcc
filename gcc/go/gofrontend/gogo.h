@@ -785,7 +785,12 @@ class Function
 
   // Create the named result variables in the outer block.
   void
-  create_named_result_variables();
+  create_named_result_variables(Gogo*);
+
+  // Update the named result variables when cloning a function which
+  // calls recover.
+  void
+  update_named_result_variables();
 
   // Add a new field to the closure variable.
   void
@@ -1039,6 +1044,9 @@ class Variable
 
   // Get the type of the variable.
   Type*
+  type();
+
+  Type*
   type() const;
 
   // Return whether the type is defined yet.
@@ -1258,6 +1266,8 @@ class Variable
   bool is_varargs_parameter_ : 1;
   // Whether something takes the address of this variable.
   bool is_address_taken_ : 1;
+  // True if we have seen this variable in a traversal.
+  bool seen_ : 1;
   // True if we have lowered the initialization expression.
   bool init_is_lowered_ : 1;
   // True if init is a tuple used to set the type.
@@ -1312,6 +1322,12 @@ class Result_variable
   bool
   is_in_heap() const
   { return this->is_address_taken_; }
+
+  // Set the function.  This is used when cloning functions which call
+  // recover.
+  void
+  set_function(Function* function)
+  { this->function_ = function; }
 
  private:
   // Type of result variable.
@@ -1809,6 +1825,10 @@ class Named_object
   // Define a function declaration.
   void
   set_function_value(Function*);
+
+  // Declare an unknown name as a type declaration.
+  void
+  declare_as_type();
 
   // Export this object.
   void

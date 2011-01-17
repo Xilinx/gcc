@@ -26,7 +26,7 @@ ACX_NONCANONICAL_TARGET
 target_alias=${target_alias-$host_alias}
 AC_SUBST(target_alias)
 
-AM_INIT_AUTOMAKE([1.9.0 foreign subdir-objects no-dist -Wall -Werror])
+AM_INIT_AUTOMAKE([1.9.0 foreign subdir-objects no-dist -Wall -Wno-override -Werror])
 
 AC_MSG_CHECKING([for --enable-version-specific-runtime-libs])
 AC_ARG_ENABLE(version-specific-runtime-libs,
@@ -49,6 +49,7 @@ ACX_CHECK_PROG_VER([MAKEINFO], [makeinfo], [--version],
                    [4.[4-9]*|4.[1-9][0-9]*|[5-9]*|[1-9][0-9]*])
 AM_CONDITIONAL(BUILD_INFO, test $gcc_cv_prog_makeinfo_modern = "yes")
 
+ACX_BUGURL([http://gcc.gnu.org/bugs.html])
 
 # Configure libtool
 AM_PROG_LIBTOOL
@@ -109,8 +110,41 @@ esac
 AC_SUBST(toolexecdir)
 AC_SUBST(toolexeclibdir)
 
-AC_CHECK_LIB([m],[sqrtl],[AC_DEFINE([HAVE_SQRTL],[1],[libm includes sqrtl])])
-AC_CHECK_LIB([m],[cbrtl],[AC_DEFINE([HAVE_CBRTL],[1],[libm includes cbrtl])])
+AC_CHECK_HEADERS(fenv.h)
+
+# If available, sqrtl and cbrtl speed up the calculation -
+# but they are not required
+if test x$gcc_no_link != xyes; then
+  AC_CHECK_LIB([m],[sqrtl],[AC_DEFINE([HAVE_SQRTL],[1],[libm includes sqrtl])])
+  AC_CHECK_LIB([m],[cbrtl],[AC_DEFINE([HAVE_CBRTL],[1],[libm includes cbrtl])])
+  AC_CHECK_LIB([m],[feholdexcept],[AC_DEFINE([HAVE_FEHOLDEXCEPT],[1],[libm includes feholdexcept])])
+  AC_CHECK_LIB([m],[fesetround],[AC_DEFINE([HAVE_FESETROUND],[1],[libm includes fesetround])])
+  AC_CHECK_LIB([m],[feupdateenv],[AC_DEFINE([HAVE_FEUPDATEENV],[1],[libm includes feupdateenv])])
+  AC_CHECK_LIB([m],[fesetenv],[AC_DEFINE([HAVE_FESETENV],[1],[libm includes fesetenv])])
+  AC_CHECK_LIB([m],[fetestexcept],[AC_DEFINE([HAVE_FETESTEXCEPT],[1],[libm includes fetestexcept])])
+else
+  if test "x$ac_cv_lib_m_sqrtl" = x""yes; then
+    AC_DEFINE([HAVE_SQRTL],[1],[libm includes sqrtl])  
+  fi
+  if test "x$ac_cv_lib_m_cbrtl" = x""yes; then
+    AC_DEFINE([HAVE_CBRTL],[1],[libm includes cbrtl])  
+  fi
+  if test "x$ac_cv_lib_m_feholdexcept" = x""yes; then
+    AC_DEFINE([HAVE_FEHOLDEXCEPT],[1],[libm includes feholdexcept])
+  fi
+  if test "x$ac_cv_lib_m_fesetround" = x""yes; then
+    AC_DEFINE([HAVE_FESETROUND],[1],[libm includes fesetround])
+  fi
+  if test "x$ac_cv_lib_m_feupdateenv" = x""yes; then
+    AC_DEFINE([HAVE_FEUPDATEENV],[1],[libm includes feupdateenv])
+  fi
+  if test "x$ac_cv_lib_m_fesetenv" = x""yes; then
+    AC_DEFINE([HAVE_FESETENV],[1],[libm includes fesetenv])
+  fi
+  if test "x$ac_cv_lib_m_fetestexcept" = x""yes; then
+    AC_DEFINE([HAVE_FETESTEXCEPT],[1],[libm includes fetestexcept])
+  fi
+fi
 
 # Check for symbol versioning (copied from libssp).
 AC_MSG_CHECKING([whether symbol versioning is supported])
@@ -149,8 +183,8 @@ AM_CONDITIONAL(LIBQUAD_USE_SYMVER, [test "x$quadmath_use_symver" != xno])
 AM_CONDITIONAL(LIBQUAD_USE_SYMVER_GNU, [test "x$quadmath_use_symver" = xgnu])
 AM_CONDITIONAL(LIBQUAD_USE_SYMVER_SUN, [test "x$quadmath_use_symver" = xsun])
 
-AC_MSG_CHECKING([whether __float128 is supported])
-  AC_TRY_LINK([
+AC_CACHE_CHECK([whether __float128 is supported], [libquad_cv_have_float128],
+  [GCC_TRY_COMPILE_OR_LINK([
     typedef _Complex float __attribute__((mode(TC))) __complex128;
 
     __float128 foo (__float128 x)
@@ -173,20 +207,11 @@ AC_MSG_CHECKING([whether __float128 is supported])
     foo (1.2Q);
     bar (1.2Q);
   ],[
-    libquad_have_float128=yes
+    libquad_cv_have_float128=yes
   ],[
-    libquad_have_float128=no
-])
-AC_MSG_RESULT([$libquad_have_float128])
-
-dnl
-dnl Enable the following for a stand-alone library:
-dnl
-dnl if test $libquad_have_float128 = no; then
-dnl   AC_MSG_ERROR([__float128 support is required to build this library.])
-dnl fi
-
-AM_CONDITIONAL(BUILD_LIBQUADMATH, [test "x$libquad_have_float128" = xyes])
+    libquad_cv_have_float128=no
+])])
+AM_CONDITIONAL(BUILD_LIBQUADMATH, [test "x$libquad_cv_have_float128" = xyes])
 
 AC_CACHE_SAVE
 

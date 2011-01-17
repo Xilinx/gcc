@@ -1,6 +1,6 @@
 /* Callgraph based interprocedural optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011 Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
 This file is part of GCC.
@@ -647,6 +647,8 @@ verify_cgraph_node (struct cgraph_node *node)
 			  }
 			if (!e->indirect_unknown_callee)
 			  {
+			    struct cgraph_node *n;
+
 			    if (e->callee->same_body_alias)
 			      {
 				error ("edge points to same body alias:");
@@ -666,6 +668,15 @@ verify_cgraph_node (struct cgraph_node *node)
 				fprintf (stderr," Instead of:");
 				debug_tree (decl);
 				error_found = true;
+			      }
+			    else if (decl
+				     && (n = cgraph_get_node_or_alias (decl))
+				     && (n->same_body_alias
+					 && n->thunk.thunk_p))
+			      {
+				error ("a call to thunk improperly represented "
+				       "in the call graph:");
+				debug_gimple_stmt (stmt);
 			      }
 			  }
 			else if (decl)
@@ -1305,6 +1316,9 @@ assemble_thunk (struct cgraph_node *node)
   tree a = DECL_ARGUMENTS (thunk_fndecl);
 
   current_function_decl = thunk_fndecl;
+
+  /* Ensure thunks are emitted in their correct sections.  */
+  resolve_unique_section (thunk_fndecl, 0, flag_function_sections);
 
   if (this_adjusting
       && targetm.asm_out.can_output_mi_thunk (thunk_fndecl, fixed_offset,
@@ -2134,6 +2148,8 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
 {
   tree decl = gimple_call_fndecl (e->call_stmt);
   gimple new_stmt;
+  gimple_stmt_iterator gsi;
+  bool gsi_computed = false;
 #ifdef ENABLE_CHECKING
   struct cgraph_node *node;
 #endif
@@ -2166,9 +2182,24 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
 	}
     }
 
+  if (e->indirect_info &&
+      e->indirect_info->thunk_delta != 0
+      && (!e->callee->clone.combined_args_to_skip
+	  || !bitmap_bit_p (e->callee->clone.combined_args_to_skip, 0)))
+    {
+      if (cgraph_dump_file)
+	fprintf (cgraph_dump_file, "          Thunk delta is "
+		 HOST_WIDE_INT_PRINT_DEC "\n", e->indirect_info->thunk_delta);
+      gsi = gsi_for_stmt (e->call_stmt);
+      gsi_computed = true;
+      gimple_adjust_this_by_delta (&gsi,
+				   build_int_cst (sizetype,
+					       e->indirect_info->thunk_delta));
+      e->indirect_info->thunk_delta = 0;
+    }
+
   if (e->callee->clone.combined_args_to_skip)
     {
-      gimple_stmt_iterator gsi;
       int lp_nr;
 
       new_stmt
@@ -2180,7 +2211,8 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
 	  && TREE_CODE (gimple_vdef (new_stmt)) == SSA_NAME)
 	SSA_NAME_DEF_STMT (gimple_vdef (new_stmt)) = new_stmt;
 
-      gsi = gsi_for_stmt (e->call_stmt);
+      if (!gsi_computed)
+	gsi = gsi_for_stmt (e->call_stmt);
       gsi_replace (&gsi, new_stmt, false);
       /* We need to defer cleaning EH info on the new statement to
          fixup-cfg.  We may not have dominator information at this point

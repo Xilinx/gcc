@@ -4737,7 +4737,7 @@ push_template_decl_real (tree decl, bool is_friend)
 	      return error_mark_node;
 	    }
 	  if (NEW_DELETE_OPNAME_P (DECL_NAME (decl))
-	      && (!TYPE_ARG_TYPES (TREE_TYPE (decl))
+	      && (!prototype_p (TREE_TYPE (decl))
 		  || TYPE_ARG_TYPES (TREE_TYPE (decl)) == void_list_node
 		  || !TREE_CHAIN (TYPE_ARG_TYPES (TREE_TYPE (decl)))
 		  || (TREE_CHAIN (TYPE_ARG_TYPES ((TREE_TYPE (decl))))
@@ -6410,7 +6410,7 @@ coerce_template_parms (tree parms,
 		    sorry ("cannot expand %<%T%> into a fixed-length "
 			   "argument list", arg);
 		}
-	      return error_mark_node;
+	      ++lost;
             }
         }
       else if (require_all_args)
@@ -6438,7 +6438,7 @@ coerce_template_parms (tree parms,
            reported) that we are trying to recover from, e.g., a class
            template with a parameter list such as
            template<typename..., typename>.  */
-        return error_mark_node;
+	++lost;
       else
 	arg = convert_template_argument (TREE_VALUE (parm),
 					 arg, new_args, complain, 
@@ -12052,7 +12052,7 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
       }
 
     case FOR_STMT:
-      stmt = begin_for_stmt ();
+      stmt = begin_for_stmt (NULL_TREE, NULL_TREE);
       RECUR (FOR_INIT_STMT (t));
       finish_for_init_stmt (stmt);
       tmp = RECUR (FOR_COND (t));
@@ -12066,7 +12066,7 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
     case RANGE_FOR_STMT:
       {
         tree decl, expr;
-        stmt = begin_for_stmt ();
+        stmt = begin_for_stmt (NULL_TREE, NULL_TREE);
         decl = RANGE_FOR_DECL (t);
         decl = tsubst (decl, args, complain, in_decl);
         maybe_push_decl (decl);
@@ -13239,8 +13239,7 @@ tsubst_copy_and_build (tree t,
 
     case VA_ARG_EXPR:
       return build_x_va_arg (RECUR (TREE_OPERAND (t, 0)),
-			     tsubst_copy (TREE_TYPE (t), args, complain,
-					  in_decl));
+			     tsubst (TREE_TYPE (t), args, complain, in_decl));
 
     case OFFSETOF_EXPR:
       return finish_offsetof (RECUR (TREE_OPERAND (t, 0)));
@@ -16512,7 +16511,7 @@ most_specialized_class (tree type, tree tmpl, tsubst_flags_t complain)
       if (!(complain & tf_error))
 	return error_mark_node;
       error ("ambiguous class template instantiation for %q#T", type);
-      str = TREE_CHAIN (list) ? _("candidates are:") : _("candidate is:");
+      str = ngettext ("candidate is:", "candidates are:", list_length (list));
       for (t = list; t; t = TREE_CHAIN (t))
         {
           error ("%s %+#T", spaces ? spaces : str, TREE_TYPE (t));
@@ -18107,6 +18106,10 @@ value_dependent_expression_p (tree expression)
     case MODOP_EXPR:
       return ((value_dependent_expression_p (TREE_OPERAND (expression, 0)))
 	      || (value_dependent_expression_p (TREE_OPERAND (expression, 2))));
+
+    case ARRAY_REF:
+      return ((value_dependent_expression_p (TREE_OPERAND (expression, 0)))
+	      || (value_dependent_expression_p (TREE_OPERAND (expression, 1))));
 
     case ADDR_EXPR:
       {

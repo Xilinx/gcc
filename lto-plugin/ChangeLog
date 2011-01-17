@@ -1,3 +1,34 @@
+2011-01-12  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/47264
+	* lto-plugin.c (parse_table_entry): Use memcpy to access
+	unaligned fields.
+
+2010-12-20  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* Makefile.am (AM_LIBTOOLFLAGS): Define, adding disable-static tag.
+	* Makefile.in: Regenerate.
+
+2010-12-15  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	Revert last change.
+
+2010-12-15  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Makefile.am (liblto_plugin_la_DEPENDENCIES): Define.
+	(liblto_plugin_la_LIBADD): Use -L../libiberty/pic -liberty.
+	(liblto_plugin_la_LDFLAGS): Use -L../libiberty -liberty.
+	* Makefile.in: Regenerate.
+
+2010-12-10  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR middle-end/46674
+	PR lto/43157
+	* configure.ac (SYM_STYLE): Don't AC_DEFINE.
+	* lto-plugin.c (sym_style): Don't use it; default to ss_none.
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+
 2010-12-06  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	PR target/40125

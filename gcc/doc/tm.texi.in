@@ -742,7 +742,7 @@ options to enable at particular sets of optimization levels.  These
 options are processed once
 just after the optimization level is determined and before the remainder
 of the command options have been parsed, so may be overridden by other
-options passed explicily.
+options passed explicitly.
 
 This processing is run once at program startup and when the optimization
 options are changed via @code{#pragma GCC optimize} or by using the
@@ -4212,7 +4212,7 @@ required.
 @end defmac
 
 @hook TARGET_FUNCTION_ARG_BOUNDARY
-This hook returns the the alignment boundary, in bits, of an argument
+This hook returns the alignment boundary, in bits, of an argument
 with the specified mode and type.  The default hook returns
 @code{PARM_BOUNDARY} for all arguments.
 @end deftypefn
@@ -4283,6 +4283,8 @@ with machine mode @var{mode}.  The default version of this
 hook returns true for both @code{ptr_mode} and @code{Pmode}.
 @end deftypefn
 
+@hook TARGET_REF_MAY_ALIAS_ERRNO
+
 @hook TARGET_SCALAR_MODE_SUPPORTED_P
 Define this to return nonzero if the port is prepared to handle
 insns involving scalar mode @var{mode}.  For a scalar mode to be
@@ -4325,7 +4327,7 @@ SSE registers for floating point operations.  On such targets, a good
 strategy may be to return nonzero from this hook for @code{INTEGRAL_MODE_P}
 machine modes but zero for the SSE register classes.
 
-The default version of this hook retuns false for any mode.  It is always
+The default version of this hook returns false for any mode.  It is always
 safe to redefine this hook to return with a nonzero value.  But if you
 unnecessarily define it, you will reduce the amount of optimizations
 that can be performed in some cases.  If you do not define this hook
@@ -5248,26 +5250,6 @@ and 2 to indicate that the first operand is greater than the second.
 If this macro evaluates to @code{false} the comparison functions return
 @minus{}1, 0, and 1 instead of 0, 1, and 2.  If the target uses the routines
 in @file{libgcc.a}, you do not need to define this macro.
-@end defmac
-
-@cindex US Software GOFAST, floating point emulation library
-@cindex floating point emulation library, US Software GOFAST
-@cindex GOFAST, floating point emulation library
-@findex gofast_maybe_init_libfuncs
-@defmac US_SOFTWARE_GOFAST
-Define this macro if your system C library uses the US Software GOFAST
-library to provide floating point emulation.
-
-In addition to defining this macro, your architecture must set
-@code{TARGET_INIT_LIBFUNCS} to @code{gofast_maybe_init_libfuncs}, or
-else call that function from its version of that hook.  It is defined
-in @file{config/gofast.h}, which must be included by your
-architecture's @file{@var{cpu}.c} file.  See @file{sparc/sparc.c} for
-an example.
-
-If this macro is defined, the
-@code{TARGET_FLOAT_LIB_COMPARE_RETURNS_BOOL} target hook must return
-false for @code{SFmode} and @code{DFmode} comparisons.
 @end defmac
 
 @cindex @code{EDOM}, implicit usage
@@ -6642,11 +6624,11 @@ round of multipass scheduling.
 @end deftypefn
 
 @hook TARGET_SCHED_FIRST_CYCLE_MULTIPASS_INIT
-This hook initilizes target-specific data used in multipass scheduling.
+This hook initializes target-specific data used in multipass scheduling.
 @end deftypefn
 
 @hook TARGET_SCHED_FIRST_CYCLE_MULTIPASS_FINI
-This hook finilizes target-specific data used in multipass scheduling.
+This hook finalizes target-specific data used in multipass scheduling.
 @end deftypefn
 
 @hook TARGET_SCHED_DFA_NEW_CYCLE
@@ -7317,6 +7299,8 @@ at startup (from static constructors or it is @code{main()}).
 (from static destructors).
 Return NULL if function should go to default text section.
 @end deftypefn
+
+@hook TARGET_ASM_FUNCTION_SWITCHED_TEXT_SECTIONS
 
 @hook TARGET_HAVE_NAMED_SECTIONS
 This flag is true if the target supports @code{TARGET_ASM_NAMED_SECTION}.
@@ -8013,6 +7997,8 @@ is customary on your operating system, as it is in most Berkeley Unix
 systems.  This macro is used in @code{assemble_name}.
 @end defmac
 
+@hook TARGET_MANGLE_ASSEMBLER_NAME
+
 @defmac ASM_OUTPUT_SYMBOL_REF (@var{stream}, @var{sym})
 A C statement (sans semicolon) to output a reference to
 @code{SYMBOL_REF} @var{sym}.  If not defined, @code{assemble_name}
@@ -8425,7 +8411,7 @@ to execute @command{nm}.  The default is to search the path normally for
 @command{collect2} calls @command{nm} to scan object files for static
 constructors and destructors and LTO info.  By default, @option{-n} is
 passed.  Define @code{NM_FLAGS} to a C string constant if other options
-are needed to get the same output formut as GNU @command{nm -n}
+are needed to get the same output format as GNU @command{nm -n}
 produces.
 @end defmac
 
@@ -10486,7 +10472,7 @@ condition code values with less instructions than the corresponding
 machines, define the appropriate patterns.  Use the names @code{incscc}
 and @code{decscc}, respectively, for the patterns which perform
 @code{plus} or @code{minus} operations on condition code values.  See
-@file{rs6000.md} for some examples.  The GNU Superoptizer can be used to
+@file{rs6000.md} for some examples.  The GNU Superoptimizer can be used to
 find such instruction sequences on other machines.
 
 If this macro is not defined, the default value, 1, is used.  You need

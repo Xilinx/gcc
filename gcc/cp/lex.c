@@ -1,6 +1,6 @@
 /* Separate lexical analyzer for GNU C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2010
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -452,7 +452,7 @@ unqualified_name_lookup_error (tree name)
       if (!objc_diagnose_private_ivar (name))
 	{
 	  error ("%qD was not declared in this scope", name);
-	  suggest_alternatives_for (name);
+	  suggest_alternatives_for (location_of (name), name);
 	}
       /* Prevent repeated error messages by creating a VAR_DECL with
 	 this NAME in the innermost block scope.  */

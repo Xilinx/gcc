@@ -503,10 +503,13 @@ class Type
   verify()
   { return this->do_verify(); }
 
-  // Return true if two types are identical.  If this returns false,
+  // Return true if two types are identical.  If ERRORS_ARE_IDENTICAL,
+  // returns that an erroneous type is identical to any other type;
+  // this is used to avoid cascading errors.  If this returns false,
   // and REASON is not NULL, it may set *REASON.
   static bool
-  are_identical(const Type* lhs, const Type* rhs, std::string* reason);
+  are_identical(const Type* lhs, const Type* rhs, bool errors_are_identical,
+		std::string* reason);
 
   // Return true if two types are compatible for use in a binary
   // operation, other than a shift, comparison, or channel send.  This
@@ -788,7 +791,8 @@ class Type
 
   // Return true if NAME is an unexported field or method of TYPE.
   static bool
-  is_unexported_field_or_method(Gogo*, const Type*, const std::string&);
+  is_unexported_field_or_method(Gogo*, const Type*, const std::string&,
+				std::vector<const Named_type*>*);
 
   // This type was passed to the builtin function make.  ARGS are the
   // arguments passed to make after the type; this may be NULL if
@@ -1064,8 +1068,8 @@ class Type
   static bool
   find_field_or_method(const Type* type, const std::string& name,
 		       bool receiver_can_be_pointer,
-		       int* level, bool* is_method,
-		       bool* found_pointer_method,
+		       std::vector<const Named_type*>*, int* level,
+		       bool* is_method, bool* found_pointer_method,
 		       std::string* ambig1, std::string* ambig2);
 
   // Get a tree for a type without looking in the hash table for
@@ -1104,7 +1108,7 @@ class Type_identical
  public:
   bool
   operator()(const Type* t1, const Type* t2) const
-  { return Type::are_identical(t1, t2, NULL); }
+  { return Type::are_identical(t1, t2, false, NULL); }
 };
 
 // An identifier with a type.
@@ -1577,7 +1581,7 @@ class Function_type : public Type
   // Whether this type is the same as T.
   bool
   is_identical(const Function_type* t, bool ignore_receiver,
-	       std::string*) const;
+	       bool errors_are_identical, std::string*) const;
 
   // Record that this is a varargs function.
   void
@@ -1839,7 +1843,8 @@ class Struct_type : public Type
  public:
   Struct_type(Struct_field_list* fields, source_location location)
     : Type(TYPE_STRUCT),
-      fields_(fields), location_(location), all_methods_(NULL)
+      fields_(fields), location_(location), all_methods_(NULL),
+      prerequisites_()
   { }
 
   // Return the field NAME.  This only looks at local fields, not at
@@ -1884,7 +1889,7 @@ class Struct_type : public Type
 
   // Whether this type is identical with T.
   bool
-  is_identical(const Struct_type* t) const;
+  is_identical(const Struct_type* t, bool errors_are_identical) const;
 
   // Whether this struct type has any hidden fields.  This returns
   // true if any fields have hidden names, or if any non-pointer
@@ -1934,6 +1939,17 @@ class Struct_type : public Type
   tree
   fill_in_tree(Gogo*, tree);
 
+  // Note that a struct must be converted to the backend
+  // representation before we convert this struct.
+  void
+  add_prerequisite(Named_type* nt)
+  { this->prerequisites_.push_back(nt); }
+
+  // If there are any structs which must be converted to the backend
+  // representation before this one, convert them.
+  void
+  convert_prerequisites(Gogo*);
+
  protected:
   int
   do_traverse(Traverse*);
@@ -1979,6 +1995,16 @@ class Struct_type : public Type
   source_location location_;
   // If this struct is unnamed, a list of methods.
   Methods* all_methods_;
+  // A list of structs which must be converted to the backend
+  // representation before this struct can be converted.  This is for
+  // cases like
+  //   type S1 { p *S2 }
+  //   type S2 { s S1 }
+  // where we must start converting S2 before we start converting S1.
+  // That is because we can fully convert S1 before S2 is complete,
+  // but we can not fully convert S2 before S1 is complete.  If we
+  // start converting S1 first, we won't be able to convert S2.
+  std::vector<Named_type*> prerequisites_;
 };
 
 // The type of an array.
@@ -2003,7 +2029,7 @@ class Array_type : public Type
 
   // Whether this type is identical with T.
   bool
-  is_identical(const Array_type* t) const;
+  is_identical(const Array_type* t, bool errors_are_identical) const;
 
   // Whether this type has any hidden fields.
   bool
@@ -2120,7 +2146,7 @@ class Map_type : public Type
 
   // Whether this type is identical with T.
   bool
-  is_identical(const Map_type* t) const;
+  is_identical(const Map_type* t, bool errors_are_identical) const;
 
   // Import a map type.
   static Map_type*
@@ -2206,7 +2232,7 @@ class Channel_type : public Type
 
   // Whether this type is identical with T.
   bool
-  is_identical(const Channel_type* t) const;
+  is_identical(const Channel_type* t, bool errors_are_identical) const;
 
   // Import a channel type.
   static Channel_type*
@@ -2309,7 +2335,7 @@ class Interface_type : public Type
   // Whether this type is identical with T.  REASON is as in
   // implements_interface.
   bool
-  is_identical(const Interface_type* t) const;
+  is_identical(const Interface_type* t, bool errors_are_identical) const;
 
   // Whether we can assign T to this type.  is_identical is known to
   // be false.
@@ -2384,7 +2410,7 @@ class Named_type : public Type
       local_methods_(NULL), all_methods_(NULL),
       interface_method_tables_(NULL), pointer_interface_method_tables_(NULL),
       location_(location), named_tree_(NULL), is_visible_(true),
-      is_error_(false), seen_(false)
+      is_error_(false), seen_(0)
   { }
 
   // Return the associated Named_object.  This holds the actual name.
@@ -2456,6 +2482,17 @@ class Named_type : public Type
   bool
   is_builtin() const
   { return this->location_ == BUILTINS_LOCATION; }
+
+  // Return the base type for this type.
+  Type*
+  named_base();
+
+  const Type*
+  named_base() const;
+
+  // Return whether this is an error type.
+  bool
+  is_named_error_type() const;
 
   // Add a method to this type.
   Named_object*
@@ -2537,8 +2574,7 @@ class Named_type : public Type
   do_verify();
 
   bool
-  do_has_pointer() const
-  { return this->type_->has_pointer(); }
+  do_has_pointer() const;
 
   unsigned int
   do_hash_for_method(Gogo*) const;
@@ -2612,7 +2648,7 @@ class Named_type : public Type
   // used to prevent infinite recursion when a type refers to itself.
   // This is mutable because it is always reset to false when the
   // function exits.
-  mutable bool seen_;
+  mutable int seen_;
 };
 
 // A forward declaration.  This handles a type which has been declared
@@ -2662,7 +2698,7 @@ class Forward_declaration_type : public Type
 
   bool
   do_has_pointer() const
-  { return this->base()->has_pointer(); }
+  { return this->real_type()->has_pointer(); }
 
   unsigned int
   do_hash_for_method(Gogo* gogo) const

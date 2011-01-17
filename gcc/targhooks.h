@@ -65,6 +65,8 @@ extern bool hook_callee_copies_named
 extern void default_print_operand (FILE *, rtx, int);
 extern void default_print_operand_address (FILE *, rtx);
 extern bool default_print_operand_punct_valid_p (unsigned char);
+extern tree default_mangle_assembler_name (const char *);
+
 extern bool default_asm_output_addr_const_extra (FILE *, rtx);
 
 extern bool default_scalar_mode_supported_p (enum machine_mode);
@@ -141,6 +143,7 @@ extern bool default_target_option_valid_attribute_p (tree, tree, tree, int);
 extern bool default_target_option_pragma_parse (tree, tree);
 extern bool default_target_can_inline_p (tree, tree);
 extern bool default_valid_pointer_mode (enum machine_mode);
+extern bool default_ref_may_alias_errno (struct ao_ref_s *);
 extern enum machine_mode default_addr_space_pointer_mode (addr_space_t);
 extern enum machine_mode default_addr_space_address_mode (addr_space_t);
 extern bool default_addr_space_valid_pointer_mode (enum machine_mode,

@@ -167,13 +167,13 @@ class Parse
   Type* pointer_type();
   Type* channel_type();
   Function_type* signature(Typed_identifier*, source_location);
-  Typed_identifier_list* parameters(bool* is_varargs);
+  bool parameters(Typed_identifier_list**, bool* is_varargs);
   Typed_identifier_list* parameter_list(bool* is_varargs);
   void parameter_decl(bool, Typed_identifier_list*, bool*, bool*);
-  Typed_identifier_list* result();
+  bool result(Typed_identifier_list**);
   source_location block();
   Type* interface_type();
-  bool method_spec(Typed_identifier_list*);
+  void method_spec(Typed_identifier_list*);
   void declaration();
   bool declaration_may_start_here();
   void decl(void (Parse::*)(void*), void*);
@@ -197,6 +197,7 @@ class Parse
 				 source_location);
   Named_object* init_var(const Typed_identifier&, Type*, Expression*,
 			 bool is_coloneq, bool type_from_init, bool* is_new);
+  Named_object* create_dummy_global(Type*, Expression*, source_location);
   void simple_var_decl_or_assignment(const std::string&, source_location,
 				     Range_clause*, Type_switch*);
   void function_decl();
@@ -237,14 +238,14 @@ class Parse
   void if_stat();
   void switch_stat(const Label*);
   Statement* expr_switch_body(const Label*, Expression*, source_location);
-  void expr_case_clause(Case_clauses*);
+  void expr_case_clause(Case_clauses*, bool* saw_default);
   Expression_list* expr_switch_case(bool*);
   Statement* type_switch_body(const Label*, const Type_switch&,
 			      source_location);
-  void type_case_clause(Named_object*, Type_case_clauses*);
+  void type_case_clause(Named_object*, Type_case_clauses*, bool* saw_default);
   void type_switch_case(std::vector<Type*>*, bool*);
   void select_stat(const Label*);
-  void comm_clause(Select_clauses*);
+  void comm_clause(Select_clauses*, bool* saw_default);
   bool comm_case(bool*, Expression**, Expression**, std::string*, bool*);
   bool send_or_recv_expr(bool*, Expression**, Expression**, std::string*);
   void for_stat(const Label*);
@@ -293,9 +294,9 @@ class Parse
   // The code we are generating.
   Gogo* gogo_;
   // A stack of statements for which break may be used.
-  Bc_stack break_stack_;
+  Bc_stack* break_stack_;
   // A stack of statements for which continue may be used.
-  Bc_stack continue_stack_;
+  Bc_stack* continue_stack_;
   // The current iota value.
   int iota_;
   // References from the local function to variables defined in

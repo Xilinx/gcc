@@ -1,5 +1,5 @@
 /* Target definitions for Darwin (Mac OS X) systems.
-   Copyright (C) 2009 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
    Contributed by Jack Howarth <howarth@bromo.med.uc.edu>.
 
 This file is part of GCC.
@@ -23,8 +23,3 @@ unwinder in libSystem is fixed to digest new epilog unwinding notes. */
 
 #undef LIB_SPEC
 #define LIB_SPEC "%{!static:-no_compact_unwind -lSystem}"
-
-/* Unwind labels are no longer required in darwin10.  */
-
-#undef TARGET_ASM_EMIT_UNWIND_LABEL
-#define TARGET_ASM_EMIT_UNWIND_LABEL default_emit_unwind_label

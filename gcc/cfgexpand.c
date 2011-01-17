@@ -1,5 +1,5 @@
 /* A pass for lowering trees to RTL.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -2703,7 +2703,7 @@ expand_debug_expr (tree exp)
 	    enum machine_mode opmode = GET_MODE (op0);
 
 	    if (opmode == VOIDmode)
-	      opmode = mode1;
+	      opmode = TYPE_MODE (TREE_TYPE (tem));
 
 	    /* This condition may hold if we're expanding the address
 	       right past the end of an array that turned out not to
@@ -2724,7 +2724,8 @@ expand_debug_expr (tree exp)
 				     ? SIGN_EXTRACT
 				     : ZERO_EXTRACT, mode,
 				     GET_MODE (op0) != VOIDmode
-				     ? GET_MODE (op0) : mode1,
+				     ? GET_MODE (op0)
+				     : TYPE_MODE (TREE_TYPE (tem)),
 				     op0, GEN_INT (bitsize), GEN_INT (bitpos));
       }
 
@@ -3951,6 +3952,10 @@ gimple_expand_cfg (void)
   crtl->preferred_stack_boundary = STACK_BOUNDARY;
   cfun->cfg->max_jumptable_ents = 0;
 
+  /* Resovle the function section.  Some targets, like ARM EABI rely on knowledge
+     of the function section at exapnsion time to predict distance of calls.  */
+  resolve_unique_section (current_function_decl, 0, flag_function_sections);
+
   /* Expand the variables recorded during gimple lowering.  */
   timevar_push (TV_VAR_EXPAND);
   start_sequence ();
@@ -4080,7 +4085,19 @@ gimple_expand_cfg (void)
       for (ei = ei_start (bb->succs); (e = ei_safe_edge (ei)); )
 	{
 	  if (e->insns.r)
-	    commit_one_edge_insertion (e);
+	    {
+	      /* Avoid putting insns before parm_birth_insn.  */
+	      if (e->src == ENTRY_BLOCK_PTR
+		  && single_succ_p (ENTRY_BLOCK_PTR)
+		  && parm_birth_insn)
+		{
+		  rtx insns = e->insns.r;
+		  e->insns.r = NULL_RTX;
+		  emit_insn_after_noloc (insns, parm_birth_insn, e->dest);
+		}
+	      else
+		commit_one_edge_insertion (e);
+	    }
 	  else
 	    ei_next (&ei);
 	}

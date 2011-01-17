@@ -38,7 +38,7 @@
 #define LINK_SPEC "%{mrelax:--relax} %{shared:-shared} \
    %{!static: \
      %{rdynamic:-export-dynamic} \
-     %{!dynamic-linker:-dynamic-linker " LINUX_DYNAMIC_LINKER "}} \
+     -dynamic-linker " LINUX_DYNAMIC_LINKER "} \
    %{static:-static}"
 
 #undef  PROCESSOR_DEFAULT
@@ -56,7 +56,7 @@ extern int mn10300_protect_label;
   do						\
     {						\
       mn10300_protect_label = 1;		\
-      print_operand ((FILE), (X), (CODE));	\
+      mn10300_print_operand ((FILE), (X), (CODE));	\
       mn10300_protect_label = 0;		\
     }						\
   while (0)
@@ -66,7 +66,7 @@ extern int mn10300_protect_label;
   do						\
     {						\
       mn10300_protect_label = 1;		\
-      print_operand_address ((FILE), (X));	\
+      mn10300_print_operand_address ((FILE), (X));	\
       mn10300_protect_label = 0;		\
     }						\
    while (0)
@@ -84,3 +84,7 @@ extern int mn10300_protect_label;
     }						\
   while (0)           
 
+#undef SIZE_TYPE
+#undef PTRDIFF_TYPE
+#undef WCHAR_TYPE
+#undef WCHAR_TYPE_SIZE

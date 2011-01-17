@@ -1,5 +1,5 @@
 /* Data references and dependences detectors.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
@@ -376,6 +376,7 @@ DEF_VEC_ALLOC_O (data_ref_loc, heap);
 bool get_references_in_stmt (gimple, VEC (data_ref_loc, heap) **);
 bool dr_analyze_innermost (struct data_reference *);
 extern bool compute_data_dependences_for_loop (struct loop *, bool,
+					       VEC (loop_p, heap) **,
 					       VEC (data_reference_p, heap) **,
 					       VEC (ddr_p, heap) **);
 extern bool compute_data_dependences_for_bb (basic_block, bool,
@@ -577,7 +578,10 @@ typedef struct rdg_edge
 #define RDGE_LEVEL(E)       ((struct rdg_edge *) ((E)->data))->level
 #define RDGE_RELATION(E)    ((struct rdg_edge *) ((E)->data))->relation
 
-struct graph *build_rdg (struct loop *);
+struct graph *build_rdg (struct loop *,
+			 VEC (loop_p, heap) **,
+			 VEC (ddr_p, heap) **,
+			 VEC (data_reference_p, heap) **);
 struct graph *build_empty_rdg (int);
 void free_rdg (struct graph *);
 
@@ -602,6 +606,7 @@ void stores_zero_from_loop (struct loop *, VEC (gimple, heap) **);
 void remove_similar_memory_refs (VEC (gimple, heap) **);
 bool rdg_defs_used_in_other_loops_p (struct graph *, int);
 bool have_similar_memory_accesses (gimple, gimple);
+bool stmt_with_adjacent_zero_store_dr_p (gimple);
 
 /* Returns true when STRIDE is equal in absolute value to the size of
    the unit type of TYPE.  */

@@ -428,10 +428,8 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 			node->clone_of->clones = node->next_sibling_clone;
 		      if (node->next_sibling_clone)
 			node->next_sibling_clone->prev_sibling_clone = node->prev_sibling_clone;
-#ifdef ENABLE_CHECKING
 		      if (node->clone_of)
 			node->former_clone_of = node->clone_of->decl;
-#endif
 		      node->clone_of = NULL;
 		      node->next_sibling_clone = NULL;
 		      node->prev_sibling_clone = NULL;
@@ -846,16 +844,34 @@ function_and_variable_visibility (bool whole_program)
 		IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (p->decl)),
 		IDENTIFIER_POINTER (p->target));
 		
-      if ((node = cgraph_node_for_asm (p->target)) != NULL)
+      if ((node = cgraph_node_for_asm (p->target)) != NULL
+	  && !DECL_EXTERNAL (node->decl))
         {
+	  if (!node->analyzed)
+	    continue;
+	  /* Weakrefs alias symbols from other compilation unit.  In the case
+	     the destination of weakref became available because of LTO, we must
+	     mark it as needed.  */
+	  if (in_lto_p
+	      && lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl))
+	      && !node->needed)
+	    cgraph_mark_needed_node (node);
 	  gcc_assert (node->needed);
 	  pointer_set_insert (aliased_nodes, node);
 	  if (dump_file)
 	    fprintf (dump_file, "  node %s/%i",
 		     cgraph_node_name (node), node->uid);
         }
-      else if ((vnode = varpool_node_for_asm (p->target)) != NULL)
+      else if ((vnode = varpool_node_for_asm (p->target)) != NULL
+	       && !DECL_EXTERNAL (vnode->decl))
         {
+	  /* Weakrefs alias symbols from other compilation unit.  In the case
+	     the destination of weakref became available because of LTO, we must
+	     mark it as needed.  */
+	  if (in_lto_p
+	      && lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl))
+	      && !vnode->needed)
+	    varpool_mark_needed_node (vnode);
 	  gcc_assert (vnode->needed);
 	  pointer_set_insert (aliased_vnodes, vnode);
 	  if (dump_file)
@@ -869,6 +885,8 @@ function_and_variable_visibility (bool whole_program)
   for (node = cgraph_nodes; node; node = node->next)
     {
       int flags = flags_from_decl_or_type (node->decl);
+
+      /* Optimize away PURE and CONST constructors and destructors.  */
       if (optimize
 	  && (flags & (ECF_CONST | ECF_PURE))
 	  && !(flags & ECF_LOOPING_CONST_OR_PURE))
@@ -876,6 +894,13 @@ function_and_variable_visibility (bool whole_program)
 	  DECL_STATIC_CONSTRUCTOR (node->decl) = 0;
 	  DECL_STATIC_DESTRUCTOR (node->decl) = 0;
 	}
+
+      /* Frontends and alias code marks nodes as needed before parsing is finished.
+	 We may end up marking as node external nodes where this flag is meaningless
+	 strip it.  */
+      if (node->needed
+	  && (DECL_EXTERNAL (node->decl) || !node->analyzed))
+	node->needed = 0;
 
       /* C++ FE on lack of COMDAT support create local COMDAT functions
 	 (that ought to be shared but can not due to object format
@@ -1496,10 +1521,13 @@ struct ipa_opt_pass_d pass_ipa_profile =
 /* Generate and emit a static constructor or destructor.  WHICH must
    be one of 'I' (for a constructor) or 'D' (for a destructor).  BODY
    is a STATEMENT_LIST containing GENERIC statements.  PRIORITY is the
-   initialization priority for this constructor or destructor.  */
+   initialization priority for this constructor or destructor. 
 
-void
-cgraph_build_static_cdtor (char which, tree body, int priority)
+   FINAL specify whether the externally visible name for collect2 should
+   be produced. */
+
+static void
+cgraph_build_static_cdtor_1 (char which, tree body, int priority, bool final)
 {
   static int counter = 0;
   char which_buf[16];
@@ -1508,7 +1536,12 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
   /* The priority is encoded in the constructor or destructor name.
      collect2 will sort the names and arrange that they are called at
      program startup.  */
-  sprintf (which_buf, "%c_%.5d_%d", which, priority, counter++);
+  if (final)
+    sprintf (which_buf, "%c_%.5d_%d", which, priority, counter++);
+  else
+  /* Proudce sane name but one not recognizable by collect2, just for the
+     case we fail to inline the function.  */
+    sprintf (which_buf, "sub_%c_%.5d_%d", which, priority, counter++);
   name = get_file_function_name (which_buf);
 
   decl = build_decl (input_location, FUNCTION_DECL, name,
@@ -1528,7 +1561,7 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
   DECL_ARTIFICIAL (decl) = 1;
   DECL_NO_INSTRUMENT_FUNCTION_ENTRY_EXIT (decl) = 1;
   DECL_SAVED_TREE (decl) = body;
-  if (!targetm.have_ctors_dtors)
+  if (!targetm.have_ctors_dtors && final)
     {
       TREE_PUBLIC (decl) = 1;
       DECL_PRESERVE_P (decl) = 1;
@@ -1563,6 +1596,16 @@ cgraph_build_static_cdtor (char which, tree body, int priority)
   current_function_decl = NULL;
 }
 
+/* Generate and emit a static constructor or destructor.  WHICH must
+   be one of 'I' (for a constructor) or 'D' (for a destructor).  BODY
+   is a STATEMENT_LIST containing GENERIC statements.  PRIORITY is the
+   initialization priority for this constructor or destructor.  */
+
+void
+cgraph_build_static_cdtor (char which, tree body, int priority)
+{
+  cgraph_build_static_cdtor_1 (which, body, priority, false);
+}
 
 /* A vector of FUNCTION_DECLs declared as static constructors.  */
 static VEC(tree, heap) *static_ctors;
@@ -1648,7 +1691,7 @@ build_cdtor (bool ctor_p, VEC (tree, heap) *cdtors)
       gcc_assert (body != NULL_TREE);
       /* Generate a function to call all the function of like
 	 priority.  */
-      cgraph_build_static_cdtor (ctor_p ? 'I' : 'D', body, priority);
+      cgraph_build_static_cdtor_1 (ctor_p ? 'I' : 'D', body, priority, true);
     }
 }
 

@@ -2073,7 +2073,8 @@ determine_visibility (tree decl)
 	  tree underlying_type = TREE_TYPE (DECL_NAME (decl));
 	  int underlying_vis = type_visibility (underlying_type);
 	  if (underlying_vis == VISIBILITY_ANON
-	      || CLASSTYPE_VISIBILITY_SPECIFIED (underlying_type))
+	      || (CLASS_TYPE_P (underlying_type)
+		  && CLASSTYPE_VISIBILITY_SPECIFIED (underlying_type)))
 	    constrain_visibility (decl, underlying_vis);
 	  else
 	    DECL_VISIBILITY (decl) = VISIBILITY_DEFAULT;
@@ -2691,7 +2692,7 @@ start_objects (int method_type, int initp)
 {
   tree body;
   tree fndecl;
-  char type[10];
+  char type[14];
 
   /* Make ctor or dtor function.  METHOD_TYPE may be 'I' or 'D'.  */
 
@@ -2705,10 +2706,10 @@ start_objects (int method_type, int initp)
       joiner = '_';
 #endif
 
-      sprintf (type, "%c%c%.5u", method_type, joiner, initp);
+      sprintf (type, "sub_%c%c%.5u", method_type, joiner, initp);
     }
   else
-    sprintf (type, "%c", method_type);
+    sprintf (type, "sub_%c", method_type);
 
   fndecl = build_lang_decl (FUNCTION_DECL,
 			    get_file_function_name (type),

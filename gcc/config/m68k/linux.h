@@ -1,7 +1,7 @@
 /* Definitions for Motorola 68k running Linux-based GNU systems with
    ELF format.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2003, 2004, 2006,
-   2007, 2009 Free Software Foundation, Inc.
+   2007, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -22,10 +22,10 @@ along with GCC; see the file COPYING3.  If not see
 #undef TARGET_VERSION
 #define TARGET_VERSION fprintf (stderr, " (68k GNU/Linux with ELF)");
 
-/* Add %(asm_cpu_spec) to the svr4.h definition of ASM_SPEC.  */
+/* Add %(asm_cpu_spec) to a generic definition of ASM_SPEC.  */
 #undef ASM_SPEC
 #define ASM_SPEC "%(asm_cpu_spec) %(asm_pcrel_spec) \
-  %{v:-V} %{Qy:} %{!Qn:-Qy} %{n} %{T} %{Ym,*} %{Yd,*}"
+  %{Qy:} %{!Qn:-Qy} %{Ym,*} %{Yd,*}"
 
 #undef PREFERRED_STACK_BOUNDARY
 #define PREFERRED_STACK_BOUNDARY 32
@@ -83,7 +83,7 @@ along with GCC; see the file COPYING3.  If not see
   %{!shared: \
     %{!static: \
       %{rdynamic:-export-dynamic} \
-      %{!dynamic-linker*:-dynamic-linker " LINUX_DYNAMIC_LINKER "}} \
+      -dynamic-linker " LINUX_DYNAMIC_LINKER "} \
     %{static}}"
 
 /* For compatibility with linux/a.out */
@@ -224,5 +224,20 @@ along with GCC; see the file COPYING3.  If not see
 }
 
 #define TARGET_ASM_FILE_END file_end_indicate_exec_stack
+
+#undef DBX_REGISTER_NUMBER
+#define DBX_REGISTER_NUMBER(REGNO) (REGNO)
+
+#undef  SIZE_TYPE
+#define SIZE_TYPE "unsigned int"
+
+#undef  PTRDIFF_TYPE
+#define PTRDIFF_TYPE "int"
+
+#undef  WCHAR_TYPE
+#define WCHAR_TYPE "long int"
+
+#undef  WCHAR_TYPE_SIZE
+#define WCHAR_TYPE_SIZE BITS_PER_WORD
 
 #define MD_UNWIND_SUPPORT "config/m68k/linux-unwind.h"

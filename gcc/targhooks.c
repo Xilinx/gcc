@@ -69,6 +69,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "intl.h"
 #include "opts.h"
+#include "tree-flow.h"
+#include "tree-ssa-alias.h"
 
 
 bool
@@ -356,6 +358,17 @@ default_print_operand_punct_valid_p (unsigned char code ATTRIBUTE_UNUSED)
 #else
   return false;
 #endif
+}
+
+/* The default implementation of TARGET_MANGLE_ASSEMBLER_NAME.  */
+tree
+default_mangle_assembler_name (const char *name ATTRIBUTE_UNUSED)
+{
+  const char *skipped = name + (*name == '*' ? 1 : 0);
+  const char *stripped = targetm.strip_name_encoding (skipped);
+  if (*name != '*' && user_label_prefix[0])
+    stripped = ACONCAT ((user_label_prefix, stripped, NULL));
+  return get_identifier (stripped);
 }
 
 /* The default implementation of TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA.  */
@@ -1022,6 +1035,33 @@ bool
 default_valid_pointer_mode (enum machine_mode mode)
 {
   return (mode == ptr_mode || mode == Pmode);
+}
+
+/* Determine whether the memory reference specified by REF may alias
+   the C libraries errno location.  */
+bool
+default_ref_may_alias_errno (ao_ref *ref)
+{
+  tree base = ao_ref_base (ref);
+  /* The default implementation assumes the errno location is
+     a declaration of type int or is always accessed via a
+     pointer to int.  We assume that accesses to errno are
+     not deliberately obfuscated (even in conforming ways).  */
+  if (TYPE_UNSIGNED (TREE_TYPE (base))
+      || TYPE_MODE (TREE_TYPE (base)) != TYPE_MODE (integer_type_node))
+    return false;
+  /* The default implementation assumes an errno location
+     declaration is never defined in the current compilation unit.  */
+  if (DECL_P (base)
+      && !TREE_STATIC (base))
+    return true;
+  else if (TREE_CODE (base) == MEM_REF
+	   && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+    {
+      struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
+      return !pi || pi->pt.anything || pi->pt.nonlocal;
+    }
+  return false;
 }
 
 /* Return the mode for a pointer to a given ADDRSPACE, defaulting to ptr_mode
