@@ -1147,7 +1147,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_OBJECT"
   :valdesc_struct '"meltobject_st"
   :valdesc_unionmem '"u_object"
-  :valdesc_membchunk #{$' /* from VALDESC_OBJECT */
+  :valdesc_membchunk #{$' /* from VALDESC_OBJECT in warmelt-base.melt */
   unsigned obj_hash;		/* hash code of the object */
   unsigned short obj_num;
   unsigned short obj_len;
@@ -1197,8 +1197,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_MAPOBJECTS"
   :valdesc_struct '"meltmapobjects_st"
   :valdesc_unionmem '"u_mapobjects"
-  :valdesc_membchunk #{$' /* from VALDESC_MAPOBJECTS */
-  meltobject_ptr_t discr;
+  :valdesc_membchunk #{$' /* from VALDESC_MAPOBJECTS in warmelt-base.melt */
   unsigned count;
   unsigned char lenix;
   struct entryobjectsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
@@ -1260,8 +1259,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_MAPSTRINGS"
   :valdesc_struct '"meltmapstrings_st"
   :valdesc_unionmem '"u_mapstrings"
-  :valdesc_membchunk #{$' /* from VALDESC_MAPSTRINGS */
-  meltobject_ptr_t discr;
+  :valdesc_membchunk #{$' /* from VALDESC_MAPSTRINGS in warmelt-base.melt */
   unsigned count;
   unsigned char lenix;
   struct entrystringsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
@@ -1321,7 +1319,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_struct '"meltdecay_st"
   :valdesc_unionmem '"u_decay"
   :valdesc_gty #{$' mark_hook ("melt_mark_decay")}#
-  :valdesc_membchunk #{$' /* from VALDESC_DECAY */
+  :valdesc_membchunk #{$' /* from VALDESC_DECAY in warmelt-base.melt */
   melt_ptr_t val;
   unsigned remain;		/* remaining number of marking */
   }#
@@ -1342,7 +1340,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_BOX"
   :valdesc_struct '"meltbox_st"
   :valdesc_unionmem '"u_box"
-  :valdesc_membchunk #{$' /* from VALDESC_BOX */
+  :valdesc_membchunk #{$' /* from VALDESC_BOX in warmelt-base.melt */
   melt_ptr_t val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_BOX */
@@ -1362,7 +1360,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_MULTIPLE"
   :valdesc_struct '"meltmultiple_st"
   :valdesc_unionmem '"u_multiple"
-  :valdesc_membchunk #{$' /* from VALDESC_MULTIPLE */
+  :valdesc_membchunk #{$' /* from VALDESC_MULTIPLE in warmelt-base.melt */
     unsigned nbval;
     melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
   }#
@@ -1403,7 +1401,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_CLOSURE"
   :valdesc_struct '"meltclosure_st"
   :valdesc_unionmem '"u_closure"
-  :valdesc_membchunk #{$' /* from VALDESC_CLOSURE */
+  :valdesc_membchunk #{$' /* from VALDESC_CLOSURE in warmelt-base.melt */
     meltroutine_ptr_t rout;
     unsigned nbval;
     melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
@@ -1445,7 +1443,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_objmagic '"MELTOBMAG_ROUTINE"
   :valdesc_struct '"meltroutine_st"
   :valdesc_unionmem '"u_routine"
-  :valdesc_membchunk #{$' /* from VALDESC_ROUTINE */
+  :valdesc_membchunk #{$' /* from VALDESC_ROUTINE in warmelt-base.melt */
     char routdescr[MELT_ROUTDESCR_LEN];
     meltroutfun_t* GTY ((skip)) routfunad;
     melt_ptr_t routdata;
@@ -1453,10 +1451,10 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
   }#
   :valdesc_declchunk #{$' /* decl VALDESC_ROUTINE */
-#ifndef meltrout_ptr_t_TYPEDEFINED
+#ifndef meltroutine_ptr_t_TYPEDEFINED
 typedef struct meltroutine_st *meltroutine_ptr_t;
 #define  meltroutine_ptr_t_TYPEDEFINED
-#endif
+#endif /*meltroutine_ptr_t_TYPEDEFINED from VALDESC_ROUTINE */
 
 /* unsafely set inside the meltroutine_st pointed by Rptr the
    routine function pointer to Rout */
@@ -1506,7 +1504,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_STRING"
   :valdesc_struct '"meltstring_st"
   :valdesc_unionmem '"u_string"
-  :valdesc_membchunk #{$' /* from VALDESC_STRING */  
+  :valdesc_membchunk #{$' /* from VALDESC_STRING in warmelt-base.melt */  
     char val[FLEXIBLE_DIM];	/* null terminated */
   }#
   :valdesc_declchunk #{$' /* decl VALDESC_STRING */
@@ -1535,7 +1533,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_STRBUF"
   :valdesc_struct '"meltstrbuf_st"
   :valdesc_unionmem '"u_strbuf"
-  :valdesc_membchunk #{$' /* from VALDESC_STRBUF */  
+  :valdesc_membchunk #{$' /* from VALDESC_STRBUF in warmelt-base.melt */  
   char *GTY ((length ("1+melt_primtab[%h.buflenix]"))) bufzn;
   unsigned char buflenix;	/* allocated length index of
 				   buffer */
@@ -1580,7 +1578,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_struct '"meltpair_st"
   :valdesc_unionmem '"u_pair"
   :valdesc_gty #{$' chain_next ("%h.tl")}#
-  :valdesc_membchunk #{$' /* from VALDESC_PAIR */
+  :valdesc_membchunk #{$' /* from VALDESC_PAIR in warmelt-base.melt */
     melt_ptr_t hd;
     struct meltpair_st *tl;
   }#
@@ -1604,7 +1602,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_LIST"
   :valdesc_struct '"meltlist_st"
   :valdesc_unionmem '"u_list"
-  :valdesc_membchunk #{$' /* from VALDESC_LIST */
+  :valdesc_membchunk #{$' /* from VALDESC_LIST in warmelt-base.melt */
     struct meltpair_st *first;
     struct meltpair_st *last;
   }#
@@ -1629,7 +1627,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_INT"
   :valdesc_struct '"meltint_st"
   :valdesc_unionmem '"u_int"
-  :valdesc_membchunk #{$' /* from VALDESC_INT */
+  :valdesc_membchunk #{$' /* from VALDESC_INT in warmelt-base.melt */
     long val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_INT */
@@ -1648,7 +1646,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_MIXINT"
   :valdesc_struct '"meltmixint_st"
   :valdesc_unionmem '"u_mixint"
-  :valdesc_membchunk #{$' /* from VALDESC_MIXINT */
+  :valdesc_membchunk #{$' /* from VALDESC_MIXINT in warmelt-base.melt */
     melt_ptr_t ptrval;
     long intval;
   }#
@@ -1671,7 +1669,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_MIXLOC"
   :valdesc_struct '"meltmixloc_st"
   :valdesc_unionmem '"u_mixloc"
-  :valdesc_membchunk #{$' /* from VALDESC_MIXLOC */
+  :valdesc_membchunk #{$' /* from VALDESC_MIXLOC in warmelt-base.melt.melt */
     melt_ptr_t ptrval;
     long intval;
     location_t locval;
@@ -1695,7 +1693,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_MIXBIGINT"
   :valdesc_struct '"meltmixbigint_st"
   :valdesc_unionmem '"u_mixbigint"
-  :valdesc_membchunk #{$' /* from VALDESC_MIXBIGINT */
+  :valdesc_membchunk #{$' /* from VALDESC_MIXBIGINT in warmelt-base.melt */
 /* an exported array mpz compatible; since we use an exported mpz format, 
    the value can be copied and trashed by MELT garbage collector without 
    harm. */
@@ -1729,7 +1727,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_objmagic '"MELTOBMAG_REAL"
   :valdesc_struct '"meltreal_st"
   :valdesc_unionmem '"u_real"
-  :valdesc_membchunk #{$' /* from VALDESC_REAL */
+  :valdesc_membchunk #{$' /* from VALDESC_REAL in warmelt-base.melt */
     REAL_VALUE_TYPE val;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_REAL */
@@ -1750,7 +1748,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_struct '"meltspecialfile_st"
   :valdesc_unionmem '"u_special_file"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
-  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_FILE */
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_FILE in warmelt-base.melt */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
     union melt_special_un GTY ((skip)) val;
@@ -1779,7 +1777,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_struct '"meltspecialrawfile_st"
   :valdesc_unionmem '"u_special_rawfile"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
-  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_RAW_FILE */
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_RAW_FILE in warmelt-base.melt */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
     union melt_special_un GTY ((skip)) val;
@@ -1807,7 +1805,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_struct '"meltspecialmpfr_st"
   :valdesc_unionmem '"u_special_mpfr"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
-  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_MPFR */
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_MPFR in warmelt-base.melt */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
     union melt_special_un GTY ((skip)) val;
@@ -1835,7 +1833,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_struct '"meltspecialpplcoefficient_st"
   :valdesc_unionmem '"u_special_ppl_coefficient"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
-  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_COEFFICIENT in warmelt-base.melt */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
     union melt_special_un GTY ((skip)) val;
@@ -1864,7 +1862,7 @@ linear expression values.}#
   :valdesc_struct '"meltspecialppllinearexpression_st"
   :valdesc_unionmem '"u_special_ppl_linear_expression"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
-  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION in warmelt-base.melt*/
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
     union melt_special_un GTY ((skip)) val;
@@ -1893,7 +1891,7 @@ constraints values.}#
   :valdesc_struct '"meltspecialpplconstraint_st"
   :valdesc_unionmem '"u_special_ppl_constraint"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
-  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT in warmelt-base.melt*/
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
     union melt_special_un GTY ((skip)) val;
@@ -1922,7 +1920,7 @@ constraint systems values.}#
   :valdesc_struct '"meltspecialpplconstaintsystem_st"
   :valdesc_unionmem '"u_special_ppl_constraint_system"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
-  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM in warmelt-base.melt */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
     union melt_special_un GTY ((skip)) val;
@@ -1951,7 +1949,7 @@ generators values.}#
   :valdesc_struct '"meltspecialpplgenerator_st"
   :valdesc_unionmem '"u_special_ppl_generator"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
-  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR */
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR in warmelt-base.melt */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
     union melt_special_un GTY ((skip)) val;
@@ -1980,7 +1978,7 @@ generator systems values.}#
   :valdesc_struct '"meltspecialpplgeneratorsystem_st"
   :valdesc_unionmem '"u_special_ppl_generator_system"
   :valdesc_gty #{$'mark_hook ("melt_mark_special")}#
-  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM in warmelt-base.melt */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
     union melt_special_un GTY ((skip)) val;
@@ -2009,7 +2007,7 @@ polyhedron values.}#
   :valdesc_struct '"meltspecialpplpolyhedron_st"
   :valdesc_unionmem '"u_special_ppl_polyhedron"
   :valdesc_gty #{$'mark_hook ("melt_mark_special")}#
-  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
+  :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_POLYHEDRON in warmelt-base.melt */
     int mark;
     struct meltspecial_st *GTY ((skip)) nextspec;
     union melt_special_un GTY ((skip)) val;

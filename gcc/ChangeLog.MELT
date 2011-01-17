@@ -1,4 +1,10 @@
 
+2011-01-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt: Improve valdesc_*.
+
+	* melt/warmelt-outobj.melt (generate_runtypesupport_gty): Fix typo
+	in generated code.
+
 2011-01-14  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-build.tpl: Copy both meltrunsup*.c & meltunsup*.h for
