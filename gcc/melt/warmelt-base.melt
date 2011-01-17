@@ -1173,7 +1173,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
       (oblen*sizeof(void*)
        + offsetof(struct meltobject_st, obj_vartab));
     /* we cannot copy the whole src, because FLEXIBLE_DIM might be 1 */
-    dst->obj_class = src->obj_class;
+    dst->meltobj_class = src->meltobj_class;
     dst->obj_hash = src->obj_hash;
     dst->obj_num = src->obj_num;
     dst->obj_len = oblen;
@@ -1192,7 +1192,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 ;;;;;;;;;;;;;;;; objects map values
 
 (definstance valdesc_mapobjects class_value_descriptor
-  :doc #{$VALDESC_BOX describes object-keyed map values.}#
+  :doc #{$VALDESC_MAPOBJECTS describes object-keyed map values.}#
   :named_name '"VALDESC_MAPOBJECTS"
   :valdesc_objmagic '"MELTOBMAG_MAPOBJECTS"
   :valdesc_struct '"meltmapobjects_st"
@@ -1206,6 +1206,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
      objects in the young zone), to allocate the object and its fields
      at once; hence its GTY-ed length is zero */
   struct entryobjectsmelt_st GTY ((length ("0"))) map_space[FLEXIBLE_DIM];
+  }#
+  :valdesc_declchunk #{$' /* decl VALDESC_MAPOBJECTS in warmelt-base.melt */
+    typedef struct meltmapobjects_st* meltmapobjects_ptr_t;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_MAPOBJECTS */
      int siz = melt_primtab[src->lenix];
@@ -1254,7 +1257,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 
 ;;;;;;;;;;;;;;;; string map values
 (definstance valdesc_mapstrings class_value_descriptor
-  :doc #{$VALDESC_BOX describes string-keyed map values.}#
+  :doc #{$VALDESC_MAPSTRINGS describes string-keyed map values.}#
   :named_name '"VALDESC_MAPSTRINGS"
   :valdesc_objmagic '"MELTOBMAG_MAPSTRINGS"
   :valdesc_struct '"meltmapstrings_st"
@@ -1343,6 +1346,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_membchunk #{$' /* from VALDESC_BOX in warmelt-base.melt */
   melt_ptr_t val;
   }#
+  :valdesc_declchunk #{$' /* decl VALDESC_BOX in warmelt-base.melt */
+  typedef struct meltbox_st* meltbox_ptr_t;
+  }#
   :valdesc_copychunk #{$' /* from VALDESC_BOX */
      dst = ggc_alloc_meltbox_st ();
      *dst = *src;
@@ -1364,12 +1370,13 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     unsigned nbval;
     melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
   }#
-  :valdesc_declchunk #{$'  /* decl VALDESC_MULTIPLE */
+  :valdesc_declchunk #{$'  /* decl VALDESC_MULTIPLE in warmelt-base.melt */
 #define MELT_MULTIPLE_STRUCT(N) {               \
     meltobject_ptr_t discr;                     \
     unsigned nbval;                             \
     melt_ptr_t tabval[N];                       \
     long _gap; }
+  typedef struct meltmultiple_st* meltmultiple_ptr_t;
   }#
   :valdesc_copychunk #{$'  /* from VALDESC_MULTIPLE */
     int nbv = (int) src->nbval;
@@ -1546,7 +1553,7 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_STRBUF */
      unsigned blen = melt_primtab[src->buflenix];
-     struct meltstrbuf_st *dst = 
+     dst = 
        /* Don't need a cleared allocation.  */
        ggc_alloc_meltstrbuf_st ();
      dst->discr = src->discr;
@@ -1917,7 +1924,7 @@ constraints values.}#
 constraint systems values.}#
   :named_name '"VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM"
   :valdesc_objmagic '"MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM"
-  :valdesc_struct '"meltspecialpplconstaintsystem_st"
+  :valdesc_struct '"meltspecialpplconstraintsystem_st"
   :valdesc_unionmem '"u_special_ppl_constraint_system"
   :valdesc_gty #{$' mark_hook ("melt_mark_special")}#
   :valdesc_membchunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM in warmelt-base.melt */
