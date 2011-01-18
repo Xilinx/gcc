@@ -1,6 +1,11 @@
 
 2011-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (valdesc_closure): Added rout field in
+	MELT_CLOSURE_STRUCT.
+
+2011-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-base.melt: Improve some valdesc_* by adding melt*_ptr_t typedefs.
 
 2011-01-17  Basile Starynkevitch  <basile@starynkevitch.net>

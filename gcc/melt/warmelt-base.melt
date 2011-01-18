@@ -1413,14 +1413,15 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     unsigned nbval;
     melt_ptr_t GTY ((length ("%h.nbval"))) tabval[FLEXIBLE_DIM];
   }#
-  :valdesc_declchunk #{$' /* decl VALDESC_CLOSURE */
+  :valdesc_declchunk #{$' /* decl VALDESC_CLOSURE  in warmelt-base.melt */
 #define MELT_CLOSURE_STRUCT(N) {                \
     meltobject_ptr_t discr;                     \
+    meltroutine_ptr_t rout;			\
     unsigned nbval;                             \
     melt_ptr_t tabval[N];                       \
     long _gap; }
   }#
-  :valdesc_copychunk #{$' /* from VALDESC_CLOSURE */
+  :valdesc_copychunk #{$' /* copy VALDESC_CLOSURE in warmelt-base.melt  */
      int nbv = (int) src->nbval;
      int ix = 0;
      dst = 
