@@ -1514,13 +1514,13 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_membchunk #{$' /* from VALDESC_STRING in warmelt-base.melt */  
     char val[FLEXIBLE_DIM];	/* null terminated */
   }#
-  :valdesc_declchunk #{$' /* decl VALDESC_STRING */
+  :valdesc_declchunk #{$' /* decl VALDESC_STRING from warmelt-base.melt */
 #define MELT_STRING_STRUCT(N) {			\
   meltobject_ptr_t discr;			\
   char val[(N)+1];	/* null terminated */	\
-  long _gap; 
+  long _gap; }
   }#
-  :valdesc_copychunk #{$' /* from VALDESC_STRING */  
+  :valdesc_copychunk #{$' /* from VALDESC_STRING file warmelt-base.melt*/  
      int srclen = (src->val)?strlen (src->val):0;
      dst = 
        /* Don't need a cleared allocation.  */
@@ -1585,16 +1585,19 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_struct '"meltpair_st"
   :valdesc_unionmem '"u_pair"
   :valdesc_gty #{$' chain_next ("%h.tl")}#
+  :valdesc_declchunk #{$' /* decl VALDESC_PAIR in warmelt-base.melt */
+  typedef struct meltpair_st *meltpair_ptr_t;
+  }#
   :valdesc_membchunk #{$' /* from VALDESC_PAIR in warmelt-base.melt */
     melt_ptr_t hd;
     struct meltpair_st *tl;
   }#
-  :valdesc_copychunk #{$' /* from VALDESC_PAIR */
+  :valdesc_copychunk #{$' /* copy VALDESC_PAIR in warmelt-base.melt */
     dst = /* Don't need a cleared allocation.  */
 	  ggc_alloc_meltpair_st ();
     *dst = *src;
   }#
-  :valdesc_forwchunk #{$' /* from VALDESC_PAIR */
+  :valdesc_forwchunk #{$' /* forward VALDESC_PAIR in warmelt-base.melt */
      MELT_FORWARDED (src->hd);
      MELT_FORWARDED (src->tl);
   }#
@@ -1612,6 +1615,9 @@ typedef struct meltroutine_st *meltroutine_ptr_t;
   :valdesc_membchunk #{$' /* from VALDESC_LIST in warmelt-base.melt */
     struct meltpair_st *first;
     struct meltpair_st *last;
+  }#
+  :valdesc_declchunk #{$' /* decl VALDESC_LIST in warmelt-base.melt */
+  typedef struct meltlist_st *meltlist_ptr_t;
   }#
   :valdesc_copychunk #{$' /* from VALDESC_LIST */
      dst = 
