@@ -1,6 +1,11 @@
 
 2011-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-base.melt (valdesc_mapobjects, valdesc_mapstrings):
+	Dont emit declaration of dst in :valdesc_copychunk.
+
+2011-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-base.melt (valdesc_closure): Added rout field in
 	MELT_CLOSURE_STRUCT.
 

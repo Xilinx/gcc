@@ -1210,8 +1210,11 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   :valdesc_declchunk #{$' /* decl VALDESC_MAPOBJECTS in warmelt-base.melt */
     typedef struct meltmapobjects_st* meltmapobjects_ptr_t;
   }#
-  :valdesc_copychunk #{$' /* from VALDESC_MAPOBJECTS */
+  :valdesc_copychunk #{$' /* copy VALDESC_MAPOBJECTS in warmelt-base.melt */
      int siz = melt_primtab[src->lenix];
+     dst = 
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmapobjects_st ();
      dst->discr = src->discr;
      dst->count = src->count;
      dst->lenix = src->lenix;
@@ -1268,8 +1271,11 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
   struct entrystringsmelt_st *GTY ((length ("melt_primtab[%h.lenix]")))
     entab;
   }#
-  :valdesc_copychunk #{$' /* from VALDESC_MAPSTRINGS */
+  :valdesc_copychunk #{$' /* copy VALDESC_MAPSTRINGS in warmelt-base.melt */
         int siz = melt_primtab[src->lenix];
+	dst = 
+	  /* Don't need a cleared allocation.  */
+	  ggc_alloc_meltmapstrings_st ();
         dst->discr = src->discr;
         dst->count = src->count;
         dst->lenix = src->lenix;
