@@ -1,3 +1,7 @@
+2011-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-base.melt (runtypesupport_docmd): Generates terminating comment
+	before outputting meltrunsup* files.
 
 2011-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
