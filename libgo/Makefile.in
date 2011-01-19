@@ -17,7 +17,7 @@
 
 # Makefile.am -- Go library Makefile.
 
-# Copyright 2009, 2010 The Go Authors. All rights reserved.
+# Copyright 2009 The Go Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
@@ -121,12 +121,13 @@ libgobegin_a_OBJECTS = $(am_libgobegin_a_OBJECTS)
 LTLIBRARIES = $(toolexeclib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libgo_la_DEPENDENCIES = $(libgo_go_objs) $(am__DEPENDENCIES_1) \
-	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1)
+	$(am__DEPENDENCIES_1) $(am__DEPENDENCIES_1) \
+	$(am__DEPENDENCIES_1)
 am__libgo_la_SOURCES_DIST = runtime/go-append.c runtime/go-assert.c \
 	runtime/go-assert-interface.c \
 	runtime/go-byte-array-to-string.c runtime/go-breakpoint.c \
 	runtime/go-caller.c runtime/go-can-convert-interface.c \
-	runtime/go-chan-cap.c runtime/go-chan-len.c \
+	runtime/go-cgo.c runtime/go-chan-cap.c runtime/go-chan-len.c \
 	runtime/go-check-interface.c runtime/go-close.c \
 	runtime/go-closed.c runtime/go-construct-map.c \
 	runtime/go-convert-interface.c runtime/go-copy.c \
@@ -172,8 +173,8 @@ am__libgo_la_SOURCES_DIST = runtime/go-append.c runtime/go-assert.c \
 @LIBGO_IS_RTEMS_TRUE@am__objects_2 = rtems-task-variable-add.lo
 am__objects_3 = go-append.lo go-assert.lo go-assert-interface.lo \
 	go-byte-array-to-string.lo go-breakpoint.lo go-caller.lo \
-	go-can-convert-interface.lo go-chan-cap.lo go-chan-len.lo \
-	go-check-interface.lo go-close.lo go-closed.lo \
+	go-can-convert-interface.lo go-cgo.lo go-chan-cap.lo \
+	go-chan-len.lo go-check-interface.lo go-close.lo go-closed.lo \
 	go-construct-map.lo go-convert-interface.lo go-copy.lo \
 	go-defer.lo go-deferred-recover.lo go-eface-compare.lo \
 	go-eface-val-compare.lo go-getgoroot.lo go-go.lo \
@@ -305,8 +306,10 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
+GOARCH = @GOARCH@
 GOC = @GOC@
 GOCFLAGS = $(CFLAGS)
+GOOS = @GOOS@
 GREP = @GREP@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
@@ -327,6 +330,7 @@ MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 MATH_LIBS = @MATH_LIBS@
 MKDIR_P = @MKDIR_P@
+NET_LIBS = @NET_LIBS@
 NM = @NM@
 NMEDIT = @NMEDIT@
 OBJCOPY = @OBJCOPY@
@@ -678,6 +682,7 @@ runtime_files = \
 	runtime/go-breakpoint.c \
 	runtime/go-caller.c \
 	runtime/go-can-convert-interface.c \
+	runtime/go-cgo.c \
 	runtime/go-chan-cap.c \
 	runtime/go-chan-len.c \
 	runtime/go-check-interface.c \
@@ -933,9 +938,13 @@ go_mime_files = \
 	go/mime/mediatype.go \
 	go/mime/type.go
 
-@LIBGO_IS_RTEMS_FALSE@go_net_fd_os_file = go/net/fd_linux.go
+# By default use select with pipes.  Most systems should have
+# something better.
+@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_RTEMS_FALSE@go_net_fd_os_file = go/net/fd_rtems.go
+@LIBGO_IS_LINUX_TRUE@@LIBGO_IS_RTEMS_FALSE@go_net_fd_os_file = go/net/fd_linux.go
 @LIBGO_IS_RTEMS_TRUE@go_net_fd_os_file = go/net/fd_rtems.go
-@LIBGO_IS_RTEMS_FALSE@go_net_newpollserver_file = go/net/newpollserver.go
+@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_RTEMS_FALSE@go_net_newpollserver_file = go/net/newpollserver.go
+@LIBGO_IS_LINUX_TRUE@@LIBGO_IS_RTEMS_FALSE@go_net_newpollserver_file = go/net/newpollserver.go
 @LIBGO_IS_RTEMS_TRUE@go_net_newpollserver_file = go/net/newpollserver_rtems.go
 go_net_files = \
 	go/net/dial.go \
@@ -1018,15 +1027,6 @@ go_runtime_files = \
 	go/runtime/type.go \
 	version.go
 
-@LIBGO_IS_386_FALSE@@LIBGO_IS_ARM_FALSE@@LIBGO_IS_X86_64_FALSE@GOARCH = unknown
-@LIBGO_IS_386_FALSE@@LIBGO_IS_ARM_TRUE@@LIBGO_IS_X86_64_FALSE@GOARCH = arm
-@LIBGO_IS_386_FALSE@@LIBGO_IS_X86_64_TRUE@GOARCH = amd64
-@LIBGO_IS_386_TRUE@GOARCH = 386
-@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_RTEMS_FALSE@GOOS = unknown
-@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_RTEMS_TRUE@GOOS = rtems
-@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_TRUE@@LIBGO_IS_LINUX_FALSE@GOOS = freebsd
-@LIBGO_IS_DARWIN_TRUE@@LIBGO_IS_LINUX_FALSE@GOOS = darwin
-@LIBGO_IS_LINUX_TRUE@GOOS = linux
 go_scanner_files = \
 	go/scanner/scanner.go
 
@@ -1255,24 +1255,10 @@ go_debug_pe_files = \
 	go/debug/pe/file.go \
 	go/debug/pe/pe.go
 
-@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_LINUX_FALSE@proc_file = 
-@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_TRUE@@LIBGO_IS_LINUX_FALSE@proc_file = go/debug/proc/proc_freebsd.go
-@LIBGO_IS_DARWIN_TRUE@@LIBGO_IS_LINUX_FALSE@proc_file = go/debug/proc/proc_darwin.go
-@LIBGO_IS_LINUX_TRUE@proc_file = go/debug/proc/proc_linux.go
-@LIBGO_IS_386_FALSE@@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_TRUE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_X86_64_FALSE@regs_file = 
-@LIBGO_IS_386_FALSE@@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_TRUE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_X86_64_TRUE@regs_file = go/debug/proc/regs_freebsd_amd64.go
-@LIBGO_IS_386_FALSE@@LIBGO_IS_DARWIN_TRUE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_X86_64_FALSE@regs_file = 
-@LIBGO_IS_386_FALSE@@LIBGO_IS_DARWIN_TRUE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_X86_64_TRUE@regs_file = go/debug/proc/regs_darwin_amd64.go
-@LIBGO_IS_386_FALSE@@LIBGO_IS_LINUX_TRUE@@LIBGO_IS_X86_64_FALSE@regs_file = 
-@LIBGO_IS_386_FALSE@@LIBGO_IS_LINUX_TRUE@@LIBGO_IS_X86_64_TRUE@regs_file = go/debug/proc/regs_linux_amd64.go
-@LIBGO_IS_386_TRUE@@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_TRUE@@LIBGO_IS_LINUX_FALSE@regs_file = go/debug/proc/regs_freebsd_386.go
-@LIBGO_IS_386_TRUE@@LIBGO_IS_DARWIN_TRUE@@LIBGO_IS_LINUX_FALSE@regs_file = go/debug/proc/regs_darwin_386.go
-@LIBGO_IS_386_TRUE@@LIBGO_IS_LINUX_TRUE@regs_file = go/debug/proc/regs_linux_386.go
-@LIBGO_IS_DARWIN_FALSE@@LIBGO_IS_FREEBSD_FALSE@@LIBGO_IS_LINUX_FALSE@regs_file = 
 go_debug_proc_files = \
 	go/debug/proc/proc.go \
-	$(proc_file) \
-	$(regs_file)
+	go/debug/proc/proc_$(GOOS).go \
+	go/debug/proc/regs_$(GOOS)_$(GOARCH).go
 
 go_encoding_ascii85_files = \
 	go/encoding/ascii85/ascii85.go
@@ -1407,43 +1393,67 @@ go_testing_quick_files = \
 go_testing_script_files = \
 	go/testing/script/script.go
 
-@LIBGO_IS_LINUX_FALSE@syscall_os_file = 
-@LIBGO_IS_LINUX_TRUE@syscall_os_file = syscalls/syscall_linux.go
-@LIBGO_IS_386_FALSE@@LIBGO_IS_LINUX_TRUE@@LIBGO_IS_X86_64_FALSE@syscall_arch_file = 
-@LIBGO_IS_386_FALSE@@LIBGO_IS_LINUX_TRUE@@LIBGO_IS_X86_64_TRUE@syscall_arch_file = syscalls/syscall_linux_amd64.go
-@LIBGO_IS_386_TRUE@@LIBGO_IS_LINUX_TRUE@syscall_arch_file = syscalls/syscall_linux_386.go
-@LIBGO_IS_LINUX_FALSE@syscall_arch_file = 
-@LIBGO_IS_RTEMS_FALSE@syscall_exec_os_file = syscalls/exec.go
-@LIBGO_IS_RTEMS_TRUE@syscall_exec_os_file = syscalls/exec_stubs.go
-@LIBGO_IS_RTEMS_FALSE@syscall_socket_os_file = syscalls/socket_linux.go
-@LIBGO_IS_RTEMS_TRUE@syscall_socket_os_file = syscalls/socket_bsd.go
-@LIBGO_IS_RTEMS_FALSE@syscall_socket_epoll_file = syscalls/socket_epoll.go
-@LIBGO_IS_RTEMS_TRUE@syscall_socket_epoll_file = 
-@LIBGO_IS_RTEMS_FALSE@syscall_sysfile_os_file = syscalls/sysfile_linux.go
-@LIBGO_IS_RTEMS_TRUE@syscall_sysfile_os_file = syscalls/sysfile_rtems.go
 @LIBGO_IS_RTEMS_FALSE@syscall_syscall_file = syscalls/syscall.go
+
+# Define Syscall and Syscall6.
 @LIBGO_IS_RTEMS_TRUE@syscall_syscall_file = syscalls/syscall_stubs.go
+# Use lseek on amd64 Solaris.
+@LIBGO_IS_386_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@syscall_filesize_file = syscalls/sysfile_regfile.go
+# Use lseek64 on 386 Solaris.
+@LIBGO_IS_386_TRUE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@syscall_filesize_file = syscalls/sysfile_largefile.go
+# Use lseek by default.
+@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_FALSE@syscall_filesize_file = syscalls/sysfile_regfile.go
+
+# Declare libc functions that vary for largefile systems.
+# Always use lseek64 on GNU/Linux.
+@LIBGO_IS_LINUX_TRUE@syscall_filesize_file = syscalls/sysfile_largefile.go
+@LIBGO_IS_RTEMS_FALSE@syscall_exec_os_file = syscalls/exec.go
+
+# Define ForkExec, PtraceForkExec, Exec, and Wait4.
+@LIBGO_IS_RTEMS_TRUE@syscall_exec_os_file = syscalls/exec_stubs.go
+@LIBGO_IS_RTEMS_FALSE@syscall_sleep_file = syscalls/sleep_select.go
+
+# Define Sleep.
+@LIBGO_IS_RTEMS_TRUE@syscall_sleep_file = syscalls/sleep_rtems.go
 @LIBGO_IS_RTEMS_FALSE@syscall_errstr_file = syscalls/errstr.go
+
+# Define Errstr.
 @LIBGO_IS_RTEMS_TRUE@syscall_errstr_file = syscalls/errstr_rtems.go
+# On other systems we hope strerror_r is just strerror_r.
 @LIBGO_IS_LINUX_FALSE@@LIBGO_IS_RTEMS_FALSE@syscall_errstr_decl_file = syscalls/errstr_decl.go
+# In Linux the POSIX strerror_r is called __xpg_strerror_r.
 @LIBGO_IS_LINUX_TRUE@@LIBGO_IS_RTEMS_FALSE@syscall_errstr_decl_file = syscalls/errstr_decl_linux.go
+
+# Declare libc_strerror_r which is the Go name for strerror_r.
+# RTEMS uses newlib in which strerror_r returns char *.
 @LIBGO_IS_RTEMS_TRUE@syscall_errstr_decl_file = syscalls/errstr_decl_rtems.go
+@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_FALSE@syscall_socket_os_file = syscalls_socket_bsd.go
+@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@syscall_socket_os_file = syscalls/socket_solaris.go
+
+# Define socket sizes and types.
+@LIBGO_IS_LINUX_TRUE@syscall_socket_os_file = syscalls/socket_linux.go
+@LIBGO_IS_LINUX_FALSE@syscall_socket_epoll_file = 
+
+# Support for epoll.
+@LIBGO_IS_LINUX_TRUE@syscall_socket_epoll_file = syscalls/socket_epoll.go
 go_syscall_files = \
 	$(syscall_errstr_file) \
 	$(syscall_errstr_decl_file) \
 	syscalls/exec_helpers.go \
 	$(syscall_exec_os_file) \
+	$(syscall_filesize_file) \
+	$(syscall_sleep_file) \
 	syscalls/socket.go \
 	$(syscall_socket_os_file) \
 	$(syscall_socket_epoll_file) \
 	$(syscall_syscall_file) \
 	syscalls/syscall_unix.go \
 	syscalls/stringbyte.go \
-	$(syscall_os_file) \
-	$(syscall_arch_file) \
+	syscalls/syscall_$(GOOS).go \
+	syscalls/syscall_$(GOOS)_$(GOARCH).go \
 	syscalls/sysfile_posix.go \
-	$(syscall_sysfile_os_file) \
-	sysinfo.go
+	sysinfo.go \
+	syscall_arch.go
 
 go_syscall_c_files = \
 	syscalls/errno.c
@@ -1566,7 +1576,9 @@ libgo_go_objs = \
 	testing/libscript.la
 
 libgo_la_SOURCES = $(runtime_files)
-libgo_la_LIBADD = $(libgo_go_objs) $(LIBFFI) $(PTHREAD_LIBS) $(MATH_LIBS)
+libgo_la_LIBADD = \
+	$(libgo_go_objs) $(LIBFFI) $(PTHREAD_LIBS) $(MATH_LIBS) $(NET_LIBS)
+
 libgobegin_a_SOURCES = \
 	runtime/go-main.c
 
@@ -1577,8 +1589,7 @@ LTGOCOMPILE = $(LIBTOOL) --tag GO --mode=compile $(GOC) $(INCLUDES) \
 	$(AM_GOCFLAGS) $(GOCFLAGS)
 
 GOLINK = $(LIBTOOL) --tag GO --mode-link $(GOC) \
-	$(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_GOCFLAGS) $(LTLDFLAGS) \
-	$(PTHREAD_LIBS) $(MATH_LIBS) -o $@
+	$(OPT_LDFLAGS) $(SECTION_LDFLAGS) $(AM_GOCFLAGS) $(LTLDFLAGS) -o $@
 
 
 # Build a package.
@@ -1603,13 +1614,19 @@ CHECK = \
 	MAKE="$(MAKE)"; \
 	export MAKE; \
 	rm -f $@-log; \
-	echo -n "$(@D) " >$@-log 2>&1; \
 	prefix=`if test "$(@D)" = "regexp"; then echo regexp-test; else dirname $(@D); fi`; \
 	test "$${prefix}" != "." || prefix="$(@D)"; \
-	$(srcdir)/testsuite/gotest --dejagnu=$(use_dejagnu) --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --prefix="libgo_$${prefix}" --pkgfiles="$(go_$(subst /,_,$(@D))_files)" >>$@-log 2>&1; \
-	x=$$?; \
-	cat $@-log; \
-	exit $$x
+	if test "$(use_dejagnu)" = "yes"; then \
+	  $(SHELL) $(srcdir)/testsuite/gotest --dejagnu=yes --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --prefix="libgo_$${prefix}" --pkgfiles="$(go_$(subst /,_,$(@D))_files)"; \
+	else \
+	  if $(SHELL) $(srcdir)/testsuite/gotest --basedir=$(srcdir) --srcdir=$(srcdir)/go/$(@D) --prefix="libgo_$${prefix}" --pkgfiles="$(go_$(subst /,_,$(@D))_files)" >>$@-log 2>&1; then \
+	    echo "PASS: $(@D)"; \
+	  else \
+	    echo "FAIL: $(@D)"; \
+	    cat $@-log; \
+	    exit 1; \
+	  fi; \
+	fi
 
 
 # Build all packages before checking any.
@@ -1886,6 +1903,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-byte-array-to-string.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-caller.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-can-convert-interface.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-cgo.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-chan-cap.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-chan-len.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-check-interface.Plo@am__quote@
@@ -2061,6 +2079,13 @@ go-can-convert-interface.lo: runtime/go-can-convert-interface.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/go-can-convert-interface.c' object='go-can-convert-interface.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o go-can-convert-interface.lo `test -f 'runtime/go-can-convert-interface.c' || echo '$(srcdir)/'`runtime/go-can-convert-interface.c
+
+go-cgo.lo: runtime/go-cgo.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT go-cgo.lo -MD -MP -MF $(DEPDIR)/go-cgo.Tpo -c -o go-cgo.lo `test -f 'runtime/go-cgo.c' || echo '$(srcdir)/'`runtime/go-cgo.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/go-cgo.Tpo $(DEPDIR)/go-cgo.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/go-cgo.c' object='go-cgo.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o go-cgo.lo `test -f 'runtime/go-cgo.c' || echo '$(srcdir)/'`runtime/go-cgo.c
 
 go-chan-cap.lo: runtime/go-chan-cap.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT go-chan-cap.lo -MD -MP -MF $(DEPDIR)/go-chan-cap.Tpo -c -o go-chan-cap.lo `test -f 'runtime/go-chan-cap.c' || echo '$(srcdir)/'`runtime/go-chan-cap.c
@@ -3611,6 +3636,15 @@ s-version: Makefile
 	$(SHELL) $(srcdir)/../move-if-change version.go.tmp version.go
 	$(STAMP) $@
 
+syscall_arch.go: s-syscall_arch; @true
+s-syscall_arch: Makefile
+	rm -f syscall_arch.go.tmp
+	echo "package syscall" > syscall_arch.go.tmp
+	echo 'const ARCH = "'$(GOARCH)'"' >> syscall_arch.go.tmp
+	echo 'const OS = "'$(GOOS)'"' >> syscall_arch.go.tmp
+	$(SHELL) $(srcdir)/../move-if-change syscall_arch.go.tmp syscall_arch.go
+	$(STAMP) $@
+
 # Build a .la file from a .a file.
 .a.la:
 	$(LINK) $<.lo
@@ -4578,7 +4612,7 @@ testing/script/check: $(CHECK_DEPS)
 .PHONY: testing/script/check
 
 sysinfo.go: $(srcdir)/mksysinfo.sh config.h
-	$(SHELL) $(srcdir)/mksysinfo.sh
+	CC="$(CC)" $(SHELL) $(srcdir)/mksysinfo.sh
 syscalls/libsyscall.a: $(go_syscall_files) $(go_syscall_c_files) sync.gox
 	rm -f syscall.gox syscalls/libsyscall.a
 	test -d syscalls || $(MKDIR_P) syscalls

@@ -1,4 +1,5 @@
-/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+/* Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
    F2003 I/O support contributed by Jerry DeLisle
@@ -1000,6 +1001,8 @@ unit_to_fd (int unit)
 int
 unpack_filename (char *cstring, const char *fstring, int len)
 {
+  if (fstring == NULL)
+    return 1;
   len = fstrlen (fstring, len);
   if (len >= PATH_MAX)
     return 1;
@@ -1082,13 +1085,8 @@ tempfile (st_parameter_open *opp)
   while (fd == -1 && errno == EEXIST);
 #endif /* HAVE_MKSTEMP */
 
-  if (fd < 0)
-    free (template);
-  else
-    {
-      opp->file = template;
-      opp->file_len = strlen (template);	/* Don't include trailing nul */
-    }
+  opp->file = template;
+  opp->file_len = strlen (template);	/* Don't include trailing nul */
 
   return fd;
 }

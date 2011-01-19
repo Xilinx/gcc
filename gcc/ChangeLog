@@ -1,3 +1,575 @@
+2011-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47313
+	* tree-inline.c (tree_function_versioning): Move DECL_RESULT
+	handling before copying the body.  Properly deal with
+	by-reference result in SSA form.
+
+2011-01-17  Ian Lance Taylor  <iant@google.com>
+
+	PR target/47219
+	* config/sparc/sparc.c (sparc_sr_alias_set): Don't define.
+	(struct_value_alias_set): Don't define.
+	(sparc_option_override): Don't set sparc_sr_alias_set and
+	struct_value_alias_set.
+	(save_or_restore_regs): Use gen_frame_mem rather than calling
+	set_mem_alias_set.
+	(sparc_struct_value_rtx): Likewise.
+
+2011-01-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47318
+	* config/i386/avxintrin.h (_mm_maskload_pd): Change mask to
+	__m128i.
+	(_mm_maskstore_pd): Likewise.
+	(_mm_maskload_ps): Likewise.
+	(_mm_maskstore_ps): Likewise.
+	(_mm256_maskload_pd): Change mask to __m256i.
+	(_mm256_maskstore_pd): Likewise.
+	(_mm256_maskload_ps): Likewise.
+	(_mm256_maskstore_ps): Likewise.
+
+	* config/i386/i386-builtin-types.def: Updated.
+	(ix86_expand_special_args_builtin): Likewise.
+
+	* config/i386/i386.c (bdesc_special_args): Update
+	__builtin_ia32_maskloadpd, __builtin_ia32_maskloadps,
+	__builtin_ia32_maskloadpd256, __builtin_ia32_maskloadps256,
+	__builtin_ia32_maskstorepd, __builtin_ia32_maskstoreps,
+	__builtin_ia32_maskstorepd256 and __builtin_ia32_maskstoreps256.
+
+	* config/i386/sse.md (avx_maskload<ssemodesuffix><avxmodesuffix>):
+	Use <avxpermvecmode> on mask register.
+	(avx_maskstore<ssemodesuffix><avxmodesuffix>): Likewise.
+
+2011-01-17  Olivier Hainque  <hainque@adacore.com>
+            Michael Haubenwallner  <michael.haubenwallner@salomon.at>
+            Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/46655
+	* xcoffout.c (ASM_OUTPUT_LINE): Output line only if positive, and only
+	if <= USHRT_MAX in 32-bit mode.
+
+2011-01-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/install.texi (Configuration, Specific): Wrap long
+	lines in examples.  Allow line wrapping in long options
+	and URLs where beneficial for PDF output.
+
+2011-01-16  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_classify_symbol): Don't return
+	SYMBOL_PC_RELATIVE for nonlocal labels.
+
+2011-01-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sol2-bi.h (CC1_SPEC): Fix typo.
+
+2011-01-15  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/47276
+	* ipa.c (function_and_variable_visibility): Do not try to mark alias
+	declarations as needed.
+
+2011-01-15  Martin Jambor  <mjambor@suse.cz>
+
+	* common.opt (fdevirtualize): New flag.
+	* doc/invoke.texi (Option Summary): Document it.
+	* opts.c (default_options_table): Add devirtualize flag.
+	* ipa-prop.c (detect_type_change): Return immediately if
+	devirtualize flag is not set.
+	(detect_type_change_ssa): Likewise.
+	(compute_known_type_jump_func): Likewise.
+	(ipa_analyze_virtual_call_uses): Likewise.
+
+2011-01-14  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/45934
+	PR tree-optimization/46302
+	* ipa-prop.c (type_change_info): New type.
+	(stmt_may_be_vtbl_ptr_store): New function.
+	(check_stmt_for_type_change): Likewise.
+	(detect_type_change): Likewise.
+	(detect_type_change_ssa): Likewise.
+	(compute_complex_assign_jump_func): Check for dynamic type change.
+	(compute_complex_ancestor_jump_func): Likewise.
+	(compute_known_type_jump_func): Likewise.
+	(compute_scalar_jump_functions): Likewise.
+	(ipa_analyze_virtual_call_uses): Likewise.
+	(ipa_analyze_node): Push and pop cfun, set current_function_decl.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/i386.h (CC1_CPU_SPEC_1): Don't handle -msse5.
+	* config/i386/i386.opt (msse5): New Alias.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sparc/linux.h (CC1_SPEC): Remove %{sun4:} %{target:}.
+	* config/sparc/linux64.h (CC1_SPEC): Likewise.
+	* config/sparc/netbsd-elf.h (CC1_SPEC32, CC1_SPEC64): Likewise.
+	* config/sparc/sparc.h (CC1_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sparc/linux.h (CC1_SPEC): Don't handle old equivalents of
+	-mcpu options.
+	* config/sparc/linux64.h (CC1_SPEC): Likewise.
+	* config/sparc/netbsd-elf.h (CC1_SPEC32, CC1_SPEC64): Likewise.
+	* config/sparc/sol2-bi.h (CPP_CPU_SPEC, CC1_SPEC): Likewise.
+	* config/sparc/sparc.h (CPP_CPU_SPEC, CC1_SPEC, ASM_CPU_SPEC):
+	Likewise.
+	* config/sparc/t-elf (MULTILIB_MATCHES): Don't handle -mv8.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/rs6000/vxworks.h (CC1_SPEC): Don't handle -fvec or
+	-fvec-eabi.
+
+2011-01-14  Mike Stump  <mikestump@comcast.net>
+
+	* config/alpha/alpha.md (umk_mismatch_args): Don't put a mode on set.
+	* config/fr30/fr30.md: Likweise
+	(movsi_push): Likewise.
+	(movsi_pop): Likewise.
+	(enter_func): Likewise.
+	* config/moxie/moxie.md (movsi_push): Likewise.
+	(movsi_pop): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mips/linux64.h (LINK_SPEC): Remove %{bestGnum}
+	%{no_archive} %{exact_version}.
+	* config/mips/mips.h (LINK_SPEC): Remove %{bestGnum}.
+	* config/mips/netbsd.h (LINK_SPEC): Remove %{bestGnum}
+	%{no_archive} %{exact_version}.
+	* config/mips/openbsd.h (LINK_SPEC): Likewise.
+	* config/mips/sde.h (LINK_SPEC): Remove %{bestGnum}.
+	* config/mips/vxworks.h: Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/microblaze/microblaze.h (ASM_SPEC): Remove
+	%{microblaze1}.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/m32r/little.h (CPP_ENDIAN_SPEC, CC1_ENDIAN_SPEC,
+	ASM_ENDIAN_SPEC, LINK_ENDIAN_SPEC): Remove.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/nwld.h (LINK_SPEC): Check -nodefaultlibs not
+	-nodefaultlib.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/cris/cris.h (ASM_SPEC, CRIS_ASM_SUBTARGET_SPEC): Check
+	for mcpu not cpu.
+	* config/cris/linux.h (CRIS_CPP_SUBTARGET_SPEC,
+	CRIS_CC1_SUBTARGET_SPEC, CRIS_ASM_SUBTARGET_SPEC): Check for mcpu
+	not cpu.
+	(CRIS_LINK_SUBTARGET_SPEC): Don't generate -rpath-link options.
+	Don't handle -shlib.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/avr/avr.h (CPP_SPEC): Don't handle -posix.
+	(CC1_SPEC): Don't handle -profile.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/microblaze/microblaze.h (CC1_SPEC): Remove -gline spec.
+	* config/mips/mips.h (CC1_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/microblaze/microblaze.h (CC1_SPEC): Remove %{save-temps: }.
+	* config/mips/mips.h (CC1_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/linux.h (LINK_SPEC): Don't use %{!ibcs:} conditional.
+	* config/m32r/linux.h (LINK_SPEC): Likewise.
+	* config/mips/linux.h (LINK_SPEC): Likewise.
+	* config/mips/linux64.h (LINK_SPEC): Likewise.
+	* config/sparc/linux.h (LINK_SPEC): Likewise.
+	* config/sparc/linux64.h (LINK_ARCH32_SPEC, LINK_ARCH64_SPEC,
+	LINK_SPEC): Likewise.
+	* config/xtensa/linux.h (LINK_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/linux-elf.h (LINUX_TARGET_LINK_SPEC): Remove
+	%{version:-v}.
+	* config/lm32/uclinux-elf.h (LINK_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sparc/sp-elf.h (ASM_SPEC): Remove %{v:-V}.
+	* config/sparc/sp64-elf.h (ASM_SPEC): Likewise.
+
+2011-01-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/linux-elf.h (LINUX_TARGET_LINK_SPEC): Remove %{b}.
+
+2011-01-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_ld_static_dynamic): Solaris 2 ld always
+	supports -Bstatic/-Bdynamic.
+	* configure: Regenerate.
+
+2011-01-14  Jan Hubicka  <jh@suse.cz>
+	Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR target/46037
+	* config/darwin.c (darwin_override_options): Honor flag_gtoggle
+	when checking debug_info_level. Test write_symbols instead of
+	debug_hooks->var_location when setting flag_var_tracking_uninit.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47179
+	* target.def (ref_may_alias_errno): New target hook.
+	* targhooks.h (default_ref_may_alias_errno): Declare.
+	* targhooks.c: Include tree-ssa-alias.h and tree-flow.h.
+	(default_ref_may_alias_errno): New function.
+	* target.h (struct ao_ref_s): Declare.
+	* tree-ssa-alias.c: Include target.h.
+	(call_may_clobber_ref_p_1): Use the ref_may_alias_errno target hook.
+	* Makefile.in (tree-ssa-alias.o): Adjust dependencies.
+	(targhooks.o): Likewise.
+	* doc/tm.texi.in (TARGET_REF_MAY_ALIAS_ERRNO): Document.
+	* doc/tm.texi (TARGET_REF_MAY_ALIAS_ERRNO): Copy documentation.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c  (new_var_info): Use DECL_HARD_REGISTER.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47280
+	* tree-ssa-forwprop.c (associate_plusminus): Cleanup EH and
+	return CFG changes.
+	(tree_ssa_forward_propagate_single_use_vars): Deal with
+	CFG changes from associate_plusminus.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47281
+	Revert
+	2011-01-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46076
+	* tree-ssa.c (useless_type_conversion_p): Conversions from
+	unprototyped to empty argument list function types are useless.
+
+2011-01-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47286
+	* tree-ssa-structalias.c (new_var_info): Register variables are global.
+
+2011-01-14  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/46823
+	* tree-inline.c (expand_call_inline): Get fndecl from call graph edge.
+
+2011-01-13  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/xtensa/xtensa.h (XTENSA_LIBCALL_VALUE, LIBCALL_VALUE,
+	LIBCALL_OUTGOING_VALUE, FUNCTION_VALUE_REGNO_P): Remove macros.
+	* config/xtensa/xtensa.c (xtensa_libcall_value,
+	xtensa_function_value_regno_p): New functions.
+	(TARGET_LIBCALL_VALUE, TARGET_FUNCTION_VALUE_REGNO_P): Define.
+
+2011-01-13  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR c++/47213
+	* config/i386/cygming.h (TARGET_ASM_ASSEMBLE_VISIBILITY):
+	PE specific hook.
+	* config/i386/i386-protos.h (i386_pe_assemble_visibility):
+	New function prototype.
+	* config/i386/winnt.c (i386_pe_assemble_visibility):
+	Warn only if attribute was specified by user.
+
+2011-01-13  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/47251
+	* config/rs6000/rs6000.md (floatunsdidf2): Add check for hardware
+	floating point.
+	(floatunsdidf2_fcfidu): Ditto.
+
+2011-01-13  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (print_operand_address): Replace 'error' with
+	'output_operand_lossage'.
+	(print_operand): Likewise.
+
+2011-01-13  Jeff Law  <law@redhat.com>
+
+	PR rtl-optimization/39077
+	* doc/invoke.texi (max-gcse-insertion-ratio): Document.
+	* params.h (MAX_GCSE_INSERTION_RATIO): Define.
+	* params.def (PARAM_MAX_GCSE_INSERTION_RATIO): Define.
+	* lcm.c (pre_edge_lcm): Properly initialize output sbitmaps.
+	* gcse.c (prune_insertions_deletions): New function.
+	(compute_pre_data): Use it.
+
+2011-01-13  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/PR46973
+	* dwarf2out.c (prune_unused_types_mark_generic_parms_dies): New
+	static function.
+    	(prune_unused_types_mark): Use it.
+
+2011-01-13  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/45352
+	* sel-sched.c: Update copyright years. 
+	(reset_sched_cycles_in_current_ebb): Also recheck the DFA state
+	in the advancing loop when we have issued issue_rate insns. 
+
+2011-01-12  Richard Henderson  <rth@redhat.com>
+
+	* config/mn10300/mn10300.c (mn10300_md_asm_clobbers): New.
+	(TARGET_MD_ASM_CLOBBERS): New.
+
+	* config/mn10300/mn10300.c (mn10300_delegitimize_address): New.
+	(TARGET_DELEGITIMIZE_ADDRESS): New.
+
+	* config/mn10300/mn10300.md (UNSPEC_BSCH): New.
+	(clzsi2, *bsch): New patterns.
+
+	* config/mn10300/mn10300.md (INT): New mode iterator.
+	(*mov<INT>_clr): New pattern, and peep2 to generate it.
+
+	* config/mn10300/mn10300.c (mn10300_option_override): Force enable
+	flag_split_wide_types.
+
+	* config/mn10300/mn10300.c (mn10300_asm_trampoline_template): Remove.
+	(mn10300_trampoline_init): Rewrite without a template, an immediate
+	load and a direct branch.
+	* config/mn10300/mn10300.h (TRAMPOLINE_SIZE): Reduce to 16.
+
+2011-01-12  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/s390/s390.h (OUTPUT_ADDR_CONST_EXTRA): Remove.
+	* config/s390/s390-protos.h (s390_output_addr_const_extra): Remove.
+	* config/s390/s390.c (s390_output_addr_const_extra): Make static.
+	(TARGET_ASM_OUTPUT_ADDR_CONST_EXTRA): Define.
+
+2011-01-12  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR debug/47209
+	* dwarfout2.c (should_emit_struct_debug): Use TYPE_MAIN_VARIANT
+	of type.
+
+2011-01-12  Jan Hubicka  <jh@suse.cz>
+
+	PR driver/47244
+	* gcc.c (PLUGIN_COND): Update to disable plugin unless -flto is used.
+	(PLUGIN_COND_CLOSE): New macro.
+	(LINK_COMMAND_SPEC): Update to use PLUGIN_COND_CLOSE.
+
+2011-01-12  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/47259
+	* lto-streamer-out.c (output_gimple_stmt): Do not wrap
+	register variables in a MEM_REF.
+
+2011-01-12  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (arm*-*-linux*, bfin*-uclinux*, bfin*-linux-uclibc*,
+	crisv32-*-linux* | cris-*-linux*, frv-*-*linux*, moxie-*-uclinux*,
+	hppa*64*-*-linux*, hppa*-*-linux*, i[34567]86-*-linux* |
+	i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu |
+	i[34567]86-*-gnu* | i[34567]86-*-kopensolaris*-gnu,
+	x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu,
+	ia64*-*-linux*, lm32-*-uclinux*, m32r-*-linux*, m32rle-*-linux*,
+	m68k-*-uclinux*, m68k-*-linux*, microblaze*-linux*,
+	mips64*-*-linux* | mipsisa64*-*-linux*, mips*-*-linux*,
+	s390-*-linux*, s390x-*-linux*, sh*-*-linux*, sparc-*-linux*,
+	sparc64-*-linux*, vax-*-linux*, xtensa*-*-linux*,
+	am33_2.0-*-linux*): Use gnu-user.h before linux.h.
+	* config/gnu-user.h: New.  Copied from linux.h.
+	(LINUX_TARGET_STARTFILE_SPEC): Rename to
+	GNU_USER_TARGET_STARTFILE_SPEC.
+	(LINUX_TARGET_ENDFILE_SPEC): Rename to
+	GNU_USER_TARGET_ENDFILE_SPEC.
+	(LINUX_TARGET_CC1_SPEC): Rename to GNU_USER_TARGET_CC1_SPEC.
+	(LINUX_TARGET_LIB_SPEC): Rename to GNU_USER_TARGET_LIB_SPEC.
+	(OPTION_GLIBC, OPTION_UCLIBC, OPTION_BIONIC,
+	LINUX_TARGET_OS_CPP_BUILTINS, CHOOSE_DYNAMIC_LINKER1,
+	CHOOSE_DYNAMIC_LINKER, UCLIBC_DYNAMIC_LINKER,
+	UCLIBC_DYNAMIC_LINKER32, UCLIBC_DYNAMIC_LINKER64,
+	BIONIC_DYNAMIC_LINKER, BIONIC_DYNAMIC_LINKER32,
+	BIONIC_DYNAMIC_LINKER64, LINUX_DYNAMIC_LINKER,
+	LINUX_DYNAMIC_LINKER32, LINUX_DYNAMIC_LINKER64,
+	TARGET_C99_FUNCTIONS, TARGET_HAS_SINCOS): Remove.
+	* config/arm/linux-eabi.h (CC1_SPEC): Use
+	GNU_USER_TARGET_CC1_SPEC.
+	(LIB_SPEC): Use GNU_USER_TARGET_LIB_SPEC.
+	(STARTFILE_SPEC): Use GNU_USER_TARGET_STARTFILE_SPEC.
+	(ENDFILE_SPEC): Use GNU_USER_TARGET_ENDFILE_SPEC
+	* config/linux.h (NO_IMPLICIT_EXTERN_C, ASM_APP_ON, ASM_APP_OFF,
+	LINUX_TARGET_STARTFILE_SPEC, STARTFILE_SPEC,
+	LINUX_TARGET_ENDFILE_SPEC, ENDFILE_SPEC, LINUX_TARGET_CC1_SPEC,
+	CC1_SPEC, CPLUSPLUS_CPP_SPEC, LINUX_TARGET_LIB_SPEC, LIB_SPEC,
+	LINK_EH_SPEC, LINK_GCC_C_SEQUENCE_SPEC, USE_LD_AS_NEEDED): Remove.
+
+2011-01-12  Richard Guenther  <rguenther@suse.de>
+
+	PR other/46946
+	* doc/invoke.texi (ffast-math): Document it is turned on
+	with -Ofast.
+
+2011-01-12  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/47233
+	* opts.c (common_handle_option): Disable ipa-reference with profile
+	feedback.
+
+2011-01-12  Nicola Pero  <nicola.pero@meta-innovation.com>	
+
+	* c-parser.c (c_parser_objc_at_property_declaration): Improved
+	error message.
+
+2011-01-12  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-parser.c (c_lex_one_token): Updated and reindented some
+	comments.  No changes in code.
+
+2011-01-11  Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (go_output_var): Don't output the variable if there is
+	already a type with the same name.
+
+2011-01-11  Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (go_format_type): Don't generate float80.
+
+2011-01-11  Richard Henderson  <rth@redhat.com>
+
+	* config/mn10300/mn10300.c (mn10300_address_cost): Remove forward
+	declaration.  Rewrite for both speed and size.
+	(mn10300_address_cost_1): Remove.
+	(mn10300_register_move_cost): New.
+	(mn10300_memory_move_cost): New.
+	(mn10300_rtx_costs): Rewrite for both speed and size.  Don't handle
+	ZERO_EXTRACT.  Do handle UNSPEC, arithmetic, logicals, compare,
+	extensions, shifts, BSWAP, CLZ.
+	(mn10300_wide_const_load_uses_clr): Remove.
+	(TARGET_REGISTER_MOVE_COST): New.
+	(TARGET_MEMORY_MOVE_COST): New.
+	* config/mn10300/mn10300-protos.h: Update.
+	* config/mn10300/mn10300.h (REGISTER_MOVE_COST): Remove.
+
+	* config/mn10300/constraints.md ("R", "T"): Remove constraints.
+	* config/mn10300/mn10300.c (mn10300_mask_ok_for_mem_btst): Remove.
+	* config/mn10300/mn10300-protos.h: Update.
+	* config/mn10300/mn10300.md (movsi_internal): Don't use "R".
+	(*byte_clear, *byte_set, *bit_clear1, *bit_clear2, *bit_set): Remove.
+	(iorqi3, *am33_iorqi3, *mn10300_iorqi3): Remove.
+	(*test_int_bitfield, *test_byte_bitfield): Remove.
+	(*bit_test, *subreg_bit_test): Remove.
+	* config/mn10300/predicates.md (const_8bit_operand): Remove.
+
+	* config/mn10300/constraints.md ("c"): Rename from "A".
+	("A", "D"): New constraint letters.
+	* config/mn10300/mn10300.md (fmasf4): Use the "c" constraint.
+	(fmssf4, fnmasf4, fnmssf4): Likewise.
+
+	* config/mn10300/mn10300.md (isa): New attribute.
+	(enabled): New attribute.
+
+	* config/mn10300/mn10300.md (absdf2, negdf2): Remove.
+	(abssf2, negsf2): Define only for hardware fp.
+	(sqrtsf2): Reformat.
+	(addsf3, subsf3, mulsf3): Merge expander and insn.
+
+	* config/mn10300/mn10300.h (ARG_PIONTER_CFA_OFFSET): New.
+	(DEBUGGER_AUTO_OFFSET): Remove.
+	(DEBUGGER_ARG_OFFSET): Remove.
+
+	* config/mn10300/mn10300.c (mn10300_gen_multiple_store): Make static.
+	Emit register stores with the same offsets as the hardware.
+	(mn10300_store_multiple_operation): Don't check that the register
+	save offsets are monotonic.
+	* config/mn10300/mn10300-protos.h: Update.
+
+	* config/mn10300/mn10300.h (ASM_PN_FORMAT): Delete.
+
+	* config/mn10300/mn10300.h (INCOMING_RETURN_ADDR_RTX): Define
+	in terms of the value on the stack, not the MDR register.
+
+2011-01-11  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/45721
+	PR lto/45375
+	* tree.h (symbol_alias_set_t): Move typedef here from varasm.c
+	(symbol_alias_set_destroy, symbol_alias_set_contains,
+	propagate_aliases_backward): Declare.
+	* lto-streamer-out.c (struct sets): New sturcture.
+	(trivally_defined_alias): New function.
+	(output_alias_pair_p): Rewrite.
+	(output_unreferenced_globals): Fix output of alias pairs.
+	(produce_symtab): Likewise.
+	* ipa.c (function_and_variable_visibility): Set weak alias destination
+	as needed in lto.
+	* varasm.c (symbol_alias_set_t): Remove.
+	(symbol_alias_set_destroy): Export.
+	(propagate_aliases_forward, propagate_aliases_backward): New functions
+	based on ...
+	(compute_visible_aliases): ... this one; remove.
+	(trivially_visible_alias): New
+	(trivially_defined_alias): New.
+	(remove_unreachable_alias_pairs): Rewrite.
+	(finish_aliases_1): Reorganize code checking if alias is defined.
+	* passes.c (rest_of_decl_compilation): Do not call assemble_alias when
+	in LTO mode.
+
+2011-01-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46076
+	* tree-ssa.c (useless_type_conversion_p): Conversions from
+	unprototyped to empty argument list function types are useless.
+
+2011-01-11  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/45235
+	* emit-rtl.c (set_mem_attributes_minus_bitpos): Do not mark
+	volatile MEMs as MEM_READONLY_P.
+
+2011-01-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47239
+	* tree-ssa-ccp.c (get_value_from_alignment): Punt for FUNCTION_DECLs.
+
+2011-01-11  Jeff Law  <law@redhat.com>
+
+	PR tree-optimization/47086
+	* tree-ssa-loop-ivopts.c (find_givs_in_stmt_scev): Do not record
+	IVs from statements that might throw.
+
+2011-01-10  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/45375
+	* lto-cgraph.c (input_profile_summary): Remove overactive sanity check.
+
+2011-01-10  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/45375
+	* profile.c (read_profile_edge_counts): Ignore profile inconistency
+	when correcting profile.
+
+2011-01-10  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/46083
+	* lto-streamer-out.c (pack_ts_function_decl_value_fields): Store
+	DECL_FINI_PRIORITY.
+	* lto-streamer-in.c (unpack_ts_function_decl_value_fields):
+	Restore DECL_FINI_PRIORITY.
+
 2011-01-10  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* doc/gimple.texi: Fix quoting of multi-word return values in
@@ -17,7 +589,7 @@
 
 2011-01-10  Jeff Law  <law@redhat.com>
 
-	* PR tree-optimization/47141
+	PR tree-optimization/47141
 	* ipa-split.c (split_function): Handle case where we are
 	returning a value and the return block has a virtual operand phi.
 
@@ -172,8 +744,8 @@
 2011-01-06  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR debug/46704
-	* dwarf2out.c (dwarf2out_finish): Output the debug_aranges section
-	only when it is not empty.
+	* dwarf2out.c (dwarf2out_finish): Output the debug_aranges section only
+	when it is not empty.
 
 2011-01-06  Changpeng Fang  <changpeng.fang@amd.com>
 

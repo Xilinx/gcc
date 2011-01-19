@@ -474,7 +474,12 @@ build_vec_init_expr (tree type, tree init)
      what functions are needed.  Here we assume that init is either
      NULL_TREE, void_type_node (indicating value-initialization), or
      another array to copy.  */
-  if (init == void_type_node)
+  if (integer_zerop (array_type_nelts_total (type)))
+    {
+      /* No actual initialization to do.  */;
+      init = NULL_TREE;
+    }
+  else if (init == void_type_node)
     {
       elt_init = build_value_init (inner_type, tf_warning_or_error);
       value_init = true;
@@ -2374,12 +2379,12 @@ maybe_dummy_object (tree type, tree* binfop)
   if (binfop)
     *binfop = binfo;
 
-  if (current_class_ref && context == current_class_type
-      /* Kludge: Make sure that current_class_type is actually
-	 correct.  It might not be if we're in the middle of
-	 tsubst_default_argument.  */
-      && same_type_p (TYPE_MAIN_VARIANT (TREE_TYPE (current_class_ref)),
-		      current_class_type))
+  if (current_class_ref
+      /* current_class_ref might not correspond to current_class_type if
+	 we're in tsubst_default_argument or a lambda-declarator; in either
+	 case, we want to use current_class_ref if it matches CONTEXT.  */
+      && (same_type_ignoring_top_level_qualifiers_p
+	  (TREE_TYPE (current_class_ref), context)))
     decl = current_class_ref;
   else if (current != current_class_type
 	   && context == nonlambda_method_basetype ())

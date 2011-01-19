@@ -1,3 +1,78 @@
+2011-01-15  Giovanni Funchal  <gafunchal@gmail.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/33558
+	* decl.c (grokdeclarator): Reject mutable reference members.
+
+2011-01-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47289
+	* pt.c (coerce_template_parms): Fix error recovery.
+
+	PR c++/46903
+	* typeck2.c (check_narrowing): Only check arithmetic types.
+
+	PR c++/46688
+	* tree.c (build_vec_init_expr): Handle flexible array
+	properly.
+
+2011-01-13  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR c++/47213
+	* cp-tree.h (CLASSTYPE_VISIBILITY): Use
+	TYPE_MAIN_DECL instead of TYPE_NAME.
+	(CLASSTYPE_VISIBILITY_SPECIFIED): Likewise.
+	* decl2.c (determine_visibility): Add check
+	of CLASS_TYPE_P for underlying_type.
+
+2011-01-12  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
+
+	* cp-tree.h (begin_for_scope): New prototype.
+	(begin_for_stmt): Update prototype.
+	(begin_range_for_stmt): Update prototype.
+	* init.c (build_vec_init): Update call to begin_for_stmt.
+	* parser.c (cp_parser_for): New.
+	(cp_parser_c_for): Add three new parameters.
+	(cp_parser_range_for): Likewise. Most parsing code removed.
+	(cp_parser_iteration_statement): Call cp_parser_for instead of
+	cp_parser_c_for and cp_parser_range_for.
+	(cp_parser_for_init_statement): Add new parameter and return type.
+	(cp_parser_block_declaration): Update call to
+	cp_parser_simple_declaration.
+	(cp_parser_simple_declaration): Add new parameter.
+	Update call to cp_parser_init_declarator.
+	(cp_parser_init_declarator): Add new parameter.
+	* pt.c (tsubst_expr): Update call to begin_for_stmt.
+	* semantics.c (begin_for_scope): New.
+	(begin_for_stmt): Add two new parameters.
+	(begin_range_for_stmt): Likewise.
+
+2011-01-12  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_at_property_declaration): Improved
+	error message.
+
+2011-01-11  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/46955
+	* cp-lang.c (get_template_innermost_arguments_folded)
+	(get_template_argument_pack_elems_folded)
+	(template_arg_needs_folding, fold_cplus_constants): New static
+	functions.
+	(LANG_HOOKS_GET_INNERMOST_GENERIC_ARGS): Set this hook to
+	get_template_innermost_arguments_folded.
+	(LANG_HOOKS_GET_ARGUMENT_PACK_ELEMS): Set this hook to
+	get_template_argument_pack_elems_folded.
+
+2011-01-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46658
+	* init.c (build_new_1): Handle value-init in templates differently.
+
+	PR c++/45520
+	* tree.c (maybe_dummy_object): Check current_class_ref against
+	context, not current_class_type.
+
 2011-01-08  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	PR objc/47078
