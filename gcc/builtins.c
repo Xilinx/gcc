@@ -3436,7 +3436,11 @@ expand_builtin_strlen (tree exp, rtx target,
       start_sequence ();
       pat = expand_expr (src, src_reg, ptr_mode, EXPAND_NORMAL);
       if (pat != src_reg)
-	emit_move_insn (src_reg, pat);
+	{
+	  if (GET_MODE (pat) != Pmode)
+	    pat = convert_to_mode (Pmode, pat, 1);
+	  emit_move_insn (src_reg, pat);
+	}
       pat = get_insns ();
       end_sequence ();
 
