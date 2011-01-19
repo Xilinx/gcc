@@ -1243,3 +1243,17 @@
 		     (match_test "flag_pic"))
     (match_operand 0 "x86_64_general_operand")
     (match_operand 0 "general_operand")))
+
+;; Return true when a constant operand can be used in lea on x32.
+(define_predicate "x32_lea_immediate_operand"
+  (match_operand 0 "immediate_operand")
+{
+  return !TARGET_X32 || !SYMBOLIC_CONST (op);
+})
+
+;; Return nonzero if OP is nonmemory operand representable in lea on x32.
+(define_predicate "x32_lea_nonmemory_operand"
+  (match_operand 0 "nonmemory_operand")
+{
+  return !TARGET_X32 || !SYMBOLIC_CONST (op);
+})

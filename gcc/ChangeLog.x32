@@ -1,5 +1,10 @@
 2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/predicates.md (x32_lea_immediate_operand): New.
+	(x32_lea_nonmemory_operand): Likewise.
+
+2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/constraints.md (Ys): New.
 	(Ye): Likewise.
 
