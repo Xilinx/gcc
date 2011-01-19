@@ -1,3 +1,47 @@
+2011-01-19  Graham Reed  <greed@pobox.com>
+
+	PR libstdc++/47354
+	* src/bitmap_allocator.cc (free_list::_M_get): Lock mutex.
+
+2011-01-18  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/images/confdeps.png: Regenerate.
+
+	* include/std/chrono (duration): Mark copy constructor constexpr.
+	* testsuite/20_util/duration/cons/constexpr.cc: Add test.
+
+2011-01-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/unique_ptr.h (default_delete<>::default_delete()):
+	Declare defaulted per DR 1517.
+	* testsuite/util/testsuite_common_types.h
+	(constexpr_defaulted_default_constructible): Add.
+	* testsuite/20_util/default_delete/cons/constexpr.cc: Use it.
+
+2011-01-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_queue.h (queue<>::swap, priority_queue<>::swap):
+	Implement DR 1198.
+	* include/bits/stl_stack.h (stack<>::swap): Likewise.
+
+2011-01-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47323
+	* testsuite/28_regex/08_basic_regex/requirements/constexpr_data.cc:
+	Only test wregex when _GLIBCXX_USE_WCHAR_T is defined.
+
+2011-01-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47320
+	* testsuite/18_support/numeric_limits/lowest.cc:
+	Only test wchar_t when _GLIBCXX_USE_WCHAR_T is defined.
+
+2011-01-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47321
+	* testsuite/21_strings/basic_string/requirements/typedefs.cc:
+	Only test std::wstring when _GLIBCXX_USE_WCHAR_T is defined.
+
 2011-01-16  François Dumont  <francois.cppdevs@free.fr>
 
 	* testsuite/23_containers/forward_list/debug/erase_after1_neg.cc: Move

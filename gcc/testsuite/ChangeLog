@@ -1,6 +1,97 @@
+2011-01-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47290
+	* g++.dg/torture/pr47290.C: New test.
+
+2011-01-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47240
+	* gfortran.dg/proc_ptr_comp_29.f90: New.
+
+2011-01-18  Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	PR testsuite/41146
+	* gcc.target/powerpc/asm-es-2.c: Adjust regular expression for
+	powerpc-apple-darwin9.
+
+2011-01-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/47299
+	* gcc.c-torture/execute/pr47299.c: New test.
+
+2011-01-17  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-virtual.C: New.
+
+2011-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47331
+	* gfortran.dg/gomp/pr47331.f90: New test.
+
+2011-01-17  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/47314
+	* objc.dg/selector-warn-1.m: New.
+	* obj-c++.dg/selector-warn-1.mm: New.
+
+2011-01-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.dg/tree-ssa/vrp51.c: Prefix each "bug." string with "vrp.".
+	Update dg-final accordingly.
+
+2011-01-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.old-deja/g++.other/init19.C: Don't XFAIL on mips-sgi-irix*.
+
+2011-01-17  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/guality/pr36728-1.c: Replace XFAIL for s390(x) with a
+	target check.
+	* gcc.dg/guality/pr36728-2.c: Likewise.
+
+2011-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47313
+	* g++.dg/torture/pr47313.C: New testcase.
+
+2011-01-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47318
+	* gcc.target/i386/avx-vmaskmovpd-1.c: New.
+	* gcc.target/i386/avx-vmaskmovpd-2.c: Likewise.
+	* gcc.target/i386/avx-vmaskmovps-1.c: Likewise.
+	* gcc.target/i386/avx-vmaskmovps-1.c: Likewise.
+
+	* gcc.target/i386/avx-vmaskmovpd-256-1.c (avx_test): Load mask
+	as __m256i.
+	* gcc.target/i386/avx-vmaskmovpd-256-2.c (avx_test): Likewise.
+	* gcc.target/i386/avx-vmaskmovps-256-1.c (avx_test): Likewise.
+	* gcc.target/i386/avx-vmaskmovps-256-2.c (avx_test): Likewise.
+
+2011-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45967
+	* gcc.dg/torture/pr45967-2.c: New testcase.
+	* gcc.dg/torture/pr45967-3.c: Likewise.
+
+2011-01-16  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/47325
+	g++.dg/ext/pr47213.C: Require visibility.
+
+2011-01-16  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.dg/fixed-point/composite-type.c: Pass -Wno-unused.
+	* gcc.dg/fixed-point/struct-union.c: Update error messages.
+
+2011-01-16  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.c-torture/execute/20101011-1.c: Skip test for MIPS16
+	Linux-based targets.
+
 2011-01-13  Jan Hubicka  <jh@suse.cz>
 
-	PR tree-optimization/47276 
+	PR tree-optimization/47276
 	* gcc.dg/pr47276.c: New testcase.
 
 2011-01-15  Giovanni Funchal  <gafunchal@gmail.com>
@@ -126,7 +217,7 @@
 	* objc-obj-c++-shared/Object1-implementation.h: Add copyright header.
 	Amend implementation to use a TEST_SUITE_ADDITIONS category for both GNU
 	and NeXT runtimes.
-	* objc-obj-c++-shared/Object1.mm: Remove redundant header, update 
+	* objc-obj-c++-shared/Object1.mm: Remove redundant header, update
 	comments.
 	* objc-obj-c++-shared/Object1.m: Likewise.
 	* objc.dg/encode-3.m: Update header use.  Amend to be API2 compatible.

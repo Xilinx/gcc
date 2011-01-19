@@ -1,4 +1,21 @@
+2011-01-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47295
+	* libquadmath.text: Document typedef and constants.
+
+2011-01-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/46817
+	* quadmath-imp.h: Refer to libquadmath not ot libiberty,
+	bump copyright year and use /**/ instead of // comments.
+	* quadmath.h: Ditto.
+	* quadmath-weak.h: Ditto.
+	* quadmath_io.c: Ditto.
+
 2011-01-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libfortran/47322
+	* math/remquoq.c (remquoq): Use uint64_t type instead of u_int64_t.
 
 	PR fortran/46625
 	* quadmath.map (QUADMATH_1.0): Remove quadmath_strtopQ

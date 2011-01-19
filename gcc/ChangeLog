@@ -1,3 +1,264 @@
+2011-01-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47290
+	* tree-eh.c (infinite_empty_loop_p): New function.
+	(cleanup_empty_eh): Use it.
+
+2011-01-18  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/46997
+	* ia64.c (ia64_expand_unpack): Fix code for TARGET_BIG_ENDIAN.
+	(a64_expand_widen_sum): Ditto.
+	* vect.md (mulv2si3): Disable for TARGET_BIG_ENDIAN.
+	(vec_extract_evenodd_help): Ditto.
+	(vec_extract_evenv4hi): Ditto.
+	(vec_extract_oddv4hi): Ditto.
+	(vec_extract_evenv2si): Ditto.
+	(vec_extract_oddv2si): Ditto.
+	(vec_extract_evenv2sf): Ditto.
+	(vec_extract_oddv2sf): Ditto.
+	(vec_pack_trunc_v4hi: Ditto.
+	(vec_pack_trunc_v2si): Ditto.
+	(vec_interleave_lowv8qi): Fix for TARGET_BIG_ENDIAN.
+	(vec_interleave_highv8qi): Ditto.
+	(mix1_r): Ditto.
+	(vec_extract_oddv8qi): Ditto.
+	(vec_interleave_lowv4hi): Ditto.
+	(vec_interleave_highv4hi): Ditto.
+	(vec_interleave_lowv2si): Ditto.
+	(vec_interleave_highv2si): Ditto.
+
+2011-01-18  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* doc/extend.texi: Mention __float128 support on hppa HP-UX.
+	* config/pa/pa-hpux.h (HPUX_LONG_DOUBLE_LIBRARY): Define to 1.
+	* config/pa/pa.c (pa_expand_builtin): New.  Include "langhooks.h".
+	(pa_c_mode_for_suffix): New.
+	(TARGET_EXPAND_BUILTIN): Define.
+	(TARGET_C_MODE_FOR_SUFFIX): Define.
+	(pa_builtins): Define.
+	(pa_init_builtins): Register __float128 type and init new support
+	builtins.
+	* config/pa/pa.h (HPUX_LONG_DOUBLE_LIBRARY): Define if not defined.
+	* config/pa/quadlib.c (_U_Qfcopysign): New.
+
+2011-01-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/46894
+	* explow.c (allocate_dynamic_stack_space): Do not assume more than
+	BITS_PER_UNIT alignment if STACK_DYNAMIC_OFFSET or STACK_POINTER_OFFSET
+	are defined.
+
+2011-01-18  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR tree-optimization/47179
+	* config/spu/spu.c (spu_ref_may_alias_errno): New function.
+	(TARGET_REF_MAY_ALIAS_ERRNO): Define.
+
+2011-01-18  Richard Guenther  <rguenther@suse.de>
+
+	PR rtl-optimization/47216
+	* emit-rtl.c: Include tree-flow.h.
+	(set_mem_attributes_minus_bitpos): Use tree_could_trap_p instead
+	of replicating it with different semantics.
+	* Makefile.in (emit-rtl.o): Adjust.
+
+2011-01-18  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
+
+        * config/arm/cortex-a9.md (cortex-a9-neon.md): Actually
+        include.
+        (cortex_a9_dp): Handle neon types correctly.
+
+2011-01-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/47299
+	* expr.c (expand_expr_real_2) <case WIDEN_MULT_EXPR>: Don't use
+	subtarget.  Use normal multiplication if both operands are
+	constants.
+	* expmed.c (expand_widening_mult): Don't try to optimize constant
+	multiplication if op0 has VOIDmode.  Convert op1 constant to mode
+	before using it.
+
+2011-01-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/lto.texi (LTO): Ensure two spaces after period.  Fix
+	spacing after 'e.g.', typos, comma, hyphenation.
+
+2011-01-17  Richard Henderson  <rth@redhat.com>
+
+	* config/rx/predicates.md (rx_constshift_operand): Use match_test.
+	(rx_restricted_mem_operand): New.
+	(rx_shift_operand): Use register_operand.
+	(rx_source_operand, rx_compare_operand): Likewise.
+	* config/rx/rx.md (addsi3_flags): New expander.
+	(adddi3): Rewrite as expander.
+	(adc_internal, *adc_flags, adddi3_internal): New patterns.
+	(subsi3_flags): New expander.
+	(subdi3): Rewrite as expander.
+	(sbb_internal, *sbb_flags, subdi3_internal): New patterns.
+
+	* config/rx/rx.c (RX_BUILTIN_SAT): Remove.
+	(rx_init_builtins): Remove sat builtin.
+	(rx_expand_builtin): Likewise.
+	* config/rx/rx.md (ssaddsi3): New.
+	(*sat): Rename from sat.  Represent the CC_REG input.
+
+	* config/rx/predicates.md (rshift_operator): New.
+	* config/rx/rx.c (rx_expand_insv): Remove.
+	* config/rx/rx-protos.h: Update.
+	* config/rx/rx.md (*bitset): Rename from bitset.  Swap the ashift
+	operand to the canonical position.
+	(*bitset_in_memory, *bitinvert, *bitinvert_in_memory): Similarly.
+	(*bitclr, *bitclr_in_memory): Similarly.
+	(*insv_imm, rx_insv_reg, *insv_cond, *bmcc, *insv_cond_lt): New.
+	(insv): Retain the zero_extract in the expansion.
+
+	* config/rx/rx.md (bswapsi2): Use = not + for output reload.
+	(bswaphi2, bitinvert, revw): Likewise.
+
+	* config/rx/rx.c (gen_rx_store_vector): Use VOIDmode for gen_rtx_SET.
+	(gen_rx_rtsd_vector, gen_rx_popm_vector): Likewise.
+	* config/rx/rx.md (pop_and_return): Use VOIDmode for SET.
+	(stack_push, stack_pushm, stack_pop, stack_popm): Likewise.
+	(bitset, bitset_in_memory): Likewise.
+	(bitinvert, bitinvert_in_memory): Likewise.
+	(bitclr, bitclr_in_memory): Likewise.
+	(insv, sync_lock_test_and_setsi, movstr, rx_movstr): Likewise.
+	(rx_strend, rx_cmpstrn): Likewise.
+	(rx_setmem): Likewise.  Make the source BLKmode to match the dest.
+	(bitop peep2 patterns): Remove.
+
+	* config/rx/rx.c (rx_match_ccmode): New.
+	* config/rx/rx-protos.h: Update.
+	* config/rx/rx.md (abssi2): Clobber, don't set flags.
+	(addsi3, adddi3, andsi3, negsi2, one_cmplsi2, iorsi3): Likewise.
+	(rotlsi3, rotrsi3, ashrsi3, lshrsi3, ashlsi3): Likewise.
+	(subsi3, subdi3, xorsi3, addsf3, divsf3, mulsf3, subsf3): Likewise.
+	(fix_truncsfsi2, floatsisf2): Likewise.
+	(*abssi2_flags, *addsi3_flags, *andsi3_flags, *negsi2_flags): New.
+	(*one_cmplsi2_flags, *iorsi3_flags, *rotlsi3_flags): New.
+	(*rotrsi3_flags, *ashrsi3_flags, *lshrsi3_flags, *ashlsi3_flags): New.
+	(*subsi3_flags, *xorsi3_flags): New.
+
+	* config/rx/rx.md (cstoresf4, *cstoresf4): New patterns.
+
+	* config/rx/rx.c (rx_print_operand): Remove workaround for
+	unsplit comparison operations.
+
+	* config/rx/rx.md (movsicc): Split after reload.
+	(*movsicc): Merge *movsieq and *movsine via match_operator.
+	(*stcc): New pattern.
+
+	* config/rx/rx.c (rx_float_compare_mode): Remove.
+	* config/rx/rx.h (rx_float_compare_mode): Remove.
+	* config/rx/rx.md (cstoresi4): Split after reload.
+	(*sccc): New pattern.
+
+	* config/rx/predicates.md (label_ref_operand): New.
+	(rx_z_comparison_operator): New.
+	(rx_zs_comparison_operator): New.
+	(rx_fp_comparison_operator): New.
+	* config/rx/rx.c (rx_print_operand) [B]: Examine comparison modes.
+	Validate that the flags are set properly for the comparison.
+	(rx_gen_cond_branch_template): Remove.
+	(rx_cc_modes_compatible): Remove.
+	(mode_from_flags): New.
+	(flags_from_code): Rename from flags_needed_for_conditional.
+	(rx_cc_modes_compatible): Re-write in terms of flags_from_mode.
+	(rx_select_cc_mode): Likewise.
+	(rx_split_fp_compare): New.
+	(rx_split_cbranch): New.
+	* config/rx/rx.md (most_cond, zs_cond): Remove iterators.
+	(*cbranchsi4): Use match_operator and rx_split_cbranch.
+	(*cbranchsf4): Similarly.
+	(*cbranchsi4_tst): Rename from *tstbranchsi4_<code>.  Use
+	match_operator and rx_split_cbranch.
+	(*cbranchsi4_tst_ext): Combine *tstbranchsi4m_eq and
+	tstbranchsi4m_ne.  Use match_operator and rx_split_cbranch.
+	(*cmpsi): Rename from cmpsi.
+	(*tstsi): Rename from tstsi.
+	(*cmpsf): Rename from cmpsf; use CC_Fmode.
+	(*conditional_branch): Rename from conditional_branch.
+	(*reveresed_conditional_branch): Remove.
+	(b<code>): Remove expander.
+	* config/rx/rx-protos.h: Update.
+
+	* config/rx/rx.c (rx_compare_redundant): Remove.
+	* config/rx/rx.md (cmpsi): Don't use it.
+	* config/rx/rx-protos.h: Update.
+
+	* config/rx/rx-modes.def (CC_F): New mode.
+	* config/rx/rx.c (rx_select_cc_mode): New.
+	* config/rx/rx.h (SELECT_CC_MODE): Use it.
+	* config/rx/rx-protos.h: Update.
+
+2011-01-17  Richard Henderson  <rth@redhat.com>
+
+	* except.c (dump_eh_tree): Fix stray ; after for statement.
+
+2011-01-17  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47313
+	* tree-inline.c (tree_function_versioning): Move DECL_RESULT
+	handling before copying the body.  Properly deal with
+	by-reference result in SSA form.
+
+2011-01-17  Ian Lance Taylor  <iant@google.com>
+
+	PR target/47219
+	* config/sparc/sparc.c (sparc_sr_alias_set): Don't define.
+	(struct_value_alias_set): Don't define.
+	(sparc_option_override): Don't set sparc_sr_alias_set and
+	struct_value_alias_set.
+	(save_or_restore_regs): Use gen_frame_mem rather than calling
+	set_mem_alias_set.
+	(sparc_struct_value_rtx): Likewise.
+
+2011-01-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47318
+	* config/i386/avxintrin.h (_mm_maskload_pd): Change mask to
+	__m128i.
+	(_mm_maskstore_pd): Likewise.
+	(_mm_maskload_ps): Likewise.
+	(_mm_maskstore_ps): Likewise.
+	(_mm256_maskload_pd): Change mask to __m256i.
+	(_mm256_maskstore_pd): Likewise.
+	(_mm256_maskload_ps): Likewise.
+	(_mm256_maskstore_ps): Likewise.
+
+	* config/i386/i386-builtin-types.def: Updated.
+	(ix86_expand_special_args_builtin): Likewise.
+
+	* config/i386/i386.c (bdesc_special_args): Update
+	__builtin_ia32_maskloadpd, __builtin_ia32_maskloadps,
+	__builtin_ia32_maskloadpd256, __builtin_ia32_maskloadps256,
+	__builtin_ia32_maskstorepd, __builtin_ia32_maskstoreps,
+	__builtin_ia32_maskstorepd256 and __builtin_ia32_maskstoreps256.
+
+	* config/i386/sse.md (avx_maskload<ssemodesuffix><avxmodesuffix>):
+	Use <avxpermvecmode> on mask register.
+	(avx_maskstore<ssemodesuffix><avxmodesuffix>): Likewise.
+
+2011-01-17  Olivier Hainque  <hainque@adacore.com>
+            Michael Haubenwallner  <michael.haubenwallner@salomon.at>
+            Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/46655
+	* xcoffout.c (ASM_OUTPUT_LINE): Output line only if positive, and only
+	if <= USHRT_MAX in 32-bit mode.
+
+2011-01-17  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/install.texi (Configuration, Specific): Wrap long
+	lines in examples.  Allow line wrapping in long options
+	and URLs where beneficial for PDF output.
+
+2011-01-16  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_classify_symbol): Don't return
+	SYMBOL_PC_RELATIVE for nonlocal labels.
+
 2011-01-15  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* config/sparc/sol2-bi.h (CC1_SPEC): Fix typo.

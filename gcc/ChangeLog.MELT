@@ -1,6 +1,11 @@
 
 2011-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (generate_runtypesupport_mapfun):
+	Correct some typos in generated code.
+
+2011-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-base.melt (some_string_value): New cmatcher.
 
 	* melt/warmelt-outobj.melt (generate_runtypesupport_mapfun): Adding
