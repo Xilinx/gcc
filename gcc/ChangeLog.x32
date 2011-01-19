@@ -1,5 +1,11 @@
 2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.md (*addsi_1_zext): Replace general_operand
+	with x32_general_operand.  Replace "i"/"g" with "Ye"/"rmYe".
+	(*addsi_2_zext): Likewise.
+
+2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (i): Use "Ye" for SImode.
 	(g): Use "rmYe" for SImode.
 	(general_operand): Use x32_general_operand for SImode.
@@ -19,7 +25,7 @@
 	(*lea_general_2): Replace nonmemory_operand and "i" with
 	x32_lea_nonmemory_operand and "Ye".
 	(*lea_general_2_zext): Likewise.
-	(*subsi_1_zext): Replace general_operand wi x32_general_operand.
+	(*subsi_1_zext): Replace general_operand with x32_general_operand.
 	Replace "i"/"g" with "Ye"/"rmYe".
 	(*subsi_2_zext): Likewise.
 	(*subsi_3_zext): Likewise.
