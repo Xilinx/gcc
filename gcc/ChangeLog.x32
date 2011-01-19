@@ -1,5 +1,43 @@
 2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.md (i): Use "Ye" for SImode.
+	(g): Use "rmYe" for SImode.
+	(general_operand): Use x32_general_operand for SImode.
+	(general_szext_operand): Likewise.
+	(A): New.
+	(*movdi_internal_rex64): Use mov instead of movabs for
+	TARGET_X32.
+	(*movabs<mode>_1): Likewise.
+	(*movabs<mode>_2): Likewise.
+	(*movsi_internal): Replace 'ri' with 'rYs'.  Use A instead of
+	DI for pic_32bit_operand.
+	(*lea_general_1): Replace immediate_operand and "i" with
+	x32_lea_immediate_operand and "Ye".
+	(*lea_general_1_zext): Likewise.
+	(*lea_general_3): Likewise.
+	(*lea_general_3_zext): Likewise.
+	(*lea_general_2): Replace nonmemory_operand and "i" with
+	x32_lea_nonmemory_operand and "Ye".
+	(*lea_general_2_zext): Likewise.
+	(*subsi_1_zext): Replace general_operand wi x32_general_operand.
+	Replace "i"/"g" with "Ye"/"rmYe".
+	(*subsi_2_zext): Likewise.
+	(*subsi_3_zext): Likewise.
+	(*addsi3_carry_zext): Likewise.
+	(*subsi3_carry_zext): Likewise.
+	(*andsi_1): Likewise.
+	(*andsi_1_zext): Likewise.
+	(*andsi_2_zext): Likewise.
+	(*indirect_jump): Disabled for TARGET_X32.
+	(*tablejump_1): Likewise.
+	(*call_1_rex64): Likewise.
+	(set_got_offset_rex64): Likewise.
+	(*indirect_jump_x32): New.
+	(*tablejump_1_x32): Likewise.
+	(*call_1_rex64_x32): Likewise.
+
+2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/predicates.md (x32_lea_immediate_operand): New.
 	(x32_lea_nonmemory_operand): Likewise.
 
