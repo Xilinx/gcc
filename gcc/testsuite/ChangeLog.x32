@@ -1,4 +1,9 @@
 2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.target/i386/pr47364.c: Moved to ...
+	* gcc.target/i386/pr47364-1.c: This.
+
+2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR target/47364
 	* gcc.target/i386/pr47364.c: New.
