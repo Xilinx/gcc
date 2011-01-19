@@ -1,0 +1,6 @@
+2010-01-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/64/sfp-machine.h (_FP_W_TYPE): Always use _WIN64
+	version.
+	(_FP_WS_TYPE): Likewise.
+	(_FP_I_TYPE): Likewise.

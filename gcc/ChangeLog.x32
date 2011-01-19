@@ -1,0 +1,22 @@
+2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/linux.h (UCLIBC_DYNAMIC_LINKERX32): New.
+	(BIONIC_DYNAMIC_LINKERX32): Likewise.
+	(LINUX_DYNAMIC_LINKERX32): Likewise.
+
+	* config/i386/linux64.h (GLIBC_DYNAMIC_LINKERX32): New.
+	(ASM_SPEC): Support -mx32.
+	(LINK_SPEC): Likewise.
+
+	* config/i386/i386.c (override_options): Turn on
+	OPTION_MASK_ISA_64BIT for TARGET_X32.  Only allow small and
+	small PIC models for TARGET_X32.
+
+	* config/i386/i386.h (TARGET_X32): New.
+	(TARGET_LP64): Likewise.
+	(LONG_TYPE_SIZE): Likewise.
+	(POINTER_SIZE): Likewise.
+	(POINTERS_EXTEND_UNSIGNED): Likewise.
+
+	* config/i386/i386.opt (m64): Negate -mx32.
+	(mx32): New.

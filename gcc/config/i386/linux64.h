@@ -61,6 +61,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #define GLIBC_DYNAMIC_LINKER32 "/lib/ld-linux.so.2"
 #define GLIBC_DYNAMIC_LINKER64 "/lib64/ld-linux-x86-64.so.2"
+#define GLIBC_DYNAMIC_LINKERX32 "/lib32/ld-linux-x32.so.2"
 
 #if TARGET_64BIT_DEFAULT
 #define SPEC_32 "m32"
@@ -71,17 +72,20 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 
 #undef ASM_SPEC
-#define ASM_SPEC "%{" SPEC_32 ":--32} %{" SPEC_64 ":--64} \
+#define ASM_SPEC "%{" SPEC_32 ":%{!mx32:--32}} %{" \
+ SPEC_64 ":%{!mx32:--64}} %{mx32:--x32} \
  %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
 
 #undef	LINK_SPEC
-#define LINK_SPEC "%{" SPEC_64 ":-m elf_x86_64} %{" SPEC_32 ":-m elf_i386} \
+#define LINK_SPEC "%{" SPEC_64 ":%{!mx32:-m elf_x86_64}} %{" \
+  SPEC_32 ":%{!mx32:-m elf_i386}} %{mx32:-m elf32_x86_64} \
   %{shared:-shared} \
   %{!shared: \
     %{!static: \
       %{rdynamic:-export-dynamic} \
-      %{" SPEC_32 ":-dynamic-linker " LINUX_DYNAMIC_LINKER32 "} \
-      %{" SPEC_64 ":-dynamic-linker " LINUX_DYNAMIC_LINKER64 "}} \
+      %{" SPEC_32 ":%{!mx32:-dynamic-linker " LINUX_DYNAMIC_LINKER32 "}} \
+      %{" SPEC_64 ":%{!mx32:-dynamic-linker " LINUX_DYNAMIC_LINKER64 "}} \
+      %{mx32:-dynamic-linker " LINUX_DYNAMIC_LINKERX32 "}} \
     %{static:-static}}"
 
 /* Similar to standard Linux, but adding -ffast-math support.  */
