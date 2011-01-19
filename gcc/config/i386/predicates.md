@@ -379,7 +379,7 @@
 
 ;; Return true if OP is nonmemory operand acceptable by movabs patterns.
 (define_predicate "x86_64_movabs_operand"
-  (if_then_else (match_test "!TARGET_64BIT || !flag_pic")
+  (if_then_else (match_test "!TARGET_64BIT || (!flag_pic && !TARGET_X32)")
     (match_operand 0 "nonmemory_operand")
     (ior (match_operand 0 "register_operand")
 	 (and (match_operand 0 "const_double_operand")
@@ -1229,3 +1229,17 @@
       return false;
   return true;
 })
+
+;; Return true when a constant operand can be stored into memory for x32.
+(define_predicate "x32_store_immediate_operand"
+  (match_operand 0 "immediate_operand")
+{
+  return !TARGET_X32 || !pic_32bit_operand (op, mode);
+})
+
+;; Return nonzero if OP is general operand representable on x32.
+(define_predicate "x32_general_operand"
+  (if_then_else (and (match_test "TARGET_X32")
+		     (match_test "flag_pic"))
+    (match_operand 0 "x86_64_general_operand")
+    (match_operand 0 "general_operand")))

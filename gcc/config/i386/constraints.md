@@ -105,6 +105,22 @@
  "TARGET_MMX && TARGET_INTER_UNIT_MOVES ? MMX_REGS : NO_REGS"
  "@internal Any MMX register, when inter-unit moves are enabled.")
 
+;; Constant constraints.
+;; We also use the Y prefix to denote constant constraints:
+;;  s	Immediate constant for x32 store
+;;  e	Immediate constant for x32
+
+(define_constraint "Ys"
+  "Immediate constant for x32 store."
+  (match_operand 0 "x32_store_immediate_operand"))
+
+(define_constraint "Ye"
+  "Immediate constant for x32."
+  (if_then_else (and (match_test "TARGET_X32")
+		     (match_test "flag_pic"))
+    (match_operand 0 "x86_64_immediate_operand")
+  (match_operand 0 "immediate_operand")))
+
 ;; Integer constant constraints.
 (define_constraint "I"
   "Integer constant in the range 0 @dots{} 31, for 32-bit shifts."

@@ -1,5 +1,15 @@
 2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/constraints.md (Ys): New.
+	(Ye): Likewise.
+
+	* config/i386/predicates.md (x86_64_movabs_operand): Don't
+	allow nonmemory_operand for TARGET_X32.
+	(x32_store_immediate_operand): New.
+	(x32_general_operand): Likewise.
+
+2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/linux.h (UCLIBC_DYNAMIC_LINKERX32): New.
 	(BIONIC_DYNAMIC_LINKERX32): Likewise.
 	(LINUX_DYNAMIC_LINKERX32): Likewise.
