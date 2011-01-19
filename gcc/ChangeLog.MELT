@@ -1,6 +1,14 @@
+
+2011-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-base.melt (some_string_value): New cmatcher.
+
+	* melt/warmelt-outobj.melt (generate_runtypesupport_mapfun): Adding
+	new function, still incomplete.
+
 2011-01-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
-	* melt/warmelt-base.melt (runtypesupport_docmd): Generates terminating comment
+	* melt/warmelt-outobj.melt (runtypesupport_docmd): Generates terminating comment
 	before outputting meltrunsup* files.
 
 2011-01-18  Basile Starynkevitch  <basile@starynkevitch.net>

@@ -387,6 +387,17 @@ an integer $I if $I is greater than $N.}#
   ;; no fill expansion
 )
 
+;;; match a boxed string, and set strval component
+(defcmatcher some_string_value 
+  (:value v)
+  (:value sv)
+  somestrval
+  :doc #{The $SOME_STRING_VALUE matches a string value $V and passes it to the output $SV.}#
+  ;; test
+  #{ /*$SOMESTRVAL? */ (($V) && melt_magic_discr((melt_ptr_t)($V)) == MELTOBMAG_STRING) }#
+  ;; fill
+  #{ /*$SOMESTRVAL! */ $SV = $V; }#
+)
 ;;;;;;;;;;;;;;;;
 
 (defprimitive outnewline_err () :void
@@ -2116,6 +2127,7 @@ polyhedron values.}#
  foreach_long_upto
  some_integer_multiple
  some_integer_greater_than
+ some_string_value
  outnewline_err
  outstr_err
  message_dbg
