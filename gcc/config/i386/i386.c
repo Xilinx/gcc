@@ -12949,7 +12949,11 @@ ix86_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 	  rtx temp = gen_reg_rtx (Pmode);
 	  rtx val  = force_operand (XEXP (x, 1), temp);
 	  if (val != temp)
-	    emit_move_insn (temp, val);
+	    {
+	      if (GET_MODE (val) != Pmode)
+		val = convert_to_mode (Pmode, val, 1);
+	      emit_move_insn (temp, val);
+	    }
 
 	  XEXP (x, 1) = temp;
 	  return x;
@@ -12960,7 +12964,11 @@ ix86_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 	  rtx temp = gen_reg_rtx (Pmode);
 	  rtx val  = force_operand (XEXP (x, 0), temp);
 	  if (val != temp)
-	    emit_move_insn (temp, val);
+	    {
+	      if (GET_MODE (val) != Pmode)
+		val = convert_to_mode (Pmode, val, 1);
+	      emit_move_insn (temp, val);
+	    }
 
 	  XEXP (x, 0) = temp;
 	  return x;

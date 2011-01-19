@@ -1,5 +1,11 @@
 2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR target/47364
+	* config/i386/i386.c (ix86_legitimize_address): Convert to
+	Pmode if needed.
+
+2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (*addsi_1_zext): Replace general_operand
 	with x32_general_operand.  Replace "i"/"g" with "Ye"/"rmYe".
 	(*addsi_2_zext): Likewise.
