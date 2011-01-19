@@ -1,5 +1,15 @@
 
 2011-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{experimental, work in progress}}
+	* melt/warmelt-outobj.melt (generate_runtypesupport_mapfun):
+	Barely working.
+	* gcc/melt/WorkInProgress-GenRunTime/* : New experimental &
+	transient code directory. First read the README there. Will
+	generate the runtime support for every ctype (in particular GTY-ed
+	ctypes). Will be removed & incorporated when I am confident
+	enough.
+
+2011-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
 	* melt/generated/warmelt-base-0.c: Regenerate.

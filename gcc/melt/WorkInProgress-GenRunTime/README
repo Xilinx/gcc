@@ -1,0 +1,17 @@
+MELT will very soon be able to generate most of the runtime support
+for GTY-ed ctypes. Actually, some code is already working. But I am
+not confident enought to install it now.
+
+If you are brave, you could copy the *.c & *.h files
+here into the parent gcc/melt/ directory and the Makefile.in to gcc/
+
+The meltrunsup-inc.c & meltrunsup.h are generated files. You can
+generate them with make meltrun-generate in the gcc subtree of the
+build directory. 
+
+All this is alpha quality.
+
+As soon as it works reliably, I will remove this
+WorkInProgress-GenRunTime subdirectory.
+
+Basile Starynkevitch <basile@starynkevitch.net> january 19th 2011
