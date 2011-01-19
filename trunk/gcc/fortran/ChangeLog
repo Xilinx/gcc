@@ -1,0 +1,221 @@
+2011-01-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47240
+	* resolve.c (expression_rank): Fix rank of procedure poiner components.
+	* trans-expr.c (gfc_conv_procedure_call): Take care of procedure
+	pointer components as actual arguments.
+
+2011-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47331
+	* gfortran.h (struct gfc_omp_saved_state): New type.
+	(gfc_omp_save_and_clear_state, gfc_omp_restore_state): New prototypes.
+	* resolve.c (resolve_global_procedure): Call it around gfc_resolve
+	call.
+	* openmp.c (gfc_omp_save_and_clear_state, gfc_omp_restore_state): New
+	functions.
+
+2011-01-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47327
+	* invoke.texi (Options to request or suppress errors
+	and warnings): Fix cross link.
+
+2011-01-15  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi: Update Fortran 2003 Status section.
+
+	PR fortran/47177
+	* invoke.texi: Add missing "-E" to the -dM example.
+
+2011-01-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47268
+	* intrinsic.texi (get_command_argument, get_environment_variable):
+	Mark arguments as optional in the Arguments section.
+
+2011-01-13  Kai Tietz  <kai.tietz@onevision.com>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47260
+	* trans-decl.c (gfc_get_extern_function_decl,
+	build_function_decl): Set TREE_PUBLIC/TREE_EXTERNAL before
+	calling decl_attributes.
+
+2011-01-13  Tobias Burnus  <burnus@net-b.de>
+	    Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/45848
+	PR fortran/47204
+	* gfortran.h (gfc_code): Move union ext's case_list into
+	the struct block.
+	* dump-parse-tree.c (show_code_node): Adapt by prefixing case_list
+	by "block.".
+	* frontend-passes.c (gfc_code_walker): Ditto.
+	* match.c (gfc_match_goto, gfc_match_call, gfc_match_case,
+	gfc_match_type_is, gfc_match_class_is): Ditto.
+	* resolve.c (resolve_select, resolve_select_type): Ditto.
+	* st.c (gfc_free_statement): Ditto.
+	* trans-stmt.c (gfc_trans_integer_select, gfc_trans_logical_select,
+	gfc_trans_character_select): Ditto.
+	* parse.c (resolve_all_program_units): For error recovery, avoid
+	segfault is proc_name is NULL.
+
+2011-01-11  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47051
+	* trans-array.c (gfc_alloc_allocatable_for_assignment): Change
+	to be standard compliant by testing for shape rather than size
+	before skipping reallocation. Improve comments.
+
+2011-01-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47224
+	* resolve.c (resolve_actual_arglist): Remove unneeded and buggy piece
+	of code.
+
+2011-01-09  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/38536
+	* resolve.c (is_scalar_expr_ptr):  For a substring reference,
+	use gfc_dep_compare_expr to compare start and end expession.
+	Add FIXME for using gfc_deb_compare_expr elsewhere.
+
+2011-01-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46313
+	* class.c (get_unique_type_string): Make type name start with upper
+	case letter.
+
+2011-01-08  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/46405
+	* invoke.texi:  Mention -ffree-line-length-none and
+	-ffixed-line-length-none for preprocessing.
+
+2011-01-08  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/46896
+	* trans-expr.c (gfc_conv_procedure_call): With a non-copying
+	procedure argument (eg TRANSPOSE) use a temporary if there is
+	any chance of aliasing due to host or use association.
+	(arrayfunc_assign_needs_temporary): Correct logic for function
+	results and do not use a temporary for implicitly PURE
+	variables.  Use a temporary for Cray pointees.
+	* symbol.c (gfc_add_save): Explicit SAVE not compatible with
+	implicit pureness of containing procedure.
+	* decl.c (match_old_style_init, gfc_match_data): Where decl
+	would fail in PURE procedure, set implicit_pure to zero.
+	* gfortran.h : Add implicit_pure to structure symbol_attr and
+	add prototype for function gfc_implicit_pure.
+	* expr.c (gfc_check_pointer_assign, gfc_check_vardef_context):
+	Where decl would fail in PURE procedure, reset implicit_pure.
+	* io.c (match_vtag, gfc_match_open, gfc_match_close,
+	gfc_match_print, gfc_match_inquire, gfc_match_wait): The same.
+	* match.c (gfc_match_critical, gfc_match_stopcode,
+	sync_statement, gfc_match_allocate, gfc_match_deallocate): The
+	same.
+	* parse.c (decode_omp_directive): The same.
+	(parse_contained): If not PURE, set implicit pure attribute.
+	* resolve.c (resolve_formal_arglist, resolve_structure_cons,
+	resolve_function, resolve_ordinary_assign) : The same.
+	(gfc_implicit_pure): New function.
+	* module.c (mio_symbol_attribute): Introduce AB_IMPLICIT_PURE
+	to ab_attribute enum and use it in this function.
+
+2011-01-08  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/45777
+	* symbol.c (gfc_symbols_could_alias):  Strip gfc_ prefix,
+	make static and move in front of its only caller, to ...
+	* trans-array.c (symbols_could_alias): ... here.
+	Pass information about pointer and target status as
+	arguments.  Allocatable arrays don't alias anything
+	unless they have the POINTER attribute.
+	(gfc_could_be_alias):  Keep track of pointer and target
+	status when following references.  Also check if typespecs
+	of components match those of other components or symbols.
+
+2011-01-07  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41580
+	* class.c (gfc_build_class_symbol): Mark __vtab as attr.vtab.
+	* intrinsic.c (add_functions): Use simplify functions for
+	EXTENDS_TYPE_OF and SAME_TYPE_AS.
+	* intrinsic.h (gfc_simplify_extends_type_of,
+	gfc_simplify_same_type_as): New prototypes.
+	* simplify.c (is_last_ref_vtab, gfc_simplify_extends_type_of,
+	gfc_simplify_same_type_as): New functions.
+
+2011-01-07  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47189
+	PR fortran/47194
+	* gfortran.h (gfc_lval_expr_from_sym): Moved prototype.
+	* class.c (gfc_class_null_initializer): Initialize _vptr to declared
+	type.
+	* expr.c (gfc_lval_expr_from_sym): Moved here from symbol.c.
+	* resolve.c (resolve_deallocate_expr): _data component will be added
+	at translation stage.
+	* symbol.c (gfc_lval_expr_from_sym): Moved to expr.c.
+	* trans-stmt.c (gfc_trans_deallocate): Reset _vptr to declared type.
+
+2011-01-06  Daniel Franke  <franke.daniel@gmail.com>
+
+	PR fortran/33117
+	PR fortran/46478
+	* parse.c (parse_interface): Remove check for procedure types.
+	* interface.c (check_interface0): Verify that procedures are
+	either all SUBROUTINEs or all FUNCTIONs.
+
+2011-01-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47180
+	* trans-expr.c (gfc_trans_class_assign): Bugfix for r168524 (make sure
+	'vtab' is initialized).
+
+2011-01-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47180
+	* trans-expr.c (gfc_trans_class_assign): For a polymorphic NULL pointer
+	assignment, set the _vptr component to the declared type.
+
+2011-01-05  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/46017
+	* resolve.c (resolve_allocate_deallocate): Follow references to
+	check for duplicate occurence of allocation/deallocation objects.
+
+2011-01-05  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47024
+	* trans-decl.c (gfc_trans_deferred_vars): Initialize the _vpr component
+	of polymorphic allocatables according to their declared type.
+
+2011-01-04  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46448
+	* class.c (gfc_find_derived_vtab): Set the module field for the copying
+	routine to make sure it receives module name mangling.
+
+2011-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* gfortranspec.c (lang_specific_driver): Update copyright notice
+	dates.
+
+2011-01-03  Janus Weil  <janus@gcc.gnu.org>
+
+	* intrinsic.texi (LEADZ): Fix example.
+
+2011-01-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/46408
+	* class.c (gfc_find_derived_vtab): Use EXEC_INIT_ASSIGN for __copy_
+	routine.
+
+
+Copyright (C) 2011 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
