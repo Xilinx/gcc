@@ -34,217 +34,217 @@ const char used_meltrun_md5_melt_f1[] = MELT_RUN_HASHMD5 /* from melt-run.h */;
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_1_warmelt_debug_DEBUG_MSG_FUN(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_1_warmelt_debug_DEBUG_MSG_FUN(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_2_warmelt_debug_DBG_OUTOBJECT(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_2_warmelt_debug_DBG_OUTOBJECT(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_3_warmelt_debug_DBG_OUT(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_3_warmelt_debug_DBG_OUT(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_4_warmelt_debug_DBGOUT_FIELDS(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_4_warmelt_debug_DBGOUT_FIELDS(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_5_warmelt_debug_DBGOUTAGAIN_FIELDS(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_5_warmelt_debug_DBGOUTAGAIN_FIELDS(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_6_warmelt_debug_DBGOUT_NULL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_6_warmelt_debug_DBGOUT_NULL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_7_warmelt_debug_DBGOUT_STRING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_7_warmelt_debug_DBGOUT_STRING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_8_warmelt_debug_DBGOUT_INTEGER_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_8_warmelt_debug_DBGOUT_INTEGER_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_9_warmelt_debug_DBGOUT_MIXINT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_9_warmelt_debug_DBGOUT_MIXINT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_10_warmelt_debug_DBGOUT_MIXLOC_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_10_warmelt_debug_DBGOUT_MIXLOC_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_11_warmelt_debug_DBGOUT_MIXBIGINT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_11_warmelt_debug_DBGOUT_MIXBIGINT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_12_warmelt_debug_DBGOUT_MULTIPLE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_12_warmelt_debug_DBGOUT_MULTIPLE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_13_warmelt_debug_DBGOUT_ROUTINE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_13_warmelt_debug_DBGOUT_ROUTINE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_14_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_14_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_15_warmelt_debug_DBGOUT_CLOSURE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_15_warmelt_debug_DBGOUT_CLOSURE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_16_warmelt_debug_DBGOUT_LIST_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_16_warmelt_debug_DBGOUT_LIST_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_17_warmelt_debug_DBGOUT_PAIR_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_17_warmelt_debug_DBGOUT_PAIR_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_18_warmelt_debug_DBGOUT_BOX_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_18_warmelt_debug_DBGOUT_BOX_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_19_warmelt_debug_DBGOUT_MAPOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_19_warmelt_debug_DBGOUT_MAPOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_20_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_20_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_21_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_21_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_22_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_22_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_23_warmelt_debug_DBGOUT_MAPSTRING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_23_warmelt_debug_DBGOUT_MAPSTRING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_24_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_24_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_25_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_25_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_26_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_26_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_27_warmelt_debug_DBGOUT_ANYOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_27_warmelt_debug_DBGOUT_ANYOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_28_warmelt_debug_DBGOUT_ANYRECV_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_28_warmelt_debug_DBGOUT_ANYRECV_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_29_warmelt_debug_DBGOUTAGAIN_ANYOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_29_warmelt_debug_DBGOUTAGAIN_ANYOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_30_warmelt_debug_DBGOUT_NAMEDOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_30_warmelt_debug_DBGOUT_NAMEDOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_31_warmelt_debug_DBGOUTAGAIN_NAMEDOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_31_warmelt_debug_DBGOUTAGAIN_NAMEDOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_32_warmelt_debug_DBGOUT_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_32_warmelt_debug_DBGOUT_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_33_warmelt_debug_DBGOUTAGAIN_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_33_warmelt_debug_DBGOUTAGAIN_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_34_warmelt_debug_DBGOUT_CLASS_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_34_warmelt_debug_DBGOUT_CLASS_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_35_warmelt_debug_DBGOUT_KEYWORD_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_35_warmelt_debug_DBGOUT_KEYWORD_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_36_warmelt_debug_DBGOUTAGAIN_KEYWORD_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_36_warmelt_debug_DBGOUTAGAIN_KEYWORD_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_37_warmelt_debug_DBGOUT_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_37_warmelt_debug_DBGOUT_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_38_warmelt_debug_DBGOUTAGAIN_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_38_warmelt_debug_DBGOUTAGAIN_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_39_warmelt_debug_DBGOUT_ENVIRONMENT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_39_warmelt_debug_DBGOUT_ENVIRONMENT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_40_warmelt_debug_DBGOUT_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_40_warmelt_debug_DBGOUT_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_41_warmelt_debug_DBGOUTAGAIN_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_41_warmelt_debug_DBGOUTAGAIN_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_42_warmelt_debug_DBGOUT_ANYBINDING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_42_warmelt_debug_DBGOUT_ANYBINDING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_43_warmelt_debug_DISPLAY_DEBUG_MESSAGE(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_, const char xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_43_warmelt_debug_DISPLAY_DEBUG_MESSAGE(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 void* start_module_melt (void*);
@@ -261,8 +261,8 @@ static void forward_or_mark_module_start_frame_warmelt_debug (struct callframe_m
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_12_warmelt_debug_DBGOUT_MULTIPLE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_12_warmelt_debug_DBGOUT_MULTIPLE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -678,8 +678,8 @@ melt_trace_end("DBGOUT_MULTIPLE_METHOD", meltcallcount);  melt_topframe = (struc
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_13_warmelt_debug_DBGOUT_ROUTINE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_13_warmelt_debug_DBGOUT_ROUTINE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -962,8 +962,8 @@ melt_trace_end("DBGOUT_ROUTINE_METHOD", meltcallcount);  melt_topframe = (struct
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_14_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_14_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -1075,8 +1075,8 @@ melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_15_warmelt_debug_DBGOUT_CLOSURE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_15_warmelt_debug_DBGOUT_CLOSURE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -1522,8 +1522,8 @@ melt_trace_end("DBGOUT_CLOSURE_METHOD", meltcallcount);  melt_topframe = (struct
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_16_warmelt_debug_DBGOUT_LIST_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_16_warmelt_debug_DBGOUT_LIST_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -1975,8 +1975,8 @@ melt_trace_end("DBGOUT_LIST_METHOD", meltcallcount);  melt_topframe = (struct ca
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_17_warmelt_debug_DBGOUT_PAIR_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_17_warmelt_debug_DBGOUT_PAIR_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -2275,8 +2275,8 @@ melt_trace_end("DBGOUT_PAIR_METHOD", meltcallcount);  melt_topframe = (struct ca
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_18_warmelt_debug_DBGOUT_BOX_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_18_warmelt_debug_DBGOUT_BOX_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -2539,8 +2539,8 @@ melt_trace_end("DBGOUT_BOX_METHOD", meltcallcount);  melt_topframe = (struct cal
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_19_warmelt_debug_DBGOUT_MAPOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_19_warmelt_debug_DBGOUT_MAPOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -3121,8 +3121,8 @@ melt_trace_end("DBGOUT_MAPOBJECT_METHOD", meltcallcount);  melt_topframe = (stru
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_20_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_20_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -3274,8 +3274,8 @@ melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_21_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_21_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -3425,8 +3425,8 @@ melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_22_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_22_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -3667,8 +3667,8 @@ melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_23_warmelt_debug_DBGOUT_MAPSTRING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_23_warmelt_debug_DBGOUT_MAPSTRING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -4134,8 +4134,8 @@ melt_trace_end("DBGOUT_MAPSTRING_METHOD", meltcallcount);  melt_topframe = (stru
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_24_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_24_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -4287,8 +4287,8 @@ melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_25_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_25_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -4438,8 +4438,8 @@ melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_26_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_26_warmelt_debug_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -4654,8 +4654,8 @@ melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_27_warmelt_debug_DBGOUT_ANYOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_27_warmelt_debug_DBGOUT_ANYOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -4932,8 +4932,8 @@ melt_trace_end("DBGOUT_ANYOBJECT_METHOD", meltcallcount);  melt_topframe = (stru
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_28_warmelt_debug_DBGOUT_ANYRECV_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_28_warmelt_debug_DBGOUT_ANYRECV_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -5118,8 +5118,8 @@ melt_trace_end("DBGOUT_ANYRECV_METHOD", meltcallcount);  melt_topframe = (struct
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_29_warmelt_debug_DBGOUTAGAIN_ANYOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_29_warmelt_debug_DBGOUTAGAIN_ANYOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -5326,8 +5326,8 @@ melt_trace_end("DBGOUTAGAIN_ANYOBJECT_METHOD", meltcallcount);  melt_topframe = 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_30_warmelt_debug_DBGOUT_NAMEDOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_30_warmelt_debug_DBGOUT_NAMEDOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -5717,8 +5717,8 @@ melt_trace_end("DBGOUT_NAMEDOBJECT_METHOD", meltcallcount);  melt_topframe = (st
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_31_warmelt_debug_DBGOUTAGAIN_NAMEDOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_31_warmelt_debug_DBGOUTAGAIN_NAMEDOBJECT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -5913,8 +5913,8 @@ melt_trace_end("DBGOUTAGAIN_NAMEDOBJECT_METHOD", meltcallcount);  melt_topframe 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_32_warmelt_debug_DBGOUT_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_32_warmelt_debug_DBGOUT_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -6160,8 +6160,8 @@ melt_trace_end("DBGOUT_SYMBOL_METHOD", meltcallcount);  melt_topframe = (struct 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_33_warmelt_debug_DBGOUTAGAIN_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_33_warmelt_debug_DBGOUTAGAIN_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -6413,8 +6413,8 @@ melt_trace_end("DBGOUTAGAIN_SYMBOL_METHOD", meltcallcount);  melt_topframe = (st
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_34_warmelt_debug_DBGOUT_CLASS_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_34_warmelt_debug_DBGOUT_CLASS_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -6660,8 +6660,8 @@ melt_trace_end("DBGOUT_CLASS_METHOD", meltcallcount);  melt_topframe = (struct c
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_35_warmelt_debug_DBGOUT_KEYWORD_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_35_warmelt_debug_DBGOUT_KEYWORD_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -6907,8 +6907,8 @@ melt_trace_end("DBGOUT_KEYWORD_METHOD", meltcallcount);  melt_topframe = (struct
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_36_warmelt_debug_DBGOUTAGAIN_KEYWORD_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_36_warmelt_debug_DBGOUTAGAIN_KEYWORD_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -7132,8 +7132,8 @@ melt_trace_end("DBGOUTAGAIN_KEYWORD_METHOD", meltcallcount);  melt_topframe = (s
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_37_warmelt_debug_DBGOUT_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_37_warmelt_debug_DBGOUT_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -7379,8 +7379,8 @@ melt_trace_end("DBGOUT_CLONED_SYMBOL_METHOD", meltcallcount);  melt_topframe = (
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_38_warmelt_debug_DBGOUTAGAIN_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_38_warmelt_debug_DBGOUTAGAIN_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -7530,8 +7530,8 @@ melt_trace_end("DBGOUTAGAIN_CLONED_SYMBOL_METHOD", meltcallcount);  melt_topfram
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_39_warmelt_debug_DBGOUT_ENVIRONMENT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_39_warmelt_debug_DBGOUT_ENVIRONMENT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -8043,8 +8043,8 @@ melt_trace_end("DBGOUT_ENVIRONMENT_METHOD", meltcallcount);  melt_topframe = (st
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_40_warmelt_debug_DBGOUT_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_40_warmelt_debug_DBGOUT_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -8290,8 +8290,8 @@ melt_trace_end("DBGOUT_CTYPE_METHOD", meltcallcount);  melt_topframe = (struct c
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_41_warmelt_debug_DBGOUTAGAIN_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_41_warmelt_debug_DBGOUTAGAIN_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -8421,8 +8421,8 @@ melt_trace_end("DBGOUTAGAIN_CTYPE_METHOD", meltcallcount);  melt_topframe = (str
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_42_warmelt_debug_DBGOUT_ANYBINDING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_42_warmelt_debug_DBGOUT_ANYBINDING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;
@@ -8784,8 +8784,8 @@ melt_trace_end("DBGOUT_ANYBINDING_METHOD", meltcallcount);  melt_topframe = (str
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY 
-meltrout_43_warmelt_debug_DISPLAY_DEBUG_MESSAGE(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const char xargdescr_[], union meltparam_un *xargtab_,
-      const char xresdescr_[], union meltparam_un *xrestab_)
+meltrout_43_warmelt_debug_DISPLAY_DEBUG_MESSAGE(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
+      const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
 #if ENABLE_CHECKING
  static long call_counter__;

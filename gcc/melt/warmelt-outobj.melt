@@ -1288,9 +1288,9 @@
     (add2sbuf_string declbuf onam)
     (add2sbuf_strconst declbuf "(meltclosure_ptr_t closp_,")
     (add2sbuf_strconst declbuf " melt_ptr_t firstargp_,")
-    (add2sbuf_strconst declbuf " const char xargdescr_[],")
+    (add2sbuf_strconst declbuf " const melt_argdescr_cell_t xargdescr_[],")
     (add2sbuf_strconst declbuf " union meltparam_un *xargtab_,")
-    (add2sbuf_strconst declbuf " const char xresdescr_[],")
+    (add2sbuf_strconst declbuf " const melt_argdescr_cell_t xresdescr_[],")
     (add2sbuf_strconst declbuf " union meltparam_un *xrestab_);")
     (add2sbuf_indentnl declbuf 0)
     ;; output the implementation
@@ -1302,10 +1302,10 @@
     (add2sbuf_string implbuf onam)
     (add2sbuf_strconst implbuf "(meltclosure_ptr_t closp_,")
     (add2sbuf_strconst implbuf " melt_ptr_t firstargp_,")
-    (add2sbuf_strconst implbuf " const char xargdescr_[],")
+    (add2sbuf_strconst implbuf " const melt_argdescr_cell_t xargdescr_[],")
     (add2sbuf_strconst implbuf " union meltparam_un *xargtab_,")
     (add2sbuf_indentnl implbuf 5)
-    (add2sbuf_strconst implbuf " const char xresdescr_[],")
+    (add2sbuf_strconst implbuf " const melt_argdescr_cell_t xresdescr_[],")
     (add2sbuf_strconst implbuf " union meltparam_un *xrestab_)")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf "{")
@@ -5653,9 +5653,9 @@ typedef struct meltclosure_st *meltclosure_ptr_t ;
 #ifndef meltroutfun_t_TYPEDEFINED
 typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* closp_,
                                   melt_ptr_t firstargp_,
-                                  const char xargdescr_[],
+                                  const melt_argdescr_cell_t xargdescr_[],
                                   union meltparam_un *xargtab_,
-                                  const char xresdescr_[],
+                                  const melt_argdescr_cell_t xresdescr_[],
                                   union meltparam_un *xrestab_) ;
 #define meltroutfun_t_TYPEDEFINED
 #endif /*meltroutfun_t_TYPEDEFINED*/
@@ -6242,6 +6242,7 @@ melt_scanning (melt_ptr_t p)
   (let 
       ( 
        (:long numdelta 1)
+       (:long lastnum 0)
        )
 ;;;;;;;;;;;;;;;;
     (add2sbuf_indentnl outbuf 0)
@@ -6277,6 +6278,7 @@ melt_scanning (melt_ptr_t p)
 	  (add2sbuf_string outbuf ctypchar)
 	  (add2sbuf_strconst outbuf "   /*=")
 	  (add2sbuf_longdec outbuf (+i numdelta tix))
+	  (setq lastnum (+i numdelta tix))
 	  (add2sbuf_strconst outbuf "*/,")
 	  )
 	(:else
@@ -6290,11 +6292,29 @@ melt_scanning (melt_ptr_t p)
 	 (add2sbuf_strconst outbuf "  \"\\x")
 	 (add2sbuf_longhex outbuf  (+i numdelta tix))
 	 (add2sbuf_strconst outbuf "\"")
-	 )
+	 (setq lastnum (+i numdelta tix))	 )
 	(:else
 	 (add2sbuf_strconst outbuf "   /*-- non paramstr --*/")))	 
        (add2sbuf_indentnl outbuf 0)
        (add2sbuf_indentnl outbuf 1)
+       )
+     ;; the test below should be changed when argument desciptors for
+     ;; melt_apply will no more be character strings.  See comment
+     ;; around melt_apply and keep code in sync with it.
+     (let ((:long argdescrmax 0))
+       (code_chunk setargdescrmax #{/*$SETARGDESCRMAX*/ 
+		   $ARGDESCRMAX = MELT_ARGDESCR_MAX ;}#
+		   )
+       (cond 
+	((>i lastnum (-i argdescrmax 10))
+	 (errormsg_plain 
+	  "too many ctypes for generated enum with MELTBPAR* w.r.t. MELT_ARGDESCR_MAX")
+	 (assert_msg "exhausted number of ctypes w.r.t MELT_ARGDESCR_MAX"
+		     (<i lastnum (-i argdescrmax 2))))
+	((>i lastnum (-i argdescrmax 20))
+	 (warningmsg_plain 
+	  "the number of ctypes is dangerously near MELT_ARGDESCR_MAX"))
+	)
        )
      )
     (add2sbuf_strconst outbuf " MELTBPAR__LAST}; /*end enum for MELT parameters*/")
@@ -6353,6 +6373,9 @@ melt_scanning (melt_ptr_t p)
     (add2sbuf_indentnl outbuf 0)
     )
   )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; generate the inlined map functions for map of GTY-ed types.
 
@@ -6701,11 +6724,11 @@ melt_scanning (melt_ptr_t p)
 		       (strbuf2string discr_string nambuf)
 		       ))
 	(outcodename  (let ( (nambuf (make_strbuf discr_strbuf))
-			    )
-		       (add2sbuf_string nambuf outarg)
-		       (add2sbuf_strconst nambuf "-inc.c")
-		       (strbuf2string discr_string nambuf)
-		       ))
+			     )
+			(add2sbuf_string nambuf outarg)
+			(add2sbuf_strconst nambuf "-inc.c")
+			(strbuf2string discr_string nambuf)
+			))
 	(dictypgty (retrieve_dictionnary_ctype_gty))
 	(rawctypgtylist (list))
 	(dictyp (retrieve_dictionnary_ctype))
@@ -6762,6 +6785,7 @@ melt_scanning (melt_ptr_t p)
       (generate_runtypesupport_scanning sortedctygtytuple
 					sortedvaldesctuple
 					outarg outcodebuf)
+;;;;;;;;;;;;;;;;;;
       ;; generate the inlined melt map functions
       (generate_runtypesupport_mapfun sortedctygtytuple outarg outdeclbuf)
       ;;;;;;;;;;;;;;;;;;
@@ -6803,10 +6827,7 @@ melt_scanning (melt_ptr_t p)
       (informsg_strv "generated runtype support implementation file" outcodename)
       ;;
       (debug_msg outarg "runtypesupport_docmd done outarg")
-      (compile_warning 
-       "runtypesupport_docmd incomplete"
-       (warningmsg_plain "generation of runtime support is incomplete [runtypesupport_docmd]")
-       )
+
       )))
 
 ;;;;;;;;;;;;;;;;

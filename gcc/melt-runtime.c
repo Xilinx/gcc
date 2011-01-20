@@ -6020,12 +6020,22 @@ long melt_application_count (void)  { return 0L; }
 long melt_application_depth (void)  { return 0L; }
 #endif
 /*************** closure application ********************/
+
+/* the argument description string are currently char* strings; this
+   could be changed to wchar_t* strings when the number of generated
+   ctypes and MELBPAR__LAST is becoming large.  Also update the
+   generate_runtypesupport_param function of warmelt-outobj.melt.  So
+   the test at end of generate_runtypesupport_param should be kept in
+   sync with the maximal value. See comments around
+   melt_argdescr_cell_t and MELT_ARGDESCR_MAX in melt-runtime.h and
+   keep delicately in sync with warmelt-outobj.melt code. */
 melt_ptr_t
 melt_apply (meltclosure_ptr_t clos_p,
-	       melt_ptr_t arg1_p,
-	       const char *xargdescr_,
-	       union meltparam_un *xargtab_,
-	       const char *xresdescr_, union meltparam_un *xrestab_)
+	    melt_ptr_t arg1_p,
+	    const melt_argdescr_cell_t *xargdescr_,
+	    union meltparam_un *xargtab_,
+	    const melt_argdescr_cell_t *xresdescr_,
+	    union meltparam_un *xrestab_)
 {
   melt_ptr_t res = NULL;
   meltroutfun_t*routfun = 0;
@@ -6038,6 +6048,9 @@ melt_apply (meltclosure_ptr_t clos_p,
       /* Don't call melt_fatal_error, since the backtrace is already shown. */
       fatal_error ("too deep (%d) MELT applications", appldepth_melt);
     }
+  if ((int) MELTBPAR__LAST >= (int) MELT_ARGDESCR_MAX - 2)
+    melt_fatal_error ("too many different MELT ctypes since MELTBPAR__LAST= %d",
+		      (int) MELTBPAR__LAST);
 #endif
   if (melt_magic_discr ((melt_ptr_t) clos_p) != MELTOBMAG_CLOSURE)
     goto end;
@@ -6057,10 +6070,11 @@ melt_apply (meltclosure_ptr_t clos_p,
 /************** method sending ***************/
 melt_ptr_t
 meltgc_send (melt_ptr_t recv_p,
-		melt_ptr_t sel_p,
-		const char *xargdescr_,
-		union meltparam_un * xargtab_,
-		const char *xresdescr_, union meltparam_un * xrestab_)
+	     melt_ptr_t sel_p,
+	     const melt_argdescr_cell_t *xargdescr_,
+	     union meltparam_un * xargtab_,
+	     const melt_argdescr_cell_t *xresdescr_, 
+	     union meltparam_un * xrestab_)
 {
   /* NAUGHTY TRICK here: message sending is very common, and we want
      to avoid having the current frame (the frame declared by the
