@@ -1,5 +1,14 @@
 2011-01-20  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR target/47381
+	* config/i386/constraints.md (Yl): New.
+
+	* config/i386/i386.md (l): New.
+	(*add<mode>_1): Replace <i> with <l>.
+	(*addsi_1_zext): Replace "lYe" with "lYl".
+
+2011-01-20  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR target/47372
 	* config/i386/i386.c (ix86_delegitimize_address): Call
 	simplify_gen_subreg for PIC with ptr_mode only if modes of

@@ -109,6 +109,7 @@
 ;; We also use the Y prefix to denote constant constraints:
 ;;  s	Immediate constant for x32 store
 ;;  e	Immediate constant for x32
+;;  l	Immediate constant for lea 
 
 (define_constraint "Ys"
   "Immediate constant for x32 store."
@@ -119,7 +120,13 @@
   (if_then_else (and (match_test "TARGET_X32")
 		     (match_test "flag_pic"))
     (match_operand 0 "x86_64_immediate_operand")
-  (match_operand 0 "immediate_operand")))
+    (match_operand 0 "immediate_operand")))
+
+(define_constraint "Yl"
+  "Immediate constant for lea."
+  (if_then_else (match_test "TARGET_X32")
+    (match_operand 0 "x32_lea_immediate_operand")
+    (match_operand 0 "immediate_operand")))
 
 ;; Integer constant constraints.
 (define_constraint "I"
