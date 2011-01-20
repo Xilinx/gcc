@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -41,10 +41,65 @@
 with Hostparm; use Hostparm;
 with Types;    use Types;
 
+pragma Warnings (Off);
+--  This package is used also by gnatcoll
 with System.Strings; use System.Strings;
 with System.WCh_Con; use System.WCh_Con;
+pragma Warnings (On);
 
 package Opt is
+
+   ----------------------
+   -- Checksum Control --
+   ----------------------
+
+   --  Checksums are computed for sources to check for sources being the same
+   --  from a compilation point of view (e.g. spelling of identifiers and
+   --  white space layout do not count in this computation).
+
+   --  The way the checksum is computed has evolved across the various versions
+   --  of GNAT. When gprbuild is called with -m, the checksums must be computed
+   --  the same way in gprbuild as it was in the GNAT version of the compiler.
+   --  The different ways are
+
+   --    Version 6.4 and later:
+
+   --      The Accumulate_Token_Checksum procedure is called after each numeric
+   --      literal and each identifier/keyword. For keywords, Tok_Identifier is
+   --      used in the call to Accumulate_Token_Checksum.
+
+   --    Versions 5.04 to 6.3:
+
+   --      For keywords, the token value were used in the call to procedure
+   --      Accumulate_Token_Checksum. Type Token_Type did not include Tok_Some.
+
+   --    Versions 5.03:
+
+   --      For keywords, the token value were used in the call to
+   --      Accumulate_Token_Checksum. Type Token_Type did not include
+   --      Tok_Interface, Tok_Overriding, Tok_Synchronized and Tok_Some.
+
+   --    Versions 5.02 and before:
+
+   --      No calls to procedure Accumulate_Token_Checksum (the checksum
+   --      mechanism was introduced in version 5.03).
+
+   --  To signal to the scanner whether Accumulate_Token_Checksum needs to be
+   --  called and what versions to call, the following Boolean flags are used:
+
+   Checksum_Accumulate_Token_Checksum : Boolean := True;
+   --  GPRBUILD
+   --  Set to False by gprbuild when the version of GNAT is 5.02 or before. If
+   --  this switch is False, then we do not call Accumulate_Token_Checksum, so
+   --  the setting of the following two flags is irrelevant.
+
+   Checksum_GNAT_6_3 : Boolean := False;
+   --  GPRBUILD
+   --  Set to True by gprbuild when the version of GNAT is 6.3 or before.
+
+   Checksum_GNAT_5_03 : Boolean := False;
+   --  GPRBUILD
+   --  Set to True by gprbuild when the version of GNAT is 5.03 or before.
 
    ----------------------------------------------
    -- Settings of Modes for Current Processing --
@@ -61,17 +116,21 @@ package Opt is
    --  GNATBIND, GNATLINK
    --  Set True if binder file to be generated in Ada rather than C
 
-   type Ada_Version_Type is (Ada_83, Ada_95, Ada_05);
-   pragma Warnings (Off, Ada_Version_Type);
+   type Ada_Version_Type is (Ada_83, Ada_95, Ada_2005, Ada_2012);
+   pragma Ordered (Ada_Version_Type);
    --  Versions of Ada for Ada_Version below. Note that these are ordered,
    --  so that tests like Ada_Version >= Ada_95 are legitimate and useful.
-   --  The Warnings_Off pragma stops warnings for Ada_Version >= Ada_05,
-   --  which we want to allow, so that things work OK when Ada_15 is added!
-   --  This warning is now removed, so this pragma can be removed some time???
+   --  Think twice before using "="; Ada_Version >= Ada_2012 is more likely
+   --  what you want, because it will apply to future versions of the language.
 
-   Ada_Version_Default : Ada_Version_Type := Ada_05;
+   Ada_Version_Default : constant Ada_Version_Type := Ada_2005;
+   pragma Warnings (Off, Ada_Version_Default);
    --  GNAT
-   --  Default Ada version if no switch given
+   --  Default Ada version if no switch given. The Warnings off is to kill
+   --  constant condition warnings.
+   --
+   --  WARNING: some scripts rely on the format of this line of code. Any
+   --  change must be coordinated with the scripts requirements.
 
    Ada_Version : Ada_Version_Type := Ada_Version_Default;
    --  GNAT
@@ -88,7 +147,7 @@ package Opt is
    --  the rare cases (notably for pragmas Preelaborate_05 and Pure_05)
    --  where in the run-time we want the explicit version set.
 
-   Ada_Version_Runtime : Ada_Version_Type := Ada_05;
+   Ada_Version_Runtime : Ada_Version_Type := Ada_2012;
    --  GNAT
    --  Ada version used to compile the runtime. Used to set Ada_Version (but
    --  not Ada_Version_Explicit) when compiling predefined or internal units.
@@ -172,6 +231,15 @@ package Opt is
    --  also set true if certain Unchecked_Conversion instantiations require
    --  checking based on annotated values.
 
+   Back_End_Handles_Limited_Types : Boolean;
+   --  This flag is set true if the back end can properly handle limited or
+   --  other by reference types, and avoid copies. If this flag is False, then
+   --  the front end does special expansion for conditional expressions to make
+   --  sure that no copy occurs. If the flag is True, then the expansion for
+   --  conditional expressions relies on the back end properly handling things.
+   --  Currently the default is False for all cases (set in gnat1drv). The
+   --  default can be modified using -gnatd.L (sets the flag True).
+
    Bind_Alternate_Main_Name : Boolean := False;
    --  GNATBIND
    --  True if main should be called Alternate_Main_Name.all.
@@ -183,8 +251,8 @@ package Opt is
 
    Bind_For_Library : Boolean := False;
    --  GNATBIND
-   --  Set to True if the binder needs to generate a file designed for
-   --  building a library. May be set to True by Gnatbind.Scan_Bind_Arg.
+   --  Set to True if the binder needs to generate a file designed for building
+   --  a library. May be set to True by Gnatbind.Scan_Bind_Arg.
 
    Bind_Only : Boolean := False;
    --  GNATMAKE, GPRMAKE, GPRBUILD
@@ -224,7 +292,10 @@ package Opt is
    --  GNAT
    --  This points to the list of N_Pragma nodes for Check_Policy pragmas
    --  that are linked through the Next_Pragma fields, with the list being
-   --  terminated by Empty. The order is most recently processed first.
+   --  terminated by Empty. The order is most recently processed first. Note
+   --  that Push_Scope and Pop_Scope in Sem_Ch8 save and restore the value
+   --  of this variable, implementing the required scope control for pragmas
+   --  appearing a declarative part.
 
    Check_Readonly_Files : Boolean := False;
    --  GNATMAKE
@@ -340,6 +411,16 @@ package Opt is
    --  default was set by the binder, and that the default should be the
    --  initial value of System.Secondary_Stack.Default_Secondary_Stack_Size.
 
+   Default_Pool : Node_Id := Empty;
+   --  GNAT
+   --  Used to record the storage pool name (or null literal) that is the
+   --  argument of an applicable pragma Default_Storage_Pool.
+   --    Empty:       No pragma Default_Storage_Pool applies.
+   --    N_Null node: "pragma Default_Storage_Pool (null);" applies.
+   --    otherwise:   "pragma Default_Storage_Pool (X);" applies, and
+   --                 this points to the name X.
+   --  Push_Scope and Pop_Scope in Sem_Ch8 save and restore this value.
+
    Detect_Blocking : Boolean := False;
    --  GNAT
    --  Set True to force the run time to raise Program_Error if calls to
@@ -425,10 +506,16 @@ package Opt is
    --  It is used to set Warn_On_Exception_Propagation True if the restriction
    --  No_Exception_Propagation is set.
 
+   Exception_Extra_Info : Boolean := False;
+   --  GNAT
+   --  True when switch -gnateE is used. When True, generate extra information
+   --  associated with exception messages (in particular range and index
+   --  checks).
+
    Exception_Locations_Suppressed : Boolean := False;
    --  GNAT
-   --  This flag is set True if a Suppress_Exception_Locations configuration
-   --  pragma is currently active.
+   --  Set to True if a Suppress_Exception_Locations configuration pragma is
+   --  currently active.
 
    type Exception_Mechanism_Type is
    --  Determines the handling of exceptions. See Exp_Ch11 for details
@@ -450,8 +537,8 @@ package Opt is
                            Front_End_Setjmp_Longjmp_Exceptions;
    --  GNAT
    --  Set to the appropriate value depending on the default as given in
-   --  system.ads (ZCX_By_Default, GCC_ZCX_Support).
-   --  The C convention is there to make this variable accessible to gigi.
+   --  system.ads (ZCX_By_Default, GCC_ZCX_Support). The C convention is there
+   --  to make this variable accessible to gigi.
 
    Exception_Tracebacks : Boolean := False;
    --  GNATBIND
@@ -569,6 +656,11 @@ package Opt is
    GNAT_Mode : Boolean := False;
    --  GNAT
    --  True if compiling in GNAT system mode (-gnatg switch)
+
+   Heap_Size : Nat := 0;
+   --  GNATBIND
+   --  Heap size for memory allocations. Valid values are 32 and 64. Only
+   --  available on VMS.
 
    HLO_Active : Boolean := False;
    --  GNAT
@@ -704,6 +796,11 @@ package Opt is
    --  GNATMAKE, GPRMAKE, GPRBUILD
    --  Set to True to skip compile and bind steps (except when Bind_Only is
    --  set to True).
+
+   List_Inherited_Aspects : Boolean := True;
+   --  GNAT
+   --  List inherited invariants, preconditions, and postconditions from
+   --  Invariant'Class, Pre'Class, and Post'Class aspects.
 
    List_Restrictions : Boolean := False;
    --  GNATBIND
@@ -888,6 +985,12 @@ package Opt is
    --  GNATMAKE
    --  Set to True when an object directory is specified with option -D
 
+   One_Compilation_Per_Obj_Dir : Boolean := False;
+   --  GNATMAKE, GPRBUILD
+   --  Set to True with switch --single-compile-per-obj-dir. When True, there
+   --  cannot be simultaneous compilations with the object files in the same
+   --  object directory, if project files are used.
+
    type Operating_Mode_Type is (Check_Syntax, Check_Semantics, Generate_Code);
    Operating_Mode : Operating_Mode_Type := Generate_Code;
    --  GNAT
@@ -939,9 +1042,17 @@ package Opt is
    --  GNATBIND
    --  True if output of list of linker options is requested (-K switch set)
 
-   Output_Object_List : Boolean := False;
+   Output_ALI_List   : Boolean := False;
+   ALI_List_Filename : String_Ptr;
    --  GNATBIND
-   --  True if output of list of objects is requested (-O switch set)
+   --  True if output of list of ALIs is requested (-A switch set). List is
+   --  output under the given filename, or standard output if not specified.
+
+   Output_Object_List   : Boolean := False;
+   Object_List_Filename : String_Ptr;
+   --  GNATBIND
+   --  True if output of list of objects is requested (-O switch set). List is
+   --  output under the given filename, or standard output if not specified.
 
    Overflow_Checks_Unsuppressed : Boolean := False;
    --  GNAT
@@ -1052,7 +1163,12 @@ package Opt is
    --  GNAT
    --  Set True if a pragma Short_Circuit_And_Or applies to the current unit.
 
+   Short_Descriptors : Boolean := False;
+   --  GNAT
+   --  Set True if a pragma Short_Descriptors applies to the current unit.
+
    Sprint_Line_Limit : Nat := 72;
+   --  GNAT
    --  Limit values for chopping long lines in Sprint output, can be reset
    --  by use of NNN parameter with -gnatG or -gnatD switches.
 
@@ -1166,6 +1282,11 @@ package Opt is
    --  Tolerate time stamp and other consistency errors. If this flag is set to
    --  True (-t), then inconsistencies result in warnings rather than errors.
 
+   Treat_Categorization_Errors_As_Warnings : Boolean := False;
+   --  Normally categorization errors are true illegalities. If this switch
+   --  is set, then such errors result in warning messages rather than error
+   --  messages. Set True by -gnateP (P for Pure/Preelaborate).
+
    Treat_Restrictions_As_Warnings : Boolean := False;
    --  GNAT
    --  Set True to treat pragma Restrictions as Restriction_Warnings. Set by
@@ -1226,10 +1347,22 @@ package Opt is
    --  set True, and upper half characters in the source indicate the start of
    --  a wide character sequence. Set by -gnatW or -W switches.
 
+   Use_Include_Path_File : Boolean := False;
+   --  GNATMAKE, GPRBUILD
+   --  When True, create a source search path file, even when a mapping file
+   --  is used.
+
    Usage_Requested : Boolean := False;
    --  GNAT, GNATBIND, GNATMAKE
    --  Set to True if -h (-gnath for the compiler) switch encountered
    --  requesting usage information
+
+   Use_Expression_With_Actions : Boolean;
+   --  The N_Expression_With_Actions node has been introduced relatively
+   --  recently, and not all back ends are prepared to handle it yet. So
+   --  we use this flag to suppress its use during a transitional period.
+   --  Currently the default is False for all cases (set in gnat1drv).
+   --  The default can be modified using -gnatd.X/-gnatd.Y.
 
    Use_Pragma_Linker_Constructor : Boolean := False;
    --  GNATBIND
@@ -1257,6 +1390,7 @@ package Opt is
    --  information sent to standard output, also header, copyright and summary)
 
    type Verbosity_Level_Type is (None, Low, Medium, High);
+   pragma Ordered (Verbosity_Level_Type);
    Verbosity_Level : Verbosity_Level_Type := High;
    --  GNATMAKE, GPRMAKE
    --  Modified by gnatmake or gprmake switches -v, -vl, -vm, -vh. Indicates
@@ -1277,11 +1411,18 @@ package Opt is
    --  including warnings on Ada 2005 obsolescent features used in Ada 2005
    --  mode. Set False by -gnatwY.
 
-   Warn_On_Parameter_Order : Boolean := False;
+   Warn_On_Ada_2012_Compatibility : Boolean := True;
    --  GNAT
-   --  Set to True to generate warnings for cases where the argument list for
-   --  a call is a sequence of identifiers that match the formal identifiers,
-   --  but are in the wrong order.
+   --  Set to True to generate all warnings on Ada 2012 compatibility issues,
+   --  including warnings on Ada 2012 obsolescent features used in Ada 2012
+   --  mode. Set False by -gnatwY.
+
+   Warn_On_All_Unread_Out_Parameters : Boolean := False;
+   --  GNAT
+   --  Set to True to generate warnings in all cases where a variable is
+   --  modified by being passed as to an OUT formal, but the resulting value is
+   --  never read. The default is that this warning is suppressed, except in
+   --  the case of
 
    Warn_On_Assertion_Failure : Boolean := True;
    --  GNAT
@@ -1338,13 +1479,6 @@ package Opt is
    --  but only if there is only one out parameter for the procedure involved.
    --  The default is that this warning is suppressed.
 
-   Warn_On_All_Unread_Out_Parameters : Boolean := False;
-   --  GNAT
-   --  Set to True to generate warnings in all cases where a variable is
-   --  modified by being passed as to an OUT formal, but the resulting value is
-   --  never read. The default is that this warning is suppressed, except in
-   --  the case of
-
    Warn_On_No_Value_Assigned : Boolean := True;
    --  GNAT
    --  Set to True to generate warnings if no value is ever assigned to a
@@ -1366,6 +1500,11 @@ package Opt is
    --  use this to avoid turning it on by default when No_Exception_Propagation
    --  restriction is set and an exception handler is present.
 
+   Warn_On_Object_Renames_Function : Boolean := False;
+   --  GNAT
+   --  Set to True to generate warnings when a function result is renamed as
+   --  an object. The default is that this warning is disabled.
+
    Warn_On_Obsolescent_Feature : Boolean := False;
    --  GNAT
    --  Set to True to generate warnings on use of any feature in Annex or if a
@@ -1381,15 +1520,16 @@ package Opt is
    --  Set to True to generate warnings for cases where parentheses are missing
    --  and the usage is questionable, because the intent is unclear.
 
+   Warn_On_Parameter_Order : Boolean := False;
+   --  GNAT
+   --  Set to True to generate warnings for cases where the argument list for
+   --  a call is a sequence of identifiers that match the formal identifiers,
+   --  but are in the wrong order.
+
    Warn_On_Redundant_Constructs : Boolean := False;
    --  GNAT
    --  Set to True to generate warnings for redundant constructs (e.g. useless
    --  assignments/conversions). The default is that this warning is disabled.
-
-   Warn_On_Object_Renames_Function : Boolean := False;
-   --  GNAT
-   --  Set to True to generate warnings when a function result is renamed as
-   --  an object. The default is that this warning is disabled.
 
    Warn_On_Reverse_Bit_Order : Boolean := True;
    --  GNAT
@@ -1407,6 +1547,13 @@ package Opt is
    --  Set to True to generate warnings for unchecked conversions that may have
    --  non-portable semantics (e.g. because sizes of types differ). The default
    --  is that this warning is enabled.
+
+   Warn_On_Unordered_Enumeration_Type : Boolean := False;
+   --  GNAT
+   --  Set to True to generate warnings for inappropriate uses (comparisons
+   --  and explicit ranges) on unordered enumeration types (which includes
+   --  all enumeration types for which pragma Ordered is not given). The
+   --  default is that this warning is disabled.
 
    Warn_On_Unrecognized_Pragma : Boolean := True;
    --  GNAT
@@ -1511,6 +1658,11 @@ package Opt is
    --  mode, as possibly set by the command line switch -gnata and possibly
    --  modified by the use of the configuration pragma Debug_Policy.
 
+   Default_Pool_Config : Node_Id := Empty;
+   --  GNAT
+   --  Same as Default_Pool above, except this is only for Default_Storage_Pool
+   --  pragmas that are configuration pragmas.
+
    Dynamic_Elaboration_Checks_Config : Boolean := False;
    --  GNAT
    --  Set True for dynamic elaboration checking mode, as set by the -gnatE
@@ -1593,6 +1745,14 @@ package Opt is
    --  further modified by the use of pragma Polling in the gnat.adc file. This
    --  flag is used to set the initial value for Polling_Required at the start
    --  of analyzing each unit.
+
+   Short_Descriptors_Config : Boolean;
+   --  GNAT
+   --  This is the value of the configuration switch that controls the use of
+   --  Short_Descriptors for setting descriptor default sizes. It can be set
+   --  True by the use of the pragma Short_Descriptors in the gnat.adc file.
+   --  This flag is used to set the initial value for Short_Descriptors at the
+   --  start of analyzing each unit.
 
    Use_VADS_Size_Config : Boolean;
    --  GNAT
@@ -1711,6 +1871,7 @@ private
       Assume_No_Invalid_Values       : Boolean;
       Check_Policy_List              : Node_Id;
       Debug_Pragmas_Enabled          : Boolean;
+      Default_Pool                   : Node_Id;
       Dynamic_Elaboration_Checks     : Boolean;
       Exception_Locations_Suppressed : Boolean;
       Extensions_Allowed             : Boolean;
@@ -1723,6 +1884,7 @@ private
       Optimize_Alignment_Local       : Boolean;
       Persistent_BSS_Mode            : Boolean;
       Polling_Required               : Boolean;
+      Short_Descriptors              : Boolean;
       Use_VADS_Size                  : Boolean;
    end record;
 

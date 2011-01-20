@@ -7,7 +7,7 @@
 --                                   S p e c                                --
 --                                                                          --
 --            Copyright (C) 1991-1994, Florida State University             --
---          Copyright (C) 1995-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1995-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -471,9 +471,14 @@ package System.OS_Interface is
       Handler   : Interrupt_Handler;
       Parameter : System.Address := System.Null_Address) return int;
    pragma Inline (Interrupt_Connect);
-   --  Use this to set up an user handler. The routine installs a a user
+   --  Use this to set up an user handler. The routine installs a user
    --  handler which is invoked after the OS has saved enough context for a
    --  high-level language routine to be safely invoked.
+
+   function Interrupt_Context return int;
+   pragma Inline (Interrupt_Context);
+   --  Return 1 if executing in an interrupt context; return 0 if executing in
+   --  a task context.
 
    function Interrupt_Number_To_Vector (intNum : int) return Interrupt_Vector;
    pragma Inline (Interrupt_Number_To_Vector);
@@ -490,8 +495,6 @@ package System.OS_Interface is
    --  For uniprocessor systems return ERROR status.
 
 private
-   type sigset_t is new unsigned_long_long;
-
    type pid_t is new int;
 
    ERROR_PID : constant pid_t := -1;
@@ -499,4 +502,5 @@ private
    type clockid_t is new int;
    CLOCK_REALTIME : constant clockid_t := 0;
 
+   type sigset_t is new System.VxWorks.Ext.sigset_t;
 end System.OS_Interface;

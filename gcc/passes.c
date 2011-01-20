@@ -28,16 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include <signal.h>
-
-#ifdef HAVE_SYS_RESOURCE_H
-# include <sys/resource.h>
-#endif
-
-#ifdef HAVE_SYS_TIMES_H
-# include <sys/times.h>
-#endif
-
 #include "line-map.h"
 #include "input.h"
 #include "tree.h"
@@ -154,6 +144,7 @@ rest_of_decl_compilation (tree decl,
 {
   /* We deferred calling assemble_alias so that we could collect
      other attributes such as visibility.  Emit the alias now.  */
+  if (!in_lto_p)
   {
     tree alias;
     alias = lookup_attribute ("alias", DECL_ATTRIBUTES (decl));
@@ -194,8 +185,6 @@ rest_of_decl_compilation (tree decl,
 	    ;
 	  else if (TREE_CODE (decl) != FUNCTION_DECL)
 	    varpool_finalize_decl (decl);
-	  else
-	    assemble_variable (decl, top_level, at_end, 0);
 	}
 
 #ifdef ASM_FINISH_DECLARE_OBJECT
@@ -221,7 +210,8 @@ rest_of_decl_compilation (tree decl,
   /* Let cgraph know about the existence of variables.  */
   if (in_lto_p && !at_end)
     ;
-  else if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl))
+  else if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl)
+	   && TREE_STATIC (decl))
     varpool_node (decl);
 }
 
@@ -325,7 +315,7 @@ struct rtl_opt_pass pass_postreload =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  TV_NONE,                              /* tv_id */
+  TV_POSTRELOAD,                        /* tv_id */
   PROP_rtl,                             /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -599,7 +589,7 @@ position_pass (struct register_pass_info *new_pass_info,
                 pass = new_pass;
                 break;
               default:
-                error ("Invalid pass positioning operation");
+                error ("invalid pass positioning operation");
                 return false;
             }
 
@@ -737,7 +727,6 @@ init_optimization_passes (void)
   NEXT_PASS (pass_refactor_eh);
   NEXT_PASS (pass_lower_eh);
   NEXT_PASS (pass_build_cfg);
-  NEXT_PASS (pass_lower_vector);
   NEXT_PASS (pass_warn_function_return);
   NEXT_PASS (pass_build_cgraph_edges);
   NEXT_PASS (pass_inline_parameters);
@@ -747,24 +736,16 @@ init_optimization_passes (void)
   p = &all_small_ipa_passes;
   NEXT_PASS (pass_ipa_free_lang_data);
   NEXT_PASS (pass_ipa_function_and_variable_visibility);
-  NEXT_PASS (pass_ipa_early_inline);
-    {
-      struct opt_pass **p = &pass_ipa_early_inline.pass.sub;
-      NEXT_PASS (pass_early_inline);
-      NEXT_PASS (pass_inline_parameters);
-      NEXT_PASS (pass_rebuild_cgraph_edges);
-    }
   NEXT_PASS (pass_early_local_passes);
     {
       struct opt_pass **p = &pass_early_local_passes.pass.sub;
       NEXT_PASS (pass_fixup_cfg);
-      NEXT_PASS (pass_tree_profile);
-      NEXT_PASS (pass_cleanup_cfg);
       NEXT_PASS (pass_init_datastructures);
       NEXT_PASS (pass_expand_omp);
 
       NEXT_PASS (pass_referenced_vars);
       NEXT_PASS (pass_build_ssa);
+      NEXT_PASS (pass_lower_vector);
       NEXT_PASS (pass_early_warn_uninitialized);
       /* Note that it is not strictly necessary to schedule an early
 	 inline pass here.  However, some test cases (e.g.,
@@ -795,19 +776,30 @@ init_optimization_passes (void)
           NEXT_PASS (pass_cleanup_eh);
           NEXT_PASS (pass_profile);
           NEXT_PASS (pass_local_pure_const);
+	  /* Split functions creates parts that are not run through
+	     early optimizations again.  It is thus good idea to do this
+	     late.  */
+          NEXT_PASS (pass_split_functions);
 	}
       NEXT_PASS (pass_release_ssa_names);
       NEXT_PASS (pass_rebuild_cgraph_edges);
       NEXT_PASS (pass_inline_parameters);
     }
+  NEXT_PASS (pass_ipa_tree_profile);
+    {
+      struct opt_pass **p = &pass_ipa_tree_profile.pass.sub;
+      NEXT_PASS (pass_feedback_split_functions);
+    }
   NEXT_PASS (pass_ipa_increase_alignment);
   NEXT_PASS (pass_ipa_matrix_reorg);
+  NEXT_PASS (pass_ipa_lower_emutls);
   *p = NULL;
 
   p = &all_regular_ipa_passes;
   NEXT_PASS (pass_ipa_whole_program_visibility);
   NEXT_PASS (pass_ipa_profile);
   NEXT_PASS (pass_ipa_cp);
+  NEXT_PASS (pass_ipa_cdtor_merge);
   NEXT_PASS (pass_ipa_inline);
   NEXT_PASS (pass_ipa_pure_const);
   NEXT_PASS (pass_ipa_reference);
@@ -832,7 +824,6 @@ init_optimization_passes (void)
       /* Initial scalar cleanups before alias computation.
 	 They ensure memory accesses are not indirect wherever possible.  */
       NEXT_PASS (pass_strip_predict_hints);
-      NEXT_PASS (pass_update_address_taken);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_complete_unrolli);
       NEXT_PASS (pass_ccp);
@@ -897,9 +888,11 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_check_data_deps);
 	  NEXT_PASS (pass_loop_distribution);
 	  NEXT_PASS (pass_linear_transform);
-	  NEXT_PASS (pass_graphite_transforms);
+	  NEXT_PASS (pass_copy_prop);
+	  NEXT_PASS (pass_graphite);
 	    {
-	      struct opt_pass **p = &pass_graphite_transforms.pass.sub;
+	      struct opt_pass **p = &pass_graphite.pass.sub;
+	      NEXT_PASS (pass_graphite_transforms);
 	      NEXT_PASS (pass_copy_prop);
 	      NEXT_PASS (pass_dce_loop);
 	      NEXT_PASS (pass_lim);
@@ -1175,8 +1168,6 @@ execute_function_todo (void *data)
   if (!flags)
     return;
 
-  statistics_fini_pass ();
-
   /* Always cleanup the CFG before trying to update SSA.  */
   if (flags & TODO_cleanup_cfg)
     {
@@ -1202,15 +1193,13 @@ execute_function_todo (void *data)
       cfun->last_verified &= ~TODO_verify_ssa;
     }
 
-  if (flags & TODO_update_address_taken)
-    execute_update_addresses_taken (true);
-
   if (flags & TODO_rebuild_alias)
     {
-      if (!(flags & TODO_update_address_taken))
-	execute_update_addresses_taken (true);
+      execute_update_addresses_taken ();
       compute_may_aliases ();
     }
+  else if (optimize && (flags & TODO_update_address_taken))
+    execute_update_addresses_taken ();
 
   if (flags & TODO_remove_unused_locals)
     remove_unused_locals ();
@@ -1241,22 +1230,14 @@ execute_function_todo (void *data)
     }
 
   if (flags & TODO_rebuild_frequencies)
-    {
-      if (profile_status == PROFILE_GUESSED)
-	{
-	  loop_optimizer_init (0);
-	  add_noreturn_fake_exit_edges ();
-	  mark_irreducible_loops ();
-	  connect_infinite_loops_to_exit ();
-	  estimate_bb_frequencies ();
-	  remove_fake_exit_edges ();
-	  loop_optimizer_finalize ();
-	}
-      else if (profile_status == PROFILE_READ)
-	counts_to_freqs ();
-      else
-	gcc_unreachable ();
-    }
+    rebuild_frequencies ();
+
+  if (flags & TODO_rebuild_cgraph_edges)
+    rebuild_cgraph_edges ();
+
+  /* If we've seen errors do not bother running any verifiers.  */
+  if (seen_error ())
+    return;
 
 #if defined ENABLE_CHECKING
   if (flags & TODO_verify_ssa
@@ -1285,8 +1266,12 @@ execute_todo (unsigned int flags)
     gcc_assert (flags & TODO_update_ssa_any);
 #endif
 
+  timevar_push (TV_TODO);
+
   /* Inform the pass whether it is the first time it is run.  */
   first_pass_instance = (flags & TODO_mark_first_instance) != 0;
+
+  statistics_fini_pass ();
 
   do_per_function (execute_function_todo, (void *)(size_t) flags);
 
@@ -1316,6 +1301,8 @@ execute_todo (unsigned int flags)
      df problems.  */
   if (flags & TODO_df_finish)
     df_finish_pass ((flags & TODO_df_verify) != 0);
+
+  timevar_pop (TV_TODO);
 }
 
 /* Verify invariants that should hold between passes.  This is a place
@@ -1324,9 +1311,7 @@ execute_todo (unsigned int flags)
 static void
 verify_interpass_invariants (void)
 {
-#ifdef ENABLE_CHECKING
-  gcc_assert (!fold_deferring_overflow_warnings_p ());
-#endif
+  gcc_checking_assert (!fold_deferring_overflow_warnings_p ());
 }
 
 /* Clear the last verified flag.  */
@@ -1801,9 +1786,26 @@ void
 ipa_write_optimization_summaries (cgraph_node_set set, varpool_node_set vset)
 {
   struct lto_out_decl_state *state = lto_new_out_decl_state ();
+  cgraph_node_set_iterator csi;
   compute_ltrans_boundary (state, set, vset);
 
   lto_push_out_decl_state (state);
+  for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
+    {
+      struct cgraph_node *node = csi_node (csi);
+      /* When streaming out references to statements as part of some IPA
+	 pass summary, the statements need to have uids assigned.
+
+	 For functions newly born at WPA stage we need to initialize
+	 the uids here.  */
+      if (node->analyzed
+	  && gimple_has_body_p (node->decl))
+	{
+	  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+	  renumber_gimple_stmt_uids ();
+	  pop_cfun ();
+	}
+    }
 
   gcc_assert (flag_wpa);
   ipa_write_optimization_summaries_1 (all_regular_ipa_passes, set, vset, state);

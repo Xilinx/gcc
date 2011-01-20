@@ -26,7 +26,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "basic-block.h"
 #include "output.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "flags.h"
 #include "function.h"
 #include "ggc.h"
@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-dump.h"
 #include "tree-pass.h"
-#include "toplev.h"
 #include "except.h"
 #include "cfgloop.h"
 #include "cfglayout.h"
@@ -278,9 +277,7 @@ tree_forwarder_block_p (basic_block bb, bool phi_wanted)
       || (single_succ_edge (bb)->flags & EDGE_ABNORMAL))
     return false;
 
-#if ENABLE_CHECKING
-  gcc_assert (bb != ENTRY_BLOCK_PTR);
-#endif
+  gcc_checking_assert (bb != ENTRY_BLOCK_PTR);
 
   locus = single_succ_edge (bb)->goto_locus;
 
@@ -335,21 +332,6 @@ tree_forwarder_block_p (basic_block bb, bool phi_wanted)
 	return false;
     }
   return true;
-}
-
-/* Return true if BB has at least one abnormal incoming edge.  */
-
-static inline bool
-has_abnormal_incoming_edge_p (basic_block bb)
-{
-  edge e;
-  edge_iterator ei;
-
-  FOR_EACH_EDGE (e, ei, bb->preds)
-    if (e->flags & EDGE_ABNORMAL)
-      return true;
-
-  return false;
 }
 
 /* If all the PHI nodes in DEST have alternatives for E1 and E2 and
@@ -417,8 +399,8 @@ remove_forwarder_block (basic_block bb)
 
      So if there is an abnormal edge to BB, proceed only if there is
      no abnormal edge to DEST and there are no phi nodes in DEST.  */
-  if (has_abnormal_incoming_edge_p (bb)
-      && (has_abnormal_incoming_edge_p (dest)
+  if (bb_has_abnormal_pred (bb)
+      && (bb_has_abnormal_pred (dest)
 	  || !gimple_seq_empty_p (phi_nodes (dest))))
     return false;
 
@@ -559,22 +541,41 @@ fixup_noreturn_call (gimple stmt)
     {
       tree op = gimple_call_lhs (stmt);
       gimple_call_set_lhs (stmt, NULL_TREE);
-      /* We need to remove SSA name to avoid checking.
+
+      /* We need to remove SSA name to avoid checking errors.
 	 All uses are dominated by the noreturn and thus will
-	 be removed afterwards.  */
+	 be removed afterwards.
+	 We proactively remove affected non-PHI statements to avoid
+	 fixup_cfg from trying to update them and crashing.  */
       if (TREE_CODE (op) == SSA_NAME)
 	{
 	  use_operand_p use_p;
           imm_use_iterator iter;
 	  gimple use_stmt;
+	  bitmap_iterator bi;
+	  unsigned int bb_index;
+
+	  bitmap blocks = BITMAP_ALLOC (NULL);
 
           FOR_EACH_IMM_USE_STMT (use_stmt, iter, op)
-	    FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
-	      SET_USE (use_p, error_mark_node);
+	    {
+	      if (gimple_code (use_stmt) != GIMPLE_PHI)
+	        bitmap_set_bit (blocks, gimple_bb (use_stmt)->index);
+	      else
+		FOR_EACH_IMM_USE_ON_STMT (use_p, iter)
+		  SET_USE (use_p, error_mark_node);
+	    }
+	  EXECUTE_IF_SET_IN_BITMAP (blocks, 0, bb_index, bi)
+	    delete_basic_block (BASIC_BLOCK (bb_index));
+	  BITMAP_FREE (blocks);
+	  release_ssa_name (op);
 	}
       update_stmt (stmt);
       changed = true;
     }
+  /* Similarly remove VDEF if there is any.  */
+  else if (gimple_vdef (stmt))
+    update_stmt (stmt);
   return changed;
 }
 
@@ -774,7 +775,10 @@ cleanup_tree_cfg_noloop (void)
 static void
 repair_loop_structures (void)
 {
-  bitmap changed_bbs = BITMAP_ALLOC (NULL);
+  bitmap changed_bbs;
+
+  timevar_push (TV_REPAIR_LOOPS);
+  changed_bbs = BITMAP_ALLOC (NULL);
   fix_loop_structure (changed_bbs);
 
   /* This usually does nothing.  But sometimes parts of cfg that originally
@@ -791,6 +795,7 @@ repair_loop_structures (void)
   scev_reset ();
 
   loops_state_clear (LOOPS_NEED_FIXUP);
+  timevar_pop (TV_REPAIR_LOOPS);
 }
 
 /* Cleanup cfg and repair loop structures.  */
@@ -881,7 +886,7 @@ remove_forwarder_block_with_phi (basic_block bb)
 		 redirection, replace it with the PHI argument that used
 		 to be on E.  */
 	      head = redirect_edge_var_map_vector (e);
-	      for (i = 0; VEC_iterate (edge_var_map, head, i, vm); ++i)
+	      FOR_EACH_VEC_ELT (edge_var_map, head, i, vm)
 		{
 		  tree old_arg = redirect_edge_var_map_result (vm);
 		  tree new_arg = redirect_edge_var_map_def (vm);
@@ -970,7 +975,7 @@ merge_phi_nodes (void)
       if (gimple_seq_empty_p (phi_nodes (dest))
 	  /* We don't want to deal with a basic block with
 	     abnormal edges.  */
-	  || has_abnormal_incoming_edge_p (bb))
+	  || bb_has_abnormal_pred (bb))
 	continue;
 
       if (!dominated_by_p (CDI_DOMINATORS, dest, bb))

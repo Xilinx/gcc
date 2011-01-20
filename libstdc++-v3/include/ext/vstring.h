@@ -155,7 +155,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
        *  string.
        */
       __versa_string(__versa_string&& __str)
-      : __vstring_base(std::forward<__vstring_base>(__str)) { }
+      : __vstring_base(std::move(__str)) { }
 
       /**
        *  @brief  Construct string from an initializer list.
@@ -2097,6 +2097,63 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     __versa_string<_CharT, _Traits, _Alloc, _Base>
     operator+(const __versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
 	      _CharT __rhs);
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(__versa_string<_CharT, _Traits, _Alloc, _Base>&& __lhs,
+	      const __versa_string<_CharT, _Traits, _Alloc, _Base>& __rhs)
+    { return std::move(__lhs.append(__rhs)); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(const __versa_string<_CharT, _Traits, _Alloc, _Base>& __lhs,
+	      __versa_string<_CharT, _Traits, _Alloc, _Base>&& __rhs)
+    { return std::move(__rhs.insert(0, __lhs)); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(__versa_string<_CharT, _Traits, _Alloc, _Base>&& __lhs,
+	      __versa_string<_CharT, _Traits, _Alloc, _Base>&& __rhs)
+    {
+      const auto __size = __lhs.size() + __rhs.size();
+      const bool __cond = (__size > __lhs.capacity()
+			   && __size <= __rhs.capacity());
+      return __cond ? std::move(__rhs.insert(0, __lhs))
+	            : std::move(__lhs.append(__rhs));
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(const _CharT* __lhs,
+	      __versa_string<_CharT, _Traits, _Alloc, _Base>&& __rhs)
+    { return std::move(__rhs.insert(0, __lhs)); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(_CharT __lhs,
+	      __versa_string<_CharT, _Traits, _Alloc, _Base>&& __rhs)
+    { return std::move(__rhs.insert(0, 1, __lhs)); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(__versa_string<_CharT, _Traits, _Alloc, _Base>&& __lhs,
+	      const _CharT* __rhs)
+    { return std::move(__lhs.append(__rhs)); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc,
+	   template <typename, typename, typename> class _Base>
+    inline __versa_string<_CharT, _Traits, _Alloc, _Base>
+    operator+(__versa_string<_CharT, _Traits, _Alloc, _Base>&& __lhs,
+	      _CharT __rhs)
+    { return std::move(__lhs.append(1, __rhs)); }
+#endif
 
   // operator ==
   /**

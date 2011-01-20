@@ -27,10 +27,12 @@
 #ifndef _GLIBCXX_TESTSUITE_ALLOCATOR_H
 #define _GLIBCXX_TESTSUITE_ALLOCATOR_H
 
-#include <cstddef>
 #include <tr1/unordered_map>
 #include <cassert>
+
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <bits/move.h>
+#endif
 
 namespace __gnu_test
 {
@@ -241,8 +243,8 @@ namespace __gnu_test
     : private uneq_allocator_base
     {
     public:
-      typedef size_t                              size_type;
-      typedef ptrdiff_t                           difference_type;
+      typedef std::size_t                         size_type;
+      typedef std::ptrdiff_t                      difference_type;
       typedef Tp*                                 pointer;
       typedef const Tp*                           const_pointer;
       typedef Tp&                                 reference;

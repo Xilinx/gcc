@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2009, 2010
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -49,9 +49,9 @@
  * purpose.  It is provided "as is" without express or implied warranty.
  */
 
-/** @file stl_raw_storage_iter.h
+/** @file bits/stl_raw_storage_iter.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{memory}
  */
 
 #ifndef _STL_RAW_STORAGE_ITERATOR_H
@@ -81,7 +81,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       raw_storage_iterator&
       operator=(const _Tp& __element)
       {
-	std::_Construct(&*_M_iter, __element);
+	std::_Construct(std::__addressof(*_M_iter), __element);
 	return *this;
       }
 

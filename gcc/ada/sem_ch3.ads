@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -28,6 +28,7 @@ with Types;  use Types;
 
 package Sem_Ch3 is
    procedure Analyze_Component_Declaration         (N : Node_Id);
+   procedure Analyze_Full_Type_Declaration         (N : Node_Id);
    procedure Analyze_Incomplete_Type_Decl          (N : Node_Id);
    procedure Analyze_Itype_Reference               (N : Node_Id);
    procedure Analyze_Number_Declaration            (N : Node_Id);
@@ -35,7 +36,6 @@ package Sem_Ch3 is
    procedure Analyze_Others_Choice                 (N : Node_Id);
    procedure Analyze_Private_Extension_Declaration (N : Node_Id);
    procedure Analyze_Subtype_Indication            (N : Node_Id);
-   procedure Analyze_Type_Declaration              (N : Node_Id);
    procedure Analyze_Variant_Part                  (N : Node_Id);
 
    procedure Analyze_Subtype_Declaration
@@ -84,13 +84,11 @@ package Sem_Ch3 is
    procedure Access_Type_Declaration (T : Entity_Id; Def : Node_Id);
    --  Process an access type declaration
 
-   procedure Build_Itype_Reference
-     (Ityp : Entity_Id;
-      Nod  : Node_Id);
+   procedure Build_Itype_Reference (Ityp : Entity_Id; Nod : Node_Id);
    --  Create a reference to an internal type, for use by Gigi. The back-end
-   --  elaborates itypes on demand, i.e. when their first use is seen. This
-   --  can lead to scope anomalies if the first use is within a scope that is
-   --  nested within the scope that contains  the point of definition of the
+   --  elaborates itypes on demand, i.e. when their first use is seen. This can
+   --  lead to scope anomalies if the first use is within a scope that is
+   --  nested within the scope that contains the point of definition of the
    --  itype. The Itype_Reference node forces the elaboration of the itype
    --  in the proper scope. The node is inserted after Nod, which is the
    --  enclosing declaration that generated Ityp.
@@ -159,7 +157,10 @@ package Sem_Ch3 is
    function Find_Type_Name (N : Node_Id) return Entity_Id;
    --  Enter the identifier in a type definition, or find the entity already
    --  declared, in the case of the full declaration of an incomplete or
-   --  private type.
+   --  private type. If the previous declaration is tagged then the class-wide
+   --  entity is propagated to the identifier to prevent multiple incompatible
+   --  class-wide types that may be created for self-referential anonymous
+   --  access components.
 
    function Get_Discriminant_Value
      (Discriminant       : Entity_Id;
@@ -229,6 +230,8 @@ package Sem_Ch3 is
    --  In_Default_Expression flag. See the documentation section entitled
    --  "Handling of Default and Per-Object Expressions" in sem.ads for full
    --  details. N is the expression to be analyzed, T is the expected type.
+   --  This mechanism is also used for aspect specifications that have an
+   --  expression parameter that needs similar preanalysis.
 
    procedure Process_Full_View (N : Node_Id; Full_T, Priv_T : Entity_Id);
    --  Process some semantic actions when the full view of a private type is
@@ -274,6 +277,10 @@ package Sem_Ch3 is
    --  Process the discriminants contained in an N_Full_Type_Declaration or
    --  N_Incomplete_Type_Decl node N. If the declaration is a completion,
    --  Prev is entity on the partial view, on which references are posted.
+   --  However, note that Process_Discriminants is called for a completion only
+   --  if partial view had no discriminants (else we just check conformance
+   --  between the two views and do not call Process_Discriminants again for
+   --  the completion).
 
    function Replace_Anonymous_Access_To_Protected_Subprogram
      (N : Node_Id) return Entity_Id;

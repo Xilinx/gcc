@@ -302,6 +302,8 @@ struct d_print_info
   /* The current index into any template argument packs we are using
      for printing.  */
   int pack_index;
+  /* Number of d_print_flush calls so far.  */
+  unsigned long int flush_count;
 };
 
 #ifdef CP_DEMANGLE_DEBUG
@@ -318,6 +320,9 @@ d_make_comp (struct d_info *, enum demangle_component_type,
 
 static struct demangle_component *
 d_make_name (struct d_info *, const char *, int);
+
+static struct demangle_component *
+d_make_demangle_mangled_name (struct d_info *, const char *);
 
 static struct demangle_component *
 d_make_builtin_type (struct d_info *,
@@ -865,6 +870,17 @@ d_make_comp (struct d_info *di, enum demangle_component_type type,
       p->u.s_binary.right = right;
     }
   return p;
+}
+
+/* Add a new demangle mangled name component.  */
+
+static struct demangle_component *
+d_make_demangle_mangled_name (struct d_info *di, const char *s)
+{
+  if (d_peek_char (di) != '_' || d_peek_next_char (di) != 'Z')
+    return d_make_name (di, s, strlen (s));
+  d_advance (di, 2);
+  return d_encoding (di, 0);
 }
 
 /* Add a new name component.  */
@@ -3285,6 +3301,7 @@ d_print_init (struct d_print_info *dpi, int options,
   dpi->last_char = '\0';
   dpi->templates = NULL;
   dpi->modifiers = NULL;
+  dpi->flush_count = 0;
 
   dpi->callback = callback;
   dpi->opaque = opaque;
@@ -3314,6 +3331,7 @@ d_print_flush (struct d_print_info *dpi)
   dpi->buf[dpi->len] = '\0';
   dpi->callback (dpi->buf, dpi->len, dpi->opaque);
   dpi->len = 0;
+  dpi->flush_count++;
 }
 
 /* Append characters and buffers for printing.  */
@@ -3476,6 +3494,7 @@ d_find_pack (struct d_print_info *dpi,
     case DEMANGLE_COMPONENT_PACK_EXPANSION:
       return NULL;
       
+    case DEMANGLE_COMPONENT_LAMBDA:
     case DEMANGLE_COMPONENT_NAME:
     case DEMANGLE_COMPONENT_OPERATOR:
     case DEMANGLE_COMPONENT_BUILTIN_TYPE:
@@ -4047,12 +4066,18 @@ d_print_comp (struct d_print_info *dpi,
       if (d_right (dc) != NULL)
 	{
 	  size_t len;
+	  unsigned long int flush_count;
+	  /* Make sure ", " isn't flushed by d_append_string, otherwise
+	     dpi->len -= 2 wouldn't work.  */
+	  if (dpi->len >= sizeof (dpi->buf) - 2)
+	    d_print_flush (dpi);
 	  d_append_string (dpi, ", ");
 	  len = dpi->len;
+	  flush_count = dpi->flush_count;
 	  d_print_comp (dpi, d_right (dc));
 	  /* If that didn't print anything (which can happen with empty
 	     template argument packs), remove the comma and space.  */
-	  if (dpi->len == len)
+	  if (dpi->flush_count == flush_count && dpi->len == len)
 	    dpi->len -= 2;
 	}
       return;
@@ -4535,20 +4560,17 @@ d_print_function_type (struct d_print_info *dpi,
                        struct d_print_mod *mods)
 {
   int need_paren;
-  int saw_mod;
   int need_space;
   struct d_print_mod *p;
   struct d_print_mod *hold_modifiers;
 
   need_paren = 0;
-  saw_mod = 0;
   need_space = 0;
   for (p = mods; p != NULL; p = p->next)
     {
       if (p->printed)
 	break;
 
-      saw_mod = 1;
       switch (p->mod->type)
 	{
 	case DEMANGLE_COMPONENT_POINTER:
@@ -4576,9 +4598,6 @@ d_print_function_type (struct d_print_info *dpi,
       if (need_paren)
 	break;
     }
-
-  if (d_left (dc) != NULL && ! saw_mod)
-    need_paren = 1;
 
   if (need_paren)
     {
@@ -4818,7 +4837,7 @@ d_demangle_callback (const char *mangled, int options,
 			  (type == DCT_GLOBAL_CTORS
 			   ? DEMANGLE_COMPONENT_GLOBAL_CONSTRUCTORS
 			   : DEMANGLE_COMPONENT_GLOBAL_DESTRUCTORS),
-			  d_make_name (&di, d_str (&di), strlen (d_str (&di))),
+			  d_make_demangle_mangled_name (&di, d_str (&di)),
 			  NULL);
 	d_advance (&di, strlen (d_str (&di)));
 	break;

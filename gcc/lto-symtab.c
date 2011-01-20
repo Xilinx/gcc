@@ -1,5 +1,5 @@
 /* LTO symbol table.
-   Copyright 2009 Free Software Foundation, Inc.
+   Copyright 2009, 2010 Free Software Foundation, Inc.
    Contributed by CodeSourcery, Inc.
 
 This file is part of GCC.
@@ -21,7 +21,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "tree.h"
 #include "gimple.h"
 #include "ggc.h"
@@ -50,6 +50,8 @@ struct GTY(()) lto_symtab_entry_def
   /* LTO file-data and symbol resolution for this decl.  */
   struct lto_file_decl_data * GTY((skip (""))) file_data;
   enum ld_plugin_symbol_resolution resolution;
+  /* True when resolution was guessed and not read from the file.  */
+  bool guessed;
   /* Pointer to the next entry with the same key.  Before decl merging
      this links all symbols from the different TUs.  After decl merging
      this links merged but incompatible decls, thus all prevailing ones
@@ -153,7 +155,8 @@ lto_symtab_register_decl (tree decl,
     gcc_assert (!DECL_ABSTRACT (decl));
 
   new_entry = ggc_alloc_cleared_lto_symtab_entry_def ();
-  new_entry->id = DECL_ASSEMBLER_NAME (decl);
+  new_entry->id = (*targetm.asm_out.mangle_assembler_name)
+		  (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)));
   new_entry->decl = decl;
   new_entry->resolution = resolution;
   new_entry->file_data = file_data;
@@ -188,7 +191,8 @@ lto_symtab_get_resolution (tree decl)
 
   gcc_assert (DECL_ASSEMBLER_NAME_SET_P (decl));
 
-  e = lto_symtab_get (DECL_ASSEMBLER_NAME (decl));
+  e = lto_symtab_get ((*targetm.asm_out.mangle_assembler_name)
+		      (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl))));
   while (e && e->decl != decl)
     e = e->next;
   if (!e)
@@ -206,6 +210,26 @@ lto_cgraph_replace_node (struct cgraph_node *node,
 			 struct cgraph_node *prevailing_node)
 {
   struct cgraph_edge *e, *next;
+  bool no_aliases_please = false;
+  bool compatible_p;
+
+  if (cgraph_dump_file)
+    {
+      fprintf (cgraph_dump_file, "Replacing cgraph node %s/%i by %s/%i"
+ 	       " for symbol %s\n",
+	       cgraph_node_name (node), node->uid,
+	       cgraph_node_name (prevailing_node),
+	       prevailing_node->uid,
+	       IDENTIFIER_POINTER ((*targetm.asm_out.mangle_assembler_name)
+		 (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (node->decl)))));
+    }
+
+  if (prevailing_node->same_body_alias)
+    {
+      if (prevailing_node->thunk.thunk_p)
+	no_aliases_please = true;
+      prevailing_node = prevailing_node->same_body;
+    }
 
   /* Merge node flags.  */
   if (node->needed)
@@ -219,35 +243,54 @@ lto_cgraph_replace_node (struct cgraph_node *node,
     }
 
   /* Redirect all incoming edges.  */
+  compatible_p
+    = gimple_types_compatible_p (TREE_TYPE (TREE_TYPE (prevailing_node->decl)),
+				 TREE_TYPE (TREE_TYPE (node->decl)), GTC_DIAG);
   for (e = node->callers; e; e = next)
     {
       next = e->next_caller;
       cgraph_redirect_edge_callee (e, prevailing_node);
+      /* If there is a mismatch between the supposed callee return type and
+	 the real one do not attempt to inline this function.
+	 ???  We really need a way to match function signatures for ABI
+	 compatibility and perform related promotions at inlining time.  */
+      if (!compatible_p)
+	e->call_stmt_cannot_inline_p = 1;
     }
   /* Redirect incomming references.  */
   ipa_clone_refering (prevailing_node, NULL, &node->ref_list);
 
-  if (node->same_body)
+  /* If we have aliases, redirect them to the prevailing node.  */
+  if (!node->same_body_alias && node->same_body)
     {
-      struct cgraph_node *alias;
+      struct cgraph_node *alias, *last;
+      /* We prevail aliases/tunks by a thunk.  This is doable but
+         would need thunk combination.  Hopefully no ABI changes will
+         every be crazy enough.  */
+      gcc_assert (!no_aliases_please);
 
       for (alias = node->same_body; alias; alias = alias->next)
-	if (DECL_ASSEMBLER_NAME_SET_P (alias->decl))
-	  {
-	    lto_symtab_entry_t se
-	      = lto_symtab_get (DECL_ASSEMBLER_NAME (alias->decl));
-
-	    for (; se; se = se->next)
-	      if (se->node == node)
-		{
-		  se->node = NULL;
-		  break;
-		}
-	  }
+	{
+	  last = alias;
+	  gcc_assert (alias->same_body_alias);
+	  alias->same_body = prevailing_node;
+	  alias->thunk.alias = prevailing_node->decl;
+	}
+      last->next = prevailing_node->same_body;
+      /* Node with aliases is prevailed by alias.
+	 We could handle this, but combining thunks together will be tricky.
+	 Hopefully this does not happen.  */
+      if (prevailing_node->same_body)
+	prevailing_node->same_body->previous = last;
+      prevailing_node->same_body = node->same_body;
+      node->same_body = NULL;
     }
 
   /* Finally remove the replaced node.  */
-  cgraph_remove_node (node);
+  if (node->same_body_alias)
+    cgraph_remove_same_body_alias (node);
+  else
+    cgraph_remove_node (node);
 }
 
 /* Replace the cgraph node NODE with PREVAILING_NODE in the cgraph, merging
@@ -319,7 +362,8 @@ lto_symtab_merge (lto_symtab_entry_t prevailing, lto_symtab_entry_t entry)
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
     {
-      if (TREE_TYPE (prevailing_decl) != TREE_TYPE (decl))
+      if (!gimple_types_compatible_p (TREE_TYPE (prevailing_decl),
+				      TREE_TYPE (decl), GTC_DIAG))
 	/* If we don't have a merged type yet...sigh.  The linker
 	   wouldn't complain if the types were mismatched, so we
 	   probably shouldn't either.  Just use the type from
@@ -352,7 +396,7 @@ lto_symtab_merge (lto_symtab_entry_t prevailing, lto_symtab_entry_t entry)
      fixup process didn't yet run.  */
   prevailing_type = gimple_register_type (prevailing_type);
   type = gimple_register_type (type);
-  if (prevailing_type != type)
+  if (!gimple_types_compatible_p (prevailing_type, type, GTC_DIAG))
     {
       if (COMPLETE_TYPE_P (type))
 	return false;
@@ -377,7 +421,9 @@ lto_symtab_merge (lto_symtab_entry_t prevailing, lto_symtab_entry_t entry)
 	  if (TREE_CODE (tem1) != TREE_CODE (tem2))
 	    return false;
 
-	  if (gimple_register_type (tem1) != gimple_register_type (tem2))
+	  if (!gimple_types_compatible_p (gimple_register_type (tem1),
+					  gimple_register_type (tem2),
+					  GTC_DIAG))
 	    return false;
 	}
 
@@ -410,6 +456,7 @@ lto_symtab_resolve_replaceable_p (lto_symtab_entry_t e)
 {
   if (DECL_EXTERNAL (e->decl)
       || DECL_COMDAT (e->decl)
+      || DECL_ONE_ONLY (e->decl)
       || DECL_WEAK (e->decl))
     return true;
 
@@ -433,7 +480,9 @@ lto_symtab_resolve_can_prevail_p (lto_symtab_entry_t e)
 
   /* For functions we need a non-discarded body.  */
   if (TREE_CODE (e->decl) == FUNCTION_DECL)
-    return (e->node && e->node->analyzed);
+    return (e->node
+	    && (e->node->analyzed
+	        || (e->node->same_body_alias && e->node->same_body->analyzed)));
 
   /* A variable should have a size.  */
   else if (TREE_CODE (e->decl) == VAR_DECL)
@@ -461,15 +510,9 @@ lto_symtab_resolve_symbols (void **slot)
   for (e = (lto_symtab_entry_t) *slot; e; e = e->next)
     {
       if (TREE_CODE (e->decl) == FUNCTION_DECL)
-	e->node = cgraph_get_node (e->decl);
+	e->node = cgraph_get_node_or_alias (e->decl);
       else if (TREE_CODE (e->decl) == VAR_DECL)
-	{
-	  e->vnode = varpool_get_node (e->decl);
-	  /* The LTO plugin for gold doesn't handle common symbols
-	     properly.  Let us choose manually.  */
-	  if (DECL_COMMON (e->decl))
-	    e->resolution = LDPR_UNKNOWN;
-	}
+	e->vnode = varpool_get_node (e->decl);
     }
 
   e = (lto_symtab_entry_t) *slot;
@@ -485,12 +528,14 @@ lto_symtab_resolve_symbols (void **slot)
       if (!lto_symtab_resolve_can_prevail_p (e))
 	{
 	  e->resolution = LDPR_RESOLVED_IR;
+          e->guessed = true;
 	  continue;
 	}
 
       /* Set a default resolution - the final prevailing one will get
          adjusted later.  */
       e->resolution = LDPR_PREEMPTED_IR;
+      e->guessed = true;
       if (!lto_symtab_resolve_replaceable_p (e))
 	{
 	  if (prevailing)
@@ -530,24 +575,34 @@ lto_symtab_resolve_symbols (void **slot)
     return;
 
 found:
-  if (TREE_CODE (prevailing->decl) == VAR_DECL
-      && TREE_READONLY (prevailing->decl))
+  /* If current lto files represent the whole program,
+    it is correct to use LDPR_PREVALING_DEF_IRONLY.
+    If current lto files are part of whole program, internal
+    resolver doesn't know if it is LDPR_PREVAILING_DEF
+    or LDPR_PREVAILING_DEF_IRONLY.  Use IRONLY conforms to
+    using -fwhole-program.  Otherwise, it doesn't
+    matter using either LDPR_PREVAILING_DEF or
+    LDPR_PREVAILING_DEF_IRONLY
+    
+    FIXME: above workaround due to gold plugin makes some
+    variables IRONLY, which are indeed PREVAILING_DEF in
+    resolution file.  These variables still need manual
+    externally_visible attribute.  */
     prevailing->resolution = LDPR_PREVAILING_DEF_IRONLY;
-  else
-    prevailing->resolution = LDPR_PREVAILING_DEF;
+    prevailing->guessed = true;
 }
 
 /* Merge all decls in the symbol table chain to the prevailing decl and
-   issue diagnostics about type mismatches.  */
+   issue diagnostics about type mismatches.  If DIAGNOSED_P is true
+   do not issue further diagnostics.*/
 
 static void
-lto_symtab_merge_decls_2 (void **slot)
+lto_symtab_merge_decls_2 (void **slot, bool diagnosed_p)
 {
   lto_symtab_entry_t prevailing, e;
   VEC(tree, heap) *mismatches = NULL;
   unsigned i;
   tree decl;
-  bool diagnosed_p = false;
 
   /* Nothing to do for a single entry.  */
   prevailing = (lto_symtab_entry_t) *slot;
@@ -557,16 +612,18 @@ lto_symtab_merge_decls_2 (void **slot)
   /* Try to merge each entry with the prevailing one.  */
   for (e = prevailing->next; e; e = e->next)
     {
-      if (!lto_symtab_merge (prevailing, e))
+      if (!lto_symtab_merge (prevailing, e)
+	  && !diagnosed_p)
 	VEC_safe_push (tree, heap, mismatches, e->decl);
     }
   if (VEC_empty (tree, mismatches))
     return;
 
   /* Diagnose all mismatched re-declarations.  */
-  for (i = 0; VEC_iterate (tree, mismatches, i, decl); ++i)
+  FOR_EACH_VEC_ELT (tree, mismatches, i, decl)
     {
-      if (TREE_TYPE (prevailing->decl) != TREE_TYPE (decl))
+      if (!gimple_types_compatible_p (TREE_TYPE (prevailing->decl),
+				      TREE_TYPE (decl), GTC_DIAG))
 	diagnosed_p |= warning_at (DECL_SOURCE_LOCATION (decl), 0,
 				   "type of %qD does not match original "
 				   "declaration", decl);
@@ -609,8 +666,12 @@ lto_symtab_merge_decls_1 (void **slot, void *data ATTRIBUTE_UNUSED)
   /* Assert it's the only one.  */
   if (prevailing)
     for (e = prevailing->next; e; e = e->next)
-      gcc_assert (e->resolution != LDPR_PREVAILING_DEF_IRONLY
-		  && e->resolution != LDPR_PREVAILING_DEF);
+      {
+	if (e->resolution == LDPR_PREVAILING_DEF_IRONLY
+	    || e->resolution == LDPR_PREVAILING_DEF)
+	  fatal_error ("multiple prevailing defs for %qE",
+		       DECL_NAME (prevailing->decl));
+      }
 
   /* If there's not a prevailing symbol yet it's an external reference.
      Happens a lot during ltrans.  Choose the first symbol with a
@@ -691,13 +752,23 @@ lto_symtab_merge_decls_1 (void **slot, void *data ATTRIBUTE_UNUSED)
 
   /* Merge the chain to the single prevailing decl and diagnose
      mismatches.  */
-  lto_symtab_merge_decls_2 (slot);
+  lto_symtab_merge_decls_2 (slot, diagnosed_p);
 
-  /* Drop all but the prevailing decl from the symtab.  */
-  if (TREE_CODE (prevailing->decl) != FUNCTION_DECL
-      && TREE_CODE (prevailing->decl) != VAR_DECL)
-    prevailing->next = NULL;
+  /* Store resolution decision into the callgraph.  
+     In LTRANS don't overwrite information we stored into callgraph at
+     WPA stage.
 
+     Do not bother to store guessed decisions.  Generic code knows how
+     to handle UNKNOWN relocation well.
+
+     The problem with storing guessed decision is whether to use
+     PREVAILING_DEF or PREVAILING_DEF_IRONLY.  First one would disable
+     some whole program optimizations, while ther second would imply
+     to many whole program assumptions.  */
+  if (prevailing->node && !flag_ltrans && !prevailing->guessed)
+    prevailing->node->resolution = prevailing->resolution;
+  else if (prevailing->vnode && !flag_ltrans && !prevailing->guessed)
+    prevailing->vnode->resolution = prevailing->resolution;
   return 1;
 }
 
@@ -725,23 +796,25 @@ lto_symtab_merge_cgraph_nodes_1 (void **slot, void *data ATTRIBUTE_UNUSED)
     {
       if (e->node != NULL)
 	{
-	  if (e->node->decl != e->decl && e->node->same_body)
+	  /* In case we prevail funcion by an alias, we can run into case
+	     that the alias has no cgraph node attached, since it was
+	     previously unused.  Create the node.  */
+	  if (!prevailing->node)
 	    {
-	      struct cgraph_node *alias;
-
-	      for (alias = e->node->same_body; alias; alias = alias->next)
-		if (alias->decl == e->decl)
-		  break;
-	      if (alias)
-		{
-		  cgraph_remove_same_body_alias (alias);
-		  continue;
-		}
+	      prevailing->node = cgraph_node (prevailing->decl);
+	      prevailing->node->alias = true;
 	    }
 	  lto_cgraph_replace_node (e->node, prevailing->node);
 	}
       if (e->vnode != NULL)
-	lto_varpool_replace_node (e->vnode, prevailing->vnode);
+	{
+	  if (!prevailing->vnode)
+	    {
+	      prevailing->vnode = varpool_node (prevailing->decl);
+	      prevailing->vnode->alias = true;
+	    }
+	  lto_varpool_replace_node (e->vnode, prevailing->vnode);
+	}
     }
 
   /* Drop all but the prevailing decl from the symtab.  */
@@ -779,7 +852,8 @@ lto_symtab_prevailing_decl (tree decl)
   gcc_assert (DECL_ASSEMBLER_NAME_SET_P (decl));
 
   /* Walk through the list of candidates and return the one we merged to.  */
-  ret = lto_symtab_get (DECL_ASSEMBLER_NAME (decl));
+  ret = lto_symtab_get ((*targetm.asm_out.mangle_assembler_name)
+			(IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl))));
   if (!ret)
     return NULL_TREE;
 

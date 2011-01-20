@@ -1,3 +1,0 @@
-2009-08-21  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
-
-	* include/symtab.h (ht_identifier_ptr): New.

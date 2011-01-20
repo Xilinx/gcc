@@ -845,11 +845,13 @@ resolve_omp_clauses (gfc_code *code)
   for (list = 0; list < OMP_LIST_NUM; list++)
     if (list != OMP_LIST_FIRSTPRIVATE && list != OMP_LIST_LASTPRIVATE)
       for (n = omp_clauses->lists[list]; n; n = n->next)
-	if (n->sym->mark)
-	  gfc_error ("Symbol '%s' present on multiple clauses at %L",
-		     n->sym->name, &code->loc);
-	else
-	  n->sym->mark = 1;
+	{
+	  if (n->sym->mark)
+	    gfc_error ("Symbol '%s' present on multiple clauses at %L",
+		       n->sym->name, &code->loc);
+	  else
+	    n->sym->mark = 1;
+	}
 
   gcc_assert (OMP_LIST_LASTPRIVATE == OMP_LIST_FIRSTPRIVATE + 1);
   for (list = OMP_LIST_FIRSTPRIVATE; list <= OMP_LIST_LASTPRIVATE; list++)
@@ -862,22 +864,24 @@ resolve_omp_clauses (gfc_code *code)
 	}
 
   for (n = omp_clauses->lists[OMP_LIST_FIRSTPRIVATE]; n; n = n->next)
-    if (n->sym->mark)
-      gfc_error ("Symbol '%s' present on multiple clauses at %L",
-		 n->sym->name, &code->loc);
-    else
-      n->sym->mark = 1;
-
+    {
+      if (n->sym->mark)
+	gfc_error ("Symbol '%s' present on multiple clauses at %L",
+		   n->sym->name, &code->loc);
+      else
+	n->sym->mark = 1;
+    }
   for (n = omp_clauses->lists[OMP_LIST_LASTPRIVATE]; n; n = n->next)
     n->sym->mark = 0;
 
   for (n = omp_clauses->lists[OMP_LIST_LASTPRIVATE]; n; n = n->next)
-    if (n->sym->mark)
-      gfc_error ("Symbol '%s' present on multiple clauses at %L",
-		 n->sym->name, &code->loc);
-    else
-      n->sym->mark = 1;
-
+    {
+      if (n->sym->mark)
+	gfc_error ("Symbol '%s' present on multiple clauses at %L",
+		   n->sym->name, &code->loc);
+      else
+	n->sym->mark = 1;
+    }
   for (list = 0; list < OMP_LIST_NUM; list++)
     if ((n = omp_clauses->lists[list]) != NULL)
       {
@@ -1386,6 +1390,31 @@ gfc_resolve_omp_parallel_blocks (gfc_code *code, gfc_namespace *ns)
 }
 
 
+/* Save and clear openmp.c private state.  */
+
+void
+gfc_omp_save_and_clear_state (struct gfc_omp_saved_state *state)
+{
+  state->ptrs[0] = omp_current_ctx;
+  state->ptrs[1] = omp_current_do_code;
+  state->ints[0] = omp_current_do_collapse;
+  omp_current_ctx = NULL;
+  omp_current_do_code = NULL;
+  omp_current_do_collapse = 0;
+}
+
+
+/* Restore openmp.c private state from the saved state.  */
+
+void
+gfc_omp_restore_state (struct gfc_omp_saved_state *state)
+{
+  omp_current_ctx = (struct omp_context *) state->ptrs[0];
+  omp_current_do_code = (gfc_code *) state->ptrs[1];
+  omp_current_do_collapse = state->ints[0];
+}
+
+
 /* Note a DO iterator variable.  This is special in !$omp parallel
    construct, where they are predetermined private.  */
 
@@ -1512,7 +1541,8 @@ resolve_omp_do (gfc_code *code)
 	  break;
 	}
       do_code = do_code->next;
-      if (do_code->op != EXEC_DO && do_code->op != EXEC_DO_WHILE)
+      if (do_code == NULL
+	  || (do_code->op != EXEC_DO && do_code->op != EXEC_DO_WHILE))
 	{
 	  gfc_error ("not enough DO loops for collapsed !$OMP DO at %L",
 		     &code->loc);

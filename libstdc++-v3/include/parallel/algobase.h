@@ -1,6 +1,6 @@
 // -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the terms
@@ -142,8 +142,7 @@ namespace __parallel
     inline bool
     equal(_IIter1 __begin1, _IIter1 __end1, _IIter2 __begin2)
     {
-      return _GLIBCXX_STD_P::mismatch(__begin1, __end1, __begin2).first
-              == __end1;
+      return mismatch(__begin1, __end1, __begin2).first == __end1;
     }
 
   // Public interface
@@ -152,8 +151,7 @@ namespace __parallel
     equal(_IIter1 __begin1, _IIter1 __end1, _IIter2 __begin2, 
           _Predicate __pred)
     {
-      return _GLIBCXX_STD_P::mismatch(__begin1, __end1, __begin2, __pred).first
-              == __end1;
+      return mismatch(__begin1, __end1, __begin2, __pred).first == __end1;
     }
 
   // Sequential fallback

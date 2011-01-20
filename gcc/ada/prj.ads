@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 2001-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 2001-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -292,17 +292,16 @@ package Prj is
 
    Makefile_Dependency_Suffix : constant String := ".d";
    ALI_Dependency_Suffix      : constant String := ".ali";
-
    Switches_Dependency_Suffix : constant String := ".cswi";
 
-   Binder_Exchange_Suffix     : constant String := ".bexch";
+   Binder_Exchange_Suffix : constant String := ".bexch";
    --  Suffix for binder exchange files
 
-   Library_Exchange_Suffix     : constant String := ".lexch";
+   Library_Exchange_Suffix : constant String := ".lexch";
    --  Suffix for library exchange files
 
    type Name_List_Index is new Nat;
-   No_Name_List            : constant Name_List_Index := 0;
+   No_Name_List : constant Name_List_Index := 0;
 
    type Name_Node is record
       Name : Name_Id         := No_Name;
@@ -664,8 +663,15 @@ package Prj is
    --  Structure to define source data
 
    type Source_Data is record
+      Initialized : Boolean := False;
+      --  Set to True when Source_Data is completely initialized
+
       Project : Project_Id := No_Project;
       --  Project of the source
+
+      Location : Source_Ptr := No_Location;
+      --  Location in the project file of the declaration of the source in
+      --  package Naming.
 
       Source_Dir_Rank : Natural := 0;
       --  The rank of the source directory in list declared with attribute
@@ -702,6 +708,13 @@ package Prj is
       --  is duplicated several times when there are several units in the same
       --  file). Index is 0 if there is either no unit or a single one, and
       --  starts at 1 when there are multiple units
+
+      Compilable : Yes_No_Unknown := Unknown;
+      --  Updated at the first call to Is_Compilable. Yes if source file is
+      --  compilable.
+
+      In_The_Queue : Boolean := False;
+      --  True if the source has been put in the queue
 
       Locally_Removed : Boolean := False;
       --  True if the source has been "excluded"
@@ -762,12 +775,21 @@ package Prj is
       Naming_Exception : Boolean := False;
       --  True if the source has an exceptional name
 
+      Duplicate_Unit : Boolean := False;
+      --  True when a duplicate unit has been reported for this source
+
       Next_In_Lang : Source_Id := No_Source;
       --  Link to another source of the same language in the same project
+
+      Next_With_File_Name : Source_Id := No_Source;
+      --  Link to another source with the same base file name
+
    end record;
 
    No_Source_Data : constant Source_Data :=
-                      (Project                => No_Project,
+                      (Initialized            => False,
+                       Project                => No_Project,
+                       Location               => No_Location,
                        Source_Dir_Rank        => 0,
                        Language               => No_Language_Index,
                        In_Interfaces          => True,
@@ -777,6 +799,8 @@ package Prj is
                        Unit                   => No_Unit_Index,
                        Index                  => 0,
                        Locally_Removed        => False,
+                       Compilable             => Unknown,
+                       In_The_Queue           => False,
                        Replaced_By            => No_Source,
                        File                   => No_File,
                        Display_File           => No_File,
@@ -795,7 +819,18 @@ package Prj is
                        Switches_Path          => No_Path,
                        Switches_TS            => Empty_Time_Stamp,
                        Naming_Exception       => False,
-                       Next_In_Lang           => No_Source);
+                       Duplicate_Unit         => False,
+                       Next_In_Lang           => No_Source,
+                       Next_With_File_Name    => No_Source);
+
+   package Source_Files_Htable is new Simple_HTable
+     (Header_Num => Header_Num,
+      Element    => Source_Id,
+      No_Element => No_Source,
+      Key        => File_Name_Type,
+      Hash       => Hash,
+      Equal      => "=");
+   --  Mapping of source file names to source ids
 
    package Source_Paths_Htable is new Simple_HTable
      (Header_Num => Header_Num,
@@ -815,6 +850,7 @@ package Prj is
       Equal      => "=");
 
    type Verbosity is (Default, Medium, High);
+   pragma Ordered (Verbosity);
    --  Verbosity when parsing GNAT Project Files
    --    Default is default (very quiet, if no errors).
    --    Medium is more verbose.
@@ -863,7 +899,7 @@ package Prj is
    --  Return the object directory to use for the project. This depends on
    --  whether we have a library project or a standard project. This function
    --  might return No_Name when no directory applies.
-   --  If we have a a library project file and Including_Libraries is True then
+   --  If we have a library project file and Including_Libraries is True then
    --  the library dir is returned instead of the object dir.
    --  If Only_If_Ada is True, then No_Name will be returned when the project
    --  doesn't Ada sources.
@@ -895,7 +931,11 @@ package Prj is
      (None,
       GNU,
       Object_List,
-      Option_List);
+      Option_List,
+      GCC,
+      GCC_GNU,
+      GCC_Object_List,
+      GCC_Option_List);
    --  The format of the different response files
 
    type Project_Configuration is record
@@ -933,7 +973,7 @@ package Prj is
       Map_File_Option : Name_Id := No_Name;
       --  Option to use when invoking the linker to build a map file
 
-      Minimum_Linker_Options : Name_List_Index := No_Name_List;
+      Trailing_Linker_Required_Switches : Name_List_Index := No_Name_List;
       --  The minimum options for the linker driver. Specified in the
       --  configuration.
 
@@ -1032,7 +1072,8 @@ package Prj is
                                Executable_Suffix             => No_Name,
                                Linker                        => No_Path,
                                Map_File_Option               => No_Name,
-                               Minimum_Linker_Options        => No_Name_List,
+                               Trailing_Linker_Required_Switches =>
+                                 No_Name_List,
                                Linker_Executable_Option      => No_Name_List,
                                Linker_Lib_Dir_Option         => No_Name,
                                Linker_Lib_Name_Option        => No_Name,
@@ -1323,6 +1364,14 @@ package Prj is
    -- Project_Tree_Data --
    -----------------------
 
+   package Replaced_Source_HTable is new Simple_HTable
+     (Header_Num => Header_Num,
+      Element    => File_Name_Type,
+      No_Element => No_File,
+      Key        => File_Name_Type,
+      Hash       => Hash,
+      Equal      => "=");
+
    type Private_Project_Tree_Data is private;
    --  Data for a project tree that is used only by the Project Manager
 
@@ -1337,13 +1386,29 @@ package Prj is
          Packages          : Package_Table.Instance;
          Projects          : Project_List;
 
-         Units_HT          : Units_Htable.Instance;
-         --  Unit name to Unit_Index (and from there so Source_Id)
+         Replaced_Sources : Replaced_Source_HTable.Instance;
+         --  The list of sources that have been replaced by sources with
+         --  different file names.
 
-         Source_Paths_HT   : Source_Paths_Htable.Instance;
+         Replaced_Source_Number : Natural := 0;
+         --  The number of entries in Replaced_Sources
+
+         Units_HT : Units_Htable.Instance;
+         --  Unit name to Unit_Index (and from there to Source_Id)
+
+         Source_Files_HT : Source_Files_Htable.Instance;
+         --  Base source file names to Source_Id list.
+
+         Source_Paths_HT : Source_Paths_Htable.Instance;
          --  Full path to Source_Id
 
-         Private_Part      : Private_Project_Tree_Data;
+         Source_Info_File_Name : String_Access := null;
+         --  The name of the source info file, if specified by the builder
+
+         Source_Info_File_Exists : Boolean := False;
+         --  True when a source info file has been successfully read
+
+         Private_Part : Private_Project_Tree_Data;
       end record;
    --  Data for a project tree
 
@@ -1380,13 +1445,17 @@ package Prj is
       Imported_First : Boolean := False);
    --  Call Action for each project imported directly or indirectly by project
    --  By, as well as extended projects.
+   --
    --  The order of processing depends on Imported_First:
-   --  If False, Action is called according to the order of importation: if A
-   --  imports B, directly or indirectly, Action will be called for A before
-   --  it is called for B. If two projects import each other directly or
-   --  indirectly (using at least one "limited with"), it is not specified
-   --  for which of these two projects Action will be called first.
-   --  The order is reversed if Imported_First is True.
+   --
+   --    If False, Action is called according to the order of importation: if A
+   --    imports B, directly or indirectly, Action will be called for A before
+   --    it is called for B. If two projects import each other directly or
+   --    indirectly (using at least one "limited with"), it is not specified
+   --    for which of these two projects Action will be called first.
+   --
+   --    The order is reversed if Imported_First is True
+   --
    --  With_State may be used by Action to choose a behavior or to report some
    --  global result.
 
@@ -1439,7 +1508,7 @@ package Prj is
    type Error_Handler is access procedure
      (Project    : Project_Id;
       Is_Warning : Boolean);
-   --  This warngs when an error was found when parsing a project. The error
+   --  This warns when an error was found when parsing a project. The error
    --  itself is handled through Prj.Err (and Prj.Err.Finalize should be called
    --  to actually print the error). This ensures that duplicate error messages
    --  are always correctly removed, that errors msgs are sorted, and that all
@@ -1448,11 +1517,13 @@ package Prj is
    function Create_Flags
      (Report_Error               : Error_Handler;
       When_No_Sources            : Error_Warning;
-      Require_Sources_Other_Lang : Boolean := True;
-      Allow_Duplicate_Basenames  : Boolean := True;
-      Compiler_Driver_Mandatory  : Boolean := False;
-      Error_On_Unknown_Language  : Boolean := True;
-      Require_Obj_Dirs           : Error_Warning := Error)
+      Require_Sources_Other_Lang : Boolean       := True;
+      Allow_Duplicate_Basenames  : Boolean       := True;
+      Compiler_Driver_Mandatory  : Boolean       := False;
+      Error_On_Unknown_Language  : Boolean       := True;
+      Require_Obj_Dirs           : Error_Warning := Error;
+      Allow_Invalid_External     : Error_Warning := Error;
+      Missing_Source_Files       : Error_Warning := Error)
       return Processing_Flags;
    --  Function used to create Processing_Flags structure
    --
@@ -1481,6 +1552,15 @@ package Prj is
    --  If Require_Obj_Dirs is true, then all object directories must exist
    --  (possibly after they have been created automatically if the appropriate
    --  switches were specified), or an error is raised.
+   --
+   --  If Allow_Invalid_External is Silent, then no error is reported when an
+   --  invalid value is used for an external variable (and it doesn't match its
+   --  type). Instead, the first possible value is used.
+   --
+   --  Missing_Source_Files indicates whether it is an error or a warning that
+   --  a source file mentioned in the Source_Files attributes is not actually
+   --  found in the source directories. This also impacts errors for missing
+   --  source directories.
 
    Gprbuild_Flags : constant Processing_Flags;
    Gprclean_Flags : constant Processing_Flags;
@@ -1510,6 +1590,10 @@ package Prj is
    --  another program running on the same machine has recreated it.
    --  Does nothing if Debug.Debug_Flag_N is set
 
+   Virtual_Prefix : constant String := "v$";
+   --  The prefix for virtual extending projects. Because of the '$', which is
+   --  normally forbidden for project names, there cannot be any name clash.
+
 private
 
    All_Packages : constant String_List_Access := null;
@@ -1523,10 +1607,6 @@ private
                            Kind     => Undefined,
                            Location => No_Location,
                            Default  => False);
-
-   Virtual_Prefix : constant String := "v$";
-   --  The prefix for virtual extending projects. Because of the '$', which is
-   --  normally forbidden for project names, there cannot be any name clash.
 
    type Source_Iterator is record
       In_Tree : Project_Tree_Ref;
@@ -1589,6 +1669,8 @@ private
       Compiler_Driver_Mandatory  : Boolean;
       Error_On_Unknown_Language  : Boolean;
       Require_Obj_Dirs           : Error_Warning;
+      Allow_Invalid_External     : Error_Warning;
+      Missing_Source_Files       : Error_Warning;
    end record;
 
    Gprbuild_Flags : constant Processing_Flags :=
@@ -1598,7 +1680,9 @@ private
       Allow_Duplicate_Basenames  => False,
       Compiler_Driver_Mandatory  => True,
       Error_On_Unknown_Language  => True,
-      Require_Obj_Dirs           => Error);
+      Require_Obj_Dirs           => Error,
+      Allow_Invalid_External     => Error,
+      Missing_Source_Files       => Error);
 
    Gprclean_Flags : constant Processing_Flags :=
      (Report_Error               => null,
@@ -1607,7 +1691,9 @@ private
       Allow_Duplicate_Basenames  => False,
       Compiler_Driver_Mandatory  => True,
       Error_On_Unknown_Language  => True,
-      Require_Obj_Dirs           => Warning);
+      Require_Obj_Dirs           => Warning,
+      Allow_Invalid_External     => Error,
+      Missing_Source_Files       => Error);
 
    Gnatmake_Flags : constant Processing_Flags :=
      (Report_Error               => null,
@@ -1616,6 +1702,8 @@ private
       Allow_Duplicate_Basenames  => False,
       Compiler_Driver_Mandatory  => False,
       Error_On_Unknown_Language  => False,
-      Require_Obj_Dirs           => Error);
+      Require_Obj_Dirs           => Error,
+      Allow_Invalid_External     => Error,
+      Missing_Source_Files       => Error);
 
 end Prj;

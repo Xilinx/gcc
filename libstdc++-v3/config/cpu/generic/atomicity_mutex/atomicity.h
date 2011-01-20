@@ -1,6 +1,6 @@
 // Low-level functions for atomic operations: Generic version  -*- C++ -*-
 
-// Copyright (C) 1999, 2001, 2002, 2003, 2004, 2005, 2006, 2009
+// Copyright (C) 1999, 2001, 2002, 2003, 2004, 2005, 2006, 2009, 2010
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -22,10 +22,6 @@
 // a copy of the GCC Runtime Library Exception along with this program;
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
-
-/** @file ext/atomicity.h
- *  This file is a GNU extension to the Standard C++ Library.
- */
 
 #include <ext/atomicity.h>
 #include <ext/concurrence.h>

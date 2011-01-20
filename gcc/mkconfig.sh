@@ -1,6 +1,6 @@
 #! /bin/sh
 
-# Copyright (C) 2001, 2002, 2006, 2007 Free Software Foundation, Inc.
+# Copyright (C) 2001, 2002, 2006, 2007, 2010 Free Software Foundation, Inc.
 # This file is part of GCC.
 
 # GCC is free software; you can redistribute it and/or modify
@@ -87,15 +87,14 @@ if [ -n "$HEADERS" ]; then
     fi
 fi
 
-# If this is tm.h, now include insn-constants.h and insn-flags.h only
-# if IN_GCC is defined but neither GENERATOR_FILE nor USED_FOR_TARGET
-# is defined.  (Much of this is temporary.)
+# If this is tm.h, now include insn-flags.h only if IN_GCC is defined
+# but neither GENERATOR_FILE nor USED_FOR_TARGET is defined.  (Much of
+# this is temporary.)
 
 case $output in
     tm.h )
         cat >> ${output}T <<EOF
 #if defined IN_GCC && !defined GENERATOR_FILE && !defined USED_FOR_TARGET
-# include "insn-constants.h"
 # include "insn-flags.h"
 #endif
 EOF

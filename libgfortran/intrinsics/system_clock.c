@@ -1,5 +1,5 @@
 /* Implementation of the SYSTEM_CLOCK intrinsic.
-   Copyright (C) 2004, 2005, 2007, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2007, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of the GNU Fortran runtime library (libgfortran).
 
@@ -56,6 +56,7 @@ system_clock_4(GFC_INTEGER_4 *count, GFC_INTEGER_4 *count_rate,
   GFC_INTEGER_4 mx;
 
 #if defined(HAVE_SYS_TIME_H) && defined(HAVE_GETTIMEOFDAY)
+#undef TCK
 #define TCK 1000
   struct timeval tp1;
 
@@ -117,6 +118,7 @@ system_clock_8 (GFC_INTEGER_8 *count, GFC_INTEGER_8 *count_rate,
   GFC_INTEGER_8 mx;
 
 #if defined(HAVE_SYS_TIME_H) && defined(HAVE_GETTIMEOFDAY)
+#undef TCK
 #define TCK 1000000
   struct timeval tp1;
 

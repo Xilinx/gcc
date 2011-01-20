@@ -24,9 +24,9 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file locale_classes.h
+/** @file bits/locale_classes.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{locale}
  */
 
 //
@@ -402,8 +402,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     void
     _M_remove_reference() const throw()
     {
+      // Be race-detector-friendly.  For more info see bits/c++config.
+      _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(&_M_refcount);
       if (__gnu_cxx::__exchange_and_add_dispatch(&_M_refcount, -1) == 1)
 	{
+          _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(&_M_refcount);
 	  __try
 	    { delete this; }
 	  __catch(...)
@@ -508,8 +511,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     void
     _M_remove_reference() throw()
     {
+      // Be race-detector-friendly.  For more info see bits/c++config.
+      _GLIBCXX_SYNCHRONIZATION_HAPPENS_BEFORE(&_M_refcount);
       if (__gnu_cxx::__exchange_and_add_dispatch(&_M_refcount, -1) == 1)
 	{
+          _GLIBCXX_SYNCHRONIZATION_HAPPENS_AFTER(&_M_refcount);
 	  __try
 	    { delete this; }
 	  __catch(...)

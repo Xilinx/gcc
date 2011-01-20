@@ -1,6 +1,7 @@
 // Algorithm implementation -*- C++ -*-
 
-// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+// Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+// 2010, 2011
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -49,9 +50,9 @@
  * purpose.  It is provided "as is" without express or implied warranty.
  */
 
-/** @file stl_algo.h
+/** @file bits/stl_algo.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{algorithm}
  */
 
 #ifndef _STL_ALGO_H
@@ -63,7 +64,8 @@
 #include <bits/stl_tempbuf.h>  // for _Temporary_buffer
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
-#include <random> // for std::uniform_int_distribution
+#include <random>     // for std::uniform_int_distribution
+#include <functional> // for std::bind
 #endif
 
 // See concept_check.h for the __glibcxx_*_requires macros.
@@ -2403,13 +2405,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 						__val, __comp);
 
       _DistanceType __len = std::distance(__first, __last);
-      _DistanceType __half;
-      _ForwardIterator __middle;
 
       while (__len > 0)
 	{
-	  __half = __len >> 1;
-	  __middle = __first;
+	  _DistanceType __half = __len >> 1;
+	  _ForwardIterator __middle = __first;
 	  std::advance(__middle, __half);
 	  if (__comp(*__middle, __val))
 	    {
@@ -2450,13 +2450,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       __glibcxx_requires_partitioned_upper(__first, __last, __val);
 
       _DistanceType __len = std::distance(__first, __last);
-      _DistanceType __half;
-      _ForwardIterator __middle;
 
       while (__len > 0)
 	{
-	  __half = __len >> 1;
-	  __middle = __first;
+	  _DistanceType __half = __len >> 1;
+	  _ForwardIterator __middle = __first;
 	  std::advance(__middle, __half);
 	  if (__val < *__middle)
 	    __len = __half;
@@ -2503,13 +2501,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 						__val, __comp);
 
       _DistanceType __len = std::distance(__first, __last);
-      _DistanceType __half;
-      _ForwardIterator __middle;
 
       while (__len > 0)
 	{
-	  __half = __len >> 1;
-	  __middle = __first;
+	  _DistanceType __half = __len >> 1;
+	  _ForwardIterator __middle = __first;
 	  std::advance(__middle, __half);
 	  if (__comp(__val, *__middle))
 	    __len = __half;
@@ -2558,13 +2554,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       __glibcxx_requires_partitioned_upper(__first, __last, __val);      
 
       _DistanceType __len = std::distance(__first, __last);
-      _DistanceType __half;
-      _ForwardIterator __middle, __left, __right;
-
+ 
       while (__len > 0)
 	{
-	  __half = __len >> 1;
-	  __middle = __first;
+	  _DistanceType __half = __len >> 1;
+	  _ForwardIterator __middle = __first;
 	  std::advance(__middle, __half);
 	  if (*__middle < __val)
 	    {
@@ -2576,9 +2570,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	    __len = __half;
 	  else
 	    {
-	      __left = std::lower_bound(__first, __middle, __val);
+	      _ForwardIterator __left = std::lower_bound(__first, __middle,
+							 __val);
 	      std::advance(__first, __len);
-	      __right = std::upper_bound(++__middle, __first, __val);
+	      _ForwardIterator __right = std::upper_bound(++__middle, __first,
+							  __val);
 	      return pair<_ForwardIterator, _ForwardIterator>(__left, __right);
 	    }
 	}
@@ -2605,8 +2601,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _ForwardIterator, typename _Tp, typename _Compare>
     pair<_ForwardIterator, _ForwardIterator>
     equal_range(_ForwardIterator __first, _ForwardIterator __last,
-		const _Tp& __val,
-		_Compare __comp)
+		const _Tp& __val, _Compare __comp)
     {
       typedef typename iterator_traits<_ForwardIterator>::value_type
 	_ValueType;
@@ -2625,13 +2620,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 						__val, __comp);
 
       _DistanceType __len = std::distance(__first, __last);
-      _DistanceType __half;
-      _ForwardIterator __middle, __left, __right;
 
       while (__len > 0)
 	{
-	  __half = __len >> 1;
-	  __middle = __first;
+	  _DistanceType __half = __len >> 1;
+	  _ForwardIterator __middle = __first;
 	  std::advance(__middle, __half);
 	  if (__comp(*__middle, __val))
 	    {
@@ -2643,9 +2636,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	    __len = __half;
 	  else
 	    {
-	      __left = std::lower_bound(__first, __middle, __val, __comp);
+	      _ForwardIterator __left = std::lower_bound(__first, __middle,
+							 __val, __comp);
 	      std::advance(__first, __len);
-	      __right = std::upper_bound(++__middle, __first, __val, __comp);
+	      _ForwardIterator __right = std::upper_bound(++__middle, __first,
+							  __val, __comp);
 	      return pair<_ForwardIterator, _ForwardIterator>(__left, __right);
 	    }
 	}
@@ -4116,6 +4111,99 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return std::make_pair(*__p.first, *__p.second);
     }
 
+  /**
+   *  @brief  Checks whether a permutaion of the second sequence is equal
+   *          to the first sequence.
+   *  @ingroup non_mutating_algorithms
+   *  @param  first1  Start of first range.
+   *  @param  last1   End of first range.
+   *  @param  first2  Start of second range.
+   *  @return true if there exists a permutation of the elements in the range
+   *          [first2, first2 + (last1 - first1)), beginning with 
+   *          ForwardIterator2 begin, such that equal(first1, last1, begin)
+   *          returns true; otherwise, returns false.
+  */
+  template<typename _ForwardIterator1, typename _ForwardIterator2>
+    bool
+    is_permutation(_ForwardIterator1 __first1, _ForwardIterator1 __last1,
+		   _ForwardIterator2 __first2)
+    {
+      // Efficiently compare identical prefixes:  O(N) if sequences
+      // have the same elements in the same order.
+      for (; __first1 != __last1; ++__first1, ++__first2)
+	if (!(*__first1 == *__first2))
+	  break;
+
+      if (__first1 == __last1)
+	return true;
+
+      // Establish __last2 assuming equal ranges by iterating over the
+      // rest of the list.
+      _ForwardIterator2 __last2 = __first2;
+      std::advance(__last2, std::distance(__first1, __last1));
+      for (_ForwardIterator1 __scan = __first1; __scan != __last1; ++__scan)
+	{
+	  if (__scan != _GLIBCXX_STD_P::find(__first1, __scan, *__scan))
+	    continue; // We've seen this one before.
+
+	  auto __matches = std::count(__first2, __last2, *__scan);
+	  if (0 == __matches
+	      || std::count(__scan, __last1, *__scan) != __matches)
+	    return false;
+	}
+      return true;
+    }
+
+  /**
+   *  @brief  Checks whether a permutation of the second sequence is equal
+   *          to the first sequence.
+   *  @ingroup non_mutating_algorithms
+   *  @param  first1  Start of first range.
+   *  @param  last1   End of first range.
+   *  @param  first2  Start of second range.
+   *  @param  pred    A binary predicate.
+   *  @return true if there exists a permutation of the elements in the range
+   *          [first2, first2 + (last1 - first1)), beginning with 
+   *          ForwardIterator2 begin, such that equal(first1, last1, begin,
+   *          pred) returns true; otherwise, returns false.
+  */
+  template<typename _ForwardIterator1, typename _ForwardIterator2,
+	   typename _BinaryPredicate>
+    bool
+    is_permutation(_ForwardIterator1 __first1, _ForwardIterator1 __last1,
+		   _ForwardIterator2 __first2, _BinaryPredicate __pred)
+    {
+      // Efficiently compare identical prefixes:  O(N) if sequences
+      // have the same elements in the same order.
+      for (; __first1 != __last1; ++__first1, ++__first2)
+	if (!bool(__pred(*__first1, *__first2)))
+	  break;
+
+      if (__first1 == __last1)
+	return true;
+
+      // Establish __last2 assuming equal ranges by iterating over the
+      // rest of the list.
+      _ForwardIterator2 __last2 = __first2;
+      std::advance(__last2, std::distance(__first1, __last1));
+      for (_ForwardIterator1 __scan = __first1; __scan != __last1; ++__scan)
+	{
+	  using std::placeholders::_1;
+
+	  if (__scan != _GLIBCXX_STD_P::find_if(__first1, __scan,
+						std::bind(__pred, _1, *__scan)))
+	    continue; // We've seen this one before.
+	  
+	  auto __matches = std::count_if(__first2, __last2,
+					 std::bind(__pred, _1, *__scan));
+	  if (0 == __matches
+	      || std::count_if(__scan, __last1,
+			       std::bind(__pred, _1, *__scan)) != __matches)
+	    return false;
+	}
+      return true;
+    }
+
 #ifdef _GLIBCXX_USE_C99_STDINT_TR1
   /**
    *  @brief Shuffle the elements of a sequence using a uniform random
@@ -4133,7 +4221,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	   typename _UniformRandomNumberGenerator>
     void
     shuffle(_RandomAccessIterator __first, _RandomAccessIterator __last,
-	    _UniformRandomNumberGenerator& __g)
+	    _UniformRandomNumberGenerator&& __g)
     {
       // concept requirements
       __glibcxx_function_requires(_Mutable_RandomAccessIteratorConcept<

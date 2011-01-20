@@ -33,9 +33,10 @@ union GTY((desc ("0"),
 };
 
 /* Ada uses the lang_decl and lang_type fields to hold a tree.
+
    FIXME: the variable_size annotation here is needed because these types are
-   variable-sized in some other frontends.  Due to gengtype deficiency the GTY
-   options of such types have to agree across all frontends. */
+   variable-sized in some other front-ends.  Due to gengtype deficiency, the
+   GTY options of such types have to agree across all front-ends.  */
 struct GTY((variable_size)) lang_type { tree t; };
 struct GTY((variable_size)) lang_decl { tree t; };
 
@@ -43,26 +44,26 @@ struct GTY((variable_size)) lang_decl { tree t; };
 #define GET_TYPE_LANG_SPECIFIC(NODE) \
   (TYPE_LANG_SPECIFIC (NODE) ? TYPE_LANG_SPECIFIC (NODE)->t : NULL_TREE)
 
-#define SET_TYPE_LANG_SPECIFIC(NODE, X)		       \
-do {						       \
-  tree tmp = (X);				       \
-  if (!TYPE_LANG_SPECIFIC (NODE))		       \
-    TYPE_LANG_SPECIFIC (NODE) = ggc_alloc_lang_type    \
-      (sizeof (struct lang_type));		       \
-  TYPE_LANG_SPECIFIC (NODE)->t = tmp;		       \
+#define SET_TYPE_LANG_SPECIFIC(NODE, X)			 \
+do {							 \
+  tree tmp = (X);					 \
+  if (!TYPE_LANG_SPECIFIC (NODE))			 \
+    TYPE_LANG_SPECIFIC (NODE)				 \
+      = ggc_alloc_lang_type (sizeof (struct lang_type)); \
+  TYPE_LANG_SPECIFIC (NODE)->t = tmp;			 \
 } while (0)
 
 /* Macros to get and set the tree in DECL_LANG_SPECIFIC.  */
 #define GET_DECL_LANG_SPECIFIC(NODE) \
   (DECL_LANG_SPECIFIC (NODE) ? DECL_LANG_SPECIFIC (NODE)->t : NULL_TREE)
 
-#define SET_DECL_LANG_SPECIFIC(NODE, X)		       \
-do {						       \
-  tree tmp = (X);				       \
-  if (!DECL_LANG_SPECIFIC (NODE))		       \
-    DECL_LANG_SPECIFIC (NODE) = ggc_alloc_lang_decl    \
-      (sizeof (struct lang_decl));		       \
-  DECL_LANG_SPECIFIC (NODE)->t = tmp;		       \
+#define SET_DECL_LANG_SPECIFIC(NODE, X)			 \
+do {							 \
+  tree tmp = (X);					 \
+  if (!DECL_LANG_SPECIFIC (NODE))			 \
+    DECL_LANG_SPECIFIC (NODE)				 \
+      = ggc_alloc_lang_decl (sizeof (struct lang_decl)); \
+  DECL_LANG_SPECIFIC (NODE)->t = tmp;			 \
 } while (0)
 
 
@@ -331,14 +332,18 @@ do {						   \
    constant CONSTRUCTOR.  */
 #define DECL_CONST_ADDRESS_P(NODE) DECL_LANG_FLAG_0 (CONST_DECL_CHECK (NODE))
 
-/* Nonzero if this decl is always used by reference; i.e., an INDIRECT_REF
+/* Nonzero in a PARM_DECL if it is always used by double reference, i.e. a
+   pair of INDIRECT_REFs is needed to access the object.  */
+#define DECL_BY_DOUBLE_REF_P(NODE) DECL_LANG_FLAG_0 (PARM_DECL_CHECK (NODE))
+
+/* Nonzero in a DECL if it is always used by reference, i.e. an INDIRECT_REF
    is needed to access the object.  */
 #define DECL_BY_REF_P(NODE) DECL_LANG_FLAG_1 (NODE)
 
 /* Nonzero in a FIELD_DECL that is a dummy built for some internal reason.  */
 #define DECL_INTERNAL_P(NODE) DECL_LANG_FLAG_3 (FIELD_DECL_CHECK (NODE))
 
-/* Nonzero if this decl is a PARM_DECL for an Ada array being passed to a
+/* Nonzero in a PARM_DECL if it is made for an Ada array being passed to a
    foreign convention subprogram.  */
 #define DECL_BY_COMPONENT_PTR_P(NODE) DECL_LANG_FLAG_3 (PARM_DECL_CHECK (NODE))
 
@@ -346,7 +351,7 @@ do {						   \
 #define DECL_ELABORATION_PROC_P(NODE) \
   DECL_LANG_FLAG_3 (FUNCTION_DECL_CHECK (NODE))
 
-/* Nonzero if this is a decl for a pointer that points to something which
+/* Nonzero in a DECL if it is made for a pointer that points to something which
    is readonly.  Used mostly for fat pointers.  */
 #define DECL_POINTS_TO_READONLY_P(NODE) DECL_LANG_FLAG_4 (NODE)
 

@@ -20,7 +20,7 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 /* Describe a value.  */
-typedef struct GTY(()) cselib_val_struct {
+typedef struct cselib_val_struct {
   /* The hash value.  */
   unsigned int hash;
 
@@ -42,19 +42,13 @@ typedef struct GTY(()) cselib_val_struct {
 } cselib_val;
 
 /* A list of rtl expressions that hold the same value.  */
-struct GTY(()) elt_loc_list {
+struct elt_loc_list {
   /* Next element in the list.  */
   struct elt_loc_list *next;
   /* An rtl expression that holds the value.  */
   rtx loc;
   /* The insn that made the equivalence.  */
   rtx setting_insn;
-};
-
-/* A list of cselib_val structures.  */
-struct GTY(()) elt_list {
-  struct elt_list *next;
-  cselib_val *elt;
 };
 
 /* Describe a single set that is part of an insn.  */
@@ -99,6 +93,6 @@ extern unsigned int cselib_get_next_uid (void);
 extern void cselib_preserve_value (cselib_val *);
 extern bool cselib_preserved_value_p (cselib_val *);
 extern void cselib_preserve_only_values (void);
-extern void cselib_preserve_cfa_base_value (cselib_val *);
+extern void cselib_preserve_cfa_base_value (cselib_val *, unsigned int);
 
 extern void dump_cselib_table (FILE *);

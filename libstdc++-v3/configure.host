@@ -209,7 +209,7 @@ case "${host_os}" in
     ;;
   cygwin*)
     os_include_dir="os/newlib"
-    OPT_LDFLAGS="${OPT_LDFLAGS} -no-undefined -bindir \$(bindir)"
+    OPT_LDFLAGS="${OPT_LDFLAGS} \$(lt_host_flags)"
     ;;
   darwin | darwin[1-7] | darwin[1-7].*)
     # On Darwin, performance is improved if libstdc++ is single-module.
@@ -231,6 +231,7 @@ case "${host_os}" in
     ;;
   *djgpp*)      # leading * picks up "msdosdjgpp"
     os_include_dir="os/djgpp"
+    error_constants_dir="os/djgpp"
     ;;
   freebsd*)
     os_include_dir="os/bsd/freebsd"
@@ -255,10 +256,17 @@ case "${host_os}" in
   mingw32*)
     os_include_dir="os/mingw32"
     error_constants_dir="os/mingw32"
-    OPT_LDFLAGS="${OPT_LDFLAGS} -no-undefined -bindir \$(bindir)"
+    OPT_LDFLAGS="${OPT_LDFLAGS} \$(lt_host_flags)"
     ;;
   netbsd*)
     os_include_dir="os/bsd/netbsd"
+    ;;
+  osf*)
+    os_include_dir="os/generic"
+    # libstdc++.so relies on emutls on Tru64 UNIX, which only works with the
+    # real functions implemented in libpthread.so, not with the dummies in
+    # libgcc, so always pass -lpthread.
+    OPT_LDFLAGS="${OPT_LDFLAGS} -lpthread"
     ;;
   qnx6.[12]*)
     os_include_dir="os/qnx/qnx6.1"
@@ -321,5 +329,11 @@ case "${host}" in
     ;;
   powerpc*-*-darwin*)
     port_specific_symbol_files="\$(srcdir)/../config/os/bsd/darwin/ppc-extra.ver"
+    ;;
+  *-*-solaris2.[89])
+    abi_baseline_pair=solaris2.8
+    ;;
+  *-*-solaris2.1[0-9])
+    abi_baseline_pair=solaris2.10
     ;;
 esac

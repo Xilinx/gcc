@@ -1,6 +1,6 @@
 /* Deal with I/O statements & related stuff.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010
+   2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -136,7 +136,7 @@ mode;
 /* Return the next character in the format string.  */
 
 static char
-next_char (int in_string)
+next_char (gfc_instring in_string)
 {
   static gfc_char_t c;
 
@@ -197,7 +197,7 @@ next_char_not_space (bool *error)
   char c;
   do
     {
-      error_element = c = next_char (0);
+      error_element = c = next_char (NONSTRING);
       if (c == '\t')
 	{
 	  if (gfc_option.allow_std & GFC_STD_GNU)
@@ -374,7 +374,7 @@ format_lex (void)
 
       for (;;)
 	{
-	  c = next_char (1);
+	  c = next_char (INSTRING_WARN);
 	  if (c == '\0')
 	    {
 	      token = FMT_END;
@@ -383,7 +383,7 @@ format_lex (void)
 
 	  if (c == delim)
 	    {
-	      c = next_char (1);
+	      c = next_char (INSTRING_NOWARN);
 
 	      if (c == '\0')
 		{
@@ -730,7 +730,7 @@ data_desc:
       t = format_lex ();
       if (t == FMT_ERROR)
 	goto fail;
-      if (gfc_option.allow_std < GFC_STD_F2003 && t != FMT_COMMA
+      if (!(gfc_option.allow_std & GFC_STD_F2003) && t != FMT_COMMA
 	  && t != FMT_F && t != FMT_E && t != FMT_EN && t != FMT_ES
 	  && t != FMT_D && t != FMT_G && t != FMT_RPAREN && t != FMT_SLASH)
 	{
@@ -981,7 +981,7 @@ data_desc:
 	{
 	  while (repeat >0)
 	   {
-	     next_char (1);
+	     next_char (INSTRING_WARN);
 	     repeat -- ;
 	   }
 	}
@@ -1315,6 +1315,9 @@ match_vtag (const io_tag *tag, gfc_expr **v)
       return MATCH_ERROR;
     }
 
+  if (gfc_implicit_pure (NULL) && gfc_impure_variable (result->symtree->n.sym))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
+
   *v = result;
   return MATCH_YES;
 }
@@ -1497,13 +1500,39 @@ resolve_tag (const io_tag *tag, gfc_expr *e)
 	return FAILURE;
     }
 
+  if (tag == &tag_exist && e->ts.kind != gfc_default_logical_kind)
+    {
+      if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Nondefault LOGICAL "
+			  "in %s tag at %L", tag->name, &e->where)
+	  == FAILURE)
+	return FAILURE;
+    }
+
+  if (tag == &tag_newunit)
+    {
+      if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: NEWUNIT specifier"
+			  " at %L", &e->where) == FAILURE)
+	return FAILURE;
+    }
+
+  /* NEWUNIT, IOSTAT, SIZE and IOMSG are variable definition contexts.  */
+  if (tag == &tag_newunit || tag == &tag_iostat
+      || tag == &tag_size || tag == &tag_iomsg)
+    {
+      char context[64];
+
+      sprintf (context, _("%s tag"), tag->name);
+      if (gfc_check_vardef_context (e, false, context) == FAILURE)
+	return FAILURE;
+    }
+  
   if (tag == &tag_convert)
     {
       if (gfc_notify_std (GFC_STD_GNU, "Extension: CONVERT tag at %L",
 			  &e->where) == FAILURE)
 	return FAILURE;
     }
-  
+
   return SUCCESS;
 }
 
@@ -1797,6 +1826,9 @@ gfc_match_open (void)
       gfc_error ("OPEN statement not allowed in PURE procedure at %C");
       goto cleanup;
     }
+
+  if (gfc_implicit_pure (NULL))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
 
   warn = (open->err || open->iostat) ? true : false;
 
@@ -2212,6 +2244,9 @@ gfc_match_close (void)
       goto cleanup;
     }
 
+  if (gfc_implicit_pure (NULL))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
+
   warn = (close->iostat || close->err) ? true : false;
 
   /* Checks on the STATUS specifier.  */
@@ -2358,6 +2393,9 @@ done:
 
       goto cleanup;
     }
+
+  if (gfc_implicit_pure (NULL))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
 
   new_st.op = op;
   new_st.ext.filepos = fp;
@@ -2699,8 +2737,9 @@ gfc_free_dt (gfc_dt *dt)
   gfc_free_expr (dt->round);
   gfc_free_expr (dt->blank);
   gfc_free_expr (dt->decimal);
-  gfc_free_expr (dt->extra_comma);
   gfc_free_expr (dt->pos);
+  gfc_free_expr (dt->dt_io_kind);
+  /* dt->extra_comma is a link to dt_io_kind if it is set.  */
   gfc_free (dt);
 }
 
@@ -2711,6 +2750,11 @@ gfc_try
 gfc_resolve_dt (gfc_dt *dt, locus *loc)
 {
   gfc_expr *e;
+  io_kind k;
+
+  /* This is set in any case.  */
+  gcc_assert (dt->dt_io_kind);
+  k = dt->dt_io_kind->value.iokind;
 
   RESOLVE_TAG (&tag_format, dt->format_expr);
   RESOLVE_TAG (&tag_rec, dt->rec);
@@ -2753,16 +2797,13 @@ gfc_resolve_dt (gfc_dt *dt, locus *loc)
 	     type character, we assume its really the "format" form of the I/O
 	     statement.  We set the io_unit to the default unit and format to
 	     the character expression.  See F95 Standard section 9.4.  */
-	  io_kind k;
-	  k = dt->extra_comma->value.iokind;
 	  if (e->ts.type == BT_CHARACTER && (k == M_READ || k == M_PRINT))
 	    {
 	      dt->format_expr = dt->io_unit;
 	      dt->io_unit = default_unit (k);
 
-	      /* Free this pointer now so that a warning/error is not triggered
-		 below for the "Extension".  */
-	      gfc_free_expr (dt->extra_comma);
+	      /* Nullify this pointer now so that a warning/error is not
+		 triggered below for the "Extension".  */
 	      dt->extra_comma = NULL;
 	    }
 
@@ -2782,6 +2823,13 @@ gfc_resolve_dt (gfc_dt *dt, locus *loc)
 	  gfc_error ("Internal unit with vector subscript at %L", &e->where);
 	  return FAILURE;
 	}
+
+      /* If we are writing, make sure the internal unit can be changed.  */
+      gcc_assert (k != M_PRINT);
+      if (k == M_WRITE
+	  && gfc_check_vardef_context (e, false, _("internal unit in WRITE"))
+	       == FAILURE)
+	return FAILURE;
     }
 
   if (e->rank && e->ts.type != BT_CHARACTER)
@@ -2793,8 +2841,34 @@ gfc_resolve_dt (gfc_dt *dt, locus *loc)
   if (e->expr_type == EXPR_CONSTANT && e->ts.type == BT_INTEGER
       && mpz_sgn (e->value.integer) < 0)
     {
-      gfc_error ("UNIT number in statement at %L must be non-negative", &e->where);
+      gfc_error ("UNIT number in statement at %L must be non-negative",
+		 &e->where);
       return FAILURE;
+    }
+
+  /* If we are reading and have a namelist, check that all namelist symbols
+     can appear in a variable definition context.  */
+  if (k == M_READ && dt->namelist)
+    {
+      gfc_namelist* n;
+      for (n = dt->namelist->namelist; n; n = n->next)
+	{
+	  gfc_expr* e;
+	  gfc_try t;
+
+	  e = gfc_get_variable_expr (gfc_find_sym_in_symtree (n->sym));
+	  t = gfc_check_vardef_context (e, false, NULL);
+	  gfc_free_expr (e);
+
+	  if (t == FAILURE)
+	    {
+	      gfc_error ("NAMELIST '%s' in READ statement at %L contains"
+			 " the symbol '%s' which may not appear in a"
+			 " variable definition context",
+			 dt->namelist->name, loc, n->sym->name);
+	      return FAILURE;
+	    }
+	}
     }
 
   if (dt->extra_comma
@@ -2846,6 +2920,7 @@ gfc_resolve_dt (gfc_dt *dt, locus *loc)
 		 &dt->format_label->where);
       return FAILURE;
     }
+
   return SUCCESS;
 }
 
@@ -3004,50 +3079,8 @@ match_io_element (io_kind k, gfc_code **cpp)
 		   io_kind_name (k));
     }
 
-  if (m == MATCH_YES)
-    switch (k)
-      {
-      case M_READ:
-	if (expr->symtree->n.sym->attr.intent == INTENT_IN)
-	  {
-	    gfc_error ("Variable '%s' in input list at %C cannot be "
-		       "INTENT(IN)", expr->symtree->n.sym->name);
-	    m = MATCH_ERROR;
-	  }
-
-	if (gfc_pure (NULL)
-	    && gfc_impure_variable (expr->symtree->n.sym)
-	    && current_dt->io_unit
-	    && current_dt->io_unit->ts.type == BT_CHARACTER)
-	  {
-	    gfc_error ("Cannot read to variable '%s' in PURE procedure at %C",
-		       expr->symtree->n.sym->name);
-	    m = MATCH_ERROR;
-	  }
-
-	if (gfc_check_do_variable (expr->symtree))
-	  m = MATCH_ERROR;
-
-	break;
-
-      case M_WRITE:
-	if (current_dt->io_unit
-	    && current_dt->io_unit->ts.type == BT_CHARACTER
-	    && gfc_pure (NULL)
-	    && current_dt->io_unit->expr_type == EXPR_VARIABLE
-	    && gfc_impure_variable (current_dt->io_unit->symtree->n.sym))
-	  {
-	    gfc_error ("Cannot write to internal file unit '%s' at %C "
-		       "inside a PURE procedure",
-		       current_dt->io_unit->symtree->n.sym->name);
-	    m = MATCH_ERROR;
-	  }
-
-	break;
-
-      default:
-	break;
-      }
+  if (m == MATCH_YES && k == M_READ && gfc_check_do_variable (expr->symtree))
+    m = MATCH_ERROR;
 
   if (m != MATCH_YES)
     {
@@ -3058,6 +3091,7 @@ match_io_element (io_kind k, gfc_code **cpp)
   cp = gfc_get_code ();
   cp->op = EXEC_TRANSFER;
   cp->expr1 = expr;
+  cp->ext.dt = current_dt;
 
   *cpp = cp;
   return MATCH_YES;
@@ -3201,6 +3235,10 @@ if (condition) \
 		     "IO UNIT in %s statement at %C must be "
 		     "an internal file in a PURE procedure",
 		     io_kind_name (k));
+
+      if (gfc_implicit_pure (NULL) && (k == M_READ || k == M_WRITE))
+	gfc_current_ns->proc_name->attr.implicit_pure = 0;
+
     }
 
   if (k != M_READ)
@@ -3649,14 +3687,14 @@ get_io_list:
   /* Used in check_io_constraints, where no locus is available.  */
   spec_end = gfc_current_locus;
 
+  /* Save the IO kind for later use.  */
+  dt->dt_io_kind = gfc_get_iokind_expr (&gfc_current_locus, k);
+
   /* Optional leading comma (non-standard).  We use a gfc_expr structure here
      to save the locus.  This is used later when resolving transfer statements
      that might have a format expression without unit number.  */
   if (!comma_flag && gfc_match_char (',') == MATCH_YES)
-    {
-      /* Save the iokind and locus for later use in resolution.  */
-      dt->extra_comma = gfc_get_iokind_expr (&gfc_current_locus, k);
-    }
+    dt->extra_comma = dt->dt_io_kind;
 
   io_code = NULL;
   if (gfc_match_eos () != MATCH_YES)
@@ -3730,6 +3768,9 @@ gfc_match_print (void)
       gfc_error ("PRINT statement at %C not allowed within PURE procedure");
       return MATCH_ERROR;
     }
+
+  if (gfc_implicit_pure (NULL))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
 
   return MATCH_YES;
 }
@@ -3887,6 +3928,9 @@ gfc_match_inquire (void)
 	  return MATCH_ERROR;
 	}
 
+      if (gfc_implicit_pure (NULL))
+	gfc_current_ns->proc_name->attr.implicit_pure = 0;
+
       new_st.block = gfc_get_code ();
       new_st.block->op = EXEC_IOLENGTH;
       terminate_io (code);
@@ -3937,6 +3981,9 @@ gfc_match_inquire (void)
       gfc_error ("INQUIRE statement not allowed in PURE procedure at %C");
       goto cleanup;
     }
+
+  if (gfc_implicit_pure (NULL))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
   
   if (inquire->id != NULL && inquire->pending == NULL)
     {
@@ -3965,40 +4012,53 @@ gfc_resolve_inquire (gfc_inquire *inquire)
 {
   RESOLVE_TAG (&tag_unit, inquire->unit);
   RESOLVE_TAG (&tag_file, inquire->file);
-  RESOLVE_TAG (&tag_iomsg, inquire->iomsg);
-  RESOLVE_TAG (&tag_iostat, inquire->iostat);
-  RESOLVE_TAG (&tag_exist, inquire->exist);
-  RESOLVE_TAG (&tag_opened, inquire->opened);
-  RESOLVE_TAG (&tag_number, inquire->number);
-  RESOLVE_TAG (&tag_named, inquire->named);
-  RESOLVE_TAG (&tag_name, inquire->name);
-  RESOLVE_TAG (&tag_s_access, inquire->access);
-  RESOLVE_TAG (&tag_sequential, inquire->sequential);
-  RESOLVE_TAG (&tag_direct, inquire->direct);
-  RESOLVE_TAG (&tag_s_form, inquire->form);
-  RESOLVE_TAG (&tag_formatted, inquire->formatted);
-  RESOLVE_TAG (&tag_unformatted, inquire->unformatted);
-  RESOLVE_TAG (&tag_s_recl, inquire->recl);
-  RESOLVE_TAG (&tag_nextrec, inquire->nextrec);
-  RESOLVE_TAG (&tag_s_blank, inquire->blank);
-  RESOLVE_TAG (&tag_s_position, inquire->position);
-  RESOLVE_TAG (&tag_s_action, inquire->action);
-  RESOLVE_TAG (&tag_read, inquire->read);
-  RESOLVE_TAG (&tag_write, inquire->write);
-  RESOLVE_TAG (&tag_readwrite, inquire->readwrite);
-  RESOLVE_TAG (&tag_s_delim, inquire->delim);
-  RESOLVE_TAG (&tag_s_pad, inquire->pad);
-  RESOLVE_TAG (&tag_s_encoding, inquire->encoding);
-  RESOLVE_TAG (&tag_s_round, inquire->round);
-  RESOLVE_TAG (&tag_iolength, inquire->iolength);
-  RESOLVE_TAG (&tag_convert, inquire->convert);
-  RESOLVE_TAG (&tag_strm_out, inquire->strm_pos);
-  RESOLVE_TAG (&tag_s_async, inquire->asynchronous);
-  RESOLVE_TAG (&tag_s_sign, inquire->sign);
-  RESOLVE_TAG (&tag_s_round, inquire->round);
-  RESOLVE_TAG (&tag_pending, inquire->pending);
-  RESOLVE_TAG (&tag_size, inquire->size);
   RESOLVE_TAG (&tag_id, inquire->id);
+
+  /* For INQUIRE, all tags except FILE, ID and UNIT are variable definition
+     contexts.  Thus, use an extended RESOLVE_TAG macro for that.  */
+#define INQUIRE_RESOLVE_TAG(tag, expr) \
+  RESOLVE_TAG (tag, expr); \
+  if (expr) \
+    { \
+      char context[64]; \
+      sprintf (context, _("%s tag with INQUIRE"), (tag)->name); \
+      if (gfc_check_vardef_context ((expr), false, context) == FAILURE) \
+	return FAILURE; \
+    }
+  INQUIRE_RESOLVE_TAG (&tag_iomsg, inquire->iomsg);
+  INQUIRE_RESOLVE_TAG (&tag_iostat, inquire->iostat);
+  INQUIRE_RESOLVE_TAG (&tag_exist, inquire->exist);
+  INQUIRE_RESOLVE_TAG (&tag_opened, inquire->opened);
+  INQUIRE_RESOLVE_TAG (&tag_number, inquire->number);
+  INQUIRE_RESOLVE_TAG (&tag_named, inquire->named);
+  INQUIRE_RESOLVE_TAG (&tag_name, inquire->name);
+  INQUIRE_RESOLVE_TAG (&tag_s_access, inquire->access);
+  INQUIRE_RESOLVE_TAG (&tag_sequential, inquire->sequential);
+  INQUIRE_RESOLVE_TAG (&tag_direct, inquire->direct);
+  INQUIRE_RESOLVE_TAG (&tag_s_form, inquire->form);
+  INQUIRE_RESOLVE_TAG (&tag_formatted, inquire->formatted);
+  INQUIRE_RESOLVE_TAG (&tag_unformatted, inquire->unformatted);
+  INQUIRE_RESOLVE_TAG (&tag_s_recl, inquire->recl);
+  INQUIRE_RESOLVE_TAG (&tag_nextrec, inquire->nextrec);
+  INQUIRE_RESOLVE_TAG (&tag_s_blank, inquire->blank);
+  INQUIRE_RESOLVE_TAG (&tag_s_position, inquire->position);
+  INQUIRE_RESOLVE_TAG (&tag_s_action, inquire->action);
+  INQUIRE_RESOLVE_TAG (&tag_read, inquire->read);
+  INQUIRE_RESOLVE_TAG (&tag_write, inquire->write);
+  INQUIRE_RESOLVE_TAG (&tag_readwrite, inquire->readwrite);
+  INQUIRE_RESOLVE_TAG (&tag_s_delim, inquire->delim);
+  INQUIRE_RESOLVE_TAG (&tag_s_pad, inquire->pad);
+  INQUIRE_RESOLVE_TAG (&tag_s_encoding, inquire->encoding);
+  INQUIRE_RESOLVE_TAG (&tag_s_round, inquire->round);
+  INQUIRE_RESOLVE_TAG (&tag_iolength, inquire->iolength);
+  INQUIRE_RESOLVE_TAG (&tag_convert, inquire->convert);
+  INQUIRE_RESOLVE_TAG (&tag_strm_out, inquire->strm_pos);
+  INQUIRE_RESOLVE_TAG (&tag_s_async, inquire->asynchronous);
+  INQUIRE_RESOLVE_TAG (&tag_s_sign, inquire->sign);
+  INQUIRE_RESOLVE_TAG (&tag_s_round, inquire->round);
+  INQUIRE_RESOLVE_TAG (&tag_pending, inquire->pending);
+  INQUIRE_RESOLVE_TAG (&tag_size, inquire->size);
+#undef INQUIRE_RESOLVE_TAG
 
   if (gfc_reference_st_label (inquire->err, ST_LABEL_TARGET) == FAILURE)
     return FAILURE;
@@ -4106,6 +4166,9 @@ gfc_match_wait (void)
       gfc_error ("WAIT statement not allowed in PURE procedure at %C");
       goto cleanup;
     }
+
+  if (gfc_implicit_pure (NULL))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
 
   new_st.op = EXEC_WAIT;
   new_st.ext.wait = wait;

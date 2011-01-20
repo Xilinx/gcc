@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -104,7 +104,7 @@ package body System.File_IO is
    File_Names_Case_Sensitive : constant Boolean := Get_Case_Sensitive /= 0;
    --  Set to indicate whether the operating system convention is for file
    --  names to be case sensitive (e.g., in Unix, set True), or non case
-   --  sensitive (e.g., in OS/2, set False).
+   --  sensitive (e.g., in Windows, set False).
 
    -----------------------
    -- Local Subprograms --
@@ -205,7 +205,7 @@ package body System.File_IO is
    begin
       if File = null then
          raise Status_Error with "file not open";
-      elsif File.Mode > Inout_File then
+      elsif File.Mode not in Read_File_Mode then
          raise Mode_Error with "file not readable";
       end if;
    end Check_Read_Status;
@@ -385,7 +385,7 @@ package body System.File_IO is
    end Errno_Message;
 
    function Errno_Message
-     (Name : String;
+     (Name  : String;
       Errno : Integer := OS_Lib.Errno) return String
    is
    begin
@@ -1183,7 +1183,7 @@ package body System.File_IO is
       --  reopen.
 
       if Mode = File.Mode
-        and then Mode <= Inout_File
+        and then Mode in Read_File_Mode
       then
          rewind (File.Stream);
 

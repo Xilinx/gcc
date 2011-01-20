@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_DIAGNOSTIC_CORE_H
 
 #include "input.h"
+#include "bversion.h"
 
 /* Constants used to discriminate diagnostics.  */
 typedef enum
@@ -32,7 +33,10 @@ typedef enum
 #define DEFINE_DIAGNOSTIC_KIND(K, msgid) K,
 #include "diagnostic.def"
 #undef DEFINE_DIAGNOSTIC_KIND
-  DK_LAST_DIAGNOSTIC_KIND
+  DK_LAST_DIAGNOSTIC_KIND,
+  /* This is used for tagging pragma pops in the diagnostic
+     classification history chain.  */
+  DK_POP
 } diagnostic_t;
 
 extern const char *progname;

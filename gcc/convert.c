@@ -30,7 +30,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "flags.h"
 #include "convert.h"
-#include "toplev.h"
+#include "diagnostic-core.h"
 #include "langhooks.h"
 
 /* Convert EXPR to some pointer or reference type TYPE.
@@ -46,7 +46,8 @@ convert_to_pointer (tree type, tree expr)
 
   /* Propagate overflow to the NULL pointer.  */
   if (integer_zerop (expr))
-    return force_fit_type_double (type, 0, 0, 0, TREE_OVERFLOW (expr));
+    return force_fit_type_double (type, double_int_zero, 0,
+				  TREE_OVERFLOW (expr));
 
   switch (TREE_CODE (TREE_TYPE (expr)))
     {
@@ -767,13 +768,19 @@ convert_to_integer (tree type, tree expr)
 			|| ex_form == LSHIFT_EXPR
 			/* If we have !flag_wrapv, and either ARG0 or
 			   ARG1 is of a signed type, we have to do
-			   PLUS_EXPR or MINUS_EXPR in an unsigned
-			   type.  Otherwise, we would introduce
+			   PLUS_EXPR, MINUS_EXPR or MULT_EXPR in an unsigned
+			   type in case the operation in outprec precision
+			   could overflow.  Otherwise, we would introduce
 			   signed-overflow undefinedness.  */
 			|| ((!TYPE_OVERFLOW_WRAPS (TREE_TYPE (arg0))
 			     || !TYPE_OVERFLOW_WRAPS (TREE_TYPE (arg1)))
+			    && ((TYPE_PRECISION (TREE_TYPE (arg0)) * 2u
+				 > outprec)
+				|| (TYPE_PRECISION (TREE_TYPE (arg1)) * 2u
+				    > outprec))
 			    && (ex_form == PLUS_EXPR
-				|| ex_form == MINUS_EXPR)))
+				|| ex_form == MINUS_EXPR
+				|| ex_form == MULT_EXPR)))
 		      typex = unsigned_type_for (typex);
 		    else
 		      typex = signed_type_for (typex);
@@ -791,14 +798,7 @@ convert_to_integer (tree type, tree expr)
 	  /* This is not correct for ABS_EXPR,
 	     since we must test the sign before truncation.  */
 	  {
-	    tree typex;
-
-	    /* Don't do unsigned arithmetic where signed was wanted,
-	       or vice versa.  */
-	    if (TYPE_UNSIGNED (TREE_TYPE (expr)))
-	      typex = unsigned_type_for (type);
-	    else
-	      typex = signed_type_for (type);
+	    tree typex = unsigned_type_for (type);
 	    return convert (type,
 			    fold_build1 (ex_form, typex,
 					 convert (typex,
@@ -849,7 +849,7 @@ convert_to_integer (tree type, tree expr)
     case VECTOR_TYPE:
       if (!tree_int_cst_equal (TYPE_SIZE (type), TYPE_SIZE (TREE_TYPE (expr))))
 	{
-	  error ("can't convert between vector values of different size");
+	  error ("can%'t convert between vector values of different size");
 	  return error_mark_node;
 	}
       return build1 (VIEW_CONVERT_EXPR, type, expr);
@@ -925,13 +925,13 @@ convert_to_vector (tree type, tree expr)
     case VECTOR_TYPE:
       if (!tree_int_cst_equal (TYPE_SIZE (type), TYPE_SIZE (TREE_TYPE (expr))))
 	{
-	  error ("can't convert between vector values of different size");
+	  error ("can%'t convert between vector values of different size");
 	  return error_mark_node;
 	}
       return build1 (VIEW_CONVERT_EXPR, type, expr);
 
     default:
-      error ("can't convert value to a vector");
+      error ("can%'t convert value to a vector");
       return error_mark_node;
     }
 }

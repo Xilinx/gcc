@@ -1,6 +1,6 @@
 /* Definitions for CPP library.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2007, 2008, 2009
+   2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Written by Per Bothner, 1994-95.
 
@@ -319,7 +319,7 @@ struct cpp_options
   unsigned char print_include_names;
 
   /* Nonzero means complain about deprecated features.  */
-  unsigned char warn_deprecated;
+  unsigned char cpp_warn_deprecated;
 
   /* Nonzero means warn if slash-star appears in a comment.  */
   unsigned char warn_comments;
@@ -336,10 +336,10 @@ struct cpp_options
 
   /* Nonzero means warn about various incompatibilities with
      traditional C.  */
-  unsigned char warn_traditional;
+  unsigned char cpp_warn_traditional;
 
   /* Nonzero means warn about long long numeric constants.  */
-  unsigned char warn_long_long;
+  unsigned char cpp_warn_long_long;
 
   /* Nonzero means warn about text after an #endif (or #else).  */
   unsigned char warn_endif_labels;
@@ -383,14 +383,11 @@ struct cpp_options
   unsigned char std;
 
   /* Nonzero means give all the error messages the ANSI standard requires.  */
-  unsigned char pedantic;
+  unsigned char cpp_pedantic;
 
   /* Nonzero means we're looking at already preprocessed code, so don't
      bother trying to do macro expansion and whatnot.  */
   unsigned char preprocessed;
-
-  /* Print column number in error messages.  */
-  unsigned char show_column;
 
   /* Nonzero means handle C++ alternate operator names.  */
   unsigned char operator_names;
@@ -512,6 +509,9 @@ struct cpp_callbacks
   /* Called whenever a macro is expanded or tested.
      Second argument is the location of the start of the current expansion.  */
   void (*used) (cpp_reader *, source_location, cpp_hashnode *);
+
+  /* Callback that can change a user builtin into normal macro.  */
+  bool (*user_builtin_macro) (cpp_reader *, cpp_hashnode *);
 };
 
 #ifdef VMS
@@ -602,7 +602,9 @@ enum cpp_builtin_type
   BT_STDC,			/* `__STDC__' */
   BT_PRAGMA,			/* `_Pragma' operator */
   BT_TIMESTAMP,			/* `__TIMESTAMP__' */
-  BT_COUNTER			/* `__COUNTER__' */
+  BT_COUNTER,			/* `__COUNTER__' */
+  BT_FIRST_USER,		/* User defined builtin macros.  */
+  BT_LAST_USER = BT_FIRST_USER + 31
 };
 
 #define CPP_HASHNODE(HNODE)	((cpp_hashnode *) (HNODE))
@@ -729,7 +731,7 @@ extern const cpp_token *cpp_get_token (cpp_reader *);
 extern const cpp_token *cpp_get_token_with_location (cpp_reader *,
 						     source_location *);
 extern const unsigned char *cpp_macro_definition (cpp_reader *,
-						  const cpp_hashnode *);
+						  cpp_hashnode *);
 extern void _cpp_backup_tokens (cpp_reader *, unsigned int);
 extern const cpp_token *cpp_peek_token (cpp_reader *, int);
 
@@ -755,9 +757,6 @@ extern void cpp_define_formatted (cpp_reader *pfile,
 extern void cpp_assert (cpp_reader *, const char *);
 extern void cpp_undef (cpp_reader *, const char *);
 extern void cpp_unassert (cpp_reader *, const char *);
-
-extern cpp_macro *cpp_push_definition (cpp_reader *, const char *);
-extern void cpp_pop_definition (cpp_reader *, const char *, cpp_macro *);
 
 /* Undefine all macros and assertions.  */
 extern void cpp_undef_all (cpp_reader *);

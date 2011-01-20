@@ -1,5 +1,5 @@
 /* Exported functions from emit-rtl.c
-   Copyright (C) 2004, 2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2007, 2008, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -76,7 +76,7 @@ get_insns (void)
 static inline void
 set_first_insn (rtx insn)
 {
-  gcc_assert (!insn || !PREV_INSN (insn));
+  gcc_checking_assert (!insn || !PREV_INSN (insn));
   crtl->emit.x_first_insn = insn;
 }
 
@@ -93,7 +93,7 @@ get_last_insn (void)
 static inline void
 set_last_insn (rtx insn)
 {
-  gcc_assert (!insn || !NEXT_INSN (insn));
+  gcc_checking_assert (!insn || !NEXT_INSN (insn));
   crtl->emit.x_last_insn = insn;
 }
 

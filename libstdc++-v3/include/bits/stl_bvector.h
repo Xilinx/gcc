@@ -49,9 +49,9 @@
  * purpose.  It is provided "as is" without express or implied warranty.
  */
 
-/** @file stl_bvector.h
+/** @file bits/stl_bvector.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{vector}
  */
 
 #ifndef _STL_BVECTOR_H
@@ -528,7 +528,7 @@ template<typename _Alloc>
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
     vector(vector&& __x)
-    : _Base(std::forward<_Base>(__x)) { }
+    : _Base(std::move(__x)) { }
 
     vector(initializer_list<bool> __l,
 	   const allocator_type& __a = allocator_type())
@@ -1038,7 +1038,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /// std::hash specialization for vector<bool>.
   template<typename _Alloc>
     struct hash<_GLIBCXX_STD_D::vector<bool, _Alloc>>
-    : public std::unary_function<_GLIBCXX_STD_D::vector<bool, _Alloc>, size_t>
+    : public __hash_base<size_t, _GLIBCXX_STD_D::vector<bool, _Alloc>>
     {
       size_t
       operator()(const _GLIBCXX_STD_D::vector<bool, _Alloc>& __b) const;

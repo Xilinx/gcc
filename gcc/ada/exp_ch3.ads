@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -77,7 +77,7 @@ package Exp_Ch3 is
    --  enable the use of discriminals. Enclos_Type is the enclosing type when
    --  initializing a component in an outer init proc, and it is used for
    --  various expansion cases including the case where Typ is a task type
-   --  which is an array component, the indices of the enclosing type are
+   --  which is an array component, the indexes of the enclosing type are
    --  used to build the string that identifies each task at runtime.
    --
    --  Discr_Map is used to replace discriminants by their discriminals in
@@ -126,14 +126,18 @@ package Exp_Ch3 is
    --  then tags components located at variable positions of Target are
    --  initialized.
 
-   function Needs_Simple_Initialization (T : Entity_Id) return Boolean;
+   function Needs_Simple_Initialization
+     (T           : Entity_Id;
+      Consider_IS : Boolean := True) return Boolean;
    --  Certain types need initialization even though there is no specific
    --  initialization routine. In this category are access types (which need
    --  initializing to null), packed array types whose implementation is a
    --  modular type, and all scalar types if Normalize_Scalars is set, as well
    --  as private types whose underlying type is present and meets any of these
    --  criteria. Finally, descendants of String and Wide_String also need
-   --  initialization in Initialize/Normalize_Scalars mode.
+   --  initialization in Initialize/Normalize_Scalars mode. Consider_IS is
+   --  normally True. If it is False, the Initialize_Scalars is not considered
+   --  in determining whether simple initialization is needed.
 
    function Get_Simple_Init_Val
      (T    : Entity_Id;

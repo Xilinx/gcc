@@ -1,5 +1,5 @@
 /* Definitions of Tensilica's Xtensa target machine for GNU compiler.
-   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Bob Wilson (bwilson@tensilica.com) at Tensilica.
 
@@ -21,9 +21,6 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Get Xtensa configuration settings */
 #include "xtensa-config.h"
-
-/* Standard GCC variables that we reference.  */
-extern int optimize;
 
 /* External variables defined in xtensa.c.  */
 
@@ -74,20 +71,6 @@ extern unsigned xtensa_current_frame_size;
 #define HAVE_AS_TLS 0
 #endif
 
-#define OVERRIDE_OPTIONS override_options ()
-
-/* Reordering blocks for Xtensa is not a good idea unless the compiler
-   understands the range of conditional branches.  Currently all branch
-   relaxation for Xtensa is handled in the assembler, so GCC cannot do a
-   good job of reordering blocks.  Do not enable reordering unless it is
-   explicitly requested.  */
-#define OPTIMIZATION_OPTIONS(LEVEL, SIZE)				\
-  do									\
-    {									\
-      flag_reorder_blocks = 0;						\
-    }									\
-  while (0)
-
 
 /* Target CPU builtins.  */
 #define TARGET_CPU_CPP_BUILTINS()					\
@@ -110,16 +93,6 @@ extern unsigned xtensa_current_frame_size;
 
 #define EXTRA_SPECS							\
   { "subtarget_cpp_spec", SUBTARGET_CPP_SPEC },
-
-#ifdef __XTENSA_EB__
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#endif
-
-/* Show we can debug even without a frame pointer.  */
-#define CAN_DEBUG_WITHOUT_FP
-
 
 /* Target machine storage layout */
 
@@ -547,9 +520,6 @@ extern const enum reg_class xtensa_regno_to_class[FIRST_PSEUDO_REGISTER];
    128-bit datatypes defined in TIE (e.g., for Vectra).  */
 #define STACK_BOUNDARY 128
 
-/* Functions do not pop arguments off the stack.  */
-#define RETURN_POPS_ARGS(FUNDECL, FUNTYPE, SIZE) 0
-
 /* Use a fixed register window size of 8.  */
 #define WINDOW_SIZE 8
 
@@ -568,33 +538,6 @@ extern const enum reg_class xtensa_regno_to_class[FIRST_PSEUDO_REGISTER];
 
 /* Don't worry about compatibility with PCC.  */
 #define DEFAULT_PCC_STRUCT_RETURN 0
-
-/* Define how to find the value returned by a library function
-   assuming the value has mode MODE.  Because we have defined
-   TARGET_PROMOTE_FUNCTION_MODE to promote everything, we have to
-   perform the same promotions as PROMOTE_MODE.  */
-#define XTENSA_LIBCALL_VALUE(MODE, OUTGOINGP)				\
-  gen_rtx_REG ((GET_MODE_CLASS (MODE) == MODE_INT			\
-		&& GET_MODE_SIZE (MODE) < UNITS_PER_WORD)		\
-	       ? SImode : (MODE),					\
-	       OUTGOINGP ? GP_OUTGOING_RETURN : GP_RETURN)
-
-#define LIBCALL_VALUE(MODE)						\
-  XTENSA_LIBCALL_VALUE ((MODE), 0)
-
-#define LIBCALL_OUTGOING_VALUE(MODE)			 		\
-  XTENSA_LIBCALL_VALUE ((MODE), 1)
-
-/* A C expression that is nonzero if REGNO is the number of a hard
-   register in which the values of called function may come back.  A
-   register whose use for returning values is limited to serving as
-   the second of a pair (for a value of type 'double', say) need not
-   be recognized by this macro.  If the machine has register windows,
-   so that the caller and the called function use different registers
-   for the return value, this macro should recognize only the caller's
-   register numbers.  */
-#define FUNCTION_VALUE_REGNO_P(N)					\
-  ((N) == GP_RETURN)
 
 /* A C expression that is nonzero if REGNO is the number of a hard
    register in which function arguments are sometimes passed.  This
@@ -620,20 +563,6 @@ typedef struct xtensa_args
 
 #define INIT_CUMULATIVE_INCOMING_ARGS(CUM, FNTYPE, LIBNAME)		\
   init_cumulative_args (&CUM, 1)
-
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)			\
-  function_arg_advance (&CUM, MODE, TYPE)
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  function_arg (&CUM, MODE, TYPE, FALSE)
-
-#define FUNCTION_INCOMING_ARG(CUM, MODE, TYPE, NAMED) \
-  function_arg (&CUM, MODE, TYPE, TRUE)
-
-#define FUNCTION_ARG_BOUNDARY function_arg_boundary
 
 /* Profiling Xtensa code is typically done with the built-in profiling
    feature of Tensilica's instruction set simulator, which does not
@@ -859,14 +788,6 @@ typedef struct xtensa_args
 
 #define PRINT_OPERAND(FILE, X, CODE) print_operand (FILE, X, CODE)
 #define PRINT_OPERAND_ADDRESS(FILE, ADDR) print_operand_address (FILE, ADDR)
-
-/* Recognize machine-specific patterns that may appear within
-   constants.  Used for PIC-specific UNSPECs.  */
-#define OUTPUT_ADDR_CONST_EXTRA(STREAM, X, FAIL)			\
-  do {									\
-    if (xtensa_output_addr_const_extra (STREAM, X) == FALSE)		\
-      goto FAIL;							\
-  } while (0)
 
 /* Globalizing directive for a label.  */
 #define GLOBAL_ASM_OP "\t.global\t"

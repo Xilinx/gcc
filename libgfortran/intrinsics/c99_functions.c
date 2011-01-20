@@ -1,5 +1,5 @@
 /* Implementation of various C99 functions 
-   Copyright (C) 2004, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
 
@@ -558,7 +558,6 @@ powf (float x, float y)
 }
 #endif
 
-/* Note that if fpclassify is not defined, then NaN is not handled */
 
 /* Algorithm by Steven G. Kargl.  */
 
@@ -1854,7 +1853,7 @@ tgamma (double x)
   n = 0;
   y = x;
 
-  if (__builtin_isnan (x))
+  if (isnan (x))
     return x;
 
   if (y <= 0)

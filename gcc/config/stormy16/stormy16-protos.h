@@ -1,5 +1,5 @@
 /* Prototypes for exported functions defined in xstormy16.c
-   Copyright (C) 2000, 2001, 2003, 2004, 2007, 2008
+   Copyright (C) 2000, 2001, 2003, 2004, 2007, 2008, 2010
    Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
@@ -33,13 +33,6 @@ extern void xstormy16_function_profiler (void);
 #if defined (TREE_CODE)
 extern void xstormy16_asm_output_aligned_common (FILE *, tree, const char *,
 						 int, int, int);
-#endif
-
-#if defined (TREE_CODE) && defined (HAVE_MACHINE_MODES)
-extern CUMULATIVE_ARGS xstormy16_function_arg_advance 
- (CUMULATIVE_ARGS, enum machine_mode, tree, int);
-extern rtx xstormy16_function_arg
- (CUMULATIVE_ARGS, enum machine_mode, tree, int);
 #endif
 
 #if defined (TREE_CODE) && defined (RTX_CODE)

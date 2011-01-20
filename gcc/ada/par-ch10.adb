@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -344,12 +344,13 @@ package body Ch10 is
              Get_Expected_Unit_Type
                (File_Name (Current_Source_File)) = Expect_Body
          then
-            Error_Msg_BC ("keyword BODY expected here [see file name]");
+            Error_Msg_BC -- CODEFIX
+              ("keyword BODY expected here [see file name]");
             Restore_Scan_State (Scan_State);
-            Set_Unit (Comp_Unit_Node, P_Package (Pf_Pbod));
+            Set_Unit (Comp_Unit_Node, P_Package (Pf_Pbod_Pexp));
          else
             Restore_Scan_State (Scan_State);
-            Set_Unit (Comp_Unit_Node, P_Package (Pf_Decl_Gins_Pbod_Rnam));
+            Set_Unit (Comp_Unit_Node, P_Package (Pf_Decl_Gins_Pbod_Rnam_Pexp));
          end if;
 
       elsif Token = Tok_Generic then
@@ -363,7 +364,7 @@ package body Ch10 is
         or else Token = Tok_Overriding
         or else Token = Tok_Procedure
       then
-         Set_Unit (Comp_Unit_Node, P_Subprogram (Pf_Decl_Gins_Pbod_Rnam));
+         Set_Unit (Comp_Unit_Node, P_Subprogram (Pf_Decl_Gins_Pbod_Rnam_Pexp));
 
          --  A little bit of an error recovery check here. If we just scanned
          --  a subprogram declaration (as indicated by an SIS entry being
@@ -395,7 +396,8 @@ package body Ch10 is
                --  Otherwise we saved the semicolon position, so complain
 
                else
-                  Error_Msg (""";"" should be IS", SIS_Semicolon_Sloc);
+                  Error_Msg -- CODEFIX
+                    (""";"" should be IS", SIS_Semicolon_Sloc);
                end if;
 
                Body_Node := Unit (Comp_Unit_Node);
@@ -632,7 +634,6 @@ package body Ch10 is
          --  Check we did not with any child units
 
          Item := First (Context_Items (Comp_Unit_Node));
-
          while Present (Item) loop
             if Nkind (Item) = N_With_Clause
               and then Nkind (Name (Item)) /= N_Identifier
@@ -836,10 +837,11 @@ package body Ch10 is
             end if;
 
             if Token /= Tok_With then
-               Error_Msg_SC ("unexpected LIMITED ignored");
+               Error_Msg_SC -- CODEFIX
+                 ("unexpected LIMITED ignored");
             end if;
 
-            if Ada_Version < Ada_05 then
+            if Ada_Version < Ada_2005 then
                Error_Msg_SP ("LIMITED WITH is an Ada 2005 extension");
                Error_Msg_SP
                  ("\unit must be compiled with -gnat05 switch");
@@ -858,7 +860,7 @@ package body Ch10 is
                Restore_Scan_State (Scan_State); -- to PRIVATE
                return Item_List;
 
-            elsif Ada_Version < Ada_05 then
+            elsif Ada_Version < Ada_2005 then
                Error_Msg_SP ("`PRIVATE WITH` is an Ada 2005 extension");
                Error_Msg_SP
                  ("\unit must be compiled with -gnat05 switch");
@@ -876,8 +878,7 @@ package body Ch10 is
 
                --  WITH TYPE is an obsolete GNAT specific extension
 
-               Error_Msg_SP
-                 ("`WITH TYPE` is an obsolete 'G'N'A'T extension");
+               Error_Msg_SP ("`WITH TYPE` is an obsolete 'G'N'A'T extension");
                Error_Msg_SP ("\use Ada 2005 `LIMITED WITH` clause instead");
 
                Scan;  -- past TYPE
@@ -912,6 +913,10 @@ package body Ch10 is
                   --  place where such an "error" should be caught.
 
                   Set_Name (With_Node, P_Qualified_Simple_Name);
+                  if Name (With_Node) = Error then
+                     Remove (With_Node);
+                  end if;
+
                   Set_First_Name (With_Node, First_Flag);
                   Set_Limited_Present (With_Node, Has_Limited);
                   Set_Private_Present (With_Node, Has_Private);
@@ -1028,11 +1033,15 @@ package body Ch10 is
 
       Ignore (Tok_Semicolon);
 
-      if Token = Tok_Function or else Token = Tok_Procedure then
-         Body_Node := P_Subprogram (Pf_Pbod);
+      if Token = Tok_Function
+        or else Token = Tok_Not
+        or else Token = Tok_Overriding
+        or else Token = Tok_Procedure
+      then
+         Body_Node := P_Subprogram (Pf_Pbod_Pexp);
 
       elsif Token = Tok_Package then
-         Body_Node := P_Package (Pf_Pbod);
+         Body_Node := P_Package (Pf_Pbod_Pexp);
 
       elsif Token = Tok_Protected then
          Scan; -- past PROTECTED

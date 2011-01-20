@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for HP PA-RISC
    Copyright (C) 1995, 1996, 1997, 2000, 2001, 2002, 2003, 2004,
-   2007, 2008 Free Software Foundation, Inc.
+   2007, 2008, 2010 Free Software Foundation, Inc.
    Contributed by Tim Moore (moore@defmacro.cs.utah.edu)
 
 This file is part of GCC.
@@ -84,10 +84,10 @@ along with GCC; see the file COPYING3.  If not see
 #define LINK_SPEC \
   "%{!mpa-risc-1-0:%{!march=1.0:%{static:-L/lib/pa1.1 -L/usr/lib/pa1.1 }}}\
    %{!shared:%{p:-L/lib/libp %{!static:\
-     %nWarning: consider linking with `-static' as system libraries with\n\
+     %nwarning: consider linking with '-static' as system libraries with\n\
      %n  profiling support are only provided in archive format}}}\
    %{!shared:%{pg:-L/lib/libp %{!static:\
-     %nWarning: consider linking with `-static' as system libraries with\n\
+     %nwarning: consider linking with '-static' as system libraries with\n\
      %n  profiling support are only provided in archive format}}}\
    %{!shared:%{!static:%{rdynamic:-E}}}\
    -z %{mlinker-opt:-O} %{!shared:-u main}\
@@ -95,10 +95,10 @@ along with GCC; see the file COPYING3.  If not see
 #else
 #define LINK_SPEC \
   "%{!shared:%{p:-L/lib/libp %{!static:\
-     %nWarning: consider linking with `-static' as system libraries with\n\
+     %nwarning: consider linking with '-static' as system libraries with\n\
      %n  profiling support are only provided in archive format}}}\
    %{!shared:%{pg:-L/lib/libp %{!static:\
-     %nWarning: consider linking with `-static' as system libraries with\n\
+     %nwarning: consider linking with '-static' as system libraries with\n\
      %n  profiling support are only provided in archive format}}}\
    %{!shared:%{!static:%{rdynamic:-E}}}\
    -z %{mlinker-opt:-O} %{!shared:-u main}\

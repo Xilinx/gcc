@@ -1,6 +1,6 @@
 // posix.h -- Helper functions for POSIX-flavored OSs.
 
-/* Copyright (C) 2000, 2002, 2003, 2006  Free Software Foundation
+/* Copyright (C) 2000, 2002, 2003, 2006, 2010  Free Software Foundation
 
    This file is part of libgcj.
 
@@ -56,9 +56,9 @@ details.  */
 #define _Jv_platform_solib_suffix ".so"
 #endif
 
-#if defined(__APPLE__) && defined(__MACH__)
-#undef _Unwind_FindEnclosingFunction
-#define _Unwind_FindEnclosingFunction(PC) _darwin10_Unwind_FindEnclosingFunction(PC)
+#if __MACH__ && (__ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 1060)
+#  undef _Unwind_FindEnclosingFunction
+#  define _Unwind_FindEnclosingFunction(PC) _darwin10_Unwind_FindEnclosingFunction(PC)
 #endif
 
 // Some POSIX systems don't have O_SYNC and O_DYSNC so we define them here.

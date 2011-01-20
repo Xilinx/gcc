@@ -96,6 +96,7 @@ if test "x${with_newlib}" != "xyes"; then
   AC_LIBTOOL_DLOPEN
 fi
 AM_PROG_LIBTOOL
+ACX_LT_HOST_FLAGS
 AC_SUBST(enable_shared)
 AC_SUBST(enable_static)
 
@@ -153,8 +154,8 @@ GLIBCXX_CHECK_WRITEV
 # For C99 support to TR1.
 GLIBCXX_CHECK_C99_TR1
 
-# For common values of EOF, SEEK_CUR, SEEK_END.
-GLIBCXX_CHECK_STDIO_MACROS
+# For the EOF, SEEK_CUR, and SEEK_END integer constants.
+GLIBCXX_COMPUTE_STDIO_INTEGER_CONSTANTS
 
 # For gettimeofday support.
 GLIBCXX_CHECK_GETTIMEOFDAY
@@ -231,7 +232,7 @@ else
     AC_DEFINE(HAVE_HYPOT)
 
     # GLIBCXX_CHECK_STDLIB_SUPPORT
-    AC_DEFINE(HAVE_STRTOF)        
+    AC_DEFINE(HAVE_STRTOF)
 
     AC_DEFINE(HAVE_ACOSF)
     AC_DEFINE(HAVE_ASINF)
@@ -326,6 +327,62 @@ GLIBCXX_CONDITIONAL(GLIBCXX_LDBL_COMPAT, test $ac_ldbl_compat = yes)
 # This depends on GLIBCXX_ENABLE_SYMVERS and GLIBCXX_IS_NATIVE.
 GLIBCXX_CONFIGURE_TESTSUITE
 
+# Define documentation rules conditionally.
+
+# See if makeinfo has been installed and is modern enough
+# that we can use it.
+ACX_CHECK_PROG_VER([MAKEINFO], [makeinfo], [--version],
+		   [GNU texinfo.* \([0-9][0-9.]*\)],
+		   [4.[4-9]*|4.[1-9][0-9]*|[5-9]*|[1-9][0-9]*])
+AM_CONDITIONAL(BUILD_INFO, test $gcc_cv_prog_makeinfo_modern = "yes")
+
+# Check for doxygen
+AC_CHECK_PROG([DOXYGEN], doxygen, yes, no)
+AC_CHECK_PROG([DOT], dot, yes, no)
+
+# Check for docbook
+AC_CHECK_PROG([XSLTPROC], xsltproc, yes, no)
+AC_CHECK_PROG([XMLLINT], xmllint, yes, no)
+
+glibcxx_stylesheets=no
+if test -f /usr/share/sgml/docbook/xsl-ns-stylesheets/VERSION; then
+  glibcxx_stylesheets=yes
+fi
+
+# Check for xml/html dependencies.
+AM_CONDITIONAL(BUILD_XML,
+	       test $ac_cv_prog_DOXYGEN = "yes" &&
+	       test $ac_cv_prog_DOT = "yes" &&
+	       test $ac_cv_prog_XSLTPROC = "yes" &&
+	       test $ac_cv_prog_XMLLINT = "yes" &&
+	       test $glibcxx_stylesheets = "yes")
+
+AM_CONDITIONAL(BUILD_HTML,
+	       test $ac_cv_prog_DOXYGEN = "yes" &&
+	       test $ac_cv_prog_DOT = "yes" &&
+	       test $ac_cv_prog_XSLTPROC = "yes" &&
+	       test $ac_cv_prog_XMLLINT = "yes" &&
+	       test $glibcxx_stylesheets = "yes")
+
+# Check for man dependencies.
+AM_CONDITIONAL(BUILD_MAN,
+	       test $ac_cv_prog_DOXYGEN = "yes" &&
+	       test $ac_cv_prog_DOT = "yes")
+
+# Check for pdf/epub dependencies.
+AC_CHECK_PROG([DBLATEX], dblatex, yes, no)
+AC_CHECK_PROG([PDFLATEX], pdflatex, yes, no)
+AM_CONDITIONAL(BUILD_PDF,
+	       test $ac_cv_prog_DBLATEX = "yes" &&
+	       test $ac_cv_prog_PDFLATEX = "yes")
+
+AC_CHECK_PROG([RUBY], ruby, yes, no)
+AC_CHECK_PROG([DBTOEPUB], dbtoepubm, yes, no)
+AM_CONDITIONAL(BUILD_EPUB,
+	       test $ac_cv_prog_RUBY = "yes" &&
+	       test $ac_cv_prog_DBTOEPUB = "yes")
+
+
 # Propagate the target-specific source directories through the build chain.
 ATOMICITY_SRCDIR=config/${atomicity_dir}
 ATOMIC_WORD_SRCDIR=config/${atomic_word_dir}
@@ -347,7 +404,7 @@ AC_SUBST(ERROR_CONSTANTS_SRCDIR)
 #AC_SUBST(GLIBCXX_IS_NATIVE)
 #AM_CONDITIONAL(CANADIAN, test $CANADIAN = yes)
 GLIBCXX_EVALUATE_CONDITIONALS
- 
+
 AC_CACHE_SAVE
 
 if test ${multilib} = yes; then
@@ -375,6 +432,7 @@ dnl which can all be called multiple times as needed, plus one (different)
 dnl AC_OUTPUT macro.  This one lists the files to be created:
 AC_CONFIG_FILES(Makefile)
 AC_CONFIG_FILES([scripts/testsuite_flags],[chmod +x scripts/testsuite_flags])
+AC_CONFIG_FILES([scripts/extract_symvers],[chmod +x scripts/extract_symvers])
 
 # Multilibs need MULTISUBDIR defined correctly in certain makefiles so
 # that multilib installs will end up installed in the correct place.

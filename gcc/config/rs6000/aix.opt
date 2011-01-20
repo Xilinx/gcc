@@ -1,6 +1,6 @@
 ; AIX options.
 ;
-; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+; Copyright (C) 2005, 2007, 2010 Free Software Foundation, Inc.
 ; Contributed by Aldy Hernandez <aldy@quesejoda.com>.
 ;
 ; This file is part of GCC.
@@ -20,5 +20,5 @@
 ; <http://www.gnu.org/licenses/>.
 
 mxl-compat
-Target Var(has_xl_compat_option)
+Target Var(has_xl_compat_option) Save
 Conform more closely to IBM XLC semantics

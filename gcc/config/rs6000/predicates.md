@@ -1,5 +1,6 @@
 ;; Predicate definitions for POWER and PowerPC.
-;; Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -837,7 +838,7 @@
     return 1;
 
   /* A SYMBOL_REF referring to the TOC is valid.  */
-  if (legitimate_constant_pool_address_p (op))
+  if (legitimate_constant_pool_address_p (op, false))
     return 1;
 
   /* A constant pool expression (relative to the TOC) is valid */
@@ -902,6 +903,12 @@
 (define_predicate "scc_comparison_operator"
   (and (match_operand 0 "branch_comparison_operator")
        (match_code "eq,lt,gt,ltu,gtu,unordered")))
+
+;; Return 1 if OP is a comparison operation whose inverse would be valid for
+;; an SCC insn.
+(define_predicate "scc_rev_comparison_operator"
+  (and (match_operand 0 "branch_comparison_operator")
+       (match_code "ne,le,ge,leu,geu,ordered")))
 
 ;; Return 1 if OP is a comparison operation that is valid for a branch
 ;; insn, which is true if the corresponding bit in the CC register is set.

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1992-2009, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -78,12 +78,12 @@ package body Sem_Cat is
 
    function In_RCI_Declaration (N : Node_Id) return Boolean;
    --  Determines if a declaration is  within the visible part of a Remote
-   --  Call Interface compilation unit, for semantic checking purposes only,
+   --  Call Interface compilation unit, for semantic checking purposes only
    --  (returns false within an instance and within the package body).
 
    function In_RT_Declaration return Boolean;
-   --  Determines if current scope is within a Remote Types compilation unit,
-   --  for semantic checking purposes.
+   --  Determines if current scope is within the declaration of a Remote Types
+   --  unit, for semantic checking purposes.
 
    function Is_Non_Remote_Access_Type (E : Entity_Id) return Boolean;
    --  Returns true if the entity is a type whose full view is a non-remote
@@ -206,6 +206,17 @@ package body Sem_Cat is
            and then In_Package_Body (Unit_Entity)
          then
             null;
+
+         --  Special case: Remote_Types can depend on Preelaborated per
+         --  Ada 2005 AI 0206.
+
+         elsif Unit_Category = Remote_Types
+           and then Is_Preelaborated (Depended_Entity)
+         then
+            null;
+
+         --  All other cases, we do have an error
+
          else
             Err := True;
          end if;
@@ -215,10 +226,19 @@ package body Sem_Cat is
 
       if Err then
 
-         --  These messages are warnings in GNAT mode, to allow it to be
-         --  judiciously turned off. Otherwise it is a real error.
+         --  These messages are warnings in GNAT mode or if the -gnateP switch
+         --  was set. Otherwise these are real errors for real illegalities.
 
-         Error_Msg_Warn := GNAT_Mode;
+         --  The reason we suppress these errors in GNAT mode is that the run-
+         --  time has several instances of violations of the categorization
+         --  errors (e.g. Pure units withing Preelaborate units. All these
+         --  violations are harmless in the cases where we intend them, and
+         --  we suppress the warnings with Warnings (Off). In cases where we
+         --  do not intend the violation, warnings are errors in GNAT mode
+         --  anyway, so we will still get an error.
+
+         Error_Msg_Warn :=
+           Treat_Categorization_Errors_As_Warnings or GNAT_Mode;
 
          --  Don't give error if main unit is not an internal unit, and the
          --  unit generating the message is an internal unit. This is the
@@ -387,7 +407,7 @@ package body Sem_Cat is
       --  currently visible.
 
       return Present (Rep_Item)
-        and then (Ada_Version < Ada_05
+        and then (Ada_Version < Ada_2005
                    or else At_Any_Place
                    or else not Is_Hidden (Entity (Rep_Item)));
    end Has_Stream_Attribute_Definition;
@@ -768,7 +788,7 @@ package body Sem_Cat is
 
             --  This test is skipped in Ada 2005 (see AI-366)
 
-            if Ada_Version < Ada_05
+            if Ada_Version < Ada_2005
               and then Comes_From_Source (T)
               and then In_Pure_Unit
               and then not In_Subprogram_Task_Protected_Unit
@@ -965,7 +985,7 @@ package body Sem_Cat is
       --  Don't need this check in Ada 2005 mode, where this is all taken
       --  care of by the mechanism for Preelaborable Initialization.
 
-      if Ada_Version >= Ada_05 then
+      if Ada_Version >= Ada_2005 then
          return;
       end if;
 
@@ -1061,28 +1081,25 @@ package body Sem_Cat is
       --  Exclude generic specs from the checks (this will get rechecked
       --  on instantiations).
 
-      if Inside_A_Generic
-        and then No (Enclosing_Generic_Body (Id))
-      then
+      if Inside_A_Generic and then No (Enclosing_Generic_Body (Id)) then
          return;
       end if;
 
-      --  Required checks for declaration that is in a preelaborated
-      --  package and is not within some subprogram.
+      --  Required checks for declaration that is in a preelaborated package
+      --  and is not within some subprogram.
 
       if In_Preelaborated_Unit
         and then not In_Subprogram_Or_Concurrent_Unit
       then
          --  Check for default initialized variable case. Note that in
-         --  accordance with (RM B.1(24)) imported objects are not
-         --  subject to default initialization.
+         --  accordance with (RM B.1(24)) imported objects are not subject to
+         --  default initialization.
          --  If the initialization does not come from source and is an
          --  aggregate, it is a static initialization that replaces an
          --  implicit call, and must be treated as such.
 
          if Present (E)
-           and then
-            (Comes_From_Source (E) or else Nkind (E) /= N_Aggregate)
+           and then (Comes_From_Source (E) or else Nkind (E) /= N_Aggregate)
          then
             null;
 
@@ -1149,7 +1166,7 @@ package body Sem_Cat is
                      --  marked with this pragma in the predefined library are
                      --  not treated specially.
 
-                     if Ada_Version < Ada_05 then
+                     if Ada_Version < Ada_2005 then
                         Error_Msg_N
                           ("private object not allowed in preelaborated unit",
                            N);
@@ -1182,7 +1199,7 @@ package body Sem_Cat is
                         then
                            Error_Msg_Sloc := Sloc (Ent);
 
-                           if Ada_Version >= Ada_05 then
+                           if Ada_Version >= Ada_2005 then
                               Error_Msg_NE
                                 ("\would be legal if pragma Preelaborable_" &
                                  "Initialization given for & #", N, Ent);
@@ -1210,13 +1227,8 @@ package body Sem_Cat is
                elsif Nkind (Odf) = N_Subtype_Indication then
                   Ent := Etype (Subtype_Mark (Odf));
 
-               elsif
-                  Nkind (Odf) = N_Constrained_Array_Definition
-               then
+               elsif Nkind (Odf) = N_Constrained_Array_Definition then
                   Ent := Component_Type (T);
-
-               --  else
-               --     return;
                end if;
 
                if Is_Task_Type (Ent)
@@ -1230,9 +1242,9 @@ package body Sem_Cat is
             end;
          end if;
 
-         --  Non-static discriminant not allowed in preelaborated unit
-         --  Controlled object of a type with a user-defined Initialize
-         --  is forbidden as well.
+         --  Non-static discriminants not allowed in preelaborated unit.
+         --  Objects of a controlled type with a user-defined Initialize
+         --  are forbidden as well.
 
          if Is_Record_Type (Etype (Id)) then
             declare
@@ -1248,7 +1260,7 @@ package body Sem_Cat is
 
                   if Nkind (PEE) = N_Full_Type_Declaration
                     and then not Static_Discriminant_Expr
-                                  (Discriminant_Specifications (PEE))
+                                   (Discriminant_Specifications (PEE))
                   then
                      Error_Msg_N
                        ("non-static discriminant in preelaborated unit",
@@ -1270,23 +1282,21 @@ package body Sem_Cat is
       --  except within a subprogram, generic subprogram, task unit, or
       --  protected unit (RM 10.2.1(16)).
 
-      if In_Pure_Unit
-        and then not In_Subprogram_Task_Protected_Unit
-      then
+      if In_Pure_Unit and then not In_Subprogram_Task_Protected_Unit then
          Error_Msg_N ("declaration of variable not allowed in pure unit", N);
 
       --  The visible part of an RCI library unit must not contain the
       --  declaration of a variable (RM E.1.3(9))
 
       elsif In_RCI_Declaration (N) then
-         Error_Msg_N ("declaration of variable not allowed in rci unit", N);
+         Error_Msg_N ("visible variable not allowed in 'R'C'I unit", N);
 
       --  The visible part of a Shared Passive library unit must not contain
       --  the declaration of a variable (RM E.2.2(7))
 
-      elsif In_RT_Declaration then
+      elsif In_RT_Declaration and then not In_Private_Part (Id) then
          Error_Msg_N
-           ("variable declaration not allowed in remote types unit", N);
+           ("visible variable not allowed in remote types unit", N);
       end if;
 
    end Validate_Object_Declaration;
@@ -1332,6 +1342,12 @@ package body Sem_Cat is
 
    begin
       Desig_Type := Etype (Designated_Type (T));
+
+      --  No action needed for concurrent types
+
+      if Is_Concurrent_Type (Desig_Type) then
+         return;
+      end if;
 
       Primitive_Subprograms := Primitive_Operations (Desig_Type);
 
@@ -1397,8 +1413,8 @@ package body Sem_Cat is
 
                null;
 
-            elsif Ekind (Param_Type) = E_Anonymous_Access_Type
-              or else Ekind (Param_Type) = E_Anonymous_Access_Subprogram_Type
+            elsif Ekind_In (Param_Type, E_Anonymous_Access_Type,
+                                        E_Anonymous_Access_Subprogram_Type)
             then
                --  From RM E.2.2(14), no anonymous access parameter other than
                --  controlling ones may be used (because an anonymous access
@@ -1454,9 +1470,9 @@ package body Sem_Cat is
                  ("limited type not allowed in rci unit", Parent (E));
                Explain_Limited_Type (E, Parent (E));
 
-            elsif Ekind (E) = E_Generic_Function
-              or else Ekind (E) = E_Generic_Package
-              or else Ekind (E) = E_Generic_Procedure
+            elsif Ekind_In (E, E_Generic_Function,
+                               E_Generic_Package,
+                               E_Generic_Procedure)
             then
                Error_Msg_N ("generic declaration not allowed in rci unit",
                  Parent (E));
@@ -1551,7 +1567,6 @@ package body Sem_Cat is
             Type_Decl  := Parent (Param_Type);
 
             if Ekind (Param_Type) = E_Anonymous_Access_Type then
-
                if K = N_Subprogram_Declaration then
                   Error_Node := Param_Spec;
                end if;
@@ -1609,7 +1624,7 @@ package body Sem_Cat is
                Base_Under_Type := Base_Type (Underlying_Type
                                               (Base_Param_Type));
 
-               if (Ada_Version < Ada_05
+               if (Ada_Version < Ada_2005
                      and then
                        (No (TSS (Base_Param_Type, TSS_Stream_Read))
                           or else
@@ -1619,7 +1634,7 @@ package body Sem_Cat is
                           or else
                         No (TSS (Base_Under_Type, TSS_Stream_Write))))
                  or else
-                   (Ada_Version >= Ada_05
+                   (Ada_Version >= Ada_2005
                       and then
                         (No (TSS (Base_Param_Type, TSS_Stream_Read))
                            or else
@@ -1639,7 +1654,7 @@ package body Sem_Cat is
                      Error_Node := Param_Spec;
                   end if;
 
-                  if Ada_Version >= Ada_05 then
+                  if Ada_Version >= Ada_2005 then
                      Error_Msg_N
                        ("limited parameter in 'R'C'I unit "
                           & "must have visible read/write attributes ",
@@ -1754,8 +1769,8 @@ package body Sem_Cat is
    --  Start of processing for Validate_Remote_Access_Object_Type_Declaration
 
    begin
-      --  We are called from Analyze_Type_Declaration, and the Nkind of the
-      --  given node is N_Access_To_Object_Definition.
+      --  We are called from Analyze_Full_Type_Declaration, and the Nkind of
+      --  the given node is N_Access_To_Object_Definition.
 
       if not Comes_From_Source (T)
         or else (not In_RCI_Declaration (Parent (T))
@@ -2003,7 +2018,7 @@ package body Sem_Cat is
                      "non-remote access type", U_Typ);
                end if;
 
-               if Ada_Version >= Ada_05 then
+               if Ada_Version >= Ada_2005 then
                   Error_Msg_N
                     ("\must have visible Read and Write attribute " &
                      "definition clauses (RM E.2.2(8))", U_Typ);
@@ -2055,7 +2070,7 @@ package body Sem_Cat is
    --  Start of processing for Validate_SP_Access_Object_Type_Decl
 
    begin
-      --  We are called from Sem_Ch3.Analyze_Type_Declaration, and the
+      --  We are called from Sem_Ch3.Analyze_Full_Type_Declaration, and the
       --  Nkind of the given entity is N_Access_To_Object_Definition.
 
       if not Comes_From_Source (T)

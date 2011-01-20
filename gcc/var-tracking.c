@@ -92,6 +92,7 @@
 #include "tm.h"
 #include "rtl.h"
 #include "tree.h"
+#include "tm_p.h"
 #include "hard-reg-set.h"
 #include "basic-block.h"
 #include "flags.h"
@@ -109,7 +110,6 @@
 #include "tree-flow.h"
 #include "cselib.h"
 #include "target.h"
-#include "toplev.h"
 #include "params.h"
 #include "diagnostic.h"
 #include "tree-pretty-print.h"
@@ -408,7 +408,6 @@ static void stack_adjust_offset_pre_post (rtx, HOST_WIDE_INT *,
 static void insn_stack_adjust_offset_pre_post (rtx, HOST_WIDE_INT *,
 					       HOST_WIDE_INT *);
 static bool vt_stack_adjustments (void);
-static rtx compute_cfa_pointer (HOST_WIDE_INT);
 static hashval_t variable_htab_hash (const void *);
 static int variable_htab_eq (const void *, const void *);
 static void variable_htab_free (void *);
@@ -695,22 +694,17 @@ vt_stack_adjustments (void)
   return true;
 }
 
+/* arg_pointer_rtx resp. frame_pointer_rtx if stack_pointer_rtx or
+   hard_frame_pointer_rtx is being mapped to it and offset for it.  */
+static rtx cfa_base_rtx;
+static HOST_WIDE_INT cfa_base_offset;
+
 /* Compute a CFA-based value for the stack pointer.  */
 
-static rtx
+static inline rtx
 compute_cfa_pointer (HOST_WIDE_INT adjustment)
 {
-  rtx cfa;
-
-#ifdef FRAME_POINTER_CFA_OFFSET
-  adjustment -= FRAME_POINTER_CFA_OFFSET (current_function_decl);
-  cfa = plus_constant (frame_pointer_rtx, adjustment);
-#else
-  adjustment -= ARG_POINTER_CFA_OFFSET (current_function_decl);
-  cfa = plus_constant (arg_pointer_rtx, adjustment);
-#endif
-
-  return cfa;
+  return plus_constant (cfa_base_rtx, adjustment + cfa_base_offset);
 }
 
 /* Adjustment for hard_frame_pointer_rtx to cfa base reg,
@@ -798,16 +792,20 @@ adjust_mems (rtx loc, const_rtx old_rtx, void *data)
   switch (GET_CODE (loc))
     {
     case REG:
-      /* Don't do any sp or fp replacements outside of MEM addresses.  */
-      if (amd->mem_mode == VOIDmode)
+      /* Don't do any sp or fp replacements outside of MEM addresses
+         on the LHS.  */
+      if (amd->mem_mode == VOIDmode && amd->store)
 	return loc;
       if (loc == stack_pointer_rtx
-	  && !frame_pointer_needed)
+	  && !frame_pointer_needed
+	  && cfa_base_rtx)
 	return compute_cfa_pointer (amd->stack_adjust);
       else if (loc == hard_frame_pointer_rtx
 	       && frame_pointer_needed
-	       && hard_frame_pointer_adjustment != -1)
+	       && hard_frame_pointer_adjustment != -1
+	       && cfa_base_rtx)
 	return compute_cfa_pointer (hard_frame_pointer_adjustment);
+      gcc_checking_assert (loc != virtual_incoming_args_rtx);
       return loc;
     case MEM:
       mem = loc;
@@ -909,6 +907,16 @@ adjust_mems (rtx loc, const_rtx old_rtx, void *data)
 	return use_narrower_mode (SUBREG_REG (tem), GET_MODE (tem),
 				  GET_MODE (SUBREG_REG (tem)));
       return tem;
+    case ASM_OPERANDS:
+      /* Don't do any replacements in second and following
+	 ASM_OPERANDS of inline-asm with multiple sets.
+	 ASM_OPERANDS_INPUT_VEC, ASM_OPERANDS_INPUT_CONSTRAINT_VEC
+	 and ASM_OPERANDS_LABEL_VEC need to be equal between
+	 all the ASM_OPERANDs in the insn and adjust_insn will
+	 fix this up.  */
+      if (ASM_OPERANDS_OUTPUT_IDX (loc) != 0)
+	return loc;
+      break;
     default:
       break;
     }
@@ -959,7 +967,54 @@ adjust_insn (basic_block bb, rtx insn)
   note_stores (PATTERN (insn), adjust_mem_stores, &amd);
 
   amd.store = false;
-  note_uses (&PATTERN (insn), adjust_mem_uses, &amd);
+  if (GET_CODE (PATTERN (insn)) == PARALLEL
+      && asm_noperands (PATTERN (insn)) > 0
+      && GET_CODE (XVECEXP (PATTERN (insn), 0, 0)) == SET)
+    {
+      rtx body, set0;
+      int i;
+
+      /* inline-asm with multiple sets is tiny bit more complicated,
+	 because the 3 vectors in ASM_OPERANDS need to be shared between
+	 all ASM_OPERANDS in the instruction.  adjust_mems will
+	 not touch ASM_OPERANDS other than the first one, asm_noperands
+	 test above needs to be called before that (otherwise it would fail)
+	 and afterwards this code fixes it up.  */
+      note_uses (&PATTERN (insn), adjust_mem_uses, &amd);
+      body = PATTERN (insn);
+      set0 = XVECEXP (body, 0, 0);
+      gcc_checking_assert (GET_CODE (set0) == SET
+			   && GET_CODE (SET_SRC (set0)) == ASM_OPERANDS
+			   && ASM_OPERANDS_OUTPUT_IDX (SET_SRC (set0)) == 0);
+      for (i = 1; i < XVECLEN (body, 0); i++)
+	if (GET_CODE (XVECEXP (body, 0, i)) != SET)
+	  break;
+	else
+	  {
+	    set = XVECEXP (body, 0, i);
+	    gcc_checking_assert (GET_CODE (SET_SRC (set)) == ASM_OPERANDS
+				 && ASM_OPERANDS_OUTPUT_IDX (SET_SRC (set))
+				    == i);
+	    if (ASM_OPERANDS_INPUT_VEC (SET_SRC (set))
+		!= ASM_OPERANDS_INPUT_VEC (SET_SRC (set0))
+		|| ASM_OPERANDS_INPUT_CONSTRAINT_VEC (SET_SRC (set))
+		   != ASM_OPERANDS_INPUT_CONSTRAINT_VEC (SET_SRC (set0))
+		|| ASM_OPERANDS_LABEL_VEC (SET_SRC (set))
+		   != ASM_OPERANDS_LABEL_VEC (SET_SRC (set0)))
+	      {
+		rtx newsrc = shallow_copy_rtx (SET_SRC (set));
+		ASM_OPERANDS_INPUT_VEC (newsrc)
+		  = ASM_OPERANDS_INPUT_VEC (SET_SRC (set0));
+		ASM_OPERANDS_INPUT_CONSTRAINT_VEC (newsrc)
+		  = ASM_OPERANDS_INPUT_CONSTRAINT_VEC (SET_SRC (set0));
+		ASM_OPERANDS_LABEL_VEC (newsrc)
+		  = ASM_OPERANDS_LABEL_VEC (SET_SRC (set0));
+		validate_change (NULL_RTX, &SET_SRC (set), newsrc, true);
+	      }
+	  }
+    }
+  else
+    note_uses (&PATTERN (insn), adjust_mem_uses, &amd);
 
   /* For read-only MEMs containing some constant, prefer those
      constants.  */
@@ -1017,9 +1072,7 @@ dv_is_value_p (decl_or_value dv)
 static inline tree
 dv_as_decl (decl_or_value dv)
 {
-#ifdef ENABLE_CHECKING
-  gcc_assert (dv_is_decl_p (dv));
-#endif
+  gcc_checking_assert (dv_is_decl_p (dv));
   return (tree) dv;
 }
 
@@ -1027,9 +1080,7 @@ dv_as_decl (decl_or_value dv)
 static inline rtx
 dv_as_value (decl_or_value dv)
 {
-#ifdef ENABLE_CHECKING
-  gcc_assert (dv_is_value_p (dv));
-#endif
+  gcc_checking_assert (dv_is_value_p (dv));
   return (rtx)dv;
 }
 
@@ -1078,9 +1129,7 @@ dv_from_decl (tree decl)
 {
   decl_or_value dv;
   dv = decl;
-#ifdef ENABLE_CHECKING
-  gcc_assert (dv_is_decl_p (dv));
-#endif
+  gcc_checking_assert (dv_is_decl_p (dv));
   return dv;
 }
 
@@ -1090,9 +1139,7 @@ dv_from_value (rtx value)
 {
   decl_or_value dv;
   dv = value;
-#ifdef ENABLE_CHECKING
-  gcc_assert (dv_is_value_p (dv));
-#endif
+  gcc_checking_assert (dv_is_value_p (dv));
   return dv;
 }
 
@@ -1167,7 +1214,7 @@ variable_htab_free (void *elem)
   variable var = (variable) elem;
   location_chain node, next;
 
-  gcc_assert (var->refcount > 0);
+  gcc_checking_assert (var->refcount > 0);
 
   var->refcount--;
   if (var->refcount > 0)
@@ -1370,7 +1417,7 @@ shared_hash_copy (shared_hash vars)
 static void
 shared_hash_destroy (shared_hash vars)
 {
-  gcc_assert (vars->refcount > 0);
+  gcc_checking_assert (vars->refcount > 0);
   if (--vars->refcount == 0)
     {
       htab_delete (vars->htab);
@@ -2124,10 +2171,8 @@ variable_union (variable src, dataflow_set *set)
 	      nnode->next = dnode;
 	      dnode = nnode;
 	    }
-#ifdef ENABLE_CHECKING
 	  else if (r == 0)
-	    gcc_assert (rtx_equal_p (dnode->loc, snode->loc));
-#endif
+	    gcc_checking_assert (rtx_equal_p (dnode->loc, snode->loc));
 
 	  if (r >= 0)
 	    snode = snode->next;
@@ -2479,125 +2524,73 @@ dv_changed_p (decl_or_value dv)
 
 /* Return a location list node whose loc is rtx_equal to LOC, in the
    location list of a one-part variable or value VAR, or in that of
-   any values recursively mentioned in the location lists.  */
+   any values recursively mentioned in the location lists.  VARS must
+   be in star-canonical form.  */
 
 static location_chain
 find_loc_in_1pdv (rtx loc, variable var, htab_t vars)
 {
   location_chain node;
   enum rtx_code loc_code;
-  location_chain ret = NULL;
-  int unmark_self = 0;
-#ifdef ENABLE_CHECKING
-  static int mark_count;
-#endif
 
   if (!var)
-    return ret;
+    return NULL;
 
-#ifdef ENABLE_CHECKING
-  gcc_assert (dv_onepart_p (var->dv));
-#endif
+  gcc_checking_assert (dv_onepart_p (var->dv));
 
   if (!var->n_var_parts)
-    return ret;
+    return NULL;
 
-#ifdef ENABLE_CHECKING
-  gcc_assert (var->var_part[0].offset == 0);
-#endif
+  gcc_checking_assert (var->var_part[0].offset == 0);
+  gcc_checking_assert (loc != dv_as_opaque (var->dv));
 
   loc_code = GET_CODE (loc);
   for (node = var->var_part[0].loc_chain; node; node = node->next)
     {
+      decl_or_value dv;
+      variable rvar;
+
       if (GET_CODE (node->loc) != loc_code)
 	{
 	  if (GET_CODE (node->loc) != VALUE)
 	    continue;
 	}
       else if (loc == node->loc)
-	{
-	  ret = node;
-	  break;
-	}
+	return node;
       else if (loc_code != VALUE)
 	{
 	  if (rtx_equal_p (loc, node->loc))
+	    return node;
+	  continue;
+	}
+
+      /* Since we're in star-canonical form, we don't need to visit
+	 non-canonical nodes: one-part variables and non-canonical
+	 values would only point back to the canonical node.  */
+      if (dv_is_value_p (var->dv)
+	  && !canon_value_cmp (node->loc, dv_as_value (var->dv)))
+	{
+	  /* Skip all subsequent VALUEs.  */
+	  while (node->next && GET_CODE (node->next->loc) == VALUE)
 	    {
-	      ret = node;
-	      break;
+	      node = node->next;
+	      gcc_checking_assert (!canon_value_cmp (node->loc,
+						     dv_as_value (var->dv)));
+	      if (loc == node->loc)
+		return node;
 	    }
 	  continue;
 	}
-      if (!VALUE_RECURSED_INTO (node->loc))
-	{
-	  decl_or_value dv = dv_from_value (node->loc);
-	  variable rvar = (variable)
-	    htab_find_with_hash (vars, dv, dv_htab_hash (dv));
 
-	  if (rvar)
-	    {
-	      location_chain where;
+      gcc_checking_assert (node == var->var_part[0].loc_chain);
+      gcc_checking_assert (!node->next);
 
-	      if (!unmark_self)
-		{
-		  if (dv_is_value_p (var->dv)
-		      && !VALUE_RECURSED_INTO (dv_as_value (var->dv)))
-		    {
-		      unmark_self = 1;
-#ifdef ENABLE_CHECKING
-		      mark_count++;
-#endif
-		      VALUE_RECURSED_INTO (dv_as_value (var->dv)) = true;
-		    }
-		  else
-		    unmark_self = -1;
-		}
-
-#ifdef ENABLE_CHECKING
-	      mark_count++;
-	      /* The recursion count is bounded because we're
-		 searching in a star-canonicalized set, i.e., each
-		 equivalence set of values is arranged so that the
-		 canonical value has all locations and equivalent
-		 values, whereas equivalent values only point back to
-		 the canonical.  So, if we start at the canonical
-		 value, we'll recurse at most into each sibling, so
-		 the recurse limit will be 2.  If we start at a
-		 non-canonical value, we'll recurse into the
-		 canonical, and from there to other siblings, so
-		 recurse limit will be 3.  If we start at a one-part
-		 variable, we add one level of recursion, but we don't
-		 count it.  */
-	      gcc_assert (mark_count <= 3);
-#endif
-	      VALUE_RECURSED_INTO (node->loc) = true;
-	      if ((where = find_loc_in_1pdv (loc, rvar, vars)))
-		{
-#ifdef ENABLE_CHECKING
-		  mark_count--;
-#endif
-		  VALUE_RECURSED_INTO (node->loc) = false;
-		  ret = where;
-		  break;
-		}
-	      VALUE_RECURSED_INTO (node->loc) = false;
-#ifdef ENABLE_CHECKING
-	      mark_count--;
-#endif
-	    }
-	}
+      dv = dv_from_value (node->loc);
+      rvar = (variable) htab_find_with_hash (vars, dv, dv_htab_hash (dv));
+      return find_loc_in_1pdv (loc, rvar, vars);
     }
 
-  if (unmark_self > 0)
-    {
-      VALUE_RECURSED_INTO (dv_as_value (var->dv)) = false;
-#ifdef ENABLE_CHECKING
-      mark_count--;
-      gcc_assert (mark_count == 0);
-#endif
-    }
-
-  return ret;
+  return NULL;
 }
 
 /* Hash table iteration argument passed to variable_merge.  */
@@ -2658,15 +2651,11 @@ intersect_loc_chains (rtx val, location_chain *dest, struct dfset_merge *dsm,
     {
       location_chain s2node;
 
-#ifdef ENABLE_CHECKING
-      gcc_assert (dv_onepart_p (s2var->dv));
-#endif
+      gcc_checking_assert (dv_onepart_p (s2var->dv));
 
       if (s2var->n_var_parts)
 	{
-#ifdef ENABLE_CHECKING
-	  gcc_assert (s2var->var_part[0].offset == 0);
-#endif
+	  gcc_checking_assert (s2var->var_part[0].offset == 0);
 	  s2node = s2var->var_part[0].loc_chain;
 
 	  for (; s1node && s2node;
@@ -2815,10 +2804,8 @@ loc_cmp (rtx x, rtx y)
       if (DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (x))
 	  < DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (y)))
 	return -1;
-#ifdef ENABLE_CHECKING
-      gcc_assert (DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (x))
-		  > DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (y)));
-#endif
+      gcc_checking_assert (DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (x))
+			   > DEBUG_TEMP_UID (DEBUG_EXPR_TREE_DECL (y)));
       return 1;
     }
 
@@ -3110,7 +3097,7 @@ canonicalize_values_mark (void **slot, void *data)
   if (!dv_is_value_p (dv))
     return 1;
 
-  gcc_assert (var->n_var_parts == 1);
+  gcc_checking_assert (var->n_var_parts == 1);
 
   val = dv_as_value (dv);
 
@@ -3153,7 +3140,7 @@ canonicalize_values_star (void **slot, void *data)
   if (!dv_onepart_p (dv))
     return 1;
 
-  gcc_assert (var->n_var_parts == 1);
+  gcc_checking_assert (var->n_var_parts == 1);
 
   if (dv_is_value_p (dv))
     {
@@ -3343,8 +3330,8 @@ canonicalize_values_star (void **slot, void *data)
 
   /* Variable may have been unshared.  */
   var = (variable)*slot;
-  gcc_assert (var->n_var_parts && var->var_part[0].loc_chain->loc == cval
-	      && var->var_part[0].loc_chain->next == NULL);
+  gcc_checking_assert (var->n_var_parts && var->var_part[0].loc_chain->loc == cval
+		       && var->var_part[0].loc_chain->next == NULL);
 
   if (VALUE_RECURSED_INTO (cval))
     goto restart_with_cval;
@@ -3433,14 +3420,14 @@ variable_merge_over_cur (variable s1var, struct dfset_merge *dsm)
   /* If the incoming onepart variable has an empty location list, then
      the intersection will be just as empty.  For other variables,
      it's always union.  */
-  gcc_assert (s1var->n_var_parts
-	      && s1var->var_part[0].loc_chain);
+  gcc_checking_assert (s1var->n_var_parts
+		       && s1var->var_part[0].loc_chain);
 
   if (!onepart)
     return variable_union (s1var, dst);
 
-  gcc_assert (s1var->n_var_parts == 1
-	      && s1var->var_part[0].offset == 0);
+  gcc_checking_assert (s1var->n_var_parts == 1
+		       && s1var->var_part[0].offset == 0);
 
   dvhash = dv_htab_hash (dv);
   if (dv_is_value_p (dv))
@@ -3578,10 +3565,9 @@ variable_merge_over_cur (variable s1var, struct dfset_merge *dsm)
       dstslot = shared_hash_find_slot_noinsert_1 (dst->vars, dv, dvhash);
       gcc_assert (*dstslot == dvar);
       canonicalize_values_star (dstslot, dst);
-#ifdef ENABLE_CHECKING
-      gcc_assert (dstslot
-		  == shared_hash_find_slot_noinsert_1 (dst->vars, dv, dvhash));
-#endif
+      gcc_checking_assert (dstslot
+			   == shared_hash_find_slot_noinsert_1 (dst->vars,
+								dv, dvhash));
       dvar = (variable)*dstslot;
     }
   else
@@ -3646,11 +3632,9 @@ variable_merge_over_cur (variable s1var, struct dfset_merge *dsm)
 	  dstslot = shared_hash_find_slot_noinsert_1 (dst->vars, dv, dvhash);
 	  gcc_assert (*dstslot == dvar);
 	  canonicalize_values_star (dstslot, dst);
-#ifdef ENABLE_CHECKING
-	  gcc_assert (dstslot
-		      == shared_hash_find_slot_noinsert_1 (dst->vars,
-							   dv, dvhash));
-#endif
+	  gcc_checking_assert (dstslot
+			       == shared_hash_find_slot_noinsert_1 (dst->vars,
+								    dv, dvhash));
 	  dvar = (variable)*dstslot;
 	}
     }
@@ -4031,6 +4015,12 @@ variable_post_merge_perm_vals (void **pslot, void *info)
   var = shared_hash_find (set->vars, dv);
   if (var)
     {
+      /* Although variable_post_merge_new_vals may have made decls
+	 non-star-canonical, values that pre-existed in canonical form
+	 remain canonical, and newly-created values reference a single
+	 REG, so they are canonical as well.  Since VAR has the
+	 location list for a VALUE, using find_loc_in_1pdv for it is
+	 fine, since VALUEs don't map back to DECLs.  */
       if (find_loc_in_1pdv (pnode->loc, var, shared_hash_htab (set->vars)))
 	return 1;
       val_reset (set, dv);
@@ -4764,10 +4754,6 @@ var_lowpart (enum machine_mode mode, rtx loc)
   return gen_rtx_REG_offset (loc, mode, regno, offset);
 }
 
-/* arg_pointer_rtx resp. frame_pointer_rtx if stack_pointer_rtx or
-   hard_frame_pointer_rtx is being mapped to it.  */
-static rtx cfa_base_rtx;
-
 /* Carry information about uses and stores while walking rtx.  */
 
 struct count_use_info
@@ -5224,14 +5210,19 @@ reverse_op (rtx val, const_rtx expr)
     case XOR:
     case NOT:
     case NEG:
+      if (!REG_P (XEXP (src, 0)))
+	return NULL_RTX;
+      break;
     case SIGN_EXTEND:
     case ZERO_EXTEND:
+      if (!REG_P (XEXP (src, 0)) && !MEM_P (XEXP (src, 0)))
+	return NULL_RTX;
       break;
     default:
       return NULL_RTX;
     }
 
-  if (!REG_P (XEXP (src, 0)) || !SCALAR_INT_MODE_P (GET_MODE (src)))
+  if (!SCALAR_INT_MODE_P (GET_MODE (src)) || XEXP (src, 0) == cfa_base_rtx)
     return NULL_RTX;
 
   v = cselib_lookup (XEXP (src, 0), GET_MODE (XEXP (src, 0)), 0);
@@ -5733,7 +5724,7 @@ compute_bb_dataflow (basic_block bb)
   dataflow_set_copy (&old_out, out);
   dataflow_set_copy (out, in);
 
-  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
+  FOR_EACH_VEC_ELT (micro_operation, VTI (bb)->mos, i, mo)
     {
       rtx insn = mo->insn;
 
@@ -6027,6 +6018,7 @@ vt_find_locations (void)
   int htabmax = PARAM_VALUE (PARAM_MAX_VARTRACK_SIZE);
   bool success = true;
 
+  timevar_push (TV_VAR_TRACKING_DATAFLOW);
   /* Compute reverse completion order of depth first search of the CFG
      so that the data-flow runs faster.  */
   rc_order = XNEWVEC (int, n_basic_blocks - NUM_FIXED_BLOCKS);
@@ -6062,6 +6054,7 @@ vt_find_locations (void)
 	{
 	  bb = (basic_block) fibheap_extract_min (worklist);
 	  RESET_BIT (in_worklist, bb->index);
+	  gcc_assert (!TEST_BIT (visited, bb->index));
 	  if (!TEST_BIT (visited, bb->index))
 	    {
 	      bool changed;
@@ -6214,6 +6207,7 @@ vt_find_locations (void)
   sbitmap_free (in_worklist);
   sbitmap_free (in_pending);
 
+  timevar_pop (TV_VAR_TRACKING_DATAFLOW);
   return success;
 }
 
@@ -7075,7 +7069,7 @@ vt_expand_loc (rtx loc, htab_t vars)
   data.vars = vars;
   data.dummy = false;
   data.cur_loc_changed = false;
-  loc = cselib_expand_value_rtx_cb (loc, scratch_regs, 5,
+  loc = cselib_expand_value_rtx_cb (loc, scratch_regs, 8,
 				    vt_expand_loc_callback, &data);
 
   if (loc && MEM_P (loc))
@@ -7096,16 +7090,11 @@ vt_expand_loc_dummy (rtx loc, htab_t vars, bool *pcur_loc_changed)
   data.vars = vars;
   data.dummy = true;
   data.cur_loc_changed = false;
-  ret = cselib_dummy_expand_value_rtx_cb (loc, scratch_regs, 5,
+  ret = cselib_dummy_expand_value_rtx_cb (loc, scratch_regs, 8,
 					  vt_expand_loc_callback, &data);
   *pcur_loc_changed = data.cur_loc_changed;
   return ret;
 }
-
-#ifdef ENABLE_RTL_CHECKING
-/* Used to verify that cur_loc_changed updating is safe.  */
-static struct pointer_map_t *emitted_notes;
-#endif
 
 /* Emit the NOTE_INSN_VAR_LOCATION for variable *VARP.  DATA contains
    additional parameters: WHERE specifies whether the note shall be emitted
@@ -7151,10 +7140,8 @@ emit_note_insn_var_location (void **varp, void *data)
       if (var->n_var_parts == 0)
 	var->cur_loc_changed = true;
     }
-#ifndef ENABLE_RTL_CHECKING
   if (!var->cur_loc_changed)
     goto clear;
-#endif
   for (i = 0; i < var->n_var_parts; i++)
     {
       enum machine_mode mode, wider_mode;
@@ -7296,23 +7283,6 @@ emit_note_insn_var_location (void **varp, void *data)
 				      parallel, (int) initialized);
     }
 
-#ifdef ENABLE_RTL_CHECKING
-  if (note_vl)
-    {
-      void **note_slot = pointer_map_insert (emitted_notes, decl);
-      rtx pnote = (rtx) *note_slot;
-      if (!var->cur_loc_changed && (pnote || PAT_VAR_LOCATION_LOC (note_vl)))
-	{
-	  gcc_assert (pnote);
-	  gcc_assert (rtx_equal_p (PAT_VAR_LOCATION_LOC (pnote),
-				   PAT_VAR_LOCATION_LOC (note_vl)));
-	}
-      *note_slot = (void *) note_vl;
-    }
-  if (!var->cur_loc_changed)
-    goto clear;
-#endif
-
   if (where != EMIT_NOTE_BEFORE_INSN)
     {
       note = emit_note_after (NOTE_INSN_VAR_LOCATION, insn);
@@ -7320,7 +7290,17 @@ emit_note_insn_var_location (void **varp, void *data)
 	NOTE_DURING_CALL_P (note) = true;
     }
   else
-    note = emit_note_before (NOTE_INSN_VAR_LOCATION, insn);
+    {
+      /* Make sure that the call related notes come first.  */
+      while (NEXT_INSN (insn)
+	     && NOTE_P (insn)
+	     && NOTE_DURING_CALL_P (insn))
+	insn = NEXT_INSN (insn);
+      if (NOTE_P (insn) && NOTE_DURING_CALL_P (insn))
+	note = emit_note_after (NOTE_INSN_VAR_LOCATION, insn);
+      else
+	note = emit_note_before (NOTE_INSN_VAR_LOCATION, insn);
+    }
   NOTE_VAR_LOCATION (note) = note_vl;
 
  clear:
@@ -7655,7 +7635,7 @@ emit_notes_in_bb (basic_block bb, dataflow_set *set)
   dataflow_set_clear (set);
   dataflow_set_copy (set, &VTI (bb)->in);
 
-  for (i = 0; VEC_iterate (micro_operation, VTI (bb)->mos, i, mo); i++)
+  FOR_EACH_VEC_ELT (micro_operation, VTI (bb)->mos, i, mo)
     {
       rtx insn = mo->insn;
 
@@ -7931,9 +7911,6 @@ vt_emit_notes (void)
   basic_block bb;
   dataflow_set cur;
 
-#ifdef ENABLE_RTL_CHECKING
-  emitted_notes = pointer_map_create ();
-#endif
   gcc_assert (!htab_elements (changed_variables));
 
   /* Free memory occupied by the out hash tables, as they aren't used
@@ -7950,7 +7927,7 @@ vt_emit_notes (void)
       unsigned int i;
       rtx val;
 
-      for (i = 0; VEC_iterate (rtx, preserved_values, i, val); i++)
+      FOR_EACH_VEC_ELT (rtx, preserved_values, i, val)
 	add_cselib_value_chains (dv_from_value (val));
       changed_variables_stack = VEC_alloc (variable, heap, 40);
       changed_values_stack = VEC_alloc (rtx, heap, 40);
@@ -7980,7 +7957,7 @@ vt_emit_notes (void)
       unsigned int i;
       rtx val;
 
-      for (i = 0; VEC_iterate (rtx, preserved_values, i, val); i++)
+      FOR_EACH_VEC_ELT (rtx, preserved_values, i, val)
 	remove_cselib_value_chains (dv_from_value (val));
       gcc_assert (htab_elements (value_chains) == 0);
     }
@@ -7993,9 +7970,6 @@ vt_emit_notes (void)
       VEC_free (rtx, heap, changed_values_stack);
     }
 
-#ifdef ENABLE_RTL_CHECKING
-  pointer_map_destroy (emitted_notes);
-#endif
   emit_notes = false;
 }
 
@@ -8026,6 +8000,113 @@ vt_get_decl_and_offset (rtx rtl, tree *declp, HOST_WIDE_INT *offsetp)
   return false;
 }
 
+/* Insert function parameter PARM in IN and OUT sets of ENTRY_BLOCK.  */
+
+static void
+vt_add_function_parameter (tree parm)
+{
+  rtx decl_rtl = DECL_RTL_IF_SET (parm);
+  rtx incoming = DECL_INCOMING_RTL (parm);
+  tree decl;
+  enum machine_mode mode;
+  HOST_WIDE_INT offset;
+  dataflow_set *out;
+  decl_or_value dv;
+
+  if (TREE_CODE (parm) != PARM_DECL)
+    return;
+
+  if (!decl_rtl || !incoming)
+    return;
+
+  if (GET_MODE (decl_rtl) == BLKmode || GET_MODE (incoming) == BLKmode)
+    return;
+
+  if (!vt_get_decl_and_offset (incoming, &decl, &offset))
+    {
+      if (REG_P (incoming) || MEM_P (incoming))
+	{
+	  /* This means argument is passed by invisible reference.  */
+	  offset = 0;
+	  decl = parm;
+	  incoming = gen_rtx_MEM (GET_MODE (decl_rtl), incoming);
+	}
+      else
+	{
+	  if (!vt_get_decl_and_offset (decl_rtl, &decl, &offset))
+	    return;
+	  offset += byte_lowpart_offset (GET_MODE (incoming),
+					 GET_MODE (decl_rtl));
+	}
+    }
+
+  if (!decl)
+    return;
+
+  if (parm != decl)
+    {
+      /* Assume that DECL_RTL was a pseudo that got spilled to
+	 memory.  The spill slot sharing code will force the
+	 memory to reference spill_slot_decl (%sfp), so we don't
+	 match above.  That's ok, the pseudo must have referenced
+	 the entire parameter, so just reset OFFSET.  */
+      gcc_assert (decl == get_spill_slot_decl (false));
+      offset = 0;
+    }
+
+  if (!track_loc_p (incoming, parm, offset, false, &mode, &offset))
+    return;
+
+  out = &VTI (ENTRY_BLOCK_PTR)->out;
+
+  dv = dv_from_decl (parm);
+
+  if (target_for_debug_bind (parm)
+      /* We can't deal with these right now, because this kind of
+	 variable is single-part.  ??? We could handle parallels
+	 that describe multiple locations for the same single
+	 value, but ATM we don't.  */
+      && GET_CODE (incoming) != PARALLEL)
+    {
+      cselib_val *val;
+
+      /* ??? We shouldn't ever hit this, but it may happen because
+	 arguments passed by invisible reference aren't dealt with
+	 above: incoming-rtl will have Pmode rather than the
+	 expected mode for the type.  */
+      if (offset)
+	return;
+
+      val = cselib_lookup (var_lowpart (mode, incoming), mode, true);
+
+      /* ??? Float-typed values in memory are not handled by
+	 cselib.  */
+      if (val)
+	{
+	  preserve_value (val);
+	  set_variable_part (out, val->val_rtx, dv, offset,
+			     VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
+	  dv = dv_from_value (val->val_rtx);
+	}
+    }
+
+  if (REG_P (incoming))
+    {
+      incoming = var_lowpart (mode, incoming);
+      gcc_assert (REGNO (incoming) < FIRST_PSEUDO_REGISTER);
+      attrs_list_insert (&out->regs[REGNO (incoming)], dv, offset,
+			 incoming);
+      set_variable_part (out, incoming, dv, offset,
+			 VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
+    }
+  else if (MEM_P (incoming))
+    {
+      incoming = var_lowpart (mode, incoming);
+      set_variable_part (out, incoming, dv, offset,
+			 VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
+    }
+}
+
 /* Insert function parameters to IN and OUT sets of ENTRY_BLOCK.  */
 
 static void
@@ -8034,111 +8115,21 @@ vt_add_function_parameters (void)
   tree parm;
 
   for (parm = DECL_ARGUMENTS (current_function_decl);
-       parm; parm = TREE_CHAIN (parm))
+       parm; parm = DECL_CHAIN (parm))
+    vt_add_function_parameter (parm);
+
+  if (DECL_HAS_VALUE_EXPR_P (DECL_RESULT (current_function_decl)))
     {
-      rtx decl_rtl = DECL_RTL_IF_SET (parm);
-      rtx incoming = DECL_INCOMING_RTL (parm);
-      tree decl;
-      enum machine_mode mode;
-      HOST_WIDE_INT offset;
-      dataflow_set *out;
-      decl_or_value dv;
+      tree vexpr = DECL_VALUE_EXPR (DECL_RESULT (current_function_decl));
 
-      if (TREE_CODE (parm) != PARM_DECL)
-	continue;
+      if (TREE_CODE (vexpr) == INDIRECT_REF)
+	vexpr = TREE_OPERAND (vexpr, 0);
 
-      if (!DECL_NAME (parm))
-	continue;
-
-      if (!decl_rtl || !incoming)
-	continue;
-
-      if (GET_MODE (decl_rtl) == BLKmode || GET_MODE (incoming) == BLKmode)
-	continue;
-
-      if (!vt_get_decl_and_offset (incoming, &decl, &offset))
-	{
-	  if (REG_P (incoming) || MEM_P (incoming))
-	    {
-	      /* This means argument is passed by invisible reference.  */
-	      offset = 0;
-	      decl = parm;
-	      incoming = gen_rtx_MEM (GET_MODE (decl_rtl), incoming);
-	    }
-	  else
-	    {
-	      if (!vt_get_decl_and_offset (decl_rtl, &decl, &offset))
-		continue;
-	      offset += byte_lowpart_offset (GET_MODE (incoming),
-					     GET_MODE (decl_rtl));
-	    }
-	}
-
-      if (!decl)
-	continue;
-
-      if (parm != decl)
-	{
-	  /* Assume that DECL_RTL was a pseudo that got spilled to
-	     memory.  The spill slot sharing code will force the
-	     memory to reference spill_slot_decl (%sfp), so we don't
-	     match above.  That's ok, the pseudo must have referenced
-	     the entire parameter, so just reset OFFSET.  */
-	  gcc_assert (decl == get_spill_slot_decl (false));
-	  offset = 0;
-	}
-
-      if (!track_loc_p (incoming, parm, offset, false, &mode, &offset))
-	continue;
-
-      out = &VTI (ENTRY_BLOCK_PTR)->out;
-
-      dv = dv_from_decl (parm);
-
-      if (target_for_debug_bind (parm)
-	  /* We can't deal with these right now, because this kind of
-	     variable is single-part.  ??? We could handle parallels
-	     that describe multiple locations for the same single
-	     value, but ATM we don't.  */
-	  && GET_CODE (incoming) != PARALLEL)
-	{
-	  cselib_val *val;
-
-	  /* ??? We shouldn't ever hit this, but it may happen because
-	     arguments passed by invisible reference aren't dealt with
-	     above: incoming-rtl will have Pmode rather than the
-	     expected mode for the type.  */
-	  if (offset)
-	    continue;
-
-	  val = cselib_lookup (var_lowpart (mode, incoming), mode, true);
-
-	  /* ??? Float-typed values in memory are not handled by
-	     cselib.  */
-	  if (val)
-	    {
-	      preserve_value (val);
-	      set_variable_part (out, val->val_rtx, dv, offset,
-				 VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
-	      dv = dv_from_value (val->val_rtx);
-	    }
-	}
-
-      if (REG_P (incoming))
-	{
-	  incoming = var_lowpart (mode, incoming);
-	  gcc_assert (REGNO (incoming) < FIRST_PSEUDO_REGISTER);
-	  attrs_list_insert (&out->regs[REGNO (incoming)], dv, offset,
-			     incoming);
-	  set_variable_part (out, incoming, dv, offset,
-			     VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
-	}
-      else if (MEM_P (incoming))
-	{
-	  incoming = var_lowpart (mode, incoming);
-	  set_variable_part (out, incoming, dv, offset,
-			     VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
-	}
+      if (TREE_CODE (vexpr) == PARM_DECL
+	  && DECL_ARTIFICIAL (vexpr)
+	  && !DECL_IGNORED_P (vexpr)
+	  && DECL_NAMELESS (vexpr))
+	vt_add_function_parameter (vexpr);
     }
 
   if (MAY_HAVE_DEBUG_INSNS)
@@ -8186,8 +8177,10 @@ vt_init_cfa_base (void)
 
 #ifdef FRAME_POINTER_CFA_OFFSET
   cfa_base_rtx = frame_pointer_rtx;
+  cfa_base_offset = -FRAME_POINTER_CFA_OFFSET (current_function_decl);
 #else
   cfa_base_rtx = arg_pointer_rtx;
+  cfa_base_offset = -ARG_POINTER_CFA_OFFSET (current_function_decl);
 #endif
   if (cfa_base_rtx == hard_frame_pointer_rtx
       || !fixed_regs[REGNO (cfa_base_rtx)])
@@ -8198,10 +8191,15 @@ vt_init_cfa_base (void)
   if (!MAY_HAVE_DEBUG_INSNS)
     return;
 
+  /* Tell alias analysis that cfa_base_rtx should share
+     find_base_term value with stack pointer or hard frame pointer.  */
+  vt_equate_reg_base_value (cfa_base_rtx,
+			    frame_pointer_needed
+			    ? hard_frame_pointer_rtx : stack_pointer_rtx);
   val = cselib_lookup_from_insn (cfa_base_rtx, GET_MODE (cfa_base_rtx), 1,
 				 get_insns ());
   preserve_value (val);
-  cselib_preserve_cfa_base_value (val);
+  cselib_preserve_cfa_base_value (val, REGNO (cfa_base_rtx));
   var_reg_decl_set (&VTI (ENTRY_BLOCK_PTR)->out, cfa_base_rtx,
 		    VAR_INIT_STATUS_INITIALIZED, dv_from_value (val->val_rtx),
 		    0, NULL_RTX, INSERT);
@@ -8569,7 +8567,9 @@ variable_tracking_main_1 (void)
       dump_flow_info (dump_file, dump_flags);
     }
 
+  timevar_push (TV_VAR_TRACKING_EMIT);
   vt_emit_notes ();
+  timevar_pop (TV_VAR_TRACKING_EMIT);
 
   vt_finalize ();
   vt_debug_insns_local (false);

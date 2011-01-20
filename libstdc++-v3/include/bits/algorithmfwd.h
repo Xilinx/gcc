@@ -1,6 +1,6 @@
 // <algorithm> declarations  -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -24,7 +24,7 @@
 
 /** @file bits/algorithmfwd.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{algorithm}
  */
 
 #ifndef _GLIBCXX_ALGORITHMFWD_H
@@ -134,22 +134,22 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    */
 
   /**
-   * @defgroup mutating_algorithms Mutating Algorithms
+   * @defgroup mutating_algorithms Mutating
    * @ingroup algorithms
    */
 
   /**
-   * @defgroup non_mutating_algorithms Non-Mutating Algorithms
+   * @defgroup non_mutating_algorithms Non-Mutating
    * @ingroup algorithms
    */
 
   /**
-   * @defgroup sorting_algorithms Sorting Algorithms
+   * @defgroup sorting_algorithms Sorting
    * @ingroup algorithms
    */
 
   /**
-   * @defgroup set_algorithms Set Operation Algorithms
+   * @defgroup set_algorithms Set Operation
    * @ingroup sorting_algorithms
    *
    * These algorithms are common set operations performed on sequences
@@ -158,7 +158,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    */
 
   /**
-   * @defgroup binary_search_algorithms Binary Search Algorithms
+   * @defgroup binary_search_algorithms Binary Search
    * @ingroup sorting_algorithms
    *
    * These algorithms are variations of a classic binary search, and
@@ -300,6 +300,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _IIter, typename _Predicate>
     bool
     is_partitioned(_IIter, _IIter, _Predicate);
+
+  template<typename _FIter1, typename _FIter2>
+    bool
+    is_permutation(_FIter1, _FIter1, _FIter2);
+
+  template<typename _FIter1, typename _FIter2,
+	   typename _BinaryPredicate>
+    bool
+    is_permutation(_FIter1, _FIter1, _FIter2, _BinaryPredicate);
 
   template<typename _FIter>
     bool 
@@ -521,7 +530,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 #if defined(__GXX_EXPERIMENTAL_CXX0X__) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
   template<typename _RAIter, typename _UGenerator>
     void
-    shuffle(_RAIter, _RAIter, _UGenerator&);
+    shuffle(_RAIter, _RAIter, _UGenerator&&);
 #endif
 
   template<typename _RAIter>
@@ -795,7 +804,7 @@ _GLIBCXX_BEGIN_NESTED_NAMESPACE(std, _GLIBCXX_STD_P)
 
 _GLIBCXX_END_NESTED_NAMESPACE
 
-#ifdef _GLIBCXX_NAMESPACE_ASSOCIATION_PARALLEL
+#ifdef _GLIBCXX_PARALLEL
 # include <parallel/algorithmfwd.h>
 #endif
 

@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 B o d y                                  --
 --                                                                          --
---          Copyright (C) 1998-2008, Free Software Foundation, Inc.         --
+--          Copyright (C) 1998-2010, Free Software Foundation, Inc.         --
 --                                                                          --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -93,7 +93,7 @@ package body Exp_Smem is
         Name => Make_Selected_Component (Loc,
           Prefix        =>
             New_Occurrence_Of (Shared_Var_Procs_Instance (E), Loc),
-          Selector_Name => Make_Identifier (Loc, Chars => N)));
+          Selector_Name => Make_Identifier (Loc, N)));
    end Build_Shared_Var_Proc_Call;
 
    ---------------------
@@ -270,10 +270,7 @@ package body Exp_Smem is
          return False;
 
       else
-         if Ekind (Formal) = E_Out_Parameter
-              or else
-            Ekind (Formal) = E_In_Out_Parameter
-         then
+         if Ekind_In (Formal, E_Out_Parameter, E_In_Out_Parameter) then
             Insert_Node := Call;
             return True;
          else

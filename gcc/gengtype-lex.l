@@ -1,6 +1,6 @@
 /* -*- indented-text -*- */
 /* Process source files and output type information.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -202,7 +202,7 @@ yybegin (const char *fname)
       perror (fname);
       exit (1);
     }
-  lexer_line.file = fname;
+  lexer_line.file = input_file_by_name (fname);
   lexer_line.line = 1;
 }
 

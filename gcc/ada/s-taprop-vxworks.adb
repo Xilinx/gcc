@@ -6,7 +6,7 @@
 --                                                                          --
 --                                  B o d y                                 --
 --                                                                          --
---         Copyright (C) 1992-2009, Free Software Foundation, Inc.          --
+--         Copyright (C) 1992-2010, Free Software Foundation, Inc.          --
 --                                                                          --
 -- GNARL is free software; you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -43,6 +43,7 @@ with Ada.Unchecked_Deallocation;
 
 with Interfaces.C;
 
+with System.Multiprocessors;
 with System.Tasking.Debug;
 with System.Interrupt_Management;
 
@@ -98,10 +99,6 @@ package body System.Task_Primitives.Operations is
 
    Dispatching_Policy : Character;
    pragma Import (C, Dispatching_Policy, "__gl_task_dispatching_policy");
-
-   function Get_Policy (Prio : System.Any_Priority) return Character;
-   pragma Import (C, Get_Policy, "__gnat_get_specific_dispatching");
-   --  Get priority specific dispatching policy
 
    Mutex_Protocol : Priority_Type;
 
@@ -166,6 +163,10 @@ package body System.Task_Primitives.Operations is
 
    procedure Install_Signal_Handlers;
    --  Install the default signal handlers for the current task
+
+   function Is_Task_Context return Boolean;
+   --  This function returns True if the current execution is in the context
+   --  of a task, and False if it is an interrupt context.
 
    function To_Address is
      new Ada.Unchecked_Conversion (Task_Id, System.Address);
@@ -734,20 +735,13 @@ package body System.Task_Primitives.Operations is
    -- Set_Priority --
    ------------------
 
-   type Prio_Array_Type is array (System.Any_Priority) of Integer;
-   pragma Atomic_Components (Prio_Array_Type);
-
-   Prio_Array : Prio_Array_Type;
-   --  Global array containing the id of the currently running task for each
-   --  priority. Note that we assume that we are on a single processor with
-   --  run-till-blocked scheduling.
-
    procedure Set_Priority
      (T                   : Task_Id;
       Prio                : System.Any_Priority;
       Loss_Of_Inheritance : Boolean := False)
    is
-      Array_Item : Integer;
+      pragma Unreferenced (Loss_Of_Inheritance);
+
       Result     : int;
 
    begin
@@ -756,33 +750,16 @@ package body System.Task_Primitives.Operations is
           (T.Common.LL.Thread, To_VxWorks_Priority (int (Prio)));
       pragma Assert (Result = 0);
 
-      if (Dispatching_Policy = 'F' or else Get_Policy (Prio) = 'F')
-        and then Loss_Of_Inheritance
-        and then Prio < T.Common.Current_Priority
-      then
-         --  Annex D requirement (RM D.2.2(9)):
+      --  Note: in VxWorks 6.6 (or earlier), the task is placed at the end of
+      --  the priority queue instead of the head. This is not the behavior
+      --  required by Annex D (RM D.2.3(5/2)), but we consider it an acceptable
+      --  variation (RM 1.1.3(6)), given this is the built-in behavior of the
+      --  operating system. VxWorks versions starting from 6.7 implement the
+      --  required Annex D semantics.
 
-         --    If the task drops its priority due to the loss of inherited
-         --    priority, it is added at the head of the ready queue for its
-         --    new active priority.
-
-         Array_Item := Prio_Array (T.Common.Base_Priority) + 1;
-         Prio_Array (T.Common.Base_Priority) := Array_Item;
-
-         loop
-            --  Give some processes a chance to arrive
-
-            taskDelay (0);
-
-            --  Then wait for our turn to proceed
-
-            exit when Array_Item = Prio_Array (T.Common.Base_Priority)
-              or else Prio_Array (T.Common.Base_Priority) = 1;
-         end loop;
-
-         Prio_Array (T.Common.Base_Priority) :=
-           Prio_Array (T.Common.Base_Priority) - 1;
-      end if;
+      --  In older versions we attempted to better approximate the Annex D
+      --  required behavior, but this simulation was not entirely accurate,
+      --  and it seems better to live with the standard VxWorks semantics.
 
       T.Common.Current_Priority := Prio;
    end Set_Priority;
@@ -892,9 +869,10 @@ package body System.Task_Primitives.Operations is
       Succeeded  : out Boolean)
    is
       Adjusted_Stack_Size : size_t;
-      Result : int;
+      Result : int := 0;
 
       use System.Task_Info;
+      use type System.Multiprocessors.CPU_Range;
 
    begin
       --  Ask for four extra bytes of stack space so that the ATCB pointer can
@@ -960,14 +938,18 @@ package body System.Task_Primitives.Operations is
 
       --  Set processor affinity
 
-      if T.Common.Task_Info /= Unspecified_Task_Info then
+      if T.Common.Base_CPU /= System.Multiprocessors.Not_A_Specific_CPU then
+         Result :=
+           taskCpuAffinitySet (T.Common.LL.Thread, int (T.Common.Base_CPU));
+
+      elsif T.Common.Task_Info /= Unspecified_Task_Info then
          Result :=
            taskCpuAffinitySet (T.Common.LL.Thread, T.Common.Task_Info);
+      end if;
 
-         if Result = -1 then
-            taskDelete (T.Common.LL.Thread);
-            T.Common.LL.Thread := -1;
-         end if;
+      if Result = -1 then
+         taskDelete (T.Common.LL.Thread);
+         T.Common.LL.Thread := -1;
       end if;
 
       if T.Common.LL.Thread = -1 then
@@ -1123,7 +1105,12 @@ package body System.Task_Primitives.Operations is
       Result : STATUS;
 
    begin
-      SSL.Abort_Defer.all;
+      --  Set_True can be called from an interrupt context, in which case
+      --  Abort_Defer is undefined.
+
+      if Is_Task_Context then
+         SSL.Abort_Defer.all;
+      end if;
 
       Result := semTake (S.L, WAIT_FOREVER);
       pragma Assert (Result = OK);
@@ -1146,7 +1133,13 @@ package body System.Task_Primitives.Operations is
       Result := semGive (S.L);
       pragma Assert (Result = OK);
 
-      SSL.Abort_Undefer.all;
+      --  Set_True can be called from an interrupt context, in which case
+      --  Abort_Undefer is undefined.
+
+      if Is_Task_Context then
+         SSL.Abort_Undefer.all;
+      end if;
+
    end Set_True;
 
    ------------------------
@@ -1344,12 +1337,23 @@ package body System.Task_Primitives.Operations is
       end if;
    end Continue_Task;
 
+   ---------------------
+   -- Is_Task_Context --
+   ---------------------
+
+   function Is_Task_Context return Boolean is
+   begin
+      return System.OS_Interface.Interrupt_Context /= 1;
+   end Is_Task_Context;
+
    ----------------
    -- Initialize --
    ----------------
 
    procedure Initialize (Environment_Task : Task_Id) is
       Result : int;
+
+      use type System.Multiprocessors.CPU_Range;
 
    begin
       Environment_Task_Id := Environment_Task;
@@ -1397,6 +1401,18 @@ package body System.Task_Primitives.Operations is
       Environment_Task.Known_Tasks_Index := Known_Tasks'First;
 
       Enter_Task (Environment_Task);
+
+      --  Set processor affinity
+
+      if Environment_Task.Common.Base_CPU /=
+         System.Multiprocessors.Not_A_Specific_CPU
+      then
+         Result :=
+           taskCpuAffinitySet
+             (Environment_Task.Common.LL.Thread,
+              int (Environment_Task.Common.Base_CPU));
+         pragma Assert (Result /= -1);
+      end if;
    end Initialize;
 
 end System.Task_Primitives.Operations;

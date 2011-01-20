@@ -25,7 +25,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "cp-tree.h"
 #include "c-family/c-common.h"
-#include "toplev.h"
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "diagnostic.h"
@@ -129,8 +128,13 @@ cp_var_mod_type_p (tree type, tree fn)
 void
 cxx_initialize_diagnostics (diagnostic_context *context)
 {
-  pretty_printer *base = context->printer;
-  cxx_pretty_printer *pp = XNEW (cxx_pretty_printer);
+  pretty_printer *base;
+  cxx_pretty_printer *pp;
+
+  c_common_initialize_diagnostics (context);
+
+  base = context->printer;
+  pp = XNEW (cxx_pretty_printer);
   memcpy (pp_base (pp), base, sizeof (pretty_printer));
   pp_cxx_pretty_printer_init (pp);
   context->printer = (pretty_printer *) pp;

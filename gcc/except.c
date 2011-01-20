@@ -40,7 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 
    During pass_lower_eh (tree-eh.c) we record the nested structure
    of the TRY nodes in EH_REGION nodes in CFUN->EH->REGION_TREE.
-   We expand the lang_protect_cleanup_actions hook into MUST_NOT_THROW
+   We expand the eh_protect_cleanup_actions langhook into MUST_NOT_THROW
    regions at this time.  We can then flatten the statements within
    the TRY nodes to straight-line code.  Statements that had been within
    TRY nodes that can throw are recorded within CFUN->EH->THROW_STMT_TABLE,
@@ -150,10 +150,6 @@ along with GCC; see the file COPYING3.  If not see
 #define EH_RETURN_DATA_REGNO(N) INVALID_REGNUM
 #endif
 
-/* Protect cleanup actions with must-not-throw regions, with a call
-   to the given failure handler.  */
-tree (*lang_protect_cleanup_actions) (void);
-
 static GTY(()) int call_site_base;
 static GTY ((param_is (union tree_node)))
   htab_t type_to_runtime_map;
@@ -203,30 +199,6 @@ static void dw2_output_call_site_table (int, int);
 static void sjlj_output_call_site_table (void);
 
 
-/* Routine to see if exception handling is turned on.
-   DO_WARN is nonzero if we want to inform the user that exception
-   handling is turned off.
-
-   This is used to ensure that -fexceptions has been specified if the
-   compiler tries to use any exception-specific functions.  */
-
-int
-doing_eh (int do_warn)
-{
-  if (! flag_exceptions)
-    {
-      static int warned = 0;
-      if (! warned && do_warn)
-	{
-	  error ("exception handling disabled, use -fexceptions to enable");
-	  warned = 1;
-	}
-      return 0;
-    }
-  return 1;
-}
-
-
 void
 init_eh (void)
 {
@@ -237,7 +209,7 @@ init_eh (void)
 
   /* Create the SjLj_Function_Context structure.  This should match
      the definition in unwind-sjlj.c.  */
-  if (USING_SJLJ_EXCEPTIONS)
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ)
     {
       tree f_jbuf, f_per, f_lsda, f_prev, f_cs, f_data, tmp;
 
@@ -344,10 +316,6 @@ static eh_region
 gen_eh_region (enum eh_region_type type, eh_region outer)
 {
   eh_region new_eh;
-
-#ifdef ENABLE_CHECKING
-  gcc_assert (doing_eh (0));
-#endif
 
   /* Insert a new blank region as a leaf in the tree.  */
   new_eh = ggc_alloc_cleared_eh_region_d ();
@@ -713,7 +681,7 @@ lookup_type_for_runtime (tree type)
 
 /* Represent an entry in @TTypes for either catch actions
    or exception filter actions.  */
-struct GTY(()) ttypes_filter {
+struct ttypes_filter {
   tree t;
   int filter;
 };
@@ -1407,13 +1375,13 @@ finish_eh_generation (void)
   basic_block bb;
 
   /* Construct the landing pads.  */
-  if (USING_SJLJ_EXCEPTIONS)
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ)
     sjlj_build_landing_pads ();
   else
     dw2_build_landing_pads ();
   break_superblocks ();
 
-  if (USING_SJLJ_EXCEPTIONS
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ
       /* Kludge for Alpha/Tru64 (see alpha_gp_save_rtx).  */
       || single_succ_edge (ENTRY_BLOCK_PTR)->insns.r)
     commit_edge_insertions ();
@@ -1617,6 +1585,8 @@ make_reg_eh_region_note_nothrow_nononlocal (rtx insn)
 bool
 insn_could_throw_p (const_rtx insn)
 {
+  if (!flag_exceptions)
+    return false;
   if (CALL_P (insn))
     return true;
   if (INSN_P (insn) && cfun->can_throw_non_call_exceptions)
@@ -2650,7 +2620,11 @@ static bool
 gate_convert_to_eh_region_ranges (void)
 {
   /* Nothing to do for SJLJ exceptions or if no regions created.  */
-  return !(USING_SJLJ_EXCEPTIONS || cfun->eh->region_tree == NULL);
+  if (cfun->eh->region_tree == NULL)
+    return false;
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ)
+    return false;
+  return true;
 }
 
 struct rtl_opt_pass pass_convert_to_eh_region_ranges =
@@ -2824,7 +2798,6 @@ sjlj_output_call_site_table (void)
   call_site_base += n;
 }
 
-#ifndef TARGET_UNWIND_INFO
 /* Switch to the section that should be used for exception tables.  */
 
 static void
@@ -2874,7 +2847,6 @@ switch_to_exception_section (const char * ARG_UNUSED (fnname))
 
   switch_to_section (s);
 }
-#endif
 
 
 /* Output a reference from an exception table to the type_info object TYPE.
@@ -2934,8 +2906,7 @@ output_ttype (tree type, int tt_format, int tt_format_size)
 }
 
 static void
-output_one_function_exception_table (const char * ARG_UNUSED (fnname),
-				     int section, rtx ARG_UNUSED (personality))
+output_one_function_exception_table (int section)
 {
   int tt_format, cs_format, lp_format, i;
 #ifdef HAVE_AS_LEB128
@@ -2947,20 +2918,6 @@ output_one_function_exception_table (const char * ARG_UNUSED (fnname),
 #endif
   int have_tt_data;
   int tt_format_size = 0;
-
-#ifdef TARGET_UNWIND_INFO
-  /* TODO: Move this into target file.  */
-  fputs ("\t.personality\t", asm_out_file);
-  output_addr_const (asm_out_file, personality);
-  fputs ("\n\t.handlerdata\n", asm_out_file);
-  /* Note that varasm still thinks we're in the function's code section.
-     The ".endp" directive that will immediately follow will take us back.  */
-#else
-  switch_to_exception_section (fnname);
-#endif
-
-  /* If the target wants a label to begin the table, emit it here.  */
-  targetm.asm_out.except_table_label (asm_out_file);
 
   have_tt_data = (VEC_length (tree, cfun->eh->ttype_data)
 		  || (targetm.arm_eabi_unwinder
@@ -3004,7 +2961,7 @@ output_one_function_exception_table (const char * ARG_UNUSED (fnname),
 		       eh_data_format_name (tt_format));
 
 #ifndef HAVE_AS_LEB128
-  if (USING_SJLJ_EXCEPTIONS)
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ)
     call_site_len = sjlj_size_of_call_site_table ();
   else
     call_site_len = dw2_size_of_call_site_table (section);
@@ -3071,14 +3028,14 @@ output_one_function_exception_table (const char * ARG_UNUSED (fnname),
   dw2_asm_output_delta_uleb128 (cs_end_label, cs_after_size_label,
 				"Call-site table length");
   ASM_OUTPUT_LABEL (asm_out_file, cs_after_size_label);
-  if (USING_SJLJ_EXCEPTIONS)
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ)
     sjlj_output_call_site_table ();
   else
     dw2_output_call_site_table (cs_format, section);
   ASM_OUTPUT_LABEL (asm_out_file, cs_end_label);
 #else
   dw2_asm_output_data_uleb128 (call_site_len, "Call-site table length");
-  if (USING_SJLJ_EXCEPTIONS)
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ)
     sjlj_output_call_site_table ();
   else
     dw2_output_call_site_table (cs_format, section);
@@ -3087,7 +3044,7 @@ output_one_function_exception_table (const char * ARG_UNUSED (fnname),
   /* ??? Decode and interpret the data for flag_debug_asm.  */
   {
     uchar uc;
-    for (i = 0; VEC_iterate (uchar, crtl->eh.action_record_data, i, uc); ++i)
+    FOR_EACH_VEC_ELT (uchar, crtl->eh.action_record_data, i, uc)
       dw2_asm_output_data (1, uc, i ? NULL : "Action record table");
   }
 
@@ -3125,7 +3082,7 @@ output_one_function_exception_table (const char * ARG_UNUSED (fnname),
 }
 
 void
-output_function_exception_table (const char * ARG_UNUSED (fnname))
+output_function_exception_table (const char *fnname)
 {
   rtx personality = get_personality_function (current_function_decl);
 
@@ -3134,11 +3091,21 @@ output_function_exception_table (const char * ARG_UNUSED (fnname))
     return;
 
   if (personality)
-    assemble_external_libcall (personality);
+    {
+      assemble_external_libcall (personality);
 
-  output_one_function_exception_table (fnname, 0, personality);
+      if (targetm.asm_out.emit_except_personality)
+	targetm.asm_out.emit_except_personality (personality);
+    }
+
+  switch_to_exception_section (fnname);
+
+  /* If the target wants a label to begin the table, emit it here.  */
+  targetm.asm_out.emit_except_table_label (asm_out_file);
+
+  output_one_function_exception_table (0);
   if (crtl->eh.call_site_record[1] != NULL)
-    output_one_function_exception_table (fnname, 1, personality);
+    output_one_function_exception_table (1);
 
   switch_to_section (current_function_section ());
 }
@@ -3227,7 +3194,7 @@ dump_eh_tree (FILE * out, struct function *fun)
 	    }
 	  else
 	    {
-	      for (lp = i->landing_pads; lp ; lp = lp->next_lp);
+	      for (lp = i->landing_pads; lp ; lp = lp->next_lp)
 		{
 		  fprintf (out, "{%i,", lp->index);
 		  if (lp->landing_pad)

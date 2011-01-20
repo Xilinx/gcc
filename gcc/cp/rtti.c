@@ -1,6 +1,6 @@
 /* RunTime Type Identification
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2009
+   2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Mostly written by Jason Merrill (jason@cygnus.com).
 
@@ -29,8 +29,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "flags.h"
 #include "output.h"
-#include "assert.h"
-#include "toplev.h"
 #include "convert.h"
 #include "target.h"
 #include "c-family/c-pragma.h"
@@ -207,8 +205,8 @@ throw_bad_cast (void)
 {
   tree fn = get_identifier ("__cxa_bad_cast");
   if (!get_global_value_if_present (fn, &fn))
-    fn = push_throw_library_fn (fn, build_function_type (ptr_type_node,
-							 void_list_node));
+    fn = push_throw_library_fn (fn, build_function_type_list (ptr_type_node,
+							      NULL_TREE));
 
   return build_cxx_call (fn, 0, NULL);
 }
@@ -225,7 +223,7 @@ throw_bad_typeid (void)
       tree t;
 
       t = build_reference_type (const_type_info_type_node);
-      t = build_function_type (t, void_list_node);
+      t = build_function_type_list (t, NULL_TREE);
       fn = push_throw_library_fn (fn, t);
     }
 
@@ -328,6 +326,8 @@ build_typeid (tree exp)
   if (processing_template_decl)
     return build_min (TYPEID_EXPR, const_type_info_type_node, exp);
 
+  /* FIXME when integrating with c_fully_fold, mark
+     resolves_to_fixed_type_p case as a non-constant expression.  */
   if (TREE_CODE (exp) == INDIRECT_REF
       && TREE_CODE (TREE_TYPE (TREE_OPERAND (exp, 0))) == POINTER_TYPE
       && TYPE_POLYMORPHIC_P (TREE_TYPE (exp))
@@ -693,10 +693,10 @@ build_dynamic_cast_1 (tree type, tree expr, tsubst_flags_t complain)
 	  static_type = TYPE_MAIN_VARIANT (TREE_TYPE (exprtype));
 	  td2 = get_tinfo_decl (target_type);
 	  mark_used (td2);
-	  td2 = cp_build_unary_op (ADDR_EXPR, td2, 0, complain);
+	  td2 = cp_build_addr_expr (td2, complain);
 	  td3 = get_tinfo_decl (static_type);
 	  mark_used (td3);
-	  td3 = cp_build_unary_op (ADDR_EXPR, td3, 0, complain);
+	  td3 = cp_build_addr_expr (td3, complain);
 
 	  /* Determine how T and V are related.  */
 	  boff = dcast_base_hint (static_type, target_type);
@@ -706,7 +706,7 @@ build_dynamic_cast_1 (tree type, tree expr, tsubst_flags_t complain)
 
 	  expr1 = expr;
 	  if (tc == REFERENCE_TYPE)
-	    expr1 = cp_build_unary_op (ADDR_EXPR, expr1, 0, complain);
+	    expr1 = cp_build_addr_expr (expr1, complain);
 
 	  elems[0] = expr1;
 	  elems[1] = td3;
@@ -729,12 +729,10 @@ build_dynamic_cast_1 (tree type, tree expr, tsubst_flags_t complain)
 		(cp_build_qualified_type
 		 (tinfo_ptr, TYPE_QUAL_CONST));
 	      name = "__dynamic_cast";
-	      tmp = tree_cons
-		(NULL_TREE, const_ptr_type_node, tree_cons
-		 (NULL_TREE, tinfo_ptr, tree_cons
-		  (NULL_TREE, tinfo_ptr, tree_cons
-		   (NULL_TREE, ptrdiff_type_node, void_list_node))));
-	      tmp = build_function_type (ptr_type_node, tmp);
+	      tmp = build_function_type_list (ptr_type_node,
+					      const_ptr_type_node,
+					      tinfo_ptr, tinfo_ptr,
+					      ptrdiff_type_node, NULL_TREE);
 	      dcast_fn = build_library_fn_ptr (name, tmp);
 	      DECL_PURE_P (dcast_fn) = 1;
 	      pop_abi_namespace ();
@@ -915,8 +913,7 @@ tinfo_base_init (tinfo_s *ti, tree target)
 	}
 
       vtable_ptr = get_vtable_decl (real_type, /*complete=*/1);
-      vtable_ptr = cp_build_unary_op (ADDR_EXPR, vtable_ptr, 0, 
-                                   tf_warning_or_error);
+      vtable_ptr = cp_build_addr_expr (vtable_ptr, tf_warning_or_error);
 
       /* We need to point into the middle of the vtable.  */
       vtable_ptr = build2
@@ -1054,12 +1051,11 @@ typeinfo_in_lib_p (tree type)
     case BOOLEAN_TYPE:
     case REAL_TYPE:
     case VOID_TYPE:
+    case NULLPTR_TYPE:
       return true;
 
     case LANG_TYPE:
-      if (NULLPTR_TYPE_P (type))
-	return true;
-      /* else fall through.  */
+      /* fall through.  */
 
     default:
       return false;
@@ -1212,7 +1208,7 @@ create_pseudo_type_info (int tk, const char *real_name, ...)
   /* Now add the derived fields.  */
   while ((field_decl = va_arg (ap, tree)))
     {
-      TREE_CHAIN (field_decl) = fields;
+      DECL_CHAIN (field_decl) = fields;
       fields = field_decl;
     }
 
@@ -1377,7 +1373,7 @@ create_tinfo_types (void)
 
     field = build_decl (BUILTINS_LOCATION,
 			FIELD_DECL, NULL_TREE, const_string_type_node);
-    TREE_CHAIN (field) = fields;
+    DECL_CHAIN (field) = fields;
     fields = field;
 
     ti = VEC_index (tinfo_s, tinfo_descs, TK_TYPE_INFO_TYPE);
@@ -1417,7 +1413,7 @@ create_tinfo_types (void)
 
     field = build_decl (BUILTINS_LOCATION,
 			FIELD_DECL, NULL_TREE, integer_types[itk_long]);
-    TREE_CHAIN (field) = fields;
+    DECL_CHAIN (field) = fields;
     fields = field;
 
     ti = VEC_index (tinfo_s, tinfo_descs, TK_BASE_TYPE);

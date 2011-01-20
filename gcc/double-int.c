@@ -20,7 +20,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
+#include "tm.h"			/* For SHIFT_COUNT_TRUNCATED.  */
 #include "tree.h"
 
 /* We know that A1 + B1 = SUM1, using 2's complement arithmetic and ignoring
@@ -67,121 +67,6 @@ decode (HOST_WIDE_INT *words, unsigned HOST_WIDE_INT *low,
 {
   *low = words[0] + words[1] * BASE;
   *hi = words[2] + words[3] * BASE;
-}
-
-/* Force the double-word integer L1, H1 to be within the range of the
-   integer type TYPE.  Stores the properly truncated and sign-extended
-   double-word integer in *LV, *HV.  Returns true if the operation
-   overflows, that is, argument and result are different.  */
-
-int
-fit_double_type (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
-		 unsigned HOST_WIDE_INT *lv, HOST_WIDE_INT *hv, const_tree type)
-{
-  unsigned HOST_WIDE_INT low0 = l1;
-  HOST_WIDE_INT high0 = h1;
-  unsigned int prec = TYPE_PRECISION (type);
-  int sign_extended_type;
-
-  /* Size types *are* sign extended.  */
-  sign_extended_type = (!TYPE_UNSIGNED (type)
-			|| (TREE_CODE (type) == INTEGER_TYPE
-			    && TYPE_IS_SIZETYPE (type)));
-
-  /* First clear all bits that are beyond the type's precision.  */
-  if (prec >= 2 * HOST_BITS_PER_WIDE_INT)
-    ;
-  else if (prec > HOST_BITS_PER_WIDE_INT)
-    h1 &= ~((HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT));
-  else
-    {
-      h1 = 0;
-      if (prec < HOST_BITS_PER_WIDE_INT)
-	l1 &= ~((HOST_WIDE_INT) (-1) << prec);
-    }
-
-  /* Then do sign extension if necessary.  */
-  if (!sign_extended_type)
-    /* No sign extension */;
-  else if (prec >= 2 * HOST_BITS_PER_WIDE_INT)
-    /* Correct width already.  */;
-  else if (prec > HOST_BITS_PER_WIDE_INT)
-    {
-      /* Sign extend top half? */
-      if (h1 & ((unsigned HOST_WIDE_INT)1
-		<< (prec - HOST_BITS_PER_WIDE_INT - 1)))
-	h1 |= (HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT);
-    }
-  else if (prec == HOST_BITS_PER_WIDE_INT)
-    {
-      if ((HOST_WIDE_INT)l1 < 0)
-	h1 = -1;
-    }
-  else
-    {
-      /* Sign extend bottom half? */
-      if (l1 & ((unsigned HOST_WIDE_INT)1 << (prec - 1)))
-	{
-	  h1 = -1;
-	  l1 |= (HOST_WIDE_INT)(-1) << prec;
-	}
-    }
-
-  *lv = l1;
-  *hv = h1;
-
-  /* If the value didn't fit, signal overflow.  */
-  return l1 != low0 || h1 != high0;
-}
-
-/* We force the double-int HIGH:LOW to the range of the type TYPE by
-   sign or zero extending it.
-   OVERFLOWABLE indicates if we are interested
-   in overflow of the value, when >0 we are only interested in signed
-   overflow, for <0 we are interested in any overflow.  OVERFLOWED
-   indicates whether overflow has already occurred.  CONST_OVERFLOWED
-   indicates whether constant overflow has already occurred.  We force
-   T's value to be within range of T's type (by setting to 0 or 1 all
-   the bits outside the type's range).  We set TREE_OVERFLOWED if,
-  	OVERFLOWED is nonzero,
-	or OVERFLOWABLE is >0 and signed overflow occurs
-	or OVERFLOWABLE is <0 and any overflow occurs
-   We return a new tree node for the extended double-int.  The node
-   is shared if no overflow flags are set.  */
-
-tree
-force_fit_type_double (tree type, unsigned HOST_WIDE_INT low,
-		       HOST_WIDE_INT high, int overflowable,
-		       bool overflowed)
-{
-  int sign_extended_type;
-  bool overflow;
-
-  /* Size types *are* sign extended.  */
-  sign_extended_type = (!TYPE_UNSIGNED (type)
-			|| (TREE_CODE (type) == INTEGER_TYPE
-			    && TYPE_IS_SIZETYPE (type)));
-
-  overflow = fit_double_type (low, high, &low, &high, type);
-
-  /* If we need to set overflow flags, return a new unshared node.  */
-  if (overflowed || overflow)
-    {
-      if (overflowed
-	  || overflowable < 0
-	  || (overflowable > 0 && sign_extended_type))
-	{
-          tree t = make_node (INTEGER_CST);
-          TREE_INT_CST_LOW (t) = low;
-          TREE_INT_CST_HIGH (t) = high;
-          TREE_TYPE (t) = type;
-	  TREE_OVERFLOW (t) = 1;
-	  return t;
-	}
-    }
-
-  /* Else build a shared node.  */
-  return build_int_cst_wide (type, low, high);
 }
 
 /* Add two doubleword integers with doubleword result.
@@ -430,51 +315,6 @@ rshift_double (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
       *lv &= ~((unsigned HOST_WIDE_INT) (-1) << (prec - count));
       *lv |= signmask << (prec - count);
     }
-}
-
-/* Rotate the doubleword integer in L1, H1 left by COUNT places
-   keeping only PREC bits of result.
-   Rotate right if COUNT is negative.
-   Store the value as two `HOST_WIDE_INT' pieces in *LV and *HV.  */
-
-void
-lrotate_double (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
-		HOST_WIDE_INT count, unsigned int prec,
-		unsigned HOST_WIDE_INT *lv, HOST_WIDE_INT *hv)
-{
-  unsigned HOST_WIDE_INT s1l, s2l;
-  HOST_WIDE_INT s1h, s2h;
-
-  count %= prec;
-  if (count < 0)
-    count += prec;
-
-  lshift_double (l1, h1, count, prec, &s1l, &s1h, 0);
-  rshift_double (l1, h1, prec - count, prec, &s2l, &s2h, 0);
-  *lv = s1l | s2l;
-  *hv = s1h | s2h;
-}
-
-/* Rotate the doubleword integer in L1, H1 left by COUNT places
-   keeping only PREC bits of result.  COUNT must be positive.
-   Store the value as two `HOST_WIDE_INT' pieces in *LV and *HV.  */
-
-void
-rrotate_double (unsigned HOST_WIDE_INT l1, HOST_WIDE_INT h1,
-		HOST_WIDE_INT count, unsigned int prec,
-		unsigned HOST_WIDE_INT *lv, HOST_WIDE_INT *hv)
-{
-  unsigned HOST_WIDE_INT s1l, s2l;
-  HOST_WIDE_INT s1h, s2h;
-
-  count %= prec;
-  if (count < 0)
-    count += prec;
-
-  rshift_double (l1, h1, count, prec, &s1l, &s1h, 0);
-  lshift_double (l1, h1, prec - count, prec, &s2l, &s2h, 0);
-  *lv = s1l | s2l;
-  *hv = s1h | s2h;
 }
 
 /* Divide doubleword integer LNUM, HNUM by doubleword integer LDEN, HDEN
@@ -842,14 +682,6 @@ double_int_sext (double_int cst, unsigned prec)
   return r;
 }
 
-/* Returns true if CST fits in unsigned HOST_WIDE_INT.  */
-
-bool
-double_int_fits_in_uhwi_p (double_int cst)
-{
-  return cst.high == 0;
-}
-
 /* Returns true if CST fits in signed HOST_WIDE_INT.  */
 
 bool
@@ -875,24 +707,6 @@ double_int_fits_in_hwi_p (double_int cst, bool uns)
     return double_int_fits_in_shwi_p (cst);
 }
 
-/* Returns value of CST as a signed number.  CST must satisfy
-   double_int_fits_in_shwi_p.  */
-
-HOST_WIDE_INT
-double_int_to_shwi (double_int cst)
-{
-  return (HOST_WIDE_INT) cst.low;
-}
-
-/* Returns value of CST as an unsigned number.  CST must satisfy
-   double_int_fits_in_uhwi_p.  */
-
-unsigned HOST_WIDE_INT
-double_int_to_uhwi (double_int cst)
-{
-  return cst.low;
-}
-
 /* Returns A * B.  */
 
 double_int
@@ -903,12 +717,36 @@ double_int_mul (double_int a, double_int b)
   return ret;
 }
 
+/* Returns A * B. If the operation overflows according to UNSIGNED_P,
+   *OVERFLOW is set to nonzero.  */
+
+double_int
+double_int_mul_with_sign (double_int a, double_int b,
+                          bool unsigned_p, int *overflow)
+{
+  double_int ret;
+  *overflow = mul_double_with_sign (a.low, a.high, b.low, b.high,
+                                    &ret.low, &ret.high, unsigned_p);
+  return ret;
+}
+
 /* Returns A + B.  */
 
 double_int
 double_int_add (double_int a, double_int b)
 {
   double_int ret;
+  add_double (a.low, a.high, b.low, b.high, &ret.low, &ret.high);
+  return ret;
+}
+
+/* Returns A - B.  */
+
+double_int
+double_int_sub (double_int a, double_int b)
+{
+  double_int ret;
+  neg_double (b.low, b.high, &b.low, &b.high);
   add_double (a.low, a.high, b.low, b.high, &ret.low, &ret.high);
   return ret;
 }
@@ -1025,6 +863,18 @@ double_int_setbit (double_int a, unsigned bitpos)
   return a;
 }
 
+/* Count trailing zeros in A.  */
+int
+double_int_ctz (double_int a)
+{
+  unsigned HOST_WIDE_INT w = a.low ? a.low : (unsigned HOST_WIDE_INT) a.high;
+  unsigned bits = a.low ? 0 : HOST_BITS_PER_WIDE_INT;
+  if (!w)
+    return HOST_BITS_PER_DOUBLE_INT;
+  bits += ctz_hwi (w);
+  return bits;
+}
+
 /* Shift A left by COUNT places keeping only PREC bits of result.  Shift
    right if COUNT is negative.  ARITH true specifies arithmetic shifting;
    otherwise use logical shift.  */
@@ -1047,6 +897,42 @@ double_int_rshift (double_int a, HOST_WIDE_INT count, unsigned int prec, bool ar
   double_int ret;
   rshift_double (a.low, a.high, count, prec, &ret.low, &ret.high, arith);
   return ret;
+}
+
+/* Rotate  A left by COUNT places keeping only PREC bits of result.
+   Rotate right if COUNT is negative.  */
+
+double_int
+double_int_lrotate (double_int a, HOST_WIDE_INT count, unsigned int prec)
+{
+  double_int t1, t2;
+
+  count %= prec;
+  if (count < 0)
+    count += prec;
+
+  t1 = double_int_lshift (a, count, prec, false);
+  t2 = double_int_rshift (a, prec - count, prec, false);
+
+  return double_int_ior (t1, t2);
+}
+
+/* Rotate A rigth by COUNT places keeping only PREC bits of result.
+   Rotate right if COUNT is negative.  */
+
+double_int
+double_int_rrotate (double_int a, HOST_WIDE_INT count, unsigned int prec)
+{
+  double_int t1, t2;
+
+  count %= prec;
+  if (count < 0)
+    count += prec;
+
+  t1 = double_int_rshift (a, count, prec, false);
+  t2 = double_int_lshift (a, prec - count, prec, false);
+
+  return double_int_ior (t1, t2);
 }
 
 /* Returns -1 if A < B, 0 if A == B and 1 if A > B.  Signedness of the
@@ -1095,6 +981,51 @@ double_int_scmp (double_int a, double_int b)
     return 1;
 
   return 0;
+}
+
+/* Compares two values A and B.  Returns max value.  Signedness of the
+   comparison is given by UNS.  */
+
+double_int
+double_int_max (double_int a, double_int b, bool uns)
+{
+  return (double_int_cmp (a, b, uns) == 1) ? a : b;
+}
+
+/* Compares two signed values A and B.  Returns max value.  */
+
+double_int double_int_smax (double_int a, double_int b)
+{
+  return (double_int_scmp (a, b) == 1) ? a : b;
+}
+
+/* Compares two unsigned values A and B.  Returns max value.  */
+
+double_int double_int_umax (double_int a, double_int b)
+{
+  return (double_int_ucmp (a, b) == 1) ? a : b;
+}
+
+/* Compares two values A and B.  Returns mix value.  Signedness of the
+   comparison is given by UNS.  */
+
+double_int double_int_min (double_int a, double_int b, bool uns)
+{
+  return (double_int_cmp (a, b, uns) == -1) ? a : b;
+}
+
+/* Compares two signed values A and B.  Returns min value.  */
+
+double_int double_int_smin (double_int a, double_int b)
+{
+  return (double_int_scmp (a, b) == -1) ? a : b;
+}
+
+/* Compares two unsigned values A and B.  Returns min value.  */
+
+double_int double_int_umin (double_int a, double_int b)
+{
+  return (double_int_ucmp (a, b) == -1) ? a : b;
 }
 
 /* Splits last digit of *CST (taken as unsigned) in BASE and returns it.  */

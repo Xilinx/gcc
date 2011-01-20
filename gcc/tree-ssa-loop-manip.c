@@ -455,6 +455,8 @@ verify_loop_closed_ssa (bool verify_ssa_p)
   if (verify_ssa_p)
     verify_ssa (false);
 
+  timevar_push (TV_VERIFY_LOOP_CLOSED);
+
   FOR_EACH_BB (bb)
     {
       for (bsi = gsi_start_phis (bb); !gsi_end_p (bsi); gsi_next (&bsi))
@@ -468,6 +470,8 @@ verify_loop_closed_ssa (bool verify_ssa_p)
       for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
 	check_loop_closed_ssa_stmt (bb, gsi_stmt (bsi));
     }
+
+  timevar_pop (TV_VERIFY_LOOP_CLOSED);
 }
 
 /* Split loop exit edge EXIT.  The things are a bit complicated by a need to
@@ -1045,7 +1049,7 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
   free (wont_exit);
   gcc_assert (ok);
 
-  for (i = 0; VEC_iterate (edge, to_remove, i, e); i++)
+  FOR_EACH_VEC_ELT (edge, to_remove, i, e)
     {
       ok = remove_path (e);
       gcc_assert (ok);
@@ -1081,7 +1085,7 @@ tree_transform_and_unroll_loop (struct loop *loop, unsigned factor,
 
   /* Finally create the new counter for number of iterations and add the new
      exit instruction.  */
-  bsi = gsi_last_bb (exit_bb);
+  bsi = gsi_last_nondebug_bb (exit_bb);
   exit_if = gsi_stmt (bsi);
   create_iv (exit_base, exit_step, NULL_TREE, loop,
 	     &bsi, false, &ctr_before, &ctr_after);
@@ -1217,7 +1221,10 @@ canonicalize_loop_ivs (struct loop *loop, tree *nit, bool bump_in_latch)
 	gsi_insert_seq_on_edge_immediate (loop_preheader_edge (loop), stmts);
     }
 
-  gsi = gsi_last_bb (bump_in_latch ? loop->latch : loop->header);
+  if (bump_in_latch)
+    gsi = gsi_last_bb (loop->latch);
+  else
+    gsi = gsi_last_nondebug_bb (loop->header);
   create_iv (build_int_cst_type (type, 0), build_int_cst (type, 1), NULL_TREE,
 	     loop, &gsi, bump_in_latch, &var_before, NULL);
 

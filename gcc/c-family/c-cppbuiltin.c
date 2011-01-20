@@ -1,5 +1,5 @@
 /* Define builtin-in macros for the C family front ends.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -28,11 +28,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "c-common.h"
 #include "c-pragma.h"
 #include "output.h"
-#include "except.h"		/* For USING_SJLJ_EXCEPTIONS.  */
 #include "debug.h"		/* For dwarf2out_do_cfi_asm.  */
-#include "toplev.h"
 #include "tm_p.h"		/* For TARGET_CPU_CPP_BUILTINS & friends.  */
 #include "target.h"
+#include "cpp-id-data.h"
+#include "cppbuiltin.h"
 
 #ifndef TARGET_OS_CPP_BUILTINS
 # define TARGET_OS_CPP_BUILTINS()
@@ -57,19 +57,48 @@ static void builtin_define_stdint_macros (void);
 static void builtin_define_constants (const char *, tree);
 static void builtin_define_type_max (const char *, tree);
 static void builtin_define_type_minmax (const char *, const char *, tree);
-static void builtin_define_type_precision (const char *, tree);
 static void builtin_define_type_sizeof (const char *, tree);
 static void builtin_define_float_constants (const char *,
 					    const char *,
 					    const char *,
+					    const char *,
 					    tree);
-static void define__GNUC__ (void);
 
-/* Define NAME with value TYPE precision.  */
-static void
-builtin_define_type_precision (const char *name, tree type)
+/* Return true if MODE provides a fast multiply/add (FMA) builtin function.
+   Originally this function used the fma optab, but that doesn't work with
+   -save-temps, so just rely on the HAVE_fma macros for the standard floating
+   point types.  */
+
+static bool
+mode_has_fma (enum machine_mode mode)
 {
-  builtin_define_with_int_value (name, TYPE_PRECISION (type));
+  switch (mode)
+    {
+#ifdef HAVE_fmasf4
+    case SFmode:
+      return !!HAVE_fmasf4;
+#endif
+
+#ifdef HAVE_fmadf4
+    case DFmode:
+      return !!HAVE_fmadf4;
+#endif
+
+#ifdef HAVE_fmaxf4
+    case XFmode:
+      return !!HAVE_fmaxf4;
+#endif
+
+#ifdef HAVE_fmatf4
+    case TFmode:
+      return !!HAVE_fmatf4;
+#endif
+
+    default:
+      break;
+    }
+
+  return false;
 }
 
 /* Define NAME with value TYPE size_unit.  */
@@ -86,6 +115,7 @@ static void
 builtin_define_float_constants (const char *name_prefix,
 		                const char *fp_suffix,
 				const char *fp_cast,
+				const char *fma_suffix,
 				tree type)
 {
   /* Used to convert radix-based values to base 10 values in several cases.
@@ -268,6 +298,13 @@ builtin_define_float_constants (const char *name_prefix,
      NaN has quiet NaNs.  */
   sprintf (name, "__%s_HAS_QUIET_NAN__", name_prefix);
   builtin_define_with_int_value (name, MODE_HAS_NANS (TYPE_MODE (type)));
+
+  /* Note whether we have fast FMA.  */
+  if (mode_has_fma (TYPE_MODE (type)))
+    {
+      sprintf (name, "__FP_FAST_FMA%s", fma_suffix);
+      builtin_define_with_int_value (name, 1);
+    }
 }
 
 /* Define __DECx__ constants for TYPE using NAME_PREFIX and SUFFIX. */
@@ -389,25 +426,6 @@ builtin_define_fixed_point_constants (const char *name_prefix,
   builtin_define_with_value (name, buf, 0);
 }
 
-/* Define __GNUC__, __GNUC_MINOR__ and __GNUC_PATCHLEVEL__.  */
-static void
-define__GNUC__ (void)
-{
-  int major, minor, patchlevel;
-
-  if (sscanf (BASEVER, "%d.%d.%d", &major, &minor, &patchlevel) != 3)
-    {
-      sscanf (BASEVER, "%d.%d", &major, &minor);
-      patchlevel = 0;
-    }
-  cpp_define_formatted (parse_in, "__GNUC__=%d", major);
-  cpp_define_formatted (parse_in, "__GNUC_MINOR__=%d", minor);
-  cpp_define_formatted (parse_in, "__GNUC_PATCHLEVEL__=%d", patchlevel);
-
-  if (c_dialect_cxx ())
-    cpp_define_formatted (parse_in, "__GNUG__=%d", major);
-}
-
 /* Define macros used by <stdint.h>.  */
 static void
 builtin_define_stdint_macros (void)
@@ -514,14 +532,14 @@ c_cpp_builtins_optimize_pragma (cpp_reader *pfile, tree prev_tree,
 
   /* Other target-independent built-ins determined by command-line
      options.  */
-  if (!prev->optimize_size && cur->optimize_size)
+  if (!prev->x_optimize_size && cur->x_optimize_size)
     cpp_define (pfile, "__OPTIMIZE_SIZE__");
-  else if (prev->optimize_size && !cur->optimize_size)
+  else if (prev->x_optimize_size && !cur->x_optimize_size)
     cpp_undef (pfile, "__OPTIMIZE_SIZE__");
 
-  if (!prev->optimize && cur->optimize)
+  if (!prev->x_optimize && cur->x_optimize)
     cpp_define (pfile, "__OPTIMIZE__");
-  else if (prev->optimize && !cur->optimize)
+  else if (prev->x_optimize && !cur->x_optimize)
     cpp_undef (pfile, "__OPTIMIZE__");
 
   prev_fast_math = fast_math_flags_struct_set_p (prev);
@@ -531,17 +549,17 @@ c_cpp_builtins_optimize_pragma (cpp_reader *pfile, tree prev_tree,
   else if (prev_fast_math && !cur_fast_math)
     cpp_undef (pfile, "__FAST_MATH__");
 
-  if (!prev->flag_signaling_nans && cur->flag_signaling_nans)
+  if (!prev->x_flag_signaling_nans && cur->x_flag_signaling_nans)
     cpp_define (pfile, "__SUPPORT_SNAN__");
-  else if (prev->flag_signaling_nans && !cur->flag_signaling_nans)
+  else if (prev->x_flag_signaling_nans && !cur->x_flag_signaling_nans)
     cpp_undef (pfile, "__SUPPORT_SNAN__");
 
-  if (!prev->flag_finite_math_only && cur->flag_finite_math_only)
+  if (!prev->x_flag_finite_math_only && cur->x_flag_finite_math_only)
     {
       cpp_undef (pfile, "__FINITE_MATH_ONLY__");
       cpp_define (pfile, "__FINITE_MATH_ONLY__=1");
     }
-  else if (!prev->flag_finite_math_only && cur->flag_finite_math_only)
+  else if (!prev->x_flag_finite_math_only && cur->x_flag_finite_math_only)
     {
       cpp_undef (pfile, "__FINITE_MATH_ONLY__");
       cpp_define (pfile, "__FINITE_MATH_ONLY__=0");
@@ -557,7 +575,14 @@ c_cpp_builtins (cpp_reader *pfile)
   if (flag_undef)
     return;
 
-  define__GNUC__ ();
+  define_language_independent_builtin_macros (pfile);
+
+  if (c_dialect_cxx ())
+  {
+    int major;
+    parse_basever (&major, NULL, NULL);
+    cpp_define_formatted (pfile, "__GNUG__=%d", major);
+  }
 
   /* For stddef.h.  They require macros defined in c-common.c.  */
   c_stddef_cpp_builtins ();
@@ -601,7 +626,7 @@ c_cpp_builtins (cpp_reader *pfile)
 				   1000 + flag_abi_version);
 
   /* libgcc needs to know this.  */
-  if (USING_SJLJ_EXCEPTIONS)
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ)
     cpp_define (pfile, "__USING_SJLJ_EXCEPTIONS__");
 
   /* limits.h and stdint.h need to know these.  */
@@ -616,13 +641,10 @@ c_cpp_builtins (cpp_reader *pfile)
   builtin_define_type_max ("__PTRDIFF_MAX__", ptrdiff_type_node);
   builtin_define_type_max ("__SIZE_MAX__", size_type_node);
 
-  builtin_define_type_precision ("__CHAR_BIT__", char_type_node);
-
   /* stdint.h and the testsuite need to know these.  */
   builtin_define_stdint_macros ();
 
-  /* float.h needs to know these.  */
-
+  /* float.h needs to know this.  */
   builtin_define_with_int_value ("__FLT_EVAL_METHOD__",
 				 TARGET_FLT_EVAL_METHOD);
 
@@ -630,13 +652,19 @@ c_cpp_builtins (cpp_reader *pfile)
   builtin_define_with_int_value ("__DEC_EVAL_METHOD__",
                                  TARGET_DEC_EVAL_METHOD);
 
-  builtin_define_float_constants ("FLT", "F", "%s", float_type_node);
+  builtin_define_float_constants ("FLT", "F", "%s", "F", float_type_node);
   /* Cast the double precision constants.  This is needed when single
      precision constants are specified or when pragma FLOAT_CONST_DECIMAL64
      is used.  The correct result is computed by the compiler when using
-     macros that include a cast.  */
-  builtin_define_float_constants ("DBL", "L", "((double)%s)", double_type_node);
-  builtin_define_float_constants ("LDBL", "L", "%s", long_double_type_node);
+     macros that include a cast.  We use a different cast for C++ to avoid
+     problems with -Wold-style-cast.  */
+  builtin_define_float_constants ("DBL", "L",
+				  (c_dialect_cxx ()
+				   ? "double(%s)"
+				   : "((double)%s)"),
+				  "", double_type_node);
+  builtin_define_float_constants ("LDBL", "L", "%s", "L",
+				  long_double_type_node);
 
   /* For decfloat.h.  */
   builtin_define_decimal_float_constants ("DEC32", "DF", dfloat32_type_node);
@@ -704,49 +732,13 @@ c_cpp_builtins (cpp_reader *pfile)
   builtin_define_with_value ("__USER_LABEL_PREFIX__", user_label_prefix, 0);
 
   /* Misc.  */
-  builtin_define_with_value ("__VERSION__", version_string, 1);
-
   if (flag_gnu89_inline)
     cpp_define (pfile, "__GNUC_GNU_INLINE__");
   else
     cpp_define (pfile, "__GNUC_STDC_INLINE__");
 
-  /* Definitions for LP64 model.  */
-  if (TYPE_PRECISION (long_integer_type_node) == 64
-      && POINTER_SIZE == 64
-      && TYPE_PRECISION (integer_type_node) == 32)
-    {
-      cpp_define (pfile, "_LP64");
-      cpp_define (pfile, "__LP64__");
-    }
-
-  /* Other target-independent built-ins determined by command-line
-     options.  */
-  if (optimize_size)
-    cpp_define (pfile, "__OPTIMIZE_SIZE__");
-  if (optimize)
-    cpp_define (pfile, "__OPTIMIZE__");
-
-  if (fast_math_flags_set_p ())
-    cpp_define (pfile, "__FAST_MATH__");
   if (flag_no_inline)
     cpp_define (pfile, "__NO_INLINE__");
-  if (flag_signaling_nans)
-    cpp_define (pfile, "__SUPPORT_SNAN__");
-  if (flag_finite_math_only)
-    cpp_define (pfile, "__FINITE_MATH_ONLY__=1");
-  else
-    cpp_define (pfile, "__FINITE_MATH_ONLY__=0");
-  if (flag_pic)
-    {
-      builtin_define_with_int_value ("__pic__", flag_pic);
-      builtin_define_with_int_value ("__PIC__", flag_pic);
-    }
-  if (flag_pie)
-    {
-      builtin_define_with_int_value ("__pie__", flag_pie);
-      builtin_define_with_int_value ("__PIE__", flag_pie);
-    }
 
   if (flag_iso)
     cpp_define (pfile, "__STRICT_ANSI__");
@@ -810,26 +802,13 @@ c_cpp_builtins (cpp_reader *pfile)
   if (flag_openmp)
     cpp_define (pfile, "_OPENMP=200805");
 
-  builtin_define_type_sizeof ("__SIZEOF_INT__", integer_type_node);
-  builtin_define_type_sizeof ("__SIZEOF_LONG__", long_integer_type_node);
-  builtin_define_type_sizeof ("__SIZEOF_LONG_LONG__",
-			      long_long_integer_type_node);
   if (int128_integer_type_node != NULL_TREE)
     builtin_define_type_sizeof ("__SIZEOF_INT128__",
 			        int128_integer_type_node);
-  builtin_define_type_sizeof ("__SIZEOF_SHORT__", short_integer_type_node);
-  builtin_define_type_sizeof ("__SIZEOF_FLOAT__", float_type_node);
-  builtin_define_type_sizeof ("__SIZEOF_DOUBLE__", double_type_node);
-  builtin_define_type_sizeof ("__SIZEOF_LONG_DOUBLE__", long_double_type_node);
-  builtin_define_type_sizeof ("__SIZEOF_SIZE_T__", size_type_node);
   builtin_define_type_sizeof ("__SIZEOF_WCHAR_T__", wchar_type_node);
   builtin_define_type_sizeof ("__SIZEOF_WINT_T__", wint_type_node);
   builtin_define_type_sizeof ("__SIZEOF_PTRDIFF_T__",
 			      unsigned_ptrdiff_type_node);
-  /* ptr_type_node can't be used here since ptr_mode is only set when
-     toplev calls backend_init which is not done with -E switch.  */
-  builtin_define_with_int_value ("__SIZEOF_POINTER__",
-				 POINTER_SIZE / BITS_PER_UNIT);
 
   /* A straightforward target hook doesn't work, because of problems
      linking that hook's body when part of non-C front ends.  */
@@ -855,9 +834,6 @@ c_cpp_builtins (cpp_reader *pfile)
      format.  */
   if (ENABLE_DECIMAL_FLOAT && ENABLE_DECIMAL_BID_FORMAT)
     cpp_define (pfile, "__DECIMAL_BID_FORMAT__");
-
-  builtin_define_with_int_value ("__BIGGEST_ALIGNMENT__",
-				 BIGGEST_ALIGNMENT / BITS_PER_UNIT);
 }
 
 /* Pass an object-like macro.  If it doesn't lie in the user's
@@ -946,6 +922,51 @@ builtin_define_with_int_value (const char *macro, HOST_WIDE_INT value)
   cpp_define (parse_in, buf);
 }
 
+/* builtin_define_with_hex_fp_value is very expensive, so the following
+   array and function allows it to be done lazily when __DBL_MAX__
+   etc. is first used.  */
+
+struct GTY(()) lazy_hex_fp_value_struct
+{
+  const char *hex_str;
+  cpp_macro *macro;
+  enum machine_mode mode;
+  int digits;
+  const char *fp_suffix;
+};
+static GTY(()) struct lazy_hex_fp_value_struct lazy_hex_fp_values[12];
+static GTY(()) int lazy_hex_fp_value_count;
+
+static bool
+lazy_hex_fp_value (cpp_reader *pfile ATTRIBUTE_UNUSED,
+		   cpp_hashnode *node)
+{
+  REAL_VALUE_TYPE real;
+  char dec_str[64], buf1[256];
+  unsigned int idx;
+  if (node->value.builtin < BT_FIRST_USER
+      || (int) node->value.builtin >= BT_FIRST_USER + lazy_hex_fp_value_count)
+    return false;
+
+  idx = node->value.builtin - BT_FIRST_USER;
+  real_from_string (&real, lazy_hex_fp_values[idx].hex_str);
+  real_to_decimal_for_mode (dec_str, &real, sizeof (dec_str),
+			    lazy_hex_fp_values[idx].digits, 0,
+			    lazy_hex_fp_values[idx].mode);
+
+  sprintf (buf1, "%s%s", dec_str, lazy_hex_fp_values[idx].fp_suffix);
+  node->flags &= ~(NODE_BUILTIN | NODE_USED);
+  node->value.macro = lazy_hex_fp_values[idx].macro;
+  for (idx = 0; idx < node->value.macro->count; idx++)
+    if (node->value.macro->exp.tokens[idx].type == CPP_NUMBER)
+      break;
+  gcc_assert (idx < node->value.macro->count);
+  node->value.macro->exp.tokens[idx].val.str.len = strlen (buf1);
+  node->value.macro->exp.tokens[idx].val.str.text
+    = (const unsigned char *) ggc_strdup (buf1);
+  return true;
+}
+
 /* Pass an object-like macro a hexadecimal floating-point value.  */
 static void
 builtin_define_with_hex_fp_value (const char *macro,
@@ -956,6 +977,31 @@ builtin_define_with_hex_fp_value (const char *macro,
 {
   REAL_VALUE_TYPE real;
   char dec_str[64], buf1[256], buf2[256];
+
+  /* This is very expensive, so if possible expand them lazily.  */
+  if (lazy_hex_fp_value_count < 12
+      && flag_dump_macros == 0
+      && !cpp_get_options (parse_in)->traditional)
+    {
+      struct cpp_hashnode *node;
+      if (lazy_hex_fp_value_count == 0)
+	cpp_get_callbacks (parse_in)->user_builtin_macro = lazy_hex_fp_value;
+      sprintf (buf2, fp_cast, "1.1");
+      sprintf (buf1, "%s=%s", macro, buf2);
+      cpp_define (parse_in, buf1);
+      node = C_CPP_HASHNODE (get_identifier (macro));
+      lazy_hex_fp_values[lazy_hex_fp_value_count].hex_str
+	= ggc_strdup (hex_str);
+      lazy_hex_fp_values[lazy_hex_fp_value_count].mode = TYPE_MODE (type);
+      lazy_hex_fp_values[lazy_hex_fp_value_count].digits = digits;
+      lazy_hex_fp_values[lazy_hex_fp_value_count].fp_suffix = fp_suffix;
+      lazy_hex_fp_values[lazy_hex_fp_value_count].macro = node->value.macro;
+      node->flags |= NODE_BUILTIN;
+      node->value.builtin
+	= (enum cpp_builtin_type) (BT_FIRST_USER + lazy_hex_fp_value_count);
+      lazy_hex_fp_value_count++;
+      return;
+    }
 
   /* Hex values are really cool and convenient, except that they're
      not supported in strict ISO C90 mode.  First, the "p-" sequence
@@ -1105,3 +1151,5 @@ builtin_define_type_minmax (const char *min_macro, const char *max_macro,
       cpp_define (parse_in, buf);
     }
 }
+
+#include "gt-c-family-c-cppbuiltin.h"

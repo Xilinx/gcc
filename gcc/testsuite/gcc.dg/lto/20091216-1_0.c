@@ -1,6 +1,8 @@
 /* { dg-lto-do run } */
 
-asm (".globl start_; start_: nop");
+#include "../nop.h"
+
+asm (".globl start_\nstart_: " NOP);
 
 int
 main ()

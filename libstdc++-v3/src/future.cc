@@ -64,12 +64,34 @@ namespace
   }
 }
 
-namespace std
-{
-  const error_category* const future_category = &__future_category_instance();
+_GLIBCXX_BEGIN_NAMESPACE(std)
+
+  const error_category& future_category()
+  { return __future_category_instance(); }
 
   future_error::~future_error() throw() { }
 
   const char* 
   future_error::what() const throw() { return _M_code.message().c_str(); }
+
+_GLIBCXX_END_NAMESPACE
+
+// XXX GLIBCXX_ABI Deprecated
+// gcc-4.6.0
+// <future> export changes
+#if defined(_GLIBCXX_SYMVER_GNU) && defined(PIC) \
+    && defined(_GLIBCXX_HAVE_AS_SYMVER_DIRECTIVE) \
+    && defined(_GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT)
+
+namespace __gnu_cxx
+{
+  const std::error_category* future_category = &__future_category_instance();
 }
+
+#define _GLIBCXX_ASM_SYMVER(cur, old, version) \
+   asm (".symver " #cur "," #old "@@@" #version);
+
+_GLIBCXX_ASM_SYMVER(_ZN9__gnu_cxx15future_categoryE, _ZSt15future_category, GLIBCXX_3.4.14)
+
+#endif
+

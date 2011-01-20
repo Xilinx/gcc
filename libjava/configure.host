@@ -318,6 +318,9 @@ EOF
 	DIVIDESPEC=-fuse-divide-subroutine
 	CHECKREFSPEC=-fcheck-references
 	;;
+  i?86-*-solaris2*)
+	can_unwind_signal=yes
+	;;
   *-*-freebsd*)
 	slow_pthread_self=
 	;;
@@ -353,7 +356,7 @@ case "${host}" in
   	BACKTRACESPEC=
 	# Win32 DLLs are limited to 64k exported symbols each.
 	enable_libgcj_sublibs_default=yes
-	libgcj_sublib_ltflags='-no-undefined -bindir $(bindir) \
+	libgcj_sublib_ltflags='$(lt_host_flags) \
 	    -Wl,-u,__ZN3org4ietf4jgss10GSSManagerC1Ev,-L..,-lgcj-noncore-dummy'
 	libgcj_sublib_core_extra_deps=libgcj-noncore-dummy.dll.a
   ;;
