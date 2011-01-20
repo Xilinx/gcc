@@ -1,5 +1,11 @@
 2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR target/47369
+	* config/i386/i386.c (ix86_expand_move): Allow ptr_mode for
+	symbolic operand with PIC.
+
+2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR target/47364
 	* builtins.c (expand_builtin_strlen): Convert to Pmode if PAT
 	isn't in Pmode.
