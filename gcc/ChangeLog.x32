@@ -1,3 +1,10 @@
+2011-01-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47372
+	* config/i386/i386.c (ix86_delegitimize_address): Call
+	simplify_gen_subreg for PIC with ptr_mode only if modes of
+	x and orig_x are different.
+
 2011-01-19  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47369
