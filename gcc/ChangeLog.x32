@@ -1,6 +1,12 @@
 2011-01-20  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47381
+	* config/i386/i386.md (64bit LEA split): Replace nonmemory_operand
+	with x32_lea_nonmemory_operand.
+
+2011-01-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47381
 	* config/i386/constraints.md (Yl): New.
 
 	* config/i386/i386.md (l): New.

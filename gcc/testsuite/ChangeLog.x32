@@ -1,6 +1,11 @@
 2011-01-20  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47381
+	* gcc.target/i386/pr47381-3.c: New.
+
+2011-01-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47381
 	* gcc.target/i386/pr47381-1.c: New.
 	* gcc.target/i386/pr47381-2.c: Likewise.
 
