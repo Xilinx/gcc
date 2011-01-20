@@ -1,4 +1,7 @@
 
+2011-01-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gcc/melt/WorkInProgress-GenRunTime/README : typo.
+
 2011-01-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{experimental, work in progress}}
 	* melt/warmelt-outobj.melt (generate_runtypesupport_mapfun):
