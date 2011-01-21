@@ -15290,6 +15290,8 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
       if (model)
 	{
 	  op1 = legitimize_tls_address (op1, model, true);
+	  if (GET_MODE (op1) != mode)
+	    op1 = convert_to_mode (mode, op1, 1);
 	  op1 = force_operand (op1, op0);
 	  if (op1 == op0)
 	    return;
