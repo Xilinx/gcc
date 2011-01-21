@@ -456,7 +456,12 @@ meltrun-generate: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
 	      $(meltarg_source_path)=melt-sources:. \
 	      $(meltarg_output)=meltrunsup  \
 	      empty-file-for-melt.c
-	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then cp -v meltrunsup*.[ch] $(GCCMELTRUNGEN_DEST) ; fi
+	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then \
+	   for f in $(GCCMELTRUNGEN_DEST)/meltrunsup*.[ch]; \
+	     do mv $$f $$f.bak; \
+	   done; \
+	   cp -v meltrunsup*.[ch] $(GCCMELTRUNGEN_DEST) ; \
+        fi
 
 ### MELT cleanup
 .PHONY: melt-clean

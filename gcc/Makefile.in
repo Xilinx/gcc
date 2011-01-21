@@ -1509,7 +1509,10 @@ BACKEND = main.o @TREEBROWSER@ libbackend.a $(CPPLIB) $(LIBDECNUMBER)
 
 
 ## now we always have MELT enabled
-MELT_H= $(srcdir)/melt-runtime.h melt-predef.h
+MELT_H= $(srcdir)/meltrunsup.h \
+    $(srcdir)/melt-runtime.h \
+    melt-predef.h
+
 MELT_RUNTIME_C= $(srcdir)/melt-runtime.c
 
 MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
@@ -2824,7 +2827,9 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
 ## melt-runtime.o fails in the compare step.
 melt-runtime.o:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
-   tree-pass.h $(MELT_H) gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
+	tree-pass.h $(MELT_H) \
+	$(srcdir)/meltrunsup.h $(srcdir)/meltrunsup-inc.c  \
+   gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
 	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
 	  -DMELT_MODULE_DIR=\"$(melt_module_dir)\" \
@@ -2840,7 +2845,8 @@ melt-runtime.o:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
 ## the one expected. It is included in melt-runtime.c and melt-run.h
 ## is generated to contain it.
 #### keep contrib/build-melt-plugin.sh in sync with this!
-melt-run-md5.h melt-run.h: Makefile  $(srcdir)/melt-run.proto.h $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H) \
+melt-run-md5.h melt-run.h: Makefile  $(srcdir)/melt-run.proto.h \
+   $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H) \
    $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
    tree-pass.h $(MELT_H) gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
 	melt_run_md5=`$(CC) -C -E $(ALL_CFLAGS) $(ALL_CPPFLAGS) $(srcdir)/melt-run.proto.h | grep -v '^#' | md5sum | cut -c 1-32`; \
@@ -3855,7 +3861,7 @@ $(ALL_GTFILES_H) gtype-desc.c gtype-desc.h : s-gtype ; @true
 
 gtyp-input.list gtyp-real-input.list gtyp-real-meltplugin-input.list: s-gtyp-input ; @true
 ### Common flags to gengtype [e.g. -v or -B backupdir]
-GENGTYPE_FLAGS= 
+GENGTYPE_FLAGS= -v
 
 s-gtyp-input: Makefile
 	@: $(call write_entries_to_file,$(GTFILES),tmp-gi.list)
@@ -4618,6 +4624,7 @@ PLUGIN_HEADERS = $(TREE_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 
 ## extra MELT required plugin headers!
 MELT_PLUGIN_HEADERS= melt-runtime.h melt-run.h melt-predef.h \
+                     meltrunup.h \
                      $(REGSET_H)
 ## the REGSET_H should really be added to PLUGIN_HEADERS
 ## http://gcc.gnu.org/ml/gcc/2010-10/msg00233.html
@@ -5424,7 +5431,7 @@ install-melt-headers: melt.encap $(INSTALL_MELT_HEADERS_DIR)
 
 
 melt_make_cc1=./cc1$(exeext)
-melt_make_cc1_dependency=./cc1$(exeext)
+melt_make_cc1_dependency=./cc1$(exeext) $(MELT_H)
 melt_make_gencdeps= ./cc1$(exeext)
 melt_make_module_makefile=$(srcdir)/melt-module.mk
 melt_make_source_dir=$(srcdir)/melt
@@ -5497,7 +5504,9 @@ install-melt-otherfiles: installdirs
 #### http://lists.debian.org/debian-gcc/2010/03/msg00047.html.
 #### this file is useless, except for packaging GCC MELT as a plugin for gcc
 #### Since 4.6 trunk december 2010, the gengtype utility is able to save its state.
-gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c $(srcdir)/melt-runtime.h gtyp-real-meltplugin-input.list  build/gengtype$(build_exeext)
+gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c \
+    $(MELT_H) \
+    gtyp-real-meltplugin-input.list  build/gengtype$(build_exeext)
 	rm -f $@
 	$(RUN_GEN) build/gengtype$(build_exeext) -v -S $(srcdir) -I gtyp-real-meltplugin-input.list -w gtype-no-melt.state  
 	$(RUN_GEN) build/gengtype$(build_exeext) -v -r gtype-no-melt.state -P $@  $(srcdir)/melt-runtime.h  $(srcdir)/melt-runtime.c
@@ -5510,8 +5519,15 @@ gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c $(srcdir)/melt-runtime.h gtyp
 
 upgrade-warmelt: gtyp-real-meltplugin-input.list 
 	$(MAKE) Makefile $(melt_default_modules_list).modlis
+#it is important to call the warmelt-upgrade-translator before the
+#meltrun-generate
 	$(MAKE) warmelt-upgrade-translator
 	$(MAKE) meltrun-generate
+	for f in $(wildcard meltrunsup*.[ch]); do  \
+	  cp $$f $$f-tmp; \
+	  cp $(srcdir)/$$f $$f-old; \
+          $(SHELL) $(srcdir)/../move-if-change $$f-tmp $(srcdir)/$$f; \
+        done
 	$(MAKE) gt-melt-runtime-plugin.h
 ## copy gt-melt-runtime-plugin.h
 	cp gt-melt-runtime-plugin.h $(srcdir)/melt/generated/

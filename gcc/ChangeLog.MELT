@@ -1,4 +1,48 @@
 
+2011-01-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{the meltrunsup*.[ch] are generated and contain melt runtime
+	support files}}
+
+	. :: svn-ignore property: Added *.bak & *.old
+
+	* meltrunsup.h: Add new generated file, included from
+	melt-runtime.h.
+
+	* meltrunsup-inc.c: Add new generated file, included from
+	melt-runtime.c, in particular...
+	(MELT_DEFINE_MAPTR): remove macro.
+	Don't use meltspecial_st but the particular melspecial*_st names.
+
+	* melt/WorkInProgress-GenRunTime/: Remove directory.
+
+	* melt-build.tpl:  Backup old meltrunsup* files as *.bak.
+	* melt-build.mk: Regenerate.
+
+	* melt-runtime.h: Add include of generated meltrunsup.h
+	Remove every old code which has been replaced by generated code.
+
+	* melt-runtime.c: Add include of generated meltrunsup-inc.c
+	and remove every old code which is not generated.
+
+	* melt-run.proto.h: Improve comment, telling that meltrunsup.h is
+	generated.
+
+	{{Regenerate}}
+	* melt/generated/warmelt-normal-0.c: Regenerate.
+	* melt/generated/warmelt-macro-0.c: Regenerate.
+	* melt/generated/warmelt-outobj-0.c: Regenerate.
+	* melt/generated/warmelt-genobj-0.c: Regenerate.
+	* melt/generated/warmelt-base-0.c: Regenerate.
+	* melt/generated/warmelt-normatch-0.c: Regenerate.
+	* melt/generated/warmelt-debug-0.c: Regenerate.
+	* melt/generated/warmelt-first-0.c: Regenerate.
+
+	* Makefile.in (MELT_H): Add generated meltrunsup.h
+	(melt-runtime.o): Add dependency on generated meltrunsup-inc.c
+	(MELT_PLUGIN_HEADERS): Add meltrunsup.h
+	(melt_make_cc1_dependency, gt-melt-runtime-plugin.h): Add $(MELT_H)
+	(upgrade-warmelt): Call melt-generate appropriately and add comment.
+
 2011-01-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h: Add better support for generating GTY-ed ctypes
 	and argument descriptors.  Tricky change, to be kept in sync with

@@ -2,7 +2,7 @@
   MELT file melt-run.h included in every generated file.
    all include files for generated code
    
-   Copyright (C) 2008,2009 Free Software Foundation, Inc.
+   Copyright (C) 2008,2009,2011 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
 This file is part of GCC. It is produced from melt-run.proto.h
@@ -65,7 +65,11 @@ along with GCC; see the file COPYING3.   If not see
 
 /* MELT specific includes */
 
+/* PPL is used by MELT */
 #include "ppl_c.h"
+
+/* the melt-runtime.h header includes itself generated meltrunsup.h
+   header! */
 #include "melt-runtime.h"
 
 
