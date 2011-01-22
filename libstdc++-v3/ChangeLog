@@ -1,3 +1,63 @@
+2011-01-21  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/c++config (_GLIBCXX_EXPORT_TEMPLATE): Remove.
+	* include/debug/safe_sequence.h: Same.
+	* include/debug/safe_iterator.h: Same.
+	* include/std/forward_list: Same.
+	* include/std/deque: Same.
+	* include/std/list: Same.
+	* include/std/random: Same.
+	* include/std/streambuf: Same.
+	* include/std/fstream: Same.
+	* include/std/istream: Same.
+	* include/std/string: Same.
+	* include/std/ostream: Same.
+	* include/std/sstream: Same.
+	* include/ext/vstring.h: Same.
+	* include/bits/basic_ios.h: Same.
+	* include/bits/locale_classes.h: Same.
+	* include/bits/locale_facets.h: Same.
+	* include/bits/valarray_array.h: Same.
+	* include/bits/locale_facets_nonio.h: Same.
+	* include/tr1/random: Same.
+
+2011-01-20  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/diagnostics.xml: Replace note about C++0x concepts.
+
+2011-01-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/36104 part three
+	* src/hashtable_c++0x.cc: Adjust namespace macros.
+	* testsuite/util/testsuite_rvalref.h: Don't forward declare hash.
+	* config/abi/pre/gnu-versioned-namespace.ver: Update.
+
+2011-01-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_load_check_resize_trigger_imp.hpp: Adjust assert condition.
+	* include/ext/pb_ds/detail/pat_trie_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/erase_fn_imps.hpp: Format.
+	* include/ext/pb_ds/detail/ov_tree_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/debug_map_base.hpp: Use never_adjustor.
+
+	* testsuite/ext/pb_ds/regression/hash_data_map_rand.cc: Adjust
+	iterations downward when testing in debug mode.
+	* testsuite/ext/pb_ds/regression/trie_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/tree_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/hash_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/tree_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/trie_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/example/hash_illegal_resize.cc: Use SIZE,
+	reduce in debug mode.
+
+2011-01-19  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/36104 part two
+	* include/bits/hashtable.h: Revert to non-nested macro usage.
+	* include/bits/hashtable_policy.h: Same.
+
 2011-01-19  Graham Reed  <greed@pobox.com>
 
 	PR libstdc++/47354

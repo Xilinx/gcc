@@ -1,3 +1,22 @@
+2011-01-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47399
+	* primary.c (gfc_match_varspec): Relax gcc_assert to allow for
+	PARAMETER TBP.
+
+2011-01-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47394
+	* error.c (gfc_error_now, gfc_fatal_error, gfc_error_check):
+	Use defined instead of magic number exit status codes.
+	* scanner.c (include_line, gfc_new_file): Ditto.
+
+2011-01-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47377
+	* expr.c (gfc_check_pointer_assign): Reject expr data-targets
+	without pointer attribute.
+
 2011-01-18  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/47240

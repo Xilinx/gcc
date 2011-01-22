@@ -1,3 +1,137 @@
+2011-01-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47399
+	* gfortran.dg/typebound_proc_19.f90: New.
+
+2011-01-21  Jeff Law <law@redhat.com>
+
+	PR tree-optimization/47053
+	* g++.dg/pr47053.C: New test.
+	
+2011-01-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47041
+	* g++.dg/cpp0x/constexpr-ctor6.C: New.
+
+2011-01-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47388
+	* g++.dg/cpp0x/range-for10.C: New test.
+	* g++.dg/template/for1.C: New test.
+
+	PR middle-end/45566
+	* g++.dg/tree-prof/partition3.C: New test.
+
+	* g++.dg/tree-prof/tree-prof.exp: Fix a comment.
+
+	PR rtl-optimization/47366
+	* g++.dg/opt/pr47366.C: New test.
+
+2011-01-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46552
+	* g++.dg/cpp0x/constexpr-regress2.C: New.
+
+	* g++.dg/cpp0x/constexpr-stmtexpr.C: New.
+
+2011-01-21  Jeff Law <law@redhat.com>
+
+	PR rtl-optimization/41619
+	* gcc.dg/pr41619.c: New.
+
+2011-01-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47355
+	* g++.dg/opt/pr47355.C: New test.
+
+2011-01-21  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/pr47392.c: Make test non-static instead of
+	making main hot.
+
+2011-01-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47365
+	* gcc.dg/torture/pr47365.c: New testcase.
+	* gcc.dg/tree-ssa/pr47392.c: Likewise.
+
+2011-01-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/other/anon5.C: Skip on mips-sgi-irix*.
+
+2011-01-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47391
+	* gcc.dg/pr47391.c: New test.
+
+2011-01-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/template/char1.C: Use signed char.
+
+2011-01-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47377
+	* gfortran.dg/pointer_target_4.f90: New.
+
+2011-01-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/47251
+	* gcc.target/powerpc/pr47251.c: Fixup test so that it runs on
+	ILP32 system and not IP32.
+
+2011-01-20  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/46583
+	* g++.dg/debug/pr46583.C: New.
+
+2011-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/47283
+	* g++.dg/debug/pr47283.C: New test.
+
+	PR testsuite/47371
+	* gcc.target/i386/headmerge-1.c: Tighten up scan-assembler regex.
+	* gcc.target/i386/headmerge-2.c: Likewise.
+
+2011-01-20  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47370
+	* gcc.dg/torture/pr47370.c: New testcase.
+
+2011-01-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/46130
+	* gcc.dg/pr46130-1.c: New test.
+	* gcc.dg/pr46130-2.c: New test.
+
+2011-01-19  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47291
+    	* g++.dg/debug/dwarf2/template-params-10.C: New test.
+
+2011-01-19  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/46240
+	* g++.dg/debug/pr46240.cc: New.
+
+2011-01-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47303
+	* g++.dg/template/anonunion1.C: New test.
+
+	PR rtl-optimization/47337
+	* gcc.c-torture/execute/pr47337.c: New test.
+
+2011-01-19  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR testsuite/45342
+	* gcc.dg/tls/thr-cse-1.c: Fix match on spu-*.*.
+
+2011-01-19  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR tree-optimization/46021
+	* gcc.dg/tree-ssa/20040204-1.c: Do not XFAIL on spu-*-*.
+
 2011-01-19  Jakub Jelinek  <jakub@redhat.com>
 
 	PR tree-optimization/47290
