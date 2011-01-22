@@ -100,9 +100,9 @@ operator<(const Import_init& i1, const Import_init& i2)
 class Gogo
 {
  public:
-  // Create the IR, passing in the sizes of the types "int", "float",
-  // and "uintptr" in bits.
-  Gogo(int int_type_size, int float_type_size, int pointer_size);
+  // Create the IR, passing in the sizes of the types "int" and
+  // "uintptr" in bits.
+  Gogo(int int_type_size, int pointer_size);
 
   // Get the package name.
   const std::string&
@@ -317,6 +317,11 @@ class Gogo
   // all required interface method tables.
   void
   record_interface_type(Interface_type*);
+
+  // Note that we need an initialization function.
+  void
+  set_need_init_fn()
+  { this->need_init_fn_ = true; }
 
   // Clear out all names in file scope.  This is called when we start
   // parsing a new file.
@@ -1143,12 +1148,12 @@ class Variable
   // Get the preinit block, a block of statements to be run before the
   // initialization expression.
   Block*
-  preinit_block();
+  preinit_block(Gogo*);
 
   // Add a statement to be run before the initialization expression.
   // This is only used for global variables.
   void
-  add_preinit_statement(Statement*);
+  add_preinit_statement(Gogo*, Statement*);
 
   // Lower the initialization expression after parsing is complete.
   void

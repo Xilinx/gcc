@@ -485,6 +485,7 @@ static const struct default_options default_options_table[] =
     { OPT_LEVELS_2_PLUS, OPT_ftree_pre, NULL, 1 },
     { OPT_LEVELS_2_PLUS, OPT_ftree_switch_conversion, NULL, 1 },
     { OPT_LEVELS_2_PLUS, OPT_fipa_cp, NULL, 1 },
+    { OPT_LEVELS_2_PLUS, OPT_fdevirtualize, NULL, 1 },
     { OPT_LEVELS_2_PLUS, OPT_fipa_sra, NULL, 1 },
     { OPT_LEVELS_2_PLUS, OPT_falign_loops, NULL, 1 },
     { OPT_LEVELS_2_PLUS, OPT_falign_jumps, NULL, 1 },
@@ -693,7 +694,7 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
 	opts->x_flag_pic = opts->x_flag_pie;
       if (opts->x_flag_pic && !opts->x_flag_pie)
 	opts->x_flag_shlib = 1;
-      opts->x_flag_opts_finished = false;
+      opts->x_flag_opts_finished = true;
     }
 
   if (opts->x_optimize == 0)
@@ -1561,6 +1562,11 @@ common_handle_option (struct gcc_options *opts,
 	opts->x_flag_value_profile_transformations = value;
       if (!opts_set->x_flag_inline_functions)
 	opts->x_flag_inline_functions = value;
+      /* FIXME: Instrumentation we insert makes ipa-reference bitmaps
+	 quadratic.  Disable the pass until better memory representation
+	 is done.  */
+      if (!opts_set->x_flag_ipa_reference && in_lto_p)
+        opts->x_flag_ipa_reference = false;
       break;
 
     case OPT_fshow_column:

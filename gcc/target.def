@@ -294,6 +294,17 @@ DEFHOOK
  section *, (tree decl, enum node_frequency freq, bool startup, bool exit),
  default_function_section)
 
+/* Output the assembler code for function exit.  */
+DEFHOOK
+(function_switched_text_sections,
+ "Used by the target to emit any assembler directives or additional\
+  labels needed when a function is partitioned between different\
+  sections.  Output should be written to @var{file}.  The function\
+  decl is available as @var{decl} and the new section is `cold' if\
+  @var{new_is_cold} is @code{true}.",
+ void, (FILE *file, tree decl, bool new_is_cold),
+ default_function_switched_text_sections)
+
 /* Return a mask describing how relocations should be treated when
    selecting sections.  Bit 1 should be set if global relocations
    should be placed in a read-write section; bit 0 should be set if
@@ -1507,6 +1518,17 @@ DEFHOOK
  "",
  bool, (enum machine_mode mode),
  default_valid_pointer_mode)
+
+/* Disambiguate with errno.  */
+DEFHOOK
+(ref_may_alias_errno,
+ "Define this to return nonzero if the memory reference @var{ref}\
+  may alias with the system C library errno location.  The default\
+  version of this hook assumes the system C library errno location\
+  is either a declaration of type int or accessed by dereferencing\
+  a pointer to int.",
+ bool, (struct ao_ref_s *ref),
+ default_ref_may_alias_errno)
 
 /* Support for named address spaces.  */
 #undef HOOK_PREFIX
