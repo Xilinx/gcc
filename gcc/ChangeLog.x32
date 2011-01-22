@@ -2,7 +2,7 @@
 
 	PR target/47403
 	* config/i386/i386.c (ix86_expand_move): Call convert_to_mode
-	on legitimize_tls_address retuen if needed.
+	on legitimize_tls_address return if needed.
 
 2011-01-20  H.J. Lu  <hongjiu.lu@intel.com>
 
