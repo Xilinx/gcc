@@ -1,5 +1,5 @@
 ## file melt-predef.list
-# Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+# Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -55,6 +55,7 @@
   CLASS_SEXPR_MACROSTRING
   CLASS_SYMBOL
   CLASS_SYSTEM_DATA
+  CLASS_VARIADIC_FUNCTION
   CTYPE_BASIC_BLOCK
   CTYPE_BITMAP
   CTYPE_CSTRING

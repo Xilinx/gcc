@@ -1,5 +1,10 @@
 
 2011-01-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-predef.list (CLASS_VARIADIC_FUNCTION): New predefined.
+
+	* melt/warmelt-first.melt (class_variadic_function): New.
+
+2011-01-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (readval): Handle the @ macrocharacter, so
 	@x is read as (at x).
 
