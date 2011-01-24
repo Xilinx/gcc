@@ -10951,7 +10951,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /1376eed checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /2ad639af checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))->hd = (melt_ptr_t) (/*_.CBIND__V30*/ meltfptr[29]);
   ;
   /*^touch*/
