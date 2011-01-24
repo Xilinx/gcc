@@ -1,3 +1,155 @@
+2011-01-24  Kenneth Zadeck  <zadeck@naturalbridge.com>
+
+	* machmode.def: Fixed comments.
+	
+2011-01-24  Kai Tietz  <kai.tietz@onevision.com>
+
+	* emit-rtl.c (reg_attrs_htab_hash): Replace long by intptr_t.
+
+2011-01-24  Paul Koning  <ni1d@arrl.net>
+
+	* builtins.c (c_readstr): Fix byte order if BYTES_BIG_ENDIAN !=
+	WORDS_BIG_ENDIAN. 
+
+2011-01-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/46519
+	* config/i386/i386.c: Include sbitmap.h and fibheap.h.
+	(block_info): Add scanned and prev.
+	(move_or_delete_vzeroupper_2): Return if the basic block
+	has been scanned and the upper 128bit state is unchanged
+	from the last scan.
+	(move_or_delete_vzeroupper_1): Return true if the exit
+	state is changed.
+	(move_or_delete_vzeroupper): Visit basic blocks using the
+	work-list based algorithm based on vt_find_locations in
+	var-tracking.c.
+
+	* config/i386/t-i386: Also depend on sbitmap.h and $(FIBHEAP_H).
+
+2011-01-24  Nick Clifton  <nickc@redhat.com>
+
+	* config/v850/v850.opt (mv850es): New option - alias for -mv850e1.
+	* config/v850/v850.h (ASM_SPEC): If -mv850es is specified pass
+	-mv850e1 to the assembler.  If -mv850e1 or -mv850es is specified
+	then define __v850e1__.
+	* doc/invoke.texi: Document -mv850es.
+
+2011-01-24  Richard Henderson  <rth@redhat.com>
+
+	* config/rx/predicates.md (rx_fp_comparison_operator): Don't accept
+	compound unordered comparisons.
+	* config/rx/rx.c (rx_split_fp_compare): Remove.
+	* config/rx/rx-protos.h: Update.
+	* config/rx/rx.md (gcc_conds, rx_conds): Remove.
+	(cbranchsf4): Don't call rx_split_fp_compare.
+	(*cbranchsf4): Use rx_split_cbranch.
+	(*cmpsf): Don't accept "i" constraint.
+	(*conditional_branch): Only valid after reload.
+	(cstoresf4): Merge expander with insn.  Don't call rx_split_fp_compare.
+
+2011-01-24  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/47385
+	* config/rs6000/altivec.md (vector constant splitters): Add
+	support for creating vector single precision constants if -mvsx is
+	used and we would create the constant using Altivec primitives.
+
+2011-01-23  Bernd Schmidt  <bernds@codesourcery.com>
+	    Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR rtl-optimization/47166
+	* reload1.c (emit_reload_insns): Disable the spill_reg_store
+	mechanism for PRE_MODIFY and POST_MODIFY.
+	(inc_for_reload): For PRE_MODIFY, return the insn that sets the
+	reloadreg.
+
+2011-01-23  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* compare-elim.c (maybe_select_cc_mode): Add ATTRIBUTE_UNUSED markers.
+
+2011-01-22  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/47333
+	* lto-cgraph.c (reachable_from_this_partition_p): Fix pasto.
+
+2011-01-22  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/43884
+	PR lto/44334
+	* predict.c (maybe_hot_frequency_p): Use entry block frequency as base.
+	* doc/invoke.texi (hot-bb-frequency-fraction): Update docs.
+
+2011-01-22  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/s390/s390.h (REGISTER_MOVE_COST, MEMORY_MOVE_COST): Remove.
+	* config/s390/s390.c (s390_register_move_cost,
+	s390_memory_move_cost): New.
+	(TARGET_REGISTER_MOVE_COST, TARGET_MEMORY_MOVE_COST): Define.
+
+2011-01-22  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	PR middle-end/47401
+	* except.c (sjlj_assign_call_site_values): Move setting the
+	crtl->uses_eh_lsda flag to ...
+	(sjlj_mark_call_sites): ... here.
+	(sjlj_emit_function_enter): Support NULL dispatch label.
+	(sjlj_build_landing_pads): In a function with no landing pads
+	that still has must-not-throw regions, generate code to register
+	a personality function with empty LSDA.
+
+2011-01-21  Richard Henderson  <rth@redhat.com>
+
+	* config/rx/rx.c (TARGET_FLAGS_REGNUM): New.
+
+	* config/mn10300/mn10300.c (TARGET_FLAGS_REGNUM): New.
+
+	* compare-elim.c: New file.
+	* Makefile.in (OBJS-common): Add it.
+	(compare-elim.o): New.
+	* common.opt (fcompare-elim): New.
+	* opts.c (default_options_table): Add OPT_fcompare_elim.
+	* tree-pass.h (pass_compare_elim_after_reload): New.
+	* passes.c (init_optimization_passes): Add it.
+	* recog.h: Protect against re-inclusion.
+	* target.def (TARGET_FLAGS_REGNUM): New POD hook.
+	* doc/invoke.texi (-fcompare-elim): Document it.
+	* doc/tm.texi.in (TARGET_FLAGS_REGNUM): Document it.
+	* doc/tm.texi: Rebuild.
+
+2011-01-22  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.md (cstoresf4): Pass comparison operator to
+	rx_split_fp_compare.
+
+2011-01-22  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.md (UNSPEC_CONST): New.
+	(deallocate_and_return): Wrap the amount popped off the stack in
+	an UNSPEC_CONST in order to stop it being rejected by
+	-mmax-constant-size.
+	(pop_and_return): Add a "(return)" rtx.
+	(call): Drop the immediate operand.
+	(call_internal): Likewise.
+	(call_value): Likewise.
+	(call_value_internal): Likewise.
+	(sibcall_internal): Likewise.
+	(sibcall_value_internal): Likewise.
+	(sibcall): Likewise.  Generate an explicit call using
+	sibcall_internal.
+	(sibcall_value): Likewise.
+	(mov<>): FAIL if a constant operand is not legitimate.
+	(addsi3_unpsec): New pattern.
+
+	* config/rx/rx.c (rx_print_operand_address): Handle UNPSEC
+	CONSTs.
+	(ok_for_max_constant): New function.
+	(gen_safe_add): New function.
+	(rx_expand_prologue): Use gen_safe_add.
+	(rx_expand_epilogue): Likewise.
+	(rx_is_legitimate_constant): Use ok_for_max_constant.  Handle
+	UNSPEC CONSTs.
+
 2011-01-21  Jeff Law  <law@redhat.com>
 
 	PR tree-optimization/47053

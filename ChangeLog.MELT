@@ -1,3 +1,8 @@
+
+2011-01-24 Basile Starynkevitch  <basile@starynkevitch.net>
+
+        MELT branch merged with trunk rev 169179
+
 2011-01-24 Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* configure.ac: Require PPL 0.11.

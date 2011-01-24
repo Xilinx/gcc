@@ -1,3 +1,16 @@
+2011-01-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47421
+	* trans-decl.c (gfc_trans_deferred_vars): Do not nullify
+	scalar allocatable dummy arguments.
+
+2011-01-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/38536
+	* resolve.c (gfc_iso_c_func_interface):  For C_LOC,
+	check for array sections followed by component references
+	which are illegal.  Also check for coindexed arguments.
+
 2011-01-22  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/47399
