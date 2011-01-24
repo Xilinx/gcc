@@ -1,4 +1,11 @@
 
+2011-01-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (each_loop, debugloop): New.
+
+	* melt/xtramelt-ana-simple.melt: Add default match clause.
+
+	* melt/xtramelt-opengpu.melt: Add each_loop call.
+
 2011-01-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{the meltrunsup*.[ch] are generated and contain melt runtime
 	support files}}

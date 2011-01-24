@@ -2,7 +2,7 @@
 ;; file xtramelt-opengpu.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2010 Free Software Foundation, Inc.
+    Copyright 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
     [funded within OpenGPU french project: http://opengpu.net/ ]
 
@@ -69,6 +69,11 @@
    (debug_msg bbtup "opengpudetect_exec bbtup")
    )
   (debug_msg pass "opengpudetect_exec after each_cgraph_fun_call_flow_graph")
+  (each_loop 
+   ()
+   (:loop curloop)
+   (debugloop curloop  "opengpudetect_exec curloop")
+   )
   ;;
   (debug_msg pass "opengpudetect_exec end")
   (return :true)

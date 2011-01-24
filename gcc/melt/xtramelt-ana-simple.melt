@@ -484,7 +484,11 @@
 	    (debugtree "smallana_bb_cfun decltree" decltree)
 	    (debugtree "smallana_bb_cfun treevars of function" treevars)
 	    (debugcstring "smallana_cfun_entrybb funam" funam)
-	    ))
+	    )
+	 ( ?_ 
+	   (void)
+	 )
+	 )
   (smallana_bb sman fbb)
   (debug_msg sman "smallana_bb_cfun end sman")
   )
@@ -961,7 +965,10 @@
 		   mpz_clear($testinside#_rmaxz);
 		 }#)
 		)
-	    )))	 
+	     ( ?_ (void))
+	    ))
+	 (?_ (void))
+	 )	 
 	(if widenningcast
 	    (progn
 	    (assert_msg "@$@unimplemented smaninterp_gimple widenningcast" ())

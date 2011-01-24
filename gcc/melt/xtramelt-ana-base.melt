@@ -2,7 +2,7 @@
 ;; file xtramelt-ana-base.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
                 and Jeremie Salvucci  <jeremie.salvucci@free.fr>
 
@@ -78,11 +78,11 @@
  #{(meltgc_new_mapgimples((meltobject_ptr_t) ($discr), ($len)))}#)
 ;; primitive for putting into a map of gimples
 (defprimitive mapgimple_put (map :gimple key :value val) :void
-  #{melt_put_mapgimples( (struct meltmapgimples_st *) ($map), 
-			  ($key), (melt_ptr_t) ($val))}#)
+  #{melt_put_mapgimples(($map), 
+			($key), (melt_ptr_t) ($val))}#)
 ;; primivite for removing from a map of gimples
 (defprimitive mapgimple_remove (map :gimple key) :void
-  #{meltgc_remove_mapgimples( (struct meltmapgimples_st*) ($map), ($key))}#)
+  #{meltgc_remove_mapgimples(($map), ($key))}#)
 
 ;; primitive to get the nth gimple of a mapgimple
 (defprimitive mapgimple_nth_attr (map :long n) :gimple
@@ -132,11 +132,11 @@
  #{(meltgc_new_mapedges((meltobject_ptr_t) ($discr), ($len)))}#)
 ;; primitive for putting into a map of edges
 (defprimitive mapedge_put (map :edge key :value val) :void
-  #{melt_put_mapedges( (struct meltmapedges_st *) ($map), 
-			  ($key), (melt_ptr_t) ($val))}#)
+  #{melt_put_mapedges(($map), 
+		      ($key), (melt_ptr_t) ($val))}#)
 ;; primivite for removing from a map of edges
 (defprimitive mapedge_remove (map :edge key) :void
-  #{meltgc_remove_mapedges( (struct meltmapedges_st*) ($map), ($key))}#)
+  #{meltgc_remove_mapedges(($map), ($key))}#)
 
 ;; primitive to get the nth edge of a mapedge
 (defprimitive mapedge_nth_attr (map :long n) :edge
@@ -183,18 +183,18 @@
  #{(meltgc_new_maploops((meltobject_ptr_t) ($discr), ($len)))}#)
 ;; primitive for putting into a map of loops
 (defprimitive maploop_put (map :tree key :value val) :void
-  #{melt_put_maploops( (struct meltmaploops_st *) ($map), 
-			  ($key), (melt_ptr_t) ($val))}#)
-;; primivite for removing from a map of trees
+  #{melt_put_maploops(($map), 
+		      ($key), (melt_ptr_t) ($val))}#)
+;; primivite for removing from a map of loops
 (defprimitive maploop_remove (map :tree key) :void
-  #{meltgc_remove_maploops( (struct meltmaploops_st*) ($map), ($key))}#)
+  #{meltgc_remove_maploops(($map), ($key))}#)
 
-;; primitive to get the nth tree of a maploop
-(defprimitive maploop_nth_attr (map :long n) :tree
-  #{(melt_nthattr_maploops((struct meltmaploops_st*)($map), (int)($n)))}#)
-;; primitive to get the nth value of a mapobject
+;; primitive to get the nth loop of a maploop
+(defprimitive maploop_nth_attr (map :long n) :loop
+  #{(melt_nthattr_maploops(($map), (int)($n)))}#)
+;; primitive to get the nth value of a maploop
 (defprimitive maploop_nth_val (map :long n) :value
-  #{(melt_nthval_maploops((struct meltmaploops_st*)($map), (int)($n)))}# )
+  #{(melt_nthval_maploops(($map), (int)($n)))}# )
 ;; iterator inside maploop
 (defciterator foreach_maploop 
   (loomap)				; startformals
@@ -217,6 +217,32 @@
    } /*end $eachloomap*/
    }#
   )
+
+
+;; iterator on all the loops
+(defciterator each_loop
+  ()
+  eachloop
+  (:loop curloop)
+  ;; before expansion
+  #{ /*$EACHLOOP +*/ 
+   loop_iterator $EACHLOOP#_li = {};
+   FOR_EACH_LOOP($EACHLOOP#_li, $CURLOOP, 0) {
+  }#
+  ;;after expansion
+   #{ } /*$EACHLOOP -*/
+   }#
+)
+  
+
+;; debugloop is ok even for nil
+(defprimitive debugloop (:loop lo :cstring msg) :void
+  #{ do {debugeprintfnonl("debugloop %s @%p ", $MSG, (void*)$LO);
+  if (flag_melt_debug) { if ($LO) flow_loop_dump($LO, dump_file, NULL, 1); }
+  fputc('\n',stderr); 
+ }while(0)  }#
+)
+
 
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
@@ -1868,11 +1894,10 @@
 				   ($len)))}#)
 ;; primitive for putting into a map of basicblocks
 (defprimitive mapbasicblock_put (map :basic_block key :value val) :void
-  #{melt_put_mapbasicblocks( (struct meltmapbasicblocks_st *)
-				($map), ($key), (melt_ptr_t) ($val))}#)
+  #{melt_put_mapbasicblocks(($map), ($key), (melt_ptr_t) ($val))}#)
 ;; primivite for removing from a map of basicblocks
 (defprimitive mapbasicblock_remove (map :basic_block key) :void
- #{meltgc_remove_mapbasicblocks( (struct meltmapbasicblocks_st*) ($map), ($key))}#)
+ #{meltgc_remove_mapbasicblocks(($map), ($key))}#)
 
 ;; primitive to get the nth basicblock of a mapbasicblock
 (defprimitive mapbasicblock_nth_attr (map :long n) :basic_block
@@ -1961,8 +1986,8 @@
  #{(meltgc_new_maptrees((meltobject_ptr_t) ($discr), ($len)))}#)
 ;; primitive for putting into a map of trees
 (defprimitive maptree_put (map :tree key :value val) :void
-  #{melt_put_maptrees( (struct meltmaptrees_st *) ($map), 
-			  ($key), (melt_ptr_t) ($val))}#)
+  #{melt_put_maptrees(($map), 
+		      ($key), (melt_ptr_t) ($val))}#)
 ;; primivite for removing from a map of trees
 (defprimitive maptree_remove (map :tree key) :void
   #{meltgc_remove_maptrees( (struct meltmaptrees_st*) ($map), ($key))}#)
@@ -2723,6 +2748,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  debugedge
  debuggimple
  debuggimpleseq
+ debugloop
  debugtree
  debugtreecodenum
  each_bb_cfun
@@ -2731,6 +2757,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  each_cgraph_fun_call_flow_graph
  each_cgraph_fun_entryblock 
  each_in_gimpleseq
+ each_loop
  each_param_in_fundecl
  eachgimple_in_basicblock
  edge_dest_bb
