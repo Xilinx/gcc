@@ -2011,11 +2011,14 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
       if (!gsym->ns->resolved)
 	{
 	  gfc_dt_list *old_dt_list;
+	  struct gfc_omp_saved_state old_omp_state;
 
 	  /* Stash away derived types so that the backend_decls do not
 	     get mixed up.  */
 	  old_dt_list = gfc_derived_types;
 	  gfc_derived_types = NULL;
+	  /* And stash away openmp state.  */
+	  gfc_omp_save_and_clear_state (&old_omp_state);
 
 	  gfc_resolve (gsym->ns);
 
@@ -2025,6 +2028,8 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
 
 	  /* Restore the derived types of this namespace.  */
 	  gfc_derived_types = old_dt_list;
+	  /* And openmp state.  */
+	  gfc_omp_restore_state (&old_omp_state);
 	}
 
       /* Make sure that translation for the gsymbol occurs before
@@ -2694,6 +2699,9 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
         }
       else if (sym->intmod_sym_id == ISOCBINDING_LOC)
         {
+	  gfc_ref *ref;
+	  bool seen_section;
+
           /* Make sure we have either the target or pointer attribute.  */
 	  if (!arg_attr.target && !arg_attr.pointer)
             {
@@ -2704,6 +2712,45 @@ gfc_iso_c_func_interface (gfc_symbol *sym, gfc_actual_arglist *args,
               retval = FAILURE;
             }
 
+	  if (gfc_is_coindexed (args->expr))
+	    {
+	      gfc_error_now ("Coindexed argument not permitted"
+			     " in '%s' call at %L", name,
+			     &(args->expr->where));
+	      retval = FAILURE;
+	    }
+
+	  /* Follow references to make sure there are no array
+	     sections.  */
+	  seen_section = false;
+
+	  for (ref=args->expr->ref; ref; ref = ref->next)
+	    {
+	      if (ref->type == REF_ARRAY)
+		{
+		  if (ref->u.ar.type == AR_SECTION)
+		    seen_section = true;
+
+		  if (ref->u.ar.type != AR_ELEMENT)
+		    {
+		      gfc_ref *r;
+		      for (r = ref->next; r; r=r->next)
+			if (r->type == REF_COMPONENT)
+			  {
+			    gfc_error_now ("Array section not permitted"
+					   " in '%s' call at %L", name,
+					   &(args->expr->where));
+			    retval = FAILURE;
+			    break;
+			  }
+		    }
+		}
+	    }
+
+	  if (seen_section && retval == SUCCESS)
+	    gfc_warning ("Array section in '%s' call at %L", name,
+			 &(args->expr->where));
+			 
           /* See if we have interoperable type and type param.  */
           if (verify_c_interop (arg_ts) == SUCCESS
               || gfc_check_any_c_kind (arg_ts) == SUCCESS)
@@ -4858,6 +4905,10 @@ expression_rank (gfc_expr *e)
 
   for (ref = e->ref; ref; ref = ref->next)
     {
+      if (ref->type == REF_COMPONENT && ref->u.c.component->attr.proc_pointer
+	  && ref->u.c.component->attr.function && !ref->next)
+	rank = ref->u.c.component->as ? ref->u.c.component->as->rank : 0;
+
       if (ref->type != REF_ARRAY)
 	continue;
 

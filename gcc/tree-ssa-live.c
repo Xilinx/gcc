@@ -453,8 +453,11 @@ remove_unused_scope_block_p (tree scope)
       else if (TREE_CODE (*t) == VAR_DECL && DECL_HAS_VALUE_EXPR_P (*t))
 	unused = false;
 
-      /* Remove everything we don't generate debug info for.  */
-      else if (DECL_IGNORED_P (*t))
+      /* Remove everything we don't generate debug info for.
+	 Don't remove larger vars though, because BLOCK_VARS are
+	 used also during expansion to determine which variables
+	 might share stack space.  */
+      else if (DECL_IGNORED_P (*t) && is_gimple_reg (*t))
 	{
 	  *t = DECL_CHAIN (*t);
 	  next = t;
@@ -490,11 +493,16 @@ remove_unused_scope_block_p (tree scope)
 	 can be considered dead.  We only want to keep around blocks user can
 	 breakpoint into and ask about value of optimized out variables.
 
-	 Similarly we need to keep around types at least until all variables of
-	 all nested blocks are gone.  We track no information on whether given
-	 type is used or not.  */
+	 Similarly we need to keep around types at least until all
+	 variables of all nested blocks are gone.  We track no
+	 information on whether given type is used or not, so we have
+	 to keep them even when not emitting debug information,
+	 otherwise we may end up remapping variables and their (local)
+	 types in different orders depending on whether debug
+	 information is being generated.  */
 
-      else if (debug_info_level == DINFO_LEVEL_NORMAL
+      else if (TREE_CODE (*t) == TYPE_DECL
+	       || debug_info_level == DINFO_LEVEL_NORMAL
 	       || debug_info_level == DINFO_LEVEL_VERBOSE)
 	;
       else
