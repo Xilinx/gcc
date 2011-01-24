@@ -1,3 +1,10 @@
+2011-01-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47446
+	* config/i386/i386.c (ix86_output_addr_vec_elt): Check
+	TARGET_LP64 instead of TARGET_64BIT for ASM_QUAD.
+	(ix86_output_addr_diff_elt): Likewise.
+
 2011-01-21  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47403

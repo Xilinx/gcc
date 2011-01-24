@@ -15196,7 +15196,7 @@ ix86_output_addr_vec_elt (FILE *file, int value)
   const char *directive = ASM_LONG;
 
 #ifdef ASM_QUAD
-  if (TARGET_64BIT)
+  if (TARGET_LP64)
     directive = ASM_QUAD;
 #else
   gcc_assert (!TARGET_64BIT);
@@ -15211,13 +15211,13 @@ ix86_output_addr_diff_elt (FILE *file, int value, int rel)
   const char *directive = ASM_LONG;
 
 #ifdef ASM_QUAD
-  if (TARGET_64BIT && CASE_VECTOR_MODE == DImode)
+  if (TARGET_LP64 && CASE_VECTOR_MODE == DImode)
     directive = ASM_QUAD;
 #else
   gcc_assert (!TARGET_64BIT);
 #endif
   /* We can't use @GOTOFF for text labels on VxWorks; see gotoff_operand.  */
-  if (TARGET_64BIT || TARGET_VXWORKS_RTP)
+  if (TARGET_LP64 || TARGET_VXWORKS_RTP)
     fprintf (file, "%s%s%d-%s%d\n",
 	     directive, LPREFIX, value, LPREFIX, rel);
   else if (HAVE_AS_GOTOFF_IN_DATA)
