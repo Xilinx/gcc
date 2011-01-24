@@ -5663,6 +5663,11 @@ fi
 ppllibs=" -lppl_c -lppl -lgmpxx"
 pplinc=
 
+# we need PPL 0.11
+# See http://www.cs.unipr.it/ppl/
+ppl_major_version=0
+ppl_minor_version=11
+
 
 # Check whether --with-ppl was given.
 if test "${with_ppl+set}" = set; then :
