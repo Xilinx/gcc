@@ -1,3 +1,8 @@
+2011-01-23  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* doc/install.texi: Replace '/' by an or and give the exact
+			    version number of cloog-0.16.1
+
 2011-01-20  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-sese-to-poly.c (dr_indices_valid_in_loop): New.
