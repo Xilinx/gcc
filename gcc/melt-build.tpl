@@ -282,7 +282,7 @@ melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 [+ (define transindex (for-index)) +]
 
 ## melt translator [+base+] # [+ (. transindex) +]
-melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
+melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt melt-sources
 	cd melt-sources; rm -f [+base+].melt; $(LN_S) $(realpath $^)
 
 [+FOR includeload+]

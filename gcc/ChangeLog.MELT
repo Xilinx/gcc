@@ -1,5 +1,10 @@
 
 2011-01-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl (melt-sources/*melt): Depends upon melt-source.
+
+	* melt-build.mk: Regenerate.
+
+2011-01-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-predef.list (CLASS_VARIADIC_FUNCTION): New predefined.
 
 	* melt/warmelt-first.melt (class_variadic_function): New.

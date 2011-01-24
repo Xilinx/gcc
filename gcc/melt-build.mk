@@ -1765,7 +1765,7 @@ melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 
 
 ## melt translator warmelt-first # 0
-melt-sources/warmelt-first.melt: $(melt_make_source_dir)/warmelt-first.melt
+melt-sources/warmelt-first.melt: $(melt_make_source_dir)/warmelt-first.melt melt-sources
 	cd melt-sources; rm -f warmelt-first.melt; $(LN_S) $(realpath $^)
 
 
@@ -1805,7 +1805,7 @@ melt-modules/warmelt-first.n.so: melt-sources/warmelt-first.c \
 
 
 ## melt translator warmelt-base # 1
-melt-sources/warmelt-base.melt: $(melt_make_source_dir)/warmelt-base.melt
+melt-sources/warmelt-base.melt: $(melt_make_source_dir)/warmelt-base.melt melt-sources
 	cd melt-sources; rm -f warmelt-base.melt; $(LN_S) $(realpath $^)
 
 
@@ -1845,7 +1845,7 @@ melt-modules/warmelt-base.n.so: melt-sources/warmelt-base.c \
 
 
 ## melt translator warmelt-debug # 2
-melt-sources/warmelt-debug.melt: $(melt_make_source_dir)/warmelt-debug.melt
+melt-sources/warmelt-debug.melt: $(melt_make_source_dir)/warmelt-debug.melt melt-sources
 	cd melt-sources; rm -f warmelt-debug.melt; $(LN_S) $(realpath $^)
 
 
@@ -1885,7 +1885,7 @@ melt-modules/warmelt-debug.n.so: melt-sources/warmelt-debug.c \
 
 
 ## melt translator warmelt-macro # 3
-melt-sources/warmelt-macro.melt: $(melt_make_source_dir)/warmelt-macro.melt
+melt-sources/warmelt-macro.melt: $(melt_make_source_dir)/warmelt-macro.melt melt-sources
 	cd melt-sources; rm -f warmelt-macro.melt; $(LN_S) $(realpath $^)
 
 
@@ -1925,7 +1925,7 @@ melt-modules/warmelt-macro.n.so: melt-sources/warmelt-macro.c \
 
 
 ## melt translator warmelt-normal # 4
-melt-sources/warmelt-normal.melt: $(melt_make_source_dir)/warmelt-normal.melt
+melt-sources/warmelt-normal.melt: $(melt_make_source_dir)/warmelt-normal.melt melt-sources
 	cd melt-sources; rm -f warmelt-normal.melt; $(LN_S) $(realpath $^)
 
 
@@ -1971,7 +1971,7 @@ melt-modules/warmelt-normal.n.so: melt-sources/warmelt-normal.c \
 
 
 ## melt translator warmelt-normatch # 5
-melt-sources/warmelt-normatch.melt: $(melt_make_source_dir)/warmelt-normatch.melt
+melt-sources/warmelt-normatch.melt: $(melt_make_source_dir)/warmelt-normatch.melt melt-sources
 	cd melt-sources; rm -f warmelt-normatch.melt; $(LN_S) $(realpath $^)
 
 
@@ -2011,7 +2011,7 @@ melt-modules/warmelt-normatch.n.so: melt-sources/warmelt-normatch.c \
 
 
 ## melt translator warmelt-genobj # 6
-melt-sources/warmelt-genobj.melt: $(melt_make_source_dir)/warmelt-genobj.melt
+melt-sources/warmelt-genobj.melt: $(melt_make_source_dir)/warmelt-genobj.melt melt-sources
 	cd melt-sources; rm -f warmelt-genobj.melt; $(LN_S) $(realpath $^)
 
 
@@ -2051,7 +2051,7 @@ melt-modules/warmelt-genobj.n.so: melt-sources/warmelt-genobj.c \
 
 
 ## melt translator warmelt-outobj # 7
-melt-sources/warmelt-outobj.melt: $(melt_make_source_dir)/warmelt-outobj.melt
+melt-sources/warmelt-outobj.melt: $(melt_make_source_dir)/warmelt-outobj.melt melt-sources
 	cd melt-sources; rm -f warmelt-outobj.melt; $(LN_S) $(realpath $^)
 
 
