@@ -95,7 +95,7 @@ gl_consume_token (gimple_lexer *lexer)
 static enum tree_code
 gl_tree_code_for_token (const gimple_token *token)
 {
-  enum tree_code code;
+  size_t code;
   const char *s;
 
   s = gl_token_as_text (token);
@@ -103,7 +103,7 @@ gl_tree_code_for_token (const gimple_token *token)
     if (strcasecmp (s, tree_code_name[code]) == 0)
       break;
 
-  return code;
+  return (enum tree_code) code;
 }
 
 
@@ -113,7 +113,7 @@ gl_tree_code_for_token (const gimple_token *token)
 static enum gimple_code
 gl_gimple_code_for_token (const gimple_token *token)
 {
-  enum gimple_code code;
+  size_t code;
   const char *s;
 
   s = gl_token_as_text (token);
@@ -121,7 +121,7 @@ gl_gimple_code_for_token (const gimple_token *token)
     if (strcasecmp (s, gimple_code_name[code]) == 0)
       break;
 
-  return code;
+  return (enum gimple_code) code;
 }
 
 

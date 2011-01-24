@@ -1,3 +1,9 @@
+2011-01-24  Diego Novillo  <dnovillo@google.com>
+
+	* gimple/parser.c (gl_tree_code_for_token): Fix type
+	mismatch warnings.
+	(gl_gimple_code_for_token): Likewise.
+
 2011-01-04  Diego Novillo  <dnovillo@google.com>
 
 	* lang-specs.h: Make .gimple files use the @gimple spec.
