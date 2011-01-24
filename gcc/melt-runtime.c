@@ -8076,6 +8076,23 @@ readval (struct reading_st *rd, bool * pgot)
       *pgot = TRUE;
       goto end;
     }
+  else if (c == '@')
+    {
+      bool got = false;
+      location_t loc = 0;
+      rdnext ();
+      LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+      compv = readval (rd, &got);
+      if (!got)
+	READ_ERROR ("MELT: expecting value after at %.20s", &rdcurc ());
+      seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+      altv = meltgc_named_symbol ("at", MELT_CREATE);
+      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
+      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+      readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+      *pgot = TRUE;
+      goto end;
+    }
   else if (c == '?')
     {
       bool got = false;

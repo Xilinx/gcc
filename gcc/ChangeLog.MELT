@@ -1,5 +1,14 @@
 
 2011-01-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (readval): Handle the @ macrocharacter, so
+	@x is read as (at x).
+
+	* melt/warmelt-macro.melt
+	(expand_restlist_as_list, expand_restlist_as_tuple)
+	(expand_pairlist_as_tuple, expand_pairlist_as_list): Macro
+	expansion can return more than one value...
+
+2011-01-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (each_loop, debugloop): New.
 
 	* melt/xtramelt-ana-simple.melt: Add default match clause.

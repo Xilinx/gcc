@@ -1,7 +1,7 @@
 ;; file warmelt-macro.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -71,7 +71,7 @@ subexpressions. Field $SARGOP_ARGS is the tuple of arguments.}#
 	   msend_recv			;the reciever
 	   ))
 
-;;; source primitive call
+;;; source primitive invocation
 (defclass class_source_primitive
   :doc #{The internal $CLASS_SOURCE_PRIMITIVE is for primitive
 invocation abstract syntax. $SPRIM_OPER is the primitive operation,
@@ -79,6 +79,7 @@ $SARGOP_ARGS is the tuple of arguments.}#
   :super class_source_argumented_operator
   :fields (sprim_oper			;the primitive operation
 	   ))
+
 
 ;;; source citerator invocation
 (defclass class_source_citeration
@@ -779,48 +780,106 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 ;;;;;;;;;;;;;;;;;;;; first pass, macro expansion
 (compile_warning "perhaps should document below")
 
+
+(defun expand_restlist_as_list (arglist env mexpander)
+  :doc #{Expand all but the first in an argument list $ARGLIST in
+  environment $ENV using expander $MEXPANDER as a list of macro
+  expansions.}#
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check arglist" (is_list arglist))
+  (let ( (expreslist (list)) 
+	 (:long count 0)
+	 )
+    (foreach_in_list
+     (arglist)
+     (curpair curarg)
+     (if (>i count 0)
+	 (multicall 
+	  (curexp xtraexp)
+	  (macroexpand_1 curarg env mexpander)
+	  (list_append expreslist curexp)
+	  (cond 
+	   ((is_multiple xtraexp)
+	    (foreach_in_multiple
+	     (xtraexp)
+	     (curxtra :long xix)
+	     (list_append expreslist curxtra)
+	     ))
+	   ((is_list xtraexp)
+	    (foreach_in_list
+	     (xtraexp)
+	     (xtrapair curxtra)
+	     (list_append expreslist curxtra)
+	     ))
+	   (xtraexp
+	    (list_append expreslist xtraexp))
+	   )
+	  )
+       )
+     (setq count (+i count 1))
+     )
+    (return expreslist)
+    )
+  )
+
 ;;expand all but the first element of a list as a tuple
 (defun expand_restlist_as_tuple (arglist env mexpander)
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
   (assert_msg "check arglist" (is_list arglist))
-  (let ( (:long nbarg (list_length arglist))
-	 (:long ix 0)
-	 (curpair (pair_tail (list_first arglist)))
-	 (tup (make_multiple discr_multiple (-i nbarg 1)))
+  (let ( (expreslist (expand_restlist_as_list arglist env mexpander))
 	 )
-    (forever exploop
-	     (if (null curpair) (exit exploop))
-	     (assert_msg "check curpair" (is_pair curpair))
-	     (let ( (curarg (pair_head curpair)) 
-		    (curexp (macroexpand_1 curarg env mexpander))
-		    )
-	       (multiple_put_nth tup ix curexp)
-	       (setq ix (+i ix 1))
-	       (setq curpair (pair_tail curpair))
-	       ))
-    tup
-    ))
+    (list_to_multiple expreslist discr_multiple)))
+
+
 
 ;;expand all of a pairlist as a tuple
+(defun expand_pairlist_as_list (pair env mexpander)
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))  
+  (let ( (expreslist (list)) 
+	 )
+    (forever exploop
+	     (if (not (is_pair pair)) (exit exploop))
+	     (let ( (curarg (pair_head pair))
+		    )
+	       (setq pair (pair_tail pair))
+	       (multicall 
+		(curexp xtraexp)
+		(macroexpand_1 curarg env mexpander)
+		(list_append expreslist curexp)
+		(cond 
+		 ((is_multiple xtraexp)
+		  (foreach_in_multiple
+		   (xtraexp)
+		   (curxtra :long xix)
+		   (list_append expreslist curxtra)
+		   ))
+		 ((is_list xtraexp)
+		  (foreach_in_list
+		   (xtraexp)
+		   (xtrapair curxtra)
+		   (list_append expreslist curxtra)
+		   ))
+		 (xtraexp
+		  (list_append expreslist xtraexp))
+		 )
+		)
+	       )
+	     )
+    (return expreslist)
+    )
+  )
+
+
 (defun expand_pairlist_as_tuple (pair env mexpander)
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
-  (let ( (:long nbarg (pair_listlength pair))
-	 (:long ix 0)
-	 (tup (make_multiple discr_multiple nbarg)) )
-    (forever exploop
-	     (if (not (is_pair pair)) (exit exploop))
-	     (let ( (curarg (pair_head pair)) 
-		    (curexp (macroexpand_1 curarg env mexpander))
-		    )
-	       (multiple_put_nth tup ix curexp)
-	       (setq ix (+i ix 1))
-	       (setq pair (pair_tail pair))
-	       ))
-    tup 
-    ))
-
+  (if (is_pair pair)
+      (let ( (expreslist (expand_pairlist_as_list pair env mexpander))
+	     )
+	(list_to_multiple expreslist discr_multiple))))
 
 ;;; expand an s-expression known to be an application
 (defun expand_apply (sexpr env mexpander)
