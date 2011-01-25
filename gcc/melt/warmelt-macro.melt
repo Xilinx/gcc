@@ -2125,6 +2125,8 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
     (let (
 	  (varibind (instance class_variadic_binding
 			      :binder symb
+			      :fvbind_variadic ()
+			      :fvbind_defvariadic ()
 			      ))
 	  )
       ;; we add quickly the variadic binding, in case the symbol appears
@@ -2167,11 +2169,44 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 			(error_plain loc 
 				     ":FINAL should be given once for (DEFVARIADIC...)")
 		      (setq finahdl (macroexpand_1 curval env mexpander))))
+		  ;; parse :<ctype> <handler>
+		  (:else
+		   (let ( (cty (get_field :symb_data curkey)) 
+			  (hdl (macroexpand_1 curval env mexpander))
+			  )
+		     (if (is_not_a cty class_ctype)
+			 (error_strv loc
+				     "invalid keyword in (DEFVARIADIC...) not ctype or :DOC or :INITIAL or :FINAL"
+				     (get_field :named_name curkey)))
+		     (if (mapobject_get mapctyh cty)
+			 (error_strv loc
+				     "duplicate ctype in (DEFVARIADIC...)"
+				     (get_field :named_name curkey)))
+		     (if (not (is_object hdl))
+			 (error_strv loc
+				     "invalid ctype handler in (DEFVARIADIC...)"
+				     (get_field :named_name curkey)))
+		     (mapobject_put mapctyh cty hdl)
+		     )
+		   )
 		  )
 		 )
 	       )
-      (error_plain loc "(DEFVARIADIC... is not implemented yet")
-      (assert_msg "@$@unimplemented mexpand_defvariadic")
+      (let (
+	    (defvari (instance class_source_defvariadic
+			       :loca_location loc
+			       :sdef_name symb
+			       :sdef_doc docv
+			       :sformal_args formtup
+			       :svariadic_initial inithdl
+			       :svariadic_ctypehandlermap mapctyh
+			       :svariadic_final finahdl
+			       ))
+	    )
+	(debug_msg defvari "mexpand_defvariadic defvari")
+	(error_plain loc "(DEFVARIADIC... is not implemented yet")
+	(assert_msg "@$@unimplemented mexpand_defvariadic")
+	)
       )
     )
   )
