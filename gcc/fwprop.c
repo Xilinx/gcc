@@ -1119,6 +1119,7 @@ forward_propagate_subreg (df_ref use, rtx def_insn, rtx def_set)
       if ((GET_CODE (src) == ZERO_EXTEND
 	   || GET_CODE (src) == SIGN_EXTEND)
 	  && REG_P (XEXP (src, 0))
+	  && REGNO (XEXP (src, 0)) >= FIRST_PSEUDO_REGISTER
 	  && GET_MODE (XEXP (src, 0)) == use_mode
 	  && !free_load_extend (src, def_insn)
 	  && all_uses_available_at (def_insn, use_insn))
