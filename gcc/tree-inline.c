@@ -811,57 +811,47 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 	 knows not to copy VAR_DECLs, etc., so this is safe.  */
       if (TREE_CODE (*tp) == MEM_REF)
 	{
+	  tree ptr = TREE_OPERAND (*tp, 0);
+	  tree old = *tp;
+	  tree tem;
+
 	  /* We need to re-canonicalize MEM_REFs from inline substitutions
-	     that can happen when a pointer argument is an ADDR_EXPR.  */
-	  tree decl = TREE_OPERAND (*tp, 0);
-	  tree *n;
-
-          /* See remap_ssa_name.  */
-          if (TREE_CODE (decl) == SSA_NAME
-              && TREE_CODE (SSA_NAME_VAR (decl)) == RESULT_DECL
-              && id->transform_return_to_modify)
-            decl = SSA_NAME_VAR (decl);
-
-	  n = (tree *) pointer_map_contains (id->decl_map, decl);
-	  if (n)
+	     that can happen when a pointer argument is an ADDR_EXPR.
+	     Recurse here manually to allow that.  */
+	  walk_tree (&ptr, remap_gimple_op_r, data, NULL);
+	  if ((tem = maybe_fold_offset_to_reference (EXPR_LOCATION (*tp),
+						     ptr,
+						     TREE_OPERAND (*tp, 1),
+						     TREE_TYPE (*tp)))
+	      && TREE_THIS_VOLATILE (tem) == TREE_THIS_VOLATILE (old))
 	    {
-	      tree old = *tp;
-	      tree ptr = unshare_expr (*n);
-	      tree tem;
-	      if ((tem = maybe_fold_offset_to_reference (EXPR_LOCATION (*tp),
-							 ptr,
-							 TREE_OPERAND (*tp, 1),
-							 TREE_TYPE (*tp)))
-		  && TREE_THIS_VOLATILE (tem) == TREE_THIS_VOLATILE (old))
-		{
-		  tree *tem_basep = &tem;
-		  while (handled_component_p (*tem_basep))
-		    tem_basep = &TREE_OPERAND (*tem_basep, 0);
-		  if (TREE_CODE (*tem_basep) == MEM_REF)
-		    *tem_basep
-		      = build2 (MEM_REF, TREE_TYPE (*tem_basep),
-				TREE_OPERAND (*tem_basep, 0),
-				fold_convert (TREE_TYPE (TREE_OPERAND (*tp, 1)),
-					      TREE_OPERAND (*tem_basep, 1)));
-		  else
-		    *tem_basep
-		      = build2 (MEM_REF, TREE_TYPE (*tem_basep),
-				build_fold_addr_expr (*tem_basep),
-				build_int_cst
-				  (TREE_TYPE (TREE_OPERAND (*tp, 1)), 0));
-		  *tp = tem;
-		}
+	      tree *tem_basep = &tem;
+	      while (handled_component_p (*tem_basep))
+		tem_basep = &TREE_OPERAND (*tem_basep, 0);
+	      if (TREE_CODE (*tem_basep) == MEM_REF)
+		*tem_basep
+		    = build2 (MEM_REF, TREE_TYPE (*tem_basep),
+			      TREE_OPERAND (*tem_basep, 0),
+			      fold_convert (TREE_TYPE (TREE_OPERAND (*tp, 1)),
+					    TREE_OPERAND (*tem_basep, 1)));
 	      else
-		{
-		  *tp = fold_build2 (MEM_REF, TREE_TYPE (*tp),
-				     ptr, TREE_OPERAND (*tp, 1));
-		  TREE_THIS_VOLATILE (*tp) = TREE_THIS_VOLATILE (old);
-		  TREE_THIS_NOTRAP (*tp) = TREE_THIS_NOTRAP (old);
-		}
-	      TREE_NO_WARNING (*tp) = TREE_NO_WARNING (old);
-	      *walk_subtrees = 0;
-	      return NULL;
+		*tem_basep
+		    = build2 (MEM_REF, TREE_TYPE (*tem_basep),
+			      build_fold_addr_expr (*tem_basep),
+			      build_int_cst
+			      (TREE_TYPE (TREE_OPERAND (*tp, 1)), 0));
+	      *tp = tem;
 	    }
+	  else
+	    {
+	      *tp = fold_build2 (MEM_REF, TREE_TYPE (*tp),
+				 ptr, TREE_OPERAND (*tp, 1));
+	      TREE_THIS_VOLATILE (*tp) = TREE_THIS_VOLATILE (old);
+	      TREE_THIS_NOTRAP (*tp) = TREE_THIS_NOTRAP (old);
+	    }
+	  TREE_NO_WARNING (*tp) = TREE_NO_WARNING (old);
+	  *walk_subtrees = 0;
+	  return NULL;
 	}
 
       /* Here is the "usual case".  Copy this tree node, and then
@@ -5173,16 +5163,26 @@ tree_function_versioning (tree old_decl, tree new_decl,
     /* Add local vars.  */
     add_local_variables (DECL_STRUCT_FUNCTION (old_decl), cfun, &id, false);
 
+  if (DECL_RESULT (old_decl) != NULL_TREE)
+    {
+      tree old_name;
+      DECL_RESULT (new_decl) = remap_decl (DECL_RESULT (old_decl), &id);
+      lang_hooks.dup_lang_specific_decl (DECL_RESULT (new_decl));
+      if (gimple_in_ssa_p (id.src_cfun)
+	  && DECL_BY_REFERENCE (DECL_RESULT (old_decl))
+	  && (old_name
+	      = gimple_default_def (id.src_cfun, DECL_RESULT (old_decl))))
+	{
+	  tree new_name = make_ssa_name (DECL_RESULT (new_decl), NULL);
+	  insert_decl_map (&id, old_name, new_name);
+	  SSA_NAME_DEF_STMT (new_name) = gimple_build_nop ();
+	  set_default_def (DECL_RESULT (new_decl), new_name);
+	}
+    }
+
   /* Copy the Function's body.  */
   copy_body (&id, old_entry_block->count, REG_BR_PROB_BASE,
 	     ENTRY_BLOCK_PTR, EXIT_BLOCK_PTR, blocks_to_copy, new_entry);
-
-  if (DECL_RESULT (old_decl) != NULL_TREE)
-    {
-      tree *res_decl = &DECL_RESULT (old_decl);
-      DECL_RESULT (new_decl) = remap_decl (*res_decl, &id);
-      lang_hooks.dup_lang_specific_decl (DECL_RESULT (new_decl));
-    }
 
   /* Renumber the lexical scoping (non-code) blocks consecutively.  */
   number_blocks (new_decl);

@@ -1,4 +1,62 @@
+2011-01-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47041
+	* semantics.c (build_constexpr_constructor_member_initializers):
+	Handle trivial copy.
+
+2011-01-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47388
+	* semantics.c (begin_for_stmt): If -fno-for-scope, don't
+	assume init must be NULL if scope is NULL.
+	(begin_range_for_stmt): Likewise.
+
+2011-01-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46552
+	* semantics.c (cxx_eval_constant_expression): Handle OFFSET_REF.
+
+	PR c++/46977
+	* semantics.c (potential_constant_expression_1): Split out from
+	potential_constant_expression.  Add want_rval parm.  Handle
+	template expression forms.  Don't enforce restriction on address
+	of automatic variable here.  Add a couple of diagnostics that
+	had been missing.
+	(require_potential_constant_expression): New entry point.
+	(build_data_member_initialization, register_constexpr_fundef): Adjust.
+	(maybe_constant_value): Check potential_constant_expression.
+	* pt.c (fold_non_dependent_expr_sfinae): Likewise.
+	* tree.c (build_vec_init_expr): Adjust.
+
+2011-01-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47303
+	* decl2.c (finish_anon_union): Only call mangle_decl if TREE_STATIC
+	or DECL_EXTERNAL.
+
+2011-01-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47067
+	* semantics.c (base_field_constructor_elt): New fn.
+	(cxx_eval_bare_aggregate): Use it.
+	(build_data_member_initialization): Leave COMPONENT_REF for
+	vfield inits.
+
+2011-01-14  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
+
+	* parser.c (cp_parser_range_for): Remove the "unused variable" warning
+	workaround.
+
+2011-01-15  Giovanni Funchal  <gafunchal@gmail.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/33558
+	* decl.c (grokdeclarator): Reject mutable reference members.
+
 2011-01-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47289
+	* pt.c (coerce_template_parms): Fix error recovery.
 
 	PR c++/46903
 	* typeck2.c (check_narrowing): Only check arithmetic types.

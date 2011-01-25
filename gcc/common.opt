@@ -853,6 +853,10 @@ fcompare-debug-second
 Common Driver RejectNegative Var(flag_compare_debug)
 Run only the second compilation of -fcompare-debug
 
+fcompare-elim
+Common Report Var(flag_compare_elim_after_reload) Optimization
+Perform comparison elimination after register allocation has finished
+
 fconserve-stack
 Common Var(flag_conserve_stack) Optimization
 Do not perform optimizations increasing noticeably stack usage
@@ -910,6 +914,10 @@ Attempt to fill delay slots of branch instructions
 fdelete-null-pointer-checks
 Common Report Var(flag_delete_null_pointer_checks) Init(1) Optimization
 Delete useless null pointer checks
+
+fdevirtualize
+Common Report Var(flag_devirtualize) Optimization
+Try to convert virtual calls to direct ones.
 
 fdiagnostics-show-location=
 Common Joined RejectNegative Enum(diagnostic_prefixing_rule)

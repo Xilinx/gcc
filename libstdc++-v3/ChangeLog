@@ -1,3 +1,234 @@
+2011-01-24  Johannes Singler  <singler@kit.edu>
+
+        PR libstdc++/47433
+        * include/parallel/losertree.h
+        (_LoserTree<>::__delete_min_insert):
+        Do not qualify swap with std:: for value type, 
+        but include a using directive instead.
+        (_LoserTreeUnguarded<>::__delete_min_insert): Likewise.
+        * include/parallel/balanced_quicksort.h (__qsb_divide):
+        Use std::iter_swap instead of std::swap.
+        (__qsb_local_sort_with_helping): Likewise.
+        * include/parallel/partition.h (__parallel_partition): 
+        Likewise. (__parallel_nth_element): Likewise.
+
+2011-01-24  Johannes Singler  <singler@kit.edu>
+
+        PR libstdc++/47437
+        * include/parallel/multiway_merge.h (_UnguardedIterator):
+        Remove useless "mutable" from reference declaration.
+
+2011-01-21  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/c++config (_GLIBCXX_EXPORT_TEMPLATE): Remove.
+	* include/debug/safe_sequence.h: Same.
+	* include/debug/safe_iterator.h: Same.
+	* include/std/forward_list: Same.
+	* include/std/deque: Same.
+	* include/std/list: Same.
+	* include/std/random: Same.
+	* include/std/streambuf: Same.
+	* include/std/fstream: Same.
+	* include/std/istream: Same.
+	* include/std/string: Same.
+	* include/std/ostream: Same.
+	* include/std/sstream: Same.
+	* include/ext/vstring.h: Same.
+	* include/bits/basic_ios.h: Same.
+	* include/bits/locale_classes.h: Same.
+	* include/bits/locale_facets.h: Same.
+	* include/bits/valarray_array.h: Same.
+	* include/bits/locale_facets_nonio.h: Same.
+	* include/tr1/random: Same.
+
+2011-01-20  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/diagnostics.xml: Replace note about C++0x concepts.
+
+2011-01-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/36104 part three
+	* src/hashtable_c++0x.cc: Adjust namespace macros.
+	* testsuite/util/testsuite_rvalref.h: Don't forward declare hash.
+	* config/abi/pre/gnu-versioned-namespace.ver: Update.
+
+2011-01-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_load_check_resize_trigger_imp.hpp: Adjust assert condition.
+	* include/ext/pb_ds/detail/pat_trie_/
+	constructors_destructor_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/binary_heap_/erase_fn_imps.hpp: Format.
+	* include/ext/pb_ds/detail/ov_tree_map_/debug_fn_imps.hpp: Same.
+	* include/ext/pb_ds/detail/debug_map_base.hpp: Use never_adjustor.
+
+	* testsuite/ext/pb_ds/regression/hash_data_map_rand.cc: Adjust
+	iterations downward when testing in debug mode.
+	* testsuite/ext/pb_ds/regression/trie_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/tree_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/hash_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/tree_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/regression/trie_no_data_map_rand.cc: Same.
+	* testsuite/ext/pb_ds/example/hash_illegal_resize.cc: Use SIZE,
+	reduce in debug mode.
+
+2011-01-19  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/36104 part two
+	* include/bits/hashtable.h: Revert to non-nested macro usage.
+	* include/bits/hashtable_policy.h: Same.
+
+2011-01-19  Graham Reed  <greed@pobox.com>
+
+	PR libstdc++/47354
+	* src/bitmap_allocator.cc (free_list::_M_get): Lock mutex.
+
+2011-01-18  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/images/confdeps.png: Regenerate.
+
+	* include/std/chrono (duration): Mark copy constructor constexpr.
+	* testsuite/20_util/duration/cons/constexpr.cc: Add test.
+
+2011-01-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/unique_ptr.h (default_delete<>::default_delete()):
+	Declare defaulted per DR 1517.
+	* testsuite/util/testsuite_common_types.h
+	(constexpr_defaulted_default_constructible): Add.
+	* testsuite/20_util/default_delete/cons/constexpr.cc: Use it.
+
+2011-01-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/stl_queue.h (queue<>::swap, priority_queue<>::swap):
+	Implement DR 1198.
+	* include/bits/stl_stack.h (stack<>::swap): Likewise.
+
+2011-01-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47323
+	* testsuite/28_regex/08_basic_regex/requirements/constexpr_data.cc:
+	Only test wregex when _GLIBCXX_USE_WCHAR_T is defined.
+
+2011-01-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47320
+	* testsuite/18_support/numeric_limits/lowest.cc:
+	Only test wchar_t when _GLIBCXX_USE_WCHAR_T is defined.
+
+2011-01-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47321
+	* testsuite/21_strings/basic_string/requirements/typedefs.cc:
+	Only test std::wstring when _GLIBCXX_USE_WCHAR_T is defined.
+
+2011-01-16  François Dumont  <francois.cppdevs@free.fr>
+
+	* testsuite/23_containers/forward_list/debug/erase_after1_neg.cc: Move
+	to this. Use _neg suffix.
+	* testsuite/23_containers/forward_list/debug/erase_after1.cc: ...from
+	this.
+	* testsuite/23_containers/forward_list/debug/erase_after2_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/erase_after2.cc: Same.
+	* testsuite/23_containers/forward_list/debug/erase_after3_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/erase_after3.cc: Same.
+	* testsuite/23_containers/forward_list/debug/erase_after4_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/erase_after4.cc: Same.
+	* testsuite/23_containers/forward_list/debug/erase_after5_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/erase_after5.cc: Same.
+	* testsuite/23_containers/forward_list/debug/erase_after6_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/erase_after6.cc: Same.
+	* testsuite/23_containers/forward_list/debug/erase_after7_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/erase_after7.cc: Same.
+	* testsuite/23_containers/forward_list/debug/erase_after8_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/erase_after8.cc: Same.
+	* testsuite/23_containers/forward_list/debug/erase_after9_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/erase_after9.cc: Same.
+	* testsuite/23_containers/forward_list/debug/insert_after1_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/insert_after1.cc: Same.
+	* testsuite/23_containers/forward_list/debug/insert_after2_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/insert_after2.cc: Same.
+	* testsuite/23_containers/forward_list/debug/insert_after3_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/insert_after3.cc: Same.
+	* testsuite/23_containers/forward_list/debug/splice_after1_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/splice_after1.cc: Same.
+	* testsuite/23_containers/forward_list/debug/splice_after2_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/splice_after2.cc: Same.
+	* testsuite/23_containers/forward_list/debug/splice_after3_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/splice_after3.cc: Same.
+	* testsuite/23_containers/forward_list/debug/splice_after4_neg.cc:
+	Same.
+	* testsuite/23_containers/forward_list/debug/splice_after4.cc: Same.
+
+2011-01-14  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/36104
+	* include/Makefile.am (bits_sup_headers, stamp-bits-sup): New.
+	* include/Makefile.in: Regenerate.
+	* libsupc++/Makefile.am (std_HEADERS, bits_HEADERS): New.
+	(install-stdHEADERS, install-bitsHEADERS): New.
+	* libsupc++/Makefile.in: Regenerate.
+
+	* include/bits/c++config: Update for inline namespaces.
+	* libsupc++/cxxabi-forced.h: To...
+	* libsupc++/cxxabi_forced.h: ...this.
+	* libsupc++/hash_bytes.h: Separate file.
+	* libsupc++/typeinfo: Use it.
+	* libsupc++/exception: Adjust for bits subdirectory.
+	* libsupc++/eh_aux_runtime.cc: Same.
+	* libsupc++/eh_ptr.cc: Same.
+	* libsupc++/new_op.cc: Same.
+	* libsupc++/exception_defines.h: Same.
+	* libsupc++/nested_exception.h: Same.
+	* libsupc++/eh_terminate.cc: Same.
+	* libsupc++/vec.cc: Same.
+	* libsupc++/vterminate.cc: Same.
+	* libsupc++/exception_ptr.h: Same.
+	* libsupc++/eh_personality.cc: Same.
+	* libsupc++/eh_call.cc: Same.
+	* libsupc++/new_opnt.cc: Same.
+	* libsupc++/hash_bytes.cc: Same.
+	* config/cpu/arm/cxxabi_tweaks.h: Same.
+	* config/cpu/generic/cxxabi_tweaks.h: Same.
+	* libsupc++/cxxabi.h: Same. Consolidate _GLIBCXX_NOTHROW defines.
+	* include/std/bitset: Same.
+	* include/ext/vstring.tcc: Same.
+	* include/bits/hashtable.h: Same.
+	* include/bits/functional_hash.h: Same.
+	* include/bits/hashtable_policy.h: Same.
+	* include/bits/basic_string.h: Same.
+	* include/bits/istream.tcc: Same.
+	* include/bits/ostream.tcc: Same.
+	* include/bits/algorithmfwd.h: Same.
+	* include/bits/basic_string.tcc: Same.
+	* include/bits/ostream_insert.h: Same.
+	* include/bits/fstream.tcc: Same.
+	* include/bits/functexcept.h: Same.
+
+	* doc/doxygen/user.cfg.in: Adjust names.
+
+	* testsuite/ext/profile/mutex_extensions_neg.cc: Adjust line numbers.
+
+2011-01-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/25_algorithms/is_permutation/check_type.cc: Minor
+	tweaks.
+	* testsuite/25_algorithms/is_permutation/1.cc: Cosmetic changes.
+
 2011-01-13  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* testsuite/25_algorithms/is_permutation/check_type.cc: New.
