@@ -15217,7 +15217,7 @@ ix86_output_addr_diff_elt (FILE *file, int value, int rel)
   gcc_assert (!TARGET_64BIT);
 #endif
   /* We can't use @GOTOFF for text labels on VxWorks; see gotoff_operand.  */
-  if (TARGET_LP64 || TARGET_VXWORKS_RTP)
+  if (TARGET_64BIT || TARGET_VXWORKS_RTP)
     fprintf (file, "%s%s%d-%s%d\n",
 	     directive, LPREFIX, value, LPREFIX, rel);
   else if (HAVE_AS_GOTOFF_IN_DATA)

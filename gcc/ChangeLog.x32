@@ -1,5 +1,11 @@
 2011-01-25  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR target/47446
+	* config/i386/i386.c (ix86_output_addr_vec_elt): Put back the
+	last TARGET_64BIT check.
+
+2011-01-25  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR middle-end/47449
 	* fwprop.c (forward_propagate_subreg): Don't propagate hard
 	register.
