@@ -1101,6 +1101,7 @@ forward_propagate_subreg (df_ref use, rtx def_insn, rtx def_set)
       src = SET_SRC (def_set);
       if (GET_CODE (src) == SUBREG
 	  && REG_P (SUBREG_REG (src))
+	  && REGNO (SUBREG_REG (src)) >= FIRST_PSEUDO_REGISTER
 	  && GET_MODE (SUBREG_REG (src)) == use_mode
 	  && subreg_lowpart_p (src)
 	  && all_uses_available_at (def_insn, use_insn))
