@@ -1,7 +1,177 @@
+2011-01-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47414
+	* tree-ssa-alias.c (indirect_ref_may_alias_decl_p): Use the
+	correct type for TBAA.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (dr_indices_valid_in_loop): New.
+	(close_phi_written_to_memory): Call for_each_index with
+	dr_indices_valid_in_loop.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (new_pbb_from_pbb): Only copy PBB_DOMAIN
+	when it is initialized.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-scop-detection.c (stmt_has_simple_data_refs_p): Update
+	call to graphite_find_data_references_in_stmt.
+	* graphite-sese-to-poly.c (outermost_loop_in_sese_1): New.
+	(try_generate_gimple_bb): Call outermost_loop_in_sese_1.  Update
+	call to graphite_find_data_references_in_stmt.
+	(analyze_drs_in_stmts): Same.
+	* tree-data-ref.c (dr_analyze_indices): Pass in parameter the loop
+	in which the scalar analysis of indices is performed.
+	(create_data_ref): Same.  Update call to dr_analyze_indices.
+	(find_data_references_in_stmt): Update call to create_data_ref.
+	(graphite_find_data_references_in_stmt): Same.
+	* tree-data-ref.h (graphite_find_data_references_in_stmt): Update
+	declaration.
+	(create_data_ref): Same.
+	* tree-ssa-loop-prefetch.c (determine_loop_nest_reuse): Update
+	call to create_data_ref.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (build_poly_scop): Move
+	rewrite_commutative_reductions_out_of_ssa before
+	find_scop_parameters.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c (close_phi_written_to_memory): Also allow
+	VAR_DECL, PARM_DECL, and RESULT_DECL.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (reduction_dr_1): Allow several reductions
+	in a reduction PBB.
+	* graphite-sese-to-poly.c (split_reduction_stmt): Do not split PBBs
+	that have already been marked as PBB_IS_REDUCTION.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-scop-detection.c (same_close_phi_node): New.
+	(remove_duplicate_close_phi): New.
+	(make_close_phi_nodes_unique): New.
+	(canonicalize_loop_closed_ssa): Call make_close_phi_nodes_unique.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (new_poly_ddr): Call same_pdr_p.
+	* graphite-poly.h (same_pdr_p): Do not expect that the PDR_TYPE
+	of both data references to be the same.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (build_lexicographical_constraint): Remove the
+	gdim parameter.
+	(build_lexicographical_constraint): Adjust call to ppl_powerset_is_empty.
+	(dependence_polyhedron): Same.
+	(graphite_legal_transform_dr): Same.
+	(graphite_carried_dependence_level_k): Same.
+	* graphite-ppl.c (ppl_powerset_is_empty): Remove the nb_params parameter.
+	* graphite-ppl.h (ppl_powerset_is_empty): Adjust declaration.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-sese-to-poly.c
+	(translate_scalar_reduction_to_array_for_stmt): Call unshare_expr.
+	(close_phi_written_to_memory): New.
+	(translate_scalar_reduction_to_array): Call close_phi_written_to_memory
+	and unshare_expr.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* doc/install.texi: Update the expected version number of PPL to 0.11.
+	* graphite-ppl.c (ppl_powerset_is_empty): Remove now dead code under
+	#if PPL_VERSION_MINOR < 11.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c: Include graphite-cloog-util.h.
+	(new_poly_ddr): Inlined into dependence_polyhedron.
+	(free_poly_ddr): Moved close by new_poly_ddr.
+	(dependence_polyhedron_1): Renamed dependence_polyhedron.
+	Early return NULL when ppl_powerset_is_empty returns true.
+	(dependence_polyhedron): Renamed new_poly_ddr.  Call only once
+	poly_drs_may_alias_p.  Avoid one call to ppl_powerset_is_empty.
+	(graphite_legal_transform_dr): Call new_poly_ddr.
+	(graphite_carried_dependence_level_k): Same.
+	(dot_original_deps_stmt_1): Renamed dot_deps_stmt_2.  Use new_poly_ddr.
+	(dot_transformed_deps_stmt_1): Removed.
+	(dot_deps_stmt_1): Call dot_deps_stmt_2.
+	(dot_original_deps): Renamed dot_deps_2.  Call new_poly_ddr.
+	(dot_deps_1): Call dot_deps_2.
+	* Makefile.in (graphite-dependences.o): Add missing dependence on
+	graphite-cloog-util.h.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (new_poly_dr): Call ppl_powerset_is_empty.
+	(build_lexicographical_constraint): Same.
+	(dependence_polyhedron_1): Same.
+	(graphite_legal_transform_dr): Same.
+	(graphite_carried_dependence_level_k): Same.
+	* graphite-ppl.c (ppl_powerset_is_empty): New.
+	* graphite-ppl.h (ppl_powerset_is_empty): Declared.
+	* tree-data-ref.c (dump_data_reference): Print the basic block index.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (build_pairwise_scheduling): Correctly compute
+	the "a followed by b" relation and document it.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (build_lexicographical_constraint): Stop the
+	iteration when the bag of constraints is empty.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-poly.c (pbb_remove_duplicate_pdrs): Make it work.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-interchange.c (lst_interchange_profitable_p): Takes a loop
+	nest and two loop depths as parameters.
+	(lst_try_interchange_loops): Call lst_interchange_profitable_p after
+	lst_perfect_nestify.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (print_pddr): Call
+	ppl_io_fprint_Pointset_Powerset_C_Polyhedron.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-ppl.c (debug_gmp_value): New.
+	* graphite-ppl.h (debug_gmp_value): Declared.
+
+2011-01-25  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* doc/install.texi: Document availability of cloog-0.16.
+
+2011-01-25  Vladimir Kargov  <kargov@gmail.com>
+
+	* graphite-scop-detection.c (canonicalize_loop_closed_ssa): Free
+	invalid postdominance info.
+
+2011-01-24  Jan Hubicka  <jh@suse.cz>
+
+	PR c/21659
+	* doc/extend.texi (weak pragma): Drop claim that it must
+	appear before definition.
+	* varasm.c (merge_weak, declare_weak): Only sanity check
+	that DECL is not output at a time it is declared weak.
+
 2011-01-24  Kenneth Zadeck  <zadeck@naturalbridge.com>
 
 	* machmode.def: Fixed comments.
-	
+
 2011-01-24  Kai Tietz  <kai.tietz@onevision.com>
 
 	* emit-rtl.c (reg_attrs_htab_hash): Replace long by intptr_t.
@@ -9,7 +179,7 @@
 2011-01-24  Paul Koning  <ni1d@arrl.net>
 
 	* builtins.c (c_readstr): Fix byte order if BYTES_BIG_ENDIAN !=
-	WORDS_BIG_ENDIAN. 
+	WORDS_BIG_ENDIAN.
 
 2011-01-24  H.J. Lu  <hongjiu.lu@intel.com>
 
@@ -565,7 +735,7 @@
 	(*movsi_internal): Use "r" instead of "dax" in constraints.  Use "A"
 	as the source/destination of moves from/to SP.
 	(movsf): Only allow for AM33-2.
-	(*movsf_internal): Use "r" instead of "dax"; use "F" instead of 
+	(*movsf_internal): Use "r" instead of "dax"; use "F" instead of
 	any integer constant constraint.  Only allow for AM33-2.  Tidy
 	all of the alternative outputs.
 	(movdi, movdf, *am33_2_movdf, *mn10300_movdf): Remove.
@@ -1108,9 +1278,9 @@
 2011-01-13  Andrey Belevantsev  <abel@ispras.ru>
 
 	PR rtl-optimization/45352
-	* sel-sched.c: Update copyright years. 
+	* sel-sched.c: Update copyright years.
 	(reset_sched_cycles_in_current_ebb): Also recheck the DFA state
-	in the advancing loop when we have issued issue_rate insns. 
+	in the advancing loop when we have issued issue_rate insns.
 
 2011-01-12  Richard Henderson  <rth@redhat.com>
 
@@ -1212,7 +1382,7 @@
 	* opts.c (common_handle_option): Disable ipa-reference with profile
 	feedback.
 
-2011-01-12  Nicola Pero  <nicola.pero@meta-innovation.com>	
+2011-01-12  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* c-parser.c (c_parser_objc_at_property_declaration): Improved
 	error message.
@@ -1378,7 +1548,7 @@
 
 2011-01-10  Jan Hubicka  <jh@suse.cz>
 
-	PR tree-optimization/47234 
+	PR tree-optimization/47234
 	* tree-pass.h (TODO_rebuild_cgraph_edges): New TODO.
 	(pass_feedback_split_functions): Declare.
 	* passes.c (init_optimization_passes): Add ipa-split as subpass of

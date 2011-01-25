@@ -1,3 +1,48 @@
+2011-01-25  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47411
+	* gcc.dg/torture/pr47411.c: New testcase.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gfortran.dg/graphite/id-24.f: New.
+	* gfortran.dg/graphite/id-25.f: New.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gfortran.dg/graphite/id-23.f: New.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gfortran.dg/graphite/interchange-3.f90: Un-XFAILed.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/block-0.c: Un-XFAILed.
+	* gcc.dg/graphite/block-1.c: Un-XFAILed.
+	* gcc.dg/graphite/block-7.c: Un-XFAILed.
+	* gcc.dg/graphite/block-8.c: Un-XFAILed.
+	* gcc.dg/graphite/interchange-12.c: Un-XFAILed.
+	* gcc.dg/graphite/interchange-14.c: Un-XFAILed.
+	* gcc.dg/graphite/interchange-15.c: Un-XFAILed.
+	* gcc.dg/graphite/interchange-8.c: Un-XFAILed.
+	* gcc.dg/graphite/interchange-mvt.c: Un-XFAILed.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* gcc.dg/graphite/block-0.c: Add documentation.
+	* gcc.dg/graphite/block-4.c: Same.
+	* gcc.dg/graphite/block-7.c: Same.
+	* gcc.dg/graphite/block-8.c: New.
+	* gcc.dg/graphite/interchange-1.c: Un-XFAILed.
+	* gcc.dg/graphite/interchange-11.c: Un-XFAILed.
+	* gcc.dg/graphite/interchange-12.c: Add documentation.
+	* gcc.dg/graphite/interchange-13.c: New.
+	* gcc.dg/graphite/interchange-14.c: New.
+	* gcc.dg/graphite/interchange-15.c: New.
+	* gcc.dg/graphite/interchange-8.c: Add documentation.
+	* gcc.dg/graphite/interchange-mvt.c: Same.
+
 2011-01-24  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	PR target/47408

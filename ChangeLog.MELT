@@ -1,4 +1,11 @@
 
+2011-01-25 Basile Starynkevitch  <basile@starynkevitch.net>
+
+        MELT branch merged with trunk rev 169225
+
+	* configure.ac: the PPL minimal version number 0.11 is hardwired,
+	as in trunk.
+
 2011-01-24 Basile Starynkevitch  <basile@starynkevitch.net>
 
         MELT branch merged with trunk rev 169179

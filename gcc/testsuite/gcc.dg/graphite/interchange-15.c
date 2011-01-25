@@ -5,23 +5,21 @@
 #include <stdio.h>
 #endif
 
-double u[1782225];
+#define NMAX 2000
 
-static void __attribute__((noinline))
-foo (int N, int *res)
+static int x[NMAX], a[NMAX][NMAX];
+
+static int __attribute__((noinline))
+mvt (long N)
 {
-  int i, j;
-  double sum = 0.0;
+  int i,j;
 
   /* These two loops should be interchanged.  */
-  for (i = 0; i < 1335; i++)
-    {
-      for (j = 0; j < 1335; j++)
-	sum = sum + u[i + 1335 * j];
+  for (i = 0; i < N; i++)
+    for (j = 0; j < N; j++)
+      x[i] += a[j][i];
 
-      u[1336 * i] *= 2;
-    }
-  *res = sum;
+  return x[1];
 }
 
 extern void abort ();
@@ -29,18 +27,22 @@ extern void abort ();
 int
 main (void)
 {
-  int i, res;
+  int i, j, res;
 
-  for (i = 0; i < 1782225; i++)
-    u[i] = 2;
+  for (i = 0; i < NMAX; i++)
+    for (j = 0; j < NMAX; j++)
+      a[i][j] = j;
 
-  foo (1335, &res);
+  for (i = 0; i < NMAX; i++)
+    x[i] = i;
+
+  res = mvt (NMAX);
 
 #if DEBUG
   fprintf (stderr, "res = %d \n", res);
 #endif
 
-  if (res != 3564450)
+  if (res != 2001)
     abort ();
 
   return 0;
@@ -48,3 +50,4 @@ main (void)
 
 /* { dg-final { scan-tree-dump-times "will be interchanged" 1 "graphite" } } */
 /* { dg-final { cleanup-tree-dump "graphite" } } */
+

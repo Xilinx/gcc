@@ -14,14 +14,15 @@ matmult (void)
 {
   int i, j, k;
 
-  /* This should be blocked.  */
   for (i = 0; i < N; i++)
     for (j = 0; j < N; j++)
-      {
-        A[i][j] = 0;
-        for (k = 0; k < N; k++)
-          A[i][j] += B[i][k] * C[k][j];
-      }
+      A[i][j] = 0;
+
+  /* Loops J and K should be interchanged.  */
+  for (i = 0; i < N; i++)
+    for (j = 0; j < N; j++)
+      for (k = 0; k < N; k++)
+	A[i][j] += B[i][k] * C[k][j];
 }
 
 extern void abort ();
@@ -53,5 +54,5 @@ main (void)
   return 0;
 }
 
-/* { dg-final { scan-tree-dump-times "will be loop blocked" 1 "graphite" } } */
+/* { dg-final { scan-tree-dump-times "will be interchanged" 1 "graphite" } } */
 /* { dg-final { cleanup-tree-dump "graphite" } } */
