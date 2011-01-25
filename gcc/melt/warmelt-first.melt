@@ -651,6 +651,17 @@ $CMBIND_MATCHER.}# )
 bindings. See the $DEFUNMATCHER macro. The funmatcher is in
 $FMBIND_FUNMATCHER and its definition in $FMBIND_DEFUNMATCHER.}#)
 
+;; cmatcher binding
+(defclass class_variadic_binding
+  :super class_fixed_binding
+  :fields (fvbind_variadic		;the variadic function
+	   fvbind_defvariadic
+	   )
+  :doc #{The internal $CLASS_VARIADIC_BINDING is for c-matcher
+bindings. See the $DEFVARIADIC macro. The variadic operator of
+$CLASS_VARIADIC_FUNCTION is in $FVBIND_VARIADIC and its definition in
+$FVBIND_DEFVARIADIC}# )
+
 ;; let binding
 (defclass class_let_binding
   :super class_any_binding
@@ -3822,6 +3833,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_system_data
  class_value_binding 
  class_variadic_function
+ class_variadic_binding
  )					;end of export class
 
 

@@ -1,4 +1,10 @@
 
+2011-01-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (class_variadic_binding): New.
+	* melt/warmelt-macro.melt (mexpand_defvariadic)
+	(class_source_defvariadic, class_source_variadic_application):
+	Start adding support for defvariadic.
+
 2011-01-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 

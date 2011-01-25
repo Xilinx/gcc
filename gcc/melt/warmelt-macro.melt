@@ -81,6 +81,16 @@ $SARGOP_ARGS is the tuple of arguments.}#
 	   ))
 
 
+;;; source primitive invocation
+(defclass class_source_variadic_application
+  :doc #{The internal $CLASS_SOURCE_VARIADIC_APPLICATION is for variadic
+application invocation abstract syntax. $SVARI_OPER is the variadic 
+operation, $SARGOP_ARGS is the tuple of arguments.}#
+  :super class_source_argumented_operator
+  :fields (svari_oper			;the variadic operation
+	   ))
+
+
 ;;; source citerator invocation
 (defclass class_source_citeration
   :doc #{The intenal $CLASS_SOURCE_CITERATION is for c-iteration
@@ -261,17 +271,31 @@ with a formal arguments binding tuple given in $SFORMAL_ARGS.}#
 
 ;;; define a primitive
 (defclass class_source_defprimitive
-  :doc #{The internal $CLASS_SOURCE_DEFPRIMITIVE is the abstact syntax of $DEFPRIMITIVE. 
-$SPRIM_TYPE is the result ctype, $SPRIM_EXPANSION is the tuple of its expansion.}#
+  :doc #{The internal $CLASS_SOURCE_DEFPRIMITIVE is the abstract
+syntax of $DEFPRIMITIVE.  $SPRIM_TYPE is the result ctype,
+$SPRIM_EXPANSION is the tuple of its expansion.}#
   :super class_source_definition_formal
   :fields (sprim_type			;result type of primitive
 	   sprim_expansion		;primitive expansion
 	   ))
 
+;;; define a variadic operator
+(defclass class_source_defvariadic
+  :doc #{The internal $CLASS_SOURCE_DEFVARIADIC is the abstract syntax
+  of $DEFVARIADIC. $SVARIADIC_INITIAL is the initial handler,
+  $SVARIADIC_CTYPEHANDLERMAP is the map associating ctypes to handler,
+  and $SVARIADIC_FINAL is the final handler.}#
+  :super class_source_definition_formal
+  :fields (
+	   svariadic_initial
+	   svariadic_ctypehandlermap
+	   svariadic_final
+	   ))
+
 ;;; define a citerator
 (defclass class_source_defciterator
-  :doc #{The internal $CLASS_SOURCE_DEFCITERATOR is the abstact syntax of $DEFCITERATOR.
-$SCITERDEF_CITERATOR is the c-iterator.}#
+  :doc #{The internal $CLASS_SOURCE_DEFCITERATOR is the abstact syntax
+of $DEFCITERATOR.  $SCITERDEF_CITERATOR is the c-iterator.}#
   :super class_source_definition_formal		;the sformal_args is the start arguments
   :fields (sciterdef_citerator		;the citerator
 	   ))
@@ -2072,6 +2096,95 @@ is ($DEFCITERATOR @var{name} @var{start-formals} @var{state-symbol}
 @var{before-expansion} @var{after-expansion}). To be visible outside
 the module, the c-iterator should be exported using
 $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; the defvariadic expander
+;; (DEFVARIADIC symbol (formals) [:doc documentation]
+;;;   :initial initialfun :<ctype> ctypehandler :final finalfun)
+(defun mexpand_defvariadic (sexpr env mexpander)
+  (debug_msg sexpr "mexpand_defvariadic sexpr")
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
+	 (loc  (unsafe_get_field :loca_location sexpr))
+	 (curpair (pair_tail (list_first cont)))
+	 (symb (pair_head curpair))
+	 (mapctyh (make_mapobject discr_map_objects 12))
+	 ;; the following variables are set later by setq
+	 (formtup ())			;the formals tuple
+	 (docv ())			;documentation
+	 (inithdl ())			;initial handler
+	 (finahdl ()) 			;final handler
+	 )
+    (if (is_not_a symb class_symbol)
+	(progn
+	  (error_plain loc 
+		       "missing symbol for (DEFVARIADIC <symbol> (<formals>)...)"_)
+	  (return)
+	  ))
+    (let (
+	  (varibind (instance class_variadic_binding
+			      :binder symb
+			      ))
+	  )
+      ;; we add quickly the variadic binding, in case the symbol appears
+      ;; inside...
+      (put_env env varibind)
+      (setq curpair (pair_tail curpair))
+      ;; parse the formal arguments
+      (setq formtup (lambda_arg_bindings (pair_head curpair)))
+      (setq curpair (pair_tail curpair))
+      ;; parse the keyed entries
+      (forever parseloop
+	       (if (null curpair) (exit parseloop))
+	       (let ( (curkey (pair_head curpair))
+		      (curval ())
+		      )
+		 (if (is_not_a curkey class_keyword)
+		     (progn 
+		       (error_plain loc
+				    "expecting keyword symbol in (DEFVARIADIC <symbol> (<formals>)...)")
+		       (return)))
+		 (setq curpair (pair_tail curpair))
+		 (setq curval (pair_head curpair))
+		 (setq curpair (pair_tail curpair))
+		 (cond 
+		  ;; parse :doc <documentation>
+		  ( (== curkey :doc)
+		    (if docv 
+			(error_plain loc
+				     ":DOC should be given at most once for (DEFVARIADIC...)")
+		      (setq docv curval)))
+		  ;; parse :initial <initialhandler>
+		  ( (== curkey :initial)
+		    (if inithdl
+			(error_plain loc 
+				     ":INITIAL should be once for (DEFVARIADIC...)")
+		      (setq inithdl (macroexpand_1 curval env mexpander))))
+		  ;; parse :final <finalhandler>
+		  ( (== curkey :final)
+		    (if finahdl
+			(error_plain loc 
+				     ":FINAL should be given once for (DEFVARIADIC...)")
+		      (setq finahdl (macroexpand_1 curval env mexpander))))
+		  )
+		 )
+	       )
+      (error_plain loc "(DEFVARIADIC... is not implemented yet")
+      (assert_msg "@$@unimplemented mexpand_defvariadic")
+      )
+    )
+  )
+
+(install_initial_macro 'defvariadic mexpand_defvariadic)
+(export_macro defvariadic mexpand_defvariadic
+	      :doc #{The $DEFVARIADIC macro defines a variadic
+operator Syntax is ($DEFVARIADIC @var{name} @var{initial-formals}
+[:doc @var{documentation}] [:initial @var{initial-handler}]
+[:@var{ctype} @var{ctype-handler}]...  [:final @var{final-handler}]
+). To be visible outside the module, the c-iterator should be exported
+using $EXPORT_VALUES. }#)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; the defcmatcher expander
@@ -5560,6 +5673,7 @@ condition is a string such as "4.5." or a list of strings.}#)
  class_source_defobjcommon
  class_source_defprimitive
  class_source_defselector
+ class_source_defvariadic
  class_source_define
  class_source_defun
  class_source_defunmatcher
@@ -5617,6 +5731,7 @@ condition is a string such as "4.5." or a list of strings.}#)
  class_source_unsafe_get_field
  class_source_unsafe_put_fields
  class_source_update_current_module_environment_container
+ class_source_variadic_application
  )			       ;end classes for source representations
 
 (export_values			 ;values for source representations
