@@ -2191,7 +2191,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 		   )
 		  )
 		 )
-	       )
+	       ) ;; end forever parseloop
       (let (
 	    (defvari (instance class_source_defvariadic
 			       :loca_location loc
@@ -2202,14 +2202,23 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 			       :svariadic_ctypehandlermap mapctyh
 			       :svariadic_final finahdl
 			       ))
+	    (vari (instance class_variadic_function
+			    :named_name (get_field :named_name symb)
+			    :varfun_fixedin ()
+			    :varfun_initial ()
+			    :varfun_ctransmap ()
+			    :varfun_final ()))
 	    )
 	(debug_msg defvari "mexpand_defvariadic defvari")
-	(error_plain loc "(DEFVARIADIC... is not implemented yet")
-	(assert_msg "@$@unimplemented mexpand_defvariadic")
+	(debug_msg vari "mexpand_defvariadic vari")
+	(put_fields varibind
+		    :fvbind_variadic vari
+		    :fvbind_defvariadic defvari)
+	(return defvari)
 	)
       )
     )
-  )
+  )  
 
 (install_initial_macro 'defvariadic mexpand_defvariadic)
 (export_macro defvariadic mexpand_defvariadic
