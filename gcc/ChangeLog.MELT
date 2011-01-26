@@ -1,5 +1,12 @@
 2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-macro.melt (expand_fieldexpr): New.
+	(expand_keywordfun): Incomplete, gets a soper first argument.
+	(macroexpand_1): Call expand_fieldexpr for (:field <subexpr>) or
+	(field <subexpr>)
+
+2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-macro.melt (mexpand_defvariadic): Done, but not
 	debugged.
 

@@ -953,6 +953,60 @@ $SPAC_OUTARGS are the output sub-patterns.}#
       )))
 
 
+
+;;; expand an s-expression known to be a safe field access
+(defun expand_fieldexpr (fld sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check fld" (is_a fld class_field))
+  (debug_msg sexpr "expand_fieldexpr sexpr")
+  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc (unsafe_get_field :loca_location sexpr))
+	 )
+;;;;;;;; this don't work yet on january 25th 2011 svn rev 169278!
+;;;;;;;;  ERRORed: unimplemented scan_pattern for pattern  - CLASS_SOURCE_PATTERN_LIST
+    ;;     (match scont
+    ;; 	   (?(list ?(and ?flnam ?(instance class_keyword))
+    ;; 		   ?subexpr)
+    ;; 	     (let (
+    ;; 		   (mexp (macroexpand_1 subexpr env mexpander))
+    ;; 		   (res (instance class_source_get_field
+    ;; 				  :loca_location sloc
+    ;; 				  :suget_obj mexp
+    ;; 				  :suget_field fld))
+    ;; 		   )
+    ;; 	       (debug_msg res "expand_fieldexpr result")
+    ;; 	       (return res)
+    ;; 	     ))
+    ;; 	   (?_
+    ;; 	    (error_plain sloc "bad field expression - expecting (:fieldname <expr>)")
+    ;; 	    (return))
+    ;; 	   )
+    (let ( (scontup (list_to_multiple scont discr_multiple))
+	   (operexp (multiple_nth scontup 0))
+	   (subsexp (multiple_nth scontup 1))
+	   )
+      (debug_msg scontup "expand_fieldexpr scontup")
+      (if (!=i (list_length scont) 2)
+	  (progn
+	    (error_plain sloc "expecting one argument in (:field <subexpr>)")
+	    (return)))
+      (assert_msg "check operexp" (is_a operexp class_keyword))
+      (assert_msg "same oper as field"
+		  (string= (get_field :named_name fld) (get_field :named_name operexp)))
+      (let ( 
+	    (mexp (macroexpand_1 subsexp env mexpander))
+	    (res (instance class_source_get_field
+			   :loca_location sloc
+			   :suget_obj mexp
+			   :suget_field fld))
+	    )
+	(debug_msg res "expand_fieldexpr result")
+	(return res)
+	))))
+
+
 ;; every citeration is (symbol (startargs) (varformals) body...)
 ;; expand an s-expression known to be a citeration
 (defun expand_citeration (citer sexpr env mexpander)
@@ -1086,17 +1140,26 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 
 
 ;;; expand a keywordfun s-expression
-;;; not implemented yet, but might later be useful for stuff like
+;;; handle stuff like
 ;;;;; (:fieldname obj) to get a field
-;;;;; (:selector recv arg...) to send a message
-(defun expand_keywordfun (sexpr env mexpander)
+(defun expand_keywordfun (soper sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
   (assert_msg "check end" (is_a env class_environment))
   (assert_msg "check mexpander" (is_closure mexpander))
-  (error_plain (unsafe_get_field :loca_location sexpr) "keywordoper not implemented"_)
-  (assert_msg "@@@  expand_keywordfun NOT IMPLEMENTED" 0)
+  (debug_msg sexpr "expand_keywordfun sexpr")
+  (debug_msg soper "expand_keywordfun soper")
+  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc (unsafe_get_field :loca_location sexpr))
+	 (tupcont (list_to_multiple scont discr_multiple))
+	 )
+    (error_plain sloc "expand_keywordfun not implemented"_)
+    (assert_msg "@@@  expand_keywordfun NOT IMPLEMENTED" 0)
+    )
   )
 
+
+
+;;;;;;;;;;;;;;;; the main macro expander of one expression
 (defun macroexpand_1 (sexpr env mexpander)
   (if (null mexpander) (setq mexpander macroexpand_1))
   (assert_msg "check env" (is_a env class_environment))
@@ -1148,6 +1211,13 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			    (debug_msg resf "macroexpand_1 result for funmatcher resf")
 			    (return resf)
 			    ))
+			( (is_a opbind class_field_binding)
+			  (let ( (field (unsafe_get_field :flbind_field opbind)) 
+				 (resf (expand_fieldexpr field sexpr env mexpander))
+				 )
+			    (debug_msg resf "macroexpand_1 result for field resf")
+			    (return resf)
+			  ))
 			( (is_a opbind class_value_binding)
 			  (let ( (val (unsafe_get_field :vbind_value opbind))
 				 )
@@ -1176,6 +1246,10 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			       (let ( (resf (expand_funmatchexpr val sexpr env mexpander opbind)) )
 				 (debug_msg resf "macroexpand_1 result for funmatch resf")
 				 (return resf)))
+			     ( (is_a val class_field)
+			       (let ( (resf (expand_fieldexpr val sexpr env mexpander)) )
+				 (debug_msg resf "macroexpand_1 result for field resf")
+				 (return resf)))
 			     (:else
 			      (error_strv sloc "macroexpand_1 bad valued operation symbol"_
 					  (unsafe_get_field :named_name soper))
@@ -1198,7 +1272,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			   )
 			 ))))
 	      ( (is_a soper class_keyword)
-		(let ( (resk (expand_keywordfun sexpr env mexpander)) )
+		(let ( (resk (expand_keywordfun soper sexpr env mexpander)) )
 		  (debug_msg resk "macroexpand_1 result for keywordfun resk")
 		  (return resk)))
 	      ;; the empty list is expanded as nil
