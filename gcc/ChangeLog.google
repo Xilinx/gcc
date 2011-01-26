@@ -1,3 +1,10 @@
+2011-01-26  Simon Baldwin  <simonb@google.com>
+
+	* configure.ac: Add --with-native-system-header-dir option.
+	* configure: Rebuild from configure.ac.
+	* Makefile.in: Support --with-native-system-header-dir.
+	* doc/install.texi: Document --with-native-system-header-dir.
+
 2011-01-24  Diego Novillo  <dnovillo@google.com>
 
 	Mainline merge r169172

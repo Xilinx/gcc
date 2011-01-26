@@ -759,6 +759,7 @@ CONFIGURE_SPECS
 CROSS_SYSTEM_HEADER_DIR
 TARGET_SYSTEM_ROOT_DEFINE
 TARGET_SYSTEM_ROOT
+NATIVE_SYSTEM_HEADER_DIR
 enable_shared
 enable_fixed_point
 enable_decimal_float
@@ -879,6 +880,7 @@ enable_tls
 enable_objc_gc
 with_dwarf2
 enable_shared
+with_native_system_header_dir
 with_build_sysroot
 with_sysroot
 with_specs
@@ -1643,6 +1645,9 @@ Optional Packages:
   --with-as               arrange to use the specified as (full pathname)
   --with-stabs            arrange to use stabs instead of host debug format
   --with-dwarf2           force the default debug format to be DWARF 2
+  --with-native-system-header-dir=dir
+                          use dir as the directory to look for standard
+                          system header files in.  Defaults to /usr/include.
   --with-build-sysroot=sysroot
                           use sysroot as the system root during the build
   --with-sysroot=DIR Search for usr/lib, usr/include, et al, within DIR.
@@ -7055,6 +7060,27 @@ else
   enable_shared=yes
 fi
 
+
+
+# The use of native_system_header_dir here is for the value (optionally)
+# configured here.  Uses of NATIVE_SYSTEM_HEADER_DIR in this file refer
+# to the make variable defined in Makefile or in target make fragments.
+
+# Check whether --with-native-system-header-dir was given.
+if test "${with_native_system_header_dir+set}" = set; then :
+  withval=$with_native_system_header_dir;
+ case ${with_native_system_header_dir} in
+ yes|no) as_fn_error "bad value ${withval} given for native system include directory" "$LINENO" 5 ;;
+ /*) ;;
+ *) as_fn_error "${withval} should be an absolute directory" "$LINENO" 5 ;;
+ esac
+ native_system_header_dir="${withval}"
+
+else
+  native_system_header_dir=/usr/include
+fi
+
+NATIVE_SYSTEM_HEADER_DIR=$native_system_header_dir
 
 
 
@@ -17513,7 +17539,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17516 "configure"
+#line 17542 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17619,7 +17645,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17622 "configure"
+#line 17648 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -25664,14 +25690,14 @@ if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
   elif test "x$with_sysroot" = x; then
     target_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
   elif test "x$with_build_sysroot" != "x"; then
-    target_header_dir="${with_build_sysroot}/usr/include"
+    target_header_dir="${with_build_sysroot}${native_system_header_dir}"
   elif test "x$with_sysroot" = xyes; then
-    target_header_dir="${exec_prefix}/${target_noncanonical}/sys-root/usr/include"
+    target_header_dir="${exec_prefix}/${target_noncanonical}/sys-root${native_system_header_dir}"
   else
-    target_header_dir="${with_sysroot}/usr/include"
+    target_header_dir="${with_sysroot}${native_system_header_dir}"
   fi
 else
-  target_header_dir=/usr/include
+  target_header_dir=${native_system_header_dir}
 fi
 
 # Test for stack protector support in target C library.
