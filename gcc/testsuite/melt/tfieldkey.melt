@@ -1,0 +1,15 @@
+;; -*- lisp -*-
+;; file  gcc/testsuite/melt/tfieldkey.melt
+;; test the syntax (:field o)   as shorthand for (get_field :field o)
+
+#| run in buildir/gcc
+ ./cc1 -fmelt-mode=runfile  -fmelt-module-path=.:melt-modules    -fmelt-source-path=.:melt-sources \
+    -fmelt-tempdir=/tmp -fmelt-init=@@ \
+    -fmelt-module-makefile=$GCCMELT_SOURCE/gcc/melt-module.mk \
+    -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tfieldkey.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun getcont (v)
+       (:container_value v))
+;; eof tfieldkey.melt
