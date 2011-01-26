@@ -2926,7 +2926,7 @@ outside its module.}#)
      (multiple_every
       fieldnams
       (lambda (fldnam :long ix)
-	(messagenum_dbg "expdefclafldnam ix" ix)
+	;(messagenum_dbg "expdefclafldnam ix" ix)
 	(assert_msg "check fldnam" (is_a fldnam class_symbol))
 	(let ( (fldstr (unsafe_get_field :named_name fldnam)) 
 	       (fldprevbind (find_env env fldnam))
@@ -2963,7 +2963,7 @@ outside its module.}#)
 				   :fld_ownclass newclass
 				   )) )
 	    (put_int newfld fldoff)
-	    (messagenum_dbg "expdefclafldnam fldoff" fldoff)
+	    ;(messagenum_dbg "expdefclafldnam fldoff" fldoff)
 	    (multiple_put_nth fieldtup fldoff newfld)
 	    (mapstring_putstr fieldstrmap fldstr newfld)
 	    (let ( (newfldbind (instance class_field_binding

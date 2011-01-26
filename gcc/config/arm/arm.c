@@ -1,6 +1,6 @@
 /* Output routines for GCC for ARM.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
    and Martin Simmons (@harleqn.co.uk).
@@ -5786,7 +5786,11 @@ thumb2_legitimate_index_p (enum machine_mode mode, rtx index, int strict_p)
       && (mode == SFmode || mode == DFmode
 	  || (TARGET_MAVERICK && mode == DImode)))
     return (code == CONST_INT && INTVAL (index) < 1024
-	    && INTVAL (index) > -1024
+	    /* Thumb-2 allows only > -256 index range for it's core register
+	       load/stores. Since we allow SF/DF in core registers, we have
+	       to use the intersection between -256~4096 (core) and -1024~1024
+	       (coprocessor).  */
+	    && INTVAL (index) > -256
 	    && (INTVAL (index) & 3) == 0);
 
   if (TARGET_REALLY_IWMMXT && VALID_IWMMXT_REG_MODE (mode))
@@ -15188,6 +15192,31 @@ thumb_force_lr_save (void)
 }
 
 
+/* Return true if r3 is used by any of the tail call insns in the
+   current function.  */
+
+static bool
+any_sibcall_uses_r3 (void)
+{
+  edge_iterator ei;
+  edge e;
+
+  if (!crtl->tail_call_emit)
+    return false;
+  FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
+    if (e->flags & EDGE_SIBCALL)
+      {
+	rtx call = BB_END (e->src);
+	if (!CALL_P (call))
+	  call = prev_nonnote_nondebug_insn (call);
+	gcc_assert (CALL_P (call) && SIBLING_CALL_P (call));
+	if (find_regno_fusage (call, USE, 3))
+	  return true;
+      }
+  return false;
+}
+
+
 /* Compute the distance from register FROM to register TO.
    These can be the arg pointer (26), the soft frame pointer (25),
    the stack pointer (13) or the hard frame pointer (11).
@@ -15352,7 +15381,7 @@ arm_get_frame_offsets (void)
 	  /* If it is safe to use r3, then do so.  This sometimes 
 	     generates better code on Thumb-2 by avoiding the need to
 	     use 32-bit push/pop instructions.  */
-	  if (!crtl->tail_call_emit
+ 	  if (! any_sibcall_uses_r3 ()
 	      && arm_size_return_regs () <= 12
 	      && (offsets->saved_regs_mask & (1 << 3)) == 0)
 	    {

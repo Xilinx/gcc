@@ -1,3 +1,213 @@
+2011-01-26  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/47423
+	* cgraphbuild.c (record_eh_tables): Record reference to personality
+	function.
+
+2011-01-26  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/45454
+	* sel-sched.c (moveup_expr): Don't let debug insns prevent
+	non-debug insns from moving up.
+
+2011-01-26  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/40125
+	* config.gcc (i[34567]86-*-pe | i[34567]86-*-cygwin*): Select suitable
+	t-dlldir{,-x} fragment for build and add it to tmake_file.
+	(i[34567]86-*-mingw* | x86_64-*-mingw*): Likewise.
+	* Makefile.in (libgcc.mvars): Also export SHLIB_DLLDIR to libgcc.
+	* config/i386/t-dlldir: New file.
+	(SHLIB_DLLDIR): Define.
+	* config/i386/t-dlldir-x: New file.
+	(SHLIB_DLLDIR): Define.
+	* config/i386/t-cygming: Error out if SHLIB_DLLDIR is not set.
+	(SHLIB_INSTALL): Use it.
+
+2011-01-26  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR target/47246
+	* config/arm/arm.c (thumb2_legitimate_index_p): Change the
+	lower bound of the allowed Thumb-2 coprocessor load/store
+	index range to -256. Add explaining comment.
+
+2011-01-25  Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (go_define): Improve lexing of macro expansion to only
+	accept expressions which match Go spec.
+
+2011-01-26  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR c++/43601
+	* tree.c (handle_dll_attribute): Handle it.
+	* doc/extend.texi (@item dllexport): Mention it.
+	* doc/invoke.texi (@item -fno-keep-inline-dllexport): Document it.
+
+2011-01-25  Ian Lance Taylor  <iant@google.com>
+
+	PR tree-optimization/26854
+	* c-decl.c (struct c_scope): Add field has_jump_unsafe_decl.
+	(decl_jump_unsafe): Move higher in file, with no other change.
+	(bind): Set has_jump_unsafe_decl if appropriate.
+	(update_label_decls): Test has_jump_unsafe_decl to avoid loop.
+	(check_earlier_gotos): Likewise.
+	(c_check_switch_jump_warnings): Likewise.
+
+2011-01-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/invoke.texi (Warning Options): Add missing hyphen.
+	(-fprofile-dir): Minor grammatical fixes.
+	(-fbranch-probabilities): Likewise.
+
+2011-01-25  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/45136
+	PR debug/45130
+	* haifa-sched.c (get_ebb_head_tail): Move notes across boundary
+	debug insns.
+	(no_real_insns_p, schedule_block, set_priorities): Drop special
+	treatment of boundary debug insns.
+	* sched-deps.c (sd_init_insn, sd_finish_insn): Don't mark debug
+	insns.
+	* sched-ebb.c (schedule_ebbs): Don't skip debug insns.
+	* sched-int.h (DEBUG_INSN_SCHED_P): Remove.
+	(BOUNDARY_DEBUG_INSN_P): Likewise.
+	(SCHEDULE_DEBUG_INSN_P): Likewise.
+	* sched-rgn.c (init_ready_list): Drop special treatment of
+	boundary debug insns.
+	* final.c (rest_of_clean-state): Clear notes' BB.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* Makefile.in (LAMBDA_H): Removed.
+	(TREE_DATA_REF_H): Remove dependence on LAMBDA_H.
+	(OBJS-common): Remove dependence on lambda-code.o, lambda-mat.o,
+	lambda-trans.o, and tree-loop-linear.o.
+	(lto-symtab.o): Remove dependence on LAMBDA_H.
+	(tree-loop-linear.o): Remove rule.
+	(lambda-mat.o): Same.
+	(lambda-trans.o): Same.
+	(lambda-code.o): Same.
+	(tree-vect-loop.o): Add missing dependence on TREE_DATA_REF_H.
+	(tree-vect-slp.o): Same.
+	* hwint.h (gcd): Moved here.
+	(least_common_multiple): Same.
+	* lambda-code.c: Removed.
+	* lambda-mat.c: Removed.
+	* lambda-trans.c: Removed.
+	* lambda.h: Removed.
+	* tree-loop-linear.c: Removed.
+	* lto-symtab.c: Do not include lambda.h.
+	* omega.c (gcd): Removed.
+	* passes.c (init_optimization_passes): Remove pass_linear_transform.
+	* tree-data-ref.c (print_lambda_vector): Moved here.
+	(lambda_vector_copy): Same.
+	(lambda_matrix_copy): Same.
+	(lambda_matrix_id): Same.
+	(lambda_vector_first_nz): Same.
+	(lambda_matrix_row_add): Same.
+	(lambda_matrix_row_exchange): Same.
+	(lambda_vector_mult_const): Same.
+	(lambda_vector_negate): Same.
+	(lambda_matrix_row_negate): Same.
+	(lambda_vector_equal): Same.
+	(lambda_matrix_right_hermite): Same.
+	* tree-data-ref.h: Do not include lambda.h.
+	(lambda_vector): Moved here.
+	(lambda_matrix): Same.
+	(dependence_level): Same.
+	(lambda_transform_legal_p): Removed declaration.
+	(lambda_collect_parameters): Same.
+	(lambda_compute_access_matrices): Same.
+	(lambda_vector_gcd): Same.
+	(lambda_vector_new): Same.
+	(lambda_vector_clear): Same.
+	(lambda_vector_lexico_pos): Same.
+	(lambda_vector_zerop): Same.
+	(lambda_matrix_new): Same.
+	* tree-flow.h (least_common_multiple): Removed declaration.
+	* tree-parloops.c (lambda_trans_matrix): Moved here.
+	(LTM_MATRIX): Same.
+	(LTM_ROWSIZE): Same.
+	(LTM_COLSIZE): Same.
+	(LTM_DENOMINATOR): Same.
+	(lambda_trans_matrix_new): Same.
+	(lambda_matrix_vector_mult): Same.
+	(lambda_transform_legal_p): Same.
+	* tree-pass.h (pass_linear_transform): Removed declaration.
+	* tree-ssa-loop.c (tree_linear_transform): Removed.
+	(gate_tree_linear_transform): Removed.
+	(pass_linear_transform): Removed.
+	(gate_graphite_transforms): Make flag_tree_loop_linear an alias of
+	flag_loop_interchange.
+
+2011-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47265
+	PR tree-optimization/47443
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr): Return false
+	if name still has some uses.
+
+2011-01-25  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/47382
+	* gimple-fold.c (gimple_fold_obj_type_ref_call): Removed.
+	(gimple_fold_call): Do not call gimple_fold_obj_type_ref_call.
+
+2011-01-25  Joel Sherrill <joel.sherrill@oarcorp.com>
+
+	* config/m32r/m32r.c: Define TARGET_EXCEPT_UNWIND_INFO to
+	sjlj_except_unwind_info.
+
+2011-01-25  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47426
+	* tree-ssa-structalias.c (ipa_pta_execute): Make externally
+	visible functions results escape.
+
+2011-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/45701
+	* config/arm/arm.c (any_sibcall_uses_r3): New function.
+	(arm_get_frame_offsets): Use it.
+
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47271
+	* tree-if-conv.c (bb_postdominates_preds): New.
+	(if_convertible_bb_p): Call bb_postdominates_preds.
+	(if_convertible_loop_p_1): Compute CDI_POST_DOMINATORS.
+	(predicate_scalar_phi): Call bb_postdominates_preds.
+
+2011-01-25  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.h (LIBCALL_VALUE): Do not promote complex types.
+	* config/rx/rx.c (rx_function_value): Likewise.
+	(rx_promote_function_mode): Likewise.
+	(gen_safe_add): Place an outsized immediate value inside an UNSPEC
+	in order to make it legitimate.
+	* config/rx/rx.md (adddi3_internal): If the second operand is a
+	MEM make sure that the first operand is the same as the result
+	register.
+	(addsi3_unspec): Delete.
+	(subdi3): Do not accept immediate operands.
+	(subdi3_internal): Likewise.
+
+2011-01-25  Jeff Law  <law@redhat.com>
+
+	PR rtl-optimization/37273
+	* ira-costs.c (scan_one_insn): Detect constants living in memory and
+	handle them like argument loads from stack slots.  Do not double
+	count memory for memory constants and argument loads from stack slots.
+
+2011-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47427
+	PR tree-optimization/47428
+	* tree-ssa-copyrename.c (copy_rename_partition_coalesce): Don't
+	coalesce if the new root var would be TREE_READONLY.
+
 2011-01-25  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/47414
