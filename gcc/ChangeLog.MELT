@@ -1,4 +1,8 @@
 2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (MELT_PLUGIN_HEADERS): Correct typo on meltrunsup.h
+
+2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tfieldkey.melt: New test file.
 
 2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
