@@ -1,4 +1,8 @@
 2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt (class_source_lazy_macro_expansion): New.
+	(macroexpand_1): Should use it.
+
+2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in (MELT_PLUGIN_HEADERS): Correct typo on meltrunsup.h
 
