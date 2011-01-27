@@ -92,7 +92,10 @@ along with GCC; see the file COPYING3.  If not see
 
 /* These macros may be overridden in k*bsd-gnu.h and i386/k*bsd-gnu.h. */
 #define LINK_EMULATION "elf_i386"
-#define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.2"
+#ifndef RUNTIME_ROOT_PREFIX
+#define RUNTIME_ROOT_PREFIX ""
+#endif
+#define GLIBC_DYNAMIC_LINKER RUNTIME_ROOT_PREFIX "/lib/ld-linux.so.2"
 
 #undef  ASM_SPEC
 #define ASM_SPEC \

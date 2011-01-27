@@ -726,6 +726,21 @@ AC_ARG_WITH([native-system-header-dir],
 ], [native_system_header_dir=/usr/include])
 AC_SUBST(NATIVE_SYSTEM_HEADER_DIR, $native_system_header_dir)
 
+AC_ARG_WITH([runtime-root-prefix],
+  [  --with-runtime-root-prefix=prefix
+                          prepend prefix to paths used by the compiler to
+                          name the dynamic linker and other files used at
+                          runtime.  Defaults to empty (no prefix).],
+[
+ case ${with_runtime_root_prefix} in
+ yes|no) AC_MSG_ERROR([bad value ${withval} given for runtime root prefix]) ;;
+ /*) ;;
+ *) AC_MSG_ERROR([${withval} should be an absolute directory]) ;;
+ esac
+ RUNTIME_ROOT_PREFIX_DEFINE="-DRUNTIME_ROOT_PREFIX=\\\"${withval}\\\""
+], [RUNTIME_ROOT_PREFIX_DEFINE=""])
+AC_SUBST(RUNTIME_ROOT_PREFIX_DEFINE)
+
 AC_ARG_WITH(build-sysroot, 
   [  --with-build-sysroot=sysroot
                           use sysroot as the system root during the build])

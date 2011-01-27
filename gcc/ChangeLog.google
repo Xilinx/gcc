@@ -1,3 +1,13 @@
+2011-01-27  Simon Baldwin  <simonb@google.com>
+
+	* configure.ac: Add --with-runtime-root-prefix option.
+	* configure: Rebuild from configure.ac.
+	* Makefile.in: Support --with-runtime-root-prefix.
+	* doc/install.texi: Document --with-runtime-root-prefix.
+	* gcc/config/linux.h: Add runtime root prefix to dynamic linker path.
+	* gcc/config/i386/linux.h: Ditto.
+	* gcc/config/i386/linux64.h: Ditto.
+
 2011-01-26  Simon Baldwin  <simonb@google.com>
 
 	* configure.ac: Add --with-native-system-header-dir option.
