@@ -144,8 +144,8 @@ typedef struct
 typedef struct GTY(()) mem_attrs
 {
   tree expr;			/* expr corresponding to MEM.  */
-  rtx offset;			/* Offset from start of DECL, as CONST_INT.  */
-  rtx size;			/* Size in bytes, as a CONST_INT.  */
+  rtx GTY((skip)) offset;	/* Offset from start of DECL, as CONST_INT.  */
+  rtx GTY((skip)) size;		/* Size in bytes, as a CONST_INT.  */
   alias_set_type alias;		/* Memory alias set.  */
   unsigned int align;		/* Alignment of MEM in bits.  */
   unsigned char addrspace;	/* Address space (0 for generic).  */
@@ -200,7 +200,7 @@ struct GTY(()) block_symbol {
 
 /* Describes a group of objects that are to be placed together in such
    a way that their relative positions are known.  */
-struct GTY(()) object_block {
+struct object_block {
   /* The section in which these objects should be placed.  */
   section *sect;
 
@@ -218,7 +218,7 @@ struct GTY(()) object_block {
 	 !SYMBOL_REF_ANCHOR_P (X)
 	 SYMBOL_REF_BLOCK (X) == [address of this structure]
 	 SYMBOL_REF_BLOCK_OFFSET (X) >= 0.  */
-  VEC(rtx,gc) *objects;
+  VEC(rtx,heap) *objects;
 
   /* All the anchor SYMBOL_REFs used to address these objects, sorted
      in order of increasing offset, and then increasing TLS model.
@@ -228,13 +228,12 @@ struct GTY(()) object_block {
 	 SYMBOL_REF_ANCHOR_P (X)
 	 SYMBOL_REF_BLOCK (X) == [address of this structure]
 	 SYMBOL_REF_BLOCK_OFFSET (X) >= 0.  */
-  VEC(rtx,gc) *anchors;
+  VEC(rtx,heap) *anchors;
 };
 
 /* RTL expression ("rtx").  */
 
-struct GTY((chain_next ("RTX_NEXT (&%h)"),
-	    chain_prev ("RTX_PREV (&%h)"), variable_size)) rtx_def {
+struct rtx_def {
   /* The kind of expression this is.  */
   ENUM_BITFIELD(rtx_code) code: 16;
 
@@ -315,7 +314,7 @@ struct GTY((chain_next ("RTX_NEXT (&%h)"),
     struct block_symbol block_sym;
     struct real_value rv;
     struct fixed_value fv;
-  } GTY ((special ("rtx_def"), desc ("GET_CODE (&%0)"))) u;
+  } u;
 };
 
 /* The size in bytes of an rtx header (code, mode and flags).  */
@@ -353,9 +352,9 @@ struct GTY((chain_next ("RTX_NEXT (&%h)"),
    for a variable number of things.  The principle use is inside
    PARALLEL expressions.  */
 
-struct GTY((variable_size)) rtvec_def {
+struct rtvec_def {
   int num_elem;		/* number of elements */
-  rtx GTY ((length ("%h.num_elem"))) elem[1];
+  rtx elem[1];
 };
 
 #define NULL_RTVEC (rtvec) 0
@@ -1596,6 +1595,9 @@ extern int generating_concat_p;
 /* Nonzero when we are expanding trees to RTL.  */
 extern int currently_expanding_to_rtl;
 
+/* Obstack definition for generators only.  */
+extern struct obstack * rtl_obstack;
+
 /* Generally useful functions.  */
 
 /* In expmed.c */
@@ -1606,6 +1608,12 @@ extern HOST_WIDE_INT trunc_int_for_mode	(HOST_WIDE_INT, enum machine_mode);
 extern rtx plus_constant (rtx, HOST_WIDE_INT);
 
 /* In rtl.c */
+extern void init_rtl (void);
+extern void * allocate_in_rtl_mem (int);
+extern void * allocate_in_rtl_function_mem (int);
+extern rtx copy_rtx_to_permanent_mem (rtx);
+extern char * strdup_to_permanent_mem (const char *);
+
 extern rtx rtx_alloc_stat (RTX_CODE MEM_STAT_DECL);
 #define rtx_alloc(c) rtx_alloc_stat (c MEM_STAT_INFO)
 
@@ -2001,15 +2009,15 @@ extern void split_all_insns (void);
 extern unsigned int split_all_insns_noflow (void);
 
 #define MAX_SAVED_CONST_INT 64
-extern GTY(()) rtx const_int_rtx[MAX_SAVED_CONST_INT * 2 + 1];
+extern rtx const_int_rtx[MAX_SAVED_CONST_INT * 2 + 1];
 
 #define const0_rtx	(const_int_rtx[MAX_SAVED_CONST_INT])
 #define const1_rtx	(const_int_rtx[MAX_SAVED_CONST_INT+1])
 #define const2_rtx	(const_int_rtx[MAX_SAVED_CONST_INT+2])
 #define constm1_rtx	(const_int_rtx[MAX_SAVED_CONST_INT-1])
-extern GTY(()) rtx const_true_rtx;
+extern rtx const_true_rtx;
 
-extern GTY(()) rtx const_tiny_rtx[3][(int) MAX_MACHINE_MODE];
+extern rtx const_tiny_rtx[3][(int) MAX_MACHINE_MODE];
 
 /* Returns a constant 0 rtx in mode MODE.  Integer modes are treated the
    same as VOIDmode.  */
@@ -2077,7 +2085,7 @@ enum global_rtl_index
 };
 
 /* Target-dependent globals.  */
-struct GTY(()) target_rtl {
+struct target_rtl {
   /* All references to the hard registers in global_rtl_index go through
      these unique rtl objects.  On machines where the frame-pointer and
      arg-pointer are the same register, they use the same unique object.
@@ -2117,7 +2125,7 @@ struct GTY(()) target_rtl {
   rtx x_static_reg_base_value[FIRST_PSEUDO_REGISTER];
 };
 
-extern GTY(()) struct target_rtl default_target_rtl;
+extern struct target_rtl default_target_rtl;
 #if SWITCHABLE_TARGET
 extern struct target_rtl *this_target_rtl;
 #else
@@ -2513,7 +2521,7 @@ extern int stack_regs_mentioned (const_rtx insn);
 #endif
 
 /* In toplev.c */
-extern GTY(()) rtx stack_limit_rtx;
+extern rtx stack_limit_rtx;
 
 /* In predict.c */
 extern void invert_br_probabilities (rtx);

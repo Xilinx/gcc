@@ -614,7 +614,8 @@ dump_reg_info (FILE *file)
       else if (df)
 	fprintf (file, "; set %d time%s", DF_REG_DEF_COUNT (i),
 		 (DF_REG_DEF_COUNT (i) == 1) ? "" : "s");
-      if (regno_reg_rtx[i] != NULL && REG_USERVAR_P (regno_reg_rtx[i]))
+      if (crtl->emit.regno_reg_rtx[i] != NULL
+          && REG_USERVAR_P (crtl->emit.regno_reg_rtx[i]))
 	fputs ("; user var", file);
       if (REG_N_DEATHS (i) != 1)
 	fprintf (file, "; dies in %d places", REG_N_DEATHS (i));
@@ -624,7 +625,7 @@ dump_reg_info (FILE *file)
 	fprintf (file, "; crosses %d calls", REG_N_CALLS_CROSSED (i));
       if (REG_FREQ_CALLS_CROSSED (i))
 	fprintf (file, "; crosses call with %d frequency", REG_FREQ_CALLS_CROSSED (i));
-      if (regno_reg_rtx[i] != NULL
+      if (crtl->emit.regno_reg_rtx[i] != NULL
 	  && PSEUDO_REGNO_BYTES (i) != UNITS_PER_WORD)
 	fprintf (file, "; %d bytes", PSEUDO_REGNO_BYTES (i));
 
@@ -642,7 +643,8 @@ dump_reg_info (FILE *file)
 		     reg_class_names[(int) altclass]);
 	}
 
-      if (regno_reg_rtx[i] != NULL && REG_POINTER (regno_reg_rtx[i]))
+      if (crtl->emit.regno_reg_rtx[i] != NULL
+          && REG_POINTER (crtl->emit.regno_reg_rtx[i]))
 	fputs ("; pointer", file);
       fputs (".\n", file);
     }

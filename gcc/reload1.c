@@ -118,9 +118,8 @@ rtx *reg_equiv_invariant;
    is transferred to either reg_equiv_address or reg_equiv_mem.  */
 rtx *reg_equiv_memory_loc;
 
-/* We allocate reg_equiv_memory_loc inside a varray so that the garbage
-   collector can keep track of what is inside.  */
-VEC(rtx,gc) *reg_equiv_memory_loc_vec;
+/* We allocate reg_equiv_memory_loc inside a varray because of FIXME GC.  */
+VEC(rtx,heap) *reg_equiv_memory_loc_vec;
 
 /* Element N is the address of stack slot to which pseudo reg N is equivalent.
    This is used when the address is not valid as a memory address
@@ -606,9 +605,9 @@ replace_pseudos_in (rtx *loc, enum machine_mode mem_mode, rtx usage)
 	*loc = gen_rtx_MEM (GET_MODE (x), reg_equiv_address[regno]);
       else
 	{
-	  gcc_assert (!REG_P (regno_reg_rtx[regno])
-		      || REGNO (regno_reg_rtx[regno]) != regno);
-	  *loc = regno_reg_rtx[regno];
+	  gcc_assert (!REG_P (crtl->emit.regno_reg_rtx[regno])
+		      || REGNO (crtl->emit.regno_reg_rtx[regno]) != regno);
+	  *loc = crtl->emit.regno_reg_rtx[regno];
 	}
 
       return;
@@ -887,7 +886,7 @@ reload (rtx first, int global)
 				    NULL_RTX);
 
 	    if (strict_memory_address_addr_space_p
-		  (GET_MODE (regno_reg_rtx[i]), XEXP (x, 0),
+		  (GET_MODE (crtl->emit.regno_reg_rtx[i]), XEXP (x, 0),
 		   MEM_ADDR_SPACE (x)))
 	      reg_equiv_mem[i] = x, reg_equiv_address[i] = 0;
 	    else if (CONSTANT_P (XEXP (x, 0))
@@ -1037,7 +1036,8 @@ reload (rtx first, int global)
 	      if (NOTE_P (equiv_insn)
 		  || can_throw_internal (equiv_insn))
 		;
-	      else if (reg_set_p (regno_reg_rtx[i], PATTERN (equiv_insn)))
+	      else if (reg_set_p (crtl->emit.regno_reg_rtx[i],
+				  PATTERN (equiv_insn)))
 		delete_dead_insn (equiv_insn);
 	      else
 		SET_INSN_DELETED (equiv_insn);
@@ -1103,7 +1103,7 @@ reload (rtx first, int global)
 	{
 	  if (reg_renumber[i] < 0)
 	    {
-	      rtx reg = regno_reg_rtx[i];
+	      rtx reg = crtl->emit.regno_reg_rtx[i];
 
 	      REG_USERVAR_P (reg) = 0;
 	      PUT_CODE (reg, MEM);
@@ -1126,7 +1126,7 @@ reload (rtx first, int global)
 	 in debug insns.  */
       if (MAY_HAVE_DEBUG_INSNS && reg_renumber[i] < 0)
 	{
-	  rtx reg = regno_reg_rtx[i];
+	  rtx reg = crtl->emit.regno_reg_rtx[i];
 	  rtx equiv = 0;
 	  df_ref use, next;
 
@@ -2140,17 +2140,17 @@ alter_reg (int i, int from_reg, bool dont_share_p)
 {
   /* When outputting an inline function, this can happen
      for a reg that isn't actually used.  */
-  if (regno_reg_rtx[i] == 0)
+  if (crtl->emit.regno_reg_rtx[i] == 0)
     return;
 
   /* If the reg got changed to a MEM at rtl-generation time,
      ignore it.  */
-  if (!REG_P (regno_reg_rtx[i]))
+  if (!REG_P (crtl->emit.regno_reg_rtx[i]))
     return;
 
   /* Modify the reg-rtx to contain the new hard reg
      number or else to contain its pseudo reg number.  */
-  SET_REGNO (regno_reg_rtx[i],
+  SET_REGNO (crtl->emit.regno_reg_rtx[i],
 	     reg_renumber[i] >= 0 ? reg_renumber[i] : i);
 
   /* If we have a pseudo that is needed but has no hard reg or equivalent,
@@ -2163,7 +2163,7 @@ alter_reg (int i, int from_reg, bool dont_share_p)
       && reg_equiv_memory_loc[i] == 0)
     {
       rtx x = NULL_RTX;
-      enum machine_mode mode = GET_MODE (regno_reg_rtx[i]);
+      enum machine_mode mode = GET_MODE (crtl->emit.regno_reg_rtx[i]);
       unsigned int inherent_size = PSEUDO_REGNO_BYTES (i);
       unsigned int inherent_align = GET_MODE_ALIGNMENT (mode);
       unsigned int total_size = MAX (inherent_size, reg_max_ref_width[i]);
@@ -2278,7 +2278,8 @@ alter_reg (int i, int from_reg, bool dont_share_p)
 
       /* If we have any adjustment to make, or if the stack slot is the
 	 wrong mode, make a new stack slot.  */
-      x = adjust_address_nv (x, GET_MODE (regno_reg_rtx[i]), adjust);
+      x = adjust_address_nv (x, GET_MODE (crtl->emit.regno_reg_rtx[i]),
+                             adjust);
 
       /* Set all of the memory attributes as appropriate for a spill.  */
       set_mem_attrs_for_spill (x);
@@ -4212,7 +4213,7 @@ free_reg_equiv (void)
     free (reg_equiv_invariant);
   reg_equiv_constant = 0;
   reg_equiv_invariant = 0;
-  VEC_free (rtx, gc, reg_equiv_memory_loc_vec);
+  VEC_free (rtx, heap, reg_equiv_memory_loc_vec);
   reg_equiv_memory_loc = 0;
 
   if (offsets_known_at)
@@ -7797,7 +7798,7 @@ do_input_reload (struct insn_chain *chain, struct reload *rl, int j)
       && MEM_P (rl->in_reg)
       && reload_spill_index[j] >= 0
       && TEST_HARD_REG_BIT (reg_reloaded_valid, reload_spill_index[j]))
-    rl->in = regno_reg_rtx[reg_reloaded_contents[reload_spill_index[j]]];
+    rl->in = crtl->emit.regno_reg_rtx[reg_reloaded_contents[reload_spill_index[j]]];
 
   /* If we are reloading a register that was recently stored in with an
      output-reload, see if we can prove there was
@@ -8129,7 +8130,7 @@ emit_reload_insns (struct insn_chain *chain)
 		  if (HARD_REGISTER_NUM_P (out_regno))
 		    for (k = 1; k < out_nregs; k++)
 		      reg_last_reload_reg[out_regno + k]
-			= (piecemeal ? regno_reg_rtx[regno + k] : 0);
+			= (piecemeal ? crtl->emit.regno_reg_rtx[regno + k] : 0);
 
 		  /* Now do the inverse operation.  */
 		  for (k = 0; k < nregs; k++)
@@ -8201,7 +8202,7 @@ emit_reload_insns (struct insn_chain *chain)
 		  if (HARD_REGISTER_NUM_P (in_regno))
 		    for (k = 1; k < in_nregs; k++)
 		      reg_last_reload_reg[in_regno + k]
-			= (piecemeal ? regno_reg_rtx[regno + k] : 0);
+			= (piecemeal ? crtl->emit.regno_reg_rtx[regno + k] : 0);
 
 		  /* Unless we inherited this reload, show we haven't
 		     recently done a store.

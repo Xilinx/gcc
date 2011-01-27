@@ -163,7 +163,7 @@ static int sjlj_fc_lsda_ofs;
 static int sjlj_fc_jbuf_ofs;
 
 
-struct GTY(()) call_site_record_d
+struct call_site_record_d
 {
   rtx landing_pad;
   int action;
@@ -190,7 +190,7 @@ static int collect_one_action_chain (htab_t, eh_region);
 static int add_call_site (rtx, int, int);
 
 static void push_uleb128 (VEC (uchar, gc) **, unsigned int);
-static void push_sleb128 (VEC (uchar, gc) **, int);
+static void push_sleb128 (VEC (uchar, heap) **, int);
 #ifndef HAVE_AS_LEB128
 static int dw2_size_of_call_site_table (int);
 static int sjlj_size_of_call_site_table (void);
@@ -986,7 +986,7 @@ sjlj_assign_call_site_values (void)
   int i, disp_index;
   eh_landing_pad lp;
 
-  crtl->eh.action_record_data = VEC_alloc (uchar, gc, 64);
+  crtl->eh.action_record_data = VEC_alloc (uchar, heap, 64);
   ar_hash = htab_create (31, action_record_hash, action_record_eq, free);
 
   disp_index = 0;
@@ -2338,11 +2338,11 @@ add_call_site (rtx landing_pad, int action, int section)
 {
   call_site_record record;
 
-  record = ggc_alloc_call_site_record_d ();
+  record = (call_site_record) allocate_in_rtl_mem (sizeof (*record));
   record->landing_pad = landing_pad;
   record->action = action;
 
-  VEC_safe_push (call_site_record, gc,
+  VEC_safe_push (call_site_record, heap,
 		 crtl->eh.call_site_record[section], record);
 
   return call_site_base + VEC_length (call_site_record,
@@ -2372,7 +2372,7 @@ convert_to_eh_region_ranges (void)
   int min_labelno = 0, max_labelno = 0;
   int saved_call_site_base = call_site_base;
 
-  crtl->eh.action_record_data = VEC_alloc (uchar, gc, 64);
+  crtl->eh.action_record_data = VEC_alloc (uchar, heap, 64);
 
   ar_hash = htab_create (31, action_record_hash, action_record_eq, free);
 
@@ -2498,7 +2498,7 @@ convert_to_eh_region_ranges (void)
 	cur_sec++;
 	gcc_assert (crtl->eh.call_site_record[cur_sec] == NULL);
 	crtl->eh.call_site_record[cur_sec]
-	  = VEC_alloc (call_site_record, gc, 10);
+	  = VEC_alloc (call_site_record, heap, 10);
 	max_labelno = max_label_num ();
 	min_labelno = get_first_label_num ();
 	pad_map = XCNEWVEC (rtx, max_labelno - min_labelno + 1);
@@ -2661,7 +2661,7 @@ push_uleb128 (VEC (uchar, gc) **data_area, unsigned int value)
 }
 
 static void
-push_sleb128 (VEC (uchar, gc) **data_area, int value)
+push_sleb128 (VEC (uchar, heap) **data_area, int value)
 {
   unsigned char byte;
   int more;
@@ -2674,7 +2674,7 @@ push_sleb128 (VEC (uchar, gc) **data_area, int value)
 		|| (value == -1 && (byte & 0x40) != 0));
       if (more)
 	byte |= 0x80;
-      VEC_safe_push (uchar, gc, *data_area, byte);
+      VEC_safe_push (uchar, heap, *data_area, byte);
     }
   while (more);
 }

@@ -201,10 +201,6 @@ dwarf2out_do_cfi_asm (void)
 #define PTR_SIZE (POINTER_SIZE / BITS_PER_UNIT)
 #endif
 
-/* Array of RTXes referenced by the debugging information, which therefore
-   must be kept around forever.  */
-static GTY(()) VEC(rtx,gc) *used_rtx_array;
-
 /* A pointer to the base of a list of incomplete types which might be
    completed at some later time.  incomplete_types_list needs to be a
    VEC(tree,gc) because we want to tell the garbage collector about
@@ -235,7 +231,7 @@ static GTY(()) section *debug_frame_section;
 
 /* Personality decl of current unit.  Used only when assembler does not support
    personality CFI.  */
-static GTY(()) rtx current_unit_personality;
+static rtx current_unit_personality;
 
 /* How to start an assembler comment.  */
 #ifndef ASM_COMMENT_START
@@ -1744,17 +1740,17 @@ dwarf2out_notice_stack_adjust (rtx insn, bool after_p)
    of the prologue or (b) the register is clobbered.  This clusters
    register saves so that there are fewer pc advances.  */
 
-struct GTY(()) queued_reg_save {
+struct queued_reg_save {
   struct queued_reg_save *next;
   rtx reg;
   HOST_WIDE_INT cfa_offset;
   rtx saved_reg;
 };
 
-static GTY(()) struct queued_reg_save *queued_reg_saves;
+static struct queued_reg_save *queued_reg_saves;
 
 /* The caller's ORIG_REG is saved in SAVED_IN_REG.  */
-struct GTY(()) reg_saved_in_data {
+struct reg_saved_in_data {
   rtx orig_reg;
   rtx saved_in_reg;
 };
@@ -1763,8 +1759,8 @@ struct GTY(()) reg_saved_in_data {
    The list intentionally has a small maximum capacity of 4; if your
    port needs more than that, you might consider implementing a
    more efficient data structure.  */
-static GTY(()) struct reg_saved_in_data regs_saved_in_regs[4];
-static GTY(()) size_t num_regs_saved_in_regs;
+static struct reg_saved_in_data regs_saved_in_regs[4];
+static size_t num_regs_saved_in_regs;
 
 static const char *last_reg_save_label;
 
@@ -1785,7 +1781,7 @@ queue_reg_save (const char *label, rtx reg, rtx sreg, HOST_WIDE_INT offset)
 
   if (q == NULL)
     {
-      q = ggc_alloc_queued_reg_save ();
+      q = XNEW (struct queued_reg_save);
       q->next = queued_reg_saves;
       queued_reg_saves = q;
     }
@@ -1803,11 +1799,14 @@ void
 dwarf2out_flush_queued_reg_saves (void)
 {
   struct queued_reg_save *q;
+  struct queued_reg_save *next;
 
-  for (q = queued_reg_saves; q; q = q->next)
+  for (q = queued_reg_saves; q; q = next)
     {
       size_t i;
       unsigned int reg, sreg;
+
+      next = q->next;
 
       for (i = 0; i < num_regs_saved_in_regs; i++)
 	if (REGNO (regs_saved_in_regs[i].orig_reg) == REGNO (q->reg))
@@ -1829,6 +1828,7 @@ dwarf2out_flush_queued_reg_saves (void)
       else
 	sreg = INVALID_REGNUM;
       reg_save (last_reg_save_label, reg, sreg, q->cfa_offset);
+      free (q);
     }
 
   queued_reg_saves = NULL;
@@ -4407,7 +4407,7 @@ typedef struct GTY(()) dw_val_struct {
   enum dw_val_class val_class;
   union dw_val_struct_union
     {
-      rtx GTY ((tag ("dw_val_class_addr"))) val_addr;
+      rtx GTY ((tag ("dw_val_class_addr"),skip)) val_addr;
       unsigned HOST_WIDE_INT GTY ((tag ("dw_val_class_offset"))) val_offset;
       dw_loc_list_ref GTY ((tag ("dw_val_class_loc_list"))) val_loc_list;
       dw_loc_descr_ref GTY ((tag ("dw_val_class_loc"))) val_loc;
@@ -6017,7 +6017,7 @@ struct GTY ((chain_next ("%h.next"))) var_loc_node {
      mode is 0 and first operand is a CONCAT with bitsize
      as first CONCAT operand and NOTE_INSN_VAR_LOCATION resp.
      NULL as second operand.  */
-  rtx GTY (()) loc;
+  rtx GTY ((skip)) loc;
   const char * GTY (()) label;
   struct var_loc_node * GTY (()) next;
 };
@@ -13876,8 +13876,8 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
     symref:
       mem_loc_result = new_loc_descr (DW_OP_addr, 0, 0);
       mem_loc_result->dw_loc_oprnd1.val_class = dw_val_class_addr;
-      mem_loc_result->dw_loc_oprnd1.v.val_addr = rtl;
-      VEC_safe_push (rtx, gc, used_rtx_array, rtl);
+      mem_loc_result->dw_loc_oprnd1.v.val_addr
+	= copy_rtx_to_permanent_mem (rtl);
       break;
 
     case CONCAT:
@@ -14739,9 +14739,9 @@ loc_descriptor (rtx rtl, enum machine_mode mode,
 	{
 	  loc_result = new_loc_descr (DW_OP_addr, 0, 0);
 	  loc_result->dw_loc_oprnd1.val_class = dw_val_class_addr;
-	  loc_result->dw_loc_oprnd1.v.val_addr = rtl;
+	  loc_result->dw_loc_oprnd1.v.val_addr
+	    = copy_rtx_to_permanent_mem (rtl);
 	  add_loc_descr (&loc_result, new_loc_descr (DW_OP_stack_value, 0, 0));
-	  VEC_safe_push (rtx, gc, used_rtx_array, rtl);
 	}
       break;
 
@@ -16432,10 +16432,10 @@ add_const_value_attribute (dw_die_ref die, rtx rtl)
 	rtl_addr:
 	  loc_result = new_loc_descr (DW_OP_addr, 0, 0);
 	  loc_result->dw_loc_oprnd1.val_class = dw_val_class_addr;
-	  loc_result->dw_loc_oprnd1.v.val_addr = rtl;
+	  loc_result->dw_loc_oprnd1.v.val_addr
+	    = copy_rtx_to_permanent_mem (rtl);
 	  add_loc_descr (&loc_result, new_loc_descr (DW_OP_stack_value, 0, 0));
 	  add_AT_loc (die, DW_AT_location, loc_result);
-	  VEC_safe_push (rtx, gc, used_rtx_array, rtl);
 	  return true;
 	}
       return false;
@@ -22162,8 +22162,6 @@ dwarf2out_init (const char *filename ATTRIBUTE_UNUSED)
 
   incomplete_types = VEC_alloc (tree, gc, 64);
 
-  used_rtx_array = VEC_alloc (rtx, gc, 32);
-
   debug_info_section = get_section (DEBUG_INFO_SECTION,
 				    SECTION_DEBUG, NULL);
   debug_abbrev_section = get_section (DEBUG_ABBREV_SECTION,
@@ -22719,8 +22717,7 @@ resolve_one_addr (rtx *addr, void *data ATTRIBUTE_UNUSED)
       if (!rtl || !MEM_P (rtl))
 	return 1;
       rtl = XEXP (rtl, 0);
-      VEC_safe_push (rtx, gc, used_rtx_array, rtl);
-      *addr = rtl;
+      *addr = copy_rtx_to_permanent_mem (rtl);
       return 0;
     }
 

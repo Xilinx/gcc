@@ -5321,7 +5321,7 @@ update_fence_and_insn (fence_t fence, insn_t insn, int need_stall)
   /* First, reflect that something is scheduled on this fence.  */
   asm_p = advance_state_on_fence (fence, insn);
   FENCE_LAST_SCHEDULED_INSN (fence) = insn;
-  VEC_safe_push (rtx, gc, FENCE_EXECUTING_INSNS (fence), insn);
+  VEC_safe_push (rtx, heap, FENCE_EXECUTING_INSNS (fence), insn);
   if (SCHED_GROUP_P (insn))
     {
       FENCE_SCHED_NEXT (fence) = INSN_SCHED_NEXT (insn);

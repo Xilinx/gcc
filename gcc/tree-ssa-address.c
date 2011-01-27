@@ -43,7 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "rtl.h"
 #include "recog.h"
 #include "expr.h"
-#include "ggc.h"
 #include "target.h"
 
 /* TODO -- handling of symbols (according to Richard Hendersons
@@ -73,22 +72,22 @@ along with GCC; see the file COPYING3.  If not see
 /* A "template" for memory address, used to determine whether the address is
    valid for mode.  */
 
-typedef struct GTY (()) mem_addr_template {
+typedef struct mem_addr_template {
   rtx ref;			/* The template.  */
-  rtx * GTY ((skip)) step_p;	/* The point in template where the step should be
+  rtx * step_p;	/* The point in template where the step should be
 				   filled in.  */
-  rtx * GTY ((skip)) off_p;	/* The point in template where the offset should
+  rtx * off_p;	/* The point in template where the offset should
 				   be filled in.  */
 } mem_addr_template;
 
 DEF_VEC_O (mem_addr_template);
-DEF_VEC_ALLOC_O (mem_addr_template, gc);
+DEF_VEC_ALLOC_O (mem_addr_template, heap);
 
 /* The templates.  Each of the low five bits of the index corresponds to one
    component of TARGET_MEM_REF being present, while the high bits identify
    the address space.  See TEMPL_IDX.  */
 
-static GTY(()) VEC (mem_addr_template, gc) *mem_addr_template_list;
+static VEC (mem_addr_template, heap) *mem_addr_template_list;
 
 #define TEMPL_IDX(AS, SYMBOL, BASE, INDEX, STEP, OFFSET) \
   (((int) (AS) << 5) \
@@ -212,7 +211,7 @@ addr_for_mem_ref (struct mem_address *addr, addr_space_t as,
 
       if (templ_index
 	  >= VEC_length (mem_addr_template, mem_addr_template_list))
-	VEC_safe_grow_cleared (mem_addr_template, gc, mem_addr_template_list,
+	VEC_safe_grow_cleared (mem_addr_template, heap, mem_addr_template_list,
 			       templ_index + 1);
 
       /* Reuse the templates for addresses, so that we do not waste memory.  */
@@ -948,5 +947,3 @@ dump_mem_address (FILE *file, struct mem_address *parts)
       fprintf (file, "\n");
     }
 }
-
-#include "gt-tree-ssa-address.h"

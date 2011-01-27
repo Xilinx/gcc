@@ -866,7 +866,7 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 
   body = gen_rtx_ASM_OPERANDS ((noutputs == 0 ? VOIDmode
 				: GET_MODE (output_rtx[0])),
-			       ggc_strdup (TREE_STRING_POINTER (string)),
+			       strdup_to_permanent_mem (TREE_STRING_POINTER (string)),
 			       empty_string, 0, argvec, constraintvec,
 			       labelvec, locus);
 
@@ -952,7 +952,7 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 
       ASM_OPERANDS_INPUT_CONSTRAINT_EXP (body, i)
 	= gen_rtx_ASM_INPUT (TYPE_MODE (type),
-			     ggc_strdup (constraints[i + noutputs]));
+			     strdup_to_permanent_mem (constraints[i + noutputs]));
 
       if (tree_conflicts_with_clobbers_p (val, &clobbered_regs))
 	clobber_conflict_found = 1;
@@ -1022,8 +1022,8 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
 			   output_rtx[i],
 			   gen_rtx_ASM_OPERANDS
 			   (GET_MODE (output_rtx[i]),
-			    ggc_strdup (TREE_STRING_POINTER (string)),
-			    ggc_strdup (constraints[i]),
+			    strdup_to_permanent_mem (TREE_STRING_POINTER (string)),
+			    strdup_to_permanent_mem (constraints[i]),
 			    i, argvec, constraintvec, labelvec, locus));
 
 	  MEM_VOLATILE_P (SET_SRC (XVECEXP (body, 0, i))) = vol;

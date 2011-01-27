@@ -2020,7 +2020,7 @@ df_ref_change_reg_with_loc_1 (struct df_reg_info *old_df,
 	  unsigned int count = 0;
 
 	  DF_REF_REGNO (the_ref) = new_regno;
-	  DF_REF_REG (the_ref) = regno_reg_rtx[new_regno];
+	  DF_REF_REG (the_ref) = crtl->emit.regno_reg_rtx[new_regno];
 
 	  /* Pull the_ref out of the old regno chain.  */
 	  if (prev_ref)
@@ -2884,8 +2884,9 @@ df_ref_record (enum df_ref_class cl,
 
       for (i = regno; i < endregno; i++)
 	{
-	  ref = df_ref_create_structure (cl, collection_rec, regno_reg_rtx[i], loc,
-					 bb, insn_info, ref_type, ref_flags);
+	  ref = df_ref_create_structure (cl, collection_rec,
+					 crtl->emit.regno_reg_rtx[i], loc, bb,
+					 insn_info, ref_type, ref_flags);
 
           gcc_assert (ORIGINAL_REGNO (DF_REF_REG (ref)) == i);
 	}
@@ -3356,7 +3357,8 @@ df_get_call_refs (struct df_collection_rec * collection_rec,
     }
 
   /* The stack ptr is used (honorarily) by a CALL insn.  */
-  df_ref_record (DF_REF_BASE, collection_rec, regno_reg_rtx[STACK_POINTER_REGNUM],
+  df_ref_record (DF_REF_BASE, collection_rec,
+                 crtl->emit.regno_reg_rtx[STACK_POINTER_REGNUM],
 		 NULL, bb, insn_info, DF_REF_REG_USE,
 		 DF_REF_CALL_STACK_USAGE | flags);
 
@@ -3365,10 +3367,12 @@ df_get_call_refs (struct df_collection_rec * collection_rec,
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
     if (global_regs[i])
       {
-	df_ref_record (DF_REF_BASE, collection_rec, regno_reg_rtx[i],
-		       NULL, bb, insn_info, DF_REF_REG_USE, flags);
-	df_ref_record (DF_REF_BASE, collection_rec, regno_reg_rtx[i],
-		       NULL, bb, insn_info, DF_REF_REG_DEF, flags);
+	df_ref_record (DF_REF_BASE, collection_rec,
+		       crtl->emit.regno_reg_rtx[i], NULL, bb, insn_info,
+		       DF_REF_REG_USE, flags);
+	df_ref_record (DF_REF_BASE, collection_rec,
+		       crtl->emit.regno_reg_rtx[i], NULL, bb, insn_info,
+		       DF_REF_REG_DEF, flags);
       }
 
   is_sibling_call = SIBLING_CALL_P (insn_info->insn);
@@ -3380,9 +3384,9 @@ df_get_call_refs (struct df_collection_rec * collection_rec,
 	      || !bitmap_bit_p (df->exit_block_uses, ui)
 	      || refers_to_regno_p (ui, ui+1,
 				    crtl->return_rtx, NULL)))
-        df_ref_record (DF_REF_BASE, collection_rec, regno_reg_rtx[ui],
-		       NULL, bb, insn_info, DF_REF_REG_DEF,
-		       DF_REF_MAY_CLOBBER | flags);
+	df_ref_record (DF_REF_BASE, collection_rec,
+		       crtl->emit.regno_reg_rtx[ui], NULL, bb, insn_info,
+		       DF_REF_REG_DEF, DF_REF_MAY_CLOBBER | flags);
     }
 
   bitmap_clear (&defs_generated);
@@ -3425,12 +3429,12 @@ df_insn_refs_collect (struct df_collection_rec* collection_rec,
         case REG_NON_LOCAL_GOTO:
           /* The frame ptr is used by a non-local goto.  */
           df_ref_record (DF_REF_BASE, collection_rec,
-                         regno_reg_rtx[FRAME_POINTER_REGNUM],
+                         crtl->emit.regno_reg_rtx[FRAME_POINTER_REGNUM],
                          NULL, bb, insn_info,
                          DF_REF_REG_USE, 0);
 #if !HARD_FRAME_POINTER_IS_FRAME_POINTER
           df_ref_record (DF_REF_BASE, collection_rec,
-                         regno_reg_rtx[HARD_FRAME_POINTER_REGNUM],
+                         crtl->emit.regno_reg_rtx[HARD_FRAME_POINTER_REGNUM],
                          NULL, bb, insn_info,
                          DF_REF_REG_USE, 0);
 #endif
@@ -3516,8 +3520,9 @@ df_bb_refs_collect (struct df_collection_rec *collection_rec, basic_block bb)
 	  unsigned regno = EH_RETURN_DATA_REGNO (i);
 	  if (regno == INVALID_REGNUM)
 	    break;
-	  df_ref_record (DF_REF_ARTIFICIAL, collection_rec, regno_reg_rtx[regno], NULL,
-			 bb, NULL, DF_REF_REG_DEF, DF_REF_AT_TOP);
+	  df_ref_record (DF_REF_ARTIFICIAL, collection_rec,
+			 crtl->emit.regno_reg_rtx[regno], NULL, bb, NULL,
+			 DF_REF_REG_DEF, DF_REF_AT_TOP);
 	}
     }
 #endif
@@ -3539,8 +3544,9 @@ df_bb_refs_collect (struct df_collection_rec *collection_rec, basic_block bb)
 
       EXECUTE_IF_SET_IN_BITMAP (au, 0, regno, bi)
 	{
-	  df_ref_record (DF_REF_ARTIFICIAL, collection_rec, regno_reg_rtx[regno], NULL,
-			 bb, NULL, DF_REF_REG_USE, 0);
+	  df_ref_record (DF_REF_ARTIFICIAL, collection_rec,
+			 crtl->emit.regno_reg_rtx[regno], NULL, bb, NULL,
+			 DF_REF_REG_USE, 0);
 	}
     }
 
@@ -3815,8 +3821,9 @@ df_entry_block_defs_collect (struct df_collection_rec *collection_rec,
 
   EXECUTE_IF_SET_IN_BITMAP (entry_block_defs, 0, i, bi)
     {
-      df_ref_record (DF_REF_ARTIFICIAL, collection_rec, regno_reg_rtx[i], NULL,
-		     ENTRY_BLOCK_PTR, NULL, DF_REF_REG_DEF, 0);
+      df_ref_record (DF_REF_ARTIFICIAL, collection_rec,
+		     crtl->emit.regno_reg_rtx[i], NULL, ENTRY_BLOCK_PTR, NULL,
+		     DF_REF_REG_DEF, 0);
     }
 
   df_canonize_collection_rec (collection_rec);
@@ -3977,8 +3984,9 @@ df_exit_block_uses_collect (struct df_collection_rec *collection_rec, bitmap exi
   bitmap_iterator bi;
 
   EXECUTE_IF_SET_IN_BITMAP (exit_block_uses, 0, i, bi)
-    df_ref_record (DF_REF_ARTIFICIAL, collection_rec, regno_reg_rtx[i], NULL,
-		   EXIT_BLOCK_PTR, NULL, DF_REF_REG_USE, 0);
+    df_ref_record (DF_REF_ARTIFICIAL, collection_rec,
+		   crtl->emit.regno_reg_rtx[i], NULL, EXIT_BLOCK_PTR, NULL,
+		   DF_REF_REG_USE, 0);
 
 #if FRAME_POINTER_REGNUM != ARG_POINTER_REGNUM
   /* It is deliberate that this is not put in the exit block uses but
@@ -3987,7 +3995,8 @@ df_exit_block_uses_collect (struct df_collection_rec *collection_rec, bitmap exi
       && !bitmap_bit_p (exit_block_uses, ARG_POINTER_REGNUM)
       && bb_has_eh_pred (EXIT_BLOCK_PTR)
       && fixed_regs[ARG_POINTER_REGNUM])
-    df_ref_record (DF_REF_ARTIFICIAL, collection_rec, regno_reg_rtx[ARG_POINTER_REGNUM], NULL,
+    df_ref_record (DF_REF_ARTIFICIAL, collection_rec,
+		   crtl->emit.regno_reg_rtx[ARG_POINTER_REGNUM], NULL,
 		   EXIT_BLOCK_PTR, NULL, DF_REF_REG_USE, 0);
 #endif
 

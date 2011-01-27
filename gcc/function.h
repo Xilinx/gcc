@@ -33,14 +33,14 @@ along with GCC; see the file COPYING3.  If not see
    The main insn-chain is saved in the last element of the chain,
    unless the chain is empty.  */
 
-struct GTY(()) sequence_stack {
+struct sequence_stack {
   /* First and last insns in the chain of the saved sequence.  */
   rtx first;
   rtx last;
   struct sequence_stack *next;
 };
 
-struct GTY(()) emit_status {
+struct emit_status {
   /* This is reset to LAST_VIRTUAL_REGISTER + 1 at the start of each function.
      After rtl generation, it is 1 plus the largest register number used.  */
   int x_reg_rtx_no;
@@ -61,6 +61,9 @@ struct GTY(()) emit_status {
      The main insn-chain is saved in the last element of the chain,
      unless the chain is empty.  */
   struct sequence_stack *sequence_stack;
+
+  /* Space for free sequence stack entries.  */
+  struct sequence_stack *free_sequence_stack;
 
   /* INSN_UID for next insn emitted.
      Reset to 1 for each function compiled.  */
@@ -83,16 +86,12 @@ struct GTY(()) emit_status {
   /* Indexed by pseudo register number, if nonzero gives the known alignment
      for that pseudo (if REG_POINTER is set in x_regno_reg_rtx).
      Allocated in parallel with x_regno_reg_rtx.  */
-  unsigned char * GTY((skip)) regno_pointer_align;
+  unsigned char *regno_pointer_align;
+
+  /* Indexed by pseudo register number, gives the rtx for that pseudo.
+     Allocated in parallel with regno_pointer_align.  */
+  rtx *regno_reg_rtx;
 };
-
-
-/* Indexed by pseudo register number, gives the rtx for that pseudo.
-   Allocated in parallel with regno_pointer_align.
-   FIXME: We could put it into emit_status struct, but gengtype is not able to deal
-   with length attribute nested in top level structures.  */
-
-extern GTY ((length ("crtl->emit.x_reg_rtx_no"))) rtx * regno_reg_rtx;
 
 /* For backward compatibility... eventually these should all go away.  */
 #define reg_rtx_no (crtl->emit.x_reg_rtx_no)
@@ -100,7 +99,7 @@ extern GTY ((length ("crtl->emit.x_reg_rtx_no"))) rtx * regno_reg_rtx;
 
 #define REGNO_POINTER_ALIGN(REGNO) (crtl->emit.regno_pointer_align[REGNO])
 
-struct GTY(()) expr_status {
+struct expr_status {
   /* Number of units that we should eventually pop off the stack.
      These are the arguments to function calls that have already returned.  */
   int x_pending_stack_adjust;
@@ -142,10 +141,10 @@ struct GTY(()) expr_status {
 
 typedef struct call_site_record_d *call_site_record;
 DEF_VEC_P(call_site_record);
-DEF_VEC_ALLOC_P(call_site_record, gc);
+DEF_VEC_ALLOC_P(call_site_record, heap);
 
 /* RTL representation of exception handling.  */
-struct GTY(()) rtl_eh {
+struct rtl_eh {
   rtx ehr_stackadj;
   rtx ehr_handler;
   rtx ehr_label;
@@ -153,9 +152,9 @@ struct GTY(()) rtl_eh {
   rtx sjlj_fc;
   rtx sjlj_exit_after;
 
-  VEC(uchar,gc) *action_record_data;
+  VEC(uchar,heap) *action_record_data;
 
-  VEC(call_site_record,gc) *call_site_record[2];
+  VEC(call_site_record,heap) *call_site_record[2];
 };
 
 #define pending_stack_adjust (crtl->expr.x_pending_stack_adjust)
@@ -171,14 +170,14 @@ typedef struct temp_slot *temp_slot_p;
 struct call_site_record_d;
 
 DEF_VEC_P(temp_slot_p);
-DEF_VEC_ALLOC_P(temp_slot_p,gc);
+DEF_VEC_ALLOC_P(temp_slot_p,heap);
 struct ipa_opt_pass_d;
 typedef struct ipa_opt_pass_d *ipa_opt_pass;
 
 DEF_VEC_P(ipa_opt_pass);
 DEF_VEC_ALLOC_P(ipa_opt_pass,heap);
 
-struct GTY(()) varasm_status {
+struct varasm_status {
   /* If we're using a per-function constant pool, this is it.  */
   struct rtx_constant_pool *pool;
 
@@ -188,7 +187,7 @@ struct GTY(()) varasm_status {
 };
 
 /* Information mainlined about RTL representation of incoming arguments.  */
-struct GTY(()) incoming_args {
+struct incoming_args {
   /* Number of bytes of args popped by function being compiled on its return.
      Zero if no bytes are to be popped.
      May affect compilation of return insn or of function epilogue.  */
@@ -231,7 +230,7 @@ struct GTY(()) function_subsections {
 /* Describe an empty area of space in the stack frame.  These can be chained
    into a list; this is used to keep track of space wasted for alignment
    reasons.  */
-struct GTY(()) frame_space
+struct frame_space
 {
   struct frame_space *next;
 
@@ -240,7 +239,7 @@ struct GTY(()) frame_space
 };
 
 /* Datastructures maintained for currently processed function in RTL form.  */
-struct GTY(()) rtl_data {
+struct rtl_data {
   struct expr_status expr;
   struct emit_status emit;
   struct varasm_status varasm;
@@ -310,7 +309,7 @@ struct GTY(()) rtl_data {
   rtx x_parm_birth_insn;
 
   /* List of all used temporaries allocated, by level.  */
-  VEC(temp_slot_p,gc) *x_used_temp_slots;
+  VEC(temp_slot_p,heap) *x_used_temp_slots;
 
   /* List of available temp slots.  */
   struct temp_slot *x_avail_temp_slots;
@@ -456,7 +455,7 @@ struct GTY(()) rtl_data {
 #define stack_realign_fp (crtl->stack_realign_needed && !crtl->need_drap)
 #define stack_realign_drap (crtl->stack_realign_needed && crtl->need_drap)
 
-extern GTY(()) struct rtl_data x_rtl;
+extern struct rtl_data x_rtl;
 
 /* Accessor to RTL datastructures.  We keep them statically allocated now since
    we never keep multiple functions.  For threaded compiler we might however
@@ -535,10 +534,13 @@ struct GTY(()) function {
   /* Vector of function local variables, functions, types and constants.  */
   VEC(tree,gc) *local_decls;
 
+  /* Vector of various tree declarations.  */
+  VEC(tree,gc) *debug_decls;
+
   /* For md files.  */
 
   /* tm.h can use this to store whatever it likes.  */
-  struct machine_function * GTY ((maybe_undef)) machine;
+  struct machine_function * GTY ((skip)) machine;
 
   /* Language-specific code can use this to store whatever it likes.  */
   struct language_function * language;

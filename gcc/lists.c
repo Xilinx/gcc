@@ -25,17 +25,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "diagnostic-core.h"
 #include "rtl.h"
-#include "ggc.h"
 
 static void free_list (rtx *, rtx *);
 
 /* Functions for maintaining cache-able lists of EXPR_LIST and INSN_LISTs.  */
 
 /* An INSN_LIST containing all INSN_LISTs allocated but currently unused.  */
-static GTY ((deletable)) rtx unused_insn_list;
+static rtx unused_insn_list;
 
 /* An EXPR_LIST containing all EXPR_LISTs allocated but currently unused.  */
-static GTY ((deletable)) rtx unused_expr_list;
+static rtx unused_expr_list;
 
 /* This function will free an entire list of either EXPR_LIST, INSN_LIST
    or DEPS_LIST nodes.  This is to be used only on lists that consist
@@ -214,5 +213,3 @@ remove_free_EXPR_LIST_node (rtx *listp)
 
   return elem;
 }
-
-#include "gt-lists.h"

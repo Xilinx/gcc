@@ -366,9 +366,9 @@ decompose_register (unsigned int regno)
   unsigned int words, i;
   rtvec v;
 
-  reg = regno_reg_rtx[regno];
+  reg = crtl->emit.regno_reg_rtx[regno];
 
-  regno_reg_rtx[regno] = NULL_RTX;
+  crtl->emit.regno_reg_rtx[regno] = NULL_RTX;
 
   words = GET_MODE_SIZE (GET_MODE (reg));
   words = (words + UNITS_PER_WORD - 1) / UNITS_PER_WORD;
@@ -1090,8 +1090,8 @@ decompose_multiword_subregs (void)
 
     for (i = FIRST_PSEUDO_REGISTER; i < max; ++i)
       {
-	if (regno_reg_rtx[i] != NULL
-	    && GET_MODE_SIZE (GET_MODE (regno_reg_rtx[i])) > UNITS_PER_WORD)
+	if (crtl->emit.regno_reg_rtx[i] != NULL
+	    && GET_MODE_SIZE (GET_MODE (crtl->emit.regno_reg_rtx[i])) > UNITS_PER_WORD)
 	  break;
       }
     if (i == max)

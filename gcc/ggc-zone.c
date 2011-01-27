@@ -428,7 +428,6 @@ struct alloc_zone
 } main_zone;
 
 /* Some default zones.  */
-struct alloc_zone rtl_zone;
 struct alloc_zone tree_zone;
 struct alloc_zone tree_id_zone;
 
@@ -1364,12 +1363,6 @@ ggc_alloc_typed_stat (enum gt_types_enum gte, size_t size
     case gt_ggc_e_14lang_tree_node:
       return ggc_internal_alloc_zone_pass_stat (size, &tree_zone);
 
-    case gt_ggc_e_7rtx_def:
-      return ggc_internal_alloc_zone_pass_stat (size, &rtl_zone);
-
-    case gt_ggc_e_9rtvec_def:
-      return ggc_internal_alloc_zone_pass_stat (size, &rtl_zone);
-
     default:
       return ggc_internal_alloc_zone_pass_stat (size, &main_zone);
     }
@@ -1637,7 +1630,6 @@ init_ggc (void)
   G.zones = &main_zone;
 
   /* Allocate the default zones.  */
-  new_ggc_zone_1 (&rtl_zone, "RTL zone");
   new_ggc_zone_1 (&tree_zone, "Tree zone");
   new_ggc_zone_1 (&tree_id_zone, "Tree identifier zone");
 

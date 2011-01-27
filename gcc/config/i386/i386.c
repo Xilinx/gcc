@@ -2161,7 +2161,7 @@ static int const x86_64_int_return_registers[4] =
 
 /* Define the structure for the machine field in struct function.  */
 
-struct GTY(()) stack_local_entry {
+struct stack_local_entry {
   unsigned short mode;
   unsigned short n;
   rtx rtl;
@@ -9486,7 +9486,7 @@ ix86_emit_save_sse_regs_using_mov (HOST_WIDE_INT cfa_offset)
       }
 }
 
-static GTY(()) rtx queued_cfa_restores;
+static rtx queued_cfa_restores;
 
 /* Add a REG_CFA_RESTORE REG note to INSN or queue them until next stack
    manipulation insn.  The value is on the stack at CFA - CFA_OFFSET.
@@ -11218,12 +11218,12 @@ split_stack_prologue_scratch_regno (void)
 /* A SYMBOL_REF for the function which allocates new stackspace for
    -fsplit-stack.  */
 
-static GTY(()) rtx split_stack_fn;
+static rtx split_stack_fn;
 
 /* A SYMBOL_REF for the more stack function when using the large
    model.  */
 
-static GTY(()) rtx split_stack_fn_large;
+static rtx split_stack_fn_large;
 
 /* Handle -fsplit-stack.  These are the first instructions in the
    function, even before the regular prologue.  */
@@ -21905,9 +21905,10 @@ ix86_output_call_insn (rtx insn, rtx call_op, int addr_op)
 static struct machine_function *
 ix86_init_machine_status (void)
 {
-  struct machine_function *f;
+  struct machine_function *f = (struct machine_function *)
+    allocate_in_rtl_function_mem (sizeof (struct machine_function));;
+  memset (f, 0, sizeof (*f));
 
-  f = ggc_alloc_cleared_machine_function ();
   f->use_fast_prologue_epilogue_nregs = -1;
   f->tls_descriptor_call_expanded_p = 0;
   f->call_abi = ix86_abi;
@@ -21935,7 +21936,8 @@ assign_386_stack_local (enum machine_mode mode, enum ix86_stack_slot n)
     if (s->mode == mode && s->n == n)
       return copy_rtx (s->rtl);
 
-  s = ggc_alloc_stack_local_entry ();
+  s = (struct stack_local_entry *)
+    allocate_in_rtl_mem (sizeof (struct stack_local_entry));
   s->n = n;
   s->mode = mode;
   s->rtl = assign_stack_local (mode, GET_MODE_SIZE (mode), 0);
@@ -21947,7 +21949,7 @@ assign_386_stack_local (enum machine_mode mode, enum ix86_stack_slot n)
 
 /* Construct the SYMBOL_REF for the tls_get_addr function.  */
 
-static GTY(()) rtx ix86_tls_symbol;
+static rtx ix86_tls_symbol;
 rtx
 ix86_tls_get_addr (void)
 {
@@ -21966,7 +21968,7 @@ ix86_tls_get_addr (void)
 
 /* Construct the SYMBOL_REF for the _TLS_MODULE_BASE_ symbol.  */
 
-static GTY(()) rtx ix86_tls_module_base_symbol;
+static rtx ix86_tls_module_base_symbol;
 rtx
 ix86_tls_module_base (void)
 {

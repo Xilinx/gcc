@@ -1648,6 +1648,7 @@ backend_init_target (void)
 static void
 backend_init (void)
 {
+  init_rtl ();
   init_emit_once ();
 
   init_rtlanal ();

@@ -124,10 +124,8 @@ struct machine_function * (*init_machine_status) (void);
 struct function *cfun = 0;
 
 /* These hashes record the prologue and epilogue insns.  */
-static GTY((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
-  htab_t prologue_insn_hash;
-static GTY((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
-  htab_t epilogue_insn_hash;
+static htab_t prologue_insn_hash;
+static htab_t epilogue_insn_hash;
 
 
 htab_t types_used_by_vars_hash = NULL;
@@ -208,18 +206,25 @@ free_after_parsing (struct function *f)
 void
 free_after_compilation (struct function *f)
 {
+  if (prologue_insn_hash)
+    htab_delete (prologue_insn_hash);
   prologue_insn_hash = NULL;
+  if (epilogue_insn_hash)
+    htab_delete (epilogue_insn_hash);
   epilogue_insn_hash = NULL;
 
   if (crtl->emit.regno_pointer_align)
     free (crtl->emit.regno_pointer_align);
+
+  if (crtl->emit.regno_reg_rtx)
+    free (crtl->emit.regno_reg_rtx);
+  crtl->emit.regno_reg_rtx = NULL;
 
   memset (crtl, 0, sizeof (struct rtl_data));
   f->eh = NULL;
   f->machine = NULL;
   f->cfg = NULL;
 
-  regno_reg_rtx = NULL;
   insn_locators_free ();
 }
 
@@ -339,7 +344,8 @@ try_fit_stack_local (HOST_WIDE_INT start, HOST_WIDE_INT length,
 static void
 add_frame_space (HOST_WIDE_INT start, HOST_WIDE_INT end)
 {
-  struct frame_space *space = ggc_alloc_frame_space ();
+  struct frame_space *space
+    = (struct frame_space *) allocate_in_rtl_mem (sizeof (struct frame_space));
   space->next = crtl->frame_space_list;
   crtl->frame_space_list = space;
   space->start = start;
@@ -535,7 +541,7 @@ assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
    level where they are defined.  They are marked a "kept" so that
    free_temp_slots will not free them.  */
 
-struct GTY(()) temp_slot {
+struct temp_slot {
   /* Points to next temporary slot.  */
   struct temp_slot *next;
   /* Points to previous temporary slot.  */
@@ -569,10 +575,10 @@ struct GTY(()) temp_slot {
 
 /* A table of addresses that represent a stack slot.  The table is a mapping
    from address RTXen to a temp slot.  */
-static GTY((param_is(struct temp_slot_address_entry))) htab_t temp_slot_address_table;
+static htab_t temp_slot_address_table;
 
 /* Entry for the above hash table.  */
-struct GTY(()) temp_slot_address_entry {
+struct temp_slot_address_entry {
   hashval_t hash;
   rtx address;
   struct temp_slot *temp_slot;
@@ -611,7 +617,7 @@ static struct temp_slot **
 temp_slots_at_level (int level)
 {
   if (level >= (int) VEC_length (temp_slot_p, used_temp_slots))
-    VEC_safe_grow_cleared (temp_slot_p, gc, used_temp_slots, level + 1);
+    VEC_safe_grow_cleared (temp_slot_p, heap, used_temp_slots, level + 1);
 
   return &(VEC_address (temp_slot_p, used_temp_slots)[level]);
 }
@@ -682,7 +688,9 @@ static void
 insert_temp_slot_address (rtx address, struct temp_slot *temp_slot)
 {
   void **slot;
-  struct temp_slot_address_entry *t = ggc_alloc_temp_slot_address_entry ();
+  struct temp_slot_address_entry *t
+      = (struct temp_slot_address_entry *)
+      allocate_in_rtl_mem (sizeof (struct temp_slot_address_entry));
   t->address = address;
   t->temp_slot = temp_slot;
   t->hash = temp_slot_address_compute_hash (t);
@@ -834,7 +842,8 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
 
 	  if (best_p->size - rounded_size >= alignment)
 	    {
-	      p = ggc_alloc_temp_slot ();
+              p = (struct temp_slot *)
+                  allocate_in_rtl_mem (sizeof (struct temp_slot));
 	      p->in_use = p->addr_taken = 0;
 	      p->size = best_p->size - rounded_size;
 	      p->base_offset = best_p->base_offset + rounded_size;
@@ -858,7 +867,7 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
     {
       HOST_WIDE_INT frame_offset_old = frame_offset;
 
-      p = ggc_alloc_temp_slot ();
+      p = (struct temp_slot *) allocate_in_rtl_mem (sizeof (struct temp_slot));
 
       /* We are passing an explicit alignment request to assign_stack_local.
 	 One side effect of that is assign_stack_local will not round SIZE
@@ -1311,10 +1320,8 @@ init_temp_slots (void)
 
   /* Set up the table to map addresses to temp slots.  */
   if (! temp_slot_address_table)
-    temp_slot_address_table = htab_create_ggc (32,
-					       temp_slot_address_hash,
-					       temp_slot_address_eq,
-					       NULL);
+    temp_slot_address_table = htab_create (32, temp_slot_address_hash,
+                                           temp_slot_address_eq, NULL);
   else
     htab_empty (temp_slot_address_table);
 }
@@ -3152,9 +3159,9 @@ assign_parm_setup_reg (struct assign_parm_data_all *all, tree parm,
 	      if (set == 0)
 		continue;
 
-	      if (SET_DEST (set) == regno_reg_rtx [regnoi])
+	      if (SET_DEST (set) == crtl->emit.regno_reg_rtx [regnoi])
 		set_unique_reg_note (sinsn, REG_EQUIV, stacki);
-	      else if (SET_DEST (set) == regno_reg_rtx [regnor])
+	      else if (SET_DEST (set) == crtl->emit.regno_reg_rtx [regnor])
 		set_unique_reg_note (sinsn, REG_EQUIV, stackr);
 	    }
 	}
@@ -4872,8 +4879,6 @@ do_warn_unused_parameter (tree fn)
       warning (OPT_Wunused_parameter, "unused parameter %q+D", decl);
 }
 
-static GTY(()) rtx initial_trampoline;
-
 /* Generate RTL for the end of the current function.  */
 
 void
@@ -5165,7 +5170,7 @@ record_insns (rtx insns, rtx end, htab_t *hashp)
 
   if (hash == NULL)
     *hashp = hash
-      = htab_create_ggc (17, htab_hash_pointer, htab_eq_pointer, NULL);
+      = htab_create (17, htab_hash_pointer, htab_eq_pointer, NULL);
 
   for (tmp = insns; tmp != end; tmp = NEXT_INSN (tmp))
     {

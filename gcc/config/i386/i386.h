@@ -2218,7 +2218,7 @@ struct GTY(()) machine_frame_state
   /* This pair tracks the currently active CFA as reg+offset.  When reg
      is drap_reg, we don't bother trying to record here the real CFA when
      it might really be a DW_CFA_def_cfa_expression.  */
-  rtx cfa_reg;
+  rtx GTY((skip)) cfa_reg;
   HOST_WIDE_INT cfa_offset;
 
   /* The current offset (canonically from the CFA) of ESP and EBP.
@@ -2251,7 +2251,7 @@ struct GTY(()) machine_frame_state
 /* Private to winnt.c.  */
 struct seh_frame_state;
 
-struct GTY(()) machine_function {
+struct machine_function {
   struct stack_local_entry *stack_locals;
   const char *some_ld_name;
   int varargs_gpr_size;
@@ -2318,7 +2318,7 @@ struct GTY(()) machine_function {
   struct machine_frame_state fs;
 
   /* During SEH output, this is non-null.  */
-  struct seh_frame_state * GTY((skip(""))) seh;
+  struct seh_frame_state * seh;
 };
 #endif
 

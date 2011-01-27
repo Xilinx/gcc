@@ -879,7 +879,8 @@ ira_build_conflicts (void)
       for (i = 0; i < n; i++)
 	{
 	  ira_object_t obj = ALLOCNO_OBJECT (a, i);
-	  reg_attrs *attrs = REG_ATTRS (regno_reg_rtx [ALLOCNO_REGNO (a)]);
+	  reg_attrs *attrs
+	    = REG_ATTRS (crtl->emit.regno_reg_rtx [ALLOCNO_REGNO (a)]);
 	  tree decl;
 
 	  if ((! flag_caller_saves && ALLOCNO_CALLS_CROSSED_NUM (a) != 0)

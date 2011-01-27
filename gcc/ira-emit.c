@@ -1097,7 +1097,7 @@ ira_emit (bool loops_p)
   ira_allocno_iterator ai;
 
   FOR_EACH_ALLOCNO (a, ai)
-    ALLOCNO_REG (a) = regno_reg_rtx[ALLOCNO_REGNO (a)];
+    ALLOCNO_REG (a) = crtl->emit.regno_reg_rtx[ALLOCNO_REGNO (a)];
   if (! loops_p)
     return;
   at_bb_start = (move_t *) ira_allocate (sizeof (move_t) * last_basic_block);

@@ -79,13 +79,6 @@ enum machine_mode ptr_mode;	/* Mode whose width is POINTER_SIZE.  */
 
 struct rtl_data x_rtl;
 
-/* Indexed by pseudo register number, gives the rtx for that pseudo.
-   Allocated in parallel with regno_pointer_align.
-   FIXME: We could put it into emit_status struct, but gengtype is not able to deal
-   with length attribute nested in top level structures.  */
-
-rtx * regno_reg_rtx;
-
 /* This is *not* reset after each function.  It gives each CODE_LABEL
    in the entire compilation a unique label number.  */
 
@@ -118,25 +111,19 @@ rtx const_int_rtx[MAX_SAVED_CONST_INT * 2 + 1];
 
 /* A hash table storing CONST_INTs whose absolute value is greater
    than MAX_SAVED_CONST_INT.  */
-
-static GTY ((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
-     htab_t const_int_htab;
+static htab_t const_int_htab;
 
 /* A hash table storing memory attribute structures.  */
-static GTY ((if_marked ("ggc_marked_p"), param_is (struct mem_attrs)))
-     htab_t mem_attrs_htab;
+static htab_t mem_attrs_htab;
 
 /* A hash table storing register attribute structures.  */
-static GTY ((if_marked ("ggc_marked_p"), param_is (struct reg_attrs)))
-     htab_t reg_attrs_htab;
+static htab_t reg_attrs_htab;
 
 /* A hash table storing all CONST_DOUBLEs.  */
-static GTY ((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
-     htab_t const_double_htab;
+static htab_t const_double_htab;
 
 /* A hash table storing all CONST_FIXEDs.  */
-static GTY ((if_marked ("ggc_marked_p"), param_is (struct rtx_def)))
-     htab_t const_fixed_htab;
+static htab_t const_fixed_htab;
 
 #define cur_insn_uid (crtl->emit.x_cur_insn_uid)
 #define cur_debug_insn_uid (crtl->emit.x_cur_debug_insn_uid)
@@ -281,6 +268,9 @@ mem_attrs_htab_eq (const void *x, const void *y)
 		  && operand_equal_p (p->expr, q->expr, 0))));
 }
 
+/* TODO: maybe merge with function->debug_decls? */
+static GTY(()) VEC(tree, gc) *mem_attr_exprs;
+
 /* Allocate a new mem_attrs structure and insert it into the hash table if
    one identical to it is not already in the table.  We are doing this for
    MEM of mode MODE.  */
@@ -302,6 +292,7 @@ get_mem_attrs (alias_set_type alias, tree expr, rtx offset, rtx size,
 	  ? align == GET_MODE_ALIGNMENT (mode) : align == BITS_PER_UNIT))
     return 0;
 
+  VEC_safe_push (tree, gc, mem_attr_exprs, expr);
   attrs.alias = alias;
   attrs.expr = expr;
   attrs.offset = offset;
@@ -312,7 +303,7 @@ get_mem_attrs (alias_set_type alias, tree expr, rtx offset, rtx size,
   slot = htab_find_slot (mem_attrs_htab, &attrs, INSERT);
   if (*slot == 0)
     {
-      *slot = ggc_alloc_mem_attrs ();
+      *slot = XNEW (mem_attrs);
       memcpy (*slot, &attrs, sizeof (mem_attrs));
     }
 
@@ -361,7 +352,7 @@ get_reg_attrs (tree decl, int offset)
   slot = htab_find_slot (reg_attrs_htab, &attrs, INSERT);
   if (*slot == 0)
     {
-      *slot = ggc_alloc_reg_attrs ();
+      *slot = XNEW (reg_attrs);
       memcpy (*slot, &attrs, sizeof (reg_attrs));
     }
 
@@ -624,7 +615,7 @@ gen_rtx_REG (enum machine_mode mode, unsigned int regno)
 
   if (cfun
       && cfun->emit
-      && regno_reg_rtx
+      && crtl->emit.regno_reg_rtx
       && regno < FIRST_PSEUDO_REGISTER
       && reg_raw_mode[regno] == mode)
     return regno_reg_rtx[regno];
@@ -903,15 +894,15 @@ gen_reg_rtx (enum machine_mode mode)
       memset (tmp + old_size, 0, old_size);
       crtl->emit.regno_pointer_align = (unsigned char *) tmp;
 
-      new1 = GGC_RESIZEVEC (rtx, regno_reg_rtx, old_size * 2);
+      new1 = XRESIZEVEC (rtx, crtl->emit.regno_reg_rtx, old_size * 2);
       memset (new1 + old_size, 0, old_size * sizeof (rtx));
-      regno_reg_rtx = new1;
+      crtl->emit.regno_reg_rtx = new1;
 
       crtl->emit.regno_pointer_align_length = old_size * 2;
     }
 
   val = gen_raw_REG (mode, reg_rtx_no);
-  regno_reg_rtx[reg_rtx_no++] = val;
+  crtl->emit.regno_reg_rtx[reg_rtx_no++] = val;
   return val;
 }
 
@@ -5205,9 +5196,6 @@ emit (rtx x)
     }
 }
 
-/* Space for free sequence stack entries.  */
-static GTY ((deletable)) struct sequence_stack *free_sequence_stack;
-
 /* Begin emitting insns to a sequence.  If this sequence will contain
    something that might cause the compiler to pop arguments to function
    calls (because those pops have previously been deferred; see
@@ -5220,13 +5208,13 @@ start_sequence (void)
 {
   struct sequence_stack *tem;
 
-  if (free_sequence_stack != NULL)
+  if (crtl->emit.free_sequence_stack != NULL)
     {
-      tem = free_sequence_stack;
-      free_sequence_stack = tem->next;
+      tem = crtl->emit.free_sequence_stack;
+      crtl->emit.free_sequence_stack = tem->next;
     }
   else
-    tem = ggc_alloc_sequence_stack ();
+    tem = (struct sequence_stack *) allocate_in_rtl_mem (sizeof (*tem));
 
   tem->next = seq_stack;
   tem->first = get_insns ();
@@ -5324,8 +5312,8 @@ end_sequence (void)
   seq_stack = tem->next;
 
   memset (tem, 0, sizeof (*tem));
-  tem->next = free_sequence_stack;
-  free_sequence_stack = tem;
+  tem->next = crtl->emit.free_sequence_stack;
+  crtl->emit.free_sequence_stack = tem;
 }
 
 /* Return 1 if currently emitting into a sequence.  */
@@ -5341,12 +5329,15 @@ in_sequence_p (void)
 static void
 init_virtual_regs (void)
 {
-  regno_reg_rtx[VIRTUAL_INCOMING_ARGS_REGNUM] = virtual_incoming_args_rtx;
-  regno_reg_rtx[VIRTUAL_STACK_VARS_REGNUM] = virtual_stack_vars_rtx;
-  regno_reg_rtx[VIRTUAL_STACK_DYNAMIC_REGNUM] = virtual_stack_dynamic_rtx;
-  regno_reg_rtx[VIRTUAL_OUTGOING_ARGS_REGNUM] = virtual_outgoing_args_rtx;
-  regno_reg_rtx[VIRTUAL_CFA_REGNUM] = virtual_cfa_rtx;
-  regno_reg_rtx[VIRTUAL_PREFERRED_STACK_BOUNDARY_REGNUM]
+  crtl->emit.regno_reg_rtx[VIRTUAL_INCOMING_ARGS_REGNUM]
+    = virtual_incoming_args_rtx;
+  crtl->emit.regno_reg_rtx[VIRTUAL_STACK_VARS_REGNUM] = virtual_stack_vars_rtx;
+  crtl->emit.regno_reg_rtx[VIRTUAL_STACK_DYNAMIC_REGNUM]
+    = virtual_stack_dynamic_rtx;
+  crtl->emit.regno_reg_rtx[VIRTUAL_OUTGOING_ARGS_REGNUM]
+    = virtual_outgoing_args_rtx;
+  crtl->emit.regno_reg_rtx[VIRTUAL_CFA_REGNUM] = virtual_cfa_rtx;
+  crtl->emit.regno_reg_rtx[VIRTUAL_PREFERRED_STACK_BOUNDARY_REGNUM]
     = virtual_preferred_stack_boundary_rtx;
 }
 
@@ -5535,6 +5526,7 @@ init_emit (void)
   last_location = UNKNOWN_LOCATION;
   first_label_num = label_num;
   seq_stack = NULL;
+  crtl->emit.free_sequence_stack = NULL;
 
   /* Init the tables that describe all the pseudo regs.  */
 
@@ -5543,10 +5535,11 @@ init_emit (void)
   crtl->emit.regno_pointer_align
     = XCNEWVEC (unsigned char, crtl->emit.regno_pointer_align_length);
 
-  regno_reg_rtx = ggc_alloc_vec_rtx (crtl->emit.regno_pointer_align_length);
+  crtl->emit.regno_reg_rtx
+      = XNEWVEC (rtx, crtl->emit.regno_pointer_align_length);
 
   /* Put copies of all the hard registers into regno_reg_rtx.  */
-  memcpy (regno_reg_rtx,
+  memcpy (crtl->emit.regno_reg_rtx,
 	  initial_regno_reg_rtx,
 	  FIRST_PSEUDO_REGISTER * sizeof (rtx));
 
@@ -5700,19 +5693,19 @@ init_emit_once (void)
 
   /* Initialize the CONST_INT, CONST_DOUBLE, CONST_FIXED, and memory attribute
      hash tables.  */
-  const_int_htab = htab_create_ggc (37, const_int_htab_hash,
-				    const_int_htab_eq, NULL);
+  const_int_htab = htab_create (37, const_int_htab_hash, const_int_htab_eq,
+                                NULL);
 
-  const_double_htab = htab_create_ggc (37, const_double_htab_hash,
-				       const_double_htab_eq, NULL);
+  const_double_htab = htab_create (37, const_double_htab_hash,
+                                   const_double_htab_eq, NULL);
 
-  const_fixed_htab = htab_create_ggc (37, const_fixed_htab_hash,
-				      const_fixed_htab_eq, NULL);
+  const_fixed_htab = htab_create (37, const_fixed_htab_hash,
+                                  const_fixed_htab_eq, NULL);
 
-  mem_attrs_htab = htab_create_ggc (37, mem_attrs_htab_hash,
-				    mem_attrs_htab_eq, NULL);
-  reg_attrs_htab = htab_create_ggc (37, reg_attrs_htab_hash,
-				    reg_attrs_htab_eq, NULL);
+  mem_attrs_htab = htab_create (37, mem_attrs_htab_hash, mem_attrs_htab_eq,
+                                NULL);
+  reg_attrs_htab = htab_create (37, reg_attrs_htab_hash, reg_attrs_htab_eq,
+                                NULL);
 
   /* Compute the word and byte modes.  */
 
@@ -6010,7 +6003,7 @@ emit_copy_of_insn_after (rtx insn, rtx after)
   return new_rtx;
 }
 
-static GTY((deletable)) rtx hard_reg_clobbers [NUM_MACHINE_MODES][FIRST_PSEUDO_REGISTER];
+static rtx hard_reg_clobbers [NUM_MACHINE_MODES][FIRST_PSEUDO_REGISTER];
 rtx
 gen_hard_reg_clobber (enum machine_mode mode, unsigned int regno)
 {

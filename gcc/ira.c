@@ -1691,7 +1691,7 @@ fix_reg_equiv_init (void)
 
   if (reg_equiv_init_size < max_regno)
     {
-      reg_equiv_init = GGC_RESIZEVEC (rtx, reg_equiv_init, max_regno);
+      reg_equiv_init = XRESIZEVEC (rtx, reg_equiv_init, max_regno);
       while (reg_equiv_init_size < max_regno)
 	reg_equiv_init[reg_equiv_init_size++] = NULL_RTX;
       for (i = FIRST_PSEUDO_REGISTER; i < reg_equiv_init_size; i++)
@@ -1772,7 +1772,7 @@ setup_preferred_alternate_classes_for_new_pseudos (int start)
 
   for (i = start; i < max_regno; i++)
     {
-      old_regno = ORIGINAL_REGNO (regno_reg_rtx[i]);
+      old_regno = ORIGINAL_REGNO (crtl->emit.regno_reg_rtx[i]);
       ira_assert (i != old_regno);
       setup_reg_classes (i, reg_preferred_class (old_regno),
 			 reg_alternate_class (old_regno),
@@ -2274,7 +2274,7 @@ update_equiv_regs (void)
   recorded_label_ref = 0;
 
   reg_equiv = XCNEWVEC (struct equivalence, max_regno);
-  reg_equiv_init = ggc_alloc_cleared_vec_rtx (max_regno);
+  reg_equiv_init = XCNEWVEC (rtx, max_regno);
   reg_equiv_init_size = max_regno;
 
   init_alias_analysis ();
@@ -2610,7 +2610,7 @@ update_equiv_regs (void)
 		    continue;
 
 		  if (asm_noperands (PATTERN (equiv_insn)) < 0
-		      && validate_replace_rtx (regno_reg_rtx[regno],
+		      && validate_replace_rtx (crtl->emit.regno_reg_rtx[regno],
 					       *(reg_equiv[regno].src_p), insn))
 		    {
 		      rtx equiv_link;
@@ -2761,7 +2761,7 @@ init_live_subregs (bool init_value, sbitmap *live_subregs,
 		   int *live_subregs_used, int allocnum, rtx reg)
 {
   unsigned int regno = REGNO (SUBREG_REG (reg));
-  int size = GET_MODE_SIZE (GET_MODE (regno_reg_rtx[regno]));
+  int size = GET_MODE_SIZE (GET_MODE (crtl->emit.regno_reg_rtx[regno]));
 
   gcc_assert (size > 0);
 
@@ -3066,7 +3066,7 @@ init_reg_equiv_memory_loc (void)
   max_regno = max_reg_num ();
 
   /* And the reg_equiv_memory_loc array.  */
-  VEC_safe_grow (rtx, gc, reg_equiv_memory_loc_vec, max_regno);
+  VEC_safe_grow (rtx, heap, reg_equiv_memory_loc_vec, max_regno);
   memset (VEC_address (rtx, reg_equiv_memory_loc_vec), 0,
 	  sizeof (rtx) * max_regno);
   reg_equiv_memory_loc = VEC_address (rtx, reg_equiv_memory_loc_vec);

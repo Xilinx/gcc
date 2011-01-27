@@ -68,7 +68,6 @@ struct alloc_zone
   int dummy;
 };
 
-struct alloc_zone rtl_zone;
 struct alloc_zone tree_zone;
 struct alloc_zone tree_id_zone;
 

@@ -204,7 +204,7 @@ extern struct target_reload *this_target_reload;
 #define caller_save_initialized_p \
   (this_target_reload->x_caller_save_initialized_p)
 
-extern GTY (()) VEC(rtx,gc) *reg_equiv_memory_loc_vec;
+extern VEC(rtx,heap) *reg_equiv_memory_loc_vec;
 extern rtx *reg_equiv_constant;
 extern rtx *reg_equiv_invariant;
 extern rtx *reg_equiv_memory_loc;
@@ -214,10 +214,10 @@ extern rtx *reg_equiv_alt_mem_list;
 
 /* Element N is the list of insns that initialized reg N from its equivalent
    constant or memory slot.  */
-extern GTY((length("reg_equiv_init_size"))) rtx *reg_equiv_init;
+extern rtx *reg_equiv_init;
 
-/* The size of the previous array, for GC purposes.  */
-extern GTY(()) int reg_equiv_init_size;
+/* The size of the previous array.  */
+extern int reg_equiv_init_size;
 
 /* All the "earlyclobber" operands of the current insn
    are recorded here.  */

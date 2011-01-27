@@ -203,13 +203,13 @@ static void memory_modified_1 (rtx, const_rtx, void *);
    current function performs nonlocal memory memory references for the
    purposes of marking the function as a constant function.  */
 
-static GTY(()) VEC(rtx,gc) *reg_base_value;
+static VEC(rtx,heap) *reg_base_value;
 static rtx *new_reg_base_value;
 
 /* We preserve the copy of old array around to avoid amount of garbage
    produced.  About 8% of garbage produced were attributed to this
    array.  */
-static GTY((deletable)) VEC(rtx,gc) *old_reg_base_value;
+static VEC(rtx,heap) *old_reg_base_value;
 
 #define static_reg_base_value \
   (this_target_rtl->x_static_reg_base_value)
@@ -221,10 +221,10 @@ static GTY((deletable)) VEC(rtx,gc) *old_reg_base_value;
 /* Vector indexed by N giving the initial (unchanging) value known for
    pseudo-register N.  This array is initialized in init_alias_analysis,
    and does not change until end_alias_analysis is called.  */
-static GTY((length("reg_known_value_size"))) rtx *reg_known_value;
+static rtx *reg_known_value;
 
 /* Indicates number of valid entries in reg_known_value.  */
-static GTY(()) unsigned int reg_known_value_size;
+static unsigned int reg_known_value_size;
 
 /* Vector recording for each reg_known_value whether it is due to a
    REG_EQUIV note.  Future passes (viz., reload) may replace the
@@ -2742,7 +2742,7 @@ init_alias_analysis (void)
   timevar_push (TV_ALIAS_ANALYSIS);
 
   reg_known_value_size = maxreg - FIRST_PSEUDO_REGISTER;
-  reg_known_value = ggc_alloc_cleared_vec_rtx (reg_known_value_size);
+  reg_known_value = XCNEWVEC (rtx, reg_known_value_size);
   reg_known_equiv_p = XCNEWVEC (bool, reg_known_value_size);
 
   /* If we have memory allocated from the previous run, use it.  */
@@ -2752,7 +2752,7 @@ init_alias_analysis (void)
   if (reg_base_value)
     VEC_truncate (rtx, reg_base_value, 0);
 
-  VEC_safe_grow_cleared (rtx, gc, reg_base_value, maxreg);
+  VEC_safe_grow_cleared (rtx, heap, reg_base_value, maxreg);
 
   new_reg_base_value = XNEWVEC (rtx, maxreg);
   reg_seen = XNEWVEC (char, maxreg);
@@ -2903,7 +2903,7 @@ init_alias_analysis (void)
   /* Fill in the remaining entries.  */
   for (i = 0; i < (int)reg_known_value_size; i++)
     if (reg_known_value[i] == 0)
-      reg_known_value[i] = regno_reg_rtx[i + FIRST_PSEUDO_REGISTER];
+      reg_known_value[i] = crtl->emit.regno_reg_rtx[i + FIRST_PSEUDO_REGISTER];
 
   /* Clean up.  */
   free (new_reg_base_value);
@@ -2926,7 +2926,7 @@ void
 end_alias_analysis (void)
 {
   old_reg_base_value = reg_base_value;
-  ggc_free (reg_known_value);
+  free (reg_known_value);
   reg_known_value = 0;
   reg_known_value_size = 0;
   free (reg_known_equiv_p);

@@ -53,14 +53,14 @@ enum libfunc_index
 struct GTY(()) libfunc_entry {
   size_t optab;
   enum machine_mode mode1, mode2;
-  rtx libfunc;
+  rtx GTY((skip)) libfunc;
 };
 
 /* Target-dependent globals.  */
 struct GTY(()) target_libfuncs {
   /* SYMBOL_REF rtx's for the library functions that are called
      implicitly and not via optabs.  */
-  rtx x_libfunc_table[LTI_MAX];
+  rtx GTY((skip)) x_libfunc_table[LTI_MAX];
 
   /* Hash table used to convert declarations into nodes.  */
   htab_t GTY((param_is (struct libfunc_entry))) x_libfunc_hash;

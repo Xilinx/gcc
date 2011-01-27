@@ -33,7 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "optabs.h"
 #include "langhooks.h"
-#include "ggc.h"
 #include "basic-block.h"
 #include "output.h"
 
@@ -132,9 +131,9 @@ jumpif_1 (enum tree_code code, tree op0, tree op1, rtx label, int prob)
 
 /* Used internally by prefer_and_bit_test.  */
 
-static GTY(()) rtx and_reg;
-static GTY(()) rtx and_test;
-static GTY(()) rtx shift_test;
+static rtx and_reg;
+static rtx and_test;
+static rtx shift_test;
 
 /* Compare the relative costs of "(X & (1 << BITNUM))" and "(X >> BITNUM) & 1",
    where X is an arbitrary register of mode MODE.  Return true if the former
@@ -1185,5 +1184,3 @@ do_compare_and_jump (tree treeop0, tree treeop1, enum rtx_code signed_code,
                             ? expr_size (treeop0) : NULL_RTX),
 			   if_false_label, if_true_label, prob);
 }
-
-#include "gt-dojump.h"

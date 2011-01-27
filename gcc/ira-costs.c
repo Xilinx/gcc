@@ -1119,7 +1119,7 @@ print_pseudo_costs (FILE *f)
   fprintf (f, "\n");
   for (regno = max_reg_num () - 1; regno >= FIRST_PSEUDO_REGISTER; regno--)
     {
-      if (regno_reg_rtx[regno] == NULL_RTX)
+      if (crtl->emit.regno_reg_rtx[regno] == NULL_RTX)
 	continue;
       fprintf (f, "  r%d costs:", regno);
       for (k = 0; k < cost_classes_num; k++)
@@ -1265,7 +1265,7 @@ find_costs_and_classes (FILE *dump_file)
 
 	  if (! allocno_p)
 	    {
-	      if (regno_reg_rtx[i] == NULL_RTX)
+	      if (crtl->emit.regno_reg_rtx[i] == NULL_RTX)
 		continue;
 #ifdef FORBIDDEN_INC_DEC_CLASSES
 	      inc_dec_p = in_inc_dec[i];

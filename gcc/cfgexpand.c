@@ -3257,6 +3257,7 @@ expand_debug_locations (void)
 	  val = NULL_RTX;
 	else
 	  {
+	    VEC_safe_push (tree, gc, cfun->debug_decls, value);
 	    val = expand_debug_expr (value);
 	    gcc_assert (last == get_last_insn ());
 	  }
@@ -3506,6 +3507,7 @@ expand_gimple_basic_block (basic_block bb)
 	      else
 		mode = TYPE_MODE (TREE_TYPE (var));
 
+	      VEC_safe_push (tree, gc, cfun->debug_decls, value);
 	      val = gen_rtx_VAR_LOCATION
 		(mode, var, (rtx)value, VAR_INIT_STATUS_INITIALIZED);
 

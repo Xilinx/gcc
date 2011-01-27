@@ -163,7 +163,7 @@ extern size_t reg_info_p_size;
 
 /* Get the machine mode of pseudo-reg N.  */
 
-#define PSEUDO_REGNO_MODE(N) GET_MODE (regno_reg_rtx[N])
+#define PSEUDO_REGNO_MODE(N) GET_MODE (crtl->emit.regno_reg_rtx[N])
 
 /* Indexed by N, gives number of CALL_INSNS across which (REG n) is live.  */
 

@@ -22,8 +22,8 @@
 
 #include "basic-block.h"
 
-extern GTY(()) rtx cfg_layout_function_footer;
-extern GTY(()) rtx cfg_layout_function_header;
+extern rtx cfg_layout_function_footer;
+extern rtx cfg_layout_function_header;
 
 extern void cfg_layout_initialize (unsigned int);
 extern void cfg_layout_finalize (void);

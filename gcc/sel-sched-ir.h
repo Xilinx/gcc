@@ -284,7 +284,7 @@ struct _fence
   tc_t tc;
 
   /* A vector of insns that are scheduled but not yet completed.  */
-  VEC (rtx,gc) *executing_insns;
+  VEC (rtx,heap) *executing_insns;
 
   /* A vector indexed by UIDs that caches the earliest cycle on which
      an insn can be scheduled on this fence.  */

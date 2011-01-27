@@ -2915,9 +2915,11 @@ canon_reg (rtx x, rtx insn)
 	q = REG_QTY (REGNO (x));
 	ent = &qty_table[q];
 	first = ent->first_reg;
-	return (first >= FIRST_PSEUDO_REGISTER ? regno_reg_rtx[first]
-		: REGNO_REG_CLASS (first) == NO_REGS ? x
-		: gen_rtx_REG (ent->mode, first));
+	return (first >= FIRST_PSEUDO_REGISTER
+		? crtl->emit.regno_reg_rtx[first]
+		: REGNO_REG_CLASS (first) == NO_REGS
+		  ? x
+		  : gen_rtx_REG (ent->mode, first));
       }
 
     default:
@@ -5213,7 +5215,8 @@ cse_insn (rtx insn)
 	      int first = src_ent->first_reg;
 	      rtx new_src
 		= (first >= FIRST_PSEUDO_REGISTER
-		   ? regno_reg_rtx[first] : gen_rtx_REG (GET_MODE (src), first));
+		   ? crtl->emit.regno_reg_rtx[first]
+		   : gen_rtx_REG (GET_MODE (src), first));
 
 	      /* We must use validate-change even for this, because this
 		 might be a special no-op instruction, suitable only to

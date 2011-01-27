@@ -872,7 +872,7 @@ varpool_node_set_size (varpool_node_set set)
 
 struct GTY(()) constant_descriptor_tree {
   /* A MEM for the constant.  */
-  rtx rtl;
+  rtx GTY((skip)) rtl;
 
   /* The value of the constant.  */
   tree value;

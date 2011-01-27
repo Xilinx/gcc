@@ -2900,7 +2900,7 @@ df_set_unused_notes_for_mw (rtx insn, struct df_mw_hardreg *mws,
 	if (!bitmap_bit_p (live, r)
 	    && !bitmap_bit_p (artificial_uses, r))
 	  {
-	    df_set_note (REG_UNUSED, insn, regno_reg_rtx[r]);
+	    df_set_note (REG_UNUSED, insn, crtl->emit.regno_reg_rtx[r]);
 	    dead_debug_reset (debug, r);
 #ifdef REG_DEAD_DEBUGGING
 	    df_print_note ("adding 2: ", insn, REG_NOTES (insn));
@@ -2992,7 +2992,7 @@ df_set_dead_notes_for_mw (rtx insn, struct df_mw_hardreg *mws,
 		*added_notes_p = true;
 		return;
 	      }
-	    df_set_note (REG_DEAD, insn, regno_reg_rtx[r]);
+	    df_set_note (REG_DEAD, insn, crtl->emit.regno_reg_rtx[r]);
 #ifdef REG_DEAD_DEBUGGING
 	    df_print_note ("adding 2: ", insn, REG_NOTES (insn));
 #endif

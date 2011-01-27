@@ -2204,7 +2204,7 @@ use_regs (rtx *call_fusage, int regno, int nregs)
   gcc_assert (regno + nregs <= FIRST_PSEUDO_REGISTER);
 
   for (i = 0; i < nregs; i++)
-    use_reg (call_fusage, regno_reg_rtx[regno + i]);
+    use_reg (call_fusage, crtl->emit.regno_reg_rtx[regno + i]);
 }
 
 /* Add USE expressions to *CALL_FUSAGE for each REG contained in the

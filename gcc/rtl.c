@@ -32,6 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "rtl.h"
 #include "ggc.h"
+#include "obstack.h"
 #ifdef GENERATOR_FILE
 # include "errors.h"
 #else
@@ -142,6 +143,51 @@ static int rtvec_alloc_sizes;
 #endif
 
 
+
+static struct obstack function_obstack;
+static struct obstack permanent_obstack;
+struct obstack *rtl_obstack = &function_obstack;
+
+/* Prepares for allocation of RTXes.  */
+void
+init_rtl (void)
+{
+  gcc_obstack_init (&function_obstack);
+  gcc_obstack_init (&permanent_obstack);
+}
+
+/* Allocates memory from the RTL heap with the current lifetime.  */
+void *
+allocate_in_rtl_mem (int size)
+{
+  return obstack_alloc (rtl_obstack, size);
+}
+
+void *
+allocate_in_rtl_function_mem (int size)
+{
+  return obstack_alloc (&function_obstack, size);
+}
+
+rtx
+copy_rtx_to_permanent_mem (rtx x)
+{
+  rtx copy;
+  rtl_obstack = &permanent_obstack;
+  copy = copy_rtx (x);
+  rtl_obstack = &function_obstack;
+  return copy;
+}
+
+char *
+strdup_to_permanent_mem (const char *s)
+{
+  size_t len = strlen (s) + 1;
+  char *result = XOBNEWVAR (&permanent_obstack, char, len);
+  memcpy (result, s, len);
+  return result;
+}
+
 /* Allocate an rtx vector of N elements.
    Store the length, and initialize all elements to zero.  */
 
@@ -150,7 +196,9 @@ rtvec_alloc (int n)
 {
   rtvec rt;
 
-  rt = ggc_alloc_rtvec_sized (n);
+  rt = (rtvec) obstack_alloc (rtl_obstack,
+                              sizeof (struct rtvec_def)
+                              + ((n - 1) * sizeof (rtunion)));
   /* Clear out the vector.  */
   memset (&rt->elem[0], 0, n * sizeof (rtx));
 
@@ -194,8 +242,11 @@ rtx_size (const_rtx x)
 rtx
 rtx_alloc_stat (RTX_CODE code MEM_STAT_DECL)
 {
-  rtx rt = ggc_alloc_zone_rtx_def_stat (&rtl_zone, RTX_CODE_SIZE (code)
-                                        PASS_MEM_STAT);
+  int length = RTX_CODE_SIZE (code);
+  rtx rt;
+  length = (length + rtl_obstack->alignment_mask)
+    & ~rtl_obstack->alignment_mask;
+  rt = (rtx) obstack_alloc (rtl_obstack, length);
 
   /* We want to clear everything up to the FLD array.  Normally, this
      is one int, but we don't want to assume that and it isn't very
@@ -337,7 +388,7 @@ rtx
 shallow_copy_rtx_stat (const_rtx orig MEM_STAT_DECL)
 {
   const unsigned int size = rtx_size (orig);
-  rtx const copy = ggc_alloc_zone_rtx_def_stat (&rtl_zone, size PASS_MEM_STAT);
+  rtx const copy = rtx_alloc (GET_CODE(orig));
   return (rtx) memcpy (copy, orig, size);
 }
 

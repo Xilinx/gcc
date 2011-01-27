@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "emit-rtl.h"
 #include "diagnostic-core.h"
 #include "output.h"
-#include "ggc.h"
 #include "hashtab.h"
 #include "tree-pass.h"
 #include "cselib.h"
@@ -170,7 +169,7 @@ static unsigned int n_used_regs;
 
 /* We pass this to cselib_invalidate_mem to invalidate all of
    memory for a non-const call instruction.  */
-static GTY(()) rtx callmem;
+static rtx callmem;
 
 /* Set by discard_useless_locs if it deleted the last location of any
    value.  */
@@ -2390,5 +2389,3 @@ dump_cselib_table (FILE *out)
     }
   fprintf (out, "next uid %i\n", next_uid);
 }
-
-#include "gt-cselib.h"

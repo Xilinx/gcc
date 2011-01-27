@@ -36,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "libfuncs.h"
 #include "hard-reg-set.h"
 #include "insn-config.h"
-#include "ggc.h"
 #include "recog.h"
 #include "langhooks.h"
 #include "target.h"
@@ -1519,7 +1518,7 @@ allocate_dynamic_stack_space (rtx size, unsigned size_align,
    run-time routine to call to check the stack, so provide a mechanism for
    calling that routine.  */
 
-static GTY(()) rtx stack_check_libfunc;
+static rtx stack_check_libfunc;
 
 void
 set_stack_check_libfunc (const char *libfunc_name)
@@ -1933,5 +1932,3 @@ rtx_to_tree_code (enum rtx_code code)
     }
   return ((int) tcode);
 }
-
-#include "gt-explow.h"

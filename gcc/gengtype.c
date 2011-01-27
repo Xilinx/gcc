@@ -89,8 +89,6 @@ static const char *get_file_langdir (const input_file *);
 /* Nonzero iff an error has occurred.  */
 bool hit_error = false;
 
-static void gen_rtx_next (void);
-static void write_rtx_next (void);
 static void open_base_files (void);
 static void close_output_files (void);
 
@@ -482,7 +480,6 @@ pair_p variables;
 
 static type_p find_param_structure (type_p t, type_p param[NUM_PARAM]);
 static type_p adjust_field_tree_exp (type_p t, options_p opt);
-static type_p adjust_field_rtx_def (type_p t, options_p opt);
 
 /* Define S as a typedef to T at POS.  */
 
@@ -820,39 +817,6 @@ create_field_at (pair_p next, type_p type, const char *name, options_p opt,
 #define create_field(next,type,name) \
     create_field_all(next,type,name, 0, this_file, __LINE__)
 
-/* Like create_field, but the field is only valid when condition COND
-   is true.  */
-
-static pair_p
-create_optional_field_ (pair_p next, type_p type, const char *name,
-			const char *cond, int line)
-{
-  static int id = 1;
-  pair_p union_fields;
-  type_p union_type;
-
-  /* Create a fake union type with a single nameless field of type TYPE.
-     The field has a tag of "1".  This allows us to make the presence
-     of a field of type TYPE depend on some boolean "desc" being true.  */
-  union_fields = create_field (NULL, type, "");
-  union_fields->opt = 
-    create_string_option (union_fields->opt, "dot", "");
-  union_fields->opt = 
-    create_string_option (union_fields->opt, "tag", "1");
-  union_type = 
-    new_structure (xasprintf ("%s_%d", "fake_union", id++), 1,
-                   &lexer_line, union_fields, NULL);
-
-  /* Create the field and give it the new fake union type.  Add a "desc"
-     tag that specifies the condition under which the field is valid.  */
-  return create_field_all (next, union_type, name,
-			   create_string_option (0, "desc", cond), 
-			   this_file, line);
-}
-
-#define create_optional_field(next,type,name,cond)	\
-       create_optional_field_(next,type,name,cond,__LINE__)
-
 /* Reverse a linked list of 'struct pair's in place.  */
 pair_p
 nreverse_pairs (pair_p list)
@@ -872,28 +836,6 @@ nreverse_pairs (pair_p list)
 #define CONST_DOUBLE_FORMAT "ww"
 /* We don't want to see codes that are only for generator files.  */
 #undef GENERATOR_FILE
-
-enum rtx_code
-{
-#define DEF_RTL_EXPR(ENUM, NAME, FORMAT, CLASS) ENUM ,
-#include "rtl.def"
-#undef DEF_RTL_EXPR
-  NUM_RTX_CODE
-};
-
-static const char *const rtx_name[NUM_RTX_CODE] = {
-#define DEF_RTL_EXPR(ENUM, NAME, FORMAT, CLASS)   NAME ,
-#include "rtl.def"
-#undef DEF_RTL_EXPR
-};
-
-static const char *const rtx_format[NUM_RTX_CODE] = {
-#define DEF_RTL_EXPR(ENUM, NAME, FORMAT, CLASS)   FORMAT ,
-#include "rtl.def"
-#undef DEF_RTL_EXPR
-};
-
-static int rtx_next_new[NUM_RTX_CODE];
 
 /* We also need codes and names for insn notes (not register notes).
    Note that we do *not* bias the note values here.  */
@@ -916,277 +858,6 @@ static const char *const note_insn_name[NOTE_INSN_MAX + 1] = {
 
 #undef CONST_DOUBLE_FORMAT
 #define GENERATOR_FILE
-
-/* Generate the contents of the rtx_next array.  This really doesn't belong
-   in gengtype at all, but it's needed for adjust_field_rtx_def.  */
-
-static void
-gen_rtx_next (void)
-{
-  int i;
-  for (i = 0; i < NUM_RTX_CODE; i++)
-    {
-      int k;
-
-      rtx_next_new[i] = -1;
-      if (strncmp (rtx_format[i], "iuu", 3) == 0)
-	rtx_next_new[i] = 2;
-      else if (i == COND_EXEC || i == SET || i == EXPR_LIST || i == INSN_LIST)
-	rtx_next_new[i] = 1;
-      else
-	for (k = strlen (rtx_format[i]) - 1; k >= 0; k--)
-	  if (rtx_format[i][k] == 'e' || rtx_format[i][k] == 'u')
-	    rtx_next_new[i] = k;
-    }
-}
-
-/* Write out the contents of the rtx_next array.  */
-static void
-write_rtx_next (void)
-{
-  outf_p f = get_output_file_with_visibility (NULL);
-  int i;
-  if (!f)
-    return;
-
-  oprintf (f, "\n/* Used to implement the RTX_NEXT macro.  */\n");
-  oprintf (f, "EXPORTED_CONST unsigned char rtx_next[NUM_RTX_CODE] = {\n");
-  for (i = 0; i < NUM_RTX_CODE; i++)
-    if (rtx_next_new[i] == -1)
-      oprintf (f, "  0,\n");
-    else
-      oprintf (f,
-	       "  RTX_HDR_SIZE + %d * sizeof (rtunion),\n", rtx_next_new[i]);
-  oprintf (f, "};\n");
-}
-
-/* Handle `special("rtx_def")'.  This is a special case for field
-   `fld' of struct rtx_def, which is an array of unions whose values
-   are based in a complex way on the type of RTL.  */
-
-static type_p
-adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
-{
-  pair_p flds = NULL;
-  options_p nodot;
-  int i;
-  type_p rtx_tp, rtvec_tp, tree_tp, mem_attrs_tp, note_union_tp, scalar_tp;
-  type_p basic_block_tp, reg_attrs_tp, constant_tp, symbol_union_tp;
-
-  if (t->kind != TYPE_UNION)
-    {
-      error_at_line (&lexer_line,
-		     "special `rtx_def' must be applied to a union");
-      return &string_type;
-    }
-
-  nodot = create_string_option (NULL, "dot", "");
-
-  rtx_tp = create_pointer (find_structure ("rtx_def", 0));
-  rtvec_tp = create_pointer (find_structure ("rtvec_def", 0));
-  tree_tp = create_pointer (find_structure ("tree_node", 1));
-  mem_attrs_tp = create_pointer (find_structure ("mem_attrs", 0));
-  reg_attrs_tp = 
-    create_pointer (find_structure ("reg_attrs", 0));
-  basic_block_tp = 
-    create_pointer (find_structure ("basic_block_def", 0));
-  constant_tp =
-    create_pointer (find_structure ("constant_descriptor_rtx", 0));
-  scalar_tp = &scalar_nonchar;	/* rtunion int */
-
-  {
-    pair_p note_flds = NULL;
-    int c;
-
-    for (c = 0; c <= NOTE_INSN_MAX; c++)
-      {
-	switch (c)
-	  {
-	  case NOTE_INSN_MAX:
-	  case NOTE_INSN_DELETED_LABEL:
-	    note_flds = create_field (note_flds, &string_type, "rt_str");
-	    break;
-
-	  case NOTE_INSN_BLOCK_BEG:
-	  case NOTE_INSN_BLOCK_END:
-	    note_flds = create_field (note_flds, tree_tp, "rt_tree");
-	    break;
-
-	  case NOTE_INSN_VAR_LOCATION:
-	    note_flds = create_field (note_flds, rtx_tp, "rt_rtx");
-	    break;
-
-	  default:
-	    note_flds = create_field (note_flds, scalar_tp, "rt_int");
-	    break;
-	  }
-	/* NOTE_INSN_MAX is used as the default field for line
-	   number notes.  */
-	if (c == NOTE_INSN_MAX)
-	  note_flds->opt = 
-	    create_string_option (nodot, "default", "");
-	else
-	  note_flds->opt = 
-	    create_string_option (nodot, "tag", note_insn_name[c]);
-      }
-    note_union_tp = new_structure ("rtx_def_note_subunion", 1,
-				   &lexer_line, note_flds, NULL);
-  }
-  /* Create a type to represent the various forms of SYMBOL_REF_DATA.  */
-  {
-    pair_p sym_flds;
-    sym_flds = create_field (NULL, tree_tp, "rt_tree");
-    sym_flds->opt = create_string_option (nodot, "default", "");
-    sym_flds = create_field (sym_flds, constant_tp, "rt_constant");
-    sym_flds->opt = create_string_option (nodot, "tag", "1");
-    symbol_union_tp = new_structure ("rtx_def_symbol_subunion", 1,
-				     &lexer_line, sym_flds, NULL);
-  }
-  for (i = 0; i < NUM_RTX_CODE; i++)
-    {
-      pair_p subfields = NULL;
-      size_t aindex, nmindex;
-      const char *sname;
-      type_p substruct;
-      char *ftag;
-
-      for (aindex = 0; aindex < strlen (rtx_format[i]); aindex++)
-	{
-	  type_p t;
-	  const char *subname;
-
-	  switch (rtx_format[i][aindex])
-	    {
-	    case '*':
-	    case 'i':
-	    case 'n':
-	    case 'w':
-	      t = scalar_tp;
-	      subname = "rt_int";
-	      break;
-
-	    case '0':
-	      if (i == MEM && aindex == 1)
-		t = mem_attrs_tp, subname = "rt_mem";
-	      else if (i == JUMP_INSN && aindex == 8)
-		t = rtx_tp, subname = "rt_rtx";
-	      else if (i == CODE_LABEL && aindex == 5)
-		t = scalar_tp, subname = "rt_int";
-	      else if (i == CODE_LABEL && aindex == 4)
-		t = rtx_tp, subname = "rt_rtx";
-	      else if (i == LABEL_REF && (aindex == 1 || aindex == 2))
-		t = rtx_tp, subname = "rt_rtx";
-	      else if (i == NOTE && aindex == 4)
-		t = note_union_tp, subname = "";
-	      else if (i == NOTE && aindex == 5)
-		t = scalar_tp, subname = "rt_int";
-	      else if (i == NOTE && aindex >= 7)
-		t = scalar_tp, subname = "rt_int";
-	      else if (i == ADDR_DIFF_VEC && aindex == 4)
-		t = scalar_tp, subname = "rt_int";
-	      else if (i == VALUE && aindex == 0)
-		t = scalar_tp, subname = "rt_int";
-	      else if (i == DEBUG_EXPR && aindex == 0)
-		t = tree_tp, subname = "rt_tree";
-	      else if (i == REG && aindex == 1)
-		t = scalar_tp, subname = "rt_int";
-	      else if (i == REG && aindex == 2)
-		t = reg_attrs_tp, subname = "rt_reg";
-	      else if (i == SCRATCH && aindex == 0)
-		t = scalar_tp, subname = "rt_int";
-	      else if (i == SYMBOL_REF && aindex == 1)
-		t = scalar_tp, subname = "rt_int";
-	      else if (i == SYMBOL_REF && aindex == 2)
-		t = symbol_union_tp, subname = "";
-	      else if (i == BARRIER && aindex >= 3)
-		t = scalar_tp, subname = "rt_int";
-	      else
-		{
-		  error_at_line 
-		    (&lexer_line,
-		     "rtx type `%s' has `0' in position %lu, can't handle",
-		     rtx_name[i], (unsigned long) aindex);
-		  t = &string_type;
-		  subname = "rt_int";
-		}
-	      break;
-
-	    case 's':
-	    case 'S':
-	    case 'T':
-	      t = &string_type;
-	      subname = "rt_str";
-	      break;
-
-	    case 'e':
-	    case 'u':
-	      t = rtx_tp;
-	      subname = "rt_rtx";
-	      break;
-
-	    case 'E':
-	    case 'V':
-	      t = rtvec_tp;
-	      subname = "rt_rtvec";
-	      break;
-
-	    case 't':
-	      t = tree_tp;
-	      subname = "rt_tree";
-	      break;
-
-	    case 'B':
-	      t = basic_block_tp;
-	      subname = "rt_bb";
-	      break;
-
-	    default:
-	      error_at_line
-		(&lexer_line,
-		 "rtx type `%s' has `%c' in position %lu, can't handle",
-		 rtx_name[i], rtx_format[i][aindex],
-		 (unsigned long) aindex);
-	      t = &string_type;
-	      subname = "rt_int";
-	      break;
-	    }
-
-	  subfields = create_field (subfields, t,
-				    xasprintf (".fld[%lu].%s",
-					       (unsigned long) aindex,
-					       subname));
-	  subfields->opt = nodot;
-	  if (t == note_union_tp)
-	    subfields->opt =
-	      create_string_option (subfields->opt, "desc",
-				    "NOTE_KIND (&%0)");
-	  if (t == symbol_union_tp)
-	    subfields->opt = 
-	      create_string_option (subfields->opt, "desc",
-				    "CONSTANT_POOL_ADDRESS_P (&%0)");
-	}
-
-      if (i == SYMBOL_REF)
-	{
-	  /* Add the "block_sym" field if SYMBOL_REF_HAS_BLOCK_INFO_P
-	     holds.  */
-	  type_p field_tp = find_structure ("block_symbol", 0);
-	  subfields
-	    = create_optional_field (subfields, field_tp, "block_sym",
-				     "SYMBOL_REF_HAS_BLOCK_INFO_P (&%0)");
-	}
-
-      sname = xasprintf ("rtx_def_%s", rtx_name[i]);
-      substruct = new_structure (sname, 0, &lexer_line, subfields, NULL);
-
-      ftag = xstrdup (rtx_name[i]);
-      for (nmindex = 0; nmindex < strlen (ftag); nmindex++)
-	ftag[nmindex] = TOUPPER (ftag[nmindex]);
-      flds = create_field (flds, substruct, "");
-      flds->opt = create_string_option (nodot, "tag", ftag);
-    }
-  return new_structure ("rtx_def_subunion", 1, &lexer_line, flds, nodot);
-}
 
 /* Handle `special("tree_exp")'.  This is a special case for
    field `operands' of struct tree_exp, which although it claims to contain
@@ -1273,8 +944,6 @@ adjust_field_type (type_p t, options_p opt)
 	const char *special_name = opt->info.string;
 	if (strcmp (special_name, "tree_exp") == 0)
 	  t = adjust_field_tree_exp (t, opt);
-	else if (strcmp (special_name, "rtx_def") == 0)
-	  t = adjust_field_rtx_def (t, opt);
 	else
 	  error_at_line (&lexer_line, "unknown special `%s'", special_name);
       }
@@ -4936,8 +4605,6 @@ main (int argc, char **argv)
   if (hit_error)
     return 1;
 
-  gen_rtx_next ();
-
   /* The call to set_gc_used may indirectly call find_param_structure
      hence enlarge the param_structs list of types.  */
   set_gc_used (variables);
@@ -4991,7 +4658,6 @@ main (int argc, char **argv)
     }
   write_splay_tree_allocators (param_structs);
   write_roots (variables, plugin_files == NULL);
-  write_rtx_next ();
   close_output_files ();
 
   if (do_dump)

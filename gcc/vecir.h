@@ -47,6 +47,5 @@ DEF_VEC_ALLOC_P(gimple_seq,heap);
 /* A varray of RTX objects.  */
 DEF_VEC_P(rtx);
 DEF_VEC_ALLOC_P(rtx,heap);
-DEF_VEC_ALLOC_P(rtx,gc);
 
 #endif /* GCC_VECIR_H */

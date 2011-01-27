@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm_p.h"
 #include "addresses.h"
 #include "output.h"
-#include "ggc.h"
 
 #define MOVE_MAX_WORDS (MOVE_MAX / UNITS_PER_WORD)
 
@@ -100,12 +99,12 @@ static void add_stored_regs (rtx, const_rtx, void *);
 
 
 
-static GTY(()) rtx savepat;
-static GTY(()) rtx restpat;
-static GTY(()) rtx test_reg;
-static GTY(()) rtx test_mem;
-static GTY(()) rtx saveinsn;
-static GTY(()) rtx restinsn;
+static rtx savepat;
+static rtx restpat;
+static rtx test_reg;
+static rtx test_mem;
+static rtx saveinsn;
+static rtx restinsn;
 
 /* Return the INSN_CODE used to save register REG in mode MODE.  */
 static int
@@ -431,7 +430,7 @@ setup_save_areas (void)
       {
 	unsigned int regno = reg_renumber[i];
 	unsigned int endregno
-	  = end_hard_regno (GET_MODE (regno_reg_rtx[i]), regno);
+	  = end_hard_regno (GET_MODE (crtl->emit.regno_reg_rtx[i]), regno);
 	for (r = regno; r < endregno; r++)
 	  if (call_used_regs[r])
 	    SET_HARD_REG_BIT (hard_regs_used, r);
@@ -1422,4 +1421,3 @@ insert_one_insn (struct insn_chain *chain, int before_p, int code, rtx pat)
   INSN_CODE (new_chain->insn) = code;
   return new_chain;
 }
-#include "gt-caller-save.h"

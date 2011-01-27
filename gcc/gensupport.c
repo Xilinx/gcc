@@ -35,9 +35,6 @@ int target_flags;
 
 int insn_elision = 1;
 
-static struct obstack obstack;
-struct obstack *rtl_obstack = &obstack;
-
 static int sequence_num;
 
 static int predicable_default;
@@ -1003,10 +1000,10 @@ bool
 init_rtx_reader_args_cb (int argc, char **argv,
 			 bool (*parse_opt) (const char *))
 {
+  init_rtl ();
   /* Prepare to read input.  */
   condition_table = htab_create (500, hash_c_test, cmp_c_test, NULL);
   init_predicate_table ();
-  obstack_init (rtl_obstack);
   sequence_num = 0;
 
   read_md_files (argc, argv, parse_opt, rtx_handle_directive);

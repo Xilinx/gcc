@@ -182,13 +182,13 @@ static GTY(()) section *unnamed_sections;
 static GTY((param_is (section))) htab_t section_htab;
 
 /* A table of object_blocks, indexed by section.  */
-static GTY((param_is (struct object_block))) htab_t object_block_htab;
+static htab_t object_block_htab;
 
 /* The next number to use for internal anchor labels.  */
 static GTY(()) int anchor_labelno;
 
 /* A pool of constants that can be shared between functions.  */
-static GTY(()) struct rtx_constant_pool *shared_constant_pool;
+static struct rtx_constant_pool *shared_constant_pool;
 
 /* Helper routines for maintaining section_htab.  */
 
@@ -331,7 +331,7 @@ get_block_for_section (section *sect)
   block = (struct object_block *) *slot;
   if (block == NULL)
     {
-      block = ggc_alloc_cleared_object_block ();
+      block = XCNEW (struct object_block);
       block->sect = sect;
       *slot = block;
     }
@@ -351,7 +351,7 @@ create_block_symbol (const char *label, struct object_block *block,
 
   /* Create the extended SYMBOL_REF.  */
   size = RTX_HDR_SIZE + sizeof (struct block_symbol);
-  symbol = ggc_alloc_zone_rtx_def (size, &rtl_zone);
+  symbol = (rtx) allocate_in_rtl_mem (size);
 
   /* Initialize the normal SYMBOL_REF fields.  */
   memset (symbol, 0, size);
@@ -1527,13 +1527,17 @@ assemble_start_function (tree decl, const char *fnname)
   if (flag_reorder_blocks_and_partition)
     {
       ASM_GENERATE_INTERNAL_LABEL (tmp_label, "LHOTB", const_labelno);
-      crtl->subsections.hot_section_label = ggc_strdup (tmp_label);
+      crtl->subsections.hot_section_label
+        = strdup_to_permanent_mem (tmp_label);
       ASM_GENERATE_INTERNAL_LABEL (tmp_label, "LCOLDB", const_labelno);
-      crtl->subsections.cold_section_label = ggc_strdup (tmp_label);
+      crtl->subsections.cold_section_label
+        = strdup_to_permanent_mem (tmp_label);
       ASM_GENERATE_INTERNAL_LABEL (tmp_label, "LHOTE", const_labelno);
-      crtl->subsections.hot_section_end_label = ggc_strdup (tmp_label);
+      crtl->subsections.hot_section_end_label
+        = strdup_to_permanent_mem(tmp_label);
       ASM_GENERATE_INTERNAL_LABEL (tmp_label, "LCOLDE", const_labelno);
-      crtl->subsections.cold_section_end_label = ggc_strdup (tmp_label);
+      crtl->subsections.cold_section_end_label
+        = strdup_to_permanent_mem (tmp_label);
       const_labelno++;
     }
   else
@@ -2297,7 +2301,7 @@ assemble_static_space (unsigned HOST_WIDE_INT size)
 
   ASM_GENERATE_INTERNAL_LABEL (name, "LF", const_labelno);
   ++const_labelno;
-  namestring = ggc_strdup (name);
+  namestring = strdup_to_permanent_mem (name);
 
   x = gen_rtx_SYMBOL_REF (Pmode, namestring);
   SYMBOL_REF_FLAGS (x) = SYMBOL_FLAG_LOCAL;
@@ -2328,7 +2332,7 @@ assemble_static_space (unsigned HOST_WIDE_INT size)
    This is done at most once per compilation.
    Returns an RTX for the address of the template.  */
 
-static GTY(()) rtx initial_trampoline;
+static rtx initial_trampoline;
 
 rtx
 assemble_trampoline_template (void)
@@ -2361,7 +2365,7 @@ assemble_trampoline_template (void)
 
   /* Record the rtl to refer to it.  */
   ASM_GENERATE_INTERNAL_LABEL (label, "LTRAMP", 0);
-  name = ggc_strdup (label);
+  name = strdup_to_permanent_mem (label);
   symbol = gen_rtx_SYMBOL_REF (Pmode, name);
   SYMBOL_REF_FLAGS (symbol) = SYMBOL_FLAG_LOCAL;
 
@@ -3024,6 +3028,10 @@ get_constant_size (tree exp)
   return size;
 }
 
+/* The VAR_DECLs associated with constants */
+/* TODO: can store it somewhere else? */
+static GTY(()) VEC(tree,gc) *saved_constant_decls;
+
 /* Subroutine of output_constant_def:
    No constant equal to EXP is known to have been output.
    Make a constant descriptor to enter EXP in the hash table.
@@ -3074,16 +3082,17 @@ build_constant_desc (tree exp)
     }
   else
     align_variable (decl, 0);
+  VEC_safe_push (tree, gc, saved_constant_decls, decl);
 
   /* Now construct the SYMBOL_REF and the MEM.  */
   if (use_object_blocks_p ())
     {
       section *sect = get_constant_section (exp, DECL_ALIGN (decl));
-      symbol = create_block_symbol (ggc_strdup (label),
+      symbol = create_block_symbol (strdup_to_permanent_mem (label),
 				    get_block_for_section (sect), -1);
     }
   else
-    symbol = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (label));
+    symbol = gen_rtx_SYMBOL_REF (Pmode, strdup_to_permanent_mem (label));
   SYMBOL_REF_FLAGS (symbol) |= SYMBOL_FLAG_LOCAL;
   SET_SYMBOL_REF_DECL (symbol, decl);
   TREE_CONSTANT_POOL_ADDRESS_P (symbol) = 1;
@@ -3286,7 +3295,7 @@ tree_output_constant_def (tree exp)
    can use one per-file pool.  Should add a targetm bit to tell the
    difference.  */
 
-struct GTY(()) rtx_constant_pool {
+struct rtx_constant_pool {
   /* Pointers to first and last constant in pool, as ordered by offset.  */
   struct constant_descriptor_rtx *first;
   struct constant_descriptor_rtx *last;
@@ -3295,14 +3304,14 @@ struct GTY(()) rtx_constant_pool {
      It is used on RISC machines where immediate integer arguments and
      constant addresses are restricted so that such constants must be stored
      in memory.  */
-  htab_t GTY((param_is (struct constant_descriptor_rtx))) const_rtx_htab;
+  htab_t const_rtx_htab;
 
   /* Current offset in constant pool (does not include any
      machine-specific header).  */
   HOST_WIDE_INT offset;
 };
 
-struct GTY((chain_next ("%h.next"))) constant_descriptor_rtx {
+struct constant_descriptor_rtx {
   struct constant_descriptor_rtx *next;
   rtx mem;
   rtx sym;
@@ -3435,9 +3444,9 @@ create_constant_pool (void)
 {
   struct rtx_constant_pool *pool;
 
-  pool = ggc_alloc_rtx_constant_pool ();
-  pool->const_rtx_htab = htab_create_ggc (31, const_desc_rtx_hash,
-					  const_desc_rtx_eq, NULL);
+  pool = XNEW (struct rtx_constant_pool);
+  pool->const_rtx_htab = htab_create (31, const_desc_rtx_hash,
+                                      const_desc_rtx_eq, NULL);
   pool->first = NULL;
   pool->last = NULL;
   pool->offset = 0;
@@ -3501,7 +3510,7 @@ force_const_mem (enum machine_mode mode, rtx x)
     return copy_rtx (desc->mem);
 
   /* Otherwise, create a new descriptor.  */
-  desc = ggc_alloc_constant_descriptor_rtx ();
+  desc = XNEW (struct constant_descriptor_rtx);
   *slot = desc;
 
   /* Align the location counter as required by EXP's data type.  */
@@ -3542,11 +3551,11 @@ force_const_mem (enum machine_mode mode, rtx x)
   if (use_object_blocks_p () && targetm.use_blocks_for_constant_p (mode, x))
     {
       section *sect = targetm.asm_out.select_rtx_section (mode, x, align);
-      symbol = create_block_symbol (ggc_strdup (label),
+      symbol = create_block_symbol (strdup_to_permanent_mem (label),
 				    get_block_for_section (sect), -1);
     }
   else
-    symbol = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (label));
+    symbol = gen_rtx_SYMBOL_REF (Pmode, strdup_to_permanent_mem (label));
   desc->sym = symbol;
   SYMBOL_REF_FLAGS (symbol) |= SYMBOL_FLAG_LOCAL;
   CONSTANT_POOL_ADDRESS_P (symbol) = 1;
@@ -5922,8 +5931,8 @@ init_varasm_once (void)
 {
   section_htab = htab_create_ggc (31, section_entry_hash,
 				  section_entry_eq, NULL);
-  object_block_htab = htab_create_ggc (31, object_block_entry_hash,
-				       object_block_entry_eq, NULL);
+  object_block_htab = htab_create (31, object_block_entry_hash,
+                                   object_block_entry_eq, NULL);
   const_desc_htab = htab_create_ggc (1009, const_desc_hash,
 				     const_desc_eq, NULL);
 
@@ -7026,7 +7035,7 @@ place_block_symbol (rtx symbol)
   block->alignment = MAX (block->alignment, alignment);
   block->size = offset + size;
 
-  VEC_safe_push (rtx, gc, block->objects, symbol);
+  VEC_safe_push (rtx, heap, block->objects, symbol);
 }
 
 /* Return the anchor that should be used to address byte offset OFFSET
@@ -7104,12 +7113,13 @@ get_section_anchor (struct object_block *block, HOST_WIDE_INT offset,
 
   /* Create a new anchor with a unique label.  */
   ASM_GENERATE_INTERNAL_LABEL (label, "LANCHOR", anchor_labelno++);
-  anchor = create_block_symbol (ggc_strdup (label), block, offset);
+  anchor = create_block_symbol (strdup_to_permanent_mem (label), block,
+                                offset);
   SYMBOL_REF_FLAGS (anchor) |= SYMBOL_FLAG_LOCAL | SYMBOL_FLAG_ANCHOR;
   SYMBOL_REF_FLAGS (anchor) |= model << SYMBOL_FLAG_TLS_SHIFT;
 
   /* Insert it at index BEGIN.  */
-  VEC_safe_insert (rtx, gc, block->anchors, begin, anchor);
+  VEC_safe_insert (rtx, heap, block->anchors, begin, anchor);
   return anchor;
 }
 
@@ -7303,6 +7313,7 @@ make_debug_expr_from_rtl (const_rtx exp)
   enum machine_mode mode = GET_MODE (exp);
   rtx dval;
 
+  VEC_safe_push (tree, gc, cfun->debug_decls, ddecl);
   DECL_ARTIFICIAL (ddecl) = 1;
   if (REG_P (exp) && REG_EXPR (exp))
     type = TREE_TYPE (REG_EXPR (exp));

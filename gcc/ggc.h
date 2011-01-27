@@ -256,19 +256,11 @@ extern void init_ggc_heuristics (void);
 
 /* Zone collection.  */
 
-/* For regular rtl allocations.  */
-extern struct alloc_zone rtl_zone;
-
 /* For regular tree allocations.  */
 extern struct alloc_zone tree_zone;
 
 /* For IDENTIFIER_NODE allocations.  */
 extern struct alloc_zone tree_id_zone;
-
-#define ggc_alloc_rtvec_sized(NELT)                                     \
-    (ggc_alloc_zone_vec_rtvec_def (sizeof (rtx),                        \
-                                   sizeof (struct rtvec_def) + ((NELT) - 1), \
-                                   &rtl_zone))
 
 #if defined (GGC_ZONE) && !defined (GENERATOR_FILE)
 

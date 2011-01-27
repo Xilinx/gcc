@@ -159,7 +159,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "function.h"
 #include "expr.h"
 #include "except.h"
-#include "ggc.h"
 #include "params.h"
 #include "cselib.h"
 #include "intl.h"
@@ -849,7 +848,7 @@ want_to_gcse_p (rtx x, int *max_distance_ptr)
 
 /* Used internally by can_assign_to_reg_without_clobbers_p.  */
 
-static GTY(()) rtx test_insn;
+static rtx test_insn;
 
 /* Return true if we can assign X to a pseudo register such that the
    resulting insn does not result in clobbering a hard register as a
@@ -5437,6 +5436,3 @@ struct rtl_opt_pass pass_rtl_hoist =
   TODO_verify_flow | TODO_ggc_collect   /* todo_flags_finish */
  }
 };
-
-#include "gt-gcse.h"
-

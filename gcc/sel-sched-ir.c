@@ -262,7 +262,7 @@ init_fence_for_scheduling (fence_t f)
 /* Add new fence consisting of INSN and STATE to the list pointed to by LP.  */
 static void
 flist_add (flist_t *lp, insn_t insn, state_t state, deps_t dc, void *tc,
-           insn_t last_scheduled_insn, VEC(rtx,gc) *executing_insns,
+           insn_t last_scheduled_insn, VEC(rtx,heap) *executing_insns,
            int *ready_ticks, int ready_ticks_size, insn_t sched_next,
            int cycle, int cycle_issued_insns, int issue_more,
            bool starts_cycle_p, bool after_stall_p)
@@ -588,7 +588,7 @@ fence_clear (fence_t f)
 
   if (tc != NULL)
     delete_target_context (tc);
-  VEC_free (rtx, gc, FENCE_EXECUTING_INSNS (f));
+  VEC_free (rtx, heap, FENCE_EXECUTING_INSNS (f));
   free (FENCE_READY_TICKS (f));
   FENCE_READY_TICKS (f) = NULL;
 }
@@ -638,7 +638,7 @@ init_fences (insn_t old_fence)
 static void
 merge_fences (fence_t f, insn_t insn,
 	      state_t state, deps_t dc, void *tc,
-              rtx last_scheduled_insn, VEC(rtx, gc) *executing_insns,
+              rtx last_scheduled_insn, VEC(rtx, heap) *executing_insns,
               int *ready_ticks, int ready_ticks_size,
 	      rtx sched_next, int cycle, int issue_more, bool after_stall_p)
 {
@@ -671,7 +671,7 @@ merge_fences (fence_t f, insn_t insn,
 
       FENCE_LAST_SCHEDULED_INSN (f) = NULL;
       FENCE_ISSUE_MORE (f) = issue_rate;
-      VEC_free (rtx, gc, executing_insns);
+      VEC_free (rtx, heap, executing_insns);
       free (ready_ticks);
       if (FENCE_EXECUTING_INSNS (f))
         VEC_block_remove (rtx, FENCE_EXECUTING_INSNS (f), 0,
@@ -759,7 +759,7 @@ merge_fences (fence_t f, insn_t insn,
           {
             reset_deps_context (FENCE_DC (f));
             delete_deps_context (dc);
-            VEC_free (rtx, gc, executing_insns);
+            VEC_free (rtx, heap, executing_insns);
             free (ready_ticks);
 
             FENCE_CYCLE (f) = MAX (FENCE_CYCLE (f), cycle);
@@ -774,7 +774,7 @@ merge_fences (fence_t f, insn_t insn,
             {
               delete_deps_context (FENCE_DC (f));
               FENCE_DC (f) = dc;
-              VEC_free (rtx, gc, FENCE_EXECUTING_INSNS (f));
+              VEC_free (rtx, heap, FENCE_EXECUTING_INSNS (f));
               FENCE_EXECUTING_INSNS (f) = executing_insns;
               free (FENCE_READY_TICKS (f));
               FENCE_READY_TICKS (f) = ready_ticks;
@@ -785,7 +785,7 @@ merge_fences (fence_t f, insn_t insn,
             {
               /* Leave DC and CYCLE untouched.  */
               delete_deps_context (dc);
-              VEC_free (rtx, gc, executing_insns);
+              VEC_free (rtx, heap, executing_insns);
               free (ready_ticks);
             }
     }
@@ -804,7 +804,7 @@ merge_fences (fence_t f, insn_t insn,
 static void
 add_to_fences (flist_tail_t new_fences, insn_t insn,
                state_t state, deps_t dc, void *tc, rtx last_scheduled_insn,
-               VEC(rtx, gc) *executing_insns, int *ready_ticks,
+               VEC(rtx, heap) *executing_insns, int *ready_ticks,
                int ready_ticks_size, rtx sched_next, int cycle,
                int cycle_issued_insns, int issue_rate,
 	       bool starts_cycle_p, bool after_stall_p)
@@ -888,7 +888,7 @@ add_dirty_fence_to_fences (flist_tail_t new_fences, insn_t succ, fence_t fence)
                  create_copy_of_deps_context (FENCE_DC (fence)),
                  create_copy_of_target_context (FENCE_TC (fence)),
                  FENCE_LAST_SCHEDULED_INSN (fence),
-                 VEC_copy (rtx, gc, FENCE_EXECUTING_INSNS (fence)),
+                 VEC_copy (rtx, heap, FENCE_EXECUTING_INSNS (fence)),
                  new_ready_ticks,
                  FENCE_READY_TICKS_SIZE (fence),
                  FENCE_SCHED_NEXT (fence),

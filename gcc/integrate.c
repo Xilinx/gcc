@@ -41,7 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "diagnostic-core.h"
 #include "intl.h"
 #include "params.h"
-#include "ggc.h"
 #include "target.h"
 #include "langhooks.h"
 #include "tree-pass.h"
@@ -52,14 +51,14 @@ along with GCC; see the file COPYING3.  If not see
 
 
 /* Private type used by {get/has}_hard_reg_initial_val.  */
-typedef struct GTY(()) initial_value_pair {
+typedef struct initial_value_pair {
   rtx hard_reg;
   rtx pseudo;
 } initial_value_pair;
-typedef struct GTY(()) initial_value_struct {
+typedef struct initial_value_struct {
   int num_entries;
   int max_entries;
-  initial_value_pair * GTY ((length ("%h.num_entries"))) entries;
+  initial_value_pair * entries;
 } initial_value_struct;
 
 static void set_block_origin_self (tree);
@@ -246,18 +245,23 @@ get_hard_reg_initial_val (enum machine_mode mode, unsigned int regno)
   ivs = crtl->hard_reg_initial_vals;
   if (ivs == 0)
     {
-      ivs = ggc_alloc_initial_value_struct ();
+      ivs = (struct initial_value_struct *)
+	allocate_in_rtl_mem (sizeof (struct initial_value_struct));
       ivs->num_entries = 0;
       ivs->max_entries = 5;
-      ivs->entries = ggc_alloc_vec_initial_value_pair (5);
+      ivs->entries = (struct initial_value_pair *)
+	allocate_in_rtl_mem (5 * sizeof (struct initial_value_pair));
       crtl->hard_reg_initial_vals = ivs;
     }
 
   if (ivs->num_entries >= ivs->max_entries)
     {
+      struct initial_value_pair *newvec = (struct initial_value_pair *)
+	allocate_in_rtl_mem (ivs->max_entries
+			     * sizeof (struct initial_value_pair));
+      memcpy (newvec, ivs->entries,
+	      sizeof (struct initial_value_pair) * ivs->max_entries);
       ivs->max_entries += 5;
-      ivs->entries = GGC_RESIZEVEC (initial_value_pair, ivs->entries,
-				    ivs->max_entries);
     }
 
   ivs->entries[ivs->num_entries].hard_reg = gen_rtx_REG (mode, regno);
@@ -371,5 +375,3 @@ allocate_initial_values (rtx *reg_equiv_memory_loc)
 	}
     }
 }
-
-#include "gt-integrate.h"

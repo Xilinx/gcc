@@ -567,7 +567,8 @@ compute_defs_uses_and_gen (fibheap_t all_btr_defs, btr_def *def_array,
 
 		      for (regno = first_btr; regno <= last_btr; regno++)
 			if (TEST_HARD_REG_BIT (*clobbered, regno))
-			  note_btr_set (regno_reg_rtx[regno], NULL_RTX, &info);
+			  note_btr_set (crtl->emit.regno_reg_rtx[regno],
+                                        NULL_RTX, &info);
 		    }
 		}
 	    }

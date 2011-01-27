@@ -1,0 +1,320 @@
+2011-01-27  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* vecir.h: Do not define rtx vector in GC.
+
+	* varasm.c (object_block_htab): Remove GTY marker.
+	(shared_constant_pool): Likewise.
+	(get_block_for_section): Allocate block in heap.
+	(create_block_symbol): Allocate symbol in RTL memory.
+	(assemble_start_function): Use strdup_to_permanent_mem.
+	(assemble_static_space): Use strdup_to_permanent_mem.
+	(initial_trampoline(: Remove GTY marker.
+	(assemble_trampoline_template): Use strdup_to_permanent_mem.
+	(saved_constant_decls): New.
+	(build_constant_decl)): Store decl in saved_constant_decls.  Use
+	strdup_to_permanent_mem.
+	(struct rtx_constant_pool): Remove GTY markers.
+	(struct constant_descriptor_rtx): Remove GTY marker.
+	(create_constant_pool): Use heap allocation.
+	(force_const_mem): Use heap allocation for desc.  Use
+	strdup_to_permanent_mem.
+	(init_varasm_once): Create object_block_htab in heap.
+	(place_block_symbol): Adjust for heap vector.
+	(get_section_anchor): Use stdup_to_permanent_mem.  Adjust for heap
+	vector.
+	(make_debug_expr_from_rtl): Store ddecl in cfun->debug_decls.
+
+	* tree.h (struct tree_decl_with_rtl): Skip GTY for field rtl.
+	(struct tree_parm_decl): Skip GTY for field incoming_rtl.
+
+	* tree-ssa-address.c: Do not include ggc.h and
+	gt-tree-ssa-address.h
+	(struct mem_addr_template): Remove GTY markers.
+	(mem_addr_template): Declare heap vector.
+	(mem_addr_template_list): Remove GTY marker.  Define as a heap
+	vector.
+	(addr_for_mem_ref): Adjust usage for heap vector.
+
+	* toplev.c (backend_init): Call init_rtl.
+
+	* stmt.c (expand_asm_operands): Use strdup_to_permanent_mem.
+
+	* sel-sched.c (update_fence_and_insn): Adjust for heap vector.
+
+	* sel-sched-ir.h (struct _fence): Define executing_insns as a heap
+	vector.
+
+	* sel-sched-ir.c (flist_add): Declare executing_insns as a heap
+	vector.
+	(merge_fences): Likewise.  Adjust usage.
+	(add_to_fences): Likewise.
+	(fence_clear): Use heap vector.
+
+	* rtl.h (struct mem_attrs): Skip for GTY fields offset and size.
+	(struct object_block): Remove GTY marker.  Declare objects and
+	anchors as heap vectors.
+	(struct rtx_def): Remove GTY options.
+	(struct rtvec_def): Remove GTY options.
+	(rtl_obstack): Declare.
+	(init_rtl, allocate_in_rtl_mem): Declare.
+	(allocate_in_rtl_function_mem, copy_rtx_to_permanent_mem): Declare.
+	(strdup_to_permanent_mem): Declare.
+
+	* rtl.c: Include obstack.h.
+	(function_obstack, permanent_obstack, rtl_obstack): Define.
+	(init_rtl, allocate_in_rtl_mem): New.
+	(allocate_in_rtl_function_mem, copy_rtx_to_permanent_mem): New.
+	(strdup_to_permanent_mem): New.
+	(rtvec_alloc): Use obstack allocation.
+	(rtx_alloc_stat): Use obstack allocation.
+	(shallow_copy_rtx_stat): Call rtx_alloc.
+
+	* reload1.c (reg_equiv_memory_loc_vec): Define as a heap vector.
+	(replace_pseudos_in): Adjust regno_reg_rtx usage.
+	(reload): Likewise.
+	(alter_reg): Likewise.
+	(free_reg_equiv): Adjust reg_equiv_memory_loc_vec usage.
+	(do_input_reload): Adjust regno_reg_rtx usage.
+	(emit_reload_insns): Likewise.
+
+	* reload.h (reg_equiv_memory_loc_vec): Remove GTY marker, declare
+	as a heap vector.
+	(reg_equiv_init, reg_equiv_init_size): Remove GTY marker.
+
+	* regs.h (PSEUDO_REGNO_MODE): Adjust regno_reg_rtx_usage.
+
+	* lower-subreg.c (decompose_register): Adjust regno_reg_rtx
+	usage.
+	(decompose_multiword_subregs): Likewise.
+
+	* lists.c: Do not include ggc.h and gt-lists.h.
+	(unused_insn_list, unused_expr_list): Remove GTY marker.
+
+	* libfuncs.h (struct libfunc_entry): Skip for GTY field libfunc.
+	(struct target_libfuncs): Skip for GTY field x_libfunc_table.
+
+	* ira.c (fix_reg_equiv_init): Adjust regno_reg_rtx usage.
+	(setup_preferred_alternate_classes_for_new_pseudos): Likewise.
+	(update_equiv_regs): Likewise.
+	(init_live_subregs): Likewise.
+	(init_reg_equiv_memory_loc): Adjust reg_equiv_memory_loc_vec
+	usage.
+
+	* ira-emit.c (ira_emit): Adjust regno_reg_rtx usage.
+
+	* ira-costs.c (print_pseudo_costs): Adjust regno_reg_rtx usage.
+	(find_costs_and_classes): Likewise.
+
+	* ira-conflicts.c (ira_build_conflicts): Adjust regno_reg_rtx
+	usage.
+
+	* ira-color.c (allocno_reload_assign): Adjust regno_reg_rtx
+	usage.
+
+	* integrate.c: Do not include ggc.h and gt-integrate.h.
+	(struct initial_value_pair): Remove GTY markers.
+	(get_hard_reg_initial_val): Allocate ivs in RTL memory.
+
+	* ggc.h (rtl_zone, ggc_alloc_rtvec_sized): Remove.
+
+	* ggc-zone.c (rtl_zone): Remove.
+	(ggc_alloc_typed_stat): Do not handle RTL allocation.
+	(init_ggc): Do not create rtl_zone.
+
+	* ggc-none.c (rtl_zone): Remove.
+
+	* gcc-page.c (rtl_zone): Remove.
+
+	* gensupport.c: (obstack, rtl_obstack): Remove.
+	(init_rtx_reader_args_cb): Call init_rtl.  Do not initialize
+	rtl_obstack.
+
+	* gengtype.c (gen_rtx_next, write_rtx_next): Remove.
+	(adjust_field_rtx_def, create_optional_field_): Remove.
+	(create_optional_field, enum rtx_code, rtx_name): Remove.
+	(rtx_format, rtx_next_new): Remove.
+	(adjust_field_type): Do not handle special option value "rtx_def".
+	(main): Do not call gen_rtx_next and write_rtx_next.
+
+	* gcse.c: Do not include ggc.h and gt-gcse.h
+	(test_insn): Remove GTY marker.
+
+	* function.h (struct sequence_stack): Remove GTY marker.
+	(struct emit_status): Likewise.  Move here free_sequence_stack and
+	regno_reg_rtx from emit-rtl.c.  Remove GTY option from
+	regno_pointer_align.
+	(struct exr_status): Remove GTY marker.
+	(call_site_record): Declare as heap vector.
+	(struct rtl_eh): Remove GTY marker.  Define action_record_data and
+	call_site_record as heap vectors.
+	(temp_slot_p): Declare as heap vector.
+	(struct varasm_status): Remove GTY marker.
+	(struct incoming_args): Remove GTY marker.
+	(struct frame_space): Remove GTY marker.
+	(struct rtl_data): Remove GTY marker.  Define x_used_temp_slots as
+	heap vector.
+	(x_rtl): Remove GTY marker.
+	(struct function): New field debug_decls.  Skip for GTY field
+	machine.
+
+	* function.c (prologue_insn_hash, epilogue_insn_hash): Remove GTY
+	marker.
+	(free_after_compilation): Free prologue_insn_hash,
+	epilogue_insn_hash and crtl->emit.regno_reg_rtx.
+	(add_frame_space): Allocate space in RTL memory.
+	(struct temp_slot): Remove GTY marker.
+	(temp_slot_address_table): Remove GTY marker.
+	(temp_slot_address_entry): Remove GTY marker.
+	(temp_slots_at_level): Adjust used_temp_slots usage.
+	(insert_temp_slot_address): Allocate t in RTL memory.
+	(assign_stack_temp_for_type): Allocate p in RTL memory.
+	(init_temp_slots): Create temp_slot_address_table in heap.
+	(assign_parm_setup_reg): Adjust regno_reg_rtx usage.
+	(initial_trampoline): Removed.
+	(record_insns): Create hashp in heap.
+
+	* expr.c (use_regs): Adjut regno_reg_rtx usage.
+
+	* explow.c: Do not include ggc.h and gt-explow.h.
+	(stack_check_libfunc): Remove GTY marker.
+
+	* except.h (struct eh_landing_pad_d): Skip for GTY field
+	landing_pad.
+	(struct eh_region_d): Skip for GTY fields exc_ptr_reg, filter_reg.
+
+	* except.c (cal_site_record_d): Remove GTY marker.
+	(push_sleb128): Pass heap vector.  Adjust data_area usage.
+	(sjlj_assign_call_site_values): Allocate
+	crtl->eh.action_record_data in heap.
+	(add_call_site): Allocate record in RTL memory.  Adjust
+	crtl->eh.call_site_record usage.
+	(convert_to_eh_region_ranges): Adjust crtl->eh.action_record_data
+	usage.
+	(convert_to_eh_region_ranges): Adjust crtl->eh.call_site_record
+	usage.
+
+	* emit-rtl.c (regno_reg_rtx, free_sequence_stack): Move and make
+	it a field in struct emit_status.
+	(const_int_htab): Remove GTY marker.
+	(mem_attrs_htab): Likewise.
+	(reg_attrs_htab): Likewise.
+	(const_double_htab): Likewise.
+	(const_fixed_htab): Likewise.
+	(mem_attr_exprs): New.
+	(get_mem_attrs): Store expr in mem_attr_exprs.  Allocate *slot in
+	heap.
+	(get_reg_attrs): Allocate *slot in heap.
+	(gen_rtx_REG): Adjust regno_reg_rtx usage.
+	(gen_reg_rtx): Likewise.
+	(start_sequence): Adjust free_sequence_stack usage.  Allocate tem
+	in RTL memory.
+	(end_sequence): Adjust free_sequence_stack usage.
+	(init_virtual_regs): Adjust regno_reg_rtx usage.
+	(init_emit): Adjust regno_reg_rtx and free_sequence_stack usage.
+	Allocate crtl->emit.regno_reg_rtx in heap.
+	(init_emit_once): Create hash tables in heap.
+	(hard_reg_clobbers): Remove GTY marker.
+
+	* dwarf2out.c (used_rtx_array): Remove.
+	(current_unit_personality): Remove GTY marker.
+	(queued_reg_save): Likewise.
+	(queued_reg_saves): Likewise.
+	(reg_saved_in_data): Likewise.
+	(regs_saved_in_regs): Likewise.
+	(num_regs_saved_in_regs): Likewise.
+	(queue_reg_save): Allocate q in heap.
+	(dwarf2out_flush_queued_reg_saves): Free queued_reg_saves.
+	(struct dw_val_struct): Skip for GTY field v.val_addr.
+	(struct var_loc_node): Skip for GTY field loc.
+	(mem_loc_descriptor): Copy rtl to permanent RTL memory area
+	instead of saving in used_rtx_array.
+	(loc_descriptor): Likewise.
+	(add_const_value_attribute): Likewise.
+	(resolve_one_addr): Likewise.
+	(dwarf2out_init): Do not allocate used_rtx_array.
+
+	* dojump.c: Do not include ggc.h and gt-dojump.h
+	(and_reg, and_test, shift_test): Remove GTY marker.
+
+	* df-scan.c (df_ref_change_reg_with_loc_1): Adjust regno_reg_rtx
+	usage.
+	(df_ref_record): Likewise.
+	(df_get_call_refs): Likewise.
+	(df_insn_refs_collect): Likewise.
+	(df_bb_refs_collect): Likewise.
+	(df_entry_block_defs_collect): Likewise.
+	(df_exit_block_uses_collect): Likewise.
+
+	* df-problems.c (df_set_unused_notes_for_mw): Adjust regno_reg_rtx
+	usage.
+	(df_set_dead_notes_for_mw): Likewise.
+
+	* cselib.c: Do not include ggc.h and gt-cselib.h
+	(callmem): Remove GTY marker.
+
+	* cse.c (canon_reg): Adjust regno_reg_rtx usage.
+	(cse_insn): Likewise.
+
+	* config/i386/i386.h (struct machine_frame_state): Skip for GTY
+	field cfa_reg.
+	(strcut machine_function): Remove GTY markers.
+
+	* config/i386/i386.c (struct stack_local_entry): Remove GTY marker.
+	(queued_cfa_restores, split_stack_fn): Likewise.
+	(split_stack_fn_large): Likewise.
+	(ix86_init_machine_status): Allocate f in RTL memory.
+	(assign_386_stack_local): Allocate s in RTL memory.
+	(ix86_tls_symbol): Remove GTY marker.
+	(ix86_tls_module_base_symbol): Likewise.
+
+	* combine.c (try_combine, find_split_point): Adjust regno_reg_rtx
+	usage.
+	(simplify_set): Likewise.
+	(move_deaths): Likewise.
+	(distribute_notes): Likewise.
+
+	* cgraph.h (struct constant_descriptor_tree): Skip for GTY field
+	rtl.
+
+	* cfgrtl.c (init_rtl_bb_info): Allocate bb->il.rtl in RTL memory.
+
+	* cfglayout.h (cfg_layout_function_header)
+	(cfg_layout_function_footer): Remove GTY marker.
+
+	* cfgexpand.c (expand_debug_locations): Store value in
+	cfun->debug_decls.
+	(expand_gimple_basic_block): Likewise.
+
+	* cfg.c (dump_reg_info): Adjust regno_reg_rtx usage.
+
+	* caller-save.c: Do not include ggc.h and gt-caller-save.h
+	(savepat, restpat, test_reg, test_mem, saveinsn, restinsn): Remove
+	GTY marker.
+	(setup_save_areas): Adjust regno_reg_rtx usage.
+
+	* bt-load.c (compute_defs_uses_and_gen): Adjust regno_reg_rtx
+	usage.
+
+	* basic-block.h (union edge_def_insns): Skip for GTY field r.
+	(union basic_block_il_dependent): Skip for GTY field rtl.
+	(rtl_bb_info): Remove GTY marker.
+
+	* alias.c (reg_base_value): Use heap allocation, remove GTY marker.
+	(old_reg_base_value): Likewise.
+	(reg_known_value): Remove GTY marker.
+	(reg_known_value_size): Likewise.
+	(init_alias_analysis): Adjust allocation of reg_base_value and
+	reg_known_value.  Adjust regno_reg_rtx usage.
+	(end_alias_analysis): Adjust freeing of reg_known_value.
+
+	* Makefile.in (tree-ssa-address.o): Adjust dependendencies.
+	(rtl.o): Likewise.
+	(dojump.o): Likewise.
+	(explow.o): Likewise.
+	(integrate.o): Likewise.
+	(cselib.o): Likewise.
+	(gcse.o): Likewise.
+	(caller-save.o): Likewise.
+	(lists.o): Likewise.
+	(GTFILES): Remove caller-save.c, cselib.c, dojump.c, explow.c,
+	gcse.c, integrate.c, lists.c, tree-ssa-address.c

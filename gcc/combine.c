@@ -3037,8 +3037,8 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p)
 		new_dest = gen_rtx_REG (compare_mode, regno);
 	      else
 		{
-		  SUBST_MODE (regno_reg_rtx[regno], compare_mode);
-		  new_dest = regno_reg_rtx[regno];
+		  SUBST_MODE (crtl->emit.regno_reg_rtx[regno], compare_mode);
+		  new_dest = crtl->emit.regno_reg_rtx[regno];
 		}
 
 	      SUBST (SET_DEST (newpat), new_dest);
@@ -3371,8 +3371,9 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p)
 		ni2dest = gen_rtx_REG (new_mode, REGNO (i2dest));
 	      else
 		{
-		  SUBST_MODE (regno_reg_rtx[REGNO (i2dest)], new_mode);
-		  ni2dest = regno_reg_rtx[REGNO (i2dest)];
+		  SUBST_MODE (crtl->emit.regno_reg_rtx[REGNO (i2dest)],
+			      new_mode);
+		  ni2dest = crtl->emit.regno_reg_rtx[REGNO (i2dest)];
 		}
 
 	      parallel = (gen_rtx_PARALLEL
@@ -3387,7 +3388,8 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p)
 		{
 		  struct undo *buf;
 
-		  adjust_reg_mode (regno_reg_rtx[REGNO (i2dest)], old_mode);
+		  adjust_reg_mode (crtl->emit.regno_reg_rtx[REGNO (i2dest)],
+				   old_mode);
 		  buf = undobuf.undos;
 		  undobuf.undos = buf->next;
 		  buf->next = undobuf.frees;
@@ -3509,8 +3511,9 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p)
 		newdest = gen_rtx_REG (split_mode, REGNO (i2dest));
 	      else
 		{
-		  SUBST_MODE (regno_reg_rtx[REGNO (i2dest)], split_mode);
-		  newdest = regno_reg_rtx[REGNO (i2dest)];
+		  SUBST_MODE (crtl->emit.regno_reg_rtx[REGNO (i2dest)],
+			      split_mode);
+		  newdest = crtl->emit.regno_reg_rtx[REGNO (i2dest)];
 		}
 	    }
 
@@ -4505,7 +4508,7 @@ find_split_point (rtx *loc, rtx insn, bool set_src)
 	  && ! memory_address_addr_space_p (GET_MODE (x), XEXP (x, 0),
 					    MEM_ADDR_SPACE (x)))
 	{
-	  rtx reg = regno_reg_rtx[FIRST_PSEUDO_REGISTER];
+	  rtx reg = crtl->emit.regno_reg_rtx[FIRST_PSEUDO_REGISTER];
 	  rtx seq = combine_split_insns (gen_rtx_SET (VOIDmode, reg,
 						      XEXP (x, 0)),
 					 subst_insn);
@@ -6301,8 +6304,8 @@ simplify_set (rtx x)
 		new_dest = gen_rtx_REG (compare_mode, regno);
 	      else
 		{
-		  SUBST_MODE (regno_reg_rtx[regno], compare_mode);
-		  new_dest = regno_reg_rtx[regno];
+		  SUBST_MODE (crtl->emit.regno_reg_rtx[regno], compare_mode);
+		  new_dest = crtl->emit.regno_reg_rtx[regno];
 		}
 
 	      SUBST (SET_DEST (x), new_dest);
@@ -12964,7 +12967,8 @@ move_deaths (rtx x, rtx maybe_kill_insn, int from_luid, rtx to_insn,
 
 	      for (i = deadregno; i < deadend; i++)
 		if (i < regno || i >= ourend)
-		  add_reg_note (where_dead, REG_DEAD, regno_reg_rtx[i]);
+		  add_reg_note (where_dead, REG_DEAD,
+				crtl->emit.regno_reg_rtx[i]);
 	    }
 
 	  /* If we didn't find any note, or if we found a REG_DEAD note that
@@ -12989,7 +12993,7 @@ move_deaths (rtx x, rtx maybe_kill_insn, int from_luid, rtx to_insn,
 		offset = 1;
 
 	      for (i = regno + offset; i < ourend; i++)
-		move_deaths (regno_reg_rtx[i],
+		move_deaths (crtl->emit.regno_reg_rtx[i],
 			     maybe_kill_insn, from_luid, to_insn, &oldnotes);
 	    }
 
@@ -13562,7 +13566,7 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 		      for (i = regno; i < endregno;
 			   i += hard_regno_nregs[i][reg_raw_mode[i]])
 			{
-			  rtx piece = regno_reg_rtx[i];
+			  rtx piece = crtl->emit.regno_reg_rtx[i];
 			  basic_block bb = this_basic_block;
 
 			  if (! dead_or_set_p (place, piece)

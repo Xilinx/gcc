@@ -2750,7 +2750,7 @@ allocno_reload_assign (ira_allocno_t a, HARD_REG_SET forbidden_regs)
     {
       if (internal_flag_ira_verbose > 3 && ira_dump_file != NULL)
 	fprintf (ira_dump_file, ": reassign to %d\n", reg_renumber[regno]);
-      SET_REGNO (regno_reg_rtx[regno], reg_renumber[regno]);
+      SET_REGNO (crtl->emit.regno_reg_rtx[regno], reg_renumber[regno]);
       mark_home_live (regno);
     }
   else if (internal_flag_ira_verbose > 3 && ira_dump_file != NULL)
