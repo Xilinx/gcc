@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "pph.h"
 #include "c-family/c-objc.h"
+#include "timevar.h"
 
 /* The various kinds of conversion.  */
 
@@ -3505,8 +3506,13 @@ perform_overload_resolution (tree fn,
 			     bool *any_viable_p)
 {
   struct z_candidate *cand;
-  tree explicit_targs = NULL_TREE;
-  int template_only = 0;
+  tree explicit_targs;
+  int template_only;
+
+  timevar_start (TV_RESOLVE_OVERLOAD);
+
+  explicit_targs = NULL_TREE;
+  template_only = 0;
 
   *candidates = NULL;
   *any_viable_p = true;
@@ -3533,10 +3539,12 @@ perform_overload_resolution (tree fn,
 		  candidates);
 
   *candidates = splice_viable (*candidates, pedantic, any_viable_p);
-  if (!*any_viable_p)
-    return NULL;
+  if (*any_viable_p)
+    cand = tourney (*candidates);
+  else
+    cand = NULL;
 
-  cand = tourney (*candidates);
+  timevar_stop (TV_RESOLVE_OVERLOAD);
   return cand;
 }
 

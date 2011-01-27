@@ -1681,6 +1681,7 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
 	  return;
 	}
       /* Function definition (nested or otherwise).  */
+      timevar_push (TV_PARSE_FUNC);
       if (nested)
 	{
 	  pedwarn (here, OPT_pedantic, "ISO C forbids nested functions");
@@ -1735,6 +1736,7 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
 	  add_stmt (fnbody);
 	  finish_function ();
 	}
+      timevar_pop (TV_PARSE_FUNC);
       break;
     }
 }
@@ -2187,11 +2189,14 @@ c_parser_enum_specifier (c_parser *parser)
     {
       /* Parse an enum definition.  */
       struct c_enum_contents the_enum;
-      tree type = start_enum (enum_loc, &the_enum, ident);
+      tree type;
       tree postfix_attrs;
       /* We chain the enumerators in reverse order, then put them in
 	 forward order at the end.  */
-      tree values = NULL_TREE;
+      tree values;
+      timevar_push (TV_PARSE_ENUM);
+      type = start_enum (enum_loc, &the_enum, ident);
+      values = NULL_TREE;
       c_parser_consume_token (parser);
       while (true)
 	{
@@ -2255,6 +2260,7 @@ c_parser_enum_specifier (c_parser *parser)
       ret.kind = ctsk_tagdef;
       ret.expr = NULL_TREE;
       ret.expr_const_operands = true;
+      timevar_pop (TV_PARSE_ENUM);
       return ret;
     }
   else if (!ident)
@@ -2368,7 +2374,9 @@ c_parser_struct_or_union_specifier (c_parser *parser)
 	 semicolon separated fields than comma separated fields, and
 	 so we'll be minimizing the number of node traversals required
 	 by chainon.  */
-      tree contents = NULL_TREE;
+      tree contents;
+      timevar_push (TV_PARSE_STRUCT);
+      contents = NULL_TREE;
       c_parser_consume_token (parser);
       /* Handle the Objective-C @defs construct,
 	 e.g. foo(sizeof(struct{ @defs(ClassName) }));.  */
@@ -2455,6 +2463,7 @@ c_parser_struct_or_union_specifier (c_parser *parser)
       ret.kind = ctsk_tagdef;
       ret.expr = NULL_TREE;
       ret.expr_const_operands = true;
+      timevar_pop (TV_PARSE_STRUCT);
       return ret;
     }
   else if (!ident)

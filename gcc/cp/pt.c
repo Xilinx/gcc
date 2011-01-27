@@ -6680,13 +6680,9 @@ maybe_get_template_decl_from_type_decl (tree decl)
    that we want to avoid. It also causes some problems with argument
    coercion (see convert_nontype_argument for more information on this).  */
 
-tree
-lookup_template_class (tree d1,
-		       tree arglist,
-		       tree in_decl,
-		       tree context,
-		       int entering_scope,
-		       tsubst_flags_t complain)
+static tree
+lookup_template_class_1 (tree d1, tree arglist, tree in_decl, tree context,
+			 int entering_scope, tsubst_flags_t complain)
 {
   tree templ = NULL_TREE, parmlist;
   tree t;
@@ -6694,8 +6690,6 @@ lookup_template_class (tree d1,
   spec_entry *entry;
   spec_entry elt;
   hashval_t hash;
-
-  timevar_push (TV_NAME_LOOKUP);
 
   if (TREE_CODE (d1) == IDENTIFIER_NODE)
     {
@@ -6749,7 +6743,7 @@ lookup_template_class (tree d1,
     {
       if (complain & tf_error)
 	error ("%qT is not a template", d1);
-      PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+      return error_mark_node;
     }
 
   if (TREE_CODE (templ) != TEMPLATE_DECL
@@ -6764,7 +6758,7 @@ lookup_template_class (tree d1,
 	  if (in_decl)
 	    error ("for template declaration %q+D", in_decl);
 	}
-      PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+      return error_mark_node;
     }
 
   complain &= ~tf_user;
@@ -6814,10 +6808,10 @@ lookup_template_class (tree d1,
       if (arglist2 == error_mark_node
 	  || (!uses_template_parms (arglist2)
 	      && check_instantiated_args (templ, arglist2, complain)))
-	PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+	return error_mark_node;
 
       parm = bind_template_template_parm (TREE_TYPE (templ), arglist2);
-      PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, parm);
+      return parm;
     }
   else
     {
@@ -6893,7 +6887,7 @@ lookup_template_class (tree d1,
 		{
 		  /* Restore the ARGLIST to its full size.  */
 		  TREE_VEC_LENGTH (arglist) = saved_depth;
-		  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+		  return error_mark_node;
 		}
 
 	      SET_TMPL_ARGS_LEVEL (bound_args, i, a);
@@ -6921,7 +6915,7 @@ lookup_template_class (tree d1,
 
       if (arglist == error_mark_node)
 	/* We were unable to bind the arguments.  */
-	PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+	return error_mark_node;
 
       /* In the scope of a template class, explicit references to the
 	 template class refer to the type of the template, not any
@@ -6937,7 +6931,7 @@ lookup_template_class (tree d1,
 	  /* comp_template_args is expensive, check it last.  */
 	  && comp_template_args (TYPE_TI_ARGS (template_type),
 				 arglist))
-	PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, template_type);
+	return template_type;
 
       /* If we already have this specialization, return it.  */
       elt.tmpl = gen_tmpl;
@@ -6947,7 +6941,7 @@ lookup_template_class (tree d1,
 						  &elt, hash);
 
       if (entry)
-	PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, entry->spec);
+	return entry->spec;
 
       is_dependent_type = uses_template_parms (arglist);
 
@@ -6957,7 +6951,7 @@ lookup_template_class (tree d1,
 	  && check_instantiated_args (gen_tmpl,
 				      INNERMOST_TEMPLATE_ARGS (arglist),
 				      complain))
-	PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, error_mark_node);
+	return error_mark_node;
 
       if (!is_dependent_type
 	  && !PRIMARY_TEMPLATE_P (gen_tmpl)
@@ -6967,7 +6961,7 @@ lookup_template_class (tree d1,
 	  found = xref_tag_from_type (TREE_TYPE (gen_tmpl),
 				      DECL_NAME (gen_tmpl),
 				      /*tag_scope=*/ts_global);
-	  PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, found);
+	  return found;
 	}
 
       context = tsubst (DECL_CONTEXT (gen_tmpl), arglist,
@@ -7158,9 +7152,23 @@ lookup_template_class (tree d1,
       TREE_PUBLIC (type_decl) = 1;
       determine_visibility (type_decl);
 
-      PPH_POP_TIMEVAR_AND_RETURN (TV_NAME_LOOKUP, t);
+      return t;
     }
-  timevar_pop (TV_NAME_LOOKUP);
+}
+
+/* Wrapper for lookup_template_class_1.  */
+
+tree
+lookup_template_class (tree d1, tree arglist, tree in_decl, tree context,
+                      int entering_scope, tsubst_flags_t complain)
+{
+  tree ret;
+  bool subtime = timevar_cond_start (TV_NAME_LOOKUP);
+  ret = lookup_template_class_1 (d1, arglist, in_decl, context,
+                                entering_scope, complain);
+  pph_catch_name_lookup (ret);
+  timevar_cond_stop (TV_NAME_LOOKUP, subtime);
+  return ret;
 }
 
 struct pair_fn_data
@@ -8097,8 +8105,8 @@ perform_typedefs_access_check (tree tmpl, tree targs)
     input_location = saved_location;
 }
 
-tree
-instantiate_class_template (tree type)
+static tree
+instantiate_class_template_1 (tree type)
 {
   tree templ, args, pattern, t, member;
   tree typedecl;
@@ -8590,6 +8598,18 @@ instantiate_class_template (tree type)
     keyed_classes = tree_cons (NULL_TREE, type, keyed_classes);
 
   return type;
+}
+
+/* Wrapper for instantiate_class_template_1.  */
+
+tree
+instantiate_class_template (tree type)
+{
+  tree ret;
+  timevar_push (TV_INSTANTIATE_TEMPLATE);
+  ret = instantiate_class_template_1 (type);
+  timevar_pop (TV_INSTANTIATE_TEMPLATE);
+  return ret;
 }
 
 static tree
@@ -13431,8 +13451,8 @@ check_instantiated_args (tree tmpl, tree args, tsubst_flags_t complain)
 /* Instantiate the indicated variable or function template TMPL with
    the template arguments in TARG_PTR.  */
 
-tree
-instantiate_template (tree tmpl, tree orig_args, tsubst_flags_t complain)
+static tree
+instantiate_template_1 (tree tmpl, tree orig_args, tsubst_flags_t complain)
 {
   tree targ_ptr = orig_args;
   tree fndecl;
@@ -13539,6 +13559,18 @@ instantiate_template (tree tmpl, tree orig_args, tsubst_flags_t complain)
     clone_function_decl (fndecl, /*update_method_vec_p=*/0);
 
   return fndecl;
+}
+
+/* Wrapper for instantiate_template_1.  */
+
+tree
+instantiate_template (tree tmpl, tree orig_args, tsubst_flags_t complain)
+{
+  tree ret;
+  timevar_push (TV_INSTANTIATE_TEMPLATE);
+  ret = instantiate_template_1 (tmpl, orig_args,  complain);
+  timevar_pop (TV_INSTANTIATE_TEMPLATE);
+  return ret;
 }
 
 /* The FN is a TEMPLATE_DECL for a function.  ARGS is an array with
@@ -17117,7 +17149,7 @@ instantiate_decl (tree d, int defer_ok,
   if (! push_tinst_level (d))
     return d;
 
-  timevar_push (TV_PARSE);
+  timevar_push (TV_PARSE_GLOBAL);
 
   /* Set TD to the template whose DECL_TEMPLATE_RESULT is the pattern
      for the instantiation.  */
@@ -17405,7 +17437,7 @@ out:
   pop_deferring_access_checks ();
   pop_tinst_level ();
 
-  timevar_pop (TV_PARSE);
+  timevar_pop (TV_PARSE_GLOBAL);
 
   return d;
 }

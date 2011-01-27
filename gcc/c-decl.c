@@ -9797,6 +9797,8 @@ c_write_global_declarations (void)
   if (pch_file)
     return;
 
+  timevar_start (TV_PHASE_C_WRAPUP_CHECK);
+
   /* Do the Objective-C stuff.  This is where all the Objective-C
      module stuff gets generated (symtab, class/protocol/selector
      lists etc).  */
@@ -9838,9 +9840,15 @@ c_write_global_declarations (void)
     c_write_global_declarations_1 (BLOCK_VARS (DECL_INITIAL (t)));
   c_write_global_declarations_1 (BLOCK_VARS (ext_block));
 
+  timevar_stop (TV_PHASE_C_WRAPUP_CHECK);
+  timevar_start (TV_PHASE_CGRAPH);
+
   /* We're done parsing; proceed to optimize and emit assembly.
      FIXME: shouldn't be the front end's responsibility to call this.  */
   cgraph_finalize_compilation_unit ();
+
+  timevar_stop (TV_PHASE_CGRAPH);
+  timevar_start (TV_PHASE_DBGINFO);
 
   /* After cgraph has had a chance to emit everything that's going to
      be emitted, output debug information for globals.  */
@@ -9854,6 +9862,7 @@ c_write_global_declarations (void)
     }
 
   ext_block = NULL;
+  timevar_stop (TV_PHASE_DBGINFO);
 }
 
 /* Register reserved keyword WORD as qualifier for address space AS.  */

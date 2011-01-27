@@ -1984,7 +1984,7 @@ ggc_collect (void)
   struct alloc_zone *zone;
   bool marked = false;
 
-  timevar_push (TV_GC);
+  timevar_start (TV_GC);
 
   if (!ggc_force_collect)
     {
@@ -2003,7 +2003,7 @@ ggc_collect (void)
 
       if (allocated < allocated_last_gc + min_expand)
 	{
-	  timevar_pop (TV_GC);
+	  timevar_stop (TV_GC);
 	  return;
 	}
     }
@@ -2076,7 +2076,7 @@ ggc_collect (void)
 
   invoke_plugin_callbacks (PLUGIN_GGC_END, NULL);
 
-  timevar_pop (TV_GC);
+  timevar_stop (TV_GC);
 }
 
 /* Print allocation statistics.  */

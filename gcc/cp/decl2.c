@@ -3649,6 +3649,8 @@ cp_write_global_declarations (void)
 
   /* FIXME - huh?  was  input_line -= 1;*/
 
+  timevar_start (TV_PHASE_CP_DEFERRED);
+
   /* We now have to write out all the stuff we put off writing out.
      These include:
 
@@ -3664,8 +3666,6 @@ cp_write_global_declarations (void)
      instantiating one function may cause another to be needed, and
      generating the initializer for an object may cause templates to be
      instantiated, etc., etc.  */
-
-  timevar_push (TV_VARCONST);
 
   emit_support_tinfos ();
 
@@ -3973,7 +3973,13 @@ cp_write_global_declarations (void)
   /* Collect candidates for Java hidden aliases.  */
   candidates = collect_candidates_for_java_method_aliases ();
 
+  timevar_stop (TV_PHASE_CP_DEFERRED);
+  timevar_start (TV_PHASE_CGRAPH);
+
   cgraph_finalize_compilation_unit ();
+
+  timevar_stop (TV_PHASE_CGRAPH);
+  timevar_start (TV_PHASE_CHECK_DBGINFO);
 
   /* Now, issue warnings about static, but not defined, functions,
      etc., and emit debugging information.  */
@@ -4010,8 +4016,6 @@ cp_write_global_declarations (void)
       }
   }
 
-  timevar_pop (TV_VARCONST);
-
   if (flag_detailed_statistics)
     {
       dump_tree_statistics ();
@@ -4022,6 +4026,8 @@ cp_write_global_declarations (void)
 #ifdef ENABLE_CHECKING
   validate_conversion_obstack ();
 #endif /* ENABLE_CHECKING */
+
+  timevar_stop (TV_PHASE_CHECK_DBGINFO);
 }
 
 /* FN is an OFFSET_REF, DOTSTAR_EXPR or MEMBER_REF indicating the

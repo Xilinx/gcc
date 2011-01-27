@@ -564,6 +564,8 @@ compile_file (void)
 {
   /* Initialize yet another pass.  */
 
+  timevar_start (TV_PHASE_PARSING);
+
   ggc_protect_identifiers = true;
 
   init_cgraph ();
@@ -572,7 +574,7 @@ compile_file (void)
   statistics_init ();
   invoke_plugin_callbacks (PLUGIN_START_UNIT, NULL);
 
-  timevar_push (TV_PARSE);
+  timevar_push (TV_PARSE_GLOBAL);
 
   /* Call the parser, which parses the entire file (calling
      rest_of_compilation for each function).  */
@@ -580,7 +582,9 @@ compile_file (void)
 
   /* Compilation is now finished except for writing
      what's left of the symbol table output.  */
-  timevar_pop (TV_PARSE);
+  timevar_pop (TV_PARSE_GLOBAL);
+
+  timevar_stop (TV_PHASE_PARSING);
 
   if (flag_syntax_only || flag_wpa)
     return;
@@ -592,6 +596,8 @@ compile_file (void)
 
   if (seen_error ())
     return;
+
+  timevar_start (TV_PHASE_GENERATE);
 
   varpool_assemble_pending_decls ();
   finish_aliases_2 ();
@@ -671,6 +677,8 @@ compile_file (void)
      into the assembly file here, and hence we can not output anything to the
      assembly file after this point.  */
   targetm.asm_out.file_end ();
+
+  timevar_stop (TV_PHASE_GENERATE);
 }
 
 /* Indexed by enum debug_info_type.  */
@@ -1860,6 +1868,8 @@ do_compile (void)
   /* Don't do any more if an error has already occurred.  */
   if (!seen_error ())
     {
+      timevar_start (TV_PHASE_SETUP);
+
       /* This must be run always, because it is needed to compute the FP
 	 predefined macros, such as __LDBL_MAX__, for targets using non
 	 default FP formats.  */
@@ -1869,11 +1879,17 @@ do_compile (void)
       if (!no_backend)
 	backend_init ();
 
+      timevar_stop (TV_PHASE_SETUP);
+
       /* Language-dependent initialization.  Returns true on success.  */
       if (lang_dependent_init (main_input_filename))
 	compile_file ();
 
+      timevar_start (TV_PHASE_FINALIZE);
+
       finalize (no_backend);
+
+      timevar_stop (TV_PHASE_FINALIZE);
     }
 
   /* Stop timing and print the times.  */

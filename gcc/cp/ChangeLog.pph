@@ -1,3 +1,7 @@
+2011-01-24  Lawrence Crowl <crowl@google.com>
+
+        Merge timevar patch.
+
 2010-12-16  Diego Novillo  <dnovillo@google.com>
 
 	* pph.c (pph_find_exposed_for, pph_get_decl_exposure):

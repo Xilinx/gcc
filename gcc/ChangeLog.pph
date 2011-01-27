@@ -1,3 +1,7 @@
+2011-01-24  Lawrence Crowl <crowl@google.com>
+
+	Merge timevar patch.
+
 2011-01-21  Diego Novillo  <dnovillo@google.com>
 
 	Mainline merge r169107.

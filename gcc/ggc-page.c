@@ -1911,7 +1911,7 @@ ggc_collect (void)
   if (G.allocated < allocated_last_gc + min_expand && !ggc_force_collect)
     return;
 
-  timevar_push (TV_GC);
+  timevar_start (TV_GC);
   if (!quiet_flag)
     fprintf (stderr, " {GC %luk -> ", (unsigned long) G.allocated / 1024);
   if (GGC_DEBUG_LEVEL >= 2)
@@ -1943,7 +1943,7 @@ ggc_collect (void)
 
   invoke_plugin_callbacks (PLUGIN_GGC_END, NULL);
 
-  timevar_pop (TV_GC);
+  timevar_stop (TV_GC);
 
   if (!quiet_flag)
     fprintf (stderr, "%luk}", (unsigned long) G.allocated / 1024);
