@@ -1515,8 +1515,6 @@ examine_call_tm (unsigned *state, gimple_stmt_iterator *gsi)
   gimple stmt = gsi_stmt (*gsi);
   tree fn;
 
-  gimple_call_set_in_transaction (stmt, true);
-
   if (is_tm_pure_call (stmt))
     return;
 
@@ -2320,6 +2318,7 @@ static VEC (basic_block, heap) *
 get_tm_region_blocks (basic_block entry_block,
 		      bitmap exit_blocks,
 		      bitmap irr_blocks,
+		      bitmap all_region_blocks,
 		      bool stop_at_irrevocable_p)
 {
   VEC(basic_block, heap) *bbs = NULL;
@@ -2353,6 +2352,9 @@ get_tm_region_blocks (basic_block entry_block,
 	  }
     }
   while (i < VEC_length (basic_block, bbs));
+
+  if (all_region_blocks)
+    bitmap_ior_into (all_region_blocks, visited_blocks);
 
   BITMAP_FREE (visited_blocks);
   return bbs;
@@ -2395,6 +2397,7 @@ execute_tm_mark (void)
       queue = get_tm_region_blocks (region->entry_block,
 				    region->exit_blocks,
 				    region->irr_blocks,
+				    NULL,
 				    /*stop_at_irr_p=*/true);
       for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
 	expand_block_tm (region, bb);
@@ -2629,6 +2632,7 @@ expand_regions_1 (struct tm_region *region)
       queue = get_tm_region_blocks (region->entry_block,
 				    region->exit_blocks,
 				    region->irr_blocks,
+				    NULL,
 				    /*stop_at_irr_p=*/false);
       expand_transaction (region);
       for (i = 0; VEC_iterate (basic_block, queue, i, bb); ++i)
@@ -3299,7 +3303,9 @@ execute_tm_memopt (void)
       /* Save all BBs for the current region.  */
       bbs = get_tm_region_blocks (region->entry_block,
 				  region->exit_blocks,
-				  region->irr_blocks, false);
+				  region->irr_blocks, 
+				  NULL, 
+				  false);
 
       /* Collect all the memory operations.  */
       for (i = 0; VEC_iterate (basic_block, bbs, i, bb); ++i)
@@ -3363,7 +3369,7 @@ struct gimple_opt_pass pass_tm_memopt =
 	(a) For all local public functions marked tm_callable, push
 	    it onto the tm_callee queue.
 
-	(b) For all local functions, scan for calls marked in_transaction.
+	(b) For all local functions, scan for calls in transaction blocks.
 	    Push the caller and callee onto the tm_caller and tm_callee
 	    queues.  Count the number of callers for each callee.
 
@@ -3437,6 +3443,8 @@ DEF_VEC_ALLOC_P (cgraph_node_p, heap);
 
 typedef VEC (cgraph_node_p, heap) *cgraph_node_queue;
 
+/* List of all BB's that are in transactional regions.  */
+static bitmap bb_in_TM_region = NULL;
 
 /* Return the ipa data associated with NODE, allocating zeroed memory
    if necessary.  */
@@ -3482,7 +3490,8 @@ ipa_tm_scan_calls_transaction (struct cgraph_node *node,
   tree replacement;
 
   for (e = node->callees; e ; e = e->next_callee)
-    if (gimple_call_in_transaction_p (e->call_stmt))
+    /* Check if the callee is in a transactional region. */ 
+    if (bitmap_bit_p (bb_in_TM_region, gimple_bb (e->call_stmt)->index))
       {
 	struct tm_ipa_cg_data *d;
 
@@ -3547,7 +3556,10 @@ ipa_tm_note_irrevocable (struct cgraph_node *node,
 	 above all.  */
       if (is_tm_safe_or_pure (e->caller->decl))
 	continue;
-      if (gimple_call_in_transaction_p (e->call_stmt))
+
+      gcc_assert (gimple_bb (e->call_stmt) != NULL);
+      /* Check if the callee is in a transactional region. */ 
+      if (bitmap_bit_p (bb_in_TM_region, gimple_bb (e->call_stmt)->index))
 	d->want_irr_scan_normal = true;
       maybe_push_queue (e->caller, worklist_p, &d->in_worklist);
     }
@@ -3670,7 +3682,7 @@ ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr, bitmap old_irr,
   if (old_irr && bitmap_bit_p (old_irr, entry_block->index))
     return;
 
-  bbs = get_tm_region_blocks (entry_block, exit_blocks, NULL, false);
+  bbs = get_tm_region_blocks (entry_block, exit_blocks, NULL, NULL, false);
   do
     {
       basic_block bb = VEC_pop (basic_block, bbs);
@@ -3921,7 +3933,7 @@ ipa_tm_diagnose_transaction (struct cgraph_node *node,
 	size_t i;
 
 	bbs = get_tm_region_blocks (r->entry_block, r->exit_blocks,
-				    r->irr_blocks, false);
+				    r->irr_blocks, NULL, false);
 
 	for (i = 0; VEC_iterate (basic_block, bbs, i, bb); ++i)
 	  for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
@@ -4191,15 +4203,6 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   ret = make_ssa_name (ret, g);
   gimple_call_set_lhs (g, ret);
 
-  /* ??? If we need to go irrevocable, we can fail the intermediate
-     commit and restart the transaction.  But representing that means
-     splitting this basic block, which means busting all of the bitmaps
-     we've put together, as well as the dominator tree.  Perhaps we
-     can get away with ignoring it, since the indirect function that
-     we're about to call should also have the back edge.  */
-  if (0 && !safe)
-    gimple_call_set_in_transaction (g, true);
-
   gsi_insert_before (gsi, g, GSI_SAME_STMT);
 
   cgraph_create_edge (node, cgraph_node (gettm_fn), g, 0,
@@ -4453,6 +4456,21 @@ ipa_tm_execute (void)
 #endif
 
   bitmap_obstack_initialize (&tm_obstack);
+  bb_in_TM_region = BITMAP_ALLOC (&tm_obstack);
+
+  /* Build a bitmap of all BB"s inside transaction regions.  */
+  for (node = cgraph_nodes; node; node = node->next)
+    if (node->reachable && node->lowered
+	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
+      {
+	struct tm_region *regions;
+	regions = ipa_tm_region_init (node); 
+	for ( ; regions; regions = regions->next)
+	  {
+	    get_tm_region_blocks (regions->entry_block, NULL, NULL, 
+				  bb_in_TM_region, false);
+	  }
+      }
 
   /* For all local functions marked tm_callable, queue them.  */
   for (node = cgraph_nodes; node; node = node->next)
@@ -4480,7 +4498,7 @@ ipa_tm_execute (void)
 	    continue;
 	  }
 
-	/* ... otherwise scan for calls marked in_transaction.  */
+	/* ... otherwise scan for calls that are in a transaction.  */
 	regions = ipa_tm_region_init (node);
 	if (regions)
 	  {

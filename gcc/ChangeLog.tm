@@ -1,3 +1,23 @@
+2011-01-28  Andrew MacLeod  <amacleod@redhat.com>
+
+	PR/46567 
+	* gimple-pretty-print (dump_gimple_call): Don't check in_transaction.
+	* trans-mem.c (examine_call_tm): Remove gimple_call_set_in_transaction.
+	(get_tm_region_blocks): Add new parameter for returning all blocks in 
+	transactions.
+	(execute_tm_mark, expand_regions_1, execute_tm_memopt): Add extra
+	parameter to call.
+	(bb_in_TM_region): New bitfield for BB's in tranactions.
+	(ipa_tm_scan_calls_transaction): Check new bitfield.
+	(ipa_tm_note_irrevocable): Check new bitfield.
+	(ipa_tm_propagate_irr, ipa_tm_diagnose_transaction): Add extra param.
+	(ipa_tm_insert_gettmclone_call): Remove set_transaction hack.
+	(ipa_tm_execute): Build bb bitmap.
+	* gimple.h (enum gf_mask): Remove GF_CALL_IN_TRANSACTION.
+	(gimple_call_set_in_transaction, gimple_call_in_transaction_p): Delete.
+
+	* testsuite/g++.dg/tm/pr46567.C: New.
+
 2011-01-14  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/45940

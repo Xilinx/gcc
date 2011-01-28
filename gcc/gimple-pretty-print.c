@@ -535,8 +535,6 @@ dump_gimple_call (pretty_printer *buffer, gimple gs, int spc, int flags)
     pp_string (buffer, " [return slot optimization]");
   if (gimple_call_tail_p (gs))
     pp_string (buffer, " [tail call]");
-  if (gimple_call_in_transaction_p (gs))
-    pp_string (buffer, " [in atomic]");
 
   /* Dump the arguments of _ITM_beginTransaction sanely.  */
   if (TREE_CODE (fn) == ADDR_EXPR)
