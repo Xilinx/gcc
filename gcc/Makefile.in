@@ -371,7 +371,8 @@ UNWIND_H = $(srcdir)/unwind-generic.h
 # The GCC to use for compiling crt*.o.
 # Usually the one we just built.
 # Don't use this as a dependency--use $(GCC_PASSES).
-GCC_FOR_TARGET = $(STAGE_CC_WRAPPER) ./xgcc -B./ -B$(build_tooldir)/bin/ -isystem $(build_tooldir)/include -isystem $(build_tooldir)/sys-include -L$(objdir)/../ld
+SYSROOT_CFLAGS_FOR_TARGET = @SYSROOT_CFLAGS_FOR_TARGET@
+GCC_FOR_TARGET = $(STAGE_CC_WRAPPER) $(shell $(PWD_COMMAND))/xgcc $(SYSROOT_CFLAGS_FOR_TARGET) -B$(shell ($PWD_COMMAND))/ -B$(build_tooldir)/bin/ -isystem $(build_tooldir)/include -isystem $(build_tooldir)/sys-include -L$(objdir)/../ld
 
 # This is used instead of ALL_CFLAGS when compiling with GCC_FOR_TARGET.
 # It specifies -B./.
@@ -4843,6 +4844,7 @@ site.exp: ./config.status Makefile
 	@echo "set CXXFLAGS \"\"" >> ./tmp0
 	@echo "set HOSTCC \"$(CC)\"" >> ./tmp0
 	@echo "set HOSTCFLAGS \"$(CFLAGS)\"" >> ./tmp0
+	@echo "set GCC_UNDER_TEST \"$(GCC_FOR_TARGET)\"" >> ./tmp0
 # When running the tests we set GCC_EXEC_PREFIX to the install tree so that
 # files that have already been installed there will be found.  The -B option
 # overrides it, so use of GCC_EXEC_PREFIX will not result in using GCC files

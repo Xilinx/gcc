@@ -759,6 +759,7 @@ CONFIGURE_SPECS
 CROSS_SYSTEM_HEADER_DIR
 TARGET_SYSTEM_ROOT_DEFINE
 TARGET_SYSTEM_ROOT
+SYSROOT_CFLAGS_FOR_TARGET
 RUNTIME_ROOT_PREFIX_DEFINE
 NATIVE_SYSTEM_HEADER_DIR
 enable_shared
@@ -1654,7 +1655,7 @@ Optional Packages:
                           prepend prefix to paths used by the compiler to
                           name the dynamic linker and other files used at
                           runtime.  Defaults to empty (no prefix).
-  --with-build-sysroot=sysroot
+  --with-build-sysroot=SYSROOT
                           use sysroot as the system root during the build
   --with-sysroot=DIR Search for usr/lib, usr/include, et al, within DIR.
   --with-specs=SPECS      add SPECS to driver command-line processing
@@ -7109,8 +7110,13 @@ fi
 
 # Check whether --with-build-sysroot was given.
 if test "${with_build_sysroot+set}" = set; then :
-  withval=$with_build_sysroot;
+  withval=$with_build_sysroot; if test x"$withval" != x ; then
+     SYSROOT_CFLAGS_FOR_TARGET="--sysroot=$withval"
+   fi
+else
+  SYSROOT_CFLAGS_FOR_TARGET=
 fi
+
 
 
 
@@ -17562,7 +17568,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17565 "configure"
+#line 17571 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17668,7 +17674,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17671 "configure"
+#line 17677 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
