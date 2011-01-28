@@ -1,3 +1,13 @@
+2011-01-28  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/47340
+	* Import the following from mainline:
+
+	2010-06-15  Jason Merrill  <jason@redhat.com>
+	[snip]
+	* cp/decl.c (duplicate_decls): Use DECL_IS_BUILTIN rather than test
+	DECL_SOURCE_LOCATION directly.
+
 2011-01-28  Andrew MacLeod  <amacleod@redhat.com>
 
 	PR/46567 
