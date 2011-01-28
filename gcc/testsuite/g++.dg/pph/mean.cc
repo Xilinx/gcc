@@ -1,4 +1,4 @@
-#include <stdlib.h>
+#include <stdlib.h>	// { dg-error "fatal" "invalid hunk" { xfail *-*-* } }
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -160,3 +160,4 @@ main (int argc, char *argv[])
 
   return 0;
 }
+// { dg-error "excess errors" "" { xfail *-*-* } }

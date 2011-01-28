@@ -919,8 +919,6 @@ extern const char *cpp_type2name (enum cpp_ttype, unsigned char flags);
    string literal.  Handles all relevant diagnostics.  */
 extern cppchar_t cpp_parse_escape (cpp_reader *, const unsigned char ** pstr,
 				   const unsigned char *limit, int wide);
-extern lexer_state *cpp_reset_lexer_state (cpp_reader *);
-extern void cpp_restore_lexer_state (cpp_reader *, lexer_state *);
 
 /* Structure used to hold a comment block at a given location in the
    source code.  */

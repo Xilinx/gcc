@@ -326,17 +326,6 @@ pth_write_uint (unsigned int value, FILE *stream)
 }
 
 
-/* Write a size_t VALUE to the STREAM.  Return the number of bytes written.  */
-
-static inline size_t
-pth_write_sizet (size_t value, FILE *stream)
-{
-  size_t sent = fwrite (&value, 1, sizeof (value), stream);
-  gcc_assert (sent == sizeof (value));
-  return sent;
-}
-
-
 /* Write N bytes from P to STREAM.  */
 
 static inline size_t
@@ -564,9 +553,6 @@ pth_debug_identifiers (cpp_idents_used *identifiers)
 static void
 pth_dump_hunk (FILE *stream, cp_token_hunk *hunk)
 {
-  fprintf (stream, "Hunk location: { %lu, %lu, %lu }\n", hunk->text_offset.cur,
-	   hunk->text_offset.line_base, hunk->text_offset.next_line);
-  fprintf (stream, "Hunk length:   %lu characters\n", hunk->text_length);
   pth_dump_identifiers (stream, &hunk->identifiers);
   cp_lexer_dump_tokens (stream, hunk->buffer, 0);
 }
@@ -846,14 +832,6 @@ pth_save_hunk (cp_token_hunk *hunk, FILE *stream)
   /* Write out the identifiers used by HUNK.  */
   pth_save_identifiers (&hunk->identifiers, stream);
 
-  /* Write the offset into the text file where this token starts.  */
-  pth_write_sizet (hunk->text_offset.cur, stream);
-  pth_write_sizet (hunk->text_offset.line_base, stream);
-  pth_write_sizet (hunk->text_offset.next_line, stream);
-
-  /* Write the length of the hunk.  */
-  pth_write_sizet (hunk->text_length, stream);
-
   /* Write the number of tokens in HUNK.  */
   pth_write_uint (VEC_length (cp_token, hunk->buffer), stream);
 
@@ -965,16 +943,6 @@ pth_get_type_from_index (unsigned type_idx, unsigned type_kind)
 
 static void
 pth_read_uint (unsigned int *var_p, FILE *stream)
-{
-  size_t received = fread (var_p, sizeof *var_p, 1, stream);
-  gcc_assert (received == 1);
-}
-
-
-/* Read a size_t into *VAR_P.  */
-
-static void
-pth_read_sizet (size_t *var_p, FILE *stream)
 {
   size_t received = fread (var_p, sizeof *var_p, 1, stream);
   gcc_assert (received == 1);
@@ -1203,14 +1171,6 @@ pth_load_hunk (pth_image *image, FILE *stream)
 
   /* Setup the identifier list.  */
   pth_load_identifiers (&hunk->identifiers, stream);
-
-  /* Read the offset into the text file where this token starts.  */
-  pth_read_sizet (&hunk->text_offset.cur, stream);
-  pth_read_sizet (&hunk->text_offset.line_base, stream);
-  pth_read_sizet (&hunk->text_offset.next_line, stream);
-
-  /* Read the text length of the hunk.  */
-  pth_read_sizet (&hunk->text_length, stream);
 
   /* Read the number of tokens in HUNK. */
   pth_read_uint (&num_tokens, stream);
@@ -1446,7 +1406,7 @@ pth_image_lookup (pth_state *state, const char *fname, cpp_reader *reader)
    the memory image holding HUNK.  */
 
 static void
-pth_append_hunk (cp_lexer *lexer, pth_image *image, cp_token_hunk *hunk)
+pth_append_hunk (cp_lexer *lexer, cp_token_hunk *hunk)
 {
   cp_token *lexer_addr, *hunk_addr;
   unsigned lexer_len, hunk_len;
@@ -1455,12 +1415,6 @@ pth_append_hunk (cp_lexer *lexer, pth_image *image, cp_token_hunk *hunk)
 
   /* Apply all the identifiers used and defined by HUNK.  */
   cpp_lt_replay (parse_in, &hunk->identifiers);
-
-  /* If this file has been read in memory (e.g., by being #included
-     from a tainted file), advance the text buffer pointer to the end
-     of the hunk to avoid reading it again.  */
-  if (image->buffer)
-    cpp_set_pos (image->buffer, hunk->text_offset);
 
   hunk_len = VEC_length (cp_token, hunk->buffer);
 
@@ -1503,6 +1457,7 @@ pth_hunk_is_valid_p (pth_image *image, cp_token_hunk *hunk, cpp_reader *reader)
   verified = cpp_lt_verify (reader, &hunk->identifiers, &bad_use, &cur_def);
   if (!verified && flag_pth_debug >= 1)
     {
+      pth_debug_hunk (hunk);
       fprintf (stderr, "PTH: %s failed verification: %s : <%s> -> <%s>\n",
                          pth_name_for (image->fname), bad_use->ident_str,
                          bad_use->before_str, cur_def);
@@ -1551,89 +1506,46 @@ pth_get_dir_and_name (const char *name, char **dname_p, const char **fname_p)
    #included originally.  Otherwise, it is assumed to be an
    include command done with the flag -include.
 
-   This is used when an image is found to be tainted and tokens
-   need to be read from the original character stream.  OFFSET
-   indicates how far into the character stream to start reading at.  */
+   This is used when we need to process an #include command from 
+   a PPH image and the file to be included is a regular text file.  */
 
 static void
-pth_process_text_file (cp_lexer *lexer, pth_image *image, pth_include *include,
-		       cpp_offset offset)
+pth_process_text_file (cp_lexer *lexer, pth_image *image, pth_include *include)
 {
-  bool prev_permissive, prev_inhibit_warnings;
   bool pushed_p;
   cpp_buffer *buffer;
-  lexer_state *state;
 
   /* Emulate a #include directive on IMAGE->FNAME, if needed.  Note
      that if we are already inside the CPP buffer for IMAGE->FNAME
      we should not include it again, since this will cause another
      call to pth_file_change which will again register IMAGE->FNAME as
      an include for the parent file.  */
-  state = NULL;
-  if (image->buffer != cpp_get_buffer (parse_in))
-    {
-      if (include == NULL || include->itype == IT_INCLUDE_NEXT)
-	{
-	  char *dname;
-	  const char *fname;
-	  pth_get_dir_and_name (image->fname, &dname, &fname);
-	  pushed_p = cpp_push_include_type (parse_in, dname, fname, false,
-					    IT_INCLUDE);
-	  
-	  /* FIXME pph.  We are leaking DNAME here.  libcpp
-	     wants the directory name in permanent storage so we
-	     cannot free it, but we should put it in an obstack
-	     so it can be reclaimed at some point.  */
-	}
-      else
-	pushed_p = cpp_push_include_type (parse_in,
-					  include->dname,
-					  include->iname,
-					  include->angle_brackets,
-					  include->itype);
+  gcc_assert (image->buffer != cpp_get_buffer (parse_in));
 
-      if (!pushed_p)
-	return;
+  if (include == NULL || include->itype == IT_INCLUDE_NEXT)
+    {
+      char *dname;
+      const char *fname;
+      pth_get_dir_and_name (image->fname, &dname, &fname);
+      /* FIXME pph.  We are leaking DNAME here.  libcpp
+	 wants the directory name in permanent storage so we
+	 cannot free it, but we should put it in an obstack
+	 so it can be reclaimed at some point.  */
+      pushed_p = cpp_push_include_type (parse_in, dname, fname, false,
+	                                IT_INCLUDE);
     }
   else
-    {
-      /* Since we already have the buffer on top of the stack,
-	 reset the state of the lexer to avoid skipping over it.  */
-      state = cpp_reset_lexer_state (parse_in);
-    }
+    pushed_p = cpp_push_include_type (parse_in, include->dname, include->iname,
+				      include->angle_brackets, include->itype);
 
-  /* Inhibit libcpp error messages (ignore things like unmatched #endifs).
-     We need to do this because token hunks may span #if/#endif boundaries.
-     For instance,
+  /* Nothing else to do if libcpp decided it did not need the file.  */
+  if (!pushed_p)
+    return;
 
-     	#if <COND>
-	  H1 [1]
-	#else
-	  H2 [2]
-	  #include "foo.h"
-	  H3 [3]
-	#endif
-	H1 or H3 [4]
-
-     In this example we have 3 hunks (H1, H2 and H3).  Depending on the
-     value of <COND> at image creation time, point [4] will belong to
-     hunk H1 (if <COND> was true) or hunk H3 (if <COND> was false).
-
-     When this image is loaded, if H3 cannot be applied because its
-     dependences fail to hold, then we will start pre-processing the
-     text for the file at the start of hunk H3.  This will find a
-     dangling #endif which triggers a libcpp error.  Since we know
-     that we are in the correct arm of the #if (after all H2 was
-     applied from the image), we can safely ignore the error.  */
-  prev_permissive = global_dc->permissive;
-  prev_inhibit_warnings = global_dc->dc_inhibit_warnings;
-  global_dc->dc_inhibit_warnings = true;
-  global_dc->permissive = true;
-
-  /* Position the reader at OFFSET and request to stop reading at
-     the end of it.  */
+  /* Position the reader at the start of the buffer and request to
+     stop reading at the end of it.  */
   buffer = cpp_get_buffer (parse_in);
-  cpp_set_pos (buffer, offset);
+  cpp_set_pos (buffer, cpp_buffer_start);
   cpp_return_at_eof (buffer, true);
 
   /* Get tokens from IMAGE->FNAME.  */
@@ -1643,14 +1555,6 @@ pth_process_text_file (cp_lexer *lexer, pth_image *image, pth_include *include,
      will now contain an EOF, which we do not need.  */
   VEC_pop (cp_token, lexer->buffer);
   cpp_return_at_eof (buffer, false);
-
-  /* Restore libcpp error/warnings.  */
-  global_dc->permissive = prev_permissive;
-  global_dc->dc_inhibit_warnings = prev_inhibit_warnings;
-
-  /* Restore the parser state, if necessary.  */
-  if (state)
-    cpp_restore_lexer_state (parse_in, state);
 }
 
 
@@ -1702,21 +1606,11 @@ pth_image_to_lexer (cp_lexer *lexer, pth_image *image, pth_include *include)
 
 	  hunk = VEC_index (cp_token_hunk_ptr, image->token_hunks, h_ix++);
 	  if (pth_hunk_is_valid_p (image, hunk, parse_in))
-	    pth_append_hunk (lexer, image, hunk);
+	    pth_append_hunk (lexer, hunk);
 	  else
-	    {
-	      PTH_STATS_INCR (invalid_hunks, 1);
-
-	      pth_process_text_file (lexer, image, NULL, hunk->text_offset);
-
-	      /* Since this hunk is invalid, assume that everything
-		 downstream from this hunk is also invalid.  FIXME pph,
-		 it may be possible to optimize this.  We should be
-		 able to pre-process from text exactly
-		 HUNK->TEXT_LENGTH characters instead of the whole
-		 file.  */
-	      break;
-	    }
+	    fatal_error ("Found an invalid hunk in %s.  This header file "
+			 "cannot be converted into a pre-parsed image.",
+			 image->fname);
 	}
       else if (s == 'I')
 	{
@@ -1726,8 +1620,7 @@ pth_image_to_lexer (cp_lexer *lexer, pth_image *image, pth_include *include)
 	  if (pth_image_can_be_used (incdir->image))
 	    pth_image_to_lexer (lexer, incdir->image, incdir);
 	  else
-	    pth_process_text_file (lexer, incdir->image, incdir,
-				   cpp_buffer_start);
+	    pth_process_text_file (lexer, incdir->image, incdir);
 	}
       else
 	gcc_unreachable ();
@@ -1767,7 +1660,6 @@ pth_lexer_to_image (pth_image *image, cp_lexer *lexer, cpp_reader *reader)
   cp_token *lexer_addr, *hunk_addr;
   cp_token_hunk *hunk;
   unsigned num_tokens, start_ix, end_ix;
-  cpp_offset pos;
 
   /* Create a new token hunk.  */
   hunk = ggc_alloc_cleared_cp_token_hunk ();
@@ -1776,12 +1668,6 @@ pth_lexer_to_image (pth_image *image, cp_lexer *lexer, cpp_reader *reader)
 
   /* The identifiers that may conflict with macros.  */
   hunk->identifiers = cpp_lt_capture (reader);
-
-  /* Remember the text offset where this hunk started and its length.  */
-  hunk->text_offset = image->hunk_text_offset;
-  pos = cpp_get_pos (image->buffer);
-  gcc_assert (pos.cur >= hunk->text_offset.cur);
-  hunk->text_length = pos.cur - hunk->text_offset.cur;
 
   /* Compute the bounds for the new token hunk.  */
   start_ix = image->hunk_start_ix;
@@ -1926,11 +1812,6 @@ pth_enter_file (cpp_reader *reader, pth_image *image, pth_include *include,
      file image will be at the current last slot in
      STATE->LEXER->BUFFER.  */
   image->hunk_start_ix = VEC_length (cp_token, state->lexer->buffer);
-
-  /* The new hunk starts at the current offset in the current
-     libcpp buffer.  If this hunk is ever invalidated, this is
-     the offset at which to start pre-processing.  */
-  image->hunk_text_offset = cpp_get_pos (image->buffer);
 }
 
 

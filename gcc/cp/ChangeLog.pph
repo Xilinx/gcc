@@ -1,3 +1,19 @@
+2011-01-27  Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in (cp/parser.o): Fix dependencies.
+	* pph.c (pth_process_text_file): Do not try to start reading the file
+	at an arbitrary offset.
+	Remove OFFSET argument.  Update all users.
+	(pth_image_to_lexer): Emit a fatal error if a hunk fails
+	validation.
+	(pth_lexer_to_image):
+	(pth_enter_file):
+	* pph.h	(struct cp_token_hunk): Remove fields text_offset and
+	text_length.
+	Update all users.
+	(struct pth_image): Remove field hunk_text_offset.
+	Update all users.
+
 2011-01-24  Lawrence Crowl <crowl@google.com>
 
         Merge timevar patch.

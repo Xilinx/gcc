@@ -35,17 +35,6 @@ typedef struct GTY(()) cp_token_hunk
 
   /* The array of tokens.  */
   VEC(cp_token,gc) *buffer;
-
-  /* Offset into the libcpp file buffer where this token hunk starts at.
-     If this token hunk is invalidated, the lexer is repositioned at
-     this offset into the file to start lexing again.  */
-  cpp_offset text_offset;
-
-  /* Length of this hunk in characters.  When the tokens in this hunk
-     are moved into the lexer buffer, the original character stream
-     is advanced this many characters to avoid future lexing from
-     seeing these tokens again.  */
-  size_t text_length;
 } cp_token_hunk;
 
 typedef struct cp_token_hunk *cp_token_hunk_ptr;
@@ -152,10 +141,6 @@ typedef struct GTY(()) pth_image
      created should start.  This is managed by the file changing
      logic in pth_file_change.  */
   unsigned hunk_start_ix;
-
-  /* Offset into the libcpp character buffer where the next token
-     hunk will be read from.  */
-  cpp_offset hunk_text_offset;
 
   /* libcpp buffer associated with IMAGE->FNAME.  */
   cpp_buffer * GTY((skip)) buffer;

@@ -1,4 +1,4 @@
-extern int gbl_init_extern = 3;		// need body			pass
+extern int gbl_init_extern;		// need body			pass
 extern int gbl_uninit_extern;		// head only			pass
 int gbl_tentative;			// need body			pass
 int gbl_initial = 1;			// need body			pass

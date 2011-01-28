@@ -1,3 +1,10 @@
+2011-01-27  Diego Novillo  <dnovillo@google.com>
+
+	* include/cpplib.h (cpp_reset_lexer_state,
+	cpp_restore_lexer_state): Remove.
+	* lex.c: Likewise.
+	Update all users.
+
 2010-12-17  Diego Novillo  <dnovillo@google.com>
 
 	* internal.h (struct cpp_lookaside): Rename field
