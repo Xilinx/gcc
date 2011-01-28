@@ -2,3 +2,7 @@ global mfconfig_libs
 set mfconfig_libs "@LIBS@"
 global libmudflapth
 set libmudflapth "@build_libmudflapth@"
+global CC_UNDER_TEST
+set CC_UNDER_TEST "@CC@"
+global CXX_UNDER_TEST
+set CXX_UNDER_TEST "@CXX@"
