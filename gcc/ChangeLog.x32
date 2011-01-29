@@ -1,3 +1,9 @@
+2011-01-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47537
+	* config/i386/i386.c (ix86_expand_special_args_builtin): Convert
+	to Pmode if needed.
+
 2011-01-27  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR rtl-optimization/47502

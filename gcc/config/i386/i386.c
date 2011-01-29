@@ -26934,6 +26934,8 @@ ix86_expand_special_args_builtin (const struct builtin_description *d,
 	  if (i == memory)
 	    {
 	      /* This must be the memory operand.  */
+	      if (GET_MODE (op) != Pmode)
+		op = convert_to_mode (Pmode, op, 1);
 	      op = gen_rtx_MEM (mode, copy_to_mode_reg (Pmode, op));
 	      gcc_assert (GET_MODE (op) == mode
 			  || GET_MODE (op) == VOIDmode);
