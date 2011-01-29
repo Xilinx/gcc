@@ -5025,6 +5025,7 @@ extern bool is_auto				(const_tree);
 extern tree process_template_parm		(tree, location_t, tree, 
 						 bool, bool, unsigned);
 extern tree end_template_parm_list		(tree);
+void fixup_template_parms (void);
 extern void end_template_decl			(void);
 extern tree maybe_update_decl_type		(tree, tree);
 extern bool check_default_tmpl_args             (tree, tree, int, int, int);
@@ -5245,7 +5246,8 @@ extern tree validate_constexpr_fundecl (tree);
 extern tree register_constexpr_fundef (tree, tree);
 extern bool check_constexpr_ctor_body (tree, tree);
 extern tree ensure_literal_type_for_constexpr_object (tree);
-extern bool potential_constant_expression (tree, tsubst_flags_t);
+extern bool potential_constant_expression (tree);
+extern bool require_potential_constant_expression (tree);
 extern tree cxx_constant_value (tree);
 extern tree maybe_constant_value (tree);
 extern tree maybe_constant_init (tree);

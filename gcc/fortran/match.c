@@ -3134,10 +3134,11 @@ alloc_opt_list:
     }
 
   /* Check F03:C623,  */
-  if (saw_deferred && ts.type == BT_UNKNOWN && !source)
+  if (saw_deferred && ts.type == BT_UNKNOWN && !source && !mold)
     {
       gfc_error ("Allocate-object at %L with a deferred type parameter "
-		 "requires either a type-spec or SOURCE tag", &deferred_locus);
+		 "requires either a type-spec or SOURCE tag or a MOLD tag",
+		 &deferred_locus);
       goto cleanup;
     }
   
@@ -4026,13 +4027,6 @@ gfc_match_namelist (void)
 	  if (sym->as && sym->as->type == AS_ASSUMED_SIZE)
 	    {
 	      gfc_error ("Assumed size array '%s' in namelist '%s' at "
-			 "%C is not allowed", sym->name, group_name->name);
-	      gfc_error_check ();
-	    }
-
-	  if (sym->ts.type == BT_CHARACTER && sym->ts.u.cl->length == NULL)
-	    {
-	      gfc_error ("Assumed character length '%s' in namelist '%s' at "
 			 "%C is not allowed", sym->name, group_name->name);
 	      gfc_error_check ();
 	    }

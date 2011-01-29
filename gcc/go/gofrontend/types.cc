@@ -194,9 +194,9 @@ Type::make_non_abstract_type()
     case TYPE_INTEGER:
       return Type::lookup_integer_type("int");
     case TYPE_FLOAT:
-      return Type::lookup_float_type("float");
+      return Type::lookup_float_type("float64");
     case TYPE_COMPLEX:
-      return Type::lookup_complex_type("complex");
+      return Type::lookup_complex_type("complex128");
     case TYPE_STRING:
       return Type::lookup_string_type();
     case TYPE_BOOLEAN:
@@ -1872,8 +1872,7 @@ Float_type::create_abstract_float_type()
 {
   static Float_type* abstract_type;
   if (abstract_type == NULL)
-    abstract_type = new Float_type(true, FLOAT_TYPE_SIZE,
-				   RUNTIME_TYPE_KIND_FLOAT);
+    abstract_type = new Float_type(true, 64, RUNTIME_TYPE_KIND_FLOAT64);
   return abstract_type;
 }
 
@@ -2029,8 +2028,7 @@ Complex_type::create_abstract_complex_type()
 {
   static Complex_type* abstract_type;
   if (abstract_type == NULL)
-    abstract_type = new Complex_type(true, FLOAT_TYPE_SIZE * 2,
-				     RUNTIME_TYPE_KIND_FLOAT);
+    abstract_type = new Complex_type(true, 128, RUNTIME_TYPE_KIND_COMPLEX128);
   return abstract_type;
 }
 
@@ -3765,7 +3763,7 @@ Struct_type::fill_in_tree(Gogo* gogo, tree type)
       // Don't follow pointers yet, so that we don't get confused by a
       // pointer to an array of this struct type.
       tree field_type_tree;
-      if (p->type()->points_to() != NULL)
+      if (p->type()->points_to() != NULL || p->type()->function_type() != NULL)
 	{
 	  field_type_tree = ptr_type_node;
 	  has_pointer = true;
@@ -3795,7 +3793,8 @@ Struct_type::fill_in_tree(Gogo* gogo, tree type)
 	   p != this->fields_->end();
 	   ++p, field = DECL_CHAIN(field))
 	{
-	  if (p->type()->points_to() != NULL)
+	  if (p->type()->points_to() != NULL
+	      || p->type()->function_type() != NULL)
 	    TREE_TYPE(field) = p->type()->get_tree(gogo);
 	}
     }
@@ -7085,7 +7084,10 @@ Named_type::do_get_tree(Gogo* gogo)
       this->named_tree_ = t;
       t = this->type_->struct_type()->fill_in_tree(gogo, t);
       if (t == error_mark_node)
-	return error_mark_node;
+	{
+	  this->named_tree_ = error_mark_node;
+	  return error_mark_node;
+	}
       break;
 
     case TYPE_ARRAY:
@@ -7120,7 +7122,10 @@ Named_type::do_get_tree(Gogo* gogo)
 	  this->named_tree_ = t;
 	  t = this->type_->interface_type()->fill_in_tree(gogo, t);
 	  if (t == error_mark_node)
-	    return error_mark_node;
+	    {
+	      this->named_tree_ = error_mark_node;
+	      return error_mark_node;
+	    }
 	}
       break;
 
@@ -7948,7 +7953,9 @@ Type::find_field_or_method(const Type* type,
 	  || pf->type()->deref()->is_undefined())
 	continue;
 
-      Named_type* fnt = pf->type()->deref()->named_type();
+      Named_type* fnt = pf->type()->named_type();
+      if (fnt == NULL)
+	fnt = pf->type()->deref()->named_type();
       gcc_assert(fnt != NULL);
 
       int sublevel = level == NULL ? 1 : *level + 1;

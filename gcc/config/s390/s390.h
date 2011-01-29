@@ -531,11 +531,6 @@ extern const enum reg_class regclass_map[FIRST_PSEUDO_REGISTER];
 #define REGNO_OK_FOR_BASE_P(REGNO) REGNO_OK_FOR_INDEX_P (REGNO)
 
 
-/* Given an rtx X being reloaded into a reg required to be in class CLASS,
-   return the class of reg to actually use.  */
-#define PREFERRED_RELOAD_CLASS(X, CLASS)	\
-  s390_preferred_reload_class ((X), (CLASS))
-
 /* We need secondary memory to move data between GPRs and FPRs.  With
    DFP the ldgr lgdr instructions are available.  But these
    instructions do not handle GPR pairs so it is not possible for 31
@@ -779,18 +774,6 @@ do {									\
   s390_canonicalize_comparison (&(CODE), &(OP0), &(OP1))
 
 /* Relative costs of operations.  */
-
-/* On s390, copy between fprs and gprs is expensive.  */
-#define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2)                        \
-  ((   (   reg_classes_intersect_p ((CLASS1), GENERAL_REGS)		\
-        && reg_classes_intersect_p ((CLASS2), FP_REGS))			\
-    || (   reg_classes_intersect_p ((CLASS1), FP_REGS)			\
-        && reg_classes_intersect_p ((CLASS2), GENERAL_REGS))) ? 10 : 1)
-
-/* A C expression for the cost of moving data of mode M between a
-   register and memory.  A value of 2 is the default; this cost is
-   relative to those in `REGISTER_MOVE_COST'.  */
-#define MEMORY_MOVE_COST(M, C, I) 1
 
 /* A C expression for the cost of a branch instruction.  A value of 1
    is the default; other values are interpreted relative to that.  */

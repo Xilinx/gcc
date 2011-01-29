@@ -33,7 +33,7 @@ type RawSockaddrInet6 struct {
 }
 
 func (sa *RawSockaddrInet6) setLen() Socklen_t {
-	sa.raw.Len = SizeofSockaddrInet6
+	sa.Len = SizeofSockaddrInet6
 	return SizeofSockaddrInet6
 }
 
@@ -43,11 +43,11 @@ type RawSockaddrUnix struct {
 	Path [108]int8;
 }
 
-func (sa *RawsockaddrUnix) setLen(n int) {
+func (sa *RawSockaddrUnix) setLen(n int) {
 	sa.Len = uint8(3 + n) // 2 for Family, Len; 1 for NUL.
 }
 
-func (sa *RawsockaddrUnix) getLen() (int, int) {
+func (sa *RawSockaddrUnix) getLen() (int, int) {
 	if sa.Len < 3 || sa.Len > SizeofSockaddrUnix {
 		return 0, EINVAL
 	}
