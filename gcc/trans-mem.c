@@ -3668,7 +3668,7 @@ ipa_tm_scan_irr_blocks (VEC (basic_block, heap) **pqueue, bitmap new_irr,
 
 /* Propagate the irrevocable property both up and down the dominator tree.
    BB is the current block being scanned; EXIT_BLOCKS are the edges of the
-   TM regions; OLD_IRR is the results of a previous scan of the dominator
+   TM regions; OLD_IRR are the results of a previous scan of the dominator
    tree which has been fully propagated; NEW_IRR is the set of new blocks
    which are gaining the irrevocable property during the current scan.  */
 
@@ -3687,19 +3687,24 @@ ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr, bitmap old_irr,
     {
       basic_block bb = VEC_pop (basic_block, bbs);
       bool this_irr = bitmap_bit_p (new_irr, bb->index);
-      bool all_son_irr = true;
+      bool all_son_irr = false;
       edge_iterator ei;
       edge e;
 
-      /* Propagate up.  If my children are, I am too.  */
+      /* Propagate up.  If my children are, I am too, but we must have
+	 at least one child that is.  */
       if (!this_irr)
 	{
 	  FOR_EACH_EDGE (e, ei, bb->succs)
-	    if (!bitmap_bit_p (new_irr, e->dest->index))
-	      {
-		all_son_irr = false;
-		break;
-	      }
+	    {
+	      if (!bitmap_bit_p (new_irr, e->dest->index))
+		{
+		  all_son_irr = false;
+		  break;
+		}
+	      else
+		all_son_irr = true;
+	    }
 	  if (all_son_irr)
 	    {
 	      bitmap_set_bit (new_irr, bb->index);

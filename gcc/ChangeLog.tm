@@ -1,3 +1,8 @@
+2011-01-31  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/47520
+	* trans-mem.c (ipa_tm_propagate_irr): Handle exit blocks.
+
 2011-01-28  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/47340
