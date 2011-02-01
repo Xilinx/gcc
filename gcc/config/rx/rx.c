@@ -874,7 +874,10 @@ rx_function_value (const_tree ret_type,
 
   /* RX ABI specifies that small integer types are
      promoted to int when returned by a function.  */
-  if (GET_MODE_SIZE (mode) > 0 && GET_MODE_SIZE (mode) < 4)
+  if (GET_MODE_SIZE (mode) > 0
+      && GET_MODE_SIZE (mode) < 4
+      && ! COMPLEX_MODE_P (mode)
+      )
     return gen_rtx_REG (SImode, FUNC_RETURN_REGNUM);
     
   return gen_rtx_REG (mode, FUNC_RETURN_REGNUM);
@@ -892,6 +895,7 @@ rx_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
 {
   if (for_return != 1
       || GET_MODE_SIZE (mode) >= 4
+      || COMPLEX_MODE_P (mode)
       || GET_MODE_SIZE (mode) < 1)
     return mode;
 
@@ -1324,7 +1328,10 @@ gen_safe_add (rtx dest, rtx src, rtx val, bool is_frame_related)
     insn = emit_insn (gen_addsi3 (dest, src, val));
   else
     {
-      insn = emit_insn (gen_addsi3_unspec (dest, src, val));
+      /* Wrap VAL in an UNSPEC so that rx_is_legitimate_constant
+	 will not reject it.  */
+      val = gen_rtx_CONST (SImode, gen_rtx_UNSPEC (SImode, gen_rtvec (1, val), UNSPEC_CONST));
+      insn = emit_insn (gen_addsi3 (dest, src, val));
 
       if (is_frame_related)
 	/* We have to provide our own frame related note here
@@ -2663,68 +2670,6 @@ rx_select_cc_mode (enum rtx_code cmp_code, rtx x, rtx y ATTRIBUTE_UNUSED)
     return CC_Fmode;
 
   return mode_from_flags (flags_from_code (cmp_code));
-}
-
-/* Split the floating-point comparison IN into individual comparisons
-   O1 and O2.  O2 may be UNKNOWN if there is no second comparison.
-   Return true iff the comparison operands must be swapped.  */
-
-bool
-rx_split_fp_compare (enum rtx_code in, enum rtx_code *o1, enum rtx_code *o2)
-{
-  enum rtx_code cmp1 = in, cmp2 = UNKNOWN;
-  bool swap = false;
-
-  switch (in)
-    {
-    case ORDERED:
-    case UNORDERED:
-    case LT:
-    case GE:
-    case EQ:
-    case NE:
-      break;
-
-    case GT:
-    case LE:
-      cmp1 = swap_condition (cmp1);
-      swap = true;
-      break;
-
-    case UNEQ:
-      cmp1 = UNORDERED;
-      cmp2 = EQ;
-      break;
-    case UNLT:
-      cmp1 = UNORDERED;
-      cmp2 = LT;
-      break;
-    case UNGE:
-      cmp1 = UNORDERED;
-      cmp2 = GE;
-      break;
-    case UNLE:
-      cmp1 = UNORDERED;
-      cmp2 = GT;
-      swap = true;
-      break;
-    case UNGT:
-      cmp1 = UNORDERED;
-      cmp2 = LE;
-      swap = true;
-      break;
-    case LTGT:
-      cmp1 = ORDERED;
-      cmp2 = NE;
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-
-  *o1 = cmp1;
-  *o2 = cmp2;
-  return swap;
 }
 
 /* Split the conditional branch.  Emit (COMPARE C1 C2) into CC_REG with

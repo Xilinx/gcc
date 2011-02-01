@@ -80,13 +80,11 @@ VXWORKS_ADDITIONAL_CPP_SPEC
 
 #define CC1_SPEC						\
 "%{G*} %{mno-sdata:-msdata=none} %{msdata:-msdata=default}	\
- %{mlittle|mlittle-endian:-mstrict-align}			\
- %{profile: -p}"
+ %{mlittle|mlittle-endian:-mstrict-align}"
 
 #define ASM_SPEC \
 "%(asm_cpu) \
  %{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
- %{Qy:} %{!Qn:-Qy} %{Ym,*} %{Yd,*} \
  %{mrelocatable} %{mrelocatable-lib} %{fpic:-K PIC} %{fPIC:-K PIC} -mbig"
 
 #undef  LIB_SPEC

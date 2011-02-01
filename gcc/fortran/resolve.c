@@ -338,15 +338,17 @@ resolve_formal_arglist (gfc_symbol *proc)
       if (gfc_pure (proc) && !sym->attr.pointer
 	  && sym->attr.flavor != FL_PROCEDURE)
 	{
-	  if (proc->attr.function && sym->attr.intent != INTENT_IN)
+	  if (proc->attr.function && sym->attr.intent != INTENT_IN
+	      && !sym->attr.value)
 	    gfc_error ("Argument '%s' of pure function '%s' at %L must be "
-		       "INTENT(IN)", sym->name, proc->name,
+		       "INTENT(IN) or VALUE", sym->name, proc->name,
 		       &sym->declared_at);
 
-	  if (proc->attr.subroutine && sym->attr.intent == INTENT_UNKNOWN)
+	  if (proc->attr.subroutine && sym->attr.intent == INTENT_UNKNOWN
+	      && !sym->attr.value)
 	    gfc_error ("Argument '%s' of pure subroutine '%s' at %L must "
-		       "have its INTENT specified", sym->name, proc->name,
-		       &sym->declared_at);
+		       "have its INTENT specified or have the VALUE "
+		       "attribute", sym->name, proc->name, &sym->declared_at);
 	}
 
       if (proc->attr.implicit_pure && !sym->attr.pointer
@@ -500,7 +502,7 @@ resolve_contained_fntype (gfc_symbol *sym, gfc_namespace *ns)
   if (sym->result->ts.type == BT_CHARACTER)
     {
       gfc_charlen *cl = sym->result->ts.u.cl;
-      if (!cl || !cl->length)
+      if ((!cl || !cl->length) && !sym->result->ts.deferred)
 	{
 	  /* See if this is a module-procedure and adapt error message
 	     accordingly.  */
@@ -2990,6 +2992,7 @@ resolve_function (gfc_expr *expr)
       && sym->ts.u.cl
       && sym->ts.u.cl->length == NULL
       && !sym->attr.dummy
+      && !sym->ts.deferred
       && expr->value.function.esym == NULL
       && !sym->attr.contained)
     {
@@ -6916,12 +6919,6 @@ check_symbols:
     }
 
 success:
-  if (e->ts.deferred)
-    {
-      gfc_error ("Support for entity at %L with deferred type parameter "
-		 "not yet implemented", &e->where);
-      return FAILURE;
-    }
   return SUCCESS;
 
 failure:
@@ -10234,6 +10231,14 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
       return FAILURE;
     }
 
+  if (sym->attr.proc == PROC_ST_FUNCTION
+      && (sym->attr.allocatable || sym->attr.pointer))
+    {
+      gfc_error ("Statement function '%s' at %L may not have pointer or "
+		 "allocatable attribute", sym->name, &sym->declared_at);
+      return FAILURE;
+    }
+
   /* 5.1.1.5 of the Standard: A function name declared with an asterisk
      char-len-param shall not be array-valued, pointer-valued, recursive
      or pure.  ....snip... A character value of * may only be used in the
@@ -10267,8 +10272,11 @@ resolve_fl_procedure (gfc_symbol *sym, int mp_flag)
 	}
 
       /* Appendix B.2 of the standard.  Contained functions give an
-	 error anyway.  Fixed-form is likely to be F77/legacy.  */
-      if (!sym->attr.contained && gfc_current_form != FORM_FIXED)
+	 error anyway.  Fixed-form is likely to be F77/legacy. Deferred
+	 character length is an F2003 feature.  */
+      if (!sym->attr.contained
+	    && gfc_current_form != FORM_FIXED
+	    && !sym->ts.deferred)
 	gfc_notify_std (GFC_STD_F95_OBS, "Obsolescent feature: "
 			"CHARACTER(*) function '%s' at %L",
 			sym->name, &sym->declared_at);
@@ -11605,7 +11613,8 @@ resolve_fl_derived (gfc_symbol *sym)
 	  return FAILURE;
 	}
 
-      if (c->ts.type == BT_CHARACTER && !c->attr.proc_pointer)
+      if (c->ts.type == BT_CHARACTER && !c->attr.proc_pointer
+	    && !c->ts.deferred)
 	{
 	 if (c->ts.u.cl->length == NULL
 	     || (resolve_charlen (c->ts.u.cl) == FAILURE)
@@ -11617,6 +11626,15 @@ resolve_fl_derived (gfc_symbol *sym)
 			c->ts.u.cl->length ? &c->ts.u.cl->length->where : &c->loc);
 	     return FAILURE;
 	   }
+	}
+
+      if (c->ts.type == BT_CHARACTER && c->ts.deferred
+	  && !c->attr.pointer && !c->attr.allocatable)
+	{
+	  gfc_error ("Character component '%s' of '%s' at %L with deferred "
+		     "length must be a POINTER or ALLOCATABLE",
+		     c->name, sym->name, &c->loc);
+	  return FAILURE;
 	}
 
       if (c->ts.type == BT_DERIVED
@@ -11726,40 +11744,64 @@ resolve_fl_namelist (gfc_symbol *sym)
 
   for (nl = sym->namelist; nl; nl = nl->next)
     {
-      /* Reject namelist arrays of assumed shape.  */
+      /* Check again, the check in match only works if NAMELIST comes
+	 after the decl.  */
+      if (nl->sym->as && nl->sym->as->type == AS_ASSUMED_SIZE)
+     	{
+	  gfc_error ("Assumed size array '%s' in namelist '%s' at %L is not "
+		     "allowed", nl->sym->name, sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+
       if (nl->sym->as && nl->sym->as->type == AS_ASSUMED_SHAPE
-	  && gfc_notify_std (GFC_STD_F2003, "NAMELIST array object '%s' "
-			     "must not have assumed shape in namelist "
+	  && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: NAMELIST array "
+			     "object '%s' with assumed shape in namelist "
 			     "'%s' at %L", nl->sym->name, sym->name,
 			     &sym->declared_at) == FAILURE)
+	return FAILURE;
+
+      if (is_non_constant_shape_array (nl->sym)
+	  && gfc_notify_std (GFC_STD_F2003,  "Fortran 2003: NAMELIST array "
+			     "object '%s' with nonconstant shape in namelist "
+			     "'%s' at %L", nl->sym->name, sym->name,
+			     &sym->declared_at) == FAILURE)
+	return FAILURE;
+
+      if (nl->sym->ts.type == BT_CHARACTER
+	  && (nl->sym->ts.u.cl->length == NULL
+	      || !gfc_is_constant_expr (nl->sym->ts.u.cl->length))
+	  && gfc_notify_std (GFC_STD_F2003,  "Fortran 2003: NAMELIST object "
+			     "'%s' with nonconstant character length in "
+			     "namelist '%s' at %L", nl->sym->name, sym->name,
+			     &sym->declared_at) == FAILURE)
+	return FAILURE;
+
+      /* FIXME: Once UDDTIO is implemented, the following can be
+	 removed.  */
+      if (nl->sym->ts.type == BT_CLASS)
+	{
+	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L is "
+		     "polymorphic and requires a defined input/output "
+		     "procedure", nl->sym->name, sym->name, &sym->declared_at);
+	  return FAILURE;
+	}
+
+      if (nl->sym->ts.type == BT_DERIVED
+	  && (nl->sym->ts.u.derived->attr.alloc_comp
+	      || nl->sym->ts.u.derived->attr.pointer_comp))
+	{
+	  if (gfc_notify_std (GFC_STD_F2003,  "Fortran 2003: NAMELIST object "
+			      "'%s' in namelist '%s' at %L with ALLOCATABLE "
+			      "or POINTER components", nl->sym->name,
+			      sym->name, &sym->declared_at) == FAILURE)
 	    return FAILURE;
 
-      /* Reject namelist arrays that are not constant shape.  */
-      if (is_non_constant_shape_array (nl->sym))
-	{
-	  gfc_error ("NAMELIST array object '%s' must have constant "
-		     "shape in namelist '%s' at %L", nl->sym->name,
+	 /* FIXME: Once UDDTIO is implemented, the following can be
+	    removed.  */
+	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L has "
+		     "ALLOCATABLE or POINTER components and thus requires "
+		     "a defined input/output procedure", nl->sym->name,
 		     sym->name, &sym->declared_at);
-	  return FAILURE;
-	}
-
-      /* Namelist objects cannot have allocatable or pointer components.  */
-      if (nl->sym->ts.type != BT_DERIVED)
-	continue;
-
-      if (nl->sym->ts.u.derived->attr.alloc_comp)
-	{
-	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L cannot "
-		     "have ALLOCATABLE components",
-		     nl->sym->name, sym->name, &sym->declared_at);
-	  return FAILURE;
-	}
-
-      if (nl->sym->ts.u.derived->attr.pointer_comp)
-	{
-	  gfc_error ("NAMELIST object '%s' in namelist '%s' at %L cannot "
-		     "have POINTER components", 
-		     nl->sym->name, sym->name, &sym->declared_at);
 	  return FAILURE;
 	}
     }

@@ -3482,7 +3482,8 @@ expand_or_defer_fn_1 (tree fn)
       if ((flag_keep_inline_functions
 	   && DECL_DECLARED_INLINE_P (fn)
 	   && !DECL_REALLY_EXTERN (fn))
-	  || lookup_attribute ("dllexport", DECL_ATTRIBUTES (fn)))
+	  || (flag_keep_inline_dllexport
+	      && lookup_attribute ("dllexport", DECL_ATTRIBUTES (fn))))
 	mark_needed (fn);
     }
 
@@ -7655,6 +7656,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case BIT_IOR_EXPR:
     case BIT_XOR_EXPR:
     case BIT_AND_EXPR:
+    case TRUTH_XOR_EXPR:
     case UNLT_EXPR:
     case UNLE_EXPR:
     case UNGT_EXPR:
