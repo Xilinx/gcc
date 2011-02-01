@@ -1383,7 +1383,7 @@ ira_reload (void)
   /* What to do when this isn't true?  */
   if (ira_conflicts_p)
     {
-      unsigned int i;
+      unsigned int i, j;
       bitmap_iterator bi;
       basic_block bb;
       bitmap visited;
@@ -1429,6 +1429,54 @@ ira_reload (void)
 	    }
 	}
 	  
+      /* If an assignment to a pseudo has a REG_EQUIV note attached to it for
+	 a non-constant memory address, that memory location can generally be
+	 considered the "home" for the pseudo.
+
+	 That works great, except when the memory location contains a reference
+	 to a pseudo which we are going to localize.  If we use the equivalence
+	 we will introduce an uninitialized use of the pseudo we're localizing.
+
+	 We just remove the equivalence for now; we could do better since we
+	 know these regs will be local to a block and thus we can derive the
+	 split pseudo's current name and update the note.  */
+      for (j = FIRST_PSEUDO_REGISTER; j < (unsigned) max_regno; j++)
+	{
+	  rtx memloc = VEC_index (reg_equivs_t, reg_equivs, j)->memory_loc;
+
+	  if (!memloc)
+	    continue;
+
+	  EXECUTE_IF_SET_IN_BITMAP (pseudos_to_localize, FIRST_PSEUDO_REGISTER,
+				    i, bi)
+	    {
+	      if (reg_mentioned_p (regno_reg_rtx[i], memloc))
+		{
+		  rtx list;
+		  VEC_index (reg_equivs_t, reg_equivs, j)->memory_loc
+		    = NULL_RTX;
+		  for (list = VEC_index (reg_equivs_t, reg_equivs, j)->init;
+		       list;
+		       list = XEXP (list, 1))
+		    {
+		      rtx equiv_insn = XEXP (list, 0);
+		      rtx set = single_set (equiv_insn);
+		      if (set
+			  && REG_P (SET_DEST (set))
+			  && SET_DEST (set) == regno_reg_rtx[j])
+			{
+			  rtx note = find_reg_note (equiv_insn, REG_EQUIV, NULL_RTX);
+			  remove_note (equiv_insn, note);
+			}
+			
+		    }
+		  VEC_index (reg_equivs_t, reg_equivs, j)->init = NULL_RTX;
+		
+		  break;
+		}
+	    }
+	}
+
 
       /* Assign stack slots for pseudos live at block boundaries which did not
          get hard regs.  This unfortunately turns pseudos into hard regs which
