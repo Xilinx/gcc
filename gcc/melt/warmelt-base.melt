@@ -636,6 +636,15 @@ Returns a boxed integer.}#
 	'0))))))
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; test if MELT is bootstrapping
+(defprimitive melt_is_bootstrapping () :long
+  :doc #{Test if MELT is bootstrapping. Only for MELT implementation gurus.}#
+  #{(flag_melt_bootstrapping)}#
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; actually all the sbuf routines now take an outbuf argument, which can be either a string buffer of a file
 (defprimitive is_out (v) :long
   :doc #{Test if value $V is a output value (a stringbuffer or a file).}# 
@@ -2228,7 +2237,7 @@ polyhedron values.}#
  melt_application_count
  melt_application_depth
  melt_application_shallower
-
+ melt_is_bootstrapping
  melt_mode_container
 
  register_pass_execution_hook

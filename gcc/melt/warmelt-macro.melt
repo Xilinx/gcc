@@ -1277,9 +1277,29 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			 (return)
 			 )
 			))) ;; end if opbind is a value binding
+		   ( (and 
+		      (null opbind)
+		      (not (melt_is_bootstrapping))
+		      )
+		     (let ( (macthunk (lambda ()
+					(macroexpand_1 sexpr env mexpander)
+					))
+			   (lazymac (instance class_source_lazy_macro_expansion
+					      :loca_location sloc
+					      :slazymacro_fun macthunk
+					       ))
+			   )
+		       (debug_msg lazymac "macroexpand_1 lazymac")
+		       ))
 		   (:else 
-		    (compile_warning 
-		     "when opbind is null should make a CLASS_SOURCE_LAZY_MACRO_EXPANSION instance")
+		    (if (and 
+			 (melt_is_bootstrapping)
+			 (null opbind))
+			(warning_strv
+			 sloc 
+			 "forward referenced operator handled as application when bootstrapping MELT"
+			 (get_field :named_name soper)
+			 ))
 		   ;; if opbind is null, we should expand to a class_source_lazy_macro_expansion
 		    (let ( (resa (expand_apply sexpr env mexpander))) 
 		      (debug_msg resa "macroexpand_1 result for apply resa")

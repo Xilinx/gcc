@@ -1,7 +1,7 @@
 ;; file warmelt-normal.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -822,6 +822,40 @@ routine procedures.}#
     (assert_msg "normexp_src_catchall unimplemented normexp for src" ())
     ))
 (install_method class_source normal_exp normexp_src_catchall)
+
+
+;; normalization of lazy macro expansion
+(defun normexp_lazymacroexp (recv env ncx psloc)
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check nctxt" (is_a ncx class_normalization_context))
+  (let (
+	(sloc (get_field :loca_location recv))
+	(lazymacfun (get_field :slazymacro_fun recv))
+	)
+    (multicall 
+     (mexp mresexp)
+     (lazymacfun)
+     (debug_msg mexp "normexp_lazymacroexp mexp")
+     (if mresexp
+	 ;; this happens in the pathological case when the lazy macro
+	 ;; macro-expands to more than one result
+	 (error_plain sloc "delayed lazy macro expansion cannot macro expand multiply"))
+     (if (is_a mexp class_source_lazy_macro_expansion)
+	 ;; this happens in the pathological case when a macro
+	 ;; operator is not defined
+	 (progn 
+	   (error_plain sloc "undefined macro; delayed lazy macro expansion too lazy")
+	   (return)
+	   ))
+     (multicall
+      (nrep nbind)
+      (normal_exp mexp env ncx psloc)
+      (debug_msg nrep "normexp_lazymacroexp nrep")
+      (debug_msg nbind "normexp_lazymacroexp nbind")
+      (return nrep nbind)
+      )
+     )))
+(install_method class_source_lazy_macro_expansion normal_exp normexp_lazymacroexp)
 
 ;; the selector to compute the ctype of a value in an environment
 ;;; argument: environment
