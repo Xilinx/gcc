@@ -1,3 +1,7 @@
+2011-02-01  Simon Baldwin  <simonb@google.com>
+
+	* configure: Rebuild.
+
 2011-01-28  Simon Baldwin  <simonb@google.com>
 
 	* configure.ac: Add AC_PROG_CXX.
