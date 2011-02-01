@@ -1,3 +1,12 @@
+2011-02-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (melt_is_bootstrapping): New.
+
+	* melt/warmelt-macro.melt (mexpand1): Use
+	class_source_lazy_macro_expansion unless bootstrapping.
+
+	* melt/warmelt-normal.melt (normexp_lazymacroexp): New method for
+	normal_exp of class_source_lazy_macro_expansion.
+
 2011-01-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt (class_source_lazy_macro_expansion): New.
 	(macroexpand_1): Should use it.
