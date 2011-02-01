@@ -26,6 +26,12 @@ enum GPY_LIT_T {
   TYPE_NONE,
 };
 
+enum GPY_OBJECT_T {
+  TYPE_OBJECT_STATE,
+  TYPE_OBJECT_LIT,
+  TYPE_NULL
+};
+
 typedef struct gpy_rr_literal_t {
   enum GPY_LIT_T type;
   union {
@@ -47,16 +53,24 @@ typedef struct gpy_rr_object_state_t {
   void * self;
   struct gpy_type_obj_def_t * definition;
 } gpy_object_state_t ;
-typedef gpy_object_state_t * gpy_object_t;
+
+typedef struct gpy_object_t {
+  enum GPY_OBJECT_T T;
+  union{
+    gpy_object_state_t * object_state;
+    gpy_literal_t * literal;
+  } o ;
+} gpy_object_t ;
 
 #define METH_NOARGS      (1 << 0) /* 0x01 */
 #define METH_VARARGS     (1 << 1) /* 0x02 */
 #define METH_KEYWORDS    (1 << 2) /* 0x03 */
 
-typedef gpy_object_state_t * (*binary_op)( gpy_object_state_t *,
-					   gpy_object_state_t * );
+typedef gpy_object_t * (*binary_op)( gpy_object_t *,
+				     gpy_object_t * );
 
-typedef gpy_object_state_t * (*gpy_builtin_callback__)( gpy_object_state_t * );
+typedef gpy_object_t * (*gpy_builtin_callback__)
+  (gpy_object_t *, gpy_object_t ** );
 
 typedef struct gpy_builtin_method_def_t {
   char * identifer;
@@ -88,14 +102,14 @@ typedef struct gpy_number_prot_t
 typedef struct gpy_type_obj_def_t {
   char * identifier;
   size_t builtin_type_size;
-  void * (*init_hook)( gpy_literal_t * );
-  void (*destroy_hook)( void * );
-  void (*print_hook)( void * , FILE * , bool );
+  gpy_object_t * (*init_hook)( gpy_object_t ** );
+  void (*destroy_hook)( gpy_object_t * );
+  void (*print_hook)( gpy_object_t * , FILE * , bool );
   struct gpy_number_prot_t * binary_protocol;
   struct gpy_builtin_method_def_t * methods;
 } gpy_type_obj_def_t ;
 
-typedef gpy_object_state_t * (*__callable)( void );
+typedef gpy_object_t * (*__callable)( void );
 
 typedef struct gpy_callable_def_t {
   char * ident; int n_args;
@@ -112,10 +126,11 @@ typedef struct gpy_callable_def_t {
   Gpy_Object_State_Init( x );					\
   gpy_vec_push( ((gpy_context_t*)(y->vector[y->length-1]))->symbols, x );
 
-#define NULL_OBJ_STATE (gpy_object_state_t*) NULL
+#define NULL_OBJ_STATE (gpy_object_state_t *) NULL
+#define NULL_OBJECT (gpy_object_t *) NULL
 
 extern void gpy_rr_init_runtime( void );
-extern gpy_object_state_t * gpy_rr_fold_integer( int );
+extern gpy_object_t * gpy_rr_fold_integer( int );
 
 extern void gpy_rr_init_primitives( void );
 

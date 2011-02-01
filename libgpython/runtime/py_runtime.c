@@ -44,6 +44,11 @@ void gpy_rr_init_primitives( void )
   gpy_obj_integer_mod_init( gpy_primitives );
 }
 
+void gpy_dump_current_stack_trace (void)
+{
+  return;
+}
+
 void gpy_rr_init_runtime( void ) 
 {
   /* 
@@ -81,32 +86,45 @@ void gpy_rr_cleanup_final( void )
   gpy_vec_free( gpy_call_stack );
 }
 
-gpy_object_state_t * gpy_rr_fold_integer( int x )
+gpy_object_t * gpy_rr_fold_integer( int x )
 {
-  gpy_object_state_t * retval = NULL_OBJ_STATE;
-  Gpy_Object_State_Init_Ctx( retval, gpy_namespace_vec );
+  gpy_object_t * retval = NULL_OBJECT;
+
+  gpy_object_state_t * o = NULL_OBJ_STATE;
+  Gpy_Object_State_Init_Ctx( o, gpy_namespace_vec );
+
+  gpy_object_t ** args = (gpy_object_t **)
+    gpy_calloc(2, sizeof(gpy_object_t*));
 
   gpy_literal_t i;
   i.type = TYPE_INTEGER;
   i.literal.integer = x;
 
+  gpy_object_t a1 = { .T = TYPE_OBJECT_LIT, .o.literal = &i };
+  gpy_object_t a2 = { .T = TYPE_NULL, .o.literal = NULL };
+
+  args[0] = &a1;
+  args[1] = &a2;
+
   gpy_type_obj_def_t * Int_def = (gpy_type_obj_def_t *)
     gpy_primitives->vector[ 0 ];
-  
   gpy_assert( Int_def );
-  retval->obj_t_ident = gpy_strdup( Int_def->identifier );
-  retval->ref_count++;
-  retval->self = Int_def->init_hook( &i );
-  retval->definition = Int_def;
+
+  retval = Int_def->init_hook (args);
+  gpy_free(args);
 
   debug("initilized integer object <%p> to <%i>!\n",
 	(void*)retval, x );
+
+  gpy_assert (retval->T == TYPE_OBJECT_STATE);
+  Gpy_Incr_Ref (retval->o.object_state);
 
   return retval;
 }
 
 /**
- * int fd: we could use numbers 1,2 to denote stdout or stderr
+ * int fd: we could use bit masks to represent:
+ *   stdout/stderr ...
  **/
 void gpy_rr_eval_print( int fd, int count, ...  )
 {
@@ -116,19 +134,21 @@ void gpy_rr_eval_print( int fd, int count, ...  )
   /* gpy_object_t is a typedef of gpy_object_state_t *
      to keep stdarg.h happy
   */
-  gpy_object_state_t * it = NULL;
+  gpy_object_t * it = NULL;
   for( idx = 0; idx<count; ++idx )
     {
-      it = va_arg( vl, gpy_object_t );
-      gpy_assert( it );
+      it = va_arg( vl, gpy_object_t* );
+      gpy_assert(it->T == TYPE_OBJECT_STATE);
+      struct gpy_type_obj_def_t * definition = it->o.object_state->definition;
+
       switch( fd )
 	{
 	case 1:
-	  (*it->definition).print_hook( it->self, stdout, false );
+	  (*definition).print_hook( it, stdout, false );
 	  break;
 
 	case 2:
-	  (*it->definition).print_hook( it->self, stderr, false );
+	  (*definition).print_hook( it, stderr, false );
 	  break;
 
 	default:
@@ -204,65 +224,39 @@ void gpy_rr_finalize_block_decls( int n, ... )
   /* gpy_object_t is a typedef of gpy_object_state_t *
      to keep stdarg.h happy
   */
-  gpy_object_state_t * it = NULL;
+  gpy_object_t * it = NULL;
   for( idx = 0; idx<n; ++idx )
     {
-      it = va_arg( vl, gpy_object_t );
+      it = va_arg( vl, gpy_object_t* );
+      gpy_assert(it->T == TYPE_OBJECT_STATE);
       /* no assert this macro auto inserts an assert */
-      Gpy_Decr_Ref( it );
+      Gpy_Decr_Ref( it->o.object_state );
     }
   va_end(vl);
 }
 
-gpy_object_state_t * gpy_rr_fold_call( struct gpy_callable_def_t * callables, 
-				       const char * ident, int n_args, ... )
-{
-  gpy_object_state_t * retval = NULL_OBJ_STATE;
-  unsigned int idx = 0;
-  gpy_callable_def_t c = { NULL, 0, false, 0 };
-
-  debug("looking up callable <%s>!\n", ident );
-
-  while( callables[idx].ident != NULL )
-    {
-      debug("checking <%s>:<%s>!\n", ident, callables[idx].ident );
-      if( strcmp( ident,callables[idx].ident ) == 0 )
-	{
-	  if( n_args == c.n_args )
-	    {
-	      c = callables[idx];
-	      break;
-	    }
-	  else
-	    error("invalid number of arguments: <%i> were required <%i> were passed!\n",
-		  c.n_args, n_args );
-	}
-      idx++;
-    }
-
-  if( c.ident != NULL )
-    {
-      __callable o = c.call;
-      retval = o( );
-    }
-  else
-    fatal("undefined callable object <%s>!\n", ident);
-
-  return retval;
-}
-
-gpy_object_state_t *
-gpy_rr_eval_dot_operator( gpy_object_state_t * x, gpy_object_state_t * y )
+gpy_object_t * gpy_rr_fold_call( struct gpy_callable_def_t * callables, 
+				 const char * ident, int n_args, ... )
 {
   return NULL;
 }
 
-gpy_object_state_t *
-gpy_rr_eval_expression( gpy_object_state_t * x,	gpy_object_state_t * y,
+gpy_object_t *
+gpy_rr_eval_dot_operator( gpy_object_t * x, gpy_object_t * y )
+{
+  return NULL;
+}
+
+gpy_object_t *
+gpy_rr_eval_expression( gpy_object_t * x1, gpy_object_t * y1,
 			gpy_opcode_t op )
 {
   char * op_str = NULL;
-  gpy_object_state_t * retval = NULL;
+  gpy_object_t * retval = NULL;
+
+  gpy_assert(x1->T == TYPE_OBJECT_STATE);
+  gpy_object_state_t * x = x1->o.object_state;
+  gpy_object_state_t * y = y1->o.object_state;
 
   struct gpy_type_obj_def_t * def = x->definition;
   struct gpy_number_prot_t * binops = (*def).binary_protocol;
@@ -284,18 +278,18 @@ gpy_rr_eval_expression( gpy_object_state_t * x,	gpy_object_state_t * y,
 	}
 
 #ifdef DEBUG
-      x->definition->print_hook( x->self, stdout, false );
+      x->definition->print_hook( x1, stdout, false );
       fprintf(stdout, "%s", op_str );
-      y->definition->print_hook( y->self, stdout, true );
+      y->definition->print_hook( y1, stdout, true );
 #endif
       
-      retval = o( x,y );
+      retval = o( x1,y1 );
       
 #ifdef DEBUG
       if( retval )
 	{
 	  fprintf(stdout, "evaluated to: ");
-	  retval->definition->print_hook( retval->self, stdout, false );
+	  retval->o.object_state->definition->print_hook (retval, stdout, false);
 	  fprintf(stdout, "!\n");
 	}
 #endif
