@@ -1,4 +1,11 @@
 2011-02-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-build.tpl (MELTCCAPPLICATION1): New variable. Use it for
+	translating xtramelt-*.melt files.
+
+	* melt-build.mk: Regenerate.
+
+2011-02-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (melt_is_bootstrapping): New.
 
 	* melt/warmelt-macro.melt (mexpand1): Use

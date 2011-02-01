@@ -57,6 +57,12 @@ MELTCCFILE1=$(melt_make_cc1)  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=
 	      $(meltarg_makecmd)=$(MAKE) \
 	      $(meltarg_tempdir)=. $(meltarg_bootstrapping)  $(MELT_DEBUG)
 
+## the invocation to translate the application files -don't pass the -fmelt-bootstrap flag
+MELTCCAPPLICATION1=$(melt_make_cc1)  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
+	      $(meltarg_makefile)=$(melt_make_module_makefile) \
+	      $(meltarg_makecmd)=$(MAKE) \
+	      $(meltarg_tempdir)=. $(MELT_DEBUG)
+
 
 vpath %.so $(melt_make_module_dir) . 
 vpath %.c $(melt_make_source_dir)/generated . $(melt_source_dir)
@@ -2104,7 +2110,7 @@ melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-sy
 	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
-	$(MELTCCFILE1) \
+	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
@@ -2145,7 +2151,7 @@ melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt  \
 	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
-	$(MELTCCFILE1) \
+	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
@@ -2186,7 +2192,7 @@ melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt  \
 	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
-	$(MELTCCFILE1) \
+	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
@@ -2227,7 +2233,7 @@ melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt  \
 	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
-	$(MELTCCFILE1) \
+	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
@@ -2268,7 +2274,7 @@ melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt  \
 	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
-	$(MELTCCFILE1) \
+	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
