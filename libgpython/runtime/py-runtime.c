@@ -235,8 +235,8 @@ void gpy_rr_finalize_block_decls( int n, ... )
   va_end(vl);
 }
 
-gpy_object_t * gpy_rr_fold_call( struct gpy_callable_def_t * callables, 
-				 const char * ident, int n_args, ... )
+gpy_object_t * gpy_rr_fold_call(struct gpy_callable_def_t * callables, 
+				const char * ident, int n_args, ... )
 {
   return NULL;
 }
@@ -248,13 +248,14 @@ gpy_rr_eval_dot_operator( gpy_object_t * x, gpy_object_t * y )
 }
 
 gpy_object_t *
-gpy_rr_eval_expression( gpy_object_t * x1, gpy_object_t * y1,
-			gpy_opcode_t op )
+gpy_rr_eval_expression (gpy_object_t * x1, gpy_object_t * y1,
+			gpy_opcode_t op)
 {
   char * op_str = NULL;
   gpy_object_t * retval = NULL;
 
   gpy_assert(x1->T == TYPE_OBJECT_STATE);
+  gpy_assert(y1->T == TYPE_OBJECT_STATE);
   gpy_object_state_t * x = x1->o.object_state;
   gpy_object_state_t * y = y1->o.object_state;
 
@@ -283,7 +284,7 @@ gpy_rr_eval_expression( gpy_object_t * x1, gpy_object_t * y1,
       y->definition->print_hook( y1, stdout, true );
 #endif
       
-      retval = o( x1,y1 );
+      retval = o(x1,y1);
       
 #ifdef DEBUG
       if( retval )

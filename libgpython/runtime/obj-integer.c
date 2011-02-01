@@ -47,10 +47,12 @@ class foo:
 */
 gpy_object_t * gpy_obj_integer_init (gpy_object_t ** args)
 {
-  return NULL;
+  gpy_object_t * retval = NULL_OBJECT;
+
+  return retval;
 }
 
-/* Destroys self not the object state */
+/* Destroys self (type) not the object state */
 void gpy_obj_integer_destroy (gpy_object_t * self)
 {
   return;
