@@ -1018,6 +1018,27 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	))))
 
 
+;;; expand an s-expression known to be a variadic application
+(defun expand_variadicexpr (variafun sexpr env mexpander)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check end" (is_a env class_environment))
+  (assert_msg "check mexpander" (is_closure mexpander))
+  (assert_msg "check variafun" (is_a variafun class_variadic_function))
+  (debug_msg sexpr "expand_variadicexpr sexpr")
+  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
+	 (sloc (unsafe_get_field :loca_location sexpr))
+	 (xargtup (expand_restlist_as_tuple scont env mexpander))
+	 (res     (instance class_source_variadic_application
+			    :loca_location sloc
+			    :svari_oper variafun
+			    :sargop_args xargtup))
+	 )
+	(debug_msg res "expand_variadicexpr result")
+	(return res)
+    )
+  )
+    
+
 ;; every citeration is (symbol (startargs) (varformals) body...)
 ;; expand an s-expression known to be a citeration
 (defun expand_citeration (citer sexpr env mexpander)
@@ -1237,6 +1258,13 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		       (debug_msg resf "macroexpand_1 result for field resf")
 		       (return resf)
 		       ))
+		   ( (is_a opbind class_variadic_binding)
+		     (let ( (variafun (get_field :fvbind_variadic opbind))
+			    (resf (expand_variadicexpr variafun sexpr env mexpander))
+			   )
+		       (debug_msg resf "macroexpand_1 result for variadic function resf")
+		       (return resf)
+		       ))
 		   ( (is_a opbind class_value_binding)
 		     (let ( (val (unsafe_get_field :vbind_value opbind))
 			    )
@@ -1268,6 +1296,10 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			( (is_a val class_field)
 			  (let ( (resf (expand_fieldexpr val sexpr env mexpander)) )
 			    (debug_msg resf "macroexpand_1 result for field resf")
+			    (return resf)))
+			( (is_a val class_variadic_function)
+			  (let ( (resf (expand_variadicexpr val sexpr env mexpander)) )
+			    (debug_msg resf "macroexpand_1 result for variadic resf")
 			    (return resf)))
 			(:else
 			 (error_strv sloc "macroexpand_1 bad valued operation symbol"_

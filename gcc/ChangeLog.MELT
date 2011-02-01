@@ -1,5 +1,10 @@
 2011-02-01  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-macro.melt (expand_variadicexpr): New.
+	(mexpand_1): Use it.
+
+2011-02-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{regenerated}}
 	* melt/generated/warmelt-normal-0.c: Regenerate.
 	* melt/generated/warmelt-normatch-0+03.c: Regenerate.
