@@ -15,13 +15,13 @@ include/gpython/objects.h
 libgpython_la_CFLAGS = -DPYHON -DSHARED
 libgpython_la_LDFLAGS = -release 0.0.1
 libgpython_la_SOURCES = \
-runtime/obj_boolean.c \
+runtime/obj-boolean.c \
 runtime/obj-string.c \
 runtime/obj-float.c \
 runtime/obj-list.c \
 runtime/obj-integer.c \
 runtime/py-runtime.c \
-runtime/py_garbage.c \
+runtime/py-garbage.c \
 runtime/py-utils.c \
 runtime/backend.c \
 runtime/vectors.c

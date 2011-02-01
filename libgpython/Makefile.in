@@ -80,10 +80,10 @@ am__installdirs = "$(DESTDIR)$(libdir)" \
 	"$(DESTDIR)$(library_includedir)"
 LTLIBRARIES = $(lib_LTLIBRARIES)
 libgpython_la_LIBADD =
-am_libgpython_la_OBJECTS = libgpython_la-obj_boolean.lo \
+am_libgpython_la_OBJECTS = libgpython_la-obj-boolean.lo \
 	libgpython_la-obj-string.lo libgpython_la-obj-float.lo \
 	libgpython_la-obj-list.lo libgpython_la-obj-integer.lo \
-	libgpython_la-py-runtime.lo libgpython_la-py_garbage.lo \
+	libgpython_la-py-runtime.lo libgpython_la-py-garbage.lo \
 	libgpython_la-py-utils.lo libgpython_la-backend.lo \
 	libgpython_la-vectors.lo
 libgpython_la_OBJECTS = $(am_libgpython_la_OBJECTS)
@@ -254,13 +254,13 @@ include/gpython/objects.h
 libgpython_la_CFLAGS = -DPYHON -DSHARED
 libgpython_la_LDFLAGS = -release 0.0.1
 libgpython_la_SOURCES = \
-runtime/obj_boolean.c \
+runtime/obj-boolean.c \
 runtime/obj-string.c \
 runtime/obj-float.c \
 runtime/obj-list.c \
 runtime/obj-integer.c \
 runtime/py-runtime.c \
-runtime/py_garbage.c \
+runtime/py-garbage.c \
 runtime/py-utils.c \
 runtime/backend.c \
 runtime/vectors.c
@@ -362,14 +362,14 @@ distclean-compile:
 	-rm -f *.tab.c
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-backend.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-obj-boolean.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-obj-float.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-obj-integer.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-obj-list.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-obj-string.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-obj_boolean.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-py-garbage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-py-runtime.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-py-utils.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-py_garbage.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libgpython_la-vectors.Plo@am__quote@
 
 .c.o:
@@ -393,12 +393,12 @@ distclean-compile:
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LTCOMPILE) -c -o $@ $<
 
-libgpython_la-obj_boolean.lo: runtime/obj_boolean.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -MT libgpython_la-obj_boolean.lo -MD -MP -MF $(DEPDIR)/libgpython_la-obj_boolean.Tpo -c -o libgpython_la-obj_boolean.lo `test -f 'runtime/obj_boolean.c' || echo '$(srcdir)/'`runtime/obj_boolean.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libgpython_la-obj_boolean.Tpo $(DEPDIR)/libgpython_la-obj_boolean.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/obj_boolean.c' object='libgpython_la-obj_boolean.lo' libtool=yes @AMDEPBACKSLASH@
+libgpython_la-obj-boolean.lo: runtime/obj-boolean.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -MT libgpython_la-obj-boolean.lo -MD -MP -MF $(DEPDIR)/libgpython_la-obj-boolean.Tpo -c -o libgpython_la-obj-boolean.lo `test -f 'runtime/obj-boolean.c' || echo '$(srcdir)/'`runtime/obj-boolean.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libgpython_la-obj-boolean.Tpo $(DEPDIR)/libgpython_la-obj-boolean.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/obj-boolean.c' object='libgpython_la-obj-boolean.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -c -o libgpython_la-obj_boolean.lo `test -f 'runtime/obj_boolean.c' || echo '$(srcdir)/'`runtime/obj_boolean.c
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -c -o libgpython_la-obj-boolean.lo `test -f 'runtime/obj-boolean.c' || echo '$(srcdir)/'`runtime/obj-boolean.c
 
 libgpython_la-obj-string.lo: runtime/obj-string.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -MT libgpython_la-obj-string.lo -MD -MP -MF $(DEPDIR)/libgpython_la-obj-string.Tpo -c -o libgpython_la-obj-string.lo `test -f 'runtime/obj-string.c' || echo '$(srcdir)/'`runtime/obj-string.c
@@ -435,12 +435,12 @@ libgpython_la-py-runtime.lo: runtime/py-runtime.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -c -o libgpython_la-py-runtime.lo `test -f 'runtime/py-runtime.c' || echo '$(srcdir)/'`runtime/py-runtime.c
 
-libgpython_la-py_garbage.lo: runtime/py_garbage.c
-@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -MT libgpython_la-py_garbage.lo -MD -MP -MF $(DEPDIR)/libgpython_la-py_garbage.Tpo -c -o libgpython_la-py_garbage.lo `test -f 'runtime/py_garbage.c' || echo '$(srcdir)/'`runtime/py_garbage.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libgpython_la-py_garbage.Tpo $(DEPDIR)/libgpython_la-py_garbage.Plo
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/py_garbage.c' object='libgpython_la-py_garbage.lo' libtool=yes @AMDEPBACKSLASH@
+libgpython_la-py-garbage.lo: runtime/py-garbage.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -MT libgpython_la-py-garbage.lo -MD -MP -MF $(DEPDIR)/libgpython_la-py-garbage.Tpo -c -o libgpython_la-py-garbage.lo `test -f 'runtime/py-garbage.c' || echo '$(srcdir)/'`runtime/py-garbage.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/libgpython_la-py-garbage.Tpo $(DEPDIR)/libgpython_la-py-garbage.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/py-garbage.c' object='libgpython_la-py-garbage.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -c -o libgpython_la-py_garbage.lo `test -f 'runtime/py_garbage.c' || echo '$(srcdir)/'`runtime/py_garbage.c
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -c -o libgpython_la-py-garbage.lo `test -f 'runtime/py-garbage.c' || echo '$(srcdir)/'`runtime/py-garbage.c
 
 libgpython_la-py-utils.lo: runtime/py-utils.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(libgpython_la_CFLAGS) $(CFLAGS) -MT libgpython_la-py-utils.lo -MD -MP -MF $(DEPDIR)/libgpython_la-py-utils.Tpo -c -o libgpython_la-py-utils.lo `test -f 'runtime/py-utils.c' || echo '$(srcdir)/'`runtime/py-utils.c
