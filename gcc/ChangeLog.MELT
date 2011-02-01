@@ -1,5 +1,12 @@
 2011-02-01  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-macro.melt (expand_variadicexpr): Set the
+	varfun_fixedin.
+
+	* melt/warmelt-normal.melt (normexp_defvariadic): New stub.
+
+2011-02-01  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-macro.melt (expand_variadicexpr): New.
 	(mexpand_1): Use it.
 

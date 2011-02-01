@@ -2341,7 +2341,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 			       ))
 	    (vari (instance class_variadic_function
 			    :named_name (get_field :named_name symb)
-			    :varfun_fixedin ()
+			    :varfun_fixedin formtup
 			    :varfun_initial ()
 			    :varfun_ctransmap ()
 			    :varfun_final ()))
