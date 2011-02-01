@@ -1,3 +1,200 @@
+2011-02-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47541
+	* g++.dg/torture/pr47541.C: New testcase.
+
+2011-01-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47455
+	* gfortran.dg/typebound_call_19.f03: New.
+
+2011-01-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47416
+	* g++.dg/cpp0x/pr47416.C: New test.
+
+2011-01-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47519
+	* gfortran.dg/allocate_deferred_char_scalar_2.f03: New test.
+
+2011-01-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47463
+	* gfortran.dg/typebound_assignment_1.f03: New.
+
+2011-01-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47538
+	* gcc.c-torture/execute/pr47538.c: New test.
+
+2011-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/45325
+	* gcc.target/i386/pr38240.c: Add dg-options "-msse".
+
+2011-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/abi/mangle40.C: Pass "" to dg-require-weak.
+
+2011-01-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/44031
+	* gcc.c-torture/compile/20110131-1.c: New test.
+
+2011-01-31  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47042
+	* gfortran.dg/stmt_func_1.f90: New.
+
+2011-01-31  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47042
+	* gfortran.dg/interface_34.f90: New.
+
+2011-01-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47523
+	* gfortran.dg/realloc_on_assign_5.f03: New test.
+	* gfortran.dg/realloc_on_assign_5.f03: New test.
+
+2011-01-29  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* gfortran.dg/bessel_6.f90: XFAIL on spu-*-*.
+	* gfortran.dg/bessel_7.f90: Likewise.
+	* gfortran.dg/erf_2.F90: Likewise.  Always run with -O0.
+
+	* gfortran.dg/complex_intrinsics_5.f90: Increase "epsilon".
+	* gfortran.dg/sum_init_expr.f03: Likewise.
+
+	* gfortran.dg/realloc_on_assign_2.f03: Skip on spu-*-*.
+
+	* gfortran.dg/lto/20091016-1_0.f90: Replace -shared with
+	-r -nostdlib.
+
+	* gfortran.dg/vect/fast-math-vect-8.f90: Check for vectorized
+	loop only on "vect_intfloat_cvt" targets.
+
+2011-01-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47531
+	* gfortran.dg/shape_6.f90: New.
+
+2011-01-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47434
+	* gfortran.dg/read_infnan_1.f90: Update test.
+	* gfortran.dg/module_nan.f90: Update test.
+	* gfortran.dg/char4_iunit_1.f03: Update test.
+	* gfortran.dg/large_real_kind_1.f90: Update test.
+	* gfortran.dg/real_const_3.f90: Update test.
+	* gfortran.fortran-torture/execute/nan_inf_fmt.f90: Update test.
+
+2011-01-29  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47311
+	* g++.dg/template/param2.C: New test.
+
+2011-01-28  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47285
+	* gfortran.dg/fmt_g.f: New test.
+
+2011-01-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47507
+	* gfortran.dg/pure_formal_1.f90: New.
+
+2011-01-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/42894
+	* gcc.dg/tls/pr42894.c: New test.
+
+2011-01-28  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/pr47276.c: Add dg-require-visibility.
+
+2011-01-28  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.target/i386/asm-6.c: XFAIL on i?86-pc-solaris2.1[0-9] && ilp32.
+
+2011-01-28  Paul Thomas  <pault@gcc.gnu.org>
+	    Tobias Burnus  <burnus@gcc.gnu.org>
+
+	PR fortran/45170
+	PR fortran/35810
+	PR fortran/47350
+	* gfortran.dg/realloc_on_assign_3.f03: New test.
+	* gfortran.dg/realloc_on_assign_4.f03: New test.
+	* gfortran.dg/allocatable_function_5.f90: New test.
+	* gfortran.dg/allocate_deferred_char_scalar_1.f03: New test.
+	* gfortran.dg/deferred_type_param_2.f90: Remove two "not yet
+	implemented" dg-errors.
+
+2011-01-27  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/46949
+	* gcc.dg/attr-weakref-4.c: New testcase
+
+2011-01-27  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/47228
+	* gcc.dg/torture/pr47228.c: New test.
+
+2011-01-27  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/tree-ssa/pr42585.c: Disable on s390 and s390x.
+
+2011-01-27  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* lib/compat.exp (compat-execute): Pass -Wl,--extra-stack-space=8192
+	when using auto-overlay support on the SPU.
+
+2011-01-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/44174
+	* gcc.target/i386/asm-6.c: New test.
+
+2011-01-26  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR rtl-optimization/46856
+	* gcc.c-torture/compile/pr46856.c: New test.
+
+2011-01-26  Nicola Pero  <nicola.pero@meta-innovation.com>
+	    Andrew Pinski  <pinskia@gmail.com>
+
+	PR c/43082
+	* gcc.dg/pr43082.c: New.
+
+2011-01-26  DJ Delorie  <dj@redhat.com>
+
+	PR rtl-optimization/46878
+	* gcc.dg/pr46878-1.c: New test.
+
+2011-01-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47476
+	* g++.dg/cpp0x/pr47476.C: New test.
+
+2011-01-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.c-torture/compile/20110126-1.c: New test.
+
+2011-01-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/47473
+	* gcc.dg/torture/pr47473.c: New test.
+
+2011-01-26  Jan Hubicka  <jh@suse.cz>
+
+	PR target/47237
+	* gcc.c-torture/execute/pr47237.c: New testcase.
+
+2011-01-26  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/47190
+	* gcc.dg/attr-weakref-3.c: New testcase.
+
 2011-01-26  Dave Korn  <dave.korn.cygwin@gmail.com>
 
 	PR c++/43601

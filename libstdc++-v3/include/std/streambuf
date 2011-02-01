@@ -43,7 +43,9 @@
 #include <bits/cpp_type_traits.h>
 #include <ext/type_traits.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   template<typename _CharT, typename _Traits>
     streamsize
@@ -746,7 +748,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       overflow(int_type /* __c */ = traits_type::eof())
       { return traits_type::eof(); }
 
-#if _GLIBCXX_DEPRECATED
+#if _GLIBCXX_USE_DEPRECATED
     // Annex D.6
     public:
       /**
@@ -793,7 +795,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 			  basic_streambuf<wchar_t>* __sbout, bool& __ineof);
 #endif
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #include <bits/streambuf.tcc>
 

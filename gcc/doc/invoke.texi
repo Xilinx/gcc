@@ -6875,8 +6875,10 @@ at @option{-O} and higher.
 
 @item -ftree-loop-linear
 @opindex ftree-loop-linear
-Perform linear loop transformations on tree.  This flag can improve cache
-performance and allow further loop optimizations to take place.
+Perform loop interchange transformations on tree.  Same as
+@option{-floop-interchange}.  To use this code transformation, GCC has
+to be configured with @option{--with-ppl} and @option{--with-cloog} to
+enable the Graphite loop transformation infrastructure.
 
 @item -floop-interchange
 @opindex floop-interchange
@@ -7695,7 +7697,7 @@ This option enables the extraction of object files with GIMPLE bytecode out of
 library archives. This improves the quality of optimization by exposing more
 code the the link time optimizer.  This information specify what symbols 
 can be accessed externally (by non-LTO object or during dynamic linking).
-Resulting code quality improvements on binaries (and shared libaries that do
+Resulting code quality improvements on binaries (and shared libraries that do
 use hidden visibility) is similar to @code{-fwhole-program}.  See
 @option{-flto} for a description on the effect of this flag and how to use it.
 
@@ -8514,7 +8516,7 @@ Select fraction of the maximal count of repetitions of basic block in program
 given basic block needs to have to be considered hot.
 
 @item hot-bb-frequency-fraction
-Select fraction of the maximal frequency of executions of basic block in
+Select fraction of the entry block frequency of executions of basic block in
 function given basic block needs to have to be considered hot
 
 @item max-predicted-iterations

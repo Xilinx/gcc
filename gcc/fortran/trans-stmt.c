@@ -1,5 +1,6 @@
 /* Statement translation -- generate GCC trees from gfc_code.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011
    Free Software Foundation, Inc.
    Contributed by Paul Brook <paul@nowt.org>
    and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -4507,14 +4508,78 @@ gfc_trans_allocate (gfc_code * code)
 	      else
 		memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->expr3->ts));
 	    }
+	  else if (al->expr->ts.type == BT_CHARACTER
+		     && al->expr->ts.deferred && code->expr3)
+	    {
+	      if (!code->expr3->ts.u.cl->backend_decl)
+		{
+		  /* Convert and use the length expression.  */
+		  gfc_se se_sz;
+		  gfc_init_se (&se_sz, NULL);
+		  if (code->expr3->expr_type == EXPR_VARIABLE
+			|| code->expr3->expr_type == EXPR_CONSTANT)
+		    {
+		      gfc_conv_expr (&se_sz, code->expr3);
+		      memsz = se_sz.string_length;
+		    }
+		  else if (code->expr3->ts.u.cl
+			     && code->expr3->ts.u.cl->length)
+		    {
+		      gfc_conv_expr (&se_sz, code->expr3->ts.u.cl->length);
+		      gfc_add_block_to_block (&se.pre, &se_sz.pre);
+		      se_sz.expr = gfc_evaluate_now (se_sz.expr, &se.pre);
+		      gfc_add_block_to_block (&se.pre, &se_sz.post);
+		      memsz = se_sz.expr;
+		    }
+		  else if (code->ext.alloc.ts.u.cl
+			     && code->ext.alloc.ts.u.cl->length)
+		    {
+		      gfc_conv_expr (&se_sz, code->ext.alloc.ts.u.cl->length);
+		      memsz = se_sz.expr;
+		    }
+		  else
+		    {
+		      /* This is likely to be inefficient.  */
+		      gfc_conv_expr (&se_sz, code->expr3);
+		      gfc_add_block_to_block (&se.pre, &se_sz.pre);
+		      se_sz.expr = gfc_evaluate_now (se_sz.expr, &se.pre);
+		      gfc_add_block_to_block (&se.pre, &se_sz.post);
+		      memsz = se_sz.string_length;
+		    }
+		}
+	      else
+		/* Otherwise use the stored string length.  */
+		memsz = code->expr3->ts.u.cl->backend_decl;
+	      tmp = al->expr->ts.u.cl->backend_decl;
+
+	      /* Store the string length.  */
+	      if (tmp && TREE_CODE (tmp) == VAR_DECL)
+		gfc_add_modify (&se.pre, tmp, fold_convert (TREE_TYPE (tmp),
+				memsz));
+
+	      /* Convert to size in bytes, using the character KIND.  */
+	      tmp = TREE_TYPE (gfc_typenode_for_spec (&al->expr->ts));
+	      tmp = TYPE_SIZE_UNIT (tmp);
+	      memsz = fold_build2_loc (input_location, MULT_EXPR,
+				       TREE_TYPE (tmp), tmp,
+				       fold_convert (TREE_TYPE (tmp), memsz));
+	    }
 	  else if (code->ext.alloc.ts.type != BT_UNKNOWN)
 	    memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->ext.alloc.ts));
 	  else
 	    memsz = TYPE_SIZE_UNIT (TREE_TYPE (TREE_TYPE (se.expr)));
 
 	  if (expr->ts.type == BT_CHARACTER && memsz == NULL_TREE)
-	    memsz = se.string_length;
+	    {
+	      memsz = se.string_length;
 
+	      /* Convert to size in bytes, using the character KIND.  */
+	      tmp = TREE_TYPE (gfc_typenode_for_spec (&code->ext.alloc.ts));
+	      tmp = TYPE_SIZE_UNIT (tmp);
+	      memsz = fold_build2_loc (input_location, MULT_EXPR,
+				       TREE_TYPE (tmp), tmp,
+				       fold_convert (TREE_TYPE (tmp), memsz));
+	    }
 	  /* Allocate - for non-pointers with re-alloc checking.  */
 	  {
 	    gfc_ref *ref;
@@ -4604,8 +4669,15 @@ gfc_trans_allocate (gfc_code * code)
 	      tmp = gfc_finish_block (&call.pre);
 	    }
 	  else
-	    tmp = gfc_trans_assignment (gfc_expr_to_initialize (expr),
-					rhs, false, false);
+	    {
+	      /* Switch off automatic reallocation since we have just done
+		 the ALLOCATE.  */
+	      int realloc_lhs = gfc_option.flag_realloc_lhs;
+	      gfc_option.flag_realloc_lhs = 0;
+	      tmp = gfc_trans_assignment (gfc_expr_to_initialize (expr),
+					  rhs, false, false);
+	      gfc_option.flag_realloc_lhs = realloc_lhs;
+	    }
 	  gfc_free_expr (rhs);
 	  gfc_add_expr_to_block (&block, tmp);
 	}

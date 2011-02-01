@@ -24,8 +24,7 @@
 
 /** @file bits/hashtable.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
- *  @headername{unordered_map, unordered_set}
+ *  Do not attempt to use it directly. @headername{unordered_map, unordered_set}
  */
 
 #ifndef _HASHTABLE_H
@@ -35,7 +34,9 @@
 
 #include <bits/hashtable_policy.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   // Class template _Hashtable, class definition.
 
@@ -1229,6 +1230,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	}
     }
 
-_GLIBCXX_END_NAMESPACE // namespace std
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace std
 
 #endif // _HASHTABLE_H
