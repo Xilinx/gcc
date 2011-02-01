@@ -1,3 +1,44 @@
+2011-02-01  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* Makefile.in (build/gengtype.o): Remove rtl.def and
+	insn-notes.def from dependencies.
+
+	* gengtype.c (CONST_DOUBLE_FORMAT, GENERATOR_FILE): Remove.
+	(enum insn_note, note_insn_name): Remove.
+
+
+2011-02-01  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* gengtype.c (do_dump, do_debug): Change type to bool.
+	(new_structure): Change type of isunion arg to bool.
+	(find_structure): Likewise.
+	(adjust_field_tree_exp): Use Boolean constants instead of numbers.
+	(adjust_field_type): Likewise.
+	(process_gc_options): Change type of int args to bool.  Use
+	Boolean constants instead of numbers.
+	(set_gc_used_type): Use bool for local vars where appropriate.
+	(struct flist): Change type of started_p to bool.
+	(struct write_types_data): Change type of skip_hooks to bool.
+	(contains_scalar_p): Change return type to bool.
+	(write_root): Change type of has_length arg to bool.  Use Boolean
+	constants instead of numbers.
+	(struct walk_type_data): Change type of used_length to bool.
+	(walk_type): Use bool for local vars where appropriate.
+	(ggc_wtd, pch_wtd): Use lowercase Boolean constants.
+	(finish_root_table): Use Boolean constants instead of numbers.
+	(write_field_root): Change type of has_length arg to bool.
+	(write_roots): Use bool for local vars where appropriate.  Ue
+	Boolean constants instead of numbers.
+	(note_def_vec): Use Boolean constants instead of numbers.
+	(output_typename): Fix typo in header comment.
+	(parse_program_options): Use Boolean constants instead of
+	numbers.
+	(main): Use lowercase Boolean constants.
+
+	* gengtype.h (new_structure): Change type of isunion arg to bool.
+	(find_structure): Likewise.
+	(do_dump, do_debug): Change type to bool.
+
 2011-01-27  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* vecir.h: Do not define rtx vector in GC.

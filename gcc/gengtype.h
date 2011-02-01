@@ -392,10 +392,10 @@ extern char *xasprintf (const char *, ...) ATTRIBUTE_PRINTF_1;
 extern void do_typedef (const char *s, type_p t, struct fileloc *pos);
 extern void do_scalar_typedef (const char *s, struct fileloc *pos);
 extern type_p resolve_typedef (const char *s, struct fileloc *pos);
-extern type_p new_structure (const char *name, int isunion,
+extern type_p new_structure (const char *name, bool isunion,
 			     struct fileloc *pos, pair_p fields,
 			     options_p o);
-extern type_p find_structure (const char *s, int isunion);
+extern type_p find_structure (const char *s, bool isunion);
 extern type_p create_scalar_type (const char *name);
 extern type_p create_pointer (type_p t);
 extern type_p create_array (type_p t, const char *len);
@@ -462,11 +462,11 @@ extern int verbosity_level;	/* (-v) program argument.  */
 
 /* Dump everything to understand gengtype's state. Might be useful to
    gengtype users.  */
-extern int do_dump;		/* (-d) program argument. */
+extern bool do_dump;		/* (-d) program argument. */
 
 /* Trace the execution by many DBGPRINTF (with the position inside
    gengtype source code).  Only useful to debug gengtype itself.  */
-extern int do_debug;		/* (-D) program argument. */
+extern bool do_debug;		/* (-D) program argument. */
 
 #if ENABLE_CHECKING
 #define DBGPRINTF(Fmt,...) do {if (do_debug)				\

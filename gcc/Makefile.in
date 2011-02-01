@@ -3891,8 +3891,7 @@ build/gengtype-parse.o : gengtype-parse.c gengtype.h $(BCONFIG_H)	\
 build/gengtype-state.o: gengtype-state.c gengtype.h $(BCONFIG_H)	\
   $(SYSTEM_H) errors.h
 build/gengtype.o : gengtype.c $(BCONFIG_H) $(SYSTEM_H) gengtype.h 	\
-  rtl.def insn-notes.def errors.h double-int.h $(HASHTAB_H)             \
-  $(OBSTACK_H) $(XREGEX_H)
+  errors.h double-int.h $(HASHTAB_H) $(OBSTACK_H) $(XREGEX_H)
 build/genmddeps.o: genmddeps.c $(BCONFIG_H) $(SYSTEM_H) coretypes.h	\
   errors.h $(READ_MD_H)
 build/genmodes.o : genmodes.c $(BCONFIG_H) $(SYSTEM_H) errors.h		\
