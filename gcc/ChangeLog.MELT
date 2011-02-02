@@ -1,4 +1,8 @@
 2011-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/topengpu-1.c: Changed comment to pass
+	-floop-parallelize-all.
+
+2011-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (loop_can_be_parallel)
 	(with_cfun_decl, each_bb_current_fun): new.
 	(debugloop): Output to stderr.
