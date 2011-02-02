@@ -1,3 +1,132 @@
+2011-02-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47566
+	* builtins.c (builtin_save_expr): No SAVE_EXPR for SSA_NAMEs.
+
+2011-02-02  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/47106
+	PR debug/47402
+	* tree-inline.c (declare_return_variable): Remove unused caller
+	variable.
+
+	PR debug/47106
+	PR debug/47402
+	* tree-flow-inline.h (clear_is_used, is_used_p): New.
+	* cfgexpand.c (account_used_vars_for_block): Use them.
+	* tree-nrv.c (tree_nrv): Likewise.
+	* tree-ssa-live.c (remove_unused_scope_block_p): Likewise.
+	(dump_scope_block): Likewise.
+	(remove_unused_locals): Likewise.
+
+	PR debug/47106
+	PR debug/47402
+	* tree-inline.c (declare_return_variable): Add result decl to
+	local decls only once.
+	* gimple-low.c (record_vars_into): Mark newly-created variables
+	as referenced.
+
+2011-02-02  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/47498
+	PR debug/47501
+	PR debug/45136
+	PR debug/45130
+	* haifa-sched.c (get_ebb_head_tail): Move notes across boundary
+	debug insns.
+	(no_real_insns_p, schedule_block, set_priorities): Drop special
+	treatment of boundary debug insns.
+	* sched-deps.c (sd_init_insn, sd_finish_insn): Don't mark debug
+	insns.
+	* sched-ebb.c (schedule_ebbs): Adjust skipping of debug insns.
+	* sched-int.h (DEBUG_INSN_SCHED_P): Remove.
+	(BOUNDARY_DEBUG_INSN_P): Likewise.
+	(SCHEDULE_DEBUG_INSN_P): Likewise.
+	* sched-rgn.c (init_ready_list): Drop special treatment of
+	boundary debug insns.
+	* final.c (rest_of_clean_state): Clear notes' BB.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/openbsd.opt (assert=): New Driver option.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/nto.opt: New.
+	* config.gcc (i[34567]86-*-nto-qnx*): Use i386/nto.opt.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/netware.opt: New.
+	* config.gcc (i[3456x]86-*-netware*): Use i386/netware.opt.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/interix.opt (posix): New Driver option.
+
+2011-02-01  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/m32c.h (PTRDIFF_TYPE): Remove extra definition.
+
+	* config/m32c/m32c.c (m32c_regno_reg_class): Return smallest reg
+	class for A0/A1.
+
+2011-02-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/47561
+	* toplev.c (process_options): Print the Graphite flags.  Add
+	flag_loop_flatten to the list of options requiring Graphite.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/cygming.opt (posix): New Driver option.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/vxworks.opt: New.
+	* config.gcc (arm-wrs-vxworks): Use arm/vxworks.opt.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/alpha/elf.opt: New.
+	* config.gcc (alpha*-*-linux*, alpha*-*-gnu*, alpha*-*-freebsd*,
+	alpha*-*-netbsd*, alpha*-*-openbsd*): Use alpha/elf.opt.
+
+2011-02-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47559
+	* tree-ssa-loop-im.c (can_sm_ref_p): Do not perform
+	store-motion on references that can throw.
+
+2011-02-01  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* tree-dump.c (dump_option_value_info): Add entry for TDF_CSELIB.
+	* tree-pass.h (TDF_CSELIB): New macro.
+	* cselib.c (new_cselib_val, expand_loc, cselib_expand_value_rtx_1,
+	cselib_lookup): Check for it rather than for TDF_DETAILS.
+
+2011-02-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR driver/47547
+	* lto-wrapper.c (run_gcc): Don't add -dumpdir if linker_output
+	is HOST_BIT_BUCKET.
+
+	* opts.c (finish_options): Don't add x_aux_base_name if it is
+	HOST_BIT_BUCKET.
+
+2011-02-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47555
+	Revert
+	2010-07-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* params.def (PARAM_SCEV_MAX_EXPR_SIZE): Bump the value to 100.
+
+2011-02-01  Sebastien Bourdeauducq  <sebastien@milkymist.org>
+
+	PR gcc/46692
+	* config/lm32/t-lm32: Add multilib for all CPU options.
+
 2011-02-01  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/47541

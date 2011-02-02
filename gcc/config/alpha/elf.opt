@@ -1,6 +1,6 @@
-; OpenBSD options.
+; Alpha ELF options.
 
-; Copyright (C) 2010, 2011
+; Copyright (C) 2011
 ; Free Software Foundation, Inc.
 ;
 ; This file is part of GCC.
@@ -24,13 +24,7 @@
 
 ; Please try to keep this file in ASCII collating order.
 
-assert=
-Driver JoinedOrMissing
-
-posix
-Driver
-
-pthread
+relax
 Driver
 
 ; This comment is to ensure we retain the blank line above.
