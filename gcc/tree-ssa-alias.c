@@ -1057,6 +1057,7 @@ ref_maybe_used_by_call_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_MALLOC:
 	case BUILT_IN_CALLOC:
 	case BUILT_IN_MEMSET:
+        case BUILT_IN_TM_MEMSET:
 	case BUILT_IN_FREXP:
 	case BUILT_IN_FREXPF:
 	case BUILT_IN_FREXPL:
@@ -1234,6 +1235,7 @@ call_may_clobber_ref_p_1 (gimple call, ao_ref *ref)
 	case BUILT_IN_STRCAT:
 	case BUILT_IN_STRNCAT:
 	case BUILT_IN_MEMSET:
+        case BUILT_IN_TM_MEMSET:
         CASE_BUILT_IN_TM_STORE (1):
         CASE_BUILT_IN_TM_STORE (2):
         CASE_BUILT_IN_TM_STORE (4):

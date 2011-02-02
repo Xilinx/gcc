@@ -3720,6 +3720,7 @@ find_func_aliases (gimple t)
 	      return;
 	    }
 	  case BUILT_IN_MEMSET:
+	  case BUILT_IN_TM_MEMSET:
 	    {
 	      tree res = gimple_call_lhs (t);
 	      tree dest = gimple_call_arg (t, 0);

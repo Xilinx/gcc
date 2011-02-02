@@ -1,5 +1,5 @@
 /* Passes for transactional memory support.
-   Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -485,6 +485,8 @@ find_tm_replacement_function (tree fndecl)
 	return built_in_decls[BUILT_IN_TM_MEMCPY];
       case BUILT_IN_MEMMOVE:
 	return built_in_decls[BUILT_IN_TM_MEMMOVE];
+      case BUILT_IN_MEMSET:
+	return built_in_decls[BUILT_IN_TM_MEMSET];
       default:
 	return NULL;
       }

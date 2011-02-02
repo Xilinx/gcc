@@ -1,5 +1,15 @@
 2011-01-31  Aldy Hernandez  <aldyh@redhat.com>
 
+	PR/47492
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Handle
+	BUILT_IN_TM_MEMSET.
+	* trans-mem.c (find_tm_replacement_function): Same.
+	* calls.c (special_function_p): Same.
+	* tree-ssa-structalias.c: Same.
+	* gtm-builtins.def: Add BUILT_IN_TM_MEMSET.
+
+2011-01-31  Aldy Hernandez  <aldyh@redhat.com>
+
 	PR/47520
 	* trans-mem.c (ipa_tm_propagate_irr): Handle exit blocks.
 

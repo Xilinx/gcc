@@ -480,6 +480,7 @@ special_function_p (const_tree fndecl, int flags)
 	case BUILT_IN_TM_GETTMCLONE_IRR:
 	case BUILT_IN_TM_MEMCPY:
 	case BUILT_IN_TM_MEMMOVE:
+        case BUILT_IN_TM_MEMSET:
 	CASE_BUILT_IN_TM_STORE (1):
 	CASE_BUILT_IN_TM_STORE (2):
 	CASE_BUILT_IN_TM_STORE (4):
