@@ -4,7 +4,7 @@
 
 /* run in $GCCMELT_BUILD/gcc 
   ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/topengpu-1.c .
- ./cc1 -fmelt-mode=opengpu -fmelt-module-path=. -fmelt-source-path=. -fmelt-debug -O2  topengpu-1.c
+ ./cc1 -fmelt-mode=opengpu -fmelt-module-path=melt-modules -fmelt-source-path=melt-sources -fmelt-debug -O2  topengpu-1.c
   ## it could be useful to pass -fdump-tree-all -fdump-ipa-all
 */
 

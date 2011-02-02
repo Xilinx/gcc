@@ -1,3 +1,11 @@
+2011-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (load_checked_dynamic_module_index): When
+	verbose_flag should the loaded shared objects.
+
+	* testsuite/melt/topengpu-1.c: Changed comment.
+
+	* melt/xtramelt-opengpu.melt: Changing pass position.
+
 2011-02-01  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-macro.melt (expand_variadicexpr): Set the

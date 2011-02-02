@@ -93,9 +93,9 @@
 		      (list  '"dump_func" '"dump_cgraph")
 		    ))
 	 )
-;;; register our pass after the "tree_profile_ipa" pass from
-;;; gcc/tree-profile.c
-    (install_melt_gcc_pass opengpudetect_pass "after" "inline" 0)
+;;; register our pass after the "local-pure-const" pass from
+;;; gcc/ipa-pure-const.c
+    (install_melt_gcc_pass opengpudetect_pass "after" "local-pure-const" 0)
 ;;; don't register it after the "cp" [interprocedural constant propagation]
 ;;; pass from gcc/ipa-cp.c
 ;;; don't register it after the "inline" [inline decision heuristics] pass

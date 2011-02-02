@@ -5667,7 +5667,8 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   int dypathlen = 0;
   char *dynmd5 = NULL;
   char *dynversion = NULL;
-  char* dypathdup = NULL; /* the strdup-ed path stored in the module info */
+  char* dypathdup = NULL; /* the strdup-ed real path stored in the
+			     module info */
   void *dlh = NULL;
   char *dyncomptimstamp = NULL;
   char *dynmd5prepromeltrun = NULL;
@@ -5682,8 +5683,11 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   if (dypath && dypath[0])
     dlh = (void *) dlopen (dypath, RTLD_NOW | RTLD_GLOBAL);
   debugeprintf ("load_check_dynamic_module_index dlh=%p dypath=%s", dlh, dypath);
-  if (dlh)
-    dypathdup = xstrdup(dypath);
+  if (dlh) {
+    dypathdup = lrealpath (dypath);
+    if (verbose_flag)
+      printf ("Loaded MELT module %s\n", dypathdup);
+  }
   /* Try to append .so if needed ... */
   else if (!dlh && dypathlen>3 
       && (dypath[dypathlen-3]!='.' || dypath[dypathlen-2]!='s' || dypath[dypathlen-1]!='o'))
@@ -5691,8 +5695,11 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
       char* dypathso = concat(dypath, ".so", NULL);
       if (dypathso && dypathso[0])
 	dlh = (void *) dlopen (dypathso, RTLD_NOW | RTLD_GLOBAL);
-      if (dlh)
-	dypathdup = dypathso;
+      if (dlh) {
+	dypathdup = lrealpath (dypathso);
+	if (verbose_flag)
+	  printf ("Loaded MELT module %s\n", dypathdup);	
+      }
       else
 	free (dypathso);
     }
@@ -5803,6 +5810,8 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
     minf.start_rout = PTR_UNION_AS_CAST_PTR (startrout_uf);
     ix = VEC_length (melt_module_info_t, modinfvec);
     VEC_safe_push (melt_module_info_t, heap, modinfvec, &minf);
+    debugeprintf
+      ("load_checked_dynamic_module_index dypathdup %s", dypathdup);
   }
   debugeprintf
     ("load_checked_dynamic_module_index %s dynmd5 %s dyncomptimstamp %s ix %d",
