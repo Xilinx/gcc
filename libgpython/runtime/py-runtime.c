@@ -90,9 +90,6 @@ gpy_object_t * gpy_rr_fold_integer( int x )
 {
   gpy_object_t * retval = NULL_OBJECT;
 
-  gpy_object_state_t * o = NULL_OBJ_STATE;
-  Gpy_Object_State_Init_Ctx( o, gpy_namespace_vec );
-
   gpy_object_t ** args = (gpy_object_t **)
     gpy_calloc(2, sizeof(gpy_object_t*));
 
@@ -162,18 +159,22 @@ void gpy_rr_eval_print( int fd, int count, ...  )
 }
 
 inline
-void gpy_rr_incr_ref_count( gpy_object_state_t * x )
+void gpy_rr_incr_ref_count( gpy_object_t * x1 )
 {
-  gpy_assert( x );
+  gpy_assert( x->T == TYPE_OBJECT_STATE );
+  gpy_object_state_t * x = x1->o.object_state;
+
   debug("incrementing ref count on <%p>:<%i> to <%i>!\n",
 	(void*) x, x->ref_count, (x->ref_count + 1) );
   x->ref_count++;
 }
 
 inline
-void gpy_rr_decr_ref_count( gpy_object_state_t * x )
+void gpy_rr_decr_ref_count( gpy_object_t * x1 )
 {
-  gpy_assert( x );
+  gpy_assert( x->T == TYPE_OBJECT_STATE );
+  gpy_object_state_t * x = x1->o.object_state;
+
   debug("decrementing ref count on <%p>:<%i> to <%i>!\n",
 	(void*) x, x->ref_count, (x->ref_count - 1) );
   x->ref_count--;
@@ -198,8 +199,8 @@ void gpy_rr_pop_context( void )
   unsigned int idx = 0;
   for( ; idx<(head->symbols->length); ++idx )
     {
-      gpy_object_state_t * i = (gpy_object_state_t *) vec[ idx ];
-      Gpy_Decr_Ref( i );
+      gpy_object_t * i = (gpy_object_t *) vec[ idx ];
+      gpy_rr_decr_ref_count(i);
     }
 
   gpy_garbage_invoke_sweep( gpy_namespace_vec );
@@ -210,6 +211,7 @@ void gpy_rr_pop_context( void )
      straggler is something which will have a (ref_count > 0) after
      this set of decreasing references...
   */
+  //....
 
   gpy_context_t * popd = gpy_vec_pop( gpy_namespace_vec );
   gpy_vec_free( popd->symbols );
@@ -235,21 +237,21 @@ void gpy_rr_finalize_block_decls( int n, ... )
   va_end(vl);
 }
 
-gpy_object_t * gpy_rr_fold_call(struct gpy_callable_def_t * callables, 
-				const char * ident, int n_args, ... )
+gpy_object_t * gpy_rr_fold_call (struct gpy_callable_def_t * callables, 
+				 const char * ident, int n_args, ... )
 {
   return NULL;
 }
 
-gpy_object_t *
-gpy_rr_eval_dot_operator( gpy_object_t * x, gpy_object_t * y )
+gpy_object_t * gpy_rr_eval_dot_operator (gpy_object_t * x,
+					 gpy_object_t * y)
 {
   return NULL;
 }
 
-gpy_object_t *
-gpy_rr_eval_expression (gpy_object_t * x1, gpy_object_t * y1,
-			gpy_opcode_t op)
+gpy_object_t * gpy_rr_eval_expression (gpy_object_t * x1,
+				       gpy_object_t * y1,
+				       gpy_opcode_t op)
 {
   char * op_str = NULL;
   gpy_object_t * retval = NULL;

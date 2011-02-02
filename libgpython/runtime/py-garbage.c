@@ -35,15 +35,15 @@ along with GCC; see the file COPYING3.  If not see
 
 gpy_vector_t * gpy_garbage_vec;
 
-void gpy_garbage_invoke( void )
+void gpy_garbage_invoke (void)
 {
   if( gpy_garbage_vec )
     {
       debug("garbage collector running...\n");
       gpy_object_state_t * p_obj = NULL_OBJ_STATE;
 
-      while( (p_obj= (gpy_object_state_t *)
-	      gpy_vec_pop( gpy_garbage_vec )) )
+      while ((p_obj = (gpy_object_t *)
+	      gpy_vec_pop( gpy_garbage_vec )))
 	{
 	  gpy_garbage_free_obj( p_obj );
 	}
@@ -52,7 +52,7 @@ void gpy_garbage_invoke( void )
     }
 }
 
-void gpy_garbage_mark_obj__( gpy_object_state_t * const sym )
+void gpy_garbage_mark_obj__( gpy_object_t * const sym )
 {
   if( sym )
     {
@@ -88,14 +88,15 @@ void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
 	  debug("vector length <%i>!\n", len );
 	  for( ; i<len; ++i )
 	    {
-	      gpy_object_state_t * o = (gpy_object_state_t *) s_arr[ i ];
+	      gpy_object_t * o = (gpy_object_t *) s_arr[i];
+	      gpy_assert (o->T == TYPE_OBJECT_STATE);
 	      if( o )
 		{
 		  debug( "object <%p> has ref count <%i>!\n",
-			 (void *) o, o->ref_count );
+			 (void *) o, o->o.object_state->ref_count );
 
 		  // If no references remain
-		  if( o->ref_count <= 0 )
+		  if( o->o.object_state->ref_count <= 0 )
 		    {
 		      gpy_garbage_mark_obj( o );
 		      s_arr[ i ] = NULL;
@@ -108,15 +109,24 @@ void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
   gpy_garbage_invoke( );
 }
 
-void gpy_garbage_free_obj( gpy_object_state_t * x )
+void gpy_garbage_free_obj (gpy_object_state_t * x)
 {
+  gpy_assert(x);
   debug("deleting garbage object <%p>!\n", (void*)x );
-  if( x )
+  
+  switch (x->T)
     {
-      gpy_free( x->obj_t_ident );
-      (*x->definition).destroy_hook( x->self );
-      gpy_free( x );
+    case TYPE_OBJECT_LIT:
+      break;
+
+    case TYPE_OBJECT_STATE:
+      break;
+
+    case TYPE_NULL:
+      break;
     }
+
+  gpy_free(x);
 }
 
 /* Cleanup the program for exit! */

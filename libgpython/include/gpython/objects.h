@@ -102,9 +102,9 @@ typedef struct gpy_number_prot_t
 typedef struct gpy_type_obj_def_t {
   char * identifier;
   size_t builtin_type_size;
-  gpy_object_t * (*init_hook)( gpy_object_t ** );
-  void (*destroy_hook)( gpy_object_t * );
-  void (*print_hook)( gpy_object_t * , FILE * , bool );
+  gpy_object_t * (*init_hook)(gpy_type_obj_def_t *, gpy_object_t **);
+  void (*destroy_hook)(gpy_object_t *);
+  void (*print_hook)(gpy_object_t * , FILE *, bool);
   struct gpy_number_prot_t * binary_protocol;
   struct gpy_builtin_method_def_t * methods;
 } gpy_type_obj_def_t ;
@@ -122,16 +122,22 @@ typedef struct gpy_callable_def_t {
   x->obj_t_ident = NULL; x->ref_count = 0;			\
   x->self = NULL; x->definition = NULL;
 
-#define Gpy_Object_State_Init_Ctx( x,y )			\
+#define Gpy_Object_Init_Ctx( x,y )				\
+  								\
   Gpy_Object_State_Init( x );					\
   gpy_vec_push( ((gpy_context_t*)(y->vector[y->length-1]))->symbols, x );
 
 #define NULL_OBJ_STATE (gpy_object_state_t *) NULL
 #define NULL_OBJECT (gpy_object_t *) NULL
 
-extern void gpy_rr_init_runtime( void );
-extern gpy_object_t * gpy_rr_fold_integer( int );
+extern void gpy_rr_init_runtime (void);
+extern gpy_object_t * gpy_rr_fold_integer (int);
 
-extern void gpy_rr_init_primitives( void );
+extern bool gpy_args_check_fmt (gpy_object_t **, const char *);
+extern int gpy_args_lit_parse_int (gpy_object_t *);
+extern gpy_object_t * gpy_create_object_state (gpy_type_obj_def_t *,
+					       const void *);
+
+extern void gpy_rr_init_primitives (void);
 
 #endif //__GCC_OBJECTS_H__
