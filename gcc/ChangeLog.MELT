@@ -1,4 +1,11 @@
 2011-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (loop_can_be_parallel)
+	(with_cfun_decl, each_bb_current_fun): new.
+	(debugloop): Output to stderr.
+	* melt/xtramelt-opengpu.melt: Changing pass position. Pass becomes
+	a GIMPLE pass, not an IPA one.
+
+2011-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (load_checked_dynamic_module_index): When
 	verbose_flag should the loaded shared objects.
 

@@ -33,73 +33,62 @@
 (defun opengpudetect_exec (pass)
   (debug_msg pass "opengpudetect_exec start")
   (let ( (:long passcounter 0)
-	 (stddump (get_field :sysdata_dumpfile initial_system_data))
-	 (stderr (get_field :sysdata_stderr initial_system_data))
 	 )
-  (debug_msg stddump "opengpudetect_exec stddump")
-  (debug_msg stderr "opengpudetect_exec stderr")
     (code_chunk 
      incrpasscount #{ /* $INCRPASSCOUNT */
-     static long $INCRPASSCOUNT#_count;
-     $INCRPASSCOUNT#_count++;
-     $PASSCOUNTER = $INCRPASSCOUNT#_count;
-     melt_cbreak ("opengpudetect_exec $INCRPASSCOUNT");
-     debugeprintf ("stddump %p isfile %s dump FILE %p",
-		   $STDDUMP, melt_is_file($STDDUMP)?"yes":"no", 
-		   (void*)dump_file);
-     debugeprintf ("stderr %p isfile %s stderr FILE %p",
-		   $STDERR, melt_is_file($STDERR)?"yes":"no", 
-		   (void*)stderr);
+     static long $INCRPASSCOUNT#_count		       ;
+     $INCRPASSCOUNT#_count++			       ;
+     $PASSCOUNTER = $INCRPASSCOUNT#_count	       ;
+     melt_cbreak ("opengpudetect_exec $INCRPASSCOUNT") ;
      /* the dbgprintf goes to the dump_file */
-     dbgprintf ("opengpudetect_exec start $PASSCOUNTER= %ld", $PASSCOUNTER);
+     dbgprintf ("opengpudetect_exec start $PASSCOUNTER= %ld", $PASSCOUNTER) ;
      }#)
-  (code_chunk 
-   dbgcfun #{ /* $dbgcfun :: */
-   debugeprintf("opengpudetect_exec start cfun=%p cfg=%p passcounter #%ld", 
-		(void*)cfun, cfun?cfun->cfg:NULL, $PASSCOUNTER) ; 
-   gcc_assert (cfun == NULL);
-   }#) 
-  (debug_msg pass "opengpudetect_exec before each_cgraph_fun_call_flow_graph")
-  (each_cgraph_fun_call_flow_graph
-   ()
-   (:tree fundcl :basic_block funentrybb funexitbb :value bbtup tmp)
-   (debugtree "opengpudetect_exec fundcl" fundcl)
-   (debugbasicblock "opengpudetect_exec funentrybb" funentrybb)
-   (debugbasicblock "opengpudetect_exec funexitbb" funexitbb)
-   (debug_msg bbtup "opengpudetect_exec bbtup")
-   )
-  (debug_msg pass "opengpudetect_exec after each_cgraph_fun_call_flow_graph")
-  (each_loop 
-   ()
-   (:loop curloop)
-   (debugloop curloop  "opengpudetect_exec curloop")
-   )
-  ;;
-  (debug_msg pass "opengpudetect_exec end")
-  (return :true)
-))
+    (code_chunk 
+     dbgcfun #{ /* $dbgcfun :: */
+     debugeprintf("opengpudetect_exec start cfun=%p cfg=%p passcounter #%ld", 
+		  (void*)cfun, cfun?cfun->cfg:NULL, $PASSCOUNTER) ; 
+     }#) 
+    (debug_msg pass "opengpudetect_exec before each_bb_cfun")
+    (with_cfun_decl
+     ()
+     (:tree fundecl)
+     (debugtree "opengpudetect_exec fundecl" fundecl)
+     (each_bb_current_fun
+      ()
+      (:basic_block bb)
+      (debugbasicblock "opengpudetect_exec bb" bb)
+      ))
+;;;
+    (debug_msg pass "opengpudetect_exec after each_bb_cfun before each_loop")
+    (each_loop 
+     ()
+     (:loop curloop)
+     (debugloop curloop  "opengpudetect_exec curloop")
+     (if (loop_can_be_parallel curloop)
+	 (progn
+	   (debugloop curloop  "opengpudetect_exec curloop can be parallel")
+	   ))
+     )
+    ;;
+    (debug_msg pass "opengpudetect_exec end")
+    (return :true)
+    ))
 
 
 ;; the opengpu passes translate some Gimple into OpenCL.
 (defun install_opengpu_passes ()
   (let ( (opengpudetect_pass
-	  (instance class_gcc_simple_ipa_pass
+	  (instance class_gcc_gimple_pass
 		    :named_name '"meltopengpu_detect"
 		    :gccpass_gate opengpudetect_gate
 		    :gccpass_exec opengpudetect_exec
 		    :gccpass_data (make_maptree discr_map_trees 100)
 		    :gccpass_properties_required (list '"ssa" '"cfg")
-		    :gccpass_todo_flags_finish
-		      (list  '"dump_func" '"dump_cgraph")
+		    :gccpass_todo_flags_finish 
+		     () ;  (list  '"dump_func" '"dump_cgraph")
 		    ))
 	 )
-;;; register our pass after the "local-pure-const" pass from
-;;; gcc/ipa-pure-const.c
-    (install_melt_gcc_pass opengpudetect_pass "after" "local-pure-const" 0)
-;;; don't register it after the "cp" [interprocedural constant propagation]
-;;; pass from gcc/ipa-cp.c
-;;; don't register it after the "inline" [inline decision heuristics] pass
-;;; from gcc/ipa-inline.c
+    (install_melt_gcc_pass opengpudetect_pass "before" "vect" 0)
     ))
 
 (defun opengpu_docmd (cmd moduldata)

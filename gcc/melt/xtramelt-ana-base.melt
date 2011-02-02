@@ -238,11 +238,13 @@
 ;; debugloop is ok even for nil
 (defprimitive debugloop (:loop lo :cstring msg) :void
   #{ do {debugeprintfnonl("debugloop %s @%p ", $MSG, (void*)$LO);
-  if (flag_melt_debug) { if ($LO) flow_loop_dump($LO, dump_file, NULL, 1); }
+  if (flag_melt_debug) { if ($LO) flow_loop_dump($LO, stderr, NULL, 1); }
   fputc('\n',stderr); 
  }while(0)  }#
 )
 
+(defprimitive loop_can_be_parallel (:loop lo) :long
+  #{ (($LO) && ($LO)->can_be_parallel) }#)
 
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
@@ -2462,7 +2464,43 @@
 )
 
 
+;; iterator to get the current cfun decl
+(defciterator with_cfun_decl
+  ()
+  withcfundecl
+  (:tree cfundecl)
+  #{ /*before $WITHCFUNDECL*/
+   if (cfun) {
+     $CFUNDECL = cfun->decl;
+  }#
+  #{ /*after $WITHCFUNDECL*/ }
+  }#)
+
+
 ;;; iterate on evey basicblock of the current cfun
+(defciterator each_bb_current_fun
+  ()					;startformals
+  eachbbcurfun				;state symbol
+  (					;local formals
+   :basic_block curbb 
+   )	
+  ;;before expansion
+  #{
+   /* start $EACHBBCURFUN */
+   if (cfun && cfun->cfg) {
+     basic_block  $EACHBBCURFUN#_bb = NULL;
+    FOR_EACH_BB_FN($EACHBBCURFUN#_bb, cfun) {
+      if (!$EACHBBCURFUN#_bb) continue;
+      $CURBB  = $EACHBBCURFUN#_bb;
+ }#
+ ;;after expansion
+ #{ }} else 
+      melt_fatal_error ("each_bb_current_fun used with invalid cfun=%p [$EACHBBCURFUN]", 
+			cfun);
+  /* end $EACHBBCURFUN */  
+ }# )
+
+;;; iterate on evey basicblock of the current cfun & its decl
 (defciterator each_bb_cfun
   ()					;startformals
   eachbbcfun				;state symbol
@@ -2752,6 +2790,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  debugtree
  debugtreecodenum
  each_bb_cfun
+ each_bb_current_fun
  each_cgraph_decl
  each_cgraph_fun_body
  each_cgraph_fun_call_flow_graph
@@ -2853,6 +2892,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  is_maptree
  is_tree  
  isnull_basicblock
+ loop_can_be_parallel
  make_basicblock
  make_gimple
  make_gimpleseq
@@ -2964,6 +3004,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_void_type
  warning_at_gimple
  warning_at_tree
+ with_cfun_decl
 )
 
 (export_class
