@@ -1,5 +1,10 @@
 2011-02-02  Diego Novillo  <dnovillo@google.com>
 
+	* c-family/c-opts.c (c_common_finish): Emit deps even if
+	the file has syntax errors.
+
+2011-02-02  Diego Novillo  <dnovillo@google.com>
+
 	* common.opt (Wthread-safe, Wthread-unguarded-var,
 	Wthread-unguarded-func, Wthread-mismatched-lock-order,
 	Wthread-mismatched-lock-acq-rel, Wthread-reentrant-lock,

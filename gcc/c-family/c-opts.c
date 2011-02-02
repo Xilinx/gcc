@@ -1093,7 +1093,11 @@ c_common_finish (void)
   FILE *deps_stream = NULL;
 
   /* Don't write the deps file if there are errors.  */
-  if (cpp_opts->deps.style != DEPS_NONE && !seen_error ())
+  /* FIXME.  We are emitting the deps file even if there were errors.
+     This is a temporary workaround to avoid confusing Google's build
+     system.  It assumes that deps files are always emitted even
+     in the presence of errors.  */
+  if (cpp_opts->deps.style != DEPS_NONE /*&& !seen_error ()*/)
     {
       /* If -M or -MM was seen without -MF, default output to the
 	 output stream.  */
