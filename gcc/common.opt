@@ -609,6 +609,38 @@ Wtrampolines
 Common Var(warn_trampolines) Warning
 Warn whenever a trampoline is generated
 
+; FIXME.  The following -Wthread-* flags are placeholders to prevent
+; confusing the compiler when applications are built with these flags.
+; Actual support for these flags is being implemented in the
+; thread-annotations branch.
+Wthread-safety
+Common Var(warn_thread_safety) Warning
+Warn about potential thread safety issues when the code is annotated with thread safety attributes
+
+Wthread-unguarded-var
+Common Var(warn_thread_unguarded_var) Init(1) Warning
+Warn about shared variables not properly protected by locks specified in the attributes
+
+Wthread-unguarded-func
+Common Var(warn_thread_unguarded_func) Init(1) Warning
+Warn about function calls not properly protected by locks specified in the attributes
+
+Wthread-mismatched-lock-order
+Common Var(warn_thread_mismatched_lock_order) Init(1) Warning
+Warn about lock acquisition order inconsistent with what specified in the attributes
+
+Wthread-mismatched-lock-acq-rel
+Common Var(warn_thread_mismatched_lock_acq_rel) Init(1) Warning
+Warn about mismatched lock acquisition and release
+
+Wthread-reentrant-lock
+Common Var(warn_thread_reentrant_lock) Init(1) Warning
+Warn about a lock being acquired recursively
+
+Wthread-unsupported-lock-name
+Common Var(warn_unsupported_lock_name) Init(0) Warning
+Warn about uses of unsupported lock names in attributes
+
 Wtype-limits
 Common Var(warn_type_limits) Init(-1) Warning
 Warn if a comparison is always true or always false due to the limited range of the data type

@@ -1,3 +1,10 @@
+2011-02-02  Diego Novillo  <dnovillo@google.com>
+
+	* common.opt (Wthread-safe, Wthread-unguarded-var,
+	Wthread-unguarded-func, Wthread-mismatched-lock-order,
+	Wthread-mismatched-lock-acq-rel, Wthread-reentrant-lock,
+	Wthread-unsupported-lock-name): New placeholder warning flags.
+
 2011-02-01  Simon Baldwin  <simonb@google.com>
 
 	* configure: Rebuild.
