@@ -41,10 +41,23 @@ proc libmudflap-init { language } {
     global libs
     global gluefile wrap_flags
     global ld_library_path
+    global CC_UNDER_TEST
+    global CXX_UNDER_TEST
 
     switch $language {
-        "c" { set cxx [find_gcc] }
-        "c++" { set cxx [find_g++] }
+        "c" {
+	    if [info exists CC_UNDER_TEST] then {
+	        set cxx $CC_UNDER_TEST
+	    } else {
+	        set cxx [find_gcc] }
+	    }
+        "c++" {
+	    if [info exists CXX_UNDER_TEST] then {
+	        set cxx $CXX_UNDER_TEST
+	    } else {
+	        set cxx [find_g++]
+	    }
+	}
         default { error "bad language code $language"; return }
     }
 

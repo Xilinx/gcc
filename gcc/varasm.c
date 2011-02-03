@@ -1,7 +1,7 @@
 /* Output variables, constants and external declarations, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
    1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010  Free Software Foundation, Inc.
+   2010, 2011  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -3518,7 +3518,7 @@ force_const_mem (enum machine_mode mode, rtx x)
   pool->offset &= ~ ((align / BITS_PER_UNIT) - 1);
 
   desc->next = NULL;
-  desc->constant = tmp.constant;
+  desc->constant = copy_rtx (tmp.constant);
   desc->offset = pool->offset;
   desc->hash = hash;
   desc->mode = mode;
@@ -5139,20 +5139,16 @@ merge_weak (tree newdecl, tree olddecl)
       /* NEWDECL is weak, but OLDDECL is not.  */
 
       /* If we already output the OLDDECL, we're in trouble; we can't
-	 go back and make it weak.  This error cannot be caught in
-	 declare_weak because the NEWDECL and OLDDECL was not yet
-	 been merged; therefore, TREE_ASM_WRITTEN was not set.  */
-      if (TREE_ASM_WRITTEN (olddecl))
-	error ("weak declaration of %q+D must precede definition",
-	       newdecl);
+	 go back and make it weak.  This should never happen in
+	 unit-at-a-time compilation.  */
+      gcc_assert (!TREE_ASM_WRITTEN (olddecl));
 
       /* If we've already generated rtl referencing OLDDECL, we may
 	 have done so in a way that will not function properly with
-	 a weak symbol.  */
-      else if (TREE_USED (olddecl)
-	       && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (olddecl)))
-	warning (0, "weak declaration of %q+D after first use results "
-                 "in unspecified behavior", newdecl);
+	 a weak symbol.  Again in unit-at-a-time this should be
+	 impossible.  */
+      gcc_assert (!TREE_USED (olddecl)
+	          || !TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (olddecl)));
 
       if (TARGET_SUPPORTS_WEAK)
 	{
@@ -5184,10 +5180,9 @@ merge_weak (tree newdecl, tree olddecl)
 void
 declare_weak (tree decl)
 {
+  gcc_assert (TREE_CODE (decl) != FUNCTION_DECL || !TREE_ASM_WRITTEN (decl));
   if (! TREE_PUBLIC (decl))
     error ("weak declaration of %q+D must be public", decl);
-  else if (TREE_CODE (decl) == FUNCTION_DECL && TREE_ASM_WRITTEN (decl))
-    error ("weak declaration of %q+D must precede definition", decl);
   else if (!TARGET_SUPPORTS_WEAK)
     warning (0, "weak declaration of %q+D not supported", decl);
 

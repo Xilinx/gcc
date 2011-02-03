@@ -383,10 +383,6 @@ bool
 reachable_from_this_partition_p (struct cgraph_node *node, cgraph_node_set set)
 {
   struct cgraph_edge *e;
-  if (!node->analyzed)
-    return false;
-  if (node->global.inlined_to)
-    return false;
   for (e = node->callers; e; e = e->next_caller)
     if (cgraph_node_in_set_p (e->caller, set))
       return true;
@@ -503,6 +499,7 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
   bp_pack_value (&bp, node->local.finalized, 1);
   bp_pack_value (&bp, node->local.inlinable, 1);
   bp_pack_value (&bp, node->local.versionable, 1);
+  bp_pack_value (&bp, node->local.can_change_signature, 1);
   bp_pack_value (&bp, node->local.disregard_inline_limits, 1);
   bp_pack_value (&bp, node->local.redefined_extern_inline, 1);
   bp_pack_value (&bp, node->local.vtable_method, 1);
@@ -954,6 +951,7 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
   node->local.finalized = bp_unpack_value (bp, 1);
   node->local.inlinable = bp_unpack_value (bp, 1);
   node->local.versionable = bp_unpack_value (bp, 1);
+  node->local.can_change_signature = bp_unpack_value (bp, 1);
   node->local.disregard_inline_limits = bp_unpack_value (bp, 1);
   node->local.redefined_extern_inline = bp_unpack_value (bp, 1);
   node->local.vtable_method = bp_unpack_value (bp, 1);

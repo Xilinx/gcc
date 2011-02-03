@@ -205,12 +205,9 @@ along with GCC; see the file COPYING3.  If not see
 
 #endif /* !SPARC_BI_ARCH */
 
-/* The sun bundled assembler doesn't accept -Yd, (and neither does gas).
-   It's safe to pass -s always, even if -g is not used.  */
+/* It's safe to pass -s always, even if -g is not used.  */
 #undef ASM_SPEC
 #define ASM_SPEC "\
-%{!Qn:-Qy} \
-%{Ym,*} \
 -s \
 %{fpic|fPIC|fpie|fPIE:-K PIC} \
 %{!.c:%{findirect-dispatch:-K PIC}} \

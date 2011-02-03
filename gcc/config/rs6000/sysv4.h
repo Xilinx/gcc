@@ -619,8 +619,7 @@ extern int fixuplabelno;
 #undef	LINK_SPEC
 #define	LINK_SPEC "\
 %{h*} %{v:-V} %{!msdata=none:%{G*}} %{msdata=none:-G0} \
-%{YP,*} %{R*} \
-%{Qy:} %{!Qn:-Qy} \
+%{R*} \
 %(link_shlib) \
 %{!T*: %(link_start) } \
 %(link_target) \
@@ -873,7 +872,7 @@ extern int fixuplabelno;
 
 /* NetBSD support.  */
 #define LIB_NETBSD_SPEC "\
-%{profile:-lgmon -lc_p} %{!profile:-lc}"
+-lc"
 
 #define	STARTFILE_NETBSD_SPEC "\
 ncrti.o%s crt0.o%s \

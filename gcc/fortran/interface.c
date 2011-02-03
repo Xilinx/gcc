@@ -654,11 +654,12 @@ gfc_check_operator_interface (gfc_symbol *sym, gfc_intrinsic_op op,
 
       /* Allowed are (per F2003, 12.3.2.1.2 Defined assignments):
 	 - First argument an array with different rank than second,
-	 - Types and kinds do not conform, and
+	 - First argument is a scalar and second an array,
+	 - Types and kinds do not conform, or
 	 - First argument is of derived type.  */
       if (sym->formal->sym->ts.type != BT_DERIVED
 	  && sym->formal->sym->ts.type != BT_CLASS
-	  && (r1 == 0 || r1 == r2)
+	  && (r2 == 0 || r1 == r2)
 	  && (sym->formal->sym->ts.type == sym->formal->next->sym->ts.type
 	      || (gfc_numeric_ts (&sym->formal->sym->ts)
 		  && gfc_numeric_ts (&sym->formal->next->sym->ts))))
@@ -2092,6 +2093,18 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 	   return 0;
 	 }
 
+      if ((f->sym->attr.pointer || f->sym->attr.allocatable)
+	    && f->sym->ts.deferred != a->expr->ts.deferred
+	    && a->expr->ts.type == BT_CHARACTER)
+	{
+	  if (where)
+	    gfc_error ("Actual argument argument at %L to allocatable or "
+		       "pointer dummy argument '%s' must have a deferred "
+		       "length type parameter if and only if the dummy has one",
+		       &a->expr->where, f->sym->name);
+	  return 0;
+	}
+
       actual_size = get_expr_storage_size (a->expr);
       formal_size = get_sym_storage_size (f->sym);
       if (actual_size != 0
@@ -2100,14 +2113,14 @@ compare_actual_formal (gfc_actual_arglist **ap, gfc_formal_arglist *formal,
 	{
 	  if (a->expr->ts.type == BT_CHARACTER && !f->sym->as && where)
 	    gfc_warning ("Character length of actual argument shorter "
-			"than of dummy argument '%s' (%lu/%lu) at %L",
-			f->sym->name, actual_size, formal_size,
-			&a->expr->where);
+			 "than of dummy argument '%s' (%lu/%lu) at %L",
+			 f->sym->name, actual_size, formal_size,
+			 &a->expr->where);
           else if (where)
 	    gfc_warning ("Actual argument contains too few "
-			"elements for dummy argument '%s' (%lu/%lu) at %L",
-			f->sym->name, actual_size, formal_size,
-			&a->expr->where);
+			 "elements for dummy argument '%s' (%lu/%lu) at %L",
+			 f->sym->name, actual_size, formal_size,
+			 &a->expr->where);
 	  return  0;
 	}
 
@@ -2673,6 +2686,30 @@ gfc_procedure_use (gfc_symbol *sym, gfc_actual_arglist **ap, locus *where)
   if (sym->attr.if_source == IFSRC_UNKNOWN)
     {
       gfc_actual_arglist *a;
+
+      if (sym->attr.pointer)
+	{
+	  gfc_error("The pointer object '%s' at %L must have an explicit "
+		    "function interface or be declared as array",
+		    sym->name, where);
+	  return;
+	}
+
+      if (sym->attr.allocatable && !sym->attr.external)
+	{
+	  gfc_error("The allocatable object '%s' at %L must have an explicit "
+		    "function interface or be declared as array",
+		    sym->name, where);
+	  return;
+	}
+
+      if (sym->attr.allocatable)
+	{
+	  gfc_error("Allocatable function '%s' at %L must have an explicit "
+		    "function interface", sym->name, where);
+	  return;
+	}
+
       for (a = *ap; a; a = a->next)
 	{
 	  /* Skip g77 keyword extensions like %VAL, %REF, %LOC.  */

@@ -3482,7 +3482,8 @@ expand_or_defer_fn_1 (tree fn)
       if ((flag_keep_inline_functions
 	   && DECL_DECLARED_INLINE_P (fn)
 	   && !DECL_REALLY_EXTERN (fn))
-	  || lookup_attribute ("dllexport", DECL_ATTRIBUTES (fn)))
+	  || (flag_keep_inline_dllexport
+	      && lookup_attribute ("dllexport", DECL_ATTRIBUTES (fn))))
 	mark_needed (fn);
     }
 
@@ -5476,6 +5477,16 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
     t = TREE_OPERAND (t, 0);
   if (t == error_mark_node)
     return false;
+  if (TREE_CODE (t) == STATEMENT_LIST)
+    {
+      tree_stmt_iterator i;
+      for (i = tsi_start (t); !tsi_end_p (i); tsi_next (&i))
+	{
+	  if (! build_data_member_initialization (tsi_stmt (i), vec))
+	    return false;
+	}
+      return true;
+    }
   if (TREE_CODE (t) == CLEANUP_STMT)
     {
       /* We can't see a CLEANUP_STMT in a constructor for a literal class,
@@ -5483,18 +5494,7 @@ build_data_member_initialization (tree t, VEC(constructor_elt,gc) **vec)
 	 ignore it; either all the initialization will be constant, in which
 	 case the cleanup can't run, or it can't be constexpr.
 	 Still recurse into CLEANUP_BODY.  */
-      t = CLEANUP_BODY (t);
-      if (TREE_CODE (t) == STATEMENT_LIST)
-	{
-	  tree_stmt_iterator i;
-	  for (i = tsi_start (t); !tsi_end_p (i); tsi_next (&i))
-	    {
-	      if (! build_data_member_initialization (tsi_stmt (i), vec))
-		return false;
-	    }
-	  return true;
-	}
-      return build_data_member_initialization (t, vec);
+      return build_data_member_initialization (CLEANUP_BODY (t), vec);
     }
   if (TREE_CODE (t) == CONVERT_EXPR)
     t = TREE_OPERAND (t, 0);
@@ -5607,7 +5607,20 @@ build_constexpr_constructor_member_initializers (tree type, tree body)
     body = STATEMENT_LIST_HEAD (body)->stmt;
   body = BIND_EXPR_BODY (body);
   if (TREE_CODE (body) == CLEANUP_POINT_EXPR)
-    ok = build_data_member_initialization (body, &vec);
+    {
+      body = TREE_OPERAND (body, 0);
+      if (TREE_CODE (body) == EXPR_STMT)
+	body = TREE_OPERAND (body, 0);
+      if (TREE_CODE (body) == INIT_EXPR
+	  && (same_type_ignoring_top_level_qualifiers_p
+	      (TREE_TYPE (TREE_OPERAND (body, 0)),
+	       current_class_type)))
+	{
+	  /* Trivial copy.  */
+	  return TREE_OPERAND (body, 1);
+	}
+      ok = build_data_member_initialization (body, &vec);
+    }
   else if (TREE_CODE (body) == STATEMENT_LIST)
     {
       tree_stmt_iterator i;
@@ -7642,6 +7655,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case BIT_IOR_EXPR:
     case BIT_XOR_EXPR:
     case BIT_AND_EXPR:
+    case TRUTH_XOR_EXPR:
     case UNLT_EXPR:
     case UNLE_EXPR:
     case UNGT_EXPR:

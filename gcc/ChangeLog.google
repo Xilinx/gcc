@@ -1,0 +1,59 @@
+2011-02-02  Diego Novillo  <dnovillo@google.com>
+
+	Mainline merge r169512.
+
+2011-02-02  Diego Novillo  <dnovillo@google.com>
+
+	* c-family/c-opts.c (c_common_finish): Emit deps even if
+	the file has syntax errors.
+
+2011-02-02  Diego Novillo  <dnovillo@google.com>
+
+	* common.opt (Wthread-safe, Wthread-unguarded-var,
+	Wthread-unguarded-func, Wthread-mismatched-lock-order,
+	Wthread-mismatched-lock-acq-rel, Wthread-reentrant-lock,
+	Wthread-unsupported-lock-name): New placeholder warning flags.
+
+2011-02-01  Simon Baldwin  <simonb@google.com>
+
+	* configure: Rebuild.
+
+2011-01-28  Diego Novillo  <dnovillo@google.com>
+
+	* gcc/DATESTAMP: Remove trunk merge string.
+
+2011-01-28  Simon Baldwin  <simonb@google.com>
+
+	* configure.ac: Add new SYSROOT_CFLAGS_FOR_TARGET variable.
+	* configure: Rebuild from configure.ac.
+	* Makefile.in: Add SYSROOT_CFLAGS_FOR_TARGET to GCC_FOR_TARGET.
+
+2011-01-27  Simon Baldwin  <simonb@google.com>
+
+	* configure.ac: Add --with-runtime-root-prefix option.
+	* configure: Rebuild from configure.ac.
+	* Makefile.in: Support --with-runtime-root-prefix.
+	* doc/install.texi: Document --with-runtime-root-prefix.
+	* gcc/config/linux.h: Add runtime root prefix to dynamic linker path.
+	* gcc/config/i386/linux.h: Ditto.
+	* gcc/config/i386/linux64.h: Ditto.
+
+2011-01-26  Simon Baldwin  <simonb@google.com>
+
+	* configure.ac: Add --with-native-system-header-dir option.
+	* configure: Rebuild from configure.ac.
+	* Makefile.in: Support --with-native-system-header-dir.
+	* doc/install.texi: Document --with-native-system-header-dir.
+
+2011-01-24  Diego Novillo  <dnovillo@google.com>
+
+	Mainline merge r169172
+
+	* DATESTAMP: Adjust merge revision string.
+	* BASE-VER: Adjust version string.
+
+Copyright (C) 2011 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

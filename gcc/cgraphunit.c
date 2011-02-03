@@ -791,6 +791,24 @@ cgraph_analyze_function (struct cgraph_node *node)
   current_function_decl = save;
 }
 
+/* Process attributes common for vars and functions.  */
+
+static void
+process_common_attributes (tree decl)
+{
+  tree weakref = lookup_attribute ("weakref", DECL_ATTRIBUTES (decl));
+
+  if (weakref && !lookup_attribute ("alias", DECL_ATTRIBUTES (decl)))
+    {
+      warning_at (DECL_SOURCE_LOCATION (decl), OPT_Wattributes,
+		  "%<weakref%> attribute should be accompanied with"
+		  " an %<alias%> attribute");
+      DECL_WEAK (decl) = 0;
+      DECL_ATTRIBUTES (decl) = remove_attribute ("weakref",
+						 DECL_ATTRIBUTES (decl));
+    }
+}
+
 /* Look for externally_visible and used attributes and mark cgraph nodes
    accordingly.
 
@@ -843,6 +861,17 @@ process_function_and_variable_attributes (struct cgraph_node *first,
 	  else if (node->local.finalized)
 	     cgraph_mark_needed_node (node);
 	}
+      if (lookup_attribute ("weakref", DECL_ATTRIBUTES (decl))
+	  && node->local.finalized)
+	{
+	  warning_at (DECL_SOURCE_LOCATION (node->decl), OPT_Wattributes,
+		      "%<weakref%> attribute ignored"
+		      " because function is defined");
+	  DECL_WEAK (decl) = 0;
+	  DECL_ATTRIBUTES (decl) = remove_attribute ("weakref",
+						     DECL_ATTRIBUTES (decl));
+	}
+      process_common_attributes (decl);
     }
   for (vnode = varpool_nodes; vnode != first_var; vnode = vnode->next)
     {
@@ -869,6 +898,18 @@ process_function_and_variable_attributes (struct cgraph_node *first,
 	  else if (vnode->finalized)
 	    varpool_mark_needed_node (vnode);
 	}
+      if (lookup_attribute ("weakref", DECL_ATTRIBUTES (decl))
+	  && vnode->finalized
+	  && DECL_INITIAL (decl))
+	{
+	  warning_at (DECL_SOURCE_LOCATION (vnode->decl), OPT_Wattributes,
+		      "%<weakref%> attribute ignored"
+		      " because variable is initialized");
+	  DECL_WEAK (decl) = 0;
+	  DECL_ATTRIBUTES (decl) = remove_attribute ("weakref",
+						      DECL_ATTRIBUTES (decl));
+	}
+      process_common_attributes (decl);
     }
 }
 
@@ -1994,6 +2035,8 @@ cgraph_function_versioning (struct cgraph_node *old_version_node,
 
   if (!tree_versionable_function_p (old_decl))
     return NULL;
+
+  gcc_assert (old_version_node->local.can_change_signature || !args_to_skip);
 
   /* Make a new FUNCTION_DECL tree node for the
      new version. */

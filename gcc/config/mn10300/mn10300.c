@@ -1996,6 +1996,8 @@ mn10300_regno_in_class_p (unsigned regno, int rclass, bool strict)
       if (!reg_renumber)
 	return false;
       regno = reg_renumber[regno];
+      if (regno == INVALID_REGNUM)
+	return false;
     }
   return TEST_HARD_REG_BIT (reg_class_contents[rclass], regno);
 }
@@ -3020,5 +3022,8 @@ mn10300_split_and_operand_count (rtx op)
 
 #undef TARGET_MD_ASM_CLOBBERS
 #define TARGET_MD_ASM_CLOBBERS  mn10300_md_asm_clobbers
+
+#undef  TARGET_FLAGS_REGNUM
+#define TARGET_FLAGS_REGNUM  CC_REG
 
 struct gcc_target targetm = TARGET_INITIALIZER;

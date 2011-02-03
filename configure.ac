@@ -1668,9 +1668,9 @@ ENABLE_PPL_CHECK=yes)
 if test "x$with_ppl" != "xno" -a "${ENABLE_PPL_CHECK}" = "yes"; then
   saved_CFLAGS="$CFLAGS"
   CFLAGS="$CFLAGS $pplinc $gmpinc"
-  AC_MSG_CHECKING([for version 0.10 (or later revision) of PPL])
+  AC_MSG_CHECKING([for version 0.11 (or later revision) of PPL])
   AC_TRY_COMPILE([#include "ppl_c.h"],[
-  #if PPL_VERSION_MAJOR != 0 || PPL_VERSION_MINOR < 10
+  #if PPL_VERSION_MAJOR != 0 || PPL_VERSION_MINOR < 11
   choke me
   #endif
   ], [AC_MSG_RESULT([yes])], [AC_MSG_RESULT([no]); ppllibs= ; pplinc= ; with_ppl=no ])
@@ -1688,6 +1688,11 @@ dnl Provide configure switches and initialize clooginc & clooglibs
 dnl with user input.
 CLOOG_INIT_FLAGS
 if test "x$with_ppl" = "xno"; then
+  dnl Only execute fail-action, if CLooG has been requested.
+  CLOOG_REQUESTED([graphite_requested=yes], [graphite_requested=no])
+  if test "${graphite_requested}" = yes; then
+    AC_MSG_ERROR([Unable to find a usable PPL.  See config.log for details.])]
+  fi
   with_cloog=no
 fi
 if test "x${with_cloog}" = x && test "x${with_cloog_include}" = x \
@@ -1696,24 +1701,15 @@ if test "x${with_cloog}" = x && test "x${with_cloog_include}" = x \
   clooginc='-I$$r/$(HOST_SUBDIR)/cloog/include -I$$s/cloog/include '
 fi
 if test "x$with_cloog" != "xno"; then
-  dnl Version check for CLooG-Org
-  dnl As long as there is no new release of CLooG,
-  dnl we will check for 0.14.0.
+  dnl The minimal version of CLooG required for Graphite.
   dnl
-  dnl The first git revision that will work with
-  dnl GCC is: bd91b845a65805c290d43fc1bef8139864a163fb
-  dnl This is enforced implictly, as this is the commit that
-  dnl introduced the versioning information used within our
-  dnl checks.
-  dnl
-  dnl If we're using CLooG-Legacy, the provided version information
-  dnl will be ignored.
-  CLOOG_CHECK_VERSION(0,14,0)
+  dnl If we use CLooG-Legacy, the provided version information is
+  dnl ignored.
+  CLOOG_CHECK_VERSION(0,16,1)
 
-  dnl Only execute fail-action, if CLooG has been
-  dnl requested.
+  dnl Only execute fail-action, if CLooG has been requested.
   CLOOG_IF_FAILED([
-    AC_MSG_ERROR([Unable to find a usable CLooG. See config.log for details.])])
+    AC_MSG_ERROR([Unable to find a usable CLooG.  See config.log for details.])])
 fi
 
 # Check for LTO support.
@@ -2849,6 +2845,7 @@ AC_SUBST_FILE(serialization_dependencies)
 # Also strip program-prefix, program-suffix, and program-transform-name,
 # so that we can pass down a consistent program-transform-name.
 baseargs=
+tbaseargs=
 keep_next=no
 skip_next=no
 eval "set -- $ac_configure_args"
@@ -2864,6 +2861,7 @@ do
 	ac_arg=`echo "$ac_arg" | sed "s/'/'\\\\\\\\''/g"` ;;
     esac
     baseargs="$baseargs '$ac_arg'"
+    tbaseargs="$tbaseargs '$ac_arg'"
     keep_next=no
     continue
   fi
@@ -2885,11 +2883,45 @@ do
       ;;
   esac
 
+  skip_targ=no
+  case $ac_arg in
+changequote(,)
+  --with-* | --without-*)
+    libopt=`echo "$ac_arg" | sed -e 's,^--[^-_]*[-_],,' -e 's,=.*$,,'`
+
+    case $libopt in
+    *[-_]include)
+      lib=`echo "$libopt" | sed 's,[-_]include$,,'`
+      ;;
+    *[-_]lib)
+      lib=`echo "$libopt" | sed 's,[-_]lib$,,'`
+      ;;
+    *)
+      lib=$libopt
+      ;;
+    esac
+changequote([,])
+
+    case $lib in
+    mpc | mpfr | gmp | ppl | cloog)
+      # If we're processing --with-$lib, --with-$lib-include or
+      # --with-$lib-lib, for one of the libs above, and target is
+      # different from host, don't pass the current argument to any
+      # target library's configure.
+      if test x$is_cross_compiler = xyes; then
+        skip_targ=yes
+      fi
+      ;;
+    esac
+    ;;
+  esac
+
   case "$ac_arg" in
     --cache-file=/dev/null | \
     -cache-file=/dev/null )
       # Handled here to avoid the test to skip args below.
       baseargs="$baseargs '$ac_arg'"
+      tbaseargs="$tbaseargs '$ac_arg'"
       # Assert: $separate_arg should always be no.
       keep_next=$separate_arg
       ;;
@@ -2920,6 +2952,9 @@ do
 	  ac_arg=`echo "$ac_arg" | sed "s/'/'\\\\\\\\''/g"` ;;
       esac
       baseargs="$baseargs '$ac_arg'"
+      if test X"$skip_targ" = Xno; then
+        tbaseargs="$tbaseargs '$ac_arg'"
+      fi
       keep_next=$separate_arg
       ;;
     *)
@@ -2946,10 +2981,13 @@ EOF_SED
 gcc_transform_name=`cat conftestsed.out`
 rm -f conftestsed.out
 baseargs="$baseargs --program-transform-name='${gcc_transform_name}'"
+tbaseargs="$tbaseargs --program-transform-name='${gcc_transform_name}'"
 if test "$silent" = yes; then
   baseargs="$baseargs --silent"
+  tbaseargs="$tbaseargs --silent"
 fi
 baseargs="$baseargs --disable-option-checking"
+tbaseargs="$tbaseargs --disable-option-checking"
 
 # Record and document user additions to sub configure arguments.
 AC_ARG_VAR([build_configargs],
@@ -2978,7 +3016,7 @@ esac
 # This seems to be due to autoconf 2.5x stupidity.
 host_configargs="$host_configargs --cache-file=./config.cache ${extra_host_args} ${baseargs}"
 
-target_configargs="$target_configargs ${baseargs}"
+target_configargs="$target_configargs ${tbaseargs}"
 
 # Passing a --with-cross-host argument lets the target libraries know
 # whether they are being built with a cross-compiler or being built

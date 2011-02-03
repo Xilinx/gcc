@@ -1,3 +1,45 @@
+2011-01-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47416
+	* semantics.c (build_data_member_initialization): Handle
+	STATEMENT_LIST always instead of just for CLEANUP_BODY.
+
+2011-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++spec.c (lang_specific_driver) [HAVE_LD_STATIC_DYNAMIC] Use
+	LD_STATIC_OPTION, LD_DYNAMIC_OPTION.
+
+2011-01-29  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47311
+	* cp-tree.h (fixup_template_parms): Declare.
+	* pt.c (end_template_parm_list): Do not fixup template parms here.
+	(fixup_template_parms): Remove static. Fix typo in the
+	comments. Remove useless code statement.
+	(fixup_template_parm): For a template template parameter, fixup
+	its attributes before fixing up its type.
+	* parser.c
+	(cp_parser_template_declaration_after_export): After parsing
+	template parameters fixup their types.
+
+2011-01-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47476
+	* semantics.c (potential_constant_expression_1): Handle
+	TRUTH_XOR_EXPR.
+
+2011-01-26  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR c++/43601
+	* semantics.c (expand_or_defer_fn_1): Handle it.
+	* decl2.c (decl_needed_p): Likewise.
+
+2011-01-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47041
+	* semantics.c (build_constexpr_constructor_member_initializers):
+	Handle trivial copy.
+
 2011-01-21  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/47388

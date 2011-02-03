@@ -21,11 +21,17 @@ OUT=tmp-sysinfo.go
 
 set -e
 
-rm -f sysinfo.go
-
 rm -f sysinfo.c
 cat > sysinfo.c <<EOF
 #include "config.h"
+
+#define _GNU_SOURCE
+#if defined(__sun__) && defined(__svr4__)
+/* Needed by Solaris header files.  */
+#define _XOPEN_SOURCE 600
+#define __EXTENSIONS__
+#endif
+
 #include <sys/types.h>
 #include <dirent.h>
 #include <errno.h>
@@ -43,6 +49,7 @@ cat > sysinfo.c <<EOF
 #include <sys/ptrace.h>
 #endif
 #include <sys/resource.h>
+#include <sys/uio.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -57,7 +64,7 @@ cat > sysinfo.c <<EOF
 #include <unistd.h>
 EOF
 
-${CC} -D_GNU_SOURCE -fdump-go-spec=gen-sysinfo.go -S -o sysinfo.s sysinfo.c
+${CC} -fdump-go-spec=gen-sysinfo.go -std=gnu99 -S -o sysinfo.s sysinfo.c
 
 echo 'package syscall' > ${OUT}
 
@@ -133,6 +140,11 @@ grep '^const _SOMAXCONN' gen-sysinfo.go |
     >> ${OUT}
 grep '^const _SHUT_' gen-sysinfo.go |
   sed -e 's/^\(const \)_\(SHUT[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+
+# The net package requires a definition for IPV6ONLY.
+if ! grep '^const IPV6_V6ONLY ' ${OUT} >/dev/null 2>&1; then
+  echo "const IPV6_V6ONLY = 0" >> ${OUT}
+fi
 
 # pathconf constants.
 grep '^const __PC' gen-sysinfo.go |
@@ -387,5 +399,4 @@ echo $msghdr | \
       -e 's/msg_flags/Flags/' \
     >> ${OUT}
 
-mv -f ${OUT} sysinfo.go
 exit $?
