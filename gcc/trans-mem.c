@@ -478,6 +478,8 @@ find_tm_replacement_function (tree fndecl)
 
   /* ??? We may well want TM versions of most of the common <string.h>
      functions.  For now, we've already these two defined.  */
+  /* Adjust expand_call_tm() attributes as necessary for the cases
+     handled here:  */
   if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
     switch (DECL_FUNCTION_CODE (fndecl))
       {
@@ -2179,10 +2181,17 @@ expand_call_tm (struct tm_region *region,
   struct cgraph_node *node;
   bool retval = false;
 
+  fn_decl = gimple_call_fndecl (stmt);
+
+  if (fn_decl == built_in_decls[BUILT_IN_TM_MEMCPY]
+      || fn_decl == built_in_decls[BUILT_IN_TM_MEMMOVE])
+    transaction_subcode_ior (region, GTMA_HAVE_STORE | GTMA_HAVE_LOAD);
+  if (fn_decl == built_in_decls[BUILT_IN_TM_MEMSET])
+    transaction_subcode_ior (region, GTMA_HAVE_STORE);
+
   if (is_tm_pure_call (stmt))
     return false;
 
-  fn_decl = gimple_call_fndecl (stmt);
   if (fn_decl)
     retval = is_tm_ending_fndecl (fn_decl);
   if (!retval)

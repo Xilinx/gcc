@@ -1,3 +1,8 @@
+2011-02-02  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (expand_call_tm): Annotate BUILT_IN_TM_* calls.
+	(find_tm_replacement_function): Add comment.
+
 2011-01-31  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/47492
