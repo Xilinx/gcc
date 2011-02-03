@@ -1,3 +1,13 @@
+2011-02-03  Richard Henderson  <rth@redhat.com>
+
+	* acinclude.m4 (LIBITM_CHECK_SIZE_T_MANGLING): New.
+	* configure.ac: Use it.
+	* configure, config.h.in: Rebuild.
+	* alloc_cpp.cc (_ZnwX): Use MANGLE_SIZE_T in constructing the name.
+	(_ZnaX, _ZnwXRKSt9nothrow_t, _ZnaXRKSt9nothrow_t, _ZGTtnwX,
+	_ZGTtnaX, _ZGTtnwXRKSt9nothrow_t, _ZGTtnaXRKSt9nothrow_t): Likewise.
+	* libitm.map: Use wildcards to match size_t mangling.
+
 2010-12-14  Richard Henderson  <rth@redhat.com>
 
 	* beginend.cc (GTM::gtm_transaction::begin_transaction): Allocate

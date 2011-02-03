@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -26,21 +26,38 @@
 
 using namespace GTM;
 
+/* Mangling the names by hand requires that we know how size_t is handled.
+   We've gotten the letter from autoconf, now substitute it into the names.
+   Everything below uses X as a placeholder for clarity.  */
+
+#define S1(x,y)			x##y
+#define S(x,y)			S1(x,y)
+
+#define _ZnwX			S(_Znw,MANGLE_SIZE_T)
+#define _ZnaX			S(_Zna,MANGLE_SIZE_T)
+#define _ZnwXRKSt9nothrow_t	S(S(_Znw,MANGLE_SIZE_T),RKSt9nothrow_t)
+#define _ZnaXRKSt9nothrow_t	S(S(_Zna,MANGLE_SIZE_T),RKSt9nothrow_t)
+
+#define _ZGTtnwX		S(_ZGTtnw,MANGLE_SIZE_T)
+#define _ZGTtnaX		S(_ZGTtna,MANGLE_SIZE_T)
+#define _ZGTtnwXRKSt9nothrow_t	S(S(_ZGTtnw,MANGLE_SIZE_T),RKSt9nothrow_t)
+#define _ZGTtnaXRKSt9nothrow_t	S(S(_ZGTtna,MANGLE_SIZE_T),RKSt9nothrow_t)
+
 /* Everything from libstdc++ is weak, to avoid requiring that library
    to be linked into plain C applications using libitm.so.  */
 
 extern "C" {
 
-extern void *_Znwm (size_t) __attribute__((weak));
+extern void *_ZnwX (size_t) __attribute__((weak));
 extern void _ZdlPv (void *) __attribute__((weak));
-extern void *_Znam (size_t) __attribute__((weak));
+extern void *_ZnaX (size_t) __attribute__((weak));
 extern void _ZdaPv (void *) __attribute__((weak));
 
 typedef const struct nothrow_t { } *c_nothrow_p;
 
-extern void *_ZnwmRKSt9nothrow_t (size_t, c_nothrow_p) __attribute__((weak));
+extern void *_ZnwXRKSt9nothrow_t (size_t, c_nothrow_p) __attribute__((weak));
 extern void _ZdlPvRKSt9nothrow_t (void *, c_nothrow_p) __attribute__((weak));
-extern void *_ZnamRKSt9nothrow_t (size_t, c_nothrow_p) __attribute__((weak));
+extern void *_ZnaXRKSt9nothrow_t (size_t, c_nothrow_p) __attribute__((weak));
 extern void _ZdaPvRKSt9nothrow_t (void *, c_nothrow_p) __attribute__((weak));
 
 /* Wrap the delete nothrow symbols for usage with a single argument.
@@ -62,9 +79,9 @@ del_opvnt (void *ptr)
 
 /* Wrap: operator new (std::size_t sz)  */
 void *
-_ZGTtnwm (size_t sz)
+_ZGTtnwX (size_t sz)
 {
-  void *r = _Znwm (sz);
+  void *r = _ZnwX (sz);
   if (r)
     gtm_tx()->record_allocation (r, _ZdlPv);
   return r;
@@ -72,9 +89,9 @@ _ZGTtnwm (size_t sz)
 
 /* Wrap: operator new (std::size_t sz, const std::nothrow_t&)  */
 void *
-_ZGTtnwmRKSt9nothrow_t (size_t sz, c_nothrow_p nt)
+_ZGTtnwXRKSt9nothrow_t (size_t sz, c_nothrow_p nt)
 {
-  void *r = _ZnwmRKSt9nothrow_t (sz, nt);
+  void *r = _ZnwXRKSt9nothrow_t (sz, nt);
   if (r)
     gtm_tx()->record_allocation (r, del_opnt);
   return r;
@@ -82,9 +99,9 @@ _ZGTtnwmRKSt9nothrow_t (size_t sz, c_nothrow_p nt)
 
 /* Wrap: operator new[] (std::size_t sz)  */
 void *
-_ZGTtnam (size_t sz)
+_ZGTtnaX (size_t sz)
 {
-  void *r = _Znam (sz);
+  void *r = _ZnaX (sz);
   if (r)
     gtm_tx()->record_allocation (r, _ZdaPv);
   return r;
@@ -92,9 +109,9 @@ _ZGTtnam (size_t sz)
 
 /* Wrap: operator new[] (std::size_t sz, const std::nothrow_t& nothrow)  */
 void *
-_ZGTtnamRKSt9nothrow_t (size_t sz, c_nothrow_p nt)
+_ZGTtnaXRKSt9nothrow_t (size_t sz, c_nothrow_p nt)
 {
-  void *r = _ZnamRKSt9nothrow_t (sz, nt);
+  void *r = _ZnaXRKSt9nothrow_t (sz, nt);
   if (r)
     gtm_tx()->record_allocation (r, del_opvnt);
   return r;

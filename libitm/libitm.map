@@ -169,12 +169,12 @@ LIBITM_1.0 {
 	_ITM_free;
 	_ITM_dropReferences;
 
-	_ZGTtnwm;
-	_ZGTtnam;
+	_ZGTtnw?;
+	_ZGTtna?;
 	_ZGTtdlPv;
 	_ZGTtdaPv;
-	_ZGTtnwmRKSt9nothrow_t;
-	_ZGTtnamRKSt9nothrow_t;
+	_ZGTtnw?RKSt9nothrow_t;
+	_ZGTtna?RKSt9nothrow_t;
 	_ZGTtdlPvRKSt9nothrow_t;
 	_ZGTtdaPvRKSt9nothrow_t;
 

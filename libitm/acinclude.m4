@@ -69,6 +69,32 @@ extern void bar(void) __attribute__((alias("foo")));],
       [Define to 1 if the target supports __attribute__((alias(...))).])
   fi])
 
+dnl Check how size_t is mangled.
+AC_DEFUN([LIBITM_CHECK_SIZE_T_MANGLING], [
+  AC_CACHE_CHECK([how size_t is mangled],
+                 libitm_cv_size_t_mangling, [
+    AC_TRY_COMPILE([], [extern __SIZE_TYPE__ x; extern unsigned long x;],
+	           [libitm_cv_size_t_mangling=m], [
+      AC_TRY_COMPILE([], [extern __SIZE_TYPE__ x; extern unsigned int x;],
+	             [libitm_cv_size_t_mangling=j], [
+        AC_TRY_COMPILE([],
+		       [extern __SIZE_TYPE__ x; extern unsigned long long x;],
+	               [libitm_cv_size_t_mangling=y], [
+          AC_TRY_COMPILE([],
+			 [extern __SIZE_TYPE__ x; extern unsigned short x;],
+			 [libitm_cv_size_t_mangling=t],
+		         [libitm_cv_size_t_mangling=x])
+	])
+      ])
+    ])
+  ])
+  if test $libitm_cv_size_t_mangling = x; then
+    AC_MSG_ERROR([Unknown underlying type for size_t])
+  fi
+  AC_DEFINE_UNQUOTED(MANGLE_SIZE_T, [$libitm_cv_size_t_mangling],
+    [Define to the letter to which size_t is mangled.])
+])
+
 sinclude(../libtool.m4)
 dnl The lines below arrange for aclocal not to bring an installed
 dnl libtool.m4 into aclocal.m4, while still arranging for automake to

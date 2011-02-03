@@ -116,6 +116,7 @@ save_CFLAGS="$CFLAGS"
 
 # Find other programs we need.
 AC_CHECK_TOOL(AR, ar)
+AC_CHECK_TOOL(NM, nm)
 AC_CHECK_TOOL(RANLIB, ranlib, ranlib-not-found-in-path-error)
 AC_PATH_PROG(PERL, perl, perl-not-found-in-path-error)
 AC_PROG_MAKE_SET
@@ -208,6 +209,9 @@ if test $enable_symvers = gnu; then
   AC_DEFINE(LIBITM_GNU_SYMBOL_VERSIONING, 1,
 	    [Define to 1 if GNU symbol versioning is used for libitm.])
 fi
+
+# Determine the proper ABI type for size_t.
+LIBITM_CHECK_SIZE_T_MANGLING
 
 # Get target configury.
 . ${srcdir}/configure.tgt

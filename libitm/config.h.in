@@ -91,6 +91,9 @@
    */
 #undef LT_OBJDIR
 
+/* Define to the letter to which size_t is mangled. */
+#undef MANGLE_SIZE_T
+
 /* Name of package */
 #undef PACKAGE
 
