@@ -1,3 +1,9 @@
+2011-02-03 Andrew MacLeod  <amacleod@redhat.com>
+
+	PR/46567
+        * trans-mem.c (ipa_tm_propagate_irr): Don't reprocess blocks
+	already in the old irrevocable list.
+
 2011-02-03  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem (ipa_tm_scan_irr_function): Make sure we have a bitmap

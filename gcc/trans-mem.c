@@ -3718,8 +3718,12 @@ ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr, bitmap old_irr,
 	    }
 	  if (all_son_irr)
 	    {
-	      bitmap_set_bit (new_irr, bb->index);
-	      this_irr = true;
+	      /* Add block to new_irr if it hasn't already been processed. */
+	      if (!old_irr || !bitmap_bit_p (old_irr, bb->index))
+	        {
+		  bitmap_set_bit (new_irr, bb->index);
+		  this_irr = true;
+		}
 	    }
 	}
 
@@ -3730,7 +3734,11 @@ ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr, bitmap old_irr,
 	  for (son = first_dom_son (CDI_DOMINATORS, bb);
 	       son;
 	       son = next_dom_son (CDI_DOMINATORS, son))
-	    bitmap_set_bit (new_irr, son->index);
+	    {
+	      /* Make sure a block isn't already in old_irr.  */
+	      gcc_assert (!old_irr || !bitmap_bit_p (old_irr, son->index));
+	      bitmap_set_bit (new_irr, son->index);
+	    }
 	}
     }
   while (!VEC_empty (basic_block, bbs));
