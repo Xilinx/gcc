@@ -1,7 +1,7 @@
 // { dg-do compile }
 // { dg-options "-fgnu-tm -O2" }
        
-typedef long int ptrdiff_t;
+typedef __PTRDIFF_TYPE__ ptrdiff_t;
 typedef __SIZE_TYPE__ size_t;
 namespace std __attribute__ ((__visibility__ ("default"))) {
   using ::ptrdiff_t;
