@@ -1,3 +1,9 @@
+2011-02-03  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/47573
+	* trans-mem.c (ipa_tm_create_version): Call
+	tree_function_versioning when the old node will be available.
+
 2011-02-02  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (expand_call_tm): Annotate BUILT_IN_TM_* calls.

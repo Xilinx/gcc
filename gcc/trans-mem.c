@@ -4098,7 +4098,7 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL);
   get_cg_data (old_node)->clone = new_node;
 
-  if (!DECL_EXTERNAL (old_decl))
+  if (cgraph_function_body_availability (old_node) >= AVAIL_OVERWRITABLE)
     tree_function_versioning (old_decl, new_decl, NULL, false, NULL);
 
   /* ?? We should be able to remove DECL_IS_TM_CLONE.  We have enough
