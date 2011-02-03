@@ -29,3 +29,9 @@ void deallocatearray(Obj *o[])
 { 
   delete [] o;
 }
+
+/* The delete/new operators are handled by the libitm runtime.  */
+/* { dg-final { scan-assembler "_ZGTtnw\[mj\]" } } */
+/* { dg-final { scan-assembler "_ZGTtna\[mj\]" } } */
+/* { dg-final { scan-assembler "_ZGTtdlPv" } } */
+/* { dg-final { scan-assembler "_ZGTtdaPv" } } */

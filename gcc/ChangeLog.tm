@@ -6,6 +6,13 @@
 
 2011-02-02  Aldy Hernandez  <aldyh@redhat.com>
 
+	* cp/decl.c (push_cp_library_fn): Set attribute to
+	transaction_safe.
+	* testsuite/g++.dg/tm/pr46941.C: Test that new/delete calls are
+	transformed into calls into the runtime.
+
+2011-02-02  Aldy Hernandez  <aldyh@redhat.com>
+
 	* trans-mem.c (expand_call_tm): Annotate BUILT_IN_TM_* calls.
 	(find_tm_replacement_function): Add comment.
 
