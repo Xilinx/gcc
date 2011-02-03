@@ -1,5 +1,10 @@
 2011-02-03  Aldy Hernandez  <aldyh@redhat.com>
 
+	* trans-mem (ipa_tm_scan_irr_function): Make sure we have a bitmap
+	before we dump it.
+
+2011-02-03  Aldy Hernandez  <aldyh@redhat.com>
+
 	PR/47573
 	* trans-mem.c (ipa_tm_create_version): Call
 	tree_function_versioning when the old node will be available.

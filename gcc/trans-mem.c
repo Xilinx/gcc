@@ -3838,7 +3838,7 @@ ipa_tm_scan_irr_function (struct cgraph_node *node, bool for_clone)
       else
 	d->irrevocable_blocks_normal = new_irr;
 
-      if (dump_file)
+      if (dump_file && new_irr)
 	{
 	  const char *dname;
 	  bitmap_iterator bmi;
