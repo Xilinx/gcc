@@ -1,3 +1,7 @@
+2011-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/topengpu-1.c: Changed comment to pass
+	-fgraphite.
+
 2011-02-02  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/topengpu-1.c: Changed comment to pass
 	-floop-parallelize-all.
