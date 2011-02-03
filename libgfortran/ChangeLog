@@ -1,3 +1,36 @@
+2011-02-02  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47571
+	* configure: Regenerated.
+	* configure.ac: Don't add librt to LIBS.
+	* intrinsics/time_1.h (weak_gettime): Weakref trickery for
+	clock_gettime().
+	(gf_gettime): Use weak_gettime() instead of clock_gettime().
+
+2011-02-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* intrinsics/time_1.h: Include errno.h needed by fallbacks.
+
+2011-01-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* intrinsics/time_1.h: Fix definition of GF_CLOCK_MONOTONIC macro.
+
+2011-01-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* configure.ac: Check for clock_gettime().
+	* configure: Regenerated.
+	* config.h.in: Regenerated.
+	* intrinsics/time_1.h (__time_1): Rename to gf_cputime, add
+	times() fallback.
+	(gf_gettime): New function.
+	* intrinsics/cpu_time.c (__cpu_time_1): Update to call gf_cputime.
+	* intrinsics/date_and_time.c (date_and_time): Use gf_gettime.
+	* intrinsics/dtime.c (dtime_sub): Use gf_cputime.
+	* intrinsics/etime.c (etime_sub): Use gf_cputime.
+	* intrinsics/system_clock.c (system_clock_4): Use gf_gettime.
+	(system_clock_8): Use gf_gettime, increase count rate to allow
+	nanosecond precision, remove overflow prone branch.
+
 2011-01-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libgfortran/47434

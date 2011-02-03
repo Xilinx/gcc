@@ -1,3 +1,509 @@
+2011-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/31490
+	* output.h (SECTION_RELRO): Define.
+	(SECTION_MACH_DEP): Adjust.
+	(get_variable_section): New prototype.
+	* varpool.c (varpool_finalize_named_section_flags): New function.
+	(varpool_assemble_pending_decls): Call it.
+	* cgraph.h (varpool_finalize_named_section_flags): New prototype.
+	* cgraphunit.c (cgraph_output_in_order): Call
+	varpool_finalize_named_section_flags.
+	* varasm.c (get_section): Allow section flags conflicts between
+	relro and read-only sections if the section hasn't been declared yet.
+	Set SECTION_OVERRIDE after diagnosing section type conflict.
+	(get_variable_section): No longer static.
+	(default_section_type_flags): Use SECTION_WRITE | SECTION_RELRO for
+	readonly sections that need relocations.
+	(decl_readonly_section_1): New function.
+	(decl_readonly_section): Use it.
+
+	Revert:
+	2010-11-17  Dinar Temirbulatov <dtemirbulatov@gmail.com>
+		    Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/31490
+	* varasm.c (categorize_decl_for_section): Ignore reloc_rw_mask
+	if section attribute used.
+
+2011-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/darwin.h (SECTION_NO_ANCHOR): Remove.
+	* config/darwin.c (SECTION_NO_ANCHOR): Define.
+	(darwin_init_sections): Remove assertion.
+
+2011-02-03  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/predicates.md (rx_zs_comparison_operator): Remove
+	lt and ge.
+	* config/rx/rx.md (abssi2_flags): Use CC_ZSmode rather than
+	CC_ZSOmode.
+	* config/rx/rx.c (rx_print_operand): Use "lt" and "ge" suffixes
+	instead of "n" and "pz".
+	(flags_from_code): LT and GE tests need CC_FLAG_O as well as
+	CC_FLAG_S.
+
+2011-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/47312
+	* expr.c (expand_expr_real_2) <case FMA_EXPR>: If target doesn't expand
+	fma, expand FMA_EXPR as fma{,f,l} call.
+
+	PR lto/47274
+	* lto-streamer-out.c (write_symbol): When writing kind and visibility,
+	copy them into a unsigned char variable and pass address of it to
+	lto_output_data_stream.
+
+	PR target/47564
+	* toplev.c (target_reinit): Save and restore *crtl and regno_reg_rtx
+	around backend_init_target and lang_dependent_init_target calls.
+	* cgraphunit.c (cgraph_debug_gimple_stmt): New function.
+	(verify_cgraph_node): Don't call set_cfun here.  Use
+	cgraph_debug_gimple_stmt instead of debug_gimple_stmt.
+	Set error_found for incorrectly represented calls to thunks.
+
+2011-02-03  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/43092
+	PR rtl-optimization/43494
+	* rtl.h (for_each_inc_dec_fn): New type.
+	(for_each_inc_dec): Declare.
+	* rtlanal.c (struct for_each_inc_dec_ops): New type.
+	(for_each_inc_dec_find_inc_dec): New fn.
+	(for_each_inc_dec_find_mem): New fn.
+	(for_each_inc_dec): New fn.
+	* dse.c (struct insn_size): Remove.
+	(replace_inc_dec, replace_inc_dec_mem): Remove.
+	(emit_inc_dec_insn_before): New fn.
+	(check_for_inc_dec): Use it, along with for_each_inc_dec.
+	(canon_address): Pass mem modes to cselib_lookup.
+	* cselib.h (cselib_lookup): Add memmode argument.  Adjust callers.
+	(cselib_lookup_from_insn): Likewise.
+	(cselib_subst_to_values): Likewise.
+	* cselib.c (find_slot_memmode): New var.
+	(cselib_find_slot): New fn.  Use it instead of
+	htab_find_slot_with_hash everywhere.
+	(entry_and_rtx_equal_p): Use find_slot_memmode.
+	(autoinc_split): New fn.
+	(rtx_equal_for_cselib_p): Rename and implement in terms of...
+	(rtx_equal_for_cselib_1): ... this.  Take memmode, pass it on.
+	Deal with autoinc.  Special-case recursion into MEMs.
+	(cselib_hash_rtx): Likewise.
+	(cselib_lookup_mem): Infer pmode from address mode.  Distinguish
+	address and MEM modes.
+	(cselib_subst_to_values): Add memmode, pass it on.
+	Deal with autoinc.
+	(cselib_lookup): Add memmode argument, pass it on.
+	(cselib_lookup_from_insn): Add memmode.
+	(cselib_invalidate_rtx): Discard obsolete push_operand handling.
+	(struct cselib_record_autoinc_data): New.
+	(cselib_record_autoinc_cb): New fn.
+	(cselib_record_sets): Use it, along with for_each_inc_dec.  Pass MEM
+	mode to cselib_lookup.  Reset autoinced REGs here instead of...
+	(cselib_process_insn): ... here.
+	* var-tracking.c (replace_expr_with_values, use_type): Pass MEM mode
+	to cselib_lookup.
+	(add_uses): Likewise, also to cselib_subst_to_values.
+	(add_stores): Likewise.
+	* sched-deps.c 	(add_insn_mem_dependence): Pass mode to
+	cselib_subst_to_values.
+	(sched_analyze_1, sched_analyze_2): Likewise.  Adjusted.
+	* gcse.c (do_local_cprop): Adjusted.
+	* postreload.c (reload_cse_simplify_set): Adjusted.
+	(reload_cse_simplify_operands): Adjusted.
+	* sel-sched-dump (debug_mem_addr_value): Pass mode.
+
+2011-02-03  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR tree-optimization/45122
+	* tree-ssa-loop-niter.c (number_of_iterations_exit): Don't make
+	unsafe assumptions when there's more than one loop exit.
+
+2011-02-02  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/47272
+	* doc/extend.texi (PowerPC AltiVec/VSX Built-in Functions):
+	Document using vector double with the load/store builtins, and
+	that the load/store builtins always use Altivec instructions.
+
+	* config/rs6000/vector.md (vector_altivec_load_<mode>): New insns
+	to use altivec memory instructions, even on VSX.
+	(vector_altivec_store_<mode>): Ditto.
+
+	* config/rs6000/rs6000-protos.h (rs6000_address_for_altivec): New
+	function.
+
+	* config/rs6000/rs6000-c.c (altivec_overloaded_builtins): Add
+	V2DF, V2DI support to load/store overloaded builtins.
+
+	* config/rs6000/rs6000-builtin.def (ALTIVEC_BUILTIN_*): Add
+	altivec load/store builtins for V2DF/V2DI types.
+
+	* config/rs6000/rs6000.c (rs6000_option_override_internal): Don't
+	set avoid indexed addresses on power6 if -maltivec.
+	(altivec_expand_ld_builtin): Add V2DF, V2DI support, use
+	vector_altivec_load/vector_altivec_store builtins.
+	(altivec_expand_st_builtin): Ditto.
+	(altivec_expand_builtin): Add VSX memory builtins.
+	(rs6000_init_builtins): Add V2DI types to internal types.
+	(altivec_init_builtins): Add support for V2DF/V2DI altivec
+	load/store builtins.
+	(rs6000_address_for_altivec): Insure memory address is appropriate
+	for Altivec.
+
+	* config/rs6000/vsx.md (vsx_load_<mode>): New expanders for
+	vec_vsx_ld and vec_vsx_st.
+	(vsx_store_<mode>): Ditto.
+
+	* config/rs6000/rs6000.h (RS6000_BTI_long_long): New type
+	variables to hold long long types for VSX vector memory builtins.
+	(RS6000_BTI_unsigned_long_long): Ditto.
+	(long_long_integer_type_internal_node): Ditti.
+	(long_long_unsigned_type_internal_node): Ditti.
+
+	* config/rs6000/altivec.md (UNSPEC_LVX): New UNSPEC.
+	(altivec_lvx_<mode>): Make altivec_lvx use a mode iterator.
+	(altivec_stvx_<mode>): Make altivec_stvx use a mode iterator.
+
+	* config/rs6000/altivec.h (vec_vsx_ld): Define VSX memory builtin
+	short cuts.
+	(vec_vsx_st): Ditto.
+
+2011-02-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/pa/pa-hpux10.opt: New.
+	* config/hpux11.opt (pthread): New Driver option.
+	* config/pa/pa-hpux.opt (nolibdld, rdynamic): New Driver options.
+	* config.gcc (hppa[12]*-*-hpux10*): Use pa/pa-hpux10.opt.
+
+2011-02-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/ia64/vms.opt: New.
+	* config.gcc (ia64-hp-*vms*): Use ia64/vms.opt.
+
+2011-02-01  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/47580
+	* config/rs6000/vsx.md (vsx_float<VSi><mode>2): Use
+	gpc_reg_operand instead of vsx_register_operand to match rs6000.md
+	generator functions.
+	(vsx_floatuns<VSi><mode>2): Ditto.
+	(vsx_fix_trunc<mode><VSi>2): Ditto.
+	(vsx_fixuns_trunc<mode><VSi>2): Ditto.
+
+2011-02-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/djgpp.opt (posix): New Driver option.
+
+2011-02-02  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* config.gcc (*-*-freebsd[12], *-*-freebsd[12].*, *-*-freebsd*aout*):
+	Move to the unsupported targets list.
+
+2011-02-02  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR rtl-optimization/47525
+	* df-scan.c: Update copyright years.
+	(df_get_call_refs): Do not mark global registers as DF_REF_REG_USE
+	and non-clobber DF_REF_REG_DEF for calls to const and pure functions.
+
+2011-02-02  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/sysv4.h (TARGET_VERSION): Remove.
+	(SUBTARGET_RETURN_IN_MEMORY): Remove.
+	(ASM_OUTPUT_ASCII): Remove.
+	* config/i386/sol2.h (SUBTARGET_RETURN_IN_MEMORY): Remove #undef.
+
+2011-02-02  Jeff Law  <law@redhat.com>
+
+	PR middle-end/47543
+	* reload.c (find_reloads_address): Handle reg+d address where both
+	components are invalid by reloading the entire address.
+
+2011-02-02  Sebastian Pop  <sebastian.pop@amd.com>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40979
+	PR bootstrap/47044
+	* passes.c (init_optimization_passes): After LIM call copy_prop
+	and DCE to clean up.
+	* tree-ssa-loop.c (pass_graphite_transforms): Add TODO_dump_func.
+
+2011-02-02  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/47576
+	PR tree-optimization/47555
+	* doc/invoke.texi (scev-max-expr-complexity): Documented.
+	* params.def (PARAM_SCEV_MAX_EXPR_SIZE): Bump the value to 100.
+	(PARAM_SCEV_MAX_EXPR_COMPLEXITY): Declared.
+	* tree-scalar-evolution.c (follow_ssa_edge): Use
+	PARAM_SCEV_MAX_EXPR_COMPLEXITY.
+
+2011-02-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47566
+	* builtins.c (builtin_save_expr): No SAVE_EXPR for SSA_NAMEs.
+
+2011-02-02  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/47106
+	PR debug/47402
+	* tree-inline.c (declare_return_variable): Remove unused caller
+	variable.
+
+	PR debug/47106
+	PR debug/47402
+	* tree-flow-inline.h (clear_is_used, is_used_p): New.
+	* cfgexpand.c (account_used_vars_for_block): Use them.
+	* tree-nrv.c (tree_nrv): Likewise.
+	* tree-ssa-live.c (remove_unused_scope_block_p): Likewise.
+	(dump_scope_block): Likewise.
+	(remove_unused_locals): Likewise.
+
+	PR debug/47106
+	PR debug/47402
+	* tree-inline.c (declare_return_variable): Add result decl to
+	local decls only once.
+	* gimple-low.c (record_vars_into): Mark newly-created variables
+	as referenced.
+
+2011-02-02  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/47498
+	PR debug/47501
+	PR debug/45136
+	PR debug/45130
+	* haifa-sched.c (get_ebb_head_tail): Move notes across boundary
+	debug insns.
+	(no_real_insns_p, schedule_block, set_priorities): Drop special
+	treatment of boundary debug insns.
+	* sched-deps.c (sd_init_insn, sd_finish_insn): Don't mark debug
+	insns.
+	* sched-ebb.c (schedule_ebbs): Adjust skipping of debug insns.
+	* sched-int.h (DEBUG_INSN_SCHED_P): Remove.
+	(BOUNDARY_DEBUG_INSN_P): Likewise.
+	(SCHEDULE_DEBUG_INSN_P): Likewise.
+	* sched-rgn.c (init_ready_list): Drop special treatment of
+	boundary debug insns.
+	* final.c (rest_of_clean_state): Clear notes' BB.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/openbsd.opt (assert=): New Driver option.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/nto.opt: New.
+	* config.gcc (i[34567]86-*-nto-qnx*): Use i386/nto.opt.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/netware.opt: New.
+	* config.gcc (i[3456x]86-*-netware*): Use i386/netware.opt.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/interix.opt (posix): New Driver option.
+
+2011-02-01  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/m32c.h (PTRDIFF_TYPE): Remove extra definition.
+
+	* config/m32c/m32c.c (m32c_regno_reg_class): Return smallest reg
+	class for A0/A1.
+
+2011-02-01  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/47561
+	* toplev.c (process_options): Print the Graphite flags.  Add
+	flag_loop_flatten to the list of options requiring Graphite.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/cygming.opt (posix): New Driver option.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/vxworks.opt: New.
+	* config.gcc (arm-wrs-vxworks): Use arm/vxworks.opt.
+
+2011-02-01  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/alpha/elf.opt: New.
+	* config.gcc (alpha*-*-linux*, alpha*-*-gnu*, alpha*-*-freebsd*,
+	alpha*-*-netbsd*, alpha*-*-openbsd*): Use alpha/elf.opt.
+
+2011-02-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47559
+	* tree-ssa-loop-im.c (can_sm_ref_p): Do not perform
+	store-motion on references that can throw.
+
+2011-02-01  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* tree-dump.c (dump_option_value_info): Add entry for TDF_CSELIB.
+	* tree-pass.h (TDF_CSELIB): New macro.
+	* cselib.c (new_cselib_val, expand_loc, cselib_expand_value_rtx_1,
+	cselib_lookup): Check for it rather than for TDF_DETAILS.
+
+2011-02-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR driver/47547
+	* lto-wrapper.c (run_gcc): Don't add -dumpdir if linker_output
+	is HOST_BIT_BUCKET.
+
+	* opts.c (finish_options): Don't add x_aux_base_name if it is
+	HOST_BIT_BUCKET.
+
+2011-02-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47555
+	Revert
+	2010-07-15  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* params.def (PARAM_SCEV_MAX_EXPR_SIZE): Bump the value to 100.
+
+2011-02-01  Sebastien Bourdeauducq  <sebastien@milkymist.org>
+
+	PR gcc/46692
+	* config/lm32/t-lm32: Add multilib for all CPU options.
+
+2011-02-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47541
+	* tree-ssa-structalias.c (push_fields_onto_fieldstack): Make
+	sure to have a field at offset zero.
+
+2011-01-31  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arc/arc.opt (EB, EL): New Driver options.
+
+2011-01-31  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/alpha/osf5.opt: New.
+	* config.gcc (alpha*-dec-osf5.1*): Use alpha/osf5.opt.
+
+2011-01-31  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/vms/vms.opt (map, mvms-return-codes): New Driver options.
+
+2011-01-31  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* common.opt (ftree-loop-linear): Use Alias to make it an alias of
+	-floop-interchange.
+	* invoke.texi (-ftree-loop-linear): Make it clear that this flag
+	is an alias of -floop-interchange and that it requires the
+	Graphite infrastructure.
+	* tree-ssa-loop.c (gate_graphite_transforms): Do not set
+	flag_loop_interchange based on the value of flag_tree_loop_linear.
+
+2011-01-31  Jakub Jelinek  <jakub@redhat.com>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47538
+	* tree-ssa-ccp.c (bit_value_binop_1): For uns computation use
+	type instead of r1type, except for comparisons.  For right
+	shifts and comparisons punt if there are mismatches in
+	sizetype vs. non-sizetype types.
+
+2011-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* doc/sourcebuild.texi (Effective-Target Keywords): Document
+	avx_runtime.
+
+2011-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_ld_eh_frame_hdr): Update minimal Sun ld
+	version number.
+	* configure: Regenerate.
+
+2011-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_ld_static_option): Define.
+	(gcc_cv_ld_dynamic_option): Define.
+	(gcc_cv_ld_static_dynamic): Tru64 UNIX support -noso/-so_archive
+	instead.
+	(HAVE_LD_STATIC_DYNAMIC): Update message.
+	(LD_STATIC_OPTION): Define.
+	(LD_DYNAMIC_OPTION): Define.
+	* configure: Regenerate.
+	* config.in: Regenerate.
+	* gcc.c (init_spec) [USE_LIBUNWIND_EXCEPTIONS &&
+	HAVE_LD_STATIC_DYNAMIC]: Use them.
+
+2011-01-31  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.c (rx_get_stack_layout): Only save call clobbered
+	registers inside interrupt handlers if the handler is not a leaf
+	function.
+
+2011-01-31  Nick Clifton  <nickc@redhat.com>
+
+	* config/mn10300/mn10300.c (mn10300_regno_in_class_p): Check for
+	reg_renumber returning an INVALID_REGNUM.
+
+2011-01-31  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR libgcj/44341
+	* doc/install.texi: Document host options discarded when cross
+	configuring target libraries.
+
+2011-01-31  Alexandre Oliva  <aoliva@redhat.com>
+
+	Reverted:
+	2011-01-25  Alexandre Oliva  <aoliva@redhat.com>
+	PR debug/45136
+	PR debug/45130
+	* haifa-sched.c (get_ebb_head_tail): Move notes across boundary
+	debug insns.
+	(no_real_insns_p, schedule_block, set_priorities): Drop special
+	treatment of boundary debug insns.
+	* sched-deps.c (sd_init_insn, sd_finish_insn): Don't mark debug
+	insns.
+	* sched-ebb.c (schedule_ebbs): Don't skip debug insns.
+	* sched-int.h (DEBUG_INSN_SCHED_P): Remove.
+	(BOUNDARY_DEBUG_INSN_P): Likewise.
+	(SCHEDULE_DEBUG_INSN_P): Likewise.
+	* sched-rgn.c (init_ready_list): Drop special treatment of
+	boundary debug insns.
+	* final.c (rest_of_clean-state): Clear notes' BB.
+
+2011-01-31  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/rs6000.c (print_operand): Rearrange addends in
+	toc relative expressions as we do in print_operand_address.
+
+2011-01-30  Kazu Hirata  <kazu@codesourcery.com>
+
+	* doc/extend.texi: Follow spelling conventions.
+	* doc/invoke.texi: Fix a typo.
+
+2011-01-30  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/hpux11.opt: New.
+	* config.gcc (hppa*64*-*-hpux11*, hppa[12]*-*-hpux11*,
+	ia64*-*-hpux*): Use hpux11.opt.
+
+2011-01-30  Jonathan Yong <jon_y@users.sourceforge.net>
+
+	* config.gcc (i[34567]86-*-pe | i[34567]86-*-cygwin*): Add t-dfprules
+	to tmake_file.
+
+2011-01-30  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/install.texi (hppa-hp-hpux10): Remove references to HP
+	support sites.
+
+2011-01-30  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/install.texi (Binaries): Remove outdated reference for
+	Motorola 68HC11/68HC12 downloads.
+
+2011-01-30  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/extend.texi (Thread-Local): Adjust reference to Ulrich
+	Drepper's paper.
+
 2011-01-29  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	PR bootstrap/47147
@@ -187,8 +693,8 @@
 2011-01-26  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/47190
-	 * cgraphunit.c (process_common_attributes): New function.
-        (process_function_and_variable_attributes): Use it.
+	* cgraphunit.c (process_common_attributes): New function.
+	(process_function_and_variable_attributes): Use it.
 
 2011-01-26  Richard Guenther  <rguenther@suse.de>
 
@@ -882,14 +1388,19 @@
 	* tree-ssa-copyrename.c (copy_rename_partition_coalesce):
 	Revert previous change, only avoid enumeral type changes.
 
+2011-01-19  Mike Stump  <mikestump@comcast.net>
+
+	* doc/tm.texi.in (BRANCH_COST): Englishify.
+	* doc/tm.texi (BRANCH_COST): Likewise.
+
 2011-01-19  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/47291
 	* dwarf2out.c (generic_type_p, schedule_generic_params_dies_gen)
-    	(gen_scheduled_generic_parms_dies): New functions.
-    	(gen_struct_or_union_type_die): Schedule template parameters DIEs
-    	generation for the end of CU compilation.
-    	(dwarf2out_finish): Generate template parameters DIEs here.
+	(gen_scheduled_generic_parms_dies): New functions.
+	(gen_struct_or_union_type_die): Schedule template parameters DIEs
+	generation for the end of CU compilation.
+	(dwarf2out_finish): Generate template parameters DIEs here.
 
 2011-01-19  Alexandre Oliva  <aoliva@redhat.com>
 
@@ -1222,9 +1733,9 @@
 
 2011-01-18  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
 
-        * config/arm/cortex-a9.md (cortex-a9-neon.md): Actually
-        include.
-        (cortex_a9_dp): Handle neon types correctly.
+	* config/arm/cortex-a9.md (cortex-a9-neon.md): Actually
+	include.
+	(cortex_a9_dp): Handle neon types correctly.
 
 2011-01-18  Jakub Jelinek  <jakub@redhat.com>
 
@@ -1398,8 +1909,8 @@
 	(avx_maskstore<ssemodesuffix><avxmodesuffix>): Likewise.
 
 2011-01-17  Olivier Hainque  <hainque@adacore.com>
-            Michael Haubenwallner  <michael.haubenwallner@salomon.at>
-            Eric Botcazou  <ebotcazou@adacore.com>
+	    Michael Haubenwallner  <michael.haubenwallner@salomon.at>
+	    Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR target/46655
 	* xcoffout.c (ASM_OUTPUT_LINE): Output line only if positive, and only
@@ -1675,7 +2186,7 @@
 	PR debug/PR46973
 	* dwarf2out.c (prune_unused_types_mark_generic_parms_dies): New
 	static function.
-    	(prune_unused_types_mark): Use it.
+	(prune_unused_types_mark): Use it.
 
 2011-01-13  Andrey Belevantsev  <abel@ispras.ru>
 

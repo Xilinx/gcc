@@ -6870,8 +6870,10 @@ at @option{-O} and higher.
 
 @item -ftree-loop-linear
 @opindex ftree-loop-linear
-Perform linear loop transformations on tree.  This flag can improve cache
-performance and allow further loop optimizations to take place.
+Perform loop interchange transformations on tree.  Same as
+@option{-floop-interchange}.  To use this code transformation, GCC has
+to be configured with @option{--with-ppl} and @option{--with-cloog} to
+enable the Graphite loop transformation infrastructure.
 
 @item -floop-interchange
 @opindex floop-interchange
@@ -7690,7 +7692,7 @@ This option enables the extraction of object files with GIMPLE bytecode out of
 library archives. This improves the quality of optimization by exposing more
 code the the link time optimizer.  This information specify what symbols 
 can be accessed externally (by non-LTO object or during dynamic linking).
-Resulting code quality improvements on binaries (and shared libaries that do
+Resulting code quality improvements on binaries (and shared libraries that do
 use hidden visibility) is similar to @code{-fwhole-program}.  See
 @option{-flto} for a description on the effect of this flag and how to use it.
 
@@ -8460,6 +8462,10 @@ optimization when a new iv is added to the set.
 @item scev-max-expr-size
 Bound on size of expressions used in the scalar evolutions analyzer.
 Large expressions slow the analyzer.
+
+@item scev-max-expr-complexity
+Bound on the complexity of the expressions in the scalar evolutions analyzer.
+Complex expressions slow the analyzer.
 
 @item omega-max-vars
 The maximum number of variables in an Omega constraint system.

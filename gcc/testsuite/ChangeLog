@@ -1,3 +1,168 @@
+2011-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/31490
+	* gcc.dg/pr31490-2.c: New test.
+	* gcc.dg/pr31490-3.c: New test.
+	* gcc.dg/pr31490-4.c: New test.
+
+2011-02-03  Nathan Froyd  <froydnj@codesourcery.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/46890
+	* g++.dg/parser/semicolon3.C: Adjust.
+	* g++.dg/parser/semicolon4.C: New testcase.
+	* g++.dg/pr46890.C: New testcase.
+
+2011-02-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/29571
+	* g++.dg/init/pr29571.C: New.
+
+2011-02-03  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gfortran.dg/graphite/vect-pr40979.f90: Require vect_double
+	instead of vect_int.
+
+2011-02-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/47312
+	* gcc.target/i386/pr47312.c: New test.
+
+	PR target/47564
+	* gcc.target/i386/pr47564.c: New test.
+
+2011-02-03  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR tree-optimization/45122
+	* gcc.dg/tree-ssa/pr45122.c: New.
+
+2011-02-02  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/47272
+	* gcc.target/powerpc/vsx-builtin-8.c: New file, test vec_vsx_ld
+	and vec_vsx_st.
+
+	* gcc.target/powerpc/avoid-indexed-addresses.c: Disable altivec
+	and vsx so a default --with-cpu=power7 doesn't give an error
+	when -mavoid-indexed-addresses is used.
+
+	* gcc.target/powerpc/ppc32-abi-dfp-1.c: Rewrite to use an asm
+	wrapper function to save the arguments and then jump to the real
+	function, rather than depending on the compiler not to move stuff
+	before an asm.
+	* gcc.target/powerpc/ppc64-abi-dfp-2.c: Ditto.
+
+2011-02-02  Janus Weil  <janus@gcc.gnu.org>
+	    Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47082
+	* gfortran.dg/class_37.f03 : New test.
+
+2011-02-02  Sebastian Pop  <sebastian.pop@amd.com>
+	    Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40979
+	PR bootstrap/47044
+	* gcc.dg/graphite/graphite.exp (DEFAULT_VECTCFLAGS): Add -ffast-math.
+	* gcc.dg/graphite/pr35356-2.c: Adjust pattern.
+	* gfortran.dg/graphite/graphite.exp: Run vect_files conditionally to
+	check_vect_support_and_set_flags.
+	* gfortran.dg/graphite/vect-pr40979.f90: New.
+
+2011-02-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47572
+	* gfortran.dg/class_36.f03: New.
+
+2011-02-02  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47566
+	* gcc.dg/lto/20110201-1_0.c: New testcase.
+
+2011-02-02  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR debug/47498
+	PR debug/47501
+	PR debug/45136
+	PR debug/45130
+	* debug/pr47498.c: New.
+	* debug/pr47501.c: New.
+
+2011-02-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47559
+	* g++.dg/torture/pr47559.C: New testcase.
+
+2011-02-01  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47565
+	* gfortran.dg/typebound_call_20.f03: New.
+
+2011-02-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47555
+	* gcc.dg/pr47555.c: New testcase.
+
+2011-02-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47541
+	* g++.dg/torture/pr47541.C: New testcase.
+
+2011-01-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47455
+	* gfortran.dg/typebound_call_19.f03: New.
+
+2011-01-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47416
+	* g++.dg/cpp0x/pr47416.C: New test.
+
+2011-01-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47519
+	* gfortran.dg/allocate_deferred_char_scalar_2.f03: New test.
+
+2011-01-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47463
+	* gfortran.dg/typebound_assignment_1.f03: New.
+
+2011-01-31  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47538
+	* gcc.c-torture/execute/pr47538.c: New test.
+
+2011-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/45325
+	* gcc.target/i386/pr38240.c: Add dg-options "-msse".
+
+2011-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/abi/mangle40.C: Pass "" to dg-require-weak.
+
+2011-01-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR rtl-optimization/44031
+	* gcc.c-torture/compile/20110131-1.c: New test.
+
+2011-01-31  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47042
+	* gfortran.dg/stmt_func_1.f90: New.
+
+2011-01-31  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47042
+	* gfortran.dg/interface_34.f90: New.
+
+2011-01-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47523
+	* gfortran.dg/realloc_on_assign_5.f03: New test.
+	* gfortran.dg/realloc_on_assign_5.f03: New test.
+
 2011-01-29  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	* gfortran.dg/bessel_6.f90: XFAIL on spu-*-*.
@@ -66,9 +231,8 @@
 	PR fortran/47350
 	* gfortran.dg/realloc_on_assign_3.f03: New test.
 	* gfortran.dg/realloc_on_assign_4.f03: New test.
-	* gfortran.dg/realloc_on_assign_5.f90: New test.
 	* gfortran.dg/allocatable_function_5.f90: New test.
-	* gfortran.dg/allocate_deferred_char_scalar_1.f90: New test.
+	* gfortran.dg/allocate_deferred_char_scalar_1.f03: New test.
 	* gfortran.dg/deferred_type_param_2.f90: Remove two "not yet
 	implemented" dg-errors.
 
@@ -753,14 +917,14 @@
 
 	Fixed the Objective-C++ testsuite and updated all tests.
 	* lib/obj-c++.exp (obj-c++_init): Declare and set
-	gcc_warning_prefix and gcc_error_prefix.	
+	gcc_warning_prefix and gcc_error_prefix.
 	* obj-c++.dg/attributes/categ-attribute-2.mm: Fixed usage of
 	'dg-warning', 'dg-message' and 'dg-error'.
 	* obj-c++.dg/class-extension-3.mm: Likewise.
 	* obj-c++.dg/class-protocol-1.mm: Likewise.
 	* obj-c++.dg/encode-7.mm: Likewise.
 	* obj-c++.dg/exceptions-3.mm: Likewise.
-	* obj-c++.dg/exceptions-5.mm: Likewise.	
+	* obj-c++.dg/exceptions-5.mm: Likewise.
 	* obj-c++.dg/method-12.mm: Likewise.
 	* obj-c++.dg/method-13.mm: Likewise.
 	* obj-c++.dg/method-15.mm: Likewise.
@@ -775,13 +939,13 @@
 	* obj-c++.dg/method-conflict-4.mm: Likewise.  Also, removed FIXME
 	and uncommented second part of the testcase now that the testsuite
 	works correctly.
-	* obj-c++.dg/private-1.mm: Likewise.	
+	* obj-c++.dg/private-1.mm: Likewise.
 	* obj-c++.dg/proto-lossage-4.mm: Likewise.
 	* obj-c++.dg/syntax-error-7.mm: Likewise.
 	* obj-c++.dg/warn5.mm: Likewise.
 	* obj-c++.dg/property/at-property-14.mm: Likewise.
 	* obj-c++.dg/property/at-property-16.mm: Likewise, and removed
-	FIXME.	
+	FIXME.
 	* obj-c++.dg/property/at-property-18.mm: Likewise.
 	* obj-c++.dg/property/at-property-20.mm: Likewise, and removed
 	FIXME.
@@ -797,12 +961,12 @@
 	* obj-c++.dg/tls/diag-5.mm: Likewise.
 	* obj-c++.dg/ivar-invalid-type-1.mm: Removed FIXME and uncommented
 	dg-error, now matched correctly.
-	
+
 2011-01-12  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/property/at-property-29.m: New.
-	* obj-c++.dg/property/at-property-29.mm: New.	
-	
+	* obj-c++.dg/property/at-property-29.mm: New.
+
 2011-01-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* go.test/go-test.exp (go-set-goarch): New proc.

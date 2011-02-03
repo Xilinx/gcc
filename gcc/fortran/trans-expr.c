@@ -3606,10 +3606,9 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
         x = f()
      where f is pointer valued, we have to dereference the result.  */
   if (!se->want_pointer && !byref
-      && (sym->attr.pointer || sym->attr.allocatable)
-      && !gfc_is_proc_ptr_comp (expr, NULL))
-    se->expr = build_fold_indirect_ref_loc (input_location,
-					se->expr);
+      && ((!comp && (sym->attr.pointer || sym->attr.allocatable))
+	  || (comp && (comp->attr.pointer || comp->attr.allocatable))))
+    se->expr = build_fold_indirect_ref_loc (input_location, se->expr);
 
   /* f2c calling conventions require a scalar default real function to
      return a double precision result.  Convert this back to default
@@ -4628,7 +4627,7 @@ gfc_conv_structure (gfc_se * se, gfc_expr * expr, int init)
 	 components.  Although the latter have a default initializer
 	 of EXPR_NULL,... by default, the static nullify is not needed
 	 since this is done every time we come into scope.  */
-      if (!c->expr || cm->attr.allocatable)
+      if (!c->expr || (cm->attr.allocatable && cm->attr.flavor != FL_PROCEDURE))
         continue;
 
       if (strcmp (cm->name, "_size") == 0)
@@ -5977,6 +5976,7 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
   stmtblock_t body;
   bool l_is_temp;
   bool scalar_to_array;
+  bool def_clen_func;
   tree string_length;
   int n;
 
@@ -6097,10 +6097,14 @@ gfc_trans_assignment_1 (gfc_expr * expr1, gfc_expr * expr2, bool init_flag,
   /* For a deferred character length function, the function call must
      happen before the (re)allocation of the lhs, otherwise the character
      length of the result is not known.  */
+  def_clen_func = (((expr2->expr_type == EXPR_FUNCTION)
+			   || (expr2->expr_type == EXPR_COMPCALL)
+			   || (expr2->expr_type == EXPR_PPC))
+		       && expr2->ts.deferred);
   if (gfc_option.flag_realloc_lhs
-	&& expr2->expr_type == EXPR_FUNCTION
 	&& expr2->ts.type == BT_CHARACTER
-	&& expr2->ts.deferred)
+	&& (def_clen_func || expr2->expr_type == EXPR_OP)
+	&& expr1->ts.deferred)
     gfc_add_block_to_block (&block, &rse.pre);
 
   tmp = gfc_trans_scalar_assign (&lse, &rse, expr1->ts,
@@ -6296,6 +6300,11 @@ gfc_trans_class_init_assign (gfc_code *code)
 
   rhs = gfc_copy_expr (code->expr1);
   gfc_add_vptr_component (rhs);
+
+  /* Make sure that the component backend_decls have been built, which
+     will not have happened if the derived types concerned have not
+     been referenced.  */
+  gfc_get_derived_type (rhs->ts.u.derived);
   gfc_add_def_init_component (rhs);
 
   sz = gfc_copy_expr (code->expr1);

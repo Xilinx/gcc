@@ -1917,6 +1917,9 @@ get_ebb_head_tail (basic_block beg, basic_block end, rtx *headp, rtx *tailp)
 		  fprintf (sched_dump, "reorder %i\n", INSN_UID (note));
 
 		reorder_insns_nobb (note, note, PREV_INSN (beg_head));
+
+		if (BLOCK_FOR_INSN (note) != beg)
+		  df_insn_change_bb (note, beg);
 	      }
 	    else if (!DEBUG_INSN_P (note))
 	      break;
@@ -1954,7 +1957,10 @@ get_ebb_head_tail (basic_block beg, basic_block end, rtx *headp, rtx *tailp)
 		reorder_insns_nobb (note, note, end_tail);
 
 		if (end_tail == BB_END (end))
-		  df_insn_change_bb (note, NULL);
+		  BB_END (end) = note;
+
+		if (BLOCK_FOR_INSN (note) != end)
+		  df_insn_change_bb (note, end);
 	      }
 	    else if (!DEBUG_INSN_P (note))
 	      break;
