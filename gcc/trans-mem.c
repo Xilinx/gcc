@@ -1467,6 +1467,14 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
     case PARM_DECL:
     case RESULT_DECL:
     case VAR_DECL:
+      if (DECL_BY_REFERENCE (x))
+	{
+	  /* ??? This value is a pointer, but aggregate_value_p has been
+	     jigged to return true which confuses needs_to_live_in_memory.
+	     This ought to be cleaned up generically.  */
+	  return false;
+	}
+
       if (is_global_var (x))
 	return !TREE_READONLY (x);
       if (/* FIXME: This condition should actually go below in the

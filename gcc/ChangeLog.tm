@@ -1,3 +1,9 @@
+2011-02-04  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR/47554
+	* trans-mem.c (requires_barrier): Do not instrument if
+	DECL_BY_REFERENCE.
+
 2011-02-03 Andrew MacLeod  <amacleod@redhat.com>
 
 	PR/46567
