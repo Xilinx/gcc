@@ -66,8 +66,17 @@
      (debugloop curloop  "opengpudetect_exec curloop")
      (if (loop_can_be_parallel curloop)
 	 (progn
+	   (code_chunk 
+	    loopparachunk
+	    #{ /*$LOOPPARACHUNK */
+	    melt_sparebreakpoint_1($CURLOOP, 
+				   "$CURLOOP could be parallel in $LOOPPARACHUNK");
+	    }#)
 	   (debugloop curloop  "opengpudetect_exec curloop can be parallel")
-	   ))
+	   (let ( (:basic_block curloopbody (loop_body curloop)) 
+		  )
+	     (debugbasicblock "opengpudetect_exec curloopbody" curloopbody)
+	   )))
      )
     ;;
     (debug_msg pass "opengpudetect_exec end")
@@ -88,7 +97,8 @@
 		     () ;  (list  '"dump_func" '"dump_cgraph")
 		    ))
 	 )
-    (install_melt_gcc_pass opengpudetect_pass "before" "vect" 0)
+;    (install_melt_gcc_pass opengpudetect_pass "before" "vect" 0)
+    (install_melt_gcc_pass opengpudetect_pass "before" "ivcanon" 0)
     ))
 
 (defun opengpu_docmd (cmd moduldata)
@@ -126,4 +136,4 @@ into OpenCL code running on GPU"
 )
 
 (install_melt_mode opengpu_mode)
-;; eof $Id$
+;; eof xtramelt-opengpu.melt

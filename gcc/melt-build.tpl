@@ -32,6 +32,8 @@ mk
 ### melt_is_plugin - should be non empty in plugin mode
 ### melt_make_move - a copy or move command for files
 ### melt_cflags - the CFLAGS for compiling MELT generated C code
+### melt_xtra_cflags - the CFLAGS for compiling extra (applicative)
+###                    MELT generated C code
 
 ## the various arguments to MELT - avoid spaces in them!
 meltarg_mode=$(if $(melt_is_plugin),-fplugin-arg-melt-mode,-fmelt-mode)
@@ -361,7 +363,7 @@ melt-modules/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-run.h melt-runtime.h melt-tempbuild
 	+$(MELT_MAKE_MODULE) melt_module \
-	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/[+base+]
@@ -370,7 +372,7 @@ melt-modules/[+base+].n.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/[+base+]

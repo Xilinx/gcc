@@ -5434,6 +5434,9 @@ melt_make_move=$(SHELL) $(srcdir)/../move-if-change
 melt_make_cc1flags= -I. $(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
 melt_cflags=  -I. $(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
 export melt_cflags
+## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c
+melt_extra_cflags= -g
+export melt_extra_cflags
 melt_installed_cflags= $(MELTHERE_CFLAGS) -I $(plugin_includedir)
 ## leave melt_is_plugin as empty 
 melt_is_plugin=

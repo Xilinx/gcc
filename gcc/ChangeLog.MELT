@@ -1,5 +1,13 @@
 
 2011-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Pass melt_extra_flags when compiling generated
+	xtramelt*.c files.
+	* melt-build.mk: Regenerate.
+	* melt/xtramelt-ana-base.melt: Add loop_body.
+	* melt/xtramelt-opengpu.melt: Add more debug messages.
+	But topengpu-0.c crashes it.
+
+2011-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/topengpu-0.c: New file.
 
 2011-02-04  Basile Starynkevitch  <basile@starynkevitch.net>

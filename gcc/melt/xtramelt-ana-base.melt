@@ -234,6 +234,10 @@
    }#
 )
   
+;; retrieve the loop body
+(defprimitive loop_body (:loop lo) :basic_block
+  :doc #{Safely return the basic block body of loop $.LO.}#
+  #{ (($LO)?get_loop_body(($LO)):NULL) }#)
 
 ;; debugloop is ok even for nil
 (defprimitive debugloop (:loop lo :cstring msg) :void
@@ -2892,6 +2896,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  is_maptree
  is_tree  
  isnull_basicblock
+ loop_body
  loop_can_be_parallel
  make_basicblock
  make_gimple
