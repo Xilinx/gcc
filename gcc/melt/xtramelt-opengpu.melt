@@ -93,17 +93,28 @@
 
 (defun opengpu_docmd (cmd moduldata)
   (let ( (:long optimlevel 0)
+	 (:long withgraphite 0)
+	 (:long withparallelizeall 0)
 	 )
-    (code_chunk getoptimlevel
-	   #{ /* $GETOPTIMLEVEL */
-	   $OPTIMLEVEL = (long) optimize ;
-	   }#)
-    (if (<i optimlevel 2)
-	(warningmsg_plain 
-	 "opengpu MELT mode requires -O2 optimization at least")
-      (progn
-	(install_opengpu_passes)
-	(return :true)))
+    (code_chunk getoptimflags
+		#{ /* $GETOPTIMFLAGS */
+		$OPTIMLEVEL = (long) optimize			  ;
+		$WITHGRAPHITE = (long) flag_graphite		  ;
+		$WITHPARALLELIZEALL = (long) flag_loop_parallelize_all ;
+		}#)
+    (cond 
+     ( (<i optimlevel 2)
+       (warningmsg_plain 
+	"opengpu MELT mode requires -O2 optimization at least"))
+     ( (==i withgraphite 0)
+       (warningmsg_plain
+	"opengpu MELT mode requires -fgraphite"))
+     ( (==i withparallelizeall 0)
+       (warningmsg_plain
+	"opengpu MELT mode requires -floop-parallelize-all"))
+     (:else
+      (install_opengpu_passes)
+      (return :true)))
     ))
 
 (definstance opengpu_mode

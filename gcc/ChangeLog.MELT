@@ -1,3 +1,7 @@
+2011-02-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt: Require -fgraphite &
+	-floop-parallelize-all
+
 2011-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/topengpu-1.c: Changed comment to pass
 	-fgraphite.
