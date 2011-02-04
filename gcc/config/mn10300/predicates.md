@@ -42,3 +42,24 @@
   return XEXP (op, 0) == stack_pointer_rtx
       || XEXP (op, 1) == stack_pointer_rtx;
 })
+
+(define_predicate "reg_or_am33_const_operand"
+  (ior (match_operand 0 "register_operand")
+       (and (match_test "TARGET_AM33")
+	    (match_operand 0 "immediate_operand"))))
+
+(define_predicate "label_ref_operand"
+  (match_code "label_ref"))
+
+(define_special_predicate "int_mode_flags"
+  (match_code "reg")
+{
+  if (REGNO (op) != CC_REG)
+    return false;
+  if (GET_MODE (op) == CC_FLOATmode)
+    return false;
+  return GET_MODE_CLASS (GET_MODE (op)) == MODE_CC;
+})
+
+(define_predicate "CCZN_comparison_operator"
+  (match_code "eq,ne,lt,ge"))

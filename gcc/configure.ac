@@ -709,9 +709,46 @@ AC_ARG_ENABLE(shared,
 ], [enable_shared=yes])
 AC_SUBST(enable_shared)
 
-AC_ARG_WITH(build-sysroot, 
-  [  --with-build-sysroot=sysroot
-                          use sysroot as the system root during the build])
+# The use of native_system_header_dir here is for the value (optionally)
+# configured here.  Uses of NATIVE_SYSTEM_HEADER_DIR in this file refer
+# to the make variable defined in Makefile or in target make fragments.
+AC_ARG_WITH([native-system-header-dir],
+  [  --with-native-system-header-dir=dir
+                          use dir as the directory to look for standard
+                          system header files in.  Defaults to /usr/include.],
+[
+ case ${with_native_system_header_dir} in
+ yes|no) AC_MSG_ERROR([bad value ${withval} given for native system include directory]) ;;
+ /*) ;;
+ *) AC_MSG_ERROR([${withval} should be an absolute directory]) ;;
+ esac
+ native_system_header_dir="${withval}"
+], [native_system_header_dir=/usr/include])
+AC_SUBST(NATIVE_SYSTEM_HEADER_DIR, $native_system_header_dir)
+
+AC_ARG_WITH([runtime-root-prefix],
+  [  --with-runtime-root-prefix=prefix
+                          prepend prefix to paths used by the compiler to
+                          name the dynamic linker and other files used at
+                          runtime.  Defaults to empty (no prefix).],
+[
+ case ${with_runtime_root_prefix} in
+ yes|no) AC_MSG_ERROR([bad value ${withval} given for runtime root prefix]) ;;
+ /*) ;;
+ *) AC_MSG_ERROR([${withval} should be an absolute directory]) ;;
+ esac
+ RUNTIME_ROOT_PREFIX_DEFINE="-DRUNTIME_ROOT_PREFIX=\\\"${withval}\\\""
+], [RUNTIME_ROOT_PREFIX_DEFINE=""])
+AC_SUBST(RUNTIME_ROOT_PREFIX_DEFINE)
+
+AC_ARG_WITH([build-sysroot],
+  [  --with-build-sysroot=SYSROOT
+                          use sysroot as the system root during the build],
+  [if test x"$withval" != x ; then
+     SYSROOT_CFLAGS_FOR_TARGET="--sysroot=$withval"
+   fi],
+  [SYSROOT_CFLAGS_FOR_TARGET=])
+AC_SUBST(SYSROOT_CFLAGS_FOR_TARGET)
 
 AC_ARG_WITH(sysroot,
 [  --with-sysroot[=DIR] Search for usr/lib, usr/include, et al, within DIR.],
@@ -3112,20 +3149,43 @@ fi
 
 AC_MSG_CHECKING(linker -Bstatic/-Bdynamic option)
 gcc_cv_ld_static_dynamic=no
+gcc_cv_ld_static_option='-Bstatic'
+gcc_cv_ld_dynamic_option='-Bdynamic'
 if test $in_tree_ld = yes ; then
   if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 10 -o "$gcc_cv_gld_major_version" -gt 2; then
     gcc_cv_ld_static_dynamic=yes
   fi
 elif test x$gcc_cv_ld != x; then
-	# Check if linker supports -Bstatic/-Bdynamic option
-	if $gcc_cv_ld --help 2>/dev/null | grep -- -Bstatic > /dev/null \
-	  && $gcc_cv_ld --help 2>/dev/null | grep -- -Bdynamic > /dev/null; then
-		gcc_cv_ld_static_dynamic=yes
-	fi
+  # Check if linker supports -Bstatic/-Bdynamic option
+  if $gcc_cv_ld --help 2>/dev/null | grep -- -Bstatic > /dev/null \
+     && $gcc_cv_ld --help 2>/dev/null | grep -- -Bdynamic > /dev/null; then
+      gcc_cv_ld_static_dynamic=yes
+  else
+    case "$target" in
+      # Tru64 UNIX support -noso/-so_archive instead of -Bstatic/-Bdynamic.
+      alpha*-dec-osf*)
+        gcc_cv_ld_static_dynamic=yes
+	gcc_cv_ld_static_option="-noso"
+	gcc_cv_ld_dynamic_option="-so_archive"
+        ;;
+      # IRIX 6 ld supports -Bstatic/-Bdynamic.
+      mips-sgi-irix6*)
+        gcc_cv_ld_static_dynamic=yes
+        ;;
+      # Solaris 2 ld always supports -Bstatic/-Bdynamic.
+      *-*-solaris2*)
+        gcc_cv_ld_static_dynamic=yes
+        ;;
+    esac
+  fi
 fi
 if test x"$gcc_cv_ld_static_dynamic" = xyes; then
 	AC_DEFINE(HAVE_LD_STATIC_DYNAMIC, 1,
-[Define if your linker supports -Bstatic/-Bdynamic option.])
+[Define if your linker supports -Bstatic/-Bdynamic or equivalent options.])
+	AC_DEFINE_UNQUOTED(LD_STATIC_OPTION, "$gcc_cv_ld_static_option",
+[Define to the linker option to disable use of shared objects.])
+	AC_DEFINE_UNQUOTED(LD_DYNAMIC_OPTION, "$gcc_cv_ld_dynamic_option",
+[Define to the linker option to enable use of shared objects.])
 fi
 AC_MSG_RESULT($gcc_cv_ld_static_dynamic)
 
@@ -3959,8 +4019,8 @@ elif test x$gcc_cv_ld != x; then
   else
     case "$target" in
       *-*-solaris2*)
-        # Sun ld has various bugs in .eh_frame_hdr support before version 1.2249.
-        if test "$ld_vers_major" -gt 1 || test "$ld_vers_minor" -ge 2249; then
+        # Sun ld has various bugs in .eh_frame_hdr support before version 1.2251.
+        if test "$ld_vers_major" -gt 1 || test "$ld_vers_minor" -ge 2251; then
           gcc_cv_ld_eh_frame_hdr=yes
         fi
         ;;
@@ -4257,14 +4317,14 @@ if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
   elif test "x$with_sysroot" = x; then
     target_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
   elif test "x$with_build_sysroot" != "x"; then
-    target_header_dir="${with_build_sysroot}/usr/include"
+    target_header_dir="${with_build_sysroot}${native_system_header_dir}"
   elif test "x$with_sysroot" = xyes; then
-    target_header_dir="${exec_prefix}/${target_noncanonical}/sys-root/usr/include"
+    target_header_dir="${exec_prefix}/${target_noncanonical}/sys-root${native_system_header_dir}"
   else
-    target_header_dir="${with_sysroot}/usr/include"
+    target_header_dir="${with_sysroot}${native_system_header_dir}"
   fi
 else
-  target_header_dir=/usr/include
+  target_header_dir=${native_system_header_dir}
 fi
 
 # Test for stack protector support in target C library.

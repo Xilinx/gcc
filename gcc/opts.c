@@ -456,6 +456,7 @@ static const struct default_options default_options_table[] =
     { OPT_LEVELS_1_PLUS, OPT_ftree_sink, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_ftree_ch, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_fcombine_stack_adjustments, NULL, 1 },
+    { OPT_LEVELS_1_PLUS, OPT_fcompare_elim, NULL, 1 },
 
     /* -O2 optimizations.  */
     { OPT_LEVELS_2_PLUS, OPT_finline_small_functions, NULL, 1 },
@@ -485,6 +486,7 @@ static const struct default_options default_options_table[] =
     { OPT_LEVELS_2_PLUS, OPT_ftree_pre, NULL, 1 },
     { OPT_LEVELS_2_PLUS, OPT_ftree_switch_conversion, NULL, 1 },
     { OPT_LEVELS_2_PLUS, OPT_fipa_cp, NULL, 1 },
+    { OPT_LEVELS_2_PLUS, OPT_fdevirtualize, NULL, 1 },
     { OPT_LEVELS_2_PLUS, OPT_fipa_sra, NULL, 1 },
     { OPT_LEVELS_2_PLUS, OPT_falign_loops, NULL, 1 },
     { OPT_LEVELS_2_PLUS, OPT_falign_jumps, NULL, 1 },
@@ -631,7 +633,8 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
       if (opts->x_dump_dir_name)
 	opts->x_dump_base_name = concat (opts->x_dump_dir_name,
 					 opts->x_dump_base_name, NULL);
-      else if (opts->x_aux_base_name)
+      else if (opts->x_aux_base_name
+	       && strcmp (opts->x_aux_base_name, HOST_BIT_BUCKET) != 0)
 	{
 	  const char *aux_base;
 

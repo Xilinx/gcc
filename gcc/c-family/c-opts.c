@@ -1,5 +1,5 @@
 /* C/ObjC/C++ command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -995,6 +995,12 @@ c_common_post_options (const char **pfilename)
     {
       init_c_lex ();
 
+      /* When writing a PCH file, avoid reading some other PCH file,
+	 because the default address space slot then can't be used
+	 for the output PCH file.  */
+      if (pch_file)
+	c_common_no_more_pch ();
+
       /* Yuk.  WTF is this?  I do know ObjC relies on it somewhere.  */
       input_location = UNKNOWN_LOCATION;
     }
@@ -1093,7 +1099,11 @@ c_common_finish (void)
   FILE *deps_stream = NULL;
 
   /* Don't write the deps file if there are errors.  */
-  if (cpp_opts->deps.style != DEPS_NONE && !seen_error ())
+  /* FIXME.  We are emitting the deps file even if there were errors.
+     This is a temporary workaround to avoid confusing Google's build
+     system.  It assumes that deps files are always emitted even
+     in the presence of errors.  */
+  if (cpp_opts->deps.style != DEPS_NONE /*&& !seen_error ()*/)
     {
       /* If -M or -MM was seen without -MF, default output to the
 	 output stream.  */

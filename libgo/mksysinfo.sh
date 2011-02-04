@@ -21,11 +21,17 @@ OUT=tmp-sysinfo.go
 
 set -e
 
-rm -f sysinfo.go
-
 rm -f sysinfo.c
 cat > sysinfo.c <<EOF
 #include "config.h"
+
+#define _GNU_SOURCE
+#if defined(__sun__) && defined(__svr4__)
+/* Needed by Solaris header files.  */
+#define _XOPEN_SOURCE 600
+#define __EXTENSIONS__
+#endif
+
 #include <sys/types.h>
 #include <dirent.h>
 #include <errno.h>
@@ -43,6 +49,7 @@ cat > sysinfo.c <<EOF
 #include <sys/ptrace.h>
 #endif
 #include <sys/resource.h>
+#include <sys/uio.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <sys/time.h>
@@ -57,7 +64,7 @@ cat > sysinfo.c <<EOF
 #include <unistd.h>
 EOF
 
-${CC} -D_GNU_SOURCE -fdump-go-spec=gen-sysinfo.go -S -o sysinfo.s sysinfo.c
+${CC} -fdump-go-spec=gen-sysinfo.go -std=gnu99 -S -o sysinfo.s sysinfo.c
 
 echo 'package syscall' > ${OUT}
 
@@ -133,6 +140,11 @@ grep '^const _SOMAXCONN' gen-sysinfo.go |
     >> ${OUT}
 grep '^const _SHUT_' gen-sysinfo.go |
   sed -e 's/^\(const \)_\(SHUT[^= ]*\)\(.*\)$/\1\2 = _\2/' >> ${OUT}
+
+# The net package requires a definition for IPV6ONLY.
+if ! grep '^const IPV6_V6ONLY ' ${OUT} >/dev/null 2>&1; then
+  echo "const IPV6_V6ONLY = 0" >> ${OUT}
+fi
 
 # pathconf constants.
 grep '^const __PC' gen-sysinfo.go |
@@ -250,6 +262,15 @@ else
   exit 1
 fi
 
+# Solaris 2 needs _u?pad128_t, but its default definition in terms of long
+# double is commented by -fdump-go-spec.
+if grep "^// type _pad128_t" gen-sysinfo.go > /dev/null 2>&1; then
+  echo "type _pad128_t struct { _l [4]int32; }" >> ${OUT}
+fi
+if grep "^// type _upad128_t" gen-sysinfo.go > /dev/null 2>&1; then
+  echo "type _upad128_t struct { _l [4]uint32; }" >> ${OUT}
+fi
+
 # The time structures need special handling: we need to name the
 # types, so that we can cast integers to the right types when
 # assigning to the structures.
@@ -352,5 +373,30 @@ grep '^type _utsname ' gen-sysinfo.go | \
       -e 's/domainname/Domainname/' \
     >> ${OUT}
 
-mv -f ${OUT} sysinfo.go
+# The iovec struct.
+iovec=`grep '^type _iovec ' gen-sysinfo.go`
+iovec_len=`echo $iovec | sed -n -e 's/^.*iov_len \([^ ]*\);.*$/\1/p'`
+echo "type Iovec_len_t $iovec_len" >> ${OUT}
+echo $iovec | \
+    sed -e 's/_iovec/Iovec/' \
+      -e 's/iov_base/Base/' \
+      -e 's/iov_len *[a-zA-Z0-9_]*/Len Iovec_len_t/' \
+    >> ${OUT}
+
+# The msghdr struct.
+msghdr=`grep '^type _msghdr ' gen-sysinfo.go`
+msghdr_controllen=`echo $msghdr | sed -n -e 's/^.*msg_controllen \([^ ]*\);.*$/\1/p'`
+echo "type Msghdr_controllen_t $msghdr_controllen" >> ${OUT}
+echo $msghdr | \
+    sed -e 's/_msghdr/Msghdr/' \
+      -e 's/msg_name/Name/' \
+      -e 's/msg_namelen/Namelen/' \
+      -e 's/msg_iov/Iov/' \
+      -e 's/msg_iovlen/Iovlen/' \
+      -e 's/_iovec/Iovec/' \
+      -e 's/msg_control/Control/' \
+      -e 's/msg_controllen *[a-zA-Z0-9_]*/Controllen Msghdr_controllen_t/' \
+      -e 's/msg_flags/Flags/' \
+    >> ${OUT}
+
 exit $?

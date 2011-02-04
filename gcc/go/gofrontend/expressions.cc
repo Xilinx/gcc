@@ -1932,7 +1932,7 @@ Float_expression::do_determine_type(const Type_context* context)
 	       || context->type->complex_type() != NULL))
     this->type_ = context->type;
   else if (!context->may_be_abstract)
-    this->type_ = Type::lookup_float_type("float");
+    this->type_ = Type::lookup_float_type("float64");
 }
 
 // Return true if the floating point value VAL fits in the range of
@@ -2185,7 +2185,7 @@ Complex_expression::do_determine_type(const Type_context* context)
 	   && context->type->complex_type() != NULL)
     this->type_ = context->type;
   else if (!context->may_be_abstract)
-    this->type_ = Type::lookup_complex_type("complex");
+    this->type_ = Type::lookup_complex_type("complex128");
 }
 
 // Return true if the complex value REAL/IMAG fits in the range of the
@@ -2347,6 +2347,10 @@ class Const_expression : public Expression
   const std::string&
   name() const
   { return this->constant_->name(); }
+
+  // Check that the initializer does not refer to the constant itself.
+  void
+  check_for_init_loop();
 
  protected:
   Expression*
@@ -2610,6 +2614,40 @@ Const_expression::do_determine_type(const Type_context* context)
     }
 }
 
+// Check for a loop in which the initializer of a constant refers to
+// the constant itself.
+
+void
+Const_expression::check_for_init_loop()
+{
+  if (this->type_ != NULL && this->type_->is_error_type())
+    return;
+
+  if (this->seen_)
+    {
+      this->report_error(_("constant refers to itself"));
+      this->type_ = Type::make_error_type();
+      return;
+    }
+
+  Expression* init = this->constant_->const_value()->expr();
+  Find_named_object find_named_object(this->constant_);
+
+  this->seen_ = true;
+  Expression::traverse(&init, &find_named_object);
+  this->seen_ = false;
+
+  if (find_named_object.found())
+    {
+      if (this->type_ == NULL || !this->type_->is_error_type())
+	{
+	  this->report_error(_("constant refers to itself"));
+	  this->type_ = Type::make_error_type();
+	}
+      return;
+    }
+}
+
 // Check types of a const reference.
 
 void
@@ -2618,15 +2656,7 @@ Const_expression::do_check_types(Gogo*)
   if (this->type_ != NULL && this->type_->is_error_type())
     return;
 
-  Expression* init = this->constant_->const_value()->expr();
-  Find_named_object find_named_object(this->constant_);
-  Expression::traverse(&init, &find_named_object);
-  if (find_named_object.found())
-    {
-      this->report_error(_("constant refers to itself"));
-      this->type_ = Type::make_error_type();
-      return;
-    }
+  this->check_for_init_loop();
 
   if (this->type_ == NULL || this->type_->is_abstract())
     return;
@@ -2754,9 +2784,19 @@ Find_named_object::expression(Expression** pexpr)
   switch ((*pexpr)->classification())
     {
     case Expression::EXPRESSION_CONST_REFERENCE:
-      if (static_cast<Const_expression*>(*pexpr)->named_object() == this->no_)
-	break;
-      return TRAVERSE_CONTINUE;
+      {
+	Const_expression* ce = static_cast<Const_expression*>(*pexpr);
+	if (ce->named_object() == this->no_)
+	  break;
+
+	// We need to check a constant initializer explicitly, as
+	// loops here will not be caught by the loop checking for
+	// variable initializers.
+	ce->check_for_init_loop();
+
+	return TRAVERSE_CONTINUE;
+      }
+
     case Expression::EXPRESSION_VAR_REFERENCE:
       if ((*pexpr)->var_expression()->named_object() == this->no_)
 	break;
@@ -5396,7 +5436,11 @@ Binary_expression::do_type()
       {
 	Type* left_type = this->left_->type();
 	Type* right_type = this->right_->type();
-	if (!left_type->is_abstract() && left_type->named_type() != NULL)
+	if (left_type->is_error_type())
+	  return left_type;
+	else if (right_type->is_error_type())
+	  return right_type;
+	else if (!left_type->is_abstract() && left_type->named_type() != NULL)
 	  return left_type;
 	else if (!right_type->is_abstract() && right_type->named_type() != NULL)
 	  return right_type;
@@ -6429,7 +6473,7 @@ class Builtin_call_expression : public Call_expression
       BUILTIN_CAP,
       BUILTIN_CLOSE,
       BUILTIN_CLOSED,
-      BUILTIN_CMPLX,
+      BUILTIN_COMPLEX,
       BUILTIN_COPY,
       BUILTIN_IMAG,
       BUILTIN_LEN,
@@ -6457,7 +6501,7 @@ class Builtin_call_expression : public Call_expression
   real_imag_type(Type*);
 
   static Type*
-  cmplx_type(Type*);
+  complex_type(Type*);
 
   // A pointer back to the general IR structure.  This avoids a global
   // variable, or passing it around everywhere.
@@ -6488,8 +6532,8 @@ Builtin_call_expression::Builtin_call_expression(Gogo* gogo,
     this->code_ = BUILTIN_CLOSE;
   else if (name == "closed")
     this->code_ = BUILTIN_CLOSED;
-  else if (name == "cmplx")
-    this->code_ = BUILTIN_CMPLX;
+  else if (name == "complex")
+    this->code_ = BUILTIN_COMPLEX;
   else if (name == "copy")
     this->code_ = BUILTIN_COPY;
   else if (name == "imag")
@@ -6730,9 +6774,7 @@ Builtin_call_expression::real_imag_type(Type* arg_type)
     return NULL;
   while (nt->real_type()->named_type() != NULL)
     nt = nt->real_type()->named_type();
-  if (nt->name() == "complex")
-    return Type::lookup_float_type("float");
-  else if (nt->name() == "complex64")
+  if (nt->name() == "complex64")
     return Type::lookup_float_type("float32");
   else if (nt->name() == "complex128")
     return Type::lookup_float_type("float64");
@@ -6740,11 +6782,11 @@ Builtin_call_expression::real_imag_type(Type* arg_type)
     return NULL;
 }
 
-// Return the type of the cmplx function, given the type of one of the
+// Return the type of the complex function, given the type of one of the
 // argments.  Like real_imag_type, we have to map by name.
 
 Type*
-Builtin_call_expression::cmplx_type(Type* arg_type)
+Builtin_call_expression::complex_type(Type* arg_type)
 {
   if (arg_type == NULL || arg_type->is_abstract())
     return NULL;
@@ -6753,9 +6795,7 @@ Builtin_call_expression::cmplx_type(Type* arg_type)
     return NULL;
   while (nt->real_type()->named_type() != NULL)
     nt = nt->real_type()->named_type();
-  if (nt->name() == "float")
-    return Type::lookup_complex_type("complex");
-  else if (nt->name() == "float32")
+  if (nt->name() == "float32")
     return Type::lookup_complex_type("complex64");
   else if (nt->name() == "float64")
     return Type::lookup_complex_type("complex128");
@@ -6824,7 +6864,7 @@ Builtin_call_expression::do_is_constant() const
 	return arg->field_reference_expression() != NULL;
       }
 
-    case BUILTIN_CMPLX:
+    case BUILTIN_COMPLEX:
       {
 	const Expression_list* args = this->args();
 	if (args != NULL && args->size() == 2)
@@ -7009,7 +7049,7 @@ bool
 Builtin_call_expression::do_complex_constant_value(mpfr_t real, mpfr_t imag,
 						   Type** ptype) const
 {
-  if (this->code_ == BUILTIN_CMPLX)
+  if (this->code_ == BUILTIN_COMPLEX)
     {
       const Expression_list* args = this->args();
       if (args == NULL || args->size() != 2)
@@ -7034,7 +7074,7 @@ Builtin_call_expression::do_complex_constant_value(mpfr_t real, mpfr_t imag,
 	{
 	  mpfr_set(real, r, GMP_RNDN);
 	  mpfr_set(imag, i, GMP_RNDN);
-	  *ptype = Builtin_call_expression::cmplx_type(rtype);
+	  *ptype = Builtin_call_expression::complex_type(rtype);
 	  ret = true;
 	}
 
@@ -7110,7 +7150,7 @@ Builtin_call_expression::do_type()
 	return t;
       }
 
-    case BUILTIN_CMPLX:
+    case BUILTIN_COMPLEX:
       {
 	const Expression_list* args = this->args();
 	if (args == NULL || args->size() != 2)
@@ -7122,7 +7162,7 @@ Builtin_call_expression::do_type()
 	    if (t->is_abstract())
 	      t = t->make_non_abstract_type();
 	  }
-	t = Builtin_call_expression::cmplx_type(t);
+	t = Builtin_call_expression::complex_type(t);
 	if (t == NULL)
 	  t = Type::make_error_type();
 	return t;
@@ -7151,13 +7191,13 @@ Builtin_call_expression::do_determine_type(const Type_context* context)
 
     case BUILTIN_REAL:
     case BUILTIN_IMAG:
-      arg_type = Builtin_call_expression::cmplx_type(context->type);
+      arg_type = Builtin_call_expression::complex_type(context->type);
       is_print = false;
       break;
 
-    case BUILTIN_CMPLX:
+    case BUILTIN_COMPLEX:
       {
-	// For the cmplx function the type of one operand can
+	// For the complex function the type of one operand can
 	// determine the type of the other, as in a binary expression.
 	arg_type = Builtin_call_expression::real_imag_type(context->type);
 	if (args != NULL && args->size() == 2)
@@ -7454,7 +7494,7 @@ Builtin_call_expression::do_check_types(Gogo*)
 	}
       break;
 
-    case BUILTIN_CMPLX:
+    case BUILTIN_COMPLEX:
       {
 	const Expression_list* args = this->args();
 	if (args == NULL || args->size() < 2)
@@ -7468,9 +7508,9 @@ Builtin_call_expression::do_check_types(Gogo*)
 	  this->set_is_error();
 	else if (!Type::are_identical(args->front()->type(),
 				      args->back()->type(), true, NULL))
-	  this->report_error(_("cmplx arguments must have identical types"));
+	  this->report_error(_("complex arguments must have identical types"));
 	else if (args->front()->type()->float_type() == NULL)
-	  this->report_error(_("cmplx arguments must have "
+	  this->report_error(_("complex arguments must have "
 			       "floating-point type"));
       }
       break;
@@ -8033,7 +8073,7 @@ Builtin_call_expression::do_get_tree(Translate_context* context)
 				 arg_tree);
       }
 
-    case BUILTIN_CMPLX:
+    case BUILTIN_COMPLEX:
       {
 	const Expression_list* args = this->args();
 	gcc_assert(args != NULL && args->size() == 2);
@@ -9944,6 +9984,8 @@ Field_reference_expression::do_get_tree(Translate_context* context)
       field = DECL_CHAIN(field);
       gcc_assert(field != NULL_TREE);
     }
+  if (TREE_TYPE(field) == error_mark_node)
+    return error_mark_node;
   return build3(COMPONENT_REF, TREE_TYPE(field), struct_tree, field,
 		NULL_TREE);
 }
@@ -10609,6 +10651,10 @@ Struct_construction_expression::do_determine_type(const Type_context*)
 	  (*pv)->determine_type(&subcontext);
 	}
     }
+  // Extra values are an error we will report elsewhere; we still want
+  // to determine the type to avoid knockon errors.
+  for (; pv != this->vals_->end(); ++pv)
+    (*pv)->determine_type_no_context();
 }
 
 // Check types.
@@ -11092,7 +11138,15 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
     return error_mark_node;
 
   bool is_constant_initializer = TREE_CONSTANT(values);
-  bool is_in_function = context->function() != NULL;
+
+  // We have to copy the initial values into heap memory if we are in
+  // a function or if the values are not constants.  We also have to
+  // copy them if they may contain pointers in a non-constant context,
+  // as otherwise the garbage collector won't see them.
+  bool copy_to_heap = (context->function() != NULL
+		       || !is_constant_initializer
+		       || (element_type->has_pointer()
+			   && !context->is_const()));
 
   if (is_constant_initializer)
     {
@@ -11102,12 +11156,12 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
       TREE_PUBLIC(tmp) = 0;
       TREE_STATIC(tmp) = 1;
       DECL_ARTIFICIAL(tmp) = 1;
-      if (is_in_function)
+      if (copy_to_heap)
 	{
-	  // If this is not a function, we will only initialize the
-	  // value once, so we can use this directly rather than
-	  // copying it.  In that case we can't make it read-only,
-	  // because the program is permitted to change it.
+	  // If we are not copying the value to the heap, we will only
+	  // initialize the value once, so we can use this directly
+	  // rather than copying it.  In that case we can't make it
+	  // read-only, because the program is permitted to change it.
 	  TREE_READONLY(tmp) = 1;
 	  TREE_CONSTANT(tmp) = 1;
 	}
@@ -11118,10 +11172,9 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
 
   tree space;
   tree set;
-  if (!is_in_function && is_constant_initializer)
+  if (!copy_to_heap)
     {
-      // Outside of a function, we know the initializer will only run
-      // once.
+      // the initializer will only run once.
       space = build_fold_addr_expr(values);
       set = NULL_TREE;
     }
@@ -11168,7 +11221,7 @@ Open_array_construction_expression::do_get_tree(Translate_context* context)
   tree constructor = build_constructor(type_tree, init);
   if (constructor == error_mark_node)
     return error_mark_node;
-  if (!is_in_function && is_constant_initializer)
+  if (!copy_to_heap)
     TREE_CONSTANT(constructor) = 1;
 
   if (set == NULL_TREE)

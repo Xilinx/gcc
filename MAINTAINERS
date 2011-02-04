@@ -64,6 +64,7 @@ i386 port		Uros Bizjak		ubizjak@gmail.com
 ia64 port		Jim Wilson		wilson@tuliptree.org
 ia64 port		Steve Ellcey		sje@cup.hp.com
 iq2000 port		Nick Clifton		nickc@redhat.com
+lm32 port		Sebastien Bourdeauducq	sebastien@milkymist.org
 m32c port		DJ Delorie		dj@redhat.com
 m32r port		Nick Clifton		nickc@redhat.com
 m68hc11 port		Stephane Carrez		stcarrez@nerim.fr
@@ -221,7 +222,6 @@ mudflap			Frank Ch. Eigler	fche@redhat.com
 tree browser/unparser	Sebastian Pop		sebastian.pop@amd.com
 scev, data dependence	Daniel Berlin		dberlin@dberlin.org
 scev, data dependence	Sebastian Pop		sebastian.pop@amd.com
-linear loop transforms	Daniel Berlin		dberlin@dberlin.org
 profile feedback	Jan Hubicka		jh@suse.cz
 type-safe vectors	Nathan Sidwell		nathan@codesourcery.com
 alias analysis		Daniel Berlin		dberlin@dberlin.org

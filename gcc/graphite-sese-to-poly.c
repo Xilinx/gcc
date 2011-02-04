@@ -241,6 +241,32 @@ free_scops (VEC (scop_p, heap) *scops)
   VEC_free (scop_p, heap, scops);
 }
 
+/* Same as outermost_loop_in_sese, returns the outermost loop
+   containing BB in REGION, but makes sure that the returned loop
+   belongs to the REGION, and so this returns the first loop in the
+   REGION when the loop containing BB does not belong to REGION.  */
+
+static loop_p
+outermost_loop_in_sese_1 (sese region, basic_block bb)
+{
+  loop_p nest = outermost_loop_in_sese (region, bb);
+
+  if (loop_in_sese_p (nest, region))
+    return nest;
+
+  /* When the basic block BB does not belong to a loop in the region,
+     return the first loop in the region.  */
+  nest = nest->inner;
+  while (nest)
+    if (loop_in_sese_p (nest, region))
+      break;
+    else
+      nest = nest->next;
+
+  gcc_assert (nest);
+  return nest;
+}
+
 /* Generates a polyhedral black box only if the bb contains interesting
    information.  */
 
@@ -248,14 +274,23 @@ static gimple_bb_p
 try_generate_gimple_bb (scop_p scop, basic_block bb)
 {
   VEC (data_reference_p, heap) *drs = VEC_alloc (data_reference_p, heap, 5);
-  loop_p nest = outermost_loop_in_sese (SCOP_REGION (scop), bb);
+  sese region = SCOP_REGION (scop);
+  loop_p nest = outermost_loop_in_sese_1 (region, bb);
   gimple_stmt_iterator gsi;
 
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
-      if (!is_gimple_debug (stmt))
-	graphite_find_data_references_in_stmt (nest, stmt, &drs);
+      loop_p loop;
+
+      if (is_gimple_debug (stmt))
+	continue;
+
+      loop = loop_containing_stmt (stmt);
+      if (!loop_in_sese_p (loop, region))
+	loop = nest;
+
+      graphite_find_data_references_in_stmt (nest, loop, stmt, &drs);
     }
 
   return new_gimple_bb (bb, drs);
@@ -2019,17 +2054,28 @@ analyze_drs_in_stmts (scop_p scop, basic_block bb, VEC (gimple, heap) *stmts)
   gimple_bb_p gbb;
   gimple stmt;
   int i;
+  sese region = SCOP_REGION (scop);
 
-  if (!bb_in_sese_p (bb, SCOP_REGION (scop)))
+  if (!bb_in_sese_p (bb, region))
     return;
 
-  nest = outermost_loop_in_sese (SCOP_REGION (scop), bb);
+  nest = outermost_loop_in_sese_1 (region, bb);
   gbb = gbb_from_bb (bb);
 
   FOR_EACH_VEC_ELT (gimple, stmts, i, stmt)
-    if (!is_gimple_debug (stmt))
-      graphite_find_data_references_in_stmt (nest, stmt,
+    {
+      loop_p loop;
+
+      if (is_gimple_debug (stmt))
+	continue;
+
+      loop = loop_containing_stmt (stmt);
+      if (!loop_in_sese_p (loop, region))
+	loop = nest;
+
+      graphite_find_data_references_in_stmt (nest, loop, stmt,
 					     &GBB_DATA_REFS (gbb));
+    }
 }
 
 /* Insert STMT at the end of the STMTS sequence and then insert the
@@ -2106,9 +2152,11 @@ new_pbb_from_pbb (scop_p scop, poly_bb_p pbb, basic_block bb)
     if (VEC_index (poly_bb_p, SCOP_BBS (scop), index) == pbb)
       break;
 
+  if (PBB_DOMAIN (pbb))
+    ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron
+      (&PBB_DOMAIN (pbb1), PBB_DOMAIN (pbb));
+
   GBB_PBB (gbb1) = pbb1;
-  ppl_new_Pointset_Powerset_C_Polyhedron_from_Pointset_Powerset_C_Polyhedron
-    (&PBB_DOMAIN (pbb1), PBB_DOMAIN (pbb));
   GBB_CONDITIONS (gbb1) = VEC_copy (gimple, heap, GBB_CONDITIONS (gbb));
   GBB_CONDITION_CASES (gbb1) = VEC_copy (gimple, heap, GBB_CONDITION_CASES (gbb));
   VEC_safe_insert (poly_bb_p, heap, SCOP_BBS (scop), index + 1, pbb1);
@@ -2640,7 +2688,9 @@ split_reduction_stmt (scop_p scop, gimple stmt)
 
   /* Do not split basic blocks with no writes to memory: the reduction
      will be the only write to memory.  */
-  if (nb_data_writes_in_bb (bb) == 0)
+  if (nb_data_writes_in_bb (bb) == 0
+      /* Or if we have already marked BB as a reduction.  */
+      || PBB_IS_REDUCTION (pbb_from_bb (bb)))
     return bb;
 
   e1 = split_pbb (scop, pbb, bb, stmt);
@@ -2903,12 +2953,12 @@ translate_scalar_reduction_to_array_for_stmt (scop_p scop, tree red,
 					      gimple stmt, gimple loop_phi)
 {
   tree res = gimple_phi_result (loop_phi);
-  gimple assign = gimple_build_assign (res, red);
+  gimple assign = gimple_build_assign (res, unshare_expr (red));
   gimple_stmt_iterator gsi;
 
   insert_stmts (scop, assign, NULL, gsi_after_labels (gimple_bb (loop_phi)));
 
-  assign = gimple_build_assign (red, gimple_assign_lhs (stmt));
+  assign = gimple_build_assign (unshare_expr (red), gimple_assign_lhs (stmt));
   gsi = gsi_for_stmt (stmt);
   gsi_next (&gsi);
   insert_stmts (scop, assign, NULL, gsi);
@@ -2949,6 +2999,80 @@ remove_phi (gimple phi)
   remove_phi_node (&gsi, false);
 }
 
+/* Helper function for for_each_index.  For each INDEX of the data
+   reference REF, returns true when its indices are valid in the loop
+   nest LOOP passed in as DATA.  */
+
+static bool
+dr_indices_valid_in_loop (tree ref ATTRIBUTE_UNUSED, tree *index, void *data)
+{
+  loop_p loop;
+  basic_block header, def_bb;
+  gimple stmt;
+
+  if (TREE_CODE (*index) != SSA_NAME)
+    return true;
+
+  loop = *((loop_p *) data);
+  header = loop->header;
+  stmt = SSA_NAME_DEF_STMT (*index);
+
+  if (!stmt)
+    return true;
+
+  def_bb = gimple_bb (stmt);
+
+  if (!def_bb)
+    return true;
+
+  return dominated_by_p (CDI_DOMINATORS, header, def_bb);
+}
+
+/* When the result of a CLOSE_PHI is written to a memory location,
+   return a pointer to that memory reference, otherwise return
+   NULL_TREE.  */
+
+static tree
+close_phi_written_to_memory (gimple close_phi)
+{
+  imm_use_iterator imm_iter;
+  use_operand_p use_p;
+  gimple stmt;
+  tree res, def = gimple_phi_result (close_phi);
+
+  FOR_EACH_IMM_USE_FAST (use_p, imm_iter, def)
+    if ((stmt = USE_STMT (use_p))
+	&& gimple_code (stmt) == GIMPLE_ASSIGN
+	&& (res = gimple_assign_lhs (stmt)))
+      {
+	switch (TREE_CODE (res))
+	  {
+	  case VAR_DECL:
+	  case PARM_DECL:
+	  case RESULT_DECL:
+	    return res;
+
+	  case ARRAY_REF:
+	  case MEM_REF:
+	    {
+	      tree arg = gimple_phi_arg_def (close_phi, 0);
+	      loop_p nest = loop_containing_stmt (SSA_NAME_DEF_STMT (arg));
+
+	      /* FIXME: this restriction is for id-{24,25}.f and
+		 could be handled by duplicating the computation of
+		 array indices before the loop of the close_phi.  */
+	      if (for_each_index (&res, dr_indices_valid_in_loop, &nest))
+		return res;
+	    }
+	    /* Fallthru.  */
+
+	  default:
+	    continue;
+	  }
+      }
+  return NULL_TREE;
+}
+
 /* Rewrite out of SSA the reduction described by the loop phi nodes
    IN, and the close phi nodes OUT.  IN and OUT are structured by loop
    levels like this:
@@ -2964,9 +3088,9 @@ translate_scalar_reduction_to_array (scop_p scop,
 				     VEC (gimple, heap) *in,
 				     VEC (gimple, heap) *out)
 {
-  unsigned int i;
   gimple loop_phi;
-  tree red = NULL_TREE;
+  unsigned int i = VEC_length (gimple, out) - 1;
+  tree red = close_phi_written_to_memory (VEC_index (gimple, out, i));
 
   FOR_EACH_VEC_ELT (gimple, in, i, loop_phi)
     {
@@ -2980,8 +3104,10 @@ translate_scalar_reduction_to_array (scop_p scop,
 	  PBB_IS_REDUCTION (pbb) = true;
 	  gcc_assert (close_phi == loop_phi);
 
-	  red = create_zero_dim_array
-	    (gimple_assign_lhs (stmt), "Commutative_Associative_Reduction");
+	  if (!red)
+	    red = create_zero_dim_array
+	      (gimple_assign_lhs (stmt), "Commutative_Associative_Reduction");
+
 	  translate_scalar_reduction_to_array_for_stmt
 	    (scop, red, stmt, VEC_index (gimple, in, 1));
 	  continue;
@@ -2989,11 +3115,11 @@ translate_scalar_reduction_to_array (scop_p scop,
 
       if (i == VEC_length (gimple, in) - 1)
 	{
-	  insert_out_of_ssa_copy (scop, gimple_phi_result (close_phi), red,
-				  close_phi);
+	  insert_out_of_ssa_copy (scop, gimple_phi_result (close_phi),
+				  unshare_expr (red), close_phi);
 	  insert_out_of_ssa_copy_on_edge
 	    (scop, edge_initial_value_for_loop_phi (loop_phi),
-	     red, initial_value_for_loop_phi (loop_phi));
+	     unshare_expr (red), initial_value_for_loop_phi (loop_phi));
 	}
 
       remove_phi (loop_phi);
@@ -3129,6 +3255,9 @@ build_poly_scop (scop_p scop)
   if (!scop_ivs_can_be_represented (scop))
     return;
 
+  if (flag_associative_math)
+    rewrite_commutative_reductions_out_of_ssa (scop);
+
   build_sese_loop_nests (region);
   build_sese_conditions (region);
   find_scop_parameters (scop);
@@ -3145,8 +3274,6 @@ build_poly_scop (scop_p scop)
      representation to the polyhedral representation to avoid scev
      analysis failures.  That means that these functions will insert
      new data references that they create in the right place.  */
-  if (flag_associative_math)
-    rewrite_commutative_reductions_out_of_ssa (scop);
   rewrite_reductions_out_of_ssa (scop);
   rewrite_cross_bb_scalar_deps_out_of_ssa (scop);
 

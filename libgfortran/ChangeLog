@@ -1,3 +1,133 @@
+2011-02-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* intrinsics/time_1.h: Include errno.h needed by fallbacks.
+
+2011-01-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* intrinsics/time_1.h: Fix definition of GF_CLOCK_MONOTONIC macro.
+
+2011-01-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* configure.ac: Check for clock_gettime().
+	* configure: Regenerated.
+	* config.h.in: Regenerated.
+	* intrinsics/time_1.h (__time_1): Rename to gf_cputime, add
+	times() fallback.
+	(gf_gettime): New function.
+	* intrinsics/cpu_time.c (__cpu_time_1): Update to call gf_cputime.
+	* intrinsics/date_and_time.c (date_and_time): Use gf_gettime.
+	* intrinsics/dtime.c (dtime_sub): Use gf_cputime.
+	* intrinsics/etime.c (etime_sub): Use gf_cputime.
+	* intrinsics/system_clock.c (system_clock_4): Use gf_gettime.
+	(system_clock_8): Use gf_gettime, increase count rate to allow
+	nanosecond precision, remove overflow prone branch.
+
+2011-01-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47434
+	* io/write_float.def (write_infnan): Use calculate_sign to determine
+	if the sign should be given and check field widths accordingly.
+
+2011-01-29  Kai Tietz  <kai.tietz@onevision.com>
+
+	* intrinsics/ctime.c (ctime_r): Improve implementation.
+
+2011-01-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47431
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Add check for ctime_r().
+	* intrinsics/ctime.c (ctime_r): Fallback implementation.
+	(fdate): Use ctime_r() instead of ctime().
+	(fdate_sub): Likewise.
+	(ctime): Likewise.
+	(ctime_sub): Likewise.
+
+2011-01-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47432
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Add check for ttyname_r.
+	* io/unix.h: Add TTY_NAME_MAX, change stream_ttyname prototype.
+	* io/unix.c (stream_ttyname): Use ttyname_r if available, conform
+	to new prototype.
+	* io/inquire.c (inquire_via_unit): Use changed stream_ttyname.
+	* io/intrinsics.c (ttynam_sub): Likewise.
+	(ttynam): Likewise.
+
+2011-01-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47491
+	* configure.ac: Call AC_USE_SYSTEM_EXTENSIONS to enable common
+	extensions.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
+2011-01-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47285
+	* io/write_float.def (write_infnan): Adjust processor selected width
+	to 3 if NaN.
+
+2011-01-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47285
+	* io/write_float.def (output_float): Return SUCCESS or FAILURE and use
+	the result to set the padding.
+
+2011-01-26  Kai Tietz  <kai.tietz@onevision.com>
+
+	* intrinsics/getlog.c (getlog): Fix label/statement issue.
+
+2011-01-25  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47375
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Add check for getpwuid_r.
+	* intrinsics/getlog.c (getlog): Use getpwuid_r() if available.
+
+2011-01-22  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/46267
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Check presence of strerror_r.
+	* intrinsics/gerror.c (gerror): Use gf_strerror, modify logic.
+	* io/unix.c (get_oserror): Remove.
+	* libgfortran.h (gf_strerror): Add prototype.
+	(get_oserror): Remove prototype.
+	* runtime/error.c (gf_strerror): New function.
+	(os_error): Use gf_strerror instead of get_oserror.
+	(generate_errror): Likewise.
+
+2011-01-17  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47296
+	* io/unix.c (tempfile): Set opp->file and opp->file_len also if an
+	error occurs.
+
+2011-01-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/46625
+	* io/write_float.def (DTOAQ): Use quadmath_flt128tostr
+	instead of quadmath_dtoa.
+	* io/transfer128.c (tmp1, tmp2): New variables, bring in
+	strtoflt128 and quadmath_flt128tostr.
+	(transfer_real128, transfer_real128_write, transfer_complex128,
+	transfer_complex128_write): Remove tmp1/tmp2 variables.
+	* io/read.c (convert_real): Use strtoflt128 instead of
+	quadmath_strtopQ, adjust for the changed arguments and return
+	value.
+
+2011-01-14  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47296
+	* io/unix.c (unpack_filename): Return non-zero if the filename passed
+	in is NULL.
+
 2011-01-04  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libgfortran/47154

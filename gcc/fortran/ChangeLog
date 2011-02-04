@@ -1,3 +1,212 @@
+2011-02-01  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47565
+	* trans-expr.c (gfc_conv_structure): Handle constructors for procedure
+	pointer components with allocatable result.
+
+2011-01-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47455
+	* trans-expr.c (gfc_conv_procedure_call): Handle procedure pointers
+	with pointer or allocatable result.
+
+2011-01-31  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47519
+	* trans-stmt.c (gfc_trans_allocate): Improve handling of
+	deferred character lengths with SOURCE.
+	* iresolve.c (gfc_resolve_repeat): Calculate character
+	length from source length and ncopies.
+	* dump-parse-tree.c (show_code_node): Show MOLD and SOURCE
+	expressions for ALLOCATE.
+
+2011-01-31  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47463
+	* resolve.c (resolve_typebound_subroutine): Bug fix for the case of
+	an argument of a typebound assignment being a component.
+
+2011-01-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gfortranspec.c (add_arg_libgfortran) [HAVE_LD_STATIC_DYNAMIC] Use
+	LD_STATIC_OPTION, LD_DYNAMIC_OPTION.
+
+2011-01-31  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47042
+	* resolve.c (resolve_fl_procedure): Reject stmt functions
+	with pointer/allocatable attribute.
+
+2011-01-31  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47042
+	* interface.c (gfc_procedure_use): Add explicit interface check for
+	pointer/allocatable functions.
+
+2011-01-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47523
+	* trans-expr.c (gfc_trans_assignment_1): If the rhs is an op
+	expr and is assigned to a deferred character length scalar,
+	make sure that the function is called before reallocation,
+	so that the length is available. Include procedure pointer
+	and procedure pointer component rhs as well.
+
+	PR fortran/45170
+	PR fortran/35810
+	PR fortran/47350
+	* gfortran.dg/allocatable_function_5.f90: New test not added by
+	mistake on 2011-01-28.
+
+2011-01-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47531
+	* check.c (gfc_check_shape): Support kind argument in SHAPE.
+	* intrinsic.c (add_functions): Ditto.
+	* resolve.c (gfc_resolve_shape): Ditto.
+	* simplify.c (gfc_simplify_shape): Ditto.
+	* intrinsic.h (gfc_check_shape, gfc_resolve_shape,
+	gfc_simplify_shape): Update prototypes.
+	* intrinisc.text (SHAPE): Document kind argument.
+
+2011-01-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47507
+	* resolve.c (resolve_formal_arglist): Allow arguments with VALUE
+	attribute also without INTENT.
+
+2011-01-28  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi (Fortran 2003 status): Mention support for
+	nonconstant namelist variables.
+
+2011-01-28  Paul Thomas  <pault@gcc.gnu.org>
+	    Tobias Burnus  <burnus@gcc.gnu.org>
+
+	PR fortran/45170
+	PR fortran/35810
+	PR fortran/47350
+	* interface.c (compare_actual_formal): An allocatable or pointer
+	deferred length actual is only allowed if the formal argument
+	is also deferred length. Clean up whitespace.
+	* trans-expr.c (gfc_conv_procedure_call): Pass string length for
+	deferred character length formal arguments by reference. Do the
+	same for function results.
+	(gfc_trans_pointer_assignment): Do not do runtime check of lhs
+	and rhs character lengths, if deferred length lhs.  In this case
+	set the lhs character length to that of the rhs.
+	(gfc_conv_string_parameter): Remove assert that string length is
+	an integer type.
+	(is_scalar_reallocatable_lhs): New function.
+	(alloc_scalar_allocatable_for_assignment): New function.
+	(gfc_trans_assignment_1): Call above new function. If the rhs is
+	a deferred character length itself, makes ure that the function
+	is called before reallocation, so that the length is available.
+	(gfc_trans_asssignment): Remove error about assignment to
+	deferred length character variables.
+	* gfortran.texi : Update entry about (re)allocation on
+	assignment.
+	* trans-stmt.c (gfc_trans_allocate): Add code to handle deferred
+	length character variables.
+	* module.c (mio_typespec): Transfer deferred characteristic.
+	* trans-types.c (gfc_get_function_type): New code to generate
+	hidden typelist, so that those character lengths that are
+	passed by reference get the right type.
+	* resolve.c (resolve_contained_fntype): Supress error for
+	deferred character length functions.
+	(resolve_function, resolve_fl_procedure) The same.
+	(check_symbols): Remove the error that support for
+	entity with deferred type parameter is not yet implemented.
+	(resolve_fl_derived): The same.
+	match.c (alloc_opt_list): Allow MOLD for deferred length object.
+	* trans-decl.c (gfc_get_symbol_decl): For deferred character
+	length dummies, generate a local variable for string length.
+	(create_function_arglist): Hidden length can be a pointer.
+	(gfc_trans_deferred_vars): For deferred character length
+	results and dummies, assign the string length to the local
+	variable from the hidden argument on entry and the other way
+	round on exit, as appropriate.
+
+2011-01-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47474
+	* trans-decl.c (gfc_generate_function_code): Fix init
+	of allocatable result variable with allocatable components.
+
+2011-01-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47472
+	* options.c (gfc_handle_module_path_options): Save
+	module path without trailing slash as include path.
+
+2011-01-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47448
+	* interface.c (gfc_check_operator_interface): Fix
+	defined-assignment check.
+
+2011-01-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47421
+	* trans-decl.c (gfc_trans_deferred_vars): Do not nullify
+	scalar allocatable dummy arguments.
+
+2011-01-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/38536
+	* resolve.c (gfc_iso_c_func_interface):  For C_LOC,
+	check for array sections followed by component references
+	which are illegal.  Also check for coindexed arguments.
+
+2011-01-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47399
+	* primary.c (gfc_match_varspec): Relax gcc_assert to allow for
+	PARAMETER TBP.
+
+2011-01-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47394
+	* error.c (gfc_error_now, gfc_fatal_error, gfc_error_check):
+	Use defined instead of magic number exit status codes.
+	* scanner.c (include_line, gfc_new_file): Ditto.
+
+2011-01-21  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47377
+	* expr.c (gfc_check_pointer_assign): Reject expr data-targets
+	without pointer attribute.
+
+2011-01-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47240
+	* resolve.c (expression_rank): Fix rank of procedure poiner components.
+	* trans-expr.c (gfc_conv_procedure_call): Take care of procedure
+	pointer components as actual arguments.
+
+2011-01-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47331
+	* gfortran.h (struct gfc_omp_saved_state): New type.
+	(gfc_omp_save_and_clear_state, gfc_omp_restore_state): New prototypes.
+	* resolve.c (resolve_global_procedure): Call it around gfc_resolve
+	call.
+	* openmp.c (gfc_omp_save_and_clear_state, gfc_omp_restore_state): New
+	functions.
+
+2011-01-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47327
+	* invoke.texi (Options to request or suppress errors
+	and warnings): Fix cross link.
+
+2011-01-15  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.texi: Update Fortran 2003 Status section.
+
+	PR fortran/47177
+	* invoke.texi: Add missing "-E" to the -dM example.
+
 2011-01-13  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/47268

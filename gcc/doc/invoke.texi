@@ -229,7 +229,7 @@ Objective-C and Objective-C++ Dialects}.
 
 @item Warning Options
 @xref{Warning Options,,Options to Request or Suppress Warnings}.
-@gccoptlist{-fsyntax-only  fmax-errors=@var{n}  -pedantic @gol
+@gccoptlist{-fsyntax-only  -fmax-errors=@var{n}  -pedantic @gol
 -pedantic-errors @gol
 -w  -Wextra  -Wall  -Waddress  -Waggregate-return  -Warray-bounds @gol
 -Wno-attributes -Wno-builtin-macro-redefined @gol
@@ -337,11 +337,11 @@ Objective-C and Objective-C++ Dialects}.
 -fauto-inc-dec -fbranch-probabilities -fbranch-target-load-optimize @gol
 -fbranch-target-load-optimize2 -fbtr-bb-exclusive -fcaller-saves @gol
 -fcheck-data-deps -fcombine-stack-adjustments -fconserve-stack @gol
--fcprop-registers -fcrossjumping @gol
+-fcompare-elim -fcprop-registers -fcrossjumping @gol
 -fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules @gol
 -fcx-limited-range @gol
--fdata-sections -fdce -fdce @gol
--fdelayed-branch -fdelete-null-pointer-checks -fdse -fdse @gol
+-fdata-sections -fdce -fdce -fdelayed-branch @gol
+-fdelete-null-pointer-checks -fdse -fdevirtualize -fdse @gol
 -fearly-inlining -fipa-sra -fexpensive-optimizations -ffast-math @gol
 -ffinite-math-only -ffloat-store -fexcess-precision=@var{style} @gol
 -fforward-propagate -ffp-contract=@var{style} -ffunction-sections @gol
@@ -890,7 +890,7 @@ See RS/6000 and PowerPC Options.
 -mdisable-callt  -mno-disable-callt @gol
 -mv850e2v3 @gol
 -mv850e2 @gol
--mv850e1 @gol
+-mv850e1 -mv850es @gol
 -mv850e @gol
 -mv850  -mbig-switch}
 
@@ -5870,6 +5870,7 @@ compilation time.
 @option{-O} turns on the following optimization flags:
 @gccoptlist{
 -fauto-inc-dec @gol
+-fcompare-elim @gol
 -fcprop-registers @gol
 -fdce @gol
 -fdefer-pop @gol
@@ -5918,6 +5919,7 @@ also turns on the following optimization flags:
 -fcrossjumping @gol
 -fcse-follow-jumps  -fcse-skip-blocks @gol
 -fdelete-null-pointer-checks @gol
+-fdevirtualize @gol
 -fexpensive-optimizations @gol
 -fgcse  -fgcse-lm  @gol
 -finline-small-functions @gol
@@ -6146,6 +6148,13 @@ in default behavior.
 abstract measurement of function's size.  In no way does it represent a count
 of assembly instructions and as such its exact meaning might change from one
 release to an another.
+
+@item -fno-keep-inline-dllexport
+@opindex -fno-keep-inline-dllexport
+This is a more fine-grained version of @option{-fkeep-inline-functions},
+which applies only to functions that are declared using the @code{dllexport}
+attribute or declspec (@xref{Function Attributes,,Declaring Attributes of
+Functions}.)
 
 @item -fkeep-inline-functions
 @opindex fkeep-inline-functions
@@ -6420,6 +6429,14 @@ Some targets, especially embedded ones, disable this option at all levels.
 Otherwise it is enabled at all levels: @option{-O0}, @option{-O1},
 @option{-O2}, @option{-O3}, @option{-Os}.  Passes that use the information
 are enabled independently at different optimization levels.
+
+@item -fdevirtualize
+@opindex fdevirtualize
+Attempt to convert calls to virtual functions to direct calls.  This
+is done both within a procedure and interprocedurally as part of
+indirect inlining (@code{-findirect-inlining}) and interprocedural constant
+propagation (@option{-fipa-cp}).
+Enabled at levels @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fexpensive-optimizations
 @opindex fexpensive-optimizations
@@ -6853,8 +6870,10 @@ at @option{-O} and higher.
 
 @item -ftree-loop-linear
 @opindex ftree-loop-linear
-Perform linear loop transformations on tree.  This flag can improve cache
-performance and allow further loop optimizations to take place.
+Perform loop interchange transformations on tree.  Same as
+@option{-floop-interchange}.  To use this code transformation, GCC has
+to be configured with @option{--with-ppl} and @option{--with-cloog} to
+enable the Graphite loop transformation infrastructure.
 
 @item -floop-interchange
 @opindex floop-interchange
@@ -7673,12 +7692,24 @@ This option enables the extraction of object files with GIMPLE bytecode out of
 library archives. This improves the quality of optimization by exposing more
 code the the link time optimizer.  This information specify what symbols 
 can be accessed externally (by non-LTO object or during dynamic linking).
-Resulting code quality improvements on binaries (and shared libaries that do
+Resulting code quality improvements on binaries (and shared libraries that do
 use hidden visibility) is similar to @code{-fwhole-program}.  See
 @option{-flto} for a description on the effect of this flag and how to use it.
 
 Enabled by default when LTO support in GCC is enabled and GCC was compiled
 with linker supporting plugins (GNU ld or @code{gold}).
+
+@item -fcompare-elim
+@opindex fcompare-elim
+After register allocation and post-register allocation instruction splitting,
+identify arithmetic instructions that compute processor flags similar to a
+comparison operation based on that arithmetic.  If possible, eliminate the
+explicit comparison operation.
+
+This pass only applies to certain targets that cannot explicitly represent
+the comparison operation before register allocation is complete.
+
+Enabled at levels @option{-O}, @option{-O2}, @option{-O3}, @option{-Os}.
 
 @item -fcprop-registers
 @opindex fcprop-registers
@@ -7698,13 +7729,13 @@ default, GCC will emit an error message when an inconsistent profile is detected
 @item -fprofile-dir=@var{path}
 @opindex fprofile-dir
 
-Set the directory to search the profile data files in to @var{path}.
+Set the directory to search for the profile data files in to @var{path}.
 This option affects only the profile data generated by
 @option{-fprofile-generate}, @option{-ftest-coverage}, @option{-fprofile-arcs}
 and used by @option{-fprofile-use} and @option{-fbranch-probabilities}
 and its related options.
-By default, GCC will use the current directory as @var{path}
-thus the profile data file will appear in the same directory as the object file.
+By default, GCC will use the current directory as @var{path}, thus the
+profile data file will appear in the same directory as the object file.
 
 @item -fprofile-generate
 @itemx -fprofile-generate=@var{path}
@@ -7989,7 +8020,7 @@ With @option{-fbranch-probabilities}, GCC puts a
 @samp{REG_BR_PROB} note on each @samp{JUMP_INSN} and @samp{CALL_INSN}.
 These can be used to improve optimization.  Currently, they are only
 used in one place: in @file{reorg.c}, instead of guessing which path a
-branch is mostly to take, the @samp{REG_BR_PROB} values are used to
+branch is most likely to take, the @samp{REG_BR_PROB} values are used to
 exactly determine which path is taken more often.
 
 @item -fprofile-values
@@ -8480,7 +8511,7 @@ Select fraction of the maximal count of repetitions of basic block in program
 given basic block needs to have to be considered hot.
 
 @item hot-bb-frequency-fraction
-Select fraction of the maximal frequency of executions of basic block in
+Select fraction of the entry block frequency of executions of basic block in
 function given basic block needs to have to be considered hot
 
 @item max-predicted-iterations
@@ -17366,6 +17397,11 @@ constants @samp{__v850e2__} will be defined if
 @opindex mv850e1
 Specify that the target processor is the V850E1.  The preprocessor
 constants @samp{__v850e1__} and @samp{__v850e__} will be defined if
+
+@item -mv850es
+@opindex mv850es
+Specify that the target processor is the V850ES.  This is an alias for
+the @option{-mv850e1} option.
 
 @item -mv850e
 @opindex mv850e

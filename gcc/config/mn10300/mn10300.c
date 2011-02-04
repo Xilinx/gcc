@@ -44,10 +44,6 @@
 #include "target-def.h"
 #include "df.h"
 
-/* This is used by GOTaddr2picreg to uniquely identify
-   UNSPEC_INT_LABELs.  */
-int mn10300_unspec_int_label_counter;
-
 /* This is used in the am33_2.0-linux-gnu port, in which global symbol
    names are not prefixed by underscores, to tell whether to prefix a
    label with a plus sign or not, so that the assembler can tell
@@ -81,6 +77,14 @@ static const struct default_options mn10300_option_optimization_table[] =
     { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
     { OPT_LEVELS_NONE, 0, NULL, 0 }
   };
+
+#define CC_FLAG_Z	1
+#define CC_FLAG_N	2
+#define CC_FLAG_C	4
+#define CC_FLAG_V	8
+
+static int cc_flags_for_mode(enum machine_mode);
+static int cc_flags_for_code(enum rtx_code);
 
 /* Implement TARGET_HANDLE_OPTION.  */
 
@@ -134,7 +138,7 @@ mn10300_option_override (void)
 	 when this flag is not enabled by default.  */
       flag_split_wide_types = 1;
     }
-  
+
   if (mn10300_tune_string)
     {
       if (strcasecmp (mn10300_tune_string, "mn10300") == 0)
@@ -171,95 +175,82 @@ mn10300_print_operand (FILE *file, rtx x, int code)
     {
       case 'b':
       case 'B':
-	if (GET_MODE (XEXP (x, 0)) == CC_FLOATmode)
-	  {
-	    switch (code == 'b' ? GET_CODE (x)
-		    : reverse_condition_maybe_unordered (GET_CODE (x)))
-	      {
-	      case NE:
-		fprintf (file, "ne");
-		break;
-	      case EQ:
-		fprintf (file, "eq");
-		break;
-	      case GE:
-		fprintf (file, "ge");
-		break;
-	      case GT:
-		fprintf (file, "gt");
-		break;
-	      case LE:
-		fprintf (file, "le");
-		break;
-	      case LT:
-		fprintf (file, "lt");
-		break;
-	      case ORDERED:
-		fprintf (file, "lge");
-		break;
-	      case UNORDERED:
-		fprintf (file, "uo");
-		break;
-	      case LTGT:
-		fprintf (file, "lg");
-		break;
-	      case UNEQ:
-		fprintf (file, "ue");
-		break;
-	      case UNGE:
-		fprintf (file, "uge");
-		break;
-	      case UNGT:
-		fprintf (file, "ug");
-		break;
-	      case UNLE:
-		fprintf (file, "ule");
-		break;
-	      case UNLT:
-		fprintf (file, "ul");
-		break;
-	      default:
-		gcc_unreachable ();
-	      }
-	    break;
-	  }
-	/* These are normal and reversed branches.  */
-	switch (code == 'b' ? GET_CODE (x) : reverse_condition (GET_CODE (x)))
-	  {
-	  case NE:
-	    fprintf (file, "ne");
-	    break;
-	  case EQ:
-	    fprintf (file, "eq");
-	    break;
-	  case GE:
-	    fprintf (file, "ge");
-	    break;
-	  case GT:
-	    fprintf (file, "gt");
-	    break;
-	  case LE:
-	    fprintf (file, "le");
-	    break;
-	  case LT:
-	    fprintf (file, "lt");
-	    break;
-	  case GEU:
-	    fprintf (file, "cc");
-	    break;
-	  case GTU:
-	    fprintf (file, "hi");
-	    break;
-	  case LEU:
-	    fprintf (file, "ls");
-	    break;
-	  case LTU:
-	    fprintf (file, "cs");
-	    break;
-	  default:
-	    gcc_unreachable ();
-	  }
+	{
+	  enum rtx_code cmp = GET_CODE (x);
+	  enum machine_mode mode = GET_MODE (XEXP (x, 0));
+	  const char *str;
+	  int have_flags;
+
+	  if (code == 'B')
+	    cmp = reverse_condition (cmp);
+	  have_flags = cc_flags_for_mode (mode);
+
+	  switch (cmp)
+	    {
+	    case NE:
+	      str = "ne";
+	      break;
+	    case EQ:
+	      str = "eq";
+	      break;
+	    case GE:
+	      /* bge is smaller than bnc.  */
+	      str = (have_flags & CC_FLAG_V ? "ge" : "nc");
+	      break;
+	    case LT:
+	      str = (have_flags & CC_FLAG_V ? "lt" : "ns");
+	      break;
+	    case GT:
+	      str = "gt";
+	      break;
+	    case LE:
+	      str = "le";
+	      break;
+	    case GEU:
+	      str = "cc";
+	      break;
+	    case GTU:
+	      str = "hi";
+	      break;
+	    case LEU:
+	      str = "ls";
+	      break;
+	    case LTU:
+	      str = "cs";
+	      break;
+	    case ORDERED:
+	      str = "lge";
+	      break;
+	    case UNORDERED:
+	      str = "uo";
+	      break;
+	    case LTGT:
+	      str = "lg";
+	      break;
+	    case UNEQ:
+	      str = "ue";
+	      break;
+	    case UNGE:
+	      str = "uge";
+	      break;
+	    case UNGT:
+	      str = "ug";
+	      break;
+	    case UNLE:
+	      str = "ule";
+	      break;
+	    case UNLT:
+	      str = "ul";
+	      break;
+	    default:
+	      gcc_unreachable ();
+	    }
+
+	  gcc_checking_assert ((cc_flags_for_code (cmp) & ~have_flags) == 0);
+	  fputs (str, file);
+	}
 	break;
+
       case 'C':
 	/* This is used for the operand to a call instruction;
 	   if it's a REG, enclose it in parens, else output
@@ -495,26 +486,38 @@ mn10300_print_operand_address (FILE *file, rtx addr)
   switch (GET_CODE (addr))
     {
     case POST_INC:
-      mn10300_print_operand_address (file, XEXP (addr, 0));
+      mn10300_print_operand (file, XEXP (addr, 0), 0);
       fputc ('+', file);
       break;
+
+    case POST_MODIFY:
+      mn10300_print_operand (file, XEXP (addr, 0), 0);
+      fputc ('+', file);
+      fputc (',', file);
+      mn10300_print_operand (file, XEXP (addr, 1), 0);
+      break;
+
     case REG:
       mn10300_print_operand (file, addr, 0);
       break;
     case PLUS:
       {
-	rtx base, index;
-	if (REG_P (XEXP (addr, 0))
-	    && REG_OK_FOR_BASE_P (XEXP (addr, 0)))
-	  base = XEXP (addr, 0), index = XEXP (addr, 1);
-	else if (REG_P (XEXP (addr, 1))
-	    && REG_OK_FOR_BASE_P (XEXP (addr, 1)))
-	  base = XEXP (addr, 1), index = XEXP (addr, 0);
-      	else
-	  gcc_unreachable ();
+	rtx base = XEXP (addr, 0);
+	rtx index = XEXP (addr, 1);
+	
+	if (REG_P (index) && !REG_OK_FOR_INDEX_P (index))
+	  {
+	    rtx x = base;
+	    base = index;
+	    index = x;
+
+	    gcc_assert (REG_P (index) && REG_OK_FOR_INDEX_P (index));
+	  }
+	gcc_assert (REG_OK_FOR_BASE_P (base));
+
 	mn10300_print_operand (file, index, 0);
 	fputc (',', file);
-	mn10300_print_operand (file, base, 0);;
+	mn10300_print_operand (file, base, 0);
 	break;
       }
     case SYMBOL_REF:
@@ -537,10 +540,6 @@ mn10300_asm_output_addr_const_extra (FILE *file, rtx x)
     {
       switch (XINT (x, 1))
 	{
-	case UNSPEC_INT_LABEL:
-	  asm_fprintf (file, ".%LLIL" HOST_WIDE_INT_PRINT_DEC,
-		       INTVAL (XVECEXP (x, 0, 0)));
-	  break;
 	case UNSPEC_PIC:
 	  /* GLOBAL_OFFSET_TABLE or local symbols, no suffix.  */
 	  output_addr_const (file, XVECEXP (x, 0, 0));
@@ -624,27 +623,35 @@ mn10300_print_reg_list (FILE *file, int mask)
   fputc (']', file);
 }
 
-int
-mn10300_can_use_return_insn (void)
+/* If the MDR register is never clobbered, we can use the RETF instruction
+   which takes the address from the MDR register.  This is 3 cycles faster
+   than having to load the address from the stack.  */
+
+bool
+mn10300_can_use_retf_insn (void)
 {
-  /* size includes the fixed stack space needed for function calls.  */
-  int size = get_frame_size () + crtl->outgoing_args_size;
+  /* Don't bother if we're not optimizing.  In this case we won't
+     have proper access to df_regs_ever_live_p.  */
+  if (!optimize)
+    return false;
 
-  /* And space for the return pointer.  */
-  size += crtl->outgoing_args_size ? 4 : 0;
+  /* EH returns alter the saved return address; MDR is not current.  */
+  if (crtl->calls_eh_return)
+    return false;
 
-  return (reload_completed
-	  && size == 0
-	  && !df_regs_ever_live_p (2)
-	  && !df_regs_ever_live_p (3)
-	  && !df_regs_ever_live_p (6)
-	  && !df_regs_ever_live_p (7)
-	  && !df_regs_ever_live_p (14)
-	  && !df_regs_ever_live_p (15)
-	  && !df_regs_ever_live_p (16)
-	  && !df_regs_ever_live_p (17)
-	  && fp_regs_to_save () == 0
-	  && !frame_pointer_needed);
+  /* Obviously not if MDR is ever clobbered.  */
+  if (df_regs_ever_live_p (MDR_REG))
+    return false;
+
+  /* ??? Careful not to use this during expand_epilogue etc.  */
+  gcc_assert (!in_sequence_p ());
+  return leaf_function_p ();
+}
+
+bool
+mn10300_can_use_rets_insn (void)
+{
+  return !mn10300_initial_offset (ARG_POINTER_REGNUM, STACK_POINTER_REGNUM);
 }
 
 /* Returns the set of live, callee-saved registers as a bitmask.  The
@@ -753,11 +760,7 @@ mn10300_gen_multiple_store (unsigned int mask)
 void
 mn10300_expand_prologue (void)
 {
-  HOST_WIDE_INT size;
-
-  /* SIZE includes the fixed stack space needed for function calls.  */
-  size = get_frame_size () + crtl->outgoing_args_size;
-  size += (crtl->outgoing_args_size ? 4 : 0);
+  HOST_WIDE_INT size = mn10300_frame_size ();
 
   /* If we use any of the callee-saved registers, save them now.  */
   mn10300_gen_multiple_store (mn10300_get_live_callee_saved_regs ());
@@ -1010,17 +1013,14 @@ mn10300_expand_prologue (void)
 			      GEN_INT (-size))));
 
   if (flag_pic && df_regs_ever_live_p (PIC_OFFSET_TABLE_REGNUM))
-    emit_insn (gen_GOTaddr2picreg ());
+    emit_insn (gen_load_pic ());
 }
 
 void
 mn10300_expand_epilogue (void)
 {
-  HOST_WIDE_INT size;
-
-  /* SIZE includes the fixed stack space needed for function calls.  */
-  size = get_frame_size () + crtl->outgoing_args_size;
-  size += (crtl->outgoing_args_size ? 4 : 0);
+  HOST_WIDE_INT size = mn10300_frame_size ();
+  int reg_save_bytes = REG_SAVE_BYTES;
   
   if (TARGET_AM33_2 && fp_regs_to_save ())
     {
@@ -1052,14 +1052,14 @@ mn10300_expand_epilogue (void)
 	  this_strategy_size = SIZE_FMOV_SP (size, num_regs_to_save);
 	  /* If size is too large, we'll have to adjust SP with an
 		 add.  */
-	  if (size + 4 * num_regs_to_save + REG_SAVE_BYTES > 255)
+	  if (size + 4 * num_regs_to_save + reg_save_bytes > 255)
 	    {
 	      /* Insn: add size + 4 * num_regs_to_save, sp.  */
 	      this_strategy_size += SIZE_ADD_SP (size + 4 * num_regs_to_save);
 	    }
 	  /* If we don't have to restore any non-FP registers,
 		 we'll be able to save one byte by using rets.  */
-	  if (! REG_SAVE_BYTES)
+	  if (! reg_save_bytes)
 	    this_strategy_size--;
 
 	  if (this_strategy_size < strategy_size)
@@ -1086,14 +1086,14 @@ mn10300_expand_epilogue (void)
 	     When size is close to 32Kb, we may be able to adjust SP
 	     with an imm16 add instruction while still using fmov
 	     (d8,sp).  */
-	  if (size + 4 * num_regs_to_save + REG_SAVE_BYTES > 255)
+	  if (size + 4 * num_regs_to_save + reg_save_bytes > 255)
 	    {
 	      /* Insn: add size + 4 * num_regs_to_save
-				+ REG_SAVE_BYTES - 252,sp.  */
+				+ reg_save_bytes - 252,sp.  */
 	      this_strategy_size = SIZE_ADD_SP (size + 4 * num_regs_to_save
-						+ REG_SAVE_BYTES - 252);
+						+ reg_save_bytes - 252);
 	      /* Insn: fmov (##,sp),fs#, fo each fs# to be restored.  */
-	      this_strategy_size += SIZE_FMOV_SP (252 - REG_SAVE_BYTES
+	      this_strategy_size += SIZE_FMOV_SP (252 - reg_save_bytes
 						  - 4 * num_regs_to_save,
 						  num_regs_to_save);
 	      /* We're going to use ret to release the FP registers
@@ -1122,14 +1122,14 @@ mn10300_expand_epilogue (void)
 	      this_strategy_size += 3 * num_regs_to_save;
 	      /* If size is large enough, we may be able to save a
 		 couple of bytes.  */
-	      if (size + 4 * num_regs_to_save + REG_SAVE_BYTES > 255)
+	      if (size + 4 * num_regs_to_save + reg_save_bytes > 255)
 		{
 		  /* Insn: mov a1,sp.  */
 		  this_strategy_size += 2;
 		}
 	      /* If we don't have to restore any non-FP registers,
 		 we'll be able to save one byte by using rets.  */
-	      if (! REG_SAVE_BYTES)
+	      if (! reg_save_bytes)
 		this_strategy_size--;
 
 	      if (this_strategy_size < strategy_size)
@@ -1155,8 +1155,8 @@ mn10300_expand_epilogue (void)
 	      emit_insn (gen_addsi3 (stack_pointer_rtx,
 				     stack_pointer_rtx,
 				     GEN_INT (size + 4 * num_regs_to_save
-					      + REG_SAVE_BYTES - 252)));
-	      size = 252 - REG_SAVE_BYTES - 4 * num_regs_to_save;
+					      + reg_save_bytes - 252)));
+	      size = 252 - reg_save_bytes - 4 * num_regs_to_save;
 	      break;
 
 	    case restore_a1:
@@ -1202,7 +1202,7 @@ mn10300_expand_epilogue (void)
       /* If we were using the restore_a1 strategy and the number of
 	 bytes to be released won't fit in the `ret' byte, copy `a1'
 	 to `sp', to avoid having to use `add' to adjust it.  */
-      if (! frame_pointer_needed && reg && size + REG_SAVE_BYTES > 255)
+      if (! frame_pointer_needed && reg && size + reg_save_bytes > 255)
 	{
 	  emit_move_insn (stack_pointer_rtx, XEXP (reg, 0));
 	  size = 0;
@@ -1229,7 +1229,7 @@ mn10300_expand_epilogue (void)
       emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
       size = 0;
     }
-  else if (size + REG_SAVE_BYTES > 255)
+  else if (size + reg_save_bytes > 255)
     {
       emit_insn (gen_addsi3 (stack_pointer_rtx,
 			     stack_pointer_rtx,
@@ -1238,15 +1238,10 @@ mn10300_expand_epilogue (void)
     }
 
   /* Adjust the stack and restore callee-saved registers, if any.  */
-  if (size || df_regs_ever_live_p (2) || df_regs_ever_live_p (3)
-      || df_regs_ever_live_p (6) || df_regs_ever_live_p (7)
-      || df_regs_ever_live_p (14) || df_regs_ever_live_p (15)
-      || df_regs_ever_live_p (16) || df_regs_ever_live_p (17)
-      || frame_pointer_needed)
-    emit_jump_insn (gen_return_internal_regs
-		    (GEN_INT (size + REG_SAVE_BYTES)));
+  if (mn10300_can_use_rets_insn ())
+    emit_jump_insn (gen_rtx_RETURN (VOIDmode));
   else
-    emit_jump_insn (gen_return_internal ());
+    emit_jump_insn (gen_return_ret (GEN_INT (size + REG_SAVE_BYTES)));
 }
 
 /* Recognize the PARALLEL rtx generated by mn10300_gen_multiple_store().
@@ -1327,7 +1322,7 @@ static reg_class_t
 mn10300_preferred_reload_class (rtx x, reg_class_t rclass)
 {
   if (x == stack_pointer_rtx && rclass != SP_REGS)
-     return ADDRESS_OR_EXTENDED_REGS;
+    return (TARGET_AM33 ? GENERAL_REGS : ADDRESS_REGS);
   else if (MEM_P (x)
 	   || (REG_P (x) 
 	       && !HARD_REGISTER_P (x))
@@ -1345,73 +1340,89 @@ static reg_class_t
 mn10300_preferred_output_reload_class (rtx x, reg_class_t rclass)
 {
   if (x == stack_pointer_rtx && rclass != SP_REGS)
-    return ADDRESS_OR_EXTENDED_REGS;
-
+    return (TARGET_AM33 ? GENERAL_REGS : ADDRESS_REGS);
   return rclass;
 }
 
-/* What (if any) secondary registers are needed to move IN with mode
-   MODE into a register in register class RCLASS.
+/* Implement TARGET_SECONDARY_RELOAD.  */
 
-   We might be able to simplify this.  */
-
-enum reg_class
-mn10300_secondary_reload_class (enum reg_class rclass, enum machine_mode mode,
-				rtx in)
+static reg_class_t
+mn10300_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
+			  enum machine_mode mode, secondary_reload_info *sri)
 {
-  rtx inner = in;
+  enum reg_class rclass = (enum reg_class) rclass_i;
+  enum reg_class xclass = NO_REGS;
+  unsigned int xregno = INVALID_REGNUM;
 
-  /* Strip off any SUBREG expressions from IN.  Basically we want
-     to know if IN is a pseudo or (subreg (pseudo)) as those can
-     turn into MEMs during reload.  */
-  while (GET_CODE (inner) == SUBREG)
-    inner = SUBREG_REG (inner);
-
-  /* Memory loads less than a full word wide can't have an
-     address or stack pointer destination.  They must use
-     a data register as an intermediate register.  */
-  if ((MEM_P (in)
-       || (REG_P (inner)
-	   && REGNO (inner) >= FIRST_PSEUDO_REGISTER))
-      && (mode == QImode || mode == HImode)
-      && (rclass == ADDRESS_REGS || rclass == SP_REGS
-	  || rclass == SP_OR_ADDRESS_REGS))
+  if (REG_P (x))
     {
-      if (TARGET_AM33)
-	return DATA_OR_EXTENDED_REGS;
-      return DATA_REGS;
+      xregno = REGNO (x);
+      if (xregno >= FIRST_PSEUDO_REGISTER)
+	xregno = true_regnum (x);
+      if (xregno != INVALID_REGNUM)
+	xclass = REGNO_REG_CLASS (xregno);
     }
 
-  /* We can't directly load sp + const_int into a data register;
-     we must use an address register as an intermediate.  */
-  if (rclass != SP_REGS
-      && rclass != ADDRESS_REGS
-      && rclass != SP_OR_ADDRESS_REGS
-      && rclass != SP_OR_EXTENDED_REGS
-      && rclass != ADDRESS_OR_EXTENDED_REGS
-      && rclass != SP_OR_ADDRESS_OR_EXTENDED_REGS
-      && (in == stack_pointer_rtx
-	  || (GET_CODE (in) == PLUS
-	      && (XEXP (in, 0) == stack_pointer_rtx
-		  || XEXP (in, 1) == stack_pointer_rtx))))
-    return ADDRESS_REGS;
-
-  if (TARGET_AM33_2
-      && rclass == FP_REGS)
+  if (!TARGET_AM33)
     {
-      /* We can't load directly into an FP register from a	
-	 constant address.  */
-      if (MEM_P (in)
-	  && CONSTANT_ADDRESS_P (XEXP (in, 0)))
-	return DATA_OR_EXTENDED_REGS;
+      /* Memory load/stores less than a full word wide can't have an
+         address or stack pointer destination.  They must use a data
+         register as an intermediate register.  */
+      if (rclass != DATA_REGS
+	  && (mode == QImode || mode == HImode)
+	  && xclass == NO_REGS)
+	return DATA_REGS;
 
-      /* Handle case were a pseudo may not get a hard register
-	 but has an equivalent memory location defined.  */
-      if (REG_P (inner)
-	  && REGNO (inner) >= FIRST_PSEUDO_REGISTER
-	  && reg_equiv_mem [REGNO (inner)]
-	  && CONSTANT_ADDRESS_P (XEXP (reg_equiv_mem [REGNO (inner)], 0)))
-	return DATA_OR_EXTENDED_REGS;
+      /* We can only move SP to/from an address register.  */
+      if (in_p
+	  && rclass == SP_REGS
+	  && xclass != ADDRESS_REGS)
+	return ADDRESS_REGS;
+      if (!in_p
+	  && xclass == SP_REGS
+	  && rclass != ADDRESS_REGS
+	  && rclass != SP_OR_ADDRESS_REGS)
+	return ADDRESS_REGS;
+    }
+
+  /* We can't directly load sp + const_int into a register;
+     we must use an address register as an scratch.  */
+  if (in_p
+      && rclass != SP_REGS
+      && rclass != SP_OR_ADDRESS_REGS
+      && rclass != SP_OR_GENERAL_REGS
+      && GET_CODE (x) == PLUS
+      && (XEXP (x, 0) == stack_pointer_rtx
+	  || XEXP (x, 1) == stack_pointer_rtx))
+    {
+      sri->icode = CODE_FOR_reload_plus_sp_const;
+      return NO_REGS;
+    }
+
+  /* We can only move MDR to/from a data register.  */
+  if (rclass == MDR_REGS && xclass != DATA_REGS)
+    return DATA_REGS;
+  if (xclass == MDR_REGS && rclass != DATA_REGS)
+    return DATA_REGS;
+
+  /* We can't load/store an FP register from a constant address.  */
+  if (TARGET_AM33_2
+      && (rclass == FP_REGS || xclass == FP_REGS)
+      && (xclass == NO_REGS || rclass == NO_REGS))
+    {
+      rtx addr = NULL;
+
+      if (xregno >= FIRST_PSEUDO_REGISTER && xregno != INVALID_REGNUM)
+	{
+	  addr = reg_equiv_mem [xregno];
+	  if (addr)
+	    addr = XEXP (addr, 0);
+	}
+      else if (MEM_P (x))
+	addr = XEXP (x, 0);
+
+      if (addr && CONSTANT_ADDRESS_P (addr))
+	return GENERAL_REGS;
     }
 
   /* Otherwise assume no secondary reloads are needed.  */
@@ -1419,54 +1430,37 @@ mn10300_secondary_reload_class (enum reg_class rclass, enum machine_mode mode,
 }
 
 int
+mn10300_frame_size (void)
+{
+  /* size includes the fixed stack space needed for function calls.  */
+  int size = get_frame_size () + crtl->outgoing_args_size;
+
+  /* And space for the return pointer.  */
+  size += crtl->outgoing_args_size ? 4 : 0;
+
+  return size;
+}
+
+int
 mn10300_initial_offset (int from, int to)
 {
+  int diff = 0;
+
+  gcc_assert (from == ARG_POINTER_REGNUM || from == FRAME_POINTER_REGNUM);
+  gcc_assert (to == FRAME_POINTER_REGNUM || to == STACK_POINTER_REGNUM);
+
+  if (to == STACK_POINTER_REGNUM)
+    diff = mn10300_frame_size ();
+
   /* The difference between the argument pointer and the frame pointer
      is the size of the callee register save area.  */
-  if (from == ARG_POINTER_REGNUM && to == FRAME_POINTER_REGNUM)
+  if (from == ARG_POINTER_REGNUM)
     {
-      if (df_regs_ever_live_p (2) || df_regs_ever_live_p (3)
-	  || df_regs_ever_live_p (6) || df_regs_ever_live_p (7)
-	  || df_regs_ever_live_p (14) || df_regs_ever_live_p (15)
-	  || df_regs_ever_live_p (16) || df_regs_ever_live_p (17)
-	  || fp_regs_to_save ()
-	  || frame_pointer_needed)
-	return REG_SAVE_BYTES
-	  + 4 * fp_regs_to_save ();
-      else
-	return 0;
+      diff += REG_SAVE_BYTES;
+      diff += 4 * fp_regs_to_save ();
     }
 
-  /* The difference between the argument pointer and the stack pointer is
-     the sum of the size of this function's frame, the callee register save
-     area, and the fixed stack space needed for function calls (if any).  */
-  if (from == ARG_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
-    {
-      if (df_regs_ever_live_p (2) || df_regs_ever_live_p (3)
-	  || df_regs_ever_live_p (6) || df_regs_ever_live_p (7)
-	  || df_regs_ever_live_p (14) || df_regs_ever_live_p (15)
-	  || df_regs_ever_live_p (16) || df_regs_ever_live_p (17)
-	  || fp_regs_to_save ()
-	  || frame_pointer_needed)
-	return (get_frame_size () + REG_SAVE_BYTES
-		+ 4 * fp_regs_to_save ()
-		+ (crtl->outgoing_args_size
-		   ? crtl->outgoing_args_size + 4 : 0));
-      else
-	return (get_frame_size ()
-		+ (crtl->outgoing_args_size
-		   ? crtl->outgoing_args_size + 4 : 0));
-    }
-
-  /* The difference between the frame pointer and stack pointer is the sum
-     of the size of this function's frame and the fixed stack space needed
-     for function calls (if any).  */
-  if (from == FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
-    return (get_frame_size ()
-	    + (crtl->outgoing_args_size
-	       ? crtl->outgoing_args_size + 4 : 0));
-
-  gcc_unreachable ();
+  return diff;
 }
 
 /* Worker function for TARGET_RETURN_IN_MEMORY.  */
@@ -1681,95 +1675,96 @@ mn10300_function_value_regno_p (const unsigned int regno)
  return (regno == FIRST_DATA_REGNUM || regno == FIRST_ADDRESS_REGNUM);
 }
 
-/* Output a compare insn.  */
+/* Output an addition operation.  */
 
 const char *
-mn10300_output_cmp (rtx operand, rtx insn)
+mn10300_output_add (rtx operands[3], bool need_flags)
 {
-  rtx temp;
-  int past_call = 0;
+  rtx dest, src1, src2;
+  unsigned int dest_regnum, src1_regnum, src2_regnum;
+  enum reg_class src1_class, src2_class, dest_class;
 
-  /* We can save a byte if we can find a register which has the value
-     zero in it.  */
-  temp = PREV_INSN (insn);
-  while (optimize && temp)
+  dest = operands[0];
+  src1 = operands[1];
+  src2 = operands[2];
+
+  dest_regnum = true_regnum (dest);
+  src1_regnum = true_regnum (src1);
+
+  dest_class = REGNO_REG_CLASS (dest_regnum);
+  src1_class = REGNO_REG_CLASS (src1_regnum);
+
+  if (GET_CODE (src2) == CONST_INT)
     {
-      rtx set;
+      gcc_assert (dest_regnum == src1_regnum);
 
-      /* We allow the search to go through call insns.  We record
-	 the fact that we've past a CALL_INSN and reject matches which
-	 use call clobbered registers.  */
-      if (LABEL_P (temp)
-	  || JUMP_P (temp)
-	  || GET_CODE (temp) == BARRIER)
-	break;
+      if (src2 == const1_rtx && !need_flags)
+	return "inc %0";
+      if (INTVAL (src2) == 4 && !need_flags && dest_class != DATA_REGS)
+        return "inc4 %0";
 
-      if (CALL_P (temp))
-	past_call = 1;
-
-      if (GET_CODE (temp) == NOTE)
-	{
-	  temp = PREV_INSN (temp);
-	  continue;
-	}
-
-      /* It must be an insn, see if it is a simple set.  */
-      set = single_set (temp);
-      if (!set)
-	{
-	  temp = PREV_INSN (temp);
-	  continue;
-	}
-
-      /* Are we setting a data register to zero (this does not win for
-	 address registers)?
-
-	 If it's a call clobbered register, have we past a call?
-
-	 Make sure the register we find isn't the same as ourself;
-	 the mn10300 can't encode that.
-
-	 ??? reg_set_between_p return nonzero anytime we pass a CALL_INSN
-	 so the code to detect calls here isn't doing anything useful.  */
-      if (REG_P (SET_DEST (set))
-	  && SET_SRC (set) == CONST0_RTX (GET_MODE (SET_DEST (set)))
-	  && !reg_set_between_p (SET_DEST (set), temp, insn)
-	  && (REGNO_REG_CLASS (REGNO (SET_DEST (set)))
-	      == REGNO_REG_CLASS (REGNO (operand)))
-	  && REGNO_REG_CLASS (REGNO (SET_DEST (set))) != EXTENDED_REGS
-	  && REGNO (SET_DEST (set)) != REGNO (operand)
-	  && (!past_call
-	      || ! call_really_used_regs [REGNO (SET_DEST (set))]))
-	{
-	  rtx xoperands[2];
-	  xoperands[0] = operand;
-	  xoperands[1] = SET_DEST (set);
-
-	  output_asm_insn ("cmp %1,%0", xoperands);
-	  return "";
-	}
-
-      if (REGNO_REG_CLASS (REGNO (operand)) == EXTENDED_REGS
-	  && REG_P (SET_DEST (set))
-	  && SET_SRC (set) == CONST0_RTX (GET_MODE (SET_DEST (set)))
-	  && !reg_set_between_p (SET_DEST (set), temp, insn)
-	  && (REGNO_REG_CLASS (REGNO (SET_DEST (set)))
-	      != REGNO_REG_CLASS (REGNO (operand)))
-	  && REGNO_REG_CLASS (REGNO (SET_DEST (set))) == EXTENDED_REGS
-	  && REGNO (SET_DEST (set)) != REGNO (operand)
-	  && (!past_call
-	      || ! call_really_used_regs [REGNO (SET_DEST (set))]))
-	{
-	  rtx xoperands[2];
-	  xoperands[0] = operand;
-	  xoperands[1] = SET_DEST (set);
-
-	  output_asm_insn ("cmp %1,%0", xoperands);
-	  return "";
-	}
-      temp = PREV_INSN (temp);
+      gcc_assert (!need_flags || dest_class != SP_REGS);
+      return "add %2,%0";
     }
-  return "cmp 0,%0";
+  else if (CONSTANT_P (src2))
+    return "add %2,%0";
+
+  src2_regnum = true_regnum (src2);
+  src2_class = REGNO_REG_CLASS (src2_regnum);
+      
+  if (dest_regnum == src1_regnum)
+    return "add %2,%0";
+  if (dest_regnum == src2_regnum)
+    return "add %1,%0";
+
+  /* The rest of the cases are reg = reg+reg.  For AM33, we can implement
+     this directly, as below, but when optimizing for space we can sometimes
+     do better by using a mov+add.  For MN103, we claimed that we could
+     implement a three-operand add because the various move and add insns
+     change sizes across register classes, and we can often do better than
+     reload in choosing which operand to move.  */
+  if (TARGET_AM33 && optimize_insn_for_speed_p ())
+    return "add %2,%1,%0";
+
+  /* Catch cases where no extended register was used.  */
+  if (src1_class != EXTENDED_REGS
+      && src2_class != EXTENDED_REGS
+      && dest_class != EXTENDED_REGS)
+    {
+      /* We have to copy one of the sources into the destination, then
+         add the other source to the destination.
+
+         Carefully select which source to copy to the destination; a
+         naive implementation will waste a byte when the source classes
+         are different and the destination is an address register.
+         Selecting the lowest cost register copy will optimize this
+         sequence.  */
+      if (src1_class == dest_class)
+        return "mov %1,%0\n\tadd %2,%0";
+      else
+	return "mov %2,%0\n\tadd %1,%0";
+    }
+
+  /* At least one register is an extended register.  */
+
+  /* The three operand add instruction on the am33 is a win iff the
+     output register is an extended register, or if both source
+     registers are extended registers.  */
+  if (dest_class == EXTENDED_REGS || src1_class == src2_class)
+    return "add %2,%1,%0";
+
+  /* It is better to copy one of the sources to the destination, then
+     perform a 2 address add.  The destination in this case must be
+     an address or data register and one of the sources must be an
+     extended register and the remaining source must not be an extended
+     register.
+
+     The best code for this case is to copy the extended reg to the
+     destination, then emit a two address add.  */
+  if (src1_class == EXTENDED_REGS)
+    return "mov %1,%0\n\tadd %2,%0";
+  else
+    return "mov %2,%0\n\tadd %1,%0";
 }
 
 /* Return 1 if X contains a symbolic expression.  We know these
@@ -1943,51 +1938,101 @@ mn10300_legitimate_pic_operand_p (rtx x)
 static bool
 mn10300_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
-  if (CONSTANT_ADDRESS_P (x)
-      && (! flag_pic || mn10300_legitimate_pic_operand_p (x)))
-    return TRUE;
+  rtx base, index;
+
+  if (CONSTANT_ADDRESS_P (x))
+    return !flag_pic || mn10300_legitimate_pic_operand_p (x);
 
   if (RTX_OK_FOR_BASE_P (x, strict))
-    return TRUE;
+    return true;
 
-  if (TARGET_AM33
-      && GET_CODE (x) == POST_INC
-      && RTX_OK_FOR_BASE_P (XEXP (x, 0), strict)
-      && (mode == SImode || mode == SFmode || mode == HImode))
-    return TRUE;
-
-  if (GET_CODE (x) == PLUS)
+  if (TARGET_AM33 && (mode == SImode || mode == SFmode || mode == HImode))
     {
-      rtx base = 0, index = 0;
-
-      if (REG_P (XEXP (x, 0))
-	  && REGNO_STRICT_OK_FOR_BASE_P (REGNO (XEXP (x, 0)), strict))
-	{
-	  base = XEXP (x, 0);
-	  index = XEXP (x, 1);
-	}
-
-      if (REG_P (XEXP (x, 1))
-	  && REGNO_STRICT_OK_FOR_BASE_P (REGNO (XEXP (x, 1)), strict))
-	{
-	  base = XEXP (x, 1);
-	  index = XEXP (x, 0);
-	}
-
-      if (base != 0 && index != 0)
-	{
-	  if (CONST_INT_P (index))
-	    return TRUE;
-	  if (GET_CODE (index) == CONST
-	      && GET_CODE (XEXP (index, 0)) != PLUS
-	      && (! flag_pic
- 		  || (mn10300_legitimate_pic_operand_p (index)
-		      && GET_MODE_SIZE (mode) == 4)))
-	    return TRUE;
-	}
+      if (GET_CODE (x) == POST_INC)
+	return RTX_OK_FOR_BASE_P (XEXP (x, 0), strict);
+      if (GET_CODE (x) == POST_MODIFY)
+	return (RTX_OK_FOR_BASE_P (XEXP (x, 0), strict)
+		&& CONSTANT_ADDRESS_P (XEXP (x, 1)));
     }
 
-  return FALSE;
+  if (GET_CODE (x) != PLUS)
+    return false;
+
+  base = XEXP (x, 0);
+  index = XEXP (x, 1);
+
+  if (!REG_P (base))
+    return false;
+  if (REG_P (index))
+    {
+      /* ??? Without AM33 generalized (Ri,Rn) addressing, reg+reg
+	 addressing is hard to satisfy.  */
+      if (!TARGET_AM33)
+	return false;
+
+      return (REGNO_GENERAL_P (REGNO (base), strict)
+	      && REGNO_GENERAL_P (REGNO (index), strict));
+    }
+
+  if (!REGNO_STRICT_OK_FOR_BASE_P (REGNO (base), strict))
+    return false;
+
+  if (CONST_INT_P (index))
+    return IN_RANGE (INTVAL (index), -1 - 0x7fffffff, 0x7fffffff);
+
+  if (CONSTANT_ADDRESS_P (index))
+    return !flag_pic || mn10300_legitimate_pic_operand_p (index);
+
+  return false;
+}
+
+bool
+mn10300_regno_in_class_p (unsigned regno, int rclass, bool strict)
+{
+  if (regno >= FIRST_PSEUDO_REGISTER)
+    {
+      if (!strict)
+	return true;
+      if (!reg_renumber)
+	return false;
+      regno = reg_renumber[regno];
+      if (regno == INVALID_REGNUM)
+	return false;
+    }
+  return TEST_HARD_REG_BIT (reg_class_contents[rclass], regno);
+}
+
+rtx
+mn10300_legitimize_reload_address (rtx x,
+				   enum machine_mode mode ATTRIBUTE_UNUSED,
+				   int opnum, int type,
+				   int ind_levels ATTRIBUTE_UNUSED)
+{
+  bool any_change = false;
+
+  /* See above re disabling reg+reg addressing for MN103.  */
+  if (!TARGET_AM33)
+    return NULL_RTX;
+
+  if (GET_CODE (x) != PLUS)
+    return NULL_RTX;
+
+  if (XEXP (x, 0) == stack_pointer_rtx)
+    {
+      push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
+		   GENERAL_REGS, GET_MODE (x), VOIDmode, 0, 0,
+		   opnum, (enum reload_type) type);
+      any_change = true;
+    }
+  if (XEXP (x, 1) == stack_pointer_rtx)
+    {
+      push_reload (XEXP (x, 1), NULL_RTX, &XEXP (x, 1), NULL,
+		   GENERAL_REGS, GET_MODE (x), VOIDmode, 0, 0,
+		   opnum, (enum reload_type) type);
+      any_change = true;
+    }
+
+  return any_change ? x : NULL_RTX;
 }
 
 /* Used by LEGITIMATE_CONSTANT_P().  Returns TRUE if X is a valid
@@ -2015,7 +2060,6 @@ mn10300_legitimate_constant_p (rtx x)
 	{
 	  switch (XINT (x, 1))
 	    {
-	    case UNSPEC_INT_LABEL:
 	    case UNSPEC_PIC:
 	    case UNSPEC_GOT:
 	    case UNSPEC_GOTOFF:
@@ -2186,6 +2230,8 @@ mn10300_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
   test = from;
   if (to == SP_REGS)
     scratch = (TARGET_AM33 ? GENERAL_REGS : ADDRESS_REGS);
+  else if (to == MDR_REGS)
+    scratch = DATA_REGS;
   else if (to == FP_REGS && to != from)
     scratch = GENERAL_REGS;
   else
@@ -2193,6 +2239,8 @@ mn10300_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
       test = to;
       if (from == SP_REGS)
 	scratch = (TARGET_AM33 ? GENERAL_REGS : ADDRESS_REGS);
+      else if (from == MDR_REGS)
+	scratch = DATA_REGS;
       else if (from == FP_REGS && to != from)
 	scratch = GENERAL_REGS;
     }
@@ -2594,10 +2642,80 @@ mn10300_modes_tieable (enum machine_mode mode1, enum machine_mode mode2)
   return false;
 }
 
-enum machine_mode
-mn10300_select_cc_mode (rtx x)
+static int
+cc_flags_for_mode (enum machine_mode mode)
 {
-  return (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT) ? CC_FLOATmode : CCmode;
+  switch (mode)
+    {
+    case CCmode:
+      return CC_FLAG_Z | CC_FLAG_N | CC_FLAG_C | CC_FLAG_V;
+    case CCZNCmode:
+      return CC_FLAG_Z | CC_FLAG_N | CC_FLAG_C;
+    case CCZNmode:
+      return CC_FLAG_Z | CC_FLAG_N;
+    case CC_FLOATmode:
+      return -1;
+    default:
+      gcc_unreachable ();
+    }
+}
+
+static int
+cc_flags_for_code (enum rtx_code code)
+{
+  switch (code)
+    {
+    case EQ:	/* Z */
+    case NE:	/* ~Z */
+      return CC_FLAG_Z;
+
+    case LT:	/* N */
+    case GE:	/* ~N */
+      return CC_FLAG_N;
+      break;
+
+    case GT:    /* ~(Z|(N^V)) */
+    case LE:    /* Z|(N^V) */
+      return CC_FLAG_Z | CC_FLAG_N | CC_FLAG_V;
+
+    case GEU:	/* ~C */
+    case LTU:	/* C */
+      return CC_FLAG_C;
+
+    case GTU:	/* ~(C | Z) */
+    case LEU:	/* C | Z */
+      return CC_FLAG_Z | CC_FLAG_C;
+
+    case ORDERED:
+    case UNORDERED:
+    case LTGT:
+    case UNEQ:
+    case UNGE:
+    case UNGT:
+    case UNLE:
+    case UNLT:
+      return -1;
+
+    default:
+      gcc_unreachable ();
+    }
+}
+
+enum machine_mode
+mn10300_select_cc_mode (enum rtx_code code, rtx x, rtx y ATTRIBUTE_UNUSED)
+{
+  int req;
+
+  if (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT)
+    return CC_FLOATmode;
+
+  req = cc_flags_for_code (code);
+
+  if (req & CC_FLAG_V)
+    return CCmode;
+  if (req & CC_FLAG_C)
+    return CCZNCmode;
+  return CCZNmode;
 }
 
 static inline bool
@@ -2731,6 +2849,82 @@ mn10300_md_asm_clobbers (tree outputs ATTRIBUTE_UNUSED,
   return clobbers;
 }
 
+/* A helper function for splitting cbranch patterns after reload.  */
+
+void
+mn10300_split_cbranch (enum machine_mode cmp_mode, rtx cmp_op, rtx label_ref)
+{
+  rtx flags, x;
+
+  flags = gen_rtx_REG (cmp_mode, CC_REG);
+  x = gen_rtx_COMPARE (cmp_mode, XEXP (cmp_op, 0), XEXP (cmp_op, 1));
+  x = gen_rtx_SET (VOIDmode, flags, x);
+  emit_insn (x);
+
+  x = gen_rtx_fmt_ee (GET_CODE (cmp_op), VOIDmode, flags, const0_rtx);
+  x = gen_rtx_IF_THEN_ELSE (VOIDmode, x, label_ref, pc_rtx);
+  x = gen_rtx_SET (VOIDmode, pc_rtx, x);
+  emit_jump_insn (x);
+}
+
+/* A helper function for matching parallels that set the flags.  */
+
+bool
+mn10300_match_ccmode (rtx insn, enum machine_mode cc_mode)
+{
+  rtx op1, flags;
+  enum machine_mode flags_mode;
+
+  gcc_checking_assert (XVECLEN (PATTERN (insn), 0) == 2);
+
+  op1 = XVECEXP (PATTERN (insn), 0, 1);
+  gcc_checking_assert (GET_CODE (SET_SRC (op1)) == COMPARE);
+
+  flags = SET_DEST (op1);
+  flags_mode = GET_MODE (flags);
+
+  if (GET_MODE (SET_SRC (op1)) != flags_mode)
+    return false;
+  if (GET_MODE_CLASS (flags_mode) != MODE_CC)
+    return false;
+
+  /* Ensure that the mode of FLAGS is compatible with CC_MODE.  */
+  if (cc_flags_for_mode (flags_mode) & ~cc_flags_for_mode (cc_mode))
+    return false;
+
+  return true;
+}
+
+int
+mn10300_split_and_operand_count (rtx op)
+{
+  HOST_WIDE_INT val = INTVAL (op);
+  int count;
+
+  if (val < 0)
+    {
+      /* High bit is set, look for bits clear at the bottom.  */
+      count = exact_log2 (-val);
+      if (count < 0)
+	return 0;
+      /* This is only size win if we can use the asl2 insn.  Otherwise we
+	 would be replacing 1 6-byte insn with 2 3-byte insns.  */
+      if (count > (optimize_insn_for_speed_p () ? 2 : 4))
+	return 0;
+      return -count;
+    }
+  else
+    {
+      /* High bit is clear, look for bits set at the bottom.  */
+      count = exact_log2 (val + 1);
+      count = 32 - count;
+      /* Again, this is only a size win with asl2.  */
+      if (count > (optimize_insn_for_speed_p () ? 2 : 4))
+	return 0;
+      return -count;
+    }
+}
+
 /* Initialize the GCC target structure.  */
 
 #undef  TARGET_EXCEPT_UNWIND_INFO
@@ -2802,7 +2996,10 @@ mn10300_md_asm_clobbers (tree outputs ATTRIBUTE_UNUSED,
 #undef  TARGET_PREFERRED_RELOAD_CLASS
 #define TARGET_PREFERRED_RELOAD_CLASS mn10300_preferred_reload_class
 #undef  TARGET_PREFERRED_OUTPUT_RELOAD_CLASS
-#define TARGET_PREFERRED_OUTPUT_RELOAD_CLASS mn10300_preferred_output_reload_class
+#define TARGET_PREFERRED_OUTPUT_RELOAD_CLASS \
+  mn10300_preferred_output_reload_class
+#undef  TARGET_SECONDARY_RELOAD
+#define TARGET_SECONDARY_RELOAD  mn10300_secondary_reload
 
 #undef  TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT mn10300_trampoline_init
@@ -2825,5 +3022,8 @@ mn10300_md_asm_clobbers (tree outputs ATTRIBUTE_UNUSED,
 
 #undef TARGET_MD_ASM_CLOBBERS
 #define TARGET_MD_ASM_CLOBBERS  mn10300_md_asm_clobbers
+
+#undef  TARGET_FLAGS_REGNUM
+#define TARGET_FLAGS_REGNUM  CC_REG
 
 struct gcc_target targetm = TARGET_INITIALIZER;

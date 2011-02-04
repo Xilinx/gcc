@@ -94,6 +94,13 @@ remove_current_thread (void)
 
   runtime_MCache_ReleaseAll (mcache);
 
+  /* As soon as we release this look, a GC could run.  Since this
+     thread is no longer on the list, the GC will not find our M
+     structure, so it could get freed at any time.  That means that
+     any code from here to thread exit must not assume that the m is
+     valid.  */
+  m = NULL;
+
   i = pthread_mutex_unlock (&__go_thread_ids_lock);
   __go_assert (i == 0);
 
@@ -296,6 +303,15 @@ static void
 gc_stop_handler (int sig __attribute__ ((unused)))
 {
   struct M *pm = m;
+
+  if (__sync_bool_compare_and_swap (&pm->holds_finlock, 1, 1))
+    {
+      /* We can't interrupt the thread while it holds the finalizer
+	 lock.  Otherwise we can get into a deadlock when mark calls
+	 runtime_walkfintab.  */
+      __sync_bool_compare_and_swap (&pm->gcing_for_finlock, 0, 1);
+      return;
+    }
 
   if (__sync_bool_compare_and_swap (&pm->mallocing, 1, 1))
     {

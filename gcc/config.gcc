@@ -695,30 +695,34 @@ case ${target} in
 	;;
 alpha*-*-linux*)
 	tm_file="${tm_file} alpha/elf.h alpha/linux.h alpha/linux-elf.h glibc-stdint.h"
+	extra_options="${extra_options} alpha/elf.opt"
 	target_cpu_default="MASK_GAS"
 	tmake_file="${tmake_file} alpha/t-crtfm alpha/t-alpha alpha/t-ieee alpha/t-linux"
 	;;
 alpha*-*-gnu*)
 	tm_file="$tm_file alpha/elf.h alpha/linux.h alpha/linux-elf.h gnu.h glibc-stdint.h alpha/gnu.h"
+	extra_options="${extra_options} alpha/elf.opt"
 	target_cpu_default="MASK_GAS"
 	tmake_file="${tmake_file} alpha/t-crtfm alpha/t-alpha alpha/t-ieee"
 	;;
 alpha*-*-freebsd*)
 	tm_file="${tm_file} ${fbsd_tm_file} alpha/elf.h alpha/freebsd.h"
+	extra_options="${extra_options} alpha/elf.opt"
 	target_cpu_default="MASK_GAS"
 	tmake_file="${tmake_file} alpha/t-crtfm alpha/t-alpha alpha/t-ieee"
 	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtbeginT.o"
 	;;
 alpha*-*-netbsd*)
 	tm_file="${tm_file} netbsd.h alpha/elf.h netbsd-elf.h alpha/netbsd.h"
-	extra_options="${extra_options} netbsd.opt netbsd-elf.opt"
+	extra_options="${extra_options} netbsd.opt netbsd-elf.opt \
+		       alpha/elf.opt"
 	target_cpu_default="MASK_GAS"
 	tmake_file="${tmake_file} alpha/t-alpha alpha/t-ieee"
 	;;
 alpha*-*-openbsd*)
 	tm_defines="${tm_defines} OBSD_HAS_DECLARE_FUNCTION_NAME OBSD_HAS_DECLARE_FUNCTION_SIZE OBSD_HAS_DECLARE_OBJECT"
 	tm_file="alpha/alpha.h alpha/elf.h openbsd.h openbsd-stdint.h alpha/openbsd.h openbsd-libpthread.h"
-	extra_options="${extra_options} openbsd.opt"
+	extra_options="${extra_options} openbsd.opt alpha/elf.opt"
 	# default x-alpha is only appropriate for dec-osf.
 	target_cpu_default="MASK_GAS"
 	tmake_file="${tmake_file} alpha/t-alpha alpha/t-ieee"
@@ -736,7 +740,7 @@ alpha*-dec-osf5.1*)
 	tmake_file="alpha/t-alpha alpha/t-ieee alpha/t-crtfm alpha/t-osf5"
 	tm_file="${tm_file} alpha/osf5.h"
 	tm_defines="${tm_defines} TARGET_SUPPORT_ARCH=1"
-	extra_options="${extra_options} rpath.opt"
+	extra_options="${extra_options} rpath.opt alpha/osf5.opt"
 	extra_headers=va_list.h
 	use_gcc_stdint=provide
 	case ${enable_threads} in
@@ -770,6 +774,7 @@ arc-*-elf*)
 	;;
 arm-wrs-vxworks)
 	tm_file="elfos.h arm/elf.h arm/aout.h ${tm_file} vx-common.h vxworks.h arm/vxworks.h"
+	extra_options="${extra_options} arm/vxworks.opt"
 	tmake_file="${tmake_file} arm/t-arm arm/t-vxworks"
 	;;
 arm*-*-freebsd*)
@@ -1091,7 +1096,7 @@ hppa*64*-*-hpux11*)
 		;;
 	esac
 	extra_options="${extra_options} pa/pa-hpux.opt \
-		       pa/pa-hpux1010.opt pa/pa64-hpux.opt"
+		       pa/pa-hpux1010.opt pa/pa64-hpux.opt hpux11.opt"
 	need_64bit_hwint=yes
 	tmake_file="pa/t-pa64 pa/t-pa-hpux pa/t-hpux-shlib"
 	# Set the libgcc version number
@@ -1127,7 +1132,8 @@ hppa[12]*-*-hpux11*)
 	esac
 	tm_file="${tm_file} pa/pa32-regs.h dbxelf.h pa/som.h \
 		 pa/pa-hpux.h pa/pa-hpux1010.h pa/pa-hpux11.h"
-	extra_options="${extra_options} pa/pa-hpux.opt pa/pa-hpux1010.opt"
+	extra_options="${extra_options} pa/pa-hpux.opt pa/pa-hpux1010.opt \
+		       hpux11.opt"
 	case ${target} in
 	*-*-hpux11.[1-9]*)
 		tm_file="${tm_file} pa/pa-hpux1111.h"
@@ -1295,6 +1301,7 @@ i[3456x]86-*-netware*)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h tm-dwarf2.h i386/netware.h"
  	tmake_file="${tmake_file} i386/t-netware"
 	extra_objs=netware.o
+	extra_options="${extra_options} i386/netware.opt"
 	case /${with_ld} in
 	*/nwld)
 		extra_objs="$extra_objs nwld.o"
@@ -1312,6 +1319,7 @@ i[3456x]86-*-netware*)
 	;;
 i[34567]86-*-nto-qnx*)
 	tm_file="${tm_file} i386/att.h dbxelf.h tm-dwarf2.h elfos.h i386/unix.h i386/nto.h"
+	extra_options="${extra_options} i386/nto.opt"
 	tmake_file="${tmake_file} i386/t-nto"
 	gnu_ld=yes
 	gas=yes
@@ -1424,7 +1432,13 @@ i[34567]86-*-pe | i[34567]86-*-cygwin*)
 	else
 		tmake_eh_file="i386/t-sjlj-eh"
 	fi
-	tmake_file="${tmake_file} ${tmake_eh_file} i386/t-cygming i386/t-cygwin"
+	# Shared libgcc DLL install dir depends on cross/native build.
+	if test x${host} = x${target} ; then
+		tmake_dlldir_file="i386/t-dlldir"
+	else
+		tmake_dlldir_file="i386/t-dlldir-x"
+	fi
+	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_dlldir_file} i386/t-cygming i386/t-cygwin t-dfprules"
 	target_gtfiles="\$(srcdir)/config/i386/winnt.c"
 	extra_options="${extra_options} i386/cygming.opt"
 	extra_objs="winnt.o winnt-stubs.o"
@@ -1480,7 +1494,13 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 	else
 		tmake_eh_file="i386/t-sjlj-eh"
 	fi
-	tmake_file="${tmake_file} ${tmake_eh_file} i386/t-cygming t-dfprules"
+	# Shared libgcc DLL install dir depends on cross/native build.
+	if test x${host} = x${target} ; then
+		tmake_dlldir_file="i386/t-dlldir"
+	else
+		tmake_dlldir_file="i386/t-dlldir-x"
+	fi
+	tmake_file="${tmake_file} ${tmake_eh_file} ${tmake_dlldir_file} i386/t-cygming t-dfprules"
         case ${target} in
                x86_64-w64-*)
                		tmake_file="${tmake_file} i386/t-mingw-w64"
@@ -1580,7 +1600,7 @@ ia64*-*-hpux*)
 	use_collect2=no
 	c_target_objs="ia64-c.o"
 	cxx_target_objs="ia64-c.o"
-	extra_options="${extra_options} ia64/ilp32.opt"
+	extra_options="${extra_options} ia64/ilp32.opt hpux11.opt"
 	use_gcc_stdint=wrap
 	tm_file="${tm_file} hpux-stdint.h"
 	;;

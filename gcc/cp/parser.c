@@ -8760,15 +8760,6 @@ cp_parser_range_for (cp_parser *parser, tree scope, tree init, tree range_decl)
 {
   tree stmt, range_expr;
 
-  /* If the variable from a range-for is not actually used, GCC would issue
-     "unused variable" warnings, and the user could do little to prevent them.
-     So we always mark it as used.  */
-  if (range_decl != error_mark_node)
-    {
-      TREE_USED (range_decl) = 1;
-      DECL_READ_P (range_decl) = 1;
-    }
-
   if (cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE))
     {
       bool expr_non_constant_p;
@@ -19928,8 +19919,11 @@ cp_parser_template_declaration_after_export (cp_parser* parser, bool member_p)
       parameter_list = NULL_TREE;
     }
   else
-    /* Parse the template parameters.  */
-    parameter_list = cp_parser_template_parameter_list (parser);
+    {
+      /* Parse the template parameters.  */
+      parameter_list = cp_parser_template_parameter_list (parser);
+      fixup_template_parms ();
+    }
 
   /* Get the deferred access checks from the parameter list.  These
      will be checked once we know what is being declared, as for a

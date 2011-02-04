@@ -56,6 +56,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "dwarf2out.h"
 #include "sched-int.h"
+#include "sbitmap.h"
+#include "fibheap.h"
 
 enum upper_128bits_state
 {
@@ -73,6 +75,10 @@ typedef struct block_info_def
   bool unchanged;
   /* TRUE if block has been processed.  */
   bool processed;
+  /* TRUE if block has been scanned.  */
+  bool scanned;
+  /* Previous state of the upper 128bits of AVX registers at entry.  */
+  enum upper_128bits_state prev;
 } *block_info;
 
 #define BLOCK_INFO(B)   ((block_info) (B)->aux)
@@ -134,6 +140,16 @@ move_or_delete_vzeroupper_2 (basic_block bb,
       BLOCK_INFO (bb)->state = state;
       return;
     }
+
+  if (BLOCK_INFO (bb)->scanned && BLOCK_INFO (bb)->prev == state)
+    {
+      if (dump_file)
+	fprintf (dump_file, " [bb %i] scanned: upper 128bits: %d\n",
+		 bb->index, BLOCK_INFO (bb)->state);
+      return;
+    }
+
+  BLOCK_INFO (bb)->prev = state;
 
   if (dump_file)
     fprintf (dump_file, " [bb %i] entry: upper 128bits: %d\n",
@@ -264,6 +280,7 @@ move_or_delete_vzeroupper_2 (basic_block bb,
 
   BLOCK_INFO (bb)->state = state;
   BLOCK_INFO (bb)->unchanged = unchanged;
+  BLOCK_INFO (bb)->scanned = true;
 
   if (dump_file)
     fprintf (dump_file, " [bb %i] exit: %s: upper 128bits: %d\n",
@@ -273,9 +290,10 @@ move_or_delete_vzeroupper_2 (basic_block bb,
 
 /* Helper function for move_or_delete_vzeroupper.  Process vzeroupper
    in BLOCK and check its predecessor blocks.  Treat UNKNOWN state
-   as USED if UNKNOWN_IS_UNUSED is true.  */
+   as USED if UNKNOWN_IS_UNUSED is true.  Return TRUE if the exit
+   state is changed.  */
 
-static void
+static bool
 move_or_delete_vzeroupper_1 (basic_block block, bool unknown_is_unused)
 {
   edge e;
@@ -288,7 +306,7 @@ move_or_delete_vzeroupper_1 (basic_block block, bool unknown_is_unused)
 	     block->index, BLOCK_INFO (block)->processed);
 
   if (BLOCK_INFO (block)->processed)
-    return;
+    return false;
 
   state = unused;
 
@@ -324,8 +342,14 @@ done:
 
   /* Need to rescan if the upper 128bits of AVX registers are changed
      to USED at exit.  */
-  if (new_state != old_state && new_state == used)
-    cfun->machine->rescan_vzeroupper_p = 1;
+  if (new_state != old_state)
+    {
+      if (new_state == used)
+	cfun->machine->rescan_vzeroupper_p = 1;
+      return true;
+    }
+  else
+    return false;
 }
 
 /* Go through the instruction stream looking for vzeroupper.  Delete
@@ -338,14 +362,18 @@ move_or_delete_vzeroupper (void)
   edge e;
   edge_iterator ei;
   basic_block bb;
-  unsigned int count;
+  fibheap_t worklist, pending, fibheap_swap;
+  sbitmap visited, in_worklist, in_pending, sbitmap_swap;
+  int *bb_order;
+  int *rc_order;
+  int i;
 
   /* Set up block info for each basic block.  */
   alloc_aux_for_blocks (sizeof (struct block_info_def));
 
-  /* Process successor blocks of all entry points.  */
+  /* Process outgoing edges of entry point.  */
   if (dump_file)
-    fprintf (dump_file, "Process all entry points\n");
+    fprintf (dump_file, "Process outgoing edges of entry point\n");
 
   FOR_EACH_EDGE (e, ei, ENTRY_BLOCK_PTR->succs)
     {
@@ -355,25 +383,102 @@ move_or_delete_vzeroupper (void)
       BLOCK_INFO (e->dest)->processed = true;
     }
 
-  /* Process all basic blocks.  */
-  count = 0;
-  do
-    {
-      if (dump_file)
-	fprintf (dump_file, "Process all basic blocks: trip %d\n",
-		 count);
-      cfun->machine->rescan_vzeroupper_p = 0;
-      FOR_EACH_BB (bb)
-	move_or_delete_vzeroupper_1 (bb, false);
-    }
-  while (cfun->machine->rescan_vzeroupper_p && count++ < 20);
+  /* Compute reverse completion order of depth first search of the CFG
+     so that the data-flow runs faster.  */
+  rc_order = XNEWVEC (int, n_basic_blocks - NUM_FIXED_BLOCKS);
+  bb_order = XNEWVEC (int, last_basic_block);
+  pre_and_rev_post_order_compute (NULL, rc_order, false);
+  for (i = 0; i < n_basic_blocks - NUM_FIXED_BLOCKS; i++)
+    bb_order[rc_order[i]] = i;
+  free (rc_order);
 
-  /* FIXME: Is 20 big enough?  */
-  if (count >= 20)
-    gcc_unreachable ();
+  worklist = fibheap_new ();
+  pending = fibheap_new ();
+  visited = sbitmap_alloc (last_basic_block);
+  in_worklist = sbitmap_alloc (last_basic_block);
+  in_pending = sbitmap_alloc (last_basic_block);
+  sbitmap_zero (in_worklist);
+
+  /* Don't check outgoing edges of entry point.  */
+  sbitmap_ones (in_pending);
+  FOR_EACH_BB (bb)
+    if (BLOCK_INFO (bb)->processed)
+      RESET_BIT (in_pending, bb->index);
+    else
+      {
+	move_or_delete_vzeroupper_1 (bb, false);
+	fibheap_insert (pending, bb_order[bb->index], bb);
+      }
 
   if (dump_file)
-    fprintf (dump_file, "Process all basic blocks\n");
+    fprintf (dump_file, "Check remaining basic blocks\n");
+
+  while (!fibheap_empty (pending))
+    {
+      fibheap_swap = pending;
+      pending = worklist;
+      worklist = fibheap_swap;
+      sbitmap_swap = in_pending;
+      in_pending = in_worklist;
+      in_worklist = sbitmap_swap;
+
+      sbitmap_zero (visited);
+
+      cfun->machine->rescan_vzeroupper_p = 0;
+
+      while (!fibheap_empty (worklist))
+	{
+	  bb = (basic_block) fibheap_extract_min (worklist);
+	  RESET_BIT (in_worklist, bb->index);
+	  gcc_assert (!TEST_BIT (visited, bb->index));
+	  if (!TEST_BIT (visited, bb->index))
+	    {
+	      edge_iterator ei;
+
+	      SET_BIT (visited, bb->index);
+
+	      if (move_or_delete_vzeroupper_1 (bb, false))
+		FOR_EACH_EDGE (e, ei, bb->succs)
+		  {
+		    if (e->dest == EXIT_BLOCK_PTR
+			|| BLOCK_INFO (e->dest)->processed)
+		      continue;
+
+		    if (TEST_BIT (visited, e->dest->index))
+		      {
+			if (!TEST_BIT (in_pending, e->dest->index))
+			  {
+			    /* Send E->DEST to next round.  */
+			    SET_BIT (in_pending, e->dest->index);
+			    fibheap_insert (pending,
+					    bb_order[e->dest->index],
+					    e->dest);
+			  }
+		      }
+		    else if (!TEST_BIT (in_worklist, e->dest->index))
+		      {
+			/* Add E->DEST to current round.  */
+			SET_BIT (in_worklist, e->dest->index);
+			fibheap_insert (worklist, bb_order[e->dest->index],
+					e->dest);
+		      }
+		  }
+	    }
+	}
+
+      if (!cfun->machine->rescan_vzeroupper_p)
+	break;
+    }
+
+  free (bb_order);
+  fibheap_delete (worklist);
+  fibheap_delete (pending);
+  sbitmap_free (visited);
+  sbitmap_free (in_worklist);
+  sbitmap_free (in_pending);
+
+  if (dump_file)
+    fprintf (dump_file, "Process remaining basic blocks\n");
 
   FOR_EACH_BB (bb)
     move_or_delete_vzeroupper_1 (bb, true);
@@ -5388,7 +5493,7 @@ ix86_function_regparm (const_tree type, const_tree decl)
     {
       /* FIXME: remove this CONST_CAST when cgraph.[ch] is constified.  */
       struct cgraph_local_info *i = cgraph_local_info (CONST_CAST_TREE (decl));
-      if (i && i->local)
+      if (i && i->local && i->can_change_signature)
 	{
 	  int local_regparm, globals = 0, regno;
 
@@ -5465,7 +5570,7 @@ ix86_function_sseregparm (const_tree type, const_tree decl, bool warn)
     {
       /* FIXME: remove this CONST_CAST when cgraph.[ch] is constified.  */
       struct cgraph_local_info *i = cgraph_local_info (CONST_CAST_TREE(decl));
-      if (i && i->local)
+      if (i && i->local && i->can_change_signature)
 	return TARGET_SSE2 ? 2 : 1;
     }
 
@@ -5849,7 +5954,7 @@ init_cumulative_args (CUMULATIVE_ARGS *cum,  /* Argument info to initialize */
      va_start so for local functions maybe_vaarg can be made aggressive
      helping K&R code.
      FIXME: once typesytem is fixed, we won't need this code anymore.  */
-  if (i && i->local)
+  if (i && i->local && i->can_change_signature)
     fntype = TREE_TYPE (fndecl);
   cum->maybe_vaarg = (fntype
 		      ? (!prototype_p (fntype) || stdarg_p (fntype))
@@ -22931,8 +23036,9 @@ ix86_local_alignment (tree exp, enum machine_mode mode,
       && TARGET_SSE)
     {
       if (AGGREGATE_TYPE_P (type)
-	   && (TYPE_MAIN_VARIANT (type)
-	       != TYPE_MAIN_VARIANT (va_list_type_node))
+	   && (va_list_type_node == NULL_TREE
+	       || (TYPE_MAIN_VARIANT (type)
+		   != TYPE_MAIN_VARIANT (va_list_type_node)))
 	   && TYPE_SIZE (type)
 	   && TREE_CODE (TYPE_SIZE (type)) == INTEGER_CST
 	   && (TREE_INT_CST_LOW (TYPE_SIZE (type)) >= 16
@@ -24483,14 +24589,14 @@ static const struct builtin_description bdesc_special_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movntv4df, "__builtin_ia32_movntpd256", IX86_BUILTIN_MOVNTPD256, UNKNOWN, (int) VOID_FTYPE_PDOUBLE_V4DF },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_movntv8sf, "__builtin_ia32_movntps256", IX86_BUILTIN_MOVNTPS256, UNKNOWN, (int) VOID_FTYPE_PFLOAT_V8SF },
 
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskloadpd, "__builtin_ia32_maskloadpd", IX86_BUILTIN_MASKLOADPD, UNKNOWN, (int) V2DF_FTYPE_PCV2DF_V2DF },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskloadps, "__builtin_ia32_maskloadps", IX86_BUILTIN_MASKLOADPS, UNKNOWN, (int) V4SF_FTYPE_PCV4SF_V4SF },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskloadpd256, "__builtin_ia32_maskloadpd256", IX86_BUILTIN_MASKLOADPD256, UNKNOWN, (int) V4DF_FTYPE_PCV4DF_V4DF },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskloadps256, "__builtin_ia32_maskloadps256", IX86_BUILTIN_MASKLOADPS256, UNKNOWN, (int) V8SF_FTYPE_PCV8SF_V8SF },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskstorepd, "__builtin_ia32_maskstorepd", IX86_BUILTIN_MASKSTOREPD, UNKNOWN, (int) VOID_FTYPE_PV2DF_V2DF_V2DF },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskstoreps, "__builtin_ia32_maskstoreps", IX86_BUILTIN_MASKSTOREPS, UNKNOWN, (int) VOID_FTYPE_PV4SF_V4SF_V4SF },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskstorepd256, "__builtin_ia32_maskstorepd256", IX86_BUILTIN_MASKSTOREPD256, UNKNOWN, (int) VOID_FTYPE_PV4DF_V4DF_V4DF },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskstoreps256, "__builtin_ia32_maskstoreps256", IX86_BUILTIN_MASKSTOREPS256, UNKNOWN, (int) VOID_FTYPE_PV8SF_V8SF_V8SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskloadpd, "__builtin_ia32_maskloadpd", IX86_BUILTIN_MASKLOADPD, UNKNOWN, (int) V2DF_FTYPE_PCV2DF_V2DI },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskloadps, "__builtin_ia32_maskloadps", IX86_BUILTIN_MASKLOADPS, UNKNOWN, (int) V4SF_FTYPE_PCV4SF_V4SI },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskloadpd256, "__builtin_ia32_maskloadpd256", IX86_BUILTIN_MASKLOADPD256, UNKNOWN, (int) V4DF_FTYPE_PCV4DF_V4DI },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskloadps256, "__builtin_ia32_maskloadps256", IX86_BUILTIN_MASKLOADPS256, UNKNOWN, (int) V8SF_FTYPE_PCV8SF_V8SI },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskstorepd, "__builtin_ia32_maskstorepd", IX86_BUILTIN_MASKSTOREPD, UNKNOWN, (int) VOID_FTYPE_PV2DF_V2DI_V2DF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskstoreps, "__builtin_ia32_maskstoreps", IX86_BUILTIN_MASKSTOREPS, UNKNOWN, (int) VOID_FTYPE_PV4SF_V4SI_V4SF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskstorepd256, "__builtin_ia32_maskstorepd256", IX86_BUILTIN_MASKSTOREPD256, UNKNOWN, (int) VOID_FTYPE_PV4DF_V4DI_V4DF },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_maskstoreps256, "__builtin_ia32_maskstoreps256", IX86_BUILTIN_MASKSTOREPS256, UNKNOWN, (int) VOID_FTYPE_PV8SF_V8SI_V8SF },
 
   { OPTION_MASK_ISA_LWP, CODE_FOR_lwp_llwpcb, "__builtin_ia32_llwpcb", IX86_BUILTIN_LLWPCB, UNKNOWN, (int) VOID_FTYPE_PVOID },
   { OPTION_MASK_ISA_LWP, CODE_FOR_lwp_slwpcb, "__builtin_ia32_slwpcb", IX86_BUILTIN_SLWPCB, UNKNOWN, (int) PVOID_FTYPE_VOID },
@@ -26821,18 +26927,18 @@ ix86_expand_special_args_builtin (const struct builtin_description *d,
       klass = load;
       memory = 1;
       break;
-    case V8SF_FTYPE_PCV8SF_V8SF:
-    case V4DF_FTYPE_PCV4DF_V4DF:
-    case V4SF_FTYPE_PCV4SF_V4SF:
-    case V2DF_FTYPE_PCV2DF_V2DF:
+    case V8SF_FTYPE_PCV8SF_V8SI:
+    case V4DF_FTYPE_PCV4DF_V4DI:
+    case V4SF_FTYPE_PCV4SF_V4SI:
+    case V2DF_FTYPE_PCV2DF_V2DI:
       nargs = 2;
       klass = load;
       memory = 0;
       break;
-    case VOID_FTYPE_PV8SF_V8SF_V8SF:
-    case VOID_FTYPE_PV4DF_V4DF_V4DF:
-    case VOID_FTYPE_PV4SF_V4SF_V4SF:
-    case VOID_FTYPE_PV2DF_V2DF_V2DF:
+    case VOID_FTYPE_PV8SF_V8SI_V8SF:
+    case VOID_FTYPE_PV4DF_V4DI_V4DF:
+    case VOID_FTYPE_PV4SF_V4SI_V4SF:
+    case VOID_FTYPE_PV2DF_V2DI_V2DF:
       nargs = 2;
       klass = store;
       /* Reserve memory operand for target.  */
@@ -33682,7 +33788,7 @@ ix86_canonical_va_list_type (tree type)
   else if (POINTER_TYPE_P (type) && TREE_CODE (TREE_TYPE (type)) == ARRAY_TYPE)
     type = TREE_TYPE (type);
 
-  if (TARGET_64BIT)
+  if (TARGET_64BIT && va_list_type_node != NULL_TREE)
     {
       wtype = va_list_type_node;
 	  gcc_assert (wtype != NULL_TREE);
