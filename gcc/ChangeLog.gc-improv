@@ -1,3 +1,11 @@
+2011-02-04  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* gengtype.c (struct write_types_data): Remove redundant comment.
+	(struct walk_type_data): Rename field cookie to wtd, adjust type.
+	(write_types_process_field): Remove local variable wtd, use d->wtd.
+	(write_func_for_structure): Adjust walk_type_data usage.
+	(write_array): Likewise.
+
 2011-02-01  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* Makefile.in (build/gengtype.o): Remove rtl.def and

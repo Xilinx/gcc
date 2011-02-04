@@ -1851,7 +1851,7 @@ struct write_types_data
   const char *marker_routine;
   const char *reorder_note_routine;
   const char *comment;
-  bool skip_hooks;		/* skip hook generation if non zero */
+  bool skip_hooks;
 };
 
 static void output_escaped_param (struct walk_type_data *d,
@@ -1889,7 +1889,7 @@ static void write_roots (pair_p, bool);
 struct walk_type_data
 {
   process_field_fn process_field;
-  const void *cookie;
+  const struct write_types_data *wtd;
   outf_p of;
   options_p opt;
   const char *val;
@@ -2430,9 +2430,7 @@ walk_type (type_p t, struct walk_type_data *d)
 static void
 write_types_process_field (type_p f, const struct walk_type_data *d)
 {
-  const struct write_types_data *wtd;
   const char *cast = d->needs_cast_p ? "(void *)" : "";
-  wtd = (const struct write_types_data *) d->cookie;
 
   switch (f->kind)
     {
@@ -2440,17 +2438,18 @@ write_types_process_field (type_p f, const struct walk_type_data *d)
       gcc_unreachable ();
     case TYPE_POINTER:
       oprintf (d->of, "%*s%s (%s%s", d->indent, "",
-	       wtd->subfield_marker_routine, cast, d->val);
-      if (wtd->param_prefix)
+	       d->wtd->subfield_marker_routine, cast, d->val);
+      if (d->wtd->param_prefix)
 	{
 	  oprintf (d->of, ", %s", d->prev_val[3]);
 	  if (d->orig_s)
 	    {
-	      oprintf (d->of, ", gt_%s_", wtd->param_prefix);
+	      oprintf (d->of, ", gt_%s_", d->wtd->param_prefix);
 	      output_mangled_typename (d->of, d->orig_s);
 	    }
 	  else
-	    oprintf (d->of, ", gt_%sa_%s", wtd->param_prefix, d->prev_val[0]);
+	    oprintf (d->of, ", gt_%sa_%s", d->wtd->param_prefix,
+		     d->prev_val[0]);
 
 	  if (f->u.p->kind == TYPE_PARAM_STRUCT
 	      && f->u.p->u.s.line.file != NULL)
@@ -2467,9 +2466,9 @@ write_types_process_field (type_p f, const struct walk_type_data *d)
 	    oprintf (d->of, ", gt_types_enum_last");
 	}
       oprintf (d->of, ");\n");
-      if (d->reorder_fn && wtd->reorder_note_routine)
+      if (d->reorder_fn && d->wtd->reorder_note_routine)
 	oprintf (d->of, "%*s%s (%s%s, %s, %s);\n", d->indent, "",
-		 wtd->reorder_note_routine, cast, d->val,
+		 d->wtd->reorder_note_routine, cast, d->val,
 		 d->prev_val[3], d->reorder_fn);
       break;
 
@@ -2478,12 +2477,12 @@ write_types_process_field (type_p f, const struct walk_type_data *d)
     case TYPE_UNION:
     case TYPE_LANG_STRUCT:
     case TYPE_PARAM_STRUCT:
-      oprintf (d->of, "%*sgt_%s_", d->indent, "", wtd->prefix);
+      oprintf (d->of, "%*sgt_%s_", d->indent, "", d->wtd->prefix);
       output_mangled_typename (d->of, f);
       oprintf (d->of, " (%s%s);\n", cast, d->val);
-      if (d->reorder_fn && wtd->reorder_note_routine)
+      if (d->reorder_fn && d->wtd->reorder_note_routine)
 	oprintf (d->of, "%*s%s (%s%s, %s%s, %s);\n", d->indent, "",
-		 wtd->reorder_note_routine, cast, d->val, cast, d->val,
+		 d->wtd->reorder_note_routine, cast, d->val, cast, d->val,
 		 d->reorder_fn);
       break;
 
@@ -2579,7 +2578,7 @@ write_func_for_structure (type_p orig_s, type_p s, type_p *param,
     chain_next = chain_circular;
 
   d.process_field = write_types_process_field;
-  d.cookie = wtd;
+  d.wtd = wtd;
   d.orig_s = orig_s;
   d.opt = s->u.s.opt;
   d.line = &s->u.s.line;
@@ -3430,7 +3429,7 @@ write_array (outf_p f, pair_p v, const struct write_types_data *wtd)
 
   memset (&d, 0, sizeof (d));
   d.of = f;
-  d.cookie = wtd;
+  d.wtd = wtd;
   d.indent = 2;
   d.line = &v->line;
   d.opt = v->opt;
