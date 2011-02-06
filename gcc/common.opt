@@ -1990,6 +1990,10 @@ ftree-vrp
 Common Report Var(flag_tree_vrp) Init(0) Optimization
 Perform Value Range Propagation on trees
 
+fstrict-enum-precision
+Common Report Var(flag_strict_enum_precision) Init(1) Optimization
+Perform transformations based on enum precision
+
 funit-at-a-time
 Common Report Var(flag_unit_at_a_time) Init(1) Optimization
 Compile whole compilation unit at a time
