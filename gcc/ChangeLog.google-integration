@@ -1,3 +1,8 @@
+2011-02-06  Diego Novillo  <dnovillo@google.com>
+
+	* common.opt (fstrict-enum-precision): New placeholder
+	flag.
+
 2011-02-02  Diego Novillo  <dnovillo@google.com>
 
 	Mainline merge r169512.
