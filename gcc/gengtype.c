@@ -4914,8 +4914,8 @@ main (int argc, char **argv)
       /* In plugin mode, we should have read a state file, and have
 	 given at least one plugin file.  */
       if (!read_state_filename)
-	warning ("No read state given in plugin mode for %s",
-		 plugin_output_filename);
+	fatal ("No read state given in plugin mode for %s",
+	       plugin_output_filename);
 
       if (nb_plugin_files == 0 || !plugin_files)
 	fatal ("No plugin files given in plugin mode for %s",

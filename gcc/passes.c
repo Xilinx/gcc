@@ -1534,6 +1534,13 @@ execute_one_pass (struct opt_pass *pass)
      executed.  */
   invoke_plugin_callbacks (PLUGIN_PASS_EXECUTION, pass);
 
+  /* Check whether gate check should be avoided.
+     User controls the value of the gate through the parameter "gate_status". */
+  gate_status = (pass->gate == NULL) ? true : pass->gate();
+
+  /* Override gate with plugin.  */
+  invoke_plugin_callbacks (PLUGIN_OVERRIDE_GATE, &gate_status);
+
   if (!quiet_flag && !cfun)
     fprintf (stderr, " <%s/%d%c>", pass->name ? pass->name : "", 
 	     pass->static_pass_number,

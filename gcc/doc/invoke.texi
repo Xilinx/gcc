@@ -5035,6 +5035,7 @@ Dump after jump bypassing and control flow optimizations.
 @opindex fdump-rtl-combine
 Dump after the RTL instruction combination pass.
 
+
 @item -fdump-rtl-compgotos
 @opindex fdump-rtl-compgotos
 Dump after duplicating the computed gotos.

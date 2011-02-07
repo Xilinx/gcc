@@ -226,8 +226,6 @@ HOST_EXPORTS = \
 	PPLINC="$(HOST_PPLINC)"; export PPLINC; \
 	CLOOGLIBS="$(HOST_CLOOGLIBS)"; export CLOOGLIBS; \
 	CLOOGINC="$(HOST_CLOOGINC)"; export CLOOGINC; \
-	GDBMLIBS="$(HOST_GDBMLIBS)"; export GDBMLIBS; \
-	GDBMINC="$(HOST_GDBMINC)"; export GDBMINC; \
 	LIBELFLIBS="$(HOST_LIBELFLIBS)" ; export LIBELFLIBS; \
 	LIBELFINC="$(HOST_LIBELFINC)" ; export LIBELFINC; \
 @if gcc-bootstrap
@@ -318,10 +316,6 @@ HOST_PPLINC = @pplinc@
 # Where to find CLOOG
 HOST_CLOOGLIBS = @clooglibs@
 HOST_CLOOGINC = @clooginc@
-
-# Where to find GDBM
-HOST_GDBMLIBS = @gdbmlibs@
-HOST_GDBMINC = @gdbminc@
 
 # Where to find libelf
 HOST_LIBELFLIBS = @libelflibs@
@@ -454,6 +448,7 @@ STAGE1_LANGUAGES = @stage1_languages@
 #   compiler probably has never heard of them.
 STAGE1_CONFIGURE_FLAGS = --disable-intermodule $(STAGE1_CHECKING) \
 	  --disable-coverage --enable-languages="$(STAGE1_LANGUAGES)"
+
 
 STAGEprofile_CFLAGS = $(STAGE2_CFLAGS) -fprofile-generate
 STAGEprofile_TFLAGS = $(STAGE2_TFLAGS)

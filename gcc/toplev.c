@@ -28,22 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include <signal.h>
-
-/* Melt needs the Parma Polyhedral Library & the Libtool dynamic loader */
-#if HAVE_PARMAPOLY 
-#include <ppl_c.h>
-#endif 
-
-
-#ifdef HAVE_SYS_RESOURCE_H
-# include <sys/resource.h>
-#endif
-
-#ifdef HAVE_SYS_TIMES_H
-# include <sys/times.h>
-#endif
-
 #include "line-map.h"
 #include "input.h"
 #include "tree.h"
@@ -2001,13 +1985,12 @@ toplev_main (int argc, char **argv)
   if (!exit_after_options)
     do_compile ();
 
-
   /* finalize melt if needed */
   if ((melt_mode_string && melt_mode_string[0])
       || (melt_old_mode_string && melt_old_mode_string[0]))
     melt_finalize();
 
-  if (warningcount || errorcount) 
+  if (warningcount || errorcount)
     print_ignored_options ();
   diagnostic_finish (global_dc);
 

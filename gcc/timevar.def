@@ -237,7 +237,6 @@ DEFTIMEVAR (TV_TREE_UNINIT           , "uninit var analysis")
 DEFTIMEVAR (TV_PLUGIN_INIT           , "plugin initialization")
 DEFTIMEVAR (TV_PLUGIN_RUN            , "plugin execution")
 
-
 /* Everything else in rest_of_compilation not included above.  */
 DEFTIMEVAR (TV_EARLY_LOCAL	     , "early local passes")
 DEFTIMEVAR (TV_OPTIMIZE		     , "unaccounted optimizations")
