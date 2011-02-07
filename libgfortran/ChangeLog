@@ -1,3 +1,70 @@
+2011-01-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47434
+	* io/write_float.def (write_infnan): Use calculate_sign to determine
+	if the sign should be given and check field widths accordingly.
+
+2011-01-29  Kai Tietz  <kai.tietz@onevision.com>
+
+	* intrinsics/ctime.c (ctime_r): Improve implementation.
+
+2011-01-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47431
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Add check for ctime_r().
+	* intrinsics/ctime.c (ctime_r): Fallback implementation.
+	(fdate): Use ctime_r() instead of ctime().
+	(fdate_sub): Likewise.
+	(ctime): Likewise.
+	(ctime_sub): Likewise.
+
+2011-01-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47432
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Add check for ttyname_r.
+	* io/unix.h: Add TTY_NAME_MAX, change stream_ttyname prototype.
+	* io/unix.c (stream_ttyname): Use ttyname_r if available, conform
+	to new prototype.
+	* io/inquire.c (inquire_via_unit): Use changed stream_ttyname.
+	* io/intrinsics.c (ttynam_sub): Likewise.
+	(ttynam): Likewise.
+
+2011-01-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47491
+	* configure.ac: Call AC_USE_SYSTEM_EXTENSIONS to enable common
+	extensions.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
+2011-01-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47285
+	* io/write_float.def (write_infnan): Adjust processor selected width
+	to 3 if NaN.
+
+2011-01-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47285
+	* io/write_float.def (output_float): Return SUCCESS or FAILURE and use
+	the result to set the padding.
+
+2011-01-26  Kai Tietz  <kai.tietz@onevision.com>
+
+	* intrinsics/getlog.c (getlog): Fix label/statement issue.
+
+2011-01-25  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47375
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Add check for getpwuid_r.
+	* intrinsics/getlog.c (getlog): Use getpwuid_r() if available.
+
 2011-01-22  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	PR libfortran/46267

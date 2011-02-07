@@ -657,6 +657,20 @@ go_netchan_files = \
 	go/netchan/export.go \
 	go/netchan/import.go
 
+if LIBGO_IS_LINUX
+go_os_sys_file = go/os/sys_linux.go
+else
+if LIBGO_IS_SOLARIS
+go_os_sys_file = go/os/sys_uname.go
+else
+if LIBGO_IS_RTEMS
+go_os_sys_file = go/os/sys_uname.go
+else
+go_os_sys_file = go/os/sys_bsd.go
+endif
+endif
+endif
+
 go_os_files = \
 	go/os/dir.go \
 	go/os/env.go \
@@ -669,7 +683,7 @@ go_os_files = \
 	go/os/path.go \
 	go/os/proc.go \
 	go/os/stat.go \
-	go/os/sys_linux.go \
+	$(go_os_sys_file) \
 	go/os/time.go \
 	go/os/types.go
 
@@ -957,7 +971,7 @@ go_debug_pe_files = \
 go_debug_proc_files = \
 	go/debug/proc/proc.go \
 	go/debug/proc/proc_$(GOOS).go \
-	go/debug/proc/regs_$(GOOS)_$(GOARCH).go
+	$(GO_DEBUG_PROC_REGS_OS_ARCH_FILE)
 
 go_encoding_ascii85_files = \
 	go/encoding/ascii85/ascii85.go
@@ -1189,7 +1203,7 @@ go_syscall_files = \
 	syscalls/syscall_unix.go \
 	syscalls/stringbyte.go \
 	syscalls/syscall_$(GOOS).go \
-	syscalls/syscall_$(GOOS)_$(GOARCH).go \
+	$(GO_SYSCALLS_SYSCALL_OS_ARCH_FILE) \
 	syscalls/sysfile_posix.go \
 	sysinfo.go \
 	syscall_arch.go
@@ -1439,7 +1453,7 @@ bufio/check: $(CHECK_DEPS)
 bytes/libbytes.a: $(go_bytes_files) $(go_bytes_c_files) io.gox os.gox \
 		unicode.gox utf8.gox
 	test -d bytes || $(MKDIR_P) bytes
-	$(LTGOCOMPILE) -c -o bytes/bytes.$(OBJEXT) -fgo-prefix=libgo_bytes $(srcdir)/go/bytes/buffer.go $(srcdir)/go/bytes/bytes.go $(srcdir)/go/bytes/bytes_decl.go
+	$(LTGOCOMPILE) -I . -c -o bytes/bytes.$(OBJEXT) -fgo-prefix=libgo_bytes $(srcdir)/go/bytes/buffer.go $(srcdir)/go/bytes/bytes.go $(srcdir)/go/bytes/bytes_decl.go
 	$(LTCOMPILE) -c -o bytes/index.$(OBJEXT) $(srcdir)/go/bytes/indexbyte.c
 	rm -f $@
 	$(AR) rc $@ bytes/bytes.$(OBJEXT) bytes/index.$(OBJEXT)
@@ -1694,7 +1708,7 @@ strings/check: $(CHECK_DEPS)
 
 sync/libsync.a: $(go_sync_files) $(go_sync_c_files) runtime.gox
 	test -d sync || $(MKDIR_P) sync
-	$(LTGOCOMPILE) -c -o sync/mutex.$(OBJEXT) -fgo-prefix=libgo_sync $(srcdir)/go/sync/mutex.go $(srcdir)/go/sync/once.go $(srcdir)/go/sync/rwmutex.go
+	$(LTGOCOMPILE) -I . -c -o sync/mutex.$(OBJEXT) -fgo-prefix=libgo_sync $(srcdir)/go/sync/mutex.go $(srcdir)/go/sync/once.go $(srcdir)/go/sync/rwmutex.go
 	$(LTCOMPILE) -c -o sync/cas.$(OBJEXT) $(srcdir)/go/sync/cas.c
 	rm -f $@
 	$(AR) rc $@ sync/mutex.$(OBJEXT) sync/cas.$(OBJEXT)
@@ -2272,8 +2286,8 @@ go/printer/check: $(CHECK_DEPS)
 .PHONY: go/printer/check
 
 go/libscanner.a: $(go_go_scanner_files) bytes.gox container/vector.gox fmt.gox \
-		go/token.gox io.gox os.gox sort.gox strconv.gox unicode.gox \
-		utf8.gox
+		go/token.gox io.gox os.gox path.gox sort.gox strconv.gox \
+		unicode.gox utf8.gox
 	$(BUILDARCHIVE)
 go/libscanner.la: go/libscanner.a
 go/scanner/check: $(CHECK_DEPS)
@@ -2464,13 +2478,17 @@ testing/script/check: $(CHECK_DEPS)
 	$(CHECK)
 .PHONY: testing/script/check
 
-sysinfo.go: $(srcdir)/mksysinfo.sh config.h
+sysinfo.go: s-sysinfo; @true
+s-sysinfo: $(srcdir)/mksysinfo.sh config.h
 	CC="$(CC)" $(SHELL) $(srcdir)/mksysinfo.sh
+	$(SHELL) $(srcdir)/../move-if-change tmp-sysinfo.go sysinfo.go
+	$(STAMP) $@
+
 syscalls/libsyscall.a: $(go_syscall_files) $(go_syscall_c_files) sync.gox
 	rm -f syscall.gox syscalls/libsyscall.a
 	test -d syscalls || $(MKDIR_P) syscalls
 	files=`echo $^ | sed -e 's/[^ ]*\.gox//g' -e's/[^ ]*\.c//g'`; \
-	$(LTGOCOMPILE) -c -fgo-prefix="libgo_syscalls" -o syscalls/syscall.$(OBJEXT) $$files
+	$(LTGOCOMPILE) -I . -c -fgo-prefix="libgo_syscalls" -o syscalls/syscall.$(OBJEXT) $$files
 	$(LTCOMPILE) -c -o syscalls/errno.$(OBJEXT) $(srcdir)/syscalls/errno.c
 	$(AR) rc syscalls/libsyscall.a syscalls/syscall.$(OBJEXT) syscalls/errno.$(OBJEXT)
 syscalls/libsyscall.la: syscalls/libsyscall.a
