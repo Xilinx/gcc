@@ -4451,14 +4451,20 @@ gfc_trans_allocate (gfc_code * code)
   tree pstat;
   tree error_label;
   tree memsz;
+  tree expr3;
+  tree slen3;
   stmtblock_t block;
+  stmtblock_t post;
+  gfc_expr *sz;
+  gfc_se se_sz;
 
   if (!code->ext.alloc.list)
     return NULL_TREE;
 
   pstat = stat = error_label = tmp = memsz = NULL_TREE;
 
-  gfc_start_block (&block);
+  gfc_init_block (&block);
+  gfc_init_block (&post);
 
   /* Either STAT= and/or ERRMSG is present.  */
   if (code->expr1 || code->expr2)
@@ -4472,6 +4478,9 @@ gfc_trans_allocate (gfc_code * code)
       TREE_USED (error_label) = 1;
     }
 
+  expr3 = NULL_TREE;
+  slen3 = NULL_TREE;
+
   for (al = code->ext.alloc.list; al != NULL; al = al->next)
     {
       expr = gfc_copy_expr (al->expr);
@@ -4480,7 +4489,6 @@ gfc_trans_allocate (gfc_code * code)
 	gfc_add_data_component (expr);
 
       gfc_init_se (&se, NULL);
-      gfc_start_block (&se.pre);
 
       se.want_pointer = 1;
       se.descriptor_only = 1;
@@ -4495,8 +4503,6 @@ gfc_trans_allocate (gfc_code * code)
 	    {
 	      if (code->expr3->ts.type == BT_CLASS)
 		{
-		  gfc_expr *sz;
-		  gfc_se se_sz;
 		  sz = gfc_copy_expr (code->expr3);
 		  gfc_add_vptr_component (sz);
 		  gfc_add_size_component (sz);
@@ -4514,7 +4520,6 @@ gfc_trans_allocate (gfc_code * code)
 	      if (!code->expr3->ts.u.cl->backend_decl)
 		{
 		  /* Convert and use the length expression.  */
-		  gfc_se se_sz;
 		  gfc_init_se (&se_sz, NULL);
 		  if (code->expr3->expr_type == EXPR_VARIABLE
 			|| code->expr3->expr_type == EXPR_CONSTANT)
@@ -4522,15 +4527,32 @@ gfc_trans_allocate (gfc_code * code)
 		      gfc_conv_expr (&se_sz, code->expr3);
 		      memsz = se_sz.string_length;
 		    }
-		  else
+		  else if (code->expr3->mold
+			     && code->expr3->ts.u.cl
+			     && code->expr3->ts.u.cl->length)
 		    {
-		      gfc_conv_expr (&se_sz, code->ext.alloc.ts.u.cl->length);
+		      gfc_conv_expr (&se_sz, code->expr3->ts.u.cl->length);
+		      gfc_add_block_to_block (&se.pre, &se_sz.pre);
+		      se_sz.expr = gfc_evaluate_now (se_sz.expr, &se.pre);
+		      gfc_add_block_to_block (&se.pre, &se_sz.post);
 		      memsz = se_sz.expr;
 		    }
-		  if (TREE_CODE (se.string_length) == VAR_DECL)
-                    gfc_add_modify (&block, se.string_length,
-				    fold_convert (TREE_TYPE (se.string_length),
-						  memsz));
+		  else
+		    {
+		      /* This is would be inefficient and possibly could
+			 generate wrong code if the result were not stored
+			 in expr3/slen3.  */
+		      if (slen3 == NULL_TREE)
+			{
+			  gfc_conv_expr (&se_sz, code->expr3);
+			  gfc_add_block_to_block (&se.pre, &se_sz.pre);
+			  expr3 = gfc_evaluate_now (se_sz.expr, &se.pre);
+			  gfc_add_block_to_block (&post, &se_sz.post);
+			  slen3 = gfc_evaluate_now (se_sz.string_length,
+						    &se.pre);
+			}
+		      memsz = slen3;
+		    }
 		}
 	      else
 		/* Otherwise use the stored string length.  */
@@ -4539,7 +4561,7 @@ gfc_trans_allocate (gfc_code * code)
 
 	      /* Store the string length.  */
 	      if (tmp && TREE_CODE (tmp) == VAR_DECL)
-		gfc_add_modify (&block, tmp, fold_convert (TREE_TYPE (tmp),
+		gfc_add_modify (&se.pre, tmp, fold_convert (TREE_TYPE (tmp),
 				memsz));
 
 	      /* Convert to size in bytes, using the character KIND.  */
@@ -4556,18 +4578,8 @@ gfc_trans_allocate (gfc_code * code)
 
 	  if (expr->ts.type == BT_CHARACTER && memsz == NULL_TREE)
 	    {
-	      if (expr->ts.deferred)
-		{
-		  gfc_se se_sz;
-		  gfc_init_se (&se_sz, NULL);
-		  gfc_conv_expr (&se_sz, code->ext.alloc.ts.u.cl->length);
-		  memsz = se_sz.expr;
-                  gfc_add_modify (&block, se.string_length,
-				  fold_convert (TREE_TYPE (se.string_length),
-						memsz));
-		}
-	      else
-		memsz = se.string_length;
+	      memsz = se.string_length;
+
 	      /* Convert to size in bytes, using the character KIND.  */
 	      tmp = TREE_TYPE (gfc_typenode_for_spec (&code->ext.alloc.ts));
 	      tmp = TYPE_SIZE_UNIT (tmp);
@@ -4575,31 +4587,13 @@ gfc_trans_allocate (gfc_code * code)
 				       TREE_TYPE (tmp), tmp,
 				       fold_convert (TREE_TYPE (tmp), memsz));
 	    }
+
 	  /* Allocate - for non-pointers with re-alloc checking.  */
-	  {
-	    gfc_ref *ref;
-	    bool allocatable;
-
-	    ref = expr->ref;
-
-	    /* Find the last reference in the chain.  */
-	    while (ref && ref->next != NULL)
-	      {
-	        gcc_assert (ref->type != REF_ARRAY || ref->u.ar.type == AR_ELEMENT);
-	        ref = ref->next;
-	      }
-
-	    if (!ref)
-	      allocatable = expr->symtree->n.sym->attr.allocatable;
-	    else
-	      allocatable = ref->u.c.component->attr.allocatable;
-
-	    if (allocatable)
-	      tmp = gfc_allocate_array_with_status (&se.pre, se.expr, memsz,
-						    pstat, expr);
-	    else
-	      tmp = gfc_allocate_with_status (&se.pre, memsz, pstat);
-	  }
+	  if (gfc_expr_attr (expr).allocatable)
+	    tmp = gfc_allocate_array_with_status (&se.pre, se.expr, memsz,
+						  pstat, expr);
+	  else
+	    tmp = gfc_allocate_with_status (&se.pre, memsz, pstat);
 
 	  tmp = fold_build2_loc (input_location, MODIFY_EXPR, void_type_node,
 				 se.expr,
@@ -4624,11 +4618,9 @@ gfc_trans_allocate (gfc_code * code)
 	      tmp = gfc_nullify_alloc_comp (expr->ts.u.derived, tmp, 0);
 	      gfc_add_expr_to_block (&se.pre, tmp);
 	    }
-
 	}
 
-      tmp = gfc_finish_block (&se.pre);
-      gfc_add_expr_to_block (&block, tmp);
+      gfc_add_block_to_block (&block, &se.pre);
 
       if (code->expr3 && !code->expr3->mold)
 	{
@@ -4663,9 +4655,23 @@ gfc_trans_allocate (gfc_code * code)
 	      gfc_add_block_to_block (&call.pre, &call.post);
 	      tmp = gfc_finish_block (&call.pre);
 	    }
+	  else if (expr3 != NULL_TREE)
+	    {
+	      tmp = build_fold_indirect_ref_loc (input_location, se.expr);
+	      gfc_trans_string_copy (&block, slen3, tmp, code->expr3->ts.kind,
+				     slen3, expr3, code->expr3->ts.kind);
+	      tmp = NULL_TREE;
+	    }
 	  else
-	    tmp = gfc_trans_assignment (gfc_expr_to_initialize (expr),
-					rhs, false, false);
+	    {
+	      /* Switch off automatic reallocation since we have just done
+		 the ALLOCATE.  */
+	      int realloc_lhs = gfc_option.flag_realloc_lhs;
+	      gfc_option.flag_realloc_lhs = 0;
+	      tmp = gfc_trans_assignment (gfc_expr_to_initialize (expr),
+					  rhs, false, false);
+	      gfc_option.flag_realloc_lhs = realloc_lhs;
+	    }
 	  gfc_free_expr (rhs);
 	  gfc_add_expr_to_block (&block, tmp);
 	}
@@ -4786,6 +4792,9 @@ gfc_trans_allocate (gfc_code * code)
 
       gfc_add_expr_to_block (&block, tmp);
     }
+
+  gfc_add_block_to_block (&block, &se.post);
+  gfc_add_block_to_block (&block, &post);
 
   return gfc_finish_block (&block);
 }

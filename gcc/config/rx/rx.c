@@ -450,10 +450,10 @@ rx_print_operand (FILE * file, rtx op, int letter)
 	    switch (code)
 	      {
 	      case LT:
-		ret = "n";
+		ret = "lt";
 		break;
 	      case GE:
-		ret = "pz";
+		ret = "ge";
 		break;
 	      case GT:
 		ret = "gt";
@@ -1137,10 +1137,12 @@ rx_get_stack_layout (unsigned int * lowest,
   for (save_mask = high = low = 0, reg = 1; reg < CC_REGNUM; reg++)
     {
       if ((df_regs_ever_live_p (reg)
-	   /* Always save all call clobbered registers inside interrupt
-	      handlers, even if they are not live - they may be used in
-	      routines called from this one.  */
-	   || (call_used_regs[reg] && is_interrupt_func (NULL_TREE)))
+	   /* Always save all call clobbered registers inside non-leaf
+	      interrupt handlers, even if they are not live - they may
+	      be used in (non-interrupt aware) routines called from this one.  */
+	   || (call_used_regs[reg]
+	       && is_interrupt_func (NULL_TREE)
+	       && ! current_function_is_leaf))
 	  && (! call_used_regs[reg]
 	      /* Even call clobbered registered must
 		 be pushed inside interrupt handlers.  */
@@ -2623,7 +2625,7 @@ flags_from_code (enum rtx_code code)
     {
     case LT:
     case GE:
-      return CC_FLAG_S;
+      return CC_FLAG_S | CC_FLAG_O;
     case GT:
     case LE:
       return CC_FLAG_S | CC_FLAG_O | CC_FLAG_Z;

@@ -27,4 +27,7 @@
 mt
 Driver RejectNegative
 
+pthread
+Driver
+
 ; This comment is to ensure we retain the blank line above.

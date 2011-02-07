@@ -266,16 +266,11 @@ gate_graphite_transforms (void)
      is turned on.  */
   if (flag_loop_block
       || flag_loop_interchange
-      || flag_tree_loop_linear
       || flag_loop_strip_mine
       || flag_graphite_identity
       || flag_loop_parallelize_all
       || flag_loop_flatten)
     flag_graphite = 1;
-
-  /* Make flag_tree_loop_linear an alias of flag_loop_interchange.  */
-  if (flag_tree_loop_linear)
-    flag_loop_interchange = flag_tree_loop_linear;
 
   return flag_graphite != 0;
 }
@@ -314,7 +309,7 @@ struct gimple_opt_pass pass_graphite_transforms =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  0					/* todo_flags_finish */
+  TODO_dump_func			/* todo_flags_finish */
  }
 };
 

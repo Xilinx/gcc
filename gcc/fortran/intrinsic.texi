@@ -4162,6 +4162,9 @@ the command, as returned by @code{system}.  @code{CMDSTAT} is set to zero
 if the command line was executed (whatever its exit status was).
 @code{CMDMSG} is assigned an error message if an error has occurred.
 
+Note that the @code{system()} call need not be thread-safe. It is the
+responsibility of the user to ensure that @code{system()} is not
+called concurrently.
 
 @item @emph{Standard}:
 Fortran 2008 and later
@@ -5452,10 +5455,14 @@ END PROGRAM
 @item @emph{Description}:
 Get the @var{VALUE} of the environmental variable @var{NAME}.
 
-This intrinsic routine is provided for backwards compatibility with 
-GNU Fortran 77.  In new code, programmers should consider the use of 
+This intrinsic routine is provided for backwards compatibility with
+GNU Fortran 77.  In new code, programmers should consider the use of
 the @ref{GET_ENVIRONMENT_VARIABLE} intrinsic defined by the Fortran
 2003 standard.
+
+Note that @code{GETENV} need not be thread-safe. It is the
+responsibility of the user to ensure that the environment is not being
+updated concurrently with a call to the @code{GETENV} intrinsic.
 
 @item @emph{Standard}:
 GNU extension
@@ -5500,6 +5507,11 @@ END PROGRAM
 @table @asis
 @item @emph{Description}:
 Get the @var{VALUE} of the environmental variable @var{NAME}.
+
+Note that @code{GET_ENVIRONMENT_VARIABLE} need not be thread-safe. It
+is the responsibility of the user to ensure that the environment is
+not being updated concurrently with a call to the
+@code{GET_ENVIRONMENT_VARIABLE} intrinsic.
 
 @item @emph{Standard}:
 Fortran 2003 and later
@@ -11779,6 +11791,10 @@ and environment-dependent.
 This intrinsic is provided in both subroutine and function forms;
 however, only one form can be used in any given program unit.
 
+Note that the @code{system()} call need not be thread-safe. It is the
+responsibility of the user to ensure that @code{system()} is not
+called concurrently.
+
 @item @emph{Standard}:
 GNU extension
 
@@ -11812,14 +11828,29 @@ and should considered in new code for future portability.
 
 @table @asis
 @item @emph{Description}:
-Determines the @var{COUNT} of milliseconds of wall clock time since 
-the Epoch (00:00:00 UTC, January 1, 1970) modulo @var{COUNT_MAX}, 
-@var{COUNT_RATE} determines the number of clock ticks per second.
-@var{COUNT_RATE} and @var{COUNT_MAX} are constant and specific to 
-@command{gfortran}.
+Determines the @var{COUNT} of a processor clock since an unspecified
+time in the past modulo @var{COUNT_MAX}, @var{COUNT_RATE} determines
+the number of clock ticks per second.  If the platform supports a high
+resolution monotonic clock, that clock is used and can provide up to
+nanosecond resolution.  If a high resolution monotonic clock is not
+available, the implementation falls back to a potentially lower
+resolution realtime clock.
+
+@var{COUNT_RATE} and @var{COUNT_MAX} vary depending on the kind of the
+arguments.  For @var{kind=8} arguments, @var{COUNT} represents
+nanoseconds, and for @var{kind=4} arguments, @var{COUNT} represents
+milliseconds. Other than the kind dependency, @var{COUNT_RATE} and
+@var{COUNT_MAX} are constant, however the particular values are
+specific to @command{gfortran}.
 
 If there is no clock, @var{COUNT} is set to @code{-HUGE(COUNT)}, and
-@var{COUNT_RATE} and @var{COUNT_MAX} are set to zero 
+@var{COUNT_RATE} and @var{COUNT_MAX} are set to zero.
+
+When running on a platform using the GNU C library (glibc), or a
+derivative thereof, the high resolution monotonic clock is available
+only when linking with the @var{rt} library.  This can be done
+explicitly by adding the @code{-lrt} flag when linking the
+application, but is also done implicitly when using OpenMP.
 
 @item @emph{Standard}:
 Fortran 95 and later
@@ -11832,11 +11863,11 @@ Subroutine
 
 @item @emph{Arguments}:
 @multitable @columnfractions .15 .70
-@item @var{COUNT}      @tab (Optional) shall be a scalar of type default 
+@item @var{COUNT}      @tab (Optional) shall be a scalar of type 
 @code{INTEGER} with @code{INTENT(OUT)}.
-@item @var{COUNT_RATE} @tab (Optional) shall be a scalar of type default 
+@item @var{COUNT_RATE} @tab (Optional) shall be a scalar of type 
 @code{INTEGER} with @code{INTENT(OUT)}.
-@item @var{COUNT_MAX}  @tab (Optional) shall be a scalar of type default 
+@item @var{COUNT_MAX}  @tab (Optional) shall be a scalar of type 
 @code{INTEGER} with @code{INTENT(OUT)}.
 @end multitable
 

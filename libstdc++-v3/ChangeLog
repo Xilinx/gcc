@@ -1,3 +1,73 @@
+2011-02-07  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/xml/faq.xml: Adjust link to bug database.
+	Remove old item on broken header files.
+
+2011-02-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/regex_error.h (__throw_regex_error): Not inline.
+	* src/functexcept.cc: Add definition.
+	* config/abi/pre/gnu.ver: Export.
+
+2011-02-04  Ralf Corsépius <ralf.corsepius@rtems.org>
+
+	* crossconfig.m4 (GLIBCXX_CROSSCONFIG): Add *-rtems*.
+	* configure: Regenerate.
+
+2011-02-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/46914
+	* include/bits/atomic_0.h (_ATOMIC_STORE_, _ATOMIC_MODIFY_,
+	_ATOMIC_CMPEXCHNG_): Rename __v -> __w, and __m -> __n, to
+	avoid name conflicts.
+
+2011-02-01  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/47560
+	* config/os/hpux/os_defines.h: Remove use of macros on namespace.
+
+2011-02-01  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* scripts/run_doxygen: Allow doxygen 1.7.0 again.
+	* doc/doxygen/user.cfg.in (PDF_HYPERLINKS): Re-enable.
+	(COMPACT_LATEX): Enable.
+
+	* include/profile/impl/profiler_container_size.h: Adjust doxygen markup.
+	* include/profile/impl/profiler_hash_func.h: Same.
+	* include/bits/hashtable.h: Same.
+	* include/backward/auto_ptr.h: Same.
+	* include/backward/strstream: Same.
+	* include/backward/backward_warning.h: Same.
+	* include/backward/binders.h: Same.
+
+2011-02-01  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/xml/manual/debug.xml: Use GDB instead of gdb.
+	Adjust link to GDB manual.
+
+2011-01-31  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/c++config (_GLIBCXX_DEPRECATED): To
+	_GLIBCXX_USE_DEPRECATED.
+	(_GLIBCXX_DEPRECATED_ATTR): To _GLIBCXX_DEPRECATED.
+	* doc/xml/manual/using.xml: Same.
+	* include/std/memory: Same.
+	* include/std/streambuf: Same.
+	* include/bits/shared_ptr.h: Same.
+	* include/bits/unique_ptr.h: Same.
+	* include/bits/shared_ptr_base.h: Same.
+	* include/bits/stl_function.h: Same.
+	* include/tr1/shared_ptr.h: Same.
+	* include/backward/auto_ptr.h: Same.
+	* include/backward/binders.h: Same.
+
+2011-01-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+        * doc/html/ext/lwg-active.html: Update to Revision D73.
+        * doc/html/ext/lwg-closed.html: Likewise.
+        * doc/html/ext/lwg-defects.html: Likewise.
+        * doc/xml/manual/intro.xml: Update status of issues 408, 539, 865.
+
 2011-01-30  Benjamin Kosnik  <bkoz@redhat.com>
 
 	PR libstdc++/36104 part four
