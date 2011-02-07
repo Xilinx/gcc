@@ -1348,11 +1348,20 @@ gcc -c -Q -O2 --help=optimizers > /tmp/O2-opts
 diff /tmp/O2-opts /tmp/O3-opts | grep enabled
 @end smallexample
 
+@item -canonical-prefixes
+@opindex canonical-prefixes
+Always expand any symbolic links, resolve references to @samp{/../}
+or @samp{/./}, and make the path absolute when generating a relative
+prefix.
+
 @item -no-canonical-prefixes
 @opindex no-canonical-prefixes
-Do not expand any symbolic links, resolve references to @samp{/../}
+Never expand any symbolic links, resolve references to @samp{/../}
 or @samp{/./}, or make the path absolute when generating a relative
-prefix.
+prefix.  If neither @option{-canonical-prefixes} nor
+@option{-canonical-prefixes} is given, GCC tries to set an appropriate
+default by looking for a target-specific subdirectory alongside the
+directory containing the compiler driver.
 
 @item --version
 @opindex version

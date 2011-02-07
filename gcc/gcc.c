@@ -2937,7 +2937,7 @@ display_help (void)
   fputs (_("  -save-temps              Do not delete intermediate files\n"), stdout);
   fputs (_("  -save-temps=<arg>        Do not delete intermediate files\n"), stdout);
   fputs (_("\
-  -no-canonical-prefixes   Do not canonicalize paths when building relative\n\
+  -[no-]canonical-prefixes Specify the path canonicalization for relative\n\
                            prefixes to other gcc components\n"), stdout);
   fputs (_("  -pipe                    Use pipes rather than intermediate files\n"), stdout);
   fputs (_("  -time                    Time the execution of each subprocess\n"), stdout);
@@ -3346,6 +3346,7 @@ driver_handle_option (struct gcc_options *opts,
 		     decoded->orig_option_with_args_text);
       break;
 
+    case OPT_canonical_prefixes:
     case OPT_no_canonical_prefixes:
       /* Already handled as a special case, so ignored here.  */
       do_save = false;
@@ -3523,20 +3524,47 @@ process_command (unsigned int decoded_options_count,
 	}
     }
 
-  /* Handle any -no-canonical-prefixes flag early, to assign the function
+  /* Handle any -[no-]canonical-prefixes flags early, to assign the function
      that builds relative prefixes.  This function creates default search
      paths that are needed later in normal option handling.  */
 
   for (j = 1; j < decoded_options_count; j++)
     {
-      if (decoded_options[j].opt_index == OPT_no_canonical_prefixes)
-	{
-	  get_relative_prefix = make_relative_prefix_ignore_links;
-	  break;
-	}
+      if (decoded_options[j].opt_index == OPT_canonical_prefixes)
+	get_relative_prefix = make_relative_prefix;
+      else if (decoded_options[j].opt_index == OPT_no_canonical_prefixes)
+	get_relative_prefix = make_relative_prefix_ignore_links;
     }
   if (! get_relative_prefix)
-    get_relative_prefix = make_relative_prefix;
+    {
+      /* If no canonical prefixes flags, try to set a suitable default.
+
+	 If the gcc driver is a symlink we differentiate two cases: a single
+	 symlink to the driver needing canonicalization; and a symlink farm
+	 with every file in the gcc installation a symlink to its actual
+	 content, for which we don't want canonicalization.  To choose, we
+	 check for a target-specific file relative to the canonicalized path
+	 to the gcc driver.  If found, assume canonicalizing is appropriate,
+	 otherwise don't canonicalize.
+
+	 If the driver is not a symlink, make_relative_prefix_ignore_links
+	 and make_relative_prefix act equivalently.  */
+
+      char *search_prefix = make_relative_prefix (decoded_options[0].arg,
+						  standard_bindir_prefix,
+						  standard_exec_prefix);
+      if (search_prefix)
+	{
+	  char *search = concat (search_prefix, spec_machine, NULL);
+	  if (access (search, R_OK) == 0)
+	    get_relative_prefix = make_relative_prefix;
+	  free (search);
+	  free (search_prefix);
+	}
+
+      if (! get_relative_prefix)
+	get_relative_prefix = make_relative_prefix_ignore_links;
+    }
 
   /* Set up the default search paths.  If there is no GCC_EXEC_PREFIX,
      see if we can create it from the pathname specified in

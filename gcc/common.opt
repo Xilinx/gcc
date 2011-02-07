@@ -272,6 +272,9 @@ Driver Joined Alias(L)
 -no-canonical-prefixes
 Driver Alias(no-canonical-prefixes)
 
+-canonical-prefixes
+Driver Alias(canonical-prefixes)
+
 -no-standard-libraries
 Driver Alias(nostdlib)
 
@@ -2207,6 +2210,9 @@ n
 Driver
 
 no-canonical-prefixes
+Driver
+
+canonical-prefixes
 Driver
 
 nodefaultlibs
