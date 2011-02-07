@@ -8034,8 +8034,7 @@ If combined with @option{-fprofile-arcs}, it adds code so that some
 data about values of expressions in the program is gathered.
 
 With @option{-fbranch-probabilities}, it reads back the data gathered
-from profiling values of expressions and adds @samp{REG_VALUE_PROFILE}
-notes to instructions for their later usage in optimizations.
+from profiling values of expressions for usage in optimizations.
 
 Enabled with @option{-fprofile-generate} and @option{-fprofile-use}.
 
@@ -8467,6 +8466,10 @@ optimization when a new iv is added to the set.
 @item scev-max-expr-size
 Bound on size of expressions used in the scalar evolutions analyzer.
 Large expressions slow the analyzer.
+
+@item scev-max-expr-complexity
+Bound on the complexity of the expressions in the scalar evolutions analyzer.
+Complex expressions slow the analyzer.
 
 @item omega-max-vars
 The maximum number of variables in an Omega constraint system.

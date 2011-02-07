@@ -246,6 +246,8 @@ case ${target} in
  | pdp11-*-bsd				\
  | sparc-hal-solaris2*			\
  | thumb-*-*				\
+ | *-*-freebsd[12] | *-*-freebsd[12].*	\
+ | *-*-freebsd*aout*			\
  | *-*-linux*aout*			\
  | *-*-linux*coff*			\
  | *-*-linux*libc1*			\
@@ -479,15 +481,6 @@ case ${target} in
   case ${enable_threads} in
     "" | yes | posix) thread_file='posix' ;;
   esac
-  ;;
-*-*-freebsd[12] | *-*-freebsd[12].* | *-*-freebsd*aout*)
-  # This is the place-holder for the generic a.out configuration
-  # of FreeBSD.  No actual configuration resides here since
-  # there was only ever a bare-bones ix86 configuration for
-  # a.out and it exists solely in the machine-specific section.
-  # This place-holder must exist to avoid dropping into
-  # the generic ELF configuration of FreeBSD (i.e. it must be
-  # ordered before that section).
   ;;
 *-*-freebsd*)
   # This is the generic ELF configuration of FreeBSD.  Later
@@ -1044,7 +1037,7 @@ hppa[12]*-*-hpux10*)
 	esac
 	tm_file="${tm_file} pa/pa32-regs.h dbxelf.h pa/som.h \
 		 pa/pa-hpux.h pa/pa-hpux10.h"
-	extra_options="${extra_options} pa/pa-hpux.opt"
+	extra_options="${extra_options} pa/pa-hpux.opt pa/pa-hpux10.opt"
 	case ${target} in
 	*-*-hpux10.[1-9]*)
 		tm_file="${tm_file} pa/pa-hpux1010.h"
@@ -1616,7 +1609,7 @@ ia64-hp-*vms*)
 	fi
 	exeext=.exe
 	install_headers_dir=install-headers-cp
-	extra_options="${extra_options} vms/vms.opt"
+	extra_options="${extra_options} vms/vms.opt ia64/vms.opt"
 	;;
 iq2000*-*-elf*)
         tm_file="elfos.h newlib-stdint.h iq2000/iq2000.h"
@@ -1817,7 +1810,7 @@ microblaze*-*-*)
 mips-sgi-irix6.5*)
 	tm_file="elfos.h ${tm_file} mips/iris6.h"
 	tmake_file="mips/t-iris mips/t-iris6 mips/t-slibgcc-irix"
-	extra_options="${extra_options} rpath.opt"
+	extra_options="${extra_options} rpath.opt mips/iris6.opt"
 	target_cpu_default="MASK_ABICALLS"
 	tm_defines="${tm_defines} MIPS_ISA_DEFAULT=3 MIPS_ABI_DEFAULT=ABI_N32"
 	# Only IRIX Development Foundation 1.3 for IRIX 6.5 provides stdint.h.
@@ -2092,7 +2085,7 @@ powerpc-*-eabialtivec*)
 	;;
 powerpc-xilinx-eabi*)
 	tm_file="${tm_file} dbxelf.h elfos.h usegas.h freebsd-spec.h newlib-stdint.h rs6000/sysv4.h rs6000/eabi.h rs6000/singlefp.h rs6000/xfpu.h rs6000/xilinx.h"
-	extra_options="${extra_options} rs6000/sysv4.opt"
+	extra_options="${extra_options} rs6000/sysv4.opt rs6000/xilinx.opt"
 	tmake_file="rs6000/t-fprules rs6000/t-fprules-fpbit rs6000/t-ppcgas rs6000/t-ppccomm rs6000/t-xilinx"
 	use_gcc_stdint=wrap
 	;;
