@@ -1471,7 +1471,11 @@ requires_barrier (basic_block entry_block, tree x, gimple stmt)
 	{
 	  /* ??? This value is a pointer, but aggregate_value_p has been
 	     jigged to return true which confuses needs_to_live_in_memory.
-	     This ought to be cleaned up generically.  */
+	     This ought to be cleaned up generically.
+
+	     FIXME: Verify this still happens after the next mainline
+	     merge.  Testcase ie g++.dg/tm/pr47554.C.
+	  */
 	  return false;
 	}
 

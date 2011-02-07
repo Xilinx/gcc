@@ -1,3 +1,7 @@
+2011-02-07  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (requires_barrier): Add comment.
+
 2011-02-04  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR/47554
