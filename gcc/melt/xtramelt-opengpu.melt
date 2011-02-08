@@ -73,7 +73,7 @@
 				   "$CURLOOP could be parallel in $LOOPPARACHUNK") ;
 	    }#)
 	   (debugloop curloop  "opengpudetect_exec curloop can be parallel")
-	   (let ( (curloopbodytuple (loop_body_tuple curloop)) 
+	   (let ( (curloopbodytuple (loop_body_tuple discr_multiple curloop)) 
 		  )
 	     (debug_msg curloopbodytuple "opengpudetect_exec curloopbody")
 	     )))
