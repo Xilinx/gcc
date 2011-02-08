@@ -71,25 +71,70 @@ void gpy_obj_integer_destroy (gpy_object_t * self)
 
 void gpy_obj_integer_print (gpy_object_t * self, FILE * fd, bool newline)
 {
-  return;
+  gpy_assert (self->T == TYPE_OBJECT_STATE);
+  gpy_object_state_t * x = self->o.object_state;
+  struct gpy_obj_integer_t *x1 = (struct gpy_obj_integer_t *)
+    x->self;
+
+  fprintf (fd, "%i ", x1->Int);
+
+  if (newline)
+    fprintf (fd, "\n");
 }
 
 gpy_object_t *
 gpy_obj_integer_whoop_noargs (gpy_object_t * self, gpy_object_t ** args )
 {
   printf("inside whoop function!\n\n");
-  return NULL;
+  return NULL_OBJECT;
 }
 
 gpy_object_t *
 gpy_obj_integer_add (gpy_object_t * o1, gpy_object_t * o2)
 {
-  return;
+  gpy_object_t * retval = NULL_OBJECT;
+
+  debug ("Integer Addition!\n");
+
+  gpy_object_state_t * x = o1->o.object_state;
+  gpy_object_state_t * y = o2->o.object_state;
+
+  if( !strcmp( x->obj_t_ident, "Int" ) )
+    {
+      if( !strcmp( y->obj_t_ident, "Int") )
+	{
+	  struct gpy_obj_integer_t *t1 = (struct gpy_obj_integer_t*) x->self;
+	  struct gpy_obj_integer_t *t2 = (struct gpy_obj_integer_t*) y->self;
+
+	  mpfr_t x,y,z;
+	  mpfr_init( z );
+	  mpfr_init_set_si( x, t1->Int, GMP_RNDU );
+	  mpfr_init_set_si( y, t2->Int, GMP_RNDU );
+
+	  if( mpfr_add( z, x, y, GMP_RNDU ) )
+	    {
+	      fatal("overflow in integer addition!\n");
+	    }
+
+	  retval = gpy_rr_fold_integer( mpfr_get_si( z, GMP_RNDU ) );
+	  mpfr_clears( x, y, z, (mpfr_ptr)0 );
+	}
+      else
+	{
+	  fatal("invalid object type <%s>!\n", y->obj_t_ident );
+	}
+    }
+  else
+    {
+      fatal("invalid object type <%s>!\n", x->obj_t_ident );
+    }
+ 
+  return retval;
 }
 
 /*
   The member methods table
-   - member fields can be handle'd in a similar fashion
+   - member fields could be handle'd in a similar fashion
 */
 static gpy_method_def_t gpy_obj_integer_methods[] = {
   { "whoop_noargs", (gpy_builtin_callback__)

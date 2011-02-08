@@ -112,9 +112,7 @@ gpy_object_t * gpy_rr_fold_integer (int x)
 
   debug("initilized integer object <%p> to <%i>!\n",
 	(void*)retval, x );
-
   gpy_assert (retval->T == TYPE_OBJECT_STATE);
-  gpy_rr_incr_ref_count (retval);
 
   return retval;
 }
@@ -123,14 +121,11 @@ gpy_object_t * gpy_rr_fold_integer (int x)
  * int fd: we could use bit masks to represent:
  *   stdout/stderr ...
  **/
-void gpy_rr_eval_print( int fd, int count, ...  )
+void gpy_rr_eval_print (int fd, int count, ...)
 {
   va_list vl; int idx;
-  va_start( vl,count );
+  va_start (vl,count);
 
-  /* gpy_object_t is a typedef of gpy_object_state_t *
-     to keep stdarg.h happy
-  */
   gpy_object_t * it = NULL;
   for( idx = 0; idx<count; ++idx )
     {
@@ -218,7 +213,7 @@ void gpy_rr_pop_context( void )
   gpy_free( popd );
 }
 
-void gpy_rr_finalize_block_decls( int n, ... )
+void gpy_rr_finalize_block_decls (int n, ...)
 {
   va_list vl; int idx;
   va_start( vl,n );
@@ -264,6 +259,8 @@ gpy_object_t * gpy_rr_eval_expression (gpy_object_t * x1,
   struct gpy_typedef_t * def = x1->o.object_state->definition;
   struct gpy_number_prot_t * binops = (*def).binary_protocol;
   struct gpy_number_prot_t binops_l = (*binops);
+
+  debug ("Eval expression!\n");
 
   if( binops_l.init )
     {
