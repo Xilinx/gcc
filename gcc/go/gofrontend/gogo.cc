@@ -19,7 +19,7 @@
 
 // Class Gogo.
 
-Gogo::Gogo(int int_type_size, int float_type_size, int pointer_size)
+Gogo::Gogo(int int_type_size, int pointer_size)
   : package_(NULL),
     functions_(),
     globals_(new Bindings(NULL)),
@@ -85,12 +85,6 @@ Gogo::Gogo(int int_type_size, int float_type_size, int pointer_size)
   this->add_named_type(Type::make_integer_type("uintptr", true,
 					       pointer_size,
 					       RUNTIME_TYPE_KIND_UINTPTR));
-
-  this->add_named_type(Type::make_float_type("float", float_type_size,
-					     RUNTIME_TYPE_KIND_FLOAT));
-
-  this->add_named_type(Type::make_complex_type("complex", float_type_size * 2,
-					       RUNTIME_TYPE_KIND_COMPLEX));
 
   this->add_named_type(Type::make_named_bool_type());
 
@@ -199,10 +193,10 @@ Gogo::Gogo(int int_type_size, int float_type_size, int pointer_size)
   append_type->set_is_builtin();
   this->globals_->add_function_declaration("append", NULL, append_type, loc);
 
-  Function_type* cmplx_type = Type::make_function_type(NULL, NULL, NULL, loc);
-  cmplx_type->set_is_varargs();
-  cmplx_type->set_is_builtin();
-  this->globals_->add_function_declaration("cmplx", NULL, cmplx_type, loc);
+  Function_type* complex_type = Type::make_function_type(NULL, NULL, NULL, loc);
+  complex_type->set_is_varargs();
+  complex_type->set_is_builtin();
+  this->globals_->add_function_declaration("complex", NULL, complex_type, loc);
 
   Function_type* real_type = Type::make_function_type(NULL, NULL, NULL, loc);
   real_type->set_is_varargs();
@@ -212,7 +206,7 @@ Gogo::Gogo(int int_type_size, int float_type_size, int pointer_size)
   Function_type* imag_type = Type::make_function_type(NULL, NULL, NULL, loc);
   imag_type->set_is_varargs();
   imag_type->set_is_builtin();
-  this->globals_->add_function_declaration("imag", NULL, cmplx_type, loc);
+  this->globals_->add_function_declaration("imag", NULL, imag_type, loc);
 
   this->define_builtin_function_trees();
 
@@ -330,8 +324,17 @@ Gogo::import_package(const std::string& filename,
   Import imp(stream, location);
   imp.register_builtin_types(this);
   Package* package = imp.import(this, local_name, is_local_name_exported);
-  this->imports_.insert(std::make_pair(filename, package));
-  package->set_is_imported();
+  if (package != NULL)
+    {
+      if (package->name() == this->package_name()
+	  && package->unique_prefix() == this->unique_prefix())
+	error_at(location,
+		 ("imported package uses same package name and prefix "
+		  "as package being compiled (see -fgo-prefix option)"));
+
+      this->imports_.insert(std::make_pair(filename, package));
+      package->set_is_imported();
+    }
 
   delete stream;
 }
@@ -415,6 +418,9 @@ Gogo::current_block()
 Named_object*
 Gogo::lookup(const std::string& name, Named_object** pfunction) const
 {
+  if (pfunction != NULL)
+    *pfunction = NULL;
+
   if (Gogo::is_sink_name(name))
     return Named_object::make_sink();
 
@@ -430,9 +436,6 @@ Gogo::lookup(const std::string& name, Named_object** pfunction) const
 	  return ret;
 	}
     }
-
-  if (pfunction != NULL)
-    *pfunction = NULL;
 
   if (this->package_ != NULL)
     {
@@ -1163,8 +1166,8 @@ Lower_parse_tree::constant(Named_object* no, bool)
 {
   Named_constant* nc = no->const_value();
 
-  // We can recursively a constant if the initializer expression
-  // manages to refer to itself.
+  // Don't get into trouble if the constant's initializer expression
+  // refers to the constant itself.
   if (nc->lowering())
     return TRAVERSE_CONTINUE;
   nc->set_lowering();
@@ -1384,7 +1387,9 @@ Gogo::determine_types()
 
 	  // If this is a global variable which requires runtime
 	  // initialization, we need an initialization function.
-	  if (!variable->is_global() || variable->init() == NULL)
+	  if (!variable->is_global())
+	    ;
+	  else if (variable->init() == NULL)
 	    ;
 	  else if (variable->type()->interface_type() != NULL)
 	    this->need_init_fn_ = true;
@@ -1591,9 +1596,10 @@ Find_shortcut::expression(Expression** pexpr)
 class Shortcuts : public Traverse
 {
  public:
-  Shortcuts()
+  Shortcuts(Gogo* gogo)
     : Traverse(traverse_variables
-	       | traverse_statements)
+	       | traverse_statements),
+      gogo_(gogo)
   { }
 
  protected:
@@ -1607,6 +1613,9 @@ class Shortcuts : public Traverse
   // Convert a shortcut operator.
   Statement*
   convert_shortcut(Block* enclosing, Expression** pshortcut);
+
+  // The IR.
+  Gogo* gogo_;
 };
 
 // Remove shortcut operators in a single statement.
@@ -1674,7 +1683,7 @@ Shortcuts::variable(Named_object* no)
 	return TRAVERSE_CONTINUE;
 
       Statement* snew = this->convert_shortcut(NULL, pshortcut);
-      var->add_preinit_statement(snew);
+      var->add_preinit_statement(this->gogo_, snew);
       if (pshortcut == &init)
 	var->set_init(init);
     }
@@ -1717,7 +1726,7 @@ Shortcuts::convert_shortcut(Block* enclosing, Expression** pshortcut)
   delete shortcut;
 
   // Now convert any shortcut operators in LEFT and RIGHT.
-  Shortcuts shortcuts;
+  Shortcuts shortcuts(this->gogo_);
   retblock->traverse(&shortcuts);
 
   return Statement::make_block_statement(retblock, loc);
@@ -1729,7 +1738,7 @@ Shortcuts::convert_shortcut(Block* enclosing, Expression** pshortcut)
 void
 Gogo::remove_shortcuts()
 {
-  Shortcuts shortcuts;
+  Shortcuts shortcuts(this);
   this->traverse(&shortcuts);
 }
 
@@ -1799,9 +1808,10 @@ Find_eval_ordering::expression(Expression** expression_pointer)
 class Order_eval : public Traverse
 {
  public:
-  Order_eval()
+  Order_eval(Gogo* gogo)
     : Traverse(traverse_variables
-	       | traverse_statements)
+	       | traverse_statements),
+      gogo_(gogo)
   { }
 
   int
@@ -1809,6 +1819,10 @@ class Order_eval : public Traverse
 
   int
   statement(Block*, size_t*, Statement*);
+
+ private:
+  // The IR.
+  Gogo* gogo_;
 };
 
 // Implement the order of evaluation rules for a statement.
@@ -1929,7 +1943,7 @@ Order_eval::variable(Named_object* no)
       Expression** pexpr = *p;
       source_location loc = (*pexpr)->location();
       Temporary_statement* ts = Statement::make_temporary(NULL, *pexpr, loc);
-      var->add_preinit_statement(ts);
+      var->add_preinit_statement(this->gogo_, ts);
       *pexpr = Expression::make_temporary_reference(ts, loc);
     }
 
@@ -1941,7 +1955,7 @@ Order_eval::variable(Named_object* no)
 void
 Gogo::order_evaluations()
 {
-  Order_eval order_eval;
+  Order_eval order_eval(this);
   this->traverse(&order_eval);
 }
 
@@ -2058,7 +2072,7 @@ Build_recover_thunks::function(Named_object* orig_no)
       for (Typed_identifier_list::const_iterator p = orig_results->begin();
 	   p != orig_results->end();
 	   ++p)
-	new_results->push_back(*p);
+	new_results->push_back(Typed_identifier("", p->type(), p->location()));
     }
 
   Function_type *new_fntype = Type::make_function_type(NULL, new_params,
@@ -2116,7 +2130,7 @@ Build_recover_thunks::function(Named_object* orig_no)
     }
   args->push_back(this->can_recover_arg(location));
 
-  Expression* call = Expression::make_call(fn, args, false, location);
+  Call_expression* call = Expression::make_call(fn, args, false, location);
 
   Statement* s;
   if (orig_fntype->results() == NULL || orig_fntype->results()->empty())
@@ -2124,7 +2138,14 @@ Build_recover_thunks::function(Named_object* orig_no)
   else
     {
       Expression_list* vals = new Expression_list();
-      vals->push_back(call);
+      size_t rc = orig_fntype->results()->size();
+      if (rc == 1)
+	vals->push_back(call);
+      else
+	{
+	  for (size_t i = 0; i < rc; ++i)
+	    vals->push_back(Expression::make_call_result(call, i));
+	}
       s = Statement::make_return_statement(new_func->type()->results(),
 					   vals, location);
     }
@@ -2176,6 +2197,10 @@ Build_recover_thunks::function(Named_object* orig_no)
 					      can_recover_var);
   Convert_recover convert_recover(can_recover_no);
   new_func->traverse(&convert_recover);
+
+  // Update the function pointers in any named results.
+  new_func->update_named_result_variables();
+  orig_func->update_named_result_variables();
 
   return TRAVERSE_CONTINUE;
 }
@@ -2505,6 +2530,21 @@ Function::create_named_result_variables(Gogo* gogo)
     }
 }
 
+// Update the named result variables when cloning a function which
+// calls recover.
+
+void
+Function::update_named_result_variables()
+{
+  if (this->named_results_ == NULL)
+    return;
+
+  for (Named_results::iterator p = this->named_results_->begin();
+       p != this->named_results_->end();
+       ++p)
+    (*p)->result_var_value()->set_function(this);
+}
+
 // Return the closure variable, creating it if necessary.
 
 Named_object*
@@ -2628,7 +2668,7 @@ void
 Function::swap_for_recover(Function *x)
 {
   gcc_assert(this->enclosing_ == x->enclosing_);
-  gcc_assert(this->named_results_ == x->named_results_);
+  std::swap(this->named_results_, x->named_results_);
   std::swap(this->closure_var_, x->closure_var_);
   std::swap(this->block_, x->block_);
   gcc_assert(this->location_ == x->location_);
@@ -3116,20 +3156,25 @@ Variable::lower_init_expression(Gogo* gogo, Named_object* function)
 // Get the preinit block.
 
 Block*
-Variable::preinit_block()
+Variable::preinit_block(Gogo* gogo)
 {
   gcc_assert(this->is_global_);
   if (this->preinit_ == NULL)
     this->preinit_ = new Block(NULL, this->location());
+
+  // If a global variable has a preinitialization statement, then we
+  // need to have an initialization function.
+  gogo->set_need_init_fn();
+
   return this->preinit_;
 }
 
 // Add a statement to be run before the initialization expression.
 
 void
-Variable::add_preinit_statement(Statement* s)
+Variable::add_preinit_statement(Gogo* gogo, Statement* s)
 {
-  Block* b = this->preinit_block();
+  Block* b = this->preinit_block(gogo);
   b->add_statement(s);
   b->set_end_location(s->location());
 }
@@ -3141,12 +3186,17 @@ Type*
 Variable::type_from_tuple(Expression* expr, bool report_error) const
 {
   if (expr->map_index_expression() != NULL)
-    return expr->map_index_expression()->get_map_type()->val_type();
+    {
+      Map_type* mt = expr->map_index_expression()->get_map_type();
+      if (mt == NULL)
+	return Type::make_error_type();
+      return mt->val_type();
+    }
   else if (expr->receive_expression() != NULL)
     {
       Expression* channel = expr->receive_expression()->channel();
       Type* channel_type = channel->type();
-      if (channel_type->is_error_type())
+      if (channel_type->channel_type() == NULL)
 	return Type::make_error_type();
       return channel_type->channel_type()->element_type();
     }
@@ -4121,9 +4171,6 @@ Bindings::traverse(Traverse* traverse, bool is_global)
 	      if (t != NULL
 		  && Type::traverse(t, traverse) == TRAVERSE_EXIT)
 		return TRAVERSE_EXIT;
-	    }
-	  if ((traverse_mask & Traverse::traverse_expressions) != 0)
-	    {
 	      if (p->const_value()->traverse_expression(traverse)
 		  == TRAVERSE_EXIT)
 		return TRAVERSE_EXIT;
@@ -4150,7 +4197,8 @@ Bindings::traverse(Traverse* traverse, bool is_global)
 		return TRAVERSE_EXIT;
 	    }
 	  if (p->is_variable()
-	      && (traverse_mask & Traverse::traverse_expressions) != 0)
+	      && ((traverse_mask & Traverse::traverse_types) != 0
+		  || (traverse_mask & Traverse::traverse_expressions) != 0))
 	    {
 	      if (p->var_value()->traverse_expression(traverse)
 		  == TRAVERSE_EXIT)

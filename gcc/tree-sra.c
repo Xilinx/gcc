@@ -173,6 +173,9 @@ struct access
      entirely? */
   unsigned total_scalarization : 1;
 
+  /* Is this access an access to a non-addressable field? */
+  unsigned non_addressable : 1;
+
   /* Is this access currently in the work queue?  */
   unsigned grp_queued : 1;
 
@@ -653,7 +656,8 @@ type_internals_preclude_sra_p (tree type)
 		|| !DECL_FIELD_OFFSET (fld) || !DECL_SIZE (fld)
 		|| !host_integerp (DECL_FIELD_OFFSET (fld), 1)
 		|| !host_integerp (DECL_SIZE (fld), 1)
-		|| (DECL_BIT_FIELD (fld) && AGGREGATE_TYPE_P (ft)))
+		|| (AGGREGATE_TYPE_P (ft)
+		    && int_bit_position (fld) % BITS_PER_UNIT != 0))
 	      return true;
 
 	    if (AGGREGATE_TYPE_P (ft)
@@ -814,6 +818,10 @@ create_access (tree expr, gimple stmt, bool write)
   access->write = write;
   access->grp_unscalarizable_region = unscalarizable_region;
   access->stmt = stmt;
+
+  if (TREE_CODE (expr) == COMPONENT_REF
+      && DECL_NONADDRESSABLE_P (TREE_OPERAND (expr, 1)))
+    access->non_addressable = 1;
 
   return access;
 }
@@ -2731,15 +2739,13 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	      && !contains_bitfld_comp_ref_p (lhs)
 	      && !access_has_children_p (lacc))
 	    {
-	      lhs = build_ref_for_offset (loc, lhs, 0, TREE_TYPE (rhs),
-					  gsi, false);
+	      lhs = build_ref_for_model (loc, lhs, 0, racc, gsi, false);
 	      gimple_assign_set_lhs (*stmt, lhs);
 	    }
 	  else if (AGGREGATE_TYPE_P (TREE_TYPE (rhs))
 		   && !contains_vce_or_bfcref_p (rhs)
 		   && !access_has_children_p (racc))
-	    rhs = build_ref_for_offset (loc, rhs, 0, TREE_TYPE (lhs),
-					gsi, false);
+	    rhs = build_ref_for_model (loc, rhs, 0, lacc, gsi, false);
 
 	  if (!useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (rhs)))
 	    {
@@ -3665,13 +3671,18 @@ decide_one_param_reduction (struct access *repr)
   for (; repr; repr = repr->next_grp)
     {
       gcc_assert (parm == repr->base);
-      new_param_count++;
+
+      /* Taking the address of a non-addressable field is verboten.  */
+      if (by_ref && repr->non_addressable)
+	return 0;
 
       if (!by_ref || (!repr->grp_maybe_modified
 		      && !repr->grp_not_necessarilly_dereferenced))
 	total_size += repr->size;
       else
 	total_size += cur_parm_size;
+
+      new_param_count++;
     }
 
   gcc_assert (new_param_count > 0);
@@ -4409,6 +4420,13 @@ ipa_sra_preliminary_function_checks (struct cgraph_node *node)
     {
       if (dump_file)
 	fprintf (dump_file, "Function not local to this compilation unit.\n");
+      return false;
+    }
+
+  if (!node->local.can_change_signature)
+    {
+      if (dump_file)
+	fprintf (dump_file, "Function can not change signature.\n");
       return false;
     }
 

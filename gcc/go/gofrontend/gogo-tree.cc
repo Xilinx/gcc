@@ -22,7 +22,6 @@ extern "C"
 #include "convert.h"
 #include "output.h"
 #include "diagnostic.h"
-#include "rtl.h"
 
 #ifndef ENABLE_BUILD_WITH_CXX
 }
@@ -757,7 +756,7 @@ Gogo::write_globals()
 	      pop_cfun();
 	    }
 
-	  if (var_init_tree != NULL_TREE)
+	  if (var_init_tree != NULL_TREE && var_init_tree != error_mark_node)
 	    {
 	      if (no->var_value()->init() == NULL
 		  && !no->var_value()->has_pre_init())
@@ -809,17 +808,6 @@ Gogo::write_globals()
     this->write_initialization_function(init_fndecl, init_stmt_list);
 
   // Pass everything back to the middle-end.
-
-  if (this->imported_unsafe_)
-    {
-      // Importing the "unsafe" package automatically disables TBAA.
-      flag_strict_aliasing = false;
-
-      // This is a real hack.  init_varasm_once has already grabbed an
-      // alias set, which we don't want when we aren't going strict
-      // aliasing.  We reinitialize to make it do it again.  FIXME.
-      init_varasm_once();
-    }
 
   wrapup_global_declarations(vec, count);
 
@@ -1209,10 +1197,13 @@ Variable::get_init_block(Gogo* gogo, Named_object* function, tree var_decl)
 
   Translate_context context(gogo, function, NULL, NULL_TREE);
   tree block_tree = this->preinit_->get_tree(&context);
+  if (block_tree == error_mark_node)
+    return error_mark_node;
   gcc_assert(TREE_CODE(block_tree) == BIND_EXPR);
   tree statements = BIND_EXPR_BODY(block_tree);
-  while (TREE_CODE(statements) == TRY_FINALLY_EXPR
-	 || TREE_CODE(statements) == TRY_CATCH_EXPR)
+  while (statements != NULL_TREE
+	 && (TREE_CODE(statements) == TRY_FINALLY_EXPR
+	     || TREE_CODE(statements) == TRY_CATCH_EXPR))
     statements = TREE_OPERAND(statements, 0);
 
   // It's possible to have pre-init statements without an initializer
@@ -1220,6 +1211,8 @@ Variable::get_init_block(Gogo* gogo, Named_object* function, tree var_decl)
   if (this->init_ != NULL)
     {
       tree rhs_tree = this->init_->get_tree(&context);
+      if (rhs_tree == error_mark_node)
+	return error_mark_node;
       if (var_decl == NULL_TREE)
 	append_to_statement_list(rhs_tree, &statements);
       else
@@ -1228,6 +1221,8 @@ Variable::get_init_block(Gogo* gogo, Named_object* function, tree var_decl)
 							this->init_->type(),
 							rhs_tree,
 							this->location());
+	  if (val == error_mark_node)
+	    return error_mark_node;
 	  tree set = fold_build2_loc(this->location(), MODIFY_EXPR,
 				     void_type_node, var_decl, val);
 	  append_to_statement_list(set, &statements);
@@ -2349,6 +2344,8 @@ Gogo::map_descriptor(Map_type* maptype)
   Map_descriptors::iterator p = ins.first;
   if (!ins.second)
     {
+      if (p->second == error_mark_node)
+	return error_mark_node;
       gcc_assert(p->second != NULL_TREE && DECL_P(p->second));
       return build_fold_addr_expr(p->second);
     }
@@ -2378,7 +2375,10 @@ Gogo::map_descriptor(Map_type* maptype)
 					"__val",
 					valtype->get_tree(this));
   if (map_entry_type == error_mark_node)
-    return error_mark_node;
+    {
+      p->second = error_mark_node;
+      return error_mark_node;
+    }
 
   tree map_entry_key_field = DECL_CHAIN(TYPE_FIELDS(map_entry_type));
   gcc_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(map_entry_key_field)),
@@ -2820,7 +2820,11 @@ Gogo::call_builtin(tree* pdecl, source_location location, const char* name,
       types[i] = va_arg(ap, tree);
       args[i] = va_arg(ap, tree);
       if (types[i] == error_mark_node || args[i] == error_mark_node)
-	return error_mark_node;
+	{
+	  delete[] types;
+	  delete[] args;
+	  return error_mark_node;
+	}
     }
   va_end(ap);
 
@@ -2888,6 +2892,9 @@ tree
 Gogo::send_on_channel(tree channel, tree val, bool blocking, bool for_select,
 		      source_location location)
 {
+  if (channel == error_mark_node || val == error_mark_node)
+    return error_mark_node;
+
   if (int_size_in_bytes(TREE_TYPE(val)) <= 8
       && !AGGREGATE_TYPE_P(TREE_TYPE(val))
       && !FLOAT_TYPE_P(TREE_TYPE(val)))
@@ -3022,6 +3029,9 @@ tree
 Gogo::receive_from_channel(tree type_tree, tree channel, bool for_select,
 			   source_location location)
 {
+  if (type_tree == error_mark_node || channel == error_mark_node)
+    return error_mark_node;
+
   if (int_size_in_bytes(type_tree) <= 8
       && !AGGREGATE_TYPE_P(type_tree)
       && !FLOAT_TYPE_P(type_tree))
