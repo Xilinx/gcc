@@ -70,13 +70,13 @@
 	    loopparachunk
 	    #{ /*$LOOPPARACHUNK */
 	    melt_sparebreakpoint_1($CURLOOP, 
-				   "$CURLOOP could be parallel in $LOOPPARACHUNK");
+				   "$CURLOOP could be parallel in $LOOPPARACHUNK") ;
 	    }#)
 	   (debugloop curloop  "opengpudetect_exec curloop can be parallel")
-	   (let ( (:basic_block curloopbody (loop_body curloop)) 
+	   (let ( (curloopbodytuple (loop_body_tuple curloop)) 
 		  )
-	     (debugbasicblock "opengpudetect_exec curloopbody" curloopbody)
-	   )))
+	     (debug_msg curloopbodytuple "opengpudetect_exec curloopbody")
+	     )))
      )
     ;;
     (debug_msg pass "opengpudetect_exec end")

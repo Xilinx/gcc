@@ -1,5 +1,11 @@
 
 2011-02-08 Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (loop_body): Remove, and rename as...
+	(loop_body_tuple): Add and return a tuple of boxed basic blocks.
+
+	* melt/xtramelt-opengpu.melt (opengpu_exec): use loop_body_tuple.
+
+2011-02-08 Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (gtype-input.list): Put with gtyp-real-input.list.
 
 2011-02-03  Basile Starynkevitch  <basile@starynkevitch.net>

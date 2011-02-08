@@ -234,10 +234,22 @@
    }#
 )
   
-;; retrieve the loop body
-(defprimitive loop_body (:loop lo) :basic_block
-  :doc #{Safely return the basic block body of loop $.LO.}#
-  #{ (($LO)?get_loop_body(($LO)):NULL) }#)
+;; retrieve the loop body as a tuple of boxed basic_block-s
+(defun loop_body_tuple (discr :loop lo) 
+  (if lo
+      (if (null discr) (setq discr discr_multiple))
+    (let ( (:long loopnbnodes 0) 
+	   )
+      (if lo 
+	  (code_chunk 
+	   getloopnbnodeschunk
+	   #{/*$GETLOOPNBNODESCHUNK*/
+	   $LOOPNBNODES = $LO -> num_nodes ; }#
+	   ))
+      (let ( (tupbody (make_multiple discr loopnbnodes))
+	     )
+	(assert_msg "$@$lopp_body_tuple not implemented")
+	))))
 
 ;; debugloop is ok even for nil
 (defprimitive debugloop (:loop lo :cstring msg) :void
@@ -2896,7 +2908,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  is_maptree
  is_tree  
  isnull_basicblock
- loop_body
+ loop_body_tuple
  loop_can_be_parallel
  make_basicblock
  make_gimple
