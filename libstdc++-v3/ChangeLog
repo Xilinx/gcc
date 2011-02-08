@@ -1,3 +1,54 @@
+2011-02-08  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/appendix_porting.xml: Add doc section.
+	* doc/xml/manual/appendix_contributing.xml: Split out doc bits to...
+	* doc/xml/manual/documentation_hacking.xml: ...here.
+
+	* doc/xml/manual/debug_mode.xml: Adjust.
+	* doc/xml/manual/prerequisites.xml: Adjust.
+	* doc/Makefile.am (xml_sources): Add dot files,
+	documentation_hacking.xml.
+	* doc/Makefile.in: Regenerate.
+
+	* doc/xml/manual/build_hacking.xml: Use absolute paths for images.
+	* doc/xml/images/confdeps.pdf: Add.
+
+2011-02-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/gnu/fdl-1.2.xml: Remove.
+	* doc/xml/gnu/gpl-2.0.xml: Remove.
+	* doc/Makefile.am: Update.
+	* doc/Makefile.in: Regenerate.
+
+2011-02-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47628
+	* include/bits/stl_tree.h (_Rb_tree::erase(iterator), erase(iterator,
+	iterator)): Add back in C++03 mode.
+	* testsuite/23_containers/map/modifiers/erase/47628.cc: New.
+	* testsuite/23_containers/multimap/modifiers/erase/47628.cc: Likewise.
+
+2011-02-07  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/47560 try two
+	* config/os/hpux/os_defines.h: Guard for C++.
+
+2011-02-07  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/xml/faq.xml: Adjust link to bug database.
+	Remove old item on broken header files.
+
+2011-02-04  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/bits/regex_error.h (__throw_regex_error): Not inline.
+	* src/functexcept.cc: Add definition.
+	* config/abi/pre/gnu.ver: Export.
+
+2011-02-04  Ralf Corsépius <ralf.corsepius@rtems.org>
+
+	* crossconfig.m4 (GLIBCXX_CROSSCONFIG): Add *-rtems*.
+	* configure: Regenerate.
+
 2011-02-01  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/46914

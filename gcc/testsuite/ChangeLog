@@ -1,3 +1,116 @@
+2011-02-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45290
+	* gfortran.dg/pointer_init_6.f90: New.
+
+2011-02-08  Jeff Law <law@redhat.com>
+
+	PR tree-optimization/42893
+	* gcc.tree-ssa/pr42893.c: New test.
+
+2011-02-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46834
+	PR tree-optimization/46994
+	PR tree-optimization/46995
+	* gcc.dg/graphite/id-pr46834.c: New.
+	* gfortran.dg/graphite/id-pr46994.f90: New.
+	* gfortran.dg/graphite/id-pr46995.f90: New.
+
+2011-02-08  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	PR middle-end/47646
+	* gcc.dg/pr39666-2.c (foo2): If the location of the statement
+	using the variable is known the warning is emitted there.
+	* gcc.dg/uninit-pr19430.c (foo): Likewise.
+	* g++.dg/warn/Wuninitialized-5.C (foo): Likewise.
+
+	* c-c++-common/pr20000.c (g): Both warnings occur at the return
+	statement.
+	(vg): Likewise.
+	* gcc.dg/noreturn-1.c (foo5): Likewise.
+	* objc.dg/attributes/method-noreturn-1.m (method1): Likewise.
+	(method2): Likewise.
+
+	* gfortran.dg/pr25923.f90 (baz): The warning will now be issued for
+	the return statement using the uninitialized variable.
+	* gfortran.dg/pr39666-2.f90 (f): Likewise.
+
+2011-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47639
+	* g++.dg/opt/pr47639.c: New testcase.
+
+2011-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47632
+	* g++.dg/opt/pr47632.C: New testcase.
+
+2011-02-07  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* g++.dg/abi/packed1.C: Expect warning on spu-*-* as well.
+
+2011-02-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47615
+	* g++.dg/opt/pr47615.C: New testcase.
+
+2011-02-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47621
+	* gcc.dg/torture/pr47621.c: New testcase.
+
+2011-02-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gfortran.dg/transpose_optimization_2.f90: Cleanup original dump.
+
+2011-02-06  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47592
+	* gfortran.dg/allocate_with_source_1 : New test.
+
+2011-02-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/47610
+	* gcc.dg/pr47610.c: New test.
+
+2011-02-05  Jie Zhang  <jie@codesourcery.com>
+
+	PR debug/42631
+	* gcc.dg/pr42631.c: Update test.
+	* gcc.dg/pr42631-2.c: New test.
+
+2001-02-05  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/47574
+	* gfortran.dg/pr47574.f90:  New test.
+
+2011-02-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46194
+	* gcc.dg/autopar/pr46194.c: New.
+
+2011-02-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR tree-optimization/43695
+	* g++.dg/ipa/pr43695.C: New.
+
+2011-02-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR inline-asm/23200
+	* gcc.dg/pr23200.c: New test.
+
+2011-02-03  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/47589
+	* g++.dg/pr47589.C: New test.
+
+2011-02-03  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47398
+	* g++.dg/template/typedef37.C: New test.
+	* g++.dg/template/param1.C: Adjust expected error message.
+
 2011-02-03  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/31490
@@ -406,9 +519,9 @@
 
 2011-01-25  Yao Qi  <yao@codesourcery.com>
 
-        PR target/45701
-        * gcc.target/arm/pr45701-1.c: New test.
-        * gcc.target/arm/pr45701-2.c: New test.
+	PR target/45701
+	* gcc.target/arm/pr45701-1.c: New test.
+	* gcc.target/arm/pr45701-2.c: New test.
 	* gcc.target/arm/pr45701-3.c: New test.
 
 2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
@@ -656,7 +769,7 @@
 2011-01-19  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/47291
-    	* g++.dg/debug/dwarf2/template-params-10.C: New test.
+	* g++.dg/debug/dwarf2/template-params-10.C: New test.
 
 2011-01-19  Alexandre Oliva  <aoliva@redhat.com>
 
@@ -760,7 +873,7 @@
 2011-01-16  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
 
 	PR testsuite/47325
-	g++.dg/ext/pr47213.C: Require visibility.
+	* g++.dg/ext/pr47213.C: Require visibility.
 
 2011-01-16  Richard Sandiford  <rdsandiford@googlemail.com>
 
@@ -807,9 +920,9 @@
 
 	PR objc/45989
 	* objc.dg/gnu-encoding/struct-layout-encoding-1_generate.c
-	(switchfiles): XFAIL
-	objc.dg-struct-layout-encoding-1/t02[57-9]_main.m execution tests
-	on i?86-*-*, x86_64-*-*, and powerpc*-apple-darwin* && ilp32.
+	(switchfiles): XFAIL objc.dg-struct-layout-encoding-1/t02[57-9]_main.m
+	execution tests on i?86-*-*, x86_64-*-* and
+	powerpc*-apple-darwin* && ilp32.
 	XFAIL objc.dg-struct-layout-encoding-1/t03[01]_main.m execution
 	tests on i?86-*-* and x86_64-*-*.
 
@@ -859,8 +972,7 @@
 
 2011-01-13  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
 
-	* gcc.dg/guality/pr36728-1.c: Disable arg1/2 checks for s390 and
-	s390x.
+	* gcc.dg/guality/pr36728-1.c: Disable arg1/2 checks for s390 and s390x.
 	* gcc.dg/guality/pr36728-2.c: Likewise.
 
 2011-01-13  Dodji Seketeli  <dodji@redhat.com>
@@ -898,8 +1010,8 @@
 	Amend NeXT version to declare a TEST_SUITE_ADDITIONS carrying the
 	methods missing from the OBJC2 Object.
 	* objc-obj-c++-shared/Object1-implementation.h: Add copyright header.
-	Amend implementation to use a TEST_SUITE_ADDITIONS category for both GNU
-	and NeXT runtimes.
+	Amend implementation to use a TEST_SUITE_ADDITIONS category for both
+	GNU and NeXT runtimes.
 	* objc-obj-c++-shared/Object1.mm: Remove redundant header, update
 	comments.
 	* objc-obj-c++-shared/Object1.m: Likewise.
@@ -1108,7 +1220,7 @@
 
 	PR objc/47232
 	* objc.dg/attributes/invalid-attribute-1.m: New.
-	* obj-c++.dg/attributes/invalid-attribute-1.mm: New.	
+	* obj-c++.dg/attributes/invalid-attribute-1.mm: New.
 
 2011-01-09  Janus Weil  <janus@gcc.gnu.org>
 
@@ -1214,11 +1326,13 @@
 
 	Get builtins tests ready for linker plugin.
 	* gcc.c-torture/execute/builtins/memcpy-chk.c (s2,s3,l1): Mark volatile.
-	* gcc.c-torture/execute/builtins/memops-asm-lib.c (my_memcpy, my_bcopy, my_memset,
-	my_bzero): Mark used.
+	* gcc.c-torture/execute/builtins/memops-asm-lib.c (my_memcpy, my_bcopy,
+	my_memset, my_bzero): Mark used.
 	* gcc.c-torture/execute/builtins/memset-chk.c (l1, l3): Mark volatile.
-	* gcc.c-torture/execute/builtins/memmove-chk.c (s1,s2,s3,l1): Mark volatile.
-	* gcc.c-torture/execute/builtins/mempcpy-chk.c (s2,s3,l1): Mark volatile
+	* gcc.c-torture/execute/builtins/memmove-chk.c (s1,s2,s3,l1): Mark
+	volatile.
+	* gcc.c-torture/execute/builtins/mempcpy-chk.c (s2,s3,l1): Mark
+	volatile.
 
 2011-01-07  Jan Hubicka  <jh@suse.cz>
 

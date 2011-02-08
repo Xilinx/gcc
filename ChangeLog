@@ -1,3 +1,22 @@
+2011-02-08  Tobias Burnus  <burnus@net-b.de>
+
+	* MAINTAINERS: Add myself as libquadmath maintainer.
+
+2011-02-08  Thomas Schwinge  <thomas@schwinge.name>
+
+	* MAINTAINERS: Update my email address.
+
+2011-02-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* MAINTAINERS (option handling): Add self.
+
+2011-02-06  Kai Tietz  <kai.tietz@onevision.com>
+
+	PR lto/47225
+	* Makefile.def: Add dependency for install-gcc
+	on install-lto-plugin.
+	* Makfile.in: Regenerated
+
 2011-02-01  Sebastien Bourdeauducq  <sebastien@milkymist.org>
 
 	* MAINTAINERS (CPU Port Maintainers): Add myself.

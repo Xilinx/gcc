@@ -1,3 +1,348 @@
+2011-02-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/xtensa/elf.opt: New.
+	* config.gcc (xtensa*-*-elf*): Use xtensa/elf.opt.
+
+2011-02-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/vax/elf.opt: New.
+	* config.gcc (vax-*-linux*, vax-*-netbsdelf*): Use vax/elf.opt.
+
+2011-02-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/rs6000/aix64.opt (posix, pthread): New Driver options.
+
+2011-02-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/gnu-user.opt: New.
+	* config.gcc (*-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu |
+	*-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu,
+	*-*-uclinux*): Use gnu-user.opt.
+
+2011-02-08  Thomas Schwinge  <thomas@schwinge.name>
+
+	* config/gnu.h (CPP_SPEC, LIB_SPEC): Remove handling of -bsd option.
+	* config/i386/gnu.h (CPP_SPEC): Likewise.
+
+2011-02-08  Ian Lance Taylor  <iant@google.com>
+
+	* common.opt (fcx-limited-range): Add SetByCombined flag.
+	(ffinite-math-only, fmath-errno, frounding-math): Likewise.
+	(fsignaling-nans, fsigned-zeros, ftrapping-math): Likewise.
+	(fassociative-math, freciprocal-math): Likewise.
+	(funsafe-math-optimizations): Likewise.
+	* opth-gen.awk: Handle SetByCombined.
+	* optc-gen.awk: Likewise.
+	* opts.c (set_fast_math_flags): Don't override flag if set by
+	frontend.
+	(set_unsafe_math_optimizations_flags): Likewise.
+	* doc/options.texi (Option properties): Document SetByCombined.
+
+2011-02-08  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.gcc (arc-*, alpha*-*-gnu*, arm*-*-netbsd*, arm-*-pe*,
+	i[34567]86-*-interix3*, i[34567]86-*-netbsd*, i[34567]86-*-pe,
+	m68hc11-*-*, m6811-*-*, m68hc12-*-*, m6812-*-*,
+	m68k-*-uclinuxoldabi*, mcore-*-pe*, powerpc*-*-gnu*,
+	sh*-*-symbianelf*, vax-*-netbsd*): Mark obsolete.
+
+2011-02-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46834
+	PR tree-optimization/46994
+	PR tree-optimization/46995
+	* graphite-sese-to-poly.c (used_outside_reduction): New.
+	(detect_commutative_reduction): Call used_outside_reduction.
+	(rewrite_commutative_reductions_out_of_ssa_close_phi): Call
+	translate_scalar_reduction_to_array only when at least one
+	loop-phi/close-phi tuple has been detected.
+
+2011-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47639
+	* tree-vect-generic.c (expand_vector_operations_1): Update
+	stmts here ...
+	(expand_vector_operations): ... not here.  Cleanup EH info
+	and the CFG if required.
+
+2011-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47641
+	* tree-ssa.c (execute_update_addresses_taken): For asm outputs
+	require type compatibility.
+
+2011-02-08  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gimple-low.c (lower_function_body): Don't remove the location of
+	the return statement here.
+	(lower_gimple_return): Do it here instead but only if the return
+	statement is actually used twice.
+
+2011-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47632
+	* tree-ssa-forwprop.c (remove_prop_source_from_use): Remove
+	unused up_to_stmt parameter, return whether cfg-cleanup is
+	necessary, remove EH info properly.
+	(forward_propagate_into_gimple_cond): Adjust caller.
+	(forward_propagate_into_cond): Likewise.
+	(forward_propagate_comparison): Likewise.
+	(tree_ssa_forward_propagate_single_use_vars): Make
+	forward_propagate_comparison case similar to the two others.
+
+2011-02-08  Nick Clifton  <nickc@redhat.com>
+
+	* config/mn10300/mn10300.opt (mliw): New command line option.
+	* config/mn10300/mn10300.md (UNSPEC_LIW): New unspec.
+	(liw_bundling): New automaton.
+	(liw): New attribute.
+	(liw_op): New attribute.
+	(liw_op1, liw_op2, liw_both, liw_either): New reservations.
+	(movsi_internal): Add LIW attributes.
+	(andsi3): Likewise.
+	(iorsi3): Likewise.
+	(xorsi3): Likewise.
+	(addsi3): Separate register and immediate alternatives.
+	Add LIW attributes.
+	(subsi3): Likewise.
+	(cmpsi): Likewise.
+	(aslsi3): Likewise.
+	(lshrsi3): Likewise.
+	(ashrsi3): Likewise.
+	(liw): New pattern.
+	* config/mn10300/mn10300.c (liw_op_names): New
+	(mn10300_print_operand): Handle 'W' operand descriptor.
+	(extract_bundle): New function.
+	(check_liw_constraints): New function.
+	(liw_candidate): New function.
+	(mn10300_bundle_liw): New function.
+	(mn10300_reorg): New function.
+	(TARGET_MACHINE_DEPENDENT_REORG): Define.
+	(TARGET_DEFAULT_TARGET_FLAGS): Add MASK_ALLOW_LIW.
+	* config/mn10300/mn10300.h (TARGET_CPU_CPP_BUILTINS): Define
+	__LIW__ or __NO_LIW__.
+	* doc/invoke.texi: Describe the -mliw command line option.
+
+2011-02-07  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config.gcc (hppa[12]*-*-hpux11*): Don't set extra_parts.
+	* config/pa/stublib.c (pthread_default_stacksize_np, pthread_mutex_lock,
+	pthread_mutex_unlock): Remove.
+	* config/pa/t-pa-hpux11: Remove rules to build pthread stubs.
+	* config/pa/t-pa64: Likewise.
+	* config/pa/pa64-hpux.h (LIB_SPEC): In static links, link against
+	shared libc if not linking against libpthread.
+	* config/pa/pa-hpux11.h (LIB_SPEC): Likewise.
+
+2011-02-07  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR target/47558
+	* config/darwin10.h (LINK_GCC_C_SEQUENCE_SPEC): Put -lSystem first
+	on 10.6 and later to ensure that we always use the unwinder from
+	the system.  Only add -no_compact_unwind when tarteting darwin
+	10.6 or later.
+
+2011-02-07  Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/46997
+	* vect.md (vec_interleave_highv2sf): Change fmix for TARGET_BIG_ENDIAN.
+	(vec_interleave_lowv2sf): Ditto.
+	(vec_extract_evenv2sf): Add TARGET_BIG_ENDIAN check.
+	(vec_extract_oddv2sf): Ditto.
+
+2011-02-07  Mike Stump  <mikestump@comcast.net>
+
+	PR target/42333
+	Add __ieee_divdc3 entry point.
+	* config/i386/darwin.h (DECLARE_LIBRARY_RENAMES): Retain ___divdc3
+	entry point.
+	(SUBTARGET_INIT_BUILTINS): Call darwin_rename_builtins.
+	* config/i386/i386.c (TARGET_INIT_LIBFUNCS): Likewise.
+	* config/darwin.c (darwin_rename_builtins): Add.
+	* config/darwin-protos.h (darwin_rename_builtins): Add.
+
+2011-02-07  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/47636
+	* config/rs6000/rs6000.md (rsqrt<mode>2): Use the correct macro
+	for the condition.
+
+2011-02-07  Mike Stump  <mikestump@comcast.net>
+
+	* config/darwin.opt (mmacosx-version-min): Update default OS
+	version.
+
+2011-02-07  Denis Chertykov  <chertykov@gmail.com>
+
+	PR target/47534
+	* config/avr/libgcc.S (exit): Move .endfunc
+
+2011-02-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47615
+	* tree-ssa-sccvn.h (run_scc_vn): Take a vn-walk mode argument.
+	* tree-ssa-sccvn.c (default_vn_walk_kind): New global.
+	(run_scc_vn): Initialize it.
+	(visit_reference_op_load): Use it.
+	* tree-ssa-pre.c (execute_pre): Use VN_WALK if in PRE.
+
+2011-02-07  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (spu_init_libfuncs): Install SImode and
+	DImode trapping arithmetic libfuncs.
+
+2011-02-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47621
+	* tree-ssa.c (non_rewritable_lvalue_p): New function, split out from
+	two duplicates ...
+	(execute_update_addresses_taken): ... here.  Make it more
+	conservative in what we accept.
+
+2011-02-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sparc/freebsd.h (ASM_SPEC): Define.
+	* config/sparc/vxworks.h (ASM_SPEC): Define.
+
+2011-02-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sparc/sol2-bi.h (CC1_SPEC): Remove %{sun4:} %{target:}.
+
+2011-02-06  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* doc/invoke.texi: Remove reference to compiler internals from
+	user documentation.
+
+	* reg-notes.def: Remove REG_VALUE_PROFILE.
+	* combine.c (distribute_notes): Do not handle REG_VALUE_PROFILE.
+
+2011-02-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/47610
+	* varasm.c (default_section_type_flags): If decl is NULL,
+	and name is .data.rel.ro or .data.rel.ro.local, set SECTION_RELRO bit.
+
+2011-02-05  Jie Zhang  <jie@codesourcery.com>
+
+	PR debug/42631
+	* web.c (entry_register): Don't clobber the number of the
+	first uninitialized reference in used[].
+
+2011-02-04  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46194
+	* tree-data-ref.c (analyze_miv_subscript): Remove comment.
+	(build_classic_dist_vector_1): Do not represent classic distance
+	vectors when the access functions are variating in different loops.
+
+2011-02-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mips/iris6.opt: New.
+	* config.gcc (mips-sgi-irix6.5*): Use mips/iris6.opt.
+
+2011-02-04  Richard Henderson  <rth@redhat.com>
+	    Steve Ellcey  <sje@cup.hp.com>
+
+	PR target/46997
+	* config/ia64/predicates.md (mux1_brcst_element): New.
+	* config/ia64/ia64-protos.h (ia64_unpack_assemble): New.
+	* config/ia64/ia64.c (ia64_unpack_assemble): New.
+	(ia64_unpack_sign): New.
+	(ia64_expand_unpack): Rewrite using new routines.
+	(ia64_expand_widen_sum): Ditto.
+	(ia64_expand_dot_prod_v8qi): Ditto.
+	* config/ia64/vect.md (mulv8qi3): Rewrite to use new
+	routines, add endian check.
+	(pmpy2_even): Rename from pmpy2_r, add endian check.
+	(pmpy2_odd): Rename from pmpy2_l, add endian check.
+	(vec_widen_smult_lo_v4hi): Rewrite using new routines.
+	(vec_widen_smult_hi_v4hi): Ditto.
+	(vec_widen_umult_lo_v4hi): Ditto.
+	(vec_widen_umult_hi_v4hi): Ditto.
+	(mulv2si3): Change endian checks.
+	(sdot_prodv4hi): Rewrite with new calls.
+	(udot_prodv4hi): New.
+	(vec_pack_ssat_v4hi): Add endian check.
+	(vec_pack_usat_v4hi): Ditto.
+	(vec_pack_ssat_v2si): Ditto.
+	(max1_even): Rename from max1_r, add endian check.
+	(max1_odd): Rename from max1_l, add endian check.
+	(*mux1_rev): Format change.
+	(*mux1_mix): Ditto.
+	(*mux1_shuf): Ditto.
+	(*mux1_alt): Ditto.
+	(*mux1_brcst_v8qi): Use new predicate.
+	(vec_extract_evenv8qi): Remove endian check.
+	(vec_extract_oddv8qi): Ditto.
+	(vec_interleave_lowv4hi): Format change.
+	(vec_interleave_highv4hi): Ditto.
+	(mix2_even): Rename from mix2_r, add endian check.
+	(mix2_odd): Rename from mux2_l, add endian check.
+	(*mux2): Fix mask setting for TARGET_BIG_ENDIAN.
+	(vec_extract_evenodd_helper): Format change.
+	(vec_extract_evenv4hi): Remove endian check.
+	(vec_extract_oddv4hi): Remove endian check.
+	(vec_interleave_lowv2si): Format change.
+	(vec_interleave_highv2si): Format change.
+	(vec_initv2si): Remove endian check.
+	(vecinit_v2si): Add endian check.
+	(reduc_splus_v2sf): Add endian check.
+	(reduc_smax_v2sf): Ditto.
+	(reduc_smin_v2sf): Ditto.
+	(vec_initv2sf): Remove endian check.
+	(fpack): Add endian check.
+	(fswap): Add endian check.
+	(vec_interleave_highv2sf): Add endian check.
+	(vec_interleave_lowv2sf): Add endian check.
+	(fmix_lr): Add endian check.
+	(vec_setv2sf): Format change.
+	(*vec_extractv2sf_0_be): Use shift to extract operand.
+	(*vec_extractv2sf_1_be): New.
+	(vec_pack_trunc_v4hi): Add endian check.
+	(vec_pack_trunc_v2si): Format change.
+
+2011-02-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR inline-asm/23200
+	* tree-ssa-ter.c (is_replaceable_p): Add TER argument.  Don't
+	do bb, locus and block comparison and disallow loads if it is not set.
+	(stmt_is_replaceable_p): New function.
+	(process_replaceable, find_replaceable_in_bb): Adjust is_replaceable_p
+	callers.
+	* expr.c (expand_expr_real_1) <case SSA_NAME>: If
+	get_gimple_for_ssa_name try for EXPAND_INITIALIZER harder to use
+	SSA_NAME_DEF_STMT.
+	* tree-flow.h (stmt_is_replaceable_p): New prototype.
+
+2011-02-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/rs6000/xilinx.opt: New.
+	* config.gcc (powerpc-xilinx-eabi*): Use rs6000/xilinx.opt.
+
+2011-02-04  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/mips/mips.opt (EB, EL, noasmopt): New Driver options.
+
+2011-02-03  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/xtensa/xtensa.h (PREFERRED_RELOAD_CLASS,
+	PREFERRED_OUTPUT_RELOAD_CLASS): Remove.
+	* config/xtensa/xtensa-protos.h (xtensa_preferred_reload_class,
+	secondary_reload_info, xtensa_secondary_reload): Remove.
+	* config/xtensa/xtensa.c (TARGET_PREFERRED_RELOAD_CLASS,
+	TARGET_PREFERRED_OUTPUT_RELOAD_CLASS): Define.
+	(xtensa_preferred_reload_class): Make static. Change return and
+	'rclass' argument type to reg_class_t. Remove 'isoutput' argument.
+	Use CONST_DOUBLE_P predicate.
+	(xtensa_preferred_output_reload_class): New function.
+	(xtensa_secondary_reload): Make static.
+
+2011-02-03  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/microblaze/microblaze.opt (Zxl-mode-bootstrap,
+	Zxl-mode-executable, Zxl-mode-novectors, Zxl-mode-xilkernel,
+	Zxl-mode-xmdstub, mxl-mode-xilkernel): New Driver options.
+
 2011-02-03  Jakub Jelinek  <jakub@redhat.com>
 
 	PR middle-end/31490
@@ -36,8 +381,7 @@
 
 	* config/rx/predicates.md (rx_zs_comparison_operator): Remove
 	lt and ge.
-	* config/rx/rx.md (abssi2_flags): Use CC_ZSmode rather than
-	CC_ZSOmode.
+	* config/rx/rx.md (abssi2_flags): Use CC_ZSmode rather than CC_ZSOmode.
 	* config/rx/rx.c (rx_print_operand): Use "lt" and "ge" suffixes
 	instead of "n" and "pz".
 	(flags_from_code): LT and GE tests need CC_FLAG_O as well as
@@ -277,8 +621,7 @@
 	debug insns.
 	(no_real_insns_p, schedule_block, set_priorities): Drop special
 	treatment of boundary debug insns.
-	* sched-deps.c (sd_init_insn, sd_finish_insn): Don't mark debug
-	insns.
+	* sched-deps.c (sd_init_insn, sd_finish_insn): Don't mark debug insns.
 	* sched-ebb.c (schedule_ebbs): Adjust skipping of debug insns.
 	* sched-int.h (DEBUG_INSN_SCHED_P): Remove.
 	(BOUNDARY_DEBUG_INSN_P): Likewise.
@@ -458,8 +801,7 @@
 	debug insns.
 	(no_real_insns_p, schedule_block, set_priorities): Drop special
 	treatment of boundary debug insns.
-	* sched-deps.c (sd_init_insn, sd_finish_insn): Don't mark debug
-	insns.
+	* sched-deps.c (sd_init_insn, sd_finish_insn): Don't mark debug insns.
 	* sched-ebb.c (schedule_ebbs): Don't skip debug insns.
 	* sched-int.h (DEBUG_INSN_SCHED_P): Remove.
 	(BOUNDARY_DEBUG_INSN_P): Likewise.
@@ -510,7 +852,7 @@
 	* ginclude/stddef.h: Check for _X86_64_ANSI_H_ and _I386_ANSI_H_ as
 	used by NetBSD.
 
-2011-01-28  Ahmad Sharif <asharif@google.com>
+2011-01-28  Ahmad Sharif  <asharif@google.com>
 
 	* value-prof.c (check_counter): Corrected error message.
 
@@ -519,8 +861,7 @@
 	* config/arm/arm.c (arm_legitimize_reload_address): New.
 	* config/arm/arm.h (ARM_LEGITIMIZE_RELOAD_ADDRESS): Use
 	arm_legitimize_reload_address.
-	* config/arm/arm-protos.h (arm_legitimize_reload_address):
-	Declare.
+	* config/arm/arm-protos.h (arm_legitimize_reload_address): Declare.
 
 2011-01-28  Ian Lance Taylor  <iant@google.com>
 
@@ -678,13 +1019,14 @@
 	that don't allow that.
 	* lto-cgraph.c (lto_output_node): Stream local.can_change_signature.
 	(lto_input_node): Likewise.
-	* ipa-inline.c (compute_inline_parameters): Compute local.can_change_signature.
+	* ipa-inline.c (compute_inline_parameters): Compute
+	local.can_change_signature.
 	* ipa-split.c (visit_bb): Never split away APPLY_ARGS.
-	* tree-sra.c (ipa_sra_preliminary_function_checks): Give up on functions
-	that can not change signature.
+	* tree-sra.c (ipa_sra_preliminary_function_checks): Give up on
+	functions that can not change signature.
 	* i386.c (ix86_function_regparm, ix86_function_sseregparm,
-	init_cumulative_args): Do not use local calling conventions for functions
-	that can not change signature.
+	init_cumulative_args): Do not use local calling conventions
+	for functions that can not change signature.
 
 2011-01-22  Jan Hubicka  <jh@suse.cz>
 
@@ -765,8 +1107,7 @@
 	debug insns.
 	(no_real_insns_p, schedule_block, set_priorities): Drop special
 	treatment of boundary debug insns.
-	* sched-deps.c (sd_init_insn, sd_finish_insn): Don't mark debug
-	insns.
+	* sched-deps.c (sd_init_insn, sd_finish_insn): Don't mark debug insns.
 	* sched-ebb.c (schedule_ebbs): Don't skip debug insns.
 	* sched-int.h (DEBUG_INSN_SCHED_P): Remove.
 	(BOUNDARY_DEBUG_INSN_P): Likewise.
@@ -885,9 +1226,8 @@
 	(rx_promote_function_mode): Likewise.
 	(gen_safe_add): Place an outsized immediate value inside an UNSPEC
 	in order to make it legitimate.
-	* config/rx/rx.md (adddi3_internal): If the second operand is a
-	MEM make sure that the first operand is the same as the result
-	register.
+	* config/rx/rx.md (adddi3_internal): If the second operand is a MEM
+	make sure that the first operand is the same as the result register.
 	(addsi3_unspec): Delete.
 	(subdi3): Do not accept immediate operands.
 	(subdi3_internal): Likewise.
@@ -945,8 +1285,7 @@
 2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-sese-to-poly.c (build_poly_scop): Move
-	rewrite_commutative_reductions_out_of_ssa before
-	find_scop_parameters.
+	rewrite_commutative_reductions_out_of_ssa before find_scop_parameters.
 
 2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
 
@@ -975,13 +1314,15 @@
 
 2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
 
-	* graphite-dependences.c (build_lexicographical_constraint): Remove the
-	gdim parameter.
-	(build_lexicographical_constraint): Adjust call to ppl_powerset_is_empty.
+	* graphite-dependences.c (build_lexicographical_constraint): Remove
+	the gdim parameter.
+	(build_lexicographical_constraint): Adjust call to
+	ppl_powerset_is_empty.
 	(dependence_polyhedron): Same.
 	(graphite_legal_transform_dr): Same.
 	(graphite_carried_dependence_level_k): Same.
-	* graphite-ppl.c (ppl_powerset_is_empty): Remove the nb_params parameter.
+	* graphite-ppl.c (ppl_powerset_is_empty): Remove the nb_params
+	parameter.
 	* graphite-ppl.h (ppl_powerset_is_empty): Adjust declaration.
 
 2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
@@ -1219,8 +1560,7 @@
 	(mov<>): FAIL if a constant operand is not legitimate.
 	(addsi3_unpsec): New pattern.
 
-	* config/rx/rx.c (rx_print_operand_address): Handle UNPSEC
-	CONSTs.
+	* config/rx/rx.c (rx_print_operand_address): Handle UNSPEC CONSTs.
 	(ok_for_max_constant): New function.
 	(gen_safe_add): New function.
 	(rx_expand_prologue): Use gen_safe_add.
@@ -1733,16 +2073,14 @@
 
 2011-01-18  Ramana Radhakrishnan  <ramana.radhakrishnan@arm.com>
 
-	* config/arm/cortex-a9.md (cortex-a9-neon.md): Actually
-	include.
+	* config/arm/cortex-a9.md (cortex-a9-neon.md): Actually include.
 	(cortex_a9_dp): Handle neon types correctly.
 
 2011-01-18  Jakub Jelinek  <jakub@redhat.com>
 
 	PR rtl-optimization/47299
 	* expr.c (expand_expr_real_2) <case WIDEN_MULT_EXPR>: Don't use
-	subtarget.  Use normal multiplication if both operands are
-	constants.
+	subtarget.  Use normal multiplication if both operands are constants.
 	* expmed.c (expand_widening_mult): Don't try to optimize constant
 	multiplication if op0 has VOIDmode.  Convert op1 constant to mode
 	before using it.
@@ -1989,8 +2327,7 @@
 
 2011-01-14  Joseph Myers  <joseph@codesourcery.com>
 
-	* config/rs6000/vxworks.h (CC1_SPEC): Don't handle -fvec or
-	-fvec-eabi.
+	* config/rs6000/vxworks.h (CC1_SPEC): Don't handle -fvec or -fvec-eabi.
 
 2011-01-14  Mike Stump  <mikestump@comcast.net>
 
@@ -2015,8 +2352,7 @@
 
 2011-01-14  Joseph Myers  <joseph@codesourcery.com>
 
-	* config/microblaze/microblaze.h (ASM_SPEC): Remove
-	%{microblaze1}.
+	* config/microblaze/microblaze.h (ASM_SPEC): Remove %{microblaze1}.
 
 2011-01-14  Joseph Myers  <joseph@codesourcery.com>
 

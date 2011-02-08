@@ -739,7 +739,7 @@ Objective-C and Objective-C++ Dialects}.
 -mno-am33 -mam33 -mam33-2 -mam34 @gol
 -mtune=@var{cpu-type} @gol
 -mreturn-pointer-on-d0 @gol
--mno-crt0  -mrelax}
+-mno-crt0  -mrelax -mliw}
 
 @emph{PDP-11 Options}
 @gccoptlist{-mfpu  -msoft-float  -mac0  -mno-ac0  -m40  -m45  -m10 @gol
@@ -8029,8 +8029,7 @@ If combined with @option{-fprofile-arcs}, it adds code so that some
 data about values of expressions in the program is gathered.
 
 With @option{-fbranch-probabilities}, it reads back the data gathered
-from profiling values of expressions and adds @samp{REG_VALUE_PROFILE}
-notes to instructions for their later usage in optimizations.
+from profiling values of expressions for usage in optimizations.
 
 Enabled with @option{-fprofile-generate} and @option{-fprofile-use}.
 
@@ -15036,6 +15035,19 @@ to shorten branches, calls and absolute memory addresses.  This option only
 has an effect when used on the command line for the final link step.
 
 This option makes symbolic debugging impossible.
+
+@item -mliw
+@opindex mliw
+Allow the compiler to generate @emph{Long Instruction Word}
+instructions if the target is the @samp{AM33} or later.  This is the
+default.  This option defines the preprocessor macro @samp{__LIW__}.
+
+@item -mnoliw
+@opindex mnoliw
+Do not allow the compiler to generate @emph{Long Instruction Word}
+instructions.  This option defines the preprocessor macro
+@samp{__NO_LIW__}.
+
 @end table
 
 @node PDP-11 Options
