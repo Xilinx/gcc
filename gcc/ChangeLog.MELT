@@ -1,5 +1,10 @@
 
 2011-02-08 Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (ctype_tree, ctype_gimple)
+	(ctype_basicblock, ctype_edge, ctype_loop, ctype_bitmap)
+	(ctype_rtx, ctype_rtvec): Fill ctypg_updateboxfun field.
+
+2011-02-08 Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt (class_ctype_gty): Add
 	ctypg_updateboxfun field.
 
