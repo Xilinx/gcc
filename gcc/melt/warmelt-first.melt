@@ -412,6 +412,7 @@ or data. A possible alternate keyword is given by $CTYPE_ALTKEYWORD.
 	   ctypg_mapunimemb		;union member name for map values
 	   ctypg_boxfun			;name of boxing function
 	   ctypg_unboxfun		;name of content unboxing function
+	   ctypg_updateboxfun		;name of box updating function
 	   ctypg_newmapfun		;name of map creating function
 	   ctypg_mapgetfun		;name of map getting function
 	   ctypg_mapputfun		;name of map putting function
