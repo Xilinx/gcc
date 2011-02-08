@@ -1,4 +1,7 @@
 
+2011-02-08 Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (gtype-input.list): Put with gtyp-real-input.list.
+
 2011-02-03  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Pass melt_extra_flags when compiling generated
 	xtramelt*.c files.

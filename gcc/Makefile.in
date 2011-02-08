@@ -3854,7 +3854,6 @@ gtyp-input.list gtyp-real-input.list gtyp-real-meltplugin-input.list: s-gtyp-inp
 GENGTYPE_FLAGS= -v
 
 
-gtyp-input.list: s-gtyp-input ; @true
 s-gtyp-input: Makefile
 	@: $(call write_entries_to_file,$(GTFILES),tmp-gi.list)
 	$(SHELL) $(srcdir)/../move-if-change tmp-gi.list gtyp-input.list
