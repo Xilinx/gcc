@@ -66,7 +66,12 @@ gpy_object_t * gpy_obj_integer_init (gpy_typedef_t * type,
 /* Destroys self (type) not the object state */
 void gpy_obj_integer_destroy (gpy_object_t * self)
 {
-  return;
+  gpy_assert (self->T == TYPE_OBJECT_STATE);
+  gpy_object_state_t * x = self->o.object_state;
+  struct gpy_obj_integer_t *x1 = (struct gpy_obj_integer_t *)
+    x->self;
+
+  gpy_free (x1);
 }
 
 void gpy_obj_integer_print (gpy_object_t * self, FILE * fd, bool newline)
@@ -83,7 +88,7 @@ void gpy_obj_integer_print (gpy_object_t * self, FILE * fd, bool newline)
 }
 
 gpy_object_t *
-gpy_obj_integer_whoop_noargs (gpy_object_t * self, gpy_object_t ** args )
+gpy_obj_integer_whoop_noargs (gpy_object_t * self, gpy_object_t ** args)
 {
   printf("inside whoop function!\n\n");
   return NULL_OBJECT;

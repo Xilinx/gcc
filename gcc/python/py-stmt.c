@@ -364,7 +364,8 @@ VEC(tree,gc) * gpy_process_functor( const gpy_symbol_obj * const  functor,
   return retval_vec;
 }
 
-VEC(tree,gc) * gpy_process_print( gpy_symbol_obj *sym, VEC(gpy_ctx_t,gc) * context )
+VEC(tree,gc) * gpy_process_print( gpy_symbol_obj *sym,
+				  VEC(gpy_ctx_t,gc) * context )
 {
   VEC(tree,gc) * retval = NULL;
   gcc_assert( sym->op_a_t == TYPE_SYMBOL );
@@ -406,7 +407,8 @@ VEC(tree,gc) * gpy_process_class( gpy_symbol_obj * const sym,
   return retval;
 }
 
-VEC(tree,gc) * gpy_get_tree( gpy_symbol_obj * sym, VEC(gpy_ctx_t,gc) * context )
+VEC(tree,gc) * gpy_get_tree( gpy_symbol_obj * sym,
+			     VEC(gpy_ctx_t,gc) * context )
 {
   VEC(tree,gc) * retval = NULL;
 

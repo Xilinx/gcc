@@ -17,14 +17,16 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __PY_TYPES_H__
 #define __PY_TYPES_H__
 
-extern tree gpy_build_callable_record_type( void );
-extern tree gpy_get_callable_record_type( void );
+extern tree gpy_build_callable_record_type (void);
 
-extern tree gpy_build_object_record_type( void );
-extern tree gpy_get_object_record_type( void );
+extern tree gpy_get_callable_record_type (void);
 
-extern tree gpy_init_callable_record( const char *, int, bool, tree );
+extern tree gpy_build_object_record_type (void);
 
-extern void gpy_initilize_types( void );
+extern tree gpy_get_object_record_type (void);
+
+extern tree gpy_init_callable_record (const char *, int, bool, tree);
+
+extern void gpy_initilize_types (void);
 
 #endif /* __PY_TYPES_H__ */

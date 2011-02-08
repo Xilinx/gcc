@@ -80,7 +80,7 @@ struct GTY(()) language_function {
 
 /* Language hooks.  */
 static
-bool gpy_langhook_init( void )
+bool gpy_langhook_init (void)
 {
   build_common_tree_nodes( false );
   build_common_tree_nodes_2( 0 );
@@ -95,16 +95,16 @@ bool gpy_langhook_init( void )
 
 /* Initialize before parsing options.  */
 static void
-gpy_langhook_init_options( unsigned int decoded_options_count,
-			   struct cl_decoded_option *decoded_options )
+gpy_langhook_init_options (unsigned int decoded_options_count,
+			   struct cl_decoded_option *decoded_options)
 {
   return;
 }
 
 /* Handle gpy specific options.  Return 0 if we didn't do anything.  */
 static bool
-gpy_langhook_handle_option( size_t scode, const char *arg, int value, int kind,
-			    const struct cl_option_handlers *handlers )
+gpy_langhook_handle_option (size_t scode, const char *arg, int value, int kind,
+			    const struct cl_option_handlers * handlers)
 {
   enum opt_code code = (enum opt_code) scode;
   int retval = 1;
@@ -143,7 +143,7 @@ gpy_langhook_parse_file( int set_yy_debug ATTRIBUTE_UNUSED )
   unsigned int idx = 0;
   debug("parse file!\n");
 
-  for( ; idx<num_in_fnames; ++idx )
+  for ( ; idx<num_in_fnames; ++idx )
     {
       const char * t = in_fnames[idx];
       debug("<%i> input = <%s>!\n", idx, t);

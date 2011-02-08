@@ -17,26 +17,26 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __RUNTIME_H__
 #define __RUNTIME_H__
 
-extern tree gpy_builtin_get_init_call( void );
+extern tree gpy_builtin_get_init_call (void);
 
-extern tree gpy_builtin_get_cleanup_final_call( void );
+extern tree gpy_builtin_get_cleanup_final_call (void);
 
-extern tree gpy_builtin_get_push_context_call( void);
+extern tree gpy_builtin_get_push_context_call (void);
 
-extern tree gpy_builtin_get_pop_context_call( void );
+extern tree gpy_builtin_get_pop_context_call (void);
 
-extern tree gpy_builtin_get_fold_int_call( int );
+extern tree gpy_builtin_get_fold_int_call (int);
 
-extern tree gpy_builtin_get_eval_accessor_call( tree , tree );
+extern tree gpy_builtin_get_eval_accessor_call (tree, tree);
 
-extern tree gpy_builtin_get_incr_ref_call( tree );
+extern tree gpy_builtin_get_incr_ref_call (tree);
 
-extern tree gpy_builtin_get_decr_ref_call( tree );
+extern tree gpy_builtin_get_decr_ref_call (tree);
 
-extern tree gpy_builtin_get_print_call( int , tree * );
+extern tree gpy_builtin_get_print_call (int, tree *);
 
-extern tree gpy_builtin_get_finalize_block_call( int , tree * );
+extern tree gpy_builtin_get_finalize_block_call (int, tree *);
 
-extern tree gpy_builtin_get_eval_expression_call( tree , tree , gpy_opcode_t );
+extern tree gpy_builtin_get_eval_expression_call (tree, tree, gpy_opcode_t);
 
 #endif /* __RUNTIME_H__ */
