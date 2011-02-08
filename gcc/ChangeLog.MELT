@@ -1,16 +1,43 @@
 
-2011-02-08 Basile Starynkevitch  <basile@starynkevitch.net>
+2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{regenerated}}
+	* melt/generated/warmelt-base-0.c: Regenerate.
+	* melt/generated/warmelt-debug-0.c: Regenerate.
+	* melt/generated/warmelt-first-0+01.c: Regenerate.
+	* melt/generated/warmelt-first-0+02.c: Regenerate.
+	* melt/generated/warmelt-first-0.c: Regenerate.
+	* melt/generated/warmelt-genobj-0+01.c: Regenerate.
+	* melt/generated/warmelt-genobj-0+03.c: Regenerate.
+	* melt/generated/warmelt-genobj-0+04.c: Regenerate.
+	* melt/generated/warmelt-genobj-0.c: Regenerate.
+	* melt/generated/warmelt-macro-0+01.c: Regenerate.
+	* melt/generated/warmelt-macro-0+02.c: Regenerate.
+	* melt/generated/warmelt-macro-0+03.c: Regenerate.
+	* melt/generated/warmelt-macro-0.c: Regenerate.
+	* melt/generated/warmelt-normal-0+01.c: Regenerate.
+	* melt/generated/warmelt-normal-0+02.c: Regenerate.
+	* melt/generated/warmelt-normal-0+03.c: Regenerate.
+	* melt/generated/warmelt-normal-0.c: Regenerate.
+	* melt/generated/warmelt-normatch-0+01.c: Regenerate.
+	* melt/generated/warmelt-normatch-0+03.c: Regenerate.
+	* melt/generated/warmelt-normatch-0.c: Regenerate.
+	* melt/generated/warmelt-outobj-0+04.c: Regenerate.
+	* melt/generated/warmelt-outobj-0.c: Regenerate.
+	* meltrunsup-inc.c: Regenerate.
+	* meltrunsup.h: Regenerate.
+
+2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-opengpu.melt (opengpu_exec): use correctly
 	loop_body_tuple.
 
-2011-02-08 Basile Starynkevitch  <basile@starynkevitch.net>
+2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-first.melt (ctype_tree, ctype_gimple)
 	(ctype_basicblock, ctype_edge, ctype_loop, ctype_bitmap)
 	(ctype_rtx, ctype_rtvec): Fill ctypg_updateboxfun field.
 
-2011-02-08 Basile Starynkevitch  <basile@starynkevitch.net>
+2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-first.melt (class_ctype_gty): Add
 	ctypg_updateboxfun field.
@@ -22,7 +49,7 @@
 
 	* melt/xtramelt-opengpu.melt (opengpu_exec): use loop_body_tuple.
 
-2011-02-08 Basile Starynkevitch  <basile@starynkevitch.net>
+2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in (gtype-input.list): Put with gtyp-real-input.list.
 

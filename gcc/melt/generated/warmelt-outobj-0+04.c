@@ -14294,35 +14294,35 @@ lab_endgetargs:;
      ;
      /*^getslot*/
      { melt_ptr_t slot=0;
-      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 22, "CTYPG_NEWMAPFUN");/*_.CTYPG_NEWMAPFUN__V23*/ meltfptr[22] = slot; };
+      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 23, "CTYPG_NEWMAPFUN");/*_.CTYPG_NEWMAPFUN__V23*/ meltfptr[22] = slot; };
      ;
      /*^getslot*/
      { melt_ptr_t slot=0;
-      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 23, "CTYPG_MAPGETFUN");/*_.CTYPG_MAPGETFUN__V24*/ meltfptr[23] = slot; };
+      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 24, "CTYPG_MAPGETFUN");/*_.CTYPG_MAPGETFUN__V24*/ meltfptr[23] = slot; };
      ;
      /*^getslot*/
      { melt_ptr_t slot=0;
-      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 24, "CTYPG_MAPPUTFUN");/*_.CTYPG_MAPPUTFUN__V25*/ meltfptr[24] = slot; };
+      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 25, "CTYPG_MAPPUTFUN");/*_.CTYPG_MAPPUTFUN__V25*/ meltfptr[24] = slot; };
      ;
      /*^getslot*/
      { melt_ptr_t slot=0;
-      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 25, "CTYPG_MAPREMOVEFUN");/*_.CTYPG_MAPREMOVEFUN__V26*/ meltfptr[25] = slot; };
+      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 26, "CTYPG_MAPREMOVEFUN");/*_.CTYPG_MAPREMOVEFUN__V26*/ meltfptr[25] = slot; };
      ;
      /*^getslot*/
      { melt_ptr_t slot=0;
-      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 26, "CTYPG_MAPCOUNTFUN");/*_.CTYPG_MAPCOUNTFUN__V27*/ meltfptr[26] = slot; };
+      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 27, "CTYPG_MAPCOUNTFUN");/*_.CTYPG_MAPCOUNTFUN__V27*/ meltfptr[26] = slot; };
      ;
      /*^getslot*/
      { melt_ptr_t slot=0;
-      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 27, "CTYPG_MAPSIZEFUN");/*_.CTYPG_MAPSIZEFUN__V28*/ meltfptr[27] = slot; };
+      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 28, "CTYPG_MAPSIZEFUN");/*_.CTYPG_MAPSIZEFUN__V28*/ meltfptr[27] = slot; };
      ;
      /*^getslot*/
      { melt_ptr_t slot=0;
-      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 28, "CTYPG_MAPNATTFUN");/*_.CTYPG_MAPNATTFUN__V29*/ meltfptr[28] = slot; };
+      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 29, "CTYPG_MAPNATTFUN");/*_.CTYPG_MAPNATTFUN__V29*/ meltfptr[28] = slot; };
      ;
      /*^getslot*/
      { melt_ptr_t slot=0;
-      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 29, "CTYPG_MAPNVALFUN");/*_.CTYPG_MAPNVALFUN__V30*/ meltfptr[29] = slot; };
+      melt_object_get_field(slot,(melt_ptr_t)(/*_.CURCTYP__V11*/ meltfptr[9]), 30, "CTYPG_MAPNVALFUN");/*_.CTYPG_MAPNVALFUN__V30*/ meltfptr[29] = slot; };
      ;
      MELT_LOCATION("warmelt-outobj.melt:6406:/ objgoto");
      /*objgoto*/ goto mtch1_1;
