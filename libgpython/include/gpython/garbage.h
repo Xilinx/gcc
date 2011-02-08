@@ -37,8 +37,9 @@ extern void gpy_garbage_free_obj( gpy_object_t * );
 
 #define gpy_garbage_mark_obj( x )			\
   gpy_assert( x );					\
-  debug("marking garbage <%p> ref count <%i>!\n",	\
-	(void*) x, x->ref_count );			\
+  if (x->T == TYPE_OBJECT_STATE)			\
+    debug("marking garbage <%p> ref count <%i>!\n",	\
+	  (void*) x, x->o.object_state->ref_count );	\
   gpy_garbage_mark_obj__( x );
 
 #endif //__GCC_GARBAGE_H__

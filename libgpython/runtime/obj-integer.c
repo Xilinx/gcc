@@ -45,12 +45,12 @@ class foo:
   Where program wise __init__ is called and the instance
   of the object is created as gpy_object_state_t *
 */
-gpy_object_t * gpy_obj_integer_init (gpy_type_obj_def_t * type,
+gpy_object_t * gpy_obj_integer_init (gpy_typedef_t * type,
 				     gpy_object_t ** args)
 {
   gpy_object_t * retval = NULL_OBJECT;
 
-  bool check = gpy_args_check_fmt (args, "i.");
+  bool check = gpy_args_check_fmt (args, "i");
   gpy_assert(check);
 
   int val = gpy_args_lit_parse_int (args[0]);
@@ -115,7 +115,7 @@ static struct gpy_number_prot_t integer_binary_ops = {
   NULL,
 };
 
-static struct gpy_type_obj_def_t integer_obj = {
+static struct gpy_typedef_t integer_obj = {
   "Int",
   sizeof(struct gpy_obj_integer_t),
   gpy_obj_integer_init,

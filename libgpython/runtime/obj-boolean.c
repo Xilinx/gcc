@@ -85,7 +85,7 @@ static struct gpy_number_prot_t boolean_binary_ops = {
   NULL,
 };
 
-static struct gpy_type_obj_def_t boolean_obj = {
+static struct gpy_typedef_t boolean_obj = {
   "Bool",
   sizeof(struct gpy_obj_boolean_t),
   gpy_obj_boolean_init,

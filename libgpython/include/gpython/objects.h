@@ -51,7 +51,7 @@ typedef struct gpy_rr_object_state_t {
   char * obj_t_ident;
   signed long ref_count;
   void * self;
-  struct gpy_type_obj_def_t * definition;
+  struct gpy_typedef_t * definition;
 } gpy_object_state_t ;
 
 typedef struct gpy_object_t {
@@ -99,15 +99,15 @@ typedef struct gpy_number_prot_t
 
 } gpy_num_prot_t ;
 
-typedef struct gpy_type_obj_def_t {
+typedef struct gpy_typedef_t {
   char * identifier;
   size_t builtin_type_size;
-  gpy_object_t * (*init_hook)(gpy_type_obj_def_t *, gpy_object_t **);
+  gpy_object_t * (*init_hook)(struct gpy_typedef_t *, gpy_object_t **);
   void (*destroy_hook)(gpy_object_t *);
   void (*print_hook)(gpy_object_t * , FILE *, bool);
   struct gpy_number_prot_t * binary_protocol;
   struct gpy_builtin_method_def_t * methods;
-} gpy_type_obj_def_t ;
+} gpy_typedef_t ;
 
 typedef gpy_object_t * (*__callable)( void );
 
@@ -135,7 +135,7 @@ extern gpy_object_t * gpy_rr_fold_integer (int);
 
 extern bool gpy_args_check_fmt (gpy_object_t **, const char *);
 extern int gpy_args_lit_parse_int (gpy_object_t *);
-extern gpy_object_t * gpy_create_object_state (gpy_type_obj_def_t *,
+extern gpy_object_t * gpy_create_object_state (gpy_typedef_t *,
 					       const void *);
 
 extern void gpy_rr_init_primitives (void);

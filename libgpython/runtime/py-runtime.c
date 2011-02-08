@@ -76,17 +76,17 @@ void gpy_rr_init_runtime( void )
 
 void gpy_rr_cleanup_final( void )
 {
-  gpy_rr_pop_context( );
+  gpy_rr_pop_context ();
 
   if( gpy_namespace_vec->length > 0 )
     error( "<%i> un-free'd conexts!\n", gpy_namespace_vec->length );
 
-  gpy_vec_free( gpy_namespace_vec );
-  gpy_vec_free( gpy_primitives );
-  gpy_vec_free( gpy_call_stack );
+  gpy_vec_free (gpy_namespace_vec);
+  gpy_vec_free (gpy_primitives);
+  gpy_vec_free (gpy_call_stack);
 }
 
-gpy_object_t * gpy_rr_fold_integer( int x )
+gpy_object_t * gpy_rr_fold_integer (int x)
 {
   gpy_object_t * retval = NULL_OBJECT;
 
@@ -103,18 +103,18 @@ gpy_object_t * gpy_rr_fold_integer( int x )
   args[0] = &a1;
   args[1] = &a2;
 
-  gpy_type_obj_def_t * Int_def = (gpy_type_obj_def_t *)
+  gpy_typedef_t * Int_def = (gpy_typedef_t *)
     gpy_primitives->vector[ 0 ];
   gpy_assert( Int_def );
 
-  retval = Int_def->init_hook (args);
+  retval = Int_def->init_hook (Int_def, args);
   gpy_free(args);
 
   debug("initilized integer object <%p> to <%i>!\n",
 	(void*)retval, x );
 
   gpy_assert (retval->T == TYPE_OBJECT_STATE);
-  Gpy_Incr_Ref (retval->o.object_state);
+  gpy_rr_incr_ref_count (retval);
 
   return retval;
 }
@@ -136,7 +136,7 @@ void gpy_rr_eval_print( int fd, int count, ...  )
     {
       it = va_arg( vl, gpy_object_t* );
       gpy_assert(it->T == TYPE_OBJECT_STATE);
-      struct gpy_type_obj_def_t * definition = it->o.object_state->definition;
+      struct gpy_typedef_t * definition = it->o.object_state->definition;
 
       switch( fd )
 	{
@@ -161,7 +161,7 @@ void gpy_rr_eval_print( int fd, int count, ...  )
 inline
 void gpy_rr_incr_ref_count( gpy_object_t * x1 )
 {
-  gpy_assert( x->T == TYPE_OBJECT_STATE );
+  gpy_assert( x1->T == TYPE_OBJECT_STATE );
   gpy_object_state_t * x = x1->o.object_state;
 
   debug("incrementing ref count on <%p>:<%i> to <%i>!\n",
@@ -172,7 +172,7 @@ void gpy_rr_incr_ref_count( gpy_object_t * x1 )
 inline
 void gpy_rr_decr_ref_count( gpy_object_t * x1 )
 {
-  gpy_assert( x->T == TYPE_OBJECT_STATE );
+  gpy_assert( x1->T == TYPE_OBJECT_STATE );
   gpy_object_state_t * x = x1->o.object_state;
 
   debug("decrementing ref count on <%p>:<%i> to <%i>!\n",
@@ -232,7 +232,7 @@ void gpy_rr_finalize_block_decls( int n, ... )
       it = va_arg( vl, gpy_object_t* );
       gpy_assert(it->T == TYPE_OBJECT_STATE);
       /* no assert this macro auto inserts an assert */
-      Gpy_Decr_Ref( it->o.object_state );
+      gpy_rr_decr_ref_count (it);
     }
   va_end(vl);
 }
@@ -261,7 +261,7 @@ gpy_object_t * gpy_rr_eval_expression (gpy_object_t * x1,
   gpy_object_state_t * x = x1->o.object_state;
   gpy_object_state_t * y = y1->o.object_state;
 
-  struct gpy_type_obj_def_t * def = x->definition;
+  struct gpy_typedef_t * def = x1->o.object_state->definition;
   struct gpy_number_prot_t * binops = (*def).binary_protocol;
   struct gpy_number_prot_t binops_l = (*binops);
 

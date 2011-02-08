@@ -40,7 +40,7 @@ void gpy_garbage_invoke (void)
   if( gpy_garbage_vec )
     {
       debug("garbage collector running...\n");
-      gpy_object_state_t * p_obj = NULL_OBJ_STATE;
+      gpy_object_t * p_obj = NULL_OBJECT;
 
       while ((p_obj = (gpy_object_t *)
 	      gpy_vec_pop( gpy_garbage_vec )))
@@ -109,7 +109,7 @@ void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
   gpy_garbage_invoke( );
 }
 
-void gpy_garbage_free_obj (gpy_object_state_t * x)
+void gpy_garbage_free_obj (gpy_object_t * x)
 {
   gpy_assert(x);
   debug("deleting garbage object <%p>!\n", (void*)x );
