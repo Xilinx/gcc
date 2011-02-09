@@ -1,6 +1,16 @@
 
 2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt (generate_runtypesupport_boxingfun):
+	New function.
+	(runtypesupport_docmd): Call it.
+
+	* melt-build.tpl: Copy correctly meltrunsup* to $(GCCMELTRUNGEN_DEST).
+
+	* melt-build.mk: Regenerate.
+
+2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* Makefile.in (upgrade-warmelt): manually clean after generation
 	of meltrunsup.h
 

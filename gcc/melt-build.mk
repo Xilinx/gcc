@@ -2541,7 +2541,7 @@ meltrun-generate: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
 	   for f in $(GCCMELTRUNGEN_DEST)/meltrunsup*.[ch]; \
 	     do mv $$f $$f.bak; \
 	   done; \
-	   cp -v meltrunsup*.[ch] $(GCCMELTRUNGEN_DEST) ; \
+	   cp -v meltrunsup*.[ch] "$(GCCMELTRUNGEN_DEST)" ; \
         fi
 
 ### MELT cleanup
