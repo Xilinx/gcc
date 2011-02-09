@@ -5,6 +5,18 @@
 	Correct the generation of the test of the magic discriminant
 	within generated updatebox-ing routines.
 
+	{{Regenerated again}}
+	* melt/generated/warmelt-base-0.c: Regenerate.
+	* melt/generated/warmelt-debug-0.c: Regenerate.
+	* melt/generated/warmelt-first-0.c: Regenerate.
+	* melt/generated/warmelt-genobj-0.c: Regenerate.
+	* melt/generated/warmelt-macro-0.c: Regenerate.
+	* melt/generated/warmelt-normal-0.c: Regenerate.
+	* melt/generated/warmelt-normatch-0.c: Regenerate.
+	* melt/generated/warmelt-outobj-0.c: Regenerate.
+	* meltrunsup-inc.c: Regenerate.
+	* meltrunsup.h: Regenerate.
+
 2011-02-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_new_tree, melt_tree_content)
 	(meltgc_new_gimple, melt_gimple_content, meltgc_new_gimpleseq)
