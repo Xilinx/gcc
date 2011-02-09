@@ -1,3 +1,24 @@
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47637
+	* gfortran.dg/auto_dealloc_2.f90: New.
+
+2011-02-09  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/builtins-config.h: Remove __sgi handling.
+	* lib/target-supports.exp (add_options_for_c99_runtime): Add
+	-std=c99 for mips-sgi-irix6.5*.
+
+2011-02-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/45505
+	* gfortran.dg/pr25923.f90: Remove xfails.
+
+2011-02-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/47583
+	* gfortran.dg/inquire_14.f90: New test.
+
 2011-02-08  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/45290

@@ -1,3 +1,12 @@
+2011-02-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* doc/xml/manual/io.xml: Fix typo.
+	* doc/html/manual/streambufs.html: Likewise.
+
+2011-02-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/abi/pre/gnu.ver: Fix.
+
 2011-02-08  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* doc/xml/manual/appendix_porting.xml: Add doc section.
@@ -12,6 +21,8 @@
 
 	* doc/xml/manual/build_hacking.xml: Use absolute paths for images.
 	* doc/xml/images/confdeps.pdf: Add.
+
+	* doc/html/*: Regenerate.
 
 2011-02-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
