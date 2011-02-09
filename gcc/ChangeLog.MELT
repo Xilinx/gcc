@@ -1,4 +1,9 @@
 
+2011-02-09  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (generate_runtypesupport_boxingfun):
+	Correct meta-typo in generated code.
+
 2011-02-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-outobj.melt (generate_runtypesupport_boxingfun):
