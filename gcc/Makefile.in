@@ -5523,7 +5523,8 @@ upgrade-warmelt: gtyp-real-meltplugin-input.list
 	  cp $(srcdir)/$$f $$f-old; \
           $(SHELL) $(srcdir)/../move-if-change $$f-tmp $(srcdir)/$$f; \
         done
-	$(MAKE) gt-melt-runtime-plugin.h
+	$(RM) melt-runtime.o s-gtype */warmelt*.o
+	$(MAKE) s-gtype gt-melt-runtime-plugin.h
 ## copy gt-melt-runtime-plugin.h
 	cp gt-melt-runtime-plugin.h $(srcdir)/melt/generated/
 ## rebuild warmelt1 to be sure
