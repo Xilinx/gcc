@@ -1,3 +1,8 @@
+2011-02-09  Richard Henderson  <rth@redhat.com>
+
+	PR 47530
+	* trans-mem.c (expand_block_edges): Reset tail-call bit.
+
 2011-02-07  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (requires_barrier): Add comment.

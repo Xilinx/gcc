@@ -2520,6 +2520,11 @@ expand_block_edges (struct tm_region *region, basic_block bb)
 	      bb = e->dest;
 	      gsi = gsi_start_bb (bb);
 	    }
+
+	  /* Delete any tail-call annotation that may have been added.
+	     The tail-call pass may have mis-identified the commit as being
+	     a candidate because we had not yet added this restart edge.  */
+	  gimple_call_set_tail (stmt, false);
 	}
 
       gsi_next (&gsi);
