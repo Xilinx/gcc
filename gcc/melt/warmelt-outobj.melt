@@ -6535,7 +6535,7 @@ melt_scanning (melt_ptr_t p)
 	    (add2sbuf_indentnl codebuf 1)
 	    (add2sbuf_strconst codebuf 
 			       "if (melt_magic_discr((melt_ptr_t)boxv) != ")
-	    (add2sbuf_string codebuf boxdiscr)
+	    (add2sbuf_string codebuf boxedmagic)
 	    (add2sbuf_strconst codebuf ") goto end;")
 	    (add2sbuf_indentnl codebuf 1)
 	    (add2sbuf_strconst codebuf "((struct ")

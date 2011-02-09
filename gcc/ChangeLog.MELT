@@ -1,5 +1,11 @@
 
 2011-02-09  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (generate_runtypesupport_boxingfun):
+	Correct the generation of the test of the magic discriminant
+	within generated updatebox-ing routines.
+
+2011-02-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_new_tree, melt_tree_content)
 	(meltgc_new_gimple, melt_gimple_content, meltgc_new_gimpleseq)
 	(melt_gimpleseq_content, meltgc_new_basicblock)
