@@ -1,5 +1,36 @@
 
 2011-02-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_new_tree, melt_tree_content)
+	(meltgc_new_gimple, melt_gimple_content, meltgc_new_gimpleseq)
+	(melt_gimpleseq_content, meltgc_new_basicblock)
+	(melt_basicblock_content, melt_basicblock_gimpleseq)
+	(meltgc_new_loop, melt_loop_content, meltgc_new_bitmap)
+	(meltgc_new_rtx, melt_rtx_content, meltgc_new_rtvec)
+	(melt_rtvec_content): Remove declarations or inline functions,
+	since they are now generated in meltrunsup.h & meltrunsup-inc.c
+	files.
+
+	* melt-runtime.c (meltgc_new_tree, meltgc_new_gimple)
+	(meltgc_new_gimpleseq, meltgc_new_basicblock, meltgc_new_loop)
+	(meltgc_new_rtx, meltgc_new_rtvec, meltgc_new_bitmap): Remove
+	functions which are now generated.
+
+	* melt/generated/warmelt-base-0.c: Regenerate.
+	* melt/generated/warmelt-debug-0.c: Regenerate.
+	* melt/generated/warmelt-first-0.c: Regenerate.
+	* melt/generated/warmelt-genobj-0.c: Regenerate.
+	* melt/generated/warmelt-macro-0.c: Regenerate.
+	* melt/generated/warmelt-normal-0.c: Regenerate.
+	* melt/generated/warmelt-normatch-0.c: Regenerate.
+	* melt/generated/warmelt-outobj-0+01.c: Regenerate.
+	* melt/generated/warmelt-outobj-0+02.c: Regenerate.
+	* melt/generated/warmelt-outobj-0+03.c: Regenerate.
+	* melt/generated/warmelt-outobj-0+04.c: Regenerate.
+	* melt/generated/warmelt-outobj-0.c: Regenerate.
+	* meltrunsup-inc.c: Regenerate.
+	* meltrunsup.h: Regenerate.
+
+2011-02-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-outobj.melt (generate_runtypesupport_boxingfun):
 	Correct meta-typo in generated code.

@@ -7,7 +7,7 @@ const char genversionstr_melt[]=
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[]="7fa09b0ad655a438c8335502e6314e33";
+const char md5prepromeltrun_melt[]="1be348535ca236dda5d5e9dd7861a9c1";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/
 

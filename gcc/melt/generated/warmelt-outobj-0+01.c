@@ -874,12 +874,17 @@ melt_ptr_t MELT_MODULE_VISIBILITY meltrout_168_warmelt_outobj_GENERATE_RUNTYPESU
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_169_warmelt_outobj_GENERATE_RUNTYPESUPPORT_MAPFUN(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_169_warmelt_outobj_GENERATE_RUNTYPESUPPORT_BOXINGFUN(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 
 
-melt_ptr_t MELT_MODULE_VISIBILITY meltrout_170_warmelt_outobj_RUNTYPESUPPORT_DOCMD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_170_warmelt_outobj_GENERATE_RUNTYPESUPPORT_MAPFUN(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY meltrout_171_warmelt_outobj_RUNTYPESUPPORT_DOCMD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
 
 void* start_module_melt (void*);
