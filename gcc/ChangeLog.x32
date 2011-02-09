@@ -1,3 +1,13 @@
+2011-02-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47383
+	* tree-ssa-loop-ivopts.c (find_bivs): Disabled for non-constant
+	base with negative step and Pmode !== ptr_mode.
+	(find_givs_in_stmt): Return for non-constant base with negative
+	step and Pmode !== ptr_mode.
+	(generic_type_for): Change arguments to base and step.  Check
+	non-constant base with negative step and Pmode !== ptr_mode.
+
 2011-01-29  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47537

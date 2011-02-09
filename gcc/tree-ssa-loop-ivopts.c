@@ -1029,7 +1029,20 @@ find_bivs (struct ivopts_data *data)
 	  if (POINTER_TYPE_P (type))
 	    step = fold_convert (sizetype, step);
 	  else
-	    step = fold_convert (type, step);
+	    {
+	      /* FIXME: add_candidate_1 calls generic_type_for to cast
+	         STEP to unsigned type with the same precision when BASE
+		 isn't NULL.  It leads to many problems when STEP is
+		 negative and Pmode != ptr_mode.  Disable it for now.  */
+	      if (Pmode != ptr_mode
+		  && base
+		  && TREE_CODE (base) != INTEGER_CST
+		  && TREE_CODE (step) == INTEGER_CST
+		  && tree_int_cst_sgn (step) < 0)
+		continue;
+
+	      step = fold_convert (type, step);
+	    }
 	}
 
       set_iv (data, PHI_RESULT (phi), base, step);
@@ -1119,6 +1132,18 @@ find_givs_in_stmt (struct ivopts_data *data, gimple stmt)
   affine_iv iv;
 
   if (!find_givs_in_stmt_scev (data, stmt, &iv))
+    return;
+
+  /* FIXME: add_candidate_1 calls generic_type_for to cast STEP to
+     unsigned type with the same precision when BASE isn't NULL.  It
+     leads to many problems when STEP is negative and Pmode != ptr_mode.
+     Disable it for now.  */
+  if (Pmode != ptr_mode
+      && iv.base
+      && TREE_CODE (iv.base) != INTEGER_CST
+      && iv.step
+      && TREE_CODE (iv.step) == INTEGER_CST
+      && tree_int_cst_sgn (iv.step) < 0)
     return;
 
   set_iv (data, gimple_assign_lhs (stmt), iv.base, iv.step);
@@ -2154,13 +2179,23 @@ strip_offset (tree expr, unsigned HOST_WIDE_INT *offset)
   return strip_offset_1 (expr, false, false, offset);
 }
 
-/* Returns variant of TYPE that can be used as base for different uses.
-   We return unsigned type with the same precision, which avoids problems
-   with overflows.  */
+/* Returns variant of BASE type that can be used as base for different
+   uses.  We return unsigned type with the same precision, which avoids
+   problems with overflows.
+
+   FIXME: How to avoid non-constant BASE with negative STEP and
+   Pmode !== ptr_mode.  */
 
 static tree
-generic_type_for (tree type)
+generic_type_for (tree base, tree step)
 {
+  tree type = TREE_TYPE (base);
+  if (Pmode != ptr_mode
+      && TREE_CODE (base) != INTEGER_CST
+      && TREE_CODE (step) == INTEGER_CST
+      && tree_int_cst_sgn (step) < 0)
+    gcc_unreachable ();
+
   if (POINTER_TYPE_P (type))
     return unsigned_type_for (type);
 
@@ -2206,13 +2241,12 @@ add_candidate_1 (struct ivopts_data *data,
 {
   unsigned i;
   struct iv_cand *cand = NULL;
-  tree type, orig_type;
+  tree type;
 
   if (base)
     {
-      orig_type = TREE_TYPE (base);
-      type = generic_type_for (orig_type);
-      if (type != orig_type)
+      type = generic_type_for (base, step);
+      if (type != TREE_TYPE (base))
 	{
 	  base = fold_convert (type, base);
 	  step = fold_convert (type, step);
