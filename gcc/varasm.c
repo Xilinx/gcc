@@ -1283,7 +1283,7 @@ make_decl_rtl (tree decl)
 	  addr_space_t as = TYPE_ADDR_SPACE (TREE_TYPE (decl));
 	  address_mode = targetm.addr_space.address_mode (as);
 	}
-      x = gen_rtx_SYMBOL_REF (address_mode, name);
+      x = gen_rtx_SYMBOL_REF (address_mode, strdup_to_rtl_mem (name));
     }
   SYMBOL_REF_WEAK (x) = DECL_WEAK (decl);
   SET_SYMBOL_REF_DECL (x, decl);

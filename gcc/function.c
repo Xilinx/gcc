@@ -4434,6 +4434,10 @@ prepare_function_start (void)
       cfun->su->static_stack_size = -1;
     }
 
+  /* cfun->machine is NULL after PCH read.  Initialize it.  */
+  if (!cfun->machine && init_machine_status)
+    cfun->machine = (*init_machine_status) ();
+
   cse_not_expected = ! optimize;
 
   /* Caller save not needed yet.  */

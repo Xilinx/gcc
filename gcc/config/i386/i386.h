@@ -2218,7 +2218,7 @@ struct GTY(()) machine_frame_state
   /* This pair tracks the currently active CFA as reg+offset.  When reg
      is drap_reg, we don't bother trying to record here the real CFA when
      it might really be a DW_CFA_def_cfa_expression.  */
-  rtx GTY((skip)) cfa_reg;
+  rtx GTY((deletable)) cfa_reg;
   HOST_WIDE_INT cfa_offset;
 
   /* The current offset (canonically from the CFA) of ESP and EBP.

@@ -182,8 +182,18 @@ copy_rtx_to_permanent_mem (rtx x)
 char *
 strdup_to_permanent_mem (const char *s)
 {
+  char *result;
+  rtl_obstack = &permanent_obstack;
+  result = strdup_to_rtl_mem (s);
+  rtl_obstack = &function_obstack;
+  return result;
+}
+
+char *
+strdup_to_rtl_mem (const char *s)
+{
   size_t len = strlen (s) + 1;
-  char *result = XOBNEWVAR (&permanent_obstack, char, len);
+  char *result = XOBNEWVAR (rtl_obstack, char, len);
   memcpy (result, s, len);
   return result;
 }

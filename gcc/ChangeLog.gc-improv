@@ -1,3 +1,66 @@
+2011-02-10  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* varasm.c (make_decl_rtl): Copy name to RTL memory for
+	gen_rtx_SYMBOL_REF call.
+
+	* target-globals.h (struct target_globals): Remove GTY markers.
+
+	* target-globals.c: Do not include ggc.h.
+	(save_target_globals): Use heap allocation.
+
+	* rtl.c (strdup_to_permanent_mem): Implement in terms of
+	strdup_to_rtl_mem.
+	(strdup_to_rtl_mem): New.
+
+	* optabs.c (set_optab_libfunc): Use heap allocation.
+	(set_conv_libfunc): Likewise.
+	(init_optabs): Likewise.
+
+	* libfuncs.h (struct libfunc_entry): Remove GTY markers.
+	(struct target_libfuncs): Likewise.
+	(default_target_libfuncs): Likewise.
+
+	* gengtype.c (process_gc_options): New argument deletable.  Handle
+	deletable option.
+	(set_gc_used_type): Adjust process_gc_options calls.  New local
+	variable deletable.  Treat option deletable as option skip.
+	(struct write_types_data): New field clear_deletable_fields.
+	(walk_type): New local variable deletable_p.  Output field
+	clearing code if option deletable detected and
+	clear_deletable_fields is set.
+	(ggc_wtd): Initialize with clear_deletable_fields set to false.
+	(pch_wtd): Initialize with clear_deletable_fields set to true.
+
+	* function.c (prepare_function_start): Initialize cfun->machine if
+	NULL.
+
+	* basic-block.h (struct edge_def): Replae GTY((skip)) with
+	GTY((deletable)) for fields of type rtx.
+	(struct basic_block_def): Likewise.
+
+	* cgraph.h (struct constant_descriptor_tree): Likewise.
+
+	* config/i386/i386.h (struct machine_frame_state): Likewise.
+
+	* dwarf2out.c (struct dw_val_struct): Likewise.
+	(struct var_loc_node): Likewise.
+
+	* except.h (eh_landing_pad_d): Likewise.
+	(eh_region_d): Likewise.
+
+	* function.h (struct function): Likewise.
+
+	* tree.h (struct tree_decl_with_rtl): Likewise.
+	(struct tree_parm_decl): Likewise.
+
+	* rtl.h (struct mem_attrs): Likewise.
+	(struct block_symbol): Likewise.
+	(strdup_to_rtl_mem): New.
+
+	* Makefile.in (target-globals.o): Remove $(GGC_H) from
+	dependencies.
+	(GTFILES): Remove libfuncs.h and target-globals.h.
+
 2011-02-04  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* gengtype.c (struct write_types_data): Remove redundant comment.

@@ -90,7 +90,7 @@ struct GTY(()) eh_landing_pad_d
      EXCEPTION_RECEIVER pattern will be expanded here, as well as other
      bookkeeping specific to exceptions.  There must not be normal edges
      into the block containing the landing-pad label.  */
-  rtx GTY((skip)) landing_pad;
+  rtx GTY((deletable)) landing_pad;
 
   /* The index of this landing pad within fun->eh->lp_array.  */
   int index;
@@ -178,8 +178,8 @@ struct GTY(()) eh_region_d
   /* EXC_PTR and FILTER values copied from the runtime for this region.
      Each region gets its own psuedos so that if there are nested exceptions
      we do not overwrite the values of the first exception.  */
-  rtx GTY((skip)) exc_ptr_reg;
-  rtx GTY((skip)) filter_reg;
+  rtx GTY((deletable)) exc_ptr_reg;
+  rtx GTY((deletable)) filter_reg;
 
   /* True if this region should use __cxa_end_cleanup instead
      of _Unwind_Resume.  */

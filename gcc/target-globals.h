@@ -36,21 +36,21 @@ extern struct target_builtins *this_target_builtins;
 extern struct target_gcse *this_target_gcse;
 extern struct target_bb_reorder *this_target_bb_reorder;
 
-struct GTY(()) target_globals {
-  struct target_flag_state *GTY((skip)) flag_state;
-  struct target_regs *GTY((skip)) regs;
+struct target_globals {
+  struct target_flag_state *flag_state;
+  struct target_regs *regs;
   struct target_rtl *rtl;
-  struct target_hard_regs *GTY((skip)) hard_regs;
-  struct target_reload *GTY((skip)) reload;
-  struct target_expmed *GTY((skip)) expmed;
-  struct target_optabs *GTY((skip)) optabs;
+  struct target_hard_regs *hard_regs;
+  struct target_reload *reload;
+  struct target_expmed *expmed;
+  struct target_optabs *optabs;
   struct target_libfuncs *libfuncs;
-  struct target_cfgloop *GTY((skip)) cfgloop;
-  struct target_ira *GTY((skip)) ira;
-  struct target_ira_int *GTY((skip)) ira_int;
-  struct target_builtins *GTY((skip)) builtins;
-  struct target_gcse *GTY((skip)) gcse;
-  struct target_bb_reorder *GTY((skip)) bb_reorder;
+  struct target_cfgloop *cfgloop;
+  struct target_ira *ira;
+  struct target_ira_int *ira_int;
+  struct target_builtins *builtins;
+  struct target_gcse *gcse;
+  struct target_bb_reorder *bb_reorder;
 };
 
 extern struct target_globals default_target_globals;

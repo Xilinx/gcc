@@ -41,7 +41,7 @@ struct GTY(()) edge_def {
   /* Instructions queued on the edge.  */
   union edge_def_insns {
     gimple_seq GTY ((tag ("true"))) g;
-    rtx GTY ((tag ("false"),skip)) r;
+    rtx GTY ((tag ("false"),deletable)) r;
   } GTY ((desc ("current_ir_type () == IR_GIMPLE"))) insns;
 
   /* Auxiliary info specific to a pass.  */
@@ -147,7 +147,7 @@ struct GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb"))) basic_block_d
 
   union basic_block_il_dependent {
       struct gimple_bb_info * GTY ((tag ("0"))) gimple;
-      struct rtl_bb_info * GTY ((tag ("1"), skip)) rtl;
+      struct rtl_bb_info * GTY ((tag ("1"), deletable)) rtl;
     } GTY ((desc ("((%1.flags & BB_RTL) != 0)"))) il;
 
   /* Expected number of executions: calculated in profile.c.  */

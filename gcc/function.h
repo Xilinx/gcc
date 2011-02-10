@@ -540,7 +540,7 @@ struct GTY(()) function {
   /* For md files.  */
 
   /* tm.h can use this to store whatever it likes.  */
-  struct machine_function * GTY ((skip)) machine;
+  struct machine_function * GTY ((deletable)) machine;
 
   /* Language-specific code can use this to store whatever it likes.  */
   struct language_function * language;

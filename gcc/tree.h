@@ -2858,7 +2858,7 @@ extern void decl_value_expr_insert (tree, tree);
 
 struct GTY(()) tree_decl_with_rtl {
   struct tree_decl_common common;
-  rtx GTY((skip)) rtl;
+  rtx GTY((deletable)) rtl;
 };
 
 /* In a FIELD_DECL, this is the field position, counting in bytes, of the
@@ -2977,7 +2977,7 @@ struct GTY(()) tree_const_decl {
 
 struct GTY(()) tree_parm_decl {
   struct tree_decl_with_rtl common;
-  rtx GTY((skip)) incoming_rtl;
+  rtx GTY((deletable)) incoming_rtl;
   struct var_ann_d *ann;
 };
 

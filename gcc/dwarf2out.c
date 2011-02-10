@@ -4407,7 +4407,7 @@ typedef struct GTY(()) dw_val_struct {
   enum dw_val_class val_class;
   union dw_val_struct_union
     {
-      rtx GTY ((tag ("dw_val_class_addr"),skip)) val_addr;
+      rtx GTY ((tag ("dw_val_class_addr"),deletable)) val_addr;
       unsigned HOST_WIDE_INT GTY ((tag ("dw_val_class_offset"))) val_offset;
       dw_loc_list_ref GTY ((tag ("dw_val_class_loc_list"))) val_loc_list;
       dw_loc_descr_ref GTY ((tag ("dw_val_class_loc"))) val_loc;
@@ -6017,7 +6017,7 @@ struct GTY ((chain_next ("%h.next"))) var_loc_node {
      mode is 0 and first operand is a CONCAT with bitsize
      as first CONCAT operand and NOTE_INSN_VAR_LOCATION resp.
      NULL as second operand.  */
-  rtx GTY ((skip)) loc;
+  rtx GTY ((deletable)) loc;
   const char * GTY (()) label;
   struct var_loc_node * GTY (()) next;
 };

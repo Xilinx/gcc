@@ -144,8 +144,8 @@ typedef struct
 typedef struct GTY(()) mem_attrs
 {
   tree expr;			/* expr corresponding to MEM.  */
-  rtx GTY((skip)) offset;	/* Offset from start of DECL, as CONST_INT.  */
-  rtx GTY((skip)) size;		/* Size in bytes, as a CONST_INT.  */
+  rtx GTY((deletable)) offset;	/* Offset from start of DECL, as CONST_INT.  */
+  rtx GTY((deletable)) size;		/* Size in bytes, as a CONST_INT.  */
   alias_set_type alias;		/* Memory alias set.  */
   unsigned int align;		/* Alignment of MEM in bits.  */
   unsigned char addrspace;	/* Address space (0 for generic).  */
@@ -188,7 +188,7 @@ typedef union rtunion_def rtunion;
    if SYMBOL_REF_HAS_BLOCK_INFO_P is true.  */
 struct GTY(()) block_symbol {
   /* The usual SYMBOL_REF fields.  */
-  rtunion GTY ((skip)) fld[3];
+  rtunion GTY ((deletable)) fld[3];
 
   /* The block that contains this object.  */
   struct object_block *block;
@@ -1613,6 +1613,7 @@ extern void * allocate_in_rtl_mem (int);
 extern void * allocate_in_rtl_function_mem (int);
 extern rtx copy_rtx_to_permanent_mem (rtx);
 extern char * strdup_to_permanent_mem (const char *);
+extern char * strdup_to_rtl_mem (const char *);
 
 extern rtx rtx_alloc_stat (RTX_CODE MEM_STAT_DECL);
 #define rtx_alloc(c) rtx_alloc_stat (c MEM_STAT_INFO)

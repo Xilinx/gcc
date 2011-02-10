@@ -950,7 +950,7 @@ static void set_gc_used (pair_p);
 
 static void
 process_gc_options (options_p opt, enum gc_used_enum level, bool *maybe_undef,
-		    bool *pass_param, bool *length, bool *skip,
+		    bool *pass_param, bool *length, bool *skip, bool *deletable,
 		    type_p *nested_ptr)
 {
   options_p o;
@@ -967,6 +967,8 @@ process_gc_options (options_p opt, enum gc_used_enum level, bool *maybe_undef,
       *length = true;
     else if (strcmp (o->name, "skip") == 0)
       *skip = true;
+    else if (strcmp (o->name, "deletable") == 0)
+      *deletable = true;
     else if (strcmp (o->name, "nested_ptr") == 0
 	     && o->kind == OPTION_NESTED)
       *nested_ptr = ((const struct nested_ptr_data *) o->info.nested)->type;
@@ -992,7 +994,7 @@ set_gc_used_type (type_p t, enum gc_used_enum level, type_p param[NUM_PARAM])
 	type_p dummy2;
 
 	process_gc_options (t->u.s.opt, level, &dummy, &dummy, &dummy, &dummy,
-			    &dummy2);
+			    &dummy, &dummy2);
 
 	for (f = t->u.s.fields; f; f = f->next)
 	  {
@@ -1000,9 +1002,10 @@ set_gc_used_type (type_p t, enum gc_used_enum level, type_p param[NUM_PARAM])
 	    bool pass_param = false;
 	    bool length = false;
 	    bool skip = false;
+	    bool deletable = false;
 	    type_p nested_ptr = NULL;
 	    process_gc_options (f->opt, level, &maybe_undef, &pass_param,
-				&length, &skip, &nested_ptr);
+				&length, &skip, &deletable, &nested_ptr);
 
 	    if (nested_ptr && f->type->kind == TYPE_POINTER)
 	      set_gc_used_type (nested_ptr, GC_POINTED_TO,
@@ -1014,7 +1017,7 @@ set_gc_used_type (type_p t, enum gc_used_enum level, type_p param[NUM_PARAM])
 	    else if (pass_param && f->type->kind == TYPE_POINTER && param)
 	      set_gc_used_type (find_param_structure (f->type->u.p, param),
 				GC_POINTED_TO, NULL);
-	    else if (skip)
+	    else if (skip || deletable)
 	      ;			/* target type is not used through this field */
 	    else
 	      set_gc_used_type (f->type, GC_USED, pass_param ? param : NULL);
@@ -1852,6 +1855,7 @@ struct write_types_data
   const char *reorder_note_routine;
   const char *comment;
   bool skip_hooks;
+  bool clear_deletable_fields;
 };
 
 static void output_escaped_param (struct walk_type_data *d,
@@ -2306,6 +2310,7 @@ walk_type (type_p t, struct walk_type_data *d)
 	    bool skip_p = false;
 	    bool default_p = false;
 	    bool use_param_p = false;
+	    bool deletable_p = false;
 	    char *newval;
 
 	    d->reorder_fn = NULL;
@@ -2318,6 +2323,8 @@ walk_type (type_p t, struct walk_type_data *d)
 		tagid = oo->info.string;
 	      else if (strcmp (oo->name, "skip") == 0)
 		skip_p = true;
+	      else if (strcmp (oo->name, "deletable") == 0)
+		deletable_p = true;
 	      else if (strcmp (oo->name, "default") == 0)
 		default_p = true;
 	      else if (strcmp (oo->name, "reorder") == 0
@@ -2366,6 +2373,11 @@ walk_type (type_p t, struct walk_type_data *d)
 
 	    if (union_p && use_param_p && d->param == NULL)
 	      oprintf (d->of, "%*sgcc_unreachable ();\n", d->indent, "");
+	    else if (deletable_p)
+	      {
+		if (d->wtd && d->wtd->clear_deletable_fields)
+		  oprintf (d->of, "%*s%s = NULL;\n", d->indent, "", newval);
+	      }
 	    else
 	      walk_type (f->type, d);
 
@@ -2866,14 +2878,14 @@ write_types (outf_p output_header, type_p structures, type_p param_structs,
 static const struct write_types_data ggc_wtd = {
   "ggc_m", NULL, "ggc_mark", "ggc_test_and_set_mark", NULL,
   "GC marker procedures.  ",
-  false
+  false, false
 };
 
 static const struct write_types_data pch_wtd = {
   "pch_n", "pch_p", "gt_pch_note_object", "gt_pch_note_object",
   "gt_pch_note_reorder",
   "PCH type-walking procedures.  ",
-  true
+  true, true
 };
 
 /* Write out the local pointer-walking routines.  */

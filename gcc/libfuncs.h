@@ -50,23 +50,23 @@ enum libfunc_index
 /* Information about an optab-related libfunc.  We use the same hashtable
    for normal optabs and conversion optabs.  In the first case mode2
    is unused.  */
-struct GTY(()) libfunc_entry {
+struct libfunc_entry {
   size_t optab;
   enum machine_mode mode1, mode2;
-  rtx GTY((skip)) libfunc;
+  rtx libfunc;
 };
 
 /* Target-dependent globals.  */
-struct GTY(()) target_libfuncs {
+struct target_libfuncs {
   /* SYMBOL_REF rtx's for the library functions that are called
      implicitly and not via optabs.  */
-  rtx GTY((skip)) x_libfunc_table[LTI_MAX];
+  rtx x_libfunc_table[LTI_MAX];
 
   /* Hash table used to convert declarations into nodes.  */
-  htab_t GTY((param_is (struct libfunc_entry))) x_libfunc_hash;
+  htab_t x_libfunc_hash;
 };
 
-extern GTY(()) struct target_libfuncs default_target_libfuncs;
+extern struct target_libfuncs default_target_libfuncs;
 #if SWITCHABLE_TARGET
 extern struct target_libfuncs *this_target_libfuncs;
 #else

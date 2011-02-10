@@ -23,7 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "insn-config.h"
 #include "machmode.h"
-#include "ggc.h"
 #include "toplev.h"
 #include "target-globals.h"
 #include "flags.h"
@@ -64,7 +63,7 @@ save_target_globals (void)
 {
   struct target_globals *g;
 
-  g = ggc_alloc_target_globals ();
+  g = XCNEW (struct target_globals);
   g->flag_state = XCNEW (struct target_flag_state);
   g->regs = XCNEW (struct target_regs);
   g->rtl = ggc_alloc_cleared_target_rtl ();
@@ -72,7 +71,7 @@ save_target_globals (void)
   g->reload = XCNEW (struct target_reload);
   g->expmed = XCNEW (struct target_expmed);
   g->optabs = XCNEW (struct target_optabs);
-  g->libfuncs = ggc_alloc_cleared_target_libfuncs ();
+  g->libfuncs = XCNEW (struct target_libfuncs);
   g->cfgloop = XCNEW (struct target_cfgloop);
   g->ira = XCNEW (struct target_ira);
   g->ira_int = XCNEW (struct target_ira_int);
