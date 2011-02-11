@@ -4684,6 +4684,18 @@ else
 fi)
 AC_SUBST(slibdir)
 
+# Set default prefix canonicalization.
+
+AC_ARG_ENABLE(canonical-prefixes,
+[  --enable-canonical-prefixes
+                          enable or disable prefix canonicalization],
+[],
+enable_canonical_prefixes=yes)
+if test x"$enable_canonical_prefixes" = xyes; then
+  AC_DEFINE(ENABLE_CANONICAL_PREFIXES,
+            1, [Define to enable prefix canonicalization.])
+fi
+
 # Substitute configuration variables
 AC_SUBST(subdirs)
 AC_SUBST(srcdir)

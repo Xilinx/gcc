@@ -916,6 +916,7 @@ with_system_zlib
 enable_maintainer_mode
 enable_version_specific_runtime_libs
 with_slibdir
+enable_canonical_prefixes
 enable_plugin
 enable_libquadmath_support
 '
@@ -1627,6 +1628,8 @@ Optional Features:
   --enable-version-specific-runtime-libs
                           specify that runtime libraries should be
                           installed in a compiler-specific directory
+  --enable-canonical-prefixes
+                          enable or disable prefix canonicalization
   --enable-plugin         enable plugin support
   --disable-libquadmath-support
                           disable libquadmath support for Fortran
@@ -17583,7 +17586,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17586 "configure"
+#line 17589 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17689,7 +17692,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17692 "configure"
+#line 17695 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -26155,6 +26158,21 @@ fi
 fi
 
 
+
+# Set default prefix canonicalization.
+
+# Check whether --enable-canonical-prefixes was given.
+if test "${enable_canonical_prefixes+set}" = set; then :
+  enableval=$enable_canonical_prefixes;
+else
+  enable_canonical_prefixes=yes
+fi
+
+if test x"$enable_canonical_prefixes" = xyes; then
+
+$as_echo "#define ENABLE_CANONICAL_PREFIXES 1" >>confdefs.h
+
+fi
 
 # Substitute configuration variables
 

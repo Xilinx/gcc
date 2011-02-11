@@ -1,3 +1,12 @@
+2011-02-11  Simon Baldwin  <simonb@google.com>
+
+	* doc/install.texi: Add --disable-canonical-prefixes documentation.
+	* configure.ac: Add --disable-canonical-prefixes option.
+	* configure: Rebuild.
+	* config.in: Rebuild.
+	* gcc.c (process_command): Remove auto-detection, set default
+	prefix canonicalization mode from configure flag.
+
 2011-02-07  Simon Baldwin  <simonb@google.com>
 
 	PR driver/29931
