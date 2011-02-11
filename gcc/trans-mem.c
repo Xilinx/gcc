@@ -3753,8 +3753,8 @@ ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr, bitmap old_irr,
 	       son = next_dom_son (CDI_DOMINATORS, son))
 	    {
 	      /* Make sure a block isn't already in old_irr.  */
-	      gcc_assert (!old_irr || !bitmap_bit_p (old_irr, son->index));
-	      bitmap_set_bit (new_irr, son->index);
+	      if (!old_irr || !bitmap_bit_p (old_irr, son->index))
+		bitmap_set_bit (new_irr, son->index);
 	    }
 	}
     }

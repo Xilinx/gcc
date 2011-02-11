@@ -1,3 +1,8 @@
+2011-02-11  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR 46567
+	* trans-mem.c (ipa_tm_propagate_irr): Change assert to if.
+
 2011-02-09  Richard Henderson  <rth@redhat.com>
 
 	PR 47530
