@@ -1,3 +1,9 @@
+2011-02-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47383
+	* tree-ssa-address.c (addr_for_mem_ref): Use ptr_mode instead
+	of targetm.addr_space.address_mode.
+
 2011-02-11  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/47383

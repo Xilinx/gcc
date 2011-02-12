@@ -188,12 +188,12 @@ rtx
 addr_for_mem_ref (struct mem_address *addr, addr_space_t as,
 		  bool really_expand)
 {
-  enum machine_mode address_mode = targetm.addr_space.address_mode (as);
   rtx address, sym, bse, idx, st, off;
   struct mem_addr_template *templ;
 
   if (addr->step && !integer_onep (addr->step))
-    st = immed_double_int_const (tree_to_double_int (addr->step), address_mode);
+    st = immed_double_int_const (tree_to_double_int (addr->step),
+				 ptr_mode);
   else
     st = NULL_RTX;
 
@@ -201,7 +201,7 @@ addr_for_mem_ref (struct mem_address *addr, addr_space_t as,
     off = immed_double_int_const
 	    (double_int_sext (tree_to_double_int (addr->offset),
 			      TYPE_PRECISION (TREE_TYPE (addr->offset))),
-	     address_mode);
+	     ptr_mode);
   else
     off = NULL_RTX;
 
@@ -220,16 +220,16 @@ addr_for_mem_ref (struct mem_address *addr, addr_space_t as,
       if (!templ->ref)
 	{
 	  sym = (addr->symbol ?
-		 gen_rtx_SYMBOL_REF (address_mode, ggc_strdup ("test_symbol"))
+		 gen_rtx_SYMBOL_REF (ptr_mode, ggc_strdup ("test_symbol"))
 		 : NULL_RTX);
 	  bse = (addr->base ?
-		 gen_raw_REG (address_mode, LAST_VIRTUAL_REGISTER + 1)
+		 gen_raw_REG (ptr_mode, LAST_VIRTUAL_REGISTER + 1)
 		 : NULL_RTX);
 	  idx = (addr->index ?
-		 gen_raw_REG (address_mode, LAST_VIRTUAL_REGISTER + 2)
+		 gen_raw_REG (ptr_mode, LAST_VIRTUAL_REGISTER + 2)
 		 : NULL_RTX);
 
-	  gen_addr_rtx (address_mode, sym, bse, idx,
+	  gen_addr_rtx (ptr_mode, sym, bse, idx,
 			st? const0_rtx : NULL_RTX,
 			off? const0_rtx : NULL_RTX,
 			&templ->ref,
@@ -247,16 +247,16 @@ addr_for_mem_ref (struct mem_address *addr, addr_space_t as,
 
   /* Otherwise really expand the expressions.  */
   sym = (addr->symbol
-	 ? expand_expr (addr->symbol, NULL_RTX, address_mode, EXPAND_NORMAL)
+	 ? expand_expr (addr->symbol, NULL_RTX, ptr_mode, EXPAND_NORMAL)
 	 : NULL_RTX);
   bse = (addr->base
-	 ? expand_expr (addr->base, NULL_RTX, address_mode, EXPAND_NORMAL)
+	 ? expand_expr (addr->base, NULL_RTX, ptr_mode, EXPAND_NORMAL)
 	 : NULL_RTX);
   idx = (addr->index
-	 ? expand_expr (addr->index, NULL_RTX, address_mode, EXPAND_NORMAL)
+	 ? expand_expr (addr->index, NULL_RTX, ptr_mode, EXPAND_NORMAL)
 	 : NULL_RTX);
 
-  gen_addr_rtx (address_mode, sym, bse, idx, st, off, &address, NULL, NULL);
+  gen_addr_rtx (ptr_mode, sym, bse, idx, st, off, &address, NULL, NULL);
   return address;
 }
 
