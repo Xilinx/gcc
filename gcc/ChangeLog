@@ -1,3 +1,166 @@
+2011-02-12  Mike Stump  <mikestump@comcast.net>
+
+	* config/frv/frv.h (TRANSFER_FROM_TRAMPOLINE): Canonicalize
+	comments in backslash regions.
+
+2011-02-12  Mike Stump  <mikestump@comcast.net>
+	    Jakub Jelinek  <jakub@redhat.com>
+	    Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR target/47324
+	* dwarf2out.c (output_cfa_loc): When required, apply the
+	DWARF2_FRAME_REG_OUT macro to adjust register numbers.
+	(output_loc_sequence): Likewise.
+	(output_loc_operands_raw): Likewise.
+	(output_loc_sequence_raw): Likewise.
+	(output_cfa_loc): Likewise.
+	(output_loc_list): Suppress register number adjustment when
+	calling output_loc_sequence()
+	(output_die): Likewise.
+
+2011-02-12  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/xtensa/xtensa.h (REGISTER_MOVE_COST, MEMORY_MOVE_COST):
+	Remove macros.
+	* config/xtensa/xtensa.c (xtensa_register_move_cost,
+	xtensa_memory_move_cost): New functions.
+	(TARGET_REGISTER_MOVE_COST, TARGET_REGISTER_MOVE_COST): Define.
+
+2011-02-12  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR lto/47225
+	* configure.ac (gcc_cv_lto_plugin): Test for liblto_plugin.la
+	in the current directory.
+	* configure: Rebuilt.
+
+2011-02-12  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin.c (darwin_override_options): Add a hunk missed
+	from the commit of r168571.  Trim comment line lengths and 
+	correct indents of the preceding block.
+
+2011-02-12  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* gcc.c (driver_handle_option): Concatenate the argument to -F with
+	the switch.
+
+2011-02-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* common.opt (nostartfiles): New Driver option.
+
+2011-02-11  Xinliang David Li  <davidxl@google.com>
+
+	PR tree-optimization/47707
+	* tree-chrec.c (convert_affine_scev): Keep type precision.
+
+2011-02-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/47420
+	* ipa-split.c (visit_bb): Punt on any kind of GIMPLE_RESX.
+
+2011-02-11  Pat Haugen  <pthaugen@us.ibm.com>
+
+	PR rtl-optimization/47614
+	* rtl.h (check_for_inc_dec): Declare.
+	* dse.c (check_for_inc_dec): Externalize...
+	* postreload.c (reload_cse_simplify): ...use it before deleting stmt.
+	(reload_cse_simplify_operands): Don't simplify opnds with side effects.
+
+2011-02-11  Joseph Myers  <joseph@codesourcery.com>
+
+	PR driver/47678
+	* gcc.c (main): Do not compile inputs if there were errors in
+	option handling.
+	* opts-common.c (read_cmdline_option): Check for wrong language
+	after other error checks.
+
+2011-02-11  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cgraph.c: Fix comment typos.
+	* cgraph.h: Likewise.
+	* cgraphunit.c: Likewise.
+	* ipa-cp.c: Likewise.
+	* ipa-inline.c: Likewise.
+	* ipa-prop.c: Likewise.
+	* ipa-pure-const.c: Likewise.
+	* ipa-ref.c: Likewise.
+	* ipa-reference.c: Likewise.
+
+2011-02-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/47684
+	* tree-predcom.c (single_nonlooparound_use): Ignore debug uses.
+
+2011-02-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/47400
+	* doc/sourcebuild.texi (Require Support): Document
+	dg-require-ascii-locale.
+
+2011-02-11  Mingjie Xing  <mingjie.xing@gmail.com>
+
+	* doc/lto.texi (Write summary): Fix missing parentheses.
+
+2011-02-10  DJ Delorie  <dj@redhat.com>
+
+	* config/m32c/m32c.c (m32c_option_override): Disable
+	-fcombine-stack-adjustments until flag value tracking and compare
+	optimization can be rewritten.
+
+2011-02-10  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* config/rs6000/linux64.h (PROCESSOR_DEFAULT): Change to
+	PROCESSOR_POWER7.
+	(PROCESSOR_DEFAULT64): Likewise.
+
+2011-02-10  Richard Henderson  <rth@redhat.com>
+
+	* config/rx/predicates.md (rx_zs_comparison_operator): Revert
+	change from 2011-02-03.
+	* config/rx/rx.c (flags_from_code): Likewise.
+	(rx_print_operand) ['B']: For LT/GE, use lt/ge if overflow flag
+	is valid, n/pz otherwise.
+	(rx_select_cc_mode): Return CCmode if Y is not zero.
+
+2011-02-10  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-structalias.c (bitpos_of_field): Use BITS_PER_UNIT, not 8.
+
+2011-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47677
+	* tree-vrp.c (vrp_bitmap_equal_p): Fix comparison of empty bitmaps.
+
+2011-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/47665
+	* combine.c (make_compound_operation): Only change shifts into
+	multiplication for SCALAR_INT_MODE_P.
+
+2011-02-10  Jie Zhang  <jie@codesourcery.com>
+
+	PR testsuite/47622
+	Revert
+	2011-02-05  Jie Zhang  <jie@codesourcery.com>
+	PR debug/42631
+	* web.c (entry_register): Don't clobber the number of the
+	first uninitialized reference in used[].
+
+2011-02-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47664
+	* ipa-inline.c (cgraph_decide_inlining_incrementally): Visit
+	all edges again.
+
+2011-02-09  David Edelsohn  <dje.gcc@gmail.com>
+
+	PR target/46481
+	PR target/47032
+	* config/rs6000/aix61.h (PROCESSOR_DEFAULT): Change to
+	PROCESSOR_POWER7.
+	(PROCESSOR_DEFAULT64): Same.
+	(RS6000_DEFAULT_LONG_DOUBLE_SIZE): Delete.
+
 2011-02-09  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* config/mips/iris6.h (TARGET_C99_FUNCTIONS): Define.
@@ -64,8 +227,7 @@
 	(funsafe-math-optimizations): Likewise.
 	* opth-gen.awk: Handle SetByCombined.
 	* optc-gen.awk: Likewise.
-	* opts.c (set_fast_math_flags): Don't override flag if set by
-	frontend.
+	* opts.c (set_fast_math_flags): Don't override flag if set by frontend.
 	(set_unsafe_math_optimizations_flags): Likewise.
 	* doc/options.texi (Option properties): Document SetByCombined.
 
@@ -200,8 +362,7 @@
 
 2011-02-07  Mike Stump  <mikestump@comcast.net>
 
-	* config/darwin.opt (mmacosx-version-min): Update default OS
-	version.
+	* config/darwin.opt (mmacosx-version-min): Update default OS version.
 
 2011-02-07  Denis Chertykov  <chertykov@gmail.com>
 

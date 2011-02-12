@@ -1776,8 +1776,13 @@ Thunk_statement::do_determine_types()
 
   // Now that we know the types of the call, build the struct used to
   // pass parameters.
-  Function_type* fntype =
-    this->call_->call_expression()->get_function_type();
+  Call_expression* ce = this->call_->call_expression();
+  if (ce == NULL)
+    {
+      gcc_assert(this->call_->is_error_expression());
+      return;
+    }
+  Function_type* fntype = ce->get_function_type();
   if (fntype != NULL && !this->is_simple(fntype))
     this->struct_type_ = this->build_struct(fntype);
 }
@@ -1788,6 +1793,11 @@ void
 Thunk_statement::do_check_types(Gogo*)
 {
   Call_expression* ce = this->call_->call_expression();
+  if (ce == NULL)
+    {
+      gcc_assert(this->call_->is_error_expression());
+      return;
+    }
   Function_type* fntype = ce->get_function_type();
   if (fntype != NULL && fntype->is_method())
     {
@@ -2984,7 +2994,9 @@ If_statement::do_may_fall_through() const
 tree
 If_statement::do_get_tree(Translate_context* context)
 {
-  gcc_assert(this->cond_ == NULL || this->cond_->type()->is_boolean_type());
+  gcc_assert(this->cond_ == NULL
+	     || this->cond_->type()->is_boolean_type()
+	     || this->cond_->type()->is_error_type());
   tree cond_tree = (this->cond_ == NULL
 		    ? boolean_true_node
 		    : this->cond_->get_tree(context));

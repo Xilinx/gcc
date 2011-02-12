@@ -1,3 +1,99 @@
+2011-02-11  Johannes Singler  <singler@kit.edu>
+
+	PR libstdc++/47433
+	* include/parallel/losertree.h
+	(_LoserTreeUnguarded<>::__delete_min_insert):
+	Add missing "using std::swap;", as for other variants.
+
+2011-02-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/Makefile.am (sources): Add regex.cc.
+	* src/Makefile.in: Regenerate.
+	* src/regex.cc: New.
+	* include/bits/regex_error.h (error_type): Use constexpr.
+	(regex_error): Move ctor and dtor out of line.
+
+	* testsuite/28_regex/03_requirements: To...
+	* testsuite/28_regex/requirements: ... this.
+	* testsuite/28_regex/04_header: To...
+	* testsuite/28_regex/headers: ... this.
+	* testsuite/28_regex/05_constants: To...
+	* testsuite/28_regex/constants: ... this.
+	* testsuite/28_regex/06_exception_type: To...
+	* testsuite/28_regex/regex_error: ... this.
+	* testsuite/28_regex/07_traits: To...
+	* testsuite/28_regex/traits: ... this.
+	* testsuite/28_regex/08_basic_regex: To...
+	* testsuite/28_regex/basic_regex: ... this.
+	* testsuite/28_regex/09_sub_match: To...
+	* testsuite/28_regex/sub_match: ... this.
+	* testsuite/28_regex/10_match_results: To...
+	* testsuite/28_regex/match_results: ... this.
+	* testsuite/28_regex/11_algorithms: To...
+	* testsuite/28_regex/algorithms: ... this.
+	* testsuite/28_regex/12_iterators: To...
+	* testsuite/28_regex/iterators: ... this.
+
+2011-02-10  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/47662
+	* include/bits/c++config: Do not use alternative token.
+	* testsuite/17_intro/headers/c++1998/operator_names.cc: New.
+
+2011-02-10  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* src/future.cc (future_error_category::message): Handle no_state.
+
+2011-02-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/multimap/modifiers/erase/47628.cc: Do
+	not test in C++0x mode.
+	* testsuite/23_containers/map/modifiers/erase/47628.cc: Likewise.
+	* testsuite/20_util/headers/utility/synopsis.cc: Tweak to work
+	in C++0x mode too.
+
+2011-02-10  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx200x.xml: Update.
+	* doc/html/*: Regenerate.
+
+2011-02-10  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/debug.xml: Improve data race docs.
+
+2011-02-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47668
+	* include/debug/map.h (map): Remove unnecessary using-declaration.
+	* include/debug/multimap.h (multimap): Likewise.
+	* include/profile/map.h (map): Likewise.
+	* include/profile/multimap.h (multimap): Likewise.
+
+2011-02-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/43863
+	* libsupc++/guard.cc (recursive_init_error::~recursive_init_error):
+	Move to ...
+	* libsupc++/guard_error.cc: ... new file.
+	* libsupc++/Makefile.am: Update.
+	* libsupc++/Makefile.in: Regenerate.
+
+2011-02-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future (packaged_task::operator bool): Rename to...
+	(packaged_task::valid): ...this.
+	* testsuite/30_threads/packaged_task/cons/1.cc: Adjust.
+	* testsuite/30_threads/packaged_task/cons/2.cc: Adjust.
+	* testsuite/30_threads/packaged_task/cons/move.cc: Adjust.
+	* testsuite/30_threads/packaged_task/cons/move_assign.cc: Adjust.
+	* testsuite/30_threads/packaged_task/cons/alloc.cc: Adjust.
+	* testsuite/30_threads/packaged_task/members/invoke.cc: Adjust.
+	* testsuite/30_threads/packaged_task/members/reset.cc: Adjust.
+	* testsuite/30_threads/packaged_task/members/reset2.cc: Adjust.
+	* testsuite/30_threads/packaged_task/members/swap.cc: Adjust.
+	* testsuite/30_threads/packaged_task/members/boolconv.cc: Remove.
+	* testsuite/30_threads/packaged_task/members/valid.cc: Add.
+
 2011-02-09  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* doc/xml/manual/io.xml: Fix typo.

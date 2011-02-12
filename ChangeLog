@@ -1,3 +1,20 @@
+2011-02-12  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR binutils/12283
+	* move-if-change: Import version from gnulib.
+
+2011-02-12  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR lto/47225
+	* Makefile.def (lto-plugin): Double dash for enable-shared.
+	(configure-gcc): Depend on all-lto-plugin.
+	* Makefile.in: Rebuilt.
+
+2011-02-11  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure.ac: Remove extra bracket.
+	* configure: Regenerate.
+
 2011-02-08  Tobias Burnus  <burnus@net-b.de>
 
 	* MAINTAINERS: Add myself as libquadmath maintainer.
@@ -34,7 +51,6 @@
 
 2011-01-25  Jakub Jelinek  <jakub@redhat.com>
 
-	* config/cloog.m4 (CLOOG_REQUESTED): Use $2 if --without-cloog.
 	* configure.ac: If with_ppl is no, move setting with_cloog=no
 	after CLOOG_REQUESTED check.
 	* configure: Regenerated.
@@ -74,11 +90,6 @@
 	* configure.ac: Remove readline, mmalloc, and gdb from noconfigdirs
 	for ia64-hpux.
 	* configure: Regenerate.
-
-2011-01-10  Jan Hubicka  <jh@suse.cz>
-
-	* config/bootstrap-lto.mk: -fuse-linker-plugin is default now;
-	pass -fno-lto to STAGEprofile.
 
 2011-01-07  Jan Hubicka  <jh@suse.cz>
 

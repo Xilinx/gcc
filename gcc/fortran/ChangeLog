@@ -1,3 +1,28 @@
+2011-02-12  Michael Matz  <matz@suse.de>
+	    Janus Weil  <janus@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45586
+	* trans-expr.c (conv_parent_component_references): Avoid unintendent
+	skipping of parent compounds.
+
+2011-02-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47550
+	* resolve.c (resolve_formal_arglist): PURE with VALUE
+	and no INTENT: Add -std= diagnostics.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47352
+	* resolve.c (resolve_procedure_interface): If interface has a result
+	variable, copy the typespec and set result pointer to self.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47463
+	* resolve.c (resolve_typebound_subroutine): Remove erroneous line.
+
 2011-02-09  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/47637
