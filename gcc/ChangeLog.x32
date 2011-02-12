@@ -1,3 +1,13 @@
+2011-02-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47383
+	* config/i386/i386.c (ix86_decompose_address): Support 32bit
+	address in x32 mode.
+	(ix86_legitimate_address_p): Likewise.
+	(ix86_fixup_binary_operands): Likewise.
+
+	* config/i386/i386.md (*lea_1_x32): New.
+
 2011-01-29  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47537

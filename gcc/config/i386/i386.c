@@ -11614,6 +11614,13 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
   int retval = 1;
   enum ix86_address_seg seg = SEG_DEFAULT;
 
+  /* Support 32bit address in x32 mode.  */
+  if (TARGET_X32
+      && GET_CODE (addr) == ZERO_EXTEND
+      && GET_MODE (addr) == Pmode
+      && GET_CODE (XEXP (addr, 0)) == PLUS)
+    addr = XEXP (addr, 0);
+
   if (REG_P (addr) || GET_CODE (addr) == SUBREG)
     base = addr;
   else if (GET_CODE (addr) == PLUS)
@@ -12136,6 +12143,7 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
   struct ix86_address parts;
   rtx base, index, disp;
   HOST_WIDE_INT scale;
+  enum machine_mode base_mode;
 
   if (ix86_decompose_address (addr, &parts) <= 0)
     /* Decomposition failed.  */
@@ -12167,8 +12175,11 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	/* Base is not a register.  */
 	return false;
 
-      if (GET_MODE (base) != Pmode)
-	/* Base is not in Pmode.  */
+      base_mode = GET_MODE (base);
+      if (base_mode != Pmode
+	  && !(TARGET_X32
+	       && base_mode == ptr_mode))
+	/* Base is not in Pmode nor ptr_mode.  */
 	return false;
 
       if ((strict && ! REG_OK_FOR_BASE_STRICT_P (reg))
@@ -12176,6 +12187,8 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	/* Base is not valid.  */
 	return false;
     }
+  else
+    base_mode = VOIDmode;
 
   /* Validate index register.
 
@@ -12184,6 +12197,7 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
   if (index)
     {
       rtx reg;
+      enum machine_mode index_mode;
 
       if (REG_P (index))
   	reg = index;
@@ -12196,8 +12210,13 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	/* Index is not a register.  */
 	return false;
 
-      if (GET_MODE (index) != Pmode)
-	/* Index is not in Pmode.  */
+      index_mode = GET_MODE (index);
+      if ((base_mode != VOIDmode
+	   && base_mode != index_mode)
+	   || (index_mode != Pmode
+	       && !(TARGET_X32
+		    && index_mode == ptr_mode)))
+	/* Index is not in Pmode nor ptr_mode.  */
 	return false;
 
       if ((strict && ! REG_OK_FOR_INDEX_STRICT_P (reg))
@@ -15952,6 +15971,16 @@ ix86_fixup_binary_operands (enum rtx_code code, enum machine_mode mode,
 	  src1 = src2;
 	}
       else
+	src2 = force_reg (mode, src2);
+    }
+  else
+    {
+      /* Support 32bit address in x32 mode.  */
+      if (TARGET_X32
+	  && code == PLUS
+	  && !MEM_P (dst)
+	  && !MEM_P (src1)
+	  && MEM_P (src2) )
 	src2 = force_reg (mode, src2);
     }
 
