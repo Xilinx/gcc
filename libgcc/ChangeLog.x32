@@ -1,3 +1,8 @@
+2011-02-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/morestack.S: Properly check __x86_64__ and
+	__LP64__.
+
 2010-01-19  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/64/sfp-machine.h (_FP_W_TYPE): Always use _WIN64

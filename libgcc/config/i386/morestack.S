@@ -477,7 +477,7 @@ __morestack:
 	.section .data.DW.ref.__gcc_personality_v0,"awG",@progbits,DW.ref.__gcc_personality_v0,comdat
 	.type	DW.ref.__gcc_personality_v0, @object
 DW.ref.__gcc_personality_v0:
-#ifndef __x86_64
+#ifndef __LP64___
 	.align 4
 	.size	DW.ref.__gcc_personality_v0, 4
 	.long	__gcc_personality_v0
@@ -488,7 +488,7 @@ DW.ref.__gcc_personality_v0:
 #endif
 #endif
 
-#ifdef __x86_64__
+#if defined __x86_64__ && defined __LP64__
 
 # This entry point is used for the large model.  With this entry point
 # the upper 32 bits of %r10 hold the argument size and the lower 32
@@ -521,7 +521,7 @@ __morestack_large_model:
        .size	__morestack_large_model, . - __morestack_large_model
 #endif
 
-#endif /* __x86_64__ */
+#endif /* __x86_64__ && __LP64__ */
 
 # Initialize the stack test value when the program starts or when a
 # new thread starts.  We don't know how large the main stack is, so we
@@ -576,7 +576,7 @@ __stack_split_initialize:
 
 	.section	.ctors.65535,"aw",@progbits
 
-#ifndef __x86_64__
+#ifndef __LP64___
 	.align	4
 	.long	__stack_split_initialize
 	.long	__morestack_load_mmap
