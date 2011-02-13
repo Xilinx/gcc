@@ -15403,6 +15403,7 @@ void
 ix86_expand_move (enum machine_mode mode, rtx operands[])
 {
   rtx op0, op1;
+  rtx symbol1 = NULL;
   enum tls_model model;
 
   op0 = operands[0];
@@ -15430,21 +15431,20 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
     {
       rtx addend = XEXP (XEXP (op1, 0), 1);
       rtx symbol = XEXP (XEXP (op1, 0), 0);
-      rtx tmp = NULL;
 
       model = SYMBOL_REF_TLS_MODEL (symbol);
       if (model)
-	tmp = legitimize_tls_address (symbol, model, true);
+	symbol1 = legitimize_tls_address (symbol, model, true);
       else if (TARGET_DLLIMPORT_DECL_ATTRIBUTES
 	       && SYMBOL_REF_DLLIMPORT_P (symbol))
-	tmp = legitimize_dllimport_symbol (symbol, true);
+	symbol1 = legitimize_dllimport_symbol (symbol, true);
 
-      if (tmp)
+      if (symbol1)
 	{
-	  tmp = force_operand (tmp, NULL);
-	  tmp = expand_simple_binop (Pmode, PLUS, tmp, addend,
-				     op0, 1, OPTAB_DIRECT);
-	  if (tmp == op0)
+	  symbol1 = force_operand (symbol1, NULL);
+	  symbol1 = expand_simple_binop (Pmode, PLUS, symbol1, addend,
+					 op0, 1, OPTAB_DIRECT);
+	  if (symbol1 == op0)
 	    return;
 	}
     }
@@ -15455,6 +15455,7 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
     {
       if (TARGET_MACHO && !TARGET_64BIT)
 	{
+	  gcc_assert (symbol1 == NULL);
 #if TARGET_MACHO
 	  /* dynamic-no-pic */
 	  if (MACHOPIC_INDIRECT)
@@ -15491,7 +15492,13 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
 	}
       else
 	{
-	  if (MEM_P (op0))
+	  if (symbol1 != NULL)
+	    {
+	      op1 = symbol1;
+	      if (GET_MODE (op1) != mode)
+		op1 = convert_to_mode (mode, op1, 1);
+	    }
+	  else if (MEM_P (op0))
 	    op1 = force_reg (mode, op1);
 	  else if (!TARGET_64BIT || !x86_64_movabs_operand (op1, mode))
 	    {
