@@ -1,3 +1,12 @@
+2011-02-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Support --enable-x32 for x86 Linux targets.
+
+	* configure.ac: Support --enable-x32.
+	* configure: Regenerated.
+
+	* config/i386/t-linuxx32: New.
+
 2011-02-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47715

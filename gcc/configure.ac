@@ -606,6 +606,11 @@ AC_ARG_ENABLE(multilib,
 [], [enable_multilib=yes])
 AC_SUBST(enable_multilib)
 
+# With x32 support
+AC_ARG_ENABLE(x32,
+[  --enable-x32            enable x32 library support for multiple ABIs],
+[], [enable_x32=no])
+
 # Enable __cxa_atexit for C++.
 AC_ARG_ENABLE(__cxa_atexit,
 [  --enable-__cxa_atexit   enable __cxa_atexit for C++],
