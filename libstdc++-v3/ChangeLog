@@ -1,3 +1,31 @@
+2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2011-02-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47709
+	* include/ext/algorithm (is_heap): In C++0x mode import from
+	namespace std.
+	* testsuite/ext/is_heap/47709.cc: New.
+
+2011-02-12  Jakub Jelinek  <jakub@redhat.com>
+            Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/47662
+	* testsuite/17_intro/headers/c++200x/operator_names.cc: New.
+	* testsuite/17_intro/headers/c++1998/operator_names.cc: Add comment.
+
+2011-02-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1/cmath (fabs): Define.
+	* include/tr1/complex (acos, asin, atan): Avoid duplicate definitions
+	in C++0x mode.
+
+2011-02-12  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/tr1/headers/c++200x/complex.cc: New.
+
 2011-02-11  Johannes Singler  <singler@kit.edu>
 
 	PR libstdc++/47433

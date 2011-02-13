@@ -1,5 +1,5 @@
 // { dg-do compile }
-// { dg-options "-fno-operator-names" }
+// { dg-options "-std=gnu++0x" }
 
 // Copyright (C) 2011 Free Software Foundation, Inc.
 //
@@ -18,13 +18,12 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// libstdc++/47662
+#include <ext/algorithm>
+#include <vector>
 
-// Avoid using PCH
-#include <cerrno>
-#include <bits/stdc++.h>
-#include <bits/stdtr1c++.h>
-#include <bits/extc++.h>
-
-int or, xor, and;
-
+// libstdc++/47709
+void foo()
+{
+  std::vector<int> v;
+  is_heap(v.begin(), v.end());
+}
