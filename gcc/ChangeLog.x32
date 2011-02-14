@@ -1,6 +1,12 @@
 2011-02-13  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47715
+	* config/i386/i386.c (ix86_expand_move): Update TLS symbol PIC
+	support.
+
+2011-02-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47715
 	* config/i386/i386.c (ix86_expand_move): Properly support TLS
 	symbol.
 
