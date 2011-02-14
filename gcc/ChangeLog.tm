@@ -1,3 +1,10 @@
+2011-02-14  Aldy Hernandez  <aldyh@redhat.com>
+
+	* trans-mem.c (MODE_SERIALIRREVOCABLE): Change to 0.
+	(ipa_tm_insert_irr_call): Add missing argument for
+	_ITM_changeTransactionMode.
+	gtm-builtins.def: Add argument to BUILT_IN_TM_IRREVOCABLE.
+
 2011-02-11  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR 46567

@@ -11,7 +11,7 @@ foo()
 {
 	__transaction [[relaxed]] {
 		global++;
-		__builtin__ITM_changeTransactionMode ();
+		__builtin__ITM_changeTransactionMode (0);
 		george++;
 	}
 }

@@ -55,7 +55,7 @@
 #define AR_EXCEPTIONBLOCKABORT	0x0008
 #define AR_OUTERABORT		0x0010
 
-#define MODE_SERIALIRREVOCABLE	0x0001
+#define MODE_SERIALIRREVOCABLE	0x0000
 
 
 /* The representation of a transaction changes several times during the
@@ -4186,7 +4186,8 @@ ipa_tm_insert_irr_call (struct cgraph_node *node, struct tm_region *region,
 
   transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
 
-  g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOCABLE], 0);
+  g = gimple_build_call (built_in_decls[BUILT_IN_TM_IRREVOCABLE],
+                         1, build_int_cst (NULL_TREE, MODE_SERIALIRREVOCABLE));
 
   split_block_after_labels (bb);
   gsi = gsi_after_labels (bb);
