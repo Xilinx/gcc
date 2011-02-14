@@ -1,3 +1,7 @@
+2011-02-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/morestack.S: Replace __LP64___ with __LP64__.
+
 2011-02-13  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/morestack.S: Properly check __x86_64__ and

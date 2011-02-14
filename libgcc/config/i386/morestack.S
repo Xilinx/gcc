@@ -477,7 +477,7 @@ __morestack:
 	.section .data.DW.ref.__gcc_personality_v0,"awG",@progbits,DW.ref.__gcc_personality_v0,comdat
 	.type	DW.ref.__gcc_personality_v0, @object
 DW.ref.__gcc_personality_v0:
-#ifndef __LP64___
+#ifndef __LP64__
 	.align 4
 	.size	DW.ref.__gcc_personality_v0, 4
 	.long	__gcc_personality_v0
@@ -576,7 +576,7 @@ __stack_split_initialize:
 
 	.section	.ctors.65535,"aw",@progbits
 
-#ifndef __LP64___
+#ifndef __LP64__
 	.align	4
 	.long	__stack_split_initialize
 	.long	__morestack_load_mmap
