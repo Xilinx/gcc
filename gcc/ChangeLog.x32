@@ -1,3 +1,9 @@
+2011-02-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47725
+	* function.c (assign_parm_setup_reg): Copy the hard register
+	first before extending it.
+
 2011-02-13  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47715
