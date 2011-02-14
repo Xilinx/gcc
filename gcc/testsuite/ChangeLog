@@ -1,3 +1,27 @@
+2011-02-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47728
+	* gfortran.dg/class_38.f03: New.
+
+2011-02-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/pr46494.c: New test.
+
+2011-02-14  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/attr-weak-hidden-1.c: Make definition of foo strong.
+
+2011-02-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR ada/41929
+	* gnat.dg/null_pointer_deref1.exp: Don't skip on
+	sparc*-sun-solaris2.11.
+
+2011-02-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47349
+	* gfortran.dg/argument_checking_18.f90: New.
+
 2011-02-13  Tobias Burnus  <burnus@net-b.de>
 
 	* gfortran.dg/argument_checking_13.f90: Update dg-error.

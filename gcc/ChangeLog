@@ -1,3 +1,84 @@
+2011-02-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/46494
+	* loop-unroll.c (split_edge_and_insert): Adjust comment.
+	* loop-init.c (loop_optimizer_finalize): Do not call verify_flow_info.
+	(pass_rtl_loop_done): Add TODO_verify_flow.
+	* fwprop.c (pass_rtl_fwprop): Likewise.
+	* modulo-sched.c (pass_sms): Likewise.
+	* tree-ssa-dom.c (pass_dominator): Likewise.
+	* tree-ssa-loop-ch.c (pass_ch): Likewise.
+	* tree-ssa-loop.c (pass_complete_unrolli): Likewise.
+	(pass_tree_loop_done): Likewise.
+	* tree-ssa-pre.c (execute_pre): Likewise.
+	* tree-ssa-reassoc.c (pass_reassoc): Likewise.
+	* tree-ssa-sink.c (pass_sink_code): Likewise.
+	* tree-vrp.c (pass_vrp): Likewise.
+
+2011-02-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/v850/constraints.md: New file.
+	* config/v850/v850.md: Include it.
+	* config/v850/predicates.md (reg_or_0_operand): Use
+	satisfies_constraint_G.
+	(special_symbolref_operand): Use satisfies_constraint_K.
+	* config/v850/v850.h (CONSTANT_ADDRESS_P): Use constraint_satisfied_p.
+	(GO_IF_LEGITIMATE_ADDRESS): Likewise.
+	(REG_CLASS_FROM_LETTER, INT_7_BITS, INT_8_BITS): Delete.
+	(CONST_OK_FOR_P, CONST_OK_FOR_LETTER_P): Delete.
+	(EXTRA_CONSTRAINT): Delete.
+	(CONST_OK_FOR_I, CONST_OK_FOR_J): Use insn_const_int_ok_for_constraint.
+	(CONST_OK_FOR_K, CONST_OK_FOR_L, CONST_OK_FOR_M): Likewise.
+	(CONST_OK_FOR_N, CONST_OK_FOR_O): Likewise.
+
+2011-02-14  Anatoly Sokolov  <aesok@post.ru>
+
+	PR target/47696
+	* config/avr/avr-devices.c (avr_mcu_types): Fix ATmega2560 device
+	description.
+
+2011-02-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config/mcore/constraints.md: New file.
+	* config/mcore/mcore.md: Include it.
+	* config/mcore/mcore.c (reg_class_from_letter): Delete.
+	* config/mcore/mcore.h (reg_class_from_letter): Delete.
+	(REG_CLASS_FROM_LETTER): Delete.
+	(CONST_OK_FOR_I, CONST_OK_FOR_J, CONST_OK_FOR_L): Use
+	insn_const_int_ok_for_constraint.
+	(CONST_OK_FOR_K, CONST_OK_FOR_M, CONST_OK_FOR_N): Likewise.
+	(CONST_OK_FOR_O, CONST_OK_FOR_P): Likewise.
+	(CONST_OK_FOR_LETTER_P, CONST_DOUBLE_OK_FOR_LETTER_P): Delete.
+	(EXTRA_CONSTRAINT): Delete.
+
+2011-02-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR ada/41929
+	* config/sparc/sol2-unwind.h: Include <sys/frame.h>, <sys/stack.h>
+	(IS_SIGHANDLER): Define.
+	(sparc64_is_sighandler): New function, split off from
+	sparc64_fallback_frame_state.
+	(sparc_is_sighandler): New function, split off from
+	sparc_fallback_frame_state.
+	(sparc64_fallback_frame_state): Merge with ...
+	(sparc_fallback_frame_state): ... this into ...
+	(MD_FALLBACK_FRAME_STATE_FOR): ... this.
+	Change new_cfa to long.
+	Remove regs_off, fpu_save_off, fpu_save.
+	Define nframes, mctx.
+	Use IS_SIGHANDLER, handler_args, mctx, walk stack instead of
+	hardcoded offsets.
+
+2011-02-14  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* go/gccgo.texi (Top, Import and Export): Fix a typo and a
+	markup nit.
+
+2011-02-14  Andriy Gapon <avg@freebsd.org>
+
+	PR target/45808
+	* config/freebsd-spec.h (FBSD_LIB_SPEC): Handle the shared case.
+
 2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure: Regenerate.
