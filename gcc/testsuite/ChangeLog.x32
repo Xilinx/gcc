@@ -1,3 +1,8 @@
+2011-02-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47727
+	* gcc.dg/pr47727.c: New.
+
 2011-02-13  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/47725
