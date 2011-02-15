@@ -1,3 +1,9 @@
+2011-02-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47744
+	* config/i386/i386.c (ix86_decompose_address): Process
+	(reg + const) base for TARGET_X32.
+
 2011-02-14  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_output_addr_vec_elt): Output

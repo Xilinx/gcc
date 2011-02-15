@@ -11735,6 +11735,63 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
   if (disp == const0_rtx && (base || index))
     disp = NULL_RTX;
 
+  /* For TARGET_X32, IRA may generate
+
+     (set (reg:SI 40 r11)
+           (plus:SI (plus:SI (mult:SI (reg:SI 1 dx)
+		             (const_int 8))
+		    (subreg:SI (plus:DI (reg/f:DI 7 sp)
+					(const_int CONST1)) 0))
+	   (const_int CONST2)))
+
+     We translate it into
+
+     (set (reg:SI 40 r11)
+           (plus:SI (plus:SI (mult:SI (reg:SI 1 dx)
+		             (const_int 8))
+		    (reg/f:SI 7 sp))
+	   (const_int [CONST1 + CONST2])))
+    */
+
+  if (TARGET_X32
+      && base
+      && GET_MODE (base) == ptr_mode
+      && GET_CODE (base) == SUBREG
+      && (disp == NULL_RTX
+	  || disp == const0_rtx
+	  || CONST_INT_P (disp))
+      && GET_CODE (base_reg) == PLUS)
+    {
+      rtx op0 = XEXP (base_reg, 0);
+      rtx op1 = XEXP (base_reg, 1);
+      rtx addend;
+      unsigned int base_regno;
+
+      if (REG_P (op0) && CONST_INT_P (op1))
+	{
+	  base_reg = op0;
+	  addend  = op1;
+	}
+      else if (REG_P (op1) && CONST_INT_P (op0))
+	{
+	  base_reg = op1;
+	  addend = op0;
+	}
+      else
+	return 0;
+
+      base_regno = REGNO (base_reg);
+      if (base_regno != SP_REG && base_regno != BP_REG)
+	return 0;
+
+      if (disp == NULL_RTX || disp == const0_rtx)
+	disp = addend;
+      else
+	disp = GEN_INT (INTVAL (disp) + INTVAL (addend));
+
+      base = gen_rtx_REG (ptr_mode, base_regno);
+    }
+
   /* Allow arg pointer and stack pointer as index if there is not scaling.  */
   if (base_reg && index_reg && scale == 1
       && (index_reg == arg_pointer_rtx
