@@ -3004,14 +3004,6 @@ assign_parm_setup_reg (struct assign_parm_data_all *all, tree parm,
 	  HARD_REG_SET hardregs;
 
 	  start_sequence ();
-	  if (REG_P (op1) && REGNO (op1) < FIRST_PSEUDO_REGISTER)
-	    {
-	      /* We must copy the hard register first before extending
-		 it.  Otherwise, combine won't see the hard register.  */
-	      rtx copy = gen_reg_rtx (data->passed_mode);
-	      emit_move_insn (copy, op1);
-	      op1 = copy;
-	    }
 	  insn = gen_extend_insn (op0, op1, promoted_nominal_mode,
 				  data->passed_mode, unsignedp);
 	  emit_insn (insn);
