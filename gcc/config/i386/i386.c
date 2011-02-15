@@ -15319,14 +15319,22 @@ ix86_output_addr_vec_elt (FILE *file, int value)
 {
   const char *directive = ASM_LONG;
 
+  if (TARGET_X32)
+    {
+      fprintf (file, "%s%s%d\n", directive, LPREFIX, value);
+      fprintf (file, "%s0\n", directive);
+    }
+  else
+    {
 #ifdef ASM_QUAD
-  if (TARGET_LP64)
-    directive = ASM_QUAD;
+      if (TARGET_LP64)
+	directive = ASM_QUAD;
 #else
-  gcc_assert (!TARGET_64BIT);
+      gcc_assert (!TARGET_64BIT);
 #endif
 
-  fprintf (file, "%s%s%d\n", directive, LPREFIX, value);
+      fprintf (file, "%s%s%d\n", directive, LPREFIX, value);
+    }
 }
 
 void

@@ -1,5 +1,14 @@
 2011-02-14  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_output_addr_vec_elt): Output
+	64bit value for lables for TARGET_X32.
+
+	* config/i386/i386.md (*tablejump_1): Don't disable for
+	TARGET_X32.
+	(*tablejump_1_x32): Removed.
+
+2011-02-14  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR middle-end/47727
 	* explow.c (convert_memory_address_addr_space): Permute the
 	conversion and addition if one operand is a constant.
