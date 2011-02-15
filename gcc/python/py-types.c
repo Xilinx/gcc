@@ -62,6 +62,9 @@ typedef struct gpy_callable_def_t {
 } gpy_callable_def_t;
 
  */
+
+/* go/gofrontend/types.cc 4517 && 5066  for making an array type */
+
 tree gpy_build_callable_record_type( void )
 {
   tree type = make_node(RECORD_TYPE);
@@ -98,6 +101,103 @@ tree gpy_build_callable_record_type( void )
   return type;
 }
 
+/*
+  typedef struct gpy_rr_object_state_t {
+  char * obj_t_ident;
+  signed long ref_count;
+  void * self;
+  struct gpy_typedef_t * definition;
+} gpy_object_state_t ;
+
+typedef struct gpy_object_t {
+  enum GPY_OBJECT_T T;
+  union{
+    gpy_object_state_t * object_state;
+    gpy_literal_t * literal;
+  } o ;
+} gpy_object_t ;
+
+*/
+
+tree gpy_build_py_object_type (void)
+{
+  tree object_state_struct_Type = make_node (RECORD_TYPE);
+  
+  tree name = get_identifier("obj_t_ident");
+  tree field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name,
+			  build_pointer_type(char_type_node));
+  DECL_CONTEXT(field) = object_state_struct_Type;
+  TYPE_FIELDS(object_state_struct_Type) = field;
+  tree last_field = field;
+
+  name = get_identifier("ref_count");
+  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name, integer_type_node);
+  DECL_CONTEXT(field) = object_state_struct_Type;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
+
+  name = get_identifier("self");
+  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name,
+		     build_pointer_type (void_type_node));
+  DECL_CONTEXT(field) = object_state_struct_Type;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
+  
+  name = get_identifier("definition");
+  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name,
+		     build_pointer_type (void_type_node));
+  DECL_CONTEXT(field) = object_state_struct_Type;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
+
+  layout_type(object_state_struct_Type);
+
+  // Give the struct a name for better debugging info.
+  name = get_identifier("gpy_object_state_t");
+  tree object_state_type_decl = build_decl(BUILTINS_LOCATION, TYPE_DECL, name,
+					   object_state_struct_Type);
+  DECL_ARTIFICIAL(object_state_type_decl) = 1;
+  TYPE_NAME(object_state_struct_Type) = object_state_type_decl;
+  gpy_preserve_from_gc(object_state_type_decl);
+  rest_of_decl_compilation(object_state_type_decl, 1, 0);
+
+  object_state_ptr_type = build_pointer_type (object_state_type_decl);
+  gpy_preserve_from_gc (object_state_ptr_type);
+
+  //....................
+
+  tree union_type__ = make_node (UNION_TYPE);
+
+  name = get_identifier ("object_state");
+  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, name,
+		      object_state_ptr_type);
+  DECL_CONTEXT(field) = union_type__;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
+
+  name = get_identifier ("literal");
+  field = build_decl (BUILTINS_LOCATION, FIELD_DECL, name,
+		      ptr_type_node);
+  DECL_CONTEXT(field) = union_type__;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
+
+  layout_type (union_type__);
+  
+  name = get_identifier("o");
+  tree union_type_decl = build_decl(BUILTINS_LOCATION, TYPE_DECL, name,
+					   union_type__);
+  DECL_ARTIFICIAL(union_type_decl) = 1;
+  TYPE_NAME(union_type__) = union_type_decl;
+  gpy_preserve_from_gc(union_type_decl);
+  rest_of_decl_compilation(union_type_decl, 1, 0);
+
+  //.........................
+
+  
+
+}
+
 tree gpy_get_callable_record_type( void )
 {
   return VEC_index(tree,gpy_builtin_types_vec,0);
@@ -108,10 +208,8 @@ tree gpy_init_callable_record( const char * identifier, int args,
 {
   VEC(constructor_elt,gc) *struct_data_cons = NULL;
 
-  /*
   tree ident = build_string(strlen(identifier), identifier);
   TREE_TYPE(ident) = build_pointer_type( char_type_node );
-  */
 
   CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
 							get_identifier("ident"),
@@ -140,7 +238,7 @@ tree gpy_init_callable_record( const char * identifier, int args,
   return (build_constructor(gpy_get_callable_record_type(), struct_data_cons));
 }
 
-void gpy_initilize_types( void )
+void gpy_initilize_types (void)
 {
   VEC_safe_push(tree,gc,gpy_builtin_types_vec, gpy_build_callable_record_type());
 }

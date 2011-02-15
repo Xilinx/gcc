@@ -253,7 +253,7 @@ VEC(tree,gc) * gpy_process_functor( const gpy_symbol_obj * const  functor,
 				    const char * base_ident,
 				    VEC(gpy_ctx_t,gc) * context )
 {
-  VEC(tree,gc) * retval_vec = VEC_alloc( tree,gc,0 );
+  VEC(tree,gc) * retval_vec = VEC_alloc (tree,gc,0);
 
   gpy_symbol_obj * o = functor->op_a.symbol_table;
   tree fntype = build_function_type(void_type_node, void_list_node);
@@ -354,10 +354,10 @@ VEC(tree,gc) * gpy_process_functor( const gpy_symbol_obj * const  functor,
    
   VEC_pop( gpy_ctx_t, gpy_ctx_table );
 
-  gimplify_function_tree( retval );
+  gimplify_function_tree (retval);
 
-  cgraph_add_new_function(retval, false);
-  cgraph_finalize_function(retval, true);
+  cgraph_add_new_function (retval, false);
+  cgraph_finalize_function (retval, true);
 
   VEC_safe_push( tree,gc,retval_vec,retval );
     
@@ -555,7 +555,7 @@ tree gpy_main_method_decl( VEC(tree,gc) * block, gpy_context_branch * co )
   return retval;
 }
 
-void gpy_write_globals( void )
+void gpy_write_globals (void)
 {
   gpy_context_branch *co = NULL;
   gpy_symbol_obj * it = NULL;
@@ -576,61 +576,18 @@ void gpy_write_globals( void )
 	{
 	  if( TREE_CODE(xt) == FUNCTION_DECL )
 	    {
-	      VEC_safe_push( tree,gc,global_decls,xt );
+	      VEC_safe_push (tree,gc,global_decls,xt);
 	    }
 	  else if( TREE_CODE(xt) == VAR_DECL )
 	    {
-	      VEC_safe_push( tree,gc,global_decls,xt );
+	      VEC_safe_push (tree,gc,global_decls,xt);
 	    }
 	  else
 	    {
-	      VEC_safe_push( tree,gc,main_stmts_vec,xt );
+	      VEC_safe_push (tree,gc,main_stmts_vec,xt);
 	    }
 	}
     }
-
-  /* Need to generate table of gpy_callable_def_t[] and gpy_type_obj_def_t[] */
-  int table_len = 1;
-
-  VEC(constructor_elt,gc) *array_data = NULL;
-
-  CONSTRUCTOR_APPEND_ELT( array_data, NULL_TREE,
-			  gpy_init_callable_record("NULL", 0, false, NULL_TREE) );
-
-  tree array_type = build_array_type( gpy_get_callable_record_type(),
-				      build_index_type( build_int_cst(integer_type_node,table_len) ));
-
-  tree array = build_constructor(array_type, array_data);
-  tree table_decl = build_decl(BUILTINS_LOCATION,VAR_DECL,
-			       get_identifier("__gpy_module_main_callables"),
-			       array_type);
-
-  DECL_ARTIFICIAL (table_decl) = 1;
-  TREE_STATIC (table_decl) = 1;
-  TREE_PUBLIC (table_decl) = 1;
-  TREE_USED (table_decl) = 1;
-  DECL_INITIAL (table_decl) = array;
-
-  tree test = build_decl( UNKNOWN_LOCATION, VAR_DECL,
-			  get_identifier("test"),
-			  integer_type_node);
-
-  DECL_ARTIFICIAL (test) = 1;
-  TREE_STATIC (test) = 1;
-  TREE_PUBLIC(test) = 1;
-  TREE_USED (test) = 1;
-  DECL_INITIAL (test) = build_int_cst(integer_type_node, 12345 );
-
-  rest_of_decl_compilation (test, 1, 0);
-  rest_of_decl_compilation (table_decl, 1, 0);
-
-  /* Add in the main method decl! */
-  VEC_safe_push( tree,gc,global_decls,gpy_main_method_decl( main_stmts_vec,co ) );
-
-  VEC_safe_push( tree,gc,global_decls,table_decl );
-  VEC_safe_push( tree,gc,global_decls,test );
-
-  debug_tree( table_decl );
 
   VEC_pop( gpy_ctx_t, gpy_ctx_table );
 
