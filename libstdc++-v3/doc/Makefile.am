@@ -1,6 +1,6 @@
 ## Makefile for the doc subdirectory of the GNU C++ Standard library.
 ##
-## Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+## Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 ##
 ## This file is part of the libstdc++ version 3 distribution.
 ## Process this file with automake to produce Makefile.in.
@@ -318,6 +318,7 @@ xml_sources_manual = \
 	${xml_dir}/manual/debug_mode.xml \
 	${xml_dir}/manual/debug.xml \
 	${xml_dir}/manual/diagnostics.xml \
+	${xml_dir}/manual/documentation_hacking.xml \
 	${xml_dir}/manual/evolution.xml \
 	${xml_dir}/manual/extensions.xml \
 	${xml_dir}/manual/internals.xml \
@@ -349,9 +350,7 @@ xml_sources_manual = \
 	${xml_dir}/manual/appendix_porting.xml
 
 xml_sources_extra = \
-	${xml_dir}/gnu/fdl-1.2.xml \
 	${xml_dir}/gnu/fdl-1.3.xml \
-	${xml_dir}/gnu/gpl-2.0.xml \
 	${xml_dir}/gnu/gpl-3.0.xml
 
 xml_sources = \
@@ -362,7 +361,10 @@ xml_sources = \
 xml_noinst = \
 	${xml_dir}/book.txml \
 	${xml_dir}/chapter.txml \
-	${xml_dir}/class.txml
+	${xml_dir}/class.txml \
+	${xml_dir}/images/confdeps.dot \
+	${xml_dir}/images/confdeps.png \
+	${xml_dir}/images/confdeps.pdf
 
 XSLTPROC       = xsltproc
 XSLTPROC_FLAGS = --nonet --xinclude

@@ -1,3 +1,66 @@
+2011-02-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47349
+	* interface.c (get_expr_storage_size): Handle derived-type components.
+
+2011-02-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47569
+	* interface.c (compare_parameter): Avoid ICE with
+	character components.
+
+2011-02-12  Janus Weil  <janus@gcc.gnu.org>
+
+	* class.c (gfc_build_class_symbol): Reject polymorphic arrays.
+	* decl.c (build_sym,build_struct,attr_decl1): Use return value of
+	'gfc_build_class_symbol'.
+
+2011-02-12  Michael Matz  <matz@suse.de>
+	    Janus Weil  <janus@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45586
+	* trans-expr.c (conv_parent_component_references): Avoid unintendent
+	skipping of parent compounds.
+
+2011-02-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47550
+	* resolve.c (resolve_formal_arglist): PURE with VALUE
+	and no INTENT: Add -std= diagnostics.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47352
+	* resolve.c (resolve_procedure_interface): If interface has a result
+	variable, copy the typespec and set result pointer to self.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47463
+	* resolve.c (resolve_typebound_subroutine): Remove erroneous line.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47637
+	* trans-decl.c (init_intent_out_dt): Handle CLASS arguments.
+
+2011-02-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* io.c (match_io_element): Do not set dt if not inquire.
+
+2011-02-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45290
+	* expr.c (gfc_check_assign_symbol): Reject pointers as pointer
+	initialization target.
+
+2011-02-07  Janne Blomqvist  <jb@gcc.gnu.org>
+	    Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gfortran.texi (Thread-safety): texinfo styling fixes.
+	* intrinsic.texi: Likewise.
+
 2011-02-06  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	* gfortran.texi (Compiler Characteristics): Add reference to

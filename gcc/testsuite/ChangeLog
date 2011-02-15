@@ -1,3 +1,273 @@
+2011-02-14  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/attr-weak-hidden-1.c: Make definition of foo strong.
+
+2011-02-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR ada/41929
+	* gnat.dg/null_pointer_deref1.exp: Don't skip on
+	sparc*-sun-solaris2.11.
+
+2011-02-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47349
+	* gfortran.dg/argument_checking_18.f90: New.
+
+2011-02-13  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/argument_checking_13.f90: Update dg-error.
+	* gfortran.dg/argument_checking_17.f90: New.
+
+2011-02-12  Janus Weil  <janus@gcc.gnu.org>
+
+	* gfortran.dg/allocate_derived_1.f90: Modified as polymorphic arrays
+	are temporarily disabled.
+	* gfortran.dg/class_7.f03: Ditto.
+	* gfortran.dg/coarray_14.f90: Ditto.
+	* gfortran.dg/typebound_proc_13.f03: Ditto.
+
+2011-02-12  Mikael Morin  <mikael.morin@sfr.fr>
+
+	PR fortran/45586
+	* gfortran.dg/extends_11.f03: New.
+
+2011-02-11  Xinliang David Li  <davidxl@google.com>
+
+	PR tree-optimization/47707
+	* g++.dg/tree-ssa/pr47707.C: New test.
+
+2011-02-11  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* g++.dg/opt/inline17.C: New test.
+
+2011-02-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47550
+	* gfortran.dg/pure_formal_2.f90: New.
+
+2011-02-11  Pat Haugen <pthaugen@us.ibm.com>
+
+	PR rtl-optimization/47614
+	* gfortran.dg/pr47614.f: New.
+
+2011-02-11  Joseph Myers  <joseph@codesourcery.com>
+
+	PR driver/47678
+	* gcc.dg/opts-6.c: New test.
+
+2011-02-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/47684
+	* gcc.dg/pr47684.c: New test.
+
+2011-02-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/47629
+	* gcc.target/i386/pr47312.c: Use dg-require-effective-target
+	c99_runtime, dg-add-options c99_runtime.
+	(main): Use __asm__.
+
+2011-02-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/47400
+	* lib/target-supports.exp (check_ascii_locale_available): New proc.
+	* lib/target-supports-dg.exp (dg-require-ascii-locale): New proc.
+	* gcc.dg/attr-alias-5.c: Use dg-require-ascii-locale.
+	* gcc.dg/ucnid-10.c: Likewise.
+	* gcc.dg/ucnid-13.c: Likewise.
+	* gcc.dg/ucnid-7.c: Likewise.
+	* gcc.dg/ucnid-8.c: Likewise.
+	* Adapt dg-warning line number.
+
+2011-02-10  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/parity-1.c: Use -march=k8.
+	* gcc.target/i386/parity-2.c: Ditto.
+	* gcc.target/i386/vecinit-1.c: Ditto.
+	* gcc.target/i386/vecinit-2.c: Ditto.
+
+2011-02-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/46610
+	* gcc.target/mips/save-restore-1.c: Skip on mips-sgi-irix6*.
+	* gcc.target/mips/save-restore-3.c: Likewise.
+	* gcc.target/mips/save-restore-4.c: Likewise.
+	* gcc.target/mips/save-restore-5.c: Likewise.
+
+	PR target/47683
+	* g++.dg/tree-prof/partition1.C: Skip on mips-sgi-irix*.
+	* g++.dg/tree-prof/partition2.C: Likewise.
+
+2011-02-09  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/tree-ssa/inline-3.C: Use a normal function
+	rather than misdeclare std::puts.
+
+	* g++.dg/ext/vla1.C: Adjust for C++0x mode.
+	* g++.dg/other/warning1.C: Likewise.
+	* g++.old-deja/g++.bugs/900119_01.C: Likewise.
+	* g++.old-deja/g++.gb/scope06.C: Likewise.
+	* g++.old-deja/g++.law/cvt11.C: Likewise.
+	* g++.old-deja/g++.law/init1.C: Likewise.
+	* g++.dg/abi/mangle26.C: Likewise.
+
+	* g++.dg/template/function1.C: Adjust for C++0x mode.
+	* g++.dg/cpp0x/regress/template-function1.C: Copy it.
+
+	* g++.dg/ext/label10.C: Adjust for C++0x mode.
+	* g++.dg/cpp0x/regress/ext-label10.C: Copy it.
+
+	* g++.dg/cpp0x/regress/ext-cond1.C: Copy from ext/cond1.C.
+
+	* g++.dg/cpp0x/regress/abi-empty7.C: New.
+
+	* g++.dg/cpp0x/regress: New directory.
+	* g++.dg/cpp0x/constexpr-regress1.C: Move to regress/regress1.C.
+	* g++.dg/cpp0x/constexpr-regress2.C: Move to regress/regress2.C.
+	* g++.dg/cpp0x/regress/regress3.C: New.
+
+2011-02-10  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47677
+	* gcc.dg/torture/pr47677.c: New testcase.
+
+2011-02-10  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/special/load-category-1.m: Remove unused header.
+	* objc.dg/special/load-category-1a.m: Likewise.
+	* objc.dg/special/load-category-2.m: Likewise.
+	* objc.dg/special/load-category-2a.m: Likewise.
+	* objc.dg/special/load-category-3.m: Likewise.
+	* objc.dg/special/load-category-3a.m: Likewise.
+	* objc.dg/attributes/proto-attribute-2.m: Likewise.
+	* objc.dg/attributes/proto-attribute-3.m: Likewise.
+	* objc.dg/attributes/class-attribute-1.m: Likewise.
+	* objc.dg/property/property.exp: Don't run for Darwin < 9.
+	* obj-c++.dg/property/property.exp: Likewise.
+	* objc.dg/attributes/method-sentinel-1.m: Update type header.
+	* obj-c++.dg/attributes/method-sentinel-1.mm: Likewise.
+	* obj-c++.dg/attributes/proto-attribute-2.mm: Skip for Darwin < 9.
+	* obj-c++.dg/attributes/class-attribute-1.mm: Likewise.
+	* obj-c++.dg/attributes/proto-attribute-3.mm: Likewise.
+	* obj-c++.dg/template-8.mm: Likewise.
+
+2011-02-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/47665
+	* gcc.target/i386/pr47665.c: New test.
+
+2011-02-10  Jie Zhang  <jie@codesourcery.com>
+
+	PR testsuite/47622
+	Revert
+	2011-02-05  Jie Zhang  <jie@codesourcery.com>
+	PR debug/42631
+	* gcc.dg/pr42631.c: Update test.
+	* gcc.dg/pr42631-2.c: New test.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47352
+	* gfortran.dg/proc_decl_25.f90: New.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47463
+	* gfortran.dg/typebound_assignment_2.f03: New.
+
+2011-02-09  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47664
+	* gcc.dg/tree-ssa/inline-7.c: New testcase.
+
+2011-02-09  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR middle-end/47646
+	* gnat.dg/uninit_func.adb: Adjust dg directive.
+
+2011-02-09  Dominique Dhumieres  <dominiq@lps.ens.fr>
+
+	PR middle-end/47646
+	* obj-c++.dg/attributes/method-noreturn-1.mm: Adjust dg directives.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47637
+	* gfortran.dg/auto_dealloc_2.f90: New.
+
+2011-02-09  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/builtins-config.h: Remove __sgi handling.
+	* lib/target-supports.exp (add_options_for_c99_runtime): Add
+	-std=c99 for mips-sgi-irix6.5*.
+
+2011-02-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/45505
+	* gfortran.dg/pr25923.f90: Remove xfails.
+
+2011-02-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/47583
+	* gfortran.dg/inquire_14.f90: New test.
+
+2011-02-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45290
+	* gfortran.dg/pointer_init_6.f90: New.
+
+2011-02-08  Jeff Law <law@redhat.com>
+
+	PR tree-optimization/42893
+	* gcc.tree-ssa/pr42893.c: New test.
+
+2011-02-08  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/46834
+	PR tree-optimization/46994
+	PR tree-optimization/46995
+	* gcc.dg/graphite/id-pr46834.c: New.
+	* gfortran.dg/graphite/id-pr46994.f90: New.
+	* gfortran.dg/graphite/id-pr46995.f90: New.
+
+2011-02-08  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	PR middle-end/47646
+	* gcc.dg/pr39666-2.c (foo2): If the location of the statement
+	using the variable is known the warning is emitted there.
+	* gcc.dg/uninit-pr19430.c (foo): Likewise.
+	* g++.dg/warn/Wuninitialized-5.C (foo): Likewise.
+
+	* c-c++-common/pr20000.c (g): Both warnings occur at the return
+	statement.
+	(vg): Likewise.
+	* gcc.dg/noreturn-1.c (foo5): Likewise.
+	* objc.dg/attributes/method-noreturn-1.m (method1): Likewise.
+	(method2): Likewise.
+
+	* gfortran.dg/pr25923.f90 (baz): The warning will now be issued for
+	the return statement using the uninitialized variable.
+	* gfortran.dg/pr39666-2.f90 (f): Likewise.
+
+2011-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47639
+	* g++.dg/opt/pr47639.c: New testcase.
+
+2011-02-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47632
+	* g++.dg/opt/pr47632.C: New testcase.
+
+2011-02-07  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* g++.dg/abi/packed1.C: Expect warning on spu-*-* as well.
+
+2011-02-07  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47615
+	* g++.dg/opt/pr47615.C: New testcase.
+
 2011-02-07  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/47621

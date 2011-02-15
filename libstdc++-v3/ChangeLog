@@ -1,3 +1,178 @@
+2011-02-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/regex_compiler.h: Remove unnecessary bind() calls.
+	* include/bits/regex_nfa.h: Remove unnecessary base classes.
+
+2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2011-02-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47709
+	* include/ext/algorithm (is_heap): In C++0x mode import from
+	namespace std.
+	* testsuite/ext/is_heap/47709.cc: New.
+
+2011-02-12  Jakub Jelinek  <jakub@redhat.com>
+            Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/47662
+	* testsuite/17_intro/headers/c++200x/operator_names.cc: New.
+	* testsuite/17_intro/headers/c++1998/operator_names.cc: Add comment.
+
+2011-02-12  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/tr1/cmath (fabs): Define.
+	* include/tr1/complex (acos, asin, atan): Avoid duplicate definitions
+	in C++0x mode.
+
+2011-02-12  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/tr1/headers/c++200x/complex.cc: New.
+
+2011-02-11  Johannes Singler  <singler@kit.edu>
+
+	PR libstdc++/47433
+	* include/parallel/losertree.h
+	(_LoserTreeUnguarded<>::__delete_min_insert):
+	Add missing "using std::swap;", as for other variants.
+
+2011-02-10  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* src/Makefile.am (sources): Add regex.cc.
+	* src/Makefile.in: Regenerate.
+	* src/regex.cc: New.
+	* include/bits/regex_error.h (error_type): Use constexpr.
+	(regex_error): Move ctor and dtor out of line.
+
+	* testsuite/28_regex/03_requirements: To...
+	* testsuite/28_regex/requirements: ... this.
+	* testsuite/28_regex/04_header: To...
+	* testsuite/28_regex/headers: ... this.
+	* testsuite/28_regex/05_constants: To...
+	* testsuite/28_regex/constants: ... this.
+	* testsuite/28_regex/06_exception_type: To...
+	* testsuite/28_regex/regex_error: ... this.
+	* testsuite/28_regex/07_traits: To...
+	* testsuite/28_regex/traits: ... this.
+	* testsuite/28_regex/08_basic_regex: To...
+	* testsuite/28_regex/basic_regex: ... this.
+	* testsuite/28_regex/09_sub_match: To...
+	* testsuite/28_regex/sub_match: ... this.
+	* testsuite/28_regex/10_match_results: To...
+	* testsuite/28_regex/match_results: ... this.
+	* testsuite/28_regex/11_algorithms: To...
+	* testsuite/28_regex/algorithms: ... this.
+	* testsuite/28_regex/12_iterators: To...
+	* testsuite/28_regex/iterators: ... this.
+
+2011-02-10  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/47662
+	* include/bits/c++config: Do not use alternative token.
+	* testsuite/17_intro/headers/c++1998/operator_names.cc: New.
+
+2011-02-10  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* src/future.cc (future_error_category::message): Handle no_state.
+
+2011-02-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/23_containers/multimap/modifiers/erase/47628.cc: Do
+	not test in C++0x mode.
+	* testsuite/23_containers/map/modifiers/erase/47628.cc: Likewise.
+	* testsuite/20_util/headers/utility/synopsis.cc: Tweak to work
+	in C++0x mode too.
+
+2011-02-10  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx200x.xml: Update.
+	* doc/html/*: Regenerate.
+
+2011-02-10  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/debug.xml: Improve data race docs.
+
+2011-02-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47668
+	* include/debug/map.h (map): Remove unnecessary using-declaration.
+	* include/debug/multimap.h (multimap): Likewise.
+	* include/profile/map.h (map): Likewise.
+	* include/profile/multimap.h (multimap): Likewise.
+
+2011-02-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/43863
+	* libsupc++/guard.cc (recursive_init_error::~recursive_init_error):
+	Move to ...
+	* libsupc++/guard_error.cc: ... new file.
+	* libsupc++/Makefile.am: Update.
+	* libsupc++/Makefile.in: Regenerate.
+
+2011-02-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future (packaged_task::operator bool): Rename to...
+	(packaged_task::valid): ...this.
+	* testsuite/30_threads/packaged_task/cons/1.cc: Adjust.
+	* testsuite/30_threads/packaged_task/cons/2.cc: Adjust.
+	* testsuite/30_threads/packaged_task/cons/move.cc: Adjust.
+	* testsuite/30_threads/packaged_task/cons/move_assign.cc: Adjust.
+	* testsuite/30_threads/packaged_task/cons/alloc.cc: Adjust.
+	* testsuite/30_threads/packaged_task/members/invoke.cc: Adjust.
+	* testsuite/30_threads/packaged_task/members/reset.cc: Adjust.
+	* testsuite/30_threads/packaged_task/members/reset2.cc: Adjust.
+	* testsuite/30_threads/packaged_task/members/swap.cc: Adjust.
+	* testsuite/30_threads/packaged_task/members/boolconv.cc: Remove.
+	* testsuite/30_threads/packaged_task/members/valid.cc: Add.
+
+2011-02-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* doc/xml/manual/io.xml: Fix typo.
+	* doc/html/manual/streambufs.html: Likewise.
+
+2011-02-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* config/abi/pre/gnu.ver: Fix.
+
+2011-02-08  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* doc/xml/manual/appendix_porting.xml: Add doc section.
+	* doc/xml/manual/appendix_contributing.xml: Split out doc bits to...
+	* doc/xml/manual/documentation_hacking.xml: ...here.
+
+	* doc/xml/manual/debug_mode.xml: Adjust.
+	* doc/xml/manual/prerequisites.xml: Adjust.
+	* doc/Makefile.am (xml_sources): Add dot files,
+	documentation_hacking.xml.
+	* doc/Makefile.in: Regenerate.
+
+	* doc/xml/manual/build_hacking.xml: Use absolute paths for images.
+	* doc/xml/images/confdeps.pdf: Add.
+
+	* doc/html/*: Regenerate.
+
+2011-02-08  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/gnu/fdl-1.2.xml: Remove.
+	* doc/xml/gnu/gpl-2.0.xml: Remove.
+	* doc/Makefile.am: Update.
+	* doc/Makefile.in: Regenerate.
+
+2011-02-07  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47628
+	* include/bits/stl_tree.h (_Rb_tree::erase(iterator), erase(iterator,
+	iterator)): Add back in C++03 mode.
+	* testsuite/23_containers/map/modifiers/erase/47628.cc: New.
+	* testsuite/23_containers/multimap/modifiers/erase/47628.cc: Likewise.
+
+2011-02-07  Benjamin Kosnik  <bkoz@redhat.com>
+
+	PR libstdc++/47560 try two
+	* config/os/hpux/os_defines.h: Guard for C++.
+
 2011-02-07  Gerald Pfeifer  <gerald@pfeifer.com>
 
 	* doc/xml/faq.xml: Adjust link to bug database.
