@@ -7,7 +7,7 @@
 2011-02-14  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_output_addr_vec_elt): Output
-	64bit value for lables for TARGET_X32.
+	64bit value for labels for TARGET_X32.
 
 	* config/i386/i386.md (*tablejump_1): Don't disable for
 	TARGET_X32.
