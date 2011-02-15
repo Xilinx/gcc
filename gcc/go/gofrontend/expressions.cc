@@ -5159,7 +5159,7 @@ Binary_expression::do_lower(Gogo*, Named_object*, int)
 	  {
 	    // May be a type error--let it be diagnosed later.
 	  }
-	else if (is_comparison)
+	else if (op == OPERATOR_EQEQ || op == OPERATOR_NOTEQ)
 	  {
 	    bool b = Binary_expression::compare_complex(op,
 							(left_type != NULL
@@ -5412,6 +5412,9 @@ Binary_expression::do_discarding_value()
 Type*
 Binary_expression::do_type()
 {
+  if (this->classification() == EXPRESSION_ERROR)
+    return Type::make_error_type();
+
   switch (this->op_)
     {
     case OPERATOR_OROR:
@@ -5440,6 +5443,11 @@ Binary_expression::do_type()
 	  return left_type;
 	else if (right_type->is_error_type())
 	  return right_type;
+	else if (!Type::are_compatible_for_binop(left_type, right_type))
+	  {
+	    this->report_error(_("incompatible types in binary expression"));
+	    return Type::make_error_type();
+	  }
 	else if (!left_type->is_abstract() && left_type->named_type() != NULL)
 	  return left_type;
 	else if (!right_type->is_abstract() && right_type->named_type() != NULL)
@@ -5536,6 +5544,9 @@ Binary_expression::do_determine_type(const Type_context* context)
 	subcontext.type = tright;
       else
 	subcontext.type = tleft;
+
+      if (subcontext.type != NULL && !context->may_be_abstract)
+	subcontext.type = subcontext.type->make_non_abstract_type();
     }
 
   this->left_->determine_type(&subcontext);
@@ -5664,6 +5675,9 @@ Binary_expression::check_operator_type(Operator op, Type* type,
 void
 Binary_expression::do_check_types(Gogo*)
 {
+  if (this->classification() == EXPRESSION_ERROR)
+    return;
+
   Type* left_type = this->left_->type();
   Type* right_type = this->right_->type();
   if (left_type->is_error_type() || right_type->is_error_type())
@@ -6394,7 +6408,8 @@ Bound_method_expression::do_check_types(Gogo*)
 tree
 Bound_method_expression::do_get_tree(Translate_context*)
 {
-  gcc_unreachable();
+  error_at(this->location(), "reference to method other than calling it");
+  return error_mark_node;
 }
 
 // Make a method expression.
@@ -9946,7 +9961,10 @@ Expression::make_map_index(Expression* map, Expression* index,
 Type*
 Field_reference_expression::do_type()
 {
-  Struct_type* struct_type = this->expr_->type()->struct_type();
+  Type* type = this->expr_->type();
+  if (type->is_error_type())
+    return type;
+  Struct_type* struct_type = type->struct_type();
   gcc_assert(struct_type != NULL);
   return struct_type->field(this->field_index_)->type();
 }
@@ -9956,7 +9974,10 @@ Field_reference_expression::do_type()
 void
 Field_reference_expression::do_check_types(Gogo*)
 {
-  Struct_type* struct_type = this->expr_->type()->struct_type();
+  Type* type = this->expr_->type();
+  if (type->is_error_type())
+    return;
+  Struct_type* struct_type = type->struct_type();
   gcc_assert(struct_type != NULL);
   gcc_assert(struct_type->field(this->field_index_) != NULL);
 }

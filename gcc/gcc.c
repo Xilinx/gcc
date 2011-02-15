@@ -775,7 +775,7 @@ static const char *cc1_options =
  %{coverage:-fprofile-arcs -ftest-coverage}";
 
 static const char *asm_options =
-"%{--target-help:%:print-asm-header()} "
+"%{-target-help:%:print-asm-header()} "
 #if HAVE_GNU_AS
 /* If GNU AS is used, then convert -w (no warnings), -I, and -v
    to the assembler equivalents.  */
@@ -3328,6 +3328,11 @@ driver_handle_option (struct gcc_options *opts,
       /* Similarly, canonicalize -L for linkers that may not accept
 	 separate arguments.  */
       save_switch (concat ("-L", arg, NULL), 0, NULL, validated);
+      return true;
+
+    case OPT_F:
+      /* Likewise -F.  */
+      save_switch (concat ("-F", arg, NULL), 0, NULL, validated);
       return true;
 
     case OPT_save_temps:
@@ -6597,6 +6602,9 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
   if (n_infiles == added_libraries)
     fatal_error ("no input files");
 
+  if (seen_error ())
+    goto out;
+
   /* Make a place to record the compiler output file names
      that correspond to the input files.  */
 
@@ -6864,6 +6872,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
       printf ("%s\n", bug_report_url);
     }
 
+ out:
   return (signal_count != 0 ? 2
 	  : seen_error () ? (pass_exit_codes ? greatest_status : 1)
 	  : 0);

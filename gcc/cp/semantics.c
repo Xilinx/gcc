@@ -2324,7 +2324,7 @@ finish_fname (tree id)
   tree decl;
 
   decl = fname_decl (input_location, C_RID_CODE (id), id);
-  if (processing_template_decl)
+  if (processing_template_decl && current_function_decl)
     decl = DECL_NAME (decl);
   return decl;
 }
@@ -7263,6 +7263,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     {
     case FUNCTION_DECL:
     case BASELINK:
+    case TEMPLATE_DECL:
     case OVERLOAD:
     case TEMPLATE_ID_EXPR:
     case LABEL_DECL:

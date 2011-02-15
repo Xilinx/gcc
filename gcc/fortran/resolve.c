@@ -160,7 +160,10 @@ resolve_procedure_interface (gfc_symbol *sym)
 	resolve_intrinsic (ifc, &ifc->declared_at);
 
       if (ifc->result)
-	sym->ts = ifc->result->ts;
+	{
+	  sym->ts = ifc->result->ts;
+	  sym->result = sym;
+	}
       else   
 	sym->ts = ifc->ts;
       sym->ts.interface = ifc;
@@ -338,17 +341,31 @@ resolve_formal_arglist (gfc_symbol *proc)
       if (gfc_pure (proc) && !sym->attr.pointer
 	  && sym->attr.flavor != FL_PROCEDURE)
 	{
-	  if (proc->attr.function && sym->attr.intent != INTENT_IN
-	      && !sym->attr.value)
-	    gfc_error ("Argument '%s' of pure function '%s' at %L must be "
-		       "INTENT(IN) or VALUE", sym->name, proc->name,
-		       &sym->declared_at);
+	  if (proc->attr.function && sym->attr.intent != INTENT_IN)
+	    {
+	      if (sym->attr.value)
+		gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Argument '%s' "
+				"of pure function '%s' at %L with VALUE "
+				"attribute but without INTENT(IN)", sym->name,
+				proc->name, &sym->declared_at);
+	      else
+		gfc_error ("Argument '%s' of pure function '%s' at %L must be "
+			   "INTENT(IN) or VALUE", sym->name, proc->name,
+			   &sym->declared_at);
+	    }
 
-	  if (proc->attr.subroutine && sym->attr.intent == INTENT_UNKNOWN
-	      && !sym->attr.value)
-	    gfc_error ("Argument '%s' of pure subroutine '%s' at %L must "
+	  if (proc->attr.subroutine && sym->attr.intent == INTENT_UNKNOWN)
+	    {
+	      if (sym->attr.value)
+		gfc_notify_std (GFC_STD_F2008, "Fortran 2008: Argument '%s' "
+				"of pure subroutine '%s' at %L with VALUE "
+				"attribute but without INTENT", sym->name,
+				proc->name, &sym->declared_at);
+	      else
+		gfc_error ("Argument '%s' of pure subroutine '%s' at %L must "
 		       "have its INTENT specified or have the VALUE "
 		       "attribute", sym->name, proc->name, &sym->declared_at);
+	    }
 	}
 
       if (proc->attr.implicit_pure && !sym->attr.pointer
@@ -5894,7 +5911,6 @@ resolve_typebound_subroutine (gfc_code *code)
       name = name ? name : code->expr1->value.function.esym->name;
       code->expr1->symtree = expr->symtree;
       code->expr1->ref = gfc_copy_ref (expr->ref);
-      expr->symtree->n.sym->ts.u.derived = declared;
       gfc_add_vptr_component (code->expr1);
       gfc_add_component_ref (code->expr1, name);
       code->expr1->value.function.esym = NULL;
