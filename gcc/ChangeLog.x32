@@ -1,5 +1,11 @@
 2011-02-15  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR middle-end/47725
+	* combine.c (cant_combine_insn_p): Check zero/sign extended
+	hard registers.
+
+2011-02-15  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR target/47744
 	* config/i386/i386.c (ix86_decompose_address): Process
 	(reg + const) base for TARGET_X32.
