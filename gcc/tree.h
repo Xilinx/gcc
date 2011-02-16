@@ -5393,6 +5393,7 @@ extern tree build_tm_abort_call (location_t, bool);
 extern bool is_tm_safe (const_tree);
 extern bool is_tm_pure (const_tree);
 extern bool is_tm_may_cancel_outer (tree);
+extern bool is_tm_ending_fndecl (tree);
 extern void record_tm_replacement (tree, tree);
 extern void tm_malloc_replacement (tree);
 

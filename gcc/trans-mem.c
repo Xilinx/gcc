@@ -292,7 +292,7 @@ is_transactional_stmt (const_gimple stmt)
 
 /* Return true for built in functions that "end" a transaction.   */
 
-static bool
+bool
 is_tm_ending_fndecl (tree fndecl)
 {
   if (DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL)
@@ -4500,7 +4500,7 @@ ipa_tm_execute (void)
   bitmap_obstack_initialize (&tm_obstack);
   bb_in_TM_region = BITMAP_ALLOC (&tm_obstack);
 
-  /* Build a bitmap of all BB"s inside transaction regions.  */
+  /* Build a bitmap of all BB's inside transaction regions.  */
   for (node = cgraph_nodes; node; node = node->next)
     if (node->reachable && node->lowered
 	&& cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
@@ -4509,7 +4509,9 @@ ipa_tm_execute (void)
 	regions = ipa_tm_region_init (node); 
 	for ( ; regions; regions = regions->next)
 	  {
-	    get_tm_region_blocks (regions->entry_block, NULL, NULL, 
+	    get_tm_region_blocks (regions->entry_block,
+				  regions->exit_blocks,
+				  NULL, 
 				  bb_in_TM_region, false);
 	  }
       }

@@ -2253,6 +2253,13 @@ is_ctrl_altering_stmt (gimple t)
 	/* A call also alters control flow if it does not return.  */
 	if (flags & ECF_NORETURN)
 	  return true;
+
+	/* TM ending statements have backedges out of the transaction.
+	   Return true so we split the basic block containing
+	   them.  */
+	if ((flags & ECF_TM_OPS)
+	    && is_tm_ending_fndecl (gimple_call_fndecl (t)))
+	  return true;
       }
       break;
 

@@ -1,3 +1,12 @@
+2011-02-16  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR 47690
+	* trans-mem.c (ipa_tm_execute): Do not scan past exit blocks when
+	accumulating BB's.
+	(is_tm_ending_fndecl): Remove static.
+	* tree-cfg.c (is_ctrl_altering_stmt): Add TM ending statements.
+	* tree.h (is_tm_ending_fndecl): New prototype.
+
 2011-02-14  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (MODE_SERIALIRREVOCABLE): Change to 0.
