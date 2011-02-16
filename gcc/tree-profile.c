@@ -44,6 +44,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "value-prof.h"
 #include "cgraph.h"
+#include "output.h"
 
 static GTY(()) tree gcov_type_node;
 static GTY(()) tree gcov_type_tmp_var;

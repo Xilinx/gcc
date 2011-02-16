@@ -299,12 +299,11 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
       direct_call1 = find_func_by_global_id (val1);
       if (direct_call1)
         {
-          struct cgraph_edge *e;
           tree decl = direct_call1->decl;
-          e = cgraph_create_edge (node,
-	                          cgraph_lipo_get_resolved_node (decl),
-				  NULL,
-                                  count1, 0, 0);
+          cgraph_create_edge (node,
+	                      cgraph_lipo_get_resolved_node (decl),
+			      NULL,
+                              count1, 0, 0);
         }
 
       if (val2 == 0 || count2 == 0)
@@ -312,12 +311,11 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
       direct_call2 = find_func_by_global_id (val2);
       if (direct_call2)
         {
-          struct cgraph_edge *e;
           tree decl = direct_call2->decl;
-          e = cgraph_create_edge (node,
-	                          cgraph_lipo_get_resolved_node (decl),
-				  NULL,
-                                  count2, 0, 0);
+          cgraph_create_edge (node,
+	                      cgraph_lipo_get_resolved_node (decl),
+                              NULL,
+                              count2, 0, 0);
         }
     }
 }

@@ -1110,6 +1110,7 @@ cgraph_add_output_node (struct cgraph_node *node)
     return (struct cgraph_node *)(*aslot);
 }
 
+#if ENABLE_CHECKING
 /* Return the cgraph_node if the function symbol for NODE is
    expanded in the output. Returns NULL otherwise.  */
 
@@ -1140,8 +1141,10 @@ cgraph_find_output_node (struct cgraph_node *node)
 
   return (struct cgraph_node *)(*aslot);
 }
+#endif
 
 
+#if ENABLE_CHECKING
 /* A function used in validation. Return true if NODE was
    not expanded and its body was not reclaimed.  */
 
@@ -1170,6 +1173,7 @@ cgraph_node_expansion_skipped (struct cgraph_node *node)
   /* External functions not marked for output.  */
   return true;
 }
+#endif
 
 /* Figure out what functions we want to assemble.  */
 

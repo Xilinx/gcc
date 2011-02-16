@@ -52,6 +52,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "pointer-set.h"
 #include "splay-tree.h"
+#include "cgraph.h"
 #include "plugin.h"
 
 /* Possible cases of bad specifiers type used by bad_specifiers. */
