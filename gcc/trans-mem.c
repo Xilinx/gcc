@@ -4279,6 +4279,65 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   return true;
 }
 
+/* Helper function for ipa_tm_transform_calls*.  Given a call
+   statement in GSI which resides inside transaction REGION, redirect
+   the call to either its wrapper function, or its clone.  */
+
+static void
+ipa_tm_transform_calls_redirect (struct cgraph_node *node,
+				 struct tm_region *region,
+				 gimple_stmt_iterator *gsi,
+				 bool *need_ssa_rename_p)
+{
+  gimple stmt = gsi_stmt (*gsi);
+  struct cgraph_node *new_node;
+  struct cgraph_edge *e = cgraph_edge (node, stmt);
+  tree fndecl = gimple_call_fndecl (stmt);
+
+  /* If there is a replacement, use it, otherwise use the clone.  */
+  fndecl = find_tm_replacement_function (fndecl);
+  if (fndecl)
+    {
+      new_node = cgraph_node (fndecl);
+
+      /* ??? Mark all transaction_wrap functions tm_may_enter_irr.
+
+	 We can't do this earlier in record_tm_replacement because
+	 cgraph_remove_unreachable_nodes is called before we inject
+	 references to the node.  Further, we can't do this in some
+	 nice central place in ipa_tm_execute because we don't have
+	 the exact list of wrapper functions that would be used.
+	 Marking more wrappers than necessary results in the creation
+	 of unnecessary cgraph_nodes, which can cause some of the
+	 other IPA passes to crash.
+
+	 We do need to mark these nodes so that we get the proper
+	 result in expand_call_tm.  */
+      new_node->local.tm_may_enter_irr = 1;
+    }
+  else
+    {
+      struct tm_ipa_cg_data *d = get_cg_data (e->callee);
+      new_node = d->clone;
+
+      /* As we've already skipped pure calls and appropriate builtins,
+	 and we've already marked irrevocable blocks, if we can't come
+	 up with a static replacement, then ask the runtime.  */
+      if (new_node == NULL)
+	{
+	  *need_ssa_rename_p |=
+	    ipa_tm_insert_gettmclone_call (node, region, gsi, stmt);
+	  cgraph_remove_edge (e);
+	  return;
+	}
+
+      fndecl = new_node->decl;
+    }
+
+  cgraph_redirect_edge_callee (e, new_node);
+  gimple_call_set_fndecl (stmt, fndecl);
+}
+
 /* Helper function for ipa_tm_transform_calls.  For a given BB,
    install calls to tm_irrevocable when IRR_BLOCKS are reached,
    redirect other calls to the generated transactional clone.  */
@@ -4299,8 +4358,6 @@ ipa_tm_transform_calls_1 (struct cgraph_node *node, struct tm_region *region,
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
-      struct cgraph_edge *e;
-      struct cgraph_node *new_node;
       tree fndecl;
 
       if (!is_gimple_call (stmt))
@@ -4321,50 +4378,9 @@ ipa_tm_transform_calls_1 (struct cgraph_node *node, struct tm_region *region,
       /* Don't scan past the end of the transaction.  */
       if (is_tm_ending_fndecl (fndecl))
 	break;
-      e = cgraph_edge (node, stmt);
 
-      /* If there is a replacement, use it, otherwise use the clone.  */
-      fndecl = find_tm_replacement_function (fndecl);
-      if (fndecl)
-	{
-	  new_node = cgraph_node (fndecl);
-
-	  /* ??? Mark all transaction_wrap functions tm_may_enter_irr.
-
-	     We can't do this earlier in record_tm_replacement because
-	     cgraph_remove_unreachable_nodes is called before we inject
-	     references to the node.  Further, we can't do this in some
-	     nice central place in ipa_tm_execute because we don't have
-	     the exact list of wrapper functions that would be used.
-	     Marking more wrappers than necessary results in the creation
-	     of unnecessary cgraph_nodes, which can cause some of the
-	     other IPA passes to crash.
-
-	     We do need to mark these nodes so that we get the proper
-	     result in expand_call_tm.  */
-	  new_node->local.tm_may_enter_irr = 1;
-	}
-      else
-	{
-	  struct tm_ipa_cg_data *d = get_cg_data (e->callee);
-	  new_node = d->clone;
-
-	  /* As we've already skipped pure calls and appropriate builtins,
-	     and we've already marked irrevocable blocks, if we can't come
-	     up with a static replacement, then ask the runtime.  */
-	  if (new_node == NULL)
-	    {
-	      need_ssa_rename |=
-	        ipa_tm_insert_gettmclone_call (node, region, &gsi, stmt);
-	      cgraph_remove_edge (e);
-	      continue;
-	    }
-
-	  fndecl = new_node->decl;
-	}
-
-      cgraph_redirect_edge_callee (e, new_node);
-      gimple_call_set_fndecl (stmt, fndecl);
+      /* Redirect edges to the appropriate replacement or clone.  */
+      ipa_tm_transform_calls_redirect (node, region, &gsi, &need_ssa_rename);
     }
 
   return need_ssa_rename;

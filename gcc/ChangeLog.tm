@@ -1,5 +1,10 @@
 2011-02-16  Aldy Hernandez  <aldyh@redhat.com>
 
+	* trans-mem.c (ipa_tm_transform_calls_redirect): Abstract from...
+	(ipa_tm_transform_calls_1): ...here.
+
+2011-02-16  Aldy Hernandez  <aldyh@redhat.com>
+
 	PR 47690
 	* trans-mem.c (ipa_tm_execute): Do not scan past exit blocks when
 	accumulating BB's.
