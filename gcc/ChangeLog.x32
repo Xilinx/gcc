@@ -1,3 +1,17 @@
+2011-02-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47766
+	* config/i386/i386.md (PTR): New.
+	(stack_protect_set: Check TARGET_LP64 instead of TARGET_64BIT.
+	(stack_protect_test): Likewise.
+	(stack_protect_set_<mode>): Replace ":P" with ":PTR".
+	(stack_tls_protect_set_<mode>): Likewise.
+	(stack_tls_protect_test_<mode>): Likewise.
+
+	* config/i386/linux64.h (TARGET_THREAD_SSP_OFFSET): Support
+	TARGET_X32.
+	(TARGET_THREAD_SPLIT_STACK_OFFSET): Likewise.
+
 2011-02-15  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/47725

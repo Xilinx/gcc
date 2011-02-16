@@ -1,3 +1,8 @@
+2011-02-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47766
+	* gcc.target/i386/pr47766.c: New.
+
 2011-02-15  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47744
