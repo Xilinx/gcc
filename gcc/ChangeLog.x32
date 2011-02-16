@@ -1,5 +1,12 @@
 2011-02-16  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/linux64.h (GLIBC_DYNAMIC_LINKERX32): Update
+	ld.so path.
+
+	* config/i386/t-linuxx32: Change x32 library path to libx32.
+
+2011-02-16  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR target/47766
 	* config/i386/i386.md (PTR): New.
 	(stack_protect_set: Check TARGET_LP64 instead of TARGET_64BIT.

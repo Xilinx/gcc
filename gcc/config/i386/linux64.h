@@ -61,7 +61,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #define GLIBC_DYNAMIC_LINKER32 "/lib/ld-linux.so.2"
 #define GLIBC_DYNAMIC_LINKER64 "/lib64/ld-linux-x86-64.so.2"
-#define GLIBC_DYNAMIC_LINKERX32 "/lib32/ld-linux-x32.so.2"
+#define GLIBC_DYNAMIC_LINKERX32 "/libx32/ld-linux-x32.so.2"
 
 #if TARGET_64BIT_DEFAULT
 #define SPEC_32 "m32"
