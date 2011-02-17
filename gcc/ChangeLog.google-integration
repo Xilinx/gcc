@@ -1,3 +1,7 @@
+2011-02-17  Simon Baldwin  <simonb@google.com>
+
+	* Makefile.in: Fix incorrect "($PWD_COMMAND)"
+
 2011-02-11  Simon Baldwin  <simonb@google.com>
 
 	* doc/install.texi: Add --disable-canonical-prefixes documentation.
