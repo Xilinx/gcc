@@ -121,15 +121,16 @@ quadmath_snprintf (char *str, size_t size, const char *format, ...)
     return -1;
 
   /* Clear information structure.  */
-  info.alt = 0;
+  memset (&info, '\0', sizeof info);
+  /* info.alt = 0;
   info.space = 0;
   info.left = 0;
   info.showsign = 0;
   info.group = 0;
   info.i18n = 0;
-  info.extra = 0;
+  info.extra = 0; */
   info.pad = ' ';
-  info.wide = 0;
+  /* info.wide = 0; */
 
   /* Check for spec modifiers.  */
   do
@@ -180,7 +181,7 @@ quadmath_snprintf (char *str, size_t size, const char *format, ...)
   va_start (ap, format);
 
   /* Get the field width.  */
-  info.width = 0;
+  /* info.width = 0; */
   if (*format == '*')
     {
       /* The field width is given in an argument.
@@ -213,11 +214,11 @@ quadmath_snprintf (char *str, size_t size, const char *format, ...)
     }
 
   /* Check for type modifiers.  */
-  info.is_long_double = 0;
+  /* info.is_long_double = 0;
   info.is_short = 0;
   info.is_long = 0;
   info.is_char = 0;
-  info.user = -1;
+  info.user = 0; */
 
   /* We require Q modifier.  */
   if (*format++ != 'Q')
@@ -291,7 +292,7 @@ flt128_ais (const struct printf_info *info, size_t n __attribute__ ((unused)),
       size[0] = sizeof (__float128);
       return 1;
     }
-#if __GLIBC_MINOR__ <= 13
+#if __GLIBC__ < 2 || (__GLIBC__ == 2 && __GLIBC_MINOR__ <= 13)
   /* Workaround bug in glibc printf hook handling.  */
   size[0] = -1;
   switch (info->spec)

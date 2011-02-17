@@ -36,12 +36,11 @@ namespace __regex
 {
   struct _Scanner_base
   {
-    // FIXME: replace these constanst with constexpr
     typedef unsigned int _StateT;
 
-    static const _StateT _S_state_at_start    = 1 << 0;
-    static const _StateT _S_state_in_brace    = 1 << 2;
-    static const _StateT _S_state_in_bracket  = 1 << 3;
+    static constexpr _StateT _S_state_at_start    = 1 << 0;
+    static constexpr _StateT _S_state_in_brace    = 1 << 2;
+    static constexpr _StateT _S_state_in_bracket  = 1 << 3;
   };
 
   //
@@ -51,8 +50,8 @@ namespace __regex
   // range passed to its constructor as a sequence of parse tokens passed to
   // the regular expression compiler.  The sequence of tokens provided depends
   // on the flag settings passed to the constructor:  different regular
-  // expression gramars will interpret the same input pattern in syntactically
-  // different ways.
+  // expression grammars will interpret the same input pattern in
+  // syntactically different ways.
   //
   template<typename _InputIterator>
     class _Scanner: public _Scanner_base
@@ -172,6 +171,9 @@ namespace __regex
 	  _M_scan_in_brace();
 	  return;
 	}
+#if 0
+      // TODO: re-enable line anchors when _M_assertion is implemented.
+      // See PR libstdc++/47724
       else if (_M_state & _S_state_at_start && __c == _M_ctype.widen('^'))
 	{
 	  _M_curToken = _S_token_line_begin;
@@ -184,6 +186,7 @@ namespace __regex
 	  ++_M_current;
 	  return;
 	}
+#endif
       else if (__c == _M_ctype.widen('.'))
 	{
 	  _M_curToken = _S_token_anychar;

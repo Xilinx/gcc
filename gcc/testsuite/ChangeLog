@@ -1,3 +1,77 @@
+2011-02-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/43653
+	* gcc.target/i386/pr43653.c: New test.
+
+2011-02-11  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47172
+	* g++.dg/template/inherit6.C: New test.
+
+2011-02-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47745
+	* gfortran.dg/class_39.f03: New.
+
+2011-02-16  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47326
+	* g++.dg/cpp0x/variadic106.C: New test.
+
+2011-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libfortran/47757
+	* gfortran.dg/pr47757-1.f90: New test.
+	* gfortran.dg/pr47757-2.f90: New test.
+	* gfortran.dg/pr47757-3.f90: New test.
+
+	PR c++/47704
+	* g++.dg/cpp0x/enum8.C: New test.
+
+2011-02-15  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/inherit/implicit-trivial1.C: New.
+	* g++.dg/cpp0x/implicit-trivial1.C: New.
+
+2011-02-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47725
+	* gcc.dg/torture/pr47725.c: Removed.
+
+2011-02-15  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/47755
+	* gcc.target/powerpc/pr47755.c: New file, test all 0 vector
+	constant does not generate a load from memory.
+
+2011-02-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47725
+	* gcc.dg/torture/pr47725.c: New.
+
+2011-02-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47743
+	* gcc.dg/torture/pr47743.c: New testcase.
+
+2011-02-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/47581
+	* gcc.target/i386/pr47581.c: New test.
+
+2011-02-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47730
+	* gfortran.dg/select_type_22.f03: New.
+
+2011-02-14  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/regress/enum1.C: New.
+
+2011-02-14  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/include.adb: New test.
+
 2011-02-14  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/47728
@@ -86,7 +160,7 @@
 	* gcc.dg/ucnid-13.c: Likewise.
 	* gcc.dg/ucnid-7.c: Likewise.
 	* gcc.dg/ucnid-8.c: Likewise.
-	* Adapt dg-warning line number.
+	Adapt dg-warning line number.
 
 2011-02-10  Uros Bizjak  <ubizjak@gmail.com>
 
