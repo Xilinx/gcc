@@ -1,3 +1,9 @@
+2011-02-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47715
+	* config/i386/i386.c (ix86_expand_move): Always use legitimized
+	plus const symbol reference.
+
 2011-02-16  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/linux64.h (GLIBC_DYNAMIC_LINKERX32): Update

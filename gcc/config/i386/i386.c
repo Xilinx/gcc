@@ -15520,13 +15520,20 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
 	}
     }
 
+  if (symbol1)
+    {
+      if (GET_MODE (symbol1) != mode)
+	symbol1 = convert_to_mode (mode, symbol1, 1);
+      emit_insn (gen_rtx_SET (VOIDmode, op0, symbol1));
+      return;
+    }
+
   if ((flag_pic || MACHOPIC_INDIRECT) 
        && (mode == Pmode || mode == ptr_mode)
        && symbolic_operand (op1, mode))
     {
       if (TARGET_MACHO && !TARGET_64BIT)
 	{
-	  gcc_assert (symbol1 == NULL);
 #if TARGET_MACHO
 	  /* dynamic-no-pic */
 	  if (MACHOPIC_INDIRECT)
@@ -15563,8 +15570,6 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
 	}
       else
 	{
-	  if (symbol1 != NULL)
-	    op1 = symbol1;
 	  if (MEM_P (op0))
 	    op1 = force_reg (mode, op1);
 	  else if (!TARGET_64BIT || !x86_64_movabs_operand (op1, mode))
