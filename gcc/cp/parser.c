@@ -384,6 +384,16 @@ cp_lexer_new_main (void)
       pth_init (lexer);
       cp_lexer_get_tokens (lexer);
     }
+  else if (pph_out_file != NULL || query_have_pph_map ())
+    {
+      /* FIXME pph.  PPH is incompatible with PCH, so do not read ahead to
+	 the first token looking for a PCH pragma.  This convoluted
+	 initialization could be simplified if PCH was implemented in
+	 terms of the incremental compiler.  */
+      lexer = cp_lexer_alloc ();
+      pph_init ();
+      cp_lexer_get_tokens (lexer);
+    }
   else
     {
       /* FIXME pph.  Get rid of this duplicate and call cp_lexer_get_tokens
@@ -25151,7 +25161,6 @@ c_parse_file (void)
     }
   already_called = true;
 
-  pph_init ();
   the_parser = cp_parser_new ();
   push_deferring_access_checks (flag_access_control
 				? dk_no_deferred : dk_no_check);

@@ -543,6 +543,23 @@ extern bool flag_pch_preprocess;
 
 extern const char *pch_file;
 
+/* The file name to which we should write a preparsed header, or
+   NULL if no header will be written in this compile.  */
+
+extern const char *pph_out_file;
+
+/* Query if we have any map from INCLUDE to PPH file.  */
+
+extern bool
+query_have_pph_map (void);
+
+/* Query for a mapping from an INCLUDE to a PPH file.
+   Return the filename, without ownership.
+   If there is no mapping, return null.  */
+
+extern const char *
+query_pph_include_map (const char *include);
+
 /* Nonzero if an ISO standard was selected.  It rejects macros in the
    user's namespace.  */
 

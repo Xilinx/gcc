@@ -38,6 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "mkdeps.h"
 #include "target.h"		/* For gcc_targetcm.  */
 #include "tm_p.h"		/* For C_COMMON_OVERRIDE_OPTIONS.  */
+#include "strstrmap.h"
 
 #ifndef DOLLARS_IN_IDENTIFIERS
 # define DOLLARS_IN_IDENTIFIERS true
@@ -121,6 +122,99 @@ static void c_finish_options (void);
 #ifndef STDC_0_IN_SYSTEM_HEADERS
 #define STDC_0_IN_SYSTEM_HEADERS 0
 #endif
+
+/* Mappings from include directive to PPH file.  */
+
+strstrmap_t *include_pph_mapping;
+
+/* Query if we have any map from INCLUDE to PPH file.  */
+
+bool
+query_have_pph_map (void)
+{
+  return include_pph_mapping != NULL;
+}
+
+/* Add mappings from include directive to PPH files found within file FILENAME.
+   The file is a sequence of lines.
+   Each line contains the directive, followed by a tab,
+   and finally followed by the filename.  */
+
+static void
+add_pph_header_map (const char *basename)
+{
+  int length;
+  const char* old_file;
+  char hdrbuf[MAXPATHLEN];
+  char pphbuf[MAXPATHLEN];
+
+  length = strlen (basename);
+  strcpy (hdrbuf, basename);
+  strcpy (hdrbuf + length, ".h");
+  strcpy (pphbuf, basename);
+  strcpy (pphbuf + length, ".pph");
+  old_file = strstrmap_insert (include_pph_mapping, hdrbuf, pphbuf);
+  if (old_file != NULL)
+    {
+      fatal_error ("PPH include %s was remapped: ", pphbuf);
+    }
+}
+
+/* Add mappings from include directive to PPH files found within file FILENAME.
+   The file is a sequence of lines.
+   Each line contains the directive, followed by a tab,
+   and finally followed by the filename.  */
+
+static void
+add_pph_include_maps (const char *filename)
+{
+  FILE* stream;
+  char *line;
+  char linebuf[2*MAXPATHLEN];
+
+  if (include_pph_mapping == NULL)
+    include_pph_mapping = strstrmap_create ();
+
+  stream = fopen (filename, "r");
+  if (!stream)
+    fatal_error ("Cannot open %s for reading: %m", filename);
+  
+  line = fgets (linebuf, sizeof linebuf, stream);
+  while (line != NULL)
+    {
+      char *eol, *tab;
+      const char *include, *pph_file, *old_file;
+      eol = strchr (line, '\n');
+      tab = strchr (line, '\t');
+      if (eol == NULL || tab == NULL)
+        fatal_error ("Ill-formed PPH mapping file %s: ", filename);
+      *eol = '\0';
+      *tab = '\0';
+      include = line;
+      pph_file = tab + 1;
+      old_file = strstrmap_insert (include_pph_mapping, include, pph_file);
+      if (old_file != NULL)
+        {
+          fatal_error ("PPH include %s was remapped: ", include);
+        }
+      line = fgets (linebuf, sizeof linebuf, stream);
+    }
+
+    fclose (stream);
+}
+
+/* Query for a mappings from an INCLUDE to a PPH file.
+   Return the filename, without ownership.
+   If there is no mapping, return null.  */
+
+const char *
+query_pph_include_map (const char *include)
+{
+  if (include_pph_mapping == NULL)
+    return NULL;
+  else
+    return strstrmap_lookup (include_pph_mapping, include);
+}
 
 /* Holds switches parsed by c_common_handle_option (), but whose
    handling is deferred to c_common_post_options ().  */
@@ -266,7 +360,13 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT__output_pch_:
-      pch_file = arg;
+      {
+        char *dot = strrchr (arg, '.');
+        if (dot != NULL && strcmp (dot, ".pph") == 0)
+          pph_out_file = arg;
+        else
+          pch_file = arg;
+      }
       break;
 
     case OPT_A:
@@ -664,6 +764,14 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_femit_struct_debug_detailed_:
       set_struct_debug_option (&global_options, loc, arg);
+      break;
+
+    case OPT_fpph_hdr_:
+      add_pph_header_map (arg);
+      break;
+
+    case OPT_fpph_map_:
+      add_pph_include_maps (arg);
       break;
 
     case OPT_idirafter:

@@ -17,6 +17,7 @@
 # GCC testsuite for preparsed header interaction.
 
 # Contributed by Diego Novillo <dnovillo@google.com>
+# Adapted to new command-driven scheme by Lawrence Crowl <crowl@google.com>
 
 # Load support procs.
 load_lib "g++-dg.exp"
@@ -25,14 +26,45 @@ load_lib dg-pph.exp
 # Initialize `dg'.
 dg-init
 
-set old_dg_do_what_default "${dg-do-what-default}"
+# FIXME set scenarios [list "" "-g" "-O"]
+set scenarios [list "" ]
 
-# Main loop.
-foreach test [lsort [glob -nocomplain $srcdir/$subdir/*.cc]] {
-    dg-pph $subdir $test [list "-fpth" ] ".pth"
+set hdr_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cdx\]*.h]]
+set neg_tests [lsort [glob -nocomplain $srcdir/$subdir/\[dy\]*.cc]]
+set pos_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cpx\]*.cc]]
+set mapflag -fpph-map=$srcdir/$subdir/pph.map
+
+foreach scenario $scenarios {
+
+    set old_dg_do_what_default "${dg-do-what-default}"
+
+    #system headers
+    dg-pph-hdr $subdir /usr/include/math.h $scenario "" ".pph"
+    dg-pph-hdr $subdir /usr/include/stdio.h $scenario "" ".pph"
+    dg-pph-hdr $subdir /usr/include/stdlib.h $scenario "" ".pph"
+    dg-pph-hdr $subdir /usr/include/string.h $scenario "" ".pph"
+    dg-pph-hdr $subdir /usr/include/sys/types.h $scenario "" ".pph"
+
+    # Header file loop.
+    # Each pph header must include only pph headers
+    # that are lexicographically earlier than itself.
+    foreach test $hdr_tests {
+        dg-pph-hdr $subdir $test $scenario $mapflag ".pph"
+    }
+
+    # Source file loop for negative tests.
+    foreach test $neg_tests {
+        dg-pph-neg $subdir $test $scenario $mapflag ".pph"
+    }
+
+    # Source file loop for positive tests.
+    foreach test $pos_tests {
+        dg-pph-pos $subdir $test $scenario $mapflag ".pph"
+    }
+
+    set dg-do-what-default "$old_dg_do_what_default"
+
 }
-
-set dg-do-what-default "$old_dg_do_what_default"
 
 # All done.
 dg-finish

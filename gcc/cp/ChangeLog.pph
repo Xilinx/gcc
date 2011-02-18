@@ -1,3 +1,15 @@
+2011-02-15  Lawrence Crowl <crowl@google.com>
+
+        * cp/pph.c (write_pph_output, read_pph_file,
+        pph_include_handler): Add.
+	(pph_start_exposed, pph_stop_exposed): Change debug level.
+	(pph_init): Set callback for pph_include_handler.
+	(pph_finish): Write PPH file.
+        * cp/parser.c (cp_lexer_new_main): Duplicate PTH and PCH
+        incompatibility for PPH.  Add call to pph_init only when PPH
+        is being used.
+	* (c_parse_file): Remove call to pph_init.
+
 2011-01-27  Diego Novillo  <dnovillo@google.com>
 
 	* Make-lang.in (cp/parser.o): Fix dependencies.

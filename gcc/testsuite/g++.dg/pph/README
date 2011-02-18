@@ -1,0 +1,17 @@
+The test names have the following convention on the prefix of their
+names.
+
+    [acdpxy][12]*
+    a - auxillary headers
+    c - positive tests for c-level headers and sources
+    d - negative tests for c-level headers and sources
+    p - positive tests for what would be c-level code, but which
+        due to C++ standard namespace games are not quite C level
+        tests.
+    x - C++-level positive tests.
+    y - C++-level negative tests.
+    1 - first priority feature tests
+    2 - second priority feature tests
+
+These prefixes are in lexical order with respect to the compilations.
+That is, you must pick names in the right place in the build.

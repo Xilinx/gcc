@@ -1,2 +1,0 @@
-int one;
-int two;

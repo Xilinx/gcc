@@ -190,6 +190,11 @@ bool flag_pch_preprocess;
 
 const char *pch_file;
 
+/* The file name to which we should write a preparsed header, or
+   NULL if no header will be written in this compile.  */
+
+const char *pph_out_file;
+
 /* Nonzero if an ISO standard was selected.  It rejects macros in the
    user's namespace.  */
 int flag_iso;

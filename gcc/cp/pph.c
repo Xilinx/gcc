@@ -1898,7 +1898,55 @@ pth_file_change (cpp_reader *reader, const struct line_map *map)
 }
 
 
-/* Record a #include or #include_next.  */
+/* Write PPH output file.  */
+
+static void
+write_pph_output (void)
+{
+  FILE *stream;
+
+  if (flag_pph_debug >= 1)
+    fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
+
+  stream = fopen (pph_out_file, "w");
+  if (!stream)
+    fatal_error ("Cannot open PPH file for writing: %s: %m", pph_out_file);
+
+  fprintf (stream, "%s\n", pph_out_file);
+  fclose (stream);
+}
+
+/* Read PPH file.  */
+
+static void
+read_pph_file (const char* filename)
+{
+  FILE *stream;
+  char *line;
+  char *eol;
+  char linebuf[2*MAXPATHLEN];
+
+  if (flag_pph_debug >= 1)
+    fprintf (pph_logfile, "PPH: Reading %s\n", filename);
+
+  stream = fopen (filename, "r");
+  if (!stream)
+    fatal_error ("Cannot open PPH file for reading: %s: %m", filename);
+
+  line = fgets (linebuf, sizeof linebuf, stream);
+  if (line == NULL)
+    fatal_error ("No line in PPH file %s: ", filename);
+
+  eol = strchr (line, '\n');
+  *eol = '\0';
+
+  if (strcmp (filename, line) != 0)
+    fatal_error ("Wrong content in PPH file %s: ", filename);
+
+  fclose (stream);
+}
+
+/* Record a #include or #include_next for PTH.  */
 
 static void
 pth_include_handler (cpp_reader *reader ATTRIBUTE_UNUSED,
@@ -1926,6 +1974,31 @@ pth_include_handler (cpp_reader *reader ATTRIBUTE_UNUSED,
 
   state->new_angle_brackets = angle_brackets;
   state->new_iname = name;
+}
+
+/* Record a #include or #include_next for PPH.  */
+
+static void
+pph_include_handler (cpp_reader *reader ATTRIBUTE_UNUSED,
+                     location_t loc ATTRIBUTE_UNUSED,
+                     const unsigned char *dname,
+                     const char *name,
+                     int angle_brackets,
+                     const cpp_token **tok_p ATTRIBUTE_UNUSED)
+{
+  const char *pph_file;
+
+  if (flag_pph_debug >= 1)
+    {
+      fprintf (pph_logfile, "PPH: #%s", dname);
+      fprintf (pph_logfile, " %c", angle_brackets ? '<' : '"');
+      fprintf (pph_logfile, "%s", name);
+      fprintf (pph_logfile, "%c\n", angle_brackets ? '>' : '"');
+    }
+
+  pph_file = query_pph_include_map (name);
+  if (pph_file != NULL)
+    read_pph_file (pph_file);
 }
 
 
@@ -2148,7 +2221,7 @@ pph_free_catcher_memory (void)
 cp_token *
 pph_start_exposed (cp_parser *parser)
 {
-  if (flag_pph_debug >= 1)
+  if (flag_pph_debug >= 2)
     {
       timevar_push (TV_PPH_MANAGE);
 
@@ -2363,7 +2436,7 @@ pph_copy_decls_outof_cache (VEC(tree, heap) *v)
 void
 pph_stop_exposed (cp_parser *parser, cp_token *first_token)
 {
-  if (flag_pph_debug >= 1 && !VEC_empty (tree, pph_tree_catcher))
+  if (flag_pph_debug >= 2 && !VEC_empty (tree, pph_tree_catcher))
     {
       cp_token *last_token;
 
@@ -3996,6 +4069,8 @@ pph_print_stats (void)
 void
 pph_init (void)
 {
+  cpp_callbacks *cb;
+
   if (flag_pph_logfile)
     {
       pph_logfile = fopen (flag_pph_logfile, "w");
@@ -4004,6 +4079,12 @@ pph_init (void)
     }
   else
     pph_logfile = stdout;
+
+  if (flag_pph_debug >= 1)
+    fprintf (pph_logfile, "PPH: Initializing.\n");
+
+  cb = cpp_get_callbacks (parse_in);
+  cb->include = pph_include_handler;
 }
 
 
@@ -4012,6 +4093,9 @@ pph_init (void)
 void
 pph_finish (void)
 {
+  if (pph_out_file != NULL)
+    write_pph_output ();
+
   if (flag_pph_stats)
     pph_print_stats ();
 

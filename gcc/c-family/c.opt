@@ -913,6 +913,14 @@ fpph
 C++ Var(flag_pph)
 -fpph   Enable pre-parsed header (PPH) support
 
+fpph-hdr=
+C++ ObjC++ Joined MissingArgError(missing filename after %qs)
+-fpph-hdr=<base-name>   A mapping from <base-name>.h to <base-name>.pph
+
+fpph-map=
+C++ ObjC++ Joined MissingArgError(missing filename after %qs)
+-fpph-map=<file-name>   A file of mappings from #include to PPH file
+
 fpph-debug=
 C++ Joined RejectNegative UInteger Var(flag_pph_debug)
 -fpph-debug=N   Enable debugging output at level N from PPH support
