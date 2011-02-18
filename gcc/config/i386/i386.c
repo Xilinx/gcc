@@ -11604,6 +11604,70 @@ ix86_live_on_entry (bitmap regs)
     }
 }
 
+/* For TARGET_X32, IRA may generate
+
+   (set (reg:SI 40 r11)
+        (plus:SI (plus:SI (mult:SI (reg:SI 1 dx)
+				   (const_int 8))
+			  (subreg:SI (plus:DI (reg/f:DI 7 sp)
+					      (const_int CONST1)) 0))
+		 (const_int CONST2)))
+
+   We translate it into
+
+   (set (reg:SI 40 r11)
+        (plus:SI (plus:SI (mult:SI (reg:SI 1 dx)
+				   (const_int 8))
+			  (reg/f:SI 7 sp))
+		 (const_int [CONST1 + CONST2])))
+    */
+
+static void
+ix86_simplify_base_disp (rtx *base_p, rtx *disp_p)
+{
+  rtx base = *base_p;
+  rtx disp;
+
+  if (!base || GET_MODE (base) != ptr_mode)
+    return;
+
+  disp = *disp_p;
+  if (disp != NULL_RTX
+      && disp != const0_rtx
+      && !CONST_INT_P (disp))
+    return;
+
+  if (GET_CODE (base) == SUBREG)
+    base = SUBREG_REG (base);
+
+  if (GET_CODE (base) == PLUS)
+    {
+      rtx op0 = XEXP (base, 0);
+      rtx op1 = XEXP (base, 1);
+      rtx addend;
+
+      if (REG_P (op0) && CONST_INT_P (op1))
+	{
+	  base = op0;
+	  addend  = op1;
+	}
+      else if (REG_P (op1) && CONST_INT_P (op0))
+	{
+	  base = op1;
+	  addend = op0;
+	}
+      else
+	return;
+
+      if (disp == NULL_RTX || disp == const0_rtx)
+	*disp_p = addend;
+      else
+	*disp_p = GEN_INT (INTVAL (disp) + INTVAL (addend));
+
+      *base_p = gen_rtx_REG (ptr_mode, REGNO (base));
+    }
+}
+
 /* Extract the parts of an RTL expression that is a valid memory address
    for an instruction.  Return 0 if the structure of the address is
    grossly off.  Return -1 if the address contains ASHIFT, so it is not
@@ -11641,6 +11705,17 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	    return 0;
 	  addends[n++] = XEXP (op, 1);
 	  op = XEXP (op, 0);
+	  /* Support 32bit address in x32 mode.  */
+	  if (TARGET_X32
+	      && reload_completed
+	      && GET_CODE (op) == ZERO_EXTEND
+	      && GET_MODE (op) == Pmode
+	      && GET_CODE (XEXP (op, 0)) == PLUS)
+	    {
+	      op = XEXP (op, 0);
+	      if (n == 1)
+		ix86_simplify_base_disp (&op, &addends[0]);
+	    }
 	}
       while (GET_CODE (op) == PLUS);
       if (n >= 4)
@@ -11734,69 +11809,16 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
       scale = INTVAL (scale_rtx);
     }
 
-  base_reg = base && GET_CODE (base) == SUBREG ? SUBREG_REG (base) : base;
   index_reg = index && GET_CODE (index) == SUBREG ? SUBREG_REG (index) : index;
 
   /* Avoid useless 0 displacement.  */
   if (disp == const0_rtx && (base || index))
     disp = NULL_RTX;
 
-  /* For TARGET_X32, IRA may generate
+  if (TARGET_X32 && reload_completed)
+    ix86_simplify_base_disp (&base, &disp);
 
-     (set (reg:SI 40 r11)
-           (plus:SI (plus:SI (mult:SI (reg:SI 1 dx)
-		             (const_int 8))
-		    (subreg:SI (plus:DI (reg/f:DI 7 sp)
-					(const_int CONST1)) 0))
-	   (const_int CONST2)))
-
-     We translate it into
-
-     (set (reg:SI 40 r11)
-           (plus:SI (plus:SI (mult:SI (reg:SI 1 dx)
-		             (const_int 8))
-		    (reg/f:SI 7 sp))
-	   (const_int [CONST1 + CONST2])))
-    */
-
-  if (TARGET_X32
-      && base
-      && GET_MODE (base) == ptr_mode
-      && GET_CODE (base) == SUBREG
-      && (disp == NULL_RTX
-	  || disp == const0_rtx
-	  || CONST_INT_P (disp))
-      && GET_CODE (base_reg) == PLUS)
-    {
-      rtx op0 = XEXP (base_reg, 0);
-      rtx op1 = XEXP (base_reg, 1);
-      rtx addend;
-      unsigned int base_regno;
-
-      if (REG_P (op0) && CONST_INT_P (op1))
-	{
-	  base_reg = op0;
-	  addend  = op1;
-	}
-      else if (REG_P (op1) && CONST_INT_P (op0))
-	{
-	  base_reg = op1;
-	  addend = op0;
-	}
-      else
-	return 0;
-
-      base_regno = REGNO (base_reg);
-      if (base_regno != SP_REG && base_regno != BP_REG)
-	return 0;
-
-      if (disp == NULL_RTX || disp == const0_rtx)
-	disp = addend;
-      else
-	disp = GEN_INT (INTVAL (disp) + INTVAL (addend));
-
-      base = gen_rtx_REG (ptr_mode, base_regno);
-    }
+  base_reg = base && GET_CODE (base) == SUBREG ? SUBREG_REG (base) : base;
 
   /* Allow arg pointer and stack pointer as index if there is not scaling.  */
   if (base_reg && index_reg && scale == 1

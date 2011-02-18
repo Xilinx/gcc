@@ -1,3 +1,10 @@
+2011-02-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47744
+	* config/i386/i386.c (ix86_simplify_base_disp): New.
+	(ix86_decompose_address): Use it for TARGET_X32 after reload
+	is completed.
+
 2011-02-17  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47715
