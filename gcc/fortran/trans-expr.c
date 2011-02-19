@@ -504,6 +504,26 @@ gfc_conv_component_ref (gfc_se * se, gfc_ref * ref)
   field = c->backend_decl;
   gcc_assert (TREE_CODE (field) == FIELD_DECL);
   decl = se->expr;
+
+  /* Components can correspond to fields of different containing
+     types, as components are created without context, whereas
+     a concrete use of a component has the type of decl as context.
+     So, if the type doesn't match, we search the corresponding
+     FIELD_DECL in the parent type.  To not waste too much time
+     we cache this result in norestrict_decl.  */
+
+  if (DECL_FIELD_CONTEXT (field) != TREE_TYPE (decl))
+    {
+      tree f2 = c->norestrict_decl;
+      if (!f2 || DECL_FIELD_CONTEXT (f2) != TREE_TYPE (decl))
+	for (f2 = TYPE_FIELDS (TREE_TYPE (decl)); f2; f2 = DECL_CHAIN (f2))
+	  if (TREE_CODE (f2) == FIELD_DECL
+	      && DECL_NAME (f2) == DECL_NAME (field))
+	    break;
+      gcc_assert (f2);
+      c->norestrict_decl = f2;
+      field = f2;
+    }
   tmp = fold_build3_loc (input_location, COMPONENT_REF, TREE_TYPE (field),
 			 decl, field, NULL_TREE);
 
@@ -5372,9 +5392,13 @@ arrayfunc_assign_needs_temporary (gfc_expr * expr1, gfc_expr * expr2)
   if (gfc_ref_needs_temporary_p (expr1->ref))
     return true;
 
-  /* Functions returning pointers need temporaries.  */
-  if (expr2->symtree->n.sym->attr.pointer 
-      || expr2->symtree->n.sym->attr.allocatable)
+  /* Functions returning pointers or allocatables need temporaries.  */
+  c = expr2->value.function.esym
+      ? (expr2->value.function.esym->attr.pointer 
+	 || expr2->value.function.esym->attr.allocatable)
+      : (expr2->symtree->n.sym->attr.pointer
+	 || expr2->symtree->n.sym->attr.allocatable);
+  if (c)
     return true;
 
   /* Character array functions need temporaries unless the

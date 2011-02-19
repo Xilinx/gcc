@@ -1990,6 +1990,8 @@ compute_inline_parameters (struct cgraph_node *node)
 
   /* Can this function be inlined at all?  */
   node->local.inlinable = tree_inlinable_function_p (node->decl);
+  if (!node->local.inlinable)
+    node->local.disregard_inline_limits = 0;
 
   /* Inlinable functions always can change signature.  */
   if (node->local.inlinable)
@@ -2006,9 +2008,6 @@ compute_inline_parameters (struct cgraph_node *node)
 	  break;
       node->local.can_change_signature = !e;
     }
-  if (node->local.inlinable && !node->local.disregard_inline_limits)
-    node->local.disregard_inline_limits
-      = DECL_DISREGARD_INLINE_LIMITS (node->decl);
   estimate_function_body_sizes (node);
   /* Inlining characteristics are maintained by the cgraph_mark_inline.  */
   node->global.time = inline_summary (node)->self_time;

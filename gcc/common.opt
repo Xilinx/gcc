@@ -32,6 +32,11 @@ int optimize
 Variable
 int optimize_size
 
+; Not used directly to control optimizations, only to save -Ofast
+; setting for "optimize" attributes.
+Variable
+int optimize_fast
+
 ; 0 means straightforward implementation of complex divide acceptable.
 ; 1 means wide ranges of inputs must work for complex divide.
 ; 2 means C99-like requirements for complex multiply and divide.
@@ -711,6 +716,13 @@ Driver
 
 e
 Driver Joined Separate
+
+; This option has historically been passed down to the linker by an
+; accident of a %{e*} spec, so ensure it continues to be passed down
+; as a single option.  The supported option for this purpose is
+; -rdynamic.  See PR 47390.
+export-dynamic
+Driver Undocumented
 
 ; The version of the C++ ABI in use.  The following values are allowed:
 ;

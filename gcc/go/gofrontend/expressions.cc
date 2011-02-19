@@ -716,7 +716,11 @@ Expression::float_constant_tree(mpfr_t val, tree type)
 tree
 Expression::complex_constant_tree(mpfr_t real, mpfr_t imag, tree type)
 {
-  if (TREE_CODE(type) == COMPLEX_TYPE)
+  if (type == error_mark_node)
+    return error_mark_node;
+  else if (TREE_CODE(type) == INTEGER_TYPE || TREE_CODE(type) == REAL_TYPE)
+    return Expression::float_constant_tree(real, type);
+  else if (TREE_CODE(type) == COMPLEX_TYPE)
     {
       REAL_VALUE_TYPE r1;
       real_from_mpfr(&r1, real, TREE_TYPE(type), GMP_RNDN);
@@ -5855,13 +5859,21 @@ Binary_expression::do_get_tree(Translate_context* context)
   tree eval_saved = NULL_TREE;
   if (is_shift_op)
     {
-      if (!DECL_P(left))
-	left = save_expr(left);
-      if (!DECL_P(right))
-	right = save_expr(right);
       // Make sure the values are evaluated.
-      eval_saved = fold_build2_loc(this->location(), COMPOUND_EXPR,
-				   void_type_node, left, right);
+      if (!DECL_P(left) && TREE_SIDE_EFFECTS(left))
+	{
+	  left = save_expr(left);
+	  eval_saved = left;
+	}
+      if (!DECL_P(right) && TREE_SIDE_EFFECTS(right))
+	{
+	  right = save_expr(right);
+	  if (eval_saved == NULL_TREE)
+	    eval_saved = right;
+	  else
+	    eval_saved = fold_build2_loc(this->location(), COMPOUND_EXPR,
+					 void_type_node, eval_saved, right);
+	}
     }
 
   tree ret = fold_build2_loc(this->location(),
@@ -5910,8 +5922,9 @@ Binary_expression::do_get_tree(Translate_context* context)
       ret = fold_build3_loc(this->location(), COND_EXPR, TREE_TYPE(left),
 			    compare, ret, overflow_result);
 
-      ret = fold_build2_loc(this->location(), COMPOUND_EXPR,
-			    TREE_TYPE(ret), eval_saved, ret);
+      if (eval_saved != NULL_TREE)
+	ret = fold_build2_loc(this->location(), COMPOUND_EXPR,
+			      TREE_TYPE(ret), eval_saved, ret);
     }
 
   return ret;
@@ -6960,6 +6973,8 @@ Builtin_call_expression::do_integer_constant_value(bool iota_is_constant,
       if (arg_type->is_abstract())
 	return false;
       tree arg_type_tree = arg_type->get_tree(this->gogo_);
+      if (arg_type_tree == error_mark_node)
+	return false;
       unsigned long val_long;
       if (this->code_ == BUILTIN_SIZEOF)
 	{
@@ -8300,11 +8315,6 @@ Call_expression::lower_varargs(Gogo* gogo, Named_object* function,
 	  this->report_error(_("too many arguments"));
 	  return this;
 	}
-      else if (pa + 1 == old_args->end()
-	       && this->is_compatible_varargs_argument(function, *pa,
-						       varargs_type,
-						       &issued_error))
-	new_args->push_back(*pa);
       else
 	{
 	  Type* element_type = varargs_type->array_type()->element_type();
@@ -8340,84 +8350,6 @@ Call_expression::lower_varargs(Gogo* gogo, Named_object* function,
   gogo->lower_expression(function, &ret);
   gcc_assert(ret == this);
   return ret;
-}
-
-// Return true if ARG is a varargs argment which should be passed to
-// the varargs parameter of type PARAM_TYPE without wrapping.  ARG
-// will be the last argument passed in the call, and PARAM_TYPE will
-// be the type of the last parameter of the varargs function being
-// called.
-
-bool
-Call_expression::is_compatible_varargs_argument(Named_object* function,
-						Expression* arg,
-						Type* param_type,
-						bool* issued_error)
-{
-  *issued_error = false;
-
-  Type* var_type = NULL;
-
-  // The simple case is passing the varargs parameter of the caller.
-  Var_expression* ve = arg->var_expression();
-  if (ve != NULL && ve->named_object()->is_variable())
-    {
-      Variable* var = ve->named_object()->var_value();
-      if (var->is_varargs_parameter())
-	var_type = var->type();
-    }
-
-  // The complex case is passing the varargs parameter of some
-  // enclosing function.  This will look like passing down *c.f where
-  // c is the closure variable and f is a field in the closure.
-  if (function != NULL
-      && function->func_value()->needs_closure()
-      && arg->classification() == EXPRESSION_UNARY)
-    {
-      Unary_expression* ue = static_cast<Unary_expression*>(arg);
-      if (ue->op() == OPERATOR_MULT)
-	{
-	  Field_reference_expression* fre =
-	    ue->operand()->deref()->field_reference_expression();
-	  if (fre != NULL)
-	    {
-	      Var_expression* ve = fre->expr()->deref()->var_expression();
-	      if (ve != NULL)
-		{
-		  Named_object* no = ve->named_object();
-		  Function* f = function->func_value();
-		  if (no == f->closure_var())
-		    {
-		      // At this point we know that this indeed a
-		      // reference to some enclosing variable.  Now we
-		      // need to figure out whether that variable is a
-		      // varargs parameter.
-		      Named_object* enclosing =
-			f->enclosing_var(fre->field_index());
-		      Variable* var = enclosing->var_value();
-		      if (var->is_varargs_parameter())
-			var_type = var->type();
-		    }
-		}
-	    }
-	}
-    }
-
-  if (var_type == NULL)
-    return false;
-
-  // We only match if the parameter is the same, with an identical
-  // type.
-  Array_type* var_at = var_type->array_type();
-  gcc_assert(var_at != NULL);
-  Array_type* param_at = param_type->array_type();
-  if (param_at != NULL
-      && Type::are_identical(var_at->element_type(),
-			     param_at->element_type(), true, NULL))
-    return true;
-  error_at(arg->location(), "... mismatch: passing ...T as ...");
-  *issued_error = true;
-  return false;
 }
 
 // Get the function type.  Returns NULL if we don't know the type.  If
@@ -10325,7 +10257,14 @@ Selector_expression::lower_method_expression(Gogo* gogo)
   gcc_assert(vno != NULL);
   Expression* ve = Expression::make_var_reference(vno, location);
   Expression* bm = Type::bind_field_or_method(gogo, nt, ve, name, location);
-  gcc_assert(bm != NULL && !bm->is_error_expression());
+
+  // Even though we found the method above, if it has an error type we
+  // may see an error here.
+  if (bm->is_error_expression())
+    {
+      gogo->finish_function(location);
+      return bm;
+    }
 
   Expression_list* args;
   if (method_parameters == NULL)

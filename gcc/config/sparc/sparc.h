@@ -388,10 +388,9 @@ extern enum cmodel sparc_cmodel;
 %{!m32:%{!m64:%(cpp_arch_default)}} \
 "
 
-/* Macros to distinguish endianness.  */
+/* Macro to distinguish endianness.  */
 #define CPP_ENDIAN_SPEC "\
-%{mlittle-endian:-D__LITTLE_ENDIAN__} \
-%{mlittle-endian-data:-D__LITTLE_ENDIAN_DATA__}"
+%{mlittle-endian:-D__LITTLE_ENDIAN__}"
 
 /* Macros to distinguish the particular subtarget.  */
 #define CPP_SUBTARGET_SPEC ""
@@ -551,7 +550,7 @@ extern enum processor_type sparc_cpu;
 #define OPTION_DEFAULT_SPECS \
   {"cpu", "%{!mcpu=*:-mcpu=%(VALUE)}" }, \
   {"tune", "%{!mtune=*:-mtune=%(VALUE)}" }, \
-  {"float", "%{!msoft-float:%{!mhard-float:%{!fpu:%{!no-fpu:-m%(VALUE)-float}}}}" }
+  {"float", "%{!msoft-float:%{!mhard-float:%{!mfpu:%{!mno-fpu:-m%(VALUE)-float}}}}" }
 
 /* sparc_select[0] is reserved for the default cpu.  */
 struct sparc_cpu_select

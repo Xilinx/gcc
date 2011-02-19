@@ -1960,13 +1960,6 @@ lto_input_ts_decl_minimal_tree_pointers (struct lto_input_block *ib,
 {
   DECL_NAME (expr) = lto_input_tree (ib, data_in);
   DECL_CONTEXT (expr) = lto_input_tree (ib, data_in);
-  /* We do not stream BLOCK_VARS but lazily construct it here.  */
-  if (DECL_CONTEXT (expr)
-      && TREE_CODE (DECL_CONTEXT (expr)) == BLOCK)
-    {
-      TREE_CHAIN (expr) = BLOCK_VARS (DECL_CONTEXT (expr));
-      BLOCK_VARS (DECL_CONTEXT (expr)) = expr;
-    }
   DECL_SOURCE_LOCATION (expr) = lto_input_location (ib, data_in);
 }
 
@@ -2188,8 +2181,7 @@ lto_input_ts_block_tree_pointers (struct lto_input_block *ib,
   unsigned i, len;
 
   BLOCK_SOURCE_LOCATION (expr) = lto_input_location (ib, data_in);
-  /* We do not stream BLOCK_VARS but lazily construct it when reading
-     in decls.  */
+  BLOCK_VARS (expr) = lto_input_chain (ib, data_in);
 
   len = lto_input_uleb128 (ib);
   if (len > 0)
@@ -2432,6 +2424,8 @@ lto_register_var_decl_in_symtab (struct data_in *data_in, tree decl)
       ASM_FORMAT_PRIVATE_NAME (label, name, DECL_UID (decl));
       SET_DECL_ASSEMBLER_NAME (decl, get_identifier (label));
       rest_of_decl_compilation (decl, 1, 0);
+
+      VEC_safe_push (tree, gc, lto_global_var_decls, decl);
     }
 
   /* If this variable has already been declared, queue the

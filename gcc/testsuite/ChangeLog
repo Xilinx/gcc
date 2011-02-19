@@ -1,3 +1,175 @@
+2011-02-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	* lib/target-supports.exp
+	(check_effective_target_fortran_large_real): New check for large reals.
+	* gfortran.dg/nan_7.f90: New test.
+
+2011-02-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* gfortran.dg/fmt_f0_1.f90: Update test.
+
+2011-02-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47348
+	* gfortran.dg/array_constructor_36.f90 : New test.
+	* gfortran.dg/bounds_check_10.f90 : Change dg-output message to
+	allow for comparison between different elements of the array
+	constructor at different levels of optimization.
+
+2011-02-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/pr31167.c: Require int128 instead of lp64.
+	* gcc.target/i386/pr32280-1.c: Likewise.
+
+2011-02-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/47800
+	* gcc.target/i386/pr47800.c: New test.
+
+2011-02-18  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc/execute/exceptions/foward-1.x: New.
+	
+2011-02-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47789
+	* gfortran.dg/derived_constructor_comps_4.f90: New.
+
+2011-02-18  Tobias Burnus
+
+	PR fortran/47775
+	* gfortran.dg/func_result_6.f90: New.
+
+2011-02-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/47795
+	* g++.dg/cpp0x/lambda/lambda-ice3.C: New.
+
+2011-02-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47750
+	* lib/gfortran.exp (gfortran_init): Set gcc_error_prefix and
+	gcc_warning_prefix.
+	* lib/gfortran-dg.exp (gfortran-dg-test): Update regexp for
+	normalizing the error/warning output.
+	* gfortran.dg/Wall.f90: Update dg-error/warning.
+	* gfortran.dg/argument_checking_15.f90: Update dg-error/warning.
+	* gfortran.dg/argument_checking_3.f90: Update dg-error/warning.
+	* gfortran.dg/argument_checking_6.f90: Update dg-error/warning.
+	* gfortran.dg/bounds_temporaries_1.f90: Update dg-error/warning.
+	* gfortran.dg/class_30.f90: Update dg-error/warning.
+	* gfortran.dg/continuation_1.f90: Update dg-error/warning.
+	* gfortran.dg/continuation_9.f90: Update dg-error/warning.
+	* gfortran.dg/do_check_5.f90: Update dg-error/warning.
+	* gfortran.dg/entry_17.f90: Update dg-error/warning.
+	* gfortran.dg/entry_19.f90: Update dg-error/warning.
+	* gfortran.dg/fmt_error.f90: Update dg-error/warning.
+	* gfortran.dg/fmt_read_2.f90: Update dg-error/warning.
+	* gfortran.dg/g77/12632.f: Update dg-error/warning.
+	* gfortran.dg/g77/970625-2.f: Update dg-error/warning.
+	* gfortran.dg/g77/980615-0.f: Update dg-error/warning.
+	* gfortran.dg/generic_actual_arg.f90: Update dg-error/warning.
+	* gfortran.dg/global_references_1.f90: Update dg-error/warning.
+	* gfortran.dg/goto_8.f90: Update dg-error/warning.
+	* gfortran.dg/initialization_1.f90: Update dg-error/warning.
+	* gfortran.dg/io_constraints_1.f90: Update dg-error/warning.
+	* gfortran.dg/io_constraints_2.f90: Update dg-error/warning.
+	* gfortran.dg/io_constraints_3.f90: Update dg-error/warning.
+	* gfortran.dg/iostat_3.f90: Update dg-error/warning.
+	* gfortran.dg/public_private_module.f90: Update dg-error/warning.
+	* gfortran.dg/volatile3.f90: Update dg-error/warning.
+	* gfortran.dg/warning-directive-2.F90: Update dg-error/warning.
+	* gfortran.dg/warnings_are_errors_1.f: Update dg-error/warning.
+	* gfortran.dg/whole_file_1.f90: Update dg-error/warning.
+	* gfortran.dg/whole_file_2.f90: Update dg-error/warning.
+	* gfortran.dg/whole_file_3.f90: Update dg-error/warning.
+
+2011-02-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47768
+	* gfortran.dg/proc_ptr_comp_30.f90: New.
+
+2011-02-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/47780
+	* gcc.target/i386/pr47780.c: New test.
+
+2011-02-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47767
+	* gfortran.dg/class_40.f03: New.
+
+2011-02-18  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47208
+	* g++.dg/cpp0x/auto21.C: New test.
+
+2011-02-17  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* objc.dg/special/unclaimed-category-1.h: Updated for
+	new ABI support.
+	* objc.dg/special/unclaimed-category-1.m: Same.
+	* objc.dg/zero-link-1.m: Same.
+	* objc.dg/lookup-1.m: Same.
+	* objc.dg/torture/strings/const-str-9.m
+	* objc.dg/torture/strings/const-str-10.m: Same.
+	* objc.dg/torture/strings/const-str-11.m: Same.
+	* objc.dg/torture/forward-1.m: Same.
+	* objc.dg/zero-link-2.m: Same.
+	* objc.dg/encode-7-next-64bit.m: Same.
+	* objc.dg/method-4.m: Same.
+	* objc.dg/next-runtime-1.m: Same.
+	* objc.dg/image-info.m: Same.
+	* objc.dg/pr23214.m: Same.
+	* objc.dg/symtab-1.m: Same.
+	* obj-c++.dg/basic.m: Same.
+	* obj-c++.dg/proto-lossage-3.m: Same.
+	* obj-c++.dg/torture/strings/const-str-10.m: Same.
+	* obj-c++.dg/torture/strings/const-str-11.m: Same.
+	* obj-c++.dg/torture/strings/const-str-9.m: Same.
+	* obj-c++.dg/method-11.m: Same.
+	* objc/execute/enumeration-1.m: Same.
+	* objc/execute/object_is_class.m: Same.
+	* objc/execute/formal_protocol-2.m: Same.
+	* objc/execute/formal_protocol-4.m: Same.
+	* objc/execute/formal_protocol-6.m: Same.
+	* objc/execute/bycopy-3.m: Same.
+	* objc/execute/exceptions/catchall-1.m: Same.
+	* objc/execute/exceptions/finally-1.m: Same.
+	* objc/execute/exceptions/local-variables-1.m: Same.
+	* objc/execute/exceptions/foward-1.m: Same.
+	* objc/execute/bf-common.h
+	* objc/execute/enumeration-2.m: Same.
+	* objc/execute/formal_protocol-1.m: Same.
+	* objc/execute/formal_protocol-3.m: Same.
+	* objc/execute/formal_protocol-5.m: Same.
+	* objc/execute/accessing_ivars.m: Same.
+	* objc/execute/bycopy-2.m: Same.
+	* objc/execute/formal_protocol-7.m: Same.
+	* objc/execute/compatibility_alias.m: Same.
+	* objc/execute/no_clash.m: Same.
+	* objc/execute/object_is_meta_class.m: Same.
+	* objc/execute/exceptions/exceptions.exp: Load target-supports.exp
+	* objc/execute/class-tests-1.h: Include stdio.h.
+	* objc/execute/class-tests-2.h: Same.
+	* obj-c++.dg/try-catch-9.mm: xfail-run the test with both
+	runtimes.
+	* obj-c++.dg/try-catch-2.mm: Same.
+
+2011-02-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47783
+	* g++.dg/warn/Wunused-parm-4.C: New test.
+
+2011-02-17  Alexandre Oliva  <aoliva@redhat.com>
+	    Jan Hubicka  <jh@suse.cz>
+
+	PR debug/47106
+	PR debug/47402
+	* g++.dg/debug/pr47106.C: New.
+
 2011-02-17  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/43653
