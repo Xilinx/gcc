@@ -3408,9 +3408,9 @@ expand_builtin_strlen (tree exp, rtx target,
       result = target;
       if (! (result != 0
 	     && REG_P (result)
-	     && GET_MODE (result) == insn_mode
+	     && GET_MODE (result) == Pmode
 	     && REGNO (result) >= FIRST_PSEUDO_REGISTER))
-	result = gen_reg_rtx (insn_mode);
+	result = gen_reg_rtx (Pmode);
 
       /* Make a place to hold the source address.  We will not expand
 	 the actual source until we are sure that the expansion will

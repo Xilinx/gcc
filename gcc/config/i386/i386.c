@@ -21902,8 +21902,6 @@ ix86_expand_strlen (rtx out, rtx src, rtx eoschar, rtx align)
          often used and I use one fewer register for the lifetime of
          output_strlen_unroll() this is better.  */
 
-      if (GET_MODE (out) != Pmode)
-	out = convert_to_mode (Pmode, out, 1);
       emit_move_insn (out, addr);
 
       ix86_expand_strlensi_unroll_1 (out, src, align);
@@ -21935,15 +21933,7 @@ ix86_expand_strlen (rtx out, rtx src, rtx eoschar, rtx align)
 						 scratch4), UNSPEC_SCAS);
       emit_insn (gen_strlenqi_1 (scratch1, scratch3, unspec));
       emit_insn (ix86_gen_one_cmpl2 (scratch2, scratch1));
-      if (GET_MODE (out) != Pmode)
-	{
-	  rtx scratch5 = gen_reg_rtx (Pmode);
-	  emit_insn (ix86_gen_add3 (scratch5, scratch2, constm1_rtx));
-	  scratch5 = convert_to_mode (GET_MODE (out), scratch5, 1);
-	  emit_move_insn (out, scratch5);
-	}
-      else
-	emit_insn (ix86_gen_add3 (out, scratch2, constm1_rtx));
+      emit_insn (ix86_gen_add3 (out, scratch2, constm1_rtx));
     }
   return true;
 }

@@ -1,3 +1,11 @@
+2011-02-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47364
+	* builtins.c (expand_builtin_strlen): Properly handle target
+	not in Pmode.
+
+	* config/i386/i386.c (ix86_expand_strlen): Revet the last change.
+
 2011-02-18  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47744
