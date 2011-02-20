@@ -1,3 +1,9 @@
+2011-02-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* longlong.h (count_leading_zeros): Use long long builtin for
+	x86-64.
+	(count_trailing_zeros): Likewise.
+
 2011-02-19  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/47364
