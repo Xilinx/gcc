@@ -1,3 +1,10 @@
+2011-02-21  Richard Henderson  <aldyh@redhat.com>
+
+	* trans-mem.c (ipa_tm_transform_calls_redirect): Optimize for
+	recursive calls inside clones.
+	Abstract the logic from...
+	(ipa_tm_transform_calls_1): ...here.
+
 2011-02-16  Aldy Hernandez  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_transform_calls_redirect): Abstract from...

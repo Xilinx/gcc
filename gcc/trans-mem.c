@@ -4294,7 +4294,28 @@ ipa_tm_transform_calls_redirect (struct cgraph_node *node,
   struct cgraph_edge *e = cgraph_edge (node, stmt);
   tree fndecl = gimple_call_fndecl (stmt);
 
-  /* If there is a replacement, use it, otherwise use the clone.  */
+  /* For indirect calls, pass the address through the runtime.  */
+  if (fndecl == NULL)
+    {
+      *need_ssa_rename_p |=
+	ipa_tm_insert_gettmclone_call (node, region, gsi, stmt);
+      return;
+    }
+
+  /* If the call is to the TM runtime, do nothing further.  */
+  if (flags_from_decl_or_type (fndecl) & ECF_TM_OPS)
+    return;
+
+  /* Fixup recursive calls inside clones.  */
+  /* ??? Why did cgraph_copy_node_for_versioning update the call edges 
+     for recursion but not update the call statements themselves?  */
+  if (e->caller == e->callee && DECL_IS_TM_CLONE (current_function_decl))
+    {
+      gimple_call_set_fndecl (stmt, current_function_decl);
+      return;
+    }
+
+  /* If there is a replacement, use it.  */
   fndecl = find_tm_replacement_function (fndecl);
   if (fndecl)
     {
@@ -4313,6 +4334,11 @@ ipa_tm_transform_calls_redirect (struct cgraph_node *node,
 
 	 We do need to mark these nodes so that we get the proper
 	 result in expand_call_tm.  */
+      /* ??? This seems broken.  How is it that we're marking the
+	 CALLEE as may_enter_irr?  Surely we should be marking the
+	 CALLER.  Also note that find_tm_replacement_function also
+	 contains mappings into the TM runtime, e.g. memcpy.  These
+	 we know won't go irrevocable.  */
       new_node->local.tm_may_enter_irr = 1;
     }
   else
@@ -4358,26 +4384,11 @@ ipa_tm_transform_calls_1 (struct cgraph_node *node, struct tm_region *region,
   for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
     {
       gimple stmt = gsi_stmt (gsi);
-      tree fndecl;
 
       if (!is_gimple_call (stmt))
 	continue;
       if (is_tm_pure_call (stmt))
 	continue;
-
-      fndecl = gimple_call_fndecl (stmt);
-
-      /* For indirect calls, pass the address through the runtime.  */
-      if (fndecl == NULL)
-	{
-	  need_ssa_rename |=
-	    ipa_tm_insert_gettmclone_call (node, region, &gsi, stmt);
-	  continue;
-	}
-
-      /* Don't scan past the end of the transaction.  */
-      if (is_tm_ending_fndecl (fndecl))
-	break;
 
       /* Redirect edges to the appropriate replacement or clone.  */
       ipa_tm_transform_calls_redirect (node, region, &gsi, &need_ssa_rename);
