@@ -1,3 +1,12 @@
+2011-02-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Support --enable-ia32 for x86 Linux targets.
+
+	* configure.ac: Support --enable-ia32.
+	* configure: Regenerated.
+
+	* config/i386/t-linux64-x32: New.
+
 2011-02-20  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* longlong.h (count_leading_zeros): Use long long builtin for
