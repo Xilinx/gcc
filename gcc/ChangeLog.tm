@@ -1,3 +1,9 @@
+2011-02-21  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR 47746
+	* trans-mem.c (ipa_tm_insert_gettmclone_call): Verify type
+	compatibility in call.
+
 2011-02-21  Richard Henderson  <aldyh@redhat.com>
 
 	* trans-mem.c (ipa_tm_transform_calls_redirect): Optimize for

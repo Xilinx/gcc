@@ -4274,6 +4274,27 @@ ipa_tm_insert_gettmclone_call (struct cgraph_node *node,
   gimple_call_set_noinline_p (stmt);
 
   gimple_call_set_fn (stmt, callfn);
+
+  /* Discard OBJ_TYPE_REF above, may produce incompatible LHS and RHS
+     for a call statement.  Fix it.  */
+  {
+    tree lhs = gimple_call_lhs (stmt);
+    tree rettype =  TREE_TYPE (TREE_TYPE (TREE_TYPE (callfn)));
+    if (lhs
+	&& !useless_type_conversion_p (TREE_TYPE (lhs), rettype))
+    {
+      tree temp;
+
+      temp = make_rename_temp (rettype, 0);
+      gimple_call_set_lhs (stmt, temp);
+
+      g2 = gimple_build_assign (lhs,
+				fold_build1 (VIEW_CONVERT_EXPR,
+					     TREE_TYPE (lhs), temp));
+      gsi_insert_after (gsi, g2, GSI_SAME_STMT);
+    }
+  }
+
   update_stmt (stmt);
 
   return true;
