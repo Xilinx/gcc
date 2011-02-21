@@ -632,6 +632,64 @@ gfc_defer_symbol_init (gfc_symbol * sym)
 }
 
 
+/* Used in gfc_get_symbol_decl and gfc_get_derived_type to obtain the
+   backend_decl for a module symbol, if it all ready exists.  If the
+   module gsymbol does not exist, it is created.  If the symbol does
+   not exist, it is added to the gsymbol namespace.  Returns true if
+   an existing backend_decl is found.  */
+
+bool
+gfc_get_module_backend_decl (gfc_symbol *sym)
+{
+  gfc_gsymbol *gsym;
+  gfc_symbol *s;
+  gfc_symtree *st;
+
+  gsym =  gfc_find_gsymbol (gfc_gsym_root, sym->module);
+
+  if (!gsym || (gsym->ns && gsym->type == GSYM_MODULE))
+    {
+      st = NULL;
+      s = NULL;
+
+      if (gsym)
+	gfc_find_symbol (sym->name, gsym->ns, 0, &s);
+
+      if (!s)
+	{
+	  if (!gsym)
+	    {
+	      gsym = gfc_get_gsymbol (sym->module);
+	      gsym->type = GSYM_MODULE;
+	      gsym->ns = gfc_get_namespace (NULL, 0);
+	    }
+
+	  st = gfc_new_symtree (&gsym->ns->sym_root, sym->name);
+	  st->n.sym = sym;
+	  sym->refs++;
+	}
+      else if (sym->attr.flavor == FL_DERIVED)
+	{
+	  if (!s->backend_decl)
+	    s->backend_decl = gfc_get_derived_type (s);
+	  gfc_copy_dt_decls_ifequal (s, sym, true);
+	  return true;
+	}
+      else if (s->backend_decl)
+	{
+	  if (sym->ts.type == BT_DERIVED)
+	    gfc_copy_dt_decls_ifequal (s->ts.u.derived, sym->ts.u.derived,
+				       true);
+	  else if (sym->ts.type == BT_CHARACTER)
+	    sym->ts.u.cl->backend_decl = s->ts.u.cl->backend_decl;
+	  sym->backend_decl = s->backend_decl;
+	  return true;
+	}
+    }
+  return false;
+}
+
+
 /* Create an array index type variable with function scope.  */
 
 static tree
@@ -1176,29 +1234,11 @@ gfc_get_symbol_decl (gfc_symbol * sym)
   if (gfc_option.flag_whole_file
 	&& (sym->attr.flavor == FL_VARIABLE
 	    || sym->attr.flavor == FL_PARAMETER)
-	&& sym->attr.use_assoc && !intrinsic_array_parameter
-	&& sym->module)
-    {
-      gfc_gsymbol *gsym;
-
-      gsym =  gfc_find_gsymbol (gfc_gsym_root, sym->module);
-      if (gsym && gsym->ns && gsym->type == GSYM_MODULE)
-	{
-	  gfc_symbol *s;
-	  s = NULL;
-	  gfc_find_symbol (sym->name, gsym->ns, 0, &s);
-	  if (s && s->backend_decl)
-	    {
-	      if (sym->ts.type == BT_DERIVED)
-		gfc_copy_dt_decls_ifequal (s->ts.u.derived, sym->ts.u.derived,
-					   true);
-	      if (sym->ts.type == BT_CHARACTER)
-		sym->ts.u.cl->backend_decl = s->ts.u.cl->backend_decl;
-	      sym->backend_decl = s->backend_decl;
-	      return sym->backend_decl;
-	    }
-	}
-    }
+	&& sym->attr.use_assoc
+	&& !intrinsic_array_parameter
+	&& sym->module
+	&& gfc_get_module_backend_decl (sym))
+    return sym->backend_decl;
 
   if (sym->attr.flavor == FL_PROCEDURE)
     {
@@ -3278,6 +3318,8 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	  if (proc_sym->ts.deferred)
 	    {
 	      tmp = NULL;
+	      gfc_save_backend_locus (&loc);
+	      gfc_set_backend_locus (&proc_sym->declared_at);
 	      gfc_start_block (&init);
 	      /* Zero the string length on entry.  */
 	      gfc_add_modify (&init, proc_sym->ts.u.cl->backend_decl,
@@ -3292,6 +3334,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	      gfc_add_modify (&init, tmp,
 			      fold_convert (TREE_TYPE (se.expr),
 					    null_pointer_node));
+	      gfc_restore_backend_locus (&loc);
 
 	      /* Pass back the string length on exit.  */
 	      tmp = proc_sym->ts.u.cl->passed_length;
@@ -3313,7 +3356,10 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
   /* Initialize the INTENT(OUT) derived type dummy arguments.  This
      should be done here so that the offsets and lbounds of arrays
      are available.  */
+  gfc_save_backend_locus (&loc);
+  gfc_set_backend_locus (&proc_sym->declared_at);
   init_intent_out_dt (proc_sym, block);
+  gfc_restore_backend_locus (&loc);
 
   for (sym = proc_sym->tlink; sym != proc_sym; sym = sym->tlink)
     {
@@ -3332,7 +3378,12 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	      else if (sym->attr.pointer || sym->attr.allocatable)
 		{
 		  if (TREE_STATIC (sym->backend_decl))
-		    gfc_trans_static_array_pointer (sym);
+		    {
+		      gfc_save_backend_locus (&loc);
+		      gfc_set_backend_locus (&sym->declared_at);
+		      gfc_trans_static_array_pointer (sym);
+		      gfc_restore_backend_locus (&loc);
+		    }
 		  else
 		    {
 		      seen_trans_deferred_array = true;
@@ -3341,6 +3392,9 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 		}
 	      else
 		{
+		  gfc_save_backend_locus (&loc);
+		  gfc_set_backend_locus (&sym->declared_at);
+
 		  if (sym_has_alloc_comp)
 		    {
 		      seen_trans_deferred_array = true;
@@ -3358,8 +3412,6 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 					    NULL_TREE);
 		    }
 
-		  gfc_save_backend_locus (&loc);
-		  gfc_set_backend_locus (&sym->declared_at);
 		  gfc_trans_auto_array_allocation (sym->backend_decl,
 						   sym, block);
 		  gfc_restore_backend_locus (&loc);
@@ -3411,6 +3463,8 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 	      gfc_conv_expr (&se, e);
 	      gfc_free_expr (e);
 
+	      gfc_save_backend_locus (&loc);
+	      gfc_set_backend_locus (&sym->declared_at);
 	      gfc_start_block (&init);
 
 	      if (!sym->attr.dummy || sym->attr.intent == INTENT_OUT)
@@ -3437,6 +3491,8 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 		  else
 		    gfc_add_modify (&init, sym->ts.u.cl->backend_decl, tmp);
 
+		  gfc_restore_backend_locus (&loc);
+
 		  /* Pass the final character length back.  */
 		  if (sym->attr.intent != INTENT_IN)
 		    tmp = fold_build2_loc (input_location, MODIFY_EXPR,
@@ -3445,6 +3501,8 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 		  else
 		    tmp = NULL_TREE;
 		}
+	      else
+		gfc_restore_backend_locus (&loc);
 
 	      /* Deallocate when leaving the scope. Nullifying is not
 		 needed.  */
@@ -3457,6 +3515,9 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 		  /* Initialize _vptr to declared type.  */
 		  gfc_symbol *vtab = gfc_find_derived_vtab (sym->ts.u.derived);
 		  tree rhs;
+
+		  gfc_save_backend_locus (&loc);
+		  gfc_set_backend_locus (&sym->declared_at);
 		  e = gfc_lval_expr_from_sym (sym);
 		  gfc_add_vptr_component (e);
 		  gfc_init_se (&se, NULL);
@@ -3466,6 +3527,7 @@ gfc_trans_deferred_vars (gfc_symbol * proc_sym, gfc_wrapped_block * block)
 		  rhs = gfc_build_addr_expr (TREE_TYPE (se.expr),
 					     gfc_get_symbol_decl (vtab));
 		  gfc_add_modify (&init, se.expr, rhs);
+		  gfc_restore_backend_locus (&loc);
 		}
 
 	      gfc_add_init_cleanup (block, gfc_finish_block (&init), tmp);

@@ -1,3 +1,85 @@
+2011-02-21  Jeff Law <law@redhat.com>
+
+	PR rtl-optimization/46178
+	* gcc.target/i386/pr46178.c: New test.
+
+	PR rtl-optimization/46002
+	* gcc.c-torture/compile/pr46002.c: New test.
+
+2011-02-21  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* g++.dg/cpp0x/lambda/lambda-conv.C: Skip scan-assembler check on
+	*-*-hpux10*.
+
+2011-02-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/47106
+	* g++.dg/debug/pr47106.C: Require effective target lto.
+
+2011-02-21  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-diag2.C: New.
+
+2011-02-20  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-ctor7.C: New.
+
+	* g++.dg/cpp0x/fntmpdefarg2.C: New.
+
+	* g++.dg/overload/conv-op1.C: New.
+
+	* g++.dg/cpp0x/constexpr-synth1.C: New.
+
+2011-02-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/layout-2.m: New.
+	* objc.dg/selector-3.m: Adjusted location of error message.
+	* objc.dg/type-size-3.m: Same.
+	* obj-c++.dg/selector-3.mm: Same.
+
+2011-02-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/47784
+	* objc.dg/property/dotsyntax-22.m: New.
+	* obj-c++.dg/property/dotsyntax-22.mm: New.
+	
+2011-02-20  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/46394
+	* g++.dg/template/typedef38.C: New test.
+
+2011-02-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/46818
+	* gfortran.dg/whole_file_30.f90 : New test.
+	* gfortran.dg/whole_file_31.f90 : New test.
+
+2011-02-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/45077
+	PR fortran/44945
+	* gfortran.dg/whole_file_28.f90 : New test.
+	* gfortran.dg/whole_file_29.f90 : New test.
+
+2011-02-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44118
+	* g++.dg/template/crash105.C: New.
+
+2011-02-19  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/regress/no-elide1.C: New.
+
+2011-02-19  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR tree-optimization/46620
+	* gcc.dg/pr46620.c: New.
+
+2011-02-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/47809
+	* gcc.target/i386/pr47809.c: New test.
+
 2011-02-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 	    Tobias Burnus  <burnus@net-b.de>
 
@@ -31,7 +113,7 @@
 2011-02-18  Iain Sandoe  <iains@gcc.gnu.org>
 
 	* objc/execute/exceptions/foward-1.x: New.
-	
+
 2011-02-18  Janus Weil  <janus@gcc.gnu.org>
 
 	PR fortran/47789

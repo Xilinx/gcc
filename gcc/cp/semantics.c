@@ -6019,6 +6019,14 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
       return t;
     }
 
+  /* Shortcut trivial copy constructor/op=.  */
+  if (call_expr_nargs (t) == 2 && trivial_fn_p (fun))
+    {
+      tree arg = convert_from_reference (get_nth_callarg (t, 1));
+      return cxx_eval_constant_expression (old_call, arg, allow_non_constant,
+					   addr, non_constant_p);
+    }
+
   /* If in direct recursive call, optimize definition search.  */
   if (old_call != NULL && old_call->fundef->decl == fun)
     new_call.fundef = old_call->fundef;
@@ -6760,7 +6768,10 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 	      tree type = TREE_TYPE (r);
 	      error ("the value of %qD is not usable in a constant "
 		     "expression", r);
-	      if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
+	      if (DECL_DECLARED_CONSTEXPR_P (r))
+		inform (DECL_SOURCE_LOCATION (r),
+			"%qD used in its own initializer", r);
+	      else if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
 		{
 		  if (!CP_TYPE_CONST_P (type))
 		    inform (DECL_SOURCE_LOCATION (r),

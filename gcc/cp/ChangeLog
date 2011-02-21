@@ -1,3 +1,42 @@
+2011-02-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47207
+	* decl2.c (decl_constant_var_p): A constexpr var needs an
+	initializer to be constant.
+	* semantics.c (cxx_eval_constant_expression): Complain about
+	constexpr var used in its own initializer.
+	* call.c (set_up_extended_ref_temp): Set
+	DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P too.
+
+2011-02-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47199
+	* semantics.c (cxx_eval_call_expression): Call
+	cxx_eval_constant_expression in trivial shortcut.
+
+	PR c++/46831
+	* call.c (convert_class_to_reference): Don't try to set up a
+	second conv sequence for non-viable candidates.
+
+	PR c++/47703
+	* error.c (location_of): Handle non-tagged types.
+
+	PR c++/46472
+	* method.c (process_subob_fn): Instantiate constexpr templates.
+	* optimize.c (maybe_clone_body): Propagate DECL_DECLARED_CONSTEXPR_P.
+
+2011-02-20  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/46394
+	* pt.c (tsubst_pack_expansion): do not use
+	cp_tree_equal/same_type_p to detect an expansion of a parameter
+	pack.
+
+2011-02-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47503
+	* semantics.c (cxx_eval_call_expression): Shortcut trivial copy.
+
 2011-02-18  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/47795

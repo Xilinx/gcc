@@ -1,3 +1,16 @@
+2011-02-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+       * objc-gnu-runtime-abi-01.c (TARGET_64BIT): Removed.  Removed
+       usage of padding fields.  Do not include tm.h.
+       * objc-act.c (objc_write_global_declaration): Set input_location
+       to BUILTINS_LOCATION while generating runtime metadata.
+
+2011-01-20  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/47784
+	* objc-act.c (objc_maybe_build_modify_expr): If 'rhs' has side
+	effects, do not use a temporary variable.
+
 2011-01-19  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc-next-runtime-abi-01.c: Updated comments.
