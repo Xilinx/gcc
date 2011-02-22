@@ -216,31 +216,27 @@ void gpy_rr_pop_context( void )
 void gpy_rr_finalize_block_decls (int n, ...)
 {
   va_list vl; int idx;
-  va_start( vl,n );
+  va_start (vl,n);
 
   /* gpy_object_t is a typedef of gpy_object_state_t *
      to keep stdarg.h happy
   */
   gpy_object_t * it = NULL;
-  for( idx = 0; idx<n; ++idx )
+  for (idx = 0; idx<n; ++idx)
     {
-      it = va_arg( vl, gpy_object_t* );
-      gpy_assert(it->T == TYPE_OBJECT_STATE);
-      /* no assert this macro auto inserts an assert */
+      it = va_arg (vl, gpy_object_t *);
+      gpy_assert (it->T == TYPE_OBJECT_STATE);
       gpy_rr_decr_ref_count (it);
     }
-  va_end(vl);
-}
-
-gpy_object_t * gpy_rr_fold_call (struct gpy_callable_def_t * callables, 
-				 const char * ident, int n_args, ... )
-{
-  return NULL;
+  va_end (vl);
 }
 
 gpy_object_t * gpy_rr_eval_dot_operator (gpy_object_t * x,
 					 gpy_object_t * y)
 {
+  
+
+
   return NULL;
 }
 

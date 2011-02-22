@@ -51,11 +51,9 @@ DEF_VEC_P( gpy_ident );
 DEF_VEC_ALLOC_P( gpy_ident,gc );
 
 typedef struct GTY(()) gpy_context_branch_t {
-  gpy_hash_tab_t * var_decls;
-  VEC(gpy_ident,gc) *var_decl_t;
+  gpy_hash_tab_t * decls;
+  VEC(gpy_ident,gc) *decl_t;
 } gpy_context_branch ;
-
-enum DECL_T { VAR, FUNC };
 
 typedef gpy_symbol_obj *gpy_sym;
 typedef gpy_context_branch *gpy_ctx_t;

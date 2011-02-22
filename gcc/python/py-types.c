@@ -45,7 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "py-types.h"
 #include "py-runtime.h"
 
-static VEC(tree,gc) * gpy_builtin_types_vec;
+VEC(tree,gc) * gpy_builtin_types_vec;
 
 /* @see coverage.c build_fn_info_type ( unsigned int )
    for more examples on RECORD_TYPE's
@@ -64,41 +64,10 @@ typedef struct gpy_callable_def_t {
  */
 
 /* go/gofrontend/types.cc 4517 && 5066  for making an array type */
-
+static
 tree gpy_build_callable_record_type( void )
 {
-  tree type = make_node(RECORD_TYPE);
-  tree field_trees = NULL_TREE;
-  tree *chain = &field_trees;
-
-  tree field = build_decl(BUILTINS_LOCATION, FIELD_DECL, get_identifier ("ident"),
-			  build_pointer_type( char_type_node ));
-  DECL_CONTEXT(field) = type;
-  *chain = field;
-  chain = &TREE_CHAIN(field);
-
-  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, get_identifier ("n_args"),
-		     integer_type_node);
-  DECL_CONTEXT(field) = type;
-  *chain = field;
-  chain = &TREE_CHAIN(field);
-
-  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, get_identifier ("class"),
-		     boolean_type_node);
-  DECL_CONTEXT(field) = type;
-  *chain = field;
-  chain = &TREE_CHAIN(field);
-
-  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, get_identifier ("call"),
-		     ptr_type_node);
-  DECL_CONTEXT(field) = type;
-  *chain = field;
-  chain = &TREE_CHAIN(field);
-
-  TYPE_FIELDS(type) = field_trees;
-  layout_type(type);
-
-  return type;
+  return NULL_TREE;
 }
 
 /*
@@ -118,9 +87,11 @@ typedef struct gpy_object_t {
 } gpy_object_t ;
 
 */
-
+static
 tree gpy_build_py_object_type (void)
 {
+  debug ("whooooooooooop!\n");
+
   tree object_state_struct_Type = make_node (RECORD_TYPE);
   
   tree name = get_identifier("obj_t_ident");
@@ -161,8 +132,14 @@ tree gpy_build_py_object_type (void)
   gpy_preserve_from_gc(object_state_type_decl);
   rest_of_decl_compilation(object_state_type_decl, 1, 0);
 
-  object_state_ptr_type = build_pointer_type (object_state_type_decl);
+  debug ("shitson!\n");
+
+  debug_tree (object_state_type_decl);
+  tree object_state_ptr_type = build_pointer_type (object_state_struct_Type);
+  debug ("shitson2!\n");
   gpy_preserve_from_gc (object_state_ptr_type);
+
+  debug ("WHOOOOPP-1!!!\n");
 
   //....................
 
@@ -186,59 +163,57 @@ tree gpy_build_py_object_type (void)
   
   name = get_identifier("o");
   tree union_type_decl = build_decl(BUILTINS_LOCATION, TYPE_DECL, name,
-					   union_type__);
+				    union_type__);
   DECL_ARTIFICIAL(union_type_decl) = 1;
   TYPE_NAME(union_type__) = union_type_decl;
   gpy_preserve_from_gc(union_type_decl);
   rest_of_decl_compilation(union_type_decl, 1, 0);
 
+  debug ("WHOOOOPP-2!!!\n");
+
   //.........................
 
+  tree gpy_object_struct_Type = make_node (RECORD_TYPE);
   
+  name = get_identifier("type");
+  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name, integer_type_node);
+  DECL_CONTEXT(field) = gpy_object_struct_Type;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
 
+  name = get_identifier("o");
+  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name,
+		     union_type_decl);
+  DECL_CONTEXT(field) = gpy_object_struct_Type;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
+
+  layout_type (object_state_struct_Type);
+  
+  name = get_identifier("gpy_object_t");
+  tree gpy_object_type_decl = build_decl(BUILTINS_LOCATION, TYPE_DECL, name,
+					 gpy_object_struct_Type);
+  DECL_ARTIFICIAL(gpy_object_type_decl) = 1;
+  TYPE_NAME(gpy_object_struct_Type) = name; //gpy_object_type_decl;
+  gpy_preserve_from_gc(gpy_object_type_decl);
+  rest_of_decl_compilation(gpy_object_type_decl, 1, 0);
+
+  tree *ptr = build_pointer_type(gpy_object_struct_Type);
+  return ptr;
 }
 
-tree gpy_get_callable_record_type( void )
+
+static
+tree gpy_build_callable_record( const char * identifier, int args,
+				bool c, tree fndecl )
 {
-  return VEC_index(tree,gpy_builtin_types_vec,0);
-}
-
-tree gpy_init_callable_record( const char * identifier, int args,
-			       bool c, tree fndecl )
-{
-  VEC(constructor_elt,gc) *struct_data_cons = NULL;
-
-  tree ident = build_string(strlen(identifier), identifier);
-  TREE_TYPE(ident) = build_pointer_type( char_type_node );
-
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("ident"),
-							build_pointer_type( char_type_node )),
-			  build_int_cst( build_pointer_type(char_type_node), 0)
-			  );
-  
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("n_args"),
-							integer_type_node),
-			  build_int_cst(integer_type_node, args )
-			  );
-  
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("class"),
-							boolean_type_node),
-			  build_int_cst(boolean_type_node,c)
-			  );
-
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("call"),
-							ptr_type_node),
-			  build_int_cst(ptr_type_node,0)
-			  );
-
-  return (build_constructor(gpy_get_callable_record_type(), struct_data_cons));
+  return NULL_TREE;
 }
 
 void gpy_initilize_types (void)
 {
-  VEC_safe_push(tree,gc,gpy_builtin_types_vec, gpy_build_callable_record_type());
+  gpy_builtin_types_vec = VEC_alloc(tree,gc,0);
+
+  VEC_safe_push(tree,gc,gpy_builtin_types_vec,
+		gpy_build_py_object_type ());
 }

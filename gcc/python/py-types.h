@@ -17,15 +17,9 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __PY_TYPES_H__
 #define __PY_TYPES_H__
 
-extern tree gpy_build_callable_record_type (void);
+extern VEC(tree,gc) * gpy_builtin_types_vec;
 
-extern tree gpy_get_callable_record_type (void);
-
-extern tree gpy_build_object_record_type (void);
-
-extern tree gpy_get_object_record_type (void);
-
-extern tree gpy_init_callable_record (const char *, int, bool, tree);
+#define gpy_object_type_ptr VEC_index(tree,gpy_builtin_types_vec,0)
 
 extern void gpy_initilize_types (void);
 

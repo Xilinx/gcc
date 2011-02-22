@@ -87,6 +87,7 @@ typedef struct gpy_number_prot_t
   binary_op n_div;
   binary_op n_mul;
   binary_op n_pow;
+  // binary_op n_mod;
 
   binary_op n_let;
   binary_op n_lee;
@@ -96,7 +97,6 @@ typedef struct gpy_number_prot_t
   binary_op n_nee;
   binary_op n_orr;
   binary_op n_and;
-
 } gpy_num_prot_t ;
 
 typedef struct gpy_typedef_t {
@@ -109,23 +109,15 @@ typedef struct gpy_typedef_t {
   struct gpy_builtin_method_def_t * methods;
 } gpy_typedef_t ;
 
-typedef gpy_object_t * (*__callable)( void );
-
-typedef struct gpy_callable_def_t {
-  char * ident; int n_args;
-  bool class; __callable call;
-} gpy_callable_def_t;
-
 #define Gpy_Object_State_Init( x )				\
   x = gpy_malloc( sizeof(struct gpy_rr_object_state_t) );	\
   debug("object created at <%p>!\n", (void*)x );		\
   x->obj_t_ident = NULL; x->ref_count = 0;			\
   x->self = NULL; x->definition = NULL;
 
-#define Gpy_Object_Init_Ctx( x,y )				\
-  								\
-  Gpy_Object_State_Init( x );					\
-  gpy_vec_push( ((gpy_context_t*)(y->vector[y->length-1]))->symbols, x );
+#define Gpy_Object_Init_Ctx( x,y )					\
+  Gpy_Object_State_Init( x );						\
+  gpy_vec_push (((gpy_context_t*)(y->vector[y->length-1]))->symbols, x);
 
 #define NULL_OBJ_STATE (gpy_object_state_t *) NULL
 #define NULL_OBJECT (gpy_object_t *) NULL

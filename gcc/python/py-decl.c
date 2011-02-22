@@ -51,8 +51,15 @@ VEC(tree,gc) * gpy_fold_primitive( const gpy_symbol_obj * const sym )
   switch( sym->op_a_t )
     {
     case TYPE_INTEGER:
-      VEC_safe_push( tree,gc,retval,
-		     gpy_builtin_get_fold_int_call( sym->op_a.integer ) );
+      {
+	tree address = build_decl( sym->loc, VAR_DECL, create_tmp_var_name("P"),
+				   gpy_object_type_ptr );
+	VEC_safe_push( tree, gc, retval,
+		       build2( MODIFY_EXPR, gpy_object_type_ptr,
+			       address, gpy_builtin_get_fold_int_call (sym->op_a.integer) )
+		       );
+	VEC_safe_push (tree,gc,retval,address);
+      }
       break;
 
     default:
@@ -78,35 +85,32 @@ VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
   if( opa->type == SYMBOL_REFERENCE )
     {
       int l = (VEC_length( gpy_ctx_t, context));
-      VEC(tree,gc) * rhs_tree_vec = NULL; tree rhs_tree = NULL_TREE;
-
-      tree decl = gpy_ctx_lookup_decl( context, opa->op_a.string, VAR );
+      VEC(tree,gc) * rhs_tree_vec = NULL;
+      
+      tree decl = gpy_ctx_lookup_decl (context, opa->op_a.string);
 
       if( !decl )
 	{
-	  gpy_ctx_t x = VEC_index( gpy_ctx_t, context, (l-1) );
+	  gpy_ctx_t x = VEC_index (gpy_ctx_t, context, (l-1));
 	  
 	  decl = build_decl( opa->loc, VAR_DECL,
 			     get_identifier( opa->op_a.string ),
-			     build_pointer_type( void_type_node ) );
+			     gpy_object_type_ptr );
 	  
-	  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x, VAR )) )
+	  if( !(gpy_ctx_push_decl( decl, opa->op_a.string, x)) )
 	    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
 	}
 
       rhs_tree_vec = gpy_process_expression( opb, context );
-      gcc_assert( VEC_length(tree,rhs_tree_vec) == 1 );
-      rhs_tree = VEC_index(tree,rhs_tree_vec,0);
+      tree rhs_tree_res_decl = VEC_pop (tree,rhs_tree_vec);
 
-      retval = VEC_alloc(tree,gc,0);
-
-      tree address = build_decl( opa->loc, VAR_DECL, create_tmp_var_name("A"),
-				 ptr_type_node );
-      VEC_safe_push( tree, gc, retval, build2( MODIFY_EXPR, ptr_type_node,
-				       address, rhs_tree )
-		     );
-      VEC_safe_push( tree,gc, retval, gpy_builtin_get_incr_ref_call( address ) );
-      VEC_safe_push( tree,gc, retval, build2( MODIFY_EXPR, ptr_type_node, decl, address ) );
+      retval = rhs_tree_vec;
+      
+      VEC_safe_push (tree, gc, retval, build2( MODIFY_EXPR, gpy_object_type_ptr,
+					       decl,rhs_tree_res_decl ) );
+      VEC_safe_push (tree, gc, retval, gpy_builtin_get_incr_ref_call (decl));
+      VEC_safe_push (tree, gc, retval, decl);
+      
     }
   else
     fatal_error("Invalid accessor for assignment <0x%x>!\n", opa->type );
@@ -114,8 +118,9 @@ VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
   return retval;
 }
 
-VEC(tree,gc) * gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
-					   gpy_opcode_t operation, VEC(gpy_ctx_t,gc) * context )
+VEC(tree,gc) *
+gpy_process_bin_expression (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
+			    gpy_opcode_t operation, VEC(gpy_ctx_t,gc) * context)
 {
   VEC(tree,gc) * retval = NULL;
   VEC(tree,gc) * t1 = NULL, * t2 = NULL;
@@ -128,19 +133,17 @@ VEC(tree,gc) * gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_ob
     return NULL;
   }
 
-  t1 = gpy_process_expression( opa, context );
-  t2 = gpy_process_expression( opb, context );
-  
-  gcc_assert( (VEC_length(tree,t1) == 1) &&
-	      (VEC_length(tree,t2) == 1) );
+  t1 = gpy_process_expression (opa, context);
+  t2 = gpy_process_expression (opb, context);
+  gcc_assert (VEC_length(tree,t1) == 1);
 
-  tree t1_tree = VEC_index(tree,t1,0);
-  tree t2_tree = VEC_index(tree,t2,0);
+  tree t1_res_decl = VEC_pop (tree, t1);
+  tree t2_res_decl = VEC_pop (tree, t2);
 
   switch( operation )
     {
     case OP_BIN_ADDITION:
-      op = gpy_builtin_get_eval_expression_call( t1_tree, t2_tree, operation );
+      op = gpy_builtin_get_eval_expression_call( t1_res_decl, t2_res_decl, operation );
       break;
 
     default:
@@ -150,8 +153,20 @@ VEC(tree,gc) * gpy_process_bin_expression( gpy_symbol_obj ** op_a, gpy_symbol_ob
 
   if( op )
     {
-      retval = VEC_alloc(tree,gc,0);
-      VEC_safe_push(tree,gc,retval,op);
+      retval = t2;
+
+      int idx = 0; tree itx = NULL_TREE;
+      for ( ; VEC_iterate(tree,t1,idx,itx); ++idx )
+	{
+	  VEC_safe_push (tree,gc,retval,itx);
+	}
+      
+      tree address = build_decl( opa->loc, VAR_DECL, create_tmp_var_name("T"),
+				 gpy_object_type_ptr );
+      VEC_safe_push( tree, gc, retval,
+		     build2( MODIFY_EXPR, gpy_object_type_ptr, address, op ));
+      
+      VEC_safe_push (tree,gc,retval,address);
     }
 
   return retval;

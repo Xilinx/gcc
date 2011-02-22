@@ -104,17 +104,17 @@ gpy_obj_integer_add (gpy_object_t * o1, gpy_object_t * o2)
   gpy_object_state_t * x = o1->o.object_state;
   gpy_object_state_t * y = o2->o.object_state;
 
-  if( !strcmp( x->obj_t_ident, "Int" ) )
+  if( !strcmp (x->obj_t_ident, "Int") )
     {
-      if( !strcmp( y->obj_t_ident, "Int") )
+      if( !strcmp (y->obj_t_ident, "Int") )
 	{
 	  struct gpy_obj_integer_t *t1 = (struct gpy_obj_integer_t*) x->self;
 	  struct gpy_obj_integer_t *t2 = (struct gpy_obj_integer_t*) y->self;
 
 	  mpfr_t x,y,z;
-	  mpfr_init( z );
-	  mpfr_init_set_si( x, t1->Int, GMP_RNDU );
-	  mpfr_init_set_si( y, t2->Int, GMP_RNDU );
+	  mpfr_init (z);
+	  mpfr_init_set_si (x, t1->Int, GMP_RNDU);
+	  mpfr_init_set_si (y, t2->Int, GMP_RNDU);
 
 	  if( mpfr_add( z, x, y, GMP_RNDU ) )
 	    {

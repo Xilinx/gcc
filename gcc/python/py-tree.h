@@ -64,12 +64,11 @@ extern VEC(tree,gc) * gpy_process_print( gpy_symbol_obj *, VEC(gpy_ctx_t,gc) * )
 
 extern tree gpy_main_method_decl( VEC(tree,gc) * , gpy_context_branch * );
 
-extern tree gpy_ctx_lookup_decl( VEC(gpy_ctx_t,gc) *, const char *, enum DECL_T );
+extern tree gpy_ctx_lookup_decl( VEC(gpy_ctx_t,gc) *, const char * );
 
 extern void gpy_process_decl( gpy_symbol_obj * );
 
-extern bool gpy_ctx_push_decl( tree, const char *, gpy_context_branch *,
-			       enum DECL_T );
+extern bool gpy_ctx_push_decl( tree, const char *, gpy_context_branch * );
 
 extern void gpy_symbol_init_ctx( gpy_symbol_obj * const )
   __attribute__((nonnull));

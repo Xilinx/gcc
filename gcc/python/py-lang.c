@@ -104,7 +104,7 @@ gpy_langhook_init_options (unsigned int decoded_options_count,
 /* Handle gpy specific options.  Return 0 if we didn't do anything.  */
 static bool
 gpy_langhook_handle_option (size_t scode, const char *arg, int value, int kind,
-			    const struct cl_option_handlers * handlers)
+			    location_t l, const struct cl_option_handlers * handlers)
 {
   enum opt_code code = (enum opt_code) scode;
   int retval = 1;
@@ -123,7 +123,7 @@ gpy_langhook_handle_option (size_t scode, const char *arg, int value, int kind,
 
 /* Run after parsing options.  */
 static bool
-gpy_langhook_post_options( const char **pfilename ATTRIBUTE_UNUSED )
+gpy_langhook_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 {
   debug("post options!\n");
   gcc_assert( num_in_fnames > 0 );
@@ -138,7 +138,7 @@ gpy_langhook_post_options( const char **pfilename ATTRIBUTE_UNUSED )
 }
 
 static void
-gpy_langhook_parse_file( int set_yy_debug ATTRIBUTE_UNUSED )
+gpy_langhook_parse_file (void)
 {
   unsigned int idx = 0;
   debug("parse file!\n");

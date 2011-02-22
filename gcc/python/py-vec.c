@@ -118,29 +118,16 @@ void gpy_garbage_free_obj( gpy_symbol_obj ** sym )
     }
 }
 
-/**
- *  Hash function in use is a 32bit FNV-1
- *
- *  * http://en.wikipedia.org/wiki/Fowler-Noll-Vo_hash_function
- *  * http://isthe.com/chongo/tech/comp/fnv/#FNV-1
- *
- *  Eventualy look at using a sha1 may work better but may be too big
- *  a Digest.., but should avoid conflicts better
- **/
-gpy_hashval_t gpy_dd_hash_string( const char * s )
+gpy_hashval_t gpy_dd_hash_string (const char * s)
 {
-  gpy_hashval_t hash =  0x811C9DC5;
-  unsigned char ch = '\0';
-  unsigned int idx = 0;
+  const unsigned char *str = (const unsigned char *) s;
+  gpy_hashval_t r = 0;
+  unsigned char c;
 
-  for( ; idx < strlen( s ); ++idx )
-    {
-      ch = (*s + idx);
-      hash ^= ch;
-      hash *= 0x1000193;
-    }
+  while ((c = *str++) != 0)
+    r = r * 67 + c - 113;
 
-  return hash;
+  return r;
 }
 
 gpy_hash_entry_t *
@@ -258,12 +245,12 @@ void gpy_init_ctx_branch( gpy_context_branch * const * o )
 {
   if( o )
     {
-      (*o)->var_decls = (gpy_hash_tab_t *)
+      (*o)->decls = (gpy_hash_tab_t *)
 	xmalloc( sizeof(gpy_hash_tab_t) );
 
-      gpy_dd_hash_init_table( &((*o)->var_decls) );
+      gpy_dd_hash_init_table( &((*o)->decls) );
 
-      (*o)->var_decl_t = VEC_alloc(gpy_ident,gc,0);
+      (*o)->decl_t = VEC_alloc(gpy_ident,gc,0);
     }
 }
 
@@ -278,37 +265,26 @@ void gpy_init_context_tables( void )
 }
 
 bool gpy_ctx_push_decl( tree decl, const char * s,
-			gpy_context_branch * ctx,
-			enum DECL_T T )
+			gpy_context_branch * ctx)
 {
   bool retval = true; gpy_hash_tab_t *t = NULL;
   gpy_hashval_t h = 0;
 
   void ** slot = NULL;
-  const char * type;
   gpy_ident o = (gpy_ident) xmalloc( sizeof(gpy_ident_t) );
   o->ident = xstrdup( s );
   
   debug("ident <%s> at <%p>!\n", s, (void*)o );
 
-  if( T == VAR )
-    {
-      t = ctx->var_decls;
-      type = "VAR";
-    }
-  else fatal_error("unhandled decl type!\n");
-
+  t = ctx->decls;
   debug("trying to push decl <%s>!\n", s );
 
   h = gpy_dd_hash_string( o->ident );
   slot = gpy_dd_hash_insert( h, decl, t );
   if( !slot )
     {
-      debug("successfully pushed DECL <%s>:<%s>!\n", s,type );
-      if( T == VAR )
-	{
-	  VEC_safe_push( gpy_ident, gc, ctx->var_decl_t, o );
-	}
+      debug("successfully pushed DECL <%s>!\n", s);
+      VEC_safe_push( gpy_ident, gc, ctx->decl_t, o );
     }
   else
     {
@@ -319,7 +295,7 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
   return retval;
 }
 
-tree gpy_ctx_lookup_decl( VEC(gpy_ctx_t,gc) * context, const char * s, enum DECL_T T )
+tree gpy_ctx_lookup_decl (VEC(gpy_ctx_t,gc) * context, const char * s)
 {
   tree retval = NULL;
   unsigned int n_ctx = VEC_length( gpy_ctx_t,context );
@@ -336,10 +312,7 @@ tree gpy_ctx_lookup_decl( VEC(gpy_ctx_t,gc) * context, const char * s, enum DECL
       gpy_hash_entry_t * o = NULL;
       gpy_hash_tab_t * decl_table = NULL;
 
-      if( T == VAR )
-	decl_table = it->var_decls;
-
-      else fatal_error("unhandled decl type!\n");
+      decl_table = it->decls;
 
       o = gpy_dd_hash_lookup_table( decl_table, h );
       if( o )
