@@ -1,3 +1,42 @@
+2011-02-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* io/write_float.def (output_float): Adjust width for F0.d to
+	allow space for negative signs on zero.
+
+2011-02-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47667
+	* io/list_read.c (read_logical): Check for end of line before calling
+	eat_line. (read_integer): Likewise. (parse_real): Don't unget the
+	separator. Check for end of line before calling	eat_line.
+	(read_complex): Allow line-end before and after parenthesis and comma.
+	Check for end of line before calling eat_line. (read_real): Check for
+	end of line before calling eat_line.
+
+2011-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libfortran/47757
+	* gfortran.map (GFORTRAN_1.4): Export
+	_gfortran_{m,s}i{all,any,parity}_i{1,2,4,8,16} and
+	_gfortran_{cshift0,eoshift{0,2}}_16_char4.
+
+2011-02-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47716
+	PR fortran/47648
+	* acinclude.m4 (LIBGFOR_CHECK_FLOAT128): Use check from
+	libquadmath, which uses more features.
+	* configure: Regenerate.
+
+2011-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47642
+	* io/write_float.def (DTOAQ): Use quadmath_snprintf instead of
+	quadmath_flt128tostr.
+	* io/transfer128.c (tmp2): Initialize to quadmath_snprintf instead
+	of quadmath_flt128tostr.
+
 2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* Makefile.in: Regenerate.

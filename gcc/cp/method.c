@@ -941,8 +941,17 @@ process_subob_fn (tree fn, bool move_p, tree *spec_p, bool *trivial_p,
       goto bad;
     }
 
-  if (constexpr_p && !DECL_DECLARED_CONSTEXPR_P (fn))
-    *constexpr_p = false;
+  if (constexpr_p)
+    {
+      /* If this is a specialization of a constexpr template, we need to
+	 force the instantiation now so that we know whether or not it's
+	 really constexpr.  */
+      if (DECL_DECLARED_CONSTEXPR_P (fn) && DECL_TEMPLATE_INSTANTIATION (fn)
+	  && !DECL_TEMPLATE_INSTANTIATED (fn))
+	instantiate_decl (fn, /*defer_ok*/false, /*expl_class*/false);
+      if (!DECL_DECLARED_CONSTEXPR_P (fn))
+	*constexpr_p = false;
+    }
 
   return;
 
@@ -1153,13 +1162,15 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
   if (trivial_p)
     *trivial_p = expected_trivial;
 
-#ifndef ENABLE_CHECKING
   /* The TYPE_HAS_COMPLEX_* flags tell us about constraints from base
      class versions and other properties of the type.  But a subobject
      class can be trivially copyable and yet have overload resolution
      choose a template constructor for initialization, depending on
      rvalueness and cv-quals.  So we can't exit early for copy/move
-     methods in C++0x.  */
+     methods in C++0x.  The same considerations apply in C++98/03, but
+     there the definition of triviality does not consider overload
+     resolution, so a constructor can be trivial even if it would otherwise
+     call a non-trivial constructor.  */
   if (expected_trivial
       && (!copy_arg_p || cxx_dialect < cxx0x))
     {
@@ -1167,7 +1178,6 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 	*constexpr_p = synthesized_default_constructor_is_constexpr (ctype);
       return;
     }
-#endif
 
   ++cp_unevaluated_operand;
   ++c_inhibit_evaluation_warnings;
@@ -1300,14 +1310,6 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
       if (spec_p)
 	*spec_p = merge_exception_specifiers (*spec_p, cleanup_spec);
     }
-
-#ifdef ENABLE_CHECKING
-  /* If we expected this to be trivial but it isn't, then either we're in
-     C++0x mode and this is a copy/move ctor/op= or there's an error.  */
-  gcc_assert (!(trivial_p && expected_trivial && !*trivial_p)
-	      || (copy_arg_p && cxx_dialect >= cxx0x)
-	      || errorcount);
-#endif
 }
 
 /* DECL is a deleted function.  If it's implicitly deleted, explain why and
