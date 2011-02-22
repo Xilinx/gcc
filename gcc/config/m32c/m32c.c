@@ -454,6 +454,11 @@ m32c_option_override (void)
      This is always worse than an absolute call.  */
   if (TARGET_A16)
     flag_no_function_cse = 1;
+
+  /* This wants to put insns between compares and their jumps.  */
+  /* FIXME: The right solution is to properly trace the flags register
+     values, but that is too much work for stage 4.  */
+  flag_combine_stack_adjustments = 0;
 }
 
 #undef TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
@@ -3618,7 +3623,7 @@ m32c_subreg (enum machine_mode outer,
 	  /* Volatile MEMs don't get simplified, but we need them to
 	     be.  We are little endian, so the subreg byte is the
 	     offset.  */
-	  r = adjust_address (x, outer, byte);
+	  r = adjust_address_nv (x, outer, byte);
 	}
       return r;
     }

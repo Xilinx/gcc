@@ -1,3 +1,173 @@
+2011-02-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41359
+	* trans-stmt.c (gfc_trans_if_1): Use correct line for
+	expressions in the if condition.
+
+2011-02-20  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47797
+	* trans-decl.c (gfc_trans_deferred_vars): Use gfc_set_backend_locus and
+	gfc_restore_backend_locus to have better debug locations.
+	* trans-array.c (gfc_trans_deferred_array): Ditto.
+
+2011-02-20  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/45077
+	PR fortran/44945
+	* trans-types.c (gfc_get_derived_type): Remove code that looks
+	for decls in gsym and add call to gfc_get_module_backend_decl.
+	* trans.h : Add prototype for gfc_get_module_backend_decl.
+	* trans-decl.c (gfc_get_module_backend_decl): New function.
+	(gfc_get_symbol_decl): Call it.
+
+2011-02-19  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/47348
+	* trans-array.c (get_array_ctor_all_strlen): Move up in file.
+	(get_array_ctor_var_strlen): Add block dummy and add call to
+	get_array_ctor_all_strlen instead of giving up on substrings.
+	Call gcc_unreachable for default case.
+	(get_array_ctor_strlen): Add extra argument to in call to
+	get_array_ctor_var_strlen.
+
+2011-02-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47789
+	* primary.c (gfc_match_structure_constructor): Handle empty parent
+	types.
+
+2011-02-18  Tobias Burnus
+
+	PR fortran/47775
+	* trans-expr.c (arrayfunc_assign_needs_temporary): Use
+	esym to check whether the specific procedure returns an
+	allocatable or pointer.
+
+2011-02-18  Michael Matz  <matz@suse.de>
+
+	PR fortran/45586
+	* gfortran.h (struct gfc_component): Add norestrict_decl member.
+	* trans.h (struct lang_type): Add nonrestricted_type member.
+	* trans-expr.c (gfc_conv_component_ref): Search fields with correct
+	parent type.
+	* trans-types.c (mirror_fields, gfc_nonrestricted_type): New.
+	(gfc_sym_type): Use it.
+
+2011-02-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47768
+	* resolve.c (resolve_transfer): Reject variables with procedure pointer
+	components.
+
+2011-02-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47767
+	* gfortran.h (gfc_check_access): Removed prototype.
+	(gfc_check_symbol_access): Added prototype.
+	* module.c (gfc_check_access): Renamed to 'check_access', made static.
+	(gfc_check_symbol_access): New function, basically a shortcut for
+	'check_access'.
+	(write_dt_extensions,write_symbol0,write_generic,write_symtree): Use
+	'gfc_check_symbol_access'.
+	(write_operator,write_module): Renamed 'gfc_check_access'.
+	* resolve.c (resolve_fl_procedure,resolve_fl_derived,
+	resolve_fl_namelist,resolve_symbol,resolve_fntype): Use
+	'gfc_check_symbol_access'.
+
+2011-02-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47745
+	* class.c (gfc_build_class_symbol): Set 'class_ok' attribute.
+	* decl.c (build_sym,attr_decl1): Move setting of 'class_ok' into
+	'gfc_build_class_symbol'.
+	(gfc_match_decl_type_spec): Reject unlimited polymorphism.
+	* interface.c (matching_typebound_op): Check for 'class_ok' attribute.
+	* match.c (select_type_set_tmp): Move setting of 'class_ok' into
+	'gfc_build_class_symbol'.
+	* primary.c (gfc_variable_attr): Check for 'class_ok' attribute.
+
+2011-02-15  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/47633
+	. simplify.c (gfc_simplify_compiler_version): Fix off-by-one issue.
+
+2011-02-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47730
+	* parse.c (gfc_build_block_ns): Commit 'block@' symbol.
+
+2011-02-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47728
+	* class.c (gfc_build_class_symbol): Give a fatal error on polymorphic
+	arrays.
+	* primary.c (gfc_match_varspec): Avoid ICE for invalid class
+	declaration.
+
+2011-02-14  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47349
+	* interface.c (get_expr_storage_size): Handle derived-type components.
+
+2011-02-13  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47569
+	* interface.c (compare_parameter): Avoid ICE with
+	character components.
+
+2011-02-12  Janus Weil  <janus@gcc.gnu.org>
+
+	* class.c (gfc_build_class_symbol): Reject polymorphic arrays.
+	* decl.c (build_sym,build_struct,attr_decl1): Use return value of
+	'gfc_build_class_symbol'.
+
+2011-02-12  Michael Matz  <matz@suse.de>
+	    Janus Weil  <janus@gcc.gnu.org>
+	    Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/45586
+	* trans-expr.c (conv_parent_component_references): Avoid unintendent
+	skipping of parent compounds.
+
+2011-02-11  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47550
+	* resolve.c (resolve_formal_arglist): PURE with VALUE
+	and no INTENT: Add -std= diagnostics.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47352
+	* resolve.c (resolve_procedure_interface): If interface has a result
+	variable, copy the typespec and set result pointer to self.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47463
+	* resolve.c (resolve_typebound_subroutine): Remove erroneous line.
+
+2011-02-09  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47637
+	* trans-decl.c (init_intent_out_dt): Handle CLASS arguments.
+
+2011-02-08  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	* io.c (match_io_element): Do not set dt if not inquire.
+
+2011-02-08  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/45290
+	* expr.c (gfc_check_assign_symbol): Reject pointers as pointer
+	initialization target.
+
+2011-02-07  Janne Blomqvist  <jb@gcc.gnu.org>
+	    Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* gfortran.texi (Thread-safety): texinfo styling fixes.
+	* intrinsic.texi: Likewise.
+
 2011-02-06  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	* gfortran.texi (Compiler Characteristics): Add reference to

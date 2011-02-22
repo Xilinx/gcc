@@ -769,7 +769,7 @@ varpool_next_static_initializer (struct varpool_node *node)
 
 /* In ipa-inline.c  */
 void cgraph_clone_inlined_nodes (struct cgraph_edge *, bool, bool);
-unsigned int compute_inline_parameters (struct cgraph_node *);
+void compute_inline_parameters (struct cgraph_node *);
 
 
 /* Create a new static variable of type TYPE.  */
@@ -944,7 +944,7 @@ varpool_can_remove_if_no_refs (struct varpool_node *node)
 /* Return true when all references to VNODE must be visible in ipa_ref_list.
    i.e. if the variable is not externally visible or not used in some magic
    way (asm statement or such).
-   The magic uses are all sumarized in force_output flag.  */
+   The magic uses are all summarized in force_output flag.  */
 
 static inline bool
 varpool_all_refs_explicit_p (struct varpool_node *vnode)
