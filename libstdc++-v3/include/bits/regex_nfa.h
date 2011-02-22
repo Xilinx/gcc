@@ -1,6 +1,6 @@
 // class template regex -*- C++ -*-
 
-// Copyright (C) 2010 Free Software Foundation, Inc.
+// Copyright (C) 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -28,7 +28,9 @@
  *  Do not attempt to use it directly. @headername{regex}
  */
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
 namespace __regex
 {
@@ -53,7 +55,7 @@ namespace __regex
 #endif
   };
 
-  // Generic shred pointer to an automaton.  
+  // Generic shared pointer to an automaton.  
   typedef std::shared_ptr<_Automaton> _AutomatonPtr;
 
   // Operation codes that define the type of transitions within the base NFA
@@ -80,7 +82,6 @@ namespace __regex
 
   template<typename _FwdIterT, typename _TraitsT>
     struct _StartTagger
-    : public _Tagger
     {
       explicit
       _StartTagger(int __i)
@@ -96,7 +97,6 @@ namespace __regex
 
   template<typename _FwdIterT, typename _TraitsT>
     struct _EndTagger
-    : public _Tagger
     {
       explicit
       _EndTagger(int __i)
@@ -121,7 +121,6 @@ namespace __regex
   // Matches a single character
   template<typename _InIterT, typename _TraitsT>
     struct _CharMatcher
-    : public _Matcher
     {
       typedef typename _TraitsT::char_type char_type;
 
@@ -145,7 +144,6 @@ namespace __regex
   // Matches a character range (bracket expression)
   template<typename _InIterT, typename _TraitsT>
     struct _RangeMatcher
-    : public _Matcher
     {
       typedef typename _TraitsT::char_type _CharT;
       typedef std::basic_string<_CharT>    _StringT;
@@ -206,7 +204,7 @@ namespace __regex
     typedef int  _OpcodeT;
 
     _OpcodeT     _M_opcode;    // type of outgoing transition
-    _StateIdT    _M_next;      // outgoing tranition
+    _StateIdT    _M_next;      // outgoing transition
     _StateIdT    _M_alt;       // for _S_opcode_alternative
     unsigned int _M_subexpr;   // for _S_opcode_subexpr_*
     _Tagger      _M_tagger;    // for _S_opcode_subexpr_*
@@ -398,7 +396,8 @@ namespace __regex
 
 } // namespace __regex
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #include <bits/regex_nfa.tcc>
 

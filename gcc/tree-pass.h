@@ -1,5 +1,5 @@
 /* Definitions for describing one tree-ssa optimization pass.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>
 
@@ -82,6 +82,7 @@ enum tree_dump_index
 #define TDF_NOUID	(1 << 20)	/* omit UIDs from dumps.  */
 #define TDF_ALIAS	(1 << 21)	/* display alias information  */
 #define TDF_ENUMERATE_LOCALS (1 << 22)	/* Enumerate locals by uid.  */
+#define TDF_CSELIB	(1 << 23)	/* Dump cselib details.  */
 
 
 /* In tree-dump.c */
@@ -312,6 +313,9 @@ struct dump_file_info
 /* Rebuild the addressable-vars bitmap and do register promotion.  */
 #define TODO_update_address_taken	(1 << 21)
 
+/* Rebuild the callgraph edges.  */
+#define TODO_rebuild_cgraph_edges       (1 << 22)
+
 /* Internally used in execute_function_todo().  */
 #define TODO_update_ssa_any		\
     (TODO_update_ssa			\
@@ -441,6 +445,7 @@ extern struct gimple_opt_pass pass_local_pure_const;
 extern struct gimple_opt_pass pass_tracer;
 extern struct gimple_opt_pass pass_warn_unused_result;
 extern struct gimple_opt_pass pass_split_functions;
+extern struct gimple_opt_pass pass_feedback_split_functions;
 
 /* IPA Passes */
 extern struct simple_ipa_opt_pass pass_ipa_lower_emutls;
@@ -546,6 +551,7 @@ extern struct rtl_opt_pass pass_reorder_blocks;
 extern struct rtl_opt_pass pass_branch_target_load_optimize2;
 extern struct rtl_opt_pass pass_leaf_regs;
 extern struct rtl_opt_pass pass_split_before_sched2;
+extern struct rtl_opt_pass pass_compare_elim_after_reload;
 extern struct rtl_opt_pass pass_sched2;
 extern struct rtl_opt_pass pass_stack_regs;
 extern struct rtl_opt_pass pass_stack_regs_run;

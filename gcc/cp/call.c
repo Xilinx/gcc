@@ -1230,8 +1230,10 @@ convert_class_to_reference (tree reference_type, tree s, tree expr, int flags)
 	     rvalue of the right type is good enough.  */
 	  tree f = cand->fn;
 	  tree t2 = TREE_TYPE (TREE_TYPE (f));
-	  if (TREE_CODE (t2) != REFERENCE_TYPE
-	      || !reference_compatible_p (t, TREE_TYPE (t2)))
+	  if (cand->viable == 0)
+	    /* Don't bother looking more closely.  */;
+	  else if (TREE_CODE (t2) != REFERENCE_TYPE
+		   || !reference_compatible_p (t, TREE_TYPE (t2)))
 	    {
 	      /* No need to set cand->reason here; this is most likely
 		 an ambiguous match.  If it's not, either this candidate
@@ -8147,6 +8149,7 @@ set_up_extended_ref_temp (tree decl, tree expr, tree *cleanup, tree *initp)
 	     Currently this is only useful for initializer_list temporaries,
 	     since reference vars can't appear in constant expressions.  */
 	  DECL_DECLARED_CONSTEXPR_P (var) = true;
+	  DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (var) = true;
 	  TREE_CONSTANT (var) = true;
 	}
       DECL_INITIAL (var) = init;

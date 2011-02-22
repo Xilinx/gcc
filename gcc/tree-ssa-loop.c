@@ -179,8 +179,7 @@ run_tree_predictive_commoning (void)
   if (!current_loops)
     return 0;
 
-  tree_predictive_commoning ();
-  return 0;
+  return tree_predictive_commoning ();
 }
 
 static bool
@@ -315,7 +314,7 @@ struct gimple_opt_pass pass_graphite_transforms =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  0					/* todo_flags_finish */
+  TODO_dump_func			/* todo_flags_finish */
  }
 };
 
@@ -534,7 +533,8 @@ struct gimple_opt_pass pass_complete_unrolli =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func
+  TODO_verify_flow
+    | TODO_dump_func
     | TODO_ggc_collect 			/* todo_flags_finish */
  }
 };
@@ -676,6 +676,8 @@ struct gimple_opt_pass pass_tree_loop_done =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_cleanup_cfg | TODO_dump_func	/* todo_flags_finish */
+  TODO_cleanup_cfg
+    | TODO_verify_flow
+    | TODO_dump_func			/* todo_flags_finish */
  }
 };

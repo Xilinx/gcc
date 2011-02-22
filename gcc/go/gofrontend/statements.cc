@@ -108,7 +108,8 @@ Statement::traverse_expression_list(Traverse* traverse,
 {
   if (expr_list == NULL)
     return TRAVERSE_CONTINUE;
-  if ((traverse->traverse_mask() & Traverse::traverse_expressions) == 0)
+  if ((traverse->traverse_mask()
+       & (Traverse::traverse_types | Traverse::traverse_expressions)) == 0)
     return TRAVERSE_CONTINUE;
   return expr_list->traverse(traverse);
 }
@@ -339,6 +340,9 @@ Temporary_statement::do_traverse_assignments(Traverse_assignments* tassign)
 void
 Temporary_statement::do_determine_types()
 {
+  if (this->type_ != NULL && this->type_->is_abstract())
+    this->type_ = this->type_->make_non_abstract_type();
+
   if (this->init_ != NULL)
     {
       if (this->type_ == NULL)
@@ -351,10 +355,10 @@ Temporary_statement::do_determine_types()
     }
 
   if (this->type_ == NULL)
-    this->type_ = this->init_->type();
-
-  if (this->type_->is_abstract())
-    this->type_ = this->type_->make_non_abstract_type();
+    {
+      this->type_ = this->init_->type();
+      gcc_assert(!this->type_->is_abstract());
+    }
 }
 
 // Check types.
@@ -1772,8 +1776,10 @@ Thunk_statement::do_determine_types()
 
   // Now that we know the types of the call, build the struct used to
   // pass parameters.
-  Function_type* fntype =
-    this->call_->call_expression()->get_function_type();
+  Call_expression* ce = this->call_->call_expression();
+  if (ce == NULL)
+    return;
+  Function_type* fntype = ce->get_function_type();
   if (fntype != NULL && !this->is_simple(fntype))
     this->struct_type_ = this->build_struct(fntype);
 }
@@ -1784,6 +1790,12 @@ void
 Thunk_statement::do_check_types(Gogo*)
 {
   Call_expression* ce = this->call_->call_expression();
+  if (ce == NULL)
+    {
+      if (!this->call_->is_error_expression())
+	this->report_error("expected call expression");
+      return;
+    }
   Function_type* fntype = ce->get_function_type();
   if (fntype != NULL && fntype->is_method())
     {
@@ -2203,6 +2215,8 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
   Struct_field_list::const_iterator p = fields->begin();
   for (unsigned int i = 0; i < next_index; ++i)
     ++p;
+  bool is_recover_call = ce->is_recover_call();
+  Expression* recover_arg = NULL;
   for (; p != fields->end(); ++p, ++next_index)
     {
       Expression* thunk_param = Expression::make_var_reference(named_parameter,
@@ -2212,25 +2226,40 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
       Expression* param = Expression::make_field_reference(thunk_param,
 							   next_index,
 							   location);
-      call_params->push_back(param);
+      if (!is_recover_call)
+	call_params->push_back(param);
+      else
+	{
+	  gcc_assert(call_params->empty());
+	  recover_arg = param;
+	}
+    }
+
+  if (call_params->empty())
+    {
+      delete call_params;
+      call_params = NULL;
     }
 
   Expression* call = Expression::make_call(func_to_call, call_params, false,
 					   location);
   // We need to lower in case this is a builtin function.
   call = call->lower(gogo, function, -1);
-  if (may_call_recover)
-    {
-      Call_expression* ce = call->call_expression();
-      if (ce != NULL)
-	ce->set_is_deferred();
-    }
+  Call_expression* call_ce = call->call_expression();
+  if (call_ce != NULL && may_call_recover)
+    call_ce->set_is_deferred();
 
   Statement* call_statement = Statement::make_statement(call);
 
   // We already ran the determine_types pass, so we need to run it
   // just for this statement now.
   call_statement->determine_types();
+
+  // Sanity check.
+  call->check_types(gogo);
+
+  if (call_ce != NULL && recover_arg != NULL)
+    call_ce->set_recover_arg(recover_arg);
 
   gogo->add_statement(call_statement);
 
@@ -2980,15 +3009,22 @@ If_statement::do_may_fall_through() const
 tree
 If_statement::do_get_tree(Translate_context* context)
 {
-  gcc_assert(this->cond_ == NULL || this->cond_->type()->is_boolean_type());
-  tree ret = build3(COND_EXPR, void_type_node,
-		    (this->cond_ == NULL
-		     ? boolean_true_node
-		     : this->cond_->get_tree(context)),
-		    this->then_block_->get_tree(context),
-		    (this->else_block_ == NULL
-		     ? NULL_TREE
-		     : this->else_block_->get_tree(context)));
+  gcc_assert(this->cond_ == NULL
+	     || this->cond_->type()->is_boolean_type()
+	     || this->cond_->type()->is_error_type());
+  tree cond_tree = (this->cond_ == NULL
+		    ? boolean_true_node
+		    : this->cond_->get_tree(context));
+  tree then_tree = this->then_block_->get_tree(context);
+  tree else_tree = (this->else_block_ == NULL
+		    ? NULL_TREE
+		    : this->else_block_->get_tree(context));
+  if (cond_tree == error_mark_node
+      || then_tree == error_mark_node
+      || else_tree == error_mark_node)
+    return error_mark_node;
+  tree ret = build3(COND_EXPR, void_type_node, cond_tree, then_tree,
+		    else_tree);
   SET_EXPR_LOCATION(ret, this->location());
   return ret;
 }
@@ -3010,7 +3046,8 @@ int
 Case_clauses::Case_clause::traverse(Traverse* traverse)
 {
   if (this->cases_ != NULL
-      && (traverse->traverse_mask() & Traverse::traverse_expressions) != 0)
+      && (traverse->traverse_mask()
+	  & (Traverse::traverse_types | Traverse::traverse_expressions)) != 0)
     {
       if (this->cases_->traverse(traverse) == TRAVERSE_EXIT)
 	return TRAVERSE_EXIT;
@@ -3175,7 +3212,12 @@ Case_clauses::Case_clause::get_constant_tree(Translate_context* context,
 	  mpz_t ival;
 	  mpz_init(ival);
 	  if (!(*p)->integer_constant_value(true, ival, &itype))
-	    gcc_unreachable();
+	    {
+	      // Something went wrong.  This can happen with a
+	      // negative constant and an unsigned switch value.
+	      gcc_assert(saw_errors());
+	      continue;
+	    }
 	  gcc_assert(itype != NULL);
 	  tree type_tree = itype->get_tree(context->gogo());
 	  tree val = Expression::integer_constant_tree(ival, type_tree);
@@ -3941,7 +3983,8 @@ int
 Select_clauses::Select_clause::traverse(Traverse* traverse)
 {
   if (!this->is_lowered_
-      && (traverse->traverse_mask() & Traverse::traverse_expressions) != 0)
+      && (traverse->traverse_mask()
+	  & (Traverse::traverse_types | Traverse::traverse_expressions)) != 0)
     {
       if (this->channel_ != NULL)
 	{
@@ -4163,6 +4206,14 @@ Select_clauses::get_tree(Translate_context* context,
 	  default_clause = &*p;
 	  --count;
 	  continue;
+	}
+
+      if (p->channel()->type()->channel_type() == NULL)
+	{
+	  // We should have given an error in the send or receive
+	  // statement we created via lowering.
+	  gcc_assert(saw_errors());
+	  return error_mark_node;
 	}
 
       tree channel_tree = p->channel()->get_tree(context);

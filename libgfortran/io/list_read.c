@@ -768,7 +768,7 @@ read_logical (st_parameter_dt *dtp, int length)
       hit_eof (dtp);
       return;
     }
-  else
+  else if (c != '\n')
     eat_line (dtp);
   sprintf (message, "Bad logical value while reading item %d",
 	      dtp->u.p.item_count);
@@ -906,7 +906,7 @@ read_integer (st_parameter_dt *dtp, int length)
       hit_eof (dtp);
       return;
     }
-  else
+  else if (c != '\n')
     eat_line (dtp);
   sprintf (message, "Bad integer for item %d in list input",
 	      dtp->u.p.item_count);
@@ -1104,6 +1104,7 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
 
   if ((c = next_char (dtp)) == EOF)
     goto bad;
+    
   if (c == '-' || c == '+')
     {
       push_char (dtp, c);
@@ -1162,7 +1163,6 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
 	  goto exp2;
 
 	CASE_SEPARATORS:
-	  unget_char (dtp, c);
 	  goto done;
 
 	default:
@@ -1273,7 +1273,7 @@ parse_real (st_parameter_dt *dtp, void *buffer, int length)
       hit_eof (dtp);
       return 1;
     }
-  else
+  else if (c != '\n')
     eat_line (dtp);
   sprintf (message, "Bad floating point number for item %d",
 	      dtp->u.p.item_count);
@@ -1310,10 +1310,6 @@ read_complex (st_parameter_dt *dtp, void * dest, int kind, size_t size)
       goto bad_complex;
     }
 
-  eat_spaces (dtp);
-  if (parse_real (dtp, dest, kind))
-    return;
-
 eol_1:
   eat_spaces (dtp);
   c = next_char (dtp);
@@ -1322,9 +1318,8 @@ eol_1:
   else
     unget_char (dtp, c);
 
-  if (next_char (dtp)
-      !=  (dtp->u.p.current_unit->decimal_status == DECIMAL_POINT ? ',' : ';'))
-    goto bad_complex;
+  if (parse_real (dtp, dest, kind))
+    return;
 
 eol_2:
   eat_spaces (dtp);
@@ -1334,10 +1329,29 @@ eol_2:
   else
     unget_char (dtp, c);
 
+  if (next_char (dtp)
+      !=  (dtp->u.p.current_unit->decimal_status == DECIMAL_POINT ? ',' : ';'))
+    goto bad_complex;
+
+eol_3:
+  eat_spaces (dtp);
+  c = next_char (dtp);
+  if (c == '\n' || c== '\r')
+    goto eol_3;
+  else
+    unget_char (dtp, c);
+
   if (parse_real (dtp, dest + size / 2, kind))
     return;
-
+    
+eol_4:
   eat_spaces (dtp);
+  c = next_char (dtp);
+  if (c == '\n' || c== '\r')
+    goto eol_4;
+  else
+    unget_char (dtp, c);
+
   if (next_char (dtp) != ')')
     goto bad_complex;
 
@@ -1363,7 +1377,7 @@ eol_2:
       hit_eof (dtp);
       return;
     }
-  else    
+  else if (c != '\n')   
     eat_line (dtp);
   sprintf (message, "Bad complex value in item %d of list input",
 	      dtp->u.p.item_count);
@@ -1726,8 +1740,9 @@ read_real (st_parameter_dt *dtp, void * dest, int length)
       hit_eof (dtp);
       return;
     }
-  else
+  else if (c != '\n')
     eat_line (dtp);
+
   sprintf (message, "Bad real number in item %d of list input",
 	      dtp->u.p.item_count);
   generate_error (&dtp->common, LIBERROR_READ_VALUE, message);
@@ -2984,8 +2999,7 @@ namelist_read (st_parameter_dt *dtp)
      node names or namelist on stdout.  */
 
 find_nml_name:
-  if ((c = next_char (dtp)) == EOF)
-    goto nml_err_eof;
+  c = next_char (dtp);
   switch (c)
     {
     case '$':
@@ -2993,13 +3007,11 @@ find_nml_name:
           break;
 
     case '!':
-      if (eat_line (dtp))
-	goto nml_err_eof;
+      eat_line (dtp);
       goto find_nml_name;
 
     case '=':
-      if ((c = next_char (dtp)) == EOF)
-	goto nml_err_eof;
+      c = next_char (dtp);
       if (c == '?')
 	nml_query (dtp, '=');
       else
@@ -3008,6 +3020,9 @@ find_nml_name:
 
     case '?':
       nml_query (dtp, '?');
+
+    case EOF:
+      return;
 
     default:
       goto find_nml_name;
@@ -3021,8 +3036,7 @@ find_nml_name:
     goto find_nml_name;
 
   /* A trailing space is required, we give a little lattitude here, 10.9.1.  */ 
-  if ((c = next_char (dtp)) == EOF)
-    goto nml_err_eof;
+  c = next_char (dtp);
   if (!is_separator(c) && c != '!')
     {
       unget_char (dtp, c);
@@ -3050,13 +3064,10 @@ find_nml_name:
   free_line (dtp);
   return;
 
-  /* All namelist error calls return from here */
-
-nml_err_eof:
-  hit_eof (dtp);
 
 nml_err_ret:
 
+  /* All namelist error calls return from here */
   free_saved (dtp);
   free_line (dtp);
   generate_error (&dtp->common, LIBERROR_READ_VALUE, nml_err_msg);
