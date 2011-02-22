@@ -265,17 +265,12 @@ gate_graphite_transforms (void)
      is turned on.  */
   if (flag_loop_block
       || flag_loop_interchange
-      || flag_tree_loop_linear
       || flag_loop_strip_mine
       || flag_graphite_identity
       || flag_loop_parallelize_all
       || flag_loop_flatten
       || flag_graphite_opencl)
     flag_graphite = 1;
-
-  /* Make flag_tree_loop_linear an alias of flag_loop_interchange.  */
-  if (flag_tree_loop_linear)
-    flag_loop_interchange = flag_tree_loop_linear;
 
   return flag_graphite != 0;
 }
