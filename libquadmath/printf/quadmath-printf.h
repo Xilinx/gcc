@@ -38,6 +38,9 @@ Boston, MA 02110-1301, USA.  */
 #ifdef HAVE_PRINTF_HOOKS
 #include <printf.h>
 #endif
+#ifdef HAVE_LOCALE_H
+#include <locale.h>
+#endif
 #include "quadmath-imp.h"
 #include "gmp-impl.h"
 
@@ -59,10 +62,20 @@ Boston, MA 02110-1301, USA.  */
 /* Won't work for EBCDIC.  */
 #undef isupper
 #undef isdigit
+#undef isxdigit
 #undef tolower
-#define isupper(x) ((x) >= 'A' && (x) <= 'Z')
-#define isdigit(x) ((x) >= '0' && (x) <= '9')
-#define tolower(x) (isupper (x) ? (x) - 'A' + 'a' : (x))
+#define isupper(x) \
+  ({__typeof(x) __is_x = (x); __is_x >= 'A' && __is_x <= 'Z'; })
+#define isdigit(x) \
+  ({__typeof(x) __is_x = (x); __is_x >= '0' && __is_x <= '9'; })
+#define isxdigit(x) \
+  ({__typeof(x) __is_x = (x); \
+    (__is_x >= '0' && __is_x <= '9') \
+    || ((x) >= 'A' && (x) <= 'F') \
+    || ((x) >= 'a' && (x) <= 'f'); })
+#define tolower(x) \
+  ({__typeof(x) __is_x = (x); \
+    (__is_x >= 'A' && __is_x <= 'Z') ? __is_x - 'A' + 'a' : __is_x; })
 #endif
 
 #ifndef CHAR_MAX
@@ -168,3 +181,6 @@ __quadmath_do_putc (struct __quadmath_printf_file *fp, int wide,
 
 #undef _itoa
 #define _itoa __quadmath_itoa
+
+#undef NAN
+#define NAN __builtin_nanf ("")

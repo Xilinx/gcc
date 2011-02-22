@@ -1157,7 +1157,7 @@ delete_tree_ssa (void)
   tree var;
 
   /* Remove annotations from every referenced local variable.  */
-  FOR_EACH_REFERENCED_VAR (var, rvi)
+  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
     {
       if (is_global_var (var))
 	continue;
@@ -1930,7 +1930,7 @@ maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
 
   /* If the variable is not in the list of referenced vars then we
      do not need to touch it nor can we rename it.  */
-  if (!referenced_var_lookup (DECL_UID (var)))
+  if (!referenced_var_lookup (cfun, DECL_UID (var)))
     return false;
 
   if (TREE_ADDRESSABLE (var)

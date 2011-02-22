@@ -1865,6 +1865,8 @@ Named_object*
 Parse::create_dummy_global(Type* type, Expression* init,
 			   source_location location)
 {
+  if (type == NULL && init == NULL)
+    type = Type::lookup_bool_type();
   Variable* var = new Variable(type, init, true, false, false, location);
   static int count;
   char buf[30];
@@ -3797,11 +3799,14 @@ Parse::switch_stat(const Label* label)
 		  // This must be a TypeSwitchGuard.
 		  switch_val = this->simple_stat(false, true, NULL,
 						 &type_switch);
-		  if (!type_switch.found
-		      && !switch_val->is_error_expression())
+		  if (!type_switch.found)
 		    {
-		      error_at(id_loc, "expected type switch assignment");
-		      switch_val = Expression::make_error(id_loc);
+		      if (switch_val == NULL
+			  || !switch_val->is_error_expression())
+			{
+			  error_at(id_loc, "expected type switch assignment");
+			  switch_val = Expression::make_error(id_loc);
+			}
 		    }
 		}
 	    }
