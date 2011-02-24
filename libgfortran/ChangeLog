@@ -1,3 +1,33 @@
+2011-02-24  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47802
+	* configure.ac: Add test for POSIX getpwuid_r.
+	* intrinsics/getlog.c (getlog): CPP test for
+	HAVE_POSIX_GETPWUID_R.
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+
+2011-02-23  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* io/write_float.def (output_float): Remove special case handling of
+	zero with width 1.
+
+2011-02-23  Janne Blomqvist  <jb@gcc.gnu.org>
+	    Jerry DeLisle    <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/47694
+	* io/fbuf.h (fbuf_getptr): New inline function.
+	* io/transfer.c (read_sf): Use fbuf_getptr and fbuf_getc to scan
+	through the string instead of fbuf_read.
+
+2011-02-22  Tobias Burnus  <burnus@net-b.de>
+	    Kai-Uwe Eckhardt  <kuehro@gmx.de>
+
+	PR libfortran/47830
+	* intrinsics/c99_functions.c (roundl): Make C valid for
+	HAVE_NEXTAFTERL.
+
 2011-02-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libgfortran/47567

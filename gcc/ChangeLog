@@ -1,3 +1,80 @@
+2011-02-24  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-in.c (input_bb): Do not find referenced vars
+	in debug statements.
+
+2011-02-23  Jason Merrill  <jason@redhat.com>
+
+	* common.opt (fabi-version): Document v5 and v6.
+
+2011-02-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47849
+	* tree-if-conv.c (main_tree_if_conversion): Free postdom info.
+
+2011-02-23  Jie Zhang  <jie@codesourcery.com>
+
+	* opts-common.c (decode_cmdline_option): Print empty string
+	argument as "" in decoded->orig_option_with_args_text.
+	* gcc.c (execute): Print empty string argument as ""
+	in the verbose output.
+	(do_spec_1): Keep empty string argument.
+
+2011-02-23  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config.gcc: Declare score-* and crx-* obsolete.
+
+2011-02-23  Jie Zhang  <jie@codesourcery.com>
+
+	PR rtl-optimization/47763
+	* web.c (web_main): Ignore naked clobber when replacing register.
+
+2011-02-22  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/stormy16/stormy16.h (REG_OK_FOR_BASE_P, REG_OK_FOR_INDEX_P):
+	Remove.
+
+2011-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR doc/47848
+	* doc/invoke.texi: Do not mention -ftree-loop-if-convert-memory-writes.
+
+2011-02-22  Mike Stump  <mikestump@comcast.net>
+
+	* acinclude.m4 (gcc_cv_gas_vers): Add -arch ppc for probing darwin
+	assembler.
+	* configure: Regenerate.
+
+2011-02-21  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR rtl-optimization/46002
+	* ira-color.c (update_copy_costs): Change class intersection
+	test to reg_class_contents[] test of 'hard_regno'.
+
+2011-02-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/alpha/osf5.opt (mno-mips-tfile): Mark as Target rather
+	than Driver option.
+	* config/hpux11.opt (mt): Likewise.
+	* config/microblaze/microblaze.opt (mxl-mode-xilkernel): Likewise.
+	* config/rs6000/xilinx.opt (mno-clearbss, mppcperflib): Likewise.
+	* config/vax/elf.opt (mno-asm-pic): Likewise.
+	* config/vms/vms.opt (map, mvms-return-codes): Likewise.
+
+2011-02-21  Mike Stump  <mikestump@comcast.net>
+
+	PR target/47822
+	* config/darwin-protos.h (darwin_init_cfstring_builtins): Return a
+	tree so we can get save the type.
+	* config/i386/darwin.h (SUBTARGET_INIT_BUILTINS): Reserve builtin slot
+	for CFString instead of trying to use past the end of the builtins.
+	* config/i386/i386.c (IX86_BUILTIN_CFSTRING): Likewise.
+	* config/rs6000/rs6000-builtin.def (RS6000_BUILTIN_CFSTRING): Likewise.
+	* config/rs6000/darwin.h (SUBTARGET_INIT_BUILTINS): Likewise.
+	* config/darwin.c (DARWIN_BUILTIN_CFSTRINGMAKECONSTANTSTRING):
+	Rename to darwin_builtin_cfstring.
+	(darwin_init_cfstring_builtins): Return the built type.
+
 2011-02-21  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/47840

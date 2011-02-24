@@ -1,3 +1,30 @@
+2011-02-24  Richard Guenther  <rguenther@suse.de>
+
+	PR fortran/47839
+	* f95-lang.c (pushdecl): For externs in non-global scope push
+	a copy of the decl into the BLOCK.
+
+2011-02-23  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/40850
+	* trans.c (gfc_prepend_expr_to_block): New function.
+	* trans.h (gfc_prepend_expr_to_block): Declare.
+	* trans-array.c (gfc_conv_array_parameter): Replace
+	gfc_add_expr_to_block with gfc_prepend_expr_to_block.
+
+2011-02-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/45743
+	* trans-decl.c (gfc_get_extern_function_decl): Don't use the
+	gsymbol backend_decl if the procedure has a formal argument
+	that is a procedure.
+
+2011-02-22  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/41359
+	* trans-stmt.c (gfc_trans_if_1): Use correct line for
+	expressions in the if condition.
+
 2011-02-20  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/47797
