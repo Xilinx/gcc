@@ -270,9 +270,9 @@ tree gpy_builtin_get_finalize_block_call( int n, tree * args )
   DECL_EXTERNAL( gpy_finalize_block_decl ) = 1;
   TREE_PUBLIC( gpy_finalize_block_decl ) = 1;
 
-  tree * vec = XNEWVEC( tree, n+1 );
+  tree * vec = XNEWVEC (tree, n+1);
 
-  vec[0] = build_int_cst( integer_type_node, n );
+  vec[0] = build_int_cst (integer_type_node, n);
 
   int idx = 1, idy = 0;
   for( ; idy<n; ++idy )
@@ -285,7 +285,15 @@ tree gpy_builtin_get_finalize_block_call( int n, tree * args )
 				      n+1, vec ) );
 }
 
-tree gpy_builtin_get_eval_accessor_call( tree t1, tree t2 )
+tree gpy_builtin_get_fold_call_call (const char * ident, int n,
+				     tree *args)
+{
+  tree retval = NULL_TREE;
+  
+  return retval;
+}
+
+tree gpy_builtin_get_eval_accessor_call (tree t1, tree t2)
 {
   fatal_error("Accessor's not implemented yet!\n");
 }

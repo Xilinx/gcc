@@ -90,8 +90,6 @@ typedef struct gpy_object_t {
 static
 tree gpy_build_py_object_type (void)
 {
-  debug ("whooooooooooop!\n");
-
   tree object_state_struct_Type = make_node (RECORD_TYPE);
   
   tree name = get_identifier("obj_t_ident");
@@ -132,14 +130,9 @@ tree gpy_build_py_object_type (void)
   gpy_preserve_from_gc(object_state_type_decl);
   rest_of_decl_compilation(object_state_type_decl, 1, 0);
 
-  debug ("shitson!\n");
-
   debug_tree (object_state_type_decl);
   tree object_state_ptr_type = build_pointer_type (object_state_struct_Type);
-  debug ("shitson2!\n");
   gpy_preserve_from_gc (object_state_ptr_type);
-
-  debug ("WHOOOOPP-1!!!\n");
 
   //....................
 
@@ -169,8 +162,6 @@ tree gpy_build_py_object_type (void)
   gpy_preserve_from_gc(union_type_decl);
   rest_of_decl_compilation(union_type_decl, 1, 0);
 
-  debug ("WHOOOOPP-2!!!\n");
-
   //.........................
 
   tree gpy_object_struct_Type = make_node (RECORD_TYPE);
@@ -194,26 +185,71 @@ tree gpy_build_py_object_type (void)
   tree gpy_object_type_decl = build_decl(BUILTINS_LOCATION, TYPE_DECL, name,
 					 gpy_object_struct_Type);
   DECL_ARTIFICIAL(gpy_object_type_decl) = 1;
-  TYPE_NAME(gpy_object_struct_Type) = name; //gpy_object_type_decl;
+  TYPE_NAME(gpy_object_struct_Type) = name;
   gpy_preserve_from_gc(gpy_object_type_decl);
   rest_of_decl_compilation(gpy_object_type_decl, 1, 0);
 
-  tree *ptr = build_pointer_type(gpy_object_struct_Type);
-  return ptr;
+  return build_pointer_type (gpy_object_struct_Type);
 }
 
+/*
+  typedef gpy_object_t * (*gpy_std_callable)
+  (gpy_object_t **);
 
+  typedef gpy_callable__t {
+  char * ident;
+  gpy_std_callable call;
+  int n;
+  } gpy_callable_t ;
+*/
 static
-tree gpy_build_callable_record( const char * identifier, int args,
-				bool c, tree fndecl )
+tree gpy_build_callable_record_type (void)
 {
-  return NULL_TREE;
+  tree callable_struct_Type = make_node (RECORD_TYPE);
+  
+  tree name = get_identifier("ident");
+  tree field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name,
+			  build_pointer_type(char_type_node));
+  DECL_CONTEXT(field) = callable_struct_Type;
+  TYPE_FIELDS(callable_struct_Type) = field;
+  tree last_field = field;
+
+  name = get_identifier("call");
+  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name, ptr_type_node);
+  DECL_CONTEXT(field) = callable_struct_Type;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
+
+  name = get_identifier("n");
+  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name,
+		     integer_type_node);
+  DECL_CONTEXT(field) = callable_struct_Type;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
+
+  layout_type(callable_struct_Type);
+
+  name = get_identifier("gpy_callable_t");
+  tree gpy_callable_type_decl = build_decl(BUILTINS_LOCATION, TYPE_DECL, name,
+					   callable_struct_Type);
+  DECL_ARTIFICIAL(gpy_callable_type_decl) = 1;
+  TYPE_NAME(callable_struct_Type) = name;
+  gpy_preserve_from_gc(gpy_callable_type_decl);
+  rest_of_decl_compilation(gpy_callable_type_decl, 1, 0);
+
+  return build_pointer_type (callable_struct_Type);
 }
 
 void gpy_initilize_types (void)
 {
   gpy_builtin_types_vec = VEC_alloc(tree,gc,0);
 
-  VEC_safe_push(tree,gc,gpy_builtin_types_vec,
-		gpy_build_py_object_type ());
+  VEC_safe_push (tree,gc,gpy_builtin_types_vec,
+		 gpy_build_py_object_type ());
+
+  VEC_safe_push (tree,gc,gpy_builtin_types_vec,
+		 build_pointer_type (gpy_object_type_ptr));
+
+  VEC_safe_push (tree,gc,gpy_builtin_types_vec,
+		 gpy_build_callable_record_type ());
 }

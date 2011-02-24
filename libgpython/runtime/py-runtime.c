@@ -231,12 +231,20 @@ void gpy_rr_finalize_block_decls (int n, ...)
   va_end (vl);
 }
 
+gpy_object_t * gpy_rr_fold_call (gpy_callable_t * callables,
+				 const char * ident,
+				 int n, ...)
+{
+  gpy_object_t * retval = NULL;
+
+  
+
+  return retval;
+}
+
 gpy_object_t * gpy_rr_eval_dot_operator (gpy_object_t * x,
 					 gpy_object_t * y)
 {
-  
-
-
   return NULL;
 }
 

@@ -195,9 +195,7 @@ VEC(tree,gc) * gpy_process_expression (const gpy_symbol_obj * const sym,
   VEC(tree,gc) * retval = NULL;
   if( sym->type == SYMBOL_PRIMARY )
     {
-      retval = VEC_alloc(tree,gc,0);
-      VEC(tree,gc) *primitive = gpy_fold_primitive (sym);
-      VEC_safe_push( tree,gc,retval,VEC_index(tree,primitive,0) );
+      retval = gpy_fold_primitive (sym);
     }
   else if( sym->type == SYMBOL_REFERENCE )
     {
@@ -214,44 +212,49 @@ VEC(tree,gc) * gpy_process_expression (const gpy_symbol_obj * const sym,
 	  error("undeclared symbol reference <%s>!\n",
 		sym->op_a.string );
 	}
-    }/*
+    }
   else if (sym->type == OP_CALL_GOTO)
     {
       gcc_assert (sym->op_a.string);
-      tree *decl = gpy_ctx_lookup_decl (context, sym->op_a.string);
+      tree decl = gpy_ctx_lookup_decl (context, sym->op_a.string);
       
       if (decl)
 	{
-	  gcc_assert (TREE_TYPE(decl) == FUNCTION_DECL);
-	  
+	  //gcc_assert (TREE_TYPE(decl) == FUNCTION_DECL);
+	  //retval = gpy_fold_call (decl);
 	}
       else
 	error ("undefined symbol name <%s>!\n", sym->op_a.string);
-	}*/
+    }
   else
     {
-      gpy_symbol_obj *opa= NULL, *opb= NULL; VEC(tree,gc) *res = NULL;
-      debug("expression evalution <0x%x>!\n", sym->type );
+      gpy_symbol_obj *opa = NULL, *opb = NULL;
+      VEC(tree,gc) *res = NULL;
 
-      opa= sym->op_a.symbol_table;
-      opb= sym->op_b.symbol_table;
+      debug ("expression evalution <0x%x>!\n", sym->type);
 
-      debug( "opa->type = <0x%x>, opb->type = <0x%x>!\n",
-	     opa->type, opb->type );
+      opa = sym->op_a.symbol_table;
+      opb = sym->op_b.symbol_table;
 
-      switch( sym->type )
+      debug ("opa->type = <0x%x>, opb->type = <0x%x>!\n",
+	     opa->type, opb->type);
+
+      switch (sym->type)
 	{
 	case OP_ASSIGN_EVAL:
-	  res = gpy_process_assign( &opa, &opb, context );
+	  res = gpy_process_assign (&opa, &opb, context);
 	  break;
 
 	case OP_BIN_ADDITION:
-	  res = gpy_process_bin_expression( &opa, &opb, sym->type, context );
+	  res = gpy_process_bin_expression (&opa, &opb, sym->type,
+					    context);
 	  break;
+
+	  /* .......... */
 
 	default:
 	  fatal_error ("invalid expression evaluation symbol type <0x%x>!\n",
-		       sym->type );
+		       sym->type);
 	  break;
 	}
       if( res ) { retval = res; }
@@ -261,23 +264,28 @@ VEC(tree,gc) * gpy_process_expression (const gpy_symbol_obj * const sym,
   return retval;
 }
 
-VEC(tree,gc) * gpy_process_functor( const gpy_symbol_obj * const  functor,
+VEC(tree,gc) * gpy_process_functor (const gpy_symbol_obj * const  functor,
 				    const char * base_ident,
-				    VEC(gpy_ctx_t,gc) * context )
+				    VEC(gpy_ctx_t,gc) * context)
 {
   VEC(tree,gc) * retval_vec = VEC_alloc (tree,gc,0);
 
+  tree params = NULL_TREE;
+
+  chainon( params, tree_cons (NULL_TREE, gpy_object_type_ptr_ptr, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
+
   gpy_symbol_obj * o = functor->op_a.symbol_table;
   tree fntype = build_function_type(void_type_node, void_list_node);
-  tree retval = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+  tree retval = build_decl (UNKNOWN_LOCATION, FUNCTION_DECL,
 			    get_identifier( functor->identifier ),
-			    fntype );
+			    fntype);
 
   tree declare_vars = NULL_TREE;
   tree bind = NULL_TREE;
-  tree block = alloc_stmt_list( );
+  tree block = alloc_stmt_list ();
   tree resdecl = NULL_TREE;
-  tree restype = TREE_TYPE(retval);
+  tree restype = TREE_TYPE (retval);
 
   int idx = 0;
   gpy_context_branch *co = NULL;
@@ -285,7 +293,7 @@ VEC(tree,gc) * gpy_process_functor( const gpy_symbol_obj * const  functor,
 
   if (base_ident)
     {
-      size_t len = strlen( functor->identifier ) + strlen( base_ident );
+      size_t len = strlen (functor->identifier) + strlen( base_ident );
       size_t idx = 0, idy = 0;
       char * buffer = (char *) xmalloc( (sizeof(char) * len)+2 );
       for( ; idx<strlen( base_ident ); ++idx )
@@ -310,8 +318,8 @@ VEC(tree,gc) * gpy_process_functor( const gpy_symbol_obj * const  functor,
   TREE_PUBLIC(retval) = 1;
   TREE_STATIC(retval) = 1;
 
-  resdecl = build_decl( BUILTINS_LOCATION, RESULT_DECL, NULL_TREE,
-			restype );
+  resdecl = build_decl (BUILTINS_LOCATION, RESULT_DECL, NULL_TREE,
+			restype);
   DECL_CONTEXT(resdecl) = retval;
   DECL_RESULT(retval) = resdecl;
 

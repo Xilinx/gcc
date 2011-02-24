@@ -19,7 +19,11 @@ along with GCC; see the file COPYING3.  If not see
 
 extern VEC(tree,gc) * gpy_builtin_types_vec;
 
-#define gpy_object_type_ptr VEC_index(tree,gpy_builtin_types_vec,0)
+#define gpy_object_type_ptr     VEC_index(tree,gpy_builtin_types_vec,0)
+
+#define gpy_object_type_ptr_ptr VEC_index(tree,gpy_builtin_types_vec,1)
+
+#define gpy_callable_type_ptr   VEC_index(tree,gpy_builtin_types_vec,2)
 
 extern void gpy_initilize_types (void);
 

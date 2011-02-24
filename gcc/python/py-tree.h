@@ -41,12 +41,15 @@ extern void gpy_gg_invoke_garbage( void );
 extern void gpy_garbage_free_obj( gpy_symbol_obj ** );
 
 /* expression.c */
-extern VEC(tree,gc) * gpy_process_assign( gpy_symbol_obj ** , gpy_symbol_obj **, VEC(gpy_ctx_t,gc) * );
+extern VEC(tree,gc) * gpy_process_assign (gpy_symbol_obj ** , gpy_symbol_obj **,
+					  VEC(gpy_ctx_t,gc) *);
 
-extern VEC(tree,gc) * gpy_process_bin_expression( gpy_symbol_obj ** , gpy_symbol_obj **,
-						  gpy_opcode_t, VEC(gpy_ctx_t,gc) * );
+extern VEC(tree,gc) * gpy_process_bin_expression (gpy_symbol_obj ** , gpy_symbol_obj **,
+						  gpy_opcode_t, VEC(gpy_ctx_t,gc) *);
 
-extern VEC(tree,gc) * gpy_fold_primitive( const gpy_symbol_obj * const );
+extern VEC(tree,gc) * gpy_fold_primitive (const gpy_symbol_obj * const);
+
+extern VEC(tree,gc) * gpy_fold_call (tree, location_t);
 
 /* ------- */
 
