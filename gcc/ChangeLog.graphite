@@ -1,3 +1,9 @@
+2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-opencl.c (opencl_create_function_call): Use cl_khr_fp64
+	pragma extension only when it is defined.  Use cl_amd_fp64 when it
+	is defined.
+
 2011-01-23  Tobias Grosser  <grosser@fim.uni-passau.de>
 
 	* doc/install.texi: Replace '/' by an or and give the exact

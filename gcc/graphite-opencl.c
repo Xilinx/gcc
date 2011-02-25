@@ -1641,8 +1641,13 @@ opencl_create_function_call (edge base)
     (main_program_src,
      "#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable\n");
   /* Required for double type.  */
-  dyn_string_prepend_cstr
-    (main_program_src, "#pragma OPENCL EXTENSION cl_khr_fp64  : enable\n ");
+  dyn_string_prepend_cstr (main_program_src,
+			   "#if defined(cl_khr_fp64)\n"
+			   "#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n"
+			   "#elif defined(cl_amd_fp64)\n"
+			   "#pragma OPENCL EXTENSION cl_amd_fp64 : enable\n"
+			   "#endif\n");
+
   src = dyn_string_buf (main_program_src);
 
   if (dump_file && (dump_flags & TDF_DETAILS))
