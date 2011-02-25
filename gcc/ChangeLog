@@ -1,3 +1,62 @@
+2011-02-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/45470
+	* tree-vect-data-refs.c (vect_analyze_data_refs): Fail if a statement
+	can throw internally only.
+	* tree-vect-stmts.c (vectorizable_call): Likewise.
+
+2011-02-24  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/stormy16/stormy16.h (PREFERRED_RELOAD_CLASS,
+	PREFERRED_OUTPUT_RELOAD_CLASS): Remove.
+	* config/stormy16/stormy16-protos.h
+	(xstormy16_preferred_reload_class): Remove.
+	* config/stormy16/stormy16.c (xstormy16_preferred_reload_class): Make
+	static. Change 'rclass' argument and return type to reg_class_t.
+	(TARGET_PREFERRED_RELOAD_CLASS,
+	TARGET_PREFERRED_OUTPUT_RELOAD_CLASS): Define.
+
+2011-02-24  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-in.c (input_bb): Do not find referenced vars
+	in debug statements.
+
+2011-02-23  Jason Merrill  <jason@redhat.com>
+
+	* common.opt (fabi-version): Document v5 and v6.
+
+2011-02-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47849
+	* tree-if-conv.c (main_tree_if_conversion): Free postdom info.
+
+2011-02-23  Jie Zhang  <jie@codesourcery.com>
+
+	* opts-common.c (decode_cmdline_option): Print empty string
+	argument as "" in decoded->orig_option_with_args_text.
+	* gcc.c (execute): Print empty string argument as ""
+	in the verbose output.
+	(do_spec_1): Keep empty string argument.
+
+2011-02-23  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config.gcc: Declare score-* and crx-* obsolete.
+
+2011-02-23  Jie Zhang  <jie@codesourcery.com>
+
+	PR rtl-optimization/47763
+	* web.c (web_main): Ignore naked clobber when replacing register.
+
+2011-02-22  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/stormy16/stormy16.h (REG_OK_FOR_BASE_P, REG_OK_FOR_INDEX_P):
+	Remove.
+
+2011-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR doc/47848
+	* doc/invoke.texi: Do not mention -ftree-loop-if-convert-memory-writes.
+
 2011-02-22  Mike Stump  <mikestump@comcast.net>
 
 	* acinclude.m4 (gcc_cv_gas_vers): Add -arch ppc for probing darwin

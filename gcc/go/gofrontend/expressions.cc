@@ -362,6 +362,8 @@ Expression::convert_type_to_interface(Translate_context* context,
       first_field_value = fold_convert_loc(location, const_ptr_type_node,
 					   method_table);
     }
+  if (first_field_value == error_mark_node)
+    return error_mark_node;
 
   // Start building a constructor for the value we will return.
 
@@ -2357,6 +2359,9 @@ class Const_expression : public Expression
   check_for_init_loop();
 
  protected:
+  int
+  do_traverse(Traverse*);
+
   Expression*
   do_lower(Gogo*, Named_object*, int);
 
@@ -2411,6 +2416,16 @@ class Const_expression : public Expression
   // refers to itself.
   mutable bool seen_;
 };
+
+// Traversal.
+
+int
+Const_expression::do_traverse(Traverse* traverse)
+{
+  if (this->type_ != NULL)
+    return Type::traverse(this->type_, traverse);
+  return TRAVERSE_CONTINUE;
+}
 
 // Lower a constant expression.  This is where we convert the
 // predeclared constant iota into an integer value.
@@ -7965,7 +7980,11 @@ Builtin_call_expression::do_get_tree(Translate_context* context)
 	mpz_init(val);
 	Type* dummy;
 	bool b = this->integer_constant_value(true, val, &dummy);
-	gcc_assert(b);
+	if (!b)
+	  {
+	    gcc_assert(saw_errors());
+	    return error_mark_node;
+	  }
 	tree type = Type::lookup_integer_type("int")->get_tree(gogo);
 	tree ret = Expression::integer_constant_tree(val, type);
 	mpz_clear(val);
@@ -8262,8 +8281,9 @@ Call_expression::do_lower(Gogo* gogo, Named_object* function, int)
 	  for (size_t i = 0; i < rc; ++i)
 	    args->push_back(Expression::make_call_result(call, i));
 	  // We can't return a new call expression here, because this
-	  // one may be referenced by Call_result expressions.  FIXME.
-	  delete this->args_;
+	  // one may be referenced by Call_result expressions.  We
+	  // also can't delete the old arguments, because we may still
+	  // traverse them somewhere up the call stack.  FIXME.
 	  this->args_ = args;
 	}
     }
@@ -9869,12 +9889,39 @@ Map_index_expression::get_value_pointer(Translate_context* context,
 
   // We need to pass in a pointer to the key, so stuff it into a
   // variable.
-  tree tmp = create_tmp_var(TREE_TYPE(index_tree), get_name(index_tree));
-  DECL_IGNORED_P(tmp) = 0;
-  DECL_INITIAL(tmp) = index_tree;
-  tree make_tmp = build1(DECL_EXPR, void_type_node, tmp);
-  tree tmpref = fold_convert(const_ptr_type_node, build_fold_addr_expr(tmp));
-  TREE_ADDRESSABLE(tmp) = 1;
+  tree tmp;
+  tree make_tmp;
+  if (current_function_decl != NULL)
+    {
+      tmp = create_tmp_var(TREE_TYPE(index_tree), get_name(index_tree));
+      DECL_IGNORED_P(tmp) = 0;
+      DECL_INITIAL(tmp) = index_tree;
+      make_tmp = build1(DECL_EXPR, void_type_node, tmp);
+      TREE_ADDRESSABLE(tmp) = 1;
+    }
+  else
+    {
+      tmp = build_decl(this->location(), VAR_DECL, create_tmp_var_name("M"),
+		       TREE_TYPE(index_tree));
+      DECL_EXTERNAL(tmp) = 0;
+      TREE_PUBLIC(tmp) = 0;
+      TREE_STATIC(tmp) = 1;
+      DECL_ARTIFICIAL(tmp) = 1;
+      if (!TREE_CONSTANT(index_tree))
+	make_tmp = fold_build2_loc(this->location(), INIT_EXPR, void_type_node,
+				   tmp, index_tree);
+      else
+	{
+	  TREE_READONLY(tmp) = 1;
+	  TREE_CONSTANT(tmp) = 1;
+	  DECL_INITIAL(tmp) = index_tree;
+	  make_tmp = NULL_TREE;
+	}
+      rest_of_decl_compilation(tmp, 1, 0);
+    }
+  tree tmpref = fold_convert_loc(this->location(), const_ptr_type_node,
+				 build_fold_addr_expr_loc(this->location(),
+							  tmp));
 
   static tree map_index_fndecl;
   tree call = Gogo::call_builtin(&map_index_fndecl,
@@ -9901,9 +9948,10 @@ Map_index_expression::get_value_pointer(Translate_context* context,
     return error_mark_node;
   tree ptr_val_type_tree = build_pointer_type(val_type_tree);
 
-  return build2(COMPOUND_EXPR, ptr_val_type_tree,
-		make_tmp,
-		fold_convert(ptr_val_type_tree, call));
+  tree ret = fold_convert_loc(this->location(), ptr_val_type_tree, call);
+  if (make_tmp != NULL_TREE)
+    ret = build2(COMPOUND_EXPR, ptr_val_type_tree, make_tmp, ret);
+  return ret;
 }
 
 // Make a map index expression.
@@ -12217,7 +12265,11 @@ tree
 Receive_expression::do_get_tree(Translate_context* context)
 {
   Channel_type* channel_type = this->channel_->type()->channel_type();
-  gcc_assert(channel_type != NULL);
+  if (channel_type == NULL)
+    {
+      gcc_assert(this->channel_->type()->is_error_type());
+      return error_mark_node;
+    }
   Type* element_type = channel_type->element_type();
   tree element_type_tree = element_type->get_tree(context->gogo());
 
