@@ -504,6 +504,26 @@ gfc_conv_component_ref (gfc_se * se, gfc_ref * ref)
   field = c->backend_decl;
   gcc_assert (TREE_CODE (field) == FIELD_DECL);
   decl = se->expr;
+
+  /* Components can correspond to fields of different containing
+     types, as components are created without context, whereas
+     a concrete use of a component has the type of decl as context.
+     So, if the type doesn't match, we search the corresponding
+     FIELD_DECL in the parent type.  To not waste too much time
+     we cache this result in norestrict_decl.  */
+
+  if (DECL_FIELD_CONTEXT (field) != TREE_TYPE (decl))
+    {
+      tree f2 = c->norestrict_decl;
+      if (!f2 || DECL_FIELD_CONTEXT (f2) != TREE_TYPE (decl))
+	for (f2 = TYPE_FIELDS (TREE_TYPE (decl)); f2; f2 = DECL_CHAIN (f2))
+	  if (TREE_CODE (f2) == FIELD_DECL
+	      && DECL_NAME (f2) == DECL_NAME (field))
+	    break;
+      gcc_assert (f2);
+      c->norestrict_decl = f2;
+      field = f2;
+    }
   tmp = fold_build3_loc (input_location, COMPONENT_REF, TREE_TYPE (field),
 			 decl, field, NULL_TREE);
 
@@ -538,6 +558,11 @@ conv_parent_component_references (gfc_se * se, gfc_ref * ref)
   dt = ref->u.c.sym;
   c = ref->u.c.component;
 
+  /* Return if the component is not in the parent type.  */
+  for (cmp = dt->components; cmp; cmp = cmp->next)
+    if (strcmp (c->name, cmp->name) == 0)
+      return;
+
   /* Build a gfc_ref to recursively call gfc_conv_component_ref.  */
   parent.type = REF_COMPONENT;
   parent.next = NULL;
@@ -547,23 +572,11 @@ conv_parent_component_references (gfc_se * se, gfc_ref * ref)
   if (dt->backend_decl == NULL)
     gfc_get_derived_type (dt);
 
-  if (dt->attr.extension && dt->components)
-    {
-      if (dt->attr.is_class)
-	cmp = dt->components;
-      else
-	cmp = dt->components->next;
-      /* Return if the component is not in the parent type.  */
-      for (; cmp; cmp = cmp->next)
-	if (strcmp (c->name, cmp->name) == 0)
-	  return;
-	
-      /* Otherwise build the reference and call self.  */
-      gfc_conv_component_ref (se, &parent);
-      parent.u.c.sym = dt->components->ts.u.derived;
-      parent.u.c.component = c;
-      conv_parent_component_references (se, &parent);
-    }
+  /* Build the reference and call self.  */
+  gfc_conv_component_ref (se, &parent);
+  parent.u.c.sym = dt->components->ts.u.derived;
+  parent.u.c.component = c;
+  conv_parent_component_references (se, &parent);
 }
 
 /* Return the contents of a variable. Also handles reference/pointer
@@ -5379,9 +5392,13 @@ arrayfunc_assign_needs_temporary (gfc_expr * expr1, gfc_expr * expr2)
   if (gfc_ref_needs_temporary_p (expr1->ref))
     return true;
 
-  /* Functions returning pointers need temporaries.  */
-  if (expr2->symtree->n.sym->attr.pointer 
-      || expr2->symtree->n.sym->attr.allocatable)
+  /* Functions returning pointers or allocatables need temporaries.  */
+  c = expr2->value.function.esym
+      ? (expr2->value.function.esym->attr.pointer 
+	 || expr2->value.function.esym->attr.allocatable)
+      : (expr2->symtree->n.sym->attr.pointer
+	 || expr2->symtree->n.sym->attr.allocatable);
+  if (c)
     return true;
 
   /* Character array functions need temporaries unless the
@@ -6300,6 +6317,11 @@ gfc_trans_class_init_assign (gfc_code *code)
 
   rhs = gfc_copy_expr (code->expr1);
   gfc_add_vptr_component (rhs);
+
+  /* Make sure that the component backend_decls have been built, which
+     will not have happened if the derived types concerned have not
+     been referenced.  */
+  gfc_get_derived_type (rhs->ts.u.derived);
   gfc_add_def_init_component (rhs);
 
   sz = gfc_copy_expr (code->expr1);

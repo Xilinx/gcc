@@ -225,16 +225,41 @@ xm_file=
 md_file=
 
 # Obsolete configurations.
-#case ${target} in
-# )
-#    if test "x$enable_obsolete" != xyes; then
-#      echo "*** Configuration ${target} is obsolete." >&2
-#      echo "*** Specify --enable-obsolete to build it anyway." >&2
-#      echo "*** Support will be REMOVED in the next major release of GCC," >&2
-#      echo "*** unless a maintainer comes forward." >&2
-#      exit 1
-#    fi;;
-#esac
+case ${target} in
+# Avoid cases below matching.
+   alpha*-*-linux*			\
+ | arm*-wince-pe*			\
+ | arm*-*-netbsdelf*			\
+ | i[34567]86-*-netbsdelf*		\
+ | powerpc*-*-linux*			\
+ | vax-*-netbsdelf*) ;;
+   arc-*				\
+ | alpha*-*-gnu*			\
+ | arm*-*-netbsd*			\
+ | arm-*-pe*				\
+ | crx-*				\
+ | i[34567]86-*-interix3*		\
+ | i[34567]86-*-netbsd*			\
+ | i[34567]86-*-pe			\
+ | m68hc11-*-*				\
+ | m6811-*-*				\
+ | m68hc12-*-*				\
+ | m6812-*-*				\
+ | m68k-*-uclinuxoldabi*		\
+ | mcore-*-pe*				\
+ | powerpc*-*-gnu*			\
+ | score-*				\
+ | sh*-*-symbianelf*			\
+ | vax-*-netbsd*			\
+ )
+    if test "x$enable_obsolete" != xyes; then
+      echo "*** Configuration ${target} is obsolete." >&2
+      echo "*** Specify --enable-obsolete to build it anyway." >&2
+      echo "*** Support will be REMOVED in the next major release of GCC," >&2
+      echo "*** unless a maintainer comes forward." >&2
+      exit 1
+    fi;;
+esac
 
 # Unsupported targets list.  Do not put an entry in this list unless
 # it would otherwise be caught by a more permissive pattern.  The list
@@ -246,6 +271,8 @@ case ${target} in
  | pdp11-*-bsd				\
  | sparc-hal-solaris2*			\
  | thumb-*-*				\
+ | *-*-freebsd[12] | *-*-freebsd[12].*	\
+ | *-*-freebsd*aout*			\
  | *-*-linux*aout*			\
  | *-*-linux*coff*			\
  | *-*-linux*libc1*			\
@@ -480,15 +507,6 @@ case ${target} in
     "" | yes | posix) thread_file='posix' ;;
   esac
   ;;
-*-*-freebsd[12] | *-*-freebsd[12].* | *-*-freebsd*aout*)
-  # This is the place-holder for the generic a.out configuration
-  # of FreeBSD.  No actual configuration resides here since
-  # there was only ever a bare-bones ix86 configuration for
-  # a.out and it exists solely in the machine-specific section.
-  # This place-holder must exist to avoid dropping into
-  # the generic ELF configuration of FreeBSD (i.e. it must be
-  # ordered before that section).
-  ;;
 *-*-freebsd*)
   # This is the generic ELF configuration of FreeBSD.  Later
   # machine-specific sections may refine and add to this
@@ -543,6 +561,7 @@ case ${target} in
   use_gcc_stdint=wrap
   ;;
 *-*-linux* | frv-*-*linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu | *-*-gnu* | *-*-kopensolaris*-gnu)
+  extra_options="$extra_options gnu-user.opt"
   extra_parts="crtbegin.o crtbeginS.o crtbeginT.o crtend.o crtendS.o"
   gas=yes
   gnu_ld=yes
@@ -657,6 +676,7 @@ case ${target} in
   use_gcc_stdint=wrap
   ;;
 *-*-uclinux*)
+  extra_options="$extra_options gnu-user.opt"
   use_gcc_stdint=wrap
   tm_defines="$tm_defines DEFAULT_LIBC=LIBC_UCLIBC SINGLE_LIBC"
   ;;
@@ -1044,7 +1064,7 @@ hppa[12]*-*-hpux10*)
 	esac
 	tm_file="${tm_file} pa/pa32-regs.h dbxelf.h pa/som.h \
 		 pa/pa-hpux.h pa/pa-hpux10.h"
-	extra_options="${extra_options} pa/pa-hpux.opt"
+	extra_options="${extra_options} pa/pa-hpux.opt pa/pa-hpux10.opt"
 	case ${target} in
 	*-*-hpux10.[1-9]*)
 		tm_file="${tm_file} pa/pa-hpux1010.h"
@@ -1280,7 +1300,7 @@ x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 	;;
 i[34567]86-pc-msdosdjgpp*)
 	xm_file=i386/xm-djgpp.h
-	tm_file="dbxcoff.h ${tm_file} i386/unix.h i386/bsd.h i386/gas.h i386/djgpp.h"
+	tm_file="dbxcoff.h ${tm_file} i386/unix.h i386/bsd.h i386/gas.h i386/djgpp.h i386/djgpp-stdint.h"
 	tmake_file="${tmake_file} i386/t-djgpp"
 	extra_options="${extra_options} i386/djgpp.opt"
 	gnu_ld=yes
@@ -1616,7 +1636,7 @@ ia64-hp-*vms*)
 	fi
 	exeext=.exe
 	install_headers_dir=install-headers-cp
-	extra_options="${extra_options} vms/vms.opt"
+	extra_options="${extra_options} vms/vms.opt ia64/vms.opt"
 	;;
 iq2000*-*-elf*)
         tm_file="elfos.h newlib-stdint.h iq2000/iq2000.h"
@@ -1751,6 +1771,7 @@ m68k-*-uclinux*)		# Motorola m68k/ColdFire running uClinux
 	default_m68k_cpu=68020
 	default_cf_cpu=5206
 	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h flat.h m68k/linux.h m68k/uclinux.h ./sysroot-suffix.h"
+	extra_options="${extra_options} m68k/uclinux.opt"
  	tm_defines="${tm_defines} MOTOROLA=1"
 	tmake_file="m68k/t-floatlib m68k/t-uclinux m68k/t-mlibs"
 	;;
@@ -1817,7 +1838,7 @@ microblaze*-*-*)
 mips-sgi-irix6.5*)
 	tm_file="elfos.h ${tm_file} mips/iris6.h"
 	tmake_file="mips/t-iris mips/t-iris6 mips/t-slibgcc-irix"
-	extra_options="${extra_options} rpath.opt"
+	extra_options="${extra_options} rpath.opt mips/iris6.opt"
 	target_cpu_default="MASK_ABICALLS"
 	tm_defines="${tm_defines} MIPS_ISA_DEFAULT=3 MIPS_ABI_DEFAULT=ABI_N32"
 	# Only IRIX Development Foundation 1.3 for IRIX 6.5 provides stdint.h.
@@ -2092,7 +2113,7 @@ powerpc-*-eabialtivec*)
 	;;
 powerpc-xilinx-eabi*)
 	tm_file="${tm_file} dbxelf.h elfos.h usegas.h freebsd-spec.h newlib-stdint.h rs6000/sysv4.h rs6000/eabi.h rs6000/singlefp.h rs6000/xfpu.h rs6000/xilinx.h"
-	extra_options="${extra_options} rs6000/sysv4.opt"
+	extra_options="${extra_options} rs6000/sysv4.opt rs6000/xilinx.opt"
 	tmake_file="rs6000/t-fprules rs6000/t-fprules-fpbit rs6000/t-ppcgas rs6000/t-ppccomm rs6000/t-xilinx"
 	use_gcc_stdint=wrap
 	;;
@@ -2687,11 +2708,12 @@ v850-*-*)
 	;;
 vax-*-linux*)
 	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h vax/elf.h vax/linux.h"
+	extra_options="${extra_options} vax/elf.opt"
 	tmake_file="${tmake_file} vax/t-linux"
 	;;
 vax-*-netbsdelf*)
 	tm_file="${tm_file} elfos.h netbsd.h netbsd-elf.h vax/elf.h vax/netbsd-elf.h"
-	extra_options="${extra_options} netbsd.opt netbsd-elf.opt"
+	extra_options="${extra_options} netbsd.opt netbsd-elf.opt vax/elf.opt"
 	;;
 vax-*-netbsd*)
 	tm_file="${tm_file} netbsd.h netbsd-aout.h vax/netbsd.h"
@@ -2717,6 +2739,7 @@ xstormy16-*-elf)
 	;;
 xtensa*-*-elf*)
 	tm_file="${tm_file} dbxelf.h elfos.h newlib-stdint.h xtensa/elf.h"
+	extra_options="${extra_options} xtensa/elf.opt"
 	tmake_file="xtensa/t-xtensa xtensa/t-elf"
 	;;
 xtensa*-*-linux*)

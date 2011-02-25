@@ -13763,6 +13763,10 @@ cp_parser_enumerator_definition (cp_parser* parser, tree type)
   if (check_for_bare_parameter_packs (value))
     value = error_mark_node;
 
+  /* integral_constant_value will pull out this expression, so make sure
+     it's folded as appropriate.  */
+  value = fold_non_dependent_expr (value);
+
   /* Create the enumerator.  */
   build_enumerator (identifier, value, type, loc);
 }
@@ -16998,18 +17002,15 @@ cp_parser_class_specifier (cp_parser* parser)
 	   class Z { }
 	   static const <type> var = ...;  */
       case CPP_KEYWORD:
-	if (keyword_is_storage_class_specifier (token->keyword)
-	    || keyword_is_type_qualifier (token->keyword))
+	if (keyword_is_decl_specifier (token->keyword))
 	  {
 	    cp_token *lookahead = cp_lexer_peek_nth_token (parser->lexer, 2);
 
-	    if (lookahead->type == CPP_KEYWORD
-		&& !keyword_begins_type_specifier (lookahead->keyword))
-	      want_semicolon = false;
-	    else if (lookahead->type == CPP_NAME)
-	      /* Handling user-defined types here would be nice, but
-		 very tricky.  */
-	      want_semicolon = false;
+	    /* Handling user-defined types here would be nice, but very
+	       tricky.  */
+	    want_semicolon
+	      = (lookahead->type == CPP_KEYWORD
+		 && keyword_begins_type_specifier (lookahead->keyword));
 	  }
 	break;
       default:

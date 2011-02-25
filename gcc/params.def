@@ -483,6 +483,11 @@ DEFPARAM(PARAM_SCEV_MAX_EXPR_SIZE,
 	 "Bound on size of expressions used in the scalar evolutions analyzer",
 	 20, 0, 0)
 
+DEFPARAM(PARAM_SCEV_MAX_EXPR_COMPLEXITY,
+	 "scev-max-expr-complexity",
+	 "Bound on the complexity of the expressions in the scalar evolutions analyzer",
+	 10, 0, 0)
+
 DEFPARAM(PARAM_OMEGA_MAX_VARS,
  	 "omega-max-vars",
 	 "Bound on the number of variables in Omega constraint systems",

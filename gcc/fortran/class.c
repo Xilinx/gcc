@@ -183,6 +183,22 @@ gfc_build_class_symbol (gfc_typespec *ts, symbol_attribute *attr,
   gfc_symbol *fclass;
   gfc_symbol *vtab;
   gfc_component *c;
+  
+  if (attr->class_ok)
+    /* Class container has already been built.  */
+    return SUCCESS;
+
+  attr->class_ok = attr->dummy || attr->pointer  || attr->allocatable;
+  
+  if (!attr->class_ok)
+    /* We can not build the class container yet.  */
+    return SUCCESS;
+
+  if (*as)
+    {
+      gfc_fatal_error ("Polymorphic array at %C not yet supported");
+      return FAILURE;
+    }
 
   /* Determine the name of the encapsulating type.  */
   get_unique_hashed_string (tname, ts->u.derived);

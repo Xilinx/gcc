@@ -179,6 +179,7 @@ am__libgo_la_SOURCES_DIST = runtime/go-append.c runtime/go-assert.c \
 	runtime/go-getgoroot.c runtime/go-go.c runtime/go-gomaxprocs.c \
 	runtime/go-int-array-to-string.c runtime/go-int-to-string.c \
 	runtime/go-interface-compare.c \
+	runtime/go-interface-eface-compare.c \
 	runtime/go-interface-val-compare.c runtime/go-lock-os-thread.c \
 	runtime/go-map-delete.c runtime/go-map-index.c \
 	runtime/go-map-len.c runtime/go-map-range.c \
@@ -222,16 +223,17 @@ am__objects_3 = go-append.lo go-assert.lo go-assert-interface.lo \
 	go-defer.lo go-deferred-recover.lo go-eface-compare.lo \
 	go-eface-val-compare.lo go-getgoroot.lo go-go.lo \
 	go-gomaxprocs.lo go-int-array-to-string.lo go-int-to-string.lo \
-	go-interface-compare.lo go-interface-val-compare.lo \
-	go-lock-os-thread.lo go-map-delete.lo go-map-index.lo \
-	go-map-len.lo go-map-range.lo go-nanotime.lo go-new-channel.lo \
-	go-new-map.lo go-new.lo go-note.lo go-panic.lo \
-	go-panic-defer.lo go-print.lo go-rec-big.lo go-rec-nb-big.lo \
-	go-rec-nb-small.lo go-rec-small.lo go-recover.lo go-reflect.lo \
-	go-reflect-call.lo go-reflect-chan.lo go-reflect-map.lo \
-	go-rune.lo go-runtime-error.lo go-sched.lo go-select.lo \
-	go-semacquire.lo go-send-big.lo go-send-nb-big.lo \
-	go-send-nb-small.lo go-send-small.lo go-signal.lo go-strcmp.lo \
+	go-interface-compare.lo go-interface-eface-compare.lo \
+	go-interface-val-compare.lo go-lock-os-thread.lo \
+	go-map-delete.lo go-map-index.lo go-map-len.lo go-map-range.lo \
+	go-nanotime.lo go-new-channel.lo go-new-map.lo go-new.lo \
+	go-note.lo go-panic.lo go-panic-defer.lo go-print.lo \
+	go-rec-big.lo go-rec-nb-big.lo go-rec-nb-small.lo \
+	go-rec-small.lo go-recover.lo go-reflect.lo go-reflect-call.lo \
+	go-reflect-chan.lo go-reflect-map.lo go-rune.lo \
+	go-runtime-error.lo go-sched.lo go-select.lo go-semacquire.lo \
+	go-send-big.lo go-send-nb-big.lo go-send-nb-small.lo \
+	go-send-small.lo go-signal.lo go-strcmp.lo \
 	go-string-to-byte-array.lo go-string-to-int-array.lo \
 	go-strplus.lo go-strslice.lo go-trampoline.lo go-type-eface.lo \
 	go-type-error.lo go-type-identity.lo go-type-interface.lo \
@@ -764,6 +766,7 @@ runtime_files = \
 	runtime/go-int-array-to-string.c \
 	runtime/go-int-to-string.c \
 	runtime/go-interface-compare.c \
+	runtime/go-interface-eface-compare.c \
 	runtime/go-interface-val-compare.c \
 	runtime/go-lock-os-thread.c \
 	runtime/go-map-delete.c \
@@ -1037,11 +1040,16 @@ go_netchan_files = \
 	go/netchan/export.go \
 	go/netchan/import.go
 
+@LIBGO_IS_386_FALSE@@LIBGO_IS_SOLARIS_TRUE@go_os_dir_file = go/os/dir_regfile.go
+@LIBGO_IS_386_TRUE@@LIBGO_IS_SOLARIS_TRUE@go_os_dir_file = go/os/dir_largefile.go
+@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_FALSE@go_os_dir_file = go/os/dir_regfile.go
+@LIBGO_IS_LINUX_TRUE@@LIBGO_IS_SOLARIS_FALSE@go_os_dir_file = go/os/dir_largefile.go
 @LIBGO_IS_LINUX_FALSE@@LIBGO_IS_RTEMS_FALSE@@LIBGO_IS_SOLARIS_FALSE@go_os_sys_file = go/os/sys_bsd.go
 @LIBGO_IS_LINUX_FALSE@@LIBGO_IS_RTEMS_TRUE@@LIBGO_IS_SOLARIS_FALSE@go_os_sys_file = go/os/sys_uname.go
 @LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@go_os_sys_file = go/os/sys_uname.go
 @LIBGO_IS_LINUX_TRUE@go_os_sys_file = go/os/sys_linux.go
 go_os_files = \
+	$(go_os_dir_file) \
 	go/os/dir.go \
 	go/os/env.go \
 	go/os/env_unix.go \
@@ -1513,6 +1521,7 @@ go_testing_script_files = \
 @LIBGO_IS_RTEMS_TRUE@syscall_syscall_file = syscalls/syscall_stubs.go
 # Use lseek on amd64 Solaris.
 @LIBGO_IS_386_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@syscall_filesize_file = syscalls/sysfile_regfile.go
+# FIXME: Same for sparc vs. sparc64.  Introduce new/additional conditional?
 # Use lseek64 on 386 Solaris.
 @LIBGO_IS_386_TRUE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@syscall_filesize_file = syscalls/sysfile_largefile.go
 # Use lseek by default.
@@ -1521,6 +1530,10 @@ go_testing_script_files = \
 # Declare libc functions that vary for largefile systems.
 # Always use lseek64 on GNU/Linux.
 @LIBGO_IS_LINUX_TRUE@syscall_filesize_file = syscalls/sysfile_largefile.go
+@LIBGO_IS_386_FALSE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@syscall_stat_file = syscalls/sysfile_stat_regfile.go
+@LIBGO_IS_386_TRUE@@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_TRUE@syscall_stat_file = syscalls/sysfile_stat_largefile.go
+@LIBGO_IS_LINUX_FALSE@@LIBGO_IS_SOLARIS_FALSE@syscall_stat_file = syscalls/sysfile_stat_regfile.go
+@LIBGO_IS_LINUX_TRUE@syscall_stat_file = syscalls/sysfile_stat_largefile.go
 @LIBGO_IS_RTEMS_FALSE@syscall_exec_os_file = syscalls/exec.go
 
 # Define ForkExec, PtraceForkExec, Exec, and Wait4.
@@ -1556,6 +1569,7 @@ go_syscall_files = \
 	syscalls/exec_helpers.go \
 	$(syscall_exec_os_file) \
 	$(syscall_filesize_file) \
+	$(syscall_stat_file) \
 	$(syscall_sleep_file) \
 	syscalls/socket.go \
 	$(syscall_socket_os_file) \
@@ -2056,6 +2070,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-int-array-to-string.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-int-to-string.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-interface-compare.Plo@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-interface-eface-compare.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-interface-val-compare.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-lock-os-thread.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/go-main.Po@am__quote@
@@ -2346,6 +2361,13 @@ go-interface-compare.lo: runtime/go-interface-compare.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/go-interface-compare.c' object='go-interface-compare.lo' libtool=yes @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o go-interface-compare.lo `test -f 'runtime/go-interface-compare.c' || echo '$(srcdir)/'`runtime/go-interface-compare.c
+
+go-interface-eface-compare.lo: runtime/go-interface-eface-compare.c
+@am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT go-interface-eface-compare.lo -MD -MP -MF $(DEPDIR)/go-interface-eface-compare.Tpo -c -o go-interface-eface-compare.lo `test -f 'runtime/go-interface-eface-compare.c' || echo '$(srcdir)/'`runtime/go-interface-eface-compare.c
+@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/go-interface-eface-compare.Tpo $(DEPDIR)/go-interface-eface-compare.Plo
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='runtime/go-interface-eface-compare.c' object='go-interface-eface-compare.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCC_FALSE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o go-interface-eface-compare.lo `test -f 'runtime/go-interface-eface-compare.c' || echo '$(srcdir)/'`runtime/go-interface-eface-compare.c
 
 go-interface-val-compare.lo: runtime/go-interface-val-compare.c
 @am__fastdepCC_TRUE@	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -MT go-interface-val-compare.lo -MD -MP -MF $(DEPDIR)/go-interface-val-compare.Tpo -c -o go-interface-val-compare.lo `test -f 'runtime/go-interface-val-compare.c' || echo '$(srcdir)/'`runtime/go-interface-val-compare.c
@@ -4992,7 +5014,7 @@ testing/script/check: $(CHECK_DEPS)
 
 sysinfo.go: s-sysinfo; @true
 s-sysinfo: $(srcdir)/mksysinfo.sh config.h
-	CC="$(CC)" $(SHELL) $(srcdir)/mksysinfo.sh
+	CC="$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS)" $(SHELL) $(srcdir)/mksysinfo.sh
 	$(SHELL) $(srcdir)/../move-if-change tmp-sysinfo.go sysinfo.go
 	$(STAMP) $@
 

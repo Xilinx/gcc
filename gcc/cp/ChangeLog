@@ -1,3 +1,144 @@
+2011-02-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47833
+	* pt.c (struct pending_template): Add chain_next GTY option.
+	* decl.c (struct named_label_use_entry): Likewise.
+
+2011-02-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/47242
+	* semantics.c (build_lambda_object): Bail out if a field is
+	error_mark_node.
+
+2011-02-22  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47666
+	* class.c (dfs_declare_virt_assop_and_dtor)
+	(declare_virt_assop_and_dtor): New static functions.
+	(add_implicitly_declared_members): Use
+	declare_virt_assop_and_dtor.
+
+2011-02-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47207
+	* decl2.c (decl_constant_var_p): A constexpr var needs an
+	initializer to be constant.
+	* semantics.c (cxx_eval_constant_expression): Complain about
+	constexpr var used in its own initializer.
+	* call.c (set_up_extended_ref_temp): Set
+	DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P too.
+
+2011-02-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47199
+	* semantics.c (cxx_eval_call_expression): Call
+	cxx_eval_constant_expression in trivial shortcut.
+
+	PR c++/46831
+	* call.c (convert_class_to_reference): Don't try to set up a
+	second conv sequence for non-viable candidates.
+
+	PR c++/47703
+	* error.c (location_of): Handle non-tagged types.
+
+	PR c++/46472
+	* method.c (process_subob_fn): Instantiate constexpr templates.
+	* optimize.c (maybe_clone_body): Propagate DECL_DECLARED_CONSTEXPR_P.
+
+2011-02-20  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/46394
+	* pt.c (tsubst_pack_expansion): do not use
+	cp_tree_equal/same_type_p to detect an expansion of a parameter
+	pack.
+
+2011-02-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47503
+	* semantics.c (cxx_eval_call_expression): Shortcut trivial copy.
+
+2011-02-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/47795
+	* semantics.c (finish_non_static_data_member): Early return if
+	object is error_mark_node.
+
+2011-02-18  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47208
+	* pt.c (do_auto_deduction): Do not mention error_mark_node in
+    	diagnostics.
+	* semantics.c (finish_id_expression): Do not pass erroneous decl
+    	to decl_constant_var_p.
+
+2011-02-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47783
+	* cvt.c (convert_from_reference): Call mark_exp_read.
+
+2011-02-11  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47172
+	* pt.c (finish_call_expr): Consider a call expression that has a
+	dependent "this" pointer as being dependent.  Add comments.
+	(dependent_type_p, type_dependent_expression_p): Update comments.
+
+2011-02-16  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47326
+	* pt.c (tsubst_copy)<case SIZEOF_EXPR>: Ensure that even pack
+    	expansion arguments are not evaluated.
+
+2011-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/47704
+	* cp-tree.h (ENUM_FIXED_UNDERLYING_TYPE_P): Use TYPE_LANG_FLAG_5
+	instead of TYPE_LANG_FLAG_3.
+	* pt.c (lookup_template_class): Copy over
+	ENUM_FIXED_UNDERLYING_TYPE_P.
+
+2011-02-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46807
+	* method.c (synthesized_method_walk): Always exit early for
+	trivial fn in C++98 mode.
+
+2011-02-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47482
+	* parser.c (cp_parser_enumerator_definition): Call
+	fold_non_dependent_expr.
+
+2011-02-09  Jason Merrill  <jason@redhat.com>
+
+	* decl.c (cp_make_fname_decl): Set DECL_THIS_STATIC at toplevel.
+	* semantics.c (finish_fname): Only return the name if we're in
+	a function.
+
+	* decl.c (build_enumerator): Don't perform integral promotions on
+	non-integral constants.
+
+	* cvt.c (convert_to_void): Handle null op1.
+
+	* class.c (type_has_constexpr_default_constructor): Make sure the
+	caller stripped an enclosing array.
+	* init.c (perform_member_init): Strip arrays before calling it.
+
+	PR c++/47511
+	* semantics.c (potential_constant_expression_1): Handle TEMPLATE_DECL.
+
+2011-02-03  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47398
+	* tree.c (cp_tree_equal)<TEMPLATE_PARM_INDEX>: Take the number of
+	template parameters in account.
+
+2011-02-03  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/46890
+	* parser.c (cp_parser_class_specifier): Fix setting of
+	want_semicolon.
+
 2011-01-31  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/47416

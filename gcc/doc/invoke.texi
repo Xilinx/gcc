@@ -208,10 +208,12 @@ Objective-C and Objective-C++ Dialects}.
 @gccoptlist{-fconstant-string-class=@var{class-name} @gol
 -fgnu-runtime  -fnext-runtime @gol
 -fno-nil-receivers @gol
+-fobjc-abi-version=@var{n} @gol
 -fobjc-call-cxx-cdtors @gol
 -fobjc-direct-dispatch @gol
 -fobjc-exceptions @gol
 -fobjc-gc @gol
+-fobjc-nilcheck @gol
 -fobjc-std=objc1 @gol
 -freplace-objc-classes @gol
 -fzero-link @gol
@@ -390,7 +392,7 @@ Objective-C and Objective-C++ Dialects}.
 -ftree-builtin-call-dce -ftree-ccp -ftree-ch -ftree-copy-prop @gol
 -ftree-copyrename -ftree-dce -ftree-dominator-opts -ftree-dse @gol
 -ftree-forwprop -ftree-fre -ftree-loop-if-convert @gol
--ftree-loop-if-convert-memory-writes -ftree-loop-im @gol
+-ftree-loop-if-convert-stores -ftree-loop-im @gol
 -ftree-phiprop -ftree-loop-distribution -ftree-loop-distribute-patterns @gol
 -ftree-loop-ivcanon -ftree-loop-linear -ftree-loop-optimize @gol
 -ftree-parallelize-loops=@var{n} -ftree-pre -ftree-pta -ftree-reassoc @gol
@@ -739,7 +741,7 @@ Objective-C and Objective-C++ Dialects}.
 -mno-am33 -mam33 -mam33-2 -mam34 @gol
 -mtune=@var{cpu-type} @gol
 -mreturn-pointer-on-d0 @gol
--mno-crt0  -mrelax}
+-mno-crt0  -mrelax -mliw}
 
 @emph{PDP-11 Options}
 @gccoptlist{-mfpu  -msoft-float  -mac0  -mno-ac0  -m40  -m45  -m10 @gol
@@ -2564,8 +2566,19 @@ used.
 Assume that all Objective-C message dispatches (@code{[receiver
 message:arg]}) in this translation unit ensure that the receiver is
 not @code{nil}.  This allows for more efficient entry points in the
-runtime to be used.  Currently, this option is only available in
-conjunction with the NeXT runtime on Mac OS X 10.3 and later.
+runtime to be used.  This option is only available in conjunction with
+the NeXT runtime and ABI version 0 or 1.
+
+@item -fobjc-abi-version=@var{n}
+@opindex fobjc-abi-version
+Use version @var{n} of the Objective-C ABI for the selected runtime.
+This option is currently supported only for the NeXT runtime.  In that
+case, Version 0 is the traditional (32-bit) ABI without support for
+properties and other Objective-C 2.0 additions.  Version 1 is the
+traditional (32-bit) ABI with support for properties and other
+Objective-C 2.0 additions.  Version 2 is the modern (64-bit) ABI.  If
+nothing is specified, the default is Version 0 on 32-bit target
+machines, and Version 2 on 64-bit target machines.
 
 @item -fobjc-call-cxx-cdtors
 @opindex fobjc-call-cxx-cdtors
@@ -2613,6 +2626,16 @@ Enable garbage collection (GC) in Objective-C and Objective-C++
 programs.  This option is only available with the NeXT runtime; the
 GNU runtime has a different garbage collection implementation that
 does not require special compiler flags.
+
+@item -fobjc-nilcheck
+@opindex fobjc-nilcheck
+For the NeXT runtime with version 2 of the ABI, check for a nil
+receiver in method invocations before doing the actual method call.
+This is the default and can be disabled using
+@option{-fno-objc-nilcheck}.  Class methods and super calls are never
+checked for nil in this way no matter what this flag is set to.
+Currently this flag does nothing when the GNU runtime, or an older
+version of the NeXT runtime ABI, is used.
 
 @item -fobjc-std=objc1
 @opindex fobjc-std
@@ -8038,8 +8061,7 @@ If combined with @option{-fprofile-arcs}, it adds code so that some
 data about values of expressions in the program is gathered.
 
 With @option{-fbranch-probabilities}, it reads back the data gathered
-from profiling values of expressions and adds @samp{REG_VALUE_PROFILE}
-notes to instructions for their later usage in optimizations.
+from profiling values of expressions for usage in optimizations.
 
 Enabled with @option{-fprofile-generate} and @option{-fprofile-use}.
 
@@ -8471,6 +8493,10 @@ optimization when a new iv is added to the set.
 @item scev-max-expr-size
 Bound on size of expressions used in the scalar evolutions analyzer.
 Large expressions slow the analyzer.
+
+@item scev-max-expr-complexity
+Bound on the complexity of the expressions in the scalar evolutions analyzer.
+Complex expressions slow the analyzer.
 
 @item omega-max-vars
 The maximum number of variables in an Omega constraint system.
@@ -15041,6 +15067,19 @@ to shorten branches, calls and absolute memory addresses.  This option only
 has an effect when used on the command line for the final link step.
 
 This option makes symbolic debugging impossible.
+
+@item -mliw
+@opindex mliw
+Allow the compiler to generate @emph{Long Instruction Word}
+instructions if the target is the @samp{AM33} or later.  This is the
+default.  This option defines the preprocessor macro @samp{__LIW__}.
+
+@item -mnoliw
+@opindex mnoliw
+Do not allow the compiler to generate @emph{Long Instruction Word}
+instructions.  This option defines the preprocessor macro
+@samp{__NO_LIW__}.
+
 @end table
 
 @node PDP-11 Options

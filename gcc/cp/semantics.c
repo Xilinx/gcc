@@ -1533,6 +1533,9 @@ finish_non_static_data_member (tree decl, tree object, tree qualifying_scope)
       object = maybe_dummy_object (scope, NULL);
     }
 
+  if (object == error_mark_node)
+    return error_mark_node;
+
   /* DR 613: Can use non-static data members without an associated
      object in sizeof/decltype/alignof.  */
   if (is_dummy_object (object) && cp_unevaluated_operand == 0
@@ -2028,8 +2031,19 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
 
   if (processing_template_decl)
     {
+      /* If the call expression is dependent, build a CALL_EXPR node
+	 with no type; type_dependent_expression_p recognizes
+	 expressions with no type as being dependent.  */
       if (type_dependent_expression_p (fn)
-	  || any_type_dependent_arguments_p (*args))
+	  || any_type_dependent_arguments_p (*args)
+	  /* For a non-static member function, we need to specifically
+	     test the type dependency of the "this" pointer because it
+	     is not included in *ARGS even though it is considered to
+	     be part of the list of arguments.  Note that this is
+	     related to CWG issues 515 and 1005.  */
+	  || ((TREE_CODE (TREE_TYPE (fn)) == METHOD_TYPE)
+	      && current_class_ref
+	      && type_dependent_expression_p (current_class_ref)))
 	{
 	  result = build_nt_call_vec (fn, *args);
 	  KOENIG_LOOKUP_P (result) = koenig_p;
@@ -2324,7 +2338,7 @@ finish_fname (tree id)
   tree decl;
 
   decl = fname_decl (input_location, C_RID_CODE (id), id);
-  if (processing_template_decl)
+  if (processing_template_decl && current_function_decl)
     decl = DECL_NAME (decl);
   return decl;
 }
@@ -3137,7 +3151,8 @@ finish_id_expression (tree id_expression,
       /* Only certain kinds of names are allowed in constant
 	 expression.  Enumerators and template parameters have already
 	 been handled above.  */
-      if (integral_constant_expression_p
+      if (! error_operand_p (decl)
+	  && integral_constant_expression_p
 	  && ! decl_constant_var_p (decl)
 	  && ! builtin_valid_in_constant_expr_p (decl))
 	{
@@ -6004,6 +6019,14 @@ cxx_eval_call_expression (const constexpr_call *old_call, tree t,
       return t;
     }
 
+  /* Shortcut trivial copy constructor/op=.  */
+  if (call_expr_nargs (t) == 2 && trivial_fn_p (fun))
+    {
+      tree arg = convert_from_reference (get_nth_callarg (t, 1));
+      return cxx_eval_constant_expression (old_call, arg, allow_non_constant,
+					   addr, non_constant_p);
+    }
+
   /* If in direct recursive call, optimize definition search.  */
   if (old_call != NULL && old_call->fundef->decl == fun)
     new_call.fundef = old_call->fundef;
@@ -6745,7 +6768,10 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 	      tree type = TREE_TYPE (r);
 	      error ("the value of %qD is not usable in a constant "
 		     "expression", r);
-	      if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
+	      if (DECL_DECLARED_CONSTEXPR_P (r))
+		inform (DECL_SOURCE_LOCATION (r),
+			"%qD used in its own initializer", r);
+	      else if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
 		{
 		  if (!CP_TYPE_CONST_P (type))
 		    inform (DECL_SOURCE_LOCATION (r),
@@ -7263,6 +7289,7 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     {
     case FUNCTION_DECL:
     case BASELINK:
+    case TEMPLATE_DECL:
     case OVERLOAD:
     case TEMPLATE_ID_EXPR:
     case LABEL_DECL:
@@ -7768,6 +7795,12 @@ build_lambda_object (tree lambda_expr)
       tree field = TREE_PURPOSE (node);
       tree val = TREE_VALUE (node);
 
+      if (field == error_mark_node)
+	{
+	  expr = error_mark_node;
+	  goto out;
+	}
+
       if (DECL_P (val))
 	mark_used (val);
 
@@ -7803,6 +7836,7 @@ build_lambda_object (tree lambda_expr)
   expr = finish_compound_literal (type, expr);
   CLASSTYPE_NON_AGGREGATE (type) = 1;
 
+ out:
   input_location = saved_loc;
   return expr;
 }

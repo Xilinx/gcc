@@ -1,6 +1,6 @@
 /* Process declarations and variables for C++ compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -178,7 +178,7 @@ tree integer_two_node;
 /* Used only for jumps to as-yet undefined labels, since jumps to
    defined labels can have their validity checked immediately.  */
 
-struct GTY(()) named_label_use_entry {
+struct GTY((chain_next ("%h.next"))) named_label_use_entry {
   struct named_label_use_entry *next;
   /* The binding level to which this entry is *currently* attached.
      This is initially the binding level in which the goto appeared,
@@ -3706,7 +3706,10 @@ cp_make_fname_decl (location_t loc, tree id, int type_dep)
 		      LOOKUP_ONLYCONVERTING);
     }
   else
-    pushdecl_top_level_and_finish (decl, init);
+    {
+      DECL_THIS_STATIC (decl) = true;
+      pushdecl_top_level_and_finish (decl, init);
+    }
 
   return decl;
 }
@@ -11869,7 +11872,8 @@ build_enumerator (tree name, tree value, tree enumtype, location_t loc)
 	{
 	  value = cxx_constant_value (value);
 
-	  if (TREE_CODE (value) == INTEGER_CST)
+	  if (TREE_CODE (value) == INTEGER_CST
+	      && INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (value)))
 	    {
 	      value = perform_integral_promotions (value);
 	    }

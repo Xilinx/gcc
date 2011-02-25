@@ -849,7 +849,8 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
   lto_output_tree_or_ref (ob, DECL_SIZE (expr), ref_p);
   lto_output_tree_or_ref (ob, DECL_SIZE_UNIT (expr), ref_p);
 
-  if (TREE_CODE (expr) != FUNCTION_DECL)
+  if (TREE_CODE (expr) != FUNCTION_DECL
+      && TREE_CODE (expr) != TRANSLATION_UNIT_DECL)
     {
       tree initial = DECL_INITIAL (expr);
       if (TREE_CODE (expr) == VAR_DECL
@@ -1057,8 +1058,7 @@ lto_output_ts_block_tree_pointers (struct output_block *ob, tree expr,
   tree t;
 
   lto_output_location (ob, BLOCK_SOURCE_LOCATION (expr));
-  /* We do not stream BLOCK_VARS but lazily construct it when reading
-     in decls.  */
+  lto_output_chain (ob, BLOCK_VARS (expr), ref_p);
 
   output_uleb128 (ob, VEC_length (tree, BLOCK_NONLOCALIZED_VARS (expr)));
   FOR_EACH_VEC_ELT (tree, BLOCK_NONLOCALIZED_VARS (expr), i, t)
@@ -2410,6 +2410,7 @@ write_symbol (struct lto_streamer_cache_d *cache,
   int slot_num;
   uint64_t size;
   const char *comdat;
+  unsigned char c;
 
   /* None of the following kinds of symbols are needed in the
      symbol table.  */
@@ -2505,8 +2506,10 @@ write_symbol (struct lto_streamer_cache_d *cache,
 
   lto_output_data_stream (stream, name, strlen (name) + 1);
   lto_output_data_stream (stream, comdat, strlen (comdat) + 1);
-  lto_output_data_stream (stream, &kind, 1);
-  lto_output_data_stream (stream, &visibility, 1);
+  c = (unsigned char) kind;
+  lto_output_data_stream (stream, &c, 1);
+  c = (unsigned char) visibility;
+  lto_output_data_stream (stream, &c, 1);
   lto_output_data_stream (stream, &size, 8);
   lto_output_data_stream (stream, &slot_num, 4);
 }

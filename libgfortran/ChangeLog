@@ -1,3 +1,93 @@
+2011-02-23  Janne Blomqvist  <jb@gcc.gnu.org>
+	    Jerry DeLisle    <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/47694
+	* io/fbuf.h (fbuf_getptr): New inline function.
+	* io/transfer.c (read_sf): Use fbuf_getptr and fbuf_getc to scan
+	through the string instead of fbuf_read.
+
+2011-02-22  Tobias Burnus  <burnus@net-b.de>
+	    Kai-Uwe Eckhardt  <kuehro@gmx.de>
+
+	PR libfortran/47830
+	* intrinsics/c99_functions.c (roundl): Make C valid for
+	HAVE_NEXTAFTERL.
+
+2011-02-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* io/write_float.def (output_float): Adjust width for F0.d to
+	allow space for negative signs on zero.
+
+2011-02-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47667
+	* io/list_read.c (read_logical): Check for end of line before calling
+	eat_line. (read_integer): Likewise. (parse_real): Don't unget the
+	separator. Check for end of line before calling	eat_line.
+	(read_complex): Allow line-end before and after parenthesis and comma.
+	Check for end of line before calling eat_line. (read_real): Check for
+	end of line before calling eat_line.
+
+2011-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libfortran/47757
+	* gfortran.map (GFORTRAN_1.4): Export
+	_gfortran_{m,s}i{all,any,parity}_i{1,2,4,8,16} and
+	_gfortran_{cshift0,eoshift{0,2}}_16_char4.
+
+2011-02-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47716
+	PR fortran/47648
+	* acinclude.m4 (LIBGFOR_CHECK_FLOAT128): Use check from
+	libquadmath, which uses more features.
+	* configure: Regenerate.
+
+2011-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47642
+	* io/write_float.def (DTOAQ): Use quadmath_snprintf instead of
+	quadmath_flt128tostr.
+	* io/transfer128.c (tmp2): Initialize to quadmath_snprintf instead
+	of quadmath_flt128tostr.
+
+2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+
+2011-02-05  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* io/write_float.def (output_float): Eliminate some redundant code.
+	Adjust width for case of F0.X for values of zero and all other values.
+	Expand cases where '*' is set to give cleaner results.
+
+2011-02-05  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47571
+	* intrinsics/time_1.h (GF_CLOCK_MONOTONIC): Move to system_clock.c.
+	(weak_gettime): Likewise.
+	(gf_gettime): Change API, move weak_gettime() usage to
+	system_clock.c
+	* intrinsics/system_clock.c (GTHREAD_USE_WEAK): Define.
+	(gf_gettime_mono): New function.
+	(system_clock_4): Use gf_gettime_mono().
+	(system_clock_8): Likewise.
+	* intrinsics/date_and_time.c (date_and_time): Update gf_gettime()
+	usage.
+
+2011-02-02  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47571
+	* configure: Regenerated.
+	* configure.ac: Don't add librt to LIBS.
+	* intrinsics/time_1.h (weak_gettime): Weakref trickery for
+	clock_gettime().
+	(gf_gettime): Use weak_gettime() instead of clock_gettime().
+
 2011-02-01  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	* intrinsics/time_1.h: Include errno.h needed by fallbacks.
