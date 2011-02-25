@@ -12711,7 +12711,9 @@ get_thread_pointer (int to_reg)
 {
   rtx tp, reg, insn;
 
-  tp = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx), UNSPEC_TP);
+  tp = gen_rtx_UNSPEC (ptr_mode, gen_rtvec (1, const0_rtx), UNSPEC_TP);
+  if (ptr_mode != Pmode)
+    tp = convert_to_mode (Pmode, tp, 1);
   if (!to_reg)
     return tp;
 
