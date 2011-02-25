@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.6.0 20110207 (experimental) [melt-branch revision a4d845e\072926ccfc\072ae480e4fa36f85534b24e6e3ac209a27921362db]";
+ "4.6.0 20110225 (experimental) [melt-branch revision 170496]";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[]="1be348535ca236dda5d5e9dd7861a9c1";
+const char md5prepromeltrun_melt[]="b42bd8df3b697872aacb2eb8ef03f967";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/
 
