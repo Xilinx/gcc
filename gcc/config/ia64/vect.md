@@ -397,12 +397,8 @@
      of the full 32-bit product.  */
 
   /* T0 = CDBA.  */
-  if (TARGET_BIG_ENDIAN)
-    x = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (4, GEN_INT (3), const2_rtx,
-					       const1_rtx, const0_rtx));
-  else
-    x = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (4, const1_rtx, const0_rtx,
-					       GEN_INT (3), const2_rtx));
+  x = gen_rtx_PARALLEL (VOIDmode, gen_rtvec (4, const1_rtx, const0_rtx,
+					     GEN_INT (3), const2_rtx));
   x = gen_rtx_VEC_SELECT (V4HImode, op1h, x);
   emit_insn (gen_rtx_SET (VOIDmode, t0, x));
 
