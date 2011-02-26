@@ -33,6 +33,7 @@ Gogo::Gogo(int int_type_size, int pointer_size)
     init_fn_name_(),
     imported_init_fns_(),
     unique_prefix_(),
+    unique_prefix_specified_(false),
     interface_types_()
 {
   const source_location loc = BUILTINS_LOCATION;
@@ -259,7 +260,7 @@ Gogo::set_package_name(const std::string& package_name,
   // package name (e.g., P.x), but we no longer do.
   // this->globals_->add_package(package_name, this->package_);
 
-  if (package_name == "main")
+  if (this->is_main_package())
     {
       // Declare "main" as a function which takes no parameters and
       // returns no value.
@@ -268,6 +269,15 @@ Gogo::set_package_name(const std::string& package_name,
 						      BUILTINS_LOCATION),
 			     BUILTINS_LOCATION);
     }
+}
+
+// Return whether this is the "main" package.  This is not true if
+// -fgo-prefix was used.
+
+bool
+Gogo::is_main_package() const
+{
+  return this->package_name() == "main" && !this->unique_prefix_specified_;
 }
 
 // Import a package.
@@ -672,10 +682,15 @@ Gogo::start_function(const std::string& name, Function_type* type,
   else if (!type->is_method())
     {
       ret = this->package_->bindings()->add_function(*pname, NULL, function);
-      if (!ret->is_function())
+      if (!ret->is_function() || ret->func_value() != function)
 	{
-	  // Redefinition error.
-	  ret = Named_object::make_function(name, NULL, function);
+	  // Redefinition error.  Invent a name to avoid knockon
+	  // errors.
+	  static int redefinition_count;
+	  char buf[30];
+	  snprintf(buf, sizeof buf, ".$redefined%d", redefinition_count);
+	  ++redefinition_count;
+	  ret = this->package_->bindings()->add_function(buf, NULL, function);
 	}
     }
   else
@@ -1129,12 +1144,16 @@ class Lower_parse_tree : public Traverse
 {
  public:
   Lower_parse_tree(Gogo* gogo, Named_object* function)
-    : Traverse(traverse_constants
+    : Traverse(traverse_variables
+	       | traverse_constants
 	       | traverse_functions
 	       | traverse_statements
 	       | traverse_expressions),
       gogo_(gogo), function_(function), iota_value_(-1)
   { }
+
+  int
+  variable(Named_object*);
 
   int
   constant(Named_object*, bool);
@@ -1156,6 +1175,18 @@ class Lower_parse_tree : public Traverse
   // Value to use for the predeclared constant iota.
   int iota_value_;
 };
+
+// Lower variables.  We handle variables specially to break loops in
+// which a variable initialization expression refers to itself.  The
+// loop breaking is in lower_init_expression.
+
+int
+Lower_parse_tree::variable(Named_object* no)
+{
+  if (no->is_variable())
+    no->var_value()->lower_init_expression(this->gogo_, this->function_);
+  return TRAVERSE_CONTINUE;
+}
 
 // Lower constants.  We handle constants specially so that we can set
 // the right value for the predeclared constant iota.  This works in
@@ -2446,6 +2477,7 @@ Gogo::set_unique_prefix(const std::string& arg)
 {
   gcc_assert(this->unique_prefix_.empty());
   this->unique_prefix_ = arg;
+  this->unique_prefix_specified_ = true;
 }
 
 // Work out the package priority.  It is one more than the maximum
@@ -2477,7 +2509,7 @@ Gogo::do_exports()
   exp.export_globals(this->package_name(),
 		     this->unique_prefix(),
 		     this->package_priority(),
-		     (this->need_init_fn_ && this->package_name() != "main"
+		     (this->need_init_fn_ && !this->is_main_package()
 		      ? this->get_init_fn_name()
 		      : ""),
 		     this->imported_init_fns_,
@@ -3346,6 +3378,9 @@ Variable::type() const
 void
 Variable::determine_type()
 {
+  if (this->preinit_ != NULL)
+    this->preinit_->determine_types();
+
   // A variable in a type switch with a nil case will have the wrong
   // type here.  It will have an initializer which is a type guard.
   // We want to initialize it to the value without the type guard, and

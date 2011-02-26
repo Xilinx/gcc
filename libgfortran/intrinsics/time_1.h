@@ -175,67 +175,40 @@ gf_cputime (long *user_sec, long *user_usec, long *system_sec, long *system_usec
 #endif
 
 
-/* POSIX states that CLOCK_REALTIME must be present if clock_gettime
-   is available, others are optional.  */
-#ifdef CLOCK_REALTIME
-#define GF_CLOCK_REALTIME CLOCK_REALTIME
-#else
-#define GF_CLOCK_REALTIME 0
-#endif
+/* Realtime clock with microsecond resolution, falling back to less
+   precise functions if the target does not support gettimeofday().
 
-#ifdef CLOCK_MONOTONIC
-#define GF_CLOCK_MONOTONIC CLOCK_MONOTONIC
-#else
-#define GF_CLOCK_MONOTONIC GF_CLOCK_REALTIME
-#endif
-
-/* Arguments:
-   clock_id - INPUT, must be either GF_CLOCK_REALTIME or GF_CLOCK_MONOTONIC
+   Arguments:
    secs     - OUTPUT, seconds
-   nanosecs - OUTPUT, OPTIONAL, nanoseconds
+   usecs    - OUTPUT, microseconds
 
-   If clock_id equals GF_CLOCK_REALTIME, the OUTPUT arguments shall be
-   the number of seconds and nanoseconds since the Epoch. If clock_id
-   equals GF_CLOCK_MONOTONIC, and if the target supports it, the
-   OUTPUT arguments represent a monotonically incrementing clock
-   starting from some unspecified time in the past.
+   The OUTPUT arguments shall represent the number of seconds and
+   nanoseconds since the Epoch.
 
    Return value: 0 for success, -1 for error. In case of error, errno
    is set.
 */
 static inline int
-gf_gettime (int clock_id __attribute__((unused)), time_t * secs, 
-            long * nanosecs)
+gf_gettime (time_t * secs, long * usecs)
 {
-#ifdef HAVE_CLOCK_GETTIME
-  struct timespec ts;
-  int err;
-  err = clock_gettime (clock_id, &ts);
-  *secs = ts.tv_sec;
-  if (nanosecs)
-    *nanosecs = ts.tv_nsec;
-  return err;
-#elif HAVE_GETTIMEOFDAY
+#ifdef HAVE_GETTIMEOFDAY
   struct timeval tv;
   int err;
   err = gettimeofday (&tv, NULL);
   *secs = tv.tv_sec;
-  if (nanosecs)
-    *nanosecs = tv.tv_usec * 1000;
+  *usecs = tv.tv_usec;
   return err;
 #elif HAVE_TIME
   time_t t, t2;
   t = time (&t2);
   *secs = t2;
-  if (nanosecs)
-    *nanosecs = 0;
+  *usecs = 0;
   if (t == ((time_t)-1))
     return -1;
   return 0;
 #else
   *secs = 0;
-  if (nanosecs)
-    *nanosecs = 0;
+  *usecs = 0;
   errno = ENOSYS;
   return -1;
 #endif

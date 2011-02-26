@@ -1,3 +1,26 @@
+2011-02-17  Simon Baldwin  <simonb@google.com>
+
+	* Makefile.in: Fix incorrect "($PWD_COMMAND)"
+
+2011-02-11  Simon Baldwin  <simonb@google.com>
+
+	* doc/install.texi: Add --disable-canonical-prefixes documentation.
+	* configure.ac: Add --disable-canonical-prefixes option.
+	* configure: Rebuild.
+	* config.in: Rebuild.
+	* gcc.c (process_command): Remove auto-detection, set default
+	prefix canonicalization mode from configure flag.
+
+2011-02-07  Simon Baldwin  <simonb@google.com>
+
+	PR driver/29931
+	* doc/invoke.texi: Adjust -[no-]canonical-prefixes documentation.
+	* gcc.c (display_help): Help text for -[no-]canonical-prefixes.
+	(driver_handle_option): Ignore OPT_canonical_prefixes.
+	(process_command): Handle OPT_[no_]canonical_prefixes, auto-detect
+	suitable default prefix canonicalization mode.
+	* common.opt (canonical-prefixes): New flag.
+
 2011-02-06  Diego Novillo  <dnovillo@google.com>
 
 	* common.opt (fstrict-enum-precision): New placeholder

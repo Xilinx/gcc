@@ -1,5 +1,5 @@
 /* Command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -524,7 +524,6 @@ default_options_optimization (struct gcc_options *opts,
 {
   unsigned int i;
   int opt2;
-  int ofast = 0;
 
   /* Scan to see what optimization level has been specified.  That will
      determine the default value of many flags.  */
@@ -538,7 +537,7 @@ default_options_optimization (struct gcc_options *opts,
 	    {
 	      opts->x_optimize = 1;
 	      opts->x_optimize_size = 0;
-	      ofast = 0;
+	      opts->x_optimize_fast = 0;
 	    }
 	  else
 	    {
@@ -553,7 +552,7 @@ default_options_optimization (struct gcc_options *opts,
 		  if ((unsigned int) opts->x_optimize > 255)
 		    opts->x_optimize = 255;
 		  opts->x_optimize_size = 0;
-		  ofast = 0;
+		  opts->x_optimize_fast = 0;
 		}
 	    }
 	  break;
@@ -563,14 +562,14 @@ default_options_optimization (struct gcc_options *opts,
 
 	  /* Optimizing for size forces optimize to be 2.  */
 	  opts->x_optimize = 2;
-	  ofast = 0;
+	  opts->x_optimize_fast = 0;
 	  break;
 
 	case OPT_Ofast:
 	  /* -Ofast only adds flags to -O3.  */
 	  opts->x_optimize_size = 0;
 	  opts->x_optimize = 3;
-	  ofast = 1;
+	  opts->x_optimize_fast = 1;
 	  break;
 
 	default:
@@ -581,7 +580,7 @@ default_options_optimization (struct gcc_options *opts,
 
   maybe_default_options (opts, opts_set, default_options_table,
 			 opts->x_optimize, opts->x_optimize_size,
-			 ofast, lang_mask, handlers, loc, dc);
+			 opts->x_optimize_fast, lang_mask, handlers, loc, dc);
 
   /* -O2 param settings.  */
   opt2 = (opts->x_optimize >= 2);
@@ -611,7 +610,7 @@ default_options_optimization (struct gcc_options *opts,
   maybe_default_options (opts, opts_set,
 			 targetm.target_option.optimization_table,
 			 opts->x_optimize, opts->x_optimize_size,
-			 ofast, lang_mask, handlers, loc, dc);
+			 opts->x_optimize_fast, lang_mask, handlers, loc, dc);
 }
 
 /* After all options at LOC have been read into OPTS and OPTS_SET,
@@ -1757,15 +1756,23 @@ set_Wstrict_aliasing (struct gcc_options *opts, int onoff)
 static void
 set_fast_math_flags (struct gcc_options *opts, int set)
 {
-  opts->x_flag_unsafe_math_optimizations = set;
-  set_unsafe_math_optimizations_flags (opts, set);
-  opts->x_flag_finite_math_only = set;
-  opts->x_flag_errno_math = !set;
+  if (!opts->frontend_set_flag_unsafe_math_optimizations)
+    {
+      opts->x_flag_unsafe_math_optimizations = set;
+      set_unsafe_math_optimizations_flags (opts, set);
+    }
+  if (!opts->frontend_set_flag_finite_math_only)
+    opts->x_flag_finite_math_only = set;
+  if (!opts->frontend_set_flag_errno_math)
+    opts->x_flag_errno_math = !set;
   if (set)
     {
-      opts->x_flag_signaling_nans = 0;
-      opts->x_flag_rounding_math = 0;
-      opts->x_flag_cx_limited_range = 1;
+      if (!opts->frontend_set_flag_signaling_nans)
+	opts->x_flag_signaling_nans = 0;
+      if (!opts->frontend_set_flag_rounding_math)
+	opts->x_flag_rounding_math = 0;
+      if (!opts->frontend_set_flag_cx_limited_range)
+	opts->x_flag_cx_limited_range = 1;
     }
 }
 
@@ -1774,10 +1781,14 @@ set_fast_math_flags (struct gcc_options *opts, int set)
 static void
 set_unsafe_math_optimizations_flags (struct gcc_options *opts, int set)
 {
-  opts->x_flag_trapping_math = !set;
-  opts->x_flag_signed_zeros = !set;
-  opts->x_flag_associative_math = set;
-  opts->x_flag_reciprocal_math = set;
+  if (!opts->frontend_set_flag_trapping_math)
+    opts->x_flag_trapping_math = !set;
+  if (!opts->frontend_set_flag_signed_zeros)
+    opts->x_flag_signed_zeros = !set;
+  if (!opts->frontend_set_flag_associative_math)
+    opts->x_flag_associative_math = set;
+  if (!opts->frontend_set_flag_reciprocal_math)
+    opts->x_flag_reciprocal_math = set;
 }
 
 /* Return true iff flags in OPTS are set as if -ffast-math.  */

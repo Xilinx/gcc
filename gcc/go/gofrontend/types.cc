@@ -4473,6 +4473,8 @@ Array_type::fill_in_tree(Gogo* gogo, tree struct_type)
   gcc_assert(this->length_ == NULL);
 
   tree element_type_tree = this->element_type_->get_tree(gogo);
+  if (element_type_tree == error_mark_node)
+    return error_mark_node;
   tree field = TYPE_FIELDS(struct_type);
   gcc_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "__values") == 0);
   gcc_assert(POINTER_TYPE_P(TREE_TYPE(field))
@@ -4565,6 +4567,8 @@ Array_type::do_make_expression_tree(Translate_context* context,
   tree element_size_tree = TYPE_SIZE_UNIT(element_type_tree);
 
   tree value = this->element_type_->get_init_tree(gogo, true);
+  if (value == error_mark_node)
+    return error_mark_node;
 
   // The first argument is the number of elements, the optional second
   // argument is the capacity.
@@ -4688,7 +4692,7 @@ Array_type::do_make_expression_tree(Translate_context* context,
   tree range = build2(RANGE_EXPR, sizetype, size_zero_node, max);
   tree space_init = build_constructor_single(array_type, range, value);
 
-  return build2(COMPOUND_EXPR, TREE_TYPE(space),
+  return build2(COMPOUND_EXPR, TREE_TYPE(constructor),
 		build2(MODIFY_EXPR, void_type_node,
 		       build_fold_indirect_ref(value_pointer),
 		       space_init),
@@ -5601,6 +5605,7 @@ Interface_type::finalize_methods()
 {
   if (this->methods_ == NULL)
     return;
+  std::vector<Named_type*> seen;
   bool is_recursive = false;
   size_t from = 0;
   size_t to = 0;
@@ -5628,6 +5633,7 @@ Interface_type::finalize_methods()
 	  ++from;
 	  continue;
 	}
+
       Interface_type* it = p->type()->interface_type();
       if (it == NULL)
 	{
@@ -5645,6 +5651,27 @@ Interface_type::finalize_methods()
 	  ++from;
 	  continue;
 	}
+
+      Named_type* nt = p->type()->named_type();
+      if (nt != NULL)
+	{
+	  std::vector<Named_type*>::const_iterator q;
+	  for (q = seen.begin(); q != seen.end(); ++q)
+	    {
+	      if (*q == nt)
+		{
+		  error_at(p->location(), "inherited interface loop");
+		  break;
+		}
+	    }
+	  if (q != seen.end())
+	    {
+	      ++from;
+	      continue;
+	    }
+	  seen.push_back(nt);
+	}
+
       const Typed_identifier_list* methods = it->methods();
       if (methods == NULL)
 	{
@@ -5657,7 +5684,7 @@ Interface_type::finalize_methods()
 	{
 	  if (q->name().empty())
 	    {
-	      if (q->type() == p->type())
+	      if (q->type()->forwarded() == p->type()->forwarded())
 		error_at(p->location(), "interface inheritance loop");
 	      else
 		{
@@ -5665,7 +5692,8 @@ Interface_type::finalize_methods()
 		  for (i = from + 1; i < this->methods_->size(); ++i)
 		    {
 		      const Typed_identifier* r = &this->methods_->at(i);
-		      if (r->name().empty() && r->type() == q->type())
+		      if (r->name().empty()
+			  && r->type()->forwarded() == q->type()->forwarded())
 			{
 			  error_at(p->location(),
 				   "inherited interface listed twice");
@@ -6920,12 +6948,12 @@ Named_type::do_verify()
     }
 
   // If this is a struct, then if any of the fields of the struct
-  // themselves have struct type, then this struct must be converted
-  // to the backend representation before the field's type is
-  // converted.  That may seem backward, but it works because if the
-  // field's type refers to this one, e.g., via a pointer, then the
-  // conversion process will pick up the half-built struct and do the
-  // right thing.
+  // themselves have struct type, or array of struct type, then this
+  // struct must be converted to the backend representation before the
+  // field's type is converted.  That may seem backward, but it works
+  // because if the field's type refers to this one, e.g., via a
+  // pointer, then the conversion process will pick up the half-built
+  // struct and do the right thing.
   if (this->struct_type() != NULL)
     {
       const Struct_field_list* fields = this->struct_type()->fields();
@@ -6936,6 +6964,16 @@ Named_type::do_verify()
 	  Struct_type* st = p->type()->struct_type();
 	  if (st != NULL)
 	    st->add_prerequisite(this);
+	  else
+	    {
+	      Array_type* at = p->type()->array_type();
+	      if (at != NULL && !at->is_open_array_type())
+		{
+		  st = at->element_type()->struct_type();
+		  if (st != NULL)
+		    st->add_prerequisite(this);
+		}
+	    }
 	}
     }
 
@@ -7485,7 +7523,13 @@ Type::add_interface_methods_for_type(const Type* type,
        ++pm)
     {
       Function_type* fntype = pm->type()->function_type();
-      gcc_assert(fntype != NULL && !fntype->is_method());
+      if (fntype == NULL)
+	{
+	  // This is an error, but it should be reported elsewhere
+	  // when we look at the methods for IT.
+	  continue;
+	}
+      gcc_assert(!fntype->is_method());
       fntype = fntype->copy_with_receiver(const_cast<Type*>(type));
       Method* m = new Interface_method(pm->name(), pm->location(), fntype,
 				       field_indexes, depth);
@@ -7755,6 +7799,8 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
     {
       expr = Expression::make_unary(OPERATOR_MULT, expr, location);
       type = type->points_to();
+      if (type->deref()->is_error_type())
+	return Expression::make_error(location);
       nt = type->points_to()->named_type();
       st = type->points_to()->struct_type();
       it = type->points_to()->interface_type();
@@ -8052,9 +8098,9 @@ Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
 				    const std::string& name,
 				    std::vector<const Named_type*>* seen)
 {
-  type = type->deref();
-
   const Named_type* nt = type->named_type();
+  if (nt == NULL)
+    nt = type->deref()->named_type();
   if (nt != NULL)
     {
       if (nt->is_unexported_local_method(gogo, name))
@@ -8071,6 +8117,8 @@ Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
 	    }
 	}
     }
+
+  type = type->deref();
 
   const Interface_type* it = type->interface_type();
   if (it != NULL && it->is_unexported_method(gogo, name))
@@ -8095,11 +8143,17 @@ Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
        ++pf)
     {
       if (pf->is_anonymous()
-	  && (!pf->type()->deref()->is_error_type()
-	      && !pf->type()->deref()->is_undefined()))
+	  && !pf->type()->deref()->is_error_type()
+	  && !pf->type()->deref()->is_undefined())
 	{
-	  Named_type* subtype = pf->type()->deref()->named_type();
-	  gcc_assert(subtype != NULL);
+	  Named_type* subtype = pf->type()->named_type();
+	  if (subtype == NULL)
+	    subtype = pf->type()->deref()->named_type();
+	  if (subtype == NULL)
+	    {
+	      // This is an error, but it will be diagnosed elsewhere.
+	      continue;
+	    }
 	  if (Type::is_unexported_field_or_method(gogo, subtype, name, seen))
 	    {
 	      if (nt != NULL)

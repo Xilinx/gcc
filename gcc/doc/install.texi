@@ -1697,6 +1697,16 @@ enabled together with @option{--enable-lto}, an additional directory
 plugin for gold that allows the link-time optimizer to extract object
 files with LTO information out of library archives.  See
 @option{-flto} and @option{-fwhopr} for details.
+
+@item --enable-canonical-prefixes
+@itemx --disable-canonical-prefixes
+Enable prefix canonicalization for GCC files that the GCC driver locates
+relative to its own path.  Canonicalized prefixes have any @code{/x/../}
+elements removed and symbolic links expanded.  This is enabled by default,
+and may be disabled using @option{--disable-canonical-prefixes}.
+See @option{-canonical-prefixes} or @option{-no-canonical-prefixes} for
+more details, including how to override this configuration option when
+compiling.
 @end table
 
 @subheading Cross-Compiler-Specific Options

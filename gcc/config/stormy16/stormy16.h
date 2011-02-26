@@ -1,6 +1,6 @@
 /* Xstormy16 cpu description.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2007,
-   2008, 2009, 2010  Free Software Foundation, Inc.
+   2008, 2009, 2010, 2011  Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
    This file is part of GCC.
@@ -225,26 +225,6 @@ enum reg_class
 
 #define INDEX_REG_CLASS GENERAL_REGS
 
-/*   The following letters are unavailable, due to being used as
-   constraints:
-	'0'..'9'
-	'<', '>'
-	'E', 'F', 'G', 'H'
-	'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'
-	'Q', 'R', 'S', 'T', 'U'
-	'V', 'X'
-	'g', 'i', 'm', 'n', 'o', 'p', 'r', 's'.  */
-
-#define REG_CLASS_FROM_LETTER(CHAR)		\
- (  (CHAR) == 'a' ? R0_REGS			\
-  : (CHAR) == 'b' ? R1_REGS			\
-  : (CHAR) == 'c' ? R2_REGS			\
-  : (CHAR) == 'd' ? R8_REGS			\
-  : (CHAR) == 'e' ? EIGHT_REGS			\
-  : (CHAR) == 't' ? TWO_REGS			\
-  : (CHAR) == 'z' ? ICALL_REGS			\
-  : NO_REGS)
-
 #define REGNO_OK_FOR_BASE_P(NUM) 1
 
 #define REGNO_OK_FOR_INDEX_P(NUM) REGNO_OK_FOR_BASE_P (NUM)
@@ -262,22 +242,6 @@ enum reg_class
 
 #define CLASS_MAX_NREGS(CLASS, MODE) \
   ((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD)
-
-#define CONST_OK_FOR_LETTER_P(VALUE, C)			\
-  (  (C) == 'I' ? (VALUE) >= 0 && (VALUE) <= 3		\
-   : (C) == 'J' ? exact_log2 (VALUE) != -1		\
-   : (C) == 'K' ? exact_log2 (~(VALUE)) != -1		\
-   : (C) == 'L' ? (VALUE) >= 0 && (VALUE) <= 255	\
-   : (C) == 'M' ? (VALUE) >= -255 && (VALUE) <= 0	\
-   : (C) == 'N' ? (VALUE) >= -3 && (VALUE) <= 0		\
-   : (C) == 'O' ? (VALUE) >= 1 && (VALUE) <= 4		\
-   : (C) == 'P' ? (VALUE) >= -4 && (VALUE) <= -1	\
-   : 0 )
-
-#define CONST_DOUBLE_OK_FOR_LETTER_P(VALUE, C) 0
-
-#define EXTRA_CONSTRAINT(VALUE, C) \
-  xstormy16_extra_constraint_p (VALUE, C)
 
 
 /* Basic Stack Layout.  */
@@ -397,23 +361,6 @@ enum reg_class
 #define HAVE_PRE_DECREMENT 1
 
 #define MAX_REGS_PER_ADDRESS 1
-
-#ifdef REG_OK_STRICT
-#define REG_OK_FOR_BASE_P(X) 						   \
-  (REGNO_OK_FOR_BASE_P (REGNO (X)) && (REGNO (X) < FIRST_PSEUDO_REGISTER))
-#else
-#define REG_OK_FOR_BASE_P(X) REGNO_OK_FOR_BASE_P (REGNO (X))
-#endif
-
-#define REG_OK_FOR_INDEX_P(X) REG_OK_FOR_BASE_P (X)
-
-/* On this chip, this is true if the address is valid with an offset
-   of 0 but not of 6, because in that case it cannot be used as an
-   address for DImode or DFmode, or if the address is a post-increment
-   or pre-decrement address.  */
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR,LABEL)			\
-  if (xstormy16_mode_dependent_address_p (ADDR))			\
-    goto LABEL
 
 #define LEGITIMATE_CONSTANT_P(X) 1
 

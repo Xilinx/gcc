@@ -1,5 +1,5 @@
 /* Callgraph handling code.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -720,6 +720,7 @@ bool cgraph_node_can_be_local_p (struct cgraph_node *);
 
 struct varpool_node * varpool_get_node (const_tree decl);
 void varpool_remove_node (struct varpool_node *node);
+void varpool_finalize_named_section_flags (struct varpool_node *node);
 bool varpool_assemble_pending_decls (void);
 bool varpool_assemble_decl (struct varpool_node *node);
 bool varpool_analyze_pending_decls (void);
@@ -768,7 +769,7 @@ varpool_next_static_initializer (struct varpool_node *node)
 
 /* In ipa-inline.c  */
 void cgraph_clone_inlined_nodes (struct cgraph_edge *, bool, bool);
-unsigned int compute_inline_parameters (struct cgraph_node *);
+void compute_inline_parameters (struct cgraph_node *);
 
 
 /* Create a new static variable of type TYPE.  */
@@ -943,7 +944,7 @@ varpool_can_remove_if_no_refs (struct varpool_node *node)
 /* Return true when all references to VNODE must be visible in ipa_ref_list.
    i.e. if the variable is not externally visible or not used in some magic
    way (asm statement or such).
-   The magic uses are all sumarized in force_output flag.  */
+   The magic uses are all summarized in force_output flag.  */
 
 static inline bool
 varpool_all_refs_explicit_p (struct varpool_node *vnode)

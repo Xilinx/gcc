@@ -3211,7 +3211,7 @@ fi
 
 AC_MSG_CHECKING(linker plugin support)
 gcc_cv_lto_plugin=no
-if test -f ../lto-plugin/Makefile ; then
+if test -f liblto_plugin.la; then
   if test $in_tree_ld = yes -a x"$ORIGINAL_PLUGIN_LD_FOR_TARGET=" = x"$gcc_cv_ld"; then
     if test x"$ld_is_gold" = xyes; then
       gcc_cv_lto_plugin=yes
@@ -4683,6 +4683,18 @@ else
   slibdir='$(libdir)'
 fi)
 AC_SUBST(slibdir)
+
+# Set default prefix canonicalization.
+
+AC_ARG_ENABLE(canonical-prefixes,
+[  --enable-canonical-prefixes
+                          enable or disable prefix canonicalization],
+[],
+enable_canonical_prefixes=yes)
+if test x"$enable_canonical_prefixes" = xyes; then
+  AC_DEFINE(ENABLE_CANONICAL_PREFIXES,
+            1, [Define to enable prefix canonicalization.])
+fi
 
 # Substitute configuration variables
 AC_SUBST(subdirs)

@@ -916,6 +916,7 @@ with_system_zlib
 enable_maintainer_mode
 enable_version_specific_runtime_libs
 with_slibdir
+enable_canonical_prefixes
 enable_plugin
 enable_libquadmath_support
 '
@@ -1627,6 +1628,8 @@ Optional Features:
   --enable-version-specific-runtime-libs
                           specify that runtime libraries should be
                           installed in a compiler-specific directory
+  --enable-canonical-prefixes
+                          enable or disable prefix canonicalization
   --enable-plugin         enable plugin support
   --disable-libquadmath-support
                           disable libquadmath support for Fortran
@@ -15798,10 +15801,6 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
       hardcode_shlibpath_var=no
       ;;
 
-    freebsd1*)
-      ld_shlibs=no
-      ;;
-
     # FreeBSD 2.2.[012] allows us to include c++rt0.o to get C++ constructor
     # support.  Future versions do this automatically, but an explicit c++rt0.o
     # does not break anything, and helps significantly (at the cost of a little
@@ -16720,10 +16719,6 @@ dgux*)
   shlibpath_var=LD_LIBRARY_PATH
   ;;
 
-freebsd1*)
-  dynamic_linker=no
-  ;;
-
 freebsd* | dragonfly*)
   # DragonFly does not have aout.  When/if they implement a new
   # versioning mechanism, adjust this.
@@ -17583,7 +17578,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17586 "configure"
+#line 17581 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17689,7 +17684,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17692 "configure"
+#line 17687 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -20383,10 +20378,6 @@ dgux*)
   shlibpath_var=LD_LIBRARY_PATH
   ;;
 
-freebsd1*)
-  dynamic_linker=no
-  ;;
-
 freebsd* | dragonfly*)
   # DragonFly does not have aout.  When/if they implement a new
   # versioning mechanism, adjust this.
@@ -21437,6 +21428,9 @@ else
    case "$target" in
   i[34567]86-*-linux*)
         gcc_cv_as_flags="--32"
+    ;;
+  powerpc*-*-darwin*)
+        gcc_cv_as_flags="-arch ppc"
     ;;
   *)
     gcc_cv_as_flags=" "
@@ -23195,7 +23189,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking linker plugin support" >&5
 $as_echo_n "checking linker plugin support... " >&6; }
 gcc_cv_lto_plugin=no
-if test -f ../lto-plugin/Makefile ; then
+if test -f liblto_plugin.la; then
   if test $in_tree_ld = yes -a x"$ORIGINAL_PLUGIN_LD_FOR_TARGET=" = x"$gcc_cv_ld"; then
     if test x"$ld_is_gold" = xyes; then
       gcc_cv_lto_plugin=yes
@@ -26155,6 +26149,21 @@ fi
 fi
 
 
+
+# Set default prefix canonicalization.
+
+# Check whether --enable-canonical-prefixes was given.
+if test "${enable_canonical_prefixes+set}" = set; then :
+  enableval=$enable_canonical_prefixes;
+else
+  enable_canonical_prefixes=yes
+fi
+
+if test x"$enable_canonical_prefixes" = xyes; then
+
+$as_echo "#define ENABLE_CANONICAL_PREFIXES 1" >>confdefs.h
+
+fi
 
 # Substitute configuration variables
 

@@ -1916,6 +1916,17 @@ extern int computed_jump_p (const_rtx);
 typedef int (*rtx_function) (rtx *, void *);
 extern int for_each_rtx (rtx *, rtx_function, void *);
 
+/* Callback for for_each_inc_dec, to process the autoinc operation OP
+   within MEM that sets DEST to SRC + SRCOFF, or SRC if SRCOFF is
+   NULL.  The callback is passed the same opaque ARG passed to
+   for_each_inc_dec.  Return zero to continue looking for other
+   autoinc operations, -1 to skip OP's operands, and any other value
+   to interrupt the traversal and return that value to the caller of
+   for_each_inc_dec.  */
+typedef int (*for_each_inc_dec_fn) (rtx mem, rtx op, rtx dest, rtx src,
+				    rtx srcoff, void *arg);
+extern int for_each_inc_dec (rtx *, for_each_inc_dec_fn, void *arg);
+
 typedef int (*rtx_equal_p_callback_function) (const_rtx *, const_rtx *,
                                               rtx *, rtx *);
 extern int rtx_equal_p_cb (const_rtx, const_rtx,
@@ -2290,6 +2301,9 @@ extern int delete_trivially_dead_insns (rtx, int);
 extern int cse_main (rtx, int);
 extern int exp_equiv_p (const_rtx, const_rtx, int, bool);
 extern unsigned hash_rtx (const_rtx x, enum machine_mode, int *, int *, bool);
+
+/* In dse.c */
+extern void check_for_inc_dec (rtx insn);
 
 /* In jump.c */
 extern int comparison_dominates_p (enum rtx_code, enum rtx_code);

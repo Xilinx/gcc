@@ -786,6 +786,7 @@ enable_libtool_lock
 enable_version_specific_runtime_libs
 with_libffi
 with_system_libunwind
+enable_sjlj_exceptions
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1425,6 +1426,8 @@ Optional Features:
   --enable-version-specific-runtime-libs
                           Specify that runtime libraries should be installed
                           in a compiler-specific directory
+  --enable-sjlj-exceptions
+                          force use of builtin_setjmp for exceptions
 
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
@@ -6391,7 +6394,7 @@ $as_echo "$lt_cv_cc_needs_belf" >&6; }
     CFLAGS="$SAVE_CFLAGS"
   fi
   ;;
-sparc*-*solaris*)
+*-*solaris*)
   # Find out which ABI we are using.
   echo 'int i;' > conftest.$ac_ext
   if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
@@ -6402,7 +6405,20 @@ sparc*-*solaris*)
     case `/usr/bin/file conftest.o` in
     *64-bit*)
       case $lt_cv_prog_gnu_ld in
-      yes*) LD="${LD-ld} -m elf64_sparc" ;;
+      yes*)
+        case $host in
+        i?86-*-solaris*)
+          LD="${LD-ld} -m elf_x86_64"
+          ;;
+        sparc*-*-solaris*)
+          LD="${LD-ld} -m elf64_sparc"
+          ;;
+        esac
+        # GNU ld 2.21 introduced _sol2 emulations.  Use them if available.
+        if ${LD-ld} -V | grep _sol2 >/dev/null 2>&1; then
+          LD="${LD-ld}_sol2"
+        fi
+        ;;
       *)
 	if ${LD-ld} -64 -r -o conftest2.o conftest.o >/dev/null 2>&1; then
 	  LD="${LD-ld} -64"
@@ -9105,10 +9121,6 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
       hardcode_shlibpath_var=no
       ;;
 
-    freebsd1*)
-      ld_shlibs=no
-      ;;
-
     # FreeBSD 2.2.[012] allows us to include c++rt0.o to get C++ constructor
     # support.  Future versions do this automatically, but an explicit c++rt0.o
     # does not break anything, and helps significantly (at the cost of a little
@@ -10027,10 +10039,6 @@ dgux*)
   shlibpath_var=LD_LIBRARY_PATH
   ;;
 
-freebsd1*)
-  dynamic_linker=no
-  ;;
-
 freebsd* | dragonfly*)
   # DragonFly does not have aout.  When/if they implement a new
   # versioning mechanism, adjust this.
@@ -10890,7 +10898,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10893 "configure"
+#line 10901 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -10996,7 +11004,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 10999 "configure"
+#line 11007 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12529,10 +12537,6 @@ if test -z "$aix_libpath"; then aix_libpath="/usr/lib:/lib"; fi
       hardcode_shlibpath_var_GO=no
       ;;
 
-    freebsd1*)
-      ld_shlibs_GO=no
-      ;;
-
     # FreeBSD 2.2.[012] allows us to include c++rt0.o to get C++ constructor
     # support.  Future versions do this automatically, but an explicit c++rt0.o
     # does not break anything, and helps significantly (at the cost of a little
@@ -13286,12 +13290,12 @@ case ${host} in
 #error 64-bit
 #endif
 _ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
+if ac_fn_c_try_compile "$LINENO"; then :
   is_386=yes
 else
   is_x86_64=yes
 fi
-rm -f conftest.err conftest.$ac_ext
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     if test "$is_386" = "yes"; then
       GOARCH=386
     else
@@ -13310,12 +13314,12 @@ rm -f conftest.err conftest.$ac_ext
 #error 64-bit
 #endif
 _ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
+if ac_fn_c_try_compile "$LINENO"; then :
   is_mips=yes
 else
   is_mips64=yes
 fi
-rm -f conftest.err conftest.$ac_ext
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     if test "$is_mips" = "yes"; then
       GOARCH=mips
     else
@@ -13330,12 +13334,12 @@ rm -f conftest.err conftest.$ac_ext
 #error 64-bit
 #endif
 _ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
+if ac_fn_c_try_compile "$LINENO"; then :
   is_ppc=yes
 else
   is_ppc64=yes
 fi
-rm -f conftest.err conftest.$ac_ext
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     if test "$is_ppc" = "yes"; then
       GOARCH=ppc
     else
@@ -13350,12 +13354,12 @@ rm -f conftest.err conftest.$ac_ext
 #error 64-bit
 #endif
 _ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
+if ac_fn_c_try_compile "$LINENO"; then :
   is_sparc=yes
 else
   is_sparc64=yes
 fi
-rm -f conftest.err conftest.$ac_ext
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     if test "$is_sparc" = "yes"; then
       GOARCH=sparc
     else
@@ -14063,7 +14067,69 @@ $as_echo "#define HAVE_GETIPINFO 1" >>confdefs.h
   fi
 
 
-for ac_header in sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/user.h sys/utsname.h
+# Check whether --enable-sjlj-exceptions was given.
+if test "${enable_sjlj_exceptions+set}" = set; then :
+  enableval=$enable_sjlj_exceptions; case "$enableval" in
+   yes|no|auto) ;;
+   *) as_fn_error "unknown argument to --enable-sjlj-exceptions" "$LINENO" 5 ;;
+   esac
+else
+  enable_sjlj_exceptions=auto
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to use setjmp/longjmp exceptions" >&5
+$as_echo_n "checking whether to use setjmp/longjmp exceptions... " >&6; }
+if test "${libgo_cv_lib_sjlj_exceptions+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+void bar ();
+void clean (int *);
+void foo ()
+{
+  int i __attribute__ ((cleanup (clean)));
+  bar();
+}
+
+_ACEOF
+CFLAGS_hold=$CFLAGS
+CFLAGS="--save-temps -fexceptions"
+libgo_cv_lib_sjlj_exceptions=unknown
+if ac_fn_c_try_compile; then :
+  if grep _Unwind_SjLj_Resume conftest.s >/dev/null 2>&1; then
+    libgo_cv_lib_sjlj_exceptions=yes
+  elif grep _Unwind_Resume conftest.s >/dev/null 2>&1; then
+    libgo_cv_lib_sjlj_exceptions=no
+  fi
+fi
+CFLAGS=$CFLAGS_hold
+rm -f conftest*
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $libgo_cv_lib_sjlj_exceptions" >&5
+$as_echo "$libgo_cv_lib_sjlj_exceptions" >&6; }
+
+if test "$enable_sjlj_exceptions" = "auto"; then
+  enable_sjlj_exceptions=$libgo_cv_lib_sjlj_exceptions
+fi
+
+case $enable_sjlj_exceptions in
+yes)
+
+$as_echo "#define LIBGO_SJLJ_EXCEPTIONS 1" >>confdefs.h
+
+  ;;
+no)
+  ;;
+*)
+  as_fn_error "unable to detect exception model" "$LINENO" 5
+  ;;
+esac
+
+for ac_header in sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -14123,7 +14189,37 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $libgo_cv_func___sync_bool_compare_and_swap_4" >&5
 $as_echo "$libgo_cv_func___sync_bool_compare_and_swap_4" >&6; }
 if test "$libgo_cv_func___sync_bool_compare_and_swap_4" = "yes"; then
-  $as_echo "#define HAVE_SYNC_BOOL_COMPARE_AND_SWAP_4 1" >>confdefs.h
+
+$as_echo "#define HAVE_SYNC_BOOL_COMPARE_AND_SWAP_4 1" >>confdefs.h
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for __sync_fetch_and_add_4" >&5
+$as_echo_n "checking for __sync_fetch_and_add_4... " >&6; }
+if test "${libgo_cv_func___sync_fetch_and_add_4+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+typedef unsigned int uint32  __attribute__ ((mode (SI)));
+uint32 i;
+int main() { return __sync_fetch_and_add (&i, 1); }
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  libgo_cv_func___sync_fetch_and_add_4=yes
+else
+  libgo_cv_func___sync_fetch_and_add_4=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $libgo_cv_func___sync_fetch_and_add_4" >&5
+$as_echo "$libgo_cv_func___sync_fetch_and_add_4" >&6; }
+if test "$libgo_cv_func___sync_fetch_and_add_4" = "yes"; then
+
+$as_echo "#define HAVE_SYNC_FETCH_AND_ADD_4 1" >>confdefs.h
 
 fi
 

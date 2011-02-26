@@ -1848,7 +1848,13 @@ Parse::init_var(const Typed_identifier& tid, Type* type, Expression* init,
   *is_new = true;
   Variable* var = new Variable(type, init, this->gogo_->in_global_scope(),
 			       false, false, location);
-  return this->gogo_->add_variable(tid.name(), var);
+  Named_object* no = this->gogo_->add_variable(tid.name(), var);
+  if (!no->is_variable())
+    {
+      // The name is already defined, so we just gave an error.
+      return this->gogo_->add_sink();
+    }
+  return no;
 }
 
 // Create a dummy global variable to force an initializer to be run in
@@ -1859,6 +1865,8 @@ Named_object*
 Parse::create_dummy_global(Type* type, Expression* init,
 			   source_location location)
 {
+  if (type == NULL && init == NULL)
+    type = Type::lookup_bool_type();
   Variable* var = new Variable(type, init, true, false, false, location);
   static int count;
   char buf[30];
@@ -3791,11 +3799,14 @@ Parse::switch_stat(const Label* label)
 		  // This must be a TypeSwitchGuard.
 		  switch_val = this->simple_stat(false, true, NULL,
 						 &type_switch);
-		  if (!type_switch.found
-		      && !switch_val->is_error_expression())
+		  if (!type_switch.found)
 		    {
-		      error_at(id_loc, "expected type switch assignment");
-		      switch_val = Expression::make_error(id_loc);
+		      if (switch_val == NULL
+			  || !switch_val->is_error_expression())
+			{
+			  error_at(id_loc, "expected type switch assignment");
+			  switch_val = Expression::make_error(id_loc);
+			}
 		    }
 		}
 	    }

@@ -51,6 +51,12 @@
 #endif
 
 
+/* Define to enable prefix canonicalization. */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_CANONICAL_PREFIXES
+#endif
+
+
 /* Define if you want more run-time sanity checks. This one gets a grab bag of
    miscellaneous but relatively cheap checks. */
 #ifndef USED_FOR_TARGET

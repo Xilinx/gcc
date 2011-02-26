@@ -1157,7 +1157,7 @@ delete_tree_ssa (void)
   tree var;
 
   /* Remove annotations from every referenced local variable.  */
-  FOR_EACH_REFERENCED_VAR (var, rvi)
+  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
     {
       if (is_global_var (var))
 	continue;
@@ -1885,6 +1885,34 @@ non_rewritable_mem_ref_base (tree ref)
   return NULL_TREE;
 }
 
+/* For an lvalue tree LHS return true if it cannot be rewritten into SSA form.
+   Otherwise return true.  */
+
+static bool 
+non_rewritable_lvalue_p (tree lhs)
+{
+  /* A plain decl is always rewritable.  */
+  if (DECL_P (lhs))
+    return false;
+
+  /* A decl that is wrapped inside a MEM-REF that covers
+     it full is also rewritable.
+     ???  The following could be relaxed allowing component
+     references that do not change the access size.  */
+  if (TREE_CODE (lhs) == MEM_REF
+      && TREE_CODE (TREE_OPERAND (lhs, 0)) == ADDR_EXPR
+      && integer_zerop (TREE_OPERAND (lhs, 1)))
+    {
+      tree decl = TREE_OPERAND (TREE_OPERAND (lhs, 0), 0);
+      if (DECL_P (decl)
+	  && DECL_SIZE (decl) == TYPE_SIZE (TREE_TYPE (lhs))
+	  && (TREE_THIS_VOLATILE (decl) == TREE_THIS_VOLATILE (lhs)))
+	return false;
+    }
+
+  return true;
+}
+
 /* When possible, clear TREE_ADDRESSABLE bit or set DECL_GIMPLE_REG_P bit and
    mark the variable VAR for conversion into SSA.  Return true when updating
    stmts is required.  */
@@ -1902,7 +1930,7 @@ maybe_optimize_var (tree var, bitmap addresses_taken, bitmap not_reg_needs)
 
   /* If the variable is not in the list of referenced vars then we
      do not need to touch it nor can we rename it.  */
-  if (!referenced_var_lookup (DECL_UID (var)))
+  if (!referenced_var_lookup (cfun, DECL_UID (var)))
     return false;
 
   if (TREE_ADDRESSABLE (var)
@@ -1978,29 +2006,13 @@ execute_update_addresses_taken (void)
 	  if (code == GIMPLE_ASSIGN || code == GIMPLE_CALL)
 	    {
               tree lhs = gimple_get_lhs (stmt);
-
-              /* A plain decl does not need it set.  */
-              if (lhs && !DECL_P (lhs))
+              if (lhs
+		  && TREE_CODE (lhs) != SSA_NAME
+		  && non_rewritable_lvalue_p (lhs))
 		{
-		  tree orig_lhs = lhs;
-
-		  while (handled_component_p (lhs))
-		    lhs = TREE_OPERAND (lhs, 0);
-
-                  if (DECL_P (lhs))
-                    bitmap_set_bit (not_reg_needs, DECL_UID (lhs));
-		  else if (TREE_CODE (lhs) == MEM_REF
-			   && TREE_CODE (TREE_OPERAND (lhs, 0)) == ADDR_EXPR)
-		    {
-		      decl = TREE_OPERAND (TREE_OPERAND (lhs, 0), 0);
-		      if (DECL_P (decl)
-			  && (!integer_zerop (TREE_OPERAND (lhs, 1))
-			      || (DECL_SIZE (decl)
-				  != TYPE_SIZE (TREE_TYPE (orig_lhs)))
-			      || (TREE_THIS_VOLATILE (lhs)
-				  != TREE_THIS_VOLATILE (decl))))
-			bitmap_set_bit (not_reg_needs, DECL_UID (decl));
-		    }
+		  decl = get_base_address (lhs);
+		  if (DECL_P (decl))
+		    bitmap_set_bit (not_reg_needs, DECL_UID (decl));
                 }
 	    }
 
@@ -2027,29 +2039,17 @@ execute_update_addresses_taken (void)
 		{
 		  tree link = gimple_asm_output_op (stmt, i);
 		  tree lhs = TREE_VALUE (link);
-
-		  /* A plain decl does not need it set.  */
-		  if (!DECL_P (lhs))
+		  if (TREE_CODE (lhs) != SSA_NAME)
 		    {
-		      tree orig_lhs = lhs;
-
-		      while (handled_component_p (lhs))
-			lhs = TREE_OPERAND (lhs, 0);
-		  
-		      if (DECL_P (lhs))
-			bitmap_set_bit (not_reg_needs, DECL_UID (lhs));
-		      else if (TREE_CODE (lhs) == MEM_REF
-			       && TREE_CODE (TREE_OPERAND (lhs, 0)) == ADDR_EXPR)
-			{
-			  decl = TREE_OPERAND (TREE_OPERAND (lhs, 0), 0);
-			  if (DECL_P (decl)
-			      && (!integer_zerop (TREE_OPERAND (lhs, 1))
-				  || (TYPE_MAIN_VARIANT (TREE_TYPE (decl))
-				      != TYPE_MAIN_VARIANT (TREE_TYPE (orig_lhs)))
-				  || (TREE_THIS_VOLATILE (lhs)
-				      != TREE_THIS_VOLATILE (decl))))
-			    bitmap_set_bit (not_reg_needs, DECL_UID (decl));
-			}
+		      decl = get_base_address (lhs);
+		      if (DECL_P (decl)
+			  && (non_rewritable_lvalue_p (lhs)
+			      /* We cannot move required conversions from
+				 the lhs to the rhs in asm statements, so
+				 require we do not need any.  */
+			      || !useless_type_conversion_p
+			            (TREE_TYPE (lhs), TREE_TYPE (decl))))
+			bitmap_set_bit (not_reg_needs, DECL_UID (decl));
 		    }
 		}
 	      for (i = 0; i < gimple_asm_ninputs (stmt); ++i)

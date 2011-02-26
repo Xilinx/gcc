@@ -520,7 +520,7 @@ update_alias_info_with_stack_vars (void)
 	     for -O0 where we are preserving even unreferenced variables.  */
 	  gcc_assert (DECL_P (decl)
 		      && (!optimize
-			  || referenced_var_lookup (DECL_UID (decl))));
+			  || referenced_var_lookup (cfun, DECL_UID (decl))));
 	  bitmap_set_bit (part, uid);
 	  *((bitmap *) pointer_map_insert (decls_to_partitions,
 					   (void *)(size_t) uid)) = part;
@@ -1311,30 +1311,6 @@ create_stack_guard (void)
   crtl->stack_protect_guard = guard;
 }
 
-/* A subroutine of expand_used_vars.  Walk down through the BLOCK tree
-   expanding variables.  Those variables that can be put into registers
-   are allocated pseudos; those that can't are put on the stack.
-
-   TOPLEVEL is true if this is the outermost BLOCK.  */
-
-static HOST_WIDE_INT
-account_used_vars_for_block (tree block, bool toplevel)
-{
-  tree t;
-  HOST_WIDE_INT size = 0;
-
-  /* Expand all variables at this level.  */
-  for (t = BLOCK_VARS (block); t ; t = DECL_CHAIN (t))
-    if (var_ann (t) && var_ann (t)->used)
-      size += expand_one_var (t, toplevel, false);
-
-  /* Expand all variables at containing levels.  */
-  for (t = BLOCK_SUBBLOCKS (block); t ; t = BLOCK_CHAIN (t))
-    size += account_used_vars_for_block (t, false);
-
-  return size;
-}
-
 /* Prepare for expanding variables.  */
 static void
 init_vars_expansion (void)
@@ -1366,35 +1342,30 @@ fini_vars_expansion (void)
   stack_vars_alloc = stack_vars_num = 0;
 }
 
-/* Make a fair guess for the size of the stack frame of the decl
-   passed.  This doesn't have to be exact, the result is only used
-   in the inline heuristics.  So we don't want to run the full stack
-   var packing algorithm (which is quadratic in the number of stack
-   vars).  Instead, we calculate the total size of all stack vars.
-   This turns out to be a pretty fair estimate -- packing of stack
-   vars doesn't happen very often.  */
+/* Make a fair guess for the size of the stack frame of the function
+   in NODE.  This doesn't have to be exact, the result is only used in
+   the inline heuristics.  So we don't want to run the full stack var
+   packing algorithm (which is quadratic in the number of stack vars).
+   Instead, we calculate the total size of all stack vars.  This turns
+   out to be a pretty fair estimate -- packing of stack vars doesn't
+   happen very often.  */
 
 HOST_WIDE_INT
-estimated_stack_frame_size (tree decl)
+estimated_stack_frame_size (struct cgraph_node *node)
 {
   HOST_WIDE_INT size = 0;
   size_t i;
-  tree var, outer_block = DECL_INITIAL (current_function_decl);
-  unsigned ix;
+  tree var;
   tree old_cur_fun_decl = current_function_decl;
-  current_function_decl = decl;
-  push_cfun (DECL_STRUCT_FUNCTION (decl));
+  referenced_var_iterator rvi;
+  struct function *fn = DECL_STRUCT_FUNCTION (node->decl);
 
-  init_vars_expansion ();
+  current_function_decl = node->decl;
+  push_cfun (fn);
 
-  FOR_EACH_LOCAL_DECL (cfun, ix, var)
-    {
-      /* TREE_USED marks local variables that do not appear in lexical
-	 blocks.  We don't want to expand those that do twice.  */
-      if (TREE_USED (var))
-        size += expand_one_var (var, true, false);
-    }
-  size += account_used_vars_for_block (outer_block, true);
+  gcc_checking_assert (gimple_referenced_vars (fn));
+  FOR_EACH_REFERENCED_VAR (fn, var, rvi)
+    size += expand_one_var (var, true, false);
 
   if (stack_vars_num > 0)
     {
@@ -3133,7 +3104,7 @@ expand_debug_expr (tree exp)
 
 	    gcc_assert (part >= 0 && (unsigned)part < SA.map->num_partitions);
 
-	    op0 = SA.partition_to_pseudo[part];
+	    op0 = copy_rtx (SA.partition_to_pseudo[part]);
 	  }
 	goto adjust_mode;
       }
