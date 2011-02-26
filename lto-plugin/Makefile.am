@@ -11,8 +11,6 @@ AM_CPPFLAGS = -I$(top_srcdir)/../include $(DEFS)
 AM_CFLAGS = -Wall -Werror
 AM_LIBTOOLFLAGS = --tag=disable-static
 
-# This can go away when libiberty becomes a normal convenience library
-Wl=-Wl,
 libexecsub_LTLIBRARIES = liblto_plugin.la
 gcc_build_dir = ../$(host_subdir)/gcc
 in_gcc_libs = $(foreach lib, $(libexecsub_LTLIBRARIES), $(gcc_build_dir)/$(lib))
