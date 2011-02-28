@@ -1,3 +1,8 @@
+2011-02-24  Lawrence Crowl <crowl@google.com>
+
+	* g++.dg/pph/d1unguarded.h: Add test for non-null unguarded header.
+        * g++.dg/pph/d2null.h: Unguarded header error now expected.
+
 2011-02-15  Lawrence Crowl <crowl@google.com>
 
 	* lib/dg-pph.exp: Restructure for command-driven PPH.

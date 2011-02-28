@@ -1320,6 +1320,43 @@ _cpp_report_missing_guards (cpp_reader *pfile)
     }
 }
 
+
+/* Callback function for cpp_main_missing_guard with htab_traverse.  */
+static int
+main_missing_guard (void **slot, void *d)
+{
+  struct file_hash_entry *entry = (struct file_hash_entry *) *slot;
+  const char **dropbox = (const char **) d;
+
+  /* Skip directories.  */
+  if (entry->start_dir != NULL)
+    {
+      _cpp_file *file = entry->u.file;
+
+      /* FIXME pph: It's not clear what effect once_only should have.  */
+      if (   !file->once_only && file->cmacro == NULL
+          && file->stack_count == 1 && file->main_file)
+        {
+          *dropbox = file->path;
+          return 0; /* Stop traversing the hash table.  */
+        }
+    }
+
+  /* Keep traversing the hash table.  */
+  return 1;
+}
+
+/* Return the path name of the main file iff it does not have a 
+   multiple include guard. */
+const char *
+cpp_main_missing_guard (cpp_reader *pfile)
+{
+  const char *offending_file = false;
+  htab_traverse (pfile->file_hash, main_missing_guard, &offending_file);
+  return offending_file;
+}
+
+
 /* Locate HEADER, and determine whether it is newer than the current
    file.  If it cannot be located or dated, return -1, if it is
    newer, return 1, otherwise 0.  */

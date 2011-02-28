@@ -4094,7 +4094,13 @@ void
 pph_finish (void)
 {
   if (pph_out_file != NULL)
-    write_pph_output ();
+    {
+      const char *offending_file = cpp_main_missing_guard (parse_in);
+      if (offending_file == NULL)
+        write_pph_output ();
+      else
+        error ("header lacks guard for PPH: %s", offending_file);
+    }
 
   if (flag_pph_stats)
     pph_print_stats ();

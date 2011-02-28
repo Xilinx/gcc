@@ -1,3 +1,8 @@
+2011-02-24  Lawrence Crowl <crowl@google.com>
+
+        * cp/pph.c (pph_finish): Check for missing preprocessor guard
+        for pre-parsed headers.
+
 2011-02-15  Lawrence Crowl <crowl@google.com>
 
         * cp/pph.c (write_pph_output, read_pph_file,

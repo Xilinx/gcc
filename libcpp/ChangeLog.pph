@@ -1,3 +1,9 @@
+2011-02-24  Lawrence Crowl  <crowl@google.com>
+
+	* include/cpplib.h (cpp_main_missing_guard): Add declaration.
+	* files.c (cpp_main_missing_guard): Add definition.
+	(main_missing_guard): Add to support cpp_main_missing_guard.
+
 2011-01-27  Diego Novillo  <dnovillo@google.com>
 
 	* include/cpplib.h (cpp_reset_lexer_state,

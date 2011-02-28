@@ -1013,6 +1013,9 @@ extern void cpp_clear_file_cache (cpp_reader *);
 extern cpp_offset cpp_get_pos (cpp_buffer *);
 extern void cpp_set_pos (cpp_buffer *, cpp_offset);
 extern void cpp_return_at_eof (cpp_buffer *, bool);
+/* Return the path name of the main file iff it does not have a
+   multiple include guard. */
+extern const char *cpp_main_missing_guard (cpp_reader *pfile);
 
 /* In pch.c */
 struct save_macro_data;
