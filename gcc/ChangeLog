@@ -1,3 +1,40 @@
+2011-02-28  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/extend.texi (Function Attributes): Avoid deeply (and
+	wrongly) nested tables.
+
+2011-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/47903
+	* real.c (real_arithmetic) <case PLUS_EXPR, MINUS_EXPR,
+	MULT_EXPR, RDIV_EXPR>: Clear padding bits in *r first if
+	r isn't op0 nor op1.
+
+2011-02-23  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md: Remove magic comment for emacs.
+
+2011-02-23  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/45261
+	* config/avr/avr.c (avr_option_override): Use error on bad options.
+	(avr_help): New function.
+	(TARGET_HELP): Define.
+
+2011-02-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/42240
+	* config/avr/avr.c (avr_cannot_modify_jumps_p): New function.
+	(TARGET_CANNOT_MODIFY_JUMPS_P): Define.
+
+2011-02-26  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/invoke.texi (ARC Options): Use CPU instead of cpu.
+	(ARM Options): Ditto.
+	(i386 and x86-64 Options): Ditto.
+	(RX Options): Ditto.
+	(SPARC Options): Ditto.
+
 2011-02-26  Tijl Coosemans  <tijl@coosemans.org>
 
 	* config.gcc (i386-*-freebsd*): Make i486 the default arch on

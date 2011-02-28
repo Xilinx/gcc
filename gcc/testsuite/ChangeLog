@@ -1,3 +1,39 @@
+2011-02-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47906
+	* g++.dg/cpp0x/trailing1.C: Specify -fabi-version=6.
+
+2011-02-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47778
+	* gfortran.dg/namelist_71.f90: New test.
+
+2011-02-27  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47906
+	* g++.dg/abi/mangle39.C: Specify -fabi-version=6.
+	* g++.dg/abi/mangle45.C: Specify -fabi-version=6.
+
+2011-02-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/46466
+	* g++.dg/cpp0x/constexpr-ctor8.C: New.
+
+2011-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47886
+	* gfortran.dg/gomp/task-1.f90: Removed.
+
+2011-02-26  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/this-targ1.C: New.
+
+	* g++.dg/cpp0x/regress/template-const1.C: New.
+	* g++.dg/cpp0x/regress/template-function1.C: Adjust.
+	* g++.dg/template/function1.C: Adjust.
+	* g++.dg/cpp0x/regress/debug-debug7.C: Adjust.
+	* g++.dg/debug/debug7.C: Adjust.
+
 2011-02-26  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/47886
