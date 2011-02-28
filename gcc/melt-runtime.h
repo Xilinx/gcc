@@ -2039,24 +2039,30 @@ melt_assert_failed (const char *msg, const char *filnam, int lineno,
 void
 melt_check_failed (const char *msg, const char *filnam, int lineno,
 		      const char *fun);
-enum { MELT_ANYWHERE=0, MELT_NOYOUNG };
-void  melt_check_call_frames_at(int youngflag, const char*msg, const char*filenam, int lineno);
 #define melt_assertmsg(MSG,EXPR)  do { if (MELT_UNLIKELY(!(EXPR))) \
       melt_assert_failed ((MSG),__FILE__,__LINE__,__FUNCTION__);   \
   } while(0)
 #define melt_checkmsg(MSG,EXPR)   do { if (MELT_UNLIKELY(!(EXPR))) \
       melt_check_failed ((MSG),__FILE__,__LINE__,__FUNCTION__);	   \
   } while(0)
-#define melt_check_call_frames(YNG,MSG)				\
-  ((void)(melt_check_call_frames_at((YNG),(MSG),__FILE__,__LINE__)))
 #else
 /* Include EXPR, so that unused variable warnings do not occur.  */
 #define melt_assertmsg(MSG,EXPR) ((void)(0 && (MSG) && (EXPR)))
 #define melt_assert_failed(MSG,FIL,LIN,FUN) ((void)(0 && (MSG)))
 #define melt_checkmsg(MSG,EXPR) ((void)(0 && (MSG) && (EXPR)))
 #define melt_check_failed(MSG,FIL,LIN,FUN) ((void)(0 && (MSG)))
-#define melt_check_call_frames(YNG,MSG) (void)(0)
 #endif
+
+/* MELT call frames checks are quite expensive and related to MELT's
+   garbage collector. */
+enum { MELT_ANYWHERE=0, MELT_NOYOUNG };
+#if ENABLE_GC_CHECKING
+void  melt_check_call_frames_at(int youngflag, const char*msg, const char*filenam, int lineno);
+#define melt_check_call_frames(YNG,MSG)				\
+  ((void)(melt_check_call_frames_at((YNG),(MSG),__FILE__,__LINE__)))
+#else /* no ENABLE_GC_CHECKING */
+#define melt_check_call_frames(YNG,MSG) (void)(0)
+#endif /* ENABLE_GC_CHECKING */
 
 
 /******************* method sending ************************/
