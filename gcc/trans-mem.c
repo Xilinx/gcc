@@ -3752,8 +3752,10 @@ ipa_tm_propagate_irr (basic_block entry_block, bitmap new_irr, bitmap old_irr,
 	       son;
 	       son = next_dom_son (CDI_DOMINATORS, son))
 	    {
-	      /* Make sure a block isn't already in old_irr.  */
-	      if (!old_irr || !bitmap_bit_p (old_irr, son->index))
+	      /* Make sure block is actually in a TM region, and it
+		 isn't already in old_irr.  */
+	      if ((!old_irr || !bitmap_bit_p (old_irr, son->index))
+		  && bitmap_bit_p (bb_in_TM_region, son->index))
 		bitmap_set_bit (new_irr, son->index);
 	    }
 	}

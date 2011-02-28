@@ -1,3 +1,9 @@
+2011-02-28  Aldy Hernandez  <aldyh@redhat.com>
+
+	PR 47905
+	* trans-mem.c (ipa_tm_propagate_irr): Do not propagate to blocks
+	outside of a TM region.
+
 2011-02-21  Aldy Hernandez  <aldyh@redhat.com>
 
 	PR 47746
