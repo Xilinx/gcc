@@ -23408,7 +23408,10 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 	  mem = adjust_address (m_tramp, HImode, offset);
 	  emit_move_insn (mem, gen_int_mode (0xbb49, HImode));
 
-	  mem = adjust_address (m_tramp, DImode, offset + 2);
+	  mem = adjust_address (m_tramp, ptr_mode, offset + 2);
+	  if (GET_MODE (fnaddr) != ptr_mode)
+	    fnaddr = simplify_gen_subreg (ptr_mode, fnaddr,
+					  GET_MODE (fnaddr), 0);
 	  emit_move_insn (mem, fnaddr);
 	  offset += 10;
 	}
@@ -23417,7 +23420,7 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
       mem = adjust_address (m_tramp, HImode, offset);
       emit_move_insn (mem, gen_int_mode (0xba49, HImode));
 
-      mem = adjust_address (m_tramp, DImode, offset + 2);
+      mem = adjust_address (m_tramp, ptr_mode, offset + 2);
       emit_move_insn (mem, chain_value);
       offset += 10;
 

@@ -1,3 +1,9 @@
+2011-02-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47926
+	* config/i386/i386.c (ix86_trampoline_init): Always use ptr_mode
+	on address.
+
 2011-02-25  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47715
