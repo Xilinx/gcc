@@ -3799,11 +3799,14 @@ Parse::switch_stat(const Label* label)
 		  // This must be a TypeSwitchGuard.
 		  switch_val = this->simple_stat(false, true, NULL,
 						 &type_switch);
-		  if (!type_switch.found
-		      && !switch_val->is_error_expression())
+		  if (!type_switch.found)
 		    {
-		      error_at(id_loc, "expected type switch assignment");
-		      switch_val = Expression::make_error(id_loc);
+		      if (switch_val == NULL
+			  || !switch_val->is_error_expression())
+			{
+			  error_at(id_loc, "expected type switch assignment");
+			  switch_val = Expression::make_error(id_loc);
+			}
 		    }
 		}
 	    }
@@ -4200,6 +4203,12 @@ Parse::comm_clause(Select_clauses* clauses, bool* saw_default)
 
   if (got_case)
     clauses->add(is_send, channel, val, var, is_default, statements, location);
+  else if (statements != NULL)
+    {
+      // Add the statements to make sure that any names they define
+      // are traversed.
+      this->gogo_->add_block(statements, location);
+    }
 }
 
 // CommCase = ( "default" | ( "case" ( SendExpr | RecvExpr) ) ) ":" .

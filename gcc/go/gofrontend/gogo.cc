@@ -682,10 +682,15 @@ Gogo::start_function(const std::string& name, Function_type* type,
   else if (!type->is_method())
     {
       ret = this->package_->bindings()->add_function(*pname, NULL, function);
-      if (!ret->is_function())
+      if (!ret->is_function() || ret->func_value() != function)
 	{
-	  // Redefinition error.
-	  ret = Named_object::make_function(name, NULL, function);
+	  // Redefinition error.  Invent a name to avoid knockon
+	  // errors.
+	  static int redefinition_count;
+	  char buf[30];
+	  snprintf(buf, sizeof buf, ".$redefined%d", redefinition_count);
+	  ++redefinition_count;
+	  ret = this->package_->bindings()->add_function(buf, NULL, function);
 	}
     }
   else
@@ -2200,10 +2205,14 @@ Build_recover_thunks::function(Named_object* orig_no)
 
       const std::string& new_receiver_name(orig_fntype->receiver()->name());
       Named_object* new_rec_no = new_bindings->lookup_local(new_receiver_name);
-      gcc_assert(new_rec_no != NULL
-		 && new_rec_no->is_variable()
-		 && new_rec_no->var_value()->is_receiver());
-      new_rec_no->var_value()->set_is_not_receiver();
+      if (new_rec_no == NULL)
+	gcc_assert(saw_errors());
+      else
+	{
+	  gcc_assert(new_rec_no->is_variable()
+		     && new_rec_no->var_value()->is_receiver());
+	  new_rec_no->var_value()->set_is_not_receiver();
+	}
     }
 
   // Because we flipped blocks but not types, the can_recover
@@ -2553,7 +2562,8 @@ Function::create_named_result_variables(Gogo* gogo)
 	}
       Result_variable* result = new Result_variable(p->type(), this, index);
       Named_object* no = block->bindings()->add_result_variable(name, result);
-      this->named_results_->push_back(no);
+      if (no->is_result_variable())
+	this->named_results_->push_back(no);
     }
 }
 

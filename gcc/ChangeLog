@@ -1,9 +1,202 @@
+2011-02-28  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-inline.c (cgraph_decide_inlining_of_small_functions): Fix
+	the description to match the printed values.
+
+2011-02-28  Richard Guenther  <rguenther@suse.de>
+
+	* tree-inline.c (tree_function_versioning): Set BLOCK_SUPERCONTEXT
+	of the copied scope tree.
+
+2011-02-28  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* doc/extend.texi (Function Attributes): Avoid deeply (and
+	wrongly) nested tables.
+
+2011-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/47903
+	* real.c (real_arithmetic) <case PLUS_EXPR, MINUS_EXPR,
+	MULT_EXPR, RDIV_EXPR>: Clear padding bits in *r first if
+	r isn't op0 nor op1.
+
+2011-02-23  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md: Remove magic comment for emacs.
+
+2011-02-23  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/45261
+	* config/avr/avr.c (avr_option_override): Use error on bad options.
+	(avr_help): New function.
+	(TARGET_HELP): Define.
+
+2011-02-22  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/42240
+	* config/avr/avr.c (avr_cannot_modify_jumps_p): New function.
+	(TARGET_CANNOT_MODIFY_JUMPS_P): Define.
+
+2011-02-26  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* doc/invoke.texi (ARC Options): Use CPU instead of cpu.
+	(ARM Options): Ditto.
+	(i386 and x86-64 Options): Ditto.
+	(RX Options): Ditto.
+	(SPARC Options): Ditto.
+
+2011-02-26  Tijl Coosemans  <tijl@coosemans.org>
+
+	* config.gcc (i386-*-freebsd*): Make i486 the default arch on
+	FreeBSD 6 and later.  Generally use cpu generic.
+
+2011-02-25  Gerald Pfeifer  <gerald@pfeifer.com>
+ 
+	* doc/cpp.texi: Update copyright years.
+
+2011-02-25  Sebastien Bourdeauducq  <sebastien@milkymist.org>
+
+	PR target/46898
+	* config/lm32/lm32.md (ashrsi3): Added needed variable.
+
+2011-02-25  Jon Beniston  <jon@beniston.com>
+
+	PR target/46898
+	* config/lm32/lm32.h (INCOMING_RETURN_ADDR_RTX): New.
+	* config/lm32/lm32.md (ashlsi3): Remove unused variable.
+	* config/lm32/lm32.c (TARGET_EXCEPT_UNWIND_INFO): New.
+	(lm32_block_move_inline): Add type cast to remove warning.
+	(lm32_expand_prologue): Generate fp in a way compatible with
+	dwarf2out.
+	(gen_int_relational): Move declarations to start of function.
+
+2011-02-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/45470
+	* tree-vect-data-refs.c (vect_analyze_data_refs): Fail if a statement
+	can throw internally only.
+	* tree-vect-stmts.c (vectorizable_call): Likewise.
+
+2011-02-24  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/stormy16/stormy16.h (PREFERRED_RELOAD_CLASS,
+	PREFERRED_OUTPUT_RELOAD_CLASS): Remove.
+	* config/stormy16/stormy16-protos.h
+	(xstormy16_preferred_reload_class): Remove.
+	* config/stormy16/stormy16.c (xstormy16_preferred_reload_class): Make
+	static. Change 'rclass' argument and return type to reg_class_t.
+	(TARGET_PREFERRED_RELOAD_CLASS,
+	TARGET_PREFERRED_OUTPUT_RELOAD_CLASS): Define.
+
+2011-02-24  Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer-in.c (input_bb): Do not find referenced vars
+	in debug statements.
+
+2011-02-23  Jason Merrill  <jason@redhat.com>
+
+	* common.opt (fabi-version): Document v5 and v6.
+
+2011-02-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47849
+	* tree-if-conv.c (main_tree_if_conversion): Free postdom info.
+
+2011-02-23  Jie Zhang  <jie@codesourcery.com>
+
+	* opts-common.c (decode_cmdline_option): Print empty string
+	argument as "" in decoded->orig_option_with_args_text.
+	* gcc.c (execute): Print empty string argument as ""
+	in the verbose output.
+	(do_spec_1): Keep empty string argument.
+
+2011-02-23  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* config.gcc: Declare score-* and crx-* obsolete.
+
+2011-02-23  Jie Zhang  <jie@codesourcery.com>
+
+	PR rtl-optimization/47763
+	* web.c (web_main): Ignore naked clobber when replacing register.
+
+2011-02-22  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/stormy16/stormy16.h (REG_OK_FOR_BASE_P, REG_OK_FOR_INDEX_P):
+	Remove.
+
+2011-02-22  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR doc/47848
+	* doc/invoke.texi: Do not mention -ftree-loop-if-convert-memory-writes.
+
+2011-02-22  Mike Stump  <mikestump@comcast.net>
+
+	* acinclude.m4 (gcc_cv_gas_vers): Add -arch ppc for probing darwin
+	assembler.
+	* configure: Regenerate.
+
+2011-02-21  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	PR rtl-optimization/46002
+	* ira-color.c (update_copy_costs): Change class intersection
+	test to reg_class_contents[] test of 'hard_regno'.
+
+2011-02-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/alpha/osf5.opt (mno-mips-tfile): Mark as Target rather
+	than Driver option.
+	* config/hpux11.opt (mt): Likewise.
+	* config/microblaze/microblaze.opt (mxl-mode-xilkernel): Likewise.
+	* config/rs6000/xilinx.opt (mno-clearbss, mppcperflib): Likewise.
+	* config/vax/elf.opt (mno-asm-pic): Likewise.
+	* config/vms/vms.opt (map, mvms-return-codes): Likewise.
+
+2011-02-21  Mike Stump  <mikestump@comcast.net>
+
+	PR target/47822
+	* config/darwin-protos.h (darwin_init_cfstring_builtins): Return a
+	tree so we can get save the type.
+	* config/i386/darwin.h (SUBTARGET_INIT_BUILTINS): Reserve builtin slot
+	for CFString instead of trying to use past the end of the builtins.
+	* config/i386/i386.c (IX86_BUILTIN_CFSTRING): Likewise.
+	* config/rs6000/rs6000-builtin.def (RS6000_BUILTIN_CFSTRING): Likewise.
+	* config/rs6000/darwin.h (SUBTARGET_INIT_BUILTINS): Likewise.
+	* config/darwin.c (DARWIN_BUILTIN_CFSTRINGMAKECONSTANTSTRING):
+	Rename to darwin_builtin_cfstring.
+	(darwin_init_cfstring_builtins): Return the built type.
+
+2011-02-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/47840
+	* config/i386/avxintrin.h (_mm256_insert_epi32): Use _mm_insert_epi32.
+	(_mm256_insert_epi64): Use _mm_insert_epi64.
+
+2011-02-21  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/stormy16/stormy16.h (GO_IF_MODE_DEPENDENT_ADDRESS): Remove.
+	* config/stormy16/stormy16-protos.h
+	(xstormy16_mode_dependent_address_p): Remove.
+	* config/stormy16/stormy16.c (xstormy16_mode_dependent_address_p):
+	Make static. Change return type to bool. Change argument type to
+	const_rtx. Remove dead code.
+	(TARGET_MODE_DEPENDENT_ADDRESS_P): Define.
+
+2011-02-21  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/47820
+	* lto-streamer-in.c (lto_input_ts_decl_common_tree_pointers):
+	Do not stream DECL_INITIAL for TRANSLATION_UNIT_DECLs.
+	(lto_input_ts_block_tree_pointers): Hook a BLOCK into the
+	TUs context.
+	* lto-streamer-out.c (lto_output_ts_decl_common_tree_pointers):
+	Do not stream DECL_INITIAL for TRANSLATION_UNIT_DECLs.
+
 2011-02-20  Richard Guenther  <rguenther@suse.de>
 
 	PR lto/47822
 	* tree.c (free_lang_data_in_decl): Clean builtins from
 	the TU decl BLOCK_VARS.
- 
+
 2011-02-19  Alexandre Oliva  <aoliva@redhat.com>
 
 	PR debug/47620
@@ -111,7 +304,7 @@
 2011-02-17  Iain Sandoe  <iains@gcc.gnu.org>
 
 	* config/darwin-c.c (darwin_cpp_builtins): Define __OBJC2__ for
-	objc_abi == 2.	
+	objc_abi == 2.
 	* config/darwin.c (output_objc_section_asm_op): Added support for
 	ABI v1 and v2.
 	(is_objc_metadata): New.
@@ -167,12 +360,10 @@
 	(copy_arguments_for_versioning): Drop redundant get_var_ann.
 	* ipa-inline.c (compute_inline_parameters): Do not compute
 	disregard_inline_limits here.
-	are not available.
 	(compute_inlinable_for_current, pass_inlinable): New.
 	(pass_inline_parameters): Require PROP_referenced_vars.
 	* cgraphunit.c (cgraph_process_new_functions): Don't run
-	compute_inline_parameters explicitly unless function is in
-	SSA form.
+	compute_inline_parameters explicitly unless function is in SSA form.
 	(cgraph_analyze_function): Set .disregard_inline_limits.
 	* tree-sra.c (convert_callers): Compute inliner parameters
 	only for functions already in SSA form.
@@ -1062,7 +1253,7 @@
 	(decl_readonly_section): Use it.
 
 	Revert:
-	2010-11-17  Dinar Temirbulatov <dtemirbulatov@gmail.com>
+	2010-11-17  Dinar Temirbulatov  <dtemirbulatov@gmail.com>
 		    Steve Ellcey  <sje@cup.hp.com>
 
 	PR middle-end/31490
@@ -1524,7 +1715,7 @@
 	* config.gcc (hppa*64*-*-hpux11*, hppa[12]*-*-hpux11*,
 	ia64*-*-hpux*): Use hpux11.opt.
 
-2011-01-30  Jonathan Yong <jon_y@users.sourceforge.net>
+2011-01-30  Jonathan Yong  <jon_y@users.sourceforge.net>
 
 	* config.gcc (i[34567]86-*-pe | i[34567]86-*-cygwin*): Add t-dfprules
 	to tmake_file.
@@ -1613,7 +1804,7 @@
 
 	* config/spu/spu-elf.h (ASM_SPEC): Remove.
 
-2011-01-26  Mikael Pettersson <mikpe@it.uu.se>
+2011-01-26  Mikael Pettersson  <mikpe@it.uu.se>
 
 	PR rtl-optimization/46856
 	* postreload.c (reload_combine_recognize_const_pattern): Do not
@@ -1891,7 +2082,7 @@
 	* gimple-fold.c (gimple_fold_obj_type_ref_call): Removed.
 	(gimple_fold_call): Do not call gimple_fold_obj_type_ref_call.
 
-2011-01-25  Joel Sherrill <joel.sherrill@oarcorp.com>
+2011-01-25  Joel Sherrill  <joel.sherrill@oarcorp.com>
 
 	* config/m32r/m32r.c: Define TARGET_EXCEPT_UNWIND_INFO to
 	sjlj_except_unwind_info.
@@ -3120,7 +3311,7 @@
 	* configure: Regenerate.
 
 2011-01-14  Jan Hubicka  <jh@suse.cz>
-	Jack Howarth <howarth@bromo.med.uc.edu>
+	    Jack Howarth  <howarth@bromo.med.uc.edu>
 
 	PR target/46037
 	* config/darwin.c (darwin_override_options): Honor flag_gtoggle
@@ -3809,7 +4000,7 @@
 	PR bootstrap/47055
 	* libgcov.c (gcov_exit): Check for HAS_DRIVE_SPEC.
 
-2011-01-04  Philipp Thomas <pth@suse.de>
+2011-01-04  Philipp Thomas  <pth@suse.de>
 
 	* config/microblaze/microbalse.opt (mxl-float-convert): Fix
 	obvious typo.

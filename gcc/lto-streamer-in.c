@@ -1097,8 +1097,8 @@ input_bb (struct lto_input_block *ib, enum LTO_tags tag,
   while (tag)
     {
       gimple stmt = input_gimple_stmt (ib, data_in, fn, tag);
-
-      find_referenced_vars_in (stmt);
+      if (!is_gimple_debug (stmt))
+	find_referenced_vars_in (stmt);
       gsi_insert_after (&bsi, stmt, GSI_NEW_STMT);
 
       /* After the statement, expect a 0 delimiter or the EH region
@@ -1975,7 +1975,8 @@ lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
   DECL_SIZE (expr) = lto_input_tree (ib, data_in);
   DECL_SIZE_UNIT (expr) = lto_input_tree (ib, data_in);
 
-  if (TREE_CODE (expr) != FUNCTION_DECL)
+  if (TREE_CODE (expr) != FUNCTION_DECL
+      && TREE_CODE (expr) != TRANSLATION_UNIT_DECL)
     DECL_INITIAL (expr) = lto_input_tree (ib, data_in);
 
   DECL_ATTRIBUTES (expr) = lto_input_tree (ib, data_in);
@@ -2207,6 +2208,13 @@ lto_input_ts_block_tree_pointers (struct lto_input_block *ib,
       BLOCK_CHAIN (expr) = BLOCK_SUBBLOCKS (BLOCK_SUPERCONTEXT (expr));
       BLOCK_SUBBLOCKS (BLOCK_SUPERCONTEXT (expr)) = expr;
     }
+  /* The global block is rooted at the TU decl.  Hook it here to
+     avoid the need to stream in this block during WPA time.  */
+  else if (BLOCK_SUPERCONTEXT (expr)
+	   && TREE_CODE (BLOCK_SUPERCONTEXT (expr)) == TRANSLATION_UNIT_DECL)
+    DECL_INITIAL (BLOCK_SUPERCONTEXT (expr)) = expr;
+  /* The function-level block is connected at the time we read in
+     function bodies for the same reason.  */
 }
 
 

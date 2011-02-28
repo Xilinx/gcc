@@ -1,6 +1,6 @@
 /* Xstormy16 target functions.
    Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009, 2010, 2011  Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
    This file is part of GCC.
@@ -469,8 +469,11 @@ xstormy16_secondary_reload_class (enum reg_class rclass,
   return NO_REGS;
 }
 
-enum reg_class
-xstormy16_preferred_reload_class (rtx x, enum reg_class rclass)
+/* Worker function for TARGET_PREFERRED_RELOAD_CLASS
+   and TARGET_PREFERRED_OUTPUT_RELOAD_CLASS.  */
+
+static reg_class_t
+xstormy16_preferred_reload_class (rtx x, reg_class_t rclass)
 {
   if (rclass == GENERAL_REGS && MEM_P (x))
     return EIGHT_REGS;
@@ -647,40 +650,27 @@ xstormy16_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
   return false;
 }
 
-/* Return nonzero if memory address X (an RTX) can have different
-   meanings depending on the machine mode of the memory reference it
-   is used for or if the address is valid for some modes but not
-   others.
-
-   Autoincrement and autodecrement addresses typically have mode-dependent
-   effects because the amount of the increment or decrement is the size of the
-   operand being addressed.  Some machines have other mode-dependent addresses.
-   Many RISC machines have no mode-dependent addresses.
-
-   You may assume that ADDR is a valid address for the machine.
+/* Worker function for TARGET_MODE_DEPENDENT_ADDRESS_P.
 
    On this chip, this is true if the address is valid with an offset
    of 0 but not of 6, because in that case it cannot be used as an
    address for DImode or DFmode, or if the address is a post-increment
    or pre-decrement address.  */
 
-int
-xstormy16_mode_dependent_address_p (rtx x)
+static bool
+xstormy16_mode_dependent_address_p (const_rtx x)
 {
   if (LEGITIMATE_ADDRESS_CONST_INT_P (x, 0)
       && ! LEGITIMATE_ADDRESS_CONST_INT_P (x, 6))
-    return 1;
+    return true;
 
   if (GET_CODE (x) == PLUS
       && LEGITIMATE_ADDRESS_INTEGER_P (XEXP (x, 1), 0)
       && ! LEGITIMATE_ADDRESS_INTEGER_P (XEXP (x, 1), 6))
-    return 1;
-
-  if (GET_CODE (x) == PLUS)
-    x = XEXP (x, 0);
+    return true;
 
   /* Auto-increment addresses are now treated generically in recog.c.  */
-  return 0;
+  return false;
 }
 
 int
@@ -2617,8 +2607,15 @@ static const struct default_options xstorym16_option_optimization_table[] =
 #undef  TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG xstormy16_reorg
 
+#undef  TARGET_PREFERRED_RELOAD_CLASS
+#define TARGET_PREFERRED_RELOAD_CLASS xstormy16_preferred_reload_class
+#undef  TARGET_PREFERRED_OUTPUT_RELOAD_CLASS
+#define TARGET_PREFERRED_OUTPUT_RELOAD_CLASS xstormy16_preferred_reload_class
+
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P	xstormy16_legitimate_address_p
+#undef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P xstormy16_mode_dependent_address_p
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE xstormy16_can_eliminate

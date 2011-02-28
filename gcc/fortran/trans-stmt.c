@@ -718,6 +718,7 @@ gfc_trans_if_1 (gfc_code * code)
 {
   gfc_se if_se;
   tree stmt, elsestmt;
+  locus saved_loc;
   location_t loc;
 
   /* Check for an unconditional ELSE clause.  */
@@ -729,7 +730,16 @@ gfc_trans_if_1 (gfc_code * code)
   gfc_start_block (&if_se.pre);
 
   /* Calculate the IF condition expression.  */
+  if (code->expr1->where.lb)
+    {
+      gfc_save_backend_locus (&saved_loc);
+      gfc_set_backend_locus (&code->expr1->where);
+    }
+
   gfc_conv_expr_val (&if_se, code->expr1);
+
+  if (code->expr1->where.lb)
+    gfc_restore_backend_locus (&saved_loc);
 
   /* Translate the THEN clause.  */
   stmt = gfc_trans_code (code->next);
@@ -4570,6 +4580,25 @@ gfc_trans_allocate (gfc_code * code)
 	      memsz = fold_build2_loc (input_location, MULT_EXPR,
 				       TREE_TYPE (tmp), tmp,
 				       fold_convert (TREE_TYPE (tmp), memsz));
+	    }
+          else if (al->expr->ts.type == BT_CHARACTER && al->expr->ts.deferred)
+	    {
+	      gcc_assert (code->ext.alloc.ts.u.cl && code->ext.alloc.ts.u.cl->length);
+	      gfc_init_se (&se_sz, NULL);
+	      gfc_conv_expr (&se_sz, code->ext.alloc.ts.u.cl->length);
+	      gfc_add_block_to_block (&se.pre, &se_sz.pre);
+	      se_sz.expr = gfc_evaluate_now (se_sz.expr, &se.pre);
+	      gfc_add_block_to_block (&se.pre, &se_sz.post);
+	      /* Store the string length.  */
+	      tmp = al->expr->ts.u.cl->backend_decl;
+	      gfc_add_modify (&se.pre, tmp, fold_convert (TREE_TYPE (tmp),
+			      se_sz.expr));
+              tmp = TREE_TYPE (gfc_typenode_for_spec (&code->ext.alloc.ts));
+              tmp = TYPE_SIZE_UNIT (tmp);
+	      memsz = fold_build2_loc (input_location, MULT_EXPR,
+				       TREE_TYPE (tmp), tmp,
+				       fold_convert (TREE_TYPE (se_sz.expr),
+						     se_sz.expr));
 	    }
 	  else if (code->ext.alloc.ts.type != BT_UNKNOWN)
 	    memsz = TYPE_SIZE_UNIT (gfc_typenode_for_spec (&code->ext.alloc.ts));

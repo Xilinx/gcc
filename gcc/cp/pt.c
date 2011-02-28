@@ -53,7 +53,7 @@ typedef int (*tree_fn_t) (tree, void*);
 /* The PENDING_TEMPLATES is a TREE_LIST of templates whose
    instantiations have been deferred, either because their definitions
    were not yet available, or because we were putting off doing the work.  */
-struct GTY (()) pending_template {
+struct GTY ((chain_next ("%h.next"))) pending_template {
   struct pending_template *next;
   struct tinst_level *tinst;
 };
@@ -1533,7 +1533,10 @@ iterative_hash_template_arg (tree arg, hashval_t val)
 
     case PARM_DECL:
       if (!DECL_ARTIFICIAL (arg))
-	val = iterative_hash_object (DECL_PARM_INDEX (arg), val);
+	{
+	  val = iterative_hash_object (DECL_PARM_INDEX (arg), val);
+	  val = iterative_hash_object (DECL_PARM_LEVEL (arg), val);
+	}
       return iterative_hash_template_arg (TREE_TYPE (arg), val);
 
     case TARGET_EXPR:
@@ -18091,6 +18094,7 @@ value_dependent_expression_p (tree expression)
 
     case SIZEOF_EXPR:
     case ALIGNOF_EXPR:
+    case TYPEID_EXPR:
       /* A `sizeof' expression is value-dependent if the operand is
 	 type-dependent or is a pack expansion.  */
       expression = TREE_OPERAND (expression, 0);
