@@ -23386,13 +23386,14 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
     }
   else
     {
-      int offset = 0;
+      int offset = 0, size;
 
       /* Load the function address to r11.  Try to load address using
 	 the shorter movl instead of movabs.  We may want to support
 	 movq for kernel mode, but kernel does not use trampolines at
 	 the moment.  */
-      if (x86_64_zext_immediate_operand (fnaddr, VOIDmode))
+      if (TARGET_X32
+	  || x86_64_zext_immediate_operand (fnaddr, VOIDmode))
 	{
 	  fnaddr = copy_to_mode_reg (DImode, fnaddr);
 
@@ -23415,11 +23416,21 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 
       /* Load static chain using movabs to r10.  */
       mem = adjust_address (m_tramp, HImode, offset);
-      emit_move_insn (mem, gen_int_mode (0xba49, HImode));
+      /* Use the shorter movl instead of movabs for x32.  */
+      if (TARGET_X32)
+	{
+	  size = 6;
+	  emit_move_insn (mem, gen_int_mode (0xba41, HImode));
+	}
+      else
+	{
+	  size = 10;
+	  emit_move_insn (mem, gen_int_mode (0xba49, HImode));
+	}
 
-      mem = adjust_address (m_tramp, DImode, offset + 2);
+      mem = adjust_address (m_tramp, ptr_mode, offset + 2);
       emit_move_insn (mem, chain_value);
-      offset += 10;
+      offset += size;
 
       /* Jump to r11; the last (unused) byte is a nop, only there to
 	 pad the write out to a single 32-bit store.  */
