@@ -395,8 +395,8 @@ const_value_known_p (tree decl)
   return true;
 }
 
-/* Mark DECL as finalized.  By finalizing the declaration, frontend instruct the
-   middle end to output the variable to asm file, if needed or externally
+/* Mark DECL as finalized.  By finalizing the declaration, frontend instructs
+   the middle end to output the variable to asm file, if needed or externally
    visible.  */
 void
 varpool_finalize_decl (tree decl)

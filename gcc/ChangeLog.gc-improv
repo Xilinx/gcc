@@ -1,3 +1,7 @@
+2011-03-01  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* varpool.c (varpool_finalize_decl): Fix typo in comment.
+
 2011-02-28  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* configure.ac: Enable "misc" checking if "valgrind" checking is
