@@ -414,7 +414,7 @@ do
 	runtime)	ac_runtime_checking=1 ;;
 	tree)		ac_tree_checking=1 ;;
 	types)		ac_types_checking=1 ;;
-	valgrind)	ac_valgrind_checking=1 ;;
+	valgrind)	ac_checking=1 ; ac_valgrind_checking=1 ;;
 	*)	AC_MSG_ERROR(unknown check category $check) ;;
 	esac
 done
@@ -424,8 +424,35 @@ nocommon_flag=""
 if test x$ac_checking != x ; then
   AC_DEFINE(ENABLE_CHECKING, 1,
 [Define if you want more run-time sanity checks.  This one gets a grab
-   bag of miscellaneous but relatively cheap checks.])
+   bag of miscellaneous but relatively cheap checks.  Additionally this 
+   enables the valgrind annotations if the required headers are present.])
   nocommon_flag=-fno-common
+  AC_MSG_CHECKING(for VALGRIND_DISCARD in <valgrind/memcheck.h>)
+  AC_PREPROC_IFELSE([AC_LANG_SOURCE(
+    [[#include <valgrind/memcheck.h>
+#ifndef VALGRIND_DISCARD
+#error VALGRIND_DISCARD not defined
+#endif]])],
+  [gcc_cv_header_valgrind_memcheck_h=yes],
+  [gcc_cv_header_valgrind_memcheck_h=no])
+  AC_MSG_RESULT($gcc_cv_header_valgrind_memcheck_h)
+  AC_MSG_CHECKING(for VALGRIND_DISCARD in <memcheck.h>)
+  AC_PREPROC_IFELSE([AC_LANG_SOURCE(
+    [[#include <memcheck.h>
+#ifndef VALGRIND_DISCARD
+#error VALGRIND_DISCARD not defined
+#endif]])],
+  [gcc_cv_header_memcheck_h=yes],
+  [gcc_cv_header_memcheck_h=no])
+  AC_MSG_RESULT($gcc_cv_header_memcheck_h)
+  if test $gcc_cv_header_valgrind_memcheck_h = yes; then
+    AC_DEFINE(HAVE_VALGRIND_MEMCHECK_H, 1,
+	[Define if valgrind's valgrind/memcheck.h header is installed.])
+  fi
+  if test $gcc_cv_header_memcheck_h = yes; then
+    AC_DEFINE(HAVE_MEMCHECK_H, 1,
+	[Define if valgrind's memcheck.h header is installed.])
+  fi
 fi
 AC_SUBST(nocommon_flag)
 if test x$ac_df_checking != x ; then
@@ -500,28 +527,10 @@ dnl # in converting to autoconf 2.5x!
 AC_CHECK_HEADER(valgrind.h, have_valgrind_h=yes, have_valgrind_h=no)
 
 if test x$ac_valgrind_checking != x ; then
-  # It is certainly possible that there's valgrind but no valgrind.h.
-  # GCC relies on making annotations so we must have both.
-  AC_MSG_CHECKING(for VALGRIND_DISCARD in <valgrind/memcheck.h>)
-  AC_PREPROC_IFELSE([AC_LANG_SOURCE(
-    [[#include <valgrind/memcheck.h>
-#ifndef VALGRIND_DISCARD
-#error VALGRIND_DISCARD not defined
-#endif]])],
-  [gcc_cv_header_valgrind_memcheck_h=yes],
-  [gcc_cv_header_valgrind_memcheck_h=no])
-  AC_MSG_RESULT($gcc_cv_header_valgrind_memcheck_h)
-  AC_MSG_CHECKING(for VALGRIND_DISCARD in <memcheck.h>)
-  AC_PREPROC_IFELSE([AC_LANG_SOURCE(
-    [[#include <memcheck.h>
-#ifndef VALGRIND_DISCARD
-#error VALGRIND_DISCARD not defined
-#endif]])],
-  [gcc_cv_header_memcheck_h=yes],
-  [gcc_cv_header_memcheck_h=no])
-  AC_MSG_RESULT($gcc_cv_header_memcheck_h)
   AM_PATH_PROG_WITH_TEST(valgrind_path, valgrind,
 	[$ac_dir/$ac_word --version | grep valgrind- >/dev/null 2>&1])
+  # It is certainly possible that there's valgrind but no valgrind.h.
+  # GCC relies on making annotations so we must have both.
   if test "x$valgrind_path" = "x" \
     || (test $have_valgrind_h = no \
 	&& test $gcc_cv_header_memcheck_h = no \
@@ -533,14 +542,6 @@ if test x$ac_valgrind_checking != x ; then
   AC_DEFINE(ENABLE_VALGRIND_CHECKING, 1,
 [Define if you want to run subprograms and generated programs
    through valgrind (a memory checker).  This is extremely expensive.])
-  if test $gcc_cv_header_valgrind_memcheck_h = yes; then
-    AC_DEFINE(HAVE_VALGRIND_MEMCHECK_H, 1,
-	[Define if valgrind's valgrind/memcheck.h header is installed.])
-  fi
-  if test $gcc_cv_header_memcheck_h = yes; then
-    AC_DEFINE(HAVE_MEMCHECK_H, 1,
-	[Define if valgrind's memcheck.h header is installed.])
-  fi
 fi
 AC_SUBST(valgrind_path_defines)
 AC_SUBST(valgrind_command)

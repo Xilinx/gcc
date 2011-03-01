@@ -6585,7 +6585,7 @@ do
 	runtime)	ac_runtime_checking=1 ;;
 	tree)		ac_tree_checking=1 ;;
 	types)		ac_types_checking=1 ;;
-	valgrind)	ac_valgrind_checking=1 ;;
+	valgrind)	ac_checking=1 ; ac_valgrind_checking=1 ;;
 	*)	as_fn_error "unknown check category $check" "$LINENO" 5 ;;
 	esac
 done
@@ -6597,6 +6597,50 @@ if test x$ac_checking != x ; then
 $as_echo "#define ENABLE_CHECKING 1" >>confdefs.h
 
   nocommon_flag=-fno-common
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for VALGRIND_DISCARD in <valgrind/memcheck.h>" >&5
+$as_echo_n "checking for VALGRIND_DISCARD in <valgrind/memcheck.h>... " >&6; }
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <valgrind/memcheck.h>
+#ifndef VALGRIND_DISCARD
+#error VALGRIND_DISCARD not defined
+#endif
+_ACEOF
+if ac_fn_c_try_cpp "$LINENO"; then :
+  gcc_cv_header_valgrind_memcheck_h=yes
+else
+  gcc_cv_header_valgrind_memcheck_h=no
+fi
+rm -f conftest.err conftest.$ac_ext
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_header_valgrind_memcheck_h" >&5
+$as_echo "$gcc_cv_header_valgrind_memcheck_h" >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for VALGRIND_DISCARD in <memcheck.h>" >&5
+$as_echo_n "checking for VALGRIND_DISCARD in <memcheck.h>... " >&6; }
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+#include <memcheck.h>
+#ifndef VALGRIND_DISCARD
+#error VALGRIND_DISCARD not defined
+#endif
+_ACEOF
+if ac_fn_c_try_cpp "$LINENO"; then :
+  gcc_cv_header_memcheck_h=yes
+else
+  gcc_cv_header_memcheck_h=no
+fi
+rm -f conftest.err conftest.$ac_ext
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_header_memcheck_h" >&5
+$as_echo "$gcc_cv_header_memcheck_h" >&6; }
+  if test $gcc_cv_header_valgrind_memcheck_h = yes; then
+
+$as_echo "#define HAVE_VALGRIND_MEMCHECK_H 1" >>confdefs.h
+
+  fi
+  if test $gcc_cv_header_memcheck_h = yes; then
+
+$as_echo "#define HAVE_MEMCHECK_H 1" >>confdefs.h
+
+  fi
 fi
 
 if test x$ac_df_checking != x ; then
@@ -6670,42 +6714,6 @@ fi
 
 
 if test x$ac_valgrind_checking != x ; then
-  # It is certainly possible that there's valgrind but no valgrind.h.
-  # GCC relies on making annotations so we must have both.
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for VALGRIND_DISCARD in <valgrind/memcheck.h>" >&5
-$as_echo_n "checking for VALGRIND_DISCARD in <valgrind/memcheck.h>... " >&6; }
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <valgrind/memcheck.h>
-#ifndef VALGRIND_DISCARD
-#error VALGRIND_DISCARD not defined
-#endif
-_ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
-  gcc_cv_header_valgrind_memcheck_h=yes
-else
-  gcc_cv_header_valgrind_memcheck_h=no
-fi
-rm -f conftest.err conftest.$ac_ext
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_header_valgrind_memcheck_h" >&5
-$as_echo "$gcc_cv_header_valgrind_memcheck_h" >&6; }
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for VALGRIND_DISCARD in <memcheck.h>" >&5
-$as_echo_n "checking for VALGRIND_DISCARD in <memcheck.h>... " >&6; }
-  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-#include <memcheck.h>
-#ifndef VALGRIND_DISCARD
-#error VALGRIND_DISCARD not defined
-#endif
-_ACEOF
-if ac_fn_c_try_cpp "$LINENO"; then :
-  gcc_cv_header_memcheck_h=yes
-else
-  gcc_cv_header_memcheck_h=no
-fi
-rm -f conftest.err conftest.$ac_ext
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gcc_cv_header_memcheck_h" >&5
-$as_echo "$gcc_cv_header_memcheck_h" >&6; }
 
 # Prepare PATH_SEPARATOR.
 # The user is always right.
@@ -6773,6 +6781,8 @@ else
 $as_echo "no" >&6; }
 fi
 
+  # It is certainly possible that there's valgrind but no valgrind.h.
+  # GCC relies on making annotations so we must have both.
   if test "x$valgrind_path" = "x" \
     || (test $have_valgrind_h = no \
 	&& test $gcc_cv_header_memcheck_h = no \
@@ -6784,16 +6794,6 @@ fi
 
 $as_echo "#define ENABLE_VALGRIND_CHECKING 1" >>confdefs.h
 
-  if test $gcc_cv_header_valgrind_memcheck_h = yes; then
-
-$as_echo "#define HAVE_VALGRIND_MEMCHECK_H 1" >>confdefs.h
-
-  fi
-  if test $gcc_cv_header_memcheck_h = yes; then
-
-$as_echo "#define HAVE_MEMCHECK_H 1" >>confdefs.h
-
-  fi
 fi
 
 

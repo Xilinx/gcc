@@ -1,3 +1,10 @@
+2011-02-28  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* configure.ac: Enable "misc" checking if "valgrind" checking is
+	requested.  Move Valgrind header check from "valgrind" to "misc"
+	checking.
+	* configure: Regenerated.
+
 2011-02-10  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* varasm.c (make_decl_rtl): Copy name to RTL memory for
