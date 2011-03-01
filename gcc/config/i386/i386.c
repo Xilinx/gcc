@@ -11620,10 +11620,26 @@ ix86_live_on_entry (bitmap regs)
 				   (const_int 8))
 			  (reg/f:SI 7 sp))
 		 (const_int [CONST1 + CONST2])))
-    */
+
+   If PLUS is true, we also translate
+
+   (set (reg:SI 40 r11)
+        (plus:SI (plus:SI (reg:SI 1 dx)
+			  (subreg:SI (plus:DI (reg/f:DI 7 sp)
+					      (const_int CONST1)) 0))
+		 (const_int CONST2)))
+
+   into
+
+   (set (reg:SI 40 r11)
+        (plus:SI (plus:SI (reg:SI 1 dx)
+			  (reg/f:SI 7 sp))
+		 (const_int [CONST1 + CONST2])))
+
+ */
 
 static void
-ix86_simplify_base_disp (rtx *base_p, rtx *disp_p)
+ix86_simplify_base_disp (rtx *base_p, rtx *disp_p, bool plus)
 {
   rtx base = *base_p;
   rtx disp;
@@ -11649,12 +11665,32 @@ ix86_simplify_base_disp (rtx *base_p, rtx *disp_p)
       if (REG_P (op0) && CONST_INT_P (op1))
 	{
 	  base = op0;
-	  addend  = op1;
+	  addend = op1;
 	}
       else if (REG_P (op1) && CONST_INT_P (op0))
 	{
 	  base = op1;
 	  addend = op0;
+	}
+      else if (plus
+	       && GET_CODE (op1) == SUBREG
+	       && GET_MODE (op1) == ptr_mode)
+	{
+	  op1 = SUBREG_REG (op1);
+	  if (GET_CODE (op1) == PLUS)
+	    {
+	      addend = XEXP (op1, 1);
+	      op1 = XEXP (op1, 0);
+	      if (REG_P (op1) && CONST_INT_P (addend))
+		{
+		  op1 = gen_rtx_REG (ptr_mode, REGNO (op1));
+		  *base_p = gen_rtx_PLUS (ptr_mode, op0, op1);
+		}
+	      else
+		return;
+	    }
+	  else
+	    return;
 	}
       else
 	return;
@@ -11664,7 +11700,8 @@ ix86_simplify_base_disp (rtx *base_p, rtx *disp_p)
       else
 	*disp_p = GEN_INT (INTVAL (disp) + INTVAL (addend));
 
-      *base_p = gen_rtx_REG (ptr_mode, REGNO (base));
+      if (!plus)
+	*base_p = gen_rtx_REG (ptr_mode, REGNO (base));
     }
 }
 
@@ -11706,15 +11743,20 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	  addends[n++] = XEXP (op, 1);
 	  op = XEXP (op, 0);
 	  /* Support 32bit address in x32 mode.  */
-	  if (TARGET_X32
-	      && reload_completed
-	      && GET_CODE (op) == ZERO_EXTEND
-	      && GET_MODE (op) == Pmode
-	      && GET_CODE (XEXP (op, 0)) == PLUS)
+	  if (TARGET_X32 && reload_completed)
 	    {
-	      op = XEXP (op, 0);
-	      if (n == 1)
-		ix86_simplify_base_disp (&op, &addends[0]);
+	      if (GET_CODE (op) == ZERO_EXTEND
+		  && GET_MODE (op) == Pmode
+		  && GET_CODE (XEXP (op, 0)) == PLUS)
+		{
+		  op = XEXP (op, 0);
+		  if (n == 1)
+		    ix86_simplify_base_disp (&op, &addends[0], false);
+		}
+	      else if (n == 1
+		       && GET_CODE (op) == PLUS
+		       && GET_MODE (op) == ptr_mode)
+		ix86_simplify_base_disp (&op, &addends[0], true);
 	    }
 	}
       while (GET_CODE (op) == PLUS);
@@ -11816,7 +11858,7 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
     disp = NULL_RTX;
 
   if (TARGET_X32 && reload_completed)
-    ix86_simplify_base_disp (&base, &disp);
+    ix86_simplify_base_disp (&base, &disp, false);
 
   base_reg = base && GET_CODE (base) == SUBREG ? SUBREG_REG (base) : base;
 

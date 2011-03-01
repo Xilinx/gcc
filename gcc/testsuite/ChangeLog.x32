@@ -1,3 +1,8 @@
+2011-03-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47744
+	* gcc.dg/torture/pr47744-3.c: New.
+
 2011-02-19  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/47364

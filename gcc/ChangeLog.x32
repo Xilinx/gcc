@@ -1,5 +1,12 @@
 2011-03-01  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR target/47744
+	* config/i386/i386.c (ix86_simplify_base_disp): Add PLUS base
+	support.
+	(ix86_decompose_address): Updated.
+
+2011-03-01  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR target/47926
 	* config/i386/i386.c (ix86_trampoline_init): Use movl instead
 	of movabs for x32.
