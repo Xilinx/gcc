@@ -1,5 +1,5 @@
 /* Exported function prototypes from the Renesas RX backend.
-   Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Red Hat.
 
    This file is part of GCC.
@@ -35,11 +35,9 @@ extern void             rx_emit_stack_pushm (rtx *);
 extern void		rx_expand_epilogue (bool);
 extern char *		rx_gen_move_template (rtx *, bool);
 extern bool		rx_is_legitimate_constant (rtx);
-extern bool 		rx_is_mode_dependent_addr (rtx);
 extern bool		rx_is_restricted_memory_address (rtx, Mmode);
 extern void		rx_notice_update_cc (rtx body, rtx insn);
 extern void		rx_split_cbranch (Mmode, Rcode, rtx, rtx, rtx);
-extern bool		rx_split_fp_compare (Rcode, Rcode *, Rcode *);
 extern Mmode		rx_select_cc_mode (Rcode, rtx, rtx);
 extern bool		rx_match_ccmode (rtx, Mmode);
 #endif

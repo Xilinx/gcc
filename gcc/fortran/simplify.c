@@ -5496,20 +5496,19 @@ gfc_simplify_set_exponent (gfc_expr *x, gfc_expr *i)
 
 
 gfc_expr *
-gfc_simplify_shape (gfc_expr *source)
+gfc_simplify_shape (gfc_expr *source, gfc_expr *kind)
 {
   mpz_t shape[GFC_MAX_DIMENSIONS];
   gfc_expr *result, *e, *f;
   gfc_array_ref *ar;
   int n;
   gfc_try t;
+  int k = get_kind (BT_INTEGER, kind, "SHAPE", gfc_default_integer_kind);
+
+  result = gfc_get_array_expr (BT_INTEGER, k, &source->where);
 
   if (source->rank == 0)
-    return gfc_get_array_expr (BT_INTEGER, gfc_default_integer_kind,
-			       &source->where);
-
-  result = gfc_get_array_expr (BT_INTEGER, gfc_default_integer_kind,
-			       &source->where);
+    return result;
 
   if (source->expr_type == EXPR_VARIABLE)
     {
@@ -5530,8 +5529,7 @@ gfc_simplify_shape (gfc_expr *source)
 
   for (n = 0; n < source->rank; n++)
     {
-      e = gfc_get_constant_expr (BT_INTEGER, gfc_default_integer_kind,
-				 &source->where);
+      e = gfc_get_constant_expr (BT_INTEGER, k, &source->where);
 
       if (t == SUCCESS)
 	{
@@ -6846,9 +6844,9 @@ gfc_simplify_compiler_version (void)
   char *buffer;
   size_t len;
 
-  len = strlen ("GCC version ") + strlen (version_string) + 1;
-  buffer = (char*) alloca (len);
-  snprintf (buffer, len, "GCC version %s", version_string);
+  len = strlen ("GCC version ") + strlen (version_string);
+  buffer = XALLOCAVEC (char, len + 1);
+  snprintf (buffer, len + 1, "GCC version %s", version_string);
   return gfc_get_character_expr (gfc_default_character_kind,
                                 &gfc_current_locus, buffer, len);
 }

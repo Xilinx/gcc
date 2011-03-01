@@ -1032,7 +1032,9 @@ clear_log_links (void)
 /* Walk the LOG_LINKS of insn B to see if we find a reference to A.  Return
    true if we found a LOG_LINK that proves that A feeds B.  This only works
    if there are no instructions between A and B which could have a link
-   depending on A, since in that case we would not record a link for B.  */
+   depending on A, since in that case we would not record a link for B.
+   We also check the implicit dependency created by a cc0 setter/user
+   pair.  */
 
 static bool
 insn_a_feeds_b (rtx a, rtx b)
@@ -1041,6 +1043,10 @@ insn_a_feeds_b (rtx a, rtx b)
   for (links = LOG_LINKS (b); links; links = XEXP (links, 1))
     if (XEXP (links, 0) == a)
       return true;
+#ifdef HAVE_cc0
+  if (sets_cc0_p (a))
+    return true;
+#endif
   return false;
 }
 
@@ -7482,7 +7488,8 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	 an address.  */
       if (in_code == MEM && CONST_INT_P (XEXP (x, 1))
 	  && INTVAL (XEXP (x, 1)) < HOST_BITS_PER_WIDE_INT
-	  && INTVAL (XEXP (x, 1)) >= 0)
+	  && INTVAL (XEXP (x, 1)) >= 0
+	  && SCALAR_INT_MODE_P (mode))
 	{
 	  HOST_WIDE_INT count = INTVAL (XEXP (x, 1));
 	  HOST_WIDE_INT multval = (HOST_WIDE_INT) 1 << count;
@@ -13144,10 +13151,6 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 	     It is preferable to keep these notes on branches, which is most
 	     likely to be i3.  */
 	  place = i3;
-	  break;
-
-	case REG_VALUE_PROFILE:
-	  /* Just get rid of this note, as it is unused later anyway.  */
 	  break;
 
 	case REG_NON_LOCAL_GOTO:

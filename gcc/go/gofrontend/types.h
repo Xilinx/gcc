@@ -60,22 +60,20 @@ static const int RUNTIME_TYPE_KIND_UINT16 = 9;
 static const int RUNTIME_TYPE_KIND_UINT32 = 10;
 static const int RUNTIME_TYPE_KIND_UINT64 = 11;
 static const int RUNTIME_TYPE_KIND_UINTPTR = 12;
-static const int RUNTIME_TYPE_KIND_FLOAT = 13;
-static const int RUNTIME_TYPE_KIND_FLOAT32 = 14;
-static const int RUNTIME_TYPE_KIND_FLOAT64 = 15;
-static const int RUNTIME_TYPE_KIND_COMPLEX = 16;
-static const int RUNTIME_TYPE_KIND_COMPLEX64 = 17;
-static const int RUNTIME_TYPE_KIND_COMPLEX128 = 18;
-static const int RUNTIME_TYPE_KIND_ARRAY = 19;
-static const int RUNTIME_TYPE_KIND_CHAN = 20;
-static const int RUNTIME_TYPE_KIND_FUNC = 21;
-static const int RUNTIME_TYPE_KIND_INTERFACE = 22;
-static const int RUNTIME_TYPE_KIND_MAP = 23;
-static const int RUNTIME_TYPE_KIND_PTR = 24;
-static const int RUNTIME_TYPE_KIND_SLICE = 25;
-static const int RUNTIME_TYPE_KIND_STRING = 26;
-static const int RUNTIME_TYPE_KIND_STRUCT = 27;
-static const int RUNTIME_TYPE_KIND_UNSAFE_POINTER = 28;
+static const int RUNTIME_TYPE_KIND_FLOAT32 = 13;
+static const int RUNTIME_TYPE_KIND_FLOAT64 = 14;
+static const int RUNTIME_TYPE_KIND_COMPLEX64 = 15;
+static const int RUNTIME_TYPE_KIND_COMPLEX128 = 16;
+static const int RUNTIME_TYPE_KIND_ARRAY = 17;
+static const int RUNTIME_TYPE_KIND_CHAN = 18;
+static const int RUNTIME_TYPE_KIND_FUNC = 19;
+static const int RUNTIME_TYPE_KIND_INTERFACE = 20;
+static const int RUNTIME_TYPE_KIND_MAP = 21;
+static const int RUNTIME_TYPE_KIND_PTR = 22;
+static const int RUNTIME_TYPE_KIND_SLICE = 23;
+static const int RUNTIME_TYPE_KIND_STRING = 24;
+static const int RUNTIME_TYPE_KIND_STRUCT = 25;
+static const int RUNTIME_TYPE_KIND_UNSAFE_POINTER = 26;
 
 // To build the complete list of methods for a named type we need to
 // gather all methods from anonymous fields.  Those methods may
@@ -1982,9 +1980,17 @@ class Struct_type : public Type
   do_export(Export*) const;
 
  private:
+  // Used to avoid infinite loops in field_reference_depth.
+  struct Saw_named_type
+  {
+    Saw_named_type* next;
+    Named_type* nt;
+  };
+
   Field_reference_expression*
   field_reference_depth(Expression* struct_expr, const std::string& name,
-			source_location, unsigned int* depth) const;
+			source_location, Saw_named_type*,
+			unsigned int* depth) const;
 
   static Type*
   make_struct_type_descriptor_type();
@@ -2052,9 +2058,13 @@ class Array_type : public Type
   static Array_type*
   do_import(Import*);
 
+  // Fill in the fields for a named array type.
+  tree
+  fill_in_array_tree(Gogo*, tree);
+
   // Fill in the fields for a named slice type.
   tree
-  fill_in_tree(Gogo*, tree);
+  fill_in_slice_tree(Gogo*, tree);
 
  protected:
   int

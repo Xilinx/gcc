@@ -194,9 +194,9 @@ Type::make_non_abstract_type()
     case TYPE_INTEGER:
       return Type::lookup_integer_type("int");
     case TYPE_FLOAT:
-      return Type::lookup_float_type("float");
+      return Type::lookup_float_type("float64");
     case TYPE_COMPLEX:
-      return Type::lookup_complex_type("complex");
+      return Type::lookup_complex_type("complex128");
     case TYPE_STRING:
       return Type::lookup_string_type();
     case TYPE_BOOLEAN:
@@ -1872,8 +1872,7 @@ Float_type::create_abstract_float_type()
 {
   static Float_type* abstract_type;
   if (abstract_type == NULL)
-    abstract_type = new Float_type(true, FLOAT_TYPE_SIZE,
-				   RUNTIME_TYPE_KIND_FLOAT);
+    abstract_type = new Float_type(true, 64, RUNTIME_TYPE_KIND_FLOAT64);
   return abstract_type;
 }
 
@@ -2029,8 +2028,7 @@ Complex_type::create_abstract_complex_type()
 {
   static Complex_type* abstract_type;
   if (abstract_type == NULL)
-    abstract_type = new Complex_type(true, FLOAT_TYPE_SIZE * 2,
-				     RUNTIME_TYPE_KIND_FLOAT);
+    abstract_type = new Complex_type(true, 128, RUNTIME_TYPE_KIND_COMPLEX128);
   return abstract_type;
 }
 
@@ -3585,7 +3583,8 @@ Struct_type::field_reference(Expression* struct_expr, const std::string& name,
 			     source_location location) const
 {
   unsigned int depth;
-  return this->field_reference_depth(struct_expr, name, location, &depth);
+  return this->field_reference_depth(struct_expr, name, location, NULL,
+				     &depth);
 }
 
 // Return an expression for a field, along with the depth at which it
@@ -3595,6 +3594,7 @@ Field_reference_expression*
 Struct_type::field_reference_depth(Expression* struct_expr,
 				   const std::string& name,
 				   source_location location,
+				   Saw_named_type* saw,
 				   unsigned int* depth) const
 {
   const Struct_field_list* fields = this->fields_;
@@ -3630,13 +3630,41 @@ Struct_type::field_reference_depth(Expression* struct_expr,
       if (st == NULL)
 	continue;
 
+      Saw_named_type* hold_saw = saw;
+      Saw_named_type saw_here;
+      Named_type* nt = pf->type()->named_type();
+      if (nt == NULL)
+	nt = pf->type()->deref()->named_type();
+      if (nt != NULL)
+	{
+	  Saw_named_type* q;
+	  for (q = saw; q != NULL; q = q->next)
+	    {
+	      if (q->nt == nt)
+		{
+		  // If this is an error, it will be reported
+		  // elsewhere.
+		  break;
+		}
+	    }
+	  if (q != NULL)
+	    continue;
+	  saw_here.next = saw;
+	  saw_here.nt = nt;
+	  saw = &saw_here;
+	}
+
       // Look for a reference using a NULL struct expression.  If we
       // find one, fill in the struct expression with a reference to
       // this field.
       unsigned int subdepth;
       Field_reference_expression* sub = st->field_reference_depth(NULL, name,
 								  location,
+								  saw,
 								  &subdepth);
+
+      saw = hold_saw;
+
       if (sub == NULL)
 	continue;
 
@@ -3765,7 +3793,7 @@ Struct_type::fill_in_tree(Gogo* gogo, tree type)
       // Don't follow pointers yet, so that we don't get confused by a
       // pointer to an array of this struct type.
       tree field_type_tree;
-      if (p->type()->points_to() != NULL)
+      if (p->type()->points_to() != NULL || p->type()->function_type() != NULL)
 	{
 	  field_type_tree = ptr_type_node;
 	  has_pointer = true;
@@ -3795,7 +3823,8 @@ Struct_type::fill_in_tree(Gogo* gogo, tree type)
 	   p != this->fields_->end();
 	   ++p, field = DECL_CHAIN(field))
 	{
-	  if (p->type()->points_to() != NULL)
+	  if (p->type()->points_to() != NULL
+	      || p->type()->function_type() != NULL)
 	    TREE_TYPE(field) = p->type()->get_tree(gogo);
 	}
     }
@@ -4258,6 +4287,10 @@ Array_type::verify_length()
 {
   if (this->length_ == NULL)
     return true;
+
+  Type_context context(Type::lookup_integer_type("int"), false);
+  this->length_->determine_type(&context);
+
   if (!this->length_->is_constant())
     {
       error_at(this->length_->location(), "array bound is not constant");
@@ -4265,30 +4298,23 @@ Array_type::verify_length()
     }
 
   mpz_t val;
-
-  Type* t = this->length_->type();
-  if (t->integer_type() != NULL)
+  mpz_init(val);
+  Type* vt;
+  if (!this->length_->integer_constant_value(true, val, &vt))
     {
-      Type* vt;
-      mpz_init(val);
-      if (!this->length_->integer_constant_value(true, val, &vt))
-	{
-	  error_at(this->length_->location(),
-		   "array bound is not constant");
-	  mpz_clear(val);
-	  return false;
-	}
-    }
-  else if (t->float_type() != NULL)
-    {
-      Type* vt;
       mpfr_t fval;
       mpfr_init(fval);
       if (!this->length_->float_constant_value(fval, &vt))
 	{
-	  error_at(this->length_->location(),
-		   "array bound is not constant");
+	  if (this->length_->type()->integer_type() != NULL
+	      || this->length_->type()->float_type() != NULL)
+	    error_at(this->length_->location(),
+		     "array bound is not constant");
+	  else
+	    error_at(this->length_->location(),
+		     "array bound is not numeric");
 	  mpfr_clear(fval);
+	  mpz_clear(val);
 	  return false;
 	}
       if (!mpfr_integer_p(fval))
@@ -4296,17 +4322,12 @@ Array_type::verify_length()
 	  error_at(this->length_->location(),
 		   "array bound truncated to integer");
 	  mpfr_clear(fval);
+	  mpz_clear(val);
 	  return false;
 	}
       mpz_init(val);
       mpfr_get_z(val, fval, GMP_RNDN);
       mpfr_clear(fval);
-    }
-  else
-    {
-      if (!t->is_error_type())
-	error_at(this->length_->location(), "array bound is not numeric");
-      return false;
     }
 
   if (mpz_sgn(val) < 0)
@@ -4443,37 +4464,65 @@ Array_type::do_get_tree(Gogo* gogo)
   if (this->length_ == NULL)
     {
       tree struct_type = gogo->slice_type_tree(void_type_node);
-      return this->fill_in_tree(gogo, struct_type);
+      return this->fill_in_slice_tree(gogo, struct_type);
     }
   else
     {
-      tree element_type_tree = this->element_type_->get_tree(gogo);
-      tree length_tree = this->get_length_tree(gogo);
-      if (element_type_tree == error_mark_node
-	  || length_tree == error_mark_node)
-	return error_mark_node;
-
-      length_tree = fold_convert(sizetype, length_tree);
-
-      // build_index_type takes the maximum index, which is one less
-      // than the length.
-      tree index_type = build_index_type(fold_build2(MINUS_EXPR, sizetype,
-						     length_tree,
-						     size_one_node));
-
-      return build_array_type(element_type_tree, index_type);
+      tree array_type = make_node(ARRAY_TYPE);
+      return this->fill_in_array_tree(gogo, array_type);
     }
+}
+
+// Fill in the fields for an array type.  This is used for named array
+// types.
+
+tree
+Array_type::fill_in_array_tree(Gogo* gogo, tree array_type)
+{
+  gcc_assert(this->length_ != NULL);
+
+  tree element_type_tree = this->element_type_->get_tree(gogo);
+  tree length_tree = this->get_length_tree(gogo);
+  if (element_type_tree == error_mark_node
+      || length_tree == error_mark_node)
+    return error_mark_node;
+
+  length_tree = fold_convert(sizetype, length_tree);
+
+  // build_index_type takes the maximum index, which is one less than
+  // the length.
+  tree index_type = build_index_type(fold_build2(MINUS_EXPR, sizetype,
+						 length_tree,
+						 size_one_node));
+
+  TREE_TYPE(array_type) = element_type_tree;
+  TYPE_DOMAIN(array_type) = index_type;
+  TYPE_ADDR_SPACE(array_type) = TYPE_ADDR_SPACE(element_type_tree);
+  layout_type(array_type);
+
+  if (TYPE_STRUCTURAL_EQUALITY_P(element_type_tree)
+      || TYPE_STRUCTURAL_EQUALITY_P(index_type))
+    SET_TYPE_STRUCTURAL_EQUALITY(array_type);
+  else if (TYPE_CANONICAL(element_type_tree) != element_type_tree
+	   || TYPE_CANONICAL(index_type) != index_type)
+    TYPE_CANONICAL(array_type) =
+      build_array_type(TYPE_CANONICAL(element_type_tree),
+		       TYPE_CANONICAL(index_type));
+
+  return array_type;
 }
 
 // Fill in the fields for a slice type.  This is used for named slice
 // types.
 
 tree
-Array_type::fill_in_tree(Gogo* gogo, tree struct_type)
+Array_type::fill_in_slice_tree(Gogo* gogo, tree struct_type)
 {
   gcc_assert(this->length_ == NULL);
 
   tree element_type_tree = this->element_type_->get_tree(gogo);
+  if (element_type_tree == error_mark_node)
+    return error_mark_node;
   tree field = TYPE_FIELDS(struct_type);
   gcc_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "__values") == 0);
   gcc_assert(POINTER_TYPE_P(TREE_TYPE(field))
@@ -4566,6 +4615,8 @@ Array_type::do_make_expression_tree(Translate_context* context,
   tree element_size_tree = TYPE_SIZE_UNIT(element_type_tree);
 
   tree value = this->element_type_->get_init_tree(gogo, true);
+  if (value == error_mark_node)
+    return error_mark_node;
 
   // The first argument is the number of elements, the optional second
   // argument is the capacity.
@@ -4689,7 +4740,7 @@ Array_type::do_make_expression_tree(Translate_context* context,
   tree range = build2(RANGE_EXPR, sizetype, size_zero_node, max);
   tree space_init = build_constructor_single(array_type, range, value);
 
-  return build2(COMPOUND_EXPR, TREE_TYPE(space),
+  return build2(COMPOUND_EXPR, TREE_TYPE(constructor),
 		build2(MODIFY_EXPR, void_type_node,
 		       build_fold_indirect_ref(value_pointer),
 		       space_init),
@@ -5602,6 +5653,7 @@ Interface_type::finalize_methods()
 {
   if (this->methods_ == NULL)
     return;
+  std::vector<Named_type*> seen;
   bool is_recursive = false;
   size_t from = 0;
   size_t to = 0;
@@ -5629,6 +5681,7 @@ Interface_type::finalize_methods()
 	  ++from;
 	  continue;
 	}
+
       Interface_type* it = p->type()->interface_type();
       if (it == NULL)
 	{
@@ -5646,6 +5699,27 @@ Interface_type::finalize_methods()
 	  ++from;
 	  continue;
 	}
+
+      Named_type* nt = p->type()->named_type();
+      if (nt != NULL)
+	{
+	  std::vector<Named_type*>::const_iterator q;
+	  for (q = seen.begin(); q != seen.end(); ++q)
+	    {
+	      if (*q == nt)
+		{
+		  error_at(p->location(), "inherited interface loop");
+		  break;
+		}
+	    }
+	  if (q != seen.end())
+	    {
+	      ++from;
+	      continue;
+	    }
+	  seen.push_back(nt);
+	}
+
       const Typed_identifier_list* methods = it->methods();
       if (methods == NULL)
 	{
@@ -5658,7 +5732,7 @@ Interface_type::finalize_methods()
 	{
 	  if (q->name().empty())
 	    {
-	      if (q->type() == p->type())
+	      if (q->type()->forwarded() == p->type()->forwarded())
 		error_at(p->location(), "interface inheritance loop");
 	      else
 		{
@@ -5666,7 +5740,8 @@ Interface_type::finalize_methods()
 		  for (i = from + 1; i < this->methods_->size(); ++i)
 		    {
 		      const Typed_identifier* r = &this->methods_->at(i);
-		      if (r->name().empty() && r->type() == q->type())
+		      if (r->name().empty()
+			  && r->type()->forwarded() == q->type()->forwarded())
 			{
 			  error_at(p->location(),
 				   "inherited interface listed twice");
@@ -6921,12 +6996,12 @@ Named_type::do_verify()
     }
 
   // If this is a struct, then if any of the fields of the struct
-  // themselves have struct type, then this struct must be converted
-  // to the backend representation before the field's type is
-  // converted.  That may seem backward, but it works because if the
-  // field's type refers to this one, e.g., via a pointer, then the
-  // conversion process will pick up the half-built struct and do the
-  // right thing.
+  // themselves have struct type, or array of struct type, then this
+  // struct must be converted to the backend representation before the
+  // field's type is converted.  That may seem backward, but it works
+  // because if the field's type refers to this one, e.g., via a
+  // pointer, then the conversion process will pick up the half-built
+  // struct and do the right thing.
   if (this->struct_type() != NULL)
     {
       const Struct_field_list* fields = this->struct_type()->fields();
@@ -6937,6 +7012,16 @@ Named_type::do_verify()
 	  Struct_type* st = p->type()->struct_type();
 	  if (st != NULL)
 	    st->add_prerequisite(this);
+	  else
+	    {
+	      Array_type* at = p->type()->array_type();
+	      if (at != NULL && !at->is_open_array_type())
+		{
+		  st = at->element_type()->struct_type();
+		  if (st != NULL)
+		    st->add_prerequisite(this);
+		}
+	    }
 	}
     }
 
@@ -7092,15 +7177,19 @@ Named_type::do_get_tree(Gogo* gogo)
       break;
 
     case TYPE_ARRAY:
+      if (this->named_tree_ != NULL_TREE)
+	return this->named_tree_;
       if (!this->is_open_array_type())
-	t = Type::get_named_type_tree(gogo, this->type_);
+	{
+	  t = make_node(ARRAY_TYPE);
+	  this->named_tree_ = t;
+	  t = this->type_->array_type()->fill_in_array_tree(gogo, t);
+	}
       else
 	{
-	  if (this->named_tree_ != NULL_TREE)
-	    return this->named_tree_;
 	  t = gogo->slice_type_tree(void_type_node);
 	  this->named_tree_ = t;
-	  t = this->type_->array_type()->fill_in_tree(gogo, t);
+	  t = this->type_->array_type()->fill_in_slice_tree(gogo, t);
 	}
       if (t == error_mark_node)
 	return error_mark_node;
@@ -7486,7 +7575,13 @@ Type::add_interface_methods_for_type(const Type* type,
        ++pm)
     {
       Function_type* fntype = pm->type()->function_type();
-      gcc_assert(fntype != NULL && !fntype->is_method());
+      if (fntype == NULL)
+	{
+	  // This is an error, but it should be reported elsewhere
+	  // when we look at the methods for IT.
+	  continue;
+	}
+      gcc_assert(!fntype->is_method());
       fntype = fntype->copy_with_receiver(const_cast<Type*>(type));
       Method* m = new Interface_method(pm->name(), pm->location(), fntype,
 				       field_indexes, depth);
@@ -7756,6 +7851,8 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
     {
       expr = Expression::make_unary(OPERATOR_MULT, expr, location);
       type = type->points_to();
+      if (type->deref()->is_error_type())
+	return Expression::make_error(location);
       nt = type->points_to()->named_type();
       st = type->points_to()->struct_type();
       it = type->points_to()->interface_type();
@@ -8053,9 +8150,9 @@ Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
 				    const std::string& name,
 				    std::vector<const Named_type*>* seen)
 {
-  type = type->deref();
-
   const Named_type* nt = type->named_type();
+  if (nt == NULL)
+    nt = type->deref()->named_type();
   if (nt != NULL)
     {
       if (nt->is_unexported_local_method(gogo, name))
@@ -8072,6 +8169,8 @@ Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
 	    }
 	}
     }
+
+  type = type->deref();
 
   const Interface_type* it = type->interface_type();
   if (it != NULL && it->is_unexported_method(gogo, name))
@@ -8096,11 +8195,17 @@ Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
        ++pf)
     {
       if (pf->is_anonymous()
-	  && (!pf->type()->deref()->is_error_type()
-	      && !pf->type()->deref()->is_undefined()))
+	  && !pf->type()->deref()->is_error_type()
+	  && !pf->type()->deref()->is_undefined())
 	{
-	  Named_type* subtype = pf->type()->deref()->named_type();
-	  gcc_assert(subtype != NULL);
+	  Named_type* subtype = pf->type()->named_type();
+	  if (subtype == NULL)
+	    subtype = pf->type()->deref()->named_type();
+	  if (subtype == NULL)
+	    {
+	      // This is an error, but it will be diagnosed elsewhere.
+	      continue;
+	    }
 	  if (Type::is_unexported_field_or_method(gogo, subtype, name, seen))
 	    {
 	      if (nt != NULL)

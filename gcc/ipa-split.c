@@ -411,9 +411,6 @@ consider_split (struct split_point *current, bitmap non_ssa_vars,
 		 "  Refused: split part has non-ssa uses\n");
       return;
     }
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    fprintf (dump_file, "  Accepted!\n");
-
   /* See if retval used by return bb is computed by header or split part.
      When it is computed by split part, we need to produce return statement
      in the split part and add code to header to pass it around.
@@ -450,6 +447,30 @@ consider_split (struct split_point *current, bitmap non_ssa_vars,
       = bitmap_bit_p (non_ssa_vars, DECL_UID (retval));
   else
     current->split_part_set_retval = true;
+
+  /* split_function fixes up at most one PHI non-virtual PHI node in return_bb,
+     for the return value.  If there are other PHIs, give up.  */
+  if (return_bb != EXIT_BLOCK_PTR)
+    {
+      gimple_stmt_iterator psi;
+
+      for (psi = gsi_start_phis (return_bb); !gsi_end_p (psi); gsi_next (&psi))
+	if (is_gimple_reg (gimple_phi_result (gsi_stmt (psi)))
+	    && !(retval
+		 && current->split_part_set_retval
+		 && TREE_CODE (retval) == SSA_NAME
+		 && !DECL_BY_REFERENCE (DECL_RESULT (current_function_decl))
+		 && SSA_NAME_DEF_STMT (retval) == gsi_stmt (psi)))
+	  {
+	    if (dump_file && (dump_flags & TDF_DETAILS))
+	      fprintf (dump_file,
+		       "  Refused: return bb has extra PHIs\n");
+	    return;
+	  }
+    }
+
+  if (dump_file && (dump_flags & TDF_DETAILS))
+    fprintf (dump_file, "  Accepted!\n");
 
   /* At the moment chose split point with lowest frequency and that leaves
      out smallest size of header.
@@ -622,11 +643,10 @@ visit_bb (basic_block bb, basic_block return_bb,
 	 into different partitions.  This would require tracking of
 	 EH regions and checking in consider_split_point if they 
 	 are not used elsewhere.  */
-      if (gimple_code (stmt) == GIMPLE_RESX
-	  && stmt_can_throw_external (stmt))
+      if (gimple_code (stmt) == GIMPLE_RESX)
 	{
 	  if (dump_file && (dump_flags & TDF_DETAILS))
-	    fprintf (dump_file, "Cannot split: external resx.\n");
+	    fprintf (dump_file, "Cannot split: resx.\n");
 	  can_split = false;
 	}
       if (gimple_code (stmt) == GIMPLE_EH_DISPATCH)
@@ -649,6 +669,7 @@ visit_bb (basic_block bb, basic_block return_bb,
 	     way to store builtin_stack_save result in non-SSA variable
 	     since all calls to those are compiler generated.  */
 	  case BUILT_IN_APPLY:
+	  case BUILT_IN_APPLY_ARGS:
 	  case BUILT_IN_VA_START:
 	    if (dump_file && (dump_flags & TDF_DETAILS))
 	      fprintf (dump_file,

@@ -513,9 +513,13 @@ build_vec_init_expr (tree type, tree init)
   SET_EXPR_LOCATION (init, input_location);
 
   if (current_function_decl
-      && DECL_DECLARED_CONSTEXPR_P (current_function_decl)
-      && potential_constant_expression (elt_init, tf_warning_or_error))
-    VEC_INIT_EXPR_IS_CONSTEXPR (init) = true;
+      && DECL_DECLARED_CONSTEXPR_P (current_function_decl))
+    {
+      if (potential_constant_expression (elt_init))
+	VEC_INIT_EXPR_IS_CONSTEXPR (init) = true;
+      else if (!processing_template_decl)
+	require_potential_constant_expression (elt_init);
+    }
   VEC_INIT_EXPR_VALUE_INIT (init) = value_init;
 
   init = build_target_expr (slot, init);
@@ -2172,6 +2176,9 @@ cp_tree_equal (tree t1, tree t2)
 				BASELINK_FUNCTIONS (t2)));
 
     case TEMPLATE_PARM_INDEX:
+      if (TEMPLATE_PARM_NUM_SIBLINGS (t1)
+	  != TEMPLATE_PARM_NUM_SIBLINGS (t2))
+	return false;
       return (TEMPLATE_PARM_IDX (t1) == TEMPLATE_PARM_IDX (t2)
 	      && TEMPLATE_PARM_LEVEL (t1) == TEMPLATE_PARM_LEVEL (t2)
 	      && (TEMPLATE_PARM_PARAMETER_PACK (t1)

@@ -135,52 +135,99 @@ AC_SUBST(GOOS)
 dnl N.B. Keep in sync with gcc/testsuite/go.test/go-test.exp (go-set-goarch).
 is_386=no
 is_arm=no
+is_m68k=no
+is_mips=no
+is_mips64=no
+is_ppc=no
+is_ppc64=no
 is_sparc=no
 is_sparc64=no
 is_x86_64=no
 GOARCH=unknown
 case ${host} in
+  arm*-*-* | strongarm*-*-* | ep9312*-*-* | xscale-*-*)
+    is_arm=yes
+    GOARCH=arm
+    ;;
 changequote(,)dnl
   i[34567]86-*-* | x86_64-*-*)
 changequote([,])dnl
-    AC_PREPROC_IFELSE([
+    AC_COMPILE_IFELSE([
 #ifdef __x86_64__
 #error 64-bit
 #endif],
 [is_386=yes], [is_x86_64=yes])
     if test "$is_386" = "yes"; then
-      is_386=yes
       GOARCH=386
     else
-      is_x86_64=yes
       GOARCH=amd64
     fi
     ;;
-  arm*-*-* | strongarm*-*-* | ep9312*-*-* | xscale-*-*)
-    is_arm=yes
-    GOARCH=arm
+  m68k*-*-*)
+    is_m68k=yes
+    GOARCH=m68k
+    ;;
+  mips*-*-*)
+    AC_COMPILE_IFELSE([
+#ifdef __mips64
+#error 64-bit
+#endif],
+[is_mips=yes], [is_mips64=yes])
+    if test "$is_mips" = "yes"; then
+      GOARCH=mips
+    else
+      GOARCH=mips64
+    fi
+    ;;
+  rs6000*-*-* | powerpc*-*-*)
+    AC_COMPILE_IFELSE([
+#ifdef _ARCH_PPC64
+#error 64-bit
+#endif],
+[is_ppc=yes], [is_ppc64=yes])
+    if test "$is_ppc" = "yes"; then
+      GOARCH=ppc
+    else
+      GOARCH=ppc64
+    fi
     ;;
   sparc*-*-*)
-    AC_PREPROC_IFELSE([
+    AC_COMPILE_IFELSE([
 #if defined(__sparcv9) || defined(__arch64__)
 #error 64-bit
 #endif],
 [is_sparc=yes], [is_sparc64=yes])
     if test "$is_sparc" = "yes"; then
-      is_sparc=yes
       GOARCH=sparc
     else
-      is_sparc64=yes
       GOARCH=sparc64
     fi
     ;;
 esac
 AM_CONDITIONAL(LIBGO_IS_386, test $is_386 = yes)
 AM_CONDITIONAL(LIBGO_IS_ARM, test $is_arm = yes)
+AM_CONDITIONAL(LIBGO_IS_M68K, test $is_m68k = yes)
+AM_CONDITIONAL(LIBGO_IS_MIPS, test $is_mips = yes)
+AM_CONDITIONAL(LIBGO_IS_MIPS64, test $is_mips64 = yes)
+AM_CONDITIONAL(LIBGO_IS_PPC, test $is_ppc = yes)
+AM_CONDITIONAL(LIBGO_IS_PPC64, test $is_ppc64 = yes)
 AM_CONDITIONAL(LIBGO_IS_SPARC, test $is_sparc = yes)
 AM_CONDITIONAL(LIBGO_IS_SPARC64, test $is_sparc64 = yes)
 AM_CONDITIONAL(LIBGO_IS_X86_64, test $is_x86_64 = yes)
 AC_SUBST(GOARCH)
+
+dnl Some files are only present when needed for specific architectures.
+GO_SYSCALLS_SYSCALL_OS_ARCH_FILE=
+if test -f ${srcdir}/syscalls/syscall_${GOOS}_${GOARCH}.go; then
+  GO_SYSCALLS_SYSCALL_OS_ARCH_FILE=syscalls/syscall_${GOOS}_${GOARCH}.go
+fi
+AC_SUBST(GO_SYSCALLS_SYSCALL_OS_ARCH_FILE)
+
+GO_DEBUG_PROC_REGS_OS_ARCH_FILE=
+if test -f ${srcdir}/go/debug/proc/regs_${GOOS}_${GOARCH}.go; then
+  GO_DEBUG_PROC_REGS_OS_ARCH_FILE=go/debug/proc/regs_${GOOS}_${GOARCH}.go
+fi
+AC_SUBST(GO_DEBUG_PROC_REGS_OS_ARCH_FILE)
 
 dnl Use -fsplit-stack when compiling C code if available.
 AC_CACHE_CHECK([whether -fsplit-stack is supported],
@@ -281,9 +328,87 @@ AC_C_BIGENDIAN
 
 GCC_CHECK_UNWIND_GETIPINFO
 
-AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/user.h sys/utsname.h)
+AC_ARG_ENABLE(sjlj-exceptions,
+  AC_HELP_STRING([--enable-sjlj-exceptions],
+		 [force use of builtin_setjmp for exceptions]),
+  [case "$enableval" in
+   yes|no|auto) ;;
+   *) AC_MSG_ERROR([unknown argument to --enable-sjlj-exceptions]) ;;
+   esac],
+  [enable_sjlj_exceptions=auto])
+
+AC_CACHE_CHECK([whether to use setjmp/longjmp exceptions],
+[libgo_cv_lib_sjlj_exceptions],
+[AC_LANG_CONFTEST(
+  [AC_LANG_SOURCE([
+void bar ();
+void clean (int *);
+void foo ()
+{
+  int i __attribute__ ((cleanup (clean)));
+  bar();
+}
+])])
+CFLAGS_hold=$CFLAGS
+CFLAGS="--save-temps -fexceptions"
+libgo_cv_lib_sjlj_exceptions=unknown
+AS_IF([ac_fn_c_try_compile],
+  [if grep _Unwind_SjLj_Resume conftest.s >/dev/null 2>&1; then
+    libgo_cv_lib_sjlj_exceptions=yes
+  elif grep _Unwind_Resume conftest.s >/dev/null 2>&1; then
+    libgo_cv_lib_sjlj_exceptions=no
+  fi])
+CFLAGS=$CFLAGS_hold
+rm -f conftest*
+])
+
+if test "$enable_sjlj_exceptions" = "auto"; then
+  enable_sjlj_exceptions=$libgo_cv_lib_sjlj_exceptions
+fi
+
+case $enable_sjlj_exceptions in
+yes)
+  AC_DEFINE(LIBGO_SJLJ_EXCEPTIONS, 1,
+	[Define if the C++ compiler is configured for setjmp/longjmp exceptions.])
+  ;;
+no)
+  ;;
+*)
+  AC_MSG_ERROR([unable to detect exception model])
+  ;;
+esac
+
+AC_CHECK_HEADERS(sys/mman.h syscall.h sys/epoll.h sys/ptrace.h sys/syscall.h sys/user.h sys/utsname.h)
 AM_CONDITIONAL(HAVE_SYS_MMAN_H, test "$ac_cv_header_sys_mman_h" = yes)
 AC_CHECK_FUNCS(srandom random strsignal)
+
+AC_CACHE_CHECK([for __sync_bool_compare_and_swap_4],
+[libgo_cv_func___sync_bool_compare_and_swap_4],
+[AC_LINK_IFELSE([
+typedef unsigned int uint32  __attribute__ ((mode (SI)));
+uint32 i;
+int main() { return __sync_bool_compare_and_swap (&i, 0, 1); }
+],
+[libgo_cv_func___sync_bool_compare_and_swap_4=yes],
+[libgo_cv_func___sync_bool_compare_and_swap_4=no])])
+if test "$libgo_cv_func___sync_bool_compare_and_swap_4" = "yes"; then
+  AC_DEFINE(HAVE_SYNC_BOOL_COMPARE_AND_SWAP_4, 1,
+    [Define to 1 if the compiler provides the __sync_bool_compare_and_swap function for uint32])
+fi
+
+AC_CACHE_CHECK([for __sync_fetch_and_add_4],
+[libgo_cv_func___sync_fetch_and_add_4],
+[AC_LINK_IFELSE([
+typedef unsigned int uint32  __attribute__ ((mode (SI)));
+uint32 i;
+int main() { return __sync_fetch_and_add (&i, 1); }
+],
+[libgo_cv_func___sync_fetch_and_add_4=yes],
+[libgo_cv_func___sync_fetch_and_add_4=no])])
+if test "$libgo_cv_func___sync_fetch_and_add_4" = "yes"; then
+  AC_DEFINE(HAVE_SYNC_FETCH_AND_ADD_4, 1,
+    [Define to 1 if the compiler provides the __sync_fetch_and_add function for uint32])
+fi
 
 dnl For x86 we want to use the -minline-all-stringops option to avoid
 dnl forcing a stack split when calling memcpy and friends.

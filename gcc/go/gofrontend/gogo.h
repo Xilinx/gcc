@@ -100,9 +100,9 @@ operator<(const Import_init& i1, const Import_init& i2)
 class Gogo
 {
  public:
-  // Create the IR, passing in the sizes of the types "int", "float",
-  // and "uintptr" in bits.
-  Gogo(int int_type_size, int float_type_size, int pointer_size);
+  // Create the IR, passing in the sizes of the types "int" and
+  // "uintptr" in bits.
+  Gogo(int int_type_size, int pointer_size);
 
   // Get the package name.
   const std::string&
@@ -111,6 +111,10 @@ class Gogo
   // Set the package name.
   void
   set_package_name(const std::string&, source_location);
+
+  // Return whether this is the "main" package.
+  bool
+  is_main_package() const;
 
   // If necessary, adjust the name to use for a hidden symbol.  We add
   // a prefix of the package name, so that hidden symbols in different
@@ -653,6 +657,8 @@ class Gogo
   std::set<Import_init> imported_init_fns_;
   // The unique prefix used for all global symbols.
   std::string unique_prefix_;
+  // Whether an explicit unique prefix was set by -fgo-prefix.
+  bool unique_prefix_specified_;
   // A list of interface types defined while parsing.
   std::vector<Interface_type*> interface_types_;
 };

@@ -332,7 +332,7 @@ and @option{--with-mpc-include}.  Alternatively, if an MPC source
 distribution is found in a subdirectory of your GCC sources named
 @file{mpc}, it will be built together with GCC@.
 
-@item Parma Polyhedra Library (PPL) version 0.10
+@item Parma Polyhedra Library (PPL) version 0.11
 
 Necessary to build GCC with the Graphite loop optimizations.
 It can be downloaded from @uref{http://www.cs.unipr.it/ppl/Download/}.
@@ -340,16 +340,23 @@ It can be downloaded from @uref{http://www.cs.unipr.it/ppl/Download/}.
 The @option{--with-ppl} configure option should be used if PPL is not
 installed in your default library search path.
 
-@item CLooG-PPL version 0.15
+@item CLooG-PPL version 0.15 or CLooG 0.16
 
-Necessary to build GCC with the Graphite loop optimizations.  It can
-be downloaded from @uref{ftp://gcc.gnu.org/pub/gcc/infrastructure/}.
-The code in @file{cloog-ppl-0.15.tar.gz} comes from a branch of CLooG
-available from @uref{http://repo.or.cz/w/cloog-ppl.git}.  CLooG-PPL
-should be configured with @option{--with-ppl}.
+Necessary to build GCC with the Graphite loop optimizations.  There
+are two versions available.  CLooG-PPL 0.15 as well as CLooG 0.16.
+The former is the default right now.  It can be downloaded from
+@uref{ftp://gcc.gnu.org/pub/gcc/infrastructure/} as
+@file{cloog-ppl-0.15.tar.gz}.
 
-The @option{--with-cloog} configure option should be used if CLooG is
-not installed in your default library search path.
+CLooG 0.16 support is still in testing stage, but will be the
+default in future GCC releases.  It is also available at
+@uref{ftp://gcc.gnu.org/pub/gcc/infrastructure/} as
+@file{cloog-0.16.1.tar.gz}.  To use it add the additional configure
+option @option{--enable-cloog-backend=isl}.  Even if CLooG 0.16
+does not use PPL, PPL is still required for Graphite.
+
+In both cases @option{--with-cloog} configure option should be used
+if CLooG is not installed in your default library search path.
 
 @item @command{jar}, or InfoZIP (@command{zip} and @command{unzip})
 
@@ -1577,6 +1584,9 @@ shared libraries can be found by the dynamic linker when building and
 using GCC, for example by setting the runtime shared library path
 variable (@env{LD_LIBRARY_PATH} on GNU/Linux and Solaris systems).
 
+These flags are applicable to the host platform only.  When building
+a cross compiler, they will not be used to configure target libraries.
+
 @item --with-ppl=@var{pathname}
 @itemx --with-ppl-include=@var{pathname}
 @itemx --with-ppl-lib=@var{pathname}
@@ -1596,6 +1606,9 @@ you can explicitly specify the directory where they are installed
 @option{--with-cloog-include=@/@var{clooginstalldir}/include}.  If these
 shorthand assumptions are not correct, you can use the explicit
 include and lib options directly.
+
+These flags are applicable to the host platform only.  When building
+a cross compiler, they will not be used to configure target libraries.
 
 @item --with-host-libstdcxx=@var{linker-args}
 If you are linking with a static copy of PPL, you can use this option
@@ -2826,10 +2839,6 @@ HP-UX:
 @end itemize
 
 @item
-Motorola 68HC11/68HC12---@uref{http://www.gnu-m68hc11.org,,GNU
-Development Tools for the Motorola 68HC11/68HC12}.
-
-@item
 @uref{http://www.sco.com/skunkware/devtools/index.html#gcc,,SCO
 OpenServer/Unixware}.
 
@@ -3378,22 +3387,7 @@ More specific information to @samp{hppa*-hp-hpux*} targets follows.
 @heading @anchor{hppa-hp-hpux10}hppa*-hp-hpux10
 
 For hpux10.20, we @emph{highly} recommend you pick up the latest sed patch
-@code{PHCO_19798} from HP@.  HP has two sites which provide patches free of
-charge:
-
-@itemize @bullet
-@item
-@html
-<a href="http://us.itrc.hp.com/service/home/home.do">US, Canada, Asia-Pacific, and
-Latin-America</a>
-@end html
-@ifnothtml
-@uref{http://us.itrc.hp.com/service/home/home.do,,} US, Canada, Asia-Pacific,
-and Latin-America.
-@end ifnothtml
-@item
-@uref{http://europe.itrc.hp.com/service/home/home.do,,} Europe.
-@end itemize
+@code{PHCO_19798} from HP@.
 
 The C++ ABI has changed incompatibly in GCC 4.0.  COMDAT subspaces are
 used for one-only code and data.  This resolves many of the previous

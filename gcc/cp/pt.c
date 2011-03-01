@@ -53,7 +53,7 @@ typedef int (*tree_fn_t) (tree, void*);
 /* The PENDING_TEMPLATES is a TREE_LIST of templates whose
    instantiations have been deferred, either because their definitions
    were not yet available, or because we were putting off doing the work.  */
-struct GTY (()) pending_template {
+struct GTY ((chain_next ("%h.next"))) pending_template {
   struct pending_template *next;
   struct tinst_level *tinst;
 };
@@ -194,7 +194,6 @@ static tree template_parm_to_arg (tree t);
 static tree current_template_args (void);
 static tree fixup_template_type_parm_type (tree, int);
 static tree fixup_template_parm_index (tree, tree, int);
-static void fixup_template_parms (void);
 static tree tsubst_template_parm (tree, tree, tsubst_flags_t);
 
 /* Make the current scope suitable for access checking when we are
@@ -3614,8 +3613,6 @@ end_template_parm_list (tree parms)
       TREE_CHAIN (parm) = NULL_TREE;
     }
 
-  fixup_template_parms ();
-
   --processing_template_parmlist;
 
   return saved_parmlist;
@@ -3774,21 +3771,16 @@ fixup_template_parm (tree parm_desc,
     {
       /* PARM is a template template parameter. This is going to
 	 be interesting.  */
-      tree tparms, targs, innermost_args;
+      tree tparms, targs, innermost_args, t;
       int j;
 
-      /* First, fix up the type of the parm.  */
+      /* First, fix up the parms of the template template parm
+	 because the parms are involved in defining the new canonical
+	 type of the template template parm.  */
 
-      tree t =
-	fixup_template_type_parm_type (TREE_TYPE (parm), num_parms);
-      TREE_TYPE (parm) = t;
-
-      TREE_VEC_ELT (fixedup_args, idx) =
-	template_parm_to_arg (parm_desc);
-
-      /* Now we need to substitute the template parm types that
-	 have been fixed up so far into the non-type template
-	 parms of this template template parm. E.g, consider this:
+      /* So we need to substitute the template parm types that have
+	 been fixed up so far into the template parms of this template
+	 template parm. E.g, consider this:
 
 	 template<class T, template<T u> class TT> class S;
 
@@ -3827,6 +3819,14 @@ fixup_template_parm (tree parm_desc,
 			       TREE_VEC_LENGTH (tparms),
 			       targs);
 	}
+
+      /* Now fix up the type of the template template parm.  */
+
+      t = fixup_template_type_parm_type (TREE_TYPE (parm), num_parms);
+      TREE_TYPE (parm) = t;
+
+      TREE_VEC_ELT (fixedup_args, idx) =
+	template_parm_to_arg (parm_desc);
     }
   else if (TREE_CODE (parm) == PARM_DECL)
     {
@@ -3882,11 +3882,11 @@ fixup_template_parm (tree parm_desc,
   pop_deferring_access_checks ();
 }
 
-/* Walk current the template parms and properly compute the canonical
+/* Walk the current template parms and properly compute the canonical
    types of the dependent types created during
    cp_parser_template_parameter_list.  */
 
-static void
+void
 fixup_template_parms (void)
 {
   tree arglist;
@@ -3910,8 +3910,6 @@ fixup_template_parms (void)
      argument.  */
   arglist = current_template_args ();
   arglist = add_outermost_template_args (arglist, fixedup_args);
-
-  fixedup_args = INNERMOST_TEMPLATE_ARGS (arglist);
 
   /* Let's do the proper fixup now.  */
   for (i = 0; i < num_parms; ++i)
@@ -5159,6 +5157,7 @@ fold_non_dependent_expr_sfinae (tree expr, tsubst_flags_t complain)
      as two declarations of the same function, for example.  */
   if (processing_template_decl
       && !type_dependent_expression_p (expr)
+      && potential_constant_expression (expr)
       && !value_dependent_expression_p (expr))
     {
       HOST_WIDE_INT saved_processing_template_decl;
@@ -6994,6 +6993,8 @@ lookup_template_class (tree d1,
               SET_SCOPED_ENUM_P (t, SCOPED_ENUM_P (template_type));
             }
           SET_OPAQUE_ENUM_P (t, OPAQUE_ENUM_P (template_type));
+	  ENUM_FIXED_UNDERLYING_TYPE_P (t)
+	    = ENUM_FIXED_UNDERLYING_TYPE_P (template_type);
 	}
       else
 	{
@@ -8710,19 +8711,51 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
 	  return result;
 	}
 
+      /* For clarity in the comments below let's use the
+	 representation 'argument_pack<elements>' to denote an
+	 argument pack and its elements.
+
+	 In the 'if' block below, we want to detect cases where
+	 ARG_PACK is argument_pack<PARM_PACK...>.  I.e, we want to
+	 check if ARG_PACK is an argument pack which sole element is
+	 the expansion of PARM_PACK.  That argument pack is typically
+	 created by template_parm_to_arg when passed a parameter
+	 pack.  */
       if (arg_pack
           && TREE_VEC_LENGTH (ARGUMENT_PACK_ARGS (arg_pack)) == 1
           && PACK_EXPANSION_P (TREE_VEC_ELT (ARGUMENT_PACK_ARGS (arg_pack), 0)))
         {
           tree expansion = TREE_VEC_ELT (ARGUMENT_PACK_ARGS (arg_pack), 0);
           tree pattern = PACK_EXPANSION_PATTERN (expansion);
-          if ((TYPE_P (pattern) && same_type_p (pattern, parm_pack))
-              || (!TYPE_P (pattern) && cp_tree_equal (parm_pack, pattern)))
-            /* The argument pack that the parameter maps to is just an
-               expansion of the parameter itself, such as one would
-               find in the implicit typedef of a class inside the
-               class itself.  Consider this parameter "unsubstituted",
-               so that we will maintain the outer pack expansion.  */
+	  /* So we have an argument_pack<P...>.  We want to test if P
+	     is actually PARM_PACK.  We will not use cp_tree_equal to
+	     test P and PARM_PACK because during type fixup (by
+	     fixup_template_parm) P can be a pre-fixup version of a
+	     type and PARM_PACK be its post-fixup version.
+	     cp_tree_equal would consider them as different even
+	     though we would want to consider them compatible for our
+	     precise purpose here.
+
+	     Thus we are going to consider that P and PARM_PACK are
+	     compatible if they have the same DECL.  */
+	  if ((/* If ARG_PACK is a type parameter pack named by the
+		  same DECL as parm_pack ...  */
+	       (TYPE_P (pattern)
+		&& TYPE_P (parm_pack)
+		&& TYPE_NAME (pattern) == TYPE_NAME (parm_pack))
+	       /* ... or if ARG_PACK is a non-type parameter
+		  named by the same DECL as parm_pack ...  */
+	       || (TREE_CODE (pattern) == TEMPLATE_PARM_INDEX
+		   && TREE_CODE (parm_pack) == PARM_DECL
+		   && TEMPLATE_PARM_DECL (pattern)
+		   == TEMPLATE_PARM_DECL (DECL_INITIAL (parm_pack))))
+	      && template_parameter_pack_p (pattern))
+            /* ... then the argument pack that the parameter maps to
+               is just an expansion of the parameter itself, such as
+               one would find in the implicit typedef of a class
+               inside the class itself.  Consider this parameter
+               "unsubstituted", so that we will maintain the outer
+               pack expansion.  */
             arg_pack = NULL_TREE;
         }
           
@@ -11381,10 +11414,17 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
     case SIZEOF_EXPR:
       if (PACK_EXPANSION_P (TREE_OPERAND (t, 0)))
         {
-          /* We only want to compute the number of arguments.  */
-          tree expanded = tsubst_pack_expansion (TREE_OPERAND (t, 0), args,
-                                                complain, in_decl);
+
+          tree expanded;
 	  int len = 0;
+
+	  ++cp_unevaluated_operand;
+	  ++c_inhibit_evaluation_warnings;
+	  /* We only want to compute the number of arguments.  */
+	  expanded = tsubst_pack_expansion (TREE_OPERAND (t, 0), args,
+					    complain, in_decl);
+	  --cp_unevaluated_operand;
+	  --c_inhibit_evaluation_warnings;
 
 	  if (TREE_CODE (expanded) == TREE_VEC)
 	    len = TREE_VEC_LENGTH (expanded);
@@ -17913,7 +17953,7 @@ dependent_type_p_r (tree type)
 }
 
 /* Returns TRUE if TYPE is dependent, in the sense of
-   [temp.dep.type].  */
+   [temp.dep.type].  Note that a NULL type is considered dependent.  */
 
 bool
 dependent_type_p (tree type)
@@ -17964,11 +18004,11 @@ dependent_scope_p (tree scope)
    [temp.dep.constexpr].  EXPRESSION is already known to be a constant
    expression.  */
 
-/* FIXME this predicate is not appropriate for general expressions; the
-   predicates we want instead are "valid constant expression, value
-   dependent or not?", "really constant expression, not value dependent?"
-   and "instantiation-dependent?".  Try to integrate with
-   potential_constant_expression?
+/* Note that this predicate is not appropriate for general expressions;
+   only constant expressions (that satisfy potential_constant_expression)
+   can be tested for value dependence.
+
+   We should really also have a predicate for "instantiation-dependent".
 
    fold_non_dependent_expr: fold if constant and not type-dependent and not value-dependent.
      (what about instantiation-dependent constant-expressions?)
@@ -18051,6 +18091,7 @@ value_dependent_expression_p (tree expression)
 
     case SIZEOF_EXPR:
     case ALIGNOF_EXPR:
+    case TYPEID_EXPR:
       /* A `sizeof' expression is value-dependent if the operand is
 	 type-dependent or is a pack expansion.  */
       expression = TREE_OPERAND (expression, 0);
@@ -18185,7 +18226,10 @@ value_dependent_expression_p (tree expression)
 }
 
 /* Returns TRUE if the EXPRESSION is type-dependent, in the sense of
-   [temp.dep.expr].  */
+   [temp.dep.expr].  Note that an expression with no type is
+   considered dependent.  Other parts of the compiler arrange for an
+   expression with type-dependent subexpressions to have no type, so
+   this function doesn't have to be fully recursive.  */
 
 bool
 type_dependent_expression_p (tree expression)
@@ -18915,7 +18959,11 @@ do_auto_deduction (tree type, tree init, tree auto_node)
 			       DEDUCE_CALL, LOOKUP_NORMAL);
   if (val > 0)
     {
-      error ("unable to deduce %qT from %qE", type, init);
+      if (type && type != error_mark_node)
+	/* If type is error_mark_node a diagnostic must have been
+	   emitted by now.  Also, having a mention to '<type error>'
+	   in the diagnostic is not really useful to the user.  */
+	error ("unable to deduce %qT from %qE", type, init);
       return error_mark_node;
     }
 

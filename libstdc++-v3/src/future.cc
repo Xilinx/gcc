@@ -1,6 +1,6 @@
 // future -*- C++ -*-
 
-// Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -48,6 +48,9 @@ namespace
       case std::future_errc::promise_already_satisfied:
           __msg = "Promise already satisfied";
           break;
+      case std::future_errc::no_state:
+          __msg = "No associated state";
+          break;
       default:
           __msg = "Unknown error";
           break;
@@ -64,7 +67,9 @@ namespace
   }
 }
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   const error_category& future_category()
   { return __future_category_instance(); }
@@ -74,7 +79,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   const char* 
   future_error::what() const throw() { return _M_code.message().c_str(); }
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 // XXX GLIBCXX_ABI Deprecated
 // gcc-4.6.0
@@ -83,7 +89,7 @@ _GLIBCXX_END_NAMESPACE
     && defined(_GLIBCXX_HAVE_AS_SYMVER_DIRECTIVE) \
     && defined(_GLIBCXX_HAVE_SYMVER_SYMBOL_RENAMING_RUNTIME_SUPPORT)
 
-namespace __gnu_cxx
+namespace __gnu_cxx _GLIBCXX_VISIBILITY(default)
 {
   const std::error_category* future_category = &__future_category_instance();
 }

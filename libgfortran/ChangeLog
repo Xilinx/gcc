@@ -1,3 +1,237 @@
+2011-02-24  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47802
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Remove checks for ctime and ctime_r, add check for
+	strftime.
+	* intrinsics/date_and_time.c (localtime_r): Move fallback
+	implementation to time_1.h.
+	* intrinsics/time_1.h (localtime_r): Fallback implementation.
+	* intrinsics/ctime.c: Include time_1.h.
+	(ctime_r): Remove fallback implementation.
+	(strctime): New function.
+	(fdate): Use strctime instead of ctime_r.
+	(fdate_sub): Likewise.
+	(ctime): Likewise.
+	(ctime_sub): Likewise.
+
+2011-02-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47878
+	* io/transfer.c (read_sf): Call fbuf_getptr only at the end,
+	and subtract n, dtp->u.p.sf_seen_eor and seen_comma from it.
+
+2011-02-24  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47802
+	* configure.ac: Add test for POSIX getpwuid_r.
+	* intrinsics/getlog.c (getlog): CPP test for
+	HAVE_POSIX_GETPWUID_R.
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+
+2011-02-23  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* io/write_float.def (output_float): Remove special case handling of
+	zero with width 1.
+
+2011-02-23  Janne Blomqvist  <jb@gcc.gnu.org>
+	    Jerry DeLisle    <jvdelisle@gcc.gnu.org>
+
+	PR libfortran/47694
+	* io/fbuf.h (fbuf_getptr): New inline function.
+	* io/transfer.c (read_sf): Use fbuf_getptr and fbuf_getc to scan
+	through the string instead of fbuf_read.
+
+2011-02-22  Tobias Burnus  <burnus@net-b.de>
+	    Kai-Uwe Eckhardt  <kuehro@gmx.de>
+
+	PR libfortran/47830
+	* intrinsics/c99_functions.c (roundl): Make C valid for
+	HAVE_NEXTAFTERL.
+
+2011-02-19  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* io/write_float.def (output_float): Adjust width for F0.d to
+	allow space for negative signs on zero.
+
+2011-02-16  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47667
+	* io/list_read.c (read_logical): Check for end of line before calling
+	eat_line. (read_integer): Likewise. (parse_real): Don't unget the
+	separator. Check for end of line before calling	eat_line.
+	(read_complex): Allow line-end before and after parenthesis and comma.
+	Check for end of line before calling eat_line. (read_real): Check for
+	end of line before calling eat_line.
+
+2011-02-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR libfortran/47757
+	* gfortran.map (GFORTRAN_1.4): Export
+	_gfortran_{m,s}i{all,any,parity}_i{1,2,4,8,16} and
+	_gfortran_{cshift0,eoshift{0,2}}_16_char4.
+
+2011-02-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47716
+	PR fortran/47648
+	* acinclude.m4 (LIBGFOR_CHECK_FLOAT128): Use check from
+	libquadmath, which uses more features.
+	* configure: Regenerate.
+
+2011-02-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47642
+	* io/write_float.def (DTOAQ): Use quadmath_snprintf instead of
+	quadmath_flt128tostr.
+	* io/transfer128.c (tmp2): Initialize to quadmath_snprintf instead
+	of quadmath_flt128tostr.
+
+2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* Makefile.in: Regenerate.
+	* aclocal.m4: Likewise.
+	* configure: Likewise.
+
+2011-02-05  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* io/write_float.def (output_float): Eliminate some redundant code.
+	Adjust width for case of F0.X for values of zero and all other values.
+	Expand cases where '*' is set to give cleaner results.
+
+2011-02-05  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47571
+	* intrinsics/time_1.h (GF_CLOCK_MONOTONIC): Move to system_clock.c.
+	(weak_gettime): Likewise.
+	(gf_gettime): Change API, move weak_gettime() usage to
+	system_clock.c
+	* intrinsics/system_clock.c (GTHREAD_USE_WEAK): Define.
+	(gf_gettime_mono): New function.
+	(system_clock_4): Use gf_gettime_mono().
+	(system_clock_8): Likewise.
+	* intrinsics/date_and_time.c (date_and_time): Update gf_gettime()
+	usage.
+
+2011-02-02  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47571
+	* configure: Regenerated.
+	* configure.ac: Don't add librt to LIBS.
+	* intrinsics/time_1.h (weak_gettime): Weakref trickery for
+	clock_gettime().
+	(gf_gettime): Use weak_gettime() instead of clock_gettime().
+
+2011-02-01  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* intrinsics/time_1.h: Include errno.h needed by fallbacks.
+
+2011-01-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* intrinsics/time_1.h: Fix definition of GF_CLOCK_MONOTONIC macro.
+
+2011-01-31  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* configure.ac: Check for clock_gettime().
+	* configure: Regenerated.
+	* config.h.in: Regenerated.
+	* intrinsics/time_1.h (__time_1): Rename to gf_cputime, add
+	times() fallback.
+	(gf_gettime): New function.
+	* intrinsics/cpu_time.c (__cpu_time_1): Update to call gf_cputime.
+	* intrinsics/date_and_time.c (date_and_time): Use gf_gettime.
+	* intrinsics/dtime.c (dtime_sub): Use gf_cputime.
+	* intrinsics/etime.c (etime_sub): Use gf_cputime.
+	* intrinsics/system_clock.c (system_clock_4): Use gf_gettime.
+	(system_clock_8): Use gf_gettime, increase count rate to allow
+	nanosecond precision, remove overflow prone branch.
+
+2011-01-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47434
+	* io/write_float.def (write_infnan): Use calculate_sign to determine
+	if the sign should be given and check field widths accordingly.
+
+2011-01-29  Kai Tietz  <kai.tietz@onevision.com>
+
+	* intrinsics/ctime.c (ctime_r): Improve implementation.
+
+2011-01-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47431
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Add check for ctime_r().
+	* intrinsics/ctime.c (ctime_r): Fallback implementation.
+	(fdate): Use ctime_r() instead of ctime().
+	(fdate_sub): Likewise.
+	(ctime): Likewise.
+	(ctime_sub): Likewise.
+
+2011-01-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47432
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Add check for ttyname_r.
+	* io/unix.h: Add TTY_NAME_MAX, change stream_ttyname prototype.
+	* io/unix.c (stream_ttyname): Use ttyname_r if available, conform
+	to new prototype.
+	* io/inquire.c (inquire_via_unit): Use changed stream_ttyname.
+	* io/intrinsics.c (ttynam_sub): Likewise.
+	(ttynam): Likewise.
+
+2011-01-27  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47491
+	* configure.ac: Call AC_USE_SYSTEM_EXTENSIONS to enable common
+	extensions.
+	* config.h.in: Regenerate.
+	* configure: Regenerate.
+
+2011-01-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47285
+	* io/write_float.def (write_infnan): Adjust processor selected width
+	to 3 if NaN.
+
+2011-01-26  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47285
+	* io/write_float.def (output_float): Return SUCCESS or FAILURE and use
+	the result to set the padding.
+
+2011-01-26  Kai Tietz  <kai.tietz@onevision.com>
+
+	* intrinsics/getlog.c (getlog): Fix label/statement issue.
+
+2011-01-25  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47375
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Add check for getpwuid_r.
+	* intrinsics/getlog.c (getlog): Use getpwuid_r() if available.
+
+2011-01-22  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/46267
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Check presence of strerror_r.
+	* intrinsics/gerror.c (gerror): Use gf_strerror, modify logic.
+	* io/unix.c (get_oserror): Remove.
+	* libgfortran.h (gf_strerror): Add prototype.
+	(get_oserror): Remove prototype.
+	* runtime/error.c (gf_strerror): New function.
+	(os_error): Use gf_strerror instead of get_oserror.
+	(generate_errror): Likewise.
+
 2011-01-17  Janne Blomqvist  <jb@gcc.gnu.org>
 
 	PR libfortran/47296

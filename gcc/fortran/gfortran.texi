@@ -830,10 +830,11 @@ type-specification with type parameter and for allocation and initialization
 from a @code{SOURCE=} expression; @code{ALLOCATE} and @code{DEALLOCATE}
 optionally return an error message string via @code{ERRMSG=}.
 
-@item Reallocation on assignment for arrays: If an intrinsic assignment is
+@item Reallocation on assignment: If an intrinsic assignment is
 used, an allocatable variable on the left-hand side is automatically allocated
-(if unallocated) or reallocated (if the shape is different). Currently, the
-reallocation for scalars is not implemented.
+(if unallocated) or reallocated (if the shape is different). Currently, scalar
+deferred character length left-hand sides are correctly handled but arrays
+are not yet fully implemented.
 
 @item Transferring of allocations via @code{MOVE_ALLOC}.
 
@@ -854,6 +855,9 @@ the @code{SELECTED_CHAR_KIND} and @code{NEW_LINE} intrinsic functions.
 
 @item Support for binary, octal and hexadecimal (BOZ) constants in the
 intrinsic functions @code{INT}, @code{REAL}, @code{CMPLX} and @code{DBLE}.
+
+@item Support for namelist variables with allocatable and pointer
+attribute and nonconstant length type parameter.
 
 @item
 @cindex array, constructors
@@ -1079,6 +1083,7 @@ might in some way or another become visible to the programmer.
 @menu
 * KIND Type Parameters::
 * Internal representation of LOGICAL variables::
+* Thread-safety of the runtime library::
 @end menu
 
 
@@ -1152,6 +1157,36 @@ false being the only permissible values.  Thus the internal
 representation of @code{LOGICAL} variables in GNU Fortran is identical
 to C99 _Bool, except for a possible difference in storage size
 depending on the kind.
+
+
+@node Thread-safety of the runtime library
+@section Thread-safety of the runtime library
+@cindex thread-safety, threads
+
+GNU Fortran can be used in programs with multiple threads, e.g.@: by
+using OpenMP, by calling OS thread handling functions via the
+@code{ISO_C_BINDING} facility, or by GNU Fortran compiled library code
+being called from a multi-threaded program.
+
+The GNU Fortran runtime library, (@code{libgfortran}), supports being
+called concurrently from multiple threads with the following
+exceptions. 
+
+During library initialization, the C @code{getenv} function is used,
+which need not be thread-safe.  Similarly, the @code{getenv}
+function is used to implement the @code{GET_ENVIRONMENT_VARIABLE} and
+@code{GETENV} intrinsics.  It is the responsibility of the user to
+ensure that the environment is not being updated concurrently when any
+of these actions are taking place.
+
+The @code{EXECUTE_COMMAND_LINE} and @code{SYSTEM} intrinsics are
+implemented with the @code{system} function, which need not be
+thread-safe.  It is the responsibility of the user to ensure that
+@code{system} is not called concurrently.
+
+Finally, for platforms not supporting thread-safe POSIX functions,
+further functionality might not be thread-safe.  For details, please
+consult the documentation for your operating system.
 
 @c ---------------------------------------------------------------------
 @c Extensions

@@ -19,7 +19,7 @@
 
 // Class Gogo.
 
-Gogo::Gogo(int int_type_size, int float_type_size, int pointer_size)
+Gogo::Gogo(int int_type_size, int pointer_size)
   : package_(NULL),
     functions_(),
     globals_(new Bindings(NULL)),
@@ -33,6 +33,7 @@ Gogo::Gogo(int int_type_size, int float_type_size, int pointer_size)
     init_fn_name_(),
     imported_init_fns_(),
     unique_prefix_(),
+    unique_prefix_specified_(false),
     interface_types_()
 {
   const source_location loc = BUILTINS_LOCATION;
@@ -85,12 +86,6 @@ Gogo::Gogo(int int_type_size, int float_type_size, int pointer_size)
   this->add_named_type(Type::make_integer_type("uintptr", true,
 					       pointer_size,
 					       RUNTIME_TYPE_KIND_UINTPTR));
-
-  this->add_named_type(Type::make_float_type("float", float_type_size,
-					     RUNTIME_TYPE_KIND_FLOAT));
-
-  this->add_named_type(Type::make_complex_type("complex", float_type_size * 2,
-					       RUNTIME_TYPE_KIND_COMPLEX));
 
   this->add_named_type(Type::make_named_bool_type());
 
@@ -199,10 +194,10 @@ Gogo::Gogo(int int_type_size, int float_type_size, int pointer_size)
   append_type->set_is_builtin();
   this->globals_->add_function_declaration("append", NULL, append_type, loc);
 
-  Function_type* cmplx_type = Type::make_function_type(NULL, NULL, NULL, loc);
-  cmplx_type->set_is_varargs();
-  cmplx_type->set_is_builtin();
-  this->globals_->add_function_declaration("cmplx", NULL, cmplx_type, loc);
+  Function_type* complex_type = Type::make_function_type(NULL, NULL, NULL, loc);
+  complex_type->set_is_varargs();
+  complex_type->set_is_builtin();
+  this->globals_->add_function_declaration("complex", NULL, complex_type, loc);
 
   Function_type* real_type = Type::make_function_type(NULL, NULL, NULL, loc);
   real_type->set_is_varargs();
@@ -212,7 +207,7 @@ Gogo::Gogo(int int_type_size, int float_type_size, int pointer_size)
   Function_type* imag_type = Type::make_function_type(NULL, NULL, NULL, loc);
   imag_type->set_is_varargs();
   imag_type->set_is_builtin();
-  this->globals_->add_function_declaration("imag", NULL, cmplx_type, loc);
+  this->globals_->add_function_declaration("imag", NULL, imag_type, loc);
 
   this->define_builtin_function_trees();
 
@@ -265,7 +260,7 @@ Gogo::set_package_name(const std::string& package_name,
   // package name (e.g., P.x), but we no longer do.
   // this->globals_->add_package(package_name, this->package_);
 
-  if (package_name == "main")
+  if (this->is_main_package())
     {
       // Declare "main" as a function which takes no parameters and
       // returns no value.
@@ -274,6 +269,15 @@ Gogo::set_package_name(const std::string& package_name,
 						      BUILTINS_LOCATION),
 			     BUILTINS_LOCATION);
     }
+}
+
+// Return whether this is the "main" package.  This is not true if
+// -fgo-prefix was used.
+
+bool
+Gogo::is_main_package() const
+{
+  return this->package_name() == "main" && !this->unique_prefix_specified_;
 }
 
 // Import a package.
@@ -678,10 +682,15 @@ Gogo::start_function(const std::string& name, Function_type* type,
   else if (!type->is_method())
     {
       ret = this->package_->bindings()->add_function(*pname, NULL, function);
-      if (!ret->is_function())
+      if (!ret->is_function() || ret->func_value() != function)
 	{
-	  // Redefinition error.
-	  ret = Named_object::make_function(name, NULL, function);
+	  // Redefinition error.  Invent a name to avoid knockon
+	  // errors.
+	  static int redefinition_count;
+	  char buf[30];
+	  snprintf(buf, sizeof buf, ".$redefined%d", redefinition_count);
+	  ++redefinition_count;
+	  ret = this->package_->bindings()->add_function(buf, NULL, function);
 	}
     }
   else
@@ -1135,12 +1144,16 @@ class Lower_parse_tree : public Traverse
 {
  public:
   Lower_parse_tree(Gogo* gogo, Named_object* function)
-    : Traverse(traverse_constants
+    : Traverse(traverse_variables
+	       | traverse_constants
 	       | traverse_functions
 	       | traverse_statements
 	       | traverse_expressions),
       gogo_(gogo), function_(function), iota_value_(-1)
   { }
+
+  int
+  variable(Named_object*);
 
   int
   constant(Named_object*, bool);
@@ -1162,6 +1175,18 @@ class Lower_parse_tree : public Traverse
   // Value to use for the predeclared constant iota.
   int iota_value_;
 };
+
+// Lower variables.  We handle variables specially to break loops in
+// which a variable initialization expression refers to itself.  The
+// loop breaking is in lower_init_expression.
+
+int
+Lower_parse_tree::variable(Named_object* no)
+{
+  if (no->is_variable())
+    no->var_value()->lower_init_expression(this->gogo_, this->function_);
+  return TRAVERSE_CONTINUE;
+}
 
 // Lower constants.  We handle constants specially so that we can set
 // the right value for the predeclared constant iota.  This works in
@@ -2180,10 +2205,14 @@ Build_recover_thunks::function(Named_object* orig_no)
 
       const std::string& new_receiver_name(orig_fntype->receiver()->name());
       Named_object* new_rec_no = new_bindings->lookup_local(new_receiver_name);
-      gcc_assert(new_rec_no != NULL
-		 && new_rec_no->is_variable()
-		 && new_rec_no->var_value()->is_receiver());
-      new_rec_no->var_value()->set_is_not_receiver();
+      if (new_rec_no == NULL)
+	gcc_assert(saw_errors());
+      else
+	{
+	  gcc_assert(new_rec_no->is_variable()
+		     && new_rec_no->var_value()->is_receiver());
+	  new_rec_no->var_value()->set_is_not_receiver();
+	}
     }
 
   // Because we flipped blocks but not types, the can_recover
@@ -2452,6 +2481,7 @@ Gogo::set_unique_prefix(const std::string& arg)
 {
   gcc_assert(this->unique_prefix_.empty());
   this->unique_prefix_ = arg;
+  this->unique_prefix_specified_ = true;
 }
 
 // Work out the package priority.  It is one more than the maximum
@@ -2483,7 +2513,7 @@ Gogo::do_exports()
   exp.export_globals(this->package_name(),
 		     this->unique_prefix(),
 		     this->package_priority(),
-		     (this->need_init_fn_ && this->package_name() != "main"
+		     (this->need_init_fn_ && !this->is_main_package()
 		      ? this->get_init_fn_name()
 		      : ""),
 		     this->imported_init_fns_,
@@ -2532,7 +2562,8 @@ Function::create_named_result_variables(Gogo* gogo)
 	}
       Result_variable* result = new Result_variable(p->type(), this, index);
       Named_object* no = block->bindings()->add_result_variable(name, result);
-      this->named_results_->push_back(no);
+      if (no->is_result_variable())
+	this->named_results_->push_back(no);
     }
 }
 
@@ -3352,6 +3383,9 @@ Variable::type() const
 void
 Variable::determine_type()
 {
+  if (this->preinit_ != NULL)
+    this->preinit_->determine_types();
+
   // A variable in a type switch with a nil case will have the wrong
   // type here.  It will have an initializer which is a type guard.
   // We want to initialize it to the value without the type guard, and

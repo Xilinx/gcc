@@ -729,7 +729,6 @@ init_optimization_passes (void)
   NEXT_PASS (pass_build_cfg);
   NEXT_PASS (pass_warn_function_return);
   NEXT_PASS (pass_build_cgraph_edges);
-  NEXT_PASS (pass_inline_parameters);
   *p = NULL;
 
   /* Interprocedural optimization passes.  */
@@ -747,12 +746,8 @@ init_optimization_passes (void)
       NEXT_PASS (pass_build_ssa);
       NEXT_PASS (pass_lower_vector);
       NEXT_PASS (pass_early_warn_uninitialized);
-      /* Note that it is not strictly necessary to schedule an early
-	 inline pass here.  However, some test cases (e.g.,
-	 g++.dg/other/p334435.C g++.dg/other/i386-1.C) expect extern
-	 inline functions to be inlined even at -O0.  This does not
-	 happen during the first early inline pass.  */
       NEXT_PASS (pass_rebuild_cgraph_edges);
+      NEXT_PASS (pass_inline_parameters);
       NEXT_PASS (pass_early_inline);
       NEXT_PASS (pass_all_early_optimizations);
 	{
@@ -887,15 +882,14 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_record_bounds);
 	  NEXT_PASS (pass_check_data_deps);
 	  NEXT_PASS (pass_loop_distribution);
-	  NEXT_PASS (pass_linear_transform);
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_graphite);
 	    {
 	      struct opt_pass **p = &pass_graphite.pass.sub;
 	      NEXT_PASS (pass_graphite_transforms);
+	      NEXT_PASS (pass_lim);
 	      NEXT_PASS (pass_copy_prop);
 	      NEXT_PASS (pass_dce_loop);
-	      NEXT_PASS (pass_lim);
 	    }
 	  NEXT_PASS (pass_iv_canon);
 	  NEXT_PASS (pass_if_conversion);
@@ -1022,6 +1016,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_gcse2);
 	  NEXT_PASS (pass_split_after_reload);
 	  NEXT_PASS (pass_implicit_zee);
+	  NEXT_PASS (pass_compare_elim_after_reload);
 	  NEXT_PASS (pass_branch_target_load_optimize1);
 	  NEXT_PASS (pass_thread_prologue_and_epilogue);
 	  NEXT_PASS (pass_rtl_dse2);

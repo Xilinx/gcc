@@ -364,7 +364,7 @@ dump_alias_info (FILE *file)
 
   fprintf (file, "Aliased symbols\n\n");
 
-  FOR_EACH_REFERENCED_VAR (var, rvi)
+  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
     {
       if (may_be_aliased (var))
 	dump_variable (file, var);
@@ -808,7 +808,8 @@ indirect_ref_may_alias_decl_p (tree ref1 ATTRIBUTE_UNUSED, tree base1,
     return aliasing_component_refs_p (ref1, TREE_TYPE (ptrtype1),
 				      ref1_alias_set, base1_alias_set,
 				      offset1, max_size1,
-				      ref2, TREE_TYPE (base2),
+				      ref2, TREE_TYPE
+				              (reference_alias_ptr_type (ref2)),
 				      ref2_alias_set, base2_alias_set,
 				      offset2, max_size2, true);
 
