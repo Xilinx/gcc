@@ -1,3 +1,25 @@
+2011-02-28  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/47894
+	* intrinsic.texi: Fix doc of the VERIFY intrinsic.
+
+2011-02-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47846
+	* trans-stmt.c (gfc_trans_allocate): Fix allocation with
+	type-spec of deferred-length strings.
+
+2011-02-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47886
+	* openmp.c (gfc_resolve_omp_directive): Resolve if()
+	condition of OpenMP's task.
+
+2011-02-26  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/47894
+	* intrinsic.texi: Fix doc of the VERIFY intrinsic.
+
 2011-02-24  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/47872
