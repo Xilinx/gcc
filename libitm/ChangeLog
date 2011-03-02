@@ -1,3 +1,8 @@
+2011-03-03  Richard Henderson  <rth@redhat.com>
+
+	* config/posix/rwlock.cc (write_upgrade): Add missing case.
+	From Patrik Marlier <patrick.marlier@unine.ch>.
+
 2011-02-03  Richard Henderson  <rth@redhat.com>
 
 	* acinclude.m4 (LIBITM_CHECK_SIZE_T_MANGLING): New.

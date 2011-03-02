@@ -130,6 +130,11 @@ gtm_rwlock::write_upgrade ()
       // We only return from upgrade when we've got it; don't loop.
       assert ((sum & (a_reader | a_writer)) == 0);
     }
+  else
+    {
+      // We were the only reader.
+      sum &= ~a_reader;
+    }
 
   // Otherwise we can upgrade to writer.
   this->summary = sum | a_writer;
