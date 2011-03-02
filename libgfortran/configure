@@ -16327,7 +16327,7 @@ _ACEOF
 fi
 done
 
-for ac_func in sleep time ttyname signal alarm ctime clock access fork execl
+for ac_func in sleep time ttyname signal alarm clock access fork execl
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -16366,7 +16366,7 @@ _ACEOF
 fi
 done
 
-for ac_func in localtime_r gmtime_r strerror_r getpwuid_r ttyname_r ctime_r
+for ac_func in localtime_r gmtime_r strerror_r getpwuid_r ttyname_r
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -16379,12 +16379,14 @@ _ACEOF
 fi
 done
 
-for ac_func in clock_gettime
+for ac_func in clock_gettime strftime
 do :
-  ac_fn_c_check_func "$LINENO" "clock_gettime" "ac_cv_func_clock_gettime"
-if test "x$ac_cv_func_clock_gettime" = x""yes; then :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+eval as_val=\$$as_ac_var
+   if test "x$as_val" = x""yes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_CLOCK_GETTIME 1
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
 _ACEOF
 
 fi
@@ -25408,6 +25410,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $libgfor_cv_have_fpsetmask" >&5
 $as_echo "$libgfor_cv_have_fpsetmask" >&6; }
   if test x"$libgfor_cv_have_fpsetmask" = xyes; then
+    have_fpsetmask=yes
 
 $as_echo "#define HAVE_FPSETMASK 1" >>confdefs.h
 
@@ -25441,6 +25444,56 @@ FPU_HOST_HEADER=config/${fpu_host}.h
 
 # Some targets require additional compiler options for IEEE compatibility.
 IEEE_FLAGS="${ieee_flags}"
+
+
+
+# Check for POSIX getpwuid_r
+#
+# There are two versions of getpwuid_r, the POSIX one with 5
+# arguments, and another one with 4 arguments used by at least HP-UX
+# 10.2.
+if test "$ac_cv_func_getpwuid_r" = "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking POSIX version of getpwuid_r with 5 arguments" >&5
+$as_echo_n "checking POSIX version of getpwuid_r with 5 arguments... " >&6; }
+if test "${libgfor_cv_posix_getpwuid_r+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+   if test x$gcc_no_link = xyes; then
+  as_fn_error "Link tests are not allowed after GCC_NO_EXECUTABLES." "$LINENO" 5
+fi
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <pwd.h>
+int
+main ()
+{
+
+    getpwuid_r(0, NULL, NULL, 0, NULL);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  libgfor_cv_posix_getpwuid_r="yes"
+else
+  libgfor_cv_posix_getpwuid_r="no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $libgfor_cv_posix_getpwuid_r" >&5
+$as_echo "$libgfor_cv_posix_getpwuid_r" >&6; }
+fi
+if test "$libgfor_cv_posix_getpwuid_r" = "yes"; then
+
+$as_echo "#define HAVE_POSIX_GETPWUID_R 1" >>confdefs.h
+
+fi
 
 
 # Check out attribute support.

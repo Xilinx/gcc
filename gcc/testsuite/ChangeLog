@@ -1,3 +1,73 @@
+2011-02-25  Jie Zhang  <jie@codesourcery.com>
+
+	* gcc.target/arm/neon-thumb2-move.c: Add
+	dg-require-effective-target arm_thumb2_ok.
+
+2011-02-24  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/parse/constant1.C: Specify C++98 mode.
+	* g++.dg/parse/constant5.C: Likewise.
+	* g++.dg/parse/error2.C: Likewise.
+	* g++.dg/parse/semicolon3.C: Likewise.
+	* g++.dg/template/crash14.C: Likewise.
+	* g++.dg/template/local4.C: Likewise.
+	* g++.dg/template/nontype3.C: Likewise.
+	* g++.dg/parse/crash31.C: Adjust expected errors.
+	* g++.dg/template/function1.C: Likewise.
+	* g++.dg/template/ref3.C: Likewise.
+	* g++.dg/template/static9.C: Likewise.
+	* g++.old-deja/g++.pt/crash41.C: Instantiate template.
+
+	* g++.dg/cpp0x/constexpr-array-tparm.C: New.
+	* g++.dg/cpp0x/regress/parse-ambig5.C: Copy from parse/ambig5.C.
+	* g++.dg/cpp0x/regress/debug-debug7.C: Copy from debug/debug7.C.
+	* g++.dg/cpp0x/variadic20.C: Adjust expected errors.
+	* g++.dg/cpp0x/regress/template-function1.C: Likewise.
+
+2011-02-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47878
+	* gfortran.dg/pr47878.f90: New test.
+
+2011-02-24  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/47801
+	* gcc.dg/guality/pr41353-1.c (vari): Mark as used.
+	* gcc.dg/guality/pr41353-2.c (vari): Likewise.
+
+2011-02-24  Richard Guenther  <rguenther@suse.de>
+
+	PR fortran/47839
+	* gfortran.dg/lto/pr47839_0.f90: New testcase.
+	* gfortran.dg/lto/pr47839_1.f90: Likewise.
+
+2011-02-23  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* gfortran.dg/fmt_f0_1.f90: Update test.
+
+2011-02-23  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/mangle39.C: Adjust parm mangling.
+	* g++.dg/abi/mangle45.C: New.
+
+	* g++.dg/cpp0x/trailing1.C: Mangle decltype.
+	* g++.dg/template/canon-type-9.C: Match use of decltype
+	between declaration and definition.
+	* g++.dg/template/canon-type-12.C: Likewise.
+
+2011-02-23  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/40850
+	* gfortran.dg/nested_allocatables_1.f90: New.
+
+2011-02-23  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/46868
+	* g++.dg/pr46868.C: New test.
+	* g++.dg/parse/parameter-declaration-1.C: Adjust.
+	* g++.dg/parse/error14.C: Adjust.
+
 2011-02-23  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/47838

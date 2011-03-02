@@ -1,3 +1,48 @@
+2011-02-25  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* acinclude.m4 (LIBGFOR_CHECK_FPSETMASK): Set shell variable
+	tested in configure.host.
+	* configure: Regenerate.
+
+2011-02-24  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47802
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* configure.ac: Remove checks for ctime and ctime_r, add check for
+	strftime.
+	* intrinsics/date_and_time.c (localtime_r): Move fallback
+	implementation to time_1.h.
+	* intrinsics/time_1.h (localtime_r): Fallback implementation.
+	* intrinsics/ctime.c: Include time_1.h.
+	(ctime_r): Remove fallback implementation.
+	(strctime): New function.
+	(fdate): Use strctime instead of ctime_r.
+	(fdate_sub): Likewise.
+	(ctime): Likewise.
+	(ctime_sub): Likewise.
+
+2011-02-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47878
+	* io/transfer.c (read_sf): Call fbuf_getptr only at the end,
+	and subtract n, dtp->u.p.sf_seen_eor and seen_comma from it.
+
+2011-02-24  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47802
+	* configure.ac: Add test for POSIX getpwuid_r.
+	* intrinsics/getlog.c (getlog): CPP test for
+	HAVE_POSIX_GETPWUID_R.
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+
+2011-02-23  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* io/write_float.def (output_float): Remove special case handling of
+	zero with width 1.
+
 2011-02-23  Janne Blomqvist  <jb@gcc.gnu.org>
 	    Jerry DeLisle    <jvdelisle@gcc.gnu.org>
 

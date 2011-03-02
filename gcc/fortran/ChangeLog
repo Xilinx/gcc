@@ -1,3 +1,23 @@
+2011-02-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47872
+	* intrinsic.texi (ALLOCATED, ATAN, BESSEL_JN, BESSEL_YN): Add
+	multitable for linebreak between different syntax variants.
+
+2011-02-24  Richard Guenther  <rguenther@suse.de>
+
+	PR fortran/47839
+	* f95-lang.c (pushdecl): For externs in non-global scope push
+	a copy of the decl into the BLOCK.
+
+2011-02-23  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/40850
+	* trans.c (gfc_prepend_expr_to_block): New function.
+	* trans.h (gfc_prepend_expr_to_block): Declare.
+	* trans-array.c (gfc_conv_array_parameter): Replace
+	gfc_add_expr_to_block with gfc_prepend_expr_to_block.
+
 2011-02-22  Paul Thomas  <pault@gcc.gnu.org>
 
 	PR fortran/45743

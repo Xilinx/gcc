@@ -3583,7 +3583,8 @@ Struct_type::field_reference(Expression* struct_expr, const std::string& name,
 			     source_location location) const
 {
   unsigned int depth;
-  return this->field_reference_depth(struct_expr, name, location, &depth);
+  return this->field_reference_depth(struct_expr, name, location, NULL,
+				     &depth);
 }
 
 // Return an expression for a field, along with the depth at which it
@@ -3593,6 +3594,7 @@ Field_reference_expression*
 Struct_type::field_reference_depth(Expression* struct_expr,
 				   const std::string& name,
 				   source_location location,
+				   Saw_named_type* saw,
 				   unsigned int* depth) const
 {
   const Struct_field_list* fields = this->fields_;
@@ -3628,13 +3630,41 @@ Struct_type::field_reference_depth(Expression* struct_expr,
       if (st == NULL)
 	continue;
 
+      Saw_named_type* hold_saw = saw;
+      Saw_named_type saw_here;
+      Named_type* nt = pf->type()->named_type();
+      if (nt == NULL)
+	nt = pf->type()->deref()->named_type();
+      if (nt != NULL)
+	{
+	  Saw_named_type* q;
+	  for (q = saw; q != NULL; q = q->next)
+	    {
+	      if (q->nt == nt)
+		{
+		  // If this is an error, it will be reported
+		  // elsewhere.
+		  break;
+		}
+	    }
+	  if (q != NULL)
+	    continue;
+	  saw_here.next = saw;
+	  saw_here.nt = nt;
+	  saw = &saw_here;
+	}
+
       // Look for a reference using a NULL struct expression.  If we
       // find one, fill in the struct expression with a reference to
       // this field.
       unsigned int subdepth;
       Field_reference_expression* sub = st->field_reference_depth(NULL, name,
 								  location,
+								  saw,
 								  &subdepth);
+
+      saw = hold_saw;
+
       if (sub == NULL)
 	continue;
 
@@ -4257,6 +4287,10 @@ Array_type::verify_length()
 {
   if (this->length_ == NULL)
     return true;
+
+  Type_context context(Type::lookup_integer_type("int"), false);
+  this->length_->determine_type(&context);
+
   if (!this->length_->is_constant())
     {
       error_at(this->length_->location(), "array bound is not constant");
@@ -4264,30 +4298,23 @@ Array_type::verify_length()
     }
 
   mpz_t val;
-
-  Type* t = this->length_->type();
-  if (t->integer_type() != NULL)
+  mpz_init(val);
+  Type* vt;
+  if (!this->length_->integer_constant_value(true, val, &vt))
     {
-      Type* vt;
-      mpz_init(val);
-      if (!this->length_->integer_constant_value(true, val, &vt))
-	{
-	  error_at(this->length_->location(),
-		   "array bound is not constant");
-	  mpz_clear(val);
-	  return false;
-	}
-    }
-  else if (t->float_type() != NULL)
-    {
-      Type* vt;
       mpfr_t fval;
       mpfr_init(fval);
       if (!this->length_->float_constant_value(fval, &vt))
 	{
-	  error_at(this->length_->location(),
-		   "array bound is not constant");
+	  if (this->length_->type()->integer_type() != NULL
+	      || this->length_->type()->float_type() != NULL)
+	    error_at(this->length_->location(),
+		     "array bound is not constant");
+	  else
+	    error_at(this->length_->location(),
+		     "array bound is not numeric");
 	  mpfr_clear(fval);
+	  mpz_clear(val);
 	  return false;
 	}
       if (!mpfr_integer_p(fval))
@@ -4295,17 +4322,12 @@ Array_type::verify_length()
 	  error_at(this->length_->location(),
 		   "array bound truncated to integer");
 	  mpfr_clear(fval);
+	  mpz_clear(val);
 	  return false;
 	}
       mpz_init(val);
       mpfr_get_z(val, fval, GMP_RNDN);
       mpfr_clear(fval);
-    }
-  else
-    {
-      if (!t->is_error_type())
-	error_at(this->length_->location(), "array bound is not numeric");
-      return false;
     }
 
   if (mpz_sgn(val) < 0)
@@ -4442,33 +4464,59 @@ Array_type::do_get_tree(Gogo* gogo)
   if (this->length_ == NULL)
     {
       tree struct_type = gogo->slice_type_tree(void_type_node);
-      return this->fill_in_tree(gogo, struct_type);
+      return this->fill_in_slice_tree(gogo, struct_type);
     }
   else
     {
-      tree element_type_tree = this->element_type_->get_tree(gogo);
-      tree length_tree = this->get_length_tree(gogo);
-      if (element_type_tree == error_mark_node
-	  || length_tree == error_mark_node)
-	return error_mark_node;
-
-      length_tree = fold_convert(sizetype, length_tree);
-
-      // build_index_type takes the maximum index, which is one less
-      // than the length.
-      tree index_type = build_index_type(fold_build2(MINUS_EXPR, sizetype,
-						     length_tree,
-						     size_one_node));
-
-      return build_array_type(element_type_tree, index_type);
+      tree array_type = make_node(ARRAY_TYPE);
+      return this->fill_in_array_tree(gogo, array_type);
     }
+}
+
+// Fill in the fields for an array type.  This is used for named array
+// types.
+
+tree
+Array_type::fill_in_array_tree(Gogo* gogo, tree array_type)
+{
+  gcc_assert(this->length_ != NULL);
+
+  tree element_type_tree = this->element_type_->get_tree(gogo);
+  tree length_tree = this->get_length_tree(gogo);
+  if (element_type_tree == error_mark_node
+      || length_tree == error_mark_node)
+    return error_mark_node;
+
+  length_tree = fold_convert(sizetype, length_tree);
+
+  // build_index_type takes the maximum index, which is one less than
+  // the length.
+  tree index_type = build_index_type(fold_build2(MINUS_EXPR, sizetype,
+						 length_tree,
+						 size_one_node));
+
+  TREE_TYPE(array_type) = element_type_tree;
+  TYPE_DOMAIN(array_type) = index_type;
+  TYPE_ADDR_SPACE(array_type) = TYPE_ADDR_SPACE(element_type_tree);
+  layout_type(array_type);
+
+  if (TYPE_STRUCTURAL_EQUALITY_P(element_type_tree)
+      || TYPE_STRUCTURAL_EQUALITY_P(index_type))
+    SET_TYPE_STRUCTURAL_EQUALITY(array_type);
+  else if (TYPE_CANONICAL(element_type_tree) != element_type_tree
+	   || TYPE_CANONICAL(index_type) != index_type)
+    TYPE_CANONICAL(array_type) =
+      build_array_type(TYPE_CANONICAL(element_type_tree),
+		       TYPE_CANONICAL(index_type));
+
+  return array_type;
 }
 
 // Fill in the fields for a slice type.  This is used for named slice
 // types.
 
 tree
-Array_type::fill_in_tree(Gogo* gogo, tree struct_type)
+Array_type::fill_in_slice_tree(Gogo* gogo, tree struct_type)
 {
   gcc_assert(this->length_ == NULL);
 
@@ -7129,15 +7177,19 @@ Named_type::do_get_tree(Gogo* gogo)
       break;
 
     case TYPE_ARRAY:
+      if (this->named_tree_ != NULL_TREE)
+	return this->named_tree_;
       if (!this->is_open_array_type())
-	t = Type::get_named_type_tree(gogo, this->type_);
+	{
+	  t = make_node(ARRAY_TYPE);
+	  this->named_tree_ = t;
+	  t = this->type_->array_type()->fill_in_array_tree(gogo, t);
+	}
       else
 	{
-	  if (this->named_tree_ != NULL_TREE)
-	    return this->named_tree_;
 	  t = gogo->slice_type_tree(void_type_node);
 	  this->named_tree_ = t;
-	  t = this->type_->array_type()->fill_in_tree(gogo, t);
+	  t = this->type_->array_type()->fill_in_slice_tree(gogo, t);
 	}
       if (t == error_mark_node)
 	return error_mark_node;

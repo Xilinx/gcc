@@ -4772,6 +4772,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
       return error_mark_node;
     }
 
+  /* FIXME instantiation-dependent  */
   if (type_dependent_expression_p (expr)
       /* In a template, a COMPONENT_REF has an IDENTIFIER_NODE for op1 even
 	 if it isn't dependent, so that we can check access control at
@@ -4780,27 +4781,6 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
 	  && processing_template_decl
 	  && TREE_CODE (expr) == COMPONENT_REF))
     {
-      if (id_expression_or_member_access_p)
-	{
-	  switch (TREE_CODE (expr))
-	    {
-	    case VAR_DECL:
-	    case PARM_DECL:
-	    case RESULT_DECL:
-	    case FUNCTION_DECL:
-	    case CONST_DECL:
-	    case TEMPLATE_PARM_INDEX:
-	      type = TREE_TYPE (expr);
-	      break;
-
-	    default:
-	      break;
-	    }
-	}
-
-      if (type && !type_uses_auto (type))
-	return type;
-
     treat_as_dependent:
       type = cxx_make_type (DECLTYPE_TYPE);
       DECLTYPE_TYPE_EXPR (type) = expr;
@@ -7158,6 +7138,7 @@ maybe_constant_value (tree t)
   tree r;
 
   if (type_dependent_expression_p (t)
+      || type_unknown_p (t)
       || !potential_constant_expression (t)
       || value_dependent_expression_p (t))
     return t;
@@ -7747,12 +7728,28 @@ potential_constant_expression (tree t)
   return potential_constant_expression_1 (t, false, tf_none);
 }
 
+/* As above, but require a constant rvalue.  */
+
+bool
+potential_rvalue_constant_expression (tree t)
+{
+  return potential_constant_expression_1 (t, true, tf_none);
+}
+
 /* Like above, but complain about non-constant expressions.  */
 
 bool
 require_potential_constant_expression (tree t)
 {
   return potential_constant_expression_1 (t, false, tf_warning_or_error);
+}
+
+/* Cross product of the above.  */
+
+bool
+require_potential_rvalue_constant_expression (tree t)
+{
+  return potential_constant_expression_1 (t, true, tf_warning_or_error);
 }
 
 /* Constructor for a lambda expression.  */

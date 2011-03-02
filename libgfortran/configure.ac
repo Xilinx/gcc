@@ -248,11 +248,11 @@ AC_CHECK_MEMBERS([struct stat.st_rdev])
 # Check for library functions.
 AC_CHECK_FUNCS(getrusage times mkstemp strtof strtold snprintf ftruncate chsize)
 AC_CHECK_FUNCS(chdir strerror getlogin gethostname kill link symlink perror)
-AC_CHECK_FUNCS(sleep time ttyname signal alarm ctime clock access fork execl)
+AC_CHECK_FUNCS(sleep time ttyname signal alarm clock access fork execl)
 AC_CHECK_FUNCS(wait setmode execvp pipe dup2 close fdopen strcasestr getrlimit)
 AC_CHECK_FUNCS(gettimeofday stat fstat lstat getpwuid vsnprintf dup getcwd)
-AC_CHECK_FUNCS(localtime_r gmtime_r strerror_r getpwuid_r ttyname_r ctime_r)
-AC_CHECK_FUNCS(clock_gettime)
+AC_CHECK_FUNCS(localtime_r gmtime_r strerror_r getpwuid_r ttyname_r)
+AC_CHECK_FUNCS(clock_gettime strftime)
 
 # Check for glibc backtrace functions
 AC_CHECK_FUNCS(backtrace backtrace_symbols)
@@ -512,6 +512,26 @@ AC_SUBST(FPU_HOST_HEADER)
 # Some targets require additional compiler options for IEEE compatibility.
 IEEE_FLAGS="${ieee_flags}"
 AC_SUBST(IEEE_FLAGS)
+
+
+# Check for POSIX getpwuid_r 
+#
+# There are two versions of getpwuid_r, the POSIX one with 5
+# arguments, and another one with 4 arguments used by at least HP-UX
+# 10.2.
+if test "$ac_cv_func_getpwuid_r" = "yes"; then
+   AC_CACHE_CHECK([POSIX version of getpwuid_r with 5 arguments], libgfor_cv_posix_getpwuid_r, [
+   AC_LINK_IFELSE([AC_LANG_PROGRAM([
+#include <stdio.h>
+#include <sys/types.h>
+#include <pwd.h>], [
+    getpwuid_r(0, NULL, NULL, 0, NULL);
+    ])],  [libgfor_cv_posix_getpwuid_r="yes"], [libgfor_cv_posix_getpwuid_r="no"])])
+fi
+if test "$libgfor_cv_posix_getpwuid_r" = "yes"; then
+    AC_DEFINE([HAVE_POSIX_GETPWUID_R], [1], [Define to 1 if we have POSIX getpwuid_r which takes 5 arguments.])
+fi
+
 
 # Check out attribute support.
 LIBGFOR_CHECK_ATTRIBUTE_VISIBILITY
