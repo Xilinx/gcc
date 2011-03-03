@@ -2,11 +2,11 @@
 ;; file tmatch-7.melt
 
 #| run in buildir/gcc
- ./cc1 -fmelt=runfile  -fmelt-module-path=.  \
+ ./cc1 -fmelt=runfile  -fmelt-module-path=melt-modules:.  \
     -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
-    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+    -fmelt-tempdir=/tmp \
     -fmelt-option=match_graphic=/tmp/melt7graph,alternate_match \
-    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmatch-7.melt \
+    -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tmatch-7.melt \
     -fmelt-debug empty-file-for-melt.c
 |#
 

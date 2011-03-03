@@ -1,4 +1,8 @@
 
+2011-03-03  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* testsuite/melt/tmatch-7.melt: Update comment.
+
 2011-02-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_check_call_frames): Check only when
 	ENABLE_GC_CHECKING.
