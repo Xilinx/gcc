@@ -31,11 +31,12 @@ along with GCC; see the file COPYING3.  If not see
 
 gpy_vector_t * gpy_primitives;
 gpy_vector_t * gpy_namespace_vec;
+gpy_callable_t * callables = NULL;
 
 /* Used for stack-traces ... */
 gpy_vector_t * gpy_call_stack;
 
-void gpy_rr_init_primitives( void )
+void gpy_rr_init_primitives (void)
 {
   gpy_primitives = (gpy_vector_t *)
     gpy_malloc( sizeof(gpy_vector_t) );
@@ -49,7 +50,12 @@ void gpy_dump_current_stack_trace (void)
   return;
 }
 
-void gpy_rr_init_runtime( void ) 
+void gpy_rr_set_callables (gpy_callable_t * c)
+{
+  callables = c;
+}
+
+void gpy_rr_init_runtime (void)
 {
   /* 
      Setup runtime namespace Init builtin's
@@ -175,7 +181,7 @@ void gpy_rr_decr_ref_count( gpy_object_t * x1 )
   x->ref_count--;
 }
 
-void gpy_rr_push_context( void )
+void gpy_rr_push_context (void)
 {
   gpy_context_t * ctx = (gpy_context_t *)
     gpy_malloc( sizeof(gpy_context_t) );
@@ -186,7 +192,7 @@ void gpy_rr_push_context( void )
   gpy_vec_push( gpy_namespace_vec, ctx );
 }
 
-void gpy_rr_pop_context( void )
+void gpy_rr_pop_context (void)
 {
   gpy_context_t * head = Gpy_Namespace_Head;
   void ** vec = head->symbols->vector;

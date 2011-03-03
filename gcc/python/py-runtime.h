@@ -33,10 +33,14 @@ extern tree gpy_builtin_get_incr_ref_call (tree);
 
 extern tree gpy_builtin_get_decr_ref_call (tree);
 
+extern tree gpy_builtin_get_set_callable_call (tree);
+
 extern tree gpy_builtin_get_print_call (int, tree *);
 
 extern tree gpy_builtin_get_finalize_block_call (int, tree *);
 
 extern tree gpy_builtin_get_eval_expression_call (tree, tree, gpy_opcode_t);
+
+extern tree gpy_builtin_get_fold_call_call (const char *, int, tree *);
 
 #endif /* __RUNTIME_H__ */

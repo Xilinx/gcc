@@ -232,7 +232,70 @@ tree gpy_build_callable_record_type (void)
   gpy_preserve_from_gc(gpy_callable_type_decl);
   rest_of_decl_compilation(gpy_callable_type_decl, 1, 0);
 
+  return callable_struct_Type;
+}
+
+static
+tree gpy_build_callable_record_type_ptr (void)
+{
+  tree callable_struct_Type = make_node (RECORD_TYPE);
+  
+  tree name = get_identifier("ident");
+  tree field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name,
+			  build_pointer_type(char_type_node));
+  DECL_CONTEXT(field) = callable_struct_Type;
+  TYPE_FIELDS(callable_struct_Type) = field;
+  tree last_field = field;
+
+  name = get_identifier("call");
+  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name, ptr_type_node);
+  DECL_CONTEXT(field) = callable_struct_Type;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
+
+  name = get_identifier("n");
+  field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name,
+		     integer_type_node);
+  DECL_CONTEXT(field) = callable_struct_Type;
+  DECL_CHAIN(last_field) = field;
+  last_field = field;
+
+  layout_type(callable_struct_Type);
+
+  name = get_identifier("gpy_callable_t");
+  tree gpy_callable_type_decl = build_decl(BUILTINS_LOCATION, TYPE_DECL, name,
+					   callable_struct_Type);
+  DECL_ARTIFICIAL(gpy_callable_type_decl) = 1;
+  TYPE_NAME(callable_struct_Type) = name;
+  gpy_preserve_from_gc(gpy_callable_type_decl);
+  rest_of_decl_compilation(gpy_callable_type_decl, 1, 0);
+
   return build_pointer_type (callable_struct_Type);
+}
+
+tree gpy_init_callable_record (tree id, int n, tree decl)
+{
+  VEC(constructor_elt,gc) *struct_data_cons = NULL;
+
+  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
+							get_identifier("ident"),
+							build_pointer_type( char_type_node )),
+			  build_int_cst( build_pointer_type(char_type_node), 0)
+			  );
+
+  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
+							get_identifier("call"),
+							ptr_type_node),
+			  build_int_cst(ptr_type_node,0)
+			  );
+
+  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
+							get_identifier("n"),
+							integer_type_node),
+			  build_int_cst(integer_type_node, n )
+			  );
+
+  return build_constructor (gpy_callable_type, struct_data_cons);
 }
 
 void gpy_initilize_types (void)
@@ -247,4 +310,7 @@ void gpy_initilize_types (void)
 
   VEC_safe_push (tree,gc,gpy_builtin_types_vec,
 		 gpy_build_callable_record_type ());
+
+  VEC_safe_push (tree,gc,gpy_builtin_types_vec,
+		 gpy_build_callable_record_type_ptr ());
 }

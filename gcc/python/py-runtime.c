@@ -42,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "py-dot.h"
 #include "py-vec.h"
 #include "py-tree.h"
+#include "py-types.h"
 #include "py-runtime.h"
 
 tree gpy_builtin_get_init_call( void )
@@ -206,6 +207,28 @@ tree gpy_builtin_get_decr_ref_call( tree x )
   TREE_PUBLIC( gpy_decr_ref_decl ) = 1;
 
   return ( build_call_expr( gpy_decr_ref_decl, 1, x ) );
+}
+
+tree gpy_builtin_get_set_callable_call (tree decl)
+{
+  tree params = NULL_TREE;
+
+  chainon( params, tree_cons (NULL_TREE, gpy_callable_type_ptr, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
+
+  tree fntype = build_function_type( void_type_node, params );
+  tree gpy_set_callables_decl = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
+				       get_identifier("gpy_rr_set_callables"),
+				       fntype );
+  tree restype = TREE_TYPE( gpy_set_callables_decl );
+  tree resdecl = build_decl( UNKNOWN_LOCATION, RESULT_DECL, NULL_TREE,
+			     restype );
+  DECL_CONTEXT( resdecl ) = gpy_set_callables_decl;
+  DECL_RESULT( gpy_set_callables_decl ) = resdecl;
+  DECL_EXTERNAL( gpy_set_callables_decl ) = 1;
+  TREE_PUBLIC( gpy_set_callables_decl ) = 1;
+
+  return ( build_call_expr( gpy_set_callables_decl, 1, decl ) );
 }
 
 tree gpy_builtin_get_print_call( int n, tree * args )
