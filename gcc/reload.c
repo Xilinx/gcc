@@ -3918,7 +3918,18 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	    && mode != VOIDmode)
 	  {
 	    int this_address_reloaded;
-	    rtx tem = force_const_mem (mode, op);
+	    rtx tem;
+	    
+	    /* Symbol reference in the constant pool must be in
+	       ptr_mode.  */
+	    if (subreg != NULL_RTX
+		&& plus == NULL_RTX
+		&& Pmode != ptr_mode
+		&& GET_MODE (subreg) == ptr_mode
+		&& GET_CODE (op) == SYMBOL_REF)
+	      tem = force_const_mem (ptr_mode, op);
+	    else
+	      tem = force_const_mem (mode, op);
 
 	    /* If we stripped a SUBREG or a PLUS above add it back.  */
 	    if (plus != NULL_RTX)

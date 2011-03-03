@@ -1,3 +1,9 @@
+2011-03-02  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/47958
+	* reload.c (find_reloads): Put symbol reference in memory
+	in ptr_mode.
+
 2011-03-01  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47744
