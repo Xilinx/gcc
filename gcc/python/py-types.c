@@ -62,13 +62,8 @@ typedef struct gpy_callable_def_t {
 } gpy_callable_def_t;
 
  */
-
 /* go/gofrontend/types.cc 4517 && 5066  for making an array type */
-static
-tree gpy_build_callable_record_type( void )
-{
-  return NULL_TREE;
-}
+
 
 /*
   typedef struct gpy_rr_object_state_t {

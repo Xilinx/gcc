@@ -35,12 +35,12 @@ struct gpy_obj_boolean_t {
   bool boolean;
 } ;
 
-void * gpy_obj_boolean_init( gpy_literal_t * lit )
+void * gpy_obj_boolean_init (gpy_literal_t * lit)
 {
   return NULL;
 }
 
-void gpy_obj_boolean_destroy( void * self )
+void gpy_obj_boolean_destroy (void * self)
 {
   if( self )
     gpy_free( self )
@@ -98,7 +98,7 @@ static struct gpy_typedef_t boolean_obj = {
 /*
   Should be used for handling any Field initilizers!
 */
-void gpy_obj_boolean_mod_init( gpy_vector_t * const vec )
+void gpy_obj_boolean_mod_init (gpy_vector_t * const vec)
 {
-  gpy_vec_push( vec, &boolean_obj );
+  gpy_vec_push (vec, &boolean_obj);
 }

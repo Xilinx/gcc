@@ -48,7 +48,8 @@ along with GCC; see the file COPYING3.  If not see
   This is just a basic garbage collection to free all IR symbols
   created from the parser...
  */
-VEC( gpy_sym,gc ) * gpy_garbage_decls;
+VEC(gpy_sym,gc) * gpy_garbage_decls;
+VEC(tree,gc) * gpy_function_decls;
 #define threshold_alloc(x) (((x)+16)*3/2)
 
 void gpy_gg_invoke_garbage( void )
@@ -61,7 +62,7 @@ void gpy_gg_invoke_garbage( void )
     }
 }
 
-void gpy_garbage_free_obj( gpy_symbol_obj ** sym )
+void gpy_garbage_free_obj (gpy_symbol_obj ** sym)
 {
   if( sym )
     {
@@ -285,6 +286,11 @@ bool gpy_ctx_push_decl( tree decl, const char * s,
     {
       debug("successfully pushed DECL <%s>!\n", s);
       VEC_safe_push( gpy_ident, gc, ctx->decl_t, o );
+
+      if (TREE_CODE(decl) == FUNCTION_DECL)
+	{
+	  VEC_safe_push (tree,gc,gpy_function_decls,decl);
+	}
     }
   else
     {

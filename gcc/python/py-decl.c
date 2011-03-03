@@ -174,10 +174,10 @@ gpy_process_bin_expression (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
 	  VEC_safe_push (tree,gc,retval,itx);
 	}
       
-      tree address = build_decl( opa->loc, VAR_DECL, create_tmp_var_name("T"),
-				 gpy_object_type_ptr );
-      VEC_safe_push( tree, gc, retval,
-		     build2( MODIFY_EXPR, gpy_object_type_ptr, address, op ));
+      tree address = build_decl (opa->loc, VAR_DECL, create_tmp_var_name("T"),
+				 gpy_object_type_ptr);
+      VEC_safe_push (tree, gc, retval,
+		     build2 (MODIFY_EXPR, gpy_object_type_ptr, address, op));
       
       VEC_safe_push (tree,gc,retval,address);
     }

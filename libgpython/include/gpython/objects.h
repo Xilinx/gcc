@@ -72,7 +72,7 @@ typedef gpy_object_t * (*binary_op)( gpy_object_t *,
 typedef gpy_object_t * (*gpy_std_callable)
   (gpy_object_t **);
 
-typedef gpy_callable__t {
+typedef struct gpy_callable__t {
   char * ident;
   gpy_std_callable call;
   int n;
