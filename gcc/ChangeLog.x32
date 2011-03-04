@@ -1,3 +1,8 @@
+2011-03-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/linux-unwind.h (x86_64_fallback_frame_state): Use
+	long long to check rt_sigreturn syscall.
+
 2011-03-02  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR rtl-optimization/47958

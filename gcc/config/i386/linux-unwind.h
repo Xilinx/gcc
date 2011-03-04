@@ -45,7 +45,7 @@ x86_64_fallback_frame_state (struct _Unwind_Context *context,
 
   /* movq __NR_rt_sigreturn, %rax ; syscall  */
   if (*(unsigned char *)(pc+0) == 0x48
-      && *(unsigned long *)(pc+1) == 0x050f0000000fc0c7)
+      && *(unsigned long long *)(pc+1) == 0x050f0000000fc0c7ULL)
     {
       struct ucontext *uc_ = context->cfa;
       /* The void * cast is necessary to avoid an aliasing warning.
