@@ -1,4 +1,13 @@
 
+2011-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* warmelt-macro.melt (patmacexpand_for_matcher): Add debug
+	message.
+
+	* warmelt-normal.melt (normexp_symbol): Added backtrace.
+
+	* warmelt-normatch.melt: Update copyright year.
+
 2011-03-03  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* testsuite/melt/tmatch-7.melt: Update comment.

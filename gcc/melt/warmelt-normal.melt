@@ -1165,6 +1165,7 @@ source location.}#
        (progn
 	 (error_strv psloc "unknown name; symbol is not bound"
 		     (unsafe_get_field :named_name recv))
+	 (shortbacktrace_dbg "normex_symbol null bind" 15)
 	 (return ())))
    (let ( (sycmap (unsafe_get_field :nctx_symbcachemap ncx))
 	  (syca (mapobject_get sycmap recv)) )

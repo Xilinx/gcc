@@ -1430,8 +1430,10 @@ the object-map for pattern variables.}#
 	 )
     (let ( (curpair (box_content pairbox)) )
       (if (is_pair curpair)
-	  (warning_strv psloc "ignored extra sub-{pattern | expression} in matcher"
-			(get_field :named_name matcher))))
+	  (progn
+	    (debug_msg curpair "extra stuff in patmacexpand_for_matcher")
+	    (warning_strv psloc "ignored extra sub-{pattern | expression} in matcher"
+			(get_field :named_name matcher)))))
     (return inargs outpats)
     ))
 
