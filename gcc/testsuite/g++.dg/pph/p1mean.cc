@@ -1,7 +1,9 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <math.h>
-#include <string.h>
+#include <stdlib.h> // {dg-error fails macro validation "" { xfail *-*-* } }
+#include <stdio.h> // {dg-error fails macro validation "" { xfail *-*-* } }
+#include <math.h> // {dg-error fails macro validation "" { xfail *-*-* } }
+#include <string.h> // {dg-error fails macro validation "" { xfail *-*-* } }
+// { dg-excess-errors "In file included from" { xfail *-*-* } }
+// { dg-excess-errors "assembly comparison" { xfail *-*-* } }
 
 static unsigned long long MAX_ITEMS = 10000;
 

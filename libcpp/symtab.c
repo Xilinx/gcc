@@ -505,13 +505,12 @@ lt_query_macro (cpp_reader *reader, cpp_hashnode *cpp_node)
         {
           static char *string = 0;
           static unsigned int space = 0;
-          unsigned int front, back, needed;
+          unsigned int back, needed;
           const char *value;
 
           value = (const char *)_cpp_builtin_macro_text (reader, cpp_node);
-          front = strlen (str);
           back = strlen (value);
-          needed = front + 1 + back + 1;
+          needed = 1 + back + 1;
 	  if (space < needed)
             {
               if (string != NULL)
@@ -519,15 +518,25 @@ lt_query_macro (cpp_reader *reader, cpp_hashnode *cpp_node)
               string = XCNEWVEC (char, needed);
               space = needed;
             }
-          strcpy (string, str);
-          string[front] = '=';
-          strcpy (string + front + 1, value);
-
+          string[0] = ' ';
+          strcpy (string + 1, value);
 	  definition = string;
         }
     }
   else
-    definition = (const char *) cpp_macro_definition (reader, cpp_node);
+    {
+      char c;
+      definition = (const char *) cpp_macro_definition (reader, cpp_node);
+      /* Skip over the macro name within the definition.  */
+      c = *definition;
+      while (   ('0' <= c && c <= '9')
+             || ('A' <= c && c <= 'Z')
+             || ('a' <= c && c <= 'z')
+             ||             (c == '_'))
+        {
+          c = *++definition;
+        }
+    }
 
   if (reader->lookaside_table->pth_debug_level >= 3)
     fprintf (stderr, "PTH: macro %s is %s\n",
@@ -645,8 +654,9 @@ cpp_lt_capture (cpp_reader *reader)
    inconsistency.  A null means 'not a macro'.  */
 
 bool
-cpp_lt_verify (cpp_reader *reader, cpp_idents_used* identifiers,
-               cpp_ident_use **bad_use, const char **cur_def)
+cpp_lt_verify_1 (cpp_reader *reader, cpp_idents_used* identifiers,
+                 cpp_ident_use **bad_use, const char **cur_def,
+                 int permit_postdef)
 {
   unsigned int i;
   unsigned int num_entries = identifiers->num_entries;
@@ -680,10 +690,30 @@ cpp_lt_verify (cpp_reader *reader, cpp_idents_used* identifiers,
           /* It was not saved as a macro.  */
           if (cpp_node->type == NT_MACRO)
             {
-              /* But it is a macro now!  */
-              *bad_use = entry;
-              *cur_def = (const char*) lt_query_macro (reader, cpp_node);
-              goto fail;
+	      /* But it is a macro now!  */
+	      const char *definition;
+	      definition = (const char*) lt_query_macro (reader, cpp_node);
+	      if (permit_postdef)
+                {
+                /* Check to see if the current value is the after value.  */
+                unsigned int after_len = entry->after_len;
+                /* strlen is required to avoid the prefix problem.  */
+                if (definition == NULL
+                    || after_len != strlen (definition)
+                    || memcmp (definition, entry->after_str, after_len) != 0)
+                  {
+                    /* They do not have the same value.  */
+                    *bad_use = entry;
+                    *cur_def = definition;
+                    goto fail;
+                  }
+                }
+	      else
+		{
+		  *bad_use = entry;
+		  *cur_def = definition;
+		  goto fail;
+		}
             }
           /* Otherwise, both agree it is not a macro.  */
         }
@@ -722,26 +752,31 @@ fail:
   return false;
 }
 
+bool
+cpp_lt_verify (cpp_reader *reader, cpp_idents_used* identifiers,
+               cpp_ident_use **bad_use, const char **cur_def)
+{
+  return cpp_lt_verify_1 (reader, identifiers, bad_use, cur_def, false);
+}
+
 /* Produce the macro definition syntax NEEDED by cpp_define from
    the syntax GIVEN by cpp_macro_definition.  */
 
 static void
-cpp_lt_define_syntax (char *needed, const char *given)
+cpp_lt_define_syntax (char *needed, const char *ident, const char *given)
 {
   char c;
 
-  c = *given++;
-
   /* Copy over macro identifier.  */
-  while (   ('0' <= c && c <= '9')
-         || ('A' <= c && c <= 'Z')
-         || ('a' <= c && c <= 'z')
-         ||             (c == '_'))
+  c = *ident++;
+  while (c != '\0')
     {
       *needed++ = c;
-      c = *given++;
+      c = *ident++;
     }
 
+  /* Copy over macro definition.  */
+  c = *given++;
   if (c == '(')
     {
       /* Copy over parameter list.  */
@@ -759,9 +794,9 @@ cpp_lt_define_syntax (char *needed, const char *given)
   /* Replace definition space by assignment.  */
   /* (c == ' ') */
   *needed++ = '=';
-  c = *given++;
 
-  /* Copy over macro identifier.  */
+  /* Copy over macro value.  */
+  c = *given++;
   while (c != '\0')
     {
       *needed++ = c;
@@ -795,7 +830,7 @@ cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers)
         {
           if (after_str != NULL)
             {
-              cpp_lt_define_syntax (buffer, after_str);
+              cpp_lt_define_syntax (buffer, ident_str, after_str);
               cpp_define (reader, buffer);
             }
           /* else consistently not macros */
@@ -809,7 +844,7 @@ cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers)
           else if (strcmp (before_str, after_str) != 0)
             {
               cpp_undef (reader, ident_str);
-              cpp_lt_define_syntax (buffer, after_str);
+              cpp_lt_define_syntax (buffer, ident_str, after_str);
               cpp_define (reader, buffer);
             }
           /* else macro with the same definition */
@@ -827,7 +862,7 @@ void
 cpp_lt_idents_destroy (cpp_idents_used *identifiers)
 {
   obstack_free (identifiers->strings, NULL);
-  XDELETEVEC (identifiers);
+  XDELETEVEC (identifiers->entries);
 }
 
 /* Mappings from hash to index.  */

@@ -1,3 +1,26 @@
+2011-03-04  Lawrence Crowl <crowl@google.com>
+
+	* tree-pass.h:
+	Add TDF_VISDEF to flags for pretty printing "visible definitions".
+	This enables more C-like output.
+
+        * tree-pretty-print.c (dump_generic_node):
+	Turn off visible definitions for bases of arrays and pointers.
+	Print struct definitions under visible definitions.
+
+	* (print_declaration):
+	Filter artificial nodes under visible definitions.
+	Make "static" mean what the language means, not the linker.
+	Create a separate case for typedefs distinct from variables.
+	Move printing of "typedef" to that case.
+
+	* (print_struct_decl):
+	Change field print algorithm.
+	Filter out struct tags that are artificial, i.e. start with ".".
+
+	* c-family/c.opt:
+	Add flag -fpph-fmt=N to control format of PPH file.
+
 2011-02-15  Lawrence Crowl <crowl@google.com>
 
 	* strstrmap.h: Add.

@@ -771,7 +771,8 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
         {
 	  unsigned int quals = TYPE_QUALS (node);
 
-          dump_generic_node (buffer, TREE_TYPE (node), spc, flags, false);
+          dump_generic_node (buffer, TREE_TYPE (node), spc,
+			     flags & !TDF_VISDEF, false);
 	  pp_space (buffer);
 	  pp_string (buffer, str);
 
@@ -918,7 +919,7 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	for (tmp = TREE_TYPE (node); TREE_CODE (tmp) == ARRAY_TYPE;
 	     tmp = TREE_TYPE (tmp))
 	  ;
-	dump_generic_node (buffer, tmp, spc, flags, false);
+	dump_generic_node (buffer, tmp, spc, flags & !TDF_VISDEF, false);
 
 	/* Print the dimensions.  */
 	for (tmp = node; TREE_CODE (tmp) == ARRAY_TYPE; tmp = TREE_TYPE (tmp))
@@ -937,21 +938,25 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
 	if (quals & TYPE_QUAL_VOLATILE)
 	  pp_string (buffer, "volatile ");
 
-        /* Print the name of the structure.  */
-        if (TREE_CODE (node) == RECORD_TYPE)
-	  pp_string (buffer, "struct ");
-        else if (TREE_CODE (node) == UNION_TYPE)
-	  pp_string (buffer, "union ");
-
-        if (TYPE_NAME (node))
-	  dump_generic_node (buffer, TYPE_NAME (node), spc, flags, false);
-	else if (!(flags & TDF_SLIM))
-	  /* FIXME: If we eliminate the 'else' above and attempt
-	     to show the fields for named types, we may get stuck
-	     following a cycle of pointers to structs.  The alleged
-	     self-reference check in print_struct_decl will not detect
-	     cycles involving more than one pointer or struct type.  */
+	if (flags & TDF_VISDEF)
 	  print_struct_decl (buffer, node, spc, flags);
+	else
+	  {
+	    /* Print the name of the structure.  */
+	    if (TREE_CODE (node) == RECORD_TYPE)
+	      pp_string (buffer, "struct ");
+	    else if (TREE_CODE (node) == UNION_TYPE)
+	      pp_string (buffer, "union ");
+	    if (TYPE_NAME (node))
+	      dump_generic_node (buffer, TYPE_NAME (node), spc, flags, false);
+	    else if (!(flags & TDF_SLIM))
+	      /* FIXME: If we eliminate the 'else' above and attempt
+		 to show the fields for named types, we may get stuck
+		 following a cycle of pointers to structs.  The alleged
+		 self-reference check in print_struct_decl will not detect
+		 cycles involving more than one pointer or struct type.  */
+	      print_struct_decl (buffer, node, spc, flags);
+	  }
         break;
       }
 
@@ -2308,22 +2313,29 @@ dump_generic_node (pretty_printer *buffer, tree node, int spc, int flags,
   return spc;
 }
 
-/* Print the declaration of a variable.  */
+/* Print a declaration.  */
 
 void
 print_declaration (pretty_printer *buffer, tree t, int spc, int flags)
 {
-  INDENT (spc);
+  /* When printing visible definitions, do not print artificial types,
+     unless the artifical typedef
+     is actually the implicit C++ typedef for a struct,
+     in which case do print the struct.  */
+  if ((flags & TDF_VISDEF)
+      && DECL_ARTIFICIAL (t)
+      && !(TREE_CODE (t) == TYPE_DECL && DECL_LANG_FLAG_2 (t)))
+          /* FIXME pph: DECL_IMPLICIT_TYPEDEF_P (t) from cp/cp-tree.h */
+    return;
 
-  if (TREE_CODE (t) == TYPE_DECL)
-    pp_string (buffer, "typedef ");
+  INDENT (spc);
 
   if (CODE_CONTAINS_STRUCT (TREE_CODE (t), TS_DECL_WRTL) && DECL_REGISTER (t))
     pp_string (buffer, "register ");
 
   if (TREE_PUBLIC (t) && DECL_EXTERNAL (t))
     pp_string (buffer, "extern ");
-  else if (TREE_STATIC (t))
+  else if (TREE_STATIC (t) && !TREE_PUBLIC (t))
     pp_string (buffer, "static ");
 
   /* Print the type and name.  */
@@ -2355,6 +2367,26 @@ print_declaration (pretty_printer *buffer, tree t, int spc, int flags)
       pp_space (buffer);
       dump_decl_name (buffer, t, flags);
       dump_function_declaration (buffer, TREE_TYPE (t), spc, flags);
+    }
+  else if (TREE_CODE (t) == TYPE_DECL)
+    {
+      if ((flags & TDF_VISDEF) && DECL_ARTIFICIAL (t))
+        {
+          const char* id = IDENTIFIER_POINTER (DECL_NAME (t));
+          if (id[0] != '.')
+            {
+              /* Print type's value.  */
+              dump_generic_node (buffer, TREE_TYPE (t), spc, flags, false);
+            }
+        }
+      else
+        {
+          /* Print type declaration.  */
+          dump_generic_node (buffer, TREE_TYPE (t), spc, flags, false);
+          /* Print variable's name.  */
+          pp_space (buffer);
+          dump_generic_node (buffer, t, spc, flags, false);
+        }
     }
   else
     {
@@ -2406,17 +2438,24 @@ print_declaration (pretty_printer *buffer, tree t, int spc, int flags)
 static void
 print_struct_decl (pretty_printer *buffer, const_tree node, int spc, int flags)
 {
+  tree name = TYPE_NAME (node);
   /* Print the name of the structure.  */
-  if (TYPE_NAME (node))
+  if (name)
     {
-      INDENT (spc);
       if (TREE_CODE (node) == RECORD_TYPE)
 	pp_string (buffer, "struct ");
       else if ((TREE_CODE (node) == UNION_TYPE
 		|| TREE_CODE (node) == QUAL_UNION_TYPE))
 	pp_string (buffer, "union ");
 
-      dump_generic_node (buffer, TYPE_NAME (node), spc, 0, false);
+      if ((flags & TDF_VISDEF) && DECL_ARTIFICIAL (name))
+        {
+          const char* id = IDENTIFIER_POINTER (DECL_NAME (name));
+          if (id[0] != '.')
+            dump_generic_node (buffer, name, spc, 0, false);
+        }
+      else
+        dump_generic_node (buffer, name, spc, 0, false);
     }
 
   /* Print the contents of the structure.  */
@@ -2431,17 +2470,26 @@ print_struct_decl (pretty_printer *buffer, const_tree node, int spc, int flags)
     tmp = TYPE_FIELDS (node);
     while (tmp)
       {
-	/* Avoid to print recursively the structure.  */
-	/* FIXME : Not implemented correctly...,
-	   what about the case when we have a cycle in the contain graph? ...
-	   Maybe this could be solved by looking at the scope in which the
-	   structure was declared.  */
-	if (TREE_TYPE (tmp) != node
-	    && (TREE_CODE (TREE_TYPE (tmp)) != POINTER_TYPE
-		|| TREE_TYPE (TREE_TYPE (tmp)) != node))
+	if (flags & TDF_VISDEF)
 	  {
 	    print_declaration (buffer, tmp, spc+2, flags);
 	    pp_newline (buffer);
+	  }
+	else
+	  {
+	    /* Avoid to print recursively the structure.  */
+	    /* FIXME : Not implemented correctly...,
+	       what about the case when we have a cycle in the contain graph?
+	       ...
+	       Maybe this could be solved by looking at the scope in which the
+	       structure was declared.  */
+	    if (TREE_TYPE (tmp) != node
+		&& (TREE_CODE (TREE_TYPE (tmp)) != POINTER_TYPE
+		    || TREE_TYPE (TREE_TYPE (tmp)) != node))
+	      {
+		print_declaration (buffer, tmp, spc+2, flags);
+		pp_newline (buffer);
+	      }
 	  }
 	tmp = DECL_CHAIN (tmp);
       }

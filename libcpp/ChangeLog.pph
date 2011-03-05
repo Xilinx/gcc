@@ -1,3 +1,14 @@
+2011-03-04  Lawrence Crowl <crowl@google.com>
+
+	* symtab.h (cpp_lt_verify_1): Temporary new function.
+	* symtab.c (cpp_lt_verify_1): Temporary new function.
+        * (cpp_lt_verify): Permit macro values to match after as well
+	* (lt_query_macro): Remove name of macro from macro value.
+	* (cpp_lt_define_syntax): Likewise, but needs another parameter.
+	* (cpp_lt_replay): Likewise.
+        as before on load of a PPH file.
+	* (cpp_lt_idents_destroy): Delete the right thing.
+
 2011-02-24  Lawrence Crowl  <crowl@google.com>
 
 	* include/cpplib.h (cpp_main_missing_guard): Add declaration.

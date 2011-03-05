@@ -153,6 +153,10 @@ cpp_lt_capture (struct cpp_reader *reader);
    If not, set BAD_USE and CUR_DEF to indicate the first  
    inconsistency.  A null means 'not a macro'.  */
 bool
+cpp_lt_verify_1 (struct cpp_reader *reader, cpp_idents_used* identifiers,
+                 cpp_ident_use **bad_use, const char **cur_def,
+                 int permit_postdef);
+bool
 cpp_lt_verify (struct cpp_reader *reader, cpp_idents_used* identifiers,
                cpp_ident_use **bad_use, const char **cur_def);
 

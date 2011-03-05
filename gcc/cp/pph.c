@@ -502,6 +502,55 @@ pth_write_header (pth_image *image, FILE *stream)
   gcc_assert (nbytes == pth_header_len ());
 }
 
+
+/* Pretty print the previous macro definitions in the table of IDENTIFIERS to
+   the STREAM. */
+
+static void
+pph_print_macro_defs_before (FILE *stream, cpp_idents_used *identifiers)
+{
+  unsigned int idx;
+
+  for (idx = 0; idx < identifiers->num_entries; ++idx)
+    {
+      cpp_ident_use *entry = identifiers->entries + idx;
+      const char *ident = entry->ident_str;
+      const char *before = entry->before_str;
+
+      if (before)
+          fprintf (stream, "#define %s%s\n", ident, before);
+      else
+          fprintf (stream, "#undef %s\n", ident);
+    }
+}
+
+
+/* Pretty print the subsequent macro definitions in the table of IDENTIFIERS to
+   the STREAM. */
+
+static void
+pph_print_macro_defs_after (FILE *stream, cpp_idents_used *identifiers)
+{
+  unsigned int idx;
+
+  for (idx = 0; idx < identifiers->num_entries; ++idx)
+    {
+      cpp_ident_use *entry = identifiers->entries + idx;
+      const char *ident = entry->ident_str;
+      const char *before = entry->before_str;
+      const char *after = entry->after_str;
+
+      if (before != after)
+        {
+          if (after && (!before || strcmp (after, before) != 0))
+              fprintf (stream, "#define %s%s\n", ident, after);
+          else if (before)
+              fprintf (stream, "#undef %s\n", ident);
+        }
+    }
+}
+
+
 /* Dump a table of IDENTIFIERS to the STREAM. */
 
 static void
@@ -1900,10 +1949,113 @@ pth_file_change (cpp_reader *reader, const struct line_map *map)
 
 /* Write PPH output file.  */
 
+typedef void (*write_pph_format)(FILE *stream, tree decl, int flags);
+
 static void
-write_pph_output (void)
+write_pph_namespace (FILE *stream, tree decl, write_pph_format fmt, int flags);
+
+
+/* Write symbol to PPH output file like C.  */
+
+static void
+write_pph_print (FILE *stream, tree decl, int flags)
+{
+  print_generic_decl (stream, decl, flags | TDF_VISDEF);
+  fprintf (stream, "\n");
+}
+
+
+/* Write symbol to PPH output file as a dump.  */
+
+static void
+write_pph_dump (FILE *stream, tree decl, int flags)
+{
+  dump_node (decl, flags, stream);
+}
+
+
+/* Write symbol to PPH output file.  */
+
+static void
+write_pph_symbol (FILE *stream, tree decl, write_pph_format fmt, int flags)
+{
+  if (TREE_CODE (decl) == NAMESPACE_DECL)
+    write_pph_namespace (stream, decl, fmt, flags);
+  else if (!DECL_IS_BUILTIN (decl))
+    fmt (stream, decl, flags);
+}
+
+
+/* Write namespace to PPH output file.  */
+
+typedef void (*declvisitor)(FILE *, tree, write_pph_format, int);
+
+static void
+write_pph_namespace_1 (declvisitor vtor, FILE *stream, tree decl,
+                       write_pph_format fmt, int flags)
+{
+  tree prior = TREE_CHAIN (decl);
+  if (prior)
+    write_pph_namespace_1 (vtor, stream, prior, fmt, flags);
+  vtor (stream, decl, fmt, flags);
+}
+
+static void
+write_pph_namespace (FILE *stream, tree decl, write_pph_format fmt, int flags)
+{
+  struct cp_binding_level *level = NAMESPACE_LEVEL (decl);
+  decl = level->namespaces;
+  if (decl)
+    write_pph_namespace_1 (write_pph_namespace, stream, decl, fmt, flags);
+  decl = level->names;
+  if (decl)
+    write_pph_namespace_1 (write_pph_symbol, stream, decl, fmt, flags);
+}
+
+
+/* Write PPH output symbols and IDENTS_USED to STREAM as an object.  */
+
+static void
+write_pph_file_object (FILE *stream, cpp_idents_used *idents_used)
+{ 
+  int flags = 0;
+  pth_save_identifiers (idents_used, stream);
+  fprintf (stream, "\n====\n");
+  /* FIX pph: Wrong format for writing decls.  */
+  write_pph_namespace (stream, global_namespace, write_pph_print, flags);
+}
+
+
+/* Write PPH output symbols and IDENTS_USED to STREAM as a pretty summary.  */
+
+static void
+write_pph_file_summary (FILE *stream, cpp_idents_used *idents_used)
+{ 
+  int flags = 0;
+  pph_print_macro_defs_before (stream, idents_used);
+  write_pph_namespace (stream, global_namespace, write_pph_print, flags);
+  pph_print_macro_defs_after (stream, idents_used);
+}
+
+
+/* Write PPH output symbols and IDENTS_USED to STREAM as a textual dump.  */
+
+static void
+write_pph_file_dump (FILE *stream, cpp_idents_used *idents_used)
+{ 
+  int flags = TDF_UID | TDF_LINENO;
+  pth_dump_identifiers (stream, idents_used);
+  write_pph_namespace (stream, global_namespace, write_pph_dump, flags);
+}
+
+
+/* Write PPH output file.  */
+
+static void
+write_pph_file (void)
 {
   FILE *stream;
+  cpp_idents_used idents_used;
 
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
@@ -1912,19 +2064,95 @@ write_pph_output (void)
   if (!stream)
     fatal_error ("Cannot open PPH file for writing: %s: %m", pph_out_file);
 
-  fprintf (stream, "%s\n", pph_out_file);
+  idents_used = cpp_lt_capture (parse_in);
+
+  if (flag_pph_fmt == 0)
+    write_pph_file_object (stream, &idents_used);
+  else if (flag_pph_fmt == 1)
+    write_pph_file_summary (stream, &idents_used);
+  else if (flag_pph_fmt == 2)
+    write_pph_file_dump (stream, &idents_used);
+  else
+    error ("unrecognized -fpph-fmt value: %d", flag_pph_fmt);
+
+  /*FIX pph: double free or corruption: cpp_lt_idents_destroy (&idents_used); */
   fclose (stream);
 }
+
+
+/* Wrap a macro DEFINITION for printing in an error.  */
+
+static char *
+wrap_macro_def (const char *definition)
+{
+  char *string;
+  if (definition)
+    {
+      size_t length;
+      length = strlen (definition);
+      string = (char *) xmalloc (length+3);
+      string[0] = '"';
+      strcpy (string + 1, definition);
+      string[length + 1] = '"';
+      string[length + 2] = '\0';
+    }
+  else
+    string = xstrdup ("undefined");
+  return string;
+}
+
+
+/* Report a macro validation error in FILENAME for macro IDENT,
+   which should have the value EXPECTED but actually had the value FOUND. */
+
+static void
+report_validation_error (const char *filename,
+			 const char *ident, const char *found,
+			 const char *before, const char *after)
+{
+  char* quote_found = wrap_macro_def (found);
+  char* quote_before = wrap_macro_def (before);
+  char* quote_after = wrap_macro_def (after);
+  error ("PPH file %s fails macro validation, "
+         "%s is %s and should be %s or %s\n",
+         filename, ident, quote_found, quote_before, quote_after);
+  free (quote_found);
+  free (quote_before);
+  free (quote_after);
+}
+
+
+/* Read PPH FILENAME from STREAM as an object.  */
+
+static void
+read_pph_file_object (const char *filename, FILE *stream)
+{
+  bool verified;
+  cpp_ident_use *bad_use;
+  const char *cur_def;
+  cpp_idents_used idents_used;
+
+  pth_load_identifiers (&idents_used, stream);
+  /*FIXME pph: This validation is weak.  */
+  verified = cpp_lt_verify_1 (parse_in, &idents_used, &bad_use, &cur_def, true);
+  if (!verified)
+    report_validation_error (filename, bad_use->ident_str, cur_def,
+                             bad_use->before_str, bad_use->after_str);
+  /* FIX pph: We cannot replay the macro definitions
+     as long as we are still reading the actual file.
+  cpp_lt_replay (parse_in, &idents_used);
+  */
+
+  /* FIX pph: Also read decls.  */
+}
+
 
 /* Read PPH file.  */
 
 static void
-read_pph_file (const char* filename)
+read_pph_file (const char *filename)
 {
   FILE *stream;
-  char *line;
-  char *eol;
-  char linebuf[2*MAXPATHLEN];
 
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Reading %s\n", filename);
@@ -1933,15 +2161,8 @@ read_pph_file (const char* filename)
   if (!stream)
     fatal_error ("Cannot open PPH file for reading: %s: %m", filename);
 
-  line = fgets (linebuf, sizeof linebuf, stream);
-  if (line == NULL)
-    fatal_error ("No line in PPH file %s: ", filename);
-
-  eol = strchr (line, '\n');
-  *eol = '\0';
-
-  if (strcmp (filename, line) != 0)
-    fatal_error ("Wrong content in PPH file %s: ", filename);
+  if (flag_pph_fmt == 0)
+    read_pph_file_object (filename, stream);
 
   fclose (stream);
 }
@@ -1979,7 +2200,7 @@ pth_include_handler (cpp_reader *reader ATTRIBUTE_UNUSED,
 /* Record a #include or #include_next for PPH.  */
 
 static void
-pph_include_handler (cpp_reader *reader ATTRIBUTE_UNUSED,
+pph_include_handler (cpp_reader *reader /*FIXME pph: ATTRIBUTE_UNUSED */,
                      location_t loc ATTRIBUTE_UNUSED,
                      const unsigned char *dname,
                      const char *name,
@@ -1997,7 +2218,7 @@ pph_include_handler (cpp_reader *reader ATTRIBUTE_UNUSED,
     }
 
   pph_file = query_pph_include_map (name);
-  if (pph_file != NULL)
+  if (pph_file != NULL && ! cpp_included_before (reader, name, input_location))
     read_pph_file (pph_file);
 }
 
@@ -2667,8 +2888,7 @@ pph_set_dependencies_for (tree t, VEC(tree,gc) *deps, bool header_p)
 }
 
 #define PPH_ARTIFICIAL(t) \
-(DECL_ARTIFICIAL (t) \
-&& !(TREE_CODE (t) == TYPE_DECL && DECL_IMPLICIT_TYPEDEF_P (t)))
+(DECL_ARTIFICIAL (t) && !DECL_IMPLICIT_TYPEDEF_P (t))
 
 static bool
 is_namespace (tree container)
@@ -4070,6 +4290,7 @@ void
 pph_init (void)
 {
   cpp_callbacks *cb;
+  cpp_lookaside *table;
 
   if (flag_pph_logfile)
     {
@@ -4085,6 +4306,14 @@ pph_init (void)
 
   cb = cpp_get_callbacks (parse_in);
   cb->include = pph_include_handler;
+  /* FIXME pph: Use file change instead.
+  state->file_change_prev = cb->file_change;
+  cb->file_change = pph_file_change;
+  */
+
+  table = cpp_lt_exchange (parse_in,
+                           cpp_lt_create (cpp_lt_order, flag_pth_debug));
+  gcc_assert (table == NULL);
 }
 
 
@@ -4097,7 +4326,7 @@ pph_finish (void)
     {
       const char *offending_file = cpp_main_missing_guard (parse_in);
       if (offending_file == NULL)
-        write_pph_output ();
+        write_pph_file ();
       else
         error ("header lacks guard for PPH: %s", offending_file);
     }

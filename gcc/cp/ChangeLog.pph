@@ -1,3 +1,28 @@
+2011-03-04  Lawrence Crowl <crowl@google.com>
+
+	* cp/pph.c (pph_print_macro_defs_before): New.
+	* (pph_print_macro_defs_after): New.
+	* (write_pph_format): New.
+	* (write_pph_namespace): New.
+	* (write_pph_print): New.
+	* (write_pph_dump): New.
+	* (write_pph_symbol): New.
+	* (write_pph_namespace_1): New.
+	* (write_pph_namespace): New.
+	* (write_pph_file_object): New.
+	* (write_pph_file_summary): New.
+	* (write_pph_file_dump): New.
+	* (write_pph_file): Write used macros instead of dummy contents.
+	Renamed from write_pph_output.
+	* (wrap_macro_def): New.
+	* (report_validation_error): New.
+	* (read_pph_file_object): New.
+	* (read_pph_file): Read used macros instead of dummy contents.
+	Verify the macro values.
+	* (pph_include_handler): Do not read a PPH file a second time.
+	* (PPH_ARTIFICIAL): Remove redundant condition.
+	* (pph_init): Set up the preprocessor lookaside table.
+
 2011-02-24  Lawrence Crowl <crowl@google.com>
 
         * cp/pph.c (pph_finish): Check for missing preprocessor guard

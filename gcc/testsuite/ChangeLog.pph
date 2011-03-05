@@ -1,3 +1,9 @@
+2011-03-04  Lawrence Crowl <crowl@google.com>
+
+	* g++.dg/pph/p1mean.cc: Mark expected failure for macro validation.
+	* g++.dg/pph/d2dupguard.cc: Mark expected failure for macro validation.
+	* g++.dg/pph/d1chained.cc: Mark expected failure for macro validation.
+
 2011-02-24  Lawrence Crowl <crowl@google.com>
 
 	* g++.dg/pph/d1unguarded.h: Add test for non-null unguarded header.
