@@ -43,9 +43,15 @@ x86_64_fallback_frame_state (struct _Unwind_Context *context,
   struct sigcontext *sc;
   long new_cfa;
 
-  /* movq __NR_rt_sigreturn, %rax ; syscall  */
+  /* movq __NR_rt_sigreturn, %rax ; syscall.  FIXME: x32 system call
+     number may change.  */
+#ifdef __LP64__
+#define RT_SIGRETURN_SYSCALL	0x050f0000000fc0c7ULL
+#else
+#define RT_SIGRETURN_SYSCALL	0x050f0000100fc0c7ULL
+#endif
   if (*(unsigned char *)(pc+0) == 0x48
-      && *(unsigned long long *)(pc+1) == 0x050f0000000fc0c7ULL)
+      && *(unsigned long long *)(pc+1) == RT_SIGRETURN_SYSCALL)
     {
       struct ucontext *uc_ = context->cfa;
       /* The void * cast is necessary to avoid an aliasing warning.

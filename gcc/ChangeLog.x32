@@ -1,3 +1,8 @@
+2011-03-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/linux-unwind.h (x86_64_fallback_frame_state):
+	Support x32 system call.
+
 2011-03-04  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/linux-unwind.h (x86_64_fallback_frame_state): Use
