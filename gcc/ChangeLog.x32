@@ -1,5 +1,10 @@
 2011-03-06  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_expand_call): Convert function address
+	to Pmode if needed.
+
+2011-03-06  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR other/48007
 	* unwind-dw2.c (_Unwind_Context): Save call frame hard registers
 	as _Unwind_Word.
