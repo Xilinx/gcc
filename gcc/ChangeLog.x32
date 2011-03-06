@@ -1,3 +1,15 @@
+2011-03-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR other/48007
+	* unwind-dw2.c (_Unwind_Context): Save call frame hard registers
+	as _Unwind_Word.
+	(_Unwind_GetGR): Get GR value as _Unwind_Word.
+	(_Unwind_SetGR): Set GR value as _Unwind_Word.
+	(_Unwind_SetGRValue): Likewise.
+	(_Unwind_GetGRPtr): Cast return to "void *".
+	(_Unwind_SetGRPtr): Cast pointer to _Unwind_Word.
+	(uw_install_context_1): Cast pointer to "void *".
+
 2011-03-05  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/linux-unwind.h (x86_64_fallback_frame_state):
