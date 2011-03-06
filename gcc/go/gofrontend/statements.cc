@@ -391,7 +391,10 @@ Temporary_statement::do_get_tree(Translate_context* context)
 {
   gcc_assert(this->decl_ == NULL_TREE);
   tree type_tree = this->type()->get_tree(context->gogo());
-  if (type_tree == error_mark_node)
+  tree init_tree = (this->init_ == NULL
+		    ? NULL_TREE
+		    : this->init_->get_tree(context));
+  if (type_tree == error_mark_node || init_tree == error_mark_node)
     {
       this->decl_ = error_mark_node;
       return error_mark_node;
@@ -423,11 +426,10 @@ Temporary_statement::do_get_tree(Translate_context* context)
 
       this->decl_ = decl;
     }
-  if (this->init_ != NULL)
+  if (init_tree != NULL_TREE)
     DECL_INITIAL(this->decl_) =
       Expression::convert_for_assignment(context, this->type(),
-					 this->init_->type(),
-					 this->init_->get_tree(context),
+					 this->init_->type(), init_tree,
 					 this->location());
   if (this->is_address_taken_)
     TREE_ADDRESSABLE(this->decl_) = 1;
@@ -968,7 +970,7 @@ Tuple_map_assignment_statement::do_lower(Gogo*, Block* enclosing)
   param_types->push_back(Typed_identifier("val", pval_type, bloc));
 
   Typed_identifier_list* ret_types = new Typed_identifier_list();
-  ret_types->push_back(Typed_identifier("", Type::make_boolean_type(), bloc));
+  ret_types->push_back(Typed_identifier("", Type::lookup_bool_type(), bloc));
 
   Function_type* fntype = Type::make_function_type(NULL, param_types,
 						   ret_types, bloc);
@@ -2024,7 +2026,7 @@ Thunk_statement::build_struct(Function_type* fntype)
       // we add an argument when building recover thunks.  Handle that
       // here.
       fields->push_back(Struct_field(Typed_identifier("can_recover",
-						      Type::make_boolean_type(),
+						      Type::lookup_bool_type(),
 						      location)));
     }
 
@@ -2101,7 +2103,7 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
       // return value, to disable tail call optimizations which will
       // break the way we check whether recover is permitted.
       thunk_results = new Typed_identifier_list();
-      thunk_results->push_back(Typed_identifier("", Type::make_boolean_type(),
+      thunk_results->push_back(Typed_identifier("", Type::lookup_bool_type(),
 						location));
     }
 
@@ -2133,7 +2135,7 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
 
 	  Typed_identifier_list* result_types = new Typed_identifier_list();
 	  result_types->push_back(Typed_identifier("",
-						   Type::make_boolean_type(),
+						   Type::lookup_bool_type(),
 						   bloc));
 
 	  Function_type* t = Type::make_function_type(NULL, param_types,

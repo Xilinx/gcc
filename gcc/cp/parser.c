@@ -3712,8 +3712,14 @@ cp_parser_primary_expression (cp_parser *parser,
       if (c_dialect_objc ())
         /* We have an Objective-C++ message. */
         return cp_parser_objc_expression (parser);
-      maybe_warn_cpp0x (CPP0X_LAMBDA_EXPR);
-      return cp_parser_lambda_expression (parser);
+      {
+	tree lam = cp_parser_lambda_expression (parser);
+	/* Don't warn about a failed tentative parse.  */
+	if (cp_parser_error_occurred (parser))
+	  return error_mark_node;
+	maybe_warn_cpp0x (CPP0X_LAMBDA_EXPR);
+	return lam;
+      }
 
     case CPP_OBJC_STRING:
       if (c_dialect_objc ())
@@ -8680,9 +8686,6 @@ cp_parser_condition (cp_parser* parser)
 	    }
 	  if (BRACE_ENCLOSED_INITIALIZER_P (initializer))
 	    maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
-
-	  if (!non_constant_p)
-	    initializer = fold_non_dependent_expr (initializer);
 
 	  /* Process the initializer.  */
 	  cp_finish_decl (decl,

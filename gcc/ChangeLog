@@ -1,3 +1,146 @@
+2011-03-05  Jason Merrill  <jason@redhat.com>
+
+	* doc/invoke.texi (C++ Dialect Options): Document ABI v5.
+
+2011-03-05  Anthony Green  <green@moxielogic.com>
+
+	* config.gcc (moxie-*-elf): Add newlib-stdint.h to tmfile.
+
+2011-03-05  Zdenek Dvorak  <ook@ucw.cz>
+
+	PR rtl-optimization/47899
+	* cfgloopmanip.c (fix_bb_placements): Fix first argument
+	to flow_loop_nested_p when moving the loop upward.
+
+2011-03-05  Richard Earnshaw  <rearnsha@arm.com>
+
+	PR target/47719
+	* arm.md (movhi_insn_arch4):  Accept any immediate constant.
+
+2011-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/47967
+	* ipa-cp.c (build_const_val): Return NULL instead of creating
+	VIEW_CONVERT_EXPR for mismatching sizes.
+	(ipcp_create_replace_map): Return NULL if build_const_val failed.
+	(ipcp_insert_stage): If ipcp_create_replace_map returns NULL,
+	give up on versioning.
+
+2011-03-05  Alan Modra  <amodra@gmail.com>
+
+	PR target/47986
+	* config/rs6000/rs6000.c (rs6000_delegitimize_address): Handle
+	full cmodel medium/large lo_sum + high addresses.
+
+2011-03-04  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (s390_decompose_address): Reject non-literal
+	pool references in UNSPEC_LTREL_OFFSET.
+
+2011-03-04  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/47497
+	* lto-symtab.c (lto_cgraph_replace_node): Do not set thunk.alias.
+	(lto_symtab_merge_cgraph_nodes_1): Update thunk.alias pointers here.
+	* cgraph.h (cgraph_same_body_alias, cgraph_add_thunk): Add node pointers.
+	* cgraph.c (cgraph_same_body_alias_1, cgraph_same_body_alias,
+	cgraph_add_thunk): Add node pointers.
+	* lto-cgraph.c (lto_output_node): Verify that thunks&aliases are
+	associated to right node.
+	(input_node): Update use of cgraph_same_body_alias
+	and cgraph_add_thunk.
+
+2011-03-04  Changpeng Fang  <changpeng.fang@amd.com>
+
+	* config/i386/i386.opt (mprefer-avx128): New flag.
+	* config/i386/i386.c (ix86_preferred_simd_mode): Prefer 128-bit mode
+	when the flag -mprefer-avx128 is on.
+
+2011-03-04  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* dwarf2out.c (compare_loc_operands): Fix address handling.
+
+2011-03-04  Alan Modra  <amodra@gmail.com>
+
+	* tree.h (TREE_ADDRESSABLE): Update FUNCTION_DECL comment.
+
+2011-03-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47968
+	* expmed.c (extract_bit_field_1): Prefer vector modes that
+	vec_extract patterns can handle.
+
+2011-03-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47975
+	* optabs.c (optab_for_tree_code): Do not use VECTOR_MODE_P.
+
+2011-03-04  Richard Henderson  <rth@redhat.com>
+
+	* explow.c (emit_stack_save): Remove 'after' parameter.
+	(emit_stack_restore): Likewise.
+	* expr.h: Update to match.
+	* builtins.c, calls.c, stmt.c: Likewise.
+	* config/alpha/alpha.md, config/avr/avr.md: Likewise.
+	* config/mips/mips.md, config/pa/pa.md, config/vax/vax.md: Likewise.
+	* function.c (expand_function_end): Insert the emit_stack_save
+	sequence before parm_birth_insn instead of after.
+
+2011-03-03  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (*avx_pmaddubsw128): Fix mode of VEC_SELECT RTX.
+	(ssse3_pmaddubsw128): Ditto.
+	(ssse3_pmaddubsw): Ditto.
+
+2011-03-03  Steve Ellcey  <sje@cup.hp.com>
+
+	* config/ia64/t-hpux: Add $(srcdir)/unwind-c.c to LIB2ADDEH
+
+2011-03-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/47963
+	* gimplify.c (omp_add_variable): Only call omp_notice_variable
+	on TYPE_SIZE_UNIT if it is a DECL.
+
+	PR debug/47283
+	* cfgexpand.c (expand_debug_expr) <case MEM_REF>: If MEM_REF
+	first operand is not is_gimple_mem_ref_addr, try to fold it.
+	If the operand still isn't is_gimple_mem_ref_addr, clear
+	MEM_EXPR on op0.
+
+2011-03-03  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47283
+	* tree-ssa-alias.c (ptr_deref_may_alias_decl_p): Make code
+	match comment.
+	(refs_may_alias_p_1): For release branches return true if
+	we are confused by our input.
+
+2011-03-03  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.c (s390_function_value): Rename to ...
+	(s390_function_and_libcall_value): ... this.
+	(s390_function_value): New function.
+	(s390_libcall_value): New function.
+	(TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE): Define target hooks.
+	* config/s390/s390.h (FUNCTION_VALUE, LIBCALL_VALUE): Remove
+	target macro definitions.
+	* config/s390/s390-protos.h (s390_function_value): Remove prototype.
+
+2011-03-02  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/freebsd64.h (CC1_SPEC): Define.
+	* config/i386/linux64.h (CC1_SPEC): Define.
+	* config/i386/x86-64.h (CC1_SPEC): Don't define.
+
+2011-03-02  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/stormy16/stormy16.h (REGISTER_MOVE_COST, MEMORY_MOVE_COST):
+	Remove.
+	* config/stormy16/stormy16.c: Include reload.h.
+	(xstormy16_memory_move_cost): New function.
+	(TARGET_MEMORY_MOVE_COST): Define.
+
 2011-03-02  Richard Sandiford  <richard.sandiford@linaro.org>
 
 	PR rtl-optimization/47925

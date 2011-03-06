@@ -957,6 +957,15 @@ Var_expression::do_type()
     gcc_unreachable();
 }
 
+// Determine the type of a reference to a variable.
+
+void
+Var_expression::do_determine_type(const Type_context*)
+{
+  if (this->variable_->is_variable())
+    this->variable_->var_value()->determine_type();
+}
+
 // Something takes the address of this variable.  This means that we
 // may want to move the variable onto the heap.
 
@@ -7013,6 +7022,8 @@ Builtin_call_expression::do_integer_constant_value(bool iota_is_constant,
 	return false;
       if (arg_type->is_abstract())
 	return false;
+      if (arg_type->named_type() != NULL)
+	arg_type->named_type()->convert(this->gogo_);
       tree arg_type_tree = arg_type->get_tree(this->gogo_);
       if (arg_type_tree == error_mark_node)
 	return false;
@@ -7057,6 +7068,8 @@ Builtin_call_expression::do_integer_constant_value(bool iota_is_constant,
       Type* st = struct_expr->type();
       if (st->struct_type() == NULL)
 	return false;
+      if (st->named_type() != NULL)
+	st->named_type()->convert(this->gogo_);
       tree struct_tree = st->get_tree(this->gogo_);
       gcc_assert(TREE_CODE(struct_tree) == RECORD_TYPE);
       tree field = TYPE_FIELDS(struct_tree);
@@ -7246,6 +7259,9 @@ Builtin_call_expression::do_type()
 void
 Builtin_call_expression::do_determine_type(const Type_context* context)
 {
+  if (!this->determining_types())
+    return;
+
   this->fn()->determine_type_no_context();
 
   const Expression_list* args = this->args();
@@ -8482,6 +8498,9 @@ Call_expression::do_type()
 void
 Call_expression::do_determine_type(const Type_context*)
 {
+  if (!this->determining_types())
+    return;
+
   this->fn_->determine_type_no_context();
   Function_type* fntype = this->get_function_type();
   const Typed_identifier_list* parameters = NULL;
@@ -8505,6 +8524,21 @@ Call_expression::do_determine_type(const Type_context*)
 	  else
 	    (*pa)->determine_type_no_context();
 	}
+    }
+}
+
+// Called when determining types for a Call_expression.  Return true
+// if we should go ahead, false if they have already been determined.
+
+bool
+Call_expression::determining_types()
+{
+  if (this->types_are_determined_)
+    return false;
+  else
+    {
+      this->types_are_determined_ = true;
+      return true;
     }
 }
 
@@ -8793,10 +8827,21 @@ Call_expression::do_get_tree(Translate_context* context)
       return error_mark_node;
     }
 
-  // This is to support builtin math functions when using 80387 math.
   tree fndecl = fn;
   if (TREE_CODE(fndecl) == ADDR_EXPR)
     fndecl = TREE_OPERAND(fndecl, 0);
+
+  // Add a type cast in case the type of the function is a recursive
+  // type which refers to itself.
+  if (!DECL_P(fndecl) || !DECL_IS_BUILTIN(fndecl))
+    {
+      tree fnt = fntype->get_tree(gogo);
+      if (fnt == error_mark_node)
+	return error_mark_node;
+      fn = fold_convert_loc(location, fnt, fn);
+    }
+
+  // This is to support builtin math functions when using 80387 math.
   tree excess_type = NULL_TREE;
   if (DECL_P(fndecl)
       && DECL_IS_BUILTIN(fndecl)
@@ -8842,7 +8887,7 @@ Call_expression::do_get_tree(Translate_context* context)
   // to the correct type.
   if (TREE_TYPE(ret) == ptr_type_node)
     {
-      tree t = this->type()->get_tree(gogo);
+      tree t = this->type()->base()->get_tree(gogo);
       ret = fold_convert_loc(location, t, ret);
     }
 
@@ -8989,8 +9034,7 @@ Call_result_expression::do_check_types(Gogo*)
 void
 Call_result_expression::do_determine_type(const Type_context*)
 {
-  if (this->index_ == 0)
-    this->call_->determine_type_no_context();
+  this->call_->determine_type_no_context();
 }
 
 // Return the tree.
@@ -11841,6 +11885,7 @@ Composite_literal_expression::lower_array(Type* type)
 	{
 	  mpz_t ival;
 	  mpz_init(ival);
+
 	  Type* dummy;
 	  if (!index_expr->integer_constant_value(true, ival, &dummy))
 	    {
@@ -11849,12 +11894,14 @@ Composite_literal_expression::lower_array(Type* type)
 		       "index expression is not integer constant");
 	      return Expression::make_error(location);
 	    }
+
 	  if (mpz_sgn(ival) < 0)
 	    {
 	      mpz_clear(ival);
 	      error_at(index_expr->location(), "index expression is negative");
 	      return Expression::make_error(location);
 	    }
+
 	  index = mpz_get_ui(ival);
 	  if (mpz_cmp_ui(ival, index) != 0)
 	    {
@@ -11862,7 +11909,30 @@ Composite_literal_expression::lower_array(Type* type)
 	      error_at(index_expr->location(), "index value overflow");
 	      return Expression::make_error(location);
 	    }
+
+	  Named_type* ntype = Type::lookup_integer_type("int");
+	  Integer_type* inttype = ntype->integer_type();
+	  mpz_t max;
+	  mpz_init_set_ui(max, 1);
+	  mpz_mul_2exp(max, max, inttype->bits() - 1);
+	  bool ok = mpz_cmp(ival, max) < 0;
+	  mpz_clear(max);
+	  if (!ok)
+	    {
+	      mpz_clear(ival);
+	      error_at(index_expr->location(), "index value overflow");
+	      return Expression::make_error(location);
+	    }
+
 	  mpz_clear(ival);
+
+	  // FIXME: Our representation isn't very good; this avoids
+	  // thrashing.
+	  if (index > 0x1000000)
+	    {
+	      error_at(index_expr->location(), "index too large for compiler");
+	      return Expression::make_error(location);
+	    }
 	}
 
       if (index == vals.size())
@@ -12306,7 +12376,10 @@ Send_expression::do_traverse(Traverse* traverse)
 Type*
 Send_expression::do_type()
 {
-  return Type::lookup_bool_type();
+  if (this->is_value_discarded_)
+    return Type::make_void_type();
+  else
+    return Type::lookup_bool_type();
 }
 
 // Set types.
