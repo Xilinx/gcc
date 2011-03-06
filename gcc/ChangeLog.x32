@@ -1,5 +1,10 @@
 2011-03-06  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/predicates.md (aligned_operand): Check SUBREG_REG
+	for parts.index and parts.base.
+
+2011-03-06  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_expand_call): Convert function address
 	to Pmode if needed.
 

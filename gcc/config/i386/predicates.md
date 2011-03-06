@@ -853,11 +853,15 @@
   /* Look for some component that isn't known to be aligned.  */
   if (parts.index)
     {
+      if (GET_CODE (parts.index) == SUBREG)
+	parts.index = SUBREG_REG (parts.index);
       if (REGNO_POINTER_ALIGN (REGNO (parts.index)) * parts.scale < 32)
 	return false;
     }
   if (parts.base)
     {
+      if (GET_CODE (parts.base) == SUBREG)
+	parts.base = SUBREG_REG (parts.base);
       if (REGNO_POINTER_ALIGN (REGNO (parts.base)) < 32)
 	return false;
     }
