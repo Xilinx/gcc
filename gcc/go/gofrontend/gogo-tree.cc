@@ -640,6 +640,9 @@ sort_var_inits(Var_inits* var_inits)
 void
 Gogo::write_globals()
 {
+  this->convert_named_types();
+  this->build_interface_method_tables();
+
   Bindings* bindings = this->current_bindings();
   size_t count = bindings->size_definitions();
 
@@ -923,7 +926,16 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
 	  {
 	    Type* type = named_constant->type();
 	    if (type != NULL && !type->is_abstract())
-	      expr_tree = fold_convert(type->get_tree(gogo), expr_tree);
+	      {
+		if (!type->is_undefined())
+		  expr_tree = fold_convert(type->get_tree(gogo), expr_tree);
+		else
+		  {
+		    // Make sure we report the error.
+		    type->base();
+		    expr_tree = error_mark_node;
+		  }
+	      }
 	    if (expr_tree == error_mark_node)
 	      decl = error_mark_node;
 	    else if (INTEGRAL_TYPE_P(TREE_TYPE(expr_tree)))
@@ -1774,8 +1786,14 @@ Function::return_value(Gogo* gogo, Named_object* named_function,
   // defer statements, the result variables may be unnamed.
   bool is_named = !results->front().name().empty();
   if (is_named)
-    gcc_assert(this->named_results_ != NULL
-	       && this->named_results_->size() == results->size());
+    {
+      gcc_assert(this->named_results_ != NULL);
+      if (this->named_results_->size() != results->size())
+	{
+	  gcc_assert(saw_errors());
+	  return error_mark_node;
+	}
+    }
 
   tree retval;
   if (results->size() == 1)

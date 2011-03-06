@@ -46,6 +46,7 @@
 #include "langhooks.h"
 #include "gimple.h"
 #include "df.h"
+#include "reload.h"
 #include "ggc.h"
 
 static rtx emit_addhi3_postreload (rtx, rtx, rtx);
@@ -106,6 +107,15 @@ xstormy16_address_cost (rtx x, bool speed ATTRIBUTE_UNUSED)
   return (CONST_INT_P (x) ? 2
 	  : GET_CODE (x) == PLUS ? 7
 	  : 5);
+}
+
+/* Worker function for TARGET_MEMORY_MOVE_COST.  */
+
+static int
+xstormy16_memory_move_cost (enum machine_mode mode, reg_class_t rclass,
+			    bool in)
+{
+  return (5 + memory_move_secondary_cost (mode, rclass, in));
 }
 
 /* Branches are handled as follows:
@@ -1419,15 +1429,34 @@ xstormy16_trampoline_init (rtx m_tramp, tree fndecl, rtx static_chain)
   emit_move_insn (reg_addr_mem, reg_fnaddr);
 }
 
-/* Worker function for FUNCTION_VALUE.  */
+/* Worker function for TARGET_FUNCTION_VALUE.  */
 
-rtx
-xstormy16_function_value (const_tree valtype, const_tree func ATTRIBUTE_UNUSED)
+static rtx
+xstormy16_function_value (const_tree valtype,
+			  const_tree func ATTRIBUTE_UNUSED,
+			  bool outgoing ATTRIBUTE_UNUSED)
 {
   enum machine_mode mode;
   mode = TYPE_MODE (valtype);
   PROMOTE_MODE (mode, 0, valtype);
   return gen_rtx_REG (mode, RETURN_VALUE_REGNUM);
+}
+
+/* Worker function for TARGET_LIBCALL_VALUE.  */
+
+static rtx
+xstormy16_libcall_value (enum machine_mode mode,
+			 const_rtx fun ATTRIBUTE_UNUSED)
+{
+  return gen_rtx_REG (mode, RETURN_VALUE_REGNUM);
+}
+
+/* Worker function for TARGET_FUNCTION_VALUE_REGNO_P.  */
+
+static bool
+xstormy16_function_value_regno_p (const unsigned int regno)
+{
+  return (regno == RETURN_VALUE_REGNUM);
 }
 
 /* A C compound statement that outputs the assembler code for a thunk function,
@@ -2579,6 +2608,8 @@ static const struct default_options xstorym16_option_optimization_table[] =
 #undef  TARGET_ASM_CAN_OUTPUT_MI_THUNK
 #define TARGET_ASM_CAN_OUTPUT_MI_THUNK default_can_output_mi_thunk_no_vcall
 
+#undef  TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST xstormy16_memory_move_cost
 #undef  TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS xstormy16_rtx_costs
 #undef  TARGET_ADDRESS_COST
@@ -2603,6 +2634,12 @@ static const struct default_options xstorym16_option_optimization_table[] =
 
 #undef  TARGET_RETURN_IN_MEMORY
 #define TARGET_RETURN_IN_MEMORY xstormy16_return_in_memory
+#undef TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE xstormy16_function_value
+#undef TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE xstormy16_libcall_value
+#undef TARGET_FUNCTION_VALUE_REGNO_P
+#define TARGET_FUNCTION_VALUE_REGNO_P xstormy16_function_value_regno_p
 
 #undef  TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG xstormy16_reorg
