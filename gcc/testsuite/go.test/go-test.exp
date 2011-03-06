@@ -119,7 +119,8 @@ proc go-set-goarch { } {
 	}
 	"i?86-*-*" -
 	"x86_64-*-*" {
-	    if [check_effective_target_ilp32] {
+	    if { [check_effective_target_ilp32]
+		 && ![check_effective_target_x32] } {
 		set goarch "386"
 	    } else {
 		set goarch "amd64"

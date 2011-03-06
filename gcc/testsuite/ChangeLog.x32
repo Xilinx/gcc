@@ -1,3 +1,9 @@
+2011-03-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* go.test/go-test.exp (go-set-goarch): Check x32.
+
+	* lib/target-supports.exp (check_effective_target_x32): New.
+
 2011-03-02  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR rtl-optimization/47958

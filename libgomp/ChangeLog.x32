@@ -1,3 +1,7 @@
+2011-03-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* lib/libgomp.exp (libgomp_init): Don't add -march=i486 for x32.
+
 2011-02-17  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/linux/x86/futex.h: Check __x86_64__ instead of
