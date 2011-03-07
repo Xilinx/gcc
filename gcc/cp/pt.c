@@ -8966,9 +8966,14 @@ static tree
 tsubst_template_args (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 {
   tree orig_t = t;
-  int len = TREE_VEC_LENGTH (t);
-  int need_new = 0, i, expanded_len_adjust = 0, out;
-  tree *elts = XALLOCAVEC (tree, len);
+  int len, need_new = 0, i, expanded_len_adjust = 0, out;
+  tree *elts;
+
+  if (t == error_mark_node)
+    return error_mark_node;
+
+  len = TREE_VEC_LENGTH (t);
+  elts = XALLOCAVEC (tree, len);
 
   for (i = 0; i < len; i++)
     {
@@ -11722,7 +11727,9 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
       return t;
 
     default:
-      gcc_unreachable ();
+      /* We shouldn't get here, but keep going if !ENABLE_CHECKING.  */
+      gcc_checking_assert (false);
+      return t;
     }
 }
 
@@ -12979,7 +12986,7 @@ tsubst_copy_and_build (tree t,
       return finish_pseudo_destructor_expr
 	(RECUR (TREE_OPERAND (t, 0)),
 	 RECUR (TREE_OPERAND (t, 1)),
-	 RECUR (TREE_OPERAND (t, 2)));
+	 tsubst (TREE_OPERAND (t, 2), args, complain, in_decl));
 
     case TREE_LIST:
       {
@@ -13368,7 +13375,11 @@ tsubst_copy_and_build (tree t,
       /* We can get here for a constant initializer of non-dependent type.
          FIXME stop folding in cp_parser_initializer_clause.  */
       gcc_assert (TREE_CONSTANT (t));
-      return get_target_expr (RECUR (TARGET_EXPR_INITIAL (t)));
+      {
+	tree r = get_target_expr (RECUR (TARGET_EXPR_INITIAL (t)));
+	TREE_CONSTANT (r) = true;
+	return r;
+      }
 
     default:
       /* Handle Objective-C++ constructs, if appropriate.  */

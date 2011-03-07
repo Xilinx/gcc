@@ -5906,6 +5906,9 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
       /* Just discard ellipsis args after checking their constantitude.  */
       if (!parms)
 	continue;
+      if (*non_constant_p)
+	/* Don't try to adjust the type of non-constant args.  */
+	goto next;
 
       /* Make sure the binding has the same type as the parm.  */
       if (TREE_CODE (type) != REFERENCE_TYPE)
@@ -7719,7 +7722,10 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       if (VEC_INIT_EXPR_IS_CONSTEXPR (t))
 	return true;
       if (flags & tf_error)
-        error ("non-constant array initialization");
+	{
+	  error ("non-constant array initialization");
+	  diagnose_non_constexpr_vec_init (t);
+	}
       return false;
 
     default:

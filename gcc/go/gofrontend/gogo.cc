@@ -34,7 +34,8 @@ Gogo::Gogo(int int_type_size, int pointer_size)
     imported_init_fns_(),
     unique_prefix_(),
     unique_prefix_specified_(false),
-    interface_types_()
+    interface_types_(),
+    named_types_are_converted_(false)
 {
   const source_location loc = BUILTINS_LOCATION;
 
@@ -1119,11 +1120,6 @@ class Verify_types : public Traverse
 int
 Verify_types::type(Type* t)
 {
-  // Don't verify types defined in other packages.
-  Named_type* nt = t->named_type();
-  if (nt != NULL && nt->named_object()->package() != NULL)
-    return TRAVERSE_SKIP_COMPONENTS;
-
   if (!t->verify())
     return TRAVERSE_SKIP_COMPONENTS;
   return TRAVERSE_CONTINUE;
@@ -1734,7 +1730,7 @@ Shortcuts::convert_shortcut(Block* enclosing, Expression** pshortcut)
   Block* retblock = new Block(enclosing, loc);
   retblock->set_end_location(loc);
 
-  Temporary_statement* ts = Statement::make_temporary(Type::make_boolean_type(),
+  Temporary_statement* ts = Statement::make_temporary(Type::lookup_bool_type(),
 						      left, loc);
   retblock->add_statement(ts);
 
@@ -2090,7 +2086,7 @@ Build_recover_thunks::function(Named_object* orig_no)
   ++count;
   std::string can_recover_name = buf;
   new_params->push_back(Typed_identifier(can_recover_name,
-					 Type::make_boolean_type(),
+					 Type::lookup_bool_type(),
 					 orig_fntype->location()));
 
   const Typed_identifier_list* orig_results = orig_fntype->results();
@@ -2226,7 +2222,7 @@ Build_recover_thunks::function(Named_object* orig_no)
 
   // Add the can_recover argument to the (now) new bindings, and
   // attach it to any recover statements.
-  Variable* can_recover_var = new Variable(Type::make_boolean_type(), NULL,
+  Variable* can_recover_var = new Variable(Type::lookup_bool_type(), NULL,
 					   false, true, false, location);
   can_recover_no = new_bindings->add_variable(can_recover_name, NULL,
 					      can_recover_var);
@@ -2277,7 +2273,7 @@ Build_recover_thunks::can_recover_arg(source_location location)
       Typed_identifier_list* param_types = new Typed_identifier_list();
       Type* voidptr_type = Type::make_pointer_type(Type::make_void_type());
       param_types->push_back(Typed_identifier("a", voidptr_type, bloc));
-      Type* boolean_type = Type::make_boolean_type();
+      Type* boolean_type = Type::lookup_bool_type();
       Typed_identifier_list* results = new Typed_identifier_list();
       results->push_back(Typed_identifier("", boolean_type, bloc));
       Function_type* fntype = Type::make_function_type(NULL, param_types,
@@ -2518,6 +2514,83 @@ Gogo::do_exports()
 		      : ""),
 		     this->imported_init_fns_,
 		     this->package_->bindings());
+}
+
+// Find the blocks in order to convert named types defined in blocks.
+
+class Convert_named_types : public Traverse
+{
+ public:
+  Convert_named_types(Gogo* gogo)
+    : Traverse(traverse_blocks),
+      gogo_(gogo)
+  { }
+
+ protected:
+  int
+  block(Block* block);
+
+ private:
+  Gogo* gogo_;
+};
+
+int
+Convert_named_types::block(Block* block)
+{
+  this->gogo_->convert_named_types_in_bindings(block->bindings());
+  return TRAVERSE_CONTINUE;
+}
+
+// Convert all named types to the backend representation.  Since named
+// types can refer to other types, this needs to be done in the right
+// sequence, which is handled by Named_type::convert.  Here we arrange
+// to call that for each named type.
+
+void
+Gogo::convert_named_types()
+{
+  this->convert_named_types_in_bindings(this->globals_);
+  for (Packages::iterator p = this->packages_.begin();
+       p != this->packages_.end();
+       ++p)
+    {
+      Package* package = p->second;
+      this->convert_named_types_in_bindings(package->bindings());
+    }
+
+  Convert_named_types cnt(this);
+  this->traverse(&cnt);
+
+  // Make all the builtin named types used for type descriptors, and
+  // then convert them.  They will only be written out if they are
+  // needed.
+  Type::make_type_descriptor_type();
+  Type::make_type_descriptor_ptr_type();
+  Function_type::make_function_type_descriptor_type();
+  Pointer_type::make_pointer_type_descriptor_type();
+  Struct_type::make_struct_type_descriptor_type();
+  Array_type::make_array_type_descriptor_type();
+  Array_type::make_slice_type_descriptor_type();
+  Map_type::make_map_type_descriptor_type();
+  Channel_type::make_chan_type_descriptor_type();
+  Interface_type::make_interface_type_descriptor_type();
+  Type::convert_builtin_named_types(this);
+
+  this->named_types_are_converted_ = true;
+}
+
+// Convert all names types in a set of bindings.
+
+void
+Gogo::convert_named_types_in_bindings(Bindings* bindings)
+{
+  for (Bindings::const_definitions_iterator p = bindings->begin_definitions();
+       p != bindings->end_definitions();
+       ++p)
+    {
+      if ((*p)->is_type())
+	(*p)->type_value()->convert(this);
+    }
 }
 
 // Class Function.
@@ -3143,7 +3216,7 @@ Variable::Variable(Type* type, Expression* init, bool is_global,
     is_address_taken_(false), seen_(false), init_is_lowered_(false),
     type_from_init_tuple_(false), type_from_range_index_(false),
     type_from_range_value_(false), type_from_chan_element_(false),
-    is_type_switch_var_(false)
+    is_type_switch_var_(false), determined_type_(false)
 {
   gcc_assert(type != NULL || init != NULL);
   gcc_assert(!is_parameter || init == NULL);
@@ -3383,6 +3456,10 @@ Variable::type() const
 void
 Variable::determine_type()
 {
+  if (this->determined_type_)
+    return;
+  this->determined_type_ = true;
+
   if (this->preinit_ != NULL)
     this->preinit_->determine_types();
 
