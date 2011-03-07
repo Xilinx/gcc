@@ -1,4 +1,14 @@
 
+2011-03-07  Alexandre Lissy  <alissy@mandriva.com>
+
+	* melt-build.tpl: Fix issues in compilation process for RPM
+	packaging on GCCMELT_MODULE_WORKSPACE.
+
+	* Makefile.in (MELTHERE_CC1_CFLAGS, mekt_make_cc1flags): Ditto.
+
+	* melt-build.mk: Regenerate.
+
+
 2011-03-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* warmelt-macro.melt (patmacexpand_for_matcher): Add debug

@@ -46,7 +46,7 @@ endif
 
 MELTMODULE_BASENAME:=$(basename $(GCCMELT_MODULE_SOURCE))
 MELTMODULE_PLAIN:=$(notdir $(MELTMODULE_BASENAME))
-MELTMODULE_SRCDIR:=$(dir $(GCCMELT_MODULE_SOURCE))
+MELTMODULE_SRCDIR:=$(patsubst %/, %, $(dir $(GCCMELT_MODULE_SOURCE)))
 
 
 ## The .d.so & .n.so suffixes are wired in melt-runtime.c!

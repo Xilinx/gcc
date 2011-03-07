@@ -5341,6 +5341,7 @@ MELT_RAW_CFLAGS= \
 ## since the generated routines are no more huge (since the
 ## initialization code is split in several chunks).. Likewise, avoid
 ## passing -gtoggle and -g
+## Also remove -pipe and -Wp,-D_FORTIFY_SOURCE=2
 MELTHERE_CFLAGS= $(filter-out -g, $(filter-out -gtoggle, $(MELT_RAW_CFLAGS)))
 export MELTHERE_CFLAGS
 
@@ -5430,7 +5431,10 @@ melt_make_source_dir=$(srcdir)/melt
 melt_make_module_dir=$(objdir)
 melt_make_move=$(SHELL) $(srcdir)/../move-if-change
 ## Don't use := definitions here!
-melt_make_cc1flags= -I. $(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
+## CC1 forbids -pipe and -Wp,-D_FORTIFY_SOURCE=2
+comma= ,
+MELTHERE_CC1_CFLAGS=$(filter-out -pipe -Wp$(comma)-D_FORTIFY_SOURCE=2, $(MELTHERE_CFLAGS))
+melt_make_cc1flags= -I. $(MELTHERE_CC1_CFLAGS) -I $(melt_build_include_dir)
 melt_cflags=  -I. $(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
 export melt_cflags
 ## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c

@@ -107,7 +107,7 @@ melt-stage0-static/[+base+]-0.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage0-static/ \
+              GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+]-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-static/[+base+]-0
@@ -117,7 +117,7 @@ melt-stage0-dynamic/[+base+]-0.d.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
-              GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic/ \
+              GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+]-0.c \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/[+base+]-0
@@ -181,7 +181,7 @@ $(MELT_STAGE_ZERO):
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=[+melt_stage+]/ \
+              GCCMELT_MODULE_WORKSPACE=[+melt_stage+] \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=[+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c \
               GCCMELT_MODULE_BINARY=[+melt_stage+]/[+(. outbase)+]-[+(. stageindex)+]
@@ -191,7 +191,7 @@ $(MELT_STAGE_ZERO):
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=[+melt_stage+]/ \
+              GCCMELT_MODULE_WORKSPACE=[+melt_stage+] \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=[+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c \
               GCCMELT_MODULE_BINARY=[+melt_stage+]/[+(. outbase)+]-[+(. stageindex)+]
