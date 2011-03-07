@@ -1008,6 +1008,14 @@ emit_stack_save (enum save_level save_level, rtx *psave)
   do_pending_stack_adjust ();
   if (sa != 0)
     sa = validize_mem (sa);
+  /* FIXME: update_nonlocal_goto_save_area may pass SA in the wrong mode.  */
+  if (GET_MODE (sa) != mode)
+    {
+      gcc_assert (ptr_mode != Pmode
+		  && GET_MODE (sa) == ptr_mode
+		  && mode == Pmode);
+      sa = adjust_address (sa, mode, 0); 
+    }
   emit_insn (fcn (sa, stack_pointer_rtx));
 }
 

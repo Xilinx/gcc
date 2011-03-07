@@ -1,3 +1,8 @@
+2011-03-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/48016
+	* explow.c (emit_stack_save): Adjust mode of stack save area.
+
 2011-03-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/predicates.md (aligned_operand): Check SUBREG_REG
