@@ -1,4 +1,8 @@
 
+2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* Makefile.in (GTFILES): Add meltrunsup-inc.c.
+
 2011-03-07  Alexandre Lissy  <alissy@mandriva.com>
 
 	* melt-build.tpl: Fix issues in compilation process for RPM
