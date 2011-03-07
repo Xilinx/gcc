@@ -221,6 +221,7 @@ long melt_debugskipcount;
 
 long melt_error_counter;
 
+/* File meltrunsup-inc.c is inside melt/generated/ */
 #include "meltrunsup-inc.c"
 
 /* an strdup-ed version string of gcc */

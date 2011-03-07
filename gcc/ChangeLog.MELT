@@ -1,6 +1,21 @@
 
 2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* meltrunsup.h: Moved to melt/generated/
+
+	* meltrunsup-inc.c: Ditto.
+
+	* Makefile.in (GTFILES, MELT_H, melt_cflags, melt-runtime.o)
+	(MELT_PLUGIN_HEADERS, warmelt-upgrade): Update for meltrunsup*
+	files in melt/generated/
+
+	* melt-runtime.c: Add comment about meltrunsup-inc.c in
+	melt/generated/
+
+	* melt-runtime.h: Add comment aboutmeltrun.h in melt/generated/
+
+2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* Makefile.in (GTFILES): Add meltrunsup-inc.c.
 
 2011-03-07  Alexandre Lissy  <alissy@mandriva.com>

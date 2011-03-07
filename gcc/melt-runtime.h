@@ -311,6 +311,7 @@ typedef char melt_argdescr_cell_t;
 /* The maximal value of above scalar types */
 #define MELT_ARGDESCR_MAX CHAR_MAX
 
+/* File meltrunsup.h is inside melt/generated/ */
 #include "meltrunsup.h"
 
 

@@ -1502,7 +1502,7 @@ BACKEND = main.o @TREEBROWSER@ libbackend.a $(CPPLIB) $(LIBDECNUMBER)
 
 
 ## now we always have MELT enabled
-MELT_H= $(srcdir)/meltrunsup.h \
+MELT_H= $(srcdir)/melt/generated/meltrunsup.h \
     $(srcdir)/melt-runtime.h \
     melt-predef.h
 
@@ -2821,9 +2821,9 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
 melt-runtime.o:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
    $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
 	tree-pass.h $(MELT_H) \
-	$(srcdir)/meltrunsup.h $(srcdir)/meltrunsup-inc.c  \
+	$(srcdir)/melt/generated/meltrunsup.h $(srcdir)/melt/generated/meltrunsup-inc.c  \
    gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
-	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
+	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/ \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
 	  -DMELT_MODULE_DIR=\"$(melt_module_dir)\" \
 	  -DMELT_MODULE_MAKE_COMMAND=\"$(MAKE)\" \
@@ -3811,7 +3811,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/tree-ssa-alias.h \
   $(srcdir)/ipa-prop.h \
   $(MELT_RUNTIME_C) \
-  $(srcdir)/meltrunsup-inc.c \
+  $(srcdir)/melt/generated/meltrunsup-inc.c \
   $(srcdir)/lto-streamer.h \
   $(srcdir)/target-globals.h \
   @all_gtfiles@
@@ -4617,7 +4617,7 @@ PLUGIN_HEADERS = $(TREE_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 
 ## extra MELT required plugin headers!
 MELT_PLUGIN_HEADERS= melt-runtime.h melt-run.h melt-predef.h \
-                     meltrunsup.h \
+                     melt/generated/meltrunsup.h \
                      $(REGSET_H)
 ## the REGSET_H should really be added to PLUGIN_HEADERS
 ## http://gcc.gnu.org/ml/gcc/2010-10/msg00233.html
@@ -5436,7 +5436,7 @@ melt_make_move=$(SHELL) $(srcdir)/../move-if-change
 comma= ,
 MELTHERE_CC1_CFLAGS=$(filter-out -pipe -Wp$(comma)-D_FORTIFY_SOURCE=2, $(MELTHERE_CFLAGS))
 melt_make_cc1flags= -I. $(MELTHERE_CC1_CFLAGS) -I $(melt_build_include_dir)
-melt_cflags=  -I. $(MELTHERE_CFLAGS) -I $(melt_build_include_dir)
+melt_cflags=  -I. $(MELTHERE_CFLAGS) -I $(melt_build_include_dir) -I $(srcdir)/melt/generated/
 export melt_cflags
 ## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c
 melt_extra_cflags= -g
@@ -5525,8 +5525,8 @@ upgrade-warmelt: gtyp-real-meltplugin-input.list
 	$(MAKE) meltrun-generate
 	for f in $(wildcard meltrunsup*.[ch]); do  \
 	  cp $$f $$f-tmp; \
-	  cp $(srcdir)/$$f $$f-old; \
-          $(SHELL) $(srcdir)/../move-if-change $$f-tmp $(srcdir)/$$f; \
+	  cp $(srcdir)/melt/generated/$$f $$f-old; \
+          $(SHELL) $(srcdir)/../move-if-change $$f-tmp $(srcdir)/melt/generated/$$f; \
         done
 	$(RM) melt-runtime.o s-gtype */warmelt*.o
 	$(MAKE) s-gtype gt-melt-runtime-plugin.h
