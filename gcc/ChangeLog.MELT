@@ -1,6 +1,33 @@
 
 2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* Makefile.in (gt-melt-runtime-plugin.h): Also gives meltrunsup.h
+	to gengtype.
+
+	{{Regenerated all}}
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
+	* melt/generated/meltrunsup-inc.c: Regenerate.
+	* melt/generated/meltrunsup.h: Regenerate.
+	* melt/generated/warmelt-base-0.c: Regenerate.
+	* melt/generated/warmelt-debug-0.c: Regenerate.
+	* melt/generated/warmelt-first-0.c: Regenerate.
+	* melt/generated/warmelt-genobj-0.c: Regenerate.
+	* melt/generated/warmelt-macro-0+01.c: Regenerate.
+	* melt/generated/warmelt-macro-0+02.c: Regenerate.
+	* melt/generated/warmelt-macro-0+03.c: Regenerate.
+	* melt/generated/warmelt-macro-0.c: Regenerate.
+	* melt/generated/warmelt-normal-0+01.c: Regenerate.
+	* melt/generated/warmelt-normal-0+02.c: Regenerate.
+	* melt/generated/warmelt-normal-0+03.c: Regenerate.
+	* melt/generated/warmelt-normal-0.c: Regenerate.
+	* melt/generated/warmelt-normatch-0+01.c: Regenerate.
+	* melt/generated/warmelt-normatch-0+02.c: Regenerate.
+	* melt/generated/warmelt-normatch-0+03.c: Regenerate.
+	* melt/generated/warmelt-normatch-0.c: Regenerate.
+	* melt/generated/warmelt-outobj-0.c: Regenerate.
+
+2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* meltrunsup.h: Moved to melt/generated/
 
 	* meltrunsup-inc.c: Ditto.

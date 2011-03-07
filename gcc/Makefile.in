@@ -5509,7 +5509,7 @@ gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c \
     gtyp-real-meltplugin-input.list  build/gengtype$(build_exeext)
 	rm -f $@
 	$(RUN_GEN) build/gengtype$(build_exeext) -v -S $(srcdir) -I gtyp-real-meltplugin-input.list -w gtype-no-melt.state  
-	$(RUN_GEN) build/gengtype$(build_exeext) -v -r gtype-no-melt.state -P $@  $(srcdir)/melt-runtime.h  $(srcdir)/melt-runtime.c
+	$(RUN_GEN) build/gengtype$(build_exeext) -v -r gtype-no-melt.state -P $@  $(srcdir)/melt-runtime.h $(srcdir)/melt/generated/meltrunsup.h $(srcdir)/melt-runtime.c
 # we add a comment containing various meta-information. 
 	date +"/* $@ file generated %c%n" >> $@
 	if [ -f REVISION ]; then (echo -n "GCC revision: " ; cat REVISION) >> $@ ; fi

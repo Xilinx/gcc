@@ -25,30 +25,10 @@ along with GCC; see the file COPYING3.  If not see
   if (X != NULL) gt_ggc_mx_VEC_melt_ptr_t_gc (X);\
   } while (0)
 extern void gt_ggc_mx_VEC_melt_ptr_t_gc (void *);
-#define gt_ggc_m_11meltpair_st(X) do { \
-  if (X != NULL) gt_ggc_mx_meltpair_st (X);\
-  } while (0)
-extern void gt_ggc_mx_meltpair_st (void *);
-#define gt_ggc_m_14meltroutine_st(X) do { \
-  if (X != NULL) gt_ggc_mx_meltroutine_st (X);\
-  } while (0)
-extern void gt_ggc_mx_meltroutine_st (void *);
-#define gt_ggc_m_13meltobject_st(X) do { \
-  if (X != NULL) gt_ggc_mx_meltobject_st (X);\
-  } while (0)
-extern void gt_ggc_mx_meltobject_st (void *);
 #define gt_ggc_m_7melt_un(X) do { \
   if (X != NULL) gt_ggc_mx_melt_un (X);\
   } while (0)
 extern void gt_ggc_mx_melt_un (void *);
-#define gt_ggc_m_15interface_tuple(X) do { \
-  if (X != NULL) gt_ggc_mx_interface_tuple (X);\
-  } while (0)
-extern void gt_ggc_mx_interface_tuple (void *);
-#define gt_ggc_m_17string_descriptor(X) do { \
-  if (X != NULL) gt_ggc_mx_string_descriptor (X);\
-  } while (0)
-extern void gt_ggc_mx_string_descriptor (void *);
 #define gt_ggc_m_15c_inline_static(X) do { \
   if (X != NULL) gt_ggc_mx_c_inline_static (X);\
   } while (0)
@@ -77,6 +57,30 @@ extern void gt_ggc_mx_c_label_vars (void *);
   if (X != NULL) gt_ggc_mx_c_parser (X);\
   } while (0)
 extern void gt_ggc_mx_c_parser (void *);
+#define gt_ggc_m_20VEC_ivarref_entry_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_ivarref_entry_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_ivarref_entry_gc (void *);
+#define gt_ggc_m_22VEC_prot_list_entry_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_prot_list_entry_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_prot_list_entry_gc (void *);
+#define gt_ggc_m_19VEC_msgref_entry_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_msgref_entry_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_msgref_entry_gc (void *);
+#define gt_ggc_m_23VEC_ident_data_tuple_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_ident_data_tuple_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_ident_data_tuple_gc (void *);
+#define gt_ggc_m_15interface_tuple(X) do { \
+  if (X != NULL) gt_ggc_mx_interface_tuple (X);\
+  } while (0)
+extern void gt_ggc_mx_interface_tuple (void *);
+#define gt_ggc_m_17string_descriptor(X) do { \
+  if (X != NULL) gt_ggc_mx_string_descriptor (X);\
+  } while (0)
+extern void gt_ggc_mx_string_descriptor (void *);
 #define gt_ggc_m_9imp_entry(X) do { \
   if (X != NULL) gt_ggc_mx_imp_entry (X);\
   } while (0)
@@ -301,6 +305,18 @@ extern void gt_ggc_mx_parm_attr_d (void *);
   if (X != NULL) gt_ggc_mx_lto_in_decl_state (X);\
   } while (0)
 extern void gt_ggc_mx_lto_in_decl_state (void *);
+#define gt_ggc_m_14meltroutine_st(X) do { \
+  if (X != NULL) gt_ggc_mx_meltroutine_st (X);\
+  } while (0)
+extern void gt_ggc_mx_meltroutine_st (void *);
+#define gt_ggc_m_11meltpair_st(X) do { \
+  if (X != NULL) gt_ggc_mx_meltpair_st (X);\
+  } while (0)
+extern void gt_ggc_mx_meltpair_st (void *);
+#define gt_ggc_m_13meltobject_st(X) do { \
+  if (X != NULL) gt_ggc_mx_meltobject_st (X);\
+  } while (0)
+extern void gt_ggc_mx_meltobject_st (void *);
 #define gt_ggc_m_22VEC_ipa_edge_args_t_gc(X) do { \
   if (X != NULL) gt_ggc_mx_VEC_ipa_edge_args_t_gc (X);\
   } while (0)
@@ -866,18 +882,301 @@ gt_ggc_mx_VEC_melt_ptr_t_gc (void *x_p)
 }
 
 void
-gt_ggc_mx_meltpair_st (void *x_p)
+gt_ggc_mx_melt_un (void *x_p)
 {
-  struct meltpair_st * x = (struct meltpair_st *)x_p;
-  struct meltpair_st * xlimit = x;
-  while (ggc_test_and_set_mark (xlimit))
-   xlimit = ((*xlimit).tl);
-  while (x != xlimit)
+  union melt_un * const x = (union melt_un *)x_p;
+  if (ggc_test_and_set_mark (x))
     {
-      gt_ggc_m_13meltobject_st ((*x).discr);
-      gt_ggc_m_7melt_un ((*x).hd);
-      gt_ggc_m_11meltpair_st ((*x).tl);
-      x = ((*x).tl);
+      switch ((*x).u_discr->meltobj_magic)
+        {
+        case MELTOBMAG_BASICBLOCK:
+          gt_ggc_m_13meltobject_st ((*x).u_basicblock.discr);
+          gt_ggc_m_15basic_block_def ((*x).u_basicblock.val);
+          break;
+        case MELTOBMAG_MAPBASICBLOCKS:
+          gt_ggc_m_13meltobject_st ((*x).u_mapbasicblocks.discr);
+          if ((*x).u_mapbasicblocks.entab != NULL) {
+            size_t i0;
+            for (i0 = 0; i0 != (size_t)(melt_primtab[((*x).u_mapbasicblocks).lenix]); i0++) {
+              gt_ggc_m_15basic_block_def ((*x).u_mapbasicblocks.entab[i0].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapbasicblocks.entab[i0].e_va);
+            }
+            ggc_mark ((*x).u_mapbasicblocks.entab);
+          }
+          break;
+        case MELTOBMAG_BITMAP:
+          gt_ggc_m_13meltobject_st ((*x).u_bitmap.discr);
+          gt_ggc_m_15bitmap_head_def ((*x).u_bitmap.val);
+          break;
+        case MELTOBMAG_MAPBITMAPS:
+          gt_ggc_m_13meltobject_st ((*x).u_mapbitmaps.discr);
+          if ((*x).u_mapbitmaps.entab != NULL) {
+            size_t i1;
+            for (i1 = 0; i1 != (size_t)(melt_primtab[((*x).u_mapbitmaps).lenix]); i1++) {
+              gt_ggc_m_15bitmap_head_def ((*x).u_mapbitmaps.entab[i1].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapbitmaps.entab[i1].e_va);
+            }
+            ggc_mark ((*x).u_mapbitmaps.entab);
+          }
+          break;
+        case MELTOBMAG_EDGE:
+          gt_ggc_m_13meltobject_st ((*x).u_edge.discr);
+          gt_ggc_m_8edge_def ((*x).u_edge.val);
+          break;
+        case MELTOBMAG_MAPEDGES:
+          gt_ggc_m_13meltobject_st ((*x).u_mapedges.discr);
+          if ((*x).u_mapedges.entab != NULL) {
+            size_t i2;
+            for (i2 = 0; i2 != (size_t)(melt_primtab[((*x).u_mapedges).lenix]); i2++) {
+              gt_ggc_m_8edge_def ((*x).u_mapedges.entab[i2].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapedges.entab[i2].e_va);
+            }
+            ggc_mark ((*x).u_mapedges.entab);
+          }
+          break;
+        case MELTOBMAG_GIMPLE:
+          gt_ggc_m_13meltobject_st ((*x).u_gimple.discr);
+          gt_ggc_m_18gimple_statement_d ((*x).u_gimple.val);
+          break;
+        case MELTOBMAG_MAPGIMPLES:
+          gt_ggc_m_13meltobject_st ((*x).u_mapgimples.discr);
+          if ((*x).u_mapgimples.entab != NULL) {
+            size_t i3;
+            for (i3 = 0; i3 != (size_t)(melt_primtab[((*x).u_mapgimples).lenix]); i3++) {
+              gt_ggc_m_18gimple_statement_d ((*x).u_mapgimples.entab[i3].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapgimples.entab[i3].e_va);
+            }
+            ggc_mark ((*x).u_mapgimples.entab);
+          }
+          break;
+        case MELTOBMAG_GIMPLESEQ:
+          gt_ggc_m_13meltobject_st ((*x).u_gimpleseq.discr);
+          gt_ggc_m_12gimple_seq_d ((*x).u_gimpleseq.val);
+          break;
+        case MELTOBMAG_MAPGIMPLESEQS:
+          gt_ggc_m_13meltobject_st ((*x).u_mapgimpleseqs.discr);
+          if ((*x).u_mapgimpleseqs.entab != NULL) {
+            size_t i4;
+            for (i4 = 0; i4 != (size_t)(melt_primtab[((*x).u_mapgimpleseqs).lenix]); i4++) {
+              gt_ggc_m_12gimple_seq_d ((*x).u_mapgimpleseqs.entab[i4].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapgimpleseqs.entab[i4].e_va);
+            }
+            ggc_mark ((*x).u_mapgimpleseqs.entab);
+          }
+          break;
+        case MELTOBMAG_LOOP:
+          gt_ggc_m_13meltobject_st ((*x).u_loop.discr);
+          gt_ggc_m_4loop ((*x).u_loop.val);
+          break;
+        case MELTOBMAG_MAPLOOPS:
+          gt_ggc_m_13meltobject_st ((*x).u_maploops.discr);
+          if ((*x).u_maploops.entab != NULL) {
+            size_t i5;
+            for (i5 = 0; i5 != (size_t)(melt_primtab[((*x).u_maploops).lenix]); i5++) {
+              gt_ggc_m_4loop ((*x).u_maploops.entab[i5].e_at);
+              gt_ggc_m_7melt_un ((*x).u_maploops.entab[i5].e_va);
+            }
+            ggc_mark ((*x).u_maploops.entab);
+          }
+          break;
+        case MELTOBMAG_RTVEC:
+          gt_ggc_m_13meltobject_st ((*x).u_rtvec.discr);
+          gt_ggc_m_9rtvec_def ((*x).u_rtvec.val);
+          break;
+        case MELTOBMAG_MAPRTVECS:
+          gt_ggc_m_13meltobject_st ((*x).u_maprtvecs.discr);
+          if ((*x).u_maprtvecs.entab != NULL) {
+            size_t i6;
+            for (i6 = 0; i6 != (size_t)(melt_primtab[((*x).u_maprtvecs).lenix]); i6++) {
+              gt_ggc_m_9rtvec_def ((*x).u_maprtvecs.entab[i6].e_at);
+              gt_ggc_m_7melt_un ((*x).u_maprtvecs.entab[i6].e_va);
+            }
+            ggc_mark ((*x).u_maprtvecs.entab);
+          }
+          break;
+        case MELTOBMAG_RTX:
+          gt_ggc_m_13meltobject_st ((*x).u_rtx.discr);
+          gt_ggc_m_7rtx_def ((*x).u_rtx.val);
+          break;
+        case MELTOBMAG_MAPRTXS:
+          gt_ggc_m_13meltobject_st ((*x).u_maprtxs.discr);
+          if ((*x).u_maprtxs.entab != NULL) {
+            size_t i7;
+            for (i7 = 0; i7 != (size_t)(melt_primtab[((*x).u_maprtxs).lenix]); i7++) {
+              gt_ggc_m_7rtx_def ((*x).u_maprtxs.entab[i7].e_at);
+              gt_ggc_m_7melt_un ((*x).u_maprtxs.entab[i7].e_va);
+            }
+            ggc_mark ((*x).u_maprtxs.entab);
+          }
+          break;
+        case MELTOBMAG_TREE:
+          gt_ggc_m_13meltobject_st ((*x).u_tree.discr);
+          gt_ggc_m_9tree_node ((*x).u_tree.val);
+          break;
+        case MELTOBMAG_MAPTREES:
+          gt_ggc_m_13meltobject_st ((*x).u_maptrees.discr);
+          if ((*x).u_maptrees.entab != NULL) {
+            size_t i8;
+            for (i8 = 0; i8 != (size_t)(melt_primtab[((*x).u_maptrees).lenix]); i8++) {
+              gt_ggc_m_9tree_node ((*x).u_maptrees.entab[i8].e_at);
+              gt_ggc_m_7melt_un ((*x).u_maptrees.entab[i8].e_va);
+            }
+            ggc_mark ((*x).u_maptrees.entab);
+          }
+          break;
+        case MELTOBMAG_BOX:
+          gt_ggc_m_13meltobject_st ((*x).u_box.discr);
+          gt_ggc_m_7melt_un ((*x).u_box.val);
+          break;
+        case MELTOBMAG_CLOSURE:
+          gt_ggc_m_13meltobject_st ((*x).u_closure.discr);
+          gt_ggc_m_14meltroutine_st ((*x).u_closure.rout);
+          {
+            size_t i9;
+            size_t l9 = (size_t)(((*x).u_closure).nbval);
+            for (i9 = 0; i9 != l9; i9++) {
+              gt_ggc_m_7melt_un ((*x).u_closure.tabval[i9]);
+            }
+          }
+          break;
+        case MELTOBMAG_DECAY:
+          gt_ggc_m_13meltobject_st ((*x).u_decay.discr);
+          gt_ggc_m_7melt_un ((*x).u_decay.val);
+          break;
+        case MELTOBMAG_INT:
+          gt_ggc_m_13meltobject_st ((*x).u_int.discr);
+          break;
+        case MELTOBMAG_LIST:
+          gt_ggc_m_13meltobject_st ((*x).u_list.discr);
+          gt_ggc_m_11meltpair_st ((*x).u_list.first);
+          gt_ggc_m_11meltpair_st ((*x).u_list.last);
+          break;
+        case MELTOBMAG_MAPOBJECTS:
+          gt_ggc_m_13meltobject_st ((*x).u_mapobjects.discr);
+          if ((*x).u_mapobjects.entab != NULL) {
+            size_t i10;
+            for (i10 = 0; i10 != (size_t)(melt_primtab[((*x).u_mapobjects).lenix]); i10++) {
+              gt_ggc_m_13meltobject_st ((*x).u_mapobjects.entab[i10].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapobjects.entab[i10].e_va);
+            }
+            ggc_mark ((*x).u_mapobjects.entab);
+          }
+          {
+            size_t i11;
+            size_t l11 = (size_t)(0);
+            for (i11 = 0; i11 != l11; i11++) {
+              gt_ggc_m_13meltobject_st ((*x).u_mapobjects.map_space[i11].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapobjects.map_space[i11].e_va);
+            }
+          }
+          break;
+        case MELTOBMAG_MAPSTRINGS:
+          gt_ggc_m_13meltobject_st ((*x).u_mapstrings.discr);
+          if ((*x).u_mapstrings.entab != NULL) {
+            size_t i12;
+            for (i12 = 0; i12 != (size_t)(melt_primtab[((*x).u_mapstrings).lenix]); i12++) {
+              gt_ggc_m_S ((*x).u_mapstrings.entab[i12].e_at);
+              gt_ggc_m_7melt_un ((*x).u_mapstrings.entab[i12].e_va);
+            }
+            ggc_mark ((*x).u_mapstrings.entab);
+          }
+          break;
+        case MELTOBMAG_MIXBIGINT:
+          gt_ggc_m_13meltobject_st ((*x).u_mixbigint.discr);
+          gt_ggc_m_7melt_un ((*x).u_mixbigint.ptrval);
+          break;
+        case MELTOBMAG_MIXINT:
+          gt_ggc_m_13meltobject_st ((*x).u_mixint.discr);
+          gt_ggc_m_7melt_un ((*x).u_mixint.ptrval);
+          break;
+        case MELTOBMAG_MIXLOC:
+          gt_ggc_m_13meltobject_st ((*x).u_mixloc.discr);
+          gt_ggc_m_7melt_un ((*x).u_mixloc.ptrval);
+          break;
+        case MELTOBMAG_MULTIPLE:
+          gt_ggc_m_13meltobject_st ((*x).u_multiple.discr);
+          {
+            size_t i14;
+            size_t l14 = (size_t)(((*x).u_multiple).nbval);
+            for (i14 = 0; i14 != l14; i14++) {
+              gt_ggc_m_7melt_un ((*x).u_multiple.tabval[i14]);
+            }
+          }
+          break;
+        case MELTOBMAG_OBJECT:
+          gt_ggc_m_13meltobject_st ((*x).u_object.discr);
+          {
+            size_t i15;
+            size_t l15 = (size_t)(((*x).u_object).obj_len);
+            for (i15 = 0; i15 != l15; i15++) {
+              gt_ggc_m_7melt_un ((*x).u_object.obj_vartab[i15]);
+            }
+          }
+          break;
+        case MELTOBMAG_PAIR:
+          gt_ggc_m_13meltobject_st ((*x).u_pair.discr);
+          gt_ggc_m_7melt_un ((*x).u_pair.hd);
+          gt_ggc_m_11meltpair_st ((*x).u_pair.tl);
+          break;
+        case MELTOBMAG_REAL:
+          gt_ggc_m_13meltobject_st ((*x).u_real.discr);
+          break;
+        case MELTOBMAG_ROUTINE:
+          gt_ggc_m_13meltobject_st ((*x).u_routine.discr);
+          gt_ggc_m_7melt_un ((*x).u_routine.routdata);
+          {
+            size_t i17;
+            size_t l17 = (size_t)(((*x).u_routine).nbval);
+            for (i17 = 0; i17 != l17; i17++) {
+              gt_ggc_m_7melt_un ((*x).u_routine.tabval[i17]);
+            }
+          }
+          break;
+        case MELTOBMAG_SPEC_FILE:
+          gt_ggc_m_13meltobject_st ((*x).u_special_file.discr);
+          break;
+        case MELTOBMAG_SPEC_MPFR:
+          gt_ggc_m_13meltobject_st ((*x).u_special_mpfr.discr);
+          break;
+        case MELTOBMAG_SPECPPL_COEFFICIENT:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_coefficient.discr);
+          break;
+        case MELTOBMAG_SPECPPL_CONSTRAINT:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_constraint.discr);
+          break;
+        case MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_constraint_system.discr);
+          break;
+        case MELTOBMAG_SPECPPL_GENERATOR:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_generator.discr);
+          break;
+        case MELTOBMAG_SPECPPL_GENERATOR_SYSTEM:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_generator_system.discr);
+          break;
+        case MELTOBMAG_SPECPPL_LINEAR_EXPRESSION:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_linear_expression.discr);
+          break;
+        case MELTOBMAG_SPECPPL_POLYHEDRON:
+          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_polyhedron.discr);
+          break;
+        case MELTOBMAG_SPEC_RAWFILE:
+          gt_ggc_m_13meltobject_st ((*x).u_special_rawfile.discr);
+          break;
+        case MELTOBMAG_STRBUF:
+          gt_ggc_m_13meltobject_st ((*x).u_strbuf.discr);
+          if ((*x).u_strbuf.bufzn != NULL) {
+            size_t i18;
+            for (i18 = 0; i18 != (size_t)(1+melt_primtab[((*x).u_strbuf).buflenix]); i18++) {
+            }
+            ggc_mark ((*x).u_strbuf.bufzn);
+          }
+          break;
+        case MELTOBMAG_STRING:
+          gt_ggc_m_13meltobject_st ((*x).u_string.discr);
+          break;
+        default:
+          break;
+        }
     }
 }
 
@@ -900,12 +1199,28 @@ gt_ggc_mx_meltroutine_st (void *x_p)
 }
 
 void
+gt_ggc_mx_meltpair_st (void *x_p)
+{
+  struct meltpair_st * x = (struct meltpair_st *)x_p;
+  struct meltpair_st * xlimit = x;
+  while (ggc_test_and_set_mark (xlimit))
+   xlimit = ((*xlimit).tl);
+  while (x != xlimit)
+    {
+      gt_ggc_m_13meltobject_st ((*x).discr);
+      gt_ggc_m_7melt_un ((*x).hd);
+      gt_ggc_m_11meltpair_st ((*x).tl);
+      x = ((*x).tl);
+    }
+}
+
+void
 gt_ggc_mx_meltobject_st (void *x_p)
 {
   struct meltobject_st * const x = (struct meltobject_st *)x_p;
   if (ggc_test_and_set_mark (x))
     {
-      gt_ggc_m_13meltobject_st ((*x).obj_class);
+      gt_ggc_m_13meltobject_st ((*x).discr);
       {
         size_t i0;
         size_t l0 = (size_t)(((*x)).obj_len);
@@ -916,312 +1231,13 @@ gt_ggc_mx_meltobject_st (void *x_p)
     }
 }
 
-void
-gt_ggc_mx_melt_un (void *x_p)
-{
-  union melt_un * const x = (union melt_un *)x_p;
-  if (ggc_test_and_set_mark (x))
-    {
-      switch ((*x).u_discr->meltobj_magic)
-        {
-        case MELTOBMAG_OBJECT:
-          gt_ggc_m_13meltobject_st ((*x).u_object.obj_class);
-          {
-            size_t i0;
-            size_t l0 = (size_t)(((*x).u_object).obj_len);
-            for (i0 = 0; i0 != l0; i0++) {
-              gt_ggc_m_7melt_un ((*x).u_object.obj_vartab[i0]);
-            }
-          }
-          break;
-        case MELTOBMAG_BOX:
-          gt_ggc_m_13meltobject_st ((*x).u_box.discr);
-          gt_ggc_m_7melt_un ((*x).u_box.val);
-          break;
-        case MELTOBMAG_DECAY:
-          gt_ggc_m_13meltobject_st ((*x).u_decay.discr);
-          gt_ggc_m_7melt_un ((*x).u_decay.val);
-          break;
-        case MELTOBMAG_MULTIPLE:
-          gt_ggc_m_13meltobject_st ((*x).u_multiple.discr);
-          {
-            size_t i1;
-            size_t l1 = (size_t)(((*x).u_multiple).nbval);
-            for (i1 = 0; i1 != l1; i1++) {
-              gt_ggc_m_7melt_un ((*x).u_multiple.tabval[i1]);
-            }
-          }
-          break;
-        case MELTOBMAG_CLOSURE:
-          gt_ggc_m_13meltobject_st ((*x).u_closure.discr);
-          gt_ggc_m_14meltroutine_st ((*x).u_closure.rout);
-          {
-            size_t i2;
-            size_t l2 = (size_t)(((*x).u_closure).nbval);
-            for (i2 = 0; i2 != l2; i2++) {
-              gt_ggc_m_7melt_un ((*x).u_closure.tabval[i2]);
-            }
-          }
-          break;
-        case MELTOBMAG_ROUTINE:
-          gt_ggc_m_13meltobject_st ((*x).u_routine.discr);
-          gt_ggc_m_7melt_un ((*x).u_routine.routdata);
-          {
-            size_t i4;
-            size_t l4 = (size_t)(((*x).u_routine).nbval);
-            for (i4 = 0; i4 != l4; i4++) {
-              gt_ggc_m_7melt_un ((*x).u_routine.tabval[i4]);
-            }
-          }
-          break;
-        case MELTOBMAG_LIST:
-          gt_ggc_m_13meltobject_st ((*x).u_list.discr);
-          gt_ggc_m_11meltpair_st ((*x).u_list.first);
-          gt_ggc_m_11meltpair_st ((*x).u_list.last);
-          break;
-        case MELTOBMAG_INT:
-          gt_ggc_m_13meltobject_st ((*x).u_int.discr);
-          break;
-        case MELTOBMAG_MIXINT:
-          gt_ggc_m_13meltobject_st ((*x).u_mixint.discr);
-          gt_ggc_m_7melt_un ((*x).u_mixint.ptrval);
-          break;
-        case MELTOBMAG_MIXLOC:
-          gt_ggc_m_13meltobject_st ((*x).u_mixloc.discr);
-          gt_ggc_m_7melt_un ((*x).u_mixloc.ptrval);
-          break;
-        case MELTOBMAG_MIXBIGINT:
-          gt_ggc_m_13meltobject_st ((*x).u_mixbigint.discr);
-          gt_ggc_m_7melt_un ((*x).u_mixbigint.ptrval);
-          break;
-        case MELTOBMAG_REAL:
-          gt_ggc_m_13meltobject_st ((*x).u_real.discr);
-          break;
-        case MELTOBMAG_PAIR:
-          gt_ggc_m_13meltobject_st ((*x).u_pair.discr);
-          gt_ggc_m_7melt_un ((*x).u_pair.hd);
-          gt_ggc_m_11meltpair_st ((*x).u_pair.tl);
-          break;
-        case MELTOBMAG_SPEC_FILE:
-          gt_ggc_m_13meltobject_st ((*x).u_special_file.discr);
-          break;
-        case MELTOBMAG_SPEC_RAWFILE:
-          gt_ggc_m_13meltobject_st ((*x).u_special_rawfile.discr);
-          break;
-        case MELTOBMAG_SPEC_MPFR:
-          gt_ggc_m_13meltobject_st ((*x).u_special_mpfr.discr);
-          break;
-        case MELTOBMAG_SPECPPL_COEFFICIENT:
-          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_coefficient.discr);
-          break;
-        case MELTOBMAG_SPECPPL_LINEAR_EXPRESSION:
-          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_linear_expression.discr);
-          break;
-        case MELTOBMAG_SPECPPL_CONSTRAINT:
-          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_constraint.discr);
-          break;
-        case MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM:
-          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_constraint_system.discr);
-          break;
-        case MELTOBMAG_SPECPPL_GENERATOR:
-          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_generator.discr);
-          break;
-        case MELTOBMAG_SPECPPL_GENERATOR_SYSTEM:
-          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_generator_system.discr);
-          break;
-        case MELTOBMAG_SPECPPL_POLYHEDRON:
-          gt_ggc_m_13meltobject_st ((*x).u_special_ppl_polyhedron.discr);
-          break;
-        case MELTOBMAG_STRING:
-          gt_ggc_m_13meltobject_st ((*x).u_string.discr);
-          break;
-        case MELTOBMAG_STRBUF:
-          gt_ggc_m_13meltobject_st ((*x).u_strbuf.discr);
-          if ((*x).u_strbuf.bufzn != NULL) {
-            size_t i7;
-            for (i7 = 0; i7 != (size_t)(1+melt_primtab[((*x).u_strbuf).buflenix]); i7++) {
-            }
-            ggc_mark ((*x).u_strbuf.bufzn);
-          }
-          break;
-        case MELTOBMAG_TREE:
-          gt_ggc_m_13meltobject_st ((*x).u_tree.discr);
-          gt_ggc_m_9tree_node ((*x).u_tree.val);
-          break;
-        case MELTOBMAG_GIMPLE:
-          gt_ggc_m_13meltobject_st ((*x).u_gimple.discr);
-          gt_ggc_m_18gimple_statement_d ((*x).u_gimple.val);
-          break;
-        case MELTOBMAG_GIMPLESEQ:
-          gt_ggc_m_13meltobject_st ((*x).u_gimpleseq.discr);
-          gt_ggc_m_12gimple_seq_d ((*x).u_gimpleseq.val);
-          break;
-        case MELTOBMAG_BASICBLOCK:
-          gt_ggc_m_13meltobject_st ((*x).u_basicblock.discr);
-          gt_ggc_m_15basic_block_def ((*x).u_basicblock.val);
-          break;
-        case MELTOBMAG_EDGE:
-          gt_ggc_m_13meltobject_st ((*x).u_edge.discr);
-          gt_ggc_m_8edge_def ((*x).u_edge.val);
-          break;
-        case MELTOBMAG_LOOP:
-          gt_ggc_m_13meltobject_st ((*x).u_loop.discr);
-          gt_ggc_m_4loop ((*x).u_loop.val);
-          break;
-        case MELTOBMAG_BITMAP:
-          gt_ggc_m_13meltobject_st ((*x).u_bitmap.discr);
-          gt_ggc_m_15bitmap_head_def ((*x).u_bitmap.val);
-          break;
-        case MELTOBMAG_RTX:
-          gt_ggc_m_13meltobject_st ((*x).u_rtx.discr);
-          gt_ggc_m_7rtx_def ((*x).u_rtx.val);
-          break;
-        case MELTOBMAG_RTVEC:
-          gt_ggc_m_13meltobject_st ((*x).u_rtvec.discr);
-          gt_ggc_m_9rtvec_def ((*x).u_rtvec.val);
-          break;
-        case MELTOBMAG_MAPOBJECTS:
-          gt_ggc_m_13meltobject_st ((*x).u_mapobjects.discr);
-          if ((*x).u_mapobjects.entab != NULL) {
-            size_t i9;
-            for (i9 = 0; i9 != (size_t)(melt_primtab[((*x).u_mapobjects).lenix]); i9++) {
-              gt_ggc_m_13meltobject_st ((*x).u_mapobjects.entab[i9].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapobjects.entab[i9].e_va);
-            }
-            ggc_mark ((*x).u_mapobjects.entab);
-          }
-          {
-            size_t i10;
-            size_t l10 = (size_t)(0);
-            for (i10 = 0; i10 != l10; i10++) {
-              gt_ggc_m_13meltobject_st ((*x).u_mapobjects.map_space[i10].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapobjects.map_space[i10].e_va);
-            }
-          }
-          break;
-        case MELTOBMAG_MAPSTRINGS:
-          gt_ggc_m_13meltobject_st ((*x).u_mapstrings.discr);
-          if ((*x).u_mapstrings.entab != NULL) {
-            size_t i11;
-            for (i11 = 0; i11 != (size_t)(melt_primtab[((*x).u_mapstrings).lenix]); i11++) {
-              gt_ggc_m_S ((*x).u_mapstrings.entab[i11].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapstrings.entab[i11].e_va);
-            }
-            ggc_mark ((*x).u_mapstrings.entab);
-          }
-          break;
-        case MELTOBMAG_MAPTREES:
-          gt_ggc_m_13meltobject_st ((*x).u_maptrees.discr);
-          if ((*x).u_maptrees.entab != NULL) {
-            size_t i12;
-            for (i12 = 0; i12 != (size_t)(melt_primtab[((*x).u_maptrees).lenix]); i12++) {
-              gt_ggc_m_9tree_node ((*x).u_maptrees.entab[i12].e_at);
-              gt_ggc_m_7melt_un ((*x).u_maptrees.entab[i12].e_va);
-            }
-            ggc_mark ((*x).u_maptrees.entab);
-          }
-          break;
-        case MELTOBMAG_MAPGIMPLES:
-          gt_ggc_m_13meltobject_st ((*x).u_mapgimples.discr);
-          if ((*x).u_mapgimples.entab != NULL) {
-            size_t i13;
-            for (i13 = 0; i13 != (size_t)(melt_primtab[((*x).u_mapgimples).lenix]); i13++) {
-              gt_ggc_m_18gimple_statement_d ((*x).u_mapgimples.entab[i13].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapgimples.entab[i13].e_va);
-            }
-            ggc_mark ((*x).u_mapgimples.entab);
-          }
-          break;
-        case MELTOBMAG_MAPGIMPLESEQS:
-          gt_ggc_m_13meltobject_st ((*x).u_mapgimpleseqs.discr);
-          if ((*x).u_mapgimpleseqs.entab != NULL) {
-            size_t i14;
-            for (i14 = 0; i14 != (size_t)(melt_primtab[((*x).u_mapgimpleseqs).lenix]); i14++) {
-              gt_ggc_m_12gimple_seq_d ((*x).u_mapgimpleseqs.entab[i14].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapgimpleseqs.entab[i14].e_va);
-            }
-            ggc_mark ((*x).u_mapgimpleseqs.entab);
-          }
-          break;
-        case MELTOBMAG_MAPBASICBLOCKS:
-          gt_ggc_m_13meltobject_st ((*x).u_mapbasicblocks.discr);
-          if ((*x).u_mapbasicblocks.entab != NULL) {
-            size_t i15;
-            for (i15 = 0; i15 != (size_t)(melt_primtab[((*x).u_mapbasicblocks).lenix]); i15++) {
-              gt_ggc_m_15basic_block_def ((*x).u_mapbasicblocks.entab[i15].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapbasicblocks.entab[i15].e_va);
-            }
-            ggc_mark ((*x).u_mapbasicblocks.entab);
-          }
-          break;
-        case MELTOBMAG_MAPEDGES:
-          gt_ggc_m_13meltobject_st ((*x).u_mapedges.discr);
-          if ((*x).u_mapedges.entab != NULL) {
-            size_t i16;
-            for (i16 = 0; i16 != (size_t)(melt_primtab[((*x).u_mapedges).lenix]); i16++) {
-              gt_ggc_m_8edge_def ((*x).u_mapedges.entab[i16].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapedges.entab[i16].e_va);
-            }
-            ggc_mark ((*x).u_mapedges.entab);
-          }
-          break;
-        case MELTOBMAG_MAPLOOPS:
-          gt_ggc_m_13meltobject_st ((*x).u_maploops.discr);
-          if ((*x).u_maploops.entab != NULL) {
-            size_t i17;
-            for (i17 = 0; i17 != (size_t)(melt_primtab[((*x).u_maploops).lenix]); i17++) {
-              gt_ggc_m_4loop ((*x).u_maploops.entab[i17].e_at);
-              gt_ggc_m_7melt_un ((*x).u_maploops.entab[i17].e_va);
-            }
-            ggc_mark ((*x).u_maploops.entab);
-          }
-          break;
-        case MELTOBMAG_MAPBITMAPS:
-          gt_ggc_m_13meltobject_st ((*x).u_mapbitmaps.discr);
-          if ((*x).u_mapbitmaps.entab != NULL) {
-            size_t i18;
-            for (i18 = 0; i18 != (size_t)(melt_primtab[((*x).u_mapbitmaps).lenix]); i18++) {
-              gt_ggc_m_15bitmap_head_def ((*x).u_mapbitmaps.entab[i18].e_at);
-              gt_ggc_m_7melt_un ((*x).u_mapbitmaps.entab[i18].e_va);
-            }
-            ggc_mark ((*x).u_mapbitmaps.entab);
-          }
-          break;
-        case MELTOBMAG_MAPRTXS:
-          gt_ggc_m_13meltobject_st ((*x).u_maprtxs.discr);
-          if ((*x).u_maprtxs.entab != NULL) {
-            size_t i19;
-            for (i19 = 0; i19 != (size_t)(melt_primtab[((*x).u_maprtxs).lenix]); i19++) {
-              gt_ggc_m_7rtx_def ((*x).u_maprtxs.entab[i19].e_at);
-              gt_ggc_m_7melt_un ((*x).u_maprtxs.entab[i19].e_va);
-            }
-            ggc_mark ((*x).u_maprtxs.entab);
-          }
-          break;
-        case MELTOBMAG_MAPRTVECS:
-          gt_ggc_m_13meltobject_st ((*x).u_maprtvecs.discr);
-          if ((*x).u_maprtvecs.entab != NULL) {
-            size_t i20;
-            for (i20 = 0; i20 != (size_t)(melt_primtab[((*x).u_maprtvecs).lenix]); i20++) {
-              gt_ggc_m_9rtvec_def ((*x).u_maprtvecs.entab[i20].e_at);
-              gt_ggc_m_7melt_un ((*x).u_maprtvecs.entab[i20].e_va);
-            }
-            ggc_mark ((*x).u_maprtvecs.entab);
-          }
-          break;
-        default:
-          break;
-        }
-    }
-}
-
 /* GC roots.  */
 
 EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   {
-    &bscanvec,
+    &melt_bscanvec,
     1,
-    sizeof (bscanvec),
+    sizeof (melt_bscanvec),
     &gt_ggc_mx_VEC_melt_ptr_t_gc,
     NULL
   },
@@ -1235,8 +1251,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Thu Jan 20 22:21:31 2011
+/* gt-melt-runtime-plugin.h file generated Mon Mar  7 19:47:55 2011
 
-bee4ef18bef19a89ff1db27f4f38a5e8  melt-runtime.h
-71c30654fc0af2397eeff549f8ecbcf4  melt-runtime.c
+d7e634bef86872f656c3508b9efc3e9e  melt-runtime.h
+ea23b363c3ba511ae69b11d4ef2ad659  melt-runtime.c
 */
