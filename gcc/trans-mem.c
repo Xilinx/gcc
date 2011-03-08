@@ -4048,19 +4048,20 @@ ipa_tm_region_init (struct cgraph_node *node)
    OLD_DECL.  The returned value is a freshly malloced pointer that
    should be freed by the caller.  */
 
-static char *
-tm_mangle (tree old_decl)
+static tree
+tm_mangle (tree old_asm_id)
 {
   const char *old_asm_name;
   char *tm_name;
   void *alloc = NULL;
   struct demangle_component *dc;
+  tree new_asm_id;
 
   /* Determine if the symbol is already a valid C++ mangled name.  Do this
      even for C, which might be interfacing with C++ code via appropriately
      ugly identifiers.  */
   /* ??? We could probably do just as well checking for "_Z" and be done.  */
-  old_asm_name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (old_decl));
+  old_asm_name = IDENTIFIER_POINTER (old_asm_id);
   dc = cplus_demangle_v3_components (old_asm_name, DMGL_NO_OPTS, &alloc);
 
   if (dc == NULL)
@@ -4068,8 +4069,7 @@ tm_mangle (tree old_decl)
       char length[8];
 
     do_unencoded:
-      sprintf (length, "%u",
-	       IDENTIFIER_LENGTH (DECL_ASSEMBLER_NAME (old_decl)));
+      sprintf (length, "%u", IDENTIFIER_LENGTH (old_asm_id));
       tm_name = concat ("_ZGTt", length, old_asm_name, NULL);
     }
   else
@@ -4098,7 +4098,11 @@ tm_mangle (tree old_decl)
       tm_name = concat ("_ZGTt", old_asm_name, NULL);
     }
   free (alloc);
-  return tm_name;
+
+  new_asm_id = get_identifier (tm_name);
+  free (tm_name);
+
+  return new_asm_id;
 }
 
 /* Create a copy of the function (possibly declaration only) of OLD_NODE,
@@ -4107,9 +4111,8 @@ tm_mangle (tree old_decl)
 static void
 ipa_tm_create_version (struct cgraph_node *old_node)
 {
-  tree new_decl, old_decl;
+  tree new_decl, old_decl, tm_name;
   struct cgraph_node *new_node;
-  char *tm_name;
 
   old_decl = old_node->decl;
   new_decl = copy_node (old_decl);
@@ -4117,10 +4120,13 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   /* DECL_ASSEMBLER_NAME needs to be set before we call
      cgraph_copy_node_for_versioning below, because cgraph_node will
      fill the assembler_name_hash.  */
-  tm_name = tm_mangle (old_decl);
-  SET_DECL_ASSEMBLER_NAME (new_decl, get_identifier (tm_name));
+  tm_name = tm_mangle (DECL_ASSEMBLER_NAME (old_decl));
+  SET_DECL_ASSEMBLER_NAME (new_decl, tm_name);
   SET_DECL_RTL (new_decl, NULL);
-  free (tm_name);
+
+  /* Perform the same remapping to the comdat group.  */
+  if (DECL_COMDAT (new_decl))
+    DECL_COMDAT_GROUP (new_decl) = tm_mangle (DECL_COMDAT_GROUP (old_decl));
 
   new_node = cgraph_copy_node_for_versioning (old_node, new_decl, NULL);
   get_cg_data (old_node)->clone = new_node;
@@ -4146,15 +4152,13 @@ ipa_tm_create_version (struct cgraph_node *old_node)
 
       for (alias = old_node->same_body; alias; alias = alias->next)
 	{
-	  tm_name = tm_mangle (alias->decl);
+	  tm_name = tm_mangle (DECL_ASSEMBLER_NAME (alias->decl));
 	  tm_alias = build_decl (DECL_SOURCE_LOCATION (alias->decl),
-				   TREE_CODE (alias->decl),
-				   get_identifier (tm_name),
-				   TREE_TYPE (alias->decl));
+				 TREE_CODE (alias->decl), tm_name,
+				 TREE_TYPE (alias->decl));
 
-	  SET_DECL_ASSEMBLER_NAME (tm_alias, get_identifier (tm_name));
+	  SET_DECL_ASSEMBLER_NAME (tm_alias, tm_name);
 	  SET_DECL_RTL (tm_alias, NULL);
-	  free (tm_name);
 
 	  /* Based loosely on C++'s make_alias_for().  */
 	  TREE_PUBLIC (tm_alias) = TREE_PUBLIC (alias->decl);
