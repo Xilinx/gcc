@@ -1,3 +1,10 @@
+2011-03-07  Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.in (GCC_FOR_TARGET): Remove use of
+	$(SYSROOT_CFLAGS_FOR_TARGET).
+	(site.exp): Add definition of TEST_ALWAYS_FLAGS.
+	Remove setting of GCC_UNDER_TEST.
+
 2011-02-26  Diego Novillo  <dnovillo@google.com>
 
 	Mainline merge rev 170516.
