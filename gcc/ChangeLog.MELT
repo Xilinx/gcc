@@ -1,6 +1,17 @@
 
 2011-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-macro.melt (patmacexpand_for_matcher): Give an
+	error, not a warning, for extra pattern or expression arguments in
+	matcher.
+
+	* melt/warmelt-normatch.melt: Added more debug messages.
+
+	* testsuite/melt/tmatch-7.melt: Use an ?(and ...) pattern since
+	?(some_integer_greater_than ..) dont accept a subpattern.
+
+2011-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (MELT_READ_TABULATION_FACTOR): New macro constant.
 	(melt_linemap_compute_current_location): New function.
 	(READ_ERROR, READ_WARNING): Call it.

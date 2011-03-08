@@ -1432,7 +1432,7 @@ the object-map for pattern variables.}#
       (if (is_pair curpair)
 	  (progn
 	    (debug_msg curpair "extra stuff in patmacexpand_for_matcher")
-	    (warning_strv psloc "ignored extra sub-{pattern | expression} in matcher"
+	    (error_strv psloc "ignored extra sub-{pattern | expression} in matcher"
 			(get_field :named_name matcher)))))
     (return inargs outpats)
     ))

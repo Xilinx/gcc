@@ -3297,6 +3297,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	(mhandlers)
 	(curpair curhandler)
 	(curhandler recv mdata mcase symbval flagstep mflag sloc))
+       (debug_msg mflag "translpat_varpat return mflag")
        (debug_msg flagstep "translpat_varpat return flagstep")
        (return flagstep mflag)
        )
@@ -3317,6 +3318,8 @@ the flags of the $STEP with an extra context $CTX.}#
 	       (mhandlers)
 	       (curpair curhandler)
 	       (curhandler recv mdata mcase symbval curteststep mflag sloc))
+	      (debug_msg mflag "translpat_varpat return mflag")
+	      (debug_msg curteststep "translpat_varpat return curteststep")
 	      (return curteststep mflag)))
 	  ( (is_a curteststep class_match_step_test)
 	    (setq laststeptest curteststep))
@@ -3340,9 +3343,11 @@ the flags of the $STEP with an extra context $CTX.}#
 	   (mhandlers)
 	   (curpair curhandler)
 	   (curhandler recv mdata mcase symbval steptest mflag sloc))
+	  (debug_msg mflag "translpat_varpat return mflag")
 	  (debug_msg steptest "translpat_varpat return steptest")
 	  (return steptest mflag)
 	  ))))
+    (assert_msg "@$@failed translpat_varpat")
     ))
 (install_method class_source_pattern_variable translate_pattern translpat_varpat)
 
@@ -3717,6 +3722,8 @@ the flags of the $STEP with an extra context $CTX.}#
 				  :mstgroup_else ()
 				  ))
 	     )
+	 (debug_msg outdata "translpat_patmat outdata before foreach")
+	 (debug_msg souts "translpat_patmat souts before foreach")
 	 (foreach_in_multiple
 	  (outdata)
 	  (curoutdata :long dix)
@@ -3763,6 +3770,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	    testgroup
 	    :mstgroup_then flagstep
 	    :mstgroup_else elselist)
+	   (debug_msg mflag "translpat_patmat return mflag")
 	   (debug_msg testgroup "translpat_patmat return testgroup")
 	   (return testgroup mflag)
 	   )
@@ -5521,9 +5529,13 @@ normalized expression.}#
 	     (let ( 
 		   (curstbindtup (unsafe_get_field :mstepsuccess_binds curstsucc))
 		   (lastnbody
-		    (multiple_nth
-		     (unsafe_get_field :mstepsuccess_body curstsucc) 
-		     -1))
+		    (let ( (l
+			    (multiple_nth
+			     (unsafe_get_field :mstepsuccess_body curstsucc) 
+			     -1))
+			   )
+		      (debug_msg l "normexp_altmatch lastnbody")
+		      l))
 		   (lastctyp
 		    (if (is_a lastnbody class_nrep_locsymocc)
 			(unsafe_get_field :nocc_ctyp lastnbody)

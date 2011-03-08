@@ -10,15 +10,21 @@
     -fmelt-debug empty-file-for-melt.c
 |#
 
+(debug_msg some_integer_multiple "some_integer_multiple at top")
+(debug_msg some_integer_greater_than "some_integer_greater_than at top")
+
 (defun testmatchnumber (f x :long i j)
   (match i
-	 (?(some_integer_multiple
-	    (+i 2 j)
-	    ?(some_integer_greater_than 3
-					?k))
-	   (debuglong "testmatchnum k" k)
-	   (f x k)
-	   )	 
-	 )
+         (?(some_integer_multiple
+            (+i 2 j)
+	    ?(and
+	      ?(some_integer_greater_than 3)
+	      ?k))
+           (debuglong "testmatchnumber k" k)
+           (f x k)
+           )
+         )
   )
+
+(debug_msg testmatchnumber "toplevel testmatchnumber")
 ;; eof tmatch-7.melt
