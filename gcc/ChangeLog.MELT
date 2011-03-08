@@ -1,4 +1,11 @@
 
+2011-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (MELT_READ_TABULATION_FACTOR): New macro constant.
+	(melt_linemap_compute_current_location): New function.
+	(READ_ERROR, READ_WARNING): Call it.
+	(meltgc_infix_lexeme, readsexpr, readmacrostringsequence, readval): Likewise.
+
 2011-03-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in (gt-melt-runtime-plugin.h): Also gives meltrunsup.h

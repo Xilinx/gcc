@@ -6257,6 +6257,8 @@ struct reading_st
   source_location rsrcloc;	/* current source location */
   melt_ptr_t *rpfilnam;	/* pointer to location of file name string */
 };
+
+#define MELT_READ_TABULATION_FACTOR 8
 /* Obstack used for reading strings */
 static struct obstack bstring_obstack;
 #define rdback() (rd->rcol--)
@@ -6265,23 +6267,45 @@ static struct obstack bstring_obstack;
 #define rdfollowc(Rk) rd->rcurlin[rd->rcol + (Rk)]
 #define rdeof() ((rd->rfil?feof(rd->rfil):1) && rd->rcurlin[rd->rcol]==0)
 
+static void melt_linemap_compute_current_location (struct reading_st *rd);
+
 #define READ_ERROR(Fmt,...)	do {					\
-  if (rd->rcol>0)							\
-    LINEMAP_POSITION_FOR_COLUMN (rd->rsrcloc, line_table, rd->rcol);	\
+  melt_linemap_compute_current_location (rd);				\
   error_at(rd->rsrcloc, Fmt, ##__VA_ARGS__);				\
   melt_fatal_error("MELT read failure <%s:%d>",				\
 	      lbasename(__FILE__), __LINE__);				\
 } while(0)
 
 #define READ_WARNING(Fmt,...)	do {					\
-  if (rd->rcol>0)							\
-    LINEMAP_POSITION_FOR_COLUMN (rd->rsrcloc, line_table, rd->rcol);	\
+  melt_linemap_compute_current_location (rd);				\
   warning_at (rd->rsrcloc, 0, "MELT read warning: " Fmt, ##__VA_ARGS__); \
 } while(0)
 
 /* readval returns the read value and sets *PGOT to true if something
    was read */
 static melt_ptr_t readval (struct reading_st *rd, bool * pgot);
+
+static void 
+melt_linemap_compute_current_location (struct reading_st* rd)
+{
+  int colnum = 1;
+  int cix = 0;
+  if (!rd || !rd->rcurlin) 
+    return;
+  for (cix=0; cix<rd->rcol; cix++) {
+    char c = rd->rcurlin[cix];
+    if (!c) 
+      break;
+    else if (c == '\t')
+      {
+	while (colnum % MELT_READ_TABULATION_FACTOR != 0) 
+	  colnum++;
+      }
+    else
+      colnum++;
+  }
+  LINEMAP_POSITION_FOR_COLUMN(rd->rsrcloc, line_table, colnum);
+}
 
 enum commenthandling_en
   { COMMENT_SKIP, COMMENT_INFIX, COMMENT_NO };
@@ -6876,7 +6900,8 @@ meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
   rd = &curinfixr->infr_reading;
   c = skipspace_getc (rd, COMMENT_INFIX);
   lineno = rd->rlineno;
-  LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+  melt_linemap_compute_current_location (rd);
+  loc = rd->rsrcloc;
   /* return nil on EOF */
   if (c < 0 || !rd->rfil || feof(rd->rfil))
     goto end;
@@ -7242,7 +7267,8 @@ readsexpr (struct reading_st *rd, int endc)
   if (!endc || rdeof ())
     READ_ERROR ("MELT: eof in s-expr (lin%d)", lineno);
   c = skipspace_getc (rd, COMMENT_SKIP);
-  LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+  melt_linemap_compute_current_location(rd);
+  loc = rd->rsrcloc;
   contv = readseqlist (rd, endc);
   sexprv = makesexpr (rd, lineno, (melt_ptr_t) contv, loc, 0);
   MELT_EXITFRAME ();
@@ -7428,7 +7454,8 @@ readmacrostringsequence (struct reading_st *rd)
 #define symbv    meltfram__.mcfr_varptr[2]
 #define seqv     meltfram__.mcfr_varptr[3]
 #define sbufv    meltfram__.mcfr_varptr[4]
-  LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+  melt_linemap_compute_current_location (rd);
+  loc = rd->rsrcloc;
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   sbufv = meltgc_new_strbuf((meltobject_ptr_t) MELT_PREDEF(DISCR_STRBUF), (char*)0);
   if (rdcurc() == '$' && rdfollowc(1)=='\'') 
@@ -7813,7 +7840,8 @@ readval (struct reading_st *rd, bool * pgot)
       altv = meltgc_named_symbol ("quote", MELT_CREATE);
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
       meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
-      LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+      melt_linemap_compute_current_location (rd);
+      loc = rd->rsrcloc;
       readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
       *pgot = TRUE;
       goto end;
@@ -7823,7 +7851,8 @@ readval (struct reading_st *rd, bool * pgot)
       bool got = false;
       location_t loc = 0;
       rdnext ();
-      LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+      melt_linemap_compute_current_location (rd);
+      loc = rd->rsrcloc;
       compv = readval (rd, &got);
       if (!got)
 	READ_ERROR ("MELT: expecting value after backquote %.20s",
@@ -7841,7 +7870,8 @@ readval (struct reading_st *rd, bool * pgot)
       bool got = false;
       location_t loc = 0;
       rdnext ();
-      LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+      melt_linemap_compute_current_location (rd);
+      loc = rd->rsrcloc;
       compv = readval (rd, &got);
       if (!got)
 	READ_ERROR ("MELT: expecting value after comma %.20s", &rdcurc ());
@@ -7858,7 +7888,8 @@ readval (struct reading_st *rd, bool * pgot)
       bool got = false;
       location_t loc = 0;
       rdnext ();
-      LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+      melt_linemap_compute_current_location (rd);
+      loc = rd->rsrcloc;
       compv = readval (rd, &got);
       if (!got)
 	READ_ERROR ("MELT: expecting value after at %.20s", &rdcurc ());
@@ -7875,7 +7906,8 @@ readval (struct reading_st *rd, bool * pgot)
       bool got = false;
       location_t loc = 0;
       rdnext ();
-      LINEMAP_POSITION_FOR_COLUMN (loc, line_table, rd->rcol);
+      melt_linemap_compute_current_location (rd);
+      loc = rd->rsrcloc;
       compv = readval (rd, &got);
       if (!got)
 	READ_ERROR ("MELT: expecting value after question %.20s", &rdcurc ());
