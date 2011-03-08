@@ -1,3 +1,74 @@
+2011-03-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/47881
+	* gcc.dg/pr47881.c: New test.
+
+2011-03-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47957
+	* g++.dg/lookup/template3.C: New test.
+
+2011-03-08  Kai Tietz  <ktietz@redhat.com>
+
+	* g++.dg/tree-ssa/pr21082.C: Use __INTPTR_TYPE__ instead of
+	'long' type.
+
+2011-03-08  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR testsuite/47954
+	* gcc.dg/tree-ssa/ssa-ccp-33.c: Use __alignof__ not
+	sizeof to compute alignment.
+
+2011-03-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48022
+	* gcc.dg/pr48022-1.c: New test.
+	* gcc.dg/pr48022-2.c: New test.
+
+2011-03-07  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/nontype20.C: New.
+	* g++.dg/init/member1.C: Adjust expected errors.
+	* g++.dg/parse/constant4.C: Likewise.
+	* g++.dg/template/qualified-id3.C: Likewise.
+	* g++.old-deja/g++.pt/crash10.C: Likewise.
+
+	* g++.dg/cpp0x/regress/non-const1.C: New.
+
+2011-03-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/47991
+	* gcc.dg/pr47991.c: New test.
+
+2011-03-07  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/mangle46.C: New.
+
+2011-03-07  Pat Haugen <pthaugen@us.ibm.com>
+
+	PR target/47862
+	* gcc.target/powerpc/pr47862.c: New.
+
+2011-03-07  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR target/45413
+	* gcc.target/i386/combine-mul.c: Require nonpic.
+
+2011-03-07  Paul Wögerer  <paul_woegerer@mentor.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.dg/20001117-1.c: Abort on NULL call_sites.
+
+2011-03-06  Mark Mitchell  <mark@codesourcery.com>
+
+	* README.QMTEST: Remove.
+
+2011-03-06  Paul Thomas  <pault@gcc.gnu.org>
+	    Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/47850
+	* gfortran.dg/array_constructor_37.f90 : New test.
+
 2011-03-05  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/abi/mangle39.C: ABI v5, not 6.

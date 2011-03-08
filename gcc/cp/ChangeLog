@@ -1,3 +1,27 @@
+2011-03-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47957
+	* name-lookup.c (binding_to_template_parms_of_scope_p): Only
+	consider scopes of primary template definitions.  Adjust comments.
+
+2011-03-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48003
+	* pt.c (convert_nontype_argument): Fix -fpermissive allowing
+	integer overflow.
+	* semantics.c (potential_constant_expression_1): Check TREE_OVERFLOW.
+
+	PR c++/48015
+	* init.c (constant_value_1): Always require init to be TREE_CONSTANT.
+
+	PR c++/48008
+	* mangle.c (write_type): Strip cv-quals from FUNCTION_TYPE here.
+	(write_CV_qualifiers_for_type): Not here.
+
+2011-03-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang-specs.h: Match -save-temps* instead of -save-temps.
+
 2011-03-05  Jason Merrill  <jason@redhat.com>
 
 	* mangle.c (write_expression): Change ABI v6 to v5.
