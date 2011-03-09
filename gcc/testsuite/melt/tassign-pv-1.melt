@@ -5,7 +5,7 @@
 
 #| run in buildir/gcc
  ./cc1 -fmelt-mode=runfile  -fmelt-module-path=melt-modules:.  \
-    -fmelt-source-path=.:melt-sources/$GCCMELT_SOURCE/gcc/melt \
+    -fmelt-source-path=.:melt-sources:$GCCMELT_SOURCE/gcc/melt \
     -fmelt-tempdir=/tmp \
     -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tassign-pv-1.melt \
     -fmelt-debug empty-file-for-melt.c

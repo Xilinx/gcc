@@ -5180,13 +5180,30 @@ normalized expression.}#
 	     )
 	   ))
 	(debug_msg newbindlist "normstep_mtestmatcher newbindlist")
+	;;;
 	(debug_msg amout "normstep_mtestmatcher amout")
 	(debug_msg mouts "normstep_mtestmatcher mouts again")
 	(if (!=i (multiple_length amout) (multiple_length mouts))
 	    (error_strv nsloc 
 			"mismatch on output arity of matcher" 
 			(get_field :named_name matmatcher)))
+	(foreach_in_multiple
+	 (amout)
+	 (curmoutbind :long mix)
+	 (let ( (curouts (multiple_nth mouts mix))
+		)
+	   (debug_msg curmoutbind "normstep_mtestmatcher curmoutbind")
+	   (debug_msg curouts "normstep_mtestmatcher curouts")
+	   (assert_msg "check curmoutbind" (is_a curmoutbind class_formal_binding))
+	   (assert_msg "check curouts" (is_a curouts class_matched_data))
+	   (let (  (nouts (altmatch_normalize_mdata curouts nmctxt))
+		 )
+	     (debug_msg nouts "normstep_mtestmatcher nouts")
+	     ;; nouts is a class_nrep_matched_data
+	     )
+	   ))
 	(compile_warning "normstep_mtestmatcher should handle amout & mouts")
+	;;;
 	(assert_msg "@$@unimplemented normstep_mtestmatcher")
 	))))
 (install_method class_match_step_test_matcher normalize_step normstep_mtestmatcher)

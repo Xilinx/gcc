@@ -1,5 +1,8 @@
 
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normstep_mtestmatcher): Adding more.
+
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	{{the tassign-pv-1.melt test case passes}}
 	* melt/warmelt-genobj.melt (compilobj_datastring)

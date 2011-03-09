@@ -3,7 +3,7 @@
 
 #| run in buildir/gcc
  ./cc1 -fmelt=runfile  -fmelt-module-path=melt-modules:.  \
-    -fmelt-source-path=.:$GCCMELT_SOURCE/gcc/melt \
+    -fmelt-source-path=melt-sources:.:$GCCMELT_SOURCE/gcc/melt \
     -fmelt-tempdir=/tmp \
     -fmelt-option=match_graphic=/tmp/melt7graph,alternate_match \
     -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tmatch-7.melt \
