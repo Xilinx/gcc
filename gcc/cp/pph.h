@@ -1,4 +1,4 @@
-/* Factored pre-tokenized header (PTH) support for C++
+/* Factored pre-parsed header (PPH) support for C++
    Copyright (C) 2010 Free Software Foundation, Inc.
    Contributed by Lawrence Crowl <crowl@google.com> and
    Diego Novillo <dnovillo@google.com>.

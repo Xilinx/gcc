@@ -1,3 +1,55 @@
+2011-03-09  Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in (CXX_AND_OBJCXX_OBJS): Add cp/pph-streamer.o
+	(CXX_PPH_STREAMER_H): New.
+	(cp/pph.o): Add dependency on CXX_PPH_STREAMER_H.
+	(cp/pph-streamer.o): New.
+	* pph-streamer.c: New file.
+	* pph-streamer.h: New file.
+	* pph.c: Update Copyright line.
+	Include pph-streamer.h
+	(pth_file_for): Change FILE * argument with pph_streamer *.
+	Update all callers.
+	(pth_write_uint): Remove.
+	(pth_write_bytes): Remove.
+	(pth_write_string): Remove.
+	(pth_write_number): Re-implement using pph_streamer and 
+	pph_output_* calls.
+	(pth_save_token_value): Likewise.
+	(pth_save_token): Likewise.
+	(pth_write_header): Likewise.
+	(pph_print_macro_defs_before): Likewise.
+	(pph_print_macro_defs_after): Likewise.
+	(pth_save_identifiers): Likewise.
+	(pth_save_hunk): Likewise.
+	(pth_save_include): Likewise.
+	(pth_save_image): Likewise.
+	(pth_read_uint): Remove.
+	(pth_read_bytes): Remove.
+	(pth_read_string): Remove.
+	(pth_read_string_alloc): Remove.
+	(pth_load_number): Re-implement using pph_streamer and
+	pph_input_* calls.
+	(pth_load_token_value): Likewise.
+	(pth_load_identifiers): Likewise.
+	(pth_load_hunk): Likewise.
+	(pth_load_include): Likewise.
+	(pth_load_include): Likewise.
+	(pth_load_image): Likewise.
+	(pth_have_valid_image_for): Likewise.
+	(write_pph_format): Likewise.
+	(write_pph_namespace): Likewise.
+	(write_pph_print): Likewise.
+	(write_pph_dump): Likewise.
+	(write_pph_symbol): Likewise.
+	(declvisitor): Likewise.
+	(write_pph_namespace_1): Likewise.
+	(write_pph_file_object): Likewise.
+	(write_pph_file_summary): Likewise.
+	(write_pph_file_dump): Likewise.
+	(read_pph_file_object): Likewise.
+	* pph.h: Update file comment.
+
 2011-03-04  Lawrence Crowl <crowl@google.com>
 
 	* cp/pph.c (pph_print_macro_defs_before): New.

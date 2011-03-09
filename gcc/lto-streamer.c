@@ -567,6 +567,10 @@ lto_get_common_nodes (void)
   else
     main_identifier_node = get_identifier ("main");
 
+  /* FIXME pph.  These assertions are never met while in the front end.
+     There should be a way of checking this only when we are in LTO
+     mode.  */
+#if 0
   gcc_assert (ptrdiff_type_node == integer_type_node);
 
   /* FIXME lto.  In the C++ front-end, fileptr_type_node is defined as a
@@ -577,6 +581,7 @@ lto_get_common_nodes (void)
      These should be assured in pass_ipa_free_lang_data.  */
   gcc_assert (fileptr_type_node == ptr_type_node);
   gcc_assert (TYPE_MAIN_VARIANT (fileptr_type_node) == ptr_type_node);
+#endif
 
   seen_nodes = pointer_set_create ();
 

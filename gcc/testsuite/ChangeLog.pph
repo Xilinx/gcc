@@ -1,3 +1,62 @@
+2011-03-09  Diego Novillo  <dnovillo@google.com>
+
+	* lib/dg-pth.exp: New.
+	* g++.dg/dg.exp: Call it.
+	* g++.dg/pth: New directory.
+	* g++.dg/pth/pth.exp: New.
+	* g++.dg/pth/staticmbrvar.cc: New.
+	* g++.dg/pth/typerefs.cc: New.
+	* g++.dg/pth/tmplclass.cc: New.
+	* g++.dg/pth/system-include.cc: New.
+	* g++.dg/pth/variables.cc: New.
+	* g++.dg/pth/trivial.cc: New.
+	* g++.dg/pth/where.cc: New.
+	* g++.dg/pth/template.cc: New.
+	* g++.dg/pth/cflow.h: New.
+	* g++.dg/pth/simple1.h: New.
+	* g++.dg/pth/simple2.h: New.
+	* g++.dg/pth/chained1.h: New.
+	* g++.dg/pth/meth2.cc: New.
+	* g++.dg/pth/chained2.h: New.
+	* g++.dg/pth/mean.cc: New.
+	* g++.dg/pth/special.cc: New.
+	* g++.dg/pth/nontrivinit.cc: New.
+	* g++.dg/pth/emptyclass.cc: New.
+	* g++.dg/pth/simplecall.cc: New.
+	* g++.dg/pth/autometh.cc: New.
+	* g++.dg/pth/tmplfunc.cc: New.
+	* g++.dg/pth/simple.cc: New.
+	* g++.dg/pth/builtin1.h: New.
+	* g++.dg/pth/builtin2.h: New.
+	* g++.dg/pth/invoke.cc: New.
+	* g++.dg/pth/chained.cc: New.
+	* g++.dg/pth/usearray.cc: New.
+	* g++.dg/pth/builtin3.h: New.
+	* g++.dg/pth/globalref.cc: New.
+	* g++.dg/pth/invoke.h: New.
+	* g++.dg/pth/meth.cc: New.
+	* g++.dg/pth/usearray.h: New.
+	* g++.dg/pth/guarded1.h: New.
+	* g++.dg/pth/guarded2.h: New.
+	* g++.dg/pth/guarded3.h: New.
+	* g++.dg/pth/funcstatic.cc: New.
+	* g++.dg/pth/builtin.cc: New.
+	* g++.dg/pth/hardlookup.cc: New.
+	* g++.dg/pth/functions.cc: New.
+	* g++.dg/pth/incmod.cc: New.
+	* g++.dg/pth/cflow.cc: New.
+	* g++.dg/pth/guarded.cc: New.
+	* g++.dg/pth/incmod.h: New.
+	* g++.dg/pth/paste.cc: New.
+	* g++.dg/pth/incsame.cc: New.
+	* g++.dg/pth/sys-types.cc: New.
+	* g++.dg/pth/incsame.h: New.
+	* g++.dg/pth/field.cc: New.
+	* g++.dg/pth/classshort.cc: New.
+	* g++.dg/pth/variable.cc: New.
+	* g++.dg/pth/tmplsimple.cc: New.
+	* g++.dg/pth/inif.h: New.
+
 2011-03-04  Lawrence Crowl <crowl@google.com>
 
 	* g++.dg/pph/p1mean.cc: Mark expected failure for macro validation.

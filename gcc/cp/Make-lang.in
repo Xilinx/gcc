@@ -81,7 +81,7 @@ CXX_AND_OBJCXX_OBJS = cp/call.o cp/decl.o cp/expr.o cp/pt.o cp/typeck2.o \
  cp/typeck.o cp/cvt.o cp/except.o cp/friend.o cp/init.o cp/method.o \
  cp/search.o cp/semantics.o cp/tree.o cp/repo.o cp/dump.o cp/optimize.o \
  cp/mangle.o cp/cp-objcp-common.o cp/name-lookup.o cp/cxx-pretty-print.o \
- cp/cp-gimplify.o cp/pph.o tree-mudflap.o $(CXX_C_OBJS)
+ cp/cp-gimplify.o cp/pph.o cp/pph-streamer.o tree-mudflap.o $(CXX_C_OBJS)
 
 # Language-specific object files for C++.
 CXX_OBJS = cp/cp-lang.o c-family/stub-objc.o $(CXX_AND_OBJCXX_OBJS)
@@ -247,6 +247,7 @@ CXX_PARSER_H = tree.h c-family/c-pragma.h cp/parser.h
 CXX_PRETTY_PRINT_H = cp/cxx-pretty-print.h $(C_PRETTY_PRINT_H)
 CXX_PPH_H = $(srcdir)/../libcpp/include/line-map.h $(HASHTAB_H) \
 	$(CXX_PARSER_H) $(TIMEVAR_H) cp/pph.h 
+CXX_PPH_STREAMER_H = $(LTO_STREAMER_H) cp/pph-streamer.h $(TREE_H)
 
 cp/lex.o: cp/lex.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   $(C_PRAGMA_H) output.h input.h cp/operators.def $(TM_P_H) \
@@ -331,7 +332,9 @@ cp/name-lookup.o: cp/name-lookup.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 
 cp/cxx-pretty-print.o: cp/cxx-pretty-print.c $(CXX_PRETTY_PRINT_H) \
   $(CONFIG_H) $(SYSTEM_H) $(TM_H) coretypes.h $(CXX_TREE_H) tree-pretty-print.h
-cp/pph.c: cp/pph.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(CPPLIB_H) \
+cp/pph.o: cp/pph.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(CPPLIB_H) \
 	toplev.h $(TREE_H) $(CXX_TREE_H) $(TIMEVAR_H) pointer-set.h \
 	fixed-value.h $(TREE_PASS_H) $(TREE_INLINE_H) tree-pretty-print.h \
-	$(CXX_PARSER_H) $(CXX_PPH_H)
+	$(CXX_PARSER_H) $(CXX_PPH_H) $(CXX_PPH_STREAMER_H)
+cp/pph-streamer.o: cp/pph-streamer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
+	$(TREE_H) $(LTO_STREAMER_H) $(CXX_PPH_STREAMER_H)

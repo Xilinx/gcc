@@ -1,0 +1,79 @@
+# Copyright (C) 2011 Free Software Foundation, Inc.
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING3.  If not see
+# <http://www.gnu.org/licenses/>.
+
+# Contributed by Diego Novillo <dnovillo@google.com>
+
+load_lib copy-file.exp
+
+proc dg-flags-pth { subdir test otherflags options suffix } {
+    global runtests dg-do-what-default
+
+    # If we're only testing specific files and this isn't one of them, skip it.
+    if ![runtest_file_p $runtests $test] {
+       return
+    }
+    set nshort "$subdir/[file tail $test]"
+    set bname "[file rootname [file tail $nshort]]"
+
+    foreach flags $options {
+       verbose "Testing $nshort, $otherflags $flags" 1
+
+       set dg-do-what-default compile
+
+       set have_errs [llength [grep $test "{\[ \t\]\+dg-error\[ \t\]\+.*\[ \t\] \+}"]]
+       # Compile the file the first time to produce PTH images.
+       dg-test -keep-output $test "$otherflags $flags -I." ""
+
+       if { !$have_errs } {
+           if { [ file_on_host exists "$bname.s" ] } {
+               # Rename the .s file into .s-pth to compare it after the
+               # second build.
+               remote_upload host "$bname.s" "$bname.s-pth"
+               remote_download host "$bname.s-pth"
+
+               # Compile a second time to use the generated images.
+               dg-test -keep-output $test "$otherflags $flags -I." ""
+               remote_upload host "$bname.s"
+
+               # Compare the two assembly files.  They should be identical.
+               set tmp [ diff "$bname.s" "$bname.s-pth" ]
+               if { $tmp == 0 } {
+                   verbose -log "assembly file '$bname.s', '$bname.s-pth' comparison error"
+                   fail "$nshort $otherflags $flags assembly comparison"
+               } elseif { $tmp == 1 } {
+                   pass "$nshort $otherflags $flags assembly comparison"
+               } else {
+                   fail "$nshort $otherflags $flags assembly comparison"
+               }
+               file_on_host delete "$bname$suffix"
+               file_on_host delete "$bname.s"
+               file_on_host delete "$bname.s-pth"
+           } else {
+               verbose -log "assembly file '$bname.s' missing"
+               fail "$nshort $flags assembly comparison"
+           }
+       }
+
+       # Remove stale .pth files, if any.
+       foreach pth_file [glob -nocomplain *.pth] {
+           file_on_host delete $pth_file
+       }
+    }
+}
+
+proc dg-pth { subdir test options suffix } {
+  return [dg-flags-pth $subdir $test "" $options $suffix]
+}

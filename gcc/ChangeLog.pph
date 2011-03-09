@@ -1,3 +1,25 @@
+2011-03-09  Diego Novillo  <dnovillo@google.com>
+
+	* lto-opts.c (input_data_block): Rename and move ...
+	* lto-streamer-in.c (lto_input_data_block): ... here.
+	* lto-streamer-in.c (lto_input_string): Rename from
+	input_string.  Make extern.  Update all users.
+	* lto-streamer-out.c (lto_output_string_with_length): Rename
+	from output_string_with_length.  Make extern.  Update all
+	users.
+	(lto_output_string): Rename from output_string.  Make extern.
+	Update all users.
+	(lto_output_decl_state_streams): Make extern.
+	(lto_output_decl_state_refs): Make extern.
+	* lto-streamer.c (lto_get_common_nodes): #if0 assertions not
+	valid inside the front end.
+	* lto-streamer.h (lto_input_string): Declare.
+	(lto_input_data_block): Declare.
+	(lto_output_string): Declare.
+	(lto_output_string_with_length): Declare.
+	(lto_output_decl_state_streams): Declare.
+	(lto_output_decl_state_refs): Declare.
+
 2011-03-04  Lawrence Crowl <crowl@google.com>
 
 	* tree-pass.h:

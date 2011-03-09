@@ -191,10 +191,24 @@ input_identifier (struct data_in *data_in, struct lto_input_block *ib)
   return get_identifier_with_length (ptr, len);
 }
 
+
+/* Read LENGTH bytes from STREAM to ADDR.  */
+
+void
+lto_input_data_block (struct lto_input_block *ib, void *addr, size_t length)
+{
+  size_t i;
+  unsigned char *const buffer = (unsigned char *const) addr;
+
+  for (i = 0; i < length; i++)
+    buffer[i] = lto_input_1_unsigned (ib);
+}
+
+
 /* Read a NULL terminated string from the string table in DATA_IN.  */
 
-static const char *
-input_string (struct data_in *data_in, struct lto_input_block *ib)
+const char *
+lto_input_string (struct data_in *data_in, struct lto_input_block *ib)
 {
   unsigned int len;
   const char *ptr;
@@ -275,7 +289,7 @@ lto_input_location (struct lto_input_block *ib, struct data_in *data_in)
 {
   expanded_location xloc;
 
-  xloc.file = input_string (data_in, ib);
+  xloc.file = lto_input_string (data_in, ib);
   if (xloc.file == NULL)
     return UNKNOWN_LOCATION;
 
@@ -2310,7 +2324,7 @@ lto_input_ts_translation_unit_decl_tree_pointers (struct lto_input_block *ib,
 						  struct data_in *data_in,
 						  tree expr)
 {
-  TRANSLATION_UNIT_LANGUAGE (expr) = xstrdup (input_string (data_in, ib));
+  TRANSLATION_UNIT_LANGUAGE (expr) = xstrdup (lto_input_string (data_in, ib));
   VEC_safe_push (tree, gc, all_translation_units, expr);
 }
 
@@ -2591,7 +2605,7 @@ lto_get_builtin_tree (struct lto_input_block *ib, struct data_in *data_in)
   else
     gcc_unreachable ();
 
-  asmname = input_string (data_in, ib);
+  asmname = lto_input_string (data_in, ib);
   if (asmname)
     set_builtin_user_assembler_name (result, asmname);
 
