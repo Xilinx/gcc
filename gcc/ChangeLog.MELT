@@ -1,5 +1,15 @@
 
-2011-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tvariadic-1.melt: New file.
+
+	* testsuite/melt/tmatch-7.melt: Updated comment.
+
+	* melt/warmelt-macro.melt: Correct documentation of defvariadic.
+
+	* melt/warmelt-normal.melt (normexp_defvariadic): More, but still
+	incomplete.
+
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.c (load_checked_dynamic_module_index): Add FAIL_BAD
 	macro.

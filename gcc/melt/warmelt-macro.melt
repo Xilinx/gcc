@@ -2365,7 +2365,7 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
 operator Syntax is ($DEFVARIADIC @var{name} @var{initial-formals}
 [:doc @var{documentation}] [:initial @var{initial-handler}]
 [:@var{ctype} @var{ctype-handler}]...  [:final @var{final-handler}]
-). To be visible outside the module, the c-iterator should be exported
+). To be visible outside the module, the variadic should be exported
 using $EXPORT_VALUES. }#)
 
 

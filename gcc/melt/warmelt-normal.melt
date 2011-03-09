@@ -5696,10 +5696,10 @@ source location.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; normalize a DEFVARIADIC
 (defun normexp_defvariadic (recv env ncx psloc)
+  (debug_msg recv "normexp defvariadic recv")
   (assert_msg "check defvariadic recv" (is_a recv class_source_defvariadic))
   (assert_msg "check env" (is_a env class_environment))
   (assert_msg "check nctxt" (is_a ncx class_normalization_context))
-  (debug_msg recv "normexp defvariadic recv")
   (let ( 
 	(sloc (unsafe_get_field :loca_location recv))
 	(sname (unsafe_get_field :sdef_name recv))
@@ -5711,10 +5711,16 @@ source location.}#
 	(sfinal (get_field :svariadic_final recv))
 	(svari (get_field :fvbind_variadic varibind))
 	)
+    (debug_msg varibind "normexp_defvariadic varibind")
+    (debug_msg styphdlmap "normexp_defvariadic styphdlmap")
     (assert_msg "check varibind" (is_a varibind class_variadic_binding))
     (assert_msg "check svari" (is_a svari class_variadic_function))
-    (assert_msg "@$@unimplemented normexp_defvariadic")
-))
+    (multicall
+     (ninitial nbindinitial)
+     (normal_exp sinitial env ncx sloc)
+     (debug_msg ninitial "normexp_defvariadic ninitial")
+     (assert_msg "@$@unimplemented normexp_defvariadic")
+     )))
 (install_method class_source_defvariadic normal_exp normexp_defvariadic)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
