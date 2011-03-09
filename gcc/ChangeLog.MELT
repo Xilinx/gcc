@@ -1,6 +1,12 @@
 
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{the tassign-pv-1.melt test case passes}}
+	* melt/warmelt-genobj.melt (compilobj_datastring)
+	(compilobj_databoxedinteger): Initialize :obv_type correctly.
+
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* testsuite/melt/tassign-pv-1.melt: New file.
 
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>

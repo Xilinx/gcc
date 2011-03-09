@@ -4337,6 +4337,7 @@ $SBUF.}#
 	  (locvar (get_free_objlocptr gcx '_valstr_))
 	  (:long drk (get_int drank))
 	  (ostr (instance class_objinitstring
+			  :obv_type ctype_value
 			  :oie_data odata
 			  :oie_discr odiscr
 			  :oie_locvar locvar
@@ -4385,6 +4386,7 @@ $SBUF.}#
 	  (locvar (get_free_objlocptr gcx '_valbxint_))
 	  (:long drk (get_int drank))
 	  (oint (instance class_objinitboxinteger
+			  :obv_type ctype_value
 			  :oie_data odata
 			  :oie_discr odiscr
 			  :oie_locvar locvar
