@@ -1,6 +1,13 @@
 
 2011-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (load_checked_dynamic_module_index): Add FAIL_BAD
+	macro.
+	(melt_dbgshortbacktrace): Use dladdr when _GNU_SOURCE to show
+	module containing called closures.
+
+2011-03-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-macro.melt (patmacexpand_for_matcher): Give an
 	error, not a warning, for extra pattern or expression arguments in
 	matcher.

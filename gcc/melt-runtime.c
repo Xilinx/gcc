@@ -5432,6 +5432,8 @@ static int
 load_checked_dynamic_module_index (const char *dypath, char *md5src)
 {
   int ix = 0;
+  int badfromline = 0;
+#define FAIL_BAD() do {badfromline = __LINE__; goto bad;} while(0)
   int dypathlen = 0;
   char *dynmd5 = NULL;
   char *dynversion = NULL;
@@ -5458,7 +5460,7 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   }
   /* Try to append .so if needed ... */
   else if (!dlh && dypathlen>3 
-      && (dypath[dypathlen-3]!='.' || dypath[dypathlen-2]!='s' || dypath[dypathlen-1]!='o'))
+	   && (dypath[dypathlen-3]!='.' || dypath[dypathlen-2]!='s' || dypath[dypathlen-1]!='o'))
     {
       char* dypathso = concat(dypath, ".so", NULL);
       if (dypathso && dypathso[0])
@@ -5485,8 +5487,8 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   if (!dynmd5) 
     {
       warning (0, "missing md5 signature in MELT module %s", dypath);
-      goto bad;
-  }
+      FAIL_BAD ();
+    }
   dyncomptimstamp =
     (char *) dlsym ((void *) dlh, "melt_compiled_timestamp");
   if (!dyncomptimstamp)
@@ -5496,7 +5498,7 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   if (!dyncomptimstamp) 
     {
       warning (0, "missing timestamp in MELT module %s", dypath);
-      goto bad;
+      FAIL_BAD ();
     };
   /* check the version of the generating compiler with current */
   dynversion  =
@@ -5534,7 +5536,7 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
   if (!PTR_UNION_AS_VOID_PTR(startrout_uf)) 
     {
       warning (0, "missing start_module_melt routine in MELT module %s", dypath);
-      goto bad;
+      FAIL_BAD ();
     };
   if (md5src && dynmd5)
     {
@@ -5561,13 +5563,13 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
 		  warning (0, "md5 source mismatch in MELT module %s", dypath);
 		  inform (UNKNOWN_LOCATION, "recomputed md5 of MELT C code is %s", hexmd5src);
 		  inform (UNKNOWN_LOCATION, "MELT module contains registered md5sum %s", dynmd5);
-		  goto bad;
+		  FAIL_BAD ();
 		}
 	    }
 	  else
 	    {
 	      warning (0, "md5 source invalid in MELT module %s", dypath);
-	      goto bad;
+	      FAIL_BAD ();
 	    }
 	}
     }
@@ -5585,15 +5587,18 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
     ("load_checked_dynamic_module_index %s dynmd5 %s dyncomptimstamp %s ix %d",
      dypath, dynmd5, dyncomptimstamp, ix);
   return ix;
-bad:
-  debugeprintf ("load_checked_dynamic_module_index failed dlerror:%s",
-		dlerror ());
+#undef FAIL_BAD
+ bad:
+  debugeprintf ("load_checked_dynamic_module_index failed from bad line %d dlerror:%s dypathdup %s dlh %p",
+		badfromline, dlerror (), dypathdup, dlh);
   if (dypathdup)
     free (dypathdup);
   if (dlh)
     dlclose ((void *) dlh);
   return 0;
 }
+
+
 
 void *
 melt_dlsym_all (const char *nam)
@@ -9723,6 +9728,22 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
 	    fprintf (stderr, "<%s> ", curout->routdescr);
 	  else
 	    fputs ("?norout?", stderr);
+#if _GNU_SOURCE
+	  /* we have dladdr! */
+	  {
+	    Dl_info funinf;
+	    memset (&funinf, 0, sizeof(funinf));
+	    if (dladdr ((void*)curout->routfunad, &funinf)) {
+	      if (funinf.dli_fname)
+		fprintf (stderr, " %s", funinf.dli_fname);
+	      if (funinf.dli_sname)
+		fprintf (stderr, " [%s=%p]", 
+			 funinf.dli_sname, funinf.dli_saddr);
+	    }
+	    else 
+	      fputs (" ?", stderr);
+	  }
+#endif /*_GNU_SOURCE*/
 	}
       else
 	fprintf (stderr, "_ ");
