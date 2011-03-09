@@ -1,5 +1,9 @@
 
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* testsuite/melt/tassign-pv-1.melt: New file.
+
+2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tvariadic-1.melt: New file.
 
 	* testsuite/melt/tmatch-7.melt: Updated comment.

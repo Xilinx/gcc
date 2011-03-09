@@ -1,0 +1,19 @@
+; -*- lisp -*-
+;; file tassign-pv-1.melt
+;; a bug reported by Pierre Vittet 
+;; http://groups.google.com/group/gcc-melt-french/browse_thread/thread/7ab6c2ca53b2b4dc
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=runfile  -fmelt-module-path=melt-modules:.  \
+    -fmelt-source-path=.:$GCCMELT_SOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp \
+    -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tassign-pv-1.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(let ( (salut '0) 
+     )
+     (setq salut '1)
+)
+
+;; eof tassign-pv-1.melt 
