@@ -9735,9 +9735,9 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
 	    memset (&funinf, 0, sizeof(funinf));
 	    if (dladdr ((void*)curout->routfunad, &funinf)) {
 	      if (funinf.dli_fname)
-		fprintf (stderr, " %s", funinf.dli_fname);
+		fprintf (stderr, "\n  %s ", funinf.dli_fname);
 	      if (funinf.dli_sname)
-		fprintf (stderr, " [%s=%p]", 
+		fprintf (stderr, "\n  [%s=%p] ", 
 			 funinf.dli_sname, funinf.dli_saddr);
 	    }
 	    else 
