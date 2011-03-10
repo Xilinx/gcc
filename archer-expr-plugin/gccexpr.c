@@ -135,8 +135,9 @@ parse_expression (const char *expr)
 static void
 print_time_usage (const char *str, struct gccexpr_data *data)
 {
-  long now = get_run_time ();
-  print_time (str, now - data->start_time);
+  long now = clock ();
+  fprintf (stderr, "%s %f\n", str,
+	   (float) (now - data->start_time) / CLOCKS_PER_SEC);
 }
 
 /* Print a usage message.  */
@@ -389,6 +390,6 @@ plugin_init (struct plugin_name_args *plugin_info,
 #endif
 
   /* Set the timer.  */
-  data->start_time = get_run_time ();
+  data->start_time = clock ();
   return 0;
 }
