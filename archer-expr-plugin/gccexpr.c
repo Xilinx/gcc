@@ -136,7 +136,7 @@ static void
 print_time_usage (const char *str, struct gccexpr_data *data)
 {
   long now = clock ();
-  fprintf (stderr, "%s %f\n", str,
+  fprintf (stderr, "time to parse %s %.2f seconds\n", str,
 	   (float) (now - data->start_time) / CLOCKS_PER_SEC);
 }
 
@@ -181,7 +181,7 @@ gccexpr_parse_line_callback (void *gcc_data, void *user_data)
 	    {
 	      /* Print out the resulting tree.  */
 	      output_tree (result);
-	      print_time_usage ("parsing in-line expression", data);
+	      print_time_usage ("in-line expression", data);
 	      exit (0);
 	    }
 	  else
@@ -211,7 +211,7 @@ gccexpr_finish_callback (void *gcc_data, void *user_data)
       if (result != error_mark_node)
 	{
 	  output_tree (result);
-	  print_time_usage ("parsing expression at exit", data);
+	  print_time_usage ("expression at exit", data);
 	  exit (0);
 	}
     }
