@@ -5202,11 +5202,17 @@ normalized expression.}#
 	     ;; nouts is a class_nrep_matched_data
 	     )
 	   ))
+	;;
+	(debug_msg matmatcher "normstep_mtestmatcher matmatcher again")
+	;; we should probably have a selector to make the test part of a matching
+	;; and another selector to make the fill part of it
 	(compile_warning "normstep_mtestmatcher should handle amout & mouts")
 	;;;
 	(assert_msg "@$@unimplemented normstep_mtestmatcher")
 	))))
 (install_method class_match_step_test_matcher normalize_step normstep_mtestmatcher)
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; utility to normalize a step with a match normalization context
 (defun altmatch_normalize_step (step nmctxt)

@@ -1,4 +1,9 @@
 
+2011-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (normstep_mtestmatcher): Adding
+	more. Should perhaps introduce selectors to make the test & the
+	fill of matchers.
+
 2011-03-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (normstep_mtestmatcher): Adding more.
 
