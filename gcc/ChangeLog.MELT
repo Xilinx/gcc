@@ -1,6 +1,12 @@
 
 2011-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-normal.melt (normexp_defvariadic): More, but still
+	incomplete.
+	* testsuite/melt/tvariadic-1.melt: Update.
+
+2011-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (melt_dbgshortbacktrace): Nicer printing of
 	dladdr information on closure routines.
 
