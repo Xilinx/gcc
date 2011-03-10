@@ -5713,7 +5713,7 @@ source location.}#
 	(sortedctypes (mapobject_sorted_attribute_tuple styphdlmap))
 	(:long nbctypes (multiple_length sortedctypes))
 	(nbindlist (make_list discr_list))
-	(nctypmap (make_mapobject discr_map_objects (+i 5 nbindlist)))
+	(nctypmap (make_mapobject discr_map_objects (+i 5 nbctypes)))
 	(ntyhdltup (make_multiple discr_multiple nbctypes))
 	)
     (debug_msg varibind "normexp_defvariadic varibind")
