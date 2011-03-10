@@ -89,6 +89,9 @@ DEFEVENT (PLUGIN_EARLY_GIMPLE_PASSES_END)
 /* Called when a pass is first instantiated.  */
 DEFEVENT (PLUGIN_NEW_PASS)
 
+/* Called after a an input line is parsed.  */
+DEFEVENT (PLUGIN_PARSE_LINE)
+
 /* After the hard-coded events above, plugins can dynamically allocate events
    at run time.
    PLUGIN_EVENT_FIRST_DYNAMIC only appears as last enum element.  */

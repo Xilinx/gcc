@@ -1186,6 +1186,46 @@ static void c_parser_objc_at_synthesize_declaration (c_parser *);
 static void c_parser_objc_at_dynamic_declaration (c_parser *);
 static bool c_parser_objc_diagnose_bad_element_prefix
   (c_parser *, struct c_declspecs *);
+static void c_parser_pragma_pch_preprocess (c_parser *);
+
+tree c_parser_evaluate_expression (const char *);
+
+tree
+c_parser_evaluate_expression (const char *expression)
+{
+  cpp_buffer *buf;
+  struct c_expr result;
+
+  /* Use local storage to begin.  If the first token is a pragma, parse it.
+     If it is #pragma GCC pch_preprocess, then this will load a PCH file
+     which will cause garbage collection.  */
+  c_parser tparser;
+
+  memset (&tparser, 0, sizeof tparser);
+  the_parser = &tparser;
+
+  /* Discard any previous input buffers.  */
+  cpp_pop_all_buffers (parse_in);
+
+  /* Tokenize the input expression.  */
+  buf = cpp_push_buffer (parse_in, (const unsigned char *) expression,
+			 strlen (expression), 0);
+ 
+  if (c_parser_peek_token (&tparser)->pragma_kind == PRAGMA_GCC_PCH_PREPROCESS)
+    c_parser_pragma_pch_preprocess (&tparser);
+
+  the_parser = ggc_alloc_c_parser ();
+  *the_parser = tparser;
+
+  /* Initialize EH, if we've been told to do so.  */
+  if (flag_exceptions)
+    using_eh_for_cleanups ();
+
+  /*c_parser_translation_unit (the_parser);*/
+  result = c_parser_expression (the_parser);
+  the_parser = NULL;
+  return result.value;
+}
 
 /* Parse a translation unit (C90 6.7, C99 6.9).
 

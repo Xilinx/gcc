@@ -558,6 +558,7 @@ add_stmt (tree t)
      recorded during statement expressions.  */
   append_to_statement_list_force (t, &cur_stmt_list);
 
+  invoke_plugin_callbacks (PLUGIN_PARSE_LINE, NULL);
   return t;
 }
 

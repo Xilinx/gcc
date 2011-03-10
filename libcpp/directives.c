@@ -2534,6 +2534,13 @@ _cpp_pop_buffer (cpp_reader *pfile)
     }
 }
 
+void
+cpp_pop_all_buffers (cpp_reader *pfile)
+{
+  while (CPP_BUFFER (pfile) != NULL)
+    _cpp_pop_buffer (pfile);
+}
+
 /* Enter all recognized directives in the hash table.  */
 void
 _cpp_init_directives (cpp_reader *pfile)

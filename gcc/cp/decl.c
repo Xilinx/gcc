@@ -13297,6 +13297,7 @@ cxx_maybe_build_cleanup (tree decl)
 void
 finish_stmt (void)
 {
+  invoke_plugin_callbacks (PLUGIN_PARSE_LINE, NULL);
 }
 
 /* Return the FUNCTION_TYPE that corresponds to MEMFNTYPE, which can be a

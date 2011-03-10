@@ -1,0 +1,38 @@
+This directory contains sources for the gcc/g++ archer plug-in.
+
+This plug-in (actually two of them -- one for C and one for C++) was
+created in order to experiment/play with (re)using the compiler's parsers
+for expression parsing in gdb.  The source code here builds on
+GNU/Linux systems (tested only on Fedora 12+), and it is not yet integrated
+into the gcc build infrastructure.
+
+You will have to build the plug-in(s) by hand. To do so, build and install
+gcc and g++ in the usual way.  Add the resulting compiler to your PATH,
+and type "make all" in this directory (which resides in the source
+tree for now).  This should build the gcc and g++ expression
+parser plug-ins. You may also type "make install" to have the plug-ins
+automatically installed into your new compiler installation.
+
+You can then play with the plug-in by passing -fplugin=cexpr or
+-fplugin=cpexpr on the command-line.  Required arguments are
+-fplugin-cexpr-location=FILENAME:LINE and -fplugin-cexpr-expr=EXPRESSION.
+-c and -o /dev/null flags are recommended.  [Substitute "cpexpr" for "cexpr"
+in above if you are evaluating a C++ expression with g++.]
+
+The plug-ins currently uses debug_tree to output the result, and it outputs
+a little blurb about how the expression was evaluated (at the given location
+or at the end of the file) and how long it took to get from (the end of)
+plug-in initialization to output of the resultant tree.
+
+A complete example of how to use the plug-in (C++):
+
+$ g++ -c -o /devl/null -fplugin=cpexpr \
+      -fplugin-arg-cpexpr-location=foo.cc:21 \
+      -fplugin-arg-cpexpr-expr="1 + local_variable" \
+      [any required flags to compile source code] \
+      foo.cc
+
+The example here assumes that the plug-in(s) were installed.  You may
+also specify the path to the plug-in with the -fplugin flag, e.g.,
+-fplugin=/path/to/cpexpr.
+

@@ -1830,7 +1830,7 @@ static tree cp_parser_assignment_expression
   (cp_parser *, bool, cp_id_kind *);
 static enum tree_code cp_parser_assignment_operator_opt
   (cp_parser *);
-static tree cp_parser_expression
+tree cp_parser_expression
   (cp_parser *, bool, cp_id_kind *);
 static tree cp_parser_constant_expression
   (cp_parser *, bool, bool *);
@@ -7176,7 +7176,7 @@ cp_parser_assignment_operator_opt (cp_parser* parser)
 
    Returns a representation of the expression.  */
 
-static tree
+tree
 cp_parser_expression (cp_parser* parser, bool cast_p, cp_id_kind * pidk)
 {
   tree expression = NULL_TREE;
@@ -25088,6 +25088,27 @@ cp_parser_omp_construct (cp_parser *parser, cp_token *pragma_tok)
 /* The parser.  */
 
 static GTY (()) cp_parser *the_parser;
+
+tree cp_parser_evaluate_expression (const char *);
+
+tree
+cp_parser_evaluate_expression (const char *expression)
+{
+  cpp_buffer *buf;
+  cp_parser *parser;
+  tree result;
+
+  /* Discard any previous inupt buffers.  */
+  cpp_pop_all_buffers (parse_in);
+
+  /* Tokenize the input expression.  */
+  buf = cpp_push_buffer (parse_in, expression, strlen (expression), 0);
+  parser = cp_parser_new ();
+
+  /* Evaluate it.  */
+  result = cp_parser_expression (parser, false, NULL);
+  return result;
+}
 
 
 /* Special handling for the first token or line in the file.  The first
