@@ -6,6 +6,10 @@ for expression parsing in gdb.  The source code here builds on
 GNU/Linux systems (tested only on Fedora 12+), and it is not yet integrated
 into the gcc build infrastructure.
 
+NOTE: The plug-in currently requires a writable installation directory
+for the build.  This is because of a misplaced(?) header file which breaks
+the build.  See the c-common.h.stamp rule in the Makefile for more information.
+
 You will have to build the plug-in(s) by hand. To do so, build and install
 gcc and g++ in the usual way.  Add the resulting compiler to your PATH,
 and type "make all" in this directory (which resides in the source
