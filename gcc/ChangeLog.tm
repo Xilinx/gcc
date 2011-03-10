@@ -1,6 +1,12 @@
 2011-03-08  Richard Henderson  <rth@redhat.com>
 
 	PR 47952
+	* trans-mem.c (ipa_tm_create_version): Remap extern inline
+	functions to static inline clones.
+
+2011-03-08  Richard Henderson  <rth@redhat.com>
+
+	PR 47952
 	* trans-mem.c (tm_mangle): Pass in and return an identifier.
 	(ipa_tm_create_version): Update to match.  Also mangle the
 	DECL_COMDAT_GROUP.

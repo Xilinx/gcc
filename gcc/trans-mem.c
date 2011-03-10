@@ -4132,7 +4132,17 @@ ipa_tm_create_version (struct cgraph_node *old_node)
   get_cg_data (old_node)->clone = new_node;
 
   if (cgraph_function_body_availability (old_node) >= AVAIL_OVERWRITABLE)
-    tree_function_versioning (old_decl, new_decl, NULL, false, NULL);
+    {
+      /* Remap extern inline to static inline.  */
+      /* ??? Is it worth trying to use make_decl_one_only?  */
+      if (DECL_DECLARED_INLINE_P (new_decl) && DECL_EXTERNAL (new_decl))
+	{
+	  DECL_EXTERNAL (new_decl) = 0;
+	  TREE_PUBLIC (new_decl) = 0;
+	}
+
+      tree_function_versioning (old_decl, new_decl, NULL, false, NULL);
+    }
 
   /* ?? We should be able to remove DECL_IS_TM_CLONE.  We have enough
      bits in cgraph to calculate all this.  */
