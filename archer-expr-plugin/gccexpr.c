@@ -22,10 +22,10 @@
    plug-ins, named "cexpr" and "cpexpr".  Enable  either plug-in by passing
    its name as the value to "-fplugin" argument.  Then pass a location
    (FILENAME:NUMBER) via "-fplugin-arg-c[p]expr-location" and
-   an expression to evaluate via "-fplugin-arg-c[p]expr-expr".
+   an expression to parse via "-fplugin-arg-c[p]expr-expr".
 
    NOTE: The location is defined as the end (or sometimes middle)
-   of the line. To evaluate an expression before the given line is
+   of the line. To parse an expression before the given line is
    compiled, you must specify the previous line.
 
    How to call this plug-in (because I always forget):
@@ -81,7 +81,7 @@ int plugin_is_GPL_compatible;
 
 /* Plug-in information  */
 static struct plugin_info gccexpr_info =
-  { "0.01", "expression evaluaton plug-in" };
+  { "0.01", "expression parsing plug-in" };
 
 #define PLUGIN_ARGV_LOCATION "location"
 #define PLUGIN_ARGV_EXPRESSION "expr"
@@ -97,10 +97,10 @@ struct gccexpr_data
      to figure this out for us.  */
   expanded_location loc;
 
-  /* The expression to evaluate when we stop.  */
+  /* The expression to parse when we stop.  */
   char *expr;
 
-  /* Set to TRUE if this expression has already failed evaluation
+  /* Set to TRUE if this expression has already failed parsing
      and should be attempted at exit.  */
   bool at_exit;
 
@@ -118,10 +118,10 @@ output_tree (tree tree)
 }
 
 /* A wrapper function to call the correct version of the
-   parser's expression evaluator.  */
+   parser's expression parser.  */
 
 static tree
-evaluate_expression (const char *expr)
+parse_expression (const char *expr)
 {
 #ifdef CPLUS
   return cp_parser_evaluate_expression (expr);
@@ -170,23 +170,22 @@ gccexpr_parse_line_callback (void *gcc_data, void *user_data)
 	{
 	  tree result;
 
-	  DEBUG ("evaluating expression %s", data->expr);
+	  DEBUG ("parsinging expression %s", data->expr);
 
-	  /* Evaluate the expression.  */
-	  result = evaluate_expression (data->expr);
+	  /* Parse the expression.  */
+	  result = parse_expression (data->expr);
 
-	  /* If we see an error, mark this expression to try evaluation
-	     at exit.  */
+	  /* If we see an error, try again at exit.  */
 	  if (result != error_mark_node)
 	    {
 	      /* Print out the resulting tree.  */
 	      output_tree (result);
-	      print_time_usage ("evaluating in-line expression", data);
+	      print_time_usage ("parsing in-line expression", data);
 	      exit (0);
 	    }
 	  else
 	    {
-	      DEBUG ("evaluation failed -- deferring");
+	      DEBUG ("parsing failed -- deferring");
 	      data->at_exit = true;
 	    }
 	}
@@ -207,16 +206,16 @@ gccexpr_finish_callback (void *gcc_data, void *user_data)
       tree result;
 
       /* Try again.  */
-      result = evaluate_expression (data->expr);
+      result = parse_expression (data->expr);
       if (result != error_mark_node)
 	{
 	  output_tree (result);
-	  print_time_usage ("evaluating expression at exit", data);
+	  print_time_usage ("parsing expression at exit", data);
 	  exit (0);
 	}
     }
 
-  print_time_usage ("evaluating failed expression", data);
+  print_time_usage ("parsing failed expression", data);
   free (data->expr);
   free (data);
 }
@@ -294,7 +293,7 @@ plugin_init (struct plugin_name_args *plugin_info,
       return 1;
     }
 
-  /* Extract the evaluation location and expression from the arguments.  */
+  /* Extract the parse location and expression from the arguments.  */
   for (i = 0; i < plugin_info->argc; ++i)
     {
       if (strcmp (PLUGIN_ARGV_LOCATION, plugin_info->argv[i].key) == 0)
