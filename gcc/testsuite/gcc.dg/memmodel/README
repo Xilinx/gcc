@@ -1,0 +1,102 @@
+OVERVIEW
+--------
+
+This is a harness to test the atomicity of certain operations, and to
+make sure the compiler does not introduce data races in a
+multi-threaded environment.
+
+The basic premise is that we set up testcases such that the thing we
+want test, say an atomic instruction which stores a double word is in
+a function of its own.  We then run this testcase within GDB,
+controlled by a gdb script (memmodel.gdb).  The gdb script will break
+on the function to be tested, and then single step through every
+machine instruction in the function.  We set this up so GDB can make a
+couple of inferior function calls before and after each of these
+single step instructions for a couple of purposes:
+
+       1.  One of the calls simulates another thread running in the
+           process which changes or access memory.
+
+       2.  The other calls are used to verify that we always get the
+           expected behavior.
+
+For example, in the case of an atomic store, anyone looking at the
+memory associated with an atomic variable should never see any in
+between states. If you have an atomic long long int, and it starts
+with the value 0, and you write the value MAX_LONG_LONG, any other
+thread looking at that variable should never see anything other than 0
+or MAX_LONG_LONG.  If you implement the atomic write as a sequence of
+2 stores, it is possible for another thread to read the location after
+the first store, but before the second one is complete. That thread
+would then see an in-between state (one word would still be 0).
+
+We simulate this in the testcase by having GDB step through the
+program, instruction by instruction, and after each step, making an
+inferior function call which looks at the value of the atomic variable
+and verifies that it sees either 0 or MAX_LONG_LONG.  If it sees any
+other value, it fails the testcase.
+
+This way, we are *sure* there is no in between state because we
+effectively acted like an OS and switched to another thread after
+every single instruction of the routine is executed and looked at the
+results each time.
+
+We use the same idea to test for data races to see if an illegal load
+has been hoisted, or that two parallel bitfield writes don't overlap
+in a data race.
+
+Below is a skeleton of how a test should look like.  For more details,
+look at the tests themselves.
+
+ANATOMY OF A TEST
+-----------------
+
+/* { dg-do link } */
+/* { dg-options "-some-flags" } */
+/* { dg-final { memmodel-gdb-test } } */
+
+/* NOTE: Any failure must be indicated by displaying "FAIL:".  */
+
+#include "memmodel.h"
+
+/* Called before each instruction, simulating another thread
+   executing.  */
+void memmodel_other_threads()
+{
+}
+
+/* Called after each instruction.  Returns 1 if any inconsistency is
+   found, 0 otherwise.  */
+int memmodel_step_verify()
+{
+  if (some_problem)
+    {
+      printf("FAIL: reason\n");
+      return 1;
+    }
+  return 0;
+}
+
+/* Called at the end of the program (memmodel_fini == 1).  Verifies
+   the state of the program and returns 1 if any inconsistency is
+   found, 0 otherwise.  */
+int memmodel_final_verify()
+{
+  if (some_problem)
+    {
+      printf("FAIL: reason\n");
+      return 1;
+    }
+  return 0;
+}
+
+int main()
+{
+  /* Do stuff.  */
+  /* ... */
+
+  /* Must be called at the end of the test.  */
+  memmodel_done();
+
+  return 0;
+}
