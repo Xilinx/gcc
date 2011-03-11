@@ -1,3 +1,23 @@
+2011-03-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48029
+	* pt.c (iterative_hash_template_arg): Remove special case for
+	ARRAY_TYPE.
+
+	PR c++/47198
+	* parser.c (cp_parser_single_declaration): Just return if
+	cp_parser_parse_and_diagnose_invalid_type_name complained.
+
+2011-03-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44629
+	* pt.c (unify): An unresolved overload is a nondeduced context.
+
+2011-03-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/47714
+	* method.c (use_thunk): Clear addressable flag of thunk arguments.
+
 2011-03-08  Dodji Seketeli  <dodji@redhat.com>
 
 	PR c++/47705

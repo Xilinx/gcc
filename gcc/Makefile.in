@@ -1071,6 +1071,7 @@ BUILD_ERRORS = build/errors.o
 # currently being compiled, in both source trees, to be examined as well.
 # libintl.h will be found in ../intl if we are using the included libintl.
 INCLUDES = -I. -I$(@D) -I$(srcdir) -I$(srcdir)/$(@D) \
+	   -I$(srcdir)/melt/generated \
 	   -I$(srcdir)/../include @INCINTL@ \
 	   $(CPPINC) $(GMPINC) $(DECNUMINC) \
 	   $(PPLINC) $(CLOOGINC)
@@ -5362,7 +5363,9 @@ melt-run.d: melt-run.h \
    tree-pass.h melt-runtime.h gt-melt-runtime.h $(TOPLEV_H)
 ## perhaps this should really use depcomp, because this works only if
 ## CC is some gcc 4.x since it use the precompiled headers feature
-	$(CC) -MT melt-run-deps -MMD -MF $@ $(ALL_CFLAGS) $(ALL_CPPFLAGS) $< -o melt-run.h.gch
+	$(CC) -MT melt-run-deps -MMD -MF $@ $(ALL_CFLAGS) $(ALL_CPPFLAGS) \
+              -I $(srcdir)/melt/generated \
+	      $< -o melt-run.h.gch
 
 .PHONY: melt-run-deps
 ## the include below defines the dependencies of melt-run-deps

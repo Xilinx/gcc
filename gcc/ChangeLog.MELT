@@ -1,4 +1,8 @@
 
+2011-03-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (INCLUDES, melt-run.d): Add $(srcdir)/melt/generated
+	because it contains meltrunsup.h
+
 2011-03-10  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normal.melt (normexp_defvariadic): Typo.

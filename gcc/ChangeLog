@@ -1,3 +1,64 @@
+2011-03-11  Chen Liqin  <liqin.gcc@gmail.com>
+
+	* config.gcc (score-*-elf): Add extra_parts .., update tmake_file and
+	extra_objs.
+	* config/score/score3.c: Delete.
+	* config/score/score3.h: Delete.
+	* config/score/mul-div.S: Delete.
+	* config/score/sfp-machine.h: Add new file.
+	* config/score/constraints.md: Add new file.
+	* config/score/t-score-softfp: Add new file.
+	* config/score/t-score-elf: Remove score3.o, do not generate multilib.
+	* config/score/score7.c (score7_const_ok_for_letter_p): Delete.
+	(score7_extra_constraint): Delete.
+	(score7_option_override): Remove unused code.
+	* config/score/score.c: Remove score3 and score5 define and code.
+	* config/score/score.h: Remove score3 and score5 define and code.
+	* config/score/score.md: Remove score3 template and unusual insn.
+	* config/score/score.opt: Remove score3 and score5 options.
+
+2011-03-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/pa-hpux10.h (TARGET_OS_CPP_BUILTINS): Define _REENTRANT
+	when _HPUX_SOURCE is defined.
+	(LIB_SPEC): Use -lc instead of -lc_r when -threads is specified.
+
+2011-03-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48029
+	* stor-layout.c (layout_type): Don't set structural equality
+	on arrays of incomplete type.
+	* tree.c (type_hash_eq): Handle comparing them properly.
+
+2011-03-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/48043
+	* config/s390/s390.c (s390_delegitimize_address): Make sure the
+	result mode matches original rtl mode.
+
+2011-03-10  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.md (bitset_in_memory, bitclr_in_memory: Fix timings.
+	(andsi3, andsi3_flags): Fix timings for three operand alternative.
+
+2011-03-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/47866
+	* expr.c (store_field): If MEM_SCALAR_P (target), don't use
+	MEM_SET_IN_STRUCT_P (to_rtx, 1), just set MEM_IN_STRUCT_P (to_rtx)
+	if target wasn't scalar.
+	* function.c (assign_stack_temp_for_type): Assert that neither
+	MEM_SCALAR_P nor MEM_IN_STRUCT_P is set previously, set either
+	MEM_IN_STRUCT_P or MEM_SCALAR_P instead of using MEM_SET_IN_STRUCT_P
+	macro.
+	* rtl.h (MEM_SET_IN_STRUCT_P): Removed.
+
+2011-03-09  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390-protos.h (s390_label_align): New prototype.
+	* config/s390/s390.c (s390_label_align): New function.
+	* config/s390/s390.h (LABEL_ALIGN): New target macro definition.
+
 2011-03-08  Michael Meissner  <meissner@linux.vnet.ibm.com>
 
 	PR target/47755
@@ -46,7 +107,7 @@
 	xstormy16_print_operand_address): Make static.
 	(TARGET_PRINT_OPERAND, TARGET_PRINT_OPERAND_ADDRESS): Define.
 
-2011-03-07  Pat Haugen <pthaugen@us.ibm.com>
+2011-03-07  Pat Haugen  <pthaugen@us.ibm.com>
 
 	PR target/47862
 	* config/rs6000/rs6000.h (HARD_REGNO_CALLER_SAVE_MODE): Define.
