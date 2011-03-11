@@ -240,9 +240,14 @@ tree gpy_build_callable_record_type_ptr (void)
 {
   tree callable_struct_Type = make_node (RECORD_TYPE);
   
+  tree const_char_type = build_qualified_type(unsigned_char_type_node,
+					      TYPE_QUAL_CONST);
+  tree ctype = build_pointer_type(const_char_type);
+  gpy_preserve_from_gc(ctype);
+  
   tree name = get_identifier("ident");
   tree field = build_decl(BUILTINS_LOCATION, FIELD_DECL, name,
-			  build_pointer_type(char_type_node));
+			  ctype);
   DECL_CONTEXT(field) = callable_struct_Type;
   TYPE_FIELDS(callable_struct_Type) = field;
   tree last_field = field;
@@ -275,27 +280,51 @@ tree gpy_build_callable_record_type_ptr (void)
 
 tree gpy_init_callable_record (tree id, int n, tree decl)
 {
-  VEC(constructor_elt,gc) *struct_data_cons = NULL;
+  tree struct_tree = gpy_callable_type;
 
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("ident"),
-							build_pointer_type( char_type_node )),
-			  build_int_cst( build_pointer_type(char_type_node), 0)
-			  );
+  VEC(constructor_elt,gc)* init = VEC_alloc(constructor_elt, gc, 3);
 
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("call"),
-							ptr_type_node),
-			  build_int_cst(ptr_type_node,0)
-			  );
+  constructor_elt* elt = VEC_quick_push(constructor_elt, init, NULL);
+  tree field = TYPE_FIELDS(struct_tree);
+  gcc_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "ident") == 0);
+  elt->index = field;
+  if (id == NULL_TREE)
+    elt->value = build_string(strlen("__null"),
+			      "__null");
+  else
+    elt->value = build_string(strlen(IDENTIFIER_POINTER(id)),
+			      IDENTIFIER_POINTER(id));
 
-  CONSTRUCTOR_APPEND_ELT (struct_data_cons, build_decl (BUILTINS_LOCATION, FIELD_DECL,
-							get_identifier("n"),
-							integer_type_node),
-			  build_int_cst(integer_type_node, n )
-			  );
+  if (decl != NULL_TREE)
+    {
+      elt = VEC_quick_push(constructor_elt, init, NULL);
+      field = DECL_CHAIN(field);
+      gcc_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "call") == 0);
+      elt->index = field;
+      elt->value = fold_convert_loc(BUILTINS_LOCATION, TREE_TYPE(field),
+				    build_fold_addr_expr (decl));
+    }
+  else
+    {
+      elt = VEC_quick_push(constructor_elt, init, NULL);
+      field = DECL_CHAIN(field);
+      gcc_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "call") == 0);
+      elt->index = field;
+      elt->value = fold_convert_loc(BUILTINS_LOCATION, TREE_TYPE(field),
+				    build_int_cst (integer_type_node,0));
+    }
 
-  return build_constructor (gpy_callable_type, struct_data_cons);
+  elt = VEC_quick_push(constructor_elt, init, NULL);
+  field = DECL_CHAIN(field);
+  gcc_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(field)), "n") == 0);
+  elt->index = field;
+  elt->value = fold_convert_loc(BUILTINS_LOCATION, TREE_TYPE(field),
+				build_int_cst (integer_type_node,n));
+
+  tree constructor = build_constructor(struct_tree, init);
+  TREE_CONSTANT(constructor) = 1;
+
+  return constructor;
 }
 
 void gpy_initilize_types (void)

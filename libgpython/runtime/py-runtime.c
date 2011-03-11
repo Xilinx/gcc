@@ -53,6 +53,12 @@ void gpy_dump_current_stack_trace (void)
 void gpy_rr_set_callables (gpy_callable_t * c)
 {
   callables = c;
+  int idx = 0;
+  while ( c[idx].ident != NULL )
+    {
+      debug ("registerd call <...>!\n");
+      idx++;
+    }
 }
 
 void gpy_rr_init_runtime (void)

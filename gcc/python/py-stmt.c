@@ -606,7 +606,7 @@ void gpy_write_globals (void)
     {
       VEC(tree,gc) * x = gpy_get_tree (it, gpy_ctx_table);
       gcc_assert (x); int itx = 0; tree xt;
-      for( ; VEC_iterate(tree,x,itx,xt); ++itx )
+      for ( ; VEC_iterate(tree,x,itx,xt); ++itx )
 	{
 	  if( TREE_CODE(xt) == FUNCTION_DECL )
 	    {
@@ -624,44 +624,50 @@ void gpy_write_globals (void)
     }
 
   tree itx = NULL_TREE;
-
-  tree array_type = build_array_type (gpy_callable_type,
-				      build_index_type (build_int_cst
-							(integer_type_node,
-							 VEC_length(tree,gpy_function_decls))) );
-
-  tree callable_var_decl = build_decl (BUILTINS_LOCATION,VAR_DECL,
-				       get_identifier("__gpy_module_main_callables"),
-				       array_type);
-
-  DECL_ARTIFICIAL (callable_var_decl) = 1;
-  TREE_STATIC (callable_var_decl) = 1;
-  TREE_PUBLIC (callable_var_decl) = 1;
-  TREE_USED (callable_var_decl) = 1;
-
-  VEC(constructor_elt,gc) *array_data = NULL;
+  VEC(constructor_elt,gc) *array_data = VEC_alloc(constructor_elt, gc,
+						  VEC_length(tree,gpy_function_decls)  + 1);
+  constructor_elt* elt;
 
   int iax = 0;
   for (idx = 0; VEC_iterate (tree,gpy_function_decls,idx,itx); ++idx)
     {
       tree id = DECL_NAME (itx);
       gcc_assert (TREE_CODE(id) == IDENTIFIER_NODE);
-      error("function <%q+E>!\n", itx);
+      debug("test = <%s>!\n", IDENTIFIER_POINTER(id));
 
+      tree elent = gpy_init_callable_record (id, 2, itx);
+      elt = VEC_quick_push(constructor_elt, array_data, NULL);
+      elt->index = build_int_cst (integer_type_node, iax);
+      elt->value = elent;      
 
-      tree elt = gpy_init_callable_record (DECL_NAME(itx), 0, itx);
-      CONSTRUCTOR_APPEND_ELT (array_data, build_index_type (build_int_cst
-							    (integer_type_node,
-							     iax)),
-			      elt);
       iax++;
-      debug_tree (elt);
     }
+  elt = VEC_quick_push(constructor_elt, array_data, NULL);
+  elt->index = build_int_cst (integer_type_node, iax);
+  elt->value = gpy_init_callable_record (NULL_TREE, 0, NULL_TREE);
+
+  tree array_type = build_array_type (gpy_callable_type,
+				      build_index_type (build_int_cst
+							(integer_type_node,
+							 VEC_length(tree,gpy_function_decls)) + 1));
+
+  tree callable_var_decl = build_decl (BUILTINS_LOCATION,VAR_DECL,
+				       get_identifier("__gpy_module_main_callables"),
+				       array_type);
+
+  TREE_STATIC (callable_var_decl) = 1;
+  TREE_USED (callable_var_decl) = 1;
+  TREE_READONLY (callable_var_decl) = 1;
+  TREE_CONSTANT (callable_var_decl) = 1;
+  TREE_READONLY (callable_var_decl) = 1;
 
   tree array = build_constructor (array_type, array_data);
+  debug_tree (array);
   DECL_INITIAL (callable_var_decl) = array;
 
   rest_of_decl_compilation (callable_var_decl,1,0);
+  gpy_preserve_from_gc (callable_var_decl);
+
   VEC_safe_push (tree,gc,global_decls,callable_var_decl);
 
   VEC(tree,gc) * main_stmts_vec__ = VEC_alloc(tree,gc,0);
@@ -683,7 +689,7 @@ void gpy_write_globals (void)
   tree * global_vec = XNEWVEC (tree, global_vec_len);
 
   FILE *tu_stream = dump_begin (TDI_tu, NULL);
-  for( idx=0; VEC_iterate(tree,global_decls,idx,itx); ++idx )
+  for ( idx=0; VEC_iterate(tree,global_decls,idx,itx); ++idx )
     {
       debug_tree (itx);
 
