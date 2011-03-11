@@ -641,20 +641,29 @@ void gpy_write_globals (void)
 
   VEC(constructor_elt,gc) *array_data = NULL;
 
+  int iax = 0;
   for (idx = 0; VEC_iterate (tree,gpy_function_decls,idx,itx); ++idx)
     {
       tree id = DECL_NAME (itx);
       gcc_assert (TREE_CODE(id) == IDENTIFIER_NODE);
       error("function <%q+E>!\n", itx);
 
-      CONSTRUCTOR_APPEND_ELT( array_data, NULL_TREE,
-			      gpy_init_callable_record (DECL_NAME(itx), 0, itx) );
+
+      tree elt = gpy_init_callable_record (DECL_NAME(itx), 0, itx);
+      CONSTRUCTOR_APPEND_ELT (array_data, build_index_type (build_int_cst
+							    (integer_type_node,
+							     iax)),
+			      elt);
+      iax++;
+      debug_tree (elt);
     }
 
   tree array = build_constructor (array_type, array_data);
-  //DECL_INITIAL (callable_var_decl) = array;
+  DECL_INITIAL (callable_var_decl) = array;
 
+  rest_of_decl_compilation (callable_var_decl,1,0);
   VEC_safe_push (tree,gc,global_decls,callable_var_decl);
+
   VEC(tree,gc) * main_stmts_vec__ = VEC_alloc(tree,gc,0);
   VEC_safe_push (tree, gc, main_stmts_vec__,
 		 gpy_builtin_get_set_callable_call(callable_var_decl) );
@@ -691,12 +700,12 @@ void gpy_write_globals (void)
 
   debug("global_vec len = <%i>!\n", global_vec_len);
 
-  wrapup_global_declarations( global_vec, global_vec_len );
+  wrapup_global_declarations (global_vec, global_vec_len);
 
-  check_global_declarations( global_vec, global_vec_len );
-  emit_debug_global_declarations( global_vec, global_vec_len );
+  check_global_declarations (global_vec, global_vec_len);
+  emit_debug_global_declarations (global_vec, global_vec_len);
 
-  cgraph_finalize_compilation_unit( );
+  cgraph_finalize_compilation_unit ();
 
   debug("finished passing to middle-end!\n\n");
 }
