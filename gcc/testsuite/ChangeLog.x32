@@ -1,3 +1,8 @@
+2011-03-11  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47446
+	* gcc.target/i386/pr47446-3.c: New.
+
 2011-03-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* go.test/go-test.exp (go-set-goarch): Check x32.
