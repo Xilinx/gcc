@@ -1,6 +1,5 @@
-/* { dg-do compile } */
+/* { dg-do compile { target { x32 || lp64 } } } */
 /* { dg-options "-fomit-frame-pointer" } */
-/* { dg-require-effective-target lp64 } */
 
 void foo()
 {

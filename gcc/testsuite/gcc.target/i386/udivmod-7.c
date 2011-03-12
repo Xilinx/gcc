@@ -1,6 +1,5 @@
-/* { dg-do compile } */
+/* { dg-do compile { target { x32 || lp64 } } } */
 /* { dg-options "-O2 -m8bit-idiv" } */
-/* { dg-require-effective-target lp64 } */
 
 extern void abort (void);
 

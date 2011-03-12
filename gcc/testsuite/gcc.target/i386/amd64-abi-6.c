@@ -1,5 +1,4 @@
-/* { dg-do run } */
-/* { dg-require-effective-target lp64 } */
+/* { dg-do run { target { x32 || lp64 } } } */
 /* { dg-options "-O2" } */
 
 #include <stdarg.h>
