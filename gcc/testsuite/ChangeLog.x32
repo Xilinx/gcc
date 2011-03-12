@@ -1,5 +1,13 @@
 2011-03-11  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR target/48084
+	* gcc.target/i386/pr48084-1.c: New.
+	* gcc.target/i386/pr48084-2.c: Likewise.
+	* gcc.target/i386/pr48084-3.c: Likewise.
+	* gcc.target/i386/pr48084-4.c: Likewise.
+
+2011-03-11  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.target/i386/stackalign/return-3.c: Require ia32 instead
 	of ilp32.
 

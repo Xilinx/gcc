@@ -1,5 +1,12 @@
 2011-03-11  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR target/48084
+	* config/i386/i386.c (ix86_expand_special_args_builtin): Convert
+	memory to Pmode if needed.
+	(ix86_expand_builtin): Likewise.
+
+2011-03-11  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (*movabs<mode>_1): Only allow for
 	TARGET_LP64.
 	(*movabs<mode>_2): Likewise.
