@@ -1,5 +1,27 @@
 2011-03-12  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* g++.dg/torture/stackalign/eh-fastcall-1.C: Require ia32
+	instead of ilp32.
+	* g++.dg/torture/stackalign/eh-thiscall-1.C: Likewise.
+	* g++.dg/torture/stackalign/stdcall-1.C: Likewise.
+	* g++.dg/torture/stackalign/unwind-0.C: Likewise.
+	* g++.dg/torture/stackalign/unwind-1.C: Likewise.
+	* g++.dg/torture/stackalign/unwind-2.C: Likewise.
+	* g++.dg/torture/stackalign/unwind-3.C: Likewise.
+	* g++.dg/torture/stackalign/unwind-4.C: Likewise.
+	* g++.dg/torture/stackalign/unwind-5.C: Likewise.
+	* g++.dg/torture/stackalign/unwind-6.C: Likewise.
+	* gcc.dg/torture/stackalign/alloca-2.c: Likewise.
+	* gcc.dg/torture/stackalign/alloca-4.c: Likewise.
+	* gcc.dg/torture/stackalign/alloca-5.c: Likewise.
+	* gcc.dg/torture/stackalign/alloca-6.c: Likewise.
+	* gcc.dg/torture/stackalign/fastcall-1.c: Likewise.
+	* gcc.dg/torture/stackalign/push-1.c: Likewise.
+	* gcc.dg/torture/stackalign/regparm-1.c: Likewise.
+	* gcc.dg/torture/stackalign/thiscall-1.c: Likewise.
+
+2011-03-12  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.target/i386/builtin-copysign.c: Remove __LP64__ check.
 
 2011-03-12  H.J. Lu  <hongjiu.lu@intel.com>
