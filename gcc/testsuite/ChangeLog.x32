@@ -1,5 +1,9 @@
 2011-03-12  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.target/i386/builtin-copysign.c: Remove __LP64__ check.
+
+2011-03-12  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.target/i386/20000609-1.c: Require ia32 instead of ilp32.
 	* gcc.target/i386/20000720-1.c: Likewise.
 	* gcc.target/i386/20000724-1.c: Likewise.
