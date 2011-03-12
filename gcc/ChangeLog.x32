@@ -1,5 +1,10 @@
 2011-03-12  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR target/48084
+	* explow.c (copy_addr_to_reg): Convert to Pmode if needed.
+
+2011-03-12  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (*tls_global_dynamic_64): Don't generate
 	byte 0x66 before lea for TARGET_X32.
 

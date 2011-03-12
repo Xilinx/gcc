@@ -611,6 +611,8 @@ copy_to_reg (rtx x)
 rtx
 copy_addr_to_reg (rtx x)
 {
+  if (GET_MODE (x) != Pmode)
+    x = convert_to_mode (Pmode, x, 1);
   return copy_to_mode_reg (Pmode, x);
 }
 
