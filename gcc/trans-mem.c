@@ -4499,7 +4499,7 @@ ipa_tm_transform_transaction (struct cgraph_node *node)
 	{
 	  transaction_subcode_ior (region, GTMA_DOES_GO_IRREVOCABLE);
 	  transaction_subcode_ior (region, GTMA_MAY_ENTER_IRREVOCABLE);
-	  break;
+	  continue;
 	}
 
       need_ssa_rename |=

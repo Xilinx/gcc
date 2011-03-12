@@ -1,3 +1,9 @@
+2011-03-13  Richard Henderson  <rth@redhat.com>
+
+	PR 48074
+	* trans-mem.c (ipa_tm_transform_transaction): Don't break after
+	processing an irrevocable region.
+
 2011-03-08  Richard Henderson  <rth@redhat.com>
 
 	PR 47952
