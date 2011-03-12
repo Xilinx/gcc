@@ -1,5 +1,12 @@
 2011-03-11  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.target/i386/stackalign/return-3.c: Require ia32 instead
+	of ilp32.
+
+	* lib/target-supports.exp (check_effective_target_ia32): New.
+
+2011-03-11  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR target/47446
 	* gcc.target/i386/pr47446-3.c: New.
 
