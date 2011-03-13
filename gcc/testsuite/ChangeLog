@@ -1,4 +1,25 @@
+2011-03-12  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/48066
+	* gfortran.dg/intrinsic_ifunction_2.f90:  Correct PR number.
+
+2011-03-12  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/48066
+	* gfortran.dg/intrinsic_ifunction_2.f90:  New test case.
+
+2011-03-12  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/48059
+	* gfortran.dg/class_41.f03: New.
+
+2011-03-11  Dodji Seketeli  <dodji@redhat.com>
+
+	* g++.dg/conversion/cast3.C: New test.
+
 2011-03-11  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/error45.C: New.
 
 	* g++.dg/parse/no-type-defn1.C: New.
 
