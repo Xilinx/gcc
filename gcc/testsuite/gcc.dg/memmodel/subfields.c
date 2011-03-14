@@ -1,8 +1,6 @@
 /* { dg-do link } */
-/* { dg-options "-O2" } */
+/* { dg-options "-O2 --param allow-packed-store-data-races=0" } */
 /* { dg-final { memmodel-gdb-test } } */
-
-/* FIXME: I can't get this to fail.  */
 
 #include <stdio.h>
 #include "memmodel.h"

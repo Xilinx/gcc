@@ -8897,6 +8897,26 @@ partitions.
 The maximum number of namespaces to consult for suggestions when C++
 name lookup fails for an identifier.  The default is 1000.
 
+@item allow-load-data-races
+Allow optimizers to introduce new data races on loads.
+Set to 1 to allow, otherwise to 0.  This option is enabled by default
+unless implicitly set by the @option{-fmemory-model=} option.
+
+@item allow-store-data-races
+Allow optimizers to introduce new data races on stores.
+Set to 1 to allow, otherwise to 0.  This option is enabled by default
+unless implicitly set by the @option{-fmemory-model=} option.
+
+@item allow-packed-load-data-races
+Allow optimizers to introduce new data races on packed data loads.
+Set to 1 to allow, otherwise to 0.  This option is enabled by default
+unless implicitly set by the @option{-fmemory-model=} option.
+
+@item allow-packed-store-data-races
+Allow optimizers to introduce new data races on packed data stores.
+Set to 1 to allow, otherwise to 0.  This option is enabled by default
+unless implicitly set by the @option{-fmemory-model=} option.
+
 @end table
 @end table
 

@@ -1,10 +1,10 @@
 /* { dg-do link } */
-/* { dg-options "-O2" } */
+/* { dg-options "-O2 --param allow-load-data-races=0" } */
 /* { dg-final { memmodel-gdb-test } } */
 
 /* Verify that a load of a global is not hoisted out of a loop.  This
    can introduce a data race, and is dissallowed if
-   -fno-allow-load-data-races is enabled. */
+   --param allow-load-data-races is 0. */
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,14 +1,12 @@
 /* { dg-do link } */
-/* { dg-options "-O2" } */
+/* { dg-options "-O2 --param allow-store-data-races=0" } */
 /* { dg-final { memmodel-gdb-test } } */
-
-/* FIXME: I can't get this to fail.  */
 
 #include <stdio.h>
 #include "memmodel.h"
 
 /* This file tests that speculative store movement out of a loop doesn't 
-   happen.  This is disallowed when -fno-allow-store-data-races is on.  */
+   happen.  This is disallowed when --param allow-store-data-races is 0.  */
 
 int global = 100;
 

@@ -1,5 +1,5 @@
 /* { dg-do link } */
-/* { dg-options "-O2" } */
+/* { dg-options "-O2 --param allow-load-data-races=0" } */
 /* { dg-final { memmodel-gdb-test } } */
 
 #include <stdio.h>
@@ -8,7 +8,7 @@
 /* This is a variation on global-hoist.c where instead of a loop, we
    store global into different elements of an array in straightline
    code with an if condition.  This will catch cases where commoning
-   should be disabled when -fno-allow-load-data-races is on.  */
+   should be disabled when --param allow-load-data-races is 0.  */
 
 /* Test the FALSE path in test.  */
 
