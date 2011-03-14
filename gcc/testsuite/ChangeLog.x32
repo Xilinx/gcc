@@ -1,5 +1,9 @@
 2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.target/i386/builtin-copysign.c: Remove __LP64__ check.
+
+2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.dg/vect/costmodel/x86_64/x86_64-costmodel-vect.exp: Check
 	ia32.
 	* go.test/go-test.exp (go-set-goarch): Likewise.
