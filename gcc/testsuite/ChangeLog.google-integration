@@ -1,3 +1,9 @@
+2011-03-14  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/rtti/repo1.C: Skip.
+
+	Google ref 39481.
+
 2011-03-04  Diego Novillo  <dnovillo@google.com>
 
 	* lib/g++.exp (g++_init): Add $TEST_ALWAYS_FLAGS to
