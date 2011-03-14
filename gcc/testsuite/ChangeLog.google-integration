@@ -1,5 +1,9 @@
 2011-03-14  Diego Novillo  <dnovillo@google.com>
 
+	* gcc.dg/cproj-fails-with-broken-glibc.c: Just compile.
+
+2011-03-14  Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/rtti/repo1.C: Skip.
 
 	Google ref 39481.
