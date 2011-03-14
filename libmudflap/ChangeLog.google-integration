@@ -1,3 +1,7 @@
+2011-03-14  Diego Novillo  <dnovillo@google.com>
+
+	* testsuite/libmudflap.c/pass49-frag.c: XFAIL.
+
 2011-02-01  Simon Baldwin  <simonb@google.com>
 
 	* configure: Rebuild.

@@ -1,3 +1,4 @@
+/* { dg-do run } */
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -32,4 +33,4 @@ int main ()
   foo (7, "hello ", 5, " ", 3, " world ", 9, "\n");
   return 0;
 }
-/* { dg-output "hello 5 3 world 9" } */
+/* { dg-output "hello 5 3 world 9" { xfail *-*-* } } */
