@@ -4927,7 +4927,7 @@ lab_endgetargs:;
    
    {
    MELT_LOCATION("warmelt-macro.melt:1435:/ locexp");
-   melt_warning_str(0, (melt_ptr_t)(/*_.PSLOC__V5*/ meltfptr[4]), ( "ignored extra sub-{pattern | expression} in matcher"), (melt_ptr_t)(/*_.NAMED_NAME__V27*/ meltfptr[25]));}
+   melt_error_str((melt_ptr_t)(/*_.PSLOC__V5*/ meltfptr[4]), ( "ignored extra sub-{pattern | expression} in matcher"), (melt_ptr_t)(/*_.NAMED_NAME__V27*/ meltfptr[25]));}
    ;
    MELT_LOCATION("warmelt-macro.melt:1433:/ quasiblock");
    

@@ -11479,7 +11479,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /3250d7a4 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /eedfe43 checkpair", melt_magic_discr((melt_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.CBIND__V39*/ meltfptr[38]))->hd = (melt_ptr_t) (/*_.CBIND__V30*/ meltfptr[29]);
   ;
   /*^touch*/
