@@ -15685,7 +15685,13 @@ static tree cp_parser_type_id (cp_parser *parser)
 
 static tree cp_parser_template_type_arg (cp_parser *parser)
 {
-  return cp_parser_type_id_1 (parser, true, false);
+  tree r;
+  const char *saved_message = parser->type_definition_forbidden_message;
+  parser->type_definition_forbidden_message
+    = G_("types may not be defined in template arguments");
+  r = cp_parser_type_id_1 (parser, true, false);
+  parser->type_definition_forbidden_message = saved_message;
+  return r;
 }
 
 static tree cp_parser_trailing_type_id (cp_parser *parser)
@@ -20102,8 +20108,15 @@ cp_parser_single_declaration (cp_parser* parser,
     }
 
   /* Complain about missing 'typename' or other invalid type names.  */
-  if (!decl_specifiers.any_type_specifiers_p)
-    cp_parser_parse_and_diagnose_invalid_type_name (parser);
+  if (!decl_specifiers.any_type_specifiers_p
+      && cp_parser_parse_and_diagnose_invalid_type_name (parser))
+    {
+      /* cp_parser_parse_and_diagnose_invalid_type_name calls
+	 cp_parser_skip_to_end_of_block_or_statement, so don't try to parse
+	 the rest of this declaration.  */
+      decl = error_mark_node;
+      goto out;
+    }
 
   /* If it's not a template class, try for a template function.  If
      the next token is a `;', then this declaration does not declare
@@ -20137,6 +20150,13 @@ cp_parser_single_declaration (cp_parser* parser,
       }
     }
 
+  /* Look for a trailing `;' after the declaration.  */
+  if (!function_definition_p
+      && (decl == error_mark_node
+	  || !cp_parser_require (parser, CPP_SEMICOLON, RT_SEMICOLON)))
+    cp_parser_skip_to_end_of_block_or_statement (parser);
+
+ out:
   pop_deferring_access_checks ();
 
   /* Clear any current qualification; whatever comes next is the start
@@ -20144,11 +20164,6 @@ cp_parser_single_declaration (cp_parser* parser,
   parser->scope = NULL_TREE;
   parser->qualifying_scope = NULL_TREE;
   parser->object_scope = NULL_TREE;
-  /* Look for a trailing `;' after the declaration.  */
-  if (!function_definition_p
-      && (decl == error_mark_node
-	  || !cp_parser_require (parser, CPP_SEMICOLON, RT_SEMICOLON)))
-    cp_parser_skip_to_end_of_block_or_statement (parser);
 
   return decl;
 }
