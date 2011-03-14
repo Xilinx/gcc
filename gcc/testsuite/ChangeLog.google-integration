@@ -1,5 +1,11 @@
 2011-03-14  Diego Novillo  <dnovillo@google.com>
 
+	* gcc.dg/guality/vla-1.c: XFAIL.
+	* gcc.dg/guality/vla-2.c: XFAIL.
+	* gcc.dg/guality/sra-1.c: XFAIL.
+
+2011-03-14  Diego Novillo  <dnovillo@google.com>
+
 	* gcc.dg/cproj-fails-with-broken-glibc.c: Just compile.
 
 2011-03-14  Diego Novillo  <dnovillo@google.com>
