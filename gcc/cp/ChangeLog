@@ -1,3 +1,32 @@
+2011-03-11  Dodji Seketeli  <dodji@redhat.com>
+
+	* call.c (add_builtin_candidate)<case INDIRECT_REF>: The type of
+	the argument of the indirection operator should not be dependent.
+	Fix the comment.
+
+2011-03-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47125
+	* pt.c (tsubst) [TYPENAME_TYPE]: Only give errors if tf_error.
+
+	PR c++/47144
+	* parser.c (cp_parser_template_type_arg): Set
+	type_definition_forbidden_message.
+
+	PR c++/47808
+	* decl.c (compute_array_index_type): Discard folding
+	if it didn't produce a constant.
+
+2011-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/48035
+	* init.c (build_zero_init_1): Extracted from build_zero_init.
+	Add FIELD_SIZE argument, if non-NULL and field bit_position
+	as not smaller than that, don't add that field's initializer.
+	Pass DECL_SIZE as last argument to build_zero_init_1
+	for DECL_FIELD_IS_BASE fields.
+	(build_zero_init): Use build_zero_init_1.
+
 2011-03-10  Jason Merrill  <jason@redhat.com>
 
 	PR c++/48029

@@ -1,3 +1,98 @@
+2011-03-14  Andreas Tobler  <andreast@fgznet.ch>
+
+	* config/rs6000/freebsd.h: (RELOCATABLE_NEEDS_FIXUP): Define in
+	terms of target_flags_explicit. Adjust copyright year.
+
+	* config.gcc: Add FreeBSD PowerPC soft-float libgcc bits.
+	* config/rs6000/t-freebsd: New file. Add override for
+	LIB2FUNCS_EXTRA.
+
+2011-03-13  Chris Demetriou  <cgd@google.com>
+
+	* doc/invoke.texi (-fdiagnostics-show-option): Replace with...
+	(-fno-diagnostics-show-option): this, to reflect current default.
+	(-Werror=): Update text about -fno-diagnostics-show-option.
+
+2011-03-12  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR target/48053
+	* config/rs6000/predicates.md (easy_vector_constant_add_self,
+	easy_vector_constant_msb): Do not handle V2DImode and V2DFmode.
+	* config/rs6000/rs6000.c (const_vector_elt_as_int): Add assert that
+	mode is not V2DImode or V2DFmode.
+	(vspltis_constant): Do not handle V2DImode and V2DFmode.
+	(rs6000_expand_vector_init): Replace copy_to_reg with copy_to_mode_reg.
+	* config/rs6000/rs6000.md (movdi_internal32): Allow setting VSX
+	registers to 0.
+	(movdi_internal64): Likewise.
+
+2011-03-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/47127
+	* graphite-clast-to-gimple.c (build_cloog_prog): Removed state
+	parameter.
+	(set_cloog_options): Same.
+	(scop_to_clast): Same.
+	(print_clast_stmt): Do not call cloog_state_malloc and
+	cloog_state_free.
+	(print_generated_program): Same.
+	(gloog): Same.
+	* graphite-clast-to-gimple.h (cloog_state): Declared.
+	(scop_to_clast): Adjust declaration.
+	* graphite.c (cloog_state): Defined here.
+	(graphite_initialize): Call cloog_state_malloc.
+	(graphite_finalize): Call cloog_state_free.
+
+2011-03-11  Jason Merrill  <jason@redhat.com>
+
+	* attribs.c (lookup_attribute_spec): Take const_tree.
+	* tree.h: Adjust.
+
+2011-03-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sparc/sparc.c (sparc_option_override): Use
+	PROCESSOR_NIAGARA2 not PROCESSOR_NIAGARA for "niagara2".
+
+2011-03-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48067
+	* tree-ssa-math-opts.c (convert_mult_to_fma): Verify the
+	multiplication result will be only used once on the target
+	stmt.
+
+2011-03-11  Richard Guenther  <rguenther@suse.de>
+
+	* doc/invoke.texi (max-inline-insns-single): Adjust default value.
+
+2011-03-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48073
+	* tree.c (find_decls_types_r): Do not walk types only reachable
+	from IDENTIFIER_NODEs.
+
+2011-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/48044
+	* ipa.c (cgraph_remove_unreachable_nodes): Enqueue
+	all vnode->force_output nodes as needed.
+
+2011-03-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48069
+	* tree.c (type_hash_eq): Use COMPLETE_TYPE_P, not
+	COMPLETE_OR_UNBOUND_ARRAY_TYPE_P.
+
+2011-03-11  Martin Jambor  <mjambor@suse.cz>
+
+	* cgraphunit.c (verify_cgraph_node): Call cgraph_get_node instead of
+	cgraph_node.
+
+2011-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48063
+	* ipa-inline.c (cgraph_decide_inlining): Don't try to
+	inline functions called once if !tree_can_inline_p (node->callers).
+
 2011-03-11  Chen Liqin  <liqin.gcc@gmail.com>
 
 	* config.gcc (score-*-elf): Add extra_parts .., update tmake_file and

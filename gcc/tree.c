@@ -4822,7 +4822,8 @@ find_decls_types_r (tree *tp, int *ws, void *data)
       fld_worklist_push (BLOCK_ABSTRACT_ORIGIN (t), fld);
     }
 
-  fld_worklist_push (TREE_TYPE (t), fld);
+  if (TREE_CODE (t) != IDENTIFIER_NODE)
+    fld_worklist_push (TREE_TYPE (t), fld);
 
   return NULL_TREE;
 }
@@ -5988,8 +5989,7 @@ type_hash_eq (const void *va, const void *vb)
   /* Be careful about comparing arrays before and after the element type
      has been completed; don't compare TYPE_ALIGN unless both types are
      complete.  */
-  if (COMPLETE_OR_UNBOUND_ARRAY_TYPE_P (a->type)
-      && COMPLETE_OR_UNBOUND_ARRAY_TYPE_P (b->type)
+  if (COMPLETE_TYPE_P (a->type) && COMPLETE_TYPE_P (b->type)
       && (TYPE_ALIGN (a->type) != TYPE_ALIGN (b->type)
 	  || TYPE_MODE (a->type) != TYPE_MODE (b->type)))
     return 0;
