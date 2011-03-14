@@ -3712,8 +3712,14 @@ cp_parser_primary_expression (cp_parser *parser,
       if (c_dialect_objc ())
         /* We have an Objective-C++ message. */
         return cp_parser_objc_expression (parser);
-      maybe_warn_cpp0x (CPP0X_LAMBDA_EXPR);
-      return cp_parser_lambda_expression (parser);
+      {
+	tree lam = cp_parser_lambda_expression (parser);
+	/* Don't warn about a failed tentative parse.  */
+	if (cp_parser_error_occurred (parser))
+	  return error_mark_node;
+	maybe_warn_cpp0x (CPP0X_LAMBDA_EXPR);
+	return lam;
+      }
 
     case CPP_OBJC_STRING:
       if (c_dialect_objc ())
@@ -7266,10 +7272,19 @@ cp_parser_constant_expression (cp_parser* parser,
     = saved_integral_constant_expression_p;
   parser->allow_non_integral_constant_expression_p
     = saved_allow_non_integral_constant_expression_p;
+  if (cxx_dialect >= cxx0x)
+    {
+      /* Require an rvalue constant expression here; that's what our
+	 callers expect.  Reference constant expressions are handled
+	 separately in e.g. cp_parser_template_argument.  */
+      bool is_const = potential_rvalue_constant_expression (expression);
+      parser->non_integral_constant_expression_p = !is_const;
+      if (!is_const && !allow_non_constant_p)
+	require_potential_rvalue_constant_expression (expression);
+    }
   if (allow_non_constant_p)
     *non_constant_p = parser->non_integral_constant_expression_p;
-  else if (parser->non_integral_constant_expression_p
-	   && cxx_dialect < cxx0x)
+  else if (parser->non_integral_constant_expression_p)
     expression = error_mark_node;
   parser->non_integral_constant_expression_p
     = saved_non_integral_constant_expression_p;
@@ -8671,9 +8686,6 @@ cp_parser_condition (cp_parser* parser)
 	    }
 	  if (BRACE_ENCLOSED_INITIALIZER_P (initializer))
 	    maybe_warn_cpp0x (CPP0X_INITIALIZER_LISTS);
-
-	  if (!non_constant_p)
-	    initializer = fold_non_dependent_expr (initializer);
 
 	  /* Process the initializer.  */
 	  cp_finish_decl (decl,
@@ -10212,6 +10224,7 @@ cp_parser_static_assert(cp_parser *parser, bool member_p)
   tree message;
   cp_token *token;
   location_t saved_loc;
+  bool dummy;
 
   /* Peek at the `static_assert' token so we can keep track of exactly
      where the static assertion started.  */
@@ -10231,11 +10244,12 @@ cp_parser_static_assert(cp_parser *parser, bool member_p)
   /* Parse the `(' starting the static assertion condition.  */
   cp_parser_require (parser, CPP_OPEN_PAREN, RT_OPEN_PAREN);
 
-  /* Parse the constant-expression.  */
+  /* Parse the constant-expression.  Allow a non-constant expression
+     here in order to give better diagnostics in finish_static_assert.  */
   condition = 
     cp_parser_constant_expression (parser,
-                                   /*allow_non_constant_p=*/false,
-                                   /*non_constant_p=*/NULL);
+                                   /*allow_non_constant_p=*/true,
+                                   /*non_constant_p=*/&dummy);
 
   /* Parse the separating `,'.  */
   cp_parser_require (parser, CPP_COMMA, RT_COMMA);
@@ -15115,7 +15129,7 @@ cp_parser_direct_declarator (cp_parser* parser,
 		= cp_parser_constant_expression (parser,
 						 /*allow_non_constant=*/true,
 						 &non_constant_p);
-	      if (!non_constant_p || cxx_dialect >= cxx0x)
+	      if (!non_constant_p)
 		/* OK */;
 	      /* Normally, the array bound must be an integral constant
 		 expression.  However, as an extension, we allow VLAs
@@ -15942,6 +15956,7 @@ cp_parser_parameter_declaration_list (cp_parser* parser, bool *is_error)
 	{
 	  retrofit_lang_decl (decl);
 	  DECL_PARM_INDEX (decl) = ++index;
+	  DECL_PARM_LEVEL (decl) = function_parm_depth ();
 	}
 
       /* Add the new parameter to the list.  */
@@ -16874,6 +16889,7 @@ cp_parser_class_specifier (cp_parser* parser)
   tree old_scope = NULL_TREE;
   tree scope = NULL_TREE;
   tree bases;
+  cp_token *closing_brace;
 
   push_deferring_access_checks (dk_no_deferred);
 
@@ -16943,7 +16959,7 @@ cp_parser_class_specifier (cp_parser* parser)
     cp_parser_member_specification_opt (parser);
 
   /* Look for the trailing `}'.  */
-  cp_parser_require (parser, CPP_CLOSE_BRACE, RT_CLOSE_BRACE);
+  closing_brace = cp_parser_require (parser, CPP_CLOSE_BRACE, RT_CLOSE_BRACE);
   /* Look for trailing attributes to apply to this class.  */
   if (cp_parser_allow_gnu_extensions_p (parser))
     attributes = cp_parser_attributes_opt (parser);
@@ -17018,8 +17034,9 @@ cp_parser_class_specifier (cp_parser* parser)
       }
 
     /* If we don't have a type, then something is very wrong and we
-       shouldn't try to do anything clever.  */
-    if (TYPE_P (type) && want_semicolon)
+       shouldn't try to do anything clever.  Likewise for not seeing the
+       closing brace.  */
+    if (closing_brace && TYPE_P (type) && want_semicolon)
       {
 	cp_token_position prev
 	  = cp_lexer_previous_token_position (parser->lexer);

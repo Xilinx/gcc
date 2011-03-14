@@ -44,6 +44,7 @@ alpha port		Richard Henderson	rth@redhat.com
 arm port		Nick Clifton		nickc@redhat.com
 arm port		Richard Earnshaw	richard.earnshaw@arm.com
 arm port		Paul Brook		paul@codesourcery.com
+arm port		Ramana Radhakrishnan	ramana.radhakrishnan@arm.com
 avr port		Denis Chertykov		chertykov@gmail.com
 avr port		Anatoly Sokolov		aesok@post.ru
 avr port		Eric Weddington		eric.weddington@atmel.com
@@ -126,7 +127,7 @@ VMS			Douglas Rupp		rupp@gnat.com
 VMS			Tristan Gingold		gingold@adacore.com
 VxWorks ports		Nathan Sidwell		nathan@codesourcery.com
 windows, cygwin, mingw	Christopher Faylor	cgf@gcc.gnu.org
-windows, cygwin, mingw	Kai Tietz		kai.tietz@onevision.com
+windows, cygwin, mingw	Kai Tietz		ktietz@redhat.com
 windows, cygwin, mingw	Dave Korn		dave.korn.cygwin@gmail.com
 
 			Language Front Ends Maintainers
@@ -505,7 +506,7 @@ Le-Chun Wu					lcwu@google.com
 Mingjie Xing					mingjie.xing@gmail.com
 Canqun Yang					canqun@nudt.edu.cn
 Jeffrey Yasskin					jyasskin@google.com
-Joey Ye						joey.ye@intel.com
+Joey Ye						joey.ye@arm.com
 David Yuste					david.yuste@gmail.com
 Kenneth Zadeck					zadeck@naturalbridge.com
 Shujing Zhao					pearly.zhao@oracle.com

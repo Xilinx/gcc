@@ -936,14 +936,6 @@ Var_expression::do_lower(Gogo* gogo, Named_object* function, int)
   return this;
 }
 
-// Return the name of the variable.
-
-const std::string&
-Var_expression::name() const
-{
-  return this->variable_->name();
-}
-
 // Return the type of a reference to a variable.
 
 Type*
@@ -955,6 +947,15 @@ Var_expression::do_type()
     return this->variable_->result_var_value()->type();
   else
     gcc_unreachable();
+}
+
+// Determine the type of a reference to a variable.
+
+void
+Var_expression::do_determine_type(const Type_context*)
+{
+  if (this->variable_->is_variable())
+    this->variable_->var_value()->determine_type();
 }
 
 // Something takes the address of this variable.  This means that we
@@ -1115,14 +1116,6 @@ Expression::make_sink(source_location location)
 // The value is unchanging.  Initializing a constant to the address of
 // a function seems like it could work, though there might be little
 // point to it.
-
-// Return the name of the function.
-
-const std::string&
-Func_expression::name() const
-{
-  return this->function_->name();
-}
 
 // Traversal.
 
@@ -2349,10 +2342,6 @@ class Const_expression : public Expression
   Named_object*
   named_object()
   { return this->constant_; }
-
-  const std::string&
-  name() const
-  { return this->constant_->name(); }
 
   // Check that the initializer does not refer to the constant itself.
   void
@@ -7013,6 +7002,8 @@ Builtin_call_expression::do_integer_constant_value(bool iota_is_constant,
 	return false;
       if (arg_type->is_abstract())
 	return false;
+      if (arg_type->named_type() != NULL)
+	arg_type->named_type()->convert(this->gogo_);
       tree arg_type_tree = arg_type->get_tree(this->gogo_);
       if (arg_type_tree == error_mark_node)
 	return false;
@@ -7057,6 +7048,8 @@ Builtin_call_expression::do_integer_constant_value(bool iota_is_constant,
       Type* st = struct_expr->type();
       if (st->struct_type() == NULL)
 	return false;
+      if (st->named_type() != NULL)
+	st->named_type()->convert(this->gogo_);
       tree struct_tree = st->get_tree(this->gogo_);
       gcc_assert(TREE_CODE(struct_tree) == RECORD_TYPE);
       tree field = TYPE_FIELDS(struct_tree);
@@ -7246,6 +7239,9 @@ Builtin_call_expression::do_type()
 void
 Builtin_call_expression::do_determine_type(const Type_context* context)
 {
+  if (!this->determining_types())
+    return;
+
   this->fn()->determine_type_no_context();
 
   const Expression_list* args = this->args();
@@ -8281,8 +8277,9 @@ Call_expression::do_lower(Gogo* gogo, Named_object* function, int)
 	  for (size_t i = 0; i < rc; ++i)
 	    args->push_back(Expression::make_call_result(call, i));
 	  // We can't return a new call expression here, because this
-	  // one may be referenced by Call_result expressions.  FIXME.
-	  delete this->args_;
+	  // one may be referenced by Call_result expressions.  We
+	  // also can't delete the old arguments, because we may still
+	  // traverse them somewhere up the call stack.  FIXME.
 	  this->args_ = args;
 	}
     }
@@ -8481,6 +8478,9 @@ Call_expression::do_type()
 void
 Call_expression::do_determine_type(const Type_context*)
 {
+  if (!this->determining_types())
+    return;
+
   this->fn_->determine_type_no_context();
   Function_type* fntype = this->get_function_type();
   const Typed_identifier_list* parameters = NULL;
@@ -8504,6 +8504,21 @@ Call_expression::do_determine_type(const Type_context*)
 	  else
 	    (*pa)->determine_type_no_context();
 	}
+    }
+}
+
+// Called when determining types for a Call_expression.  Return true
+// if we should go ahead, false if they have already been determined.
+
+bool
+Call_expression::determining_types()
+{
+  if (this->types_are_determined_)
+    return false;
+  else
+    {
+      this->types_are_determined_ = true;
+      return true;
     }
 }
 
@@ -8792,10 +8807,21 @@ Call_expression::do_get_tree(Translate_context* context)
       return error_mark_node;
     }
 
-  // This is to support builtin math functions when using 80387 math.
   tree fndecl = fn;
   if (TREE_CODE(fndecl) == ADDR_EXPR)
     fndecl = TREE_OPERAND(fndecl, 0);
+
+  // Add a type cast in case the type of the function is a recursive
+  // type which refers to itself.
+  if (!DECL_P(fndecl) || !DECL_IS_BUILTIN(fndecl))
+    {
+      tree fnt = fntype->get_tree(gogo);
+      if (fnt == error_mark_node)
+	return error_mark_node;
+      fn = fold_convert_loc(location, fnt, fn);
+    }
+
+  // This is to support builtin math functions when using 80387 math.
   tree excess_type = NULL_TREE;
   if (DECL_P(fndecl)
       && DECL_IS_BUILTIN(fndecl)
@@ -8841,7 +8867,7 @@ Call_expression::do_get_tree(Translate_context* context)
   // to the correct type.
   if (TREE_TYPE(ret) == ptr_type_node)
     {
-      tree t = this->type()->get_tree(gogo);
+      tree t = this->type()->base()->get_tree(gogo);
       ret = fold_convert_loc(location, t, ret);
     }
 
@@ -8988,8 +9014,7 @@ Call_result_expression::do_check_types(Gogo*)
 void
 Call_result_expression::do_determine_type(const Type_context*)
 {
-  if (this->index_ == 0)
-    this->call_->determine_type_no_context();
+  this->call_->determine_type_no_context();
 }
 
 // Return the tree.
@@ -9888,12 +9913,39 @@ Map_index_expression::get_value_pointer(Translate_context* context,
 
   // We need to pass in a pointer to the key, so stuff it into a
   // variable.
-  tree tmp = create_tmp_var(TREE_TYPE(index_tree), get_name(index_tree));
-  DECL_IGNORED_P(tmp) = 0;
-  DECL_INITIAL(tmp) = index_tree;
-  tree make_tmp = build1(DECL_EXPR, void_type_node, tmp);
-  tree tmpref = fold_convert(const_ptr_type_node, build_fold_addr_expr(tmp));
-  TREE_ADDRESSABLE(tmp) = 1;
+  tree tmp;
+  tree make_tmp;
+  if (current_function_decl != NULL)
+    {
+      tmp = create_tmp_var(TREE_TYPE(index_tree), get_name(index_tree));
+      DECL_IGNORED_P(tmp) = 0;
+      DECL_INITIAL(tmp) = index_tree;
+      make_tmp = build1(DECL_EXPR, void_type_node, tmp);
+      TREE_ADDRESSABLE(tmp) = 1;
+    }
+  else
+    {
+      tmp = build_decl(this->location(), VAR_DECL, create_tmp_var_name("M"),
+		       TREE_TYPE(index_tree));
+      DECL_EXTERNAL(tmp) = 0;
+      TREE_PUBLIC(tmp) = 0;
+      TREE_STATIC(tmp) = 1;
+      DECL_ARTIFICIAL(tmp) = 1;
+      if (!TREE_CONSTANT(index_tree))
+	make_tmp = fold_build2_loc(this->location(), INIT_EXPR, void_type_node,
+				   tmp, index_tree);
+      else
+	{
+	  TREE_READONLY(tmp) = 1;
+	  TREE_CONSTANT(tmp) = 1;
+	  DECL_INITIAL(tmp) = index_tree;
+	  make_tmp = NULL_TREE;
+	}
+      rest_of_decl_compilation(tmp, 1, 0);
+    }
+  tree tmpref = fold_convert_loc(this->location(), const_ptr_type_node,
+				 build_fold_addr_expr_loc(this->location(),
+							  tmp));
 
   static tree map_index_fndecl;
   tree call = Gogo::call_builtin(&map_index_fndecl,
@@ -9920,9 +9972,10 @@ Map_index_expression::get_value_pointer(Translate_context* context,
     return error_mark_node;
   tree ptr_val_type_tree = build_pointer_type(val_type_tree);
 
-  return build2(COMPOUND_EXPR, ptr_val_type_tree,
-		make_tmp,
-		fold_convert(ptr_val_type_tree, call));
+  tree ret = fold_convert_loc(this->location(), ptr_val_type_tree, call);
+  if (make_tmp != NULL_TREE)
+    ret = build2(COMPOUND_EXPR, ptr_val_type_tree, make_tmp, ret);
+  return ret;
 }
 
 // Make a map index expression.
@@ -11572,7 +11625,7 @@ class Composite_literal_expression : public Parser_expression
 
  private:
   Expression*
-  lower_struct(Type*);
+  lower_struct(Gogo*, Type*);
 
   Expression*
   lower_array(Type*);
@@ -11633,7 +11686,7 @@ Composite_literal_expression::do_lower(Gogo* gogo, Named_object* function, int)
   if (type->is_error_type())
     return Expression::make_error(this->location());
   else if (type->struct_type() != NULL)
-    return this->lower_struct(type);
+    return this->lower_struct(gogo, type);
   else if (type->array_type() != NULL)
     return this->lower_array(type);
   else if (type->map_type() != NULL)
@@ -11650,7 +11703,7 @@ Composite_literal_expression::do_lower(Gogo* gogo, Named_object* function, int)
 // Lower a struct composite literal.
 
 Expression*
-Composite_literal_expression::lower_struct(Type* type)
+Composite_literal_expression::lower_struct(Gogo* gogo, Type* type)
 {
   source_location location = this->location();
   Struct_type* st = type->struct_type();
@@ -11678,6 +11731,7 @@ Composite_literal_expression::lower_struct(Type* type)
 
       bool bad_key = false;
       std::string name;
+      const Named_object* no = NULL;
       switch (name_expr->classification())
 	{
 	case EXPRESSION_UNKNOWN_REFERENCE:
@@ -11685,7 +11739,7 @@ Composite_literal_expression::lower_struct(Type* type)
 	  break;
 
 	case EXPRESSION_CONST_REFERENCE:
-	  name = static_cast<Const_expression*>(name_expr)->name();
+	  no = static_cast<Const_expression*>(name_expr)->named_object();
 	  break;
 
 	case EXPRESSION_TYPE:
@@ -11695,16 +11749,16 @@ Composite_literal_expression::lower_struct(Type* type)
 	    if (nt == NULL)
 	      bad_key = true;
 	    else
-	      name = nt->name();
+	      no = nt->named_object();
 	  }
 	  break;
 
 	case EXPRESSION_VAR_REFERENCE:
-	  name = name_expr->var_expression()->name();
+	  no = name_expr->var_expression()->named_object();
 	  break;
 
 	case EXPRESSION_FUNC_REFERENCE:
-	  name = name_expr->func_expression()->name();
+	  no = name_expr->func_expression()->named_object();
 	  break;
 
 	case EXPRESSION_UNARY:
@@ -11750,6 +11804,23 @@ Composite_literal_expression::lower_struct(Type* type)
 	{
 	  error_at(name_expr->location(), "expected struct field name");
 	  return Expression::make_error(location);
+	}
+
+      if (no != NULL)
+	{
+	  name = no->name();
+
+	  // A predefined name won't be packed.  If it starts with a
+	  // lower case letter we need to check for that case, because
+	  // the field name will be packed.
+	  if (!Gogo::is_hidden_name(name)
+	      && name[0] >= 'a'
+	      && name[0] <= 'z')
+	    {
+	      Named_object* gno = gogo->lookup_global(name.c_str());
+	      if (gno == no)
+		name = gogo->pack_hidden_name(name, false);
+	    }
 	}
 
       unsigned int index;
@@ -11812,6 +11883,7 @@ Composite_literal_expression::lower_array(Type* type)
 	{
 	  mpz_t ival;
 	  mpz_init(ival);
+
 	  Type* dummy;
 	  if (!index_expr->integer_constant_value(true, ival, &dummy))
 	    {
@@ -11820,12 +11892,14 @@ Composite_literal_expression::lower_array(Type* type)
 		       "index expression is not integer constant");
 	      return Expression::make_error(location);
 	    }
+
 	  if (mpz_sgn(ival) < 0)
 	    {
 	      mpz_clear(ival);
 	      error_at(index_expr->location(), "index expression is negative");
 	      return Expression::make_error(location);
 	    }
+
 	  index = mpz_get_ui(ival);
 	  if (mpz_cmp_ui(ival, index) != 0)
 	    {
@@ -11833,7 +11907,30 @@ Composite_literal_expression::lower_array(Type* type)
 	      error_at(index_expr->location(), "index value overflow");
 	      return Expression::make_error(location);
 	    }
+
+	  Named_type* ntype = Type::lookup_integer_type("int");
+	  Integer_type* inttype = ntype->integer_type();
+	  mpz_t max;
+	  mpz_init_set_ui(max, 1);
+	  mpz_mul_2exp(max, max, inttype->bits() - 1);
+	  bool ok = mpz_cmp(ival, max) < 0;
+	  mpz_clear(max);
+	  if (!ok)
+	    {
+	      mpz_clear(ival);
+	      error_at(index_expr->location(), "index value overflow");
+	      return Expression::make_error(location);
+	    }
+
 	  mpz_clear(ival);
+
+	  // FIXME: Our representation isn't very good; this avoids
+	  // thrashing.
+	  if (index > 0x1000000)
+	    {
+	      error_at(index_expr->location(), "index too large for compiler");
+	      return Expression::make_error(location);
+	    }
 	}
 
       if (index == vals.size())
@@ -12236,7 +12333,11 @@ tree
 Receive_expression::do_get_tree(Translate_context* context)
 {
   Channel_type* channel_type = this->channel_->type()->channel_type();
-  gcc_assert(channel_type != NULL);
+  if (channel_type == NULL)
+    {
+      gcc_assert(this->channel_->type()->is_error_type());
+      return error_mark_node;
+    }
   Type* element_type = channel_type->element_type();
   tree element_type_tree = element_type->get_tree(context->gogo());
 
@@ -12273,7 +12374,10 @@ Send_expression::do_traverse(Traverse* traverse)
 Type*
 Send_expression::do_type()
 {
-  return Type::lookup_bool_type();
+  if (this->is_value_discarded_)
+    return Type::make_void_type();
+  else
+    return Type::lookup_bool_type();
 }
 
 // Set types.

@@ -1,3 +1,135 @@
+2011-03-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48003
+	* pt.c (convert_nontype_argument): Fix -fpermissive allowing
+	integer overflow.
+	* semantics.c (potential_constant_expression_1): Check TREE_OVERFLOW.
+
+	PR c++/48015
+	* init.c (constant_value_1): Always require init to be TREE_CONSTANT.
+
+	PR c++/48008
+	* mangle.c (write_type): Strip cv-quals from FUNCTION_TYPE here.
+	(write_CV_qualifiers_for_type): Not here.
+
+2011-03-06  Joseph Myers  <joseph@codesourcery.com>
+
+	* lang-specs.h: Match -save-temps* instead of -save-temps.
+
+2011-03-05  Jason Merrill  <jason@redhat.com>
+
+	* mangle.c (write_expression): Change ABI v6 to v5.
+	(write_type): Likewise.
+
+2011-03-04  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/47497
+	* optimize.c (maybe_clone_body): Update call of cgraph_same_body_alias
+	and cgraph_add_thunk.
+	* method.c (make_alias_for_thunk, use_thunk): Likewise.
+	* mangle.c (mangle_decl): Likewise.
+
+2011-03-04  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47971
+	* pt.c (tsubst_copy_and_build) [PSEUDO_DTOR_EXPR]: Use tsubst for type.
+	(tsubst_copy) [default]: Just return t if !ENABLE_CHECKING.
+
+	PR c++/46220
+	* search.c (check_final_overrider): Allow pointer to same incomplete
+	class type with different cv-quals.
+
+2011-03-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/47974
+	* pt.c (tsubst_template_args): Check argument t for error_mark_node.
+
+2011-03-03  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47950
+	* pt.c (tsubst_copy_and_build) [TARGET_EXPR]: Retain TREE_CONSTANT.
+
+2011-03-02  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47950
+	* parser.c (cp_parser_condition): Don't fold_non_dependent_expr here.
+
+	PR c++/47774
+	* tree.c (build_vec_init_elt): Split out from...
+	(build_vec_init_expr): ...here.
+	(diagnose_non_constexpr_vec_init): New fn.
+	* semantics.c (potential_constant_expression_1): Use it.
+	* cp-tree.h: Declare it.
+
+2011-03-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46159
+	* parser.c (cp_parser_primary_expression): Don't warn about a
+	failed tentative parse.
+
+	PR c++/47200
+	* semantics.c (cxx_bind_parameters_in_call): Don't call
+	adjust_temp_type on non-constant args.
+
+	PR c++/47851
+	* call.c (standard_conversion): Provide requested cv-quals on
+	class rvalue conversion.
+
+	PR c++/46282
+	* decl2.c (grokbitfield): Handle type-dependent width.
+
+2011-02-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47873
+	* class.c (update_vtable_entry_for_fn): Check BINFO_LOST_PRIMARY_P
+	after checking for a non-thunk.
+
+2011-02-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47904
+	* tree.c (cp_tree_equal): Compare DECL_PARM_LEVEL.
+	* pt.c (iterative_hash_template_arg): And hash it.
+
+	PR c++/47897
+	* semantics.c (non_const_var_error): Split out from...
+	(cxx_eval_constant_expression): ...here.
+	(potential_constant_expression_1) [VAR_DECL]: Use it.
+	Allow dependent variables.
+
+2011-02-24  Jason Merrill  <jason@redhat.com>
+
+	* parser.c (cp_parser_constant_expression): Set
+	non_integral_constant_expression correctly for C++0x too.
+	(cp_parser_static_assert): Allow non-constant expression.
+	(cp_parser_direct_declarator): Expect non_constant_p to be set
+	properly for C++0x.
+	* pt.c (value_dependent_expression_p): Handle TYPEID_EXPR.
+	* semantics.c (maybe_constant_value): Check type_unknown_p too.
+	(potential_rvalue_constant_expression): New.
+	(require_potential_rvalue_constant_expression): New.
+
+2011-02-23  Jason Merrill  <jason@redhat.com>
+
+	* cp-tree.h (DECL_PARM_LEVEL): New.
+	(struct lang_decl_parm): Add level field.
+	* name-lookup.c (function_parm_depth): New fn.
+	* name-lookup.h: Declare it.
+	* parser.c (cp_parser_parameter_declaration_list): Use it.
+	* mangle.c (struct globals): Add parm_depth field.
+	(write_bare_function_type): Adjust it.
+	(write_expression): Include the level delta in PARM_DECL mangling
+	for abi >= 6.
+
+	* semantics.c (finish_decltype_type): Remove shortcut for decltype
+	of id-expression.
+	* mangle.c (write_type) [DECLTYPE_TYPE]: Strip it here for abi < 6.
+
+2011-02-23  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/46868
+	* parser.c (cp_parser_class_specifier): Require a closing brace
+	to attempt error recovery.
+
 2011-02-23  Jakub Jelinek  <jakub@redhat.com>
 
 	PR c++/47833
