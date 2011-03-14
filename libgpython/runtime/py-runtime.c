@@ -31,7 +31,6 @@ along with GCC; see the file COPYING3.  If not see
 
 gpy_vector_t * gpy_primitives;
 gpy_vector_t * gpy_namespace_vec;
-gpy_callable_t * callables = NULL;
 
 /* Used for stack-traces ... */
 gpy_vector_t * gpy_call_stack;
@@ -50,15 +49,73 @@ void gpy_dump_current_stack_trace (void)
   return;
 }
 
-void gpy_rr_set_callables (gpy_callable_t * c)
+void gpy_rr_register_callable (gpy_std_callable call, int nargs,
+			       char * ident)
 {
-  callables = c;
-  int idx = 0;
-  while ( c[idx].ident != NULL )
+  gpy_object_t * c = NULL_OBJECT;
+
+  gpy_callable_t * call_ = (gpy_callable_t *)
+    gpy_malloc (sizeof(gpy_callable_t));
+
+  call_->ident = ident;
+  call_->n = nargs;
+  call_->call = call;
+
+  c = (gpy_object_t *)
+    gpy_malloc (sizeof(gpy_object_t));
+  c->T = TYPE_CALLABLE;
+  c->o.call = call_;
+
+  gpy_hashval_t h = gpy_dd_hash_string (ident);
+
+  gpy_hash_entry_t * f = gpy_rr_lookup_decl (h, gpy_namespace_vec);
+  if (f)
     {
-      debug ("registerd call <...>!\n");
-      idx++;
+      gpy_object_t * prev = f->data;
+      gpy_free (prev); // fix later
+
+      f->data = c;
     }
+  else
+    {
+      void ** r = gpy_dd_hash_insert (h, c, Gpy_Vec_Head (gpy_namespace_vec,
+							  gpy_hash_tab_t *));
+      if (r)
+	fatal ("error registering decl <%s>!\n", ident);
+    }
+}
+
+void gpy_rr_register_decl (char * ident)
+{
+  gpy_hashval_t h = gpy_dd_hash_string (ident);
+  gpy_hash_entry_t * f = gpy_rr_lookup_decl (h, gpy_namespace_vec);
+  if (!f)
+    {
+      gpy_object_t * o = (gpy_object_t *)
+	gpy_malloc (sizeof (gpy_object_t));
+      o->T = TYPE_NULL;
+      o->o.object_state = NULL;
+
+      void ** r = gpy_dd_hash_insert (h, o, Gpy_Vec_Head (gpy_namespace_vec,
+							  gpy_hash_tab_t *));
+      if (r)
+	fatal ("error registering decl <%s>!\n", ident);
+    }
+}
+
+void gpy_rr_set_decl_val (char *ident, gpy_object_t *o)
+{
+  gpy_hashval_t h = gpy_dd_hash_string (ident);
+  gpy_hash_entry_t * f = gpy_rr_lookup_decl (h, gpy_namespace_vec);
+
+  if (f)
+    {
+      gpy_object_t * prev = f->data;
+      gpy_free (prev); // fix later... 
+      f->data = o;
+    }
+  else
+    fatal ("decl <%s> is un-registered to a current context!\n", ident);
 }
 
 void gpy_rr_init_runtime (void)
@@ -66,7 +123,7 @@ void gpy_rr_init_runtime (void)
   /* 
      Setup runtime namespace Init builtin's
   */
-  gpy_rr_init_primitives( );
+  gpy_rr_init_primitives ();
 
   gpy_namespace_vec = (gpy_vector_t*)
     gpy_malloc( sizeof(gpy_vector_t) );
@@ -76,13 +133,9 @@ void gpy_rr_init_runtime (void)
     gpy_malloc(sizeof(gpy_vector_t));
   gpy_vec_init( gpy_call_stack );
 
-  gpy_context_t * head = (gpy_context_t *)
-    gpy_malloc( sizeof(gpy_context_t) );
-
-  head->symbols = (gpy_vector_t*)
-    gpy_malloc( sizeof(gpy_vector_t) );
-  gpy_vec_init( head->symbols );
-
+  gpy_hash_tab_t * head = (gpy_hash_tab_t *)
+    gpy_malloc (sizeof(gpy_hash_tab_t));
+  gpy_dd_hash_init_table (&head);
   gpy_vec_push( gpy_namespace_vec, head );
 }
 
@@ -117,7 +170,7 @@ gpy_object_t * gpy_rr_fold_integer (int x)
 
   gpy_typedef_t * Int_def = (gpy_typedef_t *)
     gpy_primitives->vector[ 0 ];
-  gpy_assert( Int_def );
+  gpy_assert (Int_def);
 
   retval = Int_def->init_hook (Int_def, args);
   gpy_free(args);
@@ -189,28 +242,31 @@ void gpy_rr_decr_ref_count( gpy_object_t * x1 )
 
 void gpy_rr_push_context (void)
 {
-  gpy_context_t * ctx = (gpy_context_t *)
-    gpy_malloc( sizeof(gpy_context_t) );
-  ctx->symbols = (gpy_vector_t*)
-    gpy_malloc( sizeof(gpy_vector_t) );
-  gpy_vec_init( ctx->symbols );
-
-  gpy_vec_push( gpy_namespace_vec, ctx );
+  gpy_hash_tab_t * head = (gpy_hash_tab_t *)
+    gpy_malloc (sizeof(gpy_hash_tab_t));
+  gpy_dd_hash_init_table (&head);
+  
+  gpy_vec_push (gpy_namespace_vec, head);
 }
 
 void gpy_rr_pop_context (void)
 {
-  gpy_context_t * head = Gpy_Namespace_Head;
-  void ** vec = head->symbols->vector;
+  gpy_hash_tab_t * head = Gpy_Vec_Head (gpy_namespace_vec,
+					gpy_hash_tab_t *);
+  gpy_hash_entry_t * array = head->array;
 
   unsigned int idx = 0;
-  for( ; idx<(head->symbols->length); ++idx )
+  for( ; idx<(head->length); ++idx )
     {
-      gpy_object_t * i = (gpy_object_t *) vec[ idx ];
-      gpy_rr_decr_ref_count(i);
+      gpy_hash_entry_t i = array[idx];
+      if (i.data)
+	{
+	  gpy_object_t * o = i.data;
+	  gpy_rr_decr_ref_count (o);
+	}
     }
 
-  gpy_garbage_invoke_sweep( gpy_namespace_vec );
+  gpy_garbage_invoke_sweep (gpy_namespace_vec);
 
   /* Loop over for stragglers like returns which need pushed up a
      context soo they can still be garbage collected....
@@ -220,9 +276,8 @@ void gpy_rr_pop_context (void)
   */
   //....
 
-  gpy_context_t * popd = gpy_vec_pop( gpy_namespace_vec );
-  gpy_vec_free( popd->symbols );
-  gpy_free( popd );
+  gpy_hash_tab_t * popd = gpy_vec_pop (gpy_namespace_vec);
+  gpy_free (popd);
 }
 
 void gpy_rr_finalize_block_decls (int n, ...)

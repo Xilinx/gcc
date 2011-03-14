@@ -102,7 +102,7 @@ VEC(tree,gc) * gpy_process_assign (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
       
       tree decl = gpy_ctx_lookup_decl (context, opa->op_a.string);
 
-      if( !decl )
+      if (!decl)
 	{
 	  gpy_ctx_t x = VEC_index (gpy_ctx_t, context, (l-1));
 	  

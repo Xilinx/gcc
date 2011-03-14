@@ -37,39 +37,38 @@ typedef struct gpy_hash_table_t {
   gpy_hash_entry_t * array;
 } gpy_hash_tab_t ;
 
-typedef struct gpy_rr_context_t {
-  gpy_vector_t * symbols;
-  /* ... maybe more things later date! */
-} gpy_context_t ;
-typedef gpy_context_t * gpy_ctx_t;
-
 #define Gpy_Vec_Head( V,T )			\
   (T)(V->vector[V->length-1])
 
-#define Gpy_Namespace_Head			\
-  Gpy_Vec_Head(gpy_namespace_vec,gpy_ctx_t)
+extern gpy_hashval_t gpy_dd_hash_string (const char *);
 
-extern gpy_hashval_t gpy_dd_hash_string( const char * );
+extern gpy_hash_entry_t * gpy_dd_hash_lookup_table (gpy_hash_tab_t *, gpy_hashval_t);
 
-extern gpy_hash_entry_t * gpy_dd_hash_lookup_table( gpy_hash_tab_t *, gpy_hashval_t );
+extern void ** gpy_dd_hash_insert (const gpy_hashval_t , void * const ,
+				   gpy_hash_tab_t * const);
 
-extern void ** gpy_dd_hash_insert( const gpy_hashval_t , void * const ,
-				   gpy_hash_tab_t * const );
+extern void gpy_dd_hash_grow_table (gpy_hash_tab_t *);
 
-extern void gpy_dd_hash_grow_table( gpy_hash_tab_t * );
+extern void gpy_dd_hash_init_table (gpy_hash_tab_t **);
 
-extern void gpy_dd_hash_init_table( gpy_hash_tab_t ** );
+extern void gpy_vec_init (gpy_vector_t * const);
 
-extern void gpy_vec_init( gpy_vector_t * const );
+extern void gpy_vec_push (gpy_vector_t * const, void * const);
 
-extern void gpy_vec_push( gpy_vector_t * const, void * const );
+extern void * gpy_vec_pop (gpy_vector_t * const);
 
-extern void * gpy_vec_pop( gpy_vector_t * const );
+extern void gpy_vec_free (gpy_vector_t *);
 
-extern void gpy_vec_free( gpy_vector_t * );
+extern void gpy_vec_frees (gpy_vector_t *, ...);
 
-extern void gpy_vec_frees( gpy_vector_t *, ... );
+extern void gpy_obj_integer_mod_init (gpy_vector_t * const);
 
-extern void gpy_obj_integer_mod_init( gpy_vector_t * const );
+extern gpy_hash_entry_t * gpy_rr_lookup_decl (gpy_hashval_t, gpy_vector_t *);
+
+extern gpy_vector_t * gpy_primitives;
+
+extern gpy_vector_t * gpy_namespace_vec;
+
+extern gpy_vector_t * gpy_call_stack;
 
 #endif //__GCC_VECTORS_H__

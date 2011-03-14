@@ -81,8 +81,8 @@ gpy_dd_hash_lookup_table( gpy_hash_tab_t * tbl, gpy_hashval_t h )
   return retval;
 }
 
-void ** gpy_dd_hash_insert( const gpy_hashval_t h, void * const obj,
-			    gpy_hash_tab_t * const tbl )
+void ** gpy_dd_hash_insert (const gpy_hashval_t h, void * const obj,
+			    gpy_hash_tab_t * const tbl)
 {
   void **retval = NULL;
   gpy_hash_entry_t *entry = NULL;
@@ -101,7 +101,7 @@ void ** gpy_dd_hash_insert( const gpy_hashval_t h, void * const obj,
   return retval;
 }
 
-void gpy_dd_hash_grow_table( gpy_hash_tab_t * tbl )
+void gpy_dd_hash_grow_table (gpy_hash_tab_t * tbl)
 {
   unsigned int prev_size= tbl->size, size= 0, i= 0;
   gpy_hash_entry_t *prev_array= tbl->array, *array;
@@ -126,7 +126,7 @@ void gpy_dd_hash_grow_table( gpy_hash_tab_t * tbl )
 }
 
 inline
-void gpy_dd_hash_init_table( gpy_hash_tab_t ** tbl )
+void gpy_dd_hash_init_table (gpy_hash_tab_t ** tbl)
 {
   if( tbl )
     {
@@ -137,14 +137,14 @@ void gpy_dd_hash_init_table( gpy_hash_tab_t ** tbl )
 }
 
 inline
-void gpy_vec_init( gpy_vector_t * const v )
+void gpy_vec_init (gpy_vector_t * const v)
 {
   v->size = gpy_threshold_alloc( 0 );
   v->vector = (void **) gpy_calloc( v->size, sizeof(void *) );
   v->length = 0;
 }
 
-void gpy_vec_push( gpy_vector_t * const v, void * const s )
+void gpy_vec_push (gpy_vector_t * const v, void * const s)
 {
   if( s )
     {
@@ -160,7 +160,7 @@ void gpy_vec_push( gpy_vector_t * const v, void * const s )
 }
 
 inline
-void * gpy_vec_pop( gpy_vector_t * const v )
+void * gpy_vec_pop (gpy_vector_t * const v)
 {
   register void * retval = NULL;
   if( v->length > 0 )
@@ -172,7 +172,7 @@ void * gpy_vec_pop( gpy_vector_t * const v )
   return retval;
 }
 
-void * gpy_vec_index( int idx, gpy_vector_t * const v )
+void * gpy_vec_index (int idx, gpy_vector_t * const v)
 {
   void * retval = NULL;
   if( v )
@@ -198,3 +198,25 @@ void gpy_vec_free( gpy_vector_t * v )
   v = NULL;
 }
 
+gpy_hash_entry_t * gpy_rr_lookup_decl (gpy_hashval_t h,
+				       gpy_vector_t *namespace)
+{
+  gpy_hash_entry_t * retval = NULL;
+  int idx = 0;
+  int head = namespace->length - 1;
+
+  for (idx = head; idx >= 0; --idx)
+    {
+      gpy_hash_tab_t * itx = (gpy_hash_tab_t *)
+	namespace->vector[idx];
+
+      gpy_hash_entry_t * e = gpy_dd_hash_lookup_table (itx, h);
+      if (e->data)
+	{
+	  retval = e;
+	}
+      if (retval)
+	break;
+    }
+  return retval;
+}

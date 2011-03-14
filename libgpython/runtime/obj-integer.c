@@ -51,7 +51,7 @@ gpy_object_t * gpy_obj_integer_init (gpy_typedef_t * type,
   gpy_object_t * retval = NULL_OBJECT;
 
   bool check = gpy_args_check_fmt (args, "i");
-  gpy_assert(check);
+  gpy_assert (check);
 
   int val = gpy_args_lit_parse_int (args[0]);
   struct gpy_obj_integer_t * self = (struct gpy_obj_integer_t *)

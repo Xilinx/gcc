@@ -29,7 +29,8 @@ enum GPY_LIT_T {
 enum GPY_OBJECT_T {
   TYPE_OBJECT_STATE,
   TYPE_OBJECT_LIT,
-  TYPE_NULL
+  TYPE_CALLABLE,
+  TYPE_NULL,
 };
 
 typedef struct gpy_rr_literal_t {
@@ -58,6 +59,7 @@ typedef struct gpy_object_t {
   enum GPY_OBJECT_T T;
   union{
     gpy_object_state_t * object_state;
+    struct gpy_callable__t * call;
     gpy_literal_t * literal;
   } o ;
 } gpy_object_t ;
@@ -117,16 +119,6 @@ typedef struct gpy_typedef_t {
   struct gpy_number_prot_t * binary_protocol;
   struct gpy_builtin_method_def_t * methods;
 } gpy_typedef_t ;
-
-#define Gpy_Object_State_Init( x )				\
-  x = gpy_malloc( sizeof(struct gpy_rr_object_state_t) );	\
-  debug("object created at <%p>!\n", (void*)x );		\
-  x->obj_t_ident = NULL; x->ref_count = 0;			\
-  x->self = NULL; x->definition = NULL;
-
-#define Gpy_Object_Init_Ctx( x,y )					\
-  Gpy_Object_State_Init( x );						\
-  gpy_vec_push (((gpy_context_t*)(y->vector[y->length-1]))->symbols, x);
 
 #define NULL_OBJ_STATE (gpy_object_state_t *) NULL
 #define NULL_OBJECT (gpy_object_t *) NULL

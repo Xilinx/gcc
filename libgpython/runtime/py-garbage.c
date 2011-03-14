@@ -52,7 +52,7 @@ void gpy_garbage_invoke (void)
     }
 }
 
-void gpy_garbage_mark_obj__( gpy_object_t * const sym )
+void gpy_garbage_mark_obj__ (gpy_object_t * const sym)
 {
   if( sym )
     {
@@ -71,42 +71,44 @@ void gpy_garbage_mark_obj__( gpy_object_t * const sym )
     }
 }
 
-void gpy_garbage_invoke_sweep( gpy_vector_t * const context )
+void gpy_garbage_invoke_sweep (gpy_vector_t * const context)
 {
   signed long ctx_l = context->length;
   if( context )
     {
       debug("sweeping context table for garbage length <%i>...\n", ctx_l);
-      gpy_context_t * ctx_idx = NULL; signed long idx = (ctx_l - 1);
+      gpy_hash_tab_t * ctx_idx = NULL;
+      signed long idx = (ctx_l - 1);
 
-      while( idx >= 0 )
+      while (idx >= 0)
 	{
 	  ctx_idx = context->vector[ idx ];
-	  void ** s_arr = ctx_idx->symbols->vector;
+	  gpy_hash_entry_t * s_arr = ctx_idx->array;
 
-	  int i = 0; int len = (ctx_idx->symbols->length);
-	  debug("vector length <%i>!\n", len );
+	  int i = 0; int len = (ctx_idx->length);
+	  debug("table length <%i>!\n", len );
 	  for( ; i<len; ++i )
 	    {
-	      gpy_object_t * o = (gpy_object_t *) s_arr[i];
-	      gpy_assert (o->T == TYPE_OBJECT_STATE);
-	      if( o )
+	      gpy_hash_entry_t oe = s_arr[i];
+	      if (oe.data)
 		{
-		  debug( "object <%p> has ref count <%i>!\n",
-			 (void *) o, o->o.object_state->ref_count );
-
+		  gpy_object_t * o = oe.data;
+		  gpy_assert (o->T == TYPE_OBJECT_STATE);
+		  debug ("object <%p> has ref count <%i>!\n",
+			 (void *) o, o->o.object_state->ref_count);
+		  
 		  // If no references remain
-		  if( o->o.object_state->ref_count <= 0 )
+		  if (o->o.object_state->ref_count <= 0)
 		    {
 		      gpy_garbage_mark_obj( o );
-		      s_arr[ i ] = NULL;
+		      s_arr[i] = (gpy_hash_entry_t) { 0, NULL };
 		    }
 		}
 	    }
 	  idx--;
 	}
     }
-  gpy_garbage_invoke( );
+  gpy_garbage_invoke ();
 }
 
 void gpy_garbage_free_obj (gpy_object_t * x)
@@ -126,18 +128,18 @@ void gpy_garbage_free_obj (gpy_object_t * x)
       break;
     }
 
-  gpy_free(x);
+  gpy_free (x);
 }
 
 /* Cleanup the program for exit! */
-void gpy_cleanup( void )
+void gpy_cleanup (void)
 {
   debug("cleanup.......\n");
 
-  gpy_garbage_invoke_sweep( gpy_namespace_vec );
+  gpy_garbage_invoke_sweep (gpy_namespace_vec);
 
-  gpy_vec_free( gpy_primitives );
-  gpy_vec_free( gpy_namespace_vec );
+  gpy_vec_free (gpy_primitives);
+  gpy_vec_free (gpy_namespace_vec);
 
-  mpfr_free_cache( );
+  mpfr_free_cache ();
 }
