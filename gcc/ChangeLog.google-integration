@@ -1,3 +1,7 @@
+2011-03-08  Diego Novillo  <dnovillo@google.com>
+
+	Mainline merge rev 170776.
+
 2011-03-07  Diego Novillo  <dnovillo@google.com>
 
 	* Makefile.in (GCC_FOR_TARGET): Remove use of

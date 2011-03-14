@@ -319,13 +319,6 @@ enum reg_class
 /* The number of the hard register that is used to return a scalar value from a
    function call.  */
 #define RETURN_VALUE_REGNUM	FIRST_ARGUMENT_REGISTER
-     
-#define FUNCTION_VALUE(VALTYPE, FUNC) \
-  xstormy16_function_value (VALTYPE, FUNC)
-
-#define LIBCALL_VALUE(MODE) gen_rtx_REG (MODE, RETURN_VALUE_REGNUM)
-
-#define FUNCTION_VALUE_REGNO_P(REGNO) ((REGNO) == RETURN_VALUE_REGNUM)
 
 
 /* Function Entry and Exit.  */
@@ -360,10 +353,6 @@ enum reg_class
 
 
 /* Describing Relative Costs of Operations.  */
-
-#define REGISTER_MOVE_COST(MODE, FROM, TO) 2
-
-#define MEMORY_MOVE_COST(M,C,I) (5 + memory_move_secondary_cost (M, C, I))
 
 #define BRANCH_COST(speed_p, predictable_p) 5
 
@@ -450,10 +439,6 @@ enum reg_class
 #define ADDITIONAL_REGISTER_NAMES		\
   { { "r14", 14 },				\
     { "r15", 15 } }
-
-#define PRINT_OPERAND(STREAM, X, CODE) xstormy16_print_operand (STREAM, X, CODE)
-
-#define PRINT_OPERAND_ADDRESS(STREAM, X) xstormy16_print_operand_address (STREAM, X)
 
 #define REGISTER_PREFIX ""
 #define LOCAL_LABEL_PREFIX "."

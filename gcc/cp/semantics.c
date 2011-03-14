@@ -5906,6 +5906,9 @@ cxx_bind_parameters_in_call (const constexpr_call *old_call, tree t,
       /* Just discard ellipsis args after checking their constantitude.  */
       if (!parms)
 	continue;
+      if (*non_constant_p)
+	/* Don't try to adjust the type of non-constant args.  */
+	goto next;
 
       /* Make sure the binding has the same type as the parm.  */
       if (TREE_CODE (type) != REFERENCE_TYPE)
@@ -6704,6 +6707,46 @@ cxx_eval_indirect_ref (const constexpr_call *call, tree t,
   return r;
 }
 
+/* Complain about R, a VAR_DECL, not being usable in a constant expression.
+   Shared between potential_constant_expression and
+   cxx_eval_constant_expression.  */
+
+static void
+non_const_var_error (tree r)
+{
+  tree type = TREE_TYPE (r);
+  error ("the value of %qD is not usable in a constant "
+	 "expression", r);
+  if (DECL_DECLARED_CONSTEXPR_P (r))
+    inform (DECL_SOURCE_LOCATION (r),
+	    "%qD used in its own initializer", r);
+  else if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
+    {
+      if (!CP_TYPE_CONST_P (type))
+	inform (DECL_SOURCE_LOCATION (r),
+		"%q#D is not const", r);
+      else if (CP_TYPE_VOLATILE_P (type))
+	inform (DECL_SOURCE_LOCATION (r),
+		"%q#D is volatile", r);
+      else if (!DECL_INITIAL (r))
+	inform (DECL_SOURCE_LOCATION (r),
+		"%qD was not initialized with a constant "
+		"expression", r);
+      else
+	gcc_unreachable ();
+    }
+  else
+    {
+      if (cxx_dialect >= cxx0x && !DECL_DECLARED_CONSTEXPR_P (r))
+	inform (DECL_SOURCE_LOCATION (r),
+		"%qD was not declared %<constexpr%>", r);
+      else
+	inform (DECL_SOURCE_LOCATION (r),
+		"%qD does not have integral or enumeration type",
+		r);
+    }
+}
+
 /* Attempt to reduce the expression T to a constant value.
    On failure, issue diagnostic and return error_mark_node.  */
 /* FIXME unify with c_fully_fold */
@@ -6744,39 +6787,7 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       if (DECL_P (r))
 	{
 	  if (!allow_non_constant)
-	    {
-	      tree type = TREE_TYPE (r);
-	      error ("the value of %qD is not usable in a constant "
-		     "expression", r);
-	      if (DECL_DECLARED_CONSTEXPR_P (r))
-		inform (DECL_SOURCE_LOCATION (r),
-			"%qD used in its own initializer", r);
-	      else if (INTEGRAL_OR_ENUMERATION_TYPE_P (type))
-		{
-		  if (!CP_TYPE_CONST_P (type))
-		    inform (DECL_SOURCE_LOCATION (r),
-			    "%q#D is not const", r);
-		  else if (CP_TYPE_VOLATILE_P (type))
-		    inform (DECL_SOURCE_LOCATION (r),
-			    "%q#D is volatile", r);
-		  else if (!DECL_INITIAL (r))
-		    inform (DECL_SOURCE_LOCATION (r),
-			    "%qD was not initialized with a constant "
-			    "expression", r);
-		  else
-		    gcc_unreachable ();
-		}
-	      else
-		{
-		  if (cxx_dialect >= cxx0x && !DECL_DECLARED_CONSTEXPR_P (r))
-		    inform (DECL_SOURCE_LOCATION (r),
-			    "%qD was not declared %<constexpr%>", r);
-		  else
-		    inform (DECL_SOURCE_LOCATION (r),
-			    "%qD does not have integral or enumeration type",
-			    r);
-		}
-	    }
+	    non_const_var_error (r);
 	  *non_constant_p = true;
 	}
       break;
@@ -7264,7 +7275,20 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       return false;
     }
   if (CONSTANT_CLASS_P (t))
-    return true;
+    {
+      if (TREE_OVERFLOW (t))
+	{
+	  if (flags & tf_error)
+	    {
+	      permerror (EXPR_LOC_OR_HERE (t),
+			 "overflow in constant expression");
+	      if (flag_permissive)
+		return true;
+	    }
+	  return false;
+	}
+      return true;
+    }
 
   switch (TREE_CODE (t))
     {
@@ -7371,10 +7395,11 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       return potential_constant_expression_1 (TREE_OPERAND (t, 0), rval, flags);
 
     case VAR_DECL:
-      if (want_rval && !decl_constant_var_p (t))
+      if (want_rval && !decl_constant_var_p (t)
+	  && !dependent_type_p (TREE_TYPE (t)))
         {
           if (flags & tf_error)
-            error ("variable %qD is not declared constexpr", t);
+            non_const_var_error (t);
           return false;
         }
       return true;
@@ -7710,7 +7735,10 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       if (VEC_INIT_EXPR_IS_CONSTEXPR (t))
 	return true;
       if (flags & tf_error)
-        error ("non-constant array initialization");
+	{
+	  error ("non-constant array initialization");
+	  diagnose_non_constexpr_vec_init (t);
+	}
       return false;
 
     default:

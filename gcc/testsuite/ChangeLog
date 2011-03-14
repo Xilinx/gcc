@@ -1,3 +1,236 @@
+2011-03-08  Kai Tietz  <ktietz@redhat.com>
+
+	* g++.dg/tree-ssa/pr21082.C: Use __INTPTR_TYPE__ instead of
+	'long' type.
+
+2011-03-08  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR testsuite/47954
+	* gcc.dg/tree-ssa/ssa-ccp-33.c: Use __alignof__ not
+	sizeof to compute alignment.
+
+2011-03-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48022
+	* gcc.dg/pr48022-1.c: New test.
+	* gcc.dg/pr48022-2.c: New test.
+
+2011-03-07  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/nontype20.C: New.
+	* g++.dg/init/member1.C: Adjust expected errors.
+	* g++.dg/parse/constant4.C: Likewise.
+	* g++.dg/template/qualified-id3.C: Likewise.
+	* g++.old-deja/g++.pt/crash10.C: Likewise.
+
+	* g++.dg/cpp0x/regress/non-const1.C: New.
+
+2011-03-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/47991
+	* gcc.dg/pr47991.c: New test.
+
+2011-03-07  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/mangle46.C: New.
+
+2011-03-07  Pat Haugen <pthaugen@us.ibm.com>
+
+	PR target/47862
+	* gcc.target/powerpc/pr47862.c: New.
+
+2011-03-07  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR target/45413
+	* gcc.target/i386/combine-mul.c: Require nonpic.
+
+2011-03-07  Paul Wögerer  <paul_woegerer@mentor.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gcc.dg/20001117-1.c: Abort on NULL call_sites.
+
+2011-03-06  Mark Mitchell  <mark@codesourcery.com>
+
+	* README.QMTEST: Remove.
+
+2011-03-06  Paul Thomas  <pault@gcc.gnu.org>
+	    Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/47850
+	* gfortran.dg/array_constructor_37.f90 : New test.
+
+2011-03-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/mangle39.C: ABI v5, not 6.
+	* g++.dg/abi/mangle45.C: Likewise.
+	* g++.dg/cpp0x/trailing1.C: Likewise.
+
+2011-03-05  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* gcc.dg/torture/pr47975.c: Add -fno-common option on hppa*-*-hpux*.
+
+2011-03-05  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/47899
+	* gcc.dg/pr47899.c: New test.
+
+	* gcc.dg/torture/pr47968.c: Ignore warnings.
+
+	PR tree-optimization/47967
+	* gcc.c-torture/compile/pr47967.c: New test.
+
+2011-03-04  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/property/property-encoding-1.m: Tidied up testcase.
+	* obj-c++.dg/property/property-encoding-1.mm: Likewise.
+
+2011-03-04  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-property.m: Added tests for property_getName()
+	and property_getAttributes() if __OBJC2__.
+	* obj-c++.dg/gnu-api-2-property.mm: Likewise.
+	* objc.dg/property/property-encoding-1.m: New.
+	* obj-c++.dg/property/property-encoding-1.mm: New.
+
+2011-03-04  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/pseudodtor6.C: New.
+
+	* g++.dg/inherit/covariant19.C: New.
+
+2011-03-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47968
+	* gcc.dg/torture/pr47968.c: New testcase.
+
+2011-03-04  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47975
+	* gcc.dg/torture/pr47975.c: New testcase.
+
+2011-03-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/47974
+	* g++.dg/template/crash106.C: New.
+
+2011-03-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/47963
+	* gcc.dg/gomp/pr47963.c: New test.
+	* g++.dg/gomp/pr47963.C: New test.
+
+2011-03-02  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/regress/condition1.C: New.
+
+	* g++.dg/cpp0x/constexpr-ctor9.C: New.
+
+2011-03-01  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-98.C: New.
+
+	* g++.dg/cpp0x/constexpr-non-const-arg2.C: New.
+
+2011-03-02  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR rtl-optimization/47925
+	* gcc.c-torture/execute/pr47925.c: New test.
+
+2011-03-01  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/decltype25.C: New.
+
+	* g++.dg/cpp0x/regress/bitfield-err1.C: New.
+
+2011-03-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47890
+	* gcc.dg/torture/pr47890.c: New testcase.
+
+2011-03-01  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/47924
+	* gcc.dg/lto/pr47924_0.c: New testcase.
+
+2011-03-01  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/46911
+	* gfortran.dg/lto/pr46911_0.f: New testcase.
+
+2011-02-28  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47933
+	* gfortran.dg/fmt_fw_d.f90: Fix test by adding dg-options to avoid
+	compile errors from older code form.
+
+2011-02-28  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47567
+	* gfortran.dg/fmt_fw_d.f90: New test.
+
+2011-02-28  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/inherit/covariant18.C: New.
+
+2011-02-28  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/47893
+	* gcc.dg/pr47893.c: New test.
+
+2011-02-28  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-sel.m: Test that sel_getTypedSelector return
+	NULL in case of a selector with conflicting types.
+	* obj-c++.dg/gnu-api-2-sel.mm: Same change.
+
+2011-02-28  Kazu Hirata  <kazu@codesourcery.com>
+
+	* gcc.target/arm/vfp-ldmdbd.c, gcc.target/arm/vfp-ldmdbs.c,
+	gcc.target/arm/vfp-ldmiad.c, gcc.target/arm/vfp-ldmias.c,
+	gcc.target/arm/vfp-stmdbd.c, gcc.target/arm/vfp-stmdbs.c,
+	gcc.target/arm/vfp-stmiad.c, gcc.target/arm/vfp-stmias.c: New.
+
+2011-02-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47906
+	* g++.dg/cpp0x/trailing1.C: Specify -fabi-version=6.
+
+2011-02-27  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/47778
+	* gfortran.dg/namelist_71.f90: New test.
+
+2011-02-27  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47906
+	* g++.dg/abi/mangle39.C: Specify -fabi-version=6.
+	* g++.dg/abi/mangle45.C: Specify -fabi-version=6.
+
+2011-02-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/46466
+	* g++.dg/cpp0x/constexpr-ctor8.C: New.
+
+2011-02-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/47886
+	* gfortran.dg/gomp/task-1.f90: Removed.
+
+2011-02-26  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/this-targ1.C: New.
+
+	* g++.dg/cpp0x/regress/template-const1.C: New.
+	* g++.dg/cpp0x/regress/template-function1.C: Adjust.
+	* g++.dg/template/function1.C: Adjust.
+	* g++.dg/cpp0x/regress/debug-debug7.C: Adjust.
+	* g++.dg/debug/debug7.C: Adjust.
+
+2011-02-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47886
+	* gfortran.dg/gomp/task-1.f90: New.
+
 2011-02-25  Jie Zhang  <jie@codesourcery.com>
 
 	* gcc.target/arm/neon-thumb2-move.c: Add
@@ -221,12 +454,10 @@
 	* g++.dg/ext/is_empty.C: Ditto.
 	* g++.dg/ext/is_enum.C: Ditto.
 	* g++.dg/ext/has_nothrow_constructor_odr.C: Ditto.
-	* g++.dg/ext/.C: Ditto.
-	* g++.dg/ext/.C: Ditto.
 	* gnat.dg/opt11.adb: Ditto.
 	* obj-c++.dg/pr45735.mm: Ditto.
 	* obj-c++.dg/pr24393.mm: Ditto.
-	* obj-c++.dg/exceptions-2.cc: Ditto.
+	* obj-c++.dg/exceptions-2.mm: Ditto.
 	* objc.dg/pr45735.m: Ditto.
 	* objc.dg/pr24393.m: Ditto.
 

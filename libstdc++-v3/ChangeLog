@@ -1,3 +1,101 @@
+2011-03-07  Jason Merrill  <jason@redhat.com>
+
+	* testsuite/20_util/ratio/cons/cons_overflow_neg.cc: Adjust
+	expected errors.
+
+2011-03-07  Benjamin Kosnik  <bkoz@redhat.com>
+            Matthias Klose  <doko@ubuntu.com>
+	    Jonathan Wakely  <redi@gcc.gnu.org>
+
+	PR libstdc++/47145
+	* acinclude.m4 (GLIBCXX_CONFIGURE_DOCBOOK): Define.
+	* configure.ac: Use it.
+	* doc/Makefile.am (XSL_STYLE_DIR): Set at configure time.
+	* configure: Regenerate.
+	* doc/Makefile.in: Regenerate.
+
+2011-03-04  Benjamin Kosnik  <bkoz@chula>
+
+	* src/Makefile.am (inst_sources): Make source instantion files
+	conditional.
+	(XTEMPLATE_FLAGS): Make -fno-implicit-templates conditional.
+	* src/Makefile.in: Regenerate.
+	* src/valarray-inst.cc: Move to..
+	* src/valarray.cc: ...this.
+	* acinclude.m4 (GLIBCXX_ENABLE_EXTERN_TEMPLATE]): Define.
+	* configure.ac (GLIBCXX_ENABLE_EXTERN_TEMPLATE): Use it.
+	* configure: Regenerate.
+	* include/Makefile.am (stamp-extern-template): Add.
+	* include/Makefile.in: Regenerate.
+
+	* doc/xml/manual/configure.xml: Document --enable-extern-template.
+
+	* include/bits/locale_classes.tcc: Adjust comment.
+	* include/bits/locale_facets.tcc: Same.
+	* include/bits/basic_ios.tcc: Same.
+	* include/bits/istream.tcc: Same.
+	* include/bits/codecvt.h: Same.
+	* include/bits/ostream.tcc: Same.
+	* include/bits/sstream.tcc: Same.
+	* include/bits/c++config: Same.
+	* include/bits/basic_string.tcc: Same.
+	* include/bits/ostream_insert.h: Same.
+	* include/bits/locale_facets_nonio.tcc: Same.
+	* include/bits/streambuf.tcc: Same.
+	* include/bits/allocator.h: Same.
+	* include/bits/fstream.tcc: Same.
+
+	* testsuite/ext/profile/mutex_extensions_neg.cc: Adjust line numbers.
+
+2011-03-02  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/Makefile.am: Make clean fixups.
+	* testsuite/Makefile.in: Regenerate.
+
+2011-03-02  Marc Glisse  <marc.glisse@normalesup.org>
+
+	* include/std/ratio (ratio_less): Add comments.
+
+2011-03-02  Marc Glisse  <marc.glisse@normalesup.org>
+
+	PR libstdc++/47913
+	* include/std/ratio (ratio_add): Avoid denominator overflow.
+	* testsuite/20_util/ratio/operations/47913.cc: New.
+
+2011-02-28  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/20_util/hash/chi2_quality.cc: Use C++0x mode on simulators.
+	* testsuite/20_util/hash/quality.cc: Same.
+
+2011-02-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/47921
+	* include/std/streambuf (basic_streambuf<>::__safe_gbump,
+	__safe_pbump): Add.
+	* include/bits/streambuf.tcc (basic_streambuf<>::xgetn,
+	xputn): Use the latter.
+	* include/bits/streambuf_iterator.h: Likewise.
+	* src/strstream.cc: Likewise.
+	* src/streambuf.cc: Likewise.
+	* src/compatibility.cc: Likewise.
+	* src/istream.cc: Likewise.
+	* include/bits/fstream.tcc (basic_filebuf<>::xsgetn): Use setg
+	instead of gbump.
+	* include/std/sstream (basic_stringbuf<>::_M_pbump): Add.
+	* include/bits/sstream.tcc (basic_stringbuf<>::seekoff,
+	seekpos, _M_sync): Use setg, setp, and _M_pbump.
+	* config/abi/pre/gnu.ver: Tweak.
+
+2011-02-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/20_util/ratio/comparisons/comp3.cc: New.
+
+2011-02-28  Marc Glisse  <marc.glisse@normalesup.org>
+
+	PR libstdc++/42622
+	* include/std/ratio (ratio_less): Reimplement to never overflow.
+	* testsuite/20_util/ratio/comparisons/comp2.cc: Extend.
+
 2011-02-24  Benjamin Kosnik  <bkoz@redhat.com>
 
 	* testsuite/18_support/type_info/fundamental.cc: New.
