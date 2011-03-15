@@ -1,4 +1,4 @@
-/* { dg-do run } */
+/* { dg-do run  { xfail *-*-* } } */
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdarg.h>
