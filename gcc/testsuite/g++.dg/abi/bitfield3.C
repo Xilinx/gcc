@@ -4,7 +4,7 @@
 // Cygwin and mingw32 default to MASK_ALIGN_DOUBLE. Override to ensure
 // 4-byte alignment.
 // { dg-options "-mno-align-double" { target i?86-*-cygwin* i?86-*-mingw* } }
-// { dg-require-effective-target ilp32 }
+// { dg-require-effective-target ia32 }
 
 struct A
 {

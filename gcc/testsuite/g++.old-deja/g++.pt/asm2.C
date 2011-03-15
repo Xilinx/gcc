@@ -1,5 +1,5 @@
 // { dg-do assemble { target i?86-*-linux* x86_64-*-linux* } }
-// { dg-require-effective-target ilp32 }
+// { dg-require-effective-target ia32 }
 // We'd use ebx with 32-bit pic code, so require nonpic.
 // { dg-require-effective-target nonpic }
 // Origin: "Weidmann, Nicholas" <nicholas.weidmann@swx.ch>

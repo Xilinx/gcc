@@ -1,5 +1,5 @@
 // { dg-do assemble { target i?86-*-* x86_64-*-* } }
-// { dg-require-effective-target ilp32 }
+// { dg-require-effective-target ia32 }
 // Test for using prefix attributes in a parameter decl.
 // Contributed by Jason Merrill <jason@cygnus.com>
 
