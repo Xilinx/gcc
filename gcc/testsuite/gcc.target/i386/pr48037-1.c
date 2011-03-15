@@ -1,5 +1,4 @@
-/* { dg-do compile } */
-/* { dg-require-effective-target lp64 } */
+/* { dg-do compile { target { x32 || lp64 } } } */
 /* { dg-options "-O -fno-math-errno" } */
 
 typedef double __m128d __attribute__((vector_size(16)));

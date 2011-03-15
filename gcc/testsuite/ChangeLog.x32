@@ -1,5 +1,9 @@
 2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.target/i386/pr48037-1.c: Also allow x32.
+
+2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* c-c++-common/dfp/func-vararg-alternate-d128-2.c: Require ia32
 	instead of ilp32.
 	* c-c++-common/dfp/func-vararg-mixed-2.c: Likewise.
