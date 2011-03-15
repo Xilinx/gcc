@@ -1,3 +1,77 @@
+2011-03-11  Dodji Seketeli  <dodji@redhat.com>
+
+	* call.c (add_builtin_candidate)<case INDIRECT_REF>: The type of
+	the argument of the indirection operator should not be dependent.
+	Fix the comment.
+
+2011-03-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47125
+	* pt.c (tsubst) [TYPENAME_TYPE]: Only give errors if tf_error.
+
+	PR c++/47144
+	* parser.c (cp_parser_template_type_arg): Set
+	type_definition_forbidden_message.
+
+	PR c++/47808
+	* decl.c (compute_array_index_type): Discard folding
+	if it didn't produce a constant.
+
+2011-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/48035
+	* init.c (build_zero_init_1): Extracted from build_zero_init.
+	Add FIELD_SIZE argument, if non-NULL and field bit_position
+	as not smaller than that, don't add that field's initializer.
+	Pass DECL_SIZE as last argument to build_zero_init_1
+	for DECL_FIELD_IS_BASE fields.
+	(build_zero_init): Use build_zero_init_1.
+
+2011-03-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48029
+	* pt.c (iterative_hash_template_arg): Remove special case for
+	ARRAY_TYPE.
+
+	PR c++/47198
+	* parser.c (cp_parser_single_declaration): Just return if
+	cp_parser_parse_and_diagnose_invalid_type_name complained.
+
+2011-03-09  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44629
+	* pt.c (unify): An unresolved overload is a nondeduced context.
+
+2011-03-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/47714
+	* method.c (use_thunk): Clear addressable flag of thunk arguments.
+
+2011-03-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47705
+	* pt.c (convert_nontype_argument): Only call decay_conversion on
+	arrays.
+
+2011-03-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47488
+	* mangle.c (write_template_arg_literal) [STRING_CST]: Sorry.
+
+	PR c++/47705
+	* pt.c (convert_nontype_argument): Don't crash on non-pointer
+	argument to pointer parameter.
+
+	PR c++/45651
+	* pt.c (instantiate_decl): Don't clear DECL_INTERFACE_KNOWN on
+	!TREE_PUBLIC decls.
+
+2011-03-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47957
+	* name-lookup.c (binding_to_template_parms_of_scope_p): Only
+	consider scopes of primary template definitions.  Adjust comments.
+
 2011-03-07  Jason Merrill  <jason@redhat.com>
 
 	PR c++/48003

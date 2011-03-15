@@ -1376,8 +1376,14 @@ build_vector_from_val (tree vectype, tree sc)
   if (sc == error_mark_node)
     return sc;
 
-  gcc_assert (useless_type_conversion_p (TREE_TYPE (sc),
-					 TREE_TYPE (vectype)));
+  /* Verify that the vector type is suitable for SC.  Note that there
+     is some inconsistency in the type-system with respect to restrict
+     qualifications of pointers.  Vector types always have a main-variant
+     element type and the qualification is applied to the vector-type.
+     So TREE_TYPE (vector-type) does not return a properly qualified
+     vector element-type.  */
+  gcc_checking_assert (types_compatible_p (TYPE_MAIN_VARIANT (TREE_TYPE (sc)),
+					   TREE_TYPE (vectype)));
 
   v = VEC_alloc (constructor_elt, gc, nunits);
   for (i = 0; i < nunits; ++i)
@@ -4822,7 +4828,8 @@ find_decls_types_r (tree *tp, int *ws, void *data)
       fld_worklist_push (BLOCK_ABSTRACT_ORIGIN (t), fld);
     }
 
-  fld_worklist_push (TREE_TYPE (t), fld);
+  if (TREE_CODE (t) != IDENTIFIER_NODE)
+    fld_worklist_push (TREE_TYPE (t), fld);
 
   return NULL_TREE;
 }
@@ -5981,10 +5988,16 @@ type_hash_eq (const void *va, const void *vb)
       || TREE_TYPE (a->type) != TREE_TYPE (b->type)
       || !attribute_list_equal (TYPE_ATTRIBUTES (a->type),
 				 TYPE_ATTRIBUTES (b->type))
-      || TYPE_ALIGN (a->type) != TYPE_ALIGN (b->type)
-      || TYPE_MODE (a->type) != TYPE_MODE (b->type)
       || (TREE_CODE (a->type) != COMPLEX_TYPE
           && TYPE_NAME (a->type) != TYPE_NAME (b->type)))
+    return 0;
+
+  /* Be careful about comparing arrays before and after the element type
+     has been completed; don't compare TYPE_ALIGN unless both types are
+     complete.  */
+  if (COMPLETE_TYPE_P (a->type) && COMPLETE_TYPE_P (b->type)
+      && (TYPE_ALIGN (a->type) != TYPE_ALIGN (b->type)
+	  || TYPE_MODE (a->type) != TYPE_MODE (b->type)))
     return 0;
 
   switch (TREE_CODE (a->type))
