@@ -73,7 +73,6 @@ void gpy_rr_register_callable (gpy_std_callable call, int nargs,
     {
       gpy_object_t * prev = f->data;
       gpy_free (prev); // fix later
-
       f->data = c;
     }
   else
@@ -111,11 +110,16 @@ void gpy_rr_set_decl_val (char *ident, gpy_object_t *o)
   if (f)
     {
       gpy_object_t * prev = f->data;
-      gpy_free (prev); // fix later... 
+      gpy_rr_decr_ref_count (prev);
       f->data = o;
     }
   else
-    fatal ("decl <%s> is un-registered to a current context!\n", ident);
+    {
+      void ** r = gpy_dd_hash_insert (h, o, Gpy_Vec_Head (gpy_namespace_vec,
+							  gpy_hash_tab_t *));
+      if (r)
+	fatal ("error registering decl <%s>!\n", ident);
+    }
 }
 
 void gpy_rr_init_runtime (void)
@@ -219,7 +223,7 @@ void gpy_rr_eval_print (int fd, int count, ...)
 }
 
 inline
-void gpy_rr_incr_ref_count( gpy_object_t * x1 )
+void gpy_rr_incr_ref_count (gpy_object_t * x1)
 {
   gpy_assert( x1->T == TYPE_OBJECT_STATE );
   gpy_object_state_t * x = x1->o.object_state;
@@ -230,7 +234,7 @@ void gpy_rr_incr_ref_count( gpy_object_t * x1 )
 }
 
 inline
-void gpy_rr_decr_ref_count( gpy_object_t * x1 )
+void gpy_rr_decr_ref_count (gpy_object_t * x1)
 {
   gpy_assert( x1->T == TYPE_OBJECT_STATE );
   gpy_object_state_t * x = x1->o.object_state;

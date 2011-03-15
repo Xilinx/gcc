@@ -27,6 +27,8 @@ extern VEC(tree,gc) * gpy_builtin_types_vec;
 
 #define gpy_callable_type_ptr   VEC_index(tree,gpy_builtin_types_vec,3)
 
+#define gpy_const_char_ptr      VEC_index(tree,gpy_builtin_types_vec,4)
+
 extern tree gpy_init_callable_record (tree, int, tree);
 
 extern void gpy_initilize_types (void);

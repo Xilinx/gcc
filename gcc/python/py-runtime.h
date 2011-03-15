@@ -43,4 +43,10 @@ extern tree gpy_builtin_get_eval_expression_call (tree, tree, gpy_opcode_t);
 
 extern tree gpy_builtin_get_fold_call_call (const char *, int, tree *);
 
+extern tree gpy_builtin_get_set_decl_call (tree);
+
+extern tree gpy_builtin_get_register_decl_call (tree);
+
+extern tree gpy_builtin_get_register_callable_call (tree, int);
+
 #endif /* __RUNTIME_H__ */

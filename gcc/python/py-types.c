@@ -331,6 +331,11 @@ void gpy_initilize_types (void)
 {
   gpy_builtin_types_vec = VEC_alloc(tree,gc,0);
 
+  tree const_char_type = build_qualified_type(unsigned_char_type_node,
+					      TYPE_QUAL_CONST);
+  tree ctype = build_pointer_type(const_char_type);
+  gpy_preserve_from_gc(ctype);
+
   VEC_safe_push (tree,gc,gpy_builtin_types_vec,
 		 gpy_build_py_object_type ());
 
@@ -342,4 +347,6 @@ void gpy_initilize_types (void)
 
   VEC_safe_push (tree,gc,gpy_builtin_types_vec,
 		 gpy_build_callable_record_type_ptr ());
+  
+  VEC_safe_push (tree,gc,gpy_builtin_types_vec,ctype);
 }

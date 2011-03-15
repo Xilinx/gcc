@@ -73,12 +73,6 @@ VEC(tree,gc) * gpy_fold_primitive (const gpy_symbol_obj * const sym)
 VEC(tree,gc) * gpy_fold_call (tree decl, location_t l)
 {
   VEC(tree,gc) * retval = VEC_alloc(tree,gc,0);
-  /*gcc_assert (TREE_TYPE(decl) == FUNCTION_DECL);
-
-  tree address = build_decl (sym->loc, VAR_DECL, create_tmp_var_name("C"),
-			     gpy_object_type_ptr);
-			     tree call = build_call_expr (decl, 0, NULL_TREE);  */
-  
 
   return retval;
 }
@@ -122,6 +116,7 @@ VEC(tree,gc) * gpy_process_assign (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
       VEC_safe_push (tree, gc, retval, build2 (MODIFY_EXPR, gpy_object_type_ptr,
 					       decl,rhs_tree_res_decl));
       VEC_safe_push (tree, gc, retval, gpy_builtin_get_incr_ref_call (decl));
+      VEC_safe_push (tree, gc, retval, gpy_builtin_get_set_decl_call (decl));
       VEC_safe_push (tree, gc, retval, decl);
       
     }
