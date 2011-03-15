@@ -1,3 +1,129 @@
+2011-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48098
+	* gcc.dg/torture/pr48098.c: New testcase.
+
+2011-03-12  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR target/48053
+	* gcc/testsuite/gcc.target/powerpc/pr48053-1.c: New test.
+	* gcc/testsuite/gcc.target/powerpc/pr48053-2.c: Likewise.
+
+2011-03-12  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/48066
+	* gfortran.dg/intrinsic_ifunction_2.f90:  Correct PR number.
+
+2011-03-12  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR libfortran/48066
+	* gfortran.dg/intrinsic_ifunction_2.f90:  New test case.
+
+2011-03-12  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/48059
+	* gfortran.dg/class_41.f03: New.
+
+2011-03-11  Dodji Seketeli  <dodji@redhat.com>
+
+	* g++.dg/conversion/cast3.C: New test.
+
+2011-03-11  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/error45.C: New.
+
+	* g++.dg/parse/no-type-defn1.C: New.
+
+	* g++.dg/ext/attrib40.C: New.
+
+	* g++.dg/cpp0x/regress/array1.C: New.
+
+2011-03-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48067
+	* gcc.dg/pr48067.c: New testcase.
+
+2011-03-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48073
+	* g++.dg/lto/20110311-1_0.C: New testcase.
+
+2011-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/48035
+	* g++.dg/inherit/virtual8.C: New test.
+
+	PR middle-end/48044
+	* gcc.dg/torture/pr48044.c: New test.
+
+2011-03-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47768
+	* gfortran.dg/proc_ptr_comp_31.f90: New.
+
+2011-03-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47278
+	* gcc.dg/torture/pr47278-1.c: New testcase.
+	* gcc.dg/torture/pr47278-2.c: Likewise.
+
+2011-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48063
+	* gcc.dg/torture/pr48063.c: New test.
+
+2011-03-10  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/array22.C: New.
+
+	* g++.dg/cpp0x/syntax-err1.C: New.
+	* g++.dg/parse/error36.C: Adjust expected errors.
+	* g++.old-deja/g++.pt/ctor2.C: Likewise.
+	* g++.old-deja/g++.pt/typename3.C: Likewise.
+	* g++.old-deja/g++.pt/typename4.C: Likewise.
+	* g++.old-deja/g++.pt/typename6.C: Likewise.
+
+2011-03-09  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/nontype22.C: New.
+
+2011-03-09  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/47714
+	* g++.dg/torture/pr47714.C: New test.
+
+2011-03-08  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/47755
+	* gcc.target/powerpc/pr47755-2.c: New file.
+
+2011-03-08  Jakub Jelinek  <jakub@redhat.com>
+
+	* go.test/go-test.exp: For goroutines.go test if GCCGO_RUN_ALL_TESTS
+	is not set in the environment, pass 64 as first argument when not
+	running expensive tests or pass max($[`ulimit -u`/4], 10000) on
+	native where ulimit -u is supported.
+
+2011-03-08  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* gcc.dg/optimize-bswapsi-1.c: Use -march=z900 on s390.
+
+2011-03-08  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/nontype21.C: New.
+
+	* g++.dg/template/anon5.C: New.
+
+2011-03-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/47881
+	* gcc.dg/pr47881.c: New test.
+
+2011-03-08  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/47957
+	* g++.dg/lookup/template3.C: New test.
+
 2011-03-08  Kai Tietz  <ktietz@redhat.com>
 
 	* g++.dg/tree-ssa/pr21082.C: Use __INTPTR_TYPE__ instead of

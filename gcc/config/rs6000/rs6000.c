@@ -4855,7 +4855,13 @@ num_insns_constant (rtx op, enum machine_mode mode)
 HOST_WIDE_INT
 const_vector_elt_as_int (rtx op, unsigned int elt)
 {
-  rtx tmp = CONST_VECTOR_ELT (op, elt);
+  rtx tmp;
+
+  /* We can't handle V2DImode and V2DFmode vector constants here yet.  */
+  gcc_assert (GET_MODE (op) != V2DImode
+	      && GET_MODE (op) != V2DFmode);
+
+  tmp = CONST_VECTOR_ELT (op, elt);
   if (GET_MODE (op) == V4SFmode
       || GET_MODE (op) == V2SFmode)
     tmp = gen_lowpart (SImode, tmp);
@@ -4876,13 +4882,24 @@ vspltis_constant (rtx op, unsigned step, unsigned copies)
   enum machine_mode inner = GET_MODE_INNER (mode);
 
   unsigned i;
-  unsigned nunits = GET_MODE_NUNITS (mode);
-  unsigned bitsize = GET_MODE_BITSIZE (inner);
-  unsigned mask = GET_MODE_MASK (inner);
+  unsigned nunits;
+  unsigned bitsize;
+  unsigned mask;
 
-  HOST_WIDE_INT val = const_vector_elt_as_int (op, nunits - 1);
-  HOST_WIDE_INT splat_val = val;
-  HOST_WIDE_INT msb_val = val > 0 ? 0 : -1;
+  HOST_WIDE_INT val;
+  HOST_WIDE_INT splat_val;
+  HOST_WIDE_INT msb_val;
+
+  if (mode == V2DImode || mode == V2DFmode)
+    return false;
+
+  nunits = GET_MODE_NUNITS (mode);
+  bitsize = GET_MODE_BITSIZE (inner);
+  mask = GET_MODE_MASK (inner);
+
+  val = const_vector_elt_as_int (op, nunits - 1);
+  splat_val = val;
+  msb_val = val > 0 ? 0 : -1;
 
   /* Construct the value to be splatted, if possible.  If not, return 0.  */
   for (i = 2; i <= copies; i *= 2)
@@ -4945,6 +4962,29 @@ easy_altivec_constant (rtx op, enum machine_mode mode)
     mode = GET_MODE (op);
   else if (mode != GET_MODE (op))
     return false;
+
+  /* V2DI/V2DF was added with VSX.  Only allow 0 and all 1's as easy
+     constants.  */
+  if (mode == V2DFmode)
+    return zero_constant (op, mode);
+
+  if (mode == V2DImode)
+    {
+      /* In case the compiler is built 32-bit, CONST_DOUBLE constants are not
+	 easy.  */
+      if (GET_CODE (CONST_VECTOR_ELT (op, 0)) != CONST_INT
+	  || GET_CODE (CONST_VECTOR_ELT (op, 1)) != CONST_INT)
+	return false;
+
+      if (zero_constant (op, mode))
+	return true;
+
+      if (INTVAL (CONST_VECTOR_ELT (op, 0)) == -1
+	  && INTVAL (CONST_VECTOR_ELT (op, 1)) == -1)
+	return true;
+
+      return false;
+    }
 
   /* Start with a vspltisw.  */
   step = GET_MODE_NUNITS (mode) / 4;
@@ -5022,8 +5062,16 @@ output_vec_const_move (rtx *operands)
   vec = operands[1];
   mode = GET_MODE (dest);
 
-  if (TARGET_VSX && zero_constant (vec, mode))
-    return "xxlxor %x0,%x0,%x0";
+  if (TARGET_VSX)
+    {
+      if (zero_constant (vec, mode))
+	return "xxlxor %x0,%x0,%x0";
+
+      if (mode == V2DImode
+	  && INTVAL (CONST_VECTOR_ELT (vec, 0)) == -1
+	  && INTVAL (CONST_VECTOR_ELT (vec, 1)) == -1)
+	return "vspltisw %0,-1";
+    }
 
   if (TARGET_ALTIVEC)
     {
@@ -5283,12 +5331,18 @@ rs6000_expand_vector_init (rtx target, rtx vals)
 	}
       else
 	{
-	  rtx op0 = copy_to_reg (XVECEXP (vals, 0, 0));
-	  rtx op1 = copy_to_reg (XVECEXP (vals, 0, 1));
 	  if (mode == V2DFmode)
-	    emit_insn (gen_vsx_concat_v2df (target, op0, op1));
+	    {
+	      rtx op0 = copy_to_mode_reg (DFmode, XVECEXP (vals, 0, 0));
+	      rtx op1 = copy_to_mode_reg (DFmode, XVECEXP (vals, 0, 1));
+	      emit_insn (gen_vsx_concat_v2df (target, op0, op1));
+	    }
 	  else
-	    emit_insn (gen_vsx_concat_v2di (target, op0, op1));
+	    {
+	      rtx op0 = copy_to_mode_reg (DImode, XVECEXP (vals, 0, 0));
+	      rtx op1 = copy_to_mode_reg (DImode, XVECEXP (vals, 0, 1));
+	      emit_insn (gen_vsx_concat_v2di (target, op0, op1));
+	    }
 	}
       return;
     }

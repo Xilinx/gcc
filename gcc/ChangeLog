@@ -1,4 +1,198 @@
+2011-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48098
+	* tree.c (build_vector_from_val): Adjust assert to requirements
+	and reality.
+
+2011-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/48102
+	* graphite-cloog-compat.h (build_cloog_prog): Remove STATE
+	parameter.
+
+2011-03-14  Andreas Tobler  <andreast@fgznet.ch>
+
+	* config/rs6000/freebsd.h: (RELOCATABLE_NEEDS_FIXUP): Define in
+	terms of target_flags_explicit. Adjust copyright year.
+
+	* config.gcc: Add FreeBSD PowerPC soft-float libgcc bits.
+	* config/rs6000/t-freebsd: New file. Add override for
+	LIB2FUNCS_EXTRA.
+
+2011-03-13  Chris Demetriou  <cgd@google.com>
+
+	* doc/invoke.texi (-fdiagnostics-show-option): Replace with...
+	(-fno-diagnostics-show-option): this, to reflect current default.
+	(-Werror=): Update text about -fno-diagnostics-show-option.
+
+2011-03-12  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR target/48053
+	* config/rs6000/predicates.md (easy_vector_constant_add_self,
+	easy_vector_constant_msb): Do not handle V2DImode and V2DFmode.
+	* config/rs6000/rs6000.c (const_vector_elt_as_int): Add assert that
+	mode is not V2DImode or V2DFmode.
+	(vspltis_constant): Do not handle V2DImode and V2DFmode.
+	(rs6000_expand_vector_init): Replace copy_to_reg with copy_to_mode_reg.
+	* config/rs6000/rs6000.md (movdi_internal32): Allow setting VSX
+	registers to 0.
+	(movdi_internal64): Likewise.
+
+2011-03-12  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/47127
+	* graphite-clast-to-gimple.c (build_cloog_prog): Removed state
+	parameter.
+	(set_cloog_options): Same.
+	(scop_to_clast): Same.
+	(print_clast_stmt): Do not call cloog_state_malloc and
+	cloog_state_free.
+	(print_generated_program): Same.
+	(gloog): Same.
+	* graphite-clast-to-gimple.h (cloog_state): Declared.
+	(scop_to_clast): Adjust declaration.
+	* graphite.c (cloog_state): Defined here.
+	(graphite_initialize): Call cloog_state_malloc.
+	(graphite_finalize): Call cloog_state_free.
+
+2011-03-11  Jason Merrill  <jason@redhat.com>
+
+	* attribs.c (lookup_attribute_spec): Take const_tree.
+	* tree.h: Adjust.
+
+2011-03-11  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/sparc/sparc.c (sparc_option_override): Use
+	PROCESSOR_NIAGARA2 not PROCESSOR_NIAGARA for "niagara2".
+
+2011-03-11  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48067
+	* tree-ssa-math-opts.c (convert_mult_to_fma): Verify the
+	multiplication result will be only used once on the target
+	stmt.
+
+2011-03-11  Richard Guenther  <rguenther@suse.de>
+
+	* doc/invoke.texi (max-inline-insns-single): Adjust default value.
+
+2011-03-11  Richard Guenther  <rguenther@suse.de>
+
+	PR lto/48073
+	* tree.c (find_decls_types_r): Do not walk types only reachable
+	from IDENTIFIER_NODEs.
+
+2011-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/48044
+	* ipa.c (cgraph_remove_unreachable_nodes): Enqueue
+	all vnode->force_output nodes as needed.
+
+2011-03-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48069
+	* tree.c (type_hash_eq): Use COMPLETE_TYPE_P, not
+	COMPLETE_OR_UNBOUND_ARRAY_TYPE_P.
+
+2011-03-11  Martin Jambor  <mjambor@suse.cz>
+
+	* cgraphunit.c (verify_cgraph_node): Call cgraph_get_node instead of
+	cgraph_node.
+
+2011-03-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48063
+	* ipa-inline.c (cgraph_decide_inlining): Don't try to
+	inline functions called once if !tree_can_inline_p (node->callers).
+
+2011-03-11  Chen Liqin  <liqin.gcc@gmail.com>
+
+	* config.gcc (score-*-elf): Add extra_parts .., update tmake_file and
+	extra_objs.
+	* config/score/score3.c: Delete.
+	* config/score/score3.h: Delete.
+	* config/score/mul-div.S: Delete.
+	* config/score/sfp-machine.h: Add new file.
+	* config/score/constraints.md: Add new file.
+	* config/score/t-score-softfp: Add new file.
+	* config/score/t-score-elf: Remove score3.o, do not generate multilib.
+	* config/score/score7.c (score7_const_ok_for_letter_p): Delete.
+	(score7_extra_constraint): Delete.
+	(score7_option_override): Remove unused code.
+	* config/score/score.c: Remove score3 and score5 define and code.
+	* config/score/score.h: Remove score3 and score5 define and code.
+	* config/score/score.md: Remove score3 template and unusual insn.
+	* config/score/score.opt: Remove score3 and score5 options.
+
+2011-03-10  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/pa-hpux10.h (TARGET_OS_CPP_BUILTINS): Define _REENTRANT
+	when _HPUX_SOURCE is defined.
+	(LIB_SPEC): Use -lc instead of -lc_r when -threads is specified.
+
+2011-03-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48029
+	* stor-layout.c (layout_type): Don't set structural equality
+	on arrays of incomplete type.
+	* tree.c (type_hash_eq): Handle comparing them properly.
+
+2011-03-10  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/48043
+	* config/s390/s390.c (s390_delegitimize_address): Make sure the
+	result mode matches original rtl mode.
+
+2011-03-10  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.md (bitset_in_memory, bitclr_in_memory: Fix timings.
+	(andsi3, andsi3_flags): Fix timings for three operand alternative.
+
+2011-03-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/47866
+	* expr.c (store_field): If MEM_SCALAR_P (target), don't use
+	MEM_SET_IN_STRUCT_P (to_rtx, 1), just set MEM_IN_STRUCT_P (to_rtx)
+	if target wasn't scalar.
+	* function.c (assign_stack_temp_for_type): Assert that neither
+	MEM_SCALAR_P nor MEM_IN_STRUCT_P is set previously, set either
+	MEM_IN_STRUCT_P or MEM_SCALAR_P instead of using MEM_SET_IN_STRUCT_P
+	macro.
+	* rtl.h (MEM_SET_IN_STRUCT_P): Removed.
+
+2011-03-09  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390-protos.h (s390_label_align): New prototype.
+	* config/s390/s390.c (s390_label_align): New function.
+	* config/s390/s390.h (LABEL_ALIGN): New target macro definition.
+
+2011-03-08  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/47755
+	* config/rs6000/rs6000.c (easy_altivec_constant): Correctly handle
+	V2DI/V2DF constants.  Only all 0's or all 1's are easy.
+	(output_vec_const_move): Ditto.
+
+2011-03-08  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/mips/mips.h (PREFERRED_RELOAD_CLASS): Remove macro.
+	* config/mips/mips-protos.h (mips_preferred_reload_class): Remove.
+	* config/mips/mips.c (mips_preferred_reload_class): Make static.
+	Change 'rclass' argument and result type to reg_class_t.
+	(TARGET_PREFERRED_RELOAD_CLASS): Define.
+
+2011-03-08  Georg-Johann Lay  <avr@gjlay.de>
+
+       * config/avr/avr.h (REGISTER_MOVE_COST, MEMORY_MOVE_COST): Remove.
+       * config/avr/avr.c (TARGET_REGISTER_MOVE_COST,
+       TARGET_MEMORY_MOVE_COST): Define.
+       (avr_register_move_cost, avr_memory_move_cost): New Functions.
+
 2011-03-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/47881
+	* ira.c (ira): Call df_analyze again if delete_trivially_dead_insns
+	removed anything.
 
 	PR tree-optimization/48022
 	* fold-const.c (fold_comparison): Don't call fold_overflow_warning
@@ -20,7 +214,7 @@
 	xstormy16_print_operand_address): Make static.
 	(TARGET_PRINT_OPERAND, TARGET_PRINT_OPERAND_ADDRESS): Define.
 
-2011-03-07  Pat Haugen <pthaugen@us.ibm.com>
+2011-03-07  Pat Haugen  <pthaugen@us.ibm.com>
 
 	PR target/47862
 	* config/rs6000/rs6000.h (HARD_REGNO_CALLER_SAVE_MODE): Define.
