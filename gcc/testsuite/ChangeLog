@@ -1,3 +1,94 @@
+2011-03-15  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/47688
+	* gcc.target/arm/pr47688.c: New.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47650
+	* gfortran.dg/c_f_pointer_tests_3.f90: Adjust.
+	* gfortran.dg/ishft_4.f90: Likewise.
+	* gfortran.dg/leadz_trailz_3.f90: Likewise.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/13954
+	* g++.dg/tree-ssa/pr13954.C: New testcase.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48037
+	* gcc.target/i386/pr48037-1.c: New testcase.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41490
+	* gcc.dg/tree-ssa/ssa-sink-6.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-sink-7.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-sink-8.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-sink-9.c: Likewise.
+	* g++.dg/tree-ssa/pr33604.C: Adjust.
+
+2011-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/47917
+	* gcc.c-torture/execute/pr47917.c: New test.
+	* gcc.dg/pr47917.c: New test.
+
+	PR middle-end/38878
+	* gcc.dg/tree-ssa/foldaddr-1.c: Remove xfail.
+
+2011-03-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse4_1-floor-vec.c: New test.
+	* gcc.target/i386/sse4_1-ceil-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-trunc-vec.c: Ditto.
+	* gcc-target/i386/sse4_1-rint-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-floorf-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-ceilf-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-truncf-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-rintf-vec.c: Ditto.
+	* gcc.target/i386/avx-floor-vec.c: Ditto.
+	* gcc.target/i386/avx-ceil-vec.c: Ditto.
+	* gcc.target/i386/avx-trunc-vec.c: Ditto.
+	* gcc.target/i386/avx-rint-vec.c: Ditto.
+	* gcc.target/i386/avx-floorf-vec.c: Ditto.
+	* gcc.target/i386/avx-ceilf-vec.c: Ditto.
+	* gcc.target/i386/avx-truncf-vec.c: Ditto.
+	* gcc.target/i386/avx-rintf-vec.c: Ditto.
+
+2011-03-14  Tom Tromey  <tromey@redhat.com>
+
+	* gcc.dg/Woverlength-strings-pedantic-c90-asm.c: New file.
+	* gcc.dg/Woverlength-strings-pedantic-c89-asm.c: New file.
+	* gcc.dg/Woverlength-strings-pedantic-c99-asm.c: New file.
+
+2011-03-14  Tom Tromey  <tromey@redhat.com>
+
+	* gcc.dg/Woverlength-strings-pedantic-c89-ext.c: New file.
+	* gcc.dg/Woverlength-strings-pedantic-c90-ext.c: New file.
+	* gcc.dg/Woverlength-strings-pedantic-c99-ext.c: New file.
+
+2011-03-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/builtin-copysign.c: Remove __LP64__ check.
+
+2011-03-14  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR rtl-optimization/47166
+	* gcc.c-torture/execute/postmod-1.c: New test.
+
+2011-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48098
+	* gcc.dg/torture/pr48098.c: New testcase.
+
+2011-03-12  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR target/48053
+	* gcc.target/powerpc/pr48053-1.c: New test.
+	* gcc.target/powerpc/pr48053-2.c: Likewise.
+
 2011-03-12  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR libfortran/48066

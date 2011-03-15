@@ -371,7 +371,10 @@
        (and (match_test "TARGET_ALTIVEC")
 	    (match_test "easy_altivec_constant (op, mode)")))
 {
-  HOST_WIDE_INT val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
+  HOST_WIDE_INT val;
+  if (mode == V2DImode || mode == V2DFmode)
+    return 0;
+  val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
   val = ((val & 0xff) ^ 0x80) - 0x80;
   return EASY_VECTOR_15_ADD_SELF (val);
 })
@@ -382,7 +385,10 @@
        (and (match_test "TARGET_ALTIVEC")
 	    (match_test "easy_altivec_constant (op, mode)")))
 {
-  HOST_WIDE_INT val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
+  HOST_WIDE_INT val;
+  if (mode == V2DImode || mode == V2DFmode)
+    return 0;
+  val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
   return EASY_VECTOR_MSB (val, GET_MODE_INNER (mode));
 })
 
@@ -848,7 +854,7 @@
     return 1;
 
   /* A SYMBOL_REF referring to the TOC is valid.  */
-  if (legitimate_constant_pool_address_p (op, false))
+  if (legitimate_constant_pool_address_p (op, mode, false))
     return 1;
 
   /* A constant pool expression (relative to the TOC) is valid */

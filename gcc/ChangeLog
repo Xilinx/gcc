@@ -1,3 +1,188 @@
+2011-03-15  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/47668
+	* config/arm/arm.md (arm_movtas_ze): Use 'L' instead of 'c'
+	in the output template.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47650
+	* tree-pretty-print.c (dump_function_declaration): Properly
+	dump unprototyped and varargs function types.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/13954
+	* tree-ssa-sccvn.c (vn_reference_lookup_3): Look through memcpy
+	and friends.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48037
+	* tree-ssa.c (maybe_rewrite_mem_ref_base): Rewrite vector
+	selects into BIT_FIELD_REFs.
+	(non_rewritable_mem_ref_base): Check if a MEM_REF is a
+	vector select.
+
+2011-03-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48129
+	* builtins.c (fold_builtin_snprintf): Convert to type of
+	built_in_decls[BUILT_IN_SNPRINTF] retval instead of
+	implicit_built_in_decls[BUILT_IN_SNPRINTF] retval.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41490
+	* tree-ssa-dce.c (propagate_necessity): Handle returns without
+	value but with VUSE.
+	* tree-ssa-operands.c (parse_ssa_operands): Add a VUSE on all
+	return statements.
+	* tree-ssa-sink.c (statement_sink_location): Fix store sinking.
+	* tree-ssa-phiopt.c (tree_ssa_phiopt_worker): Handle virtual PHIs.
+	* tree-tailcall.c (find_tail_calls): Ignore returns.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48031
+	* fold-const.c (fold_indirect_ref_1): Do not create new variable-sized
+	or variable-indexed array accesses when in gimple form.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	* config/i386/i386.c (ix86_emit_swdivsf): Implement more
+	efficiently.
+
+2011-03-15  Alan Modra  <amodra@gmail.com>
+
+	PR target/48032
+	* config/rs6000/rs6000.c (offsettable_ok_by_alignment): Do not
+	presume symbol_refs without a symbol_ref_decl are suitably
+	aligned, nor other trees we may see here.  Handle anchor symbols.
+	(legitimate_constant_pool_address_p): Comment.  Add mode param.
+	Check cmodel=medium addresses.  Adjust all calls.
+	(rs6000_emit_move): Don't call offsettable_ok_by_alignment on
+	creating cmodel=medium optimized access to locals.
+	* config/rs6000/constraints.md (R): Pass QImode to
+	legitimate_constant_pool_address_p.
+	* config/rs6000/predicates.md (input_operand): Pass mode to
+	legitimate_constant_pool_address_p.
+	* config/rs6000/rs6000-protos.h (legitimate_constant_pool_address_p):
+	Update prototype.
+
+2011-03-14  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/48053
+	* config/rs6000/rs6000.md (movdi split for 32-bit): Don't split up
+	64-bit constants being loaded into registers other than GPRs such
+	as loading 0 into a VSX register.
+
+2011-03-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sol2.c (solaris_assemble_visibility): Remove obsolete
+	URLs.
+
+2011-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/47917
+	* builtins.c (fold_builtin_snprintf): New function.
+	(fold_builtin_3): Call it for BUILT_IN_SNPRINTF.
+	(fold_builtin_4): Likewise.
+
+	PR middle-end/38878
+	* fold-const.c (fold_binary_loc) <case EQ_EXPR, NE_EXPR>: Add
+	STRIP_NOPS on arg0 and arg1.  When optimizing X +- C == X
+	and C - X == X also strip nops from +/-/p+ operand.
+	When optimizing -X == C, fold C to arg0's type.
+
+	PR debug/47946
+	* dwarf2out.c (add_bit_offset_attribute): If bit_offset is negative,
+	emit it as add_AT_int instead of add_AT_unsigned.
+
+2011-03-14  Tom Tromey  <tromey@redhat.com>
+
+	* unwind-dw2.c: Include sys/sdt.h if it exists.
+	(_Unwind_DebugHook): Use STAP_PROBE2.
+	* config.in, configure: Rebuild.
+	* configure.ac: Check for sys/sdt.h.
+
+2011-03-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (ROUND_FLOOR): New constant.
+	(ROUND_CEIL): Ditto.
+	(ROUND_TRUNC): Ditto.
+	(ROUND_MXCSR): Ditto.
+	(ROUND_NO_EXC): Ditto.
+	(rint<mode>2): Use new defines instead of numerical constants.
+	(floor<mode>2): Ditto.
+	(ceil<mode>2): Ditto.
+	(btrunc<mode>2): Ditto.
+	* config/i386/i386-builtin-types.def: Define ROUND function type
+	aliases.
+	* config/i386/i386.c (enum ix86_builtins): Add
+	IX86_BUILTIN_{FLOOR,CEIL,TRUNC,RINT}{PS,PD}{,256} defines.
+	(struct builtin_description): Add
+	__builtin_ia32_{floor,ceil,trunc,rint}{pd,ps}{,256} descriptions.
+	(ix86_expand_sse_round): New static function.
+	(ix86_expand_args_builtin): Call ix86_expand_sse_round for ROUND
+	function types.
+	(ix86_builtin_vectorized_function): Handle
+	BUILT_IN_{FLOOR,CEIL,TRUNC,RINT}{,F} builtins.
+
+2011-03-14  Tom Tromey  <tromey@redhat.com>
+
+	* c-parser.c (c_parser_asm_string_literal): Clear
+	warn_overlength_strings.
+
+2011-03-14  Tom Tromey  <tromey@redhat.com>
+
+	* c-parser.c (disable_extension_diagnostics): Save
+	warn_overlength_strings.
+	(restore_extension_diagnostics): Restore warn_overlength_strings.
+
+2011-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	* BASE-VER: Change to 4.7.0.
+
+2011-03-14  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48098
+	* tree.c (build_vector_from_val): Adjust assert to requirements
+	and reality.
+
+2011-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/48102
+	* graphite-cloog-compat.h (build_cloog_prog): Remove STATE parameter.
+
+2011-03-14  Andreas Tobler  <andreast@fgznet.ch>
+
+	* config/rs6000/freebsd.h: (RELOCATABLE_NEEDS_FIXUP): Define in
+	terms of target_flags_explicit. Adjust copyright year.
+
+	* config.gcc: Add FreeBSD PowerPC soft-float libgcc bits.
+	* config/rs6000/t-freebsd: New file. Add override for
+	LIB2FUNCS_EXTRA.
+
+2011-03-13  Chris Demetriou  <cgd@google.com>
+
+	* doc/invoke.texi (-fdiagnostics-show-option): Replace with...
+	(-fno-diagnostics-show-option): this, to reflect current default.
+	(-Werror=): Update text about -fno-diagnostics-show-option.
+
+2011-03-12  Peter Bergner  <bergner@vnet.ibm.com>
+
+	PR target/48053
+	* config/rs6000/predicates.md (easy_vector_constant_add_self,
+	easy_vector_constant_msb): Do not handle V2DImode and V2DFmode.
+	* config/rs6000/rs6000.c (const_vector_elt_as_int): Add assert that
+	mode is not V2DImode or V2DFmode.
+	(vspltis_constant): Do not handle V2DImode and V2DFmode.
+	(rs6000_expand_vector_init): Replace copy_to_reg with copy_to_mode_reg.
+	* config/rs6000/rs6000.md (movdi_internal32): Allow setting VSX
+	registers to 0.
+	(movdi_internal64): Likewise.
+
 2011-03-12  Sebastian Pop  <sebastian.pop@amd.com>
 
 	PR tree-optimization/47127
@@ -266,7 +451,8 @@
 	PR lto/47497
 	* lto-symtab.c (lto_cgraph_replace_node): Do not set thunk.alias.
 	(lto_symtab_merge_cgraph_nodes_1): Update thunk.alias pointers here.
-	* cgraph.h (cgraph_same_body_alias, cgraph_add_thunk): Add node pointers.
+	* cgraph.h (cgraph_same_body_alias, cgraph_add_thunk):
+	Add node pointers.
 	* cgraph.c (cgraph_same_body_alias_1, cgraph_same_body_alias,
 	cgraph_add_thunk): Add node pointers.
 	* lto-cgraph.c (lto_output_node): Verify that thunks&aliases are
@@ -277,8 +463,8 @@
 2011-03-04  Changpeng Fang  <changpeng.fang@amd.com>
 
 	* config/i386/i386.opt (mprefer-avx128): New flag.
-	* config/i386/i386.c (ix86_preferred_simd_mode): Prefer 128-bit mode
-	when the flag -mprefer-avx128 is on.
+	* config/i386/i386.c (ix86_preferred_simd_mode): Prefer 128-bit AVX
+	modes when the flag -mprefer-avx128 is on.
 
 2011-03-04  Richard Sandiford  <richard.sandiford@linaro.org>
 
