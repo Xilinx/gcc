@@ -256,18 +256,21 @@
 	 $LOOPNBNODES = $LO?($LO -> num_nodes):0 ; }#
 	 )
 	(let ( (tupbody (make_multiple discr loopnbnodes))
-	       (curbb ())
 	       )
 	  (if (null tupbody) (return)) 
 	  ;; first, fill the tuple with empty basic block boxes
 	  (foreach_long_upto 
 	   (0 (-i loopnbnodes 1))
 	   (:long ix)
+	   (debuglong "loop_body_tuple ix" ix)
 	   (let ( (curbb (make_basicblock discr_basic_block (null_basicblock))) 
 		  )
-	   (multiple_put_nth tupbody ix curbb)
+	     (debug_msg curbb "loop_body_tuple curbb")
+	     (multiple_put_nth tupbody ix curbb)
 	   ))
 	  (debug_msg tupbody "loop_body_tuple empty tupbody")
+	  (let ( (ourbb ())
+		 )
 	  ;; retrieve the malloc-ed array of basic blocks and use it to fill the tuple
 	  ;; then free it
 	  (code_chunk
@@ -279,14 +282,16 @@
 	   for ($FILLBBBOXESCHUNK#_ix = 0		  ;
 				      $FILLBBBOXESCHUNK#_ix < $LOOPNBNODES ;
 				      $FILLBBBOXESCHUNK#_ix++) {
-	   $CURBB = melt_multiple_nth ($TUPBODY, $FILLBBBOXESCHUNK#_ix)	;
+	   $OURBB = melt_multiple_nth ($TUPBODY, $FILLBBBOXESCHUNK#_ix)	;
 	   meltgc_basicblock_updatebox
-                ($CURBB, 
+                ($OURBB, 
 		 $FILLBBBOXESCHUNK#_bbtab[$FILLBBBOXESCHUNK#_ix]) ;
 	   }
 	   free ($FILLBBBOXESCHUNK#_bbtab), $FILLBBBOXESCHUNK#_bbtab=0 ;
+	   $OURBB = (melt_ptr_t)0;
 	   /*end $FILLBBBOXESCHUNK*/
 	   }#)
+	  )
 	  (debug_msg tupbody "loop_body_tuple return tupbody")
 	  (return tupbody)
 	  ))))
