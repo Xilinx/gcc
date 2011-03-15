@@ -3211,7 +3211,7 @@ fi
 
 AC_MSG_CHECKING(linker plugin support)
 gcc_cv_lto_plugin=no
-if test -f ../lto-plugin/Makefile ; then
+if test -f liblto_plugin.la; then
   if test $in_tree_ld = yes -a x"$ORIGINAL_PLUGIN_LD_FOR_TARGET=" = x"$gcc_cv_ld"; then
     if test x"$ld_is_gold" = xyes; then
       gcc_cv_lto_plugin=yes
@@ -4134,6 +4134,51 @@ if test x$gcc_cv_ld_eh_gc_sections = xyes; then
 fi
 AC_MSG_RESULT($gcc_cv_ld_eh_gc_sections)
 
+AC_MSG_CHECKING(linker EH garbage collection of sections bug)
+gcc_cv_ld_eh_gc_sections_bug=no
+if test $in_tree_ld = yes ; then
+  if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -lt 19 -o "$gcc_cv_gld_major_version" -lt 2 \
+     && test $in_tree_ld_is_elf = yes; then
+    gcc_cv_ld_eh_gc_sections_bug=yes
+  fi
+elif test x$gcc_cv_as != x -a x$gcc_cv_ld != x -a x$gcc_cv_objdump != x -a x$gcc_cv_as_comdat_group = xyes; then
+  gcc_cv_ld_eh_gc_sections_bug=yes
+  cat > conftest.s <<EOF
+	.section	.text
+.globl _start
+	.type _start, @function
+_start:
+	.long foo
+	.size _start, .-_start
+	.section	.text.startup.foo,"ax",@progbits
+	.type foo, @function
+foo:
+	.long 0
+	.size foo, .-foo
+	.section	.gcc_except_table.foo,"a",@progbits
+.L0:
+	.long 0
+	.section	.eh_frame,"a",@progbits
+	.long .L0
+EOF
+  if $gcc_cv_as -o conftest.o conftest.s > /dev/null 2>&1; then
+    if $gcc_cv_ld -o conftest conftest.o --entry=_start --gc-sections 2>&1 \
+	 | grep "gc-sections option ignored" > /dev/null; then
+      :
+    elif $gcc_cv_objdump -h conftest 2> /dev/null \
+	 | grep gcc_except_table > /dev/null; then
+      gcc_cv_ld_eh_gc_sections_bug=no
+    fi
+  fi
+  rm -f conftest.s conftest.o conftest
+fi
+if test x$gcc_cv_ld_eh_gc_sections_bug = xyes; then
+	AC_DEFINE(HAVE_LD_EH_GC_SECTIONS_BUG, 1,
+  [Define if your linker has buggy garbage collection of
+   sections support when .text.startup.foo like sections are used.])
+fi
+AC_MSG_RESULT($gcc_cv_ld_eh_gc_sections_bug)
+
 # --------
 # UNSORTED
 # --------
@@ -4683,6 +4728,18 @@ else
   slibdir='$(libdir)'
 fi)
 AC_SUBST(slibdir)
+
+# Set default prefix canonicalization.
+
+AC_ARG_ENABLE(canonical-prefixes,
+[  --enable-canonical-prefixes
+                          enable or disable prefix canonicalization],
+[],
+enable_canonical_prefixes=yes)
+if test x"$enable_canonical_prefixes" = xyes; then
+  AC_DEFINE(ENABLE_CANONICAL_PREFIXES,
+            1, [Define to enable prefix canonicalization.])
+fi
 
 # Substitute configuration variables
 AC_SUBST(subdirs)

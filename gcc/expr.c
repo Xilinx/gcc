@@ -5924,7 +5924,8 @@ store_field (rtx target, HOST_WIDE_INT bitsize, HOST_WIDE_INT bitpos,
       if (to_rtx == target)
 	to_rtx = copy_rtx (to_rtx);
 
-      MEM_SET_IN_STRUCT_P (to_rtx, 1);
+      if (!MEM_SCALAR_P (to_rtx))
+	MEM_IN_STRUCT_P (to_rtx) = 1;
       if (!MEM_KEEP_ALIAS_SET_P (to_rtx) && MEM_ALIAS_SET (to_rtx) != 0)
 	set_mem_alias_set (to_rtx, alias_set);
 
@@ -7695,6 +7696,18 @@ expand_expr_real_2 (sepops ops, rtx target, enum machine_mode tmode,
 	optab opt = fma_optab;
 	gimple def0, def2;
 
+	/* If there is no insn for FMA, emit it as __builtin_fma{,f,l}
+	   call.  */
+	if (optab_handler (fma_optab, mode) == CODE_FOR_nothing)
+	  {
+	    tree fn = mathfn_built_in (TREE_TYPE (treeop0), BUILT_IN_FMA);
+	    tree call_expr;
+
+	    gcc_assert (fn != NULL_TREE);
+	    call_expr = build_call_expr (fn, 3, treeop0, treeop1, treeop2);
+	    return expand_builtin (call_expr, target, subtarget, mode, false);
+	  }
+
 	def0 = get_def_for_expr (treeop0, NEGATE_EXPR);
 	def2 = get_def_for_expr (treeop2, NEGATE_EXPR);
 
@@ -8375,6 +8388,13 @@ expand_expr_real_1 (tree exp, rtx target, enum machine_mode tmode,
 				   NULL);
 
       g = get_gimple_for_ssa_name (exp);
+      /* For EXPAND_INITIALIZER try harder to get something simpler.  */
+      if (g == NULL
+	  && modifier == EXPAND_INITIALIZER
+	  && !SSA_NAME_IS_DEFAULT_DEF (exp)
+	  && (optimize || DECL_IGNORED_P (SSA_NAME_VAR (exp)))
+	  && stmt_is_replaceable_p (SSA_NAME_DEF_STMT (exp)))
+	g = SSA_NAME_DEF_STMT (exp);
       if (g)
 	return expand_expr_real (gimple_assign_rhs_to_tree (g), target, tmode,
 				 modifier, NULL);

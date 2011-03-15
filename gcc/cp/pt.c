@@ -54,7 +54,7 @@ typedef int (*tree_fn_t) (tree, void*);
 /* The PENDING_TEMPLATES is a TREE_LIST of templates whose
    instantiations have been deferred, either because their definitions
    were not yet available, or because we were putting off doing the work.  */
-struct GTY (()) pending_template {
+struct GTY ((chain_next ("%h.next"))) pending_template {
   struct pending_template *next;
   struct tinst_level *tinst;
 };
@@ -1534,7 +1534,10 @@ iterative_hash_template_arg (tree arg, hashval_t val)
 
     case PARM_DECL:
       if (!DECL_ARTIFICIAL (arg))
-	val = iterative_hash_object (DECL_PARM_INDEX (arg), val);
+	{
+	  val = iterative_hash_object (DECL_PARM_INDEX (arg), val);
+	  val = iterative_hash_object (DECL_PARM_LEVEL (arg), val);
+	}
       return iterative_hash_template_arg (TREE_TYPE (arg), val);
 
     case TARGET_EXPR:
@@ -1566,13 +1569,6 @@ iterative_hash_template_arg (tree arg, hashval_t val)
       code = TREE_CODE (TREE_OPERAND (arg, 1));
       val = iterative_hash_object (code, val);
       return iterative_hash_template_arg (TREE_OPERAND (arg, 2), val);
-
-    case ARRAY_TYPE:
-      /* layout_type sets structural equality for arrays of
-	 incomplete type, so we can't rely on the canonical type
-	 for hashing.  */
-      val = iterative_hash_template_arg (TREE_TYPE (arg), val);
-      return iterative_hash_template_arg (TYPE_DOMAIN (arg), val);
 
     case LAMBDA_EXPR:
       /* A lambda can't appear in a template arg, but don't crash on
@@ -5312,7 +5308,8 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 
   /* Add the ADDR_EXPR now for the benefit of
      value_dependent_expression_p.  */
-  if (TYPE_PTROBV_P (type))
+  if (TYPE_PTROBV_P (type)
+      && TREE_CODE (TREE_TYPE (expr)) == ARRAY_TYPE)
     expr = decay_conversion (expr);
 
   /* If we are in a template, EXPR may be non-dependent, but still
@@ -5400,11 +5397,19 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 	{
 	  if (complain & tf_error)
 	    {
-	      error ("%qE is not a valid template argument for type %qT "
-		     "because it is a non-constant expression", expr, type);
-	      cxx_constant_value (expr);
+	      int errs = errorcount, warns = warningcount;
+	      expr = cxx_constant_value (expr);
+	      if (errorcount > errs || warningcount > warns)
+		inform (EXPR_LOC_OR_HERE (expr),
+			"in template argument for type %qT ", type);
+	      if (expr == error_mark_node)
+		return NULL_TREE;
+	      /* else cxx_constant_value complained but gave us
+		 a real constant, so go ahead.  */
+	      gcc_assert (TREE_CODE (expr) == INTEGER_CST);
 	    }
-	  return NULL_TREE;
+	  else
+	    return NULL_TREE;
 	}
     }
   /* [temp.arg.nontype]/5, bullet 2
@@ -6988,6 +6993,8 @@ lookup_template_class_1 (tree d1, tree arglist, tree in_decl, tree context,
               SET_SCOPED_ENUM_P (t, SCOPED_ENUM_P (template_type));
             }
           SET_OPAQUE_ENUM_P (t, OPAQUE_ENUM_P (template_type));
+	  ENUM_FIXED_UNDERLYING_TYPE_P (t)
+	    = ENUM_FIXED_UNDERLYING_TYPE_P (template_type);
 	}
       else
 	{
@@ -8730,19 +8737,51 @@ tsubst_pack_expansion (tree t, tree args, tsubst_flags_t complain,
 	  return result;
 	}
 
+      /* For clarity in the comments below let's use the
+	 representation 'argument_pack<elements>' to denote an
+	 argument pack and its elements.
+
+	 In the 'if' block below, we want to detect cases where
+	 ARG_PACK is argument_pack<PARM_PACK...>.  I.e, we want to
+	 check if ARG_PACK is an argument pack which sole element is
+	 the expansion of PARM_PACK.  That argument pack is typically
+	 created by template_parm_to_arg when passed a parameter
+	 pack.  */
       if (arg_pack
           && TREE_VEC_LENGTH (ARGUMENT_PACK_ARGS (arg_pack)) == 1
           && PACK_EXPANSION_P (TREE_VEC_ELT (ARGUMENT_PACK_ARGS (arg_pack), 0)))
         {
           tree expansion = TREE_VEC_ELT (ARGUMENT_PACK_ARGS (arg_pack), 0);
           tree pattern = PACK_EXPANSION_PATTERN (expansion);
-          if ((TYPE_P (pattern) && same_type_p (pattern, parm_pack))
-              || (!TYPE_P (pattern) && cp_tree_equal (parm_pack, pattern)))
-            /* The argument pack that the parameter maps to is just an
-               expansion of the parameter itself, such as one would
-               find in the implicit typedef of a class inside the
-               class itself.  Consider this parameter "unsubstituted",
-               so that we will maintain the outer pack expansion.  */
+	  /* So we have an argument_pack<P...>.  We want to test if P
+	     is actually PARM_PACK.  We will not use cp_tree_equal to
+	     test P and PARM_PACK because during type fixup (by
+	     fixup_template_parm) P can be a pre-fixup version of a
+	     type and PARM_PACK be its post-fixup version.
+	     cp_tree_equal would consider them as different even
+	     though we would want to consider them compatible for our
+	     precise purpose here.
+
+	     Thus we are going to consider that P and PARM_PACK are
+	     compatible if they have the same DECL.  */
+	  if ((/* If ARG_PACK is a type parameter pack named by the
+		  same DECL as parm_pack ...  */
+	       (TYPE_P (pattern)
+		&& TYPE_P (parm_pack)
+		&& TYPE_NAME (pattern) == TYPE_NAME (parm_pack))
+	       /* ... or if ARG_PACK is a non-type parameter
+		  named by the same DECL as parm_pack ...  */
+	       || (TREE_CODE (pattern) == TEMPLATE_PARM_INDEX
+		   && TREE_CODE (parm_pack) == PARM_DECL
+		   && TEMPLATE_PARM_DECL (pattern)
+		   == TEMPLATE_PARM_DECL (DECL_INITIAL (parm_pack))))
+	      && template_parameter_pack_p (pattern))
+            /* ... then the argument pack that the parameter maps to
+               is just an expansion of the parameter itself, such as
+               one would find in the implicit typedef of a class
+               inside the class itself.  Consider this parameter
+               "unsubstituted", so that we will maintain the outer
+               pack expansion.  */
             arg_pack = NULL_TREE;
         }
           
@@ -8950,9 +8989,14 @@ static tree
 tsubst_template_args (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 {
   tree orig_t = t;
-  int len = TREE_VEC_LENGTH (t);
-  int need_new = 0, i, expanded_len_adjust = 0, out;
-  tree *elts = XALLOCAVEC (tree, len);
+  int len, need_new = 0, i, expanded_len_adjust = 0, out;
+  tree *elts;
+
+  if (t == error_mark_node)
+    return error_mark_node;
+
+  len = TREE_VEC_LENGTH (t);
+  elts = XALLOCAVEC (tree, len);
 
   for (i = 0; i < len; i++)
     {
@@ -10925,11 +10969,21 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	if (TREE_CODE (f) != TYPENAME_TYPE)
 	  {
 	    if (TYPENAME_IS_ENUM_P (t) && TREE_CODE (f) != ENUMERAL_TYPE)
-	      error ("%qT resolves to %qT, which is not an enumeration type",
-		     t, f);
+	      {
+		if (complain & tf_error)
+		  error ("%qT resolves to %qT, which is not an enumeration type",
+			 t, f);
+		else
+		  return error_mark_node;
+	      }
 	    else if (TYPENAME_IS_CLASS_P (t) && !CLASS_TYPE_P (f))
-	      error ("%qT resolves to %qT, which is is not a class type",
-		     t, f);
+	      {
+		if (complain & tf_error)
+		  error ("%qT resolves to %qT, which is is not a class type",
+			 t, f);
+		else
+		  return error_mark_node;
+	      }
 	  }
 
 	return cp_build_qualified_type_real
@@ -11401,10 +11455,17 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
     case SIZEOF_EXPR:
       if (PACK_EXPANSION_P (TREE_OPERAND (t, 0)))
         {
-          /* We only want to compute the number of arguments.  */
-          tree expanded = tsubst_pack_expansion (TREE_OPERAND (t, 0), args,
-                                                complain, in_decl);
+
+          tree expanded;
 	  int len = 0;
+
+	  ++cp_unevaluated_operand;
+	  ++c_inhibit_evaluation_warnings;
+	  /* We only want to compute the number of arguments.  */
+	  expanded = tsubst_pack_expansion (TREE_OPERAND (t, 0), args,
+					    complain, in_decl);
+	  --cp_unevaluated_operand;
+	  --c_inhibit_evaluation_warnings;
 
 	  if (TREE_CODE (expanded) == TREE_VEC)
 	    len = TREE_VEC_LENGTH (expanded);
@@ -11699,7 +11760,9 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
       return t;
 
     default:
-      gcc_unreachable ();
+      /* We shouldn't get here, but keep going if !ENABLE_CHECKING.  */
+      gcc_checking_assert (false);
+      return t;
     }
 }
 
@@ -12956,7 +13019,7 @@ tsubst_copy_and_build (tree t,
       return finish_pseudo_destructor_expr
 	(RECUR (TREE_OPERAND (t, 0)),
 	 RECUR (TREE_OPERAND (t, 1)),
-	 RECUR (TREE_OPERAND (t, 2)));
+	 tsubst (TREE_OPERAND (t, 2), args, complain, in_decl));
 
     case TREE_LIST:
       {
@@ -13345,7 +13408,11 @@ tsubst_copy_and_build (tree t,
       /* We can get here for a constant initializer of non-dependent type.
          FIXME stop folding in cp_parser_initializer_clause.  */
       gcc_assert (TREE_CONSTANT (t));
-      return get_target_expr (RECUR (TARGET_EXPR_INITIAL (t)));
+      {
+	tree r = get_target_expr (RECUR (TARGET_EXPR_INITIAL (t)));
+	TREE_CONSTANT (r) = true;
+	return r;
+      }
 
     default:
       /* Handle Objective-C++ constructs, if appropriate.  */
@@ -15657,6 +15724,9 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
       return 1;
 
     default:
+      /* An unresolved overload is a nondeduced context.  */
+      if (type_unknown_p (parm))
+	return 0;
       gcc_assert (EXPR_P (parm));
 
       /* We must be looking at an expression.  This can happen with
@@ -17194,8 +17264,13 @@ instantiate_decl (tree d, int defer_ok,
   if (!pattern_defined && expl_inst_class_mem_p
       && DECL_EXPLICIT_INSTANTIATION (d))
     {
-      DECL_NOT_REALLY_EXTERN (d) = 0;
-      DECL_INTERFACE_KNOWN (d) = 0;
+      /* Leave linkage flags alone on instantiations with anonymous
+	 visibility.  */
+      if (TREE_PUBLIC (d))
+	{
+	  DECL_NOT_REALLY_EXTERN (d) = 0;
+	  DECL_INTERFACE_KNOWN (d) = 0;
+	}
       SET_DECL_IMPLICIT_INSTANTIATION (d);
     }
 
@@ -17945,7 +18020,7 @@ dependent_type_p_r (tree type)
 }
 
 /* Returns TRUE if TYPE is dependent, in the sense of
-   [temp.dep.type].  */
+   [temp.dep.type].  Note that a NULL type is considered dependent.  */
 
 bool
 dependent_type_p (tree type)
@@ -18083,6 +18158,7 @@ value_dependent_expression_p (tree expression)
 
     case SIZEOF_EXPR:
     case ALIGNOF_EXPR:
+    case TYPEID_EXPR:
       /* A `sizeof' expression is value-dependent if the operand is
 	 type-dependent or is a pack expansion.  */
       expression = TREE_OPERAND (expression, 0);
@@ -18217,7 +18293,10 @@ value_dependent_expression_p (tree expression)
 }
 
 /* Returns TRUE if the EXPRESSION is type-dependent, in the sense of
-   [temp.dep.expr].  */
+   [temp.dep.expr].  Note that an expression with no type is
+   considered dependent.  Other parts of the compiler arrange for an
+   expression with type-dependent subexpressions to have no type, so
+   this function doesn't have to be fully recursive.  */
 
 bool
 type_dependent_expression_p (tree expression)
@@ -18947,7 +19026,11 @@ do_auto_deduction (tree type, tree init, tree auto_node)
 			       DEDUCE_CALL, LOOKUP_NORMAL);
   if (val > 0)
     {
-      error ("unable to deduce %qT from %qE", type, init);
+      if (type && type != error_mark_node)
+	/* If type is error_mark_node a diagnostic must have been
+	   emitted by now.  Also, having a mention to '<type error>'
+	   in the diagnostic is not really useful to the user.  */
+	error ("unable to deduce %qT from %qE", type, init);
       return error_mark_node;
     }
 

@@ -1,5 +1,5 @@
 /* Variable tracking routines for the GNU compiler.
-   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -737,7 +737,7 @@ use_narrower_mode_test (rtx *loc, void *data)
   switch (GET_CODE (*loc))
     {
     case REG:
-      if (cselib_lookup (*loc, GET_MODE (SUBREG_REG (subreg)), 0))
+      if (cselib_lookup (*loc, GET_MODE (SUBREG_REG (subreg)), 0, VOIDmode))
 	return 1;
       return -1;
     case PLUS:
@@ -3954,8 +3954,10 @@ variable_post_merge_new_vals (void **slot, void *info)
 			 subsequent rounds.  */
 		      cselib_val *v;
 		      gcc_assert (!cselib_lookup (node->loc,
-						  GET_MODE (node->loc), 0));
-		      v = cselib_lookup (node->loc, GET_MODE (node->loc), 1);
+						  GET_MODE (node->loc), 0,
+						  VOIDmode));
+		      v = cselib_lookup (node->loc, GET_MODE (node->loc), 1,
+					 VOIDmode);
 		      cselib_preserve_value (v);
 		      cselib_invalidate_rtx (node->loc);
 		      cval = v->val_rtx;
@@ -4782,18 +4784,25 @@ find_use_val (rtx x, enum machine_mode mode, struct count_use_info *cui)
   if (cui->sets)
     {
       /* This is called after uses are set up and before stores are
-	 processed bycselib, so it's safe to look up srcs, but not
+	 processed by cselib, so it's safe to look up srcs, but not
 	 dsts.  So we look up expressions that appear in srcs or in
 	 dest expressions, but we search the sets array for dests of
 	 stores.  */
       if (cui->store_p)
 	{
+	  /* Some targets represent memset and memcpy patterns
+	     by (set (mem:BLK ...) (reg:[QHSD]I ...)) or
+	     (set (mem:BLK ...) (const_int ...)) or
+	     (set (mem:BLK ...) (mem:BLK ...)).  Don't return anything
+	     in that case, otherwise we end up with mode mismatches.  */
+	  if (mode == BLKmode && MEM_P (x))
+	    return NULL;
 	  for (i = 0; i < cui->n_sets; i++)
 	    if (cui->sets[i].dest == x)
 	      return cui->sets[i].src_elt;
 	}
       else
-	return cselib_lookup (x, mode, 0);
+	return cselib_lookup (x, mode, 0, VOIDmode);
     }
 
   return NULL;
@@ -4822,14 +4831,15 @@ replace_expr_with_values (rtx loc)
   else if (MEM_P (loc))
     {
       cselib_val *addr = cselib_lookup (XEXP (loc, 0),
-					get_address_mode (loc), 0);
+					get_address_mode (loc), 0,
+					GET_MODE (loc));
       if (addr)
 	return replace_equiv_address_nv (loc, addr->val_rtx);
       else
 	return NULL;
     }
   else
-    return cselib_subst_to_values (loc);
+    return cselib_subst_to_values (loc, VOIDmode);
 }
 
 /* Determine what kind of micro operation to choose for a USE.  Return
@@ -4849,7 +4859,8 @@ use_type (rtx loc, struct count_use_info *cui, enum machine_mode *modep)
 	      rtx ploc = PAT_VAR_LOCATION_LOC (loc);
 	      if (! VAR_LOC_UNKNOWN_P (ploc))
 		{
-		  cselib_val *val = cselib_lookup (ploc, GET_MODE (loc), 1);
+		  cselib_val *val = cselib_lookup (ploc, GET_MODE (loc), 1,
+						   VOIDmode);
 
 		  /* ??? flag_float_store and volatile mems are never
 		     given values, but we could in theory use them for
@@ -4871,7 +4882,8 @@ use_type (rtx loc, struct count_use_info *cui, enum machine_mode *modep)
 	      if (REG_P (loc)
 		  || (find_use_val (loc, GET_MODE (loc), cui)
 		      && cselib_lookup (XEXP (loc, 0),
-					get_address_mode (loc), 0)))
+					get_address_mode (loc), 0,
+					GET_MODE (loc))))
 		return MO_VAL_SET;
 	    }
 	  else
@@ -5033,13 +5045,15 @@ add_uses (rtx *ploc, void *data)
 	      rtx mloc = vloc;
 	      enum machine_mode address_mode = get_address_mode (mloc);
 	      cselib_val *val
-		= cselib_lookup (XEXP (mloc, 0), address_mode, 0);
+		= cselib_lookup (XEXP (mloc, 0), address_mode, 0,
+				 GET_MODE (mloc));
 
 	      if (val && !cselib_preserved_value_p (val))
 		{
 		  micro_operation moa;
 		  preserve_value (val);
-		  mloc = cselib_subst_to_values (XEXP (mloc, 0));
+		  mloc = cselib_subst_to_values (XEXP (mloc, 0),
+						 GET_MODE (mloc));
 		  moa.type = MO_VAL_USE;
 		  moa.insn = cui->insn;
 		  moa.u.loc = gen_rtx_CONCAT (address_mode,
@@ -5109,13 +5123,15 @@ add_uses (rtx *ploc, void *data)
 	      rtx mloc = oloc;
 	      enum machine_mode address_mode = get_address_mode (mloc);
 	      cselib_val *val
-		= cselib_lookup (XEXP (mloc, 0), address_mode, 0);
+		= cselib_lookup (XEXP (mloc, 0), address_mode, 0,
+				GET_MODE (mloc));
 
 	      if (val && !cselib_preserved_value_p (val))
 		{
 		  micro_operation moa;
 		  preserve_value (val);
-		  mloc = cselib_subst_to_values (XEXP (mloc, 0));
+		  mloc = cselib_subst_to_values (XEXP (mloc, 0),
+						GET_MODE (mloc));
 		  moa.type = MO_VAL_USE;
 		  moa.insn = cui->insn;
 		  moa.u.loc = gen_rtx_CONCAT (address_mode,
@@ -5225,7 +5241,7 @@ reverse_op (rtx val, const_rtx expr)
   if (!SCALAR_INT_MODE_P (GET_MODE (src)) || XEXP (src, 0) == cfa_base_rtx)
     return NULL_RTX;
 
-  v = cselib_lookup (XEXP (src, 0), GET_MODE (XEXP (src, 0)), 0);
+  v = cselib_lookup (XEXP (src, 0), GET_MODE (XEXP (src, 0)), 0, VOIDmode);
   if (!v || !cselib_preserved_value_p (v))
     return NULL_RTX;
 
@@ -5346,13 +5362,15 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 	  rtx mloc = loc;
 	  enum machine_mode address_mode = get_address_mode (mloc);
 	  cselib_val *val = cselib_lookup (XEXP (mloc, 0),
-					   address_mode, 0);
+					   address_mode, 0,
+					   GET_MODE (mloc));
 
 	  if (val && !cselib_preserved_value_p (val))
 	    {
 	      preserve_value (val);
 	      mo.type = MO_VAL_USE;
-	      mloc = cselib_subst_to_values (XEXP (mloc, 0));
+	      mloc = cselib_subst_to_values (XEXP (mloc, 0),
+					     GET_MODE (mloc));
 	      mo.u.loc = gen_rtx_CONCAT (address_mode, val->val_rtx, mloc);
 	      mo.insn = cui->insn;
 	      if (dump_file && (dump_flags & TDF_DETAILS))
@@ -5411,7 +5429,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
 
   if (GET_CODE (PATTERN (cui->insn)) == COND_EXEC)
     {
-      cselib_val *oval = cselib_lookup (oloc, GET_MODE (oloc), 0);
+      cselib_val *oval = cselib_lookup (oloc, GET_MODE (oloc), 0, VOIDmode);
 
       gcc_assert (oval != v);
       gcc_assert (REG_P (oloc) || MEM_P (oloc));
@@ -8077,7 +8095,8 @@ vt_add_function_parameter (tree parm)
       if (offset)
 	return;
 
-      val = cselib_lookup (var_lowpart (mode, incoming), mode, true);
+      val = cselib_lookup (var_lowpart (mode, incoming), mode, true,
+			   VOIDmode);
 
       /* ??? Float-typed values in memory are not handled by
 	 cselib.  */
@@ -8197,7 +8216,7 @@ vt_init_cfa_base (void)
 			    frame_pointer_needed
 			    ? hard_frame_pointer_rtx : stack_pointer_rtx);
   val = cselib_lookup_from_insn (cfa_base_rtx, GET_MODE (cfa_base_rtx), 1,
-				 get_insns ());
+				 VOIDmode, get_insns ());
   preserve_value (val);
   cselib_preserve_cfa_base_value (val, REGNO (cfa_base_rtx));
   var_reg_decl_set (&VTI (ENTRY_BLOCK_PTR)->out, cfa_base_rtx,

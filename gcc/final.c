@@ -1492,7 +1492,7 @@ remap_debug_filename (const char *filename)
   size_t name_len;
 
   for (map = debug_prefix_maps; map; map = map->next)
-    if (strncmp (filename, map->old_prefix, map->old_len) == 0)
+    if (filename_ncmp (filename, map->old_prefix, map->old_len) == 0)
       break;
   if (!map)
     return filename;
@@ -4402,7 +4402,11 @@ rest_of_clean_state (void)
 	    if (LABEL_P (insn))
 	      INSN_UID (insn) = CODE_LABEL_NUMBER (insn);
 	    else
-	      INSN_UID (insn) = 0;
+	      {
+		if (NOTE_P (insn))
+		  set_block_for_insn (insn, NULL);
+		INSN_UID (insn) = 0;
+	      }
 	}
     }
 
@@ -4423,7 +4427,6 @@ rest_of_clean_state (void)
 	       && NOTE_KIND (insn) != NOTE_INSN_BLOCK_END
 	       && NOTE_KIND (insn) != NOTE_INSN_CFA_RESTORE_STATE)))
 	print_rtl_single (final_output, insn);
-
     }
 
   if (final_output)

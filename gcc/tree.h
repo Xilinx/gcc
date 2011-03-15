@@ -1106,8 +1106,7 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 
 /* In VAR_DECL, PARM_DECL and RESULT_DECL nodes, nonzero means address
    of this is needed.  So it cannot be in a register.
-   In a FUNCTION_DECL, nonzero means its address is needed.
-   So it must be compiled even if it is an inline function.
+   In a FUNCTION_DECL it has no meaning.
    In CONSTRUCTOR nodes, it means object constructed must be in memory.
    In LABEL_DECL nodes, it means a goto for this label has been seen
    from a place outside all binding contours that restore stack levels.
@@ -5349,7 +5348,7 @@ extern bool must_pass_in_stack_var_size_or_pad (enum machine_mode, const_tree);
 
 /* In attribs.c.  */
 
-extern const struct attribute_spec *lookup_attribute_spec (tree);
+extern const struct attribute_spec *lookup_attribute_spec (const_tree);
 
 /* Process the attributes listed in ATTRIBUTES and install them in *NODE,
    which is either a DECL (including a TYPE_DECL) or a TYPE.  If a DECL,

@@ -73,9 +73,9 @@ extern int dot_symbols;
 #endif
 
 #undef  PROCESSOR_DEFAULT
-#define PROCESSOR_DEFAULT PROCESSOR_POWER6
+#define PROCESSOR_DEFAULT PROCESSOR_POWER7
 #undef  PROCESSOR_DEFAULT64
-#define PROCESSOR_DEFAULT64 PROCESSOR_POWER6
+#define PROCESSOR_DEFAULT64 PROCESSOR_POWER7
 
 /* We don't need to generate entries in .fixup, except when
    -mrelocatable or -mrelocatable-lib is given.  */
@@ -536,8 +536,6 @@ extern int dot_symbols;
    structure return convention.  */
 #undef DRAFT_V4_STRUCT_RET
 #define DRAFT_V4_STRUCT_RET (!TARGET_64BIT)
-
-#define TARGET_ASM_FILE_END rs6000_elf_end_indicate_exec_stack
 
 #define TARGET_POSIX_IO
 

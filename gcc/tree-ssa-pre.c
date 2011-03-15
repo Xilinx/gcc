@@ -1691,6 +1691,12 @@ phi_translate_1 (pre_expr expr, bitmap_set_t set1, bitmap_set_t set2,
 		result = fold_build1 (VIEW_CONVERT_EXPR, ref->type, result);
 		converted = true;
 	      }
+	    else if (!result && newref
+		     && !useless_type_conversion_p (ref->type, newref->type))
+	      {
+		VEC_free (vn_reference_op_s, heap, newoperands);
+		return NULL;
+	      }
 
 	    if (result && is_gimple_min_invariant (result))
 	      {
@@ -4853,7 +4859,7 @@ execute_pre (bool do_fre)
   if (!do_fre)
     loop_optimizer_init (LOOPS_NORMAL);
 
-  if (!run_scc_vn ())
+  if (!run_scc_vn (do_fre ? VN_WALKREWRITE : VN_WALK))
     {
       if (!do_fre)
 	loop_optimizer_finalize ();
@@ -4909,7 +4915,10 @@ execute_pre (bool do_fre)
   clear_expression_ids ();
   free_scc_vn ();
   if (!do_fre)
-    remove_dead_inserted_code ();
+    {
+      remove_dead_inserted_code ();
+      todo |= TODO_verify_flow;
+    }
 
   scev_finalize ();
   fini_pre (do_fre);

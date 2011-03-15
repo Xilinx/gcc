@@ -644,6 +644,7 @@ proper position among the other output files.  */
    directories.  */
 /* We pass any -flto flags on to the linker, which is expected
    to understand them.  In practice, this means it had better be collect2.  */
+/* %{e*} includes -export-dynamic; see comment in common.opt.  */
 #ifndef LINK_COMMAND_SPEC
 #define LINK_COMMAND_SPEC "\
 %{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
@@ -775,7 +776,7 @@ static const char *cc1_options =
  %{coverage:-fprofile-arcs -ftest-coverage}";
 
 static const char *asm_options =
-"%{--target-help:%:print-asm-header()} "
+"%{-target-help:%:print-asm-header()} "
 #if HAVE_GNU_AS
 /* If GNU AS is used, then convert -w (no warnings), -I, and -v
    to the assembler equivalents.  */
@@ -949,7 +950,7 @@ static const struct compiler default_compilers[] =
                     %W{o*:--output-pch=%*}}%V}}}}}}", 0, 0, 0},
   {".i", "@cpp-output", 0, 0, 0},
   {"@cpp-output",
-   "%{!M:%{!MM:%{!E:cc1 -fpreprocessed %i %(cc1_options) %{!fsyntax-only:%(invoke_as)}}}}", 0, 1, 0},
+   "%{!M:%{!MM:%{!E:cc1 -fpreprocessed %i %(cc1_options) %{!fsyntax-only:%(invoke_as)}}}}", 0, 0, 0},
   {".s", "@assembler", 0, 0, 0},
   {"@assembler",
    "%{!M:%{!MM:%{!E:%{!S:as %(asm_debug) %(asm_options) %i %A }}}}", 0, 0, 0},
@@ -2537,13 +2538,20 @@ execute (void)
 			}
 		      fputc ('"', stderr);
 		    }
+		  /* If it's empty, print "".  */
+		  else if (!**j)
+		    fprintf (stderr, " \"\"");
 		  else
 		    fprintf (stderr, " %s", *j);
 		}
 	    }
 	  else
 	    for (j = commands[i].argv; *j; j++)
-	      fprintf (stderr, " %s", *j);
+	      /* If it's empty, print "".  */
+	      if (!**j)
+		fprintf (stderr, " \"\"");
+	      else
+		fprintf (stderr, " %s", *j);
 
 	  /* Print a pipe symbol after all but the last command.  */
 	  if (i + 1 != n_commands)
@@ -2937,7 +2945,7 @@ display_help (void)
   fputs (_("  -save-temps              Do not delete intermediate files\n"), stdout);
   fputs (_("  -save-temps=<arg>        Do not delete intermediate files\n"), stdout);
   fputs (_("\
-  -no-canonical-prefixes   Do not canonicalize paths when building relative\n\
+  -[no-]canonical-prefixes Specify the path canonicalization for relative\n\
                            prefixes to other gcc components\n"), stdout);
   fputs (_("  -pipe                    Use pipes rather than intermediate files\n"), stdout);
   fputs (_("  -time                    Time the execution of each subprocess\n"), stdout);
@@ -3330,6 +3338,11 @@ driver_handle_option (struct gcc_options *opts,
       save_switch (concat ("-L", arg, NULL), 0, NULL, validated);
       return true;
 
+    case OPT_F:
+      /* Likewise -F.  */
+      save_switch (concat ("-F", arg, NULL), 0, NULL, validated);
+      return true;
+
     case OPT_save_temps:
       save_temps_flag = SAVE_TEMPS_CWD;
       validated = true;
@@ -3346,6 +3359,7 @@ driver_handle_option (struct gcc_options *opts,
 		     decoded->orig_option_with_args_text);
       break;
 
+    case OPT_canonical_prefixes:
     case OPT_no_canonical_prefixes:
       /* Already handled as a special case, so ignored here.  */
       do_save = false;
@@ -3523,20 +3537,25 @@ process_command (unsigned int decoded_options_count,
 	}
     }
 
-  /* Handle any -no-canonical-prefixes flag early, to assign the function
+  /* Handle any -[no-]canonical-prefixes flags early, to assign the function
      that builds relative prefixes.  This function creates default search
      paths that are needed later in normal option handling.  */
 
   for (j = 1; j < decoded_options_count; j++)
     {
-      if (decoded_options[j].opt_index == OPT_no_canonical_prefixes)
-	{
-	  get_relative_prefix = make_relative_prefix_ignore_links;
-	  break;
-	}
+      if (decoded_options[j].opt_index == OPT_canonical_prefixes)
+	get_relative_prefix = make_relative_prefix;
+      else if (decoded_options[j].opt_index == OPT_no_canonical_prefixes)
+	get_relative_prefix = make_relative_prefix_ignore_links;
     }
   if (! get_relative_prefix)
-    get_relative_prefix = make_relative_prefix;
+    {
+#ifdef ENABLE_CANONICAL_PREFIXES
+      get_relative_prefix = make_relative_prefix;
+#else
+      get_relative_prefix = make_relative_prefix_ignore_links;
+#endif
+    }
 
   /* Set up the default search paths.  If there is no GCC_EXEC_PREFIX,
      see if we can create it from the pathname specified in
@@ -4417,6 +4436,10 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
   int i;
   int value;
 
+  /* If it's an empty string argument to a switch, keep it as is.  */
+  if (inswitch && !*p)
+    arg_going = 1;
+
   while ((c = *p++))
     /* If substituting a switch, treat all chars like letters.
        Otherwise, NL, SPC, TAB and % are special.  */
@@ -5143,7 +5166,8 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	  case '*':
 	    if (soft_matched_part)
 	      {
-		do_spec_1 (soft_matched_part, 1, NULL);
+		if (soft_matched_part[0])
+		  do_spec_1 (soft_matched_part, 1, NULL);
 		do_spec_1 (" ", 0, NULL);
 	      }
 	    else
@@ -6597,6 +6621,9 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
   if (n_infiles == added_libraries)
     fatal_error ("no input files");
 
+  if (seen_error ())
+    goto out;
+
   /* Make a place to record the compiler output file names
      that correspond to the input files.  */
 
@@ -6864,6 +6891,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
       printf ("%s\n", bug_report_url);
     }
 
+ out:
   return (signal_count != 0 ? 2
 	  : seen_error () ? (pass_exit_codes ? greatest_status : 1)
 	  : 0);

@@ -384,6 +384,32 @@ struct GTY(()) machine_function
    bytes on a z10 (or higher) CPU.  */
 #define PREDICT_DISTANCE (TARGET_Z10 ? 384 : 2048)
 
+/* Return the alignment for LABEL.  We default to the -falign-labels
+   value except for the literal pool base label.  */
+int
+s390_label_align (rtx label)
+{
+  rtx prev_insn = prev_active_insn (label);
+
+  if (prev_insn == NULL_RTX)
+    goto old;
+
+  prev_insn = single_set (prev_insn);
+
+  if (prev_insn == NULL_RTX)
+    goto old;
+
+  prev_insn = SET_SRC (prev_insn);
+
+  /* Don't align literal pool base labels.  */
+  if (GET_CODE (prev_insn) == UNSPEC
+      && XINT (prev_insn, 1) == UNSPEC_MAIN_BASE)
+    return 0;
+
+ old:
+  return align_labels_log;
+}
+
 static enum machine_mode
 s390_libgcc_cmp_return_mode (void)
 {
@@ -2065,6 +2091,16 @@ s390_decompose_address (rtx addr, struct s390_address *out)
       else if (GET_CODE (disp) == UNSPEC
 	       && XINT (disp, 1) == UNSPEC_LTREL_OFFSET)
         {
+	  /* In case CSE pulled a non literal pool reference out of
+	     the pool we have to reject the address.  This is
+	     especially important when loading the GOT pointer on non
+	     zarch CPUs.  In this case the literal pool contains an lt
+	     relative offset to the _GLOBAL_OFFSET_TABLE_ label which
+	     will most likely exceed the displacement.  */
+	  if (GET_CODE (XVECEXP (disp, 0, 0)) != SYMBOL_REF
+	      || !CONSTANT_POOL_ADDRESS_P (XVECEXP (disp, 0, 0)))
+	    return false;
+
 	  orig_disp = gen_rtx_CONST (Pmode, disp);
 	  if (offset)
 	    {
@@ -4991,20 +5027,29 @@ s390_delegitimize_address (rtx orig_x)
       y = XEXP (XEXP (x, 1), 0);
       if (GET_CODE (y) == UNSPEC
 	  && XINT (y, 1) == UNSPEC_GOT)
-	return XVECEXP (y, 0, 0);
-      return orig_x;
+	y = XVECEXP (y, 0, 0);
+      else
+	return orig_x;
     }
-
-  if (GET_CODE (x) == CONST)
+  else if (GET_CODE (x) == CONST)
     {
       y = XEXP (x, 0);
       if (GET_CODE (y) == UNSPEC
 	  && XINT (y, 1) == UNSPEC_GOTENT)
-	return XVECEXP (y, 0, 0);
-      return orig_x;
+	y = XVECEXP (y, 0, 0);
+      else
+	return orig_x;
     }
+  else
+    return orig_x;
 
-  return orig_x;
+  if (GET_MODE (orig_x) != Pmode)
+    {
+      y = lowpart_subreg (GET_MODE (orig_x), y, Pmode);
+      if (y == NULL_RTX)
+	return orig_x;
+    }
+  return y;
 }
 
 /* Output operand OP to stdio stream FILE.
@@ -8687,17 +8732,23 @@ s390_promote_function_mode (const_tree type, enum machine_mode mode,
   return mode;
 }
 
-/* Define where to return a (scalar) value of type TYPE.
-   If TYPE is null, define where to return a (scalar)
+/* Define where to return a (scalar) value of type RET_TYPE.
+   If RET_TYPE is null, define where to return a (scalar)
    value of mode MODE from a libcall.  */
 
-rtx
-s390_function_value (const_tree type, const_tree fn, enum machine_mode mode)
+static rtx
+s390_function_and_libcall_value (enum machine_mode mode,
+				 const_tree ret_type,
+				 const_tree fntype_or_decl,
+				 bool outgoing ATTRIBUTE_UNUSED)
 {
-  if (type)
+  /* For normal functions perform the promotion as
+     promote_function_mode would do.  */
+  if (ret_type)
     {
-      int unsignedp = TYPE_UNSIGNED (type);
-      mode = promote_function_mode (type, TYPE_MODE (type), &unsignedp, fn, 1);
+      int unsignedp = TYPE_UNSIGNED (ret_type);
+      mode = promote_function_mode (ret_type, mode, &unsignedp,
+				    fntype_or_decl, 1);
     }
 
   gcc_assert (GET_MODE_CLASS (mode) == MODE_INT || SCALAR_FLOAT_MODE_P (mode));
@@ -8710,6 +8761,10 @@ s390_function_value (const_tree type, const_tree fn, enum machine_mode mode)
     return gen_rtx_REG (mode, 2);
   else if (GET_MODE_SIZE (mode) == 2 * UNITS_PER_LONG)
     {
+      /* This case is triggered when returning a 64 bit value with
+	 -m31 -mzarch.  Although the value would fit into a single
+	 register it has to be forced into a 32 bit register pair in
+	 order to match the ABI.  */
       rtvec p = rtvec_alloc (2);
 
       RTVEC_ELT (p, 0)
@@ -8721,6 +8776,26 @@ s390_function_value (const_tree type, const_tree fn, enum machine_mode mode)
     }
 
   gcc_unreachable ();
+}
+
+/* Define where to return a scalar return value of type RET_TYPE.  */
+
+static rtx
+s390_function_value (const_tree ret_type, const_tree fn_decl_or_type,
+		     bool outgoing)
+{
+  return s390_function_and_libcall_value (TYPE_MODE (ret_type), ret_type,
+					  fn_decl_or_type, outgoing);
+}
+
+/* Define where to return a scalar libcall return value of mode
+   MODE.  */
+
+static rtx
+s390_libcall_value (enum machine_mode mode, const_rtx fun ATTRIBUTE_UNUSED)
+{
+  return s390_function_and_libcall_value (mode, NULL_TREE,
+					  NULL_TREE, true);
 }
 
 
@@ -10694,6 +10769,10 @@ s390_loop_unroll_adjust (unsigned nunroll, struct loop *loop)
 #define TARGET_FUNCTION_ARG s390_function_arg
 #undef TARGET_FUNCTION_ARG_ADVANCE
 #define TARGET_FUNCTION_ARG_ADVANCE s390_function_arg_advance
+#undef TARGET_FUNCTION_VALUE
+#define TARGET_FUNCTION_VALUE s390_function_value
+#undef TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE s390_libcall_value
 
 #undef TARGET_FIXED_CONDITION_CODE_REGS
 #define TARGET_FIXED_CONDITION_CODE_REGS s390_fixed_condition_code_regs

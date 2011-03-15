@@ -318,6 +318,9 @@ Temporary_statement::get_decl() const
 int
 Temporary_statement::do_traverse(Traverse* traverse)
 {
+  if (this->type_ != NULL
+      && this->traverse_type(traverse, this->type_) == TRAVERSE_EXIT)
+    return TRAVERSE_EXIT;
   if (this->init_ == NULL)
     return TRAVERSE_CONTINUE;
   else
@@ -388,7 +391,10 @@ Temporary_statement::do_get_tree(Translate_context* context)
 {
   gcc_assert(this->decl_ == NULL_TREE);
   tree type_tree = this->type()->get_tree(context->gogo());
-  if (type_tree == error_mark_node)
+  tree init_tree = (this->init_ == NULL
+		    ? NULL_TREE
+		    : this->init_->get_tree(context));
+  if (type_tree == error_mark_node || init_tree == error_mark_node)
     {
       this->decl_ = error_mark_node;
       return error_mark_node;
@@ -420,11 +426,10 @@ Temporary_statement::do_get_tree(Translate_context* context)
 
       this->decl_ = decl;
     }
-  if (this->init_ != NULL)
+  if (init_tree != NULL_TREE)
     DECL_INITIAL(this->decl_) =
       Expression::convert_for_assignment(context, this->type(),
-					 this->init_->type(),
-					 this->init_->get_tree(context),
+					 this->init_->type(), init_tree,
 					 this->location());
   if (this->is_address_taken_)
     TREE_ADDRESSABLE(this->decl_) = 1;
@@ -965,7 +970,7 @@ Tuple_map_assignment_statement::do_lower(Gogo*, Block* enclosing)
   param_types->push_back(Typed_identifier("val", pval_type, bloc));
 
   Typed_identifier_list* ret_types = new Typed_identifier_list();
-  ret_types->push_back(Typed_identifier("", Type::make_boolean_type(), bloc));
+  ret_types->push_back(Typed_identifier("", Type::lookup_bool_type(), bloc));
 
   Function_type* fntype = Type::make_function_type(NULL, param_types,
 						   ret_types, bloc);
@@ -1776,8 +1781,10 @@ Thunk_statement::do_determine_types()
 
   // Now that we know the types of the call, build the struct used to
   // pass parameters.
-  Function_type* fntype =
-    this->call_->call_expression()->get_function_type();
+  Call_expression* ce = this->call_->call_expression();
+  if (ce == NULL)
+    return;
+  Function_type* fntype = ce->get_function_type();
   if (fntype != NULL && !this->is_simple(fntype))
     this->struct_type_ = this->build_struct(fntype);
 }
@@ -1788,6 +1795,12 @@ void
 Thunk_statement::do_check_types(Gogo*)
 {
   Call_expression* ce = this->call_->call_expression();
+  if (ce == NULL)
+    {
+      if (!this->call_->is_error_expression())
+	this->report_error("expected call expression");
+      return;
+    }
   Function_type* fntype = ce->get_function_type();
   if (fntype != NULL && fntype->is_method())
     {
@@ -2013,7 +2026,7 @@ Thunk_statement::build_struct(Function_type* fntype)
       // we add an argument when building recover thunks.  Handle that
       // here.
       fields->push_back(Struct_field(Typed_identifier("can_recover",
-						      Type::make_boolean_type(),
+						      Type::lookup_bool_type(),
 						      location)));
     }
 
@@ -2090,7 +2103,7 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
       // return value, to disable tail call optimizations which will
       // break the way we check whether recover is permitted.
       thunk_results = new Typed_identifier_list();
-      thunk_results->push_back(Typed_identifier("", Type::make_boolean_type(),
+      thunk_results->push_back(Typed_identifier("", Type::lookup_bool_type(),
 						location));
     }
 
@@ -2122,7 +2135,7 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
 
 	  Typed_identifier_list* result_types = new Typed_identifier_list();
 	  result_types->push_back(Typed_identifier("",
-						   Type::make_boolean_type(),
+						   Type::lookup_bool_type(),
 						   bloc));
 
 	  Function_type* t = Type::make_function_type(NULL, param_types,
@@ -2207,6 +2220,8 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
   Struct_field_list::const_iterator p = fields->begin();
   for (unsigned int i = 0; i < next_index; ++i)
     ++p;
+  bool is_recover_call = ce->is_recover_call();
+  Expression* recover_arg = NULL;
   for (; p != fields->end(); ++p, ++next_index)
     {
       Expression* thunk_param = Expression::make_var_reference(named_parameter,
@@ -2216,25 +2231,40 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
       Expression* param = Expression::make_field_reference(thunk_param,
 							   next_index,
 							   location);
-      call_params->push_back(param);
+      if (!is_recover_call)
+	call_params->push_back(param);
+      else
+	{
+	  gcc_assert(call_params->empty());
+	  recover_arg = param;
+	}
+    }
+
+  if (call_params->empty())
+    {
+      delete call_params;
+      call_params = NULL;
     }
 
   Expression* call = Expression::make_call(func_to_call, call_params, false,
 					   location);
   // We need to lower in case this is a builtin function.
   call = call->lower(gogo, function, -1);
-  if (may_call_recover)
-    {
-      Call_expression* ce = call->call_expression();
-      if (ce != NULL)
-	ce->set_is_deferred();
-    }
+  Call_expression* call_ce = call->call_expression();
+  if (call_ce != NULL && may_call_recover)
+    call_ce->set_is_deferred();
 
   Statement* call_statement = Statement::make_statement(call);
 
   // We already ran the determine_types pass, so we need to run it
   // just for this statement now.
   call_statement->determine_types();
+
+  // Sanity check.
+  call->check_types(gogo);
+
+  if (call_ce != NULL && recover_arg != NULL)
+    call_ce->set_recover_arg(recover_arg);
 
   gogo->add_statement(call_statement);
 
@@ -2984,7 +3014,9 @@ If_statement::do_may_fall_through() const
 tree
 If_statement::do_get_tree(Translate_context* context)
 {
-  gcc_assert(this->cond_ == NULL || this->cond_->type()->is_boolean_type());
+  gcc_assert(this->cond_ == NULL
+	     || this->cond_->type()->is_boolean_type()
+	     || this->cond_->type()->is_error_type());
   tree cond_tree = (this->cond_ == NULL
 		    ? boolean_true_node
 		    : this->cond_->get_tree(context));
@@ -3185,7 +3217,12 @@ Case_clauses::Case_clause::get_constant_tree(Translate_context* context,
 	  mpz_t ival;
 	  mpz_init(ival);
 	  if (!(*p)->integer_constant_value(true, ival, &itype))
-	    gcc_unreachable();
+	    {
+	      // Something went wrong.  This can happen with a
+	      // negative constant and an unsigned switch value.
+	      gcc_assert(saw_errors());
+	      continue;
+	    }
 	  gcc_assert(itype != NULL);
 	  tree type_tree = itype->get_tree(context->gogo());
 	  tree val = Expression::integer_constant_tree(ival, type_tree);
@@ -3870,10 +3907,17 @@ Type_switch_statement::do_lower(Gogo*, Block* enclosing)
     {
       // Doing a type switch on a non-interface type.  Should we issue
       // a warning for this case?
-      // descriptor_temp = DESCRIPTOR
       Expression* lhs = Expression::make_temporary_reference(descriptor_temp,
 							     loc);
-      Expression* rhs = Expression::make_type_descriptor(val_type, loc);
+      Expression* rhs;
+      if (val_type->is_nil_type())
+	rhs = Expression::make_nil(loc);
+      else
+	{
+	  if (val_type->is_abstract())
+	    val_type = val_type->make_non_abstract_type();
+	  rhs = Expression::make_type_descriptor(val_type, loc);
+	}
       Statement* s = Statement::make_assignment(lhs, rhs, loc);
       b->add_statement(s);
     }

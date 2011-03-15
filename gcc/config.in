@@ -51,6 +51,12 @@
 #endif
 
 
+/* Define to enable prefix canonicalization. */
+#ifndef USED_FOR_TARGET
+#undef ENABLE_CANONICAL_PREFIXES
+#endif
+
+
 /* Define if you want more run-time sanity checks. This one gets a grab bag of
    miscellaneous but relatively cheap checks. */
 #ifndef USED_FOR_TARGET
@@ -1168,6 +1174,13 @@
    of EH frames. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_LD_EH_GC_SECTIONS
+#endif
+
+
+/* Define if your linker has buggy garbage collection of sections support when
+   .text.startup.foo like sections are used. */
+#ifndef USED_FOR_TARGET
+#undef HAVE_LD_EH_GC_SECTIONS_BUG
 #endif
 
 

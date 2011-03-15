@@ -33,7 +33,9 @@ Gogo::Gogo(int int_type_size, int pointer_size)
     init_fn_name_(),
     imported_init_fns_(),
     unique_prefix_(),
-    interface_types_()
+    unique_prefix_specified_(false),
+    interface_types_(),
+    named_types_are_converted_(false)
 {
   const source_location loc = BUILTINS_LOCATION;
 
@@ -209,12 +211,6 @@ Gogo::Gogo(int int_type_size, int pointer_size)
   this->globals_->add_function_declaration("imag", NULL, imag_type, loc);
 
   this->define_builtin_function_trees();
-
-  // Declare "init", to ensure that it is not defined with parameters
-  // or return values.
-  this->declare_function("init",
-			 Type::make_function_type(NULL, NULL, NULL, loc),
-			 loc);
 }
 
 // Munge name for use in an error message.
@@ -259,7 +255,7 @@ Gogo::set_package_name(const std::string& package_name,
   // package name (e.g., P.x), but we no longer do.
   // this->globals_->add_package(package_name, this->package_);
 
-  if (package_name == "main")
+  if (this->is_main_package())
     {
       // Declare "main" as a function which takes no parameters and
       // returns no value.
@@ -268,6 +264,15 @@ Gogo::set_package_name(const std::string& package_name,
 						      BUILTINS_LOCATION),
 			     BUILTINS_LOCATION);
     }
+}
+
+// Return whether this is the "main" package.  This is not true if
+// -fgo-prefix was used.
+
+bool
+Gogo::is_main_package() const
+{
+  return this->package_name() == "main" && !this->unique_prefix_specified_;
 }
 
 // Import a package.
@@ -297,12 +302,7 @@ Gogo::import_package(const std::string& filename,
 	  ln = package->name();
 	  is_ln_exported = Lex::is_exported_name(ln);
 	}
-      if (ln != ".")
-	{
-	  ln = this->pack_hidden_name(ln, is_ln_exported);
-	  this->package_->bindings()->add_package(ln, package);
-	}
-      else
+      if (ln == ".")
 	{
 	  Bindings* bindings = package->bindings();
 	  for (Bindings::const_declarations_iterator p =
@@ -310,6 +310,13 @@ Gogo::import_package(const std::string& filename,
 	       p != bindings->end_declarations();
 	       ++p)
 	    this->add_named_object(p->second);
+	}
+      else if (ln == "_")
+	package->set_uses_sink_alias();
+      else
+	{
+	  ln = this->pack_hidden_name(ln, is_ln_exported);
+	  this->package_->bindings()->add_package(ln, package);
 	}
       return;
     }
@@ -647,7 +654,24 @@ Gogo::start_function(const std::string& name, Function_type* type,
 
   const std::string* pname;
   std::string nested_name;
-  if (!name.empty())
+  bool is_init = false;
+  if (Gogo::unpack_hidden_name(name) == "init" && !type->is_method())
+    {
+      if ((type->parameters() != NULL && !type->parameters()->empty())
+	  || (type->results() != NULL && !type->results()->empty()))
+	error_at(location,
+		 "func init must have no arguments and no return values");
+      // There can be multiple "init" functions, so give them each a
+      // different name.
+      static int init_count;
+      char buf[30];
+      snprintf(buf, sizeof buf, ".$init%d", init_count);
+      ++init_count;
+      nested_name = buf;
+      pname = &nested_name;
+      is_init = true;
+    }
+  else if (!name.empty())
     pname = &name;
   else
     {
@@ -672,10 +696,15 @@ Gogo::start_function(const std::string& name, Function_type* type,
   else if (!type->is_method())
     {
       ret = this->package_->bindings()->add_function(*pname, NULL, function);
-      if (!ret->is_function())
+      if (!ret->is_function() || ret->func_value() != function)
 	{
-	  // Redefinition error.
-	  ret = Named_object::make_function(name, NULL, function);
+	  // Redefinition error.  Invent a name to avoid knockon
+	  // errors.
+	  static int redefinition_count;
+	  char buf[30];
+	  snprintf(buf, sizeof buf, ".$redefined%d", redefinition_count);
+	  ++redefinition_count;
+	  ret = this->package_->bindings()->add_function(buf, NULL, function);
 	}
     }
   else
@@ -735,7 +764,7 @@ Gogo::start_function(const std::string& name, Function_type* type,
   of.function = ret;
   of.blocks.push_back(block);
 
-  if (!type->is_method() && Gogo::unpack_hidden_name(name) == "init")
+  if (is_init)
     {
       this->init_functions_.push_back(ret);
       this->need_init_fn_ = true;
@@ -1104,11 +1133,6 @@ class Verify_types : public Traverse
 int
 Verify_types::type(Type* t)
 {
-  // Don't verify types defined in other packages.
-  Named_type* nt = t->named_type();
-  if (nt != NULL && nt->named_object()->package() != NULL)
-    return TRAVERSE_SKIP_COMPONENTS;
-
   if (!t->verify())
     return TRAVERSE_SKIP_COMPONENTS;
   return TRAVERSE_CONTINUE;
@@ -1129,12 +1153,16 @@ class Lower_parse_tree : public Traverse
 {
  public:
   Lower_parse_tree(Gogo* gogo, Named_object* function)
-    : Traverse(traverse_constants
+    : Traverse(traverse_variables
+	       | traverse_constants
 	       | traverse_functions
 	       | traverse_statements
 	       | traverse_expressions),
       gogo_(gogo), function_(function), iota_value_(-1)
   { }
+
+  int
+  variable(Named_object*);
 
   int
   constant(Named_object*, bool);
@@ -1156,6 +1184,18 @@ class Lower_parse_tree : public Traverse
   // Value to use for the predeclared constant iota.
   int iota_value_;
 };
+
+// Lower variables.  We handle variables specially to break loops in
+// which a variable initialization expression refers to itself.  The
+// loop breaking is in lower_init_expression.
+
+int
+Lower_parse_tree::variable(Named_object* no)
+{
+  if (no->is_variable())
+    no->var_value()->lower_init_expression(this->gogo_, this->function_);
+  return TRAVERSE_CONTINUE;
+}
 
 // Lower constants.  We handle constants specially so that we can set
 // the right value for the predeclared constant iota.  This works in
@@ -1703,7 +1743,7 @@ Shortcuts::convert_shortcut(Block* enclosing, Expression** pshortcut)
   Block* retblock = new Block(enclosing, loc);
   retblock->set_end_location(loc);
 
-  Temporary_statement* ts = Statement::make_temporary(Type::make_boolean_type(),
+  Temporary_statement* ts = Statement::make_temporary(Type::lookup_bool_type(),
 						      left, loc);
   retblock->add_statement(ts);
 
@@ -2059,7 +2099,7 @@ Build_recover_thunks::function(Named_object* orig_no)
   ++count;
   std::string can_recover_name = buf;
   new_params->push_back(Typed_identifier(can_recover_name,
-					 Type::make_boolean_type(),
+					 Type::lookup_bool_type(),
 					 orig_fntype->location()));
 
   const Typed_identifier_list* orig_results = orig_fntype->results();
@@ -2174,10 +2214,14 @@ Build_recover_thunks::function(Named_object* orig_no)
 
       const std::string& new_receiver_name(orig_fntype->receiver()->name());
       Named_object* new_rec_no = new_bindings->lookup_local(new_receiver_name);
-      gcc_assert(new_rec_no != NULL
-		 && new_rec_no->is_variable()
-		 && new_rec_no->var_value()->is_receiver());
-      new_rec_no->var_value()->set_is_not_receiver();
+      if (new_rec_no == NULL)
+	gcc_assert(saw_errors());
+      else
+	{
+	  gcc_assert(new_rec_no->is_variable()
+		     && new_rec_no->var_value()->is_receiver());
+	  new_rec_no->var_value()->set_is_not_receiver();
+	}
     }
 
   // Because we flipped blocks but not types, the can_recover
@@ -2191,7 +2235,7 @@ Build_recover_thunks::function(Named_object* orig_no)
 
   // Add the can_recover argument to the (now) new bindings, and
   // attach it to any recover statements.
-  Variable* can_recover_var = new Variable(Type::make_boolean_type(), NULL,
+  Variable* can_recover_var = new Variable(Type::lookup_bool_type(), NULL,
 					   false, true, false, location);
   can_recover_no = new_bindings->add_variable(can_recover_name, NULL,
 					      can_recover_var);
@@ -2242,7 +2286,7 @@ Build_recover_thunks::can_recover_arg(source_location location)
       Typed_identifier_list* param_types = new Typed_identifier_list();
       Type* voidptr_type = Type::make_pointer_type(Type::make_void_type());
       param_types->push_back(Typed_identifier("a", voidptr_type, bloc));
-      Type* boolean_type = Type::make_boolean_type();
+      Type* boolean_type = Type::lookup_bool_type();
       Typed_identifier_list* results = new Typed_identifier_list();
       results->push_back(Typed_identifier("", boolean_type, bloc));
       Function_type* fntype = Type::make_function_type(NULL, param_types,
@@ -2446,6 +2490,7 @@ Gogo::set_unique_prefix(const std::string& arg)
 {
   gcc_assert(this->unique_prefix_.empty());
   this->unique_prefix_ = arg;
+  this->unique_prefix_specified_ = true;
 }
 
 // Work out the package priority.  It is one more than the maximum
@@ -2477,11 +2522,88 @@ Gogo::do_exports()
   exp.export_globals(this->package_name(),
 		     this->unique_prefix(),
 		     this->package_priority(),
-		     (this->need_init_fn_ && this->package_name() != "main"
+		     (this->need_init_fn_ && !this->is_main_package()
 		      ? this->get_init_fn_name()
 		      : ""),
 		     this->imported_init_fns_,
 		     this->package_->bindings());
+}
+
+// Find the blocks in order to convert named types defined in blocks.
+
+class Convert_named_types : public Traverse
+{
+ public:
+  Convert_named_types(Gogo* gogo)
+    : Traverse(traverse_blocks),
+      gogo_(gogo)
+  { }
+
+ protected:
+  int
+  block(Block* block);
+
+ private:
+  Gogo* gogo_;
+};
+
+int
+Convert_named_types::block(Block* block)
+{
+  this->gogo_->convert_named_types_in_bindings(block->bindings());
+  return TRAVERSE_CONTINUE;
+}
+
+// Convert all named types to the backend representation.  Since named
+// types can refer to other types, this needs to be done in the right
+// sequence, which is handled by Named_type::convert.  Here we arrange
+// to call that for each named type.
+
+void
+Gogo::convert_named_types()
+{
+  this->convert_named_types_in_bindings(this->globals_);
+  for (Packages::iterator p = this->packages_.begin();
+       p != this->packages_.end();
+       ++p)
+    {
+      Package* package = p->second;
+      this->convert_named_types_in_bindings(package->bindings());
+    }
+
+  Convert_named_types cnt(this);
+  this->traverse(&cnt);
+
+  // Make all the builtin named types used for type descriptors, and
+  // then convert them.  They will only be written out if they are
+  // needed.
+  Type::make_type_descriptor_type();
+  Type::make_type_descriptor_ptr_type();
+  Function_type::make_function_type_descriptor_type();
+  Pointer_type::make_pointer_type_descriptor_type();
+  Struct_type::make_struct_type_descriptor_type();
+  Array_type::make_array_type_descriptor_type();
+  Array_type::make_slice_type_descriptor_type();
+  Map_type::make_map_type_descriptor_type();
+  Channel_type::make_chan_type_descriptor_type();
+  Interface_type::make_interface_type_descriptor_type();
+  Type::convert_builtin_named_types(this);
+
+  this->named_types_are_converted_ = true;
+}
+
+// Convert all names types in a set of bindings.
+
+void
+Gogo::convert_named_types_in_bindings(Bindings* bindings)
+{
+  for (Bindings::const_definitions_iterator p = bindings->begin_definitions();
+       p != bindings->end_definitions();
+       ++p)
+    {
+      if ((*p)->is_type())
+	(*p)->type_value()->convert(this);
+    }
 }
 
 // Class Function.
@@ -2526,7 +2648,8 @@ Function::create_named_result_variables(Gogo* gogo)
 	}
       Result_variable* result = new Result_variable(p->type(), this, index);
       Named_object* no = block->bindings()->add_result_variable(name, result);
-      this->named_results_->push_back(no);
+      if (no->is_result_variable())
+	this->named_results_->push_back(no);
     }
 }
 
@@ -3106,7 +3229,7 @@ Variable::Variable(Type* type, Expression* init, bool is_global,
     is_address_taken_(false), seen_(false), init_is_lowered_(false),
     type_from_init_tuple_(false), type_from_range_index_(false),
     type_from_range_value_(false), type_from_chan_element_(false),
-    is_type_switch_var_(false)
+    is_type_switch_var_(false), determined_type_(false)
 {
   gcc_assert(type != NULL || init != NULL);
   gcc_assert(!is_parameter || init == NULL);
@@ -3346,6 +3469,13 @@ Variable::type() const
 void
 Variable::determine_type()
 {
+  if (this->determined_type_)
+    return;
+  this->determined_type_ = true;
+
+  if (this->preinit_ != NULL)
+    this->preinit_->determine_types();
+
   // A variable in a type switch with a nil case will have the wrong
   // type here.  It will have an initializer which is a type guard.
   // We want to initialize it to the value without the type guard, and

@@ -1218,6 +1218,7 @@ c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
     case FIX_TRUNC_EXPR:
     case FLOAT_EXPR:
     CASE_CONVERT:
+    case VIEW_CONVERT_EXPR:
     case NON_LVALUE_EXPR:
     case NEGATE_EXPR:
     case BIT_NOT_EXPR:
@@ -4039,7 +4040,7 @@ c_apply_type_quals_to_decl (int type_quals, tree decl)
 static hashval_t
 c_type_hash (const void *p)
 {
-  int i = 0;
+  int n_elements;
   int shift, size;
   const_tree const t = (const_tree) p;
   tree t2;
@@ -4068,14 +4069,15 @@ c_type_hash (const void *p)
     default:
       gcc_unreachable ();
     }
-  for (; t2; t2 = DECL_CHAIN (t2))
-    i++;
+  /* FIXME: We want to use a DECL_CHAIN iteration method here, but
+     TYPE_VALUES of ENUMERAL_TYPEs is stored as a TREE_LIST.  */
+  n_elements = list_length (t2);
   /* We might have a VLA here.  */
   if (TREE_CODE (TYPE_SIZE (t)) != INTEGER_CST)
     size = 0;
   else
     size = TREE_INT_CST_LOW (TYPE_SIZE (t));
-  return ((size << 24) | (i << shift));
+  return ((size << 24) | (n_elements << shift));
 }
 
 static GTY((param_is (union tree_node))) htab_t type_hash_table;
@@ -5668,9 +5670,14 @@ c_init_attributes (void)
 bool
 attribute_takes_identifier_p (const_tree attr_id)
 {
-  if (is_attribute_p ("mode", attr_id)
-      || is_attribute_p ("format", attr_id)
-      || is_attribute_p ("cleanup", attr_id))
+  const struct attribute_spec *spec = lookup_attribute_spec (attr_id);
+  if (spec == NULL)
+    /* Unknown attribute that we'll end up ignoring, return true so we
+       don't complain about an identifier argument.  */
+    return true;
+  else if (!strcmp ("mode", spec->name)
+	   || !strcmp ("format", spec->name)
+	   || !strcmp ("cleanup", spec->name))
     return true;
   else
     return targetm.attribute_takes_identifier_p (attr_id);
@@ -9652,6 +9659,44 @@ keyword_is_storage_class_specifier (enum rid keyword)
     case RID_AUTO:
     case RID_MUTABLE:
     case RID_THREAD:
+      return true;
+    default:
+      return false;
+    }
+}
+
+/* Return true if KEYWORD names a function-specifier [dcl.fct.spec].  */
+
+static bool
+keyword_is_function_specifier (enum rid keyword)
+{
+  switch (keyword)
+    {
+    case RID_INLINE:
+    case RID_VIRTUAL:
+    case RID_EXPLICIT:
+      return true;
+    default:
+      return false;
+    }
+}
+
+/* Return true if KEYWORD names a decl-specifier [dcl.spec] or a
+   declaration-specifier (C99 6.7).  */
+
+bool
+keyword_is_decl_specifier (enum rid keyword)
+{
+  if (keyword_is_storage_class_specifier (keyword)
+      || keyword_is_type_qualifier (keyword)
+      || keyword_is_function_specifier (keyword))
+    return true;
+
+  switch (keyword)
+    {
+    case RID_TYPEDEF:
+    case RID_FRIEND:
+    case RID_CONSTEXPR:
       return true;
     default:
       return false;

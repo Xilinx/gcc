@@ -797,7 +797,10 @@
    (set (reg CC_REG)
 	(compare (abs:SI (match_dup 1))
 		 (const_int 0)))]
-  "reload_completed && rx_match_ccmode (insn, CC_ZSOmode)"
+  ;; Note - although the ABS instruction does set the O bit in the processor
+  ;; status word, it does not do so in a way that is comparable with the CMP
+  ;; instruction.  Hence we use CC_ZSmode rather than CC_ZSOmode.
+  "reload_completed && rx_match_ccmode (insn, CC_ZSmode)"
   "@
   abs\t%0
   abs\t%1, %0"
@@ -1004,7 +1007,7 @@
   and\t%1, %0
   and\t%2, %1, %0
   and\t%Q2, %0"
-  [(set_attr "timings" "11,11,11,11,11,11,11,33,33")
+  [(set_attr "timings" "11,11,11,11,11,11,11,11,33")
    (set_attr "length" "2,2,3,4,5,6,2,5,5")]
 )
 
@@ -1026,7 +1029,7 @@
   and\t%1, %0
   and\t%2, %1, %0
   and\t%Q2, %0"
-  [(set_attr "timings" "11,11,11,11,11,11,11,33,33")
+  [(set_attr "timings" "11,11,11,11,11,11,11,11,33")
    (set_attr "length" "2,2,3,4,5,6,2,5,5")]
 )
 
@@ -1640,7 +1643,7 @@
   ""
   "bset\t%1, %0.B"
   [(set_attr "length" "3")
-   (set_attr "timings" "34")]
+   (set_attr "timings" "33")]
 )
 
 (define_insn "*bitinvert"
@@ -1686,7 +1689,7 @@
   ""
   "bclr\t%1, %0.B"
   [(set_attr "length" "3")
-   (set_attr "timings" "34")]
+   (set_attr "timings" "33")]
 )
 
 (define_insn "*insv_imm"
@@ -1894,6 +1897,14 @@
     rtx addr2 = gen_rtx_REG (SImode, 2);
     rtx len   = gen_rtx_REG (SImode, 3);
 
+    /* Do not use when the source or destination are volatile - the SMOVF
+       instruction will read and write in word sized blocks, which may be
+       outside of the valid address range.  */
+    if (MEM_P (operands[0]) && MEM_VOLATILE_P (operands[0]))
+      FAIL;
+    if (MEM_P (operands[1]) && MEM_VOLATILE_P (operands[1]))
+      FAIL;
+
     if (REG_P (operands[0]) && (REGNO (operands[0]) == 2
 				      || REGNO (operands[0]) == 3))
       FAIL;
@@ -1903,6 +1914,7 @@
     if (REG_P (operands[2]) && (REGNO (operands[2]) == 1
 				      || REGNO (operands[2]) == 2))
       FAIL;
+
     emit_move_insn (addr1, force_operand (XEXP (operands[0], 0), NULL_RTX));
     emit_move_insn (addr2, force_operand (XEXP (operands[1], 0), NULL_RTX));
     emit_move_insn (len, force_operand (operands[2], NULL_RTX));

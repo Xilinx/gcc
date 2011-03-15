@@ -25,6 +25,9 @@
 ; Please try to keep this file in ASCII collating order.
 
 mt
-Driver RejectNegative
+Target RejectNegative
+
+pthread
+Driver
 
 ; This comment is to ensure we retain the blank line above.

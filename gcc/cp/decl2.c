@@ -1052,7 +1052,8 @@ grokbitfield (const cp_declarator *declarator,
   if (width != error_mark_node)
     {
       /* The width must be an integer type.  */
-      if (!INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (width)))
+      if (!type_dependent_expression_p (width)
+	  && !INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (width)))
 	error ("width of bit-field %qD has non-integral type %qT", value,
 	       TREE_TYPE (width));
       DECL_INITIAL (value) = width;
@@ -3550,20 +3551,21 @@ decl_constant_var_p (tree decl)
   tree type = TREE_TYPE (decl);
   if (TREE_CODE (decl) != VAR_DECL)
     return false;
-  if (DECL_DECLARED_CONSTEXPR_P (decl))
-    ret = true;
-  else if (CP_TYPE_CONST_NON_VOLATILE_P (type)
-	   && INTEGRAL_OR_ENUMERATION_TYPE_P (type))
+  if (DECL_DECLARED_CONSTEXPR_P (decl)
+      || (CP_TYPE_CONST_NON_VOLATILE_P (type)
+	  && INTEGRAL_OR_ENUMERATION_TYPE_P (type)))
     {
       /* We don't know if a template static data member is initialized with
-	 a constant expression until we instantiate its initializer.  */
+	 a constant expression until we instantiate its initializer.  Even
+	 in the case of a constexpr variable, we can't treat it as a
+	 constant until its initializer is complete in case it's used in
+	 its own initializer.  */
       mark_used (decl);
       ret = DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl);
     }
   else
     ret = false;
 
-  gcc_assert (!ret || DECL_INITIAL (decl));
   return ret;
 }
 

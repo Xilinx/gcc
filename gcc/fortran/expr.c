@@ -937,16 +937,18 @@ gfc_is_constant_expr (gfc_expr *e)
       return e->ref == NULL || (gfc_is_constant_expr (e->ref->u.ss.start)
 				&& gfc_is_constant_expr (e->ref->u.ss.end));
 
+    case EXPR_ARRAY:
     case EXPR_STRUCTURE:
-      for (c = gfc_constructor_first (e->value.constructor);
-	   c; c = gfc_constructor_next (c))
+      c = gfc_constructor_first (e->value.constructor);
+      if ((e->expr_type == EXPR_ARRAY) && c && c->iterator)
+        return gfc_constant_ac (e);
+
+      for (; c; c = gfc_constructor_next (c))
 	if (!gfc_is_constant_expr (c->expr))
 	  return 0;
 
       return 1;
 
-    case EXPR_ARRAY:
-      return gfc_constant_ac (e);
 
     default:
       gfc_internal_error ("gfc_is_constant_expr(): Unknown expression type");
@@ -3608,7 +3610,7 @@ gfc_check_assign_symbol (gfc_symbol *sym, gfc_expr *rvalue)
 	             "must not be ALLOCATABLE ");
 	  return FAILURE;
 	}
-      if (!attr.target)
+      if (!attr.target || attr.pointer)
 	{
 	  gfc_error ("Pointer initialization target at %C "
 		     "must have the TARGET attribute");
@@ -3618,6 +3620,18 @@ gfc_check_assign_symbol (gfc_symbol *sym, gfc_expr *rvalue)
 	{
 	  gfc_error ("Pointer initialization target at %C "
 		     "must have the SAVE attribute");
+	  return FAILURE;
+	}
+    }
+    
+  if (sym->attr.proc_pointer && rvalue->expr_type != EXPR_NULL)
+    {
+      /* F08:C1220. Additional checks for procedure pointer initialization.  */
+      symbol_attribute attr = gfc_expr_attr (rvalue);
+      if (attr.proc_pointer)
+	{
+	  gfc_error ("Procedure pointer initialization target at %L "
+		     "may not be a procedure pointer", &rvalue->where);
 	  return FAILURE;
 	}
     }

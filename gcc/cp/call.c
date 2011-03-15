@@ -852,6 +852,7 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
   enum tree_code fcode, tcode;
   conversion *conv;
   bool fromref = false;
+  tree qualified_to;
 
   to = non_reference (to);
   if (TREE_CODE (from) == REFERENCE_TYPE)
@@ -859,6 +860,7 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
       fromref = true;
       from = TREE_TYPE (from);
     }
+  qualified_to = to;
   to = strip_top_quals (to);
   from = strip_top_quals (from);
 
@@ -920,7 +922,11 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
     }
 
   if (same_type_p (from, to))
-    return conv;
+    {
+      if (CLASS_TYPE_P (to) && conv->kind == ck_rvalue)
+	conv->type = qualified_to;
+      return conv;
+    }
 
   /* [conv.ptr]
      A null pointer constant can be converted to a pointer type; ... A
@@ -1232,8 +1238,10 @@ convert_class_to_reference (tree reference_type, tree s, tree expr, int flags)
 	     rvalue of the right type is good enough.  */
 	  tree f = cand->fn;
 	  tree t2 = TREE_TYPE (TREE_TYPE (f));
-	  if (TREE_CODE (t2) != REFERENCE_TYPE
-	      || !reference_compatible_p (t, TREE_TYPE (t2)))
+	  if (cand->viable == 0)
+	    /* Don't bother looking more closely.  */;
+	  else if (TREE_CODE (t2) != REFERENCE_TYPE
+		   || !reference_compatible_p (t, TREE_TYPE (t2)))
 	    {
 	      /* No need to set cand->reason here; this is most likely
 		 an ambiguous match.  If it's not, either this candidate
@@ -2147,7 +2155,7 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 	}
       return;
 
-/* 7 For every cv-qualified or cv-unqualified complete object type T, there
+/* 7 For every cv-qualified or cv-unqualified object type T, there
      exist candidate operator functions of the form
 
 	     T&      operator*(T*);
@@ -2158,7 +2166,7 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 
     case INDIRECT_REF:
       if (TREE_CODE (type1) == POINTER_TYPE
-	  && is_complete (TREE_TYPE (type1))
+	  && !uses_template_parms (TREE_TYPE (type1))
 	  && (TYPE_PTROB_P (type1)
 	      || TREE_CODE (TREE_TYPE (type1)) == FUNCTION_TYPE))
 	break;
@@ -8164,6 +8172,7 @@ set_up_extended_ref_temp (tree decl, tree expr, tree *cleanup, tree *initp)
 	     Currently this is only useful for initializer_list temporaries,
 	     since reference vars can't appear in constant expressions.  */
 	  DECL_DECLARED_CONSTEXPR_P (var) = true;
+	  DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (var) = true;
 	  TREE_CONSTANT (var) = true;
 	}
       DECL_INITIAL (var) = init;
