@@ -9731,9 +9731,11 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
 #if _GNU_SOURCE
 	  /* we have dladdr! */
 	  {
+	    PTR_UNION_TYPE(meltroutfun_t*) funad = {0};
 	    Dl_info funinf;
 	    memset (&funinf, 0, sizeof(funinf));
-	    if (dladdr ((void*)curout->routfunad, &funinf)) {
+	    PTR_UNION_AS_CAST_PTR (funad) = curout->routfunad;
+	    if (dladdr (PTR_UNION_AS_VOID_PTR (funad), &funinf)) {
 	      if (funinf.dli_fname)
 		fprintf (stderr, "\n  %s ", funinf.dli_fname);
 	      if (funinf.dli_sname)
@@ -11696,7 +11698,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
     tipapass = XNEW(struct ipa_opt_pass_d);
     memset(tipapass, 0, sizeof(struct ipa_opt_pass_d));
     /* FIXME! */
-#warning incomplete transform IPA passes
+    /* #warning incomplete transform IPA passes */
     melt_fatal_error ("MELT transform IPA not implemented for passv %p",
 		      passv);
   }

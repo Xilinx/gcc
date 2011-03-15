@@ -1,6 +1,13 @@
 
 2011-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (melt_dbgshortbacktrace): Use PTR_UNION_TYPE for
+	dladdr of a function pointer.
+	(meltgc_register_pass): Commented #warning for incomplete
+	transform IPA pass handling.
+
+2011-03-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-ana-base.melt (loop_body_tuple): More.
 
 2011-03-14  Basile Starynkevitch  <basile@starynkevitch.net>
