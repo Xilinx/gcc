@@ -114,7 +114,17 @@
   )
 
 
-;; We might also want map associating GCC gimple_seq-s to non-null MELT values!
+(defprimitive make_edge (discr :edge g) :value
+  #{(meltgc_new_edge((meltobject_ptr_t)($discr),($g)))}# )
+
+(defprimitive edge_content (v) :edge
+  #{(melt_edge_content((melt_ptr_t)($v)))}# )
+
+(defprimitive ==e (:edge e1 e2) :long
+  #{(($E1) == ($E2))}#)
+
+(defprimitive null_edge () :edge #{((edge)0)}#)
+
 
 ;;;;;;;;;;;;;;;; map associating GCC edge-s to non-null MELT values
 (defprimitive is_mapedge (map) :long
@@ -2118,7 +2128,8 @@
 (defprimitive ppl_Polyhedron_add_constraint 
 (:ppl_polyhedron poly :ppl_constraint cons) :void
 #{ if (ppl_Polyhedron_add_constraint(($poly), ($cons))) 
-     melt_fatal_error("ppl_Polyhedron_add_constraint failed"); }#)
+     melt_fatal_error("ppl_Polyhedron_add_constraint failed"); }#
+)
 
 (defprimitive debug_ppl_coefficient
   (:cstring msg :ppl_coefficient coef) :void
@@ -2743,10 +2754,6 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; internal routine to make an empty basicblock boc
-(defun make_empty_basicblock ()
-  (make_basicblock discr_basic_block (null_basicblock)))
-
 ;; retrieve the loop body as a tuple of boxed basic_block-s
 (defun loop_body_tuple (discr :loop lo) 
   (debugloop lo "loop_body_tuple lo")
@@ -2766,14 +2773,10 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 	  (foreach_long_upto 
 	   (0 (-i loopnbnodes 1))
 	   (:long ix)
-	   (debuglong "loop_body_tuple ix" ix)
-	   (comment "loop_body_tuple before making empty basic block")
-	   (let ( (curbb (make_empty_basicblock)) 
-		  )
-	     (debug_msg curbb "loop_body_tuple curbb")
-	     (multiple_put_nth tupbody ix curbb)
-	   ))
-	  (debug_msg tupbody "loop_body_tuple empty tupbody")
+	     (multiple_put_nth 
+	      tupbody ix 
+	      (make_basicblock discr_basic_block (null_basicblock)))
+	   )
 	  (let ( (ourbb ())
 		 )
 	  ;; retrieve the malloc-ed array of basic blocks and use it to fill the tuple
@@ -2800,6 +2803,62 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 	  (debug_msg tupbody "loop_body_tuple return tupbody")
 	  (return tupbody)
 	  ))))
+
+;;; iterator to retrieve loop exit edges & iterate on them
+(defciterator foreach_loop_exit_edges
+  (:loop lo)				;start formal
+  eachloopexitedge			;state symbol
+  (:edge ed :long ix)			;local formals
+  ;; before expansion
+  #{ /* $EACHLOOPEXITEDGE before+ */
+  VEC (edge, heap)* $EACHLOOPEXITEDGE#_edgevec = 0;
+  unsigned $EACHLOOPEXITEDGE#_ix = 0;
+  edge $EACHLOOPEXITEDGE#_edge = 0;
+  if ($LO) 
+    $EACHLOOPEXITEDGE#_edgevec = get_loop_exit_edges ($LO);
+  if ($EACHLOOPEXITEDGE#_edgevec)
+    FOR_EACH_VEC_ELT (edge, $EACHLOOPEXITEDGE#_edgevec, 
+			    $EACHLOOPEXITEDGE#_ix, $EACHLOOPEXITEDGE#_edge) {
+      if (!$EACHLOOPEXITEDGE#_edge) 
+        continue;
+      $ED = $EACHLOOPEXITEDGE#_edge; 
+      $IX = $EACHLOOPEXITEDGE#_ix;
+/* $EACHLOOPEXITEDGE before- */}#
+  ;; after expansion
+  #{ /* $EACHLOOPEXITEDGE after+ */
+  } /* end FOR_EACH_VEC_ELT  $EACHLOOPEXITEDGE*/
+  VEC_free (edge, heap, $EACHLOOPEXITEDGE#_edgevec);
+  $EACHLOOPEXITEDGE#_edgevec = 0;
+  $EACHLOOPEXITEDGE#_edge = 0;
+/* $EACHLOOPEXITEDGE after- */}#
+)
+ 
+;; retrieve the loop exit edges as a tuple of boxed edge-s
+(defun loop_exit_edges_tuple (discr :loop lo) 
+  (debugloop lo "loop_exit_edges_tuple lo")
+  (if (null discr) (setq discr discr_multiple))
+  (let ( (:long maxix 0)
+	 (edglis (make_list discr_list))
+	 )
+    (foreach_loop_exit_edges
+     (lo)
+     (:edge ed :long ix)
+     (let ( (boxedge (make_edge discr_edge ed))
+	    )
+       (if (>=i maxix ix) (setq maxix (+i 1 ix)))
+       (list_append edglis boxedge)
+       ))
+    (let ( (edgevec (make_multiple discr maxix))
+	   (:long ix 0)
+	   )
+      (foreach_in_list
+       (edglis)
+       (curpair edgebox)
+       (multiple_put_nth edgevec ix edgebox)
+       (setq ix (+i ix 1)))
+      (debug_msg edgevec "loop_exit_edges_tuple return edgevec")
+      (return edgevec)))
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; safe queries to the cfun (when cfun is null, return null or 0)
@@ -2872,6 +2931,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  foreach_basicblock_succ_edge
  foreach_case_of_gimple_switch
  foreach_field_in_record_type
+ foreach_loop_exit_edges
  foreach_mapbasicblock
  foreach_mapgimple
  foreach_maptree
@@ -2958,6 +3018,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  isnull_basicblock
  loop_body_tuple
  loop_can_be_parallel
+ loop_exit_edges_tuple
  make_basicblock
  make_gimple
  make_gimpleseq

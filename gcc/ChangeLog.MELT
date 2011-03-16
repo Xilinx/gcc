@@ -1,5 +1,12 @@
 
 2011-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (foreach_loop_exit_edges): New
+	iterator.
+	(loop_exit_edges_tuple): New function.
+
+	* melt/xtramelt-opengpu.melt (opengpudetect_exec): Call it.
+
+2011-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* testsuite/melt/twrongprim-1.melt: Update comment, since bug
 	fixed.

@@ -74,8 +74,10 @@
 	    }#)
 	   (debugloop curloop  "opengpudetect_exec curloop can be parallel")
 	   (let ( (curloopbodytuple (loop_body_tuple discr_multiple curloop)) 
+		  (curloopedgetuple (loop_exit_edges_tuple discr_multiple curloop))
 		  )
-	     (debug_msg curloopbodytuple "opengpudetect_exec curloopbody")
+	     (debug_msg curloopbodytuple "opengpudetect_exec curloopbodytuple")
+	     (debug_msg curloopedgetuple "opengpudetect_exec curloopedgetuple")
 	     )))
      )
     ;;
