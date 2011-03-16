@@ -1,5 +1,10 @@
 
 2011-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* testsuite/melt/twrongprim-1.melt: Update comment, since bug
+	fixed.
+
+2011-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

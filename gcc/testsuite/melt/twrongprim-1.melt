@@ -5,6 +5,8 @@
 ;; calls a forwardly defined primitive which is incorrectly translated
 ;; to nil without any error messages...
 
+;; the bug was fixed in rev 171038.
+
 #| run in buildir/gcc
  ./cc1 -fmelt=translatefile  -fmelt-module-path=melt-modules:.  \
     -fmelt-source-path=melt-sources:.:$GCCMELT_SOURCE/gcc/melt \
