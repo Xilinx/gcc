@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.7.0 20110314 (experimental) [melt-branch revision 171034]";
+ "4.7.0 20110314 (experimental) [melt-branch revision 171061]";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[]="ca914cbee9925bcd1f32dd101e0a7777";
+const char md5prepromeltrun_melt[]="9bb4ea0cc3858652562dc5df698663bd";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/
 
@@ -5026,7 +5026,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
 {
 #define meltfram__  (*iniframp__)
   dbgprintf ("start initialize_module_meltdata_warmelt_outobj iniframp__=%p", (void*) iniframp__);
-  melt_assertmsg ("check module initial frame", iniframp__->mcfr_nbvar == /*minihash*/ -3999);
+  melt_assertmsg ("check module initial frame", iniframp__->mcfr_nbvar == /*minihash*/ -498);
  
  struct cdata_st {
   struct MELT_ROUTINE_STRUCT(1) drout_1__OUTDECLINIT_ROOT;
@@ -6567,7 +6567,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_121__PREVLOC_CONTAINER", melt_magic_discr (/*_.CLASS_CONTAINER__V37*/ meltfptr[36]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_121__PREVLOC_CONTAINER", ((meltobject_ptr_t) (/*_.CLASS_CONTAINER__V37*/ meltfptr[36]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_121__PREVLOC_CONTAINER.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_CONTAINER__V37*/ meltfptr[36]);
- cdat->dobj_121__PREVLOC_CONTAINER.obj_hash = 1006349136;
+ cdat->dobj_121__PREVLOC_CONTAINER.obj_hash = 149562089;
  cdat->dobj_121__PREVLOC_CONTAINER.obj_len = 1;
 
  /*iniobj dsym_122__PREVIMPLBUF_CONTAINER*/
@@ -6588,7 +6588,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_124__PREVIMPLBUF_CONTAINER", melt_magic_discr (/*_.CLASS_CONTAINER__V37*/ meltfptr[36]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_124__PREVIMPLBUF_CONTAINER", ((meltobject_ptr_t) (/*_.CLASS_CONTAINER__V37*/ meltfptr[36]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_124__PREVIMPLBUF_CONTAINER.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_CONTAINER__V37*/ meltfptr[36]);
- cdat->dobj_124__PREVIMPLBUF_CONTAINER.obj_hash = 504213774;
+ cdat->dobj_124__PREVIMPLBUF_CONTAINER.obj_hash = 448744721;
  cdat->dobj_124__PREVIMPLBUF_CONTAINER.obj_len = 1;
 
  /*inirout drout_125__LINE_AND_FILE_OF_LOCATION*/
@@ -8456,7 +8456,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_430__CLASS_SECONDARY_C_FILE", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_CLASS)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_430__CLASS_SECONDARY_C_FILE.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
  cdat->dobj_430__CLASS_SECONDARY_C_FILE.obj_num = MELTOBMAG_OBJECT;
- cdat->dobj_430__CLASS_SECONDARY_C_FILE.obj_hash = 891423595;
+ cdat->dobj_430__CLASS_SECONDARY_C_FILE.obj_hash = 789672958;
  cdat->dobj_430__CLASS_SECONDARY_C_FILE.obj_len = 8;
 
  /*inistring dstr_431__CLASS_SECONDARY_*/
@@ -8490,7 +8490,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_436__SECFIL_MODNAM", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_436__SECFIL_MODNAM.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_436__SECFIL_MODNAM.obj_num = 0;
- cdat->dobj_436__SECFIL_MODNAM.obj_hash = 723645704;
+ cdat->dobj_436__SECFIL_MODNAM.obj_hash = 108542788;
  cdat->dobj_436__SECFIL_MODNAM.obj_len = 4;
 
  /*inistring dstr_437__SECFIL_MODNAM*/
@@ -8516,7 +8516,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_440__SECFIL_PATH", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_440__SECFIL_PATH.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_440__SECFIL_PATH.obj_num = 1;
- cdat->dobj_440__SECFIL_PATH.obj_hash = 812232973;
+ cdat->dobj_440__SECFIL_PATH.obj_hash = 567984047;
  cdat->dobj_440__SECFIL_PATH.obj_len = 4;
 
  /*inistring dstr_441__SECFIL_PATH*/
@@ -8542,7 +8542,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_444__SECFIL_DECLBUF", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_444__SECFIL_DECLBUF.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_444__SECFIL_DECLBUF.obj_num = 2;
- cdat->dobj_444__SECFIL_DECLBUF.obj_hash = 942170216;
+ cdat->dobj_444__SECFIL_DECLBUF.obj_hash = 734453378;
  cdat->dobj_444__SECFIL_DECLBUF.obj_len = 4;
 
  /*inistring dstr_445__SECFIL_DECLBUF*/
@@ -8568,7 +8568,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_448__SECFIL_IMPLBUF", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_448__SECFIL_IMPLBUF.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_448__SECFIL_IMPLBUF.obj_num = 3;
- cdat->dobj_448__SECFIL_IMPLBUF.obj_hash = 27101610;
+ cdat->dobj_448__SECFIL_IMPLBUF.obj_hash = 138170976;
  cdat->dobj_448__SECFIL_IMPLBUF.obj_len = 4;
 
  /*inistring dstr_449__SECFIL_IMPLBUF*/
@@ -8593,7 +8593,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_452__GENERATED_C_FILENAME", melt_magic_discr (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_452__GENERATED_C_FILENAME", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_452__GENERATED_C_FILENAME.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_PRIMITIVE))));
- cdat->dobj_452__GENERATED_C_FILENAME.obj_hash = 485433745;
+ cdat->dobj_452__GENERATED_C_FILENAME.obj_hash = 775770081;
  cdat->dobj_452__GENERATED_C_FILENAME.obj_len = 5;
 
  /*inimult dtup_453__GENERATED_C_FILENAME*/
@@ -8623,7 +8623,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_457", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_457.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
  cdat->dobj_457.obj_num = 0;
- cdat->dobj_457.obj_hash = 198013508;
+ cdat->dobj_457.obj_hash = 108033144;
  cdat->dobj_457.obj_len = 2;
 
  /*iniobj dsym_458__BASE*/
@@ -8645,7 +8645,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_460", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_460.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
  cdat->dobj_460.obj_num = 1;
- cdat->dobj_460.obj_hash = 290815297;
+ cdat->dobj_460.obj_hash = 837454431;
  cdat->dobj_460.obj_len = 2;
 
  /*iniobj dsym_461__DIR*/
@@ -8667,7 +8667,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_463", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_463.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
  cdat->dobj_463.obj_num = 2;
- cdat->dobj_463.obj_hash = 871884183;
+ cdat->dobj_463.obj_hash = 191664801;
  cdat->dobj_463.obj_len = 2;
 
  /*iniobj dsym_464__NUM*/
@@ -8689,7 +8689,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_466", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_466.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
  cdat->dobj_466.obj_num = 3;
- cdat->dobj_466.obj_hash = 1001093561;
+ cdat->dobj_466.obj_hash = 927524808;
  cdat->dobj_466.obj_len = 2;
 
  /*inistring dstr_467__meltgc_new_strin*/
@@ -8734,7 +8734,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_475__WANTS_SINGLE_C_FILE", melt_magic_discr (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_475__WANTS_SINGLE_C_FILE", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_475__WANTS_SINGLE_C_FILE.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_PRIMITIVE))));
- cdat->dobj_475__WANTS_SINGLE_C_FILE.obj_hash = 718030665;
+ cdat->dobj_475__WANTS_SINGLE_C_FILE.obj_hash = 888535814;
  cdat->dobj_475__WANTS_SINGLE_C_FILE.obj_len = 5;
 
  /*inimult dtup_476__WANTS_SINGLE_C_FILE*/
@@ -9029,7 +9029,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_525__MELT_ARGUMENT", melt_magic_discr (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_525__MELT_ARGUMENT", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_PRIMITIVE)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_525__MELT_ARGUMENT.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_PRIMITIVE))));
- cdat->dobj_525__MELT_ARGUMENT.obj_hash = 156734144;
+ cdat->dobj_525__MELT_ARGUMENT.obj_hash = 751962602;
  cdat->dobj_525__MELT_ARGUMENT.obj_len = 5;
 
  /*inimult dtup_526__MELT_ARGUMENT*/
@@ -9059,7 +9059,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_530", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_530.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FORMAL_BINDING))));
  cdat->dobj_530.obj_num = 0;
- cdat->dobj_530.obj_hash = 81362265;
+ cdat->dobj_530.obj_hash = 552278766;
  cdat->dobj_530.obj_len = 2;
 
  /*inistring dstr_531__melt_argument_*/
@@ -9152,7 +9152,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_546__HELP_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_546__HELP_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_546__HELP_MODE.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]);
- cdat->dobj_546__HELP_MODE.obj_hash = 644201433;
+ cdat->dobj_546__HELP_MODE.obj_hash = 1000096536;
  cdat->dobj_546__HELP_MODE.obj_len = 5;
 
  /*inistring dstr_547__help*/
@@ -9193,7 +9193,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_553__NOP_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_553__NOP_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_553__NOP_MODE.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]);
- cdat->dobj_553__NOP_MODE.obj_hash = 750108640;
+ cdat->dobj_553__NOP_MODE.obj_hash = 1013297387;
  cdat->dobj_553__NOP_MODE.obj_len = 5;
 
  /*inistring dstr_554__nop*/
@@ -9258,7 +9258,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_564__TRANSLATEFILE_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_564__TRANSLATEFILE_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_564__TRANSLATEFILE_MODE.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]);
- cdat->dobj_564__TRANSLATEFILE_MODE.obj_hash = 617968109;
+ cdat->dobj_564__TRANSLATEFILE_MODE.obj_hash = 782698681;
  cdat->dobj_564__TRANSLATEFILE_MODE.obj_len = 5;
 
  /*inistring dstr_565__translatefile*/
@@ -9299,7 +9299,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_571__TRANSLATETOMODULE_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_571__TRANSLATETOMODULE_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_571__TRANSLATETOMODULE_MODE.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]);
- cdat->dobj_571__TRANSLATETOMODULE_MODE.obj_hash = 212435342;
+ cdat->dobj_571__TRANSLATETOMODULE_MODE.obj_hash = 520196814;
  cdat->dobj_571__TRANSLATETOMODULE_MODE.obj_len = 5;
 
  /*inistring dstr_572__translatetomodul*/
@@ -9340,7 +9340,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_578__TRANSLATEDEBUG_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_578__TRANSLATEDEBUG_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_578__TRANSLATEDEBUG_MODE.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]);
- cdat->dobj_578__TRANSLATEDEBUG_MODE.obj_hash = 700171171;
+ cdat->dobj_578__TRANSLATEDEBUG_MODE.obj_hash = 508863810;
  cdat->dobj_578__TRANSLATEDEBUG_MODE.obj_len = 5;
 
  /*inistring dstr_579__translatedebug*/
@@ -9381,7 +9381,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_585__RUNFILE_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_585__RUNFILE_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_585__RUNFILE_MODE.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]);
- cdat->dobj_585__RUNFILE_MODE.obj_hash = 173677129;
+ cdat->dobj_585__RUNFILE_MODE.obj_hash = 303260629;
  cdat->dobj_585__RUNFILE_MODE.obj_len = 5;
 
  /*inistring dstr_586__runfile*/
@@ -9422,7 +9422,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_592__RUNDEBUG_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_592__RUNDEBUG_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_592__RUNDEBUG_MODE.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]);
- cdat->dobj_592__RUNDEBUG_MODE.obj_hash = 453458208;
+ cdat->dobj_592__RUNDEBUG_MODE.obj_hash = 735799296;
  cdat->dobj_592__RUNDEBUG_MODE.obj_len = 5;
 
  /*inistring dstr_593__rundebug*/
@@ -9470,7 +9470,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_600__TRANSLATEINIT_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_600__TRANSLATEINIT_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_600__TRANSLATEINIT_MODE.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]);
- cdat->dobj_600__TRANSLATEINIT_MODE.obj_hash = 871877862;
+ cdat->dobj_600__TRANSLATEINIT_MODE.obj_hash = 156435182;
  cdat->dobj_600__TRANSLATEINIT_MODE.obj_len = 5;
 
  /*inistring dstr_601__translateinit*/
@@ -9512,7 +9512,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_607__CLASS_MAKEDOC_INFO", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_CLASS)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_607__CLASS_MAKEDOC_INFO.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_CLASS))));
  cdat->dobj_607__CLASS_MAKEDOC_INFO.obj_num = MELTOBMAG_OBJECT;
- cdat->dobj_607__CLASS_MAKEDOC_INFO.obj_hash = 233401162;
+ cdat->dobj_607__CLASS_MAKEDOC_INFO.obj_hash = 589045970;
  cdat->dobj_607__CLASS_MAKEDOC_INFO.obj_len = 8;
 
  /*inistring dstr_608__CLASS_MAKEDOC_IN*/
@@ -9546,7 +9546,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_613__MKDOC_PRIMITIVES", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_613__MKDOC_PRIMITIVES.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_613__MKDOC_PRIMITIVES.obj_num = 1;
- cdat->dobj_613__MKDOC_PRIMITIVES.obj_hash = 687692216;
+ cdat->dobj_613__MKDOC_PRIMITIVES.obj_hash = 338175622;
  cdat->dobj_613__MKDOC_PRIMITIVES.obj_len = 4;
 
  /*inistring dstr_614__MKDOC_PRIMITIVES*/
@@ -9572,7 +9572,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_617__MKDOC_FUNCTIONS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_617__MKDOC_FUNCTIONS.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_617__MKDOC_FUNCTIONS.obj_num = 2;
- cdat->dobj_617__MKDOC_FUNCTIONS.obj_hash = 1011970502;
+ cdat->dobj_617__MKDOC_FUNCTIONS.obj_hash = 743088489;
  cdat->dobj_617__MKDOC_FUNCTIONS.obj_len = 4;
 
  /*inistring dstr_618__MKDOC_FUNCTIONS*/
@@ -9598,7 +9598,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_621__MKDOC_CITERATORS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_621__MKDOC_CITERATORS.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_621__MKDOC_CITERATORS.obj_num = 3;
- cdat->dobj_621__MKDOC_CITERATORS.obj_hash = 85748448;
+ cdat->dobj_621__MKDOC_CITERATORS.obj_hash = 509312677;
  cdat->dobj_621__MKDOC_CITERATORS.obj_len = 4;
 
  /*inistring dstr_622__MKDOC_CITERATORS*/
@@ -9624,7 +9624,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_625__MKDOC_CMATCHERS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_625__MKDOC_CMATCHERS.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_625__MKDOC_CMATCHERS.obj_num = 4;
- cdat->dobj_625__MKDOC_CMATCHERS.obj_hash = 931036470;
+ cdat->dobj_625__MKDOC_CMATCHERS.obj_hash = 936287010;
  cdat->dobj_625__MKDOC_CMATCHERS.obj_len = 4;
 
  /*inistring dstr_626__MKDOC_CMATCHERS*/
@@ -9650,7 +9650,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_629__MKDOC_SELECTORS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_629__MKDOC_SELECTORS.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_629__MKDOC_SELECTORS.obj_num = 5;
- cdat->dobj_629__MKDOC_SELECTORS.obj_hash = 449658755;
+ cdat->dobj_629__MKDOC_SELECTORS.obj_hash = 1532701;
  cdat->dobj_629__MKDOC_SELECTORS.obj_len = 4;
 
  /*inistring dstr_630__MKDOC_SELECTORS*/
@@ -9676,7 +9676,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_633__MKDOC_FIELDS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_633__MKDOC_FIELDS.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_633__MKDOC_FIELDS.obj_num = 6;
- cdat->dobj_633__MKDOC_FIELDS.obj_hash = 50406874;
+ cdat->dobj_633__MKDOC_FIELDS.obj_hash = 40831972;
  cdat->dobj_633__MKDOC_FIELDS.obj_len = 4;
 
  /*inistring dstr_634__MKDOC_FIELDS*/
@@ -9702,7 +9702,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_637__MKDOC_CLASSES", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_637__MKDOC_CLASSES.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_637__MKDOC_CLASSES.obj_num = 7;
- cdat->dobj_637__MKDOC_CLASSES.obj_hash = 615030889;
+ cdat->dobj_637__MKDOC_CLASSES.obj_hash = 784451293;
  cdat->dobj_637__MKDOC_CLASSES.obj_len = 4;
 
  /*inistring dstr_638__MKDOC_CLASSES*/
@@ -9728,7 +9728,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_641__MKDOC_INSTANCES", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_641__MKDOC_INSTANCES.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_641__MKDOC_INSTANCES.obj_num = 8;
- cdat->dobj_641__MKDOC_INSTANCES.obj_hash = 1054428591;
+ cdat->dobj_641__MKDOC_INSTANCES.obj_hash = 293909748;
  cdat->dobj_641__MKDOC_INSTANCES.obj_len = 4;
 
  /*inistring dstr_642__MKDOC_INSTANCES*/
@@ -9754,7 +9754,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_645__MKDOC_MACROS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_645__MKDOC_MACROS.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_645__MKDOC_MACROS.obj_num = 9;
- cdat->dobj_645__MKDOC_MACROS.obj_hash = 361351506;
+ cdat->dobj_645__MKDOC_MACROS.obj_hash = 506943199;
  cdat->dobj_645__MKDOC_MACROS.obj_len = 4;
 
  /*inistring dstr_646__MKDOC_MACROS*/
@@ -9780,7 +9780,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_649__MKDOC_PATMACROS", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_649__MKDOC_PATMACROS.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_649__MKDOC_PATMACROS.obj_num = 10;
- cdat->dobj_649__MKDOC_PATMACROS.obj_hash = 417447761;
+ cdat->dobj_649__MKDOC_PATMACROS.obj_hash = 441122964;
  cdat->dobj_649__MKDOC_PATMACROS.obj_len = 4;
 
  /*inistring dstr_650__MKDOC_PATMACROS*/
@@ -9806,7 +9806,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_653__MKDOC_FORMALOCCMAP", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_653__MKDOC_FORMALOCCMAP.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_653__MKDOC_FORMALOCCMAP.obj_num = 11;
- cdat->dobj_653__MKDOC_FORMALOCCMAP.obj_hash = 833075956;
+ cdat->dobj_653__MKDOC_FORMALOCCMAP.obj_hash = 246545815;
  cdat->dobj_653__MKDOC_FORMALOCCMAP.obj_len = 4;
 
  /*inistring dstr_654__MKDOC_FORMALOCCM*/
@@ -9832,7 +9832,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_657__MKDOC_PREDEFMAP", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_657__MKDOC_PREDEFMAP.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_657__MKDOC_PREDEFMAP.obj_num = 12;
- cdat->dobj_657__MKDOC_PREDEFMAP.obj_hash = 455512459;
+ cdat->dobj_657__MKDOC_PREDEFMAP.obj_hash = 693002182;
  cdat->dobj_657__MKDOC_PREDEFMAP.obj_len = 4;
 
  /*inistring dstr_658__MKDOC_PREDEFMAP*/
@@ -9858,7 +9858,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_661__MKDOC_DOCSYMAP", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_661__MKDOC_DOCSYMAP.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_661__MKDOC_DOCSYMAP.obj_num = 13;
- cdat->dobj_661__MKDOC_DOCSYMAP.obj_hash = 732394128;
+ cdat->dobj_661__MKDOC_DOCSYMAP.obj_hash = 427223941;
  cdat->dobj_661__MKDOC_DOCSYMAP.obj_len = 4;
 
  /*inistring dstr_662__MKDOC_DOCSYMAP*/
@@ -9884,7 +9884,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_665__MKDOC_SUBCLASSMAP", ((meltobject_ptr_t) (((void*)(MELT_PREDEF(CLASS_FIELD)))))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_665__MKDOC_SUBCLASSMAP.meltobj_class = (meltobject_ptr_t)(((void*)(MELT_PREDEF(CLASS_FIELD))));
  cdat->dobj_665__MKDOC_SUBCLASSMAP.obj_num = 14;
- cdat->dobj_665__MKDOC_SUBCLASSMAP.obj_hash = 810154365;
+ cdat->dobj_665__MKDOC_SUBCLASSMAP.obj_hash = 14909998;
  cdat->dobj_665__MKDOC_SUBCLASSMAP.obj_len = 4;
 
  /*inistring dstr_666__MKDOC_SUBCLASSMA*/
@@ -10371,7 +10371,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_745__MAKEDOC_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_745__MAKEDOC_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_745__MAKEDOC_MODE.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]);
- cdat->dobj_745__MAKEDOC_MODE.obj_hash = 513278353;
+ cdat->dobj_745__MAKEDOC_MODE.obj_hash = 615493784;
  cdat->dobj_745__MAKEDOC_MODE.obj_len = 5;
 
  /*inistring dstr_746__makedoc*/
@@ -10766,7 +10766,7 @@ static void initialize_module_meltdata_warmelt_outobj (initial_frame_st *inifram
  if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr isobj dobj_797__RUNTYPESUPPORT_MODE", melt_magic_discr (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]) == MELTOBMAG_OBJECT);
   if (MELT_LIKELY(!melt_prohibit_garbcoll)) melt_assertmsg("iniobj check.discr objmagic dobj_797__RUNTYPESUPPORT_MODE", ((meltobject_ptr_t) (/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]))->meltobj_magic == MELTOBMAG_OBJECT);
  cdat->dobj_797__RUNTYPESUPPORT_MODE.meltobj_class = (meltobject_ptr_t)(/*_.CLASS_MELT_MODE__V129*/ meltfptr[128]);
- cdat->dobj_797__RUNTYPESUPPORT_MODE.obj_hash = 932173701;
+ cdat->dobj_797__RUNTYPESUPPORT_MODE.obj_hash = 938306654;
  cdat->dobj_797__RUNTYPESUPPORT_MODE.obj_len = 5;
 
  /*inistring dstr_798__runtypesupport*/
@@ -10841,7 +10841,7 @@ initial_frame_st     meltfram__;
  melt_topframe = (struct callframe_melt_st *) &meltfram__;
 /**initial routine prologue**/
  /* set initial frame marking */
- ((struct callframe_melt_st*)&meltfram__)->mcfr_nbvar = /*minihash*/ -3999;
+ ((struct callframe_melt_st*)&meltfram__)->mcfr_nbvar = /*minihash*/ -498;
  ((struct callframe_melt_st*)&meltfram__)->mcfr_forwmarkrout = forward_or_mark_module_start_frame_warmelt_outobj;
  /**COMMENT: get previous environment **/;
  
@@ -28852,7 +28852,7 @@ static void forward_or_mark_module_start_frame_warmelt_outobj (struct callframe_
 {
  int ix=0;
  initial_frame_st* framptr_= (initial_frame_st*)fp;
-  melt_assertmsg ("check module frame", framptr_->mcfr_nbvar == /*minihash*/ -3999);
+  melt_assertmsg ("check module frame", framptr_->mcfr_nbvar == /*minihash*/ -498);
 if (!marking && melt_is_forwarding) {
  dbgprintf ("forward_or_mark_module_start_frame_warmelt_outobj forwarding %d pointers in frame %p", 1051, (void*) framptr_);
  for (ix = 0;  ix < 1051; ix++)  MELT_FORWARDED(framptr_->mcfr_varptr[ix]);
