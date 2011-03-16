@@ -1,5 +1,15 @@
 2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.dg/20050503-1.c: Check ia32 instead of ilp32.
+	* gcc.dg/builtin-apply4.c: Likewise.
+	* gcc.dg/pr35045.c: Likewise.
+	* gcc.dg/pr36584.c: Likewise.
+	* gcc.dg/torture/fp-int-convert-float80-timode.c: Likewise.
+	* gcc.dg/torture/pr36891.c: Likewise.
+	* gcc.dg/tree-ssa/loop-28.c: Likewise.
+
+2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.dg/tree-ssa/stdarg-2.c: Properly check ilp32, ia32 and x32.
 	* gcc.dg/tree-ssa/stdarg-3.c: Likewise.
 	* gcc.dg/tree-ssa/stdarg-4.c: Likewise.
