@@ -1,3 +1,8 @@
+2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/morestack.S: Properly save the x32 new stack
+	boundary.
+
 2011-02-14  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/morestack.S: Replace __LP64___ with __LP64__.
