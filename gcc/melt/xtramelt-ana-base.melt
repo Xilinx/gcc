@@ -243,58 +243,6 @@
  }while(0)  }#
 )
 
-;; retrieve the loop body as a tuple of boxed basic_block-s
-(defun loop_body_tuple (discr :loop lo) 
-  (debugloop lo "loop_body_tuple lo")
-  (if (null discr) (setq discr discr_multiple))
-  (if lo
-      (let ( (:long loopnbnodes 0) 
-	     )
-	(code_chunk 
-	 getloopnbnodeschunk
-	 #{/*$GETLOOPNBNODESCHUNK*/
-	 $LOOPNBNODES = $LO?($LO -> num_nodes):0 ; }#
-	 )
-	(let ( (tupbody (make_multiple discr loopnbnodes))
-	       )
-	  (if (null tupbody) (return)) 
-	  ;; first, fill the tuple with empty basic block boxes
-	  (foreach_long_upto 
-	   (0 (-i loopnbnodes 1))
-	   (:long ix)
-	   (debuglong "loop_body_tuple ix" ix)
-	   (let ( (curbb (make_basicblock discr_basic_block (null_basicblock))) 
-		  )
-	     (debug_msg curbb "loop_body_tuple curbb")
-	     (multiple_put_nth tupbody ix curbb)
-	   ))
-	  (debug_msg tupbody "loop_body_tuple empty tupbody")
-	  (let ( (ourbb ())
-		 )
-	  ;; retrieve the malloc-ed array of basic blocks and use it to fill the tuple
-	  ;; then free it
-	  (code_chunk
-	   fillbbboxeschunk
-	   #{ /*$FILLBBBOXESCHUNK*/
-	   long $FILLBBBOXESCHUNK#_ix = 0	       ;
-	   basic_block* $FILLBBBOXESCHUNK#_bbtab = 0   ;
-	   $FILLBBBOXESCHUNK#_bbtab = get_loop_body ($LO) ; /* a malloc-ed array */
-	   for ($FILLBBBOXESCHUNK#_ix = 0		  ;
-				      $FILLBBBOXESCHUNK#_ix < $LOOPNBNODES ;
-				      $FILLBBBOXESCHUNK#_ix++) {
-	   $OURBB = melt_multiple_nth ($TUPBODY, $FILLBBBOXESCHUNK#_ix)	;
-	   meltgc_basicblock_updatebox
-                ($OURBB, 
-		 $FILLBBBOXESCHUNK#_bbtab[$FILLBBBOXESCHUNK#_ix]) ;
-	   }
-	   free ($FILLBBBOXESCHUNK#_bbtab), $FILLBBBOXESCHUNK#_bbtab=0 ;
-	   $OURBB = (melt_ptr_t)0;
-	   /*end $FILLBBBOXESCHUNK*/
-	   }#)
-	  )
-	  (debug_msg tupbody "loop_body_tuple return tupbody")
-	  (return tupbody)
-	  ))))
 
 
 (defprimitive loop_can_be_parallel (:loop lo) :long
@@ -1893,7 +1841,7 @@
 (defprimitive null_basicblock () :basic_block #{((basic_block)0)}#)
 
 (defprimitive make_basicblock (discr :basic_block bb) :value
- #{(meltgc_new_basicblock((meltobject_ptr_t)($discr),($bb)))}# )
+ #{/*make_basicblock*/(meltgc_new_basicblock((meltobject_ptr_t)($discr),($bb)))}# )
 
 
 (defprimitive basicblock_content (v) :basic_block
@@ -2792,6 +2740,68 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 (defprimitive loop_content (v) :loop
   #{(melt_loop_content((melt_ptr_t)($v)))}# )
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; internal routine to make an empty basicblock boc
+(defun make_empty_basicblock ()
+  (make_basicblock discr_basic_block (null_basicblock)))
+
+;; retrieve the loop body as a tuple of boxed basic_block-s
+(defun loop_body_tuple (discr :loop lo) 
+  (debugloop lo "loop_body_tuple lo")
+  (if (null discr) (setq discr discr_multiple))
+  (if lo
+      (let ( (:long loopnbnodes 0) 
+	     )
+	(code_chunk 
+	 getloopnbnodeschunk
+	 #{/*$GETLOOPNBNODESCHUNK*/
+	 $LOOPNBNODES = $LO?($LO -> num_nodes):0 ; }#
+	 )
+	(let ( (tupbody (make_multiple discr loopnbnodes))
+	       )
+	  (if (null tupbody) (return)) 
+	  ;; first, fill the tuple with empty basic block boxes
+	  (foreach_long_upto 
+	   (0 (-i loopnbnodes 1))
+	   (:long ix)
+	   (debuglong "loop_body_tuple ix" ix)
+	   (comment "loop_body_tuple before making empty basic block")
+	   (let ( (curbb (make_empty_basicblock)) 
+		  )
+	     (debug_msg curbb "loop_body_tuple curbb")
+	     (multiple_put_nth tupbody ix curbb)
+	   ))
+	  (debug_msg tupbody "loop_body_tuple empty tupbody")
+	  (let ( (ourbb ())
+		 )
+	  ;; retrieve the malloc-ed array of basic blocks and use it to fill the tuple
+	  ;; then free it
+	  (code_chunk
+	   fillbbboxeschunk
+	   #{ /*$FILLBBBOXESCHUNK*/
+	   long $FILLBBBOXESCHUNK#_ix = 0	       ;
+	   basic_block* $FILLBBBOXESCHUNK#_bbtab = 0   ;
+	   $FILLBBBOXESCHUNK#_bbtab = get_loop_body ($LO) ; /* a malloc-ed array */
+	   for ($FILLBBBOXESCHUNK#_ix = 0		  ;
+				      $FILLBBBOXESCHUNK#_ix < $LOOPNBNODES ;
+				      $FILLBBBOXESCHUNK#_ix++) {
+	   $OURBB = melt_multiple_nth ($TUPBODY, $FILLBBBOXESCHUNK#_ix)	;
+	   meltgc_basicblock_updatebox
+                ($OURBB, 
+		 $FILLBBBOXESCHUNK#_bbtab[$FILLBBBOXESCHUNK#_ix]) ;
+	   }
+	   free ($FILLBBBOXESCHUNK#_bbtab), $FILLBBBOXESCHUNK#_bbtab=0 ;
+	   $OURBB = (melt_ptr_t)0;
+	   /*end $FILLBBBOXESCHUNK*/
+	   }#)
+	  )
+	  (debug_msg tupbody "loop_body_tuple return tupbody")
+	  (return tupbody)
+	  ))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; safe queries to the cfun (when cfun is null, return null or 0)
 (defprimitive has_cfun () :long #{ cfun != NULL }#)
 

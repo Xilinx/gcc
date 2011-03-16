@@ -1,0 +1,23 @@
+;; -*- lisp -*-
+;; file twrongprim-1.melt
+
+;; demonstrate a bug in MELT rev 171018. The function make_empty_bb
+;; calls a forwardly defined primitive which is incorrectly translated
+;; to nil without any error messages...
+
+#| run in buildir/gcc
+ ./cc1 -fmelt=translatefile  -fmelt-module-path=melt-modules:.  \
+    -fmelt-source-path=melt-sources:.:$GCCMELT_SOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp \
+    -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/twrongprim-1.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+;; internal routine to make an empty basicblock boc
+(defun make_empty_bb ()
+  (make_bb discr_basic_block (null_basicblock)))
+
+(defprimitive make_bb (discr :basic_block bb) :value
+ #{/*make_bb*/(meltgc_new_basicblock((meltobject_ptr_t)($discr),($bb)))}# )
+
+;; eof twrongprim-1.melt
