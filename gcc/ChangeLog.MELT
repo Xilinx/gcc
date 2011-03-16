@@ -1,5 +1,15 @@
 
 2011-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-macro.melt (class_source_lazy_macro_expansion):
+	Add slazymacro_oper field.
+	(macroexpand_1): Fill it.
+
+	* melt/warmelt-normal.melt (normexp_lazymacroexp): Use
+	slazymacro_oper field to output a nicer error message for unbound
+	operators.
+
+2011-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (foreach_loop_exit_edges): New
 	iterator.
 	(loop_exit_edges_tuple): New function.

@@ -831,20 +831,24 @@ routine procedures.}#
   (let (
 	(sloc (get_field :loca_location recv))
 	(lazymacfun (get_field :slazymacro_fun recv))
+	(lazymacoper (get_field :slazymacro_oper recv))
 	)
     (multicall 
      (mexp mresexp)
      (lazymacfun)
      (debug_msg mexp "normexp_lazymacroexp mexp")
      (if mresexp
-	 ;; this happens in the pathological case when the lazy macro
-	 ;; macro-expands to more than one result
+	 ;;; this happens in the pathological case when the lazy macro
+	 ;;; macro-expands to more than one result
 	 (error_plain sloc "delayed lazy macro expansion cannot macro expand multiply"))
      (if (is_a mexp class_source_lazy_macro_expansion)
-	 ;; this happens in the pathological case when a macro
-	 ;; operator is not defined
+	 ;;; this happens in the pathological case when a macro
+	 ;;; operator is not defined
 	 (progn 
-	   (error_plain sloc "undefined macro; delayed lazy macro expansion too lazy")
+	   (if (is_a lazymacoper class_symbol)
+	       (error_strv sloc "undefined operator; unknown name"
+			   (get_field :named_name lazymacoper))
+	     (error_plain sloc "undefined macro; delayed lazy macro expansion too lazy"))
 	   (return)
 	   ))
      (multicall

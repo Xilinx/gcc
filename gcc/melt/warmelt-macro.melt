@@ -47,10 +47,11 @@
   common case of forward reference applications and other stuff. The
   normalization step will actually do the macro expansion. Field
   $SLAZYMACRO_FUN is a closure thunk returning the macro-expanded
-  result.}#
+  result. $SLAZYMACRO_OPER is the operator, usually a bound name.}#
   :super class_source
   :fields (
 	   slazymacro_fun
+	   slazymacro_oper
 	   ))
 
 ;;; superclass for source with a sequence of argument subexpressions
@@ -1319,6 +1320,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			   (lazymac (instance class_source_lazy_macro_expansion
 					      :loca_location sloc
 					      :slazymacro_fun macthunk
+					      :slazymacro_oper soper
 					       ))
 			   )
 		       (debug_msg lazymac "macroexpand_1 return lazymac")
