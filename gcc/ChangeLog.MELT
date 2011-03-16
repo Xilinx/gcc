@@ -1,6 +1,12 @@
 
 2011-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	{{test twrongmelt-1.melt passes}}
+	* melt/warmelt-macro.melt (macroexpand_1): Really return the
+	class_source_lazy_macro_expansion instance.
+
+2011-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-ana-base.melt (make_empty_basicblock): New.
 	(loop_body_tuple): Move the function after basic block primitives.
 

@@ -1321,7 +1321,8 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 					      :slazymacro_fun macthunk
 					       ))
 			   )
-		       (debug_msg lazymac "macroexpand_1 lazymac")
+		       (debug_msg lazymac "macroexpand_1 return lazymac")
+		       (return lazymac)
 		       ))
 		   (:else 
 		    (if (and 
