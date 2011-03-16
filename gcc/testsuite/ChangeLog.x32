@@ -1,5 +1,12 @@
 2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.dg/tree-ssa/stdarg-2.c: Properly check ilp32, ia32 and x32.
+	* gcc.dg/tree-ssa/stdarg-3.c: Likewise.
+	* gcc.dg/tree-ssa/stdarg-4.c: Likewise.
+	* gcc.dg/tree-ssa/stdarg-5.c: Likewise.
+
+2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.target/i386/pr48037-1.c: Also allow x32.
 
 2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
