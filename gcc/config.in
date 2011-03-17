@@ -1258,7 +1258,7 @@
 #endif
 
 
-/* Define if your linker supports plugin. */
+/* Define to the level of your linker's plugin support. */
 #ifndef USED_FOR_TARGET
 #undef HAVE_LTO_PLUGIN
 #endif
@@ -1413,6 +1413,9 @@
 #undef HAVE_SYS_RESOURCE_H
 #endif
 
+
+/* Define if your target C library provides sys/sdt.h */
+#undef HAVE_SYS_SDT_H
 
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #ifndef USED_FOR_TARGET

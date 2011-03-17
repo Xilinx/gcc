@@ -251,6 +251,7 @@ static FILE *cp_lexer_debug_stream;
    sizeof, typeof, or alignof.  */
 int cp_unevaluated_operand;
 
+#ifdef ENABLE_CHECKING
 /* Dump up to NUM tokens in BUFFER to FILE.  If NUM is 0, dump all the
    tokens.  */
 
@@ -300,6 +301,7 @@ cp_lexer_debug_tokens (VEC(cp_token,gc) *buffer)
 {
   cp_lexer_dump_tokens (stderr, buffer, 0);
 }
+#endif
 
 /* Return true if LEXER has a CPP_EOF at the end of the buffer.  */
 
@@ -940,7 +942,7 @@ cp_lexer_print_token (FILE * stream, cp_token *token)
     /* C++ parser token types - see "Manifest constants", above.  */
     "KEYWORD",
     "TEMPLATE_ID",
-    "NESTED_NAME_SPECIFIER"
+    "NESTED_NAME_SPECIFIER",
   };
 
   /* For some tokens, print the associated data.  */
@@ -20416,6 +20418,8 @@ cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
   saved_local_variables_forbidden_p = parser->local_variables_forbidden_p;
   parser->local_variables_forbidden_p = true;
 
+  push_defarg_context (fn);
+
   for (parm = TYPE_ARG_TYPES (TREE_TYPE (fn)),
 	 parmdecl = DECL_ARGUMENTS (fn);
        parm && parm != void_list_node;
@@ -20473,6 +20477,8 @@ cp_parser_late_parsing_default_args (cp_parser *parser, tree fn)
       /* Revert to the main lexer.  */
       cp_parser_pop_lexer (parser);
     }
+
+  pop_defarg_context ();
 
   /* Make sure no default arg is missing.  */
   check_default_args (fn);
@@ -21289,6 +21295,8 @@ cp_parser_commit_to_tentative_parse (cp_parser* parser)
 static void
 cp_parser_abort_tentative_parse (cp_parser* parser)
 {
+  gcc_assert (parser->context->status != CP_PARSER_STATUS_KIND_COMMITTED
+	      || errorcount > 0);
   cp_parser_simulate_error (parser);
   /* Now, pretend that we want to see if the construct was
      successfully parsed.  */
