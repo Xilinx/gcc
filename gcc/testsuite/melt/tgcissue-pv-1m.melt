@@ -1,0 +1,49 @@
+;; -*- lisp -*-
+;; bug reported by Pierre Vittet 
+;;   http://gcc.gnu.org/ml/gcc/2011-03/msg00206.html
+;; the trivial MELT pass
+
+
+;; transtate first this file with
+#|
+   ./cc1 -fmelt-module-path=melt-modules -fmelt-source-path=melt-sources \
+        -O2 -c -fmelt-mode=translatefile \
+        -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tgcissue-pv-1m.melt 
+|#
+;; then run the tgcissue-pv-1c.c test file
+
+;;; trivial gate function
+(defun tgissue_gate (pass)
+  (debug_msg pass "tgissue_gate pass")
+  (return :true))
+
+;; trivial exec function
+(defun tgissue_exec (pass)
+  (debug_msg pass "tgissue_exec pass")
+  (return :true)
+  )
+
+(defun tgissue_docmd (cmd moduldata)
+  (let ( (tgissue_pass
+	  (instance class_gcc_gimple_pass
+		    :named_name '"tgissue_pass"
+		    :gccpass_gate tgissue_gate
+		    :gccpass_exec tgissue_exec
+		    ))
+	 )
+    (debug_msg tgissue_pass "tgissue_docmd tgissue_pass")
+    (install_melt_gcc_pass tgissue_pass "after" "phiopt" 0)
+    (return tgissue_pass)
+    ))
+
+
+;; we would like to call directly (tgissue_docmd) but for strange reasons it is called but the pass does not happen.
+;; so we have to install a mode
+(definstance tgissue_mod
+    class_melt_mode
+    :named_name '"tgissue"
+    :meltmode_help '"simple test"
+    :meltmode_fun tgissue_docmd
+)
+(install_melt_mode tgissue_mod)
+;;; eof tgissue-pv-1m.melt

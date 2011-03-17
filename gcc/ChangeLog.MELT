@@ -1,4 +1,8 @@
 
+2011-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tgcissue-pv-1c.c: New file.
+	* testsuite/melt/tgcissue-pv-1m.melt: New file.
+
 2011-03-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
