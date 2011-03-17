@@ -991,6 +991,22 @@
   DONE;
 })
 
+;; A pattern to add an integer to a register, regardless of the
+;; setting of the -mmax-constant-size command line switch.
+;; See rx.c:gen_safe_add() for more details.
+(define_insn "addsi3_unspec"
+  [(set (match_operand:SI          0 "register_operand"  "=r,r")
+	(plus:SI (match_operand:SI 1 "register_operand"  "%0,r")
+		 (const:SI (unspec:SI [(match_operand 2 "const_int_operand" "n,n")] UNSPEC_CONST))))
+   (clobber (reg:CC CC_REG))]
+  ""
+  "@
+  add\t%2, %0
+  add\t%2, %1, %0"
+  [(set_attr "timings" "11")
+   (set_attr "length"   "6")]
+)
+
 (define_insn "andsi3"
   [(set (match_operand:SI         0 "register_operand"  "=r,r,r,r,r,r,r,r,r")
 	(and:SI (match_operand:SI 1 "register_operand"  "%0,0,0,0,0,0,r,r,0")
