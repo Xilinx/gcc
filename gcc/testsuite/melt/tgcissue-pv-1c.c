@@ -1,10 +1,11 @@
 /* bug reported by Pierre Vittet 
    http://gcc.gnu.org/ml/gcc/2011-03/msg00206.html
    The C source file
-   run in $GCCMELT_BUILD/gcc
-   ./cc1 -fmelt-module-path=melt-modules -fmelt-source-path=melt-sources \
-        -O2 -c -fmelt-mode=runfile \
-        -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tgcissue-pv-1m.melt \
+   first build the tgissue-pv-1m.so module from tgissue-pv-1m.melt
+   then run in $GCCMELT_BUILD/gcc
+   ./cc1 -fmelt-module-path=.:melt-modules -fmelt-source-path=.:melt-sources:$GCCMELT_SOURCE/gcc/testsuite/melt \
+        -fmelt-init=@@:tgcissue-pv-1m \
+        -O2 -v -fmelt-mode=tgcissue \
 	-fmelt-debug $GCCMELT_SOURCE/gcc/testsuite/melt/tgcissue-pv-1c.c
  */
 int function1(void) {

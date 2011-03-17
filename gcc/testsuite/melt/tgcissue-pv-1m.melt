@@ -7,7 +7,7 @@
 ;; transtate first this file with
 #|
    ./cc1 -fmelt-module-path=melt-modules -fmelt-source-path=melt-sources \
-        -O2 -c -fmelt-mode=translatefile \
+        -O2 -c -fmelt-mode=translatetomodule \
         -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tgcissue-pv-1m.melt 
 |#
 ;; then run the tgcissue-pv-1c.c test file
@@ -41,8 +41,8 @@
 ;; so we have to install a mode
 (definstance tgissue_mod
     class_melt_mode
-    :named_name '"tgissue"
-    :meltmode_help '"simple test"
+    :named_name '"tgcissue"
+    :meltmode_help '"tgissue test"
     :meltmode_fun tgissue_docmd
 )
 (install_melt_mode tgissue_mod)
