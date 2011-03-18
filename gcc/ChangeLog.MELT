@@ -1,4 +1,8 @@
 
+2011-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gcc/testsuite/melt/tgcissue-pv-1run.sh: New script.
+	* testsuite/melt/tgcissue-pv-1m.melt: Rename everything as tgcissue.
+
 2011-03-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tgcissue-pv-1c.c: Comment typo.
 	* testsuite/melt/tgcissue-pv-1m.melt: Comment typo.
