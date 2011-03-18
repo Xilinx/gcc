@@ -1,0 +1,7 @@
+2011-03-18  Diego Novillo  <dnovillo@google.com>
+
+	Backported from trunk@171161.
+
+	* mixed-mode-arith_neg.cc: Rename from mixed-mode_neg.cc
+	* mixed-mode-cmp_neg.cc: Factor out of mixed-mode-arith_neg.cc
+
