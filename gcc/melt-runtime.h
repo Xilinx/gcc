@@ -92,6 +92,16 @@ extern long melt_debugskipcount;
 
 extern long melt_error_counter;
 
+#if ENABLE_GC_CHECKING 
+/* memory is poisoned by an 0xa5a5a5a5a5a5a5a5... pointer in ggc-zone.c or ggc-page.c */
+#if SIZEOF_VOID_P == 8
+#define MELT_POISON_POINTER (void*)0xa5a5a5a5a5a5a5a5
+#elif SIZEOF_VOID_P == 4
+#define MELT_POISON_POINTER (void*)0xa5a5a5a5
+#else
+#error cannot set MELT_POISON_POINTER
+#endif
+#endif /*ENABLE_GC_CHECKING*/
 
 /* the MELT debug depth for debug_msg ... can be set with -fmelt-debug-depth= */
 int melt_debug_depth(void);
@@ -389,8 +399,33 @@ const char* melt_obmag_string(int i);
 static inline int
 melt_magic_discr (melt_ptr_t p)
 {
-  if (!p ||  !p->u_discr)
+  if (!p) 
     return 0;
+#if ENABLE_GC_CHECKING
+  if ((void*) p == MELT_POISON_POINTER)
+    {
+      /* This should never happen, and if it happens it means that p
+	 was insided a poisoned freed data zone, so the memory is
+	 corrupted; a data zone has been freed and then dereferenced. */
+      melt_fatal_error ("magic discr of %p = poison pointer", p);
+    }
+#endif /*ENABLE_GC_CHECKING */
+#if ENABLE_CHECKING 
+  if (!p->u_discr) 
+    {
+      /* This should never happen, we are asking the discriminant of a
+	 not yet filled, since cleared, memory zone. */
+      melt_fatal_error ("magic discr of %p a cleeared memory zone", p);
+    }
+#endif /*ENABLE_CHECKING*/
+#if ENABLE_GC_CHECKING
+  if ((void*) (p->u_discr) == MELT_POISON_POINTER)
+    {
+      /* This should never happen, we are asking the discriminant of a
+	 zone which has been poisoned, that is has been freed! */
+      melt_fatal_error ("magic discr of %p a freed and poisoned memory zone", p);
+    }
+#endif /*ENABLE_GC_CHECKING*/
   return p->u_discr->meltobj_magic;
 }
 
