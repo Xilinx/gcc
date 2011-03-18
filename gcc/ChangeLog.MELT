@@ -1,5 +1,8 @@
 
 2011-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	(melt_magic_discr): Improve melt_fatal_error messages.
+
+2011-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	(melt_magic_discr): Add cast to avoid compiler warnings on %p format.
 
 2011-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
