@@ -407,7 +407,8 @@ melt_magic_discr (melt_ptr_t p)
       /* This should never happen, and if it happens it means that p
 	 was insided a poisoned freed data zone, so the memory is
 	 corrupted; a data zone has been freed and then dereferenced. */
-      melt_fatal_error ("magic discr of %p = poison pointer", p);
+      melt_fatal_error ("magic discr of %p = poison pointer", 
+			(void*) p);
     }
 #endif /*ENABLE_GC_CHECKING */
 #if ENABLE_CHECKING 
@@ -415,7 +416,8 @@ melt_magic_discr (melt_ptr_t p)
     {
       /* This should never happen, we are asking the discriminant of a
 	 not yet filled, since cleared, memory zone. */
-      melt_fatal_error ("magic discr of %p a cleeared memory zone", p);
+      melt_fatal_error ("magic discr of %p a cleeared memory zone", 
+			(void*) p);
     }
 #endif /*ENABLE_CHECKING*/
 #if ENABLE_GC_CHECKING
@@ -423,7 +425,8 @@ melt_magic_discr (melt_ptr_t p)
     {
       /* This should never happen, we are asking the discriminant of a
 	 zone which has been poisoned, that is has been freed! */
-      melt_fatal_error ("magic discr of %p a freed and poisoned memory zone", p);
+      melt_fatal_error ("magic discr of %p a freed and poisoned memory zone", 
+			(void*) p);
     }
 #endif /*ENABLE_GC_CHECKING*/
   return p->u_discr->meltobj_magic;
