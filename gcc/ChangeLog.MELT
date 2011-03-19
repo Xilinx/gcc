@@ -1,9 +1,15 @@
 
-2011-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
-	(melt_magic_discr): Improve melt_fatal_error messages.
+2011-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_make_special): Correct typo on melt_break_alptr_2.
+	(melt_garbcoll): Move the clearing of old special before Cheney
+	loop & root scanning. Add melt_alptr_{1,2} debugging.
 
 2011-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
-	(melt_magic_discr): Add cast to avoid compiler warnings on %p format.
+	* melt-runtime.h (melt_magic_discr): Improve melt_fatal_error messages.
+
+2011-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_magic_discr): Add cast to avoid compiler
+	warnings on %p format.
 
 2011-03-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_POISON_POINTER): New #define-d constant.

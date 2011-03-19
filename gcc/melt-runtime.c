@@ -948,9 +948,9 @@ meltgc_make_special (melt_ptr_t discr_p)
       if (melt_alptr_2 && (void*)melt_alptr_2 == specv) 
 	{
 	  fprintf (stderr, "meltgc_make_special alptr_2 %p mag %d %s\n", 
-		   melt_alptr_1, magic, melt_obmag_string(magic));
+		   melt_alptr_2, magic, melt_obmag_string(magic));
 	  fflush (stderr);
-	  melt_break_alptr_1 ("meltgc_make_special alptr_2");
+	  melt_break_alptr_2 ("meltgc_make_special alptr_2");
 	};
 #endif /*ENABLE_CHECKING*/
       break;
@@ -1099,6 +1099,36 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   if (melt_nb_garbcoll % melt_fullperiod == 0) 
     needfull = TRUE;
 
+  /* Clear marks on the old spec list. It should be done before the
+     Cheney loop and before any forwarding! */
+  if (needfull) 
+    {
+      melt_debuggc_eprintf ("melt_garbcoll %ld clearing old special marks",
+			    melt_nb_garbcoll);
+      for (specp = melt_oldspeclist; specp; specp = specp->nextspec)
+	{
+	  specp->mark = 0;
+#if ENABLE_CHECKING
+	  if (melt_alptr_1 && (void*)melt_alptr_1 == (void*) specp) 
+	    {
+	      int magic = melt_magic_discr ((melt_ptr_t) specp);
+	      fprintf (stderr, "melt_garbcoll clearing special alptr_1 %p mag %d %s\n", 
+		       melt_alptr_1, magic, melt_obmag_string (magic));
+	      fflush (stderr);
+	      melt_break_alptr_1 ("melt_garbcoll clearing special alptr_1");
+	    };
+	  if (melt_alptr_2 && (void*)melt_alptr_2 == (void*) specp) 
+	    {
+	      int magic = melt_magic_discr ((melt_ptr_t) specp);
+	      fprintf (stderr, "melt_garbcoll clearing special alptr_2 %p mag %d %s\n", 
+		       melt_alptr_2, magic, melt_obmag_string (magic));
+	      fflush (stderr);
+	      melt_break_alptr_2 ("melt_garbcoll clearing special alptr_2");
+	    };
+#endif /*ENABLE_CHECKING*/
+	}
+    }
+
   melt_is_forwarding = TRUE;
   melt_forward_counter = 0;
   for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
@@ -1127,16 +1157,6 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   melt_debuggc_eprintf ("melt_garbcoll %ld done forwarding", 
 			melt_nb_garbcoll);
   melt_is_forwarding = FALSE;
-
-  /* Clear marks on the old spec list. It should be done before the
-     Cheney loop! */
-  if (needfull) 
-    {
-      melt_debuggc_eprintf ("melt_garbcoll %ld clearing old special marks",
-			    melt_nb_garbcoll);
-      for (specp = melt_oldspeclist; specp; specp = specp->nextspec)
-	specp->mark = 0;
-    }
 
   /* Scan the store list.  */
   for (storp = (melt_ptr_t *) melt_storalz;
@@ -1169,13 +1189,34 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
       gcc_assert (melt_is_young (specp));
       melt_debuggc_eprintf ("melt_garbcoll specp %p has mark %d", 
 			    (void*) specp, specp->mark);
+
+#if ENABLE_CHECKING
+      if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) 
+	{
+	  int mag = specp->discr->meltobj_magic;
+	  fprintf (stderr, "melt_garbcoll special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+	  fflush (stderr);
+	  melt_debuggc_eprintf("melt_garbcoll #%ld special alptr_1 %p mag %d", 
+			       melt_nb_garbcoll, melt_alptr_1, mag);
+	  melt_break_alptr_1 ("garbcoll special alptr_1");
+	}
+      if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) 
+	{
+	  int mag = specp->discr->meltobj_magic;
+	  fprintf (stderr, "melt_garbcoll special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+	  fflush (stderr);
+	  melt_debuggc_eprintf("melt_garbcoll #%ld special alptr_2 %p mag %d", 
+			       melt_nb_garbcoll, melt_alptr_2, mag);
+	  melt_break_alptr_2 ("garbcoll special alptr_2");
+	}
+#endif /*ENABLE_CHECKING*/
+
       if (!specp->mark)
 	{
 	  melt_debuggc_eprintf ("melt_garbcoll deleting %p", (void*)specp);
 	  delete_special (specp);
 	}
     }
-
   melt_newspeclist = NULL;
 
   /* Free the previous young zone and allocate a new one.  */
