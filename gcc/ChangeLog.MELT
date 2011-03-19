@@ -1,6 +1,10 @@
 
 2011-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
-	* melt-runtime.c (meltgc_make_special): Correct typo on melt_break_alptr_2.
+	* melt-runtime.c (melt_garbcoll): Add more melt_alptr* debugging.
+
+2011-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_make_special): Correct typo on
+	melt_break_alptr_2.
 	(melt_garbcoll): Move the clearing of old special before Cheney
 	loop & root scanning. Add melt_alptr_{1,2} debugging.
 

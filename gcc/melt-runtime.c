@@ -1009,8 +1009,8 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	   routine.  This happens in particular for the initial frame
 	   of generated MELT modules;  their startup routine has a
 	   special marking routine.  */
-	  melt_debuggc_eprintf ("melt_marking_callback %ld marking*frame thru routine frame %p",
-			meltmarkingcount, (void*) cf);
+	melt_debuggc_eprintf ("melt_marking_callback %ld marking*frame thru routine frame %p",
+			      meltmarkingcount, (void*) cf);
 	cf->mcfr_forwmarkrout ((struct callframe_melt_st*)cf, 1);
 	melt_debuggc_eprintf ("melt_marking_callback %ld called frame %p marking routine",
 			      meltmarkingcount, (void*)cf);
@@ -1019,10 +1019,11 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
       {
 	/* no closure, e.g. a frame manually set with MELT_ENTERFRAME. */
 	extern void gt_ggc_mx_melt_un (void *);
-	melt_debuggc_eprintf ("melt_marking_callback %ld marking*frame no closure frame %p-%p of %d vars", 
-			meltmarkingcount, (void*)cf, 
-			(void*)(cf->mcfr_varptr + cf->mcfr_nbvar),
-			cf->mcfr_nbvar);
+	melt_debuggc_eprintf 
+	  ("melt_marking_callback %ld marking*frame no closure frame %p-%p of %d vars", 
+	   meltmarkingcount, (void*)cf, 
+	   (void*)(cf->mcfr_varptr + cf->mcfr_nbvar),
+	   cf->mcfr_nbvar);
 	/* if no closure, mark the local pointers */
 	for (ix= 0; ix<(int) cf->mcfr_nbvar; ix++) 
 	  if (cf->mcfr_varptr[ix]) 
@@ -1041,8 +1042,10 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
   dbgprintf("end of melt_marking_callback %ld", meltmarkingcount);
 }
 
+
+
 /***
- * our copying garbage collector 
+ * Our copying garbage collector, based upon GGC which does the full collection.
  ***/
 void
 melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
@@ -1084,7 +1087,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     }
   melt_check_call_frames (MELT_ANYWHERE, "before garbage collection");
   melt_debuggc_eprintf ("melt_garbcoll %ld begin alz=%p-%p *****************\n", 
-		  melt_nb_garbcoll, melt_startalz, melt_endalz);
+			melt_nb_garbcoll, melt_startalz, melt_endalz);
   gcc_assert ((char *) melt_startalz < (char *) melt_endalz);
   gcc_assert ((char *) melt_curalz >= (char *) melt_startalz
 	      && (char *) melt_curalz < (char *) melt_storalz);
@@ -1099,35 +1102,6 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   if (melt_nb_garbcoll % melt_fullperiod == 0) 
     needfull = TRUE;
 
-  /* Clear marks on the old spec list. It should be done before the
-     Cheney loop and before any forwarding! */
-  if (needfull) 
-    {
-      melt_debuggc_eprintf ("melt_garbcoll %ld clearing old special marks",
-			    melt_nb_garbcoll);
-      for (specp = melt_oldspeclist; specp; specp = specp->nextspec)
-	{
-	  specp->mark = 0;
-#if ENABLE_CHECKING
-	  if (melt_alptr_1 && (void*)melt_alptr_1 == (void*) specp) 
-	    {
-	      int magic = melt_magic_discr ((melt_ptr_t) specp);
-	      fprintf (stderr, "melt_garbcoll clearing special alptr_1 %p mag %d %s\n", 
-		       melt_alptr_1, magic, melt_obmag_string (magic));
-	      fflush (stderr);
-	      melt_break_alptr_1 ("melt_garbcoll clearing special alptr_1");
-	    };
-	  if (melt_alptr_2 && (void*)melt_alptr_2 == (void*) specp) 
-	    {
-	      int magic = melt_magic_discr ((melt_ptr_t) specp);
-	      fprintf (stderr, "melt_garbcoll clearing special alptr_2 %p mag %d %s\n", 
-		       melt_alptr_2, magic, melt_obmag_string (magic));
-	      fflush (stderr);
-	      melt_break_alptr_2 ("melt_garbcoll clearing special alptr_2");
-	    };
-#endif /*ENABLE_CHECKING*/
-	}
-    }
 
   melt_is_forwarding = TRUE;
   melt_forward_counter = 0;
@@ -1138,15 +1112,15 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
       int varix = 0;
       if (cfram->mcfr_nbvar < 0 && cfram->mcfr_forwmarkrout) {
 	melt_debuggc_eprintf ("melt_garbcoll forwarding*frame %p thru routine", 
-			       (void*) cfram);
+			      (void*) cfram);
 	cfram->mcfr_forwmarkrout (cfram, 0);
       }
       else if (cfram->mcfr_nbvar >= 0) 
 	{
 	  melt_debuggc_eprintf ("melt_garbcoll forwarding*frame %p-%p of %d nbvars", 
-			  (void*) cfram, 
-			  (void*) (cfram->mcfr_varptr + cfram->mcfr_nbvar),
-			  cfram->mcfr_nbvar);
+				(void*) cfram, 
+				(void*) (cfram->mcfr_varptr + cfram->mcfr_nbvar),
+				cfram->mcfr_nbvar);
 	  MELT_FORWARDED (cfram->mcfr_closp);
 	  for (varix = 0; varix < cfram->mcfr_nbvar; varix ++)
 	    MELT_FORWARDED (cfram->mcfr_varptr[varix]);
@@ -1194,26 +1168,26 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
       if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) 
 	{
 	  int mag = specp->discr->meltobj_magic;
-	  fprintf (stderr, "melt_garbcoll special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+	  fprintf (stderr, "melt_garbcoll  new special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
 	  fflush (stderr);
-	  melt_debuggc_eprintf("melt_garbcoll #%ld special alptr_1 %p mag %d", 
+	  melt_debuggc_eprintf("melt_garbcoll #%ld new special alptr_1 %p mag %d", 
 			       melt_nb_garbcoll, melt_alptr_1, mag);
-	  melt_break_alptr_1 ("garbcoll special alptr_1");
+	  melt_break_alptr_1 ("garbcoll new special alptr_1");
 	}
       if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) 
 	{
 	  int mag = specp->discr->meltobj_magic;
-	  fprintf (stderr, "melt_garbcoll special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+	  fprintf (stderr, "melt_garbcoll new special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
 	  fflush (stderr);
-	  melt_debuggc_eprintf("melt_garbcoll #%ld special alptr_2 %p mag %d", 
+	  melt_debuggc_eprintf("melt_garbcoll #%ld new special alptr_2 %p mag %d", 
 			       melt_nb_garbcoll, melt_alptr_2, mag);
-	  melt_break_alptr_2 ("garbcoll special alptr_2");
+	  melt_break_alptr_2 ("garbcoll new special alptr_2");
 	}
 #endif /*ENABLE_CHECKING*/
 
       if (!specp->mark)
 	{
-	  melt_debuggc_eprintf ("melt_garbcoll deleting %p", (void*)specp);
+	  melt_debuggc_eprintf ("melt_garbcoll deleting newspec %p", (void*)specp);
 	  delete_special (specp);
 	}
     }
@@ -1247,15 +1221,36 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
       for (specp = melt_oldspeclist; specp; specp = nextspecp)
 	{
 	  nextspecp = specp->nextspec;
+
+#if ENABLE_CHECKING
+	  if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) 
+	    {
+	      int mag = specp->discr->meltobj_magic;
+	      fprintf (stderr, "melt_garbcoll  old special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+	      fflush (stderr);
+	      melt_debuggc_eprintf("melt_garbcoll #%ld old special alptr_1 %p mag %d", 
+				   melt_nb_garbcoll, melt_alptr_1, mag);
+	      melt_break_alptr_1 ("garbcoll old special alptr_1");
+	    }
+	  if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) 
+	    {
+	      int mag = specp->discr->meltobj_magic;
+	      fprintf (stderr, "melt_garbcoll old special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+	      fflush (stderr);
+	      melt_debuggc_eprintf("melt_garbcoll #%ld old special alptr_2 %p mag %d", 
+				   melt_nb_garbcoll, melt_alptr_2, mag);
+	      melt_break_alptr_2 ("garbcoll old special alptr_2");
+	    }
+#endif /*ENABLE_CHECKING*/
 	  
-	  melt_debuggc_eprintf ("melt_garbcoll deletespecloop specp %p mark %d",
+	  melt_debuggc_eprintf ("melt_garbcoll deletespecloop old specp %p mark %d",
 				(void*)specp, specp->mark);
 	  if (specp->mark)
 	    {
 	      prevspecptr = &specp->nextspec;
 	      continue;
 	    }
-	  melt_debuggc_eprintf ("melt_garbcoll deletespecloop deleting specp %p",
+	  melt_debuggc_eprintf ("melt_garbcoll deletespecloop deleting old specp %p",
 				(void*)specp);
 	  delete_special (specp);
 	  memset (specp, 0, sizeof (*specp));
@@ -1270,6 +1265,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 	fflush (stderr);
       }
       melt_kilowords_sincefull = 0;
+      /* end of MELT full garbage collection */
     }
   melt_check_call_frames (MELT_NOYOUNG, "after garbage collection");
 }
