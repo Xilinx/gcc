@@ -5762,8 +5762,22 @@ source location.}#
       (if nbindfinal
 	  (list_append2list nbindlist nbindfinal))
       (debug_msg  nbindlist "normexp_defvariadic final nbindlist")
-      (assert_msg "@$@unimplemented normexp_defvariadic")
-      ))))
+      ;; generate an instance of class_variadic_function
+      (let (
+	    (namdata (normal_symbol_data sname ncx sloc))
+	    (insdata (instance class_nrep_datainstance
+			       :nrep_loc sloc
+			       :ndata_name sname
+			       :ndata_discrx (normal_predef class_variadic_function ncx sloc "class_variadic_function")
+			       :ninst_hash (make_integerbox discr_integer (nonzero_hash))
+					; :ninst_slots slotup
+					; :ninst_objnum sinstobjnum
+			       )) 
+	    )
+	(debug_msg namdata "normexp_defvariadic namdata")
+	(debug_msg insdata "normexp_defvariadic insdata")
+	(assert_msg "@$@unimplemented normexp_defvariadic")
+	)))))
 (install_method class_source_defvariadic normal_exp normexp_defvariadic)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
