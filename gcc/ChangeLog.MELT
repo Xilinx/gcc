@@ -1,5 +1,9 @@
 
 2011-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_obmag_string): Remove function, since it is
+	generated in melt/generated/meltrunsup-inc.c
+
+2011-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.
