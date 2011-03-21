@@ -1,5 +1,8 @@
 
 2011-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_defvariadic): More.
+
+2011-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_obmag_string): Remove function, since it is
 	generated in melt/generated/meltrunsup-inc.c
 

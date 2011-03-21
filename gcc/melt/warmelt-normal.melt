@@ -5725,6 +5725,7 @@ source location.}#
     (debug_msg sortedctypes "normexp_defvariadic sortedctypes")
     (assert_msg "check varibind" (is_a varibind class_variadic_binding))
     (assert_msg "check svari" (is_a svari class_variadic_function))
+    ;; normalize the initial handler
     (multicall
      (ninitial nbindinitial)
      (normal_exp sinitial env ncx sloc)
@@ -5732,6 +5733,7 @@ source location.}#
      (debug_msg nbindinitial "normexp_defvariadic nbindinitial")
      (if nbindinitial
 	 (list_append2list nbindlist nbindinitial))
+     ;; normalize the ctype in alphabetical order
      (foreach_in_multiple
       (sortedctypes)
       (curctype :long ctypix)
@@ -5750,8 +5752,18 @@ source location.}#
 	 )
 	)
       )					;end for ctype
-     (assert_msg "@$@unimplemented normexp_defvariadic")
-     )))
+     (debug_msg nbindlist "normexp_defvariadic after ctype nbindlist")
+     ;; normalize the final
+     (multicall
+      (nfinal nbindfinal)
+      (normal_exp sfinal env ncx sloc)
+      (debug_msg nfinal "normexp_defvariadic nfinal")
+      (debug_msg nbindfinal "normexp_defvariadic nbindfinal")
+      (if nbindfinal
+	  (list_append2list nbindlist nbindfinal))
+      (debug_msg  nbindlist "normexp_defvariadic final nbindlist")
+      (assert_msg "@$@unimplemented normexp_defvariadic")
+      ))))
 (install_method class_source_defvariadic normal_exp normexp_defvariadic)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
