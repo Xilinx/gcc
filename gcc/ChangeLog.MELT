@@ -1,4 +1,12 @@
 
+2011-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_obmag_string): #ifdef-ed with
+	MELT_OBMAG_STRING_generated
+
+	* melt/warmelt-outobj.melt (generate_runtypesupport_mag2str):
+	New function.
+	(runtypesupport_docmd): Call it.
+
 2011-03-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_garbcoll): Add more melt_alptr* debugging.
 

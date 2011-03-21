@@ -256,7 +256,8 @@ static VEC (meltchar_p, heap)* parsedmeltfilevect;
 /* Obstack used for reading names */
 static struct obstack bname_obstack;
 
-			 
+		
+#ifndef MELT_OBMAG_STRING_generated	 
 const char* 
 melt_obmag_string (int i)
 {
@@ -322,7 +323,7 @@ melt_obmag_string (int i)
 #undef CACHEBUFOBMAG
 #undef BUFOBMAGLEN
 }
-
+#endif /*MELT_OBMAG_STRING_generated */
 
 #if ENABLE_CHECKING
 
