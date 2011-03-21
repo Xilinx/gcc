@@ -1,3 +1,10 @@
+2011-03-11  Aldy Hernandez  <aldyh@redhat.com>
+
+	* lib/gcc-memmodel-gdb-test.exp: Return if no executable.
+	* gcc.dg/memmodel/memmodel.h (memmodel_done): Add noinline
+	attribute.
+	* g++.dg/memmodel/bitfields.C: New.
+
 2011-03-10  Aldy Hernandez  <aldyh@redhat.com>
 
 	* lib/gcc-memmodel-gdb-test.exp: New.
@@ -17,4 +24,7 @@
 	* g++.dg/memmodel/memmodel.exp: New.
 	* g++.dg/memmodel/atomics-1.C: New.
 
--*- change-log -*-
+Local Variables:
+mode: change-log
+change-log-default-name: "ChangeLog.mm"
+End:
