@@ -1,5 +1,10 @@
 
 2011-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (generate_runtypesupport_mag2str):
+	Gets both a code & a declaration strbuf.
+	(runtypesupport_docmd): Update its call accordingly.
+
+2011-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_obmag_string): #ifdef-ed with
 	MELT_OBMAG_STRING_generated
 
