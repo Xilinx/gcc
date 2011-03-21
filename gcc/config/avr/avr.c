@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for ATMEL AVR micro controllers
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010 Free Software Foundation, Inc.
+   2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Denis Chertykov (chertykov@gmail.com)
 
    This file is part of GCC.
@@ -75,6 +75,8 @@ static void avr_asm_function_end_prologue (FILE *);
 static void avr_asm_function_begin_epilogue (FILE *);
 static bool avr_cannot_modify_jumps_p (void);
 static rtx avr_function_value (const_tree, const_tree, bool);
+static rtx avr_libcall_value (enum machine_mode, const_rtx);
+static bool avr_function_value_regno_p (const unsigned int);
 static void avr_insert_attributes (tree, tree *);
 static void avr_asm_init_sections (void);
 static unsigned int avr_section_type_flags (tree, const char *, int);
@@ -127,14 +129,21 @@ section *progmem_section;
 /* AVR attributes.  */
 static const struct attribute_spec avr_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "progmem",   0, 0, false, false, false,  avr_handle_progmem_attribute },
-  { "signal",    0, 0, true,  false, false,  avr_handle_fndecl_attribute },
-  { "interrupt", 0, 0, true,  false, false,  avr_handle_fndecl_attribute },
-  { "naked",     0, 0, false, true,  true,   avr_handle_fntype_attribute },
-  { "OS_task",   0, 0, false, true,  true,   avr_handle_fntype_attribute },
-  { "OS_main",   0, 0, false, true,  true,   avr_handle_fntype_attribute },
-  { NULL,        0, 0, false, false, false, NULL }
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
+  { "progmem",   0, 0, false, false, false,  avr_handle_progmem_attribute,
+    false },
+  { "signal",    0, 0, true,  false, false,  avr_handle_fndecl_attribute,
+    false },
+  { "interrupt", 0, 0, true,  false, false,  avr_handle_fndecl_attribute,
+    false },
+  { "naked",     0, 0, false, true,  true,   avr_handle_fntype_attribute,
+    false },
+  { "OS_task",   0, 0, false, true,  true,   avr_handle_fntype_attribute,
+    false },
+  { "OS_main",   0, 0, false, true,  true,   avr_handle_fntype_attribute,
+    false },
+  { NULL,        0, 0, false, false, false, NULL, false }
 };
 
 /* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
@@ -166,8 +175,14 @@ static const struct default_options avr_option_optimization_table[] =
 #define TARGET_ASM_FUNCTION_END_PROLOGUE avr_asm_function_end_prologue
 #undef TARGET_ASM_FUNCTION_BEGIN_EPILOGUE
 #define TARGET_ASM_FUNCTION_BEGIN_EPILOGUE avr_asm_function_begin_epilogue
+
 #undef TARGET_FUNCTION_VALUE
 #define TARGET_FUNCTION_VALUE avr_function_value
+#undef TARGET_LIBCALL_VALUE
+#define TARGET_LIBCALL_VALUE avr_libcall_value
+#undef TARGET_FUNCTION_VALUE_REGNO_P
+#define TARGET_FUNCTION_VALUE_REGNO_P avr_function_value_regno_p
+
 #undef TARGET_ATTRIBUTE_TABLE
 #define TARGET_ATTRIBUTE_TABLE avr_attribute_table
 #undef TARGET_ASM_FUNCTION_RODATA_SECTION
@@ -5910,36 +5925,49 @@ avr_reorg (void)
 
 /* Returns register number for function return value.*/
 
-int
+static inline int
 avr_ret_register (void)
 {
   return 24;
 }
 
+/* Worker function for TARGET_FUNCTION_VALUE_REGNO_P.  */
+
+static bool
+avr_function_value_regno_p (const unsigned int regno)
+{
+  return (regno == avr_ret_register ());
+}
+
 /* Create an RTX representing the place where a
    library function returns a value of mode MODE.  */
 
-rtx
-avr_libcall_value (enum machine_mode mode)
+static rtx
+avr_libcall_value (enum machine_mode mode,
+		   const_rtx func ATTRIBUTE_UNUSED)
 {
   int offs = GET_MODE_SIZE (mode);
   if (offs < 2)
     offs = 2;
-  return gen_rtx_REG (mode, RET_REGISTER + 2 - offs);
+  return gen_rtx_REG (mode, avr_ret_register () + 2 - offs);
 }
 
 /* Create an RTX representing the place where a
    function returns a value of data type VALTYPE.  */
 
-rtx
-avr_function_value (const_tree type, 
-		    const_tree func ATTRIBUTE_UNUSED, 
+static rtx
+avr_function_value (const_tree type, const_tree fn_decl_or_type,
 		    bool outgoing ATTRIBUTE_UNUSED)
 {
   unsigned int offs;
-  
+  const_rtx func = fn_decl_or_type;
+
+  if (fn_decl_or_type
+      && !DECL_P (fn_decl_or_type))
+  fn_decl_or_type = NULL;
+
   if (TYPE_MODE (type) != BLKmode)
-    return avr_libcall_value (TYPE_MODE (type));
+    return avr_libcall_value (TYPE_MODE (type), func);
   
   offs = int_size_in_bytes (type);
   if (offs < 2)
@@ -5949,7 +5977,7 @@ avr_function_value (const_tree type,
   else if (offs > GET_MODE_SIZE (SImode) && offs < GET_MODE_SIZE (DImode))
     offs = GET_MODE_SIZE (DImode);
   
-  return gen_rtx_REG (BLKmode, RET_REGISTER + 2 - offs);
+  return gen_rtx_REG (BLKmode, avr_ret_register () + 2 - offs);
 }
 
 int

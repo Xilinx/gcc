@@ -255,20 +255,25 @@ static reg_class_t arm_preferred_rename_class (reg_class_t rclass);
 /* Table of machine attributes.  */
 static const struct attribute_spec arm_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
   /* Function calls made to this symbol must be done indirectly, because
      it may lie outside of the 26 bit addressing range of a normal function
      call.  */
-  { "long_call",    0, 0, false, true,  true,  NULL },
+  { "long_call",    0, 0, false, true,  true,  NULL, false },
   /* Whereas these functions are always known to reside within the 26 bit
      addressing range.  */
-  { "short_call",   0, 0, false, true,  true,  NULL },
+  { "short_call",   0, 0, false, true,  true,  NULL, false },
   /* Specify the procedure call conventions for a function.  */
-  { "pcs",          1, 1, false, true,  true,  arm_handle_pcs_attribute },
+  { "pcs",          1, 1, false, true,  true,  arm_handle_pcs_attribute,
+    false },
   /* Interrupt Service Routines have special prologue and epilogue requirements.  */
-  { "isr",          0, 1, false, false, false, arm_handle_isr_attribute },
-  { "interrupt",    0, 1, false, false, false, arm_handle_isr_attribute },
-  { "naked",        0, 0, true,  false, false, arm_handle_fndecl_attribute },
+  { "isr",          0, 1, false, false, false, arm_handle_isr_attribute,
+    false },
+  { "interrupt",    0, 1, false, false, false, arm_handle_isr_attribute,
+    false },
+  { "naked",        0, 0, true,  false, false, arm_handle_fndecl_attribute,
+    false },
 #ifdef ARM_PE
   /* ARM/PE has three new attributes:
      interfacearm - ?
@@ -279,15 +284,17 @@ static const struct attribute_spec arm_attribute_table[] =
      them with spaces.  We do NOT support this.  Instead, use __declspec
      multiple times.
   */
-  { "dllimport",    0, 0, true,  false, false, NULL },
-  { "dllexport",    0, 0, true,  false, false, NULL },
-  { "interfacearm", 0, 0, true,  false, false, arm_handle_fndecl_attribute },
+  { "dllimport",    0, 0, true,  false, false, NULL, false },
+  { "dllexport",    0, 0, true,  false, false, NULL, false },
+  { "interfacearm", 0, 0, true,  false, false, arm_handle_fndecl_attribute,
+    false },
 #elif TARGET_DLLIMPORT_DECL_ATTRIBUTES
-  { "dllimport",    0, 0, false, false, false, handle_dll_attribute },
-  { "dllexport",    0, 0, false, false, false, handle_dll_attribute },
-  { "notshared",    0, 0, false, true, false, arm_handle_notshared_attribute },
+  { "dllimport",    0, 0, false, false, false, handle_dll_attribute, false },
+  { "dllexport",    0, 0, false, false, false, handle_dll_attribute, false },
+  { "notshared",    0, 0, false, true, false, arm_handle_notshared_attribute,
+    false },
 #endif
-  { NULL,           0, 0, false, false, false, NULL }
+  { NULL,           0, 0, false, false, false, NULL, false }
 };
 
 /* Set default optimization options.  */
@@ -12022,6 +12029,16 @@ create_fix_barrier (Mfix *fix, HOST_WIDE_INT max_address)
   /* Make sure that we found a place to insert the jump.  */
   gcc_assert (selected);
 
+  /* Make sure we do not split a call and its corresponding
+     CALL_ARG_LOCATION note.  */
+  if (CALL_P (selected))
+    {
+      rtx next = NEXT_INSN (selected);
+      if (next && NOTE_P (next)
+	  && NOTE_KIND (next) == NOTE_INSN_CALL_ARG_LOCATION)
+	  selected = next;
+    }
+
   /* Create a new JUMP_INSN that branches around a barrier.  */
   from = emit_jump_insn_after (gen_jump (label), selected);
   JUMP_LABEL (from) = label;
@@ -15415,7 +15432,10 @@ arm_get_frame_offsets (void)
   offsets->soft_frame = offsets->saved_regs + CALLER_INTERWORKING_SLOT_SIZE;
   /* A leaf function does not need any stack alignment if it has nothing
      on the stack.  */
-  if (leaf && frame_size == 0)
+  if (leaf && frame_size == 0
+      /* However if it calls alloca(), we have a dynamically allocated
+	 block of BIGGEST_ALIGNMENT on stack, so still do stack alignment.  */
+      && ! cfun->calls_alloca)
     {
       offsets->outgoing_args = offsets->soft_frame;
       offsets->locals_base = offsets->soft_frame;

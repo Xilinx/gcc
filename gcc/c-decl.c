@@ -1813,20 +1813,16 @@ diagnose_mismatched_decls (tree newdecl, tree olddecl,
 	  || TREE_NO_WARNING (olddecl))
 	return true;  /* Allow OLDDECL to continue in use.  */
 
-      if (pedantic && !flag_isoc1x)
+      if (variably_modified_type_p (newtype, NULL))
+	{
+	  error ("redefinition of typedef %q+D with variably modified type",
+		 newdecl);
+	  locate_old_decl (olddecl);
+	}
+      else if (pedantic && !flag_isoc1x)
 	{
 	  pedwarn (input_location, OPT_pedantic,
 		   "redefinition of typedef %q+D", newdecl);
-	  locate_old_decl (olddecl);
-	}
-      else if (variably_modified_type_p (newtype, NULL))
-	{
-	  /* Whether there is a constraint violation for the types not
-	     being the same cannot be determined at compile time; a
-	     warning that there may be one at runtime is considered
-	     appropriate (WG14 reflector message 11743, 8 May 2009).  */
-	  warning (0, "redefinition of typedef %q+D may be a constraint "
-		   "violation at runtime", newdecl);
 	  locate_old_decl (olddecl);
 	}
 
@@ -6674,11 +6670,14 @@ grokfield (location_t loc,
 		      || TREE_CODE (type) == UNION_TYPE);
       bool ok = false;
 
-      if (type_ok)
+      if (type_ok
+	  && (flag_ms_extensions
+	      || flag_plan9_extensions
+	      || !declspecs->typedef_p))
 	{
 	  if (flag_ms_extensions || flag_plan9_extensions)
 	    ok = true;
-	  else if (TYPE_NAME (TYPE_MAIN_VARIANT (type)) == NULL)
+	  else if (TYPE_NAME (type) == NULL)
 	    ok = true;
 	  else
 	    ok = false;

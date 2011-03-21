@@ -1,3 +1,34 @@
+2011-03-17  Kai Tietz
+
+	PR target/12171
+	* c-pretty-print.c (pp_c_specifier_qualifier_list):
+	Display allowed attributes for function pointer types.
+	(pp_c_attributes_display): New function to display
+	attributes having affects_type_identity flag set to true.
+	* c-pretty-print.h (pp_c_attributes_display): New prototype.
+
+	* c-common.c (c_common_attribute_table):
+	Add new element.
+	(c_common_format_attribute_table): Likewise.
+
+2011-03-18  Jason Merrill  <jason@redhat.com>
+
+	* c.opt (fconstexpr-depth): Add Var(max_constexpr_depth).
+	* c-common.h: Don't declare it here.
+	* c-common.c: Or define it here.
+	* c-opts.c (c_common_handle_option): Or set it here.
+
+	PR c++/35315
+	* c-common.c (handle_transparent_union_attribute): Don't
+	make a duplicate type in C++.
+
+2011-03-15  Jason Merrill  <jason@redhat.com>
+
+	* c-common.c (max_constexpr_depth): New.
+	* c-common.h: Declare it.
+	* c-opts.c (c_common_handle_option): Set it.
+	* c.opt (fconstexpr-depth): New option.
+
 2011-03-11  Jason Merrill  <jason@redhat.com>
 
 	* c-common.c (attribute_takes_identifier_p): Add missing const.

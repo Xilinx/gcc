@@ -1,3 +1,309 @@
+2011-03-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/48213
+	* gcc.dg/pr48213.c: New test.
+
+2011-03-21  Kai Tietz  <ktietz@redhat.com>
+
+	PR target/12171
+	* g++.dg/plugin/attribute_plugin.c: Adjust test.
+
+2011-03-21  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.target/arm/xor-and.c: New.
+
+2010-03-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/22572
+	* gfortran.dg/function_optimize_1.f90:  New test.
+	* gfortran.dg/function_optimize_2.f90:  New test.
+
+2011-03-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/47502
+	* gcc.target/i386/pr47502-1.c: New.
+	* gcc.target/i386/pr47502-2.c: Likewise.
+
+2011-03-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/48156
+	* gcc.dg/pr48156.c: New test.
+
+2011-03-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/47439
+	* gfortran.dg/scratch_1.f90: Adjust test.
+
+2011-03-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/47439
+	* gfortran.dg/scratch_1.f90: New test.
+
+2011-03-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/c1x-typedef-1.c: Expect errors for redefinitions of
+	variably modified typedefs.
+	* gcc.dg/c1x-typedef-2.c: Remove.
+
+2011-03-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/c1x-anon-struct-1.c: Don't test use of typedefs.
+	* gcc.dg/c1x-anon-struct-3.c: New test.
+	* gcc.dg/anon-struct-11.c: Update.
+
+2011-03-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/vect/slp-multitypes-2.c: Replace dg-do run with
+	dg-xfail-run-if.
+	Only xfail with gas.
+
+2011-03-18  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/fn-ptr1.C: New.
+
+	* g++.dg/overload/volatile1.C: New.
+
+	* g++.dg/opt/pr23372.C: New.
+
+	* g++.dg/ext/attrib32.C: Expect errors on the two-names case.
+
+2011-03-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR middle-end/47405
+	* gcc.dg/torture/20090618-1.c: Skip on mips-sgi-irix*.
+
+2011-03-18  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.target/arm/unsigned-extend-1.c: New.
+
+2011-03-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/48161
+	* gcc.c-torture/compile/pr48161.c: New test.
+
+2011-03-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47725
+	* gcc.dg/torture/pr47725.c: New.
+
+2011-03-17  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-overflow2.C: New.
+	* g++.dg/cpp0x/constexpr-data2.C: Remove FIXME.
+
+2011-03-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/elab2.ads: New test.
+	* gnat.dg/specs/elab2_pkg.ads: New helper.
+
+2011-03-17  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/decltype-1212.C: New.
+	* g++.dg/cpp0x/rv-return.C: Adjust expected type.
+
+2011-03-17  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/parse/memfnquals1.C: New.
+
+2011-03-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48134
+	* gcc.dg/pr48134.c: New testcase.
+
+2011-03-17  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48165
+	* g++.dg/torture/pr48165.C: New testcase.
+
+2011-03-17  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/48141
+	* gcc.dg/pr48141.c: New test.
+
+2011-03-16  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-48089.C: New.
+
+	* g++.dg/cpp0x/constexpr-abi1.C: New.
+
+	* g++.dg/cpp0x/constexpr-46336.C: New.
+	* g++.dg/parse/friend5.C: Adjust expected errors.
+
+	* g++.dg/cpp0x/constexpr-47570.C: New.
+
+2011-03-16  Dodji Seketeli  <dodji@redhat.com>
+
+	PR debug/47510
+	* ++.dg/debug/dwarf2/typedef6.C: New test.
+
+2011-03-16  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/elision2.C: New.
+
+	* g++.dg/cpp0x/constexpr-array3.C: New.
+
+2011-03-16  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/sfinae6.C: New.
+	* gcc/testsuite/g++.dg/cpp0x/initlist38.C: Adjust expected error.
+	* gcc/testsuite/g++.dg/cpp0x/pr45908.C: Likewise.
+	* gcc/testsuite/g++.dg/cpp0x/sfinae6.C: Likewise.
+	* gcc/testsuite/g++.old-deja/g++.jason/conversion11.C: Likewise.
+	* gcc/testsuite/g++.old-deja/g++.law/arg11.C: Likewise.
+
+2011-03-16  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/incomplete6.C: New.
+
+2011-03-16  Jeff Law <law@redhat.com>
+
+	* gcc.dg/tree-ssa/vrp55.c: New test.
+
+2011-03-16  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/auto22.C: New.
+
+2011-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/guality/vla-1.c (main): Use result of f1 to avoid
+	optimizing it away if promoted to const.
+
+2011-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48149
+	* gcc.dg/fold-complex-1.c: New testcase.
+
+2011-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/48147
+	* gcc.dg/guality/pr45882.c: Really make sure no inlining
+	or cloning happens.
+
+2011-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/26134
+	* gcc.dg/tree-ssa/complex-6.c: New testcase.
+
+2011-03-16  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48146
+	* gcc.dg/torture/pr48146.c: New testcase.
+
+2011-03-16  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/pr14814.c: Adjust.
+	* gcc.dg/tree-ssa/ssa-ccp-19.c: Likewise.
+
+2011-03-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/48136
+	* gcc.c-torture/compile/pr48136.c: New test.
+
+	* g++.dg/debug/dwarf2/icf.C: Adjust for -fenable-icf-debug removal.
+
+	PR debug/45882
+	* gcc.dg/guality/pr45882.c: New test.
+
+2011-03-15  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-recursion.C: New.
+
+	* g++.dg/cpp0x/implicit11.C: New.
+
+2011-03-15  Rodrigo Rivas Costa  <rodrigorivascosta@gmail.com>
+
+       * g++.dg/cpp0x/constexpr-attribute.C: New.
+
+2011-03-15  Manuel López-Ibáñez  <manu@gcc.gnu.org>
+
+	* g++.dg/parse/pr34758.C: New.
+
+2011-03-15  Xinliang David Li  <davidxl@google.com>
+
+	PR c/47837
+	* gcc.dg/uninit-pred-7_d.c: New test.
+	* gcc.dg/uninit-pred-8_d.c: New test.
+
+2011-03-15  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/46788
+	* gcc.target/arm/pr46788.c: New.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/47650
+	* gfortran.dg/c_f_pointer_tests_3.f90: Adjust.
+	* gfortran.dg/ishft_4.f90: Likewise.
+	* gfortran.dg/leadz_trailz_3.f90: Likewise.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/13954
+	* g++.dg/tree-ssa/pr13954.C: New testcase.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48037
+	* gcc.target/i386/pr48037-1.c: New testcase.
+
+2011-03-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/41490
+	* gcc.dg/tree-ssa/ssa-sink-6.c: New testcase.
+	* gcc.dg/tree-ssa/ssa-sink-7.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-sink-8.c: Likewise.
+	* gcc.dg/tree-ssa/ssa-sink-9.c: Likewise.
+	* g++.dg/tree-ssa/pr33604.C: Adjust.
+
+2011-03-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/47917
+	* gcc.c-torture/execute/pr47917.c: New test.
+	* gcc.dg/pr47917.c: New test.
+
+	PR middle-end/38878
+	* gcc.dg/tree-ssa/foldaddr-1.c: Remove xfail.
+
+2011-03-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse4_1-floor-vec.c: New test.
+	* gcc.target/i386/sse4_1-ceil-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-trunc-vec.c: Ditto.
+	* gcc-target/i386/sse4_1-rint-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-floorf-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-ceilf-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-truncf-vec.c: Ditto.
+	* gcc.target/i386/sse4_1-rintf-vec.c: Ditto.
+	* gcc.target/i386/avx-floor-vec.c: Ditto.
+	* gcc.target/i386/avx-ceil-vec.c: Ditto.
+	* gcc.target/i386/avx-trunc-vec.c: Ditto.
+	* gcc.target/i386/avx-rint-vec.c: Ditto.
+	* gcc.target/i386/avx-floorf-vec.c: Ditto.
+	* gcc.target/i386/avx-ceilf-vec.c: Ditto.
+	* gcc.target/i386/avx-truncf-vec.c: Ditto.
+	* gcc.target/i386/avx-rintf-vec.c: Ditto.
+
+2011-03-14  Tom Tromey  <tromey@redhat.com>
+
+	* gcc.dg/Woverlength-strings-pedantic-c90-asm.c: New file.
+	* gcc.dg/Woverlength-strings-pedantic-c89-asm.c: New file.
+	* gcc.dg/Woverlength-strings-pedantic-c99-asm.c: New file.
+
+2011-03-14  Tom Tromey  <tromey@redhat.com>
+
+	* gcc.dg/Woverlength-strings-pedantic-c89-ext.c: New file.
+	* gcc.dg/Woverlength-strings-pedantic-c90-ext.c: New file.
+	* gcc.dg/Woverlength-strings-pedantic-c99-ext.c: New file.
+
+2011-03-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/builtin-copysign.c: Remove __LP64__ check.
+
+2011-03-14  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR rtl-optimization/47166
+	* gcc.c-torture/execute/postmod-1.c: New test.
+
 2011-03-14  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/48098
@@ -6,8 +312,8 @@
 2011-03-12  Peter Bergner  <bergner@vnet.ibm.com>
 
 	PR target/48053
-	* gcc/testsuite/gcc.target/powerpc/pr48053-1.c: New test.
-	* gcc/testsuite/gcc.target/powerpc/pr48053-2.c: Likewise.
+	* gcc.target/powerpc/pr48053-1.c: New test.
+	* gcc.target/powerpc/pr48053-2.c: Likewise.
 
 2011-03-12  Thomas Koenig  <tkoenig@gcc.gnu.org>
 

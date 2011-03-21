@@ -1,3 +1,160 @@
+2011-03-21  Kai Tietz  <ktietz@redhat.com>
+
+	PR target/12171
+	* cxx-pretty-print.c (pp_cxx_ptr_operator):
+	Display allowed attributes for function pointer types.
+	* error.c (dump_type_prefix): Likewise.
+
+	* tree.c (cxx_attribute_table): Adjust table.
+
+2011-03-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48162
+	* semantics.c (finish_call_expr): Allow TARGET_EXPR for now.
+
+	PR c++/48118
+	* call.c (build_over_call): Don't skip ck_rvalue.
+
+2011-03-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47504
+	* semantics.c (cxx_eval_constant_expression) [NOP_EXPR]: Don't let
+	the conversion set TREE_OVERFLOW.
+
+	Core 1212
+	* semantics.c (finish_decltype_type): Return T&& for xvalue.
+	* typeck.c (unlowered_expr_type): Preserve cv-quals.
+
+	PR c++/48166
+	* decl.c (revert_static_member_fn): Strip function-cv-quals.
+
+2011-03-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48089
+	* semantics.c (potential_constant_expression_1): Don't allow *this
+	in a constructor.
+	(register_constexpr_fundef): Use potential_rvalue_constant_expression.
+
+	PR c++/47301
+	* decl.c (compute_array_index_type): Don't bother trying to deal
+	with literal classes in ABI v1.
+
+	PR c++/46336
+	* decl.c (duplicate_decls): Return NULL_TREE for clashing
+	C functions.
+
+	PR c++/47570
+	* semantics.c (cxx_eval_constant_expression) [COMPOUND_EXPR]: Don't
+	use the generic binary expression handling.
+
+2011-03-16  Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in (CXX_PARSER_H): New.
+	(cp/parser.o): Add dependency on CXX_PARSER_H.
+	Add dependency on tree-pretty-print.h
+	(cp/cp-lang.o): Add dependency on CXX_PARSER_H.
+	* cp-lang.c: Include parser.h.
+	* parser.c: Include parser.h.
+	(struct cp_token): Add bitfield purged_p.
+	Update all users.
+	Move to parser.h.
+	(CPP_PURGED): Remove.  Update all users.
+	(struct cp_lexer): Change field buffer to be a VEC of cp_token.
+	Remove field buffer_length.
+	Update all users.
+	Move to parser.h.
+	(struct tree_check): Move to parser.h.
+	(cp_token_position): Likewise.
+	(struct cp_token_cache): Likewise.
+	(CPP_KEYWORD): Likewise.
+	(CPP_TEMPLATE_ID): Likewise.
+	(CPP_NESTED_NAME_SPECIFIER): Likewise.
+	(N_CP_TTYPES): Likewise.
+	(enum cp_parser_status_kind): Likewise.
+	(struct cp_parser_context): Likewise.
+	(struct cp_default_arg_entry_d): Likewise.
+	(struct cp_unparsed_functions_entry_d): Likewise.
+	(struct cp_parser): Likewise.
+	(cp_lexer_dump_tokens): New.
+	(cp_lexer_debug_tokens): New.
+	(cp_lexer_finished_p): New.
+	(cp_lexer_alloc): Factor out of cp_lexer_new_main.
+	(cp_lexer_new_main): Re-write main lexing loop to push
+	tokens into the new VEC buffer.
+	(cp_lexer_print_token): Improve printing of CPP_NUMBER tokens.
+	Do not abort if the token type is not recognized, just print
+	its code.
+	* parser.h: New file.
+	* config-lang.in (gtfiles): Add cp/parser.h.
+
+2011-03-16  Jason Merrill  <jason@redhat.com>
+
+	Core 1148
+	* typeck.c (check_return_expr): Fix conditions for setting
+	LOOKUP_PREFER_RVALUE.
+
+	* call.c (build_over_call): Remove require_complete_type_sfinae call.
+
+	PR c++/48132
+	* decl.c (check_array_designated_initializer): Allow integer index.
+	(reshape_init_array_1): Set index on the elements.
+
+2011-03-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48113
+	* typeck.c (convert_for_initialization): Use
+	perform_implicit_conversion_flags.
+	* call.c (standard_conversion): If LOOKUP_PREFER_RVALUE, set
+	rvaluedness_matches_p on ck_rvalue.
+	(convert_like_real) [ck_rvalue]: And restore it here.
+
+	PR c++/48115
+	* call.c (convert_arg_to_ellipsis): Handle incomplete type.
+
+2011-03-16  Jason Merrill  <jason@redhat.com>
+
+	* parser.c (cp_parser_abort_tentative_parse): Make sure we haven't
+	committed to this tentative parse.
+
+	PR c++/47999
+	* semantics.c (finish_call_expr): Preserve reference semantics
+	in templates.
+
+	* call.c (convert_default_arg): Use LOOKUP_IMPLICIT.
+
+2011-03-16  Jakub Jelinek  <jakub@redhat.com>
+
+	* cp-objcp-common.c (cp_function_decl_explicit_p): Don't crash if
+	DECL_LANG_SPECIFIC is NULL.
+
+2011-03-15  Jason Merrill  <jason@redhat.com>
+
+	Core 1074
+	* pt.c (value_dependent_expression_p) [NOEXCEPT_EXPR]: Don't
+	check value_dependent_expression_p on the operand.
+
+	* semantics.c (push_cx_call_context): Return bool.
+	(cxx_eval_call_expression): Handle excess depth.
+
+	Core 1191
+	* method.c (synthesized_method_walk): Cleanups don't affect the
+	triviality of a constructor, but do affect deletion and exception
+	specification.
+
+2011-03-15  Rodrigo Rivas Costa  <rodrigorivascosta@gmail.com>
+
+	* decl2.c (cp_check_const_attributes): New.
+	(cplus_decl_attributes): Call cp_check_const_attributes.
+
+2011-03-15  Jason Merrill  <jason@redhat.com>
+
+	PR c++/34758
+	* call.c (convert_default_arg): Use DECL_ORIGIN of fn.  Check for
+	recursion first.
+	(push_defarg_context, pop_defarg_context): New.
+	* parser.c (cp_parser_late_parsing_default_args): Use them.
+	* cp-tree.h: Declare them.
+
 2011-03-11  Dodji Seketeli  <dodji@redhat.com>
 
 	* call.c (add_builtin_candidate)<case INDIRECT_REF>: The type of
