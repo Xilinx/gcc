@@ -1,4 +1,7 @@
 
+2011-03-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_defvariadic): More.
+
 2011-03-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normexp_defvariadic): More.
 

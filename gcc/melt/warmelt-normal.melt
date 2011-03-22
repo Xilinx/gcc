@@ -5719,10 +5719,21 @@ source location.}#
 	(nbindlist (make_list discr_list))
 	(nctypmap (make_mapobject discr_map_objects (+i 5 nbctypes)))
 	(ntyhdltup (make_multiple discr_multiple nbctypes))
+	(nargtuple (make_multiple discr_multiple
+				  (multiple_length sformargs)))
+	(nargdata (instance class_nrep_datatuple
+			    :nrep_loc sloc
+			    :ndata_name sname
+			    :ndata_discrx (normal_predef discr_multiple ncx sloc "discr_multiple")
+			    :ntup_comp nargtuple))
+	(formsymbmap (make_mapobject discr_map_objects (+i 3 (*i (multiple_length sformargs) 2))))
 	)
+    (add_nctx_data ncx nargdata)
     (debug_msg varibind "normexp_defvariadic varibind")
     (debug_msg styphdlmap "normexp_defvariadic styphdlmap")
     (debug_msg sortedctypes "normexp_defvariadic sortedctypes")
+    (debug_msg sformargs "normexp_defvariadic sformargs")
+    (fill_normal_formals sformargs nargtuple formsymbmap env ncx sloc)
     (assert_msg "check varibind" (is_a varibind class_variadic_binding))
     (assert_msg "check svari" (is_a svari class_variadic_function))
     ;; normalize the initial handler
@@ -5759,21 +5770,36 @@ source location.}#
       (normal_exp sfinal env ncx sloc)
       (debug_msg nfinal "normexp_defvariadic nfinal")
       (debug_msg nbindfinal "normexp_defvariadic nbindfinal")
+      (debug_msg class_variadic_function "normexp_defvariadic class_variadic_function")
       (if nbindfinal
 	  (list_append2list nbindlist nbindfinal))
-      (debug_msg  nbindlist "normexp_defvariadic final nbindlist")
+      (debug_msg svari "normexp_defvariadic svari")
+      (debug_msg nbindlist "normexp_defvariadic final nbindlist")
       ;; generate an instance of class_variadic_function
       (let (
 	    (namdata (normal_symbol_data sname ncx sloc))
+	    (namstrdata (instance class_nrep_datastring
+				  :nrep_loc sloc
+				  :ndata_discrx (normal_predef discr_string ncx sloc "discr_string") 
+				  :nstr_string (unsafe_get_field :named_name sname)))
+	    (variadfunfieldtup (get_field  :class_fields class_variadic_function))
+	    (slotup  (make_multiple discr_multiple
+				 (multiple_length variadfunfieldtup)))
 	    (insdata (instance class_nrep_datainstance
 			       :nrep_loc sloc
 			       :ndata_name sname
 			       :ndata_discrx (normal_predef class_variadic_function ncx sloc "class_variadic_function")
-			       :ninst_hash (make_integerbox discr_integer (nonzero_hash))
-					; :ninst_slots slotup
-					; :ninst_objnum sinstobjnum
+			       :ninst_hash (make_integerbox discr_integer (obj_hash svari))
+			       :ninst_slots slotup
 			       )) 
 	    )
+	(add_nctx_data ncx insdata)
+	(add_nctx_data ncx namstrdata)
+	(multiple_put_nth slotup (get_int named_name) namstrdata)
+	(multiple_put_nth slotup (get_int varfun_fixedin) nargdata)
+	(multiple_put_nth slotup (get_int varfun_initial) ninitial)
+	; (multiple_put_nth slotup (get_int varfun_ctransmap) ())
+	(multiple_put_nth slotup (get_int varfun_final) nfinal)
 	(debug_msg namdata "normexp_defvariadic namdata")
 	(debug_msg insdata "normexp_defvariadic insdata")
 	(assert_msg "@$@unimplemented normexp_defvariadic")
