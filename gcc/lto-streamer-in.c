@@ -140,7 +140,10 @@ input_string_internal (struct data_in *data_in, struct lto_input_block *ib,
   unsigned int loc;
   const char *result;
 
+  /* Read the location of the string from IB.  */
   loc = lto_input_uleb128 (ib);
+
+  /* Get the string stored at location LOC in DATA_IN->STRINGS.  */
   LTO_INIT_INPUT_BLOCK (str_tab, data_in->strings, loc, data_in->strings_len);
   len = lto_input_uleb128 (&str_tab);
   *rlen = len;
@@ -2025,6 +2028,10 @@ lto_input_ts_decl_non_common_tree_pointers (struct lto_input_block *ib,
 {
   if (TREE_CODE (expr) == FUNCTION_DECL)
     {
+      /* FIXME pph - Hookize.  */
+#if 1
+      DECL_SAVED_TREE (expr) = lto_input_tree (ib, data_in);
+#endif
       DECL_ARGUMENTS (expr) = lto_input_tree (ib, data_in);
       DECL_RESULT (expr) = lto_input_tree (ib, data_in);
     }

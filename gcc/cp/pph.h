@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "line-map.h"
 #include "hashtab.h"
+#include "cp/cp-tree.h"
 #include "parser.h"
 #include "timevar.h"
 

@@ -1,3 +1,23 @@
+2011-03-23  Diego Novillo  <dnovillo@google.com>
+
+	* lto-streamer-in.c (input_string_internal): Add clarifying
+	comments.
+	* lto-streamer-out.c (lto_output_string_with_length): Rename from
+	output_string_with_length.
+	Output 0 to indicate a non-NULL string.  Update all callers to
+	not emit 0.
+	(lto_output_string): Rename from output_string.  Make extern.
+	Update all users.
+
+2011-03-23  Diego Novillo  <dnovillo@google.com>
+
+	* lto-streamer-in.c (lto_input_ts_decl_non_common_tree_pointers):
+	Always read DECL_SAVED_TREE.
+	* lto-streamer-out.c (lto_output_ts_decl_common_tree_pointers):
+	Igonore varpool nodes.
+	(lto_output_ts_decl_non_common_tree_pointers): Output NULL
+	DECL_SAVED_TREE.
+
 2011-03-17  Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 171104.
@@ -49,21 +69,10 @@
 	Change field print algorithm.
 	Filter out struct tags that are artificial, i.e. start with ".".
 
-	* c-family/c.opt:
-	Add flag -fpph-fmt=N to control format of PPH file.
-
 2011-02-15  Lawrence Crowl <crowl@google.com>
 
 	* strstrmap.h: Add.
 	* strstrmap.c: Add.
-	* c-family/c-common.h (pph_out_file, query_have_pph_map,
-	query_pph_include_map): Add declarations.
-	* c-family/c-common.c (pph_out_file): Add definition.
-	* c-family/c.opt: Add flags -fpph-hdr= and -fpph-map=.
-	* c-family/c-opts.c (query_have_pph_map, add_pph_header_map,
-	query_pph_include_map): Add definitions.
-	(c_common_handle_option): Detect when an output file is PPH.
-	Handle flags -fpph-hdr= and -fpph-map=.
 	* Makefile.in:
 	Add rule for strstrmap.o.
 	Add strstrmap.o to OBJS-common.
@@ -149,11 +158,6 @@
 
 	* tree-pretty-print.c (dump_generic_node): Protect
 	against NULL TREE_TYPE.
-	* c-family/c.opt (fpph, fpph-debug, fpph-decls,
-	fpph-logfile, pph-stats): Add.
-	(fpth, fpth-debug, fpth-stats, fpth-md5): Add.
-	* c-family/c-opts.c (c_common_finish): Do not write a
-	deps file when generating PTH images.
 	* tree.c (make_node_stat): Call
 	lang_hooks.pph_catch_tree, if defined.
 	* input.h (LOCATION_COLUMN): Define.

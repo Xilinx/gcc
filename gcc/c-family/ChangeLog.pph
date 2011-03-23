@@ -1,0 +1,29 @@
+2011-03-23  Diego Novillo  <dnovillo@google.com>
+
+	* c.opt (fpph-hdr, fpph-map): Re-order.
+	(fpph-tracer): New.
+
+2011-03-04  Lawrence Crowl <crowl@google.com>
+
+	* c.opt:
+	Add flag -fpph-fmt=N to control format of PPH file.
+
+2011-02-15  Lawrence Crowl <crowl@google.com>
+
+	* c-common.h (pph_out_file, query_have_pph_map,
+	query_pph_include_map): Add declarations.
+	* c-common.c (pph_out_file): Add definition.
+	* c.opt: Add flags -fpph-hdr= and -fpph-map=.
+	* c-opts.c (query_have_pph_map, add_pph_header_map,
+	query_pph_include_map): Add definitions.
+	(c_common_handle_option): Detect when an output file is PPH.
+	Handle flags -fpph-hdr= and -fpph-map=.
+
+2010-11-02  Lawrence Crowl  <crowl@google.com>
+	    Diego Novillo  <dnovillo@google.com>
+
+	* c.opt (fpph, fpph-debug, fpph-decls,
+	fpph-logfile, pph-stats): Add.
+	(fpth, fpth-debug, fpth-stats, fpth-md5): Add.
+	* c-opts.c (c_common_finish): Do not write a
+	deps file when generating PTH images.

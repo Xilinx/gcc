@@ -24,9 +24,32 @@ along with GCC; see the file COPYING3.  If not see
 #include "lto-streamer.h"
 #include "tree.h"
 
-/* FIXME pph - Workaround incomplete PPH streamer.  Use regular FILE I/O.  */
-#define PPH_USE_FILE_IO	1
+/* Number of sections in a PPH file.  FIXME, currently only one section
+   is supported.  To add more, it will also be necessary to handle
+   section names in pph_get_section_data and pph_free_section_data.  */
+#define PPH_NUM_SECTIONS	1
 
+/* String to identify PPH files.  Keep it to 7 characters, so it takes
+   exactly 8 bytes in the file.  */
+static const char pph_id_str[] = "PPH0x42";
+
+/* Structure of the header of a PPH file.  */
+typedef struct pph_file_header {
+  /* Identification string.  */
+  char id_str[sizeof(pph_id_str)];
+
+  /* Version information.  */
+  char major_version;
+  char minor_version;
+  char patchlevel;
+
+  /* Size of the string table in bytes.  */
+  unsigned int strtab_size;
+} pph_file_header;
+
+
+/* A PPH stream contains all the data and attributes needed to
+   write symbols, declarations and other parsing products to disk.  */
 typedef struct pph_stream {
   /* Path name of the PPH file.  */
   const char *name;
@@ -45,16 +68,29 @@ typedef struct pph_stream {
   struct lto_input_block *ib;
 
   /* String tables and other descriptors used by the LTO reading
-      routines.  */
+     routines.  NULL when the file is opened for reading.  */
   struct data_in *data_in;
 
-  /* Nonzero if the stream was open for writing.  */
+  /* Array of sections in the PPH file.  */
+  struct lto_file_decl_data **pph_sections;
+
+  /* Buffer holding the file contents.  FIXME pph, we are bringing
+     the whole file in memory at once.  This seems wasteful.  */
+  char *file_data;
+  size_t file_size;
+
+  /* Nonzero if the stream was opened for writing.  */
   unsigned int write_p : 1;
 } pph_stream;
 
 /* In pph-streamer.c.  */
-pph_stream *pph_stream_open (const char *, bool);
+pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
+void pph_stream_trace_tree (pph_stream *, tree);
+void pph_stream_trace_uint (pph_stream *, unsigned int);
+void pph_stream_trace_bytes (pph_stream *, const void *, size_t);
+void pph_stream_trace_string (pph_stream *, const char *);
+void pph_stream_trace_string_with_length (pph_stream *, const char *, unsigned);
 
 
 /* Inline functions.  */
@@ -63,52 +99,36 @@ void pph_stream_close (pph_stream *);
 static inline void
 pph_output_tree (pph_stream *stream ATTRIBUTE_UNUSED, tree t ATTRIBUTE_UNUSED)
 {
-#if defined PPH_USE_FILE_IO
-  gcc_unreachable ();
-#else
+  if (flag_pph_tracer)
+    pph_stream_trace_tree (stream, t);
   lto_output_tree (stream->ob, t, true);
-#endif
 }
 
 /* Write a uint VALUE to STREAM.  */
 static inline void
 pph_output_uint (pph_stream *stream, unsigned int value)
 {
-#if defined PPH_USE_FILE_IO
-  fwrite (&value, 1, sizeof (value), stream->file);
-#else
+  if (flag_pph_tracer)
+    pph_stream_trace_uint (stream, value);
   lto_output_sleb128_stream (stream->ob->main_stream, value);
-#endif
 }
 
 /* Write N bytes from P to STREAM.  */
 static inline void
 pph_output_bytes (pph_stream *stream, const void *p, size_t n)
 {
-#if defined PPH_USE_FILE_IO
-  fwrite (p, 1, n, stream->file);
-#else
+  if (flag_pph_tracer)
+    pph_stream_trace_bytes (stream, p, n);
   lto_output_data_stream (stream->ob->main_stream, p, n);
-#endif
 }
 
 /* Write string STR to STREAM.  */
 static inline void
 pph_output_string (pph_stream *stream, const char *str)
 {
-#if defined PPH_USE_FILE_IO
-  if (str == NULL)
-    pph_output_uint (stream, -1U);
-  else
-    {
-      unsigned length = strlen (str);
-      pph_output_uint (stream, length);
-      if (length > 0)
-	pph_output_bytes (stream, str, length);
-    }
-#else
   lto_output_string (stream->ob, stream->ob->main_stream, str);
-#endif
+  if (flag_pph_tracer)
+    pph_stream_trace_string (stream, str);
 }
 
 /* Write string STR of length LEN to STREAM.  */
@@ -116,35 +136,29 @@ static inline void
 pph_output_string_with_length (pph_stream *stream, const char *str,
 			       unsigned int len)
 {
-#if defined PPH_USE_FILE_IO
-  if (str == NULL)
-    pph_output_uint (stream, -1U);
+  if (str)
+    lto_output_string_with_length (stream->ob, stream->ob->main_stream,
+				   str, len + 1);
   else
     {
-      pph_output_uint (stream, len);
-      if (len > 0)
-	pph_output_bytes (stream, str, len);
+      /* lto_output_string_with_length does not handle NULL strings,
+	 but lto_output_string does.  */
+      pph_output_string (stream, NULL);
     }
-#else
-  lto_output_string_with_length (stream->ob, stream->ob->main_stream, str, len);
-#endif
+
+  if (flag_pph_tracer)
+    pph_stream_trace_string_with_length (stream, str, len);
 }
 
 /* Read an unsigned HOST_WIDE_INT integer from STREAM.  */
-static inline unsigned
+static inline unsigned int
 pph_input_uint (pph_stream *stream)
 {
-#if defined PPH_USE_FILE_IO
-  unsigned num;
-  size_t received;
-  received = fread (&num, sizeof num, 1, stream->file);
-  gcc_assert (received == 1);
-  return num;
-#else
   HOST_WIDE_INT unsigned n = lto_input_uleb128 (stream->ib);
   gcc_assert (n == (unsigned) n);
+  if (flag_pph_tracer)
+    pph_stream_trace_uint (stream, n);
   return (unsigned) n;
-#endif
 }
 
 /* Read N bytes from STREAM into P.  The caller is responsible for 
@@ -152,12 +166,9 @@ pph_input_uint (pph_stream *stream)
 static inline void
 pph_input_bytes (pph_stream *stream, void *p, size_t n)
 {
-#if defined PPH_USE_FILE_IO
-  size_t received = fread (p, 1, n, stream->file);
-  gcc_assert (received == n);
-#else
   lto_input_data_block (stream->ib, p, n);
-#endif
+  if (flag_pph_tracer)
+    pph_stream_trace_bytes (stream, p, n);
 }
 
 /* Read and return a string of up to MAX characters from STREAM.
@@ -167,20 +178,10 @@ pph_input_bytes (pph_stream *stream, void *p, size_t n)
 static inline const char *
 pph_input_string (pph_stream *stream)
 {
-#if defined PPH_USE_FILE_IO
-  char *buf = NULL;
-  unsigned len;
-  size_t received = fread (&len, sizeof len, 1, stream->file);
-  gcc_assert (received == 1);
-  if (len > 0 && len != -1U)
-    {
-      buf = XCNEWVEC (char, len + 1);
-      received = fread (buf, 1, len, stream->file);
-    }
-  return (const char *) buf;
-#else
-  return lto_input_string (stream->data_in, stream->ib);
-#endif
+  const char *s = lto_input_string (stream->data_in, stream->ib);
+  if (flag_pph_tracer)
+    pph_stream_trace_string (stream, s);
+  return s;
 }
 
 /* Load an AST from STREAM.  Return the corresponding tree.  */
@@ -188,11 +189,10 @@ pph_input_string (pph_stream *stream)
 static inline tree
 pph_input_tree (pph_stream *stream ATTRIBUTE_UNUSED)
 {
-#if defined PPH_USE_FILE_IO
-  gcc_unreachable ();
-#else
-  return lto_input_tree (stream->ib, stream->data_in);
-#endif
+  tree t = lto_input_tree (stream->ib, stream->data_in);
+  if (flag_pph_tracer)
+    pph_stream_trace_tree (stream, t);
+  return t;
 }
 
 #endif  /* GCC_CP_PPH_STREAMER_H  */

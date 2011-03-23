@@ -197,18 +197,17 @@ pth_name_for (const char *name)
 }
 
 
-/* Open an image file for path NAME.  READ_P is true if the file should
-   be opened for reading.  */
+/* Open an image file for path NAME.  MODE is as in fopen.  */
 
 static pph_stream *
-pth_file_for (const char *name, bool read_p)
+pth_file_for (const char *name, const char *mode)
 {
   char *s;
   pph_stream *f;
 
   s = pth_name_for (name);
-  f = pph_stream_open (s, read_p);
-  if (f->file == NULL)
+  f = pph_stream_open (s, mode);
+  if (!f)
     fatal_error ("can%'t open token stream file %s: %m", s);
   free (s);
 
@@ -462,9 +461,16 @@ pph_print_macro_defs_before (pph_stream *stream, cpp_idents_used *identifiers)
       const char *before = entry->before_str;
 
       if (before)
-          fprintf (stream->file, "#define %s%s\n", ident, before);
+	{
+	  pph_output_string (stream, "#define ");
+	  pph_output_string (stream, ident);
+	  pph_output_string (stream, before);
+	}
       else
-          fprintf (stream->file, "#undef %s\n", ident);
+	{
+	  pph_output_string (stream, "#undef ");
+	  pph_output_string (stream, ident);
+	}
     }
 }
 
@@ -487,9 +493,16 @@ pph_print_macro_defs_after (pph_stream *stream, cpp_idents_used *identifiers)
       if (before != after)
         {
           if (after && (!before || strcmp (after, before) != 0))
-              fprintf (stream->file, "#define %s%s\n", ident, after);
+	    {
+	      pph_output_string (stream, "#define ");
+	      pph_output_string (stream, ident);
+	      pph_output_string (stream, after);
+	    }
           else if (before)
-              fprintf (stream->file, "#undef %s\n", ident);
+	    {
+	      pph_output_string (stream, "#undef ");
+	      pph_output_string (stream, ident);
+	    }
         }
     }
 }
@@ -864,7 +877,7 @@ pth_save_image (pth_image *image)
 
   /* Open the stream in append mode since we have already created
      it in pth_new_image.  */
-  stream = pth_file_for (image->fname, false);
+  stream = pth_file_for (image->fname, "wb");
 
   /* Write a header to recognize the file later.  */
   pth_write_header (image, stream);
@@ -984,7 +997,6 @@ pth_load_token_value (cp_token *token, pph_stream *f)
       case CPP_NAME:
 	str = pph_input_string (f);
 	token->u.value = get_identifier (str);
-	free (CONST_CAST (char *, str));
 	break;
 
       case CPP_KEYWORD:
@@ -1005,7 +1017,6 @@ pth_load_token_value (cp_token *token, pph_stream *f)
       case CPP_STRING32:
 	str = pph_input_string (f);
 	token->u.value = build_string (strlen (str), str);
-	free (CONST_CAST (char *, str));
 	break;
 
       case CPP_PRAGMA:
@@ -1051,7 +1062,6 @@ pth_load_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
       identifiers->entries[j].ident_len = ident_len;
       identifiers->entries[j].ident_str =
         (const char *) obstack_copy0 (identifiers->strings, s, ident_len);
-      free (CONST_CAST (char *, s));
 
       s = pph_input_string (stream);
       if (s)
@@ -1060,7 +1070,6 @@ pth_load_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
 	  identifiers->entries[j].before_len = before_len;
 	  identifiers->entries[j].before_str = (const char *)
 	      obstack_copy0 (identifiers->strings, s, before_len);
-	  free (CONST_CAST (char *, s));
 	}
       else
 	{
@@ -1077,7 +1086,6 @@ pth_load_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
 	  identifiers->entries[j].after_len = after_len;
 	  identifiers->entries[j].after_str = (const char *)
 	      obstack_copy0 (identifiers->strings, s, after_len);
-	  free (CONST_CAST (char *, s));
 	}
       else
 	{
@@ -1162,7 +1170,6 @@ pth_load_include (pth_state *state, pth_image *image, cpp_reader *reader,
 
   s = pph_input_string (stream);
   include->image = pth_image_lookup (state, s, reader);
-  free (CONST_CAST (char *, s));
 
   tmp = pph_input_uint (stream);
   include->itype = (enum include_type) tmp;
@@ -1184,14 +1191,17 @@ pth_load_image (pth_state *state, pth_image *image, cpp_reader *reader)
 {
   pph_stream *stream;
   unsigned i, num;
+  char *buf;
 
   timevar_push (TV_PTH_LOAD);
 
-  stream = pth_file_for (image->fname, true);
+  stream = pth_file_for (image->fname, "rb");
 
   /* Skip over the header, as we assume that it has already been
      validated by pth_have_valid_image_for.  */
-  fseek (stream->file, (long) pth_header_len (), SEEK_SET);
+  buf = XCNEWVEC (char, pth_header_len ());
+  pph_input_bytes (stream, buf, pth_header_len ());
+  free (buf);
 
   /* Read the include-hunk (IH) sequencing vector.  */
   num = pph_input_uint (stream);
@@ -1258,7 +1268,8 @@ pth_have_valid_image_for (const char *fname, pth_image *image)
     goto invalid_img;
 
   /* If the file exists, check if it has a valid signature.  */
-  f = pph_stream_open (img_name, true);
+  f = pph_stream_open (img_name, "rb");
+  gcc_assert (f);
 
   good_id = pth_id_str ();
   id = XCNEWVEC (char, strlen (good_id) + 1);
@@ -1834,17 +1845,17 @@ pth_file_change (cpp_reader *reader, const struct line_map *map)
 
 typedef void (*write_pph_format)(pph_stream *stream, tree decl, int flags);
 
+/* Forward declarations to break cyclic references.  */
 static void
-write_pph_namespace (pph_stream *stream, tree decl, write_pph_format fmt, int flags);
+write_pph_namespace (pph_stream *, tree, write_pph_format, int);
 
 
 /* Write symbol to PPH output file like C.  */
 
 static void
-write_pph_print (pph_stream *stream, tree decl, int flags)
+write_pph_print (pph_stream *stream, tree decl, int flags ATTRIBUTE_UNUSED)
 {
-  print_generic_decl (stream->file, decl, flags | TDF_VISDEF);
-  fprintf (stream->file, "\n");
+  pph_output_tree (stream, decl);
 }
 
 
@@ -1860,7 +1871,8 @@ write_pph_dump (pph_stream *stream, tree decl, int flags)
 /* Write symbol to PPH output file.  */
 
 static void
-write_pph_symbol (pph_stream *stream, tree decl, write_pph_format fmt, int flags)
+write_pph_symbol (pph_stream *stream, tree decl, write_pph_format fmt,
+		  int flags)
 {
   if (TREE_CODE (decl) == NAMESPACE_DECL)
     write_pph_namespace (stream, decl, fmt, flags);
@@ -1884,7 +1896,8 @@ write_pph_namespace_1 (declvisitor vtor, pph_stream *stream, tree decl,
 }
 
 static void
-write_pph_namespace (pph_stream *stream, tree decl, write_pph_format fmt, int flags)
+write_pph_namespace (pph_stream *stream, tree decl, write_pph_format fmt,
+		     int flags)
 {
   struct cp_binding_level *level = NAMESPACE_LEVEL (decl);
   decl = level->namespaces;
@@ -1903,8 +1916,6 @@ write_pph_file_object (pph_stream *stream, cpp_idents_used *idents_used)
 { 
   int flags = 0;
   pth_save_identifiers (idents_used, stream);
-  fprintf (stream->file, "\n====\n");
-  /* FIX pph: Wrong format for writing decls.  */
   write_pph_namespace (stream, global_namespace, write_pph_print, flags);
 }
 
@@ -1943,7 +1954,7 @@ write_pph_file (void)
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
 
-  stream = pph_stream_open (pph_out_file, false);
+  stream = pph_stream_open (pph_out_file, "wb");
   if (!stream)
     fatal_error ("Cannot open PPH file for writing: %s: %m", pph_out_file);
 
@@ -2040,8 +2051,8 @@ read_pph_file (const char *filename)
   if (flag_pph_debug >= 1)
     fprintf (pph_logfile, "PPH: Reading %s\n", filename);
 
-  stream = pph_stream_open (filename, true);
-  if (!stream->file)
+  stream = pph_stream_open (filename, "rb");
+  if (!stream)
     fatal_error ("Cannot open PPH file for reading: %s: %m", filename);
 
   if (flag_pph_fmt == 0)
@@ -2083,7 +2094,7 @@ pth_include_handler (cpp_reader *reader ATTRIBUTE_UNUSED,
 /* Record a #include or #include_next for PPH.  */
 
 static void
-pph_include_handler (cpp_reader *reader /*FIXME pph: ATTRIBUTE_UNUSED */,
+pph_include_handler (cpp_reader *reader,
                      location_t loc ATTRIBUTE_UNUSED,
                      const unsigned char *dname,
                      const char *name,
@@ -2101,7 +2112,7 @@ pph_include_handler (cpp_reader *reader /*FIXME pph: ATTRIBUTE_UNUSED */,
     }
 
   pph_file = query_pph_include_map (name);
-  if (pph_file != NULL && ! cpp_included_before (reader, name, input_location))
+  if (pph_file != NULL && !cpp_included_before (reader, name, input_location))
     read_pph_file (pph_file);
 }
 

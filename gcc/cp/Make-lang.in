@@ -246,7 +246,7 @@ CXX_TREE_H = $(TREE_H) cp/name-lookup.h cp/cp-tree.h $(C_COMMON_H) \
 CXX_PARSER_H = tree.h c-family/c-pragma.h cp/parser.h
 CXX_PRETTY_PRINT_H = cp/cxx-pretty-print.h $(C_PRETTY_PRINT_H)
 CXX_PPH_H = $(srcdir)/../libcpp/include/line-map.h $(HASHTAB_H) \
-	$(CXX_PARSER_H) $(TIMEVAR_H) cp/pph.h 
+	$(CXX_PARSER_H) $(TIMEVAR_H) $(CXX_TREE_H) cp/pph.h
 CXX_PPH_STREAMER_H = $(LTO_STREAMER_H) cp/pph-streamer.h $(TREE_H)
 
 cp/lex.o: cp/lex.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
@@ -324,12 +324,10 @@ cp/parser.o: cp/parser.c $(CXX_TREE_H) $(TM_H) $(DIAGNOSTIC_CORE_H) \
   $(CXX_PPH_H)
 cp/cp-gimplify.o: cp/cp-gimplify.c $(CXX_TREE_H) $(C_COMMON_H) \
 	$(TM_H) coretypes.h pointer-set.h tree-iterator.h
-
 cp/name-lookup.o: cp/name-lookup.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(TM_H) $(CXX_TREE_H) $(TIMEVAR_H) gt-cp-name-lookup.h \
 	$(DIAGNOSTIC_CORE_H) $(FLAGS_H) debug.h tree-pretty-print.h \
 	$(CXX_PPH_H)
-
 cp/cxx-pretty-print.o: cp/cxx-pretty-print.c $(CXX_PRETTY_PRINT_H) \
   $(CONFIG_H) $(SYSTEM_H) $(TM_H) coretypes.h $(CXX_TREE_H) tree-pretty-print.h
 cp/pph.o: cp/pph.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(CPPLIB_H) \
@@ -337,4 +335,5 @@ cp/pph.o: cp/pph.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(CPPLIB_H) \
 	fixed-value.h $(TREE_PASS_H) $(TREE_INLINE_H) tree-pretty-print.h \
 	$(CXX_PARSER_H) $(CXX_PPH_H) $(CXX_PPH_STREAMER_H)
 cp/pph-streamer.o: cp/pph-streamer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
-	$(TREE_H) $(LTO_STREAMER_H) $(CXX_PPH_STREAMER_H)
+	$(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) $(CXX_PPH_STREAMER_H) \
+	$(CXX_PPH_H) $(TREE_PASS_H) version.h cppbuiltin.h

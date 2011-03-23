@@ -23,68 +23,147 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tree.h"
 #include "langhooks.h"
+#include "tree-pretty-print.h"
 #include "lto-streamer.h"
 #include "pph-streamer.h"
+#include "pph.h"
+#include "tree-pass.h"
+#include "version.h"
+#include "cppbuiltin.h"
 
-#if !defined PPH_USE_FILE_IO
+/* FIXME pph.  This holds the FILE handle for the current PPH file
+   that we are writing.  It is necessary because the LTO callbacks do
+   not allow passing a FILE handle to them.  */
 static FILE *current_pph_file = NULL;
-#endif
+
+
+/* Get the section with name NAME and type SECTION_TYPE from FILE_DATA.
+   Return a pointer to the start of the section contents and store
+   the length of the section in *LEN_P.
+
+   FIXME pph, this does not currently handle multiple sections.  It
+   assumes that the file has exactly one section.  */
+
+static const char *
+pph_get_section_data (struct lto_file_decl_data *file_data,
+		      enum lto_section_type section_type ATTRIBUTE_UNUSED,
+		      const char *name ATTRIBUTE_UNUSED,
+		      size_t *len)
+{
+  /* FIXME pph - Stop abusing lto_file_decl_data fields.  */
+  const pph_stream *stream = (const pph_stream *) file_data->file_name;
+  *len = stream->file_size - sizeof (pph_file_header);
+  return (const char *) stream->file_data + sizeof (pph_file_header);
+}
+
+
+/* Free the section data from FILE_DATA of SECTION_TYPE and NAME that
+   starts at OFFSET and has LEN bytes.  */
+
+static void
+pph_free_section_data (struct lto_file_decl_data *file_data,
+		   enum lto_section_type section_type ATTRIBUTE_UNUSED,
+		   const char *name ATTRIBUTE_UNUSED,
+		   const char *offset ATTRIBUTE_UNUSED,
+		   size_t len ATTRIBUTE_UNUSED)
+{
+  /* FIXME pph - Stop abusing lto_file_decl_data fields.  */
+  const pph_stream *stream = (const pph_stream *) file_data->file_name;
+  free (stream->file_data);
+}
+
 
 /* Read into memory the contents of the file in STREAM.  Initialize
    internal tables and data structures needed to re-construct the
    ASTs in the file.  */
 
 static void
-pph_file_read (pph_stream *stream)
+pph_stream_init_read (pph_stream *stream)
 {
-#if defined PPH_USE_FILE_IO
-  stream->file = fopen (stream->name, "rb");
-#else
-  void *data;
   struct stat st;
-  size_t bytes_read, data_size;
+  size_t i, bytes_read, strtab_size, body_size;
+  int retcode;
+  pph_file_header *header;
+  const char *strtab, *body;
 
-  /* Read STREAM->NAME into the memory buffer DATA.  */
-  stat (stream->name, &st);
-  data_size = (size_t) st.st_size;
-  data = XCNEWVEC (char, data_size);
-  stream->file = fopen (stream->name, "rb");
-  gcc_assert (stream->file);
-  bytes_read = fread (data, 1, data_size, stream->file);
-  gcc_assert (bytes_read == data_size);
-  fclose (stream->file);
+  /* Read STREAM->NAME into the memory buffer STREAM->FILE_DATA.
+     FIXME pph, we are reading the whole file at once.  This seems
+     wasteful.  */
+  retcode = fstat (fileno (stream->file), &st);
+  gcc_assert (retcode == 0);
+  stream->file_size = (size_t) st.st_size;
+  stream->file_data = XCNEWVEC (char, stream->file_size);
+  bytes_read = fread (stream->file_data, 1, stream->file_size, stream->file);
+  gcc_assert (bytes_read == stream->file_size);
 
+  /* Set LTO callbacks to read the PPH file.  */
+  stream->pph_sections = XCNEWVEC (struct lto_file_decl_data *,
+				   PPH_NUM_SECTIONS);
+  for (i = 0; i < PPH_NUM_SECTIONS; i++)
+    {
+      stream->pph_sections[i] = XCNEW (struct lto_file_decl_data);
+      /* FIXME pph - Stop abusing fields in lto_file_decl_data.  */
+      stream->pph_sections[i]->file_name = (const char *) stream;
+    }
+
+  lto_set_in_hooks (stream->pph_sections, pph_get_section_data,
+		    pph_free_section_data);
+
+  header = (pph_file_header *) stream->file_data;
+  strtab = (const char *) header + sizeof (pph_file_header);
+  strtab_size = header->strtab_size;
+  body = strtab + strtab_size;
+  gcc_assert (stream->file_size >= strtab_size + sizeof (pph_file_header));
+  body_size = stream->file_size - strtab_size - sizeof (pph_file_header);
+
+  /* Create an input block structure pointing right after the string
+     table.  */
   stream->ib = XCNEW (struct lto_input_block);
-  LTO_INIT_INPUT_BLOCK_PTR (stream->ib, (const char *) data, 0, data_size);
-  stream->data_in = lto_data_in_create (NULL, NULL, 0, NULL);
-#endif
+  LTO_INIT_INPUT_BLOCK_PTR (stream->ib, body, 0, body_size);
+  stream->data_in = lto_data_in_create (stream->pph_sections[0], strtab,
+                                        strtab_size, NULL);
 }
 
 
-/* Create a new PPH stream to be stored on the file called NAME.  If
-   TO_READ_P is true, the file is open for reading.  */
+/* Initialize buffers and tables in STREAM for writing.  */
+
+static void
+pph_stream_init_write (pph_stream *stream)
+{
+  stream->out_state = lto_new_out_decl_state ();
+  lto_push_out_decl_state (stream->out_state);
+  stream->decl_state_stream = XCNEW (struct lto_output_stream);
+  stream->ob = create_output_block (LTO_section_decls);
+}
+
+
+/* Create a new PPH stream to be stored on the file called NAME.
+   MODE is passed to fopen directly.  */
 
 pph_stream *
-pph_stream_open (const char *name, bool to_read_p)
+pph_stream_open (const char *name, const char *mode)
 {
-  pph_stream *stream = XCNEW (pph_stream);
-  stream->name = xstrdup (name);
-  if (!to_read_p)
+  pph_stream *stream;
+  FILE *f;
+
+  stream = NULL;
+  f = fopen (name, mode);
+  if (f)
     {
-      stream->file = fopen (name, "wb");
-      stream->out_state = lto_new_out_decl_state ();
-      lto_push_out_decl_state (stream->out_state);
-      stream->decl_state_stream = XCNEW (struct lto_output_stream);
-      stream->ob = create_output_block (LTO_section_decls);
+      stream = XCNEW (pph_stream);
+      stream->file = f;
+      stream->name = xstrdup (name);
+      stream->write_p = (strchr (mode, 'w') != NULL);
+      if (stream->write_p)
+	pph_stream_init_write (stream);
+      else
+	pph_stream_init_read (stream);
     }
-  else
-    pph_file_read (stream);
 
   return stream;
 }
 
 
-#if !defined PPH_USE_FILE_IO
 /* Callback for lang_hooks.lto.begin_section.  Open file NAME.  */
 
 static void
@@ -112,31 +191,44 @@ static void
 pph_stream_end_section (void)
 {
 }
-#endif
 
 
-/* Close PPH stream STREAM.  Write all the ASTs to disk and deallocate
-   all memory used by it.  */
+/* Write the header for the PPH file represented by STREAM.  */
 
-void
-pph_stream_close (pph_stream *stream)
+static void
+pph_stream_write_header (pph_stream *stream)
 {
-#if defined PPH_USE_FILE_IO
-  fclose (stream->file);
-#else
-  gcc_assert (current_pph_file == NULL);
-  current_pph_file = stream->file;
+  pph_file_header header;
+  struct lto_output_stream header_stream;
+  int major, minor, patchlevel;
 
-  /* Redirect the LTO basic I/O langhooks.  */
-  lang_hooks.lto.begin_section = pph_stream_begin_section;
-  lang_hooks.lto.append_data = pph_stream_write;
-  lang_hooks.lto.end_section = pph_stream_end_section;
+  /* Collect version information.  */
+  parse_basever (&major, &minor, &patchlevel);
+  gcc_assert (major == (char) major);
+  gcc_assert (minor == (char) minor);
+  gcc_assert (patchlevel == (char) patchlevel);
 
-  /* Write the state buffers built by pph_stream_output() calls.  */
-  lto_begin_section (stream->name, false);
+  /* Write the header for the PPH file.  */
+  memset (&header, 0, sizeof (header));
+  strcpy (header.id_str, pph_id_str);
+  header.major_version = (char) major;
+  header.minor_version = (char) minor;
+  header.patchlevel = (char) patchlevel;
+  header.strtab_size = stream->ob->string_stream->total_size;
 
-  /* Make string 0 be a NULL string.  */
-  lto_output_1_stream (stream->ob->string_stream, 0);
+  memset (&header_stream, 0, sizeof (header_stream));
+  lto_output_data_stream (&header_stream, &header, sizeof (header));
+  lto_write_stream (&header_stream);
+}
+
+
+/* Write the body of the PPH file represented by STREAM.  */
+
+static void
+pph_stream_write_body (pph_stream *stream)
+{
+  /* Write the string table.  */
+  lto_write_stream (stream->ob->string_stream);
 
   /* Write out the physical representation for every AST in all the
      streams in STREAM->OUT_STATE.  */
@@ -148,10 +240,148 @@ pph_stream_close (pph_stream *stream)
 
   /* Finally, physically write all the streams.  */
   lto_write_stream (stream->ob->main_stream);
-  lto_write_stream (stream->ob->string_stream);
+}
 
-  lto_end_section ();
+
+/* Close PPH stream STREAM.  Write all the ASTs to disk and deallocate
+   all memory used by it.  */
+
+void
+pph_stream_close (pph_stream *stream)
+{
+  if (stream->write_p)
+    {
+      gcc_assert (current_pph_file == NULL);
+      current_pph_file = stream->file;
+
+      /* Redirect the LTO basic I/O langhooks.  */
+      lang_hooks.lto.begin_section = pph_stream_begin_section;
+      lang_hooks.lto.append_data = pph_stream_write;
+      lang_hooks.lto.end_section = pph_stream_end_section;
+
+      /* Write the state buffers built by pph_output_*() calls.  */
+      lto_begin_section (stream->name, false);
+      pph_stream_write_header (stream);
+      pph_stream_write_body (stream);
+      lto_end_section ();
+    }
+
   fclose (stream->file);
-  current_pph_file = NULL;
-#endif
+  stream->file = current_pph_file = NULL;
+}
+
+
+/* Data types supported by the PPH tracer.  */
+enum pph_trace_type
+{
+    PPH_TRACE_TREE,
+    PPH_TRACE_UINT,
+    PPH_TRACE_BYTES,
+    PPH_TRACE_STRING
+};
+
+/* Print tracing information for STREAM on pph_logfile.  DATA is the
+   memory area to display, SIZE is the number of bytes to print, TYPE
+   is the kind of data to print.  */
+
+static void
+pph_stream_trace (pph_stream *stream, const void *data, unsigned int nbytes,
+		  enum pph_trace_type type)
+{
+  const char *op = (stream->write_p) ? "write" : "read";
+  const char *type_s[] = { "tree", "uint", "bytes", "string" };
+
+  fprintf (pph_logfile, "*** %s: op=%s, type=%s, size=%u, value=",
+	   stream->name, op, type_s[type], (unsigned) nbytes);
+
+  switch (type)
+    {
+    case PPH_TRACE_TREE:
+      {
+	const_tree t = (const_tree) data;
+	print_generic_expr (pph_logfile, CONST_CAST (union tree_node *, t),
+			    TDF_SLIM);
+      }
+      break;
+
+    case PPH_TRACE_UINT:
+      {
+	unsigned int val = *((const unsigned int *) data);
+	fprintf (pph_logfile, "%u (0x%x)", val, val);
+      }
+      break;
+
+    case PPH_TRACE_BYTES:
+      {
+	size_t i;
+	const char *buffer = (const char *) data;
+	for (i = 0; i < MIN (nbytes, 100); i++)
+	  {
+	    if (ISPRINT (buffer[i]))
+	      fprintf (pph_logfile, "%c", buffer[i]);
+	    else
+	      fprintf (pph_logfile, "[0x%02x]", (unsigned int) buffer[i]);
+	  }
+      }
+      break;
+
+    case PPH_TRACE_STRING:
+      if (data)
+	fprintf (pph_logfile, "%.*s", (int) nbytes, (const char *) data);
+      else
+	fprintf (pph_logfile, "<nil>");
+      break;
+
+    default:
+      gcc_unreachable ();
+    }
+
+  fputc ('\n', pph_logfile);
+}
+
+
+/* Show tracing information for T on STREAM.  */
+
+void
+pph_stream_trace_tree (pph_stream *stream, tree t)
+{
+  pph_stream_trace (stream, t, tree_code_size (TREE_CODE (t)), PPH_TRACE_TREE);
+}
+
+
+/* Show tracing information for VAL on STREAM.  */
+
+void
+pph_stream_trace_uint (pph_stream *stream, unsigned int val)
+{
+  pph_stream_trace (stream, &val, sizeof (val), PPH_TRACE_UINT);
+}
+
+
+/* Show tracing information for NBYTES bytes of memory area DATA on
+   STREAM.  */
+
+void
+pph_stream_trace_bytes (pph_stream *stream, const void *data, size_t nbytes)
+{
+  pph_stream_trace (stream, data, nbytes, PPH_TRACE_BYTES);
+}
+
+
+/* Show tracing information for S on STREAM.  */
+
+void
+pph_stream_trace_string (pph_stream *stream, const char *s)
+{
+  pph_stream_trace (stream, s, s ? strlen (s) : 0, PPH_TRACE_STRING);
+}
+
+
+/* Show tracing information for LEN bytes of S on STREAM.  */
+
+void
+pph_stream_trace_string_with_length (pph_stream *stream, const char *s,
+				     unsigned int len)
+{
+  pph_stream_trace (stream, s, len, PPH_TRACE_STRING);
 }

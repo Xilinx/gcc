@@ -170,6 +170,9 @@ lto_output_string_with_length (struct output_block *ob,
   s_slot.len = len;
   s_slot.slot_num = 0;
 
+  /* Indicate that this is not a NULL string.  */
+  lto_output_uleb128_stream (index_stream, 0);
+
   slot = (struct string_slot **) htab_find_slot (ob->string_hash_table,
 						 &s_slot, INSERT);
   if (*slot == NULL)
@@ -206,11 +209,8 @@ lto_output_string (struct output_block *ob,
 	           const char *string)
 {
   if (string)
-    {
-      lto_output_uleb128_stream (index_stream, 0);
-      lto_output_string_with_length (ob, index_stream, string,
-				     strlen (string) + 1);
-    }
+    lto_output_string_with_length (ob, index_stream, string,
+				   strlen (string) + 1);
   else
     lto_output_uleb128_stream (index_stream, 1);
 }
@@ -225,12 +225,9 @@ output_string_cst (struct output_block *ob,
 		   tree string)
 {
   if (string)
-    {
-      lto_output_uleb128_stream (index_stream, 0);
-      lto_output_string_with_length (ob, index_stream,
-				     TREE_STRING_POINTER (string),
-				     TREE_STRING_LENGTH (string));
-    }
+    lto_output_string_with_length (ob, index_stream,
+				   TREE_STRING_POINTER (string),
+				   TREE_STRING_LENGTH (string ));
   else
     lto_output_uleb128_stream (index_stream, 1);
 }
@@ -245,12 +242,9 @@ output_identifier (struct output_block *ob,
 		   tree id)
 {
   if (id)
-    {
-      lto_output_uleb128_stream (index_stream, 0);
-      lto_output_string_with_length (ob, index_stream,
-				     IDENTIFIER_POINTER (id),
-				     IDENTIFIER_LENGTH (id));
-    }
+    lto_output_string_with_length (ob, index_stream,
+				   IDENTIFIER_POINTER (id),
+				   IDENTIFIER_LENGTH (id));
   else
     lto_output_uleb128_stream (index_stream, 1);
 }
@@ -854,6 +848,8 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
       && TREE_CODE (expr) != TRANSLATION_UNIT_DECL)
     {
       tree initial = DECL_INITIAL (expr);
+      /* FIXME pph - Hookize.  */
+#if 0
       if (TREE_CODE (expr) == VAR_DECL
 	  && (TREE_STATIC (expr) || DECL_EXTERNAL (expr))
 	  && initial)
@@ -866,6 +862,7 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
 							      vnode))
 	    initial = NULL;
 	}
+#endif
     
       lto_output_tree_or_ref (ob, initial, ref_p);
     }
@@ -898,11 +895,16 @@ lto_output_ts_decl_non_common_tree_pointers (struct output_block *ob,
 {
   if (TREE_CODE (expr) == FUNCTION_DECL)
     {
+#if 0
       /* DECL_SAVED_TREE holds the GENERIC representation for DECL.
 	 At this point, it should not exist.  Either because it was
 	 converted to gimple or because DECL didn't have a GENERIC
 	 representation in this TU.  */
       gcc_assert (DECL_SAVED_TREE (expr) == NULL_TREE);
+#else
+      /* FIXME pph - Hookize and handle FE ASTs.  */
+      lto_output_tree_or_ref (ob, NULL, ref_p);
+#endif
       lto_output_tree_or_ref (ob, DECL_ARGUMENTS (expr), ref_p);
       lto_output_tree_or_ref (ob, DECL_RESULT (expr), ref_p);
     }

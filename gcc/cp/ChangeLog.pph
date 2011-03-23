@@ -1,3 +1,66 @@
+2011-03-23  Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in (cp/pph-streamer.o): Add dependencies on
+	tree-pretty-print.h, CXX_PPH_H, TREE_PASS_H, version.h and
+	cppbuiltin.h
+	* pph-streamer.c: Include tree-pretty-print.h, pph.h,
+	tree-pass.h, version.h and cppbuiltin.h.
+	(pph_get_section_data): New.
+	(pph_free_section_data): New.
+	(pph_stream_init_read): Rename from pph_file_read.
+	Initialize LTO streaming data structures.
+	Read pph file in memory.
+	(pph_stream_init_write): Factor out of ...
+	(pph_stream_open): ... here.
+	(pph_stream_write_header): New.
+	(pph_stream_write_body): Factor out of ...
+	(pph_stream_close): ... here.
+	Call pph_stream_write_header.
+	(enum pph_trace_type): Declare.
+	(pph_stream_trace): New.
+	(pph_stream_trace_tree): New.
+	(pph_stream_trace_uint): New.
+	(pph_stream_trace_bytes): New.
+	(pph_stream_trace_string): New.
+	(pph_stream_trace_string_with_length): New.
+	* pph-streamer.h (PPH_NUM_SECTIONS): Define.
+	(PPH_USE_FILE_IO): Remove.  Update all users.
+	(pph_id_str): Define.
+	(pph_file_header): Declare.
+	(pph_stream): Add fields pph_sections, file_data and file_size.
+	(pph_stream_open): Change second argument to const char *.
+	Update all users.
+	(pph_stream_trace_tree): Declare.
+	(pph_stream_trace_uint): Declare.
+	(pph_stream_trace_bytes): Declare.
+	(pph_stream_trace_string): Declare.
+	(pph_stream_trace_string_with_length): Declare.
+	(pph_output_tree): Call pph_stream_trace_tree if flag_pph_tracer
+	is enabled.
+	(pph_input_tree): Likewise.
+	(pph_output_uint): Call pph_stream_trace_uint if flag_pph_tracer
+	is enabled.
+	(pph_input_uint): Likewise.
+	(pph_output_bytes): Call pph_stream_trace_bytes if flag_pph_tracer
+	is enabled.
+	(pph_input_bytes): Likewise.
+	(pph_output_string): Call pph_stream_trace_string if flag_pph_tracer
+	is enabled.
+	(pph_input_string): Likewise.
+	(pph_output_string_with_length): Call
+	pph_stream_trace_string_with_length if flag_pph_tracer is
+	enabled.
+	* pph.c (pph_print_macro_defs_before): Call pph_output_string.
+	(pph_print_macro_defs_after): Likewise.
+	(pth_load_token_value): Do not free the read string.
+	(pth_load_identifiers): Likewise.
+	(pth_load_include): Likewise.
+	(pth_load_image): Call pph_input_bytes to read the header.
+	(write_pph_print): Call pph_output_tree.
+	(write_pph_file_object): Remove fprintf() call.
+	(pth_include_handler): Remove FIXME marker.
+	(pph_include_handler): Tidy.
+
 2011-03-09  Diego Novillo  <dnovillo@google.com>
 
 	* Make-lang.in (CXX_AND_OBJCXX_OBJS): Add cp/pph-streamer.o
