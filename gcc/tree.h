@@ -4329,6 +4329,8 @@ struct attribute_spec
      by the rest of this structure.  */
   tree (*const handler) (tree *node, tree name, tree args,
 				 int flags, bool *no_add_attrs);
+  /* Specifies if attribute affects type's identity.  */
+  const bool affects_type_identity;
 };
 
 /* Flags that may be passed in the third argument of decl_attributes, and
@@ -5094,6 +5096,7 @@ extern tree build_simple_mem_ref_loc (location_t, tree);
 	build_simple_mem_ref_loc (UNKNOWN_LOCATION, T)
 extern double_int mem_ref_offset (const_tree);
 extern tree reference_alias_ptr_type (const_tree);
+extern tree build_invariant_address (tree, tree, HOST_WIDE_INT);
 extern tree constant_boolean_node (int, tree);
 extern tree div_if_zero_remainder (enum tree_code, const_tree, const_tree);
 

@@ -50,6 +50,7 @@
 #include "target.h"
 #include "target-def.h"
 #include "langhooks.h"
+#include "opts.h"
 
 static void rx_print_operand (FILE *, rtx, int);
 
@@ -2237,18 +2238,31 @@ rx_handle_func_attribute (tree * node,
 /* Table of RX specific attributes.  */
 const struct attribute_spec rx_attribute_table[] =
 {
-  /* Name, min_len, max_len, decl_req, type_req, fn_type_req, handler.  */
-  { "fast_interrupt", 0, 0, true, false, false, rx_handle_func_attribute },
-  { "interrupt",      0, 0, true, false, false, rx_handle_func_attribute },
-  { "naked",          0, 0, true, false, false, rx_handle_func_attribute },
-  { NULL,             0, 0, false, false, false, NULL }
+  /* Name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+     affects_type_identity.  */
+  { "fast_interrupt", 0, 0, true, false, false, rx_handle_func_attribute,
+    false },
+  { "interrupt",      0, 0, true, false, false, rx_handle_func_attribute,
+    false },
+  { "naked",          0, 0, true, false, false, rx_handle_func_attribute,
+    false },
+  { NULL,             0, 0, false, false, false, NULL, false }
 };
 
 /* Extra processing for target specific command line options.  */
 
 static bool
-rx_handle_option (size_t code, const char *  arg ATTRIBUTE_UNUSED, int value)
+rx_handle_option (struct gcc_options *opts, struct gcc_options *opts_set,
+		  const struct cl_decoded_option *decoded,
+		  location_t loc ATTRIBUTE_UNUSED)
 {
+  size_t code = decoded->opt_index;
+  const char *arg = decoded->arg;
+  int value = decoded->value;
+
+  gcc_assert (opts == &global_options);
+  gcc_assert (opts_set == &global_options_set);
+
   switch (code)
     {
     case OPT_mint_register_:

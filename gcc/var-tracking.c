@@ -5770,7 +5770,11 @@ prepare_call_arguments (basic_block bb, rtx insn)
 
 		    /* Try harder, when passing address of a constant
 		       pool integer it can be easily read back.  */
-		    val = CSELIB_VAL_PTR (XEXP (item, 1));
+		    item = XEXP (item, 1);
+		    if (GET_CODE (item) == SUBREG)
+		      item = SUBREG_REG (item);
+		    gcc_assert (GET_CODE (item) == VALUE);
+		    val = CSELIB_VAL_PTR (item);
 		    for (l = val->locs; l; l = l->next)
 		      if (GET_CODE (l->loc) == SYMBOL_REF
 			  && TREE_CONSTANT_POOL_ADDRESS_P (l->loc)
@@ -5814,7 +5818,16 @@ prepare_call_arguments (basic_block bb, rtx insn)
   if (GET_CODE (x) == CALL && MEM_P (XEXP (x, 0)))
     {
       x = XEXP (XEXP (x, 0), 0);
-      if (GET_CODE (x) != SYMBOL_REF)
+      if (GET_CODE (x) == SYMBOL_REF)
+	/* Don't record anything.  */;
+      else if (CONSTANT_P (x))
+	{
+	  x = gen_rtx_CONCAT (GET_MODE (x) == VOIDmode ? Pmode : GET_MODE (x),
+			      pc_rtx, x);
+	  call_arguments
+	    = gen_rtx_EXPR_LIST (VOIDmode, x, call_arguments);
+	}
+      else
 	{
 	  cselib_val *val = cselib_lookup (x, GET_MODE (x), 0, VOIDmode);
 	  if (val && cselib_preserved_value_p (val))

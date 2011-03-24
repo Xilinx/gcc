@@ -1,4 +1,25 @@
+2011-03-21  Kai Tietz  <ktietz@redhat.com>
+
+	PR target/12171
+	* cxx-pretty-print.c (pp_cxx_ptr_operator):
+	Display allowed attributes for function pointer types.
+	* error.c (dump_type_prefix): Likewise.
+
+	* tree.c (cxx_attribute_table): Adjust table.
+
+2011-03-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48162
+	* semantics.c (finish_call_expr): Allow TARGET_EXPR for now.
+
+	PR c++/48118
+	* call.c (build_over_call): Don't skip ck_rvalue.
+
 2011-03-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47504
+	* semantics.c (cxx_eval_constant_expression) [NOP_EXPR]: Don't let
+	the conversion set TREE_OVERFLOW.
 
 	Core 1212
 	* semantics.c (finish_decltype_type): Return T&& for xvalue.

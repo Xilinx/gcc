@@ -638,7 +638,7 @@ class Assignment_operation_statement : public Statement
   { gcc_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)
@@ -667,7 +667,8 @@ Assignment_operation_statement::do_traverse(Traverse* traverse)
 // statement.
 
 Statement*
-Assignment_operation_statement::do_lower(Gogo*, Block* enclosing)
+Assignment_operation_statement::do_lower(Gogo*, Named_object*,
+					 Block* enclosing)
 {
   source_location loc = this->location();
 
@@ -764,7 +765,7 @@ class Tuple_assignment_statement : public Statement
   { gcc_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)
@@ -791,7 +792,7 @@ Tuple_assignment_statement::do_traverse(Traverse* traverse)
 // up into a set of single assignments.
 
 Statement*
-Tuple_assignment_statement::do_lower(Gogo*, Block* enclosing)
+Tuple_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
 {
   source_location loc = this->location();
 
@@ -891,7 +892,7 @@ public:
   { gcc_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)
@@ -920,7 +921,8 @@ Tuple_map_assignment_statement::do_traverse(Traverse* traverse)
 // Lower a tuple map assignment.
 
 Statement*
-Tuple_map_assignment_statement::do_lower(Gogo*, Block* enclosing)
+Tuple_map_assignment_statement::do_lower(Gogo*, Named_object*,
+					 Block* enclosing)
 {
   source_location loc = this->location();
 
@@ -1037,7 +1039,7 @@ class Map_assignment_statement : public Statement
   { gcc_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)
@@ -1066,7 +1068,7 @@ Map_assignment_statement::do_traverse(Traverse* traverse)
 // Lower a map assignment to a function call.
 
 Statement*
-Map_assignment_statement::do_lower(Gogo*, Block* enclosing)
+Map_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
 {
   source_location loc = this->location();
 
@@ -1145,11 +1147,11 @@ Statement::make_map_assignment(Expression* map_index,
 class Tuple_receive_assignment_statement : public Statement
 {
  public:
-  Tuple_receive_assignment_statement(Expression* val, Expression* success,
+  Tuple_receive_assignment_statement(Expression* val, Expression* closed,
 				     Expression* channel,
 				     source_location location)
     : Statement(STATEMENT_TUPLE_RECEIVE_ASSIGNMENT, location),
-      val_(val), success_(success), channel_(channel)
+      val_(val), closed_(closed), channel_(channel)
   { }
 
  protected:
@@ -1161,7 +1163,7 @@ class Tuple_receive_assignment_statement : public Statement
   { gcc_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)
@@ -1170,8 +1172,8 @@ class Tuple_receive_assignment_statement : public Statement
  private:
   // Lvalue which receives the value from the channel.
   Expression* val_;
-  // Lvalue which receives whether the read succeeded or failed.
-  Expression* success_;
+  // Lvalue which receives whether the channel is closed.
+  Expression* closed_;
   // The channel on which we receive the value.
   Expression* channel_;
 };
@@ -1182,7 +1184,7 @@ int
 Tuple_receive_assignment_statement::do_traverse(Traverse* traverse)
 {
   if (this->traverse_expression(traverse, &this->val_) == TRAVERSE_EXIT
-      || this->traverse_expression(traverse, &this->success_) == TRAVERSE_EXIT)
+      || this->traverse_expression(traverse, &this->closed_) == TRAVERSE_EXIT)
     return TRAVERSE_EXIT;
   return this->traverse_expression(traverse, &this->channel_);
 }
@@ -1190,7 +1192,8 @@ Tuple_receive_assignment_statement::do_traverse(Traverse* traverse)
 // Lower to a function call.
 
 Statement*
-Tuple_receive_assignment_statement::do_lower(Gogo*, Block* enclosing)
+Tuple_receive_assignment_statement::do_lower(Gogo*, Named_object*,
+					     Block* enclosing)
 {
   source_location loc = this->location();
 
@@ -1212,17 +1215,17 @@ Tuple_receive_assignment_statement::do_lower(Gogo*, Block* enclosing)
   // evaluated in the right order.
   Move_ordered_evals moe(b);
   this->val_->traverse_subexpressions(&moe);
-  this->success_->traverse_subexpressions(&moe);
+  this->closed_->traverse_subexpressions(&moe);
 
   // var val_temp ELEMENT_TYPE
   Temporary_statement* val_temp =
     Statement::make_temporary(channel_type->element_type(), NULL, loc);
   b->add_statement(val_temp);
 
-  // var success_temp bool
-  Temporary_statement* success_temp =
+  // var closed_temp bool
+  Temporary_statement* closed_temp =
     Statement::make_temporary(Type::lookup_bool_type(), NULL, loc);
-  b->add_statement(success_temp);
+  b->add_statement(closed_temp);
 
   // func chanrecv2(c chan T, val *T) bool
   source_location bloc = BUILTINS_LOCATION;
@@ -1240,14 +1243,14 @@ Tuple_receive_assignment_statement::do_lower(Gogo*, Block* enclosing)
     Named_object::make_function_declaration("chanrecv2", NULL, fntype, bloc);
   chanrecv2->func_declaration_value()->set_asm_name("runtime.chanrecv2");
 
-  // success_temp = chanrecv2(channel, &val_temp)
+  // closed_temp = chanrecv2(channel, &val_temp)
   Expression* func = Expression::make_func_reference(chanrecv2, NULL, loc);
   Expression_list* params = new Expression_list();
   params->push_back(this->channel_);
   Expression* ref = Expression::make_temporary_reference(val_temp, loc);
   params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
   Expression* call = Expression::make_call(func, params, false, loc);
-  ref = Expression::make_temporary_reference(success_temp, loc);
+  ref = Expression::make_temporary_reference(closed_temp, loc);
   Statement* s = Statement::make_assignment(ref, call, loc);
   b->add_statement(s);
 
@@ -1256,9 +1259,9 @@ Tuple_receive_assignment_statement::do_lower(Gogo*, Block* enclosing)
   s = Statement::make_assignment(this->val_, ref, loc);
   b->add_statement(s);
 
-  // success = success_temp
-  ref = Expression::make_temporary_reference(success_temp, loc);
-  s = Statement::make_assignment(this->success_, ref, loc);
+  // closed = closed_temp
+  ref = Expression::make_temporary_reference(closed_temp, loc);
+  s = Statement::make_assignment(this->closed_, ref, loc);
   b->add_statement(s);
 
   return Statement::make_block_statement(b, loc);
@@ -1267,11 +1270,11 @@ Tuple_receive_assignment_statement::do_lower(Gogo*, Block* enclosing)
 // Make a nonblocking receive statement.
 
 Statement*
-Statement::make_tuple_receive_assignment(Expression* val, Expression* success,
+Statement::make_tuple_receive_assignment(Expression* val, Expression* closed,
 					 Expression* channel,
 					 source_location location)
 {
-  return new Tuple_receive_assignment_statement(val, success, channel,
+  return new Tuple_receive_assignment_statement(val, closed, channel,
 						location);
 }
 
@@ -1297,7 +1300,7 @@ class Tuple_type_guard_assignment_statement : public Statement
   { gcc_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)
@@ -1338,7 +1341,8 @@ Tuple_type_guard_assignment_statement::do_traverse(Traverse* traverse)
 // Lower to a function call.
 
 Statement*
-Tuple_type_guard_assignment_statement::do_lower(Gogo*, Block* enclosing)
+Tuple_type_guard_assignment_statement::do_lower(Gogo*, Named_object*,
+						Block* enclosing)
 {
   source_location loc = this->location();
 
@@ -1643,7 +1647,7 @@ class Inc_dec_statement : public Statement
   { gcc_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)
@@ -1659,7 +1663,7 @@ class Inc_dec_statement : public Statement
 // Lower to += or -=.
 
 Statement*
-Inc_dec_statement::do_lower(Gogo*, Block*)
+Inc_dec_statement::do_lower(Gogo*, Named_object*, Block*)
 {
   source_location loc = this->location();
 
@@ -2429,7 +2433,7 @@ Return_statement::do_traverse_assignments(Traverse_assignments* tassign)
 // panic/recover work correctly.
 
 Statement*
-Return_statement::do_lower(Gogo*, Block* enclosing)
+Return_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
 {
   if (this->vals_ == NULL)
     return this;
@@ -2956,12 +2960,8 @@ class If_statement : public Statement
 int
 If_statement::do_traverse(Traverse* traverse)
 {
-  if (this->cond_ != NULL)
-    {
-      if (this->traverse_expression(traverse, &this->cond_) == TRAVERSE_EXIT)
-	return TRAVERSE_EXIT;
-    }
-  if (this->then_block_->traverse(traverse) == TRAVERSE_EXIT)
+  if (this->traverse_expression(traverse, &this->cond_) == TRAVERSE_EXIT
+      || this->then_block_->traverse(traverse) == TRAVERSE_EXIT)
     return TRAVERSE_EXIT;
   if (this->else_block_ != NULL)
     {
@@ -2974,11 +2974,8 @@ If_statement::do_traverse(Traverse* traverse)
 void
 If_statement::do_determine_types()
 {
-  if (this->cond_ != NULL)
-    {
-      Type_context context(Type::lookup_bool_type(), false);
-      this->cond_->determine_type(&context);
-    }
+  Type_context context(Type::lookup_bool_type(), false);
+  this->cond_->determine_type(&context);
   this->then_block_->determine_types();
   if (this->else_block_ != NULL)
     this->else_block_->determine_types();
@@ -2989,14 +2986,11 @@ If_statement::do_determine_types()
 void
 If_statement::do_check_types(Gogo*)
 {
-  if (this->cond_ != NULL)
-    {
-      Type* type = this->cond_->type();
-      if (type->is_error_type())
-	this->set_is_error();
-      else if (!type->is_boolean_type())
-	this->report_error(_("expected boolean expression"));
-    }
+  Type* type = this->cond_->type();
+  if (type->is_error_type())
+    this->set_is_error();
+  else if (!type->is_boolean_type())
+    this->report_error(_("expected boolean expression"));
 }
 
 // Whether the overall statement may fall through.
@@ -3014,12 +3008,9 @@ If_statement::do_may_fall_through() const
 tree
 If_statement::do_get_tree(Translate_context* context)
 {
-  gcc_assert(this->cond_ == NULL
-	     || this->cond_->type()->is_boolean_type()
+  gcc_assert(this->cond_->type()->is_boolean_type()
 	     || this->cond_->type()->is_error_type());
-  tree cond_tree = (this->cond_ == NULL
-		    ? boolean_true_node
-		    : this->cond_->get_tree(context));
+  tree cond_tree = this->cond_->get_tree(context);
   tree then_tree = this->then_block_->get_tree(context);
   tree else_tree = (this->else_block_ == NULL
 		    ? NULL_TREE
@@ -3543,7 +3534,7 @@ Switch_statement::do_traverse(Traverse* traverse)
 // of if statements.
 
 Statement*
-Switch_statement::do_lower(Gogo*, Block* enclosing)
+Switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
 {
   source_location loc = this->location();
 
@@ -3884,7 +3875,7 @@ Type_switch_statement::do_traverse(Traverse* traverse)
 // equality testing.
 
 Statement*
-Type_switch_statement::do_lower(Gogo*, Block* enclosing)
+Type_switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
 {
   const source_location loc = this->location();
 
@@ -3987,6 +3978,90 @@ Statement::make_type_switch_statement(Named_object* var, Expression* expr,
   return new Type_switch_statement(var, expr, location);
 }
 
+// Class Send_statement.
+
+// Traversal.
+
+int
+Send_statement::do_traverse(Traverse* traverse)
+{
+  if (this->traverse_expression(traverse, &this->channel_) == TRAVERSE_EXIT)
+    return TRAVERSE_EXIT;
+  return this->traverse_expression(traverse, &this->val_);
+}
+
+// Determine types.
+
+void
+Send_statement::do_determine_types()
+{
+  this->channel_->determine_type_no_context();
+  Type* type = this->channel_->type();
+  Type_context context;
+  if (type->channel_type() != NULL)
+    context.type = type->channel_type()->element_type();
+  this->val_->determine_type(&context);
+}
+
+// Check types.
+
+void
+Send_statement::do_check_types(Gogo*)
+{
+  Type* type = this->channel_->type();
+  if (type->is_error_type())
+    {
+      this->set_is_error();
+      return;
+    }
+  Channel_type* channel_type = type->channel_type();
+  if (channel_type == NULL)
+    {
+      error_at(this->location(), "left operand of %<<-%> must be channel");
+      this->set_is_error();
+      return;
+    }
+  Type* element_type = channel_type->element_type();
+  if (!Type::are_assignable(element_type, this->val_->type(), NULL))
+    {
+      this->report_error(_("incompatible types in send"));
+      return;
+    }
+  if (!channel_type->may_send())
+    {
+      this->report_error(_("invalid send on receive-only channel"));
+      return;
+    }
+}
+
+// Get a tree for a send statement.
+
+tree
+Send_statement::do_get_tree(Translate_context* context)
+{
+  tree channel = this->channel_->get_tree(context);
+  tree val = this->val_->get_tree(context);
+  if (channel == error_mark_node || val == error_mark_node)
+    return error_mark_node;
+  Channel_type* channel_type = this->channel_->type()->channel_type();
+  val = Expression::convert_for_assignment(context,
+					   channel_type->element_type(),
+					   this->val_->type(),
+					   val,
+					   this->location());
+  return Gogo::send_on_channel(channel, val, true, this->for_select_,
+			       this->location());
+}
+
+// Make a send statement.
+
+Send_statement*
+Statement::make_send_statement(Expression* channel, Expression* val,
+			       source_location location)
+{
+  return new Send_statement(channel, val, location);
+}
+
 // Class Select_clauses::Select_clause.
 
 // Traversal.
@@ -4008,6 +4083,11 @@ Select_clauses::Select_clause::traverse(Traverse* traverse)
 	  if (Expression::traverse(&this->val_, traverse) == TRAVERSE_EXIT)
 	    return TRAVERSE_EXIT;
 	}
+      if (this->closed_ != NULL)
+	{
+	  if (Expression::traverse(&this->closed_, traverse) == TRAVERSE_EXIT)
+	    return TRAVERSE_EXIT;
+	}
     }
   if (this->statements_ != NULL)
     {
@@ -4022,7 +4102,8 @@ Select_clauses::Select_clause::traverse(Traverse* traverse)
 // receive statements to the clauses.
 
 void
-Select_clauses::Select_clause::lower(Block* b)
+Select_clauses::Select_clause::lower(Gogo* gogo, Named_object* function,
+				     Block* b)
 {
   if (this->is_default_)
     {
@@ -4043,7 +4124,7 @@ Select_clauses::Select_clause::lower(Block* b)
   // If this is a send clause, evaluate the value to send before the
   // select statement.
   Temporary_statement* val_temp = NULL;
-  if (this->is_send_)
+  if (this->is_send_ && !this->val_->is_constant())
     {
       val_temp = Statement::make_temporary(NULL, this->val_, loc);
       b->add_statement(val_temp);
@@ -4054,11 +4135,38 @@ Select_clauses::Select_clause::lower(Block* b)
   Expression* ref = Expression::make_temporary_reference(channel_temp, loc);
   if (this->is_send_)
     {
-      Expression* ref2 = Expression::make_temporary_reference(val_temp, loc);
-      Send_expression* send = Expression::make_send(ref, ref2, loc);
-      send->discarding_value();
+      Expression* ref2;
+      if (val_temp == NULL)
+	ref2 = this->val_;
+      else
+	ref2 = Expression::make_temporary_reference(val_temp, loc);
+      Send_statement* send = Statement::make_send_statement(ref, ref2, loc);
       send->set_for_select();
-      init->add_statement(Statement::make_statement(send));
+      init->add_statement(send);
+    }
+  else if (this->closed_ != NULL && !this->closed_->is_sink_expression())
+    {
+      gcc_assert(this->var_ == NULL && this->closedvar_ == NULL);
+      if (this->val_ == NULL)
+	this->val_ = Expression::make_sink(loc);
+      Statement* s = Statement::make_tuple_receive_assignment(this->val_,
+							      this->closed_,
+							      ref, loc);
+      init->add_statement(s);
+    }
+  else if (this->closedvar_ != NULL)
+    {
+      gcc_assert(this->val_ == NULL);
+      Expression* val;
+      if (this->var_ == NULL)
+	val = Expression::make_sink(loc);
+      else
+	val = Expression::make_var_reference(this->var_, loc);
+      Expression* closed = Expression::make_var_reference(this->closedvar_,
+							  loc);
+      Statement* s = Statement::make_tuple_receive_assignment(val, closed, ref,
+							      loc);
+      init->add_statement(s);
     }
   else
     {
@@ -4077,10 +4185,12 @@ Select_clauses::Select_clause::lower(Block* b)
 	}
       else
 	{
-	  recv->discarding_value();
 	  init->add_statement(Statement::make_statement(recv));
 	}
     }
+
+  // Lower any statements we just created.
+  gogo->lower_block(function, init);
 
   if (this->statements_ != NULL)
     init->add_statement(Statement::make_block_statement(this->statements_,
@@ -4148,12 +4258,12 @@ Select_clauses::traverse(Traverse* traverse)
 // receive statements to the clauses.
 
 void
-Select_clauses::lower(Block* b)
+Select_clauses::lower(Gogo* gogo, Named_object* function, Block* b)
 {
   for (Clauses::iterator p = this->clauses_.begin();
        p != this->clauses_.end();
        ++p)
-    p->lower(b);
+    p->lower(gogo, function, b);
 }
 
 // Determine types.
@@ -4390,12 +4500,13 @@ Select_statement::break_label()
 // explicit statements in the clauses.
 
 Statement*
-Select_statement::do_lower(Gogo*, Block* enclosing)
+Select_statement::do_lower(Gogo* gogo, Named_object* function,
+			   Block* enclosing)
 {
   if (this->is_lowered_)
     return this;
   Block* b = new Block(enclosing, this->location());
-  this->clauses_->lower(b);
+  this->clauses_->lower(gogo, function, b);
   this->is_lowered_ = true;
   b->add_statement(this);
   return Statement::make_block_statement(b, this->location());
@@ -4447,7 +4558,7 @@ For_statement::do_traverse(Traverse* traverse)
 // complex statements make it easier to handle garbage collection.
 
 Statement*
-For_statement::do_lower(Gogo*, Block* enclosing)
+For_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
 {
   Statement* s;
   source_location loc = this->location();
@@ -4578,7 +4689,7 @@ For_range_statement::do_traverse(Traverse* traverse)
 // statements.
 
 Statement*
-For_range_statement::do_lower(Gogo* gogo, Block* enclosing)
+For_range_statement::do_lower(Gogo* gogo, Named_object*, Block* enclosing)
 {
   Type* range_type = this->range_->type();
   if (range_type->points_to() != NULL

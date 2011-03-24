@@ -36,8 +36,6 @@ struct __go_channel
   pthread_cond_t cond;
   /* The size of elements on this channel.  */
   size_t element_size;
-  /* Number of operations on closed channel.  */
-  unsigned short closed_op_count;
   /* True if a goroutine is waiting to send on a synchronous
      channel.  */
   _Bool waiting_to_send;
@@ -84,22 +82,15 @@ struct __go_channel
    acquired while this mutex is held.  */
 extern pthread_mutex_t __go_select_data_mutex;
 
-/* Maximum permitted number of operations on a closed channel.  */
-#define MAX_CLOSED_OPERATIONS (0x100)
-
 extern struct __go_channel *__go_new_channel (size_t, size_t);
 
 extern _Bool __go_synch_with_select (struct __go_channel *, _Bool);
 
 extern void __go_broadcast_to_select (struct __go_channel *);
 
-extern _Bool __go_send_acquire (struct __go_channel *, _Bool);
+extern void __go_send_acquire (struct __go_channel *, _Bool);
 
-#define SEND_NONBLOCKING_ACQUIRE_SPACE 0
-#define SEND_NONBLOCKING_ACQUIRE_NOSPACE 1
-#define SEND_NONBLOCKING_ACQUIRE_CLOSED 2
-
-extern int __go_send_nonblocking_acquire (struct __go_channel *);
+extern _Bool __go_send_nonblocking_acquire (struct __go_channel *);
 
 extern void __go_send_release (struct __go_channel *);
 
@@ -121,6 +112,9 @@ extern int __go_receive_nonblocking_acquire (struct __go_channel *);
 
 extern uint64_t __go_receive_small (struct __go_channel *, _Bool);
 
+extern uint64_t __go_receive_small_closed (struct __go_channel *, _Bool,
+					   _Bool *);
+
 extern void __go_receive_release (struct __go_channel *);
 
 struct __go_receive_nonblocking_small
@@ -132,7 +126,7 @@ struct __go_receive_nonblocking_small
 extern struct __go_receive_nonblocking_small
 __go_receive_nonblocking_small (struct __go_channel *);
 
-extern void __go_receive_big (struct __go_channel *, void *, _Bool);
+extern _Bool __go_receive_big (struct __go_channel *, void *, _Bool);
 
 extern _Bool __go_receive_nonblocking_big (struct __go_channel *, void *);
 

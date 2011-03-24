@@ -1493,16 +1493,7 @@ instantiate_virtual_regs_in_rtx (rtx *loc, void *data)
 static int
 safe_insn_predicate (int code, int operand, rtx x)
 {
-  const struct insn_operand_data *op_data;
-
-  if (code < 0)
-    return true;
-
-  op_data = &insn_data[code].operand[operand];
-  if (op_data->predicate == NULL)
-    return true;
-
-  return op_data->predicate (x, op_data->mode);
+  return code < 0 || insn_operand_matches ((enum insn_code) code, operand, x);
 }
 
 /* A subroutine of instantiate_virtual_regs.  Instantiate any virtual
@@ -3013,8 +3004,8 @@ assign_parm_setup_reg (struct assign_parm_data_all *all, tree parm,
       op0 = parmreg;
       op1 = validated_mem;
       if (icode != CODE_FOR_nothing
-	  && insn_data[icode].operand[0].predicate (op0, promoted_nominal_mode)
-	  && insn_data[icode].operand[1].predicate (op1, data->passed_mode))
+	  && insn_operand_matches (icode, 0, op0)
+	  && insn_operand_matches (icode, 1, op1))
 	{
 	  enum rtx_code code = unsignedp ? ZERO_EXTEND : SIGN_EXTEND;
 	  rtx insn, insns;
@@ -3403,7 +3394,15 @@ assign_parms (tree fndecl)
 	}
 
       /* Record permanently how this parm was passed.  */
-      set_decl_incoming_rtl (parm, data.entry_parm, data.passed_pointer);
+      if (data.passed_pointer)
+	{
+	  rtx incoming_rtl
+	    = gen_rtx_MEM (TYPE_MODE (TREE_TYPE (data.passed_type)),
+			   data.entry_parm);
+	  set_decl_incoming_rtl (parm, incoming_rtl, true);
+	}
+      else
+	set_decl_incoming_rtl (parm, data.entry_parm, false);
 
       /* Update info on where next arg arrives in registers.  */
       targetm.calls.function_arg_advance (&all.args_so_far, data.promoted_mode,

@@ -1322,6 +1322,7 @@ gimplify_vla_decl (tree decl, gimple_seq *seq_p)
   addr = create_tmp_var (ptr_type, get_name (decl));
   DECL_IGNORED_P (addr) = 0;
   t = build_fold_indirect_ref (addr);
+  TREE_THIS_NOTRAP (t) = 1;
   SET_DECL_VALUE_EXPR (decl, t);
   DECL_HAS_VALUE_EXPR_P (decl) = 1;
 
@@ -2255,7 +2256,17 @@ gimplify_arg (tree *arg_p, gimple_seq *pre_p, location_t call_location)
   if (is_gimple_reg_type (TREE_TYPE (*arg_p)))
     test = is_gimple_val, fb = fb_rvalue;
   else
-    test = is_gimple_lvalue, fb = fb_either;
+    {
+      test = is_gimple_lvalue, fb = fb_either;
+      /* Also strip a TARGET_EXPR that would force an extra copy.  */
+      if (TREE_CODE (*arg_p) == TARGET_EXPR)
+	{
+	  tree init = TARGET_EXPR_INITIAL (*arg_p);
+	  if (init
+	      && !VOID_TYPE_P (TREE_TYPE (init)))
+	    *arg_p = init;
+	}
+    }
 
   /* If this is a variable sized type, we must remember the size.  */
   maybe_with_size_expr (arg_p);
@@ -2980,6 +2991,11 @@ gimplify_cond_expr (tree *expr_p, gimple_seq *pre_p, fallback_t fallback)
       *expr_p = result;
       return GS_ALL_DONE;
     }
+
+  /* Remove any COMPOUND_EXPR so the following cases will be caught.  */
+  STRIP_TYPE_NOPS (TREE_OPERAND (expr, 0));
+  if (TREE_CODE (TREE_OPERAND (expr, 0)) == COMPOUND_EXPR)
+    gimplify_compound_expr (&TREE_OPERAND (expr, 0), pre_p, true);
 
   /* Make sure the condition has BOOLEAN_TYPE.  */
   TREE_OPERAND (expr, 0) = gimple_boolify (TREE_OPERAND (expr, 0));

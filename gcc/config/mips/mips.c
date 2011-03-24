@@ -58,6 +58,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "bitmap.h"
 #include "diagnostic.h"
 #include "target-globals.h"
+#include "opts.h"
 
 /* True if X is an UNSPEC wrapper around a SYMBOL_REF or LABEL_REF.  */
 #define UNSPEC_ADDRESS_P(X)					\
@@ -641,22 +642,23 @@ const enum reg_class mips_regno_to_class[FIRST_PSEUDO_REGISTER] = {
 
 /* The value of TARGET_ATTRIBUTE_TABLE.  */
 static const struct attribute_spec mips_attribute_table[] = {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "long_call",   0, 0, false, true,  true,  NULL },
-  { "far",     	   0, 0, false, true,  true,  NULL },
-  { "near",        0, 0, false, true,  true,  NULL },
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       om_diagnostic } */
+  { "long_call",   0, 0, false, true,  true,  NULL, false },
+  { "far",     	   0, 0, false, true,  true,  NULL, false },
+  { "near",        0, 0, false, true,  true,  NULL, false },
   /* We would really like to treat "mips16" and "nomips16" as type
      attributes, but GCC doesn't provide the hooks we need to support
      the right conversion rules.  As declaration attributes, they affect
      code generation but don't carry other semantics.  */
-  { "mips16", 	   0, 0, true,  false, false, NULL },
-  { "nomips16",    0, 0, true,  false, false, NULL },
+  { "mips16", 	   0, 0, true,  false, false, NULL, false },
+  { "nomips16",    0, 0, true,  false, false, NULL, false },
   /* Allow functions to be specified as interrupt handlers */
-  { "interrupt",   0, 0, false, true,  true, NULL },
-  { "use_shadow_register_set",	0, 0, false, true,  true, NULL },
-  { "keep_interrupts_masked",	0, 0, false, true,  true, NULL },
-  { "use_debug_exception_return", 0, 0, false, true,  true, NULL },
-  { NULL,	   0, 0, false, false, false, NULL }
+  { "interrupt",   0, 0, false, true,  true, NULL, false },
+  { "use_shadow_register_set",	0, 0, false, true,  true, NULL, false },
+  { "keep_interrupts_masked",	0, 0, false, true,  true, NULL, false },
+  { "use_debug_exception_return", 0, 0, false, true,  true, NULL, false },
+  { NULL,	   0, 0, false, false, false, NULL, false }
 };
 
 /* A table describing all the processors GCC knows about.  Names are
@@ -15458,8 +15460,16 @@ mips_set_tune (const struct mips_cpu_info *info)
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
-mips_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
+mips_handle_option (struct gcc_options *opts, struct gcc_options *opts_set,
+		    const struct cl_decoded_option *decoded,
+		    location_t loc ATTRIBUTE_UNUSED)
 {
+  size_t code = decoded->opt_index;
+  const char *arg = decoded->arg;
+
+  gcc_assert (opts == &global_options);
+  gcc_assert (opts_set == &global_options_set);
+
   switch (code)
     {
     case OPT_mabi_:

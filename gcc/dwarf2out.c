@@ -2239,7 +2239,7 @@ dwarf2out_frame_debug_cfa_restore (rtx reg, const char *label)
 	   cfa.base_offset = -cfa_store.offset
 
   Rule 11:
-  (set (mem ({pre_inc,pre_dec} sp:cfa_store.reg)) <reg>)
+  (set (mem ({pre_inc,pre_dec,post_dec} sp:cfa_store.reg)) <reg>)
   effects: cfa_store.offset += -/+ mode_size(mem)
 	   cfa.offset = cfa_store.offset if cfa.reg == sp
 	   cfa.reg = sp
@@ -2258,7 +2258,7 @@ dwarf2out_frame_debug_cfa_restore (rtx reg, const char *label)
 	   cfa.base_offset = -{cfa_store,cfa_temp}.offset
 
   Rule 14:
-  (set (mem (postinc <reg1>:cfa_temp <const_int>)) <reg2>)
+  (set (mem (post_inc <reg1>:cfa_temp <const_int>)) <reg2>)
   effects: cfa.reg = <reg1>
 	   cfa.base_offset = -cfa_temp.offset
 	   cfa_temp.offset -= mode_size(mem)
@@ -2591,6 +2591,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	  /* Rule 11 */
 	case PRE_INC:
 	case PRE_DEC:
+	case POST_DEC:
 	  offset = GET_MODE_SIZE (GET_MODE (dest));
 	  if (GET_CODE (XEXP (dest, 0)) == PRE_INC)
 	    offset = -offset;
@@ -2615,7 +2616,10 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	  if (cfa.reg == STACK_POINTER_REGNUM)
 	    cfa.offset = cfa_store.offset;
 
-	  offset = -cfa_store.offset;
+	  if (GET_CODE (XEXP (dest, 0)) == POST_DEC)
+	    offset += -cfa_store.offset;
+	  else
+	    offset = -cfa_store.offset;
 	  break;
 
 	  /* Rule 12 */
@@ -13612,8 +13616,15 @@ const_ok_for_output_1 (rtx *rtlp, void *data ATTRIBUTE_UNUSED)
 	inform (current_function_decl
 		? DECL_SOURCE_LOCATION (current_function_decl)
 		: UNKNOWN_LOCATION,
+#if NUM_UNSPEC_VALUES > 0
+		"non-delegitimized UNSPEC %s (%d) found in variable location",
+		((XINT (rtl, 1) >= 0 && XINT (rtl, 1) < NUM_UNSPEC_VALUES)
+		 ? unspec_strings[XINT (rtl, 1)] : "unknown"),
+		XINT (rtl, 1));
+#else
 		"non-delegitimized UNSPEC %d found in variable location",
 		XINT (rtl, 1));
+#endif
 #endif
       expansion_failed (NULL_TREE, rtl,
 			"UNSPEC hasn't been delegitimized.\n");
@@ -16721,7 +16732,13 @@ rtl_for_decl_location (tree decl)
     }
   else if (TREE_CODE (decl) == PARM_DECL)
     {
-      if (rtl == NULL_RTX || is_pseudo_reg (rtl))
+      if (rtl == NULL_RTX
+	  || is_pseudo_reg (rtl)
+	  || (MEM_P (rtl)
+	      && is_pseudo_reg (XEXP (rtl, 0))
+	      && DECL_INCOMING_RTL (decl)
+	      && MEM_P (DECL_INCOMING_RTL (decl))
+	      && GET_MODE (rtl) == GET_MODE (DECL_INCOMING_RTL (decl))))
 	{
 	  tree declared_type = TREE_TYPE (decl);
 	  tree passed_type = DECL_ARG_TYPE (decl);
@@ -16733,7 +16750,8 @@ rtl_for_decl_location (tree decl)
 	     all cases where (rtl == NULL_RTX) just below.  */
 	  if (dmode == pmode)
 	    rtl = DECL_INCOMING_RTL (decl);
-	  else if (SCALAR_INT_MODE_P (dmode)
+	  else if ((rtl == NULL_RTX || is_pseudo_reg (rtl))
+		   && SCALAR_INT_MODE_P (dmode)
 		   && GET_MODE_SIZE (dmode) <= GET_MODE_SIZE (pmode)
 		   && DECL_INCOMING_RTL (decl))
 	    {
@@ -19474,7 +19492,11 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 			 == REGNO (XEXP (XEXP (XEXP (next_arg, 0), 0), 0)))
 		    next_arg = XEXP (next_arg, 1);
 		  if (mode == VOIDmode)
-		    mode = GET_MODE (XEXP (XEXP (arg, 0), 0));
+		    {
+		      mode = GET_MODE (XEXP (XEXP (arg, 0), 0));
+		      if (mode == VOIDmode)
+			mode = GET_MODE (XEXP (arg, 0));
+		    }
 		  if (GET_MODE_CLASS (mode) != MODE_INT
 		      || GET_MODE_SIZE (mode) > DWARF2_ADDR_SIZE)
 		    continue;
@@ -23656,7 +23678,8 @@ dwarf2out_finish (const char *filename)
 
   /* Output the address range information.  We only put functions in the arange
      table, so don't write it out if we don't have any.  */
-  if (arange_table_in_use)
+  if ((text_section_used || cold_text_section_used || arange_table_in_use)
+      && info_section_emitted)
     {
       switch_to_section (debug_aranges_section);
       output_aranges ();

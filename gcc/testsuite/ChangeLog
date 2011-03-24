@@ -1,3 +1,217 @@
+2011-03-24  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48269
+	* gcc.dg/builtin-object-size-10.c: New testcase.
+
+2011-03-24  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46562
+	* c-c++-common/pr46562-2.c: New testcase.
+	* c-c++-common/pr46562.c: Likewise.
+
+2011-03-24  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/vect-cselim-1.c: New test.
+	* gcc.dg/vect/vect-cselim-2.c: New test.
+
+2011-03-23  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.target/arm/pr46934.c: New.
+
+2011-03-23  Ian Lance Taylor  <iant@google.com>
+
+	* go.test/go-test.exp (errchk): Ignore lines containing ////.
+
+2011-03-23  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/struct: Remove directory and contents.
+
+2011-03-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/48251
+	* g++.dg/guality/guality.exp: Disable on alpha*-dec-osf*.
+
+2011-03-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr26.ad[sb]: New test.
+	* gnat.dg/discr26_pkg.ads: New helper.
+
+2011-03-23  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR target/47553
+	* gcc.target/arm/neon-vld-1.c: New test.
+
+2011-03-23  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/array14.ad[sb]: New test.
+	* gnat.dg/array14_pkg.ads: New helper.
+
+2011-03-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c-torture/execute/920501-8.x: Remove.
+	* gcc.c-torture/execute/930513-1.x: Remove.
+	* gcc.c-torture/execute/960312-1.x: Remove.
+	* gcc.c-torture/compile/20000804-1.c,
+	gcc.c-torture/compile/20001205-1.c,
+	gcc.c-torture/compile/20001226-1.c,
+	gcc.c-torture/compile/20010518-2.c,
+	gcc.c-torture/compile/20020312-1.c,
+	gcc.c-torture/compile/20020604-1.c,
+	gcc.c-torture/compile/920501-12.c,
+	gcc.c-torture/compile/920501-4.c,
+	gcc.c-torture/compile/920520-1.c,
+	gcc.c-torture/compile/980506-1.c,
+	gcc.c-torture/execute/980709-1.x,
+	gcc.c-torture/execute/990826-0.x: Don't XFAIL or use special
+	options for m68hc11.
+	* gcc.dg/cpp/assert4.c: Don't handle ARC.
+	* gcc.dg/sibcall-3.c, gcc.dg/sibcall-4.c: Don't XFAIL for arc or
+	m68hc11.
+
+2011-03-22  Nick Clifton  <nickc@redhat.com>
+
+	* lib/target-supports.exp (check_profiling_available): Add MN10300
+	to the list of targets that do not support profiling.  Restore
+	alpha sorting to this list.
+
+2011-03-22  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.dg/torture/vector-1.c: On powerpc add -fabi=altivec to avoid
+	failure on 32-bit systems.
+	* gcc.dg/torture/vector-2.c: Ditto.
+
+2011-03-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48228
+	* gcc.dg/Wstrict-overflow-23.c: New testcase.
+
+2011-03-21  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* lib/prune.exp (prune_gcc_output): Prune "could not create
+	compact unwind for" warnings.
+
+2011-03-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/42544
+	PR c/48197
+	* gcc.c-torture/execute/pr42544.c: New test.
+	* gcc.c-torture/execute/pr48197.c: New test.
+
+2011-03-21  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR preprocessor/48192
+	* gcc.target/powerpc/pr48192.c: New file.
+
+	PR target/48053
+	* gcc.target/powerpc/pr48053-3.c: New file, add test case for
+	split problem of 0 being loaded in a VSX register.
+
+2011-03-21  Richard Guenther  <rguenther@suse.de>
+
+	PR c/47939
+	* gcc.dg/debug/dwarf2/pr47939-1.c: New testcase.
+	* gcc.dg/debug/dwarf2/pr47939-2.c: Likewise.
+	* gcc.dg/debug/dwarf2/pr47939-3.c: Likewise.
+	* gcc.dg/debug/dwarf2/pr47939-4.c: Likewise.
+
+2011-03-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/48213
+	* gcc.dg/pr48213.c: New test.
+
+2011-03-21  Kai Tietz  <ktietz@redhat.com>
+
+	PR target/12171
+	* g++.dg/plugin/attribute_plugin.c: Adjust test.
+
+2011-03-21  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.target/arm/xor-and.c: New.
+
+2010-03-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/22572
+	* gfortran.dg/function_optimize_1.f90:  New test.
+	* gfortran.dg/function_optimize_2.f90:  New test.
+
+2011-03-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/47502
+	* gcc.target/i386/pr47502-1.c: New.
+	* gcc.target/i386/pr47502-2.c: Likewise.
+
+2011-03-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/48156
+	* gcc.dg/pr48156.c: New test.
+
+2011-03-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/47439
+	* gfortran.dg/scratch_1.f90: Adjust test.
+
+2011-03-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/47439
+	* gfortran.dg/scratch_1.f90: New test.
+
+2011-03-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/c1x-typedef-1.c: Expect errors for redefinitions of
+	variably modified typedefs.
+	* gcc.dg/c1x-typedef-2.c: Remove.
+
+2011-03-18  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.dg/c1x-anon-struct-1.c: Don't test use of typedefs.
+	* gcc.dg/c1x-anon-struct-3.c: New test.
+	* gcc.dg/anon-struct-11.c: Update.
+
+2011-03-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/vect/slp-multitypes-2.c: Replace dg-do run with
+	dg-xfail-run-if.
+	Only xfail with gas.
+
+2011-03-18  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/fn-ptr1.C: New.
+
+	* g++.dg/overload/volatile1.C: New.
+
+	* g++.dg/opt/pr23372.C: New.
+
+	* g++.dg/ext/attrib32.C: Expect errors on the two-names case.
+
+2011-03-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR middle-end/47405
+	* gcc.dg/torture/20090618-1.c: Skip on mips-sgi-irix*.
+
+2011-03-18  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.target/arm/unsigned-extend-1.c: New.
+
+2011-03-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/48161
+	* gcc.c-torture/compile/pr48161.c: New test.
+
+2011-03-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47725
+	* gcc.dg/torture/pr47725.c: New.
+
+2011-03-17  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-overflow2.C: New.
+	* g++.dg/cpp0x/constexpr-data2.C: Remove FIXME.
+
+2011-03-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/elab2.ads: New test.
+	* gnat.dg/specs/elab2_pkg.ads: New helper.
+
 2011-03-17  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/decltype-1212.C: New.

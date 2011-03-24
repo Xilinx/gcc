@@ -1,3 +1,7 @@
+2011-03-24  Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 171388.
+
 2011-03-23  Diego Novillo  <dnovillo@google.com>
 
 	* lto-streamer-in.c (input_string_internal): Add clarifying

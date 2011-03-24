@@ -1,3 +1,27 @@
+2011-03-23  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/48030
+	* io/read.c (read_x): Re-implement using fbuf_getc.
+
+2011-03-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR bootstrap/48135
+	* configure.ac (gfortran_use_symver): Handle --disable-symvers.
+	* configure: Regenerate.
+
+2011-03-19  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR fortran/35667
+	* io/io.h (convert_infnan): Declare.
+	* io/read.c (convert_infnan): New.
+	(read_f): Use convert_infnan to convert INFs and NANs.
+	* list_read.c (parse_real, read_real): Likewise.
+
+2011-03-19  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR libfortran/47439
+	* io/unix.c (tempfile): Work around poor mktemp() implementations.
+
 2011-03-16  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
 
 	PR libfortran/47883

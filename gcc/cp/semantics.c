@@ -2155,6 +2155,9 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
       if (TREE_CODE (result) == INDIRECT_REF)
 	result = TREE_OPERAND (result, 0);
       gcc_assert (TREE_CODE (result) == CALL_EXPR
+		  /* FIXME cp_build_function_call_vec should avoid argument
+		     and return transformations like build_over_call does.  */
+		  || TREE_CODE (result) == TARGET_EXPR
 		  || TREE_CODE (fn) == PSEUDO_DTOR_EXPR
 		  || errorcount);
       result = build_call_vec (TREE_TYPE (result), orig_fn, orig_args);
@@ -6991,6 +6994,11 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
 	     conversion.  */
 	  return fold (t);
 	r = fold_build1 (TREE_CODE (t), to, op);
+	/* Conversion of an out-of-range value has implementation-defined
+	   behavior; the language considers it different from arithmetic
+	   overflow, which is undefined.  */
+	if (TREE_OVERFLOW_P (r) && !TREE_OVERFLOW_P (op))
+	  TREE_OVERFLOW (r) = false;
       }
       break;
 

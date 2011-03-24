@@ -670,9 +670,7 @@ case "${target}" in
     libgloss_dir=wince
     ;;
   arc-*-*)
-    noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
-    ;;
-  arm-semi-aof )
+    noconfigdirs="$noconfigdirs target-libgloss"
     ;;
   arm-*-coff | strongarm-*-coff | xscale-*-coff)
     noconfigdirs="$noconfigdirs ${libgcj}"
@@ -743,9 +741,6 @@ case "${target}" in
     esac
     libgloss_dir=cris
     ;;
-  crx-*-*)
-    noconfigdirs="$noconfigdirs target-libstdc++-v3 target-mudflap ${libgcj}"
-    ;;
   d10v-*-*)
     noconfigdirs="$noconfigdirs target-libstdc++-v3 target-libgloss ${libgcj}"
     ;;
@@ -779,7 +774,7 @@ case "${target}" in
     # headers, crt*.o, etc., all of which are needed by these.
     noconfigdirs="$noconfigdirs target-zlib"
     ;;
-  parisc*-*-linux* | hppa*-*-linux*)
+  hppa*-*-linux*)
     ;;
   hppa*-*-*elf* | \
   hppa*-*-lites* | \
@@ -812,8 +807,6 @@ case "${target}" in
   ia64*-*-*vms*)
     # No gdb or ld support yet.
     noconfigdirs="$noconfigdirs ${libgcj} tix readline mmalloc libgui itcl gdb ld"
-    ;;
-  i370-*-opened*)
     ;;
   i[[3456789]]86-*-coff | i[[3456789]]86-*-elf)
     noconfigdirs="$noconfigdirs ${libgcj}"
@@ -858,11 +851,10 @@ case "${target}" in
       echo "Warning: winsup/cygwin is missing so newlib can't be built."
     fi
     ;;
-  i[[3456789]]86-moss-msdos | i[[3456789]]86-*-moss* | \
-  i[[3456789]]86-*-uwin* | i[[3456789]]86-*-interix* )
+  i[[3456789]]86-*-interix* )
     ;;
   i[[3456789]]86-*-pe)
-    noconfigdirs="$noconfigdirs target-libstdc++-v3 target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs target-libgloss"
     ;;
   i[[3456789]]86-*-sco3.2v5*)
     # The linker does not yet know about weak symbols in COFF,
@@ -888,7 +880,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   m68hc11-*-*|m6811-*-*|m68hc12-*-*|m6812-*-*)
-    noconfigdirs="$noconfigdirs target-libiberty target-libstdc++-v3 ${libgcj}"
+    noconfigdirs="$noconfigdirs target-libiberty"
     libgloss_dir=m68hc11
     ;;
   m68k-*-elf*)
@@ -899,11 +891,6 @@ case "${target}" in
     ;;
   m68*-*-* | fido-*-*)
     libgloss_dir=m68k
-    ;;
-  mcore-*-pe*)
-  # The EPOC C++ environment does not support exceptions or rtti,
-  # and so building libstdc++-v3 tends not to always work.
-    noconfigdirs="$noconfigdirs target-libstdc++-v3"
     ;;
   mmix-*-*)
     noconfigdirs="$noconfigdirs target-libffi target-boehm-gc gdb libgloss"
@@ -1677,10 +1664,10 @@ fi
 
 if test "x$with_ppl" != xno; then
   if test "x$pwllib" = x; then
-    saved_LDFLAGS="$LDFLAGS"
-    LDFLAGS="$LDFLAGS $ppllibs"
-    AC_CHECK_LIB(pwl,PWL_handle_timeout,[pwllib="-lpwl"])
-    LDFLAGS="$saved_LDFLAGS"
+    saved_LIBS="$LIBS"
+    LIBS="$LIBS $ppllibs -lstdc++ -lm"
+    AC_CHECK_LIB(pwl, PWL_handle_timeout, [pwllib="-lpwl"])
+    LIBS="$saved_LIBS"
   fi
 
   ppllibs="$ppllibs -lppl_c -lppl $pwllib -lgmpxx"

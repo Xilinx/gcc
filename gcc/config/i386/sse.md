@@ -2715,6 +2715,7 @@
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")
    (set_attr "amdfam10_decode" "double")
+   (set_attr "athlon_decode" "vector")
    (set_attr "bdver1_decode" "double")])
 
 (define_insn "avx_cvttpd2dq256"
@@ -2746,6 +2747,7 @@
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "TI")
    (set_attr "amdfam10_decode" "double")
+   (set_attr "athlon_decode" "vector")
    (set_attr "bdver1_decode" "double")])
 
 (define_insn "*avx_cvtsd2ss"
@@ -2806,6 +2808,7 @@
   "cvtss2sd\t{%2, %0|%0, %2}"
   [(set_attr "type" "ssecvt")
    (set_attr "amdfam10_decode" "vector,double")
+   (set_attr "athlon_decode" "direct,direct")
    (set_attr "bdver1_decode" "direct,direct")
    (set_attr "mode" "DF")])
 
@@ -2842,6 +2845,7 @@
    (set_attr "prefix" "maybe_vex")
    (set_attr "mode" "V4SF")
    (set_attr "amdfam10_decode" "double")
+   (set_attr "athlon_decode" "vector")
    (set_attr "bdver1_decode" "double")])
 
 (define_insn "avx_cvtps2pd256"
@@ -2879,6 +2883,7 @@
    (set_attr "mode" "V2DF")
    (set_attr "prefix_data16" "0")
    (set_attr "amdfam10_decode" "direct")
+   (set_attr "athlon_decode" "double")
    (set_attr "bdver1_decode" "double")])
 
 (define_expand "vec_unpacks_hi_v4sf"
@@ -4122,17 +4127,21 @@
    (match_operand:SI 2 "const_0_to_1_operand" "")]
   "TARGET_AVX"
 {
+  rtx (*insn)(rtx, rtx);
+
   switch (INTVAL (operands[2]))
     {
     case 0:
-      emit_insn (gen_vec_extract_lo_<mode> (operands[0], operands[1]));
+      insn = gen_vec_extract_lo_<mode>;
       break;
     case 1:
-      emit_insn (gen_vec_extract_hi_<mode> (operands[0], operands[1]));
+      insn = gen_vec_extract_hi_<mode>;
       break;
     default:
       gcc_unreachable ();
     }
+
+  emit_insn (insn (operands[0], operands[1]));
   DONE;
 })
 
@@ -11776,19 +11785,21 @@
    (match_operand:SI 3 "const_0_to_1_operand" "")]
   "TARGET_AVX"
 {
+  rtx (*insn)(rtx, rtx, rtx);
+
   switch (INTVAL (operands[3]))
     {
     case 0:
-      emit_insn (gen_vec_set_lo_<mode> (operands[0], operands[1],
-					operands[2]));
+      insn = gen_vec_set_lo_<mode>;
       break;
     case 1:
-      emit_insn (gen_vec_set_hi_<mode> (operands[0], operands[1],
-					operands[2]));
+      insn = gen_vec_set_hi_<mode>;
       break;
     default:
       gcc_unreachable ();
     }
+
+  emit_insn (insn (operands[0], operands[1], operands[2]));
   DONE;
 })
 

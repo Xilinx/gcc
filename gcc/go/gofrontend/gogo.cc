@@ -1257,7 +1257,7 @@ Lower_parse_tree::statement(Block* block, size_t* pindex, Statement* sorig)
   Statement* s = sorig;
   while (true)
     {
-      Statement* snew = s->lower(this->gogo_, block);
+      Statement* snew = s->lower(this->gogo_, this->function_, block);
       if (snew == s)
 	break;
       s = snew;
@@ -1303,6 +1303,15 @@ Gogo::lower_parse_tree()
 {
   Lower_parse_tree lower_parse_tree(this, NULL);
   this->traverse(&lower_parse_tree);
+}
+
+// Lower a block.
+
+void
+Gogo::lower_block(Named_object* function, Block* block)
+{
+  Lower_parse_tree lower_parse_tree(this, function);
+  block->traverse(&lower_parse_tree);
 }
 
 // Lower an expression.
@@ -1925,14 +1934,6 @@ Order_eval::statement(Block* block, size_t* pindex, Statement* s)
        ++p)
     {
       Expression** pexpr = *p;
-
-      // If the last expression is a send or receive expression, we
-      // may be ignoring the value; we don't want to evaluate it
-      // early.
-      if (p + 1 == find_eval_ordering.end()
-	  && ((*pexpr)->classification() == Expression::EXPRESSION_SEND
-	      || (*pexpr)->classification() == Expression::EXPRESSION_RECEIVE))
-	break;
 
       // The last expression in a thunk will be the call passed to go
       // or defer, which we must not evaluate early.
