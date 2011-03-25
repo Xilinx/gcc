@@ -45,7 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "py-types.h"
 #include "py-runtime.h"
 
-tree gpy_builtin_get_init_call( void )
+VEC(tree,gc) * gpy_builtin_get_init_call (void)
 {
   tree fntype = build_function_type( void_type_node, void_list_node );
   tree gpy_rr_init = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
@@ -59,10 +59,14 @@ tree gpy_builtin_get_init_call( void )
   DECL_EXTERNAL( gpy_rr_init ) = 1;
   TREE_PUBLIC( gpy_rr_init ) = 1;
 
-  return ( build_call_expr( gpy_rr_init, 0, NULL_TREE ) );
+  VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
+  VEC_safe_push (tree,gc,retval,
+		 build_call_expr( gpy_rr_init, 0, NULL_TREE ));
+
+  return retval;
 }
 
-tree gpy_builtin_get_cleanup_final_call( void )
+VEC(tree,gc) * gpy_builtin_get_cleanup_final_call( void )
 {
   tree fntype = build_function_type( void_type_node, void_list_node );
   tree gpy_rr_cleanup = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
@@ -76,10 +80,14 @@ tree gpy_builtin_get_cleanup_final_call( void )
   DECL_EXTERNAL( gpy_rr_cleanup ) = 1;
   TREE_PUBLIC( gpy_rr_cleanup ) = 1;
 
-  return ( build_call_expr( gpy_rr_cleanup, 0, NULL_TREE ) );
+  VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
+  VEC_safe_push (tree,gc,retval,
+		 build_call_expr( gpy_rr_cleanup, 0, NULL_TREE ));
+
+  return retval;
 }
 
-tree gpy_builtin_get_push_context_call( void )
+VEC(tree,gc) * gpy_builtin_get_push_context_call( void )
 {
   tree fntype = build_function_type( void_type_node, void_list_node );
   tree gpy_rr_push = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
@@ -93,10 +101,15 @@ tree gpy_builtin_get_push_context_call( void )
   DECL_EXTERNAL( gpy_rr_push ) = 1;
   TREE_PUBLIC( gpy_rr_push ) = 1;
 
-  return ( build_call_expr( gpy_rr_push, 0, NULL_TREE ) );
+  VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
+  VEC_safe_push (tree,gc,retval,
+		 build_call_expr( gpy_rr_push, 0, NULL_TREE )
+		 );
+
+  return retval;
 }
 
-tree gpy_builtin_get_pop_context_call( void )
+VEC(tree,gc) * gpy_builtin_get_pop_context_call( void )
 {
   tree fntype = build_function_type( void_type_node, void_list_node );
   tree gpy_rr_pop = build_decl( UNKNOWN_LOCATION, FUNCTION_DECL,
@@ -110,10 +123,14 @@ tree gpy_builtin_get_pop_context_call( void )
   DECL_EXTERNAL( gpy_rr_pop ) = 1;
   TREE_PUBLIC( gpy_rr_pop ) = 1;
 
-  return ( build_call_expr( gpy_rr_pop, 0, NULL_TREE ) );
+  VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
+  VEC_safe_push (tree,gc,retval,
+		 build_call_expr( gpy_rr_pop, 0, NULL_TREE ));
+
+  return retval;
 }
 
-tree gpy_builtin_get_fold_int_call( int val )
+VEC(tree,gc) * gpy_builtin_get_fold_int_call( int val )
 {
   tree params = NULL_TREE;
 
@@ -131,15 +148,19 @@ tree gpy_builtin_get_fold_int_call( int val )
   DECL_RESULT(gpy_eval_expr_decl) = resdecl;
   DECL_EXTERNAL( gpy_eval_expr_decl ) = 1;
   TREE_PUBLIC( gpy_eval_expr_decl ) = 1;
+
+  VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
+  VEC_safe_push (tree,gc,retval,
+		 build_call_expr (gpy_eval_expr_decl, 1,
+				  build_int_cst (integer_type_node,
+						 val)
+				  )
+			    );
   
-  return ( build_call_expr( gpy_eval_expr_decl, 1,
-			    build_int_cst( integer_type_node,
-					   val )
-			    )
-	   );
+  return retval;
 }
 
-tree gpy_builtin_get_eval_expression_call( tree t1, tree t2, gpy_opcode_t op )
+VEC(tree,gc) * gpy_builtin_get_eval_expression_call( tree t1, tree t2, gpy_opcode_t op )
 {
   tree params = NULL_TREE;
 
@@ -160,12 +181,16 @@ tree gpy_builtin_get_eval_expression_call( tree t1, tree t2, gpy_opcode_t op )
   DECL_EXTERNAL( gpy_eval_expr_decl ) = 1;
   TREE_PUBLIC( gpy_eval_expr_decl ) = 1;
 
-  return ( build_call_expr( gpy_eval_expr_decl, 3, t1, t2,
-			    build_int_cst( integer_type_node, op ))
-	   );
+  VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
+  VEC_safe_push (tree,gc,retval,
+		  build_call_expr( gpy_eval_expr_decl, 3, t1, t2,
+				   build_int_cst( integer_type_node, op ))
+		 );
+
+  return retval;
 }
 
-tree gpy_builtin_get_incr_ref_call( tree x )
+VEC(tree,gc) * gpy_builtin_get_incr_ref_call( tree x )
 {
   tree params = NULL_TREE;
 
@@ -184,10 +209,15 @@ tree gpy_builtin_get_incr_ref_call( tree x )
   DECL_EXTERNAL( gpy_incr_ref_decl ) = 1;
   TREE_PUBLIC( gpy_incr_ref_decl ) = 1;
 
-  return ( build_call_expr( gpy_incr_ref_decl, 1, x ) );
+  VEC(tree,gc) * retval = VEC_alloc (tree, gc, 0);
+  VEC_safe_push (tree,gc,retval,
+		 build_call_expr( gpy_incr_ref_decl, 1, x )
+		 );
+
+  return retval;
 }
 
-tree gpy_builtin_get_decr_ref_call( tree x )
+VEC(tree,gc) * gpy_builtin_get_decr_ref_call( tree x )
 {
   tree params = NULL_TREE;
 
@@ -206,10 +236,15 @@ tree gpy_builtin_get_decr_ref_call( tree x )
   DECL_EXTERNAL( gpy_decr_ref_decl ) = 1;
   TREE_PUBLIC( gpy_decr_ref_decl ) = 1;
 
-  return ( build_call_expr( gpy_decr_ref_decl, 1, x ) );
+  VEC(tree,gc) * retval = VEC_alloc (tree, gc, 0);
+  VEC_safe_push(tree,gc,retval,
+		build_call_expr( gpy_decr_ref_decl, 1, x )
+		);
+
+  return retval;
 }
 
-tree gpy_builtin_get_print_call( int n, tree * args )
+VEC(tree,gc) * gpy_builtin_get_print_call( int n, tree * args )
 {
   tree params = NULL_TREE;
 
@@ -243,13 +278,16 @@ tree gpy_builtin_get_print_call( int n, tree * args )
       vec[idx] = args[idy];
       idx++;
     }
-
-  return ( build_call_expr_loc_array( UNKNOWN_LOCATION, gpy_eval_print_decl,
-				      n+2, vec )
-	   );
+  VEC(tree,gc) * retval = VEC_alloc (tree, gc, 0);
+  VEC_safe_push (tree,gc,retval,
+		 build_call_expr_loc_array (UNKNOWN_LOCATION,
+					    gpy_eval_print_decl,
+					    n+2, vec)
+		 );
+  return retval;
 }
 
-tree gpy_builtin_get_finalize_block_call( int n, tree * args )
+VEC(tree,gc) * gpy_builtin_get_finalize_block_call (int n, tree * args)
 {
   tree params = NULL_TREE;
 
@@ -282,11 +320,17 @@ tree gpy_builtin_get_finalize_block_call( int n, tree * args )
       idx++;
     }
 
-  return ( build_call_expr_loc_array( UNKNOWN_LOCATION, gpy_finalize_block_decl,
-				      n+1, vec ) );
+  VEC(tree,gc) * retval = VEC_alloc (tree, gc, 0);
+  VEC_safe_push (tree, gc, retval,
+		 build_call_expr_loc_array (UNKNOWN_LOCATION,
+					    gpy_finalize_block_decl,
+					    n+1, vec)
+		 );
+
+  return retval;
 }
 
-tree gpy_builtin_get_set_decl_call (tree decl)
+VEC(tree,gc) * gpy_builtin_get_set_decl_call (tree decl)
 {
   tree params = NULL_TREE;
 
@@ -314,11 +358,16 @@ tree gpy_builtin_get_set_decl_call (tree decl)
   tree str = build_string (strlen (c_ident), c_ident);
   TREE_TYPE (str) = gpy_const_char_ptr;  
   tree ident = build_fold_addr_expr (str);
+  
+  VEC(tree,gc) * retval = VEC_alloc(tree,gc,0);
+  VEC_safe_push (tree,gc,retval,
+		 build_call_expr (gpy_rr_decl, 2, ident, decl)
+		 );
 
-  return build_call_expr (gpy_rr_decl, 2, ident, decl);
+  return retval;
 }
 
-tree gpy_builtin_get_register_decl_call (tree decl)
+VEC(tree,gc) * gpy_builtin_get_register_decl_call (tree decl)
 {
   tree params = NULL_TREE;
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
@@ -347,11 +396,15 @@ tree gpy_builtin_get_register_decl_call (tree decl)
   TREE_TYPE (str) = gpy_const_char_ptr;
   tree ident = build_fold_addr_expr (str);
   
+  VEC(tree,gc) * retval = VEC_alloc(tree,gc,0);
+  VEC_safe_push (tree,gc,retval,
+		 build_call_expr (gpy_rr_decl, 1, ident)
+		 );
 
-  return build_call_expr (gpy_rr_decl, 1, ident);
+  return retval;
 }
 
-tree gpy_builtin_get_register_callable_call (tree decl, int n)
+VEC(tree,gc) * gpy_builtin_get_register_callable_call (tree decl, int n)
 {
   tree params = NULL_TREE;
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
@@ -381,24 +434,32 @@ tree gpy_builtin_get_register_callable_call (tree decl, int n)
   tree str = build_string (strlen (c_ident), c_ident);
   TREE_TYPE (str) = gpy_const_char_ptr;
   tree ident = build_fold_addr_expr (str);
-  TREE_TYPE (ident) = gpy_const_char_ptr;
 
-  return build_call_expr (gpy_rr_decl, 3,
-			  build_fold_addr_expr (decl),
-			  build_int_cst (integer_type_node, n),
-			  ident);
-}
+  tree address = build_decl (BUILTINS_LOCATION, VAR_DECL, create_tmp_var_name("C"),
+			     gpy_const_char_ptr);
 
+  VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
 
-tree gpy_builtin_get_fold_call_call (const char * ident, int n,
-				     tree *args)
-{
-  tree retval = NULL_TREE;
-  
+  VEC_safe_push (tree, gc, retval,
+		 build2 (MODIFY_EXPR, gpy_const_char_ptr,
+			 address, ident));
+  VEC_safe_push (tree, gc, retval,
+		 build_call_expr (gpy_rr_decl, 3,
+				  build_fold_addr_expr (decl),
+				  build_int_cst (integer_type_node, n),
+				  ident));
   return retval;
 }
 
-tree gpy_builtin_get_eval_accessor_call (tree t1, tree t2)
+
+VEC(tree,gc) * gpy_builtin_get_fold_call_call (const char * ident, int n,
+					       tree *args)
+{
+  return NULL;
+}
+
+VEC(tree,gc) * gpy_builtin_get_eval_accessor_call (tree t1, tree t2)
 {
   fatal_error("Accessor's not implemented yet!\n");
+  return NULL;
 }

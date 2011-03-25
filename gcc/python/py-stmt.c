@@ -426,7 +426,8 @@ VEC(tree,gc) * gpy_process_print (gpy_symbol_obj *sym,
 	  t = t->next;
 	}
       
-      VEC_safe_push( tree,gc,retval,gpy_builtin_get_print_call( len, args ) );
+      VEC (tree,gc) * bc = gpy_builtin_get_print_call (len, args);
+      GPY_VEC_stmts_append (retval,bc);
     }
   else
     error("print call without any arguments!\n");
@@ -511,14 +512,16 @@ tree gpy_main_method_decl (VEC(tree,gc) * block, gpy_context_branch * co)
   DECL_INITIAL(main_fn_decl) = main_art_block;
 
   tree declare_vars = NULL_TREE;
-  tree main_stmts = alloc_stmt_list( );
-
-  append_to_statement_list (gpy_builtin_get_init_call (), &main_stmts);
+  tree main_stmts = alloc_stmt_list ();
 
   tree it = NULL_TREE;
-  for( idx = 0; VEC_iterate(tree,block,idx,it); ++idx )
+  VEC(tree,gc) * vt = gpy_builtin_get_init_call ();
+  for (idx = 0; VEC_iterate (tree,vt,idx,it); ++idx)
+    append_to_statement_list (it, &main_stmts);
+
+  for (idx = 0; VEC_iterate(tree,block,idx,it); ++idx)
     {
-      gcc_assert( it );
+      gcc_assert (it);
       append_to_statement_list( it, &main_stmts );
     }
 
@@ -549,16 +552,19 @@ tree gpy_main_method_decl (VEC(tree,gc) * block, gpy_context_branch * co)
 	  idy++;
 	}
       //block_decl_vec[ idy ] = main_ret; idy++;
-      append_to_statement_list( gpy_builtin_get_finalize_block_call( block_decl_len,
-								     block_decl_vec ),
-				&main_stmts );
+      VEC(tree,gc) * bc = gpy_builtin_get_finalize_block_call (block_decl_len,
+							       block_decl_vec);
+      for (idx = 0; VEC_iterate (tree,bc,idx,it); ++idx)
+	append_to_statement_list (it, &main_stmts);
     }
   else
     {
       declare_vars = main_ret;
     }
 
-  append_to_statement_list( gpy_builtin_get_cleanup_final_call( ), &main_stmts );
+  VEC(tree,gc) * bc = gpy_builtin_get_cleanup_final_call ();
+  for (idx = 0; VEC_iterate (tree,bc,idx,it); ++idx)
+    append_to_statement_list (it, &main_stmts);
 
   tree main_set_ret = build2( MODIFY_EXPR, TREE_TYPE(main_ret),
 			      main_ret, build_int_cst(integer_type_node, 0));
@@ -653,10 +659,19 @@ void gpy_write_globals (void)
 
   wrapup_global_declarations (global_vec, global_vec_len);
 
+  debug ("whoop1!\n");
+
   check_global_declarations (global_vec, global_vec_len);
+
+  debug ("whoop2!\n");
+
   emit_debug_global_declarations (global_vec, global_vec_len);
 
+  debug ("whoop3!\n");
+
   cgraph_finalize_compilation_unit ();
+
+  debug ("whoop4!\n");
 
   debug("finished passing to middle-end!\n\n");
 }

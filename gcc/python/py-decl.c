@@ -115,8 +115,11 @@ VEC(tree,gc) * gpy_process_assign (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
       
       VEC_safe_push (tree, gc, retval, build2 (MODIFY_EXPR, gpy_object_type_ptr,
 					       decl,rhs_tree_res_decl));
-      VEC_safe_push (tree, gc, retval, gpy_builtin_get_incr_ref_call (decl));
-      VEC_safe_push (tree, gc, retval, gpy_builtin_get_set_decl_call (decl));
+
+      VEC(tree,gc) * bc =  gpy_builtin_get_incr_ref_call (decl);
+      GPY_VEC_stmts_append(retval,bc);
+      bc = gpy_builtin_get_set_decl_call (decl);
+      GPY_VEC_stmts_append(retval,bc);
       VEC_safe_push (tree, gc, retval, decl);
       
     }

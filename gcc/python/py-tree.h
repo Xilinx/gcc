@@ -78,5 +78,14 @@ extern void gpy_symbol_init_ctx( gpy_symbol_obj * const )
 
 extern void gpy_init_ctx_branch( gpy_context_branch * const * )
   __attribute__((nonnull));
+		    
+#define GPY_VEC_stmts_append(x,y)			\
+  do {							\
+    int x_ = 0; tree t_ = NULL_TREE;			\
+    for (; VEC_iterate(tree,y,x_,t_); ++x_)		\
+      {							\
+        VEC_safe_push(tree,gc,x,t_);			\
+      }							\
+  } while (0);						\
 
 #endif //__PYPY_TREE_H__
