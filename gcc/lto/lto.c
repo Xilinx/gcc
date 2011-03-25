@@ -2446,8 +2446,8 @@ void
 lto_main (void)
 {
   lto_process_name ();
-
-  lto_init_reader ();
+  gimple_streamer_hooks_init ();
+  lto_reader_init ();
 
   /* Read all the symbols and call graph from all the files in the
      command line.  */

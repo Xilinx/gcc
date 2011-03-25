@@ -33,6 +33,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "gcov-io.h"
 
+/* Forward declarations to avoid included unnecessary headers.  */
+struct output_block;
+struct lto_input_block;
+struct data_in;
+
 /* Define when debugging the LTO streamer.  This causes the writer
    to output the numeric value for the memory address of the tree node
    being emitted.  When debugging a problem in the reader, check the
@@ -40,6 +45,31 @@ along with GCC; see the file COPYING3.  If not see
    With this value, set a breakpoint in the writer (e.g., lto_output_tree)
    to trace how the faulty node is being emitted.  */
 /* #define LTO_STREAMER_DEBUG	1  */
+
+/* Streamer hooks.  These functions do additional processing as
+   needed by the module.  There are two types of callbacks, those that
+   replace the default behavior and those that supplement it.  Any
+   or all of these hooks can be NULL.  */
+typedef struct lto_streamer_hooks {
+  /* Called by lto_reader_init after it does basic initialization.  */
+  void (*reader_init) (void);
+
+  /* Called by lto_writer_init after it does basic initalization.  */
+  void (*writer_init) (void);
+
+  /* Called by lto_write_tree after writing all the common parts of
+     a tree.  If defined, the callback is in charge of writing all
+     the fields that lto_write_tree did not write out.  Arguments
+     are as in lto_write_tree.  */
+  void (*write_tree) (struct output_block *, tree, bool);
+
+  /* Called by lto_read_tree after reading all the common parts of
+     a tree.  If defined, the callback is in charge of reading all
+     the fields that lto_read_tree did not read in.  Arguments
+     are as in lto_read_tree.  */
+  void (*read_tree) (struct lto_input_block *, struct data_in *, tree);
+} lto_streamer_hooks;
+
 
 /* The encoding for a function consists of the following sections:
 
@@ -847,17 +877,21 @@ extern intptr_t lto_orig_address_get (tree);
 extern void lto_orig_address_remove (tree);
 #endif
 extern void lto_check_version (int, int);
-
+extern void gimple_streamer_hooks_init (void);
+extern void gimple_streamer_write_tree (struct output_block *, tree, bool);
+extern void gimple_streamer_read_tree (struct lto_input_block *,
+				       struct data_in *, tree);
+extern lto_streamer_hooks *streamer_hooks (void);
+extern lto_streamer_hooks *streamer_hooks_init (void);
 
 /* In lto-streamer-in.c */
 extern void lto_input_cgraph (struct lto_file_decl_data *, const char *);
-extern void lto_init_reader (void);
+extern void lto_reader_init (void);
 extern tree lto_input_tree (struct lto_input_block *, struct data_in *);
 extern void lto_input_function_body (struct lto_file_decl_data *, tree,
 				     const char *);
 extern void lto_input_constructors_and_inits (struct lto_file_decl_data *,
 					      const char *);
-extern void lto_init_reader (void);
 extern struct data_in *lto_data_in_create (struct lto_file_decl_data *,
 				    const char *, unsigned,
 				    VEC(ld_plugin_symbol_resolution_t,heap) *);
@@ -865,9 +899,11 @@ extern void lto_data_in_delete (struct data_in *);
 extern const char *lto_input_string (struct data_in *,
 				     struct lto_input_block *);
 extern void lto_input_data_block (struct lto_input_block *, void *, size_t);
+extern void gimple_streamer_reader_init (void);
 
 
 /* In lto-streamer-out.c  */
+extern void lto_writer_init (void);
 extern void lto_register_decl_definition (tree, struct lto_file_decl_data *);
 extern struct output_block *create_output_block (enum lto_section_type);
 extern void destroy_output_block (struct output_block *);

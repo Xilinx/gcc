@@ -1,3 +1,8 @@
+2011-03-25  Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer.c (pph_stream_hooks_init): New.
+	(pph_stream_open): Call it.
+
 2011-03-23  Diego Novillo  <dnovillo@google.com>
 
 	* Make-lang.in (cp/pph-streamer.o): Add dependencies on

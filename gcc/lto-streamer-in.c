@@ -1983,7 +1983,11 @@ lto_input_ts_decl_minimal_tree_pointers (struct lto_input_block *ib,
 
 /* Read all pointer fields in the TS_DECL_COMMON structure of EXPR from
    input block IB.  DATA_IN contains tables and descriptors for the
-   file being read.  */
+   file being read.
+
+   Fields that should be handled by a callback:
+	DECL_INITIAL
+	DECL_ABSTRACT_ORIGIN.  */
 
 static void
 lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
@@ -1991,12 +1995,8 @@ lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
 {
   DECL_SIZE (expr) = lto_input_tree (ib, data_in);
   DECL_SIZE_UNIT (expr) = lto_input_tree (ib, data_in);
-
-  if (TREE_CODE (expr) != FUNCTION_DECL
-      && TREE_CODE (expr) != TRANSLATION_UNIT_DECL)
-    DECL_INITIAL (expr) = lto_input_tree (ib, data_in);
-
   DECL_ATTRIBUTES (expr) = lto_input_tree (ib, data_in);
+
   /* Do not stream DECL_ABSTRACT_ORIGIN.  We cannot handle debug information
      for early inlining so drop it on the floor instead of ICEing in
      dwarf2out.c.  */
@@ -2020,7 +2020,10 @@ lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
 
 /* Read all pointer fields in the TS_DECL_NON_COMMON structure of
    EXPR from input block IB.  DATA_IN contains tables and descriptors for the
-   file being read.  */
+   file being read.
+
+   Fields that should be handled by a callback:
+	DECL_SAVED_TREE.  */
 
 static void
 lto_input_ts_decl_non_common_tree_pointers (struct lto_input_block *ib,
@@ -2028,10 +2031,6 @@ lto_input_ts_decl_non_common_tree_pointers (struct lto_input_block *ib,
 {
   if (TREE_CODE (expr) == FUNCTION_DECL)
     {
-      /* FIXME pph - Hookize.  */
-#if 1
-      DECL_SAVED_TREE (expr) = lto_input_tree (ib, data_in);
-#endif
       DECL_ARGUMENTS (expr) = lto_input_tree (ib, data_in);
       DECL_RESULT (expr) = lto_input_tree (ib, data_in);
     }
@@ -2636,6 +2635,11 @@ lto_read_tree (struct lto_input_block *ib, struct data_in *data_in,
   /* Read all the pointer fields in RESULT.  */
   lto_input_tree_pointers (ib, data_in, result);
 
+  /* Call back into the streaming module to read anything else it
+     may need.  */
+  if (streamer_hooks ()->read_tree)
+    streamer_hooks ()->read_tree (ib, data_in, result);
+
   /* We should never try to instantiate an MD or NORMAL builtin here.  */
   if (TREE_CODE (result) == FUNCTION_DECL)
     gcc_assert (!lto_stream_as_builtin_p (result));
@@ -2654,6 +2658,22 @@ lto_read_tree (struct lto_input_block *ib, struct data_in *data_in,
 #endif
 
   return result;
+}
+
+
+/* LTO streamer hook for reading GIMPLE trees.  IB and DATA_IN are as in
+   lto_read_tree.  EXPR is the tree was materialized by lto_read_tree and
+   needs GIMPLE specific data to be filled in.  */
+
+void
+gimple_streamer_read_tree (struct lto_input_block *ib,
+			   struct data_in *data_in,
+			   tree expr)
+{
+  if (DECL_P (expr)
+      && TREE_CODE (expr) != FUNCTION_DECL
+      && TREE_CODE (expr) != TRANSLATION_UNIT_DECL)
+    DECL_INITIAL (expr) = lto_input_tree (ib, data_in);
 }
 
 
@@ -2738,16 +2758,23 @@ lto_input_tree (struct lto_input_block *ib, struct data_in *data_in)
 /* Initialization for the LTO reader.  */
 
 void
-lto_init_reader (void)
+lto_reader_init (void)
 {
   lto_streamer_init ();
+  if (streamer_hooks ()->reader_init)
+    streamer_hooks ()->reader_init ();
+}
 
+
+/* GIMPLE streamer hook for initializing the LTO reader.  */
+
+void
+gimple_streamer_reader_init (void)
+{
   memset (&lto_stats, 0, sizeof (lto_stats));
   bitmap_obstack_initialize (NULL);
-
   file_name_hash_table = htab_create (37, hash_string_slot_node,
 				      eq_string_slot_node, free);
-
   gimple_register_cfg_hooks ();
 }
 

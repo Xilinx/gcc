@@ -137,6 +137,17 @@ pph_stream_init_write (pph_stream *stream)
 }
 
 
+/* Initialize all the streamer hooks used for streaming ASTs.  */
+
+static void
+pph_streamer_hooks_init (void)
+{
+  lto_streamer_hooks *h = streamer_hooks_init ();
+  h->reader_init = NULL;
+  h->writer_init = NULL;
+}
+
+
 /* Create a new PPH stream to be stored on the file called NAME.
    MODE is passed to fopen directly.  */
 
@@ -150,6 +161,7 @@ pph_stream_open (const char *name, const char *mode)
   f = fopen (name, mode);
   if (f)
     {
+      pph_streamer_hooks_init ();
       stream = XCNEW (pph_stream);
       stream->file = f;
       stream->name = xstrdup (name);

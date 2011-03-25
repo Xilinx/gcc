@@ -802,3 +802,39 @@ lto_check_version (int major, int minor)
 		 major, minor,
 		 LTO_major_version, LTO_minor_version);
 }
+
+
+/* Initialize all the streamer hooks used for streaming GIMPLE.  */
+
+void
+gimple_streamer_hooks_init (void)
+{
+  lto_streamer_hooks *h = streamer_hooks_init ();
+  h->reader_init = gimple_streamer_reader_init;
+  h->writer_init = NULL;
+  h->write_tree = gimple_streamer_write_tree;
+  h->read_tree = gimple_streamer_read_tree;
+}
+
+
+/* Return the current set of streamer hooks.  Note that only one set
+   of streamer hooks can be active at a time.  */
+
+static lto_streamer_hooks streamer_hooks_;
+
+lto_streamer_hooks *
+streamer_hooks (void)
+{
+  return &streamer_hooks_;
+}
+
+
+/* Initialize and return the current set of streamer hooks.  */
+
+lto_streamer_hooks *
+streamer_hooks_init (void)
+{
+  lto_streamer_hooks *h = streamer_hooks ();
+  memset (h, 0, sizeof (lto_streamer_hooks));
+  return h;
+}

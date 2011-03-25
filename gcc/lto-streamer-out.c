@@ -835,7 +835,11 @@ lto_output_ts_decl_minimal_tree_pointers (struct output_block *ob, tree expr,
 
 /* Write all pointer fields in the TS_DECL_COMMON structure of EXPR to
    output block OB.  If REF_P is true, write a reference to EXPR's
-   pointer fields.  */
+   pointer fields.
+
+   Fields that should be handled by a callback:
+	DECL_INITIAL
+	DECL_ABSTRACT_ORIGIN.  */
 
 static void
 lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
@@ -844,30 +848,10 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
   lto_output_tree_or_ref (ob, DECL_SIZE (expr), ref_p);
   lto_output_tree_or_ref (ob, DECL_SIZE_UNIT (expr), ref_p);
 
-  if (TREE_CODE (expr) != FUNCTION_DECL
-      && TREE_CODE (expr) != TRANSLATION_UNIT_DECL)
-    {
-      tree initial = DECL_INITIAL (expr);
-      /* FIXME pph - Hookize.  */
-#if 0
-      if (TREE_CODE (expr) == VAR_DECL
-	  && (TREE_STATIC (expr) || DECL_EXTERNAL (expr))
-	  && initial)
-	{
-	  lto_varpool_encoder_t varpool_encoder = ob->decl_state->varpool_node_encoder;
-	  struct varpool_node *vnode = varpool_get_node (expr);
-	  if (!vnode)
-	    initial = error_mark_node;
-	  else if (!lto_varpool_encoder_encode_initializer_p (varpool_encoder,
-							      vnode))
-	    initial = NULL;
-	}
-#endif
-    
-      lto_output_tree_or_ref (ob, initial, ref_p);
-    }
+  /* Do not stream DECL_INITIAL.  */
 
   lto_output_tree_or_ref (ob, DECL_ATTRIBUTES (expr), ref_p);
+
   /* Do not stream DECL_ABSTRACT_ORIGIN.  We cannot handle debug information
      for early inlining so drop it on the floor instead of ICEing in
      dwarf2out.c.  */
@@ -887,7 +871,10 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
 
 /* Write all pointer fields in the TS_DECL_NON_COMMON structure of
    EXPR to output block OB.  If REF_P is true, write a reference to EXPR's
-   pointer fields.  */
+   pointer fields.
+
+   Fields that should be handled by a callback:
+	DECL_SAVED_TREE.  */
 
 static void
 lto_output_ts_decl_non_common_tree_pointers (struct output_block *ob,
@@ -895,16 +882,6 @@ lto_output_ts_decl_non_common_tree_pointers (struct output_block *ob,
 {
   if (TREE_CODE (expr) == FUNCTION_DECL)
     {
-#if 0
-      /* DECL_SAVED_TREE holds the GENERIC representation for DECL.
-	 At this point, it should not exist.  Either because it was
-	 converted to gimple or because DECL didn't have a GENERIC
-	 representation in this TU.  */
-      gcc_assert (DECL_SAVED_TREE (expr) == NULL_TREE);
-#else
-      /* FIXME pph - Hookize and handle FE ASTs.  */
-      lto_output_tree_or_ref (ob, NULL, ref_p);
-#endif
       lto_output_tree_or_ref (ob, DECL_ARGUMENTS (expr), ref_p);
       lto_output_tree_or_ref (ob, DECL_RESULT (expr), ref_p);
     }
@@ -1355,8 +1332,55 @@ lto_write_tree (struct output_block *ob, tree expr, bool ref_p, int ix)
   /* Write all the pointer fields in EXPR.  */
   lto_output_tree_pointers (ob, expr, ref_p);
 
+  /* Call back into the streaming module to see if it needs to write
+     anything that was not written by the common streamer.  */
+  if (streamer_hooks ()->write_tree)
+    streamer_hooks ()->write_tree (ob, expr, ref_p);
+
   /* Mark the end of EXPR.  */
   output_zero (ob);
+}
+
+
+/* GIMPLE hook for writing GIMPLE-specific parts of trees.  OB, EXPR
+   and REF_P are as in lto_write_tree.  */
+
+void
+gimple_streamer_write_tree (struct output_block *ob, tree expr, bool ref_p)
+{
+  if (TREE_CODE (expr) == FUNCTION_DECL)
+    {
+      /* DECL_SAVED_TREE holds the GENERIC representation for DECL.
+	 At this point, it should not exist.  Either because it was
+	 converted to gimple or because DECL didn't have a GENERIC
+	 representation in this TU.  */
+      gcc_assert (DECL_SAVED_TREE (expr) == NULL_TREE);
+    }
+
+  if (DECL_P (expr)
+      && TREE_CODE (expr) != FUNCTION_DECL
+      && TREE_CODE (expr) != TRANSLATION_UNIT_DECL)
+    {
+      /* Handle DECL_INITIAL for symbols.  */
+      tree initial = DECL_INITIAL (expr);
+      if (TREE_CODE (expr) == VAR_DECL
+	  && (TREE_STATIC (expr) || DECL_EXTERNAL (expr))
+	  && initial)
+	{
+	  lto_varpool_encoder_t varpool_encoder;
+	  struct varpool_node *vnode;
+
+	  varpool_encoder = ob->decl_state->varpool_node_encoder;
+	  vnode = varpool_get_node (expr);
+	  if (!vnode)
+	    initial = error_mark_node;
+	  else if (!lto_varpool_encoder_encode_initializer_p (varpool_encoder,
+							      vnode))
+	    initial = NULL;
+	}
+
+      lto_output_tree_or_ref (ob, initial, ref_p);
+    }
 }
 
 
@@ -2203,10 +2227,12 @@ copy_function (struct cgraph_node *node)
 
 /* Initialize the LTO writer.  */
 
-static void
+void
 lto_writer_init (void)
 {
   lto_streamer_init ();
+  if (streamer_hooks ()->writer_init)
+    streamer_hooks ()->writer_init ();
 }
 
 
@@ -2223,6 +2249,7 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
   int i, n_nodes;
   lto_cgraph_encoder_t encoder = lto_get_out_decl_state ()->cgraph_node_encoder;
 
+  gimple_streamer_hooks_init ();
   lto_writer_init ();
 
   n_nodes = lto_cgraph_encoder_size (encoder);

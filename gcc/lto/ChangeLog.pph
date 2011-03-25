@@ -1,0 +1,3 @@
+2011-03-25  Diego Novillo  <dnovillo@google.com>
+
+	* lto.c (lto_main): Call gimple_streamer_hooks_init.
