@@ -53,7 +53,7 @@ typedef int (*tree_fn_t) (tree, void*);
 /* The PENDING_TEMPLATES is a TREE_LIST of templates whose
    instantiations have been deferred, either because their definitions
    were not yet available, or because we were putting off doing the work.  */
-struct GTY (()) pending_template {
+struct GTY ((chain_next ("%h.next"))) pending_template {
   struct pending_template *next;
   struct tinst_level *tinst;
 };
@@ -1533,7 +1533,10 @@ iterative_hash_template_arg (tree arg, hashval_t val)
 
     case PARM_DECL:
       if (!DECL_ARTIFICIAL (arg))
-	val = iterative_hash_object (DECL_PARM_INDEX (arg), val);
+	{
+	  val = iterative_hash_object (DECL_PARM_INDEX (arg), val);
+	  val = iterative_hash_object (DECL_PARM_LEVEL (arg), val);
+	}
       return iterative_hash_template_arg (TREE_TYPE (arg), val);
 
     case TARGET_EXPR:
@@ -1565,13 +1568,6 @@ iterative_hash_template_arg (tree arg, hashval_t val)
       code = TREE_CODE (TREE_OPERAND (arg, 1));
       val = iterative_hash_object (code, val);
       return iterative_hash_template_arg (TREE_OPERAND (arg, 2), val);
-
-    case ARRAY_TYPE:
-      /* layout_type sets structural equality for arrays of
-	 incomplete type, so we can't rely on the canonical type
-	 for hashing.  */
-      val = iterative_hash_template_arg (TREE_TYPE (arg), val);
-      return iterative_hash_template_arg (TYPE_DOMAIN (arg), val);
 
     case LAMBDA_EXPR:
       /* A lambda can't appear in a template arg, but don't crash on
@@ -5311,7 +5307,8 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 
   /* Add the ADDR_EXPR now for the benefit of
      value_dependent_expression_p.  */
-  if (TYPE_PTROBV_P (type))
+  if (TYPE_PTROBV_P (type)
+      && TREE_CODE (TREE_TYPE (expr)) == ARRAY_TYPE)
     expr = decay_conversion (expr);
 
   /* If we are in a template, EXPR may be non-dependent, but still
@@ -5399,11 +5396,19 @@ convert_nontype_argument (tree type, tree expr, tsubst_flags_t complain)
 	{
 	  if (complain & tf_error)
 	    {
-	      error ("%qE is not a valid template argument for type %qT "
-		     "because it is a non-constant expression", expr, type);
-	      cxx_constant_value (expr);
+	      int errs = errorcount, warns = warningcount;
+	      expr = cxx_constant_value (expr);
+	      if (errorcount > errs || warningcount > warns)
+		inform (EXPR_LOC_OR_HERE (expr),
+			"in template argument for type %qT ", type);
+	      if (expr == error_mark_node)
+		return NULL_TREE;
+	      /* else cxx_constant_value complained but gave us
+		 a real constant, so go ahead.  */
+	      gcc_assert (TREE_CODE (expr) == INTEGER_CST);
 	    }
-	  return NULL_TREE;
+	  else
+	    return NULL_TREE;
 	}
     }
   /* [temp.arg.nontype]/5, bullet 2
@@ -8963,9 +8968,14 @@ static tree
 tsubst_template_args (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 {
   tree orig_t = t;
-  int len = TREE_VEC_LENGTH (t);
-  int need_new = 0, i, expanded_len_adjust = 0, out;
-  tree *elts = XALLOCAVEC (tree, len);
+  int len, need_new = 0, i, expanded_len_adjust = 0, out;
+  tree *elts;
+
+  if (t == error_mark_node)
+    return error_mark_node;
+
+  len = TREE_VEC_LENGTH (t);
+  elts = XALLOCAVEC (tree, len);
 
   for (i = 0; i < len; i++)
     {
@@ -10938,11 +10948,21 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	if (TREE_CODE (f) != TYPENAME_TYPE)
 	  {
 	    if (TYPENAME_IS_ENUM_P (t) && TREE_CODE (f) != ENUMERAL_TYPE)
-	      error ("%qT resolves to %qT, which is not an enumeration type",
-		     t, f);
+	      {
+		if (complain & tf_error)
+		  error ("%qT resolves to %qT, which is not an enumeration type",
+			 t, f);
+		else
+		  return error_mark_node;
+	      }
 	    else if (TYPENAME_IS_CLASS_P (t) && !CLASS_TYPE_P (f))
-	      error ("%qT resolves to %qT, which is is not a class type",
-		     t, f);
+	      {
+		if (complain & tf_error)
+		  error ("%qT resolves to %qT, which is is not a class type",
+			 t, f);
+		else
+		  return error_mark_node;
+	      }
 	  }
 
 	return cp_build_qualified_type_real
@@ -11719,7 +11739,9 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
       return t;
 
     default:
-      gcc_unreachable ();
+      /* We shouldn't get here, but keep going if !ENABLE_CHECKING.  */
+      gcc_checking_assert (false);
+      return t;
     }
 }
 
@@ -12976,7 +12998,7 @@ tsubst_copy_and_build (tree t,
       return finish_pseudo_destructor_expr
 	(RECUR (TREE_OPERAND (t, 0)),
 	 RECUR (TREE_OPERAND (t, 1)),
-	 RECUR (TREE_OPERAND (t, 2)));
+	 tsubst (TREE_OPERAND (t, 2), args, complain, in_decl));
 
     case TREE_LIST:
       {
@@ -13365,7 +13387,11 @@ tsubst_copy_and_build (tree t,
       /* We can get here for a constant initializer of non-dependent type.
          FIXME stop folding in cp_parser_initializer_clause.  */
       gcc_assert (TREE_CONSTANT (t));
-      return get_target_expr (RECUR (TARGET_EXPR_INITIAL (t)));
+      {
+	tree r = get_target_expr (RECUR (TARGET_EXPR_INITIAL (t)));
+	TREE_CONSTANT (r) = true;
+	return r;
+      }
 
     default:
       /* Handle Objective-C++ constructs, if appropriate.  */
@@ -15665,6 +15691,9 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
       return 1;
 
     default:
+      /* An unresolved overload is a nondeduced context.  */
+      if (type_unknown_p (parm))
+	return 0;
       gcc_assert (EXPR_P (parm));
 
       /* We must be looking at an expression.  This can happen with
@@ -17202,8 +17231,13 @@ instantiate_decl (tree d, int defer_ok,
   if (!pattern_defined && expl_inst_class_mem_p
       && DECL_EXPLICIT_INSTANTIATION (d))
     {
-      DECL_NOT_REALLY_EXTERN (d) = 0;
-      DECL_INTERFACE_KNOWN (d) = 0;
+      /* Leave linkage flags alone on instantiations with anonymous
+	 visibility.  */
+      if (TREE_PUBLIC (d))
+	{
+	  DECL_NOT_REALLY_EXTERN (d) = 0;
+	  DECL_INTERFACE_KNOWN (d) = 0;
+	}
       SET_DECL_IMPLICIT_INSTANTIATION (d);
     }
 
@@ -18091,6 +18125,7 @@ value_dependent_expression_p (tree expression)
 
     case SIZEOF_EXPR:
     case ALIGNOF_EXPR:
+    case TYPEID_EXPR:
       /* A `sizeof' expression is value-dependent if the operand is
 	 type-dependent or is a pack expansion.  */
       expression = TREE_OPERAND (expression, 0);
@@ -18108,9 +18143,7 @@ value_dependent_expression_p (tree expression)
 
     case NOEXCEPT_EXPR:
       expression = TREE_OPERAND (expression, 0);
-      /* FIXME why check value-dependency?  */
-      return (type_dependent_expression_p (expression)
-	      || value_dependent_expression_p (expression));
+      return type_dependent_expression_p (expression);
 
     case SCOPE_REF:
       {

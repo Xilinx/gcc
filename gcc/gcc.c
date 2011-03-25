@@ -621,18 +621,36 @@ proper position among the other output files.  */
 # endif
 #endif
 
-/* Conditional to test whether plugin is used or not.
+/* Conditional to test whether the LTO plugin is used or not.
    FIXME: For slim LTO we will need to enable plugin unconditionally.  This
    still cause problems with PLUGIN_LD != LD and when plugin is built but
    not useable.  For GCC 4.6 we don't support slim LTO and thus we can enable
    plugin only when LTO is enabled.  We still honor explicit
-   -fuse-linker-plugin.  */
-#ifdef HAVE_LTO_PLUGIN
+   -fuse-linker-plugin if the linker used understands -plugin.  */
+
+/* The linker has some plugin support.  */
+#if HAVE_LTO_PLUGIN > 0
+/* The linker used has full plugin support, use LTO plugin by default.  */
+#if HAVE_LTO_PLUGIN == 2
 #define PLUGIN_COND "!fno-use-linker-plugin:%{flto|flto=*|fuse-linker-plugin"
 #define PLUGIN_COND_CLOSE "}"
 #else
+/* The linker used has limited plugin support, use LTO plugin with explicit
+   -fuse-linker-plugin.  */
 #define PLUGIN_COND "fuse-linker-plugin"
 #define PLUGIN_COND_CLOSE ""
+#endif
+#define LINK_PLUGIN_SPEC \
+    "%{"PLUGIN_COND": \
+    -plugin %(linker_plugin_file) \
+    -plugin-opt=%(lto_wrapper) \
+    -plugin-opt=-fresolution=%u.res \
+    %{!nostdlib:%{!nodefaultlibs:%:pass-through-libs(%(link_gcc_c_sequence))}} \
+    }"PLUGIN_COND_CLOSE
+#else
+/* The linker used doesn't support -plugin, reject -fuse-linker-plugin.  */
+#define LINK_PLUGIN_SPEC "%{fuse-linker-plugin:\
+    %e-fuse-linker-plugin is not supported in this configuration}"
 #endif
 
 
@@ -648,14 +666,9 @@ proper position among the other output files.  */
 #ifndef LINK_COMMAND_SPEC
 #define LINK_COMMAND_SPEC "\
 %{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
-    %(linker) \
-    %{"PLUGIN_COND": \
-    -plugin %(linker_plugin_file) \
-    -plugin-opt=%(lto_wrapper) \
-    -plugin-opt=-fresolution=%u.res \
-    %{!nostdlib:%{!nodefaultlibs:%:pass-through-libs(%(link_gcc_c_sequence))}} \
-    }"PLUGIN_COND_CLOSE" \
-    %{flto|flto=*:%<fcompare-debug*} \
+    %(linker) " \
+    LINK_PLUGIN_SPEC \
+    "%{flto|flto=*:%<fcompare-debug*} \
     %{flto} %{flto=*} %l " LINK_PIE_SPEC \
    "%X %{o*} %{e*} %{N} %{n} %{r}\
     %{s} %{t} %{u*} %{z} %{Z} %{!nostdlib:%{!nostartfiles:%S}}\
@@ -2538,13 +2551,20 @@ execute (void)
 			}
 		      fputc ('"', stderr);
 		    }
+		  /* If it's empty, print "".  */
+		  else if (!**j)
+		    fprintf (stderr, " \"\"");
 		  else
 		    fprintf (stderr, " %s", *j);
 		}
 	    }
 	  else
 	    for (j = commands[i].argv; *j; j++)
-	      fprintf (stderr, " %s", *j);
+	      /* If it's empty, print "".  */
+	      if (!**j)
+		fprintf (stderr, " \"\"");
+	      else
+		fprintf (stderr, " %s", *j);
 
 	  /* Print a pipe symbol after all but the last command.  */
 	  if (i + 1 != n_commands)
@@ -3060,16 +3080,24 @@ save_switch (const char *opt, size_t n_args, const char *const *args,
 }
 
 /* Handle an option DECODED that is unknown to the option-processing
-   machinery, but may be known to specs.  */
+   machinery.  */
 
 static bool
 driver_unknown_option_callback (const struct cl_decoded_option *decoded)
 {
-  save_switch (decoded->canonical_option[0],
-	       decoded->canonical_option_num_elements - 1,
-	       &decoded->canonical_option[1], false);
-
-  return false;
+  const char *opt = decoded->arg;
+  if (opt[1] == 'W' && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-'
+      && !(decoded->errors & CL_ERR_NEGATIVE))
+    {
+      /* Leave unknown -Wno-* options for the compiler proper, to be
+	 diagnosed only if there are warnings.  */
+      save_switch (decoded->canonical_option[0],
+		   decoded->canonical_option_num_elements - 1,
+		   &decoded->canonical_option[1], false);
+      return false;
+    }
+  else
+    return true;
 }
 
 /* Handle an option DECODED that is not marked as CL_DRIVER.
@@ -3090,7 +3118,9 @@ driver_wrong_lang_callback (const struct cl_decoded_option *decoded,
     error ("unrecognized command line option %qs",
 	   decoded->orig_option_with_args_text);
   else
-    driver_unknown_option_callback (decoded);
+    save_switch (decoded->canonical_option[0],
+		 decoded->canonical_option_num_elements - 1,
+		 &decoded->canonical_option[1], false);
 }
 
 /* Note that an option (index OPT_INDEX, argument ARG, value VALUE)
@@ -4423,6 +4453,10 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
   int i;
   int value;
 
+  /* If it's an empty string argument to a switch, keep it as is.  */
+  if (inswitch && !*p)
+    arg_going = 1;
+
   while ((c = *p++))
     /* If substituting a switch, treat all chars like letters.
        Otherwise, NL, SPC, TAB and % are special.  */
@@ -5149,7 +5183,8 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 	  case '*':
 	    if (soft_matched_part)
 	      {
-		do_spec_1 (soft_matched_part, 1, NULL);
+		if (soft_matched_part[0])
+		  do_spec_1 (soft_matched_part, 1, NULL);
 		do_spec_1 (" ", 0, NULL);
 	      }
 	    else
@@ -6803,10 +6838,12 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
   if (num_linker_inputs > 0 && !seen_error () && print_subprocess_help < 2)
     {
       int tmp = execution_count;
-#ifdef HAVE_LTO_PLUGIN
+#if HAVE_LTO_PLUGIN > 0
+#if HAVE_LTO_PLUGIN == 2
       const char *fno_use_linker_plugin = "fno-use-linker-plugin";
 #else
       const char *fuse_linker_plugin = "fuse-linker-plugin";
+#endif
 #endif
 
       /* We'll use ld if we can't find collect2.  */
@@ -6817,7 +6854,8 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	    linker_name_spec = "ld";
 	}
 
-#ifdef HAVE_LTO_PLUGIN
+#if HAVE_LTO_PLUGIN > 0
+#if HAVE_LTO_PLUGIN == 2
       if (!switch_matches (fno_use_linker_plugin,
 			   fno_use_linker_plugin + strlen (fno_use_linker_plugin), 0))
 #else
@@ -6831,6 +6869,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  if (!linker_plugin_file_spec)
 	    fatal_error ("-fuse-linker-plugin, but " LTOPLUGINSONAME " not found");
 	}
+#endif
       lto_gcc_spec = argv[0];
 
       /* Rebuild the COMPILER_PATH and LIBRARY_PATH environment variables

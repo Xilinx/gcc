@@ -1,6 +1,6 @@
 /* Register Transfer Language (RTL) definitions for GCC
    Copyright (C) 1987, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -833,6 +833,10 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
    but a value from enum reg_note.  */
 #define REG_NOTES(INSN)	XEXP(INSN, 7)
 
+/* In an ENTRY_VALUE this is the DECL_INCOMING_RTL of the argument in
+   question.  */
+#define ENTRY_VALUE_EXP(RTX) (RTL_CHECKC1 (RTX, 0, ENTRY_VALUE).rt_rtx)
+
 enum reg_note
 {
 #define DEF_REG_NOTE(NAME) NAME,
@@ -1279,24 +1283,6 @@ do {									\
 #define MEM_NOTRAP_P(RTX) \
   (RTL_FLAG_CHECK1("MEM_NOTRAP_P", (RTX), MEM)->call)
 
-/* If VAL is nonzero, set MEM_IN_STRUCT_P and clear MEM_SCALAR_P in
-   RTX.  Otherwise, vice versa.  Use this macro only when you are
-   *sure* that you know that the MEM is in a structure, or is a
-   scalar.  VAL is evaluated only once.  */
-#define MEM_SET_IN_STRUCT_P(RTX, VAL)		\
-do {						\
-  if (VAL)					\
-    {						\
-      MEM_IN_STRUCT_P (RTX) = 1;		\
-      MEM_SCALAR_P (RTX) = 0;			\
-    }						\
-  else						\
-    {						\
-      MEM_IN_STRUCT_P (RTX) = 0;		\
-      MEM_SCALAR_P (RTX) = 1;			\
-    }						\
-} while (0)
-
 /* The memory attribute block.  We provide access macros for each value
    in the block and provide defaults if none specified.  */
 #define MEM_ATTRS(RTX) X0MEMATTR (RTX, 1)
@@ -1685,7 +1671,9 @@ extern rtx simplify_subtraction (rtx);
 
 /* In function.c  */
 extern rtx assign_stack_local (enum machine_mode, HOST_WIDE_INT, int);
-extern rtx assign_stack_local_1 (enum machine_mode, HOST_WIDE_INT, int, bool);
+#define ASLK_REDUCE_ALIGN 1
+#define ASLK_RECORD_PAD 2
+extern rtx assign_stack_local_1 (enum machine_mode, HOST_WIDE_INT, int, int);
 extern rtx assign_stack_temp (enum machine_mode, HOST_WIDE_INT, int);
 extern rtx assign_stack_temp_for_type (enum machine_mode,
 				       HOST_WIDE_INT, int, tree);

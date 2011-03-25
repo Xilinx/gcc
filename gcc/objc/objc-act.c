@@ -4203,9 +4203,6 @@ build_private_template (tree klass)
       /* Copy the attributes from the class to the type.  */
       if (TREE_DEPRECATED (klass))
 	TREE_DEPRECATED (record) = 1;
-
-      if (CLASS_HAS_EXCEPTION_ATTR (klass))
-	CLASS_HAS_EXCEPTION_ATTR (record) = 1;
     }
 }
 
@@ -5925,6 +5922,58 @@ add_category (tree klass, tree category)
     }
 }
 
+#ifndef OBJCPLUS
+/* A flexible array member is a C99 extension where you can use
+   "type[]" at the end of a struct to mean a variable-length array.
+
+   In Objective-C, instance variables are fundamentally members of a
+   struct, but the struct can always be extended by subclassing; hence
+   we need to detect and forbid all instance variables declared using
+   flexible array members.
+
+   No check for this is needed in Objective-C++, since C++ does not
+   have flexible array members.  */
+
+/* Determine whether TYPE is a structure with a flexible array member,
+   a union containing such a structure (possibly recursively) or an
+   array of such structures or unions.  These are all invalid as
+   instance variable.  */
+static bool
+flexible_array_type_p (tree type)
+{
+  tree x;
+  switch (TREE_CODE (type))
+    {
+    case RECORD_TYPE:
+      x = TYPE_FIELDS (type);
+      if (x == NULL_TREE)
+	return false;
+      while (DECL_CHAIN (x) != NULL_TREE)
+	x = DECL_CHAIN (x);
+      if (TREE_CODE (TREE_TYPE (x)) == ARRAY_TYPE
+	  && TYPE_SIZE (TREE_TYPE (x)) == NULL_TREE
+	  && TYPE_DOMAIN (TREE_TYPE (x)) != NULL_TREE
+	  && TYPE_MAX_VALUE (TYPE_DOMAIN (TREE_TYPE (x))) == NULL_TREE)
+	return true;
+      return false;
+    case UNION_TYPE:
+      for (x = TYPE_FIELDS (type); x != NULL_TREE; x = DECL_CHAIN (x))
+	{
+	  if (flexible_array_type_p (TREE_TYPE (x)))
+	    return true;
+	}
+      return false;
+    /* Note that we also check for arrays of something that uses a flexible array member.  */
+    case ARRAY_TYPE:
+      if (flexible_array_type_p (TREE_TYPE (type)))
+	return true;
+      return false;
+    default:
+    return false;
+  }
+}
+#endif
+
 /* Called after parsing each instance variable declaration. Necessary to
    preserve typedefs and implement public/private...
 
@@ -5957,6 +6006,27 @@ add_instance_variable (tree klass, objc_ivar_visibility_kind visibility,
       /* Return class as is without adding this ivar.  */
       return klass;
     }
+
+#ifndef OBJCPLUS
+  /* Also, in C reject a struct with a flexible array member.  Ie,
+
+       struct A { int x; int[] y; };
+
+       @interface X
+       {
+         struct A instance_variable;
+       }
+       @end
+
+       is not valid because if the class is subclassed, we wouldn't be able
+       to calculate the offset of the next instance variable.  */
+  if (flexible_array_type_p (field_type))
+    {
+      error ("instance variable %qs uses flexible array member", ivar_name);
+      /* Return class as is without adding this ivar.  */
+      return klass;      
+    }
+#endif
 
 #ifdef OBJCPLUS
   /* Check if the ivar being added has a non-POD C++ type.   If so, we will
@@ -9926,27 +9996,23 @@ encode_array (tree type, int curtype, int format)
   if (an_int_cst == NULL)
     {
       /* We are trying to encode an incomplete array.  An incomplete
-	 array is forbidden as part of an instance variable.  */
-      if (generating_instance_variables)
-	{
-	  /* TODO: Detect this error earlier.  */
-	  error ("instance variable has unknown size");
-	  return;
-	}
+	 array is forbidden as part of an instance variable; but it
+	 may occur if the instance variable is a pointer to such an
+	 array.  */
 
-      /* So the only case in which an incomplete array could occur is
-	 if we are encoding the arguments or return value of a method.
-	 In that case, an incomplete array argument or return value
-	 (eg, -(void)display: (char[])string) is treated like a
-	 pointer because that is how the compiler does the function
-	 call.  A special, more complicated case, is when the
-	 incomplete array is the last member of a struct (eg, if we
-	 are encoding "struct { unsigned long int a;double b[];}"),
-	 which is again part of a method argument/return value.  In
-	 that case, we really need to communicate to the runtime that
-	 there is an incomplete array (not a pointer!) there.  So, we
-	 detect that special case and encode it as a zero-length
-	 array.
+      /* So the only case in which an incomplete array could occur
+	 (without being pointed to) is if we are encoding the
+	 arguments or return value of a method.  In that case, an
+	 incomplete array argument or return value (eg,
+	 -(void)display: (char[])string) is treated like a pointer
+	 because that is how the compiler does the function call.  A
+	 special, more complicated case, is when the incomplete array
+	 is the last member of a struct (eg, if we are encoding
+	 "struct { unsigned long int a;double b[];}"), which is again
+	 part of a method argument/return value.  In that case, we
+	 really need to communicate to the runtime that there is an
+	 incomplete array (not a pointer!) there.  So, we detect that
+	 special case and encode it as a zero-length array.
 
 	 Try to detect that we are part of a struct.  We do this by
 	 searching for '=' in the type encoding for the current type.
@@ -10429,47 +10495,79 @@ encode_field_decl (tree field_decl, int curtype, int format)
      kPropertyGetter = 'G',
      kPropertySetter = 'S',
      kPropertyInstanceVariable = 'V',
-     kPropertyType = 't',
+     kPropertyType = 'T',
      kPropertyWeak = 'W',
-     kPropertyStrong = 'S',
+     kPropertyStrong = 'P',
      kPropertyNonAtomic = 'N'
-   };
-
-   FIXME: Update the implementation to match.  */
+   };  */
 tree
 objc_v2_encode_prop_attr (tree property)
 {
   const char *string;
   tree type = TREE_TYPE (property);
-  obstack_1grow (&util_obstack, 't');
+
+  obstack_1grow (&util_obstack, 'T');
   encode_type (type, obstack_object_size (&util_obstack),
 	       OBJC_ENCODE_INLINE_DEFS);
+
   if (PROPERTY_READONLY (property))
-    obstack_grow (&util_obstack, ",r", 2);
+    obstack_grow (&util_obstack, ",R", 2);
 
-  if (PROPERTY_ASSIGN_SEMANTICS (property) == OBJC_PROPERTY_COPY)
-    obstack_grow (&util_obstack, ",c", 2);
-
-  if (PROPERTY_GETTER_NAME (property))
+  switch (PROPERTY_ASSIGN_SEMANTICS (property))
     {
-      obstack_grow (&util_obstack, ",g", 2);
+    case OBJC_PROPERTY_COPY:
+      obstack_grow (&util_obstack, ",C", 2);
+      break;
+    case OBJC_PROPERTY_RETAIN:
+      obstack_grow (&util_obstack, ",&", 2);
+      break;
+    case OBJC_PROPERTY_ASSIGN:
+    default:
+      break;
+    }
+
+  if (PROPERTY_DYNAMIC (property))
+    obstack_grow (&util_obstack, ",D", 2);    
+
+  if (PROPERTY_NONATOMIC (property))
+    obstack_grow (&util_obstack, ",N", 2);
+
+  /* Here we want to encode the getter name, but only if it's not the
+     standard one.  */
+  if (PROPERTY_GETTER_NAME (property) != PROPERTY_NAME (property))
+    {
+      obstack_grow (&util_obstack, ",G", 2);
       string = IDENTIFIER_POINTER (PROPERTY_GETTER_NAME (property));
       obstack_grow (&util_obstack, string, strlen (string));
     }
-  if (PROPERTY_SETTER_NAME (property))
+
+  if (!PROPERTY_READONLY (property))
     {
-      obstack_grow (&util_obstack, ",s", 2);
-      string = IDENTIFIER_POINTER (PROPERTY_SETTER_NAME (property));
+      /* Here we want to encode the setter name, but only if it's not
+	 the standard one.  */
+      tree standard_setter = get_identifier (objc_build_property_setter_name (PROPERTY_NAME (property)));
+      if (PROPERTY_SETTER_NAME (property) != standard_setter)
+	{
+	  obstack_grow (&util_obstack, ",S", 2);
+	  string = IDENTIFIER_POINTER (PROPERTY_SETTER_NAME (property));
+	  obstack_grow (&util_obstack, string, strlen (string));
+	}
+    }
+
+  /* TODO: Encode strong ('P'), weak ('W') for garbage collection.  */
+
+  if (!PROPERTY_DYNAMIC (property))
+    {
+      obstack_grow (&util_obstack, ",V", 2);
+      if (PROPERTY_IVAR_NAME (property))
+	string = IDENTIFIER_POINTER (PROPERTY_IVAR_NAME (property));
+      else
+	string = IDENTIFIER_POINTER (PROPERTY_NAME (property));
       obstack_grow (&util_obstack, string, strlen (string));
     }
-  if (PROPERTY_IVAR_NAME (property))
-    {
-      obstack_grow (&util_obstack, ",i", 2);
-      string = IDENTIFIER_POINTER (PROPERTY_IVAR_NAME (property));
-      obstack_grow (&util_obstack, string, strlen (string));
-    }
-    
-  obstack_1grow (&util_obstack, 0);    /* null terminate string */
+
+  /* NULL-terminate string.  */
+  obstack_1grow (&util_obstack, 0);
   string = XOBFINISH (&util_obstack, char *);
   obstack_free (&util_obstack, util_firstobj);
   return get_identifier (string);

@@ -3193,9 +3193,7 @@ verify_gimple_assign_unary (gimple stmt)
   tree rhs1 = gimple_assign_rhs1 (stmt);
   tree rhs1_type = TREE_TYPE (rhs1);
 
-  if (!is_gimple_reg (lhs)
-      && !(optimize == 0
-	   && TREE_CODE (lhs_type) == COMPLEX_TYPE))
+  if (!is_gimple_reg (lhs))
     {
       error ("non-register as LHS of unary operation");
       return true;
@@ -3351,9 +3349,7 @@ verify_gimple_assign_binary (gimple stmt)
   tree rhs2 = gimple_assign_rhs2 (stmt);
   tree rhs2_type = TREE_TYPE (rhs2);
 
-  if (!is_gimple_reg (lhs)
-      && !(optimize == 0
-	   && TREE_CODE (lhs_type) == COMPLEX_TYPE))
+  if (!is_gimple_reg (lhs))
     {
       error ("non-register as LHS of binary operation");
       return true;
@@ -3618,9 +3614,7 @@ verify_gimple_assign_ternary (gimple stmt)
   tree rhs3 = gimple_assign_rhs3 (stmt);
   tree rhs3_type = TREE_TYPE (rhs3);
 
-  if (!is_gimple_reg (lhs)
-      && !(optimize == 0
-	   && TREE_CODE (lhs_type) == COMPLEX_TYPE))
+  if (!is_gimple_reg (lhs))
     {
       error ("non-register as LHS of ternary operation");
       return true;
@@ -3668,6 +3662,11 @@ verify_gimple_assign_ternary (gimple stmt)
 	  return true;
 	}
       break;
+
+    case DOT_PROD_EXPR:
+    case REALIGN_LOAD_EXPR:
+      /* FIXME.  */
+      return false;
 
     default:
       gcc_unreachable ();
@@ -3799,10 +3798,7 @@ verify_gimple_assign_single (gimple stmt)
     case OBJ_TYPE_REF:
     case ASSERT_EXPR:
     case WITH_SIZE_EXPR:
-    case POLYNOMIAL_CHREC:
-    case DOT_PROD_EXPR:
     case VEC_COND_EXPR:
-    case REALIGN_LOAD_EXPR:
       /* FIXME.  */
       return res;
 

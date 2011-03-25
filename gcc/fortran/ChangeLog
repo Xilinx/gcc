@@ -1,3 +1,125 @@
+2010-03-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/22572
+	* gfortran.h (gfc_option_t) : Add
+	flag_aggressive_function_elimination.
+	(gfc_dep_compare_functions):  Add prototype.
+	* lang.opt: Add faggressive-function-elimination.
+	* invoke.texi: Document -faggressive-function-elimination.
+	* frontend_passes (expr_array):  New static variable.
+	(expr_size):  Likewise.
+	(expr_count):  Likewise.
+	(current_code):  Likewise.
+	(current_ns):  Likewise.
+	(gfc_run_passes):  Allocate and free space for expressions.
+	(cfe_register_funcs):  New function.
+	(create_var):  New function.
+	(cfc_expr_0):  New function.
+	(cfe_code):  New function.
+	(optimize_namespace):  Invoke gfc_code_walker with cfe_code
+	and cfe_expr_0.
+	* dependency.c (gfc_dep_compare_functions):  New function.
+	(gfc_dep_compare_expr):  Use it.
+	* options.c (gfc_init_options):  Handle
+	flag_aggressive_function_elimination.
+	(gfc_handle_option):  Likewise.
+
+2011-03-15  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	* arith.c (arith_power): Plug memory leak.
+
+2011-03-12  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/48059
+	* trans-expr.c (gfc_apply_interface_mapping_to_expr): Replace base type
+	for polymorphic arguments.
+
+2011-03-12  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/48054
+	* intrinsic.texi: Clarify doc of logarithm functions.
+
+2011-03-12  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/47552
+	* trans-intrinsic.c (gfc_conv_intrinsic_ctime): Fix type of
+	the string length variable.
+
+2011-03-11  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/47768
+	* module.c (ab_attribute,attr_bits): Add AB_PROC_POINTER_COMP.
+	(mio_symbol_attribute): Handle attribute 'proc_pointer_comp'.
+
+2011-03-06  Paul Thomas  <pault@gcc.gnu.org>
+	    Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR fortran/47850
+	* expr.c (gfc_is_constant_expr): Only use gfc_constant_ac if
+	the expression has an iterator.  Otherwise, iterate through the
+	array, checking for constant expressions for each element.
+
+2011-03-04  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47802
+	* intrinsic.texi: Update CTIME and FDATE documentation.
+
+2011-03-03  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* invoke.texi (Option Summary, Fortran Dialect Options)
+	(Preprocessing Options, Runtime Options, Code Gen Options):
+	Fix vertical list spacing by using @itemx for additinoal
+	items, empty line before @table.  Fix typos.
+
+2011-02-28  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/47894
+	* intrinsic.texi: Fix doc of the VERIFY intrinsic.
+
+2011-02-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47846
+	* trans-stmt.c (gfc_trans_allocate): Fix allocation with
+	type-spec of deferred-length strings.
+
+2011-02-26  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47886
+	* openmp.c (gfc_resolve_omp_directive): Resolve if()
+	condition of OpenMP's task.
+
+2011-02-26  Francois-Xavier Coudert  <fxcoudert@gcc.gnu.org>
+
+	PR fortran/47894
+	* intrinsic.texi: Fix doc of the VERIFY intrinsic.
+
+2011-02-24  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/47872
+	* intrinsic.texi (ALLOCATED, ATAN, BESSEL_JN, BESSEL_YN): Add
+	multitable for linebreak between different syntax variants.
+
+2011-02-24  Richard Guenther  <rguenther@suse.de>
+
+	PR fortran/47839
+	* f95-lang.c (pushdecl): For externs in non-global scope push
+	a copy of the decl into the BLOCK.
+
+2011-02-23  Mikael Morin  <mikael@gcc.gnu.org>
+
+	PR fortran/40850
+	* trans.c (gfc_prepend_expr_to_block): New function.
+	* trans.h (gfc_prepend_expr_to_block): Declare.
+	* trans-array.c (gfc_conv_array_parameter): Replace
+	gfc_add_expr_to_block with gfc_prepend_expr_to_block.
+
+2011-02-22  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/45743
+	* trans-decl.c (gfc_get_extern_function_decl): Don't use the
+	gsymbol backend_decl if the procedure has a formal argument
+	that is a procedure.
+
 2011-02-22  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/41359
