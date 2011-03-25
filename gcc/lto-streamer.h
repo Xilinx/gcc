@@ -60,7 +60,17 @@ typedef struct lto_streamer_hooks {
   /* Called by lto_write_tree after writing all the common parts of
      a tree.  If defined, the callback is in charge of writing all
      the fields that lto_write_tree did not write out.  Arguments
-     are as in lto_write_tree.  */
+     are as in lto_write_tree.
+
+     The following tree fields are not handled by common code:
+
+	DECL_ABSTRACT_ORIGIN
+	DECL_INITIAL
+	DECL_SAVED_TREE
+
+     Callbacks may choose to ignore or handle them.  If handled,
+     the reader should read them in the exact same sequence written
+     by the writer.  */
   void (*write_tree) (struct output_block *, tree, bool);
 
   /* Called by lto_read_tree after reading all the common parts of
@@ -908,6 +918,7 @@ extern void lto_register_decl_definition (tree, struct lto_file_decl_data *);
 extern struct output_block *create_output_block (enum lto_section_type);
 extern void destroy_output_block (struct output_block *);
 extern void lto_output_tree (struct output_block *, tree, bool);
+extern void lto_output_tree_or_ref (struct output_block *, tree, bool);
 extern void produce_asm (struct output_block *ob, tree fn);
 extern void lto_output_string (struct output_block *,
 			       struct lto_output_stream *,

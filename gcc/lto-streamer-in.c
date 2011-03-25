@@ -1983,11 +1983,7 @@ lto_input_ts_decl_minimal_tree_pointers (struct lto_input_block *ib,
 
 /* Read all pointer fields in the TS_DECL_COMMON structure of EXPR from
    input block IB.  DATA_IN contains tables and descriptors for the
-   file being read.
-
-   Fields that should be handled by a callback:
-	DECL_INITIAL
-	DECL_ABSTRACT_ORIGIN.  */
+   file being read.  */
 
 static void
 lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
@@ -2020,10 +2016,7 @@ lto_input_ts_decl_common_tree_pointers (struct lto_input_block *ib,
 
 /* Read all pointer fields in the TS_DECL_NON_COMMON structure of
    EXPR from input block IB.  DATA_IN contains tables and descriptors for the
-   file being read.
-
-   Fields that should be handled by a callback:
-	DECL_SAVED_TREE.  */
+   file being read.  */
 
 static void
 lto_input_ts_decl_non_common_tree_pointers (struct lto_input_block *ib,

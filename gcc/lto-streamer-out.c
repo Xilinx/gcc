@@ -743,7 +743,7 @@ lto_output_tree_ref (struct output_block *ob, tree expr)
 /* If REF_P is true, emit a reference to EXPR in output block OB,
    otherwise emit the physical representation of EXPR in OB.  */
 
-static inline void
+void
 lto_output_tree_or_ref (struct output_block *ob, tree expr, bool ref_p)
 {
   if (ref_p)
@@ -835,11 +835,7 @@ lto_output_ts_decl_minimal_tree_pointers (struct output_block *ob, tree expr,
 
 /* Write all pointer fields in the TS_DECL_COMMON structure of EXPR to
    output block OB.  If REF_P is true, write a reference to EXPR's
-   pointer fields.
-
-   Fields that should be handled by a callback:
-	DECL_INITIAL
-	DECL_ABSTRACT_ORIGIN.  */
+   pointer fields.  */
 
 static void
 lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
@@ -871,10 +867,7 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
 
 /* Write all pointer fields in the TS_DECL_NON_COMMON structure of
    EXPR to output block OB.  If REF_P is true, write a reference to EXPR's
-   pointer fields.
-
-   Fields that should be handled by a callback:
-	DECL_SAVED_TREE.  */
+   pointer fields.  */
 
 static void
 lto_output_ts_decl_non_common_tree_pointers (struct output_block *ob,

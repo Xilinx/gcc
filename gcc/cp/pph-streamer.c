@@ -137,14 +137,40 @@ pph_stream_init_write (pph_stream *stream)
 }
 
 
+/* Callback for writing ASTs to a stream.  This writes all the fields
+   that are not processed by default by the common tree pickler.
+   OB and REF_P are as in lto_write_tree.  EXPR is the tree to write.  */
+
+static void
+pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
+{
+  if (TREE_CODE (expr) == FUNCTION_DECL)
+    lto_output_tree_or_ref (ob, DECL_SAVED_TREE (expr), ref_p);
+}
+
+
+/* Callback for reading ASTs from a stream.  This reads all the fields
+   that are not processed by default by the common tree pickler.
+   IB, DATA_IN are as in lto_read_tree.  EXPR is the partially materialized
+   tree.  */
+
+static void
+pph_stream_read_tree (struct lto_input_block *ib, struct data_in *data_in,
+		      tree expr)
+{
+  if (TREE_CODE (expr) == FUNCTION_DECL)
+    DECL_SAVED_TREE (expr) = lto_input_tree (ib, data_in);
+}
+
+
 /* Initialize all the streamer hooks used for streaming ASTs.  */
 
 static void
 pph_streamer_hooks_init (void)
 {
   lto_streamer_hooks *h = streamer_hooks_init ();
-  h->reader_init = NULL;
-  h->writer_init = NULL;
+  h->write_tree = pph_stream_write_tree;
+  h->read_tree = pph_stream_read_tree;
 }
 
 
