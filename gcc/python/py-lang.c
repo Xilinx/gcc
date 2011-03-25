@@ -211,7 +211,7 @@ gpy_langhook_gimplify_expr( tree *expr_p ATTRIBUTE_UNUSED,
 			    gimple_seq *pre_p ATTRIBUTE_UNUSED,
 			    gimple_seq *post_p ATTRIBUTE_UNUSED )
 {
-  /* debug_tree( (*expr_p) ); */
+  debug_tree( (*expr_p) );
 
   enum tree_code code = TREE_CODE (*expr_p);
 
@@ -238,11 +238,9 @@ tree convert( tree type ATTRIBUTE_UNUSED,
 
 static GTY(()) tree gpy_gc_root;
 
-void
-gpy_preserve_from_gc( tree t ATTRIBUTE_UNUSED )
+void gpy_preserve_from_gc (tree t)
 {
-  gpy_gc_root = tree_cons( NULL_TREE, t, gpy_gc_root );
-  debug("preserve from gc!\n");
+  gpy_gc_root = tree_cons (NULL_TREE, t, gpy_gc_root);
 }
 
 void __gpy_debug__( const char * file, unsigned int lineno,

@@ -277,8 +277,8 @@ VEC(tree,gc) * gpy_process_functor (const gpy_symbol_obj * const  functor,
 
   gpy_symbol_obj * o = functor->op_a.symbol_table;
   tree fntype = build_function_type(void_type_node, void_list_node);
-  tree retval = build_decl (UNKNOWN_LOCATION, FUNCTION_DECL,
-			    get_identifier( functor->identifier ),
+  tree retval = build_decl (functor->loc, FUNCTION_DECL,
+			    get_identifier (functor->identifier),
 			    fntype);
 
   tree declare_vars = NULL_TREE;
@@ -291,29 +291,7 @@ VEC(tree,gc) * gpy_process_functor (const gpy_symbol_obj * const  functor,
   gpy_context_branch *co = NULL;
   gpy_ident it = NULL;
 
-  if (base_ident)
-    {
-      size_t len = strlen (functor->identifier) + strlen( base_ident );
-      size_t idx = 0, idy = 0;
-      char * buffer = (char *) xmalloc( (sizeof(char) * len)+2 );
-      for( ; idx<strlen( base_ident ); ++idx )
-	{
-	  buffer[ idy ] = base_ident[ idx ];
-	  idy++;
-	}
-      buffer[ idy ] = '.'; idy++;
-      for (idx=0; idx<strlen(functor->identifier); ++idx)
-	{
-	  buffer[ idy ] = functor->identifier[ idx ];
-	  idy++;
-	}
-      buffer[idy] = '\0';
-      debug("buffer = <%s>!\n", buffer );
-      SET_DECL_ASSEMBLER_NAME( retval, get_identifier( buffer ) );
-      free( buffer );
-    }
-  else
-    SET_DECL_ASSEMBLER_NAME( retval, get_identifier(functor->identifier) );
+  SET_DECL_ASSEMBLER_NAME( retval, get_identifier(functor->identifier) );
 
   tree check = gpy_ctx_lookup_decl (context, functor->identifier);
   if (check)

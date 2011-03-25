@@ -334,19 +334,23 @@ void gpy_initilize_types (void)
   tree const_char_type = build_qualified_type(unsigned_char_type_node,
 					      TYPE_QUAL_CONST);
   tree ctype = build_pointer_type(const_char_type);
-  gpy_preserve_from_gc(ctype);
 
   VEC_safe_push (tree,gc,gpy_builtin_types_vec,
 		 gpy_build_py_object_type ());
+  gpy_preserve_from_gc (gpy_object_type_ptr);
 
   VEC_safe_push (tree,gc,gpy_builtin_types_vec,
 		 build_pointer_type (gpy_object_type_ptr));
+  gpy_preserve_from_gc (gpy_object_type_ptr_ptr);
 
   VEC_safe_push (tree,gc,gpy_builtin_types_vec,
 		 gpy_build_callable_record_type ());
+  gpy_preserve_from_gc (gpy_callable_type);
 
   VEC_safe_push (tree,gc,gpy_builtin_types_vec,
 		 gpy_build_callable_record_type_ptr ());
+  gpy_preserve_from_gc (gpy_callable_type_ptr);
   
   VEC_safe_push (tree,gc,gpy_builtin_types_vec,ctype);
+  gpy_preserve_from_gc (gpy_const_char_ptr);
 }
