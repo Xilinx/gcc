@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	. "os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
@@ -161,7 +162,7 @@ func testReaddirnames(dir string, contents []string, t *testing.T) {
 	}
 	s, err2 := file.Readdirnames(-1)
 	if err2 != nil {
-		t.Fatalf("readdirnames %q failed: %v", err2)
+		t.Fatalf("readdirnames %q failed: %v", dir, err2)
 	}
 	for _, m := range contents {
 		found := false
@@ -260,7 +261,7 @@ func TestReaddirnamesOneAtATime(t *testing.T) {
 	small := smallReaddirnames(file1, len(all)+100, t) // +100 in case we screw up
 	for i, n := range all {
 		if small[i] != n {
-			t.Errorf("small read %q %q mismatch: %v", small[i], n)
+			t.Errorf("small read %q mismatch: %v", small[i], n)
 		}
 	}
 }
@@ -344,7 +345,7 @@ func TestSymLink(t *testing.T) {
 		t.Fatalf("stat %q failed: %v", from, err)
 	}
 	if !fromstat.FollowedSymlink {
-		t.Fatalf("stat %q did not follow symlink")
+		t.Fatalf("stat %q did not follow symlink", from)
 	}
 	s, err := Readlink(from)
 	if err != nil {
@@ -405,38 +406,49 @@ func TestRename(t *testing.T) {
 	}
 }
 
-func TestForkExec(t *testing.T) {
-	var cmd, adir, expect string
-	var args []string
+func exec(t *testing.T, dir, cmd string, args []string, expect string) {
 	r, w, err := Pipe()
 	if err != nil {
 		t.Fatalf("Pipe: %v", err)
 	}
-	if syscall.OS == "windows" {
-		cmd = Getenv("COMSPEC")
-		args = []string{Getenv("COMSPEC"), "/c cd"}
-		adir = Getenv("SystemRoot")
-		expect = Getenv("SystemRoot") + "\r\n"
-	} else {
-		cmd = "/bin/pwd"
-		args = []string{"pwd"}
-		adir = "/"
-		expect = "/\n"
-	}
-	pid, err := ForkExec(cmd, args, nil, adir, []*File{nil, w, Stderr})
+	attr := &ProcAttr{Dir: dir, Files: []*File{nil, w, Stderr}}
+	p, err := StartProcess(cmd, args, attr)
 	if err != nil {
-		t.Fatalf("ForkExec: %v", err)
+		t.Fatalf("StartProcess: %v", err)
 	}
+	defer p.Release()
 	w.Close()
 
 	var b bytes.Buffer
 	io.Copy(&b, r)
 	output := b.String()
 	if output != expect {
-		args[0] = cmd
-		t.Errorf("exec %q returned %q wanted %q", strings.Join(args, " "), output, expect)
+		t.Errorf("exec %q returned %q wanted %q",
+			strings.Join(append([]string{cmd}, args...), " "), output, expect)
 	}
-	Wait(pid, 0)
+	p.Wait(0)
+}
+
+func TestStartProcess(t *testing.T) {
+	var dir, cmd, le string
+	var args []string
+	if syscall.OS == "windows" {
+		le = "\r\n"
+		cmd = Getenv("COMSPEC")
+		dir = Getenv("SystemRoot")
+		args = []string{"/c", "cd"}
+	} else {
+		le = "\n"
+		cmd = "/bin/pwd"
+		dir = "/"
+		args = []string{}
+	}
+	cmddir, cmdbase := filepath.Split(cmd)
+	args = append([]string{cmdbase}, args...)
+	// Test absolute executable path.
+	exec(t, dir, cmd, args, dir+le)
+	// Test relative executable path.
+	exec(t, cmddir, cmdbase, args, filepath.Clean(cmddir)+le)
 }
 
 func checkMode(t *testing.T, path string, mode uint32) {
@@ -609,7 +621,7 @@ func TestChdirAndGetwd(t *testing.T) {
 	}
 	// These are chosen carefully not to be symlinks on a Mac
 	// (unlike, say, /var, /etc, and /tmp).
-	dirs := []string{"/bin", "/", "/usr/bin"}
+	dirs := []string{"/", "/usr/bin"}
 	for mode := 0; mode < 2; mode++ {
 		for _, d := range dirs {
 			if mode == 0 {
@@ -746,15 +758,16 @@ func run(t *testing.T, cmd []string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	pid, err := ForkExec("/bin/hostname", []string{"hostname"}, nil, "/", []*File{nil, w, Stderr})
+	p, err := StartProcess("/bin/hostname", []string{"hostname"}, &ProcAttr{Files: []*File{nil, w, Stderr}})
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer p.Release()
 	w.Close()
 
 	var b bytes.Buffer
 	io.Copy(&b, r)
-	Wait(pid, 0)
+	p.Wait(0)
 	output := b.String()
 	if n := len(output); n > 0 && output[n-1] == '\n' {
 		output = output[0 : n-1]
@@ -859,13 +872,14 @@ func TestAppend(t *testing.T) {
 }
 
 func TestStatDirWithTrailingSlash(t *testing.T) {
-	// Create new dir, in _obj so it will get
+	// Create new dir, in _test so it will get
 	// cleaned up by make if not by us.
-	path := "_obj/_TestStatDirWithSlash_"
+	path := "_test/_TestStatDirWithSlash_"
 	err := MkdirAll(path, 0777)
 	if err != nil {
 		t.Fatalf("MkdirAll %q: %s", path, err)
 	}
+	defer RemoveAll(path)
 
 	// Stat of path should succeed.
 	_, err = Stat(path)
@@ -878,6 +892,4 @@ func TestStatDirWithTrailingSlash(t *testing.T) {
 	if err != nil {
 		t.Fatal("stat failed:", err)
 	}
-
-	RemoveAll("_obj/_TestMkdirAll_")
 }

@@ -1681,8 +1681,8 @@ dump_template_types (pretty_printer *buffer, tree types,
     }
 }
 
-/* Dump in BUFFER the contents of all instantiations associated with a given
-   template T.  CPP_CHECK is used to perform C++ queries on nodes.
+/* Dump in BUFFER the contents of all class instantiations associated with
+   a given template T.  CPP_CHECK is used to perform C++ queries on nodes.
    SPC is the indentation level. */
 
 static int
@@ -1701,7 +1701,7 @@ dump_ada_template (pretty_printer *buffer, tree t,
       if (TREE_VEC_LENGTH (types) == 0)
 	break;
 
-      if (!TYPE_METHODS (instance))
+      if (!TYPE_P (instance) || !TYPE_METHODS (instance))
 	break;
 
       num_inst++;
@@ -2035,6 +2035,7 @@ dump_generic_ada_node (pretty_printer *buffer, tree node, tree type,
 			      || !TYPE_FIELDS (TREE_TYPE (underlying_type))))
 		      /* Pointer to opaque structure.  */
 
+		      || underlying_type == NULL_TREE
 		      || (!typ2
 			  && !TREE_VISITED (underlying_type)
 			  && !TREE_VISITED (type_name)

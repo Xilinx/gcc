@@ -31,6 +31,7 @@
 #include <system_error>
 #include <future>
 #include <functional>
+#include <regex>
 
 #ifdef _GLIBCXX_USE_NLS
 # include <libintl.h>
@@ -39,7 +40,9 @@
 # define _(msgid)   (msgid)
 #endif
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
 #if __EXCEPTIONS
   void
@@ -109,6 +112,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   void
   __throw_bad_function_call()
   { throw bad_function_call(); }
+
+  void
+  __throw_regex_error(regex_constants::error_type __ecode)
+  { throw regex_error(__ecode); }
 #else
   void
   __throw_bad_exception(void)
@@ -178,6 +185,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   __throw_bad_function_call()
   { std::abort(); }
 
+  void
+  __throw_regex_error(regex_constants::error_type __ecode)
+  { std::abort(); }
 #endif //__EXCEPTIONS
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace

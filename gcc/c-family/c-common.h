@@ -619,7 +619,7 @@ extern enum cxx_dialect cxx_dialect;
 
 /* Maximum template instantiation depth.  This limit is rather
    arbitrary, but it exists to limit the time it takes to notice
-   infinite template instantiations.  */
+   excessively recursive template instantiations.  */
 
 extern int max_tinst_depth;
 
@@ -741,6 +741,7 @@ extern bool float_const_decimal64_p (void);
 extern bool keyword_begins_type_specifier (enum rid);
 extern bool keyword_is_storage_class_specifier (enum rid);
 extern bool keyword_is_type_qualifier (enum rid);
+extern bool keyword_is_decl_specifier (enum rid);
 
 #define c_sizeof(LOC, T)  c_sizeof_or_alignof_type (LOC, T, true, 1)
 #define c_alignof(LOC, T) c_sizeof_or_alignof_type (LOC, T, false, 1)

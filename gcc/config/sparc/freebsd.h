@@ -1,5 +1,5 @@
 /* Definitions for Sun SPARC64 running FreeBSD using the ELF format
-   Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007, 2010
+   Copyright (C) 2001, 2002, 2004, 2005, 2006, 2007, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by David E. O'Brien <obrien@FreeBSD.org> and BSDi.
 
@@ -24,11 +24,22 @@ along with GCC; see the file COPYING3.  If not see
   { "fbsd_dynamic_linker", FBSD_DYNAMIC_LINKER }
 
 /* FreeBSD needs the platform name (sparc64) defined.
-   Emacs needs to know if the arch is 64 or 32-bits.  */
+   Emacs etc needs to know if the arch is 64 or 32-bits.
+   This also selects which targets are available via -mcpu.  */
 
-#undef  CPP_CPU64_DEFAULT_SPEC
-#define CPP_CPU64_DEFAULT_SPEC \
-  "-D__sparc64__ -D__sparc_v9__ -D__sparcv9 -D__arch64__"
+#undef  FBSD_TARGET_CPU_CPP_BUILTINS
+#define FBSD_TARGET_CPU_CPP_BUILTINS()		\
+  do						\
+    {						\
+      builtin_define ("__sparc64__");		\
+      builtin_define ("__sparc__");		\
+      builtin_define ("__sparc_v9__");		\
+      builtin_define ("__sparcv9");		\
+    }						\
+  while (0)
+
+#undef ASM_SPEC
+#define ASM_SPEC "%{fpic|fPIC|fpie|fPIE:-K PIC} %(asm_cpu)"
 
 #define LINK_SPEC "%(link_arch)						\
   %{!mno-relax:%{!r:-relax}}						\
@@ -148,6 +159,13 @@ along with GCC; see the file COPYING3.  If not see
    RELATIVE relocations.  */
 
 /* #define DWARF_OFFSET_SIZE PTR_SIZE */
+
+#ifdef HAVE_AS_TLS
+#undef TARGET_SUN_TLS
+#undef TARGET_GNU_TLS
+#define TARGET_SUN_TLS 0
+#define TARGET_GNU_TLS 1
+#endif
 
 #undef ENDFILE_SPEC
 #define ENDFILE_SPEC						\

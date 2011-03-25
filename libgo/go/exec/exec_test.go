@@ -9,15 +9,23 @@ import (
 	"io/ioutil"
 	"testing"
 	"os"
+	"runtime"
 )
 
-func TestRunCat(t *testing.T) {
-	cat, err := LookPath("cat")
-	if err != nil {
-		t.Fatal("cat: ", err)
+func run(argv []string, stdin, stdout, stderr int) (p *Cmd, err os.Error) {
+	if runtime.GOOS == "windows" {
+		argv = append([]string{"cmd", "/c"}, argv...)
 	}
-	cmd, err := Run(cat, []string{"cat"}, nil, "",
-		Pipe, Pipe, DevNull)
+	exe, err := LookPath(argv[0])
+	if err != nil {
+		return nil, err
+	}
+	p, err = Run(exe, argv, nil, "", stdin, stdout, stderr)
+	return p, err
+}
+
+func TestRunCat(t *testing.T) {
+	cmd, err := run([]string{"cat"}, Pipe, Pipe, DevNull)
 	if err != nil {
 		t.Fatal("run:", err)
 	}
@@ -36,11 +44,7 @@ func TestRunCat(t *testing.T) {
 }
 
 func TestRunEcho(t *testing.T) {
-	echo, err := LookPath("echo")
-	if err != nil {
-		t.Fatal("echo: ", err)
-	}
-	cmd, err := Run(echo, []string{"echo", "hello", "world"}, nil, "",
+	cmd, err := run([]string{"sh", "-c", "echo hello world"},
 		DevNull, Pipe, DevNull)
 	if err != nil {
 		t.Fatal("run:", err)
@@ -58,11 +62,7 @@ func TestRunEcho(t *testing.T) {
 }
 
 func TestStderr(t *testing.T) {
-	sh, err := LookPath("sh")
-	if err != nil {
-		t.Fatal("sh: ", err)
-	}
-	cmd, err := Run(sh, []string{"sh", "-c", "echo hello world 1>&2"}, nil, "",
+	cmd, err := run([]string{"sh", "-c", "echo hello world 1>&2"},
 		DevNull, DevNull, Pipe)
 	if err != nil {
 		t.Fatal("run:", err)
@@ -80,11 +80,7 @@ func TestStderr(t *testing.T) {
 }
 
 func TestMergeWithStdout(t *testing.T) {
-	sh, err := LookPath("sh")
-	if err != nil {
-		t.Fatal("sh: ", err)
-	}
-	cmd, err := Run(sh, []string{"sh", "-c", "echo hello world 1>&2"}, nil, "",
+	cmd, err := run([]string{"sh", "-c", "echo hello world 1>&2"},
 		DevNull, Pipe, MergeWithStdout)
 	if err != nil {
 		t.Fatal("run:", err)
@@ -106,11 +102,7 @@ func TestAddEnvVar(t *testing.T) {
 	if err != nil {
 		t.Fatal("setenv:", err)
 	}
-	sh, err := LookPath("sh")
-	if err != nil {
-		t.Fatal("sh: ", err)
-	}
-	cmd, err := Run(sh, []string{"sh", "-c", "echo $NEWVAR"}, nil, "",
+	cmd, err := run([]string{"sh", "-c", "echo $NEWVAR"},
 		DevNull, Pipe, DevNull)
 	if err != nil {
 		t.Fatal("run:", err)
@@ -124,5 +116,57 @@ func TestAddEnvVar(t *testing.T) {
 	}
 	if err = cmd.Close(); err != nil {
 		t.Fatal("close:", err)
+	}
+}
+
+var tryargs = []string{
+	`2`,
+	`2 `,
+	"2 \t",
+	`2" "`,
+	`2 ab `,
+	`2 "ab" `,
+	`2 \ `,
+	`2 \\ `,
+	`2 \" `,
+	`2 \`,
+	`2\`,
+	`2"`,
+	`2\"`,
+	`2 "`,
+	`2 \"`,
+	``,
+	`2 ^ `,
+	`2 \^`,
+}
+
+func TestArgs(t *testing.T) {
+	for _, a := range tryargs {
+		argv := []string{
+			"awk",
+			`BEGIN{printf("%s|%s|%s",ARGV[1],ARGV[2],ARGV[3])}`,
+			"/dev/null",
+			a,
+			"EOF",
+		}
+		exe, err := LookPath(argv[0])
+		if err != nil {
+			t.Fatal("run:", err)
+		}
+		cmd, err := Run(exe, argv, nil, "", DevNull, Pipe, DevNull)
+		if err != nil {
+			t.Fatal("run:", err)
+		}
+		buf, err := ioutil.ReadAll(cmd.Stdout)
+		if err != nil {
+			t.Fatal("read:", err)
+		}
+		expect := "/dev/null|" + a + "|EOF"
+		if string(buf) != expect {
+			t.Errorf("read: got %q expect %q", buf, expect)
+		}
+		if err = cmd.Close(); err != nil {
+			t.Fatal("close:", err)
+		}
 	}
 }

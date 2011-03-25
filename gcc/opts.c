@@ -1,5 +1,5 @@
 /* Command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -225,21 +225,13 @@ target_handle_option (struct gcc_options *opts,
 		      struct gcc_options *opts_set,
 		      const struct cl_decoded_option *decoded,
 		      unsigned int lang_mask ATTRIBUTE_UNUSED, int kind,
-		      location_t loc ATTRIBUTE_UNUSED,
+		      location_t loc,
 		      const struct cl_option_handlers *handlers ATTRIBUTE_UNUSED,
 		      diagnostic_context *dc)
 {
-  gcc_assert (opts == &global_options);
-  gcc_assert (opts_set == &global_options_set);
   gcc_assert (dc == global_dc);
-  gcc_assert (decoded->canonical_option_num_elements <= 2);
   gcc_assert (kind == DK_UNSPECIFIED);
-  /* Although the location is not passed down to
-     targetm.handle_option, do not make assertions about its value;
-     options may come from optimize attributes and having the correct
-     location in the handler is not generally important.  */
-  return targetm.handle_option (decoded->opt_index, decoded->arg,
-				decoded->value);
+  return targetm.handle_option (opts, opts_set, decoded, loc);
 }
 
 /* Add comma-separated strings to a char_p vector.  */
@@ -456,6 +448,7 @@ static const struct default_options default_options_table[] =
     { OPT_LEVELS_1_PLUS, OPT_ftree_sink, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_ftree_ch, NULL, 1 },
     { OPT_LEVELS_1_PLUS, OPT_fcombine_stack_adjustments, NULL, 1 },
+    { OPT_LEVELS_1_PLUS, OPT_fcompare_elim, NULL, 1 },
 
     /* -O2 optimizations.  */
     { OPT_LEVELS_2_PLUS, OPT_finline_small_functions, NULL, 1 },
@@ -523,7 +516,6 @@ default_options_optimization (struct gcc_options *opts,
 {
   unsigned int i;
   int opt2;
-  int ofast = 0;
 
   /* Scan to see what optimization level has been specified.  That will
      determine the default value of many flags.  */
@@ -537,7 +529,7 @@ default_options_optimization (struct gcc_options *opts,
 	    {
 	      opts->x_optimize = 1;
 	      opts->x_optimize_size = 0;
-	      ofast = 0;
+	      opts->x_optimize_fast = 0;
 	    }
 	  else
 	    {
@@ -552,7 +544,7 @@ default_options_optimization (struct gcc_options *opts,
 		  if ((unsigned int) opts->x_optimize > 255)
 		    opts->x_optimize = 255;
 		  opts->x_optimize_size = 0;
-		  ofast = 0;
+		  opts->x_optimize_fast = 0;
 		}
 	    }
 	  break;
@@ -562,14 +554,14 @@ default_options_optimization (struct gcc_options *opts,
 
 	  /* Optimizing for size forces optimize to be 2.  */
 	  opts->x_optimize = 2;
-	  ofast = 0;
+	  opts->x_optimize_fast = 0;
 	  break;
 
 	case OPT_Ofast:
 	  /* -Ofast only adds flags to -O3.  */
 	  opts->x_optimize_size = 0;
 	  opts->x_optimize = 3;
-	  ofast = 1;
+	  opts->x_optimize_fast = 1;
 	  break;
 
 	default:
@@ -580,7 +572,7 @@ default_options_optimization (struct gcc_options *opts,
 
   maybe_default_options (opts, opts_set, default_options_table,
 			 opts->x_optimize, opts->x_optimize_size,
-			 ofast, lang_mask, handlers, loc, dc);
+			 opts->x_optimize_fast, lang_mask, handlers, loc, dc);
 
   /* -O2 param settings.  */
   opt2 = (opts->x_optimize >= 2);
@@ -610,7 +602,7 @@ default_options_optimization (struct gcc_options *opts,
   maybe_default_options (opts, opts_set,
 			 targetm.target_option.optimization_table,
 			 opts->x_optimize, opts->x_optimize_size,
-			 ofast, lang_mask, handlers, loc, dc);
+			 opts->x_optimize_fast, lang_mask, handlers, loc, dc);
 }
 
 /* After all options at LOC have been read into OPTS and OPTS_SET,
@@ -632,7 +624,8 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
       if (opts->x_dump_dir_name)
 	opts->x_dump_base_name = concat (opts->x_dump_dir_name,
 					 opts->x_dump_base_name, NULL);
-      else if (opts->x_aux_base_name)
+      else if (opts->x_aux_base_name
+	       && strcmp (opts->x_aux_base_name, HOST_BIT_BUCKET) != 0)
 	{
 	  const char *aux_base;
 
@@ -784,7 +777,6 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
     {
       /* These passes are not WHOPR compatible yet.  */
       opts->x_flag_ipa_pta = 0;
-      opts->x_flag_ipa_struct_reorg = 0;
     }
 
   if (opts->x_flag_lto)
@@ -822,6 +814,12 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
 	  opts->x_flag_split_stack = 0;
 	}
     }
+
+  /* Set PARAM_MAX_STORES_TO_SINK to 0 if either vectorization or if-conversion
+     is disabled.  */
+  if (!opts->x_flag_tree_vectorize || !opts->x_flag_tree_loop_if_convert)
+    maybe_set_param_value (PARAM_MAX_STORES_TO_SINK, 0,
+                           opts->x_param_values, opts_set->x_param_values);
 }
 
 #define LEFT_COLUMN	27
@@ -1755,15 +1753,23 @@ set_Wstrict_aliasing (struct gcc_options *opts, int onoff)
 static void
 set_fast_math_flags (struct gcc_options *opts, int set)
 {
-  opts->x_flag_unsafe_math_optimizations = set;
-  set_unsafe_math_optimizations_flags (opts, set);
-  opts->x_flag_finite_math_only = set;
-  opts->x_flag_errno_math = !set;
+  if (!opts->frontend_set_flag_unsafe_math_optimizations)
+    {
+      opts->x_flag_unsafe_math_optimizations = set;
+      set_unsafe_math_optimizations_flags (opts, set);
+    }
+  if (!opts->frontend_set_flag_finite_math_only)
+    opts->x_flag_finite_math_only = set;
+  if (!opts->frontend_set_flag_errno_math)
+    opts->x_flag_errno_math = !set;
   if (set)
     {
-      opts->x_flag_signaling_nans = 0;
-      opts->x_flag_rounding_math = 0;
-      opts->x_flag_cx_limited_range = 1;
+      if (!opts->frontend_set_flag_signaling_nans)
+	opts->x_flag_signaling_nans = 0;
+      if (!opts->frontend_set_flag_rounding_math)
+	opts->x_flag_rounding_math = 0;
+      if (!opts->frontend_set_flag_cx_limited_range)
+	opts->x_flag_cx_limited_range = 1;
     }
 }
 
@@ -1772,10 +1778,14 @@ set_fast_math_flags (struct gcc_options *opts, int set)
 static void
 set_unsafe_math_optimizations_flags (struct gcc_options *opts, int set)
 {
-  opts->x_flag_trapping_math = !set;
-  opts->x_flag_signed_zeros = !set;
-  opts->x_flag_associative_math = set;
-  opts->x_flag_reciprocal_math = set;
+  if (!opts->frontend_set_flag_trapping_math)
+    opts->x_flag_trapping_math = !set;
+  if (!opts->frontend_set_flag_signed_zeros)
+    opts->x_flag_signed_zeros = !set;
+  if (!opts->frontend_set_flag_associative_math)
+    opts->x_flag_associative_math = set;
+  if (!opts->frontend_set_flag_reciprocal_math)
+    opts->x_flag_reciprocal_math = set;
 }
 
 /* Return true iff flags in OPTS are set as if -ffast-math.  */

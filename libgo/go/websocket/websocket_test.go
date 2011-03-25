@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"http"
+	"http/httptest"
 	"io"
 	"log"
 	"net"
@@ -22,15 +23,11 @@ var once sync.Once
 func echoServer(ws *Conn) { io.Copy(ws, ws) }
 
 func startServer() {
-	l, e := net.Listen("tcp", "127.0.0.1:0") // any available address
-	if e != nil {
-		log.Exitf("net.Listen tcp :0 %v", e)
-	}
-	serverAddr = l.Addr().String()
-	log.Print("Test WebSocket server listening on ", serverAddr)
 	http.Handle("/echo", Handler(echoServer))
 	http.Handle("/echoDraft75", Draft75Handler(echoServer))
-	go http.Serve(l, nil)
+	server := httptest.NewServer(nil)
+	serverAddr = server.Listener.Addr().String()
+	log.Print("Test WebSocket server listening on ", serverAddr)
 }
 
 // Test the getChallengeResponse function with values from section
@@ -155,7 +152,7 @@ func TestHTTP(t *testing.T) {
 	// specification, the server should abort the WebSocket connection.
 	_, _, err := http.Get(fmt.Sprintf("http://%s/echo", serverAddr))
 	if err == nil {
-		t.Errorf("Get: unexpected success")
+		t.Error("Get: unexpected success")
 		return
 	}
 	urlerr, ok := err.(*http.URLError)

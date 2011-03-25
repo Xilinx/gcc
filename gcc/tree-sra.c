@@ -195,6 +195,14 @@ struct access
      statement?  This flag is propagated down the access tree.  */
   unsigned grp_assignment_write : 1;
 
+  /* Does this group contain a read access through a scalar type?  This flag is
+     not propagated in the access tree in any direction.  */
+  unsigned grp_scalar_read : 1;
+
+  /* Does this group contain a write access through a scalar type?  This flag
+     is not propagated in the access tree in any direction.  */
+  unsigned grp_scalar_write : 1;
+
   /* Other passes of the analysis use this bit to make function
      analyze_access_subtree create scalar replacements for this group if
      possible.  */
@@ -368,16 +376,18 @@ dump_access (FILE *f, struct access *access, bool grp)
   fprintf (f, ", type = ");
   print_generic_expr (f, access->type, 0);
   if (grp)
-    fprintf (f, ", grp_write = %d, total_scalarization = %d, "
-	     "grp_read = %d, grp_hint = %d, grp_assignment_read = %d,"
-	     "grp_assignment_write = %d, grp_covered = %d, "
+    fprintf (f, ", total_scalarization = %d, grp_read = %d, grp_write = %d, "
+	     "grp_assignment_read = %d, grp_assignment_write = %d, "
+	     "grp_scalar_read = %d, grp_scalar_write = %d, "
+	     "grp_hint = %d, grp_covered = %d, "
 	     "grp_unscalarizable_region = %d, grp_unscalarized_data = %d, "
 	     "grp_partial_lhs = %d, grp_to_be_replaced = %d, "
 	     "grp_maybe_modified = %d, "
 	     "grp_not_necessarilly_dereferenced = %d\n",
-	     access->grp_write, access->total_scalarization,
-	     access->grp_read, access->grp_hint, access->grp_assignment_read,
-	     access->grp_assignment_write, access->grp_covered,
+	     access->total_scalarization, access->grp_read, access->grp_write,
+	     access->grp_assignment_read, access->grp_assignment_write,
+	     access->grp_scalar_read, access->grp_scalar_write,
+	     access->grp_hint, access->grp_covered,
 	     access->grp_unscalarizable_region, access->grp_unscalarized_data,
 	     access->grp_partial_lhs, access->grp_to_be_replaced,
 	     access->grp_maybe_modified,
@@ -1366,6 +1376,7 @@ build_ref_for_offset (location_t loc, tree base, HOST_WIDE_INT offset,
       add_referenced_var (tmp);
       tmp = make_ssa_name (tmp, NULL);
       addr = build_fold_addr_expr (unshare_expr (prev_base));
+      STRIP_USELESS_TYPE_CONVERSION (addr);
       stmt = gimple_build_assign (tmp, addr);
       gimple_set_location (stmt, loc);
       SSA_NAME_DEF_STMT (tmp) = stmt;
@@ -1530,7 +1541,7 @@ find_var_candidates (void)
   referenced_var_iterator rvi;
   bool ret = false;
 
-  FOR_EACH_REFERENCED_VAR (var, rvi)
+  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
     {
       if (TREE_CODE (var) != VAR_DECL && TREE_CODE (var) != PARM_DECL)
         continue;
@@ -1593,9 +1604,13 @@ sort_and_splice_var_accesses (tree var)
       struct access *access = VEC_index (access_p, access_vec, i);
       bool grp_write = access->write;
       bool grp_read = !access->write;
+      bool grp_scalar_write = access->write
+	&& is_gimple_reg_type (access->type);
+      bool grp_scalar_read = !access->write
+	&& is_gimple_reg_type (access->type);
       bool grp_assignment_read = access->grp_assignment_read;
       bool grp_assignment_write = access->grp_assignment_write;
-      bool multiple_reads = false;
+      bool multiple_scalar_reads = false;
       bool total_scalarization = access->total_scalarization;
       bool grp_partial_lhs = access->grp_partial_lhs;
       bool first_scalar = is_gimple_reg_type (access->type);
@@ -1620,13 +1635,21 @@ sort_and_splice_var_accesses (tree var)
 	  if (ac2->offset != access->offset || ac2->size != access->size)
 	    break;
 	  if (ac2->write)
-	    grp_write = true;
+	    {
+	      grp_write = true;
+	      grp_scalar_write = (grp_scalar_write
+				  || is_gimple_reg_type (ac2->type));
+	    }
 	  else
 	    {
-	      if (grp_read)
-		multiple_reads = true;
-	      else
-		grp_read = true;
+	      grp_read = true;
+	      if (is_gimple_reg_type (ac2->type))
+		{
+		  if (grp_scalar_read)
+		    multiple_scalar_reads = true;
+		  else
+		    grp_scalar_read = true;
+		}
 	    }
 	  grp_assignment_read |= ac2->grp_assignment_read;
 	  grp_assignment_write |= ac2->grp_assignment_write;
@@ -1648,9 +1671,11 @@ sort_and_splice_var_accesses (tree var)
       access->group_representative = access;
       access->grp_write = grp_write;
       access->grp_read = grp_read;
+      access->grp_scalar_read = grp_scalar_read;
+      access->grp_scalar_write = grp_scalar_write;
       access->grp_assignment_read = grp_assignment_read;
       access->grp_assignment_write = grp_assignment_write;
-      access->grp_hint = multiple_reads || total_scalarization;
+      access->grp_hint = multiple_scalar_reads || total_scalarization;
       access->grp_partial_lhs = grp_partial_lhs;
       access->grp_unscalarizable_region = unscalarizable_region;
       if (access->first_link)
@@ -1851,13 +1876,13 @@ enum mark_rw_status { SRA_MRRW_NOTHING, SRA_MRRW_DIRECT, SRA_MRRW_ASSIGN};
    there is more than one direct read access) or according to the following
    table:
 
-   Access written to individually (once or more times)
+   Access written to through a scalar type (once or more times)
    |
-   |	Parent written to in an assignment statement
+   |	Written to in an assignment statement
    |	|
-   |	|	Access read individually _once_
+   |	|	Access read as scalar _once_
    |	|	|
-   |   	|	|	Parent read in an assignment statement
+   |   	|	|	Read in an assignment statement
    |	|	|	|
    |   	|	|	|	Scalarize	Comment
 -----------------------------------------------------------------------------
@@ -1888,8 +1913,6 @@ analyze_access_subtree (struct access *root, bool allow_replacements,
   HOST_WIDE_INT covered_to = root->offset;
   bool scalar = is_gimple_reg_type (root->type);
   bool hole = false, sth_created = false;
-  bool direct_read = root->grp_read;
-  bool direct_write = root->grp_write;
 
   if (root->grp_assignment_read)
     mark_read = SRA_MRRW_ASSIGN;
@@ -1938,8 +1961,8 @@ analyze_access_subtree (struct access *root, bool allow_replacements,
 
   if (allow_replacements && scalar && !root->first_child
       && (root->grp_hint
-	  || ((direct_write || root->grp_assignment_write)
-	      && (direct_read || root->grp_assignment_read))))
+	  || ((root->grp_scalar_read || root->grp_assignment_read)
+	      && (root->grp_scalar_write || root->grp_assignment_write))))
     {
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
@@ -2739,15 +2762,13 @@ sra_modify_assign (gimple *stmt, gimple_stmt_iterator *gsi)
 	      && !contains_bitfld_comp_ref_p (lhs)
 	      && !access_has_children_p (lacc))
 	    {
-	      lhs = build_ref_for_offset (loc, lhs, 0, TREE_TYPE (rhs),
-					  gsi, false);
+	      lhs = build_ref_for_model (loc, lhs, 0, racc, gsi, false);
 	      gimple_assign_set_lhs (*stmt, lhs);
 	    }
 	  else if (AGGREGATE_TYPE_P (TREE_TYPE (rhs))
 		   && !contains_vce_or_bfcref_p (rhs)
 		   && !access_has_children_p (racc))
-	    rhs = build_ref_for_offset (loc, rhs, 0, TREE_TYPE (lhs),
-					gsi, false);
+	    rhs = build_ref_for_model (loc, rhs, 0, lacc, gsi, false);
 
 	  if (!useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (rhs)))
 	    {
@@ -4342,7 +4363,8 @@ convert_callers (struct cgraph_node *node, tree old_decl,
     }
 
   for (cs = node->callers; cs; cs = cs->next_caller)
-    if (bitmap_set_bit (recomputed_callers, cs->caller->uid))
+    if (bitmap_set_bit (recomputed_callers, cs->caller->uid)
+	&& gimple_in_ssa_p (DECL_STRUCT_FUNCTION (cs->caller->decl)))
       compute_inline_parameters (cs->caller);
   BITMAP_FREE (recomputed_callers);
 
@@ -4422,6 +4444,13 @@ ipa_sra_preliminary_function_checks (struct cgraph_node *node)
     {
       if (dump_file)
 	fprintf (dump_file, "Function not local to this compilation unit.\n");
+      return false;
+    }
+
+  if (!node->local.can_change_signature)
+    {
+      if (dump_file)
+	fprintf (dump_file, "Function can not change signature.\n");
       return false;
     }
 

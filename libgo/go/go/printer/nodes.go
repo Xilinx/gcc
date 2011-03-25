@@ -72,7 +72,7 @@ func (p *printer) setComment(g *ast.CommentGroup) {
 		// for some reason there are pending comments; this
 		// should never happen - handle gracefully and flush
 		// all comments up to g, ignore anything after that
-		p.flush(g.List[0].Pos(), token.ILLEGAL)
+		p.flush(p.fset.Position(g.List[0].Pos()), token.ILLEGAL)
 	}
 	p.comments[0] = g
 	p.cindex = 0
@@ -92,7 +92,7 @@ const (
 
 
 // Sets multiLine to true if the identifier list spans multiple lines.
-// If ident is set, a multi-line identifier list is indented after the
+// If indent is set, a multi-line identifier list is indented after the
 // first linebreak encountered.
 func (p *printer) identList(list []*ast.Ident, indent bool, multiLine *bool) {
 	// convert into an expression list so we can re-use exprList formatting
@@ -104,18 +104,7 @@ func (p *printer) identList(list []*ast.Ident, indent bool, multiLine *bool) {
 	if !indent {
 		mode |= noIndent
 	}
-	p.exprList(noPos, xlist, 1, mode, multiLine, noPos)
-}
-
-
-// Compute the key size of a key:value expression.
-// Returns 0 if the expression doesn't fit onto a single line.
-func (p *printer) keySize(pair *ast.KeyValueExpr) int {
-	if p.nodeSize(pair, infinity) <= infinity {
-		// entire expression fits on one line - return key size
-		return p.nodeSize(pair.Key, infinity)
-	}
-	return 0
+	p.exprList(token.NoPos, xlist, 1, mode, multiLine, token.NoPos)
 }
 
 
@@ -127,7 +116,7 @@ func (p *printer) keySize(pair *ast.KeyValueExpr) int {
 // TODO(gri) Consider rewriting this to be independent of []ast.Expr
 //           so that we can use the algorithm for any kind of list
 //           (e.g., pass list via a channel over which to range).
-func (p *printer) exprList(prev token.Position, list []ast.Expr, depth int, mode exprListMode, multiLine *bool, next token.Position) {
+func (p *printer) exprList(prev0 token.Pos, list []ast.Expr, depth int, mode exprListMode, multiLine *bool, next0 token.Pos) {
 	if len(list) == 0 {
 		return
 	}
@@ -136,14 +125,10 @@ func (p *printer) exprList(prev token.Position, list []ast.Expr, depth int, mode
 		p.print(blank)
 	}
 
-	line := list[0].Pos().Line
-	endLine := next.Line
-	if endLine == 0 {
-		// TODO(gri): endLine may be incorrect as it is really the beginning
-		//            of the last list entry. There may be only one, very long
-		//            entry in which case line == endLine.
-		endLine = list[len(list)-1].Pos().Line
-	}
+	prev := p.fset.Position(prev0)
+	next := p.fset.Position(next0)
+	line := p.fset.Position(list[0].Pos()).Line
+	endLine := p.fset.Position(list[len(list)-1].End()).Line
 
 	if prev.IsValid() && prev.Line == line && line == endLine {
 		// all list entries on a single line
@@ -199,7 +184,7 @@ func (p *printer) exprList(prev token.Position, list []ast.Expr, depth int, mode
 	// print all list elements
 	for i, x := range list {
 		prevLine := line
-		line = x.Pos().Line
+		line = p.fset.Position(x.Pos()).Line
 
 		// determine if the next linebreak, if any, needs to use formfeed:
 		// in general, use the entire node size to make the decision; for
@@ -208,17 +193,21 @@ func (p *printer) exprList(prev token.Position, list []ast.Expr, depth int, mode
 		//           the key and the node size into the decision process
 		useFF := true
 
-		// determine size
+		// determine element size: all bets are off if we don't have
+		// position information for the previous and next token (likely
+		// generated code - simply ignore the size in this case by setting
+		// it to 0)
 		prevSize := size
 		const infinity = 1e6 // larger than any source line
 		size = p.nodeSize(x, infinity)
 		pair, isPair := x.(*ast.KeyValueExpr)
-		if size <= infinity {
+		if size <= infinity && prev.IsValid() && next.IsValid() {
 			// x fits on a single line
 			if isPair {
 				size = p.nodeSize(pair.Key, infinity) // size <= infinity
 			}
 		} else {
+			// size too large or we don't have good layout information
 			size = 0
 		}
 
@@ -232,7 +221,7 @@ func (p *printer) exprList(prev token.Position, list []ast.Expr, depth int, mode
 				useFF = false
 			} else {
 				const r = 4 // threshold
-				ratio := float(size) / float(prevSize)
+				ratio := float64(size) / float64(prevSize)
 				useFF = ratio <= 1/r || r <= ratio
 			}
 		}
@@ -248,7 +237,6 @@ func (p *printer) exprList(prev token.Position, list []ast.Expr, depth int, mode
 				// lines are broken using newlines so comments remain aligned
 				// unless forceFF is set or there are multiple expressions on
 				// the same line in which case formfeed is used
-				// broken with a formfeed
 				if p.linebreak(line, linebreakMin, ws, useFF || prevBreak+1 < i) {
 					ws = ignore
 					*multiLine = true
@@ -298,15 +286,27 @@ func (p *printer) exprList(prev token.Position, list []ast.Expr, depth int, mode
 func (p *printer) parameters(fields *ast.FieldList, multiLine *bool) {
 	p.print(fields.Opening, token.LPAREN)
 	if len(fields.List) > 0 {
+		var prevLine, line int
 		for i, par := range fields.List {
 			if i > 0 {
-				p.print(token.COMMA, blank)
+				p.print(token.COMMA)
+				if len(par.Names) > 0 {
+					line = p.fset.Position(par.Names[0].Pos()).Line
+				} else {
+					line = p.fset.Position(par.Type.Pos()).Line
+				}
+				if 0 < prevLine && prevLine < line && p.linebreak(line, 0, ignore, true) {
+					*multiLine = true
+				} else {
+					p.print(blank)
+				}
 			}
 			if len(par.Names) > 0 {
 				p.identList(par.Names, false, multiLine)
 				p.print(blank)
 			}
 			p.expr(par.Type, multiLine)
+			prevLine = p.fset.Position(par.Type.Pos()).Line
 		}
 	}
 	p.print(fields.Closing, token.RPAREN)
@@ -363,11 +363,11 @@ func (p *printer) isOneLineFieldList(list []*ast.Field) bool {
 
 
 func (p *printer) setLineComment(text string) {
-	p.setComment(&ast.CommentGroup{[]*ast.Comment{&ast.Comment{noPos, []byte(text)}}})
+	p.setComment(&ast.CommentGroup{[]*ast.Comment{&ast.Comment{token.NoPos, []byte(text)}}})
 }
 
 
-func (p *printer) fieldList(fields *ast.FieldList, isIncomplete bool, ctxt exprContext) {
+func (p *printer) fieldList(fields *ast.FieldList, isStruct, isIncomplete bool) {
 	p.nesting++
 	defer func() {
 		p.nesting--
@@ -376,15 +376,15 @@ func (p *printer) fieldList(fields *ast.FieldList, isIncomplete bool, ctxt exprC
 	lbrace := fields.Opening
 	list := fields.List
 	rbrace := fields.Closing
+	srcIsOneLine := lbrace.IsValid() && rbrace.IsValid() && p.fset.Position(lbrace).Line == p.fset.Position(rbrace).Line
 
-	if !isIncomplete && !p.commentBefore(rbrace) {
+	if !isIncomplete && !p.commentBefore(p.fset.Position(rbrace)) && srcIsOneLine {
 		// possibly a one-line struct/interface
 		if len(list) == 0 {
 			// no blank between keyword and {} in this case
 			p.print(lbrace, token.LBRACE, rbrace, token.RBRACE)
 			return
-		} else if ctxt&(compositeLit|structType) == compositeLit|structType &&
-			p.isOneLineFieldList(list) { // for now ignore interfaces
+		} else if isStruct && p.isOneLineFieldList(list) { // for now ignore interfaces
 			// small enough - print on one line
 			// (don't use identList and ignore source line breaks)
 			p.print(lbrace, token.LBRACE, blank)
@@ -406,7 +406,7 @@ func (p *printer) fieldList(fields *ast.FieldList, isIncomplete bool, ctxt exprC
 
 	// at least one entry or incomplete
 	p.print(blank, lbrace, token.LBRACE, indent, formfeed)
-	if ctxt&structType != 0 {
+	if isStruct {
 
 		sep := vtab
 		if len(list) == 1 {
@@ -415,7 +415,7 @@ func (p *printer) fieldList(fields *ast.FieldList, isIncomplete bool, ctxt exprC
 		var ml bool
 		for i, f := range list {
 			if i > 0 {
-				p.linebreak(f.Pos().Line, 1, ignore, ml)
+				p.linebreak(p.fset.Position(f.Pos()).Line, 1, ignore, ml)
 			}
 			ml = false
 			extraTabs := 0
@@ -450,7 +450,7 @@ func (p *printer) fieldList(fields *ast.FieldList, isIncomplete bool, ctxt exprC
 			if len(list) > 0 {
 				p.print(formfeed)
 			}
-			p.flush(rbrace, token.RBRACE) // make sure we don't loose the last line comment
+			p.flush(p.fset.Position(rbrace), token.RBRACE) // make sure we don't loose the last line comment
 			p.setLineComment("// contains unexported fields")
 		}
 
@@ -459,7 +459,7 @@ func (p *printer) fieldList(fields *ast.FieldList, isIncomplete bool, ctxt exprC
 		var ml bool
 		for i, f := range list {
 			if i > 0 {
-				p.linebreak(f.Pos().Line, 1, ignore, ml)
+				p.linebreak(p.fset.Position(f.Pos()).Line, 1, ignore, ml)
 			}
 			ml = false
 			p.setComment(f.Doc)
@@ -477,7 +477,7 @@ func (p *printer) fieldList(fields *ast.FieldList, isIncomplete bool, ctxt exprC
 			if len(list) > 0 {
 				p.print(formfeed)
 			}
-			p.flush(rbrace, token.RBRACE) // make sure we don't loose the last line comment
+			p.flush(p.fset.Position(rbrace), token.RBRACE) // make sure we don't loose the last line comment
 			p.setLineComment("// contains unexported methods")
 		}
 
@@ -489,21 +489,12 @@ func (p *printer) fieldList(fields *ast.FieldList, isIncomplete bool, ctxt exprC
 // ----------------------------------------------------------------------------
 // Expressions
 
-// exprContext describes the syntactic environment in which an expression node is printed.
-type exprContext uint
-
-const (
-	compositeLit exprContext = 1 << iota
-	structType
-)
-
-
-func walkBinary(e *ast.BinaryExpr) (has5, has6 bool, maxProblem int) {
+func walkBinary(e *ast.BinaryExpr) (has4, has5 bool, maxProblem int) {
 	switch e.Op.Precedence() {
+	case 4:
+		has4 = true
 	case 5:
 		has5 = true
-	case 6:
-		has6 = true
 	}
 
 	switch l := e.X.(type) {
@@ -513,9 +504,9 @@ func walkBinary(e *ast.BinaryExpr) (has5, has6 bool, maxProblem int) {
 			// pretend this is an *ast.ParenExpr and do nothing.
 			break
 		}
-		h5, h6, mp := walkBinary(l)
+		h4, h5, mp := walkBinary(l)
+		has4 = has4 || h4
 		has5 = has5 || h5
-		has6 = has6 || h6
 		if maxProblem < mp {
 			maxProblem = mp
 		}
@@ -528,25 +519,25 @@ func walkBinary(e *ast.BinaryExpr) (has5, has6 bool, maxProblem int) {
 			// pretend this is an *ast.ParenExpr and do nothing.
 			break
 		}
-		h5, h6, mp := walkBinary(r)
+		h4, h5, mp := walkBinary(r)
+		has4 = has4 || h4
 		has5 = has5 || h5
-		has6 = has6 || h6
 		if maxProblem < mp {
 			maxProblem = mp
 		}
 
 	case *ast.StarExpr:
 		if e.Op.String() == "/" {
-			maxProblem = 6
+			maxProblem = 5
 		}
 
 	case *ast.UnaryExpr:
 		switch e.Op.String() + r.Op.String() {
 		case "/*", "&&", "&^":
-			maxProblem = 6
+			maxProblem = 5
 		case "++", "--":
-			if maxProblem < 5 {
-				maxProblem = 5
+			if maxProblem < 4 {
+				maxProblem = 4
 			}
 		}
 	}
@@ -555,20 +546,20 @@ func walkBinary(e *ast.BinaryExpr) (has5, has6 bool, maxProblem int) {
 
 
 func cutoff(e *ast.BinaryExpr, depth int) int {
-	has5, has6, maxProblem := walkBinary(e)
+	has4, has5, maxProblem := walkBinary(e)
 	if maxProblem > 0 {
 		return maxProblem + 1
 	}
-	if has5 && has6 {
+	if has4 && has5 {
 		if depth == 1 {
-			return 6
+			return 5
 		}
-		return 5
+		return 4
 	}
 	if depth == 1 {
-		return 7
+		return 6
 	}
-	return 5
+	return 4
 }
 
 
@@ -595,15 +586,14 @@ func reduceDepth(depth int) int {
 // (Algorithm suggestion by Russ Cox.)
 //
 // The precedences are:
-//	6             *  /  %  <<  >>  &  &^
-//	5             +  -  |  ^
-//	4             ==  !=  <  <=  >  >=
-//	3             <-
+//	5             *  /  %  <<  >>  &  &^
+//	4             +  -  |  ^
+//	3             ==  !=  <  <=  >  >=
 //	2             &&
 //	1             ||
 //
-// The only decision is whether there will be spaces around levels 5 and 6.
-// There are never spaces at level 7 (unary), and always spaces at levels 4 and below.
+// The only decision is whether there will be spaces around levels 4 and 5.
+// There are never spaces at level 6 (unary), and always spaces at levels 3 and below.
 //
 // To choose the cutoff, look at the whole expression but excluding primary
 // expressions (function calls, parenthesized exprs), and apply these rules:
@@ -611,21 +601,21 @@ func reduceDepth(depth int) int {
 //	1) If there is a binary operator with a right side unary operand
 //	   that would clash without a space, the cutoff must be (in order):
 //
-//		/*	7
-//		&&	7
-//		&^	7
-//		++	6
-//		--	6
+//		/*	6
+//		&&	6
+//		&^	6
+//		++	5
+//		--	5
 //
 //         (Comparison operators always have spaces around them.)
 //
-//	2) If there is a mix of level 6 and level 5 operators, then the cutoff
-//	   is 6 (use spaces to distinguish precedence) in Normal mode
-//	   and 5 (never use spaces) in Compact mode.
+//	2) If there is a mix of level 5 and level 4 operators, then the cutoff
+//	   is 5 (use spaces to distinguish precedence) in Normal mode
+//	   and 4 (never use spaces) in Compact mode.
 //
-//	3) If there are no level 5 operators or no level 6 operators, then the
-//	   cutoff is 7 (always use spaces) in Normal mode
-//	   and 5 (never use spaces) in Compact mode.
+//	3) If there are no level 4 operators or no level 5 operators, then the
+//	   cutoff is 6 (always use spaces) in Normal mode
+//	   and 4 (never use spaces) in Compact mode.
 //
 // Sets multiLine to true if the binary expression spans multiple lines.
 func (p *printer) binaryExpr(x *ast.BinaryExpr, prec1, cutoff, depth int, multiLine *bool) {
@@ -643,12 +633,12 @@ func (p *printer) binaryExpr(x *ast.BinaryExpr, prec1, cutoff, depth int, multiL
 	printBlank := prec < cutoff
 
 	ws := indent
-	p.expr1(x.X, prec, depth+diffPrec(x.X, prec), 0, multiLine)
+	p.expr1(x.X, prec, depth+diffPrec(x.X, prec), multiLine)
 	if printBlank {
 		p.print(blank)
 	}
 	xline := p.pos.Line // before the operator (it may be on the next line!)
-	yline := x.Y.Pos().Line
+	yline := p.fset.Position(x.Y.Pos()).Line
 	p.print(x.OpPos, x.Op)
 	if xline != yline && xline > 0 && yline > 0 {
 		// at least one line break, but respect an extra empty line
@@ -662,7 +652,7 @@ func (p *printer) binaryExpr(x *ast.BinaryExpr, prec1, cutoff, depth int, multiL
 	if printBlank {
 		p.print(blank)
 	}
-	p.expr1(x.Y, prec+1, depth+1, 0, multiLine)
+	p.expr1(x.Y, prec+1, depth+1, multiLine)
 	if ws == ignore {
 		p.print(unindent)
 	}
@@ -694,13 +684,13 @@ func splitSelector(expr ast.Expr) (body, suffix ast.Expr) {
 	case *ast.IndexExpr:
 		body, suffix = splitSelector(x.X)
 		if body != nil {
-			suffix = &ast.IndexExpr{suffix, x.Index}
+			suffix = &ast.IndexExpr{suffix, x.Lbrack, x.Index, x.Rbrack}
 			return
 		}
 	case *ast.SliceExpr:
 		body, suffix = splitSelector(x.X)
 		if body != nil {
-			suffix = &ast.SliceExpr{suffix, x.Index, x.End}
+			suffix = &ast.SliceExpr{suffix, x.Lbrack, x.Low, x.High, x.Rbrack}
 			return
 		}
 	case *ast.TypeAssertExpr:
@@ -735,7 +725,7 @@ func selectorExprList(expr ast.Expr) (list []ast.Expr) {
 
 
 // Sets multiLine to true if the expression spans multiple lines.
-func (p *printer) expr1(expr ast.Expr, prec1, depth int, ctxt exprContext, multiLine *bool) {
+func (p *printer) expr1(expr ast.Expr, prec1, depth int, multiLine *bool) {
 	p.print(expr.Pos())
 
 	switch x := expr.(type) {
@@ -785,7 +775,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int, ctxt exprContext, multi
 				// TODO(gri) Remove this code if it cannot be reached.
 				p.print(blank)
 			}
-			p.expr1(x.X, prec, depth, 0, multiLine)
+			p.expr1(x.X, prec, depth, multiLine)
 		}
 
 	case *ast.BasicLit:
@@ -793,7 +783,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int, ctxt exprContext, multi
 
 	case *ast.FuncLit:
 		p.expr(x.Type, multiLine)
-		p.funcBody(x.Body, distance(x.Type.Pos(), p.pos), true, multiLine)
+		p.funcBody(x.Body, p.distance(x.Type.Pos(), p.pos), true, multiLine)
 
 	case *ast.ParenExpr:
 		if _, hasParens := x.X.(*ast.ParenExpr); hasParens {
@@ -808,10 +798,10 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int, ctxt exprContext, multi
 
 	case *ast.SelectorExpr:
 		parts := selectorExprList(expr)
-		p.exprList(noPos, parts, depth, periodSep, multiLine, noPos)
+		p.exprList(token.NoPos, parts, depth, periodSep, multiLine, token.NoPos)
 
 	case *ast.TypeAssertExpr:
-		p.expr1(x.X, token.HighestPrec, depth, 0, multiLine)
+		p.expr1(x.X, token.HighestPrec, depth, multiLine)
 		p.print(token.PERIOD, token.LPAREN)
 		if x.Type != nil {
 			p.expr(x.Type, multiLine)
@@ -822,34 +812,34 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int, ctxt exprContext, multi
 
 	case *ast.IndexExpr:
 		// TODO(gri): should treat[] like parentheses and undo one level of depth
-		p.expr1(x.X, token.HighestPrec, 1, 0, multiLine)
-		p.print(token.LBRACK)
+		p.expr1(x.X, token.HighestPrec, 1, multiLine)
+		p.print(x.Lbrack, token.LBRACK)
 		p.expr0(x.Index, depth+1, multiLine)
-		p.print(token.RBRACK)
+		p.print(x.Rbrack, token.RBRACK)
 
 	case *ast.SliceExpr:
 		// TODO(gri): should treat[] like parentheses and undo one level of depth
-		p.expr1(x.X, token.HighestPrec, 1, 0, multiLine)
-		p.print(token.LBRACK)
-		if x.Index != nil {
-			p.expr0(x.Index, depth+1, multiLine)
+		p.expr1(x.X, token.HighestPrec, 1, multiLine)
+		p.print(x.Lbrack, token.LBRACK)
+		if x.Low != nil {
+			p.expr0(x.Low, depth+1, multiLine)
 		}
 		// blanks around ":" if both sides exist and either side is a binary expression
-		if depth <= 1 && x.Index != nil && x.End != nil && (isBinary(x.Index) || isBinary(x.End)) {
+		if depth <= 1 && x.Low != nil && x.High != nil && (isBinary(x.Low) || isBinary(x.High)) {
 			p.print(blank, token.COLON, blank)
 		} else {
 			p.print(token.COLON)
 		}
-		if x.End != nil {
-			p.expr0(x.End, depth+1, multiLine)
+		if x.High != nil {
+			p.expr0(x.High, depth+1, multiLine)
 		}
-		p.print(token.RBRACK)
+		p.print(x.Rbrack, token.RBRACK)
 
 	case *ast.CallExpr:
 		if len(x.Args) > 1 {
 			depth++
 		}
-		p.expr1(x.Fun, token.HighestPrec, depth, 0, multiLine)
+		p.expr1(x.Fun, token.HighestPrec, depth, multiLine)
 		p.print(x.Lparen, token.LPAREN)
 		p.exprList(x.Lparen, x.Args, depth, commaSep|commaTerm, multiLine, x.Rparen)
 		if x.Ellipsis.IsValid() {
@@ -860,11 +850,14 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int, ctxt exprContext, multi
 	case *ast.CompositeLit:
 		// composite literal elements that are composite literals themselves may have the type omitted
 		if x.Type != nil {
-			p.expr1(x.Type, token.HighestPrec, depth, compositeLit, multiLine)
+			p.expr1(x.Type, token.HighestPrec, depth, multiLine)
 		}
 		p.print(x.Lbrace, token.LBRACE)
 		p.exprList(x.Lbrace, x.Elts, 1, commaSep|commaTerm, multiLine, x.Rbrace)
-		p.print(x.Rbrace, token.RBRACE)
+		// do not insert extra line breaks because of comments before
+		// the closing '}' as it might break the code if there is no
+		// trailing ','
+		p.print(noExtraLinebreak, x.Rbrace, token.RBRACE, noExtraLinebreak)
 
 	case *ast.Ellipsis:
 		p.print(token.ELLIPSIS)
@@ -882,7 +875,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int, ctxt exprContext, multi
 
 	case *ast.StructType:
 		p.print(token.STRUCT)
-		p.fieldList(x.Fields, x.Incomplete, ctxt|structType)
+		p.fieldList(x.Fields, true, x.Incomplete)
 
 	case *ast.FuncType:
 		p.print(token.FUNC)
@@ -890,7 +883,7 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int, ctxt exprContext, multi
 
 	case *ast.InterfaceType:
 		p.print(token.INTERFACE)
-		p.fieldList(x.Methods, x.Incomplete, ctxt)
+		p.fieldList(x.Methods, false, x.Incomplete)
 
 	case *ast.MapType:
 		p.print(token.MAP, token.LBRACK)
@@ -919,14 +912,14 @@ func (p *printer) expr1(expr ast.Expr, prec1, depth int, ctxt exprContext, multi
 
 
 func (p *printer) expr0(x ast.Expr, depth int, multiLine *bool) {
-	p.expr1(x, token.LowestPrec, depth, 0, multiLine)
+	p.expr1(x, token.LowestPrec, depth, multiLine)
 }
 
 
 // Sets multiLine to true if the expression spans multiple lines.
 func (p *printer) expr(x ast.Expr, multiLine *bool) {
 	const depth = 1
-	p.expr1(x, token.LowestPrec, depth, 0, multiLine)
+	p.expr1(x, token.LowestPrec, depth, multiLine)
 }
 
 
@@ -945,7 +938,7 @@ func (p *printer) stmtList(list []ast.Stmt, _indent int, nextIsRBrace bool) {
 	for i, s := range list {
 		// _indent == 0 only for lists of switch/select case clauses;
 		// in those cases each clause is a new section
-		p.linebreak(s.Pos().Line, 1, ignore, i == 0 || _indent == 0 || multiLine)
+		p.linebreak(p.fset.Position(s.Pos()).Line, 1, ignore, i == 0 || _indent == 0 || multiLine)
 		multiLine = false
 		p.stmt(s, nextIsRBrace && i == len(list)-1, &multiLine)
 	}
@@ -959,7 +952,7 @@ func (p *printer) stmtList(list []ast.Stmt, _indent int, nextIsRBrace bool) {
 func (p *printer) block(s *ast.BlockStmt, indent int) {
 	p.print(s.Pos(), token.LBRACE)
 	p.stmtList(s.List, indent, true)
-	p.linebreak(s.Rbrace.Line, 1, ignore, true)
+	p.linebreak(p.fset.Position(s.Rbrace).Line, 1, ignore, true)
 	p.print(s.Rbrace, token.RBRACE)
 }
 
@@ -980,7 +973,7 @@ func stripParens(x ast.Expr) ast.Expr {
 		// parentheses must not be stripped if there are any
 		// unparenthesized composite literals starting with
 		// a type name
-		ast.Inspect(px.X, func(node interface{}) bool {
+		ast.Inspect(px.X, func(node ast.Node) bool {
 			switch x := node.(type) {
 			case *ast.ParenExpr:
 				// parentheses protect enclosed composite literals
@@ -1057,14 +1050,14 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool, multiLine *bool) {
 		// between (see writeWhitespace)
 		p.print(unindent)
 		p.expr(s.Label, multiLine)
-		p.print(token.COLON, indent)
+		p.print(s.Colon, token.COLON, indent)
 		if e, isEmpty := s.Stmt.(*ast.EmptyStmt); isEmpty {
 			if !nextIsRBrace {
 				p.print(newline, e.Pos(), token.SEMICOLON)
 				break
 			}
 		} else {
-			p.linebreak(s.Stmt.Pos().Line, 1, ignore, true)
+			p.linebreak(p.fset.Position(s.Stmt.Pos()).Line, 1, ignore, true)
 		}
 		p.stmt(s.Stmt, nextIsRBrace, multiLine)
 
@@ -1072,10 +1065,16 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool, multiLine *bool) {
 		const depth = 1
 		p.expr0(s.X, depth, multiLine)
 
+	case *ast.SendStmt:
+		const depth = 1
+		p.expr0(s.Chan, depth, multiLine)
+		p.print(blank, s.Arrow, token.ARROW, blank)
+		p.expr0(s.Value, depth, multiLine)
+
 	case *ast.IncDecStmt:
 		const depth = 1
 		p.expr0(s.X, depth+1, multiLine)
-		p.print(s.Tok)
+		p.print(s.TokPos, s.Tok)
 
 	case *ast.AssignStmt:
 		var depth = 1
@@ -1084,7 +1083,7 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool, multiLine *bool) {
 		}
 		p.exprList(s.Pos(), s.Lhs, depth, commaSep, multiLine, s.TokPos)
 		p.print(blank, s.TokPos, s.Tok)
-		p.exprList(s.TokPos, s.Rhs, depth, blankStart|commaSep, multiLine, noPos)
+		p.exprList(s.TokPos, s.Rhs, depth, blankStart|commaSep, multiLine, token.NoPos)
 
 	case *ast.GoStmt:
 		p.print(token.GO, blank)
@@ -1097,7 +1096,7 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool, multiLine *bool) {
 	case *ast.ReturnStmt:
 		p.print(token.RETURN)
 		if s.Results != nil {
-			p.exprList(s.Pos(), s.Results, 1, blankStart|commaSep, multiLine, noPos)
+			p.exprList(s.Pos(), s.Results, 1, blankStart|commaSep, multiLine, token.NoPos)
 		}
 
 	case *ast.BranchStmt:
@@ -1129,9 +1128,9 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool, multiLine *bool) {
 		}
 
 	case *ast.CaseClause:
-		if s.Values != nil {
+		if s.List != nil {
 			p.print(token.CASE)
-			p.exprList(s.Pos(), s.Values, 1, blankStart|commaSep, multiLine, s.Colon)
+			p.exprList(s.Pos(), s.List, 1, blankStart|commaSep, multiLine, s.Colon)
 		} else {
 			p.print(token.DEFAULT)
 		}
@@ -1143,16 +1142,6 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool, multiLine *bool) {
 		p.controlClause(false, s.Init, s.Tag, nil)
 		p.block(s.Body, 0)
 		*multiLine = true
-
-	case *ast.TypeCaseClause:
-		if s.Types != nil {
-			p.print(token.CASE)
-			p.exprList(s.Pos(), s.Types, 1, blankStart|commaSep, multiLine, s.Colon)
-		} else {
-			p.print(token.DEFAULT)
-		}
-		p.print(s.Colon, token.COLON)
-		p.stmtList(s.Body, 1, nextIsRBrace)
 
 	case *ast.TypeSwitchStmt:
 		p.print(token.SWITCH)
@@ -1168,13 +1157,9 @@ func (p *printer) stmt(stmt ast.Stmt, nextIsRBrace bool, multiLine *bool) {
 		*multiLine = true
 
 	case *ast.CommClause:
-		if s.Rhs != nil {
+		if s.Comm != nil {
 			p.print(token.CASE, blank)
-			if s.Lhs != nil {
-				p.expr(s.Lhs, multiLine)
-				p.print(blank, s.Tok, blank)
-			}
-			p.expr(s.Rhs, multiLine)
+			p.stmt(s.Comm, false, ignoreMultiLine)
 		} else {
 			p.print(token.DEFAULT)
 		}
@@ -1242,7 +1227,7 @@ func (p *printer) spec(spec ast.Spec, n int, doIndent bool, multiLine *bool) {
 			}
 			if s.Values != nil {
 				p.print(blank, token.ASSIGN)
-				p.exprList(noPos, s.Values, 1, blankStart|commaSep, multiLine, noPos)
+				p.exprList(token.NoPos, s.Values, 1, blankStart|commaSep, multiLine, token.NoPos)
 			}
 			p.setComment(s.Comment)
 
@@ -1255,7 +1240,7 @@ func (p *printer) spec(spec ast.Spec, n int, doIndent bool, multiLine *bool) {
 			}
 			if s.Values != nil {
 				p.print(vtab, token.ASSIGN)
-				p.exprList(noPos, s.Values, 1, blankStart|commaSep, multiLine, noPos)
+				p.exprList(token.NoPos, s.Values, 1, blankStart|commaSep, multiLine, token.NoPos)
 				extraTabs--
 			}
 			if s.Comment != nil {
@@ -1296,7 +1281,7 @@ func (p *printer) genDecl(d *ast.GenDecl, multiLine *bool) {
 			var ml bool
 			for i, s := range d.Specs {
 				if i > 0 {
-					p.linebreak(s.Pos().Line, 1, ignore, ml)
+					p.linebreak(p.fset.Position(s.Pos()).Line, 1, ignore, ml)
 				}
 				ml = false
 				p.spec(s, len(d.Specs), false, &ml)
@@ -1319,13 +1304,23 @@ func (p *printer) genDecl(d *ast.GenDecl, multiLine *bool) {
 // any control chars. Otherwise, the result is > maxSize.
 //
 func (p *printer) nodeSize(n ast.Node, maxSize int) (size int) {
+	// nodeSize invokes the printer, which may invoke nodeSize
+	// recursively. For deep composite literal nests, this can
+	// lead to an exponential algorithm. Remember previous
+	// results to prune the recursion (was issue 1628).
+	if size, found := p.nodeSizes[n]; found {
+		return size
+	}
+
 	size = maxSize + 1 // assume n doesn't fit
+	p.nodeSizes[n] = size
+
 	// nodeSize computation must be indendent of particular
 	// style so that we always get the same decision; print
 	// in RawFormat
 	cfg := Config{Mode: RawFormat}
 	var buf bytes.Buffer
-	if _, err := cfg.Fprint(&buf, n); err != nil {
+	if _, err := cfg.fprint(&buf, p.fset, n, p.nodeSizes); err != nil {
 		return
 	}
 	if buf.Len() <= maxSize {
@@ -1335,6 +1330,7 @@ func (p *printer) nodeSize(n ast.Node, maxSize int) (size int) {
 			}
 		}
 		size = buf.Len() // n fits
+		p.nodeSizes[n] = size
 	}
 	return
 }
@@ -1343,11 +1339,11 @@ func (p *printer) nodeSize(n ast.Node, maxSize int) (size int) {
 func (p *printer) isOneLineFunc(b *ast.BlockStmt, headerSize int) bool {
 	pos1 := b.Pos()
 	pos2 := b.Rbrace
-	if pos1.IsValid() && pos2.IsValid() && pos1.Line != pos2.Line {
+	if pos1.IsValid() && pos2.IsValid() && p.fset.Position(pos1).Line != p.fset.Position(pos2).Line {
 		// opening and closing brace are on different lines - don't make it a one-liner
 		return false
 	}
-	if len(b.List) > 5 || p.commentBefore(pos2) {
+	if len(b.List) > 5 || p.commentBefore(p.fset.Position(pos2)) {
 		// too many statements or there is a comment inside - don't make it a one-liner
 		return false
 	}
@@ -1380,7 +1376,7 @@ func (p *printer) funcBody(b *ast.BlockStmt, headerSize int, isLit bool, multiLi
 		if isLit {
 			sep = blank
 		}
-		p.print(sep, b.Pos(), token.LBRACE)
+		p.print(sep, b.Lbrace, token.LBRACE)
 		if len(b.List) > 0 {
 			p.print(blank)
 			for i, s := range b.List {
@@ -1404,7 +1400,8 @@ func (p *printer) funcBody(b *ast.BlockStmt, headerSize int, isLit bool, multiLi
 // distance returns the column difference between from and to if both
 // are on the same line; if they are on different lines (or unknown)
 // the result is infinity.
-func distance(from, to token.Position) int {
+func (p *printer) distance(from0 token.Pos, to token.Position) int {
+	from := p.fset.Position(from0)
 	if from.IsValid() && to.IsValid() && from.Line == to.Line {
 		return to.Column - from.Column
 	}
@@ -1422,7 +1419,7 @@ func (p *printer) funcDecl(d *ast.FuncDecl, multiLine *bool) {
 	}
 	p.expr(d.Name, multiLine)
 	p.signature(d.Type.Params, d.Type.Results, multiLine)
-	p.funcBody(d.Body, distance(d.Pos(), p.pos), false, multiLine)
+	p.funcBody(d.Body, p.distance(d.Pos(), p.pos), false, multiLine)
 }
 
 
@@ -1472,7 +1469,7 @@ func (p *printer) file(src *ast.File) {
 			if prev != tok {
 				min = 2
 			}
-			p.linebreak(d.Pos().Line, min, ignore, false)
+			p.linebreak(p.fset.Position(d.Pos()).Line, min, ignore, false)
 			p.decl(d, ignoreMultiLine)
 		}
 	}

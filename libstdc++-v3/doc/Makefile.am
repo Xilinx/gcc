@@ -1,6 +1,6 @@
 ## Makefile for the doc subdirectory of the GNU C++ Standard library.
 ##
-## Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+## Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 ##
 ## This file is part of the libstdc++ version 3 distribution.
 ## Process this file with automake to produce Makefile.in.
@@ -318,6 +318,7 @@ xml_sources_manual = \
 	${xml_dir}/manual/debug_mode.xml \
 	${xml_dir}/manual/debug.xml \
 	${xml_dir}/manual/diagnostics.xml \
+	${xml_dir}/manual/documentation_hacking.xml \
 	${xml_dir}/manual/evolution.xml \
 	${xml_dir}/manual/extensions.xml \
 	${xml_dir}/manual/internals.xml \
@@ -349,9 +350,7 @@ xml_sources_manual = \
 	${xml_dir}/manual/appendix_porting.xml
 
 xml_sources_extra = \
-	${xml_dir}/gnu/fdl-1.2.xml \
 	${xml_dir}/gnu/fdl-1.3.xml \
-	${xml_dir}/gnu/gpl-2.0.xml \
 	${xml_dir}/gnu/gpl-3.0.xml
 
 xml_sources = \
@@ -362,16 +361,16 @@ xml_sources = \
 xml_noinst = \
 	${xml_dir}/book.txml \
 	${xml_dir}/chapter.txml \
-	${xml_dir}/class.txml
+	${xml_dir}/class.txml \
+	${xml_dir}/images/confdeps.dot \
+	${xml_dir}/images/confdeps.png \
+	${xml_dir}/images/confdeps.pdf
 
 XSLTPROC       = xsltproc
 XSLTPROC_FLAGS = --nonet --xinclude
-#XSL_STYLE_DIR = /usr/share/sgml/docbook/xsl-stylesheets
-XSL_STYLE_DIR = /usr/share/sgml/docbook/xsl-ns-stylesheets
+#XSL_STYLE_DIR = /usr/share/xml/docbook/stylesheet/docbook-xsl-ns
+#XSL_STYLE_DIR = /usr/share/sgml/docbook/xsl-ns-stylesheets
 XSL_FO_STYLE = $(XSL_STYLE_DIR)/fo/docbook.xsl
-#XSL_HTML_STYLE = $(XSL_STYLE_DIR)/xhtml/chunk.xsl
-#XSL_HTML_SINGLE_STYLE = $(XSL_STYLE_DIR)/xhtml/onechunk.xsl
-#XSL_HTML_SINGLE_STYLE = $(XSL_STYLE_DIR)/xhtml/docbook.xsl
 XSL_HTML_STYLE = $(XSL_STYLE_DIR)/xhtml-1_1/chunk.xsl
 XSL_HTML_SINGLE_STYLE = $(XSL_STYLE_DIR)/xhtml-1_1/docbook.xsl
 XSL_EPUB_STYLE = $(XSL_STYLE_DIR)/epub/docbook.xsl
@@ -396,13 +395,11 @@ ${docbook_outdir}/xml:
 
 # Validate existing XML structure.
 XMLLINT = xmllint
-#LINT_FLAGS = --debug --xinclude --nsclean --postvalid --nowarning --nonet
-#LINT_FLAGS = --xinclude --postvalid --noent --noblanks --noout
-LINT_FLAGS = --debug --xinclude --noent --noblanks  --nonet --noout
-#SCHEMA_FLAGS = --relaxng /usr/share/xml/docbook5/schema/rng/5.0/docbookxi.rng
-SCHEMA_FLAGS = --dtdvalid /usr/share/xml/docbook5/schema/dtd/5.0/docbook.dtd
+LINT_FLAGS = --debug --xinclude --noent --noblanks --noout
+SCHEMA_FLAGS = http://www.docbook.org/xml/5.0/dtd/docbook.dtd
+#SCHEMA_FLAGS = --nonet /usr/share/xml/docbook5/schema/dtd/5.0/docbook.dtd
+XMLLINT_VALID_FLAGS = $(LINT_FLAGS) --dtdvalid $(SCHEMA_FLAGS)
 XMLLINT_FLAGS = --xinclude --nsclean --c14n --noent --noblanks --nocdata
-XMLLINT_VALID_FLAGS = $(LINT_FLAGS) $(SCHEMA_FLAGS)
 doc-xml-validate-docbook: $(xml_sources)
 	@echo "Generating XML validation log..."
 	$(XMLLINT) $(XMLLINT_VALID_FLAGS) ${top_srcdir}/doc/xml/spine.xml

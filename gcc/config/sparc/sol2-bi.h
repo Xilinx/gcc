@@ -229,14 +229,12 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #undef	CC1_SPEC
 #if DEFAULT_ARCH32_P
 #define CC1_SPEC "\
-%{sun4:} %{target:} \
 %{m64:%{m32:%emay not use both -m32 and -m64}} \
 %{m64:-mptr64 -mstack-bias -mno-v8plus \
   %{!mcpu*:-%{!mv8plus:mcpu=v9}}} \
 "
 #else
 #define CC1_SPEC "\
-%{sun4:} %{target:} \
 %{m32:%{m64:%emay not use both -m32 and -m64}} \
 %{m32:-mptr32 -mno-stack-bias \
   %{!mcpu*:%{!mv8plus:-mcpu=v9}}} \
@@ -258,12 +256,12 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define OPTION_DEFAULT_SPECS \
   {"cpu", "%{!m64:%{!mcpu=*:-mcpu=%(VALUE)}}" }, \
   {"tune", "%{!mtune=*:-mtune=%(VALUE)}" }, \
-  {"float", "%{!msoft-float:%{!mhard-float:%{!fpu:%{!no-fpu:-m%(VALUE)-float}}}}" }
+  {"float", "%{!msoft-float:%{!mhard-float:%{!mfpu:%{!mno-fpu:-m%(VALUE)-float}}}}" }
 #else
 #define OPTION_DEFAULT_SPECS \
   {"cpu", "%{!m32:%{!mcpu=*:-mcpu=%(VALUE)}}" }, \
   {"tune", "%{!mtune=*:-mtune=%(VALUE)}" }, \
-  {"float", "%{!msoft-float:%{!mhard-float:%{!fpu:%{!no-fpu:-m%(VALUE)-float}}}}" }
+  {"float", "%{!msoft-float:%{!mhard-float:%{!mfpu:%{!mno-fpu:-m%(VALUE)-float}}}}" }
 #endif
 
 #if DEFAULT_ARCH32_P

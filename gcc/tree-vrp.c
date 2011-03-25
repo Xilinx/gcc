@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-scalar-evolution.h"
 #include "tree-ssa-propagate.h"
 #include "tree-chrec.h"
+#include "gimple-fold.h"
 
 
 /* Type of value ranges.  See value_range_d for a description of these
@@ -714,6 +715,8 @@ static inline bool
 vrp_bitmap_equal_p (const_bitmap b1, const_bitmap b2)
 {
   return (b1 == b2
+	  || ((!b1 || bitmap_empty_p (b1))
+	      && (!b2 || bitmap_empty_p (b2)))
 	  || (b1 && b2
 	      && bitmap_equal_p (b1, b2)));
 }
@@ -5612,6 +5615,21 @@ vrp_initialize (void)
     }
 }
 
+/* Return the singleton value-range for NAME or NAME.  */
+
+static inline tree
+vrp_valueize (tree name)
+{
+  if (TREE_CODE (name) == SSA_NAME)
+    {
+      value_range_t *vr = get_value_range (name);
+      if (vr->type == VR_RANGE
+	  && (vr->min == vr->max
+	      || operand_equal_p (vr->min, vr->max, 0)))
+	return vr->min;
+    }
+  return name;
+}
 
 /* Visit assignment STMT.  If it produces an interesting range, record
    the SSA name in *OUTPUT_P.  */
@@ -5635,7 +5653,12 @@ vrp_visit_assignment_or_call (gimple stmt, tree *output_p)
     {
       value_range_t new_vr = { VR_UNDEFINED, NULL_TREE, NULL_TREE, NULL };
 
-      if (code == GIMPLE_CALL)
+      /* Try folding the statement to a constant first.  */
+      tree tem = gimple_fold_stmt_to_constant (stmt, vrp_valueize);
+      if (tem && !is_overflow_infinity (tem))
+	set_value_range (&new_vr, VR_RANGE, tem, tem, NULL);
+      /* Then dispatch to value-range extracting functions.  */
+      else if (code == GIMPLE_CALL)
 	extract_range_basic (&new_vr, stmt);
       else
 	extract_range_from_assignment (&new_vr, stmt);
@@ -6364,7 +6387,6 @@ vrp_visit_stmt (gimple stmt, edge *taken_edge_p, tree *output_p)
       /* In general, assignments with virtual operands are not useful
 	 for deriving ranges, with the obvious exception of calls to
 	 builtin functions.  */
-
       if ((is_gimple_call (stmt)
 	   && gimple_call_fndecl (stmt) != NULL_TREE
 	   && DECL_IS_BUILTIN (gimple_call_fndecl (stmt)))
@@ -6617,6 +6639,7 @@ vrp_visit_phi_node (gimple phi)
      edge; this helps us avoid an overflow infinity for conditionals
      which are not in a loop.  */
   if (edges > 0
+      && gimple_phi_num_args (phi) > 1
       && edges == old_edges)
     {
       int cmp_min = compare_values (lhs_vr->min, vr_result.min);
@@ -7536,12 +7559,14 @@ identify_jump_threads (void)
 	continue;
 
       /* We're basically looking for any kind of conditional with
-	 integral type arguments.  */
+	 integral or pointer type arguments.  Note the type of the second
+	 argument will be the same as the first argument, so no need to
+	 check it explicitly.  */
       if (TREE_CODE (gimple_cond_lhs (last)) == SSA_NAME
-	  && INTEGRAL_TYPE_P (TREE_TYPE (gimple_cond_lhs (last)))
+	  && (INTEGRAL_TYPE_P (TREE_TYPE (gimple_cond_lhs (last)))
+	      || POINTER_TYPE_P (TREE_TYPE (gimple_cond_lhs (last))))
 	  && (TREE_CODE (gimple_cond_rhs (last)) == SSA_NAME
-	      || is_gimple_min_invariant (gimple_cond_rhs (last)))
-	  && INTEGRAL_TYPE_P (TREE_TYPE (gimple_cond_rhs (last))))
+	      || is_gimple_min_invariant (gimple_cond_rhs (last))))
 	{
 	  edge_iterator ei;
 
@@ -7764,9 +7789,10 @@ struct gimple_opt_pass pass_vrp =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_cleanup_cfg
-    | TODO_ggc_collect
+    | TODO_update_ssa
     | TODO_verify_ssa
+    | TODO_verify_flow
     | TODO_dump_func
-    | TODO_update_ssa			/* todo_flags_finish */
+    | TODO_ggc_collect			/* todo_flags_finish */
  }
 };

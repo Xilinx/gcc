@@ -1,6 +1,6 @@
 /* Output routines for GCC for ARM.
    Copyright (C) 1991, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Pieter `Tiggr' Schoenmakers (rcpieter@win.tue.nl)
    and Martin Simmons (@harleqn.co.uk).
@@ -56,6 +56,7 @@
 #include "intl.h"
 #include "libfuncs.h"
 #include "params.h"
+#include "opts.h"
 
 /* Forward definitions of types.  */
 typedef struct minipool_node    Mnode;
@@ -218,7 +219,8 @@ static tree arm_build_builtin_va_list (void);
 static void arm_expand_builtin_va_start (tree, rtx);
 static tree arm_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
 static void arm_option_override (void);
-static bool arm_handle_option (size_t, const char *, int);
+static bool arm_handle_option (struct gcc_options *, struct gcc_options *,
+			       const struct cl_decoded_option *, location_t);
 static void arm_target_help (void);
 static unsigned HOST_WIDE_INT arm_shift_truncation_mask (enum machine_mode);
 static bool arm_cannot_copy_insn_p (rtx);
@@ -255,20 +257,25 @@ static reg_class_t arm_preferred_rename_class (reg_class_t rclass);
 /* Table of machine attributes.  */
 static const struct attribute_spec arm_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
   /* Function calls made to this symbol must be done indirectly, because
      it may lie outside of the 26 bit addressing range of a normal function
      call.  */
-  { "long_call",    0, 0, false, true,  true,  NULL },
+  { "long_call",    0, 0, false, true,  true,  NULL, false },
   /* Whereas these functions are always known to reside within the 26 bit
      addressing range.  */
-  { "short_call",   0, 0, false, true,  true,  NULL },
+  { "short_call",   0, 0, false, true,  true,  NULL, false },
   /* Specify the procedure call conventions for a function.  */
-  { "pcs",          1, 1, false, true,  true,  arm_handle_pcs_attribute },
+  { "pcs",          1, 1, false, true,  true,  arm_handle_pcs_attribute,
+    false },
   /* Interrupt Service Routines have special prologue and epilogue requirements.  */
-  { "isr",          0, 1, false, false, false, arm_handle_isr_attribute },
-  { "interrupt",    0, 1, false, false, false, arm_handle_isr_attribute },
-  { "naked",        0, 0, true,  false, false, arm_handle_fndecl_attribute },
+  { "isr",          0, 1, false, false, false, arm_handle_isr_attribute,
+    false },
+  { "interrupt",    0, 1, false, false, false, arm_handle_isr_attribute,
+    false },
+  { "naked",        0, 0, true,  false, false, arm_handle_fndecl_attribute,
+    false },
 #ifdef ARM_PE
   /* ARM/PE has three new attributes:
      interfacearm - ?
@@ -279,15 +286,17 @@ static const struct attribute_spec arm_attribute_table[] =
      them with spaces.  We do NOT support this.  Instead, use __declspec
      multiple times.
   */
-  { "dllimport",    0, 0, true,  false, false, NULL },
-  { "dllexport",    0, 0, true,  false, false, NULL },
-  { "interfacearm", 0, 0, true,  false, false, arm_handle_fndecl_attribute },
+  { "dllimport",    0, 0, true,  false, false, NULL, false },
+  { "dllexport",    0, 0, true,  false, false, NULL, false },
+  { "interfacearm", 0, 0, true,  false, false, arm_handle_fndecl_attribute,
+    false },
 #elif TARGET_DLLIMPORT_DECL_ATTRIBUTES
-  { "dllimport",    0, 0, false, false, false, handle_dll_attribute },
-  { "dllexport",    0, 0, false, false, false, handle_dll_attribute },
-  { "notshared",    0, 0, false, true, false, arm_handle_notshared_attribute },
+  { "dllimport",    0, 0, false, false, false, handle_dll_attribute, false },
+  { "dllexport",    0, 0, false, false, false, handle_dll_attribute, false },
+  { "notshared",    0, 0, false, true, false, arm_handle_notshared_attribute,
+    false },
 #endif
-  { NULL,           0, 0, false, false, false, NULL }
+  { NULL,           0, 0, false, false, false, NULL, false }
 };
 
 /* Set default optimization options.  */
@@ -1333,8 +1342,16 @@ arm_find_cpu (const char *name, const struct processors *sel, const char *desc)
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
-arm_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
+arm_handle_option (struct gcc_options *opts, struct gcc_options *opts_set,
+		   const struct cl_decoded_option *decoded,
+		   location_t loc ATTRIBUTE_UNUSED)
 {
+  size_t code = decoded->opt_index;
+  const char *arg = decoded->arg;
+
+  gcc_assert (opts == &global_options);
+  gcc_assert (opts_set == &global_options_set);
+
   switch (code)
     {
     case OPT_march_:
@@ -1343,14 +1360,6 @@ arm_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
 
     case OPT_mcpu_:
       arm_selected_cpu = arm_find_cpu(arg, all_cores, "-mcpu");
-      return true;
-
-    case OPT_mhard_float:
-      target_float_abi_name = "hard";
-      return true;
-
-    case OPT_msoft_float:
-      target_float_abi_name = "soft";
       return true;
 
     case OPT_mtune_:
@@ -5786,7 +5795,11 @@ thumb2_legitimate_index_p (enum machine_mode mode, rtx index, int strict_p)
       && (mode == SFmode || mode == DFmode
 	  || (TARGET_MAVERICK && mode == DImode)))
     return (code == CONST_INT && INTVAL (index) < 1024
-	    && INTVAL (index) > -1024
+	    /* Thumb-2 allows only > -256 index range for it's core register
+	       load/stores. Since we allow SF/DF in core registers, we have
+	       to use the intersection between -256~4096 (core) and -1024~1024
+	       (coprocessor).  */
+	    && INTVAL (index) > -256
 	    && (INTVAL (index) & 3) == 0);
 
   if (TARGET_REALLY_IWMMXT && VALID_IWMMXT_REG_MODE (mode))
@@ -6386,6 +6399,62 @@ thumb_legitimize_address (rtx x, rtx orig_x, enum machine_mode mode)
     }
 
   return x;
+}
+
+bool
+arm_legitimize_reload_address (rtx *p,
+			       enum machine_mode mode,
+			       int opnum, int type,
+			       int ind_levels ATTRIBUTE_UNUSED)
+{
+  if (GET_CODE (*p) == PLUS
+      && GET_CODE (XEXP (*p, 0)) == REG
+      && ARM_REGNO_OK_FOR_BASE_P (REGNO (XEXP (*p, 0)))
+      && GET_CODE (XEXP (*p, 1)) == CONST_INT)
+    {
+      HOST_WIDE_INT val = INTVAL (XEXP (*p, 1));
+      HOST_WIDE_INT low, high;
+
+      if (mode == DImode || (mode == DFmode && TARGET_SOFT_FLOAT))
+	low = ((val & 0xf) ^ 0x8) - 0x8;
+      else if (TARGET_MAVERICK && TARGET_HARD_FLOAT)
+	/* Need to be careful, -256 is not a valid offset.  */
+	low = val >= 0 ? (val & 0xff) : -((-val) & 0xff);
+      else if (mode == SImode
+	       || (mode == SFmode && TARGET_SOFT_FLOAT)
+	       || ((mode == HImode || mode == QImode) && ! arm_arch4))
+	/* Need to be careful, -4096 is not a valid offset.  */
+	low = val >= 0 ? (val & 0xfff) : -((-val) & 0xfff);
+      else if ((mode == HImode || mode == QImode) && arm_arch4)
+	/* Need to be careful, -256 is not a valid offset.  */
+	low = val >= 0 ? (val & 0xff) : -((-val) & 0xff);
+      else if (GET_MODE_CLASS (mode) == MODE_FLOAT
+	       && TARGET_HARD_FLOAT && TARGET_FPA)
+	/* Need to be careful, -1024 is not a valid offset.  */
+	low = val >= 0 ? (val & 0x3ff) : -((-val) & 0x3ff);
+      else
+	return false;
+
+      high = ((((val - low) & (unsigned HOST_WIDE_INT) 0xffffffff)
+	       ^ (unsigned HOST_WIDE_INT) 0x80000000)
+	      - (unsigned HOST_WIDE_INT) 0x80000000);
+      /* Check for overflow or zero */
+      if (low == 0 || high == 0 || (high + low != val))
+	return false;
+
+      /* Reload the high part into a base reg; leave the low part
+	 in the mem.  */
+      *p = gen_rtx_PLUS (GET_MODE (*p),
+			 gen_rtx_PLUS (GET_MODE (*p), XEXP (*p, 0),
+				       GEN_INT (high)),
+			 GEN_INT (low));
+      push_reload (XEXP (*p, 0), NULL_RTX, &XEXP (*p, 0), NULL,
+		   MODE_BASE_REG_CLASS (mode), GET_MODE (*p),
+		   VOIDmode, 0, 0, opnum, (enum reload_type) type);
+      return true;
+    }
+
+  return false;
 }
 
 rtx
@@ -11962,6 +12031,16 @@ create_fix_barrier (Mfix *fix, HOST_WIDE_INT max_address)
   /* Make sure that we found a place to insert the jump.  */
   gcc_assert (selected);
 
+  /* Make sure we do not split a call and its corresponding
+     CALL_ARG_LOCATION note.  */
+  if (CALL_P (selected))
+    {
+      rtx next = NEXT_INSN (selected);
+      if (next && NOTE_P (next)
+	  && NOTE_KIND (next) == NOTE_INSN_CALL_ARG_LOCATION)
+	  selected = next;
+    }
+
   /* Create a new JUMP_INSN that branches around a barrier.  */
   from = emit_jump_insn_after (gen_jump (label), selected);
   JUMP_LABEL (from) = label;
@@ -15188,6 +15267,31 @@ thumb_force_lr_save (void)
 }
 
 
+/* Return true if r3 is used by any of the tail call insns in the
+   current function.  */
+
+static bool
+any_sibcall_uses_r3 (void)
+{
+  edge_iterator ei;
+  edge e;
+
+  if (!crtl->tail_call_emit)
+    return false;
+  FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
+    if (e->flags & EDGE_SIBCALL)
+      {
+	rtx call = BB_END (e->src);
+	if (!CALL_P (call))
+	  call = prev_nonnote_nondebug_insn (call);
+	gcc_assert (CALL_P (call) && SIBLING_CALL_P (call));
+	if (find_regno_fusage (call, USE, 3))
+	  return true;
+      }
+  return false;
+}
+
+
 /* Compute the distance from register FROM to register TO.
    These can be the arg pointer (26), the soft frame pointer (25),
    the stack pointer (13) or the hard frame pointer (11).
@@ -15330,7 +15434,10 @@ arm_get_frame_offsets (void)
   offsets->soft_frame = offsets->saved_regs + CALLER_INTERWORKING_SLOT_SIZE;
   /* A leaf function does not need any stack alignment if it has nothing
      on the stack.  */
-  if (leaf && frame_size == 0)
+  if (leaf && frame_size == 0
+      /* However if it calls alloca(), we have a dynamically allocated
+	 block of BIGGEST_ALIGNMENT on stack, so still do stack alignment.  */
+      && ! cfun->calls_alloca)
     {
       offsets->outgoing_args = offsets->soft_frame;
       offsets->locals_base = offsets->soft_frame;
@@ -15352,7 +15459,7 @@ arm_get_frame_offsets (void)
 	  /* If it is safe to use r3, then do so.  This sometimes 
 	     generates better code on Thumb-2 by avoiding the need to
 	     use 32-bit push/pop instructions.  */
-	  if (!crtl->tail_call_emit
+ 	  if (! any_sibcall_uses_r3 ()
 	      && arm_size_return_regs () <= 12
 	      && (offsets->saved_regs_mask & (1 << 3)) == 0)
 	    {

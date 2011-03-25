@@ -126,6 +126,7 @@ static rtx fixup_subreg_mem (rtx);
 static struct machine_function * xtensa_init_machine_status (void);
 static rtx xtensa_legitimize_tls_address (rtx);
 static rtx xtensa_legitimize_address (rtx, rtx, enum machine_mode);
+static bool xtensa_mode_dependent_address_p (const_rtx);
 static bool xtensa_return_in_msb (const_tree);
 static void printx (FILE *, signed int);
 static void xtensa_function_epilogue (FILE *, HOST_WIDE_INT);
@@ -136,6 +137,9 @@ static unsigned int xtensa_multibss_section_type_flags (tree, const char *,
 static section *xtensa_select_rtx_section (enum machine_mode, rtx,
 					   unsigned HOST_WIDE_INT);
 static bool xtensa_rtx_costs (rtx, int, int, int *, bool);
+static int xtensa_register_move_cost (enum machine_mode, reg_class_t,
+				      reg_class_t);
+static int xtensa_memory_move_cost (enum machine_mode, reg_class_t, bool);
 static tree xtensa_build_builtin_va_list (void);
 static bool xtensa_return_in_memory (const_tree, const_tree);
 static tree xtensa_gimplify_va_arg_expr (tree, tree, gimple_seq *,
@@ -160,6 +164,14 @@ static rtx xtensa_static_chain (const_tree, bool);
 static void xtensa_asm_trampoline_template (FILE *);
 static void xtensa_trampoline_init (rtx, tree, rtx);
 static bool xtensa_output_addr_const_extra (FILE *, rtx);
+
+static reg_class_t xtensa_preferred_reload_class (rtx, reg_class_t);
+static reg_class_t xtensa_preferred_output_reload_class (rtx, reg_class_t);
+static reg_class_t xtensa_secondary_reload (bool, rtx, reg_class_t,
+					    enum machine_mode,
+					    struct secondary_reload_info *);
+
+static bool constantpool_address_p (const_rtx addr);
 
 static const int reg_nonleaf_alloc_order[FIRST_PSEUDO_REGISTER] =
   REG_ALLOC_ORDER;
@@ -201,7 +213,13 @@ static const struct default_options xtensa_option_optimization_table[] =
 
 #undef TARGET_LEGITIMIZE_ADDRESS
 #define TARGET_LEGITIMIZE_ADDRESS xtensa_legitimize_address
+#undef TARGET_MODE_DEPENDENT_ADDRESS_P
+#define TARGET_MODE_DEPENDENT_ADDRESS_P xtensa_mode_dependent_address_p
 
+#undef TARGET_REGISTER_MOVE_COST
+#define TARGET_REGISTER_MOVE_COST xtensa_register_move_cost
+#undef TARGET_MEMORY_MOVE_COST
+#define TARGET_MEMORY_MOVE_COST xtensa_memory_move_cost
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS xtensa_rtx_costs
 #undef TARGET_ADDRESS_COST
@@ -254,6 +272,11 @@ static const struct default_options xtensa_option_optimization_table[] =
 #define TARGET_FOLD_BUILTIN xtensa_fold_builtin
 #undef  TARGET_EXPAND_BUILTIN
 #define TARGET_EXPAND_BUILTIN xtensa_expand_builtin
+
+#undef  TARGET_PREFERRED_RELOAD_CLASS
+#define TARGET_PREFERRED_RELOAD_CLASS xtensa_preferred_reload_class
+#undef  TARGET_PREFERRED_OUTPUT_RELOAD_CLASS
+#define TARGET_PREFERRED_OUTPUT_RELOAD_CLASS xtensa_preferred_output_reload_class
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD xtensa_secondary_reload
@@ -494,10 +517,10 @@ smalloffset_mem_p (rtx op)
 }
 
 
-int
-constantpool_address_p (rtx addr)
+static bool
+constantpool_address_p (const_rtx addr)
 {
-  rtx sym = addr;
+  const_rtx sym = addr;
 
   if (GET_CODE (addr) == CONST)
     {
@@ -506,21 +529,21 @@ constantpool_address_p (rtx addr)
       /* Only handle (PLUS (SYM, OFFSET)) form.  */
       addr = XEXP (addr, 0);
       if (GET_CODE (addr) != PLUS)
-	return FALSE;
+	return false;
 
       /* Make sure the address is word aligned.  */
       offset = XEXP (addr, 1);
-      if ((GET_CODE (offset) != CONST_INT)
+      if ((!CONST_INT_P (offset))
 	  || ((INTVAL (offset) & 3) != 0))
-	return FALSE;
+	return false;
 
       sym = XEXP (addr, 0);
     }
 
   if ((GET_CODE (sym) == SYMBOL_REF)
       && CONSTANT_POOL_ADDRESS_P (sym))
-    return TRUE;
-  return FALSE;
+    return true;
+  return false;
 }
 
 
@@ -1937,6 +1960,21 @@ xtensa_legitimize_address (rtx x,
   return x;
 }
 
+/* Worker function for TARGET_MODE_DEPENDENT_ADDRESS_P.
+
+   Treat constant-pool references as "mode dependent" since they can
+   only be accessed with SImode loads.  This works around a bug in the
+   combiner where a constant pool reference is temporarily converted
+   to an HImode load, which is then assumed to zero-extend based on
+   our definition of LOAD_EXTEND_OP.  This is wrong because the high
+   bits of a 16-bit value in the constant pool are now sign-extended
+   by default.  */
+
+static bool
+xtensa_mode_dependent_address_p (const_rtx addr)
+{
+  return constantpool_address_p (addr);
+}
 
 /* Helper for xtensa_tls_referenced_p.  */
 
@@ -3133,11 +3171,12 @@ xtensa_expand_builtin (tree exp, rtx target,
   return NULL_RTX;
 }
 
+/* Worker function for TARGET_PREFERRED_RELOAD_CLASS.  */
 
-enum reg_class
-xtensa_preferred_reload_class (rtx x, enum reg_class rclass, int isoutput)
+static reg_class_t
+xtensa_preferred_reload_class (rtx x, reg_class_t rclass)
 {
-  if (!isoutput && CONSTANT_P (x) && GET_CODE (x) == CONST_DOUBLE)
+  if (CONSTANT_P (x) && CONST_DOUBLE_P (x))
     return NO_REGS;
 
   /* Don't use the stack pointer or hard frame pointer for reloads!
@@ -3152,8 +3191,27 @@ xtensa_preferred_reload_class (rtx x, enum reg_class rclass, int isoutput)
   return rclass;
 }
 
+/* Worker function for TARGET_PREFERRED_OUTPUT_RELOAD_CLASS.  */
 
-reg_class_t
+static reg_class_t
+xtensa_preferred_output_reload_class (rtx x ATTRIBUTE_UNUSED,
+				      reg_class_t rclass)
+{
+  /* Don't use the stack pointer or hard frame pointer for reloads!
+     The hard frame pointer would normally be OK except that it may
+     briefly hold an incoming argument in the prologue, and reload
+     won't know that it is live because the hard frame pointer is
+     treated specially.  */
+
+  if (rclass == AR_REGS || rclass == GR_REGS)
+    return RL_REGS;
+
+  return rclass;
+}
+
+/* Worker function for TARGET_SECONDARY_RELOAD.  */
+
+static reg_class_t
 xtensa_secondary_reload (bool in_p, rtx x, reg_class_t rclass,
 			 enum machine_mode mode, secondary_reload_info *sri)
 {
@@ -3256,6 +3314,34 @@ xtensa_select_rtx_section (enum machine_mode mode ATTRIBUTE_UNUSED,
   return function_section (current_function_decl);
 }
 
+/* Worker function for TARGET_REGISTER_MOVE_COST.  */
+
+static int
+xtensa_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
+			   reg_class_t from, reg_class_t to)
+{
+  if (from == to && from != BR_REGS && to != BR_REGS)
+    return 2;
+  else if (reg_class_subset_p (from, AR_REGS)
+	   && reg_class_subset_p (to, AR_REGS))
+    return 2;
+  else if (reg_class_subset_p (from, AR_REGS) && to == ACC_REG)
+    return 3;
+  else if (from == ACC_REG && reg_class_subset_p (to, AR_REGS))
+    return 3;
+  else
+    return 10;
+}
+
+/* Worker function for TARGET_MEMORY_MOVE_COST.  */
+
+static int
+xtensa_memory_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
+			 reg_class_t rclass ATTRIBUTE_UNUSED,
+			 bool in ATTRIBUTE_UNUSED)
+{
+  return 4;
+}
 
 /* Compute a (partial) cost for rtx X.  Return true if the complete
    cost has been computed, and false if subexpressions should be

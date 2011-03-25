@@ -1,5 +1,6 @@
 /* Definitions for the Blackfin port.
-   Copyright (C) 2005, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
    Contributed by Analog Devices.
 
    This file is part of GCC.
@@ -21,53 +22,14 @@
 #ifndef _BFIN_CONFIG
 #define _BFIN_CONFIG
 
+#ifndef BFIN_OPTS_H
+#include "config/bfin/bfin-opts.h"
+#endif
+
 #define OBJECT_FORMAT_ELF
 
 #define BRT 1
 #define BRF 0
-
-/* CPU type.  */
-typedef enum bfin_cpu_type
-{
-  BFIN_CPU_UNKNOWN,
-  BFIN_CPU_BF512,
-  BFIN_CPU_BF514,
-  BFIN_CPU_BF516,
-  BFIN_CPU_BF518,
-  BFIN_CPU_BF522,
-  BFIN_CPU_BF523,
-  BFIN_CPU_BF524,
-  BFIN_CPU_BF525,
-  BFIN_CPU_BF526,
-  BFIN_CPU_BF527,
-  BFIN_CPU_BF531,
-  BFIN_CPU_BF532,
-  BFIN_CPU_BF533,
-  BFIN_CPU_BF534,
-  BFIN_CPU_BF536,
-  BFIN_CPU_BF537,
-  BFIN_CPU_BF538,
-  BFIN_CPU_BF539,
-  BFIN_CPU_BF542,
-  BFIN_CPU_BF542M,
-  BFIN_CPU_BF544,
-  BFIN_CPU_BF544M,
-  BFIN_CPU_BF547,
-  BFIN_CPU_BF547M,
-  BFIN_CPU_BF548,
-  BFIN_CPU_BF548M,
-  BFIN_CPU_BF549,
-  BFIN_CPU_BF549M,
-  BFIN_CPU_BF561
-} bfin_cpu_t;
-
-/* Value of -mcpu= */
-extern bfin_cpu_t bfin_cpu_type;
-
-/* Value of -msi-revision= */
-extern int bfin_si_revision;
-
-extern unsigned int bfin_workarounds;
 
 /* Print subsidiary information on the compiler version in use.  */
 #define TARGET_VERSION fprintf (stderr, " (BlackFin bfin)")
@@ -240,7 +202,6 @@ extern unsigned int bfin_workarounds;
 
 #undef  ASM_SPEC
 #define ASM_SPEC "\
-%{Ym,*} %{Yd,*} \
     %{mno-fdpic:-mnopic} %{mfdpic}"
 
 #define LINK_SPEC "\
@@ -249,8 +210,6 @@ extern unsigned int bfin_workarounds;
 %{static:-dn -Bstatic} \
 %{shared:-G -Bdynamic} \
 %{symbolic:-Bsymbolic} \
-%{YP,*} \
-%{Qy:} %{!Qn:-Qy} \
 -init __init -fini __fini "
 
 /* Generate DSP instructions, like DSP halfword loads */

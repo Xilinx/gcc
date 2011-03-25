@@ -455,12 +455,6 @@ extern const enum reg_class xtensa_regno_to_class[FIRST_PSEUDO_REGISTER];
    the RTL, as either incoming or outgoing arguments.  */
 #define TARGET_SMALL_REGISTER_CLASSES_FOR_MODE_P hook_bool_mode_true
 
-#define PREFERRED_RELOAD_CLASS(X, CLASS)				\
-  xtensa_preferred_reload_class (X, CLASS, 0)
-
-#define PREFERRED_OUTPUT_RELOAD_CLASS(X, CLASS)				\
-  xtensa_preferred_reload_class (X, CLASS, 1)
-  
 /* Return the maximum number of consecutive registers
    needed to represent mode MODE in a register of class CLASS.  */
 #define CLASS_UNITS(mode, size)						\
@@ -695,20 +689,6 @@ typedef struct xtensa_args
    && GET_CODE (X) != LABEL_REF						\
    && GET_CODE (X) != CONST)
 
-/* Treat constant-pool references as "mode dependent" since they can
-   only be accessed with SImode loads.  This works around a bug in the
-   combiner where a constant pool reference is temporarily converted
-   to an HImode load, which is then assumed to zero-extend based on
-   our definition of LOAD_EXTEND_OP.  This is wrong because the high
-   bits of a 16-bit value in the constant pool are now sign-extended
-   by default.  */
-
-#define GO_IF_MODE_DEPENDENT_ADDRESS(ADDR, LABEL)			\
-  do {									\
-    if (constantpool_address_p (ADDR))					\
-      goto LABEL;							\
-  } while (0)
-
 /* Specify the machine mode that this machine uses
    for the index in the tablejump instruction.  */
 #define CASE_VECTOR_MODE (SImode)
@@ -742,26 +722,6 @@ typedef struct xtensa_args
 /* A function address in a call instruction is a word address (for
    indexing purposes) so give the MEM rtx a words's mode.  */
 #define FUNCTION_MODE SImode
-
-/* A C expression for the cost of moving data from a register in
-   class FROM to one in class TO.  The classes are expressed using
-   the enumeration values such as 'GENERAL_REGS'.  A value of 2 is
-   the default; other values are interpreted relative to that.  */
-#define REGISTER_MOVE_COST(MODE, FROM, TO)				\
-  (((FROM) == (TO) && (FROM) != BR_REGS && (TO) != BR_REGS)		\
-   ? 2									\
-   : (reg_class_subset_p ((FROM), AR_REGS)				\
-      && reg_class_subset_p ((TO), AR_REGS)				\
-      ? 2								\
-      : (reg_class_subset_p ((FROM), AR_REGS)				\
-	 && (TO) == ACC_REG						\
-	 ? 3								\
-	 : ((FROM) == ACC_REG						\
-	    && reg_class_subset_p ((TO), AR_REGS)			\
-	    ? 3								\
-	    : 10))))
-
-#define MEMORY_MOVE_COST(MODE, CLASS, IN) 4
 
 #define BRANCH_COST(speed_p, predictable_p) 3
 

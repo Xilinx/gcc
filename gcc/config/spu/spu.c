@@ -230,6 +230,7 @@ static void spu_unique_section (tree, int);
 static rtx spu_expand_load (rtx, rtx, rtx, int);
 static void spu_trampoline_init (rtx, tree, rtx);
 static void spu_conditional_register_usage (void);
+static bool spu_ref_may_alias_errno (ao_ref *);
 
 /* Which instruction set architecture to use.  */
 int spu_arch;
@@ -292,10 +293,13 @@ spu_libgcc_shift_count_mode (void);
 /*  Table of machine attributes.  */
 static const struct attribute_spec spu_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "naked",          0, 0, true,  false, false, spu_handle_fndecl_attribute },
-  { "spu_vector",     0, 0, false, true,  false, spu_handle_vector_attribute },
-  { NULL,             0, 0, false, false, false, NULL }
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
+  { "naked",          0, 0, true,  false, false, spu_handle_fndecl_attribute,
+    false },
+  { "spu_vector",     0, 0, false, true,  false, spu_handle_vector_attribute,
+    false },
+  { NULL,             0, 0, false, false, false, NULL, false }
 };
 
 /*  TARGET overrides.  */
@@ -490,6 +494,9 @@ static const struct attribute_spec spu_attribute_table[] =
 
 #undef TARGET_CONDITIONAL_REGISTER_USAGE
 #define TARGET_CONDITIONAL_REGISTER_USAGE spu_conditional_register_usage
+
+#undef TARGET_REF_MAY_ALIAS_ERRNO
+#define TARGET_REF_MAY_ALIAS_ERRNO spu_ref_may_alias_errno
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -5637,6 +5644,19 @@ spu_init_libfuncs (void)
   set_conv_libfunc (ufloat_optab, DFmode, SImode, "__float_unssidf");
   set_conv_libfunc (ufloat_optab, DFmode, DImode, "__float_unsdidf");
 
+  set_optab_libfunc (addv_optab, SImode, "__addvsi3");
+  set_optab_libfunc (subv_optab, SImode, "__subvsi3");
+  set_optab_libfunc (smulv_optab, SImode, "__mulvsi3");
+  set_optab_libfunc (sdivv_optab, SImode, "__divvsi3");
+  set_optab_libfunc (negv_optab, SImode, "__negvsi2");
+  set_optab_libfunc (absv_optab, SImode, "__absvsi2");
+  set_optab_libfunc (addv_optab, DImode, "__addvdi3");
+  set_optab_libfunc (subv_optab, DImode, "__subvdi3");
+  set_optab_libfunc (smulv_optab, DImode, "__mulvdi3");
+  set_optab_libfunc (sdivv_optab, DImode, "__divvdi3");
+  set_optab_libfunc (negv_optab, DImode, "__negvdi2");
+  set_optab_libfunc (absv_optab, DImode, "__absvdi2");
+
   set_optab_libfunc (smul_optab, TImode, "__multi3");
   set_optab_libfunc (sdiv_optab, TImode, "__divti3");
   set_optab_libfunc (smod_optab, TImode, "__modti3");
@@ -7148,6 +7168,30 @@ spu_function_profiler (FILE * file, int labelno ATTRIBUTE_UNUSED)
 {
   fprintf (file, "# profile\n");
   fprintf (file, "brsl $75,  _mcount\n");
+}
+
+/* Implement targetm.ref_may_alias_errno.  */
+static bool
+spu_ref_may_alias_errno (ao_ref *ref)
+{
+  tree base = ao_ref_base (ref);
+
+  /* With SPU newlib, errno is defined as something like
+         _impure_data._errno
+     The default implementation of this target macro does not
+     recognize such expressions, so special-code for it here.  */
+
+  if (TREE_CODE (base) == VAR_DECL
+      && !TREE_STATIC (base)
+      && DECL_EXTERNAL (base)
+      && TREE_CODE (TREE_TYPE (base)) == RECORD_TYPE
+      && strcmp (IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (base)),
+		 "_impure_data") == 0
+      /* _errno is the first member of _impure_data.  */
+      && ref->offset == 0)
+    return true;
+
+  return default_ref_may_alias_errno (ref);
 }
 
 #include "gt-spu.h"

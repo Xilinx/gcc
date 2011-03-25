@@ -75,7 +75,9 @@ sources = \
 	function_type_info.cc \
 	fundamental_type_info.cc \
 	guard.cc \
+	guard_error.cc \
 	hash_bytes.cc \
+	nested_exception.cc \
 	new_handler.cc \
 	new_op.cc \
 	new_opnt.cc \
@@ -132,6 +134,11 @@ cp-demangle.lo: cp-demangle.c
 cp-demangle.o: cp-demangle.c
 	$(C_COMPILE) -DIN_GLIBCPP_V3 -Wno-error -c $<
 
+
+nested_exception.lo: nested_exception.cc
+	$(LTCXXCOMPILE) -std=gnu++0x -c $<
+nested_exception.o: nested_exception.cc
+	$(CXXCOMPILE) -std=gnu++0x -c $<
 
 # Libtool notes
 

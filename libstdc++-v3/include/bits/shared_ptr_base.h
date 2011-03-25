@@ -1,6 +1,6 @@
 // shared_ptr and weak_ptr implementation details -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -49,7 +49,9 @@
 #ifndef _SHARED_PTR_BASE_H
 #define _SHARED_PTR_BASE_H 1
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
  /**
    *  @brief  Exception possibly thrown by @c shared_ptr.
@@ -59,8 +61,9 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   {
   public:
     virtual char const*
-    what() const throw()
-    { return "std::bad_weak_ptr"; }
+    what() const throw();
+
+    virtual ~bad_weak_ptr() throw();    
   };
 
   // Substitute for bad_weak_ptr object in the case of -fno-exceptions.
@@ -523,7 +526,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	    }
 	}
 
-#if _GLIBCXX_DEPRECATED
+#if _GLIBCXX_USE_DEPRECATED
       // Special case for auto_ptr<_Tp> to provide the strong guarantee.
       template<typename _Tp>
         explicit
@@ -842,7 +845,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  __enable_shared_from_this_helper(_M_refcount, __tmp, __tmp);
 	}
 
-#if _GLIBCXX_DEPRECATED
+#if _GLIBCXX_USE_DEPRECATED
       // Postcondition: use_count() == 1 and __r.get() == 0
       template<typename _Tp1>
 	__shared_ptr(std::auto_ptr<_Tp1>&& __r)
@@ -870,7 +873,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	  return *this;
 	}
 
-#if _GLIBCXX_DEPRECATED
+#if _GLIBCXX_USE_DEPRECATED
       template<typename _Tp1>
 	__shared_ptr&
 	operator=(std::auto_ptr<_Tp1>&& __r)
@@ -1048,40 +1051,101 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _Tp1, typename _Tp2, _Lock_policy _Lp>
     inline bool
     operator==(const __shared_ptr<_Tp1, _Lp>& __a,
-	       const __shared_ptr<_Tp2, _Lp>& __b)
+	       const __shared_ptr<_Tp2, _Lp>& __b) noexcept
     { return __a.get() == __b.get(); }
 
   template<typename _Tp, _Lock_policy _Lp>
     inline bool
-    operator==(const __shared_ptr<_Tp, _Lp>& __a, nullptr_t)
-    { return __a.get() == nullptr; }
+    operator==(const __shared_ptr<_Tp, _Lp>& __a, nullptr_t) noexcept
+    { return !__a; }
 
   template<typename _Tp, _Lock_policy _Lp>
     inline bool
-    operator==(nullptr_t, const __shared_ptr<_Tp, _Lp>& __b)
-    { return nullptr == __b.get(); }
+    operator==(nullptr_t, const __shared_ptr<_Tp, _Lp>& __a) noexcept
+    { return !__a; }
 
   template<typename _Tp1, typename _Tp2, _Lock_policy _Lp>
     inline bool
     operator!=(const __shared_ptr<_Tp1, _Lp>& __a,
-	       const __shared_ptr<_Tp2, _Lp>& __b)
+	       const __shared_ptr<_Tp2, _Lp>& __b) noexcept
     { return __a.get() != __b.get(); }
 
   template<typename _Tp, _Lock_policy _Lp>
     inline bool
-    operator!=(const __shared_ptr<_Tp, _Lp>& __a, nullptr_t)
-    { return __a.get() != nullptr; }
+    operator!=(const __shared_ptr<_Tp, _Lp>& __a, nullptr_t) noexcept
+    { return (bool)__a; }
 
   template<typename _Tp, _Lock_policy _Lp>
     inline bool
-    operator!=(nullptr_t, const __shared_ptr<_Tp, _Lp>& __b)
-    { return nullptr != __b.get(); }
+    operator!=(nullptr_t, const __shared_ptr<_Tp, _Lp>& __a) noexcept
+    { return (bool)__a; }
 
   template<typename _Tp1, typename _Tp2, _Lock_policy _Lp>
     inline bool
     operator<(const __shared_ptr<_Tp1, _Lp>& __a,
-	      const __shared_ptr<_Tp2, _Lp>& __b)
-    { return __a.get() < __b.get(); }
+	      const __shared_ptr<_Tp2, _Lp>& __b) noexcept
+    {
+      typedef typename std::common_type<_Tp1*, _Tp2*>::type _CT;
+      return std::less<_CT>()(__a.get(), __b.get());
+    }
+
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator<(const __shared_ptr<_Tp, _Lp>& __a, nullptr_t) noexcept
+    { return std::less<_Tp*>()(__a.get(), nullptr); }
+
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator<(nullptr_t, const __shared_ptr<_Tp, _Lp>& __a) noexcept
+    { return std::less<_Tp*>()(nullptr, __a.get()); }
+
+  template<typename _Tp1, typename _Tp2, _Lock_policy _Lp>
+    inline bool
+    operator<=(const __shared_ptr<_Tp1, _Lp>& __a,
+	       const __shared_ptr<_Tp2, _Lp>& __b) noexcept
+    { return !(__b < __a); }
+
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator<=(const __shared_ptr<_Tp, _Lp>& __a, nullptr_t) noexcept
+    { return !(nullptr < __a); }
+
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator<=(nullptr_t, const __shared_ptr<_Tp, _Lp>& __a) noexcept
+    { return !(__a < nullptr); }
+
+  template<typename _Tp1, typename _Tp2, _Lock_policy _Lp>
+    inline bool
+    operator>(const __shared_ptr<_Tp1, _Lp>& __a,
+	      const __shared_ptr<_Tp2, _Lp>& __b) noexcept
+    { return (__b < __a); }
+
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator>(const __shared_ptr<_Tp, _Lp>& __a, nullptr_t) noexcept
+    { return std::less<_Tp*>()(nullptr, __a.get()); }
+
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator>(nullptr_t, const __shared_ptr<_Tp, _Lp>& __a) noexcept
+    { return std::less<_Tp*>()(__a.get(), nullptr); }
+
+  template<typename _Tp1, typename _Tp2, _Lock_policy _Lp>
+    inline bool
+    operator>=(const __shared_ptr<_Tp1, _Lp>& __a,
+	       const __shared_ptr<_Tp2, _Lp>& __b) noexcept
+    { return !(__a < __b); }
+
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator>=(const __shared_ptr<_Tp, _Lp>& __a, nullptr_t) noexcept
+    { return !(__a < nullptr); }
+
+  template<typename _Tp, _Lock_policy _Lp>
+    inline bool
+    operator>=(nullptr_t, const __shared_ptr<_Tp, _Lp>& __a) noexcept
+    { return !(nullptr < __a); }
 
   template<typename _Sp>
     struct _Sp_less : public binary_function<_Sp, _Sp, bool>
@@ -1376,6 +1440,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { return std::hash<_Tp*>()(__s.get()); }
     };
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif // _SHARED_PTR_BASE_H

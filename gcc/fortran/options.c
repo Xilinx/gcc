@@ -150,6 +150,7 @@ gfc_init_options (unsigned int decoded_options_count,
   gfc_option.flag_align_commons = 1;
   gfc_option.flag_protect_parens = 1;
   gfc_option.flag_realloc_lhs = -1;
+  gfc_option.flag_aggressive_function_elimination = 0;
   
   gfc_option.fpe = 0;
   gfc_option.rtcheck = 0;
@@ -463,9 +464,10 @@ gfc_handle_module_path_options (const char *arg)
 
   gfc_option.module_dir = (char *) gfc_getmem (strlen (arg) + 2);
   strcpy (gfc_option.module_dir, arg);
-  strcat (gfc_option.module_dir, "/");
 
   gfc_add_include_path (gfc_option.module_dir, true, false);
+
+  strcat (gfc_option.module_dir, "/");
 }
 
 
@@ -969,6 +971,10 @@ gfc_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_falign_commons:
       gfc_option.flag_align_commons = value;
+      break;
+
+    case  OPT_faggressive_function_elimination:
+      gfc_option.flag_aggressive_function_elimination = value;
       break;
 
     case OPT_fprotect_parens:

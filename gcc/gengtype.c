@@ -1,5 +1,5 @@
 /* Process source files and output type information.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
    This file is part of GCC.
@@ -1013,6 +1013,7 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
 	    break;
 
 	  case NOTE_INSN_VAR_LOCATION:
+	  case NOTE_INSN_CALL_ARG_LOCATION:
 	    note_flds = create_field (note_flds, rtx_tp, "rt_rtx");
 	    break;
 
@@ -1100,6 +1101,8 @@ adjust_field_rtx_def (type_p t, options_p ARG_UNUSED (opt))
 		t = symbol_union_tp, subname = "";
 	      else if (i == BARRIER && aindex >= 3)
 		t = scalar_tp, subname = "rt_int";
+	      else if (i == ENTRY_VALUE && aindex == 0)
+		t = rtx_tp, subname = "rt_rtx";
 	      else
 		{
 		  error_at_line 
@@ -1758,6 +1761,12 @@ static outf_p source_dot_c_frul (input_file*, char**, char**);
    matters, so change with extreme care!  */
 
 struct file_rule_st files_rules[] = {
+  /* The general rule assumes that files in subdirectories belong to a
+     particular front-end, and files not in subdirectories are shared.
+     The following rules deal with exceptions - files that are in
+     subdirectories and yet are shared, and files that are top-level,
+     but are not shared.  */
+
   /* the c-family/ source directory is special.  */
   { DIR_PREFIX_REGEX "c-family/([[:alnum:]_-]*)\\.c$",
     REG_EXTENDED, NULL_REGEX,
@@ -1789,7 +1798,12 @@ struct file_rule_st files_rules[] = {
     REG_EXTENDED, NULL_REGEX,
     "gt-cp-name-lookup.h", "cp/name-lookup.c", NULL_FRULACT },
 
-  /* objc/objc-act.h fives gt-objc-objc-act.h for objc/objc-act.c !  */
+  /* cp/parser.h gives gt-cp-parser.h for cp/parser.c !  */
+  { DIR_PREFIX_REGEX "cp/parser\\.h$",
+    REG_EXTENDED, NULL_REGEX,
+    "gt-cp-parser.h", "cp/parser.c", NULL_FRULACT },
+
+  /* objc/objc-act.h gives gt-objc-objc-act.h for objc/objc-act.c !  */
   { DIR_PREFIX_REGEX "objc/objc-act\\.h$",
     REG_EXTENDED, NULL_REGEX,
     "gt-objc-objc-act.h", "objc/objc-act.c", NULL_FRULACT },

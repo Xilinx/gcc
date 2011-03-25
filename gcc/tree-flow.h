@@ -1,5 +1,5 @@
 /* Data and Control Flow Analysis for Trees.
-   Copyright (C) 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Diego Novillo <dnovillo@redhat.com>
 
@@ -314,12 +314,12 @@ typedef struct
    to the hashtable while using this macro.  Doing so may cause it to behave
    erratically.  */
 
-#define FOR_EACH_REFERENCED_VAR(VAR, ITER) \
-  for ((VAR) = first_referenced_var (&(ITER)); \
-       !end_referenced_vars_p (&(ITER)); \
+#define FOR_EACH_REFERENCED_VAR(FN, VAR, ITER)		\
+  for ((VAR) = first_referenced_var ((FN), &(ITER));	\
+       !end_referenced_vars_p (&(ITER));		\
        (VAR) = next_referenced_var (&(ITER)))
 
-extern tree referenced_var_lookup (unsigned int);
+extern tree referenced_var_lookup (struct function *, unsigned int);
 extern bool referenced_var_check_and_insert (tree);
 #define num_referenced_vars htab_elements (gimple_referenced_vars (cfun))
 
@@ -426,9 +426,8 @@ extern basic_block label_to_block_fn (struct function *, tree);
 #define label_to_block(t) (label_to_block_fn (cfun, t))
 extern void notice_special_calls (gimple);
 extern void clear_special_calls (void);
-extern void verify_stmts (void);
-extern void verify_gimple (void);
-extern void verify_types_in_gimple_seq (gimple_seq);
+extern void verify_gimple_in_seq (gimple_seq);
+extern void verify_gimple_in_cfg (struct function *);
 extern tree gimple_block_label (basic_block);
 extern void extract_true_false_edges_from_block (basic_block, edge *, edge *);
 extern bool gimple_duplicate_sese_region (edge, edge, basic_block *, unsigned,
@@ -594,6 +593,7 @@ extern void ssanames_print_statistics (void);
 
 /* In tree-ssa-ccp.c  */
 tree fold_const_aggregate_ref (tree);
+tree gimple_fold_stmt_to_constant (gimple, tree (*)(tree));
 
 /* In tree-ssa-dom.c  */
 extern void dump_dominator_optimization_stats (FILE *);
@@ -852,10 +852,11 @@ bool fixup_noreturn_call (gimple stmt);
 /* In ipa-pure-const.c  */
 void warn_function_noreturn (tree);
 
+/* In tree-ssa-ter.c  */
+bool stmt_is_replaceable_p (gimple);
+
 #include "tree-flow-inline.h"
 
 void swap_tree_operands (gimple, tree *, tree *);
-
-int least_common_multiple (int, int);
 
 #endif /* _TREE_FLOW_H  */

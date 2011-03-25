@@ -2738,7 +2738,7 @@ do_local_cprop (rtx x, rtx insn)
           || (GET_CODE (PATTERN (insn)) != USE
 	      && asm_noperands (PATTERN (insn)) < 0)))
     {
-      cselib_val *val = cselib_lookup (x, GET_MODE (x), 0);
+      cselib_val *val = cselib_lookup (x, GET_MODE (x), 0, VOIDmode);
       struct elt_loc_list *l;
 
       if (!val)
@@ -4520,9 +4520,7 @@ hoist_code (void)
 		    {
 		      /* An occurence might've been already deleted
 			 while processing a dominator of BB.  */
-		      if (occr->deleted_p)
-			gcc_assert (MAX_HOIST_DEPTH > 1);
-		      else
+		      if (!occr->deleted_p)
 			{
 			  gcc_assert (NONDEBUG_INSN_P (occr->insn));
 			  hoistable++;
@@ -4554,10 +4552,7 @@ hoist_code (void)
 		  /* An occurence might've been already deleted
 		     while processing a dominator of BB.  */
 		  if (occr->deleted_p)
-		    {
-		      gcc_assert (MAX_HOIST_DEPTH > 1);
-		      continue;
-		    }
+		    continue;
 		  gcc_assert (NONDEBUG_INSN_P (occr->insn));
 
 		  max_distance = expr->max_distance;

@@ -1,7 +1,7 @@
 /* Output variables, constants and external declarations, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997,
    1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010  Free Software Foundation, Inc.
+   2010, 2011  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -119,6 +119,7 @@ static void output_addressed_constants (tree);
 static unsigned HOST_WIDE_INT array_size_for_constructor (tree);
 static unsigned min_align (unsigned, unsigned);
 static void globalize_decl (tree);
+static bool decl_readonly_section_1 (enum section_category);
 #ifdef BSS_SECTION_ASM_OP
 #ifdef ASM_OUTPUT_BSS
 static void asm_output_bss (FILE *, tree, const char *,
@@ -294,11 +295,31 @@ get_section (const char *name, unsigned int flags, tree decl)
       if ((sect->common.flags & ~SECTION_DECLARED) != flags
 	  && ((sect->common.flags | flags) & SECTION_OVERRIDE) == 0)
 	{
+	  /* It is fine if one of the section flags is
+	     SECTION_WRITE | SECTION_RELRO and the other has none of these
+	     flags (i.e. read-only) in named sections and either the
+	     section hasn't been declared yet or has been declared as writable.
+	     In that case just make sure the resulting flags are
+	     SECTION_WRITE | SECTION_RELRO, ie. writable only because of
+	     relocations.  */
+	  if (((sect->common.flags ^ flags) & (SECTION_WRITE | SECTION_RELRO))
+	      == (SECTION_WRITE | SECTION_RELRO)
+	      && (sect->common.flags
+		  & ~(SECTION_DECLARED | SECTION_WRITE | SECTION_RELRO))
+		 == (flags & ~(SECTION_WRITE | SECTION_RELRO))
+	      && ((sect->common.flags & SECTION_DECLARED) == 0
+		  || (sect->common.flags & SECTION_WRITE)))
+	    {
+	      sect->common.flags |= (SECTION_WRITE | SECTION_RELRO);
+	      return sect;
+	    }
 	  /* Sanity check user variables for flag changes.  */
 	  if (decl == 0)
 	    decl = sect->named.decl;
 	  gcc_assert (decl);
 	  error ("%+D causes a section type conflict", decl);
+	  /* Make sure we don't error about one section multiple times.  */
+	  sect->common.flags |= SECTION_OVERRIDE;
 	}
     }
   return sect;
@@ -533,6 +554,15 @@ section *
 default_function_section (tree decl, enum node_frequency freq,
 			  bool startup, bool exit)
 {
+#if defined HAVE_LD_EH_GC_SECTIONS && defined HAVE_LD_EH_GC_SECTIONS_BUG
+  /* Old GNU linkers have buggy --gc-section support, which sometimes
+     results in .gcc_except_table* sections being garbage collected.  */
+  if (decl
+      && DECL_SECTION_NAME (decl)
+      && DECL_HAS_IMPLICIT_SECTION_NAME_P (decl))
+    return NULL;
+#endif
+
   if (!flag_reorder_functions
       || !targetm.have_named_sections)
     return NULL;
@@ -985,7 +1015,7 @@ align_variable (tree decl, bool dont_output_data)
    should be placed.  PREFER_NOSWITCH_P is true if a noswitch
    section should be used wherever possible.  */
 
-static section *
+section *
 get_variable_section (tree decl, bool prefer_noswitch_p)
 {
   addr_space_t as = ADDR_SPACE_GENERIC;
@@ -3518,7 +3548,7 @@ force_const_mem (enum machine_mode mode, rtx x)
   pool->offset &= ~ ((align / BITS_PER_UNIT) - 1);
 
   desc->next = NULL;
-  desc->constant = tmp.constant;
+  desc->constant = copy_rtx (tmp.constant);
   desc->offset = pool->offset;
   desc->hash = hash;
   desc->mode = mode;
@@ -5139,20 +5169,16 @@ merge_weak (tree newdecl, tree olddecl)
       /* NEWDECL is weak, but OLDDECL is not.  */
 
       /* If we already output the OLDDECL, we're in trouble; we can't
-	 go back and make it weak.  This error cannot be caught in
-	 declare_weak because the NEWDECL and OLDDECL was not yet
-	 been merged; therefore, TREE_ASM_WRITTEN was not set.  */
-      if (TREE_ASM_WRITTEN (olddecl))
-	error ("weak declaration of %q+D must precede definition",
-	       newdecl);
+	 go back and make it weak.  This should never happen in
+	 unit-at-a-time compilation.  */
+      gcc_assert (!TREE_ASM_WRITTEN (olddecl));
 
       /* If we've already generated rtl referencing OLDDECL, we may
 	 have done so in a way that will not function properly with
-	 a weak symbol.  */
-      else if (TREE_USED (olddecl)
-	       && TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (olddecl)))
-	warning (0, "weak declaration of %q+D after first use results "
-                 "in unspecified behavior", newdecl);
+	 a weak symbol.  Again in unit-at-a-time this should be
+	 impossible.  */
+      gcc_assert (!TREE_USED (olddecl)
+	          || !TREE_SYMBOL_REFERENCED (DECL_ASSEMBLER_NAME (olddecl)));
 
       if (TARGET_SUPPORTS_WEAK)
 	{
@@ -5184,10 +5210,9 @@ merge_weak (tree newdecl, tree olddecl)
 void
 declare_weak (tree decl)
 {
+  gcc_assert (TREE_CODE (decl) != FUNCTION_DECL || !TREE_ASM_WRITTEN (decl));
   if (! TREE_PUBLIC (decl))
     error ("weak declaration of %q+D must be public", decl);
-  else if (TREE_CODE (decl) == FUNCTION_DECL && TREE_ASM_WRITTEN (decl))
-    error ("weak declaration of %q+D must precede definition", decl);
   else if (!TARGET_SUPPORTS_WEAK)
     warning (0, "weak declaration of %q+D not supported", decl);
 
@@ -6031,10 +6056,25 @@ default_section_type_flags (tree decl, const char *name, int reloc)
 
   if (decl && TREE_CODE (decl) == FUNCTION_DECL)
     flags = SECTION_CODE;
-  else if (decl && decl_readonly_section (decl, reloc))
-    flags = 0;
+  else if (decl)
+    {
+      enum section_category category
+	= categorize_decl_for_section (decl, reloc);
+      if (decl_readonly_section_1 (category))
+	flags = 0;
+      else if (category == SECCAT_DATA_REL_RO
+	       || category == SECCAT_DATA_REL_RO_LOCAL)
+	flags = SECTION_WRITE | SECTION_RELRO;
+      else
+	flags = SECTION_WRITE;
+    }
   else
-    flags = SECTION_WRITE;
+    {
+      flags = SECTION_WRITE;
+      if (strcmp (name, ".data.rel.ro") == 0
+	  || strcmp (name, ".data.rel.ro.local") == 0)
+	flags |= SECTION_RELRO;
+    }
 
   if (decl && DECL_ONE_ONLY (decl))
     flags |= SECTION_LINKONCE;
@@ -6255,17 +6295,13 @@ categorize_decl_for_section (const_tree decl, int reloc)
 	  /* Here the reloc_rw_mask is not testing whether the section should
 	     be read-only or not, but whether the dynamic link will have to
 	     do something.  If so, we wish to segregate the data in order to
-	     minimize cache misses inside the dynamic linker.  If the data
-	     has a section attribute, ignore reloc_rw_mask() so that all data
-             in a given named section is catagorized in the same way.  */
-	  if (reloc & targetm.asm_out.reloc_rw_mask ()
-	      && !lookup_attribute ("section", DECL_ATTRIBUTES (decl)))
+	     minimize cache misses inside the dynamic linker.  */
+	  if (reloc & targetm.asm_out.reloc_rw_mask ())
 	    ret = reloc == 1 ? SECCAT_DATA_REL_LOCAL : SECCAT_DATA_REL;
 	  else
 	    ret = SECCAT_DATA;
 	}
-      else if (reloc & targetm.asm_out.reloc_rw_mask ()
-	       && !lookup_attribute ("section", DECL_ATTRIBUTES (decl)))
+      else if (reloc & targetm.asm_out.reloc_rw_mask ())
 	ret = reloc == 1 ? SECCAT_DATA_REL_RO_LOCAL : SECCAT_DATA_REL_RO;
       else if (reloc || flag_merge_constants < 2)
 	/* C and C++ don't allow different variables to share the same
@@ -6316,10 +6352,10 @@ categorize_decl_for_section (const_tree decl, int reloc)
   return ret;
 }
 
-bool
-decl_readonly_section (const_tree decl, int reloc)
+static bool
+decl_readonly_section_1 (enum section_category category)
 {
-  switch (categorize_decl_for_section (decl, reloc))
+  switch (category)
     {
     case SECCAT_RODATA:
     case SECCAT_RODATA_MERGE_STR:
@@ -6327,11 +6363,15 @@ decl_readonly_section (const_tree decl, int reloc)
     case SECCAT_RODATA_MERGE_CONST:
     case SECCAT_SRODATA:
       return true;
-      break;
     default:
       return false;
-      break;
     }
+}
+
+bool
+decl_readonly_section (const_tree decl, int reloc)
+{
+  return decl_readonly_section_1 (categorize_decl_for_section (decl, reloc));
 }
 
 /* Select a section based on the above categorization.  */

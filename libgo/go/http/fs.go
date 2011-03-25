@@ -11,7 +11,8 @@ import (
 	"io"
 	"mime"
 	"os"
-	"path"
+	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 	"utf8"
@@ -26,7 +27,7 @@ func isText(b []byte) bool {
 			// decoding error
 			return false
 		}
-		if 0x80 <= rune && rune <= 0x9F {
+		if 0x7F <= rune && rune <= 0x9F {
 			return false
 		}
 		if rune < ' ' {
@@ -103,15 +104,15 @@ func serveFile(w ResponseWriter, r *Request, name string, redirect bool) {
 		}
 	}
 
-	if t, _ := time.Parse(TimeFormat, r.Header["If-Modified-Since"]); t != nil && d.Mtime_ns/1e9 <= t.Seconds() {
+	if t, _ := time.Parse(TimeFormat, r.Header.Get("If-Modified-Since")); t != nil && d.Mtime_ns/1e9 <= t.Seconds() {
 		w.WriteHeader(StatusNotModified)
 		return
 	}
-	w.SetHeader("Last-Modified", time.SecondsToUTC(d.Mtime_ns/1e9).Format(TimeFormat))
+	w.Header().Set("Last-Modified", time.SecondsToUTC(d.Mtime_ns/1e9).Format(TimeFormat))
 
 	// use contents of index.html for directory, if present
 	if d.IsDirectory() {
-		index := name + indexPage
+		index := name + filepath.FromSlash(indexPage)
 		ff, err := os.Open(index, os.O_RDONLY, 0)
 		if err == nil {
 			defer ff.Close()
@@ -130,23 +131,52 @@ func serveFile(w ResponseWriter, r *Request, name string, redirect bool) {
 	}
 
 	// serve file
+	size := d.Size
+	code := StatusOK
+
 	// use extension to find content type.
-	ext := path.Ext(name)
+	ext := filepath.Ext(name)
 	if ctype := mime.TypeByExtension(ext); ctype != "" {
-		w.SetHeader("Content-Type", ctype)
+		w.Header().Set("Content-Type", ctype)
 	} else {
 		// read first chunk to decide between utf-8 text and binary
 		var buf [1024]byte
-		n, _ := io.ReadFull(f, buf[0:])
-		b := buf[0:n]
+		n, _ := io.ReadFull(f, buf[:])
+		b := buf[:n]
 		if isText(b) {
-			w.SetHeader("Content-Type", "text-plain; charset=utf-8")
+			w.Header().Set("Content-Type", "text-plain; charset=utf-8")
 		} else {
-			w.SetHeader("Content-Type", "application/octet-stream") // generic binary
+			w.Header().Set("Content-Type", "application/octet-stream") // generic binary
 		}
-		w.Write(b)
+		f.Seek(0, 0) // rewind to output whole file
 	}
-	io.Copy(w, f)
+
+	// handle Content-Range header.
+	// TODO(adg): handle multiple ranges
+	ranges, err := parseRange(r.Header.Get("Range"), size)
+	if err != nil || len(ranges) > 1 {
+		Error(w, err.String(), StatusRequestedRangeNotSatisfiable)
+		return
+	}
+	if len(ranges) == 1 {
+		ra := ranges[0]
+		if _, err := f.Seek(ra.start, 0); err != nil {
+			Error(w, err.String(), StatusRequestedRangeNotSatisfiable)
+			return
+		}
+		size = ra.length
+		code = StatusPartialContent
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", ra.start, ra.start+ra.length-1, d.Size))
+	}
+
+	w.Header().Set("Accept-Ranges", "bytes")
+	w.Header().Set("Content-Length", strconv.Itoa64(size))
+
+	w.WriteHeader(code)
+
+	if r.Method != "HEAD" {
+		io.Copyn(w, f, size)
+	}
 }
 
 // ServeFile replies to the request with the contents of the named file or directory.
@@ -172,5 +202,64 @@ func (f *fileHandler) ServeHTTP(w ResponseWriter, r *Request) {
 		return
 	}
 	path = path[len(f.prefix):]
-	serveFile(w, r, f.root+"/"+path, true)
+	serveFile(w, r, filepath.Join(f.root, filepath.FromSlash(path)), true)
+}
+
+// httpRange specifies the byte range to be sent to the client.
+type httpRange struct {
+	start, length int64
+}
+
+// parseRange parses a Range header string as per RFC 2616.
+func parseRange(s string, size int64) ([]httpRange, os.Error) {
+	if s == "" {
+		return nil, nil // header not present
+	}
+	const b = "bytes="
+	if !strings.HasPrefix(s, b) {
+		return nil, os.NewError("invalid range")
+	}
+	var ranges []httpRange
+	for _, ra := range strings.Split(s[len(b):], ",", -1) {
+		i := strings.Index(ra, "-")
+		if i < 0 {
+			return nil, os.NewError("invalid range")
+		}
+		start, end := ra[:i], ra[i+1:]
+		var r httpRange
+		if start == "" {
+			// If no start is specified, end specifies the
+			// range start relative to the end of the file.
+			i, err := strconv.Atoi64(end)
+			if err != nil {
+				return nil, os.NewError("invalid range")
+			}
+			if i > size {
+				i = size
+			}
+			r.start = size - i
+			r.length = size - r.start
+		} else {
+			i, err := strconv.Atoi64(start)
+			if err != nil || i > size || i < 0 {
+				return nil, os.NewError("invalid range")
+			}
+			r.start = i
+			if end == "" {
+				// If no end is specified, range extends to end of the file.
+				r.length = size - r.start
+			} else {
+				i, err := strconv.Atoi64(end)
+				if err != nil || r.start > i {
+					return nil, os.NewError("invalid range")
+				}
+				if i >= size {
+					i = size - 1
+				}
+				r.length = i - r.start + 1
+			}
+		}
+		ranges = append(ranges, r)
+	}
+	return ranges, nil
 }

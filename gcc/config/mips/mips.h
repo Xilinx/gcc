@@ -1150,7 +1150,7 @@ enum mips_code_readable_setting {
 #define LINK_SPEC "\
 %(endian_spec) \
 %{G*} %{mips1} %{mips2} %{mips3} %{mips4} %{mips32*} %{mips64*} \
-%{shared} %{non_shared}"
+%{shared}"
 #endif  /* LINK_SPEC defined */
 
 
@@ -2027,9 +2027,6 @@ enum reg_class
 #define SMALL_INT(X) SMALL_OPERAND (INTVAL (X))
 #define SMALL_INT_UNSIGNED(X) SMALL_OPERAND_UNSIGNED (INTVAL (X))
 #define LUI_INT(X) LUI_OPERAND (INTVAL (X))
-
-#define PREFERRED_RELOAD_CLASS(X,CLASS)					\
-  mips_preferred_reload_class (X, CLASS)
 
 /* The HI and LO registers can only be reloaded via the general
    registers.  Condition code registers can only be loaded to the

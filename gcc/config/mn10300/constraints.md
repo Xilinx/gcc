@@ -35,6 +35,9 @@
 (define_register_constraint "y" "SP_REGS"
   "An SP register (if available).")
 
+(define_register_constraint "z" "MDR_REGS"
+  "The MDR register.")
+
 (define_register_constraint "x" "TARGET_AM33 ? EXTENDED_REGS : NO_REGS"
   "An extended register.")
 
@@ -90,6 +93,12 @@
   (and (match_code "const_int")
        (ior (match_test "ival == 255")
 	    (match_test "ival == 65535"))))
+
+(define_constraint "O"
+  "An integer between -8 and +7 inclusive."
+  (and (match_code "const_int")
+       (and (match_test "ival >= -8")
+	    (match_test "ival <=  7"))))
 
 ;; Floating-point constraints
 (define_constraint "G"

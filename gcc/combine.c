@@ -1032,7 +1032,9 @@ clear_log_links (void)
 /* Walk the LOG_LINKS of insn B to see if we find a reference to A.  Return
    true if we found a LOG_LINK that proves that A feeds B.  This only works
    if there are no instructions between A and B which could have a link
-   depending on A, since in that case we would not record a link for B.  */
+   depending on A, since in that case we would not record a link for B.
+   We also check the implicit dependency created by a cc0 setter/user
+   pair.  */
 
 static bool
 insn_a_feeds_b (rtx a, rtx b)
@@ -1041,6 +1043,10 @@ insn_a_feeds_b (rtx a, rtx b)
   for (links = LOG_LINKS (b); links; links = XEXP (links, 1))
     if (XEXP (links, 0) == a)
       return true;
+#ifdef HAVE_cc0
+  if (sets_cc0_p (a))
+    return true;
+#endif
   return false;
 }
 
@@ -3057,7 +3063,7 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p)
       /* It is possible that the source of I2 or I1 may be performing
 	 an unneeded operation, such as a ZERO_EXTEND of something
 	 that is known to have the high part zero.  Handle that case
-	 by letting subst look at the innermost one of them.
+	 by letting subst look at the inner insns.
 
 	 Another way to do this would be to have a function that tries
 	 to simplify a single insn instead of merging two or more
@@ -3082,11 +3088,9 @@ try_combine (rtx i3, rtx i2, rtx i1, rtx i0, int *new_direct_jump_p)
 	      subst_low_luid = DF_INSN_LUID (i1);
 	      i1src = subst (i1src, pc_rtx, pc_rtx, 0, 0);
 	    }
-	  else
-	    {
-	      subst_low_luid = DF_INSN_LUID (i2);
-	      i2src = subst (i2src, pc_rtx, pc_rtx, 0, 0);
-	    }
+
+	  subst_low_luid = DF_INSN_LUID (i2);
+	  i2src = subst (i2src, pc_rtx, pc_rtx, 0, 0);
 	}
 
       n_occurrences = 0;		/* `subst' counts here */
@@ -6236,10 +6240,18 @@ simplify_set (rtx x)
       enum rtx_code new_code;
       rtx op0, op1, tmp;
       int other_changed = 0;
+      rtx inner_compare = NULL_RTX;
       enum machine_mode compare_mode = GET_MODE (dest);
 
       if (GET_CODE (src) == COMPARE)
-	op0 = XEXP (src, 0), op1 = XEXP (src, 1);
+	{
+	  op0 = XEXP (src, 0), op1 = XEXP (src, 1);
+	  if (GET_CODE (op0) == COMPARE && op1 == const0_rtx)
+	    {
+	      inner_compare = op0;
+	      op0 = XEXP (inner_compare, 0), op1 = XEXP (inner_compare, 1);
+	    }
+	}
       else
 	op0 = src, op1 = CONST0_RTX (GET_MODE (src));
 
@@ -6281,6 +6293,12 @@ simplify_set (rtx x)
 	 need to use a different CC mode here.  */
       if (GET_MODE_CLASS (GET_MODE (op0)) == MODE_CC)
 	compare_mode = GET_MODE (op0);
+      else if (inner_compare
+	       && GET_MODE_CLASS (GET_MODE (inner_compare)) == MODE_CC
+	       && new_code == old_code
+	       && op0 == XEXP (inner_compare, 0)
+	       && op1 == XEXP (inner_compare, 1))
+	compare_mode = GET_MODE (inner_compare);
       else
 	compare_mode = SELECT_CC_MODE (new_code, op0, op1);
 
@@ -7479,7 +7497,8 @@ make_compound_operation (rtx x, enum rtx_code in_code)
 	 an address.  */
       if (in_code == MEM && CONST_INT_P (XEXP (x, 1))
 	  && INTVAL (XEXP (x, 1)) < HOST_BITS_PER_WIDE_INT
-	  && INTVAL (XEXP (x, 1)) >= 0)
+	  && INTVAL (XEXP (x, 1)) >= 0
+	  && SCALAR_INT_MODE_P (mode))
 	{
 	  HOST_WIDE_INT count = INTVAL (XEXP (x, 1));
 	  HOST_WIDE_INT multval = (HOST_WIDE_INT) 1 << count;
@@ -13140,10 +13159,6 @@ distribute_notes (rtx notes, rtx from_insn, rtx i3, rtx i2, rtx elim_i2,
 	     It is preferable to keep these notes on branches, which is most
 	     likely to be i3.  */
 	  place = i3;
-	  break;
-
-	case REG_VALUE_PROFILE:
-	  /* Just get rid of this note, as it is unused later anyway.  */
 	  break;
 
 	case REG_NON_LOCAL_GOTO:

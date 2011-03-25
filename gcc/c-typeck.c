@@ -1079,7 +1079,7 @@ comptypes_internal (const_tree type1, const_tree type2, bool *enum_and_int_p,
     return 1;
 
   /* 1 if no need for warning yet, 2 if warning cause has been seen.  */
-  if (!(attrval = targetm.comp_type_attributes (t1, t2)))
+  if (!(attrval = comp_type_attributes (t1, t2)))
      return 0;
 
   /* 1 if no need for warning yet, 2 if warning cause has been seen.  */
@@ -10270,6 +10270,10 @@ c_objc_common_truthvalue_conversion (location_t location, tree expr)
       error_at (location, "used union type value where scalar is required");
       return error_mark_node;
 
+    case VOID_TYPE:
+      error_at (location, "void value not ignored as it ought to be");
+      return error_mark_node;
+
     case FUNCTION_TYPE:
       gcc_unreachable ();
 
@@ -10282,8 +10286,8 @@ c_objc_common_truthvalue_conversion (location_t location, tree expr)
   if (int_operands)
     expr = remove_c_maybe_const_expr (expr);
 
-  /* ??? Should we also give an error for void and vectors rather than
-     leaving those to give errors later?  */
+  /* ??? Should we also give an error for vectors rather than leaving
+     those to give errors later?  */
   expr = c_common_truthvalue_conversion (location, expr);
 
   if (TREE_CODE (expr) == INTEGER_CST && int_operands && !int_const)
