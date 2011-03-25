@@ -117,15 +117,13 @@ VEC(tree,gc) * gpy_process_assign (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
       VEC_safe_push (tree, gc, retval, build2 (MODIFY_EXPR, gpy_object_type_ptr,
 					       decl,rhs_tree_res_decl));
 
-      /* VEC(tree,gc) * bc =  gpy_builtin_get_incr_ref_call (decl);
-	 GPY_VEC_stmts_append(retval,bc);*/
-      /*
+      VEC(tree,gc) * bc =  gpy_builtin_get_incr_ref_call (decl);
+      GPY_VEC_stmts_append(retval,bc);
+
       bc = gpy_builtin_get_set_decl_call (decl);
       GPY_VEC_stmts_append(retval,bc);
-      */
 
       VEC_safe_push (tree, gc, retval, decl);
-      
     }
   else
     fatal_error("Invalid accessor for assignment <0x%x>!\n", opa->type );
@@ -140,7 +138,7 @@ gpy_process_bin_expression (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
   VEC(tree,gc) * retval = NULL;
   VEC(tree,gc) * t1 = NULL, * t2 = NULL;
   
-  tree op = NULL;
+  VEC(tree,gc) *  op = NULL;
   gpy_symbol_obj *opa, *opb; 
   if( op_a && op_b ) { opa= *op_a; opb= *op_b; }
   else {
@@ -168,6 +166,7 @@ gpy_process_bin_expression (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
 
   if( op )
     {
+      gcc_assert (VEC_length(tree, op) == 1);
       retval = t2;
 
       int idx = 0; tree itx = NULL_TREE;
@@ -179,8 +178,7 @@ gpy_process_bin_expression (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
       tree address = build_decl (opa->loc, VAR_DECL, create_tmp_var_name("T"),
 				 gpy_object_type_ptr);
       VEC_safe_push (tree, gc, retval,
-		     build2 (MODIFY_EXPR, gpy_object_type_ptr, address, op));
-      
+		     build2 (MODIFY_EXPR, gpy_object_type_ptr, address, VEC_index(tree,op,0)));
       VEC_safe_push (tree,gc,retval,address);
     }
 

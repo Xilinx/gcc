@@ -352,18 +352,34 @@ VEC(tree,gc) * gpy_builtin_get_set_decl_call (tree decl)
   DECL_EXTERNAL (gpy_rr_decl ) = 1;
   TREE_PUBLIC (gpy_rr_decl ) = 1;
 
-  const char * c_ident = IDENTIFIER_POINTER(DECL_NAME(decl));
+  const char * c_ident = IDENTIFIER_POINTER (DECL_NAME(decl));
   debug ("c_ident = <%s>!\n", c_ident);
 
-  tree str = build_string (strlen (c_ident), c_ident);
-  TREE_TYPE (str) = gpy_const_char_ptr;  
-  tree ident = build_fold_addr_expr (str);
+  tree type = build_array_type (char_type_node,
+				build_index_type (size_int (
+							    IDENTIFIER_LENGTH (DECL_NAME(decl))
+							    )));
+  type = build_qualified_type (type, TYPE_QUAL_CONST);
+  gpy_preserve_from_gc (type);
   
-  VEC(tree,gc) * retval = VEC_alloc(tree,gc,0);
-  VEC_safe_push (tree,gc,retval,
-		 build_call_expr (gpy_rr_decl, 2, ident, decl)
-		 );
+  tree str = build_string (IDENTIFIER_LENGTH (DECL_NAME(decl)), c_ident);
+  TREE_TYPE (str) = type;
+  tree ident = str; //build_fold_addr_expr (str);
 
+  tree address = build_decl (BUILTINS_LOCATION, VAR_DECL,
+			     create_tmp_var_name("R"),
+			     type);
+  TREE_STATIC (address) = 1;
+  TREE_READONLY (address) = 1;
+  DECL_ARTIFICIAL (address) = 1;
+
+  VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
+  VEC_safe_push (tree, gc, retval,
+		 build2 (MODIFY_EXPR, type, address, ident));
+
+  VEC_safe_push (tree, gc, retval,
+		 build_call_expr (gpy_rr_decl, 2,
+				  address, decl));
   return retval;
 }
 
@@ -448,8 +464,8 @@ VEC(tree,gc) * gpy_builtin_get_register_callable_call (tree decl, int n)
 
   VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
   VEC_safe_push (tree, gc, retval,
-		 build2 (MODIFY_EXPR, type,
-			 address, ident));
+		 build2 (MODIFY_EXPR, type, address, ident));
+
   VEC_safe_push (tree, gc, retval,
 		 build_call_expr (gpy_rr_decl, 3,
 				  build_fold_addr_expr (decl),
