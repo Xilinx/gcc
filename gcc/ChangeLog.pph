@@ -1,5 +1,33 @@
 2011-03-25  Diego Novillo  <dnovillo@google.com>
 
+	* lto-streamer-in.c (unpack_value_fields): Remove checks for
+	TS_SSA_NAME, TS_STATEMENT_LIST and TS_OMP_CLAUSE.
+	Call streamer_hooks.unpack_value_fields if defined.
+	* lto-streamer-out.c (pack_value_fields): Remove checks for
+	TS_SSA_NAME, TS_STATEMENT_LIST and TS_OMP_CLAUSE.
+	Call streamer_hooks.pack_value_fields if defined.
+	(lto_output_tree_header): Call streamer_hooks.is_streamable
+	if defined.
+	* lto-streamer.c (gimple_streamer_hooks_init): Assign hooks
+	for name and is_streamable.
+	(lto_is_streamable): Move from ...
+	* lto-streamer.h: ... here.
+	(lto_streamer_hooks): Add field name, pack_value_fields,
+	unpack_value_fields and is_streamable.
+	(lto_stream_as_builtin_p):
+
+2011-03-25  Diego Novillo  <dnovillo@google.com>
+
+	* lto-streamer-in.c (lto_input_ts_decl_minimal_tree_pointers):
+	(lto_input_ts_decl_common_tree_pointers):
+	* a/gcc/lto-streamer-out.c (lto_output_tree_ref):
+	(lto_output_ts_decl_minimal_tree_pointers):
+	(lto_output_ts_decl_common_tree_pointers):
+	* a/gcc/lto-streamer.h (typedef):
+	(extern):
+
+2011-03-25  Diego Novillo  <dnovillo@google.com>
+
 	* lto-streamer-in.c (lto_reader_init): Rename from
 	lto_init_reader.  Update all users.
 	If streamer_hooks.reader_init exists, call it.

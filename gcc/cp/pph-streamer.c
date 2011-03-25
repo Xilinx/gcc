@@ -23,6 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tree.h"
 #include "langhooks.h"
+#include "tree-iterator.h"
 #include "tree-pretty-print.h"
 #include "lto-streamer.h"
 #include "pph-streamer.h"
@@ -146,6 +147,21 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 {
   if (TREE_CODE (expr) == FUNCTION_DECL)
     lto_output_tree_or_ref (ob, DECL_SAVED_TREE (expr), ref_p);
+  else if (TREE_CODE (expr) == STATEMENT_LIST)
+    {
+      tree_stmt_iterator i;
+      unsigned num_stmts;
+
+      /* Compute and write the number of statements in the list.  */
+      for (num_stmts = 0, i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
+	num_stmts++;
+
+      lto_output_sleb128_stream (ob->main_stream, num_stmts);
+
+      /* Write the statements.  */
+      for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
+	lto_output_tree_or_ref (ob, tsi_stmt (i), ref_p);
+    }
 }
 
 
@@ -160,17 +176,64 @@ pph_stream_read_tree (struct lto_input_block *ib, struct data_in *data_in,
 {
   if (TREE_CODE (expr) == FUNCTION_DECL)
     DECL_SAVED_TREE (expr) = lto_input_tree (ib, data_in);
+  else if (TREE_CODE (expr) == STATEMENT_LIST)
+    {
+      HOST_WIDE_INT i, num_trees = lto_input_sleb128 (ib);
+      for (i = 0; i < num_trees; i++)
+	{
+	  tree stmt = lto_input_tree (ib, data_in);
+	  append_to_statement_list (stmt, &expr);
+	}
+    }
+}
+
+
+/* Return true if the given tree T is streamable.  */
+
+static bool
+pph_is_streamable (tree t ATTRIBUTE_UNUSED)
+{
+  /* We accept most trees.  */
+  return TREE_CODE (t) != SSA_NAME
+	 && (TREE_CODE (t) < OMP_PARALLEL
+	     || TREE_CODE (t) > OMP_CRITICAL);
+}
+
+
+/* Callback for packing value fields in ASTs.  BP is the bitpack 
+   we are packing into.  EXPR is the tree to pack.  */
+
+static void
+pph_stream_pack_value_fields (struct bitpack_d *bp ATTRIBUTE_UNUSED,
+			      tree expr ATTRIBUTE_UNUSED)
+{
+  /* Do nothing for now.  */
+}
+
+
+/* Callback for unpacking value fields in ASTs.  BP is the bitpack 
+   we are unpacking from.  EXPR is the tree to unpack.  */
+
+static void
+pph_stream_unpack_value_fields (struct bitpack_d *bp ATTRIBUTE_UNUSED,
+				tree expr ATTRIBUTE_UNUSED)
+{
+  /* Do nothing for now.  */
 }
 
 
 /* Initialize all the streamer hooks used for streaming ASTs.  */
 
 static void
-pph_streamer_hooks_init (void)
+pph_stream_hooks_init (void)
 {
   lto_streamer_hooks *h = streamer_hooks_init ();
+  h->name = "C++ AST";
+  h->is_streamable = pph_is_streamable;
   h->write_tree = pph_stream_write_tree;
   h->read_tree = pph_stream_read_tree;
+  h->pack_value_fields = pph_stream_pack_value_fields;
+  h->unpack_value_fields = pph_stream_unpack_value_fields;
 }
 
 
@@ -187,7 +250,7 @@ pph_stream_open (const char *name, const char *mode)
   f = fopen (name, mode);
   if (f)
     {
-      pph_streamer_hooks_init ();
+      pph_stream_hooks_init ();
       stream = XCNEW (pph_stream);
       stream->file = f;
       stream->name = xstrdup (name);

@@ -1790,26 +1790,11 @@ unpack_value_fields (struct bitpack_d *bp, tree expr)
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     unpack_ts_block_value_fields (bp, expr);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_SSA_NAME))
-    {
-      /* We only stream the version number of SSA names.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_STATEMENT_LIST))
-    {
-      /* This is only used by GENERIC.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OMP_CLAUSE))
-    {
-      /* This is only used by High GIMPLE.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
     unpack_ts_translation_unit_decl_value_fields (bp, expr);
+
+  if (streamer_hooks ()->unpack_value_fields)
+    streamer_hooks ()->unpack_value_fields (bp, expr);
 }
 
 

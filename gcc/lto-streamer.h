@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 struct output_block;
 struct lto_input_block;
 struct data_in;
+struct bitpack_d;
 
 /* Define when debugging the LTO streamer.  This causes the writer
    to output the numeric value for the memory address of the tree node
@@ -51,11 +52,17 @@ struct data_in;
    replace the default behavior and those that supplement it.  Any
    or all of these hooks can be NULL.  */
 typedef struct lto_streamer_hooks {
+  /* A string identifying this streamer.  */
+  const char *name;
+
   /* Called by lto_reader_init after it does basic initialization.  */
   void (*reader_init) (void);
 
   /* Called by lto_writer_init after it does basic initalization.  */
   void (*writer_init) (void);
+
+  /* Return true if the given tree is supported by this streamer.  */
+  bool (*is_streamable) (tree);
 
   /* Called by lto_write_tree after writing all the common parts of
      a tree.  If defined, the callback is in charge of writing all
@@ -78,6 +85,14 @@ typedef struct lto_streamer_hooks {
      the fields that lto_read_tree did not read in.  Arguments
      are as in lto_read_tree.  */
   void (*read_tree) (struct lto_input_block *, struct data_in *, tree);
+
+  /* Called by pack_value_fields to store any non-pointer fields
+     in the tree structure.  The arguments are as in pack_value_fields.  */
+  void (*pack_value_fields) (struct bitpack_d *, tree);
+
+  /* Called by unpack_value_fields to retrieve any non-pointer fields
+     in the tree structure.  The arguments are as in unpack_value_fields.  */
+  void (*unpack_value_fields) (struct bitpack_d *, tree);
 } lto_streamer_hooks;
 
 
@@ -1111,29 +1126,6 @@ lto_stream_as_builtin_p (tree expr)
 	  && DECL_IS_BUILTIN (expr)
 	  && (DECL_BUILT_IN_CLASS (expr) == BUILT_IN_NORMAL
 	      || DECL_BUILT_IN_CLASS (expr) == BUILT_IN_MD));
-}
-
-/* Return true if EXPR is a tree node that can be written to disk.  */
-static inline bool
-lto_is_streamable (tree expr)
-{
-  enum tree_code code = TREE_CODE (expr);
-
-  /* Notice that we reject SSA_NAMEs as well.  We only emit the SSA
-     name version in lto_output_tree_ref (see output_ssa_names).  */
-  return !is_lang_specific (expr)
-	 && code != SSA_NAME
-	 && code != CALL_EXPR
-	 && code != LANG_TYPE
-	 && code != MODIFY_EXPR
-	 && code != INIT_EXPR
-	 && code != TARGET_EXPR
-	 && code != BIND_EXPR
-	 && code != WITH_CLEANUP_EXPR
-	 && code != STATEMENT_LIST
-	 && (code == CASE_LABEL_EXPR
-	     || code == DECL_EXPR
-	     || TREE_CODE_CLASS (code) != tcc_statement);
 }
 
 DEFINE_DECL_STREAM_FUNCS (TYPE, type)

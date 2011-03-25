@@ -1,5 +1,24 @@
 2011-03-25  Diego Novillo  <dnovillo@google.com>
 
+	* Make-lang.in (cp/pph-streamer.o): Add dependency on
+	tree-iterator.h.
+	* pph-streamer.c: Include tree-iterator.h
+	(pph_stream_write_tree): Handle STATEMENT_LIST.
+	(pph_stream_read_tree): Likewise.
+	(pph_is_streamable): New.
+	(pph_stream_pack_value_fields): New.
+	(pph_stream_unpack_valude_fields): New.
+	(pph_stream_hooks_init): Rename from pph_streamer_hooks_init.
+	Fill in callbacks for name, is_streamable, pack_value_fields
+	and unpack_value_fields;
+	(pph_stream_open):
+
+2011-03-25  Diego Novillo  <dnovillo@google.com>
+
+	* cp/pph-streamer.c (pph_stream_init_write):
+
+2011-03-25  Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer.c (pph_stream_hooks_init): New.
 	(pph_stream_open): Call it.
 

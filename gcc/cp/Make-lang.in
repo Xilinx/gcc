@@ -336,4 +336,4 @@ cp/pph.o: cp/pph.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(CPPLIB_H) \
 	$(CXX_PARSER_H) $(CXX_PPH_H) $(CXX_PPH_STREAMER_H)
 cp/pph-streamer.o: cp/pph-streamer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) $(CXX_PPH_STREAMER_H) \
-	$(CXX_PPH_H) $(TREE_PASS_H) version.h cppbuiltin.h
+	$(CXX_PPH_H) $(TREE_PASS_H) version.h cppbuiltin.h tree-iterator.h

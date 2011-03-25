@@ -804,14 +804,41 @@ lto_check_version (int major, int minor)
 }
 
 
+/* Return true if EXPR is a tree node that can be written to disk.  */
+
+static inline bool
+lto_is_streamable (tree expr)
+{
+  enum tree_code code = TREE_CODE (expr);
+
+  /* Notice that we reject SSA_NAMEs as well.  We only emit the SSA
+     name version in lto_output_tree_ref (see output_ssa_names).  */
+  return !is_lang_specific (expr)
+	 && code != SSA_NAME
+	 && code != CALL_EXPR
+	 && code != LANG_TYPE
+	 && code != MODIFY_EXPR
+	 && code != INIT_EXPR
+	 && code != TARGET_EXPR
+	 && code != BIND_EXPR
+	 && code != WITH_CLEANUP_EXPR
+	 && code != STATEMENT_LIST
+	 && (code == CASE_LABEL_EXPR
+	     || code == DECL_EXPR
+	     || TREE_CODE_CLASS (code) != tcc_statement);
+}
+
+
 /* Initialize all the streamer hooks used for streaming GIMPLE.  */
 
 void
 gimple_streamer_hooks_init (void)
 {
   lto_streamer_hooks *h = streamer_hooks_init ();
+  h->name = "gimple";
   h->reader_init = gimple_streamer_reader_init;
   h->writer_init = NULL;
+  h->is_streamable = lto_is_streamable;
   h->write_tree = gimple_streamer_write_tree;
   h->read_tree = gimple_streamer_read_tree;
 }

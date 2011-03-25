@@ -574,26 +574,11 @@ pack_value_fields (struct bitpack_d *bp, tree expr)
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     pack_ts_block_value_fields (bp, expr);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_SSA_NAME))
-    {
-      /* We only stream the version number of SSA names.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_STATEMENT_LIST))
-    {
-      /* This is only used by GENERIC.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OMP_CLAUSE))
-    {
-      /* This is only used by High GIMPLE.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
     pack_ts_translation_unit_decl_value_fields (bp, expr);
+
+  if (streamer_hooks ()->pack_value_fields)
+    streamer_hooks ()->pack_value_fields (bp, expr);
 }
 
 
@@ -1229,12 +1214,14 @@ lto_output_tree_header (struct output_block *ob, tree expr, int ix)
 {
   enum LTO_tags tag;
   enum tree_code code;
+  lto_streamer_hooks *h = streamer_hooks ();
+
 
   /* We should not see any non-GIMPLE tree nodes here.  */
   code = TREE_CODE (expr);
-  if (!lto_is_streamable (expr))
-    internal_error ("tree code %qs is not supported in gimple streams",
-		    tree_code_name[code]);
+  if (h->is_streamable && !h->is_streamable (expr))
+    internal_error ("tree code %qs is not supported in %s streams",
+		    h->name, tree_code_name[code]);
 
   /* The header of a tree node consists of its tag, the size of
      the node, and any other information needed to instantiate
