@@ -1,3 +1,9 @@
+2011-03-25  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/defaulted22.C: New.
+	* g++.dg/cpp0x/defaulted23.C: New.
+	* g++.dg/cpp0x/defaulted15.C: Adjust.
+
 2011-03-15  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/implicit11.C: New.
