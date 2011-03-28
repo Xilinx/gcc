@@ -1,3 +1,8 @@
+2011-03-28  Martin Thuresson  <martint@google.com>
+
+	* doc/invoke.texi: Document support for relative profile paths.
+	* libgcov.c (gcov_exit): Support relative profile paths.
+
 2011-03-15  Diego Novillo  <dnovillo@google.com>
 
 	Merge from google/integration rev 170988 (gcc-4_6-branch).
