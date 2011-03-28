@@ -1843,17 +1843,17 @@ pth_file_change (cpp_reader *reader, const struct line_map *map)
 
 /* Write PPH output file.  */
 
-typedef void (*write_pph_format)(pph_stream *stream, tree decl, int flags);
+typedef void (*pph_write_format)(pph_stream *stream, tree decl, int flags);
 
 /* Forward declarations to break cyclic references.  */
 static void
-write_pph_namespace (pph_stream *, tree, write_pph_format, int);
+pph_write_namespace (pph_stream *, tree, pph_write_format, int);
 
 
 /* Write symbol to PPH output file like C.  */
 
 static void
-write_pph_print (pph_stream *stream, tree decl, int flags ATTRIBUTE_UNUSED)
+pph_write_print (pph_stream *stream, tree decl, int flags ATTRIBUTE_UNUSED)
 {
   pph_output_tree (stream, decl);
 }
@@ -1862,7 +1862,7 @@ write_pph_print (pph_stream *stream, tree decl, int flags ATTRIBUTE_UNUSED)
 /* Write symbol to PPH output file as a dump.  */
 
 static void
-write_pph_dump (pph_stream *stream, tree decl, int flags)
+pph_write_dump (pph_stream *stream, tree decl, int flags)
 {
   dump_node (decl, flags, stream->file);
 }
@@ -1871,11 +1871,11 @@ write_pph_dump (pph_stream *stream, tree decl, int flags)
 /* Write symbol to PPH output file.  */
 
 static void
-write_pph_symbol (pph_stream *stream, tree decl, write_pph_format fmt,
+pph_write_symbol (pph_stream *stream, tree decl, pph_write_format fmt,
 		  int flags)
 {
   if (TREE_CODE (decl) == NAMESPACE_DECL)
-    write_pph_namespace (stream, decl, fmt, flags);
+    pph_write_namespace (stream, decl, fmt, flags);
   else if (!DECL_IS_BUILTIN (decl))
     fmt (stream, decl, flags);
 }
@@ -1883,51 +1883,51 @@ write_pph_symbol (pph_stream *stream, tree decl, write_pph_format fmt,
 
 /* Write namespace to PPH output file.  */
 
-typedef void (*declvisitor)(pph_stream *, tree, write_pph_format, int);
+typedef void (*declvisitor)(pph_stream *, tree, pph_write_format, int);
 
 static void
-write_pph_namespace_1 (declvisitor vtor, pph_stream *stream, tree decl,
-                       write_pph_format fmt, int flags)
+pph_write_namespace_1 (declvisitor vtor, pph_stream *stream, tree decl,
+                       pph_write_format fmt, int flags)
 {
   tree prior = TREE_CHAIN (decl);
   if (prior)
-    write_pph_namespace_1 (vtor, stream, prior, fmt, flags);
+    pph_write_namespace_1 (vtor, stream, prior, fmt, flags);
   vtor (stream, decl, fmt, flags);
 }
 
 static void
-write_pph_namespace (pph_stream *stream, tree decl, write_pph_format fmt,
+pph_write_namespace (pph_stream *stream, tree decl, pph_write_format fmt,
 		     int flags)
 {
   struct cp_binding_level *level = NAMESPACE_LEVEL (decl);
   decl = level->namespaces;
   if (decl)
-    write_pph_namespace_1 (write_pph_namespace, stream, decl, fmt, flags);
+    pph_write_namespace_1 (pph_write_namespace, stream, decl, fmt, flags);
   decl = level->names;
   if (decl)
-    write_pph_namespace_1 (write_pph_symbol, stream, decl, fmt, flags);
+    pph_write_namespace_1 (pph_write_symbol, stream, decl, fmt, flags);
 }
 
 
 /* Write PPH output symbols and IDENTS_USED to STREAM as an object.  */
 
 static void
-write_pph_file_object (pph_stream *stream, cpp_idents_used *idents_used)
+pph_write_file_object (pph_stream *stream, cpp_idents_used *idents_used)
 { 
   int flags = 0;
   pth_save_identifiers (idents_used, stream);
-  write_pph_namespace (stream, global_namespace, write_pph_print, flags);
+  pph_write_namespace (stream, global_namespace, pph_write_print, flags);
 }
 
 
 /* Write PPH output symbols and IDENTS_USED to STREAM as a pretty summary.  */
 
 static void
-write_pph_file_summary (pph_stream *stream, cpp_idents_used *idents_used)
+pph_write_file_summary (pph_stream *stream, cpp_idents_used *idents_used)
 { 
   int flags = 0;
   pph_print_macro_defs_before (stream, idents_used);
-  write_pph_namespace (stream, global_namespace, write_pph_print, flags);
+  pph_write_namespace (stream, global_namespace, pph_write_print, flags);
   pph_print_macro_defs_after (stream, idents_used);
 }
 
@@ -1935,18 +1935,18 @@ write_pph_file_summary (pph_stream *stream, cpp_idents_used *idents_used)
 /* Write PPH output symbols and IDENTS_USED to STREAM as a textual dump.  */
 
 static void
-write_pph_file_dump (pph_stream *stream, cpp_idents_used *idents_used)
+pph_write_file_dump (pph_stream *stream, cpp_idents_used *idents_used)
 { 
   int flags = TDF_UID | TDF_LINENO;
   pth_dump_identifiers (stream->file, idents_used);
-  write_pph_namespace (stream, global_namespace, write_pph_dump, flags);
+  pph_write_namespace (stream, global_namespace, pph_write_dump, flags);
 }
 
 
 /* Write PPH output file.  */
 
 static void
-write_pph_file (void)
+pph_write_file (void)
 {
   pph_stream *stream;
   cpp_idents_used idents_used;
@@ -1961,11 +1961,11 @@ write_pph_file (void)
   idents_used = cpp_lt_capture (parse_in);
 
   if (flag_pph_fmt == 0)
-    write_pph_file_object (stream, &idents_used);
+    pph_write_file_object (stream, &idents_used);
   else if (flag_pph_fmt == 1)
-    write_pph_file_summary (stream, &idents_used);
+    pph_write_file_summary (stream, &idents_used);
   else if (flag_pph_fmt == 2)
-    write_pph_file_dump (stream, &idents_used);
+    pph_write_file_dump (stream, &idents_used);
   else
     error ("unrecognized -fpph-fmt value: %d", flag_pph_fmt);
 
@@ -2019,7 +2019,7 @@ report_validation_error (const char *filename,
 /* Read PPH FILENAME from STREAM as an object.  */
 
 static void
-read_pph_file_object (const char *filename, pph_stream *stream)
+pph_file_read_object (const char *filename, pph_stream *stream)
 {
   bool verified;
   cpp_ident_use *bad_use;
@@ -2044,7 +2044,7 @@ read_pph_file_object (const char *filename, pph_stream *stream)
 /* Read PPH file.  */
 
 static void
-read_pph_file (const char *filename)
+pph_file_read (const char *filename)
 {
   pph_stream *stream;
 
@@ -2056,7 +2056,7 @@ read_pph_file (const char *filename)
     fatal_error ("Cannot open PPH file for reading: %s: %m", filename);
 
   if (flag_pph_fmt == 0)
-    read_pph_file_object (filename, stream);
+    pph_file_read_object (filename, stream);
 
   pph_stream_close (stream);
 }
@@ -2113,7 +2113,7 @@ pph_include_handler (cpp_reader *reader,
 
   pph_file = query_pph_include_map (name);
   if (pph_file != NULL && !cpp_included_before (reader, name, input_location))
-    read_pph_file (pph_file);
+    pph_file_read (pph_file);
 }
 
 
@@ -4220,7 +4220,7 @@ pph_finish (void)
     {
       const char *offending_file = cpp_main_missing_guard (parse_in);
       if (offending_file == NULL)
-        write_pph_file ();
+        pph_write_file ();
       else
         error ("header lacks guard for PPH: %s", offending_file);
     }

@@ -1,3 +1,19 @@
+2011-03-28  Diego Novillo  <dnovillo@google.com>
+
+	* pph.c (pph_write_format): Rename from write_pph_format.
+	(pph_write_namespace): Rename from write_pph_namespace.
+	(pph_write_print): Rename from write_pph_print.
+	(pph_write_dump): Rename from write_pph_dump.
+	(pph_write_symbol): Rename from write_pph_symbol.
+	(pph_write_namespace): Rename from write_pph_namespace.
+	(pph_write_namespace_1): Rename from write_pph_namespace_1.
+	(pph_write_file_object): Rename from write_pph_file_object.
+	(pph_write_file_summary): Rename from write_pph_file_summary.
+	(pph_write_file_dump): Rename from write_pph_file_dump.
+	(pph_write_file): Rename from write_pph_file.
+	(pph_file_read_object): Rename from read_pph_file_object.
+	(pph_file_read): Rename from read_pph_file.
+
 2011-03-25  Diego Novillo  <dnovillo@google.com>
 
 	* Make-lang.in (cp/pph-streamer.o): Add dependency on
