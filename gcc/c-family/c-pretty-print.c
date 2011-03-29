@@ -2202,6 +2202,10 @@ pp_c_expression (c_pretty_printer *pp, tree e)
       pp_c_expression (pp, C_MAYBE_CONST_EXPR_EXPR (e));
       break;
 
+    case SSA_NAME:
+      pp_primary_expression (pp, SSA_NAME_VAR (e));
+      break;
+
     default:
       pp_unsupported_tree (pp, e);
       break;

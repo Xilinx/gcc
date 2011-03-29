@@ -502,6 +502,7 @@ static tree
 lookup_tmp_var (tree val, bool is_formal)
 {
   tree ret;
+  bool tmp_reused = false;
 
   /* If not optimizing, never really reuse a temporary.  local-alloc
      won't allocate any variable that is used in more than one basic
@@ -531,7 +532,50 @@ lookup_tmp_var (tree val, bool is_formal)
 	{
 	  elt_p = (elt_t *) *slot;
           ret = elt_p->temp;
+          tmp_reused = true;
 	}
+    }
+
+  /* If the original val is a pointer (to a shared memory location) with
+     either the "point_to_guarded_by" or "point_to_guarded" attribute,
+     we need to copy the attribute to the tmp variable. Note that we don't
+     need to do this for non-pointer variables because, after transformation,
+     the original variable would still be accessed the same way it was
+     accessed in the original code as shown in the following example:
+
+       Original code:                            Transformed code:
+
+       gx = gy + 1; // read gy, write gx         gy.0 = gy;   // read gy
+                                                 gx.1 = gy.0 + 1;
+                                                 gx = gx.1;   // write gx
+
+     On the other hand, if the original variable is a pointer, it
+     will not be accessed the same way as before:
+
+       Original code:                             Transformed code:
+
+       *gx = a + 5; // gx is read and             gx.1 = gx; // gx is read but
+                    // dereferenced                          // not deferenced
+                                                  *gx.1 = a + 5;
+  */
+  if (!tmp_reused && DECL_P (val) && POINTER_TYPE_P (TREE_TYPE (val)))
+    {
+      tree attr = lookup_attribute ("point_to_guarded_by",
+                                    DECL_ATTRIBUTES (val));
+      if (!attr)
+        attr = lookup_attribute ("point_to_guarded", DECL_ATTRIBUTES (val));
+
+      if (attr)
+        {
+          DECL_ATTRIBUTES (ret) = build_tree_list (TREE_PURPOSE (attr),
+                                                   TREE_VALUE (attr));
+          /* When detecting an issue later in the thread safety analysis
+             phase, we would like to print out the original variable name
+             (instead of the tmp variable name). So stick the original
+             variable's decl in the debug expr.  */
+          DECL_DEBUG_EXPR_IS_FROM (ret) = 1;
+          SET_DECL_DEBUG_EXPR (ret, val);
+        }
     }
 
   return ret;

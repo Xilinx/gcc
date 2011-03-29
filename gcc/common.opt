@@ -617,10 +617,6 @@ Wtrampolines
 Common Var(warn_trampolines) Warning
 Warn whenever a trampoline is generated
 
-; FIXME.  The following -Wthread-* flags are placeholders to prevent
-; confusing the compiler when applications are built with these flags.
-; Actual support for these flags is being implemented in the
-; thread-annotations branch.
 Wthread-safety
 Common Var(warn_thread_safety) Warning
 Warn about potential thread safety issues when the code is annotated with thread safety attributes
@@ -648,6 +644,10 @@ Warn about a lock being acquired recursively
 Wthread-unsupported-lock-name
 Common Var(warn_unsupported_lock_name) Init(0) Warning
 Warn about uses of unsupported lock names in attributes
+
+Wthread-attr-bind-param
+Common Var(warn_thread_attr_bind_param) Init(1) Warning
+Make the thread safety analysis try to bind the function parameters used in the attributes
 
 Wtype-limits
 Common Var(warn_type_limits) Init(-1) Warning

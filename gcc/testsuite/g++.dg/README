@@ -23,6 +23,7 @@ plugin   Tests for plugin support.
 rtti	 Tests for run-time type identification (typeid, dynamic_cast, etc.)
 template Tests for templates.
 tc1	 Tests for Technical Corrigendum 1 conformance.
+thread-ann Tests for thread safety annotations and analysis.
 tls	 Tests for support of thread-local data.
 tree-ssa Tests for Tree SSA optimizations.
 warn	 Tests for compiler warnings.

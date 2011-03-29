@@ -426,6 +426,26 @@ struct lang_hooks
      enum gimplify_status, though we can't see that type here.  */
   int (*gimplify_expr) (tree *, gimple_seq *, gimple_seq *);
 
+  /* Return the virtual function decl for the given OBJ_TYPE_REF expression.  */
+  tree (*get_virtual_function_decl) (tree, tree);
+
+  /* Determine whether the given DECL is a compiler-generated base field
+     in a derived class.  */
+  bool (*decl_is_base_field) (tree);
+
+  /* Return true if DECL is a constructor.  */
+  bool (*decl_is_constructor) (tree);
+
+  /* Return true if DECL is a destructor.  */
+  bool (*decl_is_destructor) (tree);
+
+  /* Return
+   1 if decl is a const member function,
+   2 if decl is not a const member function but has a const overload that
+     has identical parameter list,
+   0 otherwise.  */
+  int (*decl_is_const_member_func) (tree);
+
   /* Do language specific processing in the builtin function DECL  */
   tree (*builtin_function) (tree decl);
 

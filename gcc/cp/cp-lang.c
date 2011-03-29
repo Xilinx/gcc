@@ -75,12 +75,22 @@ static tree get_template_argument_pack_elems_folded (const_tree);
 #define LANG_HOOKS_GET_GENERIC_FUNCTION_DECL get_function_template_decl
 #undef LANG_HOOKS_DWARF_NAME
 #define LANG_HOOKS_DWARF_NAME cxx_dwarf_name
+#undef LANG_HOOKS_GET_VIRTUAL_FUNCTION_DECL
+#define LANG_HOOKS_GET_VIRTUAL_FUNCTION_DECL cp_get_virtual_function_decl
 #undef LANG_HOOKS_INIT_TS
 #define LANG_HOOKS_INIT_TS cp_init_ts
 #undef LANG_HOOKS_EH_PERSONALITY
 #define LANG_HOOKS_EH_PERSONALITY cp_eh_personality
 #undef LANG_HOOKS_EH_RUNTIME_TYPE
 #define LANG_HOOKS_EH_RUNTIME_TYPE build_eh_type_type
+#undef LANG_HOOKS_DECL_IS_BASE_FIELD
+#define LANG_HOOKS_DECL_IS_BASE_FIELD cp_decl_is_base_field
+#undef LANG_HOOKS_DECL_IS_CONSTRUCTOR
+#define LANG_HOOKS_DECL_IS_CONSTRUCTOR cp_decl_is_constructor
+#undef LANG_HOOKS_DECL_IS_DESTRUCTOR
+#define LANG_HOOKS_DECL_IS_DESTRUCTOR cp_decl_is_destructor
+#undef LANG_HOOKS_DECL_IS_CONST_MEMBER_FUNC
+#define LANG_HOOKS_DECL_IS_CONST_MEMBER_FUNC cp_decl_is_const_member_func
 
 /* Each front end provides its own lang hook initializer.  */
 struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;

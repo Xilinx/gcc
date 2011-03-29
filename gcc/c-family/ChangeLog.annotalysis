@@ -1,0 +1,23 @@
+2011-03-22  Le-Chun Wu  <lcwu@google.com>
+
+	* c-common.c (c_common_attribute_table): Add new functions to process
+	lock attributes.
+	(attribute_takes_identifier_p): Handle lock attributes.
+	(handle_lockable_attribute): New Handler.
+	(handle_guarded_by_attribute): Likewise.
+	(handle_point_to_guarded_by_attribute): Likewise.
+	(handle_guarded_attribute): Likewise.
+	(handle_point_to_guarded_attribute): Likewise.
+	(handle_acquired_order_attribute): Likewise.
+	(handle_lock_attribute): Likewise.
+	(handle_unlock_attribute): Likewise.
+	(handle_locks_required_excluded_attribute): Likewise.
+	(handle_lock_returned_attribute): Likewise.
+	(handle_no_thread_safety_analysis_attribute): Likewise.
+	(supported_lock_expression): New helper function.
+	(get_lock_decl): Likewise.
+	(populate_acquired_after_map): Likewise.
+	(is_lock_formal_parameter): Likewise.
+	(check_lock_unlock_attr_args): Likewise.
+	* c-cppbuiltin.c (c_cpp_builtins): Define annotalysis-related macros.
+	* c-pretty-print.c (pp_c_expression): Handle SSA_NAME.

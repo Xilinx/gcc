@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "plugin.h"
 
 static void init_attributes (void);
+static void merge_lock_attr_args (tree, tree);
 
 /* Table of the tables of attributes (common, language, format, machine)
    searched.  */
@@ -317,6 +318,20 @@ decl_attributes (tree *node, tree attributes, int flags)
 	}
       gcc_assert (is_attribute_p (spec->name, name));
 
+      /* If this is a lock attribute and the purpose field of the args is
+         an error_mark_node, the attribute arguments have not been parsed yet
+         (as we delay the parsing of the attribute arguments until after the
+         whole class has been parsed). So don't handle this attribute now
+         but simply replace the error_mark_node with the current decl node
+         (which we will need when we call this routine again later).  */
+      if (args
+          && TREE_PURPOSE (args) == error_mark_node
+          && is_lock_attribute_with_args (name))
+        {
+          TREE_PURPOSE (args) = *node;
+          continue;
+        }
+
       if (spec->decl_required && !DECL_P (*anode))
 	{
 	  if (flags & ((int) ATTR_FLAG_DECL_NEXT
@@ -396,9 +411,30 @@ decl_attributes (tree *node, tree attributes, int flags)
 	}
 
       if (spec->handler != NULL)
-	returned_attrs = chainon ((*spec->handler) (anode, name, args,
-						    flags, &no_add_attrs),
-				  returned_attrs);
+        {
+          tree ret_attr = (*spec->handler) (anode, name, args,
+                                            flags, &no_add_attrs);
+          if (ret_attr)
+            {
+              /* For the lock attributes whose arguments (i.e. locks) are not
+                 supported or the names are not in scope, we would demote the
+                 attributes. For example, if 'foo' is not in scope in the
+                 attribute "guarded_by(foo->lock), the attribute would be
+                 downgraded to a "guarded" attribute. And in this case, the
+                 handler would return the new, demoted attribute which is
+                 appended to the current one so that it is handled in the next
+                 iteration.  */
+              if (is_lock_attribute_with_args (name))
+                {
+                  gcc_assert (no_add_attrs);
+                  TREE_CHAIN (ret_attr) = TREE_CHAIN (a);
+                  TREE_CHAIN (a) = ret_attr;
+                  continue;
+                }
+              else
+                returned_attrs = chainon (ret_attr, returned_attrs);
+            }
+        }
 
       /* Layout the decl in case anything changed.  */
       if (spec->type_required && DECL_P (*node)
@@ -423,6 +459,13 @@ decl_attributes (tree *node, tree attributes, int flags)
 	    {
 	      if (simple_cst_equal (TREE_VALUE (a), args) == 1)
 		break;
+              /* If a lock attribute of the same kind is already on the decl,
+                 don't add this one again. Instead, merge the arguments.  */
+              if (is_lock_attribute_with_args (name))
+                {
+                  merge_lock_attr_args (a, args);
+                  break;
+                }
 	    }
 
 	  if (a == NULL_TREE)
@@ -476,4 +519,116 @@ decl_attributes (tree *node, tree attributes, int flags)
     }
 
   return returned_attrs;
+}
+
+/* Return true if IDENTIFIER is the name of a lock attribute that takes
+   arguments, as listed in the if-statement below.  */
+
+bool
+is_lock_attribute_with_args (const_tree identifier)
+{
+  gcc_assert (TREE_CODE (identifier) == IDENTIFIER_NODE);
+
+  if (is_attribute_p ("guarded_by", identifier)
+      || is_attribute_p ("point_to_guarded_by", identifier)
+      || is_attribute_p ("acquired_after", identifier)
+      || is_attribute_p ("acquired_before", identifier)
+      || is_attribute_p ("exclusive_lock", identifier)
+      || is_attribute_p ("shared_lock", identifier)
+      || is_attribute_p ("exclusive_trylock", identifier)
+      || is_attribute_p ("shared_trylock", identifier)
+      || is_attribute_p ("unlock", identifier)
+      || is_attribute_p ("exclusive_locks_required", identifier)
+      || is_attribute_p ("shared_locks_required", identifier)
+      || is_attribute_p ("locks_excluded", identifier)
+      || is_attribute_p ("lock_returned", identifier))
+    return true;
+  else
+    return false;
+}
+
+/* Return true if IDENTIFIER is the name of a lock attribute.  */
+
+static bool
+is_lock_attribute_p (const_tree identifier)
+{
+  gcc_assert (TREE_CODE (identifier) == IDENTIFIER_NODE);
+
+  if (is_lock_attribute_with_args (identifier)
+      || is_attribute_p ("no_thread_safety_analysis", identifier)
+      || is_attribute_p ("ignore_reads_begin", identifier)
+      || is_attribute_p ("ignore_reads_end", identifier)
+      || is_attribute_p ("ignore_writes_begin", identifier)
+      || is_attribute_p ("ignore_writes_end", identifier)
+      || is_attribute_p ("unprotected_read", identifier)
+      || is_attribute_p ("guarded", identifier)
+      || is_attribute_p ("point_to_guarded", identifier)
+      || is_attribute_p ("lockable", identifier)
+      || is_attribute_p ("scoped_lockable", identifier))
+    return true;
+  else
+    return false;
+}
+
+/* Extract and return all lock attributes from the given ATTRS list.
+   Note that the ATTRS list could be damaged if there is any lock attribute
+   in the list so you should not call this function if you expect ATTRS to
+   be intact. For example, here is the given ATTRS list:
+
+     attr("locks_excluded") -> attr("pure") -> attr("shared_locks_required")
+
+   This function will return the following attribute list
+
+     attr("shared_locks_required") -> attr("locks_excluded")  */
+
+tree
+extract_lock_attributes (tree attrs)
+{
+  tree lock_attrs = NULL_TREE;
+  tree next;
+
+  for ( ; attrs; attrs = next)
+    {
+      next = TREE_CHAIN (attrs);
+      if (is_lock_attribute_p (TREE_PURPOSE (attrs)))
+        {
+          TREE_CHAIN (attrs) = lock_attrs;
+          lock_attrs = attrs;
+        }
+    }
+
+  return lock_attrs;
+}
+
+/* This helper function is called when we see multiple lock attributes of
+   the same kind on a decl. ATTR is the first attribute of this kind we've
+   encountered and ADDITIONAL_ARGS is the args list of another attribute
+   of this kind. This function appends ADDITIONAL_ARGS to the args list
+   of ATTR. Note that we don't allow some of the lock attributes to appear
+   multiple times on a decl (such as 'guarded_by') and would emit a warning
+   if that happens.  */
+
+static void
+merge_lock_attr_args (tree attr, tree additional_args)
+{
+  tree identifier = TREE_PURPOSE (attr);
+
+  if (is_attribute_p ("acquired_after", identifier)
+      || is_attribute_p ("acquired_before", identifier)
+      || is_attribute_p ("exclusive_lock", identifier)
+      || is_attribute_p ("shared_lock", identifier)
+      || is_attribute_p ("exclusive_trylock", identifier)
+      || is_attribute_p ("shared_trylock", identifier)
+      || is_attribute_p ("unlock", identifier)
+      || is_attribute_p ("exclusive_locks_required", identifier)
+      || is_attribute_p ("shared_locks_required", identifier)
+      || is_attribute_p ("locks_excluded", identifier))
+    TREE_VALUE (attr) = chainon (TREE_VALUE (attr), additional_args);
+  /* We don't allow the following lock attributes to appear multiple times
+     on a decl.  */
+  else if (is_attribute_p ("guarded_by", identifier)
+           || is_attribute_p ("point_to_guarded_by", identifier)
+           || is_attribute_p ("lock_returned", identifier))
+    warning (OPT_Wattributes, "Additional %qs attribute ignored",
+             IDENTIFIER_POINTER (identifier));
 }

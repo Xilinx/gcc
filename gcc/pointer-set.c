@@ -89,6 +89,23 @@ pointer_set_destroy (struct pointer_set_t *pset)
   XDELETE (pset);
 }
 
+/* Create a copy of PSET. */
+struct pointer_set_t *
+pointer_set_copy (const struct pointer_set_t *pset)
+{
+  struct pointer_set_t *result = XNEW (struct pointer_set_t);
+
+  result->n_elements = pset->n_elements;
+  result->log_slots = pset->log_slots;
+  result->n_slots = pset->n_slots;
+  result->slots = XCNEWVEC (const void *, result->n_slots);
+
+  /* Now copy the members of the set */
+  memcpy(result->slots, pset->slots, pset->n_slots * sizeof(void *));
+
+  return result;
+}
+
 /* Returns nonzero if PSET contains P.  P must be nonnull.
 
    Collisions are resolved by linear probing.  */
@@ -169,6 +186,34 @@ pointer_set_insert (struct pointer_set_t *pset, const void *p)
   return 0;
 }
 
+/* Delete P from PSET if PSET contains P. Returns nonzero if P is in the set.
+   P must be nonnull. */
+int
+pointer_set_delete (struct pointer_set_t *pset, const void *p)
+{
+  size_t n = hash1 (p, pset->n_slots, pset->log_slots);
+
+  while (true)
+    {
+      if (pset->slots[n] == p)
+        {
+          pset->slots[n] = 0;
+          --pset->n_elements;
+          return 1;
+        }
+      else if (pset->slots[n] == 0)
+        {
+          return 0;
+        }
+      else
+        {
+          ++n;
+          if (n == pset->n_slots)
+            n = 0;
+        }
+    }
+}
+
 /* Pass each pointer in PSET to the function in FN, together with the fixed
    parameter DATA.  If FN returns false, the iteration stops.  */
 
@@ -180,6 +225,66 @@ void pointer_set_traverse (const struct pointer_set_t *pset,
     if (pset->slots[i] && !fn (pset->slots[i], data))
       break;
 }
+
+/* Intersect DST_PSET with SRC_PSET and return the intersection set in
+   DST_PSET, i.e.,
+
+       DST_PSET = DST_PSET ^ SRC_PSET
+
+   Also, if CMPL_PSET is not NULL, calculate the complement set that
+   contains elements not in the intersection, i.e.,
+
+       CMPL_PSET = (DST_PSET U SRC_PSET) - (DST_PSET ^ SRC_PSET) */
+void
+pointer_set_intersection_complement(struct pointer_set_t *dst_pset,
+                                    const struct pointer_set_t *src_pset,
+                                    struct pointer_set_t *cmpl_pset)
+{
+  size_t i;
+  for (i = 0; i < dst_pset->n_slots; ++i)
+    {
+      const void *p = dst_pset->slots[i];
+      if (p && !pointer_set_contains(src_pset, p))
+        {
+          dst_pset->slots[i] = 0;
+          --dst_pset->n_elements;
+          if (cmpl_pset)
+            pointer_set_insert (cmpl_pset, p);
+        }
+    }
+
+  if (cmpl_pset)
+    {
+      for (i = 0; i < src_pset->n_slots; ++i)
+        {
+          const void *p = src_pset->slots[i];
+          if (p && !pointer_set_contains(dst_pset, p))
+            pointer_set_insert (cmpl_pset, p);
+        }
+    }
+}
+
+/* Take the union of DST_PSET and SRC_PSET and return the union in DST_PSET. */
+void
+pointer_set_union_inplace (struct pointer_set_t *dst_pset,
+                           const struct pointer_set_t *src_pset)
+{
+  size_t i;
+  for (i = 0; i < src_pset->n_slots; ++i)
+    {
+      const void *p = src_pset->slots[i];
+      if (p)
+        pointer_set_insert (dst_pset, p);
+    }
+}
+
+/* Return the number of elements in PSET. */
+size_t
+pointer_set_cardinality (const struct pointer_set_t *pset)
+{
+  return pset->n_elements;
+}
+
 
 
 /* A pointer map is represented the same way as a pointer_set, so

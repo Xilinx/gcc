@@ -446,6 +446,7 @@ extern struct gimple_opt_pass pass_tracer;
 extern struct gimple_opt_pass pass_warn_unused_result;
 extern struct gimple_opt_pass pass_split_functions;
 extern struct gimple_opt_pass pass_feedback_split_functions;
+extern struct gimple_opt_pass pass_threadsafe_analyze;
 
 /* IPA Passes */
 extern struct simple_ipa_opt_pass pass_ipa_lower_emutls;

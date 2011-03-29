@@ -79,6 +79,27 @@ lhd_do_nothing_f (struct function * ARG_UNUSED (f))
 {
 }
 
+/* Do nothing (tree). Return int.  */
+int
+lhd_do_nothing_t_return_int (tree ARG_UNUSED (t))
+{
+  return 0;
+}
+
+/* Do nothing (tree). Return false.  */
+bool
+lhd_do_nothing_t_return_bool (tree ARG_UNUSED (t))
+{
+  return 0;
+}
+
+/* Do nothing (tree, tree). Return NULL_TREE.  */
+tree
+lhd_do_nothing_t_t_return_null_tree (tree ARG_UNUSED (t), tree ARG_UNUSED (t2))
+{
+  return NULL_TREE;
+}
+
 /* Do nothing (return NULL_TREE).  */
 
 tree

@@ -1431,6 +1431,7 @@ OBJS-common = \
 	tree-ssanames.o \
 	tree-stdarg.o \
 	tree-tailcall.o \
+	tree-threadsafe-analyze.o \
 	tree-vect-generic.o \
 	tree-vect-patterns.o \
         tree-vect-data-refs.o \
@@ -2025,7 +2026,8 @@ c-decl.o : c-decl.c c-lang.h $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	$(HASHTAB_H) $(LIBFUNCS_H) $(EXCEPT_H) $(LANGHOOKS_DEF_H) \
 	$(TREE_DUMP_H) $(C_COMMON_H) $(CPPLIB_H) $(DIAGNOSTIC_CORE_H) \
 	$(INPUT_H) langhooks.h tree-mudflap.h pointer-set.h tree-iterator.h \
-	$(PLUGIN_H) c-family/c-ada-spec.h c-family/c-objc.h
+	$(PLUGIN_H) c-family/c-ada-spec.h c-family/c-objc.h \
+	tree-threadsafe-analyze.h
 
 c-errors.o: c-errors.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
 	$(C_TREE_H) $(FLAGS_H) $(DIAGNOSTIC_H) $(TM_P_H)
@@ -2047,7 +2049,7 @@ c-parser.o : c-parser.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(GGC_H) $(TIMEVAR_H) $(INPUT_H) $(FLAGS_H) output.h \
 	gt-c-parser.h langhooks.h \
 	$(VEC_H) $(TARGET_H) $(CGRAPH_H) $(PLUGIN_H) \
-	 c-family/c-objc.h
+	 c-family/c-objc.h tree-threadsafe-analyze.h
 
 c-typeck.o : c-typeck.c c-lang.h $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 	$(TREE_H) $(C_TREE_H) $(TARGET_H) $(FLAGS_H) intl.h output.h $(EXPR_H) \
@@ -2100,7 +2102,7 @@ c-family/c-common.o : c-family/c-common.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(TARGET_H) tree-iterator.h langhooks.h tree-mudflap.h \
 	intl.h $(OPTS_H) $(CPPLIB_H) $(TREE_INLINE_H) $(HASHTAB_H) \
 	$(BUILTINS_DEF) $(CGRAPH_H) $(BASIC_BLOCK_H) $(TARGET_DEF_H) \
-	$(LIBFUNCS_H) \
+	$(LIBFUNCS_H) pointer-set.h tree-threadsafe-analyze.h \
 	gt-c-family-c-common.h
 
 c-family/c-cppbuiltin.o : c-family/c-cppbuiltin.c $(CONFIG_H) $(SYSTEM_H) \
@@ -2514,6 +2516,11 @@ tree-tailcall.o : tree-tailcall.c $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) \
    $(TREE_H) $(TM_P_H) $(FUNCTION_H) $(TM_H) coretypes.h \
    $(TREE_DUMP_H) $(DIAGNOSTIC_H) $(EXCEPT_H) $(TREE_PASS_H) $(FLAGS_H) langhooks.h \
    $(BASIC_BLOCK_H) $(DBGCNT_H) gimple-pretty-print.h $(TARGET_H)
+tree-threadsafe-analyze.o : tree-threadsafe-analyze.c \
+   tree-threadsafe-analyze.h $(TREE_FLOW_H) $(CONFIG_H) $(SYSTEM_H) $(TREE_H) \
+   $(TM_H) coretypes.h $(C_COMMON_H) toplev.h $(INPUT_H) $(DIAGNOSTIC_H) \
+   intl.h $(BASIC_BLOCK_H) $(TIMEVAR_H) $(TREE_PASS_H) $(TREE_DUMP_H) \
+   langhooks.h pointer-set.h tree-pretty-print.h tree-ssa-propagate.h
 tree-ssa-sink.o : tree-ssa-sink.c $(TREE_FLOW_H) $(CONFIG_H) \
    $(SYSTEM_H) $(TREE_H) $(DIAGNOSTIC_H) $(TIMEVAR_H) \
    $(TM_H) coretypes.h $(TREE_DUMP_H) $(TREE_PASS_H) $(FLAGS_H) alloc-pool.h \
@@ -2819,7 +2826,7 @@ toplev.o : toplev.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(TREE_H) \
    $(CGRAPH_H) $(COVERAGE_H) alloc-pool.h $(GGC_H) $(INTEGRATE_H) \
    $(OPTS_H) params.def tree-mudflap.h $(TREE_PASS_H) $(GIMPLE_H) \
    tree-ssa-alias.h $(PLUGIN_H) realmpfr.h tree-diagnostic.h \
-   tree-pretty-print.h opts-diagnostic.h
+   tree-pretty-print.h opts-diagnostic.h tree-threadsafe-analyze.h
 	$(COMPILER) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
 	  -DTARGET_NAME=\"$(target_noncanonical)\" \
 	  -c $(srcdir)/toplev.c $(OUTPUT_OPTION)

@@ -1,3 +1,10 @@
+2011-03-29  Le-Chun Wu  <lcwu@google.com>
+
+	Merge from branches/annotalysis at r171529.
+
+	Port annotalysis (lock annotations and analysis) from GCC-4.4.3 to
+	GCC-4.6 tree.
+
 2011-03-28  Martin Thuresson  <martint@google.com>
 
 	* doc/invoke.texi: Document support for relative profile paths.

@@ -2361,6 +2361,11 @@ dump_expr (tree t, int flags)
       dump_expr (resolve_virtual_fun_from_obj_type_ref (t), flags);
       break;
 
+    case SSA_NAME:
+      dump_decl (SSA_NAME_VAR (t),
+                 (flags & ~TFF_DECL_SPECIFIERS) | TFF_NO_FUNCTION_ARGUMENTS);
+      break;
+
       /*  This list is incomplete, but should suffice for now.
 	  It is very important that `sorry' does not call
 	  `report_error_function'.  That could cause an infinite loop.  */

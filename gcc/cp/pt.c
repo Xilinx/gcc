@@ -45,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-iterator.h"
 #include "vecprim.h"
+#include "tree-threadsafe-analyze.h"
 
 /* The type of functions taking a tree, and some additional data, and
    returning an int.  */
@@ -60,6 +61,37 @@ struct GTY ((chain_next ("%h.next"))) pending_template {
 
 static GTY(()) struct pending_template *pending_templates;
 static GTY(()) struct pending_template *last_pending_template;
+
+/* The PENDING_ATTRIBUTE is a list node that records an attribute whose
+   instantiation has been deferred until the whole class has been
+   instantiated. This deferral currently only happens to the lock attributes
+   whose arguments could be data members declared later in the class
+   specification, as shown in the following example:
+
+   template <typename T>
+   class Bar {
+     T shared_var GUARDED_BY(lock);
+     Mutex lock;
+   };  */
+struct GTY(()) pending_attribute {
+  tree decl;
+  tree attributes;
+  int attr_flags;
+  tree args;
+  tsubst_flags_t complain;
+  tree in_decl;
+  struct pending_attribute *next;
+};
+
+static GTY(()) struct pending_attribute *pending_lock_attributes = NULL;
+
+typedef struct pending_attribute *pending_attribute_p;
+DEF_VEC_P(pending_attribute_p);
+DEF_VEC_ALLOC_P(pending_attribute_p,gc);
+
+static GTY(()) VEC(pending_attribute_p,gc) *pending_lock_attr_stack;
+
+static tree func_decl_params;
 
 int processing_template_parmlist;
 static int template_header_count;
@@ -3039,6 +3071,16 @@ find_parameter_packs_r (tree *tp, int *walk_subtrees, void* data)
       cp_walk_tree (&TREE_TYPE (t), &find_parameter_packs_r, ppd, 
 		    ppd->visited);
       *walk_subtrees = 0;
+      return NULL_TREE;
+
+    /* If T is a tree list node whose purpose field is an error_mark_node,
+       T actually contains the tokens for an lock attribute argument list in
+       its value field. (See cp_parser_save_attribute_arg_list in cp/parser.c.)
+       In that case, don't try to walk the tree value field as it is not a
+       valid tree node.  */
+    case TREE_LIST:
+      if (TREE_PURPOSE (t) == error_mark_node)
+        *walk_subtrees = 0;
       return NULL_TREE;
 
     default:
@@ -8024,6 +8066,24 @@ apply_late_template_attributes (tree *decl_p, tree attributes, int attr_flags,
 	    {
 	      *p = TREE_CHAIN (t);
 	      TREE_CHAIN (t) = NULL_TREE;
+              /* If this is a lock attribute with arguments, we defer the
+                 instantiation until the whole class specification has been
+                 instantiated because the lock attribute arguments could
+                 reference data members declared later (lexically).  */
+              if (TREE_VALUE (t)
+                  && is_lock_attribute_with_args (TREE_PURPOSE (t)))
+                {
+                  struct pending_attribute *pa = ggc_alloc_pending_attribute();
+                  pa->decl = *decl_p;
+                  pa->attributes = t;
+                  pa->attr_flags = attr_flags;
+                  pa->args = args;
+                  pa->complain = complain;
+                  pa->in_decl = in_decl;
+                  pa->next = pending_lock_attributes;
+                  pending_lock_attributes = pa;
+                  continue;
+                }
 	      /* If the first attribute argument is an identifier, don't
 		 pass it through tsubst.  Attributes like mode, format,
 		 cleanup and several target specific attributes expect it
@@ -8101,6 +8161,22 @@ perform_typedefs_access_check (tree tmpl, tree targs)
     input_location = saved_location;
 }
 
+/* Reverse the order of elements in the pending attribute list, PA_LIST,
+   and return the new head of the list (old last element).  */
+
+static struct pending_attribute *
+pa_reverse (struct pending_attribute *pa_list)
+{
+  struct pending_attribute *prev = NULL, *curr, *next;
+  for (curr = pa_list; curr; curr = next)
+    {
+      next = curr->next;
+      curr->next = prev;
+      prev = curr;
+    }
+  return prev;
+}
+
 tree
 instantiate_class_template (tree type)
 {
@@ -8171,6 +8247,11 @@ instantiate_class_template (tree type)
   /* Use #pragma pack from the template context.  */
   saved_maximum_field_alignment = maximum_field_alignment;
   maximum_field_alignment = TYPE_PRECISION (pattern);
+
+  /* Push the existing pending lock attributes to the stack.  */
+  VEC_safe_push (pending_attribute_p, gc, pending_lock_attr_stack,
+                 pending_lock_attributes);
+  pending_lock_attributes = NULL;
 
   SET_CLASSTYPE_INTERFACE_UNKNOWN (type);
 
@@ -8573,6 +8654,34 @@ instantiate_class_template (tree type)
      the implicit instantiation of the declarations, but not of the
      definitions or default arguments, of the class member functions,
      member classes, static data members and member templates....  */
+
+  /* Instantiate the deferred lock attributes and apply them to the
+     corresponding decls. We don't do this earlier because the lock
+     attribute arguments may reference data members of the class.  */
+  if (pending_lock_attributes)
+    {
+      struct pending_attribute *pa = pa_reverse (pending_lock_attributes);
+      location_t saved_location = input_location;
+      parsing_lock_attribute = true;
+      for ( ; pa; pa = pa->next)
+        {
+          tree t = pa->attributes;
+          input_location = DECL_SOURCE_LOCATION (pa->decl);
+          func_decl_params = (TREE_CODE (pa->decl) == FUNCTION_DECL
+                              ? DECL_ARGUMENTS (pa->decl) : NULL_TREE);
+          TREE_VALUE (t)
+              = tsubst_expr (TREE_VALUE (t), pa->args, pa->complain,
+                             pa->in_decl,
+                             /*integral_constant_expression_p=*/false);
+          cplus_decl_attributes (&pa->decl, t, pa->attr_flags);
+        }
+      parsing_lock_attribute = false;
+      input_location = saved_location;
+    }
+
+  /* Pop out the pending attributes of the outer class/template.  */
+  pending_lock_attributes = VEC_pop (pending_attribute_p,
+                                     pending_lock_attr_stack);
 
   /* Some typedefs referenced from within the template code need to be access
      checked at template instantiation time, i.e now. These types were
@@ -11291,8 +11400,10 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	  tree c;
 	  /* This can happen for a parameter name used later in a function
 	     declaration (such as in a late-specified return type).  Just
-	     make a dummy decl, since it's only used for its type.  */
-	  gcc_assert (cp_unevaluated_operand != 0);
+	     make a dummy decl, since it's only used for its type.
+             Note that we can also reach here when processing lock attributes
+             whose arguments are function parameters.  */
+	  gcc_assert (cp_unevaluated_operand != 0 || pending_lock_attributes);
 	  /* We copy T because want to tsubst the PARM_DECL only,
 	     not the following PARM_DECLs that are chained to T.  */
 	  c = copy_node (t);
@@ -11362,6 +11473,10 @@ tsubst_copy (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	      tree r = lookup_field (ctx, DECL_NAME (t), 0, false);
 	      if (!r)
 		{
+                  /* Suppress the error message if we are processing a lock
+                     attribute.  */
+                  if (parsing_lock_attribute)
+                    return t;
 		  if (complain & tf_error)
 		    error ("using invalid field %qD", t);
 		  return error_mark_node;
@@ -12527,7 +12642,14 @@ tsubst_copy_and_build (tree t,
 	if (error_msg)
 	  error (error_msg);
 	if (!function_p && TREE_CODE (decl) == IDENTIFIER_NODE)
-	  decl = unqualified_name_lookup_error (decl);
+          {
+            /* If we are parsing a lock attribute of a function decl, try to
+               see if the identifier is a function parameter first.  */
+            if (parsing_lock_attribute && func_decl_params)
+              decl = lookup_name_in_func_params (func_decl_params, decl);
+            else
+              decl = unqualified_name_lookup_error (decl);
+          }
 	return decl;
       }
 

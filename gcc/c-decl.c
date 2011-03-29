@@ -60,6 +60,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "plugin.h"
 #include "c-family/c-ada-spec.h"
+#include "tree-threadsafe-analyze.h"
 
 /* In grokdeclarator, distinguish syntactic contexts of declarators.  */
 enum decl_context
@@ -2975,19 +2976,27 @@ undeclared_variable (location_t loc, tree id)
 
   if (current_function_decl == 0)
     {
-      error_at (loc, "%qE undeclared here (not in a function)", id);
+      /* Suppress the error message and return an error_mark_node if we are
+         parsing a lock attribute. We would like the lock attributes to
+         reference (and tolerate) names not in scope so that they provide
+         better code documentation capability.  */
+      if (!parsing_lock_attribute)
+        error_at (loc, "%qE undeclared here (not in a function)", id);
       scope = current_scope;
     }
   else
     {
-      if (!objc_diagnose_private_ivar (id))
-        error_at (loc, "%qE undeclared (first use in this function)", id);
-      if (!already)
-	{
-          inform (loc, "each undeclared identifier is reported only"
-                  " once for each function it appears in");
-	  already = true;
-	}
+      if (!parsing_lock_attribute)
+        {
+          if (!objc_diagnose_private_ivar (id))
+            error_at (loc, "%qE undeclared (first use in this function)", id);
+          if (!already)
+            {
+              inform (loc, "each undeclared identifier is reported only"
+                      " once for each function it appears in");
+              already = true;
+            }
+        }
 
       /* If we are parsing old-style parameter decls, current_function_decl
 	 will be nonnull but current_function_scope will be null.  */

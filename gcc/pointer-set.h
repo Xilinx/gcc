@@ -23,12 +23,23 @@ along with GCC; see the file COPYING3.  If not see
 struct pointer_set_t;
 struct pointer_set_t *pointer_set_create (void);
 void pointer_set_destroy (struct pointer_set_t *pset);
+struct pointer_set_t *pointer_set_copy (const struct pointer_set_t *pset);
 
 int pointer_set_contains (const struct pointer_set_t *pset, const void *p);
 int pointer_set_insert (struct pointer_set_t *pset, const void *p);
+int pointer_set_delete (struct pointer_set_t *pset, const void *p);
 void pointer_set_traverse (const struct pointer_set_t *,
 			   bool (*) (const void *, void *),
 			   void *);
+
+void pointer_set_intersection_complement (struct pointer_set_t *dst_pset,
+                                          const struct pointer_set_t *src_pset,
+                                          struct pointer_set_t *comp_pset);
+
+void pointer_set_union_inplace (struct pointer_set_t *dst_pset,
+                                const struct pointer_set_t *src_pset);
+
+size_t pointer_set_cardinality (const struct pointer_set_t *pset);
 
 struct pointer_map_t;
 struct pointer_map_t *pointer_map_create (void);

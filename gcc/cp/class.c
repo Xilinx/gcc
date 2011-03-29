@@ -8380,11 +8380,12 @@ build_rtti_vtbl_entries (tree binfo, vtbl_init_data* vid)
   CONSTRUCTOR_APPEND_ELT (vid->inits, NULL_TREE, init);
 }
 
-/* Fold a OBJ_TYPE_REF expression to the address of a function.
-   KNOWN_TYPE carries the true type of OBJ_TYPE_REF_OBJECT(REF).  */
+/* Given an OBJ_TYPE_REF expression, REF, return the virtual function decl
+   using the method index. KNOWN_TYPE carries the true type of
+   OBJ_TYPE_REF_OBJECT(REF).  */
 
 tree
-cp_fold_obj_type_ref (tree ref, tree known_type)
+cp_get_virtual_function_decl (tree ref, tree known_type)
 {
   HOST_WIDE_INT index = tree_low_cst (OBJ_TYPE_REF_TOKEN (ref), 1);
   HOST_WIDE_INT i = 0;
@@ -8405,9 +8406,67 @@ cp_fold_obj_type_ref (tree ref, tree known_type)
 				  DECL_VINDEX (fndecl)));
 #endif
 
+  return fndecl;
+}
+
+/* Fold a OBJ_TYPE_REF expression to the address of a function.
+   KNOWN_TYPE carries the true type of OBJ_TYPE_REF_OBJECT(REF).  */
+
+tree
+cp_fold_obj_type_ref (tree ref, tree known_type)
+{
+  
+  tree fndecl = cp_get_virtual_function_decl (ref, known_type);
+
   cgraph_node (fndecl)->local.vtable_method = true;
 
   return build_address (fndecl);
+}
+
+/* Determine whether the given DECL is a compiler-generated base field
+   in a derived class.  */
+
+bool
+cp_decl_is_base_field (tree decl)
+{
+  if (TREE_CODE (decl) == FIELD_DECL && DECL_FIELD_IS_BASE (decl))
+    return true;
+  else
+    return false;
+}
+
+/* Return true if DECL is a constructor.  */
+
+bool
+cp_decl_is_constructor (tree decl)
+{
+  return DECL_CONSTRUCTOR_P (decl);
+}
+
+/* Return true if DECL is a destructor.  */
+
+bool
+cp_decl_is_destructor (tree decl)
+{
+  return DECL_DESTRUCTOR_P (decl);
+}
+
+/* Return
+   1 if decl is a const member function,
+   2 if decl is not a const member function but has a const overload that
+     has identical parameter list,
+   0 otherwise.  */
+
+int
+cp_decl_is_const_member_func (tree decl)
+{
+  if (DECL_CONST_MEMFUNC_P (decl))
+    return 1;
+  else if (DECL_ATTRIBUTES (decl)
+	   && lookup_attribute ("has_const_overload", DECL_ATTRIBUTES (decl)))
+    return 2;
+  else
+    return 0;
 }
 
 #include "gt-cp-class.h"

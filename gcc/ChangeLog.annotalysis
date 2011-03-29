@@ -1,0 +1,39 @@
+2011-03-22  Le-Chun Wu  <lcwu@google.com>
+
+	* Makefile.in: Add new source file and headers in dependencies.
+	* attribs.c (decl_attributes): Handle lock attributes.
+	(is_lock_attribute_with_args): New function.
+	(is_lock_attribute_p): Likewise.
+	(extract_lock_attributes): Likewise.
+	(merge_lock_attr_args): Likewise.
+	* c-decl.c (undeclared_variable): Suppress errors for lock attributes.
+	* c-parser.c (c_parser_declaration_or_fndef): Allow lock attributes on
+	function definitions. Add support for suppressing errors for lock
+	attributes.
+	(c_parser_attributes): Replace the original code that handles the
+	argument list with a call to c_parser_attr_arg_list.
+	(c_parser_attr_arg_list): New function.
+	* common.opt: Add new flags for lock annotations and analysis.
+	* doc/invoke.texi: Add documentation for new flags for lock annotations
+	and analysis.
+	* gimplify.c (lookup_tmp_var): Copy thread safety attributes to tmp
+	variable and save the original variable name.
+	* langhooks-def.h: Define new language hooks.
+	* langhooks.c (lhd_do_nothing_t_return_int): New function.
+	(lhd_do_nothing_t_return_bool): Likewise.
+	(lhd_do_nothing_t_t_return_null_tree): Likewise.
+	* langhooks.h: Add new hook functions in the lang_hooks struct.
+	* passes.c (init_optimization_passes): Add a new pass.
+	* pointer-set.c (pointer_set_copy): New function.
+	(pointer_set_delete): Likewise.
+	(pointer_set_intersection_complement): Likewise.
+	(pointer_set_union_inplace): Likewise.
+	(pointer_set_cardinality): Likewise.
+	* pointer-set.h: Add declarations of new functions.
+	* timevar.def: Add a new time var for thread safety analysis pass.
+	* toplev.c (compile_file): Clean up the global data structures
+	used by the thread safety analysis.
+	* tree-pass.h: Add a new pass declaration.
+	* tree-threadsafe-analyze.c: New file.
+	* tree-threadsafe-analyze.h: New file.
+	* tree.h: Declaration for new functions.

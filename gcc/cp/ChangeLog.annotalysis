@@ -1,0 +1,80 @@
+2011-03-22  Le-Chun Wu  <lcwu@google.com>
+
+	* Make-lang.in: Add new includes.
+	* call.c (build_new_op): Support for non-const non-modifying methods.
+	(find_const_memfunc_with_identical_prototype): New function.
+	(build_new_method_call): Suppress errors for calls in lock attributes.
+        Support for non-const non-modifying methods.
+	* class.c (cp_get_virtual_function_decl): New function.
+	(cp_fold_obj_type_ref): Refactored to call cp_get_virtual_function_decl.
+	(cp_decl_is_base_field): New function.
+	(cp_decl_is_constructor): Likewise.
+	(cp_decl_is_destructor): Likewise.
+	(cp_decl_is_const_member_func): Likewise.
+	* cp-lang.c: New language hooks.
+	* cp-tree.h: New function declarations.
+	* decl2.c (is_late_template_attribute): Handle delay parsing of lock
+	attribute arguments.
+	* error.c (dump_expr): Handle SSA_NAME.
+	* lex.c (unqualified_name_lookup_error): Suppress errors for lock
+	attributes.
+	* name-lookup.c (lookup_name_in_func_params): New function.
+	* name-lookup.h: New function declaration.
+	* parser.c (cp_parser): New fields.
+	(cp_parser_name_lookup_error): Suppress errors for lock attributes.
+	(cp_parser_new): Initialize unparsed_attribute_args_queue.
+	(cp_parser_postfix_expression): Add function parameter lookup support.
+	(cp_parser_parenthesized_expression_list): Fix a problem in parsing
+	identifier arguments and skip folding for decl arguments.
+	(cp_parser_lambda_declarator_opt): Add a new argument to
+	cp_parser_attributes_opt.
+	(cp_parser_label_for_labeled_statement): Likewise.
+	(cp_parser_condition): Likewise.
+	(cp_parser_decl_specifier_seq): Likewise.
+	(cp_parser_conversion_type_id): Likewise.
+	(cp_parser_elaborated_type_specifier): Likewise.
+	(cp_parser_enum_specifier): Likewise.
+	(cp_parser_namespace_definition): Likewise.
+	(cp_parser_using_directive): Likewise.
+	(cp_parser_init_declarator): Allow lock attributes on function
+	definitions. Support function parameter lookup. Also add a new
+	argument to cp_parser_attributes_opt.
+	(cp_parser_declarator): Add a new argument to calls to
+	cp_parser_attributes_opt.
+	(cp_parser_type_specifier_seq): Likewise.
+	(cp_parser_parameter_declaration): Likewise.
+	(cp_parser_class_specifier): Late-parse the lock attribute arguments.
+	Also add a new argument to cp_parser_attributes_opt.
+	(cp_parser_class_head): Add a new argument to cp_parser_attributes_opt.
+	(cp_parser_member_declaration): Likewise.
+	(cp_parser_asm_label_list): Likewise.
+	(cp_parser_attributes_opt): Add a new parameter 'member_p' and call
+	cp_parser_attribute_list with it.
+	(cp_parser_save_attribute_arg_list): New function.
+	(cp_parser_attribute_list): Add a new parameter 'member_p'. Also delay
+	parsing of lock attribute arguments by saving the tokens.
+	(cp_parser_late_parsing_attribute_arg_lists): New function.
+	(cp_parser_function_definition_from_specifiers_and_declarator): Parse
+	unbound lock attribute arguments.
+	(cp_parser_objc_method_keyword_params): Add a new argument to
+	cp_parser_attributes_opt.
+	(cp_parser_objc_method_tail_params_opt): Likewise.
+	(cp_parser_objc_method_maybe_bad_prefix_attributes): Likewise.
+	(cp_parser_objc_class_ivars): Likewise.
+	(cp_parser_objc_struct_declaration): Likewise.
+	(cp_parser_omp_for_loop): Likewise.
+	* pt.c (find_parameter_packs_r): Skip walking the subtrees if the tree
+	list node is created for delay parsing.
+	(apply_late_template_attributes): Defer instantiation of lock
+	attributes.
+	(pa_reverse): New function.
+	(instantiate_class_template): Instantiate the deferred lock attributes
+	and apply them to the corresponding declarations.
+	(tsubst_copy): Suppress errors for lock attributes.
+	(tsubst_copy_and_build): Support function parameter lookup.
+	* semantics.c (finish_non_static_data_member): Suppress errors for lock
+	attributes.
+	* typeck.c (finish_class_member_access_expr): Suppress errors for lock
+	attributes.
+	* typeck2.c (cxx_incomplete_type_diagnostic): Suppress errors for lock
+	attributes.

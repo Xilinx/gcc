@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "output.h"
 #include "diagnostic-core.h"
+#include "tree-threadsafe-analyze.h"
 
 static tree
 process_init_constructor (tree type, tree init);
@@ -371,6 +372,15 @@ cxx_incomplete_type_diagnostic (const_tree value, const_tree type,
 
   /* Avoid duplicate error message.  */
   if (TREE_CODE (type) == ERROR_MARK)
+    return;
+
+  /* Suppress the error message and return an error_mark_node if we are
+     parsing a lock attribute. Users of the lock attributes could possibly
+     cross reference the locks between two classes, and the one that declares
+     later would get an incomplete type error. We would like the lock
+     attributes to tolerate such cases so that they provide better code
+     documentation capability.  */
+  if (parsing_lock_attribute)
     return;
 
   if (value != 0 && (TREE_CODE (value) == VAR_DECL

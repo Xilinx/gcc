@@ -264,7 +264,11 @@ Objective-C and Objective-C++ Dialects}.
 -Wstrict-overflow -Wstrict-overflow=@var{n} @gol
 -Wsuggest-attribute=@r{[}pure@r{|}const@r{|}noreturn@r{]} @gol
 -Wswitch  -Wswitch-default  -Wswitch-enum -Wsync-nand @gol
--Wsystem-headers  -Wtrampolines  -Wtrigraphs  -Wtype-limits  -Wundef @gol
+-Wsystem-headers -Wthread-safety -Wthread-unguarded-var @gol
+-Wthread-unguarded-func -Wthread-mismatched-lock-order @gol
+-Wthread-mismatched-lock-acq-rel -Wthread-reentrant-lock @gol
+-Wthread-unsupported-lock-name -Wthread-attr-bind-param @gol
+-Wtrampolines  -Wtrigraphs  -Wtype-limits  -Wundef @gol
 -Wuninitialized  -Wunknown-pragmas  -Wno-pragmas @gol
 -Wunsuffixed-float-constants  -Wunused  -Wunused-function @gol
 -Wunused-label  -Wunused-parameter -Wno-unused-result -Wunused-value @gol
@@ -3424,6 +3428,58 @@ warning about an omitted enumeration code even if there is a
 @opindex Wno-sync-nand
 Warn when @code{__sync_fetch_and_nand} and @code{__sync_nand_and_fetch}
 built-in functions are used.  These functions changed semantics in GCC 4.4.
+
+@item -Wthread-safety
+@opindex Wthread-safety
+@opindex Wno-thread-safety
+Warn about potential thread safety issues when the code is annotated with
+thread safety attributes.
+
+@item Wthread-unguarded-var
+@opindex -Wthread-unguarded-var
+@opindex -Wno-thread-unguarded-var
+Warn about shared variables not properly protected by locks specified in the
+attributes. This flag is effective only with @option{-Wthread-safety} and
+enabled by default.
+
+@item Wthread-unguarded-func
+@opindex -Wthread-unguarded-func
+@opindex -Wno-thread-unguarded-func
+Warn about function calls not properly protected by locks specified in the
+attributes. This flag is effective only with @option{-Wthread-safety} and
+enabled by default.
+
+@item Wthread-mismatched-lock-order
+@opindex -Wthread-mismatched-lock-order
+@opindex -Wno-thread-mismatched-lock-order
+Warn about lock acquisition order inconsistent with what specified in the
+attributes. This flag is effective only with @option{-Wthread-safety} and
+enabled by default.
+
+@item Wthread-mismatched-lock-acq-rel
+@opindex -Wthread-mismatched-lock-acq-rel
+@opindex -Wno-thread-mismatched-lock-acq-rel
+Warn about mismatched lock acquisition and release. This flag is effective only
+with @option{-Wthread-safety} and enabled by default.
+
+@item Wthread-reentrant-lock
+@opindex -Wthread-reentrant-lock
+@opindex -Wno-thread-reentrant-lock
+Warn about a lock being acquired recursively. This flag is effective only
+with @option{-Wthread-safety} and enabled by default.
+
+@item Wthread-unsupported-lock-name
+@opindex -Wthread-unsupported-lock-name
+@opindex -Wno-thread-unsupported-lock-name
+Warn about uses of unsupported lock names in attributes. This flag is effective
+only with @option{-Wthread-safety} and disabled by default.
+
+@item Wthread-attr-bind-param
+@opindex -Wthread-attr-bind-param
+@opindex -Wno-thread-attr-bind-param
+Make the thread safety analysis try to bind the function parameters used in
+the attributes. This flag is effective only with @option{-Wthread-safety}
+and enabled by default.
 
 @item -Wtrigraphs
 @opindex Wtrigraphs

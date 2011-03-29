@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "tm_p.h"
 #include "timevar.h"
+#include "tree-threadsafe-analyze.h"
 
 static int interface_strcmp (const char *);
 static void init_cp_pragma (void);
@@ -442,6 +443,13 @@ handle_pragma_java_exceptions (cpp_reader* dfile ATTRIBUTE_UNUSED)
 tree
 unqualified_name_lookup_error (tree name)
 {
+  /* Suppress the error message and return an error_mark_node if we are
+     parsing a lock attribute. We would like the lock attributes to
+     reference (and tolerate) names not in scope so that they provide
+     better code documentation capability.  */
+  if (parsing_lock_attribute)
+    return error_mark_node;
+
   if (IDENTIFIER_OPNAME_P (name))
     {
       if (name != ansi_opname (ERROR_MARK))

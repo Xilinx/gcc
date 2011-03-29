@@ -38,6 +38,9 @@ struct diagnostic_info;
 extern void lhd_do_nothing (void);
 extern void lhd_do_nothing_t (tree);
 extern void lhd_do_nothing_f (struct function *);
+extern int lhd_do_nothing_t_return_int (tree);
+extern bool lhd_do_nothing_t_return_bool (tree);
+extern tree lhd_do_nothing_t_t_return_null_tree (tree, tree);
 extern tree lhd_pass_through_t (tree);
 extern bool lhd_post_options (const char **);
 extern alias_set_type lhd_get_alias_set (tree);
@@ -140,6 +143,15 @@ extern void lhd_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *,
 
 /* Hooks for tree gimplification.  */
 #define LANG_HOOKS_GIMPLIFY_EXPR lhd_gimplify_expr
+
+/* Hook for getting the function decl from an obj_type_ref.  */
+#define LANG_HOOKS_GET_VIRTUAL_FUNCTION_DECL lhd_do_nothing_t_t_return_null_tree
+
+/* Hooks for thread safety analysis.  */
+#define LANG_HOOKS_DECL_IS_BASE_FIELD lhd_do_nothing_t_return_bool
+#define LANG_HOOKS_DECL_IS_CONSTRUCTOR lhd_do_nothing_t_return_bool
+#define LANG_HOOKS_DECL_IS_DESTRUCTOR lhd_do_nothing_t_return_bool
+#define LANG_HOOKS_DECL_IS_CONST_MEMBER_FUNC lhd_do_nothing_t_return_int
 
 /* Tree dump hooks.  */
 extern bool lhd_tree_dump_dump_tree (void *, tree);
@@ -299,6 +311,11 @@ extern void lhd_end_section (void);
   LANG_HOOKS_GET_INNERMOST_GENERIC_ARGS, \
   LANG_HOOKS_FUNCTION_PARAMETER_PACK_P, \
   LANG_HOOKS_GIMPLIFY_EXPR, \
+  LANG_HOOKS_GET_VIRTUAL_FUNCTION_DECL, \
+  LANG_HOOKS_DECL_IS_BASE_FIELD, \
+  LANG_HOOKS_DECL_IS_CONSTRUCTOR, \
+  LANG_HOOKS_DECL_IS_DESTRUCTOR, \
+  LANG_HOOKS_DECL_IS_CONST_MEMBER_FUNC, \
   LANG_HOOKS_BUILTIN_FUNCTION, \
   LANG_HOOKS_BUILTIN_FUNCTION_EXT_SCOPE, \
   LANG_HOOKS_INIT_TS,          \

@@ -1088,6 +1088,21 @@ is_late_template_attribute (tree attr, tree decl)
   if (is_attribute_p ("weak", name))
     return true;
 
+  /* In general, the lock attributes with arguments need to be applied at
+     instantiation time as they could reference other members of the class.
+     However, if the purpose field of the arguments is an error_mark_node,
+     the arguments of the attributes have not been parsed yet. (See
+     cp_parser_save_attribute_arg_list in parser.c.) And in that case,
+     we want it to be applied at the definition time so that it will be
+     parsed at the end of the class/template definition.  */
+  if (is_lock_attribute_with_args (name))
+    {
+      if (!args || TREE_PURPOSE (args) == error_mark_node)
+        return false;
+      else
+        return true;
+    }
+
   /* If any of the arguments are dependent expressions, we can't evaluate
      the attribute until instantiation time.  */
   for (arg = args; arg; arg = TREE_CHAIN (arg))
