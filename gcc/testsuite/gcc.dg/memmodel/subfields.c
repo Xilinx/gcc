@@ -20,6 +20,7 @@ struct test_struct {
    not affect any of the other fields in the structure.  An improper
    implementation may load an entire word, change the 8 bits for field
    'a' and write the entire word back out. */
+__attribute__((noinline))
 void set_a(char x)
 {
   var.a = x;

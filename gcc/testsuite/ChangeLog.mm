@@ -1,5 +1,11 @@
 2011-03-29  Aldy Hernandez  <aldyh@redhat.com>
 
+	* gcc.dg/memmodel/subfields.c (set_a): Set noinline attribute.
+	* g++.dg/memmodel/bitfields.C (set_a): Same.
+	* g++.dg/memmodel/bitfields-2.C: New.
+
+2011-03-29  Aldy Hernandez  <aldyh@redhat.com>
+
 	* gcc.dg/memmodel/d2.c: Remove.
 	* gcc.dg/memmodel/d3.c: Remove.
 	* gcc.dg/memmodel/global-hoist.c: Remove.

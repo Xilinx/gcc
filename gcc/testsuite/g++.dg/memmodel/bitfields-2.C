@@ -15,10 +15,7 @@
 static int global;
 struct S
 {
-  /* On x86-64, the volatile causes us to access <a> with a 32-bit
-     access, and thus trigger this test.  */
-  volatile unsigned int a : 4;
-
+  unsigned int a : 4;
   unsigned char b;
   unsigned int c : 6;
 } var;
