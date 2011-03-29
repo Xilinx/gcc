@@ -1294,6 +1294,8 @@ make_decl_rtl (tree decl)
   if (TREE_CODE (decl) == VAR_DECL && DECL_WEAK (decl))
     DECL_COMMON (decl) = 0;
 
+  use_rtl_permanent_mem ();
+
   if (use_object_blocks_p () && use_blocks_for_decl_p (decl))
     x = create_block_symbol (name, get_block_for_decl (decl), -1);
   else
@@ -1323,6 +1325,8 @@ make_decl_rtl (tree decl)
   /* Make this function static known to the mudflap runtime.  */
   if (flag_mudflap && TREE_CODE (decl) == VAR_DECL)
     mudflap_enqueue_decl (decl);
+
+  use_rtl_function_mem ();
 }
 
 /* Like make_decl_rtl, but inhibit creation of new alias sets when
@@ -3105,6 +3109,8 @@ build_constant_desc (tree exp)
     align_variable (decl, 0);
   VEC_safe_push (tree, gc, saved_constant_decls, decl);
 
+  use_rtl_permanent_mem ();
+
   /* Now construct the SYMBOL_REF and the MEM.  */
   if (use_object_blocks_p ())
     {
@@ -3135,6 +3141,8 @@ build_constant_desc (tree exp)
   targetm.encode_section_info (exp, rtl, true);
 
   desc->rtl = rtl;
+
+  use_rtl_function_mem ();
 
   return desc;
 }
@@ -3530,6 +3538,9 @@ force_const_mem (enum machine_mode mode, rtx x)
   if (desc)
     return copy_rtx (desc->mem);
 
+  if (pool == shared_constant_pool)
+    use_rtl_permanent_mem ();
+
   /* Otherwise, create a new descriptor.  */
   desc = XNEW (struct constant_descriptor_rtx);
   *slot = desc;
@@ -3592,7 +3603,10 @@ force_const_mem (enum machine_mode mode, rtx x)
   if (GET_CODE (x) == LABEL_REF)
     LABEL_PRESERVE_P (XEXP (x, 0)) = 1;
 
-  return copy_rtx (def);
+  if (pool == shared_constant_pool)
+    use_rtl_function_mem ();
+
+  return def; // TODO: gc-improv: why copy_rtx?
 }
 
 /* Given a constant pool SYMBOL_REF, return the corresponding constant.  */

@@ -226,6 +226,8 @@ free_after_compilation (struct function *f)
   f->cfg = NULL;
 
   insn_locators_free ();
+  free_rtl_function_mem ();
+  discard_rtx_lists ();
 }
 
 /* Return size needed for stack frame based on slots so far allocated.

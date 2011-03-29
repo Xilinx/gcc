@@ -1,3 +1,78 @@
+2011-03-29  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* rtl.h (use_rtl_permanent_mem): New.
+	(use_rtl_function_mem): New.
+	(allocate_in_rtl_permanent_mem): New.
+	(free_rtl_function_mem): New.
+	(discard_rtx_lists): New.
+
+	* rtl.c (obstack_nesting_level): New.
+	(function_ob_first_obj): New.
+	(init_rtl): Set function_ob_first_obj and obstack_nesting_level.
+	(use_rtl_permanent_mem): New.
+	(use_rtl_function_mem): New.
+	(allocate_in_rtl_permanent_mem): New.
+	(copy_rtx_to_permanent_mem): Use use_rtl_permanent_mem and
+	use_rtl_function_mem.
+	(strdup_to_permanent_mem): Likewise.
+	(free_rtl_function_mem): New.
+	(copy_rtx): Do not share CONST_VECTOR rtxes.
+
+	* alias.c (init_alias_target): Allocate RTXes in permanent RTL
+	memory.
+
+	* cselib.c (cselib_init): Likewise.
+
+	* config/i386/i386.c (ix86_init_machine_status): Likewise.
+	(ix86_tls_get_addr): Likewise.
+	(ix86_tls_module_base): Likewise.
+
+	* cfgloopanal.c (init_set_costs): Likewise.
+
+	* cfgexpand.c (expand_debug_expr): Likewise.
+
+	* caller-save.c (init_caller_save): Likewise.
+
+	* gcse.c (can_assign_to_reg_without_clobbers_p): Likewise.
+
+	* tree-ssa-address.c (gen_addr_rtx): Likewise.
+	(addr_for_mem_ref): Likewise.
+
+	* reginfo.c (init_fake_stack_mems): Likewise.
+
+	* varasm.c (make_decl_rtl): Likewise.
+	(build_constant_desc): Likewise.
+	(force_const_mem): Use RTL permanent memory for shared constant
+	pool.
+
+	* lists.c (discard_rtx_lists): New.
+
+	* gengenrtl.c (special_rtx): Add "CONST" to specially handled
+	rtxes.
+
+	* function.h (struct function): New field spill_slot_decl.
+
+	* function.c (free_after_compilation): Call free_rtl_function_mem
+	and discard_rtx_lists.
+
+	* emit-rtl.c (gen_rtx_CONST): New.
+	(gen_rtx_CONST_INT): Perform the gen_rtx_raw_CONST_INT call using
+	permanent RTL memory.
+	(const_double_from_real_value): Allocate RTXes in permanent RTL
+	memory.
+	(immed_double_const): Likewise.
+	(spill_slot_decl): Removed.
+	(get_spill_slot_decl): Use cfun->spill_slot_decl.
+	(init_emit_regs): Allocate RTXes in permanent RTL memory.
+	(init_emit_once): Likewise..
+	(gen_hard_reg_clobber): Likewise.
+
+	* dwarf2out.c (add_AT_addr): Copy addr to permanent RTL memory.
+	(mem_loc_descriptor): Copy rtl to permanent RTL memory.
+	(loc_list_from_tree): Likewise.
+	(gen_variable_die): Perform the plus_constant calls using
+	permanent RTL memory.
+
 2011-03-01  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* varpool.c (varpool_finalize_decl): Fix typo in comment.

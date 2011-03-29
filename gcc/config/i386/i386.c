@@ -22016,8 +22016,10 @@ ix86_output_call_insn (rtx insn, rtx call_op, int addr_op)
 static struct machine_function *
 ix86_init_machine_status (void)
 {
+  /* TODO gc-improv: workout lifetime of this.  It seems that it is live for
+     every function throughout the whole compilation.  */
   struct machine_function *f = (struct machine_function *)
-    allocate_in_rtl_function_mem (sizeof (struct machine_function));;
+    allocate_in_rtl_permanent_mem (sizeof (struct machine_function));;
   memset (f, 0, sizeof (*f));
 
   f->use_fast_prologue_epilogue_nregs = -1;
@@ -22067,11 +22069,13 @@ ix86_tls_get_addr (void)
 
   if (!ix86_tls_symbol)
     {
+      use_rtl_permanent_mem ();
       ix86_tls_symbol = gen_rtx_SYMBOL_REF (Pmode,
 					    (TARGET_ANY_GNU_TLS
 					     && !TARGET_64BIT)
 					    ? "___tls_get_addr"
 					    : "__tls_get_addr");
+      use_rtl_function_mem ();
     }
 
   return ix86_tls_symbol;
@@ -22086,10 +22090,12 @@ ix86_tls_module_base (void)
 
   if (!ix86_tls_module_base_symbol)
     {
+      use_rtl_permanent_mem ();
       ix86_tls_module_base_symbol = gen_rtx_SYMBOL_REF (Pmode,
 							"_TLS_MODULE_BASE_");
       SYMBOL_REF_FLAGS (ix86_tls_module_base_symbol)
 	|= TLS_MODEL_GLOBAL_DYNAMIC << SYMBOL_FLAG_TLS_SHIFT;
+      use_rtl_function_mem ();
     }
 
   return ix86_tls_module_base_symbol;

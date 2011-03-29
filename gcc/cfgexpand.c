@@ -2424,9 +2424,11 @@ expand_debug_expr (tree exp)
       if (op0)
 	return op0;
 
+      use_rtl_permanent_mem ();
       op0 = gen_rtx_DEBUG_EXPR (mode);
       DEBUG_EXPR_TREE_DECL (op0) = exp;
       SET_DECL_RTL (exp, op0);
+      use_rtl_function_mem ();
 
       return op0;
 

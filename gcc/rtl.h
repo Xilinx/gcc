@@ -1609,11 +1609,18 @@ extern rtx plus_constant (rtx, HOST_WIDE_INT);
 
 /* In rtl.c */
 extern void init_rtl (void);
+
+extern void use_rtl_permanent_mem (void);
+extern void use_rtl_function_mem (void);
+
 extern void * allocate_in_rtl_mem (int);
 extern void * allocate_in_rtl_function_mem (int);
+extern void * allocate_in_rtl_permanent_mem (int);
 extern rtx copy_rtx_to_permanent_mem (rtx);
 extern char * strdup_to_permanent_mem (const char *);
 extern char * strdup_to_rtl_mem (const char *);
+
+extern void free_rtl_function_mem (void);
 
 extern rtx rtx_alloc_stat (RTX_CODE MEM_STAT_DECL);
 #define rtx_alloc(c) rtx_alloc_stat (c MEM_STAT_INFO)
@@ -1993,6 +2000,7 @@ extern rtx remove_list_elem (rtx, rtx *);
 extern rtx remove_free_INSN_LIST_node (rtx *);
 extern rtx remove_free_EXPR_LIST_node (rtx *);
 
+extern void discard_rtx_lists (void);
 
 /* reginfo.c */
 

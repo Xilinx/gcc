@@ -213,3 +213,11 @@ remove_free_EXPR_LIST_node (rtx *listp)
 
   return elem;
 }
+
+/* Discards the cache lists once the RTXes in them are freed.  */
+void
+discard_rtx_lists (void)
+{
+  unused_insn_list = NULL;
+  unused_expr_list = NULL;
+}

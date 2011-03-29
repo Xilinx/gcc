@@ -614,8 +614,10 @@ init_fake_stack_mems (void)
 {
   int i;
 
+  use_rtl_permanent_mem ();
   for (i = 0; i < MAX_MACHINE_MODE; i++)
     top_of_stack[i] = gen_rtx_MEM ((enum machine_mode) i, stack_pointer_rtx);
+  use_rtl_function_mem ();
 }
 
 

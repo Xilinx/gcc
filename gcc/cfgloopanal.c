@@ -335,6 +335,8 @@ init_set_costs (void)
   rtx mem = validize_mem (gen_rtx_MEM (SImode, addr));
   unsigned i;
 
+  use_rtl_permanent_mem ();
+
   target_avail_regs = 0;
   target_clobbered_regs = 0;
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
@@ -373,7 +375,9 @@ init_set_costs (void)
       end_sequence ();
       target_spill_cost [speed] = seq_cost (seq, speed);
     }
+
   default_rtl_profile ();
+  use_rtl_function_mem ();
 }
 
 /* Estimates cost of increased register pressure caused by making N_NEW new

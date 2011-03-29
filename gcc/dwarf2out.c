@@ -7650,7 +7650,7 @@ add_AT_addr (dw_die_ref die, enum dwarf_attribute attr_kind, rtx addr)
 
   attr.dw_attr = attr_kind;
   attr.dw_attr_val.val_class = dw_val_class_addr;
-  attr.dw_attr_val.v.val_addr = addr;
+  attr.dw_attr_val.v.val_addr = copy_rtx_to_permanent_mem (addr);
   add_dwarf_attr (die, &attr);
 }
 
@@ -13937,7 +13937,7 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	  temp = new_loc_descr (DWARF2_ADDR_SIZE == 4
 				? DW_OP_const4u : DW_OP_const8u, 0, 0);
 	  temp->dw_loc_oprnd1.val_class = dw_val_class_addr;
-	  temp->dw_loc_oprnd1.v.val_addr = rtl;
+	  temp->dw_loc_oprnd1.v.val_addr = copy_rtx_to_permanent_mem (rtl);
 	  temp->dtprel = true;
 
 	  mem_loc_result = new_loc_descr (DW_OP_GNU_push_tls_address, 0, 0);
@@ -15520,7 +15520,7 @@ loc_list_from_tree (tree loc, int want_address)
 
 	  ret = new_loc_descr (first_op, 0, 0);
 	  ret->dw_loc_oprnd1.val_class = dw_val_class_addr;
-	  ret->dw_loc_oprnd1.v.val_addr = rtl;
+	  ret->dw_loc_oprnd1.v.val_addr = copy_rtx_to_permanent_mem (rtl);
 	  ret->dtprel = dtprel;
 
 	  ret1 = new_loc_descr (second_op, 0, 0);
@@ -15571,7 +15571,7 @@ loc_list_from_tree (tree loc, int want_address)
 	  {
 	    ret = new_loc_descr (DW_OP_addr, 0, 0);
 	    ret->dw_loc_oprnd1.val_class = dw_val_class_addr;
-	    ret->dw_loc_oprnd1.v.val_addr = rtl;
+	    ret->dw_loc_oprnd1.v.val_addr = copy_rtx_to_permanent_mem (rtl);
 	  }
 	else
 	  {
@@ -19542,8 +19542,13 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
 			  && loc->expr->dw_loc_next == NULL
 			  && GET_CODE (loc->expr->dw_loc_oprnd1.v.val_addr)
 			     == SYMBOL_REF)
-			loc->expr->dw_loc_oprnd1.v.val_addr
-			  = plus_constant (loc->expr->dw_loc_oprnd1.v.val_addr, off);
+			{
+			  use_rtl_permanent_mem ();
+			  loc->expr->dw_loc_oprnd1.v.val_addr
+			    = plus_constant (loc->expr->dw_loc_oprnd1.v.val_addr,
+					     off);
+			  use_rtl_function_mem ();
+			}
 			else
 			  loc_list_plus_const (loc, off);
 		    }
@@ -19605,8 +19610,12 @@ gen_variable_die (tree decl, tree origin, dw_die_ref context_die)
 		  && loc->expr->dw_loc_opc == DW_OP_addr
 		  && loc->expr->dw_loc_next == NULL
 		  && GET_CODE (loc->expr->dw_loc_oprnd1.v.val_addr) == SYMBOL_REF)
-		loc->expr->dw_loc_oprnd1.v.val_addr
-		  = plus_constant (loc->expr->dw_loc_oprnd1.v.val_addr, off);
+		{
+		  use_rtl_permanent_mem ();
+		  loc->expr->dw_loc_oprnd1.v.val_addr
+		    = plus_constant (loc->expr->dw_loc_oprnd1.v.val_addr, off);
+		  use_rtl_function_mem ();
+		}
 	      else
 		loc_list_plus_const (loc, off);
 	    }

@@ -391,6 +391,26 @@ gen_raw_REG (enum machine_mode mode, int regno)
    special_rtx in gengenrtl.c as well.  */
 
 rtx
+gen_rtx_CONST (enum machine_mode mode, rtx arg)
+{
+  rtx x;
+  /* CONST can be shared if it contains a SYMBOL_REF.  If it contains
+     a LABEL_REF, it isn't sharable.  */
+  bool shared = (GET_CODE (arg) == PLUS
+		 && GET_CODE (XEXP (arg, 0)) == SYMBOL_REF
+		 && CONST_INT_P (XEXP (arg, 1)));
+  if (shared)
+    {
+      use_rtl_permanent_mem ();
+      arg = copy_rtx (arg);
+    }
+  x = gen_rtx_raw_CONST (mode, arg);
+  if (shared)
+    use_rtl_function_mem ();
+  return x;
+}
+
+rtx
 gen_rtx_CONST_INT (enum machine_mode mode ATTRIBUTE_UNUSED, HOST_WIDE_INT arg)
 {
   void **slot;
@@ -407,7 +427,11 @@ gen_rtx_CONST_INT (enum machine_mode mode ATTRIBUTE_UNUSED, HOST_WIDE_INT arg)
   slot = htab_find_slot_with_hash (const_int_htab, &arg,
 				   (hashval_t) arg, INSERT);
   if (*slot == 0)
-    *slot = gen_rtx_raw_CONST_INT (VOIDmode, arg);
+    {
+      use_rtl_permanent_mem ();
+      *slot = gen_rtx_raw_CONST_INT (VOIDmode, arg);
+      use_rtl_function_mem ();
+    }
 
   return (rtx) *slot;
 }
@@ -440,10 +464,15 @@ lookup_const_double (rtx real)
 rtx
 const_double_from_real_value (REAL_VALUE_TYPE value, enum machine_mode mode)
 {
-  rtx real = rtx_alloc (CONST_DOUBLE);
+  rtx real;
+  use_rtl_permanent_mem ();
+
+  real = rtx_alloc (CONST_DOUBLE);
   PUT_MODE (real, mode);
 
   real->u.rv = value;
+
+  use_rtl_function_mem ();
 
   return lookup_const_double (real);
 }
@@ -546,7 +575,9 @@ immed_double_const (HOST_WIDE_INT i0, HOST_WIDE_INT i1, enum machine_mode mode)
     return GEN_INT (i0);
 
   /* We use VOIDmode for integers.  */
+  use_rtl_permanent_mem ();
   value = rtx_alloc (CONST_DOUBLE);
+  use_rtl_function_mem ();
   PUT_MODE (value, VOIDmode);
 
   CONST_DOUBLE_LOW (value) = i0;
@@ -2219,13 +2250,10 @@ widen_memory_access (rtx memref, enum machine_mode mode, HOST_WIDE_INT offset)
   return new_rtx;
 }
 
-/* A fake decl that is used as the MEM_EXPR of spill slots.  */
-static GTY(()) tree spill_slot_decl;
-
 tree
 get_spill_slot_decl (bool force_build_p)
 {
-  tree d = spill_slot_decl;
+  tree d = cfun->spill_slot_decl;
   rtx rd;
 
   if (d || !force_build_p)
@@ -2236,7 +2264,7 @@ get_spill_slot_decl (bool force_build_p)
   DECL_ARTIFICIAL (d) = 1;
   DECL_IGNORED_P (d) = 1;
   TREE_USED (d) = 1;
-  spill_slot_decl = d;
+  cfun->spill_slot_decl = d;
 
   rd = gen_rtx_MEM (BLKmode, frame_pointer_rtx);
   MEM_NOTRAP_P (rd) = 1;
@@ -5641,6 +5669,8 @@ init_emit_regs (void)
 {
   int i;
 
+  use_rtl_permanent_mem ();
+
   /* Reset register attributes */
   htab_empty (reg_attrs_htab);
 
@@ -5680,6 +5710,8 @@ init_emit_regs (void)
     pic_offset_table_rtx = gen_raw_REG (Pmode, PIC_OFFSET_TABLE_REGNUM);
   else
     pic_offset_table_rtx = NULL_RTX;
+
+  use_rtl_function_mem ();
 }
 
 /* Create some permanent unique rtl objects shared between all functions.  */
@@ -5690,6 +5722,8 @@ init_emit_once (void)
   int i;
   enum machine_mode mode;
   enum machine_mode double_mode;
+
+  use_rtl_permanent_mem ();
 
   /* Initialize the CONST_INT, CONST_DOUBLE, CONST_FIXED, and memory attribute
      hash tables.  */
@@ -5936,6 +5970,8 @@ init_emit_once (void)
   const_tiny_rtx[0][(int) BImode] = const0_rtx;
   if (STORE_FLAG_VALUE == 1)
     const_tiny_rtx[1][(int) BImode] = const1_rtx;
+
+  use_rtl_function_mem ();
 }
 
 /* Produce exact duplicate of insn INSN after AFTER.
@@ -6007,11 +6043,14 @@ static rtx hard_reg_clobbers [NUM_MACHINE_MODES][FIRST_PSEUDO_REGISTER];
 rtx
 gen_hard_reg_clobber (enum machine_mode mode, unsigned int regno)
 {
-  if (hard_reg_clobbers[mode][regno])
-    return hard_reg_clobbers[mode][regno];
-  else
-    return (hard_reg_clobbers[mode][regno] =
-	    gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (mode, regno)));
+  if (!hard_reg_clobbers[mode][regno])
+    {
+      use_rtl_permanent_mem ();
+      hard_reg_clobbers[mode][regno] =
+	    gen_rtx_CLOBBER (VOIDmode, gen_rtx_REG (mode, regno));
+      use_rtl_function_mem ();
+    }
+  return hard_reg_clobbers[mode][regno];
 }
 
 #include "gt-emit-rtl.h"

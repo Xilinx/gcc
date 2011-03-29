@@ -2419,7 +2419,11 @@ cselib_init (int record_what)
   /* (mem:BLK (scratch)) is a special mechanism to conflict with everything,
      see canon_true_dependence.  This is only created once.  */
   if (! callmem)
-    callmem = gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (VOIDmode));
+    {
+      use_rtl_permanent_mem ();
+      callmem = gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (VOIDmode));
+      use_rtl_function_mem ();
+    }
 
   cselib_nregs = max_reg_num ();
 

@@ -147,13 +147,34 @@ static int rtvec_alloc_sizes;
 static struct obstack function_obstack;
 static struct obstack permanent_obstack;
 struct obstack *rtl_obstack = &function_obstack;
+static unsigned int obstack_nesting_level;
+static void *function_ob_first_obj;
 
 /* Prepares for allocation of RTXes.  */
 void
 init_rtl (void)
 {
   gcc_obstack_init (&function_obstack);
+  function_ob_first_obj = obstack_alloc (&function_obstack, 0);
   gcc_obstack_init (&permanent_obstack);
+  obstack_nesting_level = 0;
+}
+
+void
+use_rtl_permanent_mem (void)
+{
+  if (obstack_nesting_level == 0)
+    rtl_obstack = &permanent_obstack;
+  obstack_nesting_level++;
+}
+
+void
+use_rtl_function_mem (void)
+{
+  gcc_assert (obstack_nesting_level > 0);
+  obstack_nesting_level--;
+  if (obstack_nesting_level == 0)
+    rtl_obstack = &function_obstack;
 }
 
 /* Allocates memory from the RTL heap with the current lifetime.  */
@@ -169,13 +190,19 @@ allocate_in_rtl_function_mem (int size)
   return obstack_alloc (&function_obstack, size);
 }
 
+void *
+allocate_in_rtl_permanent_mem (int size)
+{
+  return obstack_alloc (&permanent_obstack, size);
+}
+
 rtx
 copy_rtx_to_permanent_mem (rtx x)
 {
   rtx copy;
-  rtl_obstack = &permanent_obstack;
+  use_rtl_permanent_mem ();
   copy = copy_rtx (x);
-  rtl_obstack = &function_obstack;
+  use_rtl_function_mem ();
   return copy;
 }
 
@@ -183,9 +210,9 @@ char *
 strdup_to_permanent_mem (const char *s)
 {
   char *result;
-  rtl_obstack = &permanent_obstack;
+  use_rtl_permanent_mem ();
   result = strdup_to_rtl_mem (s);
-  rtl_obstack = &function_obstack;
+  use_rtl_function_mem ();
   return result;
 }
 
@@ -196,6 +223,13 @@ strdup_to_rtl_mem (const char *s)
   char *result = XOBNEWVAR (rtl_obstack, char, len);
   memcpy (result, s, len);
   return result;
+}
+
+/* Frees everything in the RTL memory of the current function.  */
+void
+free_rtl_function_mem (void)
+{
+  obstack_free (&function_obstack, function_ob_first_obj);
 }
 
 /* Allocate an rtx vector of N elements.
@@ -254,6 +288,7 @@ rtx_alloc_stat (RTX_CODE code MEM_STAT_DECL)
 {
   int length = RTX_CODE_SIZE (code);
   rtx rt;
+  /* TODO gc-improv: do not manipulate obstack alignment directly.  */
   length = (length + rtl_obstack->alignment_mask)
     & ~rtl_obstack->alignment_mask;
   rt = (rtx) obstack_alloc (rtl_obstack, length);
@@ -311,7 +346,6 @@ copy_rtx (rtx orig)
     case CONST_INT:
     case CONST_DOUBLE:
     case CONST_FIXED:
-    case CONST_VECTOR:
     case SYMBOL_REF:
     case CODE_LABEL:
     case PC:

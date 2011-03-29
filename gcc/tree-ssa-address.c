@@ -114,6 +114,8 @@ gen_addr_rtx (enum machine_mode address_mode,
   if (offset_p)
     *offset_p = NULL;
 
+  use_rtl_permanent_mem ();
+
   if (index)
     {
       act_elem = index;
@@ -175,6 +177,8 @@ gen_addr_rtx (enum machine_mode address_mode,
 
   if (!*addr)
     *addr = const0_rtx;
+
+  use_rtl_function_mem ();
 }
 
 /* Returns address for TARGET_MEM_REF with parameters given by ADDR
@@ -218,6 +222,7 @@ addr_for_mem_ref (struct mem_address *addr, addr_space_t as,
       templ = VEC_index (mem_addr_template, mem_addr_template_list, templ_index);
       if (!templ->ref)
 	{
+	  use_rtl_permanent_mem ();
 	  sym = (addr->symbol ?
 		 gen_rtx_SYMBOL_REF (address_mode, ggc_strdup ("test_symbol"))
 		 : NULL_RTX);
@@ -234,6 +239,7 @@ addr_for_mem_ref (struct mem_address *addr, addr_space_t as,
 			&templ->ref,
 			&templ->step_p,
 			&templ->off_p);
+	  use_rtl_function_mem ();
 	}
 
       if (st)

@@ -537,6 +537,9 @@ struct GTY(()) function {
   /* Vector of various tree declarations.  */
   VEC(tree,gc) *debug_decls;
 
+  /* A fake decl that is used as the MEM_EXPR of spill slots.  */
+  tree spill_slot_decl;
+
   /* For md files.  */
 
   /* tm.h can use this to store whatever it likes.  */

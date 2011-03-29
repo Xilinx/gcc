@@ -192,6 +192,8 @@ init_caller_save (void)
 
   caller_save_initialized_p = true;
 
+  use_rtl_permanent_mem ();
+
   CLEAR_HARD_REG_SET (no_caller_save_reg_set);
   /* First find all the registers that we need to deal with and all
      the modes that they can have.  If we can't find a mode to use,
@@ -280,6 +282,7 @@ init_caller_save (void)
 		SET_HARD_REG_BIT (no_caller_save_reg_set, i);
 	    }
 	}
+  use_rtl_function_mem ();
 }
 
 

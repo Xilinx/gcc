@@ -878,12 +878,14 @@ can_assign_to_reg_without_clobbers_p (rtx x)
      our test insn if we haven't already.  */
   if (test_insn == 0)
     {
+      use_rtl_permanent_mem ();
       test_insn
 	= make_insn_raw (gen_rtx_SET (VOIDmode,
 				      gen_rtx_REG (word_mode,
 						   FIRST_PSEUDO_REGISTER * 2),
 				      const0_rtx));
       NEXT_INSN (test_insn) = PREV_INSN (test_insn) = 0;
+      use_rtl_function_mem ();
     }
 
   /* Now make an insn like the one we would make when GCSE'ing and see if

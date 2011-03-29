@@ -208,7 +208,7 @@ static rtx *new_reg_base_value;
 
 /* We preserve the copy of old array around to avoid amount of garbage
    produced.  About 8% of garbage produced were attributed to this
-   array.  */
+   array.  TODO gc-improv.  */
 static VEC(rtx,heap) *old_reg_base_value;
 
 #define static_reg_base_value \
@@ -2678,6 +2678,8 @@ init_alias_target (void)
 {
   int i;
 
+  use_rtl_permanent_mem ();
+
   memset (static_reg_base_value, 0, sizeof static_reg_base_value);
 
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
@@ -2699,6 +2701,8 @@ init_alias_target (void)
   static_reg_base_value[HARD_FRAME_POINTER_REGNUM]
     = gen_rtx_ADDRESS (Pmode, hard_frame_pointer_rtx);
 #endif
+
+  use_rtl_function_mem ();
 }
 
 /* Set MEMORY_MODIFIED when X modifies DATA (that is assumed
