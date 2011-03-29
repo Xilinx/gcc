@@ -1,3 +1,9 @@
+2011-03-29  Aldy Hernandez  <aldyh@redhat.com>
+
+	* gcc.dg/memmodel/d2.c: Remove.
+	* gcc.dg/memmodel/d3.c: Remove.
+	* gcc.dg/memmodel/global-hoist.c: Remove.
+
 2011-03-11  Aldy Hernandez  <aldyh@redhat.com>
 
 	* lib/gcc-memmodel-gdb-test.exp: Return if no executable.
