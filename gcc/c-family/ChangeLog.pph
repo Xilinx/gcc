@@ -1,3 +1,7 @@
+2011-03-30  Diego Novillo  <dnovillo@google.com>
+
+	* c-family/c.opt (fpph-fmt): Remove.  Update all users.
+
 2011-03-23  Diego Novillo  <dnovillo@google.com>
 
 	* c.opt (fpph-hdr, fpph-map): Re-order.

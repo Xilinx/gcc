@@ -933,10 +933,6 @@ fpph-decls=
 C++ Joined RejectNegative UInteger Var(flag_pph_decls)
 -fpph-decls=N   Enable declaration identifier output at level N from PPH support
 
-fpph-fmt=
-C++ Joined RejectNegative UInteger Var(flag_pph_fmt)
--fpph-fmt=N   Output format is (0) normal (1) pretty summary (2) dump
-
 fpph-hdr=
 C++ ObjC++ Joined MissingArgError(missing filename after %qs)
 -fpph-hdr=<base-name>   A mapping from <base-name>.h to <base-name>.pph

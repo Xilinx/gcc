@@ -1889,7 +1889,7 @@ lto_materialize_tree (struct lto_input_block *ib, struct data_in *data_in,
 /* Read a chain of tree nodes from input block IB. DATA_IN contains
    tables and descriptors for the file being read.  */
 
-static tree
+tree
 lto_input_chain (struct lto_input_block *ib, struct data_in *data_in)
 {
   int i, count;

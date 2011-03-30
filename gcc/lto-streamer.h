@@ -86,6 +86,11 @@ typedef struct lto_streamer_hooks {
      are as in lto_read_tree.  */
   void (*read_tree) (struct lto_input_block *, struct data_in *, tree);
 
+  /* Called by lto_output_tree_ref to determine if the given tree node
+     should be emitted as a reference to the table of declarations
+     (the same table that holds VAR_DECLs).  */
+  bool (*indexable_with_decls_p) (tree);
+
   /* Called by pack_value_fields to store any non-pointer fields
      in the tree structure.  The arguments are as in pack_value_fields.  */
   void (*pack_value_fields) (struct bitpack_d *, tree);
@@ -913,6 +918,7 @@ extern lto_streamer_hooks *streamer_hooks_init (void);
 extern void lto_input_cgraph (struct lto_file_decl_data *, const char *);
 extern void lto_reader_init (void);
 extern tree lto_input_tree (struct lto_input_block *, struct data_in *);
+extern tree lto_input_chain (struct lto_input_block *, struct data_in *);
 extern void lto_input_function_body (struct lto_file_decl_data *, tree,
 				     const char *);
 extern void lto_input_constructors_and_inits (struct lto_file_decl_data *,
@@ -934,6 +940,7 @@ extern struct output_block *create_output_block (enum lto_section_type);
 extern void destroy_output_block (struct output_block *);
 extern void lto_output_tree (struct output_block *, tree, bool);
 extern void lto_output_tree_or_ref (struct output_block *, tree, bool);
+extern void lto_output_chain (struct output_block *, tree, bool);
 extern void produce_asm (struct output_block *ob, tree fn);
 extern void lto_output_string (struct output_block *,
 			       struct lto_output_stream *,

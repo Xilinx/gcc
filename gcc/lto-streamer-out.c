@@ -718,9 +718,20 @@ lto_output_tree_ref (struct output_block *ob, tree expr)
       break;
 
     default:
-      /* No other node is indexable, so it should have been handled
-	 by lto_output_tree.  */
-      gcc_unreachable ();
+      /* See if streamer hooks allows this node to be indexable with
+	 VAR_DECLs.  */
+      if (streamer_hooks ()->indexable_with_decls_p
+	  && streamer_hooks ()->indexable_with_decls_p (expr))
+	{
+	  output_record_start (ob, LTO_global_decl_ref);
+	  lto_output_var_decl_index (ob->decl_state, ob->main_stream, expr);
+	}
+      else
+	{
+	  /* No other node is indexable, so it should have been
+	     handled by lto_output_tree.  */
+	  gcc_unreachable ();
+	}
     }
 }
 
@@ -742,7 +753,7 @@ lto_output_tree_or_ref (struct output_block *ob, tree expr, bool ref_p)
    to write to.  REF_P is true if chain elements should be emitted
    as references.  */
 
-static void
+void
 lto_output_chain (struct output_block *ob, tree t, bool ref_p)
 {
   int i, count;
@@ -1166,12 +1177,6 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
   if (CODE_CONTAINS_STRUCT (code, TS_EXP))
     lto_output_ts_exp_tree_pointers (ob, expr, ref_p);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_SSA_NAME))
-    {
-      /* We only stream the version number of SSA names.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     lto_output_ts_block_tree_pointers (ob, expr, ref_p);
 
@@ -1180,21 +1185,6 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 
   if (CODE_CONTAINS_STRUCT (code, TS_CONSTRUCTOR))
     lto_output_ts_constructor_tree_pointers (ob, expr, ref_p);
-
-  if (CODE_CONTAINS_STRUCT (code, TS_STATEMENT_LIST))
-    {
-      /* This should only appear in GENERIC.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OMP_CLAUSE))
-    {
-      /* This should only appear in High GIMPLE.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OPTIMIZATION))
-    sorry ("gimple bytecode streams do not support the optimization attribute");
 
   if (CODE_CONTAINS_STRUCT (code, TS_TARGET_OPTION))
     lto_output_ts_target_option (ob, expr);

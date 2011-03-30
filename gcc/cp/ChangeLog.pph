@@ -1,3 +1,48 @@
+2011-03-30  Diego Novillo  <dnovillo@google.com>
+
+	* cp-tree.h (struct language_function): Add prefix 'x_' to
+	fields returns_value, returns_null, returns_abnormally,
+	in_function_try_handler, in_base_initializer.  Update all
+	users.
+	* pph-streamer.c (pph_stream_write_ld_base): New.
+	(pph_stream_write_ld_min): New.
+	(pph_stream_write_tree_vec): New.
+	(pph_stream_write_cxx_binding_1): New.
+	(pph_stream_write_cxx_binding): New.
+	(pph_stream_write_class_binding): New.
+	(pph_stream_write_label_binding): New.
+	(pph_stream_write_binding_level): New.
+	(pph_stream_write_c_language_function): New.
+	(pph_stream_write_language_function): New.
+	(pph_stream_write_ld_fn): New.
+	(pph_stream_write_ld_ns): New.
+	(pph_stream_write_ld_parm): New.
+	(pph_stream_write_lang_specific_data): New.
+	(pph_indexable_with_decls_p): New.
+	(pph_stream_hooks_init): Initialize h->indexable_with_decls_p
+	with pph_indexable_with_decls_p.
+	(pph_stream_begin_section): Do not free BLOCK.
+	* pph-streamer.h (pth_save_token_cache): Declare.
+	(pph_get_ob_stream): New.
+	(pph_set_ob_stream): New.
+	* pph.c (pth_save_token_cache): New.
+	(pph_print_macro_defs_before): Remove.
+	(pph_print_macro_defs_after): Remove.
+	(pph_write_namespace): Remove.
+	(pph_write_format): Remove.
+	(pph_write_print): Remove.
+	(pph_write_dump): Remove.
+	(pph_write_symbol): Remove.
+	(declvisitor): Remove.
+	(pph_write_namespace_1): Remove.
+	(pph_write_namespace): Remove.
+	(pph_write_file_contents): Rename from pph_write_file_object.
+	Output global_namespace.
+	(pph_write_file): Call it.
+	(pph_write_file_summary): Remove.
+	(pph_read_file_contents): Rename from pph_file_read_object.
+	(pph_read_file): Rename from pph_file_read.
+
 2011-03-28  Diego Novillo  <dnovillo@google.com>
 
 	* pph.c (pph_write_format): Rename from write_pph_format.

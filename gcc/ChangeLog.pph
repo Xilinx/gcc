@@ -1,3 +1,17 @@
+2011-03-30  Diego Novillo  <dnovillo@google.com>
+
+	* lto-streamer-in.c (lto_input_chain): Make extern.
+	* lto-streamer-out.c (lto_output_tree_ref): Call
+	streamer_hook->indexable_with_decls_p, if it exists.  If it
+	returns true, emit a reference to EXPR in the VAR_DECL index.
+	(lto_output_chain): Make extern.
+	(lto_output_tree_pointers): Move checks for invalid gimple trees ...
+	* lto-streamer.c (lto_is_streamable): ... here.
+	* lto-streamer.h (lto_streamer_hooks): Add
+	indexable_with_decls_p.
+	(lto_output_chain): Declare.
+	(lto_input_chain): Declare.
+
 2011-03-25  Diego Novillo  <dnovillo@google.com>
 
 	* lto-streamer-in.c (unpack_value_fields): Remove checks for

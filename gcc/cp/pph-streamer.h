@@ -92,6 +92,9 @@ void pph_stream_trace_bytes (pph_stream *, const void *, size_t);
 void pph_stream_trace_string (pph_stream *, const char *);
 void pph_stream_trace_string_with_length (pph_stream *, const char *, unsigned);
 
+/* In pph.c.  FIXME move these to pph-streamer.c.  */
+struct cp_token_cache;
+extern void pth_save_token_cache (struct cp_token_cache *, pph_stream *);
 
 /* Inline functions.  */
 
@@ -193,6 +196,24 @@ pph_input_tree (pph_stream *stream ATTRIBUTE_UNUSED)
   if (flag_pph_tracer)
     pph_stream_trace_tree (stream, t);
   return t;
+}
+
+/* Return the PPH stream object associated with output block OB.  */
+
+static inline pph_stream *
+pph_get_ob_stream (struct output_block *ob)
+{
+  /* FIXME pph - Do not overload OB fields this way.  */
+  return ((pph_stream *) ob->cfg_stream);
+}
+
+/* Set the PPH stream object F associated with output block OB.  */
+
+static inline void
+pph_set_ob_stream (struct output_block *ob, pph_stream *f)
+{
+  /* FIXME pph - Do not overload OB fields this way.  */
+  ob->cfg_stream = (struct lto_output_stream *) f;
 }
 
 #endif  /* GCC_CP_PPH_STREAMER_H  */

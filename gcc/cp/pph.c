@@ -427,6 +427,28 @@ pth_save_token (cp_token *token, pph_stream *f)
   pth_save_token_value (f, token);
 }
 
+/* Save all the tokens in CACHE to PPH stream F.  */
+
+void
+pth_save_token_cache (cp_token_cache *cache, pph_stream *f)
+{
+  unsigned i, num;
+  cp_token *tok;
+
+  if (cache == NULL)
+    {
+      pph_output_uint (f, 0);
+      return;
+    }
+
+  for (num = 0, tok = cache->first; tok != cache->last; tok++)
+    num++;
+
+  pph_output_uint (f, num);
+  for (i = 0, tok = cache->first; i < num; tok++, i++)
+    pth_save_token (tok, f);
+}
+
 
 /* Write header information for IMAGE to STREAM.  */
 
@@ -443,68 +465,6 @@ pth_write_header (pth_image *image, pph_stream *stream)
 
   pph_output_bytes (stream, id, strlen (id));
   pph_output_bytes (stream, image->digest, DIGEST_LEN);
-}
-
-
-/* Pretty print the previous macro definitions in the table of IDENTIFIERS to
-   the STREAM. */
-
-static void
-pph_print_macro_defs_before (pph_stream *stream, cpp_idents_used *identifiers)
-{
-  unsigned int idx;
-
-  for (idx = 0; idx < identifiers->num_entries; ++idx)
-    {
-      cpp_ident_use *entry = identifiers->entries + idx;
-      const char *ident = entry->ident_str;
-      const char *before = entry->before_str;
-
-      if (before)
-	{
-	  pph_output_string (stream, "#define ");
-	  pph_output_string (stream, ident);
-	  pph_output_string (stream, before);
-	}
-      else
-	{
-	  pph_output_string (stream, "#undef ");
-	  pph_output_string (stream, ident);
-	}
-    }
-}
-
-
-/* Pretty print the subsequent macro definitions in the table of IDENTIFIERS to
-   the STREAM. */
-
-static void
-pph_print_macro_defs_after (pph_stream *stream, cpp_idents_used *identifiers)
-{
-  unsigned int idx;
-
-  for (idx = 0; idx < identifiers->num_entries; ++idx)
-    {
-      cpp_ident_use *entry = identifiers->entries + idx;
-      const char *ident = entry->ident_str;
-      const char *before = entry->before_str;
-      const char *after = entry->after_str;
-
-      if (before != after)
-        {
-          if (after && (!before || strcmp (after, before) != 0))
-	    {
-	      pph_output_string (stream, "#define ");
-	      pph_output_string (stream, ident);
-	      pph_output_string (stream, after);
-	    }
-          else if (before)
-	    {
-	      pph_output_string (stream, "#undef ");
-	      pph_output_string (stream, ident);
-	    }
-        }
-    }
 }
 
 
@@ -1841,105 +1801,13 @@ pth_file_change (cpp_reader *reader, const struct line_map *map)
 }
 
 
-/* Write PPH output file.  */
-
-typedef void (*pph_write_format)(pph_stream *stream, tree decl, int flags);
-
-/* Forward declarations to break cyclic references.  */
-static void
-pph_write_namespace (pph_stream *, tree, pph_write_format, int);
-
-
-/* Write symbol to PPH output file like C.  */
-
-static void
-pph_write_print (pph_stream *stream, tree decl, int flags ATTRIBUTE_UNUSED)
-{
-  pph_output_tree (stream, decl);
-}
-
-
-/* Write symbol to PPH output file as a dump.  */
-
-static void
-pph_write_dump (pph_stream *stream, tree decl, int flags)
-{
-  dump_node (decl, flags, stream->file);
-}
-
-
-/* Write symbol to PPH output file.  */
-
-static void
-pph_write_symbol (pph_stream *stream, tree decl, pph_write_format fmt,
-		  int flags)
-{
-  if (TREE_CODE (decl) == NAMESPACE_DECL)
-    pph_write_namespace (stream, decl, fmt, flags);
-  else if (!DECL_IS_BUILTIN (decl))
-    fmt (stream, decl, flags);
-}
-
-
-/* Write namespace to PPH output file.  */
-
-typedef void (*declvisitor)(pph_stream *, tree, pph_write_format, int);
-
-static void
-pph_write_namespace_1 (declvisitor vtor, pph_stream *stream, tree decl,
-                       pph_write_format fmt, int flags)
-{
-  tree prior = TREE_CHAIN (decl);
-  if (prior)
-    pph_write_namespace_1 (vtor, stream, prior, fmt, flags);
-  vtor (stream, decl, fmt, flags);
-}
-
-static void
-pph_write_namespace (pph_stream *stream, tree decl, pph_write_format fmt,
-		     int flags)
-{
-  struct cp_binding_level *level = NAMESPACE_LEVEL (decl);
-  decl = level->namespaces;
-  if (decl)
-    pph_write_namespace_1 (pph_write_namespace, stream, decl, fmt, flags);
-  decl = level->names;
-  if (decl)
-    pph_write_namespace_1 (pph_write_symbol, stream, decl, fmt, flags);
-}
-
-
 /* Write PPH output symbols and IDENTS_USED to STREAM as an object.  */
 
 static void
-pph_write_file_object (pph_stream *stream, cpp_idents_used *idents_used)
+pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
 { 
-  int flags = 0;
   pth_save_identifiers (idents_used, stream);
-  pph_write_namespace (stream, global_namespace, pph_write_print, flags);
-}
-
-
-/* Write PPH output symbols and IDENTS_USED to STREAM as a pretty summary.  */
-
-static void
-pph_write_file_summary (pph_stream *stream, cpp_idents_used *idents_used)
-{ 
-  int flags = 0;
-  pph_print_macro_defs_before (stream, idents_used);
-  pph_write_namespace (stream, global_namespace, pph_write_print, flags);
-  pph_print_macro_defs_after (stream, idents_used);
-}
-
-
-/* Write PPH output symbols and IDENTS_USED to STREAM as a textual dump.  */
-
-static void
-pph_write_file_dump (pph_stream *stream, cpp_idents_used *idents_used)
-{ 
-  int flags = TDF_UID | TDF_LINENO;
-  pth_dump_identifiers (stream->file, idents_used);
-  pph_write_namespace (stream, global_namespace, pph_write_dump, flags);
+  pph_output_tree (stream, global_namespace);
 }
 
 
@@ -1959,17 +1827,8 @@ pph_write_file (void)
     fatal_error ("Cannot open PPH file for writing: %s: %m", pph_out_file);
 
   idents_used = cpp_lt_capture (parse_in);
+  pph_write_file_contents (stream, &idents_used);
 
-  if (flag_pph_fmt == 0)
-    pph_write_file_object (stream, &idents_used);
-  else if (flag_pph_fmt == 1)
-    pph_write_file_summary (stream, &idents_used);
-  else if (flag_pph_fmt == 2)
-    pph_write_file_dump (stream, &idents_used);
-  else
-    error ("unrecognized -fpph-fmt value: %d", flag_pph_fmt);
-
-  /*FIX pph: double free or corruption: cpp_lt_idents_destroy (&idents_used); */
   pph_stream_close (stream);
 }
 
@@ -2016,10 +1875,10 @@ report_validation_error (const char *filename,
 }
 
 
-/* Read PPH FILENAME from STREAM as an object.  */
+/* Read contents of PPH file in STREAM.  */
 
 static void
-pph_file_read_object (const char *filename, pph_stream *stream)
+pph_read_file_contents (pph_stream *stream)
 {
   bool verified;
   cpp_ident_use *bad_use;
@@ -2027,24 +1886,26 @@ pph_file_read_object (const char *filename, pph_stream *stream)
   cpp_idents_used idents_used;
 
   pth_load_identifiers (&idents_used, stream);
+
   /*FIXME pph: This validation is weak.  */
   verified = cpp_lt_verify_1 (parse_in, &idents_used, &bad_use, &cur_def, true);
   if (!verified)
-    report_validation_error (filename, bad_use->ident_str, cur_def,
+    report_validation_error (stream->name, bad_use->ident_str, cur_def,
                              bad_use->before_str, bad_use->after_str);
-  /* FIX pph: We cannot replay the macro definitions
+
+  /* FIXME pph: We cannot replay the macro definitions
      as long as we are still reading the actual file.
   cpp_lt_replay (parse_in, &idents_used);
   */
 
-  /* FIX pph: Also read decls.  */
+  /* FIXME pph: Also read decls.  */
 }
 
 
 /* Read PPH file.  */
 
 static void
-pph_file_read (const char *filename)
+pph_read_file (const char *filename)
 {
   pph_stream *stream;
 
@@ -2055,8 +1916,7 @@ pph_file_read (const char *filename)
   if (!stream)
     fatal_error ("Cannot open PPH file for reading: %s: %m", filename);
 
-  if (flag_pph_fmt == 0)
-    pph_file_read_object (filename, stream);
+  pph_read_file_contents (stream);
 
   pph_stream_close (stream);
 }
@@ -2113,7 +1973,7 @@ pph_include_handler (cpp_reader *reader,
 
   pph_file = query_pph_include_map (name);
   if (pph_file != NULL && !cpp_included_before (reader, name, input_location))
-    pph_file_read (pph_file);
+    pph_read_file (pph_file);
 }
 
 
