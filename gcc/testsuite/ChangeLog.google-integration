@@ -1,3 +1,9 @@
+2011-03-30  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/guality/guality.exp: Disable.
+	* gcc.dg/guality/guality.exp: Disable.
+	* gfortran.dg/guality/guality.exp: Disable.
+
 2011-03-14  Diego Novillo  <dnovillo@google.com>
 
 	* gcc.dg/guality/vla-1.c: XFAIL.
