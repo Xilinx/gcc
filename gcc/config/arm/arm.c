@@ -56,6 +56,7 @@
 #include "intl.h"
 #include "libfuncs.h"
 #include "params.h"
+#include "opts.h"
 
 /* Forward definitions of types.  */
 typedef struct minipool_node    Mnode;
@@ -218,7 +219,8 @@ static tree arm_build_builtin_va_list (void);
 static void arm_expand_builtin_va_start (tree, rtx);
 static tree arm_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
 static void arm_option_override (void);
-static bool arm_handle_option (size_t, const char *, int);
+static bool arm_handle_option (struct gcc_options *, struct gcc_options *,
+			       const struct cl_decoded_option *, location_t);
 static void arm_target_help (void);
 static unsigned HOST_WIDE_INT arm_shift_truncation_mask (enum machine_mode);
 static bool arm_cannot_copy_insn_p (rtx);
@@ -250,6 +252,7 @@ static bool arm_builtin_support_vector_misalignment (enum machine_mode mode,
 						     bool is_packed);
 static void arm_conditional_register_usage (void);
 static reg_class_t arm_preferred_rename_class (reg_class_t rclass);
+static unsigned int arm_autovectorize_vector_sizes (void);
 
 
 /* Table of machine attributes.  */
@@ -402,6 +405,9 @@ static const struct default_options arm_option_optimization_table[] =
 #define TARGET_VECTOR_MODE_SUPPORTED_P arm_vector_mode_supported_p
 #undef TARGET_VECTORIZE_PREFERRED_SIMD_MODE
 #define TARGET_VECTORIZE_PREFERRED_SIMD_MODE arm_preferred_simd_mode
+#undef TARGET_VECTORIZE_AUTOVECTORIZE_VECTOR_SIZES
+#define TARGET_VECTORIZE_AUTOVECTORIZE_VECTOR_SIZES \
+  arm_autovectorize_vector_sizes
 
 #undef  TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG arm_reorg
@@ -1340,8 +1346,16 @@ arm_find_cpu (const char *name, const struct processors *sel, const char *desc)
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
-arm_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
+arm_handle_option (struct gcc_options *opts, struct gcc_options *opts_set,
+		   const struct cl_decoded_option *decoded,
+		   location_t loc ATTRIBUTE_UNUSED)
 {
+  size_t code = decoded->opt_index;
+  const char *arg = decoded->arg;
+
+  gcc_assert (opts == &global_options);
+  gcc_assert (opts_set == &global_options_set);
+
   switch (code)
     {
     case OPT_march_:
@@ -1350,14 +1364,6 @@ arm_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
 
     case OPT_mcpu_:
       arm_selected_cpu = arm_find_cpu(arg, all_cores, "-mcpu");
-      return true;
-
-    case OPT_mhard_float:
-      target_float_abi_name = "hard";
-      return true;
-
-    case OPT_msoft_float:
-      target_float_abi_name = "soft";
       return true;
 
     case OPT_mtune_:
@@ -23524,6 +23530,12 @@ arm_expand_sync (enum machine_mode mode,
       emit_insn (arm_call_generator (generator, target, memory, required_value,
 				     new_value));
     }
+}
+
+static unsigned int
+arm_autovectorize_vector_sizes (void)
+{
+  return TARGET_NEON_VECTORIZE_QUAD ? 16 | 8 : 0;
 }
 
 static bool

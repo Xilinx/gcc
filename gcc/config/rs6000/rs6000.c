@@ -58,6 +58,7 @@
 #include "intl.h"
 #include "params.h"
 #include "tm-constrs.h"
+#include "opts.h"
 #if TARGET_XCOFF
 #include "xcoffout.h"  /* get declarations of xcoff_*_section_name */
 #endif
@@ -1077,7 +1078,9 @@ static int get_element_number (tree, tree);
 static void rs6000_option_override (void);
 static void rs6000_option_init_struct (struct gcc_options *);
 static void rs6000_option_default_params (void);
-static bool rs6000_handle_option (size_t, const char *, int);
+static bool rs6000_handle_option (struct gcc_options *, struct gcc_options *,
+				  const struct cl_decoded_option *,
+				  location_t);
 static int rs6000_loop_align_max_skip (rtx);
 static void rs6000_parse_yes_no_option (const char *, const char *, int *);
 static int first_altivec_reg_to_save (void);
@@ -4208,11 +4211,19 @@ rs6000_builtin_vectorized_function (tree fndecl, tree type_out,
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
-rs6000_handle_option (size_t code, const char *arg, int value)
+rs6000_handle_option (struct gcc_options *opts, struct gcc_options *opts_set,
+		      const struct cl_decoded_option *decoded,
+		      location_t loc ATTRIBUTE_UNUSED)
 {
   enum fpu_type_t fpu_type = FPU_NONE;
   int isel;
   char *p, *q;
+  size_t code = decoded->opt_index;
+  const char *arg = decoded->arg;
+  int value = decoded->value;
+
+  gcc_assert (opts == &global_options);
+  gcc_assert (opts_set == &global_options_set);
 
   switch (code)
     {
@@ -14805,7 +14816,10 @@ rs6000_reload_register_type (enum reg_class rclass)
    needed for the immediate register.
 
    For VSX and Altivec, we may need a register to convert sp+offset into
-   reg+sp.  */
+   reg+sp.
+
+   For misaligned 64-bit gpr loads and stores we need a register to
+   convert an offset address to indirect.  */
 
 static reg_class_t
 rs6000_secondary_reload (bool in_p,
@@ -14904,6 +14918,34 @@ rs6000_secondary_reload (bool in_p,
 	      else
 		ret = NO_REGS;
 	    }
+	}
+      else
+	default_p = true;
+    }
+  else if (TARGET_POWERPC64
+	   && rs6000_reload_register_type (rclass) == GPR_REGISTER_TYPE
+	   && MEM_P (x)
+	   && GET_MODE_SIZE (GET_MODE (x)) >= UNITS_PER_WORD)
+    {
+      rtx addr = XEXP (x, 0);
+
+      if (GET_CODE (addr) == PRE_MODIFY)
+	addr = XEXP (addr, 1);
+      else if (GET_CODE (addr) == LO_SUM
+	       && GET_CODE (XEXP (addr, 0)) == REG
+	       && GET_CODE (XEXP (addr, 1)) == CONST)
+	addr = XEXP (XEXP (addr, 1), 0);
+
+      if (GET_CODE (addr) == PLUS
+	  && GET_CODE (XEXP (addr, 1)) == CONST_INT
+	  && (INTVAL (XEXP (addr, 1)) & 3) != 0)
+	{
+	  if (in_p)
+	    sri->icode = CODE_FOR_reload_di_load;
+	  else
+	    sri->icode = CODE_FOR_reload_di_store;
+	  sri->extra_cost = 2;
+	  ret = NO_REGS;
 	}
       else
 	default_p = true;
@@ -15186,6 +15228,56 @@ rs6000_secondary_reload_inner (rtx reg, rtx mem, rtx scratch, bool store_p)
       if (TARGET_DEBUG_ADDR)
 	fprintf (stderr, "\nrs6000_secondary_reload_inner, mem adjusted.\n");
     }
+
+  /* Now create the move.  */
+  if (store_p)
+    emit_insn (gen_rtx_SET (VOIDmode, mem, reg));
+  else
+    emit_insn (gen_rtx_SET (VOIDmode, reg, mem));
+
+  return;
+}
+
+/* Convert reloads involving 64-bit gprs and misaligned offset
+   addressing to use indirect addressing.  */
+
+void
+rs6000_secondary_reload_ppc64 (rtx reg, rtx mem, rtx scratch, bool store_p)
+{
+  int regno = true_regnum (reg);
+  enum reg_class rclass;
+  rtx addr;
+  rtx scratch_or_premodify = scratch;
+
+  if (TARGET_DEBUG_ADDR)
+    {
+      fprintf (stderr, "\nrs6000_secondary_reload_ppc64, type = %s\n",
+	       store_p ? "store" : "load");
+      fprintf (stderr, "reg:\n");
+      debug_rtx (reg);
+      fprintf (stderr, "mem:\n");
+      debug_rtx (mem);
+      fprintf (stderr, "scratch:\n");
+      debug_rtx (scratch);
+    }
+
+  gcc_assert (regno >= 0 && regno < FIRST_PSEUDO_REGISTER);
+  gcc_assert (GET_CODE (mem) == MEM);
+  rclass = REGNO_REG_CLASS (regno);
+  gcc_assert (rclass == GENERAL_REGS || rclass == BASE_REGS);
+  addr = XEXP (mem, 0);
+
+  if (GET_CODE (addr) == PRE_MODIFY)
+    {
+      scratch_or_premodify = XEXP (addr, 0);
+      gcc_assert (REG_P (scratch_or_premodify));
+      addr = XEXP (addr, 1);
+    }
+  gcc_assert (GET_CODE (addr) == PLUS || GET_CODE (addr) == LO_SUM);
+
+  rs6000_emit_move (scratch_or_premodify, addr, Pmode);
+
+  mem = replace_equiv_address_nv (mem, scratch_or_premodify);
 
   /* Now create the move.  */
   if (store_p)
@@ -22050,10 +22142,11 @@ rs6000_output_function_epilogue (FILE *file,
 	 use language_string.
 	 C is 0.  Fortran is 1.  Pascal is 2.  Ada is 3.  C++ is 9.
 	 Java is 13.  Objective-C is 14.  Objective-C++ isn't assigned
-	 a number, so for now use 9.  LTO isn't assigned a number either,
-	 so for now use 0.  */
+	 a number, so for now use 9.  LTO and Go aren't assigned numbers
+	 either, so for now use 0.  */
       if (! strcmp (language_string, "GNU C")
-	  || ! strcmp (language_string, "GNU GIMPLE"))
+	  || ! strcmp (language_string, "GNU GIMPLE")
+	  || ! strcmp (language_string, "GNU Go"))
 	i = 0;
       else if (! strcmp (language_string, "GNU F77")
 	       || ! strcmp (language_string, "GNU Fortran"))

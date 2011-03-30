@@ -173,15 +173,6 @@ Gogo::Gogo(int int_type_size, int pointer_size)
   close_type->set_is_builtin();
   this->globals_->add_function_declaration("close", NULL, close_type, loc);
 
-  Typed_identifier_list* closed_result = new Typed_identifier_list();
-  closed_result->push_back(Typed_identifier("", Type::lookup_bool_type(),
-					    loc));
-  Function_type* closed_type = Type::make_function_type(NULL, NULL,
-							closed_result, loc);
-  closed_type->set_is_varargs();
-  closed_type->set_is_builtin();
-  this->globals_->add_function_declaration("closed", NULL, closed_type, loc);
-
   Typed_identifier_list* copy_result = new Typed_identifier_list();
   copy_result->push_back(Typed_identifier("", int_type, loc));
   Function_type* copy_type = Type::make_function_type(NULL, NULL,
@@ -1257,7 +1248,7 @@ Lower_parse_tree::statement(Block* block, size_t* pindex, Statement* sorig)
   Statement* s = sorig;
   while (true)
     {
-      Statement* snew = s->lower(this->gogo_, block);
+      Statement* snew = s->lower(this->gogo_, this->function_, block);
       if (snew == s)
 	break;
       s = snew;
@@ -1303,6 +1294,15 @@ Gogo::lower_parse_tree()
 {
   Lower_parse_tree lower_parse_tree(this, NULL);
   this->traverse(&lower_parse_tree);
+}
+
+// Lower a block.
+
+void
+Gogo::lower_block(Named_object* function, Block* block)
+{
+  Lower_parse_tree lower_parse_tree(this, function);
+  block->traverse(&lower_parse_tree);
 }
 
 // Lower an expression.
@@ -1463,6 +1463,7 @@ class Check_types_traverse : public Traverse
   Check_types_traverse(Gogo* gogo)
     : Traverse(traverse_variables
 	       | traverse_constants
+	       | traverse_functions
 	       | traverse_statements
 	       | traverse_expressions),
       gogo_(gogo)
@@ -1473,6 +1474,9 @@ class Check_types_traverse : public Traverse
 
   int
   constant(Named_object*, bool);
+
+  int
+  function(Named_object*);
 
   int
   statement(Block*, size_t* pindex, Statement*);
@@ -1523,7 +1527,9 @@ Check_types_traverse::constant(Named_object* named_object, bool)
       && !ctype->is_boolean_type()
       && !ctype->is_string_type())
     {
-      if (!ctype->is_error_type())
+      if (ctype->is_nil_type())
+	error_at(constant->location(), "const initializer cannot be nil");
+      else if (!ctype->is_error())
 	error_at(constant->location(), "invalid constant type");
       constant->set_error();
     }
@@ -1539,6 +1545,16 @@ Check_types_traverse::constant(Named_object* named_object, bool)
 	       "initialization expression has wrong type");
       constant->set_error();
     }
+  return TRAVERSE_CONTINUE;
+}
+
+// There are no types to check in a function, but this is where we
+// issue warnings about labels which are defined but not referenced.
+
+int
+Check_types_traverse::function(Named_object* no)
+{
+  no->func_value()->check_labels();
   return TRAVERSE_CONTINUE;
 }
 
@@ -1925,14 +1941,6 @@ Order_eval::statement(Block* block, size_t* pindex, Statement* s)
        ++p)
     {
       Expression** pexpr = *p;
-
-      // If the last expression is a send or receive expression, we
-      // may be ignoring the value; we don't want to evaluate it
-      // early.
-      if (p + 1 == find_eval_ordering.end()
-	  && ((*pexpr)->classification() == Expression::EXPRESSION_SEND
-	      || (*pexpr)->classification() == Expression::EXPRESSION_RECEIVE))
-	break;
 
       // The last expression in a thunk will be the call passed to go
       // or defer, which we must not evaluate early.
@@ -2752,7 +2760,7 @@ Function::add_label_definition(const std::string& label_name,
 	}
       else
 	{
-	  error_at(location, "redefinition of label %qs",
+	  error_at(location, "label %qs already defined",
 		   Gogo::message_name(label_name).c_str());
 	  inform(label->location(), "previous definition of %qs was here",
 		 Gogo::message_name(label_name).c_str());
@@ -2772,14 +2780,33 @@ Function::add_label_reference(const std::string& label_name)
   if (!ins.second)
     {
       // The label was already in the hash table.
-      return ins.first->second;
+      Label* label = ins.first->second;
+      label->set_is_used();
+      return label;
     }
   else
     {
       gcc_assert(ins.first->second == NULL);
       Label* label = new Label(label_name);
       ins.first->second = label;
+      label->set_is_used();
       return label;
+    }
+}
+
+// Warn about labels that are defined but not used.
+
+void
+Function::check_labels() const
+{
+  for (Labels::const_iterator p = this->labels_.begin();
+       p != this->labels_.end();
+       p++)
+    {
+      Label* label = p->second;
+      if (!label->is_used())
+	error_at(label->location(), "label %qs defined and not used",
+		 Gogo::message_name(label->name()).c_str());
     }
 }
 
@@ -3505,12 +3532,15 @@ Variable::determine_type()
 					  true);
       this->init_ = NULL;
     }
+  else if (this->type_from_chan_element_)
+    {
+      Expression* init = this->init_;
+      init->determine_type_no_context();
+      this->type_ = this->type_from_chan_element(init, true);
+      this->init_ = NULL;
+    }
   else
     {
-      // type_from_chan_element_ should have been cleared during
-      // lowering.
-      gcc_assert(!this->type_from_chan_element_);
-
       Type_context context(this->type_, false);
       this->init_->determine_type(&context);
       if (this->type_ == NULL)

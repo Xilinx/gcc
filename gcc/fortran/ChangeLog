@@ -1,3 +1,57 @@
+2011-03-27  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/47065
+	* frontend-passes (optimize_trim): Also follow references, except
+	when they are substring references or array references.
+
+2011-03-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.h (gfc_isym_id): Rename GFC_ISYM_NUMIMAGES to
+	GFC_ISYM_NUM_IMAGES.
+	(gfc_fcoarray): Add GFC_FCOARRAY_LIB.
+	* intrinsic.c (add_functions): Update due to GFC_ISYM_NUM_IMAGES
+	rename.
+	* invoke.texi (-fcoarray=): Document "lib" argument.
+	* iresolve.c (gfc_resolve_this_image): Fix THIS IMAGE().
+	* libgfortran.h (libgfortran_stat_codes): Add comments.
+	* options.c (gfc_handle_coarray_option): Add -fcoarray=lib.
+	* simplify.c (gfc_simplify_num_images, gfc_simplify_this_image):
+	Handle GFC_FCOARRAY_LIB.
+	* trans.h (gfc_init_coarray_decl): New prototype.
+	(gfor_fndecl_caf_init, gfor_fndecl_caf_finalize,
+	gfor_fndecl_caf_critical, gfor_fndecl_caf_end_critical,
+	gfor_fndecl_caf_sync_all, gfor_fndecl_caf_sync_images,
+	gfor_fndecl_caf_error_stop, gfor_fndecl_caf_error_stop_str,
+	gfort_gvar_caf_num_images, gfort_gvar_caf_this_image):
+	New global variables.
+	* trans-decl.c: Declare several CAF functions (cf. above).
+	(gfc_build_builtin_function_decls): Initialize those.
+	(gfc_init_coarray_decl): New function.
+	(create_main_function): Call CAF init/finalize functions.
+	* trans-intrinsic.c (trans_this_image, trans_num_images): New.
+	(gfc_conv_intrinsic_function): Call those.
+	* trans-stmt.c (gfc_trans_stop, gfc_trans_sync, gfc_trans_critical):
+	Add code for GFC_FCOARRAY_LIB.
+
+2011-03-26  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/48291
+	* class.c (get_unique_hashed_string): Adjust maximum allowable length
+	for unique type string.
+
+2011-03-25  Kai Tietz  <ktietz@redhat.com>
+
+	* scanner.c (preprocessor_line): Use filename_cmp
+	instead of strcmp.
+
+2011-03-25  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48174
+	PR fortran/45304
+	* trans-types.c (gfc_get_function_type): Don't use varargs if the
+	procedure is known to have no arguments.
+
 2010-03-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/22572

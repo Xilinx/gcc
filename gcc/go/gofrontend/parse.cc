@@ -1717,6 +1717,7 @@ Parse::init_vars_from_receive(const Typed_identifier_list* vars, Type* type,
   Statement* s = Statement::make_tuple_receive_assignment(val_var,
 							  received_var,
 							  receive->channel(),
+							  false,
 							  location);
 
   if (!this->gogo_->in_global_scope())
@@ -2704,6 +2705,12 @@ Parse::primary_expr(bool may_be_sink, bool may_be_composite_lit,
 	  this->advance_token();
 	  Expression* expr = this->expression(PRECEDENCE_NORMAL, false, true,
 					      NULL);
+	  if (this->peek_token()->is_op(OPERATOR_ELLIPSIS))
+	    {
+	      error_at(this->location(),
+		       "invalid use of %<...%> in type conversion");
+	      this->advance_token();
+	    }
 	  if (!this->peek_token()->is_op(OPERATOR_RPAREN))
 	    error_at(this->location(), "expected %<)%>");
 	  else
@@ -2944,9 +2951,6 @@ Parse::expression(Precedence precedence, bool may_be_sink,
 	case OPERATOR_ANDAND:
 	  right_precedence = PRECEDENCE_ANDAND;
 	  break;
-	case OPERATOR_CHANOP:
-	  right_precedence = PRECEDENCE_CHANOP;
-	  break;
 	case OPERATOR_EQEQ:
 	case OPERATOR_NOTEQ:
 	case OPERATOR_LT:
@@ -2997,10 +3001,7 @@ Parse::expression(Precedence precedence, bool may_be_sink,
       Expression* right = this->expression(right_precedence, false,
 					   may_be_composite_lit,
 					   NULL);
-      if (op == OPERATOR_CHANOP)
-	left = Expression::make_send(left, right, binop_location);
-      else
-	left = Expression::make_binary(op, left, right, binop_location);
+      left = Expression::make_binary(op, left, right, binop_location);
     }
 }
 
@@ -3117,7 +3118,7 @@ Parse::unary_expr(bool may_be_sink, bool may_be_composite_lit,
 // LABEL is the label of this statement if it has one.
 
 void
-Parse::statement(const Label* label)
+Parse::statement(Label* label)
 {
   const Token* token = this->peek_token();
   switch (token->classification())
@@ -3293,6 +3294,10 @@ Parse::labeled_stmt(const std::string& label_name, source_location location)
 
   if (!this->statement_may_start_here())
     {
+      // Mark the label as used to avoid a useless error about an
+      // unused label.
+      label->set_is_used();
+
       error_at(location, "missing statement after label");
       this->unget_token(Token::make_operator_token(OPERATOR_SEMICOLON,
 						   location));
@@ -3302,8 +3307,10 @@ Parse::labeled_stmt(const std::string& label_name, source_location location)
   this->statement(label);
 }
 
-// SimpleStat =
-//   ExpressionStat | IncDecStat | Assignment | SimpleVarDecl .
+// SimpleStmt = EmptyStmt | ExpressionStmt | SendStmt | IncDecStmt |
+//	Assignment | ShortVarDecl .
+
+// EmptyStmt was handled in Parse::statement.
 
 // In order to make this work for if and switch statements, if
 // RETURN_EXP is true, and we see an ExpressionStat, we return the
@@ -3360,7 +3367,10 @@ Parse::simple_stat(bool may_be_composite_lit, bool return_exp,
       return NULL;
     }
   token = this->peek_token();
-  if (token->is_op(OPERATOR_PLUSPLUS) || token->is_op(OPERATOR_MINUSMINUS))
+  if (token->is_op(OPERATOR_CHANOP))
+    this->send_stmt(this->verify_not_sink(exp));
+  else if (token->is_op(OPERATOR_PLUSPLUS)
+	   || token->is_op(OPERATOR_MINUSMINUS))
     this->inc_dec_stat(this->verify_not_sink(exp));
   else if (token->is_op(OPERATOR_COMMA)
 	   || token->is_op(OPERATOR_EQ))
@@ -3428,6 +3438,20 @@ Parse::expression_stat(Expression* exp)
 {
   exp->discarding_value();
   this->gogo_->add_statement(Statement::make_statement(exp));
+}
+
+// SendStmt = Channel "&lt;-" Expression .
+// Channel  = Expression .
+
+void
+Parse::send_stmt(Expression* channel)
+{
+  gcc_assert(this->peek_token()->is_op(OPERATOR_CHANOP));
+  source_location loc = this->location();
+  this->advance_token();
+  Expression* val = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+  Statement* s = Statement::make_send_statement(channel, val, loc);
+  this->gogo_->add_statement(s);
 }
 
 // IncDecStat = Expression ( "++" | "--" ) .
@@ -3616,6 +3640,7 @@ Parse::tuple_assignment(Expression_list* lhs, Range_clause* p_range_clause)
       Expression* channel = receive->channel();
       Statement* s = Statement::make_tuple_receive_assignment(val, success,
 							      channel,
+							      false,
 							      location);
       this->gogo_->add_statement(s);
     }
@@ -3690,8 +3715,7 @@ Parse::return_stat()
 							      location));
 }
 
-// IfStat = "if" [ [ SimpleStat ] ";" ] [ Condition ]
-//             Block [ "else" Statement ] .
+// IfStmt    = "if" [ SimpleStmt ";" ] Expression Block [ "else" Statement ] .
 
 void
 Parse::if_stat()
@@ -3715,8 +3739,7 @@ Parse::if_stat()
     {
       if (this->peek_token()->is_op(OPERATOR_SEMICOLON))
 	this->advance_token();
-      if (!this->peek_token()->is_op(OPERATOR_LCURLY))
-	cond = this->expression(PRECEDENCE_NORMAL, false, false, NULL);
+      cond = this->expression(PRECEDENCE_NORMAL, false, false, NULL);
     }
 
   this->gogo_->start_block(this->location());
@@ -3761,7 +3784,7 @@ Parse::if_stat()
 // TypeSwitchGuard = [ identifier ":=" ] Expression "." "(" "type" ")" .
 
 void
-Parse::switch_stat(const Label* label)
+Parse::switch_stat(Label* label)
 {
   gcc_assert(this->peek_token()->is_keyword(KEYWORD_SWITCH));
   source_location location = this->location();
@@ -3860,7 +3883,7 @@ Parse::switch_stat(const Label* label)
 //   "{" { ExprCaseClause } "}"
 
 Statement*
-Parse::expr_switch_body(const Label* label, Expression* switch_val,
+Parse::expr_switch_body(Label* label, Expression* switch_val,
 			source_location location)
 {
   Switch_statement* statement = Statement::make_switch_statement(switch_val,
@@ -3970,7 +3993,7 @@ Parse::expr_switch_case(bool* is_default)
 //   "{" { TypeCaseClause } "}" .
 
 Statement*
-Parse::type_switch_body(const Label* label, const Type_switch& type_switch,
+Parse::type_switch_body(Label* label, const Type_switch& type_switch,
 			source_location location)
 {
   Named_object* switch_no = NULL;
@@ -4114,7 +4137,7 @@ Parse::type_switch_case(std::vector<Type*>* types, bool* is_default)
 // SelectStat = "select" "{" { CommClause } "}" .
 
 void
-Parse::select_stat(const Label* label)
+Parse::select_stat(Label* label)
 {
   gcc_assert(this->peek_token()->is_keyword(KEYWORD_SELECT));
   source_location location = this->location();
@@ -4159,7 +4182,7 @@ Parse::select_stat(const Label* label)
   this->gogo_->add_statement(statement);
 }
 
-// CommClause = CommCase [ StatementList ] .
+// CommClause = CommCase ":" { Statement ";" } .
 
 void
 Parse::comm_clause(Select_clauses* clauses, bool* saw_default)
@@ -4168,13 +4191,21 @@ Parse::comm_clause(Select_clauses* clauses, bool* saw_default)
   bool is_send = false;
   Expression* channel = NULL;
   Expression* val = NULL;
+  Expression* closed = NULL;
   std::string varname;
+  std::string closedname;
   bool is_default = false;
-  bool got_case = this->comm_case(&is_send, &channel, &val, &varname,
-				  &is_default);
+  bool got_case = this->comm_case(&is_send, &channel, &val, &closed,
+				  &varname, &closedname, &is_default);
+
+  if (this->peek_token()->is_op(OPERATOR_COLON))
+    this->advance_token();
+  else
+    error_at(this->location(), "expected colon");
 
   Block* statements = NULL;
   Named_object* var = NULL;
+  Named_object* closedvar = NULL;
   if (this->peek_token()->is_op(OPERATOR_SEMICOLON))
     this->advance_token();
   else if (this->statement_list_may_start_here())
@@ -4188,6 +4219,14 @@ Parse::comm_clause(Select_clauses* clauses, bool* saw_default)
 				     location);
 	  v->set_type_from_chan_element();
 	  var = this->gogo_->add_variable(varname, v);
+	}
+
+      if (!closedname.empty())
+	{
+	  // FIXME: LOCATION is slightly wrong here.
+	  Variable* v = new Variable(Type::lookup_bool_type(), NULL,
+				     false, false, false, location);
+	  closedvar = this->gogo_->add_variable(closedname, v);
 	}
 
       this->statement_list();
@@ -4205,7 +4244,8 @@ Parse::comm_clause(Select_clauses* clauses, bool* saw_default)
     }
 
   if (got_case)
-    clauses->add(is_send, channel, val, var, is_default, statements, location);
+    clauses->add(is_send, channel, val, closed, var, closedvar, is_default,
+		 statements, location);
   else if (statements != NULL)
     {
       // Add the statements to make sure that any names they define
@@ -4214,11 +4254,12 @@ Parse::comm_clause(Select_clauses* clauses, bool* saw_default)
     }
 }
 
-// CommCase = ( "default" | ( "case" ( SendExpr | RecvExpr) ) ) ":" .
+// CommCase   = "case" ( SendStmt | RecvStmt ) | "default" .
 
 bool
 Parse::comm_case(bool* is_send, Expression** channel, Expression** val,
-		 std::string* varname, bool* is_default)
+		 Expression** closed, std::string* varname,
+		 std::string* closedname, bool* is_default)
 {
   const Token* token = this->peek_token();
   if (token->is_keyword(KEYWORD_DEFAULT))
@@ -4229,7 +4270,8 @@ Parse::comm_case(bool* is_send, Expression** channel, Expression** val,
   else if (token->is_keyword(KEYWORD_CASE))
     {
       this->advance_token();
-      if (!this->send_or_recv_expr(is_send, channel, val, varname))
+      if (!this->send_or_recv_stmt(is_send, channel, val, closed, varname,
+				   closedname))
 	return false;
     }
   else
@@ -4240,93 +4282,178 @@ Parse::comm_case(bool* is_send, Expression** channel, Expression** val,
       return false;
     }
 
-  if (!this->peek_token()->is_op(OPERATOR_COLON))
-    {
-      error_at(this->location(), "expected colon");
-      return false;
-    }
-
-  this->advance_token();
-
   return true;
 }
 
-// SendExpr = Expression "<-" Expression .
-// RecvExpr =  [ Expression ( "=" | ":=" ) ] "<-" Expression .
+// RecvStmt   = [ Expression [ "," Expression ] ( "=" | ":=" ) ] RecvExpr .
+// RecvExpr   = Expression .
 
 bool
-Parse::send_or_recv_expr(bool* is_send, Expression** channel, Expression** val,
-			 std::string* varname)
+Parse::send_or_recv_stmt(bool* is_send, Expression** channel, Expression** val,
+			 Expression** closed, std::string* varname,
+			 std::string* closedname)
 {
   const Token* token = this->peek_token();
-  source_location location = token->location();
+  bool saw_comma = false;
+  bool closed_is_id = false;
   if (token->is_identifier())
     {
+      Gogo* gogo = this->gogo_;
       std::string recv_var = token->identifier();
-      bool is_var_exported = token->is_identifier_exported();
-      if (!this->advance_token()->is_op(OPERATOR_COLONEQ))
-	this->unget_token(Token::make_identifier_token(recv_var,
-						       is_var_exported,
-						       location));
-      else
+      bool is_rv_exported = token->is_identifier_exported();
+      source_location recv_var_loc = token->location();
+      token = this->advance_token();
+      if (token->is_op(OPERATOR_COLONEQ))
 	{
+	  // case rv := <-c:
 	  if (!this->advance_token()->is_op(OPERATOR_CHANOP))
 	    {
 	      error_at(this->location(), "expected %<<-%>");
 	      return false;
 	    }
+	  if (recv_var == "_")
+	    {
+	      error_at(recv_var_loc,
+		       "no new variables on left side of %<:=%>");
+	      recv_var = "blank";
+	    }
 	  *is_send = false;
-	  *varname = this->gogo_->pack_hidden_name(recv_var, is_var_exported);
+	  *varname = gogo->pack_hidden_name(recv_var, is_rv_exported);
 	  this->advance_token();
 	  *channel = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
 	  return true;
 	}
+      else if (token->is_op(OPERATOR_COMMA))
+	{
+	  token = this->advance_token();
+	  if (token->is_identifier())
+	    {
+	      std::string recv_closed = token->identifier();
+	      bool is_rc_exported = token->is_identifier_exported();
+	      source_location recv_closed_loc = token->location();
+	      closed_is_id = true;
+
+	      token = this->advance_token();
+	      if (token->is_op(OPERATOR_COLONEQ))
+		{
+		  // case rv, rc := <-c:
+		  if (!this->advance_token()->is_op(OPERATOR_CHANOP))
+		    {
+		      error_at(this->location(), "expected %<<-%>");
+		      return false;
+		    }
+		  if (recv_var == "_" && recv_closed == "_")
+		    {
+		      error_at(recv_var_loc,
+			       "no new variables on left side of %<:=%>");
+		      recv_var = "blank";
+		    }
+		  *is_send = false;
+		  if (recv_var != "_")
+		    *varname = gogo->pack_hidden_name(recv_var,
+						      is_rv_exported);
+		  if (recv_closed != "_")
+		    *closedname = gogo->pack_hidden_name(recv_closed,
+							 is_rc_exported);
+		  this->advance_token();
+		  *channel = this->expression(PRECEDENCE_NORMAL, false, true,
+					      NULL);
+		  return true;
+		}
+
+	      this->unget_token(Token::make_identifier_token(recv_closed,
+							     is_rc_exported,
+							     recv_closed_loc));
+	    }
+
+	  *val = this->id_to_expression(gogo->pack_hidden_name(recv_var,
+							       is_rv_exported),
+					recv_var_loc);
+	  saw_comma = true;
+	}
+      else
+	this->unget_token(Token::make_identifier_token(recv_var,
+						       is_rv_exported,
+						       recv_var_loc));
+    }
+
+  // If SAW_COMMA is false, then we are looking at the start of the
+  // send or receive expression.  If SAW_COMMA is true, then *VAL is
+  // set and we just read a comma.
+
+  Expression* e;
+  if (saw_comma || !this->peek_token()->is_op(OPERATOR_CHANOP))
+    e = this->expression(PRECEDENCE_NORMAL, true, true, NULL);
+  else
+    {
+      // case <-c:
+      *is_send = false;
+      this->advance_token();
+      *channel = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+
+      // The next token should be ':'.  If it is '<-', then we have
+      // case <-c <- v:
+      // which is to say, send on a channel received from a channel.
+      if (!this->peek_token()->is_op(OPERATOR_CHANOP))
+	return true;
+
+      e = Expression::make_receive(*channel, (*channel)->location());
+    }
+
+  if (this->peek_token()->is_op(OPERATOR_EQ))
+    {
+      if (!this->advance_token()->is_op(OPERATOR_CHANOP))
+	{
+	  error_at(this->location(), "missing %<<-%>");
+	  return false;
+	}
+      *is_send = false;
+      this->advance_token();
+      *channel = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+      if (saw_comma)
+	{
+	  // case v, e = <-c:
+	  // *VAL is already set.
+	  if (!e->is_sink_expression())
+	    *closed = e;
+	}
+      else
+	{
+	  // case v = <-c:
+	  if (!e->is_sink_expression())
+	    *val = e;
+	}
+      return true;
+    }
+
+  if (saw_comma)
+    {
+      if (closed_is_id)
+	error_at(this->location(), "expected %<=%> or %<:=%>");
+      else
+	error_at(this->location(), "expected %<=%>");
+      return false;
     }
 
   if (this->peek_token()->is_op(OPERATOR_CHANOP))
     {
-      *is_send = false;
+      // case c <- v:
+      *is_send = true;
+      *channel = this->verify_not_sink(e);
       this->advance_token();
-      *channel = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
-    }
-  else
-    {
-      Expression* left = this->expression(PRECEDENCE_CHANOP, true, true, NULL);
-
-      if (this->peek_token()->is_op(OPERATOR_EQ))
-	{
-	  if (!this->advance_token()->is_op(OPERATOR_CHANOP))
-	    {
-	      error_at(this->location(), "missing %<<-%>");
-	      return false;
-	    }
-	  *is_send = false;
-	  *val = left;
-	  this->advance_token();
-	  *channel = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
-	}
-      else if (this->peek_token()->is_op(OPERATOR_CHANOP))
-	{
-	  *is_send = true;
-	  *channel = this->verify_not_sink(left);
-	  this->advance_token();
-	  *val = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
-	}
-      else
-	{
-	  error_at(this->location(), "expected %<<-%> or %<=%>");
-	  return false;
-	}
+      *val = this->expression(PRECEDENCE_NORMAL, false, true, NULL);
+      return true;
     }
 
-  return true;
+  error_at(this->location(), "expected %<<-%> or %<=%>");
+  return false;
 }
 
 // ForStat = "for" [ Condition | ForClause | RangeClause ] Block .
 // Condition = Expression .
 
 void
-Parse::for_stat(const Label* label)
+Parse::for_stat(Label* label)
 {
   gcc_assert(this->peek_token()->is_keyword(KEYWORD_FOR));
   source_location location = this->location();
@@ -4545,7 +4672,7 @@ Parse::range_clause_expr(const Expression_list* vals,
 // Push a statement on the break stack.
 
 void
-Parse::push_break_statement(Statement* enclosing, const Label* label)
+Parse::push_break_statement(Statement* enclosing, Label* label)
 {
   if (this->break_stack_ == NULL)
     this->break_stack_ = new Bc_stack();
@@ -4555,7 +4682,7 @@ Parse::push_break_statement(Statement* enclosing, const Label* label)
 // Push a statement on the continue stack.
 
 void
-Parse::push_continue_statement(Statement* enclosing, const Label* label)
+Parse::push_continue_statement(Statement* enclosing, Label* label)
 {
   if (this->continue_stack_ == NULL)
     this->continue_stack_ = new Bc_stack();
@@ -4588,8 +4715,13 @@ Parse::find_bc_statement(const Bc_stack* bc_stack, const std::string& label)
   for (Bc_stack::const_reverse_iterator p = bc_stack->rbegin();
        p != bc_stack->rend();
        ++p)
-    if (p->second != NULL && p->second->name() == label)
-      return p->first;
+    {
+      if (p->second != NULL && p->second->name() == label)
+	{
+	  p->second->set_is_used();
+	  return p->first;
+	}
+    }
   return NULL;
 }
 
@@ -4619,9 +4751,11 @@ Parse::break_stat()
 					  token->identifier());
       if (enclosing == NULL)
 	{
-	  error_at(token->location(),
-		   ("break label %qs not associated with "
-		    "for or switch or select"),
+	  // If there is a label with this name, mark it as used to
+	  // avoid a useless error about an unused label.
+	  this->gogo_->add_label_reference(token->identifier());
+
+	  error_at(token->location(), "invalid break label %qs",
 		   Gogo::message_name(token->identifier()).c_str());
 	  this->advance_token();
 	  return;
@@ -4672,8 +4806,11 @@ Parse::continue_stat()
 					  token->identifier());
       if (enclosing == NULL)
 	{
-	  error_at(token->location(),
-		   "continue label %qs not associated with for",
+	  // If there is a label with this name, mark it as used to
+	  // avoid a useless error about an unused label.
+	  this->gogo_->add_label_reference(token->identifier());
+
+	  error_at(token->location(), "invalid continue label %qs",
 		   Gogo::message_name(token->identifier()).c_str());
 	  this->advance_token();
 	  return;

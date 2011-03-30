@@ -4286,6 +4286,11 @@ extern tree build_type_attribute_variant (tree, tree);
 extern tree build_decl_attribute_variant (tree, tree);
 extern tree build_type_attribute_qual_variant (tree, tree, int);
 
+/* Return 0 if the attributes for two types are incompatible, 1 if they
+   are compatible, and 2 if they are nearly compatible (which causes a
+   warning to be generated).  */
+extern int comp_type_attributes (const_tree, const_tree);
+
 /* Structure describing an attribute and a function to handle it.  */
 struct attribute_spec
 {
@@ -5096,6 +5101,7 @@ extern tree build_simple_mem_ref_loc (location_t, tree);
 	build_simple_mem_ref_loc (UNKNOWN_LOCATION, T)
 extern double_int mem_ref_offset (const_tree);
 extern tree reference_alias_ptr_type (const_tree);
+extern tree build_invariant_address (tree, tree, HOST_WIDE_INT);
 extern tree constant_boolean_node (int, tree);
 extern tree div_if_zero_remainder (enum tree_code, const_tree, const_tree);
 

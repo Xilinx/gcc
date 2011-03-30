@@ -3464,6 +3464,14 @@ Struct_type::do_verify()
 	      p->set_type(Type::make_error_type());
 	      return false;
 	    }
+	  if (t->points_to() != NULL
+	      && t->points_to()->interface_type() != NULL)
+	    {
+	      error_at(p->location(),
+		       "embedded type may not be pointer to interface");
+	      p->set_type(Type::make_error_type());
+	      return false;
+	    }
 	}
     }
   return ret;
@@ -7987,7 +7995,7 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
 
   const Named_type* nt = type->deref()->named_type();
   const Struct_type* st = type->deref()->struct_type();
-  const Interface_type* it = type->deref()->interface_type();
+  const Interface_type* it = type->interface_type();
 
   // If this is a pointer to a pointer, then it is possible that the
   // pointed-to type has methods.
@@ -8003,7 +8011,6 @@ Type::bind_field_or_method(Gogo* gogo, const Type* type, Expression* expr,
 	return Expression::make_error(location);
       nt = type->points_to()->named_type();
       st = type->points_to()->struct_type();
-      it = type->points_to()->interface_type();
     }
 
   bool receiver_can_be_pointer = (expr->type()->points_to() != NULL
@@ -8156,7 +8163,7 @@ Type::find_field_or_method(const Type* type,
     }
 
   // Interface types can have methods.
-  const Interface_type* it = type->deref()->interface_type();
+  const Interface_type* it = type->interface_type();
   if (it != NULL && it->find_method(name) != NULL)
     {
       *is_method = true;
@@ -8318,11 +8325,11 @@ Type::is_unexported_field_or_method(Gogo* gogo, const Type* type,
 	}
     }
 
-  type = type->deref();
-
   const Interface_type* it = type->interface_type();
   if (it != NULL && it->is_unexported_method(gogo, name))
     return true;
+
+  type = type->deref();
 
   const Struct_type* st = type->struct_type();
   if (st != NULL && st->is_unexported_local_field(gogo, name))

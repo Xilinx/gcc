@@ -2239,7 +2239,7 @@ dwarf2out_frame_debug_cfa_restore (rtx reg, const char *label)
 	   cfa.base_offset = -cfa_store.offset
 
   Rule 11:
-  (set (mem ({pre_inc,pre_dec} sp:cfa_store.reg)) <reg>)
+  (set (mem ({pre_inc,pre_dec,post_dec} sp:cfa_store.reg)) <reg>)
   effects: cfa_store.offset += -/+ mode_size(mem)
 	   cfa.offset = cfa_store.offset if cfa.reg == sp
 	   cfa.reg = sp
@@ -2258,7 +2258,7 @@ dwarf2out_frame_debug_cfa_restore (rtx reg, const char *label)
 	   cfa.base_offset = -{cfa_store,cfa_temp}.offset
 
   Rule 14:
-  (set (mem (postinc <reg1>:cfa_temp <const_int>)) <reg2>)
+  (set (mem (post_inc <reg1>:cfa_temp <const_int>)) <reg2>)
   effects: cfa.reg = <reg1>
 	   cfa.base_offset = -cfa_temp.offset
 	   cfa_temp.offset -= mode_size(mem)
@@ -2591,6 +2591,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	  /* Rule 11 */
 	case PRE_INC:
 	case PRE_DEC:
+	case POST_DEC:
 	  offset = GET_MODE_SIZE (GET_MODE (dest));
 	  if (GET_CODE (XEXP (dest, 0)) == PRE_INC)
 	    offset = -offset;
@@ -2615,7 +2616,10 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	  if (cfa.reg == STACK_POINTER_REGNUM)
 	    cfa.offset = cfa_store.offset;
 
-	  offset = -cfa_store.offset;
+	  if (GET_CODE (XEXP (dest, 0)) == POST_DEC)
+	    offset += -cfa_store.offset;
+	  else
+	    offset = -cfa_store.offset;
 	  break;
 
 	  /* Rule 12 */
@@ -10725,7 +10729,7 @@ size_of_die (dw_die_ref die)
 	case dw_val_class_die_ref:
 	  if (AT_ref_external (a))
 	    {
-	      /* In DWARF4, we use DW_FORM_sig8; for earlier versions
+	      /* In DWARF4, we use DW_FORM_ref_sig8; for earlier versions
 		 we use DW_FORM_ref_addr.  In DWARF2, DW_FORM_ref_addr
 		 is sized by target address length, whereas in DWARF3
 		 it's always sized as an offset.  */
@@ -11001,7 +11005,7 @@ value_format (dw_attr_ref a)
       return DW_FORM_flag;
     case dw_val_class_die_ref:
       if (AT_ref_external (a))
-	return dwarf_version >= 4 ? DW_FORM_sig8 : DW_FORM_ref_addr;
+	return dwarf_version >= 4 ? DW_FORM_ref_sig8 : DW_FORM_ref_addr;
       else
 	return DW_FORM_ref;
     case dw_val_class_fde_ref:
@@ -11051,6 +11055,9 @@ static void
 output_abbrev_section (void)
 {
   unsigned long abbrev_id;
+
+  if (abbrev_die_table_in_use == 1)
+    return;
 
   for (abbrev_id = 1; abbrev_id < abbrev_die_table_in_use; ++abbrev_id)
     {
@@ -13612,8 +13619,15 @@ const_ok_for_output_1 (rtx *rtlp, void *data ATTRIBUTE_UNUSED)
 	inform (current_function_decl
 		? DECL_SOURCE_LOCATION (current_function_decl)
 		: UNKNOWN_LOCATION,
+#if NUM_UNSPEC_VALUES > 0
+		"non-delegitimized UNSPEC %s (%d) found in variable location",
+		((XINT (rtl, 1) >= 0 && XINT (rtl, 1) < NUM_UNSPEC_VALUES)
+		 ? unspec_strings[XINT (rtl, 1)] : "unknown"),
+		XINT (rtl, 1));
+#else
 		"non-delegitimized UNSPEC %d found in variable location",
 		XINT (rtl, 1));
+#endif
 #endif
       expansion_failed (NULL_TREE, rtl,
 			"UNSPEC hasn't been delegitimized.\n");
@@ -14300,8 +14314,8 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	  && ((unsigned) INTVAL (XEXP (rtl, 1))
 	      + (unsigned) INTVAL (XEXP (rtl, 2))
 	      <= GET_MODE_BITSIZE (GET_MODE (rtl)))
-	  && GET_MODE_BITSIZE (GET_MODE (rtl)) <= DWARF2_ADDR_SIZE
-	  && GET_MODE_BITSIZE (GET_MODE (XEXP (rtl, 0))) <= DWARF2_ADDR_SIZE)
+	  && GET_MODE_SIZE (GET_MODE (rtl)) <= DWARF2_ADDR_SIZE
+	  && GET_MODE_SIZE (GET_MODE (XEXP (rtl, 0))) <= DWARF2_ADDR_SIZE)
 	{
 	  int shift, size;
 	  op0 = mem_loc_descriptor (XEXP (rtl, 0), mode,
@@ -23114,6 +23128,9 @@ hash_loc_operands (dw_loc_descr_ref loc, hashval_t hash)
     case DW_OP_GNU_implicit_pointer:
       hash = iterative_hash_object (val2->v.val_int, hash);
       break;
+    case DW_OP_GNU_entry_value:
+      hash = hash_loc_operands (val1->v.val_loc, hash);
+      break;
 
     default:
       /* Other codes have no operands.  */
@@ -23271,6 +23288,8 @@ compare_loc_operands (dw_loc_descr_ref x, dw_loc_descr_ref y)
 	     && valx1->val_class == valy1->val_class
 	     && valx1->v.val_die_ref.die == valy1->v.val_die_ref.die
 	     && valx2->v.val_int == valy2->v.val_int;
+    case DW_OP_GNU_entry_value:
+      return compare_loc_operands (valx1->v.val_loc, valy1->v.val_loc);
     default:
       /* Other codes have no operands.  */
       return true;

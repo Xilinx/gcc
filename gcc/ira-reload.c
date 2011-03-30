@@ -1577,7 +1577,8 @@ ira_reload (void)
 
 
       /* Spill code insertion can force creation of new basic blocks.  */
-      fixup_abnormal_edges ();
+      if (fixup_abnormal_edges ())
+	commit_edge_insertions ();
 
       for (i = FIRST_PSEUDO_REGISTER; i < (unsigned) max_regno; i++)
 	if (regno_reg_rtx[i])

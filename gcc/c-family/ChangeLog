@@ -1,3 +1,20 @@
+2011-03-25  Kai Tietz  <ktietz@redhat.com>
+
+	* c-ada-spec.c (compare_comment): Use filename_cmp
+	instead of strcmp for filename.
+
+2011-03-25  Jeff Law  <law@redhat.com>
+
+	* c-family/c-common.c (def_fn_type): Add missing va_end.
+
+2011-03-25  Jason Merrill  <jason@redhat.com>
+
+	* c.opt: Add -std=c++03.
+
+2011-03-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* c-ada-spec.c (dump_ada_template): Skip non-class instances.
+
 2011-03-17  Kai Tietz
 
 	PR target/12171

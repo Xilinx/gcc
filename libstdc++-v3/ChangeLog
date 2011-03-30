@@ -1,3 +1,144 @@
+2011-03-25  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/28_regex/match_results/ctors/char/default.cc: Do not call
+	members which require a fully established result state.
+	* testsuite/28_regex/match_results/ctors/wchar_t/default.cc: Likewise.
+
+2011-03-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.h (negative_binomial_distribution<>::
+	negative_binomial_distribution(_IntType, double),
+	negative_binomial_distribution<>::
+	negative_binomial_distribution(const param_type&)): Tweak
+	construction of _M_gd.
+	* include/bits/random.tcc (negative_binomial_distribution<>::
+	operator()): Adjust.
+
+2011-03-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/random.h (negative_binomial_distribution<>::
+	negative_binomial_distribution(_IntType, double),
+	negative_binomial_distribution<>::
+	negative_binomial_distribution(const param_type&)): Fix
+	construction of _M_gd.
+	* include/bits/random.tcc (negative_binomial_distribution<>::
+	operator()): Fix computation, per Leger's algorithm.
+	* testsuite/util/testsuite_random.h (discrete_pdf,
+	negative_binomial_pdf, poisson_pdf, uniform_int_pdf): New.
+	(binomial_pdf): Swap last two parameters.
+	* testsuite/26_numerics/random/discrete_distribution/
+	operators/values.cc: New.
+	* testsuite/26_numerics/random/negative_binomial_distribution/
+	operators/values.cc: Likewise.
+	* testsuite/26_numerics/random/poisson_distribution/
+	operators/values.cc: Likewise.
+	* testsuite/26_numerics/random/uniform_int_distribution/
+	operators/values.cc: Likewise.
+	* testsuite/26_numerics/random/binomial_distribution/
+	operators/values.cc: Adjust.
+
+2011-03-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/abi/post/solaris2.8/baseline_symbols.txt: Regenerate.
+	* config/abi/post/solaris2.8/sparcv9/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/amd64/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/sparcv9/baseline_symbols.txt: Likewise.
+
+2011-03-23  Matthias Klose  <doko@ubuntu.com>
+
+	* config/abi/post/sparc-linux-gnu/baseline_symbols.txt: Regenerated.
+
+2011-03-23  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/abi/post/alpha-linux-gnu/baseline_symbols.txt: Regenerated.
+
+2011-03-22  Joseph Myers  <joseph@codesourcery.com>
+
+	* configure.ac: Don't handle powerpc*-*-gnu*.
+	* configure: Regenerate.
+
+2011-03-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/21_strings/basic_string/cons/char/moveable2.cc: Tweak
+	Copyright years.
+	* testsuite/21_strings/basic_string/cons/wchar_t/moveable2.cc:
+	Likewise.
+
+2011-03-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/shared_ptr.h (operator>, operator<=, operator>=): Add,
+	per DR 1401.
+	(operator==, operator!=, operator<): Fix per the letter of DR 1401.
+	* include/bits/shared_ptr_base.h: Likewise for __shared_ptr.
+	* include/bits/unique_ptr.h (operator==, operator!=, operator<,
+	operator<=, operator>, operator>=): Fix per the letter of DR 1401.
+	* testsuite/20_util/shared_ptr/comparison/dr1401.cc: New.
+	* testsuite/20_util/unique_ptr/comparison/dr1401.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust.
+
+2011-03-22  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/abi/pre/gnu.ver (GLIBCXX_3.4.15): Export _ZNSsC2EOSs
+	and _ZNSbIwSt11char_traitsIwESaIwEEC2EOS2_.
+	* config/abi/post/solaris2.8/baseline_symbols.txt: Regenerated.
+	* config/abi/post/solaris2.8/sparcv9/baseline_symbols.txt: Likewise.
+	* config/abi/post/s390x-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/x86_64-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/x86_64-linux-gnu/32/baseline_symbols.txt: Likewise.
+	* config/abi/post/powerpc-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/powerpc64-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/powerpc64-linux-gnu/32/baseline_symbols.txt:
+	Likewise.
+	* config/abi/post/solaris2.10/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/amd64/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/sparcv9/baseline_symbols.txt: Likewise.
+	* config/abi/post/i486-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/i386-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/s390-linux-gnu/baseline_symbols.txt: Likewise.
+	* testsuite/21_strings/basic_string/cons/char/moveable2.cc: New test.
+	* testsuite/21_strings/basic_string/cons/wchar_t/moveable2.cc: New
+	test.
+
+2011-03-21  Jack Howarth  <howarth@bromo.med.uc.edu>
+
+	* testsuite/lib/prune.exp (libstdc++-dg-prune): Prune "could not
+	create compact unwind for" warnings.
+
+2011-03-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/abi/post/i386-linux-gnu/baseline_symbols.txt: Update.
+	* config/abi/post/i486-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/powerpc64-linux-gnu/32/baseline_symbols.txt:
+	Likewise.
+	* config/abi/post/powerpc64-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/powerpc-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/s390-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/s390x-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/x86_64-linux-gnu/32/baseline_symbols.txt: Likewise.
+	* config/abi/post/x86_64-linux-gnu/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.8/sparcv9/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/amd64/baseline_symbols.txt: Likewise.
+	* config/abi/post/solaris2.10/sparcv9/baseline_symbols.txt: Likewise.
+
+	* testsuite/util/testsuite_abi.cc (check_version): Set incompatible
+	even when adding symbols to CXXABI_1.3, GLIBCXX_LDBL_3.4 and
+	CXXABI_LDBL_1.3 versions.
+
+2011-03-21  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* config/abi/pre/gnu.ver: Remove typeinfo name exports for C++0x types.
+
+2011-03-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* config/abi/pre/gnu.ver (CXXABI_1.3): Don't export _ZT[IS][PK]*[no].
+	(CXXABI_1.3.5): Export _ZTI[PK]*[no].
+
+2011-03-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* testsuite/22_locale/num_put/put/char/14220.cc: Don't xfail on
+	sparc*-sun-solaris2.10 && lp64.
+
 2011-03-19  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* testsuite/lib/libstdc++.exp (check_v3_target_c99_math): Rename
