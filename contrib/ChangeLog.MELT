@@ -1,4 +1,9 @@
 
+2011-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (sanity_checks_gcc_info): Test for
+	warmelt-first-0.c. Test for --enable-plugin. Test for GCC 4.6 &
+	4.7
+
 2010-10-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* pygmentize-melt: MELT :keywords are decorators.
 

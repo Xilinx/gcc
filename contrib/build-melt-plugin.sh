@@ -4,7 +4,7 @@
 ##
 ##    Middle End Lisp Translator = MELT
 ##
-##    Copyright (C)  2010 Free Software Foundation, Inc.
+##    Copyright (C)  2010, 2011 Free Software Foundation, Inc.
 ##    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 ## 
 ## This file is part of GCC.
@@ -148,7 +148,7 @@ sanity_checks_gcc_info() {
     fi
 
 # the GCCMELT source tree should have a melt-runtime.h & a
-# melt/warmelt-first.melt file & a melt/generated/warmelt-first.0.c
+# melt/warmelt-first.melt file & a melt/generated/warmelt-first-0.c
 # file
     if [ ! -f "$GCCMELT_SOURCE_TREE/melt-runtime.h" ]; then
 	error_echo missing melt-runtime.h file in GCCMELT source tree $GCCMELT_SOURCE_TREE
@@ -156,8 +156,8 @@ sanity_checks_gcc_info() {
     if [ ! -f "$GCCMELT_SOURCE_TREE/melt/warmelt-first.melt" ]; then
 	error_echo missing melt/warmelt-first.melt file in GCCMELT source tree $GCCMELT_SOURCE_TREE
     fi
-    if [ ! -f "$GCCMELT_SOURCE_TREE/melt/generated/warmelt-first.0.c" ]; then
-	error_echo missing melt/generated/warmelt-first.0.c file in GCCMELT source tree $GCCMELT_SOURCE_TREE
+    if [ ! -f "$GCCMELT_SOURCE_TREE/melt/generated/warmelt-first-0.c" ]; then
+	error_echo missing melt/generated/warmelt-first-0.c file in GCCMELT source tree $GCCMELT_SOURCE_TREE
     fi
 # unless $gt_melt_runtime_header exists, the GCC build tree should have
 # a gengtype
@@ -181,14 +181,14 @@ sanity_checks_gcc_info() {
 ## check our $GCC for plugin ability and version
     eval $($GCC -v < /dev/null 2>&1 \
 	| $GAWK '/^Target:/{printf " gcc_target=%s", $2}
-                 /^Configured with.*--enable-plugins/{print " gcc_has_plugins=yes"}
+                 /^Configured with.*--enable-plugin/{print " gcc_has_plugins=yes"}
                  /^gcc version/{printf " gcc_version=%s", $3}')
     if [ "$gcc_has_plugins" != yes ]; then
 	error_echo The GCC compiler $GCC does not have plugins enabled
     fi
     case $gcc_version in
 	# we only support 4.5 or 4.6
-	4.[56].*) verbose_echo MELT supported GCC version $gcc_version
+	4.[67].*) verbose_echo MELT supported GCC version $gcc_version
 	    ;;
 	*) error_echo The GCC compiler $GCC version $gcc_version is incompatible with MELT
 	    ;;
