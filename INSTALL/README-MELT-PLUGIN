@@ -1,19 +1,71 @@
 Short installation instructions for MELT as a plugin to an installed
-gcc-4.5
+gcc-4.6 enabled for plugins.
 
 See also http://gcc.gnu.org/wiki/MELT and http://gcc-melt.org/
 
-If installing MELT as plugin to some existing gcc-4.5 installation tree:
+If installing MELT as plugin to some existing gcc-4.6 installation
+tree, with the support of plugins enabled.
 
+################ step 1
+
+First, ensure that GCC 4.6 is correctly installed and has been built
+with plugins enabled, for example (on a Debian Unstable or
+Experimental, package gcc-4.6):
+
+ % gcc-4.6 -v
+Using built-in specs.
+COLLECT_GCC=/usr/bin/gcc-4.6
+COLLECT_LTO_WRAPPER=/usr/lib/gcc/x86_64-linux-gnu/4.6.1/lto-wrapper
+Target: x86_64-linux-gnu
+Configured with: ../src/configure -v --with-pkgversion='Debian 4.6.0-2' 
+--with-bugurl=file:///usr/share/doc/gcc-4.6/README.Bugs
+--enable-languages=c,c++,fortran,objc,obj-c++,go --prefix=/usr
+--program-suffix=-4.6 --enable-shared --enable-multiarch
+--enable-linker-build-id --with-system-zlib --libexecdir=/usr/lib
+--without-included-gettext --enable-threads=posix
+--with-gxx-include-dir=/usr/include/c++/4.6 --libdir=/usr/lib
+--enable-nls --enable-clocale=gnu --enable-libstdcxx-debug
+--enable-libstdcxx-time=yes --enable-plugin --enable-gold
+--enable-ld=default --with-plugin-ld --enable-objc-gc
+--with-arch-32=i586 --with-tune=generic --enable-checking=release
+--build=x86_64-linux-gnu --host=x86_64-linux-gnu
+--target=x86_64-linux-gnu
+Thread model: posix
+gcc version 4.6.1 20110329 (prerelease) (Debian 4.6.0-2)
+
+################ step 2
+
+Then, be sure that the GCC plugin development support has been
+installed. (On Debian, you'll need the gcc-4.6-plugin-dev package).
+
+So you should have something like
+% gcc-4.6 -print-file-name=plugin 
+/usr/lib/gcc/x86_64-linux-gnu/4.6.1/plugin
+
+Be sure that this plugin subdirectory is populated correctly since it
+contains an include file.
+
+% ls -l $(gcc-4.6 -print-file-name=plugin)
+total 4
+drwxr-xr-x 8 root root 4096 Mar 30 14:16 include
+
+Be sure that this include subdirectory contains meaningful files for
+GCC, like those for GIMPLE
+% ls -l $(gcc-4.6 -print-file-name=plugin)/include/gimple.* 
+-rw-r--r-- 1 root root  13735 Mar 30 04:02 /usr/lib/gcc/x86_64-linux-gnu/4.6.1/plugin/include/gimple.def
+-rw-r--r-- 1 root root 123008 Mar 30 04:02 /usr/lib/gcc/x86_64-linux-gnu/4.6.1/plugin/include/gimple.h
+
+################ step 3
    Read carefully the build-melt-plugin.sh perhaps in contrib/
 
-   Read it again.
+   Read it again. I mean it! The script is not bullet proof. It could
+   perhaps harm your system if improperly used.
 
 To prepare a source tree of the MELT plugin, read and run
 contrib/make-melt-source-tar.sh from the GCC MELT branch.
 
 If you have downloaded the MELT plugin source tree (and not
 the entire GCC MELT branch) you probably can build the melt.so plugin
-for GCC 4.5 in its source directory, by running something like 
+for GCC 4.6 in its source directory, by running something like 
 
-env GCC=gcc-4.5 ./build-melt-plugin.sh -M $PWD -Y gt-melt-runtime-plugin-4.5.h
+env GCC=gcc-4.6 ./build-melt-plugin.sh -M $PWD -Y melt/generated/gt-melt-runtime-plugin.h

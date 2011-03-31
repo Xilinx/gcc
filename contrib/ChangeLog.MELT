@@ -1,4 +1,8 @@
 
+2011-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gt-melt-runtime-plugin-4.5.h: Remove file, because something
+	similar is under gcc/melt/generated/
+
 2011-03-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (sanity_checks_gcc_info): Test for
 	warmelt-first-0.c. Test for --enable-plugin. Test for GCC 4.6 &
