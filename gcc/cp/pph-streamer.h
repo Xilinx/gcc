@@ -100,7 +100,7 @@ extern void pth_save_token_cache (struct cp_token_cache *, pph_stream *);
 
 /* Output AST T to STREAM.  */
 static inline void
-pph_output_tree (pph_stream *stream ATTRIBUTE_UNUSED, tree t ATTRIBUTE_UNUSED)
+pph_output_tree (pph_stream *stream, tree t)
 {
   if (flag_pph_tracer)
     pph_stream_trace_tree (stream, t);
@@ -190,7 +190,7 @@ pph_input_string (pph_stream *stream)
 /* Load an AST from STREAM.  Return the corresponding tree.  */
 
 static inline tree
-pph_input_tree (pph_stream *stream ATTRIBUTE_UNUSED)
+pph_input_tree (pph_stream *stream)
 {
   tree t = lto_input_tree (stream->ib, stream->data_in);
   if (flag_pph_tracer)
@@ -201,7 +201,7 @@ pph_input_tree (pph_stream *stream ATTRIBUTE_UNUSED)
 /* Return the PPH stream object associated with output block OB.  */
 
 static inline pph_stream *
-pph_get_ob_stream (struct output_block *ob)
+pph_get_pph_stream (struct output_block *ob)
 {
   /* FIXME pph - Do not overload OB fields this way.  */
   return ((pph_stream *) ob->cfg_stream);
@@ -210,7 +210,7 @@ pph_get_ob_stream (struct output_block *ob)
 /* Set the PPH stream object F associated with output block OB.  */
 
 static inline void
-pph_set_ob_stream (struct output_block *ob, pph_stream *f)
+pph_set_pph_stream (struct output_block *ob, pph_stream *f)
 {
   /* FIXME pph - Do not overload OB fields this way.  */
   ob->cfg_stream = (struct lto_output_stream *) f;

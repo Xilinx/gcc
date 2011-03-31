@@ -1,5 +1,14 @@
 2011-03-30  Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer.h (pph_get_pph_stream): Rename from
+	pph_get_ob_stream.  Update all users.
+	(pph_set_pph_stream): Rename from pph_set_pph_stream.  Update
+	all users.
+	(pph_output_tree): Remove ATTRIBUTE_UNUSED.
+	(pph_input_tree): Remove ATTRIBUTE_UNUSED.
+
+2011-03-30  Diego Novillo  <dnovillo@google.com>
+
 	* cp-tree.h (struct language_function): Add prefix 'x_' to
 	fields returns_value, returns_null, returns_abnormally,
 	in_function_try_handler, in_base_initializer.  Update all

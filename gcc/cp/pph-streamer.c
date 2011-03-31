@@ -135,7 +135,7 @@ pph_stream_init_write (pph_stream *stream)
   lto_push_out_decl_state (stream->out_state);
   stream->decl_state_stream = XCNEW (struct lto_output_stream);
   stream->ob = create_output_block (LTO_section_decls);
-  pph_set_ob_stream (stream->ob, stream);
+  pph_set_pph_stream (stream->ob, stream);
 }
 
 
@@ -148,7 +148,7 @@ pph_stream_write_ld_base (struct output_block *ob, struct lang_decl_base *ldb)
 
   if (ldb == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -178,7 +178,7 @@ pph_stream_write_ld_min (struct output_block *ob, struct lang_decl_min *ldm,
 {
   if (ldm == 0)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -224,7 +224,7 @@ pph_stream_write_cxx_binding_1 (struct output_block *ob, cxx_binding *cb,
 
   if (cb == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -250,7 +250,7 @@ pph_stream_write_cxx_binding (struct output_block *ob, cxx_binding *cb,
 
   if (cb == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -276,7 +276,7 @@ pph_stream_write_class_binding (struct output_block *ob,
 {
   if (cb == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -294,7 +294,7 @@ pph_stream_write_label_binding (struct output_block *ob,
 {
   if (lb == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -317,7 +317,7 @@ pph_stream_write_binding_level (struct output_block *ob,
 
   if (bl == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -368,7 +368,7 @@ pph_stream_write_c_language_function (struct output_block *ob,
 {
   if (clf == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -390,7 +390,7 @@ pph_stream_write_language_function (struct output_block *ob,
 
   if (lf == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -431,7 +431,7 @@ pph_stream_write_ld_fn (struct output_block *ob, struct lang_decl_fn *ldf,
 
   if (ldf == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -465,7 +465,7 @@ pph_stream_write_ld_fn (struct output_block *ob, struct lang_decl_fn *ldf,
     gcc_unreachable ();
 
   if (ldf->pending_inline_p == 1)
-    pth_save_token_cache (ldf->u.pending_inline_info, pph_get_ob_stream (ob));
+    pth_save_token_cache (ldf->u.pending_inline_info, pph_get_pph_stream (ob));
   else if (ldf->pending_inline_p == 0)
     pph_stream_write_language_function (ob, ldf->u.saved_language_function,
 					ref_p);
@@ -483,7 +483,7 @@ pph_stream_write_ld_ns (struct output_block *ob, struct lang_decl_ns *ldns,
 
   if (ldns == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
@@ -500,7 +500,7 @@ pph_stream_write_ld_parm (struct output_block *ob, struct lang_decl_parm *ldp)
 {
   if (ldp == NULL)
     {
-      pph_output_uint (pph_get_ob_stream (ob), 0);
+      pph_output_uint (pph_get_pph_stream (ob), 0);
       return;
     }
 
