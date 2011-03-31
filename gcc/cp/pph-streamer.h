@@ -92,9 +92,20 @@ void pph_stream_trace_bytes (pph_stream *, const void *, size_t);
 void pph_stream_trace_string (pph_stream *, const char *);
 void pph_stream_trace_string_with_length (pph_stream *, const char *, unsigned);
 
+/* In pph-streamer-out.c.  */
+void pph_stream_flush_buffers (pph_stream *);
+void pph_stream_init_write (pph_stream *);
+void pph_stream_write_tree (struct output_block *, tree, bool ref_p);
+void pph_stream_pack_value_fields (struct bitpack_d *, tree);
+
+/* In pph-streamer-in.c.  */
+void pph_stream_init_read (pph_stream *);
+void pph_stream_read_tree (struct lto_input_block *, struct data_in *, tree);
+void pph_stream_unpack_value_fields (struct bitpack_d *, tree);
+
 /* In pph.c.  FIXME move these to pph-streamer.c.  */
 struct cp_token_cache;
-extern void pth_save_token_cache (struct cp_token_cache *, pph_stream *);
+void pth_save_token_cache (struct cp_token_cache *, pph_stream *);
 
 /* Inline functions.  */
 

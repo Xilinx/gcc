@@ -81,7 +81,8 @@ CXX_AND_OBJCXX_OBJS = cp/call.o cp/decl.o cp/expr.o cp/pt.o cp/typeck2.o \
  cp/typeck.o cp/cvt.o cp/except.o cp/friend.o cp/init.o cp/method.o \
  cp/search.o cp/semantics.o cp/tree.o cp/repo.o cp/dump.o cp/optimize.o \
  cp/mangle.o cp/cp-objcp-common.o cp/name-lookup.o cp/cxx-pretty-print.o \
- cp/cp-gimplify.o cp/pph.o cp/pph-streamer.o tree-mudflap.o $(CXX_C_OBJS)
+ cp/cp-gimplify.o cp/pph.o cp/pph-streamer.o cp/pph-streamer-out.o \
+ cp/pph-streamer-in.o tree-mudflap.o $(CXX_C_OBJS)
 
 # Language-specific object files for C++.
 CXX_OBJS = cp/cp-lang.o c-family/stub-objc.o $(CXX_AND_OBJCXX_OBJS)
@@ -337,3 +338,11 @@ cp/pph.o: cp/pph.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(CPPLIB_H) \
 cp/pph-streamer.o: cp/pph-streamer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 	$(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) $(CXX_PPH_STREAMER_H) \
 	$(CXX_PPH_H) $(TREE_PASS_H) version.h cppbuiltin.h tree-iterator.h
+cp/pph-streamer-out.o: cp/pph-streamer-out.c $(CONFIG_H) $(SYSTEM_H) \
+	coretypes.h $(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) \
+	$(CXX_PPH_STREAMER_H) $(CXX_PPH_H) $(TREE_PASS_H) version.h \
+	cppbuiltin.h tree-iterator.h
+cp/pph-streamer-in.o: cp/pph-streamer-in.c $(CONFIG_H) $(SYSTEM_H) \
+	coretypes.h $(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) \
+	$(CXX_PPH_STREAMER_H) $(CXX_PPH_H) $(TREE_PASS_H) version.h \
+	cppbuiltin.h tree-iterator.h
