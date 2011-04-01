@@ -4619,9 +4619,12 @@ PLUGIN_HEADERS = $(TREE_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
 ## extra MELT required plugin headers!
 MELT_PLUGIN_HEADERS= melt-runtime.h melt-run.h melt-predef.h \
                      melt/generated/meltrunsup.h \
-                     $(REGSET_H)
+                     $(REGSET_H) \
+		     realmpfr.h 
 ## the REGSET_H should really be added to PLUGIN_HEADERS
 ## http://gcc.gnu.org/ml/gcc/2010-10/msg00233.html
+## and realmpfr.h also http://gcc.gnu.org/ml/gcc/2011-04/msg00016.html
+
 
 # generate the 'build fragment' b-header-vars
 s-header-vars: Makefile

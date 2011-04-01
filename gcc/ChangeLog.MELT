@@ -1,5 +1,8 @@
 
 2011-04-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (MELT_PLUGIN_HEADERS): Add realmpfr.h
+
+2011-04-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.
