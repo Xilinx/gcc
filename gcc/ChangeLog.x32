@@ -1,6 +1,16 @@
 2011-03-29  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/47725
+	PR target/48085
+	* calls.c (precompute_register_parameters): Convert pointer to
+	TLS symbol if needed.
+
+	* config/i386/i386.c (ix86_promote_function_mode): New.
+	(TARGET_PROMOTE_FUNCTION_MODE): Likewise.
+
+2011-03-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47725
 	* combine.c (cant_combine_insn_p): Don't check zero/sign extended
 	hard registers.
 

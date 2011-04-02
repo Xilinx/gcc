@@ -7611,6 +7611,23 @@ ix86_function_value (const_tree valtype, const_tree fntype_or_decl,
   return ix86_function_value_1 (valtype, fntype_or_decl, orig_mode, mode);
 }
 
+/* Pointer function arguments and return values are promoted to
+   Pmode.  */
+
+static enum machine_mode
+ix86_promote_function_mode (const_tree type, enum machine_mode mode,
+			    int *punsignedp, const_tree fntype,
+			    int for_return)
+{
+  if (for_return != 1 && POINTER_TYPE_P (type))
+    {
+      *punsignedp = POINTERS_EXTEND_UNSIGNED;
+      return Pmode;
+    }
+  return default_promote_function_mode (type, mode, punsignedp, fntype,
+					for_return);
+}
+
 rtx
 ix86_libcall_value (enum machine_mode mode)
 {
@@ -35486,6 +35503,9 @@ ix86_autovectorize_vector_sizes (void)
 
 #undef TARGET_FUNCTION_VALUE_REGNO_P
 #define TARGET_FUNCTION_VALUE_REGNO_P ix86_function_value_regno_p
+
+#undef TARGET_PROMOTE_FUNCTION_MODE
+#define TARGET_PROMOTE_FUNCTION_MODE ix86_promote_function_mode
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD ix86_secondary_reload
