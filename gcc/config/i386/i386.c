@@ -11621,6 +11621,19 @@ ix86_live_on_entry (bitmap regs)
 			  (reg/f:SI 7 sp))
 		 (const_int [CONST1 + CONST2])))
 
+   We also translate
+
+   (plus:DI (zero_extend:DI (plus:SI (plus:SI (reg:SI 4 si [70])
+					      (reg:SI 2 cx [86]))
+				     (const_int CONST1)))
+	    (const_int CONST2))
+
+   into
+
+   (plus:DI (zero_extend:DI (plus:SI (reg:SI 4 si [70])
+				     (reg:SI 2 cx [86]))
+	    (const_int [CONST1 + CONST2])))
+
    If PLUS is true, we also translate
 
    (set (reg:SI 40 r11)
@@ -11662,7 +11675,13 @@ ix86_simplify_base_disp (rtx *base_p, rtx *disp_p, bool plus)
       rtx op1 = XEXP (base, 1);
       rtx addend;
 
-      if (REG_P (op0) && CONST_INT_P (op1))
+      if ((REG_P (op0)
+	   || (!plus
+	       && GET_CODE (op0) == PLUS
+	       && GET_MODE (op0) == ptr_mode
+	       && REG_P (XEXP (op0, 0))
+	       && REG_P (XEXP (op0, 1))))
+	  && CONST_INT_P (op1))
 	{
 	  base = op0;
 	  addend = op1;
@@ -11701,7 +11720,12 @@ ix86_simplify_base_disp (rtx *base_p, rtx *disp_p, bool plus)
 	*disp_p = GEN_INT (INTVAL (disp) + INTVAL (addend));
 
       if (!plus)
-	*base_p = gen_rtx_REG (ptr_mode, REGNO (base));
+	{
+	  if (REG_P (base))
+	    *base_p = gen_rtx_REG (ptr_mode, REGNO (base));
+	  else
+	    *base_p = base;
+	}
     }
 }
 
