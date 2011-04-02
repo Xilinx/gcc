@@ -1,5 +1,12 @@
 2011-03-16  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR rtl-optimization/48155
+	* reload1.c (reload_plus_ok): New.
+	(gen_reload_chain_without_interm_reg_p): Use it.
+	(gen_reload): Likewise.
+
+2011-03-16  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR middle-end/48016
 	* function.c (expand_function_start): Properly store frame
 	pointer for non-local goto.
