@@ -1,3 +1,14 @@
+2011-03-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/48084
+	* config/i386/i386.c (ix86_expand_builtin): Call
+	convert_memory_address.
+
+2011-03-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/48084
+	* explow.c (copy_addr_to_reg): Don't convert to Pmode here.
+
 2011-03-17  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47744

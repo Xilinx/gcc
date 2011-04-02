@@ -27771,7 +27771,10 @@ rdrand_step:
       arg0 = CALL_EXPR_ARG (exp, 0);
       op1 = expand_normal (arg0);
       if (!address_operand (op1, VOIDmode))
-	op1 = copy_addr_to_reg (op1);
+	{
+	  op1 = convert_memory_address (Pmode, op1);
+	  op1 = copy_addr_to_reg (op1);
+	}
       emit_move_insn (gen_rtx_MEM (mode0, op1), op0);
       return target;
 
