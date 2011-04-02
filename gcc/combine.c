@@ -2128,14 +2128,13 @@ cant_combine_insn_p (rtx insn)
   /* Never combine loads and stores involving hard regs that are likely
      to be spilled.  The register allocator can usually handle such
      reg-reg moves by tying.  If we allow the combiner to make
-     substitutions of likely-spilled regs, reload might die.  Never
-     combine asm statement.
+     substitutions of likely-spilled regs, reload might die.
      As an exception, we allow combinations involving fixed regs; these are
      not available to the register allocator so there's no risk involved.  */
 
   set = single_set (insn);
   if (! set)
-    return asm_noperands (PATTERN (insn)) > 0;
+    return 0;
   src = SET_SRC (set);
   dest = SET_DEST (set);
   if (GET_CODE (src) == ZERO_EXTEND
@@ -2157,7 +2156,7 @@ cant_combine_insn_p (rtx insn)
 	      && targetm.class_likely_spilled_p (REGNO_REG_CLASS (REGNO (dest))))))
     return 1;
 
-  return asm_noperands (src) > 0;
+  return 0;
 }
 
 struct likely_spilled_retval_info
