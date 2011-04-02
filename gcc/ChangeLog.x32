@@ -1,5 +1,11 @@
 2011-03-28  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR target/47744
+	* config/i386/i386.c (ix86_simplify_base_disp): Add symbol plus
+	constant support.
+
+2011-03-28  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR rtl-optimization/47958
 	* reload.c (find_reloads): Don't put symbol reference in memory
 	in ptr_mode.

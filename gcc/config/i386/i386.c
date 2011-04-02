@@ -11634,6 +11634,20 @@ ix86_live_on_entry (bitmap regs)
 				     (reg:SI 2 cx [86]))
 	    (const_int [CONST1 + CONST2])))
 
+   We also translate
+
+   (plus:SI (plus:SI (plus:SI (reg:SI 4 si [70])
+			      (reg:SI 2 cx [86]))
+		     (symbol_ref:SI ("A.193.2210")))
+	    (const_int CONST))
+
+   into
+
+   (plus:SI (plus:SI (reg:SI 4 si [70])
+		     (reg:SI 2 cx [86]))
+	    (const (plus:SI (symbol_ref:SI ("A.193.2210"))
+			    (const_int CONST))))
+
    If PLUS is true, we also translate
 
    (set (reg:SI 40 r11)
@@ -11681,12 +11695,17 @@ ix86_simplify_base_disp (rtx *base_p, rtx *disp_p, bool plus)
 	       && GET_MODE (op0) == ptr_mode
 	       && REG_P (XEXP (op0, 0))
 	       && REG_P (XEXP (op0, 1))))
-	  && CONST_INT_P (op1))
+	  && (CONST_INT_P (op1)
+	      || GET_CODE (op1) == SYMBOL_REF
+	      || GET_CODE (op1) == LABEL_REF))
 	{
 	  base = op0;
 	  addend = op1;
 	}
-      else if (REG_P (op1) && CONST_INT_P (op0))
+      else if (REG_P (op1)
+	       && (CONST_INT_P (op0)
+		   || GET_CODE (op0) == SYMBOL_REF
+		   || GET_CODE (op0) == LABEL_REF))
 	{
 	  base = op1;
 	  addend = op0;
@@ -11717,7 +11736,15 @@ ix86_simplify_base_disp (rtx *base_p, rtx *disp_p, bool plus)
       if (disp == NULL_RTX || disp == const0_rtx)
 	*disp_p = addend;
       else
-	*disp_p = GEN_INT (INTVAL (disp) + INTVAL (addend));
+	{
+	  if (CONST_INT_P (addend))
+	    *disp_p = GEN_INT (INTVAL (disp) + INTVAL (addend));
+	  else
+	    {
+	      disp = gen_rtx_PLUS (ptr_mode, addend, disp);
+	      *disp_p = gen_rtx_CONST (ptr_mode, disp);
+	    }
+	}
 
       if (!plus)
 	{
