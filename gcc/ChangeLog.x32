@@ -1,5 +1,11 @@
 2011-03-28  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR rtl-optimization/47958
+	* reload.c (find_reloads): Don't put symbol reference in memory
+	in ptr_mode.
+
+2011-03-28  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR rtl-optimization/47502
 	* combine.c (cant_combine_insn_p): Don't check asm statement.
 
