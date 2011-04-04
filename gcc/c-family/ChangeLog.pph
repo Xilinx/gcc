@@ -1,3 +1,8 @@
+2011-04-04  Diego Novillo  <dnovillo@google.com>
+
+	* c-opts.c (add_pph_header_map): Create include_pph_mapping if it
+	was NULL.
+
 2011-03-30  Diego Novillo  <dnovillo@google.com>
 
 	* c-family/c.opt (fpph-fmt): Remove.  Update all users.

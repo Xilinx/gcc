@@ -148,6 +148,9 @@ add_pph_header_map (const char *basename)
   char hdrbuf[MAXPATHLEN];
   char pphbuf[MAXPATHLEN];
 
+  if (include_pph_mapping == NULL)
+    include_pph_mapping = strstrmap_create ();
+
   length = strlen (basename);
   strcpy (hdrbuf, basename);
   strcpy (hdrbuf + length, ".h");
