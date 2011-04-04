@@ -1,0 +1,11 @@
+2011-04-04  Martin Thuresson  <martint@google.com>
+
+       PR gcov-profile/47793
+       * gcc.dg/pr47793.c: New test
+
+
+Copyright (C) 2011 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
