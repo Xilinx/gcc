@@ -843,6 +843,7 @@ gimple_streamer_hooks_init (void)
   h->is_streamable = lto_is_streamable;
   h->write_tree = gimple_streamer_write_tree;
   h->read_tree = gimple_streamer_read_tree;
+  h->register_decls_in_symtab_p = true;
 }
 
 

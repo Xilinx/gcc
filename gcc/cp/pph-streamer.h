@@ -24,6 +24,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "lto-streamer.h"
 #include "tree.h"
 
+/* Record markers.  */
+static const unsigned char PPH_RECORD_START = 0xff;
+static const unsigned char PPH_RECORD_END   = 0xfe;
+
 /* Number of sections in a PPH file.  FIXME, currently only one section
    is supported.  To add more, it will also be necessary to handle
    section names in pph_get_section_data and pph_free_section_data.  */
@@ -91,40 +95,64 @@ void pph_stream_trace_uint (pph_stream *, unsigned int);
 void pph_stream_trace_bytes (pph_stream *, const void *, size_t);
 void pph_stream_trace_string (pph_stream *, const char *);
 void pph_stream_trace_string_with_length (pph_stream *, const char *, unsigned);
+void pph_stream_trace_chain (pph_stream *, tree);
+void pph_stream_trace_bitpack (pph_stream *, struct bitpack_d *);
 
 /* In pph-streamer-out.c.  */
 void pph_stream_flush_buffers (pph_stream *);
 void pph_stream_init_write (pph_stream *);
 void pph_stream_write_tree (struct output_block *, tree, bool ref_p);
 void pph_stream_pack_value_fields (struct bitpack_d *, tree);
+void pph_stream_output_tree_header (struct output_block *, tree);
 
 /* In pph-streamer-in.c.  */
 void pph_stream_init_read (pph_stream *);
 void pph_stream_read_tree (struct lto_input_block *, struct data_in *, tree);
 void pph_stream_unpack_value_fields (struct bitpack_d *, tree);
-
-/* In pph.c.  FIXME move these to pph-streamer.c.  */
+tree pph_stream_alloc_tree (enum tree_code, struct lto_input_block *,
+			    struct data_in *);
+/* In pph.c.  FIXME pph move these to pph-streamer.c.  */
 struct cp_token_cache;
 void pth_save_token_cache (struct cp_token_cache *, pph_stream *);
+struct cp_token_cache *pth_load_token_cache (pph_stream *);
 
 /* Inline functions.  */
 
-/* Output AST T to STREAM.  */
+/* Output AST T to STREAM.  If REF_P is true, output all the leaves of T
+   as references.  */
 static inline void
-pph_output_tree (pph_stream *stream, tree t)
+pph_output_tree (pph_stream *stream, tree t, bool ref_p)
 {
   if (flag_pph_tracer)
     pph_stream_trace_tree (stream, t);
-  lto_output_tree (stream->ob, t, true);
+  lto_output_tree (stream->ob, t, ref_p);
 }
 
-/* Write a uint VALUE to STREAM.  */
+/* Output AST T to STREAM.  If REF_P is true, output a reference to T.  */
+static inline void
+pph_output_tree_or_ref (pph_stream *stream, tree t, bool ref_p)
+{
+  if (flag_pph_tracer)
+    pph_stream_trace_tree (stream, t);
+  lto_output_tree_or_ref (stream->ob, t, ref_p);
+}
+
+/* Write an unsigned int VALUE to STREAM.  */
 static inline void
 pph_output_uint (pph_stream *stream, unsigned int value)
 {
   if (flag_pph_tracer)
     pph_stream_trace_uint (stream, value);
   lto_output_sleb128_stream (stream->ob->main_stream, value);
+}
+
+/* Write an unsigned char VALUE to STREAM.  */
+static inline void
+pph_output_uchar (pph_stream *stream, unsigned char value)
+{
+  if (flag_pph_tracer)
+    pph_stream_trace_uint (stream, value);
+  lto_output_1_stream (stream->ob->main_stream, value);
 }
 
 /* Write N bytes from P to STREAM.  */
@@ -151,17 +179,38 @@ pph_output_string_with_length (pph_stream *stream, const char *str,
 			       unsigned int len)
 {
   if (str)
-    lto_output_string_with_length (stream->ob, stream->ob->main_stream,
-				   str, len + 1);
+    {
+      lto_output_string_with_length (stream->ob, stream->ob->main_stream,
+				     str, len + 1);
+      if (flag_pph_tracer)
+	pph_stream_trace_string_with_length (stream, str, len);
+    }
   else
     {
       /* lto_output_string_with_length does not handle NULL strings,
 	 but lto_output_string does.  */
       pph_output_string (stream, NULL);
     }
+}
 
+/* Write a chain of ASTs to STREAM starting with FIRST.  REF_P is true
+   if the nodes should be emitted as references.  */
+static inline void
+pph_output_chain (pph_stream *stream, tree first, bool ref_p)
+{
+  lto_output_chain (stream->ob, first, ref_p);
   if (flag_pph_tracer)
-    pph_stream_trace_string_with_length (stream, str, len);
+    pph_stream_trace_chain (stream, first);
+}
+
+/* Write a bitpack BP to STREAM.  */
+static inline void
+pph_output_bitpack (pph_stream *stream, struct bitpack_d *bp)
+{
+  gcc_assert (stream->ob->main_stream == bp->stream);
+  if (flag_pph_tracer)
+    pph_stream_trace_bitpack (stream, bp);
+  lto_output_bitpack (bp);
 }
 
 /* Read an unsigned HOST_WIDE_INT integer from STREAM.  */
@@ -173,6 +222,16 @@ pph_input_uint (pph_stream *stream)
   if (flag_pph_tracer)
     pph_stream_trace_uint (stream, n);
   return (unsigned) n;
+}
+
+/* Read an unsigned char VALUE to STREAM.  */
+static inline unsigned char
+pph_input_uchar (pph_stream *stream)
+{
+  unsigned char n = lto_input_1_unsigned (stream->ib);
+  if (flag_pph_tracer)
+    pph_stream_trace_uint (stream, n);
+  return n;
 }
 
 /* Read N bytes from STREAM into P.  The caller is responsible for 
@@ -199,7 +258,6 @@ pph_input_string (pph_stream *stream)
 }
 
 /* Load an AST from STREAM.  Return the corresponding tree.  */
-
 static inline tree
 pph_input_tree (pph_stream *stream)
 {
@@ -209,22 +267,24 @@ pph_input_tree (pph_stream *stream)
   return t;
 }
 
-/* Return the PPH stream object associated with output block OB.  */
-
-static inline pph_stream *
-pph_get_pph_stream (struct output_block *ob)
+/* Read a chain of ASTs from STREAM.  */
+static inline tree
+pph_input_chain (pph_stream *stream)
 {
-  /* FIXME pph - Do not overload OB fields this way.  */
-  return ((pph_stream *) ob->cfg_stream);
+  tree t = lto_input_chain (stream->ib, stream->data_in);
+  if (flag_pph_tracer)
+    pph_stream_trace_chain (stream, t);
+  return t;
 }
 
-/* Set the PPH stream object F associated with output block OB.  */
-
-static inline void
-pph_set_pph_stream (struct output_block *ob, pph_stream *f)
+/* Read a bitpack from STREAM.  */
+static inline struct bitpack_d
+pph_input_bitpack (pph_stream *stream)
 {
-  /* FIXME pph - Do not overload OB fields this way.  */
-  ob->cfg_stream = (struct lto_output_stream *) f;
+  struct bitpack_d bp = lto_input_bitpack (stream->ib);
+  if (flag_pph_tracer)
+    pph_stream_trace_bitpack (stream, &bp);
+  return bp;
 }
 
 #endif  /* GCC_CP_PPH_STREAMER_H  */

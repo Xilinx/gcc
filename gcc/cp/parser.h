@@ -374,5 +374,6 @@ extern void cp_lexer_dump_tokens (FILE *, VEC(cp_token,gc) *, unsigned);
 extern void cp_lexer_get_tokens (cp_lexer *);
 extern cp_token_position cp_lexer_token_position (cp_lexer *, bool);
 extern void cp_lexer_debug_tokens (VEC(cp_token,gc) *);
+extern cp_token_cache *cp_token_cache_new (cp_token *, cp_token *);
 
 #endif  /* GCC_CP_PARSER_H  */

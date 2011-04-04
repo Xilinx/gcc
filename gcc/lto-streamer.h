@@ -98,6 +98,28 @@ typedef struct lto_streamer_hooks {
   /* Called by unpack_value_fields to retrieve any non-pointer fields
      in the tree structure.  The arguments are as in unpack_value_fields.  */
   void (*unpack_value_fields) (struct bitpack_d *, tree);
+
+  /* Non-zero if the streamer should register decls in the LTO
+     global symbol tables.  */
+  unsigned register_decls_in_symtab_p : 1;
+
+  /* Called by lto_materialize_tree for tree nodes that it does not
+     know how to allocate memory for.  If defined, this hook should
+     return a new tree node of the given code.  The data_in and
+     input_block arguments are passed in case the hook needs to
+     read more data from the stream to allocate the node.
+     If this hook returns NULL, then lto_materialize_tree will attempt
+     to allocate the tree by calling make_node directly.  */
+  tree (*alloc_tree) (enum tree_code, struct lto_input_block *,
+                      struct data_in *);
+
+  /* Called by lto_output_tree_header to write any streamer-specific
+     information needed to allocate the tree.  This hook may assume
+     that the basic header data (tree code, etc) has already been
+     written.  It should only write any extra data needed to allocate
+     the node (e.g., in the case of CALL_EXPR, this hook would write
+     the number of arguments to the CALL_EXPR).  */
+  void (*output_tree_header) (struct output_block *, tree);
 } lto_streamer_hooks;
 
 
@@ -298,9 +320,10 @@ enum LTO_tags
   LTO_imported_decl_ref,
   LTO_translation_unit_decl_ref,
   LTO_global_decl_ref,			/* Do not change.  */
+  LTO_LAST_TAG,
 
   /* This tag must always be last.  */
-  LTO_NUM_TAGS
+  LTO_NUM_TAGS = LTO_LAST_TAG + MAX_TREE_CODES + LAST_AND_UNUSED_GIMPLE_CODE
 };
 
 
@@ -673,6 +696,9 @@ struct GTY(()) lto_file_decl_data
   VEC(ld_plugin_symbol_resolution_t,heap) * GTY((skip)) resolutions;
 
   struct gcov_ctr_summary GTY((skip)) profile_info;
+
+  /* Any other streamer-specific data needed by the streamer.  */
+  void * GTY((skip)) sdata;
 };
 
 typedef struct lto_file_decl_data *lto_file_decl_data_ptr;
@@ -768,6 +794,9 @@ struct output_block
 
   /* Cache of nodes written in this section.  */
   struct lto_streamer_cache_d *writer_cache;
+
+  /* Any other streamer-specific data needed by the streamer.  */
+  void *sdata;
 };
 
 
@@ -802,6 +831,9 @@ struct data_in
 
   /* Cache of pickled nodes.  */
   struct lto_streamer_cache_d *reader_cache;
+
+  /* Any other streamer-specific data needed by the streamer.  */
+  void *sdata;
 };
 
 
@@ -1029,7 +1061,7 @@ extern VEC(lto_out_decl_state_ptr, heap) *lto_function_decl_states;
 static inline bool
 lto_tag_is_tree_code_p (enum LTO_tags tag)
 {
-  return tag > LTO_null && (unsigned) tag <= NUM_TREE_CODES;
+  return tag > LTO_null && (unsigned) tag <= MAX_TREE_CODES;
 }
 
 

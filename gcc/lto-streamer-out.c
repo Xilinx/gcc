@@ -1206,7 +1206,6 @@ lto_output_tree_header (struct output_block *ob, tree expr, int ix)
   enum tree_code code;
   lto_streamer_hooks *h = streamer_hooks ();
 
-
   /* We should not see any non-GIMPLE tree nodes here.  */
   code = TREE_CODE (expr);
   if (h->is_streamable && !h->is_streamable (expr))
@@ -1218,6 +1217,7 @@ lto_output_tree_header (struct output_block *ob, tree expr, int ix)
      EXPR on the reading side (such as the number of slots in
      variable sized nodes).  */
   tag = lto_tree_code_to_tag (code);
+  gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
   output_record_start (ob, tag);
   output_sleb128 (ob, ix);
 
@@ -1241,6 +1241,11 @@ lto_output_tree_header (struct output_block *ob, tree expr, int ix)
     output_sleb128 (ob, TREE_VEC_LENGTH (expr));
   else if (CODE_CONTAINS_STRUCT (code, TS_BINFO))
     output_uleb128 (ob, BINFO_N_BASE_BINFOS (expr));
+
+  /* Allow the streamer to write any streamer-specific information
+     needed to instantiate the node when reading.  */
+  if (streamer_hooks ()->output_tree_header)
+    streamer_hooks ()->output_tree_header (ob, expr);
 }
 
 

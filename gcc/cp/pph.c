@@ -427,6 +427,7 @@ pth_save_token (cp_token *token, pph_stream *f)
   pth_save_token_value (f, token);
 }
 
+
 /* Save all the tokens in CACHE to PPH stream F.  */
 
 void
@@ -990,6 +991,50 @@ pth_load_token_value (cp_token *token, pph_stream *f)
 }
 
 
+/* Read and return a token from STREAM.  */
+
+static cp_token *
+pth_load_token (pph_stream *stream)
+{
+  cp_token *token = ggc_alloc_cleared_cp_token ();
+
+  /* Do not read the whole structure, the token value has
+     dynamic size as it contains swizzled pointers.
+     FIXME pph, restructure to allow bulk reads of the whole
+     section.  */
+  pph_input_bytes (stream, token, sizeof (cp_token) - sizeof (void *));
+
+  /* FIXME pph.  Use an arbitrary (but valid) location to avoid
+     confusing the rest of the compiler for now.  */
+  token->location = input_location;
+
+  /* FIXME pph: verify that pth_load_token_value works with no tokens.  */
+  pth_load_token_value (token, stream);
+
+  return token;
+}
+
+
+/* Read and return a cp_token_cache instance from STREAM.  */
+
+cp_token_cache *
+pth_load_token_cache (pph_stream *stream)
+{
+  unsigned i, num;
+  cp_token *first, *last;
+
+  num = pph_input_uint (stream);
+  for (last = first = NULL, i = 0; i < num; i++)
+    {
+      last = pth_load_token (stream);
+      if (first == NULL)
+	first = last;
+    }
+
+  return cp_token_cache_new (first, last);
+}
+
+
 /* Load the IDENTIFERS for a hunk from a STREAM.  */
 
 static void
@@ -1078,20 +1123,8 @@ pth_load_hunk (pth_image *image, pph_stream *stream)
   hunk->buffer = VEC_alloc (cp_token, gc, num_tokens);
   for (j = 0; j < num_tokens; j++)
     {
-      cp_token *token = VEC_quick_push (cp_token, hunk->buffer, NULL);
-
-      /* Do not read the whole structure, the token value has
-         dynamic size as it contains swizzled pointers.
-         FIXME pph, restructure to allow bulk reads of the whole
-         section.  */
-      pph_input_bytes (stream, token, sizeof (cp_token) - sizeof (void *));
-
-      /* FIXME pph.  Use an arbitrary (but valid) location to avoid
-         confusing the rest of the compiler for now.  */
-      token->location = input_location;
-
-      /* FIXME pph: verify that pth_load_token_value works with no tokens.  */
-      pth_load_token_value (token, stream);
+      cp_token *token = pth_load_token (stream);
+      VEC_quick_push (cp_token, hunk->buffer, token);
     }
   gcc_assert (num_tokens == VEC_length (cp_token, hunk->buffer));
 
@@ -1807,7 +1840,7 @@ static void
 pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
 { 
   pth_save_identifiers (idents_used, stream);
-  pph_output_tree (stream, global_namespace);
+  pph_output_tree (stream, global_namespace, false);
 }
 
 
@@ -1898,7 +1931,7 @@ pph_read_file_contents (pph_stream *stream)
   cpp_lt_replay (parse_in, &idents_used);
   */
 
-  /* FIXME pph: Also read decls.  */
+  pph_input_tree (stream);
 }
 
 

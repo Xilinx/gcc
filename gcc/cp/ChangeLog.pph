@@ -1,3 +1,92 @@
+2011-04-04  Diego Novillo  <dnovillo@google.com>
+
+	* cp-tree.h (cxx_binding_make): Declare.
+	* name-lookup.c (cxx_binding_make): Make extern.
+	* parser.c (cp_token_cache): Make extern.
+	* parser.h (cp_token_cache): Declare.
+	* pph-streamer-in.c (pph_stream_unpack_value_fields): Move
+	earlier in the file.
+	(pph_stream_init_read): Call lto_reader_init.
+	Associate STREAM with STREAM->DATA_IN.
+	(pph_start_record): New.
+	(pph_stream_read_ld_base): New.
+	(pph_stream_read_ld_min): New.
+	(pph_stream_read_tree_vec): New.
+	(pph_stream_read_cxx_binding_1): New.
+	(pph_stream_read_cxx_binding): New.
+	(pph_stream_read_class_binding): New.
+	(pph_stream_read_label_binding): New.
+	(pph_stream_read_binding_level): New.
+	(pph_stream_read_c_language_function): New.
+	(pph_stream_read_language_function): New.
+	(pph_stream_read_ld_fn): New.
+	(pph_stream_read_ld_ns): New.
+	(pph_stream_read_ld_parm): New.
+	(pph_stream_read_lang_specific_data): New.
+	(pph_stream_read_tree): Retrieve pph_stream instance from
+	DATA_IN->SDATA.
+	Mark IB argument as unused.
+	Call pph_stream_read_lang_specific_data for DECLs that have
+	lang_specific data.
+	Replace calls to lto_input_sleb128 with pph_input_uint.
+	(pph_stream_alloc_tree): New.
+	* pph-streamer-out.c (pph_stream_init_write): Call
+	lto_writer_init.
+	Associate STREAM with OB.
+	(pph_start_record): New.
+	(pph_stream_write_ld_base): Change first argument to be a
+	pph_stream.  Change all users.
+	Call pph_start_record.
+	Call pph_output_bitpack.
+	(pph_stream_write_ld_min): Likewise.
+	(pph_stream_write_tree_vec): Likewise.
+	(pph_stream_write_cxx_binding_1): Likewise.
+	(pph_stream_write_cxx_binding): Likewise.
+	(pph_stream_write_class_binding): Likewise.
+	(pph_stream_write_label_binding): Likewise.
+	(pph_stream_write_binding_level): Likewise.
+	(pph_stream_write_c_language_function): Likewise.
+	(pph_stream_write_language_function): Likewise.
+	(pph_stream_write_ld_fn): Likewise.
+	(pph_stream_write_ld_ns): Likewise.
+	(pph_stream_write_ld_parm): Likewise.
+	(pph_stream_write_lang_specific_data): Likewise.
+	(pph_stream_write_tree): Only call
+	pph_stream_write_lang_specific_data for tree nodes that have
+	DECL_LANG_SPECIFIC set.
+	* pph-streamer.c (enum pph_trace_type): Add PPH_TRACE_CHAIN
+	and PPH_TRACE_BITPACK.
+	(pph_stream_trace): Add "chain" and "bitpack" to TYPE_S.
+	Handle PPH_TRACE_CHAIN And PPH_TRACE_BITPACK.
+	(pph_stream_trace_tree): Do not compute tree code size on
+	NULL_TREE.
+	(pph_stream_trace_chain): New.
+	(pph_stream_trace_bitpack): New.
+	(pph_stream_output_tree_header): New.
+	(pph_stream_hooks_init): Add hooks for alloc_tree and
+	output_tree_header.
+	* pph-streamer.h (PPH_RECORD_START): Declare.
+	(PPH_RECORD_END): Declare.
+	(pph_stream_trace_chain): Declare.
+	(pph_stream_trace_bitpack): Declare.
+	(pth_load_token_cache): Declare.
+	(pph_output_tree_or_ref): New.
+	(pph_output_uchar): New.
+	(pph_output_string_with_length): Do not trace the string
+	twice.
+	(pph_output_chain): New.
+	(pph_output_bitpack): New.
+	(pph_input_uchar): New.
+	(pph_input_chain): New.
+	(pph_input_bitpack): New.
+	(pph_get_pph_stream): Remove.  Update all users.
+	(pph_set_pph_stream): Remove.  Update all users.
+	(pph_stream_output_tree_header): Declare.
+	(pph_stream_alloc_tree): Declare.
+	* pph.c (pth_load_token): Factor out of pth_load_hunk.
+	(pth_load_token_cache): New.
+	(pph_read_file_contents): Read global_namespace.
+
 2011-03-30  Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer.h (pph_get_pph_stream): Rename from

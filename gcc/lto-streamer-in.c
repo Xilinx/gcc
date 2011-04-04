@@ -1852,9 +1852,15 @@ lto_materialize_tree (struct lto_input_block *ib, struct data_in *data_in,
     }
   else
     {
-      /* All other nodes can be materialized with a raw make_node
-	 call.  */
-      result = make_node (code);
+      /* For all other nodes, see if the streamer knows how to allocate
+	 it.  */
+      if (streamer_hooks ()->alloc_tree)
+	result = streamer_hooks ()->alloc_tree (code, ib, data_in);
+
+      /* If the hook did not handle it, materialize the tree with a raw
+	 make_node call.  */
+      if (result == NULL_TREE)
+	result = make_node (code);
     }
 
 #ifdef LTO_STREAMER_DEBUG
@@ -2360,37 +2366,14 @@ lto_input_tree_pointers (struct lto_input_block *ib, struct data_in *data_in,
   if (CODE_CONTAINS_STRUCT (code, TS_EXP))
     lto_input_ts_exp_tree_pointers (ib, data_in, expr);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_SSA_NAME))
-    {
-      /* We only stream the version number of SSA names.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     lto_input_ts_block_tree_pointers (ib, data_in, expr);
 
   if (CODE_CONTAINS_STRUCT (code, TS_BINFO))
     lto_input_ts_binfo_tree_pointers (ib, data_in, expr);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_STATEMENT_LIST))
-    {
-      /* This should only appear in GENERIC.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_CONSTRUCTOR))
     lto_input_ts_constructor_tree_pointers (ib, data_in, expr);
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OMP_CLAUSE))
-    {
-      /* This should only appear in High GIMPLE.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OPTIMIZATION))
-    {
-      sorry ("optimization options not supported yet");
-    }
 
   if (CODE_CONTAINS_STRUCT (code, TS_TARGET_OPTION))
     lto_input_ts_target_option (ib, expr);
@@ -2622,10 +2605,13 @@ lto_read_tree (struct lto_input_block *ib, struct data_in *data_in,
   if (TREE_CODE (result) == FUNCTION_DECL)
     gcc_assert (!lto_stream_as_builtin_p (result));
 
-  if (TREE_CODE (result) == VAR_DECL)
-    lto_register_var_decl_in_symtab (data_in, result);
-  else if (TREE_CODE (result) == FUNCTION_DECL && !DECL_BUILT_IN (result))
-    lto_register_function_decl_in_symtab (data_in, result);
+  if (streamer_hooks ()->register_decls_in_symtab_p)
+    {
+      if (TREE_CODE (result) == VAR_DECL)
+	lto_register_var_decl_in_symtab (data_in, result);
+      else if (TREE_CODE (result) == FUNCTION_DECL && !DECL_BUILT_IN (result))
+	lto_register_function_decl_in_symtab (data_in, result);
+    }
 
   /* end_marker = */ lto_input_1_unsigned (ib);
 
@@ -2739,6 +2725,8 @@ void
 lto_reader_init (void)
 {
   lto_streamer_init ();
+  file_name_hash_table = htab_create (37, hash_string_slot_node,
+				      eq_string_slot_node, free);
   if (streamer_hooks ()->reader_init)
     streamer_hooks ()->reader_init ();
 }
@@ -2751,8 +2739,6 @@ gimple_streamer_reader_init (void)
 {
   memset (&lto_stats, 0, sizeof (lto_stats));
   bitmap_obstack_initialize (NULL);
-  file_name_hash_table = htab_create (37, hash_string_slot_node,
-				      eq_string_slot_node, free);
   gimple_register_cfg_hooks ();
 }
 

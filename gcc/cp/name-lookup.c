@@ -285,7 +285,7 @@ cxx_binding_init (cxx_binding *binding, tree value, tree type)
 
 /* (GC)-allocate a binding object with VALUE and TYPE member initialized.  */
 
-static cxx_binding *
+cxx_binding *
 cxx_binding_make (tree value, tree type)
 {
   cxx_binding *binding;

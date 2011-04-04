@@ -1,3 +1,32 @@
+2011-04-04  Diego Novillo  <dnovillo@google.com>
+
+	* lto-streamer-in.c (lto_input_tree_pointers): Remove checks
+	for TS_SSA_NAME, TS_STATEMENT_LIST, TS_OMP_CLAUSE and
+	TS_OPTIMIZATION.
+	(lto_read_tree): Check for
+	streamer_hooks.register_decls_in_symtab_p before registering
+	symbols in LTO symtabs.
+	(gimple_streamer_reader_init): Move file_name_hash_table
+	initialization to lto_reader_init.
+	(lto_materialize_tree): Call streamer_hooks.alloc_tree if it exists.
+	* lto-streamer-out.c (lto_output_tree_header): Remove empty
+	line.
+	(lto_output_tree_header): Assert that the tag to be written is valid.
+	Call streamer_hooks.output_tree_header if it exists.
+	* lto-streamer.c (gimple_streamer_hooks_init): Set
+	register_decls_in_symtab_p to true.
+	* lto-streamer.h (struct lto_streamer_hooks): Add field
+	register_decls_in_symtab_p.
+	(struct lto_file_decl_data): Add field sdata.
+	(struct output_block): Add field sdata.
+	(struct lto_streamer_hooks): Add fields
+	alloc_tree and output_tree_header.
+	(enum LTO_tags): Add an LTO_LAST_TAG marker, force
+	LTO_NUM_TAGS have a value bigger than MAX_TREE_CODES and
+	LAST_AND_UNUSED_GIMPLE_CODE.
+	(lto_tag_is_tree_code_p): Return true for anything less than
+	MAX_TREE_CODES.
+
 2011-03-30  Diego Novillo  <dnovillo@google.com>
 
 	* lto-streamer-in.c (lto_input_chain): Make extern.

@@ -37,6 +37,7 @@ along with GCC; see the file COPYING3.  If not see
    not allow passing a FILE handle to them.  */
 static FILE *current_pph_file = NULL;
 
+
 /* Callback for packing value fields in ASTs.  BP is the bitpack 
    we are packing into.  EXPR is the tree to pack.  */
 
@@ -53,11 +54,15 @@ pph_stream_pack_value_fields (struct bitpack_d *bp ATTRIBUTE_UNUSED,
 void
 pph_stream_init_write (pph_stream *stream)
 {
+  lto_writer_init ();
   stream->out_state = lto_new_out_decl_state ();
   lto_push_out_decl_state (stream->out_state);
   stream->decl_state_stream = XCNEW (struct lto_output_stream);
   stream->ob = create_output_block (LTO_section_decls);
-  pph_set_pph_stream (stream->ob, stream);
+
+  /* Associate STREAM with STREAM->OB so we can recover it from the
+     streamer hooks.  */
+  stream->ob->sdata = (void *) stream;
 }
 
 
@@ -160,20 +165,37 @@ pph_stream_flush_buffers (pph_stream *stream)
 }
 
 
+/* Start a new record in STREAM for data in DATA.  If DATA is NULL,
+   write an end-of-record marker and return false.  Otherwise, write a
+   start-of-record marker and return true.  */
+
+static inline bool
+pph_start_record (pph_stream *stream, void *data)
+{
+  if (data)
+    {
+      pph_output_uchar (stream, PPH_RECORD_START);
+      return true;
+    }
+  else
+    {
+      pph_output_uchar (stream, PPH_RECORD_END);
+      return false;
+    }
+}
+
+
 /* Write all the fields in lang_decl_base instance LDB to OB.  */
 
 static void
-pph_stream_write_ld_base (struct output_block *ob, struct lang_decl_base *ldb)
+pph_stream_write_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
 {
   struct bitpack_d bp;
 
-  if (ldb == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, ldb))
+    return;
 
-  bp = bitpack_create (ob->main_stream);
+  bp = bitpack_create (stream->ob->main_stream);
   bp_pack_value (&bp, ldb->selector, 16);
   bp_pack_value (&bp, ldb->language, 4);
   bp_pack_value (&bp, ldb->use_template, 2);
@@ -186,277 +208,245 @@ pph_stream_write_ld_base (struct output_block *ob, struct lang_decl_base *ldb)
   bp_pack_value (&bp, ldb->template_conv_p, 1);
   bp_pack_value (&bp, ldb->odr_used, 1);
   bp_pack_value (&bp, ldb->u2sel, 1);
-  lto_output_bitpack (&bp);
+  pph_output_bitpack (stream, &bp);
 }
 
 
-/* Write all the fields in lang_decl_min instance LDM to OB.  If REF_P
+/* Write all the fields in lang_decl_min instance LDM to STREAM.  If REF_P
    is true, all tree fields should be written as references.  */
 
 static void
-pph_stream_write_ld_min (struct output_block *ob, struct lang_decl_min *ldm,
+pph_stream_write_ld_min (pph_stream *stream, struct lang_decl_min *ldm,
 		         bool ref_p)
 {
-  if (ldm == 0)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, ldm))
+    return;
 
   gcc_assert (ldm->base.selector == 0);
 
-  lto_output_tree_or_ref (ob, ldm->template_info, ref_p);
+  pph_output_tree_or_ref (stream, ldm->template_info, ref_p);
   if (ldm->base.u2sel == 0)
-    lto_output_tree_or_ref (ob, ldm->u2.access, ref_p);
+    pph_output_tree_or_ref (stream, ldm->u2.access, ref_p);
   else if (ldm->base.u2sel == 1)
-    lto_output_sleb128_stream (ob->main_stream, ldm->u2.discriminator);
+    pph_output_uint (stream, ldm->u2.discriminator);
   else
     gcc_unreachable ();
 }
 
 
-/* Write all the trees in VEC V to OB.  REF_P is true if the trees should
+/* Write all the trees in VEC V to STREAM.  REF_P is true if the trees should
    be written as references.  */
 
 static void
-pph_stream_write_tree_vec (struct output_block *ob, VEC(tree,gc) *v, bool ref_p)
+pph_stream_write_tree_vec (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
 {
   unsigned i;
   tree t;
 
-  lto_output_uleb128_stream (ob->main_stream, VEC_length (tree, v));
+  pph_output_uint (stream, VEC_length (tree, v));
   for (i = 0; VEC_iterate (tree, v, i, t); i++)
-    lto_output_tree_or_ref (ob, t, ref_p);
+    pph_output_tree_or_ref (stream, t, ref_p);
 }
 
 /* Forward declaration to break cyclic dependencies.  */
-static void pph_stream_write_binding_level (struct output_block *,
+static void pph_stream_write_binding_level (pph_stream *,
 					    struct cp_binding_level *, bool);
 
 
-/* Helper for pph_stream_write_cxx_binding.  OB, CB and REF_P are as in
+/* Helper for pph_stream_write_cxx_binding.  STREAM, CB and REF_P are as in
    pph_stream_write_cxx_binding.  */
 
 static void
-pph_stream_write_cxx_binding_1 (struct output_block *ob, cxx_binding *cb,
-				bool ref_p)
+pph_stream_write_cxx_binding_1 (pph_stream *stream, cxx_binding *cb, bool ref_p)
 {
   struct bitpack_d bp;
 
-  if (cb == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, cb))
+    return;
 
-  lto_output_tree_or_ref (ob, cb->value, ref_p);
-  lto_output_tree_or_ref (ob, cb->type, ref_p);
-  pph_stream_write_binding_level (ob, cb->scope, ref_p);
-  bp = bitpack_create (ob->main_stream);
+  pph_output_tree_or_ref (stream, cb->value, ref_p);
+  pph_output_tree_or_ref (stream, cb->type, ref_p);
+  pph_stream_write_binding_level (stream, cb->scope, ref_p);
+  bp = bitpack_create (stream->ob->main_stream);
   bp_pack_value (&bp, cb->value_is_inherited, 1);
   bp_pack_value (&bp, cb->is_local, 1);
-  lto_output_bitpack (&bp);
+  pph_output_bitpack (stream, &bp);
 }
 
 
-/* Write all the fields of cxx_binding instance CB to OB.  REF_P is
+/* Write all the fields of cxx_binding instance CB to STREAM.  REF_P is
    true if the tree fields should be written as references.  */
 
 static void
-pph_stream_write_cxx_binding (struct output_block *ob, cxx_binding *cb,
-			      bool ref_p)
+pph_stream_write_cxx_binding (pph_stream *stream, cxx_binding *cb, bool ref_p)
 {
   unsigned num_bindings;
   cxx_binding *prev;
 
-  if (cb == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, cb))
+    return;
 
   for (num_bindings = 0, prev = cb->previous; prev; prev = prev->previous)
     num_bindings++;
 
   /* Write the list of previous bindings.  */
-  lto_output_sleb128_stream (ob->main_stream, num_bindings);
+  pph_output_uint (stream, num_bindings);
   for (prev = cb->previous; prev; prev = prev->previous)
-    pph_stream_write_cxx_binding_1 (ob, prev, ref_p);
+    pph_stream_write_cxx_binding_1 (stream, prev, ref_p);
 
   /* Write the current binding at the end.  */
-  pph_stream_write_cxx_binding_1 (ob, cb, ref_p);
+  pph_stream_write_cxx_binding_1 (stream, cb, ref_p);
 }
 
 
-/* Write all the fields of cp_class_binding instance CB to OB.  REF_P
+/* Write all the fields of cp_class_binding instance CB to STREAM.  REF_P
    is true if the tree fields should be written as references.  */
 
 static void
-pph_stream_write_class_binding (struct output_block *ob,
-				cp_class_binding *cb, bool ref_p)
+pph_stream_write_class_binding (pph_stream *stream, cp_class_binding *cb,
+			        bool ref_p)
 {
-  if (cb == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, cb))
+    return;
 
-  pph_stream_write_cxx_binding (ob, &cb->base, ref_p);
-  lto_output_tree_or_ref (ob, cb->identifier, ref_p);
+  pph_stream_write_cxx_binding (stream, &cb->base, ref_p);
+  pph_output_tree_or_ref (stream, cb->identifier, ref_p);
 }
 
 
-/* Write all the fields of cp_label_binding instance LB to OB.  If
+/* Write all the fields of cp_label_binding instance LB to STREAM.  If
    REF_P is true, tree fields will be written as references.  */
 
 static void
-pph_stream_write_label_binding (struct output_block *ob,
-				cp_label_binding *lb, bool ref_p)
+pph_stream_write_label_binding (pph_stream *stream, cp_label_binding *lb,
+				bool ref_p)
 {
-  if (lb == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, lb))
+    return;
 
-  lto_output_tree_or_ref (ob, lb->label, ref_p);
-  lto_output_tree_or_ref (ob, lb->prev_value, ref_p);
+  pph_output_tree_or_ref (stream, lb->label, ref_p);
+  pph_output_tree_or_ref (stream, lb->prev_value, ref_p);
 }
 
 
-/* Write all the fields of cp_binding_level instance BL to OB.  If
+/* Write all the fields of cp_binding_level instance BL to STREAM.  If
    REF_P is true, tree fields will be written as references.  */
 
 static void
-pph_stream_write_binding_level (struct output_block *ob,
-			        struct cp_binding_level *bl, bool ref_p)
+pph_stream_write_binding_level (pph_stream *stream, struct cp_binding_level *bl,
+				bool ref_p)
 {
   unsigned i;
   cp_class_binding *cs;
   cp_label_binding *sl;
   struct bitpack_d bp;
 
-  if (bl == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, bl))
+    return;
 
-  lto_output_chain (ob, bl->names, ref_p);
-  lto_output_uleb128_stream (ob->main_stream, bl->names_size);
-  lto_output_chain (ob, bl->namespaces, ref_p);
+  pph_output_chain (stream, bl->names, ref_p);
+  pph_output_uint (stream, bl->names_size);
+  pph_output_chain (stream, bl->namespaces, ref_p);
 
-  pph_stream_write_tree_vec (ob, bl->static_decls, ref_p);
+  pph_stream_write_tree_vec (stream, bl->static_decls, ref_p);
 
-  lto_output_chain (ob, bl->usings, ref_p);
-  lto_output_chain (ob, bl->using_directives, ref_p);
+  pph_output_chain (stream, bl->usings, ref_p);
+  pph_output_chain (stream, bl->using_directives, ref_p);
 
-  lto_output_uleb128_stream (ob->main_stream, VEC_length (cp_class_binding,
-					                  bl->class_shadowed));
+  pph_output_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
   for (i = 0; VEC_iterate (cp_class_binding, bl->class_shadowed, i, cs); i++)
-    pph_stream_write_class_binding (ob, cs, ref_p);
+    pph_stream_write_class_binding (stream, cs, ref_p);
 
-  lto_output_tree_or_ref (ob, bl->type_shadowed, ref_p);
+  pph_output_tree_or_ref (stream, bl->type_shadowed, ref_p);
 
-  lto_output_uleb128_stream (ob->main_stream, VEC_length (cp_label_binding,
-					                  bl->shadowed_labels));
+  pph_output_uint (stream, VEC_length (cp_label_binding, bl->shadowed_labels));
   for (i = 0; VEC_iterate (cp_label_binding, bl->shadowed_labels, i, sl); i++)
-    pph_stream_write_label_binding (ob, sl, ref_p);
+    pph_stream_write_label_binding (stream, sl, ref_p);
 
-  lto_output_chain (ob, bl->blocks, ref_p);
-  lto_output_tree_or_ref (ob, bl->this_entity, ref_p);
-  pph_stream_write_binding_level (ob, bl->level_chain, ref_p);
-  pph_stream_write_tree_vec (ob, bl->dead_vars_from_for, ref_p);
-  lto_output_chain (ob, bl->statement_list, ref_p);
-  lto_output_sleb128_stream (ob->main_stream, bl->binding_depth);
+  pph_output_chain (stream, bl->blocks, ref_p);
+  pph_output_tree_or_ref (stream, bl->this_entity, ref_p);
+  pph_stream_write_binding_level (stream, bl->level_chain, ref_p);
+  pph_stream_write_tree_vec (stream, bl->dead_vars_from_for, ref_p);
+  pph_output_chain (stream, bl->statement_list, ref_p);
+  pph_output_uint (stream, bl->binding_depth);
 
-  bp = bitpack_create (ob->main_stream);
+  bp = bitpack_create (stream->ob->main_stream);
   bp_pack_value (&bp, bl->kind, 4);
   bp_pack_value (&bp, bl->keep, 1);
   bp_pack_value (&bp, bl->more_cleanups_ok, 1);
   bp_pack_value (&bp, bl->have_cleanups, 1);
-  lto_output_bitpack (&bp);
+  pph_output_bitpack (stream, &bp);
 }
 
 
-/* Write all the fields of c_language_function instance CLF to OB.  If
+/* Write all the fields of c_language_function instance CLF to STREAM.  If
    REF_P is true, all tree fields should be written as references.  */
 
 static void
-pph_stream_write_c_language_function (struct output_block *ob,
+pph_stream_write_c_language_function (pph_stream *stream,
 				      struct c_language_function *clf,
 				      bool ref_p)
 {
-  if (clf == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, clf))
+    return;
 
-  lto_output_tree_or_ref (ob, clf->x_stmt_tree.x_cur_stmt_list, ref_p);
-  lto_output_sleb128_stream (ob->main_stream,
-			     clf->x_stmt_tree.stmts_are_full_exprs_p);
+  pph_output_tree_or_ref (stream, clf->x_stmt_tree.x_cur_stmt_list, ref_p);
+  pph_output_uint (stream, clf->x_stmt_tree.stmts_are_full_exprs_p);
 }
 
 
-/* Write all the fields of language_function instance LF to OB.  If
+/* Write all the fields of language_function instance LF to STREAM.  If
    REF_P is true, all tree fields should be written as references.  */
 
 static void
-pph_stream_write_language_function (struct output_block *ob,
+pph_stream_write_language_function (pph_stream *stream,
 				    struct language_function *lf,
 				    bool ref_p)
 {
   struct bitpack_d bp;
 
-  if (lf == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, lf))
+    return;
 
-  pph_stream_write_c_language_function (ob, &lf->base, ref_p);
-  lto_output_tree_or_ref (ob, lf->x_cdtor_label, ref_p);
-  lto_output_tree_or_ref (ob, lf->x_current_class_ptr, ref_p);
-  lto_output_tree_or_ref (ob, lf->x_current_class_ref, ref_p);
-  lto_output_tree_or_ref (ob, lf->x_eh_spec_block, ref_p);
-  lto_output_tree_or_ref (ob, lf->x_in_charge_parm, ref_p);
-  lto_output_tree_or_ref (ob, lf->x_vtt_parm, ref_p);
-  lto_output_tree_or_ref (ob, lf->x_return_value, ref_p);
-  bp = bitpack_create (ob->main_stream);
+  pph_stream_write_c_language_function (stream, &lf->base, ref_p);
+  pph_output_tree_or_ref (stream, lf->x_cdtor_label, ref_p);
+  pph_output_tree_or_ref (stream, lf->x_current_class_ptr, ref_p);
+  pph_output_tree_or_ref (stream, lf->x_current_class_ref, ref_p);
+  pph_output_tree_or_ref (stream, lf->x_eh_spec_block, ref_p);
+  pph_output_tree_or_ref (stream, lf->x_in_charge_parm, ref_p);
+  pph_output_tree_or_ref (stream, lf->x_vtt_parm, ref_p);
+  pph_output_tree_or_ref (stream, lf->x_return_value, ref_p);
+  bp = bitpack_create (stream->ob->main_stream);
   bp_pack_value (&bp, lf->x_returns_value, 1);
   bp_pack_value (&bp, lf->x_returns_null, 1);
   bp_pack_value (&bp, lf->x_returns_abnormally, 1);
   bp_pack_value (&bp, lf->x_in_function_try_handler, 1);
   bp_pack_value (&bp, lf->x_in_base_initializer, 1);
   bp_pack_value (&bp, lf->can_throw, 1);
-  lto_output_bitpack (&bp);
+  pph_output_bitpack (stream, &bp);
 
   /* FIXME pph.  We are not writing lf->x_named_labels.  */
 
-  pph_stream_write_binding_level (ob, lf->bindings, ref_p);
-  pph_stream_write_tree_vec (ob, lf->x_local_names, ref_p);
+  pph_stream_write_binding_level (stream, lf->bindings, ref_p);
+  pph_stream_write_tree_vec (stream, lf->x_local_names, ref_p);
 
   /* FIXME pph.  We are not writing lf->extern_decl_map.  */
 }
 
 
-/* Write all the fields of lang_decl_fn instance LDF to OB.  If REF_P
+/* Write all the fields of lang_decl_fn instance LDF to STREAM.  If REF_P
    is true, all tree fields should be written as references.  */
 
 static void
-pph_stream_write_ld_fn (struct output_block *ob, struct lang_decl_fn *ldf,
+pph_stream_write_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf,
 			bool ref_p)
 {
   struct bitpack_d bp;
 
-  if (ldf == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, ldf))
+    return;
 
-  bp = bitpack_create (ob->main_stream);
+  bp = bitpack_create (stream->ob->main_stream);
   bp_pack_value (&bp, ldf->operator_code, 16);
   bp_pack_value (&bp, ldf->global_ctor_p, 1);
   bp_pack_value (&bp, ldf->global_dtor_p, 1);
@@ -473,104 +463,113 @@ pph_stream_write_ld_fn (struct output_block *ob, struct lang_decl_fn *ldf,
   bp_pack_value (&bp, ldf->thunk_p, 1);
   bp_pack_value (&bp, ldf->this_thunk_p, 1);
   bp_pack_value (&bp, ldf->hidden_friend_p, 1);
-  lto_output_bitpack (&bp);
+  pph_output_bitpack (stream, &bp);
 
-  lto_output_tree_or_ref (ob, ldf->befriending_classes, ref_p);
-  lto_output_tree_or_ref (ob, ldf->context, ref_p);
+  pph_output_tree_or_ref (stream, ldf->befriending_classes, ref_p);
+  pph_output_tree_or_ref (stream, ldf->context, ref_p);
 
   if (ldf->thunk_p == 0)
-    lto_output_tree_or_ref (ob, ldf->u5.cloned_function, ref_p);
+    pph_output_tree_or_ref (stream, ldf->u5.cloned_function, ref_p);
   else if (ldf->thunk_p == 1)
-    lto_output_sleb128_stream (ob->main_stream, ldf->u5.fixed_offset);
+    pph_output_uint (stream, ldf->u5.fixed_offset);
   else
     gcc_unreachable ();
 
   if (ldf->pending_inline_p == 1)
-    pth_save_token_cache (ldf->u.pending_inline_info, pph_get_pph_stream (ob));
+    pth_save_token_cache (ldf->u.pending_inline_info, stream);
   else if (ldf->pending_inline_p == 0)
-    pph_stream_write_language_function (ob, ldf->u.saved_language_function,
+    pph_stream_write_language_function (stream, ldf->u.saved_language_function,
 					ref_p);
 }
 
 
-/* Write all the fields of lang_decl_ns instance LDNS to OB.  If REF_P
+/* Write all the fields of lang_decl_ns instance LDNS to STREAM.  If REF_P
    is true, all tree fields should be written as references.  */
 
 static void
-pph_stream_write_ld_ns (struct output_block *ob, struct lang_decl_ns *ldns,
+pph_stream_write_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns,
 			bool ref_p)
 {
   struct cp_binding_level *level;
 
-  if (ldns == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, ldns))
+    return;
 
   level = ldns->level;
-  pph_stream_write_binding_level (ob, level, ref_p);
+  pph_stream_write_binding_level (stream, level, ref_p);
 }
 
 
-/* Write all the fields of lang_decl_parm instance LDP to OB.  If REF_P
+/* Write all the fields of lang_decl_parm instance LDP to STREAM.  If REF_P
    is true, all tree fields should be written as references.  */
 
 static void
-pph_stream_write_ld_parm (struct output_block *ob, struct lang_decl_parm *ldp)
+pph_stream_write_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
 {
-  if (ldp == NULL)
-    {
-      pph_output_uint (pph_get_pph_stream (ob), 0);
-      return;
-    }
+  if (!pph_start_record (stream, ldp))
+    return;
 
-  lto_output_sleb128_stream (ob->main_stream, ldp->level);
-  lto_output_sleb128_stream (ob->main_stream, ldp->index);
+  pph_output_uint (stream, ldp->level);
+  pph_output_uint (stream, ldp->index);
 }
 
 
-/* Write all the lang-specific data in DECL to OB.  REF_P is true if
+/* Write all the lang-specific data in DECL to STREAM.  REF_P is true if
    the trees referenced in lang-specific fields should be written as
    references.  */
 
 static void
-pph_stream_write_lang_specific_data (struct output_block *ob,
-				     tree decl, bool ref_p)
+pph_stream_write_lang_specific_data (pph_stream *stream, tree decl, bool ref_p)
 {
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
 
-  gcc_assert (DECL_P (decl) && DECL_LANG_SPECIFIC (decl));
+  gcc_assert (DECL_P (decl));
 
   ld = DECL_LANG_SPECIFIC (decl);
-  ldb = &ld->u.base;
-
+  if (!pph_start_record (stream, ld))
+    return;
+    
   /* Write all the fields in lang_decl_base.  */
-  pph_stream_write_ld_base (ob, ldb);
+  ldb = &ld->u.base;
+  pph_stream_write_ld_base (stream, ldb);
 
   if (ldb->selector == 0)
     {
       /* Write all the fields in lang_decl_min.  */
-      pph_stream_write_ld_min (ob, &ld->u.min, ref_p);
+      pph_stream_write_ld_min (stream, &ld->u.min, ref_p);
     }
   else if (ldb->selector == 1)
     {
       /* Write all the fields in lang_decl_fn.  */
-      pph_stream_write_ld_fn (ob, &ld->u.fn, ref_p);
+      pph_stream_write_ld_fn (stream, &ld->u.fn, ref_p);
     }
   else if (ldb->selector == 2)
     {
       /* Write all the fields in lang_decl_ns.  */
-      pph_stream_write_ld_ns (ob, &ld->u.ns, ref_p);
+      pph_stream_write_ld_ns (stream, &ld->u.ns, ref_p);
     }
   else if (ldb->selector == 3)
     {
       /* Write all the fields in lang_decl_parm.  */
-      pph_stream_write_ld_parm (ob, &ld->u.parm);
+      pph_stream_write_ld_parm (stream, &ld->u.parm);
     }
   else
     gcc_unreachable ();
+}
+
+
+/* Write header information for some AST nodes not handled by the
+   common streamer code.  EXPR is the tree to write to output block
+   OB.  If EXPR does not need to be handled specially, do nothing.  */
+
+void
+pph_stream_output_tree_header (struct output_block *ob, tree expr)
+{
+  pph_stream *stream = (pph_stream *) ob->sdata;
+
+  if (TREE_CODE (expr) == CALL_EXPR)
+    pph_output_uint (stream, call_expr_nargs (expr));
 }
 
 
@@ -581,13 +580,20 @@ pph_stream_write_lang_specific_data (struct output_block *ob,
 void
 pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 {
+  pph_stream *stream = (pph_stream *) ob->sdata;
+
   if (DECL_P (expr))
     {
-      if (DECL_LANG_SPECIFIC (expr))
-	pph_stream_write_lang_specific_data (ob, expr, ref_p);
+      if (TREE_CODE (expr) == FUNCTION_DECL
+	  || TREE_CODE (expr) == NAMESPACE_DECL
+	  || TREE_CODE (expr) == PARM_DECL
+	  || LANG_DECL_HAS_MIN (expr))
+	{
+	  pph_stream_write_lang_specific_data (stream, expr, ref_p);
 
-      if (TREE_CODE (expr) == FUNCTION_DECL)
-	lto_output_tree_or_ref (ob, DECL_SAVED_TREE (expr), ref_p);
+	  if (TREE_CODE (expr) == FUNCTION_DECL)
+	    pph_output_tree (stream, DECL_SAVED_TREE (expr), ref_p);
+	}
     }
   else if (TREE_CODE (expr) == STATEMENT_LIST)
     {
@@ -598,10 +604,10 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
       for (num_stmts = 0, i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
 	num_stmts++;
 
-      lto_output_sleb128_stream (ob->main_stream, num_stmts);
+      pph_output_uint (stream, num_stmts);
 
       /* Write the statements.  */
       for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
-	lto_output_tree_or_ref (ob, tsi_stmt (i), ref_p);
+	pph_output_tree (stream, tsi_stmt (i), ref_p);
     }
 }

@@ -68,6 +68,8 @@ pph_stream_hooks_init (void)
   h->pack_value_fields = pph_stream_pack_value_fields;
   h->indexable_with_decls_p = pph_indexable_with_decls_p;
   h->unpack_value_fields = pph_stream_unpack_value_fields;
+  h->alloc_tree = pph_stream_alloc_tree;
+  h->output_tree_header = pph_stream_output_tree_header;
 }
 
 
@@ -118,7 +120,9 @@ enum pph_trace_type
     PPH_TRACE_TREE,
     PPH_TRACE_UINT,
     PPH_TRACE_BYTES,
-    PPH_TRACE_STRING
+    PPH_TRACE_STRING,
+    PPH_TRACE_CHAIN,
+    PPH_TRACE_BITPACK
 };
 
 
@@ -131,7 +135,8 @@ pph_stream_trace (pph_stream *stream, const void *data, unsigned int nbytes,
 		  enum pph_trace_type type)
 {
   const char *op = (stream->write_p) ? "write" : "read";
-  const char *type_s[] = { "tree", "uint", "bytes", "string" };
+  const char *type_s[] = { "tree", "uint", "bytes", "string", "chain",
+                           "bitpack" };
 
   fprintf (pph_logfile, "*** %s: op=%s, type=%s, size=%u, value=",
 	   stream->name, op, type_s[type], (unsigned) nbytes);
@@ -174,6 +179,22 @@ pph_stream_trace (pph_stream *stream, const void *data, unsigned int nbytes,
 	fprintf (pph_logfile, "<nil>");
       break;
 
+    case PPH_TRACE_CHAIN:
+      {
+	const_tree t = (const_tree) data;
+	print_generic_expr (pph_logfile, CONST_CAST (union tree_node *, t),
+			    TDF_SLIM);
+	fprintf (pph_logfile, " (%d nodes in chain)", list_length (t));
+      }
+      break;
+
+    case PPH_TRACE_BITPACK:
+      {
+	const struct bitpack_d *bp = (const struct bitpack_d *) data;
+	fprintf (pph_logfile, "0x%lx", bp->word);
+      }
+    break;
+
     default:
       gcc_unreachable ();
     }
@@ -187,7 +208,8 @@ pph_stream_trace (pph_stream *stream, const void *data, unsigned int nbytes,
 void
 pph_stream_trace_tree (pph_stream *stream, tree t)
 {
-  pph_stream_trace (stream, t, tree_code_size (TREE_CODE (t)), PPH_TRACE_TREE);
+  pph_stream_trace (stream, t, t ? tree_code_size (TREE_CODE (t)) : 0,
+		    PPH_TRACE_TREE);
 }
 
 
@@ -226,4 +248,23 @@ pph_stream_trace_string_with_length (pph_stream *stream, const char *s,
 				     unsigned int len)
 {
   pph_stream_trace (stream, s, len, PPH_TRACE_STRING);
+}
+
+
+/* Show tracing information for a tree chain starting with T on STREAM.  */
+
+void
+pph_stream_trace_chain (pph_stream *stream, tree t)
+{
+  pph_stream_trace (stream, t, t ? tree_code_size (TREE_CODE (t)) : 0,
+		    PPH_TRACE_CHAIN);
+}
+
+
+/* Show tracing information for a bitpack BP on STREAM.  */
+
+void
+pph_stream_trace_bitpack (pph_stream *stream, struct bitpack_d *bp)
+{
+  pph_stream_trace (stream, bp, sizeof (*bp), PPH_TRACE_BITPACK);
 }

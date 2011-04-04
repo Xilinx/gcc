@@ -230,9 +230,6 @@ static void cp_lexer_print_token
   (FILE *, cp_token *);
 #endif /* ENABLE_CHECKING */
 
-static cp_token_cache *cp_token_cache_new
-  (cp_token *, cp_token *);
-
 static void cp_parser_initial_pragma
   (cp_token *);
 
@@ -1003,7 +1000,7 @@ cp_lexer_stop_debugging (cp_lexer* lexer)
 
 /* Create a new cp_token_cache, representing a range of tokens.  */
 
-static cp_token_cache *
+cp_token_cache *
 cp_token_cache_new (cp_token *first, cp_token *last)
 {
   cp_token_cache *cache = ggc_alloc_cp_token_cache ();
