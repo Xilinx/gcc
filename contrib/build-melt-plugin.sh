@@ -84,7 +84,7 @@ set_default_variables() {
 
 ################ give a verbose message
 verbose_echo() {
-    if [ ! -z "$quiet" ]; then
+    if [ -z "$quiet" ]; then
 	echo build-melt-plugin: $@ 
     fi
 }
@@ -96,11 +96,9 @@ error_echo() {
 }
 
 verbose_sleep() {
-    if [ ! -z "$quiet" ]; then
+    if [ -z "$quiet" ]; then
 	echo Sleeping $MELTSLEEPDELAY seconds so you can interrupt with Ctrl-C
-	if sleep $MELTSLEEPDELAY; then
-	    error_echo "Interrupted while sleeping"
-	fi
+	sleep  $MELTSLEEPDELAY ||  error_echo Interrupted while sleeping $MELTSLEEPDELAY seconds
     fi
 }
 ################ parsing the shell program argument
@@ -258,7 +256,7 @@ build_melt_run_headers() {
 ################ build melt.so with appropriate default settings
 build_melt_dot_so() {
     # compile the melt.so file
-    host_full_cflags="$HOSTCFLAGS -fPIC -shared -DMELT_IS_PLUGIN -I. -I$GCCMELT_SOURCE_TREE -I$gcc_plugin_directory/include"
+    host_full_cflags="$HOSTCFLAGS -fPIC -shared -DMELT_IS_PLUGIN -I. -Imelt/generated -I$GCCMELT_SOURCE_TREE -I$gcc_plugin_directory/include"
     verbose_echo Building melt.so with $HOSTCC $host_full_cflags
     verbose_echo our HOSTMELTCFLAGS are $HOSTMELTCFLAGS
     verbose_sleep
@@ -291,8 +289,8 @@ build_melt_dot_so() {
 
 ## utility function to make a stage of MELT
 do_melt_make () {
-    verbose_echo making MELT using $GCCMELT_SOURCE_TREE/melt-make.mk $*
-    $MAKE -w -f $GCCMELT_SOURCE_TREE/melt-make.mk \
+    verbose_echo making MELT using $GCCMELT_SOURCE_TREE/melt-build.mk $*
+    $MAKE -w -f $GCCMELT_SOURCE_TREE/melt-build.mk \
 	melt_source_dir=$gcc_plugin_directory/melt-source \
 	melt_module_dir=$gcc_plugin_directory/libexec/melt-modules \
 	melt_make_module_makefile=$GCCMELT_SOURCE_TREE/melt-module.mk \
@@ -351,11 +349,11 @@ bootstrap_melt() {
 	error_echo Failure in MELT second stage
     fi
     ## third stage
-    verbose_echo Starting MELT third and final stage
+    verbose_echo Starting MELT final stage
     if do_melt_make warmelt ; then
 	verbose_echo Did MELT final stage successfully
     else
-	error_echo Failure in MELT third and final stage
+	error_echo Failure in MELT final stage
     fi
     ## default list of modules & documentation
     verbose_echo Building MELT default modules
@@ -387,11 +385,11 @@ install_melt() {
     verbose_echo Populating the MELT source directory with MELT files
      $HOSTADMINCMD $HOSTINSTALL -m 644 melt-predef.melt $GCCMELT_SOURCE_TREE/melt/*.melt $gcc_plugin_directory/melt-source/
     verbose_echo Populating the MELT source directory with generated C files and module catalog
-    $HOSTADMINCMD $HOSTINSTALL -m 644 warmelt*3*.c xtramelt*.c melt-default-modules.modlis  $gcc_plugin_directory/melt-source/
+    $HOSTADMINCMD $HOSTINSTALL -m 644 melt-sources/* melt-default-modules.modlis  $gcc_plugin_directory/melt-source/
     verbose_echo Installing the MELT module directory
     $HOSTADMINCMD $HOSTINSTALL -m 755 -d $gcc_plugin_directory/libexec/melt-modules
     verbose_echo Filling the MELT module directory
-    $HOSTADMINCMD $HOSTINSTALL -m 755 warmelt*3.so xtramelt*.so $gcc_plugin_directory/libexec/melt-modules/
+    $HOSTADMINCMD $HOSTINSTALL -m 755 melt-modules/*  $gcc_plugin_directory/libexec/melt-modules/
 }
 
 ################################################################

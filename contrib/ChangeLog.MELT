@@ -1,4 +1,13 @@
 
+2011-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* make-melt-source-tar.sh: Update copyright year.
+	copy the MISSINGMELT_PLUGIN_HEADERS files.
+
+	* build-melt-plugin.sh (verbose_echo, verbose_sleep): Work.
+	(build_melt_dot_so): Pass -Imelt/generated.
+	(do_melt_make): Use melt-build.mk.
+	(bootstrap_melt): Use warmelt0, warmelt pseudo targets.
+
 2011-03-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* gt-melt-runtime-plugin-4.5.h: Remove file, because something
 	similar is under gcc/melt/generated/

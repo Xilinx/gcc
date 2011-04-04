@@ -1,5 +1,8 @@
 
 2011-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (MISSINGMELT_PLUGIN_HEADERS): New variable.
+
+2011-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (MELT_PLUGIN_HEADERS): Remove $(REG_SET_H).
 
 2011-04-01  Basile Starynkevitch  <basile@starynkevitch.net>

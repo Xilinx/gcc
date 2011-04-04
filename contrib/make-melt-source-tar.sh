@@ -5,7 +5,7 @@
 ##
 ##    Middle End Lisp Translator = MELT
 ##
-##    Copyright (C)  2010 Free Software Foundation, Inc.
+##    Copyright (C)  2010, 2011 Free Software Foundation, Inc.
 ##    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 ## 
 ## This file is part of GCC.
@@ -58,6 +58,14 @@ echo $0: You should have recently run in gcc/ of build tree: make upgrade-warmel
 copymelt gcc/DATESTAMP GCCMELT-DATESTAMP
 copymelt gcc/REVISION GCCMELT-REVISION
 
+
+## copy the non MELT files which are in MISSINGMELT_PLUGIN_HEADERS, that is
+## the files which really should be available in the plugin/include/
+## directory but are not yet.  Keep in sync with gcc/Makefile.in
+copymelt gcc/realmpfr.h realmpfr.h
+copymelt gcc/gimple-pretty-print.h gimple-pretty-print.h
+copymelt gcc/tree-pretty-print.h tree-pretty-print.h
+
 for mf in $gccmelt_source_tree/gcc/melt/*.melt ; do 
     cp -av $mf  $gccmelt_tarbase/melt/
 done
@@ -65,6 +73,7 @@ done
 for mf in $gccmelt_source_tree/gcc/melt/generated/*.[ch] ; do 
     cp -av $mf  $gccmelt_tarbase/melt/generated/
 done
+
 
 for mf in $gccmelt_source_tree/gcc/*melt*  ; do
     case $mf in

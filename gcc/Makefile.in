@@ -4616,11 +4616,18 @@ PLUGIN_HEADERS = $(TREE_H) $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   cppdefault.h flags.h $(MD5_H) params.def params.h prefix.h tree-inline.h \
   $(IPA_PROP_H) $(RTL_H) $(TM_P_H) $(CFGLOOP_H) $(EMIT_RTL_H) version.h
 
-## extra MELT required plugin headers!
+## missing non MELT plugin headers are files from GCC which should be
+## in PLUGIN_HEADERS but are not
+MISSINGMELT_PLUGIN_HEADERS = \
+		     realmpfr.h \
+	             gimple-pretty-print.h \
+		     tree-pretty-print.h 
+
+## extra MELT required plugin headers
 MELT_PLUGIN_HEADERS= melt-runtime.h melt-run.h melt-predef.h \
                      melt/generated/meltrunsup.h \
-		     realmpfr.h 
-## File realmpfr.h is needed above
+	             $(MISSINGMELT_PLUGIN_HEADERS)
+## File realmpfr.h & gimple-pretty-print.h is needed above
 ## http://gcc.gnu.org/ml/gcc/2011-04/msg00016.html
 
 
