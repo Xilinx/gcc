@@ -1,4 +1,5 @@
 break main
+disp/i $pc
 run
 
 set $ret = 0
