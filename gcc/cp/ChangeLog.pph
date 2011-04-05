@@ -1,3 +1,8 @@
+2011-04-05  Lawrence Crowl <crowl@google.com>
+
+	* parser.c (cp_lexer_dump_tokens): Remove #ifdef ENABLE_CHECKING.
+	(cp_lexer_debug_tokens): Likewise.
+
 2011-04-04  Diego Novillo  <dnovillo@google.com>
 
 	* cp-tree.h (cxx_binding_make): Declare.

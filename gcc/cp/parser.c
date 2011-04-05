@@ -248,7 +248,7 @@ static FILE *cp_lexer_debug_stream;
    sizeof, typeof, or alignof.  */
 int cp_unevaluated_operand;
 
-#ifdef ENABLE_CHECKING
+/* FIX pph: #ifdef ENABLE_CHECKING */
 /* Dump up to NUM tokens in BUFFER to FILE.  If NUM is 0, dump all the
    tokens.  */
 
@@ -298,7 +298,7 @@ cp_lexer_debug_tokens (VEC(cp_token,gc) *buffer)
 {
   cp_lexer_dump_tokens (stderr, buffer, 0);
 }
-#endif
+/* FIX pph: #endif */
 
 /* Return true if LEXER has a CPP_EOF at the end of the buffer.  */
 
