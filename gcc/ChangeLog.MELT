@@ -1,4 +1,11 @@
 
+2011-04-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* gengtype.c (write_typed_alloc_def): Gets extra outf_p argument
+	and use it.
+	(write_typed_struct_alloc_def, write_typed_typedef_alloc_def)
+	(write_typed_alloc_defns): Likewise.
+	(main): Calls write_typed_alloc_defns with output_header.
+
 2011-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (MISSINGMELT_PLUGIN_HEADERS): New variable.
 
