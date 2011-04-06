@@ -217,6 +217,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltbox_st*src = (struct meltbox_st*) p;
   struct meltbox_st*dst = NULL;
    /* from VALDESC_BOX */
+/* ggc_alloc_meltbox_st should be gengtype generated for VALDESC_BOX */
+#ifndef ggc_alloc_meltbox_st
+#define ggc_alloc_meltbox_st() ((struct meltbox_st *)(ggc_internal_alloc_stat (sizeof (struct meltbox_st) MEM_STAT_INFO)))
+#endif
      dst = ggc_alloc_meltbox_st ();
      *dst = *src;
   
@@ -228,6 +232,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltclosure_st*src = (struct meltclosure_st*) p;
   struct meltclosure_st*dst = NULL;
    /* copy VALDESC_CLOSURE in warmelt-base.melt  */
+/* ggc_alloc_meltclosure_st should be gengtype generated for VALDESC_CLOSURE */
+#ifndef ggc_alloc_meltclosure_st
+#define ggc_alloc_meltclosure_st(SIZE) ((struct meltclosure_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
+#endif
      int nbv = (int) src->nbval;
      int ix = 0;
      dst = 
@@ -248,6 +256,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltdecay_st*src = (struct meltdecay_st*) p;
   struct meltdecay_st*dst = NULL;
    /* from VALDESC_DECAY */
+/* ggc_alloc_meltdecay_st should be gengtype generated for VALDESC_DECAY */
+#ifndef ggc_alloc_meltdecay_st
+#define ggc_alloc_meltdecay_st() ((struct meltdecay_st *)(ggc_internal_alloc_stat (sizeof (struct meltdecay_st) MEM_STAT_INFO)))
+#endif
      dst = ggc_alloc_meltdecay_st ();
      *dst = *src;
   
@@ -259,6 +271,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltint_st*src = (struct meltint_st*) p;
   struct meltint_st*dst = NULL;
    /* from VALDESC_INT */
+/* ggc_alloc_meltint_st should be gengtype generated for VALDESC_INT */
+#ifndef ggc_alloc_meltint_st
+#define ggc_alloc_meltint_st() ((struct meltint_st *)(ggc_internal_alloc_stat (sizeof (struct meltint_st) MEM_STAT_INFO)))
+#endif
      dst = 
         /* Don't need a cleared allocation.  */
 	  ggc_alloc_meltint_st ();
@@ -272,6 +288,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltlist_st*src = (struct meltlist_st*) p;
   struct meltlist_st*dst = NULL;
    /* from VALDESC_LIST */
+/* ggc_alloc_meltlist_st should be gengtype gengtype for VALDESC_LIST */
+#ifndef ggc_alloc_meltlist_st
+#define ggc_alloc_meltlist_st() ((struct meltlist_st *)(ggc_internal_alloc_stat (sizeof (struct meltlist_st) MEM_STAT_INFO)))
+#endif
      dst = 
 	  /* Don't need a cleared allocation!  */
 	 ggc_alloc_meltlist_st ();
@@ -285,6 +305,13 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltmapobjects_st*src = (struct meltmapobjects_st*) p;
   struct meltmapobjects_st*dst = NULL;
    /* copy VALDESC_MAPOBJECTS in warmelt-base.melt */
+/* ggc_alloc_meltmapobjects_st should be gengtype generated for VALDESC_MAPOBJECTS */
+#ifndef ggc_alloc_meltmapobjects_st
+#define ggc_alloc_meltmapobjects_st() ((struct meltmapobjects_st *)(ggc_internal_alloc_stat (sizeof (struct meltmapobjects_st) MEM_STAT_INFO)))
+#endif
+#ifndef ggc_alloc_vec_entryobjectsmelt_st
+#define ggc_alloc_vec_entryobjectsmelt_st(n) ((struct entryobjectsmelt_st *)(ggc_internal_vec_alloc_stat (sizeof (struct entryobjectsmelt_st), n MEM_STAT_INFO)))
+#endif
      int siz = melt_primtab[src->lenix];
      dst = 
 	  /* Don't need a cleared allocation.  */
@@ -309,6 +336,13 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltmapstrings_st*src = (struct meltmapstrings_st*) p;
   struct meltmapstrings_st*dst = NULL;
    /* copy VALDESC_MAPSTRINGS in warmelt-base.melt */
+/* ggc_alloc_meltmapstrings_st should be gengtype generated for VALDESC_MAPSTRINGS */
+#ifndef ggc_alloc_meltmapstrings_st
+#define ggc_alloc_meltmapstrings_st() ((struct meltmapstrings_st *)(ggc_internal_alloc_stat (sizeof (struct meltmapstrings_st) MEM_STAT_INFO)))
+#endif
+#ifndef ggc_alloc_vec_entrystringsmelt_st
+#define ggc_alloc_vec_entrystringsmelt_st(n) ((struct entrystringsmelt_st *)(ggc_internal_vec_alloc_stat (sizeof (struct entrystringsmelt_st), n MEM_STAT_INFO)))
+#endif
         int siz = melt_primtab[src->lenix];
 	dst = 
 	  /* Don't need a cleared allocation.  */
@@ -333,6 +367,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltmixbigint_st*src = (struct meltmixbigint_st*) p;
   struct meltmixbigint_st*dst = NULL;
    /* from VALDESC_MIXBIGINT */
+/* ggc_alloc_meltmixbigint_st should be gengtype generated for VALDESC_MIXBIGINT */
+#ifndef ggc_alloc_meltmixbigint_st
+#define ggc_alloc_meltmixbigint_st(SIZE) ((struct meltmixbigint_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
+#endif
      unsigned blen = src->biglen;
      dst = 
        /* Don't need a cleared allocation.  */
@@ -352,6 +390,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltmixint_st*src = (struct meltmixint_st*) p;
   struct meltmixint_st*dst = NULL;
    /* from VALDESC_MIXINT */
+/* ggc_alloc_meltmixint_st should be gengtype generated for VALDESC_MIXINT */
+#ifndef ggc_alloc_meltmixint_st
+#define ggc_alloc_meltmixint_st() ((struct meltmixint_st *)(ggc_internal_alloc_stat (sizeof (struct meltmixint_st) MEM_STAT_INFO)))
+#endif
     dst = 
       /* Don't need a cleared allocation.  */
         ggc_alloc_meltmixint_st ();
@@ -365,6 +407,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltmixloc_st*src = (struct meltmixloc_st*) p;
   struct meltmixloc_st*dst = NULL;
    /* from VALDESC_MIXLOC */
+/* ggc_alloc_meltmixloc_st should be gengtype generated for VALDESC_MIXLOC */
+#ifndef ggc_alloc_meltmixloc_st
+#define ggc_alloc_meltmixloc_st() ((struct meltmixloc_st *)(ggc_internal_alloc_stat (sizeof (struct meltmixloc_st) MEM_STAT_INFO)))
+#endif
     dst = 
        /* Don't need a cleared allocation.  */
        ggc_alloc_meltmixloc_st ();
@@ -378,6 +424,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltmultiple_st*src = (struct meltmultiple_st*) p;
   struct meltmultiple_st*dst = NULL;
     /* from VALDESC_MULTIPLE */
+  /* ggc_alloc_meltmultiple_st should be gengtype generated for VALDESC_MULTIPLE */
+#ifndef ggc_alloc_meltmultiple_st
+#define ggc_alloc_meltmultiple_st(SIZE) ((struct meltmultiple_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
+#endif
     int nbv = (int) src->nbval;
     int ix = 0;
     dst = 
@@ -399,6 +449,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltobject_st*src = (struct meltobject_st*) p;
   struct meltobject_st*dst = NULL;
    /* from VALDESC_OBJECT */
+  /* ggc_alloc_meltobject_st should be gengtype generated for VALDESC_OBJECT */
+#ifndef ggc_alloc_meltobject_st
+#define ggc_alloc_meltobject_st(SIZE) ((struct meltobject_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
+#endif 
     int ix = 0;
     int oblen = (int) (src->obj_len);
     /* We don't need to clear at allocation, since the object is
@@ -422,6 +476,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltpair_st*src = (struct meltpair_st*) p;
   struct meltpair_st*dst = NULL;
    /* copy VALDESC_PAIR in warmelt-base.melt */
+  /* ggc_alloc_meltpair_st should be gengtype gengtype for VALDESC_PAIR */
+#ifndef ggc_alloc_meltpair_st
+#define ggc_alloc_meltpair_st() ((struct meltpair_st *)(ggc_internal_alloc_stat (sizeof (struct meltpair_st) MEM_STAT_INFO)))
+#endif
     dst = /* Don't need a cleared allocation.  */
 	  ggc_alloc_meltpair_st ();
     *dst = *src;
@@ -434,6 +492,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltreal_st*src = (struct meltreal_st*) p;
   struct meltreal_st*dst = NULL;
    /* from VALDESC_REAL */
+/* ggc_alloc_meltreal_st should be gengtype generated for VALDESC_REAL */
+#ifndef ggc_alloc_meltreal_st
+#define ggc_alloc_meltreal_st() ((struct meltreal_st *)(ggc_internal_alloc_stat (sizeof (struct meltreal_st) MEM_STAT_INFO)))
+#endif
     dst =
         /* Don't need a cleared allocation.  */
 	ggc_alloc_meltreal_st ();
@@ -447,6 +509,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltroutine_st*src = (struct meltroutine_st*) p;
   struct meltroutine_st*dst = NULL;
    /* from VALDESC_ROUTINE */
+  /* ggc_alloc_meltroutine_st should be gengtype generated for VALDESC_ROUTINE */
+#ifndef ggc_alloc_meltroutine_st
+#define ggc_alloc_meltroutine_st(SIZE) ((struct meltroutine_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
+#endif 
      int nbv = (int) src->nbval;
      int ix = 0;
      dst =
@@ -470,6 +536,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltspecialfile_st*src = (struct meltspecialfile_st*) p;
   struct meltspecialfile_st*dst = NULL;
    /* from VALDESC_SPECIAL_FILE */
+/* ggc_alloc_meltspecialfile_st should be gengtype generated for VALDESC_SPECIAL_FILE */
+#ifndef ggc_alloc_meltspecialfile_st
+#define ggc_alloc_meltspecialfile_st() ((struct meltspecialfile_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialfile_st) MEM_STAT_INFO)))
+#endif
     dst = ggc_alloc_meltspecialfile_st ();
     *dst = *src;
     /* mark the new copy! */
@@ -486,6 +556,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltspecialmpfr_st*src = (struct meltspecialmpfr_st*) p;
   struct meltspecialmpfr_st*dst = NULL;
    /* from VALDESC_SPECIAL_MPFR */
+/* ggc_alloc_meltspecialmpfr_st should be gengtype generated for VALDESC_SPECIAL_MPFR */
+#ifndef ggc_alloc_meltspecialmpfr_st
+#define ggc_alloc_meltspecialmpfr_st() ((struct meltspecialmpfr_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialmpfr_st) MEM_STAT_INFO)))
+#endif
     dst = ggc_alloc_meltspecialmpfr_st ();
     *dst = *src;
     /* mark the new copy! */
@@ -502,6 +576,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltspecialpplcoefficient_st*src = (struct meltspecialpplcoefficient_st*) p;
   struct meltspecialpplcoefficient_st*dst = NULL;
    /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
+/* ggc_alloc_meltspecialpplcoefficient_st should be gengtype generated for VALDESC_SPECIAL_PPL_COEFFICIENT */
+#ifndef ggc_alloc_meltspecialpplcoefficient_st
+#define ggc_alloc_meltspecialpplcoefficient_st() ((struct meltspecialpplcoefficient_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialpplcoefficient_st) MEM_STAT_INFO)))
+#endif
     dst = ggc_alloc_meltspecialpplcoefficient_st ();
     *dst = *src;
     /* mark the new copy! */
@@ -518,6 +596,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltspecialpplconstraint_st*src = (struct meltspecialpplconstraint_st*) p;
   struct meltspecialpplconstraint_st*dst = NULL;
    /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
+/* ggc_alloc_meltspecialpplconstraint_st should be gengtype gengtype for VALDESC_SPECIAL_PPL_CONSTRAINT */
+#ifndef ggc_alloc_meltspecialpplconstraint_st
+#define ggc_alloc_meltspecialpplconstraint_st() ((struct meltspecialpplconstraint_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialpplconstraint_st) MEM_STAT_INFO)))
+#endif
     dst = ggc_alloc_meltspecialpplconstraint_st ();
     *dst = *src;
     /* mark the new copy! */
@@ -534,6 +616,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltspecialpplconstraintsystem_st*src = (struct meltspecialpplconstraintsystem_st*) p;
   struct meltspecialpplconstraintsystem_st*dst = NULL;
    /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
+  /* ggc_alloc_meltspecialpplconstraintsystem_st should be gengtype generated for VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
+#ifndef ggc_alloc_meltspecialpplconstraintsystem_st
+#define ggc_alloc_zone_meltspecialpplconstraintsystem_st(z) ((struct meltspecialpplconstraintsystem_st *)(ggc_internal_zone_alloc_stat (z, sizeof (struct meltspecialpplconstraintsystem_st) MEM_STAT_INFO)))
+#endif
     dst = ggc_alloc_meltspecialpplconstraintsystem_st ();
     *dst = *src;
     /* mark the new copy! */
@@ -550,6 +636,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltspecialpplgenerator_st*src = (struct meltspecialpplgenerator_st*) p;
   struct meltspecialpplgenerator_st*dst = NULL;
    /* from VALDESC_SPECIAL_PPL_GENERATOR */
+/* ggc_alloc_meltspecialpplgenerator_st should be gengtype generated for VALDESC_SPECIAL_PPL_GENERATOR */
+#ifndef ggc_alloc_meltspecialpplgenerator_st
+#define ggc_alloc_meltspecialpplgenerator_st() ((struct meltspecialpplgenerator_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialpplgenerator_st) MEM_STAT_INFO)))
+#endif
     dst = ggc_alloc_meltspecialpplgenerator_st ();
     *dst = *src;
     /* mark the new copy! */
@@ -566,6 +656,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltspecialpplgeneratorsystem_st*src = (struct meltspecialpplgeneratorsystem_st*) p;
   struct meltspecialpplgeneratorsystem_st*dst = NULL;
    /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
+/*  ggc_alloc_meltspecialpplgeneratorsystem_st should be gengtype generated for VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
+#ifndef ggc_alloc_meltspecialpplgeneratorsystem_st
+#define ggc_alloc_meltspecialpplgeneratorsystem_st() ((struct meltspecialpplgeneratorsystem_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialpplgeneratorsystem_st) MEM_STAT_INFO)))
+#endif
     dst = ggc_alloc_meltspecialpplgeneratorsystem_st ();
     *dst = *src;
     /* mark the new copy! */
@@ -582,6 +676,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltspecialppllinearexpression_st*src = (struct meltspecialppllinearexpression_st*) p;
   struct meltspecialppllinearexpression_st*dst = NULL;
    /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
+/* ggc_alloc_meltspecialppllinearexpression_st should be gengtype generated for VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
+#ifndef ggc_alloc_meltspecialppllinearexpression_st
+#define ggc_alloc_meltspecialppllinearexpression_st() ((struct meltspecialppllinearexpression_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialppllinearexpression_st) MEM_STAT_INFO)))
+#endif
     dst = ggc_alloc_meltspecialppllinearexpression_st ();
     *dst = *src;
     /* mark the new copy! */
@@ -598,6 +696,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltspecialpplpolyhedron_st*src = (struct meltspecialpplpolyhedron_st*) p;
   struct meltspecialpplpolyhedron_st*dst = NULL;
    /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
+/* ggc_alloc_meltspecialpplpolyhedron_st should be gengtype generated for VALDESC_SPECIAL_PPL_POLYHEDRON */
+#ifndef ggc_alloc_meltspecialpplpolyhedron_st
+#define ggc_alloc_meltspecialpplpolyhedron_st() ((struct meltspecialpplpolyhedron_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialpplpolyhedron_st) MEM_STAT_INFO)))
+#endif
     dst = ggc_alloc_meltspecialpplpolyhedron_st ();
     *dst = *src;
     /* mark the new copy! */
@@ -614,6 +716,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltspecialrawfile_st*src = (struct meltspecialrawfile_st*) p;
   struct meltspecialrawfile_st*dst = NULL;
    /* from VALDESC_SPECIAL_RAW_FILE */
+/* ggc_alloc_meltspecialrawfile_st should be gengtype generated for VALDESC_SPECIAL_RAW_FILE */
+#ifndef ggc_alloc_meltspecialrawfile_st
+#define ggc_alloc_meltspecialrawfile_st() ((struct meltspecialrawfile_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialrawfile_st) MEM_STAT_INFO)))
+#endif
     dst = ggc_alloc_meltspecialrawfile_st ();
     *dst = *src;
     /* mark the new copy! */
@@ -630,6 +736,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltstrbuf_st*src = (struct meltstrbuf_st*) p;
   struct meltstrbuf_st*dst = NULL;
    /* from VALDESC_STRBUF */
+/* ggc_alloc_meltstrbuf_st should be gengtype gengtype for VALDESC_STRBUF */
+#ifndef ggc_alloc_meltstrbuf_st
+#define ggc_alloc_meltstrbuf_st() ((struct meltstrbuf_st *)(ggc_internal_alloc_stat (sizeof (struct meltstrbuf_st) MEM_STAT_INFO)))
+#endif
      unsigned blen = melt_primtab[src->buflenix];
      dst = 
        /* Don't need a cleared allocation.  */
@@ -659,6 +769,10 @@ melt_forwarded_copy (melt_ptr_t p)
   struct meltstring_st*src = (struct meltstring_st*) p;
   struct meltstring_st*dst = NULL;
    /* from VALDESC_STRING file warmelt-base.melt*/  
+/* ggc_alloc_meltstring_st should be gengtype generated for VALDESC_STRING */
+#ifndef ggc_alloc_meltstring_st
+#define ggc_alloc_meltstring_st(SIZE) ((struct meltstring_st *)(ggc_internal_alloc_stat (SIZE MEM_STAT_INFO)))
+#endif
      int srclen = (src->val)?strlen (src->val):0;
      dst = 
        /* Don't need a cleared allocation.  */
@@ -1701,5 +1815,5 @@ end: MELT_EXITFRAME ();
 /** end of code generated by generate_runtypesupport_boxingfun **/
 
 
-/*** End of code file meltrunsup-inc.c generated on 2011 Apr 05
- * by GCC MELT 4.7.0 20110314 (experimental) [melt-branch revision 171966] . ***/
+/*** End of code file meltrunsup-inc.c generated on 2011 Apr 06
+ * by GCC MELT 4.7.0 20110314 (experimental) [melt-branch revision 172021] . ***/
