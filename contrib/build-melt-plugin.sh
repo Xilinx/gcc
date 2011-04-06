@@ -251,7 +251,7 @@ build_melt_run_headers() {
     melt_run_md5=`$HOSTCC -C -E -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include -I. -Imelt/generated melt-run.proto.h | grep -v '^#' | md5sum | cut -c 1-32`
     echo  "const char melt_run_preprocessed_md5[]=\"$$melt_run_md5\";" > melt-run-md5.h
     sed -e "s,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$$melt_run_md5\"," <  melt-run.proto.h > melt-run.h
-    verbose_echo built melt-run.h with $(wc -c melt-run.h) bytes and md5 $melt_run_md5
+    verbose_echo built melt-run.h with $(wc -c melt-run.h | cut -d ' ' -f 1) bytes and md5 $melt_run_md5
 }
 
 ################ build melt.so with appropriate default settings
@@ -278,9 +278,9 @@ build_melt_dot_so() {
     # test that the melt.so plugin is loadable without any mode...
     # we need the empty-file-for-melt.c 
     verbose_echo making  empty-file-for-melt.c using $GCCMELT_SOURCE_TREE/melt-make.mk
-    $MAKE -w -f $GCCMELT_SOURCE_TREE/melt-make.mk melt_make_move=mv empty-file-for-melt.c
+    $MAKE -w -f $GCCMELT_SOURCE_TREE/melt-build.mk melt_make_move=mv empty-file-for-melt.c
     if $GCC -fplugin=./melt.so -c -o /dev/null empty-file-for-melt.c; then
-	verbose_echo melt.so plugin seems to be loadable
+	verbose_echo melt.so plugin seems to be loadable without mode
     else
 	error_echo melt.so plugin dont work
 	exit 1
@@ -305,7 +305,7 @@ do_melt_make () {
 	melt_make_module_dir=. \
 	melt_make_move=mv \
 	melt_installed_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include" \
-	melt_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include -I$GCCMELT_SOURCE_TREE -I." \
+	melt_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include -I$GCCMELT_SOURCE_TREE -I. -Imelt/generated" \
 	melt_is_plugin=1 \
 	VPATH=.:$GCCMELT_SOURCE_TREE/melt:$GCCMELT_SOURCE_TREE:$GCC_BUILD_TREE:$GCC_SOURCE_TREE \
 	$*
@@ -324,7 +324,7 @@ bootstrap_melt() {
     verbose_echo Making warmelt-predef.melt
     rm -f warmelt-predef.melt
     if $GAWK -f $GCCMELT_SOURCE_TREE/make-warmelt-predef.awk $GCCMELT_SOURCE_TREE/melt-predef.list > warmelt-predef.melt; then
-	verbose_echo Generated warmelt-predef.melt with $(wc -l warmelt-predef.melt) lines
+	verbose_echo Generated warmelt-predef.melt with $(wc -l warmelt-predef.melt| cut -d ' ' -f 1) lines
     else
 	error_echo failed to generate warmelt-predef.melt
     fi

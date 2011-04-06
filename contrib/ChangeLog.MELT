@@ -1,5 +1,10 @@
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (build_melt_run_headers): Better use of
+	cut.
+	(do_melt_make): Pass -Imelt/generated.
+
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (build_melt_run_headers): More verbose.
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
