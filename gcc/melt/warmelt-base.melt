@@ -2066,7 +2066,7 @@ constraint systems values.}#
   :valdesc_copychunk #{$' /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
   /* ggc_alloc_meltspecialpplconstraintsystem_st should be gengtype generated for VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
 #ifndef ggc_alloc_meltspecialpplconstraintsystem_st
-#define ggc_alloc_zone_meltspecialpplconstraintsystem_st(z) ((struct meltspecialpplconstraintsystem_st *)(ggc_internal_zone_alloc_stat (z, sizeof (struct meltspecialpplconstraintsystem_st) MEM_STAT_INFO)))
+#define ggc_alloc_meltspecialpplconstraintsystem_st() ((struct meltspecialpplconstraintsystem_st *)(ggc_internal_alloc_stat (sizeof (struct meltspecialpplconstraintsystem_st) MEM_STAT_INFO)))
 #endif
     dst = ggc_alloc_meltspecialpplconstraintsystem_st ();
     *dst = *src;
