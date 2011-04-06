@@ -1,5 +1,9 @@
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (compile_gencsrc_to_binmodule): Better test of
+	workdir.
+
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/warmelt-first-0.c: Regenerate.
 	* melt/generated/warmelt-macro-0.c: Regenerate.

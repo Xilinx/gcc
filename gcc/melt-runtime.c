@@ -5196,8 +5196,11 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
 	struct stat workstat;
 	memset (&workstat, 0, sizeof(workstat));
 	debugeprintf ("compile_gencsrc_to_binmodule handling workdir %s", workdir);
-	if (stat (workdir, &workstat) || (!S_ISDIR (workstat.st_mode), (errno = ENOTDIR) != 0))
-	  melt_fatal_error ("invalid MELT module workspace directory %s - %m", workdir);
+	if (stat (workdir, &workstat))
+	  melt_fatal_error ("bad MELT module workspace directory %s - stat failed %m", workdir);
+	if (!S_ISDIR(workstat.st_mode))
+	  melt_fatal_error ("MELT module workspace %s not directory",
+			    workdir);
 	obstack_grow0 (&cmd_obstack, WORKSPACE_ARG, strlen (WORKSPACE_ARG));
 	if (!IS_ABSOLUTE_PATH(workdir)) {
 	  (void) obstack_add_escaped_path (&cmd_obstack, mycwd);
