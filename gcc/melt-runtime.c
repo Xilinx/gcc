@@ -6377,7 +6377,6 @@ skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 	   && rdfollowc (2) == '#' && rdfollowc (3) == '#'
 	   && comh == COMMENT_SKIP)
     {
-      const struct line_map *map = 0;
       char *endp = 0;
       char *newpath = 0;
       char* newpathdup = 0;
@@ -6407,8 +6406,8 @@ skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 	      newpathdup = xstrdup (newpath);
 	      VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, newpathdup);
 	    }
-	  map = linemap_add(line_table, LC_RENAME_VERBATIM,
-			    false, newpathdup, newlineno);
+	  (void) linemap_add (line_table, LC_RENAME_VERBATIM,
+			      false, newpathdup, newlineno);
 	}
       else if (newlineno>0)
 	{
@@ -6424,7 +6423,6 @@ skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 	   && rdfollowc (2) == '#' && rdfollowc (3) == '#'
 	   )
     {
-      const struct line_map *map = 0;
       char *endp = 0;
       char *newpath = 0;
       char* newpathdup = 0;
@@ -6454,8 +6452,8 @@ skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 	      newpathdup = xstrdup (newpath);
 	      VEC_safe_push (meltchar_p, heap, parsedmeltfilevect, newpathdup);
 	    }
-	  map = linemap_add(line_table, LC_RENAME_VERBATIM,
-			    false, newpathdup, newlineno);
+	  (void) linemap_add (line_table, LC_RENAME_VERBATIM,
+		       false, newpathdup, newlineno);
 	}
       else if (newlineno>0)
 	{
@@ -6845,7 +6843,7 @@ meltgc_open_infix_file (const char* filnam)
   curinfixr->infr_reading.rfil = fil;
   curinfixr->infr_reading.rpath = filnamdup;
   curinfixr->infr_reading.rlineno = 0;
-  linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
+  (void) linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
   curinfixr->infr_prev = previnfix;
   skipspace_getc (&curinfixr->infr_reading, COMMENT_INFIX);
   MELT_EXITFRAME ();
@@ -6981,7 +6979,7 @@ meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimap_p)
       readv =
 	meltgc_new_int
 	((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER),
-	 c);
+	 esc);
       lexv = meltgc_new_raw_object
 	((meltobject_ptr_t)MELT_PREDEF (CLASS_INFIX_INTEGER_LITERAL),
 				    FSINFLEX__LAST);
@@ -7243,7 +7241,7 @@ end:;
 static melt_ptr_t
 readsexpr (struct reading_st *rd, int endc)
 {
-  int c = 0, lineno = rd->rlineno;
+  int lineno = rd->rlineno;
   location_t loc = 0;
   MELT_ENTERFRAME (3, NULL);
 #define sexprv  meltfram__.mcfr_varptr[0]
@@ -7251,8 +7249,8 @@ readsexpr (struct reading_st *rd, int endc)
 #define locmixv meltfram__.mcfr_varptr[2]
   if (!endc || rdeof ())
     READ_ERROR ("MELT: eof in s-expr (lin%d)", lineno);
-  c = skipspace_getc (rd, COMMENT_SKIP);
-  melt_linemap_compute_current_location(rd);
+  (void) skipspace_getc (rd, COMMENT_SKIP);
+  melt_linemap_compute_current_location (rd);
   loc = rd->rsrcloc;
   contv = readseqlist (rd, endc);
   sexprv = makesexpr (rd, lineno, (melt_ptr_t) contv, loc, 0);
@@ -8259,7 +8257,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
   rds.rfil = fil;
   rds.rpath = filnamdup;
   rds.rlineno = 0;
-  linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
+  (void) linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
   rd = &rds;
   locnamv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
   rds.rpfilnam = (melt_ptr_t *) & locnamv;

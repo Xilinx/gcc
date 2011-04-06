@@ -32,6 +32,11 @@
 ### melt_xtra_cflags - the CFLAGS for compiling extra (applicative)
 ###                    MELT generated C code
 
+## LN_S might not be defined, e.g. from build-melt-plugin.sh
+ifndef LN_S
+LN_S= ln -s
+endif
+
 ## the various arguments to MELT - avoid spaces in them!
 meltarg_mode=$(if $(melt_is_plugin),-fplugin-arg-melt-mode,-fmelt-mode)
 meltarg_init=$(if $(melt_is_plugin),-fplugin-arg-melt-init,-fmelt-init)

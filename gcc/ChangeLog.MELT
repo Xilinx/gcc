@@ -1,5 +1,13 @@
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (skipspace_getc): Ignore result of linemap_add.
+	(meltgc_open_infix_file): Likewise.  Also handle correctly
+	escapes.
+	(readsexpr): Ignore result of skipspace_getc & of linemap_add.
+	* melt-build.tpl (LN_S): Give a suitable default.
+	* melt-build.mk: Regenerate.
+
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (flag_melt_bootstrapping): Declare extern in
 	plugin mode.
 	* melt-runtime.c (melt_really_initialize): Indent.
