@@ -532,7 +532,7 @@ melt_argument (const char* argname)
 #pragma GCC poison melt_arglist_string
 #endif
 
-/* don't poison flag_melt_debug */
+/* don't poison flag_melt_debug or flag_melt_bootstrapping */
 #ifdef melt_compile_script_string
 #undef melt_compile_script_string
 #else
@@ -8951,7 +8951,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   if (flag_melt_bootstrapping) 
     {
       char* envpath = NULL;
-      inform  (UNKNOWN_LOCATION, "MELT is bootstrapping so ignore builtin source directory %s and module directory %s",
+      inform  (UNKNOWN_LOCATION,
+	       "MELT is bootstrapping so ignore builtin source directory %s and module directory %s",
 	       melt_source_dir, melt_module_dir);
       if ((envpath = getenv ("GCCMELT_SOURCE_PATH")) != NULL)
 	inform  (UNKNOWN_LOCATION, 

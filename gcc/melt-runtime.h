@@ -108,6 +108,7 @@ int melt_debug_depth(void);
 
 #ifdef MELT_IS_PLUGIN
 extern int flag_melt_debug;
+extern int flag_melt_bootstrapping;
 #endif
 
 #define debugeprintf_raw(Fmt,...) do{if (flag_melt_debug) \

@@ -1,5 +1,10 @@
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (flag_melt_bootstrapping): Declare extern in
+	plugin mode.
+	* melt-runtime.c (melt_really_initialize): Indent.
+
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (compile_gencsrc_to_binmodule): Correct
 	debugeprintf.
 
