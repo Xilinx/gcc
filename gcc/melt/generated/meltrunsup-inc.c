@@ -312,6 +312,9 @@ melt_forwarded_copy (melt_ptr_t p)
 #ifndef ggc_alloc_vec_entryobjectsmelt_st
 #define ggc_alloc_vec_entryobjectsmelt_st(n) ((struct entryobjectsmelt_st *)(ggc_internal_vec_alloc_stat (sizeof (struct entryobjectsmelt_st), n MEM_STAT_INFO)))
 #endif
+#ifndef  ggc_alloc_cleared_vec_entryobjectsmelt_st
+#define ggc_alloc_cleared_vec_entryobjectsmelt_st(n) ((struct entryobjectsmelt_st *)(ggc_internal_cleared_vec_alloc_stat (sizeof (struct entryobjectsmelt_st), n MEM_STAT_INFO)))
+#endif
      int siz = melt_primtab[src->lenix];
      dst = 
 	  /* Don't need a cleared allocation.  */
@@ -342,6 +345,9 @@ melt_forwarded_copy (melt_ptr_t p)
 #endif
 #ifndef ggc_alloc_vec_entrystringsmelt_st
 #define ggc_alloc_vec_entrystringsmelt_st(n) ((struct entrystringsmelt_st *)(ggc_internal_vec_alloc_stat (sizeof (struct entrystringsmelt_st), n MEM_STAT_INFO)))
+#endif
+#ifndef ggc_alloc_cleared_vec_entrystringsmelt_st
+#define ggc_alloc_cleared_vec_entrystringsmelt_st(n) ((struct entrystringsmelt_st *)(ggc_internal_cleared_vec_alloc_stat (sizeof (struct entrystringsmelt_st), n MEM_STAT_INFO)))
 #endif
         int siz = melt_primtab[src->lenix];
 	dst = 
@@ -1924,4 +1930,4 @@ end: MELT_EXITFRAME ();
 
 
 /*** End of code file meltrunsup-inc.c generated on 2011 Apr 06
- * by GCC MELT 4.7.0 20110314 (experimental) [melt-branch revision 172040] . ***/
+ * by GCC MELT 4.7.0 20110314 (experimental) [melt-branch revision 172044] . ***/
