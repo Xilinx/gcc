@@ -1,5 +1,10 @@
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: Move #include "gt-melt-runtime.h" near beginning of file.
+	* melt/warmelt-base.melt (valdesc_mapobjects, valdesc_mapstrings):
+	Add ggc_alloc_cleared_vec_entry*
+
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/warmelt-first-0.c: Regenerate.
 	* melt/generated/warmelt-macro-0.c: Regenerate.

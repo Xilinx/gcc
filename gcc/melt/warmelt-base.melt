@@ -1242,6 +1242,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 #ifndef ggc_alloc_vec_entryobjectsmelt_st
 #define ggc_alloc_vec_entryobjectsmelt_st(n) ((struct entryobjectsmelt_st *)(ggc_internal_vec_alloc_stat (sizeof (struct entryobjectsmelt_st), n MEM_STAT_INFO)))
 #endif
+#ifndef  ggc_alloc_cleared_vec_entryobjectsmelt_st
+#define ggc_alloc_cleared_vec_entryobjectsmelt_st(n) ((struct entryobjectsmelt_st *)(ggc_internal_cleared_vec_alloc_stat (sizeof (struct entryobjectsmelt_st), n MEM_STAT_INFO)))
+#endif
      int siz = melt_primtab[src->lenix];
      dst = 
 	  /* Don't need a cleared allocation.  */
@@ -1309,6 +1312,9 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 #endif
 #ifndef ggc_alloc_vec_entrystringsmelt_st
 #define ggc_alloc_vec_entrystringsmelt_st(n) ((struct entrystringsmelt_st *)(ggc_internal_vec_alloc_stat (sizeof (struct entrystringsmelt_st), n MEM_STAT_INFO)))
+#endif
+#ifndef ggc_alloc_cleared_vec_entrystringsmelt_st
+#define ggc_alloc_cleared_vec_entrystringsmelt_st(n) ((struct entrystringsmelt_st *)(ggc_internal_cleared_vec_alloc_stat (sizeof (struct entrystringsmelt_st), n MEM_STAT_INFO)))
 #endif
         int siz = melt_primtab[src->lenix];
 	dst = 
