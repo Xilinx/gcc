@@ -1,5 +1,8 @@
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (build_melt_run_headers): More verbose.
+
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (build_melt_run_headers): Better -I... flags.
 
 2011-04-04  Basile Starynkevitch  <basile@starynkevitch.net>
