@@ -1,5 +1,9 @@
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (compile_gencsrc_to_binmodule): Correct
+	debugeprintf.
+
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (compile_gencsrc_to_binmodule): Better test of
 	workdir.
 

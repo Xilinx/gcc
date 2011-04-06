@@ -5226,7 +5226,8 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
       melt_fatal_error ("MELT module compilation failed for command %s", cmdstr);
     cmdstr = NULL;
     obstack_free (&cmd_obstack, NULL); /* free all the cmd_obstack */
-    debugeprintf("compile_gencsrc_to_binmodule meltplugin did built fullbinfile %s", binfile);
+    debugeprintf ("compile_gencsrc_to_binmodule meltplugin did built fullbinfile %s", 
+		  fullbinfile);
     if (IS_ABSOLUTE_PATH (fullbinfile))
       inform (UNKNOWN_LOCATION, "MELT plugin has built module %s", fullbinfile);
     else
