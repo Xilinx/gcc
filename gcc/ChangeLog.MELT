@@ -1,4 +1,8 @@
 
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt: Add conditionally appropriate #define
+	ggc_alloc_melt* macros in VALDESC*
+
 2011-04-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/warmelt-macro-0.c: Regenerate.

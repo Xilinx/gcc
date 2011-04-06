@@ -256,7 +256,7 @@ build_melt_run_headers() {
 ################ build melt.so with appropriate default settings
 build_melt_dot_so() {
     # compile the melt.so file
-    host_full_cflags="$HOSTCFLAGS -fPIC -shared -DMELT_IS_PLUGIN -I. -Imelt/generated -I$GCCMELT_SOURCE_TREE -I$gcc_plugin_directory/include"
+    host_full_cflags="$HOSTCFLAGS -fPIC -shared -DMELT_IS_PLUGIN -I. -Imelt/generated -I$GCCMELT_SOURCE_TREE -I$gcc_plugin_directory/include -Wall"
     verbose_echo Building melt.so with $HOSTCC $host_full_cflags
     verbose_echo our HOSTMELTCFLAGS are $HOSTMELTCFLAGS
     verbose_sleep
