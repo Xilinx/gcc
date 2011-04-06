@@ -1,5 +1,9 @@
 
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (generate_runtypesupport_forwcopy_fun):
+	Generate conditional ggc_alloc macro for simple ctype.
+
+2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (valdesc_special_ppl_constraint_system):
 	Typo in ggc_alloc....
 
