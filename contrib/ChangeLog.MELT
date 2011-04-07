@@ -1,5 +1,9 @@
 
 2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (install_melt): Install copy of missing GCC
+	header files for MELT.
+
+2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (set_default_variables,install_melt): Use
 	DESTDIR if given.
 

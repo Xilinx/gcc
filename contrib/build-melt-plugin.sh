@@ -382,8 +382,15 @@ install_melt() {
     verbose_echo Installing the melt.so plugin and makefile
     $HOSTADMINCMD $HOSTINSTALL -m 755  melt.so $DESTDIR$gcc_plugin_directory/libexec/
     $HOSTADMINCMD $HOSTINSTALL -m 755 $GCCMELT_SOURCE_TREE/melt-module.mk $DESTDIR$gcc_plugin_directory/melt-build-module.mk
-    verbose_echo Installing MELT specific header files
-    $HOSTADMINCMD $HOSTINSTALL -m 644 $GCCMELT_SOURCE_TREE/melt-runtime.h  $GCCMELT_SOURCE_TREE/run-melt.h melt-predef.h  melt-run.h melt-run-md5.h $DESTDIR$gcc_plugin_directory/include/
+    verbose_echo Installing MELT specific header files.
+    $HOSTADMINCMD $HOSTINSTALL -m 644 $GCCMELT_SOURCE_TREE/melt-runtime.h  $GCCMELT_SOURCE_TREE/run-melt.h melt-predef.h $GCCMELT_SOURCE_TREE/generated/meltrunsup.h melt-run.h melt-run-md5.h \
+	$DESTDIR$gcc_plugin_directory/include/
+    verbose_echo Installing missing GCC header files needed for MELT
+    $HOSTADMINCMD $HOSTINSTALL -m 644 \
+	$GCCMELT_SOURCE_TREE/gimple-pretty-print.h \
+	$GCCMELT_SOURCE_TREE/tree-pretty-print.h \
+	$GCCMELT_SOURCE_TREE/realmpfr.h \
+	$DESTDIR$gcc_plugin_directory/include/
     verbose_echo Installing the MELT source directory
     $HOSTADMINCMD $HOSTINSTALL -m 755 -d $DESTDIR$gcc_plugin_directory/melt-source
     verbose_echo Populating the MELT source directory with MELT files
