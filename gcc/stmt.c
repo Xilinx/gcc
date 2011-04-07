@@ -139,7 +139,10 @@ label_rtx (tree label)
 
   if (!DECL_RTL_SET_P (label))
     {
-      rtx r = gen_label_rtx ();
+      rtx r;
+      use_rtl_permanent_mem ();
+      r = gen_label_rtx ();
+      use_rtl_function_mem ();
       SET_DECL_RTL (label, r);
       if (FORCED_LABEL (label) || DECL_NONLOCAL (label))
 	LABEL_PRESERVE_P (r) = 1;

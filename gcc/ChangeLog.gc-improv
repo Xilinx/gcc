@@ -1,5 +1,9 @@
 2011-04-07  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
+	* stmt.c (label_rtx): Allocate RTX in permanent RTL memory.
+
+2011-04-07  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
 	* rtl.h (gen_rtx_CONST): New.
 
 2011-03-29  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
