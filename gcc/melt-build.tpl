@@ -312,7 +312,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
                     $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
-                    $(melt_make_cc1_dependency) melt-tempbuild 
+                    $(melt_make_cc1_dependency) melt-tempbuild melt-sources 
 [+IF (= transindex 0)+]
 	$(MELTCCINIT1) \[+ELSE+]
 	$(MELTCCFILE1) \[+ENDIF+]
@@ -324,7 +324,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 
 melt-modules/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-tempbuild melt-run.h melt-runtime.h 
+        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -333,7 +333,7 @@ melt-modules/[+base+].so: melt-sources/[+base+].c \
 
 melt-modules/[+base+].n.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-run.h melt-runtime.h 
+        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
@@ -347,7 +347,6 @@ melt-modules/[+base+].n.so: melt-sources/[+base+].c \
 [+ (define prevapplbase (list)) +]
 [+FOR melt_application_file+]
 
-
 ## melt application [+base+]
 melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
 	cd melt-sources; rm -f [+base+].melt; $(LN_S) $(realpath $^)
@@ -355,6 +354,7 @@ melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
 
 melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
+ melt-sources melt-modules \
  [+FOR melt_translator_file+] melt-modules/[+base+].so[+ENDFOR melt_translator_file+] \
 	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
@@ -368,7 +368,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 
 melt-modules/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-run.h melt-runtime.h melt-tempbuild
+        melt-run.h melt-runtime.h melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
@@ -377,7 +377,7 @@ melt-modules/[+base+].so: melt-sources/[+base+].c \
 
 melt-modules/[+base+].n.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
-        melt-run.h melt-runtime.h  melt-tempbuild
+        melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
