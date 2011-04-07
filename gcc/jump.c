@@ -1,6 +1,6 @@
 /* Optimize jump instructions, for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1991, 1992, 1993, 1994, 1995, 1996, 1997
-   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -51,7 +51,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "expr.h"
 #include "except.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "reload.h"
 #include "predict.h"
 #include "timevar.h"
@@ -194,7 +193,7 @@ mark_all_labels (rtx f)
   rtx prev_nonjump_insn = NULL;
 
   for (insn = f; insn; insn = NEXT_INSN (insn))
-    if (INSN_P (insn))
+    if (NONDEBUG_INSN_P (insn))
       {
 	mark_jump_label (PATTERN (insn), insn, 0);
 
@@ -1728,7 +1727,13 @@ rtx_renumbered_equal_p (const_rtx x, const_rtx y)
 
 	case 'i':
 	  if (XINT (x, i) != XINT (y, i))
-	    return 0;
+	    {
+	      if (((code == ASM_OPERANDS && i == 6)
+		   || (code == ASM_INPUT && i == 1))
+		  && locator_eq (XINT (x, i), XINT (y, i)))
+		break;
+	      return 0;
+	    }
 	  break;
 
 	case 't':

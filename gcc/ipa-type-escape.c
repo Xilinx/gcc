@@ -1025,7 +1025,7 @@ check_function_parameter_and_return_types (tree fn, bool escapes)
 {
   tree arg;
 
-  if (TYPE_ARG_TYPES (TREE_TYPE (fn)))
+  if (prototype_p (TREE_TYPE (fn)))
     {
       for (arg = TYPE_ARG_TYPES (TREE_TYPE (fn));
 	   arg && TREE_VALUE (arg) != void_type_node;
@@ -1236,7 +1236,7 @@ look_for_casts (tree t)
 {
   unsigned int cast = 0;
 
-  if (is_gimple_cast (t) || TREE_CODE (t) == VIEW_CONVERT_EXPR)
+  if (CONVERT_EXPR_P (t) || TREE_CODE (t) == VIEW_CONVERT_EXPR)
     {
       tree castfromvar = TREE_OPERAND (t, 0);
       cast = cast | check_cast (TREE_TYPE (t), castfromvar);
@@ -1333,7 +1333,7 @@ check_call (gimple call)
 
       /* Check that there are no implicit casts in the passing of
 	 parameters.  */
-      if (TYPE_ARG_TYPES (TREE_TYPE (callee_t)))
+      if (prototype_p (TREE_TYPE (callee_t)))
 	{
 	  for (arg_type = TYPE_ARG_TYPES (TREE_TYPE (callee_t)), i = 0;
 	       arg_type && TREE_VALUE (arg_type) != void_type_node

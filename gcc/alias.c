@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "output.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "cselib.h"
 #include "splay-tree.h"
 #include "ggc.h"
@@ -301,14 +300,14 @@ ao_ref_from_mem (ao_ref *ref, const_rtx mem)
 	ref->base = build_simple_mem_ref (*(tree *)namep);
     }
   else if (TREE_CODE (base) == TARGET_MEM_REF
-	   && TMR_SYMBOL (base)
-	   && TREE_CODE (TMR_SYMBOL (base)) == VAR_DECL
-	   && ! TREE_STATIC (TMR_SYMBOL (base))
+	   && TREE_CODE (TMR_BASE (base)) == ADDR_EXPR
+	   && TREE_CODE (TREE_OPERAND (TMR_BASE (base), 0)) == VAR_DECL
+	   && ! TREE_STATIC (TREE_OPERAND (TMR_BASE (base), 0))
 	   && cfun->gimple_df->decls_to_pointers != NULL)
     {
       void *namep;
       namep = pointer_map_contains (cfun->gimple_df->decls_to_pointers,
-				    TMR_SYMBOL (base));
+				    TREE_OPERAND (TMR_BASE (base), 0));
       if (namep)
 	ref->base = build_simple_mem_ref (*(tree *)namep);
     }
@@ -1289,6 +1288,14 @@ record_set (rtx dest, const_rtx set, void *data ATTRIBUTE_UNUSED)
     new_reg_base_value[regno] = find_base_value (src);
 
   reg_seen[regno] = 1;
+}
+
+/* Return REG_BASE_VALUE for REGNO.  Selective scheduler uses this to avoid
+   using hard registers with non-null REG_BASE_VALUE for renaming.  */
+rtx
+get_reg_base_value (unsigned int regno)
+{
+  return VEC_index (rtx, reg_base_value, regno);
 }
 
 /* If a value is known for REGNO, return it.  */
@@ -2459,7 +2466,7 @@ true_dependence_1 (const_rtx mem, enum machine_mode mem_mode, rtx mem_addr,
 
   /* We cannot use aliases_everything_p to test MEM, since we must look
      at MEM_ADDR, rather than XEXP (mem, 0).  */
-  if (mem_mode == QImode || GET_CODE (mem_addr) == AND)
+  if (GET_CODE (mem_addr) == AND)
     return 1;
 
   /* ??? In true_dependence we also allow BLKmode to alias anything.  Why
@@ -2655,7 +2662,7 @@ may_alias_p (const_rtx mem, const_rtx x)
 
   /* We cannot use aliases_everything_p to test MEM, since we must look
      at MEM_ADDR, rather than XEXP (mem, 0).  */
-  if (GET_MODE (mem) == QImode || GET_CODE (mem_addr) == AND)
+  if (GET_CODE (mem_addr) == AND)
     return 1;
 
   if (fixed_scalar_and_varying_struct_p (mem, x, mem_addr, x_addr,
@@ -2688,7 +2695,7 @@ init_alias_target (void)
     = gen_rtx_ADDRESS (Pmode, arg_pointer_rtx);
   static_reg_base_value[FRAME_POINTER_REGNUM]
     = gen_rtx_ADDRESS (Pmode, frame_pointer_rtx);
-#if HARD_FRAME_POINTER_REGNUM != FRAME_POINTER_REGNUM
+#if !HARD_FRAME_POINTER_IS_FRAME_POINTER
   static_reg_base_value[HARD_FRAME_POINTER_REGNUM]
     = gen_rtx_ADDRESS (Pmode, hard_frame_pointer_rtx);
 #endif
@@ -2904,6 +2911,15 @@ init_alias_analysis (void)
   free (reg_seen);
   reg_seen = 0;
   timevar_pop (TV_ALIAS_ANALYSIS);
+}
+
+/* Equate REG_BASE_VALUE (reg1) to REG_BASE_VALUE (reg2).
+   Special API for var-tracking pass purposes.  */
+
+void
+vt_equate_reg_base_value (const_rtx reg1, const_rtx reg2)
+{
+  VEC_replace (rtx, reg_base_value, REGNO (reg1), REG_BASE_VALUE (reg2));
 }
 
 void

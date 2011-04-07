@@ -31,6 +31,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 
 #define MATHFUNC(funcname) funcname ## f
+#define BUILTINMATHFUNC(funcname) MATHFUNC(funcname)
 
 #if defined (HAVE_GFC_REAL_4)
 
@@ -66,7 +67,7 @@ bessel_jn_r4 (gfc_array_r4 * const restrict ret, int n1, int n2, GFC_REAL_4 x)
       && GFC_DESCRIPTOR_EXTENT(ret,0) != (n2-n1+1))
     runtime_error("Incorrect extent in return value of BESSEL_JN "
 		  "(%ld vs. %ld)", (long int) n2-n1,
-		  GFC_DESCRIPTOR_EXTENT(ret,0));
+		  (long int) GFC_DESCRIPTOR_EXTENT(ret,0));
 
   stride = GFC_DESCRIPTOR_STRIDE(ret,0);
 
@@ -134,7 +135,7 @@ bessel_yn_r4 (gfc_array_r4 * const restrict ret, int n1, int n2,
       && GFC_DESCRIPTOR_EXTENT(ret,0) != (n2-n1+1))
     runtime_error("Incorrect extent in return value of BESSEL_JN "
 		  "(%ld vs. %ld)", (long int) n2-n1,
-		  GFC_DESCRIPTOR_EXTENT(ret,0));
+		  (long int) GFC_DESCRIPTOR_EXTENT(ret,0));
 
   stride = GFC_DESCRIPTOR_STRIDE(ret,0);
 

@@ -1,5 +1,5 @@
 /* Chains of recurrences.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
@@ -202,23 +202,10 @@ evolution_function_is_affine_in_loop (const_tree chrec, int loopnum)
 static inline bool
 evolution_function_is_affine_p (const_tree chrec)
 {
-  if (chrec == NULL_TREE)
-    return false;
-
-  switch (TREE_CODE (chrec))
-    {
-    case POLYNOMIAL_CHREC:
-      if (evolution_function_is_invariant_p (CHREC_LEFT (chrec),
-					     CHREC_VARIABLE (chrec))
-	  && evolution_function_is_invariant_p (CHREC_RIGHT (chrec),
-						CHREC_VARIABLE (chrec)))
-	return true;
-      else
-	return false;
-
-    default:
-      return false;
-    }
+  return chrec
+    && TREE_CODE (chrec) == POLYNOMIAL_CHREC
+    && evolution_function_is_invariant_p (CHREC_RIGHT (chrec),
+					  CHREC_VARIABLE (chrec));
 }
 
 /* Determines whether EXPR does not contains chrec expressions.  */

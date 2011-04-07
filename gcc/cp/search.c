@@ -1,7 +1,7 @@
 /* Breadth-first and depth-first routines for
    searching multiple-inheritance lattice for GNU C++.
    Copyright (C) 1987, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1999, 2000, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
 
@@ -1835,11 +1835,17 @@ check_final_overrider (tree overrider, tree basefn)
 
       if (CLASS_TYPE_P (base_return) && CLASS_TYPE_P (over_return))
 	{
-	  tree binfo = lookup_base (over_return, base_return,
-				    ba_check | ba_quiet, NULL);
+	  /* Strictly speaking, the standard requires the return type to be
+	     complete even if it only differs in cv-quals, but that seems
+	     like a bug in the wording.  */
+	  if (!same_type_ignoring_top_level_qualifiers_p (base_return, over_return))
+	    {
+	      tree binfo = lookup_base (over_return, base_return,
+					ba_check | ba_quiet, NULL);
 
-	  if (!binfo)
-	    fail = 1;
+	      if (!binfo)
+		fail = 1;
+	    }
 	}
       else if (!pedantic
 	       && can_convert (TREE_TYPE (base_type), TREE_TYPE (over_type)))
@@ -1934,6 +1940,11 @@ look_for_overrides (tree type, tree fndecl)
   tree base_binfo;
   int ix;
   int found = 0;
+
+  /* A constructor for a class T does not override a function T
+     in a base class.  */
+  if (DECL_CONSTRUCTOR_P (fndecl))
+    return 0;
 
   for (ix = 0; BINFO_BASE_ITERATE (binfo, ix, base_binfo); ix++)
     {
@@ -2435,13 +2446,10 @@ lookup_conversions_r (tree binfo,
    functions in this node were selected.  This function is effectively
    performing a set of member lookups as lookup_fnfield does, but
    using the type being converted to as the unique key, rather than the
-   field name.
-   If LOOKUP_TEMPLATE_CONVS_P is TRUE, the returned TREE_LIST contains
-   the non-hidden user-defined template conversion functions too.  */
+   field name.  */
 
 tree
-lookup_conversions (tree type,
-		    bool lookup_template_convs_p)
+lookup_conversions (tree type)
 {
   tree convs, tpl_convs;
   tree list = NULL_TREE;
@@ -2467,9 +2475,6 @@ lookup_conversions (tree type,
 	  list = probe;
 	}
     }
-
-  if (lookup_template_convs_p == false)
-    tpl_convs = NULL_TREE;
 
   for (; tpl_convs; tpl_convs = TREE_CHAIN (tpl_convs))
     {

@@ -1,3 +1,98 @@
+2011-03-05  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+	    Eric Blake  <eblake@redhat.com>
+
+	* override.m4: Error out if a buggy M4 was detected, to
+	avoid spurious diffs in generated files.
+
+2011-01-25  Jakub Jelinek  <jakub@redhat.com>
+
+	* cloog.m4 (CLOOG_REQUESTED): Use $2 if --without-cloog.
+
+2011-01-10  Jan Hubicka  <jh@suse.cz>
+
+	* bootstrap-lto.mk: -fuse-linker-plugin is default now;
+	pass -fno-lto to STAGEprofile.
+
+2010-12-06  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	PR target/40125
+	PR lto/46695
+	* lthostflags.m4: New file.
+	(ACX_LT_HOST_FLAGS): Define.
+
+2010-12-02  Dave Korn  <dave.korn.cygwin@gmail.com>
+
+	* mh-cygwin (LDFLAGS): Turn up stack allocation to 12MB.
+	(BOOT_LDFLAGS): Add matching stack size flag.
+	* mh-mingw (LDFLAGS): Likewise.
+	(BOOT_LDFLAGS): Likewise.
+
+2010-11-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* bootstrap-lto.mk (BOOT_ADAFLAGS): Delete.
+
+2010-11-19  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* cloog.m4: Use AS_HELP_STRING and fix help formatting.
+
+2010-11-15  Andreas Schwab  <schwab@redhat.com>
+
+	* cloog.m4 (CLOOG_INIT_FLAGS): Fix spelling in option names.
+
+2010-11-12  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* cloog.m4: Add -enable-cloog-backend=(isl|ppl|ppl-legacy) to
+	define the cloog backend to use. Furthermore, only pass the ppllibs to
+	the configure checks, if necessary.
+
+2010-11-12  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* cloog.m4: Use CLooG predefined macro to check for CLooG PPL.
+
+2010-11-12  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* cloog.m4: Fix typo.  verison -> version.
+
+2010-11-12  Tobias Grosser  <grosser@fim.uni-passau.de>
+
+	* cloog.m4: Pass ppl libraries to the CLooG version check.
+
+2010-11-11  Jan Hubicka  <jh@suse.cz>
+
+	* bootstrap-lto: Use -flto.
+
+2010-11-04  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* mh-darwin: Renamed from mh-ppc-darwin.
+
+2010-06-27  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* po.m4 (AM_PO_SUBDIRS): Fix unportable shell quoting.
+
+2010-09-10  Jonathan Yong  <jon_y@users.sourceforge.net>
+
+	* dfp.m4: Enable decimal float for i?86 cygwin
+	and mingw, and for x86_64 mingw.
+
+2010-09-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/45524
+	* dfp.m4: Don't set enable_decimal_float to dpd if DFP is
+	disabled.  Set default_decimal_float.
+
+2010-09-06  Andreas Schwab  <schwab@redhat.com>
+
+	* dfp.m4: Quote argument of AC_MSG_WARN.
+
+2010-09-03  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* dfp.m4: New file.
+
+2010-09-01  Andi Kleen	<ak@linux.intel.com>
+
+	* bootstrap-lto.mk (STAGE2_CFLAGS, STAGE3_CFLAGS): Change
+	to -fwhopr=jobserver -fuse-linker-plugin -frandom-seed=1.
+
 2010-08-21  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	PR target/45084
@@ -19,8 +114,8 @@
 2010-06-09  Iain Sandoe  <iains@gcc.gnu.org>
 
 	PR bootstrap/43170
-	* tls.m4 (GCC_CHECK_TLS): Add volatile qualifier to the test 
-	references.  Move the main () test reference ahead of 
+	* tls.m4 (GCC_CHECK_TLS): Add volatile qualifier to the test
+	references.  Move the main () test reference ahead of
 	pthread_create().  Add a comment to explain the requirements
 	of the test.
 
@@ -302,7 +397,7 @@
 
 	PR bootstrap/32009
 	* mh-ppc-darwin (BOOT_CFLAGS): Reenable.
-		
+
 2008-01-08  Jakub Jelinek  <jakub@redhat.com>
 
 	* futex.m4: New file.
@@ -376,7 +471,7 @@
 
 	* acx.m4 (ACX_CHECK_INSTALLED_TARGET_TOOL): Fixup logic for cross
 	builds.
-	
+
 2007-06-20  Mike Stump  <mrs@apple.com>
 
 	* acx.m4 (NCN_STRICT_CHECK_TARGET_TOOLS): Fix incremental builds.
@@ -401,7 +496,7 @@
 
 2007-04-11  Kai Tietz  <kai.tietz@onevision.com>
 
-	* stdint.m4: Make template compatible with older cygwin 
+	* stdint.m4: Make template compatible with older cygwin
 	types.h, wrapping each type in a __XXX_t_defined #ifdef.
 
 2007-03-26  H.J. Lu  <hongjiu.lu@intel.com>
@@ -505,7 +600,8 @@
 2006-07-25  Paolo Bonzini  <bonzini@gnu.org>
 
 	PR build/26188
-	* stdint.m4: Test for uintptr_t even on systems with uint64_t or uint32_t.
+	* stdint.m4: Test for uintptr_t even on systems with uint64_t
+	or uint32_t.
 
 2006-07-21  Steve Ellcey  <sje@cup.hp.com>
 

@@ -1,5 +1,6 @@
 /* params.def - Run-time parameters.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011
    Free Software Foundation, Inc.
    Written by Mark Mitchell <mark@codesourcery.com>.
 
@@ -118,6 +119,12 @@ DEFPARAM (PARAM_EARLY_INLINER_MAX_ITERATIONS,
 	  10, 0, 0)
 
 /* Limit on probability of entry BB.  */
+DEFPARAM (PARAM_COMDAT_SHARING_PROBABILITY,
+	  "comdat-sharing-probability",
+	  "Probability that COMDAT function will be shared with different compilatoin unit",
+	  20, 0, 0)
+
+/* Limit on probability of entry BB.  */
 DEFPARAM (PARAM_PARTIAL_INLINING_ENTRY_PROBABILITY,
 	  "partial-inlining-entry-probability",
 	  "Maximum probability of the entry BB of split region (in percent relative to entry BB of the function) to make partial inlining happen",
@@ -191,7 +198,7 @@ DEFPARAM(PARAM_IPCP_UNIT_GROWTH,
 DEFPARAM(PARAM_EARLY_INLINING_INSNS,
 	 "early-inlining-insns",
 	 "Maximal estimated growth of function body caused by early inlining of single call",
-	 8, 0, 0)
+	 10, 0, 0)
 DEFPARAM(PARAM_LARGE_STACK_FRAME,
 	 "large-stack-frame",
 	 "The size of stack frame to be considered large",
@@ -207,6 +214,13 @@ DEFPARAM(PARAM_MAX_GCSE_MEMORY,
 	 "max-gcse-memory",
 	 "The maximum amount of memory to be allocated by GCSE",
 	 50 * 1024 * 1024, 0, 0)
+
+/* The GCSE optimization of an expression will avoided if the ratio of
+   insertions to deletions is greater than this value.  */
+DEFPARAM(PARAM_MAX_GCSE_INSERTION_RATIO,
+	 "max-gcse-insertion-ratio",
+	 "The maximum ratio of insertions to deletions of expressions in GCSE",
+	 20, 0, 0)
 
 /* This is the threshold ratio when to perform partial redundancy
    elimination after reload. We perform partial redundancy elimination
@@ -468,6 +482,11 @@ DEFPARAM(PARAM_SCEV_MAX_EXPR_SIZE,
  	 "scev-max-expr-size",
 	 "Bound on size of expressions used in the scalar evolutions analyzer",
 	 100, 0, 0)
+
+DEFPARAM(PARAM_SCEV_MAX_EXPR_COMPLEXITY,
+	 "scev-max-expr-complexity",
+	 "Bound on the complexity of the expressions in the scalar evolutions analyzer",
+	 10, 0, 0)
 
 DEFPARAM(PARAM_OMEGA_MAX_VARS,
  	 "omega-max-vars",
@@ -882,6 +901,26 @@ DEFPARAM (PARAM_DEVIRT_TYPE_LIST_SIZE,
 	  "Maximum size of a type list associated with each parameter for "
 	  "devirtualization",
 	  8, 0, 0)
+
+/* WHOPR partitioning configuration.  */
+
+DEFPARAM (PARAM_LTO_PARTITIONS,
+	  "lto-partitions",
+	  "Number of paritions program should be split to",
+	  32, 0, 0)
+
+DEFPARAM (MIN_PARTITION_SIZE,
+	  "lto-min-partition",
+	  "Size of minimal paritition for WHOPR (in estimated instructions)",
+	  1000, 0, 0)
+
+/* Diagnostic parameters.  */
+
+DEFPARAM (CXX_MAX_NAMESPACES_FOR_DIAGNOSTIC_HELP,
+	  "cxx-max-namespaces-for-diagnostic-help",
+	  "Maximum number of namespaces to search for alternatives when "
+	  "name lookup fails",
+	  1000, 0, 0)
 
 /*
 Local variables:

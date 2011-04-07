@@ -1,5 +1,5 @@
 /* Callgraph construction.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
    Contributed by Jan Hubicka
 
@@ -36,6 +36,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "ipa-utils.h"
 #include "except.h"
+#include "l-ipo.h"
 
 /* Context of record_reference.  */
 struct record_reference_ctx
@@ -143,6 +144,11 @@ static void
 record_eh_tables (struct cgraph_node *node, struct function *fun)
 {
   eh_region i;
+
+  if (DECL_FUNCTION_PERSONALITY (node->decl))
+    ipa_record_reference (node, NULL,
+			  cgraph_node (DECL_FUNCTION_PERSONALITY (node->decl)),
+			  NULL, IPA_REF_ADDR, NULL);
 
   i = fun->eh->region_tree;
   if (!i)
@@ -342,9 +348,9 @@ cgraph_add_fake_indirect_call_edges (void)
 /* Mark address taken in STMT.  */
 
 static bool
-mark_address (gimple stmt ATTRIBUTE_UNUSED, tree addr,
-	      void *data ATTRIBUTE_UNUSED)
+mark_address (gimple stmt, tree addr, void *data)
 {
+  addr = get_base_address (addr);
   if (TREE_CODE (addr) == FUNCTION_DECL)
     {
       struct cgraph_node *node = cgraph_node (addr);
@@ -353,24 +359,20 @@ mark_address (gimple stmt ATTRIBUTE_UNUSED, tree addr,
 			    node, NULL,
 			    IPA_REF_ADDR, stmt);
     }
-  else
+  else if (addr && TREE_CODE (addr) == VAR_DECL
+	   && (TREE_STATIC (addr) || DECL_EXTERNAL (addr)))
     {
-      addr = get_base_address (addr);
-      if (addr && TREE_CODE (addr) == VAR_DECL
-	  && (TREE_STATIC (addr) || DECL_EXTERNAL (addr)))
-	{
-	  struct varpool_node *vnode = varpool_node (addr);
-	  int walk_subtrees;
+      struct varpool_node *vnode = varpool_node (addr);
+      int walk_subtrees;
 
-	  if (lang_hooks.callgraph.analyze_expr)
-	    lang_hooks.callgraph.analyze_expr (&addr, &walk_subtrees);
-	  varpool_mark_needed_node (vnode);
-	  if (vnode->alias && vnode->extra_name)
-	    vnode = vnode->extra_name;
-	  ipa_record_reference ((struct cgraph_node *)data, NULL,
-				NULL, vnode,
-				IPA_REF_ADDR, stmt);
-	}
+      if (lang_hooks.callgraph.analyze_expr)
+	lang_hooks.callgraph.analyze_expr (&addr, &walk_subtrees);
+      varpool_mark_needed_node (vnode);
+      if (vnode->alias && vnode->extra_name)
+	vnode = vnode->extra_name;
+      ipa_record_reference ((struct cgraph_node *)data, NULL,
+			    NULL, vnode,
+			    IPA_REF_ADDR, stmt);
     }
 
   return false;
@@ -379,12 +381,21 @@ mark_address (gimple stmt ATTRIBUTE_UNUSED, tree addr,
 /* Mark load of T.  */
 
 static bool
-mark_load (gimple stmt ATTRIBUTE_UNUSED, tree t,
-	   void *data ATTRIBUTE_UNUSED)
+mark_load (gimple stmt, tree t, void *data)
 {
   t = get_base_address (t);
-  if (t && TREE_CODE (t) == VAR_DECL
-      && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
+  if (t && TREE_CODE (t) == FUNCTION_DECL)
+    {
+      /* ??? This can happen on platforms with descriptors when these are
+	 directly manipulated in the code.  Pretend that it's an address.  */
+      struct cgraph_node *node = cgraph_node (t);
+      cgraph_mark_address_taken_node (node);
+      ipa_record_reference ((struct cgraph_node *)data, NULL,
+			    node, NULL,
+			    IPA_REF_ADDR, stmt);
+    }
+  else if (t && TREE_CODE (t) == VAR_DECL
+	   && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
     {
       struct varpool_node *vnode = varpool_node (t);
       int walk_subtrees;
@@ -404,8 +415,7 @@ mark_load (gimple stmt ATTRIBUTE_UNUSED, tree t,
 /* Mark store of T.  */
 
 static bool
-mark_store (gimple stmt ATTRIBUTE_UNUSED, tree t,
-	    void *data ATTRIBUTE_UNUSED)
+mark_store (gimple stmt, tree t, void *data)
 {
   t = get_base_address (t);
   if (t && TREE_CODE (t) == VAR_DECL
@@ -421,7 +431,7 @@ mark_store (gimple stmt ATTRIBUTE_UNUSED, tree t,
 	vnode = vnode->extra_name;
       ipa_record_reference ((struct cgraph_node *)data, NULL,
 			    NULL, vnode,
-			    IPA_REF_STORE, NULL);
+			    IPA_REF_STORE, stmt);
      }
   return false;
 }
@@ -471,16 +481,19 @@ build_cgraph_edges (void)
 	      && gimple_omp_parallel_child_fn (stmt))
 	    {
 	      tree fn = gimple_omp_parallel_child_fn (stmt);
-	      cgraph_mark_needed_node (cgraph_node (fn));
+	      ipa_record_reference (node, NULL, cgraph_node (fn),
+				    NULL, IPA_REF_ADDR, stmt);
 	    }
 	  if (gimple_code (stmt) == GIMPLE_OMP_TASK)
 	    {
 	      tree fn = gimple_omp_task_child_fn (stmt);
 	      if (fn)
-		cgraph_mark_needed_node (cgraph_node (fn));
+		ipa_record_reference (node, NULL, cgraph_node (fn),
+				      NULL, IPA_REF_ADDR, stmt);
 	      fn = gimple_omp_task_copy_fn (stmt);
 	      if (fn)
-		cgraph_mark_needed_node (cgraph_node (fn));
+		ipa_record_reference (node, NULL, cgraph_node (fn),
+				      NULL, IPA_REF_ADDR, stmt);
 	    }
 	}
       for (gsi = gsi_start (phi_nodes (bb)); !gsi_end_p (gsi); gsi_next (&gsi))
@@ -631,7 +644,7 @@ struct gimple_opt_pass pass_rebuild_cgraph_edges =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  TV_NONE,				/* tv_id */
+  TV_CGRAPH,				/* tv_id */
   PROP_cfg,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

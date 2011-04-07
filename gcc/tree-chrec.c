@@ -27,19 +27,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
-#include "ggc.h"
-#include "tree.h"
 #include "tree-pretty-print.h"
 #include "cfgloop.h"
 #include "tree-flow.h"
 #include "tree-chrec.h"
 #include "tree-pass.h"
 #include "params.h"
-#include "flags.h"
 #include "tree-scalar-evolution.h"
-
-
 
 /* Extended folder for chrecs.  */
 
@@ -1244,8 +1238,11 @@ convert_affine_scev (struct loop *loop, tree type,
      performed by default when CT is signed.  */
   new_step = *step;
   if (TYPE_PRECISION (step_type) > TYPE_PRECISION (ct) && TYPE_UNSIGNED (ct))
-    new_step = chrec_convert_1 (signed_type_for (ct), new_step, at_stmt,
-				use_overflow_semantics);
+    {
+      tree signed_ct = build_nonstandard_integer_type (TYPE_PRECISION (ct), 0);
+      new_step = chrec_convert_1 (signed_ct, new_step, at_stmt,
+                                  use_overflow_semantics);
+    }
   new_step = chrec_convert_1 (step_type, new_step, at_stmt, use_overflow_semantics);
 
   if (automatically_generated_chrec_p (new_base)
@@ -1433,6 +1430,16 @@ eq_evolutions_p (const_tree chrec0, const_tree chrec1)
       return (CHREC_VARIABLE (chrec0) == CHREC_VARIABLE (chrec1)
 	      && eq_evolutions_p (CHREC_LEFT (chrec0), CHREC_LEFT (chrec1))
 	      && eq_evolutions_p (CHREC_RIGHT (chrec0), CHREC_RIGHT (chrec1)));
+
+    case PLUS_EXPR:
+    case MULT_EXPR:
+    case MINUS_EXPR:
+    case POINTER_PLUS_EXPR:
+      return eq_evolutions_p (TREE_OPERAND (chrec0, 0),
+			      TREE_OPERAND (chrec1, 0))
+	  && eq_evolutions_p (TREE_OPERAND (chrec0, 1),
+			      TREE_OPERAND (chrec1, 1));
+
     default:
       return false;
     }
@@ -1575,4 +1582,3 @@ evolution_function_right_is_integer_cst (const_tree chrec)
       return false;
     }
 }
-

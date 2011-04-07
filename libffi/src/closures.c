@@ -1,6 +1,6 @@
 /* -----------------------------------------------------------------------
    closures.c - Copyright (c) 2007  Red Hat, Inc.
-   Copyright (C) 2007, 2009 Free Software Foundation, Inc
+   Copyright (C) 2007, 2009, 2010 Free Software Foundation, Inc
 
    Code to allocate and deallocate memory for closures.
 
@@ -294,7 +294,7 @@ open_temp_exec_file_mnt (const char *mounts)
       struct mntent mnt;
       char buf[MAXPATHLEN * 3];
 
-      if (getmntent_r (last_mntent, &mnt, buf, sizeof (buf)))
+      if (getmntent_r (last_mntent, &mnt, buf, sizeof (buf)) == NULL)
 	return -1;
 
       if (hasmntopt (&mnt, "ro")

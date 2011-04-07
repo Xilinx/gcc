@@ -1,6 +1,6 @@
 /* Structure for saving state for a nested function.
    Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -226,11 +226,6 @@ struct GTY(()) function_subsections {
   const char *cold_section_label;
   const char *hot_section_end_label;
   const char *cold_section_end_label;
-
-  /* String to be used for name of cold text sections, via
-     targetm.asm_out.named_section.  */
-
-  const char *unlikely_text_section_name;
 };
 
 /* Describe an empty area of space in the stack frame.  These can be chained

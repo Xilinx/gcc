@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.  MIPS version.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by A. Lichnewsky (lich@inria.inria.fr).
    Changed by Michael Meissner	(meissner@osf.org).
@@ -25,6 +25,12 @@ along with GCC; see the file COPYING3.  If not see
 
 
 #include "config/vxworks-dummy.h"
+
+#ifdef GENERATOR_FILE
+/* This is used in some insn conditions, so needs to be declared, but
+   does not need to be defined.  */
+extern int target_flags_explicit;
+#endif
 
 /* MIPS external variables defined in mips.c.  */
 
@@ -174,6 +180,13 @@ enum mips_code_readable_setting {
 #define TARGET_WRITABLE_EH_FRAME (flag_pic && TARGET_SHARED)
 #endif
 
+/* Test the assembler to set ISA_HAS_DSP_MULT to DSP Rev 1 or 2.  */
+#ifdef HAVE_AS_DSPR1_MULT
+#define ISA_HAS_DSP_MULT ISA_HAS_DSP
+#else
+#define ISA_HAS_DSP_MULT ISA_HAS_DSPR2
+#endif
+
 /* Generate mips16 code */
 #define TARGET_MIPS16		((target_flags & MASK_MIPS16) != 0)
 /* Generate mips16e code. Default 16bit ASE for mips32* and mips64* */
@@ -205,6 +218,7 @@ enum mips_code_readable_setting {
 #define TARGET_LOONGSON_2E          (mips_arch == PROCESSOR_LOONGSON_2E)
 #define TARGET_LOONGSON_2F          (mips_arch == PROCESSOR_LOONGSON_2F)
 #define TARGET_LOONGSON_2EF         (TARGET_LOONGSON_2E || TARGET_LOONGSON_2F)
+#define TARGET_LOONGSON_3A          (mips_arch == PROCESSOR_LOONGSON_3A)
 #define TARGET_MIPS3900             (mips_arch == PROCESSOR_R3900)
 #define TARGET_MIPS4000             (mips_arch == PROCESSOR_R4000)
 #define TARGET_MIPS4120             (mips_arch == PROCESSOR_R4120)
@@ -229,6 +243,7 @@ enum mips_code_readable_setting {
 				     || mips_tune == PROCESSOR_74KF3_2)
 #define TUNE_LOONGSON_2EF           (mips_tune == PROCESSOR_LOONGSON_2E	\
 				     || mips_tune == PROCESSOR_LOONGSON_2F)
+#define TUNE_LOONGSON_3A            (mips_tune == PROCESSOR_LOONGSON_3A)
 #define TUNE_MIPS3000               (mips_tune == PROCESSOR_R3000)
 #define TUNE_MIPS3900               (mips_tune == PROCESSOR_R3900)
 #define TUNE_MIPS4000               (mips_tune == PROCESSOR_R4000)
@@ -248,7 +263,8 @@ enum mips_code_readable_setting {
    Loongson-2E/2F processors should be enabled.  In o32 pairs of
    floating-point registers provide 64-bit values.  */
 #define TARGET_LOONGSON_VECTORS	    (TARGET_HARD_FLOAT_ABI		\
-				     && TARGET_LOONGSON_2EF)
+				     && (TARGET_LOONGSON_2EF		\
+					 || TARGET_LOONGSON_3A))
 
 /* True if the pre-reload scheduler should try to create chains of
    multiply-add or multiply-subtract instructions.  For example,
@@ -703,7 +719,7 @@ enum mips_code_readable_setting {
      %{march=mips32r2|march=m4k|march=4ke*|march=4ksd|march=24k* \
        |march=34k*|march=74k*|march=1004k*: -mips32r2} \
      %{march=mips64|march=5k*|march=20k*|march=sb1*|march=sr71000 \
-       |march=xlr: -mips64} \
+       |march=xlr|march=loongson3a: -mips64} \
      %{march=mips64r2|march=octeon: -mips64r2} \
      %{!march=*: -" MULTILIB_ISA_DEFAULT "}}"
 
@@ -1069,17 +1085,6 @@ enum mips_code_readable_setting {
 /* The CACHE instruction is available.  */
 #define ISA_HAS_CACHE (TARGET_CACHE_BUILTIN && !TARGET_MIPS16)
 
-/* Add -G xx support.  */
-
-#undef  SWITCH_TAKES_ARG
-#define SWITCH_TAKES_ARG(CHAR)						\
-  (DEFAULT_SWITCH_TAKES_ARG (CHAR) || (CHAR) == 'G')
-
-#define CONDITIONAL_REGISTER_USAGE mips_conditional_register_usage ()
-
-/* Show we can debug even without a frame pointer.  */
-#define CAN_DEBUG_WITHOUT_FP
-
 /* Tell collect what flags to pass to nm.  */
 #ifndef NM_FLAGS
 #define NM_FLAGS "-Bn"
@@ -1136,18 +1141,16 @@ enum mips_code_readable_setting {
 %{mfp32} %{mfp64} \
 %{mshared} %{mno-shared} \
 %{msym32} %{mno-sym32} \
-%{mtune=*} %{v} \
+%{mtune=*} \
 %(subtarget_asm_spec)"
 
 /* Extra switches sometimes passed to the linker.  */
-/* ??? The bestGnum will never be passed to the linker, because the gcc driver
-  will interpret it as a -b option.  */
 
 #ifndef LINK_SPEC
 #define LINK_SPEC "\
 %(endian_spec) \
 %{G*} %{mips1} %{mips2} %{mips3} %{mips4} %{mips32*} %{mips64*} \
-%{bestGnum} %{shared} %{non_shared}"
+%{shared}"
 #endif  /* LINK_SPEC defined */
 
 
@@ -1163,9 +1166,7 @@ enum mips_code_readable_setting {
 
 #undef CC1_SPEC
 #define CC1_SPEC "\
-%{gline:%{!g:%{!g0:%{!g1:%{!g2: -g1}}}}} \
 %{G*} %{EB:-meb} %{EL:-mel} %{EB:%{EL:%emay not use both -EB and -EL}} \
-%{save-temps: } \
 %(subtarget_cc1_spec)"
 
 /* Preprocessor specs.  */
@@ -1284,14 +1285,6 @@ enum mips_code_readable_setting {
 #define BYTES_BIG_ENDIAN (TARGET_BIG_ENDIAN != 0)
 #define WORDS_BIG_ENDIAN (TARGET_BIG_ENDIAN != 0)
 
-/* Define this to set the endianness to use in libgcc2.c, which can
-   not depend on target_flags.  */
-#if !defined(MIPSEL) && !defined(__MIPSEL__)
-#define LIBGCC2_WORDS_BIG_ENDIAN 1
-#else
-#define LIBGCC2_WORDS_BIG_ENDIAN 0
-#endif
-
 #define MAX_BITS_PER_WORD 64
 
 /* Width of a word, in units (bytes).  */
@@ -1327,9 +1320,6 @@ enum mips_code_readable_setting {
 
 /* The number of bytes in a double.  */
 #define UNITS_PER_DOUBLE (TYPE_PRECISION (double_type_node) / BITS_PER_UNIT)
-
-#define UNITS_PER_SIMD_WORD(MODE) \
-  (TARGET_PAIRED_SINGLE_FLOAT ? 8 : UNITS_PER_WORD)
 
 /* Set the sizes of the core types.  */
 #define SHORT_TYPE_SIZE 16
@@ -1522,8 +1512,8 @@ enum mips_code_readable_setting {
    Regarding coprocessor registers: without evidence to the contrary,
    it's best to assume that each coprocessor register has a unique
    use.  This can be overridden, in, e.g., mips_option_override or
-   CONDITIONAL_REGISTER_USAGE should the assumption be inappropriate
-   for a particular target.  */
+   TARGET_CONDITIONAL_REGISTER_USAGE should the assumption be
+   inappropriate for a particular target.  */
 
 #define FIXED_REGISTERS							\
 {									\
@@ -1738,6 +1728,9 @@ enum mips_code_readable_setting {
    pointer.  */
 #define HARD_FRAME_POINTER_REGNUM \
   (TARGET_MIPS16 ? GP_REG_FIRST + 17 : GP_REG_FIRST + 30)
+
+#define HARD_FRAME_POINTER_IS_FRAME_POINTER 0
+#define HARD_FRAME_POINTER_IS_ARG_POINTER 0
 
 /* Register in which static-chain is passed to a function.  */
 #define STATIC_CHAIN_REGNUM (GP_REG_FIRST + 15)
@@ -2035,9 +2028,6 @@ enum reg_class
 #define SMALL_INT_UNSIGNED(X) SMALL_OPERAND_UNSIGNED (INTVAL (X))
 #define LUI_INT(X) LUI_OPERAND (INTVAL (X))
 
-#define PREFERRED_RELOAD_CLASS(X,CLASS)					\
-  mips_preferred_reload_class (X, CLASS)
-
 /* The HI and LO registers can only be reloaded via the general
    registers.  Condition code registers can only be loaded to the
    general registers, and from the floating point registers.  */
@@ -2251,8 +2241,6 @@ typedef struct mips_args {
 #define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
   mips_init_cumulative_args (&CUM, FNTYPE)
 
-#define FUNCTION_ARG_BOUNDARY mips_function_arg_boundary
-
 #define FUNCTION_ARG_PADDING(MODE, TYPE) \
   (mips_pad_arg_upward (MODE, TYPE) ? upward : downward)
 
@@ -2423,9 +2411,10 @@ typedef struct mips_args {
    (often extended) would be needed for byte accesses.  */
 #define SLOW_BYTE_ACCESS (!TARGET_MIPS16)
 
-/* Define this to be nonzero if shift instructions ignore all but the low-order
-   few bits.  */
-#define SHIFT_COUNT_TRUNCATED 1
+/* Standard MIPS integer shifts truncate the shift amount to the
+   width of the shifted operand.  However, Loongson vector shifts
+   do not truncate the shift amount at all.  */
+#define SHIFT_COUNT_TRUNCATED (!TARGET_LOONGSON_VECTORS)
 
 /* Value is 1 if truncating an integer of INPREC bits to OUTPREC bits
    is done just by pretending it is already truncated.  */
@@ -2806,9 +2795,6 @@ while (0)
 #define ASM_COMMENT_START " #"
 #endif
 
-/* Default definitions for size_t and ptrdiff_t.  We must override the
-   definitions from ../svr4.h on mips-*-linux-gnu.  */
-
 #undef SIZE_TYPE
 #define SIZE_TYPE (POINTER_SIZE == 64 ? "long unsigned int" : "unsigned int")
 

@@ -353,6 +353,20 @@ package VMS_Data is
    --
    --   The main program is not in Ada.
 
+   S_Bind_Alloc32 : aliased constant S := "/32_MALLOC "                    &
+                                            "-H32";
+   --        /32_MALLOC
+   --
+   --        Use 32-bit allocations for `__gnat_malloc' (and thus for
+   --        access types).
+
+   S_Bind_Alloc64 : aliased constant S := "/64_MALLOC "                    &
+                                            "-H64";
+   --        /64_MALLOC
+   --
+   --        Use 64-bit allocations for `__gnat_malloc' (and thus for
+   --        access types).
+
    S_Bind_Mess    : aliased constant S := "/MESSAGES_PROJECT_FILE="        &
                                             "DEFAULT "                     &
                                                "-vP0 "                     &
@@ -694,6 +708,8 @@ package VMS_Data is
                       S_Bind_Library 'Access,
                       S_Bind_Linker  'Access,
                       S_Bind_Main    'Access,
+                      S_Bind_Alloc32 'Access,
+                      S_Bind_Alloc64 'Access,
                       S_Bind_Mess    'Access,
                       S_Bind_Nostinc 'Access,
                       S_Bind_Nostlib 'Access,
@@ -1527,6 +1543,15 @@ package VMS_Data is
                                             "-gnatm999999";
    --  NODOC (see /ERROR_LIMIT)
 
+   S_GCC_Except  : aliased constant S := "/EXTRA_EXCEPTION_INFORMATION "   &
+                                            "-gnateE";
+   --        /EXTRA_EXCEPTION_INFORMATION
+   --
+   --   Generate extra information in exception messages, in particular
+   --   display extra column information and the value and range associated
+   --   with index and range check failures, and extra column information for
+   --   access checks.
+
    S_GCC_Expand  : aliased constant S := "/EXPAND_SOURCE "                 &
                                             "-gnatG";
    --        /NOEXPAND_SOURCE (D)
@@ -2226,6 +2251,13 @@ package VMS_Data is
    --
    --    When looking for source files also look in directories specified.
 
+   S_GCC_Src_Info : aliased constant S := "/SRC_INFO=<"                    &
+                                             "--source-info=>";
+   --        /SRC_INFO=source-info-file
+   --
+   --   Specify a source info file to be read or written by the Project
+   --   Manager when project files are used.
+
    S_GCC_Style   : aliased constant S := "/STYLE_CHECKS="                  &
                                             "ALL_BUILTIN "                 &
                                                "-gnatyy "                  &
@@ -2259,10 +2291,12 @@ package VMS_Data is
                                                "-gnaty-A "                 &
                                             "BLANKS "                      &
                                                "-gnatyb "                  &
-                                            "BOOLEAN_OPERATORS "           &
-                                               "-gnatyB "                  &
                                             "NOBLANKS "                    &
                                                "-gnaty-b "                 &
+                                            "BOOLEAN_OPERATORS "           &
+                                               "-gnatyB "                  &
+                                            "NOBOOLEAN_OPERATORS "         &
+                                               "-gnaty-B "                 &
                                             "COMMENTS "                    &
                                                "-gnatyc "                  &
                                             "NOCOMMENTS "                  &
@@ -2758,6 +2792,13 @@ package VMS_Data is
    --   semantic analyzer is more likely to encounter some internal fatal
    --   error when given a syntactically invalid tree.
 
+   S_GCC_USL : aliased constant S := "/UNCHECKED_SHARED_LIB_IMPORTS "      &
+                                         "--unchecked-shared-lib-imports";
+   --        /NOUNCHECKED_SHARED_LIB_IMPORTS (D)
+   --        /UNCHECKED_SHARED_LIB_IMPORTS
+   --
+   --   Allow shared library projects to import static library projects
+
    S_GCC_Units   : aliased constant S := "/UNITS_LIST "                    &
                                             "-gnatu";
    --        /NOUNITS_LIST (D)
@@ -2933,6 +2974,10 @@ package VMS_Data is
                                                "-gnatwh "                  &
                                             "NOHIDING "                    &
                                                "-gnatwH "                  &
+                                            "AVOIDGAPS "                   &
+                                               "-gnatw.h "                 &
+                                            "NOAVOIDGAPS "                 &
+                                               "-gnatw.H "                 &
                                             "IMPLEMENTATION "              &
                                                "-gnatwi "                  &
                                             "NOIMPLEMENTATION "            &
@@ -2989,6 +3034,10 @@ package VMS_Data is
                                                "-gnatw.R "                 &
                                             "SUPPRESS "                    &
                                                "-gnatws "                  &
+                                            "OVERRIDING_SIZE "             &
+                                               "-gnatw.s "                 &
+                                            "NOOVERRIDING_SIZE "           &
+                                               "-gnatw.S "                 &
                                             "DELETED_CODE "                &
                                                "-gnatwt "                  &
                                             "NODELETED_CODE "              &
@@ -2999,6 +3048,10 @@ package VMS_Data is
                                                "-gnatwu "                  &
                                             "NOUNUSED "                    &
                                                "-gnatwU "                  &
+                                            "UNORDERED_ENUMERATIONS "      &
+                                               "-gnatw.u "                 &
+                                            "NOUNORDERED_ENUMERATIONS "    &
+                                               "-gnatw.U "                 &
                                             "VARIABLES_UNINITIALIZED "     &
                                                "-gnatwv "                  &
                                             "NOVARIABLES_UNINITIALIZED "   &
@@ -3478,6 +3531,7 @@ package VMS_Data is
                      S_GCC_ErrorX  'Access,
                      S_GCC_Expand  'Access,
                      S_GCC_Lexpand 'Access,
+                     S_GCC_Except  'Access,
                      S_GCC_Extend  'Access,
                      S_GCC_Ext     'Access,
                      S_GCC_File    'Access,
@@ -3521,6 +3575,7 @@ package VMS_Data is
                      S_GCC_RTS     'Access,
                      S_GCC_SCO     'Access,
                      S_GCC_Search  'Access,
+                     S_GCC_Src_Info'Access,
                      S_GCC_Style   'Access,
                      S_GCC_StyleX  'Access,
                      S_GCC_Subdirs 'Access,
@@ -3530,6 +3585,7 @@ package VMS_Data is
                      S_GCC_Trace   'Access,
                      S_GCC_Tree    'Access,
                      S_GCC_Trys    'Access,
+                     S_GCC_USL     'Access,
                      S_GCC_Units   'Access,
                      S_GCC_Unique  'Access,
                      S_GCC_Upcase  'Access,
@@ -3644,6 +3700,13 @@ package VMS_Data is
    --        /NO_DISPATCH
    --
    --   Do not generate pragmas for dispatching operations.
+
+   S_Elim_Ignore : aliased constant S := "/IGNORE=@"                       &
+                                         "--ignore=@";
+   --      /IGNORE=filename
+   --
+   --   Do not generate pragmas for subprograms declared in the sources
+   --  listed in a specified file
 
    S_Elim_Project : aliased constant S := "/PROJECT_FILE=<"                &
                                              "-P>";
@@ -4852,6 +4915,14 @@ package VMS_Data is
    --
    --   Search the specified directories for both source and object files.
 
+   S_Make_Single  : aliased constant S := "/SINGLE_COMPILE_PER_OBJ_DIR "   &
+                                            "--single-compile-per-obj-dir";
+   --        /NOSINGLE_COMPILE_PER_OBJ_DIR (D)
+   --        /SINGLE_COMPILE_PER_OBJ_DIR
+   --
+   --    When project files are used, do not allow simultaneous compilations
+   --    for the same object directory.
+
    S_Make_Skip    : aliased constant S := "/SKIP_MISSING=*"                &
                                             "-aL*";
    --        /SKIP_MISSING=(directory[,...])
@@ -4863,6 +4934,13 @@ package VMS_Data is
    --        /SOURCE_SEARCH=(directory[,...])
    --
    --   When looking for source files also look in the specified directories.
+
+   S_Make_Src_Info : aliased constant S := "/SRC_INFO=<"                   &
+                                             "--source-info=>";
+   --        /SRC_INFO=source-info-file
+   --
+   --   Specify a source info file to be read or written by the Project
+   --   Manager when project files are used.
 
    S_Make_Stand   : aliased constant S := "/STANDARD_OUTPUT_FOR_COMMANDS " &
                                             "-eS";
@@ -4971,8 +5049,10 @@ package VMS_Data is
                       S_Make_Reason  'Access,
                       S_Make_RTS     'Access,
                       S_Make_Search  'Access,
+                      S_Make_Single  'Access,
                       S_Make_Skip    'Access,
                       S_Make_Source  'Access,
+                      S_Make_Src_Info'Access,
                       S_Make_Stand   'Access,
                       S_Make_Subdirs 'Access,
                       S_Make_Switch  'Access,

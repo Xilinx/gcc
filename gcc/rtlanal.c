@@ -1,6 +1,6 @@
 /* Analyze RTL for GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -25,7 +25,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "rtl.h"
 #include "hard-reg-set.h"
 #include "insn-config.h"
@@ -63,12 +62,6 @@ static unsigned int num_sign_bit_copies1 (const_rtx, enum machine_mode, const_rt
 /* Offset of the first 'e', 'E' or 'V' operand for each rtx code, or
    -1 if a code has no such operand.  */
 static int non_rtx_starting_operands[NUM_RTX_CODE];
-
-/* Bit flags that specify the machine subtype we are compiling for.
-   Bits are tested using macros TARGET_... defined in the tm.h file
-   and set by `-m...' switches.  Must be defined in rtlanal.c.  */
-
-int target_flags;
 
 /* Truncation narrows the mode from SOURCE mode to DESTINATION mode.
    If TARGET_MODE_REP_EXTENDED (DESTINATION, DESTINATION_REP) is
@@ -1947,6 +1940,33 @@ remove_reg_equal_equiv_notes (rtx insn)
     }
 }
 
+/* Remove all REG_EQUAL and REG_EQUIV notes referring to REGNO.  */
+
+void
+remove_reg_equal_equiv_notes_for_regno (unsigned int regno)
+{
+  df_ref eq_use;
+
+  if (!df)
+    return;
+
+  /* This loop is a little tricky.  We cannot just go down the chain because
+     it is being modified by some actions in the loop.  So we just iterate
+     over the head.  We plan to drain the list anyway.  */
+  while ((eq_use = DF_REG_EQ_USE_CHAIN (regno)) != NULL)
+    {
+      rtx insn = DF_REF_INSN (eq_use);
+      rtx note = find_reg_equal_equiv_note (insn);
+
+      /* This assert is generally triggered when someone deletes a REG_EQUAL
+	 or REG_EQUIV note by hacking the list manually rather than calling
+	 remove_note.  */
+      gcc_assert (note);
+
+      remove_note (insn, note);
+    }
+}
+
 /* Search LISTP (an EXPR_LIST) for an entry whose first operand is NODE and
    return 1 if it is found.  A simple equality test is used to determine if
    NODE matches.  */
@@ -2866,7 +2886,124 @@ for_each_rtx (rtx *x, rtx_function f, void *data)
   return for_each_rtx_1 (*x, i, f, data);
 }
 
+
 
+/* Data structure that holds the internal state communicated between
+   for_each_inc_dec, for_each_inc_dec_find_mem and
+   for_each_inc_dec_find_inc_dec.  */
+
+struct for_each_inc_dec_ops {
+  /* The function to be called for each autoinc operation found.  */
+  for_each_inc_dec_fn fn;
+  /* The opaque argument to be passed to it.  */
+  void *arg;
+  /* The MEM we're visiting, if any.  */
+  rtx mem;
+};
+
+static int for_each_inc_dec_find_mem (rtx *r, void *d);
+
+/* Find PRE/POST-INC/DEC/MODIFY operations within *R, extract the
+   operands of the equivalent add insn and pass the result to the
+   operator specified by *D.  */
+
+static int
+for_each_inc_dec_find_inc_dec (rtx *r, void *d)
+{
+  rtx x = *r;
+  struct for_each_inc_dec_ops *data = (struct for_each_inc_dec_ops *)d;
+
+  switch (GET_CODE (x))
+    {
+    case PRE_INC:
+    case POST_INC:
+      {
+	int size = GET_MODE_SIZE (GET_MODE (data->mem));
+	rtx r1 = XEXP (x, 0);
+	rtx c = gen_int_mode (size, GET_MODE (r1));
+	return data->fn (data->mem, x, r1, r1, c, data->arg);
+      }
+
+    case PRE_DEC:
+    case POST_DEC:
+      {
+	int size = GET_MODE_SIZE (GET_MODE (data->mem));
+	rtx r1 = XEXP (x, 0);
+	rtx c = gen_int_mode (-size, GET_MODE (r1));
+	return data->fn (data->mem, x, r1, r1, c, data->arg);
+      }
+
+    case PRE_MODIFY:
+    case POST_MODIFY:
+      {
+	rtx r1 = XEXP (x, 0);
+	rtx add = XEXP (x, 1);
+	return data->fn (data->mem, x, r1, add, NULL, data->arg);
+      }
+
+    case MEM:
+      {
+	rtx save = data->mem;
+	int ret = for_each_inc_dec_find_mem (r, d);
+	data->mem = save;
+	return ret;
+      }
+
+    default:
+      return 0;
+    }
+}
+
+/* If *R is a MEM, find PRE/POST-INC/DEC/MODIFY operations within its
+   address, extract the operands of the equivalent add insn and pass
+   the result to the operator specified by *D.  */
+
+static int
+for_each_inc_dec_find_mem (rtx *r, void *d)
+{
+  rtx x = *r;
+  if (x != NULL_RTX && MEM_P (x))
+    {
+      struct for_each_inc_dec_ops *data = (struct for_each_inc_dec_ops *) d;
+      int result;
+
+      data->mem = x;
+
+      result = for_each_rtx (&XEXP (x, 0), for_each_inc_dec_find_inc_dec,
+			     data);
+      if (result)
+	return result;
+
+      return -1;
+    }
+  return 0;
+}
+
+/* Traverse *X looking for MEMs, and for autoinc operations within
+   them.  For each such autoinc operation found, call FN, passing it
+   the innermost enclosing MEM, the operation itself, the RTX modified
+   by the operation, two RTXs (the second may be NULL) that, once
+   added, represent the value to be held by the modified RTX
+   afterwards, and ARG.  FN is to return -1 to skip looking for other
+   autoinc operations within the visited operation, 0 to continue the
+   traversal, or any other value to have it returned to the caller of
+   for_each_inc_dec.  */
+
+int
+for_each_inc_dec (rtx *x,
+		  for_each_inc_dec_fn fn,
+		  void *arg)
+{
+  struct for_each_inc_dec_ops data;
+
+  data.fn = fn;
+  data.arg = arg;
+  data.mem = NULL;
+
+  return for_each_rtx (x, for_each_inc_dec_find_mem, &data);
+}
+
+
 /* Searches X for any reference to REGNO, returning the rtx of the
    reference found if any.  Otherwise, returns NULL_RTX.  */
 
@@ -3595,6 +3732,17 @@ rtx_cost (rtx x, enum rtx_code outer_code ATTRIBUTE_UNUSED, bool speed)
 
   return total;
 }
+
+/* Fill in the structure C with information about both speed and size rtx
+   costs for X, with outer code OUTER.  */
+
+void
+get_full_rtx_cost (rtx x, enum rtx_code outer, struct full_rtx_costs *c)
+{
+  c->speed = rtx_cost (x, outer, true);
+  c->size = rtx_cost (x, outer, false);
+}
+
 
 /* Return cost of address expression X.
    Expect that X is properly formed address reference.

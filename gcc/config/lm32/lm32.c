@@ -41,7 +41,6 @@
 #include "tm_p.h"
 #include "function.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "optabs.h"
 #include "libfuncs.h"
 #include "ggc.h"
@@ -75,10 +74,25 @@ static bool lm32_can_eliminate (const int, const int);
 static bool
 lm32_legitimate_address_p (enum machine_mode mode, rtx x, bool strict);
 static HOST_WIDE_INT lm32_compute_frame_size (int size);
-static bool lm32_handle_option (size_t code, const char *arg, int value);
+static void lm32_option_override (void);
+static rtx lm32_function_arg (CUMULATIVE_ARGS * cum,
+			      enum machine_mode mode, const_tree type,
+			      bool named);
+static void lm32_function_arg_advance (CUMULATIVE_ARGS * cum,
+				       enum machine_mode mode,
+				       const_tree type, bool named);
 
-#undef TARGET_HANDLE_OPTION
-#define TARGET_HANDLE_OPTION lm32_handle_option
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options lm32_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
+
+#undef TARGET_OPTION_OVERRIDE
+#define TARGET_OPTION_OVERRIDE lm32_option_override
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE lm32_option_optimization_table
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST hook_int_rtx_bool_0
 #undef TARGET_RTX_COSTS
@@ -89,6 +103,10 @@ static bool lm32_handle_option (size_t code, const char *arg, int value);
 #define TARGET_PROMOTE_FUNCTION_MODE default_promote_function_mode_always_promote
 #undef TARGET_SETUP_INCOMING_VARARGS
 #define TARGET_SETUP_INCOMING_VARARGS lm32_setup_incoming_varargs
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG lm32_function_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE lm32_function_arg_advance
 #undef TARGET_PROMOTE_PROTOTYPES
 #define TARGET_PROMOTE_PROTOTYPES hook_bool_const_tree_true
 #undef TARGET_MIN_ANCHOR_OFFSET
@@ -99,6 +117,8 @@ static bool lm32_handle_option (size_t code, const char *arg, int value);
 #define TARGET_CAN_ELIMINATE lm32_can_eliminate
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P lm32_legitimate_address_p
+#undef TARGET_EXCEPT_UNWIND_INFO
+#define TARGET_EXCEPT_UNWIND_INFO sjlj_except_unwind_info
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -156,6 +176,9 @@ gen_int_relational (enum rtx_code code,
 {
   enum machine_mode mode;
   int branch_p;
+  rtx temp;
+  rtx cond;
+  rtx label;
 
   mode = GET_MODE (cmp0);
   if (mode == VOIDmode)
@@ -172,18 +195,22 @@ gen_int_relational (enum rtx_code code,
     case LT:
     case LEU:
     case LTU:
-      code = swap_condition (code);
-      rtx temp = cmp0;
-      cmp0 = cmp1;
-      cmp1 = temp;
-      break;
+      {
+	rtx temp;
+
+	code = swap_condition (code);
+	temp = cmp0;
+	cmp0 = cmp1;
+	cmp1 = temp;
+	break;
+      }
     default:
       break;
     }
 
   if (branch_p)
     {
-      rtx insn;
+      rtx insn, cond, label;
 
       /* Operands must be in registers.  */
       if (!register_operand (cmp0, mode))
@@ -192,8 +219,8 @@ gen_int_relational (enum rtx_code code,
 	cmp1 = force_reg (mode, cmp1);
 
       /* Generate conditional branch instruction.  */
-      rtx cond = gen_rtx_fmt_ee (code, mode, cmp0, cmp1);
-      rtx label = gen_rtx_LABEL_REF (VOIDmode, destination);
+      cond = gen_rtx_fmt_ee (code, mode, cmp0, cmp1);
+      label = gen_rtx_LABEL_REF (VOIDmode, destination);
       insn = gen_rtx_SET (VOIDmode, pc_rtx,
 			  gen_rtx_IF_THEN_ELSE (VOIDmode,
 						cond, label, pc_rtx));
@@ -367,18 +394,17 @@ lm32_expand_prologue (void)
       /* Setup frame pointer if it's needed.  */
       if (frame_pointer_needed == 1)
 	{
-	  /* Load offset - Don't use total_size, as that includes pretend_size, 
-             which isn't part of this frame?  */
-	  insn =
-	    emit_move_insn (frame_pointer_rtx,
-			    GEN_INT (current_frame_info.args_size +
-				     current_frame_info.callee_size +
-				     current_frame_info.locals_size));
-	  RTX_FRAME_RELATED_P (insn) = 1;
+	  /* Move sp to fp.  */
+	  insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+	  RTX_FRAME_RELATED_P (insn) = 1; 
 
-	  /* Add in sp.  */
-	  insn = emit_add (frame_pointer_rtx,
-			   frame_pointer_rtx, stack_pointer_rtx);
+	  /* Add offset - Don't use total_size, as that includes pretend_size, 
+             which isn't part of this frame?  */
+	  insn = emit_add (frame_pointer_rtx, 
+			   frame_pointer_rtx,
+			   GEN_INT (current_frame_info.args_size +
+				    current_frame_info.callee_size +
+				    current_frame_info.locals_size));
 	  RTX_FRAME_RELATED_P (insn) = 1;
 	}
 
@@ -500,7 +526,7 @@ lm32_print_operand (FILE * file, rtx op, int letter)
   else if (GET_CODE (op) == CONST_DOUBLE)
     {
       if ((CONST_DOUBLE_LOW (op) != 0) || (CONST_DOUBLE_HIGH (op) != 0))
-	output_operand_lossage ("Only 0.0 can be loaded as an immediate");
+	output_operand_lossage ("only 0.0 can be loaded as an immediate");
       else
 	fprintf (file, "0");
     }
@@ -604,9 +630,9 @@ lm32_print_operand_address (FILE * file, rtx addr)
    NAMED is nonzero if this argument is a named parameter
     (otherwise it is an extra parameter matching an ellipsis).  */
 
-rtx
-lm32_function_arg (CUMULATIVE_ARGS cum, enum machine_mode mode,
-		   tree type, int named)
+static rtx
+lm32_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		   const_tree type, bool named)
 {
   if (mode == VOIDmode)
     /* Compute operand 2 of the call insn.  */
@@ -615,10 +641,17 @@ lm32_function_arg (CUMULATIVE_ARGS cum, enum machine_mode mode,
   if (targetm.calls.must_pass_in_stack (mode, type))
     return NULL_RTX;
 
-  if (!named || (cum + LM32_NUM_REGS2 (mode, type) > LM32_NUM_ARG_REGS))
+  if (!named || (*cum + LM32_NUM_REGS2 (mode, type) > LM32_NUM_ARG_REGS))
     return NULL_RTX;
 
-  return gen_rtx_REG (mode, cum + LM32_FIRST_ARG_REG);
+  return gen_rtx_REG (mode, *cum + LM32_FIRST_ARG_REG);
+}
+
+static void
+lm32_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			   const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  *cum += LM32_NUM_REGS2 (mode, type);
 }
 
 HOST_WIDE_INT
@@ -695,26 +728,9 @@ lm32_setup_incoming_varargs (CUMULATIVE_ARGS * cum, enum machine_mode mode,
     }
 }
 
-/* Implement TARGET_HANDLE_OPTION.  */
-
-static bool
-lm32_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED, int value)
-{
-  switch (code)
-    {
-    case OPT_G:
-      g_switch_value = value;
-      g_switch_set = true;
-      return true;
-
-    default:
-      return true;
-    }
-}
-
 /* Override command line options.  */
-void
-lm32_override_options (void)
+static void
+lm32_option_override (void)
 {
   /* We must have sign-extend enabled if barrel-shift isn't.  */
   if (!TARGET_BARREL_SHIFT_ENABLED && !TARGET_SIGN_EXTEND_ENABLED)
@@ -794,7 +810,7 @@ lm32_in_small_data_p (const_tree exp)
 
       /* If this is an incomplete type with size 0, then we can't put it
          in sdata because it might be too big when completed.  */
-      if (size > 0 && (unsigned HOST_WIDE_INT) size <= g_switch_value)
+      if (size > 0 && size <= g_switch_value)
 	return true;
     }
 
@@ -832,7 +848,7 @@ lm32_block_move_inline (rtx dest, rtx src, HOST_WIDE_INT length,
   delta = bits / BITS_PER_UNIT;
 
   /* Allocate a buffer for the temporary registers.  */
-  regs = alloca (sizeof (rtx) * length / delta);
+  regs = XALLOCAVEC (rtx, length / delta);
 
   /* Load as many BITS-sized chunks as possible.  */
   for (offset = 0, i = 0; offset + delta <= length; offset += delta, i++)

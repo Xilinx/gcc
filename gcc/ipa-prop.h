@@ -1,5 +1,5 @@
 /* Interprocedural analyses.
-   Copyright (C) 2005, 2007, 2008, 2009
+   Copyright (C) 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -24,6 +24,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 #include "vec.h"
 #include "cgraph.h"
+#include "gimple.h"
 
 /* The following definitions and interfaces are used by
    interprocedural analyses or parameters.  */
@@ -429,7 +430,8 @@ bool ipa_propagate_indirect_call_infos (struct cgraph_edge *cs,
 					VEC (cgraph_edge_p, heap) **new_edges);
 
 /* Indirect edge and binfo processing.  */
-struct cgraph_edge *ipa_make_edge_direct_to_target (struct cgraph_edge *, tree);
+struct cgraph_edge *ipa_make_edge_direct_to_target (struct cgraph_edge *, tree,
+						    tree);
 
 
 /* Debugging interface.  */
@@ -456,6 +458,10 @@ struct ipa_parm_adjustment
   /* Type of the new parameter.  However, if by_ref is true, the real type will
      be a pointer to this type.  */
   tree type;
+
+  /* Alias refrerence type to be used in MEM_REFs when adjusting caller
+     arguments.  */
+  tree alias_ptr_type;
 
   /* The new declaration when creating/replacing a parameter.  Created by
      ipa_modify_formal_parameters, useful for functions modifying the body
@@ -511,6 +517,7 @@ void ipa_prop_read_jump_functions (void);
 void ipa_update_after_lto_read (void);
 
 /* From tree-sra.c:  */
-bool build_ref_for_offset (tree *, tree, HOST_WIDE_INT, tree, bool);
+tree build_ref_for_offset (location_t, tree, HOST_WIDE_INT, tree,
+			   gimple_stmt_iterator *, bool);
 
 #endif /* IPA_PROP_H */

@@ -1,5 +1,5 @@
 /* Definitions for code generation pass of GNU compiler.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -190,6 +190,11 @@ enum optab_index
   OTI_pow,
   /* Arc tangent of y/x */
   OTI_atan2,
+  /* Floating multiply/add */
+  OTI_fma,
+  OTI_fms,
+  OTI_fnma,
+  OTI_fnms,
 
   /* Move instruction.  */
   OTI_mov,
@@ -432,6 +437,10 @@ enum optab_index
 #define umax_optab (&optab_table[OTI_umax])
 #define pow_optab (&optab_table[OTI_pow])
 #define atan2_optab (&optab_table[OTI_atan2])
+#define fma_optab (&optab_table[OTI_fma])
+#define fms_optab (&optab_table[OTI_fms])
+#define fnma_optab (&optab_table[OTI_fnma])
+#define fnms_optab (&optab_table[OTI_fnms])
 
 #define mov_optab (&optab_table[OTI_mov])
 #define movstrict_optab (&optab_table[OTI_movstrict])

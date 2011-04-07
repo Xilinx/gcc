@@ -201,7 +201,8 @@ package body Styleg is
          end if;
       end OK_Boolean_Operand;
 
-   --  Start of processig for Check_Boolean_Operator
+   --  Start of processing for Check_Boolean_Operator
+
    begin
       if Style_Check_Boolean_And_Or
         and then Comes_From_Source (Node)

@@ -1,5 +1,5 @@
 /* Implementation of the NEAREST intrinsic
-   Copyright 2003, 2007, 2009 Free Software Foundation, Inc.
+   Copyright 2003, 2007, 2009, 2010 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
 This file is part of the GNU Fortran 95 runtime library (libgfortran).
@@ -33,7 +33,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define MATHFUNC(funcname) funcname ## l
 #endif
 
-#if defined (HAVE_GFC_REAL_16) && (defined(GFC_WITH_QUAD_LIB) || defined(HAVE_COPYSIGNL)) && (defined(GFC_WITH_QUAD_LIB) || defined(HAVE_NEXTAFTERL))
+#if defined (HAVE_GFC_REAL_16) && (defined(GFC_REAL_16_IS_FLOAT128) || defined(HAVE_COPYSIGNL)) && (defined(GFC_REAL_16_IS_FLOAT128) || defined(HAVE_NEXTAFTERL))
 
 extern GFC_REAL_16 nearest_r16 (GFC_REAL_16 s, GFC_REAL_16 dir);
 export_proto(nearest_r16);

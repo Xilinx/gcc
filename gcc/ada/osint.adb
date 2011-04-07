@@ -688,22 +688,23 @@ package body Osint is
    -- Canonical_Case_File_Name --
    ------------------------------
 
-   --  For now, we only deal with the case of a-z. Eventually we should
-   --  worry about other Latin-1 letters on systems that support this ???
-
    procedure Canonical_Case_File_Name (S : in out String) is
    begin
       if not File_Names_Case_Sensitive then
-         for J in S'Range loop
-            if S (J) in 'A' .. 'Z' then
-               S (J) := Character'Val (
-                          Character'Pos (S (J)) +
-                          Character'Pos ('a')   -
-                          Character'Pos ('A'));
-            end if;
-         end loop;
+         To_Lower (S);
       end if;
    end Canonical_Case_File_Name;
+
+   ---------------------------------
+   -- Canonical_Case_Env_Var_Name --
+   ---------------------------------
+
+   procedure Canonical_Case_Env_Var_Name (S : in out String) is
+   begin
+      if not Env_Vars_Case_Sensitive then
+         To_Lower (S);
+      end if;
+   end Canonical_Case_Env_Var_Name;
 
    ---------------------------
    -- Create_File_And_Check --
@@ -1162,7 +1163,7 @@ package body Osint is
       begin
          --  If we are looking for a config file, look only in the current
          --  directory, i.e. return input argument unchanged. Also look only in
-         --  the curren directory if we are looking for a .dg file (happens in
+         --  the current directory if we are looking for a .dg file (happens in
          --  -gnatD mode).
 
          if T = Config
@@ -2507,6 +2508,13 @@ package body Osint is
 
                return null;
             end if;
+
+         elsif Current_Full_Obj_Stamp < Current_Full_Lib_Stamp then
+            Close (Lib_FD, Status);
+
+            --  No need to check the status, we return null anyway
+
+            return null;
          end if;
       end if;
 

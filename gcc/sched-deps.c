@@ -27,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "rtl.h"
 #include "tm_p.h"
 #include "hard-reg-set.h"
@@ -37,7 +36,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-config.h"
 #include "insn-attr.h"
 #include "except.h"
-#include "toplev.h"
 #include "recog.h"
 #include "sched-int.h"
 #include "params.h"
@@ -52,6 +50,12 @@ along with GCC; see the file COPYING3.  If not see
 #else
 #define CHECK (false)
 #endif
+
+/* In deps->last_pending_memory_flush marks JUMP_INSNs that weren't
+   added to the list because of flush_pending_lists, stands just
+   for itself and not for any other pending memory reads/writes.  */
+#define NON_FLUSH_JUMP_KIND REG_DEP_ANTI
+#define NON_FLUSH_JUMP_P(x) (REG_NOTE_KIND (x) == NON_FLUSH_JUMP_KIND)
 
 /* Holds current parameters for the dependency analyzer.  */
 struct sched_deps_info_def *sched_deps_info;
@@ -598,8 +602,8 @@ sched_insn_is_legitimate_for_speculation_p (const_rtx insn, ds_t ds)
     /* The following instructions, which depend on a speculatively scheduled
        instruction, cannot be speculatively scheduled along.  */
     {
-      if (may_trap_p (PATTERN (insn)))
-	/* If instruction might trap, it cannot be speculatively scheduled.
+      if (may_trap_or_fault_p (PATTERN (insn)))
+	/* If instruction might fault, it cannot be speculatively scheduled.
 	   For control speculation it's obvious why and for data speculation
 	   it's because the insn might get wrong input if speculation
 	   wasn't successful.  */
@@ -711,9 +715,6 @@ sd_init_insn (rtx insn)
   INSN_FORW_DEPS (insn) = create_deps_list ();
   INSN_RESOLVED_FORW_DEPS (insn) = create_deps_list ();
 
-  if (DEBUG_INSN_P (insn))
-    DEBUG_INSN_SCHED_P (insn) = TRUE;
-
   /* ??? It would be nice to allocate dependency caches here.  */
 }
 
@@ -722,12 +723,6 @@ void
 sd_finish_insn (rtx insn)
 {
   /* ??? It would be nice to deallocate dependency caches here.  */
-
-  if (DEBUG_INSN_P (insn))
-    {
-      gcc_assert (DEBUG_INSN_SCHED_P (insn));
-      DEBUG_INSN_SCHED_P (insn) = FALSE;
-    }
 
   free_deps_list (INSN_HARD_BACK_DEPS (insn));
   INSN_HARD_BACK_DEPS (insn) = NULL;
@@ -1571,7 +1566,7 @@ add_insn_mem_dependence (struct deps_desc *deps, bool read_p,
   if (sched_deps_info->use_cselib)
     {
       mem = shallow_copy_rtx (mem);
-      XEXP (mem, 0) = cselib_subst_to_values (XEXP (mem, 0));
+      XEXP (mem, 0) = cselib_subst_to_values (XEXP (mem, 0), GET_MODE (mem));
     }
   link = alloc_EXPR_LIST (VOIDmode, canon_rtx (mem), *mem_list);
   *mem_list = link;
@@ -2288,8 +2283,9 @@ sched_analyze_1 (struct deps_desc *deps, rtx x, rtx insn)
 	    = targetm.addr_space.address_mode (MEM_ADDR_SPACE (dest));
 
 	  t = shallow_copy_rtx (dest);
-	  cselib_lookup_from_insn (XEXP (t, 0), address_mode, 1, insn);
-	  XEXP (t, 0) = cselib_subst_to_values (XEXP (t, 0));
+	  cselib_lookup_from_insn (XEXP (t, 0), address_mode, 1,
+				   GET_MODE (t), insn);
+	  XEXP (t, 0) = cselib_subst_to_values (XEXP (t, 0), GET_MODE (t));
 	}
       t = canon_rtx (t);
 
@@ -2445,8 +2441,9 @@ sched_analyze_2 (struct deps_desc *deps, rtx x, rtx insn)
 	      = targetm.addr_space.address_mode (MEM_ADDR_SPACE (t));
 
 	    t = shallow_copy_rtx (t);
-	    cselib_lookup_from_insn (XEXP (t, 0), address_mode, 1, insn);
-	    XEXP (t, 0) = cselib_subst_to_values (XEXP (t, 0));
+	    cselib_lookup_from_insn (XEXP (t, 0), address_mode, 1,
+				     GET_MODE (t), insn);
+	    XEXP (t, 0) = cselib_subst_to_values (XEXP (t, 0), GET_MODE (t));
 	  }
 
 	if (!DEBUG_INSN_P (insn))
@@ -2484,7 +2481,7 @@ sched_analyze_2 (struct deps_desc *deps, rtx x, rtx insn)
 
 	    for (u = deps->last_pending_memory_flush; u; u = XEXP (u, 1))
 	      {
-		if (! JUMP_P (XEXP (u, 0)))
+		if (! NON_FLUSH_JUMP_P (u))
 		  add_dependence (insn, XEXP (u, 0), REG_DEP_ANTI);
 		else if (deps_may_trap_p (x))
 		  {
@@ -2796,8 +2793,7 @@ sched_analyze_insn (struct deps_desc *deps, rtx x, rtx insn)
 			   REG_DEP_ANTI);
 
       for (u = deps->last_pending_memory_flush; u; u = XEXP (u, 1))
-	if (! JUMP_P (XEXP (u, 0))
-	    || !sel_sched_p ())
+	if (! NON_FLUSH_JUMP_P (u) || !sel_sched_p ())
 	  add_dependence (insn, XEXP (u, 0), REG_DEP_ANTI);
 
       EXECUTE_IF_SET_IN_REG_SET (reg_pending_uses, 0, i, rsi)
@@ -3242,8 +3238,15 @@ deps_analyze_insn (struct deps_desc *deps, rtx insn)
           if (deps->pending_flush_length++ > MAX_PENDING_LIST_LENGTH)
             flush_pending_lists (deps, insn, true, true);
           else
-            deps->last_pending_memory_flush
-              = alloc_INSN_LIST (insn, deps->last_pending_memory_flush);
+	    {
+	      deps->last_pending_memory_flush
+		= alloc_INSN_LIST (insn, deps->last_pending_memory_flush);
+	      /* Signal to sched_analyze_insn that this jump stands
+		 just for its own, not any other pending memory
+		 reads/writes flush_pending_lists had to flush.  */
+	      PUT_REG_NOTE_KIND (deps->last_pending_memory_flush,
+				 NON_FLUSH_JUMP_KIND);
+	    }
         }
 
       sched_analyze_insn (deps, PATTERN (insn), insn);

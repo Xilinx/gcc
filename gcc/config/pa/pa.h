@@ -86,6 +86,11 @@ extern int flag_pa_unix;
 #define TARGET_HPUX_11_11 0
 #endif
 
+/* HP-UX long double library.  */
+#ifndef HPUX_LONG_DOUBLE_LIBRARY
+#define HPUX_LONG_DOUBLE_LIBRARY 0
+#endif
+
 /* The following three defines are potential target switches.  The current
    defines are optimal given the current capabilities of GAS and GNU ld.  */
 
@@ -226,9 +231,6 @@ do {								\
 #define PTRDIFF_TYPE "int"
 #define WCHAR_TYPE "unsigned int"
 #define WCHAR_TYPE_SIZE 32
-
-/* Show we can debug even without a frame pointer.  */
-#define CAN_DEBUG_WITHOUT_FP
 
 /* target machine storage layout */
 typedef struct GTY(()) machine_function
@@ -344,23 +346,17 @@ typedef struct GTY(()) machine_function
 /* Register to use for pushing function arguments.  */
 #define STACK_POINTER_REGNUM 30
 
+/* Fixed register for local variable access.  Always eliminated.  */
+#define FRAME_POINTER_REGNUM (TARGET_64BIT ? 61 : 89)
+
 /* Base register for access to local variables of the function.  */
-#define FRAME_POINTER_REGNUM 3
+#define HARD_FRAME_POINTER_REGNUM 3
 
 /* Don't allow hard registers to be renamed into r2 unless r2
    is already live or already being saved (due to eh).  */
 
 #define HARD_REGNO_RENAME_OK(OLD_REG, NEW_REG) \
   ((NEW_REG) != 2 || df_regs_ever_live_p (2) || crtl->calls_eh_return)
-
-/* C statement to store the difference between the frame pointer
-   and the stack pointer values immediately after the function prologue.
-
-   Note, we always pretend that this is a leaf function because if
-   it's not, there's no point in trying to eliminate the
-   frame pointer.  If it is a leaf function, we guessed right!  */
-#define INITIAL_FRAME_POINTER_OFFSET(VAR) \
-  do {(VAR) = - compute_frame_size (get_frame_size (), 0);} while (0)
 
 /* Base register for access to arguments of the function.  */
 #define ARG_POINTER_REGNUM (TARGET_64BIT ? 29 : 3)
@@ -385,6 +381,31 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
    is passed to a function.  */
 #define PA_STRUCT_VALUE_REGNUM 28
 
+/* Definitions for register eliminations.
+
+   We have two registers that can be eliminated.  First, the frame pointer
+   register can often be eliminated in favor of the stack pointer register.
+   Secondly, the argument pointer register can always be eliminated in the
+   32-bit runtimes.  */
+
+/* This is an array of structures.  Each structure initializes one pair
+   of eliminable registers.  The "from" register number is given first,
+   followed by "to".  Eliminations of the same "from" register are listed
+   in order of preference.
+
+   The argument pointer cannot be eliminated in the 64-bit runtime.  It
+   is the same register as the hard frame pointer in the 32-bit runtime.
+   So, it does not need to be listed.  */
+#define ELIMINABLE_REGS                                 \
+{{ HARD_FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM},    \
+ { FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM},         \
+ { FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM} }
+
+/* Define the offset between two registers, one to be eliminated,
+   and the other its replacement, at the start of a routine.  */
+#define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET) \
+  ((OFFSET) = pa_initial_elimination_offset(FROM, TO))
+
 /* Describe how we implement __builtin_eh_return.  */
 #define EH_RETURN_DATA_REGNO(N)	\
   ((N) < 3 ? (N) + 20 : (N) == 3 ? 31 : INVALID_REGNUM)
@@ -393,6 +414,10 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
 
 /* Offset from the frame pointer register value to the top of stack.  */
 #define FRAME_POINTER_CFA_OFFSET(FNDECL) 0
+
+/* The maximum number of hard registers that can be saved in the call
+   frame.  The soft frame pointer is not included.  */
+#define DWARF_FRAME_REGISTERS (FIRST_PSEUDO_REGISTER - 1)
 
 /* A C expression whose value is RTL representing the location of the
    incoming return address at the beginning of any function, before the
@@ -408,7 +433,7 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
 
    Column 0 is not used but unfortunately its register size is set to
    4 bytes (sizeof CCmode) so it can't be used on 64-bit targets.  */
-#define DWARF_ALT_FRAME_RETURN_COLUMN FIRST_PSEUDO_REGISTER
+#define DWARF_ALT_FRAME_RETURN_COLUMN (FIRST_PSEUDO_REGISTER - 1)
 
 /* This macro chooses the encoding of pointers embedded in the exception
    handling sections.  If at all possible, this should be defined such
@@ -467,12 +492,6 @@ extern struct rtx_def *hppa_pic_save_rtx (void);
 
 /* True if register is floating-point.  */
 #define FP_REGNO_P(N) ((N) >= FP_REG_FIRST && (N) <= FP_REG_LAST)
-
-/* Given an rtx X being reloaded into a reg required to be
-   in class CLASS, return the class of reg to actually use.
-   In general this is just CLASS; but on some machines
-   in some cases it is preferable to use a more restrictive class.  */
-#define PREFERRED_RELOAD_CLASS(X,CLASS) (CLASS)
 
 #define MAYBE_FP_REG_CLASS_P(CLASS) \
   reg_classes_intersect_p ((CLASS), FP_REGS)
@@ -585,7 +604,7 @@ struct hppa_args {int words, nargs_prototype, incoming, indirect; };
   (CUM).words = 0, 							\
   (CUM).incoming = 0,							\
   (CUM).indirect = (FNTYPE) && !(FNDECL),				\
-  (CUM).nargs_prototype = (FNTYPE && TYPE_ARG_TYPES (FNTYPE)		\
+  (CUM).nargs_prototype = (FNTYPE && prototype_p (FNTYPE)		\
 			   ? (list_length (TYPE_ARG_TYPES (FNTYPE)) - 1	\
 			      + (TYPE_MODE (TREE_TYPE (FNTYPE)) == BLKmode \
 				 || pa_return_in_memory (TREE_TYPE (FNTYPE), 0))) \
@@ -610,17 +629,6 @@ struct hppa_args {int words, nargs_prototype, incoming, indirect; };
   ((((MODE) != BLKmode \
      ? (HOST_WIDE_INT) GET_MODE_SIZE (MODE) \
      : int_size_in_bytes (TYPE)) + UNITS_PER_WORD - 1) / UNITS_PER_WORD)
-
-/* Update the data in CUM to advance over an argument
-   of mode MODE and data type TYPE.
-   (TYPE is null for libcalls where that information may not be available.)  */
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)			\
-{ (CUM).nargs_prototype--;						\
-  (CUM).words += FUNCTION_ARG_SIZE(MODE, TYPE)	 			\
-    + (((CUM).words & 01) && (TYPE) != 0				\
-	&& FUNCTION_ARG_SIZE(MODE, TYPE) > 1);				\
-}
 
 /* Determine where to put an argument to a function.
    Value is zero to push the argument on the stack,
@@ -683,26 +691,6 @@ struct hppa_args {int words, nargs_prototype, incoming, indirect; };
    correctly padded.  */
 #define BLOCK_REG_PADDING(MODE, TYPE, FIRST) \
   function_arg_padding ((MODE), (TYPE))
-
-/* Do not expect to understand this without reading it several times.  I'm
-   tempted to try and simply it, but I worry about breaking something.  */
-
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-  function_arg (&CUM, MODE, TYPE, NAMED)
-
-/* If defined, a C expression that gives the alignment boundary, in
-   bits, of an argument with the specified mode and type.  If it is
-   not defined,  `PARM_BOUNDARY' is used for all arguments.  */
-
-/* Arguments larger than one word are double word aligned.  */
-
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE)				\
-  (((TYPE)								\
-    ? (integer_zerop (TYPE_SIZE (TYPE))					\
-       || !TREE_CONSTANT (TYPE_SIZE (TYPE))				\
-       || int_size_in_bytes (TYPE) <= UNITS_PER_WORD)			\
-    : GET_MODE_SIZE(MODE) <= UNITS_PER_WORD)				\
-   ? PARM_BOUNDARY : MAX_PARM_BOUNDARY)
 
 
 /* On HPPA, we emit profiling code as rtl via PROFILE_HOOK rather than
@@ -777,12 +765,14 @@ extern int may_call_alloca;
 
 #define REGNO_OK_FOR_INDEX_P(X) \
   ((X) && ((X) < 32							\
-   || (X >= FIRST_PSEUDO_REGISTER					\
+   || ((X) == FRAME_POINTER_REGNUM)					\
+   || ((X) >= FIRST_PSEUDO_REGISTER					\
        && reg_renumber							\
        && (unsigned) reg_renumber[X] < 32)))
 #define REGNO_OK_FOR_BASE_P(X) \
   ((X) && ((X) < 32							\
-   || (X >= FIRST_PSEUDO_REGISTER					\
+   || ((X) == FRAME_POINTER_REGNUM)					\
+   || ((X) >= FIRST_PSEUDO_REGISTER					\
        && reg_renumber							\
        && (unsigned) reg_renumber[X] < 32)))
 #define REGNO_OK_FOR_FP_P(X) \
@@ -931,12 +921,16 @@ extern int may_call_alloca;
 /* Nonzero if X is a hard reg that can be used as an index
    or if it is a pseudo reg.  */
 #define REG_OK_FOR_INDEX_P(X) \
-  (REGNO (X) && (REGNO (X) < 32 || REGNO (X) >= FIRST_PSEUDO_REGISTER))
+  (REGNO (X) && (REGNO (X) < 32 				\
+   || REGNO (X) == FRAME_POINTER_REGNUM				\
+   || REGNO (X) >= FIRST_PSEUDO_REGISTER))
 
 /* Nonzero if X is a hard reg that can be used as a base reg
    or if it is a pseudo reg.  */
 #define REG_OK_FOR_BASE_P(X) \
-  (REGNO (X) && (REGNO (X) < 32 || REGNO (X) >= FIRST_PSEUDO_REGISTER))
+  (REGNO (X) && (REGNO (X) < 32 				\
+   || REGNO (X) == FRAME_POINTER_REGNUM				\
+   || REGNO (X) >= FIRST_PSEUDO_REGISTER))
 
 #else
 

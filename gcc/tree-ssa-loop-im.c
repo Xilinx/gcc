@@ -272,7 +272,6 @@ for_each_index (tree *addr_p, bool (*cbck) (tree, tree *, void *), void *data)
 	case SSA_NAME:
 	  return cbck (*addr_p, addr_p, data);
 
-	case MISALIGNED_INDIRECT_REF:
 	case MEM_REF:
 	  nxt = &TREE_OPERAND (*addr_p, 0);
 	  return cbck (*addr_p, nxt, data);
@@ -324,6 +323,10 @@ for_each_index (tree *addr_p, bool (*cbck) (tree, tree *, void *), void *data)
 	      && !cbck (*addr_p, idx, data))
 	    return false;
 	  idx = &TMR_INDEX (*addr_p);
+	  if (*idx
+	      && !cbck (*addr_p, idx, data))
+	    return false;
+	  idx = &TMR_INDEX2 (*addr_p);
 	  if (*idx
 	      && !cbck (*addr_p, idx, data))
 	    return false;
@@ -673,31 +676,38 @@ extract_true_false_args_from_phi (basic_block dom, gimple phi,
      by the true edge of the predicate block and the other edge
      dominated by the false edge.  This ensures that the PHI argument
      we are going to take is completely determined by the path we
-     take from the predicate block.  */
+     take from the predicate block.
+     We can only use BB dominance checks below if the destination of
+     the true/false edges are dominated by their edge, thus only
+     have a single predecessor.  */
   extract_true_false_edges_from_block (dom, &true_edge, &false_edge);
   tem = EDGE_PRED (bb, 0);
   if (tem == true_edge
-      || tem->src == true_edge->dest
-      || dominated_by_p (CDI_DOMINATORS,
-			 tem->src, true_edge->dest))
+      || (single_pred_p (true_edge->dest)
+	  && (tem->src == true_edge->dest
+	      || dominated_by_p (CDI_DOMINATORS,
+				 tem->src, true_edge->dest))))
     arg0 = PHI_ARG_DEF (phi, tem->dest_idx);
   else if (tem == false_edge
-	   || tem->src == false_edge->dest
-	   || dominated_by_p (CDI_DOMINATORS,
-			      tem->src, false_edge->dest))
+	   || (single_pred_p (false_edge->dest)
+	       && (tem->src == false_edge->dest
+		   || dominated_by_p (CDI_DOMINATORS,
+				      tem->src, false_edge->dest))))
     arg1 = PHI_ARG_DEF (phi, tem->dest_idx);
   else
     return false;
   tem = EDGE_PRED (bb, 1);
   if (tem == true_edge
-      || tem->src == true_edge->dest
-      || dominated_by_p (CDI_DOMINATORS,
-			 tem->src, true_edge->dest))
+      || (single_pred_p (true_edge->dest)
+	  && (tem->src == true_edge->dest
+	      || dominated_by_p (CDI_DOMINATORS,
+				 tem->src, true_edge->dest))))
     arg0 = PHI_ARG_DEF (phi, tem->dest_idx);
   else if (tem == false_edge
-	   || tem->src == false_edge->dest
-	   || dominated_by_p (CDI_DOMINATORS,
-			      tem->src, false_edge->dest))
+	   || (single_pred_p (false_edge->dest)
+	       && (tem->src == false_edge->dest
+		   || dominated_by_p (CDI_DOMINATORS,
+				      tem->src, false_edge->dest))))
     arg1 = PHI_ARG_DEF (phi, tem->dest_idx);
   else
     return false;
@@ -907,19 +917,7 @@ rewrite_reciprocal (gimple_stmt_iterator *bsi)
   add_referenced_var (var);
   DECL_GIMPLE_REG_P (var) = 1;
 
-  /* For vectors, create a VECTOR_CST full of 1's.  */
-  if (TREE_CODE (type) == VECTOR_TYPE)
-    {
-      int i, len;
-      tree list = NULL_TREE;
-      real_one = build_real (TREE_TYPE (type), dconst1);
-      len = TYPE_VECTOR_SUBPARTS (type);
-      for (i = 0; i < len; i++)
-	list = tree_cons (NULL, real_one, list);
-      real_one = build_vector (type, list);
-    }
-  else
-    real_one = build_real (type, dconst1);
+  real_one = build_one_cst (type);
 
   stmt1 = gimple_build_assign_with_ops (RDIV_EXPR,
 		var, real_one, gimple_assign_rhs2 (stmt));
@@ -1982,7 +1980,6 @@ gen_lsm_tmp_name (tree ref)
 
   switch (TREE_CODE (ref))
     {
-    case MISALIGNED_INDIRECT_REF:
     case MEM_REF:
       gen_lsm_tmp_name (TREE_OPERAND (ref, 0));
       lsm_tmp_name_add ("_");
@@ -2328,6 +2325,10 @@ can_sm_ref_p (struct loop *loop, mem_ref_p ref)
       || !for_each_index (&ref->mem, may_move_till, loop))
     return false;
 
+  /* If it can throw fail, we do not properly update EH info.  */
+  if (tree_could_throw_p (ref->mem))
+    return false;
+
   /* If it can trap, it must be always executed in LOOP.
      Readonly memory locations may trap when storing to them, but
      tree_could_trap_p is a predicate for rvalues, so check that
@@ -2379,7 +2380,7 @@ loop_suitable_for_sm (struct loop *loop ATTRIBUTE_UNUSED,
   edge ex;
 
   FOR_EACH_VEC_ELT (edge, exits, i, ex)
-    if (ex->flags & EDGE_ABNORMAL)
+    if (ex->flags & (EDGE_ABNORMAL | EDGE_EH))
       return false;
 
   return true;

@@ -31,6 +31,114 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-ssa-propagate.h"
 #include "target.h"
 
+/* Return true when DECL can be referenced from current unit.
+   We can get declarations that are not possible to reference for
+   various reasons:
+
+     1) When analyzing C++ virtual tables.
+	C++ virtual tables do have known constructors even
+	when they are keyed to other compilation unit.
+	Those tables can contain pointers to methods and vars
+	in other units.  Those methods have both STATIC and EXTERNAL
+	set.
+     2) In WHOPR mode devirtualization might lead to reference
+	to method that was partitioned elsehwere.
+	In this case we have static VAR_DECL or FUNCTION_DECL
+	that has no corresponding callgraph/varpool node
+	declaring the body.  
+     3) COMDAT functions referred by external vtables that
+        we devirtualize only during final copmilation stage.
+        At this time we already decided that we will not output
+        the function body and thus we can't reference the symbol
+        directly.  */
+
+static bool
+can_refer_decl_in_current_unit_p (tree decl)
+{
+  struct varpool_node *vnode;
+  struct cgraph_node *node;
+
+  if (!TREE_STATIC (decl) && !DECL_EXTERNAL (decl))
+    return true;
+  /* External flag is set, so we deal with C++ reference
+     to static object from other file.  */
+  if (DECL_EXTERNAL (decl) && TREE_STATIC (decl)
+      && TREE_CODE (decl) == VAR_DECL)
+    {
+      /* Just be sure it is not big in frontend setting
+	 flags incorrectly.  Those variables should never
+	 be finalized.  */
+      gcc_checking_assert (!(vnode = varpool_get_node (decl))
+			   || !vnode->finalized);
+      return false;
+    }
+  /* When function is public, we always can introduce new reference.
+     Exception are the COMDAT functions where introducing a direct
+     reference imply need to include function body in the curren tunit.  */
+  if (TREE_PUBLIC (decl) && !DECL_COMDAT (decl))
+    return true;
+  /* We are not at ltrans stage; so don't worry about WHOPR.
+     Also when still gimplifying all referred comdat functions will be
+     produced.  */
+  if (!flag_ltrans && (!DECL_COMDAT (decl) || !cgraph_function_flags_ready))
+    return true;
+  /* If we already output the function body, we are safe.  */
+  if (TREE_ASM_WRITTEN (decl))
+    return true;
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    {
+      node = cgraph_get_node (decl);
+      /* Check that we still have function body and that we didn't took
+         the decision to eliminate offline copy of the function yet.
+         The second is important when devirtualization happens during final
+         compilation stage when making a new reference no longer makes callee
+         to be compiled.  */
+      if (!node || !node->analyzed || node->global.inlined_to)
+	return false;
+    }
+  else if (TREE_CODE (decl) == VAR_DECL)
+    {
+      vnode = varpool_get_node (decl);
+      if (!vnode || !vnode->finalized)
+	return false;
+    }
+  return true;
+}
+
+/* CVAL is value taken from DECL_INITIAL of variable.  Try to transorm it into
+   acceptable form for is_gimple_min_invariant.   */
+
+tree
+canonicalize_constructor_val (tree cval)
+{
+  STRIP_NOPS (cval);
+  if (TREE_CODE (cval) == POINTER_PLUS_EXPR)
+    {
+      tree t = maybe_fold_offset_to_address (EXPR_LOCATION (cval),
+					     TREE_OPERAND (cval, 0),
+					     TREE_OPERAND (cval, 1),
+					     TREE_TYPE (cval));
+      if (t)
+	cval = t;
+    }
+  if (TREE_CODE (cval) == ADDR_EXPR)
+    {
+      tree base = get_base_address (TREE_OPERAND (cval, 0));
+
+      if (base
+	  && (TREE_CODE (base) == VAR_DECL
+	      || TREE_CODE (base) == FUNCTION_DECL)
+	  && !can_refer_decl_in_current_unit_p (base))
+	return NULL_TREE;
+      if (base && TREE_CODE (base) == VAR_DECL)
+	add_referenced_var (base);
+      /* We never have the chance to fixup types in global initializers
+         during gimplification.  Do so here.  */
+      if (TREE_TYPE (TREE_TYPE (cval)) != TREE_TYPE (TREE_OPERAND (cval, 0)))
+	cval = build_fold_addr_expr (TREE_OPERAND (cval, 0));
+    }
+  return cval;
+}
 
 /* If SYM is a constant variable with known value, return the value.
    NULL_TREE is returned otherwise.  */
@@ -38,38 +146,24 @@ along with GCC; see the file COPYING3.  If not see
 tree
 get_symbol_constant_value (tree sym)
 {
-  if (TREE_STATIC (sym)
-      && (TREE_READONLY (sym)
-	  || TREE_CODE (sym) == CONST_DECL))
+  if (const_value_known_p (sym))
     {
       tree val = DECL_INITIAL (sym);
       if (val)
 	{
-	  STRIP_NOPS (val);
-	  if (is_gimple_min_invariant (val))
-	    {
-	      if (TREE_CODE (val) == ADDR_EXPR)
-		{
-		  tree base = get_base_address (TREE_OPERAND (val, 0));
-		  if (base && TREE_CODE (base) == VAR_DECL)
-		    {
-		      TREE_ADDRESSABLE (base) = 1;
-		      if (gimple_referenced_vars (cfun))
-			add_referenced_var (base);
-		    }
-		}
-	      return val;
-	    }
+	  val = canonicalize_constructor_val (val);
+	  if (val && is_gimple_min_invariant (val))
+	    return val;
+	  else
+	    return NULL_TREE;
 	}
       /* Variables declared 'const' without an initializer
 	 have zero as the initializer if they may not be
 	 overridden at link or run time.  */
       if (!val
-	  && !DECL_EXTERNAL (sym)
-	  && targetm.binds_local_p (sym)
           && (INTEGRAL_TYPE_P (TREE_TYPE (sym))
 	       || SCALAR_FLOAT_TYPE_P (TREE_TYPE (sym))))
-	return fold_convert (TREE_TYPE (sym), integer_zero_node);
+	return build_zero_cst (TREE_TYPE (sym));
     }
 
   return NULL_TREE;
@@ -464,14 +558,12 @@ static tree
 maybe_fold_reference (tree expr, bool is_lhs)
 {
   tree *t = &expr;
+  tree result;
 
-  if (TREE_CODE (expr) == ARRAY_REF
-      && !is_lhs)
-    {
-      tree tem = fold_read_from_constant_string (expr);
-      if (tem)
-	return tem;
-    }
+  if (!is_lhs
+      && (result = fold_const_aggregate_ref (expr))
+      && is_gimple_min_invariant (result))
+    return result;
 
   /* ???  We might want to open-code the relevant remaining cases
      to avoid using the generic fold.  */
@@ -512,13 +604,25 @@ maybe_fold_reference (tree expr, bool is_lhs)
     }
   /* Canonicalize MEM_REFs invariant address operand.  */
   else if (TREE_CODE (*t) == MEM_REF
-	   && TREE_CODE (TREE_OPERAND (*t, 0)) == ADDR_EXPR
-	   && !DECL_P (TREE_OPERAND (TREE_OPERAND (*t, 0), 0))
-	   && !CONSTANT_CLASS_P (TREE_OPERAND (TREE_OPERAND (*t, 0), 0)))
+	   && !is_gimple_mem_ref_addr (TREE_OPERAND (*t, 0)))
     {
+      bool volatile_p = TREE_THIS_VOLATILE (*t);
       tree tem = fold_binary (MEM_REF, TREE_TYPE (*t),
 			      TREE_OPERAND (*t, 0),
 			      TREE_OPERAND (*t, 1));
+      if (tem)
+	{
+	  TREE_THIS_VOLATILE (tem) = volatile_p;
+	  *t = tem;
+	  tem = maybe_fold_reference (expr, is_lhs);
+	  if (tem)
+	    return tem;
+	  return expr;
+	}
+    }
+  else if (TREE_CODE (*t) == TARGET_MEM_REF)
+    {
+      tree tem = maybe_fold_tmr (*t);
       if (tem)
 	{
 	  *t = tem;
@@ -601,9 +705,6 @@ fold_gimple_assign (gimple_stmt_iterator *si)
 	      result = fold_build3_loc (cond_loc, COND_EXPR, TREE_TYPE (rhs), tem,
 				    COND_EXPR_THEN (rhs), COND_EXPR_ELSE (rhs));
           }
-
-	else if (TREE_CODE (rhs) == TARGET_MEM_REF)
-	  return maybe_fold_tmr (rhs);
 
 	else if (REFERENCE_CLASS_P (rhs))
 	  return maybe_fold_reference (rhs, false);
@@ -835,7 +936,22 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
   push_gimplify_context (&gctx);
 
   if (lhs == NULL_TREE)
-    gimplify_and_add (expr, &stmts);
+    {
+      gimplify_and_add (expr, &stmts);
+      /* We can end up with folding a memcpy of an empty class assignment
+	 which gets optimized away by C++ gimplification.  */
+      if (gimple_seq_empty_p (stmts))
+	{
+	  pop_gimplify_context (NULL);
+	  if (gimple_in_ssa_p (cfun))
+	    {
+	      unlink_stmt_vdef (stmt);
+	      release_defs (stmt);
+	    }
+	  gsi_remove (si_p, true);
+	  return;
+	}
+    }
   else
     tmp = get_initialized_tmp_var (expr, &stmts, NULL);
 
@@ -933,6 +1049,8 @@ gimplify_and_update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
 	  if (TREE_CODE (gimple_vdef (stmt)) == SSA_NAME)
 	    SSA_NAME_DEF_STMT (gimple_vdef (stmt)) = new_stmt;
 	}
+      else if (reaching_vuse == gimple_vuse (stmt))
+	unlink_stmt_vdef (stmt);
     }
 
   gimple_set_location (new_stmt, gimple_location (stmt));
@@ -1160,7 +1278,7 @@ gimple_fold_builtin (gimple stmt)
 	  /* If the result is not a valid gimple value, or not a cast
 	     of a valid gimple value, then we cannot use the result.  */
 	  if (is_gimple_val (new_val)
-	      || (is_gimple_cast (new_val)
+	      || (CONVERT_EXPR_P (new_val)
 		  && is_gimple_val (TREE_OPERAND (new_val, 0))))
 	    return new_val;
 	}
@@ -1247,115 +1365,26 @@ gimple_fold_builtin (gimple stmt)
   return result;
 }
 
-/* Return the first of the base binfos of BINFO that has virtual functions.  */
-
-static tree
-get_first_base_binfo_with_virtuals (tree binfo)
-{
-  int i;
-  tree base_binfo;
-
-  for (i = 0; BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)
-    if (BINFO_VIRTUALS (base_binfo))
-      return base_binfo;
-
-  return NULL_TREE;
-}
-
-
-/* Search for a base binfo of BINFO that corresponds to TYPE and return it if
-   it is found or NULL_TREE if it is not.  */
-
-static tree
-get_base_binfo_for_type (tree binfo, tree type)
-{
-  int i;
-  tree base_binfo;
-  tree res = NULL_TREE;
-
-  for (i = 0; BINFO_BASE_ITERATE (binfo, i, base_binfo); i++)
-    if (TREE_TYPE (base_binfo) == type)
-      {
-	gcc_assert (!res);
-	res = base_binfo;
-      }
-
-  return res;
-}
-
-/* Return a binfo describing the part of object referenced by expression REF.
-   Return NULL_TREE if it cannot be determined.  REF can consist of a series of
-   COMPONENT_REFs of a declaration or of an INDIRECT_REF or it can also be just
-   a simple declaration, indirect reference or an SSA_NAME.  If the function
-   discovers an INDIRECT_REF or an SSA_NAME, it will assume that the
-   encapsulating type is described by KNOWN_BINFO, if it is not NULL_TREE.
-   Otherwise the first non-artificial field declaration or the base declaration
-   will be examined to get the encapsulating type. */
+/* Return a declaration of a function which an OBJ_TYPE_REF references. TOKEN
+   is integer form of OBJ_TYPE_REF_TOKEN of the reference expression.
+   KNOWN_BINFO carries the binfo describing the true type of
+   OBJ_TYPE_REF_OBJECT(REF).  If a call to the function must be accompanied
+   with a this adjustment, the constant which should be added to this pointer
+   is stored to *DELTA.  If REFUSE_THUNKS is true, return NULL if the function
+   is a thunk (other than a this adjustment which is dealt with by DELTA). */
 
 tree
-gimple_get_relevant_ref_binfo (tree ref, tree known_binfo)
-{
-  while (true)
-    {
-      if (TREE_CODE (ref) == COMPONENT_REF)
-	{
-	  tree par_type;
-	  tree binfo, base_binfo;
-	  tree field = TREE_OPERAND (ref, 1);
-
-	  if (!DECL_ARTIFICIAL (field))
-	    {
-	      tree type = TREE_TYPE (field);
-	      if (TREE_CODE (type) == RECORD_TYPE)
-		return TYPE_BINFO (type);
-	      else
-		return NULL_TREE;
-	    }
-
-	  par_type = TREE_TYPE (TREE_OPERAND (ref, 0));
-	  binfo = TYPE_BINFO (par_type);
-	  if (!binfo
-	      || BINFO_N_BASE_BINFOS (binfo) == 0)
-	    return NULL_TREE;
-
-	  base_binfo = get_first_base_binfo_with_virtuals (binfo);
-	  if (base_binfo && BINFO_TYPE (base_binfo) != TREE_TYPE (field))
-	    {
-	      tree d_binfo;
-
-	      d_binfo = gimple_get_relevant_ref_binfo (TREE_OPERAND (ref, 0),
-						       known_binfo);
-	      /* Get descendant binfo. */
-	      if (!d_binfo)
-		return NULL_TREE;
-	      return get_base_binfo_for_type (d_binfo, TREE_TYPE (field));
-	    }
-
-	  ref = TREE_OPERAND (ref, 0);
-	}
-      else if (DECL_P (ref) && TREE_CODE (TREE_TYPE (ref)) == RECORD_TYPE)
-	return TYPE_BINFO (TREE_TYPE (ref));
-      else if (known_binfo
-	       && (TREE_CODE (ref) == SSA_NAME
-		   || TREE_CODE (ref) == MEM_REF))
-	return known_binfo;
-      else
-	return NULL_TREE;
-    }
-}
-
-/* Fold a OBJ_TYPE_REF expression to the address of a function. TOKEN is
-   integer form of OBJ_TYPE_REF_TOKEN of the reference expression.  KNOWN_BINFO
-   carries the binfo describing the true type of OBJ_TYPE_REF_OBJECT(REF).  */
-
-tree
-gimple_fold_obj_type_ref_known_binfo (HOST_WIDE_INT token, tree known_binfo)
+gimple_get_virt_mehtod_for_binfo (HOST_WIDE_INT token, tree known_binfo,
+				  tree *delta, bool refuse_thunks)
 {
   HOST_WIDE_INT i;
   tree v, fndecl;
   struct cgraph_node *node;
 
   v = BINFO_VIRTUALS (known_binfo);
+  /* If there is no virtual methods leave the OBJ_TYPE_REF alone.  */
+  if (!v)
+    return NULL_TREE;
   i = 0;
   while (i != token)
     {
@@ -1365,42 +1394,53 @@ gimple_fold_obj_type_ref_known_binfo (HOST_WIDE_INT token, tree known_binfo)
     }
 
   fndecl = TREE_VALUE (v);
-  node = cgraph_get_node (fndecl);
+  node = cgraph_get_node_or_alias (fndecl);
+  if (refuse_thunks
+      && (!node
+    /* Bail out if it is a thunk declaration.  Since simple this_adjusting
+       thunks are represented by a constant in TREE_PURPOSE of items in
+       BINFO_VIRTUALS, this is a more complicate type which we cannot handle as
+       yet.
+
+       FIXME: Remove the following condition once we are able to represent
+       thunk information on call graph edges.  */
+	  || (node->same_body_alias && node->thunk.thunk_p)))
+    return NULL_TREE;
+
   /* When cgraph node is missing and function is not public, we cannot
      devirtualize.  This can happen in WHOPR when the actual method
      ends up in other partition, because we found devirtualization
      possibility too late.  */
-  if ((!node || (!node->analyzed && !node->in_other_partition))
-      && (!TREE_PUBLIC (fndecl) || DECL_COMDAT (fndecl)))
-    return NULL;
-  return build_fold_addr_expr (fndecl);
+  if (!can_refer_decl_in_current_unit_p (TREE_VALUE (v)))
+    return NULL_TREE;
+
+  *delta = TREE_PURPOSE (v);
+  gcc_checking_assert (host_integerp (*delta, 0));
+  return fndecl;
 }
 
+/* Generate code adjusting the first parameter of a call statement determined
+   by GSI by DELTA.  */
 
-/* Fold a OBJ_TYPE_REF expression to the address of a function.  If KNOWN_TYPE
-   is not NULL_TREE, it is the true type of the outmost encapsulating object if
-   that comes from a pointer SSA_NAME.  If the true outmost encapsulating type
-   can be determined from a declaration OBJ_TYPE_REF_OBJECT(REF), it is used
-   regardless of KNOWN_TYPE (which thus can be NULL_TREE).  */
-
-tree
-gimple_fold_obj_type_ref (tree ref, tree known_type)
+void
+gimple_adjust_this_by_delta (gimple_stmt_iterator *gsi, tree delta)
 {
-  tree obj = OBJ_TYPE_REF_OBJECT (ref);
-  tree known_binfo = known_type ? TYPE_BINFO (known_type) : NULL_TREE;
-  tree binfo;
+  gimple call_stmt = gsi_stmt (*gsi);
+  tree parm, tmp;
+  gimple new_stmt;
 
-  if (TREE_CODE (obj) == ADDR_EXPR)
-    obj = TREE_OPERAND (obj, 0);
+  delta = fold_convert (sizetype, delta);
+  gcc_assert (gimple_call_num_args (call_stmt) >= 1);
+  parm = gimple_call_arg (call_stmt, 0);
+  gcc_assert (POINTER_TYPE_P (TREE_TYPE (parm)));
+  tmp = create_tmp_var (TREE_TYPE (parm), NULL);
+  add_referenced_var (tmp);
 
-  binfo = gimple_get_relevant_ref_binfo (obj, known_binfo);
-  if (binfo)
-    {
-      HOST_WIDE_INT token = tree_low_cst (OBJ_TYPE_REF_TOKEN (ref), 1);
-      return gimple_fold_obj_type_ref_known_binfo (token, binfo);
-    }
-  else
-    return NULL_TREE;
+  tmp = make_ssa_name (tmp, NULL);
+  new_stmt = gimple_build_assign_with_ops (POINTER_PLUS_EXPR, tmp, parm, delta);
+  SSA_NAME_DEF_STMT (tmp) = new_stmt;
+  gsi_insert_before (gsi, new_stmt, GSI_SAME_STMT);
+  gimple_call_set_arg (call_stmt, 0, tmp);
 }
 
 /* Attempt to fold a call statement referenced by the statement iterator GSI.
@@ -1408,8 +1448,8 @@ gimple_fold_obj_type_ref (tree ref, tree known_type)
    simplifies to a constant value. Return true if any changes were made.
    It is assumed that the operands have been previously folded.  */
 
-static bool
-fold_gimple_call (gimple_stmt_iterator *gsi)
+bool
+gimple_fold_call (gimple_stmt_iterator *gsi, bool inplace)
 {
   gimple stmt = gsi_stmt (*gsi);
 
@@ -1417,7 +1457,7 @@ fold_gimple_call (gimple_stmt_iterator *gsi)
 
   /* Check for builtins that CCP can handle using information not
      available in the generic fold routines.  */
-  if (callee && DECL_BUILT_IN (callee))
+  if (!inplace && callee && DECL_BUILT_IN (callee))
     {
       tree result = gimple_fold_builtin (stmt);
 
@@ -1428,28 +1468,6 @@ fold_gimple_call (gimple_stmt_iterator *gsi)
 	  return true;
 	}
     }
-  else
-    {
-      /* ??? Should perhaps do this in fold proper.  However, doing it
-         there requires that we create a new CALL_EXPR, and that requires
-         copying EH region info to the new node.  Easier to just do it
-         here where we can just smash the call operand.  */
-      /* ??? Is there a good reason not to do this in fold_stmt_inplace?  */
-      callee = gimple_call_fn (stmt);
-      if (TREE_CODE (callee) == OBJ_TYPE_REF
-          && TREE_CODE (OBJ_TYPE_REF_OBJECT (callee)) == ADDR_EXPR)
-        {
-          tree t;
-
-          t = gimple_fold_obj_type_ref (callee, NULL_TREE);
-          if (t)
-            {
-              gimple_call_set_fn (stmt, t);
-              return true;
-            }
-        }
-    }
-
   return false;
 }
 
@@ -1501,9 +1519,7 @@ fold_stmt_1 (gimple_stmt_iterator *gsi, bool inplace)
 		changed = true;
 	      }
 	  }
-      /* The entire statement may be replaced in this case.  */
-      if (!inplace)
-	changed |= fold_gimple_call (gsi);
+      changed |= gimple_fold_call (gsi, inplace);
       break;
 
     case GIMPLE_ASM:
@@ -1890,14 +1906,11 @@ and_var_with_comparison_1 (gimple stmt,
 	  /* Handle the OR case, where we are redistributing:
 	     (inner1 OR inner2) AND (op2a code2 op2b)
 	     => (t OR (inner2 AND (op2a code2 op2b)))  */
-	  else
-	    {
-	      if (integer_onep (t))
-		return boolean_true_node;
-	      else
-		/* Save partial result for later.  */
-		partial = t;
-	    }
+	  else if (integer_onep (t))
+	    return boolean_true_node;
+
+	  /* Save partial result for later.  */
+	  partial = t;
 	}
       
       /* Compute the second partial result, (inner2 AND (op2a code op2b)) */
@@ -1918,6 +1931,10 @@ and_var_with_comparison_1 (gimple stmt,
 		return inner1;
 	      else if (integer_zerop (t))
 		return boolean_false_node;
+	      /* If both are the same, we can apply the identity
+		 (x AND x) == x.  */
+	      else if (partial && same_bool_result_p (t, partial))
+		return t;
 	    }
 
 	  /* Handle the OR case. where we are redistributing:
@@ -2327,7 +2344,7 @@ or_var_with_comparison_1 (gimple stmt,
 	     => (t OR inner2)
 	     If the partial result t is a constant, we win.  Otherwise
 	     continue on to try reassociating with the other inner test.  */
-	  if (innercode == TRUTH_OR_EXPR)
+	  if (is_or)
 	    {
 	      if (integer_onep (t))
 		return boolean_true_node;
@@ -2338,14 +2355,11 @@ or_var_with_comparison_1 (gimple stmt,
 	  /* Handle the AND case, where we are redistributing:
 	     (inner1 AND inner2) OR (op2a code2 op2b)
 	     => (t AND (inner2 OR (op2a code op2b)))  */
-	  else
-	    {
-	      if (integer_zerop (t))
-		return boolean_false_node;
-	      else
-		/* Save partial result for later.  */
-		partial = t;
-	    }
+	  else if (integer_zerop (t))
+	    return boolean_false_node;
+
+	  /* Save partial result for later.  */
+	  partial = t;
 	}
       
       /* Compute the second partial result, (inner2 OR (op2a code op2b)) */
@@ -2359,13 +2373,18 @@ or_var_with_comparison_1 (gimple stmt,
 	{
 	  /* Handle the OR case, where we are reassociating:
 	     (inner1 OR inner2) OR (op2a code2 op2b)
-	     => (inner1 OR t)  */
-	  if (innercode == TRUTH_OR_EXPR)
+	     => (inner1 OR t)
+	     => (t OR partial)  */
+	  if (is_or)
 	    {
 	      if (integer_zerop (t))
 		return inner1;
 	      else if (integer_onep (t))
 		return boolean_true_node;
+	      /* If both are the same, we can apply the identity
+		 (x OR x) == x.  */
+	      else if (partial && same_bool_result_p (t, partial))
+		return t;
 	    }
 	  
 	  /* Handle the AND case, where we are redistributing:
@@ -2382,13 +2401,13 @@ or_var_with_comparison_1 (gimple stmt,
 		     operand to the redistributed AND expression.  The
 		     interesting case is when at least one is true.
 		     Or, if both are the same, we can apply the identity
-		     (x AND x) == true.  */
+		     (x AND x) == x.  */
 		  if (integer_onep (partial))
 		    return t;
 		  else if (integer_onep (t))
 		    return partial;
 		  else if (same_bool_result_p (t, partial))
-		    return boolean_true_node;
+		    return t;
 		}
 	    }
 	}

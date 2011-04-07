@@ -60,13 +60,6 @@ package Errout is
    --  the use of constructs not permitted by the library in use, or improper
    --  constructs in No_Run_Time mode).
 
-   type Compiler_State_Type is (Parsing, Analyzing);
-   Compiler_State : Compiler_State_Type;
-   --  Indicates current state of compilation. This is put in the Errout spec
-   --  because it affects the action of the error message handling. In
-   --  particular, an attempt is made by Errout to suppress cascaded error
-   --  messages in Parsing mode, but not in the other modes.
-
    Current_Error_Source_File : Source_File_Index
      renames Err_Vars.Current_Error_Source_File;
    --  Id of current messages. Used to post file name when unit changes. This
@@ -209,10 +202,14 @@ package Errout is
    --      are that an RM reference may follow in the form (RM .....) and a
    --      right parenthesis may immediately follow the #. In the case of
    --      continued messages, # can only appear at the end of a group of
-   --      continuation messsages, except that \\ messages which always start
+   --      continuation messages, except that \\ messages which always start
    --      a new line end the sequence from the point of view of this rule.
    --      The idea is that for any use of -gnatj, it will still be the case
    --      that a location reference appears only at the end of a line.
+
+   --      Note: the output of the string "at " is suppressed if the string
+   --      " from" or " from " immediately precedes the insertion character #.
+   --      Certain messages read better with from than at.
 
    --    Insertion character } (Right brace: insert type reference)
    --      The character } is replaced by a string describing the type

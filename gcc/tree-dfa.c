@@ -23,7 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
 #include "hashtab.h"
 #include "pointer-set.h"
 #include "tree.h"
@@ -219,7 +218,7 @@ dump_referenced_vars (FILE *file)
   fprintf (file, "\nReferenced variables in %s: %u\n\n",
 	   get_name (current_function_decl), (unsigned) num_referenced_vars);
 
-  FOR_EACH_REFERENCED_VAR (var, rvi)
+  FOR_EACH_REFERENCED_VAR (cfun, var, rvi)
     {
       fprintf (file, "Variable: ");
       dump_variable (file, var);
@@ -401,7 +400,7 @@ collect_dfa_stats (struct dfa_stats_d *dfa_stats_p ATTRIBUTE_UNUSED)
   memset ((void *)dfa_stats_p, 0, sizeof (struct dfa_stats_d));
 
   /* Count all the variable annotations.  */
-  FOR_EACH_REFERENCED_VAR (var, vi)
+  FOR_EACH_REFERENCED_VAR (cfun, var, vi)
     if (var_ann (var))
       dfa_stats_p->num_var_anns++;
 
@@ -489,12 +488,12 @@ find_referenced_vars_in (gimple stmt)
    variable.  */
 
 tree
-referenced_var_lookup (unsigned int uid)
+referenced_var_lookup (struct function *fn, unsigned int uid)
 {
   tree h;
   struct tree_decl_minimal in;
   in.uid = uid;
-  h = (tree) htab_find_with_hash (gimple_referenced_vars (cfun), &in, uid);
+  h = (tree) htab_find_with_hash (gimple_referenced_vars (fn), &in, uid);
   return h;
 }
 
@@ -880,18 +879,19 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 
 	case TARGET_MEM_REF:
 	  /* Hand back the decl for MEM[&decl, off].  */
-	  if (TMR_SYMBOL (exp))
+	  if (TREE_CODE (TMR_BASE (exp)) == ADDR_EXPR)
 	    {
-	      /* Via the variable index we can reach the whole object.  */
-	      if (TMR_INDEX (exp))
+	      /* Via the variable index or index2 we can reach the
+		 whole object.  */
+	      if (TMR_INDEX (exp) || TMR_INDEX2 (exp))
 		{
-		  exp = TMR_SYMBOL (exp);
+		  exp = TREE_OPERAND (TMR_BASE (exp), 0);
 		  bit_offset = 0;
 		  maxsize = -1;
 		  goto done;
 		}
 	      if (integer_zerop (TMR_OFFSET (exp)))
-		exp = TMR_SYMBOL (exp);
+		exp = TREE_OPERAND (TMR_BASE (exp), 0);
 	      else
 		{
 		  double_int off = mem_ref_offset (exp);
@@ -903,7 +903,7 @@ get_ref_base_and_extent (tree exp, HOST_WIDE_INT *poffset,
 		  if (double_int_fits_in_shwi_p (off))
 		    {
 		      bit_offset = double_int_to_shwi (off);
-		      exp = TMR_SYMBOL (exp);
+		      exp = TREE_OPERAND (TMR_BASE (exp), 0);
 		    }
 		}
 	    }
@@ -1043,9 +1043,9 @@ get_addr_base_and_unit_offset (tree exp, HOST_WIDE_INT *poffset)
 
 	case TARGET_MEM_REF:
 	  /* Hand back the decl for MEM[&decl, off].  */
-	  if (TMR_SYMBOL (exp))
+	  if (TREE_CODE (TMR_BASE (exp)) == ADDR_EXPR)
 	    {
-	      if (TMR_SYMBOL (exp))
+	      if (TMR_INDEX (exp) || TMR_INDEX2 (exp))
 		return NULL_TREE;
 	      if (!integer_zerop (TMR_OFFSET (exp)))
 		{
@@ -1053,7 +1053,7 @@ get_addr_base_and_unit_offset (tree exp, HOST_WIDE_INT *poffset)
 		  gcc_assert (off.high == -1 || off.high == 0);
 		  byte_offset += double_int_to_shwi (off);
 		}
-	      exp = TMR_SYMBOL (exp);
+	      exp = TREE_OPERAND (TMR_BASE (exp), 0);
 	    }
 	  goto done;
 

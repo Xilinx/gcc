@@ -1,5 +1,6 @@
 /* Definitions of target machine for GNU compiler, for IBM RS/6000.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   2010, 2011
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -27,7 +28,8 @@
 #ifdef RTX_CODE
 
 #ifdef TREE_CODE
-extern void init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, int, int, int);
+extern void init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, int, int, int,
+				  tree, enum machine_mode);
 #endif /* TREE_CODE */
 
 extern bool easy_altivec_constant (rtx, enum machine_mode);
@@ -87,7 +89,6 @@ extern int extract_ME (rtx);
 extern void rs6000_output_function_entry (FILE *, const char *);
 extern void print_operand (FILE *, rtx, int);
 extern void print_operand_address (FILE *, rtx);
-extern bool rs6000_output_addr_const_extra (FILE *, rtx);
 extern enum rtx_code rs6000_reverse_condition (enum machine_mode,
 					       enum rtx_code);
 extern void rs6000_emit_sISEL (enum machine_mode, rtx[]);
@@ -130,8 +131,9 @@ extern void rs6000_emit_parity (rtx, rtx);
 extern rtx rs6000_machopic_legitimize_pic_address (rtx, enum machine_mode,
 						   rtx);
 extern rtx rs6000_address_for_fpconvert (rtx);
+extern rtx rs6000_address_for_altivec (rtx);
 extern rtx rs6000_allocate_stack_temp (enum machine_mode, bool, bool);
-extern void rs6000_expand_convert_si_to_sfdf (rtx, rtx, bool);
+extern int rs6000_loop_align (rtx);
 #endif /* RTX_CODE */
 
 #ifdef TREE_CODE
@@ -139,7 +141,6 @@ extern unsigned int rs6000_special_round_type_align (tree, unsigned int,
 						     unsigned int);
 extern unsigned int darwin_rs6000_special_round_type_align (tree, unsigned int,
 							    unsigned int);
-extern int function_arg_boundary (enum machine_mode, const_tree);
 extern tree altivec_resolve_overloaded_builtin (location_t, tree, void *);
 extern rtx rs6000_libcall_value (enum machine_mode);
 extern rtx rs6000_va_arg (tree, tree);
@@ -153,8 +154,6 @@ extern enum direction function_arg_padding (enum machine_mode, const_tree);
 
 #endif /* TREE_CODE */
 
-extern void optimization_options (int, int);
-extern void rs6000_override_options (const char *);
 extern int direct_return (void);
 extern int first_reg_to_save (void);
 extern int first_fp_reg_to_save (void);
@@ -166,13 +165,11 @@ extern int rs6000_trampoline_size (void);
 extern alias_set_type get_TOC_alias_set (void);
 extern void rs6000_emit_prologue (void);
 extern void rs6000_emit_load_toc_table (int);
-extern void rs6000_aix_emit_builtin_unwind_init (void);
 extern unsigned int rs6000_dbx_register_number (unsigned int);
 extern void rs6000_emit_epilogue (int);
 extern void rs6000_emit_eh_reg_restore (rtx, rtx);
 extern const char * output_isel (rtx *);
 extern bool rs6000_tls_referenced_p (rtx);
-extern void rs6000_conditional_register_usage (void);
 
 extern void rs6000_aix_asm_output_dwarf_table_ref (char *);
 
@@ -180,6 +177,9 @@ extern void rs6000_aix_asm_output_dwarf_table_ref (char *);
 
 extern void rs6000_pragma_longcall (struct cpp_reader *);
 extern void rs6000_cpu_cpp_builtins (struct cpp_reader *);
+#ifdef TREE_CODE
+extern bool rs6000_pragma_target_parse (tree, tree);
+#endif
 
 #if TARGET_MACHO
 char *output_call (rtx, rtx *, int, int);

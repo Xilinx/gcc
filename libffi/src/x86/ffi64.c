@@ -1,6 +1,6 @@
 /* -----------------------------------------------------------------------
    ffi64.c - Copyright (c) 2002, 2007  Bo Thorsen <bo@suse.de>
-             Copyright (c) 2008  Red Hat, Inc.
+             Copyright (c) 2008, 2010  Red Hat, Inc.
    
    x86-64 Foreign Function Interface 
 
@@ -378,7 +378,7 @@ ffi_prep_cif_machdep (ffi_cif *cif)
 	  if (align < 8)
 	    align = 8;
 
-	  bytes = ALIGN(bytes, align);
+	  bytes = ALIGN (bytes, align);
 	  bytes += cif->arg_types[i]->size;
 	}
       else
@@ -390,7 +390,7 @@ ffi_prep_cif_machdep (ffi_cif *cif)
   if (ssecount)
     flags |= 1 << 11;
   cif->flags = flags;
-  cif->bytes = bytes;
+  cif->bytes = ALIGN (bytes, 8);
 
   return FFI_OK;
 }

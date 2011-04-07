@@ -42,9 +42,9 @@
 #include <profile/base.h>
 
 #define _GLIBCXX_BASE unordered_set<_Key, _Hash, _Pred, _Alloc>
-#define _GLIBCXX_STD_BASE _GLIBCXX_STD_PR::_GLIBCXX_BASE
+#define _GLIBCXX_STD_BASE _GLIBCXX_STD_C::_GLIBCXX_BASE
 
-namespace std
+namespace std _GLIBCXX_VISIBILITY(default)
 {
 namespace __profile
 {
@@ -174,7 +174,7 @@ namespace __profile
       std::pair<iterator, bool>
       insert(const value_type& __obj)
       {
-        size_type __old_size =  _Base::bucket_count();
+        size_type __old_size = _Base::bucket_count();
         std::pair<iterator, bool> __res = _Base::insert(__obj);
         _M_profile_resize(__old_size,  _Base::bucket_count()); 
         return __res;
@@ -185,6 +185,24 @@ namespace __profile
       { 
         size_type __old_size = _Base::bucket_count(); 
         iterator __res = _Base::insert(__iter, __v);
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
+        return __res;
+      }
+
+      std::pair<iterator, bool>
+      insert(value_type&& __obj)
+      {
+        size_type __old_size = _Base::bucket_count();
+        std::pair<iterator, bool> __res = _Base::insert(std::move(__obj));
+        _M_profile_resize(__old_size,  _Base::bucket_count()); 
+        return __res;
+      }
+
+      iterator
+      insert(const_iterator __iter, value_type&& __v)
+      { 
+        size_type __old_size = _Base::bucket_count();
+        iterator __res = _Base::insert(__iter, std::move(__v));
         _M_profile_resize(__old_size, _Base::bucket_count()); 
         return __res;
       }
@@ -273,7 +291,7 @@ namespace __profile
 
 #undef _GLIBCXX_BASE
 #undef _GLIBCXX_STD_BASE
-#define _GLIBCXX_STD_BASE _GLIBCXX_STD_PR::_GLIBCXX_BASE
+#define _GLIBCXX_STD_BASE _GLIBCXX_STD_C::_GLIBCXX_BASE
 #define _GLIBCXX_BASE unordered_multiset<_Value, _Hash, _Pred, _Alloc>
 
   /** @brief Unordered_multiset wrapper with performance instrumentation.  */
@@ -406,9 +424,27 @@ namespace __profile
 
       iterator
       insert(const_iterator __iter, const value_type& __v)
-      { 
+      {
         size_type __old_size = _Base::bucket_count(); 
         iterator __res = _Base::insert(__iter, __v);
+        _M_profile_resize(__old_size, _Base::bucket_count()); 
+        return __res;
+      }
+
+      iterator
+      insert(value_type&& __obj)
+      {
+	size_type __old_size =  _Base::bucket_count();
+        iterator __res = _Base::insert(std::move(__obj));
+        _M_profile_resize(__old_size,  _Base::bucket_count()); 
+        return __res;
+      }
+
+      iterator
+      insert(const_iterator __iter, value_type&& __v)
+      {
+        size_type __old_size = _Base::bucket_count(); 
+        iterator __res = _Base::insert(__iter, std::move(__v));
         _M_profile_resize(__old_size, _Base::bucket_count()); 
         return __res;
       }

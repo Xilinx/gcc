@@ -1,7 +1,7 @@
 // { dg-options "-std=gnu++0x " }
 // { dg-do compile }
 
-// Copyright (C) 2008, 2009, 2010 Free Software Foundation
+// Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -31,6 +31,7 @@ test01()
 {
   std::weak_ptr<A> p1;
   p1 < p1;  // { dg-error "no match" }
+  // { dg-error "candidate" "candidate note" { target *-*-* } 33 }
   return 0;
 }
 
@@ -41,11 +42,12 @@ main()
   return 0;
 }
 
-// { dg-warning "note" "" { target *-*-* } 347 }
-// { dg-warning "note" "" { target *-*-* } 466 }
-// { dg-warning "note" "" { target *-*-* } 883 }
-// { dg-warning "note" "" { target *-*-* } 580 }
-// { dg-warning "note" "" { target *-*-* } 1027 }
-// { dg-warning "note" "" { target *-*-* } 340 }
-// { dg-warning "note" "" { target *-*-* } 290 }
-// { dg-warning "note" "" { target *-*-* } 197 }
+// { dg-warning "note" "" { target *-*-* } 354 }
+// { dg-warning "note" "" { target *-*-* } 1085 }
+// { dg-warning "note" "" { target *-*-* } 467 }
+// { dg-warning "note" "" { target *-*-* } 587 }
+// { dg-warning "note" "" { target *-*-* } 1050 }
+// { dg-warning "note" "" { target *-*-* } 1056 }
+// { dg-warning "note" "" { target *-*-* } 342 }
+// { dg-warning "note" "" { target *-*-* } 292 }
+// { dg-warning "note" "" { target *-*-* } 207 }

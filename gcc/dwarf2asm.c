@@ -798,8 +798,8 @@ static GTY((param1_is (char *), param2_is (tree))) splay_tree indirect_pool;
 
 static GTY(()) int dw2_const_labelno;
 
-#if defined(HAVE_GAS_HIDDEN) && defined(SUPPORTS_ONE_ONLY)
-# define USE_LINKONCE_INDIRECT 1
+#if defined(HAVE_GAS_HIDDEN)
+# define USE_LINKONCE_INDIRECT (SUPPORTS_ONE_ONLY)
 #else
 # define USE_LINKONCE_INDIRECT 0
 #endif
@@ -905,6 +905,7 @@ dw2_output_indirect_constant_1 (splay_tree_node node,
   id = (tree) node->value;
 
   decl = build_decl (UNKNOWN_LOCATION, VAR_DECL, id, ptr_type_node);
+  SET_DECL_ASSEMBLER_NAME (decl, id);
   DECL_ARTIFICIAL (decl) = 1;
   DECL_IGNORED_P (decl) = 1;
   DECL_INITIAL (decl) = decl;

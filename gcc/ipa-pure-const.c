@@ -49,7 +49,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "flags.h"
 #include "timevar.h"
-#include "toplev.h"
 #include "diagnostic.h"
 #include "gimple-pretty-print.h"
 #include "langhooks.h"
@@ -138,7 +137,7 @@ suggest_attribute (int option, tree decl, bool known_finite,
 		   struct pointer_set_t *warned_about,
 		   const char * attrib_name)
 {
-  if (!option_enabled (option))
+  if (!option_enabled (option, &global_options))
     return warned_about;
   if (TREE_THIS_VOLATILE (decl)
       || (known_finite && function_always_visible_to_compiler_p (decl)))
@@ -424,7 +423,7 @@ worse_state (enum pure_const_state_e *state, bool *looping,
   *looping = MAX (*looping, looping2);
 }
 
-/* Recognize special cases of builtins that are by themself not pure or const
+/* Recognize special cases of builtins that are by themselves not pure or const
    but function using them is.  */
 static bool
 special_builtin_state (enum pure_const_state_e *state, bool *looping,
@@ -548,7 +547,7 @@ check_call (funct_state local, gimple call, bool ipa)
         fprintf (dump_file, "    Recursive call can loop.\n");
       local->looping = true;
     }
-  /* Either calle is unknown or we are doing local analysis.
+  /* Either callee is unknown or we are doing local analysis.
      Look to see if there are any bits available for the callee (such as by
      declaration or because it is builtin) and process solely on the basis of
      those bits. */
@@ -772,7 +771,7 @@ end:
       if (mark_dfs_back_edges ())
         {
 	  /* Preheaders are needed for SCEV to work.
-	     Simple lateches and recorded exits improve chances that loop will
+	     Simple latches and recorded exits improve chances that loop will
 	     proved to be finite in testcases such as in loop-15.c and loop-24.c  */
 	  loop_optimizer_init (LOOPS_NORMAL
 			       | LOOPS_HAVE_RECORDED_EXITS);
@@ -917,7 +916,7 @@ generate_summary (void)
 
      We process AVAIL_OVERWRITABLE functions.  We can not use the results
      by default, but the info can be used at LTO with -fwhole-program or
-     when function got clonned and the clone is AVAILABLE.  */
+     when function got cloned and the clone is AVAILABLE.  */
 
   for (node = cgraph_nodes; node; node = node->next)
     if (cgraph_function_body_availability (node) >= AVAIL_OVERWRITABLE)
@@ -1322,8 +1321,7 @@ propagate_pure_const (void)
 			     this_looping ? "looping " : "",
 			     cgraph_node_name (w));
 		}
-	      cgraph_set_readonly_flag (w, true);
-	      cgraph_set_looping_const_or_pure_flag (w, this_looping);
+	      cgraph_set_const_flag (w, true, this_looping);
 	      break;
 
 	    case IPA_PURE:
@@ -1335,8 +1333,7 @@ propagate_pure_const (void)
 			     this_looping ? "looping " : "",
 			     cgraph_node_name (w));
 		}
-	      cgraph_set_pure_flag (w, true);
-	      cgraph_set_looping_const_or_pure_flag (w, this_looping);
+	      cgraph_set_pure_flag (w, true, this_looping);
 	      break;
 
 	    default:
@@ -1548,7 +1545,7 @@ skip_function_for_local_pure_const (struct cgraph_node *node)
   if (cgraph_function_body_availability (node) <= AVAIL_OVERWRITABLE)
     {
       if (dump_file)
-        fprintf (dump_file, "Function is not available or overwrittable; not analyzing.\n");
+        fprintf (dump_file, "Function is not available or overwritable; not analyzing.\n");
       return true;
     }
   return false;
@@ -1573,7 +1570,9 @@ local_pure_const (void)
       && skip)
     return 0;
 
-  /* First do NORETURN discovery.  */
+  l = analyze_function (node, false);
+
+  /* Do NORETURN discovery.  */
   if (!skip && !TREE_THIS_VOLATILE (current_function_decl)
       && EDGE_COUNT (EXIT_BLOCK_PTR->preds) == 0)
     {
@@ -1589,7 +1588,6 @@ local_pure_const (void)
 
       changed = true;
     }
-  l = analyze_function (node, false);
 
   switch (l->pure_const_state)
     {
@@ -1599,8 +1597,7 @@ local_pure_const (void)
 	  warn_function_const (current_function_decl, !l->looping);
 	  if (!skip)
 	    {
-	      cgraph_set_readonly_flag (node, true);
-	      cgraph_set_looping_const_or_pure_flag (node, l->looping);
+	      cgraph_set_const_flag (node, true, l->looping);
 	      changed = true;
 	    }
 	  if (dump_file)
@@ -1614,7 +1611,7 @@ local_pure_const (void)
 	{
 	  if (!skip)
 	    {
-	      cgraph_set_looping_const_or_pure_flag (node, false);
+	      cgraph_set_const_flag (node, true, false);
 	      changed = true;
 	    }
 	  if (dump_file)
@@ -1629,8 +1626,7 @@ local_pure_const (void)
 	{
 	  if (!skip)
 	    {
-	      cgraph_set_pure_flag (node, true);
-	      cgraph_set_looping_const_or_pure_flag (node, l->looping);
+	      cgraph_set_pure_flag (node, true, l->looping);
 	      changed = true;
 	    }
 	  warn_function_pure (current_function_decl, !l->looping);
@@ -1645,7 +1641,7 @@ local_pure_const (void)
 	{
 	  if (!skip)
 	    {
-	      cgraph_set_looping_const_or_pure_flag (node, false);
+	      cgraph_set_pure_flag (node, true, false);
 	      changed = true;
 	    }
 	  if (dump_file)

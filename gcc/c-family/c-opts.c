@@ -1,5 +1,5 @@
 /* C/ObjC/C++ command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -117,7 +117,7 @@ static void add_prefixed_path (const char *, size_t);
 static void push_command_line_include (void);
 static void cb_file_change (cpp_reader *, const struct line_map *);
 static void cb_dir_change (cpp_reader *, const char *);
-static void finish_options (void);
+static void c_finish_options (void);
 
 #ifndef STDC_0_IN_SYSTEM_HEADERS
 #define STDC_0_IN_SYSTEM_HEADERS 0
@@ -133,7 +133,7 @@ static struct deferred_opt
 } *deferred_opts;
 
 
-static const unsigned int 
+extern const unsigned int 
 c_family_lang_mask = (CL_C | CL_CXX | CL_ObjC | CL_ObjCXX);
 
 /* Defer option CODE with argument ARG.  */
@@ -143,90 +143,6 @@ defer_opt (enum opt_code code, const char *arg)
   deferred_opts[deferred_count].code = code;
   deferred_opts[deferred_count].arg = arg;
   deferred_count++;
-}
-
-/* -Werror= may set a warning option to enable a warning that is emitted
-   by the preprocessor.  Set any corresponding flag in cpp_opts.  */
-
-static void
-warning_as_error_callback (int option_index)
-{
-  switch (option_index)
-    {
-      default:
-	/* Ignore options not associated with the preprocessor.  */
-	break;
-
-      case OPT_Wdeprecated:
-	cpp_opts->warn_deprecated = 1;
-	break;
-
-      case OPT_Wcomment:
-      case OPT_Wcomments:
-	cpp_opts->warn_comments = 1;
-	break;
-
-      case OPT_Wtrigraphs:
-	cpp_opts->warn_trigraphs = 1;
-	break;
-
-      case OPT_Wmultichar:
-	cpp_opts->warn_multichar = 1;
-	break;
-
-      case OPT_Wtraditional:
-	cpp_opts->warn_traditional = 1;
-	break;
-
-      case OPT_Wlong_long:
-	cpp_opts->warn_long_long = 1;
-	break;
-
-      case OPT_Wendif_labels:
-	cpp_opts->warn_endif_labels = 1;
-	break;
-
-      case OPT_Wvariadic_macros:
-	/* Set the local flag that is used later to update cpp_opts.  */
-	warn_variadic_macros = 1;
-	break;
-
-      case OPT_Wbuiltin_macro_redefined:
-	cpp_opts->warn_builtin_macro_redefined = 1;
-	break;
-
-      case OPT_Wundef:
-	cpp_opts->warn_undef = 1;
-	break;
-
-      case OPT_Wunused_macros:
-	/* Set the local flag that is used later to update cpp_opts.  */
-	warn_unused_macros = 1;
-	break;
-
-      case OPT_Wc___compat:
-	/* Add warnings in the same way as c_common_handle_option below.  */
-	if (warn_enum_compare == -1)
-	  warn_enum_compare = 1;
-	if (warn_jump_misses_init == -1)
-	  warn_jump_misses_init = 1;
-	cpp_opts->warn_cxx_operator_names = 1;
-	break;
-
-      case OPT_Wnormalized_:
-	inform (input_location, "-Werror=normalized=: Set -Wnormalized=nfc");
-	cpp_opts->warn_normalize = normalized_C;
-	break;
-
-      case OPT_Winvalid_pch:
-	cpp_opts->warn_invalid_pch = 1;
-	break;
-
-      case OPT_Wcpp:
-	/* Handled by standard diagnostics using the option's associated
-	   boolean variable.  */
-	break;
-    }
 }
 
 /* Return language mask for option parsing.  */
@@ -242,9 +158,6 @@ c_common_option_lang_mask (void)
 void
 c_common_initialize_diagnostics (diagnostic_context *context)
 {
-  /* Register callback for warnings enabled by -Werror=.  */
-  register_warning_as_error_callback (warning_as_error_callback);
-
   /* This is conditionalized only because that is the way the front
      ends used to do it.  Maybe this should be unconditional?  */
   if (c_dialect_cxx ())
@@ -275,6 +188,19 @@ c_common_complain_wrong_lang_p (const struct cl_option *option)
   return true;
 }
 
+/* Initialize options structure OPTS.  */
+void
+c_common_init_options_struct (struct gcc_options *opts)
+{
+  opts->x_flag_exceptions = c_dialect_cxx ();
+  opts->x_warn_pointer_arith = c_dialect_cxx ();
+  opts->x_warn_write_strings = c_dialect_cxx ();
+  opts->x_flag_warn_unused_result = true;
+
+  /* By default, C99-like requirements for complex multiply and divide.  */
+  opts->x_flag_complex_method = 2;
+}
+
 /* Common initialization before calling option handlers.  */
 void
 c_common_init_options (unsigned int decoded_options_count,
@@ -296,14 +222,6 @@ c_common_init_options (unsigned int decoded_options_count,
      before passing on command-line options to cpplib.  */
   cpp_opts->warn_dollars = 0;
 
-  flag_exceptions = c_dialect_cxx ();
-  warn_pointer_arith = c_dialect_cxx ();
-  warn_write_strings = c_dialect_cxx();
-  flag_warn_unused_result = true;
-
-  /* By default, C99-like requirements for complex multiply and divide.  */
-  flag_complex_method = 2;
-
   deferred_opts = XNEWVEC (struct deferred_opt, decoded_options_count);
 
   if (c_language == clk_c)
@@ -324,7 +242,8 @@ c_common_init_options (unsigned int decoded_options_count,
    invalid, true if valid.  Use HANDLERS in recursive handle_option calls.  */
 bool
 c_common_handle_option (size_t scode, const char *arg, int value,
-			int kind, const struct cl_option_handlers *handlers)
+			int kind, location_t loc,
+			const struct cl_option_handlers *handlers)
 {
   const struct cl_option *option = &cl_options[scode];
   enum opt_code code = (enum opt_code) scode;
@@ -438,8 +357,10 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wall:
       warn_unused = value;
       set_Wformat (value);
-      handle_generated_option (OPT_Wimplicit, NULL, value,
-			       c_family_lang_mask, kind, handlers);
+      handle_generated_option (&global_options, &global_options_set,
+			       OPT_Wimplicit, NULL, value,
+			       c_family_lang_mask, kind, loc,
+			       handlers, global_dc);
       warn_char_subscripts = value;
       warn_missing_braces = value;
       warn_parentheses = value;
@@ -448,7 +369,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       warn_sequence_point = value;	/* Was C only.  */
       warn_switch = value;
       if (warn_strict_aliasing == -1)
-	set_Wstrict_aliasing (value);
+	set_Wstrict_aliasing (&global_options, value);
       warn_address = value;
       if (warn_strict_overflow == -1)
 	warn_strict_overflow = value;
@@ -495,7 +416,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wcomment:
-    case OPT_Wcomments:
       cpp_opts->warn_comments = value;
       break;
 
@@ -512,7 +432,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wdeprecated:
-      cpp_opts->warn_deprecated = value;
+      cpp_opts->cpp_warn_deprecated = value;
       break;
 
     case OPT_Wendif_labels:
@@ -521,13 +441,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_Werror:
       global_dc->warning_as_error_requested = value;
-      break;
-
-    case OPT_Werror_implicit_function_declaration:
-      /* For backward compatibility, this is the same as
-	 -Werror=implicit-function-declaration.  */
-      enable_warning_as_error ("implicit-function-declaration", value,
-			       CL_C | CL_ObjC, handlers);
       break;
 
     case OPT_Wformat:
@@ -541,19 +454,23 @@ c_common_handle_option (size_t scode, const char *arg, int value,
     case OPT_Wimplicit:
       gcc_assert (value == 0 || value == 1);
       if (warn_implicit_int == -1)
-	handle_generated_option (OPT_Wimplicit_int, NULL, value,
-				 c_family_lang_mask, kind, handlers);
+	handle_generated_option (&global_options, &global_options_set,
+				 OPT_Wimplicit_int, NULL, value,
+				 c_family_lang_mask, kind, loc, handlers,
+				 global_dc);
       if (warn_implicit_function_declaration == -1)
-	handle_generated_option (OPT_Wimplicit_function_declaration, NULL,
-				 value, c_family_lang_mask, kind, handlers);
-      break;
-
-    case OPT_Wimport:
-      /* Silently ignore for now.  */
+	handle_generated_option (&global_options, &global_options_set,
+				 OPT_Wimplicit_function_declaration, NULL,
+				 value, c_family_lang_mask, kind, loc,
+				 handlers, global_dc);
       break;
 
     case OPT_Winvalid_pch:
       cpp_opts->warn_invalid_pch = value;
+      break;
+
+    case OPT_Wlong_long:
+      cpp_opts->cpp_warn_long_long = value;
       break;
 
     case OPT_Wmissing_include_dirs:
@@ -565,24 +482,33 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_Wnormalized_:
-      if (!value || (arg && strcasecmp (arg, "none") == 0))
-	cpp_opts->warn_normalize = normalized_none;
-      else if (!arg || strcasecmp (arg, "nfkc") == 0)
-	cpp_opts->warn_normalize = normalized_KC;
-      else if (strcasecmp (arg, "id") == 0)
-	cpp_opts->warn_normalize = normalized_identifier_C;
-      else if (strcasecmp (arg, "nfc") == 0)
-	cpp_opts->warn_normalize = normalized_C;
+      if (kind == DK_ERROR)
+	{
+	  gcc_assert (!arg);
+	  inform (input_location, "-Werror=normalized=: set -Wnormalized=nfc");
+	  cpp_opts->warn_normalize = normalized_C;
+	}
       else
-	error ("argument %qs to %<-Wnormalized%> not recognized", arg);
-      break;
+	{
+	  if (!value || (arg && strcasecmp (arg, "none") == 0))
+	    cpp_opts->warn_normalize = normalized_none;
+	  else if (!arg || strcasecmp (arg, "nfkc") == 0)
+	    cpp_opts->warn_normalize = normalized_KC;
+	  else if (strcasecmp (arg, "id") == 0)
+	    cpp_opts->warn_normalize = normalized_identifier_C;
+	  else if (strcasecmp (arg, "nfc") == 0)
+	    cpp_opts->warn_normalize = normalized_C;
+	  else
+	    error ("argument %qs to %<-Wnormalized%> not recognized", arg);
+	  break;
+	}
 
     case OPT_Wreturn_type:
       warn_return_type = value;
       break;
 
     case OPT_Wtraditional:
-      cpp_opts->warn_traditional = value;
+      cpp_opts->cpp_warn_traditional = value;
       break;
 
     case OPT_Wtrigraphs:
@@ -634,25 +560,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 	  flag_cond_mismatch = value;
 	  break;
 	}
-      /* Fall through.  */
-
-    case OPT_fall_virtual:
-    case OPT_falt_external_templates:
-    case OPT_fenum_int_equiv:
-    case OPT_fexternal_templates:
-    case OPT_fguiding_decls:
-    case OPT_fhonor_std:
-    case OPT_fhuge_objects:
-    case OPT_flabels_ok:
-    case OPT_fname_mangling_version_:
-    case OPT_fnew_abi:
-    case OPT_fnonnull_objects:
-    case OPT_fsquangle:
-    case OPT_fstrict_prototype:
-    case OPT_fthis_is_variable:
-    case OPT_fvtable_thunks:
-    case OPT_fxref:
-    case OPT_fvtable_gc:
       warning (0, "switch %qs is no longer supported", option->opt_text);
       break;
 
@@ -683,10 +590,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       constant_string_class_name = arg;
       break;
 
-    case OPT_fdefault_inline:
-      /* Ignore.  */
-      break;
-
     case OPT_fextended_identifiers:
       cpp_opts->extended_identifiers = value;
       break;
@@ -695,21 +598,12 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       flag_next_runtime = !value;
       break;
 
-    case OPT_fhandle_exceptions:
-      warning (0, "-fhandle-exceptions has been renamed -fexceptions (and is now on by default)");
-      flag_exceptions = value;
-      break;
-
     case OPT_fnext_runtime:
       flag_next_runtime = value;
       break;
 
     case OPT_foperator_names:
       cpp_opts->operator_names = value;
-      break;
-
-    case OPT_foptional_diags:
-      /* Ignore.  */
       break;
 
     case OPT_fpch_deps:
@@ -754,8 +648,6 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_ftemplate_depth_:
-      /* Kept for backwards compatibility.  */
-    case OPT_ftemplate_depth_eq:
       max_tinst_depth = value;
       break;
 
@@ -764,15 +656,16 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT_femit_struct_debug_baseonly:
-      set_struct_debug_option ("base");
+      set_struct_debug_option (&global_options, loc, "base");
       break;
 
     case OPT_femit_struct_debug_reduced:
-      set_struct_debug_option ("dir:ord:sys,dir:gen:any,ind:base");
+      set_struct_debug_option (&global_options, loc,
+			       "dir:ord:sys,dir:gen:any,ind:base");
       break;
 
     case OPT_femit_struct_debug_detailed_:
-      set_struct_debug_option (arg);
+      set_struct_debug_option (&global_options, loc, arg);
       break;
 
     case OPT_idirafter:
@@ -837,7 +730,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 	 is not overridden.  */
     case OPT_pedantic_errors:
     case OPT_pedantic:
-      cpp_opts->pedantic = 1;
+      cpp_opts->cpp_pedantic = 1;
       cpp_opts->warn_endif_labels = 1;
       if (warn_pointer_sign == -1)
 	warn_pointer_sign = 1;
@@ -867,30 +760,23 @@ c_common_handle_option (size_t scode, const char *arg, int value,
 	set_std_cxx0x (code == OPT_std_c__0x /* ISO */);
       break;
 
-    case OPT_std_c89:
     case OPT_std_c90:
-    case OPT_std_iso9899_1990:
     case OPT_std_iso9899_199409:
       if (!preprocessing_asm_p)
 	set_std_c89 (code == OPT_std_iso9899_199409 /* c94 */, true /* ISO */);
       break;
 
-    case OPT_std_gnu89:
     case OPT_std_gnu90:
       if (!preprocessing_asm_p)
 	set_std_c89 (false /* c94 */, false /* ISO */);
       break;
 
     case OPT_std_c99:
-    case OPT_std_c9x:
-    case OPT_std_iso9899_1999:
-    case OPT_std_iso9899_199x:
       if (!preprocessing_asm_p)
 	set_std_c99 (true /* ISO */);
       break;
 
     case OPT_std_gnu99:
-    case OPT_std_gnu9x:
       if (!preprocessing_asm_p)
 	set_std_c99 (false /* ISO */);
       break;
@@ -1115,6 +1001,12 @@ c_common_post_options (const char **pfilename)
     {
       init_c_lex ();
 
+      /* When writing a PCH file, avoid reading some other PCH file,
+	 because the default address space slot then can't be used
+	 for the output PCH file.  */
+      if (pch_file)
+	c_common_no_more_pch ();
+
       /* Yuk.  WTF is this?  I do know ObjC relies on it somewhere.  */
       input_location = UNKNOWN_LOCATION;
     }
@@ -1167,7 +1059,7 @@ c_common_init (void)
 
   if (flag_preprocess_only)
     {
-      finish_options ();
+      c_finish_options ();
       preprocess_file (parse_in);
       return false;
     }
@@ -1178,40 +1070,18 @@ c_common_init (void)
 /* Initialize the integrated preprocessor after debug output has been
    initialized; loop over each input file.  */
 void
-c_common_parse_file (int set_yydebug)
+c_common_parse_file (void)
 {
   unsigned int i;
-
-  if (set_yydebug)
-    switch (c_language)
-      {
-      case clk_c:
-	warning(0, "The C parser does not support -dy, option ignored");
-	break;
-      case clk_objc:
-	warning(0,
-		"The Objective-C parser does not support -dy, option ignored");
-	break;
-      case clk_cxx:
-	warning(0, "The C++ parser does not support -dy, option ignored");
-	break;
-      case clk_objcxx:
-	warning(0,
-	    "The Objective-C++ parser does not support -dy, option ignored");
-	break;
-      default:
-	gcc_unreachable ();
-    }
 
   i = 0;
   for (;;)
     {
-      finish_options ();
+      c_finish_options ();
       pch_init ();
       set_lipo_c_parsing_context (parse_in, i, verbose);
       push_file_scope ();
       c_parse_file ();
-      finish_file ();
       pop_file_scope ();
       /* And end the main input file, if the debug writer wants it  */
       if (debug_hooks->start_end_main_source_file)
@@ -1275,12 +1145,12 @@ check_deps_environment_vars (void)
 {
   char *spec;
 
-  GET_ENVIRONMENT (spec, "DEPENDENCIES_OUTPUT");
+  spec = getenv ("DEPENDENCIES_OUTPUT");
   if (spec)
     cpp_opts->deps.style = DEPS_USER;
   else
     {
-      GET_ENVIRONMENT (spec, "SUNPRO_DEPENDENCIES");
+      spec = getenv ("SUNPRO_DEPENDENCIES");
       if (spec)
 	{
 	  cpp_opts->deps.style = DEPS_SYSTEM;
@@ -1376,7 +1246,7 @@ sanitize_cpp_opts (void)
   if (warn_long_long == -1)
     warn_long_long = ((pedantic || warn_traditional)
 		      && (c_dialect_cxx () ? cxx_dialect == cxx98 : !flag_isoc99));
-  cpp_opts->warn_long_long = warn_long_long;
+  cpp_opts->cpp_warn_long_long = warn_long_long;
 
   /* Similarly with -Wno-variadic-macros.  No check for c99 here, since
      this also turns off warnings about GCCs extension.  */
@@ -1421,7 +1291,7 @@ add_prefixed_path (const char *suffix, size_t chain)
 
 /* Handle -D, -U, -A, -imacros, and the first -include.  */
 static void
-finish_options (void)
+c_finish_options (void)
 {
   if (!cpp_opts->preprocessed)
     {
@@ -1443,7 +1313,7 @@ finish_options (void)
 	 conflict with the specified standard, and since a strictly
 	 conforming program cannot contain a '$', we do not condition
 	 their acceptance on the -std= setting.  */
-      cpp_opts->warn_dollars = (cpp_opts->pedantic && !cpp_opts->c99);
+      cpp_opts->warn_dollars = (cpp_opts->cpp_pedantic && !cpp_opts->c99);
 
       cb_file_change (parse_in,
 		      linemap_add (line_table, LC_RENAME, 0,

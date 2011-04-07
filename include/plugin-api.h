@@ -1,6 +1,6 @@
 /* plugin-api.h -- External linker plugin API.  */
 
-/* Copyright 2009 Free Software Foundation, Inc.
+/* Copyright 2009, 2010 Free Software Foundation, Inc.
    Written by Cary Coutant <ccoutant@google.com>.
 
    This file is part of binutils.
@@ -268,7 +268,8 @@ enum ld_plugin_tag
   LDPT_RELEASE_INPUT_FILE,
   LDPT_ADD_INPUT_LIBRARY,
   LDPT_OUTPUT_NAME,
-  LDPT_SET_EXTRA_LIBRARY_PATH
+  LDPT_SET_EXTRA_LIBRARY_PATH,
+  LDPT_GNU_LD_VERSION
 };
 
 /* The plugin transfer vector.  */

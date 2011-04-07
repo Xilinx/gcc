@@ -1,7 +1,7 @@
 /* Specific flags and argument handling of the front-end of the 
    GNU compiler for the Java(TM) language.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2009, 2010 Free Software Foundation, Inc.
+   2005, 2006, 2007, 2009, 2010, 2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -59,7 +59,7 @@ int shared_libgcc = 1;
 static const char jvgenmain_spec[] =
   "jvgenmain %{findirect-dispatch} %{D*} %b %m.i |\n\
    cc1 %m.i %1 \
-		   %{!Q:-quiet} -dumpbase %b.c %{d*} %{m*} %{a*}\
+		   %{!Q:-quiet} -dumpbase %b.c %{d*} %{m*}\
 		   %{g*} %{O*} \
 		   %{v:-version} %{pg:-p} %{p}\
 		   %<fbounds-check %<fno-bounds-check\
@@ -67,9 +67,9 @@ static const char jvgenmain_spec[] =
 		   %<fcompile-resource* %<fassert %<fno-assert \
 		   %<femit-class-file %<femit-class-files %<fencoding*\
 		   %<fuse-boehm-gc %<fhash-synchronization %<fjni\
-		   %<findirect-dispatch %<fnew-verifier\
+		   %<findirect-dispatch\
 		   %<fno-store-check %<foutput-class-dir\
-		   %<fclasspath* %<fCLASSPATH* %<fbootclasspath*\
+		   %<fclasspath* %<fbootclasspath*\
 		   %<fextdirs*\
 		   %<fuse-divide-subroutine %<fno-use-divide-subroutine\
 		   %<fuse-atomic-builtins %<fno-use-atomic-builtins\
@@ -238,7 +238,7 @@ lang_specific_driver (struct cl_decoded_option **in_decoded_options,
 	  added--;
 	  break;
 
-	case OPT_fhelp:
+	case OPT__help:
 	  want_spec_file = 0;
 	  break;
 
@@ -299,10 +299,8 @@ lang_specific_driver (struct cl_decoded_option **in_decoded_options,
 	  saw_o = 1;
 	  break;
 
-	case OPT_classpath:
-	case OPT_bootclasspath:
-	case OPT_CLASSPATH:
-	case OPT_encoding:
+	case OPT_fclasspath_:
+	case OPT_fbootclasspath_:
 	case OPT_extdirs:
 	  added -= 1;
 	  break;
@@ -395,7 +393,7 @@ lang_specific_driver (struct cl_decoded_option **in_decoded_options,
     }
 
   if (saw_D && ! main_class_name)
-    fatal_error ("can't specify %<-D%> without %<--main%>");
+    fatal_error ("can%'t specify %<-D%> without %<--main%>");
 
   if (main_class_name && ! verify_class_name (main_class_name))
     fatal_error ("%qs is not a valid class name", main_class_name);
@@ -514,15 +512,11 @@ lang_specific_driver (struct cl_decoded_option **in_decoded_options,
 	  --j;
 	  continue;
 
-	case OPT_classpath:
-	case OPT_CLASSPATH:
-	case OPT_fCLASSPATH_:
 	case OPT_fclasspath_:
 	  jcf_path_classpath_arg (decoded_options[i].arg);
 	  --j;
 	  continue;
 
-	case OPT_bootclasspath:
 	case OPT_fbootclasspath_:
 	  jcf_path_bootclasspath_arg (decoded_options[i].arg);
 	  --j;
@@ -531,11 +525,6 @@ lang_specific_driver (struct cl_decoded_option **in_decoded_options,
 	case OPT_extdirs:
 	  jcf_path_extdirs_arg (decoded_options[i].arg);
 	  --j;
-	  continue;
-
-	case OPT_encoding:
-	  generate_option (OPT_fencoding_, decoded_options[i].arg, 1,
-			   CL_DRIVER, &new_decoded_options[j]);
 	  continue;
 
 	case OPT_L:

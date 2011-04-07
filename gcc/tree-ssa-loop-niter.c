@@ -40,7 +40,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "flags.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "tree-inline.h"
 #include "gmp.h"
 
@@ -95,10 +94,10 @@ split_to_var_and_offset (tree expr, tree *var, mpz_t offset)
       *var = op0;
       /* Always sign extend the offset.  */
       off = tree_to_double_int (op1);
-      if (negate)
-	off = double_int_neg (off);
       off = double_int_sext (off, TYPE_PRECISION (type));
       mpz_set_double_int (offset, off, false);
+      if (negate)
+	mpz_neg (offset, offset);
       break;
 
     case INTEGER_CST:
@@ -1891,7 +1890,7 @@ number_of_iterations_exit (struct loop *loop, edge exit,
   /* With -funsafe-loop-optimizations we assume that nothing bad can happen.
      But if we can prove that there is overflow or some other source of weird
      behavior, ignore the loop even with -funsafe-loop-optimizations.  */
-  if (integer_zerop (niter->assumptions))
+  if (integer_zerop (niter->assumptions) || !single_exit (loop))
     return false;
 
   if (flag_unsafe_loop_optimizations)
@@ -2933,10 +2932,11 @@ gcov_type_to_double_int (gcov_type val)
   return ret;
 }
 
-/* Records estimates on numbers of iterations of LOOP.  */
+/* Records estimates on numbers of iterations of LOOP.  If USE_UNDEFINED_P
+   is true also use estimates derived from undefined behavior.  */
 
 void
-estimate_numbers_of_iterations_loop (struct loop *loop)
+estimate_numbers_of_iterations_loop (struct loop *loop, bool use_undefined_p)
 {
   VEC (edge, heap) *exits;
   tree niter, type;
@@ -2970,7 +2970,8 @@ estimate_numbers_of_iterations_loop (struct loop *loop)
     }
   VEC_free (edge, heap, exits);
 
-  infer_loop_bounds_from_undefined (loop);
+  if (use_undefined_p)
+    infer_loop_bounds_from_undefined (loop);
 
   /* If we have a measured profile, use it to estimate the number of
      iterations.  */
@@ -2993,7 +2994,7 @@ estimate_numbers_of_iterations_loop (struct loop *loop)
 /* Records estimates on numbers of iterations of loops.  */
 
 void
-estimate_numbers_of_iterations (void)
+estimate_numbers_of_iterations (bool use_undefined_p)
 {
   loop_iterator li;
   struct loop *loop;
@@ -3004,7 +3005,7 @@ estimate_numbers_of_iterations (void)
 
   FOR_EACH_LOOP (li, loop, 0)
     {
-      estimate_numbers_of_iterations_loop (loop);
+      estimate_numbers_of_iterations_loop (loop, use_undefined_p);
     }
 
   fold_undefer_and_ignore_overflow_warnings ();
@@ -3200,7 +3201,7 @@ scev_probably_wraps_p (tree base, tree step,
 
   valid_niter = fold_build2 (FLOOR_DIV_EXPR, unsigned_type, delta, step_abs);
 
-  estimate_numbers_of_iterations_loop (loop);
+  estimate_numbers_of_iterations_loop (loop, true);
   for (bound = loop->bounds; bound; bound = bound->next)
     {
       if (n_of_executions_at_most (at_stmt, bound, valid_niter))

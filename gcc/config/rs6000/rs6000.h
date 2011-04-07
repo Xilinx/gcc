@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler, for IBM RS/6000.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
    2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010
+   2010, 2011
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -29,6 +29,10 @@
 /* Note that some other tm.h files include this one and then override
    many of the definitions.  */
 
+#ifndef RS6000_OPTS_H
+#include "config/rs6000/rs6000-opts.h"
+#endif
+
 /* Definitions for the object file format.  These are set at
    compile-time.  */
 
@@ -44,6 +48,10 @@
 
 #ifndef TARGET_AIX
 #define TARGET_AIX 0
+#endif
+
+#ifndef TARGET_AIX_OS
+#define TARGET_AIX_OS 0
 #endif
 
 /* Control whether function entry points use a "dot" symbol when
@@ -295,14 +303,6 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define TARGET_SECURE_PLT 0
 #endif
 
-/* Code model for 64-bit linux.
-   small: 16-bit toc offsets.
-   large: 32-bit toc offsets.  */
-enum rs6000_cmodel {
-  CMODEL_SMALL,
-  CMODEL_LARGE
-};
-
 #ifndef TARGET_CMODEL
 #define TARGET_CMODEL CMODEL_SMALL
 #endif
@@ -332,40 +332,6 @@ enum rs6000_cmodel {
 
 #define TARGET_DEFAULT (MASK_POWER | MASK_MULTIPLE | MASK_STRING)
 
-/* Processor type.  Order must match cpu attribute in MD file.  */
-enum processor_type
- {
-   PROCESSOR_RIOS1,
-   PROCESSOR_RIOS2,
-   PROCESSOR_RS64A,
-   PROCESSOR_MPCCORE,
-   PROCESSOR_PPC403,
-   PROCESSOR_PPC405,
-   PROCESSOR_PPC440,
-   PROCESSOR_PPC476,
-   PROCESSOR_PPC601,
-   PROCESSOR_PPC603,
-   PROCESSOR_PPC604,
-   PROCESSOR_PPC604e,
-   PROCESSOR_PPC620,
-   PROCESSOR_PPC630,
-   PROCESSOR_PPC750,
-   PROCESSOR_PPC7400,
-   PROCESSOR_PPC7450,
-   PROCESSOR_PPC8540,
-   PROCESSOR_PPCE300C2,
-   PROCESSOR_PPCE300C3,
-   PROCESSOR_PPCE500MC,
-   PROCESSOR_PPCE500MC64,
-   PROCESSOR_POWER4,
-   PROCESSOR_POWER5,
-   PROCESSOR_POWER6,
-   PROCESSOR_POWER7,
-   PROCESSOR_CELL,
-   PROCESSOR_PPCA2,
-   PROCESSOR_TITAN
-};
-
 /* FPU operations supported. 
    Each use of TARGET_SINGLE_FLOAT or TARGET_DOUBLE_FLOAT must 
    also test TARGET_HARD_FLOAT.  */
@@ -374,8 +340,6 @@ enum processor_type
 #define TARGET_SINGLE_FPU   0
 #define TARGET_SIMPLE_FPU   0
 #define TARGET_XILINX_FPU   0
-
-extern enum processor_type rs6000_cpu;
 
 /* Recast the processor type to the cpu attribute.  */
 #define rs6000_cpu_attr ((enum attr_cpu)rs6000_cpu)
@@ -390,46 +354,11 @@ extern enum processor_type rs6000_cpu;
 #define PROCESSOR_DEFAULT   PROCESSOR_RIOS1
 #define PROCESSOR_DEFAULT64 PROCESSOR_RS64A
 
-/* FP processor type.  */
-enum fpu_type_t
-{
-	FPU_NONE,		/* No FPU */
-	FPU_SF_LITE,		/* Limited Single Precision FPU */
-	FPU_DF_LITE,		/* Limited Double Precision FPU */
-	FPU_SF_FULL,		/* Full Single Precision FPU */
-	FPU_DF_FULL		/* Full Double Single Precision FPU */
-};
-
 extern enum fpu_type_t fpu_type;
 
 /* Specify the dialect of assembler to use.  New mnemonics is dialect one
    and the old mnemonics are dialect zero.  */
 #define ASSEMBLER_DIALECT (TARGET_NEW_MNEMONICS ? 1 : 0)
-
-/* Types of costly dependences.  */
-enum rs6000_dependence_cost
- {
-   max_dep_latency = 1000,
-   no_dep_costly,
-   all_deps_costly,
-   true_store_to_load_dep_costly,
-   store_to_load_dep_costly
- };
-
-/* Types of nop insertion schemes in sched target hook sched_finish.  */
-enum rs6000_nop_insertion
-  {
-    sched_finish_regroup_exact = 1000,
-    sched_finish_pad_groups,
-    sched_finish_none
-  };
-
-/* Dispatch group termination caused by an insn.  */
-enum group_termination
-  {
-    current_group,
-    previous_group
-  };
 
 /* rs6000_select[0] is reserved for the default cpu defined via --with-cpu */
 struct rs6000_cpu_select
@@ -443,43 +372,25 @@ struct rs6000_cpu_select
 extern struct rs6000_cpu_select rs6000_select[];
 
 /* Debug support */
-extern const char *rs6000_debug_name;	/* Name for -mdebug-xxxx option */
-extern int rs6000_debug_stack;		/* debug stack applications */
-extern int rs6000_debug_arg;		/* debug argument handling */
-extern int rs6000_debug_reg;		/* debug register handling */
-extern int rs6000_debug_addr;		/* debug memory addressing */
-extern int rs6000_debug_cost;		/* debug rtx_costs */
+#define MASK_DEBUG_STACK	0x01	/* debug stack applications */
+#define	MASK_DEBUG_ARG		0x02	/* debug argument handling */
+#define MASK_DEBUG_REG		0x04	/* debug register handling */
+#define MASK_DEBUG_ADDR		0x08	/* debug memory addressing */
+#define MASK_DEBUG_COST		0x10	/* debug rtx codes */
+#define MASK_DEBUG_TARGET	0x20	/* debug target attribute/pragma */
+#define MASK_DEBUG_ALL		(MASK_DEBUG_STACK \
+				 | MASK_DEBUG_ARG \
+				 | MASK_DEBUG_REG \
+				 | MASK_DEBUG_ADDR \
+				 | MASK_DEBUG_COST \
+				 | MASK_DEBUG_TARGET)
 
-#define	TARGET_DEBUG_STACK	rs6000_debug_stack
-#define	TARGET_DEBUG_ARG	rs6000_debug_arg
-#define TARGET_DEBUG_REG	rs6000_debug_reg
-#define TARGET_DEBUG_ADDR	rs6000_debug_addr
-#define TARGET_DEBUG_COST	rs6000_debug_cost
-
-extern const char *rs6000_traceback_name; /* Type of traceback table.  */
-
-/* These are separate from target_flags because we've run out of bits
-   there.  */
-extern int rs6000_long_double_type_size;
-extern int rs6000_ieeequad;
-extern int rs6000_altivec_abi;
-extern int rs6000_spe_abi;
-extern int rs6000_spe;
-extern int rs6000_float_gprs;
-extern int rs6000_alignment_flags;
-extern const char *rs6000_sched_insert_nops_str;
-extern enum rs6000_nop_insertion rs6000_sched_insert_nops;
-extern int rs6000_xilinx_fpu;
-
-/* Describe which vector unit to use for a given machine mode.  */
-enum rs6000_vector {
-  VECTOR_NONE,			/* Type is not  a vector or not supported */
-  VECTOR_ALTIVEC,		/* Use altivec for vector processing */
-  VECTOR_VSX,			/* Use VSX for vector processing */
-  VECTOR_PAIRED,		/* Use paired floating point for vectors */
-  VECTOR_SPE,			/* Use SPE for vector processing */
-  VECTOR_OTHER			/* Some other vector unit */
-};
+#define	TARGET_DEBUG_STACK	(rs6000_debug & MASK_DEBUG_STACK)
+#define	TARGET_DEBUG_ARG	(rs6000_debug & MASK_DEBUG_ARG)
+#define TARGET_DEBUG_REG	(rs6000_debug & MASK_DEBUG_REG)
+#define TARGET_DEBUG_ADDR	(rs6000_debug & MASK_DEBUG_ADDR)
+#define TARGET_DEBUG_COST	(rs6000_debug & MASK_DEBUG_COST)
+#define TARGET_DEBUG_TARGET	(rs6000_debug & MASK_DEBUG_TARGET)
 
 extern enum rs6000_vector rs6000_vector_unit[];
 
@@ -617,28 +528,13 @@ extern unsigned char rs6000_recip_bits[];
 #define RS6000_RECIP_HIGH_PRECISION_P(MODE) \
   ((MODE) == SFmode || (MODE) == V4SFmode || TARGET_RECIP_PRECISION)
 
-/* Sometimes certain combinations of command options do not make sense
-   on a particular target machine.  You can define a macro
-   `OVERRIDE_OPTIONS' to take account of this.  This macro, if
-   defined, is executed once just after all the command options have
-   been parsed.
-
-   Do not use this macro to turn on various extra optimizations for
-   `-O'.  That is what `OPTIMIZATION_OPTIONS' is for.
-
-   On the RS/6000 this is used to define the target cpu type.  */
-
-#define OVERRIDE_OPTIONS rs6000_override_options (TARGET_CPU_DEFAULT)
-
-/* Define this to change the optimizations performed by default.  */
-#define OPTIMIZATION_OPTIONS(LEVEL,SIZE) optimization_options(LEVEL,SIZE)
-
-/* Show we can debug even without a frame pointer.  */
-#define CAN_DEBUG_WITHOUT_FP
+/* The default CPU for TARGET_OPTION_OVERRIDE.  */
+#define OPTION_TARGET_CPU_DEFAULT TARGET_CPU_DEFAULT
 
 /* Target pragma.  */
 #define REGISTER_TARGET_PRAGMAS() do {				\
   c_register_pragma (0, "longcall", rs6000_pragma_longcall);	\
+  targetm.target_option.pragma_parse = rs6000_pragma_target_parse; \
   targetm.resolve_overloaded_builtin = altivec_resolve_overloaded_builtin; \
 } while (0)
 
@@ -1109,6 +1005,16 @@ extern unsigned rs6000_pointer_size;
 
 #define HARD_REGNO_NREGS(REGNO, MODE) rs6000_hard_regno_nregs[(MODE)][(REGNO)]
 
+/* When setting up caller-save slots (MODE == VOIDmode) ensure we allocate
+   enough space to account for vectors in FP regs. */
+#define HARD_REGNO_CALLER_SAVE_MODE(REGNO, NREGS, MODE)	\
+  (TARGET_VSX						\
+   && ((MODE) == VOIDmode || VSX_VECTOR_MODE (MODE)	\
+       || ALTIVEC_VECTOR_MODE (MODE))			\
+   && FP_REGNO_P (REGNO)				\
+   ? V2DFmode						\
+   : choose_hard_reg_mode ((REGNO), (NREGS), false))
+
 #define HARD_REGNO_CALL_PART_CLOBBERED(REGNO, MODE)			\
   (((TARGET_32BIT && TARGET_POWERPC64					\
      && (GET_MODE_SIZE (MODE) > 4)					\
@@ -1147,13 +1053,6 @@ extern unsigned rs6000_pointer_size;
 
 #define PAIRED_VECTOR_MODE(MODE)        \
          ((MODE) == V2SFmode)            
-
-#define UNITS_PER_SIMD_WORD(MODE)					\
-	(TARGET_VSX ? UNITS_PER_VSX_WORD				\
-	 : (TARGET_ALTIVEC ? UNITS_PER_ALTIVEC_WORD			\
-	 : (TARGET_SPE ? UNITS_PER_SPE_WORD				\
-	 : (TARGET_PAIRED_FLOAT ? UNITS_PER_PAIRED_WORD			\
-	 : UNITS_PER_WORD))))
 
 /* Value is TRUE if hard register REGNO can hold a value of
    machine-mode MODE.  */
@@ -1212,11 +1111,6 @@ extern unsigned rs6000_pointer_size;
    reserve a register for consing up negative offsets.  */
 
 #define FIXED_SCRATCH 0
-
-/* Define this macro to change register usage conditional on target
-   flags.  */
-
-#define CONDITIONAL_REGISTER_USAGE rs6000_conditional_register_usage ()
 
 /* Specify the registers used for certain standard purposes.
    The values of these macros are register numbers.  */
@@ -1483,16 +1377,6 @@ extern enum reg_class rs6000_constraints[RS6000_CONSTRAINT_MAX];
 
 /* Stack layout; function entry, exit and calling.  */
 
-/* Enumeration to give which calling sequence to use.  */
-enum rs6000_abi {
-  ABI_NONE,
-  ABI_AIX,			/* IBM's AIX */
-  ABI_V4,			/* System V.4/eabi */
-  ABI_DARWIN			/* Apple's Darwin (OS X kernel) */
-};
-
-extern enum rs6000_abi rs6000_current_abi;	/* available for use by subtarget */
-
 /* Define this if pushing a word on the stack
    makes the stack pointer a smaller address.  */
 #define STACK_GROWS_DOWNWARD
@@ -1696,25 +1580,29 @@ typedef struct rs6000_args
   int floats_in_gpr;		/* count of SFmode floats taking up
 				   GPR space (darwin64) */
   int named;			/* false for varargs params */
+  int escapes;			/* if function visible outside tu */
 } CUMULATIVE_ARGS;
 
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
    for a call to a function whose data type is FNTYPE.
    For a library call, FNTYPE is 0.  */
 
-#define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, INDIRECT, N_NAMED_ARGS) \
-  init_cumulative_args (&CUM, FNTYPE, LIBNAME, FALSE, FALSE, N_NAMED_ARGS)
+#define INIT_CUMULATIVE_ARGS(CUM, FNTYPE, LIBNAME, FNDECL, N_NAMED_ARGS) \
+  init_cumulative_args (&CUM, FNTYPE, LIBNAME, FALSE, FALSE, \
+			N_NAMED_ARGS, FNDECL, VOIDmode)
 
 /* Similar, but when scanning the definition of a procedure.  We always
    set NARGS_PROTOTYPE large so we never return an EXPR_LIST.  */
 
 #define INIT_CUMULATIVE_INCOMING_ARGS(CUM, FNTYPE, LIBNAME) \
-  init_cumulative_args (&CUM, FNTYPE, LIBNAME, TRUE, FALSE, 1000)
+  init_cumulative_args (&CUM, FNTYPE, LIBNAME, TRUE, FALSE, \
+			1000, current_function_decl, VOIDmode)
 
 /* Like INIT_CUMULATIVE_ARGS' but only used for outgoing libcalls.  */
 
 #define INIT_CUMULATIVE_LIBCALL_ARGS(CUM, MODE, LIBNAME) \
-  init_cumulative_args (&CUM, NULL_TREE, LIBNAME, FALSE, TRUE, 0)
+  init_cumulative_args (&CUM, NULL_TREE, LIBNAME, FALSE, TRUE, \
+			0, NULL_TREE, MODE)
 
 /* If defined, a C expression which determines whether, and in which
    direction, to pad out an argument with extra space.  The value
@@ -1723,13 +1611,6 @@ typedef struct rs6000_args
    padding.  */
 
 #define FUNCTION_ARG_PADDING(MODE, TYPE) function_arg_padding (MODE, TYPE)
-
-/* If defined, a C expression that gives the alignment boundary, in bits,
-   of an argument with the specified mode and type.  If it is not defined,
-   PARM_BOUNDARY is used for all arguments.  */
-
-#define FUNCTION_ARG_BOUNDARY(MODE, TYPE) \
-  function_arg_boundary (MODE, TYPE)
 
 #define PAD_VARARGS_DOWN \
    (FUNCTION_ARG_PADDING (TYPE_MODE (type), type) == downward)
@@ -2403,6 +2284,9 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
   if ((LOG) != 0)			\
     fprintf (FILE, "\t.align %d\n", (LOG))
 
+/* How to align the given loop. */
+#define LOOP_ALIGN(LABEL)  rs6000_loop_align(LABEL)
+
 /* Pick up the return address upon entry to a procedure. Used for
    dwarf2 unwind information.  This also enables the table driven
    mechanism.  */
@@ -2429,21 +2313,12 @@ extern char rs6000_reg_names[][8];	/* register names (0 vs. %r0).  */
 
 #define PRINT_OPERAND_ADDRESS(FILE, ADDR) print_operand_address (FILE, ADDR)
 
-#define OUTPUT_ADDR_CONST_EXTRA(STREAM, X, FAIL)		\
-  do								\
-    if (!rs6000_output_addr_const_extra (STREAM, X))		\
-      goto FAIL;						\
-  while (0)
-
 /* uncomment for disabling the corresponding default options */
 /* #define  MACHINE_no_sched_interblock */
 /* #define  MACHINE_no_sched_speculative */
 /* #define  MACHINE_no_sched_speculative_load */
 
 /* General flags.  */
-extern int flag_pic;
-extern int optimize;
-extern int flag_expensive_optimizations;
 extern int frame_pointer_needed;
 
 /* Classification of the builtin functions to properly set the declaration tree
@@ -2507,6 +2382,8 @@ enum rs6000_builtin_type_index
   RS6000_BTI_pixel_V8HI,         /* __vector __pixel */
   RS6000_BTI_long,	         /* long_integer_type_node */
   RS6000_BTI_unsigned_long,      /* long_unsigned_type_node */
+  RS6000_BTI_long_long,	         /* long_long_integer_type_node */
+  RS6000_BTI_unsigned_long_long, /* long_long_unsigned_type_node */
   RS6000_BTI_INTQI,	         /* intQI_type_node */
   RS6000_BTI_UINTQI,		 /* unsigned_intQI_type_node */
   RS6000_BTI_INTHI,	         /* intHI_type_node */
@@ -2550,6 +2427,8 @@ enum rs6000_builtin_type_index
 #define bool_V2DI_type_node	      (rs6000_builtin_types[RS6000_BTI_bool_V2DI])
 #define pixel_V8HI_type_node	      (rs6000_builtin_types[RS6000_BTI_pixel_V8HI])
 
+#define long_long_integer_type_internal_node  (rs6000_builtin_types[RS6000_BTI_long_long])
+#define long_long_unsigned_type_internal_node (rs6000_builtin_types[RS6000_BTI_unsigned_long_long])
 #define long_integer_type_internal_node  (rs6000_builtin_types[RS6000_BTI_long])
 #define long_unsigned_type_internal_node (rs6000_builtin_types[RS6000_BTI_unsigned_long])
 #define intQI_type_internal_node	 (rs6000_builtin_types[RS6000_BTI_INTQI])

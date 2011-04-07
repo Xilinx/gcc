@@ -151,10 +151,6 @@ extern int cmpib_comparison_operator (rtx, enum machine_mode);
 /* Miscellaneous functions in pa.c.  */
 #ifdef TREE_CODE
 extern int reloc_needed (tree);
-#ifdef RTX_CODE
-extern rtx function_arg (CUMULATIVE_ARGS *, enum machine_mode,
-			 tree, int);
-#endif
 extern bool pa_return_in_memory (const_tree, const_tree);
 #endif /* TREE_CODE */
 
@@ -171,6 +167,7 @@ extern void pa_hpux_asm_output_external (FILE *, tree, const char *);
 extern bool pa_cannot_change_mode_class (enum machine_mode, enum machine_mode,
 					 enum reg_class);
 extern bool pa_modes_tieable_p (enum machine_mode, enum machine_mode);
+extern HOST_WIDE_INT pa_initial_elimination_offset (int, int);
 
 extern const int magic_milli[];
 extern int shadd_constant_p (int);

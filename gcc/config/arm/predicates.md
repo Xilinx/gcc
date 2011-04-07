@@ -1,5 +1,5 @@
 ;; Predicate definitions for ARM and Thumb
-;; Copyright (C) 2004, 2007, 2008 Free Software Foundation, Inc.
+;; Copyright (C) 2004, 2007, 2008, 2010 Free Software Foundation, Inc.
 ;; Contributed by ARM Ltd.
 
 ;; This file is part of GCC.
@@ -83,6 +83,7 @@
      to be a register operand.  */
   return (GET_CODE (op) == REG
 	  && (REGNO (op) >= FIRST_PSEUDO_REGISTER
+	      || REGNO_REG_CLASS (REGNO (op)) == VFP_D0_D7_REGS
 	      || REGNO_REG_CLASS (REGNO (op)) == VFP_LO_REGS
 	      || (TARGET_VFPD32
 		  && REGNO_REG_CLASS (REGNO (op)) == VFP_REGS)));
@@ -618,6 +619,11 @@
 		     (match_operand 0 "cirrus_fp_register"))
 		(and (match_test "TARGET_32BIT")
 		     (match_operand 0 "arm_di_operand"))))
+
+;; True if the operand is memory reference suitable for a ldrex/strex.
+(define_predicate "arm_sync_memory_operand"
+  (and (match_operand 0 "memory_operand")
+       (match_code "reg" "0")))
 
 ;; Predicates for parallel expanders based on mode.
 (define_special_predicate "vect_par_constant_high" 

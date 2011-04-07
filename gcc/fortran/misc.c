@@ -1,5 +1,5 @@
 /* Miscellaneous stuff that doesn't fit anywhere else.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -36,7 +36,7 @@ gfc_getmem (size_t n)
 
   p = xmalloc (n);
   if (p == NULL)
-    gfc_fatal_error ("Out of memory-- malloc() failed");
+    gfc_fatal_error ("Allocation would exceed memory limit -- malloc() failed");
   memset (p, 0, n);
   return p;
 }
@@ -77,6 +77,7 @@ gfc_clear_ts (gfc_typespec *ts)
   ts->f90_type = BT_UNKNOWN;
   /* flag that says whether it's from iso_c_binding or not */
   ts->is_iso_c = 0;
+  ts->deferred = false;
 }
 
 

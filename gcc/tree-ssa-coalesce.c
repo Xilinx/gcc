@@ -32,7 +32,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-dump.h"
 #include "tree-ssa-live.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 
 
 /* This set of routines implements a coalesce_list.  This is an object which
@@ -547,11 +546,9 @@ ssa_conflicts_test_p (ssa_conflicts_p ptr, unsigned x, unsigned y)
 {
   bitmap b;
 
-#ifdef ENABLE_CHECKING
-  gcc_assert (x < ptr->size);
-  gcc_assert (y < ptr->size);
-  gcc_assert (x != y);
-#endif
+  gcc_checking_assert (x < ptr->size);
+  gcc_checking_assert (y < ptr->size);
+  gcc_checking_assert (x != y);
 
   b = ptr->conflicts[x];
   if (b)
@@ -579,11 +576,9 @@ ssa_conflicts_add_one (ssa_conflicts_p ptr, unsigned x, unsigned y)
 static inline void
 ssa_conflicts_add (ssa_conflicts_p ptr, unsigned x, unsigned y)
 {
-#ifdef ENABLE_CHECKING
-  gcc_assert (x < ptr->size);
-  gcc_assert (y < ptr->size);
-  gcc_assert (x != y);
-#endif
+  gcc_checking_assert (x < ptr->size);
+  gcc_checking_assert (y < ptr->size);
+  gcc_checking_assert (x != y);
   ssa_conflicts_add_one (ptr, x, y);
   ssa_conflicts_add_one (ptr, y, x);
 }

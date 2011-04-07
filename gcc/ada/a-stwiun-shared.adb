@@ -86,7 +86,7 @@ package body Ada.Strings.Wide_Unbounded is
          Reference (Empty_Shared_Wide_String'Access);
          DR := Empty_Shared_Wide_String'Access;
 
-      --  Left string is empty, return Rigth string.
+      --  Left string is empty, return Right string.
 
       elsif LR.Last = 0 then
          Reference (RR);
@@ -98,7 +98,7 @@ package body Ada.Strings.Wide_Unbounded is
          Reference (LR);
          DR := LR;
 
-      --  Overwise, allocate new shared string and fill data.
+      --  Otherwise, allocate new shared string and fill data.
 
       else
          DR := Allocate (LR.Last + RR.Last);
@@ -823,13 +823,28 @@ package body Ada.Strings.Wide_Unbounded is
    procedure Find_Token
      (Source : Unbounded_Wide_String;
       Set    : Wide_Maps.Wide_Character_Set;
+      From   : Positive;
       Test   : Strings.Membership;
       First  : out Positive;
       Last   : out Natural)
    is
       SR : constant Shared_Wide_String_Access := Source.Reference;
    begin
-      Wide_Search.Find_Token (SR.Data (1 .. SR.Last), Set, Test, First, Last);
+      Wide_Search.Find_Token
+        (SR.Data (From .. SR.Last), Set, Test, First, Last);
+   end Find_Token;
+
+   procedure Find_Token
+     (Source : Unbounded_Wide_String;
+      Set    : Wide_Maps.Wide_Character_Set;
+      Test   : Strings.Membership;
+      First  : out Positive;
+      Last   : out Natural)
+   is
+      SR : constant Shared_Wide_String_Access := Source.Reference;
+   begin
+      Wide_Search.Find_Token
+        (SR.Data (1 .. SR.Last), Set, Test, First, Last);
    end Find_Token;
 
    ----------

@@ -1,6 +1,7 @@
 // Short-string-optimized versatile string base -*- C++ -*-
 
-// Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+// Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+// Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -23,15 +24,16 @@
 // <http://www.gnu.org/licenses/>.
 
 /** @file ext/sso_string_base.h
- *  This file is a GNU extension to the Standard C++ Library.
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{ext/vstring.h}
  */
 
 #ifndef _SSO_STRING_BASE_H
 #define _SSO_STRING_BASE_H 1
 
-_GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
+namespace __gnu_cxx _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   template<typename _CharT, typename _Traits, typename _Alloc>
     class __sso_string_base
@@ -232,6 +234,9 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
     __sso_string_base<_CharT, _Traits, _Alloc>::
     _M_swap(__sso_string_base& __rcs)
     {
+      if (this == &__rcs)
+	return;
+
       // _GLIBCXX_RESOLVE_LIB_DEFECTS
       // 431. Swapping containers with unequal allocators.
       std::__alloc_swap<_CharT_alloc_type>::_S_do_it(_M_get_allocator(),
@@ -567,6 +572,7 @@ _GLIBCXX_BEGIN_NAMESPACE(__gnu_cxx)
       _M_set_length(_M_length() - __n);
     }
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif /* _SSO_STRING_BASE_H */

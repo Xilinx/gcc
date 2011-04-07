@@ -107,6 +107,9 @@ m68k-*-*)
 	;;
 mep*-*-*)
 	;;
+microblaze*-*-*)
+	cpu_type=microblaze
+	;;
 mips*-*-*)
 	cpu_type=mips
 	;;
@@ -345,6 +348,8 @@ ia64*-*-elf*)
 	tmake_file="ia64/t-ia64"
 	;;
 ia64*-*-freebsd*)
+	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
+	tmake_file="ia64/t-ia64"
 	;;
 ia64*-*-linux*)
 	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
@@ -391,6 +396,9 @@ m68k-*-rtems*)
 mcore-*-elf)
 	;;
 mcore-*-pe*)
+	;;
+microblaze*-*-*)
+        tmake_file="microblaze/t-microblaze"
 	;;
 mips-sgi-irix[56]*)
 	;;
@@ -450,7 +458,8 @@ powerpc-*-darwin*)
 	;;
 powerpc64-*-darwin*)
 	;;
-powerpc*-*-freebsd*)
+powerpc-*-freebsd*)
+	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-freebsd t-softfp"
 	;;
 powerpc-*-netbsd*)
 	;;
@@ -596,6 +605,9 @@ i[34567]86-*-linux* | x86_64-*-linux* | \
   i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | \
   i[34567]86-*-gnu*)
 	tmake_file="${tmake_file} t-tls"
+	if test "$libgcc_cv_cfi" = "yes"; then
+		tmake_file="${tmake_file} t-stack i386/t-stack-i386"
+	fi
 	;;
 esac
 

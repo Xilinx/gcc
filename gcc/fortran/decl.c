@@ -1,5 +1,5 @@
 /* Declaration statement matcher
-   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -502,6 +502,9 @@ match_old_style_init (const char *name)
       return MATCH_ERROR;
     }
 
+  if (gfc_implicit_pure (NULL))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
+
   /* Mark the variable as having appeared in a data statement.  */
   if (gfc_add_data (&sym->attr, sym->name, &sym->declared_at) == FAILURE)
     {
@@ -559,6 +562,9 @@ gfc_match_data (void)
       gfc_error ("DATA statement at %C is not allowed in a PURE procedure");
       return MATCH_ERROR;
     }
+
+  if (gfc_implicit_pure (NULL))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
 
   return MATCH_YES;
 
@@ -647,16 +653,27 @@ match_intent_spec (void)
 
 
 /* Matches a character length specification, which is either a
-   specification expression or a '*'.  */
+   specification expression, '*', or ':'.  */
 
 static match
-char_len_param_value (gfc_expr **expr)
+char_len_param_value (gfc_expr **expr, bool *deferred)
 {
   match m;
 
+  *expr = NULL;
+  *deferred = false;
+
   if (gfc_match_char ('*') == MATCH_YES)
+    return MATCH_YES;
+
+  if (gfc_match_char (':') == MATCH_YES)
     {
-      *expr = NULL;
+      if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: deferred type "
+			  "parameter at %C") == FAILURE)
+	return MATCH_ERROR;
+
+      *deferred = true;
+
       return MATCH_YES;
     }
 
@@ -697,11 +714,12 @@ syntax:
    char_len_param_value in parenthesis.  */
 
 static match
-match_char_length (gfc_expr **expr)
+match_char_length (gfc_expr **expr, bool *deferred)
 {
   int length;
   match m;
 
+  *deferred = false; 
   m = gfc_match_char ('*');
   if (m != MATCH_YES)
     return m;
@@ -722,7 +740,7 @@ match_char_length (gfc_expr **expr)
   if (gfc_match_char ('(') == MATCH_NO)
     goto syntax;
 
-  m = char_len_param_value (expr);
+  m = char_len_param_value (expr, deferred);
   if (m != MATCH_YES && gfc_matching_function)
     {
       gfc_undo_symbols ();
@@ -1086,7 +1104,7 @@ verify_c_interop_param (gfc_symbol *sym)
 /* Function called by variable_decl() that adds a name to the symbol table.  */
 
 static gfc_try
-build_sym (const char *name, gfc_charlen *cl,
+build_sym (const char *name, gfc_charlen *cl, bool cl_deferred,
 	   gfc_array_spec **as, locus *var_locus)
 {
   symbol_attribute attr;
@@ -1103,7 +1121,10 @@ build_sym (const char *name, gfc_charlen *cl,
     return FAILURE;
 
   if (sym->ts.type == BT_CHARACTER)
-    sym->ts.u.cl = cl;
+    {
+      sym->ts.u.cl = cl;
+      sym->ts.deferred = cl_deferred;
+    }
 
   /* Add dimension attribute if present.  */
   if (gfc_set_array_spec (sym, *as, var_locus) == FAILURE)
@@ -1156,10 +1177,8 @@ build_sym (const char *name, gfc_charlen *cl,
 
   sym->attr.implied_index = 0;
 
-  if (sym->ts.type == BT_CLASS
-      && (sym->attr.class_ok = sym->attr.dummy || sym->attr.pointer
-			       || sym->attr.allocatable))
-    gfc_build_class_symbol (&sym->ts, &sym->attr, &sym->as, false);
+  if (sym->ts.type == BT_CLASS)
+    return gfc_build_class_symbol (&sym->ts, &sym->attr, &sym->as, false);
 
   return SUCCESS;
 }
@@ -1614,7 +1633,12 @@ build_struct (const char *name, gfc_charlen *cl, gfc_expr **init,
 
 scalar:
   if (c->ts.type == BT_CLASS)
-    gfc_build_class_symbol (&c->ts, &c->attr, &c->as, true);
+    {
+      bool delayed = (gfc_state_stack->sym == c->ts.u.derived)
+		     || (!c->ts.u.derived->components
+			 && !c->ts.u.derived->attr.zero_comp);
+      return gfc_build_class_symbol (&c->ts, &c->attr, &c->as, delayed);
+    }
 
   return t;
 }
@@ -1673,8 +1697,10 @@ match_pointer_init (gfc_expr **init, int procptr)
     return m;
 
   /* Match non-NULL initialization.  */
+  gfc_matching_ptr_assignment = !procptr;
   gfc_matching_procptr_assignment = procptr;
   m = gfc_match_rvalue (init);
+  gfc_matching_ptr_assignment = 0;
   gfc_matching_procptr_assignment = 0;
   if (m == MATCH_ERROR)
     return MATCH_ERROR;
@@ -1708,6 +1734,7 @@ variable_decl (int elem)
   gfc_array_spec *as;
   gfc_array_spec *cp_as; /* Extra copy for Cray Pointees.  */
   gfc_charlen *cl;
+  bool cl_deferred;
   locus var_locus;
   match m;
   gfc_try t;
@@ -1768,10 +1795,11 @@ variable_decl (int elem)
 
   char_len = NULL;
   cl = NULL;
+  cl_deferred = false;
 
   if (current_ts.type == BT_CHARACTER)
     {
-      switch (match_char_length (&char_len))
+      switch (match_char_length (&char_len, &cl_deferred))
 	{
 	case MATCH_YES:
 	  cl = gfc_new_charlen (gfc_current_ns, NULL);
@@ -1791,6 +1819,8 @@ variable_decl (int elem)
 	    }
 	  else
 	    cl = current_ts.u.cl;
+
+	  cl_deferred = current_ts.deferred;
 
 	  break;
 
@@ -1867,7 +1897,7 @@ variable_decl (int elem)
      create a symbol for those yet.  If we fail to create the symbol,
      bail out.  */
   if (gfc_current_state () != COMP_DERIVED
-      && build_sym (name, cl, &as, &var_locus) == FAILURE)
+      && build_sym (name, cl, cl_deferred, &as, &var_locus) == FAILURE)
     {
       m = MATCH_ERROR;
       goto cleanup;
@@ -2275,16 +2305,18 @@ gfc_match_char_spec (gfc_typespec *ts)
   gfc_charlen *cl;
   gfc_expr *len;
   match m;
+  bool deferred;
 
   len = NULL;
   seen_length = 0;
   kind = 0;
   is_iso_c = 0;
+  deferred = false;
 
   /* Try the old-style specification first.  */
   old_char_selector = 0;
 
-  m = match_char_length (&len);
+  m = match_char_length (&len, &deferred);
   if (m != MATCH_NO)
     {
       if (m == MATCH_YES)
@@ -2313,7 +2345,7 @@ gfc_match_char_spec (gfc_typespec *ts)
       if (gfc_match (" , len =") == MATCH_NO)
 	goto rparen;
 
-      m = char_len_param_value (&len);
+      m = char_len_param_value (&len, &deferred);
       if (m == MATCH_NO)
 	goto syntax;
       if (m == MATCH_ERROR)
@@ -2326,7 +2358,7 @@ gfc_match_char_spec (gfc_typespec *ts)
   /* Try to match "LEN = <len-param>" or "LEN = <len-param>, KIND = <int>".  */
   if (gfc_match (" len =") == MATCH_YES)
     {
-      m = char_len_param_value (&len);
+      m = char_len_param_value (&len, &deferred);
       if (m == MATCH_NO)
 	goto syntax;
       if (m == MATCH_ERROR)
@@ -2346,7 +2378,7 @@ gfc_match_char_spec (gfc_typespec *ts)
     }
 
   /* Try to match ( <len-param> ) or ( <len-param> , [ KIND = ] <int> ).  */
-  m = char_len_param_value (&len);
+  m = char_len_param_value (&len, &deferred);
   if (m == MATCH_NO)
     goto syntax;
   if (m == MATCH_ERROR)
@@ -2405,6 +2437,7 @@ done:
 
   ts->u.cl = cl;
   ts->kind = kind == 0 ? gfc_default_character_kind : kind;
+  ts->deferred = deferred;
 
   /* We have to know if it was a c interoperable kind so we can
      do accurate type checking of bind(c) procs, etc.  */
@@ -2578,6 +2611,16 @@ gfc_match_decl_type_spec (gfc_typespec *ts, int implicit_flag)
     ts->type = BT_DERIVED;
   else
     {
+      /* Match CLASS declarations.  */
+      m = gfc_match (" class ( * )");
+      if (m == MATCH_ERROR)
+	return MATCH_ERROR;
+      else if (m == MATCH_YES)
+	{
+	  gfc_fatal_error ("Unlimited polymorphism at %C not yet supported");
+	  return MATCH_ERROR;
+	}
+
       m = gfc_match (" class ( %n )", name);
       if (m != MATCH_YES)
 	return m;
@@ -5990,10 +6033,10 @@ attr_decl1 (void)
 
   /* Update symbol table.  DIMENSION attribute is set in
      gfc_set_array_spec().  For CLASS variables, this must be applied
-     to the first component, or '$data' field.  */
+     to the first component, or '_data' field.  */
   if (sym->ts.type == BT_CLASS && sym->ts.u.derived->attr.is_class)
     {
-      if (gfc_copy_attr (&CLASS_DATA (sym)->attr, &current_attr,&var_locus)
+      if (gfc_copy_attr (&CLASS_DATA (sym)->attr, &current_attr, &var_locus)
 	  == FAILURE)
 	{
 	  m = MATCH_ERROR;
@@ -6010,10 +6053,12 @@ attr_decl1 (void)
 	}
     }
     
-  if (sym->ts.type == BT_CLASS && !sym->attr.class_ok
-      && (sym->attr.class_ok = sym->attr.class_ok || current_attr.allocatable
-			       || current_attr.pointer))
-    gfc_build_class_symbol (&sym->ts, &sym->attr, &sym->as, false);
+  if (sym->ts.type == BT_CLASS
+      && gfc_build_class_symbol (&sym->ts, &sym->attr, &sym->as, false) == FAILURE)
+    {
+      m = MATCH_ERROR;
+      goto cleanup;
+    }
 
   if (gfc_set_array_spec (sym, as, &var_locus) == FAILURE)
     {
@@ -7153,46 +7198,6 @@ gfc_get_type_attr_spec (symbol_attribute *attr, char *name)
 }
 
 
-/* Assign a hash value for a derived type. The algorithm is that of
-   SDBM. The hashed string is '[module_name #] derived_name'.  */
-static unsigned int
-hash_value (gfc_symbol *sym)
-{
-  unsigned int hash = 0;
-  const char *c;
-  int i, len;
-
-  /* Hash of the module or procedure name.  */
-  if (sym->module != NULL)
-    c = sym->module;
-  else if (sym->ns && sym->ns->proc_name
-	     && sym->ns->proc_name->attr.flavor == FL_MODULE)
-    c = sym->ns->proc_name->name;
-  else
-    c = NULL;
-
-  if (c)
-    { 
-      len = strlen (c);
-      for (i = 0; i < len; i++, c++)
-	hash =  (hash << 6) + (hash << 16) - hash + (*c);
-
-      /* Disambiguate between 'a' in 'aa' and 'aa' in 'a'.  */ 
-      hash =  (hash << 6) + (hash << 16) - hash + '#';
-    }
-
-  /* Hash of the derived type name.  */
-  len = strlen (sym->name);
-  c = sym->name;
-  for (i = 0; i < len; i++, c++)
-    hash = (hash << 6) + (hash << 16) - hash + (*c);
-
-  /* Return the hash but take the modulus for the sake of module read,
-     even though this slightly increases the chance of collision.  */
-  return (hash % 100000000);
-}
-
-
 /* Match the beginning of a derived type declaration.  If a type name
    was the result of a function, then it is possible to have a symbol
    already to be known as a derived type yet have no components.  */
@@ -7325,7 +7330,7 @@ gfc_match_derived_decl (void)
 
   if (!sym->hash_value)
     /* Set the hash for the compound name for this type.  */
-    sym->hash_value = hash_value (sym);
+    sym->hash_value = gfc_hash_value (sym);
 
   /* Take over the ABSTRACT attribute.  */
   sym->attr.abstract = attr.abstract;
@@ -7447,7 +7452,7 @@ enumerator_decl (void)
   /* OK, we've successfully matched the declaration.  Now put the
      symbol in the current namespace. If we fail to create the symbol,
      bail out.  */
-  if (build_sym (name, NULL, &as, &var_locus) == FAILURE)
+  if (build_sym (name, NULL, false, &as, &var_locus) == FAILURE)
     {
       m = MATCH_ERROR;
       goto cleanup;

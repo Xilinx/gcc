@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "cp-tree.h"
 #include "intl.h"
 #include "convert.h"
-#include "toplev.h"
 #include "decl.h"
 #include "target.h"
 
@@ -88,7 +87,7 @@ cp_convert_to_pointer (tree type, tree expr)
       intype = complete_type (intype);
       if (!COMPLETE_TYPE_P (intype))
 	{
-	  error ("can't convert from incomplete type %qT to %qT",
+	  error ("can%'t convert from incomplete type %qT to %qT",
 		 intype, type);
 	  return error_mark_node;
 	}
@@ -314,7 +313,7 @@ build_up_reference (tree type, tree arg, int flags, tree decl)
 	 here because it needs to live as long as DECL.  */
       tree targ = arg;
 
-      arg = make_temporary_var_for_ref_to_temp (decl, TREE_TYPE (arg));
+      arg = make_temporary_var_for_ref_to_temp (decl, target_type);
 
       /* Process the initializer for the declaration.  */
       DECL_INITIAL (arg) = targ;
@@ -327,7 +326,7 @@ build_up_reference (tree type, tree arg, int flags, tree decl)
   /* If we had a way to wrap this up, and say, if we ever needed its
      address, transform all occurrences of the register, into a memory
      reference we could win better.  */
-  rval = cp_build_unary_op (ADDR_EXPR, arg, 1, tf_warning_or_error);
+  rval = cp_build_addr_expr (arg, tf_warning_or_error);
   if (rval == error_mark_node)
     return error_mark_node;
 
@@ -471,7 +470,7 @@ convert_to_reference (tree reftype, tree expr, int convtype,
 	warning (0, "casting %qT to %qT does not dereference pointer",
 		 intype, reftype);
 
-      rval = cp_build_unary_op (ADDR_EXPR, expr, 0, tf_warning_or_error);
+      rval = cp_build_addr_expr (expr, tf_warning_or_error);
       if (rval != error_mark_node)
 	rval = convert_force (build_pointer_type (TREE_TYPE (reftype)),
 			      rval, 0);
@@ -513,6 +512,7 @@ convert_from_reference (tree val)
       tree t = TREE_TYPE (TREE_TYPE (val));
       tree ref = build1 (INDIRECT_REF, t, val);
 
+      mark_exp_read (val);
        /* We *must* set TREE_READONLY when dereferencing a pointer to const,
 	  so that we get the proper error message if the result is used
 	  to assign to.  Also, &* is supposed to be a no-op.  */
@@ -543,12 +543,35 @@ force_rvalue (tree expr)
 }
 
 
-/* Fold away simple conversions, but make sure the result is an rvalue.  */
+/* If EXPR and ORIG are INTEGER_CSTs, return a version of EXPR that has
+   TREE_OVERFLOW set only if it is set in ORIG.  Otherwise, return EXPR
+   unchanged.  */
+
+static tree
+ignore_overflows (tree expr, tree orig)
+{
+  if (TREE_CODE (expr) == INTEGER_CST
+      && TREE_CODE (orig) == INTEGER_CST
+      && TREE_OVERFLOW (expr) != TREE_OVERFLOW (orig))
+    {
+      gcc_assert (!TREE_OVERFLOW (orig));
+      /* Ensure constant sharing.  */
+      expr = build_int_cst_wide (TREE_TYPE (expr),
+				 TREE_INT_CST_LOW (expr),
+				 TREE_INT_CST_HIGH (expr));
+    }
+  return expr;
+}
+
+/* Fold away simple conversions, but make sure TREE_OVERFLOW is set
+   properly.  */
 
 tree
 cp_fold_convert (tree type, tree expr)
 {
-  return rvalue (fold_convert (type, expr));
+  tree conv = fold_convert (type, expr);
+  conv = ignore_overflows (conv, expr);
+  return conv;
 }
 
 /* C++ conversions, preference to static cast conversions.  */
@@ -609,7 +632,10 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
       return error_mark_node;
     }
 
-  e = integral_constant_value (e);
+  /* FIXME remove when moving to c_fully_fold model.  */
+  /* FIXME do we still need this test?  */
+  if (!CLASS_TYPE_P (type))
+    e = integral_constant_value (e);
   if (error_operand_p (e))
     return error_mark_node;
 
@@ -658,6 +684,7 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
   if (INTEGRAL_CODE_P (code))
     {
       tree intype = TREE_TYPE (e);
+      tree converted;
 
       if (TREE_CODE (type) == ENUMERAL_TYPE)
 	{
@@ -702,7 +729,10 @@ ocp_convert (tree type, tree expr, int convtype, int flags)
       if (code == BOOLEAN_TYPE)
 	return cp_truthvalue_conversion (e);
 
-      return fold_if_not_in_template (convert_to_integer (type, e));
+      converted = fold_if_not_in_template (convert_to_integer (type, e));
+
+      /* Ignore any integer overflow caused by the conversion.  */
+      return ignore_overflows (converted, e);
     }
   if (NULLPTR_TYPE_P (type) && e && null_ptr_cst_p (e))
     return nullptr_node;
@@ -863,20 +893,24 @@ convert_to_void (tree expr, impl_conv_void implicit, tsubst_flags_t complain)
 	/* The two parts of a cond expr might be separate lvalues.  */
 	tree op1 = TREE_OPERAND (expr,1);
 	tree op2 = TREE_OPERAND (expr,2);
-	bool side_effects = TREE_SIDE_EFFECTS (op1) || TREE_SIDE_EFFECTS (op2);
+	bool side_effects = ((op1 && TREE_SIDE_EFFECTS (op1))
+			     || TREE_SIDE_EFFECTS (op2));
 	tree new_op1, new_op2;
+	new_op1 = NULL_TREE;
 	if (implicit != ICV_CAST && !side_effects)
 	  {
-	    new_op1 = convert_to_void (op1, ICV_SECOND_OF_COND, complain);
+	    if (op1)
+	      new_op1 = convert_to_void (op1, ICV_SECOND_OF_COND, complain);
 	    new_op2 = convert_to_void (op2, ICV_THIRD_OF_COND, complain);
 	  }
 	else
 	  {
-	    new_op1 = convert_to_void (op1, ICV_CAST, complain);
+	    if (op1)
+	      new_op1 = convert_to_void (op1, ICV_CAST, complain);
 	    new_op2 = convert_to_void (op2, ICV_CAST, complain);
 	  }
 
-	expr = build3 (COND_EXPR, TREE_TYPE (new_op1),
+	expr = build3 (COND_EXPR, TREE_TYPE (new_op2),
 		       TREE_OPERAND (expr, 0), new_op1, new_op2);
 	break;
       }
@@ -1473,9 +1507,7 @@ build_expr_type_conversion (int desires, tree expr, bool complain)
   if (!TYPE_HAS_CONVERSION (basetype))
     return NULL_TREE;
 
-  for (conv = lookup_conversions (basetype, /*lookup_template_convs_p=*/true);
-       conv;
-       conv = TREE_CHAIN (conv))
+  for (conv = lookup_conversions (basetype); conv; conv = TREE_CHAIN (conv))
     {
       int win = 0;
       tree candidate;

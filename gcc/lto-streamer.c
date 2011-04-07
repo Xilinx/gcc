@@ -303,6 +303,7 @@ check_handled_ts_structures (void)
   handled_p[TS_OMP_CLAUSE] = true;
   handled_p[TS_OPTIMIZATION] = true;
   handled_p[TS_TARGET_OPTION] = true;
+  handled_p[TS_TRANSLATION_UNIT_DECL] = true;
 
   /* Anything not marked above will trigger the following assertion.
      If this assertion triggers, it means that there is a new TS_*
@@ -526,7 +527,9 @@ lto_record_common_node (tree *nodep, VEC(tree, heap) **common_nodes,
 	 are set by the middle-end.  */
       if (in_lto_p)
 	TYPE_CANONICAL (node) = NULL_TREE;
-      *nodep = node = gimple_register_type (node);
+      node = gimple_register_type (node);
+      TYPE_CANONICAL (node) = gimple_register_canonical_type (node);
+      *nodep = node;
     }
 
   /* Return if node is already seen.  */

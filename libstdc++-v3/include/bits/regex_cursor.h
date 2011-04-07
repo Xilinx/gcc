@@ -1,6 +1,6 @@
 // class template regex -*- C++ -*-
 
-// Copyright (C) 2010 Free Software Foundation, Inc.
+// Copyright (C) 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -23,13 +23,15 @@
 // <http://www.gnu.org/licenses/>.
 
 /**
- * @file bits/regex_cursor.h
- * This is an internal header file, included by other library headers.
- * You should not attempt to use it directly.
+ *  @file bits/regex_cursor.h
+ *  This is an internal header file, included by other library headers.
+ *  Do not attempt to use it directly. @headername{regex}
  */
 
-namespace std
+namespace std _GLIBCXX_VISIBILITY(default)
 {
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
+
 namespace __regex
 {
   // ABC for pattern matching
@@ -80,13 +82,13 @@ namespace __regex
       _FwdIterT _M_e;
     };
 
-  // Helper funxtion to create a cursor specialized for an iterator class.
+  // Helper function to create a cursor specialized for an iterator class.
   template<typename _FwdIterT>
     inline _SpecializedCursor<_FwdIterT>
     __cursor(const _FwdIterT& __b, const _FwdIterT __e)
     { return _SpecializedCursor<_FwdIterT>(__b, __e); }
 
 } // namespace __regex
-} // namespace std
 
-/* vim: set ts=8 sw=2 sts=2: */
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace

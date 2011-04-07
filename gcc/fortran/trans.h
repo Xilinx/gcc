@@ -81,6 +81,11 @@ typedef struct gfc_se
   /* If set, gfc_conv_procedure_call does not put byref calls into se->pre.  */
   unsigned no_function_call:1;
 
+  /* If set, we will force the creation of a temporary. Useful to disable
+     non-copying procedure argument passing optimizations, when some function
+     args alias.  */
+  unsigned force_tmp:1;
+
   /* Scalarization parameters.  */
   struct gfc_se *parent;
   struct gfc_ss *ss;
@@ -211,7 +216,7 @@ typedef struct gfc_ss
      loops the terms appear in.  This will be 1 for the RHS expressions,
      2 for the LHS expressions, and 3(=1|2) for the temporary.  The bit
      'where' suppresses precalculation of scalars in WHERE assignments.  */
-  unsigned useflags:2, where:1;
+  unsigned useflags:2, where:1, is_alloc_lhs:1;
 }
 gfc_ss;
 #define gfc_get_ss() XCNEW (gfc_ss)
@@ -337,12 +342,21 @@ tree gfc_string_to_single_character (tree len, tree str, int kind);
 /* Find the decl containing the auxiliary variables for assigned variables.  */
 void gfc_conv_label_variable (gfc_se * se, gfc_expr * expr);
 /* If the value is not constant, Create a temporary and copy the value.  */
+tree gfc_evaluate_now_loc (location_t, tree, stmtblock_t *);
 tree gfc_evaluate_now (tree, stmtblock_t *);
+
+/* Find the appropriate variant of a math intrinsic.  */
+tree gfc_builtin_decl_for_float_kind (enum built_in_function, int);
 
 /* Intrinsic function handling.  */
 void gfc_conv_intrinsic_function (gfc_se *, gfc_expr *);
 
-/* Does an intrinsic map directly to an external library call.  */
+/* Is the intrinsic expanded inline.  */
+bool gfc_inline_intrinsic_function_p (gfc_expr *);
+
+/* Does an intrinsic map directly to an external library call
+   This is true for array-returning intrinsics, unless
+   gfc_inline_intrinsic_function_p returns true.  */
 int gfc_is_intrinsic_libcall (gfc_expr *);
 
 tree gfc_conv_intrinsic_move_alloc (gfc_code *);
@@ -382,9 +396,12 @@ void gfc_trans_vla_type_sizes (gfc_symbol *, stmtblock_t *);
 
 /* Add an expression to the end of a block.  */
 void gfc_add_expr_to_block (stmtblock_t *, tree);
+/* Add an expression to the beginning of a block.  */
+void gfc_prepend_expr_to_block (stmtblock_t *, tree);
 /* Add a block to the end of a block.  */
 void gfc_add_block_to_block (stmtblock_t *, stmtblock_t *);
 /* Add a MODIFY_EXPR to a block.  */
+void gfc_add_modify_loc (location_t, stmtblock_t *, tree, tree);
 void gfc_add_modify (stmtblock_t *, tree, tree);
 
 /* Initialize a statement block.  */
@@ -428,6 +445,9 @@ void gfc_build_builtin_function_decls (void);
 
 /* Set the backend source location of a decl.  */
 void gfc_set_decl_location (tree, locus *);
+
+/* Get a module symbol backend_decl if possible.  */
+bool gfc_get_module_backend_decl (gfc_symbol *);
 
 /* Return the variable decl for a symbol.  */
 tree gfc_get_symbol_decl (gfc_symbol *);
@@ -478,8 +498,9 @@ struct module_htab_entry *gfc_find_module (const char *);
 void gfc_module_add_decl (struct module_htab_entry *, tree);
 
 /* Get and set the current location.  */
+void gfc_save_backend_locus (locus *);
 void gfc_set_backend_locus (locus *);
-void gfc_get_backend_locus (locus *);
+void gfc_restore_backend_locus (locus *);
 
 /* Handle static constructor functions.  */
 extern GTY(()) tree gfc_static_ctors;
@@ -490,7 +511,6 @@ bool get_array_ctor_strlen (stmtblock_t *, gfc_constructor_base, tree *);
 
 /* Generate a runtime error call.  */
 tree gfc_trans_runtime_error (bool, locus*, const char*, ...);
-tree gfc_trans_runtime_error_vararg (bool, locus*, const char*, va_list);
 
 /* Generate a runtime warning/error check.  */
 void gfc_trans_runtime_check (bool, bool, tree, stmtblock_t *, locus *,
@@ -517,6 +537,7 @@ tree gfc_allocate_with_status (stmtblock_t *, tree, tree);
 
 /* Generate code to deallocate an array.  */
 tree gfc_deallocate_with_status (tree, tree, bool, gfc_expr*);
+tree gfc_deallocate_scalar_with_status (tree, tree, bool, gfc_expr*, gfc_typespec);
 
 /* Generate code to call realloc().  */
 tree gfc_call_realloc (stmtblock_t *, tree, tree);
@@ -538,7 +559,7 @@ tree gfc_build_library_function_decl_with_spec (tree name, const char *spec,
 						tree rettype, int nargs, ...);
 
 /* Process the local variable decls of a block construct.  */
-void gfc_process_block_locals (gfc_namespace*, gfc_association_list*);
+void gfc_process_block_locals (gfc_namespace*);
 
 /* Output initialization/clean-up code that was deferred.  */
 void gfc_trans_deferred_vars (gfc_symbol*, gfc_wrapped_block *);
@@ -574,6 +595,7 @@ void gfc_omp_firstprivatize_type_sizes (struct gimplify_omp_ctx *, tree);
 extern GTY(()) tree gfor_fndecl_pause_numeric;
 extern GTY(()) tree gfor_fndecl_pause_string;
 extern GTY(()) tree gfor_fndecl_stop_numeric;
+extern GTY(()) tree gfor_fndecl_stop_numeric_f08;
 extern GTY(()) tree gfor_fndecl_stop_string;
 extern GTY(()) tree gfor_fndecl_error_stop_numeric;
 extern GTY(()) tree gfor_fndecl_error_stop_string;
@@ -644,8 +666,6 @@ extern GTY(()) tree gfor_fndecl_convert_char4_to_char1;
 extern GTY(()) tree gfor_fndecl_size0;
 extern GTY(()) tree gfor_fndecl_size1;
 extern GTY(()) tree gfor_fndecl_iargc;
-extern GTY(()) tree gfor_fndecl_clz128;
-extern GTY(()) tree gfor_fndecl_ctz128;
 
 /* Implemented in Fortran.  */
 extern GTY(()) tree gfor_fndecl_sc_kind;
@@ -685,6 +705,7 @@ struct GTY((variable_size))	lang_type	 {
   tree dataptr_type;
   tree span;
   tree base_decl[2];
+  tree nonrestricted_type;
 };
 
 struct GTY((variable_size)) lang_decl {
@@ -740,14 +761,17 @@ struct GTY((variable_size)) lang_decl {
 #define GFC_TYPE_ARRAY_BASE_DECL(node, internal) \
   (TYPE_LANG_SPECIFIC(node)->base_decl[(internal)])
 
+
 /* Build an expression with void type.  */
-#define build1_v(code, arg) fold_build1(code, void_type_node, arg)
-#define build2_v(code, arg1, arg2) fold_build2(code, void_type_node, \
-                                               arg1, arg2)
-#define build3_v(code, arg1, arg2, arg3) fold_build3(code, void_type_node, \
-                                                     arg1, arg2, arg3)
-#define build4_v(code, arg1, arg2, arg3, arg4) build4(code, void_type_node, \
-						      arg1, arg2, arg3, arg4)
+#define build1_v(code, arg) \
+	fold_build1_loc (input_location, code, void_type_node, arg)
+#define build2_v(code, arg1, arg2) \
+	fold_build2_loc (input_location, code, void_type_node, arg1, arg2)
+#define build3_v(code, arg1, arg2, arg3) \
+	fold_build3_loc (input_location, code, void_type_node, arg1, arg2, arg3)
+#define build4_v(code, arg1, arg2, arg3, arg4) \
+	build4_loc (input_location, code, void_type_node, arg1, arg2, \
+		    arg3, arg4)
 
 /* This group of functions allows a caller to evaluate an expression from
    the callee's interface.  It establishes a mapping between the interface's

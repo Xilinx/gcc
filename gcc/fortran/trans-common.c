@@ -98,7 +98,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "tree.h"
-#include "toplev.h"	/* For exact_log2.  */
 #include "output.h"	/* For decl_default_tls_model.  */
 #include "gfortran.h"
 #include "trans.h"
@@ -322,6 +321,7 @@ build_field (segment_info *h, tree union_type, record_layout_info rli)
     {
       tree new_type;
       TREE_THIS_VOLATILE (field) = 1;
+      TREE_SIDE_EFFECTS (field) = 1;
       new_type = build_qualified_type (TREE_TYPE (field), TYPE_QUAL_VOLATILE);
       TREE_TYPE (field) = new_type;
     }
@@ -703,8 +703,9 @@ create_common (gfc_common_head *com, segment_info *head, bool saw_equiv)
 	gfc_add_decl_to_function (var_decl);
 
       SET_DECL_VALUE_EXPR (var_decl,
-			   fold_build3 (COMPONENT_REF, TREE_TYPE (s->field),
-					decl, s->field, NULL_TREE));
+			   fold_build3_loc (input_location, COMPONENT_REF,
+					    TREE_TYPE (s->field),
+					    decl, s->field, NULL_TREE));
       DECL_HAS_VALUE_EXPR_P (var_decl) = 1;
       GFC_DECL_COMMON_OR_EQUIV (var_decl) = 1;
 

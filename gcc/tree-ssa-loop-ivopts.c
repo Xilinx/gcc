@@ -1,5 +1,5 @@
 /* Induction variable optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -834,7 +834,8 @@ htab_inv_expr_eq (const void *ent1, const void *ent2)
   const struct iv_inv_expr_ent *expr2 =
       (const struct iv_inv_expr_ent *)ent2;
 
-  return operand_equal_p (expr1->expr, expr2->expr, 0);
+  return expr1->hash == expr2->hash
+	 && operand_equal_p (expr1->expr, expr2->expr, 0);
 }
 
 /* Hash function for loop invariant expressions.  */
@@ -1099,6 +1100,12 @@ find_givs_in_stmt_scev (struct ivopts_data *data, gimple stmt, affine_iv *iv)
 
   if (contains_abnormal_ssa_name_p (iv->base)
       || contains_abnormal_ssa_name_p (iv->step))
+    return false;
+
+  /* If STMT could throw, then do not consider STMT as defining a GIV.  
+     While this will suppress optimizations, we can not safely delete this
+     GIV and associated statements, even if it appears it is not used.  */
+  if (stmt_could_throw_p (stmt))
     return false;
 
   return true;
@@ -1443,9 +1450,6 @@ idx_find_step (tree base, tree *idx, void *data)
   tree step, iv_base, iv_step, lbound, off;
   struct loop *loop = dta->ivopts_data->current_loop;
 
-  if (TREE_CODE (base) == MISALIGNED_INDIRECT_REF)
-    return false;
-
   /* If base is a component ref, require that the offset of the reference
      be invariant.  */
   if (TREE_CODE (base) == COMPONENT_REF)
@@ -1722,6 +1726,16 @@ find_interesting_uses_address (struct ivopts_data *data, gimple stmt, tree *op_p
 	  TMR_BASE (base) = civ->base;
 	  step = civ->step;
 	}
+      if (TMR_INDEX2 (base)
+	  && TREE_CODE (TMR_INDEX2 (base)) == SSA_NAME)
+	{
+	  civ = get_iv (data, TMR_INDEX2 (base));
+	  if (!civ)
+	    goto fail;
+
+	  TMR_INDEX2 (base) = civ->base;
+	  step = civ->step;
+	}
       if (TMR_INDEX (base)
 	  && TREE_CODE (TMR_INDEX (base)) == SSA_NAME)
 	{
@@ -1754,8 +1768,6 @@ find_interesting_uses_address (struct ivopts_data *data, gimple stmt, tree *op_p
 	  || integer_zerop (ifs_ivopts_data.step))
 	goto fail;
       step = ifs_ivopts_data.step;
-
-      gcc_assert (TREE_CODE (base) != MISALIGNED_INDIRECT_REF);
 
       /* Check that the base expression is addressable.  This needs
 	 to be done after substituting bases of IVs into it.  */
@@ -4022,6 +4034,8 @@ get_computation_cost_at (struct ivopts_data *data,
   STRIP_NOPS (cbase);
   ctype = TREE_TYPE (cbase);
 
+  stmt_is_after_inc = stmt_after_increment (data->current_loop, cand, at);
+
   /* use = ubase + ratio * (var - cbase).  If either cbase is a constant
      or ratio == 1, it is better to handle this like
 
@@ -4040,8 +4054,24 @@ get_computation_cost_at (struct ivopts_data *data,
     }
   else if (ratio == 1)
     {
+      tree real_cbase = cbase;
+
+      /* Check to see if any adjustment is needed.  */
+      if (cstepi == 0 && stmt_is_after_inc)
+        {
+          aff_tree real_cbase_aff;
+          aff_tree cstep_aff;
+
+          tree_to_aff_combination (cbase, TREE_TYPE (real_cbase),
+                                   &real_cbase_aff);
+          tree_to_aff_combination (cstep, TREE_TYPE (cstep), &cstep_aff);
+
+          aff_combination_add (&real_cbase_aff, &cstep_aff);
+          real_cbase = aff_combination_to_tree (&real_cbase_aff);
+        }
+
       cost = difference_cost (data,
-			      ubase, cbase,
+			      ubase, real_cbase,
 			      &symbol_present, &var_present, &offset,
 			      depends_on);
       cost.cost /= avg_loop_niter (data->current_loop);
@@ -4083,7 +4113,6 @@ get_computation_cost_at (struct ivopts_data *data,
 
   /* If we are after the increment, the value of the candidate is higher by
      one iteration.  */
-  stmt_is_after_inc = stmt_after_increment (data->current_loop, cand, at);
   if (stmt_is_after_inc)
     offset -= ratio * cstepi;
 
@@ -5858,7 +5887,16 @@ rewrite_use_nonlinear_expr (struct ivopts_data *data,
       comp = force_gimple_operand_gsi (&bsi, comp, true, NULL_TREE,
 				       true, GSI_SAME_STMT);
       if (POINTER_TYPE_P (TREE_TYPE (tgt)))
-	duplicate_ssa_name_ptr_info (comp, SSA_NAME_PTR_INFO (tgt));
+	{
+	  duplicate_ssa_name_ptr_info (comp, SSA_NAME_PTR_INFO (tgt));
+	  /* As this isn't a plain copy we have to reset alignment
+	     information.  */
+	  if (SSA_NAME_PTR_INFO (comp))
+	    {
+	      SSA_NAME_PTR_INFO (comp)->align = 1;
+	      SSA_NAME_PTR_INFO (comp)->misalign = 0;
+	    }
+	}
     }
 
   if (gimple_code (use->stmt) == GIMPLE_PHI)
@@ -5886,26 +5924,44 @@ copy_ref_info (tree new_ref, tree old_ref)
   TREE_SIDE_EFFECTS (new_ref) = TREE_SIDE_EFFECTS (old_ref);
   TREE_THIS_VOLATILE (new_ref) = TREE_THIS_VOLATILE (old_ref);
 
-  if (TREE_CODE (new_ref) == TARGET_MEM_REF)
-    new_ptr_base = TMR_BASE (new_ref);
-  else if (TREE_CODE (new_ref) == MEM_REF)
-    new_ptr_base = TREE_OPERAND (new_ref, 0);
+  new_ptr_base = TREE_OPERAND (new_ref, 0);
 
   /* We can transfer points-to information from an old pointer
      or decl base to the new one.  */
   if (new_ptr_base
       && TREE_CODE (new_ptr_base) == SSA_NAME
-      && POINTER_TYPE_P (TREE_TYPE (new_ptr_base))
       && !SSA_NAME_PTR_INFO (new_ptr_base))
     {
       tree base = get_base_address (old_ref);
       if (!base)
 	;
-      else if ((INDIRECT_REF_P (base)
-		|| TREE_CODE (base) == MEM_REF)
-	       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
-	duplicate_ssa_name_ptr_info
-	  (new_ptr_base, SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0)));
+      else if ((TREE_CODE (base) == MEM_REF
+		|| TREE_CODE (base) == TARGET_MEM_REF)
+	       && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME
+	       && SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0)))
+	{
+	  struct ptr_info_def *new_pi;
+	  duplicate_ssa_name_ptr_info
+	    (new_ptr_base, SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0)));
+	  new_pi = SSA_NAME_PTR_INFO (new_ptr_base);
+	  /* We have to be careful about transfering alignment information.  */
+	  if (TREE_CODE (old_ref) == MEM_REF
+	      && !(TREE_CODE (new_ref) == TARGET_MEM_REF
+		   && (TMR_INDEX2 (new_ref)
+		       || (TMR_STEP (new_ref)
+			   && (TREE_INT_CST_LOW (TMR_STEP (new_ref))
+			       < new_pi->align)))))
+	    {
+	      new_pi->misalign += double_int_sub (mem_ref_offset (old_ref),
+						  mem_ref_offset (new_ref)).low;
+	      new_pi->misalign &= (new_pi->align - 1);
+	    }
+	  else
+	    {
+	      new_pi->align = 1;
+	      new_pi->misalign = 0;
+	    }
+	}
       else if (TREE_CODE (base) == VAR_DECL
 	       || TREE_CODE (base) == PARM_DECL
 	       || TREE_CODE (base) == RESULT_DECL)

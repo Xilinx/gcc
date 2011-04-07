@@ -237,7 +237,7 @@ init_dyn_call_graph (void)
 	if ((1 << t_ix) & gi_ptr->ctr_mask)
 	    c_ix++;
 
-      fi_stride = sizeof (struct gcov_fn_info) + c_ix * sizeof (unsigned);
+      fi_stride = offsetof (struct gcov_fn_info, n_ctrs) + c_ix * sizeof (unsigned);
       if (__alignof__ (struct gcov_fn_info) > sizeof (unsigned))
 	{
 	  fi_stride += __alignof__ (struct gcov_fn_info) - 1;

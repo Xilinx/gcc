@@ -24,7 +24,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include "toplev.h"
 #include "tree.h"
 #include "expr.h"
 #include "flags.h"
@@ -497,6 +496,8 @@ pack_ts_function_decl_value_fields (struct bitpack_d *bp, tree expr)
   bp_pack_value (bp, DECL_DISREGARD_INLINE_LIMITS (expr), 1);
   bp_pack_value (bp, DECL_PURE_P (expr), 1);
   bp_pack_value (bp, DECL_LOOPING_CONST_OR_PURE_P (expr), 1);
+  if (DECL_STATIC_DESTRUCTOR (expr))
+    bp_pack_value (bp, DECL_FINI_PRIORITY (expr), HOST_BITS_PER_SHORT);
 }
 
 
@@ -533,6 +534,13 @@ pack_ts_block_value_fields (struct bitpack_d *bp, tree expr)
   bp_pack_value (bp, BLOCK_NUMBER (expr), 31);
 }
 
+/* Pack all the non-pointer fields of the TS_TRANSLATION_UNIT_DECL structure
+   of expression EXPR into bitpack BP.  */
+
+static void
+pack_ts_translation_unit_decl_value_fields (struct bitpack_d *bp ATTRIBUTE_UNUSED, tree expr ATTRIBUTE_UNUSED)
+{
+}
 
 /* Pack all the non-pointer fields in EXPR into a bit pack.  */
 
@@ -588,6 +596,9 @@ pack_value_fields (struct bitpack_d *bp, tree expr)
       /* This is only used by High GIMPLE.  */
       gcc_unreachable ();
     }
+
+  if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
+    pack_ts_translation_unit_decl_value_fields (bp, expr);
 }
 
 
@@ -721,6 +732,11 @@ lto_output_tree_ref (struct output_block *ob, tree expr)
       lto_output_var_decl_index (ob->decl_state, ob->main_stream, expr);
       break;
 
+    case TRANSLATION_UNIT_DECL:
+      output_record_start (ob, LTO_translation_unit_decl_ref);
+      lto_output_var_decl_index (ob->decl_state, ob->main_stream, expr);
+      break;
+
     default:
       /* No other node is indexable, so it should have been handled
 	 by lto_output_tree.  */
@@ -778,7 +794,8 @@ static void
 lto_output_ts_common_tree_pointers (struct output_block *ob, tree expr,
 				    bool ref_p)
 {
-  lto_output_tree_or_ref (ob, TREE_TYPE (expr), ref_p);
+  if (TREE_CODE (expr) != IDENTIFIER_NODE)
+    lto_output_tree_or_ref (ob, TREE_TYPE (expr), ref_p);
 }
 
 
@@ -832,7 +849,8 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
   lto_output_tree_or_ref (ob, DECL_SIZE (expr), ref_p);
   lto_output_tree_or_ref (ob, DECL_SIZE_UNIT (expr), ref_p);
 
-  if (TREE_CODE (expr) != FUNCTION_DECL)
+  if (TREE_CODE (expr) != FUNCTION_DECL
+      && TREE_CODE (expr) != TRANSLATION_UNIT_DECL)
     {
       tree initial = DECL_INITIAL (expr);
       if (TREE_CODE (expr) == VAR_DECL
@@ -852,7 +870,9 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
     }
 
   lto_output_tree_or_ref (ob, DECL_ATTRIBUTES (expr), ref_p);
-  lto_output_tree_or_ref (ob, DECL_ABSTRACT_ORIGIN (expr), ref_p);
+  /* Do not stream DECL_ABSTRACT_ORIGIN.  We cannot handle debug information
+     for early inlining so drop it on the floor instead of ICEing in
+     dwarf2out.c.  */
 
   if (TREE_CODE (expr) == PARM_DECL)
     lto_output_chain (ob, TREE_CHAIN (expr), ref_p);
@@ -861,6 +881,9 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
        || TREE_CODE (expr) == PARM_DECL)
       && DECL_HAS_VALUE_EXPR_P (expr))
     lto_output_tree_or_ref (ob, DECL_VALUE_EXPR (expr), ref_p);
+
+  if (TREE_CODE (expr) == VAR_DECL)
+    lto_output_tree_or_ref (ob, DECL_DEBUG_EXPR (expr), ref_p);
 }
 
 
@@ -956,8 +979,6 @@ lto_output_ts_type_tree_pointers (struct output_block *ob, tree expr,
   else if (TREE_CODE (expr) == FUNCTION_TYPE
 	   || TREE_CODE (expr) == METHOD_TYPE)
     lto_output_tree_or_ref (ob, TYPE_ARG_TYPES (expr), ref_p);
-  else if (TREE_CODE (expr) == VECTOR_TYPE)
-    lto_output_tree_or_ref (ob, TYPE_DEBUG_REPRESENTATION_TYPE (expr), ref_p);
 
   lto_output_tree_or_ref (ob, TYPE_SIZE (expr), ref_p);
   lto_output_tree_or_ref (ob, TYPE_SIZE_UNIT (expr), ref_p);
@@ -1035,21 +1056,23 @@ static void
 lto_output_ts_block_tree_pointers (struct output_block *ob, tree expr,
 				   bool ref_p)
 {
-  unsigned i;
-  tree t;
-
-  lto_output_location (ob, BLOCK_SOURCE_LOCATION (expr));
+  /* Do not stream BLOCK_SOURCE_LOCATION.  We cannot handle debug information
+     for early inlining so drop it on the floor instead of ICEing in
+     dwarf2out.c.  */
   lto_output_chain (ob, BLOCK_VARS (expr), ref_p);
 
-  output_uleb128 (ob, VEC_length (tree, BLOCK_NONLOCALIZED_VARS (expr)));
-  FOR_EACH_VEC_ELT (tree, BLOCK_NONLOCALIZED_VARS (expr), i, t)
-    lto_output_tree_or_ref (ob, t, ref_p);
+  /* Do not stream BLOCK_NONLOCALIZED_VARS.  We cannot handle debug information
+     for early inlining so drop it on the floor instead of ICEing in
+     dwarf2out.c.  */
 
   lto_output_tree_or_ref (ob, BLOCK_SUPERCONTEXT (expr), ref_p);
-  lto_output_tree_or_ref (ob, BLOCK_ABSTRACT_ORIGIN (expr), ref_p);
+  /* Do not stream BLOCK_ABSTRACT_ORIGIN.  We cannot handle debug information
+     for early inlining so drop it on the floor instead of ICEing in
+     dwarf2out.c.  */
   lto_output_tree_or_ref (ob, BLOCK_FRAGMENT_ORIGIN (expr), ref_p);
   lto_output_tree_or_ref (ob, BLOCK_FRAGMENT_CHAIN (expr), ref_p);
-  lto_output_chain (ob, BLOCK_SUBBLOCKS (expr), ref_p);
+  /* Do not output BLOCK_SUBBLOCKS.  Instead on streaming-in this
+     list is re-constructed from BLOCK_SUPERCONTEXT.  */
 }
 
 
@@ -1105,6 +1128,35 @@ lto_output_ts_constructor_tree_pointers (struct output_block *ob, tree expr,
     }
 }
 
+/* Write a TS_TARGET_OPTION tree in EXPR to OB.  */
+
+static void
+lto_output_ts_target_option (struct output_block *ob, tree expr)
+{
+  struct cl_target_option *t = TREE_TARGET_OPTION (expr);
+  struct bitpack_d bp;
+  unsigned i, len;
+
+  /* The cl_target_option is target specific and generated by the options
+     awk script, so we just recreate a byte-by-byte copy here. */
+
+  bp = bitpack_create (ob->main_stream);
+  len = sizeof (struct cl_target_option);
+  for (i = 0; i < len; i++)
+    bp_pack_value (&bp, ((unsigned char *)t)[i], 8);
+  /* Catch struct size mismatches between reader and writer. */
+  bp_pack_value (&bp, 0x12345678, 32);
+  lto_output_bitpack (&bp);
+}
+
+/* Write a TS_TRANSLATION_UNIT_DECL tree in EXPR to OB.  */
+
+static void
+lto_output_ts_translation_unit_decl_tree_pointers (struct output_block *ob,
+						   tree expr)
+{
+  output_string (ob, ob->main_stream, TRANSLATION_UNIT_LANGUAGE (expr));
+}
 
 /* Helper for lto_output_tree.  Write all pointer fields in EXPR to output
    block OB.  If REF_P is true, the leaves of EXPR are emitted as
@@ -1187,7 +1239,10 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
     sorry ("gimple bytecode streams do not support the optimization attribute");
 
   if (CODE_CONTAINS_STRUCT (code, TS_TARGET_OPTION))
-    sorry ("gimple bytecode streams do not support the target attribute");
+    lto_output_ts_target_option (ob, expr);
+
+  if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
+    lto_output_ts_translation_unit_decl_tree_pointers (ob, expr);
 }
 
 
@@ -1706,14 +1761,16 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
 	  tree op = gimple_op (stmt, i);
 	  /* Wrap all uses of non-automatic variables inside MEM_REFs
 	     so that we do not have to deal with type mismatches on
-	     merged symbols during IL read in.  */
-	  if (op)
+	     merged symbols during IL read in.  The first operand
+	     of GIMPLE_DEBUG must be a decl, not MEM_REF, though.  */
+	  if (op && (i || !is_gimple_debug (stmt)))
 	    {
 	      tree *basep = &op;
-	      if (handled_component_p (*basep))
+	      while (handled_component_p (*basep))
 		basep = &TREE_OPERAND (*basep, 0);
 	      if (TREE_CODE (*basep) == VAR_DECL
-		  && !auto_var_in_fn_p (*basep, current_function_decl))
+		  && !auto_var_in_fn_p (*basep, current_function_decl)
+		  && !DECL_REGISTER (*basep))
 		{
 		  bool volatilep = TREE_THIS_VOLATILE (*basep);
 		  *basep = build2 (MEM_REF, TREE_TYPE (*basep),
@@ -1897,6 +1954,10 @@ output_function (struct cgraph_node *node)
   bp_pack_value (&bp, fn->va_list_gpr_size, 8);
   lto_output_bitpack (&bp);
 
+  /* Output the function start and end loci.  */
+  lto_output_location (ob, fn->function_start_locus);
+  lto_output_location (ob, fn->function_end_locus);
+
   /* Output current IL state of the function.  */
   output_uleb128 (ob, fn->curr_properties);
 
@@ -1947,6 +2008,13 @@ output_function (struct cgraph_node *node)
 }
 
 
+/* Used to pass data to trivally_defined_alias callback.  */
+struct sets {
+  cgraph_node_set set;
+  varpool_node_set vset;
+};
+
+
 /* Return true if alias pair P belongs to the set of cgraph nodes in
    SET.  If P is a an alias for a VAR_DECL, it can always be emitted.
    However, for FUNCTION_DECL aliases, we should only output the pair
@@ -1956,16 +2024,51 @@ output_function (struct cgraph_node *node)
    the file processed by LTRANS.  */
 
 static bool
-output_alias_pair_p (alias_pair *p, cgraph_node_set set, varpool_node_set vset)
+trivally_defined_alias (tree decl ATTRIBUTE_UNUSED,
+			tree target, void *data)
 {
-  if (TREE_CODE (p->decl) == VAR_DECL)
-    return varpool_node_in_set_p (varpool_node_for_asm (p->target), vset);
+  struct sets *set = (struct sets *) data;
+  struct cgraph_node *fnode = NULL;
+  struct varpool_node *vnode = NULL;
 
-  /* Check if the assembler name for P->TARGET has its cgraph node in SET.  */
-  gcc_assert (TREE_CODE (p->decl) == FUNCTION_DECL);
-  return cgraph_node_in_set_p (cgraph_node_for_asm (p->target), set);
+  fnode = cgraph_node_for_asm (target);
+  if (fnode)
+    return cgraph_node_in_set_p (fnode, set->set);
+  vnode = varpool_node_for_asm (target);
+  return vnode && varpool_node_in_set_p (vnode, set->vset);
 }
 
+/* Return true if alias pair P should be output in the current
+   partition contains cgrpah nodes SET and varpool nodes VSET.
+   DEFINED is set of all aliases whose targets are defined in
+   the partition.
+
+   Normal aliases are output when they are defined, while WEAKREF
+   aliases are output when they are used.  */
+
+static bool
+output_alias_pair_p (alias_pair *p, symbol_alias_set_t *defined,
+		     cgraph_node_set set, varpool_node_set vset)
+{
+  struct cgraph_node *node;
+  struct varpool_node *vnode;
+
+  if (lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
+    {
+      if (TREE_CODE (p->decl) == VAR_DECL)
+	{
+	  vnode = varpool_get_node (p->decl);
+	  return (vnode
+		  && referenced_from_this_partition_p (&vnode->ref_list, set, vset));
+	}
+      node = cgraph_get_node (p->decl);
+      return (node
+	      && (referenced_from_this_partition_p (&node->ref_list, set, vset)
+		  || reachable_from_this_partition_p (node, set)));
+    }
+  else
+    return symbol_alias_set_contains (defined, p->decl);
+}
 
 /* Output any unreferenced global symbol defined in SET, alias pairs
    and labels.  */
@@ -1977,6 +2080,11 @@ output_unreferenced_globals (cgraph_node_set set, varpool_node_set vset)
   alias_pair *p;
   unsigned i;
   struct varpool_node *vnode;
+  symbol_alias_set_t *defined;
+  struct sets setdata;
+
+  setdata.set = set;
+  setdata.vset = vset;
 
   ob = create_output_block (LTO_section_static_initializer);
   ob->cgraph_node = NULL;
@@ -2010,15 +2118,20 @@ output_unreferenced_globals (cgraph_node_set set, varpool_node_set vset)
 
   output_zero (ob);
 
+  /* We really need to propagate in both directoins:
+     for normal aliases we propagate from first defined alias to
+     all aliases defined based on it.  For weakrefs we propagate in
+     the oposite direction.  */
+  defined = propagate_aliases_backward (trivally_defined_alias, &setdata);
+
   /* Emit the alias pairs for the nodes in SET.  */
   FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
-    {
-      if (output_alias_pair_p (p, set, vset))
-	{
-	  lto_output_tree_ref (ob, p->decl);
-	  lto_output_tree_ref (ob, p->target);
-	}
-    }
+    if (output_alias_pair_p (p, defined, set, vset))
+      {
+	lto_output_tree_ref (ob, p->decl);
+	lto_output_tree_ref (ob, p->target);
+      }
+  symbol_alias_set_destroy (defined);
 
   output_zero (ob);
 
@@ -2283,13 +2396,13 @@ lto_out_decl_state_written_size (struct lto_out_decl_state *state)
 }
 
 
-/* Write symbol T into STREAM in CACHE. SEEN specify symbols we wrote so
-   far.  */
+/* Write symbol T into STREAM in CACHE. SEEN specifies symbols we wrote
+   so far.  */
 
 static void
 write_symbol (struct lto_streamer_cache_d *cache,
 	      struct lto_output_stream *stream,
-	      tree t, bitmap seen, bool alias)
+	      tree t, struct pointer_set_t *seen, bool alias)
 {
   const char *name;
   enum gcc_plugin_symbol_kind kind;
@@ -2297,6 +2410,7 @@ write_symbol (struct lto_streamer_cache_d *cache,
   int slot_num;
   uint64_t size;
   const char *comdat;
+  unsigned char c;
 
   /* None of the following kinds of symbols are needed in the
      symbol table.  */
@@ -2311,18 +2425,16 @@ write_symbol (struct lto_streamer_cache_d *cache,
 
   name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (t));
 
-  /* FIXME lto: this is from assemble_name_raw in varasm.c. For some
-     architectures we might have to do the same name manipulations that
-     ASM_OUTPUT_LABELREF does. */
-  if (name[0] == '*')
-    name = &name[1];
+  /* This behaves like assemble_name_raw in varasm.c, performing the
+     same name manipulations that ASM_OUTPUT_LABELREF does. */
+  name = IDENTIFIER_POINTER ((*targetm.asm_out.mangle_assembler_name) (name));
+
+  if (pointer_set_contains (seen, name))
+    return;
+  pointer_set_insert (seen, name);
 
   lto_streamer_cache_lookup (cache, t, &slot_num);
   gcc_assert (slot_num >= 0);
-
-  /* Avoid duplicate symbols. */
-  if (!bitmap_set_bit (seen, slot_num))
-    return;
 
   if (DECL_EXTERNAL (t))
     {
@@ -2340,9 +2452,9 @@ write_symbol (struct lto_streamer_cache_d *cache,
       else
 	kind = GCCPK_DEF;
 
-      /* When something is defined, it should have a node attached.
-	 FIXME: For fortran this is still not the case since wrapup global
-	 decls is done after streaming.  */
+      /* When something is defined, it should have node attached.  */
+      gcc_assert (alias || TREE_CODE (t) != VAR_DECL
+		  || varpool_get_node (t)->finalized);
       gcc_assert (alias || TREE_CODE (t) != FUNCTION_DECL
 		  || (cgraph_get_node (t)
 		      && cgraph_get_node (t)->analyzed));
@@ -2378,8 +2490,12 @@ write_symbol (struct lto_streamer_cache_d *cache,
   if (kind == GCCPK_COMMON
       && DECL_SIZE (t)
       && TREE_CODE (DECL_SIZE (t)) == INTEGER_CST)
-    size = (((uint64_t) TREE_INT_CST_HIGH (DECL_SIZE (t))) << 32)
-      | TREE_INT_CST_LOW (DECL_SIZE (t));
+    {
+      size = (HOST_BITS_PER_WIDE_INT >= 64)
+	? (uint64_t) int_size_in_bytes (TREE_TYPE (t))
+	: (((uint64_t) TREE_INT_CST_HIGH (DECL_SIZE_UNIT (t))) << 32)
+		| TREE_INT_CST_LOW (DECL_SIZE_UNIT (t));
+    }
   else
     size = 0;
 
@@ -2390,8 +2506,10 @@ write_symbol (struct lto_streamer_cache_d *cache,
 
   lto_output_data_stream (stream, name, strlen (name) + 1);
   lto_output_data_stream (stream, comdat, strlen (comdat) + 1);
-  lto_output_data_stream (stream, &kind, 1);
-  lto_output_data_stream (stream, &visibility, 1);
+  c = (unsigned char) kind;
+  lto_output_data_stream (stream, &c, 1);
+  c = (unsigned char) visibility;
+  lto_output_data_stream (stream, &c, 1);
   lto_output_data_stream (stream, &size, 8);
   lto_output_data_stream (stream, &slot_num, 4);
 }
@@ -2406,7 +2524,7 @@ produce_symtab (struct output_block *ob,
 {
   struct lto_streamer_cache_d *cache = ob->writer_cache;
   char *section_name = lto_get_section_name (LTO_section_symtab, NULL, NULL);
-  bitmap seen;
+  struct pointer_set_t *seen;
   struct cgraph_node *node, *alias;
   struct varpool_node *vnode, *valias;
   struct lto_output_stream stream;
@@ -2414,18 +2532,44 @@ produce_symtab (struct output_block *ob,
   lto_cgraph_encoder_t encoder = ob->decl_state->cgraph_node_encoder;
   int i;
   alias_pair *p;
+  struct sets setdata;
+  symbol_alias_set_t *defined;
+
+  setdata.set = set;
+  setdata.vset = vset;
 
   lto_begin_section (section_name, false);
   free (section_name);
 
-  seen = lto_bitmap_alloc ();
+  seen = pointer_set_create ();
   memset (&stream, 0, sizeof (stream));
 
-  /* Write all functions.  */
+  /* Write all functions. 
+     First write all defined functions and the write all used functions.
+     This is done so only to handle duplicated symbols in cgraph.  */
   for (i = 0; i < lto_cgraph_encoder_size (encoder); i++)
     {
       node = lto_cgraph_encoder_deref (encoder, i);
-      if (node->alias)
+      if (DECL_EXTERNAL (node->decl))
+	continue;
+      if (DECL_COMDAT (node->decl)
+	  && cgraph_comdat_can_be_unshared_p (node))
+	continue;
+      if (node->alias || node->global.inlined_to)
+	continue;
+      write_symbol (cache, &stream, node->decl, seen, false);
+      for (alias = node->same_body; alias; alias = alias->next)
+        write_symbol (cache, &stream, alias->decl, seen, true);
+    }
+  for (i = 0; i < lto_cgraph_encoder_size (encoder); i++)
+    {
+      node = lto_cgraph_encoder_deref (encoder, i);
+      if (!DECL_EXTERNAL (node->decl))
+	continue;
+      if (DECL_COMDAT (node->decl)
+	  && cgraph_comdat_can_be_unshared_p (node))
+	continue;
+      if (node->alias || node->global.inlined_to)
 	continue;
       write_symbol (cache, &stream, node->decl, seen, false);
       for (alias = node->same_body; alias; alias = alias->next)
@@ -2436,6 +2580,32 @@ produce_symtab (struct output_block *ob,
   for (i = 0; i < lto_varpool_encoder_size (varpool_encoder); i++)
     {
       vnode = lto_varpool_encoder_deref (varpool_encoder, i);
+      if (DECL_EXTERNAL (vnode->decl))
+	continue;
+      /* COMDAT virtual tables can be unshared.  Do not declare them
+	 in the LTO symbol table to prevent linker from forcing them
+	 into the output. */
+      if (DECL_COMDAT (vnode->decl)
+	  && !vnode->force_output
+	  && vnode->finalized 
+	  && DECL_VIRTUAL_P (vnode->decl))
+	continue;
+      if (vnode->alias)
+	continue;
+      write_symbol (cache, &stream, vnode->decl, seen, false);
+      for (valias = vnode->extra_name; valias; valias = valias->next)
+        write_symbol (cache, &stream, valias->decl, seen, true);
+    }
+  for (i = 0; i < lto_varpool_encoder_size (varpool_encoder); i++)
+    {
+      vnode = lto_varpool_encoder_deref (varpool_encoder, i);
+      if (!DECL_EXTERNAL (vnode->decl))
+	continue;
+      if (DECL_COMDAT (vnode->decl)
+	  && !vnode->force_output
+	  && vnode->finalized 
+	  && DECL_VIRTUAL_P (vnode->decl))
+	continue;
       if (vnode->alias)
 	continue;
       write_symbol (cache, &stream, vnode->decl, seen, false);
@@ -2444,12 +2614,14 @@ produce_symtab (struct output_block *ob,
     }
 
   /* Write all aliases.  */
+  defined = propagate_aliases_backward (trivally_defined_alias, &setdata);
   FOR_EACH_VEC_ELT (alias_pair, alias_pairs, i, p)
-    if (output_alias_pair_p (p, set, vset))
+    if (output_alias_pair_p (p, defined, set, vset))
       write_symbol (cache, &stream, p->decl, seen, true);
+  symbol_alias_set_destroy (defined);
 
   lto_write_stream (&stream);
-  lto_bitmap_free (seen);
+  pointer_set_destroy (seen);
 
   lto_end_section ();
 }

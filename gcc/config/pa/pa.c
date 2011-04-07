@@ -40,13 +40,13 @@ along with GCC; see the file COPYING3.  If not see
 #include "integrate.h"
 #include "function.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "ggc.h"
 #include "recog.h"
 #include "predict.h"
 #include "tm_p.h"
 #include "target.h"
 #include "target-def.h"
+#include "langhooks.h"
 #include "df.h"
 
 /* Return nonzero if there is a bypass for the output of 
@@ -130,6 +130,7 @@ static void pa_asm_out_constructor (rtx, int);
 static void pa_asm_out_destructor (rtx, int);
 #endif
 static void pa_init_builtins (void);
+static rtx pa_expand_builtin (tree, rtx, rtx, enum machine_mode mode, int);
 static rtx hppa_builtin_saveregs (void);
 static void hppa_va_start (tree, rtx);
 static tree hppa_gimplify_va_arg_expr (tree, tree, gimple_seq *, gimple_seq *);
@@ -152,7 +153,7 @@ static void output_deferred_profile_counters (void) ATTRIBUTE_UNUSED;
 #ifdef ASM_OUTPUT_EXTERNAL_REAL
 static void pa_hpux_file_end (void);
 #endif
-#ifdef HPUX_LONG_DOUBLE_LIBRARY
+#if HPUX_LONG_DOUBLE_LIBRARY
 static void pa_hpux_init_libfuncs (void);
 #endif
 static rtx pa_struct_value_rtx (tree, int);
@@ -160,6 +161,11 @@ static bool pa_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
 				  const_tree, bool);
 static int pa_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
 				 tree, bool);
+static void pa_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+				     const_tree, bool);
+static rtx pa_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+			    const_tree, bool);
+static unsigned int pa_function_arg_boundary (enum machine_mode, const_tree);
 static struct machine_function * pa_init_machine_status (void);
 static reg_class_t pa_secondary_reload (bool, rtx, reg_class_t,
 					enum machine_mode,
@@ -174,6 +180,11 @@ static void pa_trampoline_init (rtx, tree, rtx);
 static rtx pa_trampoline_adjust_address (rtx);
 static rtx pa_delegitimize_address (rtx);
 static bool pa_print_operand_punct_valid_p (unsigned char);
+static rtx pa_internal_arg_pointer (void);
+static bool pa_can_eliminate (const int, const int);
+static void pa_conditional_register_usage (void);
+static enum machine_mode pa_c_mode_for_suffix (char);
+static section *pa_function_section (tree, enum node_frequency, bool, bool);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
@@ -216,11 +227,20 @@ static GTY((length ("n_deferred_plabels"))) struct deferred_plabel *
   deferred_plabels;
 static size_t n_deferred_plabels = 0;
 
+/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
+static const struct default_options pa_option_optimization_table[] =
+  {
+    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
+    { OPT_LEVELS_NONE, 0, NULL, 0 }
+  };
+
 
 /* Initialize the GCC target structure.  */
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE pa_option_override
+#undef TARGET_OPTION_OPTIMIZATION_TABLE
+#define TARGET_OPTION_OPTIMIZATION_TABLE pa_option_optimization_table
 
 #undef TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.half\t"
@@ -300,6 +320,9 @@ static size_t n_deferred_plabels = 0;
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS pa_init_builtins
 
+#undef TARGET_EXPAND_BUILTIN
+#define TARGET_EXPAND_BUILTIN pa_expand_builtin
+
 #undef TARGET_REGISTER_MOVE_COST
 #define TARGET_REGISTER_MOVE_COST hppa_register_move_cost
 #undef TARGET_RTX_COSTS
@@ -310,7 +333,7 @@ static size_t n_deferred_plabels = 0;
 #undef TARGET_MACHINE_DEPENDENT_REORG
 #define TARGET_MACHINE_DEPENDENT_REORG pa_reorg
 
-#ifdef HPUX_LONG_DOUBLE_LIBRARY
+#if HPUX_LONG_DOUBLE_LIBRARY
 #undef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS pa_hpux_init_libfuncs
 #endif
@@ -332,6 +355,12 @@ static size_t n_deferred_plabels = 0;
 #define TARGET_CALLEE_COPIES hook_bool_CUMULATIVE_ARGS_mode_tree_bool_true
 #undef TARGET_ARG_PARTIAL_BYTES
 #define TARGET_ARG_PARTIAL_BYTES pa_arg_partial_bytes
+#undef TARGET_FUNCTION_ARG
+#define TARGET_FUNCTION_ARG pa_function_arg
+#undef TARGET_FUNCTION_ARG_ADVANCE
+#define TARGET_FUNCTION_ARG_ADVANCE pa_function_arg_advance
+#undef TARGET_FUNCTION_ARG_BOUNDARY
+#define TARGET_FUNCTION_ARG_BOUNDARY pa_function_arg_boundary
 
 #undef TARGET_EXPAND_BUILTIN_SAVEREGS
 #define TARGET_EXPAND_BUILTIN_SAVEREGS hppa_builtin_saveregs
@@ -360,6 +389,16 @@ static size_t n_deferred_plabels = 0;
 #define TARGET_TRAMPOLINE_ADJUST_ADDRESS pa_trampoline_adjust_address
 #undef TARGET_DELEGITIMIZE_ADDRESS
 #define TARGET_DELEGITIMIZE_ADDRESS pa_delegitimize_address
+#undef TARGET_INTERNAL_ARG_POINTER
+#define TARGET_INTERNAL_ARG_POINTER pa_internal_arg_pointer
+#undef TARGET_CAN_ELIMINATE
+#define TARGET_CAN_ELIMINATE pa_can_eliminate
+#undef TARGET_CONDITIONAL_REGISTER_USAGE
+#define TARGET_CONDITIONAL_REGISTER_USAGE pa_conditional_register_usage
+#undef TARGET_C_MODE_FOR_SUFFIX
+#define TARGET_C_MODE_FOR_SUFFIX pa_c_mode_for_suffix
+#undef TARGET_ASM_FUNCTION_SECTION
+#define TARGET_ASM_FUNCTION_SECTION pa_function_section
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -514,7 +553,8 @@ pa_option_override (void)
      call frame information.  There is no benefit in using this optimization
      on PA8000 and later processors.  */
   if (pa_cpu >= PROCESSOR_8000
-      || (! USING_SJLJ_EXCEPTIONS && flag_exceptions)
+      || (targetm.except_unwind_info (&global_options) == UI_DWARF2
+	  && flag_exceptions)
       || flag_unwind_tables)
     target_flags &= ~MASK_JUMP_IN_DELAY;
 
@@ -566,6 +606,17 @@ pa_option_override (void)
   init_machine_status = pa_init_machine_status;
 }
 
+enum pa_builtins
+{
+  PA_BUILTIN_COPYSIGNQ,
+  PA_BUILTIN_FABSQ,
+  PA_BUILTIN_INFQ,
+  PA_BUILTIN_HUGE_VALQ,
+  PA_BUILTIN_max
+};
+
+static GTY(()) tree pa_builtins[(int) PA_BUILTIN_max];
+
 static void
 pa_init_builtins (void)
 {
@@ -581,6 +632,86 @@ pa_init_builtins (void)
   if (built_in_decls [BUILT_IN_FINITEF])
     set_user_assembler_name (built_in_decls [BUILT_IN_FINITEF], "_Isfinitef");
 #endif
+
+  if (HPUX_LONG_DOUBLE_LIBRARY)
+    {
+      tree decl, ftype;
+
+      /* Under HPUX, the __float128 type is a synonym for "long double".  */
+      (*lang_hooks.types.register_builtin_type) (long_double_type_node,
+						 "__float128");
+
+      /* TFmode support builtins.  */
+      ftype = build_function_type_list (long_double_type_node,
+					long_double_type_node,
+					NULL_TREE);
+      decl = add_builtin_function ("__builtin_fabsq", ftype,
+				   PA_BUILTIN_FABSQ, BUILT_IN_MD,
+				   "_U_Qfabs", NULL_TREE);
+      TREE_READONLY (decl) = 1;
+      pa_builtins[PA_BUILTIN_FABSQ] = decl;
+
+      ftype = build_function_type_list (long_double_type_node,
+					long_double_type_node,
+					long_double_type_node,
+					NULL_TREE);
+      decl = add_builtin_function ("__builtin_copysignq", ftype,
+				   PA_BUILTIN_COPYSIGNQ, BUILT_IN_MD,
+				   "_U_Qfcopysign", NULL_TREE);
+      TREE_READONLY (decl) = 1;
+      pa_builtins[PA_BUILTIN_COPYSIGNQ] = decl;
+
+      ftype = build_function_type (long_double_type_node, void_list_node);
+      decl = add_builtin_function ("__builtin_infq", ftype,
+				   PA_BUILTIN_INFQ, BUILT_IN_MD,
+				   NULL, NULL_TREE);
+      pa_builtins[PA_BUILTIN_INFQ] = decl;
+
+      decl = add_builtin_function ("__builtin_huge_valq", ftype,
+                                   PA_BUILTIN_HUGE_VALQ, BUILT_IN_MD,
+                                   NULL, NULL_TREE);
+      pa_builtins[PA_BUILTIN_HUGE_VALQ] = decl;
+    }
+}
+
+static rtx
+pa_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
+		   enum machine_mode mode ATTRIBUTE_UNUSED,
+		   int ignore ATTRIBUTE_UNUSED)
+{
+  tree fndecl = TREE_OPERAND (CALL_EXPR_FN (exp), 0);
+  unsigned int fcode = DECL_FUNCTION_CODE (fndecl);
+
+  switch (fcode)
+    {
+    case PA_BUILTIN_FABSQ:
+    case PA_BUILTIN_COPYSIGNQ:
+      return expand_call (exp, target, ignore);
+
+    case PA_BUILTIN_INFQ:
+    case PA_BUILTIN_HUGE_VALQ:
+      {
+	enum machine_mode target_mode = TYPE_MODE (TREE_TYPE (exp));
+	REAL_VALUE_TYPE inf;
+	rtx tmp;
+
+	real_inf (&inf);
+	tmp = CONST_DOUBLE_FROM_REAL_VALUE (inf, target_mode);
+
+	tmp = validize_mem (force_const_mem (target_mode, tmp));
+
+	if (target == 0)
+	  target = gen_reg_rtx (target_mode);
+
+	emit_move_insn (target, tmp);
+	return target;
+      }
+
+    default:
+      gcc_unreachable ();
+    }
+
+  return NULL_RTX;
 }
 
 /* Function to init struct machine_function.
@@ -1651,7 +1782,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
 
      Use scratch_reg to hold the address of the memory location.
 
-     The proper fix is to change PREFERRED_RELOAD_CLASS to return
+     The proper fix is to change TARGET_PREFERRED_RELOAD_CLASS to return
      NO_REGS when presented with a const_int and a register class
      containing only FP registers.  Doing so unfortunately creates
      more problems than it solves.   Fix this for 2.5.  */
@@ -3762,11 +3893,11 @@ hppa_expand_prologue (void)
 	     pointer by actual_fsize bytes.  Two versions, first
 	     handles small (<8k) frames.  The second handles large (>=8k)
 	     frames.  */
-	  insn = emit_move_insn (tmpreg, frame_pointer_rtx);
+	  insn = emit_move_insn (tmpreg, hard_frame_pointer_rtx);
 	  if (DO_FRAME_NOTES)
 	    RTX_FRAME_RELATED_P (insn) = 1;
 
-	  insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+	  insn = emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);
 	  if (DO_FRAME_NOTES)
 	    RTX_FRAME_RELATED_P (insn) = 1;
 
@@ -3810,7 +3941,7 @@ hppa_expand_prologue (void)
 				       GEN_INT (TARGET_64BIT ? -8 : -4));
 
 	      emit_move_insn (gen_rtx_MEM (word_mode, addr),
-			      frame_pointer_rtx);
+			      hard_frame_pointer_rtx);
 	    }
 	  else
 	    emit_insn (gen_blockage ());
@@ -3853,7 +3984,7 @@ hppa_expand_prologue (void)
 	      if (regno == INVALID_REGNUM)
 		break;
 
-	      store_reg (regno, offset, FRAME_POINTER_REGNUM);
+	      store_reg (regno, offset, HARD_FRAME_POINTER_REGNUM);
 	      offset += UNITS_PER_WORD;
 	    }
 	}
@@ -3861,7 +3992,7 @@ hppa_expand_prologue (void)
       for (i = 18; i >= 4; i--)
 	if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	  {
-	    store_reg (i, offset, FRAME_POINTER_REGNUM);
+	    store_reg (i, offset, HARD_FRAME_POINTER_REGNUM);
 	    offset += UNITS_PER_WORD;
 	    gr_saved++;
 	  }
@@ -3950,8 +4081,8 @@ hppa_expand_prologue (void)
 	 save area.  */
       if (frame_pointer_needed)
 	{
-	  set_reg_plus_d (1, FRAME_POINTER_REGNUM, offset, 0);
-	  base = frame_pointer_rtx;
+	  set_reg_plus_d (1, HARD_FRAME_POINTER_REGNUM, offset, 0);
+	  base = hard_frame_pointer_rtx;
 	}
       else
 	{
@@ -4149,7 +4280,7 @@ hppa_expand_epilogue (void)
       ret_off = TARGET_64BIT ? -16 : -20;
       if (frame_pointer_needed)
 	{
-	  load_reg (2, ret_off, FRAME_POINTER_REGNUM);
+	  load_reg (2, ret_off, HARD_FRAME_POINTER_REGNUM);
 	  ret_off = 0;
 	}
       else
@@ -4180,7 +4311,7 @@ hppa_expand_epilogue (void)
 	      if (regno == INVALID_REGNUM)
 		break;
 
-	      load_reg (regno, offset, FRAME_POINTER_REGNUM);
+	      load_reg (regno, offset, HARD_FRAME_POINTER_REGNUM);
 	      offset += UNITS_PER_WORD;
 	    }
 	}
@@ -4188,7 +4319,7 @@ hppa_expand_epilogue (void)
       for (i = 18; i >= 4; i--)
 	if (df_regs_ever_live_p (i) && ! call_used_regs[i])
 	  {
-	    load_reg (i, offset, FRAME_POINTER_REGNUM);
+	    load_reg (i, offset, HARD_FRAME_POINTER_REGNUM);
 	    offset += UNITS_PER_WORD;
 	  }
     }
@@ -4247,7 +4378,7 @@ hppa_expand_epilogue (void)
     {
       /* Adjust the register to index off of.  */
       if (frame_pointer_needed)
-	set_reg_plus_d (1, FRAME_POINTER_REGNUM, offset, 0);
+	set_reg_plus_d (1, HARD_FRAME_POINTER_REGNUM, offset, 0);
       else
 	set_reg_plus_d (1, STACK_POINTER_REGNUM, offset, 0);
 
@@ -4275,8 +4406,9 @@ hppa_expand_epilogue (void)
     {
       rtx delta = GEN_INT (-64);
 
-      set_reg_plus_d (STACK_POINTER_REGNUM, FRAME_POINTER_REGNUM, 64, 0);
-      emit_insn (gen_pre_load (frame_pointer_rtx, stack_pointer_rtx, delta));
+      set_reg_plus_d (STACK_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM, 64, 0);
+      emit_insn (gen_pre_load (hard_frame_pointer_rtx,
+			       stack_pointer_rtx, delta));
     }
   /* If we were deferring a callee register restore, do it now.  */
   else if (merge_sp_adjust_with_load)
@@ -5489,7 +5621,7 @@ output_deferred_plabels (void)
     }
 }
 
-#ifdef HPUX_LONG_DOUBLE_LIBRARY
+#if HPUX_LONG_DOUBLE_LIBRARY
 /* Initialize optabs to point to HPUX long double emulation routines.  */
 static void
 pa_hpux_init_libfuncs (void)
@@ -5755,7 +5887,7 @@ static reg_class_t
 pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 		     enum machine_mode mode, secondary_reload_info *sri)
 {
-  int is_symbolic, regno;
+  int regno;
   enum reg_class rclass = (enum reg_class) rclass_i;
 
   /* Handle the easy stuff first.  */
@@ -5787,6 +5919,23 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
       sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
 		    : CODE_FOR_reload_indi_r1);
       return NO_REGS;
+    }
+
+  /* Secondary reloads of symbolic operands require %r1 as a scratch
+     register when we're generating PIC code and when the operand isn't
+     readonly.  */
+  if (symbolic_expression_p (x))
+    {
+      if (GET_CODE (x) == HIGH)
+	x = XEXP (x, 0);
+
+      if (flag_pic || !read_only_operand (x, VOIDmode))
+	{
+	  gcc_assert (mode == SImode || mode == DImode);
+	  sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
+			: CODE_FOR_reload_indi_r1);
+	  return NO_REGS;
+	}
     }
 
   /* Profiling showed the PA port spends about 1.3% of its compilation
@@ -5851,51 +6000,9 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
   if (regno >= 0 && regno < FIRST_PSEUDO_REGISTER
       && (REGNO_REG_CLASS (regno) == SHIFT_REGS
       && FP_REG_CLASS_P (rclass)))
-    {
-      sri->icode = (in_p
-		    ? direct_optab_handler (reload_in_optab, mode)
-		    : direct_optab_handler (reload_out_optab, mode));
-      return NO_REGS;
-    }
-
-  /* Secondary reloads of symbolic operands require %r1 as a scratch
-     register when we're generating PIC code and when the operand isn't
-     readonly.  */
-  if (GET_CODE (x) == HIGH)
-    x = XEXP (x, 0);
-
-  /* Profiling has showed GCC spends about 2.6% of its compilation
-     time in symbolic_operand from calls inside pa_secondary_reload_class.
-     So, we use an inline copy to avoid useless work.  */
-  switch (GET_CODE (x))
-    {
-      rtx op;
-
-      case SYMBOL_REF:
-        is_symbolic = !SYMBOL_REF_TLS_MODEL (x);
-        break;
-      case LABEL_REF:
-        is_symbolic = 1;
-        break;
-      case CONST:
-	op = XEXP (x, 0);
-	is_symbolic = (GET_CODE (op) == PLUS
-		       && ((GET_CODE (XEXP (op, 0)) == SYMBOL_REF
-			    && !SYMBOL_REF_TLS_MODEL (XEXP (op, 0)))
-			   || GET_CODE (XEXP (op, 0)) == LABEL_REF)
-		       && GET_CODE (XEXP (op, 1)) == CONST_INT);
-        break;
-      default:
-        is_symbolic = 0;
-        break;
-    }
-
-  if (is_symbolic && (flag_pic || !read_only_operand (x, VOIDmode)))
-    {
-      gcc_assert (mode == SImode || mode == DImode);
-      sri->icode = (mode == SImode ? CODE_FOR_reload_insi_r1
-		    : CODE_FOR_reload_indi_r1);
-    }
+    sri->icode = (in_p
+		  ? direct_optab_handler (reload_in_optab, mode)
+		  : direct_optab_handler (reload_out_optab, mode));
 
   return NO_REGS;
 }
@@ -5920,7 +6027,7 @@ pa_eh_return_handler_rtx (void)
 {
   rtx tmp;
 
-  tmp = gen_rtx_PLUS (word_mode, frame_pointer_rtx,
+  tmp = gen_rtx_PLUS (word_mode, hard_frame_pointer_rtx,
 		      TARGET_64BIT ? GEN_INT (-16) : GEN_INT (-20));
   tmp = gen_rtx_MEM (word_mode, tmp);
   tmp->volatil = 1;
@@ -6180,35 +6287,92 @@ pa_scalar_mode_supported_p (enum machine_mode mode)
 }
 
 /* Return TRUE if INSN, a jump insn, has an unfilled delay slot and
-   it branches to the next real instruction.  Otherwise, return FALSE.  */
+   it branches into the delay slot.  Otherwise, return FALSE.  */
 
 static bool
 branch_to_delay_slot_p (rtx insn)
 {
+  rtx jump_insn;
+
   if (dbr_sequence_length ())
     return FALSE;
 
-  return next_real_insn (JUMP_LABEL (insn)) == next_real_insn (insn);
+  jump_insn = next_active_insn (JUMP_LABEL (insn));
+  while (insn)
+    {
+      insn = next_active_insn (insn);
+      if (jump_insn == insn)
+	return TRUE;
+
+      /* We can't rely on the length of asms.  So, we return FALSE when
+	 the branch is followed by an asm.  */
+      if (!insn
+	  || GET_CODE (PATTERN (insn)) == ASM_INPUT
+	  || extract_asm_operands (PATTERN (insn)) != NULL_RTX
+	  || get_attr_length (insn) > 0)
+	break;
+    }
+
+  return FALSE;
 }
 
-/* Return TRUE if INSN, a jump insn, needs a nop in its delay slot.
+/* Return TRUE if INSN, a forward jump insn, needs a nop in its delay slot.
 
    This occurs when INSN has an unfilled delay slot and is followed
-   by an ASM_INPUT.  Disaster can occur if the ASM_INPUT is empty and
-   the jump branches into the delay slot.  So, we add a nop in the delay
-   slot just to be safe.  This messes up our instruction count, but we
-   don't know how big the ASM_INPUT insn is anyway.  */
+   by an asm.  Disaster can occur if the asm is empty and the jump
+   branches into the delay slot.  So, we add a nop in the delay slot
+   when this occurs.  */
 
 static bool
 branch_needs_nop_p (rtx insn)
 {
-  rtx next_insn;
+  rtx jump_insn;
 
   if (dbr_sequence_length ())
     return FALSE;
 
-  next_insn = next_real_insn (insn);
-  return GET_CODE (PATTERN (next_insn)) == ASM_INPUT;
+  jump_insn = next_active_insn (JUMP_LABEL (insn));
+  while (insn)
+    {
+      insn = next_active_insn (insn);
+      if (!insn || jump_insn == insn)
+	return TRUE;
+
+      if (!(GET_CODE (PATTERN (insn)) == ASM_INPUT
+	   || extract_asm_operands (PATTERN (insn)) != NULL_RTX)
+	  && get_attr_length (insn) > 0)
+	break;
+    }
+
+  return FALSE;
+}
+
+/* Return TRUE if INSN, a forward jump insn, can use nullification
+   to skip the following instruction.  This avoids an extra cycle due
+   to a mis-predicted branch when we fall through.  */
+
+static bool
+use_skip_p (rtx insn)
+{
+  rtx jump_insn = next_active_insn (JUMP_LABEL (insn));
+
+  while (insn)
+    {
+      insn = next_active_insn (insn);
+
+      /* We can't rely on the length of asms, so we can't skip asms.  */
+      if (!insn
+	  || GET_CODE (PATTERN (insn)) == ASM_INPUT
+	  || extract_asm_operands (PATTERN (insn)) != NULL_RTX)
+	break;
+      if (get_attr_length (insn) == 4
+	  && jump_insn == next_active_insn (insn))
+	return TRUE;
+      if (get_attr_length (insn) > 0)
+	break;
+    }
+
+  return FALSE;
 }
 
 /* This routine handles all the normal conditional branch sequences we
@@ -6222,7 +6386,7 @@ const char *
 output_cbranch (rtx *operands, int negated, rtx insn)
 {
   static char buf[100];
-  int useskip = 0;
+  bool useskip;
   int nullify = INSN_ANNULLED_BRANCH_P (insn);
   int length = get_attr_length (insn);
   int xdelay;
@@ -6260,12 +6424,7 @@ output_cbranch (rtx *operands, int negated, rtx insn)
   /* A forward branch over a single nullified insn can be done with a
      comclr instruction.  This avoids a single cycle penalty due to
      mis-predicted branch if we fall through (branch not taken).  */
-  if (length == 4
-      && next_real_insn (insn) != 0
-      && get_attr_length (next_real_insn (insn)) == 4
-      && JUMP_LABEL (insn) == next_nonnote_insn (next_real_insn (insn))
-      && nullify)
-    useskip = 1;
+  useskip = (length == 4 && nullify) ? use_skip_p (insn) : FALSE;
 
   switch (length)
     {
@@ -6553,7 +6712,7 @@ const char *
 output_bb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
 {
   static char buf[100];
-  int useskip = 0;
+  bool useskip;
   int nullify = INSN_ANNULLED_BRANCH_P (insn);
   int length = get_attr_length (insn);
   int xdelay;
@@ -6579,13 +6738,7 @@ output_bb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
   /* A forward branch over a single nullified insn can be done with a
      extrs instruction.  This avoids a single cycle penalty due to
      mis-predicted branch if we fall through (branch not taken).  */
-
-  if (length == 4
-      && next_real_insn (insn) != 0
-      && get_attr_length (next_real_insn (insn)) == 4
-      && JUMP_LABEL (insn) == next_nonnote_insn (next_real_insn (insn))
-      && nullify)
-    useskip = 1;
+  useskip = (length == 4 && nullify) ? use_skip_p (insn) : FALSE;
 
   switch (length)
     {
@@ -6744,7 +6897,7 @@ const char *
 output_bvb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
 {
   static char buf[100];
-  int useskip = 0;
+  bool useskip;
   int nullify = INSN_ANNULLED_BRANCH_P (insn);
   int length = get_attr_length (insn);
   int xdelay;
@@ -6770,13 +6923,7 @@ output_bvb (rtx *operands ATTRIBUTE_UNUSED, int negated, rtx insn, int which)
   /* A forward branch over a single nullified insn can be done with a
      extrs instruction.  This avoids a single cycle penalty due to
      mis-predicted branch if we fall through (branch not taken).  */
-
-  if (length == 4
-      && next_real_insn (insn) != 0
-      && get_attr_length (next_real_insn (insn)) == 4
-      && JUMP_LABEL (insn) == next_nonnote_insn (next_real_insn (insn))
-      && nullify)
-    useskip = 1;
+  useskip = (length == 4 && nullify) ? use_skip_p (insn) : FALSE;
 
   switch (length)
     {
@@ -9383,6 +9530,23 @@ pa_function_value_regno_p (const unsigned int regno)
   return false;
 }
 
+/* Update the data in CUM to advance over an argument
+   of mode MODE and data type TYPE.
+   (TYPE is null for libcalls where that information may not be available.)  */
+
+static void
+pa_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+			 const_tree type, bool named ATTRIBUTE_UNUSED)
+{
+  int arg_size = FUNCTION_ARG_SIZE (mode, type);
+
+  cum->nargs_prototype--;
+  cum->words += (arg_size
+		 + ((cum->words & 01)
+		    && type != NULL_TREE
+		    && arg_size > 1));
+}
+
 /* Return the location of a parameter that is passed in a register or NULL
    if the parameter has any component that is passed in memory.
 
@@ -9391,9 +9555,9 @@ pa_function_value_regno_p (const unsigned int regno)
 
    ??? We might want to restructure this so that it looks more like other
    ports.  */
-rtx
-function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
-	      int named ATTRIBUTE_UNUSED)
+static rtx
+pa_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+		 const_tree type, bool named ATTRIBUTE_UNUSED)
 {
   int max_arg_words = (TARGET_64BIT ? 8 : 4);
   int alignment = 0;
@@ -9584,6 +9748,19 @@ function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode, tree type,
   return retval;
 }
 
+/* Arguments larger than one word are double word aligned.  */
+
+static unsigned int
+pa_function_arg_boundary (enum machine_mode mode, const_tree type)
+{
+  bool singleword = (type
+		     ? (integer_zerop (TYPE_SIZE (type))
+			|| !TREE_CONSTANT (TYPE_SIZE (type))
+			|| int_size_in_bytes (type) <= UNITS_PER_WORD)
+		     : GET_MODE_SIZE (mode) <= UNITS_PER_WORD);
+
+  return singleword ? PARM_BOUNDARY : MAX_PARM_BOUNDARY;
+}
 
 /* If this arg would be passed totally in registers or totally on the stack,
    then this routine should return zero.  */
@@ -10100,4 +10277,106 @@ pa_delegitimize_address (rtx orig_x)
   return x;
 }
 
+static rtx
+pa_internal_arg_pointer (void)
+{
+  /* The argument pointer and the hard frame pointer are the same in
+     the 32-bit runtime, so we don't need a copy.  */
+  if (TARGET_64BIT)
+    return copy_to_reg (virtual_incoming_args_rtx);
+  else
+    return virtual_incoming_args_rtx;
+}
+
+/* Given FROM and TO register numbers, say whether this elimination is allowed.
+   Frame pointer elimination is automatically handled.  */
+
+static bool
+pa_can_eliminate (const int from, const int to)
+{
+  /* The argument cannot be eliminated in the 64-bit runtime.  */
+  if (TARGET_64BIT && from == ARG_POINTER_REGNUM)
+    return false;
+
+  return (from == HARD_FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM
+          ? ! frame_pointer_needed
+          : true);
+}
+
+/* Define the offset between two registers, FROM to be eliminated and its
+   replacement TO, at the start of a routine.  */
+HOST_WIDE_INT
+pa_initial_elimination_offset (int from, int to)
+{
+  HOST_WIDE_INT offset;
+
+  if ((from == HARD_FRAME_POINTER_REGNUM || from == FRAME_POINTER_REGNUM)
+      && to == STACK_POINTER_REGNUM)
+    offset = -compute_frame_size (get_frame_size (), 0);
+  else if (from == FRAME_POINTER_REGNUM && to == HARD_FRAME_POINTER_REGNUM)
+    offset = 0;
+  else
+    gcc_unreachable ();
+
+  return offset;
+}
+
+static void
+pa_conditional_register_usage (void)
+{
+  int i;
+
+  if (!TARGET_64BIT && !TARGET_PA_11)
+    {
+      for (i = 56; i <= FP_REG_LAST; i++)
+	fixed_regs[i] = call_used_regs[i] = 1;
+      for (i = 33; i < 56; i += 2)
+	fixed_regs[i] = call_used_regs[i] = 1;
+    }
+  if (TARGET_DISABLE_FPREGS || TARGET_SOFT_FLOAT)
+    {
+      for (i = FP_REG_FIRST; i <= FP_REG_LAST; i++)
+	fixed_regs[i] = call_used_regs[i] = 1;
+    }
+  if (flag_pic)
+    fixed_regs[PIC_OFFSET_TABLE_REGNUM] = 1;
+}
+
+/* Target hook for c_mode_for_suffix.  */
+
+static enum machine_mode
+pa_c_mode_for_suffix (char suffix)
+{
+  if (HPUX_LONG_DOUBLE_LIBRARY)
+    {
+      if (suffix == 'q')
+	return TFmode;
+    }
+
+  return VOIDmode;
+}
+
+/* Target hook for function_section.  */
+
+static section *
+pa_function_section (tree decl, enum node_frequency freq,
+		     bool startup, bool exit)
+{
+  /* Put functions in text section if target doesn't have named sections.  */
+  if (!targetm.have_named_sections)
+    return text_section;
+
+  /* Force nested functions into the same section as the containing
+     function.  */
+  if (decl
+      && DECL_SECTION_NAME (decl) == NULL_TREE
+      && DECL_CONTEXT (decl) != NULL_TREE
+      && TREE_CODE (DECL_CONTEXT (decl)) == FUNCTION_DECL
+      && DECL_SECTION_NAME (DECL_CONTEXT (decl)) == NULL_TREE)
+    return function_section (DECL_CONTEXT (decl));
+
+  /* Otherwise, use the default function section.  */
+  return default_function_section (decl, freq, startup, exit);
+}
+
 #include "gt-pa.h"

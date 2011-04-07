@@ -1,3 +1,16 @@
+2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	* configure: Regenerate.
+
+2011-01-03  Jakub Jelinek  <jakub@redhat.com>
+
+	* mf-runtime.c (__mf_usage): Update copyright notice dates.
+
+2010-10-31  Jason Merrill  <jason@redhat.com>
+
+	PR testsuite/20003
+	* testsuite/libmudflap.cth/pass40-frag.c: Increase timeout to 30.
+
 2010-08-20  Uros Bizjak  <ubizjak@gmail.com>
 
 	* testsuite/libmudflap.c++/pass41-frag.cxx (dg-prune-output):

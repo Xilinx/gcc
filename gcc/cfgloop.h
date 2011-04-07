@@ -1,6 +1,6 @@
 /* Natural loop functions
    Copyright (C) 1987, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2005, 2006, 2007, 2008, 2009  Free Software Foundation, Inc.
+   2005, 2006, 2007, 2008, 2009, 2010  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -276,7 +276,7 @@ gcov_type expected_loop_iterations_unbounded (const struct loop *);
 extern unsigned expected_loop_iterations (const struct loop *);
 extern rtx doloop_condition_get (rtx);
 
-void estimate_numbers_of_iterations_loop (struct loop *);
+void estimate_numbers_of_iterations_loop (struct loop *, bool);
 HOST_WIDE_INT estimated_loop_iterations_int (struct loop *, bool);
 bool estimated_loop_iterations (struct loop *, bool, double_int *);
 

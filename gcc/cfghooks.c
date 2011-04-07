@@ -1,6 +1,6 @@
 /* Hooks for cfg representation specific functions.
-   Copyright (C) 2003, 2004, 2005, 2007, 2008 Free Software Foundation,
-   Inc.
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2010
+   Free Software Foundation, Inc.
    Contributed by Sebastian Pop <s.pop@laposte.net>
 
 This file is part of GCC.
@@ -906,9 +906,7 @@ duplicate_block (basic_block bb, edge e, basic_block after)
   if (bb->count < new_count)
     new_count = bb->count;
 
-#ifdef ENABLE_CHECKING
-  gcc_assert (can_duplicate_block_p (bb));
-#endif
+  gcc_checking_assert (can_duplicate_block_p (bb));
 
   new_bb = cfg_hooks->duplicate_block (bb);
   if (after)

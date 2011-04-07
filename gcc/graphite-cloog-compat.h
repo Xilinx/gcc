@@ -1,6 +1,6 @@
 /* Compatibility layer for using upstream CLooG versions with
    CLooG legacy code.
-   Copyright (C) 2010 Free Software Foundation, Inc.
+   Copyright (C) 2010, 2011 Free Software Foundation, Inc.
    Contributed by Andreas Simbuerger <simbuerg@fim.uni-passau.de>.
 
 This file is part of GCC.
@@ -37,8 +37,8 @@ typedef const char *clast_name_p;
 #ifndef CLOOG_ORG
 
 /* CloogOptions compatibility.  */
-#define build_cloog_prog(SCOP, PROG, OPT, STATE)\
-  build_cloog_prog (SCOP, PROG, STATE)
+#define build_cloog_prog(SCOP, PROG, OPT)\
+  build_cloog_prog (SCOP, PROG)
 #define cloog_program_extract_scalars(PROG, SCATT, OPT)\
   cloog_program_extract_scalars (PROG, SCATT)
 #define cloog_program_scatter(PROG, SCATT, OPT)\
@@ -72,6 +72,8 @@ typedef const char *clast_name_p;
 #define cloog_scattering cloog_domain
 #define cloog_next_scattering cloog_next_domain
 #define cloog_scattering_free cloog_domain_free
+#define cloog_program_dump_cloog(DUMPFILE, PROGRAM, SCATTERINGLIST)\
+  cloog_program_dump_cloog (DUMPFILE, PROGRAM)
 
 #endif
 
@@ -258,6 +260,16 @@ static inline void
 cloog_block_list_set_block (CloogBlockList *bl, CloogBlock *block)
 {
   bl->block = block;
+}
+
+static inline int cloog_matrix_ncolumns (CloogMatrix * m)
+{
+  return m->NbColumns;
+}
+
+static inline int cloog_matrix_nrows (CloogMatrix * m)
+{
+   return m->NbRows;
 }
 #endif /* CLOOG_ORG  */
 #endif /* GRAPHITE_CLOOG_COMPAT_H  */

@@ -1,5 +1,6 @@
 /* RTL dead code elimination.
-   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -219,6 +220,26 @@ mark_nonreg_stores (rtx body, rtx insn, bool fast)
 }
 
 
+/* Return true if store to MEM, starting OFF bytes from stack pointer,
+   is a call argument store, and clear corresponding bits from SP_BYTES
+   bitmap if it is.  */
+
+static bool
+check_argument_store (rtx mem, HOST_WIDE_INT off, HOST_WIDE_INT min_sp_off,
+		      HOST_WIDE_INT max_sp_off, bitmap sp_bytes)
+{
+  HOST_WIDE_INT byte;
+  for (byte = off; byte < off + GET_MODE_SIZE (GET_MODE (mem)); byte++)
+    {
+      if (byte < min_sp_off
+	  || byte >= max_sp_off
+	  || !bitmap_clear_bit (sp_bytes, byte - min_sp_off))
+	return false;
+    }
+  return true;
+}
+
+
 /* Try to find all stack stores of CALL_INSN arguments if
    ACCUMULATE_OUTGOING_ARGS.  If all stack stores have been found
    and it is therefore safe to eliminate the call, return true,
@@ -363,7 +384,7 @@ find_call_stack_args (rtx call_insn, bool do_mark, bool fast,
   for (insn = PREV_INSN (call_insn); insn; insn = prev_insn)
     {
       rtx set, mem, addr;
-      HOST_WIDE_INT off, byte;
+      HOST_WIDE_INT off;
 
       if (insn == BB_HEAD (BLOCK_FOR_INSN (call_insn)))
 	prev_insn = NULL_RTX;
@@ -373,7 +394,7 @@ find_call_stack_args (rtx call_insn, bool do_mark, bool fast,
       if (CALL_P (insn))
 	break;
 
-      if (!INSN_P (insn))
+      if (!NONDEBUG_INSN_P (insn))
 	continue;
 
       set = single_set (insn);
@@ -432,16 +453,10 @@ find_call_stack_args (rtx call_insn, bool do_mark, bool fast,
 	    break;
 	}
 
-      if (GET_MODE_SIZE (GET_MODE (mem)) == 0)
+      if (GET_MODE_SIZE (GET_MODE (mem)) == 0
+	  || !check_argument_store (mem, off, min_sp_off,
+				    max_sp_off, sp_bytes))
 	break;
-
-      for (byte = off; byte < off + GET_MODE_SIZE (GET_MODE (mem)); byte++)
-	{
-	  if (byte < min_sp_off
-	      || byte >= max_sp_off
-	      || !bitmap_clear_bit (sp_bytes, byte - min_sp_off))
-	    break;
-	}
 
       if (!deletable_insn_p (insn, fast, NULL))
 	break;
@@ -466,36 +481,16 @@ find_call_stack_args (rtx call_insn, bool do_mark, bool fast,
 }
 
 
-/* Delete all REG_EQUAL notes of the registers INSN writes, to prevent
-   bad dangling REG_EQUAL notes. */
+/* Remove all REG_EQUAL and REG_EQUIV notes referring to the registers INSN
+   writes to.  */
 
 static void
-delete_corresponding_reg_eq_notes (rtx insn)
+remove_reg_equal_equiv_notes_for_defs (rtx insn)
 {
   df_ref *def_rec;
-  for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
-    {
-      df_ref def = *def_rec;
-      unsigned int regno = DF_REF_REGNO (def);
-      /* This loop is a little tricky.  We cannot just go down the
-	 chain because it is being modified by the actions in the
-	 loop.  So we just get the head.  We plan to drain the list
-	 anyway.  */
-      while (DF_REG_EQ_USE_CHAIN (regno))
-	{
-	  df_ref eq_use = DF_REG_EQ_USE_CHAIN (regno);
-	  rtx noted_insn = DF_REF_INSN (eq_use);
-	  rtx note = find_reg_note (noted_insn, REG_EQUAL, NULL_RTX);
-	  if (!note)
-	    note = find_reg_note (noted_insn, REG_EQUIV, NULL_RTX);
 
-	  /* This assert is generally triggered when someone deletes a
-	     REG_EQUAL or REG_EQUIV note by hacking the list manually
-	     rather than calling remove_note.  */
-	  gcc_assert (note);
-	  remove_note (noted_insn, note);
-	}
-    }
+  for (def_rec = DF_INSN_DEFS (insn); *def_rec; def_rec++)
+    remove_reg_equal_equiv_notes_for_regno (DF_REF_REGNO (*def_rec));
 }
 
 
@@ -544,9 +539,9 @@ delete_unmarked_insns (void)
 	  if (dump_file)
 	    fprintf (dump_file, "DCE: Deleting insn %d\n", INSN_UID (insn));
 
-	  /* Before we delete the insn we have to delete REG_EQUAL notes
+	  /* Before we delete the insn we have to remove the REG_EQUAL notes
 	     for the destination regs in order to avoid dangling notes.  */
-	  delete_corresponding_reg_eq_notes (insn);
+	  remove_reg_equal_equiv_notes_for_defs (insn);
 
 	  /* If a pure or const call is deleted, this may make the cfg
 	     have unreachable blocks.  We rememeber this and call

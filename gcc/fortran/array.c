@@ -437,16 +437,8 @@ gfc_match_array_spec (gfc_array_spec **asp, bool match_dim, bool match_codim)
   array_type current_type;
   gfc_array_spec *as;
   int i;
- 
-  as = gfc_get_array_spec ();
-  as->corank = 0;
-  as->rank = 0;
 
-  for (i = 0; i < GFC_MAX_DIMENSIONS; i++)
-    {
-      as->lower[i] = NULL;
-      as->upper[i] = NULL;
-    }
+  as = gfc_get_array_spec ();
 
   if (!match_dim)
     goto coarray;
@@ -1043,6 +1035,13 @@ gfc_match_array_constructor (gfc_expr **result)
 	  if (gfc_notify_std (GFC_STD_F2003, "Fortran 2003: Array constructor "
 			      "including type specification at %C") == FAILURE)
 	    goto cleanup;
+
+	  if (ts.deferred)
+	    {
+	      gfc_error ("Type-spec at %L cannot contain a deferred "
+			 "type parameter", &where);
+	      goto cleanup;
+	    }
 	}
     }
 

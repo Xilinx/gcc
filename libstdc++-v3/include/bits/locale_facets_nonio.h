@@ -1,6 +1,6 @@
 // Locale support -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -22,9 +22,9 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file locale_facets_nonio.h
+/** @file bits/locale_facets_nonio.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{locale}
  */
 
 //
@@ -38,7 +38,9 @@
 
 #include <ctime>	// For struct tm
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   /**
    *  @brief  Time format ordering data.
@@ -339,12 +341,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 				 const tm*) const throw ();
 #endif
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
   // Include host and configuration specific timepunct functions.
   #include <bits/time_members.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   /**
    *  @brief  Primary class template time_get.
@@ -405,11 +410,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Parse input time string.
        *
-       *  This function parses a time according to the format @a x and puts the
+       *  This function parses a time according to the format @a X and puts the
        *  results into a user-supplied struct tm.  The result is returned by
        *  calling time_get::do_get_time().
        *
-       *  If there is a valid time string according to format @a x, @a tm will
+       *  If there is a valid time string according to format @a X, @a tm will
        *  be filled in accordingly and the returned iterator will point to the
        *  first character beyond the time string.  If an error occurs before
        *  the end, err |= ios_base::failbit.  If parsing reads all the
@@ -430,11 +435,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       /**
        *  @brief  Parse input date string.
        *
-       *  This function parses a date according to the format @a X and puts the
+       *  This function parses a date according to the format @a x and puts the
        *  results into a user-supplied struct tm.  The result is returned by
        *  calling time_get::do_get_date().
        *
-       *  If there is a valid date string according to format @a X, @a tm will
+       *  If there is a valid date string according to format @a x, @a tm will
        *  be filled in accordingly and the returned iterator will point to the
        *  first character beyond the date string.  If an error occurs before
        *  the end, err |= ios_base::failbit.  If parsing reads all the
@@ -1346,7 +1351,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _CharT, bool _Intl>
     const bool moneypunct_byname<_CharT, _Intl>::intl;
 
-_GLIBCXX_BEGIN_LDBL_NAMESPACE
+_GLIBCXX_BEGIN_NAMESPACE_LDBL
 
   /**
    *  @brief  Primary class template money_get.
@@ -1654,7 +1659,7 @@ _GLIBCXX_BEGIN_LDBL_NAMESPACE
   template<typename _CharT, typename _OutIter>
     locale::id money_put<_CharT, _OutIter>::id;
 
-_GLIBCXX_END_LDBL_NAMESPACE
+_GLIBCXX_END_NAMESPACE_LDBL
 
   /**
    *  @brief  Messages facet base class providing catalog typedef.
@@ -1919,7 +1924,8 @@ _GLIBCXX_END_LDBL_NAMESPACE
       { }
     };
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 // Include host and configuration specific messages functions.
 #include <bits/messages_members.h>
@@ -1927,8 +1933,6 @@ _GLIBCXX_END_NAMESPACE
 // 22.2.1.5  Template class codecvt
 #include <bits/codecvt.h>
 
-#ifndef _GLIBCXX_EXPORT_TEMPLATE
-# include <bits/locale_facets_nonio.tcc>
-#endif
+#include <bits/locale_facets_nonio.tcc>
 
 #endif

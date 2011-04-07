@@ -42,28 +42,6 @@ struct stream
 };
 
 
-typedef struct
-{
-  stream st;
-
-  gfc_offset buffer_offset;	/* File offset of the start of the buffer */
-  gfc_offset physical_offset;	/* Current physical file offset */
-  gfc_offset logical_offset;	/* Current logical file offset */
-  gfc_offset file_length;	/* Length of the file, -1 if not seekable. */
-
-  char *buffer;                 /* Pointer to the buffer.  */
-  int fd;                       /* The POSIX file descriptor.  */
-
-  int active;			/* Length of valid bytes in the buffer */
-
-  int prot;
-  int ndirty;			/* Dirty bytes starting at buffer_offset */
-
-  int special_file;		/* =1 if the fd refers to a special file */
-}
-unix_stream;
-
-
 /* Inline functions for doing file I/O given a stream.  */
 static inline ssize_t
 sread (stream * s, void * buf, ssize_t nbyte)
@@ -189,13 +167,19 @@ internal_proto(is_special);
 extern void flush_if_preconnected (stream *);
 internal_proto(flush_if_preconnected);
 
-extern void empty_internal_buffer(stream *);
-internal_proto(empty_internal_buffer);
-
 extern int stream_isatty (stream *);
 internal_proto(stream_isatty);
 
-extern char * stream_ttyname (stream *);
+#ifndef TTY_NAME_MAX
+#ifdef _POSIX_TTY_NAME_MAX
+#define TTY_NAME_MAX _POSIX_TTY_NAME_MAX
+#else
+/* sysconf(_SC_TTY_NAME_MAX) = 32 which should be enough.  */
+#define TTY_NAME_MAX 32
+#endif
+#endif
+
+extern int stream_ttyname (stream *, char *, size_t);
 internal_proto(stream_ttyname);
 
 extern int unpack_filename (char *, const char *, int);

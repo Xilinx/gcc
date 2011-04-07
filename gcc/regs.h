@@ -1,6 +1,6 @@
 /* Define per-register tables for data flow info and register allocation.
    Copyright (C) 1987, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008 Free Software
+   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008, 2010 Free Software
    Foundation, Inc.
 
 This file is part of GCC.
@@ -225,12 +225,6 @@ extern int caller_save_needed;
 
 #ifndef CALLER_SAVE_PROFITABLE
 #define CALLER_SAVE_PROFITABLE(REFS, CALLS)  (4 * (CALLS) < (REFS))
-#endif
-
-/* On most machines a register class is likely to be spilled if it
-   only has one register.  */
-#ifndef CLASS_LIKELY_SPILLED_P
-#define CLASS_LIKELY_SPILLED_P(CLASS) (reg_class_size[(int) (CLASS)] == 1)
 #endif
 
 /* Select a register mode required for caller save of hard regno REGNO.  */

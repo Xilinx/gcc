@@ -533,7 +533,7 @@ write_memrefs_written_at_least_once (gimple stmt,
 
   for (i = 0; VEC_iterate (data_reference_p, drs, i, a); i++)
     if (DR_STMT (a) == stmt
-	&& !DR_IS_READ (a))
+	&& DR_IS_WRITE (a))
       {
 	bool found = false;
 	int x = DR_WRITTEN_AT_LEAST_ONCE (a);
@@ -546,7 +546,7 @@ write_memrefs_written_at_least_once (gimple stmt,
 
 	for (j = 0; VEC_iterate (data_reference_p, drs, j, b); j++)
 	  if (DR_STMT (b) != stmt
-	      && !DR_IS_READ (b)
+	      && DR_IS_WRITE (b)
 	      && same_data_refs_base_objects (a, b))
 	    {
 	      tree cb = bb_predicate (gimple_bb (DR_STMT (b)));
@@ -716,6 +716,20 @@ if_convertible_stmt_p (gimple stmt, VEC (data_reference_p, heap) *refs)
   return true;
 }
 
+/* Return true when BB post-dominates all its predecessors.  */
+
+static bool
+bb_postdominates_preds (basic_block bb)
+{
+  unsigned i;
+
+  for (i = 0; i < EDGE_COUNT (bb->preds); i++)
+    if (!dominated_by_p (CDI_POST_DOMINATORS, EDGE_PRED (bb, i)->src, bb))
+      return false;
+
+  return true;
+}
+
 /* Return true when BB is if-convertible.  This routine does not check
    basic block's statements and phis.
 
@@ -773,6 +787,11 @@ if_convertible_bb_p (struct loop *loop, basic_block bb, basic_block exit_bb)
 	  fprintf (dump_file, "Difficult to handle edges\n");
 	return false;
       }
+
+  if (EDGE_COUNT (bb->preds) == 2
+      && bb != loop->header
+      && !bb_postdominates_preds (bb))
+    return false;
 
   return true;
 }
@@ -915,7 +934,7 @@ predicate_bbs (loop_p loop)
 
 	    case GIMPLE_COND:
 	      {
-		tree c2;
+		tree c2, tem;
 		edge true_edge, false_edge;
 		location_t loc = gimple_location (stmt);
 		tree c = fold_build2_loc (loc, gimple_cond_code (stmt),
@@ -928,10 +947,13 @@ predicate_bbs (loop_p loop)
 						     &true_edge, &false_edge);
 
 		/* If C is true, then TRUE_EDGE is taken.  */
-		add_to_dst_predicate_list (loop, true_edge, cond, c);
+		add_to_dst_predicate_list (loop, true_edge, cond, unshare_expr (c));
 
 		/* If C is false, then FALSE_EDGE is taken.  */
 		c2 = invert_truthvalue_loc (loc, unshare_expr (c));
+		tem = canonicalize_cond_expr_cond (c2);
+		if (tem)
+		  c2 = tem;
 		add_to_dst_predicate_list (loop, false_edge, cond, c2);
 
 		cond = NULL_TREE;
@@ -974,6 +996,7 @@ predicate_bbs (loop_p loop)
 
 static bool
 if_convertible_loop_p_1 (struct loop *loop,
+			 VEC (loop_p, heap) **loop_nest,
 			 VEC (data_reference_p, heap) **refs,
 			 VEC (ddr_p, heap) **ddrs)
 {
@@ -983,11 +1006,12 @@ if_convertible_loop_p_1 (struct loop *loop,
 
   /* Don't if-convert the loop when the data dependences cannot be
      computed: the loop won't be vectorized in that case.  */
-  res = compute_data_dependences_for_loop (loop, true, refs, ddrs);
+  res = compute_data_dependences_for_loop (loop, true, loop_nest, refs, ddrs);
   if (!res)
     return false;
 
   calculate_dominance_info (CDI_DOMINATORS);
+  calculate_dominance_info (CDI_POST_DOMINATORS);
 
   /* Allow statements that can be handled during if-conversion.  */
   ifc_bbs = get_loop_body_in_if_conv_order (loop);
@@ -1063,6 +1087,7 @@ if_convertible_loop_p (struct loop *loop)
   bool res = false;
   VEC (data_reference_p, heap) *refs;
   VEC (ddr_p, heap) *ddrs;
+  VEC (loop_p, heap) *loop_nest;
 
   /* Handle only innermost loop.  */
   if (!loop || loop->inner)
@@ -1096,7 +1121,8 @@ if_convertible_loop_p (struct loop *loop)
 
   refs = VEC_alloc (data_reference_p, heap, 5);
   ddrs = VEC_alloc (ddr_p, heap, 25);
-  res = if_convertible_loop_p_1 (loop, &refs, &ddrs);
+  loop_nest = VEC_alloc (loop_p, heap, 3);
+  res = if_convertible_loop_p_1 (loop, &loop_nest, &refs, &ddrs);
 
   if (flag_tree_loop_if_convert_stores)
     {
@@ -1107,6 +1133,7 @@ if_convertible_loop_p (struct loop *loop)
 	free (dr->aux);
     }
 
+  VEC_free (loop_p, heap, loop_nest);
   free_data_refs (refs);
   free_dependence_relations (ddrs);
   return res;
@@ -1221,7 +1248,7 @@ predicate_scalar_phi (gimple phi, tree cond,
 {
   gimple new_stmt;
   basic_block bb;
-  tree rhs, res, arg;
+  tree rhs, res, arg, scev;
 
   gcc_assert (gimple_code (phi) == GIMPLE_PHI
 	      && gimple_phi_num_args (phi) == 2);
@@ -1233,8 +1260,12 @@ predicate_scalar_phi (gimple phi, tree cond,
 
   bb = gimple_bb (phi);
 
-  arg = degenerate_phi_result (phi);
-  if (arg)
+  if ((arg = degenerate_phi_result (phi))
+      || ((scev = analyze_scalar_evolution (gimple_bb (phi)->loop_father,
+					    res))
+	  && !chrec_contains_undetermined (scev)
+	  && scev != res
+	  && (arg = gimple_phi_arg_def (phi, 0))))
     rhs = arg;
   else
     {
@@ -1250,6 +1281,9 @@ predicate_scalar_phi (gimple phi, tree cond,
 	  arg_0 = gimple_phi_arg_def (phi, 0);
 	  arg_1 = gimple_phi_arg_def (phi, 1);
 	}
+
+      gcc_checking_assert (bb == bb->loop_father->header
+			   || bb_postdominates_preds (bb));
 
       /* Build new RHS using selected condition and arguments.  */
       rhs = build3 (COND_EXPR, TREE_TYPE (res),
@@ -1706,6 +1740,8 @@ main_tree_if_conversion (void)
 
   if (changed && flag_tree_loop_if_convert_stores)
     todo |= TODO_update_ssa_only_virtuals;
+
+  free_dominance_info (CDI_POST_DOMINATORS);
 
   return todo;
 }

@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler,
    for 64 bit PowerPC linux.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010  Free Software Foundation, Inc.
+   2009, 2010, 2011  Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -65,18 +65,17 @@ extern int dot_symbols;
 
 #define TARGET_USES_LINUX64_OPT 1
 #ifdef HAVE_LD_LARGE_TOC
-extern enum rs6000_cmodel cmodel;
 #undef TARGET_CMODEL
-#define TARGET_CMODEL cmodel
-#define SET_CMODEL(opt) cmodel = opt
+#define TARGET_CMODEL rs6000_current_cmodel
+#define SET_CMODEL(opt) rs6000_current_cmodel = opt
 #else
 #define SET_CMODEL(opt) do {} while (0)
 #endif
 
 #undef  PROCESSOR_DEFAULT
-#define PROCESSOR_DEFAULT PROCESSOR_POWER6
+#define PROCESSOR_DEFAULT PROCESSOR_POWER7
 #undef  PROCESSOR_DEFAULT64
-#define PROCESSOR_DEFAULT64 PROCESSOR_POWER6
+#define PROCESSOR_DEFAULT64 PROCESSOR_POWER7
 
 /* We don't need to generate entries in .fixup, except when
    -mrelocatable or -mrelocatable-lib is given.  */
@@ -127,15 +126,15 @@ extern enum rs6000_cmodel cmodel;
 	  if ((target_flags_explicit & MASK_MINIMAL_TOC) != 0)	\
 	    {							\
 	      if (rs6000_explicit_options.cmodel		\
-		  && cmodel != CMODEL_SMALL)			\
+		  && rs6000_current_cmodel != CMODEL_SMALL)	\
 		error ("-mcmodel incompatible with other toc options"); \
 	      SET_CMODEL (CMODEL_SMALL);			\
 	    }							\
 	  else							\
 	    {							\
 	      if (!rs6000_explicit_options.cmodel)		\
-		SET_CMODEL (CMODEL_LARGE);			\
-	      if (cmodel != CMODEL_SMALL)			\
+		SET_CMODEL (CMODEL_MEDIUM);			\
+	      if (rs6000_current_cmodel != CMODEL_SMALL)	\
 		{						\
 		  TARGET_NO_FP_IN_TOC = 0;			\
 		  TARGET_NO_SUM_IN_TOC = 0;			\
@@ -162,10 +161,10 @@ extern enum rs6000_cmodel cmodel;
 
 #ifdef	RS6000_BI_ARCH
 
-#undef	OVERRIDE_OPTIONS
-#define	OVERRIDE_OPTIONS \
-  rs6000_override_options (((TARGET_DEFAULT ^ target_flags) & MASK_64BIT) \
-			   ? (char *) 0 : TARGET_CPU_DEFAULT)
+#undef	OPTION_TARGET_CPU_DEFAULT
+#define	OPTION_TARGET_CPU_DEFAULT \
+  (((TARGET_DEFAULT ^ target_flags) & MASK_64BIT) \
+   ? (char *) 0 : TARGET_CPU_DEFAULT)
 
 #endif
 
@@ -193,7 +192,7 @@ extern enum rs6000_cmodel cmodel;
 #endif
 #endif
 
-#define ASM_SPEC32 "-a32 %{n} %{T} %{Ym,*} %{Yd,*} \
+#define ASM_SPEC32 "-a32 \
 %{mrelocatable} %{mrelocatable-lib} %{fpic:-K PIC} %{fPIC:-K PIC} \
 %{memb} %{!memb: %{msdata=eabi: -memb}} \
 %{!mlittle: %{!mlittle-endian: %{!mbig: %{!mbig-endian: \
@@ -208,7 +207,6 @@ extern enum rs6000_cmodel cmodel;
 
 #define ASM_SPEC_COMMON "%(asm_cpu) \
 %{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
-%{v:-V} %{Qy:} %{!Qn:-Qy} %{Wa,*:%*} \
 %{mlittle} %{mlittle-endian} %{mbig} %{mbig-endian}"
 
 #undef	SUBSUBTARGET_EXTRA_SPECS
@@ -305,23 +303,15 @@ extern enum rs6000_cmodel cmodel;
 #define BLOCK_REG_PADDING(MODE, TYPE, FIRST) \
   (!(FIRST) ? upward : FUNCTION_ARG_PADDING (MODE, TYPE))
 
-/* __throw will restore its own return address to be the same as the
-   return address of the function that the throw is being made to.
-   This is unfortunate, because we want to check the original
-   return address to see if we need to restore the TOC.
-   So we have to squirrel it away with this.  */
-#define SETUP_FRAME_ADDRESSES() \
-  do { if (TARGET_64BIT) rs6000_aix_emit_builtin_unwind_init (); } while (0)
-
-/* Override svr4.h  */
-#undef MD_EXEC_PREFIX
-#undef MD_STARTFILE_PREFIX
-
 /* Linux doesn't support saving and restoring 64-bit regs in a 32-bit
    process.  */
 #define OS_MISSING_POWERPC64 !TARGET_64BIT
 
+#ifdef SINGLE_LIBC
+#define OPTION_GLIBC  (DEFAULT_LIBC == LIBC_GLIBC)
+#else
 #define OPTION_GLIBC  (linux_libc == LIBC_GLIBC)
+#endif
 
 /* glibc has float and long double forms of math functions.  */
 #undef  TARGET_C99_FUNCTIONS
@@ -401,11 +391,11 @@ extern enum rs6000_cmodel cmodel;
 
 #define LINK_OS_LINUX_SPEC32 "-m elf32ppclinux %{!shared: %{!static: \
   %{rdynamic:-export-dynamic} \
-  %{!dynamic-linker:-dynamic-linker " LINUX_DYNAMIC_LINKER32 "}}}"
+  -dynamic-linker " LINUX_DYNAMIC_LINKER32 "}}"
 
 #define LINK_OS_LINUX_SPEC64 "-m elf64ppc %{!shared: %{!static: \
   %{rdynamic:-export-dynamic} \
-  %{!dynamic-linker:-dynamic-linker " LINUX_DYNAMIC_LINKER64 "}}}"
+  -dynamic-linker " LINUX_DYNAMIC_LINKER64 "}}"
 
 #undef  TOC_SECTION_ASM_OP
 #define TOC_SECTION_ASM_OP \
@@ -546,8 +536,6 @@ extern enum rs6000_cmodel cmodel;
    structure return convention.  */
 #undef DRAFT_V4_STRUCT_RET
 #define DRAFT_V4_STRUCT_RET (!TARGET_64BIT)
-
-#define TARGET_ASM_FILE_END rs6000_elf_end_indicate_exec_stack
 
 #define TARGET_POSIX_IO
 

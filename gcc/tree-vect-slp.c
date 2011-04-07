@@ -147,7 +147,7 @@ vect_get_and_check_slp_defs (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 	}
 
       /* Check if DEF_STMT is a part of a pattern in LOOP and get the def stmt
-         from the pattern. Check that all the stmts of the node are in the
+         from the pattern.  Check that all the stmts of the node are in the
          pattern.  */
       if (loop && def_stmt && gimple_bb (def_stmt)
           && flow_bb_inside_loop_p (loop, gimple_bb (def_stmt))
@@ -299,7 +299,7 @@ vect_get_and_check_slp_defs (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 
 /* Recursively build an SLP tree starting from NODE.
    Fail (and return FALSE) if def-stmts are not isomorphic, require data
-   permutation or are of unsupported types of operation. Otherwise, return
+   permutation or are of unsupported types of operation.  Otherwise, return
    TRUE.  */
 
 static bool
@@ -542,7 +542,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
               if (prev_first_load)
                 {
                   /* Check that there are no loads from different interleaving
-                     chains in the same node. The only exception is complex
+                     chains in the same node.  The only exception is complex
                      numbers.  */
                   if (prev_first_load != first_load
                       && rhs_code != REALPART_EXPR 
@@ -582,7 +582,7 @@ vect_build_slp_tree (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
                                         ncopies_for_cost, *node);
                 }
 
-              /* Store the place of this load in the interleaving chain. In
+              /* Store the place of this load in the interleaving chain.  In
                  case that permutation is needed we later decide if a specific
                  permutation is supported.  */
               load_place = vect_get_place_in_interleaving_chain (stmt,
@@ -729,7 +729,7 @@ vect_print_slp_tree (slp_tree node)
 
 /* Mark the tree rooted at NODE with MARK (PURE_SLP or HYBRID).
    If MARK is HYBRID, it refers to a specific stmt in NODE (the stmt at index
-   J). Otherwise, MARK is PURE_SLP and J is -1, which indicates that all the
+   J).  Otherwise, MARK is PURE_SLP and J is -1, which indicates that all the
    stmts in NODE are to be marked.  */
 
 static void
@@ -897,7 +897,7 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
 
   /* In case of reduction every load permutation is allowed, since the order
      of the reduction statements is not important (as opposed to the case of
-     strided stores). The only condition we need to check is that all the 
+     strided stores).  The only condition we need to check is that all the
      load nodes are of the same size and have the same permutation (and then
      rearrange all the nodes of the SLP instance according to this 
      permutation).  */
@@ -920,7 +920,7 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
       real_c = real_b + real_a;
       imag_c = imag_a + imag_b;
      i.e., we have {real_b, imag_a} and {real_a, imag_b} instead of 
-     {real_a, imag_a} and {real_b, imag_b}. We check here that if interleaving
+     {real_a, imag_a} and {real_b, imag_b}.  We check here that if interleaving
      chains are mixed, they match the above pattern.  */
   if (complex_numbers)
     {
@@ -969,7 +969,7 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
   stmt = VEC_index (gimple, SLP_TREE_SCALAR_STMTS (node), 0);
   /* LOAD_PERMUTATION is a list of indices of all the loads of the SLP
      instance, not all the loads belong to the same node or interleaving
-     group. Hence, we need to divide them into groups according to
+     group.  Hence, we need to divide them into groups according to
      GROUP_SIZE.  */
   number_of_groups = VEC_length (int, load_permutation) / group_size;
 
@@ -1002,7 +1002,36 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
 
       if (!bad_permutation)
         {
-          /* This permutaion is valid for reduction. Since the order of the
+          /* Check that the loads in the first sequence are different and there
+             are no gaps between them.  */
+          load_index = sbitmap_alloc (group_size);
+          sbitmap_zero (load_index);
+          for (k = 0; k < group_size; k++)
+            {
+              first_group_load_index = VEC_index (int, load_permutation, k);
+              if (TEST_BIT (load_index, first_group_load_index))
+                {
+                  bad_permutation = true;
+                  break;
+                }
+
+              SET_BIT (load_index, first_group_load_index);
+            }
+
+          if (!bad_permutation)
+            for (k = 0; k < group_size; k++)
+              if (!TEST_BIT (load_index, k))
+                {
+                  bad_permutation = true;
+                  break;
+                }
+
+          sbitmap_free (load_index);
+        }
+
+      if (!bad_permutation)
+        {
+          /* This permutation is valid for reduction.  Since the order of the
              statements in the nodes is not important unless they are memory
              accesses, we can rearrange the statements in all the nodes 
              according to the order of the loads.  */
@@ -1064,9 +1093,10 @@ vect_supported_load_permutation_p (slp_instance slp_instn, int group_size,
 /* Find the first load in the loop that belongs to INSTANCE.
    When loads are in several SLP nodes, there can be a case in which the first
    load does not appear in the first SLP node to be transformed, causing
-   incorrect order of statements. Since we generate all the loads together,
+   incorrect order of statements.  Since we generate all the loads together,
    they must be inserted before the first load of the SLP instance and not
    before the first load of the first node of the instance.  */
+
 static gimple
 vect_find_first_load_in_slp_instance (slp_instance instance)
 {
@@ -1082,7 +1112,26 @@ vect_find_first_load_in_slp_instance (slp_instance instance)
 }
 
 
-/* Analyze an SLP instance starting from a group of strided stores. Call
+/* Find the last store in SLP INSTANCE.  */
+
+static gimple
+vect_find_last_store_in_slp_instance (slp_instance instance)
+{
+  int i;
+  slp_tree node;
+  gimple last_store = NULL, store;
+
+  node = SLP_INSTANCE_TREE (instance);
+  for (i = 0;
+       VEC_iterate (gimple, SLP_TREE_SCALAR_STMTS (node), i, store);
+       i++)
+    last_store = get_later_stmt (store, last_store);
+
+  return last_store;
+}
+
+
+/* Analyze an SLP instance starting from a group of strided stores.  Call
    vect_build_slp_tree to build a tree of packed stmts if possible.
    Return FALSE if it's impossible to SLP any stmt in the loop.  */
 
@@ -1256,7 +1305,7 @@ vect_analyze_slp_instance (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo,
 }
 
 
-/* Check if there are stmts in the loop can be vectorized using SLP. Build SLP
+/* Check if there are stmts in the loop can be vectorized using SLP.  Build SLP
    trees of packed scalar stmts if SLP is possible.  */
 
 bool
@@ -1321,9 +1370,9 @@ vect_make_slp_decision (loop_vec_info loop_vinfo)
       if (unrolling_factor < SLP_INSTANCE_UNROLLING_FACTOR (instance))
 	unrolling_factor = SLP_INSTANCE_UNROLLING_FACTOR (instance);
 
-      /* Mark all the stmts that belong to INSTANCE as PURE_SLP stmts. Later we
+      /* Mark all the stmts that belong to INSTANCE as PURE_SLP stmts.  Later we
 	 call vect_detect_hybrid_slp () to find stmts that need hybrid SLP and
-	 loop-based vectorization. Such stmts will be marked as HYBRID.  */
+	 loop-based vectorization.  Such stmts will be marked as HYBRID.  */
       vect_mark_slp_stmts (SLP_INSTANCE_TREE (instance), pure_slp, -1);
       decided_to_slp++;
     }
@@ -1337,7 +1386,7 @@ vect_make_slp_decision (loop_vec_info loop_vinfo)
 
 
 /* Find stmts that must be both vectorized and SLPed (since they feed stmts that
-   can't be SLPed) in the tree rooted at NODE. Mark such stmts as HYBRID.  */
+   can't be SLPed) in the tree rooted at NODE.  Mark such stmts as HYBRID.  */
 
 static void
 vect_detect_hybrid_slp_stmts (slp_tree node)
@@ -1437,6 +1486,8 @@ destroy_bb_vec_info (bb_vec_info bb_vinfo)
         free_stmt_vec_info (stmt);
     }
 
+  free_data_refs (BB_VINFO_DATAREFS (bb_vinfo));
+  free_dependence_relations (BB_VINFO_DDRS (bb_vinfo));
   VEC_free (gimple, heap, BB_VINFO_STRIDED_STORES (bb_vinfo));
   VEC_free (slp_instance, heap, BB_VINFO_SLP_INSTANCES (bb_vinfo));
   free (bb_vinfo);
@@ -1475,7 +1526,7 @@ vect_slp_analyze_node_operations (bb_vec_info bb_vinfo, slp_tree node)
 }
 
 
-/* Analyze statements in SLP instances of the basic block. Return TRUE if the
+/* Analyze statements in SLP instances of the basic block.  Return TRUE if the
    operations are supported. */
 
 static bool
@@ -1503,6 +1554,42 @@ vect_slp_analyze_operations (bb_vec_info bb_vinfo)
   return true;
 }
 
+/* Check if loads and stores are mixed in the basic block (in that
+   case if we are not sure that the accesses differ, we can't vectorize the
+   basic block).  Also return FALSE in case that there is statement marked as
+   not vectorizable.  */
+
+static bool
+vect_bb_vectorizable_with_dependencies (bb_vec_info bb_vinfo)
+{
+  basic_block bb = BB_VINFO_BB (bb_vinfo);
+  gimple_stmt_iterator si;
+  bool detected_store = false;
+  gimple stmt;
+  struct data_reference *dr;
+
+  for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
+    {
+      stmt = gsi_stmt (si);
+
+      /* We can't allow not analyzed statements, since they may contain data
+         accesses.  */ 
+      if (!STMT_VINFO_VECTORIZABLE (vinfo_for_stmt (stmt)))
+        return false;
+
+      if (!STMT_VINFO_DATA_REF (vinfo_for_stmt (stmt)))
+        continue;
+
+      dr = STMT_VINFO_DATA_REF (vinfo_for_stmt (stmt));
+      if (DR_IS_READ (dr) && detected_store)
+        return false;
+
+      if (!DR_IS_READ (dr))
+        detected_store = true;
+    }
+
+  return true;
+}
 
 /* Check if vectorization of the basic block is profitable.  */
 
@@ -1585,6 +1672,9 @@ vect_slp_analyze_bb (basic_block bb)
   gimple_stmt_iterator gsi;
   int min_vf = 2;
   int max_vf = MAX_VECTORIZATION_FACTOR;
+  bool data_dependence_in_bb = false;
+
+  current_vector_size = 0;
 
   if (vect_print_dump_info (REPORT_DETAILS))
     fprintf (vect_dump, "===vect_slp_analyze_bb===\n");
@@ -1632,8 +1722,11 @@ vect_slp_analyze_bb (basic_block bb)
       return NULL;
     }
 
-   if (!vect_analyze_data_ref_dependences (NULL, bb_vinfo, &max_vf)
-       || min_vf > max_vf)
+   if (!vect_analyze_data_ref_dependences (NULL, bb_vinfo, &max_vf, 
+                                           &data_dependence_in_bb)
+       || min_vf > max_vf
+       || (data_dependence_in_bb 
+           && !vect_bb_vectorizable_with_dependencies (bb_vinfo)))
      {
        if (vect_print_dump_info (REPORT_UNVECTORIZED_LOCATIONS))
 	 fprintf (vect_dump, "not vectorized: unhandled data dependence "
@@ -1724,11 +1817,11 @@ vect_slp_analyze_bb (basic_block bb)
 
 
 /* SLP costs are calculated according to SLP instance unrolling factor (i.e.,
-   the number of created vector stmts depends on the unrolling factor). However,
-   the actual number of vector stmts for every SLP node depends on VF which is
-   set later in vect_analyze_operations(). Hence, SLP costs should be updated.
-   In this function we assume that the inside costs calculated in
-   vect_model_xxx_cost are linear in ncopies.  */
+   the number of created vector stmts depends on the unrolling factor).
+   However, the actual number of vector stmts for every SLP node depends on
+   VF which is set later in vect_analyze_operations ().  Hence, SLP costs
+   should be updated.  In this function we assume that the inside costs
+   calculated in vect_model_xxx_cost are linear in ncopies.  */
 
 void
 vect_update_slp_costs_according_to_vf (loop_vec_info loop_vinfo)
@@ -1749,13 +1842,14 @@ vect_update_slp_costs_according_to_vf (loop_vec_info loop_vinfo)
 
 /* For constant and loop invariant defs of SLP_NODE this function returns
    (vector) defs (VEC_OPRNDS) that will be used in the vectorized stmts.
-   OP_NUM determines if we gather defs for operand 0 or operand 1 of the scalar
-   stmts. NUMBER_OF_VECTORS is the number of vector defs to create.  
+   OP_NUM determines if we gather defs for operand 0 or operand 1 of the RHS of
+   scalar stmts.  NUMBER_OF_VECTORS is the number of vector defs to create.
    REDUC_INDEX is the index of the reduction operand in the statements, unless
    it is -1.  */
 
 static void
-vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
+vect_get_constant_vectors (tree op, slp_tree slp_node,
+                           VEC (tree, heap) **vec_oprnds,
 			   unsigned int op_num, unsigned int number_of_vectors,
                            int reduc_index)
 {
@@ -1767,17 +1861,17 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
   tree t = NULL_TREE;
   int j, number_of_places_left_in_vector;
   tree vector_type;
-  tree op, vop;
+  tree vop;
   int group_size = VEC_length (gimple, stmts);
   unsigned int vec_num, i;
   int number_of_copies = 1;
   VEC (tree, heap) *voprnds = VEC_alloc (tree, heap, number_of_vectors);
   bool constant_p, is_store;
   tree neutral_op = NULL;
+  enum tree_code code = gimple_assign_rhs_code (stmt);
 
   if (STMT_VINFO_DEF_TYPE (stmt_vinfo) == vect_reduction_def)
     {
-      enum tree_code code = gimple_assign_rhs_code (stmt);
       if (reduc_index == -1)
         {
           VEC_free (tree, heap, *vec_oprnds);
@@ -1785,9 +1879,9 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
         }
 
       op_num = reduc_index - 1;
-      op = gimple_op (stmt, op_num + 1);
+      op = gimple_op (stmt, reduc_index);
       /* For additional copies (see the explanation of NUMBER_OF_COPIES below)
-         we need either neutral operands or the original operands. See
+         we need either neutral operands or the original operands.  See
          get_initial_def_for_reduction() for details.  */
       switch (code)
         {
@@ -1827,10 +1921,9 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
       op = gimple_assign_rhs1 (stmt);
     }
   else
-    {
-      is_store = false;
-      op = gimple_op (stmt, op_num + 1);
-    }
+    is_store = false;
+
+  gcc_assert (op);
 
   if (CONSTANT_CLASS_P (op))
     constant_p = true;
@@ -1839,7 +1932,6 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
 
   vector_type = get_vectype_for_scalar_type (TREE_TYPE (op));
   gcc_assert (vector_type);
-
   nunits = TYPE_VECTOR_SUBPARTS (vector_type);
 
   /* NUMBER_OF_COPIES is the number of times we need to use the same values in
@@ -1925,12 +2017,7 @@ vect_get_constant_vectors (slp_tree slp_node, VEC(tree,heap) **vec_oprnds,
       if (neutral_op)
         {
           if (!neutral_vec)
-            {
-              t = NULL;
-              for (i = 0; i < (unsigned) nunits; i++)
-                 t = tree_cons (NULL_TREE, neutral_op, t);
-              neutral_vec = build_vector (vector_type, t);
-            }
+	    neutral_vec = build_vector_from_val (vector_type, neutral_op);
 
           VEC_quick_push (tree, *vec_oprnds, neutral_vec);
         }
@@ -1974,7 +2061,8 @@ vect_get_slp_vect_defs (slp_tree slp_node, VEC (tree,heap) **vec_oprnds)
    the right node. This is used when the second operand must remain scalar.  */
 
 void
-vect_get_slp_defs (slp_tree slp_node, VEC (tree,heap) **vec_oprnds0,
+vect_get_slp_defs (tree op0, tree op1, slp_tree slp_node,
+                   VEC (tree,heap) **vec_oprnds0,
                    VEC (tree,heap) **vec_oprnds1, int reduc_index)
 {
   gimple first_stmt;
@@ -1992,7 +2080,7 @@ vect_get_slp_defs (slp_tree slp_node, VEC (tree,heap) **vec_oprnds0,
       number_of_vects = SLP_TREE_NUMBER_OF_VEC_STMTS (slp_node);
       /* Number of vector stmts was calculated according to LHS in
          vect_schedule_slp_instance(), fix it by replacing LHS with RHS, if
-         necessary. See vect_get_smallest_scalar_type() for details.  */
+         necessary.  See vect_get_smallest_scalar_type () for details.  */
       vect_get_smallest_scalar_type (first_stmt, &lhs_size_unit,
                                      &rhs_size_unit);
       if (rhs_size_unit != lhs_size_unit)
@@ -2006,7 +2094,7 @@ vect_get_slp_defs (slp_tree slp_node, VEC (tree,heap) **vec_oprnds0,
   *vec_oprnds0 = VEC_alloc (tree, heap, number_of_vects);
 
   /* SLP_NODE corresponds either to a group of stores or to a group of
-     unary/binary operations. We don't call this function for loads.  
+     unary/binary operations.  We don't call this function for loads.
      For reduction defs we call vect_get_constant_vectors(), since we are
      looking for initial loop invariant values.  */
   if (SLP_TREE_LEFT (slp_node) && reduc_index == -1)
@@ -2014,7 +2102,7 @@ vect_get_slp_defs (slp_tree slp_node, VEC (tree,heap) **vec_oprnds0,
     vect_get_slp_vect_defs (SLP_TREE_LEFT (slp_node), vec_oprnds0);
   else
     /* Build vectors from scalar defs.  */
-    vect_get_constant_vectors (slp_node, vec_oprnds0, 0, number_of_vects,
+    vect_get_constant_vectors (op0, slp_node, vec_oprnds0, 0, number_of_vects,
                                reduc_index);
 
   if (STMT_VINFO_DATA_REF (vinfo_for_stmt (first_stmt)))
@@ -2044,7 +2132,8 @@ vect_get_slp_defs (slp_tree slp_node, VEC (tree,heap) **vec_oprnds0,
     vect_get_slp_vect_defs (SLP_TREE_RIGHT (slp_node), vec_oprnds1);
   else
     /* Build vectors from scalar defs.  */
-    vect_get_constant_vectors (slp_node, vec_oprnds1, 1, number_of_vects, -1);
+    vect_get_constant_vectors (op1, slp_node, vec_oprnds1, 1, number_of_vects,
+                               -1);
 }
 
 
@@ -2108,7 +2197,7 @@ vect_create_mask_and_perm (gimple stmt, gimple next_scalar_stmt,
 
 /* Given FIRST_MASK_ELEMENT - the mask element in element representation,
    return in CURRENT_MASK_ELEMENT its equivalent in target specific
-   representation. Check that the mask is valid and return FALSE if not.
+   representation.  Check that the mask is valid and return FALSE if not.
    Return TRUE in NEED_NEXT_VECTOR if the permutation requires to move to
    the next vector, i.e., the current first vector is not needed.  */
 
@@ -2116,20 +2205,18 @@ static bool
 vect_get_mask_element (gimple stmt, int first_mask_element, int m,
                        int mask_nunits, bool only_one_vec, int index,
                        int *mask, int *current_mask_element,
-                       bool *need_next_vector)
+                       bool *need_next_vector, int *number_of_mask_fixes,
+                       bool *mask_fixed, bool *needs_first_vector)
 {
   int i;
-  static int number_of_mask_fixes = 1;
-  static bool mask_fixed = false;
-  static bool needs_first_vector = false;
 
   /* Convert to target specific representation.  */
   *current_mask_element = first_mask_element + m;
   /* Adjust the value in case it's a mask for second and third vectors.  */
-  *current_mask_element -= mask_nunits * (number_of_mask_fixes - 1);
+  *current_mask_element -= mask_nunits * (*number_of_mask_fixes - 1);
 
   if (*current_mask_element < mask_nunits)
-    needs_first_vector = true;
+    *needs_first_vector = true;
 
   /* We have only one input vector to permute but the mask accesses values in
      the next vector as well.  */
@@ -2147,7 +2234,7 @@ vect_get_mask_element (gimple stmt, int first_mask_element, int m,
   /* The mask requires the next vector.  */
   if (*current_mask_element >= mask_nunits * 2)
     {
-      if (needs_first_vector || mask_fixed)
+      if (*needs_first_vector || *mask_fixed)
         {
           /* We either need the first vector too or have already moved to the
              next vector. In both cases, this permutation needs three
@@ -2165,23 +2252,23 @@ vect_get_mask_element (gimple stmt, int first_mask_element, int m,
       /* We move to the next vector, dropping the first one and working with
          the second and the third - we need to adjust the values of the mask
          accordingly.  */
-      *current_mask_element -= mask_nunits * number_of_mask_fixes;
+      *current_mask_element -= mask_nunits * *number_of_mask_fixes;
 
       for (i = 0; i < index; i++)
-        mask[i] -= mask_nunits * number_of_mask_fixes;
+        mask[i] -= mask_nunits * *number_of_mask_fixes;
 
-      (number_of_mask_fixes)++;
-      mask_fixed = true;
+      (*number_of_mask_fixes)++;
+      *mask_fixed = true;
     }
 
-  *need_next_vector = mask_fixed;
+  *need_next_vector = *mask_fixed;
 
   /* This was the last element of this mask. Start a new one.  */
   if (index == mask_nunits - 1)
     {
-      number_of_mask_fixes = 1;
-      mask_fixed = false;
-      needs_first_vector = false;
+      *number_of_mask_fixes = 1;
+      *mask_fixed = false;
+      *needs_first_vector = false;
     }
 
   return true;
@@ -2207,6 +2294,9 @@ vect_transform_slp_perm_load (gimple stmt, VEC (tree, heap) *dr_chain,
   int index, unroll_factor, *mask, current_mask_element, ncopies;
   bool only_one_vec = false, need_next_vector = false;
   int first_vec_index, second_vec_index, orig_vec_stmts_num, vect_stmts_counter;
+  int number_of_mask_fixes = 1;
+  bool mask_fixed = false;
+  bool needs_first_vector = false;
 
   if (!targetm.vectorize.builtin_vec_perm)
     {
@@ -2262,8 +2352,8 @@ vect_transform_slp_perm_load (gimple stmt, VEC (tree, heap) *dr_chain,
      The masks for a's should be: {0,0,0,3} {3,3,6,6} {6,9,9,9} (in target
      scpecific type, e.g., in bytes for Altivec.
      The last mask is illegal since we assume two operands for permute
-     operation, and the mask element values can't be outside that range. Hence,
-     the last mask must be converted into {2,5,5,5}.
+     operation, and the mask element values can't be outside that range.
+     Hence, the last mask must be converted into {2,5,5,5}.
      For the first two permutations we need the first and the second input
      vectors: {a0,b0,c0,a1} and {b1,c1,a2,b2}, and for the last permutation
      we need the second and the third vectors: {b1,c1,a2,b2} and
@@ -2290,7 +2380,9 @@ vect_transform_slp_perm_load (gimple stmt, VEC (tree, heap) *dr_chain,
                 {
                   if (!vect_get_mask_element (stmt, first_mask_element, m,
                                    mask_nunits, only_one_vec, index, mask,
-                                   &current_mask_element, &need_next_vector))
+                                   &current_mask_element, &need_next_vector,
+                                   &number_of_mask_fixes, &mask_fixed,
+                                   &needs_first_vector))
                     return false;
 
                   mask[index++] = current_mask_element;
@@ -2379,7 +2471,7 @@ vect_schedule_slp_instance (slp_tree node, slp_instance instance,
   group_size = SLP_INSTANCE_GROUP_SIZE (instance);
 
   /* For each SLP instance calculate number of vector stmts to be created
-     for the scalar stmts in each node of the SLP tree. Number of vector
+     for the scalar stmts in each node of the SLP tree.  Number of vector
      elements in one vector iteration is the number of scalar elements in
      one scalar iteration (GROUP_SIZE) multiplied by VF divided by vector
      size.  */
@@ -2420,10 +2512,20 @@ vect_schedule_slp_instance (slp_tree node, slp_instance instance,
   else
     si = gsi_for_stmt (stmt);
 
+  /* Stores should be inserted just before the last store.  */
+  if (STMT_VINFO_STRIDED_ACCESS (stmt_info)
+      && REFERENCE_CLASS_P (gimple_get_lhs (stmt)))
+    { 
+      gimple last_store = vect_find_last_store_in_slp_instance (instance);
+      si = gsi_for_stmt (last_store);
+    }
+
   is_store = vect_transform_stmt (stmt, &si, &strided_store, node, instance);
   return is_store;
 }
 
+
+/* Generate vector code for all SLP instances in the loop/basic block.  */
 
 bool
 vect_schedule_slp (loop_vec_info loop_vinfo, bb_vec_info bb_vinfo)

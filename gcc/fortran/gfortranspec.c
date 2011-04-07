@@ -1,6 +1,6 @@
 /* Specific flags and argument handling of the Fortran front-end.
    Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-   2007, 2008, 2009, 2010
+   2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -63,6 +63,9 @@ along with GCC; see the file COPYING3.  If not see
 #define FORTRAN_LIBRARY "gfortran"
 #endif
 
+/* Name of the spec file.  */
+#define SPEC_FILE "libgfortran.spec"
+
 /* The original argument list and related info is copied here.  */
 static unsigned int g77_xargc;
 static const struct cl_decoded_option *g77_x_decoded_options;
@@ -71,6 +74,34 @@ static void append_arg (const struct cl_decoded_option *);
 /* The new argument list will be built here.  */
 static unsigned int g77_newargc;
 static struct cl_decoded_option *g77_new_decoded_options;
+
+/* The path to the spec file.  */
+static char *spec_file = NULL;
+
+/* This will be NULL if we encounter a situation where we should not
+   link in the fortran libraries.  */
+static const char *library = NULL;
+
+
+/* Return full path name of spec file if it is in DIR, or NULL if
+   not.  */
+static char *
+find_spec_file (const char *dir)
+{
+  const char dirsep_string[] = { DIR_SEPARATOR, '\0' };
+  char *spec;
+  struct stat sb;
+
+  spec = XNEWVEC (char, strlen (dir) + sizeof (SPEC_FILE) + 4);
+  strcpy (spec, dir);
+  strcat (spec, dirsep_string);
+  strcat (spec, SPEC_FILE);
+  if (!stat (spec, &sb))
+    return spec;
+  free (spec);
+  return NULL;
+}
+
 
 /* Return whether strings S1 and S2 are both NULL or both the same
    string.  */
@@ -114,10 +145,6 @@ static void
 append_arg (const struct cl_decoded_option *arg)
 {
   static unsigned int newargsize;
-
-#if 0
-  fprintf (stderr, "`%s'\n", arg);
-#endif
 
   if (g77_new_decoded_options == g77_x_decoded_options
       && g77_newargc < g77_xargc
@@ -165,12 +192,12 @@ add_arg_libgfortran (bool force_static ATTRIBUTE_UNUSED)
 {
 #ifdef HAVE_LD_STATIC_DYNAMIC
   if (force_static)
-    append_option (OPT_Wl_, "-Bstatic", 1);
+    append_option (OPT_Wl_, LD_STATIC_OPTION, 1);
 #endif
   append_option (OPT_l, FORTRAN_LIBRARY, 1);
 #ifdef HAVE_LD_STATIC_DYNAMIC
   if (force_static)
-    append_option (OPT_Wl_, "-Bdynamic", 1);
+    append_option (OPT_Wl_, LD_DYNAMIC_OPTION, 1);
 #endif
 }
 
@@ -183,10 +210,6 @@ lang_specific_driver (struct cl_decoded_option **in_decoded_options,
   struct cl_decoded_option *decoded_options = *in_decoded_options;
   unsigned int i;
   int verbose = 0;
-
-  /* This will be NULL if we encounter a situation where we should not
-     link in libf2c.  */
-  const char *library = FORTRAN_LIBRARY;
 
   /* 0 => -xnone in effect.
      1 => -xfoo in effect.  */
@@ -209,6 +232,8 @@ lang_specific_driver (struct cl_decoded_option **in_decoded_options,
   /* The number of input and output files in the incoming arg list.  */
   int n_infiles = 0;
   int n_outfiles = 0;
+
+  library = FORTRAN_LIBRARY;
 
 #if 0
   fprintf (stderr, "Incoming:");
@@ -271,9 +296,9 @@ lang_specific_driver (struct cl_decoded_option **in_decoded_options,
 	  verbose = 1;
 	  break;
 
-	case OPT_fversion:
+	case OPT__version:
 	  printf ("GNU Fortran %s%s\n", pkgversion_string, version_string);
-	  printf ("Copyright %s 2010 Free Software Foundation, Inc.\n\n",
+	  printf ("Copyright %s 2011 Free Software Foundation, Inc.\n\n",
 		  _("(C)"));
 	  printf (_("GNU Fortran comes with NO WARRANTY, to the extent permitted by law.\n\
 You may redistribute copies of GNU Fortran\n\
@@ -282,10 +307,16 @@ For more information about these matters, see the file named COPYING\n\n"));
 	  exit (0);
 	  break;
 
-	case OPT_fhelp:
+	case OPT__help:
 	  /* Let gcc.c handle this, as it has a really
 	     cool facility for handling --help and --verbose --help.  */
 	  return;
+
+	case OPT_L:
+	  if (!spec_file)
+	    spec_file = find_spec_file (decoded_options[i].arg);
+	  break;
+
 
 	default:
 	  break;
@@ -417,6 +448,12 @@ For more information about these matters, see the file named COPYING\n\n"));
 
 #endif
 
+  /* Read the specs file corresponding to libgfortran.
+     If we didn't find the spec file on the -L path, we load it
+     via lang_specific_pre_link.  */
+  if (spec_file)
+    append_option (OPT_specs_, spec_file, 1);
+
   if (verbose && g77_new_decoded_options != g77_x_decoded_options)
     {
       fprintf (stderr, _("Driving:"));
@@ -433,8 +470,13 @@ For more information about these matters, see the file named COPYING\n\n"));
 
 /* Called before linking.  Returns 0 on success and -1 on failure.  */
 int
-lang_specific_pre_link (void)	/* Not used for F77.  */
+lang_specific_pre_link (void)
 {
+  if (spec_file)
+    free (spec_file);
+  else if (library)
+    do_spec ("%:include(libgfortran.spec)");
+
   return 0;
 }
 

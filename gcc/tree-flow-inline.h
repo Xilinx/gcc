@@ -103,7 +103,7 @@ next_htab_element (htab_iterator *hti)
 static inline tree
 referenced_var (unsigned int uid)
 {
-  tree var = referenced_var_lookup (uid);
+  tree var = referenced_var_lookup (cfun, uid);
   gcc_assert (var || uid == 0);
   return var;
 }
@@ -112,10 +112,10 @@ referenced_var (unsigned int uid)
    referenced_vars hashtable, and return that variable.  */
 
 static inline tree
-first_referenced_var (referenced_var_iterator *iter)
+first_referenced_var (struct function *fn, referenced_var_iterator *iter)
 {
   return (tree) first_htab_element (&iter->hti,
-				    gimple_referenced_vars (cfun));
+				    gimple_referenced_vars (fn));
 }
 
 /* Return true if we have hit the end of the referenced variables ITER is
@@ -230,10 +230,8 @@ link_imm_use (ssa_use_operand_t *linknode, tree def)
   else
     {
       root = &(SSA_NAME_IMM_USE_NODE (def));
-#ifdef ENABLE_CHECKING
       if (linknode->use)
         gcc_checking_assert (*(linknode->use) == def);
-#endif
       link_imm_use_to_list (linknode, root);
     }
 }
@@ -556,13 +554,11 @@ phi_arg_index_from_use (use_operand_p use)
   root = gimple_phi_arg (phi, 0);
   index = element - root;
 
-#ifdef ENABLE_CHECKING
   /* Make sure the calculation doesn't have any leftover bytes.  If it does,
      then imm_use is likely not the first element in phi_arg_d.  */
-  gcc_assert ((((char *)element - (char *)root)
-	       % sizeof (struct phi_arg_d)) == 0
-	      && index < gimple_phi_capacity (phi));
-#endif
+  gcc_checking_assert ((((char *)element - (char *)root)
+			% sizeof (struct phi_arg_d)) == 0
+		       && index < gimple_phi_capacity (phi));
 
  return index;
 }
@@ -573,9 +569,26 @@ static inline void
 set_is_used (tree var)
 {
   var_ann_t ann = get_var_ann (var);
-  ann->used = 1;
+  ann->used = true;
 }
 
+/* Clear VAR's used flag.  */
+
+static inline void
+clear_is_used (tree var)
+{
+  var_ann_t ann = var_ann (var);
+  ann->used = false;
+}
+
+/* Return true if VAR is marked as used.  */
+
+static inline bool
+is_used_p (tree var)
+{
+  var_ann_t ann = var_ann (var);
+  return ann->used;
+}
 
 /* Return true if T (assumed to be a DECL) is a global variable.
    A variable is considered global if its storage is not automatic.  */
@@ -613,9 +626,7 @@ phi_ssa_name_p (const_tree t)
 {
   if (TREE_CODE (t) == SSA_NAME)
     return true;
-#ifdef ENABLE_CHECKING
-  gcc_assert (is_gimple_min_invariant (t));
-#endif
+  gcc_checking_assert (is_gimple_min_invariant (t));
   return false;
 }
 
@@ -975,9 +986,7 @@ static inline use_operand_p
 move_use_after_head (use_operand_p use_p, use_operand_p head,
 		      use_operand_p last_p)
 {
-#ifdef ENABLE_CHECKING
-  gcc_assert (USE_FROM_PTR (use_p) == USE_FROM_PTR (head));
-#endif
+  gcc_checking_assert (USE_FROM_PTR (use_p) == USE_FROM_PTR (head));
   /* Skip head when we find it.  */
   if (use_p != head)
     {

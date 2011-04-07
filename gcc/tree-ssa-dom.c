@@ -799,10 +799,11 @@ struct gimple_opt_pass pass_dominator =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func
+  TODO_cleanup_cfg
     | TODO_update_ssa
-    | TODO_cleanup_cfg
-    | TODO_verify_ssa			/* todo_flags_finish */
+    | TODO_verify_ssa
+    | TODO_verify_flow
+    | TODO_dump_func			/* todo_flags_finish */
  }
 };
 
@@ -1852,10 +1853,8 @@ eliminate_redundant_computations (gimple_stmt_iterator* gsi)
            || useless_type_conversion_p (expr_type, TREE_TYPE (cached_lhs))))
       || may_propagate_copy_into_stmt (stmt, cached_lhs))
   {
-#if defined ENABLE_CHECKING
-      gcc_assert (TREE_CODE (cached_lhs) == SSA_NAME
-		  || is_gimple_min_invariant (cached_lhs));
-#endif
+      gcc_checking_assert (TREE_CODE (cached_lhs) == SSA_NAME
+			   || is_gimple_min_invariant (cached_lhs));
 
       if (dump_file && (dump_flags & TDF_DETAILS))
 	{
@@ -2178,6 +2177,48 @@ optimize_stmt (basic_block bb, gimple_stmt_iterator si)
       update_stmt_if_modified (stmt);
       eliminate_redundant_computations (&si);
       stmt = gsi_stmt (si);
+
+      /* Perform simple redundant store elimination.  */
+      if (gimple_assign_single_p (stmt)
+	  && TREE_CODE (gimple_assign_lhs (stmt)) != SSA_NAME)
+	{
+	  tree lhs = gimple_assign_lhs (stmt);
+	  tree rhs = gimple_assign_rhs1 (stmt);
+	  tree cached_lhs;
+	  gimple new_stmt;
+	  if (TREE_CODE (rhs) == SSA_NAME)
+	    {
+	      tree tem = SSA_NAME_VALUE (rhs);
+	      if (tem)
+		rhs = tem;
+	    }
+	  /* Build a new statement with the RHS and LHS exchanged.  */
+	  if (TREE_CODE (rhs) == SSA_NAME)
+	    {
+	      gimple defstmt = SSA_NAME_DEF_STMT (rhs);
+	      new_stmt = gimple_build_assign (rhs, lhs);
+	      SSA_NAME_DEF_STMT (rhs) = defstmt;
+	    }
+	  else
+	    new_stmt = gimple_build_assign (rhs, lhs);
+	  gimple_set_vuse (new_stmt, gimple_vuse (stmt));
+	  cached_lhs = lookup_avail_expr (new_stmt, false);
+	  if (cached_lhs
+	      && rhs == cached_lhs)
+	    {
+	      basic_block bb = gimple_bb (stmt);
+	      int lp_nr = lookup_stmt_eh_lp (stmt);
+	      unlink_stmt_vdef (stmt);
+	      gsi_remove (&si, true);
+	      if (lp_nr != 0)
+		{
+		  bitmap_set_bit (need_eh_cleanup, bb->index);
+		  if (dump_file && (dump_flags & TDF_DETAILS))
+		    fprintf (dump_file, "  Flagged to clear EH edges.\n");
+		}
+	      return;
+	    }
+	}
     }
 
   /* Record any additional equivalences created by this statement.  */

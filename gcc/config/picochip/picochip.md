@@ -1,6 +1,6 @@
 ;; GCC machine description for picochip
-;; Copyright (C) 2008, 2009 Free Software Foundation, Inc.
-;; Contributed by picoChip Designs Ltd (http://www.picochip.com)
+;; Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+;; Contributed by Picochip Ltd (http://www.picochip.com)
 ;; Maintained by Daniel Towner (dant@picochip.com) and Hariharan
 ;; Sandanagobalane (hariharan@picochip.com)
 ;;
@@ -622,7 +622,7 @@
 
 ; Match a branch instruction, created from a tstport/cbranch split.
 ; We use a "use" clause so GCC doesnt try to use this pattern generally.
-(define_insn "*branch"
+(define_insn "branch"
   [(set (pc)
         (if_then_else
             (match_operator 2 "comparison_operator"
@@ -2511,21 +2511,36 @@
 ;;============================================================================
 
 ;; Define expand seems to consider the resulting two instructions to be
-;; independent. It was moving the actual copy instruction further down
-;; with a call instruction in between. The call was clobbering the CC
-;; and hence the cond_copy was wrong. With a split, it works correctly.
+;; independent. With a split, guarded by reload, it works correctly.
 (define_expand "movhicc"
-  [(set (reg:CC CC_REGNUM) (match_operand 1 "comparison_operator" ""))
+   [(set (match_operand:HI 0 "register_operand" "=r,r")
+                   (if_then_else:HI (match_operand:HI 1 "" "")
+		   (match_operand:HI 2 "register_operand" "0,0")
+		   (match_operand:HI 3 "picochip_register_or_immediate_operand" "r,i")))]
+  ""
+  {if (!picochip_check_conditional_copy (operands))
+     FAIL;
+  })
+
+(define_insn_and_split "*checked_movhicc"
+   [(set (match_operand:HI 0 "register_operand" "=r,r")
+                   (if_then_else:HI (match_operator 1 "picochip_peephole_comparison_operator"
+                          [(match_operand:HI 4 "register_operand" "r,r")
+                           (match_operand:HI 5 "picochip_comparison_operand" "r,i")])
+		   (match_operand:HI 2 "register_operand" "0,0")
+		   (match_operand:HI 3 "picochip_register_or_immediate_operand" "r,i")))]
+  ""
+  "#"
+  "reload_completed"
+  [(set (reg:CC CC_REGNUM) (match_dup 1))
    (parallel [(set (match_operand:HI 0 "register_operand" "=r,r")
                    (if_then_else:HI (match_op_dup:HI 1 [(reg:CC CC_REGNUM) (const_int 0)])
                                  (match_operand:HI 2 "picochip_register_or_immediate_operand" "0,0")
                                  (match_operand:HI 3 "picochip_register_or_immediate_operand" "r,i")))
-              (use (match_dup 4))])]
-  ""
-  {if (!picochip_check_conditional_copy (operands))
-     FAIL;
-   operands[4] = GEN_INT(GET_CODE(operands[1]));
-  })
+              (use (match_dup 6))])]
+  "{
+     operands[6] = GEN_INT(GET_CODE(operands[0]));
+   }")
 
 ;; We dont do any checks here. But this pattern is used only when movhicc 
 ;; was checked. Put a "use" clause to make sure.
@@ -2534,7 +2549,7 @@
 	(if_then_else:HI
             (match_operator:HI 4 "picochip_peephole_comparison_operator"
                  [(reg:CC CC_REGNUM) (const_int 0)])
-	 (match_operand:HI 1 "picochip_register_or_immediate_operand" "0,0")
+	 (match_operand:HI 1 "register_operand" "0,0")
 	 (match_operand:HI 2 "picochip_register_or_immediate_operand" "r,i")))
    (use (match_operand:HI 3 "const_int_operand" ""))]
   ""
@@ -2577,7 +2592,7 @@
   (const_string "unknown"))
 
 (define_attr "schedType" "none,space,speed"
-  (const (symbol_ref "picochip_schedule_type")))
+  (const (symbol_ref "(enum attr_schedType) picochip_schedule_type")))
 
 ;; Define whether an instruction uses a long constant.
 

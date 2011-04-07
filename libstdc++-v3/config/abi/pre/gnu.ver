@@ -1,6 +1,6 @@
 ## Linker script for GNU versioning (GNU ld 2.13.91+ only.)
 ##
-## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+## Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
 ## Free Software Foundation, Inc.
 ##
 ## This file is part of the GNU ISO C++ Library.  This library is free
@@ -136,7 +136,7 @@ GLIBCXX_3.4 {
       std::r[^ae]*;
       std::range_error::r*;
 #     std::range_error::~r*;
-      std::re[^t]*;
+#     std::re[^t]*;
 #     std::rethrow_exception
       std::set_new_handler*;
       std::set_terminate*;
@@ -322,7 +322,8 @@ GLIBCXX_3.4 {
     _ZNSt15basic_stringbufIcSt11char_traitsIcESaIcEE3strERKSs;
     _ZNSt15basic_stringbufIwSt11char_traitsIwESaIwEE3strERKSbIwS1_S2_E;
     _ZNSt15basic_stringbufI[cw]St11char_traitsI[cw]ESaI[cw]EE[0-9][t-z]*;
-    _ZNSt15basic_stringbufI[cw]St11char_traitsI[cw]ESaI[cw]EE[0-9]_M_[a-z]*;
+    _ZNSt15basic_stringbufI[cw]St11char_traitsI[cw]ESaI[cw]EE[0-9]_M_[a-o]*;
+    _ZNSt15basic_stringbufI[cw]St11char_traitsI[cw]ESaI[cw]EE[0-9]_M_[q-z]*;
     _ZNSt15basic_stringbufI[cw]St11char_traitsI[cw]ESaI[cw]EE[0-9][0-9]_M_[a-z]*;
 
     # std::basic_iostream constructors, destructors
@@ -332,7 +333,13 @@ GLIBCXX_3.4 {
     # std::basic_filebuf
     _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EEC*;
     _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EED*;
-    _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE[0-3]*;
+    _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE0*;
+    _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE13*;
+    _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE15*;
+    _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE16*;
+    _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE19*;
+    _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE2*;
+    _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE3*;
     _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE4openEPKc*;
     _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE4sync*;
     _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE[5-9]*;
@@ -611,7 +618,9 @@ GLIBCXX_3.4 {
     _ZTVSt[0-9][0-9][g-k]*;
     _ZTVSt11logic_error;
     _ZTVSt12length_error;
-    _ZTVSt[0-9][0-9][m-r]*;
+    _ZTVSt[0-9][0-9][m-q]*;
+    _ZTVSt11range_error;
+    _ZTVSt13runtime_error;
     _ZTVSt[0-9][0-9][t-z]*;
     _ZTVSt[0-9][0-9]e[^r]*;
     _ZTVSt[0-9][0-9]s[^y]*;
@@ -639,7 +648,9 @@ GLIBCXX_3.4 {
     _ZTISt[0-9][0-9][g-k]*;
     _ZTISt11logic_error;
     _ZTISt12length_error;
-    _ZTISt[0-9][0-9][m-r]*;
+    _ZTISt[0-9][0-9][m-q]*;
+    _ZTISt11range_error;
+    _ZTISt13runtime_error;
     _ZTISt[0-9][0-9][t-z]*;
     _ZTISt[0-9][0-9]e[^r]*;
     _ZTISt[0-9][0-9]s[^y]*;
@@ -671,7 +682,9 @@ GLIBCXX_3.4 {
     _ZTSSt[0-9][0-9][g-k]*;
     _ZTSSt11logic_error;
     _ZTSSt12length_error;
-    _ZTSSt[0-9][0-9][m-r]*;
+    _ZTSSt[0-9][0-9][m-q]*;
+    _ZTSSt11range_error;
+    _ZTSSt13runtime_error;
     _ZTSSt[0-9][0-9][t-z]*;
     _ZTSSt[0-9][0-9]e[^r]*;
     _ZTSSt[0-9][0-9]s[^y]*;
@@ -1101,13 +1114,15 @@ GLIBCXX_3.4.14 {
     _ZNSt9__atomic011atomic_flag5clearESt12memory_order;
 
     # future
-    _ZSt15future_category;
     _ZNSt12future_errorD*;
     _ZNKSt12future_error4whatEv;
     _ZTSSt12future_error;
     _ZTVSt12future_error;
     _ZTISt12future_error;
     _ZSt20__throw_future_errori;
+
+    # GLIBCXX_ABI compatibility only.
+    _ZSt15future_category;
 
     # string|wstring ::cbegin member functions
     _ZNKSs6cbeginEv;
@@ -1177,6 +1192,32 @@ GLIBCXX_3.4.15 {
     _ZNKSs4backEv;
     _ZNSbIwSt11char_traitsIwESaIwEE4backEv;
     _ZNKSbIwSt11char_traitsIwESaIwEE4backEv;
+
+    # basic_filebuf::_M_get_ext_pos
+    _ZNSt13basic_filebufI[cw]St11char_traitsI[cw]EE14_M_get_ext_pos*;
+
+    # targets using emutls
+    __emutls_v._ZSt11__once_call;
+    __emutls_v._ZSt15__once_callable;
+
+    # std::future_category is now a function
+    _ZSt15future_categoryv;
+
+    # std::placeholders
+    _ZNSt12placeholders*;
+
+    _ZNSt8__detail15_List_node_base7_M_hook*;
+    _ZNSt8__detail15_List_node_base9_M_unhookEv;
+    _ZNSt8__detail15_List_node_base10_M_reverseEv;
+    _ZNSt8__detail15_List_node_base11_M_transfer*;
+    _ZNSt8__detail15_List_node_base4swapERS0_S1_;
+
+    _ZNSt11regex_errorD*;
+    _ZNKSt11regex_error4whatEv;
+    _ZTSSt11regex_error;
+    _ZTVSt11regex_error;
+    _ZTISt11regex_error;
+    _ZSt19__throw_regex_errorNSt15regex_constants10error_typeE;
 
 } GLIBCXX_3.4.14;
 
@@ -1349,5 +1390,17 @@ CXXABI_1.3.5 {
     _ZTIDn;
     _ZTIPDn;
     _ZTIPKDn;
+
+    # Default function.
+    _ZSt11_Hash_bytesPKv*;
+
+    # FNV hash.
+    _ZSt15_Fnv_hash_bytesPKv*;
+
+    # std::bad_function_call.
+    _ZNSt17bad_function_callD*;
+    _ZTISt17bad_function_call;
+    _ZTSSt17bad_function_call;
+    _ZTVSt17bad_function_call;
 
 } CXXABI_1.3.4;

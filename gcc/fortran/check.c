@@ -299,11 +299,11 @@ nonnegative_check (const char *arg, gfc_expr *expr)
 
 
 /* If expr2 is constant, then check that the value is less than
-   bit_size(expr1).  */
+   (less than or equal to, if 'or_equal' is true) bit_size(expr1).  */
 
 static gfc_try
 less_than_bitsize1 (const char *arg1, gfc_expr *expr1, const char *arg2,
-	       gfc_expr *expr2)
+		    gfc_expr *expr2, bool or_equal)
 {
   int i2, i3;
 
@@ -311,12 +311,50 @@ less_than_bitsize1 (const char *arg1, gfc_expr *expr1, const char *arg2,
     {
       gfc_extract_int (expr2, &i2);
       i3 = gfc_validate_kind (BT_INTEGER, expr1->ts.kind, false);
-      if (i2 >= gfc_integer_kinds[i3].bit_size)
+      if (or_equal)
 	{
-	  gfc_error ("'%s' at %L must be less than BIT_SIZE('%s')",
-		     arg2, &expr2->where, arg1);
-	  return FAILURE;
+	  if (i2 > gfc_integer_kinds[i3].bit_size)
+	    {
+	      gfc_error ("'%s' at %L must be less than "
+			 "or equal to BIT_SIZE('%s')",
+			 arg2, &expr2->where, arg1);
+	      return FAILURE;
+	    }
 	}
+      else
+	{
+	  if (i2 >= gfc_integer_kinds[i3].bit_size)
+	    {
+	      gfc_error ("'%s' at %L must be less than BIT_SIZE('%s')",
+			 arg2, &expr2->where, arg1);
+	      return FAILURE;
+	    }
+	}
+    }
+
+  return SUCCESS;
+}
+
+
+/* If expr is constant, then check that the value is less than or equal
+   to the bit_size of the kind k.  */
+
+static gfc_try
+less_than_bitsizekind (const char *arg, gfc_expr *expr, int k)
+{
+  int i, val;
+
+  if (expr->expr_type != EXPR_CONSTANT)
+    return SUCCESS;
+ 
+  i = gfc_validate_kind (BT_INTEGER, k, false);
+  gfc_extract_int (expr, &val);
+
+  if (val > gfc_integer_kinds[i].bit_size)
+    {
+      gfc_error ("'%s' at %L must be less than or equal to the BIT_SIZE of "
+		 "INTEGER(KIND=%d)", arg, &expr->where, k);
+      return FAILURE;
     }
 
   return SUCCESS;
@@ -440,7 +478,7 @@ kind_value_check (gfc_expr *e, int n, int k)
 /* Make sure an expression is a variable.  */
 
 static gfc_try
-variable_check (gfc_expr *e, int n)
+variable_check (gfc_expr *e, int n, bool allow_proc)
 {
   if (e->expr_type == EXPR_VARIABLE
       && e->symtree->n.sym->attr.intent == INTENT_IN
@@ -453,10 +491,15 @@ variable_check (gfc_expr *e, int n)
       return FAILURE;
     }
 
-  if ((e->expr_type == EXPR_VARIABLE
-       && e->symtree->n.sym->attr.flavor != FL_PARAMETER)
-      || (e->expr_type == EXPR_FUNCTION
-	  && e->symtree->n.sym->result == e->symtree->n.sym))
+  if (e->expr_type == EXPR_VARIABLE
+      && e->symtree->n.sym->attr.flavor != FL_PARAMETER
+      && (allow_proc
+	  || !e->symtree->n.sym->attr.function
+	  || (e->symtree->n.sym == e->symtree->n.sym->result
+	      && (e->symtree->n.sym == gfc_current_ns->proc_name
+		  || (gfc_current_ns->parent
+		      && e->symtree->n.sym
+			 == gfc_current_ns->parent->proc_name)))))
     return SUCCESS;
 
   gfc_error ("'%s' argument of '%s' intrinsic at %L must be a variable",
@@ -592,40 +635,69 @@ identical_dimen_shape (gfc_expr *a, int ai, gfc_expr *b, int bi)
   return ret;
 }
 
+/*  Calculate the length of a character variable, including substrings.
+    Strip away parentheses if necessary.  Return -1 if no length could
+    be determined.  */
+
+static long
+gfc_var_strlen (const gfc_expr *a)
+{
+  gfc_ref *ra;
+
+  while (a->expr_type == EXPR_OP && a->value.op.op == INTRINSIC_PARENTHESES)
+    a = a->value.op.op1;
+
+  for (ra = a->ref; ra != NULL && ra->type != REF_SUBSTRING; ra = ra->next)
+    ;
+
+  if (ra)
+    {
+      long start_a, end_a;
+
+      if (ra->u.ss.start->expr_type == EXPR_CONSTANT
+	  && ra->u.ss.end->expr_type == EXPR_CONSTANT)
+	{
+	  start_a = mpz_get_si (ra->u.ss.start->value.integer);
+	  end_a = mpz_get_si (ra->u.ss.end->value.integer);
+	  return end_a - start_a + 1;
+	}
+      else if (gfc_dep_compare_expr (ra->u.ss.start, ra->u.ss.end) == 0)
+	return 1;
+      else
+	return -1;
+    }
+
+  if (a->ts.u.cl && a->ts.u.cl->length
+      && a->ts.u.cl->length->expr_type == EXPR_CONSTANT)
+    return mpz_get_si (a->ts.u.cl->length->value.integer);
+  else if (a->expr_type == EXPR_CONSTANT
+	   && (a->ts.u.cl == NULL || a->ts.u.cl->length == NULL))
+    return a->value.character.length;
+  else
+    return -1;
+
+}
 
 /* Check whether two character expressions have the same length;
-   returns SUCCESS if they have or if the length cannot be determined.  */
+   returns SUCCESS if they have or if the length cannot be determined,
+   otherwise return FAILURE and raise a gfc_error.  */
 
 gfc_try
 gfc_check_same_strlen (const gfc_expr *a, const gfc_expr *b, const char *name)
 {
    long len_a, len_b;
-   len_a = len_b = -1;
 
-   if (a->ts.u.cl && a->ts.u.cl->length
-       && a->ts.u.cl->length->expr_type == EXPR_CONSTANT)
-     len_a = mpz_get_si (a->ts.u.cl->length->value.integer);
-   else if (a->expr_type == EXPR_CONSTANT
-	    && (a->ts.u.cl == NULL || a->ts.u.cl->length == NULL))
-     len_a = a->value.character.length;
+   len_a = gfc_var_strlen(a);
+   len_b = gfc_var_strlen(b);
+
+   if (len_a == -1 || len_b == -1 || len_a == len_b)
+     return SUCCESS;
    else
-     return SUCCESS;
-
-   if (b->ts.u.cl && b->ts.u.cl->length
-       && b->ts.u.cl->length->expr_type == EXPR_CONSTANT)
-     len_b = mpz_get_si (b->ts.u.cl->length->value.integer);
-   else if (b->expr_type == EXPR_CONSTANT
-	    && (b->ts.u.cl == NULL || b->ts.u.cl->length == NULL))
-     len_b = b->value.character.length;
-   else
-     return SUCCESS;
-
-   if (len_a == len_b)
-     return SUCCESS;
-
-   gfc_error ("Unequal character lengths (%ld/%ld) in %s at %L",
-	      len_a, len_b, name, &a->where);
-   return FAILURE;
+     {
+       gfc_error ("Unequal character lengths (%ld/%ld) in %s at %L",
+		  len_a, len_b, name, &a->where);
+       return FAILURE;
+     }
 }
 
 
@@ -724,7 +796,7 @@ gfc_check_all_any (gfc_expr *mask, gfc_expr *dim)
 gfc_try
 gfc_check_allocated (gfc_expr *array)
 {
-  if (variable_check (array, 0) == FAILURE)
+  if (variable_check (array, 0, false) == FAILURE)
     return FAILURE;
   if (allocatable_check (array, 0) == FAILURE)
     return FAILURE;
@@ -929,6 +1001,19 @@ gfc_check_bessel_n2 (gfc_expr *n1, gfc_expr *n2, gfc_expr *x)
 
 
 gfc_try
+gfc_check_bge_bgt_ble_blt (gfc_expr *i, gfc_expr *j)
+{
+  if (type_check (i, 0, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (type_check (j, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+gfc_try
 gfc_check_bitfcn (gfc_expr *i, gfc_expr *pos)
 {
   if (type_check (i, 0, BT_INTEGER) == FAILURE)
@@ -940,7 +1025,7 @@ gfc_check_bitfcn (gfc_expr *i, gfc_expr *pos)
   if (nonnegative_check ("pos", pos) == FAILURE)
     return FAILURE;
 
-  if (less_than_bitsize1 ("i", i, "pos", pos) == FAILURE)
+  if (less_than_bitsize1 ("i", i, "pos", pos, false) == FAILURE)
     return FAILURE;
 
   return SUCCESS;
@@ -1317,6 +1402,31 @@ gfc_check_dprod (gfc_expr *x, gfc_expr *y)
 
 
 gfc_try
+gfc_check_dshift (gfc_expr *i, gfc_expr *j, gfc_expr *shift)
+{
+  if (type_check (i, 0, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (type_check (j, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (same_type_check (i, 0, j, 1) == FAILURE)
+    return FAILURE;
+
+  if (type_check (shift, 2, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (nonnegative_check ("SHIFT", shift) == FAILURE)
+    return FAILURE;
+
+  if (less_than_bitsize1 ("I", i, "SHIFT", shift, true) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+gfc_try
 gfc_check_eoshift (gfc_expr *array, gfc_expr *shift, gfc_expr *boundary,
 		   gfc_expr *dim)
 {
@@ -1416,7 +1526,7 @@ gfc_check_float (gfc_expr *a)
     return FAILURE;
 
   if ((a->ts.kind != gfc_default_integer_kind)
-      && gfc_notify_std (GFC_STD_GNU, "GNU extension: non-default INTEGER"
+      && gfc_notify_std (GFC_STD_GNU, "GNU extension: non-default INTEGER "
 			 "kind argument to %s intrinsic at %L",
 			 gfc_current_intrinsic, &a->where) == FAILURE	)
     return FAILURE;
@@ -1965,7 +2075,7 @@ gfc_check_link_sub (gfc_expr *path1, gfc_expr *path2, gfc_expr *status)
 gfc_try
 gfc_check_loc (gfc_expr *expr)
 {
-  return variable_check (expr, 0);
+  return variable_check (expr, 0, true);
 }
 
 
@@ -2353,6 +2463,52 @@ gfc_check_product_sum (gfc_actual_arglist *ap)
 }
 
 
+/* For IANY, IALL and IPARITY.  */
+
+gfc_try
+gfc_check_mask (gfc_expr *i, gfc_expr *kind)
+{
+  int k;
+
+  if (type_check (i, 0, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (nonnegative_check ("I", i) == FAILURE)
+    return FAILURE;
+
+  if (kind_check (kind, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (kind)
+    gfc_extract_int (kind, &k);
+  else
+    k = gfc_default_integer_kind;
+
+  if (less_than_bitsizekind ("I", i, k) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+gfc_try
+gfc_check_transf_bit_intrins (gfc_actual_arglist *ap)
+{
+  if (ap->expr->ts.type != BT_INTEGER)
+    {
+      gfc_error ("'%s' argument of '%s' intrinsic at %L must be INTEGER",
+                 gfc_current_intrinsic_arg[0]->name,
+                 gfc_current_intrinsic, &ap->expr->where);
+      return FAILURE;
+    }
+
+  if (array_check (ap->expr, 0) == FAILURE)
+    return FAILURE;
+
+  return check_reduction (ap);
+}
+
+
 gfc_try
 gfc_check_merge (gfc_expr *tsource, gfc_expr *fsource, gfc_expr *mask)
 {
@@ -2370,14 +2526,36 @@ gfc_check_merge (gfc_expr *tsource, gfc_expr *fsource, gfc_expr *mask)
 
 
 gfc_try
+gfc_check_merge_bits (gfc_expr *i, gfc_expr *j, gfc_expr *mask)
+{
+  if (type_check (i, 0, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (type_check (j, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (type_check (mask, 2, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (same_type_check (i, 0, j, 1) == FAILURE)
+    return FAILURE;
+
+  if (same_type_check (i, 0, mask, 2) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+gfc_try
 gfc_check_move_alloc (gfc_expr *from, gfc_expr *to)
 {
-  if (variable_check (from, 0) == FAILURE)
+  if (variable_check (from, 0, false) == FAILURE)
     return FAILURE;
   if (allocatable_check (from, 0) == FAILURE)
     return FAILURE;
 
-  if (variable_check (to, 1) == FAILURE)
+  if (variable_check (to, 1, false) == FAILURE)
     return FAILURE;
   if (allocatable_check (to, 1) == FAILURE)
     return FAILURE;
@@ -2454,7 +2632,7 @@ gfc_check_null (gfc_expr *mold)
   if (mold == NULL)
     return SUCCESS;
 
-  if (variable_check (mold, 0) == FAILURE)
+  if (variable_check (mold, 0, true) == FAILURE)
     return FAILURE;
 
   attr = gfc_variable_attr (mold, NULL);
@@ -2585,7 +2763,7 @@ gfc_check_present (gfc_expr *a)
 {
   gfc_symbol *sym;
 
-  if (variable_check (a, 0) == FAILURE)
+  if (variable_check (a, 0, true) == FAILURE)
     return FAILURE;
 
   sym = a->symtree->n.sym;
@@ -3077,7 +3255,7 @@ gfc_check_set_exponent (gfc_expr *x, gfc_expr *i)
 
 
 gfc_try
-gfc_check_shape (gfc_expr *source)
+gfc_check_shape (gfc_expr *source, gfc_expr *kind)
 {
   gfc_array_ref *ar;
 
@@ -3092,6 +3270,32 @@ gfc_check_shape (gfc_expr *source)
 		 "an assumed size array", &source->where);
       return FAILURE;
     }
+
+  if (kind_check (kind, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+  if (kind && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: '%s' intrinsic "
+			      "with KIND argument at %L",
+			      gfc_current_intrinsic, &kind->where) == FAILURE)
+    return FAILURE;
+
+  return SUCCESS;
+}
+
+
+gfc_try
+gfc_check_shift (gfc_expr *i, gfc_expr *shift)
+{
+  if (type_check (i, 0, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (type_check (shift, 0, BT_INTEGER) == FAILURE)
+    return FAILURE;
+
+  if (nonnegative_check ("SHIFT", shift) == FAILURE)
+    return FAILURE;
+
+  if (less_than_bitsize1 ("I", i, "SHIFT", shift, true) == FAILURE)
+    return FAILURE;
 
   return SUCCESS;
 }
@@ -3175,7 +3379,7 @@ gfc_check_sngl (gfc_expr *a)
     return FAILURE;
 
   if ((a->ts.kind != gfc_default_double_kind)
-      && gfc_notify_std (GFC_STD_GNU, "GNU extension: non double precision"
+      && gfc_notify_std (GFC_STD_GNU, "GNU extension: non double precision "
 			 "REAL argument to %s intrinsic at %L",
 			 gfc_current_intrinsic, &a->where) == FAILURE)
     return FAILURE;
@@ -3751,7 +3955,7 @@ gfc_check_cpu_time (gfc_expr *time)
   if (type_check (time, 0, BT_REAL) == FAILURE)
     return FAILURE;
 
-  if (variable_check (time, 0) == FAILURE)
+  if (variable_check (time, 0, false) == FAILURE)
     return FAILURE;
 
   return SUCCESS;
@@ -3770,7 +3974,7 @@ gfc_check_date_and_time (gfc_expr *date, gfc_expr *time,
 	return FAILURE;
       if (scalar_check (date, 0) == FAILURE)
 	return FAILURE;
-      if (variable_check (date, 0) == FAILURE)
+      if (variable_check (date, 0, false) == FAILURE)
 	return FAILURE;
     }
 
@@ -3782,7 +3986,7 @@ gfc_check_date_and_time (gfc_expr *date, gfc_expr *time,
 	return FAILURE;
       if (scalar_check (time, 1) == FAILURE)
 	return FAILURE;
-      if (variable_check (time, 1) == FAILURE)
+      if (variable_check (time, 1, false) == FAILURE)
 	return FAILURE;
     }
 
@@ -3794,7 +3998,7 @@ gfc_check_date_and_time (gfc_expr *date, gfc_expr *time,
 	return FAILURE;
       if (scalar_check (zone, 2) == FAILURE)
 	return FAILURE;
-      if (variable_check (zone, 2) == FAILURE)
+      if (variable_check (zone, 2, false) == FAILURE)
 	return FAILURE;
     }
 
@@ -3806,7 +4010,7 @@ gfc_check_date_and_time (gfc_expr *date, gfc_expr *time,
 	return FAILURE;
       if (rank_check (values, 3, 1) == FAILURE)
 	return FAILURE;
-      if (variable_check (values, 3) == FAILURE)
+      if (variable_check (values, 3, false) == FAILURE)
 	return FAILURE;
     }
 
@@ -3830,7 +4034,7 @@ gfc_check_mvbits (gfc_expr *from, gfc_expr *frompos, gfc_expr *len,
   if (same_type_check (from, 0, to, 3) == FAILURE)
     return FAILURE;
 
-  if (variable_check (to, 3) == FAILURE)
+  if (variable_check (to, 3, false) == FAILURE)
     return FAILURE;
 
   if (type_check (topos, 4, BT_INTEGER) == FAILURE)
@@ -3862,7 +4066,7 @@ gfc_check_random_number (gfc_expr *harvest)
   if (type_check (harvest, 0, BT_REAL) == FAILURE)
     return FAILURE;
 
-  if (variable_check (harvest, 0) == FAILURE)
+  if (variable_check (harvest, 0, false) == FAILURE)
     return FAILURE;
 
   return SUCCESS;
@@ -3895,7 +4099,7 @@ gfc_check_random_seed (gfc_expr *size, gfc_expr *put, gfc_expr *get)
       if (type_check (size, 0, BT_INTEGER) == FAILURE)
 	return FAILURE;
 
-      if (variable_check (size, 0) == FAILURE)
+      if (variable_check (size, 0, false) == FAILURE)
 	return FAILURE;
 
       if (kind_value_check (size, 0, gfc_default_integer_kind) == FAILURE)
@@ -3949,7 +4153,7 @@ gfc_check_random_seed (gfc_expr *size, gfc_expr *put, gfc_expr *get)
       if (type_check (get, 2, BT_INTEGER) == FAILURE)
 	return FAILURE;
 
-      if (variable_check (get, 2) == FAILURE)
+      if (variable_check (get, 2, false) == FAILURE)
 	return FAILURE;
 
       if (kind_value_check (get, 2, gfc_default_integer_kind) == FAILURE)
@@ -4002,7 +4206,7 @@ gfc_check_system_clock (gfc_expr *count, gfc_expr *count_rate,
       if (type_check (count, 0, BT_INTEGER) == FAILURE)
 	return FAILURE;
 
-      if (variable_check (count, 0) == FAILURE)
+      if (variable_check (count, 0, false) == FAILURE)
 	return FAILURE;
     }
 
@@ -4014,7 +4218,7 @@ gfc_check_system_clock (gfc_expr *count, gfc_expr *count_rate,
       if (type_check (count_rate, 1, BT_INTEGER) == FAILURE)
 	return FAILURE;
 
-      if (variable_check (count_rate, 1) == FAILURE)
+      if (variable_check (count_rate, 1, false) == FAILURE)
 	return FAILURE;
 
       if (count != NULL
@@ -4031,7 +4235,7 @@ gfc_check_system_clock (gfc_expr *count, gfc_expr *count_rate,
       if (type_check (count_max, 2, BT_INTEGER) == FAILURE)
 	return FAILURE;
 
-      if (variable_check (count_max, 2) == FAILURE)
+      if (variable_check (count_max, 2, false) == FAILURE)
 	return FAILURE;
 
       if (count != NULL
@@ -4154,7 +4358,7 @@ gfc_check_dtime_etime (gfc_expr *x)
   if (rank_check (x, 0, 1) == FAILURE)
     return FAILURE;
 
-  if (variable_check (x, 0) == FAILURE)
+  if (variable_check (x, 0, false) == FAILURE)
     return FAILURE;
 
   if (type_check (x, 0, BT_REAL) == FAILURE)
@@ -4176,7 +4380,7 @@ gfc_check_dtime_etime_sub (gfc_expr *values, gfc_expr *time)
   if (rank_check (values, 0, 1) == FAILURE)
     return FAILURE;
 
-  if (variable_check (values, 0) == FAILURE)
+  if (variable_check (values, 0, false) == FAILURE)
     return FAILURE;
 
   if (type_check (values, 0, BT_REAL) == FAILURE)
@@ -4366,7 +4570,7 @@ gfc_check_itime_idate (gfc_expr *values)
   if (rank_check (values, 0, 1) == FAILURE)
     return FAILURE;
 
-  if (variable_check (values, 0) == FAILURE)
+  if (variable_check (values, 0, false) == FAILURE)
     return FAILURE;
 
   if (type_check (values, 0, BT_INTEGER) == FAILURE)
@@ -4397,7 +4601,7 @@ gfc_check_ltime_gmtime (gfc_expr *time, gfc_expr *values)
   if (rank_check (values, 1, 1) == FAILURE)
     return FAILURE;
 
-  if (variable_check (values, 1) == FAILURE)
+  if (variable_check (values, 1, false) == FAILURE)
     return FAILURE;
 
   if (type_check (values, 1, BT_INTEGER) == FAILURE)

@@ -24,9 +24,9 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file ios_base.h
+/** @file bits/ios_base.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{ios}
  */
 
 //
@@ -42,7 +42,9 @@
 #include <bits/localefwd.h>
 #include <bits/locale_classes.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   // The following definitions of bitmask types are enums, not ints,
   // as permitted (but not required) in the standard, in order to provide
@@ -71,33 +73,33 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _S_ios_fmtflags_end = 1L << 16 
     };
 
-  inline _Ios_Fmtflags
+  inline _GLIBCXX_CONSTEXPR _Ios_Fmtflags
   operator&(_Ios_Fmtflags __a, _Ios_Fmtflags __b)
   { return _Ios_Fmtflags(static_cast<int>(__a) & static_cast<int>(__b)); }
 
-  inline _Ios_Fmtflags
+  inline _GLIBCXX_CONSTEXPR _Ios_Fmtflags
   operator|(_Ios_Fmtflags __a, _Ios_Fmtflags __b)
   { return _Ios_Fmtflags(static_cast<int>(__a) | static_cast<int>(__b)); }
 
-  inline _Ios_Fmtflags
+  inline _GLIBCXX_CONSTEXPR _Ios_Fmtflags
   operator^(_Ios_Fmtflags __a, _Ios_Fmtflags __b)
   { return _Ios_Fmtflags(static_cast<int>(__a) ^ static_cast<int>(__b)); }
 
-  inline _Ios_Fmtflags&
+  inline _GLIBCXX_CONSTEXPR _Ios_Fmtflags
+  operator~(_Ios_Fmtflags __a)
+  { return _Ios_Fmtflags(~static_cast<int>(__a)); }
+
+  inline const _Ios_Fmtflags&
   operator|=(_Ios_Fmtflags& __a, _Ios_Fmtflags __b)
   { return __a = __a | __b; }
 
-  inline _Ios_Fmtflags&
+  inline const _Ios_Fmtflags&
   operator&=(_Ios_Fmtflags& __a, _Ios_Fmtflags __b)
   { return __a = __a & __b; }
 
-  inline _Ios_Fmtflags&
+  inline const _Ios_Fmtflags&
   operator^=(_Ios_Fmtflags& __a, _Ios_Fmtflags __b)
   { return __a = __a ^ __b; }
-
-  inline _Ios_Fmtflags
-  operator~(_Ios_Fmtflags __a)
-  { return _Ios_Fmtflags(~static_cast<int>(__a)); }
 
 
   enum _Ios_Openmode 
@@ -111,33 +113,33 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _S_ios_openmode_end = 1L << 16 
     };
 
-  inline _Ios_Openmode
+  inline _GLIBCXX_CONSTEXPR _Ios_Openmode
   operator&(_Ios_Openmode __a, _Ios_Openmode __b)
   { return _Ios_Openmode(static_cast<int>(__a) & static_cast<int>(__b)); }
 
-  inline _Ios_Openmode
+  inline _GLIBCXX_CONSTEXPR _Ios_Openmode
   operator|(_Ios_Openmode __a, _Ios_Openmode __b)
   { return _Ios_Openmode(static_cast<int>(__a) | static_cast<int>(__b)); }
 
-  inline _Ios_Openmode
+  inline _GLIBCXX_CONSTEXPR _Ios_Openmode
   operator^(_Ios_Openmode __a, _Ios_Openmode __b)
   { return _Ios_Openmode(static_cast<int>(__a) ^ static_cast<int>(__b)); }
 
-  inline _Ios_Openmode&
+  inline _GLIBCXX_CONSTEXPR _Ios_Openmode
+  operator~(_Ios_Openmode __a)
+  { return _Ios_Openmode(~static_cast<int>(__a)); }
+
+  inline const _Ios_Openmode&
   operator|=(_Ios_Openmode& __a, _Ios_Openmode __b)
   { return __a = __a | __b; }
 
-  inline _Ios_Openmode&
+  inline const _Ios_Openmode&
   operator&=(_Ios_Openmode& __a, _Ios_Openmode __b)
   { return __a = __a & __b; }
 
-  inline _Ios_Openmode&
+  inline const _Ios_Openmode&
   operator^=(_Ios_Openmode& __a, _Ios_Openmode __b)
   { return __a = __a ^ __b; }
-
-  inline _Ios_Openmode
-  operator~(_Ios_Openmode __a)
-  { return _Ios_Openmode(~static_cast<int>(__a)); }
 
 
   enum _Ios_Iostate
@@ -149,33 +151,34 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       _S_ios_iostate_end = 1L << 16 
     };
 
-  inline _Ios_Iostate
+  inline _GLIBCXX_CONSTEXPR _Ios_Iostate
   operator&(_Ios_Iostate __a, _Ios_Iostate __b)
   { return _Ios_Iostate(static_cast<int>(__a) & static_cast<int>(__b)); }
 
-  inline _Ios_Iostate
+  inline _GLIBCXX_CONSTEXPR _Ios_Iostate
   operator|(_Ios_Iostate __a, _Ios_Iostate __b)
   { return _Ios_Iostate(static_cast<int>(__a) | static_cast<int>(__b)); }
 
-  inline _Ios_Iostate
+  inline _GLIBCXX_CONSTEXPR _Ios_Iostate
   operator^(_Ios_Iostate __a, _Ios_Iostate __b)
   { return _Ios_Iostate(static_cast<int>(__a) ^ static_cast<int>(__b)); }
 
-  inline _Ios_Iostate&
+  inline _GLIBCXX_CONSTEXPR _Ios_Iostate
+  operator~(_Ios_Iostate __a)
+  { return _Ios_Iostate(~static_cast<int>(__a)); }
+
+  inline const _Ios_Iostate&
   operator|=(_Ios_Iostate& __a, _Ios_Iostate __b)
   { return __a = __a | __b; }
 
-  inline _Ios_Iostate&
+  inline const _Ios_Iostate&
   operator&=(_Ios_Iostate& __a, _Ios_Iostate __b)
   { return __a = __a & __b; }
 
-  inline _Ios_Iostate&
+  inline const  _Ios_Iostate&
   operator^=(_Ios_Iostate& __a, _Ios_Iostate __b)
   { return __a = __a ^ __b; }
 
-  inline _Ios_Iostate
-  operator~(_Ios_Iostate __a)
-  { return _Ios_Iostate(~static_cast<int>(__a)); }
 
   enum _Ios_Seekdir 
     { 
@@ -968,6 +971,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     return __base;
   }
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif /* _IOS_BASE_H */

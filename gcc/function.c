@@ -1,7 +1,7 @@
 /* Expands front end tree to back end RTL for GCC.
    Copyright (C) 1987, 1988, 1989, 1991, 1992, 1993, 1994, 1995, 1996, 1997,
    1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010  Free Software Foundation, Inc.
+   2010, 2011  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -356,14 +356,17 @@ add_frame_space (HOST_WIDE_INT start, HOST_WIDE_INT end)
    -2 means use BITS_PER_UNIT,
    positive specifies alignment boundary in bits.
 
-   If REDUCE_ALIGNMENT_OK is true, it is OK to reduce alignment.
+   KIND has ASLK_REDUCE_ALIGN bit set if it is OK to reduce
+   alignment and ASLK_RECORD_PAD bit set if we should remember
+   extra space we allocated for alignment purposes.  When we are
+   called from assign_stack_temp_for_type, it is not set so we don't
+   track the same stack slot in two independent lists.
 
    We do not round to stack_boundary here.  */
 
 rtx
 assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size,
-		      int align,
-		      bool reduce_alignment_ok ATTRIBUTE_UNUSED)
+		      int align, int kind)
 {
   rtx x, addr;
   int bigend_correction = 0;
@@ -413,7 +416,7 @@ assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size,
 		  /* It is OK to reduce the alignment as long as the
 		     requested size is 0 or the estimated stack
 		     alignment >= mode alignment.  */
-		  gcc_assert (reduce_alignment_ok
+		  gcc_assert ((kind & ASLK_REDUCE_ALIGN)
 		              || size == 0
 			      || (crtl->stack_alignment_estimated
 				  >= GET_MODE_ALIGNMENT (mode)));
@@ -431,21 +434,24 @@ assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size,
 
   if (mode != BLKmode || size != 0)
     {
-      struct frame_space **psp;
-
-      for (psp = &crtl->frame_space_list; *psp; psp = &(*psp)->next)
+      if (kind & ASLK_RECORD_PAD)
 	{
-	  struct frame_space *space = *psp;
-	  if (!try_fit_stack_local (space->start, space->length, size,
-				    alignment, &slot_offset))
-	    continue;
-	  *psp = space->next;
-	  if (slot_offset > space->start)
-	    add_frame_space (space->start, slot_offset);
-	  if (slot_offset + size < space->start + space->length)
-	    add_frame_space (slot_offset + size,
-			     space->start + space->length);
-	  goto found_space;
+	  struct frame_space **psp;
+
+	  for (psp = &crtl->frame_space_list; *psp; psp = &(*psp)->next)
+	    {
+	      struct frame_space *space = *psp;
+	      if (!try_fit_stack_local (space->start, space->length, size,
+					alignment, &slot_offset))
+		continue;
+	      *psp = space->next;
+	      if (slot_offset > space->start)
+		add_frame_space (space->start, slot_offset);
+	      if (slot_offset + size < space->start + space->length)
+		add_frame_space (slot_offset + size,
+				 space->start + space->length);
+	      goto found_space;
+	    }
 	}
     }
   else if (!STACK_ALIGNMENT_NEEDED)
@@ -461,20 +467,26 @@ assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size,
       frame_offset -= size;
       try_fit_stack_local (frame_offset, size, size, alignment, &slot_offset);
 
-      if (slot_offset > frame_offset)
-	add_frame_space (frame_offset, slot_offset);
-      if (slot_offset + size < old_frame_offset)
-	add_frame_space (slot_offset + size, old_frame_offset);
+      if (kind & ASLK_RECORD_PAD)
+	{
+	  if (slot_offset > frame_offset)
+	    add_frame_space (frame_offset, slot_offset);
+	  if (slot_offset + size < old_frame_offset)
+	    add_frame_space (slot_offset + size, old_frame_offset);
+	}
     }
   else
     {
       frame_offset += size;
       try_fit_stack_local (old_frame_offset, size, size, alignment, &slot_offset);
 
-      if (slot_offset > old_frame_offset)
-	add_frame_space (old_frame_offset, slot_offset);
-      if (slot_offset + size < frame_offset)
-	add_frame_space (slot_offset + size, frame_offset);
+      if (kind & ASLK_RECORD_PAD)
+	{
+	  if (slot_offset > old_frame_offset)
+	    add_frame_space (old_frame_offset, slot_offset);
+	  if (slot_offset + size < frame_offset)
+	    add_frame_space (slot_offset + size, frame_offset);
+	}
     }
 
  found_space:
@@ -514,7 +526,7 @@ assign_stack_local_1 (enum machine_mode mode, HOST_WIDE_INT size,
 rtx
 assign_stack_local (enum machine_mode mode, HOST_WIDE_INT size, int align)
 {
-  return assign_stack_local_1 (mode, size, align, false);
+  return assign_stack_local_1 (mode, size, align, ASLK_RECORD_PAD);
 }
 
 
@@ -869,11 +881,13 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
 	 and round it now.  We also make sure ALIGNMENT is at least
 	 BIGGEST_ALIGNMENT.  */
       gcc_assert (mode != BLKmode || align == BIGGEST_ALIGNMENT);
-      p->slot = assign_stack_local (mode,
-				    (mode == BLKmode
-				     ? CEIL_ROUND (size, (int) align / BITS_PER_UNIT)
-				     : size),
-				    align);
+      p->slot = assign_stack_local_1 (mode,
+				      (mode == BLKmode
+				       ? CEIL_ROUND (size,
+						     (int) align
+						     / BITS_PER_UNIT)
+				       : size),
+				      align, 0);
 
       p->align = align;
 
@@ -929,8 +943,11 @@ assign_stack_temp_for_type (enum machine_mode mode, HOST_WIDE_INT size,
   if (type != 0)
     {
       MEM_VOLATILE_P (slot) = TYPE_VOLATILE (type);
-      MEM_SET_IN_STRUCT_P (slot, (AGGREGATE_TYPE_P (type)
-				  || TREE_CODE (type) == COMPLEX_TYPE));
+      gcc_checking_assert (!MEM_SCALAR_P (slot) && !MEM_IN_STRUCT_P (slot));
+      if (AGGREGATE_TYPE_P (type) || TREE_CODE (type) == COMPLEX_TYPE)
+	MEM_IN_STRUCT_P (slot) = 1;
+      else
+	MEM_SCALAR_P (slot) = 1;
     }
   MEM_NOTRAP_P (slot) = 1;
 
@@ -1406,6 +1423,11 @@ instantiate_new_reg (rtx x, HOST_WIDE_INT *poffset)
 #endif
       offset = cfa_offset;
     }
+  else if (x == virtual_preferred_stack_boundary_rtx)
+    {
+      new_rtx = GEN_INT (crtl->preferred_stack_boundary / BITS_PER_UNIT);
+      offset = 0;
+    }
   else
     return NULL_RTX;
 
@@ -1780,8 +1802,21 @@ instantiate_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
   if (! EXPR_P (t))
     {
       *walk_subtrees = 0;
-      if (DECL_P (t) && DECL_RTL_SET_P (t))
-	instantiate_decl_rtl (DECL_RTL (t));
+      if (DECL_P (t))
+	{
+	  if (DECL_RTL_SET_P (t))
+	    instantiate_decl_rtl (DECL_RTL (t));
+	  if (TREE_CODE (t) == PARM_DECL && DECL_NAMELESS (t)
+	      && DECL_INCOMING_RTL (t))
+	    instantiate_decl_rtl (DECL_INCOMING_RTL (t));
+	  if ((TREE_CODE (t) == VAR_DECL
+	       || TREE_CODE (t) == RESULT_DECL)
+	      && DECL_HAS_VALUE_EXPR_P (t))
+	    {
+	      tree v = DECL_VALUE_EXPR (t);
+	      walk_tree (&v, instantiate_expr, NULL, NULL);
+	    }
+	}
     }
   return NULL;
 }
@@ -1824,6 +1859,18 @@ instantiate_decls (tree fndecl)
     {
       instantiate_decl_rtl (DECL_RTL (decl));
       instantiate_decl_rtl (DECL_INCOMING_RTL (decl));
+      if (DECL_HAS_VALUE_EXPR_P (decl))
+	{
+	  tree v = DECL_VALUE_EXPR (decl);
+	  walk_tree (&v, instantiate_expr, NULL, NULL);
+	}
+    }
+
+  if ((decl = DECL_RESULT (fndecl))
+      && TREE_CODE (decl) == RESULT_DECL)
+    {
+      if (DECL_RTL_SET_P (decl))
+	instantiate_decl_rtl (DECL_RTL (decl));
       if (DECL_HAS_VALUE_EXPR_P (decl))
 	{
 	  tree v = DECL_VALUE_EXPR (decl);
@@ -2249,10 +2296,11 @@ assign_parms_augmented_arg_list (struct assign_parm_data_all *all)
       tree decl;
 
       decl = build_decl (DECL_SOURCE_LOCATION (fndecl),
-			 PARM_DECL, NULL_TREE, type);
+			 PARM_DECL, get_identifier (".result_ptr"), type);
       DECL_ARG_TYPE (decl) = type;
       DECL_ARTIFICIAL (decl) = 1;
-      DECL_IGNORED_P (decl) = 1;
+      DECL_NAMELESS (decl) = 1;
+      TREE_CONSTANT (decl) = 1;
 
       DECL_CHAIN (decl) = all->orig_fnargs;
       all->orig_fnargs = decl;
@@ -2561,7 +2609,7 @@ assign_parm_find_stack_rtl (tree parm, struct assign_parm_data_one *data)
   align = BITS_PER_UNIT;
 
   /* If we're padding upward, we know that the alignment of the slot
-     is FUNCTION_ARG_BOUNDARY.  If we're using slot_offset, we're
+     is TARGET_FUNCTION_ARG_BOUNDARY.  If we're using slot_offset, we're
      intentionally forcing upward padding.  Otherwise we have to come
      up with a guess at the alignment based on OFFSET_RTX.  */
   if (data->locate.where_pad != downward || data->entry_parm)
@@ -3326,8 +3374,9 @@ assign_parms (tree fndecl)
       /* Estimate stack alignment from parameter alignment.  */
       if (SUPPORTS_STACK_ALIGNMENT)
         {
-          unsigned int align = FUNCTION_ARG_BOUNDARY (data.promoted_mode,
-						      data.passed_type);
+          unsigned int align
+	    = targetm.calls.function_arg_boundary (data.promoted_mode,
+						   data.passed_type);
 	  align = MINIMUM_ALIGNMENT (data.passed_type, data.promoted_mode,
 				     align);
 	  if (TYPE_ALIGN (data.nominal_type) > align)
@@ -3413,13 +3462,22 @@ assign_parms (tree fndecl)
       rtx x;
 
       if (DECL_BY_REFERENCE (result))
-	x = addr;
+	{
+	  SET_DECL_VALUE_EXPR (result, all.function_result_decl);
+	  x = addr;
+	}
       else
 	{
+	  SET_DECL_VALUE_EXPR (result,
+			       build1 (INDIRECT_REF, TREE_TYPE (result),
+				       all.function_result_decl));
 	  addr = convert_memory_address (Pmode, addr);
 	  x = gen_rtx_MEM (DECL_MODE (result), addr);
 	  set_mem_attributes (x, result, 1);
 	}
+
+      DECL_HAS_VALUE_EXPR_P (result) = 1;
+
       SET_DECL_RTL (result, x);
     }
 
@@ -3579,7 +3637,7 @@ gimplify_parameters (void)
 		       && compare_tree_int (DECL_SIZE_UNIT (parm),
 					    STACK_CHECK_MAX_VAR_SIZE) > 0))
 		{
-		  local = create_tmp_var (type, get_name (parm));
+		  local = create_tmp_reg (type, get_name (parm));
 		  DECL_IGNORED_P (local) = 0;
 		  /* If PARM was addressable, move that flag over
 		     to the local copy, as its address will be taken,
@@ -3593,7 +3651,7 @@ gimplify_parameters (void)
 		  tree ptr_type, addr;
 
 		  ptr_type = build_pointer_type (type);
-		  addr = create_tmp_var (ptr_type, get_name (parm));
+		  addr = create_tmp_reg (ptr_type, get_name (parm));
 		  DECL_IGNORED_P (addr) = 0;
 		  local = build_fold_indirect_ref (addr);
 
@@ -3637,9 +3695,10 @@ gimplify_parameters (void)
    FNDECL is the function in which the argument was defined.
 
    There are two types of rounding that are done.  The first, controlled by
-   FUNCTION_ARG_BOUNDARY, forces the offset from the start of the argument
-   list to be aligned to the specific boundary (in bits).  This rounding
-   affects the initial and starting offsets, but not the argument size.
+   TARGET_FUNCTION_ARG_BOUNDARY, forces the offset from the start of the
+   argument list to be aligned to the specific boundary (in bits).  This
+   rounding affects the initial and starting offsets, but not the argument
+   size.
 
    The second, controlled by FUNCTION_ARG_PADDING and PARM_BOUNDARY,
    optionally rounds the size of the parm to PARM_BOUNDARY.  The
@@ -3690,7 +3749,7 @@ locate_and_pad_parm (enum machine_mode passed_mode, tree type, int in_regs,
   sizetree
     = type ? size_in_bytes (type) : size_int (GET_MODE_SIZE (passed_mode));
   where_pad = FUNCTION_ARG_PADDING (passed_mode, type);
-  boundary = FUNCTION_ARG_BOUNDARY (passed_mode, type);
+  boundary = targetm.calls.function_arg_boundary (passed_mode, type);
   locate->where_pad = where_pad;
 
   /* Alignment can't exceed MAX_SUPPORTED_STACK_ALIGNMENT.  */
@@ -4250,7 +4309,7 @@ invoke_set_current_function_hook (tree fndecl)
       if (optimization_current_node != opts)
 	{
 	  optimization_current_node = opts;
-	  cl_optimization_restore (TREE_OPTIMIZATION (opts));
+	  cl_optimization_restore (&global_options, TREE_OPTIMIZATION (opts));
 	}
 
       targetm.set_current_function (fndecl);
@@ -4890,6 +4949,7 @@ expand_function_end (void)
 	      probe_stack_range (STACK_OLD_CHECK_PROTECT, max_frame_size);
 	    seq = get_insns ();
 	    end_sequence ();
+	    set_insn_locators (seq, prologue_locator);
 	    emit_insn_before (seq, stack_check_probe_note);
 	    break;
 	  }
@@ -4920,7 +4980,7 @@ expand_function_end (void)
   /* Output the label for the actual return from the function.  */
   emit_label (return_label);
 
-  if (USING_SJLJ_EXCEPTIONS)
+  if (targetm.except_unwind_info (&global_options) == UI_SJLJ)
     {
       /* Let except.c know where it should emit the call to unregister
 	 the function context for sjlj exceptions.  */
@@ -5078,7 +5138,8 @@ expand_function_end (void)
   /* @@@ This is a kludge.  We want to ensure that instructions that
      may trap are not moved into the epilogue by scheduling, because
      we don't always emit unwind information for the epilogue.  */
-  if (!USING_SJLJ_EXCEPTIONS && cfun->can_throw_non_call_exceptions)
+  if (cfun->can_throw_non_call_exceptions
+      && targetm.except_unwind_info (&global_options) != UI_SJLJ)
     emit_insn (gen_blockage ());
 
   /* If stack protection is enabled for this function, check the guard.  */
@@ -5091,10 +5152,15 @@ expand_function_end (void)
   if (! EXIT_IGNORE_STACK
       && cfun->calls_alloca)
     {
-      rtx tem = 0;
+      rtx tem = 0, seq;
 
-      emit_stack_save (SAVE_FUNCTION, &tem, parm_birth_insn);
-      emit_stack_restore (SAVE_FUNCTION, tem, NULL_RTX);
+      start_sequence ();
+      emit_stack_save (SAVE_FUNCTION, &tem);
+      seq = get_insns ();
+      end_sequence ();
+      emit_insn_before (seq, parm_birth_insn);
+
+      emit_stack_restore (SAVE_FUNCTION, tem);
     }
 
   /* ??? This should no longer be necessary since stupid is no longer with
@@ -5131,6 +5197,8 @@ get_arg_pointer_save_area (void)
       push_topmost_sequence ();
       emit_insn_after (seq, entry_of_function ());
       pop_topmost_sequence ();
+
+      crtl->arg_pointer_save_area_init = true;
     }
 
   return ret;
@@ -5157,19 +5225,25 @@ record_insns (rtx insns, rtx end, htab_t *hashp)
     }
 }
 
-/* INSN has been duplicated as COPY, as part of duping a basic block.
-   If INSN is an epilogue insn, then record COPY as epilogue as well.  */
+/* INSN has been duplicated or replaced by as COPY, perhaps by duplicating a
+   basic block, splitting or peepholes.  If INSN is a prologue or epilogue
+   insn, then record COPY as well.  */
 
 void
-maybe_copy_epilogue_insn (rtx insn, rtx copy)
+maybe_copy_prologue_epilogue_insn (rtx insn, rtx copy)
 {
+  htab_t hash;
   void **slot;
 
-  if (epilogue_insn_hash == NULL
-      || htab_find (epilogue_insn_hash, insn) == NULL)
-    return;
+  hash = epilogue_insn_hash;
+  if (!hash || !htab_find (hash, insn))
+    {
+      hash = prologue_insn_hash;
+      if (!hash || !htab_find (hash, insn))
+	return;
+    }
 
-  slot = htab_find_slot (epilogue_insn_hash, copy, INSERT);
+  slot = htab_find_slot (hash, copy, INSERT);
   gcc_assert (*slot == NULL);
   *slot = copy;
 }
@@ -5235,17 +5309,50 @@ emit_return_into_block (basic_block bb)
 static void
 thread_prologue_and_epilogue_insns (void)
 {
-  int inserted = 0;
+  bool inserted;
+  rtx seq ATTRIBUTE_UNUSED, epilogue_end ATTRIBUTE_UNUSED;
+  edge entry_edge ATTRIBUTE_UNUSED;
   edge e;
-#if defined (HAVE_sibcall_epilogue) || defined (HAVE_epilogue) || defined (HAVE_return) || defined (HAVE_prologue)
-  rtx seq;
-#endif
-#if defined (HAVE_epilogue) || defined(HAVE_return)
-  rtx epilogue_end = NULL_RTX;
-#endif
   edge_iterator ei;
 
   rtl_profile_for_bb (ENTRY_BLOCK_PTR);
+
+  inserted = false;
+  seq = NULL_RTX;
+  epilogue_end = NULL_RTX;
+
+  /* Can't deal with multiple successors of the entry block at the
+     moment.  Function should always have at least one entry
+     point.  */
+  gcc_assert (single_succ_p (ENTRY_BLOCK_PTR));
+  entry_edge = single_succ_edge (ENTRY_BLOCK_PTR);
+
+  if (flag_split_stack
+      && (lookup_attribute ("no_split_stack", DECL_ATTRIBUTES (cfun->decl))
+	  == NULL))
+    {
+#ifndef HAVE_split_stack_prologue
+      gcc_unreachable ();
+#else
+      gcc_assert (HAVE_split_stack_prologue);
+
+      start_sequence ();
+      emit_insn (gen_split_stack_prologue ());
+      seq = get_insns ();
+      end_sequence ();
+
+      record_insns (seq, NULL, &prologue_insn_hash);
+      set_insn_locators (seq, prologue_locator);
+
+      /* This relies on the fact that committing the edge insertion
+	 will look for basic blocks within the inserted instructions,
+	 which in turn relies on the fact that we are not in CFG
+	 layout mode here.  */
+      insert_insn_on_edge (seq, entry_edge);
+      inserted = true;
+#endif
+    }
+
 #ifdef HAVE_prologue
   if (HAVE_prologue)
     {
@@ -5272,13 +5379,8 @@ thread_prologue_and_epilogue_insns (void)
       end_sequence ();
       set_insn_locators (seq, prologue_locator);
 
-      /* Can't deal with multiple successors of the entry block
-         at the moment.  Function should always have at least one
-         entry point.  */
-      gcc_assert (single_succ_p (ENTRY_BLOCK_PTR));
-
-      insert_insn_on_edge (seq, single_succ_edge (ENTRY_BLOCK_PTR));
-      inserted = 1;
+      insert_insn_on_edge (seq, entry_edge);
+      inserted = true;
     }
 #endif
 
@@ -5303,9 +5405,7 @@ thread_prologue_and_epilogue_insns (void)
       basic_block last;
       rtx label;
 
-      FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
-	if (e->flags & EDGE_FALLTHRU)
-	  break;
+      e = find_fallthru_edge (EXIT_BLOCK_PTR->preds);
       if (e == NULL)
 	goto epilogue_done;
       last = e->src;
@@ -5426,9 +5526,7 @@ thread_prologue_and_epilogue_insns (void)
      There really shouldn't be a mixture -- either all should have
      been converted or none, however...  */
 
-  FOR_EACH_EDGE (e, ei, EXIT_BLOCK_PTR->preds)
-    if (e->flags & EDGE_FALLTHRU)
-      break;
+  e = find_fallthru_edge (EXIT_BLOCK_PTR->preds);
   if (e == NULL)
     goto epilogue_done;
 
@@ -5438,7 +5536,8 @@ thread_prologue_and_epilogue_insns (void)
       start_sequence ();
       epilogue_end = emit_note (NOTE_INSN_EPILOGUE_BEG);
       seq = gen_epilogue ();
-      emit_jump_insn (seq);
+      if (seq)
+	emit_jump_insn (seq);
 
       /* Retain a map of the epilogue insns.  */
       record_insns (seq, NULL, &epilogue_insn_hash);
@@ -5448,7 +5547,7 @@ thread_prologue_and_epilogue_insns (void)
       end_sequence ();
 
       insert_insn_on_edge (seq, e);
-      inserted = 1;
+      inserted = true;
     }
   else
 #endif
@@ -5699,6 +5798,8 @@ used_types_insert (tree t)
       break;
     else
       t = TREE_TYPE (t);
+  if (TREE_CODE (t) == ERROR_MARK)
+    return;
   if (TYPE_NAME (t) == NULL_TREE
       || TYPE_NAME (t) == TYPE_NAME (TYPE_MAIN_VARIANT (t)))
     t = TYPE_MAIN_VARIANT (t);

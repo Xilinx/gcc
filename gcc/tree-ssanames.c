@@ -1,5 +1,5 @@
 /* Generic routines for manipulating SSA_NAME expressions
-   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -338,9 +338,9 @@ release_dead_ssa_names (void)
   int n = 0;
   referenced_var_iterator rvi;
 
-  /* Current defs point to various dead SSA names that in turn points to dead
-     statements so bunch of dead memory is held from releasing.  */
-  FOR_EACH_REFERENCED_VAR (t, rvi)
+  /* Current defs point to various dead SSA names that in turn point to
+     eventually dead variables so a bunch of memory is held live.  */
+  FOR_EACH_REFERENCED_VAR (cfun, t, rvi)
     set_current_def (t, NULL);
   /* Now release the freelist.  */
   for (t = FREE_SSANAMES (cfun); t; t = next)
@@ -356,12 +356,10 @@ release_dead_ssa_names (void)
     }
   FREE_SSANAMES (cfun) = NULL;
 
-  /* Cgraph edges has been invalidated and point to dead statement.  We need to
-     remove them now and will rebuild it before next IPA pass.  */
-  cgraph_node_remove_callees (cgraph_node (current_function_decl));
-
+  statistics_counter_event (cfun, "SSA names released", n);
   if (dump_file)
-    fprintf (dump_file, "Released %i names, %.2f%%\n", n, n * 100.0 / num_ssa_names);
+    fprintf (dump_file, "Released %i names, %.2f%%\n",
+	     n, n * 100.0 / num_ssa_names);
   return 0;
 }
 
@@ -375,7 +373,7 @@ struct gimple_opt_pass pass_release_ssa_names =
   NULL,					/* sub */
   NULL,					/* next */
   0,					/* static_pass_number */
-  TV_NONE,				/* tv_id */
+  TV_TREE_SSA_OTHER,			/* tv_id */
   PROP_ssa,				/* properties_required */
   0,					/* properties_provided */
   0,					/* properties_destroyed */

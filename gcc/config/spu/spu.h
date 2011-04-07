@@ -20,16 +20,9 @@
 
 #define TARGET_VERSION fprintf (stderr, " (spu %s)", __DATE__);
 
-#define OVERRIDE_OPTIONS spu_override_options()
 #define C_COMMON_OVERRIDE_OPTIONS spu_c_common_override_options()
 
-#define OPTIMIZATION_OPTIONS(level,size) \
-	  spu_optimization_options(level,size)
-
 #define INIT_EXPANDERS spu_init_expanders()
-
-extern int target_flags;
-extern const char *spu_fixed_range_string;
 
 /* Which processor to generate code or schedule for.  */
 enum processor_type
@@ -72,9 +65,16 @@ extern GTY(()) int spu_tune;
 
 #define UNITS_PER_WORD (BITS_PER_WORD/BITS_PER_UNIT)
 
-/* We never actually change UNITS_PER_WORD, but defining this causes
-   libgcc to use some different sizes of types when compiling. */
-#define MIN_UNITS_PER_WORD 4
+/* When building libgcc, we need to assume 4 words per units even
+   though UNITS_PER_WORD is 16, because the SPU has basically a 32-bit
+   instruction set although register size is 128 bits.  In particular,
+   this causes libgcc to contain __divdi3 instead of __divti3 etc.
+   However, we allow this default to be re-defined on the command
+   line, so that we can use the LIB2_SIDITI_CONV_FUNCS mechanism
+   to get (in addition) TImode versions of some routines.  */
+#ifndef LIBGCC2_UNITS_PER_WORD
+#define LIBGCC2_UNITS_PER_WORD 4
+#endif
 
 #define POINTER_SIZE 32
 
@@ -174,9 +174,6 @@ extern GTY(()) int spu_tune;
     1, 1, 1 \
 }
 
-#define CONDITIONAL_REGISTER_USAGE \
-	spu_conditional_register_usage()
-
 
 /* Values in Registers */
 
@@ -231,8 +228,6 @@ enum reg_class {
 	((!(STRICT) || REGNO_OK_FOR_INDEX_P (REGNO (X))))
 #define INT_REG_OK_FOR_BASE_P(X,STRICT) \
 	((!(STRICT) || REGNO_OK_FOR_BASE_P (REGNO (X))))
-
-#define PREFERRED_RELOAD_CLASS(X,CLASS)  (CLASS)
 
 #define CLASS_MAX_NREGS(CLASS, MODE)	\
 	((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD)
@@ -337,21 +332,10 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 /* Register Arguments */
 
-#define FUNCTION_ARG(CUM, MODE, TYPE, NAMED) \
-        (spu_function_arg((CUM),(MODE),(TYPE),(NAMED)))
-
 #define CUMULATIVE_ARGS int
 
 #define INIT_CUMULATIVE_ARGS(CUM,FNTYPE,LIBNAME,FNDECL,N_NAMED_ARGS) \
 		((CUM) = 0)
-
-#define FUNCTION_ARG_ADVANCE(CUM, MODE, TYPE, NAMED)	\
-        ((CUM) += \
-	 (TYPE) && TREE_CODE (TYPE_SIZE (TYPE)) != INTEGER_CST ? 1 \
-	 : (MODE) == BLKmode ? ((int_size_in_bytes(TYPE)+15) / 16) \
-         : (MODE) == VOIDmode ? 1 \
-	 : HARD_REGNO_NREGS(CUM,MODE))
-
 
 /* The SPU ABI wants 32/64-bit types at offset 0 in the quad-word on the
    stack.  8/16-bit types should be at offsets 3/2 respectively.  */
@@ -422,7 +406,7 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 #define SLOW_BYTE_ACCESS 0
 
-#define MOVE_RATIO(speed) 32
+#define MOVE_RATIO(speed) ((speed)? 32 : 4)
 
 #define NO_FUNCTION_CSE
 
@@ -500,6 +484,8 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 
 #define USER_LABEL_PREFIX ""
 
+#define ASM_COMMENT_START "#"
+
 
 /* Dispatch Tables */
 
@@ -531,8 +517,6 @@ targetm.resolve_overloaded_builtin = spu_resolve_overloaded_builtin;	\
 #define FUNCTION_MODE QImode
 
 #define NO_IMPLICIT_EXTERN_C 1
-
-#define HANDLE_PRAGMA_PACK_PUSH_POP 1
 
 /* Canonicalize a comparison from one we don't have to one we do have.  */
 #define CANONICALIZE_COMPARISON(CODE,OP0,OP1) \

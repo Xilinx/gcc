@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.  IRIX 6.5 version.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -37,6 +37,9 @@ along with GCC; see the file COPYING3.  If not see
   "%{!mabi=*: -mabi=n32}", 			\
   /* Configuration-independent MIPS rules.  */	\
   BASE_DRIVER_SELF_SPECS
+
+/* IRIX 6.5 has the float and long double forms of math functions.  */
+#define TARGET_C99_FUNCTIONS 1
 
 /* MIPS specific debugging info */
 #define MIPS_DEBUGGING_INFO 1
@@ -145,10 +148,6 @@ along with GCC; see the file COPYING3.  If not see
 /* Plain char is unsigned in the SGI compiler.  */
 #undef DEFAULT_SIGNED_CHAR
 #define DEFAULT_SIGNED_CHAR 0
-
-#define WORD_SWITCH_TAKES_ARG(STR)			\
-  (DEFAULT_WORD_SWITCH_TAKES_ARG (STR)			\
-   || strcmp (STR, "rpath") == 0)
 
 #define TARGET_OS_CPP_BUILTINS()				\
   do								\
@@ -314,6 +313,11 @@ along with GCC; see the file COPYING3.  If not see
 /* A linker error can empirically be avoided by removing duplicate
    library search directories.  */
 #define LINK_ELIMINATE_DUPLICATE_LDIRECTORIES 1
+
+/* The SGI linker doesn't understand constructor priorities.  */
+#ifndef IRIX_USING_GNU_LD
+#define SUPPORTS_INIT_PRIORITY 0
+#endif
 
 /* Add -g to mips.h default to avoid confusing gas with local symbols
    generated from stabs info.  */

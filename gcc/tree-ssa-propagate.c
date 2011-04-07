@@ -760,8 +760,11 @@ update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
           /* No value is expected, and EXPR has no effect.
              Replace it with an empty statement.  */
           new_stmt = gimple_build_nop ();
-	  unlink_stmt_vdef (stmt);
-	  release_defs (stmt);
+	  if (gimple_in_ssa_p (cfun))
+	    {
+	      unlink_stmt_vdef (stmt);
+	      release_defs (stmt);
+	    }
         }
       else
         {
@@ -773,7 +776,8 @@ update_call_from_tree (gimple_stmt_iterator *si_p, tree expr)
           lhs = create_tmp_var (TREE_TYPE (expr), NULL);
           new_stmt = gimple_build_assign (lhs, expr);
           add_referenced_var (lhs);
-          lhs = make_ssa_name (lhs, new_stmt);
+	  if (gimple_in_ssa_p (cfun))
+	    lhs = make_ssa_name (lhs, new_stmt);
           gimple_assign_set_lhs (new_stmt, lhs);
 	  gimple_set_vuse (new_stmt, gimple_vuse (stmt));
 	  gimple_set_vdef (new_stmt, gimple_vdef (stmt));
@@ -1122,12 +1126,12 @@ substitute_and_fold (ssa_prop_get_value_fn get_value_fn,
 	    {
 	      did_replace = true;
 	      prop_stats.num_stmts_folded++;
+	      stmt = gsi_stmt (oldi);
+	      update_stmt (stmt);
 	    }
 
-	  /* Only replace real uses if we couldn't fold the
-	     statement using value range information.  */
-	  if (get_value_fn
-	      && !did_replace)
+	  /* Replace real uses in the statement.  */
+	  if (get_value_fn)
 	    did_replace |= replace_uses_in (stmt, get_value_fn);
 
 	  /* If we made a replacement, fold the statement.  */

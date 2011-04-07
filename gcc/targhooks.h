@@ -65,9 +65,13 @@ extern bool hook_callee_copies_named
 extern void default_print_operand (FILE *, rtx, int);
 extern void default_print_operand_address (FILE *, rtx);
 extern bool default_print_operand_punct_valid_p (unsigned char);
+extern tree default_mangle_assembler_name (const char *);
+
 extern bool default_asm_output_addr_const_extra (FILE *, rtx);
 
 extern bool default_scalar_mode_supported_p (enum machine_mode);
+extern bool targhook_words_big_endian (void);
+extern bool targhook_float_words_big_endian (void);
 extern bool default_decimal_float_supported_p (void);
 extern bool default_fixed_point_supported_p (void);
 
@@ -86,6 +90,8 @@ extern bool
 default_builtin_support_vector_misalignment (enum machine_mode mode,
 					     const_tree,
 					     int, bool);
+extern enum machine_mode default_preferred_simd_mode (enum machine_mode mode);
+extern unsigned int default_autovectorize_vector_sizes (void);
 
 /* These are here, and not in hooks.[ch], because not all users of
    hooks.h include tm.h, and thus we don't have CUMULATIVE_ARGS.  */
@@ -107,6 +113,8 @@ extern rtx default_function_arg
   (CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
 extern rtx default_function_incoming_arg
   (CUMULATIVE_ARGS *, enum machine_mode, const_tree, bool);
+extern unsigned int default_function_arg_boundary (enum machine_mode,
+						   const_tree);
 extern bool hook_bool_const_rtx_commutative_p (const_rtx, int);
 extern rtx default_function_value (const_tree, const_tree, bool);
 extern rtx default_libcall_value (enum machine_mode, const_rtx);
@@ -135,6 +143,7 @@ extern bool default_target_option_valid_attribute_p (tree, tree, tree, int);
 extern bool default_target_option_pragma_parse (tree, tree);
 extern bool default_target_can_inline_p (tree, tree);
 extern bool default_valid_pointer_mode (enum machine_mode);
+extern bool default_ref_may_alias_errno (struct ao_ref_s *);
 extern enum machine_mode default_addr_space_pointer_mode (addr_space_t);
 extern enum machine_mode default_addr_space_address_mode (addr_space_t);
 extern bool default_addr_space_valid_pointer_mode (enum machine_mode,
@@ -152,3 +161,25 @@ extern int default_register_move_cost (enum machine_mode, reg_class_t,
 				       reg_class_t);
 
 extern bool default_profile_before_prologue (void);
+extern reg_class_t default_preferred_reload_class (rtx, reg_class_t);
+extern reg_class_t default_preferred_output_reload_class (rtx, reg_class_t);
+extern reg_class_t default_preferred_rename_class (reg_class_t rclass);
+extern bool default_class_likely_spilled_p (reg_class_t);
+
+extern enum unwind_info_type default_debug_unwind_info (void);
+extern enum unwind_info_type default_except_unwind_info (struct gcc_options *);
+extern enum unwind_info_type dwarf2_except_unwind_info (struct gcc_options *);
+extern enum unwind_info_type sjlj_except_unwind_info (struct gcc_options *);
+
+extern int default_label_align_after_barrier_max_skip (rtx);
+extern int default_loop_align_max_skip (rtx);
+extern int default_label_align_max_skip (rtx);
+extern int default_jump_align_max_skip (rtx);
+extern section * default_function_section(tree decl, enum node_frequency freq,
+					  bool startup, bool exit);
+extern enum machine_mode default_get_reg_raw_mode(int);
+
+extern const struct default_options empty_optimization_table[];
+
+extern void *default_get_pch_validity (size_t *);
+extern const char *default_pch_valid_p (const void *, size_t);

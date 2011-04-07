@@ -1,6 +1,6 @@
 /* Prototypes of target machine for GNU compiler.  MIPS version.
    Copyright (C) 1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009
+   1999, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by A. Lichnewsky (lich@inria.inria.fr).
    Changed by Michael Meissner	(meissner@osf.org).
@@ -240,7 +240,6 @@ extern bool mips_expand_block_move (rtx, rtx, rtx);
 extern void mips_expand_synci_loop (rtx, rtx);
 
 extern void mips_init_cumulative_args (CUMULATIVE_ARGS *, tree);
-extern int mips_function_arg_boundary (enum machine_mode, const_tree);
 extern bool mips_pad_arg_upward (enum machine_mode, const_tree);
 extern bool mips_pad_reg_upward (enum machine_mode, tree);
 
@@ -249,7 +248,6 @@ extern bool mips_expand_ext_as_unaligned_load (rtx, rtx, HOST_WIDE_INT,
 extern bool mips_expand_ins_as_unaligned_store (rtx, rtx, HOST_WIDE_INT,
 						HOST_WIDE_INT);
 extern bool mips_mem_fits_mode_p (enum machine_mode mode, rtx x);
-extern void mips_conditional_register_usage (void);
 extern void mips_order_regs_for_local_alloc (void);
 extern HOST_WIDE_INT mips_debugger_offset (rtx, HOST_WIDE_INT);
 
@@ -285,7 +283,6 @@ extern bool mips_cannot_change_mode_class (enum machine_mode,
 					   enum machine_mode, enum reg_class);
 extern bool mips_dangerous_for_la25_p (rtx);
 extern bool mips_modes_tieable_p (enum machine_mode, enum machine_mode);
-extern enum reg_class mips_preferred_reload_class (rtx, enum reg_class);
 extern enum reg_class mips_secondary_reload_class (enum reg_class,
 						   enum machine_mode,
 						   rtx, bool);

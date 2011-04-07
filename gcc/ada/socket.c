@@ -6,7 +6,7 @@
  *                                                                          *
  *                          C Implementation File                           *
  *                                                                          *
- *          Copyright (C) 2003-2009, Free Software Foundation, Inc.         *
+ *          Copyright (C) 2003-2010, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -37,7 +37,7 @@
 /*
  * For VMS, gsocket.h can't include sockets-related DEC C header files
  * when building the runtime (because these files are in a DEC C text library
- * (DECC$RTLDEF.TLB) not accessable to GCC). So, we generate a separate header
+ * (DECC$RTLDEF.TLB) not accessible to GCC). So, we generate a separate header
  * file along with s-oscons.ads and include it here.
  */
 # include "s-oscons.h"
@@ -529,6 +529,12 @@ int
 __gnat_socket_ioctl (int fd, int req, int *arg) {
 #if defined (_WIN32)
   return ioctlsocket (fd, req, arg);
+#elif defined (__APPLE__)
+  /*
+   * On Darwin, req is an unsigned long, and we want to convert without sign
+   * extension to get the proper bit pattern in the case of a 64 bit kernel.
+   */
+  return ioctl (fd, (unsigned int) req, arg);
 #else
   return ioctl (fd, req, arg);
 #endif

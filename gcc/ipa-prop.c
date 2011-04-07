@@ -350,6 +350,154 @@ ipa_print_all_jump_functions (FILE *f)
     }
 }
 
+/* Structure to be passed in between detect_type_change and
+   check_stmt_for_type_change.  */
+
+struct type_change_info
+{
+  /* Set to true if dynamic type change has been detected.  */
+  bool type_maybe_changed;
+};
+
+/* Return true if STMT can modify a virtual method table pointer.
+
+   This function makes special assumptions about both constructors and
+   destructors which are all the functions that are allowed to alter the VMT
+   pointers.  It assumes that destructors begin with assignment into all VMT
+   pointers and that constructors essentially look in the following way:
+
+   1) The very first thing they do is that they call constructors of ancestor
+   sub-objects that have them.
+
+   2) Then VMT pointers of this and all its ancestors is set to new values
+   corresponding to the type corresponding to the constructor.
+
+   3) Only afterwards, other stuff such as constructor of member sub-objects
+   and the code written by the user is run.  Only this may include calling
+   virtual functions, directly or indirectly.
+
+   There is no way to call a constructor of an ancestor sub-object in any
+   other way.
+
+   This means that we do not have to care whether constructors get the correct
+   type information because they will always change it (in fact, if we define
+   the type to be given by the VMT pointer, it is undefined).
+
+   The most important fact to derive from the above is that if, for some
+   statement in the section 3, we try to detect whether the dynamic type has
+   changed, we can safely ignore all calls as we examine the function body
+   backwards until we reach statements in section 2 because these calls cannot
+   be ancestor constructors or destructors (if the input is not bogus) and so
+   do not change the dynamic type (this holds true only for automatically
+   allocated objects but at the moment we devirtualize only these).  We then
+   must detect that statements in section 2 change the dynamic type and can try
+   to derive the new type.  That is enough and we can stop, we will never see
+   the calls into constructors of sub-objects in this code.  Therefore we can
+   safely ignore all call statements that we traverse.
+  */
+
+static bool
+stmt_may_be_vtbl_ptr_store (gimple stmt)
+{
+  if (is_gimple_call (stmt))
+    return false;
+  else if (is_gimple_assign (stmt))
+    {
+      tree lhs = gimple_assign_lhs (stmt);
+
+      if (TREE_CODE (lhs) == COMPONENT_REF
+	  && !DECL_VIRTUAL_P (TREE_OPERAND (lhs, 1))
+	  && !AGGREGATE_TYPE_P (TREE_TYPE (lhs)))
+	    return false;
+      /* In the future we might want to use get_base_ref_and_offset to find
+	 if there is a field corresponding to the offset and if so, proceed
+	 almost like if it was a component ref.  */
+    }
+  return true;
+}
+
+/* Callback of walk_aliased_vdefs and a helper function for
+   detect_type_change to check whether a particular statement may modify
+   the virtual table pointer, and if possible also determine the new type of
+   the (sub-)object.  It stores its result into DATA, which points to a
+   type_change_info structure.  */
+
+static bool
+check_stmt_for_type_change (ao_ref *ao ATTRIBUTE_UNUSED, tree vdef, void *data)
+{
+  gimple stmt = SSA_NAME_DEF_STMT (vdef);
+  struct type_change_info *tci = (struct type_change_info *) data;
+
+  if (stmt_may_be_vtbl_ptr_store (stmt))
+    {
+      tci->type_maybe_changed = true;
+      return true;
+    }
+  else
+    return false;
+}
+
+/* Detect whether the dynamic type of ARG has changed (before callsite CALL) by
+   looking for assignments to its virtual table pointer.  If it is, return true
+   and fill in the jump function JFUNC with relevant type information or set it
+   to unknown.  ARG is the object itself (not a pointer to it, unless
+   dereferenced).  BASE is the base of the memory access as returned by
+   get_ref_base_and_extent, as is the offset.  */
+
+static bool
+detect_type_change (tree arg, tree base, gimple call,
+		    struct ipa_jump_func *jfunc, HOST_WIDE_INT offset)
+{
+  struct type_change_info tci;
+  ao_ref ao;
+
+  gcc_checking_assert (DECL_P (arg)
+		       || TREE_CODE (arg) == MEM_REF
+		       || handled_component_p (arg));
+  /* Const calls cannot call virtual methods through VMT and so type changes do
+     not matter.  */
+  if (!flag_devirtualize || !gimple_vuse (call))
+    return false;
+
+  tci.type_maybe_changed = false;
+
+  ao.ref = arg;
+  ao.base = base;
+  ao.offset = offset;
+  ao.size = POINTER_SIZE;
+  ao.max_size = ao.size;
+  ao.ref_alias_set = -1;
+  ao.base_alias_set = -1;
+
+  walk_aliased_vdefs (&ao, gimple_vuse (call), check_stmt_for_type_change,
+		      &tci, NULL);
+  if (!tci.type_maybe_changed)
+    return false;
+
+  jfunc->type = IPA_JF_UNKNOWN;
+  return true;
+}
+
+/* Like detect_type_change but ARG is supposed to be a non-dereferenced pointer
+   SSA name (its dereference will become the base and the offset is assumed to
+   be zero).  */
+
+static bool
+detect_type_change_ssa (tree arg, gimple call, struct ipa_jump_func *jfunc)
+{
+  gcc_checking_assert (TREE_CODE (arg) == SSA_NAME);
+  if (!flag_devirtualize
+      || !POINTER_TYPE_P (TREE_TYPE (arg))
+      || TREE_CODE (TREE_TYPE (TREE_TYPE (arg))) != RECORD_TYPE)
+    return false;
+
+  arg = build2 (MEM_REF, ptr_type_node, arg,
+                build_int_cst (ptr_type_node, 0));
+
+  return detect_type_change (arg, arg, call, jfunc, 0);
+}
+
+
 /* Given that an actual argument is an SSA_NAME (given in NAME) and is a result
    of an assignment statement STMT, try to find out whether NAME can be
    described by a (possibly polynomial) pass-through jump-function or an
@@ -359,10 +507,10 @@ ipa_print_all_jump_functions (FILE *f)
 static void
 compute_complex_assign_jump_func (struct ipa_node_params *info,
 				  struct ipa_jump_func *jfunc,
-				  gimple stmt, tree name)
+				  gimple call, gimple stmt, tree name)
 {
   HOST_WIDE_INT offset, size, max_size;
-  tree op1, op2, type;
+  tree op1, op2, base, ssa;
   int index;
 
   op1 = gimple_assign_rhs1 (stmt);
@@ -388,7 +536,8 @@ compute_complex_assign_jump_func (struct ipa_node_params *info,
 	  jfunc->value.pass_through.operation = gimple_assign_rhs_code (stmt);
 	  jfunc->value.pass_through.operand = op2;
 	}
-      else if (gimple_assign_unary_nop_p (stmt))
+      else if (gimple_assign_unary_nop_p (stmt)
+	       && !detect_type_change_ssa (op1, call, jfunc))
 	{
 	  jfunc->type = IPA_JF_PASS_THROUGH;
 	  jfunc->value.pass_through.formal_id = index;
@@ -399,30 +548,31 @@ compute_complex_assign_jump_func (struct ipa_node_params *info,
 
   if (TREE_CODE (op1) != ADDR_EXPR)
     return;
-
   op1 = TREE_OPERAND (op1, 0);
-  type = TREE_TYPE (op1);
-  if (TREE_CODE (type) != RECORD_TYPE)
+  if (TREE_CODE (TREE_TYPE (op1)) != RECORD_TYPE)
     return;
-  op1 = get_ref_base_and_extent (op1, &offset, &size, &max_size);
-  if (TREE_CODE (op1) != MEM_REF
+  base = get_ref_base_and_extent (op1, &offset, &size, &max_size);
+  if (TREE_CODE (base) != MEM_REF
       /* If this is a varying address, punt.  */
       || max_size == -1
       || max_size != size)
     return;
-  offset += mem_ref_offset (op1).low * BITS_PER_UNIT;
-  op1 = TREE_OPERAND (op1, 0);
-  if (TREE_CODE (op1) != SSA_NAME
-      || !SSA_NAME_IS_DEFAULT_DEF (op1))
+  offset += mem_ref_offset (base).low * BITS_PER_UNIT;
+  ssa = TREE_OPERAND (base, 0);
+  if (TREE_CODE (ssa) != SSA_NAME
+      || !SSA_NAME_IS_DEFAULT_DEF (ssa)
+      || offset < 0)
     return;
 
-  index = ipa_get_param_decl_index (info, SSA_NAME_VAR (op1));
-  if (index >= 0)
+  /* Dynamic types are changed only in constructors and destructors and  */
+  index = ipa_get_param_decl_index (info, SSA_NAME_VAR (ssa));
+  if (index >= 0
+      && !detect_type_change (op1, base, call, jfunc, offset))
     {
       jfunc->type = IPA_JF_ANCESTOR;
       jfunc->value.ancestor.formal_id = index;
       jfunc->value.ancestor.offset = offset;
-      jfunc->value.ancestor.type = type;
+      jfunc->value.ancestor.type = TREE_TYPE (op1);
     }
 }
 
@@ -451,19 +601,23 @@ compute_complex_assign_jump_func (struct ipa_node_params *info,
 static void
 compute_complex_ancestor_jump_func (struct ipa_node_params *info,
 				    struct ipa_jump_func *jfunc,
-				    gimple phi)
+				    gimple call, gimple phi)
 {
   HOST_WIDE_INT offset, size, max_size;
   gimple assign, cond;
   basic_block phi_bb, assign_bb, cond_bb;
-  tree tmp, parm, expr;
+  tree tmp, parm, expr, obj;
   int index, i;
 
-  if (gimple_phi_num_args (phi) != 2
-      || !integer_zerop (PHI_ARG_DEF (phi, 1)))
+  if (gimple_phi_num_args (phi) != 2)
     return;
 
-  tmp = PHI_ARG_DEF (phi, 0);
+  if (integer_zerop (PHI_ARG_DEF (phi, 1)))
+    tmp = PHI_ARG_DEF (phi, 0);
+  else if (integer_zerop (PHI_ARG_DEF (phi, 0)))
+    tmp = PHI_ARG_DEF (phi, 1);
+  else
+    return;
   if (TREE_CODE (tmp) != SSA_NAME
       || SSA_NAME_IS_DEFAULT_DEF (tmp)
       || !POINTER_TYPE_P (TREE_TYPE (tmp))
@@ -480,6 +634,7 @@ compute_complex_ancestor_jump_func (struct ipa_node_params *info,
   if (TREE_CODE (expr) != ADDR_EXPR)
     return;
   expr = TREE_OPERAND (expr, 0);
+  obj = expr;
   expr = get_ref_base_and_extent (expr, &offset, &size, &max_size);
 
   if (TREE_CODE (expr) != MEM_REF
@@ -490,7 +645,8 @@ compute_complex_ancestor_jump_func (struct ipa_node_params *info,
   offset += mem_ref_offset (expr).low * BITS_PER_UNIT;
   parm = TREE_OPERAND (expr, 0);
   if (TREE_CODE (parm) != SSA_NAME
-      || !SSA_NAME_IS_DEFAULT_DEF (parm))
+      || !SSA_NAME_IS_DEFAULT_DEF (parm)
+      || offset < 0)
     return;
 
   index = ipa_get_param_decl_index (info, SSA_NAME_VAR (parm));
@@ -506,7 +662,6 @@ compute_complex_ancestor_jump_func (struct ipa_node_params *info,
       || !integer_zerop (gimple_cond_rhs (cond)))
     return;
 
-
   phi_bb = gimple_bb (phi);
   for (i = 0; i < 2; i++)
     {
@@ -515,26 +670,47 @@ compute_complex_ancestor_jump_func (struct ipa_node_params *info,
 	return;
     }
 
-  jfunc->type = IPA_JF_ANCESTOR;
-  jfunc->value.ancestor.formal_id = index;
-  jfunc->value.ancestor.offset = offset;
-  jfunc->value.ancestor.type = TREE_TYPE (TREE_TYPE (tmp));
+  if (!detect_type_change (obj, expr, call, jfunc, offset))
+    {
+      jfunc->type = IPA_JF_ANCESTOR;
+      jfunc->value.ancestor.formal_id = index;
+      jfunc->value.ancestor.offset = offset;
+      jfunc->value.ancestor.type = TREE_TYPE (obj);;
+    }
 }
 
-/* Given OP whch is passed as an actual argument to a called function,
+/* Given OP which is passed as an actual argument to a called function,
    determine if it is possible to construct a KNOWN_TYPE jump function for it
    and if so, create one and store it to JFUNC.  */
 
 static void
-compute_known_type_jump_func (tree op, struct ipa_jump_func *jfunc)
+compute_known_type_jump_func (tree op, struct ipa_jump_func *jfunc,
+			      gimple call)
 {
-  tree binfo;
+  HOST_WIDE_INT offset, size, max_size;
+  tree base, binfo;
 
-  if (TREE_CODE (op) != ADDR_EXPR)
+  if (!flag_devirtualize
+      || TREE_CODE (op) != ADDR_EXPR
+      || TREE_CODE (TREE_TYPE (TREE_TYPE (op))) != RECORD_TYPE)
     return;
 
   op = TREE_OPERAND (op, 0);
-  binfo = gimple_get_relevant_ref_binfo (op, NULL_TREE);
+  base = get_ref_base_and_extent (op, &offset, &size, &max_size);
+  if (!DECL_P (base)
+      || max_size == -1
+      || max_size != size
+      || TREE_CODE (TREE_TYPE (base)) != RECORD_TYPE
+      || is_global_var (base))
+    return;
+
+  if (detect_type_change (op, base, call, jfunc, offset))
+    return;
+
+  binfo = TYPE_BINFO (TREE_TYPE (base));
+  if (!binfo)
+    return;
+  binfo = get_binfo_at_offset (binfo, offset, TREE_TYPE (op));
   if (binfo)
     {
       jfunc->type = IPA_JF_KNOWN_TYPE;
@@ -572,7 +748,8 @@ compute_scalar_jump_functions (struct ipa_node_params *info,
 	    {
 	      int index = ipa_get_param_decl_index (info, SSA_NAME_VAR (arg));
 
-	      if (index >= 0)
+	      if (index >= 0
+		  && !detect_type_change_ssa (arg, call, &functions[num]))
 		{
 		  functions[num].type = IPA_JF_PASS_THROUGH;
 		  functions[num].value.pass_through.formal_id = index;
@@ -584,14 +761,14 @@ compute_scalar_jump_functions (struct ipa_node_params *info,
 	      gimple stmt = SSA_NAME_DEF_STMT (arg);
 	      if (is_gimple_assign (stmt))
 		compute_complex_assign_jump_func (info, &functions[num],
-						  stmt, arg);
+						  call, stmt, arg);
 	      else if (gimple_code (stmt) == GIMPLE_PHI)
 		compute_complex_ancestor_jump_func (info, &functions[num],
-						    stmt);
+						    call, stmt);
 	    }
 	}
       else
-	compute_known_type_jump_func (arg, &functions[num]);
+	compute_known_type_jump_func (arg, &functions[num], call);
     }
 }
 
@@ -722,7 +899,7 @@ fill_member_ptr_cst_jump_function (struct ipa_jump_func *jfunc,
   jfunc->value.member_cst.delta = delta;
 }
 
-/* If RHS is an SSA_NAMe and it is defined by a simple copy assign statement,
+/* If RHS is an SSA_NAME and it is defined by a simple copy assign statement,
    return the rhs of its defining statement.  */
 
 static inline tree
@@ -888,7 +1065,7 @@ ipa_compute_jump_functions (struct cgraph_node *node,
     {
       /* We do not need to bother analyzing calls to unknown
 	 functions unless they may become known during lto/whopr.  */
-      if (!cs->callee->analyzed && !flag_lto && !flag_whopr)
+      if (!cs->callee->analyzed && !flag_lto)
 	continue;
       ipa_count_arguments (cs);
       /* If the descriptor of the callee is not initialized yet, we have to do
@@ -916,23 +1093,46 @@ ipa_compute_jump_functions (struct cgraph_node *node,
 static tree
 ipa_get_member_ptr_load_param (tree rhs, bool use_delta)
 {
-  tree rec, fld;
-  tree ptr_field;
-  tree delta_field;
+  tree rec, ref_field, ref_offset, fld, fld_offset, ptr_field, delta_field;
 
-  if (TREE_CODE (rhs) != COMPONENT_REF)
+  if (TREE_CODE (rhs) == COMPONENT_REF)
+    {
+      ref_field = TREE_OPERAND (rhs, 1);
+      rhs = TREE_OPERAND (rhs, 0);
+    }
+  else
+    ref_field = NULL_TREE;
+  if (TREE_CODE (rhs) != MEM_REF)
     return NULL_TREE;
-
   rec = TREE_OPERAND (rhs, 0);
+  if (TREE_CODE (rec) != ADDR_EXPR)
+    return NULL_TREE;
+  rec = TREE_OPERAND (rec, 0);
   if (TREE_CODE (rec) != PARM_DECL
       || !type_like_member_ptr_p (TREE_TYPE (rec), &ptr_field, &delta_field))
     return NULL_TREE;
 
-  fld = TREE_OPERAND (rhs, 1);
-  if (use_delta ? (fld == delta_field) : (fld == ptr_field))
-    return rec;
+  ref_offset = TREE_OPERAND (rhs, 1);
+
+  if (ref_field)
+    {
+      if (integer_nonzerop (ref_offset))
+	return NULL_TREE;
+
+      if (use_delta)
+	fld = delta_field;
+      else
+	fld = ptr_field;
+
+      return ref_field == fld ? rec : NULL_TREE;
+    }
+
+  if (use_delta)
+    fld_offset = byte_position (delta_field);
   else
-    return NULL_TREE;
+    fld_offset = byte_position (ptr_field);
+
+  return tree_int_cst_equal (ref_offset, fld_offset) ? rec : NULL_TREE;
 }
 
 /* If STMT looks like a statement loading a value from a member pointer formal
@@ -1002,7 +1202,12 @@ ipa_note_param_call (struct cgraph_node *node, int param_index, gimple stmt,
        f$__delta_5 = f.__delta;
        f$__pfn_24 = f.__pfn;
 
-     ...
+   or
+     <bb 2>:
+       f$__delta_5 = MEM[(struct  *)&f];
+       f$__pfn_24 = MEM[(struct  *)&f + 4B];
+
+   and a few lines below:
 
      <bb 5>
        D.2496_3 = (int) f$__pfn_24;
@@ -1170,9 +1375,13 @@ ipa_analyze_virtual_call_uses (struct cgraph_node *node,
 			       struct ipa_node_params *info, gimple call,
 			       tree target)
 {
+  struct ipa_jump_func jfunc;
   tree obj = OBJ_TYPE_REF_OBJECT (target);
   tree var;
   int index;
+
+  if (!flag_devirtualize)
+    return;
 
   if (TREE_CODE (obj) == ADDR_EXPR)
     {
@@ -1193,7 +1402,8 @@ ipa_analyze_virtual_call_uses (struct cgraph_node *node,
   var = SSA_NAME_VAR (obj);
   index = ipa_get_param_decl_index (info, var);
 
-  if (index >= 0)
+  if (index >= 0
+      && !detect_type_change_ssa (obj, call, &jfunc))
     ipa_note_param_call (node, index, call, true);
 }
 
@@ -1306,7 +1516,7 @@ ipa_analyze_params_uses (struct cgraph_node *node,
 }
 
 /* Initialize the array describing properties of of formal parameters of NODE,
-   analyze their uses and and compute jump functions associated witu actual
+   analyze their uses and and compute jump functions associated with actual
    arguments of calls from within NODE.  */
 
 void
@@ -1316,6 +1526,8 @@ ipa_analyze_node (struct cgraph_node *node)
   struct param_analysis_info *parms_info;
   int i, param_count;
 
+  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+  current_function_decl = node->decl;
   ipa_initialize_node_params (node);
 
   param_count = ipa_get_param_count (info);
@@ -1328,10 +1540,13 @@ ipa_analyze_node (struct cgraph_node *node)
   for (i = 0; i < param_count; i++)
     if (parms_info[i].visited_statements)
       BITMAP_FREE (parms_info[i].visited_statements);
+
+  current_function_decl = NULL;
+  pop_cfun ();
 }
 
 
-/* Update the jump function DST when the call graph edge correspondng to SRC is
+/* Update the jump function DST when the call graph edge corresponding to SRC is
    is being inlined, knowing that DST is of type ancestor and src of known
    type.  */
 
@@ -1386,17 +1601,6 @@ update_jump_functions_after_inlining (struct cgraph_edge *cs,
 	  src = ipa_get_ith_jump_func (top, dst->value.ancestor.formal_id);
 	  if (src->type == IPA_JF_KNOWN_TYPE)
 	    combine_known_type_and_ancestor_jfs (src, dst);
-	  else if (src->type == IPA_JF_CONST)
-	    {
-	      struct ipa_jump_func kt_func;
-
-	      kt_func.type = IPA_JF_UNKNOWN;
-	      compute_known_type_jump_func (src->value.constant, &kt_func);
-	      if (kt_func.type == IPA_JF_KNOWN_TYPE)
-		combine_known_type_and_ancestor_jfs (&kt_func, dst);
-	      else
-		dst->type = IPA_JF_UNKNOWN;
-	    }
 	  else if (src->type == IPA_JF_PASS_THROUGH
 		   && src->value.pass_through.operation == NOP_EXPR)
 	    dst->value.ancestor.formal_id = src->value.pass_through.formal_id;
@@ -1428,35 +1632,47 @@ update_jump_functions_after_inlining (struct cgraph_edge *cs,
 }
 
 /* If TARGET is an addr_expr of a function declaration, make it the destination
-   of an indirect edge IE and return the edge.  Otherwise, return NULL.  */
+   of an indirect edge IE and return the edge.  Otherwise, return NULL.  Delta,
+   if non-NULL, is an integer constant that must be added to this pointer
+   (first parameter).  */
 
 struct cgraph_edge *
-ipa_make_edge_direct_to_target (struct cgraph_edge *ie, tree target)
+ipa_make_edge_direct_to_target (struct cgraph_edge *ie, tree target, tree delta)
 {
   struct cgraph_node *callee;
 
-  if (TREE_CODE (target) != ADDR_EXPR)
-    return NULL;
-  target = TREE_OPERAND (target, 0);
+  if (TREE_CODE (target) == ADDR_EXPR)
+    target = TREE_OPERAND (target, 0);
   if (TREE_CODE (target) != FUNCTION_DECL)
     return NULL;
   callee = cgraph_node (target);
   if (!callee)
     return NULL;
+  ipa_check_create_node_params ();
 
-  cgraph_make_edge_direct (ie, callee);
+  /* We can not make edges to inline clones.  It is bug that someone removed the cgraph
+     node too early.  */
+  gcc_assert (!callee->global.inlined_to);
+
+  cgraph_make_edge_direct (ie, callee, delta ? tree_low_cst (delta, 0) : 0);
   if (dump_file)
     {
       fprintf (dump_file, "ipa-prop: Discovered %s call to a known target "
-	       "(%s/%i -> %s/%i) for stmt ",
+	       "(%s/%i -> %s/%i), for stmt ",
 	       ie->indirect_info->polymorphic ? "a virtual" : "an indirect",
 	       cgraph_node_name (ie->caller), ie->caller->uid,
 	       cgraph_node_name (ie->callee), ie->callee->uid);
-
       if (ie->call_stmt)
 	print_gimple_stmt (dump_file, ie->call_stmt, 2, TDF_SLIM);
       else
 	fprintf (dump_file, "with uid %i\n", ie->lto_stmt_uid);
+
+      if (delta)
+	{
+	  fprintf (dump_file, "          Thunk delta is ");
+	  print_generic_expr (dump_file, delta, 0);
+	  fprintf (dump_file, "\n");
+	}
     }
 
   if (ipa_get_cs_argument_count (IPA_EDGE_REF (ie))
@@ -1484,11 +1700,11 @@ try_make_edge_direct_simple_call (struct cgraph_edge *ie,
   else
     return NULL;
 
-  return ipa_make_edge_direct_to_target (ie, target);
+  return ipa_make_edge_direct_to_target (ie, target, NULL_TREE);
 }
 
 /* Try to find a destination for indirect edge IE that corresponds to a
-   virtuall call based on a formal parameter which is described by jump
+   virtual call based on a formal parameter which is described by jump
    function JFUNC and if it can be determined, make it direct and return the
    direct edge.  Otherwise, return NULL.  */
 
@@ -1496,20 +1712,11 @@ static struct cgraph_edge *
 try_make_edge_direct_virtual_call (struct cgraph_edge *ie,
 				   struct ipa_jump_func *jfunc)
 {
-  tree binfo, type, target;
+  tree binfo, type, target, delta;
   HOST_WIDE_INT token;
 
   if (jfunc->type == IPA_JF_KNOWN_TYPE)
     binfo = jfunc->value.base_binfo;
-  else if (jfunc->type == IPA_JF_CONST)
-    {
-      tree cst = jfunc->value.constant;
-      if (TREE_CODE (cst) == ADDR_EXPR)
-	binfo = gimple_get_relevant_ref_binfo (TREE_OPERAND (cst, 0),
-					       NULL_TREE);
-      else
-  	return NULL;
-    }
   else
     return NULL;
 
@@ -1520,12 +1727,12 @@ try_make_edge_direct_virtual_call (struct cgraph_edge *ie,
   type = ie->indirect_info->otr_type;
   binfo = get_binfo_at_offset (binfo, ie->indirect_info->anc_offset, type);
   if (binfo)
-    target = gimple_fold_obj_type_ref_known_binfo (token, binfo);
+    target = gimple_get_virt_mehtod_for_binfo (token, binfo, &delta, true);
   else
     return NULL;
 
   if (target)
-    return ipa_make_edge_direct_to_target (ie, target);
+    return ipa_make_edge_direct_to_target (ie, target, delta);
   else
     return NULL;
 }
@@ -1847,7 +2054,7 @@ ipa_unregister_cgraph_hooks (void)
   node_duplication_hook_holder = NULL;
 }
 
-/* Allocate all necessary data strucutures necessary for indirect inlining.  */
+/* Allocate all necessary data structures necessary for indirect inlining.  */
 
 void
 ipa_create_all_structures_for_iinln (void)
@@ -2116,6 +2323,7 @@ ipa_modify_formal_parameters (tree fndecl, ipa_parm_adjustment_vec adjustments,
     }
 
   TREE_TYPE (fndecl) = new_type;
+  DECL_VIRTUAL_P (fndecl) = 0;
   if (otypes)
     VEC_free (tree, heap, otypes);
   VEC_free (tree, heap, oparms);
@@ -2153,40 +2361,74 @@ ipa_modify_call_arguments (struct cgraph_edge *cs, gimple stmt,
 	}
       else if (!adj->remove_param)
 	{
-	  tree expr, orig_expr;
-	  bool allow_ptr, repl_found;
+	  tree expr, base, off;
+	  location_t loc;
 
-	  orig_expr = expr = gimple_call_arg (stmt, adj->base_index);
-	  if (TREE_CODE (expr) == ADDR_EXPR)
-	    {
-	      allow_ptr = false;
-	      expr = TREE_OPERAND (expr, 0);
-	    }
-	  else
-	    allow_ptr = true;
+	  /* We create a new parameter out of the value of the old one, we can
+	     do the following kind of transformations:
 
-	  repl_found = build_ref_for_offset (&expr, TREE_TYPE (expr),
-					     adj->offset, adj->type,
-					     allow_ptr);
-	  if (repl_found)
-	    {
-	      if (adj->by_ref)
-		expr = build_fold_addr_expr (expr);
-	    }
+	     - A scalar passed by reference is converted to a scalar passed by
+               value.  (adj->by_ref is false and the type of the original
+               actual argument is a pointer to a scalar).
+
+             - A part of an aggregate is passed instead of the whole aggregate.
+               The part can be passed either by value or by reference, this is
+               determined by value of adj->by_ref.  Moreover, the code below
+               handles both situations when the original aggregate is passed by
+               value (its type is not a pointer) and when it is passed by
+               reference (it is a pointer to an aggregate).
+
+	     When the new argument is passed by reference (adj->by_ref is true)
+	     it must be a part of an aggregate and therefore we form it by
+	     simply taking the address of a reference inside the original
+	     aggregate.  */
+
+	  gcc_checking_assert (adj->offset % BITS_PER_UNIT == 0);
+	  base = gimple_call_arg (stmt, adj->base_index);
+	  loc = EXPR_LOCATION (base);
+
+	  if (TREE_CODE (base) != ADDR_EXPR
+	      && POINTER_TYPE_P (TREE_TYPE (base)))
+	    off = build_int_cst (adj->alias_ptr_type,
+				 adj->offset / BITS_PER_UNIT);
 	  else
 	    {
-	      tree ptrtype = build_pointer_type (adj->type);
-	      expr = orig_expr;
-	      if (!POINTER_TYPE_P (TREE_TYPE (expr)))
-		expr = build_fold_addr_expr (expr);
-	      if (!useless_type_conversion_p (ptrtype, TREE_TYPE (expr)))
-		expr = fold_convert (ptrtype, expr);
-	      expr = fold_build2 (POINTER_PLUS_EXPR, ptrtype, expr,
-				  build_int_cst (sizetype,
-						 adj->offset / BITS_PER_UNIT));
-	      if (!adj->by_ref)
-		expr = fold_build1 (INDIRECT_REF, adj->type, expr);
+	      HOST_WIDE_INT base_offset;
+	      tree prev_base;
+
+	      if (TREE_CODE (base) == ADDR_EXPR)
+		base = TREE_OPERAND (base, 0);
+	      prev_base = base;
+	      base = get_addr_base_and_unit_offset (base, &base_offset);
+	      /* Aggregate arguments can have non-invariant addresses.  */
+	      if (!base)
+		{
+		  base = build_fold_addr_expr (prev_base);
+		  off = build_int_cst (adj->alias_ptr_type,
+				       adj->offset / BITS_PER_UNIT);
+		}
+	      else if (TREE_CODE (base) == MEM_REF)
+		{
+		  off = build_int_cst (adj->alias_ptr_type,
+				       base_offset
+				       + adj->offset / BITS_PER_UNIT);
+		  off = int_const_binop (PLUS_EXPR, TREE_OPERAND (base, 1),
+					 off, 0);
+		  base = TREE_OPERAND (base, 0);
+		}
+	      else
+		{
+		  off = build_int_cst (adj->alias_ptr_type,
+				       base_offset
+				       + adj->offset / BITS_PER_UNIT);
+		  base = build_fold_addr_expr (base);
+		}
 	    }
+
+	  expr = fold_build2_loc (loc, MEM_REF, adj->type, base, off);
+	  if (adj->by_ref)
+	    expr = build_fold_addr_expr (expr);
+
 	  expr = force_gimple_operand_gsi (&gsi, expr,
 					   adj->by_ref
 					   || is_gimple_reg_type (adj->type),
@@ -2541,7 +2783,7 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
     ipa_write_indirect_edge_info (ob, e);
 }
 
-/* Srtream in NODE info from IB.  */
+/* Stream in NODE info from IB.  */
 
 static void
 ipa_read_node_info (struct lto_input_block *ib, struct cgraph_node *node,
@@ -2677,7 +2919,7 @@ ipa_prop_read_jump_functions (void)
 }
 
 /* After merging units, we can get mismatch in argument counts.
-   Also decl merging might've rendered parameter lists obsolette.
+   Also decl merging might've rendered parameter lists obsolete.
    Also compute called_with_variable_arg info.  */
 
 void

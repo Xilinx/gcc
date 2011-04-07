@@ -89,7 +89,7 @@ struct arg_data
   rtx stack;
   /* Location on the stack of the start of this argument slot.  This can
      differ from STACK if this arg pads downward.  This location is known
-     to be aligned to FUNCTION_ARG_BOUNDARY.  */
+     to be aligned to TARGET_FUNCTION_ARG_BOUNDARY.  */
   rtx stack_slot;
   /* Place that this stack area has been saved, if needed.  */
   rtx save_area;
@@ -610,6 +610,8 @@ flags_from_decl_or_type (const_tree exp)
 
       if (DECL_IS_NOVOPS (exp))
 	flags |= ECF_NOVOPS;
+      if (lookup_attribute ("leaf", DECL_ATTRIBUTES (exp)))
+	flags |= ECF_LEAF;
 
       if (TREE_NOTHROW (exp))
 	flags |= ECF_NOTHROW;
@@ -884,7 +886,7 @@ store_unaligned_arguments_into_pseudos (struct arg_data *args, int num_actuals)
 	    int bitsize = MIN (bytes * BITS_PER_UNIT, BITS_PER_WORD);
 
 	    args[i].aligned_regs[j] = reg;
-	    word = extract_bit_field (word, bitsize, 0, 1, NULL_RTX,
+	    word = extract_bit_field (word, bitsize, 0, 1, false, NULL_RTX,
 				      word_mode, word_mode);
 
 	    /* There is no need to restrict this code to loading items
@@ -1090,7 +1092,7 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 
 		  if (*old_stack_level == 0)
 		    {
-		      emit_stack_save (SAVE_BLOCK, old_stack_level, NULL_RTX);
+		      emit_stack_save (SAVE_BLOCK, old_stack_level);
 		      *old_pending_adj = pending_stack_adjust;
 		      pending_stack_adjust = 0;
 		    }
@@ -1098,10 +1100,11 @@ initialize_argument_information (int num_actuals ATTRIBUTE_UNUSED,
 		  /* We can pass TRUE as the 4th argument because we just
 		     saved the stack pointer and will restore it right after
 		     the call.  */
-		  copy = gen_rtx_MEM (BLKmode,
-				      allocate_dynamic_stack_space
-				      (size_rtx, NULL_RTX,
-				       TYPE_ALIGN (type), TRUE));
+		  copy = allocate_dynamic_stack_space (size_rtx,
+						       TYPE_ALIGN (type),
+						       TYPE_ALIGN (type),
+						       true);
+		  copy = gen_rtx_MEM (BLKmode, copy);
 		  set_mem_attributes (copy, type, 1);
 		}
 	      else
@@ -1900,7 +1903,7 @@ avoid_likely_spilled_reg (rtx x)
 
   if (REG_P (x)
       && HARD_REGISTER_P (x)
-      && CLASS_LIKELY_SPILLED_P (REGNO_REG_CLASS (REGNO (x))))
+      && targetm.class_likely_spilled_p (REGNO_REG_CLASS (REGNO (x))))
     {
       /* Make sure that we generate a REG rather than a CONCAT.
 	 Moves into CONCATs can need nontrivial instructions,
@@ -2485,7 +2488,7 @@ expand_call (tree exp, rtx target, int ignore)
 	{
 	  if (old_stack_level == 0)
 	    {
-	      emit_stack_save (SAVE_BLOCK, &old_stack_level, NULL_RTX);
+	      emit_stack_save (SAVE_BLOCK, &old_stack_level);
 	      old_stack_pointer_delta = stack_pointer_delta;
 	      old_pending_adj = pending_stack_adjust;
 	      pending_stack_adjust = 0;
@@ -2640,8 +2643,7 @@ expand_call (tree exp, rtx target, int ignore)
 			      : reg_parm_stack_space));
 	      if (old_stack_level == 0)
 		{
-		  emit_stack_save (SAVE_BLOCK, &old_stack_level,
-				   NULL_RTX);
+		  emit_stack_save (SAVE_BLOCK, &old_stack_level);
 		  old_stack_pointer_delta = stack_pointer_delta;
 		  old_pending_adj = pending_stack_adjust;
 		  pending_stack_adjust = 0;
@@ -2662,8 +2664,8 @@ expand_call (tree exp, rtx target, int ignore)
 	      /* We can pass TRUE as the 4th argument because we just
 		 saved the stack pointer and will restore it right after
 		 the call.  */
-	      allocate_dynamic_stack_space (push_size, NULL_RTX,
-					    BITS_PER_UNIT, TRUE);
+	      allocate_dynamic_stack_space (push_size, 0,
+					    BIGGEST_ALIGNMENT, true);
 	    }
 
 	  /* If argument evaluation might modify the stack pointer,
@@ -3098,7 +3100,7 @@ expand_call (tree exp, rtx target, int ignore)
 
       if (old_stack_level)
 	{
-	  emit_stack_restore (SAVE_BLOCK, old_stack_level, NULL_RTX);
+	  emit_stack_restore (SAVE_BLOCK, old_stack_level);
 	  stack_pointer_delta = old_stack_pointer_delta;
 	  pending_stack_adjust = old_pending_adj;
 	  old_stack_allocated = stack_pointer_delta - pending_stack_adjust;

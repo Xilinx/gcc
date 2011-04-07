@@ -28,6 +28,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "parse.h"
 #include "constructor.h"
 
+int matching_actual_arglist = 0;
+
 /* Matches a kind-parameter expression, which is either a named
    symbolic constant or a nonnegative integer constant.  If
    successful, sets the kind value to the correct integer.  */
@@ -286,7 +288,7 @@ match_hollerith_constant (gfc_expr **result)
 
 	  for (i = 0; i < num; i++)
 	    {
-	      gfc_char_t c = gfc_next_char_literal (1);
+	      gfc_char_t c = gfc_next_char_literal (INSTRING_WARN);
 	      if (! gfc_wide_fits_in_byte (c))
 		{
 		  gfc_error ("Invalid Hollerith constant at %L contains a "
@@ -759,7 +761,7 @@ next_string_char (gfc_char_t delimiter, int *ret)
   locus old_locus;
   gfc_char_t c;
 
-  c = gfc_next_char_literal (1);
+  c = gfc_next_char_literal (INSTRING_WARN);
   *ret = 0;
 
   if (c == '\n')
@@ -783,7 +785,7 @@ next_string_char (gfc_char_t delimiter, int *ret)
     return c;
 
   old_locus = gfc_current_locus;
-  c = gfc_next_char_literal (0);
+  c = gfc_next_char_literal (NONSTRING);
 
   if (c == delimiter)
     return c;
@@ -1610,6 +1612,8 @@ gfc_match_actual_arglist (int sub_flag, gfc_actual_arglist **argp)
     return MATCH_YES;
   head = NULL;
 
+  matching_actual_arglist++;
+
   for (;;)
     {
       if (head == NULL)
@@ -1684,6 +1688,7 @@ gfc_match_actual_arglist (int sub_flag, gfc_actual_arglist **argp)
     }
 
   *argp = head;
+  matching_actual_arglist--;
   return MATCH_YES;
 
 syntax:
@@ -1692,7 +1697,7 @@ syntax:
 cleanup:
   gfc_free_actual_arglist (head);
   gfc_current_locus = old_loc;
-
+  matching_actual_arglist--;
   return MATCH_ERROR;
 }
 
@@ -1765,11 +1770,12 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 
   if ((equiv_flag && gfc_peek_ascii_char () == '(')
       || gfc_peek_ascii_char () == '[' || sym->attr.codimension
-      || (sym->attr.dimension && !sym->attr.proc_pointer
-	  && !gfc_is_proc_ptr_comp (primary, NULL)
+      || (sym->attr.dimension && sym->ts.type != BT_CLASS
+	  && !sym->attr.proc_pointer && !gfc_is_proc_ptr_comp (primary, NULL)
 	  && !(gfc_matching_procptr_assignment
 	       && sym->attr.flavor == FL_PROCEDURE))
-      || (sym->ts.type == BT_CLASS && CLASS_DATA (sym)->attr.dimension))
+      || (sym->ts.type == BT_CLASS && sym->attr.class_ok
+	  && CLASS_DATA (sym)->attr.dimension))
     {
       /* In EQUIVALENCE, we don't know yet whether we are seeing
 	 an array, character variable or array of character
@@ -1778,7 +1784,11 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
       tail->type = REF_ARRAY;
 
       m = gfc_match_array_ref (&tail->u.ar, equiv_flag ? NULL : sym->as,
-			       equiv_flag, sym->as ? sym->as->corank : 0);
+			       equiv_flag,
+			       sym->ts.type == BT_CLASS
+			       ? (CLASS_DATA (sym)->as
+				  ? CLASS_DATA (sym)->as->corank : 0)
+			       : (sym->as ? sym->as->corank : 0));
       if (m != MATCH_YES)
 	return m;
 
@@ -1833,7 +1843,10 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
 	    return MATCH_ERROR;
 
 	  gcc_assert (!tail || !tail->next);
-	  gcc_assert (primary->expr_type == EXPR_VARIABLE);
+	  gcc_assert (primary->expr_type == EXPR_VARIABLE
+		      || (primary->expr_type == EXPR_STRUCTURE
+			  && primary->symtree && primary->symtree->n.sym
+			  && primary->symtree->n.sym->attr.flavor));
 
 	  if (tbp->n.tb->is_generic)
 	    tbp_sym = NULL;
@@ -1883,10 +1896,20 @@ gfc_match_varspec (gfc_expr *primary, int equiv_flag, bool sub_flag,
       if (component->attr.proc_pointer && ppc_arg
 	  && !gfc_matching_procptr_assignment)
 	{
+	  /* Procedure pointer component call: Look for argument list.  */
 	  m = gfc_match_actual_arglist (sub_flag,
 					&primary->value.compcall.actual);
 	  if (m == MATCH_ERROR)
 	    return MATCH_ERROR;
+
+	  if (m == MATCH_NO && !gfc_matching_ptr_assignment
+	      && !matching_actual_arglist)
+	    {
+	      gfc_error ("Procedure pointer component '%s' requires an "
+			 "argument list at %C", component->name);
+	      return MATCH_ERROR;
+	    }
+
 	  if (m == MATCH_YES)
 	    primary->expr_type = EXPR_PPC;
 
@@ -2007,11 +2030,10 @@ gfc_variable_attr (gfc_expr *expr, gfc_typespec *ts)
   if (expr->expr_type != EXPR_VARIABLE && expr->expr_type != EXPR_FUNCTION)
     gfc_internal_error ("gfc_variable_attr(): Expression isn't a variable");
 
-  ref = expr->ref;
   sym = expr->symtree->n.sym;
   attr = sym->attr;
 
-  if (sym->ts.type == BT_CLASS)
+  if (sym->ts.type == BT_CLASS && sym->attr.class_ok)
     {
       dimension = CLASS_DATA (sym)->attr.dimension;
       pointer = CLASS_DATA (sym)->attr.class_pointer;
@@ -2031,7 +2053,7 @@ gfc_variable_attr (gfc_expr *expr, gfc_typespec *ts)
   if (ts != NULL && expr->ts.type == BT_UNKNOWN)
     *ts = sym->ts;
 
-  for (; ref; ref = ref->next)
+  for (ref = expr->ref; ref; ref = ref->next)
     switch (ref->type)
       {
       case REF_ARRAY:
@@ -2165,6 +2187,7 @@ gfc_free_structure_ctor_component (gfc_structure_ctor_component *comp)
 {
   gfc_free (comp->name);
   gfc_free_expr (comp->val);
+  gfc_free (comp);
 }
 
 
@@ -2286,6 +2309,12 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
       do
 	{
 	  gfc_component *this_comp = NULL;
+
+	  if (comp == sym->components && sym->attr.extension
+	      && comp->ts.type == BT_DERIVED
+	      && comp->ts.u.derived->attr.zero_comp)
+	    /* Skip empty parents.  */ 
+	    comp = comp->next;
 
 	  if (!comp_head)
 	    comp_tail = comp_head = gfc_get_structure_ctor_component ();
@@ -2414,8 +2443,9 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
   /* No component should be left, as this should have caused an error in the
      loop constructing the component-list (name that does not correspond to any
      component in the structure definition).  */
-  if (comp_head && sym->attr.extension)
+  if (comp_head)
     {
+      gcc_assert (sym->attr.extension);
       for (comp_iter = comp_head; comp_iter; comp_iter = comp_iter->next)
 	{
 	  gfc_error ("component '%s' at %L has already been set by a "
@@ -2424,8 +2454,6 @@ gfc_match_structure_constructor (gfc_symbol *sym, gfc_expr **result,
 	}
       goto cleanup;
     }
-  else
-    gcc_assert (!comp_head);
 
   e = gfc_get_structure_constructor_expr (BT_DERIVED, 0, &where);
   e->ts.u.derived = sym;
@@ -2986,13 +3014,7 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
   switch (sym->attr.flavor)
     {
     case FL_VARIABLE:
-      if (sym->attr.is_protected && sym->attr.use_assoc)
-	{
-	  gfc_error ("Assigning to PROTECTED variable at %C");
-	  return MATCH_ERROR;
-	}
-      if (sym->assoc)
-	sym->assoc->variable = 1;
+      /* Everything is alright.  */
       break;
 
     case FL_UNKNOWN:
@@ -3024,22 +3046,24 @@ match_variable (gfc_expr **result, int equiv_flag, int host_flag)
 
     case FL_PARAMETER:
       if (equiv_flag)
-	gfc_error ("Named constant at %C in an EQUIVALENCE");
-      else
-	gfc_error ("Cannot assign to a named constant at %C");
-      return MATCH_ERROR;
+	{
+	  gfc_error ("Named constant at %C in an EQUIVALENCE");
+	  return MATCH_ERROR;
+	}
+      /* Otherwise this is checked for and an error given in the
+	 variable definition context checks.  */
       break;
 
     case FL_PROCEDURE:
       /* Check for a nonrecursive function result variable.  */
       if (sym->attr.function
-          && !sym->attr.external
-          && sym->result == sym
-          && (gfc_is_function_return_value (sym, gfc_current_ns)
-              || (sym->attr.entry
-                  && sym->ns == gfc_current_ns)
-              || (sym->attr.entry
-                  && sym->ns == gfc_current_ns->parent)))
+	  && !sym->attr.external
+	  && sym->result == sym
+	  && (gfc_is_function_return_value (sym, gfc_current_ns)
+	      || (sym->attr.entry
+		  && sym->ns == gfc_current_ns)
+	      || (sym->attr.entry
+		  && sym->ns == gfc_current_ns->parent)))
 	{
 	  /* If a function result is a derived type, then the derived
 	     type may still have to be resolved.  */

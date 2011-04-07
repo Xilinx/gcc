@@ -1,7 +1,7 @@
 /* Process declarations and variables for C++ compiler.
    Copyright (C) 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010,
+   2011 Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
 This file is part of GCC.
@@ -42,6 +42,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cpplib.h"
 #include "target.h"
 #include "c-family/c-common.h"
+#include "c-family/c-objc.h"
 #include "tree-mudflap.h"
 #include "cgraph.h"
 #include "tree-inline.h"
@@ -620,7 +621,7 @@ check_classfn (tree ctype, tree function, tree template_parms)
 	  && !comp_template_parms (template_parms,
 				   DECL_TEMPLATE_PARMS (function)))
 	{
-	  error ("template parameter lists provided don't match the "
+	  error ("template parameter lists provided don%'t match the "
 		 "template parameters of %qD", function);
 	  return error_mark_node;
 	}
@@ -767,21 +768,6 @@ finish_static_data_member_decl (tree decl,
     permerror (input_location, "local class %q#T shall not have static data member %q#D",
 	       current_class_type, decl);
 
-  /* Static consts need not be initialized in the class definition.  */
-  if (init != NULL_TREE && TYPE_NEEDS_CONSTRUCTING (TREE_TYPE (decl)))
-    {
-      static int explained = 0;
-
-      error ("initializer invalid for static member with constructor");
-      if (!explained)
-	{
-	  error ("(an out of class initialization is required)");
-	  explained = 1;
-	}
-      init = NULL_TREE;
-    }
-
-  DECL_INITIAL (decl) = init;
   DECL_IN_AGGR_P (decl) = 1;
 
   if (TREE_CODE (TREE_TYPE (decl)) == ARRAY_TYPE
@@ -875,7 +861,7 @@ grokfield (const cp_declarator *declarator,
       if (declspecs->specs[(int)ds_typedef]
           && TREE_TYPE (value) != error_mark_node
           && TYPE_NAME (TYPE_MAIN_VARIANT (TREE_TYPE (value))) != value)
-	cp_set_underlying_type (value);
+	set_underlying_type (value);
 
       return value;
     }
@@ -934,8 +920,7 @@ grokfield (const cp_declarator *declarator,
 	{
 	  if (TREE_CODE (init) == CONSTRUCTOR)
 	    init = digest_init (TREE_TYPE (value), init);
-	  else
-	    init = integral_constant_value (init);
+	  init = maybe_constant_init (init);
 
 	  if (init != error_mark_node && !TREE_CONSTANT (init))
 	    {
@@ -1062,7 +1047,11 @@ grokbitfield (const cp_declarator *declarator,
 
   if (width != error_mark_node)
     {
-      constant_expression_warning (width);
+      /* The width must be an integer type.  */
+      if (!type_dependent_expression_p (width)
+	  && !INTEGRAL_OR_UNSCOPED_ENUMERATION_TYPE_P (TREE_TYPE (width)))
+	error ("width of bit-field %qD has non-integral type %qT", value,
+	       TREE_TYPE (width));
       DECL_INITIAL (value) = width;
       SET_DECL_C_BIT_FIELD (value);
     }
@@ -1417,7 +1406,8 @@ finish_anon_union (tree anon_union_decl)
       /* Use main_decl to set the mangled name.  */
       DECL_NAME (anon_union_decl) = DECL_NAME (main_decl);
       maybe_commonize_var (anon_union_decl);
-      mangle_decl (anon_union_decl);
+      if (TREE_STATIC (anon_union_decl) || DECL_EXTERNAL (anon_union_decl))
+	mangle_decl (anon_union_decl);
       DECL_NAME (anon_union_decl) = NULL_TREE;
     }
 
@@ -1788,7 +1778,8 @@ decl_needed_p (tree decl)
       return true;
   /* Functions marked "dllexport" must be emitted so that they are
      visible to other DLLs.  */
-  if (lookup_attribute ("dllexport", DECL_ATTRIBUTES (decl)))
+  if (flag_keep_inline_dllexport
+      && lookup_attribute ("dllexport", DECL_ATTRIBUTES (decl)))
     return true;
   /* Otherwise, DECL does not need to be emitted -- yet.  A subsequent
      reference to DECL might cause it to be emitted later.  */
@@ -2081,7 +2072,8 @@ determine_visibility (tree decl)
 	  tree underlying_type = TREE_TYPE (DECL_NAME (decl));
 	  int underlying_vis = type_visibility (underlying_type);
 	  if (underlying_vis == VISIBILITY_ANON
-	      || CLASSTYPE_VISIBILITY_SPECIFIED (underlying_type))
+	      || (CLASS_TYPE_P (underlying_type)
+		  && CLASSTYPE_VISIBILITY_SPECIFIED (underlying_type)))
 	    constrain_visibility (decl, underlying_vis);
 	  else
 	    DECL_VISIBILITY (decl) = VISIBILITY_DEFAULT;
@@ -2699,7 +2691,7 @@ start_objects (int method_type, int initp)
 {
   tree body;
   tree fndecl;
-  char type[10];
+  char type[14];
 
   /* Make ctor or dtor function.  METHOD_TYPE may be 'I' or 'D'.  */
 
@@ -2713,10 +2705,10 @@ start_objects (int method_type, int initp)
       joiner = '_';
 #endif
 
-      sprintf (type, "%c%c%.5u", method_type, joiner, initp);
+      sprintf (type, "sub_%c%c%.5u", method_type, joiner, initp);
     }
   else
-    sprintf (type, "%c", method_type);
+    sprintf (type, "sub_%c", method_type);
 
   fndecl = build_lang_decl (FUNCTION_DECL,
 			    get_file_function_name (type),
@@ -3539,6 +3531,61 @@ decl_defined_p (tree decl)
     }
 }
 
+/* Nonzero for a VAR_DECL whose value can be used in a constant expression.
+
+      [expr.const]
+
+      An integral constant-expression can only involve ... const
+      variables of integral or enumeration types initialized with
+      constant expressions ...
+
+      C++0x also allows constexpr variables and temporaries initialized
+      with constant expressions.  We handle the former here, but the latter
+      are just folded away in cxx_eval_constant_expression.
+
+   The standard does not require that the expression be non-volatile.
+   G++ implements the proposed correction in DR 457.  */
+
+bool
+decl_constant_var_p (tree decl)
+{
+  bool ret;
+  tree type = TREE_TYPE (decl);
+  if (TREE_CODE (decl) != VAR_DECL)
+    return false;
+  if (DECL_DECLARED_CONSTEXPR_P (decl)
+      || (CP_TYPE_CONST_NON_VOLATILE_P (type)
+	  && INTEGRAL_OR_ENUMERATION_TYPE_P (type)))
+    {
+      /* We don't know if a template static data member is initialized with
+	 a constant expression until we instantiate its initializer.  Even
+	 in the case of a constexpr variable, we can't treat it as a
+	 constant until its initializer is complete in case it's used in
+	 its own initializer.  */
+      mark_used (decl);
+      ret = DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl);
+    }
+  else
+    ret = false;
+
+  return ret;
+}
+
+/* Returns true if DECL could be a symbolic constant variable, depending on
+   its initializer.  */
+
+bool
+decl_maybe_constant_var_p (tree decl)
+{
+  tree type = TREE_TYPE (decl);
+  if (TREE_CODE (decl) != VAR_DECL)
+    return false;
+  if (DECL_DECLARED_CONSTEXPR_P (decl))
+    return true;
+  return (CP_TYPE_CONST_NON_VOLATILE_P (type)
+	  && INTEGRAL_OR_ENUMERATION_TYPE_P (type));
+}
+
 /* Complain that DECL uses a type with no linkage but is never defined.  */
 
 static void
@@ -3872,6 +3919,14 @@ cp_process_pending_declarations (location_t locus)
     if (!decl_defined_p (decl))
       no_linkage_error (decl);
 
+  /* Then, do the Objective-C stuff.  This is where all the
+     Objective-C module stuff gets generated (symtab,
+     class/protocol/selector lists etc).  This must be done after C++
+     templates, destructors etc. so that selectors used in C++
+     templates are properly allocated.  */
+  if (c_dialect_objc ())
+    objc_write_global_declarations ();
+
   /* We give C linkage to static constructors and destructors.  */
   push_lang_context (lang_name_c);
 
@@ -4054,7 +4109,7 @@ build_offset_ref_call_from_tree (tree fn, VEC(tree,gc) **args)
       make_args_non_dependent (*args);
       object = build_non_dependent_expr (object);
       if (TREE_CODE (fn) == DOTSTAR_EXPR)
-	object = cp_build_unary_op (ADDR_EXPR, object, 0, tf_warning_or_error);
+	object = cp_build_addr_expr (object, tf_warning_or_error);
       VEC_safe_insert (tree, gc, *args, 0, object);
       /* Now that the arguments are done, transform FN.  */
       fn = build_non_dependent_expr (fn);
@@ -4068,8 +4123,7 @@ build_offset_ref_call_from_tree (tree fn, VEC(tree,gc) **args)
 	void B::g() { (this->*p)(); }  */
   if (TREE_CODE (fn) == OFFSET_REF)
     {
-      tree object_addr = cp_build_unary_op (ADDR_EXPR, object, 0,
-                                         tf_warning_or_error);
+      tree object_addr = cp_build_addr_expr (object, tf_warning_or_error);
       fn = TREE_OPERAND (fn, 1);
       fn = get_member_function_from_ptrfunc (&object_addr, fn);
       VEC_safe_insert (tree, gc, *args, 0, object_addr);
@@ -4127,8 +4181,6 @@ possibly_inlined_p (tree decl)
 void
 mark_used (tree decl)
 {
-  HOST_WIDE_INT saved_processing_template_decl = 0;
-
   /* If DECL is a BASELINK for a single function, then treat it just
      like the DECL for the function.  Otherwise, if the BASELINK is
      for an overloaded function, we don't know which function was
@@ -4166,9 +4218,6 @@ mark_used (tree decl)
 	error_at (DECL_SOURCE_LOCATION (decl), "declared here");
       return;
     }
-  /* If we don't need a value, then we don't need to synthesize DECL.  */
-  if (cp_unevaluated_operand != 0)
-    return;
 
   /* We can only check DECL_ODR_USED on variables or functions with
      DECL_LANG_SPECIFIC set, and these are also the only decls that we
@@ -4192,29 +4241,37 @@ mark_used (tree decl)
       return;
     }
 
-  /* Normally, we can wait until instantiation-time to synthesize
-     DECL.  However, if DECL is a static data member initialized with
-     a constant, we need the value right now because a reference to
-     such a data member is not value-dependent.  */
-  if (TREE_CODE (decl) == VAR_DECL
-      && DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl)
-      && DECL_CLASS_SCOPE_P (decl))
+  /* Normally, we can wait until instantiation-time to synthesize DECL.
+     However, if DECL is a static data member initialized with a constant
+     or a constexpr function, we need it right now because a reference to
+     such a data member or a call to such function is not value-dependent.  */
+  if ((decl_maybe_constant_var_p (decl)
+       || (TREE_CODE (decl) == FUNCTION_DECL
+	   && DECL_DECLARED_CONSTEXPR_P (decl)))
+      && !DECL_INITIAL (decl)
+      && DECL_LANG_SPECIFIC (decl)
+      && DECL_TEMPLATE_INSTANTIATION (decl))
     {
-      /* Don't try to instantiate members of dependent types.  We
-	 cannot just use dependent_type_p here because this function
-	 may be called from fold_non_dependent_expr, and then we may
-	 see dependent types, even though processing_template_decl
-	 will not be set.  */
-      if (CLASSTYPE_TEMPLATE_INFO ((DECL_CONTEXT (decl)))
-	  && uses_template_parms (CLASSTYPE_TI_ARGS (DECL_CONTEXT (decl))))
-	return;
-      /* Pretend that we are not in a template, even if we are, so
-	 that the static data member initializer will be processed.  */
-      saved_processing_template_decl = processing_template_decl;
-      processing_template_decl = 0;
+      /* Instantiating a function will result in garbage collection.  We
+	 must treat this situation as if we were within the body of a
+	 function so as to avoid collecting live data only referenced from
+	 the stack (such as overload resolution candidates).  */
+      ++function_depth;
+      instantiate_decl (decl, /*defer_ok=*/false,
+			/*expl_inst_class_mem_p=*/false);
+      --function_depth;
     }
 
+  /* If we don't need a value, then we don't need to synthesize DECL.  */
+  if (cp_unevaluated_operand != 0)
+    return;
+
   if (processing_template_decl)
+    return;
+
+  /* Check this too in case we're within fold_non_dependent_expr.  */
+  if (DECL_TEMPLATE_INFO (decl)
+      && uses_template_parms (DECL_TI_ARGS (decl)))
     return;
 
   DECL_ODR_USED (decl) = 1;
@@ -4286,8 +4343,6 @@ mark_used (tree decl)
        need.  Therefore, we always try to defer instantiation.  */
     instantiate_decl (decl, /*defer_ok=*/true,
 		      /*expl_inst_class_mem_p=*/false);
-
-  processing_template_decl = saved_processing_template_decl;
 }
 
 #include "gt-cp-decl2.h"

@@ -1,6 +1,6 @@
 /* Tree-dumping functionality for intermediate representation.
    Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
-   2010 Free Software Foundation, Inc.
+   2010, 2011 Free Software Foundation, Inc.
    Written by Mark Mitchell <mark@codesourcery.com>
 
 This file is part of GCC.
@@ -31,6 +31,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "langhooks.h"
 #include "tree-iterator.h"
+
+/* If non-NULL, return one past-the-end of the matching SUBPART of
+   the WHOLE string.  */
+#define skip_leading_substring(whole,  part) \
+   (strncmp (whole, part, strlen (part)) ? NULL : whole + strlen (part))
 
 static unsigned int queue (dump_info_p, const_tree, int);
 static void dump_index (dump_info_p, unsigned int);
@@ -572,7 +577,6 @@ dequeue_and_dump (dump_info_p di)
     case TRUTH_NOT_EXPR:
     case ADDR_EXPR:
     case INDIRECT_REF:
-    case MISALIGNED_INDIRECT_REF:
     case CLEANUP_POINT_EXPR:
     case SAVE_EXPR:
     case REALPART_EXPR:
@@ -810,6 +814,7 @@ static const struct dump_option_value_info dump_options[] =
   {"raw", TDF_RAW},
   {"graph", TDF_GRAPH},
   {"details", TDF_DETAILS},
+  {"cselib", TDF_CSELIB},
   {"stats", TDF_STATS},
   {"blocks", TDF_BLOCKS},
   {"vops", TDF_VOPS},

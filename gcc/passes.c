@@ -28,16 +28,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "system.h"
 #include "coretypes.h"
 #include "tm.h"
-#include <signal.h>
-
-#ifdef HAVE_SYS_RESOURCE_H
-# include <sys/resource.h>
-#endif
-
-#ifdef HAVE_SYS_TIMES_H
-# include <sys/times.h>
-#endif
-
 #include "line-map.h"
 #include "input.h"
 #include "tree.h"
@@ -83,6 +73,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "predict.h"
 #include "lto-streamer.h"
 #include "plugin.h"
+#include "l-ipo.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
 #include "dwarf2out.h"
@@ -154,6 +145,7 @@ rest_of_decl_compilation (tree decl,
 {
   /* We deferred calling assemble_alias so that we could collect
      other attributes such as visibility.  Emit the alias now.  */
+  if (!in_lto_p)
   {
     tree alias;
     alias = lookup_attribute ("alias", DECL_ATTRIBUTES (decl));
@@ -228,7 +220,8 @@ rest_of_decl_compilation (tree decl,
   /* Let cgraph know about the existence of variables.  */
   if (in_lto_p && !at_end)
     ;
-  else if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl))
+  else if (TREE_CODE (decl) == VAR_DECL && !DECL_EXTERNAL (decl)
+	   && TREE_STATIC (decl))
     varpool_node (decl);
 }
 
@@ -332,7 +325,7 @@ struct rtl_opt_pass pass_postreload =
   NULL,                                 /* sub */
   NULL,                                 /* next */
   0,                                    /* static_pass_number */
-  TV_NONE,                              /* tv_id */
+  TV_POSTRELOAD,                        /* tv_id */
   PROP_rtl,                             /* properties_required */
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
@@ -606,7 +599,7 @@ position_pass (struct register_pass_info *new_pass_info,
                 pass = new_pass;
                 break;
               default:
-                error ("Invalid pass positioning operation");
+                error ("invalid pass positioning operation");
                 return false;
             }
 
@@ -744,41 +737,27 @@ init_optimization_passes (void)
   NEXT_PASS (pass_refactor_eh);
   NEXT_PASS (pass_lower_eh);
   NEXT_PASS (pass_build_cfg);
-  NEXT_PASS (pass_lower_vector);
   NEXT_PASS (pass_warn_function_return);
   NEXT_PASS (pass_build_cgraph_edges);
-  NEXT_PASS (pass_inline_parameters);
   *p = NULL;
 
   /* Interprocedural optimization passes.  */
   p = &all_small_ipa_passes;
   NEXT_PASS (pass_ipa_free_lang_data);
   NEXT_PASS (pass_ipa_function_and_variable_visibility);
-  NEXT_PASS (pass_ipa_early_inline);
-    {
-      struct opt_pass **p = &pass_ipa_early_inline.pass.sub;
-      NEXT_PASS (pass_early_inline);
-      NEXT_PASS (pass_inline_parameters);
-      NEXT_PASS (pass_rebuild_cgraph_edges);
-    }
   NEXT_PASS (pass_early_local_passes);
     {
       struct opt_pass **p = &pass_early_local_passes.pass.sub;
       NEXT_PASS (pass_fixup_cfg);
-      NEXT_PASS (pass_tree_profile);
-      NEXT_PASS (pass_cleanup_cfg);
       NEXT_PASS (pass_init_datastructures);
       NEXT_PASS (pass_expand_omp);
 
       NEXT_PASS (pass_referenced_vars);
       NEXT_PASS (pass_build_ssa);
+      NEXT_PASS (pass_lower_vector);
       NEXT_PASS (pass_early_warn_uninitialized);
-      /* Note that it is not strictly necessary to schedule an early
-	 inline pass here.  However, some test cases (e.g.,
-	 g++.dg/other/p334435.C g++.dg/other/i386-1.C) expect extern
-	 inline functions to be inlined even at -O0.  This does not
-	 happen during the first early inline pass.  */
       NEXT_PASS (pass_rebuild_cgraph_edges);
+      NEXT_PASS (pass_inline_parameters);
       NEXT_PASS (pass_early_inline);
       NEXT_PASS (pass_all_early_optimizations);
 	{
@@ -810,6 +789,11 @@ init_optimization_passes (void)
       NEXT_PASS (pass_release_ssa_names);
       NEXT_PASS (pass_rebuild_cgraph_edges);
       NEXT_PASS (pass_inline_parameters);
+    }
+  NEXT_PASS (pass_ipa_tree_profile);
+    {
+      struct opt_pass **p = &pass_ipa_tree_profile.pass.sub;
+      NEXT_PASS (pass_feedback_split_functions);
     }
   NEXT_PASS (pass_ipa_increase_alignment);
   NEXT_PASS (pass_ipa_matrix_reorg);
@@ -846,7 +830,6 @@ init_optimization_passes (void)
       /* Initial scalar cleanups before alias computation.
 	 They ensure memory accesses are not indirect wherever possible.  */
       NEXT_PASS (pass_strip_predict_hints);
-      NEXT_PASS (pass_update_address_taken);
       NEXT_PASS (pass_rename_ssa_copies);
       NEXT_PASS (pass_complete_unrolli);
       NEXT_PASS (pass_ccp);
@@ -910,16 +893,14 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_record_bounds);
 	  NEXT_PASS (pass_check_data_deps);
 	  NEXT_PASS (pass_loop_distribution);
-	  NEXT_PASS (pass_linear_transform);
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_graphite);
 	    {
 	      struct opt_pass **p = &pass_graphite.pass.sub;
-	      NEXT_PASS (pass_copy_prop);
 	      NEXT_PASS (pass_graphite_transforms);
+	      NEXT_PASS (pass_lim);
 	      NEXT_PASS (pass_copy_prop);
 	      NEXT_PASS (pass_dce_loop);
-	      NEXT_PASS (pass_lim);
 	    }
 	  NEXT_PASS (pass_iv_canon);
 	  NEXT_PASS (pass_if_conversion);
@@ -1046,6 +1027,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_gcse2);
 	  NEXT_PASS (pass_split_after_reload);
 	  NEXT_PASS (pass_implicit_zee);
+	  NEXT_PASS (pass_compare_elim_after_reload);
 	  NEXT_PASS (pass_branch_target_load_optimize1);
 	  NEXT_PASS (pass_thread_prologue_and_epilogue);
 	  NEXT_PASS (pass_rtl_dse2);
@@ -1217,15 +1199,13 @@ execute_function_todo (void *data)
       cfun->last_verified &= ~TODO_verify_ssa;
     }
 
-  if (flags & TODO_update_address_taken)
-    execute_update_addresses_taken (true);
-
   if (flags & TODO_rebuild_alias)
     {
-      if (!(flags & TODO_update_address_taken))
-	execute_update_addresses_taken (true);
+      execute_update_addresses_taken ();
       compute_may_aliases ();
     }
+  else if (optimize && (flags & TODO_update_address_taken))
+    execute_update_addresses_taken ();
 
   if (flags & TODO_remove_unused_locals)
     remove_unused_locals ();
@@ -1258,6 +1238,13 @@ execute_function_todo (void *data)
   if (flags & TODO_rebuild_frequencies)
     rebuild_frequencies ();
 
+  if (flags & TODO_rebuild_cgraph_edges)
+    rebuild_cgraph_edges ();
+
+  /* If we've seen errors do not bother running any verifiers.  */
+  if (seen_error ())
+    return;
+
 #if defined ENABLE_CHECKING
   if (flags & TODO_verify_ssa
       || (current_loops && loops_state_satisfies_p (LOOP_CLOSED_SSA)))
@@ -1284,6 +1271,8 @@ execute_todo (unsigned int flags)
       && need_ssa_update_p (cfun))
     gcc_assert (flags & TODO_update_ssa_any);
 #endif
+
+  timevar_push (TV_TODO);
 
   /* Inform the pass whether it is the first time it is run.  */
   first_pass_instance = (flags & TODO_mark_first_instance) != 0;
@@ -1318,6 +1307,8 @@ execute_todo (unsigned int flags)
      df problems.  */
   if (flags & TODO_df_finish)
     df_finish_pass ((flags & TODO_df_verify) != 0);
+
+  timevar_pop (TV_TODO);
 }
 
 /* Verify invariants that should hold between passes.  This is a place
@@ -1326,9 +1317,7 @@ execute_todo (unsigned int flags)
 static void
 verify_interpass_invariants (void)
 {
-#ifdef ENABLE_CHECKING
-  gcc_assert (!fold_deferring_overflow_warnings_p ());
-#endif
+  gcc_checking_assert (!fold_deferring_overflow_warnings_p ());
 }
 
 /* Clear the last verified flag.  */

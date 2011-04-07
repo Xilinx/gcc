@@ -1,4 +1,4 @@
-/* Copyright (C) 2004, 2005, 2007, 2008 Free Software Foundation, Inc.
+/* Copyright (C) 2004, 2005, 2007, 2008, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -58,13 +58,14 @@ DEFINE_MATH_BUILTIN   (HYPOT, "hypot",  1)
    double and long double) and to build the quad-precision decls.  */
 OTHER_BUILTIN (CABS,      "cabs",      cabs,    true)
 OTHER_BUILTIN (COPYSIGN,  "copysign",  2,       true)
+OTHER_BUILTIN (CPOW,      "cpow",      cpow,    true)
 OTHER_BUILTIN (FABS,      "fabs",      1,       true)
 OTHER_BUILTIN (FMOD,      "fmod",      2,       true)
 OTHER_BUILTIN (FREXP,     "frexp",     frexp,   false)
-OTHER_BUILTIN (HUGE_VAL,  "huge_val",  0,       true)
 OTHER_BUILTIN (LLROUND,   "llround",   llround, true)
 OTHER_BUILTIN (LROUND,    "lround",    lround,  true)
 OTHER_BUILTIN (NEXTAFTER, "nextafter", 2,       true)
+OTHER_BUILTIN (POW,       "pow",       1,       true)
 OTHER_BUILTIN (ROUND,     "round",     1,       true)
 OTHER_BUILTIN (SCALBN,    "scalbn",    scalbn,  true)
 OTHER_BUILTIN (TRUNC,     "trunc",     1,       true)

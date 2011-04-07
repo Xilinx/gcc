@@ -1,7 +1,7 @@
 // Components for manipulating sequences of characters -*- C++ -*-
 
 // Copyright (C) 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-// 2006, 2007, 2008, 2009, 2010
+// 2006, 2007, 2008, 2009, 2010, 2011
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -24,9 +24,9 @@
 // see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 // <http://www.gnu.org/licenses/>.
 
-/** @file basic_string.h
+/** @file bits/basic_string.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{string}
  */
 
 //
@@ -42,7 +42,9 @@
 #include <debug/debug.h>
 #include <initializer_list>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   /**
    *  @class basic_string basic_string.h <string>
@@ -2363,6 +2365,56 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       return __str;
     }
 
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_string<_CharT, _Traits, _Alloc>
+    operator+(basic_string<_CharT, _Traits, _Alloc>&& __lhs,
+	      const basic_string<_CharT, _Traits, _Alloc>& __rhs)
+    { return std::move(__lhs.append(__rhs)); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_string<_CharT, _Traits, _Alloc>
+    operator+(const basic_string<_CharT, _Traits, _Alloc>& __lhs,
+	      basic_string<_CharT, _Traits, _Alloc>&& __rhs)
+    { return std::move(__rhs.insert(0, __lhs)); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_string<_CharT, _Traits, _Alloc>
+    operator+(basic_string<_CharT, _Traits, _Alloc>&& __lhs,
+	      basic_string<_CharT, _Traits, _Alloc>&& __rhs)
+    {
+      const auto __size = __lhs.size() + __rhs.size();
+      const bool __cond = (__size > __lhs.capacity()
+			   && __size <= __rhs.capacity());
+      return __cond ? std::move(__rhs.insert(0, __lhs))
+	            : std::move(__lhs.append(__rhs));
+    }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_string<_CharT, _Traits, _Alloc>
+    operator+(const _CharT* __lhs,
+	      basic_string<_CharT, _Traits, _Alloc>&& __rhs)
+    { return std::move(__rhs.insert(0, __lhs)); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_string<_CharT, _Traits, _Alloc>
+    operator+(_CharT __lhs,
+	      basic_string<_CharT, _Traits, _Alloc>&& __rhs)
+    { return std::move(__rhs.insert(0, 1, __lhs)); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_string<_CharT, _Traits, _Alloc>
+    operator+(basic_string<_CharT, _Traits, _Alloc>&& __lhs,
+	      const _CharT* __rhs)
+    { return std::move(__lhs.append(__rhs)); }
+
+  template<typename _CharT, typename _Traits, typename _Alloc>
+    inline basic_string<_CharT, _Traits, _Alloc>
+    operator+(basic_string<_CharT, _Traits, _Alloc>&& __lhs,
+	      _CharT __rhs)
+    { return std::move(__lhs.append(1, __rhs)); }
+#endif
+
   // operator ==
   /**
    *  @brief  Test equivalence of two strings.
@@ -2695,14 +2747,17 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	    wchar_t __delim);
 #endif  
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #if (defined(__GXX_EXPERIMENTAL_CXX0X__) && defined(_GLIBCXX_USE_C99) \
      && !defined(_GLIBCXX_HAVE_BROKEN_VSWPRINTF))
 
 #include <ext/string_conversions.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   // 21.4 Numeric Conversions [string.conversions].
   inline int
@@ -2909,7 +2964,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   }
 #endif
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif /* __GXX_EXPERIMENTAL_CXX0X__ && _GLIBCXX_USE_C99 ... */
 
@@ -2917,7 +2973,9 @@ _GLIBCXX_END_NAMESPACE
 
 #include <bits/functional_hash.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   // DR 1182.
 
@@ -2925,23 +2983,23 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /// std::hash specialization for string.
   template<>
     struct hash<string>
-    : public std::unary_function<string, size_t>
+    : public __hash_base<size_t, string>
     {
       size_t
       operator()(const string& __s) const
-      { return std::_Fnv_hash::hash(__s.data(), __s.length()); }
+      { return std::_Hash_impl::hash(__s.data(), __s.length()); }
     };
 
 #ifdef _GLIBCXX_USE_WCHAR_T
   /// std::hash specialization for wstring.
   template<>
     struct hash<wstring>
-    : public std::unary_function<wstring, size_t>
+    : public __hash_base<size_t, wstring>
     {
       size_t
       operator()(const wstring& __s) const
-      { return std::_Fnv_hash::hash(__s.data(),
-				    __s.length() * sizeof(wchar_t)); }
+      { return std::_Hash_impl::hash(__s.data(),
+                                     __s.length() * sizeof(wchar_t)); }
     };
 #endif
 #endif /* _GLIBCXX_COMPATIBILITY_CXX0X */
@@ -2950,27 +3008,28 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   /// std::hash specialization for u16string.
   template<>
     struct hash<u16string>
-    : public std::unary_function<u16string, size_t>
+    : public __hash_base<size_t, u16string>
     {
       size_t
       operator()(const u16string& __s) const
-      { return std::_Fnv_hash::hash(__s.data(),
-				    __s.length() * sizeof(char16_t)); }
+      { return std::_Hash_impl::hash(__s.data(),
+                                     __s.length() * sizeof(char16_t)); }
     };
 
   /// std::hash specialization for u32string.
   template<>
     struct hash<u32string>
-    : public std::unary_function<u32string, size_t>
+    : public __hash_base<size_t, u32string>
     {
       size_t
       operator()(const u32string& __s) const
-      { return std::_Fnv_hash::hash(__s.data(),
-				    __s.length() * sizeof(char32_t)); }
+      { return std::_Hash_impl::hash(__s.data(),
+                                     __s.length() * sizeof(char32_t)); }
     };
 #endif
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif /* __GXX_EXPERIMENTAL_CXX0X__ */
 

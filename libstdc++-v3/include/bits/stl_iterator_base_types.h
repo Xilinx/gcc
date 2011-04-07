@@ -49,9 +49,9 @@
  * purpose.  It is provided "as is" without express or implied warranty.
  */
 
-/** @file stl_iterator_base_types.h
+/** @file bits/stl_iterator_base_types.h
  *  This is an internal header file, included by other library headers.
- *  You should not attempt to use it directly.
+ *  Do not attempt to use it directly. @headername{iterator}
  *
  *  This file contains all of the general iterator-related utility types,
  *  such as iterator_traits and struct iterator.
@@ -64,7 +64,13 @@
 
 #include <bits/c++config.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+# include <type_traits>  // For _GLIBCXX_HAS_NESTED_TYPE
+#endif
+
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   /**
    *  @defgroup iterators Iterators
@@ -132,6 +138,28 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
    *  argument.  Specialized versions for pointers and pointers-to-const
    *  provide tighter, more correct semantics.
   */
+#ifdef __GXX_EXPERIMENTAL_CXX0X__
+
+_GLIBCXX_HAS_NESTED_TYPE(iterator_category)
+
+  template<typename _Iterator,
+	   bool = __has_iterator_category<_Iterator>::value>
+    struct __iterator_traits { };
+
+  template<typename _Iterator>
+    struct __iterator_traits<_Iterator, true>
+    {
+      typedef typename _Iterator::iterator_category iterator_category;
+      typedef typename _Iterator::value_type        value_type;
+      typedef typename _Iterator::difference_type   difference_type;
+      typedef typename _Iterator::pointer           pointer;
+      typedef typename _Iterator::reference         reference;
+    };
+
+  template<typename _Iterator>
+    struct iterator_traits
+    : public __iterator_traits<_Iterator> { };
+#else
   template<typename _Iterator>
     struct iterator_traits
     {
@@ -141,6 +169,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       typedef typename _Iterator::pointer           pointer;
       typedef typename _Iterator::reference         reference;
     };
+#endif
 
   /// Partial specialization for pointer types.
   template<typename _Tp>
@@ -193,7 +222,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       { return __it.base(); }
     };
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif /* _STL_ITERATOR_BASE_TYPES_H */
 

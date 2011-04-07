@@ -56,6 +56,14 @@ hook_bool_bool_false (bool a ATTRIBUTE_UNUSED)
   return false;
 }
 
+/* Generic hook that takes (bool, struct gcc_options *) and returns false.  */
+bool
+hook_bool_bool_gcc_optionsp_false (bool a ATTRIBUTE_UNUSED,
+				   struct gcc_options *opts ATTRIBUTE_UNUSED)
+{
+  return false;
+}
+
 /* Generic hook that takes const int, const int) and returns true.  */
 bool hook_bool_const_int_const_int_true (const int a ATTRIBUTE_UNUSED,
                                          const int b ATTRIBUTE_UNUSED)
@@ -178,6 +186,11 @@ hook_void_constcharptr (const char *a ATTRIBUTE_UNUSED)
 
 void
 hook_void_tree_treeptr (tree a ATTRIBUTE_UNUSED, tree *b ATTRIBUTE_UNUSED)
+{
+}
+
+void
+hook_void_int_int (int a ATTRIBUTE_UNUSED, int b ATTRIBUTE_UNUSED)
 {
 }
 
@@ -339,4 +352,26 @@ tree
 hook_tree_const_tree_null (const_tree t ATTRIBUTE_UNUSED)
 {
   return NULL;
+}
+
+/* Generic hook that takes a rtx and an int and returns a bool.  */
+
+bool
+hook_bool_rtx_int_false (rtx insn ATTRIBUTE_UNUSED, int mode ATTRIBUTE_UNUSED)
+{
+  return false;
+}
+
+/* Generic hook that takes a rtx and an int and returns void.  */
+
+void
+hook_void_rtx_int (rtx insn ATTRIBUTE_UNUSED, int mode ATTRIBUTE_UNUSED)
+{
+}
+
+/* Generic hook that takes a struct gcc_options * and returns void.  */
+
+void
+hook_void_gcc_optionsp (struct gcc_options *opts ATTRIBUTE_UNUSED)
+{
 }

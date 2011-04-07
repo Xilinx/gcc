@@ -191,7 +191,8 @@ is_hidden_global_store (gimple stmt)
 
 	}
       else if (INDIRECT_REF_P (lhs)
-	       || TREE_CODE (lhs) == MEM_REF)
+	       || TREE_CODE (lhs) == MEM_REF
+	       || TREE_CODE (lhs) == TARGET_MEM_REF)
 	return ptr_deref_may_alias_global_p (TREE_OPERAND (lhs, 0));
       else if (CONSTANT_CLASS_P (lhs))
 	return true;
@@ -428,6 +429,12 @@ statement_sink_location (gimple stmt, basic_block frombb,
       || sinkbb->loop_father != frombb->loop_father)
     return false;
 
+  /* If the latch block is empty, don't make it non-empty by sinking
+     something into it.  */
+  if (sinkbb == frombb->loop_father->latch
+      && empty_block_p (sinkbb))
+    return false;
+
   /* Move the expression to a post dominator can't reduce the number of
      executions.  */
   if (dominated_by_p (CDI_POST_DOMINATORS, frombb, sinkbb))
@@ -597,8 +604,9 @@ struct gimple_opt_pass pass_sink_code =
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
   TODO_update_ssa
+    | TODO_verify_ssa
+    | TODO_verify_flow
     | TODO_dump_func
-    | TODO_ggc_collect
-    | TODO_verify_ssa			/* todo_flags_finish */
+    | TODO_ggc_collect			/* todo_flags_finish */
  }
 };

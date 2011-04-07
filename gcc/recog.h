@@ -18,6 +18,9 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+#ifndef GCC_RECOG_H
+#define GCC_RECOG_H
+
 /* Random number that should be large enough for all purposes.  */
 #define MAX_RECOG_ALTERNATIVES 30
 
@@ -102,7 +105,7 @@ extern int num_changes_pending (void);
 #ifdef HAVE_cc0
 extern int next_insn_tests_no_inequality (rtx);
 #endif
-extern int reg_fits_class_p (rtx, enum reg_class, int, enum machine_mode);
+extern bool reg_fits_class_p (const_rtx, reg_class_t, int, enum machine_mode);
 
 extern int offsettable_memref_p (rtx);
 extern int offsettable_nonstrict_memref_p (rtx);
@@ -305,3 +308,5 @@ struct insn_data_d
 
 extern const struct insn_data_d insn_data[];
 extern int peep2_current_count;
+
+#endif /* GCC_RECOG_H */

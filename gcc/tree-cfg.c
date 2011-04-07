@@ -38,7 +38,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-dump.h"
 #include "tree-pass.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "except.h"
 #include "cfgloop.h"
 #include "cfglayout.h"
@@ -46,6 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "pointer-set.h"
 #include "tree-inline.h"
+#include "l-ipo.h"
 
 /* This file contains functions for building the Control Flow Graph (CFG)
    for a function tree.  */
@@ -230,10 +230,6 @@ build_gimple_cfg (gimple_seq seq)
 	dump_end (TDI_vcg, vcg_file);
       }
   }
-
-#ifdef ENABLE_CHECKING
-  verify_stmts ();
-#endif
 }
 
 static unsigned int
@@ -1574,7 +1570,7 @@ replace_uses_by (tree name, tree val)
 	  size_t i;
 
 	  fold_stmt_inplace (stmt);
-	  if (cfgcleanup_altered_bbs)
+	  if (cfgcleanup_altered_bbs && !is_gimple_debug (stmt))
 	    bitmap_set_bit (cfgcleanup_altered_bbs, gimple_bb (stmt)->index);
 
 	  /* FIXME.  This should go in update_stmt.  */
@@ -2262,7 +2258,8 @@ is_ctrl_altering_stmt (gimple t)
 
 	/* A non-pure/const call alters flow control if the current
 	   function has nonlocal labels.  */
-	if (!(flags & (ECF_CONST | ECF_PURE)) && cfun->has_nonlocal_label)
+	if (!(flags & (ECF_CONST | ECF_PURE | ECF_LEAF))
+	    && cfun->has_nonlocal_label)
 	  return true;
 
 	/* A call also alters control flow if it does not return.  */
@@ -2318,7 +2315,8 @@ stmt_can_make_abnormal_goto (gimple t)
   if (computed_goto_p (t))
     return true;
   if (is_gimple_call (t))
-    return gimple_has_side_effects (t) && cfun->has_nonlocal_label;
+    return (gimple_has_side_effects (t) && cfun->has_nonlocal_label
+	    && !(gimple_call_flags (t) & ECF_LEAF));
   return false;
 }
 
@@ -2613,13 +2611,13 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
       if (!POINTER_TYPE_P (TREE_TYPE (x))
 	  || !is_gimple_mem_ref_addr (x))
 	{
-	  error ("Invalid first operand of MEM_REF.");
+	  error ("invalid first operand of MEM_REF");
 	  return x;
 	}
       if (TREE_CODE (TREE_OPERAND (t, 1)) != INTEGER_CST
 	  || !POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (t, 1))))
 	{
-	  error ("Invalid offset operand of MEM_REF.");
+	  error ("invalid offset operand of MEM_REF");
 	  return TREE_OPERAND (t, 1);
 	}
       if (TREE_CODE (x) == ADDR_EXPR
@@ -2638,7 +2636,7 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
       break;
 
     case MODIFY_EXPR:
-      error ("MODIFY_EXPR not expected while having tuples.");
+      error ("MODIFY_EXPR not expected while having tuples");
       return *tp;
 
     case ADDR_EXPR:
@@ -2785,7 +2783,7 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 				     TREE_TYPE (TREE_OPERAND (t, 1))))
 	{
 	  error ("invalid operand to pointer plus, second operand is not an "
-		 "integer with type of sizetype.");
+		 "integer with type of sizetype");
 	  return t;
 	}
       /* FALLTHROUGH */
@@ -2852,8 +2850,7 @@ verify_types_in_gimple_min_lval (tree expr)
   if (is_gimple_id (expr))
     return false;
 
-  if (TREE_CODE (expr) != MISALIGNED_INDIRECT_REF
-      && TREE_CODE (expr) != TARGET_MEM_REF
+  if (TREE_CODE (expr) != TARGET_MEM_REF
       && TREE_CODE (expr) != MEM_REF)
     {
       error ("invalid expression for min lvalue");
@@ -2955,14 +2952,14 @@ verify_types_in_gimple_reference (tree expr, bool require_lvalue)
 	      && (TREE_CODE (op) == SSA_NAME
 		  || is_gimple_min_invariant (op)))
 	    {
-	      error ("Conversion of an SSA_NAME on the left hand side.");
+	      error ("conversion of an SSA_NAME on the left hand side");
 	      debug_generic_stmt (expr);
 	      return true;
 	    }
 	  else if (TREE_CODE (op) == SSA_NAME
 		   && TYPE_SIZE (TREE_TYPE (expr)) != TYPE_SIZE (TREE_TYPE (op)))
 	    {
-	      error ("Conversion of register to a different size.");
+	      error ("conversion of register to a different size");
 	      debug_generic_stmt (expr);
 	      return true;
 	    }
@@ -2977,25 +2974,31 @@ verify_types_in_gimple_reference (tree expr, bool require_lvalue)
     {
       if (!is_gimple_mem_ref_addr (TREE_OPERAND (expr, 0)))
 	{
-	  error ("Invalid address operand in MEM_REF.");
+	  error ("invalid address operand in MEM_REF");
 	  debug_generic_stmt (expr);
 	  return true;
 	}
       if (TREE_CODE (TREE_OPERAND (expr, 1)) != INTEGER_CST
 	  || !POINTER_TYPE_P (TREE_TYPE (TREE_OPERAND (expr, 1))))
 	{
-	  error ("Invalid offset operand in MEM_REF.");
+	  error ("invalid offset operand in MEM_REF");
 	  debug_generic_stmt (expr);
 	  return true;
 	}
     }
   else if (TREE_CODE (expr) == TARGET_MEM_REF)
     {
+      if (!TMR_BASE (expr)
+	  || !is_gimple_mem_ref_addr (TMR_BASE (expr)))
+	{
+	  error ("invalid address operand in in TARGET_MEM_REF");
+	  return true;
+	}
       if (!TMR_OFFSET (expr)
 	  || TREE_CODE (TMR_OFFSET (expr)) != INTEGER_CST
 	  || !POINTER_TYPE_P (TREE_TYPE (TMR_OFFSET (expr))))
 	{
-	  error ("Invalid offset operand in TARGET_MEM_REF.");
+	  error ("invalid offset operand in TARGET_MEM_REF");
 	  debug_generic_stmt (expr);
 	  return true;
 	}
@@ -3106,8 +3109,7 @@ verify_gimple_call (gimple stmt)
      call, and the decl should have DECL_STATIC_CHAIN set.  */
   if (gimple_call_chain (stmt))
     {
-      if (TREE_CODE (fn) != ADDR_EXPR
-	  || TREE_CODE (TREE_OPERAND (fn, 0)) != FUNCTION_DECL)
+      if (!gimple_call_fndecl (stmt))
 	{
 	  error ("static chain in indirect gimple call");
 	  return true;
@@ -3116,7 +3118,7 @@ verify_gimple_call (gimple stmt)
 
       if (!DECL_STATIC_CHAIN (fn))
 	{
-	  error ("static chain with function that doesn't use one");
+	  error ("static chain with function that doesn%'t use one");
 	  return true;
 	}
     }
@@ -3136,6 +3138,7 @@ verify_gimple_call (gimple stmt)
 	{
 	  error ("invalid argument to gimple call");
 	  debug_generic_expr (arg);
+	  return true;
 	}
     }
 
@@ -3421,6 +3424,7 @@ verify_gimple_assign_binary (gimple stmt)
       {
 	if (TREE_CODE (rhs1_type) != VECTOR_TYPE
 	    || !(INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
+		 || POINTER_TYPE_P (TREE_TYPE (rhs1_type))
 		 || FIXED_POINT_TYPE_P (TREE_TYPE (rhs1_type))
 		 || SCALAR_FLOAT_TYPE_P (TREE_TYPE (rhs1_type)))
 	    || (!INTEGRAL_TYPE_P (rhs2_type)
@@ -3434,9 +3438,9 @@ verify_gimple_assign_binary (gimple stmt)
 	    debug_generic_expr (rhs2_type);
 	    return true;
 	  }
-	/* For shifting a vector of floating point components we
+	/* For shifting a vector of non-integral components we
 	   only allow shifting by a constant multiple of the element size.  */
-	if (SCALAR_FLOAT_TYPE_P (TREE_TYPE (rhs1_type))
+	if (!INTEGRAL_TYPE_P (TREE_TYPE (rhs1_type))
 	    && (TREE_CODE (rhs2) != INTEGER_CST
 		|| !div_if_zero_remainder (EXACT_DIV_EXPR, rhs2,
 					   TYPE_SIZE (TREE_TYPE (rhs1_type)))))
@@ -3449,8 +3453,9 @@ verify_gimple_assign_binary (gimple stmt)
       }
 
     case PLUS_EXPR:
+    case MINUS_EXPR:
       {
-	/* We use regular PLUS_EXPR for vectors.
+	/* We use regular PLUS_EXPR and MINUS_EXPR for vectors.
 	   ???  This just makes the checker happy and may not be what is
 	   intended.  */
 	if (TREE_CODE (lhs_type) == VECTOR_TYPE
@@ -3475,10 +3480,6 @@ verify_gimple_assign_binary (gimple stmt)
 	      }
 	    goto do_pointer_plus_expr_check;
 	  }
-      }
-    /* Fallthru.  */
-    case MINUS_EXPR:
-      {
 	if (POINTER_TYPE_P (lhs_type)
 	    || POINTER_TYPE_P (rhs1_type)
 	    || POINTER_TYPE_P (rhs2_type))
@@ -3657,6 +3658,20 @@ verify_gimple_assign_ternary (gimple stmt)
 	}
       break;
 
+    case FMA_EXPR:
+      if (!useless_type_conversion_p (lhs_type, rhs1_type)
+	  || !useless_type_conversion_p (lhs_type, rhs2_type)
+	  || !useless_type_conversion_p (lhs_type, rhs3_type))
+	{
+	  error ("type mismatch in fused multiply-add expression");
+	  debug_generic_expr (lhs_type);
+	  debug_generic_expr (rhs1_type);
+	  debug_generic_expr (rhs2_type);
+	  debug_generic_expr (rhs3_type);
+	  return true;
+	}
+      break;
+
     default:
       gcc_unreachable ();
     }
@@ -3701,7 +3716,13 @@ verify_gimple_assign_single (gimple stmt)
 	    return true;
 	  }
 
-	if (!types_compatible_p (TREE_TYPE (op), TREE_TYPE (TREE_TYPE (rhs1)))
+	/* Technically there is no longer a need for matching types, but
+	   gimple hygiene asks for this check.  In LTO we can end up
+	   combining incompatible units and thus end up with addresses
+	   of globals that change their type to a common one.  */
+	if (!in_lto_p
+	    && !types_compatible_p (TREE_TYPE (op),
+				    TREE_TYPE (TREE_TYPE (rhs1)))
 	    && !one_pointer_to_useless_type_conversion_p (TREE_TYPE (rhs1),
 							  TREE_TYPE (op)))
 	  {
@@ -3721,7 +3742,6 @@ verify_gimple_assign_single (gimple stmt)
 
     case COMPONENT_REF:
     case BIT_FIELD_REF:
-    case MISALIGNED_INDIRECT_REF:
     case ARRAY_REF:
     case ARRAY_RANGE_REF:
     case VIEW_CONVERT_EXPR:
@@ -3913,7 +3933,7 @@ verify_gimple_phi (gimple stmt)
 
   if (TREE_CODE (gimple_phi_result (stmt)) != SSA_NAME)
     {
-      error ("Invalid PHI result");
+      error ("invalid PHI result");
       return true;
     }
 
@@ -3925,13 +3945,13 @@ verify_gimple_phi (gimple stmt)
 	  || (!is_gimple_reg (gimple_phi_result (stmt))
 	      && !is_gimple_addressable (arg)))
 	{
-	  error ("Invalid PHI argument");
+	  error ("invalid PHI argument");
 	  debug_generic_stmt (arg);
 	  return true;
 	}
       if (!useless_type_conversion_p (type, TREE_TYPE (arg)))
 	{
-	  error ("Incompatible types in PHI argument %u", i);
+	  error ("incompatible types in PHI argument %u", i);
 	  debug_generic_stmt (type);
 	  debug_generic_stmt (TREE_TYPE (arg));
 	  return true;
@@ -4236,7 +4256,7 @@ verify_eh_throw_stmt_node (void **slot, void *data)
 
   if (!pointer_set_contains (visited, node->stmt))
     {
-      error ("Dead STMT in EH table");
+      error ("dead STMT in EH table");
       debug_gimple_stmt (node->stmt);
       eh_error_found = true;
     }
@@ -6755,7 +6775,7 @@ gimple_flow_call_edges_add (sbitmap blocks)
   if (check_last_block)
     {
       basic_block bb = EXIT_BLOCK_PTR->prev_bb;
-      gimple_stmt_iterator gsi = gsi_last_bb (bb);
+      gimple_stmt_iterator gsi = gsi_last_nondebug_bb (bb);
       gimple t = NULL;
 
       if (!gsi_end_p (gsi))
@@ -6789,7 +6809,7 @@ gimple_flow_call_edges_add (sbitmap blocks)
       if (blocks && !TEST_BIT (blocks, i))
 	continue;
 
-      gsi = gsi_last_bb (bb);
+      gsi = gsi_last_nondebug_bb (bb);
       if (!gsi_end_p (gsi))
 	{
 	  last_stmt = gsi_stmt (gsi);
@@ -6833,39 +6853,6 @@ gimple_flow_call_edges_add (sbitmap blocks)
     verify_flow_info ();
 
   return blocks_split;
-}
-
-/* Purge dead abnormal call edges from basic block BB.  */
-
-bool
-gimple_purge_dead_abnormal_call_edges (basic_block bb)
-{
-  bool changed = gimple_purge_dead_eh_edges (bb);
-
-  if (cfun->has_nonlocal_label)
-    {
-      gimple stmt = last_stmt (bb);
-      edge_iterator ei;
-      edge e;
-
-      if (!(stmt && stmt_can_make_abnormal_goto (stmt)))
-	for (ei = ei_start (bb->succs); (e = ei_safe_edge (ei)); )
-	  {
-	    if (e->flags & EDGE_ABNORMAL)
-	      {
-		remove_edge (e);
-		changed = true;
-	      }
-	    else
-	      ei_next (&ei);
-	  }
-
-      /* See gimple_purge_dead_eh_edges below.  */
-      if (changed)
-	free_dominance_info (CDI_DOMINATORS);
-    }
-
-  return changed;
 }
 
 /* Removes edge E and all the blocks dominated by it, and updates dominance
@@ -7021,6 +7008,8 @@ gimple_purge_dead_eh_edges (basic_block bb)
   return changed;
 }
 
+/* Purge dead EH edges from basic block listed in BLOCKS.  */
+
 bool
 gimple_purge_all_dead_eh_edges (const_bitmap blocks)
 {
@@ -7037,6 +7026,59 @@ gimple_purge_all_dead_eh_edges (const_bitmap blocks)
       gcc_assert (bb || changed);
       if (bb != NULL)
 	changed |= gimple_purge_dead_eh_edges (bb);
+    }
+
+  return changed;
+}
+
+/* Purge dead abnormal call edges from basic block BB.  */
+
+bool
+gimple_purge_dead_abnormal_call_edges (basic_block bb)
+{
+  bool changed = false;
+  edge e;
+  edge_iterator ei;
+  gimple stmt = last_stmt (bb);
+
+  if (!cfun->has_nonlocal_label)
+    return false;
+
+  if (stmt && stmt_can_make_abnormal_goto (stmt))
+    return false;
+
+  for (ei = ei_start (bb->succs); (e = ei_safe_edge (ei)); )
+    {
+      if (e->flags & EDGE_ABNORMAL)
+	{
+	  remove_edge_and_dominated_blocks (e);
+	  changed = true;
+	}
+      else
+	ei_next (&ei);
+    }
+
+  return changed;
+}
+
+/* Purge dead abnormal call edges from basic block listed in BLOCKS.  */
+
+bool
+gimple_purge_all_dead_abnormal_call_edges (const_bitmap blocks)
+{
+  bool changed = false;
+  unsigned i;
+  bitmap_iterator bi;
+
+  EXECUTE_IF_SET_IN_BITMAP (blocks, 0, i, bi)
+    {
+      basic_block bb = BASIC_BLOCK (i);
+
+      /* Earlier gimple_purge_dead_abnormal_call_edges could have removed
+	 this basic block already.  */
+      gcc_assert (bb || changed);
+      if (bb != NULL)
+	changed |= gimple_purge_dead_abnormal_call_edges (bb);
     }
 
   return changed;
@@ -7148,7 +7190,7 @@ struct cfg_hooks gimple_cfg_hooks = {
   gimple_can_merge_blocks_p,	/* can_merge_blocks_p  */
   gimple_merge_blocks,		/* merge_blocks  */
   gimple_predict_edge,		/* predict_edge  */
-  gimple_predicted_by_p,		/* predicted_by_p  */
+  gimple_predicted_by_p,	/* predicted_by_p  */
   gimple_can_duplicate_bb_p,	/* can_duplicate_block_p  */
   gimple_duplicate_bb,		/* duplicate_block  */
   gimple_split_edge,		/* split_edge  */
@@ -7156,7 +7198,7 @@ struct cfg_hooks gimple_cfg_hooks = {
   NULL,				/* tidy_fallthru_edge  */
   gimple_block_ends_with_call_p,/* block_ends_with_call_p */
   gimple_block_ends_with_condjump_p, /* block_ends_with_condjump_p */
-  gimple_flow_call_edges_add,     /* flow_call_edges_add */
+  gimple_flow_call_edges_add,   /* flow_call_edges_add */
   gimple_execute_on_growing_pred,	/* execute_on_growing_pred */
   gimple_execute_on_shrinking_pred, /* execute_on_shrinking_pred */
   gimple_duplicate_loop_to_header_edge, /* duplicate loop for trees */

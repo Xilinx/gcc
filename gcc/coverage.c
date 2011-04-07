@@ -59,12 +59,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "dbgcnt.h"
 #include "input.h"
+#include "l-ipo.h"
 
 struct function_list
 {
   struct function_list *next;	 /* next function */
   unsigned ident;		 /* function ident */
   unsigned checksum;	         /* function checksum */
+  const char *name;              /* function name */
   unsigned n_ctrs[GCOV_COUNTERS];/* number of counters.  */
   unsigned dc_offset;            /* offset of counters to direct calls.  */
 };
@@ -81,6 +83,7 @@ typedef struct counts_entry
 {
   /* We hash by  */
   unsigned HOST_WIDEST_INT ident;
+  const char *name;
   unsigned ctr;
 
   /* Store  */
@@ -178,7 +181,8 @@ htab_counts_entry_hash (const void *of)
 {
   const counts_entry_t *const entry = (const counts_entry_t *) of;
 
-  return entry->ident * GCOV_COUNTERS + entry->ctr;
+  return (EXTRACT_MODULE_ID_FROM_GLOBAL_ID (entry->ident) * GCOV_COUNTERS
+	  + entry->ctr) ^ htab_hash_string (entry->name);
 }
 
 static int
@@ -187,7 +191,9 @@ htab_counts_entry_eq (const void *of1, const void *of2)
   const counts_entry_t *const entry1 = (const counts_entry_t *) of1;
   const counts_entry_t *const entry2 = (const counts_entry_t *) of2;
 
-  return entry1->ident == entry2->ident && entry1->ctr == entry2->ctr;
+  return EXTRACT_MODULE_ID_FROM_GLOBAL_ID (entry1->ident)
+    == EXTRACT_MODULE_ID_FROM_GLOBAL_ID (entry2->ident)
+    && entry1->ctr == entry2->ctr && strcmp (entry1->name, entry2->name) == 0;
 }
 
 static void
@@ -293,6 +299,8 @@ read_counts_file (const char *da_file_name, unsigned module_id)
   unsigned module_infos_read = 0;
   struct pointer_set_t *modset = 0;
   unsigned max_group = PARAM_VALUE (PARAM_MAX_LIPO_GROUP);
+  const char *fn_name;
+
   if (max_group == 0)
     max_group = (unsigned) -1;
 
@@ -346,6 +354,7 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 	{
 	  fn_ident = gcov_read_unsigned ();
 	  checksum = gcov_read_unsigned ();
+	  fn_name = xstrdup (gcov_read_string ());
 	  if (seen_summary)
 	    {
 	      /* We have already seen a summary, this means that this
@@ -388,6 +397,7 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 
 	  elt.ident = GEN_FUNC_GLOBAL_ID (module_id, fn_ident);
 	  elt.ctr = GCOV_COUNTER_FOR_TAG (tag);
+	  elt.name = fn_name;
 
 	  slot = (counts_entry_t **) htab_find_slot
 	    (counts_hash, &elt, INSERT);
@@ -396,6 +406,7 @@ read_counts_file (const char *da_file_name, unsigned module_id)
 	    {
 	      *slot = entry = XCNEW (counts_entry_t);
 	      entry->ident = elt.ident;
+	      entry->name = elt.name;
 	      entry->ctr = elt.ctr;
 	      entry->checksum = checksum;
 	      entry->summary.num = n_counts;
@@ -552,11 +563,12 @@ get_coverage_counts_entry (struct function *func,
                            unsigned counter, unsigned expected)
 {
   counts_entry_t *entry, *new_entry, elt;
-  tree decl;
+  tree decl = func->decl;
   struct cgraph_node *real_node;
 
   elt.ident = FUNC_DECL_GLOBAL_ID (func);
   elt.ctr = counter;
+  elt.name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
   entry = (counts_entry_t *) htab_find (counts_hash, &elt);
   if (entry)
     return entry;
@@ -564,13 +576,13 @@ get_coverage_counts_entry (struct function *func,
   if (!L_IPO_COMP_MODE)
     return NULL;
 
-  decl = func->decl;
   real_node = cgraph_lipo_get_resolved_node_1 (decl, false);
   if (real_node && 0)
     {
       counts_entry_t real_elt;
       real_elt.ident = FUNC_DECL_GLOBAL_ID (DECL_STRUCT_FUNCTION (real_node->decl));
       real_elt.ctr = counter;
+      real_elt.name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (real_node->decl));
       entry = (counts_entry_t *) htab_find (counts_hash, &real_elt);
       if (entry && expected == entry->summary.num)
         {
@@ -582,6 +594,7 @@ get_coverage_counts_entry (struct function *func,
           new_entry->ident = elt.ident;
           new_entry->ctr = elt.ctr;
           new_entry->checksum = entry->checksum;
+	  new_entry->name = entry->name;
           new_entry->summary.num = entry->summary.num;
           new_entry->counts = XCNEWVEC (gcov_type, entry->summary.num);
           memcpy (new_entry->counts, entry->counts, sizeof (gcov_type) * entry->summary.num);
@@ -625,7 +638,9 @@ get_coverage_counts (unsigned counter, unsigned expected,
 
   checksum = compute_checksum ();
   if (entry->checksum != checksum
-      || entry->summary.num != expected)
+      || entry->summary.num != expected
+      || strcmp (entry->name, IDENTIFIER_POINTER
+		 (DECL_ASSEMBLER_NAME (current_function_decl))) != 0)
     {
       static int warned = 0;
       bool warning_printed = false;
@@ -640,9 +655,12 @@ get_coverage_counts (unsigned counter, unsigned expected,
 	  if (entry->checksum != checksum)
 	    inform (input_location, "checksum is %x instead of %x",
 		    entry->checksum, checksum);
-	  else
+	  else if (entry->summary.num != expected)
 	    inform (input_location, "number of counters is %d instead of %d",
 		    entry->summary.num, expected);
+	  else
+	    inform (input_location, "name of function is %qs instead of %qE",
+		    entry->name, DECL_ASSEMBLER_NAME (current_function_decl));
 	  
 	  if (!seen_error ()
 	      && !warned++)
@@ -680,6 +698,7 @@ get_coverage_counts_no_warn (struct function *f, unsigned counter, unsigned *n_c
 
   elt.ident = FUNC_DECL_GLOBAL_ID (f);
   elt.ctr = counter;
+  elt.name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (f->decl));
   entry = (counts_entry_t *) htab_find (counts_hash, &elt);
   if (!entry)
     return NULL;
@@ -929,6 +948,8 @@ coverage_end_function (void)
       item->next = 0;
       item->ident = FUNC_DECL_FUNC_ID (cfun);
       item->checksum = compute_checksum ();
+      item->name = IDENTIFIER_POINTER
+	(DECL_ASSEMBLER_NAME (current_function_decl));
       for (i = 0; i != GCOV_COUNTERS; i++)
 	{
 	  item->n_ctrs[i] = fn_n_ctrs[i];
@@ -977,6 +998,8 @@ coverage_dc_end_function (void)
 	  item->next = 0;
 	  item->ident = FUNC_DECL_FUNC_ID (cfun);
 	  item->checksum = compute_checksum ();
+	  item->name = IDENTIFIER_POINTER
+	    (DECL_ASSEMBLER_NAME (current_function_decl));
 	  for (i = 0; i < GCOV_COUNTERS; i++)
 	    item->n_ctrs[i] = 0;
 	}
@@ -998,7 +1021,7 @@ build_fn_info_type (unsigned int counters)
 {
   tree type = lang_hooks.types.make_type (RECORD_TYPE);
   tree field, fields;
-  tree array_type;
+  tree string_type, array_type;
 
   /* ident */
   fields = build_decl (BUILTINS_LOCATION,
@@ -1007,6 +1030,14 @@ build_fn_info_type (unsigned int counters)
   /* checksum */
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
+  DECL_CHAIN (field) = fields;
+  fields = field;
+
+  /* name */
+  string_type = build_pointer_type (build_qualified_type (char_type_node,
+							  TYPE_QUAL_CONST));
+  field = build_decl (BUILTINS_LOCATION,
+		      FIELD_DECL, NULL_TREE, string_type);
   DECL_CHAIN (field) = fields;
   fields = field;
 
@@ -1040,6 +1071,9 @@ build_fn_info_value (const struct function_list *function, tree type)
 {
   tree fields = TYPE_FIELDS (type);
   unsigned ix;
+  tree string_type;
+  tree fn_name_string;
+  int fn_name_len;
   VEC(constructor_elt,gc) *v1 = NULL;
   VEC(constructor_elt,gc) *v2 = NULL;
 
@@ -1053,6 +1087,18 @@ build_fn_info_value (const struct function_list *function, tree type)
   CONSTRUCTOR_APPEND_ELT (v1, fields,
 			  build_int_cstu (get_gcov_unsigned_t (),
 					  function->checksum));
+  fields = DECL_CHAIN (fields);
+
+  /* name */
+  string_type = build_pointer_type (build_qualified_type (char_type_node,
+						    TYPE_QUAL_CONST));
+  fn_name_len = strlen (function->name);
+  fn_name_string = build_string (fn_name_len + 1, function->name);
+  TREE_TYPE (fn_name_string) = build_array_type
+    (char_type_node, build_index_type
+     (build_int_cst (NULL_TREE, fn_name_len)));
+  CONSTRUCTOR_APPEND_ELT (v1, fields,
+			  build1 (ADDR_EXPR, string_type, fn_name_string));
   fields = DECL_CHAIN (fields);
 
   /* dc offset */

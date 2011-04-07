@@ -223,7 +223,7 @@ AC_DEFUN([LIBGOMP_ENABLE_SYMVERS], [
 
 LIBGOMP_ENABLE(symvers,yes,[=STYLE],
   [enables symbol versioning of the shared library],
-  [permit yes|no|gnu|sun])
+  [permit yes|no|gnu*|sun])
 
 # If we never went through the LIBGOMP_CHECK_LINKER_FEATURES macro, then we
 # don't know enough about $LD to do tricks...
@@ -358,6 +358,8 @@ if test $enable_symvers != no ; then
          [Define to 1 if the target runtime linker supports binding the same symbol to different versions.])
        symvers_renaming=yes ;;
     esac
+else
+    symvers_renaming=no
 fi
 AM_CONDITIONAL(LIBGOMP_BUILD_VERSIONED_SHLIB_SOL2, test $symvers_renaming = no)
 ])

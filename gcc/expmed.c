@@ -1,7 +1,8 @@
 /* Medium-level subroutines: convert bit-field store and extract
    and shifts, multiplies and divides to rtl instructions.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -26,7 +27,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "diagnostic-core.h"
-#include "toplev.h"
 #include "rtl.h"
 #include "tree.h"
 #include "tm_p.h"
@@ -53,7 +53,7 @@ static void store_split_bit_field (rtx, unsigned HOST_WIDE_INT,
 static rtx extract_fixed_bit_field (enum machine_mode, rtx,
 				    unsigned HOST_WIDE_INT,
 				    unsigned HOST_WIDE_INT,
-				    unsigned HOST_WIDE_INT, rtx, int);
+				    unsigned HOST_WIDE_INT, rtx, int, bool);
 static rtx mask_rtx (enum machine_mode, int, int, int);
 static rtx lshift_value (enum machine_mode, rtx, int, int);
 static rtx extract_split_bit_field (rtx, unsigned HOST_WIDE_INT,
@@ -1083,7 +1083,7 @@ store_split_bit_field (rtx op0, unsigned HOST_WIDE_INT bitsize,
 	       endianness compensation) to fetch the piece we want.  */
 	    part = extract_fixed_bit_field (word_mode, value, 0, thissize,
 					    total_bits - bitsize + bitsdone,
-					    NULL_RTX, 1);
+					    NULL_RTX, 1, false);
 	}
       else
 	{
@@ -1094,7 +1094,7 @@ store_split_bit_field (rtx op0, unsigned HOST_WIDE_INT bitsize,
 			    & (((HOST_WIDE_INT) 1 << thissize) - 1));
 	  else
 	    part = extract_fixed_bit_field (word_mode, value, 0, thissize,
-					    bitsdone, NULL_RTX, 1);
+					    bitsdone, NULL_RTX, 1, false);
 	}
 
       /* If OP0 is a register, then handle OFFSET here.
@@ -1160,7 +1160,8 @@ convert_extracted_bit_field (rtx x, enum machine_mode mode,
 
 static rtx
 extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
-		     unsigned HOST_WIDE_INT bitnum, int unsignedp, rtx target,
+		     unsigned HOST_WIDE_INT bitnum,
+		     int unsignedp, bool packedp, rtx target,
 		     enum machine_mode mode, enum machine_mode tmode,
 		     bool fallback_p)
 {
@@ -1204,7 +1205,6 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
       && GET_MODE_INNER (GET_MODE (op0)) != tmode)
     {
       enum machine_mode new_mode;
-      int nunits = GET_MODE_NUNITS (GET_MODE (op0));
 
       if (GET_MODE_CLASS (tmode) == MODE_FLOAT)
 	new_mode = MIN_MODE_VECTOR_FLOAT;
@@ -1220,8 +1220,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	new_mode = MIN_MODE_VECTOR_INT;
 
       for (; new_mode != VOIDmode ; new_mode = GET_MODE_WIDER_MODE (new_mode))
-	if (GET_MODE_NUNITS (new_mode) == nunits
-	    && GET_MODE_SIZE (new_mode) == GET_MODE_SIZE (GET_MODE (op0))
+	if (GET_MODE_SIZE (new_mode) == GET_MODE_SIZE (GET_MODE (op0))
 	    && targetm.vector_mode_supported_p (new_mode))
 	  break;
       if (new_mode != VOIDmode)
@@ -1441,7 +1440,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	  rtx result_part
 	    = extract_bit_field (op0, MIN (BITS_PER_WORD,
 					   bitsize - i * BITS_PER_WORD),
-				 bitnum + bit_offset, 1, target_part, mode,
+				 bitnum + bit_offset, 1, false, target_part, mode,
 				 word_mode);
 
 	  gcc_assert (target_part);
@@ -1640,7 +1639,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	      xop0 = adjust_address (op0, bestmode, xoffset);
 	      xop0 = force_reg (bestmode, xop0);
 	      result = extract_bit_field_1 (xop0, bitsize, xbitpos,
-					    unsignedp, target,
+					    unsignedp, packedp, target,
 					    mode, tmode, false);
 	      if (result)
 		return result;
@@ -1654,7 +1653,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
     return NULL;
 
   target = extract_fixed_bit_field (int_mode, op0, offset, bitsize,
-				    bitpos, target, unsignedp);
+				    bitpos, target, unsignedp, packedp);
   return convert_extracted_bit_field (target, mode, tmode, unsignedp);
 }
 
@@ -1665,6 +1664,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 
    STR_RTX is the structure containing the byte (a REG or MEM).
    UNSIGNEDP is nonzero if this is an unsigned bit field.
+   PACKEDP is nonzero if the field has the packed attribute.
    MODE is the natural mode of the field value once extracted.
    TMODE is the mode the caller would like the value to have;
    but the value may be returned with type MODE instead.
@@ -1676,10 +1676,10 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 
 rtx
 extract_bit_field (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
-		   unsigned HOST_WIDE_INT bitnum, int unsignedp, rtx target,
-		   enum machine_mode mode, enum machine_mode tmode)
+		   unsigned HOST_WIDE_INT bitnum, int unsignedp, bool packedp,
+		   rtx target, enum machine_mode mode, enum machine_mode tmode)
 {
-  return extract_bit_field_1 (str_rtx, bitsize, bitnum, unsignedp,
+  return extract_bit_field_1 (str_rtx, bitsize, bitnum, unsignedp, packedp,
 			      target, mode, tmode, true);
 }
 
@@ -1695,6 +1695,8 @@ extract_bit_field (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
      which is significant on bigendian machines.)
 
    UNSIGNEDP is nonzero for an unsigned bit field (don't sign-extend value).
+   PACKEDP is true if the field has the packed attribute.
+
    If TARGET is nonzero, attempts to store the value there
    and return TARGET, but this is not guaranteed.
    If TARGET is not used, create a pseudo-reg of mode TMODE for the value.  */
@@ -1704,7 +1706,7 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
 			 unsigned HOST_WIDE_INT offset,
 			 unsigned HOST_WIDE_INT bitsize,
 			 unsigned HOST_WIDE_INT bitpos, rtx target,
-			 int unsignedp)
+			 int unsignedp, bool packedp)
 {
   unsigned int total_bits = BITS_PER_WORD;
   enum machine_mode mode;
@@ -1769,6 +1771,22 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
 	      static bool informed_about_misalignment = false;
 	      bool warned;
 
+	      if (packedp)
+		{
+		  if (bitsize == total_bits)
+		    warned = warning_at (input_location, OPT_fstrict_volatile_bitfields,
+					 "multiple accesses to volatile structure member"
+					 " because of packed attribute");
+		  else
+		    warned = warning_at (input_location, OPT_fstrict_volatile_bitfields,
+					 "multiple accesses to volatile structure bitfield"
+					 " because of packed attribute");
+
+		  return extract_split_bit_field (op0, bitsize,
+						  bitpos + offset * BITS_PER_UNIT,
+						  unsignedp);
+		}
+
 	      if (bitsize == total_bits)
 		warned = warning_at (input_location, OPT_fstrict_volatile_bitfields,
 				     "mis-aligned access used for structure member");
@@ -1780,11 +1798,11 @@ extract_fixed_bit_field (enum machine_mode tmode, rtx op0,
 		{
 		  informed_about_misalignment = true;
 		  inform (input_location,
-			  "When a volatile object spans multiple type-sized locations,"
+			  "when a volatile object spans multiple type-sized locations,"
 			  " the compiler must choose between using a single mis-aligned access to"
 			  " preserve the volatility, or using multiple aligned accesses to avoid"
-			  " runtime faults.  This code may fail at runtime if the hardware does"
-			  " not allow this access.");
+			  " runtime faults; this code may fail at runtime if the hardware does"
+			  " not allow this access");
 		}
 	    }
 	}
@@ -1971,7 +1989,7 @@ extract_split_bit_field (rtx op0, unsigned HOST_WIDE_INT bitsize,
 	 extract_fixed_bit_field wants offset in bytes.  */
       part = extract_fixed_bit_field (word_mode, word,
 				      offset * unit / BITS_PER_UNIT,
-				      thissize, thispos, 0, 1);
+				      thissize, thispos, 0, 1, false);
       bitsdone += thissize;
 
       /* Shift this part into place for the result.  */
@@ -3169,12 +3187,17 @@ expand_widening_mult (enum machine_mode mode, rtx op0, rtx op1, rtx target,
 		      int unsignedp, optab this_optab)
 {
   bool speed = optimize_insn_for_speed_p ();
+  rtx cop1;
 
   if (CONST_INT_P (op1)
-      && (INTVAL (op1) >= 0
+      && GET_MODE (op0) != VOIDmode
+      && (cop1 = convert_modes (mode, GET_MODE (op0), op1,
+				this_optab == umul_widen_optab))
+      && CONST_INT_P (cop1)
+      && (INTVAL (cop1) >= 0
 	  || GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT))
     {
-      HOST_WIDE_INT coeff = INTVAL (op1);
+      HOST_WIDE_INT coeff = INTVAL (cop1);
       int max_cost;
       enum mult_variant variant;
       struct algorithm algorithm;

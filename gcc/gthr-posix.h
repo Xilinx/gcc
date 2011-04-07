@@ -1,7 +1,7 @@
 /* Threads compatibility routines for libgcc2 and libobjc.  */
 /* Compile this one with gcc.  */
 /* Copyright (C) 1997, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009 Free Software Foundation, Inc.
+   2008, 2009, 2010 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -370,7 +370,8 @@ __gthread_objc_thread_detach (void (*func)(void *), void *arg)
   if (!__gthread_active_p ())
     return NULL;
 
-  if (!(__gthrw_(pthread_create) (&new_thread_handle, NULL, (void *) func, arg)))
+  if (!(__gthrw_(pthread_create) (&new_thread_handle, &_objc_thread_attribs,
+				  (void *) func, arg)))
     thread_id = (objc_thread_t) new_thread_handle;
   else
     thread_id = NULL;

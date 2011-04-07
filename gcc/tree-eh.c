@@ -1,5 +1,5 @@
 /* Exception handling semantics and decomposition for trees.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -2341,6 +2341,11 @@ operation_could_trap_helper_p (enum tree_code op,
 	return true;
       return false;
 
+    case COMPLEX_EXPR:
+    case CONSTRUCTOR:
+      /* Constructing an object cannot trap.  */
+      return false;
+
     default:
       /* Any floating arithmetic may trap.  */
       if (fp_operation && flag_trapping_math)
@@ -2411,8 +2416,8 @@ tree_could_trap_p (tree expr)
   switch (code)
     {
     case TARGET_MEM_REF:
-      if (TMR_SYMBOL (expr)
-	  && !TMR_INDEX (expr))
+      if (TREE_CODE (TMR_BASE (expr)) == ADDR_EXPR
+	  && !TMR_INDEX (expr) && !TMR_INDEX2 (expr))
 	return false;
       return !TREE_THIS_NOTRAP (expr);
 
@@ -2447,7 +2452,6 @@ tree_could_trap_p (tree expr)
 	return false;
       /* Fallthru.  */
     case INDIRECT_REF:
-    case MISALIGNED_INDIRECT_REF:
       return !TREE_THIS_NOTRAP (expr);
 
     case ASM_EXPR:
@@ -3555,6 +3559,20 @@ cleanup_empty_eh_merge_phis (basic_block new_bb, basic_block old_bb,
       /* If we did find the corresponding PHI, copy those inputs.  */
       if (ophi)
 	{
+	  /* If NOP is used somewhere else beyond phis in new_bb, give up.  */
+	  if (!has_single_use (nop))
+	    {
+	      imm_use_iterator imm_iter;
+	      use_operand_p use_p;
+
+	      FOR_EACH_IMM_USE_FAST (use_p, imm_iter, nop)
+		{
+		  if (!gimple_debug_bind_p (USE_STMT (use_p))
+		      && (gimple_code (USE_STMT (use_p)) != GIMPLE_PHI
+			  || gimple_bb (USE_STMT (use_p)) != new_bb))
+		    goto fail;
+		}
+	    }
 	  bitmap_set_bit (ophi_handled, SSA_NAME_VERSION (nop));
 	  FOR_EACH_EDGE (e, ei, old_bb->preds)
 	    {
@@ -3673,6 +3691,8 @@ cleanup_empty_eh_unsplit (basic_block bb, edge e_out, eh_landing_pad lp)
 {
   gimple_stmt_iterator gsi;
   tree lab;
+  edge_iterator ei;
+  edge e;
 
   /* We really ought not have totally lost everything following
      a landing pad label.  Given that BB is empty, there had better
@@ -3695,6 +3715,22 @@ cleanup_empty_eh_unsplit (basic_block bb, edge e_out, eh_landing_pad lp)
 	return false;
     }
 
+  /* The destination block must not be a regular successor for any
+     of the preds of the landing pad.  Thus, avoid turning
+        <..>
+	 |  \ EH
+	 |  <..>
+	 |  /
+	<..>
+     into
+        <..>
+	|  | EH
+	<..>
+     which CFG verification would choke on.  See PR45172.  */
+  FOR_EACH_EDGE (e, ei, bb->preds)
+    if (find_edge (e->src, e_out->dest))
+      return false;
+
   /* Attempt to move the PHIs into the successor block.  */
   if (cleanup_empty_eh_merge_phis (e_out->dest, bb, e_out, false))
     {
@@ -3707,6 +3743,42 @@ cleanup_empty_eh_unsplit (basic_block bb, edge e_out, eh_landing_pad lp)
     }
 
   return false;
+}
+
+/* Return true if edge E_FIRST is part of an empty infinite loop
+   or leads to such a loop through a series of single successor
+   empty bbs.  */
+
+static bool
+infinite_empty_loop_p (edge e_first)
+{
+  bool inf_loop = false;
+  edge e;
+
+  if (e_first->dest == e_first->src)
+    return true;
+
+  e_first->src->aux = (void *) 1;
+  for (e = e_first; single_succ_p (e->dest); e = single_succ_edge (e->dest))
+    {
+      gimple_stmt_iterator gsi;
+      if (e->dest->aux)
+	{
+	  inf_loop = true;
+	  break;
+	}
+      e->dest->aux = (void *) 1;
+      gsi = gsi_after_labels (e->dest);
+      if (!gsi_end_p (gsi) && is_gimple_debug (gsi_stmt (gsi)))
+	gsi_next_nondebug (&gsi);
+      if (!gsi_end_p (gsi))
+	break;
+    }
+  e_first->src->aux = NULL;
+  for (e = e_first; e->dest->aux; e = single_succ_edge (e->dest))
+    e->dest->aux = NULL;
+
+  return inf_loop;
 }
 
 /* Examine the block associated with LP to determine if it's an empty
@@ -3746,7 +3818,13 @@ cleanup_empty_eh (eh_landing_pad lp)
 
   /* If the block is totally empty, look for more unsplitting cases.  */
   if (gsi_end_p (gsi))
-    return cleanup_empty_eh_unsplit (bb, e_out, lp);
+    {
+      /* For the degenerate case of an infinite loop bail out.  */
+      if (infinite_empty_loop_p (e_out))
+	return false;
+
+      return cleanup_empty_eh_unsplit (bb, e_out, lp);
+    }
 
   /* The block should consist only of a single RESX statement.  */
   resx = gsi_stmt (gsi);
