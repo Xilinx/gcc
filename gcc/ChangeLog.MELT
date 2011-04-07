@@ -1,5 +1,10 @@
 
 2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (debugeputs): Define as empty macro when no
+	ENABLE_CHECKING.
+	* melt-runtime.c (load_checked_dynamic_module_index): Add space.
+
+2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (compile_gencsrc_to_binmodule): When
 	MELT_IS_PLUGIN use obstack_grow, not obstack_grow0!
 	(melt_fatal_info): Remind the error after backtrace.

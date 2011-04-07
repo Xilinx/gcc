@@ -2603,6 +2603,8 @@ debugeputs_at (const char *fil, int lin, const char *msg)
 }
 
 #define debugeputs(Msg) debugeputs_at(__FILE__,__LINE__,(Msg))
+#else
+#define debugeputs(Msg) ((void) 0)
 #endif /* ENABLE_CHECKING */
 
 static inline void

@@ -5455,7 +5455,7 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
     }
   if (!dlh) 
     {
-      debugeprintf("load_check_dynamic_module_index dlerror %s", dlerror());
+      debugeprintf ("load_check_dynamic_module_index dlerror %s", dlerror());
       return 0;
     };
   /* we always check that a melt_md5 exists within the dynamically
