@@ -1,4 +1,9 @@
 
+2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (compile_gencsrc_to_binmodule): When
+	MELT_IS_PLUGIN use obstack_grow, not obstack_grow0!
+	(melt_fatal_info): Remind the error after backtrace.
+
 2011-04-06  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (skipspace_getc): Ignore result of linemap_add.
 	(meltgc_open_infix_file): Likewise.  Also handle correctly

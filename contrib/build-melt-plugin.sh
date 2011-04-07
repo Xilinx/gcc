@@ -46,8 +46,8 @@ set_default_variables() {
     MAKE=${MAKE:-$(which gmake || which make)}
 # host C compiler used to build the MELT plugin
     HOSTCC=${HOSTCC:-$(which cc || which gcc)}
-# host C flags used to build the MELT plugin
-    HOSTCFLAGS=${HOSTCFLAGS-"-O -g -DIN_GCC"}
+# host C flags used to build the MELT plugin, could have -g also
+    HOSTCFLAGS=${HOSTCFLAGS-"-O -DIN_GCC"}
 # host C flags used to compile MELT generated C code
     HOSTMELTCFLAGS=${HOSTMELTCFLAGS-$HOSTCFLAGS}
 # host make command to build MELT modules. [Could be $MAKE -j2]
@@ -70,7 +70,7 @@ set_default_variables() {
 # filled build tree of $GCC
     GCC_BUILD_TREE=${GCC_BUILD_TREE:=""}
 # sleep delay between important steps
-    MELTSLEEPDELAY=3
+    MELTSLEEPDELAY=2
 # lower case variables are conventionnally local to this shell script
     gt_melt_runtime_header=""
     gcc_has_plugins=""
@@ -97,7 +97,7 @@ error_echo() {
 
 verbose_sleep() {
     if [ -z "$quiet" ]; then
-	echo Sleeping $MELTSLEEPDELAY seconds so you can interrupt with Ctrl-C
+	echo build-melt-plugin: sleeping $MELTSLEEPDELAY seconds so you can interrupt with Ctrl-C
 	sleep  $MELTSLEEPDELAY ||  error_echo Interrupted while sleeping $MELTSLEEPDELAY seconds
     fi
 }
@@ -257,7 +257,7 @@ build_melt_run_headers() {
 ################ build melt.so with appropriate default settings
 build_melt_dot_so() {
     # compile the melt.so file
-    host_full_cflags="$HOSTCFLAGS -fPIC -shared -DMELT_IS_PLUGIN -I. -Imelt/generated -I$GCCMELT_SOURCE_TREE -I$gcc_plugin_directory/include -Wall"
+    host_full_cflags="$HOSTCFLAGS -fPIC -shared -DMELT_IS_PLUGIN -I. -I$PWD/melt/generated -I$GCCMELT_SOURCE_TREE -I$gcc_plugin_directory/include -Wall"
     verbose_echo Building melt.so with $HOSTCC $host_full_cflags
     verbose_echo our HOSTMELTCFLAGS are $HOSTMELTCFLAGS
     verbose_sleep
@@ -305,7 +305,7 @@ do_melt_make () {
 	melt_make_module_dir=. \
 	melt_make_move=mv \
 	melt_installed_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include" \
-	melt_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include -I$GCCMELT_SOURCE_TREE -I. -Imelt/generated" \
+	melt_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include -I$GCCMELT_SOURCE_TREE -I. -Imelt/generated -I$PWD -I$PWD/melt/generated" \
 	melt_is_plugin=1 \
 	VPATH=.:$GCCMELT_SOURCE_TREE/melt:$GCCMELT_SOURCE_TREE:$GCC_BUILD_TREE:$GCC_SOURCE_TREE \
 	$*

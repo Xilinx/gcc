@@ -5108,13 +5108,13 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
     obstack_init (&cmd_obstack);
 
     /* add ourmakecommand without any quoting trickery! */
-    obstack_grow0 (&cmd_obstack, ourmakecommand, strlen(ourmakecommand));
+    obstack_grow (&cmd_obstack, ourmakecommand, strlen(ourmakecommand));
     obstack_1grow (&cmd_obstack, ' ');
     /* silent make if not debugging */
     if (!flag_melt_debug)
-      obstack_grow0 (&cmd_obstack, "-s ", 3);
+      obstack_grow (&cmd_obstack, "-s ", 3);
     /* add -f with spaces */
-    obstack_grow0 (&cmd_obstack, "-f ", 3);
+    obstack_grow (&cmd_obstack, "-f ", 3);
     /* add ourmakefile and escape with backslash every escaped chararacter */
     warnescapedchar = obstack_add_escaped_path (&cmd_obstack, ourmakefile);
     if (warnescapedchar)
@@ -5123,14 +5123,14 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
     /* add the -C workdir argument if workdir is not the current directory */
     if (workdir && strcmp(workdir, ".") && strcmp(workdir, mycwd)) {
       debugeprintf ("compile_gencsrc_to_binmodule dochdir in workdir %s", workdir);
-      obstack_grow0 (&cmd_obstack, MAKECHDIR_ARG, strlen (MAKECHDIR_ARG));
+      obstack_grow (&cmd_obstack, MAKECHDIR_ARG, strlen (MAKECHDIR_ARG));
       obstack_1grow (&cmd_obstack, ' ');
       (void) obstack_add_escaped_path (&cmd_obstack, workdir);
       obstack_1grow (&cmd_obstack, ' ');
     }
 
     /* add the source argument */
-    obstack_grow0 (&cmd_obstack, MODULE_SOURCE_ARG, strlen (MODULE_SOURCE_ARG));
+    obstack_grow (&cmd_obstack, MODULE_SOURCE_ARG, strlen (MODULE_SOURCE_ARG));
     if (!IS_ABSOLUTE_PATH(srcfile)) {
       (void) obstack_add_escaped_path (&cmd_obstack, mycwd);
       obstack_1grow (&cmd_obstack, '/');
@@ -5166,7 +5166,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
       debugeprintf ("compile_gencsrc_to_binmodule topmaketarget %s",
 		    topmaketarget);
       /* add the truncated binfile */
-      obstack_grow0 (&cmd_obstack, MODULE_BINARY_ARG,
+      obstack_grow (&cmd_obstack, MODULE_BINARY_ARG,
 		     strlen (MODULE_BINARY_ARG));
       if (!IS_ABSOLUTE_PATH (binfile)) {
 	(void) obstack_add_escaped_path (&cmd_obstack, mycwd);
@@ -5184,7 +5184,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
     if (ourcflags && ourcflags[0])
       {
 	/* don't warn about escapes for cflags, they contain spaces...*/
-	obstack_grow0 (&cmd_obstack, CFLAGS_ARG, strlen (CFLAGS_ARG));
+	obstack_grow (&cmd_obstack, CFLAGS_ARG, strlen (CFLAGS_ARG));
 	obstack_add_escaped_path (&cmd_obstack, ourcflags);
 	obstack_1grow (&cmd_obstack, ' ');
       };
@@ -5201,7 +5201,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
 	if (!S_ISDIR(workstat.st_mode))
 	  melt_fatal_error ("MELT module workspace %s not directory",
 			    workdir);
-	obstack_grow0 (&cmd_obstack, WORKSPACE_ARG, strlen (WORKSPACE_ARG));
+	obstack_grow (&cmd_obstack, WORKSPACE_ARG, strlen (WORKSPACE_ARG));
 	if (!IS_ABSOLUTE_PATH(workdir)) {
 	  (void) obstack_add_escaped_path (&cmd_obstack, mycwd);
 	  obstack_1grow (&cmd_obstack, '/');
@@ -10868,7 +10868,8 @@ melt_fatal_info (const char*filename, int lineno)
   if (filename != NULL && lineno>0)
     error ("MELT fatal failure from %s:%d [MELT built %s]", filename, lineno, melt_runtime_build_date);
   else
-    error ("MELT fatal failure without location [MELT built %s]", melt_runtime_build_date);
+    error ("MELT fatal failure without location [MELT built %s]", 
+	   melt_runtime_build_date);
   fflush (NULL);
 #if ENABLE_CHECKING
   melt_dbgshortbacktrace ("MELT fatal failure", 100);
@@ -10880,6 +10881,8 @@ melt_fatal_info (const char*filename, int lineno)
 	  continue;
 	error ("MELT failure with loaded module #%d: %s", ix, mi->modpath);
       };
+  if (filename != NULL && lineno>0)
+    error ("MELT got fatal failure from %s:%d", filename, lineno);
   fflush (NULL);
 }
 
