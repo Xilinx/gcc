@@ -247,7 +247,9 @@ ENDFOR melt_translator_file+]
 
 .PHONY: warmelt[+(. stageindex)+] warmelt[+(. stageindex)+]n
 warmelt[+(. stageindex)+]:  [+melt_stage+] [+melt_stage+]/warmelt-[+(. stageindex)+].modlis
+	@echo MELT build made $@
 warmelt[+(. stageindex)+]n:  [+melt_stage+] [+melt_stage+]/warmelt-[+(. stageindex)+].n.modlis
+	@echo MELT build made $@
 [+melt_stage+]:
 	if [ -d [+melt_stage+] ]; then true; else mkdir [+melt_stage+]; fi
 [+ (define laststage (get "melt_stage"))+]
@@ -282,12 +284,12 @@ melt-tempbuild:
 melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
               melt-run.h melt-runtime.h melt-predef.h melt-sources \
               $(melt_make_cc1_dependency) \
-[+FOR melt_translator_file+]	      melt-sources/[+base+].melt \
-	      melt-sources/[+base+].c \
-[+FOR includeload+] 	              melt-sources/[+includeload+] \
+[+FOR melt_translator_file+]      melt-sources/[+base+].melt \
+              melt-sources/[+base+].c \
+[+FOR includeload+]       melt-sources/[+includeload+] \
 [+ENDFOR includeload+][+ENDFOR melt_translator_file+][+FOR melt_application_file" \\\n"
-+]	      melt-sources/[+base+].melt \
-	      melt-sources/[+base+].c [+ENDFOR melt_application_file+]
++]            melt-sources/[+base+].melt \
+              melt-sources/[+base+].c [+ENDFOR melt_application_file+]
 
 
 #### melt-sources translator files
@@ -318,7 +320,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
@@ -362,7 +364,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):[+ (. (join ":" (reverse prevapplbase)))+] \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
@@ -393,6 +395,7 @@ melt-all-modules: \
 +]     melt-modules/[+base+].so[+ENDFOR melt_application_file+]
 
 $(melt_default_modules_list).modlis: melt-all-modules
+	@echo building default module list $@
 	date  +"#$@ generated %F" > $@-tmp
 	echo "# translator files" >> $@-tmp
 [+FOR melt_translator_file+]	echo [+base+] >> $@-tmp

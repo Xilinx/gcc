@@ -1,5 +1,10 @@
 
 2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Add some @echo MELT build.
+	Add empty-file-for-melt.c to run MELT plugin.
+	* melt-build.mk: Regenerate.
+
+2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (debugeputs): Define as empty macro when no
 	ENABLE_CHECKING.
 	* melt-runtime.c (load_checked_dynamic_module_index): Add space.

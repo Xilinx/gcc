@@ -1,5 +1,8 @@
 
 2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (do_melt_make): More verbose.
+
+2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (MELTSLEEPDELAY): Shorten to 2 seconds.
 	(built_melt_dot_so,do_melt_make); Pass -I$PWD &
 	-I$PWD/melt/generated.

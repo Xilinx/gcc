@@ -310,10 +310,10 @@ do_melt_make () {
 	VPATH=.:$GCCMELT_SOURCE_TREE/melt:$GCCMELT_SOURCE_TREE:$GCC_BUILD_TREE:$GCC_SOURCE_TREE \
 	$*
     if [ $? -ne 0 ]; then
-	error_echo MELT $MAKE $* failed
+	error_echo doing melt make $* failed
 	exit 1
     else
-	verbose_echo made MELT $*
+	verbose_echo done melt make MELT $* sucessful
     fi
 }
  

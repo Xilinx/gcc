@@ -847,7 +847,9 @@ melt-stage1/warmelt-1.n.modlis:  \
 
 .PHONY: warmelt1 warmelt1n
 warmelt1:  melt-stage1 melt-stage1/warmelt-1.modlis
+	@echo MELT build made $@
 warmelt1n:  melt-stage1 melt-stage1/warmelt-1.n.modlis
+	@echo MELT build made $@
 melt-stage1:
 	if [ -d melt-stage1 ]; then true; else mkdir melt-stage1; fi
 
@@ -1278,7 +1280,9 @@ melt-stage2/warmelt-2.n.modlis:  \
 
 .PHONY: warmelt2 warmelt2n
 warmelt2:  melt-stage2 melt-stage2/warmelt-2.modlis
+	@echo MELT build made $@
 warmelt2n:  melt-stage2 melt-stage2/warmelt-2.n.modlis
+	@echo MELT build made $@
 melt-stage2:
 	if [ -d melt-stage2 ]; then true; else mkdir melt-stage2; fi
 
@@ -1709,7 +1713,9 @@ melt-stage3/warmelt-3.n.modlis:  \
 
 .PHONY: warmelt3 warmelt3n
 warmelt3:  melt-stage3 melt-stage3/warmelt-3.modlis
+	@echo MELT build made $@
 warmelt3n:  melt-stage3 melt-stage3/warmelt-3.n.modlis
+	@echo MELT build made $@
 melt-stage3:
 	if [ -d melt-stage3 ]; then true; else mkdir melt-stage3; fi
 
@@ -1744,33 +1750,33 @@ melt-tempbuild:
 melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
               melt-run.h melt-runtime.h melt-predef.h melt-sources \
               $(melt_make_cc1_dependency) \
-	      melt-sources/warmelt-first.melt \
-	      melt-sources/warmelt-first.c \
-	      melt-sources/warmelt-base.melt \
-	      melt-sources/warmelt-base.c \
-	      melt-sources/warmelt-debug.melt \
-	      melt-sources/warmelt-debug.c \
-	      melt-sources/warmelt-macro.melt \
-	      melt-sources/warmelt-macro.c \
-	      melt-sources/warmelt-normal.melt \
-	      melt-sources/warmelt-normal.c \
- 	              melt-sources/warmelt-predef.melt \
-	      melt-sources/warmelt-normatch.melt \
-	      melt-sources/warmelt-normatch.c \
-	      melt-sources/warmelt-genobj.melt \
-	      melt-sources/warmelt-genobj.c \
-	      melt-sources/warmelt-outobj.melt \
-	      melt-sources/warmelt-outobj.c \
-	      melt-sources/xtramelt-parse-infix-syntax.melt \
-	      melt-sources/xtramelt-parse-infix-syntax.c  \
-	      melt-sources/xtramelt-ana-base.melt \
-	      melt-sources/xtramelt-ana-base.c  \
-	      melt-sources/xtramelt-ana-simple.melt \
-	      melt-sources/xtramelt-ana-simple.c  \
-	      melt-sources/xtramelt-c-generator.melt \
-	      melt-sources/xtramelt-c-generator.c  \
-	      melt-sources/xtramelt-opengpu.melt \
-	      melt-sources/xtramelt-opengpu.c 
+      melt-sources/warmelt-first.melt \
+              melt-sources/warmelt-first.c \
+      melt-sources/warmelt-base.melt \
+              melt-sources/warmelt-base.c \
+      melt-sources/warmelt-debug.melt \
+              melt-sources/warmelt-debug.c \
+      melt-sources/warmelt-macro.melt \
+              melt-sources/warmelt-macro.c \
+      melt-sources/warmelt-normal.melt \
+              melt-sources/warmelt-normal.c \
+       melt-sources/warmelt-predef.melt \
+      melt-sources/warmelt-normatch.melt \
+              melt-sources/warmelt-normatch.c \
+      melt-sources/warmelt-genobj.melt \
+              melt-sources/warmelt-genobj.c \
+      melt-sources/warmelt-outobj.melt \
+              melt-sources/warmelt-outobj.c \
+            melt-sources/xtramelt-parse-infix-syntax.melt \
+              melt-sources/xtramelt-parse-infix-syntax.c  \
+            melt-sources/xtramelt-ana-base.melt \
+              melt-sources/xtramelt-ana-base.c  \
+            melt-sources/xtramelt-ana-simple.melt \
+              melt-sources/xtramelt-ana-simple.c  \
+            melt-sources/xtramelt-c-generator.melt \
+              melt-sources/xtramelt-c-generator.c  \
+            melt-sources/xtramelt-opengpu.melt \
+              melt-sources/xtramelt-opengpu.c 
 
 
 #### melt-sources translator files
@@ -1793,7 +1799,7 @@ melt-sources/warmelt-first.c: melt-sources/warmelt-first.melt  \
 	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/warmelt-first.so: melt-sources/warmelt-first.c \
         $(wildcard  melt-sources/warmelt-first+*.c) \
@@ -1833,7 +1839,7 @@ melt-sources/warmelt-base.c: melt-sources/warmelt-base.melt  \
 	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/warmelt-base.so: melt-sources/warmelt-base.c \
         $(wildcard  melt-sources/warmelt-base+*.c) \
@@ -1873,7 +1879,7 @@ melt-sources/warmelt-debug.c: melt-sources/warmelt-debug.melt  \
 	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/warmelt-debug.so: melt-sources/warmelt-debug.c \
         $(wildcard  melt-sources/warmelt-debug+*.c) \
@@ -1913,7 +1919,7 @@ melt-sources/warmelt-macro.c: melt-sources/warmelt-macro.melt  \
 	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/warmelt-macro.so: melt-sources/warmelt-macro.c \
         $(wildcard  melt-sources/warmelt-macro+*.c) \
@@ -1959,7 +1965,7 @@ melt-sources/warmelt-normal.c: melt-sources/warmelt-normal.melt melt-sources/war
 	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/warmelt-normal.so: melt-sources/warmelt-normal.c \
         $(wildcard  melt-sources/warmelt-normal+*.c) \
@@ -1999,7 +2005,7 @@ melt-sources/warmelt-normatch.c: melt-sources/warmelt-normatch.melt  \
 	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/warmelt-normatch.so: melt-sources/warmelt-normatch.c \
         $(wildcard  melt-sources/warmelt-normatch+*.c) \
@@ -2039,7 +2045,7 @@ melt-sources/warmelt-genobj.c: melt-sources/warmelt-genobj.melt  \
 	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/warmelt-genobj.so: melt-sources/warmelt-genobj.c \
         $(wildcard  melt-sources/warmelt-genobj+*.c) \
@@ -2079,7 +2085,7 @@ melt-sources/warmelt-outobj.c: melt-sources/warmelt-outobj.melt  \
 	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/warmelt-outobj.so: melt-sources/warmelt-outobj.c \
         $(wildcard  melt-sources/warmelt-outobj+*.c) \
@@ -2122,7 +2128,7 @@ melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-sy
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))): \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/xtramelt-parse-infix-syntax.so: melt-sources/xtramelt-parse-infix-syntax.c \
         $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
@@ -2163,7 +2169,7 @@ melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt  \
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/xtramelt-ana-base.so: melt-sources/xtramelt-ana-base.c \
         $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
@@ -2204,7 +2210,7 @@ melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt  \
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/xtramelt-ana-simple.so: melt-sources/xtramelt-ana-simple.c \
         $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
@@ -2245,7 +2251,7 @@ melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt  \
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base:xtramelt-ana-simple \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/xtramelt-c-generator.so: melt-sources/xtramelt-c-generator.c \
         $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
@@ -2286,7 +2292,7 @@ melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt  \
 	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
 	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base:xtramelt-ana-simple:xtramelt-c-generator \
-	     $(meltarg_output)=$@ 
+	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
 melt-modules/xtramelt-opengpu.so: melt-sources/xtramelt-opengpu.c \
         $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
@@ -2327,6 +2333,7 @@ melt-all-modules: \
      melt-modules/xtramelt-opengpu.so
 
 $(melt_default_modules_list).modlis: melt-all-modules
+	@echo building default module list $@
 	date  +"#$@ generated %F" > $@-tmp
 	echo "# translator files" >> $@-tmp
 	echo warmelt-first >> $@-tmp
