@@ -1,5 +1,10 @@
 
 2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): New.
+	* melt-runtime.c (melt_really_initialize): Compute
+	melt_gccversionstr also using MELT_VERSION_STRING.
+
+2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Add more dependencies on melt-sources &
 	melt-tempbuild directories.
 	* melt-build.mk: Regenerate.

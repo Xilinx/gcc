@@ -8919,8 +8919,9 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   gcc_assert (pluginame && pluginame[0]);
   gcc_assert (versionstr && versionstr[0]);
   /* These are probably never freed! */
-  melt_gccversionstr = xstrdup (versionstr);
-  melt_plugin_name = xstrdup(pluginame);
+  melt_gccversionstr = concat (versionstr, " MELT_", 
+			       MELT_VERSION_STRING, NULL);
+  melt_plugin_name = xstrdup (pluginame);
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
   countdbgstr = melt_argument ("debugskip");

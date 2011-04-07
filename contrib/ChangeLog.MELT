@@ -1,5 +1,9 @@
 
 2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (set_default_variables,install_melt): Use
+	DESTDIR if given.
+
+2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (do_melt_make): More verbose.
 
 2011-04-07  Basile Starynkevitch  <basile@starynkevitch.net>

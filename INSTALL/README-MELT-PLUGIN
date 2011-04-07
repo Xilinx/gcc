@@ -63,7 +63,7 @@ GCC, like those for GIMPLE
 
 You might use that script from within the untarred MELT plugin source
 obtained (obtained by make-melt-source-tar.sh) with something like
-./build-melt-plugin.sh -s GCC=gcc-4.6 -M $PWD -Y $PWD/melt/generated/gt-melt-runtime-plugin.h
+./build-melt-plugin.sh -s GCC=gcc-4.6 -s HOSTADMINCMD=sudo -M $PWD -Y $PWD/melt/generated/gt-melt-runtime-plugin.h
 but don't run that command without understand what build-melt-plugin.sh is doing.
 
 ################
