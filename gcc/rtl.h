@@ -2188,6 +2188,7 @@ extern struct target_rtl *this_target_rtl;
    generation functions included above do the raw handling.  If you
    add to this list, modify special_rtx in gengenrtl.c as well.  */
 
+extern rtx gen_rtx_CONST (enum machine_mode, rtx);
 extern rtx gen_rtx_CONST_INT (enum machine_mode, HOST_WIDE_INT);
 extern rtx gen_rtx_CONST_VECTOR (enum machine_mode, rtvec);
 extern rtx gen_raw_REG (enum machine_mode, int);
