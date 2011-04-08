@@ -1,3 +1,18 @@
+2011-03-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* g++.dg/opt/nrv12.C: Require ia32 instead of ilp32.
+
+	* gcc.c-torture/compile/pr16566-2.c: Also allow x32.
+	* gcc.dg/torture/pr20314-2.c: Likewise.
+	* gfortran.dg/pr33794.f90: Likewise.
+
+	* gcc.dg/lower-subreg-1.c: Don't allow x32.
+
+	* gcc.dg/lto/pr47259_0.c: Don't require lp64.
+
+	* gcc.dg/vect/costmodel/x86_64/x86_64-costmodel-vect.exp: Also
+	check x32.
+
 2011-03-15  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* lib/target-supports.exp (check_effective_target_vect_cmdline_needed): 

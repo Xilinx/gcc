@@ -1,7 +1,7 @@
 /* Verify that gimple-level NRV is occurring even for RESULT_DECLs.  *./
 /* { dg-do compile { target i?86-*-* x86_64-*-* } } */
 /* { dg-options "-O -fdump-tree-optimized" } */
-/* { dg-require-effective-target ilp32 } */
+/* { dg-require-effective-target ia32 } */
 
 struct P
 {
