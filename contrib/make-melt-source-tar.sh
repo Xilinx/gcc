@@ -91,5 +91,6 @@ for cf in   $gccmelt_source_tree/contrib/gt*melt*.h ; do
     copymelt contrib/$(basename $cf) 
 done
 copymelt INSTALL/README-MELT-PLUGIN
+copymelt libmeltopengpu/meltopengpu-runtime.c
 
 tar czvf $gccmelt_tarbase.tgz $gccmelt_tarbase
