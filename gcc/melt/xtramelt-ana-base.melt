@@ -258,6 +258,18 @@
 (defprimitive loop_can_be_parallel (:loop lo) :long
   #{ (($LO) && ($LO)->can_be_parallel) }#)
 
+(defprimitive loop_header (:loop lo) :basic_block
+  :doc #{The header if any of loop $LO}#
+  #{($LO)?(($LO)->header):(basic_block)0}#)
+
+(defprimitive loop_latch (:loop lo) :basic_block
+  :doc #{The latch if any of loop $LO}#
+  #{($LO)?(($LO)->latch):(basic_block)0}#)
+
+(defprimitive loop_inner (:loop lo) :loop
+  :doc #{The inner if any of loop $LO}#
+  #{($LO)?(($LO)->inner):(basic_block)0}#)
+
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
   (gv)					;match & no ins
@@ -3038,6 +3050,9 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  loop_body_tuple
  loop_can_be_parallel
  loop_exit_edges_tuple
+ loop_header
+ loop_inner
+ loop_latch
  make_basicblock
  make_gimple
  make_gimpleseq

@@ -1,5 +1,10 @@
 
 2011-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (loop_header, loop_latch): New
+	primitives.
+	* melt/xtramelt-opengpu.melt (opengpudetect_exec): Use them.
+
+2011-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_out_edge): Add new function declaration.
 	* melt-runtime.c (meltgc_out_edge): Add new function.
 	* melt/xtramelt-ana-base.melt (output_edge): New primitive.
