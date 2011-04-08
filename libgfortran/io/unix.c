@@ -48,10 +48,14 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#if !defined(_FILE_OFFSET_BITS) || _FILE_OFFSET_BITS != 64
+#undef lseek
 #define lseek _lseeki64
+#undef fstat
 #define fstat _fstati64
+#undef stat
 #define stat _stati64
-typedef struct _stati64 gfstat_t;
+#endif
 
 #ifndef HAVE_WORKING_STAT
 static uint64_t
@@ -96,9 +100,6 @@ id_from_fd (const int fd)
 }
 
 #endif
-
-#else
-typedef struct stat gfstat_t;
 #endif
 
 #ifndef PATH_MAX
@@ -156,7 +157,7 @@ fallback_access (const char *path, int mode)
 
   if (mode == F_OK)
     {
-      gfstat_t st;
+      struct stat st;
       return stat (path, &st);
     }
 
@@ -924,7 +925,7 @@ open_internal4 (char *base, int length, gfc_offset offset)
 static stream *
 fd_to_stream (int fd)
 {
-  gfstat_t statbuf;
+  struct stat statbuf;
   unix_stream *s;
 
   s = get_mem (sizeof (unix_stream));
@@ -1022,6 +1023,12 @@ tempfile (st_parameter_open *opp)
   char *template;
   const char *slash = "/";
   int fd;
+  size_t tempdirlen;
+
+#ifndef HAVE_MKSTEMP
+  int count;
+  size_t slashlen;
+#endif
 
   tempdir = getenv ("GFORTRAN_TMPDIR");
 #ifdef __MINGW32__
@@ -1046,16 +1053,19 @@ tempfile (st_parameter_open *opp)
   if (tempdir == NULL)
     tempdir = DEFAULT_TEMPDIR;
 #endif
+
   /* Check for special case that tempdir contains slash
      or backslash at end.  */
-  if (*tempdir == 0 || tempdir[strlen (tempdir) - 1] == '/'
+  tempdirlen = strlen (tempdir);
+  if (*tempdir == 0 || tempdir[tempdirlen - 1] == '/'
 #ifdef __MINGW32__
-      || tempdir[strlen (tempdir) - 1] == '\\'
+      || tempdir[tempdirlen - 1] == '\\'
 #endif
      )
     slash = "";
 
-  template = get_mem (strlen (tempdir) + 20);
+  // Take care that the template is longer in the mktemp() branch.
+  template = get_mem (tempdirlen + 23);
 
 #ifdef HAVE_MKSTEMP
   sprintf (template, "%s%sgfortrantmpXXXXXX", tempdir, slash);
@@ -1064,11 +1074,30 @@ tempfile (st_parameter_open *opp)
 
 #else /* HAVE_MKSTEMP */
   fd = -1;
+  count = 0;
+  slashlen = strlen (slash);
   do
     {
-      sprintf (template, "%s%sgfortrantmpXXXXXX", tempdir, slash);
+      sprintf (template, "%s%sgfortrantmpaaaXXXXXX", tempdir, slash);
+      if (count > 0)
+	{
+	  int c = count;
+	  template[tempdirlen + slashlen + 13] = 'a' + (c% 26);
+	  c /= 26;
+	  template[tempdirlen + slashlen + 12] = 'a' + (c % 26);
+	  c /= 26;
+	  template[tempdirlen + slashlen + 11] = 'a' + (c % 26);
+	  if (c >= 26)
+	    break;
+	}
+
       if (!mktemp (template))
-	break;
+      {
+	errno = EEXIST;
+	count++;
+	continue;
+      }
+
 #if defined(HAVE_CRLF) && defined(O_BINARY)
       fd = open (template, O_RDWR | O_CREAT | O_EXCL | O_BINARY,
 		 S_IREAD | S_IWRITE);
@@ -1377,7 +1406,7 @@ int
 compare_file_filename (gfc_unit *u, const char *name, int len)
 {
   char path[PATH_MAX + 1];
-  gfstat_t st;
+  struct stat st;
 #ifdef HAVE_WORKING_STAT
   unix_stream *s;
 #else
@@ -1418,7 +1447,7 @@ compare_file_filename (gfc_unit *u, const char *name, int len)
 
 
 #ifdef HAVE_WORKING_STAT
-# define FIND_FILE0_DECL gfstat_t *st
+# define FIND_FILE0_DECL struct stat *st
 # define FIND_FILE0_ARGS st
 #else
 # define FIND_FILE0_DECL uint64_t id, const char *file, gfc_charlen_type file_len
@@ -1477,7 +1506,7 @@ gfc_unit *
 find_file (const char *file, gfc_charlen_type file_len)
 {
   char path[PATH_MAX + 1];
-  gfstat_t st[1];
+  struct stat st[1];
   gfc_unit *u;
 #if defined(__MINGW32__) && !HAVE_WORKING_STAT
   uint64_t id = 0ULL;
@@ -1628,7 +1657,7 @@ GFC_IO_INT
 file_size (const char *file, gfc_charlen_type file_len)
 {
   char path[PATH_MAX + 1];
-  gfstat_t statbuf;
+  struct stat statbuf;
 
   if (unpack_filename (path, file, file_len))
     return -1;
@@ -1649,7 +1678,7 @@ const char *
 inquire_sequential (const char *string, int len)
 {
   char path[PATH_MAX + 1];
-  gfstat_t statbuf;
+  struct stat statbuf;
 
   if (string == NULL ||
       unpack_filename (path, string, len) || stat (path, &statbuf) < 0)
@@ -1673,7 +1702,7 @@ const char *
 inquire_direct (const char *string, int len)
 {
   char path[PATH_MAX + 1];
-  gfstat_t statbuf;
+  struct stat statbuf;
 
   if (string == NULL ||
       unpack_filename (path, string, len) || stat (path, &statbuf) < 0)
@@ -1697,7 +1726,7 @@ const char *
 inquire_formatted (const char *string, int len)
 {
   char path[PATH_MAX + 1];
-  gfstat_t statbuf;
+  struct stat statbuf;
 
   if (string == NULL ||
       unpack_filename (path, string, len) || stat (path, &statbuf) < 0)

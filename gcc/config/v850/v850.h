@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler. NEC V850 series
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-   2007, 2008, 2009, 2010  Free Software Foundation, Inc.
+   2007, 2008, 2009, 2010, 2011  Free Software Foundation, Inc.
    Contributed by Jeff Law (law@cygnus.com).
 
    This file is part of GCC.
@@ -47,7 +47,6 @@ extern GTY(()) rtx v850_compare_op1;
 #define MASK_DEFAULT            MASK_V850
 #define SUBTARGET_ASM_SPEC 	"%{!mv*:-mv850}"
 #define SUBTARGET_CPP_SPEC 	"%{!mv*:-D__v850__}"
-#define TARGET_VERSION 		fprintf (stderr, " (NEC V850)");
 
 /* Choose which processor will be the default.
    We must pass a -mv850xx option to the assembler if no explicit -mv* option
@@ -59,8 +58,6 @@ extern GTY(()) rtx v850_compare_op1;
 #define SUBTARGET_ASM_SPEC 	"%{!mv*:-mv850e}"
 #undef  SUBTARGET_CPP_SPEC
 #define SUBTARGET_CPP_SPEC 	"%{!mv*:-D__v850e__}"
-#undef  TARGET_VERSION
-#define TARGET_VERSION 		fprintf (stderr, " (NEC V850E)");
 #endif
 
 #if TARGET_CPU_DEFAULT == TARGET_CPU_v850e1
@@ -70,8 +67,6 @@ extern GTY(()) rtx v850_compare_op1;
 #define SUBTARGET_ASM_SPEC	"%{!mv*:-mv850e1}"
 #undef  SUBTARGET_CPP_SPEC
 #define SUBTARGET_CPP_SPEC	"%{!mv*:-D__v850e1__} %{mv850e1:-D__v850e1__}"
-#undef  TARGET_VERSION
-#define TARGET_VERSION		fprintf (stderr, " (NEC V850E1)");
 #endif
 
 #if TARGET_CPU_DEFAULT == TARGET_CPU_v850e2
@@ -81,8 +76,6 @@ extern GTY(()) rtx v850_compare_op1;
 #define SUBTARGET_ASM_SPEC 	"%{!mv*:-mv850e2}"
 #undef  SUBTARGET_CPP_SPEC
 #define SUBTARGET_CPP_SPEC 	"%{!mv*:-D__v850e2__} %{mv850e2:-D__v850e2__}"
-#undef  TARGET_VERSION
-#define TARGET_VERSION 		fprintf (stderr, " (NEC V850E2)");
 #endif
 
 #if TARGET_CPU_DEFAULT == TARGET_CPU_v850e2v3
@@ -92,8 +85,6 @@ extern GTY(()) rtx v850_compare_op1;
 #define SUBTARGET_ASM_SPEC	"%{!mv*:-mv850e2v3}"
 #undef  SUBTARGET_CPP_SPEC
 #define SUBTARGET_CPP_SPEC	"%{!mv*:-D__v850e2v3__} %{mv850e2v3:-D__v850e2v3__}"
-#undef  TARGET_VERSION
-#define TARGET_VERSION		fprintf (stderr, " (NEC V850E2V3)");
 #endif
 
 #define TARGET_V850E2_ALL      (TARGET_V850E2 || TARGET_V850E2V3) 
@@ -123,25 +114,6 @@ extern GTY(()) rtx v850_compare_op1;
 } while(0)
 
 #define MASK_CPU (MASK_V850 | MASK_V850E)
-
-/* Information about the various small memory areas.  */
-struct small_memory_info {
-  const char *name;
-  long max;
-  long physical_max;
-};
-
-enum small_memory_type {
-  /* tiny data area, using EP as base register */
-  SMALL_MEMORY_TDA = 0,
-  /* small data area using dp as base register */
-  SMALL_MEMORY_SDA,
-  /* zero data area using r0 as base register */
-  SMALL_MEMORY_ZDA,
-  SMALL_MEMORY_max
-};
-
-extern struct small_memory_info small_memory[(int)SMALL_MEMORY_max];
 
 /* Target machine storage layout */
 
@@ -322,11 +294,6 @@ enum reg_class
 };
 
 #define N_REG_CLASSES (int) LIM_REG_CLASSES
-
-#define IRA_COVER_CLASSES		\
-{					\
-  GENERAL_REGS, LIM_REG_CLASSES		\
-}
 
 /* Give names of register classes as strings for dump file.  */
 
@@ -747,10 +714,6 @@ typedef enum
 
 #undef  USER_LABEL_PREFIX
 #define USER_LABEL_PREFIX "_"
-
-#define OUTPUT_ADDR_CONST_EXTRA(FILE, X, FAIL)  \
-  if (! v850_output_addr_const_extra (FILE, X)) \
-     goto FAIL
 
 /* This says how to output the assembler to define a global
    uninitialized but not common symbol.  */

@@ -23,6 +23,7 @@ class For_statement;
 class For_range_statement;
 class Switch_statement;
 class Type_switch_statement;
+class Send_statement;
 class Select_statement;
 class Variable;
 class Named_object;
@@ -38,6 +39,8 @@ class Case_clauses;
 class Type_case_clauses;
 class Select_clauses;
 class Typed_identifier_list;
+class Bexpression;
+class Bstatement;
 
 // This class is used to traverse assignments made by a statement
 // which makes assignments.
@@ -99,6 +102,7 @@ class Statement
     STATEMENT_UNNAMED_LABEL,
     STATEMENT_IF,
     STATEMENT_CONSTANT_SWITCH,
+    STATEMENT_SEND,
     STATEMENT_SELECT,
 
     // These statements types are created by the parser, but they
@@ -158,10 +162,12 @@ class Statement
 		      Expression* should_set, source_location);
 
   // Make an assignment from a nonblocking receive to a pair of
-  // variables.
+  // variables.  FOR_SELECT is true is this is being created for a
+  // case x, ok := <-c in a select statement.
   static Statement*
-  make_tuple_receive_assignment(Expression* val, Expression* success,
-				Expression* channel, source_location);
+  make_tuple_receive_assignment(Expression* val, Expression* closed,
+				Expression* channel, bool for_select,
+				source_location);
 
   // Make an assignment from a type guard to a pair of variables.
   static Statement*
@@ -196,8 +202,7 @@ class Statement
 
   // Make a return statement.
   static Statement*
-  make_return_statement(const Typed_identifier_list*, Expression_list*,
-			source_location);
+  make_return_statement(Expression_list*, source_location);
 
   // Make a break statement.
   static Statement*
@@ -235,6 +240,10 @@ class Statement
   // Make a type switch statement.
   static Type_switch_statement*
   make_type_switch_statement(Named_object* var, Expression*, source_location);
+
+  // Make a send statement.
+  static Send_statement*
+  make_send_statement(Expression* channel, Expression* val, source_location);
 
   // Make a select statement.
   static Select_statement*
@@ -278,11 +287,11 @@ class Statement
 
   // Lower a statement.  This is called immediately after parsing to
   // simplify statements for further processing.  It returns the same
-  // Statement or a new one.  BLOCK is the block containing this
-  // statement.
+  // Statement or a new one.  FUNCTION is the function containing this
+  // statement.  BLOCK is the block containing this statement.
   Statement*
-  lower(Gogo* gogo, Block* block)
-  { return this->do_lower(gogo, block); }
+  lower(Gogo* gogo, Named_object* function, Block* block)
+  { return this->do_lower(gogo, function, block); }
 
   // Set type information for unnamed constants.
   void
@@ -375,7 +384,7 @@ class Statement
   // Implemented by the child class: lower this statement to a simpler
   // one.
   virtual Statement*
-  do_lower(Gogo*, Block*)
+  do_lower(Gogo*, Named_object*, Block*)
   { return this; }
 
   // Implemented by child class: set type information for unnamed
@@ -548,10 +557,9 @@ class Variable_declaration_statement : public Statement
 class Return_statement : public Statement
 {
  public:
-  Return_statement(const Typed_identifier_list* results, Expression_list* vals,
-		   source_location location)
+  Return_statement(Expression_list* vals, source_location location)
     : Statement(STATEMENT_RETURN, location),
-      results_(results), vals_(vals)
+      vals_(vals), is_lowered_(false)
   { }
 
   // The list of values being returned.  This may be NULL.
@@ -568,13 +576,7 @@ class Return_statement : public Statement
   do_traverse_assignments(Traverse_assignments*);
 
   Statement*
-  do_lower(Gogo*, Block*);
-
-  void
-  do_determine_types();
-
-  void
-  do_check_types(Gogo*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   bool
   do_may_fall_through() const
@@ -584,12 +586,48 @@ class Return_statement : public Statement
   do_get_tree(Translate_context*);
 
  private:
-  // The result types of the function we are returning from.  This is
-  // here because in some of the traversals it is inconvenient to get
-  // it.
-  const Typed_identifier_list* results_;
   // Return values.  This may be NULL.
   Expression_list* vals_;
+  // True if this statement has been lowered.
+  bool is_lowered_;
+};
+
+// A send statement.
+
+class Send_statement : public Statement
+{
+ public:
+  Send_statement(Expression* channel, Expression* val,
+		 source_location location)
+    : Statement(STATEMENT_SEND, location),
+      channel_(channel), val_(val), for_select_(false)
+  { }
+
+  // Note that this is for a select statement.
+  void
+  set_for_select()
+  { this->for_select_ = true; }
+
+ protected:
+  int
+  do_traverse(Traverse* traverse);
+
+  void
+  do_determine_types();
+
+  void
+  do_check_types(Gogo*);
+
+  tree
+  do_get_tree(Translate_context*);
+
+ private:
+  // The channel on which to send the value.
+  Expression* channel_;
+  // The value to send.
+  Expression* val_;
+  // Whether this is for a select statement.
+  bool for_select_;
 };
 
 // Select_clauses holds the clauses of a select statement.  This is
@@ -605,17 +643,22 @@ class Select_clauses
   // Add a new clause.  IS_SEND is true if this is a send clause,
   // false for a receive clause.  For a send clause CHANNEL is the
   // channel and VAL is the value to send.  For a receive clause
-  // CHANNEL is the channel and VAL is either NULL or a Var_expression
-  // for the variable to set; if VAL is NULL, VAR may be a variable
-  // which is initialized with the received value.  IS_DEFAULT is true
-  // if this is the default clause.  STATEMENTS is the list of
-  // statements to execute.
+  // CHANNEL is the channel, VAL is either NULL or a Var_expression
+  // for the variable to set, and CLOSED is either NULL or a
+  // Var_expression to set to whether the channel is closed.  If VAL
+  // is NULL, VAR may be a variable to be initialized with the
+  // received value, and CLOSEDVAR ma be a variable to be initialized
+  // with whether the channel is closed.  IS_DEFAULT is true if this
+  // is the default clause.  STATEMENTS is the list of statements to
+  // execute.
   void
-  add(bool is_send, Expression* channel, Expression* val, Named_object* var,
-      bool is_default, Block* statements, source_location location)
+  add(bool is_send, Expression* channel, Expression* val, Expression* closed,
+      Named_object* var, Named_object* closedvar, bool is_default,
+      Block* statements, source_location location)
   {
-    this->clauses_.push_back(Select_clause(is_send, channel, val, var,
-					   is_default, statements, location));
+    this->clauses_.push_back(Select_clause(is_send, channel, val, closed, var,
+					   closedvar, is_default, statements,
+					   location));
   }
 
   // Traverse the select clauses.
@@ -624,7 +667,7 @@ class Select_clauses
 
   // Lower statements.
   void
-  lower(Block*);
+  lower(Gogo*, Named_object*, Block*);
 
   // Determine types.
   void
@@ -645,16 +688,18 @@ class Select_clauses
   {
    public:
     Select_clause()
-      : channel_(NULL), val_(NULL), var_(NULL), statements_(NULL),
-	is_send_(false), is_default_(false)
+      : channel_(NULL), val_(NULL), closed_(NULL), var_(NULL),
+	closedvar_(NULL), statements_(NULL), is_send_(false),
+	is_default_(false)
     { }
 
     Select_clause(bool is_send, Expression* channel, Expression* val,
-		  Named_object* var, bool is_default, Block* statements,
+		  Expression* closed, Named_object* var,
+		  Named_object* closedvar, bool is_default, Block* statements,
 		  source_location location)
-      : channel_(channel), val_(val), var_(var), statements_(statements),
-	location_(location), is_send_(is_send), is_default_(is_default),
-	is_lowered_(false)
+      : channel_(channel), val_(val), closed_(closed), var_(var),
+	closedvar_(closedvar), statements_(statements), location_(location),
+	is_send_(is_send), is_default_(is_default), is_lowered_(false)
     { gcc_assert(is_default ? channel == NULL : channel != NULL); }
 
     // Traverse the select clause.
@@ -663,7 +708,7 @@ class Select_clauses
 
     // Lower statements.
     void
-    lower(Block*);
+    lower(Gogo*, Named_object*, Block*);
 
     // Determine types.
     void
@@ -679,20 +724,6 @@ class Select_clauses
     Expression*
     channel() const
     { return this->channel_; }
-
-    // Return the value.  This will return NULL for the default
-    // clause, or for a receive clause for which no value was given.
-    Expression*
-    val() const
-    { return this->val_; }
-
-    // Return the variable to set when a receive clause is also a
-    // variable definition (v := <- ch).  This will return NULL for
-    // the default case, or for a send clause, or for a receive clause
-    // which does not define a variable.
-    Named_object*
-    var() const
-    { return this->var_; }
 
     // Return true for a send, false for a receive.
     bool
@@ -724,10 +755,16 @@ class Select_clauses
    private:
     // The channel.
     Expression* channel_;
-    // The value to send or the variable to set.
+    // The value to send or the lvalue to receive into.
     Expression* val_;
-    // The variable to initialize, for "case a := <- ch".
+    // The lvalue to set to whether the channel is closed on a
+    // receive.
+    Expression* closed_;
+    // The variable to initialize, for "case a := <-ch".
     Named_object* var_;
+    // The variable to initialize to whether the channel is closed,
+    // for "case a, c := <-ch".
+    Named_object* closedvar_;
     // The statements to execute.
     Block* statements_;
     // The location of this clause.
@@ -777,7 +814,7 @@ class Select_statement : public Statement
   { return this->clauses_->traverse(traverse); }
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   void
   do_determine_types()
@@ -964,7 +1001,7 @@ class For_statement : public Statement
   { gcc_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)
@@ -1022,7 +1059,7 @@ class For_range_statement : public Statement
   { gcc_unreachable(); }
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)
@@ -1127,13 +1164,18 @@ class Case_clauses
 
   // Return the body of a SWITCH_EXPR when all the clauses are
   // constants.
-  tree
-  get_constant_tree(Translate_context*, Unnamed_label* break_label) const;
+  void
+  get_backend(Translate_context*, Unnamed_label* break_label,
+	      std::vector<std::vector<Bexpression*> >* all_cases,
+	      std::vector<Bstatement*>* all_statements) const;
 
  private:
   // For a constant tree we need to keep a record of constants we have
   // already seen.  Note that INTEGER_CST trees are interned.
-  typedef Unordered_set(tree) Case_constants;
+  class Hash_integer_value;
+  class Eq_integer_value;
+  typedef Unordered_set_hash(Expression*, Hash_integer_value,
+			     Eq_integer_value) Case_constants;
 
   // One case clause.
   class Case_clause
@@ -1191,11 +1233,11 @@ class Case_clauses
     bool
     may_fall_through() const;
 
-    // Build up the body of a SWITCH_EXPR when the case expressions
-    // are constant.
-    void
-    get_constant_tree(Translate_context*, Unnamed_label* break_label,
-		      Case_constants* case_constants, tree* stmt_list) const;
+    // Convert the case values and statements to the backend
+    // representation.
+    Bstatement*
+    get_backend(Translate_context*, Unnamed_label* break_label,
+		Case_constants*, std::vector<Bexpression*>* cases) const;
 
    private:
     // The list of case expressions.
@@ -1246,7 +1288,7 @@ class Switch_statement : public Statement
   do_traverse(Traverse*);
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)
@@ -1392,7 +1434,7 @@ class Type_switch_statement : public Statement
   do_traverse(Traverse*);
 
   Statement*
-  do_lower(Gogo*, Block*);
+  do_lower(Gogo*, Named_object*, Block*);
 
   tree
   do_get_tree(Translate_context*)

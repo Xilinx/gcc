@@ -37,8 +37,12 @@ class Methods;
 class Named_object;
 class Label;
 class Translate_context;
+class Backend;
 class Export;
 class Import;
+class Bexpression;
+class Bstatement;
+class Blabel;
 
 // This file declares the basic classes used to hold the internal
 // representation of Go which is built by the parser.
@@ -102,7 +106,12 @@ class Gogo
  public:
   // Create the IR, passing in the sizes of the types "int" and
   // "uintptr" in bits.
-  Gogo(int int_type_size, int pointer_size);
+  Gogo(Backend* backend, int int_type_size, int pointer_size);
+
+  // Get the backend generator.
+  Backend*
+  backend()
+  { return this->backend_; }
 
   // Get the package name.
   const std::string&
@@ -347,6 +356,10 @@ class Gogo
   // Lower the parse tree.
   void
   lower_parse_tree();
+
+  // Lower all the statements in a block.
+  void
+  lower_block(Named_object* function, Block*);
 
   // Lower an expression.
   void
@@ -643,6 +656,8 @@ class Gogo
   typedef Unordered_map_hash(const Type*, tree, Type_hash_identical,
 			     Type_identical) Type_descriptor_decls;
 
+  // The backend generator.
+  Backend* backend_;
   // The package we are compiling.
   Package* package_;
   // The list of currently open functions during parsing.
@@ -810,14 +825,27 @@ class Function
     this->enclosing_ = enclosing;
   }
 
-  // Create the named result variables in the outer block.
+  // The result variables.
+  typedef std::vector<Named_object*> Results;
+
+  // Create the result variables in the outer block.
   void
-  create_named_result_variables(Gogo*);
+  create_result_variables(Gogo*);
 
   // Update the named result variables when cloning a function which
   // calls recover.
   void
-  update_named_result_variables();
+  update_result_variables();
+
+  // Return the result variables.
+  Results*
+  result_variables()
+  { return this->results_; }
+
+  // Whether the result variables have names.
+  bool
+  results_are_named() const
+  { return this->results_are_named_; }
 
   // Add a new field to the closure variable.
   void
@@ -877,6 +905,10 @@ class Function
   // Add a label reference to a function.
   Label*
   add_label_reference(const std::string& label_name);
+
+  // Warn about labels that are defined but not used.
+  void
+  check_labels() const;
 
   // Whether this function calls the predeclared recover function.
   bool
@@ -976,8 +1008,6 @@ class Function
   void
   build_defer_wrapper(Gogo*, Named_object*, tree*, tree*);
 
-  typedef std::vector<Named_object*> Named_results;
-
   typedef std::vector<std::pair<Named_object*,
 				source_location> > Closure_fields;
 
@@ -986,8 +1016,8 @@ class Function
   // The enclosing function.  This is NULL when there isn't one, which
   // is the normal case.
   Function* enclosing_;
-  // The named result variables, if any.
-  Named_results* named_results_;
+  // The result variables, if any.
+  Results* results_;
   // If there is a closure, this is the list of variables which appear
   // in the closure.  This is created by the parser, and then resolved
   // to a real type when we lower parse trees.
@@ -1006,6 +1036,8 @@ class Function
   // A variable holding the defer stack variable.  This is NULL unless
   // we actually need a defer stack.
   tree defer_stack_;
+  // True if the result variables are named.
+  bool results_are_named_;
   // True if this function calls the predeclared recover function.
   bool calls_recover_;
   // True if this a thunk built for a function which calls recover.
@@ -2086,7 +2118,7 @@ class Label
 {
  public:
   Label(const std::string& name)
-    : name_(name), location_(0), decl_(NULL)
+    : name_(name), location_(0), is_used_(false), blabel_(NULL)
   { }
 
   // Return the label's name.
@@ -2098,6 +2130,16 @@ class Label
   bool
   is_defined() const
   { return this->location_ != 0; }
+
+  // Return whether the label has been used.
+  bool
+  is_used() const
+  { return this->is_used_; }
+
+  // Record that the label is used.
+  void
+  set_is_used()
+  { this->is_used_ = true; }
 
   // Return the location of the definition.
   source_location
@@ -2112,13 +2154,15 @@ class Label
     this->location_ = location;
   }
 
-  // Return the LABEL_DECL for this decl.
-  tree
-  get_decl();
+  // Return the backend representation for this label.
+  Blabel*
+  get_backend_label(Translate_context*);
 
-  // Return an expression for the address of this label.
-  tree
-  get_addr(source_location location);
+  // Return an expression for the address of this label.  This is used
+  // to get the return address of a deferred function to see whether
+  // the function may call recover.
+  Bexpression*
+  get_addr(Translate_context*, source_location location);
 
  private:
   // The name of the label.
@@ -2126,8 +2170,10 @@ class Label
   // The location of the definition.  This is 0 if the label has not
   // yet been defined.
   source_location location_;
-  // The LABEL_DECL.
-  tree decl_;
+  // Whether the label has been used.
+  bool is_used_;
+  // The backend representation.
+  Blabel* blabel_;
 };
 
 // An unnamed label.  These are used when lowering loops.
@@ -2136,7 +2182,7 @@ class Unnamed_label
 {
  public:
   Unnamed_label(source_location location)
-    : location_(location), decl_(NULL)
+    : location_(location), blabel_(NULL)
   { }
 
   // Get the location where the label is defined.
@@ -2150,22 +2196,22 @@ class Unnamed_label
   { this->location_ = location; }
 
   // Return a statement which defines this label.
-  tree
-  get_definition();
+  Bstatement*
+  get_definition(Translate_context*);
 
   // Return a goto to this label from LOCATION.
-  tree
-  get_goto(source_location location);
+  Bstatement*
+  get_goto(Translate_context*, source_location location);
 
  private:
-  // Return the LABEL_DECL to use with GOTO_EXPR.
-  tree
-  get_decl();
+  // Return the backend representation.
+  Blabel*
+  get_blabel(Translate_context*);
 
   // The location where the label is defined.
   source_location location_;
-  // The LABEL_DECL.
-  tree decl_;
+  // The backend representation of this label.
+  Blabel* blabel_;
 };
 
 // An imported package.
@@ -2431,16 +2477,16 @@ class Traverse
   Expressions_seen* expressions_seen_;
 };
 
-// When translating the gogo IR into trees, this is the context we
-// pass down the blocks and statements.
+// When translating the gogo IR into the backend data structure, this
+// is the context we pass down the blocks and statements.
 
 class Translate_context
 {
  public:
   Translate_context(Gogo* gogo, Named_object* function, Block* block,
 		    tree block_tree)
-    : gogo_(gogo), function_(function), block_(block), block_tree_(block_tree),
-      is_const_(false)
+    : gogo_(gogo), backend_(gogo->backend()), function_(function),
+      block_(block), block_tree_(block_tree), is_const_(false)
   { }
 
   // Accessors.
@@ -2448,6 +2494,10 @@ class Translate_context
   Gogo*
   gogo()
   { return this->gogo_; }
+
+  Backend*
+  backend()
+  { return this->backend_; }
 
   Named_object*
   function()
@@ -2473,6 +2523,8 @@ class Translate_context
  private:
   // The IR for the entire compilation unit.
   Gogo* gogo_;
+  // The generator for the backend data structures.
+  Backend* backend_;
   // The function we are currently translating.
   Named_object* function_;
   // The block we are currently translating.

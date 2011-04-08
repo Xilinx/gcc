@@ -15,12 +15,14 @@
 #include "dataflow.h"
 #include "import.h"
 #include "export.h"
+#include "backend.h"
 #include "gogo.h"
 
 // Class Gogo.
 
-Gogo::Gogo(int int_type_size, int pointer_size)
-  : package_(NULL),
+Gogo::Gogo(Backend* backend, int int_type_size, int pointer_size)
+  : backend_(backend),
+    package_(NULL),
     functions_(),
     globals_(new Bindings(NULL)),
     imports_(),
@@ -172,15 +174,6 @@ Gogo::Gogo(int int_type_size, int pointer_size)
   close_type->set_is_varargs();
   close_type->set_is_builtin();
   this->globals_->add_function_declaration("close", NULL, close_type, loc);
-
-  Typed_identifier_list* closed_result = new Typed_identifier_list();
-  closed_result->push_back(Typed_identifier("", Type::lookup_bool_type(),
-					    loc));
-  Function_type* closed_type = Type::make_function_type(NULL, NULL,
-							closed_result, loc);
-  closed_type->set_is_varargs();
-  closed_type->set_is_builtin();
-  this->globals_->add_function_declaration("closed", NULL, closed_type, loc);
 
   Typed_identifier_list* copy_result = new Typed_identifier_list();
   copy_result->push_back(Typed_identifier("", int_type, loc));
@@ -650,7 +643,7 @@ Gogo::start_function(const std::string& name, Function_type* type,
 	}
     }
 
-  function->create_named_result_variables(this);
+  function->create_result_variables(this);
 
   const std::string* pname;
   std::string nested_name;
@@ -1257,7 +1250,7 @@ Lower_parse_tree::statement(Block* block, size_t* pindex, Statement* sorig)
   Statement* s = sorig;
   while (true)
     {
-      Statement* snew = s->lower(this->gogo_, block);
+      Statement* snew = s->lower(this->gogo_, this->function_, block);
       if (snew == s)
 	break;
       s = snew;
@@ -1303,6 +1296,15 @@ Gogo::lower_parse_tree()
 {
   Lower_parse_tree lower_parse_tree(this, NULL);
   this->traverse(&lower_parse_tree);
+}
+
+// Lower a block.
+
+void
+Gogo::lower_block(Named_object* function, Block* block)
+{
+  Lower_parse_tree lower_parse_tree(this, function);
+  block->traverse(&lower_parse_tree);
 }
 
 // Lower an expression.
@@ -1463,6 +1465,7 @@ class Check_types_traverse : public Traverse
   Check_types_traverse(Gogo* gogo)
     : Traverse(traverse_variables
 	       | traverse_constants
+	       | traverse_functions
 	       | traverse_statements
 	       | traverse_expressions),
       gogo_(gogo)
@@ -1473,6 +1476,9 @@ class Check_types_traverse : public Traverse
 
   int
   constant(Named_object*, bool);
+
+  int
+  function(Named_object*);
 
   int
   statement(Block*, size_t* pindex, Statement*);
@@ -1523,7 +1529,9 @@ Check_types_traverse::constant(Named_object* named_object, bool)
       && !ctype->is_boolean_type()
       && !ctype->is_string_type())
     {
-      if (!ctype->is_error_type())
+      if (ctype->is_nil_type())
+	error_at(constant->location(), "const initializer cannot be nil");
+      else if (!ctype->is_error())
 	error_at(constant->location(), "invalid constant type");
       constant->set_error();
     }
@@ -1539,6 +1547,16 @@ Check_types_traverse::constant(Named_object* named_object, bool)
 	       "initialization expression has wrong type");
       constant->set_error();
     }
+  return TRAVERSE_CONTINUE;
+}
+
+// There are no types to check in a function, but this is where we
+// issue warnings about labels which are defined but not referenced.
+
+int
+Check_types_traverse::function(Named_object* no)
+{
+  no->func_value()->check_labels();
   return TRAVERSE_CONTINUE;
 }
 
@@ -1926,14 +1944,6 @@ Order_eval::statement(Block* block, size_t* pindex, Statement* s)
     {
       Expression** pexpr = *p;
 
-      // If the last expression is a send or receive expression, we
-      // may be ignoring the value; we don't want to evaluate it
-      // early.
-      if (p + 1 == find_eval_ordering.end()
-	  && ((*pexpr)->classification() == Expression::EXPRESSION_SEND
-	      || (*pexpr)->classification() == Expression::EXPRESSION_RECEIVE))
-	break;
-
       // The last expression in a thunk will be the call passed to go
       // or defer, which we must not evaluate early.
       if (is_thunk && p + 1 == find_eval_ordering.end())
@@ -2186,8 +2196,7 @@ Build_recover_thunks::function(Named_object* orig_no)
 	  for (size_t i = 0; i < rc; ++i)
 	    vals->push_back(Expression::make_call_result(call, i));
 	}
-      s = Statement::make_return_statement(new_func->type()->results(),
-					   vals, location);
+      s = Statement::make_return_statement(vals, location);
     }
   s->determine_types();
   gogo->add_statement(s);
@@ -2243,8 +2252,8 @@ Build_recover_thunks::function(Named_object* orig_no)
   new_func->traverse(&convert_recover);
 
   // Update the function pointers in any named results.
-  new_func->update_named_result_variables();
-  orig_func->update_named_result_variables();
+  new_func->update_result_variables();
+  orig_func->update_result_variables();
 
   return TRAVERSE_CONTINUE;
 }
@@ -2610,26 +2619,27 @@ Gogo::convert_named_types_in_bindings(Bindings* bindings)
 
 Function::Function(Function_type* type, Function* enclosing, Block* block,
 		   source_location location)
-  : type_(type), enclosing_(enclosing), named_results_(NULL),
+  : type_(type), enclosing_(enclosing), results_(NULL),
     closure_var_(NULL), block_(block), location_(location), fndecl_(NULL),
-    defer_stack_(NULL), calls_recover_(false), is_recover_thunk_(false),
-    has_recover_thunk_(false)
+    defer_stack_(NULL), results_are_named_(false), calls_recover_(false),
+    is_recover_thunk_(false), has_recover_thunk_(false)
 {
 }
 
 // Create the named result variables.
 
 void
-Function::create_named_result_variables(Gogo* gogo)
+Function::create_result_variables(Gogo* gogo)
 {
   const Typed_identifier_list* results = this->type_->results();
-  if (results == NULL
-      || results->empty()
-      || results->front().name().empty())
+  if (results == NULL || results->empty())
     return;
 
-  this->named_results_ = new Named_results();
-  this->named_results_->reserve(results->size());
+  if (!results->front().name().empty())
+    this->results_are_named_ = true;
+
+  this->results_ = new Results();
+  this->results_->reserve(results->size());
 
   Block* block = this->block_;
   int index = 0;
@@ -2638,18 +2648,29 @@ Function::create_named_result_variables(Gogo* gogo)
        ++p, ++index)
     {
       std::string name = p->name();
-      if (Gogo::is_sink_name(name))
+      if (name.empty() || Gogo::is_sink_name(name))
 	{
-	  static int unnamed_result_counter;
+	  static int result_counter;
 	  char buf[100];
-	  snprintf(buf, sizeof buf, "_$%d", unnamed_result_counter);
-	  ++unnamed_result_counter;
+	  snprintf(buf, sizeof buf, "$ret%d", result_counter);
+	  ++result_counter;
 	  name = gogo->pack_hidden_name(buf, false);
 	}
       Result_variable* result = new Result_variable(p->type(), this, index);
       Named_object* no = block->bindings()->add_result_variable(name, result);
       if (no->is_result_variable())
-	this->named_results_->push_back(no);
+	this->results_->push_back(no);
+      else
+	{
+	  static int dummy_result_count;
+	  char buf[100];
+	  snprintf(buf, sizeof buf, "$dret%d", dummy_result_count);
+	  ++dummy_result_count;
+	  name = gogo->pack_hidden_name(buf, false);
+	  no = block->bindings()->add_result_variable(name, result);
+	  gcc_assert(no->is_result_variable());
+	  this->results_->push_back(no);
+	}
     }
 }
 
@@ -2657,13 +2678,13 @@ Function::create_named_result_variables(Gogo* gogo)
 // calls recover.
 
 void
-Function::update_named_result_variables()
+Function::update_result_variables()
 {
-  if (this->named_results_ == NULL)
+  if (this->results_ == NULL)
     return;
 
-  for (Named_results::iterator p = this->named_results_->begin();
-       p != this->named_results_->end();
+  for (Results::iterator p = this->results_->begin();
+       p != this->results_->end();
        ++p)
     (*p)->result_var_value()->set_function(this);
 }
@@ -2752,7 +2773,7 @@ Function::add_label_definition(const std::string& label_name,
 	}
       else
 	{
-	  error_at(location, "redefinition of label %qs",
+	  error_at(location, "label %qs already defined",
 		   Gogo::message_name(label_name).c_str());
 	  inform(label->location(), "previous definition of %qs was here",
 		 Gogo::message_name(label_name).c_str());
@@ -2772,14 +2793,33 @@ Function::add_label_reference(const std::string& label_name)
   if (!ins.second)
     {
       // The label was already in the hash table.
-      return ins.first->second;
+      Label* label = ins.first->second;
+      label->set_is_used();
+      return label;
     }
   else
     {
       gcc_assert(ins.first->second == NULL);
       Label* label = new Label(label_name);
       ins.first->second = label;
+      label->set_is_used();
       return label;
+    }
+}
+
+// Warn about labels that are defined but not used.
+
+void
+Function::check_labels() const
+{
+  for (Labels::const_iterator p = this->labels_.begin();
+       p != this->labels_.end();
+       p++)
+    {
+      Label* label = p->second;
+      if (!label->is_used())
+	error_at(label->location(), "label %qs defined and not used",
+		 Gogo::message_name(label->name()).c_str());
     }
 }
 
@@ -2791,7 +2831,7 @@ void
 Function::swap_for_recover(Function *x)
 {
   gcc_assert(this->enclosing_ == x->enclosing_);
-  std::swap(this->named_results_, x->named_results_);
+  std::swap(this->results_, x->results_);
   std::swap(this->closure_var_, x->closure_var_);
   std::swap(this->block_, x->block_);
   gcc_assert(this->location_ == x->location_);
@@ -3505,12 +3545,15 @@ Variable::determine_type()
 					  true);
       this->init_ = NULL;
     }
+  else if (this->type_from_chan_element_)
+    {
+      Expression* init = this->init_;
+      init->determine_type_no_context();
+      this->type_ = this->type_from_chan_element(init, true);
+      this->init_ = NULL;
+    }
   else
     {
-      // type_from_chan_element_ should have been cleared during
-      // lowering.
-      gcc_assert(!this->type_from_chan_element_);
-
       Type_context context(this->type_, false);
       this->init_->determine_type(&context);
       if (this->type_ == NULL)
@@ -4386,6 +4429,69 @@ Bindings::traverse(Traverse* traverse, bool is_global)
     }
 
   return TRAVERSE_CONTINUE;
+}
+
+// Class Label.
+
+// Get the backend representation for a label.
+
+Blabel*
+Label::get_backend_label(Translate_context* context)
+{
+  if (this->blabel_ == NULL)
+    {
+      Function* function = context->function()->func_value();
+      tree fndecl = function->get_decl();
+      Bfunction* bfunction = tree_to_function(fndecl);
+      this->blabel_ = context->backend()->label(bfunction, this->name_,
+						this->location_);
+    }
+  return this->blabel_;
+}
+
+// Return an expression for the address of this label.
+
+Bexpression*
+Label::get_addr(Translate_context* context, source_location location)
+{
+  Blabel* label = this->get_backend_label(context);
+  return context->backend()->label_address(label, location);
+}
+
+// Class Unnamed_label.
+
+// Get the backend representation for an unnamed label.
+
+Blabel*
+Unnamed_label::get_blabel(Translate_context* context)
+{
+  if (this->blabel_ == NULL)
+    {
+      Function* function = context->function()->func_value();
+      tree fndecl = function->get_decl();
+      Bfunction* bfunction = tree_to_function(fndecl);
+      this->blabel_ = context->backend()->label(bfunction, "",
+						this->location_);
+    }
+  return this->blabel_;
+}
+
+// Return a statement which defines this unnamed label.
+
+Bstatement*
+Unnamed_label::get_definition(Translate_context* context)
+{
+  Blabel* blabel = this->get_blabel(context);
+  return context->backend()->label_definition_statement(blabel);
+}
+
+// Return a goto statement to this unnamed label.
+
+Bstatement*
+Unnamed_label::get_goto(Translate_context* context, source_location location)
+{
+  Blabel* blabel = this->get_blabel(context);
+  return context->backend()->goto_statement(blabel, location);
 }
 
 // Class Package.

@@ -914,14 +914,10 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
 	    Type* type = named_constant->type();
 	    if (type != NULL && !type->is_abstract())
 	      {
-		if (!type->is_undefined())
+		if (!type->is_error())
 		  expr_tree = fold_convert(type->get_tree(gogo), expr_tree);
 		else
-		  {
-		    // Make sure we report the error.
-		    type->base();
-		    expr_tree = error_mark_node;
-		  }
+		  expr_tree = error_mark_node;
 	      }
 	    if (expr_tree == error_mark_node)
 	      decl = error_mark_node;
@@ -1047,12 +1043,8 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
       {
 	Result_variable* result = this->u_.result_var_value;
 	Type* type = result->type();
-	if (type->is_error_type() || type->is_undefined())
-	  {
-	    // Force the error.
-	    type->base();
-	    decl = error_mark_node;
-	  }
+	if (type->is_error())
+	  decl = error_mark_node;
 	else
 	  {
 	    gcc_assert(result->function() == function->func_value());
@@ -1769,27 +1761,16 @@ Function::return_value(Gogo* gogo, Named_object* named_function,
   if (results == NULL || results->empty())
     return NULL_TREE;
 
-  // In the case of an exception handler created for functions with
-  // defer statements, the result variables may be unnamed.
-  bool is_named = !results->front().name().empty();
-  if (is_named)
+  gcc_assert(this->results_ != NULL);
+  if (this->results_->size() != results->size())
     {
-      gcc_assert(this->named_results_ != NULL);
-      if (this->named_results_->size() != results->size())
-	{
-	  gcc_assert(saw_errors());
-	  return error_mark_node;
-	}
+      gcc_assert(saw_errors());
+      return error_mark_node;
     }
 
   tree retval;
   if (results->size() == 1)
-    {
-      if (is_named)
-	return this->named_results_->front()->get_tree(gogo, named_function);
-      else
-	return results->front().type()->get_init_tree(gogo, false);
-    }
+    return this->results_->front()->get_tree(gogo, named_function);
   else
     {
       tree rettype = TREE_TYPE(DECL_RESULT(this->fndecl_));
@@ -1802,11 +1783,7 @@ Function::return_value(Gogo* gogo, Named_object* named_function,
 	{
 	  gcc_assert(field != NULL);
 	  tree val;
-	  if (is_named)
-	    val = (*this->named_results_)[index]->get_tree(gogo,
-							   named_function);
-	  else
-	    val = pr->type()->get_init_tree(gogo, false);
+	  val = (*this->results_)[index]->get_tree(gogo, named_function);
 	  tree set = fold_build2_loc(location, MODIFY_EXPR, void_type_node,
 				     build3(COMPONENT_REF, TREE_TYPE(field),
 					    retval, field, NULL_TREE),
@@ -1936,62 +1913,6 @@ Block::get_tree(Translate_context* context)
   TREE_SIDE_EFFECTS(bind) = 1;
 
   return bind;
-}
-
-// Get the LABEL_DECL for a label.
-
-tree
-Label::get_decl()
-{
-  if (this->decl_ == NULL)
-    {
-      tree id = get_identifier_from_string(this->name_);
-      this->decl_ = build_decl(this->location_, LABEL_DECL, id, void_type_node);
-      DECL_CONTEXT(this->decl_) = current_function_decl;
-    }
-  return this->decl_;
-}
-
-// Return an expression for the address of this label.
-
-tree
-Label::get_addr(source_location location)
-{
-  tree decl = this->get_decl();
-  TREE_USED(decl) = 1;
-  TREE_ADDRESSABLE(decl) = 1;
-  return fold_convert_loc(location, ptr_type_node,
-			  build_fold_addr_expr_loc(location, decl));
-}
-
-// Get the LABEL_DECL for an unnamed label.
-
-tree
-Unnamed_label::get_decl()
-{
-  if (this->decl_ == NULL)
-    this->decl_ = create_artificial_label(this->location_);
-  return this->decl_;
-}
-
-// Get the LABEL_EXPR for an unnamed label.
-
-tree
-Unnamed_label::get_definition()
-{
-  tree t = build1(LABEL_EXPR, void_type_node, this->get_decl());
-  SET_EXPR_LOCATION(t, this->location_);
-  return t;
-}
-
-// Return a goto to this label.
-
-tree
-Unnamed_label::get_goto(source_location location)
-{
-  tree t = build1(GOTO_EXPR, void_type_node, this->get_decl());
-  SET_EXPR_LOCATION(t, location);
-  return t;
 }
 
 // Return the integer type to use for a size.
@@ -3057,7 +2978,7 @@ Gogo::receive_from_channel(tree type_tree, tree channel, bool for_select,
 				     location,
 				     "__go_receive_big",
 				     3,
-				     void_type_node,
+				     boolean_type_node,
 				     ptr_type_node,
 				     channel,
 				     ptr_type_node,

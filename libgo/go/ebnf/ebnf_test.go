@@ -15,18 +15,14 @@ var fset = token.NewFileSet()
 
 
 var grammars = []string{
-	`Program = .
-	`,
+	`Program = .`,
 
 	`Program = foo .
-	foo = "foo" .
-	`,
+	 foo = "foo" .`,
 
-	`Program = "a" | "b" "c" .
-	`,
+	`Program = "a" | "b" "c" .`,
 
-	`Program = "a" ... "z" .
-	`,
+	`Program = "a" ... "z" .`,
 
 	`Program = Song .
 	 Song = { Note } .
@@ -38,8 +34,7 @@ var grammars = []string{
 	 So = "g" .
 	 La = "a" .
 	 Ti = ti .
-	 ti = "b" .
-	`,
+	 ti = "b" .`,
 }
 
 

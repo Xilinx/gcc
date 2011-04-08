@@ -18,18 +18,33 @@ import (
 // Unfortunately, we need to run on kernels built without IPv6 support too.
 // So probe the kernel to figure it out.
 func kernelSupportsIPv6() bool {
-	// FreeBSD does not support this sort of interface.
-	if syscall.OS == "freebsd" {
+	s, err := syscall.Socket(syscall.AF_INET6, syscall.SOCK_STREAM, syscall.IPPROTO_TCP)
+	if err != 0 {
 		return false
 	}
-	fd, e := syscall.Socket(syscall.AF_INET6, syscall.SOCK_STREAM, syscall.IPPROTO_TCP)
-	if fd >= 0 {
-		closesocket(fd)
+	defer closesocket(s)
+
+	la := &TCPAddr{IP: IPv4(127, 0, 0, 1)}
+	sa, oserr := la.toAddr().sockaddr(syscall.AF_INET6)
+	if oserr != nil {
+		return false
 	}
-	return e == 0
+
+	return syscall.Bind(s, sa) == 0
 }
 
 var preferIPv4 = !kernelSupportsIPv6()
+
+func firstSupportedAddr(addrs []string) (addr IP) {
+	for _, s := range addrs {
+		addr = ParseIP(s)
+		if !preferIPv4 || addr.To4() != nil {
+			break
+		}
+		addr = nil
+	}
+	return addr
+}
 
 // TODO(rsc): if syscall.OS == "linux", we're supposd to read
 // /proc/sys/net/core/somaxconn,
@@ -155,9 +170,10 @@ func ipToSockaddr(family int, ip IP, port int) (syscall.Sockaddr, os.Error) {
 	return nil, InvalidAddrError("unexpected socket family")
 }
 
-// Split "host:port" into "host" and "port".
-// Host cannot contain colons unless it is bracketed.
-func splitHostPort(hostport string) (host, port string, err os.Error) {
+// SplitHostPort splits a network address of the form
+// "host:port" or "[host]:port" into host and port.
+// The latter form must be used when host contains a colon.
+func SplitHostPort(hostport string) (host, port string, err os.Error) {
 	// The port starts after the last colon.
 	i := last(hostport, ':')
 	if i < 0 {
@@ -180,9 +196,9 @@ func splitHostPort(hostport string) (host, port string, err os.Error) {
 	return
 }
 
-// Join "host" and "port" into "host:port".
-// If host contains colons, will join into "[host]:port".
-func joinHostPort(host, port string) string {
+// JoinHostPort combines host and port into a network address
+// of the form "host:port" or, if host contains a colon, "[host]:port".
+func JoinHostPort(host, port string) string {
 	// If host has colons, have to bracket it.
 	if byteIndex(host, ':') >= 0 {
 		return "[" + host + "]:" + port
@@ -192,7 +208,7 @@ func joinHostPort(host, port string) string {
 
 // Convert "host:port" into IP address and port.
 func hostPortToIP(net, hostport string) (ip IP, iport int, err os.Error) {
-	host, port, err := splitHostPort(hostport)
+	host, port, err := SplitHostPort(hostport)
 	if err != nil {
 		goto Error
 	}
@@ -203,12 +219,12 @@ func hostPortToIP(net, hostport string) (ip IP, iport int, err os.Error) {
 		addr = ParseIP(host)
 		if addr == nil {
 			// Not an IP address.  Try as a DNS name.
-			_, addrs, err1 := LookupHost(host)
+			addrs, err1 := LookupHost(host)
 			if err1 != nil {
 				err = err1
 				goto Error
 			}
-			addr = ParseIP(addrs[0])
+			addr = firstSupportedAddr(addrs)
 			if addr == nil {
 				// should not happen
 				err = &AddrError{"LookupHost returned invalid address", addrs[0]}

@@ -18,132 +18,133 @@
 ;; along with GCC; see the file COPYING3.  If not see
 ;; <http://www.gnu.org/licenses/>.
 
-;; Constants for unspecs.
-(define_constants
-  [(UNSPEC_ASHIFT_SIGNED	65)
-   (UNSPEC_ASHIFT_UNSIGNED	66)
-   (UNSPEC_VABD			69)
-   (UNSPEC_VABDL		70)
-   (UNSPEC_VADD			72)
-   (UNSPEC_VADDHN		73)
-   (UNSPEC_VADDL		74)
-   (UNSPEC_VADDW		75)
-   (UNSPEC_VBSL			78)
-   (UNSPEC_VCAGE		79)
-   (UNSPEC_VCAGT		80)
-   (UNSPEC_VCEQ			81)
-   (UNSPEC_VCGE			82)
-   (UNSPEC_VCGT			83)
-   (UNSPEC_VCLS			84)
-   (UNSPEC_VCVT			88)
-   (UNSPEC_VCVT_N		89)
-   (UNSPEC_VEXT			93)
-   (UNSPEC_VHADD		97)
-   (UNSPEC_VHSUB		98)
-   (UNSPEC_VLD1			99)
-   (UNSPEC_VLD1_DUP		100)
-   (UNSPEC_VLD1_LANE		101)
-   (UNSPEC_VLD2			102)
-   (UNSPEC_VLD2_DUP		103)
-   (UNSPEC_VLD2_LANE		104)
-   (UNSPEC_VLD3			105)
-   (UNSPEC_VLD3A		106)
-   (UNSPEC_VLD3B		107)
-   (UNSPEC_VLD3_DUP		108)
-   (UNSPEC_VLD3_LANE		109)
-   (UNSPEC_VLD4			110)
-   (UNSPEC_VLD4A		111)
-   (UNSPEC_VLD4B		112)
-   (UNSPEC_VLD4_DUP		113)
-   (UNSPEC_VLD4_LANE		114)
-   (UNSPEC_VMAX			115)
-   (UNSPEC_VMIN			116)
-   (UNSPEC_VMLA			117)
-   (UNSPEC_VMLAL		118)
-   (UNSPEC_VMLA_LANE		119)
-   (UNSPEC_VMLAL_LANE		120)
-   (UNSPEC_VMLS			121)
-   (UNSPEC_VMLSL		122)
-   (UNSPEC_VMLS_LANE		123)
-   (UNSPEC_VMLSL_LANE		124)
-   (UNSPEC_VMOVL		125)
-   (UNSPEC_VMOVN		126)
-   (UNSPEC_VMUL			127)
-   (UNSPEC_VMULL		128)
-   (UNSPEC_VMUL_LANE		129)
-   (UNSPEC_VMULL_LANE		130)
-   (UNSPEC_VPADAL		135)
-   (UNSPEC_VPADD		136)
-   (UNSPEC_VPADDL		137)
-   (UNSPEC_VPMAX		138)
-   (UNSPEC_VPMIN		139)
-   (UNSPEC_VPSMAX		140)
-   (UNSPEC_VPSMIN		141)
-   (UNSPEC_VPUMAX		142)
-   (UNSPEC_VPUMIN		143)
-   (UNSPEC_VQABS		144)
-   (UNSPEC_VQADD		145)
-   (UNSPEC_VQDMLAL		146)
-   (UNSPEC_VQDMLAL_LANE		147)
-   (UNSPEC_VQDMLSL		148)
-   (UNSPEC_VQDMLSL_LANE		149)
-   (UNSPEC_VQDMULH		150)
-   (UNSPEC_VQDMULH_LANE		151)
-   (UNSPEC_VQDMULL		152)
-   (UNSPEC_VQDMULL_LANE		153)
-   (UNSPEC_VQMOVN		154)
-   (UNSPEC_VQMOVUN		155)
-   (UNSPEC_VQNEG		156)
-   (UNSPEC_VQSHL		157)
-   (UNSPEC_VQSHL_N		158)
-   (UNSPEC_VQSHLU_N		159)
-   (UNSPEC_VQSHRN_N		160)
-   (UNSPEC_VQSHRUN_N		161)
-   (UNSPEC_VQSUB		162)
-   (UNSPEC_VRECPE		163)
-   (UNSPEC_VRECPS		164)
-   (UNSPEC_VREV16		165)
-   (UNSPEC_VREV32		166)
-   (UNSPEC_VREV64		167)
-   (UNSPEC_VRSQRTE		168)
-   (UNSPEC_VRSQRTS		169)
-   (UNSPEC_VSHL			171)
-   (UNSPEC_VSHLL_N		172)
-   (UNSPEC_VSHL_N		173)
-   (UNSPEC_VSHR_N		174)
-   (UNSPEC_VSHRN_N		175)
-   (UNSPEC_VSLI			176)
-   (UNSPEC_VSRA_N		177)
-   (UNSPEC_VSRI			178)
-   (UNSPEC_VST1			179)
-   (UNSPEC_VST1_LANE		180)
-   (UNSPEC_VST2			181)
-   (UNSPEC_VST2_LANE		182)
-   (UNSPEC_VST3			183)
-   (UNSPEC_VST3A		184)
-   (UNSPEC_VST3B		185)
-   (UNSPEC_VST3_LANE		186)
-   (UNSPEC_VST4			187)
-   (UNSPEC_VST4A		188)
-   (UNSPEC_VST4B		189)
-   (UNSPEC_VST4_LANE		190)
-   (UNSPEC_VSTRUCTDUMMY		191)
-   (UNSPEC_VSUB			192)
-   (UNSPEC_VSUBHN		193)
-   (UNSPEC_VSUBL		194)
-   (UNSPEC_VSUBW		195)
-   (UNSPEC_VTBL			196)
-   (UNSPEC_VTBX			197)
-   (UNSPEC_VTRN1		198)
-   (UNSPEC_VTRN2		199)
-   (UNSPEC_VTST			200)
-   (UNSPEC_VUZP1		201)
-   (UNSPEC_VUZP2		202)
-   (UNSPEC_VZIP1		203)
-   (UNSPEC_VZIP2		204)
-   (UNSPEC_MISALIGNED_ACCESS	205)
-   (UNSPEC_VCLE			206)
-   (UNSPEC_VCLT			207)])
+;; Enumerators for unspecs.
+(define_c_enum "unspec" [
+  UNSPEC_ASHIFT_SIGNED
+  UNSPEC_ASHIFT_UNSIGNED
+  UNSPEC_VABD
+  UNSPEC_VABDL
+  UNSPEC_VADD
+  UNSPEC_VADDHN
+  UNSPEC_VADDL
+  UNSPEC_VADDW
+  UNSPEC_VBSL
+  UNSPEC_VCAGE
+  UNSPEC_VCAGT
+  UNSPEC_VCEQ
+  UNSPEC_VCGE
+  UNSPEC_VCGT
+  UNSPEC_VCLS
+  UNSPEC_VCVT
+  UNSPEC_VCVT_N
+  UNSPEC_VEXT
+  UNSPEC_VHADD
+  UNSPEC_VHSUB
+  UNSPEC_VLD1
+  UNSPEC_VLD1_DUP
+  UNSPEC_VLD1_LANE
+  UNSPEC_VLD2
+  UNSPEC_VLD2_DUP
+  UNSPEC_VLD2_LANE
+  UNSPEC_VLD3
+  UNSPEC_VLD3A
+  UNSPEC_VLD3B
+  UNSPEC_VLD3_DUP
+  UNSPEC_VLD3_LANE
+  UNSPEC_VLD4
+  UNSPEC_VLD4A
+  UNSPEC_VLD4B
+  UNSPEC_VLD4_DUP
+  UNSPEC_VLD4_LANE
+  UNSPEC_VMAX
+  UNSPEC_VMIN
+  UNSPEC_VMLA
+  UNSPEC_VMLAL
+  UNSPEC_VMLA_LANE
+  UNSPEC_VMLAL_LANE
+  UNSPEC_VMLS
+  UNSPEC_VMLSL
+  UNSPEC_VMLS_LANE
+  UNSPEC_VMLSL_LANE
+  UNSPEC_VMOVL
+  UNSPEC_VMOVN
+  UNSPEC_VMUL
+  UNSPEC_VMULL
+  UNSPEC_VMUL_LANE
+  UNSPEC_VMULL_LANE
+  UNSPEC_VPADAL
+  UNSPEC_VPADD
+  UNSPEC_VPADDL
+  UNSPEC_VPMAX
+  UNSPEC_VPMIN
+  UNSPEC_VPSMAX
+  UNSPEC_VPSMIN
+  UNSPEC_VPUMAX
+  UNSPEC_VPUMIN
+  UNSPEC_VQABS
+  UNSPEC_VQADD
+  UNSPEC_VQDMLAL
+  UNSPEC_VQDMLAL_LANE
+  UNSPEC_VQDMLSL
+  UNSPEC_VQDMLSL_LANE
+  UNSPEC_VQDMULH
+  UNSPEC_VQDMULH_LANE
+  UNSPEC_VQDMULL
+  UNSPEC_VQDMULL_LANE
+  UNSPEC_VQMOVN
+  UNSPEC_VQMOVUN
+  UNSPEC_VQNEG
+  UNSPEC_VQSHL
+  UNSPEC_VQSHL_N
+  UNSPEC_VQSHLU_N
+  UNSPEC_VQSHRN_N
+  UNSPEC_VQSHRUN_N
+  UNSPEC_VQSUB
+  UNSPEC_VRECPE
+  UNSPEC_VRECPS
+  UNSPEC_VREV16
+  UNSPEC_VREV32
+  UNSPEC_VREV64
+  UNSPEC_VRSQRTE
+  UNSPEC_VRSQRTS
+  UNSPEC_VSHL
+  UNSPEC_VSHLL_N
+  UNSPEC_VSHL_N
+  UNSPEC_VSHR_N
+  UNSPEC_VSHRN_N
+  UNSPEC_VSLI
+  UNSPEC_VSRA_N
+  UNSPEC_VSRI
+  UNSPEC_VST1
+  UNSPEC_VST1_LANE
+  UNSPEC_VST2
+  UNSPEC_VST2_LANE
+  UNSPEC_VST3
+  UNSPEC_VST3A
+  UNSPEC_VST3B
+  UNSPEC_VST3_LANE
+  UNSPEC_VST4
+  UNSPEC_VST4A
+  UNSPEC_VST4B
+  UNSPEC_VST4_LANE
+  UNSPEC_VSTRUCTDUMMY
+  UNSPEC_VSUB
+  UNSPEC_VSUBHN
+  UNSPEC_VSUBL
+  UNSPEC_VSUBW
+  UNSPEC_VTBL
+  UNSPEC_VTBX
+  UNSPEC_VTRN1
+  UNSPEC_VTRN2
+  UNSPEC_VTST
+  UNSPEC_VUZP1
+  UNSPEC_VUZP2
+  UNSPEC_VZIP1
+  UNSPEC_VZIP2
+  UNSPEC_MISALIGNED_ACCESS
+  UNSPEC_VCLE
+  UNSPEC_VCLT
+])
 
 
 ;; Attribute used to permit string comparisons against <VQH_mnem> in
@@ -583,23 +584,25 @@
 )
 
 (define_insn "adddi3_neon"
-  [(set (match_operand:DI 0 "s_register_operand" "=w,?&r,?&r")
-        (plus:DI (match_operand:DI 1 "s_register_operand" "%w,0,0")
-                 (match_operand:DI 2 "s_register_operand" "w,r,0")))
+  [(set (match_operand:DI 0 "s_register_operand" "=w,?&r,?&r,?w")
+        (plus:DI (match_operand:DI 1 "s_register_operand" "%w,0,0,w")
+                 (match_operand:DI 2 "s_register_operand" "w,r,0,w")))
    (clobber (reg:CC CC_REGNUM))]
   "TARGET_NEON"
 {
   switch (which_alternative)
     {
-    case 0: return "vadd.i64\t%P0, %P1, %P2";
+    case 0: /* fall through */
+    case 3: return "vadd.i64\t%P0, %P1, %P2";
     case 1: return "#";
     case 2: return "#";
     default: gcc_unreachable ();
     }
 }
-  [(set_attr "neon_type" "neon_int_1,*,*")
-   (set_attr "conds" "*,clob,clob")
-   (set_attr "length" "*,8,8")]
+  [(set_attr "neon_type" "neon_int_1,*,*,neon_int_1")
+   (set_attr "conds" "*,clob,clob,*")
+   (set_attr "length" "*,8,8,*")
+   (set_attr "arch" "nota8,*,*,onlya8")]
 )
 
 (define_insn "*sub<mode>3_neon"
@@ -617,24 +620,26 @@
 )
 
 (define_insn "subdi3_neon"
-  [(set (match_operand:DI 0 "s_register_operand" "=w,?&r,?&r,?&r")
-        (minus:DI (match_operand:DI 1 "s_register_operand" "w,0,r,0")
-                  (match_operand:DI 2 "s_register_operand" "w,r,0,0")))
+  [(set (match_operand:DI 0 "s_register_operand" "=w,?&r,?&r,?&r,?w")
+        (minus:DI (match_operand:DI 1 "s_register_operand" "w,0,r,0,w")
+                  (match_operand:DI 2 "s_register_operand" "w,r,0,0,w")))
    (clobber (reg:CC CC_REGNUM))]
   "TARGET_NEON"
 {
   switch (which_alternative)
     {
-    case 0: return "vsub.i64\t%P0, %P1, %P2";
+    case 0: /* fall through */
+    case 4: return "vsub.i64\t%P0, %P1, %P2";
     case 1: /* fall through */ 
     case 2: /* fall through */
     case 3: return  "subs\\t%Q0, %Q1, %Q2\;sbc\\t%R0, %R1, %R2";
     default: gcc_unreachable ();
     }
 }
-  [(set_attr "neon_type" "neon_int_2,*,*,*")
-   (set_attr "conds" "*,clob,clob,clob")
-   (set_attr "length" "*,8,8,8")]
+  [(set_attr "neon_type" "neon_int_2,*,*,*,neon_int_2")
+   (set_attr "conds" "*,clob,clob,clob,*")
+   (set_attr "length" "*,8,8,8,*")
+   (set_attr "arch" "nota8,*,*,*,onlya8")]
 )
 
 (define_insn "*mul<mode>3_neon"
@@ -720,23 +725,26 @@
 )
 
 (define_insn "iordi3_neon"
-  [(set (match_operand:DI 0 "s_register_operand" "=w,w,?&r,?&r")
-        (ior:DI (match_operand:DI 1 "s_register_operand" "%w,0,0,r")
-		(match_operand:DI 2 "neon_logic_op2" "w,Dl,r,r")))]
+  [(set (match_operand:DI 0 "s_register_operand" "=w,w,?&r,?&r,?w,?w")
+        (ior:DI (match_operand:DI 1 "s_register_operand" "%w,0,0,r,w,0")
+		(match_operand:DI 2 "neon_logic_op2" "w,Dl,r,r,w,Dl")))]
   "TARGET_NEON"
 {
   switch (which_alternative)
     {
-    case 0: return "vorr\t%P0, %P1, %P2";
-    case 1: return neon_output_logic_immediate ("vorr", &operands[2],
+    case 0: /* fall through */
+    case 4: return "vorr\t%P0, %P1, %P2";
+    case 1: /* fall through */
+    case 5: return neon_output_logic_immediate ("vorr", &operands[2],
 		     DImode, 0, VALID_NEON_QREG_MODE (DImode));
     case 2: return "#";
     case 3: return "#";
     default: gcc_unreachable ();
     }
 }
-  [(set_attr "neon_type" "neon_int_1,neon_int_1,*,*")
-   (set_attr "length" "*,*,8,8")]
+  [(set_attr "neon_type" "neon_int_1,neon_int_1,*,*,neon_int_1,neon_int_1")
+   (set_attr "length" "*,*,8,8,*,*")
+   (set_attr "arch" "nota8,nota8,*,*,onlya8,onlya8")]
 )
 
 ;; The concrete forms of the Neon immediate-logic instructions are vbic and
@@ -762,23 +770,26 @@
 )
 
 (define_insn "anddi3_neon"
-  [(set (match_operand:DI 0 "s_register_operand" "=w,w,?&r,?&r")
-        (and:DI (match_operand:DI 1 "s_register_operand" "%w,0,0,r")
-		(match_operand:DI 2 "neon_inv_logic_op2" "w,DL,r,r")))]
+  [(set (match_operand:DI 0 "s_register_operand" "=w,w,?&r,?&r,?w,?w")
+        (and:DI (match_operand:DI 1 "s_register_operand" "%w,0,0,r,w,0")
+		(match_operand:DI 2 "neon_inv_logic_op2" "w,DL,r,r,w,DL")))]
   "TARGET_NEON"
 {
   switch (which_alternative)
     {
-    case 0: return "vand\t%P0, %P1, %P2";
-    case 1: return neon_output_logic_immediate ("vand", &operands[2],
+    case 0: /* fall through */
+    case 4: return "vand\t%P0, %P1, %P2";
+    case 1: /* fall through */
+    case 5: return neon_output_logic_immediate ("vand", &operands[2],
     		     DImode, 1, VALID_NEON_QREG_MODE (DImode));
     case 2: return "#";
     case 3: return "#";
     default: gcc_unreachable ();
     }
 }
-  [(set_attr "neon_type" "neon_int_1,neon_int_1,*,*")
-   (set_attr "length" "*,*,8,8")]
+  [(set_attr "neon_type" "neon_int_1,neon_int_1,*,*,neon_int_1,neon_int_1")
+   (set_attr "length" "*,*,8,8,*,*")
+   (set_attr "arch" "nota8,nota8,*,*,onlya8,onlya8")]
 )
 
 (define_insn "orn<mode>3_neon"
@@ -836,16 +847,18 @@
 )
 
 (define_insn "xordi3_neon"
-  [(set (match_operand:DI 0 "s_register_operand" "=w,?&r,?&r")
-        (xor:DI (match_operand:DI 1 "s_register_operand" "%w,0,r")
-	        (match_operand:DI 2 "s_register_operand" "w,r,r")))]
+  [(set (match_operand:DI 0 "s_register_operand" "=w,?&r,?&r,?w")
+        (xor:DI (match_operand:DI 1 "s_register_operand" "%w,0,r,w")
+	        (match_operand:DI 2 "s_register_operand" "w,r,r,w")))]
   "TARGET_NEON"
   "@
    veor\t%P0, %P1, %P2
    #
-   #"
-  [(set_attr "neon_type" "neon_int_1,*,*")
-   (set_attr "length" "*,8,8")]
+   #
+   veor\t%P0, %P1, %P2"
+  [(set_attr "neon_type" "neon_int_1,*,*,neon_int_1")
+   (set_attr "length" "*,8,8,*")
+   (set_attr "arch" "nota8,*,*,onlya8")]
 )
 
 (define_insn "one_cmpl<mode>2"
@@ -4605,8 +4618,7 @@
    (unspec:VQ [(const_int 0)] UNSPEC_VSTRUCTDUMMY)]
   "TARGET_NEON"
 {
-  emit_insn (gen_neon_vld3qa<mode> (operands[0], operands[0],
-                                    operands[1], operands[1]));
+  emit_insn (gen_neon_vld3qa<mode> (operands[0], operands[1], operands[1]));
   emit_insn (gen_neon_vld3qb<mode> (operands[0], operands[0],
                                     operands[1], operands[1]));
   DONE;
@@ -4614,12 +4626,11 @@
 
 (define_insn "neon_vld3qa<mode>"
   [(set (match_operand:CI 0 "s_register_operand" "=w")
-        (unspec:CI [(mem:CI (match_operand:SI 3 "s_register_operand" "2"))
-                    (match_operand:CI 1 "s_register_operand" "0")
+        (unspec:CI [(mem:CI (match_operand:SI 2 "s_register_operand" "1"))
                     (unspec:VQ [(const_int 0)] UNSPEC_VSTRUCTDUMMY)]
                    UNSPEC_VLD3A))
-   (set (match_operand:SI 2 "s_register_operand" "=r")
-        (plus:SI (match_dup 3)
+   (set (match_operand:SI 1 "s_register_operand" "=r")
+        (plus:SI (match_dup 2)
 		 (const_int 24)))]
   "TARGET_NEON"
 {
@@ -4628,7 +4639,7 @@
   ops[0] = gen_rtx_REG (DImode, regno);
   ops[1] = gen_rtx_REG (DImode, regno + 4);
   ops[2] = gen_rtx_REG (DImode, regno + 8);
-  ops[3] = operands[2];
+  ops[3] = operands[1];
   output_asm_insn ("vld3.<V_sz_elem>\t{%P0, %P1, %P2}, [%3]!", ops);
   return "";
 }
@@ -4897,8 +4908,7 @@
    (unspec:VQ [(const_int 0)] UNSPEC_VSTRUCTDUMMY)]
   "TARGET_NEON"
 {
-  emit_insn (gen_neon_vld4qa<mode> (operands[0], operands[0],
-                                    operands[1], operands[1]));
+  emit_insn (gen_neon_vld4qa<mode> (operands[0], operands[1], operands[1]));
   emit_insn (gen_neon_vld4qb<mode> (operands[0], operands[0],
                                     operands[1], operands[1]));
   DONE;
@@ -4906,12 +4916,11 @@
 
 (define_insn "neon_vld4qa<mode>"
   [(set (match_operand:XI 0 "s_register_operand" "=w")
-        (unspec:XI [(mem:XI (match_operand:SI 3 "s_register_operand" "2"))
-                    (match_operand:XI 1 "s_register_operand" "0")
+        (unspec:XI [(mem:XI (match_operand:SI 2 "s_register_operand" "1"))
                     (unspec:VQ [(const_int 0)] UNSPEC_VSTRUCTDUMMY)]
                    UNSPEC_VLD4A))
-   (set (match_operand:SI 2 "s_register_operand" "=r")
-        (plus:SI (match_dup 3)
+   (set (match_operand:SI 1 "s_register_operand" "=r")
+        (plus:SI (match_dup 2)
 		 (const_int 32)))]
   "TARGET_NEON"
 {
@@ -4921,7 +4930,7 @@
   ops[1] = gen_rtx_REG (DImode, regno + 4);
   ops[2] = gen_rtx_REG (DImode, regno + 8);
   ops[3] = gen_rtx_REG (DImode, regno + 12);
-  ops[4] = operands[2];
+  ops[4] = operands[1];
   output_asm_insn ("vld4.<V_sz_elem>\t{%P0, %P1, %P2, %P3}, [%4]!", ops);
   return "";
 }

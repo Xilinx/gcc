@@ -3470,12 +3470,6 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
     case GIMPLE_CALL:
       {
 	tree decl = gimple_call_fndecl (stmt);
-	tree addr = gimple_call_fn (stmt);
-	tree funtype = TREE_TYPE (addr);
-	bool stdarg = false;
-
-	if (POINTER_TYPE_P (funtype))
-	  funtype = TREE_TYPE (funtype);
 
 	/* Do not special case builtins where we see the body.
 	   This just confuse inliner.  */
@@ -3511,48 +3505,13 @@ estimate_num_insns (gimple stmt, eni_weights *weights)
 	  }
 
 	cost = weights->call_cost;
-	if (decl)
-	  funtype = TREE_TYPE (decl);
-
-	if (!VOID_TYPE_P (TREE_TYPE (funtype)))
-	  cost += estimate_move_cost (TREE_TYPE (funtype));
-
-	if (funtype)
-	  stdarg = stdarg_p (funtype);
-
-	/* Our cost must be kept in sync with
-	   cgraph_estimate_size_after_inlining that does use function
-	   declaration to figure out the arguments.
-
-	   For functions taking variable list of arguments we must
-	   look into call statement intself.  This is safe because
-	   we will get only higher costs and in most cases we will
-	   not inline these anyway.  */
-	if (decl && DECL_ARGUMENTS (decl) && !stdarg)
+	if (gimple_call_lhs (stmt))
+	  cost += estimate_move_cost (TREE_TYPE (gimple_call_lhs (stmt)));
+	for (i = 0; i < gimple_call_num_args (stmt); i++)
 	  {
-	    tree arg;
-	    for (arg = DECL_ARGUMENTS (decl); arg; arg = DECL_CHAIN (arg))
-	      if (!VOID_TYPE_P (TREE_TYPE (arg)))
-	        cost += estimate_move_cost (TREE_TYPE (arg));
+	    tree arg = gimple_call_arg (stmt, i);
+	    cost += estimate_move_cost (TREE_TYPE (arg));
 	  }
-	else if (funtype && prototype_p (funtype) && !stdarg)
-	  {
-	    tree t;
-	    for (t = TYPE_ARG_TYPES (funtype); t && t != void_list_node;
-	    	 t = TREE_CHAIN (t))
-	      if (!VOID_TYPE_P (TREE_VALUE (t)))
-	        cost += estimate_move_cost (TREE_VALUE (t));
-	  }
-	else
-	  {
-	    for (i = 0; i < gimple_call_num_args (stmt); i++)
-	      {
-		tree arg = gimple_call_arg (stmt, i);
-	        if (!VOID_TYPE_P (TREE_TYPE (arg)))
-		  cost += estimate_move_cost (TREE_TYPE (arg));
-	      }
-	  }
-
 	break;
       }
 
@@ -3766,11 +3725,6 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
   if (gimple_code (stmt) != GIMPLE_CALL)
     goto egress;
 
-  /* Objective C and fortran still calls tree_rest_of_compilation directly.
-     Kill this check once this is fixed.  */
-  if (!id->dst_node->analyzed)
-    goto egress;
-
   cg_edge = cgraph_edge (id->dst_node, stmt);
   gcc_checking_assert (cg_edge);
   /* First, see if we can figure out what function is being called.
@@ -3817,6 +3771,8 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 	       && !DECL_IN_SYSTEM_HEADER (fn)
 	       && reason != CIF_UNSPECIFIED
 	       && !lookup_attribute ("noinline", DECL_ATTRIBUTES (fn))
+	       /* Do not warn about not inlined recursive calls.  */
+	       && !cgraph_edge_recursive_p (cg_edge)
 	       /* Avoid warnings during early inline pass. */
 	       && cgraph_global_info_ready)
 	{
@@ -4203,6 +4159,7 @@ optimize_inline_calls (tree fn)
   memset (&id, 0, sizeof (id));
 
   id.src_node = id.dst_node = cgraph_node (fn);
+  gcc_assert (id.dst_node->analyzed);
   id.dst_fn = fn;
   /* Or any functions that aren't finished yet.  */
   if (current_function_decl)
@@ -4968,8 +4925,6 @@ delete_unreachable_blocks_update_callgraph (copy_body_data *id)
 	}
     }
 
-  if (changed)
-    tidy_fallthru_edges ();
   return changed;
 }
 
