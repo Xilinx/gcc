@@ -1,5 +1,11 @@
 2011-04-07  Jason Merrill  <jason@redhat.com>
 
+	PR c++/48451
+	* pt.c (fn_type_unification): Don't clear incomplete pack flag.
+	(type_unification_real): Clear it here instead.
+
+2011-04-07  Jason Merrill  <jason@redhat.com>
+
 	PR c++/48450
 	* call.c (resolve_args): Take complain.
 	(build_new_function_call, build_operator_new_call): Pass it.

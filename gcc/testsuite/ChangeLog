@@ -1,5 +1,9 @@
 2011-04-07  Jason Merrill  <jason@redhat.com>
 
+	* g++.dg/cpp0x/variadic107.C: New.
+
+2011-04-07  Jason Merrill  <jason@redhat.com>
+
 	* g++.dg/cpp0x/sfinae9.C: New.
 
 2011-04-07  Jason Merrill  <jason@redhat.com>
