@@ -880,6 +880,8 @@ enter_macro_context (cpp_reader *pfile, cpp_hashnode *node,
       /* Disable the macro within its expansion.  */
       node->flags |= NODE_DISABLED;
 
+      node->expanded_to_text = 1;
+
       if (!(node->flags & NODE_USED))
 	{
 	  node->flags |= NODE_USED;
@@ -1268,6 +1270,7 @@ cpp_get_token (cpp_reader *pfile)
 	break;
 
       node = result->val.node.node;
+      node->expanded_to_text = 1;
 
       if (node->type != NT_MACRO || (result->flags & NO_EXPAND))
 	break;

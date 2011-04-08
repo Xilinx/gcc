@@ -1,3 +1,30 @@
+2011-04-06  Lawrence Crowl <crowl@google.com>
+
+        * include/cpplib.h (struct cpp_hashnode): Add used_by_directive and
+	expanded_to_text attributes for macros.  Take their bits from
+	directive_index, which does not need them.
+        * include/symtab.h (struct cpp_idents_used): Split max_length into
+	max_ident_len and max_value_len.  Reorder fields to avoid gaps.
+	(struct cpp_ident_use): Add used_by_directive and expanded_to_text
+	attributes for macros.
+        * internal.h (struct cpp_lookaside): Split max_length into
+        max_ident_len and max_value_len.
+	* macro.c (enter_macro_context): Mark expanded_to_text macro attribute.
+	* directives.c (DIRECTIVE_TABLE): Add sizing comment.
+	(do_define): Mark used_by_directive macro attribute.
+	(do_undef): Likewise.
+	(do_ifdef): Likewise.
+	* expr.c (parse_defined): Mark used_by_directive macro attribute.
+        * symtab.c (cpp_lt_create): Split cpp_lookaside::max_length into
+	max_ident_len and max_value_len.
+	* (lt_macro_value): Likewise.
+	* (lt_lookup): Likewise.
+        * (cpp_lt_capture): Likewise.  Also save used_by_directive and
+	expanded_to_text attributes of macros.
+        * (cpp_lt_replay): Split cpp_idents_used::max_lenth into
+        max_ident_len and max_value_len.  Allocate a buffer with the sum.
+
+
 2011-03-04  Lawrence Crowl <crowl@google.com>
 
 	* symtab.h (cpp_lt_verify_1): Temporary new function.

@@ -665,6 +665,7 @@ parse_defined (cpp_reader *pfile)
   if (token->type == CPP_NAME)
     {
       node = token->val.node.node;
+      node->used_by_directive = 1;
       if (paren && cpp_get_token (pfile)->type != CPP_CLOSE_PAREN)
 	{
 	  cpp_error (pfile, CPP_DL_ERROR, "missing ')' after \"defined\"");
@@ -803,6 +804,7 @@ eval_token (cpp_reader *pfile, const cpp_token *token)
 	}
       else
 	{
+          token->val.node.node->used_by_directive = 1;
 	  result.high = 0;
 	  result.low = 0;
 	  if (CPP_OPTION (pfile, warn_undef) && !pfile->state.skip_eval)

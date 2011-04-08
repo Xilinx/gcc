@@ -475,9 +475,11 @@ static void
 pth_dump_identifiers (FILE *stream, cpp_idents_used *identifiers)
 {
   unsigned int idx, col = 1;
+  char use, exp;
 
-  fprintf (stream, "%u identifiers up to %u chars\n",
-           identifiers->num_entries, identifiers->max_length);
+  fprintf (stream, "%u identifiers up to %u chars, vals to %u chars\n",
+           identifiers->num_entries, identifiers->max_ident_len,
+           identifiers->max_value_len);
   for (idx = 0; idx < identifiers->num_entries; ++idx)
     {
       cpp_ident_use *ident = identifiers->entries + idx;
@@ -487,17 +489,19 @@ pth_dump_identifiers (FILE *stream, cpp_idents_used *identifiers)
           fprintf (stream, "\n");
           col = 1;
         }
+      use = ident->used_by_directive ? 'U' : '-';
+      exp = ident->expanded_to_text ? 'E' : '-';
       if (ident->before_str || ident->after_str)
         {
           if (col > 1)
             fprintf (stream, "\n");
-          fprintf (stream, " %s = %s -> %s\n", ident->ident_str,
+          fprintf (stream, " %s %c%c = %s -> %s\n", ident->ident_str, use, exp,
                    ident->before_str, ident->after_str);
           col = 1;
         }
       else
         {
-          fprintf (stream, " %s", ident->ident_str);
+          fprintf (stream, " %s %c%c", ident->ident_str, use, exp);
           col += ident->ident_len;
         }
     }
@@ -764,25 +768,45 @@ pth_debug_state (void)
 static void
 pth_save_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
 {
-  unsigned int num_entries, id;
+  unsigned int num_entries, active_entries, id;
 
   num_entries = identifiers->num_entries;
-  pph_output_uint (stream, identifiers->max_length);
-  pph_output_uint (stream, num_entries);
+  pph_output_uint (stream, identifiers->max_ident_len);
+  pph_output_uint (stream, identifiers->max_value_len);
+
+  active_entries = 0;
+  for ( id = 0; id < num_entries; ++id )
+    {
+      cpp_ident_use *entry = identifiers->entries + id;
+      if (!(entry->used_by_directive || entry->expanded_to_text))
+        continue;
+      ++active_entries;
+    }
+
+  pph_output_uint (stream, active_entries);
 
   for ( id = 0; id < num_entries; ++id )
     {
       cpp_ident_use *entry = identifiers->entries + id;
 
-      gcc_assert (entry->ident_len <= identifiers->max_length);
+      if (!(entry->used_by_directive || entry->expanded_to_text))
+        continue;
+
+      /* FIX pph: We are wasting space; ident_len, used_by_directive
+      and expanded_to_text together could fit into a single uint. */
+
+      pph_output_uint (stream, entry->used_by_directive);
+      pph_output_uint (stream, entry->expanded_to_text);
+
+      gcc_assert (entry->ident_len <= identifiers->max_ident_len);
       pph_output_string_with_length (stream, entry->ident_str,
 				     entry->ident_len);
 
-      gcc_assert (entry->before_len <= identifiers->max_length);
+      gcc_assert (entry->before_len <= identifiers->max_value_len);
       pph_output_string_with_length (stream, entry->before_str,
 				     entry->before_len);
 
-      gcc_assert (entry->after_len <= identifiers->max_length);
+      gcc_assert (entry->after_len <= identifiers->max_value_len);
       pph_output_string_with_length (stream, entry->after_str,
 				     entry->after_len);
     }
@@ -1041,11 +1065,13 @@ static void
 pth_load_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
 {
   unsigned int j;
-  unsigned int max_length, num_entries;
+  unsigned int max_ident_len, max_value_len, num_entries;
   unsigned int ident_len, before_len, after_len;
 
-  max_length = pph_input_uint (stream);
-  identifiers->max_length = max_length;
+  max_ident_len = pph_input_uint (stream);
+  identifiers->max_ident_len = max_ident_len;
+  max_value_len = pph_input_uint (stream);
+  identifiers->max_value_len = max_value_len;
   num_entries = pph_input_uint (stream);
   identifiers->num_entries = num_entries;
   identifiers->entries = XCNEWVEC (cpp_ident_use, num_entries);
@@ -1061,7 +1087,10 @@ pth_load_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
   /* Read the identifiers in HUNK. */
   for (j = 0; j < num_entries; ++j)
     {
-      const char *s = pph_input_string (stream);
+      const char *s;
+      identifiers->entries[j].used_by_directive = pph_input_uint (stream);
+      identifiers->entries[j].expanded_to_text = pph_input_uint (stream);
+      s = pph_input_string (stream);
       gcc_assert (s);
       ident_len = strlen (s);
       identifiers->entries[j].ident_len = ident_len;
@@ -1946,12 +1975,13 @@ pph_read_file (const char *filename)
     fprintf (pph_logfile, "PPH: Reading %s\n", filename);
 
   stream = pph_stream_open (filename, "rb");
-  if (!stream)
-    fatal_error ("Cannot open PPH file for reading: %s: %m", filename);
-
-  pph_read_file_contents (stream);
-
-  pph_stream_close (stream);
+  if (stream)
+    {
+      pph_read_file_contents (stream);
+      pph_stream_close (stream);
+    }
+  else
+    error ("Cannot open PPH file for reading: %s: %m", filename);
 }
 
 /* Record a #include or #include_next for PTH.  */

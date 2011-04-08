@@ -1,3 +1,18 @@
+2011-04-06  Lawrence Crowl  <crowl@google.com>
+
+        * pph.c (pth_dump_identifiers):  Split cpp_idents_used::max_length
+	into max_ident_length and max_value_length.  Print used_by_directive
+	and expanded_to_text attributes of macros.
+	(pth_save_identifiers): Split cpp_idents_used::max_length into
+	max_ident_length and max_value_length.  Filter out macro that are
+	neither used_by_directive nor expanded_to_text, which requires
+	precounting the number of entries remaining.  Save used_by_directive
+	and expanded_to_text attributes of the macros.
+	(pth_load_identifiers): Split cpp_idents_used::max_length into
+	max_ident_length and max_value_length.  Restore used_by_directive and
+	expanded_to_text attributes of the macros.
+	(pph_read_file): Make failure to read a pph file a non-fatal error.
+
 2011-04-05  Lawrence Crowl <crowl@google.com>
 
 	* parser.c (cp_lexer_dump_tokens): Remove #ifdef ENABLE_CHECKING.

@@ -411,7 +411,8 @@ cpp_lt_create (unsigned int order, unsigned int debug)
   table->sticky_order = order;
   table->active = 0;
 
-  table->max_length = 0;
+  table->max_ident_len = 0;
+  table->max_value_len = 0;
   table->strings = XCNEW (struct obstack);
   /* Strings need no alignment.  */
   _obstack_begin (table->strings, 0, 0,
@@ -556,8 +557,8 @@ lt_macro_value (const char** string, cpp_lookaside *aside,
   const char *definition = lt_query_macro (reader, cpp_node);
   size_t macro_len = strlen (definition);
   *string = (const char *) obstack_copy0 (aside->strings, definition, macro_len);
-  if (macro_len > aside->max_length)
-    aside->max_length = macro_len;
+  if (macro_len > aside->max_value_len)
+    aside->max_value_len = macro_len;
   ++aside->macrovalue;
   return macro_len;
 }
@@ -585,17 +586,17 @@ cpp_lt_capture (cpp_reader *reader)
       hashnode node = table_entry->node;
       if (node)
         {
-          cpp_ident_use *summary_entry;
-          cpp_hashnode *cpp_node;
+          cpp_ident_use *summary_entry = used.entries + summary_index++;
+          cpp_hashnode *cpp_node = CPP_HASHNODE (node);
 
-          summary_entry = used.entries + summary_index++;
+          summary_entry->used_by_directive = cpp_node->used_by_directive;
+          summary_entry->expanded_to_text = cpp_node->expanded_to_text;
           summary_entry->ident_len = node->len;
           summary_entry->ident_str = (const char *)node->str;
           summary_entry->before_len = table_entry->length;
           summary_entry->before_str = table_entry->value;
 
           /* Capture any macro value.  */
-          cpp_node = CPP_HASHNODE (node);
           if (cpp_node->type == NT_MACRO)
               summary_entry->after_len = lt_macro_value
                   (&summary_entry->after_str, aside, reader, cpp_node);
@@ -606,7 +607,8 @@ cpp_lt_capture (cpp_reader *reader)
   /* Take the strings from the table and give to the summary.  */
   used.strings = aside->strings;
   aside->strings = NULL;
-  used.max_length = aside->max_length;
+  used.max_ident_len = aside->max_ident_len;
+  used.max_value_len = aside->max_value_len;
 
   aside->iterations += slots;
   ++aside->empties;
@@ -635,7 +637,8 @@ cpp_lt_capture (cpp_reader *reader)
       aside->active = 0;
 
       /* Create a new string table.  */
-      aside->max_length = 0;
+      aside->max_ident_len = 0;
+      aside->max_value_len = 0;
       aside->strings = XCNEW (struct obstack);
       /* Strings need no alignment.  */
       _obstack_begin (aside->strings, 0, 0,
@@ -815,7 +818,8 @@ cpp_lt_replay (cpp_reader *reader, cpp_idents_used* identifiers)
   unsigned int i;
   unsigned int num_entries = identifiers->num_entries;
   cpp_ident_use *entries = identifiers->entries;
-  char *buffer = XCNEWVEC (char, identifiers->max_length + 1);
+  char *buffer = XCNEWVEC (char, identifiers->max_ident_len
+                                 + identifiers->max_value_len + 1);
 
   /* Prevent the lexer from invalidating the tokens we've read so far.  */
   reader->keep_tokens++;
@@ -968,13 +972,13 @@ lt_lookup (cpp_reader *reader,
   ++aside->active;
   entries[index].node = node;
   entries[index].hash = hash;
-  if (length > aside->max_length)
-    aside->max_length = length;
+  if (length > aside->max_ident_len)
+    aside->max_ident_len = length;
 
   /* Capture any macro value.  */
   if (cpp_node->type == NT_MACRO)
     entries[index].length = lt_macro_value
-            (&entries[index].value, aside, reader, cpp_node);
+        (&entries[index].value, aside, reader, cpp_node);
   /* else .value and .length are still zero from initialization.  */
 
   /* Check table load factor.  */

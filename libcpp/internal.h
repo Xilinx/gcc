@@ -341,7 +341,8 @@ struct cpp_lookaside {
   unsigned int sticky_order;	/* For resizing when capturing the entries.  */
   unsigned int active;		/* Number of active entries.  */
   struct obstack *strings;	/* For macro value storage.  */
-  unsigned int max_length;	/* Largest string encountered.  */
+  unsigned int max_ident_len;	/* Largest identifier encountered.  */
+  unsigned int max_value_len;	/* Largest macro value encountered.  */
 
   /* Table usage statistics.  */
   unsigned long long searches;		/* Number of calls to lt_lookup.  */

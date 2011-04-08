@@ -137,7 +137,10 @@ static void cpp_pop_definition (cpp_reader *, struct def_pragma_macro *);
    pcmcia-cs-3.0.9).  This is no longer important as directive lookup
    is now O(1).  All extensions other than #warning, #include_next,
    and #import are deprecated.  The name is where the extension
-   appears to have come from.  */
+   appears to have come from.
+
+   Make sure the bitfield directive_index in include/cpplib.h is large
+   enough to index the entire table.  */
 
 #define DIRECTIVE_TABLE							\
 D(define,	T_DEFINE = 0,	KANDR,     IN_I)	   /* 270554 */ \
@@ -580,6 +583,8 @@ do_define (cpp_reader *pfile)
       if (pfile->cb.before_define)
 	pfile->cb.before_define (pfile);
 
+      node->used_by_directive = 1;
+
       if (_cpp_create_definition (pfile, node))
 	if (pfile->cb.define)
 	  pfile->cb.define (pfile, pfile->directive_line, node);
@@ -601,6 +606,8 @@ do_undef (cpp_reader *pfile)
 
       if (pfile->cb.undef)
 	pfile->cb.undef (pfile, pfile->directive_line, node);
+
+      node->used_by_directive = 1;
 
       /* 6.10.3.5 paragraph 2: [#undef] is ignored if the specified
 	 identifier is not currently defined as a macro name.  */
@@ -1819,6 +1826,7 @@ do_ifdef (cpp_reader *pfile)
 
       if (node)
 	{
+          node->used_by_directive = 1;
 	  /* Do not treat conditional macros as being defined.  This is due to
 	     the powerpc and spu ports using conditional macros for 'vector',
 	     'bool', and 'pixel' to act as conditional keywords.  This messes
@@ -1865,6 +1873,7 @@ do_ifndef (cpp_reader *pfile)
 
       if (node)
 	{
+          node->used_by_directive = 1;
 	  /* Do not treat conditional macros as being defined.  This is due to
 	     the powerpc and spu ports using conditional macros for 'vector',
 	     'bool', and 'pixel' to act as conditional keywords.  This messes

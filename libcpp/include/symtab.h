@@ -110,17 +110,21 @@ typedef struct cpp_lookaside cpp_lookaside;
 
 typedef struct GTY(()) cpp_ident_use
 {
-  unsigned int ident_len;
   const char *ident_str;
-  unsigned int before_len;
   const char *before_str;
-  unsigned int after_len;
   const char *after_str;
+  unsigned int ident_len;
+  unsigned int before_len;
+  unsigned int after_len;
+  bool used_by_directive;
+  bool expanded_to_text;
+  /* FIX pph: We can reduce the space by shortening ident_len.  */
 } cpp_ident_use;
 
 typedef struct GTY(()) cpp_idents_used
 {
-  unsigned int max_length;
+  unsigned int max_ident_len;
+  unsigned int max_value_len;
   unsigned int num_entries;
   cpp_ident_use *entries;
   struct obstack * GTY((skip)) strings;

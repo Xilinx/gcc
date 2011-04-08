@@ -1,3 +1,11 @@
+2011-04-06  Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/p1mean.cc: Now pass validation.
+	* g++.dg/pph/p1stdlib.cc: Likewise.
+	* g++.dg/pph/d1symnotinc.cc: Failure to read is now not fatal.
+        * g++.dg/pph/d1chained.cc: Miscategorized as a failure, ...
+        * g++.dg/pph/c1chained.cc: so it has been renamed.
+
 2011-03-09  Diego Novillo  <dnovillo@google.com>
 
 	* lib/dg-pth.exp: New.
