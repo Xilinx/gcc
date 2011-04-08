@@ -1,3 +1,9 @@
+2011-04-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/48440
+	* expr.c (expand_expr_real_2): Get inner mode from op0 instead
+	of treeop0 for constant op0.
+
 2011-03-29  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/47725
