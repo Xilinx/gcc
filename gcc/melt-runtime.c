@@ -5693,9 +5693,12 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 	       modulnam, maketarget);
   if (flag_melt_debug) 
     melt_dbgshortbacktrace ("meltgc_make_load_melt_module", 50);
-  if (!ISALNUM(modulnam[0]) && modulnam[0] != '_')
-    error ("bad MELT module name %s to load, should start with alphanumerical character", 
-	   modulnam);
+  if ((flags & MELTLOADFLAG_CURDIR) == 0) 
+    {
+      if (!ISALNUM(modulnam[0]) && modulnam[0] != '_')
+	error ("bad MELT module name %s to load, should start with alphanumerical character", 
+	       modulnam);
+    }
   modulnamlen = strlen(modulnam);
 #define CHECK_FOR_SPECIAL_SUFFIX_AT(Suffix,Modsuf,Lin) do {	\
   int suffixlen_##Lin = strlen(Suffix);			\
@@ -6040,10 +6043,10 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
     }
 #if ENABLE_CHECKING
   {
-    static char locbuf[80];
+    static char locbuf[120];
     memset (locbuf, 0, sizeof (locbuf));
     snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:meltgc_make_load_melt_module before calling module %s",
+	      "%s:%d:meltgc_make_load_melt_module before module %s",
 	      lbasename (__FILE__), __LINE__, dupmodulnam);
     meltfram__.mcfr_flocs = locbuf;
   }
@@ -8624,11 +8627,12 @@ load_melt_modules_and_do_mode (void)
     }
   /* if there is no -fmelt-init use the default list of modules */
   if (!inistr || !inistr[0])
-  {
-    inistr = "@@";
-    debugeprintf("inistr set to default %s", inistr);
-  }
+    {
+      inistr = "@@";
+      debugeprintf("inistr set to default %s", inistr);
+    }
   xtrastr = melt_argument ("extra");
+  debugeprintf ("xtrastr %s", xtrastr);
   dupmodpath = xstrdup (inistr);
   if (dbgstr && !dump_file)
     {
@@ -8654,6 +8658,7 @@ load_melt_modules_and_do_mode (void)
 	}
     }
 #endif
+
   curmod = dupmodpath;
   modatv = NULL;
   /**
@@ -8677,147 +8682,182 @@ load_melt_modules_and_do_mode (void)
 	}
       debugeprintf ("load_initial_melt_modules curmod %s before", curmod);
       MELT_LOCATION_HERE
-	("load_initial_melt_modules before compile_dyn");
+	("load_initial_melt_modules before loading curmod");
       if (!strcmp(curmod, "@@")) {
 	/* the @@ notation means the initial module list; it should
 	   always be first. */
 	if (melt_nb_modules>0)
 	  /* Don't call melt_fatal_error, since nothing more to tell! */
 	  fatal_error ("MELT default module list should be loaded at first!");
+	MELT_LOCATION_HERE
+	  ("load_initial_melt_modules before loading default module list");
 	modatv =
-	    meltgc_load_modulelist ((melt_ptr_t) modatv, 
-				    MELT_DEFAULT_MODLIS,
-				    MELTLOADFLAG_NONE);
-	  debugeprintf
-	    ("load_initial_melt_modules default modlist %s loaded modulist %p",
-	     MELT_DEFAULT_MODLIS, (void *) modatv);
+	  meltgc_load_modulelist ((melt_ptr_t) modatv, 
+				  MELT_DEFAULT_MODLIS,
+				  MELTLOADFLAG_NONE);
+	MELT_LOCATION_HERE
+	  ("load_initial_melt_modules after loading default module list");
+	debugeprintf
+	  ("load_initial_melt_modules default modlist %s loaded modulist %p",
+	   MELT_DEFAULT_MODLIS, (void *) modatv);
       }
       else if (curmod[0] == '@' && curmod[1])
 	{
 	  /* read the file which contains a list of modules, one per
 	     non empty, non comment line */
+	  MELT_LOCATION_HERE
+	    ("load_initial_melt_modules before loading a module list");
 	  modatv =
 	    meltgc_load_modulelist ((melt_ptr_t) modatv, curmod + 1, MELTLOADFLAG_NONE);
 	  debugeprintf
 	    ("load_initial_melt_modules curmod %s loaded modulist %p",
 	     curmod, (void *) modatv);
+	  MELT_LOCATION_HERE
+	    ("load_initial_melt_modules after loading a module list");
 	}
       else
 	{
+	  MELT_LOCATION_HERE
+	    ("load_initial_melt_modules before loading a single module");
 	  modatv = meltgc_make_load_melt_module ((melt_ptr_t) modatv, curmod, NULL, MELTLOADFLAG_NONE);
 	  debugeprintf
 	    ("load_initial_melt_modules curmod %s loaded modatv %p",
 	     curmod, (void *) modatv);
+	  MELT_LOCATION_HERE
+	    ("load_initial_melt_modules after loading a single module");
 	}
       curmod = nextmod;
     }
+
   /**
-   * the we set MELT options
+   * Then we set MELT options.
    **/
+  MELT_LOCATION_HERE ("before setting options");
   optstr = melt_argument ("option");
+  debugeprintf ("load_initial_melt_modules optstr %s", optstr);
   if (optstr && optstr[0]
       && (optsetv=melt_get_inisysdata (FSYSDAT_OPTION_SET)) != NULL
-      && melt_magic_discr ((melt_ptr_t) optsetv) == MELTOBMAG_CLOSURE) {
-    char *optc = 0;
-    char *optname = 0;
-    char *optvalue = 0;
-    for (optc = CONST_CAST (char *, optstr);
-	 optc && *optc;
-	 )
-      {
-	optname = optvalue = NULL;
-	if (!ISALPHA(*optc))
-	  melt_fatal_error ("invalid MELT option name %s [should start with letter]",
-			    optc);
-	optname = optc;
-	while (*optc && (ISALNUM(*optc) || *optc=='_' || *optc=='-'))
-	  optc++;
-	if (*optc == '=') {
-	  *optc = (char)0;
-	  optc++;
-	  optvalue = optc;
-	  while (*optc && *optc != ',')
-	    optc++;
-	}
-	if (*optc==',') {
-	  *optc = (char)0;
-	  optc++;
-	}
-	optsymbv = meltgc_named_symbol (optname, MELT_CREATE);
+      && melt_magic_discr ((melt_ptr_t) optsetv) == MELTOBMAG_CLOSURE) 
+    {
+      char *optc = 0;
+      char *optname = 0;
+      char *optvalue = 0;
+      for (optc = CONST_CAST (char *, optstr);
+	   optc && *optc;
+	   )
 	{
-	  union meltparam_un pararg[1];
-	  memset (&pararg, 0, sizeof (pararg));
-	  pararg[0].meltbp_cstring = optvalue;
-	  MELT_LOCATION_HERE ("option set before apply");
-	  debugeprintf ("MELT option %s value %s", optname,
-			optvalue?optvalue:"_");
-	  optresv =
-	    melt_apply ((meltclosure_ptr_t) optsetv,
-			(melt_ptr_t) optsymbv,
-			MELTBPARSTR_CSTRING, pararg, "", NULL);
-	  if (!optresv)
-	    warning (0, "unhandled MELT option %s", optname);
-	}
-      }
-
-    /* handle extra modules if needed */
-    if (xtrastr && xtrastr[0]) 
-      {
-	char* dupxtra = xstrdup (xtrastr);
-	char *curxtra = 0;
-	char *nextxtra = 0;
-	debugeprintf ("MELT extra %s", xtrastr);
-	for (curxtra = dupxtra; curxtra && *curxtra; curxtra = nextxtra) 
-	  {
-	    /* modules are separated by a semicolon ';' - this should be
-	       acceptable on Unixes and even Windows */
-	    nextxtra = strchr (curxtra, ';');
-#if !HAVE_DOS_BASED_FILE_SYSTEM
-	    /* for convenience, on non DOS based systems like Unix-es and
-	       Linux, we also accept the colon ':' */
-	    if (!nextxtra)
-	      nextxtra = strchr (curxtra, ':');
-#endif
-	    if (nextxtra)
-	      {
-		*nextxtra = (char) 0;
-		nextxtra++;
-	      }
-	    debugeprintf
-	      ("load_initial_melt_modules before loading curxtra %s", curxtra);
-
-	    if (curxtra[0] == '@' && curxtra[1])
-	      {
-		/* load an extra module list */
-		modatv =
-		  meltgc_load_modulelist ((melt_ptr_t) modatv, curxtra + 1, MELTLOADFLAG_CURDIR);
-		debugeprintf
-		  ("load_initial_melt_modules curxtra %s loaded modulist %p",
-		   curxtra, (void *) modatv);
-	      }
-	    else 
-	      {
-		/* load an extra single module */
-		modatv =
-		  meltgc_make_load_melt_module ((melt_ptr_t) modatv, curxtra, NULL, MELTLOADFLAG_CURDIR);
-		debugeprintf
-		  ("load_initial_melt_modules curxtra %s loaded modatv %p",
-		   curxtra, (void *) modatv);
-	      }
+	  optname = optvalue = NULL;
+	  if (!ISALPHA(*optc))
+	    melt_fatal_error ("invalid MELT option name %s [should start with letter]",
+			      optc);
+	  optname = optc;
+	  while (*optc && (ISALNUM(*optc) || *optc=='_' || *optc=='-'))
+	    optc++;
+	  if (*optc == '=') {
+	    *optc = (char)0;
+	    optc++;
+	    optvalue = optc;
+	    while (*optc && *optc != ',')
+	      optc++;
 	  }
-	free (dupxtra);
-      }
+	  if (*optc==',') {
+	    *optc = (char)0;
+	    optc++;
+	  }
+	  optsymbv = meltgc_named_symbol (optname, MELT_CREATE);
+	  {
+	    union meltparam_un pararg[1];
+	    memset (&pararg, 0, sizeof (pararg));
+	    pararg[0].meltbp_cstring = optvalue;
+	    MELT_LOCATION_HERE ("option set before apply");
+	    debugeprintf ("MELT option %s value %s", optname,
+			  optvalue?optvalue:"_");
+	    optresv =
+	      melt_apply ((meltclosure_ptr_t) optsetv,
+			  (melt_ptr_t) optsymbv,
+			  MELTBPARSTR_CSTRING, pararg, "", NULL);
+	    if (!optresv)
+	      warning (0, "unhandled MELT option %s", optname);
+	  }
+	}
     
-    /* after options setting, force a minor collection to ensure
-       nothing is left in young region */
-    MELT_LOCATION_HERE ("option set done");
-    melt_garbcoll (0, MELT_ONLY_MINOR);
-  }
+      /* after options setting, force a minor collection to ensure
+	 nothing is left in young region */
+      MELT_LOCATION_HERE ("option set done");
+      melt_garbcoll (0, MELT_ONLY_MINOR);
+    }
+  MELT_LOCATION_HERE ("after setting options");
+
+  /**
+   * Then we handle extra modules if given.
+   **/
+  debugeprintf ("xtrastr %p %s", xtrastr, xtrastr);
+  MELT_LOCATION_HERE
+    ("load_initial_melt_modules before extra modules");
+  if (xtrastr && xtrastr[0]) 
+    {
+      char* dupxtra = xstrdup (xtrastr);
+      char *curxtra = 0;
+      char *nextxtra = 0;
+      int nbxtramod = 0;
+      debugeprintf ("MELT dupxtra '%s'", dupxtra);
+      for (curxtra = dupxtra; curxtra && *curxtra; curxtra = nextxtra) 
+	{
+	  /* modules are separated by a semicolon ';' - this should be
+	     acceptable on Unixes and even Windows */
+	  nextxtra = strchr (curxtra, ';');
+#if !HAVE_DOS_BASED_FILE_SYSTEM
+	  /* for convenience, on non DOS based systems like Unix-es and
+	     Linux, we also accept the colon ':' */
+	  if (!nextxtra)
+	    nextxtra = strchr (curxtra, ':');
+#endif
+	  if (nextxtra)
+	    {
+	      *nextxtra = (char) 0;
+	      nextxtra++;
+	    }
+	  nbxtramod++;
+	  debugeprintf
+	    ("load_initial_melt_modules before loading #%d curxtra %s", 
+	     nbxtramod, curxtra);
+
+	  if (curxtra[0] == '@' && curxtra[1])
+	    {
+	      /* load an extra module list */
+	      debugeprintf
+		("load_initial_melt_modules before loading curxtra #%d module list %s", 
+		 nbxtramod, curxtra);
+	      modatv =
+		meltgc_load_modulelist ((melt_ptr_t) modatv, curxtra + 1, MELTLOADFLAG_CURDIR);
+	      debugeprintf
+		("load_initial_melt_modules #%d curxtra %s loaded extra modulist %p",
+		 nbxtramod, curxtra, (void *) modatv);
+	    }
+	  else 
+	    {
+	      /* load an extra single module */
+	      debugeprintf
+		("load_initial_melt_modules before loading curxtra #%d module %s", 
+		 nbxtramod, curxtra);
+	      modatv =
+		meltgc_make_load_melt_module ((melt_ptr_t) modatv, curxtra, NULL, MELTLOADFLAG_CURDIR);
+	      debugeprintf
+		("load_initial_melt_modules #%d curxtra %s loaded modatv %p",
+		 nbxtramod, curxtra, (void *) modatv);
+	    }
+	}
+      free (dupxtra);
+      gcc_assert (nbxtramod>0);
+    }
+  else
+    debugeprintf ("no xtrastr %p", xtrastr);
+
   /**
    * then we do the mode if needed 
    **/
   if (melt_get_inisysdata (FSYSDAT_MODE_DICT) && modstr
-	   && modstr[0])
+      && modstr[0])
     {
       debugeprintf
 	("load_melt_modules_and_do_mode sets exit_after_options for mode %s",
@@ -8828,6 +8868,8 @@ load_melt_modules_and_do_mode (void)
       debugeprintf
 	("load_melt_modules_and_do_mode after do_initial_mode  mode_string %s",
 	 modstr);
+      MELT_LOCATION_HERE
+	("load_initial_melt_modules after do_initial_mode");
       if (dump_file == stderr && dbgstr)
 	{
 	  debugeprintf
@@ -8839,7 +8881,7 @@ load_melt_modules_and_do_mode (void)
     }
   else if (modstr)
     melt_fatal_error ("melt with mode string %s without mode dispatcher",
-		 modstr);
+		      modstr);
   debugeprintf
     ("load_melt_modules_and_do_mode ended with %ld GarbColl, %ld fullGc",
      melt_nb_garbcoll, melt_nb_full_garbcoll);

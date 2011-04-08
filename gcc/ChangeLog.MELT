@@ -1,5 +1,12 @@
 
 2011-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_make_load_melt_module): Don't check
+	module name when MELTLOADFLAG_CURDIR.
+	(load_melt_modules_and_do_mode): Added better MELT_LOCATION_HERE etc.
+	Move extra module handler so it works.
+	* doc/melt.texi (Invoking MELT): Document -fmelt-extra.
+
+2011-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* common.opt (fmelt-extra=): Add new option.
 	* melt-runtime.h (meltgc_make_load_melt_module)
 	(meltgc_load_modulelist): Add new flags argument.
