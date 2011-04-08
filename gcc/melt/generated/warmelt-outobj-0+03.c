@@ -12140,7 +12140,8 @@ lab_endgetargs:;
   (meltgc_make_load_melt_module ((melt_ptr_t)(/*_.CURENV__V9*/ meltfptr[8]),
 				   melt_string_str((melt_ptr_t)(/*_.MODULNAM__V18*/ meltfptr[16])),
 				   /*load_melt_module*/
-				   "melt_module"));;
+				   "melt_module",
+				   MELTLOADFLAG_NONE));;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:4238:/ locexp");
@@ -12860,7 +12861,8 @@ lab_endgetargs:;
   (meltgc_make_load_melt_module ((melt_ptr_t)(/*_.CURENV__V9*/ meltfptr[8]),
 				   melt_string_str((melt_ptr_t)(/*_.DBGMODULNAM__V36*/ meltfptr[21])),
 				   /*load_debug_melt_module*/
-				   "melt_module_withoutline"));;
+				   "melt_module_withoutline",
+				   MELTLOADFLAG_NONE));;
  
  {
  MELT_LOCATION("warmelt-outobj.melt:4297:/ locexp");

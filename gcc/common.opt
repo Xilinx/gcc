@@ -909,6 +909,11 @@ Common Report Var(melt_tempdir_string) RejectNegative Joined
 Temporary directory for melt (is not cleaned if specified)
 
 
+; extra modules
+fmelt-extra=
+Common Report Var(melt_extra_string) RejectNegative Joined
+Extra colon separated module[s] to be loaded after the initial ones.
+
 ;;;;;;;;;; end of Basile's MELT stuff
 
 ; -fcheck-bounds causes gcc to generate array bounds checks.

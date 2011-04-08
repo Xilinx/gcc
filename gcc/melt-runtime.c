@@ -468,6 +468,8 @@ melt_argument (const char* argname)
     return flag_melt_single_c_file?"yes":NULL;
   else if (!strcmp (argname, "init"))
     return melt_init_string;
+  else if (!strcmp (argname, "extra"))
+    return melt_extra_string;
   else if (!strcmp (argname, "output"))
     return melt_output_string;
   else if (!strcmp (argname, "option"))
@@ -562,6 +564,12 @@ melt_argument (const char* argname)
 #undef melt_init_string
 #else
 #pragma GCC poison melt_init_string 
+#endif
+
+#ifdef melt_extra_string
+#undef melt_extra_string
+#else
+#pragma GCC poison melt_extra_string 
 #endif
 
 #ifdef melt_secondargument_string
@@ -5649,7 +5657,8 @@ lookup_path(const char*path, const char* base, const char* suffix)
     the modulnam should contain only letter, digits or one of +-_. The
     maketarget is the topmost target for melt-module.mk. */
 melt_ptr_t
-meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const char*maketarget)
+meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const char*maketarget, 
+			      unsigned flags)
 {
   char *srcpath = NULL;
   char *dynpath = NULL;
@@ -5703,7 +5712,24 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   CHECK_FOR_SPECIAL_SUFFIX(".d.so", ".d.so");
 #undef CHECK_FOR_SPECIAL_SUFFIX
 #undef CHECK_FOR_SPECIAL_SUFFIX_AT
-  if (!modsuf) modsuf = ".so";
+  if (!modsuf) 
+    modsuf = ".so";
+
+  if ((flags & MELTLOADFLAG_CURDIR) != 0) 
+    {
+      tmpath = concat (modulnam, ".c", NULL);
+      debugeprintf ("meltgc_make_load_melt_module trying in current dir %s", tmpath);
+      if (tmpath && !access (tmpath, R_OK))
+	{
+	  debugeprintf ("meltgc_make_load_melt_module found source in current %s", tmpath);
+	  srcpath = tmpath;
+	  dupmodulnam = xstrdup (modulnam);
+	  goto foundsrcpath;
+	}
+      free(tmpath);
+      tmpath = NULL;
+    }
+
   /* always check the module name */
   {
     const char* p = 0;
@@ -5723,13 +5749,14 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   }
   /* duplicate the module name for safety, i.e. because it was in MELT
      heap or whatever ... */
-  dupmodulnam = xstrdup(modulnam);
+  dupmodulnam = xstrdup (modulnam);
   if (specialsuffixpos>0) 
     dupmodulnam[specialsuffixpos] = '\0';
   debugeprintf ("meltgc_make_load_melt_module specialsuffixpos=%d %s dupmodulnam=%s", 
 		specialsuffixpos, (specialsuffixpos>0)?modulnam+specialsuffixpos:" ", 
 		dupmodulnam);
   /***** first find the source path if possible ******/
+
   /* look first in the temporary directory */
   tmpath = melt_tempdir_path (dupmodulnam, ".c");
   debugeprintf ("meltgc_make_load_melt_module trying in tempdir %s", tmpath);
@@ -5830,13 +5857,43 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
      should really scan the module path incrementally, i.e. testing
      the foo.so file in every element of the path. We don't do that yet.
   **/
+
+  
+  if ((flags & MELTLOADFLAG_CURDIR) != 0) 
+    {
+      if (strchr (modulnam, DIR_SEPARATOR)) 
+	tmpath = concat (modulnam, modsuf, NULL);
+      else
+	{ 
+	  char dotdirstr[4] = { '.', DIR_SEPARATOR , 0};
+	  tmpath = concat (dotdirstr, modulnam, modsuf, NULL);
+	}
+      MELT_LOCATION_HERE
+	("meltgc_make_load_melt_module before load_checked_dylib path extra given");
+      debugeprintf ("meltgc_make_load_melt_module extra tmpath %s", tmpath);
+      if (tmpath)
+	dlix = load_checked_dynamic_module_index (tmpath, md5src);
+      else
+	dlix = -1;
+      debugeprintf ("meltgc_make_load_melt_module dlix=%d extra tmpath=%s", dlix,
+		    tmpath);
+      if (dlix > 0)
+	{
+	  dynpath = tmpath;
+	  goto dylibfound;
+	};
+      free (tmpath);
+      tmpath = NULL;
+    }
+
   /* if a dynlib directory is given, check it */
   if (modpathstr && modpathstr[0])
     {
-      dbgprintf("meltgc_make_load_melt_module before lookup_path modpathstr=%s dupmodulnam=%s modsuf=%s", modpathstr, dupmodulnam, modsuf);
+      dbgprintf("meltgc_make_load_melt_module before lookup_path modpathstr=%s dupmodulnam=%s modsuf=%s", 
+		modpathstr, dupmodulnam, modsuf);
       tmpath = lookup_path (modpathstr, dupmodulnam, modsuf);
       MELT_LOCATION_HERE
-	("meltgc_make_load_melt_module before load_checked_dylib pathed");
+	("meltgc_make_load_melt_module before load_checked_dylib path looked");
       debugeprintf ("meltgc_make_load_melt_module tmpath %s", tmpath);
       if (tmpath)
 	dlix = load_checked_dynamic_module_index (tmpath, md5src);
@@ -6082,7 +6139,7 @@ meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const char*maketarg
 #define MODLIS_SUFFIX ".modlis"
 
 melt_ptr_t
-meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
+meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase, unsigned flags)
 {
   char *modlistpath = 0;
   char* envpath = 0;
@@ -6098,7 +6155,9 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
   debugeprintf ("meltgc_load_modulelist start modlistbase %s", modlistbase);
   /* first check directly for the file */
   modlistpath = concat (modlistbase, MODLIS_SUFFIX, NULL);
-  if (IS_ABSOLUTE_PATH (modlistpath) || !access (modlistpath, R_OK))
+  if (IS_ABSOLUTE_PATH (modlistpath) 
+      || (flags & MELTLOADFLAG_CURDIR) 
+      || !access (modlistpath, R_OK))
     goto loadit;
   free (modlistpath);
   modlistpath = 0;
@@ -6221,7 +6280,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase)
       if (*pc == '#' || *pc == (char) 0)
 	continue;
       dbgprintf ("in module list %s loading module '%s'", modlistbase, pc);
-      mdatav = meltgc_make_load_melt_module ((melt_ptr_t) mdatav, pc, NULL);
+      mdatav = meltgc_make_load_melt_module ((melt_ptr_t) mdatav, pc, NULL, flags);
     }
  end:
   MELT_EXITFRAME ();
@@ -8545,6 +8604,7 @@ load_melt_modules_and_do_mode (void)
   const char *modstr = 0;
   const char *optstr = 0;
   const char *inistr = 0;
+  const char* xtrastr = 0;
   const char* dbgstr = melt_argument("debug");
   MELT_ENTERFRAME (7, NULL);
 #define modatv     meltfram__.mcfr_varptr[0]
@@ -8568,6 +8628,7 @@ load_melt_modules_and_do_mode (void)
     inistr = "@@";
     debugeprintf("inistr set to default %s", inistr);
   }
+  xtrastr = melt_argument ("extra");
   dupmodpath = xstrdup (inistr);
   if (dbgstr && !dump_file)
     {
@@ -8625,7 +8686,8 @@ load_melt_modules_and_do_mode (void)
 	  fatal_error ("MELT default module list should be loaded at first!");
 	modatv =
 	    meltgc_load_modulelist ((melt_ptr_t) modatv, 
-				    MELT_DEFAULT_MODLIS);
+				    MELT_DEFAULT_MODLIS,
+				    MELTLOADFLAG_NONE);
 	  debugeprintf
 	    ("load_initial_melt_modules default modlist %s loaded modulist %p",
 	     MELT_DEFAULT_MODLIS, (void *) modatv);
@@ -8635,14 +8697,14 @@ load_melt_modules_and_do_mode (void)
 	  /* read the file which contains a list of modules, one per
 	     non empty, non comment line */
 	  modatv =
-	    meltgc_load_modulelist ((melt_ptr_t) modatv, curmod + 1);
+	    meltgc_load_modulelist ((melt_ptr_t) modatv, curmod + 1, MELTLOADFLAG_NONE);
 	  debugeprintf
 	    ("load_initial_melt_modules curmod %s loaded modulist %p",
 	     curmod, (void *) modatv);
 	}
       else
 	{
-	  modatv = meltgc_make_load_melt_module ((melt_ptr_t) modatv, curmod, NULL);
+	  modatv = meltgc_make_load_melt_module ((melt_ptr_t) modatv, curmod, NULL, MELTLOADFLAG_NONE);
 	  debugeprintf
 	    ("load_initial_melt_modules curmod %s loaded modatv %p",
 	     curmod, (void *) modatv);
@@ -8697,6 +8759,55 @@ load_melt_modules_and_do_mode (void)
 	    warning (0, "unhandled MELT option %s", optname);
 	}
       }
+
+    /* handle extra modules if needed */
+    if (xtrastr && xtrastr[0]) 
+      {
+	char* dupxtra = xstrdup (xtrastr);
+	char *curxtra = 0;
+	char *nextxtra = 0;
+	debugeprintf ("MELT extra %s", xtrastr);
+	for (curxtra = dupxtra; curxtra && *curxtra; curxtra = nextxtra) 
+	  {
+	    /* modules are separated by a semicolon ';' - this should be
+	       acceptable on Unixes and even Windows */
+	    nextxtra = strchr (curxtra, ';');
+#if !HAVE_DOS_BASED_FILE_SYSTEM
+	    /* for convenience, on non DOS based systems like Unix-es and
+	       Linux, we also accept the colon ':' */
+	    if (!nextxtra)
+	      nextxtra = strchr (curxtra, ':');
+#endif
+	    if (nextxtra)
+	      {
+		*nextxtra = (char) 0;
+		nextxtra++;
+	      }
+	    debugeprintf
+	      ("load_initial_melt_modules before loading curxtra %s", curxtra);
+
+	    if (curxtra[0] == '@' && curxtra[1])
+	      {
+		/* load an extra module list */
+		modatv =
+		  meltgc_load_modulelist ((melt_ptr_t) modatv, curxtra + 1, MELTLOADFLAG_CURDIR);
+		debugeprintf
+		  ("load_initial_melt_modules curxtra %s loaded modulist %p",
+		   curxtra, (void *) modatv);
+	      }
+	    else 
+	      {
+		/* load an extra single module */
+		modatv =
+		  meltgc_make_load_melt_module ((melt_ptr_t) modatv, curxtra, NULL, MELTLOADFLAG_CURDIR);
+		debugeprintf
+		  ("load_initial_melt_modules curxtra %s loaded modatv %p",
+		   curxtra, (void *) modatv);
+	      }
+	  }
+	free (dupxtra);
+      }
+    
     /* after options setting, force a minor collection to ensure
        nothing is left in young region */
     MELT_LOCATION_HERE ("option set done");

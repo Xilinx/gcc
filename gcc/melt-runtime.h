@@ -2007,9 +2007,15 @@ char* melt_tempdir_path (const char* basnam, const char* suffix);
 ***/
 melt_ptr_t
 meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, 
-			      const char*maketarget);
+			      const char*maketarget, unsigned flags);
 
-
+enum {
+  /* possible flags is an bitwise OR of */
+  MELTLOADFLAG_NONE=0,		/* no flags is the default */
+  MELTLOADFLAG_CURDIR= (1 << 0), /* search the source and module in
+				    current directory */
+  MELTLOADFLAG_MASK= ~0
+};
 
 /* Generate a loadable module from a MELT generated C source file; the
    out is the dynloaded module without any *.so suffix. The maketarget
@@ -2021,7 +2027,7 @@ meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const char*maketarg
 /* load a list of modules from a file whose basename MODLISTBASE is
    given without its suffix '.modlis' */
 melt_ptr_t
-meltgc_load_modulelist(melt_ptr_t modata_p, const char *modlistbase);
+meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase, unsigned flags);
 
 /* first_module_melt is the function start_module_melt in first-melt.c */
 melt_ptr_t first_module_melt (melt_ptr_t);
