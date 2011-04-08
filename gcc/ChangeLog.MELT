@@ -1,5 +1,11 @@
 
 2011-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_out_edge): Add new function declaration.
+	* melt-runtime.c (meltgc_out_edge): Add new function.
+	* melt/xtramelt-ana-base.melt (output_edge): New primitive.
+	(dbgout_boxedge_method): New method.
+
+2011-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_make_load_melt_module): Don't check
 	module name when MELTLOADFLAG_CURDIR.
 	(load_melt_modules_and_do_mode): Added better MELT_LOCATION_HERE etc.

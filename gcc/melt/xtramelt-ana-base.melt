@@ -1879,6 +1879,10 @@
   #{ meltgc_ppstrbuf_basicblock((melt_ptr_t)($sbuf),
 				   (int) ($indent), ($bb)) }# )
 
+(defprimitive output_edge (out :edge edg) :void
+  :doc #{Output to $OUT the edge $EDG}#
+  #{ meltgc_out_edge((melt_ptr_t)($OUT), ($EDG)) }# )
+
 (defprimitive basicblock_single_succ (:basic_block bb) :basic_block
   #{(($bb && single_succ_p($bb))?single_succ($bb):NULL)}# )
 
@@ -2257,6 +2261,21 @@
     )
   )
 (install_method discr_basic_block dbg_output dbgout_boxbasicblock_method)
+
+
+;;;; boxed edge debug
+(defun dbgout_boxedge_method (self dbgi :long depth)
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (dis (discrim self)) 
+	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
+    (add2out_strconst out " ?/")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/[")
+    (output_edge out (edge_content self))
+    (add2out_strconst out "]/ ")
+    )
+  )
+(install_method discr_edge dbg_output dbgout_boxedge_method)
 
 
 
@@ -3071,6 +3090,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  null_gimple
  null_gimpleseq
  null_tree
+ output_edge
  pop_cfun
  ppl_Constraint_System_insert_Constraint
  ppl_Linear_Expression_add_to_coefficient

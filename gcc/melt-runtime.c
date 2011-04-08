@@ -10164,6 +10164,54 @@ end:
 #undef sbufv
 }
 
+/* print into an outbuf an edge */
+void
+meltgc_out_edge (melt_ptr_t out_p, edge edg)
+{
+  int outmagic = 0;
+#define outv meltfram__.mcfr_varptr[0]
+  MELT_ENTERFRAME (2, NULL);
+  outv = out_p;
+  if (!outv) 
+    goto end;
+  outmagic = melt_magic_discr ((melt_ptr_t) outv);
+  if (!edg)
+    {
+      meltgc_add_out ((melt_ptr_t) outv,
+			    "%nulledge%");
+      goto end;
+    }
+  switch (outmagic) 
+    {
+    case MELTOBMAG_STRBUF:
+      {
+	open_meltpp_file ();
+	dump_edge_info (meltppfile, edg, 0);
+	close_meltpp_file ();
+	meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
+	free(meltppbuffer);
+	meltppbuffer = 0;
+	meltppbufsiz = 0;
+      }
+      break;
+    case MELTOBMAG_SPEC_FILE:
+    case MELTOBMAG_SPEC_RAWFILE:
+      {
+	FILE* f = ((struct meltspecial_st*)outv)->val.sp_file;
+	if (!f) 
+	  goto end;
+	dump_edge_info(f, edg, 0);
+	fflush (f);
+      }
+      break;
+    default:
+      goto end;
+    }
+end:
+  MELT_EXITFRAME ();
+#undef outv
+}
+
 
 /* pretty print into an sbuf a mpz_t GMP multiprecision integer */
 void
