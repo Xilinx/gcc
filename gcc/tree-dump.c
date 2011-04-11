@@ -885,6 +885,8 @@ char *
 get_dump_file_name (int phase)
 {
   char dump_id[10];
+  char uniqid_buf[16];
+  static long uniqid;
   struct dump_file_info *dfi;
 
   if (phase == TDI_none)
@@ -910,7 +912,11 @@ get_dump_file_name (int phase)
 	dump_id[0] = '\0';
     }
 
-  return concat (dump_base_name, dump_id, dfi->suffix, NULL);
+  memset (uniqid_buf, 0, sizeof(uniqid_buf));
+  uniqid++;
+  snprintf (uniqid_buf, sizeof(uniqid_buf)-1, ".%%%04ld", uniqid);
+
+  return concat (dump_base_name, uniqid_buf, dump_id, dfi->suffix, NULL);
 }
 
 /* Begin a tree dump for PHASE. Stores any user supplied flag in

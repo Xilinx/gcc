@@ -1,5 +1,9 @@
 
 2011-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* tree-dump.c (get_dump_file_name): Add a chronological unique id
+	in the file name.
+
+2011-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt
 	(gimple_seq_first_stmt,gimple_seq_last_stmt): New primitives.
 
