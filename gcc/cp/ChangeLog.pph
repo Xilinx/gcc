@@ -1,3 +1,19 @@
+2011-04-11  Diego Novillo  <dnovillo@google.com>
+
+	* parser.c (cp_lexer_dump_tokens): Add arguments START_TOKEN and
+	CURR_TOKEN.
+	Update all callers.
+	Print tokens starting with START_TOKEN.
+	Highlight CURR_TOKEN by enclosing it in [[ ]].
+	(cp_debug_print_tree_if_set): New.
+	(cp_debug_print_context): New.
+	(cp_debug_print_context_stack): New.
+	(cp_debug_print_flag): New.
+	(cp_debug_print_unparsed_function): New.
+	(cp_debug_print_unparsed_queues): New.
+	(cp_debug_parser): New.
+	* cp/parser.h (cp_debug_parser): Declare.
+
 2011-04-06  Lawrence Crowl  <crowl@google.com>
 
         * pph.c (pth_dump_identifiers):  Split cpp_idents_used::max_length

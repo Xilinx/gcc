@@ -525,7 +525,7 @@ static void
 pth_dump_hunk (FILE *stream, cp_token_hunk *hunk)
 {
   pth_dump_identifiers (stream, &hunk->identifiers);
-  cp_lexer_dump_tokens (stream, hunk->buffer, 0);
+  cp_lexer_dump_tokens (stream, hunk->buffer, NULL, 0, NULL);
 }
 
 /* Dump a debug log of the HUNK. */
@@ -749,7 +749,7 @@ pth_dump_state (FILE *f)
   if (state->lexer)
     {
       fprintf (f, "Tokens in main lexer:\n");
-      cp_lexer_dump_tokens (f, state->lexer->buffer, 0);
+      cp_lexer_dump_tokens (f, state->lexer->buffer, NULL, 0, NULL);
     }
 }
 
@@ -3133,7 +3133,7 @@ pph_print_token_range (VEC(tree,heap) *v, VEC(cp_token, heap) *vtok)
       pph_debug_location (pph_logfile, VEC_last (cp_token, vtok)->location);
       fprintf (pph_logfile, "\n");
       fprintf (pph_logfile, "PPH: hunk tokens ");
-      cp_lexer_dump_tokens (stderr, (VEC(cp_token, gc) *)vtok, 0);
+      cp_lexer_dump_tokens (stderr, (VEC(cp_token, gc) *)vtok, NULL, 0, NULL);
       fprintf (pph_logfile, "PPH: hunk ASTs:\n");
       for (i = 0; VEC_iterate (tree, v, i, t); i++)
         {
