@@ -119,11 +119,21 @@ struct cp_token_cache *pth_load_token_cache (pph_stream *);
 /* Inline functions.  */
 
 /* Output AST T to STREAM.  If REF_P is true, output all the leaves of T
-   as references.  */
+   as references.  This function is the primary interface.  */
 static inline void
 pph_output_tree (pph_stream *stream, tree t, bool ref_p)
 {
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 1)
+    pph_stream_trace_tree (stream, t);
+  lto_output_tree (stream->ob, t, ref_p);
+}
+
+/* Output AST T to STREAM.  If REF_P is true, output all the leaves of T
+   as references.  this function is an internal auxillary routine.  */
+static inline void
+pph_output_tree_aux (pph_stream *stream, tree t, bool ref_p)
+{
+  if (flag_pph_tracer >= 3)
     pph_stream_trace_tree (stream, t);
   lto_output_tree (stream->ob, t, ref_p);
 }
@@ -132,7 +142,7 @@ pph_output_tree (pph_stream *stream, tree t, bool ref_p)
 static inline void
 pph_output_tree_or_ref (pph_stream *stream, tree t, bool ref_p)
 {
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 2)
     pph_stream_trace_tree (stream, t);
   lto_output_tree_or_ref (stream->ob, t, ref_p);
 }
@@ -141,7 +151,7 @@ pph_output_tree_or_ref (pph_stream *stream, tree t, bool ref_p)
 static inline void
 pph_output_uint (pph_stream *stream, unsigned int value)
 {
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_uint (stream, value);
   lto_output_sleb128_stream (stream->ob->main_stream, value);
 }
@@ -150,7 +160,7 @@ pph_output_uint (pph_stream *stream, unsigned int value)
 static inline void
 pph_output_uchar (pph_stream *stream, unsigned char value)
 {
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_uint (stream, value);
   lto_output_1_stream (stream->ob->main_stream, value);
 }
@@ -159,7 +169,7 @@ pph_output_uchar (pph_stream *stream, unsigned char value)
 static inline void
 pph_output_bytes (pph_stream *stream, const void *p, size_t n)
 {
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_bytes (stream, p, n);
   lto_output_data_stream (stream->ob->main_stream, p, n);
 }
@@ -168,9 +178,9 @@ pph_output_bytes (pph_stream *stream, const void *p, size_t n)
 static inline void
 pph_output_string (pph_stream *stream, const char *str)
 {
-  lto_output_string (stream->ob, stream->ob->main_stream, str);
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_string (stream, str);
+  lto_output_string (stream->ob, stream->ob->main_stream, str);
 }
 
 /* Write string STR of length LEN to STREAM.  */
@@ -180,15 +190,17 @@ pph_output_string_with_length (pph_stream *stream, const char *str,
 {
   if (str)
     {
+      if (flag_pph_tracer >= 4)
+	pph_stream_trace_string_with_length (stream, str, len);
       lto_output_string_with_length (stream->ob, stream->ob->main_stream,
 				     str, len + 1);
-      if (flag_pph_tracer)
-	pph_stream_trace_string_with_length (stream, str, len);
     }
   else
     {
       /* lto_output_string_with_length does not handle NULL strings,
 	 but lto_output_string does.  */
+      if (flag_pph_tracer >= 4)
+	pph_stream_trace_string (stream, str);
       pph_output_string (stream, NULL);
     }
 }
@@ -198,9 +210,9 @@ pph_output_string_with_length (pph_stream *stream, const char *str,
 static inline void
 pph_output_chain (pph_stream *stream, tree first, bool ref_p)
 {
-  lto_output_chain (stream->ob, first, ref_p);
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 3)
     pph_stream_trace_chain (stream, first);
+  lto_output_chain (stream->ob, first, ref_p);
 }
 
 /* Write a bitpack BP to STREAM.  */
@@ -208,7 +220,7 @@ static inline void
 pph_output_bitpack (pph_stream *stream, struct bitpack_d *bp)
 {
   gcc_assert (stream->ob->main_stream == bp->stream);
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_bitpack (stream, bp);
   lto_output_bitpack (bp);
 }
@@ -219,7 +231,7 @@ pph_input_uint (pph_stream *stream)
 {
   HOST_WIDE_INT unsigned n = lto_input_uleb128 (stream->ib);
   gcc_assert (n == (unsigned) n);
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_uint (stream, n);
   return (unsigned) n;
 }
@@ -229,7 +241,7 @@ static inline unsigned char
 pph_input_uchar (pph_stream *stream)
 {
   unsigned char n = lto_input_1_unsigned (stream->ib);
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_uint (stream, n);
   return n;
 }
@@ -240,7 +252,7 @@ static inline void
 pph_input_bytes (pph_stream *stream, void *p, size_t n)
 {
   lto_input_data_block (stream->ib, p, n);
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_bytes (stream, p, n);
 }
 
@@ -252,7 +264,7 @@ static inline const char *
 pph_input_string (pph_stream *stream)
 {
   const char *s = lto_input_string (stream->data_in, stream->ib);
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_string (stream, s);
   return s;
 }
@@ -262,7 +274,7 @@ static inline tree
 pph_input_tree (pph_stream *stream)
 {
   tree t = lto_input_tree (stream->ib, stream->data_in);
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_tree (stream, t);
   return t;
 }
@@ -272,7 +284,7 @@ static inline tree
 pph_input_chain (pph_stream *stream)
 {
   tree t = lto_input_chain (stream->ib, stream->data_in);
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 2)
     pph_stream_trace_chain (stream, t);
   return t;
 }
@@ -282,7 +294,7 @@ static inline struct bitpack_d
 pph_input_bitpack (pph_stream *stream)
 {
   struct bitpack_d bp = lto_input_bitpack (stream->ib);
-  if (flag_pph_tracer)
+  if (flag_pph_tracer >= 4)
     pph_stream_trace_bitpack (stream, &bp);
   return bp;
 }

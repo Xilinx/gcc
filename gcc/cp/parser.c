@@ -13400,7 +13400,7 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
 						    /*declarator=*/NULL))
 	    return error_mark_node;
 	  type = xref_tag (tag_type, identifier, ts, template_p);
-          if (flag_pph_debug >= 4)
+          if (flag_pph_decls_debug >= 4)
             fprintf (pph_logfile, "PPH: creating tag %p %s in hunk #\n",
                      (void*)identifier, IDENTIFIER_POINTER (identifier));
 	}

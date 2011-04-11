@@ -1,3 +1,4 @@
+
 2011-04-11  Diego Novillo  <dnovillo@google.com>
 
 	* parser.c (cp_lexer_dump_tokens): Add arguments START_TOKEN and
@@ -13,6 +14,16 @@
 	(cp_debug_print_unparsed_queues): New.
 	(cp_debug_parser): New.
 	* cp/parser.h (cp_debug_parser): Declare.
+
+2011-04-08  Lawrence Crowl  <crowl@google.com>
+
+        * pph.c (pth_finish): Simplify inconsistency reporting.
+	* pph-streamer.h (pph_output_tree_aux): New.
+	(pph_output_string): Ensure trace happens before write.
+	(pph_output_chain): Likewise.
+	(pph_output_string_with_length): Likewise.  Add trace for null case.
+	* pph-streamer-out.c (pph_stream_write_tree): Call pph_output_tree_aux
+	instead of pph_output_tree.
 
 2011-04-06  Lawrence Crowl  <crowl@google.com>
 

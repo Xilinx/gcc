@@ -1,3 +1,10 @@
+2011-04-08  Lawrence Crowl  <crowl@google.com>
+
+        * c.opt (fpph-decls-debug): Add.  Change uses of flag_pph_debug in
+	declaration dependence analysis to flag_pph_decls_debug.
+	(fpph-tracer): Add unsigned integer parameter.  Change testers of
+	flag to compare against level.
+
 2011-04-04  Diego Novillo  <dnovillo@google.com>
 
 	* c-opts.c (add_pph_header_map): Create include_pph_mapping if it

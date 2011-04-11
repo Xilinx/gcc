@@ -576,7 +576,7 @@ add_decl_to_level (tree decl, cxx_scope *b)
 		&& (!TREE_PUBLIC (decl) || DECL_DECLARED_INLINE_P (decl))))
           {
 	    VEC_safe_push (tree, gc, b->static_decls, decl);
-            if (flag_pph_debug >= 3)
+            if (flag_pph_decls_debug >= 3)
               {
                 fprintf (stderr, "Adding %p to static_decls:\n", (void*)decl);
                 print_generic_expr (stderr, decl, 0);

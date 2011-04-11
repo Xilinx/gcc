@@ -2172,11 +2172,8 @@ pth_finish (void)
      due to lack of location information in PTH images.  FIXME pph:
      Unneeded after we start saving proper location information.  */
   if (flag_pph_debug >= 1)
-    {
-      if (flag_pph_debug > 1)
-	fprintf (stderr, "*** WARNING: Not saving PTH images because PPH "
-		 "is enabled\n");
-    }
+    fprintf (stderr, "*** WARNING: Not saving PTH images because PPH "
+	     "is enabled\n");
   else
     {
       pth_state *state;
@@ -2194,7 +2191,7 @@ pth_finish (void)
 static void
 pph_log_exposed (cp_parser *parser, const char *end)
 {
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       cp_token *pos = cp_lexer_token_position (parser->lexer, false);
       fprintf (pph_logfile, "PPH: %s exposed declaration at ", end);
@@ -2259,11 +2256,11 @@ pph_free_catcher_memory (void)
 cp_token *
 pph_start_exposed (cp_parser *parser)
 {
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       timevar_push (TV_PPH_MANAGE);
 
-      if (flag_pph_debug >= 4)
+      if (flag_pph_decls_debug >= 4)
         fprintf (pph_logfile, "\n--------------------------------------------------------------------------\n");
       pph_log_exposed (parser, "start");
       pph_allocate_catcher_memory ();
@@ -2474,7 +2471,7 @@ pph_copy_decls_outof_cache (VEC(tree, heap) *v)
 void
 pph_stop_exposed (cp_parser *parser, cp_token *first_token)
 {
-  if (flag_pph_debug >= 2 && !VEC_empty (tree, pph_tree_catcher))
+  if (flag_pph_decls_debug >= 2 && !VEC_empty (tree, pph_tree_catcher))
     {
       cp_token *last_token;
 
@@ -2486,7 +2483,7 @@ pph_stop_exposed (cp_parser *parser, cp_token *first_token)
       pph_copy_decls_outof_cache (pph_tree_catcher);
       PPH_STATS_INCR (cached_refs, VEC_length(tree, pph_name_lookups));
       pph_free_catcher_memory ();
-      if (flag_pph_debug >= 4)
+      if (flag_pph_decls_debug >= 4)
         pph_log_exposed (parser, "stop");
 
       timevar_pop (TV_PPH_MANAGE);
@@ -2727,7 +2724,7 @@ is_namespace (tree container)
 static tree
 pph_null_exposed (const char *reason)
 {
-  if (flag_pph_debug >= 3)
+  if (flag_pph_decls_debug >= 3)
     fprintf (pph_logfile, "%s\n", reason);
   return NULL;
 }
@@ -2738,7 +2735,7 @@ pph_live_exposed (tree t, bool body)
   if (PPH_ARTIFICIAL (t))
     return pph_null_exposed ("Artificial symbols are not exposed.");
 
-  if (flag_pph_debug >= 3)
+  if (flag_pph_decls_debug >= 3)
     {
       if (t == NULL)
         fprintf (pph_logfile, "(null)");
@@ -2764,7 +2761,7 @@ pph_find_exposed_for (tree t, bool *body)
           PPH_STATS_INCR (bad_lookups, 1);
           return pph_null_exposed ("NULLOID"); /* FIXME pph */
         }
-      if (flag_pph_debug >= 3)
+      if (flag_pph_decls_debug >= 3)
         {
           fprintf (pph_logfile, "      exposed for ");
           pph_debug_tree (t, false);
@@ -2871,7 +2868,7 @@ pph_find_exposed_for (tree t, bool *body)
               if (generic != 2)
                 {
                   t = DECL_TEMPLATE_RESULT (t);
-                  if (flag_pph_debug >= 3)
+                  if (flag_pph_decls_debug >= 3)
                     fprintf (pph_logfile, "template redirected\n");
                   goto reclassify;
                 }
@@ -2919,7 +2916,7 @@ pph_find_exposed_for (tree t, bool *body)
               break;
             }
         }
-      if (flag_pph_debug >= 3)
+      if (flag_pph_decls_debug >= 3)
         {
           pph_debug_tree (container, *body);
           fprintf (pph_logfile, "\n");
@@ -3069,7 +3066,7 @@ pph_locate_name_lookups_in (VEC(cp_token, heap) *tokens,
               /* Avoid double-counting lookups by removing the lookup
                  location after a class member declaration has found it.
                  To make that work, we must remove all redundant entries.  */
-              if (flag_pph_debug >= 4)
+              if (flag_pph_decls_debug >= 4)
                 {
                   fprintf (pph_logfile, "      lookup in %p for ",
                            (void*)lookup_locations);
@@ -3086,7 +3083,7 @@ pph_locate_name_lookups_in (VEC(cp_token, heap) *tokens,
               /* We have just shifted down all later entries,
                  and need to counteract the upcoming index increment.  */
               j--;
-              if (flag_pph_debug >= 4)
+              if (flag_pph_decls_debug >= 4)
                 {
                   fprintf (pph_logfile, " to %d\n",
                            VEC_length (cp_token, lookup_locations));
@@ -3125,7 +3122,7 @@ pph_print_token_range (VEC(tree,heap) *v, VEC(cp_token, heap) *vtok)
   unsigned i;
   tree t;
 
-  if (flag_pph_debug >= 4)
+  if (flag_pph_decls_debug >= 4)
     {
       fprintf (pph_logfile, "PPH: hunk location ");
       pph_debug_location (pph_logfile, VEC_index (cp_token, vtok, 0)->location);
@@ -3153,7 +3150,7 @@ pph_print_dependence (bool user_body, bool used_body,
   static bool prior_used_body = false;
   static tree prior_t = NULL;
   static tree prior_d = NULL;
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       fprintf (pph_logfile, "    pd_base ");
       pph_debug_tree (t, user_body);
@@ -3194,7 +3191,7 @@ pph_print_depend_template (tree tmpl_info, tree t)
 {
   tree tmpl_decl;
   tree tmpl_ptrn;
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       fprintf (pph_logfile, "    pd_template ");
       pph_debug_tree (t, true);
@@ -3220,7 +3217,7 @@ pph_print_depend_template (tree tmpl_info, tree t)
 static void
 pph_print_depend_decl (tree user, tree used)
 {
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       fprintf (pph_logfile, "    pd_decl ");
       pph_debug_tree (user, false);
@@ -3246,7 +3243,7 @@ static void
 pph_print_depend_type (tree decl, tree type)
 {
   tree type_decl;
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       fprintf (pph_logfile, "    pd_type ");
       pph_debug_tree (decl, false);
@@ -3267,7 +3264,7 @@ pph_print_depend_type_type (tree t)
   tree t_type;
   tree field;
 
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       fprintf (pph_logfile, "    depending on typedecl type ");
       pph_debug_tree (t, false);
@@ -3278,7 +3275,7 @@ pph_print_depend_type_type (tree t)
   field = TYPE_FIELDS (t_type); 
   for (; field; field = TREE_CHAIN(field))
     {
-      if (flag_pph_debug >= 2)
+      if (flag_pph_decls_debug >= 2)
         {
           fprintf (pph_logfile, "    field ");
           pph_debug_tree (field, false);
@@ -3286,7 +3283,7 @@ pph_print_depend_type_type (tree t)
       if (TREE_CODE (field) == FIELD_DECL)
         {
           tree f_type = TREE_TYPE (field);
-          if (flag_pph_debug >= 2)
+          if (flag_pph_decls_debug >= 2)
             {
               fprintf (pph_logfile, " of type ");
               pph_debug_type (f_type, false);
@@ -3300,7 +3297,7 @@ pph_print_depend_type_type (tree t)
       else if (TREE_CODE (field) == TYPE_DECL)
         {
         tree f_type = TREE_TYPE (field);
-        if (flag_pph_debug >= 2)
+        if (flag_pph_decls_debug >= 2)
           {
             fprintf (pph_logfile, " of type ");
             pph_debug_type (f_type, false);
@@ -3310,7 +3307,7 @@ pph_print_depend_type_type (tree t)
         }
     }
 
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       fprintf (pph_logfile, "    end of fields\n");
     }
@@ -3325,7 +3322,7 @@ pph_print_depend_func_type (tree t)
   tree args;
   tree func_type;
 
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       fprintf (pph_logfile, "    depending on function type ");
       pph_debug_tree (t, false);
@@ -3352,7 +3349,7 @@ pph_print_depend_func_type (tree t)
 static void
 pph_print_depend_var_type (tree t)
 {
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       fprintf (pph_logfile, "    depending on var/field type ");
       pph_debug_tree (t, false);
@@ -3376,7 +3373,7 @@ pph_get_decl_exposure (tree t)
   int generic = 0;
   enum tree_code code = TREE_CODE (t);
 
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     {
       fprintf (pph_logfile, "    get_exposure for ");
       pph_debug_tree (t, false);
@@ -3467,7 +3464,7 @@ pph_get_decl_exposure (tree t)
     }
   else if (code == FUNCTION_DECL)
     {
-      if (flag_pph_debug >= 2)
+      if (flag_pph_decls_debug >= 2)
         {
           fprintf (pph_logfile, "    depending on function ");
           pph_debug_tree (t, false);
@@ -3585,12 +3582,12 @@ pph_print_declaration_head (tree t, bool artificial, tree container,
       /* From the name dependencies, determine symbol dependencies
 	 by correlating the location of the looked-up symbols with
 	 the tokens in HEAD_TOKENS and BODY_TOKENS.  */
-      if (flag_pph_debug >= 2)
+      if (flag_pph_decls_debug >= 2)
         fprintf (pph_logfile, "  begin normal dependences\n");
       pph_locate_name_lookups_in (head_tokens, &sym_head_deps, &sym_body_deps);
       pph_print_dependences (false, false, t, sym_head_deps);
       pph_print_dependences (true, false, t, sym_body_deps);
-      if (flag_pph_debug >= 2)
+      if (flag_pph_decls_debug >= 2)
         fprintf (pph_logfile, "  end normal dependences\n");
     }
 }
@@ -3638,12 +3635,12 @@ pph_print_declaration_body (tree t, bool artificial,
 
   pph_print_dependence (true, false, t, t); /* body depends on its head */
 
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     fprintf (pph_logfile, "  begin normal dependences\n");
   pph_locate_name_lookups_in (body_tokens, &sym_head_deps, &sym_body_deps);
   pph_print_dependences (true, false, t, sym_head_deps);
   pph_print_dependences (true, false, t, sym_body_deps);
-  if (flag_pph_debug >= 2)
+  if (flag_pph_decls_debug >= 2)
     fprintf (pph_logfile, "  end normal dependences\n");
 }
 
@@ -3947,7 +3944,7 @@ pph_print_declaration (tree t, enum decl_exposure exposure,
     pph_print_declaration_body (t, artificial, exposure,
                                 n_body_tokens, n_body_invis, body_tokens);
 
-  if (flag_pph_debug >= 4)
+  if (flag_pph_decls_debug >= 4)
     {
       fprintf (pph_logfile, "    Declarator head tokens: ");
       cp_lexer_debug_tokens ((VEC(cp_token, gc) *)head_tokens);
@@ -4150,6 +4147,9 @@ pph_finish (void)
 
   if (flag_pph_stats)
     pph_print_stats ();
+
+  if (flag_pph_debug >= 1)
+    fprintf (pph_logfile, "PPH: Finishing.\n");
 
   if (flag_pph_logfile)
     fclose (pph_logfile);

@@ -592,7 +592,7 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 	  pph_stream_write_lang_specific_data (stream, expr, ref_p);
 
 	  if (TREE_CODE (expr) == FUNCTION_DECL)
-	    pph_output_tree (stream, DECL_SAVED_TREE (expr), ref_p);
+	    pph_output_tree_aux (stream, DECL_SAVED_TREE (expr), ref_p);
 	}
     }
   else if (TREE_CODE (expr) == STATEMENT_LIST)
@@ -608,6 +608,6 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 
       /* Write the statements.  */
       for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
-	pph_output_tree (stream, tsi_stmt (i), ref_p);
+	pph_output_tree_aux (stream, tsi_stmt (i), ref_p);
     }
 }

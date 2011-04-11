@@ -933,6 +933,10 @@ fpph-decls=
 C++ Joined RejectNegative UInteger Var(flag_pph_decls)
 -fpph-decls=N   Enable declaration identifier output at level N from PPH support
 
+fpph-decls-debug=
+C++ Joined RejectNegative UInteger Var(flag_pph_decls_debug)
+-fpph-decls=N   Enable declaration identifier output at level N from PPH support
+
 fpph-hdr=
 C++ ObjC++ Joined MissingArgError(missing filename after %qs)
 -fpph-hdr=<base-name>   A mapping from <base-name>.h to <base-name>.pph
@@ -949,8 +953,8 @@ fpph-stats
 C++ Var(flag_pph_stats)
 -fpph-stats	Enable statistics gathering for PPH
 
-fpph-tracer
-C++ Var(flag_pph_tracer)
+fpph-tracer=
+C++ Joined RejectNegative UInteger Var(flag_pph_tracer)
 -fpph-tracer	Enable tracing of PPH streaming operations
 
 fpreprocessed
