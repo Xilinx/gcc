@@ -58,6 +58,12 @@
 (defprimitive gimple_seq_of_basic_block (:basic_block bb) :gimple_seq
   #{(($bb)?bb_seq(($bb)):NULL)}#)
 
+(defprimitive gimple_seq_first_stmt (:gimple_seq gs) :gimple
+  #{(($GS)?gimple_seq_first_stmt(($GS)):NULL)}#)
+
+(defprimitive gimple_seq_last_stmt (:gimple_seq gs) :gimple
+  #{(($GS)?gimple_seq_last_stmt(($GS)):NULL)}#)
+
 ;;; copy an unboxed gimple_copy
 (defprimitive gimple_copy (:gimple g) :gimple
   #{ (($g)?gimple_copy($g):NULL) }#)
@@ -3028,6 +3034,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  gimple_phi_nth_arg_def
  gimple_phi_nth_arg_edge
  gimple_return
+ gimple_seq_first_stmt
+ gimple_seq_last_stmt
  gimple_seq_of_basic_block 
  gimple_switch
  gimple_switch_index

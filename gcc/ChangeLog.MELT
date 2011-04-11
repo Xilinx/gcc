@@ -1,4 +1,10 @@
 
+2011-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt
+	(gimple_seq_first_stmt,gimple_seq_last_stmt): New primitives.
+
+	* testsuite/melt/topengpu-0.c: Indent better.
+
 2011-04-09  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
