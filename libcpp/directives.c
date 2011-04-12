@@ -788,15 +788,19 @@ do_include_common (cpp_reader *pfile, enum include_type type)
     cpp_error (pfile, CPP_DL_ERROR, "#include nested too deeply");
   else
     {
+      bool do_stack_include;
+
       /* Get out of macro context, if we are.  */
       skip_rest_of_line (pfile);
 
+      do_stack_include = true;
       if (pfile->cb.include)
-	pfile->cb.include (pfile, pfile->directive_line,
-			   pfile->directive->name, fname, angle_brackets,
-			   buf);
+	do_stack_include = pfile->cb.include (pfile, pfile->directive_line,
+					      pfile->directive->name,
+					      fname, angle_brackets, buf);
 
-      _cpp_stack_include (pfile, NULL, fname, angle_brackets, type);
+      if (do_stack_include)
+	_cpp_stack_include (pfile, NULL, fname, angle_brackets, type);
     }
 
   XDELETEVEC (fname);

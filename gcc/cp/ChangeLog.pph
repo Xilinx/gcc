@@ -1,5 +1,11 @@
 2011-04-12  Diego Novillo  <dnovillo@google.com>
 
+	* pph.c (pth_include_handler): Return true.
+	(pph_include_handler): If the header file exists as a PPH
+	image, return false.
+
+2011-04-12  Diego Novillo  <dnovillo@google.com>
+
 	* cp-tree.h (print_namespace): Declare.
 	* name-lookup.c (print_namespace): New.
 	* parser.c (cp_debug_print_context_stack): Increment loop counter.

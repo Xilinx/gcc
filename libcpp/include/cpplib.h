@@ -480,7 +480,9 @@ struct cpp_callbacks
   void (*file_change) (cpp_reader *, const struct line_map *);
 
   void (*dir_change) (cpp_reader *, const char *);
-  void (*include) (cpp_reader *, unsigned int, const unsigned char *,
+  /* Called when processing a #include directive.  If the handler
+     returns false, the file will not be read.  */
+  bool (*include) (cpp_reader *, unsigned int, const unsigned char *,
 		   const char *, int, const cpp_token **);
   void (*define) (cpp_reader *, unsigned int, cpp_hashnode *);
   void (*undef) (cpp_reader *, unsigned int, cpp_hashnode *);

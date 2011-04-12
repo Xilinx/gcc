@@ -1984,9 +1984,10 @@ pph_read_file (const char *filename)
     error ("Cannot open PPH file for reading: %s: %m", filename);
 }
 
+
 /* Record a #include or #include_next for PTH.  */
 
-static void
+static bool
 pth_include_handler (cpp_reader *reader ATTRIBUTE_UNUSED,
 	             location_t loc ATTRIBUTE_UNUSED,
 	             const unsigned char *dname,
@@ -2012,11 +2013,14 @@ pth_include_handler (cpp_reader *reader ATTRIBUTE_UNUSED,
 
   state->new_angle_brackets = angle_brackets;
   state->new_iname = name;
+
+  return true;
 }
+
 
 /* Record a #include or #include_next for PPH.  */
 
-static void
+static bool
 pph_include_handler (cpp_reader *reader,
                      location_t loc ATTRIBUTE_UNUSED,
                      const unsigned char *dname,
@@ -2025,6 +2029,7 @@ pph_include_handler (cpp_reader *reader,
                      const cpp_token **tok_p ATTRIBUTE_UNUSED)
 {
   const char *pph_file;
+  bool read_text_file_p;
 
   if (flag_pph_debug >= 1)
     {
@@ -2034,9 +2039,15 @@ pph_include_handler (cpp_reader *reader,
       fprintf (pph_logfile, "%c\n", angle_brackets ? '>' : '"');
     }
 
+  read_text_file_p = true;
   pph_file = query_pph_include_map (name);
   if (pph_file != NULL && !cpp_included_before (reader, name, input_location))
-    pph_read_file (pph_file);
+    {
+      pph_read_file (pph_file);
+      read_text_file_p = false;
+    }
+
+  return read_text_file_p;
 }
 
 

@@ -1,3 +1,11 @@
+2011-04-12  Diego Novillo  <dnovillo@google.com>
+
+	* directives.c (do_include_common): If the callback
+	pfile->cb.include returns falose do not call
+	_cpp_stack_include.
+	* include/cpplib.h (struct cpp_callbacks): Change return
+	type of field 'include' to bool.
+
 2011-04-06  Lawrence Crowl <crowl@google.com>
 
         * include/cpplib.h (struct cpp_hashnode): Add used_by_directive and
