@@ -1129,7 +1129,7 @@ cgraph_is_auxiliary (tree decl)
 }
 
 /* Return the hash value for cgraph_sym pointed to by P. The
-   hash value is computed using function's assembler name.  */ 
+   hash value is computed using function's assembler name.  */
 
 static hashval_t
 hash_sym_by_assembler_name (const void *p)
@@ -1264,6 +1264,41 @@ add_define_module (struct cgraph_sym *sym, tree decl)
     }
   else
     gcc_assert ((*slot)->module_id == module_id);
+}
+
+static int
+add_def_module (void **slot, void *data)
+{
+  struct cgraph_mod_info **m = (struct cgraph_mod_info **)slot;
+  htab_t mod_set = (htab_t) data;
+  struct cgraph_mod_info **new_slot;
+
+  new_slot = (struct cgraph_mod_info **)htab_find_slot (mod_set, *m, INSERT);
+  if (!*new_slot)
+    {
+      *new_slot = ggc_alloc_cleared_cgraph_mod_info ();
+      (*new_slot)->module_id = (*m)->module_id;
+    }
+  else
+    gcc_assert ((*new_slot)->module_id == (*m)->module_id);
+  return 1;
+}
+
+/* Clone defined module hash table from ORIG to CLONE.  */
+
+void
+copy_defined_module_set (tree clone, tree orig)
+{
+  struct cgraph_sym **orig_sym, **clone_sym;
+
+  orig_sym = cgraph_sym (orig);
+  clone_sym = cgraph_sym (clone);
+  if (!orig_sym || !(*orig_sym)->def_module_hash)
+    return;
+  if (!(*clone_sym)->def_module_hash)
+    (*clone_sym)->def_module_hash
+      = htab_create_ggc (10, htab_sym_hash, htab_sym_eq, NULL);
+  htab_traverse ((*orig_sym)->def_module_hash, add_def_module, (*clone_sym)->def_module_hash);
 }
 
 /* Return true if the symbol associated with DECL is defined in module

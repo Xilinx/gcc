@@ -4503,15 +4503,6 @@ ipa_sra_preliminary_function_checks (struct cgraph_node *node)
       return false;
     }
 
-  /* After ipa_sra, the global function will be localized.
-     However an aux function will still be deleted leading
-     to bad consequence (call to the modified function gets
-     resolved to the external version). Note that changing
-     cgraph_is_aux_decl_external is not enough, as the needed
-     bit is already computed.  */
-  if (L_IPO_COMP_MODE && cgraph_is_auxiliary (node->decl))
-    return false;
-
   if (TYPE_ATTRIBUTES (TREE_TYPE (node->decl)))
     return false;
 
@@ -4579,6 +4570,7 @@ ipa_early_sra (void)
     ret = TODO_update_ssa | TODO_cleanup_cfg;
   else
     ret = TODO_update_ssa;
+
   VEC_free (ipa_parm_adjustment_t, heap, adjustments);
 
   statistics_counter_event (cfun, "Unused parameters deleted",
@@ -4602,7 +4594,7 @@ ipa_early_sra (void)
 static bool
 ipa_early_sra_gate (void)
 {
-  return flag_ipa_sra && dbg_cnt (eipa_sra);
+  return flag_ipa_sra && !flag_dyn_ipa && dbg_cnt (eipa_sra);
 }
 
 struct gimple_opt_pass pass_early_ipa_sra =

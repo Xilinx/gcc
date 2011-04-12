@@ -56,5 +56,6 @@ void add_decl_to_current_module_scope (tree decl, void *b);
 int lipo_cmp_type (tree t1, tree t2);
 tree get_type_or_decl_name (tree);
 int equivalent_struct_types_for_tbaa (const_tree t1, const_tree t2);
+extern void copy_defined_module_set (tree, tree);
 
 #endif

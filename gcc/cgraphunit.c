@@ -2416,6 +2416,8 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
       /* Don't update call from same body alias to the real function.  */
       || (decl && cgraph_get_node (decl) == cgraph_get_node (e->callee->decl))
       || (L_IPO_COMP_MODE && decl
+          /* Always fix up when decl is cloned.  */
+          && !e->callee->is_versioned_clone
 	  && (cgraph_lipo_get_resolved_node (decl)
 	      == cgraph_lipo_get_resolved_node (e->callee->decl))))
     return e->call_stmt;

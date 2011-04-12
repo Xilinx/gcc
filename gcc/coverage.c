@@ -299,7 +299,7 @@ read_counts_file (const char *da_file_name, unsigned module_id)
   unsigned module_infos_read = 0;
   struct pointer_set_t *modset = 0;
   unsigned max_group = PARAM_VALUE (PARAM_MAX_LIPO_GROUP);
-  const char *fn_name;
+  const char *fn_name = NULL;
 
   if (max_group == 0)
     max_group = (unsigned) -1;
@@ -1937,4 +1937,3 @@ coverage_has_asm_stmt (void)
 }
 
 #include "gt-coverage.h"
-
