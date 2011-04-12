@@ -1,4 +1,7 @@
 
+2011-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Upgrade to 0.7rc1
+
 2011-04-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* tree-dump.c (get_dump_file_name): Add a chronological unique id
 	in the file name.
