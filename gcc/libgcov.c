@@ -495,8 +495,6 @@ gcov_exit (void)
 	  /* Merge execution counts for each function.  */
 	  for (f_ix = 0; f_ix < gi_ptr->n_functions; f_ix++)
 	    {
-	      gcov_unsigned_t fn_name_len, ctr;
-	      char *fn_name;
 	      fi_ptr = (const struct gcov_fn_info *)
 		      ((const char *) gi_ptr->functions + f_ix * fi_stride);
 	      tag = gcov_read_unsigned ();
@@ -504,7 +502,7 @@ gcov_exit (void)
 
 	      /* Check function.  */
 	      if (tag != GCOV_TAG_FUNCTION
-		  || length < 3
+		  || length != GCOV_TAG_FUNCTION_LENGTH
 		  || gcov_read_unsigned () != fi_ptr->ident
 		  || gcov_read_unsigned () != fi_ptr->checksum)
 		{
@@ -514,14 +512,6 @@ gcov_exit (void)
 			   f_ix + 1 ? "function" : "summaries");
 		  goto read_fatal;
 		}
-
-	      fn_name_len = gcov_read_unsigned ();
-	      fn_name = (char *) alloca (fn_name_len * sizeof (gcov_unsigned_t));
-	      for (ctr = 0; ctr < fn_name_len; ctr++)
-		((gcov_unsigned_t *) fn_name)[ctr] = gcov_read_unsigned ();
-	      if (length != (fn_name_len + 3)
-		  || strcmp (fn_name, fi_ptr->name) != 0)
-		goto read_mismatch;
 
 	      c_ix = 0;
 	      for (t_ix = 0; t_ix < GCOV_COUNTERS; t_ix++)
@@ -651,19 +641,13 @@ gcov_exit (void)
       /* Write execution counts for each function.  */
       for (f_ix = 0; f_ix < gi_ptr->n_functions; f_ix++)
 	{
-	  gcov_unsigned_t fn_name_len, ctr;
 	  fi_ptr = (const struct gcov_fn_info *)
 		  ((const char *) gi_ptr->functions + f_ix * fi_stride);
-	  fn_name_len = (strlen (fi_ptr->name) + sizeof (gcov_unsigned_t))
-	    / sizeof (gcov_unsigned_t);
 
 	  /* Announce function.  */
-	  gcov_write_tag_length (GCOV_TAG_FUNCTION, fn_name_len + 3);
+	  gcov_write_tag_length (GCOV_TAG_FUNCTION, GCOV_TAG_FUNCTION_LENGTH);
 	  gcov_write_unsigned (fi_ptr->ident);
 	  gcov_write_unsigned (fi_ptr->checksum);
-	  gcov_write_unsigned (fn_name_len);
-	  for (ctr = 0; ctr < fn_name_len; ctr++)
-	    gcov_write_unsigned (((gcov_unsigned_t *)fi_ptr->name)[ctr]);
 
 	  c_ix = 0;
 	  for (t_ix = 0; t_ix < GCOV_COUNTERS; t_ix++)

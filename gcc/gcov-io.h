@@ -330,6 +330,7 @@ typedef HOST_WIDEST_INT gcov_type;
    file marker -- it is not required to be present.  */
 
 #define GCOV_TAG_FUNCTION	 ((gcov_unsigned_t)0x01000000)
+#define GCOV_TAG_FUNCTION_LENGTH (2)
 #define GCOV_TAG_BLOCKS		 ((gcov_unsigned_t)0x01410000)
 #define GCOV_TAG_BLOCKS_LENGTH(NUM) (NUM)
 #define GCOV_TAG_BLOCKS_NUM(LENGTH) (LENGTH)
@@ -498,7 +499,6 @@ struct gcov_fn_info
 {
   gcov_unsigned_t ident;	/* unique ident of function */
   gcov_unsigned_t checksum;	/* function checksum */
-  const char *name;             /* function name */
   gcov_unsigned_t dc_offset;    /* direct call offset */
   unsigned n_ctrs[0];		/* instrumented counters */
 };
