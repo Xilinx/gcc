@@ -1,4 +1,7 @@
 
+2011-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* make-melt-source-tar.sh: Better tar
+
 2011-04-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* make-melt-source-tar.sh: Copy the
 	libmeltopengpu/meltopengpu-runtime.c file.

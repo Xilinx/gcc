@@ -93,4 +93,4 @@ done
 copymelt INSTALL/README-MELT-PLUGIN
 copymelt libmeltopengpu/meltopengpu-runtime.c
 
-tar czvf $gccmelt_tarbase.tgz $gccmelt_tarbase
+tar czvf $gccmelt_tarbase.tgz -C $(dirname $gccmelt_tarbase) $(basename $gccmelt_tarbase)
