@@ -1,3 +1,12 @@
+2011-04-12  Paul Pluzhnikov  <ppluzhnikov@google.com>
+
+	* libstdc++-v3/src/Makefile.am: Add -fno-omit-frame-pointer to
+	functexcept.
+	* libstdc++-v3/libsupc++/Makefile.am: Add -fno-omit-frame-pointer
+	to eh_throw and eh_terminate.
+	* libstdc++-v3/src/Makefile.in: Regenerate.
+	* libstdc++-v3/libsupc++/Makefile.in: Regenerate.
+
 2011-02-01  Simon Baldwin  <simonb@google.com>
 
 	* ltoptions.m4: modify --with-pic to accept a list of library names.
