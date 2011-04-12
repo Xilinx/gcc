@@ -5338,8 +5338,8 @@ is_valid_constexpr_fn (tree fun, bool complain)
       {
 	ret = false;
 	if (complain)
-	  error ("invalid type for parameter %q#D of constexpr function",
-		 parm);
+	  error ("invalid type for parameter %d of constexpr "
+		 "function %q+#D", DECL_PARM_INDEX (parm), fun);
       }
 
   if (!DECL_CONSTRUCTOR_P (fun))
@@ -5349,17 +5349,16 @@ is_valid_constexpr_fn (tree fun, bool complain)
 	{
 	  ret = false;
 	  if (complain)
-	    error ("invalid return type %qT of constexpr function %qD",
+	    error ("invalid return type %qT of constexpr function %q+D",
 		   rettype, fun);
 	}
 
       if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fun)
-	  && COMPLETE_TYPE_P (DECL_CONTEXT (fun))
-	  && !valid_type_in_constexpr_fundecl_p (DECL_CONTEXT (fun)))
+	  && !CLASSTYPE_LITERAL_P (DECL_CONTEXT (fun)))
 	{
 	  ret = false;
 	  if (complain)
-	    error ("enclosing class of %q#D is not a literal type", fun);
+	    error ("enclosing class of %q+#D is not a literal type", fun);
 	}
     }
 
@@ -7496,8 +7495,8 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
 	    if (DECL_CONSTRUCTOR_P (DECL_CONTEXT (x)) && want_rval)
 	      {
 		if (flags & tf_error)
-		  error ("the value of the object being constructed is "
-			 "not a constant expression");
+		  sorry ("use of the value of the object being constructed "
+			 "in a constant expression");
 		return false;
 	      }
 	    return true;

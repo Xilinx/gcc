@@ -1,3 +1,132 @@
+2011-03-30  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR target/47551
+	* config/arm/arm.c (coproc_secondary_reload_class): Handle
+	structure modes.  Don't check neon_vector_mem_operand for
+	vector or structure modes.
+
+2011-03-30  Richard Sandiford  <richard.sandiford@linaro.org>
+	    Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/43590
+	* config/arm/neon.md (neon_vld3qa<mode>, neon_vld4qa<mode>): Remove
+	operand 1 and reshuffle the operands to match.
+	(neon_vld3<mode>, neon_vld4<mode>): Update accordingly.
+
+2011-03-30  Christian Schüler  <cschueler@gmx.de>
+
+	PR driver/48208
+	* config/c.opt (F): Added 'Driver' to -F option.
+	PR driver/48260
+	* config/darwin-driver.c (darwin_driver_init): Add '-arch' to
+	  handler function.
+	* config/darwin.opt: Added '-arch' option.
+
+2011-03-30  Nick Clifton  <nickc@redhat.com>
+
+	* config/rx/rx.md: Add peepholes and patterns to combine
+	extending loads and simple arithmetic instructions.
+	* config/rx/rx.h (ADJUST_INSN_LENGTH): Define.
+        * config/rx/rx-protos.h (rx_adjust_insn_length): Prototype.
+        * config/rx/rx.c (rx_is_legitimate_address): Allow QI and HI
+	modes to use pre-decrement and post-increment addressing.
+        (rx_is_restricted_memory_address): Add range checking of REG+INT
+	addresses.
+        (rx_print_operand): Add support for %Q.
+        Fix handling of %Q.
+        (rx_memory_move_cost): Adjust cost of stores.
+        (rx_adjust_insn_length): New function.
+
+2011-03-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/48305
+	* fold-const.c (fold_binary_loc) <case EQ_EXPR, NE_EXPR>: Make sure
+	arg10/arg11 in (X ^ Y) == (Z ^ W) are always fold converted to
+	matching arg00/arg01 types.
+
+2011-03-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cfglayout.c (insn_locators_alloc): Initialize curr_location and
+	last_location to UNKNOWN_LOCATION.
+
+2011-03-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/48349
+	* config/i386/i386.h (REG_CLASS_CONTENTS): Fix a typo in
+	FLOAT_SSE_REGS.
+
+2011-03-30  Joseph Myers  <joseph@codesourcery.com>
+	    Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR bootstrap/48337
+	* config/sparc/sparc.opt (sparc_cpu_and_features): Add
+	Init(PROCESSOR_V7).
+	(sparc_cpu): Likewise.
+	* config/sparc/sparc.c (sparc_option_override): Replace 0 by
+	PROCESSOR_V7.
+
+2011-03-29  Jeff Law  <law@redhat.com>
+
+	PR bootstrap/48327
+	* tree-ssa-threadupdate.c (struct redirection_data): Remove
+	do_not_duplicate field.
+	(lookup_redirection_data): Corresponding changes.
+	(create_duplicates): Always create a template block.
+	(redirect_edges): Remove code which reused the original block
+	when it was going to become unreachable code.
+	(thread_block): Don't set do_not_duplicate field.
+
+2011-03-29  Joseph Myers  <joseph@codesourcery.com>
+
+	* lto-opts.c (register_user_option_p, lto_register_user_option):
+	Make type argument unsigned.
+	* lto-streamer.h (lto_register_user_option): Make type argument
+	unsigned.
+	* opth-gen.awk: Make CL_* macros unsigned.
+	* opts-common.c (find_opt): Make lang_mask argument unsigned.
+	* opts.h (CL_PARAMS, CL_WARNING, CL_OPTIMIZATION, CL_DRIVER,
+	CL_TARGET, CL_COMMON, CL_SEPARATE_NARGS_MASK, CL_SEPARATE_ALIAS,
+	CL_NO_DRIVER_ARG, CL_REJECT_DRIVER, CL_SAVE, CL_DISABLED,
+	CL_REPORT, CL_JOINED, CL_SEPARATE, CL_REJECT_NEGATIVE,
+	CL_MISSING_OK, CL_UINTEGER, CL_UNDOCUMENTED): Make unsigned.
+	(find_opt): Make lang_mask argument unsigned.
+
+2011-03-29  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/alpha/alpha.c (alpha_sr_alias_set): Don't define.
+	(alpha_option_override): Don't set alpha_sr_alias_set.
+	(emit_frame_store_1): Use gen_frame_mem rather than calling
+	set_mem_alias_set.
+	(alpha_expand_epilogue): Ditto.
+
+2011-03-29  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/48290
+	* tree-vect-loop.c (vect_analyze_loop_operations): In outer loop
+	vectorization, check that relevant phis in the basic block after
+	the inner loop are really inner loop's exit phis.
+
+2011-03-29  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR debug/48190
+	* dwarf2out.c (dw_loc_list_node): Add resolved_addr and replaced.
+	(cached_dw_loc_list_def): New structure.
+	(cached_dw_loc_list): New typedef.
+	(cached_dw_loc_list_table): New variable.
+	(cached_dw_loc_list_table_hash): New function.
+	(cached_dw_loc_list_table_eq): Likewise.
+	(add_location_or_const_value_attribute): Take a bool cache_p.
+	Cache the list when the parameter is true.
+	(gen_formal_parameter_die): Update caller.
+	(gen_variable_die): Likewise.
+	(dwarf2out_finish): Likewise.
+	(dwarf2out_abstract_function): Nullify cached_dw_loc_list_table
+	while generating debug info for the decl.
+	(dwarf2out_function_decl): Clear cached_dw_loc_list_table.
+	(dwarf2out_init): Initialize cached_dw_loc_list_table.
+	(resolve_addr): Cache the result of resolving a chain of
+	location lists.
+
 2011-03-29  Jakub Jelinek  <jakub@redhat.com>
 
 	PR debug/48253
@@ -31,8 +160,7 @@
 	!second_in_std_section.
 	(dw_loc_list): Break ranges crossing section switch.
 	(convert_cfa_to_fb_loc_list): Likewise.  If switched sections,
-	use dw_fde_second_end instead of dw_fde_end as end of last
-	range.
+	use dw_fde_second_end instead of dw_fde_end as end of last range.
 	(gen_subprogram_die): Don't call add_arange.  Use
 	dw_fde_{begin,end} for first partition and if switched
 	section dw_fde_second_{begin,end} for the second.
@@ -89,7 +217,7 @@
 	(one_pre_gcse_pass, one_code_hoisting_pass): Likewise.
 	(hash_set, insert_set_in_table, gcse_constant_p, lookup_set,
 	next_set, reset_opr_set_tables, oprs_not_set_p, mark_call, mark_set,
-	mark_clobber, mark_oprs_set, alloc_cprop_mem, free_cprop_mem, 
+	mark_clobber, mark_oprs_set, alloc_cprop_mem, free_cprop_mem,
 	compute_cprop_data, find_used_regs, try_replace_reg,
 	find_avail_set, cprop_jump, constprop_register, cprop_insn,
 	local_cprop_find_used_regs, do_local_cprop, local_cprop_pass,
@@ -6562,8 +6690,7 @@
 2011-01-17  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47318
-	* config/i386/avxintrin.h (_mm_maskload_pd): Change mask to
-	__m128i.
+	* config/i386/avxintrin.h (_mm_maskload_pd): Change mask to __m128i.
 	(_mm_maskstore_pd): Likewise.
 	(_mm_maskload_ps): Likewise.
 	(_mm_maskstore_ps): Likewise.

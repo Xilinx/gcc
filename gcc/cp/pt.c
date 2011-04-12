@@ -13936,7 +13936,10 @@ maybe_adjust_types_for_deduction (unification_kind_t strict,
       && TYPE_REF_IS_RVALUE (*parm)
       && TREE_CODE (TREE_TYPE (*parm)) == TEMPLATE_TYPE_PARM
       && cp_type_quals (TREE_TYPE (*parm)) == TYPE_UNQUALIFIED
-      && arg_expr && real_lvalue_p (arg_expr))
+      && (arg_expr ? real_lvalue_p (arg_expr)
+	  /* try_one_overload doesn't provide an arg_expr, but
+	     functions are always lvalues.  */
+	  : TREE_CODE (*arg) == FUNCTION_TYPE))
     *arg = build_reference_type (*arg);
 
   /* [temp.deduct.call]
@@ -18082,10 +18085,10 @@ value_dependent_expression_p (tree expression)
       return value_dependent_expression_p (DECL_INITIAL (expression));
 
     case VAR_DECL:
-       /* A constant with integral or enumeration type and is initialized
+       /* A constant with literal type and is initialized
 	  with an expression that is value-dependent.  */
       if (DECL_INITIAL (expression)
-	  && INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (expression))
+	  && decl_constant_var_p (expression)
 	  && value_dependent_expression_p (DECL_INITIAL (expression)))
 	return true;
       return false;
@@ -18214,6 +18217,11 @@ value_dependent_expression_p (tree expression)
 	  }
 	return false;
       }
+
+    case TEMPLATE_ID_EXPR:
+      /* If a TEMPLATE_ID_EXPR involves a dependent name, it will be
+	 type-dependent.  */
+      return type_dependent_expression_p (expression);
 
     default:
       /* A constant expression is value-dependent if any subexpression is
