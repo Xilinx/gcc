@@ -1,3 +1,42 @@
+2011-03-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/48203
+	* gcc.dg/pr48203.c: New test.
+
+2011-03-28  Jeff Law <law@redhat.com>
+
+	* gcc.dg/tree-ssa/ssa-dom-thread-3.c: New test.
+
+2011-03-28  Peter Bergner  <bergner@vnet.ibm.com>
+
+	* gcc.dg/stack-usage-1.c (SIZE): Provide proper values for __PPC64__
+	and __PPC__ && __ALTIVEC__.
+
+2011-03-28  Dominique d'Humieres  <dominiq@lps.ens.fr>
+
+	PR testsuite/48238
+	* gcc.dg/debug/dwarf2/pr47939-1.c: Generalize scan-assembler regex.
+	* gcc.dg/debug/dwarf2/pr47939-2.c: Likewise.
+	* gcc.dg/debug/dwarf2/pr47939-3.c: Likewise.
+	* gcc.dg/debug/dwarf2/pr47939-4.c: Likewise.
+
+2011-03-28  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/initlist-array2.C: New.
+
+	* g++.dg/cpp0x/initlist-array1.C: New.
+
+	* g++.dg/cpp0x/constexpr-compound.C: New.
+
+	* g++.dg/cpp0x/constexpr-using.C: New.
+
+	* g++.dg/cpp0x/constexpr-noexcept.C: New.
+
+2011-03-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR testsuite/48276
+	* gcc.target/i386/pr47502-2.c: Add -fno-pic.
+
 2011-03-28  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* gcc.dg/slp-1.c: New test.

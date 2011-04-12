@@ -3814,7 +3814,7 @@ Unary_expression::eval_integer(Operator op, Type* utype, mpz_t uval, mpz_t val,
 	    ++obits;
 	  size_t ocount = ((obits + HOST_BITS_PER_WIDE_INT - 1)
 			   / HOST_BITS_PER_WIDE_INT);
-	  gcc_assert(ocount <= ocount);
+	  gcc_assert(ocount <= count);
 
 	  for (size_t i = 0; i < ocount; ++i)
 	    phwi[i] = ~phwi[i];
@@ -8558,10 +8558,11 @@ Call_expression::do_check_types(Gogo*)
       if (first_arg_type->points_to() == NULL)
 	{
 	  // When passing a value, we need to check that we are
-	  // permitted to copy it.
+	  // permitted to copy it.  The language permits copying
+	  // hidden fields for a method receiver.
 	  std::string reason;
-	  if (!Type::are_assignable(fntype->receiver()->type(),
-				    first_arg_type, &reason))
+	  if (!Type::are_assignable_hidden_ok(fntype->receiver()->type(),
+					      first_arg_type, &reason))
 	    {
 	      if (reason.empty())
 		this->report_error(_("incompatible type for receiver"));
@@ -10262,20 +10263,30 @@ Selector_expression::lower_method_expression(Gogo* gogo)
 
   bool is_ambiguous;
   Method* method = nt->method_function(name, &is_ambiguous);
-  if (method == NULL)
+  const Typed_identifier* imethod = NULL;
+  if (method == NULL && !is_pointer)
+    {
+      Interface_type* it = nt->interface_type();
+      if (it != NULL)
+	imethod = it->find_method(name);
+    }
+
+  if (method == NULL && imethod == NULL)
     {
       if (!is_ambiguous)
-	error_at(location, "type %<%s%> has no method %<%s%>",
+	error_at(location, "type %<%s%s%> has no method %<%s%>",
+		 is_pointer ? "*" : "",
 		 nt->message_name().c_str(),
 		 Gogo::message_name(name).c_str());
       else
-	error_at(location, "method %<%s%> is ambiguous in type %<%s%>",
+	error_at(location, "method %<%s%s%> is ambiguous in type %<%s%>",
 		 Gogo::message_name(name).c_str(),
+		 is_pointer ? "*" : "",
 		 nt->message_name().c_str());
       return Expression::make_error(location);
     }
 
-  if (!is_pointer && !method->is_value_method())
+  if (method != NULL && !is_pointer && !method->is_value_method())
     {
       error_at(location, "method requires pointer (use %<(*%s).%s)%>",
 	       nt->message_name().c_str(),
@@ -10285,8 +10296,17 @@ Selector_expression::lower_method_expression(Gogo* gogo)
 
   // Build a new function type in which the receiver becomes the first
   // argument.
-  Function_type* method_type = method->type();
-  gcc_assert(method_type->is_method());
+  Function_type* method_type;
+  if (method != NULL)
+    {
+      method_type = method->type();
+      gcc_assert(method_type->is_method());
+    }
+  else
+    {
+      method_type = imethod->type()->function_type();
+      gcc_assert(method_type != NULL && !method_type->is_method());
+    }
 
   const char* const receiver_name = "$this";
   Typed_identifier_list* parameters = new Typed_identifier_list();
@@ -10325,7 +10345,7 @@ Selector_expression::lower_method_expression(Gogo* gogo)
   // simply reuse the existing function.  We use an internal hack to
   // get the right type.
 
-  if (is_pointer)
+  if (method != NULL && is_pointer)
     {
       Named_object* mno = (method->needs_stub_method()
 			   ? method->stub_object()
@@ -10344,7 +10364,11 @@ Selector_expression::lower_method_expression(Gogo* gogo)
   Named_object* vno = gogo->lookup(receiver_name, NULL);
   gcc_assert(vno != NULL);
   Expression* ve = Expression::make_var_reference(vno, location);
-  Expression* bm = Type::bind_field_or_method(gogo, nt, ve, name, location);
+  Expression* bm;
+  if (method != NULL)
+    bm = Type::bind_field_or_method(gogo, nt, ve, name, location);
+  else
+    bm = Expression::make_interface_field_reference(ve, name, location);
 
   // Even though we found the method above, if it has an error type we
   // may see an error here.

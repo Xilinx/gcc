@@ -1,3 +1,155 @@
+2011-03-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/48253
+	* dwarf2out.c (struct dw_fde_struct): Remove dw_fde_hot_section_label,
+	dw_fde_hot_section_end_label, dw_fde_unlikely_section_label,
+	dw_fde_unlikely_section_end_label, cold_in_std_section,
+	dw_fde_switched_sections and dw_fde_switched_cold_to_hot fields.
+	Add dw_fde_second_begin, dw_fde_second_end and second_in_std_section
+	fields.
+	(output_fde): Use dw_fde_second_{begin,end} if second is
+	true, otherwise dw_fde_{begin,end}.
+	(output_call_frame_info): Test dw_fde_second_begin != NULL
+	instead of dw_fde_switched_sections.
+	(dwarf2out_begin_prologue): Stop initializing removed dw_fde_struct
+	fields, initialize new fields.  Initialize in_std_section
+	unconditionally from the first partition.
+	(dwarf2out_end_epilogue): Don't override dw_fde_end when
+	dw_fde_second_begin is non-NULL.
+	(dwarf2out_switch_text_section): Stop initializing removed
+	dw_fde_struct fields, initialize new fields, initialize
+	also dw_fde_end here.  Set dw_fde_switch_cfi even when
+	dwarf2out_do_cfi_asm ().  Call var_location_switch_text_section.
+	(struct var_loc_list_def): Add last_before_switch field.
+	(arange_table, arange_table_allocated, arange_table_in_use,
+	ARANGE_TABLE_INCREMENT, add_arange): Removed.
+	(size_of_aranges): Count !in_std_section and !second_in_std_section
+	hunks in fdes, instead of looking at arange_table_in_use.
+	(output_aranges): Add aranges_length argument, don't call
+	size_of_aranges here.  Instead of using aranges_table*
+	emit ranges for fdes when !in_std_section resp.
+	!second_in_std_section.
+	(dw_loc_list): Break ranges crossing section switch.
+	(convert_cfa_to_fb_loc_list): Likewise.  If switched sections,
+	use dw_fde_second_end instead of dw_fde_end as end of last
+	range.
+	(gen_subprogram_die): Don't call add_arange.  Use
+	dw_fde_{begin,end} for first partition and if switched
+	section dw_fde_second_{begin,end} for the second.
+	(var_location_switch_text_section_1,
+	var_location_switch_text_section): New functions.
+	(dwarf2out_begin_function): Initialize cold_text_section even
+	when function_section () isn't text_section.
+	(prune_unused_types): Don't walk arange_table.
+	(dwarf2out_finish): Don't needlessly test
+	flag_reorder_blocks_and_partition when testing cold_text_section_used.
+	If info_section_emitted, call size_of_aranges and if it indicates
+	non-empty .debug_aranges, call output_aranges with the computed
+	size.  Stop using removed dw_fde_struct fields, use
+	dw_fde_{begin,end} for first partition and dw_fde_second_{begin,end}
+	for second.
+
+	PR debug/48203
+	* cfgexpand.c (expand_debug_expr) <case SSA_NAME>: Only
+	create ENTRY_VALUE if incoming or address of incoming's MEM
+	is a hard REG.
+	* dwarf2out.c (mem_loc_descriptor): Don't emit
+	DW_OP_GNU_entry_value of DW_OP_fbreg.
+	* var-tracking.c (vt_add_function_parameter): Ensure cselib_lookup
+	on ENTRY_VALUE is able to find the canonical parameter VALUE.
+	* cselib.c (rtx_equal_for_cselib_1) <case ENTRY_VALUE>: Use
+	rtx_equal_p instead of rtx_equal_for_cselib_1 to compare
+	ENTRY_VALUE_EXPs.
+	(cselib_hash_rtx) <case ENTRY_VALUE>: If ENTRY_VALUE_EXP
+	is a REG_P or MEM_P with REG_P address, compute hash directly
+	instead of calling cselib_hash_rtx on ENTRY_VALUE_EXP.
+	(preserve_only_constants): Don't clear VALUES forwaring
+	ENTRY_VALUE to some other VALUE.
+
+2011-03-28  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* builtins.c (expand_builtin_memset_args): Use gen_int_mode
+	instead of GEN_INT.
+
+2011-03-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cfgexpand.c (expand_gimple_cond): Always set the source location and
+	block before expanding the statement.
+	(expand_gimple_stmt_1): Likewise.  Set them here...
+	(expand_gimple_stmt): ...and not here.  Tidy.
+	* cfglayout.c (curr_insn_locator): Return 0 if the current location is
+	unknown.
+
+2011-03-28  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* Makefile.in: New rule for cprop.o.
+	* gcse.c: Move constant/copy propagation to cprop.c.
+	(compute_local_properties): Only handle expression tables.
+	(hash_scan_set, compute_hash_table_work, alloc_hash_table,): Likewise.
+	(one_pre_gcse_pass, one_code_hoisting_pass): Likewise.
+	(hash_set, insert_set_in_table, gcse_constant_p, lookup_set,
+	next_set, reset_opr_set_tables, oprs_not_set_p, mark_call, mark_set,
+	mark_clobber, mark_oprs_set, alloc_cprop_mem, free_cprop_mem, 
+	compute_cprop_data, find_used_regs, try_replace_reg,
+	find_avail_set, cprop_jump, constprop_register, cprop_insn,
+	local_cprop_find_used_regs, do_local_cprop, local_cprop_pass,
+	fis_get_condition, implicit_set_cond_p, find_implicit_sets,
+	find_bypass_set, reg_killed_on_edge, bypass_block,
+	bypass_conditional_jumps, one_cprop_pass, gate_rtl_cprop,
+	execute_rtl_cprop, pass_rtl_cprop): Move to...
+	* cprop.c: ...here.  New file, constant/copy propagation for RTL
+	moved from gcse.c to here with minor cleanups in duplicated code.
+
+2011-03-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (flag_opts): Fix a typo in
+	-mavx256-split-unaligned-store.
+
+2011-03-28  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/h8300/h8300.h (FUNCTION_VALUE_REGNO_P, FUNCTION_VALUE,
+	LIBCALL_VALUE): Remove macros.
+	* config/h8300/h8300.c (TARGET_FUNCTION_VALUE, TARGET_LIBCALL_VALUE,
+	TARGET_FUNCTION_VALUE_REGNO_P): Define.
+	(h8300_function_value, h8300_libcall_value,
+	h8300_function_value_regno_p): New functions.
+
+2011-03-28  Anatoly Sokolov  <aesok@post.ru>
+
+	* config/h8300/h8300.h (ASM_OUTPUT_BSS): Remove macro.
+
+2011-03-28  Jeff Law  <law@redhat.com>
+
+	* tree-ssa-threadupdate.c (redirect_edges): Call
+	create_edge_and_update_destination_phis as needed.
+	(create_edge_and_update_destination_phis): Accept new BB argument.
+	All callers updated.
+	(thread_block): Do not update the profile when threading around
+	intermediate blocks.
+	(thread_single_edge): Likewise.
+	(determine_bb_domination_status): If BB is not a successor of the
+	loop header, return NONDOMINATING.
+	(register_jump_thread): Note when we register a jump thread around
+	an intermediate block.
+	* tree-ssa-threadedge.c (thread_around_empty_block): New function.
+	(thread_across_edge): Use it.
+
+2011-03-28  Tristan Gingold  <gingold@adacore.com>
+
+	* config/ia64/ia64.c (ia64_promote_function_mode): Fix promotion
+	when for_return is 2.
+
+2011-03-28  Jeff Law  <law@redhat.com>
+
+	* var-tracking.c (canonicalize_values_mark): Delete unused
+	lhs assignment.
+	(canonicalize_values_star, set_variable_part): Likewise.
+	(clobber_variable_part, delete_variable_part): Likewise.
+
+2011-03-28  Steven Bosscher  <steven@gcc.gnu.org>
+
+	* gcse.c (free_gcse_mem): Free reg_set_bitmap.
+
 2011-03-28  Martin Jambor  <mjambor@suse.cz>
 
 	* tree-inline.c (expand_call_inline): Do not check that destination
