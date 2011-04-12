@@ -87,6 +87,9 @@ typedef struct pph_stream {
   unsigned int write_p : 1;
 } pph_stream;
 
+/* Filter values for pph_output_chain_filtered.  */
+enum chain_filter { NONE, NO_BUILTINS };
+
 /* In pph-streamer.c.  */
 pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
@@ -104,6 +107,7 @@ void pph_stream_init_write (pph_stream *);
 void pph_stream_write_tree (struct output_block *, tree, bool ref_p);
 void pph_stream_pack_value_fields (struct bitpack_d *, tree);
 void pph_stream_output_tree_header (struct output_block *, tree);
+void pph_output_chain_filtered (pph_stream *, tree, bool, enum chain_filter);
 
 /* In pph-streamer-in.c.  */
 void pph_stream_init_read (pph_stream *);

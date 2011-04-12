@@ -1,5 +1,21 @@
 2011-04-12  Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer-in.c (pph_stream_unpack_value_fields): Unpack
+	TYPE_LANG_FLAGS and DECL_LANG_FLAGS.
+	(pph_stream_read_tree): Handle TYPE_DECL.
+	* pph-streamer-out.c (pph_stream_pack_value_fields): Pack
+	TYPE_LANG_FLAGS and DECL_LANG_FLAGS.
+	(pph_stream_write_binding_level): Call pph_output_chain_filtered
+	with a NO_BUILTINS filter for fields that have DECLs in them.
+	(pph_stream_write_tree): Handle TYPE_DECL.
+	(pph_output_chain_filtered): New.
+	* pph-streamer.c (pph_stream_trace): Show the code of the tree
+	if it is not NULL_TREE.
+	* pph-streamer.h (enum chain_filter): Declare.
+	(pph_output_chain_filtered): Declare.
+
+2011-04-12  Diego Novillo  <dnovillo@google.com>
+
 	* pph.c (pth_include_handler): Return true.
 	(pph_include_handler): If the header file exists as a PPH
 	image, return false.

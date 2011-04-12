@@ -146,8 +146,14 @@ pph_stream_trace (pph_stream *stream, const void *data, unsigned int nbytes,
     case PPH_TRACE_TREE:
       {
 	const_tree t = (const_tree) data;
-	print_generic_expr (pph_logfile, CONST_CAST (union tree_node *, t),
-			    TDF_SLIM);
+	if (t)
+	  {
+	    print_generic_expr (pph_logfile, CONST_CAST (union tree_node *, t),
+				0);
+	    fprintf (pph_logfile, ", code=%s", tree_code_name[TREE_CODE (t)]);
+	  }
+	else
+	  fprintf (pph_logfile, "NULL_TREE");
       }
       break;
 

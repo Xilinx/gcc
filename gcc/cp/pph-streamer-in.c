@@ -36,10 +36,30 @@ along with GCC; see the file COPYING3.  If not see
    we are unpacking from.  EXPR is the tree to unpack.  */
 
 void
-pph_stream_unpack_value_fields (struct bitpack_d *bp ATTRIBUTE_UNUSED,
-				tree expr ATTRIBUTE_UNUSED)
+pph_stream_unpack_value_fields (struct bitpack_d *bp, tree expr)
 {
-  /* Do nothing for now.  */
+  if (TYPE_P (expr))
+    {
+      TYPE_LANG_FLAG_0 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_1 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_2 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_3 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_4 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_5 (expr) = bp_unpack_value (bp, 1);
+      TYPE_LANG_FLAG_6 (expr) = bp_unpack_value (bp, 1);
+    }
+  else if (DECL_P (expr))
+    {
+      DECL_LANG_FLAG_0 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_1 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_2 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_3 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_4 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_5 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_6 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_7 (expr) = bp_unpack_value (bp, 1);
+      DECL_LANG_FLAG_8 (expr) = bp_unpack_value (bp, 1);
+    }
 }
 
 
@@ -585,6 +605,8 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 	  if (TREE_CODE (expr) == FUNCTION_DECL)
 	    DECL_SAVED_TREE (expr) = pph_input_tree (stream);
 	}
+      else if (TREE_CODE (expr) == TYPE_DECL)
+	DECL_ORIGINAL_TYPE (expr) = pph_input_tree (stream);
     }
   else if (TREE_CODE (expr) == STATEMENT_LIST)
     {

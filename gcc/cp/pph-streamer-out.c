@@ -42,10 +42,30 @@ static FILE *current_pph_file = NULL;
    we are packing into.  EXPR is the tree to pack.  */
 
 void
-pph_stream_pack_value_fields (struct bitpack_d *bp ATTRIBUTE_UNUSED,
-			      tree expr ATTRIBUTE_UNUSED)
+pph_stream_pack_value_fields (struct bitpack_d *bp, tree expr)
 {
-  /* Do nothing for now.  */
+  if (TYPE_P (expr))
+    {
+      bp_pack_value (bp, TYPE_LANG_FLAG_0 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_1 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_2 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_3 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_4 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_5 (expr), 1);
+      bp_pack_value (bp, TYPE_LANG_FLAG_6 (expr), 1);
+    }
+  else if (DECL_P (expr))
+    {
+      bp_pack_value (bp, DECL_LANG_FLAG_0 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_1 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_2 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_3 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_4 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_5 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_6 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_7 (expr), 1);
+      bp_pack_value (bp, DECL_LANG_FLAG_8 (expr), 1);
+    }
 }
 
 
@@ -344,14 +364,14 @@ pph_stream_write_binding_level (pph_stream *stream, struct cp_binding_level *bl,
   if (!pph_start_record (stream, bl))
     return;
 
-  pph_output_chain (stream, bl->names, ref_p);
+  pph_output_chain_filtered (stream, bl->names, ref_p, NO_BUILTINS);
   pph_output_uint (stream, bl->names_size);
-  pph_output_chain (stream, bl->namespaces, ref_p);
+  pph_output_chain_filtered (stream, bl->namespaces, ref_p, NO_BUILTINS);
 
   pph_stream_write_tree_vec (stream, bl->static_decls, ref_p);
 
-  pph_output_chain (stream, bl->usings, ref_p);
-  pph_output_chain (stream, bl->using_directives, ref_p);
+  pph_output_chain_filtered (stream, bl->usings, ref_p, NO_BUILTINS);
+  pph_output_chain_filtered (stream, bl->using_directives, ref_p, NO_BUILTINS);
 
   pph_output_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
   for (i = 0; VEC_iterate (cp_class_binding, bl->class_shadowed, i, cs); i++)
@@ -594,6 +614,8 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 	  if (TREE_CODE (expr) == FUNCTION_DECL)
 	    pph_output_tree_aux (stream, DECL_SAVED_TREE (expr), ref_p);
 	}
+      else if (TREE_CODE (expr) == TYPE_DECL)
+	pph_output_tree (stream, DECL_ORIGINAL_TYPE (expr), ref_p);
     }
   else if (TREE_CODE (expr) == STATEMENT_LIST)
     {
@@ -609,5 +631,54 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
       /* Write the statements.  */
       for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
 	pph_output_tree_aux (stream, tsi_stmt (i), ref_p);
+    }
+}
+
+
+/* Output a chain of nodes to STREAM starting with FIRST.  Skip any
+   nodes that do not match FILTER.  REF_P is true if nodes in the chain
+   should be emitted as references.  */
+
+void
+pph_output_chain_filtered (pph_stream *stream, tree first, bool ref_p,
+			   enum chain_filter filter)
+{
+  unsigned count;
+  tree t;
+
+  /* Special case.  If the caller wants no filtering, it is much
+     faster to just call pph_output_chain directly.  */
+  if (filter == NONE)
+    {
+      pph_output_chain (stream, first, ref_p);
+      return;
+    }
+
+  /* Count all the nodes that match the filter.  */
+  for (t = first, count = 0; t; t = TREE_CHAIN (t))
+    {
+      if (filter == NO_BUILTINS && DECL_P (t) && DECL_IS_BUILTIN (t))
+	continue;
+      count++;
+    }
+  pph_output_uint (stream, count);
+
+  /* Output all the nodes that match the filter.  */
+  for (t = first; t; t = TREE_CHAIN (t))
+    {
+      tree saved_chain;
+
+      /* Apply filters to T.  */
+      if (filter == NO_BUILTINS && DECL_P (t) && DECL_IS_BUILTIN (t))
+	continue;
+
+      /* Clear TREE_CHAIN to avoid blindly recursing into the rest
+	 of the list.  */
+      saved_chain = TREE_CHAIN (t);
+      TREE_CHAIN (t) = NULL_TREE;
+
+      pph_output_tree (stream, t, ref_p);
+
+      TREE_CHAIN (t) = saved_chain;
     }
 }
