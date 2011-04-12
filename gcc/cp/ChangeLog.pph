@@ -1,3 +1,8 @@
+2011-04-12  Diego Novillo  <dnovillo@google.com>
+
+	* cp-tree.h (print_namespace): Declare.
+	* name-lookup.c (print_namespace): New.
+	* parser.c (cp_debug_print_context_stack): Increment loop counter.
 
 2011-04-11  Diego Novillo  <dnovillo@google.com>
 

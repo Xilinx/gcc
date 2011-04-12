@@ -352,6 +352,7 @@ cp_debug_print_context (FILE *file, cp_parser_context *c)
 
 
 /* Print the stack of parsing contexts to FILE starting with FIRST.  */
+
 static void
 cp_debug_print_context_stack (FILE *file, cp_parser_context *first)
 {
@@ -359,7 +360,7 @@ cp_debug_print_context_stack (FILE *file, cp_parser_context *first)
   cp_parser_context *c;
 
   fprintf (file, "Parsing context stack:\n");
-  for (i = 0, c = first; c; c = c->next)
+  for (i = 0, c = first; c; c = c->next, i++)
     {
       fprintf (file, "\t#%u: ", i);
       cp_debug_print_context (file, c);

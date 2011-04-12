@@ -1751,6 +1751,21 @@ print_binding_level (struct cp_binding_level* lvl)
     }
 }
 
+
+/* Print the given namespace decl NS to stderr.  */
+
+void
+print_namespace (tree ns)
+{
+  struct cp_binding_level *level = NAMESPACE_LEVEL (ns);
+
+  fprintf (stderr, "Namespace name: ");
+  print_generic_expr (stderr, ns, 0);
+  fprintf (stderr, "\nBinding contour\n");
+  print_binding_level (level);
+}
+
+
 void
 print_other_binding_stack (struct cp_binding_level *stack)
 {
