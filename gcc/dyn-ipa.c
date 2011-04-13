@@ -43,7 +43,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "gcov-io.h"
 
 struct dyn_pointer_set;
-struct dyn_vect;
 
 #define XNEWVEC(type,ne) (type *)malloc(sizeof(type) * (ne))
 #define XNEW(type) (type *)malloc(sizeof(type))
@@ -57,6 +56,7 @@ struct dyn_cgraph_node
   struct dyn_pointer_set *imported_modules;
 
   gcov_type guid;
+  gcov_type sum_in_count;
   gcov_unsigned_t visited;
 };
 
@@ -77,7 +77,7 @@ struct dyn_module_info
 
 struct dyn_cgraph
 {
-  struct dyn_cgraph_node **call_graph_nodes;
+  struct dyn_pointer_set **call_graph_nodes;
   struct gcov_info **modules;
   /* supplement module information  */
   struct dyn_module_info *sup_modules;
@@ -92,7 +92,8 @@ struct dyn_pointer_set
   size_t n_slots;		/* n_slots = 2^log_slots */
   size_t n_elements;
 
-  const void **slots;
+  void **slots;
+  unsigned (*get_key) (const void *);
 };
 
 
@@ -112,6 +113,10 @@ gcov_dump_cgraph_node_dot (struct dyn_cgraph_node *node,
                            gcov_type cutoff_count);
 static void
 pointer_set_destroy (struct dyn_pointer_set *pset);
+static void **
+pointer_set_find_or_insert (struct dyn_pointer_set *pset, unsigned key);
+static struct dyn_pointer_set *
+pointer_set_create (unsigned (*get_key) (const void *));
 
 static struct dyn_cgraph the_dyn_call_graph;
 static int total_zero_count = 0;
@@ -172,7 +177,8 @@ get_cgraph_node (gcov_type func_guid)
   if (func_id > the_dyn_call_graph.sup_modules[mod_id].max_func_ident)
     return 0;
 
-  return &the_dyn_call_graph.call_graph_nodes[mod_id][func_id];
+  return *(pointer_set_find_or_insert
+	   (the_dyn_call_graph.call_graph_nodes[mod_id], func_id));
 }
 
 /* Return the gcov_info pointer for module with id MODULE_ID.  */
@@ -184,6 +190,12 @@ get_module_info (gcov_unsigned_t module_id)
 }
 
 struct gcov_info *__gcov_list ATTRIBUTE_HIDDEN;
+
+static inline unsigned
+cgraph_node_get_key (const void *p)
+{
+  return get_intra_module_func_id (((const struct dyn_cgraph_node *) p)->guid);
+}
 
 /* Initialize dynamic call graph.  */
 
@@ -217,7 +229,7 @@ init_dyn_call_graph (void)
     = XNEWVEC (const struct gcov_fn_info **, num_modules);
 
   the_dyn_call_graph.call_graph_nodes
-    = XNEWVEC (struct dyn_cgraph_node *, num_modules);
+    = XNEWVEC (struct dyn_pointer_set *, num_modules);
 
   gi_ptr = __gcov_list;
 
@@ -255,21 +267,20 @@ init_dyn_call_graph (void)
 
 
       the_dyn_call_graph.call_graph_nodes[mod_id]
-          = XNEWVEC (struct dyn_cgraph_node, max_func_ident + 1);
+	= pointer_set_create (cgraph_node_get_key);
 
       the_dyn_call_graph.sup_modules[mod_id].max_func_ident = max_func_ident;
-
-      for (j = 0; j < max_func_ident + 1; j++)
-        init_dyn_cgraph_node (&the_dyn_call_graph.call_graph_nodes[mod_id][j], 0);
 
       for (j = 0; j < gi_ptr->n_functions; j++)
 	{
           const struct gcov_fn_info *fi_ptr 
               = the_dyn_call_graph.functions[mod_id][j];
-
-	  node = &the_dyn_call_graph.call_graph_nodes[mod_id][fi_ptr->ident];
-	  init_dyn_cgraph_node (node, GEN_FUNC_GLOBAL_ID (gi_ptr->mod_info->ident, 
-                                                          fi_ptr->ident));
+	  *(pointer_set_find_or_insert
+	    (the_dyn_call_graph.call_graph_nodes[mod_id], fi_ptr->ident))
+	    = node = XNEW (struct dyn_cgraph_node);
+	  the_dyn_call_graph.call_graph_nodes[mod_id]->n_elements++;
+	  init_dyn_cgraph_node (node, GEN_FUNC_GLOBAL_ID (gi_ptr->mod_info->ident,
+							  fi_ptr->ident));
 	}
     }
 }
@@ -292,7 +303,9 @@ __gcov_finalize_dyn_callgraph (void)
 	  struct dyn_cgraph_node *node;
           struct dyn_cgraph_edge *callees, *next_callee;
           fi_ptr = the_dyn_call_graph.functions[i][f_ix];
-          node = &the_dyn_call_graph.call_graph_nodes[i][fi_ptr->ident];
+          node = *(pointer_set_find_or_insert
+		   (the_dyn_call_graph.call_graph_nodes[i], fi_ptr->ident));
+	  gcc_assert (node);
           callees = node->callees;
 
           if (!callees)
@@ -307,7 +320,7 @@ __gcov_finalize_dyn_callgraph (void)
 	    pointer_set_destroy (node->imported_modules);
         }
       if (the_dyn_call_graph.call_graph_nodes[i])
-        XDELETEVEC (the_dyn_call_graph.call_graph_nodes[i]);
+        pointer_set_destroy (the_dyn_call_graph.call_graph_nodes[i]);
       if (the_dyn_call_graph.functions[i])
         XDELETEVEC (the_dyn_call_graph.functions[i]);
       /* Now delete sup modules */
@@ -486,7 +499,10 @@ gcov_build_callgraph (void)
         {
           struct dyn_cgraph_node *caller;
           fi_ptr = the_dyn_call_graph.functions[m_ix][f_ix];
-          caller = &the_dyn_call_graph.call_graph_nodes[m_ix][fi_ptr->ident];
+          caller = *(pointer_set_find_or_insert
+		     (the_dyn_call_graph.call_graph_nodes[m_ix],
+		      fi_ptr->ident));
+	  gcc_assert (caller);
           if (dcall_profile_values)
             {
               unsigned offset;
@@ -519,7 +535,7 @@ gcov_build_callgraph (void)
 }
 
 static inline size_t
-hash1 (const void *p, unsigned long max, unsigned long logmax)
+hash1 (unsigned p, unsigned long max, unsigned long logmax)
 {
   const unsigned long long A = 0x9e3779b97f4a7c16ull;
   const unsigned long long shift = 64 - logmax;
@@ -527,10 +543,10 @@ hash1 (const void *p, unsigned long max, unsigned long logmax)
   return ((A * (unsigned long) p) >> shift) & (max - 1);
 }
 
-/* Allocate an empty pointer set.  */
+/* Allocate an empty imported-modules set.  */
 
 static struct dyn_pointer_set *
-pointer_set_create (void)
+pointer_set_create (unsigned (*get_key) (const void *))
 {
   struct dyn_pointer_set *result = XNEW (struct dyn_pointer_set);
 
@@ -538,8 +554,10 @@ pointer_set_create (void)
   result->log_slots = 8;
   result->n_slots = (size_t) 1 << result->log_slots;
 
-  result->slots = XNEWVEC (const void *, result->n_slots);
-  memset (result->slots, 0, sizeof (const void *) * result->n_slots);
+  result->slots = XNEWVEC (void *, result->n_slots);
+  memset (result->slots, 0, sizeof (void *) * result->n_slots);
+  result->get_key = get_key;
+
   return result;
 }
 
@@ -548,19 +566,25 @@ pointer_set_create (void)
 static void
 pointer_set_destroy (struct dyn_pointer_set *pset)
 {
+  size_t i;
+  for (i = 0; i < pset->n_slots; i++)
+    if (pset->slots[i])
+      XDELETE (pset->slots[i]);
   XDELETEVEC (pset->slots);
   XDELETE (pset);
 }
 
-/* Subroutine of pointer_set_insert.  Return the insertion slot for P into
-   an empty element of SLOTS, an array of length N_SLOTS.  */
+/* Subroutine of pointer_set_find_or_insert.  Return the insertion slot for KEY
+   into an empty element of SLOTS, an array of length N_SLOTS.  */
 static inline size_t
-insert_aux (const void *p, const void **slots, size_t n_slots, size_t log_slots)
+insert_aux (unsigned key, void **slots,
+	    size_t n_slots, size_t log_slots,
+	    unsigned (*get_key) (const void *))
 {
-  size_t n = hash1 (p, n_slots, log_slots);
+  size_t n = hash1 (key, n_slots, log_slots);
   while (1)
     {
-      if (slots[n] == p || slots[n] == 0)
+      if (slots[n] == 0 || get_key (slots[n]) == key)
 	return n;
       else
 	{
@@ -571,28 +595,30 @@ insert_aux (const void *p, const void **slots, size_t n_slots, size_t log_slots)
     }
 }
 
-/* Insert P into PSET if it wasn't already there.  Returns nonzero
-   if it was already there. P must be nonnull.  */
+/* Find slot for KEY. KEY must be nonnull.  */
 
-static int
-pointer_set_insert (struct dyn_pointer_set *pset, const void *p)
+static void **
+pointer_set_find_or_insert (struct dyn_pointer_set *pset, unsigned key)
 {
   size_t n;
 
-  /* For simplicity, expand the set even if P is already there.  This can be
+  /* For simplicity, expand the set even if KEY is already there.  This can be
      superfluous but can happen at most once.  */
   if (pset->n_elements > pset->n_slots / 4)
     {
       size_t new_log_slots = pset->log_slots + 1;
       size_t new_n_slots = pset->n_slots * 2;
-      const void **new_slots = XNEWVEC (const void *, new_n_slots);
-      memset (new_slots, 0, sizeof (const void*) * new_n_slots);
+      void **new_slots = XNEWVEC (void *, new_n_slots);
+      memset (new_slots, 0, sizeof (void *) * new_n_slots);
       size_t i;
 
       for (i = 0; i < pset->n_slots; ++i)
         {
-	  const void *value = pset->slots[i];
-	  n = insert_aux (value, new_slots, new_n_slots, new_log_slots);
+	  void *value = pset->slots[i];
+	  if (!value)
+	    continue;
+	  n = insert_aux (pset->get_key (value), new_slots, new_n_slots,
+			  new_log_slots, pset->get_key);
 	  new_slots[n] = value;
 	}
 
@@ -602,37 +628,64 @@ pointer_set_insert (struct dyn_pointer_set *pset, const void *p)
       pset->slots = new_slots;
     }
 
-  n = insert_aux (p, pset->slots, pset->n_slots, pset->log_slots);
-  if (pset->slots[n])
-    return 1;
-
-  pset->slots[n] = p;
-  ++pset->n_elements;
-  return 0;
+  n = insert_aux (key, pset->slots, pset->n_slots, pset->log_slots,
+		  pset->get_key);
+  return &pset->slots[n];
 }
 
 /* Pass each pointer in PSET to the function in FN, together with the fixed
-   parameter DATA.  If FN returns false, the iteration stops.  */
+   parameters DATA1, DATA2, DATA3.  If FN returns false, the iteration stops.  */
 
 static void
 pointer_set_traverse (const struct dyn_pointer_set *pset,
-                      int (*fn) (const void *, void *), void *data)
+                      int (*fn) (const void *, void *, void *, void *),
+		      void *data1, void *data2, void *data3)
 {
   size_t i;
   for (i = 0; i < pset->n_slots; ++i)
-    if (pset->slots[i] && !fn (pset->slots[i], data))
+    if (pset->slots[i] && !fn (pset->slots[i], data1, data2, data3))
       break;
 }
 
-/* Callback function to propagate import module set (VALUE) from callee to
-   caller (DATA).  */
 static int
-gcov_propagate_imp_modules (const void *value, void *data)
+imp_mod_set_insert (struct dyn_pointer_set *p, const struct gcov_info *imp_mod,
+		    double wt)
 {
-  struct dyn_pointer_set *receiving_set
-      = (struct dyn_pointer_set *) data;
+  struct dyn_imp_mod **m = (struct dyn_imp_mod **)
+    pointer_set_find_or_insert (p, imp_mod->mod_info->ident);
+  if (*m)
+    {
+      (*m)->weight += wt;
+      return 1;
+    }
+  else
+    {
+      *m = XNEW (struct dyn_imp_mod);
+      (*m)->imp_mod = imp_mod;
+      (*m)->weight = wt;
+      p->n_elements++;
+      return 0;
+    }
+}
 
-  pointer_set_insert (receiving_set, value);
+/* Callback function to propagate import module (VALUE) from callee to
+   caller's imported-module-set (DATA1).
+   The weight is scaled by the scaling-factor (DATA2) before propagation,
+   and accumulated into DATA3.  */
+static int
+gcov_propagate_imp_modules (const void *value, void *data1, void *data2,
+			    void *data3)
+{
+  const struct dyn_imp_mod *m = (const struct dyn_imp_mod *) value;
+  struct dyn_pointer_set *receiving_set = (struct dyn_pointer_set *) data1;
+  double *scale = (double *) data2;
+  double *sum = (double *) data3;
+  double wt = m->weight;
+  if (scale)
+    wt *= *scale;
+  if (sum)
+    (*sum) += wt;
+  imp_mod_set_insert (receiving_set, m->imp_mod, wt);
   return 1;
 }
 
@@ -687,7 +740,9 @@ gcov_compute_cutoff_count (void)
 
 	  fi_ptr = the_dyn_call_graph.functions[m_ix][f_ix];
 
-	  node = &the_dyn_call_graph.call_graph_nodes[m_ix][fi_ptr->ident];
+	  node = *(pointer_set_find_or_insert
+		   (the_dyn_call_graph.call_graph_nodes[m_ix], fi_ptr->ident));
+	  gcc_assert (node);
 
           callees = node->callees;
           while (callees != 0)
@@ -708,7 +763,7 @@ gcov_compute_cutoff_count (void)
 
   /* Now sort */
  qsort (edges, num_edges, sizeof (void *), sort_by_count);
-#define CUM_CUTOFF_PERCENT 95
+#define CUM_CUTOFF_PERCENT 80
 #define MIN_NUM_EDGE_PERCENT 0
   cutoff_str = getenv ("GCOV_DYN_CGRAPH_CUTOFF");
   if (cutoff_str && strlen (cutoff_str))
@@ -765,13 +820,19 @@ gcov_compute_cutoff_count (void)
   return cutoff_count;
 }
 
+static inline unsigned
+imp_mod_get_key (const void *p)
+{
+  return ((const struct dyn_imp_mod *) p)->imp_mod->mod_info->ident;
+}
+
 /* Return the imported module set for NODE.  */
 
 static struct dyn_pointer_set *
 gcov_get_imp_module_set (struct dyn_cgraph_node *node)
 {
   if (!node->imported_modules)
-    node->imported_modules = pointer_set_create ();
+    node->imported_modules = pointer_set_create (imp_mod_get_key);
 
   return node->imported_modules;
 }
@@ -782,7 +843,7 @@ static struct dyn_pointer_set *
 gcov_get_module_imp_module_set (struct dyn_module_info *mi)
 {
   if (!mi->imported_modules)
-    mi->imported_modules = pointer_set_create ();
+    mi->imported_modules = pointer_set_create (imp_mod_get_key);
 
   return mi->imported_modules;
 }
@@ -790,10 +851,13 @@ gcov_get_module_imp_module_set (struct dyn_module_info *mi)
 /* Callback function to mark if a module needs to be exported.  */
 
 static int
-gcov_mark_export_modules (const void *value, void *data ATTRIBUTE_UNUSED)
+gcov_mark_export_modules (const void *value,
+			  void *data1 ATTRIBUTE_UNUSED,
+			  void *data2 ATTRIBUTE_UNUSED,
+			  void *data3 ATTRIBUTE_UNUSED)
 {
   const struct gcov_info *module_info
-      = (const struct gcov_info *)value;
+    = ((const struct dyn_imp_mod *) value)->imp_mod;
 
   module_info->mod_info->is_exported = 1;
   return 1;
@@ -801,7 +865,7 @@ gcov_mark_export_modules (const void *value, void *data ATTRIBUTE_UNUSED)
 
 struct gcov_import_mod_array
 {
-  const struct gcov_info **imported_modules;
+  const struct dyn_imp_mod **imported_modules;
   struct gcov_info *importing_module;
   unsigned len;
 };
@@ -809,10 +873,12 @@ struct gcov_import_mod_array
 /* Callback function to compute pointer set size.  */
 
 static int
-gcov_compute_pset_size (const void *value ATTRIBUTE_UNUSED,
-                        void *data)
+gcov_compute_mset_size (const void *value ATTRIBUTE_UNUSED,
+                        void *data1,
+			void *data2 ATTRIBUTE_UNUSED,
+			void *data3 ATTRIBUTE_UNUSED)
 {
-  unsigned *len = (unsigned *) data;
+  unsigned *len = (unsigned *) data1;
   (*len)++;
   return 1;
 }
@@ -820,36 +886,44 @@ gcov_compute_pset_size (const void *value ATTRIBUTE_UNUSED,
 /* Callback function to collect imported modules.  */
 
 static int
-gcov_collect_imported_modules (const void *value, void *data)
+gcov_collect_imported_modules (const void *value,
+			       void *data1,
+			       void *data2 ATTRIBUTE_UNUSED,
+			       void *data3 ATTRIBUTE_UNUSED)
 {
   struct gcov_import_mod_array *out_array;
-  const struct gcov_info *module_info
-      = (const struct gcov_info *)value;
+  const struct dyn_imp_mod *m
+    = (const struct dyn_imp_mod *) value;
 
-  out_array = (struct gcov_import_mod_array *) data;
+  out_array = (struct gcov_import_mod_array *) data1;
 
-  if (module_info != out_array->importing_module)
-    out_array->imported_modules[out_array->len++] = module_info;
+  if (m->imp_mod != out_array->importing_module)
+    out_array->imported_modules[out_array->len++] = m;
 
   return 1;
 }
 
-/* Comparitor for sorting imported modules using module ids.  */
+/* Comparator for sorting imported modules using weights.  */
 
 static int
-sort_by_module_id (const void *pa, const void *pb)
+sort_by_module_wt (const void *pa, const void *pb)
 {
-  const struct gcov_info *m_a = *(struct gcov_info * const *)pa;
-  const struct gcov_info *m_b = *(struct gcov_info * const *)pb;
+  const struct dyn_imp_mod *m_a = *((const struct dyn_imp_mod * const *) pa);
+  const struct dyn_imp_mod *m_b = *((const struct dyn_imp_mod * const *) pb);
 
-  return (int) m_a->mod_info->ident - (int) m_b->mod_info->ident;
+  /* We want to sort in descending order of weights.  */
+  if (m_a->weight < m_b->weight)
+    return +1;
+  if (m_a->weight > m_b->weight)
+    return -1;
+  return get_module_idx (m_a->imp_mod) - get_module_idx (m_b->imp_mod);
 }
 
 /* Return a dynamic array of imported modules that is sorted for
    the importing module MOD_INFO. The length of the array is returned
    in *LEN.  */
 
-const struct gcov_info **
+const struct dyn_imp_mod **
 gcov_get_sorted_import_module_array (struct gcov_info *mod_info,
                                      unsigned *len)
 {
@@ -865,28 +939,86 @@ gcov_get_sorted_import_module_array (struct gcov_info *mod_info,
     return 0;
 
   pointer_set_traverse (sup_mod_info->imported_modules,
-                        gcov_compute_pset_size, &array_len);
-  imp_array.imported_modules = XNEWVEC (const struct gcov_info *, array_len);
+                        gcov_compute_mset_size, &array_len, 0, 0);
+  imp_array.imported_modules = XNEWVEC (const struct dyn_imp_mod *, array_len);
   imp_array.len = 0;
   imp_array.importing_module = mod_info;
   pointer_set_traverse (sup_mod_info->imported_modules,
-                        gcov_collect_imported_modules, &imp_array);
+                        gcov_collect_imported_modules, &imp_array, 0, 0);
   *len = imp_array.len;
   qsort (imp_array.imported_modules, imp_array.len,
-         sizeof (void *), sort_by_module_id);
+         sizeof (void *), sort_by_module_wt);
   return imp_array.imported_modules;
 }
 
 /* Compute modules that are needed for NODE (for cross module inlining).
-   CUTTOFF_COUNT is the call graph edge count cutoff value.  */
+   CUTTOFF_COUNT is the call graph edge count cutoff value.
+   IMPORT_SCALE is the scaling-factor (percent) by which to scale the
+   weights of imported modules of a callee before propagating them to
+   the caller, if the callee and caller are in different modules.
+
+   Each imported module is assigned a weight that corresponds to the
+   expected benefit due to cross-module inlining. When the imported modules
+   are written out, they are sorted with highest weight first.
+
+   The following example illustrates how the weight is computed:
+
+   Suppose we are processing call-graph node A. It calls function B 50 times,
+   which calls function C 1000 times, and function E 800 times. Lets say B has
+   another in-edge from function D, with edge-count of 50. Say all the
+   functions are in separate modules (modules a, b, c, d, e, respectively):
+
+              D
+              |
+              | 50
+              |
+       50     v     1000
+  A --------> B ----------> C
+              |
+              | 800
+              |
+              v
+              E
+
+  Nodes are processed in depth-first order, so when processing A, we first
+  process B. For node B, we are going to add module c to the imported-module
+  set, with weight 1000 (edge-count), and module e with weight 800.
+  Coming back to A, we are going to add the imported-module-set of B to A,
+  after doing some scaling.
+  The first scaling factor comes from the fact that A calls B 50 times, but B
+  has in-edge-count total of 100. So this scaling factor is 50/100 = 0.5
+  The second scaling factor is that since B is in a different module than A,
+  we want to slightly downgrade imported modules of B, before adding to the
+  imported-modules set of A. This scaling factor has a default value of 50%
+  (can be set via env variable GCOV_DYN_IMPORT_SCALE).
+  So we end up adding modules c and e to the imported-set of A, with weights
+  0.5*0.5*1000=250 and 0.5*0.5*800=200, respectively.
+
+  Next, we have to add module b itself to A. The weight is computed as the
+  edge-count plus the sum of scaled-weights of all modules in the
+  imported-module set of B, i.e., 50 + 250 + 200 = 500.
+
+  In computing the weight of module b, we add the sum of scaled-weights of
+  imported modules of b, because it doesn't make sense to import c, e in
+  module a, until module b is imported.  */
 
 static void
 gcov_process_cgraph_node (struct dyn_cgraph_node *node,
-                          gcov_type cutoff_count)
+                          gcov_type cutoff_count,
+			  unsigned import_scale)
 {
   unsigned mod_id;
   struct dyn_cgraph_edge *callees;
+  struct dyn_cgraph_edge *callers;
   node->visited = 1;
+  node->sum_in_count = 0;
+
+  callers = node->callers;
+  while (callers)
+    {
+      node->sum_in_count += callers->count;
+      callers = callers->next_caller;
+    }
 
   callees = node->callees;
   mod_id = get_module_idx_from_func_glob_uid (node->guid);
@@ -895,7 +1027,8 @@ gcov_process_cgraph_node (struct dyn_cgraph_node *node,
     {
       if (!callees->callee->visited)
         gcov_process_cgraph_node (callees->callee,
-                                  cutoff_count);
+                                  cutoff_count,
+				  import_scale);
       callees = callees->next_callee;
     }
 
@@ -911,16 +1044,24 @@ gcov_process_cgraph_node (struct dyn_cgraph_node *node,
           callee_mod_id
               = get_module_idx_from_func_glob_uid (callees->callee->guid);
 
+	  double callee_mod_wt = (double) callees->count;
+          if (callees->callee->imported_modules)
+	    {
+	      double scale = ((double) callees->count) /
+		((double) callees->callee->sum_in_count);
+	      /* Reduce weight if callee is in different module.  */
+	      if (mod_id != callee_mod_id)
+		scale = (scale * import_scale) / 100.0;
+	      pointer_set_traverse (callees->callee->imported_modules,
+				    gcov_propagate_imp_modules,
+				    imp_modules, &scale, &callee_mod_wt);
+	    }
           if (mod_id != callee_mod_id)
             {
               struct gcov_info *callee_mod_info
                   = get_module_info (callee_mod_id);
-              pointer_set_insert (imp_modules, callee_mod_info);
+              imp_mod_set_insert (imp_modules, callee_mod_info, callee_mod_wt);
             }
-          if (callees->callee->imported_modules)
-            pointer_set_traverse (callees->callee->imported_modules,
-                                  gcov_propagate_imp_modules,
-                                  imp_modules);
         }
 
       callees = callees->next_callee;
@@ -930,11 +1071,18 @@ gcov_process_cgraph_node (struct dyn_cgraph_node *node,
 /* Compute module grouping using CUTOFF_COUNT as the hot edge
    threshold.  */
 
+#define DEFAULT_IMPORT_SCALE 100
 static void
 gcov_compute_module_groups (gcov_type cutoff_count)
 {
   unsigned m_ix;
   struct gcov_info *gi_ptr;
+  const char *import_scale_str;
+  unsigned import_scale = DEFAULT_IMPORT_SCALE;
+
+  import_scale_str = getenv ("GCOV_DYN_IMPORT_SCALE");
+  if (import_scale_str && strlen (import_scale_str))
+    import_scale = atoi (import_scale_str);
 
   for (m_ix = 0; m_ix < the_dyn_call_graph.num_modules; m_ix++)
     {
@@ -948,11 +1096,13 @@ gcov_compute_module_groups (gcov_type cutoff_count)
 	  struct dyn_cgraph_node *node;
 
 	  fi_ptr = the_dyn_call_graph.functions[m_ix][f_ix];
-	  node = &the_dyn_call_graph.call_graph_nodes[m_ix][fi_ptr->ident];
+	  node = *(pointer_set_find_or_insert
+		   (the_dyn_call_graph.call_graph_nodes[m_ix], fi_ptr->ident));
+	  gcc_assert (node);
           if (node->visited)
             continue;
 
-          gcov_process_cgraph_node (node, cutoff_count);
+          gcov_process_cgraph_node (node, cutoff_count, import_scale);
 	}
     }
 
@@ -970,7 +1120,9 @@ gcov_compute_module_groups (gcov_type cutoff_count)
           struct dyn_pointer_set *imp_modules;
 
 	  fi_ptr = the_dyn_call_graph.functions[m_ix][f_ix];
-	  node = &the_dyn_call_graph.call_graph_nodes[m_ix][fi_ptr->ident];
+	  node = *(pointer_set_find_or_insert
+		   (the_dyn_call_graph.call_graph_nodes[m_ix], fi_ptr->ident));
+	  gcc_assert (node);
 
           if (!node->imported_modules)
             continue;
@@ -984,7 +1136,7 @@ gcov_compute_module_groups (gcov_type cutoff_count)
 
           pointer_set_traverse (node->imported_modules,
                                 gcov_propagate_imp_modules,
-                                imp_modules);
+                                imp_modules, 0, 0);
 	}
     }
 
@@ -995,7 +1147,7 @@ gcov_compute_module_groups (gcov_type cutoff_count)
           = &the_dyn_call_graph.sup_modules[m_ix];
       if (mi->imported_modules)
         pointer_set_traverse (mi->imported_modules,
-                              gcov_mark_export_modules, 0);
+                              gcov_mark_export_modules, 0, 0, 0);
     }
 }
 
@@ -1023,7 +1175,7 @@ gcov_compute_random_module_groups (unsigned max_group_size)
 	  if (mod_id == m_ix)
 	    continue;
 	  imp_mod_info = get_module_info (mod_id);
-	  if (!pointer_set_insert (imp_modules, imp_mod_info))
+	  if (!imp_mod_set_insert (imp_modules, imp_mod_info, 1.0))
 	    i++;
 	}
     }
@@ -1035,7 +1187,7 @@ gcov_compute_random_module_groups (unsigned max_group_size)
 	= &the_dyn_call_graph.sup_modules[m_ix];
       if (mi->imported_modules)
         pointer_set_traverse (mi->imported_modules,
-                              gcov_mark_export_modules, 0);
+                              gcov_mark_export_modules, 0, 0, 0);
     }
 }
 
@@ -1118,7 +1270,7 @@ void
 gcov_write_module_infos (struct gcov_info *mod_info)
 {
   unsigned mod_id, imp_len = 0;
-  const struct gcov_info **imp_mods;
+  const struct dyn_imp_mod **imp_mods;
 
   mod_id = get_module_idx (mod_info);
   gcov_write_module_info (mod_info, 1);
@@ -1130,7 +1282,7 @@ gcov_write_module_infos (struct gcov_info *mod_info)
 
       for (i = 0; i < imp_len; i++)
         {
-          const struct gcov_info *imp_mod = imp_mods[i];
+          const struct gcov_info *imp_mod = imp_mods[i]->imp_mod;
           gcov_write_module_info (imp_mod, 0);
         }
       free (imp_mods);
@@ -1234,7 +1386,7 @@ gcov_dump_cgraph_node_dot (struct dyn_cgraph_node *node,
 {
   unsigned mod_id, func_id, imp_len = 0, i;
   struct gcov_info *mod_info;
-  const struct gcov_info **imp_mods;
+  const struct dyn_imp_mod **imp_mods;
   struct dyn_cgraph_edge *callees;
 
   mod_id = get_module_idx_from_func_glob_uid (node->guid);
@@ -1251,7 +1403,7 @@ gcov_dump_cgraph_node_dot (struct dyn_cgraph_node *node,
   if (imp_mods)
     {
       for (i = 0; i < imp_len; i++)
-        fprintf (stderr, "%s\\n", imp_mods[i]->mod_info->source_filename);
+        fprintf (stderr, "%s\\n", imp_mods[i]->imp_mod->mod_info->source_filename);
       fprintf (stderr, "\"]\n");
       free (imp_mods);
     }
@@ -1302,7 +1454,9 @@ gcov_dump_callgraph (gcov_type cutoff_count)
 	  struct dyn_cgraph_node *node;
 	  fi_ptr = the_dyn_call_graph.functions[m_ix][f_ix];
 
-	  node = &the_dyn_call_graph.call_graph_nodes[m_ix][fi_ptr->ident];
+	  node = *(pointer_set_find_or_insert
+		   (the_dyn_call_graph.call_graph_nodes[m_ix], fi_ptr->ident));
+	  gcc_assert (node);
 
           /* skip dead functions  */
           if (!node->callees && !node->callers)

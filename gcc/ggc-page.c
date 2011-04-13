@@ -2364,3 +2364,9 @@ struct alloc_zone
 struct alloc_zone rtl_zone;
 struct alloc_zone tree_zone;
 struct alloc_zone tree_id_zone;
+
+size_t
+ggc_total_allocated (void)
+{
+  return G.bytes_mapped;
+}

@@ -1008,6 +1008,12 @@ fripa-disallow-opt-mismatch
 Common Report Var(flag_ripa_disallow_opt_mismatch)
 Don't import an auxiliary module if the command line options mismatch with the primary module
 
+fripa-no-promote-always-inline-func
+Common Report Var(flag_ripa_no_promote_always_inline) Init(0)
+Don't promote always inline static functions assuming they
+will be inlined and no copy is needed.
+
+
 fripa-verbose
 Common Report Var(flag_ripa_verbose)
 Enable verbose informational messages for LIPO compilation

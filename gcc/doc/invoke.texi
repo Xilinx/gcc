@@ -376,8 +376,8 @@ Objective-C and Objective-C++ Dialects}.
 -freciprocal-math -fregmove -frename-registers -freorder-blocks @gol
 -freorder-blocks-and-partition -freorder-functions @gol
 -frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
--fripa -fripa-disallow-asm-modules @gol
--fripa-disallow-opt-mismatch -fripa-verbose -frounding-math @gol
+-fripa -fripa-disallow-asm-modules -fripa-disallow-opt-mismatch @gol
+-fripa-no-promote-always-inline-func -fripa-verbose -frounding-math @gol
 -fsched2-use-superblocks -fsched-pressure @gol
 -fsched-spec-load -fsched-spec-load-dangerous @gol
 -fsched-stalled-insns-dep[=@var{n}] -fsched-stalled-insns[=@var{n}] @gol
@@ -4441,6 +4441,12 @@ Suppress warnings from casts to pointer type of an integer of a
 different size. In C++, casting to a pointer type of smaller size is
 an error. @option{Wint-to-pointer-cast} is enabled by default.
 
+@item max-lipo-mem
+When importing auxiliary modules during profile-use, check current
+memory consumption after parsing each auxiliary module. If it exceeds
+this limit (specified in kb), don't import any more auxiliary modules.
+Specifying a value of 0 means don't enforce this limit. This parameter
+is only useful when using @option{-fprofile-use} and @option{-fripa}.
 
 @item -Wno-pointer-to-int-cast @r{(C and Objective-C only)}
 @opindex Wno-pointer-to-int-cast
@@ -7838,6 +7844,10 @@ auxiliary module during the profile-generate stage were different from those use
 for the primary module. Note that any mismatches in warning-related options are
 ignored for this comparison.
 
+@item -fripa-no-promote-always-inline-func
+@opindex fripa-no-promote-always-inline-func
+Do not promote static functions with always inline attribute in LIPO compilation.
+
 @item -fripa-verbose
 @opindex fripa-verbose
 Enable printing of verbose information about dynamic inter-procedural optimizations.
@@ -9932,6 +9942,12 @@ given to GCC, substitutes @code{Y}; else substitutes @code{D}.  There can
 be as many clauses as you need.  This may be combined with @code{.},
 @code{,}, @code{!}, @code{|}, and @code{*} as needed.
 
+@item max-lipo-mem
+When importing auxiliary modules during profile-use, check current
+memory consumption after parsing each auxiliary module. If it exceeds
+this limit (specified in kb), don't import any more auxiliary modules.
+Specifying a value of 0 means don't enforce this limit. This parameter
+is only useful when using @option{-fprofile-use} and @option{-fripa}.
 
 @end table
 

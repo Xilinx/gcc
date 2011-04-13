@@ -534,6 +534,13 @@ struct gcov_info
 				     is.  */
 };
 
+/* Information about a single imported module.  */
+struct dyn_imp_mod
+{
+  const struct gcov_info *imp_mod;
+  double weight;
+};
+
 /* Register a new object file module.  */
 extern void __gcov_init (struct gcov_info *) ATTRIBUTE_HIDDEN;
 
@@ -653,7 +660,7 @@ GCOV_LINKAGE void gcov_write_summary (gcov_unsigned_t /*tag*/,
 
 GCOV_LINKAGE void gcov_write_module_infos (struct gcov_info *mod_info)
     ATTRIBUTE_HIDDEN;
-GCOV_LINKAGE const struct gcov_info **
+GCOV_LINKAGE const struct dyn_imp_mod **
 gcov_get_sorted_import_module_array (struct gcov_info *mod_info, unsigned *len)
     ATTRIBUTE_HIDDEN;
 static void gcov_rewrite (void);

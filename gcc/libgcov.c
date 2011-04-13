@@ -291,7 +291,7 @@ gcov_write_import_file (char *gi_filename, struct gcov_info *gi_ptr)
   imports_file = fopen (gi_imports_filename, "w");
   if (imports_file)
     {
-      const struct gcov_info **imp_mods;
+      const struct dyn_imp_mod **imp_mods;
       unsigned i, imp_len;
       imp_mods = gcov_get_sorted_import_module_array (gi_ptr, &imp_len);
       if (imp_mods)
@@ -299,9 +299,9 @@ gcov_write_import_file (char *gi_filename, struct gcov_info *gi_ptr)
           for (i = 0; i < imp_len; i++)
 	    {
 	      fprintf (imports_file, "%s\n",
-		       imp_mods[i]->mod_info->source_filename);
+		       imp_mods[i]->imp_mod->mod_info->source_filename);
 	      fprintf (imports_file, "%s%s\n",
-		       imp_mods[i]->mod_info->da_filename, GCOV_DATA_SUFFIX);
+		       imp_mods[i]->imp_mod->mod_info->da_filename, GCOV_DATA_SUFFIX);
 	    }
           free (imp_mods);
         }

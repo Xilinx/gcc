@@ -809,6 +809,7 @@ direct_call_profiling (void)
 	    /* Check if this is a direct call, and not a builtin call.  */
 	    if (gimple_code (stmt) != GIMPLE_CALL
 		|| gimple_call_fndecl (stmt) == NULL_TREE
+		|| DECL_BUILT_IN (gimple_call_fndecl (stmt))
 		|| DECL_IS_BUILTIN (gimple_call_fndecl (stmt)))
 	      continue;
 

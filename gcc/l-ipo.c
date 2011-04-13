@@ -1816,6 +1816,10 @@ process_module_scope_static_func (struct cgraph_node *cnode)
       || DECL_ARTIFICIAL (decl))
     return;
 
+  if (flag_ripa_no_promote_always_inline
+      && lookup_attribute ("always_inline", DECL_ATTRIBUTES (decl)) != NULL)
+    return;
+
   if (cgraph_is_auxiliary (cnode->decl))
     {
       gcc_assert (cgraph_get_module_id (cnode->decl)
