@@ -1,4 +1,8 @@
 
+2011-04-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* make-melt-source-tar.sh: Copy make-melt-predefh.awk &
+	make-warmelt-predef.awk
+
 2011-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* make-melt-source-tar.sh: Better tar
 

@@ -65,6 +65,8 @@ copymelt gcc/REVISION GCCMELT-REVISION
 copymelt gcc/realmpfr.h realmpfr.h
 copymelt gcc/gimple-pretty-print.h gimple-pretty-print.h
 copymelt gcc/tree-pretty-print.h tree-pretty-print.h
+copymelt gcc/make-melt-predefh.awk make-melt-predefh.awk
+copymelt gcc/make-warmelt-predef.awk make-warmelt-predef.awk
 
 for mf in $gccmelt_source_tree/gcc/melt/*.melt ; do 
     cp -av $mf  $gccmelt_tarbase/melt/
