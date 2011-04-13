@@ -1937,6 +1937,28 @@ report_validation_error (const char *filename,
 }
 
 
+
+/* Add all the new names declared in NEW_NS to NS.  */
+
+static void
+pph_add_names_to_namespace (tree ns, tree new_ns)
+{
+  struct cp_binding_level *new_level, *level;
+  tree t, chain;
+
+  level = NAMESPACE_LEVEL (ns);
+  new_level = NAMESPACE_LEVEL (new_ns);
+
+  for (t = new_level->names; t; t = chain)
+    {
+      /* Pushing a decl into a scope clobbers its DECL_CHAIN.
+	 Preserve it.  */
+      chain = DECL_CHAIN (t);
+      pushdecl_with_scope (t, level, /*is_friend=*/false);
+    }
+}
+
+
 /* Read contents of PPH file in STREAM.  */
 
 static void
@@ -1946,25 +1968,27 @@ pph_read_file_contents (pph_stream *stream)
   cpp_ident_use *bad_use;
   const char *cur_def;
   cpp_idents_used idents_used;
+  tree file_ns;
 
   pth_load_identifiers (&idents_used, stream);
 
-  /*FIXME pph: This validation is weak.  */
+  /* FIXME pph: This validation is weak.  */
   verified = cpp_lt_verify_1 (parse_in, &idents_used, &bad_use, &cur_def, true);
   if (!verified)
     report_validation_error (stream->name, bad_use->ident_str, cur_def,
                              bad_use->before_str, bad_use->after_str);
 
-  /* FIXME pph: We cannot replay the macro definitions
-     as long as we are still reading the actual file.
+  /* Re-instantiate all the pre-processor symbols defined by STREAM.  */
   cpp_lt_replay (parse_in, &idents_used);
-  */
 
-  pph_input_tree (stream);
+  /* Read global_namespace from STREAM and add all the names defined
+     there to the current global_namespace.  */
+  file_ns = pph_input_tree (stream);
+  pph_add_names_to_namespace (global_namespace, file_ns);
 }
 
 
-/* Read PPH file.  */
+/* Read PPH file FILENAME.  */
 
 static void
 pph_read_file (const char *filename)
