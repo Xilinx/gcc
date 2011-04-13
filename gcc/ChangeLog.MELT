@@ -1,4 +1,7 @@
 
+2011-04-13  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Upgrade to 0.7rc2
+
 2011-04-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Upgrade to 0.7rc1
 

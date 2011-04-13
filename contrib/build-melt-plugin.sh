@@ -394,7 +394,7 @@ install_melt() {
     verbose_echo Installing the MELT source directory
     $HOSTADMINCMD $HOSTINSTALL -m 755 -d $DESTDIR$gcc_plugin_directory/melt-source
     verbose_echo Populating the MELT source directory with MELT files
-     $HOSTADMINCMD $HOSTINSTALL -m 644 melt-predef.melt $DESTDIR$GCCMELT_SOURCE_TREE/melt/*.melt $gcc_plugin_directory/melt-source/
+     $HOSTADMINCMD $HOSTINSTALL -m 644 warmelt-predef.melt $GCCMELT_SOURCE_TREE/melt/*.melt $DESTDIR$gcc_plugin_directory/melt-source/
     verbose_echo Populating the MELT source directory with generated C files and module catalog
     $HOSTADMINCMD $HOSTINSTALL -m 644 melt-sources/* melt-default-modules.modlis  $DESTDIR$gcc_plugin_directory/melt-source/
     verbose_echo Installing the MELT module directory
