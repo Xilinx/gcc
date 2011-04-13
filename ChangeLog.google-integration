@@ -1,5 +1,20 @@
 2011-04-12  Paul Pluzhnikov  <ppluzhnikov@google.com>
 
+	* libstdc++-v3/include/ext/vstring.h: Enable debug checks when
+	__google_stl_debug_string is 1.
+	* libstdc++-v3/include/ext/sso_string_base.h: Scribble on
+	logically-dangling storage when __google_stl_debug_string_dangling
+	is 1.
+	* libstdc++-v3/include/bits/stl_vector.h: Enable debug checks when
+	__google_stl_debug_vector is 1.
+	* libstdc++-v3/testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Adjust line number.
+	* libstdc++-v3/testsuite/23_containers/vector/requirements/dr438/insert_neg.cc: Likewise.
+	* libstdc++-v3/testsuite/23_containers/vector/requirements/dr438/constructor_1_neg.cc: Likewise.
+	* libstdc++-v3/testsuite/23_containers/vector/requirements/dr438/constructor_2_neg.cc: Likewise.
+
+2011-04-12  Paul Pluzhnikov  <ppluzhnikov@google.com>
+
 	* libstdc++-v3/src/Makefile.am: Add -fno-omit-frame-pointer to
 	functexcept.
 	* libstdc++-v3/libsupc++/Makefile.am: Add -fno-omit-frame-pointer

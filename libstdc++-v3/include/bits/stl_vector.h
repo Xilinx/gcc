@@ -690,10 +690,18 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *  Note that data access with this operator is unchecked and
        *  out_of_range lookups are not defined. (For checked lookups
        *  see at().)
+       *
+       *  Local modification: range checks are performed if
+       *  __google_stl_debug_vector is defined to non-zero.
        */
       reference
       operator[](size_type __n)
-      { return *(this->_M_impl._M_start + __n); }
+      {
+#if __google_stl_debug_vector
+	_M_range_check(__n);
+#endif
+	return *(this->_M_impl._M_start + __n);
+      }
 
       /**
        *  @brief  Subscript access to the data contained in the %vector.
@@ -705,10 +713,18 @@ _GLIBCXX_BEGIN_NAMESPACE_CONTAINER
        *  Note that data access with this operator is unchecked and
        *  out_of_range lookups are not defined. (For checked lookups
        *  see at().)
+       *
+       *  Local modification: range checks are performed if
+       *  __google_stl_debug_vector is defined to non-zero.
        */
       const_reference
       operator[](size_type __n) const
-      { return *(this->_M_impl._M_start + __n); }
+      {
+#if __google_stl_debug_vector
+	_M_range_check(__n);
+#endif
+	return *(this->_M_impl._M_start + __n);
+      }
 
     protected:
       /// Safety check used only from at().
