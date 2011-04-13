@@ -1,3 +1,10 @@
+2011-04-13  Paul Pluzhnikov  <ppluzhnikov@google.com>
+
+	* libstdc++-v3/include/bits/stl_algo.h: Add comparator debug checks
+	when __google_stl_debug_compare is 1.
+	* libstdc++-v3/include/bits/stl_tree.h: Add comparator debug checks
+	when __google_stl_debug_rbtree is 1.
+
 2011-04-12  Paul Pluzhnikov  <ppluzhnikov@google.com>
 
 	* libstdc++-v3/include/ext/vstring.h: Enable debug checks when
