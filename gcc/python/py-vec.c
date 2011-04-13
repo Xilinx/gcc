@@ -132,12 +132,12 @@ gpy_hashval_t gpy_dd_hash_string (const char * s)
 }
 
 gpy_hash_entry_t *
-gpy_dd_hash_lookup_table( gpy_hash_tab_t * tbl, gpy_hashval_t h )
+gpy_dd_hash_lookup_table (gpy_hash_tab_t * tbl, gpy_hashval_t h)
 {
   gpy_hash_entry_t* retval = NULL;
   if( tbl->array )
     {
-      gpy_hashval_t size= tbl->size, idx= (h % size);
+      int size= tbl->size, idx= (h % size);
       gpy_hash_entry_t *array= tbl->array;
 
       while( array[idx].data )
@@ -157,8 +157,8 @@ gpy_dd_hash_lookup_table( gpy_hash_tab_t * tbl, gpy_hashval_t h )
   return retval;
 }
 
-void ** gpy_dd_hash_insert( gpy_hashval_t h, void * obj,
-			    gpy_hash_tab_t *tbl )
+void ** gpy_dd_hash_insert (gpy_hashval_t h, void * obj,
+			    gpy_hash_tab_t *tbl)
 {
   void **retval = NULL;
   gpy_hash_entry_t *entry = NULL;
@@ -202,134 +202,70 @@ void gpy_dd_hash_grow_table( gpy_hash_tab_t * tbl )
 }
 
 inline
-void gpy_dd_hash_init_table( gpy_hash_tab_t ** tbl )
+void gpy_dd_hash_init_table (gpy_hash_tab_t * tbl)
 {
-  if( tbl )
-    {
-      gpy_hash_tab_t *tb= *tbl;
-      tb->size= 0; tb->length= 0;
-      tb->array= NULL;
-    }
+  gpy_hash_tab_t *tb= tbl;
+  tb->size= 0; tb->length= 0;
+  tb->array= NULL;
 }
 
-void gpy_ident_vec_init( gpy_ident_vector_t * const v )
+bool gpy_ctx_push_decl (tree decl, const char * s,
+			gpy_hash_table_t * tbl)
 {
-  v->size = threshold_alloc( 0 );
-  v->vector = (void**) xcalloc( v->size, sizeof(void*) );
-  v->length = 0;
-}
-
-void gpy_ident_vec_push( gpy_ident_vector_t * const v,  void * s )
-{
-  if( s )
-    {
-      if( v->length >= v->size )
-	{
-	  signed long size = threshold_alloc( v->size );
-	  v->vector = (void**) xrealloc( v->vector, size*sizeof(void*) );
-	  v->size = size;
-	}
-      v->vector[ v->length ] = s;
-      v->length++;
-    }
-}
-
-void * gpy_ident_vec_pop( gpy_ident_vector_t * const v )
-{
-  void * retval = v->vector[ v->length-1 ];
-  v->length--;
-  return retval;
-}
-
-inline
-void gpy_init_ctx_branch( gpy_context_branch * const * o )
-{
-  if( o )
-    {
-      (*o)->decls = (gpy_hash_tab_t *)
-	xmalloc( sizeof(gpy_hash_tab_t) );
-
-      gpy_dd_hash_init_table( &((*o)->decls) );
-
-      (*o)->decl_t = VEC_alloc(gpy_ident,gc,0);
-    }
-}
-
-void gpy_init_context_tables( void )
-{
-  gpy_context_branch *o = (gpy_context_branch *)
-    xmalloc( sizeof(gpy_context_branch) );
-
-  gpy_init_ctx_branch( &o );
-
-  VEC_safe_push( gpy_ctx_t, gc, gpy_ctx_table, o );
-}
-
-bool gpy_ctx_push_decl( tree decl, const char * s,
-			gpy_context_branch * ctx)
-{
-  bool retval = true; gpy_hash_tab_t *t = NULL;
+  bool retval = true;
   gpy_hashval_t h = 0;
 
-  void ** slot = NULL;
-  gpy_ident o = (gpy_ident) xmalloc( sizeof(gpy_ident_t) );
-  o->ident = xstrdup( s );
-  
-  debug("ident <%s> at <%p>!\n", s, (void*)o );
+  h = gpy_dd_hash_string (s);
+  void ** slot = gpy_dd_hash_insert (h,decl,tbl);
 
-  t = ctx->decls;
-  debug("trying to push decl <%s>!\n", s );
-
-  h = gpy_dd_hash_string( o->ident );
-  slot = gpy_dd_hash_insert( h, decl, t );
-  if( !slot )
+  if (!slot)
     {
-      debug("successfully pushed DECL <%s>!\n", s);
-      VEC_safe_push( gpy_ident, gc, ctx->decl_t, o );
-
-      if (TREE_CODE(decl) == FUNCTION_DECL)
-	{
-	  VEC_safe_push (tree,gc,gpy_function_decls,decl);
-	}
+      debug ("pushed decl <%s> into context!\n", s);
     }
   else
     {
-      debug("decl <%s> already pushed!\n", s );
-      retval = false;
+      debug ("error pushing decl <%s>!\n", s);
     }
-
+  
   return retval;
 }
 
 tree gpy_ctx_lookup_decl (VEC(gpy_ctx_t,gc) * context, const char * s)
 {
-  tree retval = NULL;
-  unsigned int n_ctx = VEC_length( gpy_ctx_t,context );
-  int idx = 0; gpy_context_branch * it = NULL;
+  tree retval = NULL_TREE;
 
-  gpy_hashval_t h = gpy_dd_hash_string( s );
-  debug( "trying to lookup <%s> : context table length = <%i>!\n",
-	 s, n_ctx );
+  gpy_hashval_t = h = gpy_dd_hash_string (s);
+  gpy_ctx_t it;
 
-  for( idx=(n_ctx-1); idx>=0; --idx )
+  int i;
+  int l = VEC_length (gpy_ctx_t,context);
+  for (i = (l-1); i>=0; --i)
     {
-      it = VEC_index( gpy_ctx_t, context, idx );
+      it = VEC_index (gpy_ctx_t, context, i);
 
       gpy_hash_entry_t * o = NULL;
-      gpy_hash_tab_t * decl_table = NULL;
-
-      decl_table = it->decls;
-
-      o = gpy_dd_hash_lookup_table( decl_table, h );
-      if( o )
+      o = gpy_dd_hash_lookup_table (it, h);
+      if (o)
 	{
-	  if( o->data )
+	  if (o->data)
 	    {
-	      debug("found symbol <%s> in context <%p>!\n", s, (void*)it );
-	      retval = (tree) (o->data) ;
+	      debug ("found decl <%s>!\n", s);
+	      retval = (tree) o->data;
 	      break;
 	    }
 	}
     }
+
   return retval;
+}
+
+void __gpy_debug__ (const char * file, unsigned int lineno,
+		    const char * fmt, ...)
+{
+  va_list args;
+  fprintf( stderr, "debug: <%s:%i> -> ",
+           file, lineno );
+  va_start( args, fmt );
+  vfprintf( stderr, fmt, args );
+  va_end( args );
 }

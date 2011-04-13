@@ -45,7 +45,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "py-types.h"
 #include "py-runtime.h"
 
-VEC(tree,gc) * gpy_fold_primitive (const gpy_symbol_obj * const sym)
+VEC(tree,gc) * gpy_decl_fold_primitive (const gpy_symbol_obj * const sym)
 {
   VEC(tree,gc) * retval = VEC_alloc(tree,gc,0);
   switch( sym->op_a_t )
@@ -71,15 +71,9 @@ VEC(tree,gc) * gpy_fold_primitive (const gpy_symbol_obj * const sym)
   return retval;
 }
 
-VEC(tree,gc) * gpy_fold_call (tree decl, location_t l)
-{
-  VEC(tree,gc) * retval = VEC_alloc(tree,gc,0);
-
-  return retval;
-}
-
-VEC(tree,gc) * gpy_process_assign (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
-				   VEC(gpy_ctx_t,gc) * context)
+VEC(tree,gc) * gpy_decl_process_assign (gpy_symbol_obj ** op_a,
+					gpy_symbol_obj ** op_b,
+					VEC(gpy_ctx_t,gc) * context)
 {
   VEC(tree,gc) * retval = NULL; 
   gpy_symbol_obj *opa, *opb;
@@ -132,8 +126,8 @@ VEC(tree,gc) * gpy_process_assign (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_
 }
 
 VEC(tree,gc) *
-gpy_process_bin_expression (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
-			    gpy_opcode_t operation, VEC(gpy_ctx_t,gc) * context)
+gpy_decl_process_bin_expression (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
+				 gpy_opcode_t operation, VEC(gpy_ctx_t,gc) * context)
 {
   VEC(tree,gc) * retval = NULL;
   VEC(tree,gc) * t1 = NULL, * t2 = NULL;

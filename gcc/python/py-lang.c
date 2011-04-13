@@ -85,9 +85,8 @@ bool gpy_langhook_init (void)
   build_common_tree_nodes( false );
   build_common_tree_nodes_2( 0 );
 
-  void_list_node = build_tree_list( NULL_TREE, void_type_node );
+  void_list_node = build_tree_list (NULL_TREE, void_type_node);
 
-  gpy_init_context_tables ();
   gpy_initilize_types ();
 
   return true;
@@ -108,8 +107,6 @@ gpy_langhook_handle_option (size_t scode, const char *arg, int value, int kind,
 {
   enum opt_code code = (enum opt_code) scode;
   int retval = 1;
-
-  debug("inside handle option!\n");
 
   switch( code )
     {
@@ -241,17 +238,6 @@ static GTY(()) tree gpy_gc_root;
 void gpy_preserve_from_gc (tree t)
 {
   gpy_gc_root = tree_cons (NULL_TREE, t, gpy_gc_root);
-}
-
-void __gpy_debug__( const char * file, unsigned int lineno,
-		    const char * fmt, ... )
-{
-  va_list args;
-  fprintf( stderr, "debug: <%s:%i> -> ",
-           file, lineno );
-  va_start( args, fmt );
-  vfprintf( stderr, fmt, args );
-  va_end( args );
 }
 
 /* The attribute table might be used for the GCC attribute syntax, e.g.

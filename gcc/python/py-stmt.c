@@ -49,12 +49,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "py-types.h"
 #include "py-runtime.h"
 
-static gpy_symbol_obj * gpy_process_AST_Align( gpy_symbol_obj ** );
+static gpy_symbol_obj * gpy_process_AST_Align (gpy_symbol_obj **);
 
 static VEC( gpy_sym,gc ) * gpy_decls;
-VEC(gpy_ctx_t,gc) * gpy_ctx_table;
-VEC(tree,gc) * global_decls;
-VEC(tree,gc) * gpy_toplev_fncs;
 
 void gpy_process_decl (gpy_symbol_obj * sym)
 {
@@ -104,7 +101,7 @@ void gpy_process_decl (gpy_symbol_obj * sym)
                    2   2
  **/
 static
-gpy_symbol_obj * gpy_process_AST_Align( gpy_symbol_obj ** sym )
+gpy_symbol_obj * gpy_stmt_process_AST_Align (gpy_symbol_obj ** sym)
 {
   gpy_symbol_obj *nn = NULL;
   gpy_symbol_obj *retval = NULL;
@@ -189,8 +186,8 @@ gpy_symbol_obj * gpy_process_AST_Align( gpy_symbol_obj ** sym )
   return retval;
 }
 
-VEC(tree,gc) * gpy_process_expression (const gpy_symbol_obj * const sym,
-				       VEC(gpy_ctx_t,gc) * context)
+VEC(tree,gc) * gpy_stmt_process_expression (const gpy_symbol_obj * const sym,
+					    VEC(gpy_ctx_t,gc) * context)
 {
   VEC(tree,gc) * retval = NULL;
   if( sym->type == SYMBOL_PRIMARY )
@@ -264,120 +261,8 @@ VEC(tree,gc) * gpy_process_expression (const gpy_symbol_obj * const sym,
   return retval;
 }
 
-VEC(tree,gc) * gpy_process_functor (const gpy_symbol_obj * const  functor,
-				    const char * base_ident,
-				    VEC(gpy_ctx_t,gc) * context)
-{
-  VEC(tree,gc) * retval_vec = VEC_alloc (tree,gc,0);
-
-  tree params = NULL_TREE;
-
-  chainon( params, tree_cons (NULL_TREE, gpy_object_type_ptr_ptr, NULL_TREE) );
-  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
-
-  gpy_symbol_obj * o = functor->op_a.symbol_table;
-  tree fntype = build_function_type(void_type_node, void_list_node);
-  tree retval = build_decl (functor->loc, FUNCTION_DECL,
-			    get_identifier (functor->identifier),
-			    fntype);
-
-  tree declare_vars = NULL_TREE;
-  tree bind = NULL_TREE;
-  tree block = alloc_stmt_list ();
-  tree resdecl = NULL_TREE;
-  tree restype = TREE_TYPE (retval);
-
-  int idx = 0;
-  gpy_context_branch *co = NULL;
-  gpy_ident it = NULL;
-
-  SET_DECL_ASSEMBLER_NAME( retval, get_identifier(functor->identifier) );
-
-  tree check = gpy_ctx_lookup_decl (context, functor->identifier);
-  if (check)
-    {
-      error("name <%s> is already defined, dynamic re-defintion not implemented yet!\n",
-	    functor->identifier);
-      VEC_safe_push (tree,gc,retval_vec,error_mark_node);
-    }
-  else
-    {
-      TREE_PUBLIC(retval) = 1;
-      TREE_STATIC(retval) = 1;
-
-      resdecl = build_decl (BUILTINS_LOCATION, RESULT_DECL, NULL_TREE,
-			    restype);
-      DECL_CONTEXT(resdecl) = retval;
-      DECL_RESULT(retval) = resdecl;
-
-      DECL_INITIAL(retval) = block;
-
-      /* push a new context for local symbols */
-      co = (gpy_context_branch *)
-	xmalloc( sizeof(gpy_context_branch) );
-      gpy_init_ctx_branch( &co );
-      VEC_safe_push( gpy_ctx_t, gc, context, co );
-
-      while (o)
-	{
-	  /* looping over the gpy_symbol_obj block of function statements
-	     and getting the respective tree's and creating the GENERIC block
-	  */
-	  VEC(tree,gc) * x = gpy_get_tree( o,context );
-	  int itx = 0; tree xt;
-	  for( ; VEC_iterate(tree,x,itx,xt); ++itx )
-	    {
-	      gcc_assert( xt );
-	      append_to_statement_list( xt, &block );
-	    }
-	  o = o->next;
-	}
-  
-      for (; VEC_iterate (gpy_ident,co->decl_t, idx, it); ++idx)
-	{
-	  /* get all block var_decls */
-	  tree x = gpy_ctx_lookup_decl( context, it->ident);
-	  gcc_assert( TREE_CODE( x ) == VAR_DECL );
-	  debug("got var decl <%p>:<%s> within func <%s>!\n", (void*)x,
-		it->ident, functor->identifier );
-	  TREE_CHAIN( x ) = declare_vars;
-	  declare_vars = x;
-	}
- 
-      if (declare_vars != NULL_TREE)
-	{
-	  tree bl = make_node(BLOCK);
-	  BLOCK_SUPERCONTEXT(bl) = retval;
-	  DECL_INITIAL(retval) = bl;
-	  BLOCK_VARS(bl) = declare_vars;
-	  TREE_USED(bl) = 1;
-	  bind = build3(BIND_EXPR, void_type_node, BLOCK_VARS(bl),
-			NULL_TREE, bl);
-	  TREE_SIDE_EFFECTS(bind) = 1;
-	}
-      BIND_EXPR_BODY(bind) = block;
-      block = bind;
-      DECL_SAVED_TREE(retval) = block;
-   
-      VEC_pop (gpy_ctx_t, gpy_ctx_table);
-
-      gimplify_function_tree (retval);
-
-      cgraph_add_new_function (retval, false);
-      cgraph_finalize_function (retval, true);
-
-      VEC_safe_push( tree,gc,retval_vec,retval );
-
-      gpy_ctx_t x = VEC_index (gpy_ctx_t, context, 0);
-      if (!gpy_ctx_push_decl (retval, functor->identifier, x))
-	fatal_error("error pushing decl <%s>!\n", functor->identifier );
-    }
-  
-  return retval_vec;
-}
-
-VEC(tree,gc) * gpy_process_print (gpy_symbol_obj *sym,
-				  VEC(gpy_ctx_t,gc) * context)
+VEC(tree,gc) * gpy_stmt_process_print (gpy_symbol_obj *sym,
+				       VEC(gpy_ctx_t,gc) * context)
 {
   VEC(tree,gc) * retval = NULL;
   gcc_assert( sym->op_a_t == TYPE_SYMBOL );
@@ -413,15 +298,8 @@ VEC(tree,gc) * gpy_process_print (gpy_symbol_obj *sym,
   return retval;
 }
 
-VEC(tree,gc) * gpy_process_class( gpy_symbol_obj * const sym,
-				  VEC(gpy_ctx_t,gc) * context )
-{
-  VEC(tree,gc) * retval = NULL;
-  return retval;
-}
-
-VEC(tree,gc) * gpy_get_tree (gpy_symbol_obj * sym,
-			     VEC(gpy_ctx_t,gc) * context)
+VEC(tree,gc) * gpy_stmt_get_tree (gpy_symbol_obj * sym,
+				  VEC(gpy_ctx_t,gc) * context)
 {
   VEC(tree,gc) * retval = NULL;
 
@@ -437,22 +315,21 @@ VEC(tree,gc) * gpy_get_tree (gpy_symbol_obj * sym,
     {
       switch( sym->type )
 	{
-	case STRUCTURE_OBJECT_DEF:
-	  {
-	    VEC(gpy_ctx_t,gc) * class_ctx = VEC_alloc(gpy_ctx_t,gc,0);
-	    retval = gpy_process_class( sym, class_ctx );
-	  }
-	  break;
-	  
 	case STRUCTURE_FUNCTION_DEF:
 	  {
-	    VEC(gpy_ctx_t,gc) * func_ctx = VEC_alloc(gpy_ctx_t,gc,0);
-	    retval = gpy_process_functor( sym, NULL, func_ctx );
+	    gpy_hash_table_t ctx;
+	    gpy_dd_hash_init_table (&ctx);
+	    VEC_safe_push (gpy_ctx_t, gc, context, &ctx);
+
+	    retval = gpy_decl_process_functor (sym, context);
+	    VEC_pop (gpy_ctx_t, context);
 	  }
 	  break;
 
 	case KEY_PRINT:
-	  retval = gpy_process_print( sym, context );
+	  {
+	    retval = gpy_process_print (sym, context);
+	  }
 	  break;
 	  
 	default:
@@ -464,192 +341,309 @@ VEC(tree,gc) * gpy_get_tree (gpy_symbol_obj * sym,
   return retval;
 }
 
-tree gpy_main_method_decl (VEC(tree,gc) * block, gpy_context_branch * co)
+VEC(tree,gc) * gpy_decl_process_functor (const gpy_symbol_obj * const  functor,
+					 VEC(gpy_ctx_t,gc) * context)
 {
-  tree retval = NULL_TREE; int idx;
+  VEC(tree,gc) * retval_vec = VEC_alloc (tree,gc,0);
 
-  tree main_fn_type = build_function_type_list( integer_type_node, NULL_TREE );
-  tree main_fn_decl = build_decl( BUILTINS_LOCATION, FUNCTION_DECL,
-				  get_identifier("main"), main_fn_type );
+  tree params = NULL_TREE;
 
-  DECL_CONTEXT(main_fn_decl) = NULL_TREE;
-  TREE_STATIC(main_fn_decl) = true;
-  TREE_PUBLIC(main_fn_decl) = true;
-  DECL_ARGUMENTS(main_fn_decl) = NULL_TREE;
+  chainon( params, tree_cons (NULL_TREE, gpy_object_type_ptr_ptr, NULL_TREE) );
+  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
 
-  /* Define the return type (represented by RESULT_DECL) for the main functin */
-  tree main_ret = build_decl( BUILTINS_LOCATION, RESULT_DECL,
-			      NULL_TREE, TREE_TYPE(main_fn_type) );
-  DECL_CONTEXT(main_ret) = main_fn_decl;
-  DECL_ARTIFICIAL(main_ret) = true;
-  DECL_IGNORED_P(main_ret) = true;
-  
-  DECL_RESULT(main_fn_decl) = main_ret;
-
-  tree main_art_block = build_block(NULL_TREE, NULL_TREE, NULL_TREE, NULL_TREE);
-  DECL_INITIAL(main_fn_decl) = main_art_block;
+  gpy_symbol_obj * o = functor->op_a.symbol_table;
+  tree fntype = build_function_type(void_type_node, void_list_node);
+  tree retval = build_decl (functor->loc, TYPE_METHOD,
+			    get_identifier (functor->identifier),
+			    fntype);
 
   tree declare_vars = NULL_TREE;
-  tree main_stmts = alloc_stmt_list ();
+  tree bind = NULL_TREE;
+  tree block = alloc_stmt_list ();
+  tree resdecl = NULL_TREE;
+  tree restype = TREE_TYPE (retval);
 
-  tree it = NULL_TREE;
-  VEC(tree,gc) * vt = gpy_builtin_get_init_call ();
-  for (idx = 0; VEC_iterate (tree,vt,idx,it); ++idx)
-    append_to_statement_list (it, &main_stmts);
+  int idx = 0;
 
-  for (idx = 0; VEC_iterate(tree,block,idx,it); ++idx)
+  tree check = gpy_ctx_lookup_decl (context, functor->identifier);
+  if (check)
     {
-      gcc_assert (it);
-      append_to_statement_list( it, &main_stmts );
-    }
-
-  int block_decl_len = 0; gpy_ident vit = NULL;
-  for( idx = 0; VEC_iterate( gpy_ident,co->decl_t, idx, vit ); ++idx )
-    {
-      /* get all block var_decls */
-      tree x = gpy_ctx_lookup_decl( gpy_ctx_table, vit->ident);
-      gcc_assert( TREE_CODE( x ) == VAR_DECL );
-      debug("got var decl <%p>:<%s> within func <%s>!\n", (void*)x,
-	    vit->ident, "main" );
-      TREE_CHAIN( x ) = declare_vars;
-      declare_vars = x;
-      block_decl_len++;
-    }
-
-  if( block_decl_len > 0 )
-    {
-      tree * block_decl_vec = XNEWVEC( tree, block_decl_len );
-      int idy = 0;
-
-      for( idx = 0; VEC_iterate( gpy_ident,co->decl_t, idx, vit ); ++idx )
-	{
-	  tree x = gpy_ctx_lookup_decl( gpy_ctx_table, vit->ident);
-	  gcc_assert( TREE_CODE( x ) == VAR_DECL );
-
-	  block_decl_vec[ idy ] = x;
-	  idy++;
-	}
-      //block_decl_vec[ idy ] = main_ret; idy++;
-      VEC(tree,gc) * bc = gpy_builtin_get_finalize_block_call (block_decl_len,
-							       block_decl_vec);
-      for (idx = 0; VEC_iterate (tree,bc,idx,it); ++idx)
-	append_to_statement_list (it, &main_stmts);
+      error("name <%s> is already defined, dynamic re-defintion not implemented yet!\n",
+	    functor->identifier);
+      VEC_safe_push (tree,gc,retval_vec,error_mark_node);
     }
   else
     {
-      declare_vars = main_ret;
+      TREE_PUBLIC(retval) = 1;
+      TREE_STATIC(retval) = 1;
+
+      resdecl = build_decl (BUILTINS_LOCATION, RESULT_DECL, NULL_TREE,
+			    restype);
+      DECL_CONTEXT(resdecl) = retval;
+      DECL_RESULT(retval) = resdecl;
+      DECL_INITIAL(retval) = block;
+
+      while (o)
+	{
+	  /* looping over the gpy_symbol_obj block of function statements
+	     and getting the respective tree's and creating the GENERIC block
+	  */
+	  VEC(tree,gc) * x = gpy_get_tree (o,context);
+	  int itx = 0; tree xt;
+	  for( ; VEC_iterate(tree,x,itx,xt); ++itx )
+	    {
+	      gcc_assert( xt );
+	      append_to_statement_list( xt, &block );
+	    }
+	  o = o->next;
+	}
+  
+      gpy_hash_table_t * ctx = VEC_index (tree,context,VEC_length (context)-1);
+      int size = ctx->size, idx = 0;
+      gpy_hash_entry_t *array= ctx->array;
+
+      for (idx=0; idx<size; ++idx)
+	{
+	  if (array[idx).data)
+	    {
+	      tree x = (tree) array[idx].data;
+	      gcc_assert (TREE_CODE(x) == VAR_DECL);
+	      debug("got decl <%p>:<%s> within func <%s>!\n", (void*)x,
+		    IDENTIFIER_POINTER (DECL_NAME(x)), functor->identifier);
+	      TREE_CHAIN( x ) = declare_vars;
+	      declare_vars = x;
+	    }
+	}
+ 
+      if (declare_vars != NULL_TREE)
+	{
+	  tree bl = make_node(BLOCK);
+	  BLOCK_SUPERCONTEXT(bl) = retval;
+	  DECL_INITIAL(retval) = bl;
+	  BLOCK_VARS(bl) = declare_vars;
+	  TREE_USED(bl) = 1;
+	  bind = build3(BIND_EXPR, void_type_node, BLOCK_VARS(bl),
+			NULL_TREE, bl);
+	  TREE_SIDE_EFFECTS(bind) = 1;
+	}
+      BIND_EXPR_BODY(bind) = block;
+      block = bind;
+      DECL_SAVED_TREE(retval) = block;
+   
+      gimplify_function_tree (retval);
+
+      cgraph_add_new_function (retval, false);
+      cgraph_finalize_function (retval, true);
+
+      VEC_safe_push( tree,gc,retval_vec,retval );
+
+      gpy_ctx_t x = VEC_index (gpy_ctx_t, context, 0);
+      if (!gpy_ctx_push_decl (retval, functor->identifier, x))
+	fatal_error("error pushing decl <%s>!\n", functor->identifier );
+    }
+  
+  return retval_vec;
+}
+
+tree gpy_decl_create_module_initilzer (VEC(tree,gc) * stmts,
+				       VEC(tree,gc) * var_decls)
+{
+  tree params = NULL_TREE, retval = NULL_TREE;
+  chainon( params, tree_cons (NULL_TREE, void_type_node, NULL_TREE) );
+
+  tree fntype = build_function_type(void_type_node, void_list_node);
+  retval = build_decl (BUILTINS_LOCATION, TYPE_METHOD,
+		       get_identifier ("mangled_module_initilizer__"),
+		       fntype);
+
+  tree declare_vars = NULL_TREE;
+  tree bind = NULL_TREE;
+  tree block = alloc_stmt_list ();
+  tree resdecl = NULL_TREE;
+  tree restype = TREE_TYPE (retval);
+
+  tree itx = NULL_TREE;
+  int idx = 0;
+
+  TREE_PUBLIC(retval) = 1;
+  TREE_STATIC(retval) = 1;
+  
+  resdecl = build_decl (BUILTINS_LOCATION, RESULT_DECL, NULL_TREE,
+			restype);
+  DECL_CONTEXT(resdecl) = retval;
+  DECL_RESULT(retval) = resdecl;
+  DECL_INITIAL(retval) = block;
+  
+  for (; VEC_iterate (tree,stmts,idx,itx); ++idx)
+    {
+      gcc_assert (ixt);
+      append_to_statement_list (itx, &block);
+    }
+  for (idx = 0; VEC_iterate (tree,var_decls,idx,itx); ++idx)
+    {
+      gcc_assert (TREE_CODE (itx) == VAR_DECL);
+      TREE_CHAIN (itx) = declare_vars;
+      declare_vars = itx;
     }
 
-  VEC(tree,gc) * bc = gpy_builtin_get_cleanup_final_call ();
-  for (idx = 0; VEC_iterate (tree,bc,idx,it); ++idx)
-    append_to_statement_list (it, &main_stmts);
-
-  tree main_set_ret = build2( MODIFY_EXPR, TREE_TYPE(main_ret),
-			      main_ret, build_int_cst(integer_type_node, 0));
-  tree main_ret_expr = build1( RETURN_EXPR, void_type_node, main_set_ret );
-  append_to_statement_list( main_ret_expr, &main_stmts );
-
-  tree bind = NULL_TREE;
-  if( declare_vars != NULL_TREE )
+  if (declare_vars != NULL_TREE)
     {
       tree bl = make_node(BLOCK);
-      BLOCK_SUPERCONTEXT(bl) = main_fn_decl;
-      DECL_INITIAL(main_fn_decl) = bl;
+      BLOCK_SUPERCONTEXT(bl) = retval;
+      DECL_INITIAL(retval) = bl;
       BLOCK_VARS(bl) = declare_vars;
       TREE_USED(bl) = 1;
-      bind = build3( BIND_EXPR, void_type_node, BLOCK_VARS(bl),
-		     NULL_TREE, bl );
+      bind = build3(BIND_EXPR, void_type_node, BLOCK_VARS(bl),
+		    NULL_TREE, bl);
       TREE_SIDE_EFFECTS(bind) = 1;
     }
-  BIND_EXPR_BODY(bind) = main_stmts;
-  main_stmts = bind;
-  DECL_SAVED_TREE(main_fn_decl) = main_stmts;
+  BIND_EXPR_BODY(bind) = block;
+  block = bind;
+  DECL_SAVED_TREE(retval) = block;
+  
+  gimplify_function_tree (retval);
+  
+  cgraph_add_new_function (retval, false);
+  cgraph_finalize_function (retval, true);
+  
+  return retval;
+}
 
-  gimplify_function_tree( main_fn_decl );
-  cgraph_finalize_function( main_fn_decl, false );
+tree gpy_decl_create_module (VEC(tree,gc) * var_decls,
+			     VEC(tree,gc) * functors,
+			     const char * ident)
+{
+  tree retval = NULL_TREE;
 
-  retval = main_fn_decl;
+  tree module = make_node (RECORD_TYPE);
+  int idx = 0;
+  tree itx = NULL_TREE, field, last_field;
+  for (; VEC_iterate(tree,var_decls,idx,itx); ++idx)
+    {
+      gcc_assert (TREE_CODE(itx) == VAR_DECL);
+      name = DECL_NAME(itx);
+      field = build_decl (BUILTINS_LOCATION, FIELD_DECL, name,
+			  gpy_object_type_ptr);
+      DECL_CONTEXT(field) = module;
+      TYPE_FIELDS(module) = field;
+      last_field = field;
+    }
+
+  for (idx = 0; VEC_iterate(tree,functors,idx,itx); ++idx)
+    {
+      gcc_assert (TREE_CODE(itx) == TYPE_METHOD);
+      field = itx;
+      DECL_CONTEXT(field) = module;
+      TYPE_METHODS(module) = field;
+      last_field = field
+    }
+
+  tree id = get_identifier (ident);
+  tree module_type_decl = build_decl (BUILTINS_LOCATION, TYPE_DECL,
+				      id, module);
+  DECL_ARTIFICIAL (module_type_decl) = 1;
+  TYPE_NAME (module_type_decl) = id;
+  gpy_preserve_from_gc (module_type_decl);
+  rest_of_decl_compilation (module_type_decl, 1, 0);
+
+  retval = module_type_decl;
 
   return retval;
 }
 
+tree gpy_decl_create_main_ (tree module, tree module_init)
+{
+  return NULL;
+}
+
 void gpy_write_globals (void)
 {
-  gpy_context_branch *co = NULL;
+  VEC (gpy_ctx_t, gc) * context = VEC_alloc (gpy_ctx_t,gc,0)
+  gpy_hash_table_t ctx;
+  gpy_dd_hash_init_table (&ctx);
+
+  VEC_safe_push (gpy_ctx_t, gc, context, &ctx);
   gpy_symbol_obj * it = NULL;
-  VEC(tree,gc) * main_stmts_vec = VEC_alloc(tree,gc,0);
 
-   /* push a new context for local symbols */
-  co = (gpy_context_branch *)
-    xmalloc( sizeof(gpy_context_branch) );
-  gpy_init_ctx_branch( &co );
-  VEC_safe_push( gpy_ctx_t, gc, gpy_ctx_table, co );
+  VEC(tree,gc) * globals_vec = VEC_alloc (tree,gc,0);
+  VEC(tree,gc) * main_stmts_vec = VEC_alloc (tree,gc,0);
+  VEC(tree,gc) * functors = VEC_alloc (tree,gc,0);
 
-  int idx;
-  for( idx= 0; VEC_iterate(gpy_sym,gpy_decls,idx,it); ++idx )
+  tree xt = NULL_TREE;
+  int idx = 0;
+  for ( ; VEC_iterate (gpy_sym, gpy_decls, idx, it); ++idx)
     {
-      VEC(tree,gc) * x = gpy_get_tree (it, gpy_ctx_table);
-      gcc_assert (x); int itx = 0; tree xt;
+      VEC(tree,gc) * x = gpy_get_tree (it, context);
+      gcc_assert (x);
+      int itx = 0; 
+
       for ( ; VEC_iterate(tree,x,itx,xt); ++itx )
 	{
-	  if( TREE_CODE(xt) == FUNCTION_DECL )
+	  if( TREE_CODE(xt) == TYPE_METHOD )
 	    {
-	      VEC_safe_push (tree,gc,global_decls,xt);
-	    }
-	  else if( TREE_CODE(xt) == VAR_DECL )
-	    {
-	      VEC_safe_push (tree,gc,global_decls,xt);
+	      VEC_safe_push (tree,gc,functors,xt);
 	    }
 	  else
 	    {
 	      VEC_safe_push (tree,gc,main_stmts_vec,xt);
 	    }
 	}
+
     }
 
-  tree itx = NULL_TREE;  
-  /* Add in the main method decl! */
-  VEC_safe_push (tree,gc,global_decls,gpy_main_method_decl (main_stmts_vec,co));
+  VEC(tree,gc) * global_var_decls = VEC_alloc (tree,gc,0);
+  gpy_hash_table_t * ctx = VEC_index (tree,context,VEC_length (context)-1);
+  int size = ctx->size, idx = 0;
+  gpy_hash_entry_t *array= ctx->array;
+  
+  for (idx=0; idx<size; ++idx)
+    {
+      if (array[idx).data)
+	{
+	  tree x = (tree) array[idx].data;
+	  gcc_assert (TREE_CODE(x) == VAR_DECL);
+	  debug("got decl <%p>:<%s>!\n", (void*)x,
+		IDENTIFIER_POINTER (DECL_NAME(x)));
+	  VEC_safe_push (tree, gc, global_var_decls, x);
+	}
+    }
 
-  VEC_pop( gpy_ctx_t, gpy_ctx_table );
+  tree mod_init = gpy_decl_create_module_initilzer (main_stmts_vec, NULL);
+  VEC_safe_push (tree,gc,functors,mod_init);
 
+  tree module_main = gpy_decl_create_module(global_var_decls,
+					    functors,
+					    "mangled_module_name__");
+  VEC_safe_push (tree,gc,globals_vec,module_main);
+  VEC_safe_push (tree,gc,globals_vec,gpy_decl_create_main_ (module_main,
+							    mod_init))
+
+  int global_vec_len = VEC_length (tree, globals_vec);
   int idy = 0;
-  int global_vec_len = VEC_length (tree, global_decls);
+  tree itx = NULL_TREE;
   tree * global_vec = XNEWVEC (tree, global_vec_len);
-
   FILE *tu_stream = dump_begin (TDI_tu, NULL);
-  for ( idx=0; VEC_iterate(tree,global_decls,idx,itx); ++idx )
+
+  for (idx = 0; VEC_iterate(tree, globals_vec, idx, itx); ++idx)
     {
       debug_tree (itx);
 
       if (tu_stream)
 	dump_node(itx, 0, tu_stream);
 
-      global_vec[ idy ] = itx;
+      global_vec[idy] = itx;
       idy++;
     }
   if (tu_stream)
     dump_end(TDI_tu, tu_stream);
 
   debug("Finished processing!\n\n");
-
   debug("global_vec len = <%i>!\n", global_vec_len);
 
   wrapup_global_declarations (global_vec, global_vec_len);
-
-  debug ("whoop1!\n");
-
   check_global_declarations (global_vec, global_vec_len);
-
-  debug ("whoop2!\n");
-
   emit_debug_global_declarations (global_vec, global_vec_len);
-
-  debug ("whoop3!\n");
-
   cgraph_finalize_compilation_unit ();
-
-  debug ("whoop4!\n");
 
   debug("finished passing to middle-end!\n\n");
 }
