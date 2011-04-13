@@ -1,3 +1,385 @@
+2011-04-13  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/sfinae13.C: New.
+
+2011-04-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse2-init-v2di-2.c: Update scan pattern.
+
+2011-04-12  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/pr43698.c: Remove -march option.
+
+2011-04-12  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/sync-1.c: Limit to sync_int_long, do not use
+	-march option.
+
+2011-04-12  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/48360
+	PR fortran/48456
+	* gfortran.dg/realloc_on_assign_6.f03: New test.
+
+2011-04-12  Kai Tietz  <ktietz@redhat.com>
+
+	* g++.dg/ext/bitfield2.C: Add for i?86/x86_64-*-mingw*
+	targets the additional -mno-ms-bitfields and
+	-Wno-packed-bitfield-compat options.
+	* g++.dg/ext/bitfield3.C: Likewise.
+	* g++.dg/ext/bitfield4.C: Likewise.
+	* g++.dg/ext/bitfield5.C: Likewise.
+	* gcc.dg/bitfld-15.c: Likewise.
+	* gcc.dg/bitfld-16.c: Likewise.
+	* gcc.dg/bitfld-17.c: Likewise.
+	* gcc.dg/bitfld-18.c: Likewise.
+
+2011-04-12  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* gcc.target/arm/neon-vld3-1.c: New test.
+	* gcc.target/arm/neon-vst3-1.c: New test.
+	* gcc.target/arm/neon/v*.c: Regenerate.
+
+2011-04-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/48549
+	* g++.dg/opt/pr48549.C: New test.
+
+2011-04-12  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46076
+	* gcc.dg/tree-ssa/pr46076.c: Un-XFAIL.
+
+2011-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/21164
+	* lib/compat.exp (compat-execute): Declare unsupported after
+	stripping path from src1.
+	* lib/lto.exp (lto-execute): Likewise.
+
+2011-04-12  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/48552
+	* gcc.dg/pr48552-1.c: New test.
+	* gcc.dg/pr48552-2.c: New test.
+
+2011-04-11  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/sfinae12.C: New.
+
+	* g++.dg/cpp0x/enum10.C: New.
+
+	* g++.dg/cpp0x/lambda/lambda-this4.C: New.
+
+	* g++.dg/cpp0x/rv-func.C: New.
+
+2011-04-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/torture/pr47917.c: Define _ISO_C_SOURCE=19990L for
+	alpha*-dec-osf5*.
+
+2011-04-11  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/48195
+	* gcc.dg/ipa/pr48195.c: New test.
+
+2011-04-10  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/return3.adb: Remove unused switch.
+
+2011-04-08  Mike Stump  <mikestump@comcast.net>
+
+	PR testsuite/48506
+	* gcc.dg/tree-ssa/ssa-ccp-17.c: Robustify against ports that
+	default to fno-common.
+
+2011-04-08  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/sibcall-3.c: Don't xfail on AVR.
+	* gcc.dg/sibcall-4.c: Don't xfail on AVR.
+
+2011-04-08  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/48448
+	* gfortran.dg/function_optimize_5.f90:  New test.
+
+2011-04-08  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/aggr17.adb: New test.
+	* gnat.dg/aggr18.adb: Likewise.
+
+2011-04-08  Michael Matz  <matz@suse.de>
+
+	PR middle-end/48389
+	* gcc.target/i386/pr48389.c: New test.
+
+2011-04-08  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/48272
+	* g++.dg/opt/pr48272.C: New.
+
+2011-04-08  Dmitry Melnik  <dm@ispras.ru>
+
+	PR rtl-optimization/48235
+	* gcc.dg/pr48235.c: New.
+
+2011-04-08  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/48302
+	* g++.dg/opt/pr48302.C: New.
+
+2011-04-08  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR target/48273
+	* g++.dg/opt/pr48273.C: New.
+
+2011-04-08  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/48442
+	* gcc.dg/pr48442.c: New.
+
+2011-04-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48377
+	* gcc.dg/vect/pr48377.c: New test.
+
+2011-04-07  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/regress/call1.C: New.
+
+	* g++.dg/cpp0x/variadic107.C: New.
+
+	* g++.dg/cpp0x/sfinae11.C: New.
+	* g++.dg/cpp0x/noexcept02.C: Fix.
+
+	* g++.dg/cpp0x/sfinae10.C: New.
+
+	* g++.dg/cpp0x/sfinae9.C: New.
+
+	* c-c++-common/Wcast-qual-1.c: Move here from...
+	* gcc.dg/cast-qual-3.c: ...here, and...
+	* g++.dg/warn/Wcast-qual2.C: ...here.
+
+	* g++.dg/cpp0x/sfinae8.C: New.
+
+	* g++.dg/cpp0x/sfinae7.C: New.
+
+	* g++.dg/cpp0x/enum9.C: New.
+
+2011-04-07  Mike Stump  <mikestump@comcast.net>
+
+	* gcc.dg/torture/stackalign/non-local-goto-5.c: Fix for targets
+	with no trampolines.
+
+2011-04-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/48117
+	* gfortran.dg/gomp/pr48117.f90: New test.
+
+	PR debug/48343
+	* gcc.dg/torture/pr48343.c: New test.
+
+2011-04-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.target/i386/asm-6.c: Remove dg-xfail-if.
+
+2011-04-07  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* gcc.dg/lto/20090210_0.c: Require tls_runtime target.
+
+2011-04-07  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/43920
+	* lib/scanasm.exp (object-size): New proc.
+	* gcc.target/arm/pr43920-2.c: New test.
+
+2011-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	PR fortran/48477
+	* gfortran.dg/coarray_13.f90: Avoid out-of-bounds access.
+
+2011-04-06  Steve Ellcey  <sje@cup.hp.com>
+
+	* gcc.dg/mtune.c: Prune note from output.
+
+2011-04-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/48466
+	* gcc.dg/guality/pr36977.c: New test.
+	* gcc.dg/guality/pr48466.c: New test.
+
+2011-04-06  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* gcc.target/arm/pr43920-1.c: Fix accidental duplication.
+
+2011-04-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/return3.adb: New test.
+
+2011-04-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/47663
+	* gcc.dg/tree-ssa/inline-8.c: New testcase.
+
+2011-04-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc.dg/torture/pr47917.c: Add -D_XOPEN_SOURCE=500 to dg-options for
+	Solaris 8 and 9 as well.
+
+2011-04-05  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/43920
+	* gcc.target/arm/pr43920-1.c: New test.
+
+2011-04-04  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* g++.dg/abi/arm_cxa_vec1.C (__ARM_EABI__): Fix typo.
+	(cctor): Actually return the value.
+	(main): Cast return values.
+
+2010-04-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* gfortran.dg/character_comparison_8.f90:  New test.
+
+2010-04-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* frontend-passes: (optimize_lexical_comparison): New function.
+	(optimize_expr): Call it.
+	(optimize_comparison): Also handle lexical comparison functions.
+	Return false instad of -2 for unequal comparison.
+
+2011-04-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/48412
+	* function_optimize_4.f90:  New test.
+
+2011-04-04  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_10.f90: Add coarray descriptor diagnostic check.
+	* gfortran.dg/coarray_13.f90: Add checks for run-time cobounds.
+	* gfortran.dg/coarray_15.f90: New.
+
+2011-04-04  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gfortran.dg/bessel_6.f90: Use dg-add-options ieee.
+	* gfortran.dg/bessel_7.f90: Likewise.
+
+2011-04-03  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/bessel_6.f90: Reduce mymax for Tru64.
+
+2011-04-03  Richard Guenther  <rguenther@suse.de>
+	    Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/if-cvt-stores-vect-ifcvt-18.c: New test.
+	* gcc.dg/vect/vect.exp: Run if-cvt-stores-vect* tests with
+	-ftree-loop-if-convert-stores.
+
+2011-04-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/aggr2.ads: New test.
+
+2011-04-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/debug2.ad[sb]: New test.
+	* gnat.dg/debug2_pkg.ads: New helper.
+	* gnat.dg/debug3.ad[sb]: New test.
+
+2011-04-01  Uros Bizjak  <ubizjak@gmail.com>
+
+	* go.test/go-test.exp (go-set-goarch): Recognize alpha*-*-*.
+
+2011-04-01  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/48335
+	* gcc.c-torture/compile/pr48335-1.c: New test.
+	* gcc.dg/pr48335-1.c: New test.
+	* gcc.dg/pr48335-2.c: New test.
+	* gcc.dg/pr48335-3.c: New test.
+	* gcc.dg/pr48335-4.c: New test.
+	* gcc.dg/pr48335-5.c: New test.
+	* gcc.dg/pr48335-6.c: New test.
+	* gcc.dg/pr48335-7.c: New test.
+	* gcc.dg/pr48335-8.c: New test.
+	* gcc.target/i386/pr48335-1.c: New test.
+
+2011-04-01  Vincent Lefevre  <vincent+gcc@vinc17.org>
+
+	PR c/36299
+	* gcc.dg/Waddress.c: New test.
+
+2011-04-01  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/48352
+	* gfortran.dg/function_optimize_3.f90:  New test.
+
+2011-04-01  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* gcc.c-torture/compile/20110401-1.c: New test.
+
+	* g++.dg/lto/20091002-1_0.C: Use "dg-require-effective-target fpic".
+	* g++.dg/lto/20091002-2_0.C: Likewise.
+	* g++.dg/lto/20090303_0.c: Likewise.
+	* g++.dg/lto/20091004-1_0.C: Likewise.
+	* g++.dg/lto/20091002-3_0.C: Likewise.
+	* g++.dg/lto/20091004-2_0.C: Likewise.
+	* g++.dg/lto/20081123_0.C: Likewise.
+	* g++.dg/lto/20090313_0.C: Likewise.
+	* g++.dg/lto/20081109-1_0.C: Likewise.
+	* g++.dg/lto/20081219_0.C: Likewise.
+	* g++.dg/lto/20081204-1_0.C: Likewise.
+	* g++.dg/lto/20090302_0.C: Likewise.
+	* g++.dg/lto/20081119-1_0.C: Likewise.
+	* g++.dg/lto/20081118_0.C: Likewise.
+	* gcc.dg/lto/20091020-2_0.c: Likewise.
+	* gcc.dg/lto/20090210_0.c: Likewise.
+	* gcc.dg/lto/20081204-1_0.c: Likewise.
+	* gcc.dg/lto/20081224_0.c: Likewise.
+	* gcc.dg/lto/20090219_0.c: Likewise.
+	* gcc.dg/lto/20091014-1_0.c: Likewise.
+	* gcc.dg/lto/20091016-1_0.c: Likewise.
+	* gcc.dg/lto/20090206-2_0.c: Likewise.
+	* gcc.dg/lto/20090116_0.c: Likewise.
+	* gcc.dg/lto/20091013-1_0.c: Likewise.
+	* gcc.dg/lto/20091015-1_0.c: Likewise.
+	* gcc.dg/lto/20090126-2_0.c: Likewise.
+
+2011-03-31  Ian Lance Taylor  <iant@google.com>
+
+	* go.test/go-test.exp (go-set-goarch): Recognize MIPS ABIs.
+
+2011-03-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt16.adb: New test.
+
+2011-03-31  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/defaulted24.C: New.
+
+2011-03-31  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/16292
+	* gfortran.dg/g77/cabs.f: Only xfail execution on mips-sgi-irix6*
+	with -O0.
+
+2011-03-31  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* g++.dg/other/i386-9.C: New test.
+
+2011-03-30  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* go.test/go-test.exp (go-set-goarch): Use sparc64 for 64-bit SPARC.
+
+2011-03-30  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/regress/error-recovery1.C: New.
+
+	* g++.dg/cpp0x/regress/isnan.C: New.
+
+	* g++.dg/cpp0x/initlist46.C: New.
+
 2011-03-30  Richard Sandiford  <richard.sandiford@linaro.org>
 
 	PR target/47551
@@ -205,7 +587,7 @@
 	* gcc.dg/graphite/block-8.c: Likewise.
 
 2011-03-25  Richard Guenther  <rguenther@suse.de>
- 
+
 	* g++.dg/tree-ssa/pr41186.C: Scan the appropriate FRE dump.
 	* g++.dg/tree-ssa/pr8781.C: Likewise.
 	* gcc.dg/ipa/ipa-pta-13.c: Likewise.
@@ -1560,6 +1942,13 @@
 
 	PR fortran/47775
 	* gfortran.dg/func_result_6.f90: New.
+
+2011-02-18  Michael Matz  <matz@suse.de>
+
+	PR fortran/45586
+	* gfortran.dg/lto/pr45586_0.f90: New test.
+	* gfortran.dg/typebound_proc_20.f90: Ditto.
+	* gfortran.dg/typebound_proc_21.f90: Ditto.
 
 2011-02-18  Paolo Carlini  <paolo.carlini@oracle.com>
 

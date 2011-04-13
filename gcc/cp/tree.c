@@ -73,7 +73,9 @@ lvalue_kind (const_tree ref)
       if (TYPE_REF_IS_RVALUE (TREE_TYPE (ref))
 	  && TREE_CODE (ref) != PARM_DECL
 	  && TREE_CODE (ref) != VAR_DECL
-	  && TREE_CODE (ref) != COMPONENT_REF)
+	  && TREE_CODE (ref) != COMPONENT_REF
+	  /* Functions are always lvalues.  */
+	  && TREE_CODE (TREE_TYPE (TREE_TYPE (ref))) != FUNCTION_TYPE)
 	return clk_rvalueref;
 
       /* lvalue references and named rvalue references are lvalues.  */
@@ -373,7 +375,7 @@ build_aggr_init_array (tree return_type, tree fn, tree slot, int nargs,
    callable.  */
 
 tree
-build_aggr_init_expr (tree type, tree init)
+build_aggr_init_expr (tree type, tree init, tsubst_flags_t complain)
 {
   tree fn;
   tree slot;
@@ -382,7 +384,8 @@ build_aggr_init_expr (tree type, tree init)
 
   /* Make sure that we're not trying to create an instance of an
      abstract class.  */
-  abstract_virtuals_error (NULL_TREE, type);
+  if (abstract_virtuals_error_sfinae (NULL_TREE, type, complain))
+    return error_mark_node;
 
   if (TREE_CODE (init) == CALL_EXPR)
     fn = CALL_EXPR_FN (init);
@@ -437,9 +440,9 @@ build_aggr_init_expr (tree type, tree init)
    and language-specific expression expanders.  */
 
 tree
-build_cplus_new (tree type, tree init)
+build_cplus_new (tree type, tree init, tsubst_flags_t complain)
 {
-  tree rval = build_aggr_init_expr (type, init);
+  tree rval = build_aggr_init_expr (type, init, complain);
   tree slot;
 
   if (TREE_CODE (rval) == AGGR_INIT_EXPR)
@@ -1460,8 +1463,6 @@ build_overload (tree decl, tree chain)
 {
   if (! chain && TREE_CODE (decl) != TEMPLATE_DECL)
     return decl;
-  if (chain && TREE_CODE (chain) != OVERLOAD)
-    chain = ovl_cons (chain, NULL_TREE);
   return ovl_cons (decl, chain);
 }
 
@@ -1805,7 +1806,8 @@ bot_manip (tree* tp, int* walk_subtrees, void* data)
       tree u;
 
       if (TREE_CODE (TREE_OPERAND (t, 1)) == AGGR_INIT_EXPR)
-	u = build_cplus_new (TREE_TYPE (t), TREE_OPERAND (t, 1));
+	u = build_cplus_new (TREE_TYPE (t), TREE_OPERAND (t, 1),
+			     tf_warning_or_error);
       else
 	u = build_target_expr_with_type (TREE_OPERAND (t, 1), TREE_TYPE (t));
 
@@ -2421,7 +2423,7 @@ maybe_dummy_object (tree type, tree* binfop)
   else if (current != current_class_type
 	   && context == nonlambda_method_basetype ())
     /* In a lambda, need to go through 'this' capture.  */
-    decl = (cp_build_indirect_ref
+    decl = (build_x_indirect_ref
 	    ((lambda_expr_this_capture
 	      (CLASSTYPE_LAMBDA_EXPR (current_class_type))),
 	     RO_NULL, tf_warning_or_error));

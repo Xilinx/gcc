@@ -183,6 +183,9 @@
 #
 #  gnu_ld		Set to yes or no depending on whether the target
 #			system normally uses GNU ld.
+#
+#  target_has_targetcm	Set to yes or no depending on whether the target
+#			has its own definition of targetcm.
 
 out_file=
 tmake_file=
@@ -200,6 +203,7 @@ extra_options=
 c_target_objs=
 cxx_target_objs=
 fortran_target_objs=
+target_has_targetcm=no
 tm_defines=
 xm_defines=
 # Set this to force installation and use of collect2.
@@ -292,6 +296,7 @@ arm*-*-*)
 	extra_headers="mmintrin.h arm_neon.h"
 	c_target_objs="arm-c.o"
 	cxx_target_objs="arm-c.o"
+	extra_options="${extra_options} arm/arm-tables.opt"
 	;;
 avr-*-*)
 	cpu_type=avr
@@ -478,6 +483,7 @@ case ${target} in
   c_target_objs="${c_target_objs} darwin-c.o"
   cxx_target_objs="${cxx_target_objs} darwin-c.o"
   fortran_target_objs="darwin-f.o"
+  target_has_targetcm=yes
   extra_objs="darwin.o"
   extra_gcc_objs="darwin-driver.o"
   default_use_cxa_atexit=yes
@@ -1162,6 +1168,7 @@ x86_64-*-elf*)
 	;;
 i[34567]86-*-freebsd*)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h ${fbsd_tm_file} i386/freebsd.h"
+	tmake_file="${tmake_file} i386/t-crtstuff"
 	;;
 x86_64-*-freebsd*)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h ${fbsd_tm_file} i386/x86-64.h i386/freebsd.h i386/freebsd64.h"
@@ -1200,7 +1207,7 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 		# Assume modern glibc
 		default_gnu_indirect_function=yes
 		if test x$enable_targets = xall; then
-			tm_file="${tm_file} i386/x86-64.h i386/linux64.h"
+			tm_file="${tm_file} i386/x86-64.h i386/gnu-user64.h i386/linux64.h"
 			tm_defines="${tm_defines} TARGET_BI_ARCH=1"
 			tmake_file="${tmake_file} i386/t-linux64"
 			need_64bit_hwint=yes
@@ -1220,23 +1227,23 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 				;;
 			esac
 		else
-			tm_file="${tm_file} i386/linux.h"
+			tm_file="${tm_file} i386/gnu-user.h i386/linux.h"
 		fi
 		;;
-	i[34567]86-*-knetbsd*-gnu) tm_file="${tm_file} i386/linux.h knetbsd-gnu.h i386/knetbsd-gnu.h" ;;
-	i[34567]86-*-kfreebsd*-gnu) tm_file="${tm_file} i386/linux.h kfreebsd-gnu.h i386/kfreebsd-gnu.h" ;;
-	i[34567]86-*-kopensolaris*-gnu) tm_file="${tm_file} i386/linux.h kopensolaris-gnu.h i386/kopensolaris-gnu.h" ;;
-	i[34567]86-*-gnu*) tm_file="$tm_file i386/linux.h gnu.h i386/gnu.h";;
+	i[34567]86-*-knetbsd*-gnu) tm_file="${tm_file} i386/gnu-user.h i386/linux.h knetbsd-gnu.h i386/knetbsd-gnu.h" ;;
+	i[34567]86-*-kfreebsd*-gnu) tm_file="${tm_file} i386/gnu-user.h i386/linux.h kfreebsd-gnu.h i386/kfreebsd-gnu.h" ;;
+	i[34567]86-*-kopensolaris*-gnu) tm_file="${tm_file} i386/gnu-user.h i386/linux.h kopensolaris-gnu.h i386/kopensolaris-gnu.h" ;;
+	i[34567]86-*-gnu*) tm_file="$tm_file i386/gnu-user.h i386/linux.h gnu.h i386/gnu.h";;
 	esac
 	tmake_file="${tmake_file} i386/t-crtstuff i386/t-crtpc i386/t-crtfm t-dfprules"
 	;;
 x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h \
-		 i386/x86-64.h i386/linux64.h"
+		 i386/x86-64.h i386/gnu-user64.h i386/linux64.h"
 	case ${target} in
 	x86_64-*-linux*)
 	  default_gnu_indirect_function=glibc-2011 ;;
-	x86_64-*-kfreebsd*-gnu) tm_file="${tm_file} kfreebsd-gnu.h" ;;
+	x86_64-*-kfreebsd*-gnu) tm_file="${tm_file} kfreebsd-gnu.h i386/kfreebsd-gnu.h" ;;
 	x86_64-*-knetbsd*-gnu) tm_file="${tm_file} knetbsd-gnu.h" ;;
 	esac
 	tmake_file="${tmake_file} i386/t-linux64 i386/t-crtstuff i386/t-crtpc i386/t-crtfm t-dfprules"
@@ -1410,7 +1417,7 @@ i[34567]86-*-cygwin*)
 	use_gcc_stdint=wrap
 	;;
 i[34567]86-*-mingw* | x86_64-*-mingw*)
-	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h i386/mingw32.h"
+	tm_file="${tm_file} i386/unix.h i386/bsd.h i386/gas.h dbxcoff.h i386/cygming.h"
 	xm_file=i386/xm-mingw32.h
 	case ${target} in
 		x86_64-*-* | *-w64-*)
@@ -1420,6 +1427,10 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 		*)
 			;;
 	esac
+	if test x$enable_threads = xposix ; then
+		tm_file="${tm_file} i386/mingw-pthread.h"
+	fi
+	tm_file="${tm_file} i386/mingw32.h"
 	# This makes the logic if mingw's or the w64 feature set has to be used
 	case ${target} in
 		*-w64-*)
@@ -1488,8 +1499,12 @@ i[34567]86-*-mingw* | x86_64-*-mingw*)
 	use_gcc_stdint=wrap
 	case ${enable_threads} in
 	  "" | yes | win32)	  thread_file='win32'
-	  tmake_file="${tmake_file} i386/t-gthr-win32"
-	  ;;
+	    tmake_file="${tmake_file} i386/t-gthr-win32"
+	    ;;
+	  posix)
+	    thread_file='posix'
+	    tmake_file="i386/t-mingw-pthread ${tmake_file}"
+	    ;;
 	esac
 	case ${target} in
 		x86_64-*-mingw*)
@@ -2087,7 +2102,7 @@ powerpc-wrs-vxworks|powerpc-wrs-vxworksae)
 	extra_headers=ppc-asm.h
 	case ${target} in
 	  *-vxworksae*)
-	    tm_file="${tm_file} vx-common.h vxworksae.h rs6000/vxworks.h rs6000/e500.h rs6000/vxworksae.h"
+	    tm_file="${tm_file} vx-common.h vxworksae.h rs6000/vxworks.h rs6000/e500.h"
 	    tmake_file="${tmake_file} rs6000/t-vxworksae"
 	    ;;
 	  *-vxworks*)
@@ -2652,6 +2667,11 @@ i[34567]86-*-* | x86_64-*-*)
 powerpc*-*-* | rs6000-*-*)
 	tm_file="${tm_file} rs6000/option-defaults.h"
 esac
+
+if [ "$target_has_targetcm" = "no" ]; then
+  c_target_objs="$c_target_objs default-c.o"
+  cxx_target_objs="$cxx_target_objs default-c.o"
+fi
 
 # Support for --with-cpu and related options (and a few unrelated options,
 # too).

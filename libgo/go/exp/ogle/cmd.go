@@ -170,7 +170,7 @@ func cmdLoad(args []byte) os.Error {
 	}
 
 	// Get symbols
-	f, err := os.Open(fname, os.O_RDONLY, 0)
+	f, err := os.Open(fname)
 	if err != nil {
 		tproc.Detach()
 		return err
@@ -205,7 +205,7 @@ func parseLoad(args []byte) (ident string, path string, err os.Error) {
 	sc, ev := newScanner(args)
 
 	var toks [4]token.Token
-	var lits [4][]byte
+	var lits [4]string
 	for i := range toks {
 		_, toks[i], lits[i] = sc.Scan()
 	}

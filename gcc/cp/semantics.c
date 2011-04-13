@@ -2154,16 +2154,29 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
     {
       if (TREE_CODE (result) == INDIRECT_REF)
 	result = TREE_OPERAND (result, 0);
-      gcc_assert (TREE_CODE (result) == CALL_EXPR
-		  /* FIXME cp_build_function_call_vec should avoid argument
-		     and return transformations like build_over_call does.  */
-		  || TREE_CODE (result) == TARGET_EXPR
-		  || TREE_CODE (fn) == PSEUDO_DTOR_EXPR
-		  || errorcount);
       result = build_call_vec (TREE_TYPE (result), orig_fn, orig_args);
       KOENIG_LOOKUP_P (result) = koenig_p;
       release_tree_vector (orig_args);
       result = convert_from_reference (result);
+    }
+
+  if (koenig_p)
+    {
+      /* Free garbage OVERLOADs from arg-dependent lookup.  */
+      tree next = NULL_TREE;
+      for (fn = orig_fn;
+	   fn && TREE_CODE (fn) == OVERLOAD && OVL_ARG_DEPENDENT (fn);
+	   fn = next)
+	{
+	  if (processing_template_decl)
+	    /* In a template, we'll re-use them at instantiation time.  */
+	    OVL_ARG_DEPENDENT (fn) = false;
+	  else
+	    {
+	      next = OVL_CHAIN (fn);
+	      ggc_free (fn);
+	    }
+	}
     }
 
   return result;
@@ -2296,14 +2309,24 @@ finish_unary_op_expr (enum tree_code code, tree expr)
    the CONSTRUCTOR in COMPOUND_LITERAL is being cast.  */
 
 tree
-finish_compound_literal (tree type, tree compound_literal)
+finish_compound_literal (tree type, tree compound_literal,
+			 tsubst_flags_t complain)
 {
   if (type == error_mark_node)
     return error_mark_node;
 
+  if (TREE_CODE (type) == REFERENCE_TYPE)
+    {
+      compound_literal
+	= finish_compound_literal (TREE_TYPE (type), compound_literal,
+				   complain);
+      return cp_build_c_cast (type, compound_literal, complain);
+    }
+
   if (!TYPE_OBJ_P (type))
     {
-      error ("compound literal of non-object type %qT", type);
+      if (complain & tf_error)
+	error ("compound literal of non-object type %qT", type);
       return error_mark_node;
     }
 
@@ -2325,17 +2348,50 @@ finish_compound_literal (tree type, tree compound_literal)
 	 that it came from T{} rather than T({}).  */
       CONSTRUCTOR_IS_DIRECT_INIT (compound_literal) = 1;
       compound_literal = build_tree_list (NULL_TREE, compound_literal);
-      return build_functional_cast (type, compound_literal, tf_error);
+      return build_functional_cast (type, compound_literal, complain);
     }
 
   if (TREE_CODE (type) == ARRAY_TYPE
       && check_array_initializer (NULL_TREE, type, compound_literal))
     return error_mark_node;
   compound_literal = reshape_init (type, compound_literal);
-  if (TREE_CODE (type) == ARRAY_TYPE)
-    cp_complete_array_type (&type, compound_literal, false);
+  if (TREE_CODE (type) == ARRAY_TYPE
+      && TYPE_DOMAIN (type) == NULL_TREE)
+    {
+      cp_complete_array_type_or_error (&type, compound_literal,
+				       false, complain);
+      if (type == error_mark_node)
+	return error_mark_node;
+    }
   compound_literal = digest_init (type, compound_literal);
-  return get_target_expr (compound_literal);
+  /* Put static/constant array temporaries in static variables, but always
+     represent class temporaries with TARGET_EXPR so we elide copies.  */
+  if ((!at_function_scope_p () || CP_TYPE_CONST_P (type))
+      && TREE_CODE (type) == ARRAY_TYPE
+      && initializer_constant_valid_p (compound_literal, type))
+    {
+      tree decl = create_temporary_var (type);
+      DECL_INITIAL (decl) = compound_literal;
+      TREE_STATIC (decl) = 1;
+      if (literal_type_p (type) && CP_TYPE_CONST_NON_VOLATILE_P (type))
+	{
+	  /* 5.19 says that a constant expression can include an
+	     lvalue-rvalue conversion applied to "a glvalue of literal type
+	     that refers to a non-volatile temporary object initialized
+	     with a constant expression".  Rather than try to communicate
+	     that this VAR_DECL is a temporary, just mark it constexpr.  */
+	  DECL_DECLARED_CONSTEXPR_P (decl) = true;
+	  DECL_INITIALIZED_BY_CONSTANT_EXPRESSION_P (decl) = true;
+	  TREE_CONSTANT (decl) = true;
+	}
+      cp_apply_type_quals_to_decl (cp_type_quals (type), decl);
+      decl = pushdecl_top_level (decl);
+      DECL_NAME (decl) = make_anon_name ();
+      SET_DECL_ASSEMBLER_NAME (decl, DECL_NAME (decl));
+      return decl;
+    }
+  else
+    return get_target_expr (compound_literal);
 }
 
 /* Return the declaration for the function-name variable indicated by
@@ -4764,9 +4820,9 @@ describable_type (tree expr)
    a full expression.  */
 
 tree
-finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
+finish_decltype_type (tree expr, bool id_expression_or_member_access_p,
+		      tsubst_flags_t complain)
 {
-  tree orig_expr = expr;
   tree type = NULL_TREE;
 
   if (!expr || error_operand_p (expr))
@@ -4777,7 +4833,8 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
       || (TREE_CODE (expr) == BIT_NOT_EXPR
 	  && TYPE_P (TREE_OPERAND (expr, 0))))
     {
-      error ("argument to decltype must be an expression");
+      if (complain & tf_error)
+	error ("argument to decltype must be an expression");
       return error_mark_node;
     }
 
@@ -4802,6 +4859,13 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
   /* The type denoted by decltype(e) is defined as follows:  */
 
   expr = resolve_nondeduced_context (expr);
+
+  if (type_unknown_p (expr))
+    {
+      if (complain & tf_error)
+	error ("decltype cannot resolve address of overloaded function");
+      return error_mark_node;
+    }
 
   /* To get the size of a static data member declared as an array of
      unknown bound, we need to instantiate it.  */
@@ -4832,25 +4896,8 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
         expr = TREE_OPERAND (expr, 1);
 
       if (TREE_CODE (expr) == BASELINK)
-        /* See through BASELINK nodes to the underlying functions.  */
+        /* See through BASELINK nodes to the underlying function.  */
         expr = BASELINK_FUNCTIONS (expr);
-
-      if (TREE_CODE (expr) == TEMPLATE_ID_EXPR)
-	expr = TREE_OPERAND (expr, 0);
-
-      if (TREE_CODE (expr) == OVERLOAD)
-        {
-          if (OVL_CHAIN (expr)
-	      || TREE_CODE (OVL_FUNCTION (expr)) == TEMPLATE_DECL)
-            {
-              error ("%qE refers to a set of overloaded functions", orig_expr);
-              return error_mark_node;
-            }
-          else
-            /* An overload set containing only one function: just look
-               at that function.  */
-            expr = OVL_FUNCTION (expr);
-        }
 
       switch (TREE_CODE (expr))
         {
@@ -4893,9 +4940,7 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
           break;
 
         default:
-	  gcc_assert (TYPE_P (expr) || DECL_P (expr)
-		      || TREE_CODE (expr) == SCOPE_REF);
-          error ("argument to decltype must be an expression");
+	  gcc_unreachable ();
           return error_mark_node;
         }
     }
@@ -4929,12 +4974,6 @@ finish_decltype_type (tree expr, bool id_expression_or_member_access_p)
 	  if (clk != clk_none && !(clk & clk_class))
 	    type = cp_build_reference_type (type, (clk & clk_rvalueref));
 	}
-    }
-
-  if (!type || type == unknown_type_node)
-    {
-      error ("type of %qE is unknown", expr);
-      return error_mark_node;
     }
 
   return type;
@@ -6726,6 +6765,9 @@ non_const_var_error (tree r)
   tree type = TREE_TYPE (r);
   error ("the value of %qD is not usable in a constant "
 	 "expression", r);
+  /* Avoid error cascade.  */
+  if (DECL_INITIAL (r) == error_mark_node)
+    return;
   if (DECL_DECLARED_CONSTEXPR_P (r))
     inform (DECL_SOURCE_LOCATION (r),
 	    "%qD used in its own initializer", r);
@@ -7332,6 +7374,8 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
             class member access expression, including the result of the
             implicit transformation in the body of the non-static
             member function (9.3.1);  */
+      /* FIXME this restriction seems pointless since the standard dropped
+	 "potential constant expression".  */
       if (is_this_parameter (t))
         {
           if (flags & tf_error)
@@ -7347,51 +7391,63 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       {
         tree fun = get_function_named_in_call (t);
         const int nargs = call_expr_nargs (t);
-        if (TREE_CODE (fun) != FUNCTION_DECL)
+	i = 0;
+
+	if (is_overloaded_fn (fun))
+	  {
+	    if (TREE_CODE (fun) == FUNCTION_DECL)
+	      {
+		if (builtin_valid_in_constant_expr_p (fun))
+		  return true;
+		if (!DECL_DECLARED_CONSTEXPR_P (fun)
+		    && !morally_constexpr_builtin_function_p (fun))
+		  {
+		    if (flags & tf_error)
+		      error ("%qD is not %<constexpr%>", fun);
+		    return false;
+		  }
+		/* A call to a non-static member function takes the address
+		   of the object as the first argument.  But in a constant
+		   expression the address will be folded away, so look
+		   through it now.  */
+		if (DECL_NONSTATIC_MEMBER_FUNCTION_P (fun)
+		    && !DECL_CONSTRUCTOR_P (fun))
+		  {
+		    tree x = get_nth_callarg (t, 0);
+		    if (is_this_parameter (x))
+		      /* OK.  */;
+		    else if (!potential_constant_expression_1 (x, rval, flags))
+		      {
+			if (flags & tf_error)
+			  error ("object argument is not a potential "
+				 "constant expression");
+			return false;
+		      }
+		    i = 1;
+		  }
+	      }
+	    else
+	      fun = get_first_fn (fun);
+	    /* Skip initial arguments to base constructors.  */
+	    if (DECL_BASE_CONSTRUCTOR_P (fun))
+	      i = num_artificial_parms_for (fun);
+	    fun = DECL_ORIGIN (fun);
+	  }
+	else
           {
 	    if (potential_constant_expression_1 (fun, rval, flags))
-	      /* Might end up being a constant function pointer.  */
-	      return true;
-            if (flags & tf_error)
-              error ("%qE is not a function name", fun);
-            return false;
-          }
-	/* Skip initial arguments to base constructors.  */
-	if (DECL_BASE_CONSTRUCTOR_P (fun))
-	  i = num_artificial_parms_for (fun);
-	else
-	  i = 0;
-	fun = DECL_ORIGIN (fun);
-        if (builtin_valid_in_constant_expr_p (fun))
-          return true;
-        if (!DECL_DECLARED_CONSTEXPR_P (fun)
-            && !morally_constexpr_builtin_function_p (fun))
-          {
-            if (flags & tf_error)
-              error ("%qD is not %<constexpr%>", fun);
-            return false;
+	      /* Might end up being a constant function pointer.  */;
+	    else
+	      {
+		if (flags & tf_error)
+		  error ("%qE is not a function name", fun);
+		return false;
+	      }
           }
         for (; i < nargs; ++i)
           {
             tree x = get_nth_callarg (t, i);
-            /* A call to a non-static member function takes the
-               address of the object as the first argument.
-               But in a constant expression the address will be folded
-	       away, so look through it now.  */
-            if (i == 0 && DECL_NONSTATIC_MEMBER_P (fun)
-                && !DECL_CONSTRUCTOR_P (fun))
-	      {
-		if (is_this_parameter (x))
-		  /* OK.  */;
-                else if (!potential_constant_expression_1 (x, rval, flags))
-		  {
-		    if (flags & tf_error)
-		      error ("object argument is not a potential constant "
-			     "expression");
-		    return false;
-		  }
-              }
-	    else if (!potential_constant_expression_1 (x, rval, flags))
+	    if (!potential_constant_expression_1 (x, rval, flags))
 	      {
 		if (flags & tf_error)
 		  error ("argument in position %qP is not a "
@@ -7717,6 +7773,8 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
     case BIT_XOR_EXPR:
     case BIT_AND_EXPR:
     case TRUTH_XOR_EXPR:
+    case UNORDERED_EXPR:
+    case ORDERED_EXPR:
     case UNLT_EXPR:
     case UNLE_EXPR:
     case UNGT_EXPR:
@@ -7886,7 +7944,7 @@ build_lambda_object (tree lambda_expr)
      But we briefly treat it as an aggregate to make this simpler.  */
   type = TREE_TYPE (lambda_expr);
   CLASSTYPE_NON_AGGREGATE (type) = 0;
-  expr = finish_compound_literal (type, expr);
+  expr = finish_compound_literal (type, expr, tf_warning_or_error);
   CLASSTYPE_NON_AGGREGATE (type) = 1;
 
  out:
@@ -8400,8 +8458,8 @@ maybe_add_lambda_conv_op (tree type)
       /* Put the thunk in the same comdat group as the call op.  */
       struct cgraph_node *callop_node, *thunk_node;
       DECL_COMDAT_GROUP (statfn) = DECL_COMDAT_GROUP (callop);
-      callop_node = cgraph_node (callop);
-      thunk_node = cgraph_node (statfn);
+      callop_node = cgraph_get_create_node (callop);
+      thunk_node = cgraph_get_create_node (statfn);
       gcc_assert (callop_node->same_comdat_group == NULL);
       gcc_assert (thunk_node->same_comdat_group == NULL);
       callop_node->same_comdat_group = thunk_node;
@@ -8420,7 +8478,7 @@ maybe_add_lambda_conv_op (tree type)
 		       VEC_address (tree, argvec));
   CALL_FROM_THUNK_P (call) = 1;
   if (MAYBE_CLASS_TYPE_P (TREE_TYPE (call)))
-    call = build_cplus_new (TREE_TYPE (call), call);
+    call = build_cplus_new (TREE_TYPE (call), call, tf_warning_or_error);
   call = convert_from_reference (call);
   finish_return_stmt (call);
 

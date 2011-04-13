@@ -767,6 +767,22 @@ gfc_build_qualified_array (tree decl, gfc_symbol * sym)
 	  TREE_NO_WARNING (GFC_TYPE_ARRAY_STRIDE (type, dim)) = 1;
 	}
     }
+  for (dim = GFC_TYPE_ARRAY_RANK (type);
+       dim < GFC_TYPE_ARRAY_RANK (type) + GFC_TYPE_ARRAY_CORANK (type); dim++)
+    {
+      if (GFC_TYPE_ARRAY_LBOUND (type, dim) == NULL_TREE)
+	{
+	  GFC_TYPE_ARRAY_LBOUND (type, dim) = create_index_var ("lbound", nest);
+	  TREE_NO_WARNING (GFC_TYPE_ARRAY_LBOUND (type, dim)) = 1;
+	}
+      /* Don't try to use the unknown ubound for the last coarray dimension.  */
+      if (GFC_TYPE_ARRAY_UBOUND (type, dim) == NULL_TREE
+          && dim < GFC_TYPE_ARRAY_RANK (type) + GFC_TYPE_ARRAY_CORANK (type) - 1)
+	{
+	  GFC_TYPE_ARRAY_UBOUND (type, dim) = create_index_var ("ubound", nest);
+	  TREE_NO_WARNING (GFC_TYPE_ARRAY_UBOUND (type, dim)) = 1;
+	}
+    }
   if (GFC_TYPE_ARRAY_OFFSET (type) == NULL_TREE)
     {
       GFC_TYPE_ARRAY_OFFSET (type) = gfc_create_var_np (gfc_array_index_type,
@@ -1681,7 +1697,7 @@ gfc_get_extern_function_decl (gfc_symbol * sym)
 
   /* Initialize DECL_EXTERNAL and TREE_PUBLIC before calling decl_attributes;
      TREE_PUBLIC specifies whether a function is globally addressable (i.e.
-     the the opposite of declaring a function as static in C).  */
+     the opposite of declaring a function as static in C).  */
   DECL_EXTERNAL (fndecl) = 1;
   TREE_PUBLIC (fndecl) = 1;
 
@@ -1764,7 +1780,7 @@ build_function_decl (gfc_symbol * sym, bool global)
 
   /* Initialize DECL_EXTERNAL and TREE_PUBLIC before calling decl_attributes;
      TREE_PUBLIC specifies whether a function is globally addressable (i.e.
-     the the opposite of declaring a function as static in C).  */
+     the opposite of declaring a function as static in C).  */
   DECL_EXTERNAL (fndecl) = 0;
 
   if (!current_function_decl
@@ -5048,7 +5064,7 @@ gfc_generate_function_code (gfc_namespace * ns)
   if (decl_function_context (fndecl))
     /* Register this function with cgraph just far enough to get it
        added to our parent's nested function list.  */
-    (void) cgraph_node (fndecl);
+    (void) cgraph_get_create_node (fndecl);
   else
     cgraph_finalize_function (fndecl, true);
 

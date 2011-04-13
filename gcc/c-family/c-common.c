@@ -3939,16 +3939,25 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 	}
 
     CASE_CONVERT:
-      /* Don't cancel the effect of a CONVERT_EXPR from a REFERENCE_TYPE,
-	 since that affects how `default_conversion' will behave.  */
-      if (TREE_CODE (TREE_TYPE (expr)) == REFERENCE_TYPE
-	  || TREE_CODE (TREE_TYPE (TREE_OPERAND (expr, 0))) == REFERENCE_TYPE)
-	break;
-      /* If this is widening the argument, we can ignore it.  */
-      if (TYPE_PRECISION (TREE_TYPE (expr))
-	  >= TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (expr, 0))))
-	return c_common_truthvalue_conversion (location,
-					       TREE_OPERAND (expr, 0));
+      {
+	tree totype = TREE_TYPE (expr);
+	tree fromtype = TREE_TYPE (TREE_OPERAND (expr, 0));
+
+	/* Don't cancel the effect of a CONVERT_EXPR from a REFERENCE_TYPE,
+	   since that affects how `default_conversion' will behave.  */
+	if (TREE_CODE (totype) == REFERENCE_TYPE
+	    || TREE_CODE (fromtype) == REFERENCE_TYPE)
+	  break;
+	/* Don't strip a conversion from C++0x scoped enum, since they
+	   don't implicitly convert to other types.  */
+	if (TREE_CODE (fromtype) == ENUMERAL_TYPE
+	    && ENUM_IS_SCOPED (fromtype))
+	  break;
+	/* If this isn't narrowing the argument, we can ignore it.  */
+	if (TYPE_PRECISION (totype) >= TYPE_PRECISION (fromtype))
+	  return c_common_truthvalue_conversion (location,
+						 TREE_OPERAND (expr, 0));
+      }
       break;
 
     case MODIFY_EXPR:
@@ -7653,8 +7662,6 @@ static tree
 handle_sentinel_attribute (tree *node, tree name, tree args,
 			   int ARG_UNUSED (flags), bool *no_add_attrs)
 {
-  tree params = TYPE_ARG_TYPES (*node);
-
   if (!prototype_p (*node))
     {
       warning (OPT_Wattributes,
@@ -7663,10 +7670,7 @@ handle_sentinel_attribute (tree *node, tree name, tree args,
     }
   else
     {
-      while (TREE_CHAIN (params))
-	params = TREE_CHAIN (params);
-
-      if (VOID_TYPE_P (TREE_VALUE (params)))
+      if (!stdarg_p (*node))
 	{
 	  warning (OPT_Wattributes,
 		   "%qE attribute only applies to variadic functions", name);
@@ -7705,17 +7709,11 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
 			       tree ARG_UNUSED (args), int ARG_UNUSED (flags),
 			       bool * ARG_UNUSED (no_add_attrs))
 {
-  tree params;
-
   /* Ensure we have a function type.  */
   gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE);
 
-  params = TYPE_ARG_TYPES (*node);
-  while (params && ! VOID_TYPE_P (TREE_VALUE (params)))
-    params = TREE_CHAIN (params);
-
   /* Ensure we have a variadic function.  */
-  gcc_assert (!params);
+  gcc_assert (!prototype_p (*node) || stdarg_p (*node));
 
   return NULL_TREE;
 }
@@ -8812,7 +8810,9 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
      TYPE_LANG_FLAG_? bits that the front end may have set.  */
   main_type = build_distinct_type_copy (TYPE_MAIN_VARIANT (type));
   TREE_TYPE (main_type) = unqual_elt;
-  TYPE_DOMAIN (main_type) = build_index_type (maxindex);
+  TYPE_DOMAIN (main_type)
+    = build_range_type (TREE_TYPE (maxindex),
+			build_int_cst (TREE_TYPE (maxindex), 0), maxindex);
   layout_type (main_type);
 
   /* Make sure we have the canonical MAIN_TYPE. */
@@ -9251,10 +9251,6 @@ warn_for_unused_label (tree label)
         warning (OPT_Wunused_label, "label %q+D declared but not defined", label);
     }
 }
-
-#ifndef TARGET_HAS_TARGETCM
-struct gcc_targetcm targetcm = TARGETCM_INITIALIZER;
-#endif
 
 /* Warn for division by zero according to the value of DIVISOR.  LOC
    is the location of the division operator.  */
@@ -9713,6 +9709,15 @@ keyword_is_decl_specifier (enum rid keyword)
     default:
       return false;
     }
+}
+
+/* Initialize language-specific-bits of tree_contains_struct.  */
+
+void
+c_common_init_ts (void)
+{
+  MARK_TS_TYPED (C_MAYBE_CONST_EXPR);
+  MARK_TS_TYPED (EXCESS_PRECISION_EXPR);
 }
 
 #include "gt-c-family-c-common.h"

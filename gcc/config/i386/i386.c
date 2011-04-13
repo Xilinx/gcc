@@ -5312,7 +5312,7 @@ ix86_handle_cconv_attribute (tree *node, tree name,
       return NULL_TREE;
     }
 
-  /* Can combine regparm with all attributes but fastcall.  */
+  /* Can combine regparm with all attributes but fastcall, and thiscall.  */
   if (is_attribute_p ("regparm", name))
     {
       tree cst;
@@ -5436,6 +5436,56 @@ ix86_handle_cconv_attribute (tree *node, tree name,
   return NULL_TREE;
 }
 
+/* This function determines from TYPE the calling-convention.  */
+
+unsigned int
+ix86_get_callcvt (const_tree type)
+{
+  unsigned int ret = 0;
+  bool is_stdarg;
+  tree attrs;
+
+  if (TARGET_64BIT)
+    return IX86_CALLCVT_CDECL;
+
+  attrs = TYPE_ATTRIBUTES (type);
+  if (attrs != NULL_TREE)
+    {
+      if (lookup_attribute ("cdecl", attrs))
+	ret |= IX86_CALLCVT_CDECL;
+      else if (lookup_attribute ("stdcall", attrs))
+	ret |= IX86_CALLCVT_STDCALL;
+      else if (lookup_attribute ("fastcall", attrs))
+	ret |= IX86_CALLCVT_FASTCALL;
+      else if (lookup_attribute ("thiscall", attrs))
+	ret |= IX86_CALLCVT_THISCALL;
+
+      /* Regparam isn't allowed for thiscall and fastcall.  */
+      if ((ret & (IX86_CALLCVT_THISCALL | IX86_CALLCVT_FASTCALL)) == 0)
+	{
+	  if (lookup_attribute ("regparm", attrs))
+	    ret |= IX86_CALLCVT_REGPARM;
+	  if (lookup_attribute ("sseregparm", attrs))
+	    ret |= IX86_CALLCVT_SSEREGPARM;
+	}
+
+      if (IX86_BASE_CALLCVT(ret) != 0)
+	return ret;
+    }
+
+  is_stdarg = stdarg_p (type);
+  if (TARGET_RTD && !is_stdarg)
+    return IX86_CALLCVT_STDCALL | ret;
+
+  if (ret != 0
+      || is_stdarg
+      || TREE_CODE (type) != METHOD_TYPE
+      || ix86_function_type_abi (type) != MS_ABI)
+    return IX86_CALLCVT_CDECL | ret;
+
+  return IX86_CALLCVT_THISCALL;
+}
+
 /* Return 0 if the attributes for two types are incompatible, 1 if they
    are compatible, and 2 if they are nearly compatible (which causes a
    warning to be generated).  */
@@ -5443,33 +5493,18 @@ ix86_handle_cconv_attribute (tree *node, tree name,
 static int
 ix86_comp_type_attributes (const_tree type1, const_tree type2)
 {
-  /* Check for mismatch of non-default calling convention.  */
-  const char *const rtdstr = TARGET_RTD ? "cdecl" : "stdcall";
+  unsigned int ccvt1, ccvt2;
 
   if (TREE_CODE (type1) != FUNCTION_TYPE
       && TREE_CODE (type1) != METHOD_TYPE)
     return 1;
 
-  /* Check for mismatched fastcall/regparm types.  */
-  if ((!lookup_attribute ("fastcall", TYPE_ATTRIBUTES (type1))
-       != !lookup_attribute ("fastcall", TYPE_ATTRIBUTES (type2)))
-      || (ix86_function_regparm (type1, NULL)
-	  != ix86_function_regparm (type2, NULL)))
+  ccvt1 = ix86_get_callcvt (type1);
+  ccvt2 = ix86_get_callcvt (type2);
+  if (ccvt1 != ccvt2)
     return 0;
-
-  /* Check for mismatched sseregparm types.  */
-  if (!lookup_attribute ("sseregparm", TYPE_ATTRIBUTES (type1))
-      != !lookup_attribute ("sseregparm", TYPE_ATTRIBUTES (type2)))
-    return 0;
-
-  /* Check for mismatched thiscall types.  */
-  if (!lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type1))
-      != !lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type2)))
-    return 0;
-
-  /* Check for mismatched return types (cdecl vs stdcall).  */
-  if (!lookup_attribute (rtdstr, TYPE_ATTRIBUTES (type1))
-      != !lookup_attribute (rtdstr, TYPE_ATTRIBUTES (type2)))
+  if (ix86_function_regparm (type1, NULL)
+      != ix86_function_regparm (type2, NULL))
     return 0;
 
   return 1;
@@ -5484,23 +5519,26 @@ ix86_function_regparm (const_tree type, const_tree decl)
 {
   tree attr;
   int regparm;
+  unsigned int ccvt;
 
   if (TARGET_64BIT)
     return (ix86_function_type_abi (type) == SYSV_ABI
 	    ? X86_64_REGPARM_MAX : X86_64_MS_REGPARM_MAX);
-
+  ccvt = ix86_get_callcvt (type);
   regparm = ix86_regparm;
-  attr = lookup_attribute ("regparm", TYPE_ATTRIBUTES (type));
-  if (attr)
+
+  if ((ccvt & IX86_CALLCVT_REGPARM) != 0)
     {
-      regparm = TREE_INT_CST_LOW (TREE_VALUE (TREE_VALUE (attr)));
-      return regparm;
+      attr = lookup_attribute ("regparm", TYPE_ATTRIBUTES (type));
+      if (attr)
+	{
+	  regparm = TREE_INT_CST_LOW (TREE_VALUE (TREE_VALUE (attr)));
+	  return regparm;
+	}
     }
-
-  if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (type)))
+  else if ((ccvt & IX86_CALLCVT_FASTCALL) != 0)
     return 2;
-
-  if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type)))
+  else if ((ccvt & IX86_CALLCVT_THISCALL) != 0)
     return 1;
 
   /* Use register calling convention for local functions when possible.  */
@@ -5651,27 +5689,18 @@ ix86_keep_aggregate_return_pointer (tree fntype)
 static int
 ix86_return_pops_args (tree fundecl, tree funtype, int size)
 {
-  int rtd;
+  unsigned int ccvt;
 
   /* None of the 64-bit ABIs pop arguments.  */
   if (TARGET_64BIT)
     return 0;
 
-  rtd = TARGET_RTD && (!fundecl || TREE_CODE (fundecl) != IDENTIFIER_NODE);
+  ccvt = ix86_get_callcvt (funtype);
 
-  /* Cdecl functions override -mrtd, and never pop the stack.  */
-  if (! lookup_attribute ("cdecl", TYPE_ATTRIBUTES (funtype)))
-    {
-      /* Stdcall and fastcall functions will pop the stack if not
-         variable args.  */
-      if (lookup_attribute ("stdcall", TYPE_ATTRIBUTES (funtype))
-	  || lookup_attribute ("fastcall", TYPE_ATTRIBUTES (funtype))
-          || lookup_attribute ("thiscall", TYPE_ATTRIBUTES (funtype)))
-	rtd = 1;
-
-      if (rtd && ! stdarg_p (funtype))
-	return size;
-    }
+  if ((ccvt & (IX86_CALLCVT_STDCALL | IX86_CALLCVT_FASTCALL
+	       | IX86_CALLCVT_THISCALL)) != 0
+      && ! stdarg_p (funtype))
+    return size;
 
   /* Lose any fake structure return argument if it is passed on the stack.  */
   if (aggregate_value_p (TREE_TYPE (funtype), fundecl)
@@ -5774,7 +5803,7 @@ ix86_reg_parm_stack_space (const_tree fndecl)
 enum calling_abi
 ix86_function_type_abi (const_tree fntype)
 {
-  if (fntype != NULL)
+  if (fntype != NULL_TREE && TYPE_ATTRIBUTES (fntype) != NULL_TREE)
     {
       enum calling_abi abi = ix86_abi;
       if (abi == SYSV_ABI)
@@ -6004,12 +6033,13 @@ init_cumulative_args (CUMULATIVE_ARGS *cum,  /* Argument info to initialize */
 	 else look for regparm information.  */
       if (fntype)
 	{
-	  if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (fntype)))
+	  unsigned int ccvt = ix86_get_callcvt (fntype);
+	  if ((ccvt & IX86_CALLCVT_THISCALL) != 0)
 	    {
 	      cum->nregs = 1;
 	      cum->fastcall = 1; /* Same first register as in fastcall.  */
 	    }
-	  else if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (fntype)))
+	  else if ((ccvt & IX86_CALLCVT_FASTCALL) != 0)
 	    {
 	      cum->nregs = 2;
 	      cum->fastcall = 1;
@@ -9254,7 +9284,7 @@ ix86_compute_frame_layout (struct ix86_frame *frame)
            && cfun->machine->use_fast_prologue_epilogue_nregs != frame->nregs)
     {
       int count = frame->nregs;
-      struct cgraph_node *node = cgraph_node (current_function_decl);
+      struct cgraph_node *node = cgraph_get_node (current_function_decl);
 
       cfun->machine->use_fast_prologue_epilogue_nregs = count;
 
@@ -9795,14 +9825,13 @@ find_drap_reg (void)
 
       /* Reuse static chain register if it isn't used for parameter
          passing.  */
-      if (ix86_function_regparm (TREE_TYPE (decl), decl) <= 2
-	  && !lookup_attribute ("fastcall",
-    				TYPE_ATTRIBUTES (TREE_TYPE (decl)))
-	  && !lookup_attribute ("thiscall",
-    				TYPE_ATTRIBUTES (TREE_TYPE (decl))))
-	return CX_REG;
-      else
-	return DI_REG;
+      if (ix86_function_regparm (TREE_TYPE (decl), decl) <= 2)
+	{
+	  unsigned int ccvt = ix86_get_callcvt (TREE_TYPE (decl));
+	  if ((ccvt & (IX86_CALLCVT_FASTCALL | IX86_CALLCVT_THISCALL)) == 0)
+	    return CX_REG;
+	}
+      return DI_REG;
     }
 }
 
@@ -10006,7 +10035,7 @@ ix86_adjust_stack_and_probe (const HOST_WIDE_INT size)
      probe that many bytes past the specified size to maintain a protection
      area at the botton of the stack.  */
   const int dope = 4 * UNITS_PER_WORD;
-  rtx size_rtx = GEN_INT (size);
+  rtx size_rtx = GEN_INT (size), last;
 
   /* See if we have a constant small number of probes to generate.  If so,
      that's the easy case.  The run-time loop is made up of 11 insns in the
@@ -10046,9 +10075,9 @@ ix86_adjust_stack_and_probe (const HOST_WIDE_INT size)
       emit_stack_probe (stack_pointer_rtx);
 
       /* Adjust back to account for the additional first interval.  */
-      emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-			      plus_constant (stack_pointer_rtx,
-					     PROBE_INTERVAL + dope)));
+      last = emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+				     plus_constant (stack_pointer_rtx,
+						    PROBE_INTERVAL + dope)));
     }
 
   /* Otherwise, do the same as above, but in a loop.  Note that we must be
@@ -10109,15 +10138,33 @@ ix86_adjust_stack_and_probe (const HOST_WIDE_INT size)
 	}
 
       /* Adjust back to account for the additional first interval.  */
-      emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-			      plus_constant (stack_pointer_rtx,
-					     PROBE_INTERVAL + dope)));
+      last = emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+				     plus_constant (stack_pointer_rtx,
+						    PROBE_INTERVAL + dope)));
 
       release_scratch_register_on_entry (&sr);
     }
 
   gcc_assert (cfun->machine->fs.cfa_reg != stack_pointer_rtx);
-  cfun->machine->fs.sp_offset += size;
+
+  /* Even if the stack pointer isn't the CFA register, we need to correctly
+     describe the adjustments made to it, in particular differentiate the
+     frame-related ones from the frame-unrelated ones.  */
+  if (size > 0)
+    {
+      rtx expr = gen_rtx_SEQUENCE (VOIDmode, rtvec_alloc (2));
+      XVECEXP (expr, 0, 0)
+	= gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+		       plus_constant (stack_pointer_rtx, -size));
+      XVECEXP (expr, 0, 1)
+	= gen_rtx_SET (VOIDmode, stack_pointer_rtx,
+		       plus_constant (stack_pointer_rtx,
+				      PROBE_INTERVAL + dope + size));
+      add_reg_note (last, REG_FRAME_RELATED_EXPR, expr);
+      RTX_FRAME_RELATED_P (last) = 1;
+
+      cfun->machine->fs.sp_offset += size;
+    }
 
   /* Make sure nothing is scheduled before we are done.  */
   emit_insn (gen_blockage ());
@@ -16188,7 +16235,7 @@ ix86_expand_unary_operator (enum rtx_code code, enum machine_mode mode,
 }
 
 /* Split 32bit/64bit divmod with 8bit unsigned divmod if dividend and
-   divisor are within the the range [0-255].  */
+   divisor are within the range [0-255].  */
 
 void
 ix86_split_idivmod (enum machine_mode mode, rtx operands[],
@@ -16222,7 +16269,7 @@ ix86_split_idivmod (enum machine_mode mode, rtx operands[],
 
   scratch = gen_reg_rtx (mode);
 
-  /* Use 8bit unsigned divimod if dividend and divisor are within the
+  /* Use 8bit unsigned divimod if dividend and divisor are within
      the range [0-255].  */
   emit_move_insn (scratch, operands[2]);
   scratch = expand_simple_binop (mode, IOR, scratch, operands[3],
@@ -20923,23 +20970,24 @@ smallest_pow2_greater_than (int val)
   return ret;
 }
 
-/* Expand string move (memcpy) operation.  Use i386 string operations when
-   profitable.  expand_setmem contains similar code.  The code depends upon
-   architecture, block size and alignment, but always has the same
-   overall structure:
+/* Expand string move (memcpy) operation.  Use i386 string operations
+   when profitable.  expand_setmem contains similar code.  The code
+   depends upon architecture, block size and alignment, but always has
+   the same overall structure:
 
    1) Prologue guard: Conditional that jumps up to epilogues for small
-      blocks that can be handled by epilogue alone.  This is faster but
-      also needed for correctness, since prologue assume the block is larger
-      than the desired alignment.
+      blocks that can be handled by epilogue alone.  This is faster
+      but also needed for correctness, since prologue assume the block
+      is larger than the desired alignment.
 
       Optional dynamic check for size and libcall for large
       blocks is emitted here too, with -minline-stringops-dynamically.
 
-   2) Prologue: copy first few bytes in order to get destination aligned
-      to DESIRED_ALIGN.  It is emitted only when ALIGN is less than
-      DESIRED_ALIGN and and up to DESIRED_ALIGN - ALIGN bytes can be copied.
-      We emit either a jump tree on power of two sized blocks, or a byte loop.
+   2) Prologue: copy first few bytes in order to get destination
+      aligned to DESIRED_ALIGN.  It is emitted only when ALIGN is less
+      than DESIRED_ALIGN and up to DESIRED_ALIGN - ALIGN bytes can be
+      copied.  We emit either a jump tree on power of two sized
+      blocks, or a byte loop.
 
    3) Main body: the copying loop itself, copying in SIZE_NEEDED chunks
       with specified algorithm.
@@ -23221,20 +23269,19 @@ ix86_static_chain (const_tree fndecl, bool incoming_p)
   else
     {
       tree fntype;
+      unsigned int ccvt;
+
       /* By default in 32-bit mode we use ECX to pass the static chain.  */
       regno = CX_REG;
 
       fntype = TREE_TYPE (fndecl);
-      if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (fntype)))
+      ccvt = ix86_get_callcvt (fntype);
+      if ((ccvt & (IX86_CALLCVT_FASTCALL | IX86_CALLCVT_THISCALL)) != 0)
 	{
 	  /* Fastcall functions use ecx/edx for arguments, which leaves
-	     us with EAX for the static chain.  */
-	  regno = AX_REG;
-	}
-      else if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (fntype)))
-	{
-	  /* Thiscall functions use ecx for arguments, which leaves
-	     us with EAX for the static chain.  */
+	     us with EAX for the static chain.
+	     Thiscall functions use ecx for arguments, which also
+	     leaves us with EAX for the static chain.  */
 	  regno = AX_REG;
 	}
       else if (ix86_function_regparm (fntype, fndecl) == 3)
@@ -25281,12 +25328,12 @@ static const struct builtin_description bdesc_args[] =
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_dpps256, "__builtin_ia32_dpps256", IX86_BUILTIN_DPPS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF_INT },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_shufpd256, "__builtin_ia32_shufpd256", IX86_BUILTIN_SHUFPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF_INT },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_shufps256, "__builtin_ia32_shufps256", IX86_BUILTIN_SHUFPS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF_INT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_cmpsdv2df3, "__builtin_ia32_cmpsd", IX86_BUILTIN_CMPSD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF_INT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_cmpssv4sf3, "__builtin_ia32_cmpss", IX86_BUILTIN_CMPSS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF_INT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_cmppdv2df3, "__builtin_ia32_cmppd", IX86_BUILTIN_CMPPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF_INT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_cmppsv4sf3, "__builtin_ia32_cmpps", IX86_BUILTIN_CMPPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF_INT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_cmppdv4df3, "__builtin_ia32_cmppd256", IX86_BUILTIN_CMPPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF_INT },
-  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_cmppsv8sf3, "__builtin_ia32_cmpps256", IX86_BUILTIN_CMPPS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF_INT },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vmcmpv2df3, "__builtin_ia32_cmpsd", IX86_BUILTIN_CMPSD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF_INT },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vmcmpv4sf3, "__builtin_ia32_cmpss", IX86_BUILTIN_CMPSS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF_INT },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_cmpv2df3, "__builtin_ia32_cmppd", IX86_BUILTIN_CMPPD, UNKNOWN, (int) V2DF_FTYPE_V2DF_V2DF_INT },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_cmpv4sf3, "__builtin_ia32_cmpps", IX86_BUILTIN_CMPPS, UNKNOWN, (int) V4SF_FTYPE_V4SF_V4SF_INT },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_cmpv4df3, "__builtin_ia32_cmppd256", IX86_BUILTIN_CMPPD256, UNKNOWN, (int) V4DF_FTYPE_V4DF_V4DF_INT },
+  { OPTION_MASK_ISA_AVX, CODE_FOR_avx_cmpv8sf3, "__builtin_ia32_cmpps256", IX86_BUILTIN_CMPPS256, UNKNOWN, (int) V8SF_FTYPE_V8SF_V8SF_INT },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vextractf128v4df, "__builtin_ia32_vextractf128_pd256", IX86_BUILTIN_EXTRACTF128PD256, UNKNOWN, (int) V2DF_FTYPE_V4DF_INT },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vextractf128v8sf, "__builtin_ia32_vextractf128_ps256", IX86_BUILTIN_EXTRACTF128PS256, UNKNOWN, (int) V4SF_FTYPE_V8SF_INT },
   { OPTION_MASK_ISA_AVX, CODE_FOR_avx_vextractf128v8si, "__builtin_ia32_vextractf128_si256", IX86_BUILTIN_EXTRACTF128SI256, UNKNOWN, (int) V4SI_FTYPE_V8SI_INT },
@@ -26933,12 +26980,12 @@ ix86_expand_args_builtin (const struct builtin_description *d,
 		error ("the last argument must be a 1-bit immediate");
 		return const0_rtx;
 
-	      case CODE_FOR_avx_cmpsdv2df3:
-	      case CODE_FOR_avx_cmpssv4sf3:
-	      case CODE_FOR_avx_cmppdv2df3:
-	      case CODE_FOR_avx_cmppsv4sf3:
-	      case CODE_FOR_avx_cmppdv4df3:
-	      case CODE_FOR_avx_cmppsv8sf3:
+	      case CODE_FOR_avx_vmcmpv2df3:
+	      case CODE_FOR_avx_vmcmpv4sf3:
+	      case CODE_FOR_avx_cmpv2df3:
+	      case CODE_FOR_avx_cmpv4sf3:
+	      case CODE_FOR_avx_cmpv4df3:
+	      case CODE_FOR_avx_cmpv8sf3:
 		error ("the last argument must be a 5-bit immediate");
 		return const0_rtx;
 
@@ -29801,10 +29848,11 @@ x86_this_parameter (tree function)
   if (nregs > 0 && !stdarg_p (type))
     {
       int regno;
+      unsigned int ccvt = ix86_get_callcvt (type);
 
-      if (lookup_attribute ("fastcall", TYPE_ATTRIBUTES (type)))
+      if ((ccvt & IX86_CALLCVT_FASTCALL) != 0)
 	regno = aggr ? DX_REG : CX_REG;
-      else if (lookup_attribute ("thiscall", TYPE_ATTRIBUTES (type)))
+      else if ((ccvt & IX86_CALLCVT_THISCALL) != 0)
         {
 	  regno = CX_REG;
 	  if (aggr)
@@ -29921,10 +29969,8 @@ x86_output_mi_thunk (FILE *file,
       else
 	{
 	  int tmp_regno = CX_REG;
-	  if (lookup_attribute ("fastcall",
-				TYPE_ATTRIBUTES (TREE_TYPE (function)))
-	      || lookup_attribute ("thiscall",
-				   TYPE_ATTRIBUTES (TREE_TYPE (function))))
+	  unsigned int ccvt = ix86_get_callcvt (TREE_TYPE (function));
+	  if ((ccvt & (IX86_CALLCVT_FASTCALL | IX86_CALLCVT_THISCALL)) != 0)
 	    tmp_regno = AX_REG;
 	  tmp = gen_rtx_REG (SImode, tmp_regno);
 	}
@@ -32315,6 +32361,7 @@ static rtx
 ix86_expand_sse_compare_mask (enum rtx_code code, rtx op0, rtx op1,
 			      bool swap_operands)
 {
+  rtx (*insn)(rtx, rtx, rtx, rtx);
   enum machine_mode mode = GET_MODE (op0);
   rtx mask = gen_reg_rtx (mode);
 
@@ -32325,13 +32372,10 @@ ix86_expand_sse_compare_mask (enum rtx_code code, rtx op0, rtx op1,
       op1 = tmp;
     }
 
-  if (mode == DFmode)
-    emit_insn (gen_sse2_maskcmpdf3 (mask, op0, op1,
-				    gen_rtx_fmt_ee (code, mode, op0, op1)));
-  else
-    emit_insn (gen_sse_maskcmpsf3 (mask, op0, op1,
-				   gen_rtx_fmt_ee (code, mode, op0, op1)));
+  insn = mode == DFmode ? gen_setcc_df_sse : gen_setcc_sf_sse;
 
+  emit_insn (insn (mask, op0, op1,
+		   gen_rtx_fmt_ee (code, mode, op0, op1)));
   return mask;
 }
 

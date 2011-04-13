@@ -3517,7 +3517,7 @@ expand_gimple_basic_block (basic_block bb)
 		    val = gen_rtx_VAR_LOCATION
 			(mode, vexpr, (rtx)value, VAR_INIT_STATUS_INITIALIZED);
 
-		    val = emit_debug_insn (val);
+		    emit_debug_insn (val);
 
 		    FOR_EACH_IMM_USE_STMT (debugstmt, imm_iter, op)
 		      {
@@ -3576,15 +3576,15 @@ expand_gimple_basic_block (basic_block bb)
 	      val = gen_rtx_VAR_LOCATION
 		(mode, var, (rtx)value, VAR_INIT_STATUS_INITIALIZED);
 
-	      val = emit_debug_insn (val);
+	      emit_debug_insn (val);
 
 	      if (dump_file && (dump_flags & TDF_DETAILS))
 		{
 		  /* We can't dump the insn with a TREE where an RTX
 		     is expected.  */
-		  INSN_VAR_LOCATION_LOC (val) = const0_rtx;
+		  PAT_VAR_LOCATION_LOC (val) = const0_rtx;
 		  maybe_dump_rtl_for_gimple_stmt (stmt, last);
-		  INSN_VAR_LOCATION_LOC (val) = (rtx)value;
+		  PAT_VAR_LOCATION_LOC (val) = (rtx)value;
 		}
 
 	      /* In order not to generate too many debug temporaries,
@@ -4143,6 +4143,8 @@ gimple_expand_cfg (void)
   /* Zap the tree EH table.  */
   set_eh_throw_stmt_table (cfun, NULL);
 
+  /* We need JUMP_LABEL be set in order to redirect jumps, and hence
+     split edges which edge insertions might do.  */
   rebuild_jump_labels (get_insns ());
 
   FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, EXIT_BLOCK_PTR, next_bb)
@@ -4153,6 +4155,7 @@ gimple_expand_cfg (void)
 	{
 	  if (e->insns.r)
 	    {
+	      rebuild_jump_labels_chain (e->insns.r);
 	      /* Avoid putting insns before parm_birth_insn.  */
 	      if (e->src == ENTRY_BLOCK_PTR
 		  && single_succ_p (ENTRY_BLOCK_PTR)

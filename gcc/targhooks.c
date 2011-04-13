@@ -939,14 +939,6 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
   return rclass;
 }
 
-bool
-default_handle_c_option (size_t code ATTRIBUTE_UNUSED,
-			 const char *arg ATTRIBUTE_UNUSED,
-			 int value ATTRIBUTE_UNUSED)
-{
-  return false;
-}
-
 /* By default, if flag_pic is true, then neither local nor global relocs
    should be placed in readonly memory.  */
 
@@ -1206,9 +1198,10 @@ default_target_can_inline_p (tree caller, tree callee)
   else if (!caller_opts)
     ret = false;
 
-  /* If both caller and callee have attributes, assume that if the pointer is
-     different, the the two functions have different target options since
-     build_target_option_node uses a hash table for the options.  */
+  /* If both caller and callee have attributes, assume that if the
+     pointer is different, the two functions have different target
+     options since build_target_option_node uses a hash table for the
+     options.  */
   else
     ret = (callee_opts == caller_opts);
 

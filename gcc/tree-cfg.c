@@ -838,8 +838,8 @@ edge_to_cases_cleanup (const void *key ATTRIBUTE_UNUSED, void **value,
 
   for (t = (tree) *value; t; t = next)
     {
-      next = TREE_CHAIN (t);
-      TREE_CHAIN (t) = NULL;
+      next = CASE_CHAIN (t);
+      CASE_CHAIN (t) = NULL;
     }
 
   *value = NULL;
@@ -922,7 +922,7 @@ get_cases_for_edge (edge e, gimple t)
       /* Add it to the chain of CASE_LABEL_EXPRs referencing E, or create
 	 a new chain.  */
       slot = pointer_map_insert (edge_to_cases, this_edge);
-      TREE_CHAIN (elt) = (tree) *slot;
+      CASE_CHAIN (elt) = (tree) *slot;
       *slot = elt;
     }
 
@@ -3086,7 +3086,7 @@ verify_gimple_call (gimple stmt)
       return true;
     }
 
-  fntype = TREE_TYPE (TREE_TYPE (fn));
+  fntype = gimple_call_fntype (stmt);
   if (gimple_call_lhs (stmt)
       && !useless_type_conversion_p (TREE_TYPE (gimple_call_lhs (stmt)),
 				     TREE_TYPE (fntype))
@@ -4851,7 +4851,7 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
 	      {
 		last = cases;
 		CASE_LABEL (cases) = label;
-		cases = TREE_CHAIN (cases);
+		cases = CASE_CHAIN (cases);
 	      }
 
 	    /* If there was already an edge in the CFG, then we need
@@ -4860,8 +4860,8 @@ gimple_redirect_edge_and_branch (edge e, basic_block dest)
 	      {
 		tree cases2 = get_cases_for_edge (e2, stmt);
 
-		TREE_CHAIN (last) = TREE_CHAIN (cases2);
-		TREE_CHAIN (cases2) = first;
+		CASE_CHAIN (last) = CASE_CHAIN (cases2);
+		CASE_CHAIN (cases2) = first;
 	      }
 	    bitmap_set_bit (touched_switch_bbs, gimple_bb (stmt)->index);
 	  }
@@ -7135,6 +7135,7 @@ struct cfg_hooks gimple_cfg_hooks = {
   gimple_split_edge,		/* split_edge  */
   gimple_make_forwarder_block,	/* make_forward_block  */
   NULL,				/* tidy_fallthru_edge  */
+  NULL,				/* force_nonfallthru */
   gimple_block_ends_with_call_p,/* block_ends_with_call_p */
   gimple_block_ends_with_condjump_p, /* block_ends_with_condjump_p */
   gimple_flow_call_edges_add,   /* flow_call_edges_add */
@@ -7440,7 +7441,7 @@ do_warn_unused_result (gimple_seq seq)
 	     LHS.  All calls whose value is ignored should be
 	     represented like this.  Look for the attribute.  */
 	  fdecl = gimple_call_fndecl (g);
-	  ftype = TREE_TYPE (TREE_TYPE (gimple_call_fn (g)));
+	  ftype = gimple_call_fntype (g);
 
 	  if (lookup_attribute ("warn_unused_result", TYPE_ATTRIBUTES (ftype)))
 	    {

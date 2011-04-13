@@ -1,3 +1,204 @@
+2011-04-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48581
+	* pt.c (tsubst_copy_and_build) [CALL_EXPR]: Don't complain about
+	unqualified lookup failing if we're still in a template.
+
+2011-04-12  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-lang.c (cp_init_ts): Call cp_common_init_ts.  Move
+	tree_contains_struct initialization to...
+	* cp-objcp-common.c (cp_common_init_ts): ...here.  Use MARK_*
+	macros.
+	* cp-objcp-common.h (cp_common_init_ts): Declare.
+	* cp-tree.h (union lang_tree_node): Check for TS_COMMON before
+	calling TREE_CHAIN.
+
+2011-04-12  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_message_expression): Updated call
+	to objc_build_message_expr.
+
+2011-04-12  Martin Jambor  <mjambor@suse.cz>
+
+	* class.c (cp_fold_obj_type_ref): Call cgraph_get_node instead of
+	cgraph_get_create_node.
+	* decl2.c (cp_write_global_declarations): Call cgraph_get_node
+	instead of cgraph_get_create_node.
+	* method.c (make_alias_for_thunk): Call cgraph_get_node
+	instead of cgraph_get_create_node, assert it returns non-NULL.
+	(use_thunk): Likewise.
+	* optimize.c (maybe_clone_body): Call cgraph_same_body_alias only
+	when flag_syntax_only is not set.  Call cgraph_get_node instead of
+	cgraph_get_create_node.
+	(maybe_clone_body): Call cgraph_get_node instead of
+	cgraph_get_create_node.
+
+2011-04-12  Martin Jambor  <mjambor@suse.cz>
+
+	* class.c (cp_fold_obj_type_ref): Call cgraph_get_create_node
+	instead of cgraph_node.
+	* decl2.c (cxx_callgraph_analyze_expr): Likewise.
+	(cp_write_global_declarations): Likewise.
+	* optimize.c (maybe_clone_body): Likewise.
+	* semantics.c (maybe_add_lambda_conv_op): Likewise.
+	* mangle.c (mangle_decl): Likewise.
+	* method.c (make_alias_for_thunk): Likewise.
+	(use_thunk): Likewise.
+
+2011-04-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48535
+	* decl.c (cp_complete_array_type_or_error): New.
+	* semantics.c (finish_compound_literal): Use it.
+	* cp-tree.h: Declare it.
+
+	PR c++/48535
+	* semantics.c (finish_compound_literal): Handle references.
+
+	PR c++/48535
+	* semantics.c (finish_compound_literal): Take complain parm.
+	(build_lambda_object): Adjust.
+	* cp-tree.h: Adjust.
+	* call.c (convert_like_real): Adjust.
+	* decl.c (check_initializer): Adjust.
+	* parser.c (cp_parser_postfix_expression): Adjust.
+	(cp_parser_functional_cast): Adjust.
+	* pt.c (tsubst_copy_and_build): Adjust.
+	* typeck2.c (process_init_constructor_record): Adjust.
+
+	PR c++/48534
+	* cvt.c (ocp_convert): Use build_nop to convert to underlying type
+	of scoped enum.
+
+	PR c++/48523
+	* tree.c (maybe_dummy_object): Use build_x_indirect_ref rather
+	than cp_build_indirect_ref.
+
+	PR c++/48457, Core 1238
+	* call.c (reference_binding): Allow rvalue reference to bind to
+	function lvalue.
+	* tree.c (lvalue_kind): Functions are always lvalues.
+
+2011-04-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48500
+	* semantics.c (potential_constant_expression_1) [CALL_EXPR]: Check
+	arguments even if we don't know the function.
+
+	PR c++/48481
+	* tree.c (build_overload): Allow an unwrapped FUNCTION_DECL
+	at the end of the chain.
+	* pt.c (dependent_template_p): Use OVL_CURRENT/NEXT.
+	(iterative_hash_template_arg): Likewise.
+
+	PR c++/48481
+	* cp-tree.h (OVL_ARG_DEPENDENT): New.
+	* name-lookup.c (add_function): Set it.
+	* semantics.c (finish_call_expr): Free OVERLOADs if it's set.
+
+	PR c++/48481
+	* call.c (build_user_type_conversion_1): Use lookup_fnfields_slot.
+	Release unused vector.
+
+	PR c++/48451
+	* pt.c (fn_type_unification): Don't clear incomplete pack flag.
+	(type_unification_real): Clear it here instead.
+
+	PR c++/48468
+	* except.c (build_noexcept_spec): Propagate error_mark_node.
+	(finish_noexcept_expr): Likewise.
+
+	PR c++/48452
+	* typeck.c (build_x_compound_expr_from_list): Return error_mark_node
+	in SFINAE context.
+
+	PR c++/48450
+	* call.c (resolve_args): Take complain.
+	(build_new_function_call, build_operator_new_call): Pass it.
+	(build_op_call, build_new_op, build_new_method_call): Pass it.
+
+	PR c++/48450
+	* typeck.c (check_for_casting_away_constness): Take complain.
+	(build_static_cast_1, build_reinterpret_cast_1): Pass it.
+	(build_const_cast_1): Pass it.  Take full complain parm.
+	(build_const_cast, cp_build_c_cast): Adjust.
+
+	* tree.c (build_aggr_init_expr): Always return error_mark_node
+	on abstract violation.
+
+	PR c++/48450
+	* tree.c (build_cplus_new, build_aggr_init_expr): Take complain.
+	(bot_manip): Adjust.
+	* cp-tree.h: Adjust.
+	* call.c (convert_like_real, build_cxx_call): Adjust.
+	(perform_direct_initialization_if_possible): Adjust.
+	* cvt.c (ocp_convert): Adjust.
+	* init.c (build_value_init): Adjust.
+	* semantics.c (maybe_add_lambda_conv_op): Adjust.
+	* typeck.c (unary_complex_lvalue, cp_build_modify_expr): Adjust.
+	* typeck2.c (build_functional_cast): Adjust.
+
+	* init.c (build_value_init_noctor): Handle REFERENCE_TYPE at top
+	level.
+	(perform_member_init): Not here.
+	* typeck2.c (build_functional_cast): Limit REFERENCE_TYPE special
+	case to templates.
+	(abstract_virtuals_error_sfinae): Remove RESULT_DECL special case.
+
+	PR c++/48449
+	* typeck2.c (build_functional_cast): Check complain consistently.
+	Use build_value_init and abstract_virtuals_error_sfinae.
+	(abstract_virtuals_error_sfinae): Split out.
+	* cp-tree.h: Declare it.
+	* init.c (build_new_1): Use it.
+	(build_value_init_noctor): Handle FUNCTION_TYPE.
+
+	* semantics.c (finish_decltype_type): Simplify handling of unknown
+	type.
+
+	* semantics.c (finish_decltype_type): Add complain parm.
+	* cp-tree.h: Adjust.
+	* parser.c (cp_parser_decltype): Adjust.
+	* pt.c (tsubst): Adjust.
+
+	PR c++/48450
+	* cvt.c (ocp_convert): Handle converting scoped enum to bool.
+
+2011-03-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48277
+	* semantics.c (finish_call_expr): Remove assert.
+
+	PR c++/48280
+	* method.c (defaultable_fn_check): Templates are not defaultable.
+
+	* parser.c (cp_parser_init_declarator): Avoid redundant
+	cp_finish_decl for member declarations.
+
+2011-03-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48212
+	* semantics.c (non_const_var_error): Just return if DECL_INITIAL
+	is error_mark_node.
+
+2011-03-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48369
+	* semantics.c (potential_constant_expression_1): Handle
+	UNORDERED_EXPR and ORDERED_EXPR.
+
+	PR c++/48281
+	* semantics.c (finish_compound_literal): Do put static/constant
+	arrays in static variables.
+
+	* call.c (convert_like_real) [ck_list]: Build up the
+	initializer_list object directly.
+	* decl.c (build_init_list_var_init): Adjust.
+
+	* call.c (convert_like_real): Correct TREE_CONSTANT on CONSTRUCTOR.
+	* decl.c (reshape_init_array_1): Likewise.
+
 2011-03-29  Jason Merrill  <jason@redhat.com>
 
 	PR c++/48265

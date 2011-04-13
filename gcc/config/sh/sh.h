@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler for Renesas / SuperH SH.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com).
    Improved by Jim Wilson (wilson@cygnus.com).
@@ -25,9 +25,6 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_SH_H
 
 #include "config/vxworks-dummy.h"
-
-#define TARGET_VERSION \
-  fputs (" (Hitachi SH)", stderr);
 
 /* Unfortunately, insn-attrtab.c doesn't include insn-codes.h.  We can't
    include it here, because bconfig.h is also included by gencodes.c .  */
@@ -2130,26 +2127,10 @@ struct sh_args {
 # endif
 #endif
 
-
-/* If defined, a C expression whose value is a string containing the
-   assembler operation to identify the following data as
-   uninitialized global data.  If not defined, and neither
-   `ASM_OUTPUT_BSS' nor `ASM_OUTPUT_ALIGNED_BSS' are defined,
-   uninitialized global data will be output in the data section if
-   `-fno-common' is passed, otherwise `ASM_OUTPUT_COMMON' will be
-   used.  */
 #ifndef BSS_SECTION_ASM_OP
 #define BSS_SECTION_ASM_OP	"\t.section\t.bss"
 #endif
 
-/* Like `ASM_OUTPUT_BSS' except takes the required alignment as a
-   separate, explicit argument.  If you define this macro, it is used
-   in place of `ASM_OUTPUT_BSS', and gives you more flexibility in
-   handling the required alignment of the variable.  The alignment is
-   specified as the number of bits.
-
-   Try to use function `asm_output_aligned_bss' defined in file
-   `varasm.c' when defining this macro.  */
 #ifndef ASM_OUTPUT_ALIGNED_BSS
 #define ASM_OUTPUT_ALIGNED_BSS(FILE, DECL, NAME, SIZE, ALIGN) \
   asm_output_aligned_bss (FILE, DECL, NAME, SIZE, ALIGN)

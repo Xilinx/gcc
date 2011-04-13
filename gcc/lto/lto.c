@@ -149,37 +149,36 @@ lto_materialize_function (struct cgraph_node *node)
       /* Clones don't need to be read.  */
       if (node->clone_of)
 	return;
-      file_data = node->local.lto_file_data;
-      name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl)); 
-
-      /* We may have renamed the declaration, e.g., a static function.  */
-      name = lto_get_decl_name_mapping (file_data, name);
-
-      data = lto_get_section_data (file_data, LTO_section_function_body,
-				   name, &len);
-      if (!data)
-	fatal_error ("%s: section %s is missing",
-		     file_data->file_name,
-		     name);
-
-      gcc_assert (DECL_STRUCT_FUNCTION (decl) == NULL);
 
       /* Load the function body only if not operating in WPA mode.  In
 	 WPA mode, the body of the function is not needed.  */
       if (!flag_wpa)
 	{
+	  file_data = node->local.lto_file_data;
+	  name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
+
+	  /* We may have renamed the declaration, e.g., a static function.  */
+	  name = lto_get_decl_name_mapping (file_data, name);
+
+	  data = lto_get_section_data (file_data, LTO_section_function_body,
+				       name, &len);
+	  if (!data)
+	    fatal_error ("%s: section %s is missing",
+			 file_data->file_name,
+			 name);
+
+	  gcc_assert (DECL_STRUCT_FUNCTION (decl) == NULL);
+
 	  allocate_struct_function (decl, false);
 	  announce_function (decl);
 	  lto_input_function_body (file_data, decl, data);
 	  if (DECL_FUNCTION_PERSONALITY (decl) && !first_personality_decl)
 	    first_personality_decl = DECL_FUNCTION_PERSONALITY (decl);
 	  lto_stats.num_function_bodies++;
+	  lto_free_section_data (file_data, LTO_section_function_body, name,
+				 data, len);
+	  ggc_collect ();
 	}
-
-      lto_free_section_data (file_data, LTO_section_function_body, name,
-			     data, len);
-      if (!flag_wpa)
-	ggc_collect ();
     }
 
   /* Let the middle end know about the function.  */
@@ -187,9 +186,10 @@ lto_materialize_function (struct cgraph_node *node)
 }
 
 
-/* Decode the content of memory pointed to by DATA in the the
-   in decl state object STATE. DATA_IN points to a data_in structure for
-   decoding. Return the address after the decoded object in the input.  */
+/* Decode the content of memory pointed to by DATA in the in decl
+   state object STATE. DATA_IN points to a data_in structure for
+   decoding. Return the address after the decoded object in the
+   input.  */
 
 static const uint32_t *
 lto_read_in_decl_state (struct data_in *data_in, const uint32_t *data,
@@ -200,7 +200,7 @@ lto_read_in_decl_state (struct data_in *data_in, const uint32_t *data,
   uint32_t i, j;
   
   ix = *data++;
-  decl = lto_streamer_cache_get (data_in->reader_cache, (int) ix);
+  decl = lto_streamer_cache_get (data_in->reader_cache, ix);
   if (TREE_CODE (decl) != FUNCTION_DECL)
     {
       gcc_assert (decl == void_type_node);
@@ -1514,8 +1514,8 @@ lto_wpa_write_files (void)
 	  fprintf (cgraph_dump_file, "varpool nodes:");
 	  dump_varpool_node_set (cgraph_dump_file, vset);
 	}
-      gcc_assert (cgraph_node_set_nonempty_p (set)
-		  || varpool_node_set_nonempty_p (vset) || !i);
+      gcc_checking_assert (cgraph_node_set_nonempty_p (set)
+			   || varpool_node_set_nonempty_p (vset) || !i);
 
       lto_set_current_out_file (file);
 
@@ -1618,7 +1618,8 @@ lto_fixup_common (tree t, void *data)
 
   /* This is not very efficient because we cannot do tail-recursion with
      a long chain of trees. */
-  LTO_FIXUP_SUBTREE (TREE_CHAIN (t));
+  if (CODE_CONTAINS_STRUCT (TREE_CODE (t), TS_COMMON))
+    LTO_FIXUP_SUBTREE (TREE_CHAIN (t));
 }
 
 /* Fix up fields of a decl_minimal T.  DATA points to fix-up states.  */

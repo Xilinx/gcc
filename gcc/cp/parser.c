@@ -4897,7 +4897,8 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 		postfix_expression
 		  = (finish_compound_literal
 		     (type, build_constructor (init_list_type_node,
-					       initializer_list)));
+					       initializer_list),
+		      tf_warning_or_error));
 		break;
 	      }
 	  }
@@ -10197,7 +10198,8 @@ cp_parser_decltype (cp_parser *parser)
       return error_mark_node;
     }
 
-  return finish_decltype_type (expr, id_expression_or_member_access_p);
+  return finish_decltype_type (expr, id_expression_or_member_access_p,
+			       tf_warning_or_error);
 }
 
 /* Special member functions [gram.special] */
@@ -14501,9 +14503,9 @@ cp_parser_init_declarator (cp_parser* parser,
 	cp_parser_save_default_args (parser, decl);
     }
 
-  /* Finish processing the declaration.  But, skip friend
+  /* Finish processing the declaration.  But, skip member
      declarations.  */
-  if (!friend_p && decl && decl != error_mark_node && !range_for_decl_p)
+  if (!member_p && decl && decl != error_mark_node && !range_for_decl_p)
     {
       cp_finish_decl (decl,
 		      initializer, !is_non_constant_init,
@@ -19935,7 +19937,8 @@ cp_parser_functional_cast (cp_parser* parser, tree type)
       CONSTRUCTOR_IS_DIRECT_INIT (expression_list) = 1;
       if (TREE_CODE (type) == TYPE_DECL)
 	type = TREE_TYPE (type);
-      return finish_compound_literal (type, expression_list);
+      return finish_compound_literal (type, expression_list,
+				      tf_warning_or_error);
     }
 
 
@@ -21286,7 +21289,7 @@ cp_parser_objc_message_expression (cp_parser* parser)
   messageargs = cp_parser_objc_message_args (parser);
   cp_parser_require (parser, CPP_CLOSE_SQUARE, RT_CLOSE_SQUARE);
 
-  return objc_build_message_expr (build_tree_list (receiver, messageargs));
+  return objc_build_message_expr (receiver, messageargs);
 }
 
 /* Parse an objc-message-receiver.

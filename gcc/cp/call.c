@@ -155,7 +155,6 @@ static tree convert_like_real (conversion *, tree, tree, int, int, bool,
 			       bool, tsubst_flags_t);
 static void op_error (enum tree_code, enum tree_code, tree, tree,
 		      tree, bool);
-static VEC(tree,gc) *resolve_args (VEC(tree,gc) *);
 static struct z_candidate *build_user_type_conversion_1 (tree, tree, int);
 static void print_z_candidate (const char *, struct z_candidate *);
 static void print_z_candidates (location_t, struct z_candidate *);
@@ -1522,8 +1521,10 @@ reference_binding (tree rto, tree rfrom, tree expr, bool c_cast_p, int flags)
 	   actually occurs.  */
 	conv->need_temporary_p = true;
 
-      /* Don't allow binding of lvalues to rvalue references.  */
+      /* Don't allow binding of lvalues (other than function lvalues) to
+	 rvalue references.  */
       if (is_lvalue && TYPE_REF_IS_RVALUE (rto)
+	  && TREE_CODE (to) != FUNCTION_TYPE
           && !(flags & LOOKUP_PREFER_RVALUE))
 	conv->bad_p = true;
 
@@ -3250,7 +3251,9 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
 	      || !DERIVED_FROM_P (totype, fromtype));
 
   if (MAYBE_CLASS_TYPE_P (totype))
-    ctors = lookup_fnfields (totype, complete_ctor_identifier, 0);
+    /* Use lookup_fnfields_slot instead of lookup_fnfields to avoid
+       creating a garbage BASELINK; constructors can't be inherited.  */
+    ctors = lookup_fnfields_slot (totype, complete_ctor_identifier);
 
   if (MAYBE_CLASS_TYPE_P (fromtype))
     {
@@ -3282,7 +3285,6 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
   if (ctors)
     {
       int ctorflags = flags;
-      ctors = BASELINK_FUNCTIONS (ctors);
 
       first_arg = build_int_cst (build_pointer_type (totype), 0);
 
@@ -3390,7 +3392,11 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
 
   candidates = splice_viable (candidates, pedantic, &any_viable_p);
   if (!any_viable_p)
-    return NULL;
+    {
+      if (args)
+	release_tree_vector (args);
+      return NULL;
+    }
 
   cand = tourney (candidates);
   if (cand == 0)
@@ -3525,7 +3531,7 @@ build_integral_nontype_arg_conv (tree type, tree expr, tsubst_flags_t complain)
 /* Do any initial processing on the arguments to a function call.  */
 
 static VEC(tree,gc) *
-resolve_args (VEC(tree,gc) *args)
+resolve_args (VEC(tree,gc) *args, tsubst_flags_t complain)
 {
   unsigned int ix;
   tree arg;
@@ -3536,7 +3542,8 @@ resolve_args (VEC(tree,gc) *args)
 	return NULL;
       else if (VOID_TYPE_P (TREE_TYPE (arg)))
 	{
-	  error ("invalid use of void expression");
+	  if (complain & tf_error)
+	    error ("invalid use of void expression");
 	  return NULL;
 	}
       else if (invalid_nonstatic_memfn_p (arg, tf_warning_or_error))
@@ -3636,7 +3643,7 @@ build_new_function_call (tree fn, VEC(tree,gc) **args, bool koenig_p,
 
   if (args != NULL && *args != NULL)
     {
-      *args = resolve_args (*args);
+      *args = resolve_args (*args, complain);
       if (*args == NULL)
 	return error_mark_node;
     }
@@ -3707,7 +3714,7 @@ build_operator_new_call (tree fnname, VEC(tree,gc) **args,
   if (fn)
     *fn = NULL_TREE;
   VEC_safe_insert (tree, gc, *args, 0, *size);
-  *args = resolve_args (*args);
+  *args = resolve_args (*args, tf_warning_or_error);
   if (*args == NULL)
     return error_mark_node;
 
@@ -3820,7 +3827,7 @@ build_op_call (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
 
   if (args != NULL && *args != NULL)
     {
-      *args = resolve_args (*args);
+      *args = resolve_args (*args, complain);
       if (*args == NULL)
 	return error_mark_node;
     }
@@ -4864,7 +4871,7 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	  if (overloaded_p)
 	    *overloaded_p = true;
 
-	  if (resolve_args (arglist) == NULL)
+	  if (resolve_args (arglist, complain) == NULL)
 	    result = error_mark_node;
 	  else
 	    result = build_over_call (cand, LOOKUP_NORMAL, complain);
@@ -5414,7 +5421,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	   we need to build up a TARGET_EXPR.  */
 	if (DECL_CONSTRUCTOR_P (convfn))
 	  {
-	    expr = build_cplus_new (totype, expr);
+	    expr = build_cplus_new (totype, expr, complain);
 
 	    /* Remember that this was list-initialization.  */
 	    if (convs->check_narrowing)
@@ -5467,8 +5474,8 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	tree elttype = TREE_VEC_ELT (CLASSTYPE_TI_ARGS (totype), 0);
 	tree new_ctor = build_constructor (init_list_type_node, NULL);
 	unsigned len = CONSTRUCTOR_NELTS (expr);
-	tree array, val;
-	VEC(tree,gc) *parms;
+	tree array, val, field;
+	VEC(constructor_elt,gc) *vec = NULL;
 	unsigned ix;
 
 	/* Convert all the elements.  */
@@ -5481,23 +5488,23 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	    if (!BRACE_ENCLOSED_INITIALIZER_P (val))
 	      check_narrowing (TREE_TYPE (sub), val);
 	    CONSTRUCTOR_APPEND_ELT (CONSTRUCTOR_ELTS (new_ctor), NULL_TREE, sub);
+	    if (!TREE_CONSTANT (sub))
+	      TREE_CONSTANT (new_ctor) = false;
 	  }
 	/* Build up the array.  */
 	elttype = cp_build_qualified_type
 	  (elttype, cp_type_quals (elttype) | TYPE_QUAL_CONST);
 	array = build_array_of_n_type (elttype, len);
-	array = finish_compound_literal (array, new_ctor);
+	array = finish_compound_literal (array, new_ctor, complain);
 
-	parms = make_tree_vector ();
-	VEC_safe_push (tree, gc, parms, decay_conversion (array));
-	VEC_safe_push (tree, gc, parms, size_int (len));
-	/* Call the private constructor.  */
-	push_deferring_access_checks (dk_no_check);
-	new_ctor = build_special_member_call
-	  (NULL_TREE, complete_ctor_identifier, &parms, totype, 0, complain);
-	release_tree_vector (parms);
-	pop_deferring_access_checks ();
-	return build_cplus_new (totype, new_ctor);
+	/* Build up the initializer_list object.  */
+	totype = complete_type (totype);
+	field = next_initializable_field (TYPE_FIELDS (totype));
+	CONSTRUCTOR_APPEND_ELT (vec, field, decay_conversion (array));
+	field = next_initializable_field (DECL_CHAIN (field));
+	CONSTRUCTOR_APPEND_ELT (vec, field, size_int (len));
+	new_ctor = build_constructor (totype, vec);
+	return get_target_expr (new_ctor);
       }
 
     case ck_aggr:
@@ -5559,7 +5566,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	  else if (diag_kind == DK_ERROR)
 	    return error_mark_node;
 	}
-      return build_cplus_new (totype, expr);
+      return build_cplus_new (totype, expr, complain);
 
     case ck_ref_bind:
       {
@@ -6476,7 +6483,7 @@ build_cxx_call (tree fn, int nargs, tree *argarray)
     return error_mark_node;
 
   if (MAYBE_CLASS_TYPE_P (TREE_TYPE (fn)))
-    fn = build_cplus_new (TREE_TYPE (fn), fn);
+    fn = build_cplus_new (TREE_TYPE (fn), fn, tf_warning_or_error);
   return convert_from_reference (fn);
 }
 
@@ -6850,7 +6857,7 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
   /* Process the argument list.  */
   if (args != NULL && *args != NULL)
     {
-      *args = resolve_args (*args);
+      *args = resolve_args (*args, complain);
       if (*args == NULL)
 	return error_mark_node;
     }
@@ -8119,7 +8126,7 @@ perform_direct_initialization_if_possible (tree type,
       expr = build_special_member_call (NULL_TREE, complete_ctor_identifier,
 					&args, type, LOOKUP_NORMAL, complain);
       release_tree_vector (args);
-      return build_cplus_new (type, expr);
+      return build_cplus_new (type, expr, complain);
     }
 
   /* Get the high-water mark for the CONVERSION_OBSTACK.  */

@@ -274,19 +274,25 @@ func startServer() {
 	pollserver = p
 }
 
-func newFD(fd, family, proto int, net string, laddr, raddr Addr) (f *netFD, err os.Error) {
+func newFD(fd, family, proto int, net string) (f *netFD, err os.Error) {
 	onceStartServer.Do(startServer)
 	if e := syscall.SetNonblock(fd, true); e != 0 {
-		return nil, &OpError{"setnonblock", net, laddr, os.Errno(e)}
+		return nil, os.Errno(e)
 	}
 	f = &netFD{
 		sysfd:  fd,
 		family: family,
 		proto:  proto,
 		net:    net,
-		laddr:  laddr,
-		raddr:  raddr,
 	}
+	f.cr = make(chan bool, 1)
+	f.cw = make(chan bool, 1)
+	return f, nil
+}
+
+func (fd *netFD) setAddr(laddr, raddr Addr) {
+	fd.laddr = laddr
+	fd.raddr = raddr
 	var ls, rs string
 	if laddr != nil {
 		ls = laddr.String()
@@ -294,10 +300,23 @@ func newFD(fd, family, proto int, net string, laddr, raddr Addr) (f *netFD, err 
 	if raddr != nil {
 		rs = raddr.String()
 	}
-	f.sysfile = os.NewFile(fd, net+":"+ls+"->"+rs)
-	f.cr = make(chan bool, 1)
-	f.cw = make(chan bool, 1)
-	return f, nil
+	fd.sysfile = os.NewFile(fd.sysfd, fd.net+":"+ls+"->"+rs)
+}
+
+func (fd *netFD) connect(ra syscall.Sockaddr) (err os.Error) {
+	e := syscall.Connect(fd.sysfd, ra)
+	if e == syscall.EINPROGRESS {
+		var errno int
+		pollserver.WaitWrite(fd)
+		e, errno = syscall.GetsockoptInt(fd.sysfd, syscall.SOL_SOCKET, syscall.SO_ERROR)
+		if errno != 0 {
+			return os.NewSyscallError("getsockopt", errno)
+		}
+	}
+	if e != 0 {
+		return os.Errno(e)
+	}
+	return nil
 }
 
 // Add a reference to this fd.
@@ -357,7 +376,7 @@ func (fd *netFD) Read(p []byte) (n int, err os.Error) {
 	for {
 		var errno int
 		n, errno = syscall.Read(fd.sysfile.Fd(), p)
-		if (errno == syscall.EAGAIN || errno == syscall.EINTR) && fd.rdeadline >= 0 {
+		if errno == syscall.EAGAIN && fd.rdeadline >= 0 {
 			pollserver.WaitRead(fd)
 			continue
 		}
@@ -392,7 +411,7 @@ func (fd *netFD) ReadFrom(p []byte) (n int, sa syscall.Sockaddr, err os.Error) {
 	for {
 		var errno int
 		n, sa, errno = syscall.Recvfrom(fd.sysfd, p, 0)
-		if (errno == syscall.EAGAIN || errno == syscall.EINTR) && fd.rdeadline >= 0 {
+		if errno == syscall.EAGAIN && fd.rdeadline >= 0 {
 			pollserver.WaitRead(fd)
 			continue
 		}
@@ -425,7 +444,7 @@ func (fd *netFD) ReadMsg(p []byte, oob []byte) (n, oobn, flags int, sa syscall.S
 	for {
 		var errno int
 		n, oobn, flags, sa, errno = syscall.Recvmsg(fd.sysfd, p, oob, 0)
-		if (errno == syscall.EAGAIN || errno == syscall.EINTR) && fd.rdeadline >= 0 {
+		if errno == syscall.EAGAIN && fd.rdeadline >= 0 {
 			pollserver.WaitRead(fd)
 			continue
 		}
@@ -471,7 +490,7 @@ func (fd *netFD) Write(p []byte) (n int, err os.Error) {
 		if nn == len(p) {
 			break
 		}
-		if (errno == syscall.EAGAIN || errno == syscall.EINTR) && fd.wdeadline >= 0 {
+		if errno == syscall.EAGAIN && fd.wdeadline >= 0 {
 			pollserver.WaitWrite(fd)
 			continue
 		}
@@ -507,7 +526,7 @@ func (fd *netFD) WriteTo(p []byte, sa syscall.Sockaddr) (n int, err os.Error) {
 	var oserr os.Error
 	for {
 		errno := syscall.Sendto(fd.sysfd, p, 0, sa)
-		if (errno == syscall.EAGAIN || errno == syscall.EINTR) && fd.wdeadline >= 0 {
+		if errno == syscall.EAGAIN && fd.wdeadline >= 0 {
 			pollserver.WaitWrite(fd)
 			continue
 		}
@@ -541,7 +560,7 @@ func (fd *netFD) WriteMsg(p []byte, oob []byte, sa syscall.Sockaddr) (n int, oob
 	for {
 		var errno int
 		errno = syscall.Sendmsg(fd.sysfd, p, oob, sa, 0)
-		if (errno == syscall.EAGAIN || errno == syscall.EINTR) && fd.wdeadline >= 0 {
+		if errno == syscall.EAGAIN && fd.wdeadline >= 0 {
 			pollserver.WaitWrite(fd)
 			continue
 		}
@@ -579,7 +598,7 @@ func (fd *netFD) accept(toAddr func(syscall.Sockaddr) Addr) (nfd *netFD, err os.
 			return nil, os.EINVAL
 		}
 		s, sa, e = syscall.Accept(fd.sysfd)
-		if e != syscall.EAGAIN && e != syscall.EINTR {
+		if e != syscall.EAGAIN {
 			break
 		}
 		syscall.ForkLock.RUnlock()
@@ -593,10 +612,11 @@ func (fd *netFD) accept(toAddr func(syscall.Sockaddr) Addr) (nfd *netFD, err os.
 	syscall.CloseOnExec(s)
 	syscall.ForkLock.RUnlock()
 
-	if nfd, err = newFD(s, fd.family, fd.proto, fd.net, fd.laddr, toAddr(sa)); err != nil {
+	if nfd, err = newFD(s, fd.family, fd.proto, fd.net); err != nil {
 		syscall.Close(s)
 		return nil, err
 	}
+	nfd.setAddr(fd.laddr, toAddr(sa))
 	return nfd, nil
 }
 

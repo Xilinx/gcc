@@ -175,7 +175,7 @@ func TestHostHandlers(t *testing.T) {
 	ts := httptest.NewServer(nil)
 	defer ts.Close()
 
-	conn, err := net.Dial("tcp", "", ts.Listener.Addr().String())
+	conn, err := net.Dial("tcp", ts.Listener.Addr().String())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,7 +265,7 @@ func TestServerTimeouts(t *testing.T) {
 
 	// Slow client that should timeout.
 	t1 := time.Nanoseconds()
-	conn, err := net.Dial("tcp", "", fmt.Sprintf("localhost:%d", addr.Port))
+	conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", addr.Port))
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
 	}
@@ -348,7 +348,7 @@ func TestIdentityResponse(t *testing.T) {
 	}
 	// Verify that the connection is closed when the declared Content-Length
 	// is larger than what the handler wrote.
-	conn, err := net.Dial("tcp", "", ts.Listener.Addr().String())
+	conn, err := net.Dial("tcp", ts.Listener.Addr().String())
 	if err != nil {
 		t.Fatalf("error dialing: %v", err)
 	}
@@ -377,7 +377,7 @@ func TestServeHTTP10Close(t *testing.T) {
 	}))
 	defer s.Close()
 
-	conn, err := net.Dial("tcp", "", s.Listener.Addr().String())
+	conn, err := net.Dial("tcp", s.Listener.Addr().String())
 	if err != nil {
 		t.Fatal("dial error:", err)
 	}
@@ -505,5 +505,32 @@ func TestHeadResponses(t *testing.T) {
 	}
 	if len(body) > 0 {
 		t.Errorf("got unexpected body %q", string(body))
+	}
+}
+
+func TestTLSServer(t *testing.T) {
+	ts := httptest.NewTLSServer(HandlerFunc(func(w ResponseWriter, r *Request) {
+		fmt.Fprintf(w, "tls=%v", r.TLS != nil)
+	}))
+	defer ts.Close()
+	if !strings.HasPrefix(ts.URL, "https://") {
+		t.Fatalf("expected test TLS server to start with https://, got %q", ts.URL)
+	}
+	res, _, err := Get(ts.URL)
+	if err != nil {
+		t.Error(err)
+	}
+	if res == nil {
+		t.Fatalf("got nil Response")
+	}
+	if res.Body == nil {
+		t.Fatalf("got nil Response.Body")
+	}
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Error(err)
+	}
+	if e, g := "tls=true", string(body); e != g {
+		t.Errorf("expected body %q; got %q", e, g)
 	}
 }

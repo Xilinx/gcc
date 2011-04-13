@@ -513,10 +513,6 @@ extern int fixuplabelno;
 #define	DBX_FUNCTION_FIRST
 
 /* This is the end of what might become sysv4dbx.h.  */
-
-#ifndef	TARGET_VERSION
-#define	TARGET_VERSION fprintf (stderr, " (PowerPC System V.4)");
-#endif
 
 #define TARGET_OS_SYSV_CPP_BUILTINS()		\
   do						\
@@ -816,12 +812,12 @@ extern int fixuplabelno;
 #else
 #error "Unsupported DEFAULT_LIBC"
 #endif
-#define LINUX_DYNAMIC_LINKER \
+#define GNU_USER_DYNAMIC_LINKER \
   CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER, UCLIBC_DYNAMIC_LINKER)
 
 #define LINK_OS_LINUX_SPEC "-m elf32ppclinux %{!shared: %{!static: \
   %{rdynamic:-export-dynamic} \
-  -dynamic-linker " LINUX_DYNAMIC_LINKER "}}"
+  -dynamic-linker " GNU_USER_DYNAMIC_LINKER "}}"
 
 #if defined(HAVE_LD_EH_FRAME_HDR)
 # define LINK_EH_SPEC "%{!static:--eh-frame-hdr} "

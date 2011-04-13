@@ -465,6 +465,7 @@ static const char *sparc_mangle_type (const_tree);
 #endif
 static void sparc_trampoline_init (rtx, tree, rtx);
 static enum machine_mode sparc_preferred_simd_mode (enum machine_mode);
+static reg_class_t sparc_preferred_reload_class (rtx x, reg_class_t rclass);
 
 #ifdef SUBTARGET_ATTRIBUTE_TABLE
 /* Table of valid machine attributes.  */
@@ -641,6 +642,8 @@ static const struct default_options sparc_option_optimization_table[] =
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE sparc_can_eliminate
+#undef  TARGET_PREFERRED_RELOAD_CLASS
+#define TARGET_PREFERRED_RELOAD_CLASS sparc_preferred_reload_class
 
 #undef TARGET_CONDITIONAL_REGISTER_USAGE
 #define TARGET_CONDITIONAL_REGISTER_USAGE sparc_conditional_register_usage
@@ -3308,9 +3311,7 @@ sparc_legitimize_tls_address (rtx addr)
 	    insn = emit_call_insn (gen_tgd_call64 (o0, sparc_tls_get_addr (),
 						   addr, const1_rtx));
 	  }
-        CALL_INSN_FUNCTION_USAGE (insn)
-	  = gen_rtx_EXPR_LIST (VOIDmode, gen_rtx_USE (VOIDmode, o0),
-			       CALL_INSN_FUNCTION_USAGE (insn));
+	use_reg (&CALL_INSN_FUNCTION_USAGE (insn), o0);
 	insn = get_insns ();
 	end_sequence ();
 	emit_libcall_block (insn, ret, o0, addr);
@@ -3338,9 +3339,7 @@ sparc_legitimize_tls_address (rtx addr)
 	    insn = emit_call_insn (gen_tldm_call64 (o0, sparc_tls_get_addr (),
 						    const1_rtx));
 	  }
-        CALL_INSN_FUNCTION_USAGE (insn)
-	  = gen_rtx_EXPR_LIST (VOIDmode, gen_rtx_USE (VOIDmode, o0),
-			       CALL_INSN_FUNCTION_USAGE (insn));
+	use_reg (&CALL_INSN_FUNCTION_USAGE (insn), o0);
 	insn = get_insns ();
 	end_sequence ();
 	emit_libcall_block (insn, temp3, o0,
@@ -9697,6 +9696,35 @@ sparc_conditional_register_usage (void)
     fixed_regs[4] = 1;
   else if (fixed_regs[4] == 2)
     fixed_regs[4] = 0;
+}
+
+/* Implement TARGET_PREFERRED_RELOAD_CLASS
+
+   - We can't load constants into FP registers.
+   - We can't load FP constants into integer registers when soft-float,
+     because there is no soft-float pattern with a r/F constraint.
+   - We can't load FP constants into integer registers for TFmode unless
+     it is 0.0L, because there is no movtf pattern with a r/F constraint.
+   - Try and reload integer constants (symbolic or otherwise) back into
+     registers directly, rather than having them dumped to memory.  */
+
+static reg_class_t
+sparc_preferred_reload_class (rtx x, reg_class_t rclass)
+{
+  if (CONSTANT_P (x))
+    {
+      if (FP_REG_CLASS_P (rclass)
+	  || rclass == GENERAL_OR_FP_REGS
+	  || rclass == GENERAL_OR_EXTRA_FP_REGS
+	  || (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT && ! TARGET_FPU)
+	  || (GET_MODE (x) == TFmode && ! const_zero_operand (x, TFmode)))
+	return NO_REGS;
+
+      if (GET_MODE_CLASS (GET_MODE (x)) == MODE_INT)
+	return GENERAL_REGS;
+    }
+
+  return rclass;
 }
 
 #include "gt-sparc.h"

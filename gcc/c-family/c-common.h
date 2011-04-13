@@ -700,6 +700,7 @@ extern tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 extern bool attribute_takes_identifier_p (const_tree);
 extern bool c_common_handle_option (size_t, const char *, int, int, location_t,
 				    const struct cl_option_handlers *);
+extern bool default_handle_c_option (size_t, const char *, int);
 extern tree c_common_type_for_mode (enum machine_mode, int);
 extern tree c_common_type_for_size (unsigned int, int);
 extern tree c_common_fixed_point_type_for_size (unsigned int, unsigned int,
@@ -707,6 +708,7 @@ extern tree c_common_fixed_point_type_for_size (unsigned int, unsigned int,
 extern tree c_common_unsigned_type (tree);
 extern tree c_common_signed_type (tree);
 extern tree c_common_signed_or_unsigned_type (int, tree);
+extern void c_common_init_ts (void);
 extern tree c_build_bitfield_integer_type (unsigned HOST_WIDE_INT, int);
 extern bool decl_with_nonnull_addr_p (const_tree);
 extern tree c_fully_fold (tree, bool, bool *);
