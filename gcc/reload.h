@@ -205,7 +205,6 @@ extern struct target_reload *this_target_reload;
   (this_target_reload->x_caller_save_initialized_p)
 
 extern unsigned int *reg_max_ref_width;
-
 /* Register equivalences.  Indexed by register number.  */
 typedef struct reg_equivs
 {
@@ -244,10 +243,24 @@ typedef struct reg_equivs
   rtx init;
 } reg_equivs_t;
 
+#define reg_equiv_constant(ELT) \
+  VEC_index (reg_equivs_t, reg_equivs, (ELT))->constant
+#define reg_equiv_invariant(ELT) \
+  VEC_index (reg_equivs_t, reg_equivs, (ELT))->invariant
+#define reg_equiv_memory_loc(ELT) \
+  VEC_index (reg_equivs_t, reg_equivs, (ELT))->memory_loc
+#define reg_equiv_address(ELT) \
+  VEC_index (reg_equivs_t, reg_equivs, (ELT))->address
+#define reg_equiv_mem(ELT) \
+  VEC_index (reg_equivs_t, reg_equivs, (ELT))->mem
+#define reg_equiv_alt_mem_list(ELT) \
+  VEC_index (reg_equivs_t, reg_equivs, (ELT))->alt_mem_list
+#define reg_equiv_init(ELT) \
+  VEC_index (reg_equivs_t, reg_equivs, (ELT))->init
+
 DEF_VEC_O(reg_equivs_t);
 DEF_VEC_ALLOC_O(reg_equivs_t, gc);
 extern VEC(reg_equivs_t,gc) *reg_equivs;
-
 
 /* All the "earlyclobber" operands of the current insn
    are recorded here.  */
@@ -458,11 +471,9 @@ extern void alter_reg (int, int, bool);
    registers.  */
 extern void record_equivalences_for_reload (void);
 
-
 /* Ideally this function would be in ira.c or reload, but due to dependencies
    on integrate.h, it's part of integrate.c.  */
 extern void allocate_initial_values (VEC (reg_equivs_t, gc) *);
 
 /* Allocate or grow the reg_equiv tables, initializing new entries to 0.  */
 extern void grow_reg_equivs (void);
- 

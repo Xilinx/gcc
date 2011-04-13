@@ -571,14 +571,14 @@ replace_pseudos_in (rtx *loc, enum machine_mode mem_mode, rtx usage)
 	  return;
 	}
 
-      if (VEC_index (reg_equivs_t, reg_equivs, regno)->constant)
-	*loc = VEC_index (reg_equivs_t, reg_equivs, regno)->constant;
-      else if (VEC_index (reg_equivs_t, reg_equivs, regno)->invariant)
-	*loc = VEC_index (reg_equivs_t, reg_equivs, regno)->invariant;
-      else if (VEC_index (reg_equivs_t, reg_equivs, regno)->mem)
-	*loc = VEC_index (reg_equivs_t, reg_equivs, regno)->mem;
-      else if (VEC_index (reg_equivs_t, reg_equivs, regno)->address)
-	*loc = gen_rtx_MEM (GET_MODE (x), VEC_index (reg_equivs_t, reg_equivs, regno)->address);
+      if (reg_equiv_constant (regno))
+	*loc = reg_equiv_constant (regno);
+      else if (reg_equiv_invariant (regno))
+	*loc = reg_equiv_invariant (regno);
+      else if (reg_equiv_mem (regno))
+	*loc = reg_equiv_mem (regno);
+      else if (reg_equiv_address (regno))
+	*loc = gen_rtx_MEM (GET_MODE (x), reg_equiv_address (regno));
       else
 	{
 	  gcc_assert (!REG_P (regno_reg_rtx[regno])
@@ -884,15 +884,15 @@ reload (rtx first, int global)
 	 so this problem goes away.  But that's very hairy.  */
 
       for (i = FIRST_PSEUDO_REGISTER; i < max_regno; i++)
-	if (reg_renumber[i] < 0 && VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc)
+	if (reg_renumber[i] < 0 && reg_equiv_memory_loc (i))
 	  {
-	    rtx x = eliminate_regs (VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc, VOIDmode,
+	    rtx x = eliminate_regs (reg_equiv_memory_loc (i), VOIDmode,
 				    NULL_RTX);
 
 	    if (strict_memory_address_addr_space_p
 		  (GET_MODE (regno_reg_rtx[i]), XEXP (x, 0),
 		   MEM_ADDR_SPACE (x)))
-	      VEC_index (reg_equivs_t, reg_equivs, i)->mem = x, VEC_index (reg_equivs_t, reg_equivs, i)->address = 0;
+	      reg_equiv_mem (i) = x, reg_equiv_address (i) = 0;
 	    else if (CONSTANT_P (XEXP (x, 0))
 		     || (REG_P (XEXP (x, 0))
 			 && REGNO (XEXP (x, 0)) < FIRST_PSEUDO_REGISTER)
@@ -901,7 +901,7 @@ reload (rtx first, int global)
 			 && (REGNO (XEXP (XEXP (x, 0), 0))
 			     < FIRST_PSEUDO_REGISTER)
 			 && CONSTANT_P (XEXP (XEXP (x, 0), 1))))
-	      VEC_index (reg_equivs_t, reg_equivs, i)->address = XEXP (x, 0), VEC_index (reg_equivs_t, reg_equivs, i)->mem = 0;
+	      reg_equiv_address (i) = XEXP (x, 0), reg_equiv_mem (i) = 0;
 	    else
 	      {
 		/* Make a new stack slot.  Then indicate that something
@@ -910,8 +910,8 @@ reload (rtx first, int global)
 		   below might change some offset.  reg_equiv_{mem,address}
 		   will be set up for this pseudo on the next pass around
 		   the loop.  */
-		VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc = 0;
-		VEC_index (reg_equivs_t, reg_equivs, i)->init = 0;
+		reg_equiv_memory_loc (i) = 0;
+		reg_equiv_init (i) = 0;
 		alter_reg (i, -1, true);
 	      }
 	  }
@@ -1025,10 +1025,10 @@ reload (rtx first, int global)
 
   for (i = FIRST_PSEUDO_REGISTER; i < max_regno; i++)
     {
-      if (reg_renumber[i] < 0 && VEC_index (reg_equivs_t, reg_equivs, i)->init != 0)
+      if (reg_renumber[i] < 0 && reg_equiv_init (i) != 0)
 	{
 	  rtx list;
-	  for (list = VEC_index (reg_equivs_t, reg_equivs, i)->init; list; list = XEXP (list, 1))
+	  for (list = reg_equiv_init (i); list; list = XEXP (list, 1))
 	    {
 	      rtx equiv_insn = XEXP (list, 0);
 
@@ -1096,11 +1096,11 @@ reload (rtx first, int global)
     {
       rtx addr = 0;
 
-      if (VEC_index (reg_equivs_t, reg_equivs, i)->mem)
-	addr = XEXP (VEC_index (reg_equivs_t, reg_equivs, i)->mem, 0);
+      if (reg_equiv_mem (i))
+	addr = XEXP (reg_equiv_mem (i), 0);
 
-      if (VEC_index (reg_equivs_t, reg_equivs, i)->address)
-	addr = VEC_index (reg_equivs_t, reg_equivs, i)->address;
+      if (reg_equiv_address (i))
+	addr = reg_equiv_address (i);
 
       if (addr)
 	{
@@ -1111,8 +1111,8 @@ reload (rtx first, int global)
 	      REG_USERVAR_P (reg) = 0;
 	      PUT_CODE (reg, MEM);
 	      XEXP (reg, 0) = addr;
-	      if (VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc)
-		MEM_COPY_ATTRIBUTES (reg, VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc);
+	      if (reg_equiv_memory_loc (i))
+		MEM_COPY_ATTRIBUTES (reg, reg_equiv_memory_loc (i));
 	      else
 		{
 		  MEM_IN_STRUCT_P (reg) = MEM_SCALAR_P (reg) = 0;
@@ -1120,8 +1120,8 @@ reload (rtx first, int global)
 		}
 	      MEM_NOTRAP_P (reg) = 1;
 	    }
-	  else if (VEC_index (reg_equivs_t, reg_equivs, i)->mem)
-	    XEXP (VEC_index (reg_equivs_t, reg_equivs, i)->mem, 0) = addr;
+	  else if (reg_equiv_mem (i))
+	    XEXP (reg_equiv_mem (i), 0) = addr;
 	}
 
       /* We don't want complex addressing modes in debug insns
@@ -1133,10 +1133,10 @@ reload (rtx first, int global)
 	  rtx equiv = 0;
 	  df_ref use, next;
 
-	  if (VEC_index (reg_equivs_t, reg_equivs, i)->constant)
-	    equiv = VEC_index (reg_equivs_t, reg_equivs, i)->constant;
-	  else if (VEC_index (reg_equivs_t, reg_equivs, i)->invariant)
-	    equiv = VEC_index (reg_equivs_t, reg_equivs, i)->invariant;
+	  if (reg_equiv_constant (i))
+	    equiv = reg_equiv_constant (i);
+	  else if (reg_equiv_invariant (i))
+	    equiv = reg_equiv_invariant (i);
 	  else if (reg && MEM_P (reg))
 	    equiv = targetm.delegitimize_address (reg);
 	  else if (reg && REG_P (reg) && (int)REGNO (reg) != i)
@@ -1406,8 +1406,7 @@ record_equivalences_for_reload (void)
 		  /* Always unshare the equivalence, so we can
 		     substitute into this insn without touching the
 		       equivalence.  */
-		  VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc
-		    = copy_rtx (x);
+		  reg_equiv_memory_loc (i) = copy_rtx (x);
 		}
 	      else if (function_invariant_p (x))
 		{
@@ -1415,44 +1414,43 @@ record_equivalences_for_reload (void)
 		    {
 		      /* This is PLUS of frame pointer and a constant,
 			 and might be shared.  Unshare it.  */
-		      VEC_index (reg_equivs_t, reg_equivs, i)->invariant
-			= copy_rtx (x);
+		      reg_equiv_invariant (i) = copy_rtx (x);
 		      num_eliminable_invariants++;
 		    }
 		  else if (x == frame_pointer_rtx || x == arg_pointer_rtx)
 		    {
-		      VEC_index (reg_equivs_t, reg_equivs, i)->invariant = x;
+		      reg_equiv_invariant (i) = x;
 		      num_eliminable_invariants++;
 		    }
 		  else if (LEGITIMATE_CONSTANT_P (x))
-		    VEC_index (reg_equivs_t, reg_equivs, i)->constant = x;
+		    reg_equiv_constant (i) = x;
 		  else
 		    {
 		  
-		      VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc
+		      reg_equiv_memory_loc (i) 
 			= force_const_mem (GET_MODE (SET_DEST (set)), x);
-		      if (! VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc)
-		      VEC_index (reg_equivs_t, reg_equivs, i)->init = NULL_RTX;
+		      if (! reg_equiv_memory_loc (i))
+			reg_equiv_init (i) = NULL_RTX;
 		    }
 		}
 	      else
 		{
-		  VEC_index (reg_equivs_t, reg_equivs, i)->init = NULL_RTX;
+		  reg_equiv_init (i) = NULL_RTX;
 		  continue;
 		}
 	    }
 	  else
-	    VEC_index (reg_equivs_t, reg_equivs, i)->init = NULL_RTX;
+	    reg_equiv_init (i) = NULL_RTX;
 	}
     }
 
   if (dump_file)
     for (i = FIRST_PSEUDO_REGISTER; i < max_regno; i++)
-      if (VEC_index (reg_equivs_t, reg_equivs, i)->init)
+      if (reg_equiv_init (i))
 	{
 	  fprintf (dump_file, "init_insns for %u: ", i);
 	  print_inline_rtx (dump_file,
-			    VEC_index (reg_equivs_t, reg_equivs, i)->init,
+			    reg_equiv_init (i), 
 			   20);
 	  fprintf (dump_file, "\n");
 	}
@@ -1632,9 +1630,9 @@ calculate_needs_all_insns (int global)
 	  /* Skip insns that only set an equivalence.  */
 	  if (set && REG_P (SET_DEST (set))
 	      && reg_renumber[REGNO (SET_DEST (set))] < 0
-	      && (VEC_index (reg_equivs_t, reg_equivs, REGNO (SET_DEST (set)))->constant
-		  || (VEC_index (reg_equivs_t, reg_equivs, REGNO (SET_DEST (set)))->invariant))
-		      && VEC_index (reg_equivs_t, reg_equivs, REGNO (SET_DEST (set)))->init)
+	      && (reg_equiv_constant (REGNO (SET_DEST (set)))
+		  || (reg_equiv_invariant (REGNO (SET_DEST (set)))))
+		      && reg_equiv_init (REGNO (SET_DEST (set))))
 	    continue;
 
 	  /* If needed, eliminate any eliminable registers.  */
@@ -1663,12 +1661,10 @@ calculate_needs_all_insns (int global)
 		   || (REG_P (SET_SRC (set)) && REG_P (SET_DEST (set))
 		       && reg_renumber[REGNO (SET_SRC (set))] < 0
 		       && reg_renumber[REGNO (SET_DEST (set))] < 0
-		       && VEC_index (reg_equivs_t, reg_equivs, REGNO (SET_SRC (set)))->memory_loc != NULL
-		       && VEC_index (reg_equivs_t, reg_equivs, REGNO (SET_DEST (set)))->memory_loc != NULL
-		       && rtx_equal_p (VEC_index (reg_equivs_t, reg_equivs, 
-				       REGNO (SET_SRC (set)))->memory_loc,
-				       VEC_index (reg_equivs_t, reg_equivs, 
-				       REGNO (SET_DEST (set)))->memory_loc))))
+		       && reg_equiv_memory_loc (REGNO (SET_SRC (set))) != NULL
+		       && reg_equiv_memory_loc (REGNO (SET_DEST (set))) != NULL
+		       && rtx_equal_p (reg_equiv_memory_loc (REGNO (SET_SRC (set))),
+				       reg_equiv_memory_loc (REGNO (SET_DEST (set)))))))
 		{
 		  if (ira_conflicts_p)
 		    /* Inform IRA about the insn deletion.  */
@@ -1759,11 +1755,11 @@ calculate_elim_costs_all_insns (void)
 	      /* Skip insns that only set an equivalence.  */
 	      if (set && REG_P (SET_DEST (set))
 		  && reg_renumber[REGNO (SET_DEST (set))] < 0
-		  && (VEC_index (reg_equivs_t, reg_equivs, REGNO (SET_DEST (set)))->constant
-		      || VEC_index (reg_equivs_t, reg_equivs, REGNO (SET_DEST (set)))->invariant))
+		  && (reg_equiv_constant (REGNO (SET_DEST (set)))
+		      || reg_equiv_invariant (REGNO (SET_DEST (set)))))
 		{
 		  unsigned regno = REGNO (SET_DEST (set));
-		  rtx init = VEC_index (reg_equivs_t, reg_equivs, regno)->init;
+		  rtx init = reg_equiv_init (regno);
 		  if (init)
 		    {
 		      rtx t = eliminate_regs_1 (SET_SRC (set), VOIDmode, insn,
@@ -1787,9 +1783,9 @@ calculate_elim_costs_all_insns (void)
     }
   for (i = FIRST_PSEUDO_REGISTER; i < max_regno; i++)
     {
-      if (VEC_index (reg_equivs_t, reg_equivs, i)->invariant)
+      if (reg_equiv_invariant (i))
 	{
-	  if (VEC_index (reg_equivs_t, reg_equivs, i)->init)
+	  if (reg_equiv_init (i))
 	    {
 	      int cost = reg_equiv_init_cost[i];
 	      if (dump_file)
@@ -1809,9 +1805,6 @@ calculate_elim_costs_all_insns (void)
 	}
     }
 
-#if 0
-  free_reg_equiv ();
-#endif
   free (reg_equiv_init_cost);
 }
 
@@ -2298,10 +2291,10 @@ alter_reg (int i, int from_reg, bool dont_share_p)
 
   if (reg_renumber[i] < 0
       && REG_N_REFS (i) > 0
-      && VEC_index (reg_equivs_t, reg_equivs, i)->constant == 0
-      && (VEC_index (reg_equivs_t, reg_equivs, i)->invariant == 0
-	  || VEC_index (reg_equivs_t, reg_equivs, i)->init == 0)
-      && VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc == 0)
+      && reg_equiv_constant (i) == 0
+      && (reg_equiv_invariant (i) == 0
+	  || reg_equiv_init (i) == 0)
+      && reg_equiv_memory_loc (i) == 0)
     {
       rtx x = NULL_RTX;
       enum machine_mode mode = GET_MODE (regno_reg_rtx[i]);
@@ -2425,7 +2418,7 @@ alter_reg (int i, int from_reg, bool dont_share_p)
       set_mem_attrs_for_spill (x);
 
       /* Save the stack slot for later.  */
-      VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc = x;
+      reg_equiv_memory_loc (i) = x;
     }
 }
 
@@ -2620,10 +2613,10 @@ note_reg_elim_costly (rtx *px, void *data)
 
   if (REG_P (x)
       && REGNO (x) >= FIRST_PSEUDO_REGISTER
-      && VEC_index (reg_equivs_t, reg_equivs, REGNO (x))->init
-      && VEC_index (reg_equivs_t, reg_equivs, REGNO (x))->invariant)
+      && reg_equiv_init (REGNO (x))
+      && reg_equiv_invariant (REGNO (x)))
     {
-      rtx t = VEC_index (reg_equivs_t, reg_equivs, REGNO (x))->invariant;
+      rtx t = reg_equiv_invariant (REGNO (x));
       rtx new_rtx = eliminate_regs_1 (t, Pmode, insn, true, true);
       int cost = rtx_cost (new_rtx, SET, optimize_bb_for_speed_p (elim_bb));
       int freq = REG_FREQ_FROM_BB (elim_bb);
@@ -2709,14 +2702,14 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 	}
       else if (reg_renumber && reg_renumber[regno] < 0
 	       && reg_equivs
-	       && VEC_index (reg_equivs_t, reg_equivs, regno)->invariant)
+	       && reg_equiv_invariant (regno))
 	{
 	  if (may_use_invariant || (insn && DEBUG_INSN_P (insn)))
-	    return eliminate_regs_1 (copy_rtx (VEC_index (reg_equivs_t, reg_equivs, regno)->invariant),
+	    return eliminate_regs_1 (copy_rtx (reg_equiv_invariant (regno)),
 			             mem_mode, insn, true, for_costs);
 	  /* There exists at least one use of REGNO that cannot be
 	     eliminated.  Prevent the defining insn from being deleted.  */
-	  VEC_index (reg_equivs_t, reg_equivs, regno)->init = NULL_RTX;
+	  reg_equiv_init (regno) = NULL_RTX;
 	  if (!for_costs)
 	    alter_reg (regno, -1, true);
 	}
@@ -2794,13 +2787,13 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 		&& REGNO (new1) >= FIRST_PSEUDO_REGISTER
 		&& reg_renumber[REGNO (new1)] < 0
 		&& reg_equivs
-		&& VEC_index (reg_equivs_t, reg_equivs, REGNO (new1))->constant != 0)
-	      new1 = VEC_index (reg_equivs_t, reg_equivs, REGNO (new1))->constant;
+		&& reg_equiv_constant (REGNO (new1)) != 0)
+	      new1 = reg_equiv_constant (REGNO (new1));
 	    else if (GET_CODE (new1) == PLUS && REG_P (new0)
 		     && REGNO (new0) >= FIRST_PSEUDO_REGISTER
 		     && reg_renumber[REGNO (new0)] < 0
-		     && VEC_index (reg_equivs_t, reg_equivs, REGNO (new0))->constant != 0)
-	      new0 = VEC_index (reg_equivs_t, reg_equivs, REGNO (new0))->constant;
+		     && reg_equiv_constant (REGNO (new0)) != 0)
+	      new0 = reg_equiv_constant (REGNO (new0));
 
 	    new_rtx = form_sum (GET_MODE (x), new0, new1);
 
@@ -2963,7 +2956,7 @@ eliminate_regs_1 (rtx x, enum machine_mode mem_mode, rtx insn,
 	  && (GET_MODE_SIZE (GET_MODE (x))
 	      <= GET_MODE_SIZE (GET_MODE (SUBREG_REG (x))))
 	  && reg_equivs
-	  && VEC_index (reg_equivs_t, reg_equivs, REGNO (SUBREG_REG (x)))->memory_loc != 0)
+	  && reg_equiv_memory_loc (REGNO (SUBREG_REG (x))) != 0)
 	{
 	  new_rtx = SUBREG_REG (x);
 	}
@@ -3129,10 +3122,9 @@ elimination_effects (rtx x, enum machine_mode mem_mode)
 
 	}
       else if (reg_renumber[regno] < 0
-	       && VEC_index (reg_equivs_t, reg_equivs, 0)->constant
-	       && VEC_index (reg_equivs_t, reg_equivs, regno)->constant
-	       && ! function_invariant_p (VEC_index (reg_equivs_t, reg_equivs, regno)->constant))
-	elimination_effects (VEC_index (reg_equivs_t, reg_equivs, regno)->constant, mem_mode);
+	       && reg_equiv_constant (regno)
+	       && ! function_invariant_p (reg_equiv_constant (regno)))
+	elimination_effects (reg_equiv_constant (regno), mem_mode);
       return;
 
     case PRE_INC:
@@ -3201,7 +3193,7 @@ elimination_effects (rtx x, enum machine_mode mem_mode)
 	  && (GET_MODE_SIZE (GET_MODE (x))
 	      <= GET_MODE_SIZE (GET_MODE (SUBREG_REG (x))))
 	  && reg_equivs != 0
-	  && VEC_index (reg_equivs_t, reg_equivs, REGNO (SUBREG_REG (x)))->memory_loc != 0)
+	  && reg_equiv_memory_loc (REGNO (SUBREG_REG (x))) != 0)
 	return;
 
       elimination_effects (SUBREG_REG (x), mem_mode);
@@ -4289,7 +4281,7 @@ init_eliminable_invariants (rtx first, bool do_subregs)
 		  /* Always unshare the equivalence, so we can
 		     substitute into this insn without touching the
 		       equivalence.  */
-		  VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc = copy_rtx (x);
+		  reg_equiv_memory_loc (i) = copy_rtx (x);
 		}
 	      else if (function_invariant_p (x))
 		{
@@ -4297,41 +4289,41 @@ init_eliminable_invariants (rtx first, bool do_subregs)
 		    {
 		      /* This is PLUS of frame pointer and a constant,
 			 and might be shared.  Unshare it.  */
-		      VEC_index (reg_equivs_t, reg_equivs, i)->invariant = copy_rtx (x);
+		      reg_equiv_invariant (i) = copy_rtx (x);
 		      num_eliminable_invariants++;
 		    }
 		  else if (x == frame_pointer_rtx || x == arg_pointer_rtx)
 		    {
-		      VEC_index (reg_equivs_t, reg_equivs, i)->invariant = x;
+		      reg_equiv_invariant (i) = x;
 		      num_eliminable_invariants++;
 		    }
 		  else if (LEGITIMATE_CONSTANT_P (x))
-		    VEC_index (reg_equivs_t, reg_equivs, i)->constant = x;
+		    reg_equiv_constant (i) = x;
 		  else
 		    {
-		      VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc
+		      reg_equiv_memory_loc (i)
 			= force_const_mem (GET_MODE (SET_DEST (set)), x);
-		      if (! VEC_index (reg_equivs_t, reg_equivs, i)->memory_loc)
-			VEC_index (reg_equivs_t, reg_equivs, i)->init = NULL_RTX;
+		      if (! reg_equiv_memory_loc (i))
+			reg_equiv_init (i) = NULL_RTX;
 		    }
 		}
 	      else
 		{
-		  VEC_index (reg_equivs_t, reg_equivs, i)->init = NULL_RTX;
+		  reg_equiv_init (i) = NULL_RTX;
 		  continue;
 		}
 	    }
 	  else
-	    VEC_index (reg_equivs_t, reg_equivs, i)->init = NULL_RTX;
+	    reg_equiv_init (i) = NULL_RTX;
 	}
     }
 
   if (dump_file)
     for (i = FIRST_PSEUDO_REGISTER; i < max_regno; i++)
-      if (VEC_index (reg_equivs_t, reg_equivs, i)->init)
+      if (reg_equiv_init (i))
 	{
 	  fprintf (dump_file, "init_insns for %u: ", i);
-	  print_inline_rtx (dump_file, VEC_index (reg_equivs_t, reg_equivs, i)->init, 20);
+	  print_inline_rtx (dump_file, reg_equiv_init (i), 20);
 	  fprintf (dump_file, "\n");
 	}
 }
@@ -4353,8 +4345,8 @@ free_reg_equiv (void)
   offsets_known_at = 0;
 
   for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
-    if (VEC_index (reg_equivs_t, reg_equivs, i)->alt_mem_list)
-      free_EXPR_LIST_list (&VEC_index (reg_equivs_t, reg_equivs, i)->alt_mem_list);
+    if (reg_equiv_alt_mem_list (i))
+      free_EXPR_LIST_list (&reg_equiv_alt_mem_list (i));
   VEC_free (reg_equivs_t, gc, reg_equivs);
   reg_equivs = NULL;
 
@@ -7575,15 +7567,15 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 	tmp = SUBREG_REG (tmp);
       if (REG_P (tmp)
 	  && REGNO (tmp) >= FIRST_PSEUDO_REGISTER
-	  && (VEC_index (reg_equivs_t, reg_equivs, REGNO (tmp))->memory_loc != 0
-	      || VEC_index (reg_equivs_t, reg_equivs, REGNO (tmp))->constant != 0))
+	  && (reg_equiv_memory_loc (REGNO (tmp)) != 0
+	      || reg_equiv_constant (REGNO (tmp)) != 0))
 	{
-	  if (! VEC_index (reg_equivs_t, reg_equivs, REGNO (tmp))->mem
+	  if (! reg_equiv_mem (REGNO (tmp))
 	      || num_not_at_initial_offset
 	      || GET_CODE (oldequiv) == SUBREG)
 	    real_oldequiv = rl->in;
 	  else
-	    real_oldequiv = VEC_index (reg_equivs_t, reg_equivs, REGNO (tmp))->mem;
+	    real_oldequiv = reg_equiv_mem (REGNO (tmp));
 	}
 
       tmp = old;
@@ -7591,15 +7583,15 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 	tmp = SUBREG_REG (tmp);
       if (REG_P (tmp)
 	  && REGNO (tmp) >= FIRST_PSEUDO_REGISTER
-	  && (VEC_index (reg_equivs_t, reg_equivs, REGNO (tmp))->memory_loc != 0
-	      || VEC_index (reg_equivs_t, reg_equivs, REGNO (tmp))->constant != 0))
+	  && (reg_equiv_memory_loc (REGNO (tmp)) != 0
+	      || reg_equiv_constant (REGNO (tmp)) != 0))
 	{
-	  if (! VEC_index (reg_equivs_t, reg_equivs, REGNO (tmp))->mem
+	  if (! reg_equiv_mem (REGNO (tmp))
 	      || num_not_at_initial_offset
 	      || GET_CODE (old) == SUBREG)
 	    real_old = rl->in;
 	  else
-	    real_old = VEC_index (reg_equivs_t, reg_equivs, REGNO (tmp))->mem;
+	    real_old = reg_equiv_mem (REGNO (tmp));
 	}
 
       second_reload_reg = rld[secondary_reload].reg_rtx;
@@ -7769,16 +7761,14 @@ emit_input_reload_insns (struct insn_chain *chain, struct reload *rl,
 
       if ((REG_P (oldequiv)
 	   && REGNO (oldequiv) >= FIRST_PSEUDO_REGISTER
-	   && (VEC_index (reg_equivs_t, reg_equivs, REGNO (oldequiv))->memory_loc != 0
-	       || VEC_index (reg_equivs_t, reg_equivs, REGNO (oldequiv))->constant != 0))
+	   && (reg_equiv_memory_loc (REGNO (oldequiv)) != 0
+	       || reg_equiv_constant (REGNO (oldequiv)) != 0))
 	  || (GET_CODE (oldequiv) == SUBREG
 	      && REG_P (SUBREG_REG (oldequiv))
 	      && (REGNO (SUBREG_REG (oldequiv))
 		  >= FIRST_PSEUDO_REGISTER)
-	      && ((VEC_index (reg_equivs_t, reg_equivs, 
-		   REGNO (SUBREG_REG (oldequiv)))->memory_loc != 0)
-		  || (VEC_index (reg_equivs_t, reg_equivs, 
-		      REGNO (SUBREG_REG (oldequiv)))->constant != 0)))
+	      && ((reg_equiv_memory_loc (REGNO (SUBREG_REG (oldequiv))) != 0)
+		  || (reg_equiv_constant (REGNO (SUBREG_REG (oldequiv))) != 0)))
 	  || (CONSTANT_P (oldequiv)
 	      && (targetm.preferred_reload_class (oldequiv,
 						  REGNO_REG_CLASS (REGNO (reloadreg)))
@@ -7836,8 +7826,8 @@ emit_output_reload_insns (struct insn_chain *chain, struct reload *rl,
       int tertiary_reload = rld[secondary_reload].secondary_out_reload;
 
       if (REG_P (old) && REGNO (old) >= FIRST_PSEUDO_REGISTER
-	  && VEC_index (reg_equivs_t, reg_equivs, REGNO (old))->mem != 0)
-	real_old = VEC_index (reg_equivs_t, reg_equivs, REGNO (old))->mem;
+	  && reg_equiv_mem (REGNO (old)) != 0)
+	real_old = reg_equiv_mem (REGNO (old));
 
       if (secondary_reload_class (0, rl->rclass, mode, real_old) != NO_REGS)
 	{
@@ -8966,7 +8956,7 @@ delete_output_reload (rtx insn, int j, int last_reload_reg, rtx new_reload_reg)
 
   while (GET_CODE (reg) == SUBREG)
     reg = SUBREG_REG (reg);
-  substed = VEC_index (reg_equivs_t, reg_equivs, REGNO (reg))->memory_loc;
+  substed = reg_equiv_memory_loc (REGNO (reg));
 
   /* This is unsafe if the operand occurs more often in the current
      insn than it is inherited.  */
@@ -8999,7 +8989,7 @@ delete_output_reload (rtx insn, int j, int last_reload_reg, rtx new_reload_reg)
     n_occurrences += count_occurrences (PATTERN (insn),
 					eliminate_regs (substed, VOIDmode,
 							NULL_RTX), 0);
-  for (i1 = VEC_index (reg_equivs_t, reg_equivs, REGNO (reg))->alt_mem_list; i1; i1 = XEXP (i1, 1))
+  for (i1 = reg_equiv_alt_mem_list (REGNO (reg)); i1; i1 = XEXP (i1, 1))
     {
       gcc_assert (!rtx_equal_p (XEXP (i1, 0), substed));
       n_occurrences += count_occurrences (PATTERN (insn), XEXP (i1, 0), 0);

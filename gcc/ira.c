@@ -1432,7 +1432,7 @@ find_reg_equiv_invariant_const (void)
     {
       constant = NULL_RTX;
       invariant_p = false;
-      for (list = VEC_index (reg_equivs_t, reg_equivs, i)->init; list != NULL_RTX; list = XEXP (list, 1))
+      for (list = reg_equiv_init (i); list != NULL_RTX; list = XEXP (list, 1))
 	{
 	  insn = XEXP (list, 0);
 	  note = find_reg_note (insn, REG_EQUIV, NULL_RTX);
@@ -1686,7 +1686,9 @@ fix_reg_equiv_init (void)
       max = VEC_length (reg_equivs_t, reg_equivs);
       grow_reg_equivs ();
       for (i = FIRST_PSEUDO_REGISTER; i < max; i++)
-	for (prev = NULL_RTX, x = VEC_index (reg_equivs_t, reg_equivs, i)->init; x != NULL_RTX; x = next)
+	for (prev = NULL_RTX, x = reg_equiv_init (i);
+	     x != NULL_RTX;
+	     x = next)
 	  {
 	    next = XEXP (x, 1);
 	    insn = XEXP (x, 0);
@@ -1708,11 +1710,11 @@ fix_reg_equiv_init (void)
 	    else
 	      {
 		if (prev == NULL_RTX)
-		  VEC_index (reg_equivs_t, reg_equivs, i)->init = next;
+		  reg_equiv_init (i) = next;
 		else
 		  XEXP (prev, 1) = next;
-		XEXP (x, 1) = VEC_index (reg_equivs_t, reg_equivs, new_regno)->init;
-		VEC_index (reg_equivs_t, reg_equivs, new_regno)->init = x;
+		XEXP (x, 1) = reg_equiv_init (new_regno);
+		reg_equiv_init (new_regno) = x;
 	      }
 	  }
     }
@@ -2214,7 +2216,7 @@ no_equiv (rtx reg, const_rtx store ATTRIBUTE_UNUSED, void *data ATTRIBUTE_UNUSED
      should keep their initialization insns.  */
   if (reg_equiv[regno].is_arg_equivalence)
     return;
-  VEC_index (reg_equivs_t, reg_equivs, regno)->init = NULL_RTX;
+  reg_equiv_init (regno) = NULL_RTX;
   for (; list; list =  XEXP (list, 1))
     {
       rtx insn = XEXP (list, 0);
@@ -2330,8 +2332,8 @@ update_equiv_regs (void)
 
 	      /* Record for reload that this is an equivalencing insn.  */
 	      if (rtx_equal_p (src, XEXP (note, 0)))
-		VEC_index (reg_equivs_t, reg_equivs, regno)->init
-		  = gen_rtx_INSN_LIST (VOIDmode, insn, VEC_index (reg_equivs_t, reg_equivs, regno)->init);
+		reg_equiv_init (regno)
+		  = gen_rtx_INSN_LIST (VOIDmode, insn, reg_equiv_init (regno));
 
 	      /* Continue normally in case this is a candidate for
 		 replacements.  */
@@ -2431,8 +2433,8 @@ update_equiv_regs (void)
 	      /* If we haven't done so, record for reload that this is an
 		 equivalencing insn.  */
 	      if (!reg_equiv[regno].is_arg_equivalence)
-		VEC_index (reg_equivs_t, reg_equivs, regno)->init
-		  = gen_rtx_INSN_LIST (VOIDmode, insn, VEC_index (reg_equivs_t, reg_equivs, regno)->init);
+		reg_equiv_init (regno)
+		  = gen_rtx_INSN_LIST (VOIDmode, insn, reg_equiv_init (regno));
 
 	      /* Record whether or not we created a REG_EQUIV note for a LABEL_REF.
 		 We might end up substituting the LABEL_REF for uses of the
@@ -2532,7 +2534,7 @@ update_equiv_regs (void)
 	    {
 	      /* This insn makes the equivalence, not the one initializing
 		 the register.  */
-	      VEC_index (reg_equivs_t, reg_equivs, regno)->init
+	      reg_equiv_init (regno)
 		= gen_rtx_INSN_LIST (VOIDmode, insn, NULL_RTX);
 	      df_notes_rescan (init_insn);
 	    }
@@ -2635,7 +2637,7 @@ update_equiv_regs (void)
 		      reg_equiv[regno].init_insns
 			= XEXP (reg_equiv[regno].init_insns, 1);
 
-		      VEC_index (reg_equivs_t, reg_equivs, regno)->init = NULL_RTX;
+		      reg_equiv_init (regno) = NULL_RTX;
 		      bitmap_set_bit (cleared_regs, regno);
 		    }
 		  /* Move the initialization of the register to just before
@@ -2668,7 +2670,7 @@ update_equiv_regs (void)
 		      if (insn == BB_HEAD (bb))
 			BB_HEAD (bb) = PREV_INSN (insn);
 
-		      VEC_index (reg_equivs_t, reg_equivs, regno)->init
+		      reg_equiv_init (regno)
 			= gen_rtx_INSN_LIST (VOIDmode, new_insn, NULL_RTX);
 		      bitmap_set_bit (cleared_regs, regno);
 		    }

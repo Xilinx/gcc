@@ -350,7 +350,7 @@ allocate_initial_values (VEC (reg_equivs_t, gc) *reg_equivs)
 	  if (x && REG_N_SETS (REGNO (ivs->entries[i].pseudo)) <= 1)
 	    {
 	      if (MEM_P (x))
-		VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc = x;
+		reg_equiv_memory_loc (regno) = x;
 	      else
 		{
 		  basic_block bb;

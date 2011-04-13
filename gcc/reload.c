@@ -300,13 +300,13 @@ push_reg_equiv_alt_mem (int regno, rtx mem)
 {
   rtx it;
 
-  for (it = VEC_index (reg_equivs_t, reg_equivs, regno)->alt_mem_list; it; it = XEXP (it, 1))
+  for (it = reg_equiv_alt_mem_list (regno); it; it = XEXP (it, 1))
     if (rtx_equal_p (XEXP (it, 0), mem))
       return;
 
-  VEC_index (reg_equivs_t, reg_equivs, regno)->alt_mem_list
+  reg_equiv_alt_mem_list (regno)
     = alloc_EXPR_LIST (REG_EQUIV, mem,
-		       VEC_index (reg_equivs_t, reg_equivs, regno)->alt_mem_list);
+		       reg_equiv_alt_mem_list (regno));
 }
 
 /* Determine if any secondary reloads are needed for loading (if IN_P is
@@ -362,8 +362,8 @@ push_secondary_reload (int in_p, rtx x, int opnum, int optional,
      might be sensitive to the form of the MEM.  */
 
   if (REG_P (x) && REGNO (x) >= FIRST_PSEUDO_REGISTER
-      && VEC_index (reg_equivs_t, reg_equivs, REGNO (x))->mem != 0)
-    x = VEC_index (reg_equivs_t, reg_equivs, REGNO (x))->mem;
+      && reg_equiv_mem (REGNO (x)))
+    x = reg_equiv_mem (REGNO (x));
 
   sri.icode = CODE_FOR_nothing;
   sri.prev_sri = prev_sri;
@@ -949,7 +949,7 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 
       gcc_assert (regno < FIRST_PSEUDO_REGISTER
 		  || reg_renumber[regno] >= 0
-		  || VEC_index (reg_equivs_t, reg_equivs, regno)->constant == NULL_RTX);
+		  || reg_equiv_constant (regno) == NULL_RTX);
     }
 
   /* reg_equiv_constant only contains constants which are obviously
@@ -962,7 +962,7 @@ push_reload (rtx in, rtx out, rtx *inloc, rtx *outloc,
 
       gcc_assert (regno < FIRST_PSEUDO_REGISTER
 		  || reg_renumber[regno] >= 0
-		  || VEC_index (reg_equivs_t, reg_equivs, regno)->constant == NULL_RTX);
+		  || reg_equiv_constant (regno) == NULL_RTX);
     }
 
   /* If we have a read-write operand with an address side-effect,
@@ -2855,10 +2855,10 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	      && REG_P (reg)
 	      && (GET_MODE_SIZE (GET_MODE (reg))
 		  >= GET_MODE_SIZE (GET_MODE (op)))
-	      && VEC_index (reg_equivs_t, reg_equivs, REGNO (reg))->constant == 0)
+	      && reg_equiv_constant (REGNO (reg)) == 0)
 	    set_unique_reg_note (emit_insn_before (gen_rtx_USE (VOIDmode, reg),
 						   insn),
-				 REG_EQUAL, VEC_index (reg_equivs_t, reg_equivs, REGNO (reg))->memory_loc);
+				 REG_EQUAL, reg_equiv_memory_loc (REGNO (reg)));
 
 	  substed_operand[i] = recog_data.operand[i] = op;
 	}
@@ -2879,7 +2879,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 	     that we don't try to replace it in the insn in which it
 	     is being set.  */
 	  int regno = REGNO (recog_data.operand[i]);
-	  if (VEC_index (reg_equivs_t, reg_equivs, regno)->constant != 0
+	  if (reg_equiv_constant (regno) != 0
 	      && (set == 0 || &SET_DEST (set) != recog_data.operand_loc[i]))
 	    {
 	      /* Record the existing mode so that the check if constants are
@@ -2889,11 +2889,10 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		operand_mode[i] = GET_MODE (recog_data.operand[i]);
 
 	      substed_operand[i] = recog_data.operand[i]
-		= VEC_index (reg_equivs_t, reg_equivs, regno)->constant;
+		= reg_equiv_constant (regno);
 	    }
-	  if (VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc != 0
-	      && (VEC_index (reg_equivs_t, reg_equivs, regno)->address != 0
-		  || num_not_at_initial_offset))
+	  if (reg_equiv_memory_loc (regno) != 0
+	      && (reg_equiv_address (regno) != 0 || num_not_at_initial_offset))
 	    /* We need not give a valid is_set_dest argument since the case
 	       of a constant equivalence was checked above.  */
 	    substed_operand[i] = recog_data.operand[i]
@@ -3281,7 +3280,7 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		       to override the handling of reg_equiv_address.  */
 		    && !(REG_P (XEXP (operand, 0))
 			 && (ind_levels == 0
-			     || VEC_index (reg_equivs_t, reg_equivs, REGNO (XEXP (operand, 0)))->address != 0)))
+			     || reg_equiv_address (REGNO (XEXP (operand, 0))) != 0)))
 		  win = 1;
 		break;
 
@@ -3305,9 +3304,9 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 			   loading it into a register; hence it will be
 			   offsettable, but we cannot say that reg_equiv_mem
 			   is offsettable without checking.  */
-			&& ((VEC_index (reg_equivs_t, reg_equivs, REGNO (operand))->mem != 0
-			     && offsettable_memref_p (VEC_index (reg_equivs_t, reg_equivs, REGNO (operand))->mem))
-			    || (VEC_index (reg_equivs_t, reg_equivs, REGNO (operand))->address != 0))))
+			&& ((reg_equiv_mem (REGNO (operand)) != 0
+			     && offsettable_memref_p (reg_equiv_mem (REGNO (operand))))
+			    || (reg_equiv_address (REGNO (operand)) != 0))))
 		  win = 1;
 		if (CONST_POOL_OK_P (operand)
 		    || MEM_P (operand))
@@ -3417,9 +3416,9 @@ find_reloads (rtx insn, int replace, int ind_levels, int live_known,
 		        else if (REG_P (operand)
 				 && REGNO (operand) >= FIRST_PSEUDO_REGISTER
 				 && reg_renumber[REGNO (operand)] < 0
-				 && ((VEC_index (reg_equivs_t, reg_equivs, REGNO (operand))->mem != 0
-				      && EXTRA_CONSTRAINT_STR (VEC_index (reg_equivs_t, reg_equivs, REGNO (operand))->mem, c, p))
-				     || (VEC_index (reg_equivs_t, reg_equivs, REGNO (operand))->address != 0)))
+				 && ((reg_equiv_mem (REGNO (operand)) != 0
+				      && EXTRA_CONSTRAINT_STR (reg_equiv_mem (REGNO (operand)), c, p))
+				     || (reg_equiv_address (REGNO (operand)) != 0)))
 			  win = 1;
 
 			/* If we didn't already win, we can reload
@@ -4653,21 +4652,20 @@ find_reloads_toplev (rtx x, int opnum, enum reload_type type,
     {
       /* This code is duplicated for speed in find_reloads.  */
       int regno = REGNO (x);
-      if (VEC_index (reg_equivs_t, reg_equivs, regno)->constant != 0 && !is_set_dest)
-	x = VEC_index (reg_equivs_t, reg_equivs, regno)->constant;
+      if (reg_equiv_constant (regno) != 0 && !is_set_dest)
+	x = reg_equiv_constant (regno);
 #if 0
       /*  This creates (subreg (mem...)) which would cause an unnecessary
 	  reload of the mem.  */
-      else if (VEC_index (reg_equivs_t, reg_equivs, regno)->mem != 0)
-	x = VEC_index (reg_equivs_t, reg_equivs, regno)->mem;
+      else if (reg_equiv_mem (regno) != 0)
+	x = reg_equiv_mem (regno);
 #endif
-      else if (VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc
-	       && (VEC_index (reg_equivs_t, reg_equivs, regno)->address != 0
-		   || num_not_at_initial_offset))
+      else if (reg_equiv_memory_loc (regno)
+	       && (reg_equiv_address (regno) != 0 || num_not_at_initial_offset))
 	{
 	  rtx mem = make_memloc (x, regno);
-	  if (VEC_index (reg_equivs_t, reg_equivs, regno)->address
-	      || ! rtx_equal_p (mem, VEC_index (reg_equivs_t, reg_equivs, regno)->mem))
+	  if (reg_equiv_address (regno)
+	      || ! rtx_equal_p (mem, reg_equiv_mem (regno)))
 	    {
 	      /* If this is not a toplevel operand, find_reloads doesn't see
 		 this substitution.  We have to emit a USE of the pseudo so
@@ -4717,10 +4715,10 @@ find_reloads_toplev (rtx x, int opnum, enum reload_type type,
 
       if (regno >= FIRST_PSEUDO_REGISTER
 	  && reg_renumber[regno] < 0
-	  && VEC_index (reg_equivs_t, reg_equivs, regno)->constant != 0)
+	  && reg_equiv_constant (regno) != 0)
 	{
 	  tem =
-	    simplify_gen_subreg (GET_MODE (x), VEC_index (reg_equivs_t, reg_equivs, regno)->constant,
+	    simplify_gen_subreg (GET_MODE (x), reg_equiv_constant (regno),
 				 GET_MODE (SUBREG_REG (x)), SUBREG_BYTE (x));
 	  gcc_assert (tem);
 	  if (CONSTANT_P (tem) && !LEGITIMATE_CONSTANT_P (tem))
@@ -4753,12 +4751,12 @@ find_reloads_toplev (rtx x, int opnum, enum reload_type type,
 	       && (GET_MODE_SIZE (GET_MODE (x))
 		   <= GET_MODE_SIZE (GET_MODE (SUBREG_REG (x))))
 #endif
-	       && (VEC_index (reg_equivs_t, reg_equivs, regno)->address != 0
-		   || (VEC_index (reg_equivs_t, reg_equivs, regno)->mem != 0
+	       && (reg_equiv_address (regno) != 0
+		   || (reg_equiv_mem (regno) != 0
 		       && (! strict_memory_address_addr_space_p
-			       (GET_MODE (x), XEXP (VEC_index (reg_equivs_t, reg_equivs, regno)->mem, 0),
-				MEM_ADDR_SPACE (VEC_index (reg_equivs_t, reg_equivs, regno)->mem))
-			   || ! offsettable_memref_p (VEC_index (reg_equivs_t, reg_equivs, regno)->mem)
+			       (GET_MODE (x), XEXP (reg_equiv_mem (regno), 0),
+				MEM_ADDR_SPACE (reg_equiv_mem (regno)))
+			   || ! offsettable_memref_p (reg_equiv_mem (regno))
 			   || num_not_at_initial_offset))))
 	x = find_reloads_subreg_address (x, 1, opnum, type, ind_levels,
 					   insn, address_reloaded);
@@ -4796,7 +4794,7 @@ make_memloc (rtx ad, int regno)
   /* We must rerun eliminate_regs, in case the elimination
      offsets have changed.  */
   rtx tem
-    = XEXP (eliminate_regs (VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc, VOIDmode, NULL_RTX),
+    = XEXP (eliminate_regs (reg_equiv_memory_loc (regno), VOIDmode, NULL_RTX),
 	    0);
 
   /* If TEM might contain a pseudo, we must copy it to avoid
@@ -4804,12 +4802,12 @@ make_memloc (rtx ad, int regno)
   if (rtx_varies_p (tem, 0))
     tem = copy_rtx (tem);
 
-  tem = replace_equiv_address_nv (VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc, tem);
+  tem = replace_equiv_address_nv (reg_equiv_memory_loc (regno), tem);
   tem = adjust_address_nv (tem, GET_MODE (ad), 0);
 
   /* Copy the result if it's still the same as the equivalence, to avoid
      modifying it when we do the substitution for the reload.  */
-  if (tem == VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc)
+  if (tem == reg_equiv_memory_loc (regno))
     tem = copy_rtx (tem);
   return tem;
 }
@@ -4878,18 +4876,18 @@ find_reloads_address (enum machine_mode mode, rtx *memrefloc, rtx ad,
     {
       regno = REGNO (ad);
 
-      if (VEC_index (reg_equivs_t, reg_equivs, regno)->constant != 0)
+      if (reg_equiv_constant (regno) != 0)
 	{
-	  find_reloads_address_part (VEC_index (reg_equivs_t, reg_equivs, regno)->constant, loc,
+	  find_reloads_address_part (reg_equiv_constant (regno), loc,
 				     base_reg_class (mode, MEM, SCRATCH),
 				     GET_MODE (ad), opnum, type, ind_levels);
 	  return 1;
 	}
 
-      tem = VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc;
+      tem = reg_equiv_memory_loc (regno);
       if (tem != 0)
 	{
-	  if (VEC_index (reg_equivs_t, reg_equivs, regno)->address != 0 || num_not_at_initial_offset)
+	  if (reg_equiv_address (regno) != 0 || num_not_at_initial_offset)
 	    {
 	      tem = make_memloc (ad, regno);
 	      if (! strict_memory_address_addr_space_p (GET_MODE (tem),
@@ -4921,7 +4919,7 @@ find_reloads_address (enum machine_mode mode, rtx *memrefloc, rtx ad,
 		     in the final reload pass.  */
 		  if (replace_reloads
 		      && num_not_at_initial_offset
-		      && ! rtx_equal_p (tem, VEC_index (reg_equivs_t, reg_equivs, regno)->mem))
+		      && ! rtx_equal_p (tem, reg_equiv_mem (regno)))
 		    {
 		      *loc = tem;
 		      /* We mark the USE with QImode so that we
@@ -4967,7 +4965,7 @@ find_reloads_address (enum machine_mode mode, rtx *memrefloc, rtx ad,
       if (GET_CODE (ad) == PLUS
 	  && CONST_INT_P (XEXP (ad, 1))
 	  && REG_P (XEXP (ad, 0))
-	  && VEC_index (reg_equivs_t, reg_equivs, REGNO (XEXP (ad, 0)))->constant == 0)
+	  && reg_equiv_constant (REGNO (XEXP (ad, 0))) == 0)
 	return 0;
 
       subst_reg_equivs_changed = 0;
@@ -5284,16 +5282,15 @@ subst_reg_equivs (rtx ad, rtx insn)
       {
 	int regno = REGNO (ad);
 
-	if (VEC_index (reg_equivs_t, reg_equivs, regno)->constant != 0)
+	if (reg_equiv_constant (regno) != 0)
 	  {
 	    subst_reg_equivs_changed = 1;
-	    return VEC_index (reg_equivs_t, reg_equivs, regno)->constant;
+	    return reg_equiv_constant (regno);
 	  }
-	if (VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc
-	    && num_not_at_initial_offset)
+	if (reg_equiv_memory_loc (regno) && num_not_at_initial_offset)
 	  {
 	    rtx mem = make_memloc (ad, regno);
-	    if (! rtx_equal_p (mem, VEC_index (reg_equivs_t, reg_equivs, regno)->mem))
+	    if (! rtx_equal_p (mem, reg_equiv_mem (regno)))
 	      {
 		subst_reg_equivs_changed = 1;
 		/* We mark the USE with QImode so that we recognize it
@@ -5396,13 +5393,13 @@ subst_indexed_address (rtx addr)
       if (REG_P (op0)
 	  && (regno = REGNO (op0)) >= FIRST_PSEUDO_REGISTER
 	  && reg_renumber[regno] < 0
-	  && VEC_index (reg_equivs_t, reg_equivs, regno)->constant != 0)
-	op0 = VEC_index (reg_equivs_t, reg_equivs, regno)->constant;
+	  && reg_equiv_constant (regno) != 0)
+	op0 = reg_equiv_constant (regno);
       else if (REG_P (op1)
 	       && (regno = REGNO (op1)) >= FIRST_PSEUDO_REGISTER
 	       && reg_renumber[regno] < 0
-	       && VEC_index (reg_equivs_t, reg_equivs, regno)->constant != 0)
-	op1 = VEC_index (reg_equivs_t, reg_equivs, regno)->constant;
+	       && reg_equiv_constant (regno) != 0)
+	op1 = reg_equiv_constant (regno);
       else if (GET_CODE (op0) == PLUS
 	       && (tem = subst_indexed_address (op0)) != op0)
 	op0 = tem;
@@ -5691,18 +5688,18 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 
 	/* A register that is incremented cannot be constant!  */
 	gcc_assert (regno < FIRST_PSEUDO_REGISTER
-		    || VEC_index (reg_equivs_t, reg_equivs, regno)->constant == 0);
+		    || reg_equiv_constant (regno) == 0);
 
 	/* Handle a register that is equivalent to a memory location
 	    which cannot be addressed directly.  */
-	if (VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc != 0
-	    && (VEC_index (reg_equivs_t, reg_equivs, regno)->address != 0
+	if (reg_equiv_memory_loc (regno) != 0
+	    && (reg_equiv_address (regno) != 0
 		|| num_not_at_initial_offset))
 	  {
 	    rtx tem = make_memloc (XEXP (x, 0), regno);
 
-	    if (VEC_index (reg_equivs_t, reg_equivs, regno)->address
-		|| ! rtx_equal_p (tem, VEC_index (reg_equivs_t, reg_equivs, regno)->mem))
+	    if (reg_equiv_address (regno)
+		|| ! rtx_equal_p (tem, reg_equiv_mem (regno)))
 	      {
 		rtx orig = tem;
 
@@ -5762,17 +5759,16 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 
 	  /* A register that is incremented cannot be constant!  */
 	  gcc_assert (regno < FIRST_PSEUDO_REGISTER
-		      || VEC_index (reg_equivs_t, reg_equivs, regno)->constant == 0);
+		      || reg_equiv_constant (regno) == 0);
 
 	  /* Handle a register that is equivalent to a memory location
 	     which cannot be addressed directly.  */
-	  if (VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc != 0
-	      && (VEC_index (reg_equivs_t, reg_equivs, regno)->address != 0
-		  || num_not_at_initial_offset))
+	  if (reg_equiv_memory_loc (regno) != 0
+	      && (reg_equiv_address (regno) != 0 || num_not_at_initial_offset))
 	    {
 	      rtx tem = make_memloc (XEXP (x, 0), regno);
-	      if (VEC_index (reg_equivs_t, reg_equivs, regno)->address
-		  || ! rtx_equal_p (tem, VEC_index (reg_equivs_t, reg_equivs, regno)->mem))
+	      if (reg_equiv_address (regno)
+		  || ! rtx_equal_p (tem, reg_equiv_mem (regno)))
 		{
 		  rtx orig = tem;
 
@@ -5822,7 +5818,7 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 		 Also don't do this if we can probably update x directly.  */
 	      rtx equiv = (MEM_P (XEXP (x, 0))
 			   ? XEXP (x, 0)
-			   : VEC_index (reg_equivs_t, reg_equivs, regno)->mem);
+			   : reg_equiv_mem (regno));
 	      enum insn_code icode = optab_handler (add_optab, GET_MODE (x));
 	      if (insn && NONJUMP_INSN_P (insn) && equiv
 		  && memory_operand (equiv, GET_MODE (equiv))
@@ -5908,9 +5904,9 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
       {
 	int regno = REGNO (x);
 
-	if (VEC_index (reg_equivs_t, reg_equivs, regno)->constant != 0)
+	if (reg_equiv_constant (regno) != 0)
 	  {
-	    find_reloads_address_part (VEC_index (reg_equivs_t, reg_equivs, regno)->constant, loc,
+	    find_reloads_address_part (reg_equiv_constant (regno), loc,
 				       context_reg_class,
 				       GET_MODE (x), opnum, type, ind_levels);
 	    return 1;
@@ -5918,22 +5914,21 @@ find_reloads_address_1 (enum machine_mode mode, rtx x, int context,
 
 #if 0 /* This might screw code in reload1.c to delete prior output-reload
 	 that feeds this insn.  */
-	if (VEC_index (reg_equivs_t, reg_equivs, regno)->mem != 0)
+	if (reg_equiv_mem (regno) != 0)
 	  {
-	    push_reload (VEC_index (reg_equivs_t, reg_equivs, regno)->mem, NULL_RTX, loc, (rtx*) 0,
+	    push_reload (reg_equiv_mem (regno), NULL_RTX, loc, (rtx*) 0,
 			 context_reg_class,
 			 GET_MODE (x), VOIDmode, 0, 0, opnum, type);
 	    return 1;
 	  }
 #endif
 
-	if (VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc
-	    && (VEC_index (reg_equivs_t, reg_equivs, regno)->address != 0 
-		|| num_not_at_initial_offset))
+	if (reg_equiv_memory_loc (regno)
+	    && (reg_equiv_address (regno) != 0 || num_not_at_initial_offset))
 	  {
 	    rtx tem = make_memloc (x, regno);
-	    if (VEC_index (reg_equivs_t, reg_equivs, regno)->address != 0
-		|| ! rtx_equal_p (tem, VEC_index (reg_equivs_t, reg_equivs, regno)->mem))
+	    if (reg_equiv_address (regno) != 0
+		|| ! rtx_equal_p (tem, reg_equiv_mem (regno)))
 	      {
 		x = tem;
 		find_reloads_address (GET_MODE (x), &x, XEXP (x, 0),
@@ -6108,13 +6103,13 @@ find_reloads_subreg_address (rtx x, int force_replace, int opnum,
   int regno = REGNO (SUBREG_REG (x));
   int reloaded = 0;
 
-  if (VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc)
+  if (reg_equiv_memory_loc (regno))
     {
       /* If the address is not directly addressable, or if the address is not
 	 offsettable, then it must be replaced.  */
       if (! force_replace
-	  && (VEC_index (reg_equivs_t, reg_equivs, regno)->address
-	      || ! offsettable_memref_p (VEC_index (reg_equivs_t, reg_equivs, regno)->mem)))
+	  && (reg_equiv_address (regno)
+	      || ! offsettable_memref_p (reg_equiv_mem (regno))))
 	force_replace = 1;
 
       if (force_replace || num_not_at_initial_offset)
@@ -6124,7 +6119,7 @@ find_reloads_subreg_address (rtx x, int force_replace, int opnum,
 	  /* If the address changes because of register elimination, then
 	     it must be replaced.  */
 	  if (force_replace
-	      || ! rtx_equal_p (tem, VEC_index (reg_equivs_t, reg_equivs, regno)->mem))
+	      || ! rtx_equal_p (tem, reg_equiv_mem (regno)))
 	    {
 	      unsigned outer_size = GET_MODE_SIZE (GET_MODE (x));
 	      unsigned inner_size = GET_MODE_SIZE (GET_MODE (SUBREG_REG (x)));
@@ -6194,10 +6189,10 @@ find_reloads_subreg_address (rtx x, int force_replace, int opnum,
 		 If find_reloads_address already completed replaced
 		 the address, there is nothing further to do.  */
 	      if (reloaded == 0
-		  && VEC_index (reg_equivs_t, reg_equivs, regno)->mem != 0
+		  && reg_equiv_mem (regno) != 0
 		  && !strict_memory_address_addr_space_p
-			(GET_MODE (x), XEXP (VEC_index (reg_equivs_t, reg_equivs, regno)->mem, 0),
-			 MEM_ADDR_SPACE (VEC_index (reg_equivs_t, reg_equivs, regno)->mem)))
+			(GET_MODE (x), XEXP (reg_equiv_mem (regno), 0),
+			 MEM_ADDR_SPACE (reg_equiv_mem (regno))))
 		{
 		  push_reload (XEXP (tem, 0), NULL_RTX, &XEXP (tem, 0), (rtx*) 0,
 			       base_reg_class (GET_MODE (tem), MEM, SCRATCH),
@@ -6495,13 +6490,12 @@ refers_to_regno_for_reload_p (unsigned int regno, unsigned int endregno,
 	 X must therefore either be a constant or be in memory.  */
       if (r >= FIRST_PSEUDO_REGISTER)
 	{
-	  if (VEC_index (reg_equivs_t, reg_equivs, r)->memory_loc)
+	  if (reg_equiv_memory_loc (r))
 	    return refers_to_regno_for_reload_p (regno, endregno,
-						 VEC_index (reg_equivs_t, reg_equivs, r)->memory_loc,
+						 reg_equiv_memory_loc (r),
 						 (rtx*) 0);
 
-	  gcc_assert (VEC_index (reg_equivs_t, reg_equivs, r)->constant
-		      || VEC_index (reg_equivs_t, reg_equivs, r)->invariant);
+	  gcc_assert (reg_equiv_constant (r) || reg_equiv_invariant (r));
 	  return 0;
 	}
 
@@ -6631,9 +6625,9 @@ reg_overlap_mentioned_for_reload_p (rtx x, rtx in)
 
       if (regno >= FIRST_PSEUDO_REGISTER)
 	{
-	  if (VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc)
+	  if (reg_equiv_memory_loc (regno))
 	    return refers_to_mem_for_reload_p (in);
-	  gcc_assert (VEC_index (reg_equivs_t, reg_equivs, regno)->constant);
+	  gcc_assert (reg_equiv_constant (regno));
 	  return 0;
 	}
 
@@ -6684,7 +6678,7 @@ refers_to_mem_for_reload_p (rtx x)
 
   if (REG_P (x))
     return (REGNO (x) >= FIRST_PSEUDO_REGISTER
-	    && VEC_index (reg_equivs_t, reg_equivs, REGNO (x))->memory_loc);
+	    && reg_equiv_memory_loc (REGNO (x)));
 
   fmt = GET_RTX_FORMAT (GET_CODE (x));
   for (i = GET_RTX_LENGTH (GET_CODE (x)) - 1; i >= 0; i--)
@@ -7038,7 +7032,7 @@ find_equiv_reg (rtx goal, rtx insn, enum reg_class rclass, int other,
 		       && ! push_operand (dest, GET_MODE (dest)))
 		return 0;
 	      else if (MEM_P (dest) && regno >= FIRST_PSEUDO_REGISTER
-		       && VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc != 0)
+		       && reg_equiv_memory_loc (regno) != 0)
 		return 0;
 	      else if (need_stable_sp && push_operand (dest, GET_MODE (dest)))
 		return 0;
@@ -7083,7 +7077,7 @@ find_equiv_reg (rtx goal, rtx insn, enum reg_class rclass, int other,
 			       && ! push_operand (dest, GET_MODE (dest)))
 			return 0;
 		      else if (MEM_P (dest) && regno >= FIRST_PSEUDO_REGISTER
-			       && VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc != 0)
+			       && reg_equiv_memory_loc (regno) != 0)
 			return 0;
 		      else if (need_stable_sp
 			       && push_operand (dest, GET_MODE (dest)))
