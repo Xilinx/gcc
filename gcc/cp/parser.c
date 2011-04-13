@@ -374,7 +374,7 @@ static void
 cp_debug_print_flag (FILE *file, const char *desc, bool flag)
 {
   if (flag)
-    fprintf (file, "%s: %s\n", desc, flag ? "true" : "false");
+    fprintf (file, "%s: true\n", desc);
 }
 
 
