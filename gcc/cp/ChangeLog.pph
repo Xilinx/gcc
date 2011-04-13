@@ -1,5 +1,22 @@
 2011-04-12  Diego Novillo  <dnovillo@google.com>
 
+	* pph.c (pph_read_file_contents): Do not try to re-instantiate
+	the PPH image.
+	(pph_include_handler): Do not skip header file after reading
+	the PPH image.
+
+2011-04-12  Diego Novillo  <dnovillo@google.com>
+
+	* parser.c (cp_debug_print_flag): Remove superfluous test.
+
+2011-04-12  Diego Novillo  <dnovillo@google.com>
+
+	* pph.c (pph_add_names_to_namespace): New.
+	(pph_read_file_contents): Call it.
+	Call cpp_lt_replay.
+
+2011-04-12  Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-in.c (pph_stream_unpack_value_fields): Unpack
 	TYPE_LANG_FLAGS and DECL_LANG_FLAGS.
 	(pph_stream_read_tree): Handle TYPE_DECL.
