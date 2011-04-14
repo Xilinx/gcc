@@ -1,3 +1,14 @@
+2010-04-14  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (create_new_allocno_for_spilling): Remove code to set
+	ALLOCNO_REG.  Various mechanical changes to remove the concept of
+	cover classes.
+	(copy_allocno_for_spilling): Likewise.
+	(localize_pseudos): Don't use ira_class_translate, just use the
+	preferred class.
+	(ira_reload): Update call to ira_tune_allocno_cost.
+	(maybe_add_conflict): Revamp test for ignoring conflicts.
+
 2010-03-30  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (ira_reload): If necessary, call commit_edge_insertions

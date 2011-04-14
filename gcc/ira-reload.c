@@ -585,10 +585,9 @@ create_new_allocno_for_spilling (int nreg, int oreg)
   /* This must occur before creating objects so that we know how many
      objects to create.  */
   from = ira_regno_allocno_map [oreg];
-  ALLOCNO_COVER_CLASS (to) = ALLOCNO_COVER_CLASS (from);
+  ALLOCNO_CLASS (to) = ALLOCNO_CLASS (from);
 
   ira_create_allocno_objects (to);
-  ALLOCNO_REG (to) = regno_reg_rtx[nreg];
 
   /* Now lengthen the regno->allocno map.  */
   ira_free (ira_regno_allocno_map);
@@ -634,7 +633,7 @@ copy_allocno_for_spilling (int nreg, int oreg)
     = ALLOCNO_EXCESS_PRESSURE_POINTS_NUM (from);
   ALLOCNO_BAD_SPILL_P (to) = ALLOCNO_BAD_SPILL_P (from);
 
-  ALLOCNO_COVER_CLASS_COST (to) = ALLOCNO_COVER_CLASS_COST (from);
+  ALLOCNO_CLASS_COST (to) = ALLOCNO_CLASS_COST (from);
   ALLOCNO_MEMORY_COST (to) = ALLOCNO_MEMORY_COST (from);
   ALLOCNO_UPDATED_MEMORY_COST (to) = ALLOCNO_UPDATED_MEMORY_COST (from);
   ALLOCNO_NEXT_REGNO_ALLOCNO (to) = NULL;
@@ -649,9 +648,9 @@ copy_allocno_for_spilling (int nreg, int oreg)
       COPY_HARD_REG_SET (OBJECT_TOTAL_CONFLICT_HARD_REGS (obj),
 			 ira_no_alloc_regs);
       IOR_COMPL_HARD_REG_SET (OBJECT_CONFLICT_HARD_REGS (obj),
-			      reg_class_contents[ALLOCNO_COVER_CLASS (to)]);
+			      reg_class_contents[ALLOCNO_CLASS (to)]);
       IOR_COMPL_HARD_REG_SET (OBJECT_TOTAL_CONFLICT_HARD_REGS (obj),
-			      reg_class_contents[ALLOCNO_COVER_CLASS (to)]);
+			      reg_class_contents[ALLOCNO_CLASS (to)]);
     }
 
   /* ?!? This is a hack.
@@ -717,6 +716,8 @@ static bitmap live;
 static void
 maybe_add_conflict (int reg1, int reg2, int limit)
 {
+  ira_allocno_t a1, a2;
+
   if (reg1 < FIRST_PSEUDO_REGISTER
       && reg2 < FIRST_PSEUDO_REGISTER)
     return;
@@ -754,20 +755,17 @@ maybe_add_conflict (int reg1, int reg2, int limit)
       return;
     }
 
-  /* If the registers are in different cover classes, then ignore this
-     conflict.  */
-  if (ira_class_translate[reg_preferred_class (reg1)]
-      != ira_class_translate[reg_preferred_class (reg2)])
+  /* If the registers are in different classes, then ignore this conflict.  */
+  a1 = ira_regno_allocno_map[reg1];
+  a2 = ira_regno_allocno_map[reg2];
+  if (!ira_reg_classes_intersect_p[ALLOCNO_CLASS (a1)][ALLOCNO_CLASS (a2)])
     return;
 
-  ira_add_conflict (ALLOCNO_OBJECT (ira_regno_allocno_map[reg1], 0),
-		    ALLOCNO_OBJECT (ira_regno_allocno_map[reg2], 0));
-  if (ALLOCNO_NUM_OBJECTS (ira_regno_allocno_map[reg2]) == 2)
-    ira_add_conflict (ALLOCNO_OBJECT (ira_regno_allocno_map[reg1], 0),
-		      ALLOCNO_OBJECT (ira_regno_allocno_map[reg2], 1));
-  if (ALLOCNO_NUM_OBJECTS (ira_regno_allocno_map[reg1]) == 2)
-    ira_add_conflict (ALLOCNO_OBJECT (ira_regno_allocno_map[reg1], 1),
-		      ALLOCNO_OBJECT (ira_regno_allocno_map[reg2], 0));
+  ira_add_conflict (ALLOCNO_OBJECT (a1, 0), ALLOCNO_OBJECT (a2, 0));
+  if (ALLOCNO_NUM_OBJECTS (a2) == 2)
+    ira_add_conflict (ALLOCNO_OBJECT (a1, 0), ALLOCNO_OBJECT (a2, 1));
+  if (ALLOCNO_NUM_OBJECTS (a1) == 2)
+    ira_add_conflict (ALLOCNO_OBJECT (a1, 1), ALLOCNO_OBJECT (a2, 0));
 }
 
 static void
@@ -1229,7 +1227,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 	      setup_reg_classes (nregno,
 				 reg_preferred_class (i),
 				 reg_alternate_class (i),
-				 ira_class_translate [reg_preferred_class (i)]);
+				 reg_preferred_class (i));
 	      VEC_index (reg_equivs_t, reg_equivs, nregno)->invariant
 		= VEC_index (reg_equivs_t, reg_equivs, i)->invariant;
 	      VEC_index (reg_equivs_t, reg_equivs, nregno)->constant
@@ -1273,7 +1271,7 @@ localize_pseudos (basic_block bb, bitmap pseudos_to_localize, bitmap visited)
 	      setup_reg_classes (nregno,
 				 reg_preferred_class (i),
 				 reg_alternate_class (i),
-				 ira_class_translate [reg_preferred_class (i)]);
+				 reg_preferred_class (i));
 	      VEC_index (reg_equivs_t, reg_equivs, nregno)->invariant
 		= VEC_index (reg_equivs_t, reg_equivs, i)->invariant;
 	      VEC_index (reg_equivs_t, reg_equivs, nregno)->constant
@@ -1520,7 +1518,7 @@ ira_reload (void)
 
       /* Get costing information for any newly created pseudos.  */
       ira_costs (orig_max_reg_num);
-      ira_tune_allocno_costs_and_cover_classes ();
+      ira_tune_allocno_costs ();
 
       /* We may have allocated additional pseudos during spilling, so update
          max_regno.  ?!? Updating max_regno should really occur when we
