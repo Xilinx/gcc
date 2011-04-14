@@ -1978,20 +1978,13 @@ pph_read_file_contents (pph_stream *stream)
     report_validation_error (stream->name, bad_use->ident_str, cur_def,
                              bad_use->before_str, bad_use->after_str);
 
-  /* FIXME pph - Temporary workaround.  Instantiating PPH images
-     causes several failures in the PPH testsuite.  */
-  if (0)
-    {
-      /* Re-instantiate all the pre-processor symbols defined by STREAM.  */
-      cpp_lt_replay (parse_in, &idents_used);
+  /* Re-instantiate all the pre-processor symbols defined by STREAM.  */
+  cpp_lt_replay (parse_in, &idents_used);
 
-      /* Read global_namespace from STREAM and add all the names defined
-	 there to the current global_namespace.  */
-      file_ns = pph_input_tree (stream);
-      pph_add_names_to_namespace (global_namespace, file_ns);
-    }
-  else
-    pph_input_tree (stream);
+  /* Read global_namespace from STREAM and add all the names defined
+     there to the current global_namespace.  */
+  file_ns = pph_input_tree (stream);
+  pph_add_names_to_namespace (global_namespace, file_ns);
 }
 
 
@@ -2075,9 +2068,7 @@ pph_include_handler (cpp_reader *reader,
   if (pph_file != NULL && !cpp_included_before (reader, name, input_location))
     {
       pph_read_file (pph_file);
-      /* FIXME pph - Temporary workaround.  Instantiating PPH images
-	 causes several failures in the PPH testsuite.  */
-      read_text_file_p = /*false*/ true;
+      read_text_file_p = false;
     }
 
   return read_text_file_p;
