@@ -108,9 +108,12 @@ void pph_stream_write_tree (struct output_block *, tree, bool ref_p);
 void pph_stream_pack_value_fields (struct bitpack_d *, tree);
 void pph_stream_output_tree_header (struct output_block *, tree);
 void pph_output_chain_filtered (pph_stream *, tree, bool, enum chain_filter);
+
+/* In name-lookup.c.  */
 struct binding_table_s;
 void pph_stream_write_binding_table (pph_stream *, struct binding_table_s *,
 				     bool);
+struct binding_table_s *pph_stream_read_binding_table (pph_stream *);
 
 /* In pph-streamer-in.c.  */
 void pph_stream_init_read (pph_stream *);

@@ -519,7 +519,7 @@ pph_stream_read_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
 /* Read language specific data in DECL from STREAM.  */
 
 static void
-pph_stream_read_lang_specific_data (pph_stream *stream, tree decl)
+pph_stream_read_lang_specific (pph_stream *stream, tree decl)
 {
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
@@ -583,6 +583,185 @@ pph_stream_alloc_tree (enum tree_code code,
 }
 
 
+/* Read all the fields in lang_type_header instance LTH from STREAM.  */
+
+static void
+pph_stream_read_lang_type_header (pph_stream *stream,
+				   struct lang_type_header *lth)
+{
+  struct bitpack_d bp;
+
+  if (!pph_start_record (stream))
+    return;
+
+  bp = pph_input_bitpack (stream);
+  lth->is_lang_type_class = bp_unpack_value (&bp, 1);
+  lth->has_type_conversion = bp_unpack_value (&bp, 1);
+  lth->has_copy_ctor = bp_unpack_value (&bp, 1);
+  lth->has_default_ctor = bp_unpack_value (&bp, 1);
+  lth->const_needs_init = bp_unpack_value (&bp, 1);
+  lth->ref_needs_init = bp_unpack_value (&bp, 1);
+  lth->has_const_copy_assign = bp_unpack_value (&bp, 1);
+}
+
+
+/* Read the vector V of tree_pair_s instances from STREAM.  */
+
+static VEC(tree_pair_s,gc) *
+pph_stream_read_tree_pair_vec (pph_stream *stream)
+{
+  unsigned i, num;
+  VEC(tree_pair_s,gc) *v;
+
+  num = pph_input_uint (stream);
+  for (i = 0, v = NULL; i < num; i++)
+    {
+      tree_pair_s p;
+      p.purpose = pph_input_tree (stream);
+      p.value = pph_input_tree (stream);
+      VEC_safe_push (tree_pair_s, gc, v, &p);
+    }
+
+  return v;
+}
+
+
+/* Read a struct sorted_fields_type instance SFT to STREAM.  REF_P is
+   true if the tree nodes should be written as references.  */
+
+static struct sorted_fields_type *
+pph_stream_read_sorted_fields_type (pph_stream *stream)
+{
+  unsigned i, num_fields;
+  struct sorted_fields_type *v;
+
+  if (!pph_start_record (stream))
+    return NULL;
+
+  num_fields = pph_input_uint (stream);
+  v = sorted_fields_type_new (num_fields);
+  for (i = 0; i < num_fields; i++)
+    v->elts[i] = pph_input_tree (stream);
+
+  return v;
+}
+
+
+/* Read all the fields in lang_type_class instance LTC to STREAM.
+   REF_P is true if all the trees in the structure should be written
+   as references.  */
+
+static void
+pph_stream_read_lang_type_class (pph_stream *stream,
+				  struct lang_type_class *ltc)
+{
+  struct bitpack_d bp;
+
+  if (!pph_start_record (stream))
+    return;
+
+  ltc->align = pph_input_uchar (stream);
+
+  bp = pph_input_bitpack (stream);
+  ltc->has_mutable = bp_unpack_value (&bp, 1);
+  ltc->com_interface = bp_unpack_value (&bp, 1);
+  ltc->non_pod_class = bp_unpack_value (&bp, 1);
+  ltc->nearly_empty_p = bp_unpack_value (&bp, 1);
+  ltc->user_align = bp_unpack_value (&bp, 1);
+  ltc->has_copy_assign = bp_unpack_value (&bp, 1);
+  ltc->has_new = bp_unpack_value (&bp, 1);
+  ltc->has_array_new = bp_unpack_value (&bp, 1);
+  ltc->gets_delete = bp_unpack_value (&bp, 2);
+  ltc->interface_only = bp_unpack_value (&bp, 1);
+  ltc->interface_unknown = bp_unpack_value (&bp, 1);
+  ltc->contains_empty_class_p = bp_unpack_value (&bp, 1);
+  ltc->anon_aggr = bp_unpack_value (&bp, 1);
+  ltc->non_zero_init = bp_unpack_value (&bp, 1);
+  ltc->empty_p = bp_unpack_value (&bp, 1);
+  ltc->vec_new_uses_cookie = bp_unpack_value (&bp, 1);
+  ltc->declared_class = bp_unpack_value (&bp, 1);
+  ltc->diamond_shaped = bp_unpack_value (&bp, 1);
+  ltc->repeated_base = bp_unpack_value (&bp, 1);
+  ltc->being_defined = bp_unpack_value (&bp, 1);
+  ltc->java_interface = bp_unpack_value (&bp, 1);
+  ltc->debug_requested = bp_unpack_value (&bp, 1);
+  ltc->fields_readonly = bp_unpack_value (&bp, 1);
+  ltc->use_template = bp_unpack_value (&bp, 2);
+  ltc->ptrmemfunc_flag = bp_unpack_value (&bp, 1);
+  ltc->was_anonymous = bp_unpack_value (&bp, 1);
+  ltc->lazy_default_ctor = bp_unpack_value (&bp, 1);
+  ltc->lazy_copy_ctor = bp_unpack_value (&bp, 1);
+  ltc->lazy_copy_assign = bp_unpack_value (&bp, 1);
+  ltc->lazy_destructor = bp_unpack_value (&bp, 1);
+  ltc->has_const_copy_ctor = bp_unpack_value (&bp, 1);
+  ltc->has_complex_copy_ctor = bp_unpack_value (&bp, 1);
+  ltc->has_complex_copy_assign = bp_unpack_value (&bp, 1);
+  ltc->non_aggregate = bp_unpack_value (&bp, 1);
+  ltc->has_complex_dflt = bp_unpack_value (&bp, 1);
+  ltc->has_list_ctor = bp_unpack_value (&bp, 1);
+  ltc->non_std_layout = bp_unpack_value (&bp, 1);
+  ltc->is_literal = bp_unpack_value (&bp, 1);
+  ltc->lazy_move_ctor = bp_unpack_value (&bp, 1);
+  ltc->lazy_move_assign = bp_unpack_value (&bp, 1);
+  ltc->has_complex_move_ctor = bp_unpack_value (&bp, 1);
+  ltc->has_complex_move_assign = bp_unpack_value (&bp, 1);
+  ltc->has_constexpr_ctor = bp_unpack_value (&bp, 1);
+
+  ltc->primary_base = pph_input_tree (stream);
+  ltc->vcall_indices = pph_stream_read_tree_pair_vec (stream);
+  ltc->vtables = pph_input_tree (stream);
+  ltc->typeinfo_var = pph_input_tree (stream);
+  ltc->vbases = pph_stream_read_tree_vec (stream);
+  if (pph_start_record (stream))
+    ltc->nested_udts = pph_stream_read_binding_table (stream);
+  ltc->as_base = pph_input_tree (stream);
+  ltc->pure_virtuals = pph_stream_read_tree_vec (stream);
+  ltc->friend_classes = pph_input_tree (stream);
+  ltc->methods = pph_stream_read_tree_vec (stream);
+  ltc->key_method = pph_input_tree (stream);
+  ltc->decl_list = pph_input_tree (stream);
+  ltc->template_info = pph_input_tree (stream);
+  ltc->befriending_classes = pph_input_tree (stream);
+  ltc->objc_info = pph_input_tree (stream);
+  ltc->sorted_fields = pph_stream_read_sorted_fields_type (stream);
+  ltc->lambda_expr = pph_input_tree (stream);
+}
+
+
+/* Read all fields of struct lang_type_ptrmem instance LTP from STREAM.  */
+
+static void
+pph_stream_read_lang_type_ptrmem (pph_stream *stream,
+				  struct lang_type_ptrmem *ltp)
+{
+  if (!pph_start_record (stream))
+    return;
+
+  ltp->record = pph_input_tree (stream);
+}
+
+
+/* Read all the lang-specific fields of TYPE from STREAM.  */
+
+static void
+pph_stream_read_lang_type (pph_stream *stream, tree type)
+{
+  struct lang_type *lt;
+
+  if (!pph_start_record (stream))
+    return;
+
+  lt = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
+  TYPE_LANG_SPECIFIC (type) = lt;
+
+  pph_stream_read_lang_type_header (stream, &lt->u.h);
+  if (lt->u.h.is_lang_type_class)
+    pph_stream_read_lang_type_class (stream, &lt->u.c);
+  else
+    pph_stream_read_lang_type_ptrmem (stream, &lt->u.ptrmem);
+}
+
+
 /* Callback for reading ASTs from a stream.  This reads all the fields
    that are not processed by default by the common tree pickler.
    IB, DATA_IN are as in lto_read_tree.  EXPR is the partially materialized
@@ -601,7 +780,7 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 	  || TREE_CODE (expr) == PARM_DECL
 	  || LANG_DECL_HAS_MIN (expr))
 	{
-	  pph_stream_read_lang_specific_data (stream, expr);
+	  pph_stream_read_lang_specific (stream, expr);
 	  if (TREE_CODE (expr) == FUNCTION_DECL)
 	    DECL_SAVED_TREE (expr) = pph_input_tree (stream);
 	}
@@ -617,4 +796,6 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 	  append_to_statement_list (stmt, &expr);
 	}
     }
+  else if (TYPE_P (expr))
+    pph_stream_read_lang_type (stream, expr);
 }

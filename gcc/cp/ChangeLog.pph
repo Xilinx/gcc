@@ -1,5 +1,33 @@
 2011-04-13  Diego Novillo  <dnovillo@google.com>
 
+	* name-lookup.c (pph_stream_write_binding_table): Handle
+	NULL BT->CHAIN entries.
+	(pph_stream_read_binding_table): New.
+	* pph-streamer-in.c (pph_stream_read_lang_specific): Rename
+	from pph_stream_read_lang_specific_data.  Update all users.
+	(pph_stream_read_lang_type_header): New.
+	(pph_stream_read_tree_pair_vec): New.
+	(pph_stream_read_sorted_fields_type): New.
+	(pph_stream_read_lang_type_class): New.
+	(pph_stream_read_lang_type_ptrmem): New.
+	(pph_stream_read_lang_type): New.
+	(pph_stream_read_tree): Call it.
+	* pph-streamer-out.c (pph_stream_write_lang_specific): Rename
+	from pph_stream_write_lang_specific_data.  Update all users.
+	Remove duplicate assertion for DECL_P.
+	(pph_stream_write_lang_type_header): Call pph_start_record.
+	Call pph_output_bitpack instead of lto_output_bitpack.
+	(pph_stream_write_sorted_fields_type): Call pph_start_record.
+	(pph_stream_write_lang_type_class): Call pph_output_bitpack 
+	instead of lto_output_bitpack.
+	Guard call to pph_stream_write_binding_table with a call to
+	pph_start_record.
+	(pph_stream_write_lang_type_ptrmem): Call pph_start_record.
+	(pph_stream_write_lang_type): Call pph_start_record.
+	* pph-streamer.h (pph_stream_read_binding_table): Declare.
+
+2011-04-13  Diego Novillo  <dnovillo@google.com>
+
 	* cp-tree.h (sorted_fields_type_new): Declare.
 
 2011-04-13  Diego Novillo  <dnovillo@google.com>

@@ -539,12 +539,10 @@ pph_stream_write_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
    references.  */
 
 static void
-pph_stream_write_lang_specific_data (pph_stream *stream, tree decl, bool ref_p)
+pph_stream_write_lang_specific (pph_stream *stream, tree decl, bool ref_p)
 {
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
-
-  gcc_assert (DECL_P (decl));
 
   ld = DECL_LANG_SPECIFIC (decl);
   if (!pph_start_record (stream, ld))
@@ -585,7 +583,12 @@ static void
 pph_stream_write_lang_type_header (pph_stream *stream,
 				   struct lang_type_header *lth)
 {
-  struct bitpack_d bp = bitpack_create (stream->ob->main_stream);
+  struct bitpack_d bp;
+
+  if (!pph_start_record (stream, lth))
+    return;
+
+  bp = bitpack_create (stream->ob->main_stream);
   bp_pack_value (&bp, lth->is_lang_type_class, 1);
   bp_pack_value (&bp, lth->has_type_conversion, 1);
   bp_pack_value (&bp, lth->has_copy_ctor, 1);
@@ -593,7 +596,7 @@ pph_stream_write_lang_type_header (pph_stream *stream,
   bp_pack_value (&bp, lth->const_needs_init, 1);
   bp_pack_value (&bp, lth->ref_needs_init, 1);
   bp_pack_value (&bp, lth->has_const_copy_assign, 1);
-  lto_output_bitpack (&bp);
+  pph_output_bitpack (stream, &bp);
 }
 
 
@@ -624,6 +627,9 @@ pph_stream_write_sorted_fields_type (pph_stream *stream,
 				     struct sorted_fields_type *sft, bool ref_p)
 {
   int i;
+
+  if (!pph_start_record (stream, sft))
+    return;
 
   pph_output_uint (stream, sft->len);
   for (i = 0; i < sft->len; i++)
@@ -690,14 +696,15 @@ pph_stream_write_lang_type_class (pph_stream *stream,
   bp_pack_value (&bp, ltc->has_complex_move_ctor, 1);
   bp_pack_value (&bp, ltc->has_complex_move_assign, 1);
   bp_pack_value (&bp, ltc->has_constexpr_ctor, 1);
-  lto_output_bitpack (&bp);
+  pph_output_bitpack (stream, &bp);
 
   pph_output_tree_or_ref (stream, ltc->primary_base, ref_p);
   pph_stream_write_tree_pair_vec (stream, ltc->vcall_indices, ref_p);
   pph_output_tree_or_ref (stream, ltc->vtables, ref_p);
   pph_output_tree_or_ref (stream, ltc->typeinfo_var, ref_p);
   pph_stream_write_tree_vec (stream, ltc->vbases, ref_p);
-  pph_stream_write_binding_table (stream, ltc->nested_udts, ref_p);
+  if (pph_start_record (stream, ltc->nested_udts))
+    pph_stream_write_binding_table (stream, ltc->nested_udts, ref_p);
   pph_output_tree_or_ref (stream, ltc->as_base, ref_p);
   pph_stream_write_tree_vec (stream, ltc->pure_virtuals, ref_p);
   pph_output_tree_or_ref (stream, ltc->friend_classes, ref_p);
@@ -719,6 +726,9 @@ static void
 pph_stream_write_lang_type_ptrmem (pph_stream *stream, struct
 				   lang_type_ptrmem *ltp, bool ref_p)
 {
+  if (!pph_start_record (stream, ltp))
+    return;
+
   pph_output_tree_or_ref (stream, ltp->record, ref_p);
 }
 
@@ -730,7 +740,11 @@ pph_stream_write_lang_type_ptrmem (pph_stream *stream, struct
 static void
 pph_stream_write_lang_type (pph_stream *stream, tree type, bool ref_p)
 {
-  struct lang_type *lt = TYPE_LANG_SPECIFIC (type);
+  struct lang_type *lt;
+
+  lt = TYPE_LANG_SPECIFIC (type);
+  if (!pph_start_record (stream, lt))
+    return;
 
   pph_stream_write_lang_type_header (stream, &lt->u.h);
   if (lt->u.h.is_lang_type_class)
@@ -770,7 +784,7 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 	  || TREE_CODE (expr) == PARM_DECL
 	  || LANG_DECL_HAS_MIN (expr))
 	{
-	  pph_stream_write_lang_specific_data (stream, expr, ref_p);
+	  pph_stream_write_lang_specific (stream, expr, ref_p);
 
 	  if (TREE_CODE (expr) == FUNCTION_DECL)
 	    pph_output_tree_aux (stream, DECL_SAVED_TREE (expr), ref_p);

@@ -5937,10 +5937,42 @@ pph_stream_write_binding_table (pph_stream *stream, binding_table bt,
   pph_output_uint (stream, bt->chain_count);
   for (i = 0; i < bt->chain_count; i++)
     {
-      pph_output_tree_or_ref (stream, bt->chain[i]->name, ref_p);
-      pph_output_tree_or_ref (stream, bt->chain[i]->type, ref_p);
+      if (bt->chain[i])
+	{
+	  pph_output_uchar (stream, PPH_RECORD_START);
+	  pph_output_tree_or_ref (stream, bt->chain[i]->name, ref_p);
+	  pph_output_tree_or_ref (stream, bt->chain[i]->type, ref_p);
+	}
+      else
+	pph_output_uchar (stream, PPH_RECORD_END);
     }
   pph_output_uint (stream, bt->entry_count);
+}
+
+
+/* Read and return a binding_entry instance BT from STREAM.  */
+
+binding_table
+pph_stream_read_binding_table (pph_stream *stream)
+{
+  size_t i, chain_count;
+  binding_table bt;
+
+  chain_count = pph_input_uint (stream);
+  bt = binding_table_new (chain_count);
+  for (i = 0; i < chain_count; i++)
+    {
+      unsigned char record_marker = pph_input_uchar (stream);
+      if (record_marker == PPH_RECORD_START)
+	{
+	  tree name = pph_input_tree (stream);
+	  tree type = pph_input_tree (stream);
+	  binding_table_insert (bt, name, type);
+	}
+    }
+  bt->entry_count = pph_input_uint (stream);
+
+  return bt;
 }
 
 #include "gt-cp-name-lookup.h"
