@@ -1,4 +1,18 @@
 
+2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_output_cfile_decl_impl_secondary): Renamed.
+	(melt_output_cfile_decl_impl_secondary_option): add optbuf
+	argument and handle it.
+	* melt-runtime.h (melt_output_cfile_decl_impl_secondary_option):
+	New declaration.
+	(melt_output_cfile_decl_impl_secondary,melt_output_cfile_decl_impl):
+	New inline functions.
+
+	* melt/warmelt-first.melt (class_module_context): Add mocx_cflags
+	and mocx_linkflags fields.
+	* melt/warmelt-outobj.melt (compile_list_sexpr): Should fill these
+	fields.
+
 2011-04-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-base.melt (c_time,c_clock): New exported
 	primitives.

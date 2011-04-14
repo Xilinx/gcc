@@ -2590,16 +2590,28 @@ melt_putstrbuf (FILE * f, melt_ptr_t sb)
 }
 
 
-/* output the declaration and implementation buffers of a generated
-   file with a secondary rank*/
+/* output the option, declaration and implementation buffers of a
+   generated file with a secondary rank*/
 void 
-melt_output_cfile_decl_impl_secondary(melt_ptr_t cfilnam, melt_ptr_t declbuf, melt_ptr_t implbuf, int filrank);
+melt_output_cfile_decl_impl_secondary_option (melt_ptr_t cfilnam,
+					      melt_ptr_t declbuf, 
+					      melt_ptr_t implbuf, 
+					      melt_ptr_t optbuf, 
+					      int filrank);
+
+static inline void 
+melt_output_cfile_decl_impl_secondary (melt_ptr_t cfilnam, 
+				       melt_ptr_t declbuf, melt_ptr_t implbuf, int filrank)
+{
+  melt_output_cfile_decl_impl_secondary_option (cfilnam, declbuf, implbuf, (melt_ptr_t)0, filrank);
+}
 
 /* likewise, for the primary file */
 static inline void 
-melt_output_cfile_decl_impl(melt_ptr_t cfilnam, melt_ptr_t declbuf, melt_ptr_t implbuf)
+melt_output_cfile_decl_impl(melt_ptr_t cfilnam, 
+			    melt_ptr_t declbuf, melt_ptr_t implbuf)
 {
-  melt_output_cfile_decl_impl_secondary (cfilnam, declbuf, implbuf, 0);
+  melt_output_cfile_decl_impl_secondary_option (cfilnam, declbuf, implbuf, (melt_ptr_t)0, 0);
 }
 
 /* recursive function to output to a file.  Handle boxed integers,

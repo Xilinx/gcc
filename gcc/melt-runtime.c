@@ -8359,7 +8359,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
 
 melt_ptr_t
 meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
-			       location_t loch)
+                            location_t loch)
 {
   struct reading_st rds;
   char *rbuf = 0;
@@ -10802,16 +10802,16 @@ bool melt_wants_single_c_file (void)
   return want1;
 }
 
-
 /***********************************************************
  * generate C code for a melt unit name; take care to avoid touching
  * the generated C file when it happens to be the same as what existed
  * on disk before, to help the "make" utility.
  ***********************************************************/
 void
-melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
-				       melt_ptr_t declbuf, melt_ptr_t implbuf,
-				       int filrank)
+melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
+					      melt_ptr_t declbuf, melt_ptr_t implbuf,
+					      melt_ptr_t optbuf,
+					      int filrank)
 {
   bool samefil = false;
   char *dotcnam = NULL;
@@ -10857,7 +10857,14 @@ melt_output_cfile_decl_impl_secondary (melt_ptr_t unitnam,
 	   "/* GCC MELT GENERATED FILE %s - DO NOT EDIT */\n", dotcnam);
   if (filrank <= 0)
     {
-      
+      if (melt_magic_discr (optbuf) == MELTOBMAG_STRBUF)
+	{
+	  fprintf (cfil, "\n/***+ %s options +***\n",
+		   melt_string_str (unitnam));
+	  melt_putstrbuf (cfil, optbuf);
+	  fprintf (cfil, "\n***- end %s options -***/\n", 
+		   melt_string_str (unitnam));
+	}
       /* we protect genversionstr_melt with MELTGCC_DYNAMIC_OBJSTRUCT since
 	 for sure when compiling the warmelt*0.c it would mismatch, and we
 	 want to avoid a useless warning */

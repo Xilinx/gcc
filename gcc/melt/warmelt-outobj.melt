@@ -3929,6 +3929,8 @@
 			  :mocx_initialenv inienv
 			  :mocx_funcount (make_integerbox discr_integer 0)
 			  :mocx_filetuple ()
+			  ;; :mocx_cflags (make_list discr_list)
+			  ;; :mocx_linkflags (make_list discr_list)
 			  ))
 	(ncx (create_normcontext modctx)) 
 	)
