@@ -1,5 +1,27 @@
 2011-04-14  Diego Novillo  <dnovillo@google.com>
 
+	* pph.c (pph_read_file_contents): Re-instate call to
+	pph_add_names_to_namespace.
+	(pph_include_handler): Return false if the file has been
+	read from an image.
+
+2011-04-14  Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in (cp/name-lookup.o): Add dependency on
+	CXX_PPH_STREAMER_H.
+	* name-lookup.c: Include pph-streamer.h.
+	(pph_stream_write_binding_table): New.
+	* pph-streamer-out.c (pph_stream_write_lang_type_header): New.
+	(pph_stream_write_tree_pair_vec): New.
+	(pph_stream_write_sorted_fields_type): New.
+	(pph_stream_write_lang_type_class): New.
+	(pph_stream_write_lang_type_ptrmem): New.
+	(pph_stream_write_lang_type): New.
+	(pph_stream_write_tree): Call it for TYPE_P nodes.
+	* pph-streamer.h (pph_stream_write_binding_table): Declare.
+
+2011-04-14  Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-in.c (pph_stream_read_tree): Fix handling of
 	TYPE_DECLs.
 	* pph-streamer-out.c (pph_stream_write_tree): Likewise.
