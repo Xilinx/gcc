@@ -105,6 +105,14 @@ given a string $MSG, with gdb when desperate.}#
   #{melt_cbreak($msg)}#)
 
 
+(defprimitive c_time () :long
+  :doc #{Get the current time(2) since Unix epoch in seconds.}#
+  #{((long)time((time_t*)0))}#)
+
+(defprimitive c_clock () :long
+  :doc #{Get the current cpu clock(3) in microseconds.}#
+  #{((long)clock())}#)
+
 ;; compare of longs [some primitives remain in warmelt-first.melt
 ;; because they are needed there]
 
@@ -2191,113 +2199,30 @@ polyhedron values.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
- ignore
- void
- is_not_object
- get_globpredef
- obj_hash
- obj_len
- obj_num
- nonzero_hash
- minor_garbcoll
- full_garbcoll
- checkcallstack_msg
- cbreak_msg
+ ;; keep the alphanumerical order
+		
+ !=i
+ *i
+ -i
  <=i
  ==i
- !=i
- -i
- *i
- maxi
- mini
- andi
- ori
- xori
- negi
- noti
- notnull
- zerop
- outcstring_dbg
- outnum_dbg
- outstr_dbg
- outstrbuf_dbg
- outnewline_dbg
- outnum_err
- outcstring_err	
- outstrbuf_err
- pair_set_head 
- pair_listlength
- make_pair
- is_mixint
- mixint_val
- make_mixint
- is_mixloc
- mixloc_val
- mixloc_location
- mixloc_locline
- mixloc_locfile
- make_mixloc
- is_mixbigint
- mixbigint_val
- ppstrbuf_mixbigint
- read_file
- error_strv
- error_plain
- warning_strv
- warning_plain
- warningmsg_plain
- warningmsg_strv
- errormsg_plain
- errormsg_strv
- inform_strv
- inform_plain
- informsg_plain
- informsg_strv
-
-
- foreach_long_upto
- some_integer_multiple
- some_integer_greater_than
- some_string_value
- outnewline_err
- outstr_err
- message_dbg
- messagenum_dbg 
- messageval_dbg
- longbacktrace_dbg
- checkval_dbg
- debugcstring
- debuglong
- make_strbuf
- strbuf_usedlength
- is_strbuf
-
- make_string
- is_stringconst
- string_length
- string=
- string!=
- split_string_space
- split_string_comma
- split_string_colon
- strbuf2string
- make_string_generated_c_filename
- make_string_nakedbasename
- make_string_tempname_suffixed
- make_string_mixloc_file
- load_debug_melt_module
- load_melt_module
- generate_debug_melt_module
- generate_melt_module
- object_length
- object_nth_field
- subclass_of
- subclass_or_eq
- is_multiple_or_null
- subseq_multiple
- compare_named_alpha
-
- is_out
+ add2out_ccomconst
+ add2out_ccomstrbuf
+ add2out_ccomstring 
+ add2out_cencstrbuf
+ add2out_cencstring
+ add2out_cencsubstring
+ add2out_cident
+ add2out_cidentprefix
+ add2out_indent
+ add2out_indentnl
+ add2out_longdec
+ add2out_longhex
+ add2out_mixloc
+ add2out_routinedescr
+ add2out_sbuf
+ add2out_strconst
+ add2out_string
  add2sbuf_ccomconst
  add2sbuf_ccomstrbuf
  add2sbuf_ccomstring 
@@ -2316,84 +2241,159 @@ polyhedron values.}#
  add2sbuf_strconst
  add2sbuf_string
  add2sbuf_texi_mixloc
- output_sbuf_strconst
- output_sbuf_strval
- output_length
-
- add2out_ccomconst
- add2out_ccomstrbuf
- add2out_ccomstring 
- add2out_cencstrbuf
- add2out_cencstring
- add2out_cencsubstring
- add2out_cident
- add2out_cidentprefix
- add2out_indent
- add2out_indentnl
- add2out_longdec
- add2out_longhex
- add2out_mixloc
- add2out_routinedescr
- add2out_sbuf
- add2out_strconst
- add2out_string
-
- tuple_nth
- tuple_sized
-
- cstring_same
+ andi
+ c_clock
+ c_time
+ cbreak_msg
+ checkcallstack_msg
+ checkval_dbg
+ compare_named_alpha
  cstring_length
-
+ cstring_same
+ debugcstring
+ debuglong
+ error_plain
+ error_strv
+ errormsg_plain
+ errormsg_strv
+ foreach_long_upto
+ full_garbcoll
+ generate_debug_melt_module
+ generate_melt_module
+ get_globpredef
+ ignore
+ inform_plain
+ inform_strv
+ informsg_plain
+ informsg_strv
+ is_mixbigint
+ is_mixint
+ is_mixloc
+ is_multiple_or_null
+ is_not_object
+ is_out
+ is_strbuf
+ is_stringconst
+ load_debug_melt_module
+ load_melt_module
+ longbacktrace_dbg
+ make_mixint
+ make_mixloc
+ make_pair
+ make_strbuf
+ make_string
+ make_string_generated_c_filename
+ make_string_mixloc_file
+ make_string_nakedbasename
+ make_string_tempname_suffixed
+ mapstring_count
  mapstring_every
  mapstring_iterate_test	
- mapstring_count
- mapstring_size
  mapstring_rawget
  mapstring_rawput
  mapstring_rawremove
-		
- multiple_every_both
- multiple_every
- multiple_backward_every
-
+ mapstring_size
+ maxi
  melt_application_count
  melt_application_depth
  melt_application_shallower
  melt_is_bootstrapping
  melt_mode_container
-
+ message_dbg
+ messagenum_dbg 
+ messageval_dbg
+ mini
+ minor_garbcoll
+ mixbigint_val
+ mixint_val
+ mixloc_location
+ mixloc_locfile
+ mixloc_locline
+ mixloc_val
+ multiple_backward_every
+ multiple_every
+ multiple_every_both
+ negi
+ nonzero_hash
+ noti
+ notnull
+ obj_hash
+ obj_len
+ obj_num
+ object_length
+ object_nth_field
+ ori
+ outcstring_dbg
+ outcstring_err	
+ outnewline_dbg
+ outnewline_err
+ outnum_dbg
+ outnum_err
+ output_length
+ output_sbuf_strconst
+ output_sbuf_strval
+ outstr_dbg
+ outstr_err
+ outstrbuf_dbg
+ outstrbuf_err
+ pair_listlength
+ pair_set_head 
+ ppstrbuf_mixbigint
+ read_file
  register_pass_execution_hook
- unregister_pass_execution_hook
-
  retrieve_value_descriptor_list
- valdesc_object
- valdesc_decay
+ some_integer_greater_than
+ some_integer_multiple
+ some_string_value
+ split_string_colon
+ split_string_comma
+ split_string_space
+ strbuf2string
+ strbuf_usedlength
+ string!=
+ string=
+ string_length
+ subclass_of
+ subclass_or_eq
+ subseq_multiple
+ tuple_nth
+ tuple_sized
+ unregister_pass_execution_hook
  valdesc_box
- valdesc_multiple
  valdesc_closure
- valdesc_routine
- valdesc_string
- valdesc_strbuf
- valdesc_pair
- valdesc_list
+ valdesc_decay
  valdesc_int
+ valdesc_list
  valdesc_mapobjects
  valdesc_mapstrings
+ valdesc_mixbigint
  valdesc_mixint
  valdesc_mixloc
- valdesc_mixbigint
+ valdesc_multiple
+ valdesc_object
+ valdesc_pair
  valdesc_real
+ valdesc_routine
  valdesc_special_file
  valdesc_special_file
- valdesc_special_raw_file
  valdesc_special_mpfr
  valdesc_special_ppl_coefficient
- valdesc_special_ppl_linear_expression
  valdesc_special_ppl_constraint
  valdesc_special_ppl_constraint_system
  valdesc_special_ppl_generator
  valdesc_special_ppl_generator_system
+ valdesc_special_ppl_linear_expression
  valdesc_special_ppl_polyhedron
+ valdesc_special_raw_file
+ valdesc_strbuf
+ valdesc_string
+ void
+ warning_plain
+ warning_strv
+ warningmsg_plain
+ warningmsg_strv
+ xori
+ zerop
 
  )
 

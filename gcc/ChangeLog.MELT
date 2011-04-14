@@ -1,4 +1,8 @@
 
+2011-04-14  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (c_time,c_clock): New exported
+	primitives.
+
 2011-04-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Upgrade to 0.7rc2 +...
 
