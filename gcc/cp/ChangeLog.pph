@@ -1,5 +1,9 @@
 2011-04-13  Diego Novillo  <dnovillo@google.com>
 
+	* cp-tree.h (sorted_fields_type_new): Declare.
+
+2011-04-13  Diego Novillo  <dnovillo@google.com>
+
 	* class.c (sorted_fields_type_new): Factor out of ...
 	(finish_struct_1): ... here.
 
