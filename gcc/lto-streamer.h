@@ -1190,18 +1190,15 @@ bitpack_create (struct lto_output_stream *s)
 static inline void
 bp_pack_value (struct bitpack_d *bp, bitpack_word_t val, unsigned nbits)
 {
-  bitpack_word_t mask, word;
+  bitpack_word_t word = bp->word;
   int pos = bp->pos;
 
-  word = bp->word;
-
+  /* We shouldn't try to pack more bits than can fit in a bitpack word.  */
   gcc_assert (nbits > 0 && nbits <= BITS_PER_BITPACK_WORD);
 
-  /* Make sure that VAL only has the lower NBITS set.  Generate a
-     mask with the lower NBITS set and use it to filter the upper
-     bits from VAL.  */
-  mask = ((bitpack_word_t) 1 << nbits) - 1;
-  val = val & mask;
+  /* The value to pack should not overflow NBITS.  */
+  gcc_assert (nbits == BITS_PER_BITPACK_WORD
+	      || val <= ((bitpack_word_t) 1 << nbits));
 
   /* If val does not fit into the current bitpack word switch to the
      next one.  */

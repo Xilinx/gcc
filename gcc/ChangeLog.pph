@@ -1,5 +1,14 @@
 2011-04-14  Diego Novillo  <dnovillo@google.com>
 
+	* lto-streamer-out.c (pack_ts_type_value_fields): Pack all bits
+	of -1 value.
+	* lto-streamer.h (bitpack_create): Assert that the value to
+	pack does not overflow NBITS.
+	* lto-streamer-in.c (unpack_ts_type_value_fields): Unpack
+	BITS_PER_BITPACK_WORD bits for TYPE_ALIAS_SET.
+
+2011-04-14  Diego Novillo  <dnovillo@google.com>
+
 	* lto-streamer.h (bitpack_create): Only use the lower NBITS
 	from VAL.
 

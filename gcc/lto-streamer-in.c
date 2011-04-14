@@ -1734,7 +1734,7 @@ unpack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
   TYPE_USER_ALIGN (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_READONLY (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_ALIGN (expr) = (unsigned) bp_unpack_value (bp, HOST_BITS_PER_INT);
-  TYPE_ALIAS_SET (expr) = bp_unpack_value (bp, HOST_BITS_PER_INT);
+  TYPE_ALIAS_SET (expr) = bp_unpack_value (bp, BITS_PER_BITPACK_WORD);
 }
 
 
