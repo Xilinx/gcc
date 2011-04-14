@@ -45,7 +45,6 @@ static void expand_virtual_init (tree, tree);
 static tree sort_mem_initializers (tree, tree);
 static tree initializing_context (tree);
 static void expand_cleanup_for_base (tree, tree);
-static tree get_temp_regvar (tree, tree);
 static tree dfs_initialize_vtbl_ptrs (tree, void *);
 static tree build_dtor_call (tree, special_function_kind, int);
 static tree build_field_list (tree, tree, int *);
@@ -423,7 +422,9 @@ build_value_init_noctor (tree type, tsubst_flags_t complain)
 	 as we don't know the size of the array yet.  */
       if (max_index == error_mark_node)
 	{
-	  error ("cannot value-initialize array of unknown bound %qT", type);
+	  if (complain & tf_error)
+	    error ("cannot value-initialize array of unknown bound %qT",
+		   type);
 	  return error_mark_node;
 	}
       gcc_assert (TREE_CODE (max_index) == INTEGER_CST);
@@ -2875,7 +2876,7 @@ create_temporary_var (tree type)
    things when it comes time to do final cleanups (which take place
    "outside" the binding contour of the function).  */
 
-static tree
+tree
 get_temp_regvar (tree type, tree init)
 {
   tree decl;

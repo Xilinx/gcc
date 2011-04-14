@@ -13,6 +13,7 @@
 #include "statements.h"
 #include "expressions.h"
 #include "dataflow.h"
+#include "runtime.h"
 #include "import.h"
 #include "export.h"
 #include "backend.h"
@@ -2598,6 +2599,8 @@ Gogo::convert_named_types()
   Interface_type::make_interface_type_descriptor_type();
   Type::convert_builtin_named_types(this);
 
+  Runtime::convert_types(this);
+
   this->named_types_are_converted_ = true;
 }
 
@@ -2879,6 +2882,29 @@ Function::determine_types()
 {
   if (this->block_ != NULL)
     this->block_->determine_types();
+}
+
+// Get a pointer to the variable holding the defer stack for this
+// function, making it if necessary.  At least at present, the value
+// of this variable is not used.  However, a pointer to this variable
+// is used as a marker for the functions on the defer stack associated
+// with this function.  Doing things this way permits inlining a
+// function which uses defer.
+
+Expression*
+Function::defer_stack(source_location location)
+{
+  Type* t = Type::make_pointer_type(Type::make_void_type());
+  if (this->defer_stack_ == NULL)
+    {
+      Expression* n = Expression::make_nil(location);
+      this->defer_stack_ = Statement::make_temporary(t, n, location);
+      this->defer_stack_->set_is_address_taken();
+    }
+  Expression* ref = Expression::make_temporary_reference(this->defer_stack_,
+							 location);
+  Expression* addr = Expression::make_unary(OPERATOR_AND, ref, location);
+  return Expression::make_unsafe_cast(t, addr, location);
 }
 
 // Export the function.

@@ -334,8 +334,7 @@ c_lex_one_token (c_parser *parser, c_token *token)
 	       variables and typedefs, and hence are shadowed by local
 	       declarations.  */
 	    if (objc_interface_decl
-		&& (global_bindings_p ()
-		    || (!objc_force_identifier && !decl)))
+                && (!objc_force_identifier || global_bindings_p ()))
 	      {
 		token->value = objc_interface_decl;
 		token->id_kind = C_ID_CLASSNAME;
@@ -3789,7 +3788,7 @@ c_parser_initelt (c_parser *parser, struct obstack * braced_init_obstack)
 		  c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE,
 					     "expected %<]%>");
 		  mexpr.value
-		    = objc_build_message_expr (build_tree_list (rec, args));
+		    = objc_build_message_expr (rec, args);
 		  mexpr.original_code = ERROR_MARK;
 		  mexpr.original_type = NULL;
 		  /* Now parse and process the remainder of the
@@ -6456,8 +6455,7 @@ c_parser_postfix_expression (c_parser *parser)
 	  args = c_parser_objc_message_args (parser);
 	  c_parser_skip_until_found (parser, CPP_CLOSE_SQUARE,
 				     "expected %<]%>");
-	  expr.value = objc_build_message_expr (build_tree_list (receiver,
-								 args));
+	  expr.value = objc_build_message_expr (receiver, args);
 	  break;
 	}
       /* Else fall through to report error.  */
@@ -6996,7 +6994,6 @@ c_parser_objc_class_instance_variables (c_parser *parser)
 static void
 c_parser_objc_class_declaration (c_parser *parser)
 {
-  tree list = NULL_TREE;
   gcc_assert (c_parser_next_token_is_keyword (parser, RID_AT_CLASS));
   c_parser_consume_token (parser);
   /* Any identifiers, including those declared as type names, are OK
@@ -7012,7 +7009,7 @@ c_parser_objc_class_declaration (c_parser *parser)
 	  return;
 	}
       id = c_parser_peek_token (parser)->value;
-      list = chainon (list, build_tree_list (NULL_TREE, id));
+      objc_declare_class (id);
       c_parser_consume_token (parser);
       if (c_parser_next_token_is (parser, CPP_COMMA))
 	c_parser_consume_token (parser);
@@ -7020,7 +7017,6 @@ c_parser_objc_class_declaration (c_parser *parser)
 	break;
     }
   c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
-  objc_declare_class (list);
 }
 
 /* Parse an objc-alias-declaration.
@@ -7080,7 +7076,6 @@ c_parser_objc_protocol_definition (c_parser *parser, tree attributes)
   if (c_parser_peek_2nd_token (parser)->type == CPP_COMMA
       || c_parser_peek_2nd_token (parser)->type == CPP_SEMICOLON)
     {
-      tree list = NULL_TREE;
       /* Any identifiers, including those declared as type names, are
 	 OK here.  */
       while (true)
@@ -7092,7 +7087,7 @@ c_parser_objc_protocol_definition (c_parser *parser, tree attributes)
 	      break;
 	    }
 	  id = c_parser_peek_token (parser)->value;
-	  list = chainon (list, build_tree_list (NULL_TREE, id));
+	  objc_declare_protocol (id, attributes);
 	  c_parser_consume_token (parser);
 	  if (c_parser_next_token_is (parser, CPP_COMMA))
 	    c_parser_consume_token (parser);
@@ -7100,7 +7095,6 @@ c_parser_objc_protocol_definition (c_parser *parser, tree attributes)
 	    break;
 	}
       c_parser_skip_until_found (parser, CPP_SEMICOLON, "expected %<;%>");
-      objc_declare_protocols (list, attributes);
     }
   else
     {

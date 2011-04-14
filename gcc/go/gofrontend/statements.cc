@@ -29,6 +29,7 @@ extern "C"
 #include "types.h"
 #include "expressions.h"
 #include "gogo.h"
+#include "runtime.h"
 #include "backend.h"
 #include "statements.h"
 
@@ -958,33 +959,13 @@ Tuple_map_assignment_statement::do_lower(Gogo*, Named_object*,
     Statement::make_temporary(Type::lookup_bool_type(), NULL, loc);
   b->add_statement(present_temp);
 
-  // func mapaccess2(hmap map[k]v, key *k, val *v) bool
-  source_location bloc = BUILTINS_LOCATION;
-  Typed_identifier_list* param_types = new Typed_identifier_list();
-  param_types->push_back(Typed_identifier("hmap", map_type, bloc));
-  Type* pkey_type = Type::make_pointer_type(map_type->key_type());
-  param_types->push_back(Typed_identifier("key", pkey_type, bloc));
-  Type* pval_type = Type::make_pointer_type(map_type->val_type());
-  param_types->push_back(Typed_identifier("val", pval_type, bloc));
-
-  Typed_identifier_list* ret_types = new Typed_identifier_list();
-  ret_types->push_back(Typed_identifier("", Type::lookup_bool_type(), bloc));
-
-  Function_type* fntype = Type::make_function_type(NULL, param_types,
-						   ret_types, bloc);
-  Named_object* mapaccess2 =
-    Named_object::make_function_declaration("mapaccess2", NULL, fntype, bloc);
-  mapaccess2->func_declaration_value()->set_asm_name("runtime.mapaccess2");
-
   // present_temp = mapaccess2(MAP, &key_temp, &val_temp)
-  Expression* func = Expression::make_func_reference(mapaccess2, NULL, loc);
-  Expression_list* params = new Expression_list();
-  params->push_back(map_index->map());
   Expression* ref = Expression::make_temporary_reference(key_temp, loc);
-  params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
+  Expression* a1 = Expression::make_unary(OPERATOR_AND, ref, loc);
   ref = Expression::make_temporary_reference(val_temp, loc);
-  params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
-  Expression* call = Expression::make_call(func, params, false, loc);
+  Expression* a2 = Expression::make_unary(OPERATOR_AND, ref, loc);
+  Expression* call = Runtime::make_call(Runtime::MAPACCESS2, loc, 3,
+					map_index->map(), a1, a2);
 
   ref = Expression::make_temporary_reference(present_temp, loc);
   Statement* s = Statement::make_assignment(ref, call, loc);
@@ -1097,31 +1078,21 @@ Map_assignment_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
     Statement::make_temporary(map_type->val_type(), this->val_, loc);
   b->add_statement(val_temp);
 
-  // func mapassign2(hmap map[k]v, key *k, val *v, p)
-  source_location bloc = BUILTINS_LOCATION;
-  Typed_identifier_list* param_types = new Typed_identifier_list();
-  param_types->push_back(Typed_identifier("hmap", map_type, bloc));
-  Type* pkey_type = Type::make_pointer_type(map_type->key_type());
-  param_types->push_back(Typed_identifier("key", pkey_type, bloc));
-  Type* pval_type = Type::make_pointer_type(map_type->val_type());
-  param_types->push_back(Typed_identifier("val", pval_type, bloc));
-  param_types->push_back(Typed_identifier("p", Type::lookup_bool_type(), bloc));
-  Function_type* fntype = Type::make_function_type(NULL, param_types,
-						   NULL, bloc);
-  Named_object* mapassign2 =
-    Named_object::make_function_declaration("mapassign2", NULL, fntype, bloc);
-  mapassign2->func_declaration_value()->set_asm_name("runtime.mapassign2");
+  // var insert_temp bool = p
+  Temporary_statement* insert_temp =
+    Statement::make_temporary(Type::lookup_bool_type(), this->should_set_,
+			      loc);
+  b->add_statement(insert_temp);
 
   // mapassign2(map_temp, &key_temp, &val_temp, p)
-  Expression* func = Expression::make_func_reference(mapassign2, NULL, loc);
-  Expression_list* params = new Expression_list();
-  params->push_back(Expression::make_temporary_reference(map_temp, loc));
+  Expression* p1 = Expression::make_temporary_reference(map_temp, loc);
   Expression* ref = Expression::make_temporary_reference(key_temp, loc);
-  params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
+  Expression* p2 = Expression::make_unary(OPERATOR_AND, ref, loc);
   ref = Expression::make_temporary_reference(val_temp, loc);
-  params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
-  params->push_back(this->should_set_);
-  Expression* call = Expression::make_call(func, params, false, loc);
+  Expression* p3 = Expression::make_unary(OPERATOR_AND, ref, loc);
+  Expression* p4 = Expression::make_temporary_reference(insert_temp, loc);
+  Expression* call = Runtime::make_call(Runtime::MAPASSIGN2, loc, 4,
+					p1, p2, p3, p4);
   Statement* s = Statement::make_statement(call);
   b->add_statement(s);
 
@@ -1225,40 +1196,13 @@ Tuple_receive_assignment_statement::do_lower(Gogo*, Named_object*,
     Statement::make_temporary(Type::lookup_bool_type(), NULL, loc);
   b->add_statement(closed_temp);
 
-  // func chanrecv2(c chan T, val *T) bool
-  // func chanrecv3(c chan T, val *T) bool (if for_select)
-  source_location bloc = BUILTINS_LOCATION;
-  Typed_identifier_list* param_types = new Typed_identifier_list();
-  param_types->push_back(Typed_identifier("c", channel_type, bloc));
-  Type* pelement_type = Type::make_pointer_type(channel_type->element_type());
-  param_types->push_back(Typed_identifier("val", pelement_type, bloc));
-
-  Typed_identifier_list* ret_types = new Typed_identifier_list();
-  ret_types->push_back(Typed_identifier("", Type::lookup_bool_type(), bloc));
-
-  Function_type* fntype = Type::make_function_type(NULL, param_types,
-						   ret_types, bloc);
-  Named_object* chanrecv;
-  if (!this->for_select_)
-    {
-      chanrecv = Named_object::make_function_declaration("chanrecv2", NULL,
-							 fntype, bloc);
-      chanrecv->func_declaration_value()->set_asm_name("runtime.chanrecv2");
-    }
-  else
-    {
-      chanrecv = Named_object::make_function_declaration("chanrecv3", NULL,
-							 fntype, bloc);
-      chanrecv->func_declaration_value()->set_asm_name("runtime.chanrecv3");
-    }
-
   // closed_temp = chanrecv[23](channel, &val_temp)
-  Expression* func = Expression::make_func_reference(chanrecv, NULL, loc);
-  Expression_list* params = new Expression_list();
-  params->push_back(this->channel_);
   Expression* ref = Expression::make_temporary_reference(val_temp, loc);
-  params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
-  Expression* call = Expression::make_call(func, params, false, loc);
+  Expression* p2 = Expression::make_unary(OPERATOR_AND, ref, loc);
+  Expression* call = Runtime::make_call((this->for_select_
+					 ? Runtime::CHANRECV3
+					 : Runtime::CHANRECV2),
+					loc, 2, this->channel_, p2);
   ref = Expression::make_temporary_reference(closed_temp, loc);
   Statement* s = Statement::make_assignment(ref, call, loc);
   b->add_statement(s);
@@ -1318,13 +1262,10 @@ class Tuple_type_guard_assignment_statement : public Statement
 
  private:
   Call_expression*
-  lower_to_empty_interface(const char*);
-
-  Call_expression*
-  lower_to_type(const char*);
+  lower_to_type(Runtime::Function);
 
   void
-  lower_to_object_type(Block*, const char*);
+  lower_to_object_type(Block*, Runtime::Function);
 
   // The variable which recieves the converted value.
   Expression* val_;
@@ -1377,23 +1318,32 @@ Tuple_type_guard_assignment_statement::do_lower(Gogo*, Named_object*,
   if (this->type_->interface_type() != NULL)
     {
       if (this->type_->interface_type()->is_empty())
-	call = this->lower_to_empty_interface(expr_is_empty
-					      ? "ifaceE2E2"
-					      : "ifaceI2E2");
+	call = Runtime::make_call((expr_is_empty
+				   ? Runtime::IFACEE2E2
+				   : Runtime::IFACEI2E2),
+				  loc, 1, this->expr_);
       else
-	call = this->lower_to_type(expr_is_empty ? "ifaceE2I2" : "ifaceI2I2");
+	call = this->lower_to_type(expr_is_empty
+				   ? Runtime::IFACEE2I2
+				   : Runtime::IFACEI2I2);
     }
   else if (this->type_->points_to() != NULL)
-    call = this->lower_to_type(expr_is_empty ? "ifaceE2T2P" : "ifaceI2T2P");
+    call = this->lower_to_type(expr_is_empty
+			       ? Runtime::IFACEE2T2P
+			       : Runtime::IFACEI2T2P);
   else
     {
-      this->lower_to_object_type(b, expr_is_empty ? "ifaceE2T2" : "ifaceI2T2");
+      this->lower_to_object_type(b,
+				 (expr_is_empty
+				  ? Runtime::IFACEE2T2
+				  : Runtime::IFACEI2T2));
       call = NULL;
     }
 
   if (call != NULL)
     {
       Expression* res = Expression::make_call_result(call, 0);
+      res = Expression::make_unsafe_cast(this->type_, res, loc);
       Statement* s = Statement::make_assignment(this->val_, res, loc);
       b->add_statement(s);
 
@@ -1405,74 +1355,23 @@ Tuple_type_guard_assignment_statement::do_lower(Gogo*, Named_object*,
   return Statement::make_block_statement(b, loc);
 }
 
-// Lower a conversion to an empty interface type.
-
-Call_expression*
-Tuple_type_guard_assignment_statement::lower_to_empty_interface(
-    const char *fnname)
-{
-  source_location loc = this->location();
-
-  // func FNNAME(interface) (empty, bool)
-  source_location bloc = BUILTINS_LOCATION;
-  Typed_identifier_list* param_types = new Typed_identifier_list();
-  param_types->push_back(Typed_identifier("i", this->expr_->type(), bloc));
-  Typed_identifier_list* ret_types = new Typed_identifier_list();
-  ret_types->push_back(Typed_identifier("ret", this->type_, bloc));
-  ret_types->push_back(Typed_identifier("ok", Type::lookup_bool_type(), bloc));
-  Function_type* fntype = Type::make_function_type(NULL, param_types,
-						   ret_types, bloc);
-  Named_object* fn =
-    Named_object::make_function_declaration(fnname, NULL, fntype, bloc);
-  std::string asm_name = "runtime.";
-  asm_name += fnname;
-  fn->func_declaration_value()->set_asm_name(asm_name);
-
-  // val, ok = FNNAME(expr)
-  Expression* func = Expression::make_func_reference(fn, NULL, loc);
-  Expression_list* params = new Expression_list();
-  params->push_back(this->expr_);
-  return Expression::make_call(func, params, false, loc);
-}
-
 // Lower a conversion to a non-empty interface type or a pointer type.
 
 Call_expression*
-Tuple_type_guard_assignment_statement::lower_to_type(const char* fnname)
+Tuple_type_guard_assignment_statement::lower_to_type(Runtime::Function code)
 {
   source_location loc = this->location();
-
-  // func FNNAME(*descriptor, interface) (interface, bool)
-  source_location bloc = BUILTINS_LOCATION;
-  Typed_identifier_list* param_types = new Typed_identifier_list();
-  param_types->push_back(Typed_identifier("inter",
-					  Type::make_type_descriptor_ptr_type(),
-					  bloc));
-  param_types->push_back(Typed_identifier("i", this->expr_->type(), bloc));
-  Typed_identifier_list* ret_types = new Typed_identifier_list();
-  ret_types->push_back(Typed_identifier("ret", this->type_, bloc));
-  ret_types->push_back(Typed_identifier("ok", Type::lookup_bool_type(), bloc));
-  Function_type* fntype = Type::make_function_type(NULL, param_types,
-						   ret_types, bloc);
-  Named_object* fn =
-    Named_object::make_function_declaration(fnname, NULL, fntype, bloc);
-  std::string asm_name = "runtime.";
-  asm_name += fnname;
-  fn->func_declaration_value()->set_asm_name(asm_name);
-
-  // val, ok = FNNAME(type_descriptor, expr)
-  Expression* func = Expression::make_func_reference(fn, NULL, loc);
-  Expression_list* params = new Expression_list();
-  params->push_back(Expression::make_type_descriptor(this->type_, loc));
-  params->push_back(this->expr_);
-  return Expression::make_call(func, params, false, loc);
+  return Runtime::make_call(code, loc, 2,
+			    Expression::make_type_descriptor(this->type_, loc),
+			    this->expr_);
 }
 
 // Lower a conversion to a non-interface non-pointer type.
 
 void
-Tuple_type_guard_assignment_statement::lower_to_object_type(Block* b,
-							    const char *fnname)
+Tuple_type_guard_assignment_statement::lower_to_object_type(
+    Block* b,
+    Runtime::Function code)
 {
   source_location loc = this->location();
 
@@ -1481,33 +1380,11 @@ Tuple_type_guard_assignment_statement::lower_to_object_type(Block* b,
 							    NULL, loc);
   b->add_statement(val_temp);
 
-  // func FNNAME(*descriptor, interface, *T) bool
-  source_location bloc = BUILTINS_LOCATION;
-  Typed_identifier_list* param_types = new Typed_identifier_list();
-  param_types->push_back(Typed_identifier("inter",
-					  Type::make_type_descriptor_ptr_type(),
-					  bloc));
-  param_types->push_back(Typed_identifier("i", this->expr_->type(), bloc));
-  Type* ptype = Type::make_pointer_type(this->type_);
-  param_types->push_back(Typed_identifier("v", ptype, bloc));
-  Typed_identifier_list* ret_types = new Typed_identifier_list();
-  ret_types->push_back(Typed_identifier("ok", Type::lookup_bool_type(), bloc));
-  Function_type* fntype = Type::make_function_type(NULL, param_types,
-						   ret_types, bloc);
-  Named_object* fn =
-    Named_object::make_function_declaration(fnname, NULL, fntype, bloc);
-  std::string asm_name = "runtime.";
-  asm_name += fnname;
-  fn->func_declaration_value()->set_asm_name(asm_name);
-
-  // ok = FNNAME(type_descriptor, expr, &val_temp)
-  Expression* func = Expression::make_func_reference(fn, NULL, loc);
-  Expression_list* params = new Expression_list();
-  params->push_back(Expression::make_type_descriptor(this->type_, loc));
-  params->push_back(this->expr_);
+  // ok = CODE(type_descriptor, expr, &val_temp)
+  Expression* p1 = Expression::make_type_descriptor(this->type_, loc);
   Expression* ref = Expression::make_temporary_reference(val_temp, loc);
-  params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
-  Expression* call = Expression::make_call(func, params, false, loc);
+  Expression* p3 = Expression::make_unary(OPERATOR_AND, ref, loc);
+  Expression* call = Runtime::make_call(code, loc, 3, p1, this->expr_, p3);
   Statement* s = Statement::make_assignment(this->ok_, call, loc);
   b->add_statement(s);
 
@@ -1841,16 +1718,38 @@ class Simplify_thunk_traverse : public Traverse
 {
  public:
   Simplify_thunk_traverse(Gogo* gogo)
-    : Traverse(traverse_blocks),
-      gogo_(gogo)
+    : Traverse(traverse_functions | traverse_blocks),
+      gogo_(gogo), function_(NULL)
   { }
+
+  int
+  function(Named_object*);
 
   int
   block(Block*);
 
  private:
+  // General IR.
   Gogo* gogo_;
+  // The function we are traversing.
+  Named_object* function_;
 };
+
+// Keep track of the current function while looking for thunks.
+
+int
+Simplify_thunk_traverse::function(Named_object* no)
+{
+  gcc_assert(this->function_ == NULL);
+  this->function_ = no;
+  int t = no->func_value()->traverse(this);
+  this->function_ = NULL;
+  if (t == TRAVERSE_EXIT)
+    return t;
+  return TRAVERSE_SKIP_COMPONENTS;
+}
+
+// Look for thunks in a block.
 
 int
 Simplify_thunk_traverse::block(Block* b)
@@ -1862,7 +1761,7 @@ Simplify_thunk_traverse::block(Block* b)
   Thunk_statement* stat = b->statements()->back()->thunk_statement();
   if (stat == NULL)
     return TRAVERSE_CONTINUE;
-  if (stat->simplify_statement(this->gogo_, b))
+  if (stat->simplify_statement(this->gogo_, this->function_, b))
     return TRAVERSE_SKIP_COMPONENTS;
   return TRAVERSE_CONTINUE;
 }
@@ -1884,12 +1783,22 @@ Gogo::simplify_thunk_statements()
 // struct to a thunk.  The thunk does the real call.
 
 bool
-Thunk_statement::simplify_statement(Gogo* gogo, Block* block)
+Thunk_statement::simplify_statement(Gogo* gogo, Named_object* function,
+				    Block* block)
 {
   if (this->classification() == STATEMENT_ERROR)
     return false;
   if (this->call_->is_error_expression())
     return false;
+
+  if (this->classification() == STATEMENT_DEFER)
+    {
+      // Make sure that the defer stack exists for the function.  We
+      // will use when converting this statement to the backend
+      // representation, but we want it to exist when we start
+      // converting the function.
+      function->func_value()->defer_stack(this->location());
+    }
 
   Call_expression* ce = this->call_->call_expression();
   Function_type* fntype = ce->get_function_type();
@@ -2146,34 +2055,8 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
     {
       retaddr_label = gogo->add_label_reference("retaddr");
       Expression* arg = Expression::make_label_addr(retaddr_label, location);
-      Expression_list* args = new Expression_list();
-      args->push_back(arg);
-
-      static Named_object* set_defer_retaddr;
-      if (set_defer_retaddr == NULL)
-	{
-	  const source_location bloc = BUILTINS_LOCATION;
-	  Typed_identifier_list* param_types = new Typed_identifier_list();
-	  Type *voidptr_type = Type::make_pointer_type(Type::make_void_type());
-	  param_types->push_back(Typed_identifier("r", voidptr_type, bloc));
-
-	  Typed_identifier_list* result_types = new Typed_identifier_list();
-	  result_types->push_back(Typed_identifier("",
-						   Type::lookup_bool_type(),
-						   bloc));
-
-	  Function_type* t = Type::make_function_type(NULL, param_types,
-						      result_types, bloc);
-	  set_defer_retaddr =
-	    Named_object::make_function_declaration("__go_set_defer_retaddr",
-						    NULL, t, bloc);
-	  const char* n = "__go_set_defer_retaddr";
-	  set_defer_retaddr->func_declaration_value()->set_asm_name(n);
-	}
-
-      Expression* fn = Expression::make_func_reference(set_defer_retaddr,
-						       NULL, location);
-      Expression* call = Expression::make_call(fn, args, false, location);
+      Expression* call = Runtime::make_call(Runtime::SET_DEFER_RETADDR,
+					    location, 1, arg);
 
       // This is a hack to prevent the middle-end from deleting the
       // label.
@@ -2309,30 +2192,26 @@ Thunk_statement::build_thunk(Gogo* gogo, const std::string& thunk_name,
 
 // Get the function and argument trees.
 
-void
-Thunk_statement::get_fn_and_arg(Translate_context* context, tree* pfn,
-				tree* parg)
+bool
+Thunk_statement::get_fn_and_arg(Expression** pfn, Expression** parg)
 {
   if (this->call_->is_error_expression())
-    {
-      *pfn = error_mark_node;
-      *parg = error_mark_node;
-      return;
-    }
+    return false;
 
   Call_expression* ce = this->call_->call_expression();
 
-  Expression* fn = ce->fn();
-  *pfn = fn->get_tree(context);
+  *pfn = ce->fn();
 
   const Expression_list* args = ce->args();
   if (args == NULL || args->empty())
-    *parg = null_pointer_node;
+    *parg = Expression::make_nil(this->location());
   else
     {
       gcc_assert(args->size() == 1);
-      *parg = args->front()->get_tree(context);
+      *parg = args->front();
     }
+
+  return true;
 }
 
 // Class Go_statement.
@@ -2340,30 +2219,17 @@ Thunk_statement::get_fn_and_arg(Translate_context* context, tree* pfn,
 tree
 Go_statement::do_get_tree(Translate_context* context)
 {
-  tree fn_tree;
-  tree arg_tree;
-  this->get_fn_and_arg(context, &fn_tree, &arg_tree);
+  Expression* fn;
+  Expression* arg;
+  if (!this->get_fn_and_arg(&fn, &arg))
+    return error_mark_node;
 
-  static tree go_fndecl;
-
-  tree fn_arg_type = NULL_TREE;
-  if (go_fndecl == NULL_TREE)
-    {
-      // Only build FN_ARG_TYPE if we need it.
-      tree subargtypes = tree_cons(NULL_TREE, ptr_type_node, void_list_node);
-      tree subfntype = build_function_type(ptr_type_node, subargtypes);
-      fn_arg_type = build_pointer_type(subfntype);
-    }
-
-  return Gogo::call_builtin(&go_fndecl,
-			    this->location(),
-			    "__go_go",
-			    2,
-			    void_type_node,
-			    fn_arg_type,
-			    fn_tree,
-			    ptr_type_node,
-			    arg_tree);
+  Expression* call = Runtime::make_call(Runtime::GO, this->location(), 2,
+					fn, arg);
+  tree call_tree = call->get_tree(context);
+  Bexpression* call_bexpr = tree_to_expr(call_tree);
+  Bstatement* ret = context->backend()->expression_statement(call_bexpr);
+  return stat_to_tree(ret);
 }
 
 // Make a go statement.
@@ -2379,38 +2245,20 @@ Statement::make_go_statement(Call_expression* call, source_location location)
 tree
 Defer_statement::do_get_tree(Translate_context* context)
 {
-  source_location loc = this->location();
-
-  tree fn_tree;
-  tree arg_tree;
-  this->get_fn_and_arg(context, &fn_tree, &arg_tree);
-  if (fn_tree == error_mark_node || arg_tree == error_mark_node)
+  Expression* fn;
+  Expression* arg;
+  if (!this->get_fn_and_arg(&fn, &arg))
     return error_mark_node;
 
-  static tree defer_fndecl;
+  source_location loc = this->location();
+  Expression* ds = context->function()->func_value()->defer_stack(loc);
 
-  tree fn_arg_type = NULL_TREE;
-  if (defer_fndecl == NULL_TREE)
-    {
-      // Only build FN_ARG_TYPE if we need it.
-      tree subargtypes = tree_cons(NULL_TREE, ptr_type_node, void_list_node);
-      tree subfntype = build_function_type(ptr_type_node, subargtypes);
-      fn_arg_type = build_pointer_type(subfntype);
-    }
-
-  tree defer_stack = context->function()->func_value()->defer_stack(loc);
-
-  return Gogo::call_builtin(&defer_fndecl,
-			    loc,
-			    "__go_defer",
-			    3,
-			    void_type_node,
-			    ptr_type_node,
-			    defer_stack,
-			    fn_arg_type,
-			    fn_tree,
-			    ptr_type_node,
-			    arg_tree);
+  Expression* call = Runtime::make_call(Runtime::DEFER, loc, 3,
+					ds, fn, arg);
+  tree call_tree = call->get_tree(context);
+  Bexpression* call_bexpr = tree_to_expr(call_tree);
+  Bstatement* ret = context->backend()->expression_statement(call_bexpr);
+  return stat_to_tree(ret);
 }
 
 // Make a defer statement.
@@ -3610,92 +3458,24 @@ Type_case_clauses::Type_case_clause::lower(Block* b,
     {
       Type* type = this->type_;
 
+      Expression* ref = Expression::make_temporary_reference(descriptor_temp,
+							     loc);
+
       Expression* cond;
       // The language permits case nil, which is of course a constant
       // rather than a type.  It will appear here as an invalid
       // forwarding type.
       if (type->is_nil_constant_as_type())
-	{
-	  Expression* ref =
-	    Expression::make_temporary_reference(descriptor_temp, loc);
-	  cond = Expression::make_binary(OPERATOR_EQEQ, ref,
-					 Expression::make_nil(loc),
-					 loc);
-	}
+	cond = Expression::make_binary(OPERATOR_EQEQ, ref,
+				       Expression::make_nil(loc),
+				       loc);
       else
-	{
-	  Expression* func;
-	  if (type->interface_type() == NULL)
-	    {
-	      // func ifacetypeeq(*descriptor, *descriptor) bool
-	      static Named_object* ifacetypeeq;
-	      if (ifacetypeeq == NULL)
-		{
-		  const source_location bloc = BUILTINS_LOCATION;
-		  Typed_identifier_list* param_types =
-		    new Typed_identifier_list();
-		  Type* descriptor_type = Type::make_type_descriptor_ptr_type();
-		  param_types->push_back(Typed_identifier("a", descriptor_type,
-							  bloc));
-		  param_types->push_back(Typed_identifier("b", descriptor_type,
-							  bloc));
-		  Typed_identifier_list* ret_types =
-		    new Typed_identifier_list();
-		  Type* bool_type = Type::lookup_bool_type();
-		  ret_types->push_back(Typed_identifier("", bool_type, bloc));
-		  Function_type* fntype = Type::make_function_type(NULL,
-								   param_types,
-								   ret_types,
-								   bloc);
-		  ifacetypeeq =
-		    Named_object::make_function_declaration("ifacetypeeq", NULL,
-							    fntype, bloc);
-		  const char* n = "runtime.ifacetypeeq";
-		  ifacetypeeq->func_declaration_value()->set_asm_name(n);
-		}
-
-	      // ifacetypeeq(descriptor_temp, DESCRIPTOR)
-	      func = Expression::make_func_reference(ifacetypeeq, NULL, loc);
-	    }
-	  else
-	    {
-	      // func ifaceI2Tp(*descriptor, *descriptor) bool
-	      static Named_object* ifaceI2Tp;
-	      if (ifaceI2Tp == NULL)
-		{
-		  const source_location bloc = BUILTINS_LOCATION;
-		  Typed_identifier_list* param_types =
-		    new Typed_identifier_list();
-		  Type* descriptor_type = Type::make_type_descriptor_ptr_type();
-		  param_types->push_back(Typed_identifier("a", descriptor_type,
-							  bloc));
-		  param_types->push_back(Typed_identifier("b", descriptor_type,
-							  bloc));
-		  Typed_identifier_list* ret_types =
-		    new Typed_identifier_list();
-		  Type* bool_type = Type::lookup_bool_type();
-		  ret_types->push_back(Typed_identifier("", bool_type, bloc));
-		  Function_type* fntype = Type::make_function_type(NULL,
-								   param_types,
-								   ret_types,
-								   bloc);
-		  ifaceI2Tp =
-		    Named_object::make_function_declaration("ifaceI2Tp", NULL,
-							    fntype, bloc);
-		  const char* n = "runtime.ifaceI2Tp";
-		  ifaceI2Tp->func_declaration_value()->set_asm_name(n);
-		}
-
-	      // ifaceI2Tp(descriptor_temp, DESCRIPTOR)
-	      func = Expression::make_func_reference(ifaceI2Tp, NULL, loc);
-	    }
-	  Expression_list* params = new Expression_list();
-	  params->push_back(Expression::make_type_descriptor(type, loc));
-	  Expression* ref =
-	    Expression::make_temporary_reference(descriptor_temp, loc);
-	  params->push_back(ref);
-	  cond = Expression::make_call(func, params, false, loc);
-	}
+	cond = Runtime::make_call((type->interface_type() == NULL
+				   ? Runtime::IFACETYPEEQ
+				   : Runtime::IFACEI2TP),
+				  loc, 2,
+				  Expression::make_type_descriptor(type, loc),
+				  ref);
 
       Unnamed_label* dest;
       if (!this->is_fallthrough_)
@@ -3891,35 +3671,18 @@ Type_switch_statement::do_lower(Gogo*, Named_object*, Block* enclosing)
     }
   else
     {
-      const source_location bloc = BUILTINS_LOCATION;
-
-      // func {efacetype,ifacetype}(*interface) *descriptor
-      // FIXME: This should be inlined.
-      Typed_identifier_list* param_types = new Typed_identifier_list();
-      param_types->push_back(Typed_identifier("i", val_type, bloc));
-      Typed_identifier_list* ret_types = new Typed_identifier_list();
-      ret_types->push_back(Typed_identifier("", descriptor_type, bloc));
-      Function_type* fntype = Type::make_function_type(NULL, param_types,
-						       ret_types, bloc);
-      bool is_empty = val_type->interface_type()->is_empty();
-      const char* fnname = is_empty ? "efacetype" : "ifacetype";
-      Named_object* fn =
-	Named_object::make_function_declaration(fnname, NULL, fntype, bloc);
-      const char* asm_name = (is_empty
-			      ? "runtime.efacetype"
-			      : "runtime.ifacetype");
-      fn->func_declaration_value()->set_asm_name(asm_name);
-
       // descriptor_temp = ifacetype(val_temp)
-      Expression* func = Expression::make_func_reference(fn, NULL, loc);
-      Expression_list* params = new Expression_list();
+      // FIXME: This should be inlined.
+      bool is_empty = val_type->interface_type()->is_empty();
       Expression* ref;
       if (this->var_ == NULL)
 	ref = this->expr_;
       else
 	ref = Expression::make_var_reference(this->var_, loc);
-      params->push_back(ref);
-      Expression* call = Expression::make_call(func, params, false, loc);
+      Expression* call = Runtime::make_call((is_empty
+					     ? Runtime::EFACETYPE
+					     : Runtime::IFACETYPE),
+					    loc, 1, ref);
       Expression* lhs = Expression::make_temporary_reference(descriptor_temp,
 							     loc);
       Statement* s = Statement::make_assignment(lhs, call, loc);
@@ -4935,7 +4698,7 @@ For_range_statement::lower_range_array(Gogo* gogo,
 // Lower a for range over a string.
 
 void
-For_range_statement::lower_range_string(Gogo* gogo,
+For_range_statement::lower_range_string(Gogo*,
 					Block* enclosing,
 					Block* body_block,
 					Named_object* range_object,
@@ -4996,66 +4759,12 @@ For_range_statement::lower_range_string(Gogo* gogo,
 
   Block* iter_init = new Block(body_block, loc);
 
-  Named_object* no;
-  if (value_temp == NULL)
-    {
-      static Named_object* stringiter;
-      if (stringiter == NULL)
-	{
-	  source_location bloc = BUILTINS_LOCATION;
-	  Type* int_type = gogo->lookup_global("int")->type_value();
-
-	  Typed_identifier_list* params = new Typed_identifier_list();
-	  params->push_back(Typed_identifier("s", Type::make_string_type(),
-					     bloc));
-	  params->push_back(Typed_identifier("k", int_type, bloc));
-
-	  Typed_identifier_list* results = new Typed_identifier_list();
-	  results->push_back(Typed_identifier("", int_type, bloc));
-
-	  Function_type* fntype = Type::make_function_type(NULL, params,
-							   results, bloc);
-	  stringiter = Named_object::make_function_declaration("stringiter",
-							       NULL, fntype,
-							       bloc);
-	  const char* n = "runtime.stringiter";
-	  stringiter->func_declaration_value()->set_asm_name(n);
-	}
-      no = stringiter;
-    }
-  else
-    {
-      static Named_object* stringiter2;
-      if (stringiter2 == NULL)
-	{
-	  source_location bloc = BUILTINS_LOCATION;
-	  Type* int_type = gogo->lookup_global("int")->type_value();
-
-	  Typed_identifier_list* params = new Typed_identifier_list();
-	  params->push_back(Typed_identifier("s", Type::make_string_type(),
-					     bloc));
-	  params->push_back(Typed_identifier("k", int_type, bloc));
-
-	  Typed_identifier_list* results = new Typed_identifier_list();
-	  results->push_back(Typed_identifier("", int_type, bloc));
-	  results->push_back(Typed_identifier("", int_type, bloc));
-
-	  Function_type* fntype = Type::make_function_type(NULL, params,
-							   results, bloc);
-	  stringiter2 = Named_object::make_function_declaration("stringiter",
-								NULL, fntype,
-								bloc);
-	  const char* n = "runtime.stringiter2";
-	  stringiter2->func_declaration_value()->set_asm_name(n);
-	}
-      no = stringiter2;
-    }
-
-  Expression* func = Expression::make_func_reference(no, NULL, loc);
-  Expression_list* params = new Expression_list();
-  params->push_back(this->make_range_ref(range_object, range_temp, loc));
-  params->push_back(Expression::make_temporary_reference(index_temp, loc));
-  Call_expression* call = Expression::make_call(func, params, false, loc);
+  Expression* p1 = this->make_range_ref(range_object, range_temp, loc);
+  Expression* p2 = Expression::make_temporary_reference(index_temp, loc);
+  Call_expression* call = Runtime::make_call((value_temp == NULL
+					      ? Runtime::STRINGITER
+					      : Runtime::STRINGITER2),
+					     loc, 2, p1, p2);
 
   if (value_temp == NULL)
     {
@@ -5107,7 +4816,7 @@ For_range_statement::lower_range_string(Gogo* gogo,
 // Lower a for range over a map.
 
 void
-For_range_statement::lower_range_map(Gogo* gogo,
+For_range_statement::lower_range_map(Gogo*,
 				     Block* enclosing,
 				     Block* body_block,
 				     Named_object* range_object,
@@ -5140,41 +4849,15 @@ For_range_statement::lower_range_map(Gogo* gogo,
 
   Block* init = new Block(enclosing, loc);
 
-  const unsigned long map_iteration_size = 4;
-
-  mpz_t ival;
-  mpz_init_set_ui(ival, map_iteration_size);
-  Expression* iexpr = Expression::make_integer(&ival, NULL, loc);
-  mpz_clear(ival);
-
-  Type* byte_type = gogo->lookup_global("byte")->type_value();
-  Type* ptr_type = Type::make_pointer_type(byte_type);
-
-  Type* map_iteration_type = Type::make_array_type(ptr_type, iexpr);
-  Type* map_iteration_ptr = Type::make_pointer_type(map_iteration_type);
-
+  Type* map_iteration_type = Runtime::map_iteration_type();
   Temporary_statement* hiter = Statement::make_temporary(map_iteration_type,
 							 NULL, loc);
   init->add_statement(hiter);
 
-  source_location bloc = BUILTINS_LOCATION;
-  Typed_identifier_list* param_types = new Typed_identifier_list();
-  param_types->push_back(Typed_identifier("map", this->range_->type(), bloc));
-  param_types->push_back(Typed_identifier("it", map_iteration_ptr, bloc));
-  Function_type* fntype = Type::make_function_type(NULL, param_types, NULL,
-						   bloc);
-
-  Named_object* mapiterinit =
-    Named_object::make_function_declaration("mapiterinit", NULL, fntype, bloc);
-  const char* n = "runtime.mapiterinit";
-  mapiterinit->func_declaration_value()->set_asm_name(n);
-
-  Expression* func = Expression::make_func_reference(mapiterinit, NULL, loc);
-  Expression_list* params = new Expression_list();
-  params->push_back(this->make_range_ref(range_object, range_temp, loc));
+  Expression* p1 = this->make_range_ref(range_object, range_temp, loc);
   Expression* ref = Expression::make_temporary_reference(hiter, loc);
-  params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
-  Expression* call = Expression::make_call(func, params, false, loc);
+  Expression* p2 = Expression::make_unary(OPERATOR_AND, ref, loc);
+  Expression* call = Runtime::make_call(Runtime::MAPITERINIT, loc, 2, p1, p2);
   init->add_statement(Statement::make_statement(call));
 
   *pinit = init;
@@ -5204,34 +4887,18 @@ For_range_statement::lower_range_map(Gogo* gogo,
 
   Block* iter_init = new Block(body_block, loc);
 
-  param_types = new Typed_identifier_list();
-  param_types->push_back(Typed_identifier("hiter", map_iteration_ptr, bloc));
-  Type* pkey_type = Type::make_pointer_type(index_temp->type());
-  param_types->push_back(Typed_identifier("key", pkey_type, bloc));
-  if (value_temp != NULL)
-    {
-      Type* pval_type = Type::make_pointer_type(value_temp->type());
-      param_types->push_back(Typed_identifier("val", pval_type, bloc));
-    }
-  fntype = Type::make_function_type(NULL, param_types, NULL, bloc);
-  n = value_temp == NULL ? "mapiter1" : "mapiter2";
-  Named_object* mapiter = Named_object::make_function_declaration(n, NULL,
-								  fntype, bloc);
-  n = value_temp == NULL ? "runtime.mapiter1" : "runtime.mapiter2";
-  mapiter->func_declaration_value()->set_asm_name(n);
-
-  func = Expression::make_func_reference(mapiter, NULL, loc);
-  params = new Expression_list();
   ref = Expression::make_temporary_reference(hiter, loc);
-  params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
+  p1 = Expression::make_unary(OPERATOR_AND, ref, loc);
   ref = Expression::make_temporary_reference(index_temp, loc);
-  params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
-  if (value_temp != NULL)
+  p2 = Expression::make_unary(OPERATOR_AND, ref, loc);
+  if (value_temp == NULL)
+    call = Runtime::make_call(Runtime::MAPITER1, loc, 2, p1, p2);
+  else
     {
       ref = Expression::make_temporary_reference(value_temp, loc);
-      params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
+      Expression* p3 = Expression::make_unary(OPERATOR_AND, ref, loc);
+      call = Runtime::make_call(Runtime::MAPITER2, loc, 3, p1, p2, p3);
     }
-  call = Expression::make_call(func, params, false, loc);
   iter_init->add_statement(Statement::make_statement(call));
 
   *piter_init = iter_init;
@@ -5241,24 +4908,9 @@ For_range_statement::lower_range_map(Gogo* gogo,
 
   Block* post = new Block(enclosing, loc);
 
-  static Named_object* mapiternext;
-  if (mapiternext == NULL)
-    {
-      param_types = new Typed_identifier_list();
-      param_types->push_back(Typed_identifier("it", map_iteration_ptr, bloc));
-      fntype = Type::make_function_type(NULL, param_types, NULL, bloc);
-      mapiternext = Named_object::make_function_declaration("mapiternext",
-							    NULL, fntype,
-							    bloc);
-      const char* n = "runtime.mapiternext";
-      mapiternext->func_declaration_value()->set_asm_name(n);
-    }
-
-  func = Expression::make_func_reference(mapiternext, NULL, loc);
-  params = new Expression_list();
   ref = Expression::make_temporary_reference(hiter, loc);
-  params->push_back(Expression::make_unary(OPERATOR_AND, ref, loc));
-  call = Expression::make_call(func, params, false, loc);
+  p1 = Expression::make_unary(OPERATOR_AND, ref, loc);
+  call = Runtime::make_call(Runtime::MAPITERNEXT, loc, 1, p1);
   post->add_statement(Statement::make_statement(call));
 
   *ppost = post;

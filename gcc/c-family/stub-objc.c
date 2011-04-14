@@ -110,12 +110,12 @@ objc_declare_alias (tree ARG_UNUSED (alias), tree ARG_UNUSED (orig))
 }
 
 void
-objc_declare_class (tree ARG_UNUSED (list))
+objc_declare_class (tree ARG_UNUSED (identifier))
 {
 }
 
 void
-objc_declare_protocols (tree ARG_UNUSED (list), tree ARG_UNUSED (attributes))
+objc_declare_protocol (tree ARG_UNUSED (name), tree ARG_UNUSED (attributes))
 {
 }
 
@@ -258,7 +258,7 @@ objc_build_selector_expr (location_t ARG_UNUSED (loc), tree ARG_UNUSED (expr))
 }
 
 tree
-objc_build_message_expr (tree ARG_UNUSED (expr))
+objc_build_message_expr (tree ARG_UNUSED (receiver), tree ARG_UNUSED (args))
 {
   return 0;
 }

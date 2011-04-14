@@ -4897,7 +4897,8 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 		postfix_expression
 		  = (finish_compound_literal
 		     (type, build_constructor (init_list_type_node,
-					       initializer_list)));
+					       initializer_list),
+		      tf_warning_or_error));
 		break;
 	      }
 	  }
@@ -5053,7 +5054,8 @@ cp_parser_postfix_expression (cp_parser *parser, bool address_p, bool cast_p,
 		    = (build_new_method_call
 		       (instance, fn, &args, NULL_TREE,
 			(idk == CP_ID_KIND_QUALIFIED
-			 ? LOOKUP_NONVIRTUAL : LOOKUP_NORMAL),
+			 ? LOOKUP_NORMAL|LOOKUP_NONVIRTUAL
+			 : LOOKUP_NORMAL),
 			/*fn_p=*/NULL,
 			tf_warning_or_error));
 		  }
@@ -19936,7 +19938,8 @@ cp_parser_functional_cast (cp_parser* parser, tree type)
       CONSTRUCTOR_IS_DIRECT_INIT (expression_list) = 1;
       if (TREE_CODE (type) == TYPE_DECL)
 	type = TREE_TYPE (type);
-      return finish_compound_literal (type, expression_list);
+      return finish_compound_literal (type, expression_list,
+				      tf_warning_or_error);
     }
 
 
@@ -21287,7 +21290,7 @@ cp_parser_objc_message_expression (cp_parser* parser)
   messageargs = cp_parser_objc_message_args (parser);
   cp_parser_require (parser, CPP_CLOSE_SQUARE, RT_CLOSE_SQUARE);
 
-  return objc_build_message_expr (build_tree_list (receiver, messageargs));
+  return objc_build_message_expr (receiver, messageargs);
 }
 
 /* Parse an objc-message-receiver.
@@ -21613,7 +21616,21 @@ static void
 cp_parser_objc_class_declaration (cp_parser* parser)
 {
   cp_lexer_consume_token (parser->lexer);  /* Eat '@class'.  */
-  objc_declare_class (cp_parser_objc_identifier_list (parser));
+  while (true)
+    {
+      tree id;
+      
+      id = cp_parser_identifier (parser);
+      if (id == error_mark_node)
+	break;
+      
+      objc_declare_class (id);
+
+      if (cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+	cp_lexer_consume_token (parser->lexer);
+      else
+	break;
+    }
   cp_parser_consume_semicolon_at_end_of_statement (parser);
 }
 
@@ -22302,7 +22319,8 @@ cp_parser_objc_protocol_declaration (cp_parser* parser, tree attributes)
     {
       tok = cp_lexer_peek_token (parser->lexer);
       error_at (tok->location, "identifier expected after %<@protocol%>");
-      goto finish;
+      cp_parser_consume_semicolon_at_end_of_statement (parser);
+      return;
     }
 
   /* See if we have a forward declaration or a definition.  */
@@ -22311,9 +22329,21 @@ cp_parser_objc_protocol_declaration (cp_parser* parser, tree attributes)
   /* Try a forward declaration first.  */
   if (tok->type == CPP_COMMA || tok->type == CPP_SEMICOLON)
     {
-      objc_declare_protocols (cp_parser_objc_identifier_list (parser), 
-			      attributes);
-     finish:
+      while (true)
+	{
+	  tree id;
+	  
+	  id = cp_parser_identifier (parser);
+	  if (id == error_mark_node)
+	    break;
+	  
+	  objc_declare_protocol (id, attributes);
+	  
+	  if(cp_lexer_next_token_is (parser->lexer, CPP_COMMA))
+	    cp_lexer_consume_token (parser->lexer);
+	  else
+	    break;
+	}
       cp_parser_consume_semicolon_at_end_of_statement (parser);
     }
 

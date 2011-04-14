@@ -147,7 +147,6 @@ static void objc_gen_property_data (tree, tree);
 static void objc_synthesize_getter (tree, tree, tree);
 static void objc_synthesize_setter (tree, tree, tree);
 static char *objc_build_property_setter_name (tree);
-static int match_proto_with_proto (tree, tree, int);
 static tree lookup_property (tree, tree);
 static tree lookup_property_in_list (tree, tree);
 static tree lookup_property_in_protocol_list (tree, tree);
@@ -2954,7 +2953,7 @@ synth_module_prologue (void)
 
   /* Forward-declare '@interface Protocol'.  */
   type = get_identifier (PROTOCOL_OBJECT_CLASS_NAME);
-  objc_declare_class (tree_cons (NULL_TREE, type, NULL_TREE));
+  objc_declare_class (type);
   objc_protocol_type = build_pointer_type (xref_tag (RECORD_TYPE, type));
 
   /* Declare receiver type used for dispatching messages to 'super'.  */
@@ -2986,7 +2985,7 @@ synth_module_prologue (void)
   if (!constant_string_class_name)
     constant_string_class_name = runtime.default_constant_string_class_name;
   constant_string_id = get_identifier (constant_string_class_name);
-  objc_declare_class (tree_cons (NULL_TREE, constant_string_id, NULL_TREE));
+  objc_declare_class (constant_string_id);
 
   /* Pre-build the following entities - for speed/convenience.  */
   self_id = get_identifier ("self");
@@ -3361,48 +3360,42 @@ objc_declare_alias (tree alias_ident, tree class_ident)
 }
 
 void
-objc_declare_class (tree ident_list)
+objc_declare_class (tree identifier)
 {
-  tree list;
 #ifdef OBJCPLUS
   if (current_namespace != global_namespace) {
     error ("Objective-C declarations may only appear in global scope");
   }
 #endif /* OBJCPLUS */
 
-  for (list = ident_list; list; list = TREE_CHAIN (list))
+  if (! objc_is_class_name (identifier))
     {
-      tree ident = TREE_VALUE (list);
-
-      if (! objc_is_class_name (ident))
+      tree record = lookup_name (identifier), type = record;
+      
+      if (record)
 	{
-	  tree record = lookup_name (ident), type = record;
-
-	  if (record)
+	  if (TREE_CODE (record) == TYPE_DECL)
+	    type = DECL_ORIGINAL_TYPE (record)
+	      ? DECL_ORIGINAL_TYPE (record)
+	      : TREE_TYPE (record);
+	  
+	  if (!TYPE_HAS_OBJC_INFO (type)
+	      || !TYPE_OBJC_INTERFACE (type))
 	    {
-	      if (TREE_CODE (record) == TYPE_DECL)
-		type = DECL_ORIGINAL_TYPE (record)
-					? DECL_ORIGINAL_TYPE (record)
-					: TREE_TYPE (record);
-
-	      if (!TYPE_HAS_OBJC_INFO (type)
-		  || !TYPE_OBJC_INTERFACE (type))
-		{
-		  error ("%qE redeclared as different kind of symbol",
-			 ident);
-		  error ("previous declaration of %q+D",
-			 record);
-		}
+	      error ("%qE redeclared as different kind of symbol",
+		     identifier);
+	      error ("previous declaration of %q+D",
+		     record);
 	    }
-
-	  record = xref_tag (RECORD_TYPE, ident);
-	  INIT_TYPE_OBJC_INFO (record);
-	  /* In the case of a @class declaration, we store the ident
-	     in the TYPE_OBJC_INTERFACE.  If later an @interface is
-	     found, we'll replace the ident with the interface.  */
-	  TYPE_OBJC_INTERFACE (record) = ident;
-	  hash_class_name_enter (cls_name_hash_list, ident, NULL_TREE);
 	}
+      
+      record = xref_tag (RECORD_TYPE, identifier);
+      INIT_TYPE_OBJC_INFO (record);
+      /* In the case of a @class declaration, we store the ident in
+	 the TYPE_OBJC_INTERFACE.  If later an @interface is found,
+	 we'll replace the ident with the interface.  */
+      TYPE_OBJC_INTERFACE (record) = identifier;
+      hash_class_name_enter (cls_name_hash_list, identifier, NULL_TREE);
     }
 }
 
@@ -3411,9 +3404,13 @@ objc_is_class_name (tree ident)
 {
   hash target;
 
-  if (ident && TREE_CODE (ident) == IDENTIFIER_NODE
-      && identifier_global_value (ident))
-    ident = identifier_global_value (ident);
+  if (ident && TREE_CODE (ident) == IDENTIFIER_NODE)
+    {
+      tree t = identifier_global_value (ident);
+      if (t)
+	ident = t;
+    }
+
   while (ident && TREE_CODE (ident) == TYPE_DECL && DECL_ORIGINAL_TYPE (ident))
     ident = OBJC_TYPE_NAME (DECL_ORIGINAL_TYPE (ident));
 
@@ -3453,9 +3450,12 @@ objc_is_class_name (tree ident)
 tree
 objc_is_id (tree type)
 {
-  if (type && TREE_CODE (type) == IDENTIFIER_NODE
-      && identifier_global_value (type))
-    type = identifier_global_value (type);
+  if (type && TREE_CODE (type) == IDENTIFIER_NODE)
+    {
+      tree t = identifier_global_value (type);
+      if (t)
+	type = t;
+    }
 
   if (type && TREE_CODE (type) == TYPE_DECL)
     type = TREE_TYPE (type);
@@ -4519,14 +4519,16 @@ mark_referenced_methods (void)
       chain = CLASS_CLS_METHODS (impent->imp_context);
       while (chain)
 	{
-	  cgraph_mark_needed_node (cgraph_node (METHOD_DEFINITION (chain)));
+	  cgraph_mark_needed_node (
+			   cgraph_get_create_node (METHOD_DEFINITION (chain)));
 	  chain = DECL_CHAIN (chain);
 	}
 
       chain = CLASS_NST_METHODS (impent->imp_context);
       while (chain)
 	{
-	  cgraph_mark_needed_node (cgraph_node (METHOD_DEFINITION (chain)));
+	  cgraph_mark_needed_node (
+			   cgraph_get_create_node (METHOD_DEFINITION (chain)));
 	  chain = DECL_CHAIN (chain);
 	}
     }
@@ -4660,7 +4662,7 @@ build_keyword_selector (tree selector)
       strcat (buf, ":");
     }
 
-  return get_identifier (buf);
+  return get_identifier_with_length (buf, len);
 }
 
 /* Used for declarations and definitions.  */
@@ -4827,13 +4829,13 @@ objc_method_decl (enum tree_code opcode)
   return opcode == INSTANCE_METHOD_DECL || opcode == CLASS_METHOD_DECL;
 }
 
-/* Used by `build_objc_method_call' and `comp_proto_with_proto'.  Return
-   an argument list for method METH.  CONTEXT is either METHOD_DEF or
-   METHOD_REF, saying whether we are trying to define a method or call
-   one.  SUPERFLAG says this is for a send to super; this makes a
-   difference for the NeXT calling sequence in which the lookup and
-   the method call are done together.  If METH is null, user-defined
-   arguments (i.e., beyond self and _cmd) shall be represented by `...'.  */
+/* Used by `build_objc_method_call'.  Return an argument list for
+   method METH.  CONTEXT is either METHOD_DEF or METHOD_REF, saying
+   whether we are trying to define a method or call one.  SUPERFLAG
+   says this is for a send to super; this makes a difference for the
+   NeXT calling sequence in which the lookup and the method call are
+   done together.  If METH is null, user-defined arguments (i.e.,
+   beyond self and _cmd) shall be represented by `...'.  */
 
 tree
 get_arg_type_list (tree meth, int context, int superflag)
@@ -5018,14 +5020,13 @@ objc_message_selector (void)
    (*(<abstract_decl>(*)())_msgSuper)(receiver, selTransTbl[n], ...);  */
 
 tree
-objc_build_message_expr (tree mess)
+objc_build_message_expr (tree receiver, tree message_args)
 {
-  tree receiver = TREE_PURPOSE (mess);
   tree sel_name;
 #ifdef OBJCPLUS
-  tree args = TREE_PURPOSE (TREE_VALUE (mess));
+  tree args = TREE_PURPOSE (message_args);
 #else
-  tree args = TREE_VALUE (mess);
+  tree args = message_args;
 #endif
   tree method_params = NULL_TREE;
 
@@ -5049,7 +5050,7 @@ objc_build_message_expr (tree mess)
   /* Build the parameter list to give to the method.  */
   if (TREE_CODE (args) == TREE_LIST)
 #ifdef OBJCPLUS
-    method_params = chainon (args, TREE_VALUE (TREE_VALUE (mess)));
+    method_params = chainon (args, TREE_VALUE (message_args));
 #else
     {
       tree chain = args, prev = NULL_TREE;
@@ -5974,6 +5975,17 @@ flexible_array_type_p (tree type)
 }
 #endif
 
+/* Produce a printable version of an ivar name.  This is only used
+   inside add_instance_variable.  */
+static const char *
+printable_ivar_name (tree field_decl)
+{
+  if (DECL_NAME (field_decl))
+    return identifier_to_locale (IDENTIFIER_POINTER (DECL_NAME (field_decl)));
+  else
+    return _("<unnamed>");
+}
+
 /* Called after parsing each instance variable declaration. Necessary to
    preserve typedefs and implement public/private...
 
@@ -5984,15 +5996,12 @@ add_instance_variable (tree klass, objc_ivar_visibility_kind visibility,
 		       tree field_decl)
 {
   tree field_type = TREE_TYPE (field_decl);
-  const char *ivar_name = DECL_NAME (field_decl)
-			  ? identifier_to_locale (IDENTIFIER_POINTER (DECL_NAME (field_decl)))
-			  : _("<unnamed>");
 
 #ifdef OBJCPLUS
   if (TREE_CODE (field_type) == REFERENCE_TYPE)
     {
       error ("illegal reference type specified for instance variable %qs",
-	     ivar_name);
+	     printable_ivar_name (field_decl));
       /* Return class as is without adding this ivar.  */
       return klass;
     }
@@ -6002,7 +6011,8 @@ add_instance_variable (tree klass, objc_ivar_visibility_kind visibility,
       || TYPE_SIZE (field_type) == error_mark_node)
       /* 'type[0]' is allowed, but 'type[]' is not! */
     {
-      error ("instance variable %qs has unknown size", ivar_name);
+      error ("instance variable %qs has unknown size",
+	     printable_ivar_name (field_decl));
       /* Return class as is without adding this ivar.  */
       return klass;
     }
@@ -6022,7 +6032,8 @@ add_instance_variable (tree klass, objc_ivar_visibility_kind visibility,
        to calculate the offset of the next instance variable.  */
   if (flexible_array_type_p (field_type))
     {
-      error ("instance variable %qs uses flexible array member", ivar_name);
+      error ("instance variable %qs uses flexible array member",
+	     printable_ivar_name (field_decl));
       /* Return class as is without adding this ivar.  */
       return klass;      
     }
@@ -6069,7 +6080,7 @@ add_instance_variable (tree klass, objc_ivar_visibility_kind visibility,
 	      error ("type %qE has virtual member functions", type_name);
 	      error ("illegal aggregate type %qE specified "
 		     "for instance variable %qs",
-		     type_name, ivar_name);
+		     type_name, printable_ivar_name (field_decl));
 	      /* Return class as is without adding this ivar.  */
 	      return klass;
 	    }
@@ -7852,9 +7863,8 @@ lookup_protocol (tree ident, bool warn_if_deprecated, bool definition_required)
    they are already declared or defined, the function has no effect.  */
 
 void
-objc_declare_protocols (tree names, tree attributes)
+objc_declare_protocol (tree name, tree attributes)
 {
-  tree list;
   bool deprecated = false;
 
 #ifdef OBJCPLUS
@@ -7879,29 +7889,25 @@ objc_declare_protocols (tree names, tree attributes)
 	}
     }
 
-  for (list = names; list; list = TREE_CHAIN (list))
+  if (lookup_protocol (name, /* warn if deprecated */ false,
+		       /* definition_required */ false) == NULL_TREE)
     {
-      tree name = TREE_VALUE (list);
-
-      if (lookup_protocol (name, /* warn if deprecated */ false,
-			   /* definition_required */ false) == NULL_TREE)
+      tree protocol = make_node (PROTOCOL_INTERFACE_TYPE);
+      
+      TYPE_LANG_SLOT_1 (protocol)
+	= make_tree_vec (PROTOCOL_LANG_SLOT_ELTS);
+      PROTOCOL_NAME (protocol) = name;
+      PROTOCOL_LIST (protocol) = NULL_TREE;
+      add_protocol (protocol);
+      PROTOCOL_DEFINED (protocol) = 0;
+      PROTOCOL_FORWARD_DECL (protocol) = NULL_TREE;
+      
+      if (attributes)
 	{
-	  tree protocol = make_node (PROTOCOL_INTERFACE_TYPE);
-
-	  TYPE_LANG_SLOT_1 (protocol)
-	    = make_tree_vec (PROTOCOL_LANG_SLOT_ELTS);
-	  PROTOCOL_NAME (protocol) = name;
-	  PROTOCOL_LIST (protocol) = NULL_TREE;
-	  add_protocol (protocol);
-	  PROTOCOL_DEFINED (protocol) = 0;
-	  PROTOCOL_FORWARD_DECL (protocol) = NULL_TREE;
-	  
-	  if (attributes)
-	    {
-	      TYPE_ATTRIBUTES (protocol) = attributes;
-	      if (deprecated)
-		TREE_DEPRECATED (protocol) = 1;
-	    }
+	  /* TODO: Do we need to store the attributes here ? */
+	  TYPE_ATTRIBUTES (protocol) = attributes;
+	  if (deprecated)
+	    TREE_DEPRECATED (protocol) = 1;
 	}
     }
 }
@@ -8222,18 +8228,12 @@ objc_types_share_size_and_alignment (tree type1, tree type2)
 static int
 comp_proto_with_proto (tree proto1, tree proto2, int strict)
 {
+  tree type1, type2;
+
   /* The following test is needed in case there are hashing
      collisions.  */
   if (METHOD_SEL_NAME (proto1) != METHOD_SEL_NAME (proto2))
     return 0;
-
-  return match_proto_with_proto (proto1, proto2, strict);
-}
-
-static int
-match_proto_with_proto (tree proto1, tree proto2, int strict)
-{
-  tree type1, type2;
 
   /* Compare return types.  */
   type1 = TREE_VALUE (TREE_TYPE (proto1));
@@ -8244,19 +8244,75 @@ match_proto_with_proto (tree proto1, tree proto2, int strict)
     return 0;
 
   /* Compare argument types.  */
-  for (type1 = get_arg_type_list (proto1, METHOD_REF, 0),
-       type2 = get_arg_type_list (proto2, METHOD_REF, 0);
-       type1 && type2;
-       type1 = TREE_CHAIN (type1), type2 = TREE_CHAIN (type2))
-    {
-      if (!objc_types_are_equivalent (TREE_VALUE (type1), TREE_VALUE (type2))
-	  && (strict
-	      || !objc_types_share_size_and_alignment (TREE_VALUE (type1),
-						       TREE_VALUE (type2))))
-	return 0;
-    }
 
-  return (!type1 && !type2);
+  /* The first argument (objc_object_type) is always the same, no need
+     to compare.  */
+
+  /* The second argument (objc_selector_type) is always the same, no
+     need to compare.  */
+
+  /* Compare the other arguments.  */
+  {
+    tree arg1, arg2;
+
+    /* Compare METHOD_SEL_ARGS.  */
+    for (arg1 = METHOD_SEL_ARGS (proto1), arg2 = METHOD_SEL_ARGS (proto2);
+	 arg1 && arg2;
+	 arg1 = DECL_CHAIN (arg1), arg2 = DECL_CHAIN (arg2))
+      {
+	type1 = TREE_VALUE (TREE_TYPE (arg1));
+	type2 = TREE_VALUE (TREE_TYPE (arg2));
+	
+	/* FIXME: Do we need to decay argument types to compare them ?  */
+	type1 = objc_decay_parm_type (type1);
+	type2 = objc_decay_parm_type (type2);
+	
+	if (!objc_types_are_equivalent (type1, type2)
+	    && (strict || !objc_types_share_size_and_alignment (type1, type2)))
+	  return 0;
+      }
+    
+    /* The loop ends when arg1 or arg2 are NULL.  Make sure they are
+       both NULL.  */
+    if (arg1 != arg2)
+      return 0;
+
+    /* Compare METHOD_ADD_ARGS.  */
+    if ((METHOD_ADD_ARGS (proto1) && !METHOD_ADD_ARGS (proto2))
+	|| (METHOD_ADD_ARGS (proto2) && !METHOD_ADD_ARGS (proto1)))
+      return 0;
+
+    if (METHOD_ADD_ARGS (proto1))
+      {
+	for (arg1 = TREE_CHAIN (METHOD_ADD_ARGS (proto1)), arg2 = TREE_CHAIN (METHOD_ADD_ARGS (proto2));
+	     arg1 && arg2;
+	     arg1 = TREE_CHAIN (arg1), arg2 = TREE_CHAIN (arg2))
+	  {
+	    type1 = TREE_TYPE (TREE_VALUE (arg1));
+	    type2 = TREE_TYPE (TREE_VALUE (arg2));
+	    
+	    /* FIXME: Do we need to decay argument types to compare them ?  */
+	    type1 = objc_decay_parm_type (type1);
+	    type2 = objc_decay_parm_type (type2);
+	    
+	    if (!objc_types_are_equivalent (type1, type2)
+		&& (strict || !objc_types_share_size_and_alignment (type1, type2)))
+	      return 0;
+	  }
+      }
+    
+    /* The loop ends when arg1 or arg2 are NULL.  Make sure they are
+       both NULL.  */
+    if (arg1 != arg2)
+      return 0;
+
+    /* Compare METHOD_ADD_ARGS_ELLIPSIS_P.  */
+    if (METHOD_ADD_ARGS_ELLIPSIS_P (proto1) != METHOD_ADD_ARGS_ELLIPSIS_P (proto2))
+      return 0;
+  }
+
+  /* Success.  */
+  return 1;
 }
 
 /* This routine returns true if TYPE is a valid objc object type,
@@ -10571,6 +10627,24 @@ objc_v2_encode_prop_attr (tree property)
   string = XOBFINISH (&util_obstack, char *);
   obstack_free (&util_obstack, util_firstobj);
   return get_identifier (string);
+}
+
+void
+objc_common_init_ts (void)
+{
+  c_common_init_ts ();
+
+  MARK_TS_DECL_NON_COMMON (CLASS_METHOD_DECL);
+  MARK_TS_DECL_NON_COMMON (INSTANCE_METHOD_DECL);
+  MARK_TS_DECL_NON_COMMON (KEYWORD_DECL);
+  MARK_TS_DECL_NON_COMMON (PROPERTY_DECL);
+
+  MARK_TS_COMMON (CLASS_INTERFACE_TYPE);
+  MARK_TS_COMMON (PROTOCOL_INTERFACE_TYPE);
+  MARK_TS_COMMON (CLASS_IMPLEMENTATION_TYPE);
+
+  MARK_TS_TYPED (MESSAGE_SEND_EXPR);
+  MARK_TS_TYPED (PROPERTY_REF);
 }
 
 #include "gt-objc-objc-act.h"

@@ -1,3 +1,13 @@
+2011-04-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/gnu-user64.h (ASM_SPEC): Support x32.
+	(LINK_SPEC): Likewise.
+	(TARGET_THREAD_SSP_OFFSET): Likewise.
+	(TARGET_THREAD_SPLIT_STACK_OFFSET): Likewise.
+
+	* config/linux.h (LINUX_DYNAMIC_LINKERX32): Renamed to ...
+	(GNU_USER_DYNAMIC_LINKERX32): This.
+
 2011-04-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/48440
