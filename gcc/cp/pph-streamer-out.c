@@ -789,7 +789,8 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 	  if (TREE_CODE (expr) == FUNCTION_DECL)
 	    pph_output_tree_aux (stream, DECL_SAVED_TREE (expr), ref_p);
 	}
-      else if (TREE_CODE (expr) == TYPE_DECL)
+
+      if (TREE_CODE (expr) == TYPE_DECL)
 	pph_output_tree (stream, DECL_ORIGINAL_TYPE (expr), ref_p);
     }
   else if (TREE_CODE (expr) == STATEMENT_LIST)

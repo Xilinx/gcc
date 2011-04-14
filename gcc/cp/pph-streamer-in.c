@@ -784,7 +784,8 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 	  if (TREE_CODE (expr) == FUNCTION_DECL)
 	    DECL_SAVED_TREE (expr) = pph_input_tree (stream);
 	}
-      else if (TREE_CODE (expr) == TYPE_DECL)
+
+      if (TREE_CODE (expr) == TYPE_DECL)
 	DECL_ORIGINAL_TYPE (expr) = pph_input_tree (stream);
     }
   else if (TREE_CODE (expr) == STATEMENT_LIST)
