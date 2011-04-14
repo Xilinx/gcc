@@ -579,6 +579,167 @@ pph_stream_write_lang_specific_data (pph_stream *stream, tree decl, bool ref_p)
 }
 
 
+/* Write all the fields in lang_type_header instance LTH to STREAM.  */
+
+static void
+pph_stream_write_lang_type_header (pph_stream *stream,
+				   struct lang_type_header *lth)
+{
+  struct bitpack_d bp = bitpack_create (stream->ob->main_stream);
+  bp_pack_value (&bp, lth->is_lang_type_class, 1);
+  bp_pack_value (&bp, lth->has_type_conversion, 1);
+  bp_pack_value (&bp, lth->has_copy_ctor, 1);
+  bp_pack_value (&bp, lth->has_default_ctor, 1);
+  bp_pack_value (&bp, lth->const_needs_init, 1);
+  bp_pack_value (&bp, lth->ref_needs_init, 1);
+  bp_pack_value (&bp, lth->has_const_copy_assign, 1);
+  lto_output_bitpack (&bp);
+}
+
+
+/* Write the vector V of tree_pair_s instances to STREAM.  REF_P is
+   true if the trees should be written as references.  */
+
+static void
+pph_stream_write_tree_pair_vec (pph_stream *stream, VEC(tree_pair_s,gc) *v,
+				bool ref_p)
+{
+  unsigned i;
+  tree_pair_s *p;
+
+  pph_output_uint (stream, VEC_length (tree_pair_s, v));
+  for (i = 0; VEC_iterate (tree_pair_s, v, i, p); i++)
+    {
+      pph_output_tree_or_ref (stream, p->purpose, ref_p);
+      pph_output_tree_or_ref (stream, p->value, ref_p);
+    }
+}
+
+
+/* Write a struct sorted_fields_type instance SFT to STREAM.  REF_P is
+   true if the tree nodes should be written as references.  */
+
+static void
+pph_stream_write_sorted_fields_type (pph_stream *stream,
+				     struct sorted_fields_type *sft, bool ref_p)
+{
+  int i;
+
+  pph_output_uint (stream, sft->len);
+  for (i = 0; i < sft->len; i++)
+    pph_output_tree_or_ref (stream, sft->elts[i], ref_p);
+}
+
+
+/* Write all the fields in lang_type_class instance LTC to STREAM.
+   REF_P is true if all the trees in the structure should be written
+   as references.  */
+
+static void
+pph_stream_write_lang_type_class (pph_stream *stream,
+				  struct lang_type_class *ltc, bool ref_p)
+{
+  struct bitpack_d bp;
+
+  if (!pph_start_record (stream, ltc))
+    return;
+
+  pph_output_uchar (stream, ltc->align);
+
+  bp = bitpack_create (stream->ob->main_stream);
+  bp_pack_value (&bp, ltc->has_mutable, 1);
+  bp_pack_value (&bp, ltc->com_interface, 1);
+  bp_pack_value (&bp, ltc->non_pod_class, 1);
+  bp_pack_value (&bp, ltc->nearly_empty_p, 1);
+  bp_pack_value (&bp, ltc->user_align, 1);
+  bp_pack_value (&bp, ltc->has_copy_assign, 1);
+  bp_pack_value (&bp, ltc->has_new, 1);
+  bp_pack_value (&bp, ltc->has_array_new, 1);
+  bp_pack_value (&bp, ltc->gets_delete, 2);
+  bp_pack_value (&bp, ltc->interface_only, 1);
+  bp_pack_value (&bp, ltc->interface_unknown, 1);
+  bp_pack_value (&bp, ltc->contains_empty_class_p, 1);
+  bp_pack_value (&bp, ltc->anon_aggr, 1);
+  bp_pack_value (&bp, ltc->non_zero_init, 1);
+  bp_pack_value (&bp, ltc->empty_p, 1);
+  bp_pack_value (&bp, ltc->vec_new_uses_cookie, 1);
+  bp_pack_value (&bp, ltc->declared_class, 1);
+  bp_pack_value (&bp, ltc->diamond_shaped, 1);
+  bp_pack_value (&bp, ltc->repeated_base, 1);
+  bp_pack_value (&bp, ltc->being_defined, 1);
+  bp_pack_value (&bp, ltc->java_interface, 1);
+  bp_pack_value (&bp, ltc->debug_requested, 1);
+  bp_pack_value (&bp, ltc->fields_readonly, 1);
+  bp_pack_value (&bp, ltc->use_template, 2);
+  bp_pack_value (&bp, ltc->ptrmemfunc_flag, 1);
+  bp_pack_value (&bp, ltc->was_anonymous, 1);
+  bp_pack_value (&bp, ltc->lazy_default_ctor, 1);
+  bp_pack_value (&bp, ltc->lazy_copy_ctor, 1);
+  bp_pack_value (&bp, ltc->lazy_copy_assign, 1);
+  bp_pack_value (&bp, ltc->lazy_destructor, 1);
+  bp_pack_value (&bp, ltc->has_const_copy_ctor, 1);
+  bp_pack_value (&bp, ltc->has_complex_copy_ctor, 1);
+  bp_pack_value (&bp, ltc->has_complex_copy_assign, 1);
+  bp_pack_value (&bp, ltc->non_aggregate, 1);
+  bp_pack_value (&bp, ltc->has_complex_dflt, 1);
+  bp_pack_value (&bp, ltc->has_list_ctor, 1);
+  bp_pack_value (&bp, ltc->non_std_layout, 1);
+  bp_pack_value (&bp, ltc->is_literal, 1);
+  bp_pack_value (&bp, ltc->lazy_move_ctor, 1);
+  bp_pack_value (&bp, ltc->lazy_move_assign, 1);
+  bp_pack_value (&bp, ltc->has_complex_move_ctor, 1);
+  bp_pack_value (&bp, ltc->has_complex_move_assign, 1);
+  bp_pack_value (&bp, ltc->has_constexpr_ctor, 1);
+  lto_output_bitpack (&bp);
+
+  pph_output_tree_or_ref (stream, ltc->primary_base, ref_p);
+  pph_stream_write_tree_pair_vec (stream, ltc->vcall_indices, ref_p);
+  pph_output_tree_or_ref (stream, ltc->vtables, ref_p);
+  pph_output_tree_or_ref (stream, ltc->typeinfo_var, ref_p);
+  pph_stream_write_tree_vec (stream, ltc->vbases, ref_p);
+  pph_stream_write_binding_table (stream, ltc->nested_udts, ref_p);
+  pph_output_tree_or_ref (stream, ltc->as_base, ref_p);
+  pph_stream_write_tree_vec (stream, ltc->pure_virtuals, ref_p);
+  pph_output_tree_or_ref (stream, ltc->friend_classes, ref_p);
+  pph_stream_write_tree_vec (stream, ltc->methods, ref_p);
+  pph_output_tree_or_ref (stream, ltc->key_method, ref_p);
+  pph_output_tree_or_ref (stream, ltc->decl_list, ref_p);
+  pph_output_tree_or_ref (stream, ltc->template_info, ref_p);
+  pph_output_tree_or_ref (stream, ltc->befriending_classes, ref_p);
+  pph_output_tree_or_ref (stream, ltc->objc_info, ref_p);
+  pph_stream_write_sorted_fields_type (stream, ltc->sorted_fields, ref_p);
+  pph_output_tree_or_ref (stream, ltc->lambda_expr, ref_p);
+}
+
+
+/* Write struct lang_type_ptrmem instance LTP to STREAM.  If REF_P is
+   true, all fields in the structure are written as references.  */
+
+static void
+pph_stream_write_lang_type_ptrmem (pph_stream *stream, struct
+				   lang_type_ptrmem *ltp, bool ref_p)
+{
+  pph_output_tree_or_ref (stream, ltp->record, ref_p);
+}
+
+
+/* Write all the lang-specific fields of TYPE to STREAM.  REF_P is
+   true if tree nodes in the structure need to be written as
+   references.  */
+
+static void
+pph_stream_write_lang_type (pph_stream *stream, tree type, bool ref_p)
+{
+  struct lang_type *lt = TYPE_LANG_SPECIFIC (type);
+
+  pph_stream_write_lang_type_header (stream, &lt->u.h);
+  if (lt->u.h.is_lang_type_class)
+    pph_stream_write_lang_type_class (stream, &lt->u.c, ref_p);
+  else
+    pph_stream_write_lang_type_ptrmem (stream, &lt->u.ptrmem, ref_p);
+}
+
+
 /* Write header information for some AST nodes not handled by the
    common streamer code.  EXPR is the tree to write to output block
    OB.  If EXPR does not need to be handled specially, do nothing.  */
@@ -632,6 +793,8 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
       for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
 	pph_output_tree_aux (stream, tsi_stmt (i), ref_p);
     }
+  else if (TYPE_P (expr))
+    pph_stream_write_lang_type (stream, expr, ref_p);
 }
 
 

@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pretty-print.h"
 #include "pph.h"
 #include "params.h"
+#include "pph-streamer.h"
 
 /* The bindings for a particular name in a particular scope.  */
 
@@ -5921,6 +5922,25 @@ cp_emit_debug_info_for_using (tree t, tree context)
 	else
 	  (*debug_hooks->imported_module_or_decl) (t, NULL_TREE, context, false);
       }
+}
+
+
+/* Write a binding_entry instance BT to STREAM.  If REF_P is true, all
+   tree nodes in the table are written as references.  */
+
+void
+pph_stream_write_binding_table (pph_stream *stream, binding_table bt,
+				bool ref_p)
+{
+  size_t i;
+
+  pph_output_uint (stream, bt->chain_count);
+  for (i = 0; i < bt->chain_count; i++)
+    {
+      pph_output_tree_or_ref (stream, bt->chain[i]->name, ref_p);
+      pph_output_tree_or_ref (stream, bt->chain[i]->type, ref_p);
+    }
+  pph_output_uint (stream, bt->entry_count);
 }
 
 #include "gt-cp-name-lookup.h"
