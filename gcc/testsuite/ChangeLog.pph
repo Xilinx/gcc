@@ -1,3 +1,7 @@
+2011-04-14  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/p1mean.cc: Force syntax error.
+
 2011-04-12  Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/y2smother.cc: New.

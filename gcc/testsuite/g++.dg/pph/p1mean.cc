@@ -3,6 +3,8 @@
 #include <math.h>
 #include <string.h>
 
+SYNTAX ERROR TO AVOID COMPILING THIS - IT CAUSES INFINITE RECURSION.
+
 static unsigned long long MAX_ITEMS = 10000;
 
 static int
