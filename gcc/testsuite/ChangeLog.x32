@@ -1,3 +1,7 @@
+2011-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/pr48389.c: Require ia32 instead of ilp32.
+
 2011-03-16  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* g++.dg/opt/nrv12.C: Require ia32 instead of ilp32.
