@@ -1,3 +1,8 @@
+2011-04-13  Diego Novillo  <dnovillo@google.com>
+
+	* class.c (sorted_fields_type_new): Factor out of ...
+	(finish_struct_1): ... here.
+
 2011-04-12  Diego Novillo  <dnovillo@google.com>
 
 	* pph.c (pph_read_file_contents): Do not try to re-instantiate
