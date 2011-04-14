@@ -1,5 +1,10 @@
 2011-04-14  Diego Novillo  <dnovillo@google.com>
 
+	* lto-streamer.h (bitpack_create): Only use the lower NBITS
+	from VAL.
+
+2011-04-14  Diego Novillo  <dnovillo@google.com>
+
 	* lto-streamer-in.c (unpack_ts_base_value_fields): Handle
 	TYPE_ADDR_SPACE.
 	* lto-streamer-out.c (pack_ts_base_value_fields): Likewise.
