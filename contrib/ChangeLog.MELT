@@ -1,5 +1,11 @@
 
 2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (make_melt_documentation): New function.
+	Use it.
+	* meltpluginapi.texi: Better phrasing about documentation
+	generation.
+
+2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* meltplugin.texi: New file to wrap the melt.texi chapter when
 	making MELT as a plugin.
 	* meltpluginapi.texi: New file to wrap the generated

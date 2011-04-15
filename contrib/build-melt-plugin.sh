@@ -367,12 +367,24 @@ bootstrap_melt() {
     else
 	error_echo Failure in MELT defaut modules
     fi
+    ### generate the documentation from source code
     verbose_echo Generating MELT documentation in texinfo format
     if do_melt_make meltgendoc.texi; then 
 	verbose_echo Did generate MELT documentation
     else
 	error_echo Failure in MELT documentation generation
     fi	
+}
+
+make_melt_documentation () {
+    ### make the info files
+    verbose_echo Making the MELT documentation info files
+    makeinfo meltplugin.texi
+    makeinfo meltpluginapi.texi
+    ## make the HTML files
+    verbose_echo Making the MELT documentation HTML files
+    texi2html meltplugin.texi
+    texi2html meltpluginapi.texi
 }
 
 ################ after build, the installation procedure
@@ -399,7 +411,7 @@ install_melt() {
     $HOSTADMINCMD $HOSTINSTALL -m 644 melt-sources/* melt-default-modules.modlis  $DESTDIR$gcc_plugin_directory/melt-source/
     verbose_echo Installing the MELT module directory
     $HOSTADMINCMD $HOSTINSTALL -m 755 -d $DESTDIR$gcc_plugin_directory/libexec/melt-modules
-    verbose_echo Filling the MELT module directory
+    verbose_echo Filling the installed MELT module directory
     $HOSTADMINCMD $HOSTINSTALL -m 755 melt-modules/*  $DESTDIR$gcc_plugin_directory/libexec/melt-modules/
 }
 
@@ -417,6 +429,7 @@ get_gty_melt_header
 build_melt_run_headers
 build_melt_dot_so
 bootstrap_melt
+make_melt_documentation
 install_melt
 
 verbose_echo MELT plugin building terminated
