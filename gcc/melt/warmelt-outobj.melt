@@ -4926,15 +4926,27 @@
   (add2sbuf_indentnl outb 0)
   (add2sbuf_indentnl outb 0)
   (let ( (patmaclist (get_field :mkdoc_patmacros mdinfo))
-	 (unsortedpatmactuple (list_to_multiple patmaclist discr_multiple))
-	 (sortedpatmactuple (multiple_sort unsortedpatmactuple
-					   compare_named_alpha
-					   discr_multiple))
+	 (rawpatmactuple (list_to_multiple patmaclist discr_multiple))
+	 (sortedpatmactuple
+	  (progn
+	    (foreach_in_multiple
+	     rawpatmactuple
+	     (curpms :long pmsix)
+	     (assert_msg "makedoc_genpatmacro check curpms"
+			 (is_a curpms class_source_export_macro)))
+	    (multiple_sort rawpatmactuple
+			   (lambda (pms1 pms2)
+			     (compare_named_alpha 
+			      (get_field :sexpmac_mname pms1)
+			      (get_field :sexpmac_mname pms2)))
+			 discr_multiple)))
 	 )
     (add2sbuf_strconst outb "There are ")
     (add2sbuf_longdec outb (multiple_length sortedpatmactuple))
     (add2sbuf_strconst outb " documented pattern-macros.")
-    (add2sbuf_indentnl outb 0)		    	
+    (add2sbuf_indentnl outb 0)
+    (debug_msg rawpatmactuple "makedoc_genpatmacro rawpatmactuple")
+    (debug_msg sortedpatmactuple "makedoc_genpatmacro sortedpatmactuple")
     (foreach_in_multiple
      (sortedpatmactuple)
      (patmac :long pmacix)
@@ -5139,12 +5151,27 @@
   (add2sbuf_indentnl outb 0)
   (let ( (rawprimlist (get_field :mkdoc_primitives mdinfo))
 	 (rawprimtup (list_to_multiple rawprimlist discr_multiple))
-	 (sortedprimtup (multiple_sort rawprimtup compare_named_alpha discr_multiple))
+	 (sortedprimtup
+	  (progn
+	    (foreach_in_multiple 
+	     (rawprimtup)
+	     (curprim :long primix)
+	     (assert_msg "makedoc_genprimitive check curprim"
+			 (is_a curprim class_source_defprimitive)))
+	    (multiple_sort 
+	     rawprimtup 
+	     (lambda (sdpri1 sdpri2)
+	       (compare_named_alpha 
+		(get_field :sdef_name sdpri1)
+		(get_field :sdef_name sdpri2)))
+	     discr_multiple)))
 	 )
-  (add2sbuf_strconst outb "There are ")
-  (add2sbuf_longdec outb (multiple_length sortedprimtup))
-  (add2sbuf_strconst outb " primitives.")
-  (add2sbuf_indentnl outb 0)
+    (debug_msg rawprimtup "makedoc_genprimitive rawprimtup")
+    (debug_msg sortedprimtup "makedoc_genprimitive sortedprimtup")
+    (add2sbuf_strconst outb "There are ")
+    (add2sbuf_longdec outb (multiple_length sortedprimtup))
+    (add2sbuf_strconst outb " primitives.")
+    (add2sbuf_indentnl outb 0)
     (foreach_in_multiple
      (sortedprimtup)
      (curprimdef :long primix)

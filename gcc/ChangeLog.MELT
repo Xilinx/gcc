@@ -1,5 +1,11 @@
 
 2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): 0.7rc3 + ...
+	* melt/warmelt-outobj.melt
+	(makedoc_genpatmacro,makedoc_genprimitive): Check class of source
+	definitions and sort them appropriately.
+
+2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): 0.7rc3
 
 2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
