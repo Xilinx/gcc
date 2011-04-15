@@ -93,15 +93,6 @@ $SARGOP_ARGS is the tuple of arguments.}#
 	   ))
 
 
-;;; source primitive invocation
-(defclass class_source_variadic_application
-  :doc #{The OBSOLETE internal $CLASS_SOURCE_VARIADIC_APPLICATION is for variadic
-application invocation abstract syntax. $SVARI_OPER is the variadic 
-operation, $SARGOP_ARGS is the tuple of arguments.}#
-  :super class_source_argumented_operator
-  :fields (svari_oper			;the variadic operation
-	   ))
-
 
 ;;; source citerator invocation
 (defclass class_source_citeration
@@ -291,18 +282,6 @@ $SPRIM_EXPANSION is the tuple of its expansion.}#
 	   sprim_expansion		;primitive expansion
 	   ))
 
-;;; define a variadic operator
-(defclass class_source_defvariadic
-  :doc #{The OBSOLETE internal $CLASS_SOURCE_DEFVARIADIC is the abstract syntax
-  of $DEFVARIADIC. $SVARIADIC_INITIAL is the initial handler,
-  $SVARIADIC_CTYPEHANDLERMAP is the map associating ctypes to handler,
-  and $SVARIADIC_FINAL is the final handler.}#
-  :super class_source_definition_formal
-  :fields (
-	   svariadic_initial
-	   svariadic_ctypehandlermap
-	   svariadic_final
-	   ))
 
 ;;; define a citerator
 (defclass class_source_defciterator
@@ -2209,27 +2188,6 @@ is ($DEFCITERATOR @var{name} @var{start-formals} @var{state-symbol}
 @var{before-expansion} @var{after-expansion}). To be visible outside
 the module, the c-iterator should be exported using
 $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; the defvariadic expander
-;; (DEFVARIADIC symbol (formals) [:doc documentation]
-;;;   :initial initialfun :<ctype> ctypehandler :final finalfun)
-(defun mexpand_defvariadic (sexpr env mexpander)
-  (debug_msg sexpr "mexpand_defvariadic sexpr")
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check env" (is_a env class_environment))
-  (let ( (cont (unsafe_get_field :sexp_contents sexpr))
-	 (loc  (unsafe_get_field :loca_location sexpr))
-	 )
-	  (error_plain loc 
-		       "(DEFVARIADIC...) is phased out "_)
-	  (return)
-  ))  
-
-(install_initial_macro 'defvariadic mexpand_defvariadic)
-(export_macro defvariadic mexpand_defvariadic
-	      :doc #{The $DEFVARIADIC macro is phased out}#)
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; the defcmatcher expander
@@ -5718,7 +5676,6 @@ condition is a string such as "4.5." or a list of strings.}#)
  class_source_defobjcommon
  class_source_defprimitive
  class_source_defselector
- class_source_defvariadic
  class_source_define
  class_source_defun
  class_source_defunmatcher
@@ -5777,7 +5734,6 @@ condition is a string such as "4.5." or a list of strings.}#)
  class_source_unsafe_get_field
  class_source_unsafe_put_fields
  class_source_update_current_module_environment_container
- class_source_variadic_application
  )			       ;end classes for source representations
 
 (export_values			 ;values for source representations
