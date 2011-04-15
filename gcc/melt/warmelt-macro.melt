@@ -95,7 +95,7 @@ $SARGOP_ARGS is the tuple of arguments.}#
 
 ;;; source primitive invocation
 (defclass class_source_variadic_application
-  :doc #{The internal $CLASS_SOURCE_VARIADIC_APPLICATION is for variadic
+  :doc #{The OBSOLETE internal $CLASS_SOURCE_VARIADIC_APPLICATION is for variadic
 application invocation abstract syntax. $SVARI_OPER is the variadic 
 operation, $SARGOP_ARGS is the tuple of arguments.}#
   :super class_source_argumented_operator
@@ -293,7 +293,7 @@ $SPRIM_EXPANSION is the tuple of its expansion.}#
 
 ;;; define a variadic operator
 (defclass class_source_defvariadic
-  :doc #{The internal $CLASS_SOURCE_DEFVARIADIC is the abstract syntax
+  :doc #{The OBSOLETE internal $CLASS_SOURCE_DEFVARIADIC is the abstract syntax
   of $DEFVARIADIC. $SVARIADIC_INITIAL is the initial handler,
   $SVARIADIC_CTYPEHANDLERMAP is the map associating ctypes to handler,
   and $SVARIADIC_FINAL is the final handler.}#
@@ -1019,25 +1019,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	))))
 
 
-;;; expand an s-expression known to be a variadic application
-(defun expand_variadicexpr (variafun sexpr env mexpander)
-  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
-  (assert_msg "check end" (is_a env class_environment))
-  (assert_msg "check mexpander" (is_closure mexpander))
-  (assert_msg "check variafun" (is_a variafun class_variadic_function))
-  (debug_msg sexpr "expand_variadicexpr sexpr")
-  (let ( (scont (unsafe_get_field :sexp_contents sexpr))
-	 (sloc (unsafe_get_field :loca_location sexpr))
-	 (xargtup (expand_restlist_as_tuple scont env mexpander))
-	 (res     (instance class_source_variadic_application
-			    :loca_location sloc
-			    :svari_oper variafun
-			    :sargop_args xargtup))
-	 )
-	(debug_msg res "expand_variadicexpr result")
-	(return res)
-    )
-  )
+
     
 
 ;; every citeration is (symbol (startargs) (varformals) body...)
@@ -1259,13 +1241,6 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 		       (debug_msg resf "macroexpand_1 result for field resf")
 		       (return resf)
 		       ))
-		   ( (is_a opbind class_variadic_binding)
-		     (let ( (variafun (get_field :fvbind_variadic opbind))
-			    (resf (expand_variadicexpr variafun sexpr env mexpander))
-			   )
-		       (debug_msg resf "macroexpand_1 result for variadic function resf")
-		       (return resf)
-		       ))
 		   ( (is_a opbind class_value_binding)
 		     (let ( (val (unsafe_get_field :vbind_value opbind))
 			    )
@@ -1297,10 +1272,6 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 			( (is_a val class_field)
 			  (let ( (resf (expand_fieldexpr val sexpr env mexpander)) )
 			    (debug_msg resf "macroexpand_1 result for field resf")
-			    (return resf)))
-			( (is_a val class_variadic_function)
-			  (let ( (resf (expand_variadicexpr val sexpr env mexpander)) )
-			    (debug_msg resf "macroexpand_1 result for variadic resf")
 			    (return resf)))
 			(:else
 			 (error_strv sloc "macroexpand_1 bad valued operation symbol"_
@@ -2249,127 +2220,15 @@ $EXPORT_VALUES. See also $CLASS_CITERATOR. }#)
   (assert_msg "check env" (is_a env class_environment))
   (let ( (cont (unsafe_get_field :sexp_contents sexpr))
 	 (loc  (unsafe_get_field :loca_location sexpr))
-	 (curpair (pair_tail (list_first cont)))
-	 (symb (pair_head curpair))
-	 (mapctyh (make_mapobject discr_map_objects 12))
-	 ;; the following variables are set later by setq
-	 (formtup ())			;the formals tuple
-	 (docv ())			;documentation
-	 (inithdl ())			;initial handler
-	 (finahdl ()) 			;final handler
 	 )
-    (if (is_not_a symb class_symbol)
-	(progn
 	  (error_plain loc 
-		       "missing symbol for (DEFVARIADIC <symbol> (<formals>)...)"_)
+		       "(DEFVARIADIC...) is phased out "_)
 	  (return)
-	  ))
-    (let (
-	  (varibind (instance class_variadic_binding
-			      :binder symb
-			      :fvbind_variadic ()
-			      :fvbind_defvariadic ()
-			      ))
-	  )
-      ;; we add quickly the variadic binding, in case the symbol appears
-      ;; inside...
-      (put_env env varibind)
-      (setq curpair (pair_tail curpair))
-      ;; parse the formal arguments
-      (setq formtup (lambda_arg_bindings (pair_head curpair)))
-      (setq curpair (pair_tail curpair))
-      ;; parse the keyed entries
-      (forever parseloop
-	       (if (null curpair) (exit parseloop))
-	       (let ( (curkey (pair_head curpair))
-		      (curval ())
-		      )
-		 (if (is_not_a curkey class_keyword)
-		     (progn 
-		       (error_plain loc
-				    "expecting keyword symbol in (DEFVARIADIC <symbol> (<formals>)...)")
-		       (return)))
-		 (setq curpair (pair_tail curpair))
-		 (setq curval (pair_head curpair))
-		 (setq curpair (pair_tail curpair))
-		 (cond 
-		  ;; parse :doc <documentation>
-		  ( (== curkey :doc)
-		    (if docv 
-			(error_plain loc
-				     ":DOC should be given at most once for (DEFVARIADIC...)")
-		      (setq docv curval)))
-		  ;; parse :initial <initialhandler>
-		  ( (== curkey :initial)
-		    (if inithdl
-			(error_plain loc 
-				     ":INITIAL should be once for (DEFVARIADIC...)")
-		      (setq inithdl (macroexpand_1 curval env mexpander))))
-		  ;; parse :final <finalhandler>
-		  ( (== curkey :final)
-		    (if finahdl
-			(error_plain loc 
-				     ":FINAL should be given once for (DEFVARIADIC...)")
-		      (setq finahdl (macroexpand_1 curval env mexpander))))
-		  ;; parse :<ctype> <handler>
-		  (:else
-		   (let ( (cty (get_field :symb_data curkey)) 
-			  (hdl (macroexpand_1 curval env mexpander))
-			  )
-		     (if (is_not_a cty class_ctype)
-			 (error_strv loc
-				     "invalid keyword in (DEFVARIADIC...) not ctype or :DOC or :INITIAL or :FINAL"
-				     (get_field :named_name curkey)))
-		     (if (mapobject_get mapctyh cty)
-			 (error_strv loc
-				     "duplicate ctype in (DEFVARIADIC...)"
-				     (get_field :named_name curkey)))
-		     (if (not (is_object hdl))
-			 (error_strv loc
-				     "invalid ctype handler in (DEFVARIADIC...)"
-				     (get_field :named_name curkey)))
-		     (mapobject_put mapctyh cty hdl)
-		     )
-		   )
-		  )
-		 )
-	       ) ;; end forever parseloop
-      (let (
-	    (defvari (instance class_source_defvariadic
-			       :loca_location loc
-			       :sdef_name symb
-			       :sdef_doc docv
-			       :sformal_args formtup
-			       :svariadic_initial inithdl
-			       :svariadic_ctypehandlermap mapctyh
-			       :svariadic_final finahdl
-			       ))
-	    (vari (instance class_variadic_function
-			    :named_name (get_field :named_name symb)
-			    :varfun_fixedin formtup
-			    :varfun_initial ()
-			    :varfun_ctransmap ()
-			    :varfun_final ()))
-	    )
-	(debug_msg defvari "mexpand_defvariadic defvari")
-	(debug_msg vari "mexpand_defvariadic vari")
-	(put_fields varibind
-		    :fvbind_variadic vari
-		    :fvbind_defvariadic defvari)
-	(return defvari)
-	)
-      )
-    )
-  )  
+  ))  
 
 (install_initial_macro 'defvariadic mexpand_defvariadic)
 (export_macro defvariadic mexpand_defvariadic
-	      :doc #{The $DEFVARIADIC macro defines a variadic
-operator Syntax is ($DEFVARIADIC @var{name} @var{initial-formals}
-[:doc @var{documentation}] [:initial @var{initial-handler}]
-[:@var{ctype} @var{ctype-handler}]...  [:final @var{final-handler}]
-). To be visible outside the module, the variadic should be exported
-using $EXPORT_VALUES. }#)
+	      :doc #{The $DEFVARIADIC macro is phased out}#)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

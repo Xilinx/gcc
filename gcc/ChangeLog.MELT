@@ -1,5 +1,17 @@
 
 2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tvariadic-1.melt: Remove file.
+
+	* melt/warmelt-macro.melt:
+	(class_source_variadic_application,class_source_defvariadic): Mark
+	classes as obsolete.
+	(expand_variadicexpr): Remove function.
+	(macroexpand_1): Don't call it.
+	(mexpand_defvariadic): Make it obsolete.
+
+	* melt/warmelt-normal.melt (normexp_defvariadic): Remove function.
+
+2011-04-14  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-genobj.melt (compile2obj_procedure): Lower
 	thresholds so that generated C files are more, but smaller.
 
