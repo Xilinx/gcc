@@ -1,5 +1,8 @@
 
 2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): 0.7rc3
+
+2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: no $(melt_extra_cflags) to build
 	melt-modules/xtramelt*.so
 	* melt-build.mk: Regenerate.

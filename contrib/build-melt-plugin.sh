@@ -250,9 +250,10 @@ build_melt_run_headers() {
     verbose_sleep
     rm -f melt-run.h melt-run-md5.h
     melt_run_md5=`$HOSTCC -C -E -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include -I. -Imelt/generated melt-run.proto.h | grep -v '^#' | md5sum | cut -c 1-32`
-    echo  "const char melt_run_preprocessed_md5[]=\"$$melt_run_md5\";" > melt-run-md5.h
-    sed -e "s,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$$melt_run_md5\"," <  melt-run.proto.h > melt-run.h
+    echo  "const char melt_run_preprocessed_md5[]=\"$melt_run_md5\";" > melt-run-md5.h
+    sed -e "s,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$melt_run_md5\"," <  melt-run.proto.h > melt-run.h
     verbose_echo built melt-run.h with $(wc -c melt-run.h | cut -d ' ' -f 1) bytes and md5 $melt_run_md5
+    verbose_echo in melt-run.h have $(grep MELT_RUN_HASHMD5 melt-run.h)
 }
 
 ################ build melt.so with appropriate default settings
@@ -379,12 +380,12 @@ bootstrap_melt() {
 make_melt_documentation () {
     ### make the info files
     verbose_echo Making the MELT documentation info files
-    makeinfo meltplugin.texi
-    makeinfo meltpluginapi.texi
+    makeinfo --force meltplugin.texi
+    makeinfo --force  meltpluginapi.texi
     ## make the HTML files
     verbose_echo Making the MELT documentation HTML files
     texi2html meltplugin.texi
-    texi2html meltpluginapi.texi
+    texi2html --split section meltpluginapi.texi
 }
 
 ################ after build, the installation procedure
@@ -395,7 +396,7 @@ install_melt() {
     $HOSTADMINCMD $HOSTINSTALL -m 755  melt.so $DESTDIR$gcc_plugin_directory/libexec/
     $HOSTADMINCMD $HOSTINSTALL -m 755 $GCCMELT_SOURCE_TREE/melt-module.mk $DESTDIR$gcc_plugin_directory/melt-build-module.mk
     verbose_echo Installing MELT specific header files.
-    $HOSTADMINCMD $HOSTINSTALL -m 644 $GCCMELT_SOURCE_TREE/melt-runtime.h  $GCCMELT_SOURCE_TREE/run-melt.h melt-predef.h $GCCMELT_SOURCE_TREE/generated/meltrunsup.h melt-run.h melt-run-md5.h \
+    $HOSTADMINCMD $HOSTINSTALL -m 644 $GCCMELT_SOURCE_TREE/melt-runtime.h  melt-predef.h $GCCMELT_SOURCE_TREE/melt/generated/meltrunsup.h melt-run.h melt-run-md5.h \
 	$DESTDIR$gcc_plugin_directory/include/
     verbose_echo Installing missing GCC header files needed for MELT
     $HOSTADMINCMD $HOSTINSTALL -m 644 \

@@ -64,11 +64,21 @@ GCC, like those for GIMPLE
 You might use that script from within the untarred MELT plugin source
 obtained (obtained by make-melt-source-tar.sh) with something like
 
-./build-melt-plugin.sh -s GCC=gcc-4.6 -s HOSTADMINCMD=sudo -M $PWD -Y $PWD/melt/generated/gt-melt-runtime-plugin.h
+ ./build-melt-plugin.sh -s GCC=gcc-4.6 -s HOSTADMINCMD=sudo -M $PWD -Y $PWD/melt/generated/gt-melt-runtime-plugin.h
 
 but don't run that command without understanding what that
 build-melt-plugin.sh script is doing.
 
+If you want to avoid going root thru sudo (e.g. if you are packaging
+the MELT plugin), you could pass -s DESTDIR=/tmp/meltplugindestdir
+instead of -s HOSTADMINCMD=sudo
+
 ################
 To prepare a source tree of the MELT plugin, read and run
 contrib/make-melt-source-tar.sh from the GCC MELT branch.
+
+################ 
+
+Comments about the MELT plugin (including its installation script) are
+welcome by email to <basile@starynkevitch.net> [please mention MELT in
+the subject line]

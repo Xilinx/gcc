@@ -65,6 +65,8 @@ copymelt gcc/doc/include/gpl.texi
 copymelt gcc/doc/include/gpl_v3.texi 
 copymelt gcc/doc/include/texinfo.tex
 
+copymelt gcc/doc/melt.texi
+
 copymelt contrib/meltplugin.texi 
 copymelt contrib/meltpluginapi.texi
 
