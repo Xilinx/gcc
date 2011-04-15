@@ -74,13 +74,13 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     if { $have_errs } {
 	verbose -log "regular compilation failed"
 	fail "$nshort $options, regular compilation failed"
-        return
+	return
     }
 
     if { ! [ file_on_host exists "$bname.s" ] } {
-	verbose -log "assembly file '$bname.s' missing"
-	fail "$nshort $options, assembly comparison"
-        return
+	verbose -log "regular assembly file '$bname.s' missing"
+	fail "$nshort $options, regular assembly missing"
+	return
     }
 
     # Rename the .s file into .s-pph to compare it after the second build.
@@ -89,19 +89,33 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 
     # Compile a second time using the pph files.
     dg-test -keep-output $test "$options $mapflag -I." ""
-    remote_upload host "$bname.s"
+
+    if { $have_errs } {
+	verbose -log "PPH compilation failed"
+	fail "$nshort $options, PPH compilation failed"
+	return
+    }
+
+    if { ! [ file_on_host exists "$bname.s" ] } {
+	verbose -log "PPH assembly file '$bname.s' missing"
+	fail "$nshort $options, PPH assembly missing"
+	return
+    }
+
+    # Rename the .s file into .s+pph to compare it.
+    remote_upload host "$bname.s" "$bname.s+pph"
+    remote_download host "$bname.s+pph"
 
     # Compare the two assembly files.  They should be identical.
-    set tmp [ diff "$bname.s" "$bname.s-pph" ]
+    set tmp [ diff "$bname.s-pph" "$bname.s+pph" ]
     if { $tmp == 0 } {
-        verbose -log "assembly file '$bname.s', '$bname.s-pph' comparison error"
-        fail "$nshort $options assembly comparison"
+	verbose -log "assembly file '$bname.s-pph', '$bname.s+pph' comparison error"
+	fail "$nshort $options assembly comparison"
     } elseif { $tmp == 1 } {
-        pass "$nshort $options assembly comparison"
+	pass "$nshort $options assembly comparison"
+	file_on_host delete "$bname.s-pph"
+	file_on_host delete "$bname.s+pph"
     } else {
-        fail "$nshort $options assembly comparison"
+	fail "$nshort $options assembly comparison"
     }
-    file_on_host delete "$bname.s"
-    file_on_host delete "$bname.s-pph"
-
 }
