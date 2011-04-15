@@ -1,4 +1,12 @@
 
+2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* meltplugin.texi: New file to wrap the melt.texi chapter when
+	making MELT as a plugin.
+	* meltpluginapi.texi: New file to wrap the generated
+	meltgendoc.texi chapter when making MELT as a plugin.
+	* make-melt-source-tar.sh: Copy these two files and some other
+	texi files.
+
 2011-04-13  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (install_melt): Install warmelt-predef.melt
 	correctly.

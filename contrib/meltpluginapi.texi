@@ -1,0 +1,101 @@
+\input texinfo  @c -*-texinfo-*-
+@c %**start of header
+@setfilename meltpluginapi.info
+@c don't need @include gcc-common.texi
+
+@settitle MELT plugin API (generated documentation)
+
+@c Create a separate index for command line options.
+@defcodeindex op
+@c Merge the standard indexes into a single one.
+@syncodeindex fn cp
+@syncodeindex vr cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+
+
+@copying
+Copyright @copyright{} 2011 Free Software Foundation, Inc.
+This document is generated from MELT source code so is under GPLv3+
+
+    This file is part of the MELT plugin for GCC (GCC MELT)
+
+    GCC MELT is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3, or (at your option)
+    any later version.
+
+    GCC MELT is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with GCC MELT; see the file COPYING3.  If not see
+    <http://www.gnu.org/licenses/>.
+
+@end copying
+
+@ifnottex
+@dircategory Software development
+@direntry
+* MELT plugin API: (meltpluginapi).            MELT plugin API.
+@end direntry
+
+This file documents the MELT plugin API. MELT is a plugin for
+GCC. This document is mostly generated from MELT source code (GPLv3+)
+so is unde the GPLv3+ license.
+
+@sp 1
+@insertcopying
+@sp 1
+@end ifnottex
+
+@setchapternewpage odd
+@titlepage
+@title the MELT plugin for GCC
+@versionsubtitle
+@author Basile Starynkevitch
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+@summarycontents
+@contents
+@page
+
+@node Top
+@top Introduction
+@cindex introduction
+
+This document (mostly generated from MELT source code) documents the
+MELT application programming interface. It is a reference manual
+generated from (GPLv3+ licensed) MELT source code, so is itself GPLv3+
+licensed.
+
+Additional tutorial information for GCC is linked to from
+@uref{http://gcc.gnu.org/readings.html} and for MELT is linked to from 
+@uref{http://gcc-melt.org/}. 
+
+@menu
+* MELT Programming Reference::            the MELT API.
+@end menu
+
+@c the meltgendoc.texi is generated from various *.melt source files
+@c under GPLv3+ so is under GPLv3+
+@include meltgendoc.texi
+
+@include gnu.texi
+@include gpl_v3.texi
+
+@node MELT API Index
+@unnumbered MELT API Index
+
+@printindex cp
+
+@c ---------------------------------------------------------------------
+@c Epilogue
+@c ---------------------------------------------------------------------
+
+@bye

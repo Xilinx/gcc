@@ -1,0 +1,140 @@
+\input texinfo  @c -*-texinfo-*-
+@c %**start of header
+@setfilename meltplugin.info
+@c don't need @include gcc-common.texi
+
+@settitle MELT plugin documentation
+
+@c Create a separate index for command line options.
+@defcodeindex op
+@c Merge the standard indexes into a single one.
+@syncodeindex fn cp
+@syncodeindex vr cp
+@syncodeindex ky cp
+@syncodeindex pg cp
+@syncodeindex tp cp
+@paragraphindent 1
+@copying
+Copyright @copyright{} 2011 Free Software Foundation, Inc.
+
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being ``Funding Free Software'', the Front-Cover
+Texts being (a) (see below), and with the Back-Cover Texts being (b)
+(see below).  A copy of the license is included in the section entitled
+``GNU Free Documentation License''.
+
+(a) The FSF's Front-Cover Text is:
+
+     A GNU Manual
+
+(b) The FSF's Back-Cover Text is:
+
+     You have freedom to copy and modify this GNU Manual, like GNU
+     software.  Copies published by the Free Software Foundation raise
+     funds for GNU development.
+@end copying
+@ifnottex
+@dircategory Software development
+@direntry
+* MELT plugin: (meltplugin).            MELT plugin for GCC.
+@end direntry
+This file documents the MELT plugin for GCC.
+@sp 1
+@insertcopying
+@sp 1
+@end ifnottex
+
+@setchapternewpage odd
+@titlepage
+@title the MELT plugin for GCC
+@versionsubtitle
+@author Basile Starynkevitch
+@page
+@vskip 0pt plus 1filll
+@insertcopying
+@end titlepage
+@summarycontents
+@contents
+@page
+
+@node Top
+@top Introduction
+@cindex introduction
+
+This manual documents briefly how to use the MELT plugin for GCC.  The
+ use of the GNU compilers is documented in a separate manual.
+ @xref{Top,, Introduction, gcc, Using the GNU Compiler Collection
+ (GCC)}. The MELT plugin for GCC permits you to develop your specific
+ extensions of GCC in a powerful, lispy, domain specific language
+ (also called MELT).
+
+This manual is mainly a reference manual rather than a tutorial. It
+discusses how to use the MELT plugin for GCC.
+Additional tutorial information for GCC is linked to from
+@uref{http://gcc.gnu.org/readings.html} and for MELT is linked to from 
+@uref{http://gcc-melt.org/}. 
+
+MELT documentation is made of a human written docuemtation (this
+document) and of a machine generated documentation. The machine
+generated documentation explains the MELT definitions (of functions,
+classes, selectors, primitives, etc...). Since it is generated from a
+GPLv3 source code, that generated documentation is released separately
+under a GPLv3 license. (the main author of this document, Basile
+Starynkevitch, understands that GPL and GFDL licenses are
+incompatible, so merging these two documentations is inappropriate.).
+
+@menu
+* MELT::            the Middle End Lisp Translator.
+* Funding::         How to help assure funding for free software.
+* GNU Project::     The GNU Project and GNU/Linux.
+
+* Copying::         GNU General Public License says
+                    how you can copy and share GCC.
+* GNU Free Documentation License:: How you can copy and share this manual.
+* MELT Option Index::    Index to MELT plugin command line options.
+* MELT Concept Index::   Index of MELT concepts and symbol names.
+@end menu
+
+@include melt.texi
+
+@include funding.texi
+@include gnu.texi
+@include gpl_v3.texi
+@c ---------------------------------------------------------------------
+@c GFDL
+@c ---------------------------------------------------------------------
+
+@include fdl.texi
+
+@c ---------------------------------------------------------------------
+@c Indexes
+@c ---------------------------------------------------------------------
+
+@node MELT Option Index
+@unnumbered MELT Option Index
+
+MELT plugin's command line options are indexed here without any
+initial @samp{-} or @samp{--}.  Where an option has both positive and
+negative forms (such as @option{-f@var{option}} and
+@option{-fno-@var{option}}), relevant entries in the manual are
+indexed under the most appropriate form; it may sometimes be useful to
+look up both forms. Each option has a plugin form
+@option{-fplugin-melt-arg-@var{option}} and a MELT branch form
+@option{-fmelt-@var{option}} which is used in the GCC experimental
+MELT branch.
+
+@printindex op
+
+@node MELT Concept Index
+@unnumbered MELT Concept Index
+
+@printindex cp
+
+@c ---------------------------------------------------------------------
+@c Epilogue
+@c ---------------------------------------------------------------------
+
+@bye

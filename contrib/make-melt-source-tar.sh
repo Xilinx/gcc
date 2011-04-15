@@ -55,9 +55,18 @@ copymelt() {
 ## just a reminder
 echo $0: You should have recently run in gcc/ of build tree: make upgrade-warmelt 
 
+copymelt COPYING3
 copymelt gcc/DATESTAMP GCCMELT-DATESTAMP
 copymelt gcc/REVISION GCCMELT-REVISION
 
+copymelt gcc/doc/include/fdl.texi 
+copymelt gcc/doc/include/funding.texi 
+copymelt gcc/doc/include/gpl.texi 
+copymelt gcc/doc/include/gpl_v3.texi 
+copymelt gcc/doc/include/texinfo.tex
+
+copymelt contrib/meltplugin.texi 
+copymelt contrib/meltpluginapi.texi
 
 ## copy the non MELT files which are in MISSINGMELT_PLUGIN_HEADERS, that is
 ## the files which really should be available in the plugin/include/
