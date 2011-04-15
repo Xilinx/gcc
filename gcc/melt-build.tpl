@@ -370,7 +370,7 @@ melt-modules/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-run.h melt-runtime.h melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module \
-	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/[+base+]

@@ -2134,7 +2134,7 @@ melt-modules/xtramelt-parse-infix-syntax.so: melt-sources/xtramelt-parse-infix-s
         $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
         melt-run.h melt-runtime.h melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module \
-	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-parse-infix-syntax
@@ -2175,7 +2175,7 @@ melt-modules/xtramelt-ana-base.so: melt-sources/xtramelt-ana-base.c \
         $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
         melt-run.h melt-runtime.h melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module \
-	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-ana-base
@@ -2216,7 +2216,7 @@ melt-modules/xtramelt-ana-simple.so: melt-sources/xtramelt-ana-simple.c \
         $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
         melt-run.h melt-runtime.h melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module \
-	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-ana-simple
@@ -2257,7 +2257,7 @@ melt-modules/xtramelt-c-generator.so: melt-sources/xtramelt-c-generator.c \
         $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
         melt-run.h melt-runtime.h melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module \
-	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-c-generator
@@ -2298,7 +2298,7 @@ melt-modules/xtramelt-opengpu.so: melt-sources/xtramelt-opengpu.c \
         $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
         melt-run.h melt-runtime.h melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module \
-	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
               GCCMELT_MODULE_BINARY=melt-modules/xtramelt-opengpu

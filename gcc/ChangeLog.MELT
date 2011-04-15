@@ -1,5 +1,32 @@
 
 2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: no $(melt_extra_cflags) to build
+	melt-modules/xtramelt*.so
+	* melt-build.mk: Regenerate.
+	* melt-predef.list: Remove CLASS_VARIADIC_FUNCTION.
+
+	{{Regenerate twice}}
+	* melt/generated/warmelt-macro-0.c: Regenerate.
+	* melt/generated/warmelt-first-0+01.c: Regenerate.
+	* melt/generated/warmelt-normal-0+01.c: Regenerate.
+	* melt/generated/warmelt-first-0+02.c: Regenerate.
+	* melt/generated/warmelt-genobj-0.c: Regenerate.
+	* melt/generated/warmelt-normal-0+02.c: Regenerate.
+	* melt/generated/warmelt-normatch-0.c: Regenerate.
+	* melt/generated/warmelt-debug-0.c: Regenerate.
+	* melt/generated/warmelt-normatch-0+02.c: Regenerate.
+	* melt/generated/warmelt-normal-0.c: Regenerate.
+	* melt/generated/warmelt-normatch-0+03.c: Regenerate.
+	* melt/generated/warmelt-normatch-0+04.c: Regenerate.
+	* melt/generated/warmelt-outobj-0.c: Regenerate.
+	* melt/generated/warmelt-base-0.c: Regenerate.
+	* melt/generated/warmelt-genobj-0+01.c: Regenerate.
+	* melt/generated/warmelt-genobj-0+04.c: Regenerate.
+	* melt/generated/warmelt-genobj-0+05.c: Regenerate.
+	* melt/generated/warmelt-first-0.c: Regenerate.
+	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
+
+2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt
 	(class_variadic_binding,class_variadic_function): Remove.
 
