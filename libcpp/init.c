@@ -375,21 +375,32 @@ struct builtin_operator
   const unsigned short value;
 };
 
-#define B(n, t)    { DSC(n), t }
+#define NAMED_OPER_TABLE \
+  B("and",	CPP_AND_AND) \
+  B("and_eq",	CPP_AND_EQ) \
+  B("bitand",	CPP_AND) \
+  B("bitor",	CPP_OR) \
+  B("compl",	CPP_COMPL) \
+  B("not",	CPP_NOT) \
+  B("not_eq",	CPP_NOT_EQ) \
+  B("or",	CPP_OR_OR) \
+  B("or_eq",	CPP_OR_EQ) \
+  B("xor",	CPP_XOR) \
+  B("xor_eq",	CPP_XOR_EQ) \
+
+#define B(n, t)    { DSC(n), t },
 static const struct builtin_operator operator_array[] =
 {
-  B("and",	CPP_AND_AND),
-  B("and_eq",	CPP_AND_EQ),
-  B("bitand",	CPP_AND),
-  B("bitor",	CPP_OR),
-  B("compl",	CPP_COMPL),
-  B("not",	CPP_NOT),
-  B("not_eq",	CPP_NOT_EQ),
-  B("or",	CPP_OR_OR),
-  B("or_eq",	CPP_OR_EQ),
-  B("xor",	CPP_XOR),
-  B("xor_eq",	CPP_XOR_EQ)
+  NAMED_OPER_TABLE
 };
+#undef B
+
+/* Verify that the indicies of the named operators fit within the
+   number of bits available. */
+
+#define B(n, t) unsigned char t ## _too_large_for_bitfield[ \
+		t < (1 << CPP_HASHNODE_INDEX_BITS) ? 1 : -1];
+NAMED_OPER_TABLE
 #undef B
 
 /* Mark the C++ named operators in the hash table.  */

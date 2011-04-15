@@ -137,10 +137,7 @@ static void cpp_pop_definition (cpp_reader *, struct def_pragma_macro *);
    pcmcia-cs-3.0.9).  This is no longer important as directive lookup
    is now O(1).  All extensions other than #warning, #include_next,
    and #import are deprecated.  The name is where the extension
-   appears to have come from.
-
-   Make sure the bitfield directive_index in include/cpplib.h is large
-   enough to index the entire table.  */
+   appears to have come from.  */
 
 #define DIRECTIVE_TABLE							\
 D(define,	T_DEFINE = 0,	KANDR,     IN_I)	   /* 270554 */ \
@@ -180,6 +177,13 @@ enum
   N_DIRECTIVES
 };
 #undef D
+
+/* Make sure the bitfield directive_index in include/cpplib.h is large
+   enough to index the entire table.  */
+
+unsigned char too_many_directives_for_bitfield[
+        N_DIRECTIVES <= (1 << CPP_HASHNODE_INDEX_BITS)
+        ? 1 : -1];
 
 #define D(name, t, origin, flags) \
 { do_##name, (const uchar *) #name, \

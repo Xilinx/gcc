@@ -650,12 +650,14 @@ union GTY(()) _cpp_hashnode_value {
   unsigned short GTY ((tag ("NTV_ARGUMENT"))) arg_index;
 };
 
+#define CPP_HASHNODE_INDEX_BITS 7
+
 struct GTY(()) cpp_hashnode {
   struct ht_identifier ident;
   unsigned int is_directive : 1;
-  unsigned int directive_index : 5;	/* If is_directive,
-					   then index into directive table.
-					   Otherwise, a NODE_OPERATOR.  */
+  unsigned int directive_index : CPP_HASHNODE_INDEX_BITS;
+	/* If is_directive, then index into directive table.
+	   Otherwise, a NODE_OPERATOR.  */
   unsigned int used_by_directive : 1;	/* In an active #if, #define etc.  */
   unsigned int expanded_to_text : 1;	/* Produces tokens for parser.  */
   unsigned char rid_code;		/* Rid code - for front ends.  */

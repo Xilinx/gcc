@@ -1,3 +1,13 @@
+2011-04-14  Lawrence Crowl  <crowl@google.com>
+
+	* include/cpplib.h (cpp_hashnode):  Use a macro for the number of bits
+	in the directive_index bitfield.  Change the number of bits back to 7.
+	* directives.c (DIRECTIVE_TABLE):  Add a gcc-build-time check that the
+	index of the directive table fits within the number of bits above.
+	* init.c (operator_array):  Separate the named operator table into a
+	macro.  Use it in operator_array.  Test that the values fit within the
+	number of bits above.
+
 2011-04-12  Diego Novillo  <dnovillo@google.com>
 
 	* directives.c (do_include_common): If the callback
