@@ -268,7 +268,7 @@ build_melt_dot_so() {
 	-DMELT_SOURCE_DIR=\"$gcc_plugin_directory/melt-source\" \
 	-DMELT_MODULE_DIR=\"$gcc_plugin_directory/libexec/melt-modules\" \
 	-DMELT_MODULE_MAKE_COMMAND=\"$HOSTMELTMAKE\" \
-	-DMELT_MODULE_CFLAGS="\"-DMELT_IS_PLUGIN $HOSTMELTCFLAGS -I$gcc_plugin_directory/include \"" \
+	-DMELT_MODULE_CFLAGS="\"-DMELT_IS_PLUGIN $HOSTMELTCFLAGS -I$gcc_plugin_directory/include -O -DIN_GCC\"" \
 	-DMELT_MODULE_MAKEFILE=\"$gcc_plugin_directory/melt-build-module.mk\" \
 	-DMELT_DEFAULT_MODLIS=\"melt-default-modules\" \
 	$GCCMELT_SOURCE_TREE/melt-runtime.c -o melt.so

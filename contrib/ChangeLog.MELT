@@ -1,5 +1,9 @@
 
 2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (build_melt_dot_so): Better
+	MELT_MODULE_CFLAGS
+
+2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (make_melt_documentation): Pass --force to
 	makeinfo & --split section to texi2html.
 	* make-melt-source-tar.sh: Copy melt.texi

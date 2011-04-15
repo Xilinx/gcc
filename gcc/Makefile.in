@@ -4624,7 +4624,7 @@ MISSINGMELT_PLUGIN_HEADERS = \
 		     tree-pretty-print.h 
 
 ## extra MELT required plugin headers
-MELT_PLUGIN_HEADERS= melt-runtime.h melt-run.h melt-predef.h \
+MELT_PLUGIN_HEADERS= melt-runtime.h melt-run.h melt-predef.h melt-run-md5.h \
                      melt/generated/meltrunsup.h \
 	             $(MISSINGMELT_PLUGIN_HEADERS)
 ## File realmpfr.h & gimple-pretty-print.h is needed above
@@ -5452,7 +5452,7 @@ export melt_cflags
 ## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c
 melt_extra_cflags= -g
 export melt_extra_cflags
-melt_installed_cflags= $(MELTHERE_CFLAGS) -I $(plugin_includedir)
+melt_installed_cflags= -I $(plugin_includedir) -DIN_GCC -O
 ## leave melt_is_plugin as empty 
 melt_is_plugin=
 
