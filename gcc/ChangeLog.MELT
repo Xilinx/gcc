@@ -1,5 +1,9 @@
 
 2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt
+	(class_variadic_binding,class_variadic_function): Remove.
+
+2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/generated/warmelt-macro-0.c: Regenerate.
 	* melt/generated/warmelt-normal-0+01.c: Regenerate.
 	* melt/generated/warmelt-genobj-0.c: Regenerate.

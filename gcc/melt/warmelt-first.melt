@@ -2,7 +2,7 @@
 ;; file warmelt-first.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -226,24 +226,6 @@ $CLASS_SEXPR but is used for macrostring s-expressions, written in
 MELT source with the #$.@{ #$.@} notation.}# )
 
 
-;;;;;;;;;;;;;;;;
-(defclass class_variadic_function
-  :predef CLASS_VARIADIC_FUNCTION
-  :super class_named
-  :fields (
-	   varfun_fixedin		;the formal fixed input list
-	   varfun_initial		;the initializing function
-	   varfun_ctransmap		;the map associating ctypes to
-					;transforming functions
-	   varfun_final 		;the final function
-	   )
-  :doc #{The $CLASS_VARIADIC_FUNCTION implements high-level variadic
-  constructs of MELT. The $VARFUN_FIXEDIN is a formal argument list
-  for fixed input. The $VARFUN_INITIAL is the initializing function,
-  taking the fixed actual parameters. The $VARFUN_CTRANSMAP is a map
-  associating ctypes to transforming functions. The $VARFUN_FINAL is
-  the finalizing function.}#
-)
 
 ;; superclass for infix syntax lexemes
 (defclass class_infix_lexeme
@@ -651,17 +633,6 @@ $CMBIND_MATCHER.}# )
   :doc #{The internal $CLASS_FUNMATCHER_BINDING is for funmatcher
 bindings. See the $DEFUNMATCHER macro. The funmatcher is in
 $FMBIND_FUNMATCHER and its definition in $FMBIND_DEFUNMATCHER.}#)
-
-;; cmatcher binding
-(defclass class_variadic_binding
-  :super class_fixed_binding
-  :fields (fvbind_variadic		;the variadic function
-	   fvbind_defvariadic
-	   )
-  :doc #{The internal $CLASS_VARIADIC_BINDING is for c-matcher
-bindings. See the $DEFVARIADIC macro. The variadic operator of
-$CLASS_VARIADIC_FUNCTION is in $FVBIND_VARIADIC and its definition in
-$FVBIND_DEFVARIADIC}# )
 
 ;; let binding
 (defclass class_let_binding
@@ -3844,8 +3815,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_symbol
  class_system_data
  class_value_binding 
- class_variadic_function
- class_variadic_binding
  )					;end of export class
 
 
