@@ -1,3 +1,12 @@
+2011-03-15  Doug Kwan  <dougkwan@google.com>
+
+	Google ref 50044.
+
+	PR libstdc++/48123
+	* include/Makefile.am (install-freestanding-headers): Install
+	cpu_defines.h
+	* include/Makefile.in: Regenerate.
+
 2011-04-15  Xinliang David Li  <davidxl@google.com>
 
 	Google ref 43787.
