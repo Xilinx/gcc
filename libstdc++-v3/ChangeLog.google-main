@@ -1,3 +1,12 @@
+2011-04-15  Jing Yu  <jingyu@google.com>
+
+	Google ref 46499.
+
+	* config/locale/generic/c_locale.cc (__convert_to_v): Handle
+	NULL return value from setlocale.
+	* config/locale/generic/c_locale.h (__convert_from_v): Likewise.
+	* config/locale/generic/time_members.cc (_M_put): Likewise.
+
 2011-03-15  Doug Kwan  <dougkwan@google.com>
 
 	Google ref 50044.
