@@ -1,22 +1,3 @@
-2011-04-11  Xinliang David Li  <davidxl@google.com>
-
-	* value-profile.c (check_ic_target): New function.
-	(gimple_ic_transform): Sanity check indirect call target.
-	* gimple-low.c (gimple_check_call_args): Interface change.
-	(gimple_check_call_matching_types): New function.
-	* tree-inline.c (tree_can_inline_p): Call new function.
-
-2011-04-08  Xinliang David Li  <davidxl@google.com>
-
-	* ipa-cp.c (ipcp_update_profiling): Correct
-	 negative scale factor due to insane profile data.
-
-2011-04-08  Xinliang David Li  <davidxl@google.com>
-
-	* final.c (dump_basic_block_info): New function.
-	(final): Dump basic block.
-	(final_scan_insn): Remove old dump.
-
 2011-03-14  Richard Guenther  <rguenther@suse.de>
 
 	PR middle-end/48098
