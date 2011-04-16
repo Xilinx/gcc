@@ -1,4 +1,7 @@
 
+2011-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): 0.7rc4
+
 2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt_installed_cflags): Use the $(plugin_include_dir)
 	(MELT_PLUGIN_HEADERS): Add the generated melt-run-md5.h file.
