@@ -1,0 +1,6 @@
+2011-04-15  Rong Xu  <xur@google.com>
+
+	Google ref 47982.
+
+	* Makefile.in (install-leaf): Install gcov-io.h, gcov-iov.h
+	gcov-io.c and libgcov.c to $DESTDIR/$inst_libdir/gcov-src.

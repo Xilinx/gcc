@@ -978,6 +978,18 @@ install-leaf: $(install-shared) $(install-libunwind)
 	  esac;							\
 	done
 
+	if [ "$(MULTIDIR)" == "." ]; then                       \
+	  gcov_src_dest="$(DESTDIR)$(inst_libdir)/gcov-src";    \
+	  $(mkinstalldirs) $$gcov_src_dest;                     \
+	  cp ../../gcc/gcov-iov.h $$gcov_src_dest;              \
+	  cp $(srcdir)/../gcc/gcov-io.h $$gcov_src_dest;        \
+	  cp $(srcdir)/../gcc/gcov-io.c $$gcov_src_dest;        \
+	  cp $(srcdir)/../gcc/libgcov.c $$gcov_src_dest;        \
+	  chmod 644 $$gcov_src_dest/gcov-iov.h                  \
+	    $$gcov_src_dest/gcov-io.h $$gcov_src_dest/gcov-io.c \
+	    $$gcov_src_dest/libgcov.c;                          \
+	fi
+
 install: install-leaf
 	@: $(MAKE) ; $(MULTIDO) $(FLAGS_TO_PASS) multi-do DO=install
 
