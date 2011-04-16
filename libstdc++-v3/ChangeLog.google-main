@@ -1,3 +1,11 @@
+2011-04-15  Xinliang David Li  <davidxl@google.com>
+
+	Google ref 43787.
+
+	* include/backward/hashtable.h
+	(_Hashtable_iterator::_Hashtable_iterator): Initialize _M_cur and
+	_M_ht in default constructor.
+
 2011-03-18  Diego Novillo  <dnovillo@google.com>
 
 	Backported from trunk@171161.
