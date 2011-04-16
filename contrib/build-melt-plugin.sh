@@ -68,8 +68,8 @@ set_default_variables() {
     GCC=${GCC:-$(which gcc || echo $CC)}
 # GNU awk
     GAWK=${GAWK:-$(which gawk || which awk)}
-# the GNU realpath command
-    REALPATH=${REALPATH:-$(which realpath)}
+# the GNU realpath command or else readlink
+    REALPATH=${REALPATH:-$(which realpath || echo "readlink -m")}
 # source tree of the $GCC compiler for which MELT plugin is built
     GCC_SOURCE_TREE=${GCC_SOURCE_TREE:-""}
 # source tree of the MELT plugin, containing melt-runtime.c etc..

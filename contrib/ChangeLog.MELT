@@ -1,6 +1,9 @@
 
 2011-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
-	* build-melt-plugin.sh : set LANG and LC_ALL to C.
+	* build-melt-plugin.sh: Use readlink when realpath not available.
+
+2011-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh: set LANG and LC_ALL to C.
 	(install_melt) Use install -D everywhere.
 
 2011-04-15  Basile Starynkevitch  <basile@starynkevitch.net>
