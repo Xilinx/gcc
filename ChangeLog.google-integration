@@ -1,3 +1,34 @@
+2011-04-13  Paul Pluzhnikov  <ppluzhnikov@google.com>
+
+	* libstdc++-v3/include/bits/stl_algo.h: Add comparator debug checks
+	when __google_stl_debug_compare is 1.
+	* libstdc++-v3/include/bits/stl_tree.h: Add comparator debug checks
+	when __google_stl_debug_rbtree is 1.
+
+2011-04-12  Paul Pluzhnikov  <ppluzhnikov@google.com>
+
+	* libstdc++-v3/include/ext/vstring.h: Enable debug checks when
+	__google_stl_debug_string is 1.
+	* libstdc++-v3/include/ext/sso_string_base.h: Scribble on
+	logically-dangling storage when __google_stl_debug_string_dangling
+	is 1.
+	* libstdc++-v3/include/bits/stl_vector.h: Enable debug checks when
+	__google_stl_debug_vector is 1.
+	* libstdc++-v3/testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Adjust line number.
+	* libstdc++-v3/testsuite/23_containers/vector/requirements/dr438/insert_neg.cc: Likewise.
+	* libstdc++-v3/testsuite/23_containers/vector/requirements/dr438/constructor_1_neg.cc: Likewise.
+	* libstdc++-v3/testsuite/23_containers/vector/requirements/dr438/constructor_2_neg.cc: Likewise.
+
+2011-04-12  Paul Pluzhnikov  <ppluzhnikov@google.com>
+
+	* libstdc++-v3/src/Makefile.am: Add -fno-omit-frame-pointer to
+	functexcept.
+	* libstdc++-v3/libsupc++/Makefile.am: Add -fno-omit-frame-pointer
+	to eh_throw and eh_terminate.
+	* libstdc++-v3/src/Makefile.in: Regenerate.
+	* libstdc++-v3/libsupc++/Makefile.in: Regenerate.
+
 2011-02-01  Simon Baldwin  <simonb@google.com>
 
 	* ltoptions.m4: modify --with-pic to accept a list of library names.

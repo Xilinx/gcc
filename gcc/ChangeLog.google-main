@@ -1,3 +1,7 @@
+2011-04-17  Diego Novillo  <dnovillo@google.com>
+
+	Merge from google/integration rev 172609.
+
 2011-04-11  Xinliang David Li  <davidxl@google.com>
 
 	* value-profile.c (check_ic_target): New function.

@@ -86,6 +86,13 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       {
 	if (!_M_is_local())
 	  _M_destroy(_M_allocated_capacity);
+#if __google_stl_debug_string_dangling
+	else {
+          // Wipe local storage for destructed string with 0xCD.
+          // This mimics what DebugAllocation does to free()d memory.
+          __builtin_memset(_M_local_data, 0xcd, sizeof(_M_local_data));
+        }
+#endif
       }
 
       void
@@ -169,15 +176,29 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _M_leak() { }
 
       void
-      _M_set_length(size_type __n)
+      _M_set_length_no_wipe(size_type __n)
       {
 	_M_length(__n);
 	traits_type::assign(_M_data()[__n], _CharT());
       }
 
+      void
+      _M_set_length(size_type __n)
+      {
+#if __google_stl_debug_string_dangling
+	if (__n + 1 < _M_length())
+	  {
+	    // Wipe the storage with 0xCD.
+	    // Also wipes the old NUL terminator.
+	    __builtin_memset(_M_data() + __n + 1, 0xcd, _M_length() - __n);
+	  }
+#endif
+	  _M_set_length_no_wipe(__n);
+      }
+
       __sso_string_base()
       : _M_dataplus(_M_local_data)
-      { _M_set_length(0); }
+      { _M_set_length_no_wipe(0); }
 
       __sso_string_base(const _Alloc& __a);
 
@@ -336,7 +357,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     __sso_string_base<_CharT, _Traits, _Alloc>::
     __sso_string_base(const _Alloc& __a)
     : _M_dataplus(__a, _M_local_data)
-    { _M_set_length(0); }
+    { _M_set_length_no_wipe(0); }
 
   template<typename _CharT, typename _Traits, typename _Alloc>
     __sso_string_base<_CharT, _Traits, _Alloc>::
@@ -426,7 +447,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    __throw_exception_again;
 	  }
 
-	_M_set_length(__len);
+	_M_set_length_no_wipe(__len);
       }
 
   template<typename _CharT, typename _Traits, typename _Alloc>
@@ -458,7 +479,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	    __throw_exception_again;
 	  }
 
-	_M_set_length(__dnew);
+	_M_set_length_no_wipe(__dnew);
       }
 
   template<typename _CharT, typename _Traits, typename _Alloc>
@@ -475,7 +496,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       if (__n)
 	_S_assign(_M_data(), __n, __c);
 
-      _M_set_length(__n);
+      _M_set_length_no_wipe(__n);
     }
 
   template<typename _CharT, typename _Traits, typename _Alloc>

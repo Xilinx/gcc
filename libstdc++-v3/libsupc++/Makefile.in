@@ -412,7 +412,8 @@ AM_CXXFLAGS = \
 	$(LIBSUPCXX_PICFLAGS) \
 	$(WARN_CXXFLAGS) \
 	$(OPTIMIZE_CXXFLAGS) \
-	$(CONFIG_CXXFLAGS)
+	$(CONFIG_CXXFLAGS) \
+	$($(@)_no_omit_frame_pointer)
 
 AM_MAKEFLAGS = \
 	"gxx_include_dir=$(gxx_include_dir)"
@@ -476,6 +477,10 @@ CXXLINK = $(LIBTOOL) --tag CXX --tag disable-shared $(LIBTOOLFLAGS) \
 # prepending each of $(*_HEADERS) with VPATH below.
 stddir = $(gxx_include_dir)
 bitsdir = $(gxx_include_dir)/bits
+
+# Google-specific pessimization
+eh_terminate.lo_no_omit_frame_pointer = -fno-omit-frame-pointer
+eh_throw.lo_no_omit_frame_pointer = -fno-omit-frame-pointer
 all: all-am
 
 .SUFFIXES:
