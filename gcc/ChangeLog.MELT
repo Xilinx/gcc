@@ -1,4 +1,7 @@
 
+2011-04-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): 0.7rc5
+
 2011-04-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): 0.7rc4
 

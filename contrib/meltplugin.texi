@@ -3,6 +3,35 @@
 @setfilename meltplugin.info
 @c don't need @include gcc-common.texi
 
+@c Common macros to support generating man pages copied from gcc-common.texi:
+
+@macro gcctabopt{body}
+@code{\body\}
+@end macro
+@macro gccoptlist{body}
+@smallexample
+\body\
+@end smallexample
+@end macro
+
+@iftex
+@alias gol = *
+@end iftex
+@ifnottex
+@macro gol
+@end macro
+@end ifnottex
+@c Macro to generate a "For the N.N.N version" subtitle on the title
+@c page of TeX documentation.  This macro should be used in the
+@c titlepage environment after the title and any other subtitles have
+@c been placed, and before any authors are placed.
+@macro versionsubtitle
+@subtitle For @sc{MELT} plugin of @sc{gcc}
+@c Even if there are no authors, the second titlepage line should be
+@c forced to the bottom of the page.
+@vskip 0pt plus 1filll
+@end macro
+
 @settitle MELT plugin documentation
 
 @c Create a separate index for command line options.
