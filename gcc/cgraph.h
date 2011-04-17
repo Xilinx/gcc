@@ -554,7 +554,7 @@ void cgraph_remove_node (struct cgraph_node *);
 void cgraph_add_assembler_hash_node (struct cgraph_node *);
 void cgraph_remove_assembler_hash_node (struct cgraph_node *);
 void cgraph_remove_fake_indirect_call_in_edges (struct cgraph_node *);
-extern bool cgraph_need_artificial_indirect_call_edges;
+extern bool cgraph_pre_profiling_inlining_done;
 extern bool cgraph_is_fake_indirect_call_edge (struct cgraph_edge *e);
 void cgraph_remove_node_and_inline_clones (struct cgraph_node *);
 void cgraph_release_function_body (struct cgraph_node *);
@@ -668,6 +668,7 @@ struct GTY (()) cgraph_sym
 
 void cgraph_init_gid_map (void);
 void cgraph_add_fake_indirect_call_edges (void);
+void cgraph_remove_zero_count_fake_edges (void);
 void cgraph_do_link (void);
 struct cgraph_sym *cgraph_link_node (struct cgraph_node *);
 tree cgraph_find_decl (tree asm_name);

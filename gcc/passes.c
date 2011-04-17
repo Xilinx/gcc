@@ -201,8 +201,6 @@ rest_of_decl_compilation (tree decl,
              that module id can be captured.  */
           if (TREE_CODE (decl) == VAR_DECL)
             varpool_node (decl);
-          else
-            cgraph_node (decl);
         }
 
       timevar_pop (TV_VARCONST);

@@ -218,6 +218,14 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
   struct varpool_node *vnode, *vnext;
   bool changed = false;
 
+  /* In LIPO mode, do not remove functions until after global linking
+     is performed. Otherwise functions needed for cross module inlining
+     may get eliminated. Global linking will be done just before tree
+     profiling.  */
+  if (L_IPO_COMP_MODE
+     && !cgraph_pre_profiling_inlining_done)
+    return false;
+
 #ifdef ENABLE_CHECKING
   verify_cgraph ();
 #endif
@@ -381,6 +389,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
   for (node = cgraph_nodes; node; node = next)
     {
       next = node->next;
+
       if (node->aux && !node->reachable)
         {
 	  cgraph_node_remove_callees (node);

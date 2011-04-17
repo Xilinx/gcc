@@ -4417,16 +4417,11 @@ finish_decl (tree decl, location_t init_loc, tree init,
 	       But at end of compilation, do output code for them.  */
 	    DECL_DEFER_OUTPUT (decl) = 1;
 
-          /* In LIPO mode, create cgraph_node or varpool_node early
+          /* In LIPO mode, create  varpool_node early
              enough so that module id of the current source file being
              parsed is captured.  */
-          if (flag_dyn_ipa)
-            {
-              if (TREE_CODE (decl) == FUNCTION_DECL)
-                cgraph_node (decl);
-              else
-                varpool_node (decl);
-            }
+          if (flag_dyn_ipa && TREE_CODE (decl) == VAR_DECL)
+            varpool_node (decl);
 
 	  rest_of_decl_compilation (decl, true, 0);
 	}
@@ -9939,10 +9934,7 @@ c_write_global_declarations (void)
   apply_for_each_ext_block (c_write_global_declarations_1);
 
   if (L_IPO_COMP_MODE)
-    {
-      maybe_apply_pending_pragma_weaks ();
-      cgraph_do_link ();
-    }
+    maybe_apply_pending_pragma_weaks ();
 
   /* We're done parsing; proceed to optimize and emit assembly.
      FIXME: shouldn't be the front end's responsibility to call this.  */

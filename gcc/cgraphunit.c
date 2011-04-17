@@ -159,10 +159,6 @@ static GTY (()) tree vtable_entry_type;
 bool
 cgraph_decide_is_function_needed (struct cgraph_node *node, tree decl)
 {
-  /* Auxiliary functions are only needed for inlining purpose.  */
-  if (L_IPO_COMP_MODE && cgraph_is_auxiliary (decl))
-    return false;
-
   /* If the user told us it is used, then it must be so.  */
   if (node->local.externally_visible)
     return true;
@@ -1123,7 +1119,6 @@ cgraph_finalize_compilation_unit (void)
   cgraph_analyze_functions ();
 
   /* LIPO support  */
-  varpool_do_link ();
   /* Recognize equivalent types across modules and
      merge their alias sets.  */
   cgraph_unify_type_alias_sets ();
@@ -1305,7 +1300,8 @@ cgraph_mark_functions_to_output (void)
                   for (next = node->same_comdat_group;
                        next != node;
                        next = next->same_comdat_group)
-                    next->process = 1;
+                    if (cgraph_add_output_node (next) == next)
+                      next->process = 1;
                 }
             }
 	}
@@ -1717,6 +1713,18 @@ cgraph_expand_function (struct cgraph_node *node)
     {
       struct cgraph_node *alias, *next;
       bool saved_alias = node->alias;
+
+      if (L_IPO_COMP_MODE)
+        {
+          struct cgraph_node *node_for_asm
+              = cgraph_node_for_asm (DECL_ASSEMBLER_NAME (node->decl));
+          /* Make sure the node for asm is the one that is emitted, not
+             the one which is inlined that may be eliminated later.  */
+          if (node_for_asm && node_for_asm != node)
+            cgraph_remove_assembler_hash_node (node_for_asm);
+          cgraph_add_assembler_hash_node (node);
+        }
+
       for (alias = node->same_body;
       	   alias && alias->next; alias = alias->next)
         ;
@@ -2416,6 +2424,9 @@ cgraph_redirect_edge_call_stmt_to_callee (struct cgraph_edge *e)
       /* Don't update call from same body alias to the real function.  */
       || (decl && cgraph_get_node (decl) == cgraph_get_node (e->callee->decl))
       || (L_IPO_COMP_MODE && decl
+          /* DECL is dead function eliminated. */
+          && !(!DECL_STRUCT_FUNCTION (decl)
+	       && TREE_STATIC (decl))
           /* Always fix up when decl is cloned.  */
           && !e->callee->is_versioned_clone
 	  && (cgraph_lipo_get_resolved_node (decl)

@@ -44,6 +44,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "cgraph.h"
 #include "output.h"
+#include "l-ipo.h"
 
 static GTY(()) tree gcov_type_node;
 static GTY(()) tree gcov_type_tmp_var;
@@ -653,7 +654,10 @@ tree_profiling (void)
   /* After value profile transformation, artificial edges (that keep
      function body from being deleted) won't be needed.  */
 
-  cgraph_need_artificial_indirect_call_edges = 0;
+  cgraph_pre_profiling_inlining_done = true;
+  /* Now perform link to allow cross module inlining.  */
+  cgraph_do_link ();
+  varpool_do_link ();
 
   for (node = cgraph_nodes; node; node = node->next)
     {

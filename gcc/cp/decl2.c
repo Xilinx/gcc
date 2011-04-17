@@ -4019,9 +4019,6 @@ cp_write_global_declarations (void)
   if (!L_IPO_COMP_MODE)
     cp_process_pending_declarations (locus);
 
-  /* Perform linking before cgraph build.  */
-  cgraph_do_link ();
-
   /* Collect candidates for Java hidden aliases.  */
   candidates = collect_candidates_for_java_method_aliases ();
 

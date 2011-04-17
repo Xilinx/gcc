@@ -1348,7 +1348,8 @@ cgraph_lipo_get_resolved_node_1 (tree decl, bool do_assert)
 {
   struct cgraph_sym **slot;
 
-  slot = cgraph_sym (decl);
+  /* Handle alias decl. */
+  slot = cgraph_sym (cgraph_node (decl)->decl);
 
   if (!slot || !*slot)
     {
@@ -1474,10 +1475,8 @@ resolve_cgraph_node (struct cgraph_sym **slot, struct cgraph_node *node)
   decl1 = (*slot)->rep_decl;
   decl2 = node->decl;
 
-  /* Can not use gimple_has_body_p because there is no
-     guarantee functions are gimplified at this point.  */
-  decl1_defined = TREE_STATIC (decl1);
-  decl2_defined = TREE_STATIC (decl2);
+  decl1_defined = gimple_has_body_p (decl1);
+  decl2_defined = gimple_has_body_p (decl2);
 
   if (decl1_defined && !decl2_defined)
     return;
@@ -1524,9 +1523,7 @@ cgraph_link_node (struct cgraph_node *node)
     return NULL;
 
   if (!cgraph_symtab)
-    cgraph_symtab
-        = htab_create_ggc (10, hash_sym_by_assembler_name,
-                           eq_assembler_name, NULL);
+    return NULL;
 
   /* Skip the cases when the  defintion can be locally resolved, and
      when we do not need to keep track of defining modules.  */
@@ -1562,6 +1559,7 @@ cgraph_do_link (void)
     return;
 
   global_link_performed = 1;
+  gcc_assert (cgraph_pre_profiling_inlining_done);
 
   if (!cgraph_symtab)
     cgraph_symtab
@@ -1731,15 +1729,8 @@ promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
     {
-      struct cgraph_sym *resolved_sym = NULL;
       struct cgraph_node *node = cgraph_node (decl);
       cgraph_add_assembler_hash_node (node);
-      /* incremental update the link table -- or
-         can introduce a flag in cgraph node to indicate
-         non global origin.  */
-      resolved_sym = cgraph_link_node (node);
-      gcc_assert (resolved_sym);
-      resolved_sym->is_promoted_static = 1;
     }
   else
     {

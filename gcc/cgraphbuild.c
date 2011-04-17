@@ -241,7 +241,7 @@ compute_call_stmt_bb_frequency (tree decl, basic_block bb)
 }
 
 
-bool cgraph_need_artificial_indirect_call_edges = true;
+bool cgraph_pre_profiling_inlining_done = false;
 
 /* Return true if E is a fake indirect call edge.  */
 
@@ -265,7 +265,7 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
   if (!L_IPO_COMP_MODE)
     return;
 
-  if (!cgraph_need_artificial_indirect_call_edges)
+  if (cgraph_pre_profiling_inlining_done)
     return;
 
   ic_counts
@@ -277,14 +277,14 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
 
   gcc_assert ((n_counts % GCOV_ICALL_TOPN_NCOUNTS) == 0);
 
-/* After the early_inline_1 before value profile transformation, 
+/* After the early_inline_1 before value profile transformation,
    functions that are indirect call targets may have their bodies
    removed (extern inline functions or functions from aux modules,
    functions in comdat etc) if all direct callsites are inlined. This
-   will lead to missing inline opportunities after profile based 
+   will lead to missing inline opportunities after profile based
    indirect call promotion. The solution is to add fake edges to
-   indirect call targets. Note that such edges are not associated 
-   with actual indirect call sites because it is not possible to 
+   indirect call targets. Note that such edges are not associated
+   with actual indirect call sites because it is not possible to
    reliably match pre-early-inline indirect callsites with indirect
    call profile counters which are from post-early inline function body.  */
 
@@ -307,7 +307,7 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
         {
           tree decl = direct_call1->decl;
           cgraph_create_edge (node,
-	                      cgraph_lipo_get_resolved_node (decl),
+	                      cgraph_node (decl),
 			      NULL,
                               count1, 0, 0);
         }
@@ -319,12 +319,13 @@ add_fake_indirect_call_edges (struct cgraph_node *node)
         {
           tree decl = direct_call2->decl;
           cgraph_create_edge (node,
-	                      cgraph_lipo_get_resolved_node (decl),
+	                      cgraph_node (decl),
                               NULL,
                               count2, 0, 0);
         }
     }
 }
+
 
 /* This can be implemented as an IPA pass that must be first one 
    before any unreachable node elimination. */
@@ -342,6 +343,34 @@ cgraph_add_fake_indirect_call_edges (void)
     {
       if (node->analyzed && (node->needed || node->reachable))
         add_fake_indirect_call_edges (node);
+    }
+}
+
+/* Remove zero count fake edges added for the purpose of ensuring
+   the right processing order.  This should be called after all
+   small ipa passes.  */
+void
+cgraph_remove_zero_count_fake_edges (void)
+{
+  struct cgraph_node *node;
+
+  /* Enable this only for LIPO for now.  */
+  if (!L_IPO_COMP_MODE)
+    return;
+
+  for (node = cgraph_nodes; node; node = node->next)
+    {
+      if (node->analyzed && (node->needed || node->reachable))
+        {
+          struct cgraph_edge *e, *f;
+	  for (e = node->callees; e; e = f)
+	    {
+	      f = e->next_callee;
+	      if (!e->call_stmt && !e->count && !e->loop_nest
+	          && !e->frequency)
+                cgraph_remove_edge (e);
+            }
+	}
     }
 }
 
@@ -464,11 +493,9 @@ build_cgraph_edges (void)
 							 bb);
 	      decl = gimple_call_fndecl (stmt);
 	      if (decl)
-		cgraph_create_edge (node, L_IPO_COMP_MODE
-				    ? cgraph_lipo_get_resolved_node (decl)
-				    : cgraph_node (decl), stmt,
-				    bb->count, freq,
-				    bb->loop_depth);
+                cgraph_create_edge (node, cgraph_node (decl), stmt,
+                                    bb->count, freq,
+                                    bb->loop_depth);
 	      else
 		cgraph_create_indirect_edge (node, stmt,
 					     gimple_call_flags (stmt),
@@ -500,6 +527,7 @@ build_cgraph_edges (void)
 	walk_stmt_load_store_addr_ops (gsi_stmt (gsi), node,
 				       mark_load, mark_store, mark_address);
    }
+
 
   /* Look for initializers of constant variables and private statics.  */
   FOR_EACH_LOCAL_DECL (cfun, ix, decl)
@@ -577,11 +605,24 @@ rebuild_cgraph_edges (void)
 							 bb);
 	      decl = gimple_call_fndecl (stmt);
 	      if (decl)
-		cgraph_create_edge (node, L_IPO_COMP_MODE
-				    ? cgraph_lipo_get_resolved_node (decl)
-				    : cgraph_node (decl), stmt,
-				    bb->count, freq,
-				    bb->loop_depth);
+	        {
+		  struct cgraph_node *callee;
+		  /* In LIPO mode, before tree_profiling, the call graph edge
+		     needs to be built with the original target node to make
+		     sure consistent early inline decisions between profile generate
+		     and profile use. After tree-profiling, the target needs to be
+		     set to the resolved node so that ipa-inline sees the definitions.  */
+		  if (L_IPO_COMP_MODE && cgraph_pre_profiling_inlining_done)
+		    callee = cgraph_lipo_get_resolved_node (decl);
+                  else
+		    callee = cgraph_node (decl);
+                  cgraph_create_edge (node, callee, stmt,
+                                      bb->count, freq,
+                                      bb->loop_depth);
+                  if (L_IPO_COMP_MODE && cgraph_pre_profiling_inlining_done
+		      && decl != callee->decl)
+		    gimple_call_set_fndecl (stmt, callee->decl);
+                }
 	      else
 		cgraph_create_indirect_edge (node, stmt,
 					     gimple_call_flags (stmt),

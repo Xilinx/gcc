@@ -5504,9 +5504,6 @@ make_rtl_for_nonlocal_decl (tree decl, tree init, const char* asmspec)
   /* Handle non-variables up front.  */
   if (TREE_CODE (decl) != VAR_DECL)
     {
-      /* Capture the current module info.  */
-      if (L_IPO_COMP_MODE)
-        cgraph_node (decl);
       rest_of_decl_compilation (decl, toplev, at_eof);
       return;
     }

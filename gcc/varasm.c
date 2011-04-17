@@ -5427,7 +5427,8 @@ find_decl_and_mark_needed (tree decl, tree target)
 
   if (fnode)
     {
-      cgraph_mark_needed_node (fnode);
+      if (!fnode->global.inlined_to)
+        cgraph_mark_needed_node (fnode);
       return fnode->decl;
     }
   else if (vnode)
