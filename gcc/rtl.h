@@ -2308,6 +2308,7 @@ extern int any_condjump_p (const_rtx);
 extern int any_uncondjump_p (const_rtx);
 extern rtx pc_set (const_rtx);
 extern rtx condjump_label (const_rtx);
+extern bool addr_vec_p (const_rtx);
 extern int simplejump_p (const_rtx);
 extern int returnjump_p (rtx);
 extern int eh_returnjump_p (rtx);

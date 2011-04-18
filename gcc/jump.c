@@ -726,6 +726,15 @@ comparison_dominates_p (enum rtx_code code1, enum rtx_code code2)
   return 0;
 }
 
+/* Return true if INSN is an ADDR_VEC or ADDR_DIFF_VEC.  */
+bool
+addr_vec_p (const_rtx insn)
+{
+  return (JUMP_P (insn)
+	  && (GET_CODE (PATTERN (insn)) == ADDR_VEC
+	      || GET_CODE (PATTERN (insn)) == ADDR_DIFF_VEC));
+}
+
 /* Return 1 if INSN is an unconditional jump and nothing else.  */
 
 int

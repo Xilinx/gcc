@@ -462,12 +462,11 @@ static void initial_return_save (rtx);
 static HOST_WIDE_INT stack_adjust_offset (const_rtx, HOST_WIDE_INT,
 					  HOST_WIDE_INT);
 static void output_cfi (dw_cfi_ref, dw_fde_ref, int);
-static void output_cfi_directive (dw_cfi_ref);
+static void output_cfi_directive (FILE *, dw_cfi_ref);
 static void output_call_frame_info (int);
 static void dwarf2out_note_section_used (void);
 static bool clobbers_queued_reg_save (const_rtx);
 static void dwarf2out_frame_debug_expr (rtx);
-static void dwarf2out_cfi_begin_epilogue (rtx);
 static void dwarf2out_frame_debug_restore_state (void);
 
 /* Support for complex CFA locations.  */
@@ -821,9 +820,6 @@ new_cfi (void)
 /* The insn after which a new CFI note should be emitted.  */
 static rtx cfi_insn;
 
-/* True if remember_state should be emitted before following CFI directive.  */
-static bool emit_cfa_remember;
-
 /* True if any CFI directives were emitted at the current insn.  */
 static bool any_cfis_emitted;
 
@@ -865,28 +861,34 @@ dwarf2out_maybe_emit_cfi_label (void)
     }
 }
 
+static void
+add_cfa_remember (void)
+{
+  dw_cfi_ref cfi_remember;
+
+  /* Emit the state save.  */
+  cfi_remember = new_cfi ();
+  cfi_remember->dw_cfi_opc = DW_CFA_remember_state;
+  add_fde_cfi (cfi_remember);
+}
+
+/* Nonnull if add_fde_cfi should not just emit a NOTE_INSN_CFI, but
+   also add the CFI to this vector.  */
+static cfi_vec *cfi_insn_vec;
+
 /* Add CFI to the current fde at the PC value indicated by LABEL if specified,
    or to the CIE if LABEL is NULL.  */
 
 static void
 add_fde_cfi (dw_cfi_ref cfi)
 {
-  if (emit_cfa_remember)
-    {
-      dw_cfi_ref cfi_remember;
-
-      /* Emit the state save.  */
-      emit_cfa_remember = false;
-      cfi_remember = new_cfi ();
-      cfi_remember->dw_cfi_opc = DW_CFA_remember_state;
-      add_fde_cfi (cfi_remember);
-    }
-
   any_cfis_emitted = true;
   if (cfi_insn != NULL)
     {
       cfi_insn = emit_note_after (NOTE_INSN_CFI, cfi_insn);
       NOTE_CFI (cfi_insn) = cfi;
+      if (cfi_insn_vec != NULL)
+	VEC_safe_push (dw_cfi_ref, gc, *cfi_insn_vec, cfi);
     }
   else
     {
@@ -976,12 +978,6 @@ static dw_cfa_location old_cfa;
 /* The register used for saving registers to the stack, and its offset
    from the CFA.  */
 static dw_cfa_location cfa_store;
-
-/* The current save location around an epilogue.  */
-static dw_cfa_location cfa_remember;
-
-/* Like cfa_remember, but a copy of old_cfa.  */
-static dw_cfa_location old_cfa_remember;
 
 /* The running total of the size of arguments pushed onto the stack.  */
 static HOST_WIDE_INT args_size;
@@ -1336,179 +1332,6 @@ stack_adjust_offset (const_rtx pattern, HOST_WIDE_INT cur_args_size,
   return offset;
 }
 
-/* Precomputed args_size for CODE_LABELs and BARRIERs preceeding them,
-   indexed by INSN_UID.  */
-
-static HOST_WIDE_INT *barrier_args_size;
-
-/* Helper function for compute_barrier_args_size.  Handle one insn.  */
-
-static HOST_WIDE_INT
-compute_barrier_args_size_1 (rtx insn, HOST_WIDE_INT cur_args_size,
-			     VEC (rtx, heap) **next)
-{
-  HOST_WIDE_INT offset = 0;
-  int i;
-
-  if (! RTX_FRAME_RELATED_P (insn))
-    {
-      if (prologue_epilogue_contains (insn))
-	/* Nothing */;
-      else if (GET_CODE (PATTERN (insn)) == SET)
-	offset = stack_adjust_offset (PATTERN (insn), cur_args_size, 0);
-      else if (GET_CODE (PATTERN (insn)) == PARALLEL
-	       || GET_CODE (PATTERN (insn)) == SEQUENCE)
-	{
-	  /* There may be stack adjustments inside compound insns.  Search
-	     for them.  */
-	  for (i = XVECLEN (PATTERN (insn), 0) - 1; i >= 0; i--)
-	    if (GET_CODE (XVECEXP (PATTERN (insn), 0, i)) == SET)
-	      offset += stack_adjust_offset (XVECEXP (PATTERN (insn), 0, i),
-					     cur_args_size, offset);
-	}
-    }
-  else
-    {
-      rtx expr = find_reg_note (insn, REG_FRAME_RELATED_EXPR, NULL_RTX);
-
-      if (expr)
-	{
-	  expr = XEXP (expr, 0);
-	  if (GET_CODE (expr) == PARALLEL
-	      || GET_CODE (expr) == SEQUENCE)
-	    for (i = 1; i < XVECLEN (expr, 0); i++)
-	      {
-		rtx elem = XVECEXP (expr, 0, i);
-
-		if (GET_CODE (elem) == SET && !RTX_FRAME_RELATED_P (elem))
-		  offset += stack_adjust_offset (elem, cur_args_size, offset);
-	      }
-	}
-    }
-
-#ifndef STACK_GROWS_DOWNWARD
-  offset = -offset;
-#endif
-
-  cur_args_size += offset;
-  if (cur_args_size < 0)
-    cur_args_size = 0;
-
-  if (JUMP_P (insn))
-    {
-      rtx dest = JUMP_LABEL (insn);
-
-      if (dest)
-	{
-	  if (barrier_args_size [INSN_UID (dest)] < 0)
-	    {
-	      barrier_args_size [INSN_UID (dest)] = cur_args_size;
-	      VEC_safe_push (rtx, heap, *next, dest);
-	    }
-	}
-    }
-
-  return cur_args_size;
-}
-
-/* Walk the whole function and compute args_size on BARRIERs.  */
-
-static void
-compute_barrier_args_size (void)
-{
-  int max_uid = get_max_uid (), i;
-  rtx insn;
-  VEC (rtx, heap) *worklist, *next, *tmp;
-
-  barrier_args_size = XNEWVEC (HOST_WIDE_INT, max_uid);
-  for (i = 0; i < max_uid; i++)
-    barrier_args_size[i] = -1;
-
-  worklist = VEC_alloc (rtx, heap, 20);
-  next = VEC_alloc (rtx, heap, 20);
-  insn = get_insns ();
-  barrier_args_size[INSN_UID (insn)] = 0;
-  VEC_quick_push (rtx, worklist, insn);
-  for (;;)
-    {
-      while (!VEC_empty (rtx, worklist))
-	{
-	  rtx prev, body, first_insn;
-	  HOST_WIDE_INT cur_args_size;
-
-	  first_insn = insn = VEC_pop (rtx, worklist);
-	  cur_args_size = barrier_args_size[INSN_UID (insn)];
-	  prev = prev_nonnote_insn (insn);
-	  if (prev && BARRIER_P (prev))
-	    barrier_args_size[INSN_UID (prev)] = cur_args_size;
-
-	  for (; insn; insn = NEXT_INSN (insn))
-	    {
-	      if (INSN_DELETED_P (insn) || NOTE_P (insn))
-		continue;
-	      if (BARRIER_P (insn))
-		break;
-
-	      if (LABEL_P (insn))
-		{
-		  if (insn == first_insn)
-		    continue;
-		  else if (barrier_args_size[INSN_UID (insn)] < 0)
-		    {
-		      barrier_args_size[INSN_UID (insn)] = cur_args_size;
-		      continue;
-		    }
-		  else
-		    {
-		      /* The insns starting with this label have been
-			 already scanned or are in the worklist.  */
-		      break;
-		    }
-		}
-
-	      body = PATTERN (insn);
-	      if (GET_CODE (body) == SEQUENCE)
-		{
-		  HOST_WIDE_INT dest_args_size = cur_args_size;
-		  for (i = 1; i < XVECLEN (body, 0); i++)
-		    if (INSN_ANNULLED_BRANCH_P (XVECEXP (body, 0, 0))
-			&& INSN_FROM_TARGET_P (XVECEXP (body, 0, i)))
-		      dest_args_size
-			= compute_barrier_args_size_1 (XVECEXP (body, 0, i),
-						       dest_args_size, &next);
-		    else
-		      cur_args_size
-			= compute_barrier_args_size_1 (XVECEXP (body, 0, i),
-						       cur_args_size, &next);
-
-		  if (INSN_ANNULLED_BRANCH_P (XVECEXP (body, 0, 0)))
-		    compute_barrier_args_size_1 (XVECEXP (body, 0, 0),
-						 dest_args_size, &next);
-		  else
-		    cur_args_size
-		      = compute_barrier_args_size_1 (XVECEXP (body, 0, 0),
-						     cur_args_size, &next);
-		}
-	      else
-		cur_args_size
-		  = compute_barrier_args_size_1 (insn, cur_args_size, &next);
-	    }
-	}
-
-      if (VEC_empty (rtx, next))
-	break;
-
-      /* Swap WORKLIST with NEXT and truncate NEXT for next iteration.  */
-      tmp = next;
-      next = worklist;
-      worklist = tmp;
-      VEC_truncate (rtx, next, 0);
-    }
-
-  VEC_free (rtx, heap, worklist);
-  VEC_free (rtx, heap, next);
-}
-
 /* Add a CFI to update the running total of the size of arguments
    pushed onto the stack.  */
 
@@ -1605,25 +1428,7 @@ dwarf2out_notice_stack_adjust (rtx insn, bool after_p)
       return;
     }
   else if (BARRIER_P (insn))
-    {
-      /* Don't call compute_barrier_args_size () if the only
-	 BARRIER is at the end of function.  */
-      if (barrier_args_size == NULL && next_nonnote_insn (insn))
-	compute_barrier_args_size ();
-      if (barrier_args_size == NULL)
-	offset = 0;
-      else
-	{
-	  offset = barrier_args_size[INSN_UID (insn)];
-	  if (offset < 0)
-	    offset = 0;
-	}
-
-      offset -= args_size;
-#ifndef STACK_GROWS_DOWNWARD
-      offset = -offset;
-#endif
-    }
+    return;
   else if (GET_CODE (PATTERN (insn)) == SET)
     offset = stack_adjust_offset (PATTERN (insn), args_size, 0);
   else if (GET_CODE (PATTERN (insn)) == PARALLEL
@@ -2062,9 +1867,12 @@ add_cfis_to_fde (void)
       next = NEXT_INSN (insn);
 
       if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_SWITCH_TEXT_SECTIONS)
-	/* Don't attempt to advance_loc4 between labels in different
-	   sections.  */
-	first = true;
+	{
+	  fde->dw_fde_switch_cfi_index = VEC_length (dw_cfi_ref, fde->dw_fde_cfi);
+	  /* Don't attempt to advance_loc4 between labels in different
+	     sections.  */
+	  first = true;
+	}
 
       if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_CFI)
 	{
@@ -2101,6 +1909,17 @@ add_cfis_to_fde (void)
 	  first = false;
 	}
     }
+}
+
+/* A subroutine of dwarf2out_frame_debug_init, emit a CFA_restore_state.  */
+
+void
+dwarf2out_frame_debug_restore_state (void)
+{
+  dw_cfi_ref cfi = new_cfi ();
+
+  cfi->dw_cfi_opc = DW_CFA_restore_state;
+  add_fde_cfi (cfi);
 }
 
 /* Record call frame debugging information for an expression EXPR,
@@ -2807,9 +2626,6 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
   else
     cfi_insn = PREV_INSN (insn);
 
-  if (!NONJUMP_INSN_P (insn) || clobbers_queued_reg_save (insn))
-    dwarf2out_flush_queued_reg_saves ();
-
   if (!RTX_FRAME_RELATED_P (insn))
     {
       /* ??? This should be done unconditionally since stack adjustments
@@ -2955,54 +2771,222 @@ dwarf2out_frame_debug_init (void)
   num_regs_saved_in_regs = 0;
 }
 
-/* After the (optional) text prologue has been written, emit CFI insns
-   and update the FDE for frame-related instructions.  */
-
-void
-dwarf2out_frame_debug_after_prologue (void)
+/* Copy a CFI vector, except for args_size opcodes.  */
+static cfi_vec
+copy_cfi_vec_parts (cfi_vec in_vec)
 {
-  rtx insn;
-  if (barrier_args_size)
+  int length = VEC_length (dw_cfi_ref, in_vec);
+  /* Ensure we always have a pointer to a vector, not just NULL.  */
+  cfi_vec new_vec = VEC_alloc (dw_cfi_ref, gc, length > 0 ? length : 1);
+  int i;
+  for (i = 0; i < length; i++)
     {
-      XDELETEVEC (barrier_args_size);
-      barrier_args_size = NULL;
+      dw_cfi_ref elt = VEC_index (dw_cfi_ref, in_vec, i);
+      if (elt->dw_cfi_opc == DW_CFA_GNU_args_size)
+	continue;
+
+      VEC_quick_push (dw_cfi_ref, new_vec, elt);
     }
-  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+  return new_vec;
+}
+
+/* Record the state of the CFI program at a point in the program.  */
+typedef struct
+{
+  /* The CFI instructions up to this point.  */
+  cfi_vec cfis;
+  /* Copies of the global variables with the same name.  */
+  dw_cfa_location cfa, cfa_store, old_cfa;
+  /* True if we have seen this point during a scan in scan_until_barrier.  */
+  bool visited;
+  /* True if this point was used as a starting point for such a scan.  */
+  bool used_as_start;
+  /* Other than CFI instructions and CFA state, the only thing necessary to
+     be tracked is the argument size.  */
+  int args_size;
+  /* Nonzero for states that must be remembered and restored.  If higher
+     than one, the first restores will be immediately followed by another
+     remember.  */
+  int n_restores;
+} jump_target_info;
+
+/* Return true if we'll want to save or restore CFI state at INSN.  This is
+   true for labels and barriers, and certain notes.  */
+static bool
+save_point_p (rtx insn)
+{
+  return (BARRIER_P (insn) || LABEL_P (insn)
+	  || (NOTE_P (insn)
+	      && (NOTE_KIND (insn) == NOTE_INSN_FUNCTION_BEG
+		  || NOTE_KIND (insn) == NOTE_INSN_PROLOGUE_END
+		  || NOTE_KIND (insn) == NOTE_INSN_SWITCH_TEXT_SECTIONS)));
+}
+
+/* Save the current state in INFO.  */
+
+static void
+record_current_state (jump_target_info *info)
+{
+  info->cfis = copy_cfi_vec_parts (*cfi_insn_vec);
+  info->args_size = args_size;
+  info->cfa = cfa;
+  info->old_cfa = old_cfa;
+  info->cfa_store = cfa_store;
+}
+
+/* LABEL is the target of a jump we encountered while scanning the
+   function.  Record it in START_POINTS as a potential new starting point
+   for the scan, unless we've visited it before.  UID_LUID gives a
+   mapping for uids used to index INFO, which holds the CFI
+   information for labels and barriers.  */
+static void
+maybe_record_jump_target (rtx label, VEC (rtx, heap) **start_points,
+			  int *uid_luid, jump_target_info *info)
+{
+  int uid;
+
+  if (GET_CODE (label) == LABEL_REF)
+    label = XEXP (label, 0);
+  gcc_assert (LABEL_P (label));
+  uid = INSN_UID (label);
+  info += uid_luid[uid];
+  if (info->visited || info->cfis)
+    return;
+
+  if (dump_file)
+    fprintf (dump_file, "recording label %d as possible jump target\n", uid);
+
+  VEC_safe_push (rtx, heap, *start_points, label);
+  record_current_state (info);
+}
+
+/* Return true if VEC1 and VEC2 are identical up to the length of VEC1.  */
+static bool
+vec_is_prefix_of (cfi_vec vec1, cfi_vec vec2)
+{
+  int i;
+  int len1 = VEC_length (dw_cfi_ref, vec1);
+  int len2 = VEC_length (dw_cfi_ref, vec2);
+  if (len1 > len2)
+    return false;
+  for (i = 0; i < len1; i++)
+    if (VEC_index (dw_cfi_ref, vec1, i) != VEC_index (dw_cfi_ref, vec1, i))
+      return false;
+  return true;
+}
+
+/* Append entries to FDE's cfi vector.  PREFIX and FULL are two
+   existing vectors, where PREFIX is contained in FULL as a prefix.  */
+
+static void
+append_extra_cfis (cfi_vec prefix, cfi_vec full)
+{
+  int i;
+  int len = VEC_length (dw_cfi_ref, full);
+  int prefix_len = VEC_length (dw_cfi_ref, prefix);
+
+  gcc_assert (prefix_len <= len);
+  for (i = 0; i < prefix_len; i++)
     {
-      rtx pat;
-      if (BARRIER_P (insn))
+      dw_cfi_ref elt, elt2;
+
+      elt = VEC_index (dw_cfi_ref, full, i);
+      elt2 = VEC_index (dw_cfi_ref, prefix, i);
+      gcc_assert (elt == elt2);
+    }
+  for (; i < len; i++)
+    {
+      dw_cfi_ref elt = VEC_index (dw_cfi_ref, full, i);
+      add_fde_cfi (elt);
+    }
+}
+
+extern void debug_cfi_vec (FILE *, cfi_vec v);
+void debug_cfi_vec (FILE *f, cfi_vec v)
+{
+  int ix;
+  dw_cfi_ref cfi;
+
+  FOR_EACH_VEC_ELT (dw_cfi_ref, v, ix, cfi)
+    output_cfi_directive (f, cfi);
+}
+
+static bool
+switch_note_p (rtx insn)
+{
+  return NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_SWITCH_TEXT_SECTIONS;
+}
+
+/* From the current starting point in INSN, scan forwards until we hit a
+   barrier, the end of the function, or a label we've previously used as
+   a starting point.
+   UID_LUID is a mapping to linear uids used to map an insn to an entry in
+   POINT_INFO, if save_point_p is true for a given insn.  */
+
+static void
+scan_until_barrier (rtx insn, jump_target_info *point_info, int *uid_luid,
+		    VEC (rtx, heap) **start_points)
+{
+  rtx next;
+  for (; insn != NULL_RTX; insn = next)
+    {
+      int uid = INSN_UID (insn);
+      rtx pat, note;
+
+      next = NEXT_INSN (insn);
+      if (save_point_p (insn))
 	{
-	  dwarf2out_frame_debug (insn, false);
-	  continue;
-	}
-      else if (NOTE_P (insn))
-	{
-	  switch (NOTE_KIND (insn))
+	  int luid = uid_luid[uid];
+	  jump_target_info *info = point_info + luid;
+	  if (info->used_as_start)
 	    {
-	    case NOTE_INSN_EPILOGUE_BEG:
-#if defined (HAVE_epilogue)
-	      dwarf2out_cfi_begin_epilogue (insn);
-#endif
-	      break;
-	    case NOTE_INSN_CFA_RESTORE_STATE:
-	      cfi_insn = insn;
-	      dwarf2out_frame_debug_restore_state ();
-	      cfi_insn = NULL;
+	      if (dump_file)
+		fprintf (dump_file,
+			 "Stopping scan at insn %d; previously reached\n",
+			 uid);
 	      break;
 	    }
-	  continue;
+	  info->visited = true;
+	  if (BARRIER_P (insn))
+	    gcc_assert (info->cfis == NULL);
+	  if (switch_note_p (insn))
+	    {
+	      /* Don't record the state, it was set to a clean slate in
+		 the caller.  */
+	      if (dump_file)
+		fprintf (dump_file,
+			 "Stopping scan at text section switch %d\n", uid);
+	      break;
+	    }
+	  record_current_state (info);
+	  if (BARRIER_P (insn))
+	    {
+	      if (dump_file)
+		fprintf (dump_file, "Stopping scan at barrier %d\n", uid);
+	      break;
+	    }
 	}
+
       if (!NONDEBUG_INSN_P (insn))
 	continue;
       pat = PATTERN (insn);
       if (asm_noperands (pat) >= 0)
 	continue;
+
       if (GET_CODE (pat) == SEQUENCE)
 	{
-	  int j;
-	  for (j = 1; j < XVECLEN (pat, 0); j++)
-	    dwarf2out_frame_debug (XVECEXP (pat, 0, j), false);
+	  int i;
+	  for (i = 1; i < XVECLEN (pat, 0); i++)
+	    dwarf2out_frame_debug (XVECEXP (pat, 0, i), false);
 	  insn = XVECEXP (pat, 0, 0);
+	}
+
+      if (!NONJUMP_INSN_P (insn) || clobbers_queued_reg_save (insn)
+	  || (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_PROLOGUE_END))
+	{
+	  cfi_insn = PREV_INSN (insn);
+	  dwarf2out_flush_queued_reg_saves ();
+	  cfi_insn = NULL_RTX;
 	}
 
       if (CALL_P (insn) && dwarf2out_do_frame ())
@@ -3013,7 +2997,454 @@ dwarf2out_frame_debug_after_prologue (void)
 #endif
 	  )
 	dwarf2out_frame_debug (insn, true);
+
+      if (JUMP_P (insn))
+	{
+	  rtx label = JUMP_LABEL (insn);
+	  if (label)
+	    {
+	      rtx next = next_real_insn (label);
+	      if (next != NULL_RTX && addr_vec_p (next))
+		{
+		  int i;
+		  rtx pat = PATTERN (next);
+		  int eltnum = GET_CODE (pat) == ADDR_DIFF_VEC ? 1 : 0;
+
+		  for (i = 0; i < XVECLEN (pat, eltnum); i++)
+		    maybe_record_jump_target (XVECEXP (pat, eltnum, i),
+					      start_points, uid_luid,
+					      point_info);
+		}
+	      else
+		maybe_record_jump_target (label, start_points, uid_luid,
+					  point_info);
+	    }
+	}
+      note = find_reg_note (insn, REG_EH_REGION, NULL_RTX);
+      if (note)
+	{
+	  eh_landing_pad lp;
+
+	  lp = get_eh_landing_pad_from_rtx (insn);
+	  if (lp)
+	    maybe_record_jump_target (lp->landing_pad, start_points,
+				      uid_luid, point_info);
+	}
     }
+}
+
+/* A subroutine of dwarf2out_debug_after_prologue.  Given the vector
+   of potential starting points in *START_POINTS, pick the best one to
+   use for the next scan.  Return NULL_RTX if there's nothing left to
+   scan.
+   UID_LUID and START_POINTS are as in scan_until_barrier.  */
+
+static rtx
+find_best_starting_point (jump_target_info *point_info, int *uid_luid,
+			  VEC (rtx, heap) **start_points)
+{
+  int i;
+  rtx insn;
+  int best_idx;
+  bool best_has_barrier;
+  jump_target_info *restart_info;
+
+  FOR_EACH_VEC_ELT_REVERSE (rtx, *start_points, i, insn)
+    {
+      restart_info = point_info + uid_luid[INSN_UID (insn)];
+      if (restart_info->visited)
+	VEC_ordered_remove (rtx, *start_points, i);
+    }
+
+  best_idx = -1;
+  best_has_barrier = false;
+  FOR_EACH_VEC_ELT (rtx, *start_points, i, insn)
+    {
+      rtx prev;
+      bool this_has_barrier;
+
+      restart_info = point_info + uid_luid[INSN_UID (insn)];
+      prev = prev_nonnote_nondebug_insn (insn);
+      this_has_barrier = (prev
+			  && (BARRIER_P (prev) || switch_note_p (prev)));
+      if (best_idx < 0
+	  || (!best_has_barrier && this_has_barrier))
+	{
+	  best_idx = i;
+	  best_has_barrier = this_has_barrier;
+	}
+    }
+
+  if (best_idx < 0)
+    {
+      rtx link;
+      for (link = forced_labels; link; link = XEXP (link, 1))
+	{
+	  insn = XEXP (link, 0);
+	  restart_info = point_info + uid_luid[INSN_UID (insn)];
+	  if (!restart_info->visited)
+	    return insn;
+	}
+      return NULL_RTX;
+    }
+  insn = VEC_index (rtx, *start_points, best_idx);
+  VEC_ordered_remove (rtx, *start_points, best_idx);
+  return insn;
+}
+
+/* After the (optional) text prologue has been written, emit CFI insns
+   and update the FDE for frame-related instructions.  */
+
+void
+dwarf2out_frame_debug_after_prologue (void)
+{
+  int max_uid = get_max_uid ();
+  int i, n_saves_restores, prologue_end_point, switch_note_point;
+  rtx insn, save_point;
+  VEC (rtx, heap) *start_points;
+  int n_points;
+  int *uid_luid;
+  bool remember_needed;
+  jump_target_info *point_info, *save_point_info;
+  cfi_vec current_vec;
+
+  n_points = 0;
+  for (insn = get_insns (); insn != NULL_RTX; insn = NEXT_INSN (insn))
+    if (save_point_p (insn))
+      n_points++;
+  uid_luid = XCNEWVEC (int, max_uid);
+  n_points = 0;
+  prologue_end_point = -1;
+  switch_note_point = -1;
+  for (insn = get_insns (); insn != NULL_RTX; insn = NEXT_INSN (insn))
+    if (save_point_p (insn))
+      {
+	if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_PROLOGUE_END)
+	  prologue_end_point = n_points;
+	else if (switch_note_p (insn))
+	  switch_note_point = n_points;
+	uid_luid[INSN_UID (insn)] = n_points++;
+      }
+
+  point_info = XCNEWVEC (jump_target_info, n_points);
+  for (i = 0; i < n_points; i++)
+    point_info[i].args_size = -1;
+
+  start_points = VEC_alloc (rtx, heap, 20);
+  insn = get_insns ();
+  current_vec = VEC_alloc (dw_cfi_ref, gc, 10);
+
+  /* At a NOTE_INSN_SWITCH_TEXT_SECTIONS we'll emit a cfi_startproc.
+     Ensure the state at this note reflects that.  */
+  if (switch_note_point != -1)
+    {
+      cfi_insn_vec = &current_vec;
+      record_current_state (point_info + switch_note_point);
+      cfi_insn_vec = NULL;
+    }
+  args_size = old_args_size = 0;
+
+  for (;;)
+    {
+      HOST_WIDE_INT offset;
+      jump_target_info *restart_info;
+
+      /* Scan the insns and emit NOTE_CFIs where necessary.  */
+      cfi_insn_vec = &current_vec;
+      scan_until_barrier (insn, point_info, uid_luid, &start_points);
+      cfi_insn_vec = NULL;
+
+      insn = find_best_starting_point (point_info, uid_luid, &start_points);
+
+      if (insn == NULL_RTX)
+	break;
+
+      if (dump_file)
+	fprintf (dump_file, "restarting scan at label %d", INSN_UID (insn));
+
+      restart_info = point_info + uid_luid[INSN_UID (insn)];
+      restart_info->visited = true;
+      restart_info->used_as_start = true;
+      /* If find_best_starting_point returned a forced label, use the
+	 state at the NOTE_INSN_PROLOGUE_END note.  */
+      if (restart_info->cfis == NULL)
+	{
+	  cfi_vec *v = &restart_info->cfis;
+	  gcc_assert (prologue_end_point != -1);
+	  restart_info = point_info + prologue_end_point;
+	  *v = copy_cfi_vec_parts (restart_info->cfis);
+	}
+
+      gcc_assert (LABEL_P (insn));
+      current_vec = copy_cfi_vec_parts (restart_info->cfis);
+      cfa = restart_info->cfa;
+      old_cfa = restart_info->old_cfa;
+      cfa_store = restart_info->cfa_store;
+      offset = restart_info->args_size;
+      if (offset >= 0)
+	{
+	  if (dump_file && offset != args_size)
+	    fprintf (dump_file, ", args_size " HOST_WIDE_INT_PRINT_DEC
+		     "  -> " HOST_WIDE_INT_PRINT_DEC,
+		     args_size, offset);
+
+	  offset -= args_size;
+#ifndef STACK_GROWS_DOWNWARD
+	  offset = -offset;
+#endif
+	  if (offset != 0)
+	    {
+	      cfi_insn = prev_nonnote_nondebug_insn (insn);
+	      dwarf2out_stack_adjust (offset);
+	      cfi_insn = NULL_RTX;
+	    }
+	}
+      if (dump_file)
+	{
+	  fprintf (dump_file, "\n");
+	  if (dump_flags & TDF_DETAILS)
+	    debug_cfi_vec (dump_file, current_vec);
+	}
+
+      insn = NEXT_INSN (insn);
+    }
+
+  VEC_free (rtx, heap, start_points);
+
+  /* Now splice the various CFI fragments together into a coherent whole.  */
+
+  /* First, discover discontinuities, and where necessary search for suitable
+     remember/restore points.  */
+  save_point = NULL_RTX;
+  save_point_info = NULL;
+  n_saves_restores = 0;
+  for (insn = get_last_insn (); insn; insn = PREV_INSN (insn))
+    {
+      jump_target_info *info, *barrier_info, *candidate_info;
+      rtx prev;
+
+      if (insn == save_point)
+	{
+	  save_point = NULL_RTX;
+	  save_point_info = NULL;
+	  info = point_info + uid_luid[INSN_UID (insn)];
+	  info->n_restores = n_saves_restores;
+	  n_saves_restores = 0;
+	  if (dump_file)
+	    fprintf (dump_file, "finalize save point %d\n", INSN_UID (insn));
+	}
+
+      /* Look for labels that were used as starting points and are
+	 preceded by a BARRIER.  */
+      if (!LABEL_P (insn))
+	continue;
+
+      info = point_info + uid_luid[INSN_UID (insn)];
+      if (!info->used_as_start)
+	continue;
+      barrier_info = NULL;
+      for (prev = PREV_INSN (insn); prev; prev = PREV_INSN (prev))
+	{
+	  if (!BARRIER_P (prev) && !LABEL_P (prev))
+	    continue;
+	  barrier_info = point_info + uid_luid[INSN_UID (prev)];
+	  /* Skip through barriers we haven't visited; they may occur
+	     for things like jump tables.  */
+	  if ((BARRIER_P (prev) && barrier_info->visited)
+	      || (LABEL_P (prev) && barrier_info->used_as_start)
+	      || switch_note_p (prev))
+	    break;
+	}
+      if (!BARRIER_P (prev))
+	continue;
+
+      if (dump_file)
+	fprintf (dump_file, "State transition at barrier %d, label %d ... ",
+		 INSN_UID (prev), INSN_UID (insn));
+
+      /* If the state at the barrier can easily be transformed into the state
+	 at the label, we don't need save/restore points.  */
+      if (vec_is_prefix_of (barrier_info->cfis, info->cfis))
+	{
+	  if (dump_file)
+	    fprintf (dump_file, "prefix\n");
+	  continue;
+	}
+
+      /* A save/restore is necessary.  Walk backwards to find the best
+	 save point.  First see if we know a save point already and if
+	 it's suitable.  */
+      n_saves_restores++;
+      if (save_point)
+	{
+	  prev = save_point;
+	  if (vec_is_prefix_of (save_point_info->cfis, info->cfis))
+	    {
+	      if (dump_file)
+		fprintf (dump_file, "reuse save point\n");
+	      continue;
+	    }
+	}
+
+      for (;;)
+	{
+	  prev = PREV_INSN (prev);
+	  /* We should eventually encounter the NOTE_INSN_FUNCTION_BEG,
+	     which must be a suitable save point fo anything.  */
+	  gcc_assert (prev != NULL_RTX);
+
+	  if (!save_point_p (prev))
+	    continue;
+
+	  candidate_info = point_info + uid_luid[INSN_UID (prev)];
+	  /* We don't necessarily get to see this note during
+	     scanning. Record an empty CFI vector for it so that it is
+	     usable as a restore point.  */
+	  if (switch_note_p (prev))
+	    {
+	      if (candidate_info->cfis == NULL)
+		candidate_info->cfis = VEC_alloc (dw_cfi_ref, gc, 1);
+	    }
+
+	  if (candidate_info->cfis != NULL
+	      && vec_is_prefix_of (candidate_info->cfis, info->cfis)
+	      && (save_point == NULL
+		  || vec_is_prefix_of (candidate_info->cfis,
+				       save_point_info->cfis)))
+	    {
+	      if (dump_file)
+		fprintf (dump_file, "save point %d\n", INSN_UID (prev));
+	      save_point = prev;
+	      save_point_info = candidate_info;
+	      break;
+	    }
+	}
+    }
+
+  save_point = NULL_RTX;
+  save_point_info = NULL;
+  remember_needed = false;
+
+  /* This value is now used to distinguish between NOTE_CFI added up
+     to now and those added by the next loop.  */
+  max_uid = get_max_uid ();
+
+  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+    {
+      jump_target_info *info;
+
+      if (INSN_UID (insn) < max_uid
+	  && NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_CFI
+	  && remember_needed)
+	{
+	  cfi_insn = PREV_INSN (insn);
+	  add_cfa_remember ();
+	  cfi_insn = NULL_RTX;
+	  remember_needed = false;
+	}
+
+      if (!save_point_p (insn))
+	continue;
+
+      cfi_insn = insn;
+      info = point_info + uid_luid[INSN_UID (insn)];
+
+      if (info->n_restores > 0)
+	{
+	  gcc_assert (save_point_info == NULL);
+	  save_point_info = info;
+	  remember_needed = true;
+	}
+      if (switch_note_p (insn))
+	{
+	  jump_target_info *label_info;
+	  rtx next = insn;
+
+	  cfi_insn = insn;
+	  if (remember_needed)
+	    add_cfa_remember ();
+	  remember_needed = false;
+
+	  /* Find the next label, and emit extra CFIs as necessary to
+	     achieve the correct state.  */
+	  do
+	    {
+	      if (LABEL_P (next))
+		{
+		  label_info = point_info + uid_luid[INSN_UID (next)];
+		  if (label_info->used_as_start)
+		    break;
+		}
+	      insn = next;
+	      next = NEXT_INSN (next);
+	    }
+	  while (next != NULL_RTX);
+	  if (next == NULL_RTX)
+	    break;
+	  append_extra_cfis (NULL, label_info->cfis);
+	  cfi_insn = NULL_RTX;
+	}
+      else if (BARRIER_P (insn))
+	{
+	  jump_target_info *label_info;
+	  cfi_vec new_cfi_vec;
+	  cfi_vec barrier_cfi = info->cfis;
+	  rtx next = insn;
+
+	  /* Find the start of the next sequence we processed.  */
+	  do
+	    {
+	      if (LABEL_P (next))
+		{
+		  label_info = point_info + uid_luid[INSN_UID (next)];
+		  if (label_info->used_as_start)
+		    break;
+		}
+	      if (switch_note_p (next))
+		break;
+	      insn = next;
+	      next = NEXT_INSN (next);
+	    }
+	  while (next != NULL_RTX);
+	  if (next == NULL_RTX)
+	    break;
+	  if (!LABEL_P (next))
+	    continue;
+
+	  /* Emit extra CFIs as necessary to achieve the correct state.  */
+	  new_cfi_vec = label_info->cfis;
+	  cfi_insn = next;
+	  if (vec_is_prefix_of (barrier_cfi, new_cfi_vec))
+	    {
+	      if (VEC_length (dw_cfi_ref, barrier_cfi)
+		  != VEC_length (dw_cfi_ref, new_cfi_vec))
+		{
+		  /* If the barrier was a point needing a restore, we must
+		     add the remember here as we ignore the newly added
+		     CFI notes.  */
+		  if (info->n_restores > 0)
+		    add_cfa_remember ();
+		  remember_needed = false;
+		  append_extra_cfis (barrier_cfi, new_cfi_vec);
+		}
+	    }
+	  else
+	    {
+	      save_point_info->n_restores--;
+	      dwarf2out_frame_debug_restore_state ();
+
+	      if (save_point_info->n_restores > 0)
+		add_cfa_remember ();
+	      gcc_assert (!remember_needed);
+	      append_extra_cfis (save_point_info->cfis, new_cfi_vec);
+	      if (save_point_info->n_restores == 0)
+		save_point_info = NULL;
+	    }
+	  cfi_insn = NULL_RTX;
+	}
+    }
+  free (uid_luid);
+  free (point_info);
 
   add_cfis_to_fde ();
 }
@@ -3022,106 +3453,7 @@ void
 dwarf2out_emit_cfi (dw_cfi_ref cfi)
 {
   if (dwarf2out_do_cfi_asm ())
-    output_cfi_directive (cfi);
-}
-
-/* Determine if we need to save and restore CFI information around
-   this epilogue.  If we do need to save/restore, then emit the save
-   now, and insert a NOTE_INSN_CFA_RESTORE_STATE at the appropriate
-   place in the stream.  */
-
-void
-dwarf2out_cfi_begin_epilogue (rtx insn)
-{
-  bool saw_frp = false;
-  rtx i;
-
-  /* Scan forward to the return insn, noticing if there are possible
-     frame related insns.  */
-  for (i = NEXT_INSN (insn); i ; i = NEXT_INSN (i))
-    {
-      if (!INSN_P (i))
-	continue;
-
-      /* Look for both regular and sibcalls to end the block.  Various
-	 optimization passes may cause us to jump to a common epilogue
-	 tail, so we also accept simplejumps.  */
-      if (returnjump_p (i) || simplejump_p (i))
-	break;
-      if (CALL_P (i) && SIBLING_CALL_P (i))
-	break;
-
-      if (GET_CODE (PATTERN (i)) == SEQUENCE)
-	{
-	  int idx;
-	  rtx seq = PATTERN (i);
-
-	  if (returnjump_p (XVECEXP (seq, 0, 0)))
-	    break;
-	  if (CALL_P (XVECEXP (seq, 0, 0))
-	      && SIBLING_CALL_P (XVECEXP (seq, 0, 0)))
-	    break;
-
-	  for (idx = 0; idx < XVECLEN (seq, 0); idx++)
-	    if (RTX_FRAME_RELATED_P (XVECEXP (seq, 0, idx)))
-	      saw_frp = true;
-	}
-
-      if (RTX_FRAME_RELATED_P (i))
-	saw_frp = true;
-    }
-
-  /* If the port doesn't emit epilogue unwind info, we don't need a
-     save/restore pair.  */
-  if (!saw_frp)
-    return;
-
-  /* Otherwise, search forward to see if the return insn was the last
-     basic block of the function.  If so, we don't need save/restore.  */
-  gcc_assert (i != NULL);
-  i = next_real_insn (i);
-  if (i == NULL)
-    return;
-
-  /* Insert the restore before that next real insn in the stream, and before
-     a potential NOTE_INSN_EPILOGUE_BEG -- we do need these notes to be
-     properly nested.  This should be after any label or alignment.  This
-     will be pushed into the CFI stream by the function below.  */
-  while (1)
-    {
-      rtx p = PREV_INSN (i);
-      if (!NOTE_P (p))
-	break;
-      if (NOTE_KIND (p) == NOTE_INSN_BASIC_BLOCK)
-	break;
-      i = p;
-    }
-  emit_note_before (NOTE_INSN_CFA_RESTORE_STATE, i);
-
-  emit_cfa_remember = true;
-
-  /* And emulate the state save.  */
-  gcc_assert (!cfa_remember.in_use);
-  cfa_remember = cfa;
-  old_cfa_remember = old_cfa;
-  cfa_remember.in_use = 1;
-}
-
-/* A "subroutine" of dwarf2out_cfi_begin_epilogue.  Emit the restore
-   required.  */
-
-static void
-dwarf2out_frame_debug_restore_state (void)
-{
-  dw_cfi_ref cfi = new_cfi ();
-
-  cfi->dw_cfi_opc = DW_CFA_restore_state;
-  add_fde_cfi (cfi);
-
-  gcc_assert (cfa_remember.in_use);
-  cfa = cfa_remember;
-  old_cfa = old_cfa_remember;
-  cfa_remember.in_use = 0;
+    output_cfi_directive (asm_out_file, cfi);
 }
 
 /* Describe for the GTY machinery what parts of dw_cfi_oprnd1 are used.  */
@@ -3421,7 +3753,7 @@ output_cfi (dw_cfi_ref cfi, dw_fde_ref fde, int for_eh)
 /* Similar, but do it via assembler directives instead.  */
 
 static void
-output_cfi_directive (dw_cfi_ref cfi)
+output_cfi_directive (FILE *f, dw_cfi_ref cfi)
 {
   unsigned long r, r2;
 
@@ -3436,82 +3768,96 @@ output_cfi_directive (dw_cfi_ref cfi)
       /* Should only be created by add_fde_cfi in a code path not
 	 followed when emitting via directives.  The assembler is
 	 going to take care of this for us.  */
-      gcc_unreachable ();
+      if (f == asm_out_file)
+	gcc_unreachable ();
+      fprintf (f, "\t.cfi_advance_loc\n");
+      break;
 
     case DW_CFA_offset:
     case DW_CFA_offset_extended:
     case DW_CFA_offset_extended_sf:
       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (asm_out_file, "\t.cfi_offset %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
+      fprintf (f, "\t.cfi_offset %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
 	       r, cfi->dw_cfi_oprnd2.dw_cfi_offset);
       break;
 
     case DW_CFA_restore:
     case DW_CFA_restore_extended:
       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (asm_out_file, "\t.cfi_restore %lu\n", r);
+      fprintf (f, "\t.cfi_restore %lu\n", r);
       break;
 
     case DW_CFA_undefined:
       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (asm_out_file, "\t.cfi_undefined %lu\n", r);
+      fprintf (f, "\t.cfi_undefined %lu\n", r);
       break;
 
     case DW_CFA_same_value:
       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (asm_out_file, "\t.cfi_same_value %lu\n", r);
+      fprintf (f, "\t.cfi_same_value %lu\n", r);
       break;
 
     case DW_CFA_def_cfa:
     case DW_CFA_def_cfa_sf:
       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (asm_out_file, "\t.cfi_def_cfa %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
+      fprintf (f, "\t.cfi_def_cfa %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
 	       r, cfi->dw_cfi_oprnd2.dw_cfi_offset);
       break;
 
     case DW_CFA_def_cfa_register:
       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (asm_out_file, "\t.cfi_def_cfa_register %lu\n", r);
+      fprintf (f, "\t.cfi_def_cfa_register %lu\n", r);
       break;
 
     case DW_CFA_register:
       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
       r2 = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd2.dw_cfi_reg_num, 1);
-      fprintf (asm_out_file, "\t.cfi_register %lu, %lu\n", r, r2);
+      fprintf (f, "\t.cfi_register %lu, %lu\n", r, r2);
       break;
 
     case DW_CFA_def_cfa_offset:
     case DW_CFA_def_cfa_offset_sf:
-      fprintf (asm_out_file, "\t.cfi_def_cfa_offset "
+      fprintf (f, "\t.cfi_def_cfa_offset "
 	       HOST_WIDE_INT_PRINT_DEC"\n",
 	       cfi->dw_cfi_oprnd1.dw_cfi_offset);
       break;
 
     case DW_CFA_remember_state:
-      fprintf (asm_out_file, "\t.cfi_remember_state\n");
+      fprintf (f, "\t.cfi_remember_state\n");
       break;
     case DW_CFA_restore_state:
-      fprintf (asm_out_file, "\t.cfi_restore_state\n");
+      fprintf (f, "\t.cfi_restore_state\n");
       break;
 
     case DW_CFA_GNU_args_size:
-      fprintf (asm_out_file, "\t.cfi_escape %#x,", DW_CFA_GNU_args_size);
+      if (f != asm_out_file)
+	{
+	  fprintf (f, "\t.cfi_GNU_args_size"HOST_WIDE_INT_PRINT_DEC "\n",
+		   cfi->dw_cfi_oprnd1.dw_cfi_offset);
+	  break;
+	}
+      fprintf (f, "\t.cfi_escape %#x,", DW_CFA_GNU_args_size);
       dw2_asm_output_data_uleb128_raw (cfi->dw_cfi_oprnd1.dw_cfi_offset);
       if (flag_debug_asm)
-	fprintf (asm_out_file, "\t%s args_size "HOST_WIDE_INT_PRINT_DEC,
+	fprintf (f, "\t%s args_size "HOST_WIDE_INT_PRINT_DEC,
 		 ASM_COMMENT_START, cfi->dw_cfi_oprnd1.dw_cfi_offset);
-      fputc ('\n', asm_out_file);
+      fputc ('\n', f);
       break;
 
     case DW_CFA_GNU_window_save:
-      fprintf (asm_out_file, "\t.cfi_window_save\n");
+      fprintf (f, "\t.cfi_window_save\n");
       break;
 
     case DW_CFA_def_cfa_expression:
     case DW_CFA_expression:
-      fprintf (asm_out_file, "\t.cfi_escape %#x,", cfi->dw_cfi_opc);
+      if (f != asm_out_file)
+	{
+	  fprintf (f, "\t.cfi_cfa_{def_,}expression\n");
+	  break;
+	}
+      fprintf (f, "\t.cfi_escape %#x,", cfi->dw_cfi_opc);
       output_cfa_loc_raw (cfi);
-      fputc ('\n', asm_out_file);
+      fputc ('\n', f);
       break;
 
     default:
@@ -3520,14 +3866,11 @@ output_cfi_directive (dw_cfi_ref cfi)
 }
 
 /* Output CFIs from VEC, up to index UPTO, to bring current FDE to the
-   same state as after executing CFIs in CFI chain.  DO_CFI_ASM is
-   true if .cfi_* directives shall be emitted, false otherwise.  If it
-   is false, FDE and FOR_EH are the other arguments to pass to
-   output_cfi.  */
+   same state as after executing CFIs in CFI chain.  FDE and FOR_EH
+   are the other arguments to pass to output_cfi.  */
 
 static void
-output_cfis (cfi_vec vec, int upto, bool do_cfi_asm,
-	     dw_fde_ref fde, bool for_eh)
+output_cfis (cfi_vec vec, int upto, dw_fde_ref fde, bool for_eh)
 {
   int ix;
   struct dw_cfi_struct cfi_buf;
@@ -3621,12 +3964,7 @@ output_cfis (cfi_vec vec, int upto, bool do_cfi_asm,
 	      if (cfi2 != NULL
 		  && cfi2->dw_cfi_opc != DW_CFA_restore
 		  && cfi2->dw_cfi_opc != DW_CFA_restore_extended)
-		{
-		  if (do_cfi_asm)
-		    output_cfi_directive (cfi2);
-		  else
-		    output_cfi (cfi2, fde, for_eh);
-		}
+		output_cfi (cfi2, fde, for_eh);
 	    }
 	  if (cfi_cfa && cfi_cfa_offset && cfi_cfa_offset != cfi_cfa)
 	    {
@@ -3655,30 +3993,20 @@ output_cfis (cfi_vec vec, int upto, bool do_cfi_asm,
 	  else if (cfi_cfa_offset)
 	    cfi_cfa = cfi_cfa_offset;
 	  if (cfi_cfa)
-	    {
-	      if (do_cfi_asm)
-		output_cfi_directive (cfi_cfa);
-	      else
-		output_cfi (cfi_cfa, fde, for_eh);
-	    }
+	    output_cfi (cfi_cfa, fde, for_eh);
+
 	  cfi_cfa = NULL;
 	  cfi_cfa_offset = NULL;
 	  if (cfi_args_size
 	      && cfi_args_size->dw_cfi_oprnd1.dw_cfi_offset)
-	    {
-	      if (do_cfi_asm)
-		output_cfi_directive (cfi_args_size);
-	      else
-		output_cfi (cfi_args_size, fde, for_eh);
-	    }
+	    output_cfi (cfi_args_size, fde, for_eh);
+
 	  cfi_args_size = NULL;
 	  if (cfi == NULL)
 	    {
 	      VEC_free (dw_cfi_ref, heap, regs);
 	      return;
 	    }
-	  else if (do_cfi_asm)
-	    output_cfi_directive (cfi);
 	  else
 	    output_cfi (cfi, fde, for_eh);
 	  break;
@@ -3686,14 +4014,6 @@ output_cfis (cfi_vec vec, int upto, bool do_cfi_asm,
 	  gcc_unreachable ();
 	}
     }
-}
-
-/* Like output_cfis, but emit all CFIs in the vector.  */
-static void
-output_all_cfis (cfi_vec vec, bool do_cfi_asm,
-		 dw_fde_ref fde, bool for_eh)
-{
-  output_cfis (vec, VEC_length (dw_cfi_ref, vec), do_cfi_asm, fde, for_eh);
 }
 
 /* Output one FDE.  */
@@ -3811,7 +4131,7 @@ output_fde (dw_fde_ref fde, bool for_eh, bool second,
       if (fde->dw_fde_switch_cfi_index > 0)
 	{
 	  from = fde->dw_fde_switch_cfi_index;
-	  output_cfis (fde->dw_fde_cfi, from, false, fde, for_eh);
+	  output_cfis (fde->dw_fde_cfi, from, fde, for_eh);
 	}
       for (i = from; i < until; i++)
 	output_cfi (VEC_index (dw_cfi_ref, fde->dw_fde_cfi, i),
@@ -4389,13 +4709,8 @@ dwarf2out_switch_text_section (void)
        || (cold_text_section && sect == cold_text_section));
 
   if (dwarf2out_do_cfi_asm ())
-    {
-      dwarf2out_do_cfi_startproc (true);
-      /* As this is a different FDE, insert all current CFI instructions
-	 again.  */
-      output_all_cfis (fde->dw_fde_cfi, true, fde, true);
-    }
-  fde->dw_fde_switch_cfi_index = VEC_length (dw_cfi_ref, fde->dw_fde_cfi);
+    dwarf2out_do_cfi_startproc (true);
+
   var_location_switch_text_section ();
 
   set_cur_line_info_table (sect);
@@ -5648,7 +5963,7 @@ output_loc_operands_raw (dw_loc_descr_ref loc)
 	dw2_asm_output_data_uleb128_raw (r);
       }
       break;
-      
+
     case DW_OP_constu:
     case DW_OP_plus_uconst:
     case DW_OP_piece:
@@ -12699,7 +13014,7 @@ output_one_line_info_table (dw_line_info_table *table)
 	  dw2_asm_output_data (1, DW_LNS_set_prologue_end,
 			       "set prologue end");
 	  break;
-	  
+
 	case LI_set_epilogue_begin:
 	  dw2_asm_output_data (1, DW_LNS_set_epilogue_begin,
 			       "set epilogue begin");
@@ -15846,7 +16161,7 @@ static bool
 decl_by_reference_p (tree decl)
 {
   return ((TREE_CODE (decl) == PARM_DECL || TREE_CODE (decl) == RESULT_DECL
-  	   || TREE_CODE (decl) == VAR_DECL)
+	   || TREE_CODE (decl) == VAR_DECL)
 	  && DECL_BY_REFERENCE (decl));
 }
 
@@ -21808,7 +22123,7 @@ gen_type_die_with_usage (tree type, dw_die_ref context_die,
       if (DECL_CONTEXT (TYPE_NAME (type))
 	  && TREE_CODE (DECL_CONTEXT (TYPE_NAME (type))) == NAMESPACE_DECL)
 	context_die = get_context_die (DECL_CONTEXT (TYPE_NAME (type)));
-      
+
       gen_decl_die (TYPE_NAME (type), NULL, context_die);
       return;
     }
@@ -23038,7 +23353,7 @@ gen_scheduled_generic_parms_dies (void)
 
   if (generic_type_instances == NULL)
     return;
-  
+
   FOR_EACH_VEC_ELT (tree, generic_type_instances, i, t)
     gen_generic_params_dies (t);
 }
@@ -25193,7 +25508,7 @@ dwarf2out_finish (const char *filename)
   if (!VEC_empty (pubname_entry, pubtype_table))
     {
       bool empty = false;
-      
+
       if (flag_eliminate_unused_debug_types)
 	{
 	  /* The pubtypes table might be emptied by pruning unused items.  */
