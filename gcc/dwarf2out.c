@@ -467,6 +467,8 @@ static void output_call_frame_info (int);
 static void dwarf2out_note_section_used (void);
 static bool clobbers_queued_reg_save (const_rtx);
 static void dwarf2out_frame_debug_expr (rtx, const char *);
+static void dwarf2out_cfi_begin_epilogue (rtx);
+static void dwarf2out_frame_debug_restore_state (void);
 
 /* Support for complex CFA locations.  */
 static void output_cfa_loc (dw_cfi_ref, int);
@@ -845,6 +847,15 @@ add_cfi (cfi_vec *vec, dw_cfi_ref cfi)
   VEC_safe_push (dw_cfi_ref, gc, *vec, cfi);
 }
 
+/* The insn after which a new CFI note should be emitted.  */
+static rtx cfi_insn;
+
+/* True if remember_state should be emitted before following CFI directive.  */
+static bool emit_cfa_remember;
+
+/* True if any CFI directives were emitted at the current insn.  */
+static bool any_cfis_emitted;
+
 /* Generate a new label for the CFI info to refer to.  FORCE is true
    if a label needs to be output even when using .cfi_* directives.  */
 
@@ -864,17 +875,12 @@ dwarf2out_cfi_label (bool force)
     {
       int num = dwarf2out_cfi_label_num++;
       ASM_GENERATE_INTERNAL_LABEL (label, "LCFI", num);
-      ASM_OUTPUT_DEBUG_LABEL (asm_out_file, "LCFI", num);
+      cfi_insn = emit_note_after (NOTE_INSN_CFI_LABEL, cfi_insn);
+      NOTE_LABEL_NUMBER (cfi_insn) = num;
     }
 
   return label;
 }
-
-/* True if remember_state should be emitted before following CFI directive.  */
-static bool emit_cfa_remember;
-
-/* True if any CFI directives were emitted at the current insn.  */
-static bool any_cfis_emitted;
 
 /* Add CFI to the current fde at the PC value indicated by LABEL if specified,
    or to the CIE if LABEL is NULL.  */
@@ -955,7 +961,8 @@ add_fde_cfi (const char *label, dw_cfi_ref cfi)
 	        }
 	    }
 
-	  output_cfi_directive (cfi);
+	  cfi_insn = emit_note_after (NOTE_INSN_CFI, cfi_insn);
+	  NOTE_CFI (cfi_insn) = cfi;
 
 	  vec = &fde->dw_fde_cfi;
 	  any_cfis_emitted = true;
@@ -2804,6 +2811,11 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
   rtx note, n;
   bool handled_one = false;
 
+  if (after_p)
+    cfi_insn = insn;
+  else
+    cfi_insn = PREV_INSN (insn);
+
   if (!NONJUMP_INSN_P (insn) || clobbers_queued_reg_save (insn))
     dwarf2out_flush_queued_reg_saves ();
 
@@ -2927,6 +2939,7 @@ void
 dwarf2out_frame_debug_init (void)
 {
   size_t i;
+  rtx insn;
 
   /* Flush any queued register saves.  */
   dwarf2out_flush_queued_reg_saves ();
@@ -2953,12 +2966,64 @@ dwarf2out_frame_debug_init (void)
       XDELETEVEC (barrier_args_size);
       barrier_args_size = NULL;
     }
+  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+    {
+      rtx pat;
+      if (BARRIER_P (insn))
+	{
+	  dwarf2out_frame_debug (insn, false);
+	  continue;
+	}
+      else if (NOTE_P (insn))
+	{
+	  switch (NOTE_KIND (insn))
+	    {
+	    case NOTE_INSN_EPILOGUE_BEG:
+#if defined (HAVE_epilogue)
+	      dwarf2out_cfi_begin_epilogue (insn);
+#endif
+	      break;
+	    case NOTE_INSN_CFA_RESTORE_STATE:
+	      cfi_insn = insn;
+	      dwarf2out_frame_debug_restore_state ();
+	      break;
+	    }
+	  continue;
+	}
+      if (!NONDEBUG_INSN_P (insn))
+	continue;
+      pat = PATTERN (insn);
+      if (asm_noperands (pat) >= 0)
+	continue;
+      if (GET_CODE (pat) == SEQUENCE)
+	{
+	  int j;
+	  for (j = 1; j < XVECLEN (pat, 0); j++)
+	    dwarf2out_frame_debug (XVECEXP (pat, 0, j), false);
+	  insn = XVECEXP (pat, 0, 0);
+	}
+
+      if (CALL_P (insn) && dwarf2out_do_frame ())
+	dwarf2out_frame_debug (insn, false);
+      if (dwarf2out_do_frame ()
+#if !defined (HAVE_prologue)
+	  && !ACCUMULATE_OUTGOING_ARGS
+#endif
+	  )
+	dwarf2out_frame_debug (insn, true);
+    }
 }
 
-/* Determine if we need to save and restore CFI information around this
-   epilogue.  If SIBCALL is true, then this is a sibcall epilogue.  If
-   we do need to save/restore, then emit the save now, and insert a
-   NOTE_INSN_CFA_RESTORE_STATE at the appropriate place in the stream.  */
+void
+dwarf2out_emit_cfi (dw_cfi_ref cfi)
+{
+  output_cfi_directive (cfi);
+}
+
+/* Determine if we need to save and restore CFI information around
+   this epilogue.  If we do need to save/restore, then emit the save
+   now, and insert a NOTE_INSN_CFA_RESTORE_STATE at the appropriate
+   place in the stream.  */
 
 void
 dwarf2out_cfi_begin_epilogue (rtx insn)
@@ -2973,8 +3038,10 @@ dwarf2out_cfi_begin_epilogue (rtx insn)
       if (!INSN_P (i))
 	continue;
 
-      /* Look for both regular and sibcalls to end the block.  */
-      if (returnjump_p (i))
+      /* Look for both regular and sibcalls to end the block.  Various
+	 optimization passes may cause us to jump to a common epilogue
+	 tail, so we also accept simplejumps.  */
+      if (returnjump_p (i) || simplejump_p (i))
 	break;
       if (CALL_P (i) && SIBLING_CALL_P (i))
 	break;
