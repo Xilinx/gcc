@@ -320,7 +320,7 @@ static enum machine_mode ia64_promote_function_mode (const_tree,
 static void ia64_trampoline_init (rtx, tree, rtx);
 static void ia64_override_options_after_change (void);
 
-static void ia64_dwarf_handle_frame_unspec (const char *, rtx, int);
+static void ia64_dwarf_handle_frame_unspec (rtx, int);
 static tree ia64_builtin_decl (unsigned, bool);
 
 static reg_class_t ia64_preferred_reload_class (rtx, reg_class_t);
@@ -9662,9 +9662,7 @@ ia64_dwarf2out_def_steady_cfa (rtx insn, bool frame)
    processing.  The real CFA definition is set up above.  */
 
 static void
-ia64_dwarf_handle_frame_unspec (const char * ARG_UNUSED (label),
-				rtx ARG_UNUSED (pattern),
-				int index)
+ia64_dwarf_handle_frame_unspec (rtx ARG_UNUSED (pattern), int index)
 {
   gcc_assert (index == UNSPECV_ALLOC);
 }

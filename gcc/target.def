@@ -1833,7 +1833,7 @@ DEFHOOK
 DEFHOOK
 (dwarf_handle_frame_unspec,
  "",
- void, (const char *label, rtx pattern, int index), NULL)
+ void, (rtx pattern, int index), NULL)
 
 /* ??? Documenting this hook requires a GFDL license grant.  */
 DEFHOOK_UNDOC

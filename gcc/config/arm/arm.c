@@ -20080,18 +20080,19 @@ thumb_pushpop (FILE *f, unsigned long mask, int push, int *cfa_offset,
 
   if (push && pushed_words && dwarf2out_do_frame ())
     {
-      char *l = dwarf2out_cfi_label (false);
       int pushed_mask = real_regs;
 
+      dwarf2out_maybe_emit_cfi_label ();
+
       *cfa_offset += pushed_words * 4;
-      dwarf2out_def_cfa (l, SP_REGNUM, *cfa_offset);
+      dwarf2out_def_cfa (SP_REGNUM, *cfa_offset);
 
       pushed_words = 0;
       pushed_mask = real_regs;
       for (regno = 0; regno <= 14; regno++, pushed_mask >>= 1)
 	{
 	  if (pushed_mask & 1)
-	    dwarf2out_reg_save (l, regno, 4 * pushed_words++ - *cfa_offset);
+	    dwarf2out_reg_save (regno, 4 * pushed_words++ - *cfa_offset);
 	}
     }
 }
@@ -21100,10 +21101,9 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 	 the stack pointer.  */
       if (dwarf2out_do_frame ())
 	{
-	  char *l = dwarf2out_cfi_label (false);
-
+	  dwarf2out_maybe_emit_cfi_label ();
 	  cfa_offset = cfa_offset + crtl->args.pretend_args_size;
-	  dwarf2out_def_cfa (l, SP_REGNUM, cfa_offset);
+	  dwarf2out_def_cfa (SP_REGNUM, cfa_offset);
 	}
     }
 
@@ -21149,10 +21149,10 @@ thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 
       if (dwarf2out_do_frame ())
 	{
-	  char *l = dwarf2out_cfi_label (false);
+	  dwarf2out_maybe_emit_cfi_label ();
 
 	  cfa_offset = cfa_offset + 16;
-	  dwarf2out_def_cfa (l, SP_REGNUM, cfa_offset);
+	  dwarf2out_def_cfa (SP_REGNUM, cfa_offset);
 	}
 
       if (l_mask)
@@ -22840,7 +22840,7 @@ arm_asm_init_sections (void)
    stack alignment.  */
 
 static void
-arm_dwarf_handle_frame_unspec (const char *label, rtx pattern, int index)
+arm_dwarf_handle_frame_unspec (rtx pattern, int index)
 {
   rtx unspec = SET_SRC (pattern);
   gcc_assert (GET_CODE (unspec) == UNSPEC);
@@ -22851,8 +22851,7 @@ arm_dwarf_handle_frame_unspec (const char *label, rtx pattern, int index)
       /* ??? We should set the CFA = (SP & ~7).  At this point we haven't
          put anything on the stack, so hopefully it won't matter.
          CFA = SP will be correct after alignment.  */
-      dwarf2out_reg_save_reg (label, stack_pointer_rtx,
-                              SET_DEST (pattern));
+      dwarf2out_reg_save_reg (stack_pointer_rtx, SET_DEST (pattern));
       break;
     default:
       gcc_unreachable ();

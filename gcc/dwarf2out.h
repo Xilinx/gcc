@@ -19,11 +19,42 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 struct dw_cfi_struct;
+/* In dwarf2out.c */
+/* Interface of the DWARF2 unwind info support.  */
+
+/* Generate a new label for the CFI info to refer to.  */
+
+extern void dwarf2out_maybe_emit_cfi_label (void);
+
+/* Entry point to update the canonical frame address (CFA).  */
+
+extern void dwarf2out_def_cfa (bool, unsigned, HOST_WIDE_INT);
+
+/* Add the CFI for saving a register window.  */
+
+extern void dwarf2out_window_save (void);
+
+/* Entry point for saving a register to the stack.  */
+
+extern void dwarf2out_reg_save (unsigned, HOST_WIDE_INT);
+
+/* Entry point for saving the return address in the stack.  */
+
+extern void dwarf2out_return_save (HOST_WIDE_INT);
+
+/* Entry point for saving the return address in a register.  */
+
+extern void dwarf2out_return_reg (unsigned);
+
+/* Entry point for saving the first register into the second.  */
+
+extern void dwarf2out_reg_save_reg (rtx, rtx);
+
 extern void dwarf2out_decl (tree);
 extern void dwarf2out_frame_debug (rtx, bool);
 extern void dwarf2out_frame_debug_init (void);
+extern void dwarf2out_frame_debug_after_prologue (void);
 extern void dwarf2out_emit_cfi (struct dw_cfi_struct *);
-extern void dwarf2out_flush_queued_reg_saves (void);
 
 extern void debug_dwarf (void);
 struct die_struct;

@@ -460,7 +460,7 @@ static unsigned int sparc_function_arg_boundary (enum machine_mode,
 						 const_tree);
 static int sparc_arg_partial_bytes (cumulative_args_t,
 				    enum machine_mode, tree, bool);
-static void sparc_dwarf_handle_frame_unspec (const char *, rtx, int);
+static void sparc_dwarf_handle_frame_unspec (rtx, int);
 static void sparc_output_dwarf_dtprel (FILE *, int, rtx) ATTRIBUTE_UNUSED;
 static void sparc_file_end (void);
 static bool sparc_frame_pointer_required (void);
@@ -10006,12 +10006,11 @@ get_some_local_dynamic_name_1 (rtx *px, void *data ATTRIBUTE_UNUSED)
    for frame-related insns containing UNSPECs and UNSPEC_VOLATILEs.  */
 
 static void
-sparc_dwarf_handle_frame_unspec (const char *label,
-				 rtx pattern ATTRIBUTE_UNUSED,
+sparc_dwarf_handle_frame_unspec (rtx pattern ATTRIBUTE_UNUSED,
 				 int index ATTRIBUTE_UNUSED)
 {
   gcc_assert (index == UNSPECV_SAVEW);
-  dwarf2out_window_save (label);
+  dwarf2out_window_save ();
 }
 
 /* This is called from dwarf2out.c via TARGET_ASM_OUTPUT_DWARF_DTPREL.

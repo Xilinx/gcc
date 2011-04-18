@@ -3234,7 +3234,7 @@ someone decided it was a good idea to use that register number to
 terminate the stack backtrace.  New ports should avoid this.
 @end defmac
 
-@deftypefn {Target Hook} void TARGET_DWARF_HANDLE_FRAME_UNSPEC (const char *@var{label}, rtx @var{pattern}, int @var{index})
+@deftypefn {Target Hook} void TARGET_DWARF_HANDLE_FRAME_UNSPEC (rtx @var{pattern}, int @var{index})
 This target hook allows the backend to emit frame-related insns that
 contain UNSPECs or UNSPEC_VOLATILEs.  The DWARF 2 call frame debugging
 info engine will invoke it on insns of the form

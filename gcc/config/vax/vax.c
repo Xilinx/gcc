@@ -160,17 +160,18 @@ vax_output_function_prologue (FILE * file, HOST_WIDE_INT size)
 
   if (dwarf2out_do_frame ())
     {
-      const char *label = dwarf2out_cfi_label (false);
       int offset = 0;
+
+      dwarf2out_maybe_emit_cfi_label ();
 
       for (regno = FIRST_PSEUDO_REGISTER-1; regno >= 0; --regno)
 	if (df_regs_ever_live_p (regno) && !call_used_regs[regno])
-	  dwarf2out_reg_save (label, regno, offset -= 4);
+	  dwarf2out_reg_save (regno, offset -= 4);
 
-      dwarf2out_reg_save (label, PC_REGNUM, offset -= 4);
-      dwarf2out_reg_save (label, FRAME_POINTER_REGNUM, offset -= 4);
-      dwarf2out_reg_save (label, ARG_POINTER_REGNUM, offset -= 4);
-      dwarf2out_def_cfa (label, FRAME_POINTER_REGNUM, -(offset - 4));
+      dwarf2out_reg_save (PC_REGNUM, offset -= 4);
+      dwarf2out_reg_save (FRAME_POINTER_REGNUM, offset -= 4);
+      dwarf2out_reg_save (ARG_POINTER_REGNUM, offset -= 4);
+      dwarf2out_def_cfa (false, FRAME_POINTER_REGNUM, -(offset - 4));
     }
 
   size -= STARTING_FRAME_OFFSET;
