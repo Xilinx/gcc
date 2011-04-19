@@ -1775,6 +1775,10 @@ process_module_scope_static_var (struct varpool_node *vnode)
 	      DECL_EXTERNAL (decl) = 1;
 	      TREE_STATIC (decl) = 0;
 	      DECL_INITIAL (decl) = NULL;
+	      if (DECL_CONTEXT (decl))
+                {
+                  DECL_ASSEMBLER_NAME (decl);
+                }
 	      DECL_CONTEXT (decl) = NULL;
 	    }
         }
