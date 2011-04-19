@@ -1,3 +1,21 @@
+2011-04-18  Lawrence Crowl <crowl@google.com>
+
+	* pph.c (pth_save_identifiers): Fix FIXME comment.
+        (pph_add_names_to_namespace): Add contained namespaces to scope as
+	well as regular symbols.
+	* pph-streamer.c (enum pph_trace_type): Add a trace for refs.
+        (pph_stream_trace): Add the ref printing.  Reduce bulk of trace
+	messages.  Filter off uninteresting traces, primarily traces of null
+	pointers.
+	(pph_stream_trace_tree): Convert ref_p to trace value.
+	* pph-streamer.h: Adjust flag_pph_tracer comparisons for better traces.
+	(pph_stream_trace_tree): Add ref_p parameter.  Propogate such
+	parameters at all call sites.
+        (pph_output_tree_lst): New.  Like pph_output_tree, but for list and
+	chain contexts.
+	(pph_stream_write_tree): The callback is auxillary.
+	(pph_output_chain_filtered): Call pph_output_tree_lst.
+
 2011-04-14  Diego Novillo  <dnovillo@google.com>
 
 	* pph.c (pph_read_file_contents): Re-instate call to

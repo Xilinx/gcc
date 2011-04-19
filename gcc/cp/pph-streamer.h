@@ -93,7 +93,7 @@ enum chain_filter { NONE, NO_BUILTINS };
 /* In pph-streamer.c.  */
 pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
-void pph_stream_trace_tree (pph_stream *, tree);
+void pph_stream_trace_tree (pph_stream *, tree, bool ref_p);
 void pph_stream_trace_uint (pph_stream *, unsigned int);
 void pph_stream_trace_bytes (pph_stream *, const void *, size_t);
 void pph_stream_trace_string (pph_stream *, const char *);
@@ -134,17 +134,27 @@ static inline void
 pph_output_tree (pph_stream *stream, tree t, bool ref_p)
 {
   if (flag_pph_tracer >= 1)
-    pph_stream_trace_tree (stream, t);
+    pph_stream_trace_tree (stream, t, ref_p);
   lto_output_tree (stream->ob, t, ref_p);
 }
 
 /* Output AST T to STREAM.  If REF_P is true, output all the leaves of T
-   as references.  this function is an internal auxillary routine.  */
+   as references.  This function is an list auxillary routine.  */
+static inline void
+pph_output_tree_lst (pph_stream *stream, tree t, bool ref_p)
+{
+  if (flag_pph_tracer >= 2)
+    pph_stream_trace_tree (stream, t, ref_p);
+  lto_output_tree (stream->ob, t, ref_p);
+}
+
+/* Output AST T to STREAM.  If REF_P is true, output all the leaves of T
+   as references.  This function is an internal auxillary routine.  */
 static inline void
 pph_output_tree_aux (pph_stream *stream, tree t, bool ref_p)
 {
   if (flag_pph_tracer >= 3)
-    pph_stream_trace_tree (stream, t);
+    pph_stream_trace_tree (stream, t, ref_p);
   lto_output_tree (stream->ob, t, ref_p);
 }
 
@@ -153,7 +163,7 @@ static inline void
 pph_output_tree_or_ref (pph_stream *stream, tree t, bool ref_p)
 {
   if (flag_pph_tracer >= 2)
-    pph_stream_trace_tree (stream, t);
+    pph_stream_trace_tree (stream, t, ref_p);
   lto_output_tree_or_ref (stream->ob, t, ref_p);
 }
 
@@ -220,7 +230,7 @@ pph_output_string_with_length (pph_stream *stream, const char *str,
 static inline void
 pph_output_chain (pph_stream *stream, tree first, bool ref_p)
 {
-  if (flag_pph_tracer >= 3)
+  if (flag_pph_tracer >= 2)
     pph_stream_trace_chain (stream, first);
   lto_output_chain (stream->ob, first, ref_p);
 }
@@ -285,7 +295,7 @@ pph_input_tree (pph_stream *stream)
 {
   tree t = lto_input_tree (stream->ib, stream->data_in);
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_tree (stream, t);
+    pph_stream_trace_tree (stream, t, false); /* FIXME pph: always false? */
   return t;
 }
 

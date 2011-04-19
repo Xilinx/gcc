@@ -395,7 +395,7 @@ static const struct builtin_operator operator_array[] =
 };
 #undef B
 
-/* Verify that the indicies of the named operators fit within the
+/* Verify that the indices of the named operators fit within the
    number of bits available. */
 
 #define B(n, t) unsigned char t ## _too_large_for_bitfield[ \

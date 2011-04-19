@@ -1,3 +1,7 @@
+2011-04-18  Lawrence Crowl  <crowl@google.com>
+
+	* init.c: Fix spelling in comment.
+
 2011-04-14  Lawrence Crowl  <crowl@google.com>
 
 	* include/cpplib.h (cpp_hashnode):  Use a macro for the number of bits

@@ -792,7 +792,7 @@ pth_save_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
       if (!(entry->used_by_directive || entry->expanded_to_text))
         continue;
 
-      /* FIX pph: We are wasting space; ident_len, used_by_directive
+      /* FIXME pph: We are wasting space; ident_len, used_by_directive
       and expanded_to_text together could fit into a single uint. */
 
       pph_output_uint (stream, entry->used_by_directive);
@@ -1956,6 +1956,21 @@ pph_add_names_to_namespace (tree ns, tree new_ns)
       chain = DECL_CHAIN (t);
       pushdecl_with_scope (t, level, /*is_friend=*/false);
     }
+
+  for (t = new_level->namespaces; t; t = chain)
+    {
+      /* Pushing a decl into a scope clobbers its DECL_CHAIN.
+	 Preserve it.  */
+      /* FIXME pph: we should first check to see if it isn't already there.  */
+      chain = DECL_CHAIN (t);
+      pushdecl_with_scope (t, level, /*is_friend=*/false);
+      /* FIXME pph: The change above enables the namespace,
+         but its symbols are still missing.
+         The recursive call below causes multiple errors.
+      pph_add_names_to_namespace (t, t);
+      */
+    }
+
 }
 
 

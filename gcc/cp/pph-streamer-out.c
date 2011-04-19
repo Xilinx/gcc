@@ -791,7 +791,7 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 	}
 
       if (TREE_CODE (expr) == TYPE_DECL)
-	pph_output_tree (stream, DECL_ORIGINAL_TYPE (expr), ref_p);
+	pph_output_tree_aux (stream, DECL_ORIGINAL_TYPE (expr), ref_p);
     }
   else if (TREE_CODE (expr) == STATEMENT_LIST)
     {
@@ -855,7 +855,7 @@ pph_output_chain_filtered (pph_stream *stream, tree first, bool ref_p,
       saved_chain = TREE_CHAIN (t);
       TREE_CHAIN (t) = NULL_TREE;
 
-      pph_output_tree (stream, t, ref_p);
+      pph_output_tree_lst (stream, t, ref_p);
 
       TREE_CHAIN (t) = saved_chain;
     }
