@@ -903,7 +903,7 @@ cgraph_decide_recursive_inlining (struct cgraph_node *node,
 		fprintf (dump_file, "   Not inlining cold call\n");
 	      continue;
 	    }
-          if (curr->count * 100 / node->count < probability)
+          if (node->count == 0 || curr->count * 100 / node->count < probability)
 	    {
 	      if (dump_file)
 		fprintf (dump_file,

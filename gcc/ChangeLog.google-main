@@ -1,3 +1,8 @@
+2011-04-19  Xinliang David Li  <davidxl@google.com>
+
+	* ipa-inline.c (cgraph_decide_recursive_inlining): Fix
+	div by zero error with insane profile.
+
 2011-04-17  Diego Novillo  <dnovillo@google.com>
 
 	Merge from google/integration rev 172609.
