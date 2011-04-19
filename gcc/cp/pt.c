@@ -1517,8 +1517,8 @@ iterative_hash_template_arg (tree arg, hashval_t val)
       return val;
 
     case OVERLOAD:
-      for (; arg; arg = OVL_CHAIN (arg))
-	val = iterative_hash_template_arg (OVL_FUNCTION (arg), val);
+      for (; arg; arg = OVL_NEXT (arg))
+	val = iterative_hash_template_arg (OVL_CURRENT (arg), val);
       return val;
 
     case CONSTRUCTOR:
@@ -11046,7 +11046,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	  type = lambda_return_type (type);
 	else
 	  type = finish_decltype_type
-	    (type, DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t));
+	    (type, DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t), complain);
 	return cp_build_qualified_type_real (type,
 					     cp_type_quals (t)
 					     | cp_type_quals (type),
@@ -12959,7 +12959,8 @@ tsubst_copy_and_build (tree t,
 	    && !any_type_dependent_arguments_p (call_args))
 	  function = perform_koenig_lookup (function, call_args, false);
 
-	if (TREE_CODE (function) == IDENTIFIER_NODE)
+	if (TREE_CODE (function) == IDENTIFIER_NODE
+	    && !processing_template_decl)
 	  {
 	    unqualified_name_lookup_error (function);
 	    release_tree_vector (call_args);
@@ -13283,7 +13284,7 @@ tsubst_copy_and_build (tree t,
 	CONSTRUCTOR_IS_DIRECT_INIT (r) = CONSTRUCTOR_IS_DIRECT_INIT (t);
 
 	if (TREE_HAS_CONSTRUCTOR (t))
-	  return finish_compound_literal (type, r);
+	  return finish_compound_literal (type, r, complain);
 
 	TREE_TYPE (r) = type;
 	return r;
@@ -13752,7 +13753,8 @@ fn_type_unification (tree fn,
               template_parm_level_and_index (parm, &level, &idx);
 
               /* Mark the argument pack as "incomplete". We could
-                 still deduce more arguments during unification.  */
+                 still deduce more arguments during unification.
+	         We remove this mark in type_unification_real.  */
               targ = TMPL_ARG (converted_args, level, idx);
               if (targ)
                 {
@@ -13808,22 +13810,6 @@ fn_type_unification (tree fn,
   result = type_unification_real (DECL_INNERMOST_TEMPLATE_PARMS (fn),
 				  targs, parms, args, nargs, /*subr=*/0,
 				  strict, flags);
-
-  if (result == 0 && incomplete_argument_packs_p)
-    {
-      int i, len = NUM_TMPL_ARGS (targs);
-
-      /* Clear the "incomplete" flags on all argument packs.  */
-      for (i = 0; i < len; i++)
-        {
-          tree arg = TREE_VEC_ELT (targs, i);
-          if (ARGUMENT_PACK_P (arg))
-            {
-              ARGUMENT_PACK_INCOMPLETE_P (arg) = 0;
-              ARGUMENT_PACK_EXPLICIT_ARGS (arg) = NULL_TREE;
-            }
-        }
-    }
 
   /* Now that we have bindings for all of the template arguments,
      ensure that the arguments deduced for the template template
@@ -13969,7 +13955,10 @@ maybe_adjust_types_for_deduction (unification_kind_t strict,
       && TYPE_REF_IS_RVALUE (*parm)
       && TREE_CODE (TREE_TYPE (*parm)) == TEMPLATE_TYPE_PARM
       && cp_type_quals (TREE_TYPE (*parm)) == TYPE_UNQUALIFIED
-      && arg_expr && real_lvalue_p (arg_expr))
+      && (arg_expr ? real_lvalue_p (arg_expr)
+	  /* try_one_overload doesn't provide an arg_expr, but
+	     functions are always lvalues.  */
+	  : TREE_CODE (*arg) == FUNCTION_TYPE))
     *arg = build_reference_type (*arg);
 
   /* [temp.deduct.call]
@@ -14166,15 +14155,17 @@ type_unification_real (tree tparms,
     return 1;
 
   if (!subr)
-    for (i = 0; i < ntparms; i++)
-      if (!TREE_VEC_ELT (targs, i))
+    {
+      /* Check to see if we need another pass before we start clearing
+	 ARGUMENT_PACK_INCOMPLETE_P.  */
+      for (i = 0; i < ntparms; i++)
 	{
-	  tree tparm;
+	  tree targ = TREE_VEC_ELT (targs, i);
+	  tree tparm = TREE_VEC_ELT (tparms, i);
 
-          if (TREE_VEC_ELT (tparms, i) == error_mark_node)
-            continue;
-
-          tparm = TREE_VALUE (TREE_VEC_ELT (tparms, i));
+	  if (targ || tparm == error_mark_node)
+	    continue;
+	  tparm = TREE_VALUE (tparm);
 
 	  /* If this is an undeduced nontype parameter that depends on
 	     a type parameter, try another pass; its type may have been
@@ -14184,59 +14175,78 @@ type_unification_real (tree tparms,
 	      && uses_template_parms (TREE_TYPE (tparm))
 	      && !saw_undeduced++)
 	    goto again;
+	}
 
-          /* Core issue #226 (C++0x) [temp.deduct]:
+      for (i = 0; i < ntparms; i++)
+	{
+	  tree targ = TREE_VEC_ELT (targs, i);
+	  tree tparm = TREE_VEC_ELT (tparms, i);
 
-               If a template argument has not been deduced, its
-               default template argument, if any, is used. 
+	  /* Clear the "incomplete" flags on all argument packs now so that
+	     substituting them into later default arguments works.  */
+	  if (targ && ARGUMENT_PACK_P (targ))
+            {
+              ARGUMENT_PACK_INCOMPLETE_P (targ) = 0;
+              ARGUMENT_PACK_EXPLICIT_ARGS (targ) = NULL_TREE;
+            }
 
-             When we are in C++98 mode, TREE_PURPOSE will either
+	  if (targ || tparm == error_mark_node)
+	    continue;
+	  tparm = TREE_VALUE (tparm);
+
+	  /* Core issue #226 (C++0x) [temp.deduct]:
+
+	     If a template argument has not been deduced, its
+	     default template argument, if any, is used. 
+
+	     When we are in C++98 mode, TREE_PURPOSE will either
 	     be NULL_TREE or ERROR_MARK_NODE, so we do not need
 	     to explicitly check cxx_dialect here.  */
-          if (TREE_PURPOSE (TREE_VEC_ELT (tparms, i)))
-            {
+	  if (TREE_PURPOSE (TREE_VEC_ELT (tparms, i)))
+	    {
 	      tree parm = TREE_VALUE (TREE_VEC_ELT (tparms, i));
 	      tree arg = TREE_PURPOSE (TREE_VEC_ELT (tparms, i));
-              arg = tsubst_template_arg (arg, targs, tf_none, NULL_TREE);
+	      arg = tsubst_template_arg (arg, targs, tf_none, NULL_TREE);
 	      arg = convert_template_argument (parm, arg, targs, tf_none,
 					       i, NULL_TREE);
-              if (arg == error_mark_node)
-                return 1;
-              else
-                {
-                  TREE_VEC_ELT (targs, i) = arg;
+	      if (arg == error_mark_node)
+		return 1;
+	      else
+		{
+		  TREE_VEC_ELT (targs, i) = arg;
 		  /* The position of the first default template argument,
 		     is also the number of non-defaulted arguments in TARGS.
 		     Record that.  */
 		  if (!NON_DEFAULT_TEMPLATE_ARGS_COUNT (targs))
 		    SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (targs, i);
-                  continue;
-                }
-            }
+		  continue;
+		}
+	    }
 
-          /* If the type parameter is a parameter pack, then it will
-             be deduced to an empty parameter pack.  */
-          if (template_parameter_pack_p (tparm))
-            {
-              tree arg;
+	  /* If the type parameter is a parameter pack, then it will
+	     be deduced to an empty parameter pack.  */
+	  if (template_parameter_pack_p (tparm))
+	    {
+	      tree arg;
 
-              if (TREE_CODE (tparm) == TEMPLATE_PARM_INDEX)
-                {
-                  arg = make_node (NONTYPE_ARGUMENT_PACK);
-                  TREE_TYPE (arg)  = TREE_TYPE (TEMPLATE_PARM_DECL (tparm));
-                  TREE_CONSTANT (arg) = 1;
-                }
-              else
-                arg = cxx_make_type (TYPE_ARGUMENT_PACK);
+	      if (TREE_CODE (tparm) == TEMPLATE_PARM_INDEX)
+		{
+		  arg = make_node (NONTYPE_ARGUMENT_PACK);
+		  TREE_TYPE (arg)  = TREE_TYPE (TEMPLATE_PARM_DECL (tparm));
+		  TREE_CONSTANT (arg) = 1;
+		}
+	      else
+		arg = cxx_make_type (TYPE_ARGUMENT_PACK);
 
-              SET_ARGUMENT_PACK_ARGS (arg, make_tree_vec (0));
+	      SET_ARGUMENT_PACK_ARGS (arg, make_tree_vec (0));
 
-              TREE_VEC_ELT (targs, i) = arg;
-              continue;
-            }
+	      TREE_VEC_ELT (targs, i) = arg;
+	      continue;
+	    }
 
 	  return 2;
 	}
+    }
 #ifdef ENABLE_CHECKING
   if (!NON_DEFAULT_TEMPLATE_ARGS_COUNT (targs))
     SET_NON_DEFAULT_TEMPLATE_ARGS_COUNT (targs, TREE_VEC_LENGTH (targs));
@@ -18115,10 +18125,10 @@ value_dependent_expression_p (tree expression)
       return value_dependent_expression_p (DECL_INITIAL (expression));
 
     case VAR_DECL:
-       /* A constant with integral or enumeration type and is initialized
+       /* A constant with literal type and is initialized
 	  with an expression that is value-dependent.  */
       if (DECL_INITIAL (expression)
-	  && INTEGRAL_OR_ENUMERATION_TYPE_P (TREE_TYPE (expression))
+	  && decl_constant_var_p (expression)
 	  && value_dependent_expression_p (DECL_INITIAL (expression)))
 	return true;
       return false;
@@ -18247,6 +18257,11 @@ value_dependent_expression_p (tree expression)
 	  }
 	return false;
       }
+
+    case TEMPLATE_ID_EXPR:
+      /* If a TEMPLATE_ID_EXPR involves a dependent name, it will be
+	 type-dependent.  */
+      return type_dependent_expression_p (expression);
 
     default:
       /* A constant expression is value-dependent if any subexpression is
@@ -18610,9 +18625,9 @@ dependent_template_p (tree tmpl)
     {
       while (tmpl)
 	{
-	  if (dependent_template_p (OVL_FUNCTION (tmpl)))
+	  if (dependent_template_p (OVL_CURRENT (tmpl)))
 	    return true;
-	  tmpl = OVL_CHAIN (tmpl);
+	  tmpl = OVL_NEXT (tmpl);
 	}
       return false;
     }
@@ -18879,24 +18894,17 @@ build_non_dependent_expr (tree expr)
 		   TREE_OPERAND (expr, 0),
 		   build_non_dependent_expr (TREE_OPERAND (expr, 1)));
 
+  /* Keep dereferences outside the NON_DEPENDENT_EXPR so lvalue_kind
+     doesn't need to look inside.  */
+  if (TREE_CODE (expr) == INDIRECT_REF && REFERENCE_REF_P (expr))
+    return convert_from_reference (build_non_dependent_expr
+				   (TREE_OPERAND (expr, 0)));
+
   /* If the type is unknown, it can't really be non-dependent */
   gcc_assert (TREE_TYPE (expr) != unknown_type_node);
 
-  /* Otherwise, build a NON_DEPENDENT_EXPR.
-
-     REFERENCE_TYPEs are not stripped for expressions in templates
-     because doing so would play havoc with mangling.  Consider, for
-     example:
-
-       template <typename T> void f<T& g>() { g(); }
-
-     In the body of "f", the expression for "g" will have
-     REFERENCE_TYPE, even though the standard says that it should
-     not.  The reason is that we must preserve the syntactic form of
-     the expression so that mangling (say) "f<g>" inside the body of
-     "f" works out correctly.  Therefore, the REFERENCE_TYPE is
-     stripped here.  */
-  return build1 (NON_DEPENDENT_EXPR, non_reference (TREE_TYPE (expr)), expr);
+  /* Otherwise, build a NON_DEPENDENT_EXPR.  */
+  return build1 (NON_DEPENDENT_EXPR, TREE_TYPE (expr), expr);
 }
 
 /* ARGS is a vector of expressions as arguments to a function call.

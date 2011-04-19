@@ -2474,6 +2474,8 @@ check_for_override (tree decl, tree ctype)
       if (!DECL_VINDEX (decl))
 	DECL_VINDEX (decl) = error_mark_node;
       IDENTIFIER_VIRTUAL_P (DECL_NAME (decl)) = 1;
+      if (DECL_DESTRUCTOR_P (decl))
+	TYPE_HAS_NONTRIVIAL_DESTRUCTOR (ctype) = true;
     }
 }
 
@@ -4547,6 +4549,8 @@ type_requires_array_cookie (tree type)
 static void
 finalize_literal_type_property (tree t)
 {
+  tree fn;
+
   if (cxx_dialect < cxx0x
       || TYPE_HAS_NONTRIVIAL_DESTRUCTOR (t)
       /* FIXME These constraints seem unnecessary; remove from standard.
@@ -4557,18 +4561,10 @@ finalize_literal_type_property (tree t)
 	   && !TYPE_HAS_CONSTEXPR_CTOR (t))
     CLASSTYPE_LITERAL_P (t) = false;
 
-  if (!CLASSTYPE_LITERAL_P (t) && !CLASSTYPE_TEMPLATE_INSTANTIATION (t))
-    {
-      tree fn;
-      for (fn = TYPE_METHODS (t); fn; fn = DECL_CHAIN (fn))
-	if (DECL_DECLARED_CONSTEXPR_P (fn)
-	    && DECL_NONSTATIC_MEMBER_FUNCTION_P (fn)
-	    && !DECL_CONSTRUCTOR_P (fn))
-	  {
-	    error ("enclosing class of %q+D is not a literal type", fn);
-	    DECL_DECLARED_CONSTEXPR_P (fn) = false;
-	  }
-    }
+  for (fn = TYPE_METHODS (t); fn; fn = DECL_CHAIN (fn))
+    if (DECL_DECLARED_CONSTEXPR_P (fn)
+	&& TREE_CODE (fn) != TEMPLATE_DECL)
+      validate_constexpr_fundecl (fn);
 }
 
 /* Check the validity of the bases and members declared in T.  Add any
@@ -5954,6 +5950,7 @@ fixed_type_or_null (tree instance, int *nonnull, int *cdtorp)
 	     itself.  */
 	  if (TREE_CODE (instance) == VAR_DECL
 	      && DECL_INITIAL (instance)
+	      && !type_dependent_expression_p (DECL_INITIAL (instance))
 	      && !htab_find (ht, instance))
 	    {
 	      tree type;
@@ -8415,8 +8412,6 @@ cp_fold_obj_type_ref (tree ref, tree known_type)
   gcc_assert (tree_int_cst_equal (OBJ_TYPE_REF_TOKEN (ref),
 				  DECL_VINDEX (fndecl)));
 #endif
-
-  cgraph_node (fndecl)->local.vtable_method = true;
 
   return build_address (fndecl);
 }

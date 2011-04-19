@@ -1,7 +1,7 @@
 /* Data structures and declarations used for reading and writing
    GIMPLE to a file stream.
 
-   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Doug Kwan <dougkwan@google.com>
 
 This file is part of GCC.
@@ -347,6 +347,7 @@ enum lto_section_type
   LTO_section_symtab,
   LTO_section_opts,
   LTO_section_cgraph_opt_sum,
+  LTO_section_inline_summary,
   LTO_N_SECTION_TYPES		/* Must be last.  */
 };
 
@@ -433,14 +434,8 @@ struct lto_streamer_cache_d
   /* Node map to store entries into.  */
   alloc_pool node_map_entries;
 
-  /* Next available slot in the nodes and offsets arrays.  */
-  unsigned next_slot;
-
   /* The nodes pickled so far.  */
   VEC(tree,heap) *nodes;
-
-  /* Offset into the stream where the nodes have been written.  */
-  VEC(unsigned,heap) *offsets;
 };
 
 
@@ -923,12 +918,13 @@ extern void lto_bitmap_free (bitmap);
 extern char *lto_get_section_name (int, const char *, struct lto_file_decl_data *);
 extern void print_lto_report (void);
 extern bool lto_streamer_cache_insert (struct lto_streamer_cache_d *, tree,
-				       int *, unsigned *);
+				       unsigned *);
 extern bool lto_streamer_cache_insert_at (struct lto_streamer_cache_d *, tree,
-					  int);
+					  unsigned);
+extern void lto_streamer_cache_append (struct lto_streamer_cache_d *, tree);
 extern bool lto_streamer_cache_lookup (struct lto_streamer_cache_d *, tree,
-				       int *);
-extern tree lto_streamer_cache_get (struct lto_streamer_cache_d *, int);
+				       unsigned *);
+extern tree lto_streamer_cache_get (struct lto_streamer_cache_d *, unsigned);
 extern struct lto_streamer_cache_d *lto_streamer_cache_create (void);
 extern void lto_streamer_cache_delete (struct lto_streamer_cache_d *);
 extern void lto_streamer_init (void);
@@ -1034,7 +1030,7 @@ extern GTY(()) VEC(tree,gc) *lto_global_var_decls;
 
 
 /* In lto-opts.c.  */
-extern void lto_register_user_option (size_t, const char *, int, int);
+extern void lto_register_user_option (size_t, const char *, int, unsigned int);
 extern void lto_read_file_options (struct lto_file_decl_data *);
 extern void lto_write_options (void);
 extern void lto_reissue_options (void);

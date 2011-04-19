@@ -373,13 +373,7 @@ handle_sentinel_attribute (tree *node, tree ARG_UNUSED (name), tree args,
 			   int ARG_UNUSED (flags),
 			   bool * ARG_UNUSED (no_add_attrs))
 {
-  tree params = TYPE_ARG_TYPES (*node);
-  gcc_assert (params);
-
-  while (TREE_CHAIN (params))
-    params = TREE_CHAIN (params);
-
-  gcc_assert (!VOID_TYPE_P (TREE_VALUE (params)));
+  gcc_assert (stdarg_p (*node));
 
   if (args)
     {
@@ -399,17 +393,11 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
 			       tree ARG_UNUSED (args), int ARG_UNUSED (flags),
 			       bool * ARG_UNUSED (no_add_attrs))
 {
-  tree params;
-  
   /* Ensure we have a function type.  */
   gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE);
   
-  params = TYPE_ARG_TYPES (*node);
-  while (params && ! VOID_TYPE_P (TREE_VALUE (params)))
-    params = TREE_CHAIN (params);
-
   /* Ensure we have a variadic function.  */
-  gcc_assert (!params);
+  gcc_assert (!prototype_p (*node) || stdarg_p (*node));
 
   return NULL_TREE;
 }
@@ -471,6 +459,7 @@ def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
 
  egress:
   builtin_types[def] = t;
+  va_end (list);
 }
 
 /* Used to help initialize the builtin-types.def table.  When a type of
@@ -613,11 +602,6 @@ lto_define_builtins (tree va_list_ref_type_node ATTRIBUTE_UNUSED,
 }
 
 static GTY(()) tree registered_builtin_types;
-
-/* A chain of builtin functions that we need to recognize.  We will
-   assume that all other function names we see will be defined by the
-   user's program.  */
-static GTY(()) tree registered_builtin_fndecls;
 
 /* Language hooks.  */
 
@@ -993,7 +977,10 @@ lto_pushdecl (tree t ATTRIBUTE_UNUSED)
 static tree
 lto_getdecls (void)
 {
-  return registered_builtin_fndecls;
+  /* We have our own write_globals langhook, hence the getdecls
+     langhook shouldn't be used, except by dbxout.c, so we can't
+     just abort here.  */
+  return NULL_TREE;
 }
 
 static void
@@ -1009,10 +996,6 @@ lto_write_globals (void)
 static tree
 lto_builtin_function (tree decl)
 {
-  /* Record it.  */
-  TREE_CHAIN (decl) = registered_builtin_fndecls;
-  registered_builtin_fndecls = decl;
-
   return decl;
 }
 

@@ -268,7 +268,7 @@ called_as_built_in (tree node)
    Don't return more than MAX_ALIGN no matter what.  */
 
 unsigned int
-get_object_alignment (tree exp, unsigned int max_align)
+get_object_alignment_1 (tree exp, unsigned HOST_WIDE_INT *bitposp)
 {
   HOST_WIDE_INT bitsize, bitpos;
   tree offset;
@@ -320,8 +320,7 @@ get_object_alignment (tree exp, unsigned int max_align)
 	  align = MAX (pi->align * BITS_PER_UNIT, align);
 	}
       else if (TREE_CODE (addr) == ADDR_EXPR)
-	align = MAX (align, get_object_alignment (TREE_OPERAND (addr, 0),
-						  max_align));
+	align = MAX (align, get_object_alignment (TREE_OPERAND (addr, 0), ~0U));
       bitpos += mem_ref_offset (exp).low * BITS_PER_UNIT;
     }
   else if (TREE_CODE (exp) == TARGET_MEM_REF)
@@ -345,8 +344,7 @@ get_object_alignment (tree exp, unsigned int max_align)
 	  align = MAX (pi->align * BITS_PER_UNIT, align);
 	}
       else if (TREE_CODE (addr) == ADDR_EXPR)
-	align = MAX (align, get_object_alignment (TREE_OPERAND (addr, 0),
-						  max_align));
+	align = MAX (align, get_object_alignment (TREE_OPERAND (addr, 0), ~0U));
       if (TMR_OFFSET (exp))
 	bitpos += TREE_INT_CST_LOW (TMR_OFFSET (exp)) * BITS_PER_UNIT;
       if (TMR_INDEX (exp) && TMR_STEP (exp))
@@ -364,7 +362,7 @@ get_object_alignment (tree exp, unsigned int max_align)
 
   /* If there is a non-constant offset part extract the maximum
      alignment that can prevail.  */
-  inner = max_align;
+  inner = ~0U;
   while (offset)
     {
       tree next_offset;
@@ -410,6 +408,21 @@ get_object_alignment (tree exp, unsigned int max_align)
      and non-constant offset parts.  */
   align = MIN (align, inner);
   bitpos = bitpos & (align - 1);
+
+  *bitposp = bitpos;
+  return align;
+}
+
+/* Return the alignment in bits of EXP, an object.
+   Don't return more than MAX_ALIGN no matter what.  */
+
+unsigned int
+get_object_alignment (tree exp, unsigned int max_align)
+{
+  unsigned HOST_WIDE_INT bitpos = 0;
+  unsigned int align;
+
+  align = get_object_alignment_1 (exp, &bitpos);
 
   /* align and bitpos now specify known low bits of the pointer.
      ptr & (align - 1) == bitpos.  */
@@ -3655,7 +3668,6 @@ static rtx
 expand_movstr (tree dest, tree src, rtx target, int endp)
 {
   struct expand_operand ops[3];
-  rtx end;
   rtx dest_mem;
   rtx src_mem;
 
@@ -3683,7 +3695,7 @@ expand_movstr (tree dest, tree src, rtx target, int endp)
 	 adjust it.  */
       if (endp == 1)
 	{
-	  rtx tem = plus_constant (gen_lowpart (GET_MODE (target), end), 1);
+	  rtx tem = plus_constant (gen_lowpart (GET_MODE (target), target), 1);
 	  emit_move_insn (target, force_operand (tem, NULL_RTX));
 	}
     }
@@ -3936,6 +3948,7 @@ expand_builtin_memset_args (tree dest, tree val, tree len,
 {
   tree fndecl, fn;
   enum built_in_function fcode;
+  enum machine_mode val_mode;
   char c;
   unsigned int dest_align;
   rtx dest_mem, dest_addr, len_rtx;
@@ -3970,14 +3983,14 @@ expand_builtin_memset_args (tree dest, tree val, tree len,
 
   len_rtx = expand_normal (len);
   dest_mem = get_memory_rtx (dest, len);
+  val_mode = TYPE_MODE (unsigned_char_type_node);
 
   if (TREE_CODE (val) != INTEGER_CST)
     {
       rtx val_rtx;
 
       val_rtx = expand_normal (val);
-      val_rtx = convert_to_mode (TYPE_MODE (unsigned_char_type_node),
-				 val_rtx, 0);
+      val_rtx = convert_to_mode (val_mode, val_rtx, 0);
 
       /* Assume that we can memset by pieces if we can store
        * the coefficients by pieces (in the required modes).
@@ -3988,8 +4001,7 @@ expand_builtin_memset_args (tree dest, tree val, tree len,
 				  builtin_memset_read_str, &c, dest_align,
 				  true))
 	{
-	  val_rtx = force_reg (TYPE_MODE (unsigned_char_type_node),
-			       val_rtx);
+	  val_rtx = force_reg (val_mode, val_rtx);
 	  store_by_pieces (dest_mem, tree_low_cst (len, 1),
 			   builtin_memset_gen_str, val_rtx, dest_align,
 			   true, 0);
@@ -4015,7 +4027,8 @@ expand_builtin_memset_args (tree dest, tree val, tree len,
 				  true))
 	store_by_pieces (dest_mem, tree_low_cst (len, 1),
 			 builtin_memset_read_str, &c, dest_align, true, 0);
-      else if (!set_storage_via_setmem (dest_mem, len_rtx, GEN_INT (c),
+      else if (!set_storage_via_setmem (dest_mem, len_rtx,
+					gen_int_mode (c, val_mode),
 					dest_align, expected_align,
 					expected_size))
 	goto do_libcall;
@@ -4748,7 +4761,7 @@ std_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 tree
 build_va_arg_indirect_ref (tree addr)
 {
-  addr = build_fold_indirect_ref_loc (EXPR_LOCATION (addr), addr);
+  addr = build_simple_mem_ref_loc (EXPR_LOCATION (addr), addr);
 
   if (flag_mudflap) /* Don't instrument va_arg INDIRECT_REF.  */
     mf_mark (addr);
@@ -6012,7 +6025,7 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
     case BUILT_IN_ALLOCA:
       /* If the allocation stems from the declaration of a variable-sized
 	 object, it cannot accumulate.  */
-      target = expand_builtin_alloca (exp, ALLOCA_FOR_VAR_P (exp));
+      target = expand_builtin_alloca (exp, CALL_ALLOCA_FOR_VAR_P (exp));
       if (target)
 	return target;
       break;

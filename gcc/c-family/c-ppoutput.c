@@ -36,6 +36,7 @@ static struct
   int src_line;			/* Line number currently being written.  */
   unsigned char printed;	/* Nonzero if something output at line.  */
   bool first_time;		/* pp_file_change hasn't been called yet.  */
+  const char *src_file;		/* Current source file.  */
 } print;
 
 /* Defined and undefined macros being queued for output with -dU at
@@ -70,7 +71,7 @@ static void cb_define (cpp_reader *, source_location, cpp_hashnode *);
 static void cb_undef (cpp_reader *, source_location, cpp_hashnode *);
 static void cb_used_define (cpp_reader *, source_location, cpp_hashnode *);
 static void cb_used_undef (cpp_reader *, source_location, cpp_hashnode *);
-static void cb_include (cpp_reader *, source_location, const unsigned char *,
+static bool cb_include (cpp_reader *, source_location, const unsigned char *,
 			const char *, int, const cpp_token **);
 static void cb_ident (cpp_reader *, source_location, const cpp_string *);
 static void cb_def_pragma (cpp_reader *, source_location);
@@ -126,7 +127,7 @@ init_pp_output (FILE *out_stream)
     }
 
   if (flag_dump_includes)
-    cb->include  = cb_include;
+    cb->include = cb_include;
 
   if (flag_pch_preprocess)
     {
@@ -153,6 +154,7 @@ init_pp_output (FILE *out_stream)
   print.prev = 0;
   print.outf = out_stream;
   print.first_time = 1;
+  print.src_file = "";
 }
 
 /* Writes out the preprocessed file, handling spacing and paste
@@ -312,7 +314,9 @@ maybe_print_line (source_location src_loc)
       print.printed = 0;
     }
 
-  if (src_line >= print.src_line && src_line < print.src_line + 8)
+  if (src_line >= print.src_line
+      && src_line < print.src_line + 8
+      && strcmp (map->to_file, print.src_file) == 0)
     {
       while (src_line > print.src_line)
 	{
@@ -344,6 +348,7 @@ print_line (source_location src_loc, const char *special_flags)
       unsigned char *p;
 
       print.src_line = SOURCE_LINE (map, src_loc);
+      print.src_file = map->to_file;
 
       /* cpp_quote_string does not nul-terminate, so we have to do it
 	 ourselves.  */
@@ -503,7 +508,7 @@ dump_queued_macros (cpp_reader *pfile ATTRIBUTE_UNUSED)
   undef_queue = NULL;
 }
 
-static void
+static bool
 cb_include (cpp_reader *pfile ATTRIBUTE_UNUSED, source_location line,
 	    const unsigned char *dir, const char *header, int angle_brackets,
 	    const cpp_token **comments)
@@ -527,6 +532,7 @@ cb_include (cpp_reader *pfile ATTRIBUTE_UNUSED, source_location line,
 
   putc ('\n', print.outf);
   print.src_line++;
+  return true;
 }
 
 /* Callback called when -fworking-director and -E to emit working

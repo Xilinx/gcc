@@ -58,23 +58,6 @@ struct lto_file_decl_data;
 extern const char * const cgraph_availability_names[];
 extern const char * const ld_plugin_symbol_resolution_names[];
 
-/* Function inlining information.  */
-
-struct GTY(()) inline_summary
-{
-  /* Estimated stack frame consumption by the function.  */
-  HOST_WIDE_INT estimated_self_stack_size;
-
-  /* Size of the function body.  */
-  int self_size;
-  /* How many instructions are likely going to disappear after inlining.  */
-  int size_inlining_benefit;
-  /* Estimated time spent executing the function body.  */
-  int self_time;
-  /* How much time is going to be saved by inlining.  */
-  int time_inlining_benefit;
-};
-
 /* Information about thunk, used only for same body aliases.  */
 
 struct GTY(()) cgraph_thunk_info {
@@ -95,8 +78,6 @@ struct GTY(()) cgraph_local_info {
   /* File stream where this node is being written to.  */
   struct lto_file_decl_data * lto_file_data;
 
-  struct inline_summary inline_summary;
-
   /* Set when function function is visible in current compilation unit only
      and its address is never taken.  */
   unsigned local : 1;
@@ -107,48 +88,22 @@ struct GTY(()) cgraph_local_info {
   /* Set once it has been finalized so we consider it to be output.  */
   unsigned finalized : 1;
 
-  /* False when there something makes inlining impossible (such as va_arg).  */
-  unsigned inlinable : 1;
-
-  /* False when there something makes versioning impossible.
-     Currently computed and used only by ipa-cp.  */
-  unsigned versionable : 1;
-
   /* False when function calling convention and signature can not be changed.
      This is the case when __builtin_apply_args is used.  */
   unsigned can_change_signature : 1;
 
-  /* True when function should be inlined independently on its size.  */
-  unsigned disregard_inline_limits : 1;
-
   /* True when the function has been originally extern inline, but it is
      redefined now.  */
   unsigned redefined_extern_inline : 1;
-
-  /* True if the function is going to be emitted in some other translation
-     unit, referenced from vtable.  */
-  unsigned vtable_method : 1;
 };
 
 /* Information about the function that needs to be computed globally
    once compilation is finished.  Available only with -funit-at-a-time.  */
 
 struct GTY(()) cgraph_global_info {
-  /* Estimated stack frame consumption by the function.  */
-  HOST_WIDE_INT estimated_stack_size;
-  /* Expected offset of the stack frame of inlined function.  */
-  HOST_WIDE_INT stack_frame_offset;
-
   /* For inline clones this points to the function they will be
      inlined into.  */
   struct cgraph_node *inlined_to;
-
-  /* Estimated size of the function after inlining.  */
-  int time;
-  int size;
-
-  /* Estimated growth after inlining.  INT_MIN if not computed.  */
-  int estimated_growth;
 };
 
 /* Information about the function that is propagated by the RTL backend.
@@ -284,8 +239,6 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   unsigned process : 1;
   /* Set for aliases once they got through assemble_alias.  */
   unsigned alias : 1;
-  /* Set for nodes that was constructed and finalized by frontend.  */
-  unsigned finalized_by_frontend : 1;
   /* Set for alias and thunk nodes, same_body points to the node they are alias
      of and they are linked through the next/previous pointers.  */
   unsigned same_body_alias : 1;
@@ -431,6 +384,9 @@ struct GTY((chain_next ("%h.next_caller"), chain_prev ("%h.prev_caller"))) cgrap
   int frequency;
   /* Unique id of the edge.  */
   int uid;
+  /* Estimated size and time of the call statement.  */
+  int call_stmt_size;
+  int call_stmt_time;
   /* Depth of loop nest, 1 means no loop nest.  */
   unsigned short int loop_nest;
   /* Whether this edge was made direct by indirect inlining.  */
@@ -558,7 +514,8 @@ struct cgraph_edge *cgraph_create_indirect_edge (struct cgraph_node *, gimple,
 struct cgraph_indirect_call_info *cgraph_allocate_init_indirect_info (void);
 struct cgraph_node * cgraph_get_node (const_tree);
 struct cgraph_node * cgraph_get_node_or_alias (const_tree);
-struct cgraph_node * cgraph_node (tree);
+struct cgraph_node * cgraph_create_node (tree);
+struct cgraph_node * cgraph_get_create_node (tree);
 struct cgraph_node * cgraph_same_body_alias (struct cgraph_node *, tree, tree);
 struct cgraph_node * cgraph_add_thunk (struct cgraph_node *, tree, tree, bool, HOST_WIDE_INT,
 				       HOST_WIDE_INT, tree, tree);
@@ -618,6 +575,7 @@ bool varpool_used_from_object_file_p (struct varpool_node *node);
 extern FILE *cgraph_dump_file;
 void cgraph_finalize_function (tree, bool);
 void cgraph_mark_if_needed (tree);
+void cgraph_analyze_function (struct cgraph_node *);
 void cgraph_finalize_compilation_unit (void);
 void cgraph_optimize (void);
 void cgraph_mark_needed_node (struct cgraph_node *);
@@ -770,6 +728,7 @@ varpool_next_static_initializer (struct varpool_node *node)
 /* In ipa-inline.c  */
 void cgraph_clone_inlined_nodes (struct cgraph_edge *, bool, bool);
 void compute_inline_parameters (struct cgraph_node *);
+cgraph_inline_failed_t cgraph_edge_inlinable_p (struct cgraph_edge *);
 
 
 /* Create a new static variable of type TYPE.  */
@@ -956,6 +915,17 @@ varpool_all_refs_explicit_p (struct varpool_node *vnode)
 
 /* Constant pool accessor function.  */
 htab_t constant_pool_htab (void);
+
+/* Return true when the edge E represents a direct recursion.  */
+static inline bool
+cgraph_edge_recursive_p (struct cgraph_edge *e)
+{
+  if (e->caller->global.inlined_to)
+    return e->caller->global.inlined_to->decl == e->callee->decl;
+  else
+    return e->caller->decl == e->callee->decl;
+}
+
 
 /* FIXME: inappropriate dependency of cgraph on IPA.  */
 #include "ipa-ref-inline.h"

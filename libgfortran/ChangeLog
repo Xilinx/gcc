@@ -1,3 +1,103 @@
+2011-04-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/48602
+	* io/write_float.def (output_float_FMT_G): Use current rounding mode
+	to set the rounding parameters. (output_float): Skip rounding
+	if value is zero.
+	
+2011-04-16  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* intrinsics/date_and_time.c (date_and_time): Remove sprintf CPP
+	branch.
+	* io/format.c (format_error): Use snprintf instead of sprintf.
+	* io/list_read.c: Move snprintf fallback macro to libgfortran.h.
+	(convert_integer): Use snprintf instead of sprintf.
+	(parse_repeat): Likewise.
+	(read_logical): Likewise.
+	(read_integer): Likewise.
+	(read_character): Likewise.
+	(parse_real): Likewise.
+	(read_complex): Likewise.
+	(read_real): Likewise.
+	(check_type): Likewise.
+	(nml_parse_qualifier): Add string length argument, use snprintf
+	instead of sprintf.
+	(nml_get_obj_data): Use snprintf instead of sprintf.
+	* io/open.c (new_unit): Remove sprintf CPP branch, use snprintf
+	instead of sprintf.
+	* io/transfer.c (require_type): Use snprintf instead of sprintf.
+	* io/unix.c (tempfile): Likewise.
+	* io/write.c (nml_write_obj): Likewise.
+	* io/write_float.def (output_float): Remove sprintf CPP branch,
+	use snprintf instead of sprintf.
+	* libgfortran.h: Add fallback snprintf macro from io/list_read.c.
+	* runtime/backtrace.c (show_backtrace): Remove sprintf CPP branch.
+	* runtime/main.c (store_exe_path): Use snprintf instead of
+	sprintf.
+
+2011-04-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/48589
+	* io/write_float.def (write_infnan): Set width properly for G0.
+
+2011-04-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* Makefile.am: Build and install caf/single.c as
+	libcaf_single.a.
+	* Makefile.in: Regenerate.
+
+2011-04-15  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/47571
+	* configure: Regenerated.
+	* config.h.in: Regenerated.
+	* acinclude.m4: Add alpha*-dec-osf* to gthread blacklist.
+	* configure.ac: Use separate symbol for clock_gettime in librt.
+	* intrinsics/system_clock.c: Use weakrefs only when needed and
+	supported.
+
+2011-04-12  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* configure.ac: Use AC_TYPE_* to make sure we have (u)intptr_t,
+	check for ptrdiff_t.
+	* libgfortran.h: Remove (u)intptr_t definitions, use ptrdiff_t for
+	index_type, change cshift0* prototypes.
+	* config.h.in: Regenerated.
+	* configure: Regenerated.
+	* intrinsics/cshift0.c (cshift0): Use ptrdiff_t instead of ssize_t.
+	* io/io.h (array_loop_spec): Use index_type instead of ssize_t.
+	* io/list_read.c (nml_parse_qualifier): Likewise.
+	* io/write.c (nml_write_obj): Likewise.
+	* m4/cshift0.c (cshift0_'rtype_code`): Likewise.
+	* generated/cshift0_*.c: Regenerated.
+
+2011-04-12  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	* Makefile.am: Remove _GNU_SOURCE from AM_CPPFLAGS.
+	* Makefile.in: Regenerated.
+
+2011-04-06  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* caf/mpi.c (_gfortran_caf_init, _gfortran_caf_finalize):
+	Add global variable caf_mpi_initialized and use it for when
+	finalizing.
+
+2011-04-04  Tobias Burnus  <burnus@net-b.de>
+
+	* unix.c: Adapt stat DEFINEs since MinGW64 supports LFS.
+	(fallback_access, open_internal4, compare_file_filename,
+	find_file, file_size, inquire_sequential, inquire_direct,
+	inquire_formatted): Use "struct stat" instead of gfstat_t.
+
+2011-03-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* caf/libcaf.h: New - coarray communication library.
+	* caf/mpi.c: New.
+	* caf/single.c: New.
+
 2011-03-23  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
 
 	PR libgfortran/48030

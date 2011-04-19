@@ -1,3 +1,7 @@
+2011-04-19  Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 172662.
+
 2011-04-14  Diego Novillo  <dnovillo@google.com>
 
 	* lto-streamer-out.c (pack_ts_type_value_fields): Pack all bits

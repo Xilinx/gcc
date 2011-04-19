@@ -1243,9 +1243,9 @@ expand_binop_directly (enum machine_mode mode, optab binoptab,
 		       rtx last)
 {
   enum insn_code icode = optab_handler (binoptab, mode);
-  enum machine_mode mode0 = insn_data[(int) icode].operand[1].mode;
-  enum machine_mode mode1 = insn_data[(int) icode].operand[2].mode;
-  enum machine_mode tmp_mode;
+  enum machine_mode xmode0 = insn_data[(int) icode].operand[1].mode;
+  enum machine_mode xmode1 = insn_data[(int) icode].operand[2].mode;
+  enum machine_mode mode0, mode1, tmp_mode;
   struct expand_operand ops[3];
   bool commutative_p;
   rtx pat;
@@ -1256,8 +1256,8 @@ expand_binop_directly (enum machine_mode mode, optab binoptab,
      if we would swap the operands, we can save the conversions.  */
   commutative_p = commutative_optab_p (binoptab);
   if (commutative_p
-      && GET_MODE (xop0) != mode0 && GET_MODE (xop1) != mode1
-      && GET_MODE (xop0) == mode1 && GET_MODE (xop1) == mode1)
+      && GET_MODE (xop0) != xmode0 && GET_MODE (xop1) != xmode1
+      && GET_MODE (xop0) == xmode1 && GET_MODE (xop1) == xmode1)
     {
       swap = xop0;
       xop0 = xop1;
@@ -1265,9 +1265,41 @@ expand_binop_directly (enum machine_mode mode, optab binoptab,
     }
 
   /* If we are optimizing, force expensive constants into a register.  */
-  xop0 = avoid_expensive_constant (mode0, binoptab, xop0, unsignedp);
+  xop0 = avoid_expensive_constant (xmode0, binoptab, xop0, unsignedp);
   if (!shift_optab_p (binoptab))
-    xop1 = avoid_expensive_constant (mode1, binoptab, xop1, unsignedp);
+    xop1 = avoid_expensive_constant (xmode1, binoptab, xop1, unsignedp);
+
+  /* In case the insn wants input operands in modes different from
+     those of the actual operands, convert the operands.  It would
+     seem that we don't need to convert CONST_INTs, but we do, so
+     that they're properly zero-extended, sign-extended or truncated
+     for their mode.  */
+
+  mode0 = GET_MODE (xop0) != VOIDmode ? GET_MODE (xop0) : mode;
+  if (xmode0 != VOIDmode && xmode0 != mode0)
+    {
+      xop0 = convert_modes (xmode0, mode0, xop0, unsignedp);
+      mode0 = xmode0;
+    }
+
+  mode1 = GET_MODE (xop1) != VOIDmode ? GET_MODE (xop1) : mode;
+  if (xmode1 != VOIDmode && xmode1 != mode1)
+    {
+      xop1 = convert_modes (xmode1, mode1, xop1, unsignedp);
+      mode1 = xmode1;
+    }
+
+  /* If operation is commutative,
+     try to make the first operand a register.
+     Even better, try to make it the same as the target.
+     Also try to make the last operand a constant.  */
+  if (commutative_p
+      && swap_commutative_operands_with_target (target, xop0, xop1))
+    {
+      swap = xop1;
+      xop1 = xop0;
+      xop0 = swap;
+    }
 
   /* Now, if insn's predicates don't allow our operands, put them into
      pseudo regs.  */
@@ -1291,41 +1323,25 @@ expand_binop_directly (enum machine_mode mode, optab binoptab,
     tmp_mode = mode;
 
   create_output_operand (&ops[0], target, tmp_mode);
-  create_convert_operand_from (&ops[1], xop0, mode, unsignedp);
-  create_convert_operand_from (&ops[2], xop1, mode, unsignedp);
-  if (maybe_legitimize_operands (icode, 0, 3, ops))
+  create_input_operand (&ops[1], xop0, mode0);
+  create_input_operand (&ops[2], xop1, mode1);
+  pat = maybe_gen_insn (icode, 3, ops);
+  if (pat)
     {
-      /* If operation is commutative,
-	 try to make the first operand a register.
-	 Even better, try to make it the same as the target.
-	 Also try to make the last operand a constant.  */
-      if (commutative_p
-	  && swap_commutative_operands_with_target (ops[0].value, ops[1].value,
-						    ops[2].value))
+      /* If PAT is composed of more than one insn, try to add an appropriate
+	 REG_EQUAL note to it.  If we can't because TEMP conflicts with an
+	 operand, call expand_binop again, this time without a target.  */
+      if (INSN_P (pat) && NEXT_INSN (pat) != NULL_RTX
+	  && ! add_equal_note (pat, ops[0].value, binoptab->code,
+			       ops[1].value, ops[2].value))
 	{
-	  swap = ops[2].value;
-	  ops[2].value = ops[1].value;
-	  ops[1].value = swap;
+	  delete_insns_since (last);
+	  return expand_binop (mode, binoptab, op0, op1, NULL_RTX,
+			       unsignedp, methods);
 	}
 
-      pat = GEN_FCN (icode) (ops[0].value, ops[1].value, ops[2].value);
-      if (pat)
-	{
-	  /* If PAT is composed of more than one insn, try to add an appropriate
-	     REG_EQUAL note to it.  If we can't because TEMP conflicts with an
-	     operand, call expand_binop again, this time without a target.  */
-	  if (INSN_P (pat) && NEXT_INSN (pat) != NULL_RTX
-	      && ! add_equal_note (pat, ops[0].value, binoptab->code,
-				   ops[1].value, ops[2].value))
-	    {
-	      delete_insns_since (last);
-	      return expand_binop (mode, binoptab, op0, op1, NULL_RTX,
-				   unsignedp, methods);
-	    }
-
-	  emit_insn (pat);
-	  return ops[0].value;
-	}
+      emit_insn (pat);
+      return ops[0].value;
     }
   delete_insns_since (last);
   return NULL_RTX;
@@ -6985,6 +7001,41 @@ insn_operand_matches (enum insn_code icode, unsigned int opno, rtx operand)
 	      (operand, insn_data[(int) icode].operand[opno].mode)));
 }
 
+/* Like maybe_legitimize_operand, but do not change the code of the
+   current rtx value.  */
+
+static bool
+maybe_legitimize_operand_same_code (enum insn_code icode, unsigned int opno,
+				    struct expand_operand *op)
+{
+  /* See if the operand matches in its current form.  */
+  if (insn_operand_matches (icode, opno, op->value))
+    return true;
+
+  /* If the operand is a memory whose address has no side effects,
+     try forcing the address into a register.  The check for side
+     effects is important because force_reg cannot handle things
+     like auto-modified addresses.  */
+  if (insn_data[(int) icode].operand[opno].allows_mem
+      && MEM_P (op->value)
+      && !side_effects_p (XEXP (op->value, 0)))
+    {
+      rtx addr, mem, last;
+
+      last = get_last_insn ();
+      addr = force_reg (Pmode, XEXP (op->value, 0));
+      mem = replace_equiv_address (op->value, addr);
+      if (insn_operand_matches (icode, opno, mem))
+	{
+	  op->value = mem;
+	  return true;
+	}
+      delete_insns_since (last);
+    }
+
+  return false;
+}
+
 /* Try to make OP match operand OPNO of instruction ICODE.  Return true
    on success, storing the new operand value back in OP.  */
 
@@ -6995,22 +7046,25 @@ maybe_legitimize_operand (enum insn_code icode, unsigned int opno,
   enum machine_mode mode, imode;
   bool old_volatile_ok, result;
 
-  old_volatile_ok = volatile_ok;
   mode = op->mode;
-  result = false;
   switch (op->type)
     {
     case EXPAND_FIXED:
+      old_volatile_ok = volatile_ok;
       volatile_ok = true;
-      break;
+      result = maybe_legitimize_operand_same_code (icode, opno, op);
+      volatile_ok = old_volatile_ok;
+      return result;
 
     case EXPAND_OUTPUT:
       gcc_assert (mode != VOIDmode);
-      if (!op->value
-	  || op->value == const0_rtx
-	  || GET_MODE (op->value) != mode
-	  || !insn_operand_matches (icode, opno, op->value))
-	op->value = gen_reg_rtx (mode);
+      if (op->value
+	  && op->value != const0_rtx
+	  && GET_MODE (op->value) == mode
+	  && maybe_legitimize_operand_same_code (icode, opno, op))
+	return true;
+
+      op->value = gen_reg_rtx (mode);
       break;
 
     case EXPAND_INPUT:
@@ -7018,9 +7072,10 @@ maybe_legitimize_operand (enum insn_code icode, unsigned int opno,
       gcc_assert (mode != VOIDmode);
       gcc_assert (GET_MODE (op->value) == VOIDmode
 		  || GET_MODE (op->value) == mode);
-      result = insn_operand_matches (icode, opno, op->value);
-      if (!result)
-	op->value = copy_to_mode_reg (mode, op->value);
+      if (maybe_legitimize_operand_same_code (icode, opno, op))
+	return true;
+
+      op->value = copy_to_mode_reg (mode, op->value);
       break;
 
     case EXPAND_CONVERT_TO:
@@ -7054,10 +7109,7 @@ maybe_legitimize_operand (enum insn_code icode, unsigned int opno,
 	goto input;
       break;
     }
-  if (!result)
-    result = insn_operand_matches (icode, opno, op->value);
-  volatile_ok = old_volatile_ok;
-  return result;
+  return insn_operand_matches (icode, opno, op->value);
 }
 
 /* Make OP describe an input operand that should have the same value
@@ -7102,9 +7154,7 @@ rtx
 maybe_gen_insn (enum insn_code icode, unsigned int nops,
 		struct expand_operand *ops)
 {
-  /* n_operands includes any automatically-generated match_scratches,
-     so we can't check for equality here.  */
-  gcc_assert (nops <= (unsigned int) insn_data[(int) icode].n_operands);
+  gcc_assert (nops == (unsigned int) insn_data[(int) icode].n_generator_args);
   if (!maybe_legitimize_operands (icode, 0, nops, ops))
     return NULL_RTX;
 

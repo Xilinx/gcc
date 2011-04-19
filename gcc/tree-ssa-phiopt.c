@@ -695,7 +695,6 @@ minmax_replacement (basic_block cond_bb, basic_block middle_bb,
 
   cond = last_stmt (cond_bb);
   cmp = gimple_cond_code (cond);
-  result = PHI_RESULT (phi);
 
   /* This transformation is only valid for order comparisons.  Record which
      operand is smaller/larger if the result of the comparison is true.  */
@@ -1494,8 +1493,6 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
   else_ddrs = VEC_alloc (ddr_p, heap, 1);
   compute_all_dependences (then_datarefs, &then_ddrs, NULL, false);
   compute_all_dependences (else_datarefs, &else_ddrs, NULL, false);
-  free_data_refs (then_datarefs);
-  free_data_refs (else_datarefs);
   blocks[0] = then_bb;
   blocks[1] = else_bb;
   blocks[2] = join_bb;
@@ -1517,6 +1514,8 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
         {
           free_dependence_relations (then_ddrs);
           free_dependence_relations (else_ddrs);
+	  free_data_refs (then_datarefs);
+	  free_data_refs (else_datarefs);
           VEC_free (gimple, heap, then_stores);
           VEC_free (gimple, heap, else_stores);
           return false;
@@ -1539,6 +1538,8 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
         {
           free_dependence_relations (then_ddrs);
           free_dependence_relations (else_ddrs);
+	  free_data_refs (then_datarefs);
+	  free_data_refs (else_datarefs);
           VEC_free (gimple, heap, then_stores);
           VEC_free (gimple, heap, else_stores);
           return false;
@@ -1556,6 +1557,8 @@ cond_if_else_store_replacement (basic_block then_bb, basic_block else_bb,
 
   free_dependence_relations (then_ddrs);
   free_dependence_relations (else_ddrs);
+  free_data_refs (then_datarefs);
+  free_data_refs (else_datarefs);
   VEC_free (gimple, heap, then_stores);
   VEC_free (gimple, heap, else_stores);
 

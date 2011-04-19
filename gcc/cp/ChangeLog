@@ -1,3 +1,383 @@
+2011-04-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48531
+	* typeck2.c (build_functional_cast): Disallow array type.
+
+	* tree.c (get_target_expr): Handle VEC_INIT_EXPR.
+
+2011-04-17  Jan Hubicka  <jh@suse.cz>
+
+	* class.c (cp_fold_obj_type_ref): Drop vtable_method.
+
+2011-04-15  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
+
+	Implement N3271
+	* parser.c (cp_convert_range_for): Split into
+	cp_parser_perform_range_for_lookup.
+	(cp_parser_perform_range_for_lookup): New.
+	(cp_parser_range_for_member_function): New.
+	(cp_parser_for_init_statement): Correct error message.
+	* semantics.c (finish_call_expr): Accept COMPONENT_REF.
+
+2011-04-14  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_protocol_declaration): Updated for
+	change from objc_declare_protocols() to objc_declare_protocol().
+
+2011-04-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR objc++/48479
+	* typeck.c (cxx_mark_addressable) [CONST_DECL]: Mark addressable
+	and return immediately.
+
+2011-04-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-tree.def (SWITCH_STMT): Add an extra operand.
+	* cp-objcp-common.c (cp_common_init_ts): Mark it as TS_TYPED.
+	* cp-tree.h (SWITCH_STMT_SCOPE): Define.
+	* semantics.c (begin_switch__stmt): Pass scope to build_stmt.
+	(finish_switch_stmt): Use SWITCH_STMT_SCOPE instead of TREE_CHAIN.
+
+2011-04-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-tree.def (IF_STMT): Add an extra operand.
+	* cp-objcp-common.c (cp_common_init_ts): Mark it as TS_TYPED.
+	* cp-tree.h (IF_SCOPE): Define.
+	* semantics.c (begin_if_stmt): Pass scope to build_stmt.
+	(finish_if_stmt): Use IF_SCOPE instead of TREE_CHAIN.
+
+2011-04-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-tree.def (FOR_STMT, RANGE_FOR_STMT): Add an extra operand.
+	* cp-objcp-common.c (cp_common_init_ts): Mark them as TS_TYPED.
+	* cp-tree.h (FOR_SCOPE, RANGE_FOR_SCOPE): Define.
+	* semantics.c (begin_for_stmt): Pass an extra arg to build_stmt.
+	Use FOR_SCOPE instead of TREE_CHAIN.
+	(begin_range_for_stmt): Likewise, with RANGE_FOR_SCOPE.
+	(finish_for_stmt): Likewise.
+
+2011-04-14  Jason Merrill  <jason@redhat.com>
+
+	* parser.c (cp_parser_postfix_expression): Fix flags passed to
+	build_new_method_call.
+	* semantics.c (finish_call_expr): Likewise.
+
+	PR c++/48531
+	* init.c (build_value_init_noctor): Check complain consistently.
+
+	PR c++/48557
+	* typeck.c (cp_build_binary_op): Don't decay void operands.
+
+	PR c++/48446
+	* decl.c (compute_array_index_type): Use get_temp_regvar instead
+	of variable_size.
+	* init.c (get_temp_regvar): No longer static.
+	* cp-tree.h: Declare it.
+
+2011-04-14  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_class_declaration): Updated for change
+	in objc_declare_class().
+
+2011-04-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* decl.c (poplevel): Use block_chainon.
+
+2011-04-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48594
+	* decl2.c (build_offset_ref_call_from_tree): Fix calling a functor
+	or pointer to (non-member) function.
+
+2011-04-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/48570
+	* semantics.c (cxx_eval_array_reference): Handle reading from
+	wchar_t, char16_t and char32_t STRING_CST.
+
+2011-04-13  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/48574
+	* class.c (fixed_type_or_null): We cannot determine the dynamic
+    	type of a reference variable if its initializer is dependent.
+
+2011-04-13  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48581
+	* pt.c (tsubst_copy_and_build) [CALL_EXPR]: Don't complain about
+	unqualified lookup failing if we're still in a template.
+
+2011-04-12  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* cp-lang.c (cp_init_ts): Call cp_common_init_ts.  Move
+	tree_contains_struct initialization to...
+	* cp-objcp-common.c (cp_common_init_ts): ...here.  Use MARK_*
+	macros.
+	* cp-objcp-common.h (cp_common_init_ts): Declare.
+	* cp-tree.h (union lang_tree_node): Check for TS_COMMON before
+	calling TREE_CHAIN.
+
+2011-04-12  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* parser.c (cp_parser_objc_message_expression): Updated call
+	to objc_build_message_expr.
+
+2011-04-12  Martin Jambor  <mjambor@suse.cz>
+
+	* class.c (cp_fold_obj_type_ref): Call cgraph_get_node instead of
+	cgraph_get_create_node.
+	* decl2.c (cp_write_global_declarations): Call cgraph_get_node
+	instead of cgraph_get_create_node.
+	* method.c (make_alias_for_thunk): Call cgraph_get_node
+	instead of cgraph_get_create_node, assert it returns non-NULL.
+	(use_thunk): Likewise.
+	* optimize.c (maybe_clone_body): Call cgraph_same_body_alias only
+	when flag_syntax_only is not set.  Call cgraph_get_node instead of
+	cgraph_get_create_node.
+	(maybe_clone_body): Call cgraph_get_node instead of
+	cgraph_get_create_node.
+
+2011-04-12  Martin Jambor  <mjambor@suse.cz>
+
+	* class.c (cp_fold_obj_type_ref): Call cgraph_get_create_node
+	instead of cgraph_node.
+	* decl2.c (cxx_callgraph_analyze_expr): Likewise.
+	(cp_write_global_declarations): Likewise.
+	* optimize.c (maybe_clone_body): Likewise.
+	* semantics.c (maybe_add_lambda_conv_op): Likewise.
+	* mangle.c (mangle_decl): Likewise.
+	* method.c (make_alias_for_thunk): Likewise.
+	(use_thunk): Likewise.
+
+2011-04-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48535
+	* decl.c (cp_complete_array_type_or_error): New.
+	* semantics.c (finish_compound_literal): Use it.
+	* cp-tree.h: Declare it.
+
+	PR c++/48535
+	* semantics.c (finish_compound_literal): Handle references.
+
+	PR c++/48535
+	* semantics.c (finish_compound_literal): Take complain parm.
+	(build_lambda_object): Adjust.
+	* cp-tree.h: Adjust.
+	* call.c (convert_like_real): Adjust.
+	* decl.c (check_initializer): Adjust.
+	* parser.c (cp_parser_postfix_expression): Adjust.
+	(cp_parser_functional_cast): Adjust.
+	* pt.c (tsubst_copy_and_build): Adjust.
+	* typeck2.c (process_init_constructor_record): Adjust.
+
+	PR c++/48534
+	* cvt.c (ocp_convert): Use build_nop to convert to underlying type
+	of scoped enum.
+
+	PR c++/48523
+	* tree.c (maybe_dummy_object): Use build_x_indirect_ref rather
+	than cp_build_indirect_ref.
+
+	PR c++/48457, Core 1238
+	* call.c (reference_binding): Allow rvalue reference to bind to
+	function lvalue.
+	* tree.c (lvalue_kind): Functions are always lvalues.
+
+2011-04-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48500
+	* semantics.c (potential_constant_expression_1) [CALL_EXPR]: Check
+	arguments even if we don't know the function.
+
+	PR c++/48481
+	* tree.c (build_overload): Allow an unwrapped FUNCTION_DECL
+	at the end of the chain.
+	* pt.c (dependent_template_p): Use OVL_CURRENT/NEXT.
+	(iterative_hash_template_arg): Likewise.
+
+	PR c++/48481
+	* cp-tree.h (OVL_ARG_DEPENDENT): New.
+	* name-lookup.c (add_function): Set it.
+	* semantics.c (finish_call_expr): Free OVERLOADs if it's set.
+
+	PR c++/48481
+	* call.c (build_user_type_conversion_1): Use lookup_fnfields_slot.
+	Release unused vector.
+
+	PR c++/48451
+	* pt.c (fn_type_unification): Don't clear incomplete pack flag.
+	(type_unification_real): Clear it here instead.
+
+	PR c++/48468
+	* except.c (build_noexcept_spec): Propagate error_mark_node.
+	(finish_noexcept_expr): Likewise.
+
+	PR c++/48452
+	* typeck.c (build_x_compound_expr_from_list): Return error_mark_node
+	in SFINAE context.
+
+	PR c++/48450
+	* call.c (resolve_args): Take complain.
+	(build_new_function_call, build_operator_new_call): Pass it.
+	(build_op_call, build_new_op, build_new_method_call): Pass it.
+
+	PR c++/48450
+	* typeck.c (check_for_casting_away_constness): Take complain.
+	(build_static_cast_1, build_reinterpret_cast_1): Pass it.
+	(build_const_cast_1): Pass it.  Take full complain parm.
+	(build_const_cast, cp_build_c_cast): Adjust.
+
+	* tree.c (build_aggr_init_expr): Always return error_mark_node
+	on abstract violation.
+
+	PR c++/48450
+	* tree.c (build_cplus_new, build_aggr_init_expr): Take complain.
+	(bot_manip): Adjust.
+	* cp-tree.h: Adjust.
+	* call.c (convert_like_real, build_cxx_call): Adjust.
+	(perform_direct_initialization_if_possible): Adjust.
+	* cvt.c (ocp_convert): Adjust.
+	* init.c (build_value_init): Adjust.
+	* semantics.c (maybe_add_lambda_conv_op): Adjust.
+	* typeck.c (unary_complex_lvalue, cp_build_modify_expr): Adjust.
+	* typeck2.c (build_functional_cast): Adjust.
+
+	* init.c (build_value_init_noctor): Handle REFERENCE_TYPE at top
+	level.
+	(perform_member_init): Not here.
+	* typeck2.c (build_functional_cast): Limit REFERENCE_TYPE special
+	case to templates.
+	(abstract_virtuals_error_sfinae): Remove RESULT_DECL special case.
+
+	PR c++/48449
+	* typeck2.c (build_functional_cast): Check complain consistently.
+	Use build_value_init and abstract_virtuals_error_sfinae.
+	(abstract_virtuals_error_sfinae): Split out.
+	* cp-tree.h: Declare it.
+	* init.c (build_new_1): Use it.
+	(build_value_init_noctor): Handle FUNCTION_TYPE.
+
+	* semantics.c (finish_decltype_type): Simplify handling of unknown
+	type.
+
+	* semantics.c (finish_decltype_type): Add complain parm.
+	* cp-tree.h: Adjust.
+	* parser.c (cp_parser_decltype): Adjust.
+	* pt.c (tsubst): Adjust.
+
+	PR c++/48450
+	* cvt.c (ocp_convert): Handle converting scoped enum to bool.
+
+2011-03-31  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48277
+	* semantics.c (finish_call_expr): Remove assert.
+
+	PR c++/48280
+	* method.c (defaultable_fn_check): Templates are not defaultable.
+
+	* parser.c (cp_parser_init_declarator): Avoid redundant
+	cp_finish_decl for member declarations.
+
+2011-03-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48212
+	* semantics.c (non_const_var_error): Just return if DECL_INITIAL
+	is error_mark_node.
+
+2011-03-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48369
+	* semantics.c (potential_constant_expression_1): Handle
+	UNORDERED_EXPR and ORDERED_EXPR.
+
+	PR c++/48281
+	* semantics.c (finish_compound_literal): Do put static/constant
+	arrays in static variables.
+
+	* call.c (convert_like_real) [ck_list]: Build up the
+	initializer_list object directly.
+	* decl.c (build_init_list_var_init): Adjust.
+
+	* call.c (convert_like_real): Correct TREE_CONSTANT on CONSTRUCTOR.
+	* decl.c (reshape_init_array_1): Likewise.
+
+2011-03-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48265
+	* pt.c (value_dependent_expression_p) [VAR_DECL]: Make sure
+	the variable is constant before looking at its initializer.
+
+	PR c++/48319
+	* pt.c (value_dependent_expression_p): Handle TEMPLATE_ID_EXPR.
+
+	PR c++/48089
+	* semantics.c (potential_constant_expression_1): Change error about
+	use of *this in constructor into sorry.
+
+	PR c++/48296
+	* decl.c (cp_finish_decl): Defer validation of constexpr member
+	functions.
+	* class.c (finalize_literal_type_property): Validate them here.
+	* semantics.c (is_valid_constexpr_fn): Don't check completeness.
+
+	* semantics.c (is_valid_constexpr_fn): Specify input location.
+
+2011-03-28  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48313
+	* pt.c (maybe_adjust_types_for_deduction): Handle T&& deduction
+	from overloaded function.
+
+	Core 1232
+	* call.c (build_array_conv): New.
+	(implicit_conversion): Use it.
+
+	* call.c (reference_binding): Allow direct binding to an array
+	rvalue.
+
+	Core 898
+	* parser.c (cp_parser_compound_statement): Add function_body parm.
+	Complain about non-body compound-stmt in constexpr fn.
+	(cp_parser_primary_expression, cp_parser_statement): Adjust.
+	(cp_parser_implicitly_scoped_statement): Adjust.
+	(cp_parser_function_body, cp_parser_try_block): Adjust.
+	(cp_parser_handler, cp_parser_objc_synchronized_statement): Adjust.
+	(cp_parser_objc_try_catch_finally_statement): Adjust.
+
+	Core 898
+	* semantics.c (constexpr_fn_retval): New.  Allow using-declaration
+	and using-definition.
+	(register_constexpr_fundef): Call it.
+
+	* except.c (build_noexcept_spec): Call cxx_constant_value after
+	converting to bool.
+
+2011-03-25  Kai Tietz  <ktietz@redhat.com>
+
+	* lex.c (interface_strcmp): Handle dos-paths.
+	(handle_pragma_implementation): Use filename_cmp instead of
+	strcmp.
+	(in_main_input_context): Likewise.
+
+2011-03-25  Jason Merrill  <jason@redhat.com>
+
+	Core 1135
+	* method.c (defaulted_late_check): Check for exception spec mismatch.
+	(defaultable_fn_check): Allow exception spec and virtual.
+	* class.c (check_for_override): A virtual dtor is non-trivial.
+
+	PR c++/48289
+	* pt.c (build_non_dependent_expr): Keep dereferences outside the
+	NON_DEPENDENT_EXPR.
+
+2011-03-25  Kai Tietz  <ktietz@redhat.com>
+
+	* decl.c (decls_match): Replace target hook
+	call of comp_type_attributes by version in tree.c file.
+	* search.c (check_final_overrider): Likewise.
+	* typeck.c (structural_comptypes): Likewise.
+
 2011-03-21  Kai Tietz  <ktietz@redhat.com>
 
 	PR target/12171

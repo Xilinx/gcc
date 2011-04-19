@@ -3600,7 +3600,7 @@ gfc_conv_procedure_call (gfc_se * se, gfc_symbol * sym,
   /* If there are alternate return labels, function type should be
      integer.  Can't modify the type in place though, since it can be shared
      with other functions.  For dummy arguments, the typing is done to
-     to this result, even if it has to be repeated for each call.  */
+     this result, even if it has to be repeated for each call.  */
   if (has_alternate_specifier
       && TREE_TYPE (TREE_TYPE (TREE_TYPE (se->expr))) != integer_type_node)
     {
@@ -5510,73 +5510,56 @@ arrayfunc_assign_needs_temporary (gfc_expr * expr1, gfc_expr * expr2)
    reallocatable assignments from extrinsic function calls.  */
 
 static void
-realloc_lhs_loop_for_fcn_call (gfc_se *se, locus *where, gfc_ss **ss)
+realloc_lhs_loop_for_fcn_call (gfc_se *se, locus *where, gfc_ss **ss,
+			       gfc_loopinfo *loop)
 {
-  gfc_loopinfo loop;
   /* Signal that the function call should not be made by
      gfc_conv_loop_setup. */
   se->ss->is_alloc_lhs = 1;
-  gfc_init_loopinfo (&loop);
-  gfc_add_ss_to_loop (&loop, *ss);
-  gfc_add_ss_to_loop (&loop, se->ss);
-  gfc_conv_ss_startstride (&loop);
-  gfc_conv_loop_setup (&loop, where);
-  gfc_copy_loopinfo_to_se (se, &loop);
-  gfc_add_block_to_block (&se->pre, &loop.pre);
-  gfc_add_block_to_block (&se->pre, &loop.post);
+  gfc_init_loopinfo (loop);
+  gfc_add_ss_to_loop (loop, *ss);
+  gfc_add_ss_to_loop (loop, se->ss);
+  gfc_conv_ss_startstride (loop);
+  gfc_conv_loop_setup (loop, where);
+  gfc_copy_loopinfo_to_se (se, loop);
+  gfc_add_block_to_block (&se->pre, &loop->pre);
+  gfc_add_block_to_block (&se->pre, &loop->post);
   se->ss->is_alloc_lhs = 0;
 }
 
 
+/* For Assignment to a reallocatable lhs from intrinsic functions,
+   replace the se.expr (ie. the result) with a temporary descriptor.
+   Null the data field so that the library allocates space for the
+   result. Free the data of the original descriptor after the function,
+   in case it appears in an argument expression and transfer the
+   result to the original descriptor.  */
+
 static void
-realloc_lhs_bounds_for_intrinsic_call (gfc_se *se, int rank)
+fcncall_realloc_result (gfc_se *se)
 {
   tree desc;
+  tree res_desc;
   tree tmp;
-  tree offset;
-  int n;
 
-  /* Use the allocation done by the library.  */
+  /* Use the allocation done by the library.  Substitute the lhs
+     descriptor with a copy, whose data field is nulled.*/
   desc = build_fold_indirect_ref_loc (input_location, se->expr);
+  res_desc = gfc_evaluate_now (desc, &se->pre);
+  gfc_conv_descriptor_data_set (&se->pre, res_desc, null_pointer_node);
+  se->expr = gfc_build_addr_expr (TREE_TYPE (se->expr), res_desc);
+
+  /* Free the lhs after the function call and copy the result data to
+     it.  */
   tmp = gfc_conv_descriptor_data_get (desc);
   tmp = gfc_call_free (fold_convert (pvoid_type_node, tmp));
-  gfc_add_expr_to_block (&se->pre, tmp);
-  gfc_conv_descriptor_data_set (&se->pre, desc, null_pointer_node);
+  gfc_add_expr_to_block (&se->post, tmp);
+  tmp = gfc_conv_descriptor_data_get (res_desc);
+  gfc_conv_descriptor_data_set (&se->post, desc, tmp);
+
   /* Unallocated, the descriptor does not have a dtype.  */
   tmp = gfc_conv_descriptor_dtype (desc);
-  gfc_add_modify (&se->pre, tmp, gfc_get_dtype (TREE_TYPE (desc)));
-
-  offset = gfc_index_zero_node;
-  tmp = gfc_index_one_node;
-  /* Now reset the bounds from zero based to unity based.  */
-  for (n = 0 ; n < rank; n++)
-    {
-      /* Accumulate the offset.  */
-      offset = fold_build2_loc (input_location, MINUS_EXPR,
-				gfc_array_index_type,
-				offset, tmp);
-      /* Now do the bounds.  */
-      gfc_conv_descriptor_offset_set (&se->post, desc, tmp);
-      tmp = gfc_conv_descriptor_ubound_get (desc, gfc_rank_cst[n]);
-      tmp = fold_build2_loc (input_location, PLUS_EXPR,
-			     gfc_array_index_type,
-			     tmp, gfc_index_one_node);
-      gfc_conv_descriptor_lbound_set (&se->post, desc,
-				      gfc_rank_cst[n],
-				      gfc_index_one_node);
-      gfc_conv_descriptor_ubound_set (&se->post, desc,
-				      gfc_rank_cst[n], tmp);
-
-      /* The extent for the next contribution to offset.  */
-      tmp = fold_build2_loc (input_location, MINUS_EXPR,
-			     gfc_array_index_type,
-			     gfc_conv_descriptor_ubound_get (desc, gfc_rank_cst[n]),
-			     gfc_conv_descriptor_lbound_get (desc, gfc_rank_cst[n]));
-      tmp = fold_build2_loc (input_location, PLUS_EXPR,
-			     gfc_array_index_type,
-			     tmp, gfc_index_one_node);
-    }
-  gfc_conv_descriptor_offset_set (&se->post, desc, offset);
+  gfc_add_modify (&se->post, tmp, gfc_get_dtype (TREE_TYPE (desc)));
 }
 
 
@@ -5591,6 +5574,7 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
   gfc_se se;
   gfc_ss *ss;
   gfc_component *comp = NULL;
+  gfc_loopinfo loop;
 
   if (arrayfunc_assign_needs_temporary (expr1, expr2))
     return NULL;
@@ -5641,11 +5625,11 @@ gfc_trans_arrayfunc_assign (gfc_expr * expr1, gfc_expr * expr2)
     {
       if (!expr2->value.function.isym)
 	{
-	  realloc_lhs_loop_for_fcn_call (&se, &expr1->where, &ss);
+	  realloc_lhs_loop_for_fcn_call (&se, &expr1->where, &ss, &loop);
 	  ss->is_alloc_lhs = 1;
 	}
       else
-	realloc_lhs_bounds_for_intrinsic_call (&se, expr1->rank);
+	fcncall_realloc_result (&se);
     }
 
   gfc_conv_function_expr (&se, expr2);

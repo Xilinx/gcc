@@ -184,8 +184,9 @@ extern GTY(()) int darwin_ms_struct;
 
 #define LINK_COMMAND_SPEC_A \
    "%{!fdump=*:%{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
-    %(linker) \
-    %{flto*:%<fcompare-debug*} \
+    %(linker)" \
+    LINK_PLUGIN_SPEC \
+    "%{flto*:%<fcompare-debug*} \
     %{flto*} \
     %l %X %{s} %{t} %{Z} %{u*} \
     %{e*} %{r} \
@@ -964,19 +965,8 @@ __enable_execute_stack (void *addr)                                     \
 /* We have target-specific builtins.  */
 #define TARGET_FOLD_BUILTIN darwin_fold_builtin
 
-#define TARGET_OBJC_CONSTRUCT_STRING_OBJECT \
-  darwin_objc_construct_string
-
-#define TARGET_STRING_OBJECT_REF_TYPE_P \
-  darwin_cfstring_ref_p
-
 #define TARGET_N_FORMAT_TYPES 1
 #define TARGET_FORMAT_TYPES darwin_additional_format_types
-
-#define TARGET_CHECK_STRING_OBJECT_FORMAT_ARG \
-  darwin_check_cfstring_format_arg
-
-#define TARGET_HAS_TARGETCM 1
 
 #ifndef USED_FOR_TARGET
 extern void darwin_driver_init (unsigned int *,struct cl_decoded_option **);

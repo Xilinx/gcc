@@ -195,7 +195,8 @@
 		  || gotdtp_symbolic_operand (op, mode)
 		  || gottp_symbolic_operand (op, mode));
 	}
-      return mode == Pmode;
+      /* VMS still has a 32-bit mode.  */
+      return mode == ptr_mode || mode == Pmode;
 
     case HIGH:
       return (TARGET_EXPLICIT_RELOCS
@@ -616,3 +617,9 @@
     return false;
   return for_each_rtx (&op, some_small_symbolic_operand_int, NULL);
 })
+
+;; Accept a register, or a memory if BWX is enabled.
+(define_predicate "reg_or_bwx_memory_operand"
+  (ior (match_operand 0 "register_operand")
+       (and (match_test "TARGET_BWX")
+	    (match_operand 0 "memory_operand"))))

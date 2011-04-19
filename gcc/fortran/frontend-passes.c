@@ -35,6 +35,7 @@ static void optimize_assignment (gfc_code *);
 static bool optimize_op (gfc_expr *);
 static bool optimize_comparison (gfc_expr *, gfc_intrinsic_op);
 static bool optimize_trim (gfc_expr *);
+static bool optimize_lexical_comparison (gfc_expr *);
 
 /* How deep we are inside an argument list.  */
 
@@ -61,7 +62,7 @@ gfc_namespace *current_ns;
 void
 gfc_run_passes (gfc_namespace *ns)
 {
-  if (optimize)
+  if (gfc_option.flag_frontend_optimize)
     {
       expr_size = 20;
       expr_array = XNEWVEC(gfc_expr **, expr_size);
@@ -119,6 +120,9 @@ optimize_expr (gfc_expr **e, int *walk_subtrees ATTRIBUTE_UNUSED,
   if (optimize_trim (*e))
     gfc_simplify_expr (*e, 0);
 
+  if (optimize_lexical_comparison (*e))
+    gfc_simplify_expr (*e, 0);
+
   if ((*e)->expr_type == EXPR_OP && optimize_op (*e))
     gfc_simplify_expr (*e, 0);
 
@@ -137,6 +141,13 @@ static int
 cfe_register_funcs (gfc_expr **e, int *walk_subtrees ATTRIBUTE_UNUSED,
 	  void *data ATTRIBUTE_UNUSED)
 {
+
+  /* FIXME - there is a bug in the insertion code for DO loops.  Bail
+     out here.  */
+
+  if ((*current_code)->op == EXEC_DO)
+    return 0;
+
   if ((*e)->expr_type != EXPR_FUNCTION)
     return 0;
 
@@ -256,6 +267,8 @@ create_var (gfc_expr * e)
       result->ref->u.ar.type = AR_FULL;
       result->ref->u.ar.where = e->where;
       result->ref->u.ar.as = symbol->as;
+      if (gfc_option.warn_array_temp)
+	gfc_warning ("Creating array temporary at %L", &(e->where));
     }
 
   /* Generate the new assignment.  */
@@ -270,6 +283,20 @@ create_var (gfc_expr * e)
   return result;
 }
 
+/* Warn about function elimination.  */
+
+static void
+warn_function_elimination (gfc_expr *e)
+{
+  if (e->expr_type != EXPR_FUNCTION)
+    return;
+  if (e->value.function.esym)
+    gfc_warning ("Removing call to function '%s' at %L",
+		 e->value.function.esym->name, &(e->where));
+  else if (e->value.function.isym)
+    gfc_warning ("Removing call to function '%s' at %L",
+		 e->value.function.isym->name, &(e->where));
+}
 /* Callback function for the code walker for doing common function
    elimination.  This builds up the list of functions in the expression
    and goes through them to detect duplicates, which it then replaces
@@ -286,22 +313,26 @@ cfe_expr_0 (gfc_expr **e, int *walk_subtrees,
 
   gfc_expr_walker (e, cfe_register_funcs, NULL);
 
-  /* Walk backwards through all the functions to make sure we
-     catch the leaf functions first.  */
-  for (i=expr_count-1; i>=1; i--)
+  /* Walk through all the functions.  */
+
+  for (i=1; i<expr_count; i++)
     {
       /* Skip if the function has been replaced by a variable already.  */
       if ((*(expr_array[i]))->expr_type == EXPR_VARIABLE)
 	continue;
 
       newvar = NULL;
-      for (j=i-1; j>=0; j--)
+      for (j=0; j<i; j++)
 	{
 	  if (gfc_dep_compare_functions(*(expr_array[i]),
 					*(expr_array[j]), true)	== 0)
 	    {
 	      if (newvar == NULL)
 		newvar = create_var (*(expr_array[i]));
+
+	      if (gfc_option.warn_function_elimination)
+		warn_function_elimination (*(expr_array[j]));
+
 	      gfc_free (*(expr_array[j]));
 	      *(expr_array[j]) = gfc_copy_expr (newvar);
 	    }
@@ -474,6 +505,34 @@ strip_function_call (gfc_expr *e)
 
 }
 
+/* Optimization of lexical comparison functions.  */
+
+static bool
+optimize_lexical_comparison (gfc_expr *e)
+{
+  if (e->expr_type != EXPR_FUNCTION || e->value.function.isym == NULL)
+    return false;
+
+  switch (e->value.function.isym->id)
+    {
+    case GFC_ISYM_LLE:
+      return optimize_comparison (e, INTRINSIC_LE);
+
+    case GFC_ISYM_LGE:
+      return optimize_comparison (e, INTRINSIC_GE);
+
+    case GFC_ISYM_LGT:
+      return optimize_comparison (e, INTRINSIC_GT);
+
+    case GFC_ISYM_LLT:
+      return optimize_comparison (e, INTRINSIC_LT);
+
+    default:
+      break;
+    }
+  return false;
+}
+
 /* Recursive optimization of operators.  */
 
 static bool
@@ -513,9 +572,25 @@ optimize_comparison (gfc_expr *e, gfc_intrinsic_op op)
   bool change;
   int eq;
   bool result;
+  gfc_actual_arglist *firstarg, *secondarg;
 
-  op1 = e->value.op.op1;
-  op2 = e->value.op.op2;
+  if (e->expr_type == EXPR_OP)
+    {
+      firstarg = NULL;
+      secondarg = NULL;
+      op1 = e->value.op.op1;
+      op2 = e->value.op.op2;
+    }
+  else if (e->expr_type == EXPR_FUNCTION)
+    {
+      /* One of the lexical comparision functions.  */
+      firstarg = e->value.function.actual;
+      secondarg = firstarg->next;
+      op1 = firstarg->expr;
+      op2 = secondarg->expr;
+    }
+  else
+    gcc_unreachable ();
 
   /* Strip off unneeded TRIM calls from string comparisons.  */
 
@@ -578,13 +653,21 @@ optimize_comparison (gfc_expr *e, gfc_intrinsic_op op)
 			&& op2_left->expr_type == EXPR_CONSTANT
 			&& op1_left->value.character.length
 			   != op2_left->value.character.length)
-		    return -2;
+		    return false;
 		  else
 		    {
 		      gfc_free (op1_left);
 		      gfc_free (op2_left);
-		      e->value.op.op1 = op1_right;
-		      e->value.op.op2 = op2_right;
+		      if (firstarg)
+			{
+			  firstarg->expr = op1_right;
+			  secondarg->expr = op2_right;
+			}
+		      else
+			{
+			  e->value.op.op1 = op1_right;
+			  e->value.op.op2 = op2_right;
+			}
 		      optimize_comparison (e, op);
 		      return true;
 		    }
@@ -593,8 +676,17 @@ optimize_comparison (gfc_expr *e, gfc_intrinsic_op op)
 		{
 		  gfc_free (op1_right);
 		  gfc_free (op2_right);
-		  e->value.op.op1 = op1_left;
-		  e->value.op.op2 = op2_left;
+		  if (firstarg)
+		    {
+		      firstarg->expr = op1_left;
+		      secondarg->expr = op2_left;
+		    }
+		  else
+		    {
+		      e->value.op.op1 = op1_left;
+		      e->value.op.op2 = op2_left;
+		    }
+
 		  optimize_comparison (e, op);
 		  return true;
 		}
@@ -664,6 +756,7 @@ optimize_trim (gfc_expr *e)
   gfc_ref *ref;
   gfc_expr *fcn;
   gfc_actual_arglist *actual_arglist, *next;
+  gfc_ref **rr = NULL;
 
   /* Don't do this optimization within an argument list, because
      otherwise aliasing issues may occur.  */
@@ -681,46 +774,54 @@ optimize_trim (gfc_expr *e)
   if (a->expr_type != EXPR_VARIABLE)
     return false;
 
+  /* Follow all references to find the correct place to put the newly
+     created reference.  FIXME:  Also handle substring references and
+     array references.  Array references cause strange regressions at
+     the moment.  */
+
   if (a->ref)
     {
-      /* FIXME - also handle substring references, by modifying the
-	 reference itself.  Make sure not to evaluate functions in
-	 the references twice.  */
-      return false;
+      for (rr = &(a->ref); *rr; rr = &((*rr)->next))
+	{
+	  if ((*rr)->type == REF_SUBSTRING || (*rr)->type == REF_ARRAY)
+	    return false;
+	}
     }
-  else
-    {
-      strip_function_call (e);
 
-      /* Create the reference.  */
+  strip_function_call (e);
 
-      ref = gfc_get_ref ();
-      ref->type = REF_SUBSTRING;
+  if (e->ref == NULL)
+    rr = &(e->ref);
 
-      /* Set the start of the reference.  */
+  /* Create the reference.  */
 
-      ref->u.ss.start = gfc_get_int_expr (gfc_default_integer_kind, NULL, 1);
+  ref = gfc_get_ref ();
+  ref->type = REF_SUBSTRING;
 
-      /* Build the function call to len_trim(x, gfc_defaul_integer_kind).  */
+  /* Set the start of the reference.  */
 
-      fcn = gfc_get_expr ();
-      fcn->expr_type = EXPR_FUNCTION;
-      fcn->value.function.isym =
-	gfc_intrinsic_function_by_id (GFC_ISYM_LEN_TRIM);
-      actual_arglist = gfc_get_actual_arglist ();
-      actual_arglist->expr = gfc_copy_expr (e);
-      next = gfc_get_actual_arglist ();
-      next->expr = gfc_get_int_expr (gfc_default_integer_kind, NULL,
-				     gfc_default_integer_kind);
-      actual_arglist->next = next;
-      fcn->value.function.actual = actual_arglist;
+  ref->u.ss.start = gfc_get_int_expr (gfc_default_integer_kind, NULL, 1);
 
-      /* Set the end of the reference to the call to len_trim.  */
+  /* Build the function call to len_trim(x, gfc_defaul_integer_kind).  */
 
-      ref->u.ss.end = fcn;
-      e->ref = ref;
-      return true;
-    }
+  fcn = gfc_get_expr ();
+  fcn->expr_type = EXPR_FUNCTION;
+  fcn->value.function.isym =
+    gfc_intrinsic_function_by_id (GFC_ISYM_LEN_TRIM);
+  actual_arglist = gfc_get_actual_arglist ();
+  actual_arglist->expr = gfc_copy_expr (e);
+  next = gfc_get_actual_arglist ();
+  next->expr = gfc_get_int_expr (gfc_default_integer_kind, NULL,
+				 gfc_default_integer_kind);
+  actual_arglist->next = next;
+  fcn->value.function.actual = actual_arglist;
+
+  /* Set the end of the reference to the call to len_trim.  */
+
+  ref->u.ss.end = fcn;
+  gcc_assert (*rr == NULL);
+  *rr = ref;
+  return true;
 }
 
 #define WALK_SUBEXPR(NODE) \
@@ -785,7 +886,7 @@ gfc_expr_walker (gfc_expr **e, walk_expr_fn_t exprfn, void *data)
 	      break;
 
 	    /* Fall through to the variable case in order to walk the
-	       the reference.  */
+	       reference.  */
 
 	  case EXPR_SUBSTRING:
 	  case EXPR_VARIABLE:

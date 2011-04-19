@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for DEC Alpha.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2004, 2005, 2007, 2008, 2009, 2010
+   2000, 2001, 2002, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Richard Kenner (kenner@vlsi1.ultra.nyu.edu)
 
@@ -95,9 +95,6 @@ along with GCC; see the file COPYING3.  If not see
     }							\
   while (0)
 #endif
-
-/* Print subsidiary information on the compiler version in use.  */
-#define TARGET_VERSION
 
 /* Run-time compilation parameters selecting different hardware subsets.  */
 
@@ -510,19 +507,6 @@ enum reg_class {
   {0xffffffff, 0x80000000},	/* GENERAL_REGS */	\
   {0x00000000, 0x7fffffff},	/* FLOAT_REGS */	\
   {0xffffffff, 0xffffffff} }
-
-/* The following macro defines cover classes for Integrated Register
-   Allocator.  Cover classes is a set of non-intersected register
-   classes covering all hard registers used for register allocation
-   purpose.  Any move between two registers of a cover class should be
-   cheaper than load or store of the registers.  The macro value is
-   array of register classes with LIM_REG_CLASSES used as the end
-   marker.  */
-
-#define IRA_COVER_CLASSES						     \
-{									     \
-  GENERAL_REGS, FLOAT_REGS, LIM_REG_CLASSES				     \
-}
 
 /* The same information, inverted:
    Return the class number of the smallest class containing

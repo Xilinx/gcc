@@ -96,7 +96,8 @@ __go_broadcast_to_select (struct __go_channel *channel)
 }
 
 /* Prepare to receive something on a channel.  Return true if the
-   channel is acquired, false if it is closed.  */
+   channel is acquired (which implies that there is data available),
+   false if it is closed.  */
 
 _Bool
 __go_receive_acquire (struct __go_channel *channel, _Bool for_select)
@@ -123,7 +124,6 @@ __go_receive_acquire (struct __go_channel *channel, _Bool for_select)
 	      ? channel->next_store == 0
 	      : channel->next_fetch == channel->next_store))
 	{
-	  channel->saw_close = 1;
 	  channel->selected_for_receive = 0;
 	  __go_unlock_and_notify_selects (channel);
 	  return 0;

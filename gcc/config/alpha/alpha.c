@@ -95,10 +95,6 @@ int alpha_memory_latency = 3;
 
 static int alpha_function_needs_gp;
 
-/* The alias set for prologue/epilogue register save/restore.  */
-
-static GTY(()) alias_set_type alpha_sr_alias_set;
-
 /* The assembler name of the current function.  */
 
 static const char *alpha_fnname;
@@ -476,9 +472,6 @@ alpha_option_override (void)
   if (align_functions <= 0)
     align_functions = 16;
 
-  /* Acquire a unique set number for our register saves and restores.  */
-  alpha_sr_alias_set = new_alias_set ();
-
   /* Register variables and functions with the garbage collector.  */
 
   /* Set up function hooks.  */
@@ -555,7 +548,7 @@ resolve_reload_operand (rtx op)
       if (REG_P (tmp)
 	  && REGNO (tmp) >= FIRST_PSEUDO_REGISTER)
 	{
-	  op = reg_equiv_memory_loc[REGNO (tmp)];
+	  op = reg_equiv_memory_loc (REGNO (tmp));
 	  if (op == 0)
 	    return 0;
 	}
@@ -1453,10 +1446,7 @@ get_aligned_mem (rtx ref, rtx *paligned_mem, rtx *pbitnum)
   *paligned_mem = widen_memory_access (ref, SImode, -offset);
 
   /* Convert the byte offset within the word to a bit offset.  */
-  if (WORDS_BIG_ENDIAN)
-    offset = 32 - (GET_MODE_BITSIZE (GET_MODE (ref)) + offset * 8);
-  else
-    offset *= 8;
+  offset *= BITS_PER_UNIT;
   *pbitnum = GEN_INT (offset);
 }
 
@@ -3009,7 +2999,7 @@ alpha_emit_xfloating_libcall (rtx func, rtx target, rtx operands[],
 	}
 
       emit_move_insn (reg, operands[i]);
-      usage = alloc_EXPR_LIST (0, gen_rtx_USE (VOIDmode, reg), usage);
+      use_reg (&usage, reg);
     }
 
   switch (GET_MODE (target))
@@ -3295,8 +3285,6 @@ alpha_expand_unaligned_load (rtx tgt, rtx mem, HOST_WIDE_INT size,
     {
       meml = adjust_address (mem, QImode, ofs);
       memh = adjust_address (mem, QImode, ofs+1);
-      if (BYTES_BIG_ENDIAN)
-	tmp = meml, meml = memh, memh = tmp;
       extl = gen_reg_rtx (DImode);
       exth = gen_reg_rtx (DImode);
       emit_insn (gen_zero_extendqidi2 (extl, meml));
@@ -3348,23 +3336,12 @@ alpha_expand_unaligned_load (rtx tgt, rtx mem, HOST_WIDE_INT size,
   set_mem_alias_set (tmp, 0);
   emit_move_insn (memh, tmp);
 
-  if (WORDS_BIG_ENDIAN && sign && (size == 2 || size == 4))
-    {
-      emit_move_insn (addr, plus_constant (mema, -1));
-
-      emit_insn (gen_extqh_be (extl, meml, addr));
-      emit_insn (gen_extxl_be (exth, memh, GEN_INT (64), addr));
-
-      addr = expand_binop (DImode, ior_optab, extl, exth, tgt, 1, OPTAB_WIDEN);
-      addr = expand_binop (DImode, ashr_optab, addr, GEN_INT (64 - size*8),
-			   addr, 1, OPTAB_WIDEN);
-    }
-  else if (sign && size == 2)
+  if (sign && size == 2)
     {
       emit_move_insn (addr, plus_constant (mema, ofs+2));
 
-      emit_insn (gen_extxl_le (extl, meml, GEN_INT (64), addr));
-      emit_insn (gen_extqh_le (exth, memh, addr));
+      emit_insn (gen_extql (extl, meml, addr));
+      emit_insn (gen_extqh (exth, memh, addr));
 
       /* We must use tgt here for the target.  Alpha-vms port fails if we use
 	 addr for the target, because addr is marked as a pointer and combine
@@ -3375,55 +3352,24 @@ alpha_expand_unaligned_load (rtx tgt, rtx mem, HOST_WIDE_INT size,
     }
   else
     {
-      if (WORDS_BIG_ENDIAN)
+      emit_move_insn (addr, plus_constant (mema, ofs));
+      emit_insn (gen_extxl (extl, meml, GEN_INT (size*8), addr));
+      switch ((int) size)
 	{
-	  emit_move_insn (addr, plus_constant (mema, ofs+size-1));
-	  switch ((int) size)
-	    {
-	    case 2:
-	      emit_insn (gen_extwh_be (extl, meml, addr));
-	      mode = HImode;
-	      break;
-
-	    case 4:
-	      emit_insn (gen_extlh_be (extl, meml, addr));
-	      mode = SImode;
-	      break;
-
-	    case 8:
-	      emit_insn (gen_extqh_be (extl, meml, addr));
-	      mode = DImode;
-	      break;
-
-	    default:
-	      gcc_unreachable ();
-	    }
-	  emit_insn (gen_extxl_be (exth, memh, GEN_INT (size*8), addr));
-	}
-      else
-	{
-	  emit_move_insn (addr, plus_constant (mema, ofs));
-	  emit_insn (gen_extxl_le (extl, meml, GEN_INT (size*8), addr));
-	  switch ((int) size)
-	    {
-	    case 2:
-	      emit_insn (gen_extwh_le (exth, memh, addr));
-	      mode = HImode;
-	      break;
-
-	    case 4:
-	      emit_insn (gen_extlh_le (exth, memh, addr));
-	      mode = SImode;
-	      break;
-
-	    case 8:
-	      emit_insn (gen_extqh_le (exth, memh, addr));
-	      mode = DImode;
-	      break;
-
-	    default:
-	      gcc_unreachable ();
-	    }
+	case 2:
+	  emit_insn (gen_extwh (exth, memh, addr));
+	  mode = HImode;
+	  break;
+	case 4:
+	  emit_insn (gen_extlh (exth, memh, addr));
+	  mode = SImode;
+	  break;
+	case 8:
+	  emit_insn (gen_extqh (exth, memh, addr));
+	  mode = DImode;
+	  break;
+	default:
+	  gcc_unreachable ();
 	}
 
       addr = expand_binop (mode, ior_optab, gen_lowpart (mode, extl),
@@ -3457,8 +3403,6 @@ alpha_expand_unaligned_store (rtx dst, rtx src,
 
       meml = adjust_address (dst, QImode, ofs);
       memh = adjust_address (dst, QImode, ofs+1);
-      if (BYTES_BIG_ENDIAN)
-	addr = meml, meml = memh, memh = addr;
 
       emit_move_insn (meml, dstl);
       emit_move_insn (memh, dsth);
@@ -3492,86 +3436,45 @@ alpha_expand_unaligned_store (rtx dst, rtx src,
 
   emit_move_insn (dsth, memh);
   emit_move_insn (dstl, meml);
-  if (WORDS_BIG_ENDIAN)
-    {
-      addr = copy_addr_to_reg (plus_constant (dsta, ofs+size-1));
 
-      if (src != const0_rtx)
-	{
-	  switch ((int) size)
-	    {
-	    case 2:
-	      emit_insn (gen_inswl_be (insh, gen_lowpart (HImode,src), addr));
-	      break;
-	    case 4:
-	      emit_insn (gen_insll_be (insh, gen_lowpart (SImode,src), addr));
-	      break;
-	    case 8:
-	      emit_insn (gen_insql_be (insh, gen_lowpart (DImode,src), addr));
-	      break;
-	    }
-	  emit_insn (gen_insxh (insl, gen_lowpart (DImode, src),
-				GEN_INT (size*8), addr));
-	}
+  addr = copy_addr_to_reg (plus_constant (dsta, ofs));
+
+  if (src != CONST0_RTX (GET_MODE (src)))
+    {
+      emit_insn (gen_insxh (insh, gen_lowpart (DImode, src),
+			    GEN_INT (size*8), addr));
 
       switch ((int) size)
 	{
 	case 2:
-	  emit_insn (gen_mskxl_be (dsth, dsth, GEN_INT (0xffff), addr));
+	  emit_insn (gen_inswl (insl, gen_lowpart (HImode, src), addr));
 	  break;
 	case 4:
-	  {
-	    rtx msk = immed_double_const (0xffffffff, 0, DImode);
-	    emit_insn (gen_mskxl_be (dsth, dsth, msk, addr));
-	    break;
-	  }
-	case 8:
-	  emit_insn (gen_mskxl_be (dsth, dsth, constm1_rtx, addr));
+	  emit_insn (gen_insll (insl, gen_lowpart (SImode, src), addr));
 	  break;
+	case 8:
+	  emit_insn (gen_insql (insl, gen_lowpart (DImode, src), addr));
+	  break;
+	default:
+	  gcc_unreachable ();
 	}
-
-      emit_insn (gen_mskxh (dstl, dstl, GEN_INT (size*8), addr));
     }
-  else
+
+  emit_insn (gen_mskxh (dsth, dsth, GEN_INT (size*8), addr));
+
+  switch ((int) size)
     {
-      addr = copy_addr_to_reg (plus_constant (dsta, ofs));
-
-      if (src != CONST0_RTX (GET_MODE (src)))
-	{
-	  emit_insn (gen_insxh (insh, gen_lowpart (DImode, src),
-				GEN_INT (size*8), addr));
-
-	  switch ((int) size)
-	    {
-	    case 2:
-	      emit_insn (gen_inswl_le (insl, gen_lowpart (HImode, src), addr));
-	      break;
-	    case 4:
-	      emit_insn (gen_insll_le (insl, gen_lowpart (SImode, src), addr));
-	      break;
-	    case 8:
-	      emit_insn (gen_insql_le (insl, gen_lowpart (DImode, src), addr));
-	      break;
-	    }
-	}
-
-      emit_insn (gen_mskxh (dsth, dsth, GEN_INT (size*8), addr));
-
-      switch ((int) size)
-	{
-	case 2:
-	  emit_insn (gen_mskxl_le (dstl, dstl, GEN_INT (0xffff), addr));
-	  break;
-	case 4:
-	  {
-	    rtx msk = immed_double_const (0xffffffff, 0, DImode);
-	    emit_insn (gen_mskxl_le (dstl, dstl, msk, addr));
-	    break;
-	  }
-	case 8:
-	  emit_insn (gen_mskxl_le (dstl, dstl, constm1_rtx, addr));
-	  break;
-	}
+    case 2:
+      emit_insn (gen_mskwl (dstl, dstl, addr));
+      break;
+    case 4:
+      emit_insn (gen_mskll (dstl, dstl, addr));
+      break;
+    case 8:
+      emit_insn (gen_mskql (dstl, dstl, addr));
+      break;
+    default:
+      gcc_unreachable ();
     }
 
   if (src != CONST0_RTX (GET_MODE (src)))
@@ -3580,17 +3483,9 @@ alpha_expand_unaligned_store (rtx dst, rtx src,
       dstl = expand_binop (DImode, ior_optab, insl, dstl, dstl, 0, OPTAB_WIDEN);
     }
 
-  if (WORDS_BIG_ENDIAN)
-    {
-      emit_move_insn (meml, dstl);
-      emit_move_insn (memh, dsth);
-    }
-  else
-    {
-      /* Must store high before low for degenerate case of aligned.  */
-      emit_move_insn (memh, dsth);
-      emit_move_insn (meml, dstl);
-    }
+  /* Must store high before low for degenerate case of aligned.  */
+  emit_move_insn (memh, dsth);
+  emit_move_insn (meml, dstl);
 }
 
 /* The block move code tries to maximize speed by separating loads and
@@ -3608,7 +3503,6 @@ alpha_expand_unaligned_load_words (rtx *out_regs, rtx smem,
 				   HOST_WIDE_INT words, HOST_WIDE_INT ofs)
 {
   rtx const im8 = GEN_INT (-8);
-  rtx const i64 = GEN_INT (64);
   rtx ext_tmps[MAX_MOVE_WORDS], data_regs[MAX_MOVE_WORDS+1];
   rtx sreg, areg, tmp, smema;
   HOST_WIDE_INT i;
@@ -3653,20 +3547,10 @@ alpha_expand_unaligned_load_words (rtx *out_regs, rtx smem,
   sreg = copy_addr_to_reg (smema);
   areg = expand_binop (DImode, and_optab, sreg, GEN_INT (7), NULL,
 		       1, OPTAB_WIDEN);
-  if (WORDS_BIG_ENDIAN)
-    emit_move_insn (sreg, plus_constant (sreg, 7));
   for (i = 0; i < words; ++i)
     {
-      if (WORDS_BIG_ENDIAN)
-	{
-	  emit_insn (gen_extqh_be (data_regs[i], data_regs[i], sreg));
-	  emit_insn (gen_extxl_be (ext_tmps[i], data_regs[i+1], i64, sreg));
-	}
-      else
-	{
-	  emit_insn (gen_extxl_le (data_regs[i], data_regs[i], i64, sreg));
-	  emit_insn (gen_extqh_le (ext_tmps[i], data_regs[i+1], sreg));
-	}
+      emit_insn (gen_extql (data_regs[i], data_regs[i], sreg));
+      emit_insn (gen_extqh (ext_tmps[i], data_regs[i+1], sreg));
       emit_insn (gen_rtx_SET (VOIDmode, ext_tmps[i],
 			      gen_rtx_IF_THEN_ELSE (DImode,
 						    gen_rtx_EQ (DImode, areg,
@@ -3690,7 +3574,6 @@ alpha_expand_unaligned_store_words (rtx *data_regs, rtx dmem,
 				    HOST_WIDE_INT words, HOST_WIDE_INT ofs)
 {
   rtx const im8 = GEN_INT (-8);
-  rtx const i64 = GEN_INT (64);
   rtx ins_tmps[MAX_MOVE_WORDS];
   rtx st_tmp_1, st_tmp_2, dreg;
   rtx st_addr_1, st_addr_2, dmema;
@@ -3726,22 +3609,12 @@ alpha_expand_unaligned_store_words (rtx *data_regs, rtx dmem,
 
   /* Shift the input data into place.  */
   dreg = copy_addr_to_reg (dmema);
-  if (WORDS_BIG_ENDIAN)
-    emit_move_insn (dreg, plus_constant (dreg, 7));
   if (data_regs != NULL)
     {
       for (i = words-1; i >= 0; --i)
 	{
-	  if (WORDS_BIG_ENDIAN)
-	    {
-	      emit_insn (gen_insql_be (ins_tmps[i], data_regs[i], dreg));
-	      emit_insn (gen_insxh (data_regs[i], data_regs[i], i64, dreg));
-	    }
-	  else
-	    {
-	      emit_insn (gen_insxh (ins_tmps[i], data_regs[i], i64, dreg));
-	      emit_insn (gen_insql_le (data_regs[i], data_regs[i], dreg));
-	    }
+	  emit_insn (gen_insqh (ins_tmps[i], data_regs[i], dreg));
+	  emit_insn (gen_insql (data_regs[i], data_regs[i], dreg));
 	}
       for (i = words-1; i > 0; --i)
 	{
@@ -3752,16 +3625,8 @@ alpha_expand_unaligned_store_words (rtx *data_regs, rtx dmem,
     }
 
   /* Split and merge the ends with the destination data.  */
-  if (WORDS_BIG_ENDIAN)
-    {
-      emit_insn (gen_mskxl_be (st_tmp_2, st_tmp_2, constm1_rtx, dreg));
-      emit_insn (gen_mskxh (st_tmp_1, st_tmp_1, i64, dreg));
-    }
-  else
-    {
-      emit_insn (gen_mskxh (st_tmp_2, st_tmp_2, i64, dreg));
-      emit_insn (gen_mskxl_le (st_tmp_1, st_tmp_1, constm1_rtx, dreg));
-    }
+  emit_insn (gen_mskqh (st_tmp_2, st_tmp_2, dreg));
+  emit_insn (gen_mskql (st_tmp_1, st_tmp_1, dreg));
 
   if (data_regs != NULL)
     {
@@ -3772,24 +3637,17 @@ alpha_expand_unaligned_store_words (rtx *data_regs, rtx dmem,
     }
 
   /* Store it all.  */
-  if (WORDS_BIG_ENDIAN)
-    emit_move_insn (st_addr_1, st_tmp_1);
-  else
-    emit_move_insn (st_addr_2, st_tmp_2);
+  emit_move_insn (st_addr_2, st_tmp_2);
   for (i = words-1; i > 0; --i)
     {
       rtx tmp = change_address (dmem, DImode,
 				gen_rtx_AND (DImode,
-					     plus_constant(dmema,
-					     WORDS_BIG_ENDIAN ? i*8-1 : i*8),
+					     plus_constant (dmema, i*8),
 					     im8));
       set_mem_alias_set (tmp, 0);
       emit_move_insn (tmp, data_regs ? ins_tmps[i-1] : const0_rtx);
     }
-  if (WORDS_BIG_ENDIAN)
-    emit_move_insn (st_addr_2, st_tmp_2);
-  else
-    emit_move_insn (st_addr_1, st_tmp_1);
+  emit_move_insn (st_addr_1, st_tmp_1);
 }
 
 
@@ -4438,21 +4296,24 @@ emit_insxl (enum machine_mode mode, rtx op1, rtx op2)
   rtx ret = gen_reg_rtx (DImode);
   rtx (*fn) (rtx, rtx, rtx);
 
-  if (WORDS_BIG_ENDIAN)
+  switch (mode)
     {
-      if (mode == QImode)
-	fn = gen_insbl_be;
-      else
-	fn = gen_inswl_be;
+    case QImode:
+      fn = gen_insbl;
+      break;
+    case HImode:
+      fn = gen_inswl;
+      break;
+    case SImode:
+      fn = gen_insll;
+      break;
+    case DImode:
+      fn = gen_insql;
+      break;
+    default:
+      gcc_unreachable ();
     }
-  else
-    {
-      if (mode == QImode)
-	fn = gen_insbl_le;
-      else
-	fn = gen_inswl_le;
-    }
-  /* The insbl and inswl patterns require a register operand.  */
+
   op1 = force_reg (mode, op1);
   emit_insn (fn (ret, op1, op2));
 
@@ -4584,10 +4445,7 @@ alpha_split_compare_and_swap_12 (enum machine_mode mode, rtx dest, rtx addr,
   
   width = GEN_INT (GET_MODE_BITSIZE (mode));
   mask = GEN_INT (mode == QImode ? 0xff : 0xffff);
-  if (WORDS_BIG_ENDIAN)
-    emit_insn (gen_extxl_be (dest, scratch, width, addr));
-  else
-    emit_insn (gen_extxl_le (dest, scratch, width, addr));
+  emit_insn (gen_extxl (dest, scratch, width, addr));
 
   if (oldval == const0_rtx)
     x = gen_rtx_NE (DImode, dest, const0_rtx);
@@ -4599,10 +4457,7 @@ alpha_split_compare_and_swap_12 (enum machine_mode mode, rtx dest, rtx addr,
     }
   emit_unlikely_jump (x, label2);
 
-  if (WORDS_BIG_ENDIAN)
-    emit_insn (gen_mskxl_be (scratch, scratch, mask, addr));
-  else
-    emit_insn (gen_mskxl_le (scratch, scratch, mask, addr));
+  emit_insn (gen_mskxl (scratch, scratch, mask, addr));
   emit_insn (gen_iordi3 (scratch, scratch, newval));
 
   emit_store_conditional (DImode, scratch, mem, scratch);
@@ -4678,16 +4533,8 @@ alpha_split_lock_test_and_set_12 (enum machine_mode mode, rtx dest, rtx addr,
   
   width = GEN_INT (GET_MODE_BITSIZE (mode));
   mask = GEN_INT (mode == QImode ? 0xff : 0xffff);
-  if (WORDS_BIG_ENDIAN)
-    {
-      emit_insn (gen_extxl_be (dest, scratch, width, addr));
-      emit_insn (gen_mskxl_be (scratch, scratch, mask, addr));
-    }
-  else
-    {
-      emit_insn (gen_extxl_le (dest, scratch, width, addr));
-      emit_insn (gen_mskxl_le (scratch, scratch, mask, addr));
-    }
+  emit_insn (gen_extxl (dest, scratch, width, addr));
+  emit_insn (gen_mskxl (scratch, scratch, mask, addr));
   emit_insn (gen_iordi3 (scratch, scratch, val));
 
   emit_store_conditional (DImode, scratch, mem, scratch);
@@ -5279,20 +5126,13 @@ print_operand (FILE *file, rtx x, int code)
       break;
 
     case 's':
-      /* Write the constant value divided by 8 for little-endian mode or
-	 (56 - value) / 8 for big-endian mode.  */
-
+      /* Write the constant value divided by 8.  */
       if (!CONST_INT_P (x)
-	  || (unsigned HOST_WIDE_INT) INTVAL (x) >= (WORDS_BIG_ENDIAN
-						     ? 56
-						     : 64)
+	  || (unsigned HOST_WIDE_INT) INTVAL (x) >= 64
 	  || (INTVAL (x) & 7) != 0)
 	output_operand_lossage ("invalid %%s value");
 
-      fprintf (file, HOST_WIDE_INT_PRINT_DEC,
-	       WORDS_BIG_ENDIAN
-	       ? (56 - INTVAL (x)) / 8
-	       : INTVAL (x) / 8);
+      fprintf (file, HOST_WIDE_INT_PRINT_DEC, INTVAL (x) / 8);
       break;
 
     case 'S':
@@ -6391,27 +6231,27 @@ enum alpha_builtin
 
 static enum insn_code const code_for_builtin[ALPHA_BUILTIN_max] = {
   CODE_FOR_builtin_cmpbge,
-  CODE_FOR_builtin_extbl,
-  CODE_FOR_builtin_extwl,
-  CODE_FOR_builtin_extll,
-  CODE_FOR_builtin_extql,
-  CODE_FOR_builtin_extwh,
-  CODE_FOR_builtin_extlh,
-  CODE_FOR_builtin_extqh,
+  CODE_FOR_extbl,
+  CODE_FOR_extwl,
+  CODE_FOR_extll,
+  CODE_FOR_extql,
+  CODE_FOR_extwh,
+  CODE_FOR_extlh,
+  CODE_FOR_extqh,
   CODE_FOR_builtin_insbl,
   CODE_FOR_builtin_inswl,
   CODE_FOR_builtin_insll,
-  CODE_FOR_builtin_insql,
-  CODE_FOR_builtin_inswh,
-  CODE_FOR_builtin_inslh,
-  CODE_FOR_builtin_insqh,
-  CODE_FOR_builtin_mskbl,
-  CODE_FOR_builtin_mskwl,
-  CODE_FOR_builtin_mskll,
-  CODE_FOR_builtin_mskql,
-  CODE_FOR_builtin_mskwh,
-  CODE_FOR_builtin_msklh,
-  CODE_FOR_builtin_mskqh,
+  CODE_FOR_insql,
+  CODE_FOR_inswh,
+  CODE_FOR_inslh,
+  CODE_FOR_insqh,
+  CODE_FOR_mskbl,
+  CODE_FOR_mskwl,
+  CODE_FOR_mskll,
+  CODE_FOR_mskql,
+  CODE_FOR_mskwh,
+  CODE_FOR_msklh,
+  CODE_FOR_mskqh,
   CODE_FOR_umuldi3_highpart,
   CODE_FOR_builtin_zap,
   CODE_FOR_builtin_zapnot,
@@ -6779,9 +6619,7 @@ alpha_fold_builtin_extxx (tree op[], unsigned HOST_WIDE_INT opint[],
       unsigned HOST_WIDE_INT loc;
 
       loc = opint[1] & 7;
-      if (BYTES_BIG_ENDIAN)
-        loc ^= 7;
-      loc *= 8;
+      loc *= BITS_PER_UNIT;
 
       if (loc != 0)
 	{
@@ -6820,8 +6658,6 @@ alpha_fold_builtin_insxx (tree op[], unsigned HOST_WIDE_INT opint[],
       tree *zap_op = NULL;
 
       loc = opint[1] & 7;
-      if (BYTES_BIG_ENDIAN)
-        loc ^= 7;
       bytemask <<= loc;
 
       temp = opint[0];
@@ -6861,8 +6697,6 @@ alpha_fold_builtin_mskxx (tree op[], unsigned HOST_WIDE_INT opint[],
       unsigned HOST_WIDE_INT loc;
 
       loc = opint[1] & 7;
-      if (BYTES_BIG_ENDIAN)
-        loc ^= 7;
       bytemask <<= loc;
 
       if (is_high)
@@ -7607,8 +7441,7 @@ emit_frame_store_1 (rtx value, rtx base_reg, HOST_WIDE_INT frame_bias,
   rtx addr, mem, insn;
 
   addr = plus_constant (base_reg, base_ofs);
-  mem = gen_rtx_MEM (DImode, addr);
-  set_mem_alias_set (mem, alpha_sr_alias_set);
+  mem = gen_frame_mem (DImode, addr);
 
   insn = emit_move_insn (mem, value);
   RTX_FRAME_RELATED_P (insn) = 1;
@@ -8215,9 +8048,7 @@ alpha_expand_epilogue (void)
 
       /* Restore registers in order, excepting a true frame pointer.  */
 
-      mem = gen_rtx_MEM (DImode, plus_constant (sa_reg, reg_offset));
-      if (! eh_ofs)
-        set_mem_alias_set (mem, alpha_sr_alias_set);
+      mem = gen_frame_mem (DImode, plus_constant (sa_reg, reg_offset));
       reg = gen_rtx_REG (DImode, REG_RA);
       emit_move_insn (reg, mem);
       cfa_restores = alloc_reg_note (REG_CFA_RESTORE, reg, cfa_restores);
@@ -8232,8 +8063,8 @@ alpha_expand_epilogue (void)
 	      fp_offset = reg_offset;
 	    else
 	      {
-		mem = gen_rtx_MEM (DImode, plus_constant(sa_reg, reg_offset));
-		set_mem_alias_set (mem, alpha_sr_alias_set);
+		mem = gen_frame_mem (DImode,
+				     plus_constant (sa_reg, reg_offset));
 		reg = gen_rtx_REG (DImode, i);
 		emit_move_insn (reg, mem);
 		cfa_restores = alloc_reg_note (REG_CFA_RESTORE, reg,
@@ -8245,8 +8076,7 @@ alpha_expand_epilogue (void)
       for (i = 0; i < 31; ++i)
 	if (fmask & (1UL << i))
 	  {
-	    mem = gen_rtx_MEM (DFmode, plus_constant(sa_reg, reg_offset));
-	    set_mem_alias_set (mem, alpha_sr_alias_set);
+	    mem = gen_frame_mem (DFmode, plus_constant (sa_reg, reg_offset));
 	    reg = gen_rtx_REG (DFmode, i+32);
 	    emit_move_insn (reg, mem);
 	    cfa_restores = alloc_reg_note (REG_CFA_RESTORE, reg, cfa_restores);
@@ -8304,8 +8134,7 @@ alpha_expand_epilogue (void)
       if (fp_is_frame_pointer)
 	{
 	  emit_insn (gen_blockage ());
-	  mem = gen_rtx_MEM (DImode, plus_constant (sa_reg, fp_offset));
-	  set_mem_alias_set (mem, alpha_sr_alias_set);
+	  mem = gen_frame_mem (DImode, plus_constant (sa_reg, fp_offset));
 	  emit_move_insn (hard_frame_pointer_rtx, mem);
 	  cfa_restores = alloc_reg_note (REG_CFA_RESTORE,
 					 hard_frame_pointer_rtx, cfa_restores);

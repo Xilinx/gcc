@@ -22,7 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_OS_CPP_BUILTINS()		\
   do						\
     {						\
-      LINUX_TARGET_OS_CPP_BUILTINS();		\
+      GNU_USER_TARGET_OS_CPP_BUILTINS();	\
       if (TARGET_LONG_DOUBLE_128)       	\
 	builtin_define ("__LONG_DOUBLE_128__");	\
     }						\
@@ -43,9 +43,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef	CC1_SPEC
 #define	CC1_SPEC "%{profile:-p} \
 "
-
-#undef TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (sparc GNU/Linux with ELF)");
 
 #undef SIZE_TYPE
 #define SIZE_TYPE "unsigned int"
@@ -79,7 +76,7 @@ along with GCC; see the file COPYING3.  If not see
   %{!shared: \
     %{!static: \
       %{rdynamic:-export-dynamic} \
-      -dynamic-linker " LINUX_DYNAMIC_LINKER "} \
+      -dynamic-linker " GNU_USER_DYNAMIC_LINKER "} \
       %{static:-static}}"
 
 /* It's safe to pass -s always, even if -g is not used.  */

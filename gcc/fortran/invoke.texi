@@ -139,7 +139,7 @@ and warnings}.
 -Wall  -Waliasing  -Wampersand  -Warray-bounds -Wcharacter-truncation @gol
 -Wconversion -Wimplicit-interface  -Wimplicit-procedure  -Wline-truncation @gol
 -Wintrinsics-std  -Wsurprising  -Wno-tabs  -Wunderflow  -Wunused-parameter @gol
--Wintrinsic-shadow  -Wno-align-commons}
+-Wintrinsic-shadow  -Wno-align-commons -Wfunction-elimination}
 
 @item Debugging Options
 @xref{Debugging Options,,Options for debugging your program or GNU Fortran}.
@@ -166,12 +166,14 @@ and warnings}.
 -fwhole-file -fsecond-underscore @gol
 -fbounds-check -fcheck-array-temporaries  -fmax-array-constructor =@var{n} @gol
 -fcheck=@var{<all|array-temps|bounds|do|mem|pointer|recursion>} @gol
--fcoarray=@var{<none|single>} -fmax-stack-var-size=@var{n} @gol
+-fcoarray=@var{<none|single|lib>} -fmax-stack-var-size=@var{n} @gol
+-fstack-arrays @gol
 -fpack-derived  -frepack-arrays  -fshort-enums  -fexternal-blas @gol
 -fblas-matmul-limit=@var{n} -frecursive -finit-local-zero @gol
 -finit-integer=@var{n} -finit-real=@var{<zero|inf|-inf|nan|snan>} @gol
 -finit-logical=@var{<true|false>} -finit-character=@var{n} @gol
--fno-align-commons -fno-protect-parens -frealloc-lhs}
+-fno-align-commons -fno-protect-parens -frealloc-lhs @gol
+-faggressive-function-elimination -ffrontend-optimize}
 @end table
 
 @menu
@@ -859,6 +861,14 @@ By default, @command{gfortran} warns about any occasion of variables being
 padded for proper alignment inside a @code{COMMON} block. This warning can be turned
 off via @option{-Wno-align-commons}. See also @option{-falign-commons}.
 
+@item -Wfunction-elimination
+@opindex @code{Wfunction-elimination}
+@cindex function elimination
+@cindex warnings, function elimination
+Warn if any calls to functions are eliminated by the optimizations
+enabled by the @option{-ffrontend-optimize} option.
+
+
 @item -Werror
 @opindex @code{Werror}
 @cindex warnings, to errors
@@ -1249,6 +1259,10 @@ statements will produce a compile-time error. (Default)
 
 @item @samp{single}
 Single-image mode, i.e. @code{num_images()} is always one.
+
+@item @samp{lib}
+Library-based coarray parallelization; a suitable GNU Fortran coarray
+library needs to be linked.
 @end table
 
 
@@ -1356,6 +1370,13 @@ bounds, and may not apply to all character variables.
 Future versions of GNU Fortran may improve this behavior.
 
 The default value for @var{n} is 32768.
+
+@item -fstack-arrays
+@opindex @code{fstack-arrays}
+Adding this option will make the fortran compiler put all local arrays,
+even those of unknown size onto stack memory.  If your program uses very
+large local arrays it's possible that you'll have to extend your runtime
+limits for stack memory on some operating systems.
 
 @item -fpack-derived
 @opindex @code{fpack-derived}
@@ -1478,8 +1499,19 @@ statements, regardless of whether these functions are marked
 @smallexample
   a = f(b,c) + f(b,c)
 @end smallexample
-there will only be a single call to @code{f}.
+there will only be a single call to @code{f}.  This option only works
+if @option{-ffrontend-optimize} is in effect.
 
+@item -ffrontend-optimize
+@opindex @code{frontend-optimize}
+@cindex Front-end optimization
+This option performs front-end optimization, based on manipulating
+parts the Fortran parse tree.  Enabled by default by any @option{-O}
+option.  Optimizations enabled by this option include elimination of
+identical function calls within expressions, removing unnecessary
+calls to @code{TRIM} in comparisons and assignments and replacing
+@code{TRIM(a)} with @code{a(1:LEN_TRIM(a))}. 
+It can be deselected by specifying @option{-fno-frontend-optimize}.
 @end table
 
 @xref{Code Gen Options,,Options for Code Generation Conventions,

@@ -138,7 +138,7 @@ static void cb_line_change (cpp_reader *, const cpp_token *, int);
 static void cb_define (cpp_reader *, source_location, cpp_hashnode *);
 static void cb_undef (cpp_reader *, source_location, cpp_hashnode *);
 static void cb_def_pragma (cpp_reader *, source_location);
-static void cb_include (cpp_reader *, source_location, const unsigned char *,
+static bool cb_include (cpp_reader *, source_location, const unsigned char *,
 			const char *, int, const cpp_token **);
 static void cb_ident (cpp_reader *, source_location, const cpp_string *);
 static void cb_used_define (cpp_reader *, source_location, cpp_hashnode *);
@@ -940,7 +940,7 @@ cb_undef (cpp_reader *pfile ATTRIBUTE_UNUSED, source_location line,
   print.src_line++;
 }
 
-static void
+static bool
 cb_include (cpp_reader *pfile ATTRIBUTE_UNUSED, source_location line,
 	    const unsigned char *dir, const char *header, int angle_brackets,
 	    const cpp_token **comments)
@@ -964,6 +964,7 @@ cb_include (cpp_reader *pfile ATTRIBUTE_UNUSED, source_location line,
 
   putc ('\n', print.outf);
   print.src_line++;
+  return true;
 }
 
 /* Dump out the hash table.  */

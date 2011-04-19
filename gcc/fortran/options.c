@@ -1,6 +1,6 @@
 /* Parse and display command line options.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010
+   2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Andy Vaught
 
@@ -99,6 +99,7 @@ gfc_init_options (unsigned int decoded_options_count,
   gfc_option.warn_array_temp = 0;
   gfc_option.gfc_warn_conversion = 0;
   gfc_option.warn_conversion_extra = 0;
+  gfc_option.warn_function_elimination = 0;
   gfc_option.warn_implicit_interface = 0;
   gfc_option.warn_line_truncation = 0;
   gfc_option.warn_surprising = 0;
@@ -123,6 +124,7 @@ gfc_init_options (unsigned int decoded_options_count,
 
   /* Default value of flag_max_stack_var_size is set in gfc_post_options.  */
   gfc_option.flag_max_stack_var_size = -2;
+  gfc_option.flag_stack_arrays = 0;
 
   gfc_option.flag_range_check = 1;
   gfc_option.flag_pack_derived = 0;
@@ -151,6 +153,7 @@ gfc_init_options (unsigned int decoded_options_count,
   gfc_option.flag_protect_parens = 1;
   gfc_option.flag_realloc_lhs = -1;
   gfc_option.flag_aggressive_function_elimination = 0;
+  gfc_option.flag_frontend_optimize = -1;
   
   gfc_option.fpe = 0;
   gfc_option.rtcheck = 0;
@@ -418,6 +421,12 @@ gfc_post_options (const char **pfilename)
   if (pedantic && gfc_option.flag_whole_file)
     gfc_option.flag_whole_file = 2;
 
+  /* Optimization implies front end optimization, unless the user
+     specified it directly.  */
+
+  if (gfc_option.flag_frontend_optimize == -1)
+    gfc_option.flag_frontend_optimize = optimize;
+
   gfc_cpp_post_options ();
 
 /* FIXME: return gfc_cpp_preprocess_only ();
@@ -516,6 +525,8 @@ gfc_handle_coarray_option (const char *arg)
     gfc_option.coarray = GFC_FCOARRAY_NONE;
   else if (strcmp (arg, "single") == 0)
     gfc_option.coarray = GFC_FCOARRAY_SINGLE;
+  else if (strcmp (arg, "lib") == 0)
+    gfc_option.coarray = GFC_FCOARRAY_LIB;
   else
     gfc_fatal_error ("Argument to -fcoarray is not valid: %s", arg);
 }
@@ -606,6 +617,10 @@ gfc_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_Wconversion_extra:
       gfc_option.warn_conversion_extra = value;
+      break;
+
+    case OPT_Wfunction_elimination:
+      gfc_option.warn_function_elimination = value;
       break;
 
     case OPT_Wimplicit_interface:
@@ -779,6 +794,10 @@ gfc_handle_option (size_t scode, const char *arg, int value,
 
     case OPT_fmax_stack_var_size_:
       gfc_option.flag_max_stack_var_size = value;
+      break;
+
+    case OPT_fstack_arrays:
+      gfc_option.flag_stack_arrays = value;
       break;
 
     case OPT_fmodule_private:
@@ -975,6 +994,10 @@ gfc_handle_option (size_t scode, const char *arg, int value,
 
     case  OPT_faggressive_function_elimination:
       gfc_option.flag_aggressive_function_elimination = value;
+      break;
+
+    case OPT_ffrontend_optimize:
+      gfc_option.flag_frontend_optimize = value;
       break;
 
     case OPT_fprotect_parens:

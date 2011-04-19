@@ -148,6 +148,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-inline.h"
 #include "fibheap.h"
 #include "params.h"
+#include "ipa-inline.h"
 
 /* Number of functions identified as candidates for cloning. When not cloning
    we can simplify iterate stage not forcing it to go through the decision
@@ -423,7 +424,7 @@ ipcp_versionable_function_p (struct cgraph_node *node)
   /* There are a number of generic reasons functions cannot be versioned.  We
      also cannot remove parameters if there are type attributes such as fnspec
      present.  */
-  if (!node->local.versionable
+  if (!inline_summary (node)->versionable
       || TYPE_ATTRIBUTES (TREE_TYPE (node->decl)))
     return false;
 
@@ -495,7 +496,7 @@ ipcp_cloning_candidate_p (struct cgraph_node *node)
  	         cgraph_node_name (node));
       return false;
     }
-  if (node->local.inline_summary.self_size < n_calls)
+  if (inline_summary (node)->self_size < n_calls)
     {
       if (dump_file)
         fprintf (dump_file, "Considering %s for cloning; code would shrink.\n",
@@ -1113,6 +1114,29 @@ ipcp_update_profiling (void)
 	  scale = ipcp_get_node_scale (orig_node);
 	  node->count = orig_node->count * scale / REG_BR_PROB_BASE;
 	  scale_complement = REG_BR_PROB_BASE - scale;
+
+          /* Negative scale complement can result from insane profile data
+             in which the total incoming edge counts in this module is
+             larger than the callee's entry count. The insane profile data
+             usually gets generated due to the following reasons:
+
+             1) in multithreaded programs, when profile data is dumped
+             to gcda files in gcov_exit, some other threads are still running.
+             The profile counters are dumped in bottom up order (call graph).
+             The caller's BB counters may still be updated while the callee's
+             counter data is already saved to disk.
+
+             2) Comdat functions: comdat functions' profile data are not
+             allocated in comdat. When a comdat callee function gets inlined
+             at some callsites after instrumentation, and the remaining calls
+             to this function resolves to a comdat copy in another module,
+             the profile counters for this function are split. This can
+             result in sum of incoming edge counts from this module being
+             larger than callee instance's entry count.  */
+
+          if (scale_complement < 0 && flag_profile_correction)
+            scale_complement = 0;
+
 	  orig_node->count =
 	    orig_node->count * scale_complement / REG_BR_PROB_BASE;
 	  for (cs = node->callees; cs; cs = cs->next_callee)
@@ -1166,7 +1190,7 @@ ipcp_estimate_growth (struct cgraph_node *node)
      call site.  Precise cost is difficult to get, as our size metric counts
      constants and moves as free.  Generally we are looking for cases that
      small function is called very many times.  */
-  growth = node->local.inline_summary.self_size
+  growth = inline_summary (node)->self_size
   	   - removable_args * redirectable_node_callers;
   if (growth < 0)
     return 0;
@@ -1206,7 +1230,7 @@ ipcp_estimate_cloning_cost (struct cgraph_node *node)
     cost /= freq_sum * 1000 / REG_BR_PROB_BASE + 1;
   if (dump_file)
     fprintf (dump_file, "Cost of versioning %s is %i, (size: %i, freq: %i)\n",
-             cgraph_node_name (node), cost, node->local.inline_summary.self_size,
+             cgraph_node_name (node), cost, inline_summary (node)->self_size,
 	     freq_sum);
   return cost + 1;
 }
@@ -1341,7 +1365,7 @@ ipcp_insert_stage (void)
       {
 	if (node->count > max_count)
 	  max_count = node->count;
-	overall_size += node->local.inline_summary.self_size;
+	overall_size += inline_summary (node)->self_size;
       }
 
   max_new_size = overall_size;
@@ -1516,6 +1540,8 @@ ipcp_driver (void)
         ipa_print_all_params (dump_file);
       ipa_print_all_jump_functions (dump_file);
     }
+  ipa_check_create_node_params ();
+  ipa_check_create_edge_args ();
   /* 2. Do the interprocedural propagation.  */
   ipcp_iterate_stage ();
   /* 3. Insert the constants found to the functions.  */
@@ -1543,8 +1569,6 @@ ipcp_generate_summary (void)
 
   if (dump_file)
     fprintf (dump_file, "\nIPA constant propagation start:\n");
-  ipa_check_create_node_params ();
-  ipa_check_create_edge_args ();
   ipa_register_cgraph_hooks ();
 
   for (node = cgraph_nodes; node; node = node->next)
@@ -1553,7 +1577,7 @@ ipcp_generate_summary (void)
 	/* Unreachable nodes should have been eliminated before ipcp.  */
 	gcc_assert (node->needed || node->reachable);
 
-	node->local.versionable = tree_versionable_function_p (node->decl);
+	inline_summary (node)->versionable = tree_versionable_function_p (node->decl);
 	ipa_analyze_node (node);
       }
 }

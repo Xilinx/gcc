@@ -106,10 +106,22 @@
   return !REG_P (op) || REGNO (op) != FIRST_SSE_REG;
 })
 
-;; As above, but allow nonimmediate operands.
+;; As above, but also allow memory operands.
 (define_predicate "nonimm_not_xmm0_operand"
   (ior (match_operand 0 "memory_operand")
        (match_operand 0 "reg_not_xmm0_operand")))
+
+;; Return true if op is not xmm0 register, but only for non-AVX targets.
+(define_predicate "reg_not_xmm0_operand_maybe_avx"
+  (if_then_else (match_test "TARGET_AVX")
+    (match_operand 0 "register_operand")
+    (match_operand 0 "reg_not_xmm0_operand")))
+
+;; As above, but also allow memory operands.
+(define_predicate "nonimm_not_xmm0_operand_maybe_avx"
+  (if_then_else (match_test "TARGET_AVX")
+    (match_operand 0 "nonimmediate_operand")
+    (match_operand 0 "nonimm_not_xmm0_operand")))
 
 ;; Return true if VALUE can be stored in a sign extended immediate field.
 (define_predicate "x86_64_immediate_operand"
@@ -969,19 +981,11 @@
 ;; Return true if OP is a comparison that can be used in the CMPSS/CMPPS insns.
 ;; The first set are supported directly; the second set can't be done with
 ;; full IEEE support, i.e. NaNs.
-;;
-;; ??? It would seem that we have a lot of uses of this predicate that pass
-;; it the wrong mode.  We got away with this because the old function didn't
-;; check the mode at all.  Mirror that for now by calling this a special
-;; predicate.
 
-(define_special_predicate "sse_comparison_operator"
-  (match_code "eq,lt,le,unordered,ne,unge,ungt,ordered"))
-
-;; Return true if OP is a comparison operator that can be issued by
-;; avx predicate generation instructions
-(define_predicate "avx_comparison_float_operator"
-  (match_code "ne,eq,ge,gt,le,lt,unordered,ordered,uneq,unge,ungt,unle,unlt,ltgt"))
+(define_predicate "sse_comparison_operator"
+  (ior (match_code "eq,ne,lt,le,unordered,unge,ungt,ordered")
+       (and (match_code "ge,gt,uneq,unle,unlt,ltgt")
+	    (match_test "TARGET_AVX"))))
 
 (define_predicate "ix86_comparison_int_operator"
   (match_code "ne,eq,ge,gt,le,lt"))

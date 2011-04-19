@@ -1,7 +1,8 @@
 /* Instruction scheduling pass.  This file computes dependencies between
    instructions.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) Enhanced by,
    and currently maintained by, Jim Wilson (wilson@cygnus.com)
@@ -1821,10 +1822,10 @@ mark_insn_pseudo_birth (rtx insn, int regno, bool clobber_p, bool unused_p)
   enum reg_class cl;
 
   gcc_assert (regno >= FIRST_PSEUDO_REGISTER);
-  cl = sched_regno_cover_class[regno];
+  cl = sched_regno_pressure_class[regno];
   if (cl != NO_REGS)
     {
-      incr = ira_reg_class_nregs[cl][PSEUDO_REGNO_MODE (regno)];
+      incr = ira_reg_class_max_nregs[cl][PSEUDO_REGNO_MODE (regno)];
       if (clobber_p)
 	{
 	  new_incr = reg_pressure_info[cl].clobber_increase + incr;
@@ -1861,7 +1862,7 @@ mark_insn_hard_regno_birth (rtx insn, int regno, int nregs,
       gcc_assert (regno < FIRST_PSEUDO_REGISTER);
       if (! TEST_HARD_REG_BIT (ira_no_alloc_regs, regno))
 	{
-	  cl = sched_regno_cover_class[regno];
+	  cl = sched_regno_pressure_class[regno];
 	  if (cl != NO_REGS)
 	    {
 	      if (clobber_p)
@@ -1922,10 +1923,10 @@ mark_pseudo_death (int regno)
   enum reg_class cl;
 
   gcc_assert (regno >= FIRST_PSEUDO_REGISTER);
-  cl = sched_regno_cover_class[regno];
+  cl = sched_regno_pressure_class[regno];
   if (cl != NO_REGS)
     {
-      incr = ira_reg_class_nregs[cl][PSEUDO_REGNO_MODE (regno)];
+      incr = ira_reg_class_max_nregs[cl][PSEUDO_REGNO_MODE (regno)];
       reg_pressure_info[cl].change -= incr;
     }
 }
@@ -1943,7 +1944,7 @@ mark_hard_regno_death (int regno, int nregs)
       gcc_assert (regno < FIRST_PSEUDO_REGISTER);
       if (! TEST_HARD_REG_BIT (ira_no_alloc_regs, regno))
 	{
-	  cl = sched_regno_cover_class[regno];
+	  cl = sched_regno_pressure_class[regno];
 	  if (cl != NO_REGS)
 	    reg_pressure_info[cl].change -= 1;
 	}
@@ -1991,8 +1992,8 @@ mark_insn_reg_clobber (rtx reg, const_rtx setter, void *data)
 }
 
 /* Set up reg pressure info related to INSN.  */
-static void
-setup_insn_reg_pressure_info (rtx insn)
+void
+init_insn_reg_pressure_info (rtx insn)
 {
   int i, len;
   enum reg_class cl;
@@ -2004,9 +2005,9 @@ setup_insn_reg_pressure_info (rtx insn)
   if (! INSN_P (insn))
     return;
 
-  for (i = 0; i < ira_reg_class_cover_size; i++)
+  for (i = 0; i < ira_pressure_classes_num; i++)
     {
-      cl = ira_reg_class_cover[i];
+      cl = ira_pressure_classes[i];
       reg_pressure_info[cl].clobber_increase = 0;
       reg_pressure_info[cl].set_increase = 0;
       reg_pressure_info[cl].unused_set_increase = 0;
@@ -2027,14 +2028,14 @@ setup_insn_reg_pressure_info (rtx insn)
     if (REG_NOTE_KIND (link) == REG_DEAD)
       mark_reg_death (XEXP (link, 0));
 
-  len = sizeof (struct reg_pressure_data) * ira_reg_class_cover_size;
+  len = sizeof (struct reg_pressure_data) * ira_pressure_classes_num;
   pressure_info
     = INSN_REG_PRESSURE (insn) = (struct reg_pressure_data *) xmalloc (len);
-  INSN_MAX_REG_PRESSURE (insn) = (int *) xcalloc (ira_reg_class_cover_size
+  INSN_MAX_REG_PRESSURE (insn) = (int *) xcalloc (ira_pressure_classes_num
 						  * sizeof (int), 1);
-  for (i = 0; i < ira_reg_class_cover_size; i++)
+  for (i = 0; i < ira_pressure_classes_num; i++)
     {
-      cl = ira_reg_class_cover[i];
+      cl = ira_pressure_classes[i];
       pressure_info[i].clobber_increase
 	= reg_pressure_info[cl].clobber_increase;
       pressure_info[i].set_increase = reg_pressure_info[cl].set_increase;
@@ -2259,16 +2260,12 @@ sched_analyze_1 (struct deps_desc *deps, rtx x, rtx insn)
       /* Treat all writes to a stack register as modifying the TOS.  */
       if (regno >= FIRST_STACK_REG && regno <= LAST_STACK_REG)
 	{
-	  int nregs;
-
 	  /* Avoid analyzing the same register twice.  */
 	  if (regno != FIRST_STACK_REG)
 	    sched_analyze_reg (deps, FIRST_STACK_REG, mode, code, insn);
 
-	  nregs = hard_regno_nregs[FIRST_STACK_REG][mode];
-	  while (--nregs >= 0)
-	    SET_HARD_REG_BIT (implicit_reg_pending_uses,
-			      FIRST_STACK_REG + nregs);
+	  add_to_hard_reg_set (&implicit_reg_pending_uses, mode,
+			       FIRST_STACK_REG);
 	}
 #endif
     }
@@ -2774,7 +2771,7 @@ sched_analyze_insn (struct deps_desc *deps, rtx x, rtx insn)
   if (sched_pressure_p)
     {
       setup_insn_reg_uses (deps, insn);
-      setup_insn_reg_pressure_info (insn);
+      init_insn_reg_pressure_info (insn);
     }
 
   /* Add register dependencies for insn.  */

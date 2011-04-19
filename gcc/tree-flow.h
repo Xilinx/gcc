@@ -61,7 +61,7 @@ struct GTY(()) gimple_df {
   struct pointer_map_t * GTY((skip(""))) decls_to_pointers;
 
   /* Free list of SSA_NAMEs.  */
-  tree free_ssanames;
+  VEC(tree,gc) *free_ssanames;
 
   /* Hashtable holding definition for symbol.  If this field is not NULL, it
      means that the first reference to this variable in the function is a
@@ -426,9 +426,8 @@ extern basic_block label_to_block_fn (struct function *, tree);
 #define label_to_block(t) (label_to_block_fn (cfun, t))
 extern void notice_special_calls (gimple);
 extern void clear_special_calls (void);
-extern void verify_stmts (void);
-extern void verify_gimple (void);
-extern void verify_types_in_gimple_seq (gimple_seq);
+extern void verify_gimple_in_seq (gimple_seq);
+extern void verify_gimple_in_cfg (struct function *);
 extern tree gimple_block_label (basic_block);
 extern void extract_true_false_edges_from_block (basic_block, edge *, edge *);
 extern bool gimple_duplicate_sese_region (edge, edge, basic_block *, unsigned,
@@ -516,7 +515,7 @@ extern void record_vars_into (tree, tree);
 extern void record_vars (tree);
 extern bool gimple_seq_may_fallthru (gimple_seq);
 extern bool gimple_stmt_may_fallthru (gimple);
-extern bool gimple_check_call_args (gimple);
+extern bool gimple_check_call_matching_types (gimple, tree);
 
 
 /* In tree-ssa.c  */

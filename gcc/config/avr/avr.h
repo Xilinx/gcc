@@ -122,8 +122,6 @@ extern GTY(()) section *progmem_section;
 #define AVR_2_BYTE_PC (!AVR_HAVE_EIJMP_EICALL)
 #define AVR_3_BYTE_PC (AVR_HAVE_EIJMP_EICALL)
 
-#define TARGET_VERSION fprintf (stderr, " (GNU assembler syntax)");
-
 #define BITS_BIG_ENDIAN 0
 #define BYTES_BIG_ENDIAN 0
 #define WORDS_BIG_ENDIAN 0
@@ -296,19 +294,6 @@ enum reg_class {
 
 #define REGNO_REG_CLASS(R) avr_regno_reg_class(R)
 
-/* The following macro defines cover classes for Integrated Register
-   Allocator.  Cover classes is a set of non-intersected register
-   classes covering all hard registers used for register allocation
-   purpose.  Any move between two registers of a cover class should be
-   cheaper than load or store of the registers.  The macro value is
-   array of register classes with LIM_REG_CLASSES used as the end
-   marker.  */
-
-#define IRA_COVER_CLASSES               \
-{                                       \
-  GENERAL_REGS, LIM_REG_CLASSES         \
-}
-
 #define BASE_REG_CLASS (reload_completed ? BASE_POINTER_REGS : POINTER_REGS)
 
 #define INDEX_REG_CLASS NO_REGS
@@ -406,14 +391,14 @@ do {									    \
     }									    \
   if (GET_CODE (X) == PLUS						    \
       && REG_P (XEXP (X, 0))						    \
-      && reg_equiv_constant[REGNO (XEXP (X, 0))] == 0			    \
+      && (reg_equiv_constant (REGNO (XEXP (X, 0))) == 0)		    \
       && GET_CODE (XEXP (X, 1)) == CONST_INT				    \
       && INTVAL (XEXP (X, 1)) >= 1)					    \
     {									    \
       int fit = INTVAL (XEXP (X, 1)) <= (64 - GET_MODE_SIZE (MODE));	    \
       if (fit)								    \
 	{								    \
-          if (reg_equiv_address[REGNO (XEXP (X, 0))] != 0)		    \
+          if (reg_equiv_address (REGNO (XEXP (X, 0))) != 0)		    \
 	    {								    \
 	      int regno = REGNO (XEXP (X, 0));				    \
 	      rtx mem = make_memloc (X, regno);				    \
@@ -489,8 +474,8 @@ do {									   \
      fprintf ((STREAM), ",%lu,1\n", (unsigned long)(SIZE));		   \
 } while (0)
 
-#define ASM_OUTPUT_BSS(FILE, DECL, NAME, SIZE, ROUNDED)			\
-  asm_output_bss ((FILE), (DECL), (NAME), (SIZE), (ROUNDED))
+#define ASM_OUTPUT_ALIGNED_BSS(FILE, DECL, NAME, SIZE, ALIGN) \
+  asm_output_aligned_bss (FILE, DECL, NAME, SIZE, ALIGN)
 
 #define ASM_OUTPUT_LOCAL(STREAM, NAME, SIZE, ROUNDED)			\
 do {									\
