@@ -150,9 +150,13 @@ gcov_version (struct gcov_info *ptr, gcov_unsigned_t version,
       GCOV_UNSIGNED2STRING (v, version);
       GCOV_UNSIGNED2STRING (e, GCOV_VERSION);
 
-      fprintf (stderr,
-	       "profiling:%s:Version mismatch - expected %.4s got %.4s\n",
-	       filename? filename : ptr->filename, e, v);
+      if (filename)
+        fprintf (stderr,
+                 "profiling:%s:Version mismatch - expected %.4s got %.4s\n",
+                 filename, e, v);
+      else
+        fprintf (stderr,
+                 "profiling:Version mismatch - expected %.4s got %.4s\n", e, v);
       return 0;
     }
   return 1;
