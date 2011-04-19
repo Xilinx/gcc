@@ -1835,6 +1835,14 @@ DEFHOOK
  "",
  void, (rtx pattern, int index), NULL)
 
+DEFHOOK
+(dwarf_flush_queued_register_saves,
+"This target hook allows the backend to force dwarf2out to flush queued\
+ register saves before an insn when generating unwind information.  It\
+ is called with an insn as its argument and should return true if\
+ register saves must be flushed.",
+ bool, (rtx insn), NULL)
+
 /* ??? Documenting this hook requires a GFDL license grant.  */
 DEFHOOK_UNDOC
 (stdarg_optimize_hook,

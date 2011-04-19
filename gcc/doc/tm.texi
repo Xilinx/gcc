@@ -3235,6 +3235,10 @@ terminate the stack backtrace.  New ports should avoid this.
 @end defmac
 
 @deftypefn {Target Hook} void TARGET_DWARF_HANDLE_FRAME_UNSPEC (rtx @var{pattern}, int @var{index})
+
+@deftypefn {Target Hook} bool TARGET_DWARF_FLUSH_QUEUED_REGISTER_SAVES (rtx @var{insn})
+This target hook allows the backend to force dwarf2out to flush queued register saves before an insn when generating unwind information.  It is called with an insn as its argument and should return true if register saves must be flushed.
+@end deftypefn
 This target hook allows the backend to emit frame-related insns that
 contain UNSPECs or UNSPEC_VOLATILEs.  The DWARF 2 call frame debugging
 info engine will invoke it on insns of the form

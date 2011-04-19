@@ -8323,6 +8323,8 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
 	output_asm_insn ("mov%z0\t{%2, %0|%0, %2}", xops);
       else
 	{
+	  /* For normal functions, this pattern is split, but we can still
+	     get here for thunks.  */
 	  output_asm_insn ("call\t%a2", xops);
 #ifdef DWARF2_UNWIND_INFO
 	  /* The call to next label acts as a push.  */
@@ -8380,12 +8382,6 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
       get_pc_thunk_name (name, REGNO (dest));
       pic_labels_used |= 1 << REGNO (dest);
 
-#ifdef DWARF2_UNWIND_INFO
-      /* Ensure all queued register saves are flushed before the
-	 call.  */
-      if (dwarf2out_do_frame ())
-	dwarf2out_flush_queued_reg_saves ();
-#endif
       xops[2] = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (name));
       xops[2] = gen_rtx_MEM (QImode, xops[2]);
       output_asm_insn ("call\t%X2", xops);
@@ -29845,6 +29841,58 @@ ix86_reorg (void)
      with old MDEP_REORGS that are not CFG based.  Recompute it now.  */
   compute_bb_for_insn ();
 
+  /* Split any set_got patterns so that we interact correctly with
+     dwarf2out.  */
+  if (!TARGET_64BIT
+      && !TARGET_VXWORKS_RTP
+      && !TARGET_DEEP_BRANCH_PREDICTION
+      && flag_pic)
+    {
+      rtx insn, next;
+      for (insn = get_insns (); insn; insn = next)
+	{
+	  rtx pat, label, dest, cst, gotsym, new_insn;
+	  int icode;
+
+	  next = NEXT_INSN (insn);
+	  if (!NONDEBUG_INSN_P (insn))
+	    continue;
+
+	  icode = recog_memoized (insn);
+	  if (icode != CODE_FOR_set_got && icode != CODE_FOR_set_got_labelled)
+	    continue;
+
+	  extract_insn (insn);
+	  if (icode == CODE_FOR_set_got)
+	    {
+	      label = gen_label_rtx ();
+	      cst = const0_rtx;
+	    }
+	  else
+	    {
+	      label = recog_data.operand[1];
+	      cst = const1_rtx;
+	    }
+
+	  dest = recog_data.operand[0];
+	  pat = gen_set_got_call (label, cst);
+	  new_insn = emit_insn_before (pat, insn);
+	  RTX_FRAME_RELATED_P (new_insn) = 1;
+	  RTX_FRAME_RELATED_P (XVECEXP (PATTERN (new_insn), 0, 1)) = 1;
+	  gotsym = gen_rtx_SYMBOL_REF (Pmode, GOT_SYMBOL_NAME);
+	  pat = gen_set_got_pop (dest, label);
+	  new_insn = emit_insn_before (pat, insn);
+	  RTX_FRAME_RELATED_P (new_insn) = 1;
+	  RTX_FRAME_RELATED_P (XVECEXP (PATTERN (new_insn), 0, 1)) = 1;
+	  if (!TARGET_MACHO)
+	    {
+	      pat = gen_set_got_add (dest, gotsym, label);
+	      new_insn = emit_insn_before (pat, insn);
+	    }
+	  delete_insn (insn);
+	}
+    }
+
   /* Run the vzeroupper optimization if needed.  */
   if (TARGET_VZEROUPPER)
     move_or_delete_vzeroupper ();
@@ -29860,6 +29908,30 @@ ix86_reorg (void)
 	ix86_avoid_jump_mispredicts ();
 #endif
     }
+}
+
+/* Handle the TARGET_DWARF_HANDLE_FRAME_UNSPEC hook.
+   This is called from dwarf2out.c to emit call frame instructions
+   for frame-related insns containing UNSPECs and UNSPEC_VOLATILEs.  */
+static void
+i386_dwarf_handle_frame_unspec (rtx pattern ATTRIBUTE_UNUSED,
+				int index ATTRIBUTE_UNUSED)
+{
+  gcc_assert (index == UNSPEC_SET_GOT);
+}
+
+/* Handle the TARGET_DWARF_FLUSH_QUEUED_REGISTER_SAVES hook.
+   This is called from dwarf2out.c to decide whether all queued
+   register saves should be emitted before INSN.  */
+static bool
+i386_dwarf_flush_queued_register_saves (rtx insn)
+{
+  if (!TARGET_VXWORKS_RTP || !flag_pic)
+    {
+      int icode = recog_memoized (insn);
+      return (icode == CODE_FOR_set_got || icode == CODE_FOR_set_got_labelled);
+    }
+  return false;
 }
 
 /* Return nonzero when QImode register that must be represented via REX prefix
@@ -34802,6 +34874,13 @@ ix86_autovectorize_vector_sizes (void)
 #undef TARGET_ASM_OUTPUT_DWARF_DTPREL
 #define TARGET_ASM_OUTPUT_DWARF_DTPREL i386_output_dwarf_dtprel
 #endif
+
+#undef TARGET_DWARF_HANDLE_FRAME_UNSPEC
+#define TARGET_DWARF_HANDLE_FRAME_UNSPEC i386_dwarf_handle_frame_unspec
+
+#undef TARGET_DWARF_FLUSH_QUEUED_REGISTER_SAVES
+#define TARGET_DWARF_FLUSH_QUEUED_REGISTER_SAVES \
+  i386_dwarf_flush_queued_register_saves
 
 #ifdef SUBTARGET_INSERT_ATTRIBUTES
 #undef TARGET_INSERT_ATTRIBUTES

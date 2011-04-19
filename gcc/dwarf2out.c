@@ -2982,7 +2982,9 @@ scan_until_barrier (rtx insn, jump_target_info *point_info, int *uid_luid,
 	}
 
       if (!NONJUMP_INSN_P (insn) || clobbers_queued_reg_save (insn)
-	  || (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_PROLOGUE_END))
+	  || (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_PROLOGUE_END)
+	  || (targetm.dwarf_flush_queued_register_saves != NULL
+	      && targetm.dwarf_flush_queued_register_saves (insn)))
 	{
 	  cfi_insn = PREV_INSN (insn);
 	  dwarf2out_flush_queued_reg_saves ();
