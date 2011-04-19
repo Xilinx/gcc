@@ -1,3 +1,181 @@
+2011-04-18  Alexander Monakov  <amonakov@ispras.ru>
+
+	* gcc.dg/pr48235.c: Add dg-require-effective-target freorder.
+
+2011-04-18  Ulrich Weigand  <ulrich.weigand@linaro.org>
+	    Ira Rosen  <ira.rosen@linaro.org>
+
+	PR target/48252
+	* gcc.target/arm/pr48252.c: New test.
+
+2011-04-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48616
+	* gcc.dg/pr48616.c: New test.
+
+2011-04-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_16.f90: New.
+
+2011-04-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/48462
+	* gfortran.dg/realloc_on_assign_7.f03: New test.
+
+2011-04-17  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/48602
+	* gfortran.dg/fmt_g0_6.f08: New test.
+
+2011-04-17  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/sfinae16.C: New.
+
+2011-04-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* gcc.target/mips/reg-var-1.c: New test.
+
+2011-04-17  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/winline-5.c: Update testcase.
+
+2011-04-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/discr27.ad[sb]: Move dg directive.
+	* gnat.dg/discr28.ad[sb]: New test.
+	* gnat.dg/discr28_pkg.ads: New helper.
+
+2011-04-17  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/48622
+	PR lto/48645
+	* gcc.dg/lto/pr48622_0.c: New test.
+
+2011-04-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/avx256-unaligned-load-1.c: Update scan patterns.
+	* gcc.target/i386/avx256-unaligned-load-2.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-load-3.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-1.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-2.c: Ditto.
+	* gcc.target/i386/avx256-unaligned-store-3.c: Ditto.
+
+2011-04-15  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/range-for17.C: New.
+
+2011-04-15  Rodrigo Rivas Costa <rodrigorivascosta@gmail.com>
+
+	* g++.dg/cpp0x/range-for2.C: Correct for declaration.
+	* g++.dg/cpp0x/range-for3.C: Likewise.
+	* g++.dg/cpp0x/range-for9.C: Correct error message.
+	* g++.dg/cpp0x/range-for11.C: New.
+	* g++.dg/cpp0x/range-for12.C: New.
+	* g++.dg/cpp0x/range-for13.C: New.
+	* g++.dg/cpp0x/range-for14.C: New.
+	* g++.dg/cpp0x/range-for15.C: New.
+	* g++.dg/cpp0x/range-for16.C: New.
+
+2011-04-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_15.f90: Change to dg-do run.
+
+2011-04-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/naming-4.m: Updated.
+	* objc.dg/naming-5.m: Updated.
+	* objc.dg/naming-6.m: New.
+	* objc.dg/naming-7.m: New.
+	* obj-c++.dg/naming-1.mm: Updated.
+	* obj-c++.dg/naming-2.mm: Updated.
+	* obj-c++.dg/naming-3.mm: New.
+	* obj-c++.dg/naming-4.mm: New.
+
+2011-04-15  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/48589
+	* gfortran.dg/fmt_g0_5.f08: New test.
+
+2011-04-15  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/48286
+	* gfortran.dg/cray_pointers_8.f90: Use -ffloat-store.
+
+2011-04-15  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.target/avr/torture/pr41885.c (dg-options): Change
+	-finline-limit=0 to -fno-inline
+
+2011-04-15  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/48614
+	* gcc.target/i386/pr46084.c: Require avx_runtime instead of
+	just avx.
+
+2011-04-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/48605
+	* gcc.target/i386/sse4_1-insertps-3.c: New test.
+	* gcc.target/i386/sse4_1-insertps-4.c: New test.
+	* gcc.target/i386/avx-insertps-3.c: New test.
+	* gcc.target/i386/avx-insertps-4.c: New test.
+
+2011-04-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.target/avr/torture/pr41885.c (dg-options): Add
+	-finline-limit=0
+
+2011-04-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/46779
+	PR target/45291
+	PR target/41894
+	* gcc.target/avr/pr46779-1.c: New test case
+	* gcc.target/avr/pr46779-2.c: New test case
+
+2011-04-14  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/sfinae15.C: New.
+
+	* g++.dg/cpp0x/sfinae14.C: New.
+
+	* g++.dg/ext/vla10.C: New.
+
+2011-04-14  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/ssa-dse-14.c: New testcase.
+
+2011-04-14  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/fold-bitand-4.c: Move ...
+	* c-c++-common/fold-bitand-4.c: ... here.  Adjust slightly.
+
+2011-04-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.target/avr/trivial.c: Fix line endings. Make PROGMEM
+	variables const.
+	* gcc.target/avr/torture/trivial.c: Ditto.
+
+2011-04-13  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/template/operator11.C: New.
+
+2011-04-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/48591
+	* gcc.dg/gomp/pr48591.c: New test.
+
+	PR c++/48570
+	* g++.dg/cpp0x/constexpr-wstring1.C: New test.
+	* g++.dg/cpp0x/constexpr-wstring2.C: New test.
+
+2011-04-13  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/48574
+	* g++.dg/template/dependent-expr7.C: New test case.
+
 2011-04-13  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/sfinae13.C: New.

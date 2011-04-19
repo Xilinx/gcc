@@ -80,7 +80,10 @@ can_refer_decl_in_current_unit_p (tree decl)
     return true;
   /* We are not at ltrans stage; so don't worry about WHOPR.
      Also when still gimplifying all referred comdat functions will be
-     produced.  */
+     produced.
+     ??? as observed in PR20991 for already optimized out comdat virtual functions
+     we may not neccesarily give up because the copy will be output elsewhere when
+     corresponding vtable is output.  */
   if (!flag_ltrans && (!DECL_COMDAT (decl) || !cgraph_function_flags_ready))
     return true;
   /* If we already output the function body, we are safe.  */
@@ -1447,11 +1450,11 @@ bool
 gimple_fold_call (gimple_stmt_iterator *gsi, bool inplace)
 {
   gimple stmt = gsi_stmt (*gsi);
-
-  tree callee = gimple_call_fndecl (stmt);
+  tree callee;
 
   /* Check for builtins that CCP can handle using information not
      available in the generic fold routines.  */
+  callee = gimple_call_fndecl (stmt);
   if (!inplace && callee && DECL_BUILT_IN (callee))
     {
       tree result = gimple_fold_builtin (stmt);
@@ -1463,6 +1466,16 @@ gimple_fold_call (gimple_stmt_iterator *gsi, bool inplace)
 	  return true;
 	}
     }
+
+  /* Check for virtual calls that became direct calls.  */
+  callee = gimple_call_fn (stmt);
+  if (TREE_CODE (callee) == OBJ_TYPE_REF
+      && gimple_call_addr_fndecl (OBJ_TYPE_REF_EXPR (callee)) != NULL_TREE)
+    {
+      gimple_call_set_fn (stmt, OBJ_TYPE_REF_EXPR (callee));
+      return true;
+    }
+
   return false;
 }
 

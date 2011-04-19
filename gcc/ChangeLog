@@ -1,3 +1,728 @@
+2011-04-18  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.h (gimple_call_addr_fndecl): New function.
+	(gimple_call_fndecl): Use it.
+	* gimple-fold.c (gimple_fold_call): Fold away OBJ_TYPE_REFs
+	for direct calls.
+	* tree-ssa-ccp.c (ccp_fold_stmt): Remove OBJ_TYPE_REF folding.
+	* tree-ssa-pre.c (eliminate): Also simplify indirect OBJ_TYPE_REFs.
+
+2011-04-18  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48650
+	* tree.c (build_string): STRING_CST is now derived from tree_typed.
+
+2011-04-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR lto/48492
+	* cfgexpand.c (expand_debug_expr) <VAR_DECL>: Return NULL for a
+	DECL_IN_CONSTANT_POOL without RTL.
+
+2011-04-18  Ulrich Weigand  <ulrich.weigand@linaro.org>
+	    Ira Rosen  <ira.rosen@linaro.org>
+
+	PR target/48252
+	* config/arm/arm.c (neon_emit_pair_result_insn): Swap arguments
+	to match neon_vzip/vuzp/vtrn_internal.
+	* config/arm/neon.md (neon_vtrn<mode>_internal): Make both
+	outputs explicitly dependent on both inputs.
+	(neon_vzip<mode>_internal, neon_vuzp<mode>_internal): Likewise.
+
+2011-04-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48616
+	* tree-vect-stmts.c (vectorizable_shift): If SLP, determine
+	whether the shift is by scalar or vector based on whether all SLP
+	scalar stmts have the same rhs.
+
+2011-04-17  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* config/arm/arm.c (neon_struct_mem_operand): Support POST_INC/PRE_DEC
+	memory operands.
+
+2011-04-17  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_cfun_call_saved_reg_p): Handle global
+	registers.
+
+2011-04-17  Jan Hubicka  <jh@suse.cz>
+
+	* cgrpah.h (struct cgraph_node): Remove finalized_by_frontend.
+	* cgrpahunit.c (cgraph_finalize_function): Do not set
+	finalized_by_frontend.
+	* lto-cgraph.c (lto_output_node, input_overwrite_node): Do not stream
+	finalized_by_frontend.
+
+2011-04-17  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (cgraph_clone_node): Do not handle vtable_method
+	* cgraph.h (struct cgraph_local_info): Drop vtable_method.
+	* cgraphunit.c (cgraph_copy_node_for_versioning): Drop vtable_method.
+	* lto-cgraph.c (lto_output_node, input_overwrite_node): Drop vtable
+	method.
+	* gimple-fold.c (can_refer_decl_in_current_unit_p): Mention PR20991 in
+	gimple-fold.c
+	* varasm.c (mark_decl_referenced): Drop vtable_method handling code.
+
+2011-04-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR lto/48538
+	* lto-cgraph.c (merge_profile_summaries): Check that lto_file_data
+	is non-null before accessing it.
+	(input_cgraph): Remove trailing spaces.
+
+2011-04-17  Revital Eres  <revital.eres@linaro.org>
+
+	* params.def (sms-min-sc): New param flag.
+	* modulo-sched.c (sms_schedule): Use it.
+	* doc/invoke.texi (sms-min-sc): Document it.
+
+2011-04-17  Jan Hubicka  <jh@suse.cz>
+
+	* lto-symtab.c (lto_cgraph_replace_node): When call statement is
+	present, also set gimple_call_set_cannot_inline.
+	* ipa-inline.c: Update toplevel comment.
+	(MAX_TIME): Remove.
+	(cgraph_clone_inlined_nodes): Fix linebreaks.
+	(cgraph_check_inline_limits): Restructure to ...
+	(caller_growth_limits): ... this one; be more tolerant
+	on growth in nested inline chains; add explanatory comment;
+	fix stack accounting thinko introduced by previous patch.
+	(cgraph_default_inline_p): Remove.
+	(report_inline_failed_reason): New function.
+	(can_inline_edge_p): New function.
+	(can_early_inline_edge_p): New function.
+	(leaf_node_p): Move upwards in file.
+	(want_early_inline_function_p): New function.
+	(want_inline_small_function_p): New function.
+	(want_inline_self_recursive_call_p): New function.
+	(cgraph_edge_badness): Rename to ...
+	(edge_badness) ... this one; fix linebreaks.
+	(update_edge_key): Update call of edge_baddness; add
+	detailed dump about queue updates.
+	(update_caller_keys): Use can_inline_edge_p and
+	want_inline_small_function_p.
+	(cgraph_decide_recursive_inlining): Rename to...
+	(recursive_inlining): Use can_inline_edge_p and
+	want_inline_self_recursive_call_p; simplify and
+	remove no longer valid FIXME.
+	(cgraph_set_inline_failed): Remove.
+	(add_new_edges_to_heap): Use can_inline_edge_p and
+	want_inline_small_function_p.
+	(cgraph_decide_inlining_of_small_functions): Rename to ...
+	(inline_small_functions): ... this one; cleanup; use
+	can/want predicates; cleanup debug ouput; work edges
+	till fibheap is exhausted and do not stop once unit
+	growth is reached; remove later loop processing remaining
+	edges.
+	(cgraph_flatten): Rename to ...
+	(flatten_function): ... this one; use can_inline_edge_p
+	and can_early_inline_edge_p predicates.
+	(cgraph_decide_inlining): Rename to ...
+	(ipa_inline): ... this one; remove unreachable nodes before
+	inlining functions called once; simplify the pass.
+	(cgraph_perform_always_inlining): Rename to ...
+	(inline_always_inline_functions): ... this one; use
+	DECL_DISREGARD_INLINE_LIMITS; use can_inline_edge_p
+	predicate
+	(cgraph_decide_inlining_incrementally): Rename to ...
+	(early_inline_small_functions): ... this one; simplify
+	using new predicates; cleanup; make dumps prettier.
+	(cgraph_early_inlining): Rename to ...
+	(early_inliner): newer inline regular functions into always-inlines;
+	fix updating of call stmt summaries.
+	(pass_early_inline): Update for new names.
+	(inline_transform): Fix formating.
+	(gate_cgraph_decide_inlining): Rename to ...
+	(pass_ipa_inline): ... this one.
+	* ipa-inline.h (inline_summary): Remove disregard_inline_limits.
+	* ipa-inline-analysis.c (dump_inline_summary): Update.
+	(compute_inline_parameters): Do not compute disregard_inline_limits;
+	look for mismatching arguments.
+	(estimate_growth): Fix handlig of non-trivial self recursion.
+	(inline_read_summary): Do not read info->disregard_inline_limits.
+	(inline_write_summary): Do not write info->disregard_inline_limits.
+	* tree-inline.c (inline_forbidden_into_p, tree_can_inline_p): Remove
+	and move all checks into can_inline_edge_p predicate; re-enable code
+	comparing optimization levels.
+	(expand_call_inline): Do not test inline_forbidden_into_p.
+	* Makefile.in (ipa-inline.o): Update arguments.
+
+2011-04-17  Revital Eres  <revital.eres@linaro.org>
+
+	* ddg.c (free_ddg_all_sccs): Free sccs field in struct ddg_all_sccs.
+
+2011-04-17  Revital Eres  <revital.eres@linaro.org>
+
+	* modulo-sched.c (sms_schedule): Avoid unfreed memory when SMS fails.
+
+2011-04-17  Michael Matz  <matz@suse.de>
+
+	PR tree-optimization/48622
+	PR lto/48645
+	* ipa-inline-analysis.c (inline_read_summary): Read size/time
+	in same order as they're written.
+
+2011-04-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (sseunpackmode): New mode attribute.
+	(ssepackmode): Ditto.
+	(vec_pack_trunc_<mode>): Macroize expander from
+	vec_pack_trunc_{v8hi,v4si,v2di} using VI248_128 mode iterator.
+	(vec_unpacks_lo_<mode>): Macroize expander from
+	vec_unpacks_lo_{v16qi,v8hi,v4si} using VI124_128 mode iterator.
+	(vec_unpacks_hi_<mode>): Macroize expander from
+	vec_unpacks_hi_{v16qi,v8hi,v4si} using VI124_128 mode iterator.
+	(vec_unpacku_lo_<mode>): Macroize expander from
+	vec_unpacku_lo_{v16qi,v8hi,v4si} using VI124_128 mode iterator.
+	(vec_unpacku_hi_<mode>): Macroize expander from
+	vec_unpacks_hi_{v16qi,v8hi,v4si} using VI124_128 mode iterator.
+	* config/i386/i386.c (ix86_expand_sse_unpack): Merge with
+	ix86_expand_sse4_unpack.
+	* config/i386/i386-protos.h (ix86_expand_sse4_unpack): Remove.
+
+2011-04-16  Jan Hubicka  <jh@suse.cz>
+
+	* cgraphbuild.c: Include ipa-inline.h.
+	(reset_inline_failed): Use initialize_inline_failed.
+	* cgraph.c: Include ipa-inline.h.
+	(cgraph_create_node_1): Do not initialize estimated_growth.
+	(initialize_inline_failed): More to ipa-inline-analysis.c
+	(dump_cgraph_node): Do not dump inline flags.
+	* cgraph.h (cgraph_local_info): Remove inlineable, versionable
+	and disregard_inline_limits flags.
+	(cgrpah_global_info): Remove estimated_stack_size, stack_frame_offset,
+	time, size, estimated_growth.
+	* ipa-cp.c (ipcp_versionable_function_p, ipcp_generate_summary):
+	Update.
+	* cgraphunit.c (cgraph_decide_is_function_needed): Use
+	DECL_DISREGARD_INLINE_LIMITS.
+	(cgraph_analyze_function): Do not initialize
+	node->local.disregard_inline_limits.
+	* lto-cgraph.c (lto_output_node, input_overwrite_node): Do not stream
+	inlinable, versionable and disregard_inline_limits.
+	* ipa-inline.c (cgraph_clone_inlined_nodes, cgraph_mark_inline_edge,
+	cgraph_check_inline_limits, cgraph_default_inline_p,
+	cgraph_edge_badness, update_caller_keys, update_callee_keys,
+	add_new_edges_to_heap): Update.
+	(cgraph_decide_inlining_of_small_function): Update; set
+	CIF_FUNCTION_NOT_INLINABLE for uninlinable functions.
+	(cgraph_decide_inlining, cgraph_edge_early_inlinable_p,
+	cgraph_decide_inlining_incrementally): Update.
+	* ipa-inline.h (inline_summary): Add inlinable, versionable,
+	disregard_inline_limits, estimated_stack_size, stack_frame_offset,
+	time, size and estimated_growth parameters.
+	(estimate_edge_growth): Update.
+	(initialize_inline_failed): Declare.
+	* ipa-split.c: Include ipa-inline.h
+	(execute_split_functions): Update.
+	* ipa.c (cgraph_postorder): Use DECL_DISREGARD_INLINE_LIMITS.
+	(cgraph_remove_unreachable_nodes): Do not clear inlinable flag.
+	(record_cdtor_fn): Use DECL_DISREGARD_INLINE_LIMITS.
+	* ipa-inline-analysis.c (inline_node_removal_hook): Update; set
+	estimated_growth to INT_MIN.
+	(inline_node_duplication_hook): Likewise.
+	(dump_inline_summary): Dump new fields.
+	(compute_inline_parameters): Update.
+	(estimate_edge_time, estimate_time_after_inlining,
+	estimate_size_after_inlining, estimate_growth, inline_read_summary,
+	inline_write_summary):
+	(initialize_inline_failed): Move here from cgraph.c.
+	* tree-sra.c: Include ipa-inline.h.
+	(ipa_sra_preliminary_function_checks): Update.
+	* Makefile.in: (cgraph.o, cgraphbuild.o): Add dependency on
+	ipa-inline.h
+
+2011-04-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (V16): New mode iterator.
+	(VI1, VI8): Ditto.
+	(AVXMODEQI, AVXMODEDI): Remove.
+	(sse2, sse3): New mode attribute.
+	(mov<mode>): Use V16 mode iterator.
+	(*mov<mode>_internal): Merge with *avx_mov<mode>_internal.
+	(push<mode>1): Use V16 mode iterator.
+	(movmisalign<mode>): Ditto.
+	(<sse>_movu<ssemodesuffix><avxmodesuffix>): Merge from
+	<sse>_movu<ssemodesuffix> and avx_movu<ssemodesuffix><avxmodesuffix>.
+	(*<sse>_movu<ssemodesuffix><avxmodesuffix>): Merge from
+	*<sse>_movu<ssemodesuffix> and *avx_movu<ssemodesuffix><avxmodesuffix>.
+	(<sse2>_movdqu<avxmodesuffix>): Merge from sse2_movdqu and
+	avx_movdqu<avxmodesuffix>.
+	(*<sse2>_movdqu<avxmodesuffix>): Merge from *sse2_movdqu and
+	*avx_movdqu<avxmodesuffix>.
+	(<sse3>_lddqu<avxmodesuffix>) Merge from sse3_lddqu and
+	avx_lddqu<avxmodesuffix>.
+	(<sse>_movnt<mode>): Merge with avx_movnt<AVXMODEF2P:mode>.
+	(<sse2>_movnt<mode>): Merge from sse2_movntv2di and
+	avx_movnt<AVXMODEDI:mode>.
+	* config/i386/i386.c (ix86_expand_vector_move_misalign): Update for
+	renamed sse_movups, sse2_movupd and sse2_movdqu patterns.
+
+2011-04-16  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR target/48629
+	* haifa-sched.c (prune_ready_list, schedule_block): Use
+	sched_pressure_p rather than flag_sched_pressure.
+
+2011-04-15  Pat Haugen <pthaugen@us.ibm.com>
+
+	* config/rs6000/rs6000.c (call_ABI_of_interest): Call
+	cgraph_get_node instead of cgraph_get_create_node.
+
+2011-04-15  Jakub Jelinek  <jakub@redhat.com>
+
+	* cfgexpand.c (expand_debug_expr): Use
+	simplify_gen_{unary,binary,ternary} instead of gen_rtx_*.
+
+2011-04-15  Michael Matz  <matz@suse.de>
+
+	* tree.h (ALLOCA_FOR_VAR_P): Rename to CALL_ALLOCA_FOR_VAR_P.
+	* builtins.c (expand_builtin): Use CALL_ALLOCA_FOR_VAR_P.
+	* function.c (gimplify_parameters): Ditto.
+	* gimplify.c (gimplify_vla_decl): Ditto.
+
+	* gimple.h (enum gf_mask): Add GF_CALL_ALLOCA_FOR_VAR.
+	(gimple_call_set_alloca_for_var): New inline function.
+	(gimple_call_alloca_for_var_p): Ditto.
+	* gimple.c (gimple_build_call_from_tree): Remember
+	CALL_ALLOCA_FOR_VAR_P state.
+	* cfgexpand.c (expand_call_stmt): Restore CALL_ALLOCA_FOR_VAR_P state.
+
+	* tree-inline.c (inline_forbidden_p_stmt): Don't reject alloca
+	calls if they were for VLA objects.
+
+2011-04-15  Martin Jambor  <mjambor@suse.cz>
+
+	* ipa-prop.c (ipa_analyze_virtual_call_uses): Remove handling
+	of ADR_EXPRs.
+
+2011-04-15  Martin Jambor  <mjambor@suse.cz>
+
+	PR middle-end/48601
+	* tree-emutls.c (lower_emutls_function_body): Call
+	cgraph_get_create_node instead of cgraph_get_node.  Do not assert the
+	result is non-NULL.
+
+2011-04-15  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-decl.c (detect_field_duplicates): Call
+	objc_detect_field_duplicates instead of objc_get_interface_ivars.
+
+2011-04-15  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* gimple.h (gimple_asm_clobbers_memory_p): Declare.
+	* gimple.c (gimple_asm_clobbers_memory_p): Define.
+	* ipa-pure-const.c (check_stmt): Call it.
+	* tree-ssa-operands.c (get_asm_expr_operands): Likewise.
+
+2011-04-15  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48290
+	* tree-ssa-copy.c (copy_prop_visit_phi_node): Propagate constants.
+	Properly decide inhibiting propagation based on the valueized
+	operand.  Do loop-closed SSA form preserving here ...
+	(init_copy_prop): ... not here.
+
+2011-04-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/48612
+	* config/i386/sse.md (*ieee_smin<mode>3): Switch mnemonics.
+	(*ieee_smax<mode>3): Likewise.
+
+2011-04-15  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* config/s390/s390.md (popcountdi2, popcountsi2, popcounthi2):
+	Replace match_operand with match_dup for the third operand in
+	these expanders.
+
+2011-04-15  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* combine.c (subst, combine_simlify_rtx): Add new argument, use it
+	to track processing of conditionals.  Update all callers.
+	(try_combine, simplify_if_then_else): Update.
+
+2011-04-15  Maxim Kuvyrkov  <maxim@codesourcery.com>
+
+	* config/m68k/m68k.c (m68k_sched_variable_issue): Handle
+	-fsched-pressure.
+
+2011-04-15  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md ("rotl<mode>3",mode=HIDI): Use match_dup
+	instead of match_operand for operand 3.
+
+2011-04-15  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* recog.h (insn_operand_data): Add an "allows_mem" field.
+	* genoutput.c (output_operand_data): Initialize it.
+	* optabs.c (maybe_legitimize_operand_same_code): New function.
+	(maybe_legitimize_operand): Use it when matching the original
+	op->value.
+
+2011-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gimplify.c: Fix issues in comments throughout.
+	(voidify_wrapper_expr): Fix long line.
+	(build_stack_save_restore): Likewise.
+	(gimplify_loop_expr): Likewise.
+	(gimplify_compound_lval): Likewise.
+	(gimplify_init_ctor_eval): Likewise.
+	(gimplify_modify_expr_rhs): Likewise.
+	(omp_notice_threadprivate_variable): Likewise.
+
+2011-04-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cfgexpand.c (expand_call_stmt): Convert the function type to the
+	original one if this is not a builtin function.
+
+2011-04-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/48605
+	* config/i386/sse.md (sse4_1_insertps): If operands[2] is a MEM,
+	offset it as needed based on top 2 bits in operands[3], change
+	MEM mode to SFmode and mask those 2 bits away from operands[3].
+
+2011-04-14  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-parser.c (c_parser_objc_protocol_definition): Updated for
+	change from objc_declare_protocols() to objc_declare_protocol().
+
+2011-04-14  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (sse4_1): New mode attribute.
+	(<sse4_1>_blend<ssemodesuffix><avxmodesuffix>): Macroize from
+	avx_blend<ssemodesuffix><avxmodesuffix> and
+	sse4_1_blend<ssemodesuffix> using VF mode iterator.
+	(<sse4_1>_blendv<ssemodesuffix><avxmodesuffix>): Macroize from
+	avx_blendv<ssemodesuffix><avxmodesuffix> and
+	sse4_1_blendv<ssemodesuffix> using VF mode iterator.
+	(<sse4_1>_dp<ssemodesuffix><avxmodesuffix>): Macroize from
+	avx_dp<ssemodesuffix><avxmodesuffix> and
+	sse4_1_dp<ssemodesuffix> using VF mode iterator.
+	(sse4_1_mpsadbw): Merge with *avx_mpsadbw.
+	(sse4_1_packusdw): Merge with *avx_packusdw.
+	(sse4_1_pblendvb): Merge with *avx_pblendvb.
+	(sse4_1_pblendw): Merge with *avx_pblendw.
+	(avx_vtest<ssemodesuffix><avxmodesuffix>): Use VF mode iterator.
+	(<sse4_1>_round<ssemodesuffix><avxmodesuffix>): Macroize from
+	avx_round<ssemodesuffix>256 and sse4_1_round<ssemodesuffix> using
+	VF mode iterator.
+	(sse4_1_round<ssescalarmodesuffix>): Merge with
+	*avx_round<ssescalarmodesuffix>.
+	(aesenc): Merge with *avx_aesenc.
+	(aesenclast): Merge with *avx_aesenclast.
+	(aesdec): Merge with *avx_aesdec.
+	(aesdeclast): Merge with *avx_aesdeclast.
+	(pclmulqdq): Merge with *pclmulqdq.
+	* config/i386/predicates.md (reg_not_xmm0_operand_maybe_avx):
+	New predicate.
+	(nonimm_not_xmm0_operand_maybe_avx): Ditto.
+
+2011-04-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/48608
+	* cfgexpand.c (get_decl_align_unit): Renamed to ...
+	(align_local_variable): This.  Update DECL_ALIGN.
+	(add_stack_var): Updated.
+	(expand_one_stack_var): Likewise.
+
+2011-04-14  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-dse.c (struct dse_global_data, struct dse_block_local_data):
+	Remove.
+	(dse_initialize_block_local_data, dse_leave_block,
+	record_voperand_set, get_stmt_uid): Likewise.
+	(dse_possible_dead_store_p): Allow any kind of killing stmt.
+	(dse_optimize_stmt): Remove voperand set handling code.
+	Simplify and improve to handle any kind of killing stmt.
+	(dse_record_phi): Remove.
+	(dse_enter_block): Simplify.
+	(tree_ssa_dse): Likewise.
+	* tree-ssa-alias.c (stmt_kills_ref_p_1): Handle some builtins.
+
+2011-04-14  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (dump_cgraph_node): Do not dump inline summaries.
+	* cgraph.h (struct inline_summary): Move to ipa-inline.h
+	(cgraph_local_info): Remove inline_summary.
+	* ipa-cp.c: Include ipa-inline.h.
+	(ipcp_cloning_candidate_p, ipcp_estimate_growth,
+	ipcp_estimate_cloning_cost, ipcp_insert_stage): Use inline_summary
+	accesor.
+	* lto-cgraph.c (lto_output_node): Do not stream inline summary.
+	(input_overwrite_node): Do not set inline summary.
+	(input_node): Do not stream inline summary.
+	* ipa-inline.c (cgraph_decide_inlining): Dump inline summaries.
+	(cgraph_decide_inlining_incrementally): Do not try to estimate overall
+	growth; we do not have inline parameters computed for that anyway.
+	(cgraph_early_inlining): After inlining compute call_stmt_sizes.
+	* ipa-inline.h (struct inline_summary): Move here from ipa-inline.h
+	(inline_summary_t): New type and VECtor.
+	(debug_inline_summary, dump_inline_summaries): Declare.
+	(inline_summary): Use VOCtor.
+	(estimate_edge_growth): Kill hack computing call stmt size directly.
+	* lto-section-in.c (lto_section_name): Add inline section.
+	* ipa-inline-analysis.c: Include lto-streamer.h
+	(node_removal_hook_holder, node_duplication_hook_holder): New holders
+	(inline_node_removal_hook, inline_node_duplication_hook): New functions.
+	(inline_summary_vec): Define.
+	(inline_summary_alloc, dump_inline_summary, debug_inline_summary,
+	dump_inline_summaries): New functions.
+	(estimate_function_body_sizes): Properly compute size/time of outgoing
+	calls.
+	(compute_inline_parameters): Alloc inline_summary; do not compute
+	size/time of incomming calls.
+	(estimate_edge_time): Avoid missing time summary hack.
+	(inline_read_summary): Read inline summary info.
+	(inline_write_summary): Write inline summary info.
+	(inline_free_summary): Free all hooks and inline summary vector.
+	* lto-streamer.h: Add LTO_section_inline_summary section.
+	* Makefile.in (ipa-cp.o, ipa-inline-analysis.o): Update dependencies.
+	* ipa.c (cgraph_remove_unreachable_nodes): Fix dump file formating.
+
+2011-04-14  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* tree-vectorizer.h (vect_strided_store_supported): Add a
+	HOST_WIDE_INT argument.
+	(vect_strided_load_supported): Likewise.
+	(vect_permute_store_chain): Return void.
+	(vect_transform_strided_load): Likewise.
+	(vect_permute_load_chain): Delete.
+	* tree-vect-data-refs.c (vect_strided_store_supported): Take a
+	count argument.  Check that the count is a power of two.
+	(vect_strided_load_supported): Likewise.
+	(vect_permute_store_chain): Return void.  Update after above changes.
+	Assert that the access is supported.
+	(vect_permute_load_chain): Likewise.
+	(vect_transform_strided_load): Return void.
+	* tree-vect-stmts.c (vectorizable_store): Update calls after
+	above interface changes.
+	(vectorizable_load): Likewise.
+	(vect_analyze_stmt): Don't check for strided powers of two here.
+
+2011-04-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48590
+	* tree-ssa-alias.c (ref_maybe_used_by_call_p_1): Handle
+	BUILT_IN_ALLOCA, BUILT_IN_STACK_SAVE and BUILT_IN_STACK_RESTORE.
+	(call_may_clobber_ref_p_1): Handle BUILT_IN_ALLOCA and
+	BUILT_IN_STACK_SAVE.
+	* tree-ssa-dce.c (propagate_necessity): Handle
+	BUILT_IN_ALLOCA, BUILT_IN_STACK_SAVE and BUILT_IN_STACK_RESTORE.
+
+2011-04-14  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* c-parser.c (c_parser_objc_class_declaration): Updated call to
+	objc_declare_class.
+
+2011-04-14  Richard Guenther  <rguenther@suse.de>
+
+	* tree.h (get_object_alignment_1): Declare.
+	* builtins.c (get_object_alignment_1): Split out worker from ...
+	(get_object_alignment): ... here.
+	* fold-const.c (get_pointer_modulus_and_residue): Use
+	get_object_alignment_1.
+
+2011-04-14  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* tree-vectorizer.h (vect_create_data_ref_ptr): Add an extra
+	type parameter.
+	* tree-vect-data-refs.c (vect_create_data_ref_ptr): Add an aggr_type
+	parameter.  Generalise code to handle arrays as well as vectors.
+	(vect_setup_realignment): Update accordingly.
+	* tree-vect-stmts.c (vectorizable_store): Likewise.
+	(vectorizable_load): Likewise.
+
+2011-04-14  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* tree-vect-stmts.c (vectorizable_load): Allocate and free dr_chain
+	within the per-copy loop.
+
+2011-04-14  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* tree-vect-stmts.c (vectorizable_load): Print the number of copies
+	in the dump file.
+
+2011-04-14  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* doc/options.texi (Negative): Explicitly mention that the
+	Negative chain must be circular.
+
+2011-04-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* function.h (block_chainon): Declare.
+	* function.c (block_chainon): Define.
+
+2011-04-14  Anatoly Sokolov  <aesok@post.ru>
+	    Eric Weddington  <eric.weddington@atmel.com>
+	    Georg-Johann Lay <avr@gjlay.de>
+
+	* config/avr/avr.c: ("insn-codes.h", "optabs.h", "langhooks.h"):
+	New Includes
+	(avr_init_builtins, avr_expand_builtin,
+	avr_expand_delay_cycles, avr_expand_unop_builtin,
+	avr_expand_binop_builtin ): New functions.
+	(avr_builtin_id): New enum
+	(struct avr_builtin_description): New struct
+	(bdesc_1arg, bdesc_2arg): New arrays describing some RTL builtins.
+	(TARGET_INIT_BUILTINS, TARGET_EXPAND_BUILTIN): Define.
+
+	* config/avr/avr.md (UNSPEC_FMUL, UNSPEC_FMULS, UNSPEC_FMULSU,
+	UNSPECV_ENABLE_IRQS, UNSPECV_NOP, UNSPECV_SLEEP, UNSPECV_WDR,
+	UNSPECV_DELAY_CYCLES): new enumeration values
+	(UNSPEC_SEI, UNSPEC_CLI): Remove enumeration values
+	("enable_interrupt"): Use UNSPECV_ENABLE_IRQS
+	("disable_interrupt"): Use UNSPECV_ENABLE_IRQS
+	("*rotlqi3_4"): rename insn to "rotlqi3_4"
+	("delay_cycles_1", "delay_cycles_2", "delay_cycles_3",
+	"delay_cycles_4", "nopv", "sleep", "wdr", "fmul", "fmuls",
+	"fmulsu"): New insns
+
+	* config/avr/avr-c.c: fix line endings
+	(avr_cpu_cpp_builtins): New builtin defines: __BUILTIN_AVR_NOP,
+	__BUILTIN_AVR_SEI, __BUILTIN_AVR_CLI, __BUILTIN_AVR_WDR,
+	__BUILTIN_AVR_SLEEP, __BUILTIN_AVR_SWAP,
+	__BUILTIN_AVR_DELAY_CYCLES, __BUILTIN_AVR_FMUL,
+	__BUILTIN_AVR_FMULS, __BUILTIN_AVR_FMULSU.
+
+	* doc/extend.texi (AVR Built-in Functions): New node
+	(Target Builtins): Add documentation of AVR
+	built-in functions.
+
+2011-04-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/44643
+	* config/avr/avr.c (avr_insert_attributes): Leave TREE_READONLY
+	alone. Error if non-const data has attribute progmem.
+
+2011-04-13  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.h (struct tree_constructor): Include tree_typed instead of
+	tree_common.
+	* tree.c (initialize_tree_contains_struct): Mark TS_CONSTRUCTOR as
+	TS_TYPED instead of TS_COMMON.
+
+2011-04-13  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (*sse2_uavgv16qi3): Merge with *avx_uavgv16qi3.
+	(*sse2_uavgv8hi3): Merge with *avx_uavgv8hi3.
+	(sse2_psadbw): Merge with *avx_psadbw.
+	(ssse3_phaddwv8hi3): Merge with *avx_phaddwv8hi3.
+	(ssse3_phadddv4si3): Merge with *avx_phadddv4si3.
+	(ssse3_phaddswv8hi3): Merge with *avx_phaddswv8hi3.
+	(ssse3_phsubwv8hi3): Merge with *avx_phsubwv8hi3.
+	(ssse3_phsubdv4si3): Merge with *avx_phsubdv4si3.
+	(ssse3_phsubswv8hi3): Merge with *avx_phsubswv8hi3.
+	(ssse3_pmaddubsw128): Merge with *avx_pmaddubsw128.
+	(*ssse3_pmulhrswv8hi3): Merge with *avx_pmulhrswv8hi3.
+	(ssse3_pshufbv16qi3): Merge with *avx_pshufbv16qi3.
+	(ssse3_psign<mode>3): Merge with *avx_psign<mode>3.
+	(ssse3_palignrti): Merge with *avx_palignrti.
+
+2011-04-13  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree-flow.h (struct gimple_df): Make free_ssanames a VEC.
+	* tree-ssanames.c (fini_ssanames): VEC_free it.
+	(make_ssa_name_fn): Update for VECness of free_ssanames.
+	(release_ssa_name, release_dead_ssa_names): Likewise.
+	* tree.h (struct tree_ssa_name): Include tree_typed instead of
+	tree_common.
+	* tree.c (initialize_tree_contains_struct): Mark TS_SSA_NAME as
+	TS_TYPED instead of TS_COMMON.
+
+2011-04-13  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* postreload-gcse.c (gcse_after_reload_main): Add calls to
+	statistics_counter_event.
+	* tree-ssa-copyrename.c (stats): Define.
+	(rename_ssa_copies): Count coalesced SSA_NAMEs.  Add call to
+	statistics_counter_event.
+	* tree-ssa-math-opts.c (reciprocal_stats, sincos_stats): Define.
+	(bswap_stats, widen_mul_stats): Define.
+	(insert_reciprocals): Increment rdivs_inserted.
+	(execute_cse_reciprocals): Zeroize reciprocal_stats.  Increment
+	rfuncs_inserted.  Add calls to statistics_counter_event.
+	(execute_cse_sincos_1): Increment inserted.
+	(execute_cse_sincos): Zeroize sincos_stats.  Add call to
+	statistics_counter_event.
+	(execute_optimize_bswap): Zeroize bswap_stats.  Increment fields
+	of bswap_stats.  Add calls to statistics_counter_event.
+	(convert_mult_to_widen): Increment widen_mults_inserted.
+	(convert_plusminus_to_widen): Increment maccs_inserted.
+	(convert_mult_to_fma): Increment fmas_inserted.
+	(execute_optimize_widening_mul): Zeroize widen_mul_stats.  Add
+	calls to statistics_counter_event.
+
+2011-04-13  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/48455
+	* ira-costs.c (find_costs_and_classes): Use i_mem_cost instead of
+	`temp_costs->mem_cost'.
+
+2011-04-13  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline.h: New file.
+	* ipa-inline-analysis.c: New file. Broken out of ...
+	* ipa-inline.c: ... this file; update toplevel comment;
+	include ipa-inline.h
+	(inline_summary): Move to ipa-inline.h
+	(cgraph_estimate_edge_time): Rename to estimate_edge_time; move to
+	ipa-inline-analysis.c.
+	(cgraph_estimate_time_after_inlining): Rename to estiamte_time_after_inlining;
+	move to ipa-inline-analysis.c
+	(cgraph_estimate_edge_growth): Move to ipa-inline-analysis.c; rename
+	to estimate_edge_growth.
+	(cgraph_estimate_size_after_inlining): Move to ipa-inline-analysis.c;
+	rename to estimate_size_after_inlining.
+	(cgraph_mark_inline_edge): Update for new naming convention.
+	(cgraph_check_inline_limits): Likewise.
+	(cgraph_edge_badness): Likewise.
+	(cgraph_decide_recursive_inlining): Likewise.
+	(cgraph_decide_inlining_of_small_functions): Likewise.
+	(cgraph_decide_inlining_incrementally): Likewise.
+	(cgraph_estimate_growth): Rename to estimate_growth; move to ipa-inline-analysis.c.
+	(eliminated_by_inlining_prob): Move to ipa-inline-analysis.c.
+	(estimate_function_body_sizes): Move to ipa-inline-analysis.c.
+	(compute_inline_parameters): Likewise.
+	(compute_inline_parameters_for_current): Likewise.
+	(pass_inline_parameters): Likewise.
+	(inline_indirect_intraprocedural_analysis): Likewise.
+	(analyze_function): Rename to inline_analyze_function; likewise.
+	(add_new_function): Move to ipa-inline-analysis.c.
+	(inline_generate_summary): Likewise.
+	(inline_read_summary): Likewise.
+	(inline_write_summary): Likewise.
+	* Makefile.in (ipa-inline-analysis.c): New file.
+
+2011-04-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (gcc_cv_as_sparc_gotdata_op): Remove GNU ld check.
+	* configure: Regenerate.
+
+2011-04-13  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.h (struct tree_int_cst, struct real_value): Include tree_typed
+	instead of tree_common.
+	(struct tree_fixed_cst, struct tree_string, struct tree_complex):
+	Likewise.
+	* tree.c (initialize_tree_contains_struct): Mark such nodes as being
+	TS_TYPED rather than TS_COMMON.
+	* print-tree.c (print_node) [STRING_CST]: Don't print TREE_CHAIN.
+
+2011-04-01  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/45263
+	* config/avr/libgcc.S (__do_global_ctors, __do_global_dtors): Don't use
+	r20 around calls of __tablejump_elpm__
+
+2011-04-13  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/48591
+	* omp-low.c (expand_omp_atomic_fetch_op): Return false if decl is
+	NULL.
+	(expand_omp_atomic_pipeline): Return false if cmpxchg is NULL.
+
 2011-04-13  Bernd Schmidt  <bernds@codesourcery.com>
 
 	* dwarf2out.c (struct dw_cfi_struct): Remove member dw_cfi_next.
@@ -114,8 +839,8 @@
 
 2011-04-12  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
 
-       PR target/48090
-       * config/arm/arm.md (*arm_negdi2): Fix early clobber constraints.
+	PR target/48090
+	* config/arm/arm.md (*arm_negdi2): Fix early clobber constraints.
 
 2011-04-12  Richard Sandiford  <richard.sandiford@linaro.org>
 

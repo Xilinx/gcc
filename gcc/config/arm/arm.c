@@ -9070,6 +9070,11 @@ neon_struct_mem_operand (rtx op)
   if (GET_CODE (ind) == REG)
     return arm_address_register_rtx_p (ind, 0);
 
+  /* vldm/vstm allows POST_INC (ia) and PRE_DEC (db).  */
+  if (GET_CODE (ind) == POST_INC
+      || GET_CODE (ind) == PRE_DEC)
+    return arm_address_register_rtx_p (XEXP (ind, 0), 0);
+
   return FALSE;
 }
 
@@ -19627,7 +19632,7 @@ neon_emit_pair_result_insn (enum machine_mode mode,
   rtx tmp1 = gen_reg_rtx (mode);
   rtx tmp2 = gen_reg_rtx (mode);
 
-  emit_insn (intfn (tmp1, op1, tmp2, op2));
+  emit_insn (intfn (tmp1, op1, op2, tmp2));
 
   emit_move_insn (mem, tmp1);
   mem = adjust_address (mem, mode, GET_MODE_SIZE (mode));

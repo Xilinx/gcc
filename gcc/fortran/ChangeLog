@@ -1,3 +1,58 @@
+2011-04-18  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* iresolve.c (gfc_resolve_image_index): Set ts.type.
+	* simplify.c (gfc_simplify_image_index): Don't abort if the bounds
+	are not known at compile time and handle -fcoarray=lib.
+	* trans-intrinsics.c (gfc_conv_intrinsic_function): Handle
+	IMAGE_INDEX.
+	(conv_intrinsic_cobound): Fix comment typo.
+	(trans_this_image): New function.
+	* trans-array.c (gfc_unlikely): Move to trans.c.
+	* trans.c (gfc_unlikely): Function moved from trans-array.c.
+	(gfc_trans_runtime_check): Use it.
+	* trans-io.c (gfc_trans_io_runtime_check): Ditto.
+	* trans.h (gfc_unlikely): Add prototype.
+
+2011-04-18  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/48462
+	* trans-expr.c (fcncall_realloc_result): Renamed version of
+	realloc_lhs_bounds_for_intrinsic_call that does not touch the
+	descriptor bounds anymore but makes a temporary descriptor to
+	hold the result.
+	(gfc_trans_arrayfunc_assign): Modify the reference to above
+	renamed function.
+
+2011-05-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48624
+	* trans-decl.c (gfc_get_extern_function_decl): Fix decl
+	for external procedures with proc arguments.
+
+2011-04-15  Michael Matz  <matz@suse.de>
+
+	* trans-array.c (toplevel): Include gimple.h.
+	(gfc_trans_allocate_array_storage): Check flag_stack_arrays,
+	properly expand variable length arrays.
+	(gfc_trans_auto_array_allocation): If flag_stack_arrays create
+	variable length decls and associate them with their scope.
+	* gfortran.h (gfc_option_t): Add flag_stack_arrays member.
+	* options.c (gfc_init_options): Handle -fstack_arrays option.
+	* lang.opt (fstack-arrays): Add option.
+	* invoke.texi (Code Gen Options): Document it.
+	* Make-lang.in (trans-array.o): Depend on GIMPLE_H.
+
+2011-04-15  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* trans-intrinsic.c (conv_intrinsic_cobound): Remove unused
+	code which is also causing an ICE.
+
+2011-04-14  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* f95-lang.c (poplevel): Use BLOCK_CHAIN and block_chainon.
+
 2011-04-12  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* f95-lang.c (union lang_tree_node): Check for TS_COMMON before

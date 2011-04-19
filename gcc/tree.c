@@ -371,26 +371,26 @@ initialize_tree_contains_struct (void)
 	  break;
 
 	case TS_COMMON:
-	  MARK_TS_TYPED (code);
-	  break;
-
 	case TS_INT_CST:
 	case TS_REAL_CST:
 	case TS_FIXED_CST:
 	case TS_VECTOR:
 	case TS_STRING:
 	case TS_COMPLEX:
+	case TS_SSA_NAME:
+	case TS_CONSTRUCTOR:
+	  MARK_TS_TYPED (code);
+	  break;
+
 	case TS_IDENTIFIER:
 	case TS_DECL_MINIMAL:
 	case TS_TYPE:
 	case TS_LIST:
 	case TS_VEC:
 	case TS_EXP:
-	case TS_SSA_NAME:
 	case TS_BLOCK:
 	case TS_BINFO:
 	case TS_STATEMENT_LIST:
-	case TS_CONSTRUCTOR:
 	case TS_OMP_CLAUSE:
 	case TS_OPTIMIZATION:
 	case TS_TARGET_OPTION:
@@ -1521,7 +1521,7 @@ build_string (int len, const char *str)
 
   s = ggc_alloc_tree_node (length);
 
-  memset (s, 0, sizeof (struct tree_common));
+  memset (s, 0, sizeof (struct tree_typed));
   TREE_SET_CODE (s, STRING_CST);
   TREE_CONSTANT (s) = 1;
   TREE_STRING_LENGTH (s) = len;

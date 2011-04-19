@@ -58,23 +58,6 @@ struct lto_file_decl_data;
 extern const char * const cgraph_availability_names[];
 extern const char * const ld_plugin_symbol_resolution_names[];
 
-/* Function inlining information.  */
-
-struct GTY(()) inline_summary
-{
-  /* Estimated stack frame consumption by the function.  */
-  HOST_WIDE_INT estimated_self_stack_size;
-
-  /* Size of the function body.  */
-  int self_size;
-  /* How many instructions are likely going to disappear after inlining.  */
-  int size_inlining_benefit;
-  /* Estimated time spent executing the function body.  */
-  int self_time;
-  /* How much time is going to be saved by inlining.  */
-  int time_inlining_benefit;
-};
-
 /* Information about thunk, used only for same body aliases.  */
 
 struct GTY(()) cgraph_thunk_info {
@@ -95,8 +78,6 @@ struct GTY(()) cgraph_local_info {
   /* File stream where this node is being written to.  */
   struct lto_file_decl_data * lto_file_data;
 
-  struct inline_summary inline_summary;
-
   /* Set when function function is visible in current compilation unit only
      and its address is never taken.  */
   unsigned local : 1;
@@ -107,48 +88,22 @@ struct GTY(()) cgraph_local_info {
   /* Set once it has been finalized so we consider it to be output.  */
   unsigned finalized : 1;
 
-  /* False when there something makes inlining impossible (such as va_arg).  */
-  unsigned inlinable : 1;
-
-  /* False when there something makes versioning impossible.
-     Currently computed and used only by ipa-cp.  */
-  unsigned versionable : 1;
-
   /* False when function calling convention and signature can not be changed.
      This is the case when __builtin_apply_args is used.  */
   unsigned can_change_signature : 1;
 
-  /* True when function should be inlined independently on its size.  */
-  unsigned disregard_inline_limits : 1;
-
   /* True when the function has been originally extern inline, but it is
      redefined now.  */
   unsigned redefined_extern_inline : 1;
-
-  /* True if the function is going to be emitted in some other translation
-     unit, referenced from vtable.  */
-  unsigned vtable_method : 1;
 };
 
 /* Information about the function that needs to be computed globally
    once compilation is finished.  Available only with -funit-at-a-time.  */
 
 struct GTY(()) cgraph_global_info {
-  /* Estimated stack frame consumption by the function.  */
-  HOST_WIDE_INT estimated_stack_size;
-  /* Expected offset of the stack frame of inlined function.  */
-  HOST_WIDE_INT stack_frame_offset;
-
   /* For inline clones this points to the function they will be
      inlined into.  */
   struct cgraph_node *inlined_to;
-
-  /* Estimated size of the function after inlining.  */
-  int time;
-  int size;
-
-  /* Estimated growth after inlining.  INT_MIN if not computed.  */
-  int estimated_growth;
 };
 
 /* Information about the function that is propagated by the RTL backend.
@@ -284,8 +239,6 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   unsigned process : 1;
   /* Set for aliases once they got through assemble_alias.  */
   unsigned alias : 1;
-  /* Set for nodes that was constructed and finalized by frontend.  */
-  unsigned finalized_by_frontend : 1;
   /* Set for alias and thunk nodes, same_body points to the node they are alias
      of and they are linked through the next/previous pointers.  */
   unsigned same_body_alias : 1;

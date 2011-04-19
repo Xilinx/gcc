@@ -172,7 +172,7 @@ cgraph_decide_is_function_needed (struct cgraph_node *node, tree decl)
   if (flag_keep_inline_functions
       && DECL_DECLARED_INLINE_P (decl)
       && !DECL_EXTERNAL (decl)
-      && !lookup_attribute ("always_inline", DECL_ATTRIBUTES (decl)))
+      && !DECL_DISREGARD_INLINE_LIMITS (decl))
      return true;
 
   /* If we decided it was needed before, but at the time we didn't have
@@ -191,7 +191,7 @@ cgraph_decide_is_function_needed (struct cgraph_node *node, tree decl)
      to change the behavior here.  */
   if (((TREE_PUBLIC (decl)
 	|| (!optimize
-	    && !node->local.disregard_inline_limits
+	    && !DECL_DISREGARD_INLINE_LIMITS (decl)
 	    && !DECL_DECLARED_INLINE_P (decl)
 	    && !(DECL_CONTEXT (decl)
 		 && TREE_CODE (DECL_CONTEXT (decl)) == FUNCTION_DECL)))
@@ -352,7 +352,6 @@ cgraph_finalize_function (tree decl, bool nested)
   notice_global_symbol (decl);
   node->local.finalized = true;
   node->lowered = DECL_STRUCT_FUNCTION (decl)->cfg != NULL;
-  node->finalized_by_frontend = true;
 
   if (cgraph_decide_is_function_needed (node, decl))
     cgraph_mark_needed_node (node);
@@ -782,11 +781,6 @@ cgraph_analyze_function (struct cgraph_node *node)
   push_cfun (DECL_STRUCT_FUNCTION (decl));
 
   assign_assembler_name_if_neeeded (node->decl);
-
-  /* disregard_inline_limits affects topological order of the early optimization,
-     so we need to compute it ahead of rest of inline parameters.  */
-  node->local.disregard_inline_limits
-    = DECL_DISREGARD_INLINE_LIMITS (node->decl);
 
   /* Make sure to gimplify bodies only once.  During analyzing a
      function we lower it, which will require gimplified nested
@@ -1996,7 +1990,6 @@ cgraph_copy_node_for_versioning (struct cgraph_node *old_version,
    new_version->local = old_version->local;
    new_version->local.externally_visible = false;
    new_version->local.local = true;
-   new_version->local.vtable_method = false;
    new_version->global = old_version->global;
    new_version->rtl = old_version->rtl;
    new_version->reachable = true;
