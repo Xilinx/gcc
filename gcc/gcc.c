@@ -775,12 +775,16 @@ static const char *cc1_options =
  %{fmudflap|fmudflapth:-fno-builtin -fno-merge-constants}\
  %{coverage:-fprofile-arcs -ftest-coverage}";
 
+/* If an assembler wrapper is used to invoke post-assembly tools
+   like MAO, --save-temps need to be passed to save the output of
+   such post-processing tools. This is not compatible with vanilla
+   binutils gas which does not recognize --save-temps.  */
 static const char *asm_options =
 "%{-target-help:%:print-asm-header()} "
 #if HAVE_GNU_AS
 /* If GNU AS is used, then convert -w (no warnings), -I, and -v
    to the assembler equivalents.  */
-"%{v} %{w:-W} %{I*} "
+"%{v} %{w:-W} %{I*} %{save-temps:--save-temps} "
 #endif
 "%a %Y %{c:%W{o*}%{!o*:-o %w%b%O}}%{!c:-o %d%w%u%O}";
 

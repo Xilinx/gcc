@@ -1,3 +1,7 @@
+2011-04-20  Easwaran Raman  <eraman@google.com>
+
+	* gcc/gcc.c (asm_options): Pass --save-temps to assembler.
+
 2011-04-19  Martin Thuresson  <martint@google.com>
 
 	* libgcov.c (gcov_version): Do not access filename in struct
