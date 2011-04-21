@@ -162,10 +162,12 @@ vax_output_function_prologue (FILE * file, HOST_WIDE_INT size)
     {
       int offset = 0;
 
-      dwarf2out_maybe_emit_cfi_label ();
+      /* Note that the state we describe below is the state on entry to
+         the function, as created by the (rather complex) CALLG/S insns.
+         Thus there is no need to use dwarf2out_maybe_emit_cfi_label here.  */
 
       for (regno = FIRST_PSEUDO_REGISTER-1; regno >= 0; --regno)
-	if (df_regs_ever_live_p (regno) && !call_used_regs[regno])
+	if (mask & (1 << regno))
 	  dwarf2out_reg_save (regno, offset -= 4);
 
       dwarf2out_reg_save (PC_REGNUM, offset -= 4);
