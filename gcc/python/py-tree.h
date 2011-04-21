@@ -22,16 +22,19 @@ extern VEC(tree,gc) * gpy_decl_process_assign (gpy_symbol_obj ** , gpy_symbol_ob
 		    
 extern VEC(tree,gc) * gpy_decl_process_bin_expression (gpy_symbol_obj ** , gpy_symbol_obj **,
 						       gpy_opcode_t, VEC(gpy_ctx_t,gc) *);
+					
+extern VEC(tree,gc) * gpy_decl_fold_primitive (const gpy_symbol_obj * const);
 
-extern VEC(tree,gc) * gpy_fold_primitive (const gpy_symbol_obj * const);
+extern VEC(tree,gc) * gpy_stmt_get_tree (gpy_symbol_obj *, VEC(gpy_ctx_t,gc) *);
 
-extern VEC(tree,gc) * gpy_get_tree (gpy_symbol_obj *, VEC(gpy_ctx_t,gc) *);
+extern VEC(tree,gc) * gpy_stmt_process_expression (const gpy_symbol_obj * const,
+						   VEC(gpy_ctx_t,gc) *);
 
-extern void gpy_process_decl (gpy_symbol_obj *);
+extern void gpy_stmt_process_decl (gpy_symbol_obj * const);
 
 extern tree gpy_ctx_lookup_decl (VEC(gpy_ctx_t,gc) *, const char *);
 
-extern bool gpy_ctx_push_decl (tree, const char *, gpy_hash_table_t *);
+extern bool gpy_ctx_push_decl (tree, const char *, gpy_hash_tab_t *);
 	    
 #define GPY_VEC_stmts_append(x,y)			\
   do {							\

@@ -210,14 +210,13 @@ void gpy_dd_hash_init_table (gpy_hash_tab_t * tbl)
 }
 
 bool gpy_ctx_push_decl (tree decl, const char * s,
-			gpy_hash_table_t * tbl)
+			gpy_hash_tab_t * tbl)
 {
   bool retval = true;
   gpy_hashval_t h = 0;
 
   h = gpy_dd_hash_string (s);
   void ** slot = gpy_dd_hash_insert (h,decl,tbl);
-
   if (!slot)
     {
       debug ("pushed decl <%s> into context!\n", s);
@@ -234,11 +233,10 @@ tree gpy_ctx_lookup_decl (VEC(gpy_ctx_t,gc) * context, const char * s)
 {
   tree retval = NULL_TREE;
 
-  gpy_hashval_t = h = gpy_dd_hash_string (s);
-  gpy_ctx_t it;
+  gpy_hashval_t h = gpy_dd_hash_string (s);
+  gpy_hash_tab_t * it;
 
-  int i;
-  int l = VEC_length (gpy_ctx_t,context);
+  int i = 0, l = VEC_length (gpy_ctx_t,context);
   for (i = (l-1); i>=0; --i)
     {
       it = VEC_index (gpy_ctx_t, context, i);

@@ -49,11 +49,10 @@ along with GCC; see the file COPYING3.  If not see
 #include "py-tree.h"
 #include "py-runtime.h"
 
-static VEC( gpy_sym,gc ) * gpy_symbol_stack;
+static VEC(gpy_sym,gc) * gpy_symbol_stack;
 
 extern int yylineno;
-
-// yydebug = 1;
+//yydebug = 1;
 
 extern int yylex( void );
 extern void yyerror( const char * );
@@ -172,10 +171,9 @@ declarations:
             {
 	      if( $2 )
 		{
-		  debug( "passing decl <%p> type <0x%x>!\n",
+		  debug ("passing decl <%p> type <0x%x>!\n",
 			 (void*)$2, $2->type );
-		  
-		  gpy_process_decl( $2 ); 
+		  gpy_stmt_process_decl( $2 ); 
 		}
 	    }
             ;

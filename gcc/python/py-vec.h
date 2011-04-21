@@ -22,6 +22,11 @@ typedef struct gpy_vector_t {
   signed long size, length;
 } gpy_ident_vector_t;
 
+enum OPERATOR_T {
+  LESS_OP, GREATER_OP, EQ_EQ_OP,
+  GREATER_EQ_OP, LESS_EQ_OP
+};
+
 typedef unsigned long gpy_hashval_t;
 typedef struct gpy_hash_entry {
   gpy_hashval_t hash;
@@ -32,9 +37,12 @@ typedef struct GTY(()) gpy_hash_table_t {
   unsigned int size, length;
   gpy_hash_entry_t * array;
 } gpy_hash_tab_t ;
+typedef gpy_symbol_obj * gpy_sym;
+typedef gpy_hash_tab_t * gpy_ctx_t;
 
-typedef gpy_symbol_obj *gpy_sym;
-typedef gpy_hash_tab_t *gpy_ctx_t;
+typedef int gpy_int;
+DEF_VEC_I( gpy_int );
+DEF_VEC_ALLOC_I( gpy_int,gc );
 
 DEF_VEC_P( gpy_sym );
 DEF_VEC_ALLOC_P( gpy_sym,gc );

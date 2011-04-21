@@ -63,8 +63,6 @@ typedef struct gpy_callable_def_t {
 
  */
 /* go/gofrontend/types.cc 4517 && 5066  for making an array type */
-
-
 /*
   typedef struct gpy_rr_object_state_t {
   char * obj_t_ident;

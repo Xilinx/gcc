@@ -103,7 +103,7 @@ VEC(tree,gc) * gpy_decl_process_assign (gpy_symbol_obj ** op_a,
 	    fatal_error("error pushing var decl <%s>!\n", opa->op_a.string );
 	}
 
-      rhs_tree_vec = gpy_process_expression (opb, context);
+      rhs_tree_vec = gpy_stmt_process_expression (opb, context);
       tree rhs_tree_res_decl = VEC_pop (tree, rhs_tree_vec);
 
       retval = rhs_tree_vec;
@@ -111,11 +111,11 @@ VEC(tree,gc) * gpy_decl_process_assign (gpy_symbol_obj ** op_a,
       VEC_safe_push (tree, gc, retval, build2 (MODIFY_EXPR, gpy_object_type_ptr,
 					       decl,rhs_tree_res_decl));
 
-      VEC(tree,gc) * bc =  gpy_builtin_get_incr_ref_call (decl);
+      VEC(tree,gc) * bc = gpy_builtin_get_incr_ref_call (decl);
       GPY_VEC_stmts_append(retval,bc);
 
-      bc = gpy_builtin_get_set_decl_call (decl);
-      GPY_VEC_stmts_append(retval,bc);
+      /*bc = gpy_builtin_get_set_decl_call (decl);
+	GPY_VEC_stmts_append(retval,bc);*/
 
       VEC_safe_push (tree, gc, retval, decl);
     }
@@ -140,8 +140,8 @@ gpy_decl_process_bin_expression (gpy_symbol_obj ** op_a, gpy_symbol_obj ** op_b,
     return NULL;
   }
 
-  t1 = gpy_process_expression (opa, context);
-  t2 = gpy_process_expression (opb, context);
+  t1 = gpy_stmt_process_expression (opa, context);
+  t2 = gpy_stmt_process_expression (opb, context);
 
   tree t1_res_decl = VEC_pop (tree, t1);
   tree t2_res_decl = VEC_pop (tree, t2);
