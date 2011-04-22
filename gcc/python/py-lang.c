@@ -169,7 +169,6 @@ static tree
 gpy_langhook_builtin_function( tree decl ATTRIBUTE_UNUSED )
 {
   debug("builtin function!\n");
-
   return decl;
 }
 
@@ -196,11 +195,10 @@ gpy_langhook_getdecls( void )
 }
 
 /* Write out globals.  */
-static void
-gpy_langhook_write_globals( void )
+static
+void gpy_langhook_write_globals (void)
 {
-  debug("write globals!\n");
-  gpy_write_globals( );
+  gpy_stmt_write_globals ();
 }
 
 static int

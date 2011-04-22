@@ -45,6 +45,105 @@ along with GCC; see the file COPYING3.  If not see
 #include "py-types.h"
 #include "py-runtime.h"
 
+VEC(tree,gc) * gpy_stmt_process_expression (const gpy_symbol_obj * const sym,
+					    VEC(gpy_ctx_t,gc) * context)
+{
+  VEC(tree,gc) * retval = NULL;
+  if( sym->type == SYMBOL_PRIMARY )
+    {
+      retval = gpy_decl_fold_primitive (sym);
+    }
+  else if( sym->type == SYMBOL_REFERENCE )
+    {
+      gcc_assert( sym->op_a_t == TYPE_STRING );
+      tree decl = gpy_ctx_lookup_decl (context, sym->op_a.string);
+      if( decl )
+	{
+	  retval = VEC_alloc(tree,gc,0);
+	  debug("tree reference <%s>!\n", sym->op_a.string);
+	  VEC_safe_push (tree,gc,retval,decl);
+	}
+      else
+	{
+	  error("undeclared symbol reference <%s>!\n",
+		sym->op_a.string );
+	}
+    }
+  else
+    {
+      gpy_symbol_obj *opa = NULL, *opb = NULL;
+      VEC(tree,gc) *res = NULL;
+
+      debug ("expression evalution <0x%x>!\n", sym->type);
+
+      opa = sym->op_a.symbol_table;
+      opb = sym->op_b.symbol_table;
+
+      debug ("opa->type = <0x%x>, opb->type = <0x%x>!\n",
+	     opa->type, opb->type);
+
+      switch (sym->type)
+	{
+	case OP_ASSIGN_EVAL:
+	  res = gpy_decl_process_assign (&opa, &opb, context);
+	  break;
+
+	case OP_BIN_ADDITION:
+	  res = gpy_decl_process_bin_expression (&opa, &opb, sym->type,
+						 context);
+	  break;
+
+	  /* .......... */
+
+	default:
+	  fatal_error ("invalid expression evaluation symbol type <0x%x>!\n",
+		       sym->type);
+	  break;
+	}
+      if( res ) { retval = res; }
+      else { fatal_error("error evaluating expression!\n"); }
+    }
+
+  return retval;
+}
+
+VEC(tree,gc) * gpy_stmt_process_print (gpy_symbol_obj *sym,
+				       VEC(gpy_ctx_t,gc) * context)
+{
+  VEC(tree,gc) * retval = NULL;
+  gcc_assert( sym->op_a_t == TYPE_SYMBOL );
+  gpy_symbol_obj * argument_list = sym->op_a.symbol_table;
+
+  if (argument_list)
+    {
+      int len = 0;
+      gpy_symbol_obj * t = argument_list;
+      while (t)
+	{
+	  len++;
+	  t=t->next;
+	}
+     
+      int idx, idy = 0; t = argument_list;
+      tree * args = XNEWVEC( tree,len );
+      for( idx=0; idx<len; ++idx )
+	{
+	  VEC(tree,gc) * x = gpy_stmt_get_tree (t, context);
+	  gcc_assert( VEC_length(tree,x) == 1 );
+	  args[idy] = VEC_index(tree,x,0);
+	  idy++;
+	  t = t->next;
+	}
+      
+      VEC (tree,gc) * bc = gpy_builtin_get_print_call (len, args);
+      GPY_VEC_stmts_append (retval,bc);
+    }
+  else
+    error("print call without any arguments!\n");
+
+  return retval;
+}
+
 VEC(tree,gc) * gpy_decl_fold_primitive (const gpy_symbol_obj * const sym)
 {
   VEC(tree,gc) * retval = VEC_alloc(tree,gc,0);
