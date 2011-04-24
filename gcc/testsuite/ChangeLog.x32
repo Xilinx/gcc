@@ -1,3 +1,9 @@
+2011-04-16  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/i386/avx-vinsertps-3.c: Require ia32 instead of
+	ilp32.
+	* gcc.target/i386/sse4_1-insertps-3.c: Likewise.
+
 2011-04-09  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* gcc.target/i386/pr48389.c: Require ia32 instead of ilp32.
