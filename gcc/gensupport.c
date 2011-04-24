@@ -594,8 +594,7 @@ identify_predicable_attribute (void)
   if (p_true == NULL || strchr (++p_true, ',') != NULL)
     {
       error_with_line (elem->lineno, "attribute `predicable' is not a boolean");
-      if (p_false)
-        free (p_false);
+      free (p_false);
       return;
     }
   p_true[-1] = '\0';
@@ -611,15 +610,13 @@ identify_predicable_attribute (void)
 
     case CONST:
       error_with_line (elem->lineno, "attribute `predicable' cannot be const");
-      if (p_false)
-	free (p_false);
+      free (p_false);
       return;
 
     default:
       error_with_line (elem->lineno,
 		       "attribute `predicable' must have a constant default");
-      if (p_false)
-	free (p_false);
+      free (p_false);
       return;
     }
 
@@ -631,8 +628,7 @@ identify_predicable_attribute (void)
     {
       error_with_line (elem->lineno,
 		       "unknown value `%s' for `predicable' attribute", value);
-      if (p_false)
-	free (p_false);
+      free (p_false);
     }
 }
 
@@ -1308,7 +1304,7 @@ read_md_rtx (int *lineno, int *seqnr)
      their C test is provably always false).  If insn_elision is
      false, our caller needs to see all the patterns.  Note that the
      elided patterns are never counted by the sequence numbering; it
-     it is the caller's responsibility, when insn_elision is false, not
+     is the caller's responsibility, when insn_elision is false, not
      to use elided pattern numbers for anything.  */
   switch (GET_CODE (desc))
     {

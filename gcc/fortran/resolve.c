@@ -1091,7 +1091,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
 		    cl2->next = cl->next;
 
 		  gfc_free_expr (cl->length);
-		  gfc_free (cl);
+		  free (cl);
 		}
 
 	      cons->expr->ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
@@ -5194,7 +5194,7 @@ check_host_association (gfc_expr *e)
 	      for (n = 0; n < e->rank; n++)
 		mpz_clear (e->shape[n]);
 
-	      gfc_free (e->shape);
+	      free (e->shape);
 	    }
 
 	  /* Give the expression the right symtree!  */
@@ -6636,6 +6636,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 {
   int i, pointer, allocatable, dimension, is_abstract;
   int codimension;
+  bool coindexed;
   symbol_attribute attr;
   gfc_ref *ref, *ref2;
   gfc_expr *e2;
@@ -6693,18 +6694,32 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 	  codimension = sym->attr.codimension;
 	}
 
+      coindexed = false;
+
       for (ref = e->ref; ref; ref2 = ref, ref = ref->next)
 	{
 	  switch (ref->type)
 	    {
  	      case REF_ARRAY:
+                if (ref->u.ar.codimen > 0)
+		  {
+		    int n;
+		    for (n = ref->u.ar.dimen;
+			 n < ref->u.ar.dimen + ref->u.ar.codimen; n++)
+		      if (ref->u.ar.dimen_type[n] != DIMEN_THIS_IMAGE)
+			{
+			  coindexed = true;
+			  break;
+			}
+		   }
+
 		if (ref->next != NULL)
 		  pointer = 0;
 		break;
 
 	      case REF_COMPONENT:
 		/* F2008, C644.  */
-		if (gfc_is_coindexed (e))
+		if (coindexed)
 		  {
 		    gfc_error ("Coindexed allocatable object at %L",
 			       &e->where);
@@ -8598,7 +8613,7 @@ gfc_resolve_forall (gfc_code *code, gfc_namespace *ns, int forall_save)
       total_var = gfc_count_forall_iterators (code);
 
       /* Allocate VAR_EXPR with NUMBER_OF_FORALL_INDEX elements.  */
-      var_expr = (gfc_expr **) gfc_getmem (total_var * sizeof (gfc_expr *));
+      var_expr = XCNEWVEC (gfc_expr *, total_var);
     }
 
   /* The information about FORALL iterator, including FORALL index start, end
@@ -8643,7 +8658,7 @@ gfc_resolve_forall (gfc_code *code, gfc_namespace *ns, int forall_save)
       gcc_assert (forall_save == 0);
 
       /* VAR_EXPR is not needed any more.  */
-      gfc_free (var_expr);
+      free (var_expr);
       total_var = 0;
     }
 }
@@ -13184,7 +13199,7 @@ resolve_equivalence (gfc_equiv *eq)
 		  e->ts.u.cl = NULL;
 		}
 	      ref = ref->next;
-	      gfc_free (mem);
+	      free (mem);
 	    }
 
 	  /* Any further ref is an error.  */
