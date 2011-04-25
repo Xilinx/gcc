@@ -1,3 +1,55 @@
+2011-04-20  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (finish_compound_literal): Don't put an array
+	with a dtor in a static variable.
+
+	* call.c (build_over_call): Handle trivial dtor.
+
+	* search.c (lookup_fnfields_slot): Call complete_type.
+
+	PR c++/48594
+	* decl2.c (build_offset_ref_call_from_tree): Move
+	non-dependency of object outside condition.
+
+	PR c++/48657
+	* decl.c (cp_finish_decl): Simplify template handling.
+
+2011-04-20  Jim Meyering  <meyering@redhat.com>
+
+	* tree.c (cxx_printable_name_internal): Remove useless if-before-free.
+
+2011-04-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/46304
+	* typeck.c (cp_build_binary_op): Fold COMPLEX_EXPR.
+
+	PR c++/45267
+	* decl.c (duplicate_decls): Keep always_inline attribute
+	in sync with DECL_DISREGARD_INLINE_LIMITS.
+
+2011-04-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48569
+	* typeck2.c (build_functional_cast): Handle VOID_TYPE.
+
+	PR c++/48537
+	* init.c (build_value_init): Handle UNION_TYPE the same.
+
+2011-04-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/48632
+	* parser.c (cp_parser_omp_for_loop): Don't use cp_parser_omp_for_incr
+	for type dependent pointers.
+
+2011-04-18  Jim Meyering  <meyering@redhat.com>
+
+	* pt.c (type_unification_real): Fix typo in comment: s/in in/in/.
+
+2011-04-17  Jan Hubicka  <jh@suse.cz>
+
+	* semantics.c (finish_goto_stmt): Do set UNINLINABLE flag on computed
+	gotos.
+
 2011-04-17  Jason Merrill  <jason@redhat.com>
 
 	PR c++/48531

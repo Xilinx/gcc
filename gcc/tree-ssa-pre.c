@@ -580,8 +580,7 @@ phi_trans_add (pre_expr e, pre_expr v, basic_block pred)
 
   slot = htab_find_slot_with_hash (phi_translate_table, new_pair,
 				   new_pair->hashcode, INSERT);
-  if (*slot)
-    free (*slot);
+  free (*slot);
   *slot = (void *) new_pair;
 }
 
@@ -2657,11 +2656,13 @@ compute_antic (void)
 }
 
 /* Return true if we can value number the call in STMT.  This is true
-   if we have a pure or constant call.  */
+   if we have a pure or constant call to a real function.  */
 
 static bool
 can_value_number_call (gimple stmt)
 {
+  if (gimple_call_internal_p (stmt))
+    return false;
   if (gimple_call_flags (stmt) & (ECF_PURE | ECF_CONST))
     return true;
   return false;
@@ -4384,6 +4385,8 @@ eliminate (void)
 	    {
 	      tree orig_fn = gimple_call_fn (stmt);
 	      tree fn;
+	      if (!orig_fn)
+		continue;
 	      if (TREE_CODE (orig_fn) == SSA_NAME)
 		fn = VN_INFO (orig_fn)->valnum;
 	      else if (TREE_CODE (orig_fn) == OBJ_TYPE_REF

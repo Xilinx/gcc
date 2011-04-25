@@ -4906,7 +4906,7 @@ gfc_generate_function_code (gfc_namespace * ns)
       gfc_trans_runtime_check (true, false, recurcheckvar, &init,
 			       &sym->declared_at, msg);
       gfc_add_modify (&init, recurcheckvar, boolean_true_node);
-      gfc_free (msg);
+      free (msg);
     }
 
   /* Now generate the code for the body of this function.  */
@@ -5046,7 +5046,7 @@ gfc_generate_function_code (gfc_namespace * ns)
   if (decl_function_context (fndecl))
     /* Register this function with cgraph just far enough to get it
        added to our parent's nested function list.  */
-    (void) cgraph_get_create_node (fndecl);
+    (void) cgraph_create_node (fndecl);
   else
     cgraph_finalize_function (fndecl, true);
 

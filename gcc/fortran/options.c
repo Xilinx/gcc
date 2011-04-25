@@ -331,7 +331,7 @@ gfc_post_options (const char **pfilename)
     gfc_add_include_path (".", true, true);
 
   if (canon_source_file != gfc_source_file)
-    gfc_free (CONST_CAST (char *, canon_source_file));
+    free (CONST_CAST (char *, canon_source_file));
 
   /* Decide which form the file will be read in as.  */
 
@@ -471,7 +471,7 @@ gfc_handle_module_path_options (const char *arg)
   if (gfc_option.module_dir != NULL)
     gfc_fatal_error ("gfortran: Only one -J option allowed");
 
-  gfc_option.module_dir = (char *) gfc_getmem (strlen (arg) + 2);
+  gfc_option.module_dir = XCNEWVEC (char, strlen (arg) + 2);
   strcpy (gfc_option.module_dir, arg);
 
   gfc_add_include_path (gfc_option.module_dir, true, false);
@@ -1056,7 +1056,7 @@ gfc_get_option_string (void)
         }
     }
 
-  result = (char *) gfc_getmem (len);
+  result = XCNEWVEC (char, len);
 
   pos = 0; 
   for (j = 1; j < save_decoded_options_count; j++)

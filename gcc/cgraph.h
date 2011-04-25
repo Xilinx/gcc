@@ -200,9 +200,6 @@ struct GTY((chain_next ("%h.next"), chain_prev ("%h.previous"))) cgraph_node {
   /* Ordering of all cgraph nodes.  */
   int order;
 
-  /* unique id for profiling. pid is not suitable because of different
-     number of cfg nodes with -fprofile-generate and -fprofile-use */
-  int pid;
   enum ld_plugin_symbol_resolution resolution;
 
   /* Set when function must be output for some reason.  The primary
@@ -472,7 +469,6 @@ extern GTY(()) struct cgraph_node *cgraph_nodes;
 extern GTY(()) int cgraph_n_nodes;
 extern GTY(()) int cgraph_max_uid;
 extern GTY(()) int cgraph_edge_max_uid;
-extern GTY(()) int cgraph_max_pid;
 extern bool cgraph_global_info_ready;
 enum cgraph_state
 {
@@ -595,7 +591,6 @@ struct cgraph_node *cgraph_function_versioning (struct cgraph_node *,
 						const char *);
 void tree_function_versioning (tree, tree, VEC (ipa_replace_map_p,gc)*, bool, bitmap,
 			       bitmap, basic_block);
-struct cgraph_node *save_inline_function_body (struct cgraph_node *);
 void record_references_in_initializer (tree, bool);
 bool cgraph_process_new_functions (void);
 
@@ -656,6 +651,7 @@ bool cgraph_comdat_can_be_unshared_p (struct cgraph_node *);
 
 /* In predict.c  */
 bool cgraph_maybe_hot_edge_p (struct cgraph_edge *e);
+bool cgraph_optimize_for_size_p (struct cgraph_node *);
 
 /* In varpool.c  */
 extern GTY(()) struct varpool_node *varpool_nodes_queue;
@@ -724,12 +720,6 @@ varpool_next_static_initializer (struct varpool_node *node)
 #define FOR_EACH_STATIC_INITIALIZER(node) \
    for ((node) = varpool_first_static_initializer (); (node); \
         (node) = varpool_next_static_initializer (node))
-
-/* In ipa-inline.c  */
-void cgraph_clone_inlined_nodes (struct cgraph_edge *, bool, bool);
-void compute_inline_parameters (struct cgraph_node *);
-cgraph_inline_failed_t cgraph_edge_inlinable_p (struct cgraph_edge *);
-
 
 /* Create a new static variable of type TYPE.  */
 tree add_new_static_var (tree type);
@@ -925,7 +915,6 @@ cgraph_edge_recursive_p (struct cgraph_edge *e)
   else
     return e->caller->decl == e->callee->decl;
 }
-
 
 /* FIXME: inappropriate dependency of cgraph on IPA.  */
 #include "ipa-ref-inline.h"

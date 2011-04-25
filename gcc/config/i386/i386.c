@@ -4783,8 +4783,7 @@ ix86_valid_target_attribute_tree (tree args)
 
       /* Free up memory allocated to hold the strings */
       for (i = 0; i < IX86_FUNCTION_SPECIFIC_MAX; i++)
-	if (option_strings[i])
-	  free (option_strings[i]);
+	free (option_strings[i]);
     }
 
   return t;
@@ -11919,8 +11918,8 @@ darwin_local_data_pic (rtx disp)
 /* Determine if a given RTX is a valid constant.  We already know this
    satisfies CONSTANT_P.  */
 
-bool
-legitimate_constant_p (rtx x)
+static bool
+ix86_legitimate_constant_p (enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
 {
   switch (GET_CODE (x))
     {
@@ -12006,7 +12005,7 @@ legitimate_constant_p (rtx x)
    is checked above.  */
 
 static bool
-ix86_cannot_force_const_mem (rtx x)
+ix86_cannot_force_const_mem (enum machine_mode mode, rtx x)
 {
   /* We can always put integral constants and vectors in memory.  */
   switch (GET_CODE (x))
@@ -12019,7 +12018,7 @@ ix86_cannot_force_const_mem (rtx x)
     default:
       break;
     }
-  return !legitimate_constant_p (x);
+  return !ix86_legitimate_constant_p (mode, x);
 }
 
 
@@ -12357,7 +12356,8 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	    /* Displacement is an invalid pic construct.  */
 	    return false;
 #if TARGET_MACHO
-	  else if (MACHO_DYNAMIC_NO_PIC_P && !legitimate_constant_p (disp))
+	  else if (MACHO_DYNAMIC_NO_PIC_P
+		   && !ix86_legitimate_constant_p (Pmode, disp))
 	    /* displacment must be referenced via non_lazy_pointer */
 	    return false;
 #endif
@@ -12387,9 +12387,9 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
       else if (GET_CODE (disp) != LABEL_REF
 	       && !CONST_INT_P (disp)
 	       && (GET_CODE (disp) != CONST
-		   || !legitimate_constant_p (disp))
+		   || !ix86_legitimate_constant_p (Pmode, disp))
 	       && (GET_CODE (disp) != SYMBOL_REF
-		   || !legitimate_constant_p (disp)))
+		   || !ix86_legitimate_constant_p (Pmode, disp)))
 	/* Displacement is not constant.  */
 	return false;
       else if (TARGET_64BIT
@@ -31484,9 +31484,18 @@ ix86_expand_vector_set (bool mmx_ok, rtx target, rtx val, int elt)
       break;
 
     case V2DImode:
-      use_vec_merge = TARGET_SSE4_1;
+      use_vec_merge = TARGET_SSE4_1 && TARGET_64BIT;
       if (use_vec_merge)
 	break;
+
+      tmp = gen_reg_rtx (GET_MODE_INNER (mode));
+      ix86_expand_vector_extract (false, tmp, target, 1 - elt);
+      if (elt == 0)
+	tmp = gen_rtx_VEC_CONCAT (mode, tmp, val);
+      else
+	tmp = gen_rtx_VEC_CONCAT (mode, val, tmp);
+      emit_insn (gen_rtx_SET (VOIDmode, target, tmp));
+      return;
 
     case V2DFmode:
       {
@@ -34106,6 +34115,88 @@ ix86_expand_vec_extract_even_odd (rtx targ, rtx op0, rtx op1, unsigned odd)
   /* ... or we use the special-case patterns.  */
   expand_vec_perm_even_odd_1 (&d, odd);
 }
+
+/* Expand an insert into a vector register through pinsr insn.
+   Return true if successful.  */
+
+bool
+ix86_expand_pinsr (rtx *operands)
+{
+  rtx dst = operands[0];
+  rtx src = operands[3];
+
+  unsigned int size = INTVAL (operands[1]);
+  unsigned int pos = INTVAL (operands[2]);
+
+  if (GET_CODE (dst) == SUBREG)
+    {
+      pos += SUBREG_BYTE (dst) * BITS_PER_UNIT;
+      dst = SUBREG_REG (dst);
+    }
+
+  if (GET_CODE (src) == SUBREG)
+    src = SUBREG_REG (src);
+
+  switch (GET_MODE (dst))
+    {
+    case V16QImode:
+    case V8HImode:
+    case V4SImode:
+    case V2DImode:
+      {
+	enum machine_mode srcmode, dstmode;
+	rtx (*pinsr)(rtx, rtx, rtx, rtx);
+
+	srcmode = mode_for_size (size, MODE_INT, 0);
+
+	switch (srcmode)
+	  {
+	  case QImode:
+	    if (!TARGET_SSE4_1)
+	      return false;
+	    dstmode = V16QImode;
+	    pinsr = gen_sse4_1_pinsrb;
+	    break;
+
+	  case HImode:
+	    if (!TARGET_SSE2)
+	      return false;
+	    dstmode = V8HImode;
+	    pinsr = gen_sse2_pinsrw;
+	    break;
+
+	  case SImode:
+	    if (!TARGET_SSE4_1)
+	      return false;
+	    dstmode = V4SImode;
+	    pinsr = gen_sse4_1_pinsrd;
+	    break;
+
+	  case DImode:
+	    gcc_assert (TARGET_64BIT);
+	    if (!TARGET_SSE4_1)
+	      return false;
+	    dstmode = V2DImode;
+	    pinsr = gen_sse4_1_pinsrq;
+	    break;
+
+	  default:
+	    return false;
+	  }
+
+	dst = gen_lowpart (dstmode, dst);
+	src = gen_lowpart (srcmode, src);
+
+	pos /= size;
+
+	emit_insn (pinsr (dst, dst, src, GEN_INT (1 << pos)));
+	return true;
+      }
+
+    default:
+      return false;
+    }
+}
 
 /* This function returns the calling abi specific va_list type node.
    It returns  the FNDECL specific va_list type.  */
@@ -35372,6 +35463,9 @@ ix86_autovectorize_vector_sizes (void)
 
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P ix86_legitimate_address_p
+
+#undef TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P ix86_legitimate_constant_p
 
 #undef TARGET_FRAME_POINTER_REQUIRED
 #define TARGET_FRAME_POINTER_REQUIRED ix86_frame_pointer_required

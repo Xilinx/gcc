@@ -49,7 +49,7 @@ avr port		Denis Chertykov		chertykov@gmail.com
 avr port		Anatoly Sokolov		aesok@post.ru
 avr port		Eric Weddington		eric.weddington@atmel.com
 bfin port		Bernd Schmidt		bernds@codesourcery.com
-bfin port		Jie Zhang		jie@codesourcery.com
+bfin port		Jie Zhang		jzhang918@gmail.com
 cris port		Hans-Peter Nilsson	hp@axis.com
 fr30 port		Nick Clifton		nickc@redhat.com
 frv port		Nick Clifton		nickc@redhat.com
@@ -107,7 +107,6 @@ xtensa port		Sterling Augustine	augustine.sterling@gmail.com
 
 			OS Port Maintainers	(OS alphabetical order)
 
-darwin port		Dale Johannesen		dalej@apple.com
 darwin port		Mike Stump		mikestump@comcast.net
 darwin port		Eric Christopher	echristo@apple.com
 darwin port		Stan Shebs		stanshebs@earthlink.net
@@ -455,6 +454,7 @@ Vladimir Prus					vladimir@codesourcery.com
 Yao Qi						yao@codesourcery.com
 Jerry Quinn					jlquinn@optonline.net
 Ramana Radhakrishnan				ramana.radhakrishnan@arm.com
+Easwaran Raman					eraman@google.com
 Rolf Rasmussen					rolfwr@gcc.gnu.org
 Volker Reichelt					v.reichelt@netcologne.de
 Joern Rennecke					amylaar@spamcop.net

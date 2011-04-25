@@ -1294,7 +1294,8 @@ scan_one_insn (rtx insn)
       && (note = find_reg_note (insn, REG_EQUIV, NULL_RTX)) != NULL_RTX
       && ((MEM_P (XEXP (note, 0)))
 	  || (CONSTANT_P (XEXP (note, 0))
-	      && LEGITIMATE_CONSTANT_P (XEXP (note, 0))
+	      && targetm.legitimate_constant_p (GET_MODE (SET_DEST (set)),
+						XEXP (note, 0))
 	      && REG_N_SETS (REGNO (SET_DEST (set))) == 1)))
     {
       enum reg_class cl = GENERAL_REGS;
@@ -1975,19 +1976,15 @@ free_ira_costs (void)
 {
   int i;
 
-  if (init_cost != NULL)
-    free (init_cost);
+  free (init_cost);
   init_cost = NULL;
   for (i = 0; i < MAX_RECOG_OPERANDS; i++)
     {
-      if (op_costs[i] != NULL)
-	free (op_costs[i]);
-      if (this_op_costs[i] != NULL)
-	free (this_op_costs[i]);
+      free (op_costs[i]);
+      free (this_op_costs[i]);
       op_costs[i] = this_op_costs[i] = NULL;
     }
-  if (temp_costs != NULL)
-    free (temp_costs);
+  free (temp_costs);
   temp_costs = NULL;
 }
 

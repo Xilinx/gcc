@@ -569,11 +569,6 @@ finish_goto_stmt (tree destination)
 	  if (error_operand_p (destination))
 	    return NULL_TREE;
 	}
-      /* We don't inline calls to functions with computed gotos.
-	 Those functions are typically up to some funny business,
-	 and may be depending on the labels being at particular
-	 addresses, or some such.  */
-      DECL_UNINLINABLE (current_function_decl) = 1;
     }
 
   check_goto (destination);
@@ -2388,6 +2383,7 @@ finish_compound_literal (tree type, tree compound_literal,
      represent class temporaries with TARGET_EXPR so we elide copies.  */
   if ((!at_function_scope_p () || CP_TYPE_CONST_P (type))
       && TREE_CODE (type) == ARRAY_TYPE
+      && !TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type)
       && initializer_constant_valid_p (compound_literal, type))
     {
       tree decl = create_temporary_var (type);

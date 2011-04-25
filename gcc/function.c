@@ -211,8 +211,7 @@ free_after_compilation (struct function *f)
   prologue_insn_hash = NULL;
   epilogue_insn_hash = NULL;
 
-  if (crtl->emit.regno_pointer_align)
-    free (crtl->emit.regno_pointer_align);
+  free (crtl->emit.regno_pointer_align);
 
   memset (crtl, 0, sizeof (struct rtl_data));
   f->eh = NULL;
@@ -4377,6 +4376,13 @@ int
 get_next_funcdef_no (void)
 {
   return funcdef_no++;
+}
+
+/* Return value of funcdef.  */
+int
+get_last_funcdef_no (void)
+{
+  return funcdef_no;
 }
 
 /* Allocate a function structure for FNDECL and set its contents
