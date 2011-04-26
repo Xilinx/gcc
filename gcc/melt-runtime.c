@@ -259,9 +259,15 @@ static VEC (meltchar_p, heap)* parsedmeltfilevect;
     case MELTOBMAG_SPEC_MPFR
 
 /* Obstack used for reading names */
-static struct obstack bname_obstack;
+static struct obstack melt_bname_obstack;
 
-
+const char* melt_version_str (void)
+{
+#ifndef MELT_REVISION
+#error MELT_REVISION not defined at command line compilation
+#endif
+  return MELT_VERSION_STRING " " MELT_REVISION;
+}
 
 
 #if ENABLE_CHECKING
@@ -6307,7 +6313,7 @@ struct reading_st
 
 #define MELT_READ_TABULATION_FACTOR 8
 /* Obstack used for reading strings */
-static struct obstack bstring_obstack;
+static struct obstack melt_bstring_obstack;
 #define rdback() (rd->rcol--)
 #define rdnext() (rd->rcol++)
 #define rdcurc() rd->rcurlin[rd->rcol]
@@ -6569,7 +6575,7 @@ skipspace_getc (struct reading_st *rd, enum commenthandling_en comh)
 
 
 #define EXTRANAMECHARS "_+-*/<>=!?:%~&@$|"
-/* read a simple name on the bname_obstack */
+/* read a simple name on the melt_bname_obstack */
 static char *
 readsimplename (struct reading_st *rd)
 {
@@ -6577,11 +6583,11 @@ readsimplename (struct reading_st *rd)
   while (!rdeof () && (c = rdcurc ()) > 0 &&
 	 (ISALNUM (c) || strchr (EXTRANAMECHARS, c) != NULL))
     {
-      obstack_1grow (&bname_obstack, (char) c);
+      obstack_1grow (&melt_bname_obstack, (char) c);
       rdnext ();
     }
-  obstack_1grow (&bname_obstack, (char) 0);
-  return XOBFINISH (&bname_obstack, char *);
+  obstack_1grow (&melt_bname_obstack, (char) 0);
+  return XOBFINISH (&melt_bname_obstack, char *);
 }
 
 
@@ -6663,7 +6669,7 @@ readsimplelong (struct reading_st *rd)
 #undef NUMNAM
       if (r < 0)
 	READ_ERROR ("MELT: bad magic number name %s", nam);
-      obstack_free (&bname_obstack, nam);
+      obstack_free (&melt_bname_obstack, nam);
       return neg ? -r : r;
     }
   else
@@ -7148,7 +7154,7 @@ end:
   if (nam)
     {
       *nam = 0;
-      obstack_free (&bname_obstack, nam);
+      obstack_free (&melt_bname_obstack, nam);
     };
   curinfixr->infr_reading.rpfilnam = 0;
   MELT_EXITFRAME ();
@@ -7338,19 +7344,19 @@ readstring (struct reading_st *rd)
   MELT_ENTERFRAME (1, NULL);
 #define strv   meltfram__.mcfr_varptr[0]
 #define str_strv  ((struct meltstring_st*)(strv))
-  obstack_init (&bstring_obstack);
+  obstack_init (&melt_bstring_obstack);
   while ((c = rdcurc ()) != '"' && !rdeof ())
     {
       if (c != '\\')
 	{
-	  obstack_1grow (&bstring_obstack, (char) c);
+	  obstack_1grow (&melt_bstring_obstack, (char) c);
 	  if (c == '\n') 
 	    {
 	      /* It is suspicious when a double-quote is parsed as the
 		 last character of a line; issue a warning in that
 		 case.  This helps to catch missing, mismatched or
 		 extra double-quotes! */
-	      if (obstack_object_size (&bstring_obstack) <= 1)
+	      if (obstack_object_size (&melt_bstring_obstack) <= 1)
 		warning_at (rd->rsrcloc, 0, "suspicious MELT string starting at end of line");
 	      c = skipspace_getc (rd, COMMENT_NO);
 	      continue;
@@ -7435,7 +7441,7 @@ readstring (struct reading_st *rd)
 		    if (cc == '\n')
 		      cc = skipspace_getc (rd, COMMENT_NO);
 		    else
-		      obstack_1grow (&bstring_obstack, (char) cc);
+		      obstack_1grow (&melt_bstring_obstack, (char) cc);
 		    rdnext ();
 		  };
 		rdnext ();
@@ -7446,7 +7452,7 @@ readstring (struct reading_st *rd)
 		("MELT: illegal escape sequence %.10s in string -- got \\%c (hex %x)",
 		 &rdcurc () - 1, c, c);
 	    }
-	  obstack_1grow (&bstring_obstack, (char) c);
+	  obstack_1grow (&melt_bstring_obstack, (char) c);
 	}
     }
   if (c == '"')
@@ -7459,12 +7465,12 @@ readstring (struct reading_st *rd)
       isintl = true;
       rdnext ();
     }
-  obstack_1grow (&bstring_obstack, (char) 0);
-  cstr = XOBFINISH (&bstring_obstack, char *);
+  obstack_1grow (&melt_bstring_obstack, (char) 0);
+  cstr = XOBFINISH (&melt_bstring_obstack, char *);
   if (isintl)
     cstr = gettext (cstr);
   strv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), cstr);
-  obstack_free (&bstring_obstack, cstr);
+  obstack_free (&melt_bstring_obstack, cstr);
   MELT_EXITFRAME ();
   return (melt_ptr_t) strv;
 #undef strv
@@ -7680,7 +7686,7 @@ readhashescape (struct reading_st *rd)
 	    c = 0x1b;
 	  else
 	    READ_ERROR ("MELT: invalid char escape %s starting line %d", nam, lineno);
-	  obstack_free (&bname_obstack, nam);
+	  obstack_free (&melt_bname_obstack, nam);
 	char_escape:
 	  readv = meltgc_new_int ((meltobject_ptr_t) MELT_PREDEF (DISCR_CHARACTER_INTEGER), c);
 	}
@@ -7991,7 +7997,7 @@ end:
   if (nam)
     {
       *nam = 0;
-      obstack_free (&bname_obstack, nam);
+      obstack_free (&melt_bname_obstack, nam);
     };
   return (melt_ptr_t) readv;
 #undef readv
@@ -9148,8 +9154,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 	      || MELT_ALIGN == 4 * sizeof (void *));
   inited = 1;
   ggc_collect ();
-  obstack_init (&bstring_obstack);
-  obstack_init (&bname_obstack);
+  obstack_init (&melt_bstring_obstack);
+  obstack_init (&melt_bname_obstack);
   for (pc = randomseed; *pc; pc++)
     seed ^= (seed << 6) + (*pc);
   srand48 (seed);
@@ -10876,7 +10882,7 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
 	fputc ('\"', cfil);
 	for (pc = melt_gccversionstr; *pc; pc++)
 	  {
-	    if (*pc == ' ' || ISALNUM(*pc) || strchr("(){}[]<>@.,+-*/", *pc))
+	    if (*pc == ' ' || ISALNUM(*pc) || strchr("(){}[]<>@.,+-*/_", *pc))
 	      fputc (*pc, cfil);
 	    else
 	      fprintf (cfil, "\\%03o", (int) 0xff & pc[0]);

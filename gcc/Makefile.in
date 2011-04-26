@@ -2828,6 +2828,7 @@ melt-runtime.o:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
 	  -DMELT_MODULE_DIR=\"$(melt_module_dir)\" \
 	  -DMELT_MODULE_MAKE_COMMAND=\"$(MAKE)\" \
+	  -DMELT_REVISION=\"$(shell echo -n $(REVISION_c) | tr -s [:space:] _)\" \
 	  '-DMELT_MODULE_CFLAGS="$(melt_installed_cflags)"' \
 	  -DMELT_MODULE_MAKEFILE=\"$(melt_installed_module_makefile)\" \
 	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modules_list)\" \

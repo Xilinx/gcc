@@ -1,4 +1,7 @@
 
+2011-04-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (build_melt_dot_so): Define MELT_REVISION.
+
 2011-04-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* meltpluginapi.texi (gcctabopt,gccoptlist,gol,versionsubtitle):
 	Copied macros from gcc-common.texi.

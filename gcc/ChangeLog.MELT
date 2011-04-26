@@ -1,4 +1,18 @@
 
+2011-04-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): 0.7
+	(melt_version_str): New function.
+
+	* melt-runtime.c (bname_obstack): Remove variable, by renaming it
+	to
+	(melt_bname_obstack): New variable.
+	(bstring_obstack): Remove variable, by renaming it
+	to
+	(melt_bstring_obstack): New variable.
+	(melt_output_cfile_decl_impl_secondary_option): Don't escape _.
+
+	* Makefile.in (melt-runtime.o): Define MELT_REVISION.
+
 2011-04-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): 0.7rc5
 
