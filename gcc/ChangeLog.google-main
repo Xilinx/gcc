@@ -1,3 +1,9 @@
+2011-04-19  Guozhi Wei  <carrot@google.com>
+
+	* gcc/config/arm/arm.c (SHORTEST_FAR_JUMP_LENGTH): New constant.
+	(estimate_function_length): New function.
+	(thumb_far_jump_used_p): No far jump is needed in short function.
+
 2011-04-20  Easwaran Raman  <eraman@google.com>
 
 	* gcc/gcc.c (asm_options): Pass --save-temps to assembler.

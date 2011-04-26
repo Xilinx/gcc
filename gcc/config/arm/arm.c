@@ -592,7 +592,9 @@ static const struct default_options arm_option_optimization_table[] =
   arm_preferred_rename_class
 
 struct gcc_target targetm = TARGET_INITIALIZER;
-
+
+#define SHORTEST_FAR_JUMP_LENGTH 2040
+
 /* Obstack for minipool constant handling.  */
 static struct obstack minipool_obstack;
 static char *         minipool_startobj;
@@ -20298,6 +20300,17 @@ thumb_shiftable_const (unsigned HOST_WIDE_INT val)
   return 0;
 }
 
+/* Computes the maximum possible function length. */
+static int
+estimate_function_length (void)
+{
+  rtx insn;
+  int length = 0;
+  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+    length += get_attr_length(insn);
+  return length;
+}
+
 /* Returns nonzero if the current function contains,
    or might contain a far jump.  */
 static int
@@ -20315,6 +20328,16 @@ thumb_far_jump_used_p (void)
      register will be pushed onto the stack) we cannot go back on it.  */
   if (cfun->machine->far_jump_used)
     return 1;
+
+  /* In reload pass we haven't got the exact jump instruction length,
+     but we can get a reasonable estimation based on the maximum
+     possible function length. */
+  if (!reload_completed)
+    {
+      int function_length = estimate_function_length();
+      if (function_length < SHORTEST_FAR_JUMP_LENGTH)
+	return 0;
+    }
 
   /* If this function is not being called from the prologue/epilogue
      generation code then it must be being called from the
