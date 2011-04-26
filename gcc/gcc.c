@@ -784,7 +784,7 @@ static const char *asm_options =
 #if HAVE_GNU_AS
 /* If GNU AS is used, then convert -w (no warnings), -I, and -v
    to the assembler equivalents.  */
-"%{v} %{w:-W} %{I*} %{save-temps:--save-temps} "
+"%{v} %{w:-W} %{I*} %{save-temps*:--save-temps} "
 #endif
 "%a %Y %{c:%W{o*}%{!o*:-o %w%b%O}}%{!c:-o %d%w%u%O}";
 
