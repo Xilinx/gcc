@@ -53,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "tree-iterator.h"
 #include "pointer-set.h"
+#include "l-ipo.h"
 
 #ifdef XCOFF_DEBUGGING_INFO
 #include "xcoffout.h"		/* Needed for external data
@@ -1523,6 +1524,13 @@ notice_global_symbol (tree decl)
       || !MEM_P (DECL_RTL (decl)))
     return;
 
+  if (L_IPO_COMP_MODE
+      && ((TREE_CODE (decl) == FUNCTION_DECL
+           && cgraph_is_auxiliary (decl))
+          || (TREE_CODE (decl) == VAR_DECL
+              && varpool_is_auxiliary (varpool_node (decl)))))
+    return;
+
   /* We win when global object is found, but it is useful to know about weak
      symbol as well so we can produce nicer unique names.  */
   if (DECL_WEAK (decl) || DECL_ONE_ONLY (decl) || flag_shlib)
@@ -2167,6 +2175,13 @@ assemble_external (tree decl ATTRIBUTE_UNUSED)
      open.  If it's not, we should not be calling this function.  */
   gcc_assert (asm_out_file);
 
+  /* Processing pending items from auxiliary modules are not supported
+     which means platforms that requires ASM_OUTPUT_EXTERNAL may 
+     have issues.  (TODO : one way is to flush the pending items from
+     auxiliary modules at the end of parsing the module)  */
+  if (L_IPO_IS_AUXILIARY_MODULE)
+    return;
+
   if (!DECL_P (decl) || !DECL_EXTERNAL (decl) || !TREE_PUBLIC (decl))
     return;
 
@@ -2231,7 +2246,7 @@ mark_decl_referenced (tree decl)
 	 functions can be marked reachable, just use the external
 	 definition.  */
       struct cgraph_node *node = cgraph_node (decl);
-      if (!DECL_EXTERNAL (decl)
+      if (!(DECL_EXTERNAL (decl) || cgraph_is_aux_decl_external (node))
 	  && (!node->local.vtable_method || !cgraph_global_info_ready
 	      || !node->local.finalized))
 	cgraph_mark_needed_node (node);
@@ -5412,7 +5427,8 @@ find_decl_and_mark_needed (tree decl, tree target)
 
   if (fnode)
     {
-      cgraph_mark_needed_node (fnode);
+      if (!fnode->global.inlined_to)
+        cgraph_mark_needed_node (fnode);
       return fnode->decl;
     }
   else if (vnode)
@@ -5752,11 +5768,17 @@ finish_aliases_1 (void)
 	       && (! TREE_CODE (target_decl) == FUNCTION_DECL
 		   || ! DECL_VIRTUAL_P (target_decl))
 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
-	{
-	  error ("%q+D aliased to external symbol %qE",
-		 p->decl, p->target);	  
-	  p->emitted_diags |= ALIAS_DIAG_TO_EXTERN;
-	}
+        {
+          /* In lightweight IPO, find the merged decl and check that
+	     it is defined.  */
+          tree real_target_decl = cgraph_find_decl (p->target);
+          if (!real_target_decl || DECL_EXTERNAL (real_target_decl))
+	    {
+	      error ("%q+D aliased to external symbol %qE",
+		     p->decl, p->target);
+	      p->emitted_diags |= ALIAS_DIAG_TO_EXTERN;
+	    }
+        }
     }
 
   symbol_alias_set_destroy (defined);
@@ -5786,6 +5808,9 @@ assemble_alias (tree decl, tree target)
 {
   tree target_decl;
   bool is_weakref = false;
+
+  if (L_IPO_IS_AUXILIARY_MODULE)
+      return;
 
   if (lookup_attribute ("weakref", DECL_ATTRIBUTES (decl)))
     {

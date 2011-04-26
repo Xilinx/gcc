@@ -49,6 +49,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "target.h"
 #include "integrate.h"
+#include "langhooks.h"
+#include "l-ipo.h"
 
 #include "rtl.h"	/* FIXME: For asm_str_count.  */
 
@@ -1518,7 +1520,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
      basic_block_info automatically.  */
   copy_basic_block = create_basic_block (NULL, (void *) 0,
                                          (basic_block) prev->aux);
-  copy_basic_block->count = bb->count * count_scale / REG_BR_PROB_BASE;
+  copy_basic_block->count = (double)bb->count * count_scale / REG_BR_PROB_BASE;
 
   /* We are going to rebuild frequencies from scratch.  These values
      have just small importance to drive canonicalize_loop_headers.  */
@@ -1887,7 +1889,8 @@ copy_edges_for_bb (basic_block bb, gcov_type count_scale, basic_block ret_bb)
 	    && old_edge->dest->aux != EXIT_BLOCK_PTR)
 	  flags |= EDGE_FALLTHRU;
 	new_edge = make_edge (new_bb, (basic_block) old_edge->dest->aux, flags);
-	new_edge->count = old_edge->count * count_scale / REG_BR_PROB_BASE;
+	new_edge->count
+            = old_edge->count * (double)count_scale / REG_BR_PROB_BASE;
 	new_edge->probability = old_edge->probability;
       }
 
@@ -2053,7 +2056,7 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
   gcov_type count_scale;
 
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count)
-    count_scale = (REG_BR_PROB_BASE * count
+    count_scale = (REG_BR_PROB_BASE * (double)count
 		   / ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count);
   else
     count_scale = REG_BR_PROB_BASE;
@@ -2087,17 +2090,18 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
   cfun->returns_struct = src_cfun->returns_struct;
   cfun->returns_pcc_struct = src_cfun->returns_pcc_struct;
   cfun->after_tree_profile = src_cfun->after_tree_profile;
+  cfun->module_id = src_cfun->module_id;
 
   init_empty_tree_cfg ();
 
   profile_status_for_function (cfun) = profile_status_for_function (src_cfun);
   ENTRY_BLOCK_PTR->count =
-    (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count * count_scale /
-     REG_BR_PROB_BASE);
+    (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count * (double)count_scale /
+    REG_BR_PROB_BASE);
   ENTRY_BLOCK_PTR->frequency
     = ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency;
   EXIT_BLOCK_PTR->count =
-    (EXIT_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count * count_scale /
+    (EXIT_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count * (double)count_scale /
      REG_BR_PROB_BASE);
   EXIT_BLOCK_PTR->frequency =
     EXIT_BLOCK_PTR_FOR_FUNCTION (src_cfun)->frequency;
@@ -2191,7 +2195,7 @@ copy_cfg_body (copy_body_data * id, gcov_type count, int frequency_scale,
   gcov_type incoming_count = 0;
 
   if (ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count)
-    count_scale = (REG_BR_PROB_BASE * count
+    count_scale = (REG_BR_PROB_BASE * (double)count
 		   / ENTRY_BLOCK_PTR_FOR_FUNCTION (src_cfun)->count);
   else
     count_scale = REG_BR_PROB_BASE;
@@ -3169,8 +3173,13 @@ tree_inlinable_function_p (tree fn)
   tree always_inline;
 
   /* If we've already decided this function shouldn't be inlined,
-     there's no need to check again.  */
-  if (DECL_UNINLINABLE (fn))
+     there's no need to check again. But the cached bit from analysis
+     can be reset during decl merge in multi-module compilation (C FE only).
+     The problem is we can not really use a 2 state cached value --
+     can not tell the init state (unknown value) from a computed value.  */
+  if (DECL_UNINLINABLE (fn) 
+      && (!L_IPO_COMP_MODE
+          || lookup_attribute ("noinline", DECL_ATTRIBUTES (fn))))
     return false;
 
   /* We only warn for functions declared `inline' by the user.  */
@@ -4243,7 +4252,7 @@ optimize_inline_calls (tree fn)
 
       /* Double check that we inlined everything we are supposed to inline.  */
       for (e = id.dst_node->callees; e; e = e->next_callee)
-	gcc_assert (e->inline_failed);
+	gcc_assert (e->inline_failed || !e->call_stmt /*fake edge*/);
     }
 #endif
 
@@ -4337,7 +4346,24 @@ copy_tree_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
   else if (TREE_CODE_CLASS (code) == tcc_type)
     *walk_subtrees = 0;
   else if (TREE_CODE_CLASS (code) == tcc_declaration)
-    *walk_subtrees = 0;
+    {
+      *walk_subtrees = 0;
+      if (L_IPO_COMP_MODE
+          && (code == VAR_DECL)
+          && (TREE_STATIC (*tp) || DECL_EXTERNAL (*tp)))
+        {
+          tree resolved_decl = real_varpool_node (*tp)->decl;
+          if (resolved_decl != *tp)
+            {
+              *tp = resolved_decl;
+              if (gimple_in_ssa_p (cfun))
+                {
+                  get_var_ann (resolved_decl);
+                  add_referenced_var (resolved_decl);
+                }
+            }
+        }
+    }
   else if (TREE_CODE_CLASS (code) == tcc_constant)
     *walk_subtrees = 0;
   else

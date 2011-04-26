@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "bitmap.h"
 #include "gimple.h"
 #include "c-family/c-objc.h"
+#include "l-ipo.h"
 
 /* Possible cases of implicit bad conversions.  Used to select
    diagnostic messages in convert_for_assignment.  */
@@ -1335,6 +1336,34 @@ tagged_types_tu_compatible_p (const_tree t1, const_tree t2,
   /* C90 didn't have the requirement that the two tags be the same.  */
   if (flag_isoc99 && TYPE_NAME (t1) != TYPE_NAME (t2))
     return 0;
+
+  /* See comments for lhd_types_compatible_p in langhooks.c. The interface
+     should be designed so that it returns 1 only when it is sure. However
+     the following structural comparison is doing the other way. For instance,
+     it returns 1 (compatible) falsely for the following types defined in
+     different translation units:
+     struct A
+     {
+        int a1;
+        int a2;
+        int a3;
+     };
+     struct A'
+     {
+        int a1;
+        int a2;
+     }
+
+     In LIPO mode, name checking is done to avoid the false
+     positive. */
+
+  if (L_IPO_COMP_MODE)
+    {
+      if (equivalent_struct_types_for_tbaa (t1, t2) == 1)
+        return 1;
+      else
+        return 0;
+    }
 
   /* C90 didn't say what happened if one or both of the types were
      incomplete; we choose to follow C99 rules here, which is that they

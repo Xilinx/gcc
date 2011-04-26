@@ -258,7 +258,7 @@ Objective-C and Objective-C++ Dialects}.
 -Wparentheses  -Wpedantic-ms-format -Wno-pedantic-ms-format @gol
 -Wpointer-arith  -Wno-pointer-to-int-cast @gol
 -Wredundant-decls @gol
--Wreturn-type  -Wsequence-point  -Wshadow @gol
+-Wreturn-type  -Wripa-opt-mismatch  -Wsequence-point  -Wshadow @gol
 -Wsign-compare  -Wsign-conversion  -Wstack-protector @gol
 -Wstrict-aliasing -Wstrict-aliasing=n @gol
 -Wstrict-overflow -Wstrict-overflow=@var{n} @gol
@@ -380,7 +380,9 @@ Objective-C and Objective-C++ Dialects}.
 -freciprocal-math -fregmove -frename-registers -freorder-blocks @gol
 -freorder-blocks-and-partition -freorder-functions @gol
 -frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
--frounding-math -fsched2-use-superblocks -fsched-pressure @gol
+-fripa -fripa-disallow-asm-modules -fripa-disallow-opt-mismatch @gol
+-fripa-no-promote-always-inline-func -fripa-verbose -frounding-math @gol
+-fsched2-use-superblocks -fsched-pressure @gol
 -fsched-spec-load -fsched-spec-load-dangerous @gol
 -fsched-stalled-insns-dep[=@var{n}] -fsched-stalled-insns[=@var{n}] @gol
 -fsched-group-heuristic -fsched-critical-path-heuristic @gol
@@ -1364,8 +1366,8 @@ prefix.
 @opindex no-canonical-prefixes
 Never expand any symbolic links, resolve references to @samp{/../}
 or @samp{/./}, or make the path absolute when generating a relative
-prefix.  If neither @option{-canonical-prefixes} nor
-@option{-canonical-prefixes} is given, GCC tries to set an appropriate
+prefix. If neither @option{-canonical-prefixes} nor
+@option{-nocanonical-prefixes} is given, GCC tries to set an appropriate
 default by looking for a target-specific subdirectory alongside the
 directory containing the compiler driver.
 
@@ -2969,6 +2971,7 @@ Options} and @ref{Objective-C and Objective-C++ Dialect Options}.
 -Wpointer-sign  @gol
 -Wreorder   @gol
 -Wreturn-type  @gol
+-Wripa-opt-mismatch @gol
 -Wsequence-point  @gol
 -Wsign-compare @r{(only in C++)}  @gol
 -Wstrict-aliasing  @gol
@@ -3392,6 +3395,16 @@ expression in a function whose return-type is @code{void}.
 For C++, a function without return type always produces a diagnostic
 message, even when @option{-Wno-return-type} is specified.  The only
 exceptions are @samp{main} and functions defined in system headers.
+
+This warning is enabled by @option{-Wall}.
+
+@item -Wripa-opt-mismatch
+@opindex Wripa-opt-mismatch
+@opindex Wno-ripa-opt-mismatch
+When doing an FDO build with @option{-fprofile-use} and @option{-fripa},
+warn if importing an axuiliary module that was built with a different
+GCC command line during the profile-generate phase than the primary
+module.
 
 This warning is enabled by @option{-Wall}.
 
@@ -4493,6 +4506,12 @@ Suppress warnings from casts to pointer type of an integer of a
 different size. In C++, casting to a pointer type of smaller size is
 an error. @option{Wint-to-pointer-cast} is enabled by default.
 
+@item max-lipo-mem
+When importing auxiliary modules during profile-use, check current
+memory consumption after parsing each auxiliary module. If it exceeds
+this limit (specified in kb), don't import any more auxiliary modules.
+Specifying a value of 0 means don't enforce this limit. This parameter
+is only useful when using @option{-fprofile-use} and @option{-fripa}.
 
 @item -Wno-pointer-to-int-cast @r{(C and Objective-C only)}
 @opindex Wno-pointer-to-int-cast
@@ -7864,6 +7883,40 @@ code.
 
 If @var{path} is specified, GCC will look at the @var{path} to find
 the profile feedback data files. See @option{-fprofile-dir}.
+
+@item -fripa
+@opindex fripa
+Perform dynamic inter-procedural analysis. This is used in conjunction with
+the @option{-fprofile-generate} and @option{-fprofile-use} options.
+During the @option{-fprofile-generate} phase, this flag turns on some additional
+instrumentation code that enables dynamic call-graph analysis.
+During the @option{-fprofile-use} phase, this flag enables cross-module
+optimizations such as inlining.
+
+@item -fripa-disallow-asm-modules
+@opindex fripa-disallow-asm-modules
+During profile-gen, if this flag is enabled, and the module has asm statements,
+arrange so that a bit recording this information will be set in the profile
+feedback data file.
+During profile-use, if this flag is enabled, and the same bit in auxiliary
+module's profile feedback data is set, don't import this auxiliary module.
+If this is the primary module, don't export it.
+
+@item -fripa-disallow-opt-mismatch
+@opindex fripa-disallow-opt-mismatch
+Don't import an auxiliary module, if the GCC command line options used for this
+auxiliary module during the profile-generate stage were different from those used
+for the primary module. Note that any mismatches in warning-related options are
+ignored for this comparison.
+
+@item -fripa-no-promote-always-inline-func
+@opindex fripa-no-promote-always-inline-func
+Do not promote static functions with always inline attribute in LIPO compilation.
+
+@item -fripa-verbose
+@opindex fripa-verbose
+Enable printing of verbose information about dynamic inter-procedural optimizations.
+This is used in conjunction with the @option{-fripa}.
 @end table
 
 The following options control compiler behavior regarding floating
@@ -9954,6 +10007,12 @@ given to GCC, substitutes @code{Y}; else substitutes @code{D}.  There can
 be as many clauses as you need.  This may be combined with @code{.},
 @code{,}, @code{!}, @code{|}, and @code{*} as needed.
 
+@item max-lipo-mem
+When importing auxiliary modules during profile-use, check current
+memory consumption after parsing each auxiliary module. If it exceeds
+this limit (specified in kb), don't import any more auxiliary modules.
+Specifying a value of 0 means don't enforce this limit. This parameter
+is only useful when using @option{-fprofile-use} and @option{-fripa}.
 
 @end table
 

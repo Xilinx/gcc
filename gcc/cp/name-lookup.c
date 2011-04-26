@@ -563,6 +563,10 @@ add_decl_to_level (tree decl, cxx_scope *b)
 		&& (!TREE_PUBLIC (decl) || DECL_DECLARED_INLINE_P (decl))))
 	  VEC_safe_push (tree, gc, b->static_decls, decl);
     }
+
+  /* The following call is needed for LIPO mode. In this mode, global
+     scope declarations are tracked on a per-module basis.  */
+  add_decl_to_current_module_scope (decl, b);
 }
 
 /* Record a decl-node X as belonging to the current lexical scope.

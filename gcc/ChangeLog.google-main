@@ -1,3 +1,157 @@
+2011-04-25  David Li  <davidxl@google.com>
+
+	* cgraphbuild.c (rebuild_cgraph_edges): Create edges based
+	using resolved nodes in LIPO mode after ipa_tree_profiling.
+	* dyn-ipa.c:  New file.
+	* dbgcnt.def: New debug counters.
+	* c-family/c-opts.c (c_common_post_options): New option.
+	(c_common_parse_file): LIPO mode driver change.
+	(push_command_line_include): New function.
+	* cgraph.c (cgraph_mark_reachable_node): Handle aux module nodes.
+	(cgraph_clone_node): New field initialization.
+	(cgraph_create_virtual_clone): New field initialization.
+	* value-prof.c (dump_histogram_value): New hist kind.
+	(check_counter): New function.
+	(gimple_value_profile_transformations): New ic kind.
+	(gimple_ic_transform): Changed interface.
+	(gimple_indirect_call_to_profile): New vpt kind.
+	(gimple_find_values_to_profile): New vpt kind.
+	* cgraphunit.c (cgraph_finalize_function): Handle LIPO mode.
+	(verify_edge_count_and_frequency): Ditto.
+	(verify_cgraph_node): Ditto.
+	(cgraph_finalize_compilation_unit): Ditto.
+	(cgraph_mark_functions_to_output): Ditto.
+	(cgraph_expand_function): Ditto.
+	(cgraph_output_in_order): Ditto.
+	(cgraph_optimize): Ditto.
+	(cgraph_copy_node_for_versioning): Ditto.
+	(cgraph_materialize_clone): Ditto.
+	(cgraph_redirect_edge_call_stmt_to_callee): Ditto.
+	* cp/decl.c (walk_namespaces): Ditto.
+	(duplicate_decls): Ditto.
+	(make_rtl_for_nonlocal_decl): Ditto.
+	* cp/rtti.c (get_tinfo_decl): Ditto.
+	(create_pseudo_type_info): Ditto.
+	(create_tinfo_types): Ditto.
+	* cp/cp-lang.c (cp_classify_record): Ditto.
+	* cp/pt.c (instantiate_decl): Ditto.
+	* cp/semantics.c (emit_associated_thunks): Ditto.
+	* cp/decl2.c (start_static_storage_duration_function): Ditto.
+	(prune_vars_needing_no_initialization):  Ditto.
+	(cxx_callgraph_analyze_expr): Ditto.
+	(no_linkage_error): Ditto.
+	(collect_all_refs): Ditto.
+	(cp_write_global_declarations): Ditto.
+	* cp/parser.c (pragma_lex): Ditto.
+	* cp/cp-objcp-common.c (cp_function_decl_explicit_p): Ditto.
+	* cp/mangle.c (mangle_conv_op_name_for_type): Ditto.
+	* cp/name-lookup.c (add_decl_to_level): Ditto.
+	* gcov-io.c (gcov_read_summary): Ditto.
+	* tree-ssa-alias.c (same_type_for_tbaa): Ditto.
+	(refs_may_alias_p_1): Ditto.
+	(walk_aliased_vdefs): Ditto.
+	* ipa-inline.c (cgraph_mark_inline_edge): Ditto.
+	(cgraph_recursive_inlining_p): Ditto.
+	(cgraph_edge_badness): Ditto.
+	(update_caller_keys): Ditto.
+	(cgraph_decide_recursive_inlining): Ditto.
+	(cgraph_decide_inlining_of_small_function): Ditto.
+	(cgraph_decide_inlining): Ditto.
+	(cgraph_decide_inlining_incrementally): Ditto.
+	(estimate_function_body_sizes): Ditto.
+	* dwarf2out.c (dwarf2out_do_cfi_startproc): Ditto.
+	(dwarf2out_begin_prologue): Ditto.
+	(dwarf2out_end_epilogue): Ditto.
+	(dw_loc_list): Ditto.
+	(gen_subprogram_die): Ditto.
+	(dwarf2out_source_line): Ditto.
+	* c-decl.c (bind): Ditto.
+	(pop_scope): Ditto. Ditto.
+	(push_file_scope): Ditto.
+	(pop_file_scope): Ditto.
+	(finish_decl): Ditto.
+	(c_write_global_declarations): Ditto.
+	* langhooks.c (lhd_do_nothing_f): Ditto.
+	(lhd_do_nothing_t_t_return_null_tree): Ditto.
+	(lhd_return_null_tree_v): Ditto.
+	(lhd_builtin_function): Ditto.
+	* function.c (pop_cfun): Ditto.
+	(allocate_struct_function): Ditto.
+	* profile.c (instrument_values): Ditto.
+	(is_edge_inconsistent): Ditto.
+	* ipa.c (process_references): Ditto.
+	(cgraph_remove_unreachable_nodes): Ditto.
+	(function_and_variable_visibility):
+	* c-typeck.c (tagged_types_tu_compatible_p): Ditto.
+	* gimplify.c (gimplify_addr_expr): Ditto.
+	* except.c (sjlj_emit_function_enter): Ditto.
+	(output_one_function_exception_table): Ditto.
+	* coverage.c (get_gcov_type): Ditto.
+	(htab_counts_entry_del): Ditto.
+	(read_counts_file): Ditto.
+	(get_coverage_counts): Ditto.
+	(coverage_checksum_string): Ditto.
+	(coverage_begin_output): Ditto.
+	(coverage_end_function): Ditto.
+	(build_fn_info_type): Ditto.
+	(build_fn_info_value): Ditto.
+	(build_ctr_info_value): Ditto.
+	(build_gcov_info): Ditto.
+	(create_coverage): Ditto.
+	(coverage_finish): Ditto.
+	* tree-sra.c (convert_callers): Ditto.
+	(modify_function): Ditto.
+	(ipa_early_sra): Ditto.
+	* varasm.c (notice_global_symbol): Ditto.
+	(assemble_external): Ditto.
+	(mark_decl_referenced): Ditto.
+	(find_decl_and_mark_needed): Ditto.
+	(finish_aliases_1): Ditto.
+	(assemble_alias): Ditto.
+	* tree-ssa.c (useless_type_conversion_p): Ditto.
+	* tree-inline.c (copy_bb): Ditto.
+	(copy_edges_for_bb): Ditto.
+	(initialize_cfun): Ditto.
+	(copy_cfg_body): Ditto.
+	(tree_inlinable_function_p): Ditto.
+	(optimize_inline_calls): Ditto.
+	(copy_tree_r): Ditto.
+	* tree-profile.c (init_ic_make_global_vars): Ditto.
+	(gimple_init_edge_profiler): Ditto.
+	(gimple_gen_ic_profiler): Ditto.
+	(gimple_gen_ic_func_profiler): Ditto.
+	(tree_profiling): Ditto.
+	* opts-global.c (lang_handle_option): Ditto.
+	(add_input_filename): Ditto.
+	(read_cmdline_options): Ditto.
+	* l-ipo.c: Ditto.
+	* libgcov.c (gcov_version): Ditto.
+	(gcov_exit): Ditto.
+	(__gcov_init): Ditto.
+	(__gcov_flush): Ditto.
+	(__gcov_merge_ior): Ditto.
+	(__gcov_one_value_profiler_body): Ditto.
+	(__gcov_indirect_call_profiler): Ditto.
+	* l-ipo.h: Ditto.
+	* tree-cfg.c: (verify_types_in_gimple_reference): Ditto.
+	(verify_gimple_call): Ditto.
+	(verify_gimple_assign_single): Ditto.
+	(verify_gimple_return): Ditto.
+	(gimple_verify_flow_info): Ditto.
+	* passes.c: (rest_of_decl_compilation): Ditto.
+	(init_optimization_passes): Ditto.
+	(pass_init_dump_file): Ditto.
+	* varpool.c (varpool_node): Ditto.
+	(debug_varpool): Ditto.
+	(varpool_node_for_asm): Ditto.
+	(varpool_enqueue_needed_node): Ditto.
+	* stmt.c (expand_asm_operands): Ditto.
+	* gcov-dump.c (main): Ditto.
+	(print_usage): Ditto.
+	(print_prefix): Ditto.
+	(dump_file): Ditto.
+	(tag_summary): Ditto.
+
 2011-04-19  Guozhi Wei  <carrot@google.com>
 
 	* gcc/config/arm/arm.c (SHORTEST_FAR_JUMP_LENGTH): New constant.

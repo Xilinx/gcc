@@ -814,6 +814,58 @@ DEFPARAM (PARAM_LOOP_INVARIANT_MAX_BBS_IN_LOOP,
 	  "Max basic blocks number in loop for loop invariant motion",
 	  10000, 0, 0)
 
+/* Promote indirect call to conditional direct call only
+   when the percentage of the target count over the total
+   indirect call count is no smaller than the threshold.  */
+DEFPARAM (PARAM_ICALL_PROMOTE_PERCENT_THRESHOLD,
+	  "icall-promote-target-percent-threshold",
+	  "percentage threshold for direct call promotion"
+          " of a callee target",
+	  33, 0, 100)
+
+DEFPARAM (PARAM_ICALL_PROMOTE_COUNT_THRESHOLD,
+	  "icall-promote-target_count-threshold",
+	  "call count threshold for direct call promotion"
+          " of a callee target",
+	  1, 0, 0)
+
+/* 0: do not always inline icall target:
+   other value: always inline icall target when call count
+   exceeds this value.
+*/
+DEFPARAM (PARAM_ALWAYS_INLINE_ICALL_TARGET,
+	  "always-inline-icall-target",
+	  "force inline indirect call target when promoted",
+          0, 0, 0)
+
+/* Force the compiler to be in LIPO mode even there is no
+ profile data available. -fripa is also needed. */
+DEFPARAM (PARAM_FORCE_LIPO_MODE, 
+	  "force-lipo",
+	  "force LIPO compilation mode",
+          0, 0, 1)
+
+/* Limit max module group size in LIPO mode.  When the value
+ is set to 0 (which is the default), there is no limit.  */
+DEFPARAM (PARAM_MAX_LIPO_GROUP,
+	  "max-lipo-group",
+	  "maximum module group size.",
+          0, 0, 10000)
+
+/* In LIPO mode, stop processing any further auxiliary modules
+   if current memory consumption exceeds this limit (in kb).  */
+DEFPARAM (PARAM_MAX_LIPO_MEMORY,
+	  "max-lipo-mem",
+	  "don't import aux files if memory consumption exceeds this value",
+	  2400000, 0, 0)
+
+/* Used for debugging purpose. Tell the compiler to find
+   the gcda file in the current directory.  */
+DEFPARAM (PARAM_GCOV_DEBUG,
+	  "gcov-debug",
+	  "Looking for gcda file in current dir.",
+	  1, 0, 1)
+
 /* Avoid SLP vectorization of large basic blocks.  */
 DEFPARAM (PARAM_SLP_MAX_INSNS_IN_BB,
           "slp-max-insns-in-bb",

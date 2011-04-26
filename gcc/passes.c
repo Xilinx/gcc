@@ -73,6 +73,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "predict.h"
 #include "lto-streamer.h"
 #include "plugin.h"
+#include "l-ipo.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
 #include "dwarf2out.h"
@@ -194,6 +195,13 @@ rest_of_decl_compilation (tree decl,
 				     top_level, at_end);
 	}
 #endif
+      if (L_IPO_COMP_MODE)
+        {
+          /* Create the node early during parsing so
+             that module id can be captured.  */
+          if (TREE_CODE (decl) == VAR_DECL)
+            varpool_node (decl);
+        }
 
       timevar_pop (TV_VARCONST);
     }
@@ -812,6 +820,7 @@ init_optimization_passes (void)
   /* These passes are run after IPA passes on every function that is being
      output to the assembler file.  */
   p = &all_passes;
+  NEXT_PASS (pass_direct_call_profile);
   NEXT_PASS (pass_lower_eh_dispatch);
   NEXT_PASS (pass_all_optimizations);
     {
@@ -1349,7 +1358,12 @@ pass_init_dump_file (struct opt_pass *pass)
 	  dname = lang_hooks.decl_printable_name (current_function_decl, 2);
 	  aname = (IDENTIFIER_POINTER
 		   (DECL_ASSEMBLER_NAME (current_function_decl)));
-	  fprintf (dump_file, "\n;; Function %s (%s)%s\n\n", dname, aname,
+	  if (L_IPO_COMP_MODE)
+	    fprintf (dump_file, "\n;; Function %s (%s)[%d:%d]", dname, aname,
+		     FUNC_DECL_MODULE_ID (cfun), FUNC_DECL_FUNC_ID (cfun));
+	  else
+	    fprintf (dump_file, "\n;; Function %s (%s)", dname, aname);
+	  fprintf (dump_file, "%s\n\n",
 	     node->frequency == NODE_FREQUENCY_HOT
 	     ? " (hot)"
 	     : node->frequency == NODE_FREQUENCY_UNLIKELY_EXECUTED

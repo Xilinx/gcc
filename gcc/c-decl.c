@@ -58,6 +58,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "langhooks-def.h"
 #include "pointer-set.h"
+#include "l-ipo.h"
 #include "plugin.h"
 #include "c-family/c-ada-spec.h"
 #include "tree-threadsafe-analyze.h"
@@ -536,6 +537,26 @@ static tree grokdeclarator (const struct c_declarator *,
 			    bool *, enum deprecated_states);
 static tree grokparms (struct c_arg_info *, bool);
 static void layout_array_type (tree);
+static void pop_ext_scope (void);
+
+/* LIPO support */
+/* The list of block nodes. A member node is  created
+   when an external scope is popped.  */
+static GTY (()) VEC(tree, gc) *ext_blocks = NULL;
+static inline void
+apply_for_each_ext_block (void (*func) (tree))
+{
+  if (L_IPO_COMP_MODE)
+    {
+      size_t i;
+      tree eb;
+
+      for (i = 0;
+           VEC_iterate (tree, ext_blocks, i, eb);
+           ++i)
+        func (BLOCK_VARS (eb));
+    }
+}
 
 /* T is a statement.  Add it to the statement-tree.  This is the
    C/ObjC version--C++ has a slightly different version of this
@@ -666,6 +687,8 @@ bind (tree name, tree decl, struct c_scope *scope, bool invisible,
 
   b->shadowed = *here;
   *here = b;
+
+  add_decl_to_current_module_scope (decl, scope);
 }
 
 /* Clear the binding structure B, stick it on the binding_freelist,
@@ -1198,8 +1221,18 @@ pop_scope (void)
 	     binding in the home scope.  */
 	  if (!b->nested)
 	    {
-	      DECL_CHAIN (p) = BLOCK_VARS (block);
-	      BLOCK_VARS (block) = p;
+              /* In LIPO mode compilation, ext_scope is popped out
+                 at end of each module to block name lookup across
+                 modules. The ext_scope is used to keep the list of
+                 global variables in that module scope. Other decls
+                 are filtered out.  */
+              if (!L_IPO_COMP_MODE
+                  || scope != external_scope
+                  || TREE_CODE (p) == VAR_DECL)
+                {
+                  DECL_CHAIN (p) = BLOCK_VARS (block);
+                  BLOCK_VARS (block) = p;
+                }
 	    }
 	  else if (VAR_OR_FUNCTION_DECL_P (p))
 	    {
@@ -1300,6 +1333,11 @@ push_file_scope (void)
   push_scope ();
   file_scope = current_scope;
 
+  /* LIPO support -- do this before file scope bindings
+     are created for visible_builtins -- only need to remember
+     external scope bindings.  */
+  push_module_scope ();
+
   start_fname_decls ();
 
   for (decl = visible_builtins; decl; decl = DECL_CHAIN (decl))
@@ -1334,7 +1372,18 @@ pop_file_scope (void)
   pop_scope ();
   file_scope = 0;
 
-  maybe_apply_pending_pragma_weaks ();
+  if (!L_IPO_COMP_MODE)
+    maybe_apply_pending_pragma_weaks ();
+  else
+    {
+      pop_ext_scope ();
+      gcc_assert (current_scope == 0 && external_scope == 0);
+      push_scope ();
+      external_scope = current_scope;
+      /* Prepare for parsing for the next module -- including
+         builtin re-binding.  */
+      pop_module_scope ();
+    }
 }
 
 /* Adjust the bindings for the start of a statement expression.  */
@@ -4376,10 +4425,23 @@ finish_decl (tree decl, location_t init_loc, tree init,
 	       when a tentative file-scope definition is seen.
 	       But at end of compilation, do output code for them.  */
 	    DECL_DEFER_OUTPUT (decl) = 1;
+
+          /* In LIPO mode, create  varpool_node early
+             enough so that module id of the current source file being
+             parsed is captured.  */
+          if (flag_dyn_ipa && TREE_CODE (decl) == VAR_DECL)
+            varpool_node (decl);
+
 	  rest_of_decl_compilation (decl, true, 0);
 	}
       else
 	{
+          /* LIPO: capture module id.  */
+          if (flag_dyn_ipa
+              && TREE_CODE (decl) == VAR_DECL
+              && TREE_STATIC (decl))
+            varpool_node (decl);
+
 	  /* In conjunction with an ASMSPEC, the `register'
 	     keyword indicates that we should place the variable
 	     in a particular register.  */
@@ -9835,6 +9897,8 @@ c_write_global_declarations (void)
   if (pch_file)
     return;
 
+  at_eof = 1;
+
   /* Do the Objective-C stuff.  This is where all the Objective-C
      module stuff gets generated (symtab, class/protocol/selector
      lists etc).  */
@@ -9874,7 +9938,12 @@ c_write_global_declarations (void)
      through wrapup_global_declarations and check_global_declarations.  */
   FOR_EACH_VEC_ELT (tree, all_translation_units, i, t)
     c_write_global_declarations_1 (BLOCK_VARS (DECL_INITIAL (t)));
-  c_write_global_declarations_1 (BLOCK_VARS (ext_block));
+  if (ext_block)
+    c_write_global_declarations_1 (BLOCK_VARS (ext_block));
+  apply_for_each_ext_block (c_write_global_declarations_1);
+
+  if (L_IPO_COMP_MODE)
+    maybe_apply_pending_pragma_weaks ();
 
   /* We're done parsing; proceed to optimize and emit assembly.
      FIXME: shouldn't be the front end's responsibility to call this.  */
@@ -9887,11 +9956,244 @@ c_write_global_declarations (void)
       timevar_push (TV_SYMOUT);
       FOR_EACH_VEC_ELT (tree, all_translation_units, i, t)
 	c_write_global_declarations_2 (BLOCK_VARS (DECL_INITIAL (t)));
-      c_write_global_declarations_2 (BLOCK_VARS (ext_block));
+      if (ext_block)
+        c_write_global_declarations_2 (BLOCK_VARS (ext_block));
+      apply_for_each_ext_block (c_write_global_declarations_2);
       timevar_pop (TV_SYMOUT);
     }
 
   ext_block = NULL;
+}
+
+/* LIPO support */
+
+typedef struct GTY (()) sb
+{
+  tree decl;
+  tree id;
+  tree decl_copy_pre; /* copy at the start of file parsing.  */
+  tree decl_copy_post; /* copy at the end of module_scope.  */
+  int invisible;
+} c_saved_builtin;
+
+DEF_VEC_O(c_saved_builtin);
+DEF_VEC_ALLOC_O(c_saved_builtin,gc);
+
+static GTY (()) VEC(c_saved_builtin, gc) *saved_builtins = NULL;
+
+/* Return the needed size of lang_decl structure for tree T.  */
+
+int
+c_get_lang_decl_size (tree t)
+{
+  if (!DECL_LANG_SPECIFIC (t))
+    return 0;
+  return sizeof (struct lang_decl);
+}
+
+/* Return true if S is external or file scope.  */
+
+bool
+c_is_global_scope (tree decl ATTRIBUTE_UNUSED, void *s)
+{
+  struct c_scope *scope = (struct c_scope *)s;
+
+  if (scope == external_scope || scope == file_scope)
+    return true;
+
+  return false;
+}
+
+/* Add DECL to the list of builtins.  */
+
+void
+c_add_built_in_decl (tree decl)
+{
+  c_saved_builtin *sb;
+  struct c_binding *b = NULL;
+
+  if (!flag_dyn_ipa)
+    return;
+
+  if (at_eof)
+    return;
+
+  if (parser_parsing_start)
+    return;
+
+  sb = VEC_safe_push (c_saved_builtin, gc, saved_builtins, NULL);
+  sb->decl = decl;
+  sb->decl_copy_pre = NULL;
+  sb->decl_copy_post = NULL;
+  sb->id = get_type_or_decl_name (decl);
+
+  switch (TREE_CODE (decl))
+    {
+    case TYPE_DECL:
+    case FUNCTION_DECL:
+    case CONST_DECL:
+      b = I_SYMBOL_BINDING (sb->id);
+      break;
+    case ENUMERAL_TYPE:
+    case UNION_TYPE:
+    case RECORD_TYPE:
+      b = I_TAG_BINDING (sb->id);
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  gcc_assert (b && b->decl == decl
+              && b->id == sb->id && b->depth == 0);
+  sb->invisible = b->invisible;
+}
+
+/* Pop the external scope at the end of parsing of a file.  */
+
+static void
+pop_ext_scope (void)
+{
+  tree ext_b;
+  if (!L_IPO_COMP_MODE)
+    return;
+  ext_b = pop_scope ();
+  VEC_safe_push (tree, gc, ext_blocks, ext_b);
+  gcc_assert (!current_scope);
+  external_scope = 0;
+
+  /* Now remove non var_decls from BLOCK_VARS --
+     this is needed to avoid tree-chain contamination
+     from other modules due to builtin (shared) decls.  */
+  {
+    tree *p = &BLOCK_VARS (ext_b);
+    tree decl = BLOCK_VARS (ext_b);
+    for (; decl; decl = TREE_CHAIN (decl))
+      {
+        if (TREE_CODE (decl) != VAR_DECL)
+          {
+            gcc_assert (0);
+            *p = TREE_CHAIN (decl);
+          }
+        else
+          p = &TREE_CHAIN (decl);
+      }
+  }
+}
+
+/* Save a copy of SB->decl before file parsing start.  */
+
+static void
+c_save_built_in_decl_pre_parsing_1 (c_saved_builtin *sb)
+{
+  tree decl = sb->decl;
+
+  sb->decl_copy_pre = lipo_save_decl (decl);
+  sb->decl_copy_post = NULL;
+  return;
+}
+
+/* Make copies of builtin decls before file parsing.  */
+
+void
+c_save_built_in_decl_pre_parsing (void)
+{
+  size_t i;
+  c_saved_builtin *bi;
+
+  for (i = 0;
+       VEC_iterate (c_saved_builtin, saved_builtins, i, bi);
+       ++i)
+    c_save_built_in_decl_pre_parsing_1 (bi);
+}
+
+/* Restore builtins to their values before file parsing (
+   the initial default value).  */
+
+void
+c_restore_built_in_decl_pre_parsing (void)
+{
+  size_t i;
+  c_saved_builtin *bi;
+
+  /* Now re-bind the builtins in the external scope.  */
+  gcc_assert (current_scope && current_scope == external_scope);
+  for (i = 0;
+       VEC_iterate (c_saved_builtin, saved_builtins, i, bi);
+      ++i)
+    {
+      tree id;
+      tree decl = bi->decl;
+      id = bi->id;
+
+      lipo_restore_decl (decl, bi->decl_copy_pre);
+      if (id)
+        bind (id, decl, external_scope, 
+              bi->invisible, false /*nested*/,
+              DECL_SOURCE_LOCATION (decl));
+    }
+}
+
+/* Save values of builtins after parsing of a file.  */
+
+void
+c_save_built_in_decl_post_parsing (void)
+{
+  size_t i;
+  c_saved_builtin *bi;
+
+  for (i = 0;
+       VEC_iterate (c_saved_builtin, saved_builtins, i, bi);
+       ++i)
+    {
+      /* Skip builtin decls in the predefined state.
+         The static flag for defined builtins are not set, so
+         do not check it.  */
+      if (DECL_ARTIFICIAL (bi->decl)
+          || TREE_CODE (bi->decl) != FUNCTION_DECL
+          || !DECL_STRUCT_FUNCTION (bi->decl))
+        continue;
+      /* Remember the defining module.  */
+      cgraph_link_node (cgraph_node (bi->decl));
+      if (!bi->decl_copy_post)
+        bi->decl_copy_post = lipo_save_decl (bi->decl);
+    }
+}
+
+/* Restore builtins to their values (non-default)
+   after parsing finishes.  */
+
+void
+c_restore_built_in_decl_post_parsing (void)
+{
+  c_saved_builtin *bi;
+  unsigned i;
+  for (i = 0;
+       VEC_iterate (c_saved_builtin, saved_builtins, i, bi);
+       ++i)
+    {
+      tree decl = bi->decl;
+      /* Now restore the decl's state  */
+      if (bi->decl_copy_post)
+        lipo_restore_decl (decl, bi->decl_copy_post);
+    }
+}
+
+/* Return true if type T is compiler generated.  */
+
+bool
+c_is_compiler_generated_type (tree t ATTRIBUTE_UNUSED)
+{
+  return false;
+}
+
+/* Return 1 if lang specific attribute of T1 and T2 are
+   equivalent.  */
+
+int
+c_cmp_lang_type (tree t1 ATTRIBUTE_UNUSED,
+                 tree t2 ATTRIBUTE_UNUSED)
+{
+  return 1;
 }
 
 /* Register reserved keyword WORD as qualifier for address space AS.  */

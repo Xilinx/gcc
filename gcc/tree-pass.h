@@ -357,6 +357,7 @@ extern struct gimple_opt_pass pass_lower_eh;
 extern struct gimple_opt_pass pass_lower_eh_dispatch;
 extern struct gimple_opt_pass pass_lower_resx;
 extern struct gimple_opt_pass pass_build_cfg;
+extern struct gimple_opt_pass pass_direct_call_profile;
 extern struct gimple_opt_pass pass_early_tree_profile;
 extern struct gimple_opt_pass pass_referenced_vars;
 extern struct gimple_opt_pass pass_cleanup_eh;

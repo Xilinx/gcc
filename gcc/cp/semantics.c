@@ -3415,9 +3415,20 @@ emit_associated_thunks (tree fn)
      enabling you to output all the thunks with the function itself.  */
   if (DECL_VIRTUAL_P (fn)
       /* Do not emit thunks for extern template instantiations.  */
-      && ! DECL_REALLY_EXTERN (fn))
+      && ! DECL_REALLY_EXTERN (fn)
+      && ! cgraph_is_auxiliary (fn))
     {
       tree thunk;
+
+      if (L_IPO_COMP_MODE)
+        {
+          /* In LIPO mode, multiple copies of defintions for the same function
+             may exist, but assembler hash table keeps only one copy which might
+             have been deleted at this point.  */
+          struct cgraph_node *n = cgraph_node (fn);
+          cgraph_add_assembler_hash_node (n);
+          cgraph_link_node (n);
+        }
 
       for (thunk = DECL_THUNKS (fn); thunk; thunk = DECL_CHAIN (thunk))
 	{

@@ -122,7 +122,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-flow.h"
 #include "rtl.h"
 #include "ipa-prop.h"
+#include "basic-block.h"
+#include "toplev.h"
+#include "dbgcnt.h"
 #include "except.h"
+#include "l-ipo.h"
 
 #define MAX_TIME 1000000000
 
@@ -304,6 +308,10 @@ cgraph_mark_inline_edge (struct cgraph_edge *e, bool update_original,
   struct cgraph_node *to = NULL, *what;
   struct cgraph_edge *curr = e;
   int freq;
+
+  /* Skip fake edge.  */
+  if (L_IPO_COMP_MODE && !e->call_stmt)
+    return false;
 
   /* Don't inline inlined edges.  */
   gcc_assert (e->inline_failed);
@@ -509,6 +517,48 @@ cgraph_recursive_inlining_p (struct cgraph_node *to,
   return recursive;
 }
 
+/* Return true if FUNCDECL is a function with fixed
+   argument list.  */
+
+static bool
+fixed_arg_function_p (tree fndecl)
+{
+  tree fntype = TREE_TYPE (fndecl);
+  return (TYPE_ARG_TYPES (fntype) == 0
+          || (TREE_VALUE (tree_last (TYPE_ARG_TYPES (fntype)))
+              == void_type_node));
+}
+
+/* For profile collection with flag_dyn_ipa (LIPO), we always
+   want to inline comdat functions for the following reasons:
+   1) Functions in comdat may be actually defined in a different
+   module (depending on how linker picks). This results in a edge
+   from one module to another module in the dynamic callgraph.
+   The edge is false and result in unnecessary module grouping.
+   2) The profile counters in comdat functions are not 'comdated'
+   -- which means each copy of the same comdat function has its
+   own set of counters. With inlining, we are actually splitting
+   the counters and make the profile information 'context sensitive',
+   which is a good thing.
+   3) During profile-use pass of LIPO (flag_dyn_ipa == 1),
+   the pre-tree_profile inline decisions have to be the same as the
+   profile-gen pass (otherwise coverage mismatch will occur). Due to
+   this reason, it is better for each module to 'use' the comdat copy
+   of its own. The only way to get profile data for the copy is to
+   inline the copy in profile-gen phase.
+   TODO: For indirectly called comdat functions, the above issues
+   still exist. */
+
+static bool
+better_inline_comdat_function_p (struct cgraph_node *node)
+{
+  return (profile_arc_flag && flag_dyn_ipa
+          && DECL_COMDAT (node->decl)
+          && node->global.size <= PARAM_VALUE (PARAM_MAX_INLINE_INSNS_SINGLE)
+          && fixed_arg_function_p (node->decl));
+}
+
+
 /* A cost model driving the inlining heuristics in a way so the edges with
    smallest badness are inlined first.  After each inlining is performed
    the costs of all caller edges of nodes affected are recomputed so the
@@ -637,7 +687,12 @@ cgraph_edge_badness (struct cgraph_edge *edge, bool dump)
   if (cgraph_recursive_inlining_p (edge->caller, edge->callee, NULL))
     return badness + 1;
   else
-    return badness;
+    {
+      if (better_inline_comdat_function_p (edge->callee))
+        return INT_MIN  + 1;
+      else
+        return badness;
+    }
 }
 
 /* Recompute badness of EDGE and update its key in HEAP if needed.  */
@@ -688,7 +743,8 @@ update_caller_keys (fibheap_t heap, struct cgraph_node *node,
   if (!edge)
     return;
   /* Prune out edges we won't inline into anymore.  */
-  if (!cgraph_default_inline_p (node, &failed_reason))
+  if (!cgraph_default_inline_p (node, &failed_reason) 
+      && !better_inline_comdat_function_p (node))
     {
       for (; edge; edge = edge->next_caller)
 	if (edge->aux)
@@ -912,6 +968,9 @@ cgraph_decide_recursive_inlining (struct cgraph_node *node,
 	    }
 	}
 
+      if (!dbg_cnt (inl))
+        continue;
+
       if (dump_file)
 	{
 	  fprintf (dump_file,
@@ -1036,7 +1095,8 @@ cgraph_decide_inlining_of_small_functions (void)
 	fprintf (dump_file, "Considering inline candidate %s.\n", cgraph_node_name (node));
 
       node->global.estimated_growth = INT_MIN;
-      if (!cgraph_default_inline_p (node, &failed_reason))
+      if (!cgraph_default_inline_p (node, &failed_reason) &&
+          !better_inline_comdat_function_p (node))
 	{
 	  cgraph_set_inline_failed (node, failed_reason);
 	  continue;
@@ -1163,7 +1223,8 @@ cgraph_decide_inlining_of_small_functions (void)
 	    }
 	  continue;
 	}
-      if (!cgraph_default_inline_p (edge->callee, &edge->inline_failed))
+      if (!cgraph_default_inline_p (edge->callee, &edge->inline_failed) 
+          && !better_inline_comdat_function_p (edge->callee))
 	{
           if (!cgraph_recursive_inlining_p (edge->caller, edge->callee,
 				            &edge->inline_failed))
@@ -1208,6 +1269,9 @@ cgraph_decide_inlining_of_small_functions (void)
 			 cgraph_inline_failed_string (edge->inline_failed));
 	      continue;
 	    }
+          if (!dbg_cnt (inl))
+            continue;
+
 	  callee = edge->callee;
 	  gcc_checking_assert (!callee->global.inlined_to);
 	  cgraph_mark_inline_edge (edge, true, &new_indirect_edges);
@@ -1243,8 +1307,9 @@ cgraph_decide_inlining_of_small_functions (void)
       if (dump_file)
 	{
 	  fprintf (dump_file,
-		   " Inlined into %s which now has time %i and size %i,"
+		   "INFO: %s Inlined into %s which now has time %i and size %i,"
 		   "net change of %+i.\n",
+		   cgraph_node_name (edge->callee),
 		   cgraph_node_name (edge->caller),
 		   edge->caller->global.time,
 		   edge->caller->global.size,
@@ -1521,7 +1586,7 @@ cgraph_decide_inlining (void)
 		  cgraph_mark_inline_edge (node->callers, true, NULL);
 		  if (dump_file)
 		    fprintf (dump_file,
-			     " Inlined into %s which now has %i size"
+			     "INFO: Inlined into %s which now has %i size"
 			     " for a net change of %+i size.\n",
 			     cgraph_node_name (caller),
 			     caller->global.size,
@@ -1575,6 +1640,8 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
   struct cgraph_edge *e;
   bool inlined = false;
   cgraph_inline_failed_t failed_reason;
+  bool after_tree_profile =
+    (DECL_STRUCT_FUNCTION (node->decl))->after_tree_profile;
 
 #ifdef ENABLE_CHECKING
   verify_cgraph_node (node);
@@ -1651,6 +1718,20 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	      || !e->inline_failed
 	      || e->callee->local.disregard_inline_limits)
 	    continue;
+	  /* Don't do cross-module inlining before profile-use, so that we have
+	     a consistent CFG between profile-gen and profile-use passes.  */
+	  if (!after_tree_profile
+	      && L_IPO_COMP_MODE
+	      && !cgraph_is_inline_body_available_in_module (
+		  e->callee->decl, cgraph_get_module_id (e->caller->decl)))
+	    {
+	      e->inline_failed = CIF_NO_INTERMODULE_INLINE;
+	      if (dump_file)
+		fprintf (dump_file, "Not inlining considering inlining %s: %s\n",
+			 cgraph_node_name (e->callee),
+			 "Inter-module inlining disabled");
+	      continue;
+	    }
 	  if (dump_file)
 	    fprintf (dump_file, "Considering inline candidate %s.\n",
 		     cgraph_node_name (e->callee));
@@ -1670,7 +1751,8 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	    }
 
 	  if (cgraph_maybe_hot_edge_p (e) && leaf_node_p (e->callee)
-	      && optimize_function_for_speed_p (cfun))
+	      && optimize_function_for_speed_p (cfun)
+	      && (after_tree_profile || !flag_dyn_ipa))
 	    allowed_growth = PARAM_VALUE (PARAM_EARLY_INLINING_INSNS);
 
 	  /* When the function body would grow and inlining the function
@@ -1681,7 +1763,12 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 		   && !DECL_DECLARED_INLINE_P (e->callee->decl)))
 	      && (cgraph_estimate_size_after_inlining (e->caller, e->callee)
 		  > e->caller->global.size + allowed_growth)
-	      && cgraph_estimate_growth (e->callee) > allowed_growth)
+	      && (cgraph_estimate_growth (e->callee) > allowed_growth
+		  /* With lightweight IPO, due to static function promtion,
+		     it is hard to enable this heuristic and maintain consistent
+		     pre-profiling inline decisions between profiile generate
+		     and profile use passes.  */
+		  || (!after_tree_profile && flag_dyn_ipa)))
 	    {
 	      if (dump_file)
 		fprintf (dump_file,
@@ -1923,6 +2010,14 @@ estimate_function_body_sizes (struct cgraph_node *node)
 	      fprintf (dump_file, "  freq:%6i size:%3i time:%3i ",
 		       freq, this_size, this_time);
 	      print_gimple_stmt (dump_file, stmt, 0, 0);
+	    }
+          if (!dbg_cnt (inl))
+            continue;
+
+	  if (dump_file)
+	    {
+	      fprintf (dump_file, "  freq:%6i size:%3i time:%3i ", freq, this_size, this_time);
+	      print_gimple_stmt (dump_file, gsi_stmt (bsi), 0, 0);
 	    }
 	  this_time *= freq;
 	  time += this_time;

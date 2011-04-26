@@ -23,7 +23,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "gcov-io.h"
 
-extern void coverage_init (const char *);
+extern void coverage_init (const char *, const char*);
 extern void coverage_finish (void);
 
 /* Complete the coverage information for the current function. Once
@@ -45,7 +45,28 @@ extern tree tree_coverage_counter_addr (unsigned /*counter*/, unsigned/*num*/);
 extern gcov_type *get_coverage_counts (unsigned /*counter*/,
 				       unsigned /*expected*/,
 				       const struct gcov_ctr_summary **);
+/* Get all the counters for the current function without warning.  */
+extern gcov_type *get_coverage_counts_no_warn (struct function *, 
+                                               unsigned /*counter*/, unsigned *);
+
+extern struct cgraph_node * find_func_by_global_id (unsigned HOST_WIDE_INT gid);
+
+/* All the coverage counters are supposed to be allocated by the time
+   coverage_end_function is called. However, direct-call counters are
+   allocated after coverage_end_function has been called. This function
+   fixes up the various internal structures to reflect these counter
+   allocations. This function is called after coverage_end_function and
+   before coverage_finish.  */
+extern void coverage_dc_end_function (void);
+
+/* True if a function entry corresponding to the given function identifier
+   is present in the coverage internal data structures.  */
+extern bool coverage_function_present (unsigned fn_ident);
 
 extern tree get_gcov_type (void);
+extern tree get_gcov_unsigned_t (void);
+
+/* Mark this module as containing asm statements.  */
+extern void coverage_has_asm_stmt (void);
 
 #endif

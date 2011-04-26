@@ -148,6 +148,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-inline.h"
 #include "fibheap.h"
 #include "params.h"
+#include "dbgcnt.h"
 
 /* Number of functions identified as candidates for cloning. When not cloning
    we can simplify iterate stage not forcing it to go through the decision

@@ -64,6 +64,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "df.h"
 #include "timevar.h"
 #include "vecprim.h"
+#include "l-ipo.h"
 
 /* So we can assign to cfun in this file.  */
 #undef cfun
@@ -4350,10 +4351,36 @@ pop_cfun (void)
 }
 
 /* Return value of funcdef and increase it.  */
+
 int
 get_next_funcdef_no (void)
 {
   return funcdef_no++;
+}
+
+/* Return the current intra module funcdef_no which is
+   incremented when new struct function is allocated.  */
+
+int
+get_current_funcdef_no (void)
+{
+  return funcdef_no;
+}
+
+/* Restore funcdef_no to FN.  */
+
+void
+set_funcdef_no (int fn)
+{
+  funcdef_no = fn;
+}
+
+/* Reset the funcdef number.  */
+
+void
+reset_funcdef_no (void)
+{
+  funcdef_no = 0;
 }
 
 /* Allocate a function structure for FNDECL and set its contents
@@ -4393,6 +4420,7 @@ allocate_struct_function (tree fndecl, bool abstract_p)
       DECL_STRUCT_FUNCTION (fndecl) = cfun;
       cfun->decl = fndecl;
       current_function_funcdef_no = get_next_funcdef_no ();
+      cfun->module_id = current_module_id;
 
       result = DECL_RESULT (fndecl);
       if (!abstract_p && aggregate_value_p (result, fndecl))

@@ -4038,7 +4038,7 @@ dwarf2out_do_cfi_startproc (bool second)
 
       enc = ASM_PREFERRED_EH_DATA_FORMAT (/*code=*/0, /*global=*/0);
       ASM_GENERATE_INTERNAL_LABEL (lab, second ? "LLSDAC" : "LLSDA",
-				   current_function_funcdef_no);
+                                   FUNC_LABEL_ID (cfun));
       ref = gen_rtx_SYMBOL_REF (Pmode, lab);
       SYMBOL_REF_FLAGS (ref) = SYMBOL_FLAG_LOCAL;
 
@@ -4078,9 +4078,9 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fnsec = function_section (current_function_decl);
   switch_to_section (fnsec);
   ASM_GENERATE_INTERNAL_LABEL (label, FUNC_BEGIN_LABEL,
-			       current_function_funcdef_no);
+			       FUNC_LABEL_ID (cfun));
   ASM_OUTPUT_DEBUG_LABEL (asm_out_file, FUNC_BEGIN_LABEL,
-			  current_function_funcdef_no);
+			  FUNC_LABEL_ID (cfun));
   dup_label = xstrdup (label);
   current_function_func_begin_label = dup_label;
 
@@ -4116,7 +4116,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   fde->dw_fde_vms_begin_epilogue = NULL;
   fde->dw_fde_cfi = NULL;
   fde->dw_fde_switch_cfi = NULL;
-  fde->funcdef_number = current_function_funcdef_no;
+  fde->funcdef_number = FUNC_LABEL_ID (cfun);
   fde->all_throwers_are_sibcalls = crtl->all_throwers_are_sibcalls;
   fde->uses_eh_lsda = crtl->uses_eh_lsda;
   fde->nothrow = crtl->nothrow;
@@ -4234,7 +4234,7 @@ dwarf2out_end_epilogue (unsigned int line ATTRIBUTE_UNUSED,
   /* Output a label to mark the endpoint of the code generated for this
      function.  */
   ASM_GENERATE_INTERNAL_LABEL (label, FUNC_END_LABEL,
-			       current_function_funcdef_no);
+			       FUNC_LABEL_ID (cfun));
   ASM_OUTPUT_LABEL (asm_out_file, label);
   fde = current_fde ();
   gcc_assert (fde != NULL);
@@ -15208,7 +15208,7 @@ dw_loc_list (var_loc_list *loc_list, tree decl, int want_address)
 	    else
 	      {
 		ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_END_LABEL,
-					     current_function_funcdef_no);
+					     FUNC_LABEL_ID (cfun));
 		endname = ggc_strdup (label_id);
 	      }
 
@@ -19168,10 +19168,10 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	      /* Create start/end labels and add the range.  */
 	      char label_id[MAX_ARTIFICIAL_LABEL_BYTES];
 	      ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_BEGIN_LABEL,
-					   current_function_funcdef_no);
+					   FUNC_LABEL_ID (cfun));
 	      add_AT_lbl_id (subr_die, DW_AT_low_pc, label_id);
 	      ASM_GENERATE_INTERNAL_LABEL (label_id, FUNC_END_LABEL,
-					   current_function_funcdef_no);
+					   FUNC_LABEL_ID (cfun));
 	      add_AT_lbl_id (subr_die, DW_AT_high_pc, label_id);
 	    }
 
@@ -22039,7 +22039,7 @@ dwarf2out_source_line (unsigned int line, const char *filename,
 	    = &separate_line_info_table[separate_line_info_table_in_use++];
 	  line_info->dw_file_num = file_num;
 	  line_info->dw_line_num = line;
-	  line_info->function = current_function_funcdef_no;
+	  line_info->function = FUNC_LABEL_ID (cfun);
 	}
       else
 	{

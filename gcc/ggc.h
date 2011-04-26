@@ -323,6 +323,8 @@ ggc_internal_zone_vec_alloc_stat (struct alloc_zone * z ATTRIBUTE_UNUSED,
     return ggc_internal_vec_alloc_stat (s, n PASS_MEM_STAT);
 }
 
+extern size_t ggc_total_allocated (void);
+
 #endif
 
 /* Memory statistics passing versions of some allocators.  Too few of them to

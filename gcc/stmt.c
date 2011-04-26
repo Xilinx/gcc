@@ -52,6 +52,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "regs.h"
 #include "alloc-pool.h"
 #include "pretty-print.h"
+#include "coverage.h"
 #include "bitmap.h"
 
 
@@ -1111,6 +1112,7 @@ expand_asm_operands (tree string, tree outputs, tree inputs,
       emit_move_insn (real_output_rtx[i], output_rtx[i]);
 
   crtl->has_asm_statement = 1;
+  coverage_has_asm_stmt ();
   free_temp_slots ();
 }
 

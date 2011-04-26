@@ -79,27 +79,6 @@ lhd_do_nothing_f (struct function * ARG_UNUSED (f))
 {
 }
 
-/* Do nothing (tree). Return int.  */
-int
-lhd_do_nothing_t_return_int (tree ARG_UNUSED (t))
-{
-  return 0;
-}
-
-/* Do nothing (tree). Return false.  */
-bool
-lhd_do_nothing_t_return_bool (tree ARG_UNUSED (t))
-{
-  return 0;
-}
-
-/* Do nothing (tree, tree). Return NULL_TREE.  */
-tree
-lhd_do_nothing_t_t_return_null_tree (tree ARG_UNUSED (t), tree ARG_UNUSED (t2))
-{
-  return NULL_TREE;
-}
-
 /* Do nothing (return NULL_TREE).  */
 
 tree
@@ -120,6 +99,48 @@ lhd_return_null_tree (tree ARG_UNUSED (t))
 
 tree
 lhd_return_null_const_tree (const_tree ARG_UNUSED (t))
+{
+  return NULL_TREE;
+}
+
+void
+lhd_do_nothing_u (unsigned ARG_UNUSED (t))
+{
+}
+
+int
+lhd_do_nothing_t_return_int (tree ARG_UNUSED (t))
+{
+  return false;
+}
+
+bool
+lhd_do_nothing_t_return_bool (tree ARG_UNUSED (t))
+{
+  return false;
+}
+
+
+void
+lhd_do_nothing_t_t (tree ARG_UNUSED (t), tree ARG_UNUSED (t2))
+{
+}
+
+int
+lhd_do_nothing_t_t_return_int (tree ARG_UNUSED (t), tree ARG_UNUSED (t2))
+{
+  return 1;
+}
+
+bool
+lhd_do_nothing_t_vp_return_bool (tree ARG_UNUSED (t), void * ARG_UNUSED (t2))
+{
+  return true;
+}
+
+/* Do nothing (tree, tree). Return NULL_TREE.  */
+tree
+lhd_do_nothing_t_t_return_null_tree (tree ARG_UNUSED (t), tree ARG_UNUSED (t2))
 {
   return NULL_TREE;
 }
@@ -624,6 +645,12 @@ lhd_builtin_function (tree decl)
 {
   lang_hooks.decls.pushdecl (decl);
   return decl;
+}
+
+bool
+lhd_user_conv_function_p (tree decl ATTRIBUTE_UNUSED)
+{
+  return false;
 }
 
 /* LTO hooks.  */

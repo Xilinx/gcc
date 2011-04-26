@@ -265,7 +265,7 @@ cp/decl2.o: cp/decl2.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   c-family/c-objc.h
 cp/cp-objcp-common.o : cp/cp-objcp-common.c $(CONFIG_H) $(SYSTEM_H) \
   coretypes.h $(TM_H) $(TREE_H) $(CXX_TREE_H) $(C_COMMON_H) \
-  langhooks.h $(LANGHOOKS_DEF_H) $(DIAGNOSTIC_H) debug.h \
+  langhooks.h $(LANGHOOKS_DEF_H) $(DIAGNOSTIC_H) debug.h l-ipo.h \
   $(CXX_PRETTY_PRINT_H) cp/cp-objcp-common.h gt-cp-cp-objcp-common.h
 cp/typeck2.o: cp/typeck2.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) output.h \
   $(TM_P_H) $(DIAGNOSTIC_CORE_H) gt-cp-typeck2.h $(REAL_H) intl.h \

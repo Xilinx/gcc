@@ -92,6 +92,7 @@ DEF_VEC_ALLOC_O(cxx_saved_binding,gc);
 extern tree identifier_type_value (tree);
 extern void set_identifier_type_value (tree, tree);
 extern void pop_binding (tree, tree);
+extern void pop_global_binding (tree, cxx_binding*);
 extern tree constructor_name (tree);
 extern bool constructor_name_p (tree, tree);
 

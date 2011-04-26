@@ -609,4 +609,20 @@ extern void c_write_global_declarations (void);
 extern void pedwarn_c90 (location_t, int opt, const char *, ...) ATTRIBUTE_GCC_DIAG(3,4);
 extern void pedwarn_c99 (location_t, int opt, const char *, ...) ATTRIBUTE_GCC_DIAG(3,4);
 
+/* LIPO support.  */
+
+extern int c_get_lang_decl_size (tree t);
+extern void c_lipo_dup_lang_type (tree src, tree dest);
+extern void c_lipo_copy_lang_type (tree src, tree dest);
+extern bool c_is_global_scope (tree decl, void *scope);
+extern void c_clear_name_bindings (tree id);
+extern void c_add_built_in_decl (tree decl);
+extern void c_save_built_in_decl_pre_parsing (void);
+extern void c_restore_built_in_decl_pre_parsing (void);
+extern void c_save_built_in_decl_post_parsing (void);
+extern void c_restore_built_in_decl_post_parsing (void);
+extern bool c_is_compiler_generated_type (tree t);
+extern int c_cmp_lang_type (tree t1, tree t2);
+
+
 #endif /* ! GCC_C_TREE_H */

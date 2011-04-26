@@ -190,6 +190,10 @@ instrument_values (histogram_values values)
  	  t = GCOV_COUNTER_IOR;
  	  break;
 
+ 	case HIST_TYPE_INDIR_CALL_TOPN:
+          t = GCOV_COUNTER_ICALL_TOPNV;
+ 	  break;
+
 	default:
 	  gcc_unreachable ();
 	}
@@ -215,6 +219,7 @@ instrument_values (histogram_values values)
 	  break;
 
  	case HIST_TYPE_INDIR_CALL:
+ 	case HIST_TYPE_INDIR_CALL_TOPN:
  	  gimple_gen_ic_profiler (hist, t, 0);
   	  break;
 
@@ -276,6 +281,7 @@ is_edge_inconsistent (VEC(edge,gc) *edges)
         {
           if (e->count < 0
 	      && (!(e->flags & EDGE_FAKE)
+		  || e->src == ENTRY_BLOCK_PTR
 	          || !block_ends_with_call_p (e->src)))
 	    {
 	      if (dump_file)

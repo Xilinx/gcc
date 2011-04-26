@@ -30,6 +30,12 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include "coretypes.h"
 #include "tm.h"
 
+#if 1
+#define THREAD_PREFIX __thread
+#else
+#define THREAD_PREFIX
+#endif
+
 #if defined(inhibit_libc)
 #define IN_LIBGCOV (-1)
 #else
@@ -78,7 +84,24 @@ void __gcov_merge_delta (gcov_type *counters  __attribute__ ((unused)),
 #include "gcov-io.c"
 
 /* Chain of per-object gcov structures.  */
-static struct gcov_info *gcov_list;
+extern struct gcov_info *__gcov_list;
+
+/* Unique identifier assigned to each module (object file).  */
+static gcov_unsigned_t gcov_cur_module_id = 0;
+
+/* Pointer to the direct-call counters (per call-site counters).
+   Initialized by the caller.  */
+THREAD_PREFIX gcov_type *__gcov_direct_call_counters ATTRIBUTE_HIDDEN;
+
+/* Direct call callee address.  */
+THREAD_PREFIX void *__gcov_direct_call_callee ATTRIBUTE_HIDDEN;
+
+/* Pointer to the indirect-call counters (per call-site counters).
+   Initialized by the caller.  */
+THREAD_PREFIX gcov_type *__gcov_indirect_call_topn_counters ATTRIBUTE_HIDDEN;
+
+/* Indirect call callee address.  */
+THREAD_PREFIX void *__gcov_indirect_call_topn_callee ATTRIBUTE_HIDDEN;
 
 /* A program checksum allows us to distinguish program data for an
    object file included in multiple programs.  */
@@ -86,6 +109,10 @@ static gcov_unsigned_t gcov_crc32;
 
 /* Size of the longest file name. */
 static size_t gcov_max_filename = 0;
+
+/* Dynamic call graph build and form module groups.  */
+void __gcov_compute_module_groups (void) ATTRIBUTE_HIDDEN;
+void __gcov_finalize_dyn_callgraph (void) ATTRIBUTE_HIDDEN;
 
 /* Make sure path component of the given FILENAME exists, create
    missing directories. FILENAME must be writable.
@@ -162,6 +189,131 @@ gcov_version (struct gcov_info *ptr, gcov_unsigned_t version,
   return 1;
 }
 
+/* Strip GCOV_PREFIX_STRIP levels of leading '/' from FILENAME and
+   put the result into GI_FILENAME_UP.  */
+
+static void
+gcov_strip_leading_dirs (int prefix_length, int gcov_prefix_strip,
+			 const char *filename, char *gi_filename_up)
+{
+  /* Avoid to add multiple drive letters into combined path.  */
+  if (prefix_length != 0 && HAS_DRIVE_SPEC(filename))
+    filename += 2;
+
+  /* Build relocated filename, stripping off leading
+     directories from the initial filename if requested. */
+  if (gcov_prefix_strip > 0)
+    {
+      int level = 0;
+      const char *s = filename;
+      if (IS_DIR_SEPARATOR(*s))
+	++s;
+
+      /* Skip selected directory levels. */
+      for (; (*s != '\0') && (level < gcov_prefix_strip); s++)
+        if (IS_DIR_SEPARATOR(*s))
+          {
+            filename = s;
+            level++;
+          }
+    }
+  /* Update complete filename with stripped original. */
+  if (prefix_length != 0 && !IS_DIR_SEPARATOR (*filename))
+    {
+      /* If prefix is given, add diretory separator.  */
+      strcpy (gi_filename_up, "/");
+      strcpy (gi_filename_up + 1, filename);
+    }
+  else
+    strcpy (gi_filename_up, filename);
+}
+
+/* Sort N entries in VALUE_ARRAY in descending order.
+   Each entry in VALUE_ARRAY has two values. The sorting
+   is based on the second value.  */
+
+GCOV_LINKAGE  void
+gcov_sort_n_vals (gcov_type *value_array, int n)
+{
+  int j, k;
+  for (j = 2; j < n; j += 2)
+    {
+      gcov_type cur_ent[2];
+      cur_ent[0] = value_array[j];
+      cur_ent[1] = value_array[j + 1];
+      k = j - 2;
+      while (k >= 0 && value_array[k + 1] < cur_ent[1])
+        {
+          value_array[k + 2] = value_array[k];
+          value_array[k + 3] = value_array[k+1];
+          k -= 2;
+        }
+      value_array[k + 2] = cur_ent[0];
+      value_array[k + 3] = cur_ent[1];
+    }
+}
+
+/* Sort the profile counters for all indirect call sites. Counters
+   for each call site are allocated in array COUNTERS.  */
+
+static void
+gcov_sort_icall_topn_counter (const struct gcov_ctr_info *counters)
+{
+  int i;
+  gcov_type *values;
+  int n = counters->num;
+  gcc_assert (!(n % GCOV_ICALL_TOPN_NCOUNTS));
+
+  values = counters->values;
+
+  for (i = 0; i < n; i += GCOV_ICALL_TOPN_NCOUNTS)
+    {
+      gcov_type *value_array = &values[i + 1];
+      gcov_sort_n_vals (value_array, GCOV_ICALL_TOPN_NCOUNTS - 1);
+    }
+}
+
+/* Write imported files (auxiliary modules) for primary module GI_PTR
+   into file GI_FILENAME.  */
+
+static void
+gcov_write_import_file (char *gi_filename, struct gcov_info *gi_ptr)
+{
+  char  *gi_imports_filename;
+  const char *gcov_suffix;
+  FILE *imports_file;
+  size_t prefix_length, suffix_length;
+
+  gcov_suffix = getenv("GCOV_IMPORTS_SUFFIX");
+  if (!gcov_suffix || !strlen (gcov_suffix))
+    gcov_suffix = ".imports";
+  suffix_length = strlen (gcov_suffix);
+  prefix_length = strlen (gi_filename);
+  gi_imports_filename = (char *) alloca (prefix_length + suffix_length + 1);
+  memset (gi_imports_filename, 0, prefix_length + suffix_length + 1);
+  memcpy (gi_imports_filename, gi_filename, prefix_length);
+  memcpy (gi_imports_filename + prefix_length, gcov_suffix, suffix_length);
+  imports_file = fopen (gi_imports_filename, "w");
+  if (imports_file)
+    {
+      const struct dyn_imp_mod **imp_mods;
+      unsigned i, imp_len;
+      imp_mods = gcov_get_sorted_import_module_array (gi_ptr, &imp_len);
+      if (imp_mods)
+        {
+          for (i = 0; i < imp_len; i++)
+	    {
+	      fprintf (imports_file, "%s\n",
+		       imp_mods[i]->imp_mod->mod_info->source_filename);
+	      fprintf (imports_file, "%s%s\n",
+		       imp_mods[i]->imp_mod->mod_info->da_filename, GCOV_DATA_SUFFIX);
+	    }
+          free (imp_mods);
+        }
+      fclose (imports_file);
+    }
+}
+
 /* Dump the coverage counts. We merge with existing counts when
    possible, to avoid growing the .da files ad infinitum. We use this
    program's checksum to make sure we only accumulate whole program
@@ -183,11 +335,12 @@ gcov_exit (void)
   int gcov_prefix_strip = 0;
   size_t prefix_length;
   char *gi_filename, *gi_filename_up;
+  int dump_module_info = 0;
 
   memset (&all, 0, sizeof (all));
   /* Find the totals for this execution.  */
   memset (&this_program, 0, sizeof (this_program));
-  for (gi_ptr = gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
+  for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
     {
       ci_ptr = gi_ptr->counts;
       for (t_ix = 0; t_ix < GCOV_COUNTERS_SUMMABLE; t_ix++)
@@ -205,6 +358,9 @@ gcov_exit (void)
 	    }
 	  ci_ptr++;
 	}
+      /* The IS_PRIMARY field is overloaded to indicate if this module
+	 is FDO/LIPO.  */
+      dump_module_info |= gi_ptr->mod_info->is_primary;
     }
 
   {
@@ -245,7 +401,7 @@ gcov_exit (void)
   gi_filename_up = gi_filename + prefix_length;
 
   /* Now merge each file.  */
-  for (gi_ptr = gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
+  for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
     {
       struct gcov_summary this_object;
       struct gcov_summary object, program;
@@ -265,36 +421,8 @@ gcov_exit (void)
       memset (&this_object, 0, sizeof (this_object));
       memset (&object, 0, sizeof (object));
 
-      /* Avoid to add multiple drive letters into combined path.  */
-      if (prefix_length != 0 && HAS_DRIVE_SPEC(fname))
-        fname += 2;
-
-      /* Build relocated filename, stripping off leading
-         directories from the initial filename if requested. */
-      if (gcov_prefix_strip > 0)
-        {
-          int level = 0;
-          s = fname;
-          if (IS_DIR_SEPARATOR(*s))
-            ++s;
-
-          /* Skip selected directory levels. */
-	  for (; (*s != '\0') && (level < gcov_prefix_strip); s++)
-	    if (IS_DIR_SEPARATOR(*s))
-	      {
-		fname = s;
-		level++;
-	      }
-        }
-      /* Update complete filename with stripped original. */
-      if (prefix_length != 0 && !IS_DIR_SEPARATOR (*fname))
-	{
-          /* If prefix is given, add directory separator.  */
-	  strcpy (gi_filename_up, "/");
-	  strcpy (gi_filename_up + 1, fname);
-	}
-      else
-        strcpy (gi_filename_up, fname);
+      gcov_strip_leading_dirs (prefix_length, gcov_prefix_strip,
+			       gi_ptr->filename, gi_filename_up);
 
       /* Totals for this object file.  */
       ci_ptr = gi_ptr->counts;
@@ -311,7 +439,6 @@ gcov_exit (void)
 	      if (cs_ptr->run_max < ci_ptr->values[c_num])
 		cs_ptr->run_max = ci_ptr->values[c_num];
 	    }
-
 	  ci_ptr++;
 	}
 
@@ -320,12 +447,15 @@ gcov_exit (void)
 	if ((1 << t_ix) & gi_ptr->ctr_mask)
 	  {
 	    values[c_ix] = gi_ptr->counts[c_ix].values;
+            if (t_ix == GCOV_COUNTER_ICALL_TOPNV)
+              gcov_sort_icall_topn_counter (&gi_ptr->counts[c_ix]);
 	    c_ix++;
 	  }
 
       /* Calculate the function_info stride. This depends on the
 	 number of counter types being measured.  */
-      fi_stride = sizeof (struct gcov_fn_info) + c_ix * sizeof (unsigned);
+      fi_stride = offsetof (struct gcov_fn_info, n_ctrs)
+	+ c_ix * sizeof (unsigned);
       if (__alignof__ (struct gcov_fn_info) > sizeof (unsigned))
 	{
 	  fi_stride += __alignof__ (struct gcov_fn_info) - 1;
@@ -554,12 +684,71 @@ gcov_exit (void)
       gcov_write_summary (GCOV_TAG_PROGRAM_SUMMARY, &program);
       if (!summary_pos)
 	gcov_write_unsigned (0);
+
+      /* TODO: there is a problem here -- if there are other program
+         summary data after the matching one, setting eof_pos to this
+         position means that the module info table will overwrite the
+         those other program summary. It also means a mismatch error
+         may occur at the next merge if no matching program summary is
+         found before the module info data.  */
+      if (!summary_pos)
+        gi_ptr->eof_pos = gcov_position () - 1;
+      else
+        gi_ptr->eof_pos = gcov_position ();
+
       if ((error = gcov_close ()))
 	  fprintf (stderr, error  < 0 ?
 		   "profiling:%s:Overflow writing\n" :
 		   "profiling:%s:Error writing\n",
 		   gi_filename);
+
     }
+
+  if (!dump_module_info)
+    return;
+
+   __gcov_compute_module_groups ();
+
+   /* Now write out module group info.  */
+   for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
+    {
+      int error;
+      gcov_strip_leading_dirs (prefix_length, gcov_prefix_strip,
+			       gi_ptr->filename, gi_filename_up);
+
+      if (!gcov_open (gi_filename))
+	{
+#ifdef TARGET_POSIX_IO
+	  /* Open failed likely due to missed directory.
+	     Create directory and retry to open file. */
+          if (create_file_directory (gi_filename))
+	    {
+	      fprintf (stderr, "profiling:%s:Skip\n", gi_filename);
+	      continue;
+	    }
+#endif
+	  if (!gcov_open (gi_filename))
+	    {
+              fprintf (stderr, "profiling:%s:Cannot open\n", gi_filename);
+	      continue;
+	    }
+	}
+
+      /* Overwrite the zero word at the of the file.  */
+      gcov_rewrite ();
+      gcov_seek (gi_ptr->eof_pos);
+
+      gcov_write_module_infos (gi_ptr);
+      gcov_truncate ();
+
+      if ((error = gcov_close ()))
+	  fprintf (stderr, error  < 0 ?
+		   "profiling:%s:Overflow writing\n" :
+		   "profiling:%s:Error writing\n",
+		   gi_filename);
+      gcov_write_import_file (gi_filename, gi_ptr);
+    }
+   __gcov_finalize_dyn_callgraph ();
 }
 
 /* Add a new object file onto the bb chain.  Invoked automatically
@@ -574,11 +763,17 @@ __gcov_init (struct gcov_info *info)
     {
       const char *ptr = info->filename;
       gcov_unsigned_t crc32 = gcov_crc32;
-      size_t filename_length =  strlen(info->filename);
+      size_t filename_length = strlen(info->filename);
 
       /* Refresh the longest file name information */
       if (filename_length > gcov_max_filename)
         gcov_max_filename = filename_length;
+
+      /* Assign the module ID (starting at 1).  */
+      info->mod_info->ident = (++gcov_cur_module_id);
+      gcc_assert (EXTRACT_MODULE_ID_FROM_GLOBAL_ID (GEN_FUNC_GLOBAL_ID (
+                                                       info->mod_info->ident, 0))
+                  == info->mod_info->ident);
 
       do
 	{
@@ -598,11 +793,11 @@ __gcov_init (struct gcov_info *info)
 
       gcov_crc32 = crc32;
 
-      if (!gcov_list)
+      if (!__gcov_list)
 	atexit (gcov_exit);
 
-      info->next = gcov_list;
-      gcov_list = info;
+      info->next = __gcov_list;
+      __gcov_list = info;
     }
   info->version = 0;
 }
@@ -617,7 +812,7 @@ __gcov_flush (void)
   const struct gcov_info *gi_ptr;
 
   gcov_exit ();
-  for (gi_ptr = gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
+  for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
     {
       unsigned t_ix;
       const struct gcov_ctr_info *ci_ptr;
@@ -656,6 +851,129 @@ __gcov_merge_ior (gcov_type *counters, unsigned n_counters)
     *counters |= gcov_read_counter ();
 }
 #endif
+
+#ifdef L_gcov_merge_dc
+
+/* Returns 1 if the function global id GID is not valid.  */
+
+static int
+__gcov_is_gid_insane (gcov_type gid)
+{
+  if (EXTRACT_MODULE_ID_FROM_GLOBAL_ID (gid) == 0
+      || EXTRACT_FUNC_ID_FROM_GLOBAL_ID (gid) == 0)
+    return 1;
+  return 0;
+}
+
+/* The profile merging function used for merging direct call counts
+   This function is given array COUNTERS of N_COUNTERS old counters and it
+   reads the same number of counters from the gcov file.  */
+
+void
+__gcov_merge_dc (gcov_type *counters, unsigned n_counters)
+{
+  unsigned i;
+
+  gcc_assert (!(n_counters % 2));
+  for (i = 0; i < n_counters; i += 2)
+    {
+      gcov_type global_id = gcov_read_counter ();
+      gcov_type call_count = gcov_read_counter ();
+
+      /* Note that global id counter may never have been set if no calls were
+	 made from this call-site.  */
+      if (counters[i] && global_id)
+        {
+          /* TODO race condition requires us do the following correction.  */
+          if (__gcov_is_gid_insane (counters[i]))
+            counters[i] = global_id;
+          else if (__gcov_is_gid_insane (global_id))
+            global_id = counters[i];
+
+          gcc_assert (counters[i] == global_id);
+        }
+      else if (global_id)
+	counters[i] = global_id;
+
+      counters[i + 1] += call_count;
+
+      /* Reset. */
+      if (__gcov_is_gid_insane (counters[i]))
+        counters[i] = counters[i + 1] = 0;
+
+      /* Assert that the invariant (global_id == 0) <==> (call_count == 0)
+	 holds true after merging.  */
+      if (counters[i] == 0)
+	gcc_assert (counters[i + 1] == 0);
+      if (counters[i + 1] == 0)
+        gcc_assert (counters[i] == 0);
+    }
+}
+#endif
+
+#ifdef L_gcov_merge_icall_topn
+/* The profile merging function used for merging indirect call counts
+   This function is given array COUNTERS of N_COUNTERS old counters and it
+   reads the same number of counters from the gcov file.  */
+
+void
+__gcov_merge_icall_topn (gcov_type *counters, unsigned n_counters)
+{
+  unsigned i, j, k, m;
+
+  gcc_assert (!(n_counters % GCOV_ICALL_TOPN_NCOUNTS));
+  for (i = 0; i < n_counters; i += GCOV_ICALL_TOPN_NCOUNTS)
+    {
+      gcov_type *value_array = &counters[i + 1];
+      unsigned tmp_size = 2 * (GCOV_ICALL_TOPN_NCOUNTS - 1);
+      gcov_type *tmp_array 
+          = (gcov_type *) alloca (tmp_size * sizeof (gcov_type));
+
+      for (j = 0; j < tmp_size; j++)
+        tmp_array[j] = 0;
+
+      for (j = 0; j < GCOV_ICALL_TOPN_NCOUNTS - 1; j += 2)
+        {
+          tmp_array[j] = value_array[j];
+          tmp_array[j + 1] = value_array [j + 1];
+        }
+
+      /* Skip the number_of_eviction entry.  */
+      gcov_read_counter ();
+      for (k = 0; k < GCOV_ICALL_TOPN_NCOUNTS - 1; k += 2)
+        {
+          int found = 0;
+          gcov_type global_id = gcov_read_counter ();
+          gcov_type call_count = gcov_read_counter ();
+          for (m = 0; m < j; m += 2)
+            {
+              if (tmp_array[m] == global_id)
+                {
+                  found = 1;
+                  tmp_array[m + 1] += call_count;
+                  break;
+                }
+            }
+          if (!found)
+            {
+              tmp_array[j] = global_id;
+              tmp_array[j + 1] = call_count;
+              j += 2;
+            }
+        }
+      /* Now sort the temp array */
+      gcov_sort_n_vals (tmp_array, j);
+
+      /* Now copy back the top half of the temp array */
+      for (k = 0; k < GCOV_ICALL_TOPN_NCOUNTS - 1; k += 2)
+        {
+          value_array[k] = tmp_array[k];
+          value_array[k + 1] = tmp_array[k + 1];
+        }
+    }
+}
+#endif
+
 
 #ifdef L_gcov_merge_single
 /* The profile merging function for choosing the most common value.
@@ -794,6 +1112,108 @@ __gcov_one_value_profiler_body (gcov_type *counters, gcov_type value)
   counters[2]++;
 }
 
+#ifdef L_gcov_indirect_call_topn_profiler
+/* Tries to keep track the most frequent N values in the counters where
+   N is specified by parameter TOPN_VAL. To track top N values, 2*N counter
+   entries are used.
+   counter[0] --- the accumative count of the number of times one entry in
+                  in the counters gets evicted/replaced due to limited capacity.
+                  When this value reaches a threshold, the bottom N values are
+                  cleared.
+   counter[1] through counter[2*N] records the top 2*N values collected so far.
+   Each value is represented by two entries: count[2*i+1] is the ith value, and
+   count[2*i+2] is the number of times the value is seen.  */
+
+static void
+__gcov_topn_value_profiler_body (gcov_type *counters, gcov_type value,
+                                 gcov_unsigned_t topn_val)
+{
+   unsigned i, found = 0, have_zero_count = 0;
+
+   gcov_type *entry;
+   gcov_type *lfu_entry = &counters[1];
+   gcov_type *value_array = &counters[1];
+   gcov_type *num_eviction = &counters[0];
+
+   /* There are 2*topn_val values tracked, each value takes two slots in the
+      counter array */
+   for ( i = 0; i < (topn_val << 2); i += 2)
+     {
+       entry = &value_array[i];
+       if ( entry[0] == value)
+         {
+           entry[1]++ ;
+           found = 1;
+           break;
+         }
+       else if (entry[1] == 0)
+         {
+           lfu_entry = entry;
+           have_zero_count = 1;
+         }
+      else if (entry[1] < lfu_entry[1])
+        lfu_entry = entry;
+     }
+
+   if (found)
+     return;
+
+   /* lfu_entry is either an empty entry or an entry
+      with lowest count, which will be evicted.  */
+   lfu_entry[0] = value;
+   lfu_entry[1] = 1;
+
+#define GCOV_ICALL_COUNTER_CLEAR_THRESHOLD 3000
+
+   /* Too many evictions -- time to clear bottom entries to 
+      avoid hot values bumping each other out.  */
+   if ( !have_zero_count 
+        && ++*num_eviction >= GCOV_ICALL_COUNTER_CLEAR_THRESHOLD)
+     {
+       unsigned i, j;
+       gcov_type *p, minv;
+       gcov_type* tmp_cnts 
+           = (gcov_type *)alloca (topn_val * sizeof(gcov_type));
+
+       *num_eviction = 0;
+
+       for ( i = 0; i < topn_val; i++ )
+         tmp_cnts[i] = 0;
+
+       /* Find the largest topn_val values from the group of
+          2*topn_val values and put them into tmp_cnts. */
+
+       for ( i = 0; i < 2 * topn_val; i += 2 ) 
+         {
+           p = 0;
+           for ( j = 0; j < topn_val; j++ ) 
+             {
+               if ( !p || tmp_cnts[j] < *p ) 
+                  p = &tmp_cnts[j];
+             }
+            if ( value_array[i + 1] > *p )
+              *p = value_array[i + 1];
+         }
+
+       minv = tmp_cnts[0];
+       for ( j = 1; j < topn_val; j++ )
+         {
+           if (tmp_cnts[j] < minv)
+             minv = tmp_cnts[j];
+         }
+       /* Zero out low value entries  */
+       for ( i = 0; i < 2 * topn_val; i += 2 )
+         {
+           if (value_array[i + 1] < minv) 
+             {
+               value_array[i] = 0;
+               value_array[i + 1] = 0;
+             }
+         }
+     }
+}
+#endif
+
 #ifdef L_gcov_one_value_profiler
 void
 __gcov_one_value_profiler (gcov_type *counters, gcov_type value)
@@ -833,6 +1253,60 @@ __gcov_indirect_call_profiler (gcov_type* counter, gcov_type value,
       || (VTABLE_USES_DESCRIPTORS && callee_func
 	  && *(void **) cur_func == *(void **) callee_func))
     __gcov_one_value_profiler_body (counter, value);
+}
+#endif
+
+
+#ifdef L_gcov_indirect_call_topn_profiler
+extern THREAD_PREFIX gcov_type *__gcov_indirect_call_topn_counters ATTRIBUTE_HIDDEN;
+extern THREAD_PREFIX void *__gcov_indirect_call_topn_callee ATTRIBUTE_HIDDEN;
+#ifdef TARGET_VTABLE_USES_DESCRIPTORS
+#define VTABLE_USES_DESCRIPTORS 1
+#else
+#define VTABLE_USES_DESCRIPTORS 0
+#endif
+void
+__gcov_indirect_call_topn_profiler (void *cur_func,
+                                    void *cur_module_gcov_info,
+                                    gcov_unsigned_t cur_func_id)
+{
+  void *callee_func = __gcov_indirect_call_topn_callee;
+  gcov_type *counter = __gcov_indirect_call_topn_counters;
+  /* If the C++ virtual tables contain function descriptors then one
+     function may have multiple descriptors and we need to dereference
+     the descriptors to see if they point to the same function.  */
+  if (cur_func == callee_func
+      || (VTABLE_USES_DESCRIPTORS && callee_func
+	  && *(void **) cur_func == *(void **) callee_func))
+    {
+      gcov_type global_id 
+          = ((struct gcov_info *) cur_module_gcov_info)->mod_info->ident;
+      global_id = GEN_FUNC_GLOBAL_ID (global_id, cur_func_id);
+      __gcov_topn_value_profiler_body (counter, global_id, GCOV_ICALL_TOPN_VAL);
+      __gcov_indirect_call_topn_callee = 0;
+    }
+}
+
+#endif
+
+#ifdef L_gcov_direct_call_profiler
+extern THREAD_PREFIX gcov_type *__gcov_direct_call_counters ATTRIBUTE_HIDDEN;
+extern THREAD_PREFIX void *__gcov_direct_call_callee ATTRIBUTE_HIDDEN;
+/* Direct call profiler. */
+void
+__gcov_direct_call_profiler (void *cur_func,
+			     void *cur_module_gcov_info,
+			     gcov_unsigned_t cur_func_id)
+{
+  if (cur_func == __gcov_direct_call_callee)
+    {
+      gcov_type global_id 
+          = ((struct gcov_info *) cur_module_gcov_info)->mod_info->ident;
+      global_id = GEN_FUNC_GLOBAL_ID (global_id, cur_func_id);
+      __gcov_direct_call_counters[0] = global_id;
+      __gcov_direct_call_counters[1]++;
+      __gcov_direct_call_callee = 0;
+    }
 }
 #endif
 

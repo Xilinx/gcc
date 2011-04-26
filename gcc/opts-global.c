@@ -37,6 +37,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "plugin.h"
 #include "toplev.h"
 #include "tree-pass.h"
+#include "params.h"
+#include "l-ipo.h"
 
 typedef const char *const_char_p; /* For DEF_VEC_P.  */
 DEF_VEC_P(const_char_p);
@@ -195,12 +197,44 @@ lang_handle_option (struct gcc_options *opts,
 
 /* Handle FILENAME from the command line.  */
 
-static void
+void
 add_input_filename (const char *filename)
 {
   num_in_fnames++;
   in_fnames = XRESIZEVEC (const char *, in_fnames, num_in_fnames);
   in_fnames[num_in_fnames - 1] = filename;
+}
+
+/* GCC command-line options saved to the LIPO profile data file.
+   See detailed comment in opts.h.  */
+const char **lipo_cl_args;
+unsigned num_lipo_cl_args;
+
+/* Inspect the given GCC command-line arguments, which are part of one GCC
+   switch, and decide whether or not to store these to the LIPO profile data
+   file.  */
+static void
+lipo_save_cl_args (struct cl_decoded_option *decoded)
+{
+  const char *opt = decoded->orig_option_with_args_text;
+  /* Store the following command-line flags to the lipo profile data file:
+     (1) -f... (except -frandom-seed...)
+     (2) -m...
+     (3) -W...
+     (4) -O...
+     (5) --param...
+  */
+  if (opt[0] == '-'
+      && (opt[1] == 'f' || opt[1] == 'm' || opt[1] == 'W' || opt[1] == 'O'
+	  || (strstr (opt, "--param") == opt))
+      && !strstr(opt, "-frandom-seed")
+      && !strstr(opt, "-fripa-disallow-opt-mismatch")
+      && !strstr(opt, "-Wripa-opt-mismatch"))
+    {
+      num_lipo_cl_args++;
+      lipo_cl_args = XRESIZEVEC (const char *, lipo_cl_args, num_lipo_cl_args);
+      lipo_cl_args[num_lipo_cl_args - 1] = opt;
+    }
 }
 
 /* Handle the vector of command line options (located at LOC), storing
@@ -219,6 +253,10 @@ read_cmdline_options (struct gcc_options *opts, struct gcc_options *opts_set,
 		      diagnostic_context *dc)
 {
   unsigned int i;
+  int force_multi_module = 0;
+  static int cur_mod_id = 0;
+
+  force_multi_module = PARAM_VALUE (PARAM_FORCE_LIPO_MODE);
 
   for (i = 1; i < decoded_options_count; i++)
     {
@@ -237,12 +275,15 @@ read_cmdline_options (struct gcc_options *opts, struct gcc_options *opts_set,
 				&opts->x_main_input_basename);
 	    }
 	  add_input_filename (decoded_options[i].arg);
+          if (force_multi_module)
+            add_module_info (++cur_mod_id, (num_in_fnames == 1), num_in_fnames - 1);
 	  continue;
 	}
 
       read_cmdline_option (opts, opts_set,
 			   decoded_options + i, loc, lang_mask, handlers,
 			   dc);
+      lipo_save_cl_args (decoded_options + i);
     }
 }
 

@@ -53,6 +53,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "pointer-set.h"
 #include "splay-tree.h"
+#include "cgraph.h"
 #include "plugin.h"
 
 /* Possible cases of bad specifiers type used by bad_specifiers. */
@@ -849,7 +850,7 @@ walk_namespaces (walk_namespaces_fn f, void* data)
    wrapup_global_declarations for this NAMESPACE.  */
 
 int
-wrapup_globals_for_namespace (tree name_space, void* data)
+wrapup_globals_for_namespace (tree name_space, void *data)
 {
   struct cp_binding_level *level = NAMESPACE_LEVEL (name_space);
   VEC(tree,gc) *statics = level->static_decls;
@@ -2278,7 +2279,26 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
   /* The NEWDECL will no longer be needed.  Because every out-of-class
      declaration of a member results in a call to duplicate_decls,
      freeing these nodes represents in a significant savings.  */
-  ggc_free (newdecl);
+  {
+    tree clone;
+    bool found_clone = false;
+    /* Fix dangling reference.  */
+    FOR_EACH_CLONE (clone, newdecl)
+      {
+        if (DECL_CLONED_FUNCTION (clone) == newdecl)
+          {
+            found_clone = true;
+            break;
+          }
+        if (DECL_ABSTRACT_ORIGIN (clone) == newdecl)
+          {
+            found_clone = true;
+            break;
+          }
+      }
+    if (!found_clone)
+      ggc_free (newdecl);
+  }
 
   return olddecl;
 }
@@ -5534,6 +5554,10 @@ make_rtl_for_nonlocal_decl (tree decl, tree init, const char* asmspec)
   else if (DECL_LANG_SPECIFIC (decl)
 	   && DECL_IMPLICIT_INSTANTIATION (decl))
     defer_p = 1;
+
+  /* Capture the current module info.  */
+  if (L_IPO_COMP_MODE)
+    varpool_node (decl);
 
   /* If we're not deferring, go ahead and assemble the variable.  */
   if (!defer_p)

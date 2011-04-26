@@ -47,10 +47,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-iterator.h"
 #include "cgraph.h"
 #include "tree-pass.h"
+#include "opts.h"
+#include "gcov-io.h"
+#include "tree-flow.h"
+#include "cpplib.h"
+#include "incpath.h"
 #include "diagnostic-core.h"
 #include "intl.h"
+#include "l-ipo.h"
 
 #include "gcov-io.c"
+#include "params.h"
+#include "dbgcnt.h"
+#include "input.h"
 
 struct function_list
 {
@@ -58,13 +67,21 @@ struct function_list
   unsigned ident;		 /* function ident */
   unsigned checksum;	         /* function checksum */
   unsigned n_ctrs[GCOV_COUNTERS];/* number of counters.  */
+  unsigned dc_offset;            /* offset of counters to direct calls.  */
+};
+
+/* Linked list of -D/-U/-imacro/-include strings for a source module.  */
+struct str_list
+{
+  char *str;
+  struct str_list *next;
 };
 
 /* Counts information for a function.  */
 typedef struct counts_entry
 {
   /* We hash by  */
-  unsigned ident;
+  unsigned HOST_WIDEST_INT ident;
   unsigned ctr;
 
   /* Store  */
@@ -97,6 +114,8 @@ static int bbg_function_announced;
 
 /* Name of the count data file.  */
 static char *da_file_name;
+static char *da_base_file_name;
+static char *main_input_file_name;
 
 /* Hash table of count data.  */
 static htab_t counts_hash = NULL;
@@ -108,11 +127,27 @@ static GTY(()) tree tree_ctr_tables[GCOV_COUNTERS];
 static const char *const ctr_merge_functions[GCOV_COUNTERS] = GCOV_MERGE_FUNCTIONS;
 static const char *const ctr_names[GCOV_COUNTERS] = GCOV_COUNTER_NAMES;
 
+/* True during the period that counts_hash is being rebuilt.  */
+static bool rebuilding_counts_hash = false;
+
+struct gcov_module_info **module_infos = NULL;
+
+/* List of -D/-U options.  */
+static struct str_list *cpp_defines_head = NULL, *cpp_defines_tail = NULL;
+static unsigned num_cpp_defines = 0;
+
+/* List of -imcaro/-include options.  */
+static struct str_list *cpp_includes_head = NULL, *cpp_includes_tail = NULL;
+static unsigned num_cpp_includes = 0;
+
+/* True if the current module has any asm statements.  */
+static bool has_asm_statement;
+
 /* Forward declarations.  */
 static hashval_t htab_counts_entry_hash (const void *);
 static int htab_counts_entry_eq (const void *, const void *);
 static void htab_counts_entry_del (void *);
-static void read_counts_file (void);
+static void read_counts_file (const char *, unsigned);
 static unsigned compute_checksum (void);
 static unsigned coverage_checksum_string (unsigned, const char *);
 static tree build_fn_info_type (unsigned);
@@ -121,6 +156,7 @@ static tree build_ctr_info_type (void);
 static tree build_ctr_info_value (unsigned, tree);
 static tree build_gcov_info (void);
 static void create_coverage (void);
+static char * get_da_file_name (const char *);
 
 /* Return the type node for gcov_type.  */
 
@@ -132,7 +168,7 @@ get_gcov_type (void)
 
 /* Return the type node for gcov_unsigned_t.  */
 
-static tree
+tree
 get_gcov_unsigned_t (void)
 {
   return lang_hooks.types.type_for_size (32, true);
@@ -160,14 +196,94 @@ htab_counts_entry_del (void *of)
 {
   counts_entry_t *const entry = (counts_entry_t *) of;
 
-  free (entry->counts);
-  free (entry);
+  /* When rebuilding counts_hash, we will reuse the entry.  */
+  if (!rebuilding_counts_hash)
+    {
+      free (entry->counts);
+      free (entry);
+    }
 }
 
-/* Read in the counts file, if available.  */
+/* Returns true if MOD_ID is the id of the last source module.  */
+
+int
+is_last_module (unsigned mod_id)
+{
+  return (mod_id == module_infos[num_in_fnames - 1]->ident);
+}
+
+/* Returns true if the command-line arguments stored in the given module-infos
+   are incompatible.  */
+static bool
+incompatible_cl_args (struct gcov_module_info* mod_info1,
+		      struct gcov_module_info* mod_info2)
+{
+  char **warning_opts1 = XNEWVEC (char *, mod_info1->num_cl_args);
+  char **warning_opts2 = XNEWVEC (char *, mod_info2->num_cl_args);
+  char **non_warning_opts1 = XNEWVEC (char *, mod_info1->num_cl_args);
+  char **non_warning_opts2 = XNEWVEC (char *, mod_info2->num_cl_args);
+  unsigned int i, num_warning_opts1 = 0, num_warning_opts2 = 0;
+  unsigned int num_non_warning_opts1 = 0, num_non_warning_opts2 = 0;
+  bool warning_mismatch = false;
+  bool non_warning_mismatch = false;
+  unsigned int start_index1 = mod_info1->num_quote_paths +
+    mod_info1->num_bracket_paths + mod_info1->num_cpp_defines +
+    mod_info1->num_cpp_includes;
+  unsigned int start_index2 = mod_info2->num_quote_paths +
+    mod_info2->num_bracket_paths + mod_info2->num_cpp_defines +
+    mod_info2->num_cpp_includes;
+
+  /* First, separate the warning and non-warning options.  */
+  for (i = 0; i < mod_info1->num_cl_args; i++)
+    if (mod_info1->string_array[start_index1 + i][1] == 'W')
+      warning_opts1[num_warning_opts1++] =
+	mod_info1->string_array[start_index1 + i];
+    else
+      non_warning_opts1[num_non_warning_opts1++] =
+	mod_info1->string_array[start_index1 + i];
+
+  for (i = 0; i < mod_info2->num_cl_args; i++)
+    if (mod_info2->string_array[start_index2 + i][1] == 'W')
+      warning_opts2[num_warning_opts2++] =
+	mod_info2->string_array[start_index2 + i];
+    else
+      non_warning_opts2[num_non_warning_opts2++] =
+	mod_info2->string_array[start_index2 + i];
+
+  /* Compare warning options. If these mismatch, we emit a warning.  */
+  if (num_warning_opts1 != num_warning_opts2)
+    warning_mismatch = true;
+  else
+    for (i = 0; i < num_warning_opts1 && !warning_mismatch; i++)
+      warning_mismatch = strcmp (warning_opts1[i], warning_opts2[i]) != 0;
+
+  /* Compare non-warning options. If these mismatch, we emit a warning, and if
+     -fripa-disallow-opt-mismatch is supplied, the two modules are also
+     incompatible.  */
+  if (num_non_warning_opts1 != num_non_warning_opts2)
+    non_warning_mismatch = true;
+  else
+    for (i = 0; i < num_non_warning_opts1 && !non_warning_mismatch; i++)
+      non_warning_mismatch =
+	strcmp (non_warning_opts1[i], non_warning_opts2[i]) != 0;
+
+  if (warn_ripa_opt_mismatch && (warning_mismatch || non_warning_mismatch))
+    warning (OPT_Wripa_opt_mismatch, "command line arguments mismatch for %s "
+	     "and %s", mod_info1->source_filename, mod_info2->source_filename);
+
+  XDELETEVEC (warning_opts1);
+  XDELETEVEC (warning_opts2);
+  XDELETEVEC (non_warning_opts1);
+  XDELETEVEC (non_warning_opts2);
+  return flag_ripa_disallow_opt_mismatch && non_warning_mismatch;
+}
+
+/* Read in the counts file, if available. DA_FILE_NAME is the
+   name of the gcda file, and MODULE_ID is the module id of the
+   associated source module.  */
 
 static void
-read_counts_file (void)
+read_counts_file (const char *da_file_name, unsigned module_id)
 {
   gcov_unsigned_t fn_ident = 0;
   gcov_unsigned_t checksum = -1;
@@ -175,9 +291,25 @@ read_counts_file (void)
   unsigned seen_summary = 0;
   gcov_unsigned_t tag;
   int is_error = 0;
+  unsigned module_infos_read = 0;
+  struct pointer_set_t *modset = 0;
+  unsigned max_group = PARAM_VALUE (PARAM_MAX_LIPO_GROUP);
+
+  if (max_group == 0)
+    max_group = (unsigned) -1;
 
   if (!gcov_open (da_file_name, 1))
-    return;
+    {
+      if (PARAM_VALUE (PARAM_GCOV_DEBUG))
+        {
+          /* Try to find .gcda file in the current working dir.  */
+          da_file_name = lbasename (da_file_name);
+          if (!gcov_open (da_file_name, 1))
+            return;
+        }
+      else
+        return;
+    }
 
   if (!gcov_magic (gcov_read_unsigned (), GCOV_DATA_MAGIC))
     {
@@ -201,9 +333,10 @@ read_counts_file (void)
   /* Read and discard the stamp.  */
   gcov_read_unsigned ();
 
-  counts_hash = htab_create (10,
-			     htab_counts_entry_hash, htab_counts_entry_eq,
-			     htab_counts_entry_del);
+  if (!counts_hash)
+    counts_hash = htab_create (10,
+			       htab_counts_entry_hash, htab_counts_entry_eq,
+			       htab_counts_entry_del);
   while ((tag = gcov_read_unsigned ()))
     {
       gcov_unsigned_t length;
@@ -255,7 +388,7 @@ read_counts_file (void)
 	  unsigned n_counts = GCOV_TAG_COUNTER_NUM (length);
 	  unsigned ix;
 
-	  elt.ident = fn_ident;
+	  elt.ident = GEN_FUNC_GLOBAL_ID (module_id, fn_ident);
 	  elt.ctr = GCOV_COUNTER_FOR_TAG (tag);
 
 	  slot = (counts_entry_t **) htab_find_slot
@@ -306,6 +439,88 @@ read_counts_file (void)
 	    entry->counts[ix] += gcov_read_counter ();
 	skip_merge:;
 	}
+      /* Skip the MODULE_INFO records if not in dyn-ipa mode, or when reading
+	 auxiliary modules.  */
+      else if (tag == GCOV_TAG_MODULE_INFO && flag_dyn_ipa && !module_id)
+        {
+	  struct gcov_module_info* mod_info;
+          size_t info_sz;
+          /* each string has at least 8 bytes, so MOD_INFO's
+             persistent length >= in core size.  */
+          mod_info
+              = (struct gcov_module_info *) alloca ((length + 2)
+                                                    * sizeof (gcov_unsigned_t));
+	  gcov_read_module_info (mod_info, length);
+          info_sz = (sizeof (struct gcov_module_info) +
+		     sizeof (void *) * (mod_info->num_quote_paths +
+					mod_info->num_bracket_paths +
+					mod_info->num_cpp_defines +
+					mod_info->num_cpp_includes +
+					mod_info->num_cl_args));
+	  /* The first MODULE_INFO record must be for the primary module.  */
+	  if (module_infos_read == 0)
+	    {
+	      gcc_assert (mod_info->is_primary && !modset);
+	      module_infos_read++;
+              modset = pointer_set_create ();
+              pointer_set_insert (modset, (void *)(size_t)mod_info->ident);
+	      primary_module_id = mod_info->ident;
+              module_infos = XCNEWVEC (struct gcov_module_info *, 1);
+              module_infos[0] = XCNEWVAR (struct gcov_module_info, info_sz);
+              memcpy (module_infos[0], mod_info, info_sz);
+	    }
+	  else
+            {
+	      int fd;
+	      char *aux_da_filename = get_da_file_name (mod_info->da_filename);
+              gcc_assert (!mod_info->is_primary);
+	      if (pointer_set_insert (modset, (void *)(size_t)mod_info->ident))
+		inform (input_location, "Not importing %s: already imported",
+			mod_info->source_filename);
+	      else if ((module_infos[0]->lang & GCOV_MODULE_LANG_MASK) !=
+		       (mod_info->lang & GCOV_MODULE_LANG_MASK))
+		inform (input_location, "Not importing %s: source language"
+			" different from primary module's source language",
+			mod_info->source_filename);
+	      else if (module_infos_read == max_group)
+		inform (input_location, "Not importing %s: maximum group size"
+			" reached", mod_info->source_filename);
+	      else if (incompatible_cl_args (module_infos[0], mod_info))
+		inform (input_location, "Not importing %s: command-line"
+			" arguments not compatible with primary module",
+			mod_info->source_filename);
+	      else if ((fd = open (aux_da_filename, O_RDONLY)) < 0)
+		inform (input_location, "Not importing %s: couldn't open %s",
+			mod_info->source_filename, aux_da_filename);
+	      else if ((mod_info->lang & GCOV_MODULE_ASM_STMTS)
+		       && flag_ripa_disallow_asm_modules)
+		inform (input_location, "Not importing %s: contains assembler"
+			" statements", mod_info->source_filename);
+	      else
+		{
+		  close (fd);
+		  module_infos_read++;
+		  add_input_filename (mod_info->source_filename);
+		  module_infos = XRESIZEVEC (struct gcov_module_info *,
+					     module_infos, num_in_fnames);
+		  gcc_assert (num_in_fnames == module_infos_read);
+		  module_infos[module_infos_read - 1]
+		    = XCNEWVAR (struct gcov_module_info, info_sz);
+		  memcpy (module_infos[module_infos_read - 1], mod_info,
+			  info_sz);
+		}
+            }
+
+          if (flag_ripa_verbose)
+            {
+              inform (input_location,
+                      "MODULE Id=%d, Is_Primary=%s,"
+                      " Is_Exported=%s, Name=%s (%s)",
+                      mod_info->ident, mod_info->is_primary?"yes":"no",
+                      mod_info->is_exported?"yes":"no", mod_info->source_filename,
+                      mod_info->da_filename);
+            }
+        }
       gcov_sync (offset, length);
       if ((is_error = gcov_is_error ()))
 	{
@@ -316,7 +531,66 @@ read_counts_file (void)
 	}
     }
 
+  /* TODO: profile based multiple module compilation does not work
+     together with command line (-combine) based ipo -- add a nice
+     warning and bail out instead of asserting.  */
+
+  if (modset)
+    pointer_set_destroy (modset);
+  gcc_assert (module_infos_read == 0
+              || module_infos_read == num_in_fnames);
+
+  if (flag_dyn_ipa)
+    gcc_assert (primary_module_id && num_in_fnames >= 1);
+
   gcov_close ();
+}
+
+/* Returns the coverage data entry for counter type COUNTER of function
+   FUNC. EXPECTED is the number of expected counter entries.  */
+
+static counts_entry_t *
+get_coverage_counts_entry (struct function *func,
+                           unsigned counter, unsigned expected)
+{
+  counts_entry_t *entry, *new_entry, elt;
+  tree decl;
+  struct cgraph_node *real_node;
+
+  elt.ident = FUNC_DECL_GLOBAL_ID (func);
+  elt.ctr = counter;
+  entry = (counts_entry_t *) htab_find (counts_hash, &elt);
+  if (entry)
+    return entry;
+
+  if (!L_IPO_COMP_MODE)
+    return NULL;
+
+  decl = func->decl;
+  real_node = cgraph_lipo_get_resolved_node_1 (decl, false);
+  if (real_node && 0)
+    {
+      counts_entry_t real_elt;
+      real_elt.ident = FUNC_DECL_GLOBAL_ID (DECL_STRUCT_FUNCTION (real_node->decl));
+      real_elt.ctr = counter;
+      entry = (counts_entry_t *) htab_find (counts_hash, &real_elt);
+      if (entry && expected == entry->summary.num)
+        {
+          /* Make a copy.  */
+          counts_entry_t **slot;
+          slot = (counts_entry_t **) htab_find_slot (counts_hash, &elt, INSERT);
+          gcc_assert (slot && !*slot);
+          *slot = new_entry = XCNEW (counts_entry_t);
+          new_entry->ident = elt.ident;
+          new_entry->ctr = elt.ctr;
+          new_entry->checksum = entry->checksum;
+          new_entry->summary.num = entry->summary.num;
+          new_entry->counts = XCNEWVEC (gcov_type, entry->summary.num);
+          memcpy (new_entry->counts, entry->counts, sizeof (gcov_type) * entry->summary.num);
+          entry = new_entry;
+        }
+    }
+  return entry;
 }
 
 /* Returns the counters for a particular tag.  */
@@ -325,7 +599,7 @@ gcov_type *
 get_coverage_counts (unsigned counter, unsigned expected,
 		     const struct gcov_ctr_summary **summary)
 {
-  counts_entry_t *entry, elt;
+  counts_entry_t *entry;
   gcov_unsigned_t checksum = -1;
 
   /* No hash table, no counts.  */
@@ -341,13 +615,13 @@ get_coverage_counts (unsigned counter, unsigned expected,
       return NULL;
     }
 
-  elt.ident = current_function_funcdef_no + 1;
-  elt.ctr = counter;
-  entry = (counts_entry_t *) htab_find (counts_hash, &elt);
+  entry = get_coverage_counts_entry (cfun, counter, expected);
+
   if (!entry)
     {
-      warning (0, "no coverage for function %qE found",
-	       DECL_ASSEMBLER_NAME (current_function_decl));
+      if (!flag_dyn_ipa)
+	warning (0, "no coverage for function %qE found",
+		 DECL_ASSEMBLER_NAME (current_function_decl));
       return NULL;
     }
 
@@ -391,6 +665,28 @@ get_coverage_counts (unsigned counter, unsigned expected,
   if (summary)
     *summary = &entry->summary;
 
+  return entry->counts;
+}
+
+/* Returns the coverage data entry for counter type COUNTER of function
+   FUNC. On return, *N_COUNTS is set to the number of entries in the counter.  */
+
+gcov_type *
+get_coverage_counts_no_warn (struct function *f, unsigned counter, unsigned *n_counts)
+{
+  counts_entry_t *entry, elt;
+
+  /* No hash table, no counts.  */
+  if (!counts_hash || !f)
+    return NULL;
+
+  elt.ident = FUNC_DECL_GLOBAL_ID (f);
+  elt.ctr = counter;
+  entry = (counts_entry_t *) htab_find (counts_hash, &elt);
+  if (!entry)
+    return NULL;
+
+  *n_counts = entry->summary.num;
   return entry->counts;
 }
 
@@ -532,13 +828,32 @@ coverage_checksum_string (unsigned chksum, const char *string)
 static unsigned
 compute_checksum (void)
 {
+  tree name;
   expanded_location xloc
     = expand_location (DECL_SOURCE_LOCATION (current_function_decl));
   unsigned chksum = xloc.line;
+  const char *pathless_filename = xloc.file;
+  int i;
+  for (i = strlen (xloc.file); i >= 0; i--)
+    if (IS_DIR_SEPARATOR (pathless_filename[i]))
+      {
+	pathless_filename += i + 1;
+	break;
+      }
 
-  chksum = coverage_checksum_string (chksum, xloc.file);
+  chksum = coverage_checksum_string (chksum, pathless_filename);
+
+  /* Note: it is a bad design that C++ FE associate the convertion function type
+     with the name of the decl. This leads to cross contamination between different
+     conversion operators in different modules (If conv_type_names map is cleared
+     at the end of parsing of each module).  */
+  if (flag_dyn_ipa && lang_hooks.user_conv_function_p (current_function_decl))
+    name = DECL_ASSEMBLER_NAME (current_function_decl);
+  else
+    name = DECL_NAME (current_function_decl);
+
   chksum = coverage_checksum_string
-    (chksum, IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (current_function_decl)));
+      (chksum, IDENTIFIER_POINTER (name));
 
   return chksum;
 }
@@ -577,7 +892,7 @@ coverage_begin_output (void)
 
       /* Announce function */
       offset = gcov_write_tag (GCOV_TAG_FUNCTION);
-      gcov_write_unsigned (current_function_funcdef_no + 1);
+      gcov_write_unsigned (FUNC_DECL_FUNC_ID (cfun));
       gcov_write_unsigned (compute_checksum ());
       gcov_write_string (IDENTIFIER_POINTER
 			 (DECL_ASSEMBLER_NAME (current_function_decl)));
@@ -608,13 +923,13 @@ coverage_end_function (void)
     {
       struct function_list *item;
 
-      item = XNEW (struct function_list);
+      item = XCNEW (struct function_list);
 
       *functions_tail = item;
       functions_tail = &item->next;
 
       item->next = 0;
-      item->ident = current_function_funcdef_no + 1;
+      item->ident = FUNC_DECL_FUNC_ID (cfun);
       item->checksum = compute_checksum ();
       for (i = 0; i != GCOV_COUNTERS; i++)
 	{
@@ -626,6 +941,56 @@ coverage_end_function (void)
       fn_ctr_mask = 0;
     }
   bbg_function_announced = 0;
+}
+
+/* True if a function entry corresponding to the given FN_IDENT
+   is present in the coverage internal data structures.  */
+
+bool
+coverage_function_present (unsigned fn_ident)
+{
+  struct function_list *item = functions_head;
+  while (item && item->ident != fn_ident)
+    item = item->next;
+  return item != NULL;
+}
+
+/* Update function and program direct-call coverage counts.  */
+
+void
+coverage_dc_end_function (void)
+{
+  if (fn_ctr_mask)
+    {
+      const unsigned idx = GCOV_COUNTER_DIRECT_CALL;
+      struct function_list *item = functions_head;
+      while (item && item->ident != (unsigned) FUNC_DECL_FUNC_ID (cfun))
+	item = item->next;
+
+      /* If a matching function entry hasn't been found, either this function
+	 has had no coverage counts added in the profile pass, or this
+	 is a new function (function versioning, etc). Create a new entry.  */
+      if (!item)
+	{
+	  int i;
+	  item = XCNEW (struct function_list);
+	  *functions_tail = item;
+	  functions_tail = &item->next;
+	  item->next = 0;
+	  item->ident = FUNC_DECL_FUNC_ID (cfun);
+	  item->checksum = compute_checksum ();
+	  for (i = 0; i < GCOV_COUNTERS; i++)
+	    item->n_ctrs[i] = 0;
+	}
+
+      item->n_ctrs[idx] += fn_n_ctrs[idx];
+      item->dc_offset = prg_n_ctrs[idx];
+      prg_n_ctrs[idx] += fn_n_ctrs[idx];
+      fn_n_ctrs[idx] = fn_b_ctrs[idx] = 0;
+      prg_ctr_mask |= fn_ctr_mask;
+      fn_ctr_mask = 0;
+      add_referenced_var (tree_ctr_tables[idx]);
+    }
 }
 
 /* Creates the gcov_fn_info RECORD_TYPE.  */
@@ -645,6 +1010,12 @@ build_fn_info_type (unsigned int counters)
   field = build_decl (BUILTINS_LOCATION,
 		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
   DECL_CHAIN (field) = fields;
+  fields = field;
+
+  /* dc offset */
+  field = build_decl (BUILTINS_LOCATION,
+		      FIELD_DECL, NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
   fields = field;
 
   array_type = build_int_cst (NULL_TREE, counters - 1);
@@ -685,6 +1056,12 @@ build_fn_info_value (const struct function_list *function, tree type)
 			  build_int_cstu (get_gcov_unsigned_t (),
 					  function->checksum));
   fields = DECL_CHAIN (fields);
+
+  /* dc offset */
+  CONSTRUCTOR_APPEND_ELT (v1, fields,
+			  build_int_cstu (get_gcov_unsigned_t (),
+					  function->dc_offset));
+  fields = TREE_CHAIN (fields);
 
   /* counters */
   for (ix = 0; ix != GCOV_COUNTERS; ix++)
@@ -791,6 +1168,274 @@ build_ctr_info_value (unsigned int counter, tree type)
   return build_constructor (type, v);
 }
 
+/* Returns an array (tree) of include path strings. STRING_TYPE is
+   the path string type, INC_PATH_VALUE is the initial value of the
+   path array, PATHS gives raw path string values, and NUM is the
+   number of paths.  */
+
+static tree
+build_inc_path_array_value (tree string_type, tree inc_path_value,
+                            cpp_dir *paths, int num)
+{
+  int i;
+  cpp_dir *pdir;
+  for (i = 0, pdir = paths; i < num; pdir = pdir->next)
+    {
+      const char *path_raw_string;
+      int path_string_length;
+      tree path_string;
+      path_raw_string = pdir->name;
+      path_string_length = strlen (path_raw_string);
+      path_string = build_string (path_string_length + 1, path_raw_string);
+      TREE_TYPE (path_string) = build_array_type
+          (char_type_node, build_index_type
+           (build_int_cst (NULL_TREE, path_string_length)));
+      inc_path_value = tree_cons (NULL_TREE,
+                                  build1 (ADDR_EXPR, string_type, path_string),
+                                  inc_path_value);
+      i++;
+    }
+  return inc_path_value;
+}
+
+/* Returns an array (tree) of strings. STR_TYPE is the string type,
+   STR_ARRAY_VALUE is the initial value of the string array, and HEAD gives
+   the list of raw strings.  */
+
+static tree
+build_str_array_value (tree str_type, tree str_array_value,
+		       struct str_list *head)
+{
+  const char *raw_str;
+  int str_length;
+  while (head)
+    {
+      tree str;
+      raw_str = head->str;
+      str_length = strlen (raw_str);
+      str = build_string (str_length + 1, raw_str);
+      TREE_TYPE (str) =
+	build_array_type (char_type_node,
+			  build_index_type (build_int_cst (NULL_TREE,
+							   str_length)));
+      str_array_value = tree_cons (NULL_TREE,
+				   build1 (ADDR_EXPR, str_type, str),
+				   str_array_value);
+      head = head->next;
+    }
+  return str_array_value;
+}
+
+/* Returns an array (tree) of command-line argument strings. STRING_TYPE is
+   the string type, CL_ARGS_VALUE is the initial value of the command-line
+   args array. */
+
+static tree
+build_cl_args_array_value (tree string_type, tree cl_args_value)
+{
+  unsigned int i;
+  for (i = 0; i < num_lipo_cl_args; i++)
+    {
+      int arg_length = strlen (lipo_cl_args[i]);
+      tree arg_string = build_string (arg_length + 1, lipo_cl_args[i]);
+      TREE_TYPE (arg_string) =
+	build_array_type (char_type_node,
+			  build_index_type (build_int_cst (NULL_TREE,
+							   arg_length)));
+      cl_args_value = tree_cons (NULL_TREE,
+				 build1 (ADDR_EXPR, string_type, arg_string),
+				 cl_args_value);
+    }
+  return cl_args_value;
+}
+
+/* Returns the value of the module info associated with the
+   current source module being compiled.  */
+
+static tree
+build_gcov_module_info_value (void)
+{
+  tree type, field, fields = NULL_TREE;
+  tree string_type, index_type, string_array_type;
+  tree value = NULL_TREE, string_array = NULL_TREE, mod_info;
+  int file_name_len;
+  tree filename_string;
+  cpp_dir *quote_paths, *bracket_paths, *pdir;
+  int num_quote_paths = 0, num_bracket_paths = 0;
+  unsigned lang;
+  char name_buf[50];
+
+  type = lang_hooks.types.make_type (RECORD_TYPE);
+  string_type = build_pointer_type (
+      build_qualified_type (char_type_node,
+                            TYPE_QUAL_CONST));
+
+  /* ident */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+                      NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (fields, build_int_cstu (get_gcov_unsigned_t (),
+					     0), value);
+
+
+  /* is_primary */
+  /* We also overload this field to store a flag that indicates whether this
+     module was built in regular FDO or LIPO mode (-fripa). When reading this
+     field from a GCDA file, it should be used as the IS_PRIMARY flag. When
+     reading this field from the binary's data section, it should be used
+     as a FDO/LIPO flag.  */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+                      NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
+                                            flag_dyn_ipa ? 1 :0), value);
+
+  /* is_exported */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+                      NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
+                                            0), value);
+
+  /* lang field */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+                      NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  if (!strcmp (lang_hooks.name, "GNU C"))
+    lang = GCOV_MODULE_C_LANG;
+  else if (!strcmp (lang_hooks.name, "GNU C++"))
+    lang = GCOV_MODULE_CPP_LANG;
+  else
+    lang = GCOV_MODULE_UNKNOWN_LANG;
+  if (has_asm_statement)
+    lang |= GCOV_MODULE_ASM_STMTS;
+  value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
+                                            lang), value);
+
+  /* da_filename */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+                      NULL_TREE, string_type);
+  TREE_CHAIN (field) = fields;
+  fields = field;
+
+  file_name_len = strlen (da_base_file_name);
+  filename_string = build_string (file_name_len + 1, da_base_file_name);
+  TREE_TYPE (filename_string) = build_array_type
+    (char_type_node, build_index_type
+     (build_int_cst (NULL_TREE, file_name_len)));
+  value = tree_cons (field, build1 (ADDR_EXPR, string_type, filename_string),
+		     value);
+
+  /* Source name */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+                      NULL_TREE, string_type);
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  file_name_len = strlen (main_input_file_name);
+  filename_string = build_string (file_name_len + 1, main_input_file_name);
+  TREE_TYPE (filename_string) = build_array_type
+    (char_type_node, build_index_type
+     (build_int_cst (NULL_TREE, file_name_len)));
+  value = tree_cons (field, build1 (ADDR_EXPR, string_type, filename_string),
+		     value);
+
+  get_include_chains (&quote_paths, &bracket_paths);
+  for (pdir = quote_paths; pdir; pdir = pdir->next)
+    {
+      if (pdir == bracket_paths)
+        break;
+      num_quote_paths++;
+    }
+  for (pdir = bracket_paths; pdir; pdir = pdir->next)
+    num_bracket_paths++;
+
+  /* Num quote paths  */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+                      NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
+                                            num_quote_paths), value);
+  /* Num bracket paths  */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+                      NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
+                                            num_bracket_paths), value);
+
+  /* Num -D/-U options.  */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+                      NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
+                                            num_cpp_defines), value);
+
+  /* Num -imacro/-include options.  */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL, NULL_TREE,
+		      get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
+                                            num_cpp_includes), value);
+
+  /* Num command-line args.  */
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+		      NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (field, build_int_cstu (get_gcov_unsigned_t (),
+                                            num_lipo_cl_args), value);
+
+  /* string array  */
+  index_type = build_index_type (build_int_cst (NULL_TREE,
+						num_quote_paths	+
+						num_bracket_paths +
+						num_cpp_defines +
+						num_cpp_includes +
+						num_lipo_cl_args));
+  string_array_type = build_array_type (string_type, index_type);
+  string_array = build_inc_path_array_value (string_type, string_array,
+					     quote_paths, num_quote_paths);
+  string_array = build_inc_path_array_value (string_type, string_array,
+					     bracket_paths, num_bracket_paths);
+  string_array = build_str_array_value (string_type, string_array,
+					cpp_defines_head);
+  string_array = build_str_array_value (string_type, string_array,
+					cpp_includes_head);
+  string_array = build_cl_args_array_value (string_type, string_array);
+  string_array = build_constructor_from_list (string_array_type,
+					      nreverse (string_array));
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL,
+                      NULL_TREE, string_array_type);
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  value = tree_cons (field, string_array, value);
+
+  finish_builtin_struct (type, "__gcov_module_info", fields, NULL_TREE);
+
+  /* FIXME: use build_constructor directly.  */
+  value = build_constructor_from_list (type, nreverse (value));
+
+
+  mod_info = build_decl (UNKNOWN_LOCATION, VAR_DECL,
+                         NULL_TREE, TREE_TYPE (value));
+  TREE_STATIC (mod_info) = 1;
+  ASM_GENERATE_INTERNAL_LABEL (name_buf, "MODINFO", 0);
+  DECL_NAME (mod_info) = get_identifier (name_buf);
+  DECL_INITIAL (mod_info) = value;
+
+  /* Build structure.  */
+  varpool_finalize_decl (mod_info);
+
+  return mod_info;
+}
+
 /* Creates the gcov_info RECORD_TYPE and initializer for it. Returns a
    CONSTRUCTOR.  */
 
@@ -803,6 +1448,7 @@ build_gcov_info (void)
   tree fn_info_ptr_type;
   tree ctr_info_type, ctr_info_ary_type, ctr_info_value = NULL_TREE;
   tree field, fields = NULL_TREE;
+  tree mod_value = NULL_TREE, mod_type = NULL_TREE;
   tree filename_string;
   int da_file_name_len;
   unsigned n_fns;
@@ -826,6 +1472,16 @@ build_gcov_info (void)
   fields = field;
   CONSTRUCTOR_APPEND_ELT (v1, field,
 			  build_int_cstu (TREE_TYPE (field), GCOV_VERSION));
+
+  /* mod_info */
+  mod_value = build_gcov_module_info_value ();
+  mod_type = build_pointer_type (TREE_TYPE (mod_value));
+  field = build_decl (UNKNOWN_LOCATION, FIELD_DECL, NULL_TREE, mod_type);
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  mod_value = build1 (ADDR_EXPR, mod_type, mod_value);
+  CONSTRUCTOR_APPEND_ELT (v1, field, mod_value);
+
 
   /* next -- NULL */
   field = build_decl (BUILTINS_LOCATION,
@@ -856,6 +1512,13 @@ build_gcov_info (void)
      (build_int_cst (NULL_TREE, da_file_name_len)));
   CONSTRUCTOR_APPEND_ELT (v1, field,
 			  build1 (ADDR_EXPR, string_type, filename_string));
+
+  /* eof_pos */
+  field = build_decl (BUILTINS_LOCATION, FIELD_DECL,
+                      NULL_TREE, get_gcov_unsigned_t ());
+  TREE_CHAIN (field) = fields;
+  fields = field;
+  CONSTRUCTOR_APPEND_ELT (v1, field, build_int_cstu (TREE_TYPE (field), 0));
 
   /* Build the fn_info type and initializer.  */
   fn_info_type = build_fn_info_type (n_ctr_types);
@@ -972,43 +1635,193 @@ create_coverage (void)
   cgraph_build_static_cdtor ('I', body, DEFAULT_INIT_PRIORITY);
 }
 
-/* Perform file-level initialization. Read in data file, generate name
-   of graph file.  */
+/* Get the da file name, given base file name.  */
 
-void
-coverage_init (const char *filename)
+static char *
+get_da_file_name (const char *base_file_name)
 {
-  int len = strlen (filename);
+  char *da_file_name;
+  int len = strlen (base_file_name);
+  const char *prefix = profile_data_prefix;
   /* + 1 for extra '/', in case prefix doesn't end with /.  */
   int prefix_len;
 
-  if (profile_data_prefix == 0 && filename[0] != '/')
-    profile_data_prefix = getpwd ();
+  if (prefix == 0 && base_file_name[0] != '/')
+    prefix = getpwd ();
 
-  prefix_len = (profile_data_prefix) ? strlen (profile_data_prefix) + 1 : 0;
+  prefix_len = (prefix) ? strlen (prefix) + 1 : 0;
 
   /* Name of da file.  */
   da_file_name = XNEWVEC (char, len + strlen (GCOV_DATA_SUFFIX)
 			  + prefix_len + 1);
 
-  if (profile_data_prefix)
+  if (prefix)
     {
-      strcpy (da_file_name, profile_data_prefix);
+      strcpy (da_file_name, prefix);
       da_file_name[prefix_len - 1] = '/';
       da_file_name[prefix_len] = 0;
     }
   else
     da_file_name[0] = 0;
-  strcat (da_file_name, filename);
+  strcat (da_file_name, base_file_name);
   strcat (da_file_name, GCOV_DATA_SUFFIX);
+  return da_file_name;
+}
+
+/* Rebuild counts_hash already built the primary module. This hashtable
+   was built with a module-id of zero. It needs to be rebuilt taking the
+   correct primary module-id into account.  */
+
+static int
+rebuild_counts_hash_entry (void **x, void *y)
+{
+  counts_entry_t *entry = (counts_entry_t *) *x;
+  htab_t *new_counts_hash = (htab_t *) y;
+  counts_entry_t **slot;
+  entry->ident = GEN_FUNC_GLOBAL_ID (primary_module_id, entry->ident);
+  slot = (counts_entry_t **) htab_find_slot (*new_counts_hash, entry, INSERT);
+  *slot = entry;
+  return 1;
+}
+
+/* Rebuild counts_hash already built the primary module. This hashtable
+   was built with a module-id of zero. It needs to be rebuilt taking the
+   correct primary module-id into account.  */
+
+static void
+rebuild_counts_hash (void)
+{
+  htab_t new_counts_hash =
+    htab_create (10, htab_counts_entry_hash, htab_counts_entry_eq,
+		 htab_counts_entry_del);
+  gcc_assert (primary_module_id);
+  rebuilding_counts_hash = true;
+  htab_traverse_noresize (counts_hash, rebuild_counts_hash_entry, &new_counts_hash);
+  htab_delete (counts_hash);
+  rebuilding_counts_hash = false;
+  counts_hash = new_counts_hash;
+}
+
+/* Add the module information record for the module with id
+   MODULE_ID. IS_PRIMARY is true if the module is the primary module.
+   INDEX is the index of the new record in the module info array.  */
+
+void
+add_module_info (unsigned module_id, bool is_primary, int index)
+{
+  struct gcov_module_info *cur_info;
+  module_infos = XRESIZEVEC (struct gcov_module_info *,
+                             module_infos, index + 1);
+  module_infos[index] = XNEW (struct gcov_module_info);
+  cur_info = module_infos[index];
+  cur_info->ident = module_id;
+  cur_info->is_exported = true;
+  cur_info->num_quote_paths = 0;
+  cur_info->num_bracket_paths = 0;
+  cur_info->da_filename = NULL;
+  cur_info->source_filename = NULL;
+  if (is_primary)
+    primary_module_id = module_id;
+}
+
+/* Set the prepreprocessing context (include search paths, -D/-U).
+   PARSE_IN is the preprocessor reader, I is the index of the module,
+   and VERBOSE is the verbose flag.  */
+
+void
+set_lipo_c_parsing_context (struct cpp_reader *parse_in, int i, bool verbose)
+{
+  struct gcov_module_info *mod_info;
+  if (!L_IPO_COMP_MODE)
+    return;
+
+  mod_info = module_infos[i];
+
+  gcc_assert (flag_dyn_ipa);
+  current_module_id = mod_info->ident;
+  reset_funcdef_no ();
+
+  if (current_module_id != primary_module_id)
+    {
+      unsigned i, j;
+
+      /* Setup include paths.  */
+      clear_include_chains ();
+      for (i = 0; i < mod_info->num_quote_paths; i++)
+        add_path (xstrdup (mod_info->string_array[i]),
+                  QUOTE, 0, 1);
+      for (i = 0, j = mod_info->num_quote_paths;
+	   i < mod_info->num_bracket_paths; i++, j++)
+        add_path (xstrdup (mod_info->string_array[j]),
+                  BRACKET, 0, 1);
+      register_include_chains (parse_in, NULL, NULL, NULL,
+                               0, 0, verbose);
+
+      /* Setup defines/undefs.  */
+      for (i = 0, j = mod_info->num_quote_paths + mod_info->num_bracket_paths;
+	   i < mod_info->num_cpp_defines; i++, j++)
+	if (mod_info->string_array[j][0] == 'D')
+	  cpp_define (parse_in, mod_info->string_array[j] + 1);
+	else
+	  cpp_undef (parse_in, mod_info->string_array[j] + 1);
+
+      /* Setup -imacro/-include.  */
+      for (i = 0, j = mod_info->num_quote_paths + mod_info->num_bracket_paths +
+	     mod_info->num_cpp_defines; i < mod_info->num_cpp_includes;
+	   i++, j++)
+	cpp_push_include (parse_in, mod_info->string_array[j]);
+    }
+}
+
+/* Perform file-level initialization. Read in data file, generate name
+   of graph file.  */
+
+void
+coverage_init (const char *filename, const char* source_name)
+{
+  char* src_name_prefix = 0;
+  int src_name_prefix_len = 0;
+  int len = strlen (filename);
+
+  has_asm_statement = false;
+  da_file_name = get_da_file_name (filename);
+  da_base_file_name = XNEWVEC (char, strlen (filename) + 1);
+  strcpy (da_base_file_name, filename);
 
   /* Name of bbg file.  */
   bbg_file_name = XNEWVEC (char, len + strlen (GCOV_NOTE_SUFFIX) + 1);
   strcpy (bbg_file_name, filename);
   strcat (bbg_file_name, GCOV_NOTE_SUFFIX);
 
+  if (profile_data_prefix == 0 && !IS_ABSOLUTE_PATH (source_name))
+    {
+      src_name_prefix = getpwd ();
+      src_name_prefix_len = strlen (src_name_prefix) + 1;
+    }
+  main_input_file_name = XNEWVEC (char, strlen (source_name) + 1 
+                                  + src_name_prefix_len);
+  if (!src_name_prefix)
+    strcpy (main_input_file_name, source_name);
+  else
+    {
+      strcpy (main_input_file_name, src_name_prefix);
+      strcat (main_input_file_name, "/");
+      strcat (main_input_file_name, source_name);
+    }
+
   if (flag_profile_use)
-    read_counts_file ();
+    read_counts_file (da_file_name, 0);
+
+  /* Rebuild counts_hash and read the auxiliary GCDA files.  */
+  if (flag_profile_use && L_IPO_COMP_MODE)
+    {
+      unsigned i;
+      gcc_assert (flag_dyn_ipa);
+      rebuild_counts_hash ();
+      for (i = 1; i < num_in_fnames; i++)
+	read_counts_file (get_da_file_name (module_infos[i]->da_filename),
+			  module_infos[i]->ident);
+    }
 }
 
 /* Performs file-level cleanup.  Close graph file, generate coverage
@@ -1029,6 +1842,54 @@ coverage_finish (void)
 	   stamp it, libgcov will DTRT.  */
 	unlink (da_file_name);
     }
+}
+
+/* Add S to the end of the string-list, the head and tail of which are
+   pointed-to by HEAD and TAIL, respectively.  */
+
+static void
+str_list_append (struct str_list **head, struct str_list **tail, const char *s)
+{
+  struct str_list *e = XNEW (struct str_list);
+  e->str = XNEWVEC (char, strlen (s) + 1);
+  strcpy (e->str, s);
+  e->next = NULL;
+  if (*tail)
+    (*tail)->next = e;
+  else
+    *head = e;
+  *tail = e;
+}
+
+/* Copies the macro def or undef CPP_DEF and saves the copy
+   in a list. IS_DEF is a flag indicating if CPP_DEF represents
+   a -D or -U.  */
+
+void
+coverage_note_define (const char *cpp_def, bool is_def)
+{
+  char *s = XNEWVEC (char, strlen (cpp_def) + 2);
+  s[0] = is_def ? 'D' : 'U';
+  strcpy (s + 1, cpp_def);
+  str_list_append (&cpp_defines_head, &cpp_defines_tail, s);
+  num_cpp_defines++;
+}
+
+/* Copies the -imacro/-include FILENAME and saves the copy in a list.  */
+
+void
+coverage_note_include (const char *filename)
+{
+  str_list_append (&cpp_includes_head, &cpp_includes_tail, filename);
+  num_cpp_includes++;
+}
+
+/* Mark this module as containing asm statements.  */
+
+void
+coverage_has_asm_stmt (void)
+{
+  has_asm_statement = flag_ripa_disallow_asm_modules;
 }
 
 #include "gt-coverage.h"

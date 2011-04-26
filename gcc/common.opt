@@ -561,6 +561,10 @@ Wpadded
 Common Var(warn_padded) Warning
 Warn when padding is required to align structure members
 
+Wripa-opt-mismatch
+Common Var(warn_ripa_opt_mismatch) Warning
+Warn if primary and auxiliary modules have mismatched command line options
+
 Wshadow
 Common Var(warn_shadow) Warning
 Warn when one local variable shadows another
@@ -1022,6 +1026,28 @@ Suppress output of previous and next insn numbers in debugging dumps
 fdwarf2-cfi-asm
 Common Report Var(flag_dwarf2_cfi_asm) Init(HAVE_GAS_CFI_DIRECTIVE)
 Enable CFI tables via GAS assembler directives.
+
+fripa
+Common Report Var(flag_dyn_ipa)
+Perform Dynamic Inter-Procedural Analysis.
+
+fripa-disallow-asm-modules
+Common Report Var(flag_ripa_disallow_asm_modules)
+Don't import an auxiliary module if it contains asm statements
+
+fripa-disallow-opt-mismatch
+Common Report Var(flag_ripa_disallow_opt_mismatch)
+Don't import an auxiliary module if the command line options mismatch with the primary module
+
+fripa-no-promote-always-inline-func
+Common Report Var(flag_ripa_no_promote_always_inline) Init(0)
+Don't promote always inline static functions assuming they
+will be inlined and no copy is needed.
+
+
+fripa-verbose
+Common Report Var(flag_ripa_verbose)
+Enable verbose informational messages for LIPO compilation
 
 fearly-inlining
 Common Report Var(flag_early_inlining) Init(1) Optimization
@@ -1558,6 +1584,10 @@ The default is 'pwd'.
 fprofile-correction
 Common Report Var(flag_profile_correction)
 Enable correction of flow inconsistent profile data input
+
+fprofile-dump
+Common Report Var(flag_profile_dump) Init(0) Optimization
+Dump CFG profile for comparison.
 
 fprofile-generate
 Common
