@@ -60,6 +60,14 @@ pph_stream_unpack_value_fields (struct bitpack_d *bp, tree expr)
       DECL_LANG_FLAG_7 (expr) = bp_unpack_value (bp, 1);
       DECL_LANG_FLAG_8 (expr) = bp_unpack_value (bp, 1);
     }
+
+  TREE_LANG_FLAG_0 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_1 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_2 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_3 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_4 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_5 (expr) = bp_unpack_value (bp, 1);
+  TREE_LANG_FLAG_6 (expr) = bp_unpack_value (bp, 1);
 }
 
 

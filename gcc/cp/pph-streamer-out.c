@@ -66,6 +66,14 @@ pph_stream_pack_value_fields (struct bitpack_d *bp, tree expr)
       bp_pack_value (bp, DECL_LANG_FLAG_7 (expr), 1);
       bp_pack_value (bp, DECL_LANG_FLAG_8 (expr), 1);
     }
+
+  bp_pack_value (bp, TREE_LANG_FLAG_0 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_1 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_2 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_3 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_4 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_5 (expr), 1);
+  bp_pack_value (bp, TREE_LANG_FLAG_6 (expr), 1);
 }
 
 
