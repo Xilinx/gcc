@@ -268,7 +268,7 @@ enum LTO_tags
 
      Conversely, to map between LTO tags and tree/gimple codes, the
      reverse operation must be applied.  */
-  LTO_bb0 = 1 + NUM_TREE_CODES + LAST_AND_UNUSED_GIMPLE_CODE,
+  LTO_bb0 = 1 + MAX_TREE_CODES + LAST_AND_UNUSED_GIMPLE_CODE,
   LTO_bb1,
 
   /* EH region holding the previous statement.  */

@@ -1,5 +1,10 @@
 2011-04-26  Diego Novillo  <dnovillo@google.com>
 
+	* lto-streamer.h (enum LTO_tags): Change LTO_bb0 to begin
+	after MAX_TREE_CODES.
+
+2011-04-26  Diego Novillo  <dnovillo@google.com>
+
 	* tree.c (tree_node_structure_enum): Make extern.
 	(mark_ts_structures_for): Factor out of
 	initialize_tree_contains_struct.
