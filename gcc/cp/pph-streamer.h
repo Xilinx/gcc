@@ -138,33 +138,23 @@ pph_output_tree (pph_stream *stream, tree t, bool ref_p)
   lto_output_tree (stream->ob, t, ref_p);
 }
 
-/* Output AST T to STREAM.  If REF_P is true, output all the leaves of T
-   as references.  This function is an list auxillary routine.  */
+/* Output AST T to STREAM.  If REF_P is true, output a reference to T.
+   If -fpph-tracer is set to TLEVEL or higher, T is sent to
+   pph_stream_trace_tree.  */
 static inline void
-pph_output_tree_lst (pph_stream *stream, tree t, bool ref_p)
+pph_output_tree_or_ref_1 (pph_stream *stream, tree t, bool ref_p, int tlevel)
 {
-  if (flag_pph_tracer >= 2)
+  if (flag_pph_tracer >= tlevel)
     pph_stream_trace_tree (stream, t, ref_p);
-  lto_output_tree (stream->ob, t, ref_p);
+  lto_output_tree_or_ref (stream->ob, t, ref_p);
 }
 
-/* Output AST T to STREAM.  If REF_P is true, output all the leaves of T
-   as references.  This function is an internal auxillary routine.  */
-static inline void
-pph_output_tree_aux (pph_stream *stream, tree t, bool ref_p)
-{
-  if (flag_pph_tracer >= 3)
-    pph_stream_trace_tree (stream, t, ref_p);
-  lto_output_tree (stream->ob, t, ref_p);
-}
-
-/* Output AST T to STREAM.  If REF_P is true, output a reference to T.  */
+/* Output AST T to STREAM.  If REF_P is true, output a reference to T.
+   Trigger tracing at -fpph-tracer=2.  */
 static inline void
 pph_output_tree_or_ref (pph_stream *stream, tree t, bool ref_p)
 {
-  if (flag_pph_tracer >= 2)
-    pph_stream_trace_tree (stream, t, ref_p);
-  lto_output_tree_or_ref (stream->ob, t, ref_p);
+  pph_output_tree_or_ref_1 (stream, t, ref_p, 2);
 }
 
 /* Write an unsigned int VALUE to STREAM.  */

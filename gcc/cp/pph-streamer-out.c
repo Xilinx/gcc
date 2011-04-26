@@ -252,9 +252,9 @@ pph_stream_write_ld_min (pph_stream *stream, struct lang_decl_min *ldm,
 
   gcc_assert (ldm->base.selector == 0);
 
-  pph_output_tree_or_ref (stream, ldm->template_info, ref_p);
+  pph_output_tree_or_ref_1 (stream, ldm->template_info, ref_p, 1);
   if (ldm->base.u2sel == 0)
-    pph_output_tree_or_ref (stream, ldm->u2.access, ref_p);
+    pph_output_tree_or_ref_1 (stream, ldm->u2.access, ref_p, 1);
   else if (ldm->base.u2sel == 1)
     pph_output_uint (stream, ldm->u2.discriminator);
   else
@@ -795,11 +795,11 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 	  pph_stream_write_lang_specific (stream, expr, ref_p);
 
 	  if (TREE_CODE (expr) == FUNCTION_DECL)
-	    pph_output_tree_aux (stream, DECL_SAVED_TREE (expr), ref_p);
+	    pph_output_tree_or_ref_1 (stream, DECL_SAVED_TREE (expr), ref_p, 3);
 	}
 
       if (TREE_CODE (expr) == TYPE_DECL)
-	pph_output_tree_aux (stream, DECL_ORIGINAL_TYPE (expr), ref_p);
+	pph_output_tree_or_ref_1 (stream, DECL_ORIGINAL_TYPE (expr), ref_p, 3);
     }
   else if (TREE_CODE (expr) == STATEMENT_LIST)
     {
@@ -814,7 +814,7 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 
       /* Write the statements.  */
       for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
-	pph_output_tree_aux (stream, tsi_stmt (i), ref_p);
+	pph_output_tree_or_ref_1 (stream, tsi_stmt (i), ref_p, 3);
     }
   else if (TYPE_P (expr))
     pph_stream_write_lang_type (stream, expr, ref_p);
@@ -863,7 +863,7 @@ pph_output_chain_filtered (pph_stream *stream, tree first, bool ref_p,
       saved_chain = TREE_CHAIN (t);
       TREE_CHAIN (t) = NULL_TREE;
 
-      pph_output_tree_lst (stream, t, ref_p);
+      pph_output_tree_or_ref_1 (stream, t, ref_p, 2);
 
       TREE_CHAIN (t) = saved_chain;
     }

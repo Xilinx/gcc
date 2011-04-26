@@ -1,5 +1,15 @@
 2011-04-26  Diego Novillo  <dnovillo@google.com>
 
+	* pph-streamer.h (pph_output_tree_or_ref_1): New.
+	(pph_output_tree_lst): Remove.  Change all
+	callers to call pph_output_tree_1 with a tracing level of 2.
+	(pph_output_tree_aux): Remove.  Change all callers to call
+	pph_output_tree_1 with a tracing level of 3.
+	(pph_output_tree_or_ref): Call pph_output_tree_or_ref_1 with
+	a tracing level of 2.
+
+2011-04-26  Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-in.c (pph_stream_unpack_value_fields): Read
 	TREE_LANG_FLAG_? fields.
 	* pph-streamer-out.c (pph_stream_pack_value_fields): Write
