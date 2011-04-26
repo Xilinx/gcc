@@ -1626,6 +1626,11 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
 		  maybe_warn_string_init (TREE_TYPE (d), init);
 		  finish_decl (d, init_loc, init.value,
 		      	       init.original_type, asm_name);
+                  /* Check for and warn about self-initialization if
+                     -Wself-assign is enabled. Don't warn if there is
+                     already an error for the initializer.  */
+                  if (warn_self_assign && DECL_INITIAL (d) != error_mark_node)
+                    check_for_self_assign (here, d, init.value);
 		}
 	    }
 	  else
@@ -5241,7 +5246,13 @@ c_parser_expr_no_commas (c_parser *parser, struct c_expr *after)
 				 code, exp_location, rhs.value,
 				 rhs.original_type);
   if (code == NOP_EXPR)
-    ret.original_code = MODIFY_EXPR;
+    {
+      ret.original_code = MODIFY_EXPR;
+      /* Check for and warn about self-assignment if -Wself-assign is
+         enabled.  */
+      if (warn_self_assign)
+        check_for_self_assign (op_location, lhs.value, rhs.value);
+    }
   else
     {
       TREE_NO_WARNING (ret.value) = 1;

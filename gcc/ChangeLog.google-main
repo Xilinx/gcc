@@ -1,3 +1,45 @@
+2011-04-26  Le-Chun Wu  <lcwu@google.com>
+
+	* c-family/c-common.c (check_for_self_assign): New function.
+	* c-family/c-common.h: New function declaration.
+	* c-family/c.opt: New option.
+	* c-parser.c (c_parser_declaration_or_fndef): Check for self-assign.
+	(c_parser_expr_no_commas): Check for self-assign.
+	* common.opt: New option.
+	* doc/invoke.texi: Documentation for new options.
+	* fold-const.c (operand_equal_p): Allow operands without typres to
+	compare.
+	(fold_unary_loc_1): Renamed from fold_unary_loc.
+	(fold_unary_loc): New wrapper function.
+	(fold_binary_loc_1): Renamed from fold_binary_loc.
+	(fold_binary_loc): New wrapper function.
+	(fold_ternary_loc_1): Renamed from fold_ternary_loc.
+	(fold_ternary_loc): New wrapper function.
+	* tree.h (struct tree_base): New flag for folded expr.
+	(enum operand_equal_flag): New flags.
+	* cp/init.c (perform_member_init): Check for self-assign.
+	* cp/parser.c (expr_is_pod): New function.
+	(cp_parser_assignment_expression): Check for self-assign.
+	(cp_parser_init_declarator): Check for self-assign.
+	* testsuite/g++.dg/plugin/selfassign.c (check_self_assign): Renamed
+	from warn_self_assign.
+	(execute_warn_self_assign): Call a function by its new name.
+	* testsuite/g++.dg/warn/Wself-assign-1.C: New test case.
+	* testsuite/g++.dg/warn/Wself-assign-2.C: Likewise.
+	* testsuite/g++.dg/warn/Wself-assign-3.C: Likewise.
+	* testsuite/g++.dg/warn/Wself-assign-4.C: Likewise.
+	* testsuite/g++.dg/warn/Wself-assign-5.C: Likewise.
+	* testsuite/g++.dg/warn/Wself-assign-non-pod-1.C: Likewise.
+	* testsuite/g++.dg/warn/Wself-assign-non-pod-2.C: Likewise.
+	* testsuite/g++.dg/warn/Wself-assign-non-pod-3.C: Likewise.
+	* testsuite/g++.dg/warn/Wself-assign-non-pod-4.C: Likewise.
+	* testsuite/g++.dg/warn/Wself-assign-non-pod-5.C: Likewise.
+	* testsuite/gcc.dg/plugin/selfassign.c (check_self_assign): Renamed
+	from warn_self_assign.
+	(execute_warn_self_assign): Call a function by its new name.:
+	* testsuite/gcc.dg/wself-assign-1.c: New test case.
+	* testsuite/gcc.dg/wself-assign-2.c: Likewise.
+
 2011-04-25  David Li  <davidxl@google.com>
 
 	* cgraphbuild.c (rebuild_cgraph_edges): Create edges based

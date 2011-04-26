@@ -565,6 +565,10 @@ Wripa-opt-mismatch
 Common Var(warn_ripa_opt_mismatch) Warning
 Warn if primary and auxiliary modules have mismatched command line options
 
+Wself-assign
+Common Var(warn_self_assign) Init(0) Warning
+Warn when a variable is assigned to itself
+
 Wshadow
 Common Var(warn_shadow) Warning
 Warn when one local variable shadows another

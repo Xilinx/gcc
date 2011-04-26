@@ -10495,4 +10495,21 @@ keyword_is_decl_specifier (enum rid keyword)
     }
 }
 
+/* Check for and warn about self-assignment or self-initialization.
+   LHS and RHS are the tree nodes for the left-hand side and right-hand side
+   of the assignment or initialization we are checking.
+   LOCATION is the source location for RHS.  */
+
+void
+check_for_self_assign (location_t location, tree lhs, tree rhs)
+{
+  /* Only emit a warning if RHS is not a folded expression so that we don't
+     warn on something like x = x / 1.  */
+  if (!EXPR_FOLDED (rhs)
+      && operand_equal_p (lhs, rhs,
+                          OEP_PURE_SAME | OEP_ALLOW_NULL | OEP_ALLOW_NO_TYPE))
+    warning_at (location, OPT_Wself_assign, G_("%qE is assigned to itself"),
+                lhs);
+}
+
 #include "gt-c-family-c-common.h"

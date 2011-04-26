@@ -257,8 +257,8 @@ Objective-C and Objective-C++ Dialects}.
 -Woverlength-strings  -Wpacked  -Wpacked-bitfield-compat  -Wpadded @gol
 -Wparentheses  -Wpedantic-ms-format -Wno-pedantic-ms-format @gol
 -Wpointer-arith  -Wno-pointer-to-int-cast @gol
--Wredundant-decls @gol
--Wreturn-type  -Wripa-opt-mismatch  -Wsequence-point  -Wshadow @gol
+-Wredundant-decls  -Wreturn-type -Wripa-opt-mismatch @gol
+-Wself-assign  -Wself-assign-non-pod  -Wsequence-point  -Wshadow @gol
 -Wsign-compare  -Wsign-conversion  -Wstack-protector @gol
 -Wstrict-aliasing -Wstrict-aliasing=n @gol
 -Wstrict-overflow -Wstrict-overflow=@var{n} @gol
@@ -3382,6 +3382,61 @@ definitions, may be found on the GCC readings page, at
 
 This warning is enabled by @option{-Wall} for C and C++.
 
+@item -Wself-assign
+@opindex Wself-assign
+@opindex Wno-self-assign
+Warn about self-assignment and self-initialization. This warning is intended
+for detecting accidental self-assignment due to typos, and therefore does
+not warn on a statement that is semantically a self-assignment after
+constant folding. Here is an example of what will trigger a self-assign
+warning and what will not:
+
+@smallexample
+@group
+void func()
+@{
+   int i = 2;
+   int x = x;   /* warn */
+   float f = 5.0;
+   double a[3];
+
+   i = i + 0;   /* not warn */
+   f = f / 1;   /* not warn */
+   a[1] = a[1]; /* warn */
+   i += 0;      /* not warn */
+@}
+@end group
+@end smallexample
+
+In C++ it will not warn on self-assignment of non-POD variables unless
+@option{-Wself-assign-non-pod} is also enabled.
+
+@item -Wself-assign-non-pod
+@opindex Wself-assign-non-pod
+@opindex Wno-self-assign-non-pod
+Warn about self-assignment of non-POD variables. This is a C++-specific
+warning and only effective when @option{-Wself-assign} is enabled.
+
+There are cases where self-assignment might be intentional. For example,
+a C++ programmer might write code to test whether an overloaded
+@code{operator=} works when the same object is assigned to itself.
+One way to work around the self-assign warning in such cases when this flag
+is enabled is using the functional form @code{object.operator=(object)}
+instead of the assignment form @code{object = object}, as shown in the
+following example.
+
+@smallexample
+@group
+void test_func()
+@{
+   MyType t;
+
+   t.operator=(t);  // not warn
+   t = t;           // warn
+@}
+@end group
+@end smallexample
+
 @item -Wreturn-type
 @opindex Wreturn-type
 @opindex Wno-return-type
@@ -3566,6 +3621,10 @@ This warning is enabled by @option{-Wall}.
 
 To suppress this warning use the @samp{unused} attribute
 (@pxref{Variable Attributes}).
+
+Note that a classic way to avoid @option{-Wunused-variable} warning is
+using @code{x = x}, but that does not work with @option{-Wself-assign}.
+Use @code{(void) x} or @code{static_cast<void>(x)} instead.
 
 @item -Wunused-value
 @opindex Wunused-value

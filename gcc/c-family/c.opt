@@ -319,6 +319,10 @@ Wconversion-null
 C++ ObjC++ Var(warn_conversion_null) Init(1) Warning
 Warn for converting NULL from/to a non-pointer type
 
+Wself-assign-non-pod
+C++ ObjC++ Var(warn_self_assign_non_pod) Init(0) Warning
+Warn when a variable of a non-POD type is assigned to itself
+
 Wsign-conversion
 C ObjC C++ ObjC++ Var(warn_sign_conversion) Init(-1)
 Warn for implicit type conversions between signed and unsigned integers

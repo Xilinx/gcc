@@ -598,8 +598,14 @@ perform_member_init (tree member, tree init)
 						tf_warning_or_error);
 
       if (init)
-	finish_expr_stmt (cp_build_modify_expr (decl, INIT_EXPR, init,
-						tf_warning_or_error));
+        {
+          finish_expr_stmt (cp_build_modify_expr (decl, INIT_EXPR, init,
+                                                  tf_warning_or_error));
+          /* Check for and warn about self-initialization if -Wself-assign is
+             enabled.  */
+          if (warn_self_assign)
+            check_for_self_assign (input_location, decl, init);
+        }
     }
 
   if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type))
