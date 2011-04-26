@@ -268,7 +268,7 @@ const char * const omp_clause_code_name[] =
 
 /* Return the tree node structure used by tree code CODE.  */
 
-static inline enum tree_node_structure_enum
+enum tree_node_structure_enum
 tree_node_structure_for_code (enum tree_code code)
 {
   switch (TREE_CODE_CLASS (code))
@@ -339,6 +339,93 @@ tree_node_structure_for_code (enum tree_code code)
     case TARGET_OPTION_NODE:	return TS_TARGET_OPTION;
 
     default:
+      return LAST_TS_ENUM;
+    }
+}
+
+
+/* Mark tree code CODE as having the structure code TS_CODE and all its base
+   structures in the array `tree_contains_struct'.  */
+
+void
+mark_ts_structures_for (enum tree_code code,
+			enum tree_node_structure_enum ts_code)
+{
+  /* Mark the TS structure itself.  */
+  tree_contains_struct[code][ts_code] = 1;
+
+  /* Mark all the structures that TS is derived from.  */
+  switch (ts_code)
+    {
+    case TS_TYPED:
+      MARK_TS_BASE (code);
+      break;
+
+    case TS_COMMON:
+    case TS_INT_CST:
+    case TS_REAL_CST:
+    case TS_FIXED_CST:
+    case TS_VECTOR:
+    case TS_STRING:
+    case TS_COMPLEX:
+    case TS_SSA_NAME:
+    case TS_CONSTRUCTOR:
+      MARK_TS_TYPED (code);
+      break;
+
+    case TS_IDENTIFIER:
+    case TS_DECL_MINIMAL:
+    case TS_TYPE:
+    case TS_LIST:
+    case TS_VEC:
+    case TS_EXP:
+    case TS_BLOCK:
+    case TS_BINFO:
+    case TS_STATEMENT_LIST:
+    case TS_OMP_CLAUSE:
+    case TS_OPTIMIZATION:
+    case TS_TARGET_OPTION:
+      MARK_TS_COMMON (code);
+      break;
+
+    case TS_DECL_COMMON:
+      MARK_TS_DECL_MINIMAL (code);
+      break;
+
+    case TS_DECL_WRTL:
+    case TS_CONST_DECL:
+      MARK_TS_DECL_COMMON (code);
+      break;
+
+    case TS_DECL_NON_COMMON:
+      MARK_TS_DECL_WITH_VIS (code);
+      break;
+
+    case TS_DECL_WITH_VIS:
+    case TS_PARM_DECL:
+    case TS_LABEL_DECL:
+    case TS_RESULT_DECL:
+      MARK_TS_DECL_WRTL (code);
+      break;
+
+    case TS_FIELD_DECL:
+      MARK_TS_DECL_COMMON (code);
+      break;
+
+    case TS_VAR_DECL:
+      MARK_TS_DECL_WITH_VIS (code);
+      break;
+
+    case TS_TYPE_DECL:
+    case TS_FUNCTION_DECL:
+      MARK_TS_DECL_NON_COMMON (code);
+      break;
+
+    case TS_TRANSLATION_UNIT_DECL:
+      MARK_TS_DECL_COMMON (code);
+      break;
+
+    default:
       gcc_unreachable ();
     }
 }
@@ -359,84 +446,10 @@ initialize_tree_contains_struct (void)
 
       code = (enum tree_code) i;
       ts_code = tree_node_structure_for_code (code);
+      gcc_assert (ts_code != LAST_TS_ENUM);
 
-      /* Mark the TS structure itself.  */
-      tree_contains_struct[code][ts_code] = 1;
-
-      /* Mark all the structures that TS is derived from.  */
-      switch (ts_code)
-	{
-	case TS_TYPED:
-	  MARK_TS_BASE (code);
-	  break;
-
-	case TS_COMMON:
-	case TS_INT_CST:
-	case TS_REAL_CST:
-	case TS_FIXED_CST:
-	case TS_VECTOR:
-	case TS_STRING:
-	case TS_COMPLEX:
-	case TS_SSA_NAME:
-	case TS_CONSTRUCTOR:
-	  MARK_TS_TYPED (code);
-	  break;
-
-	case TS_IDENTIFIER:
-	case TS_DECL_MINIMAL:
-	case TS_TYPE:
-	case TS_LIST:
-	case TS_VEC:
-	case TS_EXP:
-	case TS_BLOCK:
-	case TS_BINFO:
-	case TS_STATEMENT_LIST:
-	case TS_OMP_CLAUSE:
-	case TS_OPTIMIZATION:
-	case TS_TARGET_OPTION:
-	  MARK_TS_COMMON (code);
-	  break;
-
-	case TS_DECL_COMMON:
-	  MARK_TS_DECL_MINIMAL (code);
-	  break;
-
-	case TS_DECL_WRTL:
-	case TS_CONST_DECL:
-	  MARK_TS_DECL_COMMON (code);
-	  break;
-
-	case TS_DECL_NON_COMMON:
-	  MARK_TS_DECL_WITH_VIS (code);
-	  break;
-
-	case TS_DECL_WITH_VIS:
-	case TS_PARM_DECL:
-	case TS_LABEL_DECL:
-	case TS_RESULT_DECL:
-	  MARK_TS_DECL_WRTL (code);
-	  break;
-
-	case TS_FIELD_DECL:
-	  MARK_TS_DECL_COMMON (code);
-	  break;
-
-	case TS_VAR_DECL:
-	  MARK_TS_DECL_WITH_VIS (code);
-	  break;
-
-	case TS_TYPE_DECL:
-	case TS_FUNCTION_DECL:
-	  MARK_TS_DECL_NON_COMMON (code);
-	  break;
-
-	case TS_TRANSLATION_UNIT_DECL:
-	  MARK_TS_DECL_COMMON (code);
-	  break;
-
-	default:
-	  gcc_unreachable ();
-	}
+      /* Mark the TS structure and its bases.  */
+      mark_ts_structures_for (code, ts_code);
     }
 
   /* Basic consistency checks for attributes used in fold.  */

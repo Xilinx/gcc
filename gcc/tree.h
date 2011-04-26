@@ -5023,6 +5023,8 @@ extern tree tree_strip_sign_nop_conversions (tree);
 extern tree lhd_gcc_personality (void);
 extern void assign_assembler_name_if_neeeded (tree);
 extern void warn_deprecated_use (tree, tree);
+enum tree_node_structure_enum tree_node_structure_for_code (enum tree_code);
+void mark_ts_structures_for (enum tree_code, enum tree_node_structure_enum);
 
 
 /* In cgraph.c */

@@ -1,3 +1,12 @@
+2011-04-26  Diego Novillo  <dnovillo@google.com>
+
+	* tree.c (tree_node_structure_enum): Make extern.
+	(mark_ts_structures_for): Factor out of
+	initialize_tree_contains_struct.
+	(initialize_tree_contains_struct): Call it.
+	* tree.h (tree_node_structure_for_code): Declare.
+	(mark_ts_structures_for): Declare.
+
 2011-04-20  Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 172663.

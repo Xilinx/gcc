@@ -227,75 +227,100 @@ init_shadowed_var_for_decl (void)
 void
 cp_common_init_ts (void)
 {
-  MARK_TS_DECL_NON_COMMON (NAMESPACE_DECL);
-  MARK_TS_DECL_NON_COMMON (USING_DECL);
-  MARK_TS_DECL_NON_COMMON (TEMPLATE_DECL);
+  unsigned i;
 
-  MARK_TS_COMMON (TEMPLATE_TEMPLATE_PARM);
-  MARK_TS_COMMON (TEMPLATE_TYPE_PARM);
-  MARK_TS_COMMON (TEMPLATE_PARM_INDEX);
-  MARK_TS_COMMON (OVERLOAD);
-  MARK_TS_COMMON (TEMPLATE_INFO);
-  MARK_TS_COMMON (TYPENAME_TYPE);
-  MARK_TS_COMMON (TYPEOF_TYPE);
-  MARK_TS_COMMON (BASELINK);
-  MARK_TS_COMMON (TYPE_PACK_EXPANSION);
-  MARK_TS_COMMON (EXPR_PACK_EXPANSION);
-  MARK_TS_COMMON (DECLTYPE_TYPE);
-  MARK_TS_COMMON (BOUND_TEMPLATE_TEMPLATE_PARM);
-  MARK_TS_COMMON (UNBOUND_CLASS_TEMPLATE);
+  for (i = LAST_AND_UNUSED_TREE_CODE; i < MAX_TREE_CODES; i++)
+    {
+      enum tree_node_structure_enum ts_code;
+      enum tree_code code;
 
-  MARK_TS_TYPED (SWITCH_STMT);
-  MARK_TS_TYPED (IF_STMT);
-  MARK_TS_TYPED (FOR_STMT);
-  MARK_TS_TYPED (RANGE_FOR_STMT);
-  MARK_TS_TYPED (AGGR_INIT_EXPR);
-  MARK_TS_TYPED (EXPR_STMT);
-  MARK_TS_TYPED (EH_SPEC_BLOCK);
-  MARK_TS_TYPED (CLEANUP_STMT);
-  MARK_TS_TYPED (SCOPE_REF);
-  MARK_TS_TYPED (CAST_EXPR);
-  MARK_TS_TYPED (NON_DEPENDENT_EXPR);
-  MARK_TS_TYPED (MODOP_EXPR);
-  MARK_TS_TYPED (TRY_BLOCK);
-  MARK_TS_TYPED (THROW_EXPR);
-  MARK_TS_TYPED (HANDLER);
-  MARK_TS_TYPED (REINTERPRET_CAST_EXPR);
-  MARK_TS_TYPED (CONST_CAST_EXPR);
-  MARK_TS_TYPED (STATIC_CAST_EXPR);
-  MARK_TS_TYPED (DYNAMIC_CAST_EXPR);
-  MARK_TS_TYPED (TEMPLATE_ID_EXPR);
-  MARK_TS_TYPED (ARROW_EXPR);
-  MARK_TS_TYPED (SIZEOF_EXPR);
-  MARK_TS_TYPED (ALIGNOF_EXPR);
-  MARK_TS_TYPED (AT_ENCODE_EXPR);
-  MARK_TS_TYPED (UNARY_PLUS_EXPR);
-  MARK_TS_TYPED (TRAIT_EXPR);
-  MARK_TS_TYPED (TYPE_ARGUMENT_PACK);
-  MARK_TS_TYPED (NOEXCEPT_EXPR);
-  MARK_TS_TYPED (NONTYPE_ARGUMENT_PACK);
-  MARK_TS_TYPED (WHILE_STMT);
-  MARK_TS_TYPED (NEW_EXPR);
-  MARK_TS_TYPED (VEC_NEW_EXPR);
-  MARK_TS_TYPED (BREAK_STMT);
-  MARK_TS_TYPED (MEMBER_REF);
-  MARK_TS_TYPED (DOTSTAR_EXPR);
-  MARK_TS_TYPED (DO_STMT);
-  MARK_TS_TYPED (DELETE_EXPR);
-  MARK_TS_TYPED (VEC_DELETE_EXPR);
-  MARK_TS_TYPED (CONTINUE_STMT);
-  MARK_TS_TYPED (TAG_DEFN);
-  MARK_TS_TYPED (PSEUDO_DTOR_EXPR);
-  MARK_TS_TYPED (TYPEID_EXPR);
-  MARK_TS_TYPED (MUST_NOT_THROW_EXPR);
-  MARK_TS_TYPED (STMT_EXPR);
-  MARK_TS_TYPED (OFFSET_REF);
-  MARK_TS_TYPED (OFFSETOF_EXPR);
-  MARK_TS_TYPED (PTRMEM_CST);
-  MARK_TS_TYPED (EMPTY_CLASS_EXPR);
-  MARK_TS_TYPED (VEC_INIT_EXPR);
-  MARK_TS_TYPED (USING_STMT);
-  MARK_TS_TYPED (LAMBDA_EXPR);
+      code = (enum tree_code) i;
+      ts_code = tree_node_structure_for_code (code);
+      if (ts_code != LAST_TS_ENUM)
+	{
+	  /* All expressions in C++ are typed.  */
+	  if (ts_code == TS_EXP)
+	    MARK_TS_TYPED (code);
+	  mark_ts_structures_for (code, ts_code);
+	}
+      else
+	{
+	  /* tree_node_structure_for_code does not recognize language
+	     specific nodes (unless they use standard code classes).  */
+	  MARK_TS_COMMON (code);
+	}
+    }
+
+  /* Consistency checks for codes used in the front end.  */
+  gcc_assert (tree_contains_struct[NAMESPACE_DECL][TS_DECL_NON_COMMON]);
+  gcc_assert (tree_contains_struct[USING_DECL][TS_DECL_NON_COMMON]);
+  gcc_assert (tree_contains_struct[TEMPLATE_DECL][TS_DECL_NON_COMMON]);
+
+  gcc_assert (tree_contains_struct[TEMPLATE_TEMPLATE_PARM][TS_COMMON]);
+  gcc_assert (tree_contains_struct[TEMPLATE_TYPE_PARM][TS_COMMON]);
+  gcc_assert (tree_contains_struct[TEMPLATE_PARM_INDEX][TS_COMMON]);
+  gcc_assert (tree_contains_struct[OVERLOAD][TS_COMMON]);
+  gcc_assert (tree_contains_struct[TEMPLATE_INFO][TS_COMMON]);
+  gcc_assert (tree_contains_struct[TYPENAME_TYPE][TS_COMMON]);
+  gcc_assert (tree_contains_struct[TYPEOF_TYPE][TS_COMMON]);
+  gcc_assert (tree_contains_struct[BASELINK][TS_COMMON]);
+  gcc_assert (tree_contains_struct[TYPE_PACK_EXPANSION][TS_COMMON]);
+  gcc_assert (tree_contains_struct[EXPR_PACK_EXPANSION][TS_COMMON]);
+  gcc_assert (tree_contains_struct[DECLTYPE_TYPE][TS_COMMON]);
+  gcc_assert (tree_contains_struct[BOUND_TEMPLATE_TEMPLATE_PARM][TS_COMMON]);
+  gcc_assert (tree_contains_struct[UNBOUND_CLASS_TEMPLATE][TS_COMMON]);
+
+  gcc_assert (tree_contains_struct[SWITCH_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[IF_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[FOR_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[RANGE_FOR_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[AGGR_INIT_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[EXPR_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[EH_SPEC_BLOCK][TS_TYPED]);
+  gcc_assert (tree_contains_struct[CLEANUP_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[SCOPE_REF][TS_TYPED]);
+  gcc_assert (tree_contains_struct[CAST_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[NON_DEPENDENT_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[MODOP_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[TRY_BLOCK][TS_TYPED]);
+  gcc_assert (tree_contains_struct[THROW_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[HANDLER][TS_TYPED]);
+  gcc_assert (tree_contains_struct[REINTERPRET_CAST_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[CONST_CAST_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[STATIC_CAST_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[DYNAMIC_CAST_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[TEMPLATE_ID_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[ARROW_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[SIZEOF_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[ALIGNOF_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[AT_ENCODE_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[UNARY_PLUS_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[TRAIT_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[TYPE_ARGUMENT_PACK][TS_TYPED]);
+  gcc_assert (tree_contains_struct[NOEXCEPT_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[NONTYPE_ARGUMENT_PACK][TS_TYPED]);
+  gcc_assert (tree_contains_struct[WHILE_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[NEW_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[VEC_NEW_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[BREAK_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[MEMBER_REF][TS_TYPED]);
+  gcc_assert (tree_contains_struct[DOTSTAR_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[DO_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[DELETE_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[VEC_DELETE_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[CONTINUE_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[TAG_DEFN][TS_TYPED]);
+  gcc_assert (tree_contains_struct[PSEUDO_DTOR_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[TYPEID_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[MUST_NOT_THROW_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[STMT_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[OFFSET_REF][TS_TYPED]);
+  gcc_assert (tree_contains_struct[OFFSETOF_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[PTRMEM_CST][TS_TYPED]);
+  gcc_assert (tree_contains_struct[EMPTY_CLASS_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[VEC_INIT_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[USING_STMT][TS_TYPED]);
+  gcc_assert (tree_contains_struct[LAMBDA_EXPR][TS_TYPED]);
 }
 
 #include "gt-cp-cp-objcp-common.h"

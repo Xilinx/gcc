@@ -1,3 +1,9 @@
+2011-04-26  Diego Novillo  <dnovillo@google.com>
+
+	* cp-objcp-common.c (cp_common_init_ts): Call
+	mark_ts_structures_for and tree_node_structure_for_code.
+	Change calls to MARK_TS_* into assertions instead.
+
 2011-04-18  Lawrence Crowl <crowl@google.com>
 
 	* pph.c (pth_save_identifiers): Fix FIXME comment.
