@@ -1,5 +1,9 @@
 
 2011-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (install_melt): Install explicitly melt.so
+	under $gcc_plugin_directory
+
+2011-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (verbose_ls): New function.
 	(install_melt): Use it. Install explicitly melt.so.
 

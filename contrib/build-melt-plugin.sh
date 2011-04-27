@@ -100,7 +100,7 @@ verbose_echo() {
 ############### list verbosely a file with $1 as text
 verbose_ls() {
     if [ -z "$quiet" ]; then
-	echo -n build-melt-plugin: $1
+	echo build-melt-plugin: $1
 	shift
 	ls -l $*
     fi
@@ -410,8 +410,10 @@ install_melt() {
     verbose_echo Before installing MELT inside $gcc_plugin_directory
     verbose_sleep
     verbose_echo Installing the melt.so plugin and makefile
-    $HOSTADMINCMD $HOSTINSTALL -D -m 755  melt.so $DESTDIR$gcc_plugin_directory/libexec/melt.so
-    verbose_ls "the MELT plugin shared object" $DESTDIR$gcc_plugin_directory/libexec/melt.so
+## melt.so should be installed inside $gcc_plugin_directory to enable
+## using just -fplugin=melt
+    $HOSTADMINCMD $HOSTINSTALL -D -m 755  melt.so $DESTDIR$gcc_plugin_directory/melt.so
+    verbose_ls "the MELT plugin shared object" $DESTDIR$gcc_plugin_directory/melt.so
     $HOSTADMINCMD $HOSTINSTALL -D -m 755 $GCCMELT_SOURCE_TREE/melt-module.mk $DESTDIR$gcc_plugin_directory/melt-build-module.mk
     verbose_ls "MELT module maker" $DESTDIR$gcc_plugin_directory/melt-build-module.mk
     verbose_echo Installing MELT specific header files.
