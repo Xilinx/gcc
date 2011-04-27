@@ -385,7 +385,7 @@ pop_module_scope (void)
   if (L_IPO_IS_PRIMARY_MODULE && num_in_fnames > 1)
     {
       save_assembler_name_reference_bit ();
-      primary_module_last_fundef_no = get_current_funcdef_no ();
+      primary_module_last_fundef_no = get_last_funcdef_no ();
     }
 
   if (!is_last)

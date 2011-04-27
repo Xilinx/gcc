@@ -792,7 +792,7 @@ extern bool reference_callee_copied (CUMULATIVE_ARGS *, enum machine_mode,
 extern void used_types_insert (tree);
 
 extern int get_next_funcdef_no (void);
-extern int get_current_funcdef_no (void);
+extern int get_last_funcdef_no (void);
 
 extern void reset_funcdef_no (void);
 extern void set_funcdef_no (int);

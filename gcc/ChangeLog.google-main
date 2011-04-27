@@ -1,3 +1,37 @@
+2011-04-26  Xinliang David Li  <davidxl@google.com>
+
+	* tree-ssa-uninit.c (warn_uninitialized_phi): Pass
+	 warning code.
+	* c-family/c-opts.c (c_common_handle_option): Set
+	warn_maybe_uninitialized.
+	* opts.c (common_handle_option): Ditto.
+	* common.opt:  New option.
+	* tree-ssa.c (warn_uninit): Add one more parameter.
+	(warn_uninitialized_var): Pass warning code.
+	* tree-flow.h: Interface change.
+
+2011-04-26  Xinliang David Li  <davidxl@google.com>
+
+	* toplev.c (process_options): Enable -Werror=coverage-mismatch
+	by default when -Wno-error is not specified.
+	* opts-global.c (decode_options): Remove call to
+	control_warning_options.
+
+2011-04-26  Xinliang David Li  <davidxl@google.com>
+
+	* cgraph.h: Remove pid.
+	* cgraph.c: Remove pid.
+	* value-prof.c (init_node_map): New function.
+	(del_node_map): New function.
+	(find_func_by_funcdef_no): New function.
+	(gimple_ic_transform): Call new function.
+	* cgraphunit.c (cgraph_finalize_function): Remove pid.
+	* function.c (get_last_funcdef_no): New function.
+	* function.h (get_last_funcdef_no): New function.
+	* tree-profile.c (gimple_gen_ic_func_profiler): Pass funcdef_no
+	to libgcov function.
+	(tree-profiling): Call node map init and delete function.
+
 2011-04-26  Le-Chun Wu  <lcwu@google.com>
 
 	* c-family/c-common.c (check_for_self_assign): New function.

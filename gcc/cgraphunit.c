@@ -352,7 +352,6 @@ cgraph_finalize_function (tree decl, bool nested)
   if (node->local.finalized)
     cgraph_reset_node (node);
 
-  node->pid = cgraph_max_pid ++;
   notice_global_symbol (decl);
   node->local.finalized = true;
   node->lowered = DECL_STRUCT_FUNCTION (decl)->cfg != NULL;

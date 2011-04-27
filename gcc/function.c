@@ -4358,15 +4358,6 @@ get_next_funcdef_no (void)
   return funcdef_no++;
 }
 
-/* Return the current intra module funcdef_no which is
-   incremented when new struct function is allocated.  */
-
-int
-get_current_funcdef_no (void)
-{
-  return funcdef_no;
-}
-
 /* Restore funcdef_no to FN.  */
 
 void
@@ -4381,6 +4372,13 @@ void
 reset_funcdef_no (void)
 {
   funcdef_no = 0;
+}
+
+/* Return value of funcdef.  */
+int
+get_last_funcdef_no (void)
+{
+  return funcdef_no;
 }
 
 /* Allocate a function structure for FNDECL and set its contents
