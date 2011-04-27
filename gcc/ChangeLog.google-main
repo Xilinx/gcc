@@ -1,3 +1,7 @@
+2011-04-27  Xinliang David Li  <davidxl@google.com>
+	* value-prof.c (init_node_map): Disable for lipo mode.
+	(del_node_map): Disable for lipo mode.
+
 2011-04-26  Xinliang David Li  <davidxl@google.com>
 
 	* tree-ssa-uninit.c (warn_uninitialized_phi): Pass

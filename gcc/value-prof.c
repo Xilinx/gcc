@@ -1148,6 +1148,9 @@ init_node_map (void)
 {
   struct cgraph_node *n;
 
+  if (L_IPO_COMP_MODE)
+    return;
+
   if (get_last_funcdef_no ())
     VEC_safe_grow_cleared (cgraph_node_ptr, heap,
                            cgraph_node_map, get_last_funcdef_no ());
@@ -1165,6 +1168,9 @@ init_node_map (void)
 void
 del_node_map (void)
 {
+  if (L_IPO_COMP_MODE)
+    return;
+
    VEC_free (cgraph_node_ptr, heap, cgraph_node_map);
    cgraph_node_map = NULL;
 }
