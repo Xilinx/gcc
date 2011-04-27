@@ -923,7 +923,7 @@ coverage_end_function (void)
     {
       struct function_list *item;
 
-      item = XNEW (struct function_list);
+      item = XCNEW (struct function_list);
 
       *functions_tail = item;
       functions_tail = &item->next;
@@ -973,7 +973,7 @@ coverage_dc_end_function (void)
       if (!item)
 	{
 	  int i;
-	  item = XNEW (struct function_list);
+	  item = XCNEW (struct function_list);
 	  *functions_tail = item;
 	  functions_tail = &item->next;
 	  item->next = 0;

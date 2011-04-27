@@ -1005,13 +1005,7 @@ initialize_inline_failed (struct cgraph_edge *e)
     e->inline_failed = CIF_REDEFINED_EXTERN_INLINE;
   else if (!callee->local.inlinable)
     e->inline_failed = CIF_FUNCTION_NOT_INLINABLE;
-  else if (!e->call_stmt)
-    {
-      /* artifcial edge.  */
-      gcc_assert (L_IPO_COMP_MODE); 
-      e->inline_failed = CIF_ARTIFICIAL_EDGE;
-    }
-  else if (gimple_call_cannot_inline_p (e->call_stmt))
+  else if (e->call_stmt && gimple_call_cannot_inline_p (e->call_stmt))
     e->inline_failed = CIF_MISMATCHED_ARGUMENTS;
   else
     e->inline_failed = CIF_FUNCTION_NOT_CONSIDERED;
@@ -2297,15 +2291,9 @@ cgraph_clone_node (struct cgraph_node *n, tree decl, gcov_type count, int freq,
   return new_node;
 }
 
-/* Hash table used to convert assembler names into next available clone id.  */
-static htab_t clone_assembler_name_hash;
+/* Create a new name for clone of DECL, add SUFFIX.  Returns an identifier.  */
 
-/* For the hash table.  */
-static int
-string_hash_eq (const void *y1, const void *y2)
-{
-  return strcmp ((const char *) y1, (const char *) y2) == 0;
-}
+static GTY(()) unsigned int clone_fn_id_num;
 
 tree
 clone_function_name (tree decl, const char *suffix)
@@ -2313,7 +2301,6 @@ clone_function_name (tree decl, const char *suffix)
   tree name = DECL_ASSEMBLER_NAME (decl);
   size_t len = IDENTIFIER_LENGTH (name);
   char *tmp_name, *prefix;
-  unsigned int **clone_fn_id_num;
 
   prefix = XALLOCAVEC (char, len + strlen (suffix) + 2);
   memcpy (prefix, IDENTIFIER_POINTER (name), len);
@@ -2325,15 +2312,7 @@ clone_function_name (tree decl, const char *suffix)
 #else
   prefix[len] = '_';
 #endif
-  if (!clone_assembler_name_hash)
-    clone_assembler_name_hash =
-      htab_create (512, htab_hash_string, string_hash_eq, NULL);
-  clone_fn_id_num = (unsigned int **) htab_find_slot
-    (clone_assembler_name_hash, IDENTIFIER_POINTER (name), INSERT);
-  if (!*clone_fn_id_num)
-    *clone_fn_id_num =
-      (unsigned int *) ggc_alloc_cleared_atomic (sizeof (unsigned int));
-  ASM_FORMAT_PRIVATE_NAME (tmp_name, prefix, **clone_fn_id_num++);
+  ASM_FORMAT_PRIVATE_NAME (tmp_name, prefix, clone_fn_id_num++);
   return get_identifier (tmp_name);
 }
 

@@ -310,7 +310,7 @@ cgraph_mark_inline_edge (struct cgraph_edge *e, bool update_original,
   int freq;
 
   /* Skip fake edge.  */
-  if (!e->call_stmt)
+  if (L_IPO_COMP_MODE && !e->call_stmt)
     return false;
 
   /* Don't inline inlined edges.  */
