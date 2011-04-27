@@ -564,6 +564,11 @@ and whose binary is named after $OUTNAM without any '.so' suffix.}#
 and whose binary is named after $OUTNAM without any '.so' suffix.}#
   #{meltgc_make_melt_module($src,$outnam,"melt_module_withoutline");}#)
 
+;;;;;;;;;;;;;;;; the melt version string
+(defprimitive melt_version_str () :cstring
+  :doc #{Gives the MELT version string.}#
+  #{(melt_version_str())}#)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; OBJECT primitives
 ;; primitive to get an object length
@@ -2299,6 +2304,7 @@ polyhedron values.}#
  melt_application_shallower
  melt_is_bootstrapping
  melt_mode_container
+ melt_version_str
  message_dbg
  messagenum_dbg 
  messageval_dbg
