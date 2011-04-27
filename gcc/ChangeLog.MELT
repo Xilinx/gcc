@@ -1,5 +1,9 @@
 
 2011-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (plugin_init): Fill the help and version field of
+	plugin_info.
+
+2011-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.
