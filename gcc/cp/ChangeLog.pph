@@ -1,3 +1,17 @@
+2011-04-26  Lawrence Crowl <crowl@google.com>
+
+	* cp-tree.h (pushdecl_into_namespace): Add.
+	* name-lookup.c (pushdecl_into_namespace): Add.
+	* pph.c: Add include of tree-dump.h.
+	(pph_dump_tree_name): Add.
+	(pph_dump_namespace): Add.
+	(pph_write_file_contents): Call pph_dump_namespace when appropriate.
+	(pph_read_file_contents): Call pph_dump_namespace when appropriate.
+	(pph_add_names_to_namespace): Use pushdecl_into_namespace rather than
+	pushdecl_with_scope.  Make associated changes.  Enable recursive call
+	for nested namespace.
+	* pph-streamer.c (pph_stream_trace): Reformat conditionals.
+
 2011-04-26  Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer.h (pph_output_tree_or_ref_1): New.

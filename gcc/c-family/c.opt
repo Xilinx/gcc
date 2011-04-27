@@ -937,6 +937,10 @@ fpph-decls-debug=
 C++ Joined RejectNegative UInteger Var(flag_pph_decls_debug)
 -fpph-decls=N   Enable declaration identifier output at level N from PPH support
 
+fpph-dump-tree
+C++ Var(flag_pph_dump_tree)
+-fpph-dump-tree	Dump global namespace tree around PPH reads/writes.
+
 fpph-hdr=
 C++ ObjC++ Joined MissingArgError(missing filename after %qs)
 -fpph-hdr=<base-name>   A mapping from <base-name>.h to <base-name>.pph

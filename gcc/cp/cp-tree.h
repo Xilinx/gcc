@@ -4756,6 +4756,7 @@ extern tree perform_qualification_conversions	(tree, tree);
 /* in name-lookup.c */
 extern tree pushdecl				(tree);
 extern tree pushdecl_maybe_friend		(tree, bool);
+extern tree pushdecl_into_namespace		(tree, tree);
 extern void maybe_push_cleanup_level		(tree);
 extern tree pushtag				(tree, tree, tag_scope);
 extern tree make_anon_name			(void);

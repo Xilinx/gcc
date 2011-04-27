@@ -1,3 +1,7 @@
+2011-04-20  Lawrence Crowl  <crowl@google.com>
+
+	* c.opt (fpph-dump-tree): Add.
+
 2011-04-19  Diego Novillo  <dnovillo@google.com>
 
 	* c-ppoutput.c (cb_include): Change return type to bool.

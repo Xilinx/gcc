@@ -181,7 +181,7 @@ enum
 /* Make sure the bitfield directive_index in include/cpplib.h is large
    enough to index the entire table.  */
 
-unsigned char too_many_directives_for_bitfield[
+extern unsigned char too_many_directives_for_bitfield[
         N_DIRECTIVES <= (1 << CPP_HASHNODE_INDEX_BITS)
         ? 1 : -1];
 

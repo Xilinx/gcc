@@ -1181,6 +1181,24 @@ pushdecl_maybe_friend (tree x, bool is_friend)
   return ret;
 }
 
+tree
+pushdecl_into_namespace (tree dcl, tree nsp)
+{
+  tree ret;
+  /* FIXME pph: There might be a better way to do this...  */
+  struct cp_binding_level *level = NAMESPACE_LEVEL (nsp);
+  tree saved = current_namespace;
+  current_namespace = nsp;
+#if 0
+  ret = pushdecl_maybe_friend (dcl, /*is_friend=*/false);
+#else
+  ret = pushdecl_with_scope (dcl, level, /*is_friend=*/false);
+#endif
+  current_namespace = saved;
+  return ret;
+}
+
+
 /* Record a decl-node X as belonging to the current lexical scope.  */
 
 tree

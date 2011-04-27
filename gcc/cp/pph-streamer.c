@@ -140,7 +140,8 @@ pph_stream_trace (pph_stream *stream, const void *data, unsigned int nbytes,
                            "bitpack" };
 
   if ((type == PPH_TRACE_TREE || type == PPH_TRACE_CHAIN)
-      && !data && flag_pph_tracer <= 3)
+      && !data
+      && flag_pph_tracer <= 3)
     return;
 
   fprintf (pph_logfile, "*** %s: %s%s/%u, value=",

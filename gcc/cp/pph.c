@@ -31,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "fixed-value.h"
 #include "md5.h"
 #include "tree-pass.h"
+#include "tree-dump.h"
 #include "tree-inline.h"
 #include "tree-pretty-print.h"
 #include "parser.h"
@@ -1863,12 +1864,65 @@ pth_file_change (cpp_reader *reader, const struct line_map *map)
 }
 
 
+/* Dump a complicated name for tree T to FILE using FLAGS.
+   See TDF_* in tree-pass.h for flags.  */
+
+static void
+pph_dump_tree_name (FILE *file, tree t, int flags)
+{
+  enum tree_code code = TREE_CODE (t);
+  fprintf (file, "%s\t", tree_code_name[code]);
+  if (code == FUNCTION_TYPE || code == METHOD_TYPE)
+    {
+      dump_function_to_file (t, file, flags);
+    }
+  else
+    {
+      print_generic_expr (file, TREE_TYPE (t), flags);
+      /* FIXME pph: fprintf (file, " ", cxx_printable_name (t, 0)); */
+      fprintf (file, " " );
+      print_generic_expr (file, t, flags);
+    }
+  fprintf (file, "\n");
+}
+
+
+/* Dump namespace NS for PPH.  */
+
+static void
+pph_dump_namespace (FILE *file, tree ns)
+{
+  struct cp_binding_level *level;
+  tree t, chain;
+  level = NAMESPACE_LEVEL (ns);
+
+  fprintf (file, "namespace ");
+  print_generic_expr (file, ns, 0);
+  fprintf (file, " {\n");
+  for (t = level->names; t; t = chain)
+    {
+      chain = DECL_CHAIN (t);
+      if (!DECL_IS_BUILTIN (t))
+        pph_dump_tree_name (file, t, 0);
+    }
+  for (t = level->namespaces; t; t = chain)
+    {
+      chain = DECL_CHAIN (t);
+      if (!DECL_IS_BUILTIN (t))
+        pph_dump_namespace (file, t);
+    }
+  fprintf (file, "}\n");
+}
+
+
 /* Write PPH output symbols and IDENTS_USED to STREAM as an object.  */
 
 static void
 pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
 { 
   pth_save_identifiers (idents_used, stream);
+  if (flag_pph_dump_tree)
+    pph_dump_namespace (pph_logfile, global_namespace);
   pph_output_tree (stream, global_namespace, false);
 }
 
@@ -1943,34 +1997,26 @@ report_validation_error (const char *filename,
 static void
 pph_add_names_to_namespace (tree ns, tree new_ns)
 {
-  struct cp_binding_level *new_level, *level;
   tree t, chain;
+  struct cp_binding_level *level = NAMESPACE_LEVEL (new_ns);
 
-  level = NAMESPACE_LEVEL (ns);
-  new_level = NAMESPACE_LEVEL (new_ns);
-
-  for (t = new_level->names; t; t = chain)
+  for (t = level->names; t; t = chain)
     {
       /* Pushing a decl into a scope clobbers its DECL_CHAIN.
 	 Preserve it.  */
       chain = DECL_CHAIN (t);
-      pushdecl_with_scope (t, level, /*is_friend=*/false);
+      pushdecl_into_namespace (t, ns);
     }
 
-  for (t = new_level->namespaces; t; t = chain)
+  for (t = level->namespaces; t; t = chain)
     {
       /* Pushing a decl into a scope clobbers its DECL_CHAIN.
 	 Preserve it.  */
       /* FIXME pph: we should first check to see if it isn't already there.  */
       chain = DECL_CHAIN (t);
-      pushdecl_with_scope (t, level, /*is_friend=*/false);
-      /* FIXME pph: The change above enables the namespace,
-         but its symbols are still missing.
-         The recursive call below causes multiple errors.
+      pushdecl_into_namespace (t, ns);
       pph_add_names_to_namespace (t, t);
-      */
     }
-
 }
 
 
@@ -1999,6 +2045,8 @@ pph_read_file_contents (pph_stream *stream)
   /* Read global_namespace from STREAM and add all the names defined
      there to the current global_namespace.  */
   file_ns = pph_input_tree (stream);
+  if (flag_pph_dump_tree)
+    pph_dump_namespace (pph_logfile, file_ns);
   pph_add_names_to_namespace (global_namespace, file_ns);
 }
 
