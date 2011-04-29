@@ -32,7 +32,9 @@ set scenarios [list "" ]
 set hdr_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cdx\]*.h]]
 set neg_tests [lsort [glob -nocomplain $srcdir/$subdir/\[dy\]*.cc]]
 set pos_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cpx\]*.cc]]
-set mapflag -fpph-map=$srcdir/$subdir/pph.map
+
+gcc_copy_files $srcdir/$subdir/pph.map .
+set mapflag -fpph-map=pph.map
 
 foreach scenario $scenarios {
 
