@@ -1,3 +1,10 @@
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
+	* c.opt (Wreal-conversion): New flag.
+	* c-common.c (conversion_warning): Use it.
+	* c-opts.c (c_common_post_options): Initialize it.
+	* doc/invoke.texi (Wreal-conversion): Document it.
+
 2011-04-26  Xinliang David Li  <davidxl@google.com>
 
 	* c-opts.c (c_common_handle_option): Set

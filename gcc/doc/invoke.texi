@@ -257,7 +257,7 @@ Objective-C and Objective-C++ Dialects}.
 -Woverlength-strings  -Wpacked  -Wpacked-bitfield-compat  -Wpadded @gol
 -Wparentheses  -Wpedantic-ms-format -Wno-pedantic-ms-format @gol
 -Wpointer-arith  -Wno-pointer-to-int-cast @gol
--Wredundant-decls  -Wreturn-type -Wripa-opt-mismatch @gol
+-Wreal-conversion  -Wredundant-decls  -Wreturn-type -Wripa-opt-mismatch @gol
 -Wself-assign  -Wself-assign-non-pod  -Wsequence-point  -Wshadow @gol
 -Wshadow-compatible-local -Wshadow-local @gol
 -Wsign-compare  -Wsign-conversion  -Wstack-protector @gol
@@ -4231,6 +4231,12 @@ unsigned integers are disabled by default in C++ unless
 @opindex Wno-conversion-null
 Do not warn for conversions between @code{NULL} and non-pointer
 types. @option{-Wconversion-null} is enabled by default.
+
+@item -Wreal-conversion
+@opindex Wreal-conversion
+@opindex Wno-real-conversion
+Warn for implicit type conversions from real (@code{double} or @code{float})
+to integral values.
 
 @item -Wempty-body
 @opindex Wempty-body

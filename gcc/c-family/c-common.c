@@ -1941,7 +1941,7 @@ conversion_warning (tree type, tree expr)
   tree expr_type = TREE_TYPE (expr);
   location_t loc = EXPR_LOC_OR_HERE (expr);
 
-  if (!warn_conversion && !warn_sign_conversion)
+  if (!warn_conversion && !warn_sign_conversion && !warn_real_conversion)
     return;
 
   /* If any operand is artificial, then this expression was generated
@@ -1984,7 +1984,9 @@ conversion_warning (tree type, tree expr)
           && TREE_CODE (type) == INTEGER_TYPE)
         {
           if (!real_isinteger (TREE_REAL_CST_PTR (expr), TYPE_MODE (expr_type)))
-            give_warning = true;
+            warning (OPT_Wreal_conversion,
+                     "conversion to %qT from %qT may alter its value",
+                     type, expr_type);
         }
       /* Warn for an integer constant that does not fit into integer type.  */
       else if (TREE_CODE (expr_type) == INTEGER_TYPE
@@ -2053,7 +2055,9 @@ conversion_warning (tree type, tree expr)
       /* Warn for real types converted to integer types.  */
       if (TREE_CODE (expr_type) == REAL_TYPE
           && TREE_CODE (type) == INTEGER_TYPE)
-        give_warning = true;
+        warning (OPT_Wreal_conversion,
+                 "conversion to %qT from %qT may alter its value",
+                 type, expr_type);
 
       else if (TREE_CODE (expr_type) == INTEGER_TYPE
                && TREE_CODE (type) == INTEGER_TYPE)

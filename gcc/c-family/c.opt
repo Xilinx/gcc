@@ -323,6 +323,10 @@ Wself-assign-non-pod
 C++ ObjC++ Var(warn_self_assign_non_pod) Init(0) Warning
 Warn when a variable of a non-POD type is assigned to itself
 
+Wreal-conversion
+C ObjC C++ ObjC++ Var(warn_real_conversion) Init(-1) Warning
+Warn for implicit type conversions from real to integral values
+
 Wsign-conversion
 C ObjC C++ ObjC++ Var(warn_sign_conversion) Init(-1)
 Warn for implicit type conversions between signed and unsigned integers

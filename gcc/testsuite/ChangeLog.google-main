@@ -39,6 +39,11 @@
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	* g++.dg/warn/Wreal-conversion-1.C: New.
+	* gcc.dg/Wreal-conversion-1.c: New.
+
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
 	* g++.dg/warn/Wshadow-compatible-local-1.C: New.
 	* g++.dg/warn/Wshadow-local-1.C: New.
 	* g++.dg/warn/Wshadow-local-2.C: New.
