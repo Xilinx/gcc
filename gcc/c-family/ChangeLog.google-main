@@ -1,13 +1,19 @@
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	Google ref 45339.
+
 	* c-common.c (handle_nonnull_attribute): Check whether the nonnull
 	attribute is applied to the 'this' pointer for non-static methods.
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	Google ref 42718.
+
 	* c.opt (Wnonnull): Enable for C++.
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
+	Google ref 39133.
 
 	* c.opt (Wreal-conversion): New flag.
 	* c-common.c (conversion_warning): Use it.

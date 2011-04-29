@@ -1,3 +1,10 @@
+2011-04-29  Diego Novillo  <dnovillo@google.com>
+
+	Google ref 40484.
+
+	* g++.old-deja/g++.other/null3.C: Expect warning about
+	converting boolean to a pointer.
+
 2011-04-28  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/other/no-strict-enum-precision-1.C: Re-indent using GNU style.
@@ -14,6 +21,8 @@
 	* gcc.dg/Wshadow-compatible-local-1.c: Likewise.
 
 2011-04-28  Le-Chun Wu  <lcwu@google.com>
+
+	Google ref 40484.
 
 	* g++.dg/warn/Wconversion-null-2.C: Do not expect a NULL
 	  warning in implicitly instantiated templates.
@@ -54,18 +63,26 @@
 	
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	Google ref 45339.
+
 	* g++.dg/warn/nonnull2.C: New.
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
+	Google ref 42718.
 
 	* g++.dg/warn/Wnonnull-1.C: New.
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	Google ref 39133.
+
 	* g++.dg/warn/Wreal-conversion-1.C: New.
 	* gcc.dg/Wreal-conversion-1.c: New.
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
+	Google ref 39127.
 
 	* g++.dg/warn/Wshadow-compatible-local-1.C: New.
 	* g++.dg/warn/Wshadow-local-1.C: New.
@@ -77,10 +94,14 @@
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	Google ref 40484.
+
 	* g++.dg/warn/Wnull-conversion-1.C: New.
 	* g++.dg/warn/Wnull-conversion-2.C: New.
 
 2011-04-27  Silvius Rus  <silvius.rus@gmail.com>
+
+	Google ref 39984.
 
 	* g++.dg/other/no-strict-enum-precision-1.C: New.
 	* g++.dg/other/no-strict-enum-precision-2.C: New.

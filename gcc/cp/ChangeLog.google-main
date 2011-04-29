@@ -1,16 +1,22 @@
 2011-04-28  Diego Novillo  <dnovillo@google.com>
 	    Le-Chun Wu  <lcwu@google.com>
 
+	Google ref 40484.
+
 	* call.c (conversion_null_warnings): Also handle assignments
 	when warning about NULL conversions.
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
+	Google ref 39127.
 
 	* name-lookup.c (pushdecl_maybe_friend): When emitting a
 	shadowing warning, use the code corresponding to the
 	given -Wshadow- variant.
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
+	Google ref 40484.
 
 	* cp-tree.h (LOOKUP_EXPLICIT_TMPL_ARGS): Define.
 	* call.c (build_new_function_call): Set it for TEMPLATE_ID_EXPRs.

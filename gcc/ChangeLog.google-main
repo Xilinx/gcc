@@ -19,6 +19,8 @@
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	Google ref 42718.
+
 	* doc/extend.texi (Wnonnull): Add documentation for C++.
 	* doc/invoke.texi (Wnonnull): Add documentation for C++.
 
@@ -29,6 +31,8 @@
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	Google ref 39127.
+
 	* c-decl.c (warn_if_shadowing): Use the warning code corresponding
 	to the given -Wshadow- variant.
 	* common.opt (Wshadow-local): New option.
@@ -38,6 +42,8 @@
 	OPT_Wshadow_local.
 
 2011-04-27  Silvius Rus  <silvius.rus@gmail.com>
+
+	Google ref 39984.
 
 	* doc/invoke.texi (fno-strict-enum-precision): Document.
 	* gimplify.c (gimplify_switch_expr): If
