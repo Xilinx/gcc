@@ -24,6 +24,12 @@ load_lib gcc-dg.exp
 global DEFAULT_VECTCFLAGS
 set DEFAULT_VECTCFLAGS ""
 
+# So that we can read flags in individual tests.
+proc vect_cflags { } {
+  global DEFAULT_VECTCFLAGS
+  return $DEFAULT_VECTCFLAGS
+}
+
 # If the target system supports vector instructions, the default action
 # for a test is 'run', otherwise it's 'compile'.  Save current default.
 # Executing vector instructions on a system without hardware vector support

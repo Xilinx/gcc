@@ -324,15 +324,23 @@ static void
 decide_peel_once_rolling (struct loop *loop, int flags ATTRIBUTE_UNUSED)
 {
   struct niter_desc *desc;
+  unsigned max_peeled_insns;
+
+  if (profile_status == PROFILE_READ)
+    max_peeled_insns =
+      (unsigned) PARAM_VALUE (PARAM_MAX_ONCE_PEELED_INSNS_FEEDBACK);
+  else
+    max_peeled_insns = (unsigned) PARAM_VALUE (PARAM_MAX_ONCE_PEELED_INSNS);
 
   if (dump_file)
     fprintf (dump_file, "\n;; Considering peeling once rolling loop\n");
 
   /* Is the loop small enough?  */
-  if ((unsigned) PARAM_VALUE (PARAM_MAX_ONCE_PEELED_INSNS) < loop->ninsns)
+  if (max_peeled_insns < loop->ninsns)
     {
       if (dump_file)
-	fprintf (dump_file, ";; Not considering loop, is too big\n");
+	fprintf (dump_file, ";; Not considering loop, is too big (%d > %u)\n",
+                 loop->ninsns, max_peeled_insns);
       return;
     }
 
@@ -362,7 +370,7 @@ decide_peel_once_rolling (struct loop *loop, int flags ATTRIBUTE_UNUSED)
 static void
 decide_peel_completely (struct loop *loop, int flags ATTRIBUTE_UNUSED)
 {
-  unsigned npeel;
+  unsigned npeel, max_insns, max_peel;
   struct niter_desc *desc;
 
   if (dump_file)
@@ -393,16 +401,30 @@ decide_peel_completely (struct loop *loop, int flags ATTRIBUTE_UNUSED)
       return;
     }
 
+  if (profile_status == PROFILE_READ)
+    {
+      max_insns =
+        (unsigned) PARAM_VALUE (PARAM_MAX_COMPLETELY_PEELED_INSNS_FEEDBACK);
+      max_peel =
+        (unsigned) PARAM_VALUE (PARAM_MAX_COMPLETELY_PEEL_TIMES_FEEDBACK);
+    }
+  else
+    {
+      max_insns = (unsigned) PARAM_VALUE (PARAM_MAX_COMPLETELY_PEELED_INSNS);
+      max_peel = (unsigned) PARAM_VALUE (PARAM_MAX_COMPLETELY_PEEL_TIMES);
+    }
+
   /* npeel = number of iterations to peel.  */
-  npeel = PARAM_VALUE (PARAM_MAX_COMPLETELY_PEELED_INSNS) / loop->ninsns;
-  if (npeel > (unsigned) PARAM_VALUE (PARAM_MAX_COMPLETELY_PEEL_TIMES))
-    npeel = PARAM_VALUE (PARAM_MAX_COMPLETELY_PEEL_TIMES);
+  npeel = max_insns / loop->ninsns;
+  if (npeel > max_peel)
+    npeel = max_peel;
 
   /* Is the loop small enough?  */
   if (!npeel)
     {
       if (dump_file)
-	fprintf (dump_file, ";; Not considering loop, is too big\n");
+	fprintf (dump_file, ";; Not considering loop, is too big, npeel=%u.\n",
+                 npeel);
       return;
     }
 
@@ -435,7 +457,7 @@ decide_peel_completely (struct loop *loop, int flags ATTRIBUTE_UNUSED)
 
   /* Success.  */
   if (dump_file)
-    fprintf (dump_file, ";; Decided to peel loop completely\n");
+    fprintf (dump_file, ";; Decided to peel loop completely npeel %u\n", npeel);
   loop->lpt_decision.decision = LPT_PEEL_COMPLETELY;
 }
 

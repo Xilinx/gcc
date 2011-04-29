@@ -326,6 +326,7 @@ try_unroll_loop_completely (struct loop *loop,
 			    enum unroll_level ul)
 {
   unsigned HOST_WIDE_INT n_unroll, ninsns, max_unroll, unr_insns;
+  unsigned HOST_WIDE_INT max_peeled_insns;
   gimple cond;
   struct loop_size size;
 
@@ -336,9 +337,22 @@ try_unroll_loop_completely (struct loop *loop,
     return false;
   n_unroll = tree_low_cst (niter, 1);
 
-  max_unroll = PARAM_VALUE (PARAM_MAX_COMPLETELY_PEEL_TIMES);
+  if (profile_status == PROFILE_READ
+      && optimize_loop_for_speed_p (loop))
+    max_unroll = PARAM_VALUE (PARAM_MAX_COMPLETELY_PEEL_TIMES_FEEDBACK);
+  else
+    max_unroll = PARAM_VALUE (PARAM_MAX_COMPLETELY_PEEL_TIMES);
+
   if (n_unroll > max_unroll)
+    {
+      if (dump_file && (dump_flags & TDF_DETAILS))
+	{
+	  fprintf (dump_file, "  Not unrolling loop %d limited by max unroll"
+                   " (%d > %d)\n",
+                   loop->num, (int) n_unroll, (int) max_unroll);
+        }
     return false;
+  }
 
   if (n_unroll)
     {
@@ -356,14 +370,20 @@ try_unroll_loop_completely (struct loop *loop,
 		   (int) unr_insns);
 	}
 
-      if (unr_insns > ninsns
-	  && (unr_insns
-	      > (unsigned) PARAM_VALUE (PARAM_MAX_COMPLETELY_PEELED_INSNS)))
+      if (profile_status == PROFILE_READ
+          && optimize_loop_for_speed_p (loop))
+        max_peeled_insns =
+          PARAM_VALUE (PARAM_MAX_COMPLETELY_PEELED_INSNS_FEEDBACK);
+      else
+        max_peeled_insns = PARAM_VALUE (PARAM_MAX_COMPLETELY_PEELED_INSNS);
+
+      if (unr_insns > max_peeled_insns)
 	{
 	  if (dump_file && (dump_flags & TDF_DETAILS))
 	    fprintf (dump_file, "Not unrolling loop %d "
-		     "(--param max-completely-peeled-insns limit reached).\n",
-		     loop->num);
+		     "(--param max-completely-peeled-insns(-feedback) limit. "
+                     "(%u > %u)).\n",
+                     loop->num, (unsigned) unr_insns, (unsigned) max_peeled_insns);
 	  return false;
 	}
 
@@ -371,7 +391,8 @@ try_unroll_loop_completely (struct loop *loop,
 	  && unr_insns > ninsns)
 	{
 	  if (dump_file && (dump_flags & TDF_DETAILS))
-	    fprintf (dump_file, "Not unrolling loop %d.\n", loop->num);
+	    fprintf (dump_file, "Not unrolling loop %d (NO_GROWTH %d > %d).\n",
+                     loop->num, (int) unr_insns, (int) ninsns);
 	  return false;
 	}
     }
@@ -418,8 +439,9 @@ try_unroll_loop_completely (struct loop *loop,
   update_stmt (cond);
   update_ssa (TODO_update_ssa);
 
-  if (dump_file && (dump_flags & TDF_DETAILS))
-    fprintf (dump_file, "Unrolled loop %d completely.\n", loop->num);
+  if (dump_file)
+    fprintf (dump_file, "Unrolled loop %d completely by factor %d.\n",
+             loop->num, (int) n_unroll);
 
   return true;
 }

@@ -1,5 +1,14 @@
 2011-04-28  Sharad Singhai  <singhai@google.com>
 
+	* params.def: Add new parameters to control peeling.
+	* tree-ssa-loop-ivcanon.c (try_unroll_loop_completely): Use
+	different peeling parameters when profile feedback is available.
+	* loop-unroll.c (decide_peel_once_rolling): Ditto.
+	(decide_peel_completely): Ditto.
+	* doc/invoke.texi: Document new peeling parameters.
+
+2011-04-28  Sharad Singhai  <singhai@google.com>
+
 	Google Ref 40087
 
 	* opts.c (common_handle_option): Disable -ftracer for profile use.

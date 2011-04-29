@@ -8683,8 +8683,28 @@ The maximum number of peelings of a single loop.
 @item max-completely-peeled-insns
 The maximum number of insns of a completely peeled loop.
 
+@item max-completely-peeled-insns-feedback
+The maximum number of insns of a completely peeled loop when profile
+feedback is available and the loop is hot. Because of the real
+profiles, this value may set to be larger for hot loops. Its default
+value is 600.
+
+@item max-once-peeled-insns
+The maximum number of insns of a peeled loop that rolls only once.
+
+@item max-once-peeled-insns-feedback
+The maximum number of insns of a peeled loop when profile feedback is
+available and the loop is hot. Because of the real profiles, this
+value may set to be larger for hot loops. The default value is 600.
+
 @item max-completely-peel-times
 The maximum number of iterations of a loop to be suitable for complete peeling.
+
+@item max-completely-peel-times-feedback
+The maximum number of iterations of a loop to be suitable for complete
+peeling when profile feedback is available and the loop is
+hot. Because of the real profiles, this value may set to be larger for
+hot loops. Its default value is 16.
 
 @item max-completely-peel-loop-nest-depth
 The maximum depth of a loop nest suitable for complete peeling.
