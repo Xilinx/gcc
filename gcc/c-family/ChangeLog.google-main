@@ -1,3 +1,8 @@
+2011-04-29  Diego Novillo  <dnovillo@google.com>
+
+	* c-common.c (handle_nonnull_attribute): Remove spurious
+	white space.
+
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
 	Google ref 45339.

@@ -7466,7 +7466,6 @@ handle_nonnull_attribute (tree *node, tree ARG_UNUSED (name),
 	      return NULL_TREE;
 	    }
 
-
 	  if (TREE_CODE (TREE_VALUE (argument)) != POINTER_TYPE)
 	    {
 	      error ("nonnull argument references non-pointer operand (argument %lu, operand %lu)",
