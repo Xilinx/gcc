@@ -1,3 +1,37 @@
+2011-04-29  Cary Coutant  <ccoutant@google.com>
+
+	* basic-block.h (struct basic_block_def): Remove discriminator field.
+	* cfghooks.c (split_block): Remove discriminator field.
+	* cfglayout.c (insn_discriminator): New function.
+	* final.c (discriminator): Remove.
+	(override_discriminator): New file-scope variable.
+	(final_start_function): Remove tracking of discriminator by basic
+	block.
+	(final_scan_insn): Track discriminator by instruction.
+	(notice_source_line): Check for discriminator override. Get
+	discriminator from instruction.
+	* gimple-pretty-print.c (dump_gimple_stmt): Print discriminator.
+	(dump_bb_header): Don't print discriminator.
+	* input.c: Include vecprim.h.
+	(discriminator_location_locations): New variable.
+	(discriminator_location_discriminators): New variable.
+	(min_discriminator_location): New variable.
+	(expand_location): Use map_discriminator_location.
+	(location_with_discriminator): New function.
+	(has_discriminator): New function.
+	(map_discriminator_location): New function.
+	(get_discriminator_from_locus): New function.
+	* input.h (location_with_discriminator): New function.
+	(has_discriminator): New function.
+	(map_discriminator_location): New function.
+	(get_discriminator_from_locus): New function.
+	* print-rtl.c (print_rtx): Print discriminator.
+	* rtl.h (insn_discriminator): New function.
+	* tree-cfg.c: Include input.h.
+	(assign_discriminator): Assign discriminators to instructions rather
+	than to the basic block.
+	* tree-pretty-print.c (dump_location): Print discriminator.
+
 2011-04-28  Sharad Singhai  <singhai@google.com>
 
 	* params.def: Add new parameters to control peeling.

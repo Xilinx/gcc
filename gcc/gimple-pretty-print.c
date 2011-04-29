@@ -1629,7 +1629,9 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
 
   if ((flags & TDF_LINENO) && gimple_has_location (gs))
     {
-      expanded_location xloc = expand_location (gimple_location (gs));
+      location_t loc = gimple_location (gs);
+      expanded_location xloc = expand_location (loc);
+      int discriminator = get_discriminator_from_locus (loc);
       pp_character (buffer, '[');
       if (xloc.file)
 	{
@@ -1639,6 +1641,11 @@ dump_gimple_stmt (pretty_printer *buffer, gimple gs, int spc, int flags)
       pp_decimal_int (buffer, xloc.line);
       pp_string (buffer, ":");
       pp_decimal_int (buffer, xloc.column);
+      if (discriminator)
+	{
+	  pp_string (buffer, " discrim ");
+	  pp_decimal_int (buffer, discriminator);
+	}
       pp_string (buffer, "] ");
     }
 
@@ -1861,12 +1868,6 @@ dump_bb_header (pretty_printer *buffer, basic_block bb, int indent, int flags)
 		pp_decimal_int (buffer, get_lineno (gsi_stmt (gsi)));
 		break;
 	      }
-
-          if (bb->discriminator)
-            {
-              pp_string (buffer, ", discriminator ");
-	      pp_decimal_int (buffer, bb->discriminator);
-            }
 	}
       newline_and_indent (buffer, indent);
 

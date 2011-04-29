@@ -28,6 +28,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "basic-block.h"
 #include "output.h"
 #include "flags.h"
+#include "input.h"
 #include "function.h"
 #include "ggc.h"
 #include "langhooks.h"
@@ -761,22 +762,59 @@ same_line_p (location_t locus1, location_t locus2)
           && strcmp (from.file, to.file) == 0);
 }
 
-/* Assign a unique discriminator value to block BB if it begins at the same
-   LOCUS as its predecessor block.  */
+/* Assign a unique discriminator value to instructions in block BB that
+   have the same LOCUS as its predecessor block.  */
 
 static void
 assign_discriminator (location_t locus, basic_block bb)
 {
   gimple first_in_to_bb, last_in_to_bb;
+  int discriminator = 0;
 
-  if (locus == 0 || bb->discriminator != 0)
+  if (locus == UNKNOWN_LOCATION)
     return;
 
+  if (has_discriminator (locus))
+    locus = map_discriminator_location (locus);
+
+  /* Check the locus of the first (non-label) instruction in the block.  */
   first_in_to_bb = first_non_label_stmt (bb);
-  last_in_to_bb = last_stmt (bb);
-  if ((first_in_to_bb && same_line_p (locus, gimple_location (first_in_to_bb)))
-      || (last_in_to_bb && same_line_p (locus, gimple_location (last_in_to_bb))))
-    bb->discriminator = next_discriminator_for_locus (locus);
+  if (first_in_to_bb)
+    {
+      location_t first_locus = gimple_location (first_in_to_bb);
+      if (! has_discriminator (first_locus)
+	  && same_line_p (locus, first_locus))
+	discriminator = next_discriminator_for_locus (locus);
+    }
+
+  /* If the first instruction doesn't trigger a discriminator, check the
+     last instruction of the block.  This catches the case where the
+     increment portion of a for loop is placed at the end of the loop
+     body.  */
+  if (discriminator == 0)
+    {
+      last_in_to_bb = last_stmt (bb);
+      if (last_in_to_bb)
+	{
+	   location_t last_locus = gimple_location (last_in_to_bb);
+	   if (! has_discriminator (last_locus)
+	       && same_line_p (locus, last_locus))
+	     discriminator = next_discriminator_for_locus (locus);
+	}
+    }
+
+  if (discriminator != 0)
+    {
+      location_t new_locus = location_with_discriminator (locus, discriminator);
+      gimple_stmt_iterator gsi;
+
+      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+	{
+	  gimple stmt = gsi_stmt (gsi);
+	  if (same_line_p (locus, gimple_location (stmt)))
+	    gimple_set_location (stmt, new_locus);
+	}
+    }
 }
 
 /* Create the edges for a GIMPLE_COND starting at block BB.  */

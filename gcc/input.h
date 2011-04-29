@@ -59,6 +59,11 @@ typedef source_location location_t;
 
 extern location_t input_location;
 
+extern location_t location_with_discriminator (location_t, int);
+extern bool has_discriminator (location_t);
+extern location_t map_discriminator_location (location_t);
+extern int get_discriminator_from_locus (location_t);
+
 #define LOCATION_FILE(LOC) ((expand_location (LOC)).file)
 #define LOCATION_LINE(LOC) ((expand_location (LOC)).line)
 

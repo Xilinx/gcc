@@ -162,9 +162,6 @@ struct GTY((chain_next ("%h.next_bb"), chain_prev ("%h.prev_bb"))) basic_block_d
   /* Expected frequency.  Normalized to be in range 0 to BB_FREQ_MAX.  */
   int frequency;
 
-  /* The discriminator for this block.  */
-  int discriminator;
-
   /* Various flags.  See BB_* below.  */
   int flags;
 };

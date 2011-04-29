@@ -568,6 +568,16 @@ insn_file (const_rtx insn)
   return locator_file (INSN_LOCATOR (insn));
 }
 
+/* Return discriminator of the statement that produced this insn.  */
+int
+insn_discriminator (const_rtx insn)
+{
+  int loc = INSN_LOCATOR (insn);
+  if (!loc)
+    return 0;
+  return get_discriminator_from_locus (locator_location (loc));
+}
+
 /* Return true if LOC1 and LOC2 locators have the same location and scope.  */
 bool
 locator_eq (int loc1, int loc2)
