@@ -19,6 +19,11 @@
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	* doc/extend.texi (Wnonnull): Add documentation for C++.
+	* doc/invoke.texi (Wnonnull): Add documentation for C++.
+
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
 	* opts.c (common_handle_option): Do not enable Wshadow-local
 	nor Wshadow-compatible-local if Wshadow is disabled.
 

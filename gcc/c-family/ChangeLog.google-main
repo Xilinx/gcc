@@ -1,5 +1,9 @@
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	* c.opt (Wnonnull): Enable for C++.
+
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
 	* c.opt (Wreal-conversion): New flag.
 	* c-common.c (conversion_warning): Use it.
 	* c-opts.c (c_common_post_options): Initialize it.
