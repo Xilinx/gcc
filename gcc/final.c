@@ -1623,7 +1623,7 @@ profile_function (FILE *file ATTRIBUTE_UNUSED)
       int align = MIN (BIGGEST_ALIGNMENT, LONG_TYPE_SIZE);
       switch_to_section (data_section);
       ASM_OUTPUT_ALIGN (file, floor_log2 (align / BITS_PER_UNIT));
-      targetm.asm_out.internal_label (file, "LP", current_function_funcdef_no);
+      targetm.asm_out.internal_label (file, "LP", FUNC_LABEL_ID (cfun));
       assemble_integer (const0_rtx, LONG_TYPE_SIZE / BITS_PER_UNIT, align, 1);
     }
 
@@ -1636,7 +1636,7 @@ profile_function (FILE *file ATTRIBUTE_UNUSED)
     ASM_OUTPUT_REG_PUSH (file, REGNO (chain));
 #endif
 
-  FUNCTION_PROFILER (file, current_function_funcdef_no);
+  FUNCTION_PROFILER (file, FUNC_LABEL_ID (cfun));
 
 #ifdef ASM_OUTPUT_REG_PUSH
   if (chain && REG_P (chain))

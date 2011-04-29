@@ -1,0 +1,5 @@
+file /usr/local/google/davidxl/dev/gcc/gcc-gmain-native_64-linux/libexec/gcc/x86_64-linux/4.6.0-google-main/cc1
+set args -quiet -v indir-call-prof.c -march=core2 -mcx16 -msahf --param l1-cache-size=32 --param l1-cache-line-size=64 --param l2-cache-size=4096 -mtune=core2 -quiet -dumpbase indir-call-prof.c -auxbase indir-call-prof -g -O2 -version -fprofile-generate -fripa -fdump-ipa-tree_profile_ipa -fdump-tree-optimized-blocks -o /tmp/ccdBoNgb.s
+b  main
+b internal_error
+b fancy_abort

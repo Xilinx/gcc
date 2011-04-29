@@ -1,3 +1,37 @@
+2011-04-28  David Li  <davidxl@google.com>
+
+	* testsuite/gcc.dg/tree-prof/lipo/lipo.exp: New expect file.
+	* testsuite/g++.dg/tree-prof/lipo/lipo.exp: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/inliner-1.c: New test.
+	* testsuite/gcc.dg/tree-prof/lipo/gdb_cmd: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/bb-reorg.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/stringop-1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/pr34999.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/stringop-2.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/update-loopch.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/ic-misattribution-1.c	: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/update-tailcall.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/ic-misattribution-1a.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/tracer-1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/indir-call-prof.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/wcoverage-mismatch.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-2.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/pr45354.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-3.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-4.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-5.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-6.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-7.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/pr47187.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/update-cunroll-2.c: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/inline_mismatch_args.C: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/indir-call-prof-2.C: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/indir-call-prof.C: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/partition1.C: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/partition2.C: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/partition3.C: Ditto.
+	
 2011-04-04  Martin Thuresson  <martint@google.com>
 
        PR gcov-profile/47793

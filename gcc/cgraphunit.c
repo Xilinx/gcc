@@ -1117,11 +1117,6 @@ cgraph_finalize_compilation_unit (void)
   /* Gimplify and lower thunks.  */
   cgraph_analyze_functions ();
 
-  /* LIPO support  */
-  /* Recognize equivalent types across modules and
-     merge their alias sets.  */
-  cgraph_unify_type_alias_sets ();
-
   /* Finally drive the pass manager.  */
   cgraph_optimize ();
 

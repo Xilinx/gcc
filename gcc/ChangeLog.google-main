@@ -1,3 +1,17 @@
+2011-04-28  Xinliang David Li  <davidxl@google.com>
+
+	* final.c (profile_function): Use FUNC_LABEL_ID.
+	* dwarf2out.c (dwarf2out_vms_end_prologue): Ditto.
+	(dwarf2out_vms_begin_epilogue): Ditto.
+	(dwarf2out_vms_debug_main_pointer): Ditto.
+	* cgraphunit.c (cgraph_finalize_compilation_unit):
+	Remove eq type alias set computation.
+	* tree-profile.c (gimple_gen_ic_func_topn_profiler): Do not skip any functions.
+	(tree_profiling): Add type alias merging.
+	* l-ipo.c (restore_post_parsing_states): Use max funcdef_no.
+	(pop_module_scope): Use max funcdef_no.
+	* gcov-dump.c (tag_function): Fix a bug in function read.
+
 2011-04-27  Xinliang David Li  <davidxl@google.com>
 	* value-prof.c (init_node_map): Disable for lipo mode.
 	(del_node_map): Disable for lipo mode.

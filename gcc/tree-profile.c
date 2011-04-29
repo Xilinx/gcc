@@ -473,7 +473,6 @@ gimple_gen_ic_func_profiler (void)
 static void
 gimple_gen_ic_func_topn_profiler (void)
 {
-  struct cgraph_node * c_node = cgraph_node (current_function_decl);
   gimple_stmt_iterator gsi;
   gimple stmt1;
   tree cur_func, gcov_info, cur_func_id;
@@ -481,16 +480,6 @@ gimple_gen_ic_func_topn_profiler (void)
   if (DECL_STATIC_CONSTRUCTOR (current_function_decl)
       || DECL_STATIC_CONSTRUCTOR (current_function_decl)
       || DECL_NO_INSTRUMENT_FUNCTION_ENTRY_EXIT (current_function_decl))
-    return;
-
-  /* We want to make sure template functions are instrumented even though
-     it is not 'needed' in this module. It is possible that the function
-     is needed (e.g, as icall target) in another module. Note that for
-     functions in comdat groups, there is no guarantee which copy will be
-     picked up by the linker.  */
-
-  if (!c_node->needed
-      && (!c_node->reachable || !DECL_COMDAT (c_node->decl)))
     return;
 
   gimple_init_edge_profiler ();
@@ -659,6 +648,7 @@ tree_profiling (void)
   /* Now perform link to allow cross module inlining.  */
   cgraph_do_link ();
   varpool_do_link ();
+  cgraph_unify_type_alias_sets ();
 
   init_node_map();
 

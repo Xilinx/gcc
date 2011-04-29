@@ -42,7 +42,12 @@ struct GTY(()) saved_module_scope
 
 static GTY (()) struct saved_module_scope *current_module_scope;
 static GTY ((param_is (struct saved_module_scope))) htab_t saved_module_scope_map;
-static int primary_module_last_fundef_no = 0;
+static int primary_module_last_funcdef_no = 0;
+/* Function id space for each module are qualified by the module id. After all the files
+   are parsed, we need to reset the funcdef_no to the max value from all module so that
+   the function clones do not assigned with ids colliding with some other orignal function
+   in the same module.  */
+static int max_funcdef_no = 0;
 static location_t primary_module_last_loc;
 /* Primary module pending templates.  */
 /* Referenced asm ids in primary module.  */
@@ -348,7 +353,7 @@ restore_post_parsing_states (void)
 {
   current_module_id = primary_module_id;
   current_module_scope = get_module_scope (primary_module_id);
-  set_funcdef_no (primary_module_last_fundef_no);
+  set_funcdef_no (max_funcdef_no);
   input_location = primary_module_last_loc;
 
   restore_assembler_name_reference_bit ();
@@ -364,6 +369,8 @@ void
 pop_module_scope (void)
 {
   bool is_last = false;
+  int  last_funcdef_no;
+
   if (!flag_dyn_ipa || !L_IPO_COMP_MODE)
     return;
 
@@ -379,13 +386,17 @@ pop_module_scope (void)
 
   is_last = is_last_module (current_module_id);
 
+  last_funcdef_no = get_last_funcdef_no ();
+  if (last_funcdef_no > max_funcdef_no)
+    max_funcdef_no = last_funcdef_no;
+
   lang_hooks.l_ipo.save_built_in_decl_post_module_parsing ();
   /* Save primary module state if needed (when module group
      size > 1)  */
   if (L_IPO_IS_PRIMARY_MODULE && num_in_fnames > 1)
     {
       save_assembler_name_reference_bit ();
-      primary_module_last_fundef_no = get_last_funcdef_no ();
+      primary_module_last_funcdef_no = last_funcdef_no;
     }
 
   if (!is_last)

@@ -4184,9 +4184,9 @@ dwarf2out_vms_end_prologue (unsigned int line ATTRIBUTE_UNUSED,
   /* Output a label to mark the endpoint of the code generated for this
      function.  */
   ASM_GENERATE_INTERNAL_LABEL (label, PROLOGUE_END_LABEL,
-			       current_function_funcdef_no);
+			       FUNC_LABEL_ID (cfun));
   ASM_OUTPUT_DEBUG_LABEL (asm_out_file, PROLOGUE_END_LABEL,
-			  current_function_funcdef_no);
+			  FUNC_LABEL_ID (cfun));
   fde = &fde_table[fde_table_in_use - 1];
   fde->dw_fde_vms_end_prologue = xstrdup (label);
 }
@@ -4209,9 +4209,9 @@ dwarf2out_vms_begin_epilogue (unsigned int line ATTRIBUTE_UNUSED,
   /* Output a label to mark the endpoint of the code generated for this
      function.  */
   ASM_GENERATE_INTERNAL_LABEL (label, EPILOGUE_BEGIN_LABEL,
-			       current_function_funcdef_no);
+			       FUNC_LABEL_ID (cfun));
   ASM_OUTPUT_DEBUG_LABEL (asm_out_file, EPILOGUE_BEGIN_LABEL,
-			  current_function_funcdef_no);
+			  FUNC_LABEL_ID (cfun));
   fde->dw_fde_vms_begin_epilogue = xstrdup (label);
 }
 
@@ -17918,7 +17918,7 @@ dwarf2out_vms_debug_main_pointer (void)
   die->die_tag = DW_TAG_subprogram;
   add_name_attribute (die, VMS_DEBUG_MAIN_POINTER);
   ASM_GENERATE_INTERNAL_LABEL (label, PROLOGUE_END_LABEL,
-			       current_function_funcdef_no);
+			       FUNC_LABEL_ID (cfun));
   add_AT_lbl_id (die, DW_AT_entry_pc, label);
 
   /* Make it the first child of comp_unit_die ().  */
