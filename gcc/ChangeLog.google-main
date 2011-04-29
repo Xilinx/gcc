@@ -17,6 +17,21 @@
 	* value-prof.c (init_node_map): Disable for lipo mode.
 	(del_node_map): Disable for lipo mode.
 
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
+	* opts.c (common_handle_option): Do not enable Wshadow-local
+	nor Wshadow-compatible-local if Wshadow is disabled.
+
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
+	* c-decl.c (warn_if_shadowing): Use the warning code corresponding
+	to the given -Wshadow- variant.
+	* common.opt (Wshadow-local): New option.
+	(Wshadow-compatible-local): New option.
+	* invoke.texi: Document Wshadow-local and Wshadow-compatible-local.
+	* opts.c (common_handle_option): Handle OPT_Wshadow and
+	OPT_Wshadow_local.
+
 2011-04-27  Silvius Rus  <silvius.rus@gmail.com>
 
 	* doc/invoke.texi (fno-strict-enum-precision): Document.

@@ -573,6 +573,15 @@ Wshadow
 Common Var(warn_shadow) Warning
 Warn when one local variable shadows another
 
+Wshadow-local
+Common Var(warn_shadow_local) Warning
+Warn when one local variable shadows another local variable or parameter
+
+Wshadow-compatible-local
+Common Var(warn_shadow_compatible_local) Warning
+Warn when one local variable shadows another local variable or parameter
+of compatible type
+
 Wstack-protector
 Common Var(warn_stack_protect) Warning
 Warn when not issuing stack smashing protection for some reason

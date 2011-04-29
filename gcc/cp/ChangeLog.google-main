@@ -6,6 +6,12 @@
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	* name-lookup.c (pushdecl_maybe_friend): When emitting a
+	shadowing warning, use the code corresponding to the
+	given -Wshadow- variant.
+
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
 	* cp-tree.h (LOOKUP_EXPLICIT_TMPL_ARGS): Define.
 	* call.c (build_new_function_call): Set it for TEMPLATE_ID_EXPRs.
 	(build_over_call): Use it to determine whether to emit a NULL

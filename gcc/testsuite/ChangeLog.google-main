@@ -39,6 +39,16 @@
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	* g++.dg/warn/Wshadow-compatible-local-1.C: New.
+	* g++.dg/warn/Wshadow-local-1.C: New.
+	* g++.dg/warn/Wshadow-local-2.C: New.
+	* gcc.dg/Wshadow-compatible-local-1.c: New.
+	* gcc.dg/Wshadow-local-1.c: New.
+	* gcc.dg/Wshadow-local-2.c: New.
+	* gcc.dg/Wshadow-local-3.c: New.
+
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
 	* g++.dg/warn/Wnull-conversion-1.C: New.
 	* g++.dg/warn/Wnull-conversion-2.C: New.
 
