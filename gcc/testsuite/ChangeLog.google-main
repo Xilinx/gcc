@@ -39,6 +39,10 @@
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>
 
+	* g++.dg/warn/nonnull2.C: New.
+
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
 	* g++.dg/warn/Wnonnull-1.C: New.
 
 2011-04-27  Le-Chun Wu  <lcwu@google.com>

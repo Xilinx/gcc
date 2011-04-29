@@ -7434,7 +7434,7 @@ handle_nonnull_attribute (tree *node, tree ARG_UNUSED (name),
 
   /* Argument list specified.  Verify that each argument number references
      a pointer argument.  */
-  for (attr_arg_num = 1; args; args = TREE_CHAIN (args))
+  for (attr_arg_num = 1; args; args = TREE_CHAIN (args), attr_arg_num++)
     {
       tree argument;
       unsigned HOST_WIDE_INT arg_num = 0, ck_num;
@@ -7466,6 +7466,7 @@ handle_nonnull_attribute (tree *node, tree ARG_UNUSED (name),
 	      return NULL_TREE;
 	    }
 
+
 	  if (TREE_CODE (TREE_VALUE (argument)) != POINTER_TYPE)
 	    {
 	      error ("nonnull argument references non-pointer operand (argument %lu, operand %lu)",
@@ -7473,6 +7474,11 @@ handle_nonnull_attribute (tree *node, tree ARG_UNUSED (name),
 	      *no_add_attrs = true;
 	      return NULL_TREE;
 	    }
+
+          if (TREE_CODE (type) == METHOD_TYPE && arg_num == 1)
+            warning (OPT_Wattributes,
+                     "nonnull argument references 'this' pointer (argument %lu, operand %lu)",
+                     (unsigned long) attr_arg_num, (unsigned long) arg_num);
 	}
     }
 
