@@ -1,3 +1,11 @@
+2011-04-28  Sharad Singhai  <singhai@google.com>
+
+	Google Ref 40087
+
+	* opts.c (common_handle_option): Disable -ftracer for profile use.
+	* doc/invoke.texi: Update doc that -ftracer is no longer
+	enabled for FDO.
+
 2011-04-28  Xinliang David Li  <davidxl@google.com>
 
 	* final.c (profile_function): Use FUNC_LABEL_ID.

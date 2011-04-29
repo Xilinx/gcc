@@ -1540,8 +1540,6 @@ common_handle_option (struct gcc_options *opts,
 	opts->x_flag_unroll_loops = value;
       if (!opts_set->x_flag_peel_loops)
 	opts->x_flag_peel_loops = value;
-      if (!opts_set->x_flag_tracer)
-	opts->x_flag_tracer = value;
       if (!opts_set->x_flag_value_profile_transformations)
 	opts->x_flag_value_profile_transformations = value;
       if (!opts_set->x_flag_inline_functions)
