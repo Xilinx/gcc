@@ -1,4 +1,9 @@
 
+2011-04-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Pierre Vittet  <piervit@pvittet.com>
+	* build-melt-plugin.sh (install_melt): Create the directories,
+	useful when $DESTDIR is given.
+
 2011-04-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (install_melt): Install explicitly melt.so
 	under $gcc_plugin_directory

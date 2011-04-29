@@ -410,6 +410,8 @@ install_melt() {
     verbose_echo Before installing MELT inside $gcc_plugin_directory
     verbose_sleep
     verbose_echo Installing the melt.so plugin and makefile
+## if $DESTDIR is given, the $gcc_plugin_directory might not exist!
+    $HOSTADMINCMD $HOSTINSTALL -d $DESTDIR$gcc_plugin_directory/
 ## melt.so should be installed inside $gcc_plugin_directory to enable
 ## using just -fplugin=melt
     $HOSTADMINCMD $HOSTINSTALL -D -m 755  melt.so $DESTDIR$gcc_plugin_directory/melt.so
@@ -417,7 +419,8 @@ install_melt() {
     $HOSTADMINCMD $HOSTINSTALL -D -m 755 $GCCMELT_SOURCE_TREE/melt-module.mk $DESTDIR$gcc_plugin_directory/melt-build-module.mk
     verbose_ls "MELT module maker" $DESTDIR$gcc_plugin_directory/melt-build-module.mk
     verbose_echo Installing MELT specific header files.
-    $HOSTADMINCMD $HOSTINSTALL -D -m 644 $GCCMELT_SOURCE_TREE/melt-runtime.h  melt-predef.h $GCCMELT_SOURCE_TREE/melt/generated/meltrunsup.h melt-run.h melt-run-md5.h \
+    $HOSTADMINCMD $HOSTINSTALL -d $DESTDIR$gcc_plugin_directory/include/
+    $HOSTADMINCMD $HOSTINSTALL -m 644 $GCCMELT_SOURCE_TREE/melt-runtime.h  melt-predef.h $GCCMELT_SOURCE_TREE/melt/generated/meltrunsup.h melt-run.h melt-run-md5.h \
 	$DESTDIR$gcc_plugin_directory/include/
     verbose_echo Installing missing GCC header files needed for MELT
     $HOSTADMINCMD $HOSTINSTALL -D -m 644 \
