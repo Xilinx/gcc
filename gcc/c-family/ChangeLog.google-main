@@ -1,0 +1,24 @@
+2011-04-26  Xinliang David Li  <davidxl@google.com>
+
+	* c-opts.c (c_common_handle_option): Set
+	warn_maybe_uninitialized.
+
+2011-04-26  Le-Chun Wu  <lcwu@google.com>
+
+	* c-parser.c (c_parser_declaration_or_fndef): Check for self-assign.
+	(c_parser_expr_no_commas): Check for self-assign.
+	* c-common.c (check_for_self_assign): New function.
+	* c-common.h: New function declaration.
+	* c.opt: New option.
+
+2011-04-25  David Li  <davidxl@google.com>
+
+	* c-opts.c (c_common_post_options): New option.
+	(c_common_parse_file): LIPO mode driver change.
+	(push_command_line_include): New function.
+
+Copyright (C) 2011 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

@@ -12,6 +12,35 @@
 	warning for template function instantiations.
 	(build_new_method_call): Set LOOKUP_EXPLICIT_TMPL_ARGS if
 	EXPLICIT_TARGS is set.
+
+2011-04-26  Le-Chun Wu  <lcwu@google.com>
+
+	* init.c (perform_member_init): Check for self-assign.
+	* parser.c (expr_is_pod): New function.
+	(cp_parser_assignment_expression): Check for self-assign.
+	(cp_parser_init_declarator): Check for self-assign.
+
+2011-04-25  David Li  <davidxl@google.com>
+
+	* decl.c (walk_namespaces): Ditto.
+	(duplicate_decls): Ditto.
+	(make_rtl_for_nonlocal_decl): Ditto.
+	* rtti.c (get_tinfo_decl): Ditto.
+	(create_pseudo_type_info): Ditto.
+	(create_tinfo_types): Ditto.
+	* cp-lang.c (cp_classify_record): Ditto.
+	* pt.c (instantiate_decl): Ditto.
+	* semantics.c (emit_associated_thunks): Ditto.
+	* decl2.c (start_static_storage_duration_function): Ditto.
+	(prune_vars_needing_no_initialization):  Ditto.
+	(cxx_callgraph_analyze_expr): Ditto.
+	(no_linkage_error): Ditto.
+	(collect_all_refs): Ditto.
+	(cp_write_global_declarations): Ditto.
+	* parser.c (pragma_lex): Ditto.
+	* cp-objcp-common.c (cp_function_decl_explicit_p): Ditto.
+	* mangle.c (mangle_conv_op_name_for_type): Ditto.
+	* name-lookup.c (add_decl_to_level): Ditto.
 
 Copyright (C) 2011 Free Software Foundation, Inc.
 

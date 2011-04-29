@@ -31,8 +31,6 @@
 
 	* tree-ssa-uninit.c (warn_uninitialized_phi): Pass
 	 warning code.
-	* c-family/c-opts.c (c_common_handle_option): Set
-	warn_maybe_uninitialized.
 	* opts.c (common_handle_option): Ditto.
 	* common.opt:  New option.
 	* tree-ssa.c (warn_uninit): Add one more parameter.
@@ -63,11 +61,6 @@
 
 2011-04-26  Le-Chun Wu  <lcwu@google.com>
 
-	* c-family/c-common.c (check_for_self_assign): New function.
-	* c-family/c-common.h: New function declaration.
-	* c-family/c.opt: New option.
-	* c-parser.c (c_parser_declaration_or_fndef): Check for self-assign.
-	(c_parser_expr_no_commas): Check for self-assign.
 	* common.opt: New option.
 	* doc/invoke.texi: Documentation for new options.
 	* fold-const.c (operand_equal_p): Allow operands without typres to
@@ -80,28 +73,6 @@
 	(fold_ternary_loc): New wrapper function.
 	* tree.h (struct tree_base): New flag for folded expr.
 	(enum operand_equal_flag): New flags.
-	* cp/init.c (perform_member_init): Check for self-assign.
-	* cp/parser.c (expr_is_pod): New function.
-	(cp_parser_assignment_expression): Check for self-assign.
-	(cp_parser_init_declarator): Check for self-assign.
-	* testsuite/g++.dg/plugin/selfassign.c (check_self_assign): Renamed
-	from warn_self_assign.
-	(execute_warn_self_assign): Call a function by its new name.
-	* testsuite/g++.dg/warn/Wself-assign-1.C: New test case.
-	* testsuite/g++.dg/warn/Wself-assign-2.C: Likewise.
-	* testsuite/g++.dg/warn/Wself-assign-3.C: Likewise.
-	* testsuite/g++.dg/warn/Wself-assign-4.C: Likewise.
-	* testsuite/g++.dg/warn/Wself-assign-5.C: Likewise.
-	* testsuite/g++.dg/warn/Wself-assign-non-pod-1.C: Likewise.
-	* testsuite/g++.dg/warn/Wself-assign-non-pod-2.C: Likewise.
-	* testsuite/g++.dg/warn/Wself-assign-non-pod-3.C: Likewise.
-	* testsuite/g++.dg/warn/Wself-assign-non-pod-4.C: Likewise.
-	* testsuite/g++.dg/warn/Wself-assign-non-pod-5.C: Likewise.
-	* testsuite/gcc.dg/plugin/selfassign.c (check_self_assign): Renamed
-	from warn_self_assign.
-	(execute_warn_self_assign): Call a function by its new name.:
-	* testsuite/gcc.dg/wself-assign-1.c: New test case.
-	* testsuite/gcc.dg/wself-assign-2.c: Likewise.
 
 2011-04-25  David Li  <davidxl@google.com>
 
@@ -109,9 +80,6 @@
 	using resolved nodes in LIPO mode after ipa_tree_profiling.
 	* dyn-ipa.c:  New file.
 	* dbgcnt.def: New debug counters.
-	* c-family/c-opts.c (c_common_post_options): New option.
-	(c_common_parse_file): LIPO mode driver change.
-	(push_command_line_include): New function.
 	* cgraph.c (cgraph_mark_reachable_node): Handle aux module nodes.
 	(cgraph_clone_node): New field initialization.
 	(cgraph_create_virtual_clone): New field initialization.
@@ -132,25 +100,6 @@
 	(cgraph_copy_node_for_versioning): Ditto.
 	(cgraph_materialize_clone): Ditto.
 	(cgraph_redirect_edge_call_stmt_to_callee): Ditto.
-	* cp/decl.c (walk_namespaces): Ditto.
-	(duplicate_decls): Ditto.
-	(make_rtl_for_nonlocal_decl): Ditto.
-	* cp/rtti.c (get_tinfo_decl): Ditto.
-	(create_pseudo_type_info): Ditto.
-	(create_tinfo_types): Ditto.
-	* cp/cp-lang.c (cp_classify_record): Ditto.
-	* cp/pt.c (instantiate_decl): Ditto.
-	* cp/semantics.c (emit_associated_thunks): Ditto.
-	* cp/decl2.c (start_static_storage_duration_function): Ditto.
-	(prune_vars_needing_no_initialization):  Ditto.
-	(cxx_callgraph_analyze_expr): Ditto.
-	(no_linkage_error): Ditto.
-	(collect_all_refs): Ditto.
-	(cp_write_global_declarations): Ditto.
-	* cp/parser.c (pragma_lex): Ditto.
-	* cp/cp-objcp-common.c (cp_function_decl_explicit_p): Ditto.
-	* cp/mangle.c (mangle_conv_op_name_for_type): Ditto.
-	* cp/name-lookup.c (add_decl_to_level): Ditto.
 	* gcov-io.c (gcov_read_summary): Ditto.
 	* tree-ssa-alias.c (same_type_for_tbaa): Ditto.
 	(refs_may_alias_p_1): Ditto.
@@ -259,13 +208,13 @@
 
 2011-04-19  Guozhi Wei  <carrot@google.com>
 
-	* gcc/config/arm/arm.c (SHORTEST_FAR_JUMP_LENGTH): New constant.
+	* config/arm/arm.c (SHORTEST_FAR_JUMP_LENGTH): New constant.
 	(estimate_function_length): New function.
 	(thumb_far_jump_used_p): No far jump is needed in short function.
 
 2011-04-20  Easwaran Raman  <eraman@google.com>
 
-	* gcc/gcc.c (asm_options): Pass --save-temps to assembler.
+	* gcc.c (asm_options): Pass --save-temps to assembler.
 
 2011-04-19  Martin Thuresson  <martint@google.com>
 
