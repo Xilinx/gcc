@@ -13,8 +13,19 @@
 	* gcov-dump.c (tag_function): Fix a bug in function read.
 
 2011-04-27  Xinliang David Li  <davidxl@google.com>
+
 	* value-prof.c (init_node_map): Disable for lipo mode.
 	(del_node_map): Disable for lipo mode.
+
+2011-04-27  Silvius Rus  <silvius.rus@gmail.com>
+
+	* doc/invoke.texi (fno-strict-enum-precision): Document.
+	* gimplify.c (gimplify_switch_expr): If
+	-fno-strict-enum-precision is given, do not consider enum
+	types.
+	* tree-vrp.c (stmt_interesting_for_vrp): If
+	-fno-strict-enum-precision is given, do not look at enum
+	types.
 
 2011-04-26  Xinliang David Li  <davidxl@google.com>
 

@@ -1602,6 +1602,8 @@ gimplify_switch_expr (tree *expr_p, gimple_seq *pre_p)
 	    type = TREE_TYPE (SWITCH_COND (switch_expr));
 	  if (len
 	      && INTEGRAL_TYPE_P (type)
+              && (flag_strict_enum_precision
+                  || TREE_CODE (type) != ENUMERAL_TYPE)
 	      && TYPE_MIN_VALUE (type)
 	      && TYPE_MAX_VALUE (type)
 	      && tree_int_cst_equal (CASE_LOW (VEC_index (tree, labels, 0)),
