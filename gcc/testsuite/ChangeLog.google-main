@@ -1,5 +1,10 @@
 2011-04-29  Diego Novillo  <dnovillo@google.com>
 
+	* c-c++-common/Wreal-conversion-1.c: Move from gcc.dg.
+	* g++.dg/warn/Wreal-conversion-1.C: Remove.
+
+2011-04-29  Diego Novillo  <dnovillo@google.com>
+
 	Google ref 40484.
 
 	* g++.old-deja/g++.other/null3.C: Expect warning about
