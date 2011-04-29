@@ -796,6 +796,8 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 
 	  if (TREE_CODE (expr) == FUNCTION_DECL)
 	    pph_output_tree_or_ref_1 (stream, DECL_SAVED_TREE (expr), ref_p, 3);
+	  else if (TREE_CODE (expr) == PARM_DECL)
+	    pph_output_tree_or_ref_1 (stream, DECL_ARG_TYPE (expr), ref_p, 3);
 	}
 
       if (TREE_CODE (expr) == TYPE_DECL)
