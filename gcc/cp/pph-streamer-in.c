@@ -783,6 +783,8 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 
   if (DECL_P (expr))
     {
+      DECL_INITIAL (expr) = pph_input_tree (stream);
+
       if (TREE_CODE (expr) == FUNCTION_DECL
 	  || TREE_CODE (expr) == NAMESPACE_DECL
 	  || TREE_CODE (expr) == PARM_DECL
@@ -791,8 +793,6 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 	  pph_stream_read_lang_specific (stream, expr);
 	  if (TREE_CODE (expr) == FUNCTION_DECL)
 	    DECL_SAVED_TREE (expr) = pph_input_tree (stream);
-	  else if (TREE_CODE (expr) == PARM_DECL)
-	    DECL_ARG_TYPE (expr) = pph_input_tree (stream);
 	}
 
       if (TREE_CODE (expr) == TYPE_DECL)
