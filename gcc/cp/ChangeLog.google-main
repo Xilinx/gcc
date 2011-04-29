@@ -1,0 +1,20 @@
+2011-04-28  Diego Novillo  <dnovillo@google.com>
+	    Le-Chun Wu  <lcwu@google.com>
+
+	* call.c (conversion_null_warnings): Also handle assignments
+	when warning about NULL conversions.
+
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
+	* cp-tree.h (LOOKUP_EXPLICIT_TMPL_ARGS): Define.
+	* call.c (build_new_function_call): Set it for TEMPLATE_ID_EXPRs.
+	(build_over_call): Use it to determine whether to emit a NULL
+	warning for template function instantiations.
+	(build_new_method_call): Set LOOKUP_EXPLICIT_TMPL_ARGS if
+	EXPLICIT_TARGS is set.
+
+Copyright (C) 2011 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.

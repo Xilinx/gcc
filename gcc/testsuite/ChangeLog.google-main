@@ -32,6 +32,16 @@
 	* testsuite/g++.dg/tree-prof/lipo/partition2.C: Ditto.
 	* testsuite/g++.dg/tree-prof/lipo/partition3.C: Ditto.
 	
+2011-04-28  Le-Chun Wu  <lcwu@google.com>
+
+	* g++.dg/warn/Wconversion-null-2.C: Do not expect a NULL
+	  warning in implicitly instantiated templates.
+
+2011-04-27  Le-Chun Wu  <lcwu@google.com>
+
+	* g++.dg/warn/Wnull-conversion-1.C: New.
+	* g++.dg/warn/Wnull-conversion-2.C: New.
+
 2011-04-27  Silvius Rus  <silvius.rus@gmail.com>
 
 	* g++.dg/other/no-strict-enum-precision-1.C: New.
