@@ -1,0 +1,4 @@
+2011-04-19  Diego Novillo  <dnovillo@google.com>
+
+	* cpp.c (cb_include): Change return type to bool.
+	Always return true.
