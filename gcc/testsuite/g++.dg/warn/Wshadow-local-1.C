@@ -12,19 +12,21 @@ struct status
   }
 };
 
-int decl1;                      // { dg-bogus "shadowed declaration" }
-int decl2;                      // { dg-bogus "shadowed declaration" }
-void foo (struct status &status,
-	  double decl1)		// { dg-bogus "shadows a global" }
+int decl1;			// { dg-bogus "shadowed declaration" }
+int decl2;			// { dg-bogus "shadowed declaration" }
+void
+foo (struct status &status, double decl1)	// { dg-bogus "shadows a global" }
 {
 }
 
-void foo1 (int d)
+void
+foo1 (int d)
 {
   double d;			// { dg-error "shadows a parameter" }
 }
 
-void status::foo2 ()
+void
+status::foo2 ()
 {
   int member;			// { dg-bogus "shadows a member" }
   int decl2;			// { dg-bogus "shadows a global" }
