@@ -2615,6 +2615,68 @@ DEFHOOK
 
 HOOK_VECTOR_END (target_option)
 
+/* Functions used to simplify GOT access.  */
+#undef HOOK_PREFIX
+#define HOOK_PREFIX "TARGET_"
+HOOK_VECTOR (TARGET_SIMPLIFY_GOT_ACCESS, simplify_got_access)
+
+/* Function to get the pic_reg which holds the base address of GOT.  */
+DEFHOOK
+(get_pic_reg,
+"Return the pic_reg pseudo register which holds the base address of GOT.\
+ It is only required by the simplify-got optimization.",
+ rtx, (void),
+ hook_rtx_void_null)
+
+/* Function to clear the pic_reg which is useless now.  */
+DEFHOOK
+(clear_pic_reg,
+"After successful simplify-got optimization, the pic_reg is useless. So a\
+ target can use this hook to clear pic_reg.",
+ void, (void),
+ NULL)
+
+/* Function to detect if the specified insn loads a global variable's
+   address from GOT. If so returns that symbol.  */
+DEFHOOK
+(loaded_global_var,
+"This hook is used to detect if the given @var{insn} loads a global\
+ variable's address from GOT with the form of\
+ @smallexample\
+ (set @var{address_reg} (mem (plus pic_reg @var{offset_reg})))\
+ @end smallexample\
+ If so return the global variable whose address will be loaded and fill in\
+ @var{offset_insn} and @var{offset_reg}. @var{offset_reg} is set at\
+ @var{offset_insn} to hold the offset from GOT base to the GOT entry of the\
+ global variable. Otherwise return @code{NULL_RTX}.",
+ rtx, (rtx insn, rtx *offset_reg, rtx *offset_insn),
+ NULL)
+
+/* This function checks if it satisfies the target dependent conditions
+   that we can simplify GOT accesses.  */
+DEFHOOK
+(can_simplify_got_access,
+"This hook determines if it satisfy the target dependent conditions to do\
+ simplify-got when given the number of global variable accessing and the\
+ number of accessed symbols. If the returned value is false the GOT access\
+ insns will not be rewritten. Otherwise we will rewrite these insns.",
+ bool, (int n_symbol, int n_access),
+ NULL)
+
+/* This function does the actual rewriting of GOT accesses.  */
+DEFHOOK
+(load_global_address,
+"This hook does the actual rewriting of GOT access insn @var{load_insn}.\
+ The global variable is @var{symbol}. The global address should be loaded\
+ into @var{address_reg}. The register @var{offset_reg} was previously set\
+ in insn @var{offset_insn} to hold the offset from GOT base to the GOT\
+ entry of the global variable. Now it can be used as a scratch register.",
+ void, (rtx symbol, rtx offset_reg, rtx address_reg, rtx load_insn,
+	rtx offset_insn),
+ NULL)
+
+HOOK_VECTOR_END (got_access)
+
 /* For targets that need to mark extra registers as live on entry to
    the function, they should define this target hook and set their
    bits in the bitmap passed in. */

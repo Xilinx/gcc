@@ -84,6 +84,7 @@ extern bool default_can_output_mi_thunk_no_vcall (const_tree, HOST_WIDE_INT,
 extern rtx hook_rtx_rtx_identity (rtx);
 extern rtx hook_rtx_rtx_null (rtx);
 extern rtx hook_rtx_tree_int_null (tree, int);
+extern rtx hook_rtx_void_null (void);
 
 extern const char *hook_constcharptr_const_tree_null (const_tree);
 extern const char *hook_constcharptr_const_rtx_null (const_rtx);

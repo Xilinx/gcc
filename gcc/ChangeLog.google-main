@@ -1,3 +1,23 @@
+2011-04-30  Guozhi Wei  <carrot@google.com>
+
+	PR target/43129
+	* hooks.c (hook_rtx_void_null): New function.
+	* hooks.h (hook_rtx_void_null): New prototype.
+	* target.def (got_access): New hook vector declaration.
+	* tree-pass.h (pass_simplify_got): New pass.
+	* timevar.def (TV_SIMPLIFY_GOT): New TV id.
+	* simplify-got.c: New source file.
+	* Makefile.in (simplify-got.o): Add a new file.
+	* passes.c (init_optimization_passes): Add a new pass.
+	* config/arm/arm.c (arm_output_addr_const_extra): Output GOT_PREL
+	relocation.
+	(arm_get_pic_reg): New function.
+	(arm_clear_pic_reg): New function.
+	(arm_can_simplify_got_access): New function.
+	(arm_loaded_global_var): New function.
+	(arm_load_global_address): New function.
+	* config/arm/arm.md (UNSPEC_GOT_PREL_SYM): New UNSPEC symbol.
+
 2011-04-29  Cary Coutant  <ccoutant@google.com>
 
 	* common.opt (generate_debug_line_table): New global var.

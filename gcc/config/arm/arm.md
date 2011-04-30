@@ -104,6 +104,7 @@
    (UNSPEC_SYMBOL_OFFSET 27) ; The offset of the start of the symbol from
                              ; another symbolic address.
    (UNSPEC_MEMORY_BARRIER 28) ; Represent a memory barrier.
+   (UNSPEC_GOT_PREL_SYM 29) ; Specify an R_ARM_GOT_PREL relocation of a symbol.
   ]
 )
 

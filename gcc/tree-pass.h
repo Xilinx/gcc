@@ -502,6 +502,7 @@ extern struct rtl_opt_pass pass_rtl_hoist;
 extern struct rtl_opt_pass pass_rtl_store_motion;
 extern struct rtl_opt_pass pass_cse_after_global_opts;
 extern struct rtl_opt_pass pass_rtl_ifcvt;
+extern struct rtl_opt_pass pass_simplify_got;
 
 extern struct rtl_opt_pass pass_into_cfg_layout_mode;
 extern struct rtl_opt_pass pass_outof_cfg_layout_mode;

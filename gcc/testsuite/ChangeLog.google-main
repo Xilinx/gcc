@@ -1,3 +1,9 @@
+2011-04-30  Guozhi Wei  <carrot@google.com>
+
+	PR target/43129
+	* gcc.target/arm/got1.c: New testcase.
+	* gcc.target/arm/got2.c: New testcase.
+
 2011-04-29  Cary Coutant  <ccoutant@google.com>
 
 	* gcc.dg/debug/dwarf2/mlt1.c: New test.

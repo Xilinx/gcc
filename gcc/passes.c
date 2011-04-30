@@ -997,6 +997,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_rtl_loop_done);
 	  *p = NULL;
 	}
+      NEXT_PASS (pass_simplify_got);
       NEXT_PASS (pass_web);
       NEXT_PASS (pass_rtl_cprop);
       NEXT_PASS (pass_cse2);

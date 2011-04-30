@@ -1349,6 +1349,7 @@ OBJS-common = \
 	sel-sched-dump.o \
 	sel-sched.o \
 	sese.o \
+	simplify-got.o \
 	simplify-rtx.o \
 	sparseset.o \
 	sreal.o \
@@ -2980,6 +2981,8 @@ jump.o : jump.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(EXCEPT_H) $(FUNCTION_H) $(BASIC_BLOCK_H) $(TREE_PASS_H) \
    $(DIAGNOSTIC_CORE_H) $(DIAGNOSTIC_CORE_H) $(INSN_ATTR_H) $(TM_P_H) reload.h \
    $(PREDICT_H) $(TIMEVAR_H) $(TARGET_H)
+simplify-got.o : simplify-got.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+   $(RTL_H) $(FLAGS_H) $(TREE_PASS_H) $(TIMEVAR_H) $(TARGET_H) $(HASHTAB_H)
 simplify-rtx.o : simplify-rtx.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(RTL_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) insn-config.h \
    $(RECOG_H) $(EXPR_H) $(DIAGNOSTIC_CORE_H) output.h $(FUNCTION_H) $(GGC_H) $(TM_P_H) \
