@@ -325,7 +325,7 @@ Objective-C and Objective-C++ Dialects}.
 -fstack-usage  -ftest-coverage  -ftime-report -fvar-tracking @gol
 -fvar-tracking-assignments  -fvar-tracking-assignments-toggle @gol
 -g  -g@var{level}  -gtoggle  -gcoff  -gdwarf-@var{version} @gol
--ggdb  -gstabs  -gstabs+  -gstrict-dwarf  -gno-strict-dwarf @gol
+-ggdb  -gmlt  -gstabs  -gstabs+  -gstrict-dwarf  -gno-strict-dwarf @gol
 -gvms  -gxcoff  -gxcoff+ @gol
 -fno-merge-debug-strings -fno-dwarf2-cfi-asm @gol
 -fdebug-prefix-map=@var{old}=@var{new} @gol
@@ -4862,6 +4862,11 @@ different from version 2), and it would have been too confusing.  That
 debug format is long obsolete, but the option cannot be changed now.
 Instead use an additional @option{-g@var{level}} option to change the
 debug level for DWARF.
+
+@item -gmlt
+@opindex gmlt
+Produce a minimal line table, with level 1 debugging information plus
+information about inlined functions and line numbers.
 
 @item -gtoggle
 @opindex gtoggle

@@ -120,6 +120,11 @@ enum debug_info_type write_symbols = NO_DEBUG
 Variable
 enum debug_info_levels debug_info_level = DINFO_LEVEL_NONE
 
+; Whether to generate line number table.  Normally set at DINFO_LEVEL_NORMAL
+; or above; can also be set for DINFO_LEVEL_TERSE with -gmlt.
+Variable
+bool generate_debug_line_table = false
+
 ; Nonzero means use GNU-only extensions in the generated symbolic
 ; debugging information.  Currently, this only has an effect when
 ; write_symbols is set to DBX_DEBUG, XCOFF_DEBUG, or DWARF_DEBUG.
@@ -2227,6 +2232,10 @@ Generate debug information in DWARF v2 (or later) format
 ggdb
 Common JoinedOrMissing
 Generate debug information in default extended format
+
+gmlt
+Common RejectNegative
+Generate debug information at level 1 with minimal line table
 
 gstabs
 Common JoinedOrMissing Negative(gstabs+)

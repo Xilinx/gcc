@@ -622,6 +622,11 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
 {
   enum unwind_info_type ui_except;
 
+  /* If -gmlt was specified, make sure debug level is at least 1.  */
+  if (opts->x_generate_debug_line_table
+      && opts->x_debug_info_level < DINFO_LEVEL_TERSE)
+    opts->x_debug_info_level = DINFO_LEVEL_TERSE;
+
   if (opts->x_dump_base_name && ! IS_ABSOLUTE_PATH (opts->x_dump_base_name))
     {
       /* First try to make OPTS->X_DUMP_BASE_NAME relative to the
@@ -1672,6 +1677,16 @@ common_handle_option (struct gcc_options *opts,
 		       loc);
       break;
 
+    case OPT_gmlt:
+      set_debug_level (NO_DEBUG, DEFAULT_GDB_EXTENSIONS, "", opts, opts_set,
+		       loc);
+      /* Clear the debug level to NONE so that a subsequent bare -g will
+	 set it to NORMAL (level 2).  If no subsequent option sets the
+	 level explicitly, we will set it to TERSE in finish_options().  */
+      opts->x_debug_info_level = DINFO_LEVEL_NONE;
+      opts->x_generate_debug_line_table = true;
+      break;
+
     case OPT_gvms:
       set_debug_level (VMS_DEBUG, false, arg, opts, opts_set, loc);
       break;
@@ -1884,6 +1899,9 @@ set_debug_level (enum debug_info_type type, int extended, const char *arg,
       else
 	opts->x_debug_info_level = (enum debug_info_levels) argval;
     }
+
+  opts->x_generate_debug_line_table = (opts->x_debug_info_level
+				       >= DINFO_LEVEL_NORMAL);
 }
 
 /* Arrange to dump core on error for diagnostic context DC.  (The

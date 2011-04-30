@@ -1,5 +1,24 @@
 2011-04-29  Cary Coutant  <ccoutant@google.com>
 
+	* common.opt (generate_debug_line_table): New global var.
+	(gmlt): New option
+	* dwarf2out.c (GENERATE_MINIMUM_LINE_TABLE): New macro.
+	(add_pubname_string): Test for -gmlt.
+	(add_pubname): Likewise.
+	(add_src_coords_attributes): Likewise.
+	(decls_for_scope): Likewise.
+	(dwarf2out_source_line): Likewise.
+	(dwarf2out_finish): Likewise.
+	* opts.c (finish_options): Force debug info to at least level 1
+	if -gmlt specified.
+	(common_handle_option): Add OPT_gmlt.
+	(set_debug_level): Set generate_debug_line_table flag.
+	* tree-ssa-live.c (remove_unused_scope_block_p): Test for -gmlt.
+
+	* doc/invoke.texi (-gmlt): New options
+
+2011-04-29  Cary Coutant  <ccoutant@google.com>
+
 	* basic-block.h (struct basic_block_def): Remove discriminator field.
 	* cfghooks.c (split_block): Remove discriminator field.
 	* cfglayout.c (insn_discriminator): New function.

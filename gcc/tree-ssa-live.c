@@ -552,8 +552,9 @@ remove_unused_scope_block_p (tree scope)
    else if (!nsubblocks)
      ;
    /* For terse debug info we can eliminate info on unused variables.  */
-   else if (debug_info_level == DINFO_LEVEL_NONE
-	    || debug_info_level == DINFO_LEVEL_TERSE)
+   else if (!generate_debug_line_table
+	    && (debug_info_level == DINFO_LEVEL_NONE
+		|| debug_info_level == DINFO_LEVEL_TERSE))
      {
        /* Even for -g0/-g1 don't prune outer scopes from artificial
 	  functions, otherwise diagnostics using tree_nonartificial_location
