@@ -1286,6 +1286,9 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 	i[34567]86-*-gnu*) tm_file="$tm_file i386/linux.h gnu.h i386/gnu.h";;
 	esac
 	tmake_file="${tmake_file} i386/t-crtstuff i386/t-crtpc i386/t-crtfm t-dfprules"
+	if [ "$with_sysroot" = "/usr/grte/v2" ]; then
+	  tm_file="${tm_file} linux-grtev2.h"
+	fi
 	;;
 x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h \
@@ -1297,6 +1300,9 @@ x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 	x86_64-*-knetbsd*-gnu) tm_file="${tm_file} knetbsd-gnu.h" ;;
 	esac
 	tmake_file="${tmake_file} i386/t-linux64 i386/t-crtstuff i386/t-crtpc i386/t-crtfm t-dfprules"
+	if [ "$with_sysroot" = "/usr/grte/v2" ]; then
+	  tm_file="${tm_file} linux-grtev2.h"
+	fi
 	;;
 i[34567]86-pc-msdosdjgpp*)
 	xm_file=i386/xm-djgpp.h

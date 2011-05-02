@@ -1,3 +1,7 @@
+2011-05-02  Diego Novillo  <dnovillo@google.com>
+
+	Merge from google/integration rev 173255.
+
 2011-05-02  Chris Demetriou  <cgd@google.com>
 
 	* config/i386/i386.c (get_pc_thunk_name): Make 32-bit

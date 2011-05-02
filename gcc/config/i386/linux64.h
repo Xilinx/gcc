@@ -90,6 +90,15 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
       %{" SPEC_64 ":-dynamic-linker " LINUX_DYNAMIC_LINKER64 "}} \
     %{static:-static}}"
 
+/* These may be provided by config/linux-grtev2.h.  */
+#ifndef LINUX_GRTE_EXTRA_SPECS
+#define LINUX_GRTE_EXTRA_SPECS
+#endif
+
+#undef  SUBTARGET_EXTRA_SPECS
+#define SUBTARGET_EXTRA_SPECS \
+  LINUX_GRTE_EXTRA_SPECS
+
 /* Similar to standard Linux, but adding -ffast-math support.  */
 #undef  ENDFILE_SPEC
 #define ENDFILE_SPEC \

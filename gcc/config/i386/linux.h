@@ -101,8 +101,14 @@ along with GCC; see the file COPYING3.  If not see
 #define ASM_SPEC \
   "--32 %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
 
+/* These may be provided by config/linux-grtev2.h.  */
+#ifndef LINUX_GRTE_EXTRA_SPECS
+#define LINUX_GRTE_EXTRA_SPECS
+#endif
+
 #undef  SUBTARGET_EXTRA_SPECS
 #define SUBTARGET_EXTRA_SPECS \
+  LINUX_GRTE_EXTRA_SPECS \
   { "link_emulation", LINK_EMULATION },\
   { "dynamic_linker", LINUX_DYNAMIC_LINKER }
 
