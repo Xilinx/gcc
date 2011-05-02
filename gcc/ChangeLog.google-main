@@ -1,3 +1,48 @@
+2011-05-02  Sriraman Tallam  <tmsriram@google.com>
+
+	* c-family/c-common.c	(revision 173122) (handle_version_selector_attribute): New function.
+	(c_common_attribute_table): New attribute "version_selector".
+	* tree-pass.h	(revision 173122) (pass_tree_convert_builtin_dispatch): New pass.
+	(pass_ipa_multiversion_dispatch): New pass.
+	* testsuite/gcc.dg/mversn7.c	(revision 0): New test case.
+	* testsuite/gcc.dg/mversn4.c	(revision 0): New test case.
+	* testsuite/gcc.dg/mversn4.h	(revision 0): New test case.
+	* testsuite/gcc.dg/mversn4a.c	(revision 0): New test case.
+	* testsuite/gcc.dg/torture/mversn1.c	(revision 0): New test case.
+	* testsuite/gcc.dg/mversn2.c	(revision 0): New test case.
+	* testsuite/gcc.dg/mversn6.c	(revision 0): New test case.
+	* testsuite/gcc.dg/mversn3.c	(revision 0): New test case.
+	* testsuite/g++.dg/mversn8.C	(revision 0): New test case.
+	* testsuite/g++.dg/mversn10a.C	(revision 0): New test case.
+	* testsuite/g++.dg/mversn14a.C	(revision 0): New test case.
+	* testsuite/g++.dg/tree-prof/mversn13.C	(revision 0): New test case.
+	* testsuite/g++.dg/tree-prof/mversn15.C	(revision 0): New test case.
+	* testsuite/g++.dg/tree-prof/mversn15a.C	(revision 0): New test case.
+	* testsuite/g++.dg/mversn9.C	(revision 0): New test case.
+	* testsuite/g++.dg/mversn10.C	(revision 0): New test case.
+	* testsuite/g++.dg/mversn12.C	(revision 0): New test case.
+	* testsuite/g++.dg/mversn14.C	(revision 0): New test case.
+	* testsuite/g++.dg/mversn16.C	(revision 0): New test case.
+	* testsuite/g++.dg/torture/mversn11.C	(revision 0): New test case.
+	* testsuite/g++.dg/torture/mversn5.C	(revision 0): New test case.
+	* testsuite/g++.dg/torture/mversn5.h	(revision 0): New test case.
+	* testsuite/g++.dg/torture/mversn5a.C	(revision 0): New test case.
+	* builtin-types.def	(revision 173122) (BT_PTR_FN_INT): New pointer type.
+	(BT_FN_INT_PTR_FN_INT_PTR_PTR_VAR): New function type for __builtin_dispatch.
+	* builtins.def	(revision 173122) (BUILT_IN_DISPATCH): New builtin to
+	support multi-version calls.
+	* mversn-dispatch.c	(revision 0): New file.
+	* timevar.def	(revision 173122) (TV_MVERSN_DISPATCH): New time var.
+	* common.opt	(revision 173122) (fclone-hot-version-paths): New flag.
+	* Makefile.in	(revision 173122) (mversn-dispatch.o): New rule.
+	* passes.c	(revision 173122) (init_optimization_passes): Add the new
+	multi-version and dispatch passes to the pass list.
+	* params.def	(revision 173122) (PARAM_NUMBER_OF_MVERSN_CLONES): Define.
+	(PARAM_MVERSN_CLONE_CGRAPH_DEPTH): Define.
+	* doc/invoke.texi	(revision 173122) (mversn-clone-depth): Document.
+	(num-mversn-clones): Document.
+	(fclone-hot-version-paths): Document.
+
 2011-05-02  Diego Novillo  <dnovillo@google.com>
 
 	Merge from google/integration rev 173255.
