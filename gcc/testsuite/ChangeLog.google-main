@@ -1,8 +1,6 @@
 2011-05-01  David Li  <davidxl@google.com>
 
-	* testsuite/lib/profopt.exp (proc): Multiple source file support.
-	* testsuite/gcc.dg/tree-prof/lipo/lipo.exp (load_lib):
-	Multiple source file support.
+	* testsuite/lib/profopt.exp (profopt-execute): Multiple source file support.
 	* testsuite/g++.dg/tree-prof/lipo/lipo.exp: Ditto.
 	* testsuite/gcc.dg/tree-prof/lipo/indir-call-prof_0.c: New test.
 	* testsuite/gcc.dg/tree-prof/lipo/indir-call-prof_1.c: New test.

@@ -1,3 +1,8 @@
+2011-05-01  David Li  <davidxl@google.com>
+
+	* cp/cp-objcp-common.c (cmp_templ_arg): Use assembler name for
+	decl comparison.
+
 2011-04-28  Diego Novillo  <dnovillo@google.com>
 	    Le-Chun Wu  <lcwu@google.com>
 

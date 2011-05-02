@@ -54,8 +54,6 @@
 
 2011-05-01  David Li  <davidxl@google.com>
 
-	* cp/cp-objcp-common.c (cmp_templ_arg): Use assembler name for
-	decl comparison.
 	* l-ipo.c (clear_module_scope_bindings): Clear name binding for
 	assembler name.
 	(pop_module_scope): Clear name bindings for the last module.
