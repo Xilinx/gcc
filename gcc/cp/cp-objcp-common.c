@@ -349,8 +349,17 @@ cmp_templ_arg (tree ta1, tree ta2)
           if (TREE_CODE (td1) != TREE_CODE (td2))
             return 0;
           if (TREE_CODE (td1) == FUNCTION_DECL)
-            return (cgraph_lipo_get_resolved_node (td1)
-                    == cgraph_lipo_get_resolved_node (td2));
+            {
+              tree id1, id2;
+
+              if (!TREE_PUBLIC (td1) || !TREE_PUBLIC (td2))
+                return td1 == td2;
+
+              id1 = DECL_ASSEMBLER_NAME (td1);
+              id2 = DECL_ASSEMBLER_NAME (td2);
+              return !strcmp (IDENTIFIER_POINTER (id1),
+                              IDENTIFIER_POINTER (id2));
+            }
           else
             {
               gcc_assert (TREE_CODE (td1) == VAR_DECL);

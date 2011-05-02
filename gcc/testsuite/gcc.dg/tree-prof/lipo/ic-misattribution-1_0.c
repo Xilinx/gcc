@@ -1,6 +1,5 @@
-/* { dg-options "-DEMPTY" } */
-/* This file is only needed in combination with ic-misattribution-1.c
-   but there's no easy way to make this file ignored. */
+/* { dg-options "-O2 -fdump-ipa-tree_profile_ipa" } */
+
 extern void callee (void);
 extern void caller (void (*func) (void));
 
@@ -10,13 +9,11 @@ func_t func;
 int
 main ()
 {
-#ifdef EMPTY
-#else
   func = callee;
   caller (callee);
   func ();
-#endif
   return 0;
 }
 
+/* { dg-final-use { scan-ipa-dump-times "Indirect call -> direct call" 2 "tree_profile_ipa" } } */
 /* { dg-final-use { cleanup-ipa-dump "tree_profile_ipa" } } */

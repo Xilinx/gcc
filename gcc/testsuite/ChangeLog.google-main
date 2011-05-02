@@ -1,3 +1,48 @@
+2011-05-01  David Li  <davidxl@google.com>
+
+	* testsuite/lib/profopt.exp (proc): Multiple source file support.
+	* testsuite/gcc.dg/tree-prof/lipo/lipo.exp (load_lib):
+	Multiple source file support.
+	* testsuite/g++.dg/tree-prof/lipo/lipo.exp: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/indir-call-prof_0.c: New test.
+	* testsuite/gcc.dg/tree-prof/lipo/indir-call-prof_1.c: New test.
+	* testsuite/gcc.dg/tree-prof/lipo/lipo_inline1_0.c: New test.
+	* testsuite/gcc.dg/tree-prof/lipo/lipo_inline1_1.c: New test.
+	* testsuite/gcc.dg/tree-prof/lipo/lipo_inline1_2.c: New test.
+	* testsuite/g++.dg/tree-prof/lipo/vcall1_0.c: New test.
+	* testsuite/g++.dg/tree-prof/lipo/vcall1_1.c: New test.
+	* testsuite/g++.dg/tree-prof/lipo/vcall1_2.c: New test.
+	* testsuite/gcc.dg/tree-prof/lipo/inliner-1.c: Rename.
+	* testsuite/gcc.dg/tree-prof/lipo/stringop-1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/update-loopch.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/stringop-2.: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/ic-misattribution-1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/update-tailcall.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/ic-misattribution-1a.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/tracer-1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/indir-call-prof.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-2.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-3.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-4.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-5.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-6.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-7.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/pr47187.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/update-cunroll-2.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/bb-reorg.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/pr34999.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/ic-misattribution-1_0.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/ic-misattribution-1_1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/wcoverage-mismatch.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/lipo/pr45354.c: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/inline_mismatch_args.C: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/indir-call-prof-2.C: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/indir-call-prof.C: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/partition1.C: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/partition2.C: Ditto.
+	* testsuite/g++.dg/tree-prof/lipo/partition3.C: Ditto.
+
 2011-04-30  Guozhi Wei  <carrot@google.com>
 
 	PR target/43129

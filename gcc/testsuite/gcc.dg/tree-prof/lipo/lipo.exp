@@ -45,7 +45,7 @@ load_lib profopt.exp
 set profile_option "-fprofile-generate -fripa -D_PROFILE_GENERATE"
 set feedback_option "-fprofile-use -fripa -D_PROFILE_USE"
 
-foreach src [lsort [glob -nocomplain $srcdir/$subdir/*.c]] {
+foreach src [lsort [glob -nocomplain $srcdir/$subdir/*_0.c]] {
     # If we're only testing specific files and this isn't one of them, skip it.
     if ![runtest_file_p $runtests $src] then {
         continue

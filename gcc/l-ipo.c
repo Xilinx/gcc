@@ -281,8 +281,18 @@ clear_module_scope_bindings (struct saved_module_scope *module_scope)
   for (i = 0;
        VEC_iterate (tree, module_scope->module_decls, i, decl);
        ++i)
-    lang_hooks.l_ipo.clear_global_name_bindings (
+    {
+      lang_hooks.l_ipo.clear_global_name_bindings (
         get_type_or_decl_name (decl));
+      /* Now force creating assembly name. */
+      if (VAR_OR_FUNCTION_DECL_P (decl))
+        {
+          tree assembler_name;
+
+          assembler_name = DECL_ASSEMBLER_NAME (decl);
+          lang_hooks.l_ipo.clear_global_name_bindings (assembler_name);
+        }
+    }
 }
 
 /* The referenced attribute of a decl is not associated with the
@@ -416,7 +426,10 @@ pop_module_scope (void)
       /* cp_clear_conv_type_map (); */
     }
   else if (num_in_fnames > 1)
-    restore_post_parsing_states ();
+   {
+     clear_module_scope_bindings (current_module_scope);
+     restore_post_parsing_states ();
+   }
   else
     gcc_assert (L_IPO_IS_PRIMARY_MODULE && num_in_fnames == 1);
 }
@@ -690,6 +703,8 @@ lipo_cmp_type (tree t1, tree t2)
               && lipo_cmp_type (TREE_TYPE (t1), TREE_TYPE (t2)));
     case VOID_TYPE:
     case BOOLEAN_TYPE:
+      return 1;
+    case TEMPLATE_TYPE_PARM:
       return 1;
     default:
       gcc_unreachable ();
