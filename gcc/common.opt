@@ -2205,10 +2205,6 @@ ftree-builtin-call-dce
 Common Report Var(flag_tree_builtin_call_dce) Init(0) Optimization
 Enable conditional dead code elimination for builtin calls
 
-fclone-hot-version-paths
-Common Report Var(flag_clone_hot_version_paths) Init(0)
-Enable cloning and hoisting of hot multiversioned paths
-
 fwhole-program
 Common Report Var(flag_whole_program) Init(0) Optimization
 Perform whole program optimizations

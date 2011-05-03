@@ -315,7 +315,6 @@ static tree check_case_value (tree);
 static bool check_case_bounds (tree, tree, tree *, tree *);
 
 static tree handle_packed_attribute (tree *, tree, tree, int, bool *);
-static tree handle_version_selector_attribute (tree *, tree, tree, int, bool *);
 static tree handle_nocommon_attribute (tree *, tree, tree, int, bool *);
 static tree handle_common_attribute (tree *, tree, tree, int, bool *);
 static tree handle_noreturn_attribute (tree *, tree, tree, int, bool *);
@@ -604,8 +603,6 @@ const unsigned int num_c_common_reswords =
 const struct attribute_spec c_common_attribute_table[] =
 {
   /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "version_selector",	      0, 0, true, false, false,
-			      handle_version_selector_attribute },
   { "packed",                 0, 0, false, false, false,
 			      handle_packed_attribute },
   { "nocommon",               0, 0, true,  false, false,
@@ -5786,37 +5783,6 @@ handle_packed_attribute (tree *node, tree name, tree ARG_UNUSED (args),
       *no_add_attrs = true;
     }
 
-  return NULL_TREE;
-}
-
-/* Handle a "version_selector attribute".
-   Functions are marked with attribute "version_selector" only if
-   they are run-time constants.  Example of such functions would
-   be those that test if a particular feature is available on a
-   particular architecture.  Such function must return a positive
-   integer. For two-way functions, those that test if a feature
-   is present or not must return 1 or 0 respectively. */
-
-static tree
-handle_version_selector_attribute (tree *node, tree name,
- 				   tree ARG_UNUSED (args),
- 				   int ARG_UNUSED (flags),
-				   bool *no_add_attrs)
-{
-  if (TREE_CODE (*node) == FUNCTION_DECL)
-    {
-      /* Check that the return type is integer. */
-      gcc_assert (TREE_CODE (TREE_TYPE (TREE_TYPE (*node)))
-                  == INTEGER_TYPE);
-      if (dump_file)
-        fprintf (dump_file, "%s is a version_selector function\n",
-   	         IDENTIFIER_POINTER (DECL_NAME (*node)));
-    }
-  else
-    {
-      warning (OPT_Wattributes, "%qE attribute ignored", name);
-      *no_add_attrs = true;
-    }
   return NULL_TREE;
 }
 

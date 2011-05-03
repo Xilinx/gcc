@@ -1,5 +1,9 @@
 2011-05-02  Sriraman Tallam  <tmsriram@google.com>
 
+	Revert :
+
+	2011-05-02  Sriraman Tallam  <tmsriram@google.com>
+
 	* c-family/c-common.c	(revision 173122) (handle_version_selector_attribute): New function.
 	(c_common_attribute_table): New attribute "version_selector".
 	* tree-pass.h	(revision 173122) (pass_tree_convert_builtin_dispatch): New pass.
