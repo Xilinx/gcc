@@ -1706,7 +1706,6 @@ print_candidates_1 (tree fns, bool more, const char **str)
   for (fn = fns; fn; fn = OVL_NEXT (fn))
     if (TREE_CODE (fn) == TREE_LIST)
       {
-        gcc_assert (!OVL_NEXT (fn) && !is_overloaded_fn (fn));
         for (fn2 = fn; fn2 != NULL_TREE; fn2 = TREE_CHAIN (fn2))
           print_candidates_1 (TREE_VALUE (fn2),
                               TREE_CHAIN (fn2) || more, str);
@@ -1736,7 +1735,8 @@ print_candidates_1 (tree fns, bool more, const char **str)
     }
 }
 
-/* Print the list of candidate FNS in an error message.  */
+/* Print the list of candidate FNS in an error message.  FNS can also
+   be a TREE_LIST of non-functions in the case of an ambiguous lookup.  */
 
 void
 print_candidates (tree fns)
@@ -7255,6 +7255,7 @@ for_each_template_parm_r (tree *tp, int *walk_subtrees, void *d)
       break;
 
     case TYPEOF_TYPE:
+    case UNDERLYING_TYPE:
       if (pfd->include_nondeduced_p
 	  && for_each_template_parm (TYPE_FIELDS (t), fn, data,
 				     pfd->visited, 
@@ -11032,6 +11033,13 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 					     complain);
       }
 
+    case UNDERLYING_TYPE:
+      {
+	tree type = tsubst (UNDERLYING_TYPE_TYPE (t), args,
+			    complain, in_decl);
+	return finish_underlying_type (type);
+      }
+
     case TYPE_ARGUMENT_PACK:
     case NONTYPE_ARGUMENT_PACK:
       {
@@ -12094,7 +12102,7 @@ tsubst_expr (tree t, tree args, tsubst_flags_t complain, tree in_decl,
 			    init = build_value_init (TREE_TYPE (decl),
 						     complain);
 			    if (TREE_CODE (init) == AGGR_INIT_EXPR)
-			      init = get_target_expr (init);
+			      init = get_target_expr_sfinae (init, complain);
 			  }
 			else
 			  init = t;
@@ -12838,7 +12846,8 @@ tsubst_copy_and_build (tree t,
        (RECUR (TREE_OPERAND (t, 0)),
 	RECUR (TREE_OPERAND (t, 1)),
 	DELETE_EXPR_USE_VEC (t),
-	DELETE_EXPR_USE_GLOBAL (t));
+	DELETE_EXPR_USE_GLOBAL (t),
+	complain);
 
     case COMPOUND_EXPR:
       return build_x_compound_expr (RECUR (TREE_OPERAND (t, 0)),
@@ -15692,8 +15701,9 @@ unify (tree tparms, tree targs, tree parm, tree arg, int strict)
 
     case TYPEOF_TYPE:
     case DECLTYPE_TYPE:
-      /* Cannot deduce anything from TYPEOF_TYPE or DECLTYPE_TYPE
-         nodes.  */
+    case UNDERLYING_TYPE:
+      /* Cannot deduce anything from TYPEOF_TYPE, DECLTYPE_TYPE,
+	 or UNDERLYING_TYPE nodes.  */
       return 0;
 
     case ERROR_MARK:
@@ -17952,11 +17962,12 @@ dependent_type_p_r (tree type)
 	       (INNERMOST_TEMPLATE_ARGS (CLASSTYPE_TI_ARGS (type)))))
     return true;
 
-  /* All TYPEOF_TYPEs and DECLTYPE_TYPEs are dependent; if the
-     argument of the `typeof' expression is not type-dependent, then
-     it should already been have resolved.  */
+  /* All TYPEOF_TYPEs, DECLTYPE_TYPEs, and UNDERLYING_TYPEs are
+     dependent; if the argument of the `typeof' expression is not
+     type-dependent, then it should already been have resolved.  */
   if (TREE_CODE (type) == TYPEOF_TYPE
-      || TREE_CODE (type) == DECLTYPE_TYPE)
+      || TREE_CODE (type) == DECLTYPE_TYPE
+      || TREE_CODE (type) == UNDERLYING_TYPE)
     return true;
 
   /* A template argument pack is dependent if any of its packed
@@ -18453,6 +18464,19 @@ any_type_dependent_arguments_p (const VEC(tree,gc) *args)
       if (type_dependent_expression_p (arg))
 	return true;
     }
+  return false;
+}
+
+/* Returns TRUE if LIST (a TREE_LIST whose TREE_VALUEs are
+   expressions) contains any type-dependent expressions.  */
+
+bool
+any_type_dependent_elements_p (const_tree list)
+{
+  for (; list; list = TREE_CHAIN (list))
+    if (value_dependent_expression_p (TREE_VALUE (list)))
+      return true;
+
   return false;
 }
 

@@ -558,6 +558,156 @@ case "${target}" in
     ;;
 esac
 
+# Disable Java if libffi is not supported.
+case "${target}" in
+  alpha*-*-*)
+    ;;
+  arm*-*-*)
+    ;;
+  cris-*-*)
+    ;;
+  frv-*-*)
+    ;;
+  hppa*-*-linux*)
+    ;;
+  hppa*-*-hpux*)
+    ;;
+  i?86-*-*)
+    ;;
+  ia64*-*-*)
+    ;;
+  m32r*-*-*)
+    ;;
+  m68k-*-*)
+    ;;
+  mips-sgi-irix6.* | mips*-*-rtems*)
+    ;;
+  mips*-*-linux*)
+    ;;
+  powerpc*-*-linux*)
+    ;;
+  powerpc-*-darwin*)
+    ;;
+  powerpc-*-aix* | rs6000-*-aix*)
+    ;;
+  powerpc-*-freebsd*)
+    ;;
+  powerpc64-*-freebsd*)
+    ;;
+  powerpc*-*-rtems*)
+    ;;
+  s390-*-* | s390x-*-*)
+    ;;
+  sh-*-* | sh[[34]]*-*-*)
+    ;;
+  sh64-*-* | sh5*-*-*)
+    ;;
+  sparc*-*-*)
+    ;;
+  x86_64-*-*)
+    ;;
+  *-*-*)
+    unsupported_languages="$unsupported_languages java"
+    ;;
+esac
+
+# Disable Java, libgcj or related libraries for some systems.
+case "${target}" in
+  powerpc-*-darwin*)
+    ;;
+  i[[3456789]]86-*-darwin*)
+    ;;
+  x86_64-*-darwin[[912]]*)
+    ;;
+  *-*-darwin*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  *-*-netware*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  *-*-rtems*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  *-*-tpf*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  *-*-uclinux*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  *-*-vxworks*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  alpha*-*-*vms*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  arm-wince-pe)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  arm*-*-symbianelf*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  bfin-*-*)
+    noconfigdirs="$noconfigdirs target-boehm-gc"
+    ;;
+  cris-*-* | crisv32-*-*)
+    unsupported_languages="$unsupported_languages java"
+    case "${target}" in
+      *-*-linux*)
+	;;
+      *) # See PR46792 regarding target-libffi.
+	noconfigdirs="$noconfigdirs target-libffi target-boehm-gc";;
+    esac
+    ;;
+  hppa*64*-*-linux*)
+    # In this case, it's because the hppa64-linux target is for
+    # the kernel only at this point and has no libc, and thus no
+    # headers, crt*.o, etc., all of which are needed by these.
+    unsupported_languages="$unsupported_languages java"
+    ;;
+  hppa*64*-*-hpux*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  hppa*-hp-hpux11*)
+    ;;
+  hppa*-*-hpux*)
+    # According to Alexandre Oliva <aoliva@redhat.com>, libjava won't
+    # build on HP-UX 10.20.
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  ia64*-*-*vms*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  i[[3456789]]86-w64-mingw*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  i[[3456789]]86-*-mingw*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  x86_64-*-mingw*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  mmix-*-*)
+    noconfigdirs="$noconfigdirs target-libffi target-boehm-gc"
+    ;;
+  powerpc-*-aix*)
+    # copied from rs6000-*-* entry
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  rs6000-*-aix*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  mips*-*-irix6*)
+    # Linking libjava exceeds command-line length limits on at least
+    # IRIX 6.2, but not on IRIX 6.5.
+    # Also, boehm-gc won't build on IRIX 6.5, according to Jeffrey Oldham
+    # <oldham@codesourcery.com>
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;;
+  *-*-lynxos*)
+    noconfigdirs="$noconfigdirs ${libgcj}"
+    ;; 
+esac
+
 # Default libgloss CPU subdirectory.
 libgloss_dir="$target_cpu"
 
@@ -580,7 +730,6 @@ case "${target}" in
   *-*-darwin*)
     noconfigdirs="$noconfigdirs ld gas gdb gprof"
     noconfigdirs="$noconfigdirs sim target-rda"
-    noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   *-*-dragonfly*)
     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
@@ -591,16 +740,6 @@ case "${target}" in
 	&& test -f /usr/local/include/gmp.h; then
       with_gmp=/usr/local
     fi
-
-    # Skip some stuff that's unsupported on some FreeBSD configurations.
-    case "${target}" in
-      i*86-*-*) ;;
-      alpha*-*-*) ;;
-      x86_64-*-*) ;;
-      *)
-	noconfigdirs="$noconfigdirs ${libgcj}"
-	;;
-    esac
     ;;
   *-*-kaos*)
     # Remove unsupported stuff on all kaOS configurations.
@@ -609,31 +748,22 @@ case "${target}" in
   *-*-netbsd*)
     # Skip some stuff on all NetBSD configurations.
     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
-
-    # Skip some stuff that's unsupported on some NetBSD configurations.
-    case "${target}" in
-      i*86-*-netbsdelf*) ;;
-      arm*-*-netbsdelf*) ;;
-      *)
-	noconfigdirs="$noconfigdirs ${libgcj}"
-	;;
-    esac
     ;;
   *-*-netware*)
-    noconfigdirs="$noconfigdirs target-newlib target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
   *-*-rtems*)
-    noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs target-libgloss"
     ;;
     # The tpf target doesn't support gdb yet.
   *-*-tpf*)
-    noconfigdirs="$noconfigdirs target-newlib target-libgloss ${libgcj} gdb tcl tk libgui itcl"
+    noconfigdirs="$noconfigdirs target-newlib target-libgloss gdb tcl tk libgui itcl"
     ;;
   *-*-uclinux*)
-    noconfigdirs="$noconfigdirs target-newlib target-libgloss target-rda ${libgcj}"
+    noconfigdirs="$noconfigdirs target-newlib target-libgloss target-rda"
     ;;
   *-*-vxworks*)
-    noconfigdirs="$noconfigdirs target-newlib target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
   alpha*-dec-osf*)
     # ld works, but does not support shared libraries.
@@ -642,7 +772,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs gas ld target-newlib target-libgloss"
     ;;
   alpha*-*-*vms*)
-    noconfigdirs="$noconfigdirs gdb target-newlib target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs gdb target-newlib target-libgloss"
     ;;
   alpha*-*-linux*)
     # newlib is not 64 bit ready
@@ -650,16 +780,15 @@ case "${target}" in
     ;;
   alpha*-*-*)
     # newlib is not 64 bit ready
-    noconfigdirs="$noconfigdirs target-newlib target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
   am33_2.0-*-linux*)
-    noconfigdirs="$noconfigdirs ${libgcj} target-newlib target-libgloss"
+    noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
   sh-*-linux*)
-    noconfigdirs="$noconfigdirs ${libgcj} target-newlib target-libgloss"
+    noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;    
   sh*-*-pe|mips*-*-pe|*arm-wince-pe)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     noconfigdirs="$noconfigdirs tcl tk itcl libgui sim"
     noconfigdirs="$noconfigdirs target-newlib"
     libgloss_dir=wince
@@ -671,7 +800,6 @@ case "${target}" in
     libgloss_dir=arm
     ;;
   arm-*-elf* | arm*-*-eabi* )
-    noconfigdirs="$noconfigdirs target-libffi"
     libgloss_dir=arm
     ;;
   arm*-*-linux-gnueabi)
@@ -681,21 +809,17 @@ case "${target}" in
     libgloss_dir=arm
     ;;
   arm*-*-symbianelf*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     libgloss_dir=arm
     ;;
   arm-*-pe*)
-    noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs target-libgloss"
     ;;
   arm-*-riscix*)
     noconfigdirs="$noconfigdirs ld target-libgloss"
     ;;
   avr-*-*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   bfin-*-*)
-    unsupported_languages="$unsupported_languages java"
-    noconfigdirs="$noconfigdirs target-boehm-gc"
     ;;
   c4x-*-* | tic4x-*-*)
     noconfigdirs="$noconfigdirs target-libgloss"
@@ -704,15 +828,12 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-libgloss gdb"
     ;;
   cr16-*-*)
-    noconfigdirs="$noconfigdirs ${libgcj} gdb"
+    noconfigdirs="$noconfigdirs gdb"
     ;;
   cris-*-* | crisv32-*-*)
-    unsupported_languages="$unsupported_languages java"
     case "${target}" in
       *-*-linux*)
 	noconfigdirs="$noconfigdirs target-newlib target-libgloss";;
-      *) # See PR46792 regarding target-libffi.
-	noconfigdirs="$noconfigdirs target-libffi target-boehm-gc";;
     esac
     libgloss_dir=cris
     ;;
@@ -723,17 +844,15 @@ case "${target}" in
     noconfigdirs="$noconfigdirs gdb"
     ;;
   fr30-*-elf*)
-    noconfigdirs="$noconfigdirs ${libgcj} gdb"
+    noconfigdirs="$noconfigdirs gdb"
     ;;
   frv-*-*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   moxie-*-*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     noconfigdirs="$noconfigdirs gprof"
     ;;
   h8300*-*-*)
-    noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs target-libgloss"
     ;;
   h8500-*-*)
     noconfigdirs="$noconfigdirs target-libgloss"
@@ -741,10 +860,6 @@ case "${target}" in
   hppa1.1-*-osf* | hppa1.1-*-bsd* )
     ;;
   hppa*64*-*-linux*)
-    # In this case, it's because the hppa64-linux target is for
-    # the kernel only at this point and has no libc, and thus no
-    # headers, crt*.o, etc., all of which are needed by these.
-    noconfigdirs="$noconfigdirs target-zlib"
     ;;
   hppa*-*-linux*)
     ;;
@@ -752,7 +867,6 @@ case "${target}" in
   hppa*-*-lites* | \
   hppa*-*-openbsd* | \
   hppa*64*-*-*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   hppa*-hp-hpux11*)
     noconfigdirs="$noconfigdirs ld"
@@ -761,9 +875,7 @@ case "${target}" in
     libgloss_dir=pa
     ;;
   hppa*-*-*)
-    # According to Alexandre Oliva <aoliva@redhat.com>, libjava won't
-    # build on HP-UX 10.20.
-    noconfigdirs="$noconfigdirs ld ${libgcj}"
+    noconfigdirs="$noconfigdirs ld"
     ;;
   i960-*-*)
     noconfigdirs="$noconfigdirs gdb"
@@ -774,14 +886,13 @@ case "${target}" in
     ;;
   ia64*-**-hpux*)
     # No ld support yet.
-    noconfigdirs="$noconfigdirs ${libgcj} libgui itcl ld"
+    noconfigdirs="$noconfigdirs libgui itcl ld"
     ;;
   ia64*-*-*vms*)
     # No gdb or ld support yet.
-    noconfigdirs="$noconfigdirs ${libgcj} readline libgui itcl gdb ld"
+    noconfigdirs="$noconfigdirs readline libgui itcl gdb ld"
     ;;
   i[[3456789]]86-*-coff | i[[3456789]]86-*-elf)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     libgloss_dir=i386
     ;;
   i[[3456789]]86-*-linux*)
@@ -797,14 +908,14 @@ case "${target}" in
     # 'target-newlib' will appear in skipdirs.
     ;;
   i[[3456789]]86-w64-mingw*)
-    noconfigdirs="$noconfigdirs target-libgloss target-newlib ${libgcj}"
+    noconfigdirs="$noconfigdirs target-libgloss target-newlib"
     ;;
   i[[3456789]]86-*-mingw*)
     target_configdirs="$target_configdirs target-winsup"
-    noconfigdirs="$noconfigdirs target-libgloss target-newlib ${libgcj}"
+    noconfigdirs="$noconfigdirs target-libgloss target-newlib"
     ;;
   x86_64-*-mingw*)
-    noconfigdirs="$noconfigdirs target-libgloss target-newlib ${libgcj}"
+    noconfigdirs="$noconfigdirs target-libgloss target-newlib"
     ;;
   *-*-cygwin*)
     target_configdirs="$target_configdirs target-libtermcap target-winsup"
@@ -842,27 +953,24 @@ case "${target}" in
     noconfigdirs="$noconfigdirs gdb target-newlib target-libgloss"
     ;;
   m32r-*-*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   m68hc11-*-*|m6811-*-*|m68hc12-*-*|m6812-*-*)
     libgloss_dir=m68hc11
     ;;
   m68k-*-elf*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   m68*-*-* | fido-*-*)
     libgloss_dir=m68k
     ;;
   mmix-*-*)
-    noconfigdirs="$noconfigdirs target-libffi target-boehm-gc gdb"
-    unsupported_languages="$unsupported_languages java"
+    noconfigdirs="$noconfigdirs gdb"
     ;;
   mt-*-*)
     noconfigdirs="$noconfigdirs sim"
     ;;
   powerpc-*-aix*)
     # copied from rs6000-*-* entry
-    noconfigdirs="$noconfigdirs gprof target-libgloss target-newlib ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof target-libgloss target-newlib"
     ;;
   powerpc*-*-winnt* | powerpc*-*-pe*)
     target_configdirs="$target_configdirs target-winsup"
@@ -879,29 +987,27 @@ case "${target}" in
     noconfigdirs="$noconfigdirs gdb target-newlib target-libgloss"
     ;;
   powerpc-*-eabi)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     libgloss_dir=rs6000
     ;;
   powerpc-*-eabi* | powerpcle-*-eabi* | powerpc-*-rtems* )
     libgloss_dir=rs6000
     ;;
   rs6000-*-lynxos*)
-    noconfigdirs="$noconfigdirs target-newlib gprof ${libgcj}"
+    noconfigdirs="$noconfigdirs target-newlib gprof"
     ;;
   rs6000-*-aix*)
-    noconfigdirs="$noconfigdirs gprof target-libgloss target-newlib ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof target-libgloss target-newlib"
     ;;
   rs6000-*-*)
-    noconfigdirs="$noconfigdirs gprof ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof"
     ;;
   m68k-apollo-*)
     noconfigdirs="$noconfigdirs ld binutils gprof target-libgloss"
     ;;
   microblaze*)
-    noconfigdirs="$noconfigdirs gprof ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof"
     ;;
   mips*-sde-elf*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     if test x$with_newlib = xyes; then
       noconfigdirs="$noconfigdirs gprof"
     fi
@@ -911,11 +1017,7 @@ case "${target}" in
     noconfigdirs="$noconfigdirs gprof target-libgloss"
     ;;
   mips*-*-irix6*)
-    # Linking libjava exceeds command-line length limits on at least
-    # IRIX 6.2, but not on IRIX 6.5.
-    # Also, boehm-gc won't build on IRIX 6.5, according to Jeffrey Oldham
-    # <oldham@codesourcery.com>
-    noconfigdirs="$noconfigdirs gprof target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof target-libgloss"
     ;;
   mips*-*-bsd*)
     noconfigdirs="$noconfigdirs gprof target-libgloss"
@@ -924,25 +1026,23 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
   mips*-*-*)
-    noconfigdirs="$noconfigdirs gprof ${libgcj}"
+    noconfigdirs="$noconfigdirs gprof"
     libgloss_dir=mips
     ;;
   sh-*-* | sh64-*-*)
     case "${target}" in
       sh*-*-elf)
-         noconfigdirs="$noconfigdirs ${libgcj}" ;;
+         ;;
       *)
-         noconfigdirs="$noconfigdirs target-libgloss ${libgcj}" ;;
+         noconfigdirs="$noconfigdirs target-libgloss" ;;
     esac
     ;;
   sparclet-*-aout* | sparc86x-*-*)
     libgloss_dir=sparc
     ;;
   sparc-*-elf*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
   sparc64-*-elf*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     libgloss_dir=sparc
     ;;
   sparclite-*-*)
@@ -958,22 +1058,21 @@ case "${target}" in
   sparc-*-solaris* | sparc64-*-solaris* | sparcv9-*-solaris*)
     ;;
   tic6x-*-*)
-    noconfigdirs="$noconfigdirs gdb sim ${libgcj}"
+    noconfigdirs="$noconfigdirs gdb sim"
     ;;
   v810-*-*)
     noconfigdirs="$noconfigdirs bfd binutils gas gdb ld opcodes target-libgloss"
     ;;
   vax-*-*)
-    noconfigdirs="$noconfigdirs target-newlib target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
   *-*-linux* | *-*-gnu* | *-*-k*bsd*-gnu | *-*-kopensolaris*-gnu)
     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
   *-*-lynxos*)
-    noconfigdirs="$noconfigdirs target-newlib target-libgloss ${libgcj}"
+    noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;; 
   *-*-*)
-    noconfigdirs="$noconfigdirs ${libgcj}"
     ;;
 esac
 

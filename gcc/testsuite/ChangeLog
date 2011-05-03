@@ -1,3 +1,288 @@
+2011-05-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/47969
+	* g++.dg/cpp0x/constexpr-47969.C: New.
+
+2011-05-02  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR testsuite/48498
+	* gcc.dg/vect/slp-3.c: Increase loop bound.  Don't expect to fail
+	on vect_no_align targets.
+	* gcc.dg/vect/no-vfa-pr29145.c: Don't expect to fail on
+	vect_no_align targets.
+
+2011-05-01  Xinliang David Li  <davidxl@google.com>
+
+	* gcc.dg/tree-ssa/integer-addr.c: New test.
+	* gcc.dg/tree-ssa/alias_bug.c: New test.
+
+2011-05-01  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/48787
+	* gfortran.dg/round_3.f08: Add more checks.
+
+2011-04-30  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48821
+	* gfortran.dg/import9.f90: New, proper test.
+	* gfortran.dg/interface_37.f90: Remove bogus
+	test (bogus copy of interface_36.f90).
+
+2011-04-30  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48821
+	* gfortran.dg/interface_37.f90: New.
+
+2011-04-30  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/48746
+	* gfortran.dg/realloc_on_assign_7.f03: Test bounds.
+
+2011-04-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48809
+	* gcc.c-torture/execute/pr48809.c: New test.
+
+2011-04-29  Jeff Law <law@redhat.com>
+
+	* gcc.dg/tree-ssa/ssa-dom-thread-4.c: New test.
+
+2011-04-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48606
+	* g++.dg/init/ctor10.C: New.
+
+2011-04-29  Le-Chun Wu  <lcwu@google.com>
+
+	* g++.dg/warn/Wconversion-null-2.C: Do not expect a NULL
+	  warning in implicitly instantiated templates.
+
+2011-04-29  Le-Chun Wu  <lcwu@google.com>
+
+	* g++.dg/warn/Wnull-conversion-1.C: New.
+	* g++.dg/warn/Wnull-conversion-2.C: New.
+
+2011-04-29  Diego Novillo  <dnovillo@google.com>
+
+	* g++.old-deja/g++.other/null3.C: Expect warning about
+	converting boolean to a pointer.
+
+2011-04-29  Paul Thomas  <pault@gcc.gnu.org>
+
+	PR fortran/48462
+	* gfortran.dg/realloc_on_assign_7.f03: Modify to test for lhs
+	being a target.
+
+	PR fortran/48746
+	* gfortran.dg/realloc_on_assign_7.f03: Add subroutine pr48746.
+
+2011-04-29  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48810
+	* gfortran.dg/typebound_proc_22.f90: New.
+
+	PR fortran/48800
+	* gfortran.dg/interface_36.f90: New.
+
+2011-04-29  Jerry DeLisle  <jvdelisle@gcc.gnu.org>
+
+	PR libgfortran/48488
+	PR libgfortran/48602
+	PR libgfortran/48615
+	PR libgfortran/48684
+	PR libgfortran/48787
+	* gfortran.dg/fmt_g.f: Adjust test.
+	* gfortran.dg/fmt_g0_1.f08: Adjust test.
+	* gfortran.dg/round_3.f08: New test.
+	* gfortran.dg/namelist_print_1.f: Adjust test.
+	* gfortran.dg/char4_iunit_1.f03: Adjust test.
+	* gfortran.dg/f2003_io_5.f03: Adjust test.
+	* gfortran.dg/coarray_15.f90: Adjust test.
+	* gfortran.dg/namelist_65.f90: Adjust test.
+	* gfortran.dg/fmt_cache_1.f: Adjust test.
+	* gfortran.dg/char4_iunit_2.f03: Adjust test.
+	* gfortran.dg/real_const_3.f90: Adjust test.
+
+2011-04-28  Xinliang David Li  <davidxl@google.com>
+
+	* testsuite/gcc.dg/tree-prof/prof-robust-1.c: New test.
+	* testsuite/g++.dg/prof-robust-1.C: New test.
+
+2011-04-28  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/48765
+	* gcc.dg/vect/pr48765.c: New.
+
+2011-04-28  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR tree-optimization/48775
+	* gcc.dg/pr48616.c: Also add -fno-common on alpha*-dec-osf*.
+
+2011-04-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48798
+	* g++.dg/inherit/pr48798.C: New.
+	* g++.old-deja/g++.other/base1.C: Adjust.
+
+2011-04-28  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/48656
+	* g++.dg/template/inherit7.C: New test case.
+
+2011-04-28  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40052
+	PR tree-optimization/15347
+	* gcc.dg/tree-ssa/vrp57.c: New testcase.
+	* gcc.dg/pr15347.c: Likewise.
+
+2011-04-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48530
+	* g++.dg/cpp0x/sfinae18.C: New.
+
+2011-04-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48771
+	* g++.dg/ext/is_literal_type1.C: New.
+
+2011-04-28  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48112
+	PR fortran/48279
+	* gfortran.dg/interface_35.f90: New.
+	* gfortran.dg/erfc_scaled_1.f90: Don't compile with -pedantic.
+	* gfortran.dg/func_result_6.f90: Add dg-warning.
+	* gfortran.dg/bessel_1.f90: Ditto.
+	* gfortran.dg/hypot_1.f90: Ditto.
+	* gfortran.dg/proc_ptr_comp_20.f90: Ditto.
+	* gfortran.dg/proc_ptr_comp_21.f90: Ditto.
+	* gfortran.dg/interface_assignment_4.f90: Ditto.
+
+2011-04-27  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/ext/complex8.C: New.
+
+	* g++.dg/cpp0x/initlist49.C: New.
+	* g++.dg/init/new30.C: New.
+
+2011-04-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48788
+	* gfortran.dg/whole_file_34.f90: New.
+
+2011-04-27  Jan Hubicka  <jh@suse.cz>
+
+	* gcc.dg/tree-ssa/inline-9.c: New testcase.
+
+2011-04-27  Jason Merrill  <jason@redhat.com>
+
+	* g++.old-deja/g++.oliva/overload1.C: Adjust.
+
+	* g++.dg/parse/ambig6.C: New.
+
+2011-04-27  Nick Clifton  <nickc@redhat.com>
+
+	* gcc.dg/20020312-2.c: Add definition for RX.
+
+	* lib/target-supports.exp (add_options_for_ieee): Use -mnofpu
+	option with RX targets.
+
+	* gcc.target/rx/pack.c: Replace C++ style // comments with C style
+	/* */ comments.
+
+2011-04-27  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/pr23382.c: Remove.
+
+2011-04-27  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/48767
+	* gcc.c-torture/compile/pr48767.c: New test.
+
+2011-04-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48772
+	* g++.dg/pr48772.C: New testcase.
+
+2011-04-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/48742
+	* gcc.c-torture/compile/pr48742.c: New test.
+
+2011-04-26  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/lookup/koenig13.C: New.
+
+	* g++.dg/cpp0x/initlist48.C: New.
+
+2011-04-25  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/sfinae17.C: New.
+
+2011-03-23  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	PR target/48258
+	* gcc.target/powerpc/pr48258-1.c: New file.
+	* gcc.target/powerpc/pr48258-2.c: Ditto.
+
+2011-04-26  Xinliang David Li  <davidxl@google.com>
+
+	* gcc.dg/uninit-suppress.c: New test.
+	* gcc.dg/uninit-suppress.c: New test.
+
+2011-04-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/48768
+	* gcc.dg/pr48768.c: New test.
+
+	PR tree-optimization/48734
+	* gcc.c-torture/compile/pr48734.c: New test.
+
+	PR testsuite/48753
+	* gcc.dg/tree-prof/val-prof-2.c: Adjust for 32-bit HWI.
+
+2011-04-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48731
+	* gcc.dg/torture/pr48731.c: New testcase.
+
+2011-04-26  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/48753
+	* gcc.dg/tree-prof/val-prof-2.c: Adjust.
+
+2011-04-26  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48694
+	* gcc.dg/torture/pr48694-1.c: New testcase.
+	* gcc.dg/torture/pr48694-2.c: Likewise.
+
+2011-04-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* g++.dg/ext/underlying_type1.C: New.
+	* g++.dg/ext/underlying_type2.C: Likewise.
+	* g++.dg/ext/underlying_type3.C: Likewise.
+	* g++.dg/ext/underlying_type4.C: Likewise.
+	* g++.dg/ext/underlying_type5.C: Likewise.
+	* g++.dg/ext/underlying_type6.C: Likewise.
+	* g++.dg/ext/underlying_type7.C: Likewise.
+	* g++.dg/ext/underlying_type8.C: Likewise.
+	* g++.dg/ext/underlying_type9.C: Likewise.
+	* g++.dg/ext/underlying_type10.C: Likewise.
+
+2011-04-25  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/regress/template-const2.C: New.
+
+2011-04-25  Jeff Law <law@redhat.com>
+
+	* gcc.dg/tree-ssa/vrp56.c: new test.
+
+2011-04-25  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* go.test/go-test.exp (go-set-goarch): Accept mips*-*-*.
+
 2011-04-24  Jakub Jelinek  <jakub@redhat.com>
 
 	PR preprocessor/48740
@@ -124,11 +409,11 @@
 
 2011-04-20  Kai Tietz  <ktietz@redhat.com>
 
-	* gcc.dg/binio-xor1.c: New test.
-	* gcc.dg/binio-xor2.c: New test.
-	* gcc.dg/binio-xor3.c: New test.
-	* gcc.dg/binio-xor4.c: New test.
-	* gcc.dg/binio-xor5.c: New test.
+	* gcc.dg/binop-xor1.c: New test.
+	* gcc.dg/binop-xor2.c: New test.
+	* gcc.dg/binop-xor3.c: New test.
+	* gcc.dg/binop-xor4.c: New test.
+	* gcc.dg/binop-xor5.c: New test.
 
 2011-04-20  Richard Guenther  <rguenther@suse.de>
 
@@ -1187,6 +1472,14 @@
 
 	PR tree-optimization/48228
 	* gcc.dg/Wstrict-overflow-23.c: New testcase.
+
+2011-03-21  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.dg/torture/va-arg-25.c: Add -mabi=altivec -maltivec for
+	powerpc.
+
+	PR target/48226
+	* gcc.target/powerpc/pr48226.c: New file.
 
 2011-03-21  Jack Howarth  <howarth@bromo.med.uc.edu>
 

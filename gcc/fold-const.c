@@ -2473,9 +2473,12 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
      equal if they have no side effects.  If we have two identical
      expressions with side effects that should be treated the same due
      to the only side effects being identical SAVE_EXPR's, that will
-     be detected in the recursive calls below.  */
+     be detected in the recursive calls below.
+     If we are taking an invariant address of two identical objects
+     they are necessarily equal as well.  */
   if (arg0 == arg1 && ! (flags & OEP_ONLY_CONST)
       && (TREE_CODE (arg0) == SAVE_EXPR
+	  || (flags & OEP_CONSTANT_ADDRESS_OF)
 	  || (! TREE_SIDE_EFFECTS (arg0) && ! TREE_SIDE_EFFECTS (arg1))))
     return 1;
 
@@ -2538,7 +2541,8 @@ operand_equal_p (const_tree arg0, const_tree arg1, unsigned int flags)
 
       case ADDR_EXPR:
 	return operand_equal_p (TREE_OPERAND (arg0, 0), TREE_OPERAND (arg1, 0),
-				0);
+				TREE_CONSTANT (arg0) && TREE_CONSTANT (arg1)
+				? OEP_CONSTANT_ADDRESS_OF : 0);
       default:
 	break;
       }
@@ -11529,7 +11533,7 @@ fold_binary_loc (location_t loc,
 
 	    return fold_build2_loc (loc, RSHIFT_EXPR, type,
 			  TREE_OPERAND (arg0, 0),
-			  build_int_cst (NULL_TREE, pow2));
+			  build_int_cst (integer_type_node, pow2));
 	  }
 	}
 
@@ -11561,7 +11565,9 @@ fold_binary_loc (location_t loc,
 				       WARN_STRICT_OVERFLOW_MISC);
 
 	      sh_cnt = fold_build2_loc (loc, PLUS_EXPR, TREE_TYPE (sh_cnt),
-				    sh_cnt, build_int_cst (NULL_TREE, pow2));
+					sh_cnt,
+					build_int_cst (TREE_TYPE (sh_cnt),
+						       pow2));
 	      return fold_build2_loc (loc, RSHIFT_EXPR, type,
 				  fold_convert_loc (loc, type, arg0), sh_cnt);
 	    }

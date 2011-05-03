@@ -1,6 +1,6 @@
 /* Language-dependent node constructors for parse phase of GNU compiler.
    Copyright (C) 1987, 1988, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -39,7 +39,7 @@ static tree bot_replace (tree *, int *, void *);
 static int list_hash_eq (const void *, const void *);
 static hashval_t list_hash_pieces (tree, tree, tree);
 static hashval_t list_hash (const void *);
-static tree build_target_expr (tree, tree);
+static tree build_target_expr (tree, tree, tsubst_flags_t);
 static tree count_trees_r (tree *, int *, void *);
 static tree verify_stmt_tree_r (tree *, int *, void *);
 static tree build_local_temp (tree);
@@ -281,7 +281,7 @@ builtin_valid_in_constant_expr_p (const_tree decl)
 /* Build a TARGET_EXPR, initializing the DECL with the VALUE.  */
 
 static tree
-build_target_expr (tree decl, tree value)
+build_target_expr (tree decl, tree value, tsubst_flags_t complain)
 {
   tree t;
 
@@ -292,8 +292,10 @@ build_target_expr (tree decl, tree value)
 					    TREE_TYPE (value)));
 #endif
 
-  t = build4 (TARGET_EXPR, TREE_TYPE (decl), decl, value,
-	      cxx_maybe_build_cleanup (decl), NULL_TREE);
+  t = cxx_maybe_build_cleanup (decl, complain);
+  if (t == error_mark_node)
+    return error_mark_node;
+  t = build4 (TARGET_EXPR, TREE_TYPE (decl), decl, value, t, NULL_TREE);
   /* We always set TREE_SIDE_EFFECTS so that expand_expr does not
      ignore the TARGET_EXPR.  If there really turn out to be no
      side-effects, then the optimizer should be able to get rid of
@@ -453,8 +455,10 @@ build_cplus_new (tree type, tree init, tsubst_flags_t complain)
   else
     return rval;
 
-  rval = build_target_expr (slot, rval);
-  TARGET_EXPR_IMPLICIT_P (rval) = 1;
+  rval = build_target_expr (slot, rval, complain);
+
+  if (rval != error_mark_node)
+    TARGET_EXPR_IMPLICIT_P (rval) = 1;
 
   return rval;
 }
@@ -471,45 +475,80 @@ build_cplus_new (tree type, tree init, tsubst_flags_t complain)
    another array to copy.  */
 
 static tree
-build_vec_init_elt (tree type, tree init)
+build_vec_init_elt (tree type, tree init, tsubst_flags_t complain)
 {
-  tree inner_type = strip_array_types (type);
+  tree inner_type = strip_array_types (TREE_TYPE (type));
   VEC(tree,gc) *argvec;
 
-  if (integer_zerop (array_type_nelts_total (type))
-      || !CLASS_TYPE_P (inner_type))
+  if (!CLASS_TYPE_P (inner_type))
     /* No interesting initialization to do.  */
     return integer_zero_node;
   else if (init == void_type_node)
     return build_value_init (inner_type, tf_warning_or_error);
 
-  gcc_assert (init == NULL_TREE
-	      || (same_type_ignoring_top_level_qualifiers_p
-		  (type, TREE_TYPE (init))));
-
-  argvec = make_tree_vector ();
-  if (init)
+  if (init == NULL_TREE)
+    argvec = make_tree_vector ();
+  else if (TREE_CODE (init) == TREE_LIST)
+    /* Array init extension, i.e. g++.robertl/eb58.C. */
+    argvec = make_tree_vector_from_list (init);
+  else if (same_type_ignoring_top_level_qualifiers_p
+	   (inner_type, strip_array_types (TREE_TYPE (init))))
     {
+      /* Array copy or list-initialization.  */
       tree dummy = build_dummy_object (inner_type);
       if (!real_lvalue_p (init))
 	dummy = move (dummy);
-      VEC_quick_push (tree, argvec, dummy);
+      argvec = make_tree_vector_single (dummy);
     }
-  return build_special_member_call (NULL_TREE, complete_ctor_identifier,
+  else
+    gcc_unreachable ();
+  init = build_special_member_call (NULL_TREE, complete_ctor_identifier,
 				    &argvec, inner_type, LOOKUP_NORMAL,
-				    tf_warning_or_error);
+				    complain);
+  release_tree_vector (argvec);
+
+  /* For array new, also mark the destructor as used.  */
+  if (TREE_CODE (type) == POINTER_TYPE
+      && TYPE_HAS_NONTRIVIAL_DESTRUCTOR (inner_type))
+    {
+      tree dtor = get_dtor_sfinae (inner_type, complain);
+      if (dtor == error_mark_node)
+	return error_mark_node;
+      else if (dtor)
+	mark_used (dtor);
+    }
+  return init;
 }
 
-/* Return a TARGET_EXPR which expresses the initialization of an array to
-   be named later, either default-initialization or copy-initialization
-   from another array of the same type.  */
+/* Return a TARGET_EXPR which expresses the initialization of an array.  If
+   TARGET is an array type, the initialization is of an array to be named
+   later, and the initialization will be wrapped in a TARGET_EXPR.  If
+   TARGET is an expression, it is the array to be initialized.  INIT is the
+   initializer, or void_type_node for value-initialization.  If TARGET is
+   an expression, NELTS is the number of elements to initialize. */
 
 tree
-build_vec_init_expr (tree type, tree init)
+build_vec_init_expr (tree target, tree init, tree nelts,
+		     tsubst_flags_t complain)
 {
-  tree slot;
+  tree slot, type;
   bool value_init = false;
-  tree elt_init = build_vec_init_elt (type, init);
+  tree elt_init;
+  tree real_nelts;
+
+  if (TYPE_P (target))
+    {
+      gcc_assert (TREE_CODE (target) == ARRAY_TYPE && nelts == NULL_TREE);
+      type = target;
+      slot = build_local_temp (type);
+    }
+  else
+    {
+      gcc_assert (EXPR_P (target));
+      slot = target;
+      type = TREE_TYPE (slot);
+      gcc_assert (TREE_CODE (type) == POINTER_TYPE && nelts != NULL_TREE);
+    }
 
   if (init == void_type_node)
     {
@@ -517,8 +556,14 @@ build_vec_init_expr (tree type, tree init)
       init = NULL_TREE;
     }
 
-  slot = build_local_temp (type);
-  init = build2 (VEC_INIT_EXPR, type, slot, init);
+  real_nelts = nelts ? nelts : array_type_nelts_total (type);
+  if (integer_zerop (real_nelts))
+    /* No elements to initialize.  */
+    elt_init = integer_zero_node;
+  else
+    elt_init = build_vec_init_elt (type, init, complain);
+
+  init = build3 (VEC_INIT_EXPR, type, slot, init, nelts);
   SET_EXPR_LOCATION (init, input_location);
 
   if (cxx_dialect >= cxx0x
@@ -526,8 +571,11 @@ build_vec_init_expr (tree type, tree init)
     VEC_INIT_EXPR_IS_CONSTEXPR (init) = true;
   VEC_INIT_EXPR_VALUE_INIT (init) = value_init;
 
-  init = build_target_expr (slot, init);
-  TARGET_EXPR_IMPLICIT_P (init) = 1;
+  if (slot != target)
+    {
+      init = build_target_expr (slot, init, complain);
+      TARGET_EXPR_IMPLICIT_P (init) = 1;
+    }
 
   return init;
 }
@@ -545,21 +593,22 @@ diagnose_non_constexpr_vec_init (tree expr)
   else
     init = VEC_INIT_EXPR_INIT (expr);
 
-  elt_init = build_vec_init_elt (type, init);
+  elt_init = build_vec_init_elt (type, init, tf_warning_or_error);
   require_potential_constant_expression (elt_init);
 }
 
 tree
 build_array_copy (tree init)
 {
-  return build_vec_init_expr (TREE_TYPE (init), init);
+  return build_vec_init_expr (TREE_TYPE (init), init, NULL_TREE,
+			      tf_warning_or_error);
 }
 
 /* Build a TARGET_EXPR using INIT to initialize a new temporary of the
    indicated TYPE.  */
 
 tree
-build_target_expr_with_type (tree init, tree type)
+build_target_expr_with_type (tree init, tree type, tsubst_flags_t complain)
 {
   gcc_assert (!VOID_TYPE_P (type));
 
@@ -577,9 +626,9 @@ build_target_expr_with_type (tree init, tree type)
        another one here.  A CONSTRUCTOR is aggregate initialization, which
        is handled separately.  A VA_ARG_EXPR is magic creation of an
        aggregate; there's no additional work to be done.  */
-    return force_rvalue (init);
+    return force_rvalue (init, complain);
 
-  return force_target_expr (type, init);
+  return force_target_expr (type, init, complain);
 }
 
 /* Like the above function, but without the checking.  This function should
@@ -588,27 +637,33 @@ build_target_expr_with_type (tree init, tree type)
    infinite recursion.  */
 
 tree
-force_target_expr (tree type, tree init)
+force_target_expr (tree type, tree init, tsubst_flags_t complain)
 {
   tree slot;
 
   gcc_assert (!VOID_TYPE_P (type));
 
   slot = build_local_temp (type);
-  return build_target_expr (slot, init);
+  return build_target_expr (slot, init, complain);
 }
 
 /* Like build_target_expr_with_type, but use the type of INIT.  */
 
 tree
-get_target_expr (tree init)
+get_target_expr_sfinae (tree init, tsubst_flags_t complain)
 {
   if (TREE_CODE (init) == AGGR_INIT_EXPR)
-    return build_target_expr (AGGR_INIT_EXPR_SLOT (init), init);
+    return build_target_expr (AGGR_INIT_EXPR_SLOT (init), init, complain);
   else if (TREE_CODE (init) == VEC_INIT_EXPR)
-    return build_target_expr (VEC_INIT_EXPR_SLOT (init), init);
+    return build_target_expr (VEC_INIT_EXPR_SLOT (init), init, complain);
   else
-    return build_target_expr_with_type (init, TREE_TYPE (init));
+    return build_target_expr_with_type (init, TREE_TYPE (init), complain);
+}
+
+tree
+get_target_expr (tree init)
+{
+  return get_target_expr_sfinae (init, tf_warning_or_error);
 }
 
 /* If EXPR is a bitfield reference, convert it to the declared type of
@@ -1810,7 +1865,8 @@ bot_manip (tree* tp, int* walk_subtrees, void* data)
 	u = build_cplus_new (TREE_TYPE (t), TREE_OPERAND (t, 1),
 			     tf_warning_or_error);
       else
-	u = build_target_expr_with_type (TREE_OPERAND (t, 1), TREE_TYPE (t));
+	u = build_target_expr_with_type (TREE_OPERAND (t, 1), TREE_TYPE (t),
+					 tf_warning_or_error);
 
       /* Map the old variable to the new one.  */
       splay_tree_insert (target_remap,
@@ -2831,6 +2887,7 @@ cp_walk_subtrees (tree *tp, int *walk_subtrees_p, walk_tree_fn func,
     case TEMPLATE_TYPE_PARM:
     case TYPENAME_TYPE:
     case TYPEOF_TYPE:
+    case UNDERLYING_TYPE:
       /* None of these have subtrees other than those already walked
 	 above.  */
       *walk_subtrees_p = 0;

@@ -847,6 +847,49 @@ build_array_conv (tree type, tree ctor, int flags)
   return c;
 }
 
+/* Represent a conversion from CTOR, a braced-init-list, to TYPE, a
+   complex type, if such a conversion is possible.  */
+
+static conversion *
+build_complex_conv (tree type, tree ctor, int flags)
+{
+  conversion *c;
+  unsigned HOST_WIDE_INT len = CONSTRUCTOR_NELTS (ctor);
+  tree elttype = TREE_TYPE (type);
+  unsigned i;
+  tree val;
+  bool bad = false;
+  bool user = false;
+  enum conversion_rank rank = cr_exact;
+
+  if (len != 2)
+    return NULL;
+
+  FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (ctor), i, val)
+    {
+      conversion *sub
+	= implicit_conversion (elttype, TREE_TYPE (val), val,
+			       false, flags);
+      if (sub == NULL)
+	return NULL;
+
+      if (sub->rank > rank)
+	rank = sub->rank;
+      if (sub->user_conv_p)
+	user = true;
+      if (sub->bad_p)
+	bad = true;
+    }
+
+  c = alloc_conversion (ck_aggr);
+  c->type = type;
+  c->rank = rank;
+  c->user_conv_p = user;
+  c->bad_p = bad;
+  c->u.next = NULL;
+  return c;
+}
+
 /* Build a representation of the identity conversion from EXPR to
    itself.  The TYPE should match the type of EXPR, if EXPR is non-NULL.  */
 
@@ -1645,6 +1688,14 @@ implicit_conversion (tree to, tree from, tree expr, bool c_cast_p,
     {
       if (is_std_init_list (to))
 	return build_list_conv (to, expr, flags);
+
+      /* As an extension, allow list-initialization of _Complex.  */
+      if (TREE_CODE (to) == COMPLEX_TYPE)
+	{
+	  conv = build_complex_conv (to, expr, flags);
+	  if (conv)
+	    return conv;
+	}
 
       /* Allow conversion from an initializer-list with one element to a
 	 scalar type.  */
@@ -3683,7 +3734,16 @@ build_new_function_call (tree fn, VEC(tree,gc) **args, bool koenig_p,
       result = error_mark_node;
     }
   else
-    result = build_over_call (cand, LOOKUP_NORMAL, complain);
+    {
+      int flags = LOOKUP_NORMAL;
+      /* If fn is template_id_expr, the call has explicit template arguments
+         (e.g. func<int>(5)), communicate this info to build_over_call
+         through flags so that later we can use it to decide whether to warn
+         about peculiar null pointer conversion.  */
+      if (TREE_CODE (fn) == TEMPLATE_ID_EXPR)
+        flags |= LOOKUP_EXPLICIT_TMPL_ARGS;
+      result = build_over_call (cand, flags, complain);
+    }
 
   /* Free all the conversions we allocated.  */
   obstack_free (&conversion_obstack, p);
@@ -4144,7 +4204,11 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
 	  && TREE_CODE (arg3) != THROW_EXPR)
 	{
 	  if (!VOID_TYPE_P (arg3_type))
-	    arg3 = force_rvalue (arg3);
+	    {
+	      arg3 = force_rvalue (arg3, complain);
+	      if (arg3 == error_mark_node)
+		return error_mark_node;
+	    }
 	  arg3_type = TREE_TYPE (arg3);
 	  result_type = arg3_type;
 	}
@@ -4152,7 +4216,11 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
 	       && TREE_CODE (arg3) == THROW_EXPR)
 	{
 	  if (!VOID_TYPE_P (arg2_type))
-	    arg2 = force_rvalue (arg2);
+	    {
+	      arg2 = force_rvalue (arg2, complain);
+	      if (arg2 == error_mark_node)
+		return error_mark_node;
+	    }
 	  arg2_type = TREE_TYPE (arg2);
 	  result_type = arg2_type;
 	}
@@ -4359,11 +4427,11 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
      that isn't wrapped with a TARGET_EXPR plays havoc with exception
      regions.  */
 
-  arg2 = force_rvalue (arg2);
+  arg2 = force_rvalue (arg2, complain);
   if (!CLASS_TYPE_P (arg2_type))
     arg2_type = TREE_TYPE (arg2);
 
-  arg3 = force_rvalue (arg3);
+  arg3 = force_rvalue (arg3, complain);
   if (!CLASS_TYPE_P (arg3_type))
     arg3_type = TREE_TYPE (arg3);
 
@@ -5310,10 +5378,16 @@ conversion_null_warnings (tree totype, tree expr, tree fn, int argnum)
     }
 
   /* Issue warnings if "false" is converted to a NULL pointer */
-  else if (expr == boolean_false_node && fn && POINTER_TYPE_P (t))
-    warning_at (input_location, OPT_Wconversion_null,
-		"converting %<false%> to pointer type for argument %P of %qD",
-		argnum, fn);
+  else if (expr == boolean_false_node && POINTER_TYPE_P (t))
+    {
+      if (fn)
+	warning_at (input_location, OPT_Wconversion_null,
+		    "converting %<false%> to pointer type for argument %P "
+		    "of %qD", argnum, fn);
+      else
+	warning_at (input_location, OPT_Wconversion_null,
+		    "converting %<false%> to pointer type %qT", t);
+    }
 }
 
 /* Perform the conversions in CONVS on the expression EXPR.  FN and
@@ -5508,6 +5582,17 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
       }
 
     case ck_aggr:
+      if (TREE_CODE (totype) == COMPLEX_TYPE)
+	{
+	  tree real = CONSTRUCTOR_ELT (expr, 0)->value;
+	  tree imag = CONSTRUCTOR_ELT (expr, 1)->value;
+	  real = perform_implicit_conversion (TREE_TYPE (totype),
+					      real, complain);
+	  imag = perform_implicit_conversion (TREE_TYPE (totype),
+					      imag, complain);
+	  expr = build2 (COMPLEX_EXPR, totype, real, imag);
+	  return fold_if_not_in_template (expr);
+	}
       return get_target_expr (digest_init (totype, expr));
 
     default:
@@ -5642,7 +5727,7 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 		expr = convert_bitfield_to_declared_type (expr);
 		expr = fold_convert (type, expr);
 	      }
-	    expr = build_target_expr_with_type (expr, type);
+	    expr = build_target_expr_with_type (expr, type, complain);
 	  }
 
 	/* Take the address of the thing to which we will bind the
@@ -6223,8 +6308,35 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
     {
       tree type = TREE_VALUE (parm);
       tree arg = VEC_index (tree, args, arg_index);
+      bool conversion_warning = true;
 
       conv = convs[i];
+
+      /* If the argument is NULL and used to (implicitly) instantiate a
+         template function (and bind one of the template arguments to
+         the type of 'long int'), we don't want to warn about passing NULL
+         to non-pointer argument.
+         For example, if we have this template function:
+
+           template<typename T> void func(T x) {}
+
+         we want to warn (when -Wconversion is enabled) in this case:
+
+           void foo() {
+             func<int>(NULL);
+           }
+
+         but not in this case:
+
+           void foo() {
+             func(NULL);
+           }
+      */
+      if (arg == null_node
+          && DECL_TEMPLATE_INFO (fn)
+          && cand->template_decl
+          && !(flags & LOOKUP_EXPLICIT_TMPL_ARGS))
+        conversion_warning = false;
 
       /* Warn about initializer_list deduction that isn't currently in the
 	 working draft.  */
@@ -6256,7 +6368,10 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	    }
 	}
 
-      val = convert_like_with_context (conv, arg, fn, i-is_method, complain);
+      val = convert_like_with_context (conv, arg, fn, i-is_method,
+	                               conversion_warning
+				       ? complain
+				       : complain & (~tf_warning));
 
       val = convert_for_arg_passing (type, val);
       if (val == error_mark_node)
@@ -6341,7 +6456,7 @@ build_over_call (struct z_candidate *cand, int flags, tsubst_flags_t complain)
 	  if (TREE_CODE (arg) == TARGET_EXPR)
 	    return arg;
 	  else if (trivial)
-	    return force_target_expr (DECL_CONTEXT (fn), arg);
+	    return force_target_expr (DECL_CONTEXT (fn), arg, complain);
 	}
       else if (TREE_CODE (arg) == TARGET_EXPR || trivial)
 	{
@@ -6991,6 +7106,8 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
 	      if (DECL_VINDEX (fn) && ! (flags & LOOKUP_NONVIRTUAL)
 		  && resolves_to_fixed_type_p (instance, 0))
 		flags |= LOOKUP_NONVIRTUAL;
+              if (explicit_targs)
+                flags |= LOOKUP_EXPLICIT_TMPL_ARGS;
 	      /* Now we know what function is being called.  */
 	      if (fn_p)
 		*fn_p = fn;
@@ -8246,7 +8363,7 @@ set_up_extended_ref_temp (tree decl, tree expr, tree *cleanup, tree *initp)
       if (TREE_STATIC (var))
 	init = add_stmt_to_compound (init, register_dtor_fn (var));
       else
-	*cleanup = cxx_maybe_build_cleanup (var);
+	*cleanup = cxx_maybe_build_cleanup (var, tf_warning_or_error);
 
       /* We must be careful to destroy the temporary only
 	 after its initialization has taken place.  If the

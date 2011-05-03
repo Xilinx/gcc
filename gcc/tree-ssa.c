@@ -1,5 +1,5 @@
 /* Miscellaneous SSA utility functions.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -351,6 +351,10 @@ insert_debug_temp_for_var_def (gimple_stmt_iterator *gsi, tree var)
     {
       value = degenerate_phi_result (def_stmt);
       if (value && walk_tree (&value, find_released_ssa_name, NULL, NULL))
+	value = NULL;
+      /* error_mark_node is what fixup_noreturn_call changes PHI arguments
+	 to.  */
+      else if (value == error_mark_node)
 	value = NULL;
     }
   else if (is_gimple_assign (def_stmt))
@@ -1183,8 +1187,6 @@ delete_tree_ssa (void)
   if (ssa_operands_active ())
     fini_ssa_operands ();
 
-  delete_alias_heapvars ();
-
   htab_delete (cfun->gimple_df->default_defs);
   cfun->gimple_df->default_defs = NULL;
   pt_solution_reset (&cfun->gimple_df->escaped);
@@ -1613,10 +1615,11 @@ walk_use_def_chains (tree var, walk_use_def_chains_fn fn, void *data,
    changed conditionally uninitialized to unconditionally uninitialized.  */
 
 /* Emit a warning for T, an SSA_NAME, being uninitialized.  The exact
-   warning text is in MSGID and LOCUS may contain a location or be null.  */
+   warning text is in MSGID and LOCUS may contain a location or be null.
+   WC is the warning code.  */
 
 void
-warn_uninit (tree t, const char *gmsgid, void *data)
+warn_uninit (enum opt_code wc, tree t, const char *gmsgid, void *data)
 {
   tree var = SSA_NAME_VAR (t);
   gimple context = (gimple) data;
@@ -1640,7 +1643,7 @@ warn_uninit (tree t, const char *gmsgid, void *data)
 	     : DECL_SOURCE_LOCATION (var);
   xloc = expand_location (location);
   floc = expand_location (DECL_SOURCE_LOCATION (cfun->decl));
-  if (warning_at (location, OPT_Wuninitialized, gmsgid, var))
+  if (warning_at (location, wc, gmsgid, var))
     {
       TREE_NO_WARNING (var) = 1;
 
@@ -1722,10 +1725,12 @@ warn_uninitialized_var (tree *tp, int *walk_subtrees, void *data_)
       /* We only do data flow with SSA_NAMEs, so that's all we
 	 can warn about.  */
       if (data->always_executed)
-        warn_uninit (t, "%qD is used uninitialized in this function",
+        warn_uninit (OPT_Wuninitialized,
+	             t, "%qD is used uninitialized in this function",
 		     data->stmt);
       else if (data->warn_possibly_uninitialized)
-        warn_uninit (t, "%qD may be used uninitialized in this function",
+        warn_uninit (OPT_Wuninitialized,
+	             t, "%qD may be used uninitialized in this function",
 		     data->stmt);
       *walk_subtrees = 0;
       break;

@@ -114,6 +114,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "except.h"
 #include "target.h"
 #include "ipa-inline.h"
+#include "ipa-utils.h"
 
 /* Statistics we collect about inlining algorithm.  */
 static int overall_size;
@@ -150,7 +151,7 @@ caller_growth_limits (struct cgraph_edge *e)
      we immediately inline to.  This is the most relaxed
      interpretation of the rule "do not grow large functions
      too much in order to prevent compiler from exploding".  */
-  do
+  while (true)
     {
       info = inline_summary (to);
       if (limit < info->self_size)
@@ -159,8 +160,9 @@ caller_growth_limits (struct cgraph_edge *e)
 	stack_size_limit = info->estimated_self_stack_size;
       if (to->global.inlined_to)
         to = to->callers->caller;
+      else
+	break;
     }
-  while (to->global.inlined_to);
 
   what_info = inline_summary (what);
 
@@ -180,12 +182,15 @@ caller_growth_limits (struct cgraph_edge *e)
       return false;
     }
 
+  if (!what_info->estimated_stack_size)
+    return true;
+
   /* FIXME: Stack size limit often prevents inlining in Fortran programs
      due to large i/o datastructures used by the Fortran front-end.
      We ought to ignore this limit when we know that the edge is executed
      on every invocation of the caller (i.e. its call statement dominates
      exit block).  We do not track this information, yet.  */
-  stack_size_limit += (stack_size_limit
+  stack_size_limit += ((gcov_type)stack_size_limit
 		       * PARAM_VALUE (PARAM_STACK_FRAME_GROWTH) / 100);
 
   inlined_stack = (outer_info->stack_frame_offset
@@ -271,9 +276,11 @@ can_inline_edge_p (struct cgraph_edge *e, bool report)
      FIXME: this is obviously wrong for LTO where STRUCT_FUNCTION is missing.
      Move the flag into cgraph node or mirror it in the inline summary.  */
   else if (DECL_STRUCT_FUNCTION (e->callee->decl)
-	   && DECL_STRUCT_FUNCTION (e->callee->decl)->can_throw_non_call_exceptions
+	   && DECL_STRUCT_FUNCTION
+	        (e->callee->decl)->can_throw_non_call_exceptions
 	   && !(DECL_STRUCT_FUNCTION (e->caller->decl)
-	        && DECL_STRUCT_FUNCTION (e->caller->decl)->can_throw_non_call_exceptions))
+	        && DECL_STRUCT_FUNCTION
+		     (e->caller->decl)->can_throw_non_call_exceptions))
     {
       e->inline_failed = CIF_NON_CALL_EXCEPTIONS;
       inlinable = false;
@@ -287,6 +294,11 @@ can_inline_edge_p (struct cgraph_edge *e, bool report)
     }
   /* Check if caller growth allows the inlining.  */
   else if (!DECL_DISREGARD_INLINE_LIMITS (e->callee->decl)
+	   && !lookup_attribute ("flatten",
+				 DECL_ATTRIBUTES
+				   (e->caller->global.inlined_to
+				    ? e->caller->global.inlined_to->decl
+				    : e->caller->decl))
            && !caller_growth_limits (e))
     inlinable = false;
   /* Don't inline a function with a higher optimization level than the
@@ -467,8 +479,39 @@ want_inline_small_function_p (struct cgraph_edge *e, bool report)
           e->inline_failed = CIF_MAX_INLINE_INSNS_AUTO_LIMIT;
 	  want_inline = false;
 	}
+      /* If call is cold, do not inline when function body would grow.
+	 Still inline when the overall unit size will shrink because the offline
+	 copy of function being eliminated.
+
+	 This is slightly wrong on aggressive side:  it is entirely possible
+	 that function is called many times with a context where inlining
+	 reduces code size and few times with a context where inlining increase
+	 code size.  Resoluting growth estimate will be negative even if it
+	 would make more sense to keep offline copy and do not inline into the
+	 call sites that makes the code size grow.  
+
+	 When badness orders the calls in a way that code reducing calls come
+	 first, this situation is not a problem at all: after inlining all
+	 "good" calls, we will realize that keeping the function around is
+	 better.  */
       else if (!cgraph_maybe_hot_edge_p (e)
-	       && estimate_growth (e->callee) > 0)
+	       && (DECL_EXTERNAL (e->callee->decl)
+
+		   /* Unlike for functions called once, we play unsafe with
+		      COMDATs.  We can allow that since we know functions
+		      in consideration are small (and thus risk is small) and
+		      moreover grow estimates already accounts that COMDAT
+		      functions may or may not disappear when eliminated from
+		      current unit. With good probability making aggressive
+		      choice in all units is going to make overall program
+		      smaller.
+
+		      Consequently we ask cgraph_can_remove_if_no_direct_calls_p
+		      instead of
+		      cgraph_will_be_removed_from_program_if_no_direct_calls  */
+
+		   || !cgraph_can_remove_if_no_direct_calls_p (e->callee)
+		   || estimate_growth (e->callee) > 0))
 	{
           e->inline_failed = CIF_UNLIKELY_CALL;
 	  want_inline = false;
@@ -739,7 +782,7 @@ edge_badness (struct cgraph_edge *edge, bool dump)
      of functions fully inlined in program.  */
   else
     {
-      int nest = MIN (edge->loop_nest, 8);
+      int nest = MIN (inline_edge_summary (edge)->loop_depth, 8);
       badness = estimate_growth (edge->callee) * 256;
 
       /* Decrease badness if call is nested.  */
@@ -1027,7 +1070,7 @@ recursive_inlining (struct cgraph_edge *edge,
 	{
 	  /* We need original clone to copy around.  */
 	  master_clone = cgraph_clone_node (node, node->decl,
-					    node->count, CGRAPH_FREQ_BASE, 1,
+					    node->count, CGRAPH_FREQ_BASE,
 					    false, NULL);
 	  for (e = master_clone->callees; e; e = e->next_callee)
 	    if (!e->inline_failed)
@@ -1457,7 +1500,7 @@ ipa_inline (void)
   if (dump_file)
     dump_inline_summaries (dump_file);
 
-  nnodes = cgraph_postorder (order);
+  nnodes = ipa_reverse_postorder (order);
 
   for (node = cgraph_nodes; node; node = node->next)
     node->aux = 0;
@@ -1555,6 +1598,8 @@ ipa_inline (void)
 	     "\nInlined %i calls, eliminated %i functions\n\n",
 	     ncalls_inlined, nfunctions_inlined);
 
+  if (dump_file)
+    dump_inline_summaries (dump_file);
   /* In WPA we use inline summaries for partitioning process.  */
   if (!flag_wpa)
     inline_free_summary ();
@@ -1661,6 +1706,15 @@ early_inliner (void)
   if (seen_error ())
     return 0;
 
+  /* Do nothing if datastructures for ipa-inliner are already computed.  This
+     happens when some pass decides to construct new function and
+     cgraph_add_new_function calls lowering passes and early optimization on
+     it.  This may confuse ourself when early inliner decide to inline call to
+     function clone, because function clones don't have parameter list in
+     ipa-prop matching their signature.  */
+  if (ipa_node_params_vector)
+    return 0;
+
 #ifdef ENABLE_CHECKING
   verify_cgraph_node (node);
 #endif
@@ -1709,9 +1763,10 @@ early_inliner (void)
 	     info that might be cleared out for newly discovered edges.  */
 	  for (edge = node->callees; edge; edge = edge->next_callee)
 	    {
-	      edge->call_stmt_size
+	      struct inline_edge_summary *es = inline_edge_summary (edge);
+	      es->call_stmt_size
 		= estimate_num_insns (edge->call_stmt, &eni_size_weights);
-	      edge->call_stmt_time
+	      es->call_stmt_time
 		= estimate_num_insns (edge->call_stmt, &eni_time_weights);
 	    }
 	  timevar_pop (TV_INTEGRATION);

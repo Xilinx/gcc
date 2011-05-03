@@ -450,6 +450,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__is_trivial",     RID_IS_TRIVIAL, D_CXXONLY },
   { "__is_union",	RID_IS_UNION,	D_CXXONLY },
   { "__is_literal_type", RID_IS_LITERAL_TYPE, D_CXXONLY },
+  { "__underlying_type", RID_UNDERLYING_TYPE, D_CXXONLY },
   { "__imag",		RID_IMAGPART,	0 },
   { "__imag__",		RID_IMAGPART,	0 },
   { "__inline",		RID_INLINE,	0 },
@@ -9576,6 +9577,17 @@ make_tree_vector_single (tree t)
 {
   VEC(tree,gc) *ret = make_tree_vector ();
   VEC_quick_push (tree, ret, t);
+  return ret;
+}
+
+/* Get a new tree vector of the TREE_VALUEs of a TREE_LIST chain.  */
+
+VEC(tree,gc) *
+make_tree_vector_from_list (tree list)
+{
+  VEC(tree,gc) *ret = make_tree_vector ();
+  for (; list; list = TREE_CHAIN (list))
+    VEC_safe_push (tree, gc, ret, TREE_VALUE (list));
   return ret;
 }
 

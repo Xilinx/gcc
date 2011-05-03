@@ -2,7 +2,7 @@
    additional tree codes used in the GNU C++ compiler (see tree.def
    for the standard codes).
    Copyright (C) 1987, 1988, 1990, 1993, 1997, 1998, 2003, 2004, 2005,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2010, 2011
    Free Software Foundation, Inc.
    Hacked by Michael Tiemann (tiemann@cygnus.com)
 
@@ -83,8 +83,8 @@ DEFTREECODE (AGGR_INIT_EXPR, "aggr_init_expr", tcc_vl_exp, 3)
 
 /* Initialization of an array from another array, expressed at a high level
    so that it works with TARGET_EXPR.  Operand 0 is the target, operand 1
-   is the initializer.  */
-DEFTREECODE (VEC_INIT_EXPR, "vec_init_expr", tcc_expression, 2)
+   is the initializer, operand 2 is the number of elements or NULL_TREE.  */
+DEFTREECODE (VEC_INIT_EXPR, "vec_init_expr", tcc_expression, 3)
 
 /* A throw expression.  operand 0 is the expression, if there was one,
    else it is NULL_TREE.  */
@@ -449,6 +449,10 @@ DEFTREECODE (LAMBDA_EXPR, "lambda_expr", tcc_exceptional, 0)
    DECLTYPE_FOR_LAMBDA_CAPTURE is set if we want lambda capture semantics.
    DECLTYPE_FOR_LAMBDA_RETURN is set if we want lambda return deduction.  */
 DEFTREECODE (DECLTYPE_TYPE, "decltype_type", tcc_type, 0)
+
+/* A type designated by `__underlying_type (type)'.
+   UNDERLYING_TYPE_TYPE is the type in question.  */
+DEFTREECODE (UNDERLYING_TYPE, "underlying_type", tcc_type, 0)
 
 /* Used to represent the template information stored by template
    specializations.

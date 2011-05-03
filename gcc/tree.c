@@ -124,6 +124,7 @@ extern int _obstack_allocated_p (struct obstack *h, void *obj);
 #ifdef GATHER_STATISTICS
 /* Statistics-gathering stuff.  */
 
+static int tree_code_counts[MAX_TREE_CODES];
 int tree_node_counts[(int) all_kinds];
 int tree_node_sizes[(int) all_kinds];
 
@@ -809,9 +810,18 @@ record_node_allocation_statistics (enum tree_code code ATTRIBUTE_UNUSED,
       gcc_unreachable ();
     }
 
+  tree_code_counts[(int) code]++;
   tree_node_counts[(int) kind]++;
   tree_node_sizes[(int) kind] += length;
 #endif
+}
+
+/* Allocate and return a new UID from the DECL_UID namespace.  */
+
+int
+allocate_decl_uid (void)
+{
+  return next_decl_uid++;
 }
 
 /* Return a newly allocated node of code CODE.  For decl and type
@@ -857,7 +867,7 @@ make_node_stat (enum tree_code code MEM_STAT_DECL)
 	DECL_UID (t) = --next_debug_decl_uid;
       else
 	{
-	  DECL_UID (t) = next_decl_uid++;
+	  DECL_UID (t) = allocate_decl_uid ();
 	  SET_DECL_PT_UID (t, -1);
 	}
       if (TREE_CODE (t) == LABEL_DECL)
@@ -942,7 +952,7 @@ copy_node_stat (tree node MEM_STAT_DECL)
 	DECL_UID (t) = --next_debug_decl_uid;
       else
 	{
-	  DECL_UID (t) = next_decl_uid++;
+	  DECL_UID (t) = allocate_decl_uid ();
 	  if (DECL_PT_UID_SET_P (node))
 	    SET_DECL_PT_UID (t, DECL_PT_UID (node));
 	}
@@ -6180,6 +6190,7 @@ type_hash_canon (unsigned int hashcode, tree type)
   if (t1 != 0)
     {
 #ifdef GATHER_STATISTICS
+      tree_code_counts[(int) TREE_CODE (type)]--;
       tree_node_counts[(int) t_kind]--;
       tree_node_sizes[(int) t_kind] -= sizeof (struct tree_type);
 #endif
@@ -8489,6 +8500,11 @@ dump_tree_statistics (void)
   fprintf (stderr, "---------------------------------------\n");
   fprintf (stderr, "%-20s %7d %10d\n", "Total", total_nodes, total_bytes);
   fprintf (stderr, "---------------------------------------\n");
+  fprintf (stderr, "Code                   Nodes\n");
+  fprintf (stderr, "----------------------------\n");
+  for (i = 0; i < (int) MAX_TREE_CODES; i++)
+    fprintf (stderr, "%-20s %7d\n", tree_code_name[i], tree_code_counts[i]);
+  fprintf (stderr, "----------------------------\n");
   ssanames_print_statistics ();
   phinodes_print_statistics ();
 #else
@@ -8502,14 +8518,12 @@ dump_tree_statistics (void)
 
 #define FILE_FUNCTION_FORMAT "_GLOBAL__%s_%s"
 
-/* Generate a crc32 of a string.  */
+/* Generate a crc32 of a byte.  */
 
 unsigned
-crc32_string (unsigned chksum, const char *string)
+crc32_byte (unsigned chksum, char byte)
 {
-  do
-    {
-      unsigned value = *string << 24;
+  unsigned value = (unsigned) byte << 24;
       unsigned ix;
 
       for (ix = 8; ix--; value <<= 1)
@@ -8520,6 +8534,18 @@ crc32_string (unsigned chksum, const char *string)
  	  chksum <<= 1;
  	  chksum ^= feedback;
   	}
+  return chksum;
+}
+
+
+/* Generate a crc32 of a string.  */
+
+unsigned
+crc32_string (unsigned chksum, const char *string)
+{
+  do
+    {
+      chksum = crc32_byte (chksum, *string);
     }
   while (*string++);
   return chksum;
@@ -8543,8 +8569,10 @@ clean_symbol_name (char *p)
       *p = '_';
 }
 
-/* Generate a name for a special-purpose function function.
+/* Generate a name for a special-purpose function.
    The generated name may need to be unique across the whole link.
+   Changes to this function may also require corresponding changes to
+   xstrdup_mask_random.
    TYPE is some string to identify the purpose of this function to the
    linker or collect2; it must start with an uppercase letter,
    one of:

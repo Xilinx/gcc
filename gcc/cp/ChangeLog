@@ -1,3 +1,159 @@
+2011-05-02  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/47969
+	* decl.c (compute_array_index_type): Check build_expr_type_conversion
+	return value for NULL_TREE.
+
+2011-04-29  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48606
+	* init.c (perform_member_init): Check build_value_init return
+	value for error_mark_node.
+
+2011-04-29  Diego Novillo  <dnovillo@google.com>
+	    Le-Chun Wu  <lcwu@google.com>
+
+	* call.c (conversion_null_warnings): Also handle assignments
+	when warning about NULL conversions.
+
+2011-04-29  Le-Chun Wu  <lcwu@google.com>
+
+	* cp-tree.h (LOOKUP_EXPLICIT_TMPL_ARGS): Define.
+	* call.c (build_new_function_call): Set it for TEMPLATE_ID_EXPRs.
+	(build_over_call): Use it to determine whether to emit a NULL
+	warning for template function instantiations.
+	(build_new_method_call): Set LOOKUP_EXPLICIT_TMPL_ARGS if
+	EXPLICIT_TARGS is set.
+
+2011-04-29  Nicola Pero  <nicola.pero@meta-innovation.com>,
+	    Mike Stump <mikestump@comcast.net>
+
+	* Make-lang.in ($(srcdir)/cp/cfns.h): Enable the dependency only
+	in maintainer mode.  Use the --output-file option of gperf instead
+	of > to prevent creating an empty cp/cfns.h when gperf is not
+	available.
+
+2011-04-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48798
+	* semantics.c (finish_base_specifier): cv-qualified base class
+	is fine, per DR 484.
+
+2011-04-28  Dodji Seketeli  <dodji@redhat.com>
+
+	PR c++/48656
+	* semantics.c (finish_call_expr): Don't forget BASELINK nodes when
+	considering call expressions involving a member function.
+
+2011-04-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48530
+	* tree.c (build_cplus_new): Check build_target_expr return
+	value for error_mark_node.
+
+2011-04-28  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/48771
+	* semantics.c (literal_type_p): Reference types are literal types,
+	per the FDIS.
+	(valid_type_in_constexpr_fundecl_p): Remove.
+	(is_valid_constexpr_fn): Adjust.
+
+2011-04-27  Jason Merrill  <jason@redhat.com>
+
+	PR libstdc++/48760
+	Implement list-initialization of _Complex.
+	* decl.c (reshape_init_r): Allow {real,imag} for _Complex.
+	(check_initializer): Likewise.
+	* call.c (build_complex_conv): New.
+	(implicit_conversion): Call it.
+	(convert_like_real): Handle it.
+	* typeck2.c (check_narrowing): Handle it.
+
+	* init.c (build_vec_delete_1): Look for sfk_deleting_destructor to
+	decide whether to delete.
+	(build_vec_init): Pass sfk_complete_destructor.
+
+	PR c++/40975
+	* cp-tree.def (VEC_INIT_EXPR): Add third operand.
+	* cp-tree.h (VEC_INIT_EXPR_NELTS): New.
+	* cp-gimplify.c (cp_gimplify_expr) [VEC_INIT_EXPR]: Handle it.
+	* tree.c (build_vec_init_expr): Handle getting pointer/nelts.
+	(build_vec_init_elt): Don't expect an array type.
+	(build_array_copy): Adjust.
+	* init.c (perform_member_init): Adjust.
+	(build_new_1): Use build_vec_init_expr.
+
+	* class.c (resolve_address_of_overloaded_function): Don't
+	change OVERLOAD to TREE_LIST.
+	* pt.c (print_candidates_1): Remove nonsensical assert.
+
+	PR c++/48046
+	* parser.c (cp_parser_diagnose_invalid_type_name): Commit
+	to tentative parse sooner.
+
+2011-04-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/42687
+	* parser.c (cp_parser_primary_expression): Set *idk to
+	CP_ID_KIND_NONE for a parenthesized identifier.
+
+	* ptree.c (cxx_print_type) [TYPENAME_TYPE]: Dump fullname.
+	(cxx_print_identifier): Correct indentation.
+
+	PR c++/48530
+	* decl.c (cxx_maybe_build_cleanup): Add complain parm.
+	* tree.c (force_target_expr): Add complain parm.
+	(build_target_expr_with_type): Likewise.
+	(get_target_expr_sfinae): Split out.
+	(build_vec_init_expr, bot_manip): Adjust.
+	* init.c (build_vec_delete, build_vec_delete_1): Add complain parm.
+	(build_delete, build_dtor_call): Likewise.
+	(perform_direct_initialization_if_possible): Adjust.
+	(build_vec_init): Handle error return.
+	* cvt.c (force_rvalue): Add complain parm.
+	Call build_special_member_call directly.
+	* decl2.c (delete_sanity): Add complain parm.
+	(build_cleanup): Adjust.
+	* pt.c (tsubst_copy_and_build, tsubst_expr): Adjust.
+	* semantics.c (finish_stmt_expr_expr): Adjust.
+	(finish_compound_literal): Adjust.
+	* parser.c (cp_parser_delete_expression): Adjust.
+	* typeck2.c (build_functional_cast): Adjust.
+	* cp-tree.h: Adjust.
+
+2011-04-26  Martin Jambor  <mjambor@suse.cz>
+
+	* class.c (cp_fold_obj_type_ref): Remove.
+	* cp-tree.h (cp_fold_obj_type_ref): Remove declaration.
+
+2011-04-25  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* cp-tree.def: Add a new UNDERLYING_TYPE tree code.
+	* cp-tree.h (enum cp_trait_kind): Add CPTK_UNDERLYING_TYPE, tidy.
+	(UNDERLYING_TYPE_TYPE): Add.
+	* cp-objcp-common.c (cp_common_init_ts): Mark UNDERLYING_TYPE
+	as TS_COMMON.
+	* parser.c (cp_lexer_next_token_is_decl_specifier_keyword,
+	cp_parser_simple_type_specifier): Handle UNDERLYING_TYPE.
+	(cp_parser_trait_expr): Deal with RID_UNDERLYING_TYPE; tidy.
+	* semantics.c (finish_underlying_type): New.
+	* typeck.c (structural_comptypes): Handle UNDERLYING_TYPE.
+	* error.c (dump_type, dump_type_prefix, dump_type_suffix): Likewise.
+	* cxx-pretty-print.c (p_cxx_type_id): Likewise.
+	* tree.c (cp_walk_subtrees): Likewise.
+	* pt.c (for_each_template_parm_r, tsubst, unify,
+	dependent_type_p_r): Likewise.
+	* mangle.c (write_type): Sorry for __underlying_type.
+
+2011-04-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48707
+	* decl.c (type_dependent_init_p): New.
+	(cp_finish_decl): Check it.
+	* pt.c (any_type_dependent_elements_p): New.
+	* cp-tree.h: Declare it.
+
 2011-04-20  Jason Merrill  <jason@redhat.com>
 
 	* semantics.c (finish_compound_literal): Don't put an array

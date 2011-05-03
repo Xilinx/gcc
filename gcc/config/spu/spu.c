@@ -748,10 +748,7 @@ spu_expand_extv (rtx ops[], int unsignedp)
     emit_insn (gen_rotlti3 (s0, s0, GEN_INT (start)));
 
   if (128 - width)
-    {
-      tree c = build_int_cst (NULL_TREE, 128 - width);
-      s0 = expand_shift (RSHIFT_EXPR, TImode, s0, c, s0, unsignedp);
-    }
+    s0 = expand_shift (RSHIFT_EXPR, TImode, s0, 128 - width, s0, unsignedp);
 
   emit_move_insn (dst, s0);
 }
@@ -2107,7 +2104,7 @@ spu_expand_epilogue (bool sibcall_p)
   int size = get_frame_size (), offset, regno;
   HOST_WIDE_INT saved_regs_size, total_size;
   rtx sp_reg = gen_rtx_REG (Pmode, STACK_POINTER_REGNUM);
-  rtx jump, scratch_reg_0;
+  rtx scratch_reg_0;
 
   if (spu_naked_function_p (current_function_decl))
     return;
@@ -2149,10 +2146,8 @@ spu_expand_epilogue (bool sibcall_p)
   if (!sibcall_p)
     {
       emit_use (gen_rtx_REG (SImode, LINK_REGISTER_REGNUM));
-      jump = emit_jump_insn (gen__return ());
-      emit_barrier_after (jump);
+      emit_jump_insn (gen__return ());
     }
-
 }
 
 rtx
