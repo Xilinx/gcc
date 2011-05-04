@@ -548,6 +548,9 @@ struct dyn_imp_mod
 /* Register a new object file module.  */
 extern void __gcov_init (struct gcov_info *) ATTRIBUTE_HIDDEN;
 
+/* Set sampling rate to RATE.  */
+extern void __gcov_set_sampling_rate (unsigned int rate);
+
 /* Called before fork, to avoid double counting.  */
 extern void __gcov_flush (void) ATTRIBUTE_HIDDEN;
 

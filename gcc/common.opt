@@ -1619,6 +1619,10 @@ fprofile-generate=
 Common Joined RejectNegative
 Enable common options for generating profile info for profile feedback directed optimizations, and set -fprofile-dir=
 
+fprofile-generate-sampling
+Common Var(flag_profile_generate_sampling)
+Turn on instrumentation sampling with -fprofile-generate with rate set by --param profile-generate-sampling-rate or environment variable GCOV_SAMPLING_RATE
+
 fprofile-use
 Common Var(flag_profile_use)
 Enable common options for performing profile feedback directed optimizations

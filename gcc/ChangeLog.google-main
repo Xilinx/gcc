@@ -1,3 +1,25 @@
+2011-05-04  Silvius Rus  <silvius.rus@gmail.com>
+
+	* doc/invoke.texi: Document -fprofile-generate-sampling option.
+	* gcov-io.h (__gcov_set_sampling_rate): New declaration.
+	* profile.c (branch_prob): Add support for sampled profile
+	collection.
+	* profile.h (add_sampling_to_edge_counters): New declaration.
+	* common.opt (fprofile-generate-sampling): New option.
+	* tree-profile: Include header files; define EDGE_COUNTER_STMT_COUNT.
+	(instrumentation_to_be_sampled, gcov_sample_counter_decl)
+	(gcov_sampling_rate_decl): New globals.
+	(insert_if_then, add_sampling_wrapper, is_instrumentation_to_be_sampled)
+	(add_sampling_to_edge_counters, gimple_init_instrumentation_sampling):
+	New functions.
+	(gimple_init_edge_profiler): Call gimple_init_instrumentation_sampling.
+	(gimple_gen_edge_profiler): Mark start of instrumentation block.
+	* libgcov.c (__gcov_sampling_rate): New extern declaration.
+	(gcov_sampling_rate_initialized, __gcov_sample_counter): New globals.
+	(gcov_exit): Set sampling rate; minor coding style fixes.
+	(__gcov_init): Initialize __gcov_sampling_rate.
+	* params.def (PARAM_PROFILE_GENERATE_SAMPLING_RATE): New parameter.
+
 2011-05-03  David Li  <davidxl@google.com>
 
 Backport r173177:

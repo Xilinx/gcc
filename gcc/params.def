@@ -880,6 +880,11 @@ DEFPARAM (PARAM_MAX_LIPO_MEMORY,
 	  "don't import aux files if memory consumption exceeds this value",
 	  2400000, 0, 0)
 
+DEFPARAM (PARAM_PROFILE_GENERATE_SAMPLING_RATE,
+         "profile-generate-sampling-rate",
+         "sampling rate with -fprofile-generate-sampling",
+         100, 0, 2000000000)
+
 /* Used for debugging purpose. Tell the compiler to find
    the gcda file in the current directory.  */
 DEFPARAM (PARAM_GCOV_DEBUG,

@@ -31,6 +31,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "flags.h"
+#include "target.h"
+#include "output.h"
 #include "regs.h"
 #include "function.h"
 #include "basic-block.h"
@@ -44,10 +46,15 @@ along with GCC; see the file COPYING3.  If not see
 #include "value-prof.h"
 #include "cgraph.h"
 #include "output.h"
+#include "params.h"
+#include "profile.h"
 #include "l-ipo.h"
 #include "profile.h"
 #include "target.h"
 #include "output.h"
+
+/* Number of statements inserted for each edge counter increment.  */
+#define EDGE_COUNTER_STMT_COUNT 3
 
 static GTY(()) tree gcov_type_node;
 static GTY(()) tree gcov_type_tmp_var;
@@ -146,6 +153,177 @@ init_ic_make_global_vars (void)
     }
 }
 
+/* A pointer-set of the first statement in each block of statements that need to
+   be applied a sampling wrapper.  */
+static struct pointer_set_t *instrumentation_to_be_sampled = NULL;
+
+/* extern __thread gcov_unsigned_t __gcov_sample_counter  */
+static tree gcov_sample_counter_decl = NULL_TREE;
+
+/* extern gcov_unsigned_t __gcov_sampling_rate  */
+static tree gcov_sampling_rate_decl = NULL_TREE;
+
+/* Insert STMT_IF around given sequence of consecutive statements in the
+   same basic block starting with STMT_START, ending with STMT_END.  */
+
+static void
+insert_if_then (gimple stmt_start, gimple stmt_end, gimple stmt_if)
+{
+  gimple_stmt_iterator gsi;
+  basic_block bb_original, bb_before_if, bb_after_if;
+  edge e_if_taken, e_then_join;
+
+  gsi = gsi_for_stmt (stmt_start);
+  gsi_insert_before (&gsi, stmt_if, GSI_SAME_STMT);
+  bb_original = gsi_bb (gsi);
+  e_if_taken = split_block (bb_original, stmt_if);
+  e_if_taken->flags &= ~EDGE_FALLTHRU;
+  e_if_taken->flags |= EDGE_TRUE_VALUE;
+  e_then_join = split_block (e_if_taken->dest, stmt_end);
+  bb_before_if = e_if_taken->src;
+  bb_after_if = e_then_join->dest;
+  make_edge (bb_before_if, bb_after_if, EDGE_FALSE_VALUE);
+}
+
+/* Transform:
+
+   ORIGINAL CODE
+
+   Into:
+
+   __gcov_sample_counter++;
+   if (__gcov_sample_counter >= __gcov_sampling_rate)
+     {
+       __gcov_sample_counter = 0;
+       ORIGINAL CODE
+     }
+
+   The original code block starts with STMT_START, is made of STMT_COUNT
+   consecutive statements in the same basic block.  */
+
+static void
+add_sampling_wrapper (gimple stmt_start, gimple stmt_end)
+{
+  tree zero, one, tmp_var, tmp1, tmp2, tmp3;
+  gimple stmt_inc_counter1, stmt_inc_counter2, stmt_inc_counter3;
+  gimple stmt_reset_counter, stmt_assign_rate, stmt_if;
+  gimple_stmt_iterator gsi;
+
+  tmp_var = create_tmp_reg (get_gcov_unsigned_t (), "PROF_sample");
+  tmp1 = make_ssa_name (tmp_var, NULL);
+  tmp2 = make_ssa_name (tmp_var, NULL);
+
+  /* Create all the new statements needed.  */
+  stmt_inc_counter1 = gimple_build_assign (tmp1, gcov_sample_counter_decl);
+  one = build_int_cst (get_gcov_unsigned_t (), 1);
+  stmt_inc_counter2 = gimple_build_assign_with_ops (
+      PLUS_EXPR, tmp2, tmp1, one);
+  stmt_inc_counter3 = gimple_build_assign (gcov_sample_counter_decl, tmp2);
+  zero = build_int_cst (get_gcov_unsigned_t (), 0);
+  stmt_reset_counter = gimple_build_assign (gcov_sample_counter_decl, zero);
+  tmp3 = make_ssa_name (tmp_var, NULL);
+  stmt_assign_rate = gimple_build_assign (tmp3, gcov_sampling_rate_decl);
+  stmt_if = gimple_build_cond (GE_EXPR, tmp2, tmp3, NULL_TREE, NULL_TREE);
+
+  /* Insert them for now in the original basic block.  */
+  gsi = gsi_for_stmt (stmt_start);
+  gsi_insert_before (&gsi, stmt_inc_counter1, GSI_SAME_STMT);
+  gsi_insert_before (&gsi, stmt_inc_counter2, GSI_SAME_STMT);
+  gsi_insert_before (&gsi, stmt_inc_counter3, GSI_SAME_STMT);
+  gsi_insert_before (&gsi, stmt_assign_rate, GSI_SAME_STMT);
+  gsi_insert_before (&gsi, stmt_reset_counter, GSI_SAME_STMT);
+
+  /* Insert IF block.  */
+  insert_if_then (stmt_reset_counter, stmt_end, stmt_if);
+}
+
+/* Return whether STMT is the beginning of an instrumentation block to be
+   applied sampling.  */
+
+static bool
+is_instrumentation_to_be_sampled (gimple stmt)
+{
+  return pointer_set_contains (instrumentation_to_be_sampled, stmt);
+}
+
+/* Add sampling wrappers around edge counter code in current function.  */
+
+void
+add_sampling_to_edge_counters (void)
+{
+  gimple_stmt_iterator gsi;
+  basic_block bb;
+
+  FOR_EACH_BB_REVERSE (bb)
+    for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+      {
+        gimple stmt = gsi_stmt (gsi);
+        if (is_instrumentation_to_be_sampled (stmt))
+          {
+            gimple stmt_end;
+            int i;
+            /* The code for edge counter increment has EDGE_COUNTER_STMT_COUNT
+               gimple statements. Advance that many statements to find the
+               last statement.  */
+            for (i = 0; i < EDGE_COUNTER_STMT_COUNT - 1; i++)
+              gsi_next (&gsi);
+            stmt_end = gsi_stmt (gsi);
+            gcc_assert (stmt_end);
+            add_sampling_wrapper (stmt, stmt_end);
+            break;
+          }
+      }
+
+  /* Free the bitmap.  */
+  if (instrumentation_to_be_sampled)
+    {
+      pointer_set_destroy (instrumentation_to_be_sampled);
+      instrumentation_to_be_sampled = NULL;
+    }
+}
+
+static void
+gimple_init_instrumentation_sampling (void)
+{
+  if (!gcov_sampling_rate_decl)
+    {
+      /* Define __gcov_sampling_rate regardless of -fprofile-generate-sampling.
+         Otherwise the extern reference to it from libgcov becomes unmatched.
+      */
+      gcov_sampling_rate_decl = build_decl (
+          UNKNOWN_LOCATION,
+          VAR_DECL,
+          get_identifier ("__gcov_sampling_rate"),
+          get_gcov_unsigned_t ());
+      TREE_PUBLIC (gcov_sampling_rate_decl) = 1;
+      DECL_ARTIFICIAL (gcov_sampling_rate_decl) = 1;
+      DECL_COMDAT_GROUP (gcov_sampling_rate_decl)
+          = DECL_ASSEMBLER_NAME (gcov_sampling_rate_decl);
+      TREE_STATIC (gcov_sampling_rate_decl) = 1;
+      DECL_INITIAL (gcov_sampling_rate_decl) = build_int_cst (
+          get_gcov_unsigned_t (),
+          PARAM_VALUE (PARAM_PROFILE_GENERATE_SAMPLING_RATE));
+      assemble_variable (gcov_sampling_rate_decl, 0, 0, 0);
+    }
+
+  if (flag_profile_generate_sampling && !instrumentation_to_be_sampled)
+    {
+      instrumentation_to_be_sampled = pointer_set_create ();
+      gcov_sample_counter_decl = build_decl (
+          UNKNOWN_LOCATION,
+          VAR_DECL,
+          get_identifier ("__gcov_sample_counter"),
+          get_gcov_unsigned_t ());
+      TREE_PUBLIC (gcov_sample_counter_decl) = 1;
+      DECL_EXTERNAL (gcov_sample_counter_decl) = 1;
+      DECL_ARTIFICIAL (gcov_sample_counter_decl) = 1;
+      if (targetm.have_tls)
+        DECL_TLS_MODEL (gcov_sample_counter_decl) =
+            decl_default_tls_model (gcov_sample_counter_decl);
+      assemble_variable (gcov_sample_counter_decl, 0, 0, 0);
+    }
+}
+
 void
 gimple_init_edge_profiler (void)
 {
@@ -157,6 +335,8 @@ gimple_init_edge_profiler (void)
   tree ic_topn_profiler_fn_type;
   tree dc_profiler_fn_type;
   tree average_profiler_fn_type;
+
+  gimple_init_instrumentation_sampling ();
 
   if (!gcov_type_node)
     {
@@ -302,6 +482,10 @@ gimple_gen_edge_profiler (int edgeno, edge e)
 					gimple_assign_lhs (stmt1), one);
   gimple_assign_set_lhs (stmt2, make_ssa_name (gcov_type_tmp_var, stmt2));
   stmt3 = gimple_build_assign (unshare_expr (ref), gimple_assign_lhs (stmt2));
+
+  if (flag_profile_generate_sampling)
+    pointer_set_insert (instrumentation_to_be_sampled, stmt1);
+
   gsi_insert_on_edge (e, stmt1);
   gsi_insert_on_edge (e, stmt2);
   gsi_insert_on_edge (e, stmt3);

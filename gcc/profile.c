@@ -1221,6 +1221,9 @@ branch_prob (void)
 
       /* Commit changes done by instrumentation.  */
       gsi_commit_edge_inserts ();
+
+      if (flag_profile_generate_sampling)
+        add_sampling_to_edge_counters ();
     }
 
   free_aux_for_edges ();

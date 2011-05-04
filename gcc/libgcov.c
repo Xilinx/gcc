@@ -83,6 +83,20 @@ void __gcov_merge_delta (gcov_type *counters  __attribute__ ((unused)),
 #ifdef L_gcov
 #include "gcov-io.c"
 
+/* Sampling rate.  */
+extern gcov_unsigned_t __gcov_sampling_rate;
+static int gcov_sampling_rate_initialized = 0;
+
+/* Set sampling rate to RATE.  */
+
+void __gcov_set_sampling_rate (unsigned int rate)
+{
+  __gcov_sampling_rate = rate;
+}
+
+/* Per thread sample counter.  */
+THREAD_PREFIX gcov_unsigned_t __gcov_sample_counter = 0;
+
 /* Chain of per-object gcov structures.  */
 extern struct gcov_info *__gcov_list;
 
@@ -365,7 +379,7 @@ gcov_exit (void)
 
   {
     /* Check if the level of dirs to strip off specified. */
-    char *tmp = getenv("GCOV_PREFIX_STRIP");
+    char *tmp = getenv ("GCOV_PREFIX_STRIP");
     if (tmp)
       {
 	gcov_prefix_strip = atoi (tmp);
@@ -375,7 +389,7 @@ gcov_exit (void)
       }
   }
   /* Get file name relocation prefix.  Non-absolute values are ignored. */
-  gcov_prefix = getenv("GCOV_PREFIX");
+  gcov_prefix = getenv ("GCOV_PREFIX");
   if (gcov_prefix)
     {
       prefix_length = strlen(gcov_prefix);
@@ -759,6 +773,17 @@ gcov_exit (void)
 void
 __gcov_init (struct gcov_info *info)
 {
+  if (!gcov_sampling_rate_initialized)
+    {
+      const char* env_value_str = getenv ("GCOV_SAMPLING_RATE");
+      if (env_value_str)
+        {
+          int env_value_int = atoi(env_value_str);
+          if (env_value_int >= 1)
+            __gcov_sampling_rate = env_value_int;
+        }
+      gcov_sampling_rate_initialized = 1;
+    }
   if (!info->version)
     return;
   if (gcov_version (info, info->version, 0))

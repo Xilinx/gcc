@@ -376,7 +376,7 @@ Objective-C and Objective-C++ Dialects}.
 -fpartial-inlining -fpeel-loops -fpredictive-commoning @gol
 -fprefetch-loop-arrays @gol
 -fprofile-correction -fprofile-dir=@var{path} -fprofile-generate @gol
--fprofile-generate=@var{path} @gol
+-fprofile-generate=@var{path} -fprofile-generate-sampling @gol
 -fprofile-use -fprofile-use=@var{path} -fprofile-values @gol
 -freciprocal-math -fregmove -frename-registers -freorder-blocks @gol
 -freorder-blocks-and-partition -freorder-functions @gol
@@ -7977,6 +7977,20 @@ The following options are enabled: @code{-fprofile-arcs}, @code{-fprofile-values
 If @var{path} is specified, GCC will look at the @var{path} to find
 the profile feedback data files. See @option{-fprofile-dir}.
 
+@item -fprofile-generate-sampling
+@opindex -fprofile-generate-sampling
+
+Enable sampling for instrumented binaries.  Instead of recording every event,
+record only every N-th event, where N (the sampling rate) can be set either
+at compile time using
+@option{--param profile-generate-sampling-rate=@var{value}}, or
+at execution start time through environment variable @samp{GCOV_SAMPLING_RATE}.
+
+At this time sampling applies only to branch counters.  A sampling rate of 100
+decreases instrumentated binary slowdown from up to 20x for heavily threaded
+applications down to around 2x.  @option{-fprofile-correction} is always
+needed with sampling.
+
 @item -fprofile-use
 @itemx -fprofile-use=@var{path}
 @opindex fprofile-use
@@ -9211,6 +9225,9 @@ recognize.
 
 If you want to pass an option that takes an argument, you must use
 @option{-Xassembler} twice, once for the option and once for the argument.
+
+@item profile-generate-sampling-rate
+Set the sampling rate with @option{-fprofile-generate-sampling}.
 
 @end table
 
