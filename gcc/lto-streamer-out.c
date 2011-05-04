@@ -2198,7 +2198,6 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
   int i, n_nodes;
   lto_cgraph_encoder_t encoder = lto_get_out_decl_state ()->cgraph_node_encoder;
 
-  gimple_streamer_hooks_init ();
   lto_writer_init ();
 
   n_nodes = lto_cgraph_encoder_size (encoder);

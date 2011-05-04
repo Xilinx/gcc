@@ -55,6 +55,36 @@ pph_indexable_with_decls_p (tree t)
 }
 
 
+/* Generate a vector of common nodes that should always be streamed as
+   indexes into the streamer cache.  These nodes are always built by
+   the front end, so there is no need to emit them.  */
+
+static VEC(tree,heap) *
+pph_get_common_nodes (void)
+{
+  unsigned i;
+  VEC(tree,heap) *common_nodes = NULL;
+
+  for (i = itk_char; i < itk_none; i++)
+    VEC_safe_push (tree, heap, common_nodes, integer_types[i]);
+
+  for (i = 0; i < TYPE_KIND_LAST; i++)
+    VEC_safe_push (tree, heap, common_nodes, sizetype_tab[i]);
+
+  /* global_trees[] can have NULL entries in it.  Skip them.  */
+  for (i = 0; i < TI_MAX; i++)
+    if (global_trees[i])
+      VEC_safe_push (tree, heap, common_nodes, global_trees[i]);
+
+  /* c_global_trees[] can have NULL entries in it.  Skip them.  */
+  for (i = 0; i < CTI_MAX; i++)
+    if (c_global_trees[i])
+      VEC_safe_push (tree, heap, common_nodes, c_global_trees[i]);
+
+  return common_nodes;
+}
+
+
 /* Initialize all the streamer hooks used for streaming ASTs.  */
 
 static void
@@ -62,6 +92,7 @@ pph_stream_hooks_init (void)
 {
   lto_streamer_hooks *h = streamer_hooks_init ();
   h->name = "C++ AST";
+  h->get_common_nodes = pph_get_common_nodes;
   h->is_streamable = pph_is_streamable;
   h->write_tree = pph_stream_write_tree;
   h->read_tree = pph_stream_read_tree;

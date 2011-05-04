@@ -1,3 +1,19 @@
+2011-05-04  Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.in (cgraphunit.o): Add dependency on LTO_STREAMER_H.
+	* cgraphunit.c: Include lto-streamer.h
+	(cgraph_finalize_compilation_unit): Call gimple_streamer_hooks_init
+	if LTO is enabled.
+	* lto-streamer-out.c (lto_output): Move call to
+	gimple_streamer_hooks_init to cgraph_finalize_compilation_unit.
+	* lto-streamer.c (lto_get_common_nodes): Remove if0 hack.
+	(lto_streamer_cache_create): Call streamer_hooks.get_common_nodes
+	instead of lto_get_common_nodes.
+	(gimple_streamer_hooks_init): Set h->get_common_nodes to
+	lto_get_common_nodes.
+	* lto-streamer.h (struct lto_streamer_hooks): Add field
+	get_common_nodes.
+
 2011-04-26  Diego Novillo  <dnovillo@google.com>
 
 	* lto-streamer.h (enum LTO_tags): Change LTO_bb0 to begin

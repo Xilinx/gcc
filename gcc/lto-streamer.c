@@ -550,10 +550,6 @@ lto_get_common_nodes (void)
   else
     main_identifier_node = get_identifier ("main");
 
-  /* FIXME pph.  These assertions are never met while in the front end.
-     There should be a way of checking this only when we are in LTO
-     mode.  */
-#if 0
   gcc_assert (ptrdiff_type_node == integer_type_node);
 
   /* FIXME lto.  In the C++ front-end, fileptr_type_node is defined as a
@@ -564,7 +560,6 @@ lto_get_common_nodes (void)
      These should be assured in pass_ipa_free_lang_data.  */
   gcc_assert (fileptr_type_node == ptr_type_node);
   gcc_assert (TYPE_MAIN_VARIANT (fileptr_type_node) == ptr_type_node);
-#endif
 
   seen_nodes = pointer_set_create ();
 
@@ -631,7 +626,7 @@ lto_streamer_cache_create (void)
   /* Load all the well-known tree nodes that are always created by
      the compiler on startup.  This prevents writing them out
      unnecessarily.  */
-  common_nodes = lto_get_common_nodes ();
+  common_nodes = streamer_hooks ()->get_common_nodes ();
 
   FOR_EACH_VEC_ELT (tree, common_nodes, i, node)
     preload_common_node (cache, node);
@@ -820,6 +815,7 @@ gimple_streamer_hooks_init (void)
   h->name = "gimple";
   h->reader_init = gimple_streamer_reader_init;
   h->writer_init = NULL;
+  h->get_common_nodes = lto_get_common_nodes;
   h->is_streamable = lto_is_streamable;
   h->write_tree = gimple_streamer_write_tree;
   h->read_tree = gimple_streamer_read_tree;

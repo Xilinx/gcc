@@ -55,6 +55,16 @@ typedef struct lto_streamer_hooks {
   /* A string identifying this streamer.  */
   const char *name;
 
+  /* Called by lto_streamer_cache_create to instantiate a cache of
+     well-known nodes.  These are tree nodes that are always
+     instantiated by the compiler on startup.  Additionally, these
+     nodes need to be shared.  This function produces a vector of
+     these well known trees that are then added to the streamer cache.
+     This way, the writer will only write out a reference to the tree
+     and the reader will instantiate the tree out of this
+     pre-populated cache.  */
+  VEC(tree,heap) *(*get_common_nodes) (void);
+
   /* Called by lto_reader_init after it does basic initialization.  */
   void (*reader_init) (void);
 
