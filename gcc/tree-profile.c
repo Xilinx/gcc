@@ -46,6 +46,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "l-ipo.h"
 #include "profile.h"
+#include "target.h"
+#include "output.h"
 
 static GTY(()) tree gcov_type_node;
 static GTY(()) tree gcov_type_tmp_var;
@@ -92,8 +94,9 @@ init_ic_make_global_vars (void)
 		      ptr_void);
       TREE_PUBLIC (ic_void_ptr_var) = 1;
       DECL_EXTERNAL (ic_void_ptr_var) = 1;
-      DECL_TLS_MODEL (ic_void_ptr_var) =
-	decl_default_tls_model (ic_void_ptr_var);
+      if (targetm.have_tls)
+        DECL_TLS_MODEL (ic_void_ptr_var) =
+          decl_default_tls_model (ic_void_ptr_var);
 
       gcov_type_ptr = build_pointer_type (get_gcov_type ());
       ic_gcov_type_ptr_var 
@@ -102,8 +105,9 @@ init_ic_make_global_vars (void)
 		      gcov_type_ptr);
       TREE_PUBLIC (ic_gcov_type_ptr_var) = 1;
       DECL_EXTERNAL (ic_gcov_type_ptr_var) = 1;
-      DECL_TLS_MODEL (ic_gcov_type_ptr_var) =
-	decl_default_tls_model (ic_gcov_type_ptr_var);
+      if (targetm.have_tls)
+        DECL_TLS_MODEL (ic_gcov_type_ptr_var) =
+          decl_default_tls_model (ic_gcov_type_ptr_var);
     }
   else
     {
@@ -114,6 +118,9 @@ init_ic_make_global_vars (void)
       TREE_STATIC (ic_void_ptr_var) = 1;
       TREE_PUBLIC (ic_void_ptr_var) = 0;
       DECL_INITIAL (ic_void_ptr_var) = NULL;
+      if (targetm.have_tls)
+        DECL_TLS_MODEL (ic_void_ptr_var) =
+          decl_default_tls_model (ic_void_ptr_var);
 
       gcov_type_ptr = build_pointer_type (get_gcov_type ());
       ic_gcov_type_ptr_var 
@@ -123,6 +130,9 @@ init_ic_make_global_vars (void)
       TREE_STATIC (ic_gcov_type_ptr_var) = 1;
       TREE_PUBLIC (ic_gcov_type_ptr_var) = 0;
       DECL_INITIAL (ic_gcov_type_ptr_var) = NULL;
+      if (targetm.have_tls)
+        DECL_TLS_MODEL (ic_gcov_type_ptr_var) =
+          decl_default_tls_model (ic_gcov_type_ptr_var);
     }
 
   DECL_ARTIFICIAL (ic_void_ptr_var) = 1;

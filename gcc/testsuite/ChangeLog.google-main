@@ -1,3 +1,10 @@
+2011-05-03  Xinliang David Li  <davidxl@google.com>
+
+Backport r17342:
+
+	* gcc.dg/tree-ssa/integer-addr.c: New test.
+	* gcc.dg/tree-ssa/alias_bug.c: New test.
+
 2011-05-01  David Li  <davidxl@google.com>
 
 	* testsuite/lib/profopt.exp (profopt-execute): Multiple source file support.
