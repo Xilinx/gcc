@@ -760,6 +760,9 @@ DEF_BUILTIN (BUILT_IN_EMUTLS_REGISTER_COMMON,
 	     true, true, true, ATTR_NOTHROW_LEAF_LIST, false,
 	     !targetm.have_tls)
 
+/* Multiversioning builtin dispatch hook. */
+DEF_GCC_BUILTIN (BUILT_IN_DISPATCH, "dispatch", BT_FN_INT_PTR_FN_INT_PTR_PTR_VAR, ATTR_NULL)
+
 /* Exception support.  */
 DEF_BUILTIN_STUB (BUILT_IN_UNWIND_RESUME, "__builtin_unwind_resume")
 DEF_BUILTIN_STUB (BUILT_IN_CXA_END_CLEANUP, "__builtin_cxa_end_cleanup")

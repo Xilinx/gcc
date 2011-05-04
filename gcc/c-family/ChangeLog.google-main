@@ -1,3 +1,8 @@
+2011-05-04  Sriraman Tallam  <tmsriram@google.com>
+
+	* c-family/c-common.c (handle_version_selector_attribute): New function.
+	(c_common_attribute_table): New attribute "version_selector".
+
 2011-04-29  Diego Novillo  <dnovillo@google.com>
 
 	* c-common.c (handle_nonnull_attribute): Remove spurious

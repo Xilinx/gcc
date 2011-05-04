@@ -955,6 +955,17 @@ DEFPARAM (CXX_MAX_NAMESPACES_FOR_DIAGNOSTIC_HELP,
 	  "name lookup fails",
 	  1000, 0, 0)
 
+DEFPARAM (PARAM_NUMBER_OF_MVERSN_CLONES,
+          "num-mversn-clones",
+	  "maximum number of functions to be cloned while doing "
+          "multiversioning",
+	  10, 0, 1000)
+
+DEFPARAM (PARAM_MVERSN_CLONE_CGRAPH_DEPTH,
+          "mversn-clone-depth",
+	  "maximum length of the call graph path to be cloned "
+          "while doing multiversioning",
+	  2, 0, 5)
 /*
 Local variables:
 mode:c

@@ -1,3 +1,29 @@
+2011-05-04  Sriraman Tallam  <tmsriram@google.com>
+
+	* testsuite/gcc.dg/mversn7.c: New test.
+	* testsuite/gcc.dg/mversn4.c: New test.
+	* testsuite/gcc.dg/mversn4.h: New test.
+	* testsuite/gcc.dg/mversn4a.c: New test.
+	* testsuite/gcc.dg/torture/mversn1.c: New test.
+	* testsuite/gcc.dg/mversn2.c: New test.
+	* testsuite/gcc.dg/mversn6.c: New test.
+	* testsuite/gcc.dg/mversn3.c: New test.
+	* testsuite/g++.dg/mversn8.C: New test.
+	* testsuite/g++.dg/mversn10a.C: New test.
+	* testsuite/g++.dg/mversn14a.C: New test.
+	* testsuite/g++.dg/tree-prof/mversn13.C: New test.
+	* testsuite/g++.dg/tree-prof/mversn15.C: New test.
+	* testsuite/g++.dg/tree-prof/mversn15a.C: New test.
+	* testsuite/g++.dg/mversn9.C: New test.
+	* testsuite/g++.dg/mversn10.C: New test.
+	* testsuite/g++.dg/mversn12.C: New test.
+	* testsuite/g++.dg/mversn14.C: New test.
+	* testsuite/g++.dg/mversn16.C: New test.
+	* testsuite/g++.dg/torture/mversn11.C: New test.
+	* testsuite/g++.dg/torture/mversn5.C: New test.
+	* testsuite/g++.dg/torture/mversn5.h: New test.
+	* testsuite/g++.dg/torture/mversn5a.C: New test.
+
 2011-05-03  Xinliang David Li  <davidxl@google.com>
 
 Backport r17342:

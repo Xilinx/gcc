@@ -1,3 +1,23 @@
+2011-05-04  Sriraman Tallam  <tmsriram@google.com>
+
+	* tree-pass.h (pass_tree_convert_builtin_dispatch): New pass.
+	(pass_ipa_multiversion_dispatch): New pass.
+	* builtin-types.def (BT_PTR_FN_INT): New pointer type.
+	(BT_FN_INT_PTR_FN_INT_PTR_PTR_VAR): New function type for __builtin_dispatch.
+	* builtins.def (BUILT_IN_DISPATCH): New builtin to
+	support multi-version calls.
+	* mversn-dispatch.c: New file.
+	* timevar.def (TV_MVERSN_DISPATCH): New time var.
+	* common.opt (fclone-hot-version-paths): New flag.
+	* Makefile.in (mversn-dispatch.o): New rule.
+	* passes.c (init_optimization_passes): Add the new
+	multi-version and dispatch passes to the pass list.
+	* params.def (PARAM_NUMBER_OF_MVERSN_CLONES): Define.
+	(PARAM_MVERSN_CLONE_CGRAPH_DEPTH): Define.
+	* doc/invoke.texi (mversn-clone-depth): Document.
+	(num-mversn-clones): Document.
+	(fclone-hot-version-paths): Document.
+
 2011-05-04  Silvius Rus  <silvius.rus@gmail.com>
 
 	* doc/invoke.texi: Document -fprofile-generate-sampling option.
