@@ -330,6 +330,7 @@ tree gpy_stmt_process_functor_2 (gpy_symbol_obj * const functor, const char * pr
 
   gpy_symbol_obj * o = functor->op_a.symbol_table;
   
+  int idx;
   while (o)
     {
       /* looping over the gpy_symbol_obj block of function statements
@@ -364,8 +365,8 @@ tree gpy_stmt_process_functor_2 (gpy_symbol_obj * const functor, const char * pr
     }
   
   tree bl = make_node(BLOCK);
-  BLOCK_SUPERCONTEXT(bl) = retval;
-  DECL_INITIAL(retval) = bl;
+  BLOCK_SUPERCONTEXT(bl) = fndecl;
+  DECL_INITIAL(fndecl) = bl;
   BLOCK_VARS(bl) = declare_vars;
   TREE_USED(bl) = 1;
   bind = build3(BIND_EXPR, void_type_node, BLOCK_VARS(bl),
@@ -374,7 +375,7 @@ tree gpy_stmt_process_functor_2 (gpy_symbol_obj * const functor, const char * pr
   
   BIND_EXPR_BODY(bind) = block;
   block = bind;
-  DECL_SAVED_TREE(retval) = block;
+  DECL_SAVED_TREE(fndecl) = block;
   
   gimplify_function_tree (fndecl);
   
@@ -613,7 +614,7 @@ VEC(tree,gc) * gpy_stmt_pass_2 (VEC(gpy_sym,gc) * const decls,
 
 /**
  * Things are quite complicated from here on and will change frequently
- * We need to do a 1st pass over the code to generate out module.
+ * We need to do a 1st pass over the code to generate our module.
 
  Example:
 
