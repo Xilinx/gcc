@@ -1924,6 +1924,8 @@ pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
   pph_output_tree (stream, global_namespace, false);
+  pph_output_tree (stream, keyed_classes, false);
+  pph_stream_write_tree_vec (stream, unemitted_tinfo_decls, false);
 }
 
 
@@ -2048,6 +2050,10 @@ pph_read_file_contents (pph_stream *stream)
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, file_ns);
   pph_add_names_to_namespace (global_namespace, file_ns);
+  keyed_classes = pph_input_tree (stream);
+  unemitted_tinfo_decls = pph_stream_read_tree_vec (stream);
+  /* FIXME pph: This call replaces the tinfo, we should merge instead.
+     See pph_input_tree_VEC.  */
 }
 
 

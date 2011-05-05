@@ -226,7 +226,7 @@ pph_stream_read_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
 
 /* Read and return a VEC of trees from STREAM.  */
 
-static VEC(tree,gc) *
+VEC(tree,gc) *
 pph_stream_read_tree_vec (pph_stream *stream)
 {
   unsigned i, num;
@@ -808,5 +808,13 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 	}
     }
   else if (TYPE_P (expr))
-    pph_stream_read_lang_type (stream, expr);
+    {
+      pph_stream_read_lang_type (stream, expr);
+      if (TREE_CODE (expr) == RECORD_TYPE
+          || TREE_CODE (expr) == UNION_TYPE
+          || TREE_CODE (expr) == QUAL_UNION_TYPE)
+        {
+          TYPE_BINFO (expr) = pph_input_tree (stream);
+        }
+    }
 }

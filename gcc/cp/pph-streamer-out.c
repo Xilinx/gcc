@@ -265,7 +265,7 @@ pph_stream_write_ld_min (pph_stream *stream, struct lang_decl_min *ldm,
 /* Write all the trees in VEC V to STREAM.  REF_P is true if the trees should
    be written as references.  */
 
-static void
+void
 pph_stream_write_tree_vec (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
 {
   unsigned i;
@@ -819,7 +819,15 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 	pph_output_tree_or_ref_1 (stream, tsi_stmt (i), ref_p, 3);
     }
   else if (TYPE_P (expr))
-    pph_stream_write_lang_type (stream, expr, ref_p);
+    {
+      pph_stream_write_lang_type (stream, expr, ref_p);
+      if (TREE_CODE (expr) == RECORD_TYPE
+          || TREE_CODE (expr) == UNION_TYPE
+          || TREE_CODE (expr) == QUAL_UNION_TYPE)
+        {
+          pph_output_tree_or_ref_1 (stream, TYPE_BINFO (expr), ref_p, 3);
+        }
+    }
 }
 
 

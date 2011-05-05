@@ -1181,6 +1181,12 @@ pushdecl_maybe_friend (tree x, bool is_friend)
   return ret;
 }
 
+/* Record a decl-node DCL as belonging to the namespace NSP.
+
+   Returns either DCL or an old decl for the same name.
+   If an old decl is returned, it may have been smashed
+   to agree with what DCL says.  */
+
 tree
 pushdecl_into_namespace (tree dcl, tree nsp)
 {

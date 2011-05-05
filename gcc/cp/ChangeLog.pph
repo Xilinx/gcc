@@ -1,3 +1,21 @@
+2011-05-05  Lawrence Crowl <crowl@google.com>
+
+        * pph.c (pph_write_file_contents): Save keyed_classes and
+        unemitted_tinfo_decls.
+        (pph_read_file_contents): Restore keyed_classes and
+        unemitted_tinfo_decls.
+	* pph-streamer.h (pph_stream_write_tree_vec): Make extern.
+	(pph_stream_read_tree_vec): Make extern.
+	(pph_output_tree_array): Archive for future need.
+	(pph_output_tree_VEC): Archive for future need.
+	(pph_input_tree_array): Archive for future need.
+	(pph_input_tree_VEC): Archive for future need.
+	* pph-streamer-in.c (pph_stream_read_tree): Make extern.
+	(pph_stream_read_tree): Restore TYPE_BINFO.
+	* pph-streamer-out.c (pph_stream_write_tree_vec): Make extern.
+	(pph_stream_write_tree): Save TYPE_BINFO.
+	* name-lookup.c (pushdecl_into_namespace): Add leading comment.
+
 2011-05-04  Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer.c (pph_get_common_nodes): New.
