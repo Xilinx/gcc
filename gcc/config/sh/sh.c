@@ -1,6 +1,6 @@
 /* Output routines for GCC for Renesas / SuperH SH.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com).
    Improved by Jim Wilson (wilson@cygnus.com).
@@ -56,6 +56,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "cfgloop.h"
 #include "alloc-pool.h"
 #include "tm-constrs.h"
+#include "opts.h"
 
 
 int code_for_indirect_jump_scratch = CODE_FOR_indirect_jump_scratch;
@@ -167,7 +168,8 @@ int assembler_dialect;
 
 static bool shmedia_space_reserved_for_target_registers;
 
-static bool sh_handle_option (size_t, const char *, int);
+static bool sh_handle_option (struct gcc_options *, struct gcc_options *,
+			      const struct cl_decoded_option *, location_t);
 static void split_branches (rtx);
 static int branch_dest (rtx);
 static void force_into (rtx, rtx);
@@ -253,6 +255,10 @@ static bool sh_rtx_costs (rtx, int, int, int *, bool);
 static int sh_address_cost (rtx, bool);
 static int sh_pr_n_sets (void);
 static rtx sh_allocate_initial_value (rtx);
+static reg_class_t sh_preferred_reload_class (rtx, reg_class_t);
+static reg_class_t sh_secondary_reload (bool, rtx, reg_class_t,
+                                        enum machine_mode,
+                                        struct secondary_reload_info *);
 static bool sh_legitimate_address_p (enum machine_mode, rtx, bool);
 static rtx sh_legitimize_address (rtx, rtx, enum machine_mode);
 static rtx sh_delegitimize_address (rtx);
@@ -299,30 +305,29 @@ static int sh2a_function_vector_p (tree);
 static void sh_trampoline_init (rtx, tree, rtx);
 static rtx sh_trampoline_adjust_address (rtx);
 static void sh_conditional_register_usage (void);
+static bool sh_legitimate_constant_p (enum machine_mode, rtx);
 
 static const struct attribute_spec sh_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "interrupt_handler", 0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
-  { "sp_switch",         1, 1, true,  false, false, sh_handle_sp_switch_attribute },
-  { "trap_exit",         1, 1, true,  false, false, sh_handle_trap_exit_attribute },
-  { "renesas",           0, 0, false, true, false, sh_handle_renesas_attribute },
-  { "trapa_handler",     0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
-  { "nosave_low_regs",   0, 0, true,  false, false, sh_handle_interrupt_handler_attribute },
-  { "resbank",           0, 0, true,  false, false, sh_handle_resbank_handler_attribute },
-  { "function_vector",   1, 1, true,  false, false, sh2a_handle_function_vector_handler_attribute },
-#ifdef SYMBIAN
-  /* Symbian support adds three new attributes:
-     dllexport - for exporting a function/variable that will live in a dll
-     dllimport - for importing a function/variable from a dll
-
-     Microsoft allows multiple declspecs in one __declspec, separating
-     them with spaces.  We do NOT support this.  Instead, use __declspec
-     multiple times.  */
-  { "dllimport",         0, 0, true,  false, false, sh_symbian_handle_dll_attribute },
-  { "dllexport",         0, 0, true,  false, false, sh_symbian_handle_dll_attribute },
-#endif
-  { NULL,                0, 0, false, false, false, NULL }
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
+  { "interrupt_handler", 0, 0, true,  false, false,
+    sh_handle_interrupt_handler_attribute, false },
+  { "sp_switch",         1, 1, true,  false, false,
+     sh_handle_sp_switch_attribute, false },
+  { "trap_exit",         1, 1, true,  false, false,
+    sh_handle_trap_exit_attribute, false },
+  { "renesas",           0, 0, false, true, false,
+    sh_handle_renesas_attribute, false },
+  { "trapa_handler",     0, 0, true,  false, false,
+    sh_handle_interrupt_handler_attribute, false },
+  { "nosave_low_regs",   0, 0, true,  false, false,
+    sh_handle_interrupt_handler_attribute, false },
+  { "resbank",           0, 0, true,  false, false,
+    sh_handle_resbank_handler_attribute, false },
+  { "function_vector",   1, 1, true,  false, false,
+    sh2a_handle_function_vector_handler_attribute, false },
+  { NULL,                0, 0, false, false, false, NULL, false }
 };
 
 /* Set default optimization options.  */
@@ -577,19 +582,11 @@ static const struct default_options sh_option_optimization_table[] =
 #undef  TARGET_ENCODE_SECTION_INFO
 #define TARGET_ENCODE_SECTION_INFO	sh_encode_section_info
 
-#ifdef SYMBIAN
-
-#undef  TARGET_ENCODE_SECTION_INFO
-#define TARGET_ENCODE_SECTION_INFO	sh_symbian_encode_section_info
-#undef  TARGET_STRIP_NAME_ENCODING
-#define TARGET_STRIP_NAME_ENCODING	sh_symbian_strip_name_encoding
-#undef  TARGET_CXX_IMPORT_EXPORT_CLASS
-#define TARGET_CXX_IMPORT_EXPORT_CLASS  sh_symbian_import_export_class
-
-#endif /* SYMBIAN */
-
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD sh_secondary_reload
+
+#undef  TARGET_PREFERRED_RELOAD_CLASS
+#define TARGET_PREFERRED_RELOAD_CLASS sh_preferred_reload_class
 
 #undef TARGET_CONDITIONAL_REGISTER_USAGE
 #define TARGET_CONDITIONAL_REGISTER_USAGE sh_conditional_register_usage
@@ -602,6 +599,9 @@ static const struct default_options sh_option_optimization_table[] =
 #undef TARGET_TRAMPOLINE_ADJUST_ADDRESS
 #define TARGET_TRAMPOLINE_ADJUST_ADDRESS sh_trampoline_adjust_address
 
+#undef TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P	sh_legitimate_constant_p
+
 /* Machine-specific symbol_ref flags.  */
 #define SYMBOL_FLAG_FUNCVEC_FUNCTION    (SYMBOL_FLAG_MACH_DEP << 0)
 
@@ -610,52 +610,59 @@ struct gcc_target targetm = TARGET_INITIALIZER;
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
-sh_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
-		  int value ATTRIBUTE_UNUSED)
+sh_handle_option (struct gcc_options *opts,
+		  struct gcc_options *opts_set ATTRIBUTE_UNUSED,
+		  const struct cl_decoded_option *decoded,
+		  location_t loc ATTRIBUTE_UNUSED)
 {
+  size_t code = decoded->opt_index;
+
   switch (code)
     {
     case OPT_m1:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH1;
+      opts->x_target_flags = (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH1;
       return true;
 
     case OPT_m2:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH2;
+      opts->x_target_flags = (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH2;
       return true;
 
     case OPT_m2a:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH2A;
+      opts->x_target_flags = (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH2A;
       return true;
 
     case OPT_m2a_nofpu:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH2A_NOFPU;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH2A_NOFPU;
       return true;
 
     case OPT_m2a_single:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH2A_SINGLE;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH2A_SINGLE;
       return true;
 
     case OPT_m2a_single_only:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH2A_SINGLE_ONLY;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH2A_SINGLE_ONLY;
       return true;
 
     case OPT_m2e:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH2E;
+      opts->x_target_flags = (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH2E;
       return true;
 
     case OPT_m3:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH3;
+      opts->x_target_flags = (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH3;
       return true;
 
     case OPT_m3e:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH3E;
+      opts->x_target_flags = (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH3E;
       return true;
 
     case OPT_m4:
     case OPT_m4_100:
     case OPT_m4_200:
     case OPT_m4_300:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH4;
+      opts->x_target_flags = (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH4;
       return true;
 
     case OPT_m4_nofpu:
@@ -665,62 +672,74 @@ sh_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
     case OPT_m4_340:
     case OPT_m4_400:
     case OPT_m4_500:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH4_NOFPU;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH4_NOFPU;
       return true;
 
     case OPT_m4_single:
     case OPT_m4_100_single:
     case OPT_m4_200_single:
     case OPT_m4_300_single:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH4_SINGLE;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH4_SINGLE;
       return true;
 
     case OPT_m4_single_only:
     case OPT_m4_100_single_only:
     case OPT_m4_200_single_only:
     case OPT_m4_300_single_only:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH4_SINGLE_ONLY;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH4_SINGLE_ONLY;
       return true;
 
     case OPT_m4a:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH4A;
+      opts->x_target_flags = (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH4A;
       return true;
 
     case OPT_m4a_nofpu:
     case OPT_m4al:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH4A_NOFPU;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH4A_NOFPU;
       return true;
 
     case OPT_m4a_single:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH4A_SINGLE;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH4A_SINGLE;
       return true;
 
     case OPT_m4a_single_only:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH4A_SINGLE_ONLY;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH4A_SINGLE_ONLY;
       return true;
 
     case OPT_m5_32media:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH5_32MEDIA;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH5_32MEDIA;
       return true;
 
     case OPT_m5_32media_nofpu:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH5_32MEDIA_NOFPU;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH5_32MEDIA_NOFPU;
       return true;
 
     case OPT_m5_64media:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH5_64MEDIA;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH5_64MEDIA;
       return true;
 
     case OPT_m5_64media_nofpu:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH5_64MEDIA_NOFPU;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH5_64MEDIA_NOFPU;
       return true;
 
     case OPT_m5_compact:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH5_COMPACT;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH5_COMPACT;
       return true;
 
     case OPT_m5_compact_nofpu:
-      target_flags = (target_flags & ~MASK_ARCH) | SELECT_SH5_COMPACT_NOFPU;
+      opts->x_target_flags
+	= (opts->x_target_flags & ~MASK_ARCH) | SELECT_SH5_COMPACT_NOFPU;
       return true;
 
     default:
@@ -2805,12 +2824,6 @@ sh_file_start (void)
 {
   default_file_start ();
 
-#ifdef SYMBIAN
-  /* Declare the .directive section before it is used.  */
-  fputs ("\t.section .directive, \"SM\", @progbits, 1\n", asm_out_file);
-  fputs ("\t.asciz \"#<SYMEDIT>#\\n\"\n", asm_out_file);
-#endif
-
   if (TARGET_ELF)
     /* We need to show the text section with the proper
        attributes as in TEXT_SECTION_ASM_OP, before dwarf2out
@@ -4868,6 +4881,16 @@ find_barrier (int num_mova, rtx mova, rtx from)
       while (NOTE_P (from) || JUMP_P (from)
 	     || LABEL_P (from))
 	from = PREV_INSN (from);
+
+      /* Make sure we do not split between a call and its corresponding
+	 CALL_ARG_LOCATION note.  */
+      if (CALL_P (from))
+	{
+	  rtx next = NEXT_INSN (from);
+	  if (next && NOTE_P (next)
+	      && NOTE_KIND (next) == NOTE_INSN_CALL_ARG_LOCATION)
+	    from = next;
+	}
 
       from = emit_jump_insn_after (gen_jump (label), from);
       JUMP_LABEL (from) = label;
@@ -8039,8 +8062,13 @@ sh_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
   HOST_WIDE_INT size, rsize;
   tree tmp, pptr_type_node;
   tree addr, lab_over = NULL, result = NULL;
-  int pass_by_ref = targetm.calls.must_pass_in_stack (TYPE_MODE (type), type);
+  bool pass_by_ref;
   tree eff_type;
+
+  if (!VOID_TYPE_P (type))
+    pass_by_ref = targetm.calls.must_pass_in_stack (TYPE_MODE (type), type);
+  else
+    pass_by_ref = false;
 
   if (pass_by_ref)
     type = build_pointer_type (type);
@@ -9086,7 +9114,7 @@ sh2a_is_function_vector_call (rtx x)
   return 0;
 }
 
-/* Returns the function vector number, if the the attribute
+/* Returns the function vector number, if the attribute
    'function_vector' is assigned, otherwise returns zero.  */
 int
 sh2a_get_function_vector_number (rtx x)
@@ -10012,8 +10040,20 @@ sh_delegitimize_address (rtx orig_x)
       if (GET_CODE (y) == UNSPEC)
 	{
 	  if (XINT (y, 1) == UNSPEC_GOT
-	      || XINT (y, 1) == UNSPEC_GOTOFF)
+	      || XINT (y, 1) == UNSPEC_GOTOFF
+	      || XINT (y, 1) == UNSPEC_SYMOFF)
 	    return XVECEXP (y, 0, 0);
+	  else if (XINT (y, 1) == UNSPEC_PCREL_SYMOFF)
+	    {
+	      if (GET_CODE (XVECEXP (y, 0, 0)) == CONST)
+		{
+		  rtx symplt = XEXP (XVECEXP (y, 0, 0), 0);
+
+		  if (GET_CODE (symplt) == UNSPEC
+		      && XINT (symplt, 1) == UNSPEC_PLT)
+		    return XVECEXP (symplt, 0, 0);
+		}
+	    }
 	  else if (TARGET_SHMEDIA
 		   && (XINT (y, 1) == UNSPEC_EXTRACT_S16
 		       || XINT (y, 1) == UNSPEC_EXTRACT_U16))
@@ -12112,7 +12152,7 @@ sh_init_cumulative_args (CUMULATIVE_ARGS *  pcum,
     {
       pcum->force_mem = ((TARGET_HITACHI || pcum->renesas_abi)
 			 && aggregate_value_p (TREE_TYPE (fntype), fndecl));
-      pcum->prototype_p = TYPE_ARG_TYPES (fntype) ? TRUE : FALSE;
+      pcum->prototype_p = prototype_p (fntype);
       pcum->arg_count [(int) SH_ARG_INT]
 	= TARGET_SH5 && aggregate_value_p (TREE_TYPE (fntype), fndecl);
 
@@ -12426,7 +12466,24 @@ shmedia_prepare_call_address (rtx fnaddr, int is_sibcall)
   return fnaddr;
 }
 
-reg_class_t
+/* Implement TARGET_PREFERRED_RELOAD_CLASS.  */
+
+static reg_class_t
+sh_preferred_reload_class (rtx x, reg_class_t rclass)
+{
+  if (rclass == NO_REGS
+      && TARGET_SHMEDIA
+      && (CONST_DOUBLE_P (x)
+	  || GET_CODE (x) == SYMBOL_REF
+	  || PIC_ADDR_P (x)))
+    return GENERAL_REGS;
+
+  return rclass;
+}
+
+/* Implement TARGET_SECONDARY_RELOAD.  */
+
+static reg_class_t
 sh_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 		     enum machine_mode mode, secondary_reload_info *sri)
 {
@@ -12577,6 +12634,22 @@ sh_conditional_register_usage (void)
 	SET_HARD_REG_BIT (reg_class_contents[SIBCALL_REGS], regno);
 }
 
+/* Implement TARGET_LEGITIMATE_CONSTANT_P
+
+   can_store_by_pieces constructs VOIDmode CONST_DOUBLEs.  */
+
+static bool
+sh_legitimate_constant_p (enum machine_mode mode, rtx x)
+{
+  return (TARGET_SHMEDIA
+	  ? ((mode != DFmode && GET_MODE_CLASS (mode) != MODE_VECTOR_FLOAT)
+	     || x == CONST0_RTX (mode)
+	     || !TARGET_SHMEDIA_FPU
+	     || TARGET_SHMEDIA64)
+	  : (GET_CODE (x) != CONST_DOUBLE
+	     || mode == DFmode || mode == SFmode
+	     || mode == DImode || GET_MODE (x) == VOIDmode));
+}
 
 enum sh_divide_strategy_e sh_div_strategy = SH_DIV_STRATEGY_DEFAULT;
 

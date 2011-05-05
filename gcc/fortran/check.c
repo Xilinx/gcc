@@ -219,9 +219,15 @@ is_coarray (gfc_expr *e)
     {
       if (ref->type == REF_COMPONENT)
 	coarray = ref->u.c.component->attr.codimension;
-      else if (ref->type != REF_ARRAY || ref->u.ar.dimen != 0
-	       || ref->u.ar.codimen != 0) 
+      else if (ref->type != REF_ARRAY || ref->u.ar.dimen != 0)
 	coarray = false;
+      else if (ref->type == REF_ARRAY && ref->u.ar.codimen != 0) 
+	{
+	  int n;
+	  for (n = 0; n < ref->u.ar.codimen; n++)
+	    if (ref->u.ar.dimen_type[n] != DIMEN_THIS_IMAGE)
+	      coarray = false;
+	}
     }
 
   return coarray;
@@ -635,40 +641,69 @@ identical_dimen_shape (gfc_expr *a, int ai, gfc_expr *b, int bi)
   return ret;
 }
 
+/*  Calculate the length of a character variable, including substrings.
+    Strip away parentheses if necessary.  Return -1 if no length could
+    be determined.  */
+
+static long
+gfc_var_strlen (const gfc_expr *a)
+{
+  gfc_ref *ra;
+
+  while (a->expr_type == EXPR_OP && a->value.op.op == INTRINSIC_PARENTHESES)
+    a = a->value.op.op1;
+
+  for (ra = a->ref; ra != NULL && ra->type != REF_SUBSTRING; ra = ra->next)
+    ;
+
+  if (ra)
+    {
+      long start_a, end_a;
+
+      if (ra->u.ss.start->expr_type == EXPR_CONSTANT
+	  && ra->u.ss.end->expr_type == EXPR_CONSTANT)
+	{
+	  start_a = mpz_get_si (ra->u.ss.start->value.integer);
+	  end_a = mpz_get_si (ra->u.ss.end->value.integer);
+	  return end_a - start_a + 1;
+	}
+      else if (gfc_dep_compare_expr (ra->u.ss.start, ra->u.ss.end) == 0)
+	return 1;
+      else
+	return -1;
+    }
+
+  if (a->ts.u.cl && a->ts.u.cl->length
+      && a->ts.u.cl->length->expr_type == EXPR_CONSTANT)
+    return mpz_get_si (a->ts.u.cl->length->value.integer);
+  else if (a->expr_type == EXPR_CONSTANT
+	   && (a->ts.u.cl == NULL || a->ts.u.cl->length == NULL))
+    return a->value.character.length;
+  else
+    return -1;
+
+}
 
 /* Check whether two character expressions have the same length;
-   returns SUCCESS if they have or if the length cannot be determined.  */
+   returns SUCCESS if they have or if the length cannot be determined,
+   otherwise return FAILURE and raise a gfc_error.  */
 
 gfc_try
 gfc_check_same_strlen (const gfc_expr *a, const gfc_expr *b, const char *name)
 {
    long len_a, len_b;
-   len_a = len_b = -1;
 
-   if (a->ts.u.cl && a->ts.u.cl->length
-       && a->ts.u.cl->length->expr_type == EXPR_CONSTANT)
-     len_a = mpz_get_si (a->ts.u.cl->length->value.integer);
-   else if (a->expr_type == EXPR_CONSTANT
-	    && (a->ts.u.cl == NULL || a->ts.u.cl->length == NULL))
-     len_a = a->value.character.length;
+   len_a = gfc_var_strlen(a);
+   len_b = gfc_var_strlen(b);
+
+   if (len_a == -1 || len_b == -1 || len_a == len_b)
+     return SUCCESS;
    else
-     return SUCCESS;
-
-   if (b->ts.u.cl && b->ts.u.cl->length
-       && b->ts.u.cl->length->expr_type == EXPR_CONSTANT)
-     len_b = mpz_get_si (b->ts.u.cl->length->value.integer);
-   else if (b->expr_type == EXPR_CONSTANT
-	    && (b->ts.u.cl == NULL || b->ts.u.cl->length == NULL))
-     len_b = b->value.character.length;
-   else
-     return SUCCESS;
-
-   if (len_a == len_b)
-     return SUCCESS;
-
-   gfc_error ("Unequal character lengths (%ld/%ld) in %s at %L",
-	      len_a, len_b, name, &a->where);
-   return FAILURE;
+     {
+       gfc_error ("Unequal character lengths (%ld/%ld) in %s at %L",
+		  len_a, len_b, name, &a->where);
+       return FAILURE;
+     }
 }
 
 
@@ -3226,7 +3261,7 @@ gfc_check_set_exponent (gfc_expr *x, gfc_expr *i)
 
 
 gfc_try
-gfc_check_shape (gfc_expr *source)
+gfc_check_shape (gfc_expr *source, gfc_expr *kind)
 {
   gfc_array_ref *ar;
 
@@ -3241,6 +3276,13 @@ gfc_check_shape (gfc_expr *source)
 		 "an assumed size array", &source->where);
       return FAILURE;
     }
+
+  if (kind_check (kind, 1, BT_INTEGER) == FAILURE)
+    return FAILURE;
+  if (kind && gfc_notify_std (GFC_STD_F2003, "Fortran 2003: '%s' intrinsic "
+			      "with KIND argument at %L",
+			      gfc_current_intrinsic, &kind->where) == FAILURE)
+    return FAILURE;
 
   return SUCCESS;
 }
@@ -3625,6 +3667,8 @@ gfc_check_stat_sub (gfc_expr *name, gfc_expr *array, gfc_expr *status)
 gfc_try
 gfc_check_image_index (gfc_expr *coarray, gfc_expr *sub)
 {
+  mpz_t nelems;
+
   if (gfc_option.coarray == GFC_FCOARRAY_NONE)
     {
       gfc_fatal_error ("Coarrays disabled at %C, use -fcoarray= to enable");
@@ -3639,6 +3683,21 @@ gfc_check_image_index (gfc_expr *coarray, gfc_expr *sub)
       gfc_error ("%s argument to IMAGE_INDEX must be a rank one array at %L",
                 gfc_current_intrinsic_arg[1]->name, &sub->where);
       return FAILURE;
+    }
+
+  if (gfc_array_size (sub, &nelems) == SUCCESS)
+    {
+      int corank = gfc_get_corank (coarray);
+
+      if (mpz_cmp_ui (nelems, corank) != 0)
+	{
+	  gfc_error ("The number of array elements of the SUB argument to "
+		     "IMAGE_INDEX at %L shall be %d (corank) not %d",
+		     &sub->where, corank, (int) mpz_get_si (nelems));
+	  mpz_clear (nelems);
+	  return FAILURE;
+	}
+      mpz_clear (nelems);
     }
 
   return SUCCESS;

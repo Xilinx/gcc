@@ -1,6 +1,6 @@
 /* Core target definitions for GCC for Intel 80x86 running Netware.
    and using dwarf for the debugging format.
-   Copyright (C) 1993, 1994, 2004, 2007, 2008, 2009, 2010
+   Copyright (C) 1993, 1994, 2004, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
    Written by David V. Henkel-Wallace (gumby@cygnus.com)
@@ -21,8 +21,6 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-#define TARGET_VERSION fprintf (stderr, " (x86 NetWare)");
-
 #undef  CPP_SPEC
 #define CPP_SPEC "%{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
 
@@ -34,8 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 
 /* Kinda useless, but what the hell */
 #undef	LINK_SPEC
-#define LINK_SPEC "%{h*} %{v:-V} \
-		   %{Qy:} %{!Qn:-Qy}"
+#define LINK_SPEC "%{h*} %{v:-V}"
 
 #undef	STARTFILE_SPEC
 #define STARTFILE_SPEC ""

@@ -1,5 +1,5 @@
 /* Induction variable optimizations.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -1100,6 +1100,12 @@ find_givs_in_stmt_scev (struct ivopts_data *data, gimple stmt, affine_iv *iv)
 
   if (contains_abnormal_ssa_name_p (iv->base)
       || contains_abnormal_ssa_name_p (iv->step))
+    return false;
+
+  /* If STMT could throw, then do not consider STMT as defining a GIV.  
+     While this will suppress optimizations, we can not safely delete this
+     GIV and associated statements, even if it appears it is not used.  */
+  if (stmt_could_throw_p (stmt))
     return false;
 
   return true;
@@ -2843,7 +2849,7 @@ computation_cost (tree expr, bool speed)
   unsigned cost;
   /* Avoid using hard regs in ways which may be unsupported.  */
   int regno = LAST_VIRTUAL_REGISTER + 1;
-  struct cgraph_node *node = cgraph_node (current_function_decl);
+  struct cgraph_node *node = cgraph_get_node (current_function_decl);
   enum node_frequency real_frequency = node->frequency;
 
   node->frequency = NODE_FREQUENCY_NORMAL;
@@ -6248,8 +6254,7 @@ free_loop_data (struct ivopts_data *data)
       struct version_info *info;
 
       info = ver_info (data, i);
-      if (info->iv)
-	free (info->iv);
+      free (info->iv);
       info->iv = NULL;
       info->has_nonlin_use = false;
       info->preserve_biv = false;
@@ -6276,8 +6281,7 @@ free_loop_data (struct ivopts_data *data)
     {
       struct iv_cand *cand = iv_cand (data, i);
 
-      if (cand->iv)
-	free (cand->iv);
+      free (cand->iv);
       if (cand->depends_on)
 	BITMAP_FREE (cand->depends_on);
       free (cand);

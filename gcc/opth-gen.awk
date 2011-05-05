@@ -1,4 +1,4 @@
-#  Copyright (C) 2003,2004,2005,2006,2007,2008, 2010
+#  Copyright (C) 2003,2004,2005,2006,2007,2008, 2010, 2011
 #  Free Software Foundation, Inc.
 #  Contributed by Kelley Cook, June 2004.
 #  Original code from Neil Booth, May 2003.
@@ -190,6 +190,13 @@ for (i = 0; i < n_opts; i++) {
 		print "#ifndef GENERATOR_FILE"
 		print "  " var_type(flags[i]) "x_" name ";"
 		print "#define x_" name " do_not_use"
+		print "#endif"
+	}
+}
+for (i = 0; i < n_opts; i++) {
+	if (flag_set_p("SetByCombined", flags[i])) {
+		print "#ifndef GENERATOR_FILE"
+		print "  bool frontend_set_" var_name(flags[i]) ";"
 		print "#endif"
 	}
 }
@@ -444,9 +451,9 @@ for (i = 0; i < n_langs; i++) {
 	macros[i] = "CL_" langs[i]
 	gsub( "[^" alnum "_]", "X", macros[i] )
 	s = substr("            ", length (macros[i]))
-	print "#define " macros[i] s " (1 << " i ")"
+	print "#define " macros[i] s " (1U << " i ")"
     }
-print "#define CL_LANG_ALL   ((1 << " n_langs ") - 1)"
+print "#define CL_LANG_ALL   ((1U << " n_langs ") - 1)"
 
 print ""
 print "enum opt_code"

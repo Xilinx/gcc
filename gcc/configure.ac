@@ -2,7 +2,7 @@
 # Process this file with autoconf to generate a configuration script.
 
 # Copyright 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006,
-# 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+# 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 
 #This file is part of GCC.
 
@@ -1332,7 +1332,7 @@ case ${enable_threads} in
     target_thread_file='single'
     ;;
   aix | dce | gnat | irix | posix | posix95 | rtems | \
-  single | solaris | vxworks | win32 | mipssde)
+  single | vxworks | win32 | mipssde)
     target_thread_file=${enable_threads}
     ;;
   *)
@@ -1967,7 +1967,8 @@ case "$ORIGINAL_LD_FOR_TARGET" in
 esac 
 
 AC_MSG_CHECKING(what linker to use)
-if test "$gcc_cv_ld" = ../ld/ld-new$build_exeext; then
+if test "$gcc_cv_ld" = ../ld/ld-new$build_exeext \
+   || test "$gcc_cv_ld" = ../gold/ld-new$build_exeext; then
 	# Single tree build which includes ld.  We want to prefer it
 	# over whatever linker top-level may have detected, since
 	# we'll use what we're building after installation anyway.
@@ -1977,6 +1978,8 @@ if test "$gcc_cv_ld" = ../ld/ld-new$build_exeext; then
 	if (grep 'EMUL = .*elf' ../ld/Makefile \
 	    || grep 'EMUL = .*linux' ../ld/Makefile \
 	    || grep 'EMUL = .*lynx' ../ld/Makefile) > /dev/null; then
+	  in_tree_ld_is_elf=yes
+	elif test "$ld_is_gold" = yes; then
 	  in_tree_ld_is_elf=yes
 	fi
 	for f in $gcc_cv_ld_bfd_srcdir/configure $gcc_cv_ld_gld_srcdir/configure $gcc_cv_ld_gld_srcdir/configure.in $gcc_cv_ld_gld_srcdir/Makefile.in
@@ -2192,11 +2195,23 @@ fi
 changequote(,)dnl
 if test $in_tree_ld != yes ; then
   ld_ver=`$gcc_cv_ld --version 2>/dev/null | sed 1q`
-  if test x"$ld_is_gold" = xyes; then
-    gcc_cv_ld_hidden=yes
-  elif echo "$ld_ver" | grep GNU > /dev/null; then
-    ld_vers=`echo $ld_ver | sed -n \
-	-e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*.*\)$,\1,p'`
+  if echo "$ld_ver" | grep GNU > /dev/null; then
+    if test x"$ld_is_gold" = xyes; then
+      # GNU gold --version looks like this:
+      #
+      # GNU gold (GNU Binutils 2.21.51.20110225) 1.11
+      #
+      # We extract the binutils version which is more familiar and specific
+      # than the gold version.
+      ld_vers=`echo $ld_ver | sed -n \
+	  -e 's,^[^)]*[	 ]\([0-9][0-9]*\.[0-9][0-9]*[^)]*\)) .*$,\1,p'`
+    else
+      # GNU ld --version looks like this:
+      #
+      # GNU ld (GNU Binutils) 2.21.51.20110225
+      ld_vers=`echo $ld_ver | sed -n \
+	  -e 's,^.*[	 ]\([0-9][0-9]*\.[0-9][0-9]*.*\)$,\1,p'`
+    fi
     ld_date=`echo $ld_ver | sed -n 's,^.*\([2-9][0-9][0-9][0-9]\)[-]*\([01][0-9]\)[-]*\([0-3][0-9]\).*$,\1\2\3,p'`
     ld_vers_major=`expr "$ld_vers" : '\([0-9]*\)'`
     ld_vers_minor=`expr "$ld_vers" : '[0-9]*\.\([0-9]*\)'`
@@ -2235,7 +2250,9 @@ AC_CACHE_CHECK(linker for .hidden support, gcc_cv_ld_hidden,
   fi
 else
   gcc_cv_ld_hidden=yes
-  if echo "$ld_ver" | grep GNU > /dev/null; then
+  if test x"$ld_is_gold" = xyes; then
+    :
+  elif echo "$ld_ver" | grep GNU > /dev/null; then
     if test 0"$ld_date" -lt 20020404; then
       if test -n "$ld_date"; then
 	# If there was date string, but was earlier than 2002-04-04, fail
@@ -3112,20 +3129,43 @@ fi
 
 AC_MSG_CHECKING(linker -Bstatic/-Bdynamic option)
 gcc_cv_ld_static_dynamic=no
+gcc_cv_ld_static_option='-Bstatic'
+gcc_cv_ld_dynamic_option='-Bdynamic'
 if test $in_tree_ld = yes ; then
   if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 10 -o "$gcc_cv_gld_major_version" -gt 2; then
     gcc_cv_ld_static_dynamic=yes
   fi
 elif test x$gcc_cv_ld != x; then
-	# Check if linker supports -Bstatic/-Bdynamic option
-	if $gcc_cv_ld --help 2>/dev/null | grep -- -Bstatic > /dev/null \
-	  && $gcc_cv_ld --help 2>/dev/null | grep -- -Bdynamic > /dev/null; then
-		gcc_cv_ld_static_dynamic=yes
-	fi
+  # Check if linker supports -Bstatic/-Bdynamic option
+  if $gcc_cv_ld --help 2>/dev/null | grep -- -Bstatic > /dev/null \
+     && $gcc_cv_ld --help 2>/dev/null | grep -- -Bdynamic > /dev/null; then
+      gcc_cv_ld_static_dynamic=yes
+  else
+    case "$target" in
+      # Tru64 UNIX support -noso/-so_archive instead of -Bstatic/-Bdynamic.
+      alpha*-dec-osf*)
+        gcc_cv_ld_static_dynamic=yes
+	gcc_cv_ld_static_option="-noso"
+	gcc_cv_ld_dynamic_option="-so_archive"
+        ;;
+      # IRIX 6 ld supports -Bstatic/-Bdynamic.
+      mips-sgi-irix6*)
+        gcc_cv_ld_static_dynamic=yes
+        ;;
+      # Solaris 2 ld always supports -Bstatic/-Bdynamic.
+      *-*-solaris2*)
+        gcc_cv_ld_static_dynamic=yes
+        ;;
+    esac
+  fi
 fi
 if test x"$gcc_cv_ld_static_dynamic" = xyes; then
 	AC_DEFINE(HAVE_LD_STATIC_DYNAMIC, 1,
-[Define if your linker supports -Bstatic/-Bdynamic option.])
+[Define if your linker supports -Bstatic/-Bdynamic or equivalent options.])
+	AC_DEFINE_UNQUOTED(LD_STATIC_OPTION, "$gcc_cv_ld_static_option",
+[Define to the linker option to disable use of shared objects.])
+	AC_DEFINE_UNQUOTED(LD_DYNAMIC_OPTION, "$gcc_cv_ld_dynamic_option",
+[Define to the linker option to enable use of shared objects.])
 fi
 AC_MSG_RESULT($gcc_cv_ld_static_dynamic)
 
@@ -3148,6 +3188,34 @@ if test x"$demangler_in_ld" = xyes; then
   fi
   AC_MSG_RESULT($gcc_cv_ld_demangle)
 fi
+
+AC_MSG_CHECKING(linker plugin support)
+gcc_cv_lto_plugin=0
+if test -f liblto_plugin.la; then
+  if test $in_tree_ld = yes -a x"$ORIGINAL_PLUGIN_LD_FOR_TARGET" = x"$gcc_cv_ld"; then
+    if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -ge 21 -o "$gcc_cv_gld_major_version" -gt 2; then
+      gcc_cv_lto_plugin=2
+    elif test "$ld_is_gold" = yes -a "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -eq 20; then
+      gcc_cv_lto_plugin=1
+
+    fi
+  elif test x"$ORIGINAL_PLUGIN_LD_FOR_TARGET" = x"$gcc_cv_ld" && echo "$ld_ver" | grep GNU > /dev/null; then
+    # Require GNU ld or gold 2.21+ for plugin support by default.
+    if test "$ld_vers_major" -eq 2 -a "$ld_vers_minor" -ge 21; then
+      gcc_cv_lto_plugin=2
+    # Allow -fuse-linker-plugin to enable plugin support in GNU gold 2.20.
+    elif test "$ld_is_gold" = yes -a "$ld_vers_major" -eq 2 -a "$ld_vers_minor" -eq 20; then
+      gcc_cv_lto_plugin=1
+    fi
+  elif test x"$ORIGINAL_PLUGIN_LD_FOR_TARGET" != x"$gcc_cv_ld"; then
+    # Allow -fuse-linker-plugin if plugin linker differs from
+    # default/specified linker.
+    gcc_cv_lto_plugin=1
+  fi
+fi
+AC_DEFINE_UNQUOTED(HAVE_LTO_PLUGIN, $gcc_cv_lto_plugin,
+  [Define to the level of your linker's plugin support.])
+AC_MSG_RESULT($gcc_cv_lto_plugin)
 
 case "$target" in
   # All TARGET_ABI_OSF targets.
@@ -3202,6 +3270,7 @@ case "$target" in
       gcc_cv_as_sparc_gotdata_op,,
       [-K PIC],
 [.text
+.align 4
 foo:
 	nop
 bar:
@@ -3210,17 +3279,13 @@ bar:
 	ld    [[%l7 + %g1]], %g2, %gdop(foo)],
       [if test x$gcc_cv_ld != x \
        && $gcc_cv_ld -o conftest conftest.o -G > /dev/null 2>&1; then
-         if $gcc_cv_ld -v | grep GNU >/dev/null 2>&1; then
-           if test x$gcc_cv_objdump != x; then
-             if $gcc_cv_objdump -s -j .text conftest 2> /dev/null \
-                | grep ' 03000004 82186004 c405c001'> /dev/null 2>&1; then
+         if test x$gcc_cv_objdump != x; then
+           if $gcc_cv_objdump -s -j .text conftest 2> /dev/null \
+              | grep ' 03000004 82186004 c405c001'> /dev/null 2>&1; then
 	       gcc_cv_as_sparc_gotdata_op=no
-             else
+           else
 	       gcc_cv_as_sparc_gotdata_op=yes
-             fi
            fi
-         else
-	   gcc_cv_as_sparc_gotdata_op=yes
          fi
        fi
        rm -f conftest],
@@ -3885,6 +3950,7 @@ Valid choices are 'yes' and 'no'.]) ;;
    [.type foo, @gnu_unique_object],,
 # Also check for ld.so support, i.e. glibc 2.11 or higher.
    [[if test x$host = x$build -a x$host = x$target &&
+       ldd --version 2>/dev/null &&
        glibcver=`ldd --version 2>/dev/null | sed 's/.* //;q'`; then
       glibcmajor=`expr "$glibcver" : "\([0-9]*\)"`
       glibcminor=`expr "$glibcver" : "[2-9]*\.\([0-9]*\)"`
@@ -3930,15 +3996,26 @@ if test $in_tree_ld = yes ; then
     gcc_cv_ld_eh_frame_hdr=yes
   fi
 elif test x$gcc_cv_ld != x; then
-	# Check if linker supports --eh-frame-hdr option
-	if $gcc_cv_ld --help 2>/dev/null | grep eh-frame-hdr > /dev/null; then
-		gcc_cv_ld_eh_frame_hdr=yes
-	fi
+  if echo "$ld_ver" | grep GNU > /dev/null; then
+    # Check if linker supports --eh-frame-hdr option
+    if $gcc_cv_ld --help 2>/dev/null | grep eh-frame-hdr > /dev/null; then
+      gcc_cv_ld_eh_frame_hdr=yes
+    fi
+  else
+    case "$target" in
+      *-*-solaris2*)
+        # Sun ld has various bugs in .eh_frame_hdr support before version 1.2251.
+        if test "$ld_vers_major" -gt 1 || test "$ld_vers_minor" -ge 2251; then
+          gcc_cv_ld_eh_frame_hdr=yes
+        fi
+        ;;
+    esac
+  fi
 fi
 GCC_TARGET_TEMPLATE([HAVE_LD_EH_FRAME_HDR])
 if test x"$gcc_cv_ld_eh_frame_hdr" = xyes; then
 	AC_DEFINE(HAVE_LD_EH_FRAME_HDR, 1,
-[Define if your linker supports --eh-frame-hdr option.])
+[Define if your linker supports .eh_frame_hdr.])
 fi
 AC_MSG_RESULT($gcc_cv_ld_eh_frame_hdr)
 
@@ -4041,6 +4118,51 @@ if test x$gcc_cv_ld_eh_gc_sections = xyes; then
    sections in presence of EH frames.])
 fi
 AC_MSG_RESULT($gcc_cv_ld_eh_gc_sections)
+
+AC_MSG_CHECKING(linker EH garbage collection of sections bug)
+gcc_cv_ld_eh_gc_sections_bug=no
+if test $in_tree_ld = yes ; then
+  if test "$gcc_cv_gld_major_version" -eq 2 -a "$gcc_cv_gld_minor_version" -lt 19 -o "$gcc_cv_gld_major_version" -lt 2 \
+     && test $in_tree_ld_is_elf = yes; then
+    gcc_cv_ld_eh_gc_sections_bug=yes
+  fi
+elif test x$gcc_cv_as != x -a x$gcc_cv_ld != x -a x$gcc_cv_objdump != x -a x$gcc_cv_as_comdat_group = xyes; then
+  gcc_cv_ld_eh_gc_sections_bug=yes
+  cat > conftest.s <<EOF
+	.section	.text
+.globl _start
+	.type _start, @function
+_start:
+	.long foo
+	.size _start, .-_start
+	.section	.text.startup.foo,"ax",@progbits
+	.type foo, @function
+foo:
+	.long 0
+	.size foo, .-foo
+	.section	.gcc_except_table.foo,"a",@progbits
+.L0:
+	.long 0
+	.section	.eh_frame,"a",@progbits
+	.long .L0
+EOF
+  if $gcc_cv_as -o conftest.o conftest.s > /dev/null 2>&1; then
+    if $gcc_cv_ld -o conftest conftest.o --entry=_start --gc-sections 2>&1 \
+	 | grep "gc-sections option ignored" > /dev/null; then
+      :
+    elif $gcc_cv_objdump -h conftest 2> /dev/null \
+	 | grep gcc_except_table > /dev/null; then
+      gcc_cv_ld_eh_gc_sections_bug=no
+    fi
+  fi
+  rm -f conftest.s conftest.o conftest
+fi
+if test x$gcc_cv_ld_eh_gc_sections_bug = xyes; then
+	AC_DEFINE(HAVE_LD_EH_GC_SECTIONS_BUG, 1,
+  [Define if your linker has buggy garbage collection of
+   sections support when .text.startup.foo like sections are used.])
+fi
+AC_MSG_RESULT($gcc_cv_ld_eh_gc_sections_bug)
 
 # --------
 # UNSORTED
@@ -4219,45 +4341,46 @@ if test x$with_sysroot = x && test x$host = x$target \
 [Define to PREFIX/include if cpp should also search that directory.])
 fi
 
+if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
+  if test "x$with_headers" != x; then
+    target_header_dir=$with_headers
+  elif test "x$with_sysroot" = x; then
+    target_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
+  elif test "x$with_build_sysroot" != "x"; then
+    target_header_dir="${with_build_sysroot}/usr/include"
+  elif test "x$with_sysroot" = xyes; then
+    target_header_dir="${exec_prefix}/${target_noncanonical}/sys-root/usr/include"
+  else
+    target_header_dir="${with_sysroot}/usr/include"
+  fi
+else
+  target_header_dir=/usr/include
+fi
+
 # Test for stack protector support in target C library.
 AC_CACHE_CHECK(__stack_chk_fail in target C library,
       gcc_cv_libc_provides_ssp,
       [gcc_cv_libc_provides_ssp=no
     case "$target" in
        *-*-linux* | *-*-kfreebsd*-gnu | *-*-knetbsd*-gnu)
-      if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
-	if test "x$with_headers" != x; then
-	  glibc_header_dir=$with_headers
-	elif test "x$with_sysroot" = x; then
-	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
-	elif test "x$with_build_sysroot" != "x"; then
-	  glibc_header_dir="${with_build_sysroot}/usr/include"
-	elif test "x$with_sysroot" = xyes; then
-	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-root/usr/include"
-	else
-	  glibc_header_dir="${with_sysroot}/usr/include"
-	fi
-      else
-	glibc_header_dir=/usr/include
-      fi
       [# glibc 2.4 and later provides __stack_chk_fail and
       # either __stack_chk_guard, or TLS access to stack guard canary.
-      if test -f $glibc_header_dir/features.h \
+      if test -f $target_header_dir/features.h \
 	 && $EGREP '^[ 	]*#[ 	]*define[ 	]+__GNU_LIBRARY__[ 	]+([1-9][0-9]|[6-9])' \
-	    $glibc_header_dir/features.h > /dev/null; then
+	    $target_header_dir/features.h > /dev/null; then
 	if $EGREP '^[ 	]*#[ 	]*define[ 	]+__GLIBC__[ 	]+([1-9][0-9]|[3-9])' \
-	   $glibc_header_dir/features.h > /dev/null; then
+	   $target_header_dir/features.h > /dev/null; then
 	  gcc_cv_libc_provides_ssp=yes
 	elif $EGREP '^[ 	]*#[ 	]*define[ 	]+__GLIBC__[ 	]+2' \
-	     $glibc_header_dir/features.h > /dev/null \
+	     $target_header_dir/features.h > /dev/null \
 	     && $EGREP '^[ 	]*#[ 	]*define[ 	]+__GLIBC_MINOR__[ 	]+([1-9][0-9]|[4-9])' \
-	     $glibc_header_dir/features.h > /dev/null; then
+	     $target_header_dir/features.h > /dev/null; then
 	  gcc_cv_libc_provides_ssp=yes
 	elif $EGREP '^[ 	]*#[ 	]*define[ 	]+__UCLIBC__[ 	]+1' \
-	     $glibc_header_dir/features.h > /dev/null && \
-	     test -f $glibc_header_dir/bits/uClibc_config.h && \
+	     $target_header_dir/features.h > /dev/null && \
+	     test -f $target_header_dir/bits/uClibc_config.h && \
 	     $EGREP '^[ 	]*#[ 	]*define[ 	]+__UCLIBC_HAS_SSP__[ 	]+1' \
-	     $glibc_header_dir/bits/uClibc_config.h > /dev/null; then
+	     $target_header_dir/bits/uClibc_config.h > /dev/null; then
 	  gcc_cv_libc_provides_ssp=yes
 	fi
       fi]
@@ -4280,12 +4403,21 @@ if test x$gcc_cv_libc_provides_ssp = xyes; then
 	    [Define if your target C library provides stack protector support])
 fi
 
+# Test for <sys/sdt.h> on the target.
+GCC_TARGET_TEMPLATE([HAVE_SYS_SDT_H])
+AC_MSG_CHECKING(sys/sdt.h in the target C library)
+have_sys_sdt_h=no
+if test -f $target_header_dir/sys/sdt.h; then
+  AC_DEFINE(HAVE_SYS_SDT_H, 1,
+            [Define if your target C library provides sys/sdt.h])
+fi
+AC_MSG_RESULT($have_sys_sdt_h)
+
 # Check if TFmode long double should be used by default or not.
 # Some glibc targets used DFmode long double, but with glibc 2.4
 # and later they can use TFmode.
 case "$target" in
   powerpc*-*-linux* | \
-  powerpc*-*-gnu* | \
   sparc*-*-linux* | \
   s390*-*-linux* | \
   alpha*-*-linux*)
@@ -4293,21 +4425,8 @@ case "$target" in
 [  --with-long-double-128  Use 128-bit long double by default.],
       gcc_cv_target_ldbl128="$with_long_double_128",
       [[gcc_cv_target_ldbl128=no
-      if test x$host != x$target || test "x$TARGET_SYSTEM_ROOT" != x; then
-	if test "x$with_sysroot" = x; then
-	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-include"
-	elif test "x$with_build_sysroot" != "x"; then
-	  glibc_header_dir="${with_build_sysroot}/usr/include"
-	elif test "x$with_sysroot" = xyes; then
-	  glibc_header_dir="${exec_prefix}/${target_noncanonical}/sys-root/usr/include"
-	else
-	  glibc_header_dir="${with_sysroot}/usr/include"
-	fi
-      else
-	glibc_header_dir=/usr/include
-      fi
       grep '^[ 	]*#[ 	]*define[ 	][ 	]*__LONG_DOUBLE_MATH_OPTIONAL' \
-        $glibc_header_dir/bits/wordsize.h > /dev/null 2>&1 \
+        $target_header_dir/bits/wordsize.h > /dev/null 2>&1 \
       && gcc_cv_target_ldbl128=yes
       ]])
     ;;
@@ -4316,6 +4435,27 @@ if test x$gcc_cv_target_ldbl128 = xyes; then
   AC_DEFINE(TARGET_DEFAULT_LONG_DOUBLE_128, 1,
 	    [Define if TFmode long double should be the default])
 fi
+
+AC_MSG_CHECKING(dl_iterate_phdr in target C library)
+gcc_cv_target_dl_iterate_phdr=unknown
+case "$target" in
+  *-*-solaris2*)
+    # <link.h> needs both a dl_iterate_phdr declaration and support for
+    # compilation with largefile support.
+    if grep dl_iterate_phdr $target_header_dir/link.h > /dev/null 2>&1 \
+      && grep 'large file capable' $target_header_dir/link.h > /dev/null 2>&1; then
+      gcc_cv_target_dl_iterate_phdr=yes
+    else
+      gcc_cv_target_dl_iterate_phdr=no
+    fi
+    ;;
+esac
+GCC_TARGET_TEMPLATE([TARGET_DL_ITERATE_PHDR])
+if test x$gcc_cv_target_dl_iterate_phdr = xyes; then
+   AC_DEFINE(TARGET_DL_ITERATE_PHDR, 1,
+[Define if your target C library provides the `dl_iterate_phdr' function.])
+fi
+AC_MSG_RESULT($gcc_cv_target_dl_iterate_phdr)
 
 # Find out what GC implementation we want, or may, use.
 AC_ARG_WITH(gc,

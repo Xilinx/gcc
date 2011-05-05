@@ -1,7 +1,7 @@
 /* Definitions for Motorola 68k running Linux-based GNU systems with
    ELF format.
    Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2003, 2004, 2006,
-   2007, 2009, 2010 Free Software Foundation, Inc.
+   2007, 2009, 2010, 2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -19,13 +19,9 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-#undef TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (68k GNU/Linux with ELF)");
-
-/* Add %(asm_cpu_spec) to the svr4.h definition of ASM_SPEC.  */
+/* Add %(asm_cpu_spec) to a generic definition of ASM_SPEC.  */
 #undef ASM_SPEC
-#define ASM_SPEC "%(asm_cpu_spec) %(asm_pcrel_spec) \
-  %{Qy:} %{!Qn:-Qy} %{Ym,*} %{Yd,*}"
+#define ASM_SPEC "%(asm_cpu_spec) %(asm_pcrel_spec)"
 
 #undef PREFERRED_STACK_BOUNDARY
 #define PREFERRED_STACK_BOUNDARY 32
@@ -63,7 +59,7 @@ along with GCC; see the file COPYING3.  If not see
 #define ASM_COMMENT_START "|"
 
 /* Target OS builtins.  */
-#define TARGET_OS_CPP_BUILTINS() LINUX_TARGET_OS_CPP_BUILTINS()
+#define TARGET_OS_CPP_BUILTINS() GNU_USER_TARGET_OS_CPP_BUILTINS()
 
 #undef CPP_SPEC
 #define CPP_SPEC "%{posix:-D_POSIX_SOURCE} %{pthread:-D_REENTRANT}"
@@ -83,7 +79,7 @@ along with GCC; see the file COPYING3.  If not see
   %{!shared: \
     %{!static: \
       %{rdynamic:-export-dynamic} \
-      -dynamic-linker " LINUX_DYNAMIC_LINKER "} \
+      -dynamic-linker " GNU_USER_DYNAMIC_LINKER "} \
     %{static}}"
 
 /* For compatibility with linux/a.out */

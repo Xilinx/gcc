@@ -1,5 +1,5 @@
 /* Dump a gcov file, for debugging use.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Nathan Sidwell <nathan@codesourcery.com>
 
@@ -121,7 +121,7 @@ static void
 print_version (void)
 {
   printf ("gcov-dump %s%s\n", pkgversion_string, version_string);
-  printf ("Copyright (C) 2010 Free Software Foundation, Inc.\n");
+  printf ("Copyright (C) 2011 Free Software Foundation, Inc.\n");
   printf ("This is free software; see the source for copying conditions.\n"
   	  "There is NO warranty; not even for MERCHANTABILITY or \n"
 	  "FITNESS FOR A PARTICULAR PURPOSE.\n\n");
@@ -267,7 +267,8 @@ tag_function (const char *filename ATTRIBUTE_UNUSED,
   unsigned long pos = gcov_position ();
 
   printf (" ident=%u", gcov_read_unsigned ());
-  printf (", checksum=0x%08x", gcov_read_unsigned ());
+  printf (", lineno_checksum=0x%08x", gcov_read_unsigned ());
+  printf (", cfg_checksum_checksum=0x%08x", gcov_read_unsigned ());
 
   if (gcov_position () - pos < length)
     {

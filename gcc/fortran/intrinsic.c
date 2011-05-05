@@ -1,7 +1,7 @@
 /* Build up a list of intrinsic subroutines and functions for the
    name-resolution stage.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010
+   2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -1663,7 +1663,8 @@ add_functions (void)
 
   add_sym_2 ("extends_type_of", GFC_ISYM_EXTENDS_TYPE_OF, CLASS_INQUIRY,
 	     ACTUAL_NO, BT_LOGICAL, dl, GFC_STD_F2003,
-	     gfc_check_same_type_as, NULL, gfc_resolve_extends_type_of,
+	     gfc_check_same_type_as, gfc_simplify_extends_type_of,
+	     gfc_resolve_extends_type_of,
 	     a, BT_UNKNOWN, 0, REQUIRED,
 	     mo, BT_UNKNOWN, 0, REQUIRED);
 
@@ -2357,7 +2358,8 @@ add_functions (void)
 
   make_generic ("null", GFC_ISYM_NULL, GFC_STD_F95);
 
-  add_sym_0 ("num_images", GFC_ISYM_NUMIMAGES, CLASS_INQUIRY, ACTUAL_NO, BT_INTEGER, di, GFC_STD_F2008,
+  add_sym_0 ("num_images", GFC_ISYM_NUM_IMAGES, CLASS_INQUIRY, ACTUAL_NO,
+	     BT_INTEGER, di, GFC_STD_F2008,
 	     NULL, gfc_simplify_num_images, NULL);
 
   add_sym_3 ("pack", GFC_ISYM_PACK, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
@@ -2481,7 +2483,7 @@ add_functions (void)
 
   add_sym_2 ("same_type_as", GFC_ISYM_SAME_TYPE_AS, CLASS_INQUIRY, ACTUAL_NO,
 	     BT_LOGICAL, dl, GFC_STD_F2003,
-	     gfc_check_same_type_as, NULL, NULL,
+	     gfc_check_same_type_as, gfc_simplify_same_type_as, NULL,
 	     a, BT_UNKNOWN, 0, REQUIRED,
 	     b, BT_UNKNOWN, 0, REQUIRED);
 
@@ -2540,9 +2542,10 @@ add_functions (void)
 
   make_generic ("set_exponent", GFC_ISYM_SET_EXPONENT, GFC_STD_F95);
 
-  add_sym_1 ("shape", GFC_ISYM_SHAPE, CLASS_INQUIRY, ACTUAL_NO, BT_INTEGER, di, GFC_STD_F95,
+  add_sym_2 ("shape", GFC_ISYM_SHAPE, CLASS_INQUIRY, ACTUAL_NO, BT_INTEGER, di, GFC_STD_F95,
 	     gfc_check_shape, gfc_simplify_shape, gfc_resolve_shape,
-	     src, BT_REAL, dr, REQUIRED);
+	     src, BT_REAL, dr, REQUIRED,
+	     kind, BT_INTEGER, di, OPTIONAL);
 
   make_generic ("shape", GFC_ISYM_SHAPE, GFC_STD_F95);
 
@@ -3405,9 +3408,9 @@ gfc_intrinsic_init_1 (void)
 void
 gfc_intrinsic_done_1 (void)
 {
-  gfc_free (functions);
-  gfc_free (conversion);
-  gfc_free (char_conversions);
+  free (functions);
+  free (conversion);
+  free (char_conversions);
   gfc_free_namespace (gfc_intrinsic_namespace);
 }
 
@@ -4365,7 +4368,7 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
 
   *expr = *new_expr;
 
-  gfc_free (new_expr);
+  free (new_expr);
   expr->ts = *ts;
 
   if (gfc_is_constant_expr (expr->value.function.actual->expr)
@@ -4434,7 +4437,7 @@ gfc_convert_chartype (gfc_expr *expr, gfc_typespec *ts)
 
   *expr = *new_expr;
 
-  gfc_free (new_expr);
+  free (new_expr);
   expr->ts = *ts;
 
   if (gfc_is_constant_expr (expr->value.function.actual->expr)

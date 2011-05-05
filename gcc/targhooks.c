@@ -1,5 +1,5 @@
 /* Default target hook functions.
-   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -69,6 +69,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "recog.h"
 #include "intl.h"
 #include "opts.h"
+#include "tree-flow.h"
+#include "tree-ssa-alias.h"
 
 
 bool
@@ -584,13 +586,7 @@ default_function_arg_advance (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 			      const_tree type ATTRIBUTE_UNUSED,
 			      bool named ATTRIBUTE_UNUSED)
 {
-#ifdef FUNCTION_ARG_ADVANCE
-  CUMULATIVE_ARGS args = *ca;
-  FUNCTION_ARG_ADVANCE (args, mode, CONST_CAST_TREE (type), named);
-  *ca = args;
-#else
   gcc_unreachable ();
-#endif
 }
 
 rtx
@@ -599,11 +595,7 @@ default_function_arg (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 		      const_tree type ATTRIBUTE_UNUSED,
 		      bool named ATTRIBUTE_UNUSED)
 {
-#ifdef FUNCTION_ARG
-  return FUNCTION_ARG (*ca, mode, CONST_CAST_TREE (type), named);
-#else
   gcc_unreachable ();
-#endif
 }
 
 rtx
@@ -612,11 +604,7 @@ default_function_incoming_arg (CUMULATIVE_ARGS *ca ATTRIBUTE_UNUSED,
 			       const_tree type ATTRIBUTE_UNUSED,
 			       bool named ATTRIBUTE_UNUSED)
 {
-#ifdef FUNCTION_INCOMING_ARG
-  return FUNCTION_INCOMING_ARG (*ca, mode, CONST_CAST_TREE (type), named);
-#else
   gcc_unreachable ();
-#endif
 }
 
 unsigned int
@@ -853,15 +841,6 @@ default_branch_target_register_class (void)
   return NO_REGS;
 }
 
-#ifdef IRA_COVER_CLASSES
-const reg_class_t *
-default_ira_cover_classes (void)
-{
-  static reg_class_t classes[] = IRA_COVER_CLASSES;
-  return classes;
-}
-#endif
-
 reg_class_t
 default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 			  reg_class_t reload_class_i ATTRIBUTE_UNUSED,
@@ -891,8 +870,7 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 				reload_mode);
 
       if (icode != CODE_FOR_nothing
-	  && insn_data[(int) icode].operand[in_p].predicate
-	  && ! insn_data[(int) icode].operand[in_p].predicate (x, reload_mode))
+	  && !insn_operand_matches (icode, in_p, x))
 	icode = CODE_FOR_nothing;
       else if (icode != CODE_FOR_nothing)
 	{
@@ -950,14 +928,6 @@ default_secondary_reload (bool in_p ATTRIBUTE_UNUSED, rtx x ATTRIBUTE_UNUSED,
 	sri->t_icode = icode;
     }
   return rclass;
-}
-
-bool
-default_handle_c_option (size_t code ATTRIBUTE_UNUSED,
-			 const char *arg ATTRIBUTE_UNUSED,
-			 int value ATTRIBUTE_UNUSED)
-{
-  return false;
 }
 
 /* By default, if flag_pic is true, then neither local nor global relocs
@@ -1033,6 +1003,33 @@ bool
 default_valid_pointer_mode (enum machine_mode mode)
 {
   return (mode == ptr_mode || mode == Pmode);
+}
+
+/* Determine whether the memory reference specified by REF may alias
+   the C libraries errno location.  */
+bool
+default_ref_may_alias_errno (ao_ref *ref)
+{
+  tree base = ao_ref_base (ref);
+  /* The default implementation assumes the errno location is
+     a declaration of type int or is always accessed via a
+     pointer to int.  We assume that accesses to errno are
+     not deliberately obfuscated (even in conforming ways).  */
+  if (TYPE_UNSIGNED (TREE_TYPE (base))
+      || TYPE_MODE (TREE_TYPE (base)) != TYPE_MODE (integer_type_node))
+    return false;
+  /* The default implementation assumes an errno location
+     declaration is never defined in the current compilation unit.  */
+  if (DECL_P (base)
+      && !TREE_STATIC (base))
+    return true;
+  else if (TREE_CODE (base) == MEM_REF
+	   && TREE_CODE (TREE_OPERAND (base, 0)) == SSA_NAME)
+    {
+      struct ptr_info_def *pi = SSA_NAME_PTR_INFO (TREE_OPERAND (base, 0));
+      return !pi || pi->pt.anything || pi->pt.nonlocal;
+    }
+  return false;
 }
 
 /* Return the mode for a pointer to a given ADDRSPACE, defaulting to ptr_mode
@@ -1192,9 +1189,10 @@ default_target_can_inline_p (tree caller, tree callee)
   else if (!caller_opts)
     ret = false;
 
-  /* If both caller and callee have attributes, assume that if the pointer is
-     different, the the two functions have different target options since
-     build_target_option_node uses a hash table for the options.  */
+  /* If both caller and callee have attributes, assume that if the
+     pointer is different, the two functions have different target
+     options since build_target_option_node uses a hash table for the
+     options.  */
   else
     ret = (callee_opts == caller_opts);
 
@@ -1483,6 +1481,17 @@ default_pch_valid_p (const void *data_p, size_t len)
       }
 
   return NULL;
+}
+
+/* Default version of TARGET_HANDLE_OPTION.  */
+
+bool
+default_target_handle_option (struct gcc_options *opts ATTRIBUTE_UNUSED,
+			      struct gcc_options *opts_set ATTRIBUTE_UNUSED,
+			      const struct cl_decoded_option *decoded ATTRIBUTE_UNUSED,
+			      location_t loc ATTRIBUTE_UNUSED)
+{
+  return true;
 }
 
 const struct default_options empty_optimization_table[] =

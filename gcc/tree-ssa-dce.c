@@ -271,8 +271,6 @@ mark_operand_necessary (tree op)
 static void
 mark_stmt_if_obviously_necessary (gimple stmt, bool aggressive)
 {
-  tree lhs = NULL_TREE;
-
   /* With non-call exceptions, we have to assume that all statements could
      throw.  If a statement may throw, it is inherently necessary.  */
   if (cfun->can_throw_non_call_exceptions && stmt_could_throw_p (stmt))
@@ -311,12 +309,6 @@ mark_stmt_if_obviously_necessary (gimple stmt, bool aggressive)
 	}
       if (!gimple_call_lhs (stmt))
         return;
-      lhs = gimple_call_lhs (stmt);
-      /* Fall through */
-
-    case GIMPLE_ASSIGN:
-      if (!lhs)
-        lhs = gimple_assign_lhs (stmt);
       break;
 
     case GIMPLE_DEBUG:
@@ -832,7 +824,10 @@ propagate_necessity (struct edge_list *el)
 		  && DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL
 		  && (DECL_FUNCTION_CODE (callee) == BUILT_IN_MEMSET
 		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_MALLOC
-		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_FREE))
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_FREE
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_ALLOCA
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_STACK_SAVE
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_STACK_RESTORE))
 		continue;
 
 	      /* Calls implicitly load from memory, their arguments
@@ -869,7 +864,8 @@ propagate_necessity (struct edge_list *el)
 	    {
 	      tree rhs = gimple_return_retval (stmt);
 	      /* A return statement may perform a load.  */
-	      if (TREE_CODE (rhs) != SSA_NAME
+	      if (rhs
+		  && TREE_CODE (rhs) != SSA_NAME
 		  && !is_gimple_min_invariant (rhs))
 		{
 		  if (!ref_may_be_aliased (rhs))

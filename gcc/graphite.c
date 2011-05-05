@@ -35,38 +35,26 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
-#include "ggc.h"
-#include "tree.h"
-#include "rtl.h"
-#include "basic-block.h"
-#include "diagnostic.h"
+#include "diagnostic-core.h"
 #include "tree-flow.h"
 #include "tree-dump.h"
-#include "timevar.h"
 #include "cfgloop.h"
 #include "tree-chrec.h"
 #include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
-#include "tree-pass.h"
-#include "value-prof.h"
-#include "pointer-set.h"
-#include "gimple.h"
 #include "sese.h"
-#include "predict.h"
 #include "dbgcnt.h"
 
 #ifdef HAVE_cloog
 
-#include "cloog/cloog.h"
 #include "ppl_c.h"
-#include "graphite-cloog-compat.h"
 #include "graphite-ppl.h"
-#include "graphite.h"
 #include "graphite-poly.h"
 #include "graphite-scop-detection.h"
 #include "graphite-clast-to-gimple.h"
 #include "graphite-sese-to-poly.h"
+
+CloogState *cloog_state;
 
 /* Print global statistics to FILE.  */
 
@@ -220,6 +208,7 @@ graphite_initialize (void)
   ppl_initialized = ppl_initialize ();
   gcc_assert (ppl_initialized == 0);
 
+  cloog_state = cloog_state_malloc ();
   cloog_initialize ();
 
   if (dump_file && dump_flags)
@@ -243,6 +232,7 @@ graphite_finalize (bool need_cfg_cleanup_p)
       tree_estimate_probability ();
     }
 
+  cloog_state_free (cloog_state);
   cloog_finalize ();
   ppl_finalize ();
   free_original_copy_tables ();

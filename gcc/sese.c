@@ -23,25 +23,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
-#include "tm.h"
-#include "ggc.h"
-#include "tree.h"
-#include "rtl.h"
-#include "basic-block.h"
-#include "diagnostic.h"
 #include "tree-pretty-print.h"
 #include "tree-flow.h"
-#include "tree-dump.h"
-#include "timevar.h"
 #include "cfgloop.h"
 #include "tree-chrec.h"
 #include "tree-data-ref.h"
 #include "tree-scalar-evolution.h"
 #include "tree-pass.h"
-#include "domwalk.h"
 #include "value-prof.h"
-#include "pointer-set.h"
-#include "gimple.h"
 #include "sese.h"
 
 /* Print to stderr the element ELT.  */
@@ -460,8 +449,7 @@ set_rename (htab_t rename_map, tree old_name, tree expr)
   if (!slot)
     return;
 
-  if (*slot)
-    free (*slot);
+  free (*slot);
 
   *slot = new_rename_map_elt (old_name, expr);
 }
@@ -687,8 +675,7 @@ if_region_set_false_region (ifsese if_region, sese region)
 
   SESE_EXIT (region) = false_edge;
 
-  if (if_region->false_region)
-    free (if_region->false_region);
+  free (if_region->false_region);
   if_region->false_region = region;
 
   if (slot)

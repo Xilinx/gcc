@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler,
    for 64 bit PowerPC linux.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010  Free Software Foundation, Inc.
+   2009, 2010, 2011  Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -73,9 +73,9 @@ extern int dot_symbols;
 #endif
 
 #undef  PROCESSOR_DEFAULT
-#define PROCESSOR_DEFAULT PROCESSOR_POWER6
+#define PROCESSOR_DEFAULT PROCESSOR_POWER7
 #undef  PROCESSOR_DEFAULT64
-#define PROCESSOR_DEFAULT64 PROCESSOR_POWER6
+#define PROCESSOR_DEFAULT64 PROCESSOR_POWER7
 
 /* We don't need to generate entries in .fixup, except when
    -mrelocatable or -mrelocatable-lib is given.  */
@@ -172,10 +172,6 @@ extern int dot_symbols;
 #undef	ASM_SPEC
 #undef	LINK_OS_LINUX_SPEC
 
-/* FIXME: This will quite possibly choose the wrong dynamic linker.  */
-#undef	LINK_OS_GNU_SPEC
-#define	LINK_OS_GNU_SPEC LINK_OS_LINUX_SPEC
-
 #ifndef	RS6000_BI_ARCH
 #define	ASM_DEFAULT_SPEC "-mppc64"
 #define	ASM_SPEC	 "%(asm_spec64) %(asm_spec_common)"
@@ -192,14 +188,13 @@ extern int dot_symbols;
 #endif
 #endif
 
-#define ASM_SPEC32 "-a32 %{Ym,*} %{Yd,*} \
+#define ASM_SPEC32 "-a32 \
 %{mrelocatable} %{mrelocatable-lib} %{fpic:-K PIC} %{fPIC:-K PIC} \
 %{memb} %{!memb: %{msdata=eabi: -memb}} \
 %{!mlittle: %{!mlittle-endian: %{!mbig: %{!mbig-endian: \
     %{mcall-freebsd: -mbig} \
     %{mcall-i960-old: -mlittle} \
     %{mcall-linux: -mbig} \
-    %{mcall-gnu: -mbig} \
     %{mcall-netbsd: -mbig} \
 }}}}"
 
@@ -207,7 +202,6 @@ extern int dot_symbols;
 
 #define ASM_SPEC_COMMON "%(asm_cpu) \
 %{,assembler|,assembler-with-cpp: %{mregnames} %{mno-regnames}} \
-%{Qy:} %{!Qn:-Qy} \
 %{mlittle} %{mlittle-endian} %{mbig} %{mbig-endian}"
 
 #undef	SUBSUBTARGET_EXTRA_SPECS
@@ -308,7 +302,11 @@ extern int dot_symbols;
    process.  */
 #define OS_MISSING_POWERPC64 !TARGET_64BIT
 
+#ifdef SINGLE_LIBC
+#define OPTION_GLIBC  (DEFAULT_LIBC == LIBC_GLIBC)
+#else
 #define OPTION_GLIBC  (linux_libc == LIBC_GLIBC)
+#endif
 
 /* glibc has float and long double forms of math functions.  */
 #undef  TARGET_C99_FUNCTIONS
@@ -380,19 +378,19 @@ extern int dot_symbols;
 #else
 #error "Unsupported DEFAULT_LIBC"
 #endif
-#define LINUX_DYNAMIC_LINKER32 \
+#define GNU_USER_DYNAMIC_LINKER32 \
   CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER32, UCLIBC_DYNAMIC_LINKER32)
-#define LINUX_DYNAMIC_LINKER64 \
+#define GNU_USER_DYNAMIC_LINKER64 \
   CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER64, UCLIBC_DYNAMIC_LINKER64)
 
 
 #define LINK_OS_LINUX_SPEC32 "-m elf32ppclinux %{!shared: %{!static: \
   %{rdynamic:-export-dynamic} \
-  -dynamic-linker " LINUX_DYNAMIC_LINKER32 "}}"
+  -dynamic-linker " GNU_USER_DYNAMIC_LINKER32 "}}"
 
 #define LINK_OS_LINUX_SPEC64 "-m elf64ppc %{!shared: %{!static: \
   %{rdynamic:-export-dynamic} \
-  -dynamic-linker " LINUX_DYNAMIC_LINKER64 "}}"
+  -dynamic-linker " GNU_USER_DYNAMIC_LINKER64 "}}"
 
 #undef  TOC_SECTION_ASM_OP
 #define TOC_SECTION_ASM_OP \
@@ -407,9 +405,6 @@ extern int dot_symbols;
    : ((TARGET_RELOCATABLE || flag_pic)			\
       ? "\t.section\t\".got2\",\"aw\""			\
       : "\t.section\t\".got1\",\"aw\""))
-
-#undef  TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (PowerPC64 GNU/Linux)");
 
 /* Must be at least as big as our pointer type.  */
 #undef	SIZE_TYPE
@@ -533,8 +528,6 @@ extern int dot_symbols;
    structure return convention.  */
 #undef DRAFT_V4_STRUCT_RET
 #define DRAFT_V4_STRUCT_RET (!TARGET_64BIT)
-
-#define TARGET_ASM_FILE_END rs6000_elf_end_indicate_exec_stack
 
 #define TARGET_POSIX_IO
 

@@ -231,6 +231,7 @@ gimple_build_call_1 (tree fn, unsigned nargs)
   if (TREE_CODE (fn) == FUNCTION_DECL)
     fn = build_fold_addr_expr (fn);
   gimple_set_op (s, 1, fn);
+  gimple_call_set_fntype (s, TREE_TYPE (TREE_TYPE (fn)));
   gimple_call_reset_alias_info (s);
   return s;
 }
@@ -276,6 +277,59 @@ gimple_build_call (tree fn, unsigned nargs, ...)
 }
 
 
+/* Helper for gimple_build_call_internal and gimple_build_call_internal_vec.
+   Build the basic components of a GIMPLE_CALL statement to internal
+   function FN with NARGS arguments.  */
+
+static inline gimple
+gimple_build_call_internal_1 (enum internal_fn fn, unsigned nargs)
+{
+  gimple s = gimple_build_with_ops (GIMPLE_CALL, ERROR_MARK, nargs + 3);
+  s->gsbase.subcode |= GF_CALL_INTERNAL;
+  gimple_call_set_internal_fn (s, fn);
+  gimple_call_reset_alias_info (s);
+  return s;
+}
+
+
+/* Build a GIMPLE_CALL statement to internal function FN.  NARGS is
+   the number of arguments.  The ... are the arguments.  */
+
+gimple
+gimple_build_call_internal (enum internal_fn fn, unsigned nargs, ...)
+{
+  va_list ap;
+  gimple call;
+  unsigned i;
+
+  call = gimple_build_call_internal_1 (fn, nargs);
+  va_start (ap, nargs);
+  for (i = 0; i < nargs; i++)
+    gimple_call_set_arg (call, i, va_arg (ap, tree));
+  va_end (ap);
+
+  return call;
+}
+
+
+/* Build a GIMPLE_CALL statement to internal function FN with the arguments
+   specified in vector ARGS.  */
+
+gimple
+gimple_build_call_internal_vec (enum internal_fn fn, VEC(tree, heap) *args)
+{
+  unsigned i, nargs;
+  gimple call;
+
+  nargs = VEC_length (tree, args);
+  call = gimple_build_call_internal_1 (fn, nargs);
+  for (i = 0; i < nargs; i++)
+    gimple_call_set_arg (call, i, VEC_index (tree, args, i));
+
+  return call;
+}
+
+
 /* Build a GIMPLE_CALL statement from CALL_EXPR T.  Note that T is
    assumed to be in GIMPLE form already.  Minimal checking is done of
    this fact.  */
@@ -302,7 +356,12 @@ gimple_build_call_from_tree (tree t)
   gimple_call_set_tail (call, CALL_EXPR_TAILCALL (t));
   gimple_call_set_cannot_inline (call, CALL_CANNOT_INLINE_P (t));
   gimple_call_set_return_slot_opt (call, CALL_EXPR_RETURN_SLOT_OPT (t));
-  gimple_call_set_from_thunk (call, CALL_FROM_THUNK_P (t));
+  if (fndecl
+      && DECL_BUILT_IN_CLASS (fndecl) == BUILT_IN_NORMAL
+      && DECL_FUNCTION_CODE (fndecl) == BUILT_IN_ALLOCA)
+    gimple_call_set_alloca_for_var (call, CALL_ALLOCA_FOR_VAR_P (t));
+  else
+    gimple_call_set_from_thunk (call, CALL_FROM_THUNK_P (t));
   gimple_call_set_va_arg_pack (call, CALL_EXPR_VA_ARG_PACK (t));
   gimple_call_set_nothrow (call, TREE_NOTHROW (t));
   gimple_set_no_warning (call, TREE_NO_WARNING (t));
@@ -1405,7 +1464,8 @@ walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
       for (i = 0; i < gimple_call_num_args (stmt); i++)
 	{
 	  if (wi)
-	    wi->val_only = is_gimple_reg_type (gimple_call_arg (stmt, i));
+	    wi->val_only
+	      = is_gimple_reg_type (TREE_TYPE (gimple_call_arg (stmt, i)));
 	  ret = walk_tree (gimple_call_arg_ptr (stmt, i), callback_op, wi,
 			   pset);
 	  if (ret)
@@ -1417,7 +1477,8 @@ walk_gimple_op (gimple stmt, walk_tree_fn callback_op,
 	  if (wi)
 	    {
 	      wi->is_lhs = true;
-	      wi->val_only = is_gimple_reg_type (gimple_call_lhs (stmt));
+	      wi->val_only
+		= is_gimple_reg_type (TREE_TYPE (gimple_call_lhs (stmt)));
 	    }
 
 	  ret = walk_tree (gimple_call_lhs_ptr (stmt), callback_op, wi, pset);
@@ -1772,6 +1833,20 @@ gimple_has_body_p (tree fndecl)
   return (gimple_body (fndecl) || (fn && fn->cfg));
 }
 
+/* Return true if calls C1 and C2 are known to go to the same function.  */
+
+bool
+gimple_call_same_target_p (const_gimple c1, const_gimple c2)
+{
+  if (gimple_call_internal_p (c1))
+    return (gimple_call_internal_p (c2)
+	    && gimple_call_internal_fn (c1) == gimple_call_internal_fn (c2));
+  else
+    return (gimple_call_fn (c1) == gimple_call_fn (c2)
+	    || (gimple_call_fndecl (c1)
+		&& gimple_call_fndecl (c1) == gimple_call_fndecl (c2)));
+}
+
 /* Detect flags from a GIMPLE_CALL.  This is just like
    call_expr_flags, but for gimple tuples.  */
 
@@ -1780,18 +1855,13 @@ gimple_call_flags (const_gimple stmt)
 {
   int flags;
   tree decl = gimple_call_fndecl (stmt);
-  tree t;
 
   if (decl)
     flags = flags_from_decl_or_type (decl);
+  else if (gimple_call_internal_p (stmt))
+    flags = internal_fn_flags (gimple_call_internal_fn (stmt));
   else
-    {
-      t = TREE_TYPE (gimple_call_fn (stmt));
-      if (t && TREE_CODE (t) == POINTER_TYPE)
-	flags = flags_from_decl_or_type (TREE_TYPE (t));
-      else
-	flags = 0;
-    }
+    flags = flags_from_decl_or_type (gimple_call_fntype (stmt));
 
   if (stmt->gsbase.subcode & GF_CALL_NOTHROW)
     flags |= ECF_NOTHROW;
@@ -1799,18 +1869,32 @@ gimple_call_flags (const_gimple stmt)
   return flags;
 }
 
+/* Return the "fn spec" string for call STMT.  */
+
+static tree
+gimple_call_fnspec (const_gimple stmt)
+{
+  tree type, attr;
+
+  type = gimple_call_fntype (stmt);
+  if (!type)
+    return NULL_TREE;
+
+  attr = lookup_attribute ("fn spec", TYPE_ATTRIBUTES (type));
+  if (!attr)
+    return NULL_TREE;
+
+  return TREE_VALUE (TREE_VALUE (attr));
+}
+
 /* Detects argument flags for argument number ARG on call STMT.  */
 
 int
 gimple_call_arg_flags (const_gimple stmt, unsigned arg)
 {
-  tree type = TREE_TYPE (TREE_TYPE (gimple_call_fn (stmt)));
-  tree attr = lookup_attribute ("fn spec", TYPE_ATTRIBUTES (type));
-  if (!attr)
-    return 0;
+  tree attr = gimple_call_fnspec (stmt);
 
-  attr = TREE_VALUE (TREE_VALUE (attr));
-  if (1 + arg >= (unsigned) TREE_STRING_LENGTH (attr))
+  if (!attr || 1 + arg >= (unsigned) TREE_STRING_LENGTH (attr))
     return 0;
 
   switch (TREE_STRING_POINTER (attr)[1 + arg])
@@ -1842,19 +1926,13 @@ gimple_call_arg_flags (const_gimple stmt, unsigned arg)
 int
 gimple_call_return_flags (const_gimple stmt)
 {
-  tree type;
-  tree attr = NULL_TREE;
+  tree attr;
 
   if (gimple_call_flags (stmt) & ECF_MALLOC)
     return ERF_NOALIAS;
 
-  type = TREE_TYPE (TREE_TYPE (gimple_call_fn (stmt)));
-  attr = lookup_attribute ("fn spec", TYPE_ATTRIBUTES (type));
-  if (!attr)
-    return 0;
-
-  attr = TREE_VALUE (TREE_VALUE (attr));
-  if (TREE_STRING_LENGTH (attr) < 1)
+  attr = gimple_call_fnspec (stmt);
+  if (!attr || TREE_STRING_LENGTH (attr) < 1)
     return 0;
 
   switch (TREE_STRING_POINTER (attr)[0])
@@ -2252,15 +2330,7 @@ void
 gimple_set_modified (gimple s, bool modifiedp)
 {
   if (gimple_has_ops (s))
-    {
-      s->gsbase.modified = (unsigned) modifiedp;
-
-      if (modifiedp
-	  && cfun->gimple_df
-	  && is_gimple_call (s)
-	  && gimple_call_noreturn_p (s))
-	VEC_safe_push (gimple, gc, MODIFIED_NORETURN_CALLS (cfun), s);
-    }
+    s->gsbase.modified = (unsigned) modifiedp;
 }
 
 
@@ -2287,6 +2357,7 @@ gimple_has_side_effects (const_gimple s)
   if (is_gimple_call (s))
     {
       unsigned nargs = gimple_call_num_args (s);
+      tree fn;
 
       if (!(gimple_call_flags (s) & (ECF_CONST | ECF_PURE)))
         return true;
@@ -2301,7 +2372,8 @@ gimple_has_side_effects (const_gimple s)
 	  return true;
 	}
 
-      if (TREE_SIDE_EFFECTS (gimple_call_fn (s)))
+      fn = gimple_call_fn (s);
+      if (fn && TREE_SIDE_EFFECTS (fn))
         return true;
 
       for (i = 0; i < nargs; i++)
@@ -2329,7 +2401,7 @@ gimple_has_side_effects (const_gimple s)
 /* Return true if the RHS of statement S has side effects.
    We may use it to determine if it is admissable to replace
    an assignment or call with a copy of a previously-computed
-   value.  In such cases, side-effects due the the LHS are
+   value.  In such cases, side-effects due to the LHS are
    preserved.  */
 
 bool
@@ -2340,14 +2412,15 @@ gimple_rhs_has_side_effects (const_gimple s)
   if (is_gimple_call (s))
     {
       unsigned nargs = gimple_call_num_args (s);
+      tree fn;
 
       if (!(gimple_call_flags (s) & (ECF_CONST | ECF_PURE)))
         return true;
 
       /* We cannot use gimple_has_volatile_ops here,
          because we must ignore a volatile LHS.  */
-      if (TREE_SIDE_EFFECTS (gimple_call_fn (s))
-          || TREE_THIS_VOLATILE (gimple_call_fn (s)))
+      fn = gimple_call_fn (s);
+      if (fn && (TREE_SIDE_EFFECTS (fn) || TREE_THIS_VOLATILE (fn)))
 	{
 	  gcc_assert (gimple_has_volatile_ops (s));
 	  return true;
@@ -2514,6 +2587,8 @@ get_gimple_rhs_num_ops (enum tree_code code)
    : (SYM) == TRUTH_NOT_EXPR ? GIMPLE_UNARY_RHS				    \
    : ((SYM) == WIDEN_MULT_PLUS_EXPR					    \
       || (SYM) == WIDEN_MULT_MINUS_EXPR					    \
+      || (SYM) == DOT_PROD_EXPR						    \
+      || (SYM) == REALIGN_LOAD_EXPR					    \
       || (SYM) == FMA_EXPR) ? GIMPLE_TERNARY_RHS			    \
    : ((SYM) == COND_EXPR						    \
       || (SYM) == CONSTRUCTOR						    \
@@ -2522,10 +2597,7 @@ get_gimple_rhs_num_ops (enum tree_code code)
       || (SYM) == ADDR_EXPR						    \
       || (SYM) == WITH_SIZE_EXPR					    \
       || (SYM) == SSA_NAME						    \
-      || (SYM) == POLYNOMIAL_CHREC					    \
-      || (SYM) == DOT_PROD_EXPR						    \
-      || (SYM) == VEC_COND_EXPR						    \
-      || (SYM) == REALIGN_LOAD_EXPR) ? GIMPLE_SINGLE_RHS		    \
+      || (SYM) == VEC_COND_EXPR) ? GIMPLE_SINGLE_RHS			    \
    : GIMPLE_INVALID_RHS),
 #define END_OF_BASE_TREE_CODES (unsigned char) GIMPLE_INVALID_RHS,
 
@@ -2581,7 +2653,7 @@ bool
 is_gimple_condexpr (tree t)
 {
   return (is_gimple_val (t) || (COMPARISON_CLASS_P (t)
-				&& !tree_could_trap_p (t)
+				&& !tree_could_throw_p (t)
 				&& is_gimple_val (TREE_OPERAND (t, 0))
 				&& is_gimple_val (TREE_OPERAND (t, 1))));
 }
@@ -3104,7 +3176,6 @@ gimple
 gimple_call_copy_skip_args (gimple stmt, bitmap args_to_skip)
 {
   int i;
-  tree fn = gimple_call_fn (stmt);
   int nargs = gimple_call_num_args (stmt);
   VEC(tree, heap) *vargs = VEC_alloc (tree, heap, nargs);
   gimple new_stmt;
@@ -3113,7 +3184,11 @@ gimple_call_copy_skip_args (gimple stmt, bitmap args_to_skip)
     if (!bitmap_bit_p (args_to_skip, i))
       VEC_quick_push (tree, vargs, gimple_call_arg (stmt, i));
 
-  new_stmt = gimple_build_call_vec (fn, vargs);
+  if (gimple_call_internal_p (stmt))
+    new_stmt = gimple_build_call_internal_vec (gimple_call_internal_fn (stmt),
+					       vargs);
+  else
+    new_stmt = gimple_build_call_vec (gimple_call_fn (stmt), vargs);
   VEC_free (tree, heap, vargs);
   if (gimple_call_lhs (stmt))
     gimple_call_set_lhs (new_stmt, gimple_call_lhs (stmt));
@@ -3243,8 +3318,8 @@ typedef struct GTY(()) gimple_type_leader_entry_s {
 } gimple_type_leader_entry;
 
 #define GIMPLE_TYPE_LEADER_SIZE 16381
-static GTY((length("GIMPLE_TYPE_LEADER_SIZE"))) gimple_type_leader_entry
-  *gimple_type_leader;
+static GTY((deletable, length("GIMPLE_TYPE_LEADER_SIZE")))
+  gimple_type_leader_entry *gimple_type_leader;
 
 /* Lookup an existing leader for T and return it or NULL_TREE, if
    there is none in the cache.  */
@@ -3307,8 +3382,7 @@ compare_type_names_p (tree t1, tree t2, bool for_completion_p)
 
 /* Return true if the field decls F1 and F2 are at the same offset.
 
-   This is intended to be used on GIMPLE types only.  In order to
-   compare GENERIC types, use fields_compatible_p instead.  */
+   This is intended to be used on GIMPLE types only.  */
 
 bool
 gimple_compare_field_offset (tree f1, tree f2)
@@ -3616,7 +3690,7 @@ gimple_types_compatible_p_1 (tree t1, tree t2, enum gtc_mode mode,
 			 state, sccstack, sccstate, sccstate_obstack))
 	goto different_types;
 
-      if (!targetm.comp_type_attributes (t1, t2))
+      if (!comp_type_attributes (t1, t2))
 	goto different_types;
 
       if (TYPE_ARG_TYPES (t1) == TYPE_ARG_TYPES (t2))
@@ -3741,6 +3815,9 @@ gimple_types_compatible_p_1 (tree t1, tree t2, enum gtc_mode mode,
 	      c2 = DECL_INITIAL (c2);
 
 	    if (tree_int_cst_equal (c1, c2) != 1)
+	      goto different_types;
+
+	    if (mode == GTC_MERGE && TREE_PURPOSE (v1) != TREE_PURPOSE (v2))
 	      goto different_types;
 	  }
 
@@ -5158,4 +5235,21 @@ gimple_call_builtin_p (gimple stmt, enum built_in_function code)
 	  && DECL_FUNCTION_CODE (fndecl) == code);
 }
 
+/* Return true if STMT clobbers memory.  STMT is required to be a
+   GIMPLE_ASM.  */
+
+bool
+gimple_asm_clobbers_memory_p (const_gimple stmt)
+{
+  unsigned i;
+
+  for (i = 0; i < gimple_asm_nclobbers (stmt); i++)
+    {
+      tree op = gimple_asm_clobber_op (stmt, i);
+      if (strcmp (TREE_STRING_POINTER (TREE_VALUE (op)), "memory") == 0)
+	return true;
+    }
+
+  return false;
+}
 #include "gt-gimple.h"

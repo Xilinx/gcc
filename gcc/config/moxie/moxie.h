@@ -21,14 +21,6 @@
 #ifndef GCC_MOXIE_H
 #define GCC_MOXIE_H
 
-/* Another C string constant used much like `LINK_SPEC'.  The difference
-   between the two is that `STARTFILE_SPEC' is used at the very beginning of
-   the command given to the linker.
-
-   If this macro is not defined, a default is provided that loads the standard
-   C startup file from the usual place.  See `gcc.c'.
-
-   Defined in svr4.h.  */
 #undef  STARTFILE_SPEC
 #define STARTFILE_SPEC "crt0%O%s crti.o%s crtbegin.o%s"
 
@@ -142,15 +134,6 @@ enum reg_class
   LIM_REG_CLASSES
 };
 
-
-/* The following macro defines cover classes for Integrated Register
-   Allocator.  Cover classes is a set of non-intersected register
-   classes covering all hard registers used for register allocation
-   purpose.  Any move between two registers of a cover class should be
-   cheaper than load or store of the registers.  The macro value is
-   array of register classes with LIM_REG_CLASSES used as the end
-   marker.  */
-#define IRA_COVER_CLASSES { GENERAL_REGS, LIM_REG_CLASSES }
 
 #define REG_CLASS_CONTENTS \
 { { 0x00000000 }, /* Empty */			   \
@@ -457,10 +440,6 @@ enum reg_class
 
 /* All load operations zero extend.  */
 #define LOAD_EXTEND_OP(MEM) ZERO_EXTEND
-
-/* A C expression that is nonzero if X is a legitimate constant for
-   an immediate operand on the target machine.  */
-#define LEGITIMATE_CONSTANT_P(X) 1
 
 /* A number, the maximum number of registers that can appear in a
    valid memory address.  */

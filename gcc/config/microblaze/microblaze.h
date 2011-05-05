@@ -1,5 +1,5 @@
 /* Definitions of target machine for GNU compiler for Xilinx MicroBlaze.
-   Copyright 2009, 2010 Free Software Foundation, Inc.
+   Copyright 2009, 2010, 2011 Free Software Foundation, Inc.
 
    Contributed by Michael Eager <eager@eagercon.com>.
 
@@ -77,7 +77,6 @@ extern enum pipeline_type microblaze_pipe;
 #define TARGET_ASM_SPEC ""
 
 #define ASM_SPEC "\
-%{microblaze1} \
 %(target_asm_spec)"
 
 /* Extra switches sometimes passed to the linker.  */
@@ -93,8 +92,7 @@ extern enum pipeline_type microblaze_pipe;
 
 #ifndef CC1_SPEC
 #define CC1_SPEC " \
-%{G*} %{gline:%{!g:%{!g0:%{!g1:%{!g2: -g1}}}}} \
-%{save-temps: } \
+%{G*} \
 %(subtarget_cc1_spec) \
 %{mxl-multiply-high:-mcpu=v6.00.a} \
 "
@@ -103,22 +101,6 @@ extern enum pipeline_type microblaze_pipe;
 #define EXTRA_SPECS							\
   { "target_asm_spec", TARGET_ASM_SPEC },				\
   SUBTARGET_EXTRA_SPECS
-
-/* Print subsidiary information on the compiler version in use.  */
-#define MICROBLAZE_VERSION MICROBLAZE_DEFAULT_CPU
-
-#ifndef MACHINE_TYPE
-#define MACHINE_TYPE "MicroBlaze/ELF"
-#endif
-
-#ifndef TARGET_VERSION_INTERNAL
-#define TARGET_VERSION_INTERNAL(STREAM)					\
-  fprintf (STREAM, " %s %s", MACHINE_TYPE, MICROBLAZE_VERSION)
-#endif
-
-#ifndef TARGET_VERSION
-#define TARGET_VERSION TARGET_VERSION_INTERNAL (stderr)
-#endif
 
 /* Local compiler-generated symbols must have a prefix that the assembler
    understands.   */
@@ -491,7 +473,7 @@ typedef struct microblaze_args
   /* Adjustments made to args pass in regs.  */
   /* ??? The size is doubled to work around a bug in the code that sets the 
      adjustments in function_arg.  */
-  struct rtx_def *adjust[MAX_ARGS_IN_REGISTERS * 2];
+  rtx adjust[MAX_ARGS_IN_REGISTERS * 2];
 } CUMULATIVE_ARGS;
 
 #define INIT_CUMULATIVE_ARGS(CUM,FNTYPE,LIBNAME,FNDECL,N_NAMED_ARGS)	\
@@ -541,12 +523,6 @@ typedef struct microblaze_args
 /* Define this, so that when PIC, reload won't try to reload invalid
    addresses which require two reload registers.  */
 #define LEGITIMATE_PIC_OPERAND_P(X)  (!pic_address_needs_scratch (X))
-
-/* At present, GAS doesn't understand li.[sd], so don't allow it
-   to be generated at present.  */
-#define LEGITIMATE_CONSTANT_P(X)				\
-  (GET_CODE (X) != CONST_DOUBLE					\
-    || microblaze_const_double_ok (X, GET_MODE (X)))
 
 #define CASE_VECTOR_MODE			(SImode)
 

@@ -1,7 +1,7 @@
 /* Top level of GCC compilers (cc1, cc1plus, etc.)
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -891,7 +891,7 @@ print_switch_values (print_switch_fn_type print_fn)
 			     SWITCH_TYPE_DESCRIPTIVE, _("options enabled: "));
 
   for (j = 0; j < cl_options_count; j++)
-    if ((cl_options[j].flags & CL_REPORT)
+    if (cl_options[j].cl_report
 	&& option_enabled (j, &global_options) > 0)
       pos = print_single_switch (print_fn, pos,
 				 SWITCH_TYPE_ENABLED, cl_options[j].opt_text);
@@ -1314,12 +1314,16 @@ process_options (void)
 
 #ifndef HAVE_cloog
   if (flag_graphite
+      || flag_graphite_identity
       || flag_loop_block
+      || flag_loop_flatten
       || flag_loop_interchange
       || flag_loop_strip_mine
-      || flag_graphite_identity
       || flag_loop_parallelize_all)
-    sorry ("Graphite loop optimizations cannot be used");
+    sorry ("Graphite loop optimizations cannot be used (-fgraphite, "
+	   "-fgraphite-identity, -floop-block, -floop-flatten, "
+	   "-floop-interchange, -floop-strip-mine, -floop-parallelize-all, "
+	   "and -ftree-loop-linear)");
 #endif
 
   /* Unrolling all loops implies that standard loop unrolling must also
@@ -1596,6 +1600,15 @@ process_options (void)
       flag_omit_frame_pointer = 0;
     }
 
+  /* Enable -Werror=coverage-mismatch when -Werror and -Wno-error
+     have not been set.  */
+  if (!global_options_set.x_warnings_are_errors
+      && warn_coverage_mismatch
+      && (global_dc->classify_diagnostic[OPT_Wcoverage_mismatch] ==
+          DK_UNSPECIFIED))
+    diagnostic_classify_diagnostic (global_dc, OPT_Wcoverage_mismatch,
+                                    DK_ERROR, UNKNOWN_LOCATION);
+
   /* Save the current optimization options.  */
   optimization_default_node = build_optimization_node ();
   optimization_current_node = optimization_default_node;
@@ -1739,11 +1752,14 @@ lang_dependent_init (const char *name)
     return 0;
   input_location = save_loc;
 
-  init_asm_output (name);
+  if (!flag_wpa)
+    {
+      init_asm_output (name);
 
-  /* If stack usage information is desired, open the output file.  */
-  if (flag_stack_usage)
-    stack_usage_file = open_auxiliary_file ("su");
+      /* If stack usage information is desired, open the output file.  */
+      if (flag_stack_usage)
+	stack_usage_file = open_auxiliary_file ("su");
+    }
 
   /* This creates various _DECL nodes, so needs to be called after the
      front end is initialized.  */
@@ -1752,20 +1768,23 @@ lang_dependent_init (const char *name)
   /* Do the target-specific parts of the initialization.  */
   lang_dependent_init_target ();
 
-  /* If dbx symbol table desired, initialize writing it and output the
-     predefined types.  */
-  timevar_push (TV_SYMOUT);
+  if (!flag_wpa)
+    {
+      /* If dbx symbol table desired, initialize writing it and output the
+	 predefined types.  */
+      timevar_push (TV_SYMOUT);
 
 #if defined DWARF2_DEBUGGING_INFO || defined DWARF2_UNWIND_INFO
-  if (dwarf2out_do_frame ())
-    dwarf2out_frame_init ();
+      if (dwarf2out_do_frame ())
+	dwarf2out_frame_init ();
 #endif
 
-  /* Now we have the correct original filename, we can initialize
-     debug output.  */
-  (*debug_hooks->init) (name);
+      /* Now we have the correct original filename, we can initialize
+	 debug output.  */
+      (*debug_hooks->init) (name);
 
-  timevar_pop (TV_SYMOUT);
+      timevar_pop (TV_SYMOUT);
+    }
 
   return 1;
 }
@@ -1776,11 +1795,33 @@ lang_dependent_init (const char *name)
 void
 target_reinit (void)
 {
+  struct rtl_data saved_x_rtl;
+  rtx *saved_regno_reg_rtx;
+
+  /* Save *crtl and regno_reg_rtx around the reinitialization
+     to allow target_reinit being called even after prepare_function_start.  */
+  saved_regno_reg_rtx = regno_reg_rtx;
+  if (saved_regno_reg_rtx)
+    {  
+      saved_x_rtl = *crtl;
+      memset (crtl, '\0', sizeof (*crtl));
+      regno_reg_rtx = NULL;
+    }
+
   /* Reinitialize RTL backend.  */
   backend_init_target ();
 
   /* Reinitialize lang-dependent parts.  */
   lang_dependent_init_target ();
+
+  /* And restore it at the end, as free_after_compilation from
+     expand_dummy_function_end clears it.  */
+  if (saved_regno_reg_rtx)
+    {
+      *crtl = saved_x_rtl;
+      regno_reg_rtx = saved_regno_reg_rtx;
+      saved_regno_reg_rtx = NULL;
+    }
 }
 
 void
@@ -1822,8 +1863,6 @@ finalize (bool no_backend)
 	fatal_error ("error writing to %s: %m", asm_file_name);
       if (fclose (asm_out_file) != 0)
 	fatal_error ("error closing %s: %m", asm_file_name);
-      if (flag_wpa)
-	unlink_if_ordinary (asm_file_name);
     }
 
   if (stack_usage_file)

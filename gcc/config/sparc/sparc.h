@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler, for Sun SPARC.
    Copyright (C) 1987, 1988, 1989, 1992, 1994, 1995, 1996, 1997, 1998, 1999
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com).
    64-bit SPARC-V9 support by Michael Tiemann, Jim Wilson, and Doug Evans,
@@ -361,11 +361,6 @@ extern enum cmodel sparc_cmodel;
    for handling -mcpu=xxx switches.  */
 #define CPP_CPU_SPEC "\
 %{msoft-float:-D_SOFT_FLOAT} \
-%{mcypress:} \
-%{msparclite:-D__sparclite__} \
-%{mf930:-D__sparclite__} %{mf934:-D__sparclite__} \
-%{mv8:-D__sparc_v8__} \
-%{msupersparc:-D__supersparc__ -D__sparc_v8__} \
 %{mcpu=sparclet:-D__sparclet__} %{mcpu=tsc701:-D__sparclet__} \
 %{mcpu=sparclite:-D__sparclite__} \
 %{mcpu=f930:-D__sparclite__} %{mcpu=f934:-D__sparclite__} \
@@ -379,7 +374,7 @@ extern enum cmodel sparc_cmodel;
 %{mcpu=ultrasparc3:-D__sparc_v9__} \
 %{mcpu=niagara:-D__sparc_v9__} \
 %{mcpu=niagara2:-D__sparc_v9__} \
-%{!mcpu*:%{!mcypress:%{!msparclite:%{!mf930:%{!mf934:%{!mv8:%{!msupersparc:%(cpp_cpu_default)}}}}}}} \
+%{!mcpu*:%(cpp_cpu_default)} \
 "
 #define CPP_ARCH32_SPEC ""
 #define CPP_ARCH64_SPEC "-D__arch64__"
@@ -393,34 +388,23 @@ extern enum cmodel sparc_cmodel;
 %{!m32:%{!m64:%(cpp_arch_default)}} \
 "
 
-/* Macros to distinguish endianness.  */
+/* Macro to distinguish endianness.  */
 #define CPP_ENDIAN_SPEC "\
-%{mlittle-endian:-D__LITTLE_ENDIAN__} \
-%{mlittle-endian-data:-D__LITTLE_ENDIAN_DATA__}"
+%{mlittle-endian:-D__LITTLE_ENDIAN__}"
 
 /* Macros to distinguish the particular subtarget.  */
 #define CPP_SUBTARGET_SPEC ""
 
 #define CPP_SPEC "%(cpp_cpu) %(cpp_arch) %(cpp_endian) %(cpp_subtarget)"
 
-/* Prevent error on `-sun4' and `-target sun4' options.  */
 /* This used to translate -dalign to -malign, but that is no good
    because it can't turn off the usual meaning of making debugging dumps.  */
-/* Translate old style -m<cpu> into new style -mcpu=<cpu>.
-   ??? Delete support for -m<cpu> for 2.9.  */
 
-#define CC1_SPEC "\
-%{sun4:} %{target:} \
-%{mcypress:-mcpu=cypress} \
-%{msparclite:-mcpu=sparclite} %{mf930:-mcpu=f930} %{mf934:-mcpu=f934} \
-%{mv8:-mcpu=v8} %{msupersparc:-mcpu=supersparc} \
-"
+#define CC1_SPEC ""
 
 /* Override in target specific files.  */
 #define ASM_CPU_SPEC "\
 %{mcpu=sparclet:-Asparclet} %{mcpu=tsc701:-Asparclet} \
-%{msparclite:-Asparclite} \
-%{mf930:-Asparclite} %{mf934:-Asparclite} \
 %{mcpu=sparclite:-Asparclite} \
 %{mcpu=sparclite86x:-Asparclite} \
 %{mcpu=f930:-Asparclite} %{mcpu=f934:-Asparclite} \
@@ -430,7 +414,7 @@ extern enum cmodel sparc_cmodel;
 %{mcpu=ultrasparc3:%{!mv8plus:-Av9b}} \
 %{mcpu=niagara:%{!mv8plus:-Av9b}} \
 %{mcpu=niagara2:%{!mv8plus:-Av9b}} \
-%{!mcpu*:%{!mcypress:%{!msparclite:%{!mf930:%{!mf934:%{!mv8:%{!msupersparc:%(asm_cpu_default)}}}}}}} \
+%{!mcpu*:%(asm_cpu_default)} \
 "
 
 /* Word size selection, among other things.
@@ -529,31 +513,6 @@ extern enum cmodel sparc_cmodel;
    -mno-app-regs).  */
 #define TARGET_DEFAULT (MASK_APP_REGS + MASK_FPU)
 
-/* Processor type.
-   These must match the values for the cpu attribute in sparc.md.  */
-enum processor_type {
-  PROCESSOR_V7,
-  PROCESSOR_CYPRESS,
-  PROCESSOR_V8,
-  PROCESSOR_SUPERSPARC,
-  PROCESSOR_HYPERSPARC,
-  PROCESSOR_LEON,
-  PROCESSOR_SPARCLITE,
-  PROCESSOR_F930,
-  PROCESSOR_F934,
-  PROCESSOR_SPARCLITE86X,
-  PROCESSOR_SPARCLET,
-  PROCESSOR_TSC701,
-  PROCESSOR_V9,
-  PROCESSOR_ULTRASPARC,
-  PROCESSOR_ULTRASPARC3,
-  PROCESSOR_NIAGARA,
-  PROCESSOR_NIAGARA2
-};
-
-/* This is set from -m{cpu,tune}=xxx.  */
-extern enum processor_type sparc_cpu;
-
 /* Recast the cpu class to be the cpu attribute.
    Every file includes us, but not every file includes insn-attr.h.  */
 #define sparc_cpu_attr ((enum attr_cpu) sparc_cpu)
@@ -566,18 +525,7 @@ extern enum processor_type sparc_cpu;
 #define OPTION_DEFAULT_SPECS \
   {"cpu", "%{!mcpu=*:-mcpu=%(VALUE)}" }, \
   {"tune", "%{!mtune=*:-mtune=%(VALUE)}" }, \
-  {"float", "%{!msoft-float:%{!mhard-float:%{!fpu:%{!no-fpu:-m%(VALUE)-float}}}}" }
-
-/* sparc_select[0] is reserved for the default cpu.  */
-struct sparc_cpu_select
-{
-  const char *string;
-  const char *const name;
-  const int set_tune_p;
-  const int set_arch_p;
-};
-
-extern struct sparc_cpu_select sparc_select[];
+  {"float", "%{!msoft-float:%{!mhard-float:%{!mfpu:%{!mno-fpu:-m%(VALUE)-float}}}}" }
 
 /* target machine storage layout */
 
@@ -1024,19 +972,6 @@ extern enum reg_class sparc_regno_reg_class[FIRST_PSEUDO_REGISTER];
 
 #define REGNO_REG_CLASS(REGNO) sparc_regno_reg_class[(REGNO)]
 
-/* The following macro defines cover classes for Integrated Register
-   Allocator.  Cover classes is a set of non-intersected register
-   classes covering all hard registers used for register allocation
-   purpose.  Any move between two registers of a cover class should be
-   cheaper than load or store of the registers.  The macro value is
-   array of register classes with LIM_REG_CLASSES used as the end
-   marker.  */
-
-#define IRA_COVER_CLASSES						     \
-{									     \
-  GENERAL_REGS, EXTRA_FP_REGS, FPCC_REGS, LIM_REG_CLASSES		     \
-}
-
 /* Defines invalid mode changes.  Borrowed from pa64-regs.h.
 
    SImode loads to floating-point registers are not zero-extended.
@@ -1168,34 +1103,6 @@ extern char leaf_reg_remap[];
 /* Version of the above predicate for SImode constants and below.  */
 #define SPARC_SETHI32_P(X) \
   (SPARC_SETHI_P ((unsigned HOST_WIDE_INT) (X) & GET_MODE_MASK (SImode)))
-
-/* Given an rtx X being reloaded into a reg required to be
-   in class CLASS, return the class of reg to actually use.
-   In general this is just CLASS; but on some machines
-   in some cases it is preferable to use a more restrictive class.  */
-/* - We can't load constants into FP registers.
-   - We can't load FP constants into integer registers when soft-float,
-     because there is no soft-float pattern with a r/F constraint.
-   - We can't load FP constants into integer registers for TFmode unless
-     it is 0.0L, because there is no movtf pattern with a r/F constraint.
-   - Try and reload integer constants (symbolic or otherwise) back into
-     registers directly, rather than having them dumped to memory.  */
-
-#define PREFERRED_RELOAD_CLASS(X,CLASS)			\
-  (CONSTANT_P (X)					\
-   ? ((FP_REG_CLASS_P (CLASS)				\
-       || (CLASS) == GENERAL_OR_FP_REGS			\
-       || (CLASS) == GENERAL_OR_EXTRA_FP_REGS		\
-       || (GET_MODE_CLASS (GET_MODE (X)) == MODE_FLOAT	\
-	   && ! TARGET_FPU)				\
-       || (GET_MODE (X) == TFmode			\
-	   && ! const_zero_operand (X, TFmode)))	\
-      ? NO_REGS						\
-      : (!FP_REG_CLASS_P (CLASS)			\
-         && GET_MODE_CLASS (GET_MODE (X)) == MODE_INT)	\
-      ? GENERAL_REGS					\
-      : (CLASS))					\
-   : (CLASS))
 
 /* Return the register class of a scratch register needed to load IN into
    a register of class CLASS in MODE.
@@ -1632,12 +1539,6 @@ do {									\
 
 #define LEGITIMATE_PIC_OPERAND_P(X) legitimate_pic_operand_p (X)
 
-/* Nonzero if the constant value X is a legitimate general operand.
-   Anything can be made to work except floating point constants.
-   If TARGET_VIS, 0.0 can be made to work as well.  */
-
-#define LEGITIMATE_CONSTANT_P(X) legitimate_constant_p (X)
-
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
    and check its validity for a certain class.
    We have two alternate definitions for each of them.
@@ -1807,18 +1708,6 @@ do {									   \
 #define SUN_CONVERSION_LIBFUNCS 	0
 #define DITF_CONVERSION_LIBFUNCS	0
 #define SUN_INTEGER_MULTIPLY_64 	0
-
-/* Compute extra cost of moving data between one register class
-   and another.  */
-#define GENERAL_OR_I64(C) ((C) == GENERAL_REGS || (C) == I64_REGS)
-#define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2)		\
-  (((FP_REG_CLASS_P (CLASS1) && GENERAL_OR_I64 (CLASS2)) \
-    || (GENERAL_OR_I64 (CLASS1) && FP_REG_CLASS_P (CLASS2)) \
-    || (CLASS1) == FPCC_REGS || (CLASS2) == FPCC_REGS)		\
-   ? ((sparc_cpu == PROCESSOR_ULTRASPARC \
-       || sparc_cpu == PROCESSOR_ULTRASPARC3 \
-       || sparc_cpu == PROCESSOR_NIAGARA \
-       || sparc_cpu == PROCESSOR_NIAGARA2) ? 12 : 6) : 2)
 
 /* Provide the cost of a branch.  For pre-v9 processors we use
    a value of 3 to take into account the potential annulling of
@@ -2026,95 +1915,6 @@ extern int sparc_indent_opcode;
 	sparc_indent_opcode = 0;	\
       }					\
   } while (0)
-
-#define PRINT_OPERAND_PUNCT_VALID_P(CHAR) \
-  ((CHAR) == '#' || (CHAR) == '*' || (CHAR) == '('		\
-   || (CHAR) == ')' || (CHAR) == '_' || (CHAR) == '&')
-
-/* Print operand X (an rtx) in assembler syntax to file FILE.
-   CODE is a letter or dot (`z' in `%z0') or 0 if no letter was specified.
-   For `%' followed by punctuation, CODE is the punctuation and X is null.  */
-
-#define PRINT_OPERAND(FILE, X, CODE) print_operand (FILE, X, CODE)
-
-/* Print a memory address as an operand to reference that memory location.  */
-
-#define PRINT_OPERAND_ADDRESS(FILE, ADDR)  \
-{ register rtx base, index = 0;					\
-  int offset = 0;						\
-  register rtx addr = ADDR;					\
-  if (GET_CODE (addr) == REG)					\
-    fputs (reg_names[REGNO (addr)], FILE);			\
-  else if (GET_CODE (addr) == PLUS)				\
-    {								\
-      if (GET_CODE (XEXP (addr, 0)) == CONST_INT)		\
-	offset = INTVAL (XEXP (addr, 0)), base = XEXP (addr, 1);\
-      else if (GET_CODE (XEXP (addr, 1)) == CONST_INT)		\
-	offset = INTVAL (XEXP (addr, 1)), base = XEXP (addr, 0);\
-      else							\
-	base = XEXP (addr, 0), index = XEXP (addr, 1);		\
-      if (GET_CODE (base) == LO_SUM)				\
-	{							\
-	  gcc_assert (USE_AS_OFFSETABLE_LO10			\
-	      	      && TARGET_ARCH64				\
-		      && ! TARGET_CM_MEDMID);			\
-	  output_operand (XEXP (base, 0), 0);			\
-	  fputs ("+%lo(", FILE);				\
-	  output_address (XEXP (base, 1));			\
-	  fprintf (FILE, ")+%d", offset);			\
-	}							\
-      else							\
-	{							\
-	  fputs (reg_names[REGNO (base)], FILE);		\
-	  if (index == 0)					\
-	    fprintf (FILE, "%+d", offset);			\
-	  else if (GET_CODE (index) == REG)			\
-	    fprintf (FILE, "+%s", reg_names[REGNO (index)]);	\
-	  else if (GET_CODE (index) == SYMBOL_REF		\
-		   || GET_CODE (index) == LABEL_REF		\
-		   || GET_CODE (index) == CONST)		\
-	    fputc ('+', FILE), output_addr_const (FILE, index);	\
-	  else gcc_unreachable ();				\
-	}							\
-    }								\
-  else if (GET_CODE (addr) == MINUS				\
-	   && GET_CODE (XEXP (addr, 1)) == LABEL_REF)		\
-    {								\
-      output_addr_const (FILE, XEXP (addr, 0));			\
-      fputs ("-(", FILE);					\
-      output_addr_const (FILE, XEXP (addr, 1));			\
-      fputs ("-.)", FILE);					\
-    }								\
-  else if (GET_CODE (addr) == LO_SUM)				\
-    {								\
-      output_operand (XEXP (addr, 0), 0);			\
-      if (TARGET_CM_MEDMID)					\
-        fputs ("+%l44(", FILE);					\
-      else							\
-        fputs ("+%lo(", FILE);					\
-      output_address (XEXP (addr, 1));				\
-      fputc (')', FILE);					\
-    }								\
-  else if (flag_pic && GET_CODE (addr) == CONST			\
-	   && GET_CODE (XEXP (addr, 0)) == MINUS		\
-	   && GET_CODE (XEXP (XEXP (addr, 0), 1)) == CONST	\
-	   && GET_CODE (XEXP (XEXP (XEXP (addr, 0), 1), 0)) == MINUS	\
-	   && XEXP (XEXP (XEXP (XEXP (addr, 0), 1), 0), 1) == pc_rtx)	\
-    {								\
-      addr = XEXP (addr, 0);					\
-      output_addr_const (FILE, XEXP (addr, 0));			\
-      /* Group the args of the second CONST in parenthesis.  */	\
-      fputs ("-(", FILE);					\
-      /* Skip past the second CONST--it does nothing for us.  */\
-      output_addr_const (FILE, XEXP (XEXP (addr, 1), 0));	\
-      /* Close the parenthesis.  */				\
-      fputc (')', FILE);					\
-    }								\
-  else								\
-    {								\
-      output_addr_const (FILE, addr);				\
-    }								\
-}
 
 /* TLS support defaulting to original Sun flavor.  GNU extensions
    must be activated in separate configuration files.  */

@@ -1,6 +1,6 @@
 /* Operating system specific defines to be used when targeting GCC for any
    Solaris 2 system.
-   Copyright 2002, 2003, 2004, 2007, 2008, 2009, 2010
+   Copyright 2002, 2003, 2004, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -80,7 +80,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef CPP_SUBTARGET_SPEC
 #define CPP_SUBTARGET_SPEC "\
 %{pthreads|pthread:-D_REENTRANT -D_PTHREADS} \
-%{!pthreads:%{!pthread:%{threads:-D_REENTRANT -D_SOLARIS_THREADS}}} \
 %{compat-bsd:-iwithprefixbefore ucbinclude -I/usr/ucbinclude} \
 "
 
@@ -111,8 +110,7 @@ along with GCC; see the file COPYING3.  If not see
 /* The system headers under Solaris 2 are C++-aware since 2.0.  */
 #define NO_IMPLICIT_EXTERN_C
 
-/* The sun bundled assembler doesn't accept -Yd, (and neither does gas).
-   It's safe to pass -s always, even if -g is not used.  */
+/* It's safe to pass -s always, even if -g is not used.  */
 #undef ASM_SPEC
 #define ASM_SPEC "\
 %{v:-V} %{Qy:} %{!Qn:-Qy} %{Ym,*} -s \
@@ -135,8 +133,6 @@ along with GCC; see the file COPYING3.  If not see
    %{!symbolic:\
      %{pthreads|pthread:" \
         LIB_THREAD_LDFLAGS_SPEC " -lpthread " LIB_TLS_SPEC "} \
-     %{!pthreads:%{!pthread:%{threads:" \
-	LIB_THREAD_LDFLAGS_SPEC " -lthread}}} \
      %{p|pg:-ldl} -lc}"
 
 #undef  ENDFILE_SPEC
@@ -179,7 +175,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef LINK_ARCH_SPEC
 #define LINK_ARCH_SPEC LINK_ARCH32_SPEC
 
-/* This should be the same as in svr4.h, except with -R added.  */
 #undef  LINK_SPEC
 #define LINK_SPEC \
   "%{h*} %{v:-V} \
@@ -259,8 +254,8 @@ __enable_execute_stack (void *addr)					\
 /* #pragma init and #pragma fini are implemented on top of init and
    fini attributes.  */
 #define SOLARIS_ATTRIBUTE_TABLE						\
-  { "init",      0, 0, true,  false,  false, NULL },			\
-  { "fini",      0, 0, true,  false,  false, NULL }
+  { "init",      0, 0, true,  false,  false, NULL, false },		\
+  { "fini",      0, 0, true,  false,  false, NULL, false }
 
 /* Solaris/x86 as and gas support the common ELF .section/.pushsection
    syntax.  */
@@ -278,7 +273,7 @@ __enable_execute_stack (void *addr)					\
     }								\
   while (0)
 
-/* Solaris 'as' has a bug: a .common directive in .tbss section
+/* Solaris 'as' has a bug: a .common directive in .tbss or .tdata section
    behaves as .tls_common rather than normal non-TLS .common.  */
 #undef  ASM_OUTPUT_ALIGNED_COMMON
 #define ASM_OUTPUT_ALIGNED_COMMON(FILE, NAME, SIZE, ALIGN)		\
@@ -286,8 +281,7 @@ __enable_execute_stack (void *addr)					\
     {									\
       if (TARGET_SUN_TLS						\
 	  && in_section							\
-	  && ((in_section->common.flags & (SECTION_TLS | SECTION_BSS))	\
-	      == (SECTION_TLS | SECTION_BSS)))				\
+	  && ((in_section->common.flags & SECTION_TLS) == SECTION_TLS))	\
 	switch_to_section (bss_section);				\
       fprintf ((FILE), "%s", COMMON_ASM_OP);				\
       assemble_name ((FILE), (NAME));					\

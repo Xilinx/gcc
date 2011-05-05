@@ -1,5 +1,5 @@
 /* Basic IPA optimizations and utilities.
-   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   Copyright (C) 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -31,82 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "target.h"
 #include "tree-iterator.h"
-
-/* Fill array order with all nodes with output flag set in the reverse
-   topological order.  */
-
-int
-cgraph_postorder (struct cgraph_node **order)
-{
-  struct cgraph_node *node, *node2;
-  int stack_size = 0;
-  int order_pos = 0;
-  struct cgraph_edge *edge, last;
-  int pass;
-
-  struct cgraph_node **stack =
-    XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
-
-  /* We have to deal with cycles nicely, so use a depth first traversal
-     output algorithm.  Ignore the fact that some functions won't need
-     to be output and put them into order as well, so we get dependencies
-     right through inline functions.  */
-  for (node = cgraph_nodes; node; node = node->next)
-    node->aux = NULL;
-  for (pass = 0; pass < 2; pass++)
-    for (node = cgraph_nodes; node; node = node->next)
-      if (!node->aux
-	  && (pass
-	      || (!node->address_taken
-		  && !node->global.inlined_to
-		  && !cgraph_only_called_directly_p (node))))
-	{
-	  node2 = node;
-	  if (!node->callers)
-	    node->aux = &last;
-	  else
-	    node->aux = node->callers;
-	  while (node2)
-	    {
-	      while (node2->aux != &last)
-		{
-		  edge = (struct cgraph_edge *) node2->aux;
-		  if (edge->next_caller)
-		    node2->aux = edge->next_caller;
-		  else
-		    node2->aux = &last;
-		  /* Break possible cycles involving always-inline
-		     functions by ignoring edges from always-inline
-		     functions to non-always-inline functions.  */
-		  if (edge->caller->local.disregard_inline_limits
-		      && !edge->callee->local.disregard_inline_limits)
-		    continue;
-		  if (!edge->caller->aux)
-		    {
-		      if (!edge->caller->callers)
-			edge->caller->aux = &last;
-		      else
-			edge->caller->aux = edge->caller->callers;
-		      stack[stack_size++] = node2;
-		      node2 = edge->caller;
-		      break;
-		    }
-		}
-	      if (node2->aux == &last)
-		{
-		  order[order_pos++] = node2;
-		  if (stack_size)
-		    node2 = stack[--stack_size];
-		  else
-		    node2 = NULL;
-		}
-	    }
-	}
-  free (stack);
-  for (node = cgraph_nodes; node; node = node->next)
-    node->aux = NULL;
-  return order_pos;
-}
+#include "ipa-utils.h"
 
 /* Look for all functions inlined to NODE and update their inlined_to pointers
    to INLINED_TO.  */
@@ -259,7 +184,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
     {
       vnode->next_needed = NULL;
       vnode->prev_needed = NULL;
-      if (vnode->analyzed
+      if ((vnode->analyzed || vnode->force_output)
 	  && !varpool_can_remove_if_no_refs (vnode))
 	{
 	  vnode->needed = false;
@@ -380,7 +305,6 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	  cgraph_node_remove_callees (node);
 	  ipa_remove_all_references (&node->ref_list);
 	  node->analyzed = false;
-	  node->local.inlinable = false;
 	}
       if (!node->aux)
 	{
@@ -421,17 +345,14 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 		  if (!clone)
 		    {
 		      cgraph_release_function_body (node);
-		      node->local.inlinable = false;
 		      if (node->prev_sibling_clone)
 			node->prev_sibling_clone->next_sibling_clone = node->next_sibling_clone;
 		      else if (node->clone_of)
 			node->clone_of->clones = node->next_sibling_clone;
 		      if (node->next_sibling_clone)
 			node->next_sibling_clone->prev_sibling_clone = node->prev_sibling_clone;
-#ifdef ENABLE_CHECKING
 		      if (node->clone_of)
 			node->former_clone_of = node->clone_of->decl;
-#endif
 		      node->clone_of = NULL;
 		      node->next_sibling_clone = NULL;
 		      node->prev_sibling_clone = NULL;
@@ -519,6 +440,8 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
 	      }
 	  }
       }
+  if (file)
+    fprintf (file, "\n");
 
 #ifdef ENABLE_CHECKING
   verify_cgraph ();
@@ -846,16 +769,34 @@ function_and_variable_visibility (bool whole_program)
 		IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (p->decl)),
 		IDENTIFIER_POINTER (p->target));
 		
-      if ((node = cgraph_node_for_asm (p->target)) != NULL)
+      if ((node = cgraph_node_for_asm (p->target)) != NULL
+	  && !DECL_EXTERNAL (node->decl))
         {
+	  if (!node->analyzed)
+	    continue;
+	  /* Weakrefs alias symbols from other compilation unit.  In the case
+	     the destination of weakref became available because of LTO, we must
+	     mark it as needed.  */
+	  if (in_lto_p
+	      && lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl))
+	      && !node->needed)
+	    cgraph_mark_needed_node (node);
 	  gcc_assert (node->needed);
 	  pointer_set_insert (aliased_nodes, node);
 	  if (dump_file)
 	    fprintf (dump_file, "  node %s/%i",
 		     cgraph_node_name (node), node->uid);
         }
-      else if ((vnode = varpool_node_for_asm (p->target)) != NULL)
+      else if ((vnode = varpool_node_for_asm (p->target)) != NULL
+	       && !DECL_EXTERNAL (vnode->decl))
         {
+	  /* Weakrefs alias symbols from other compilation unit.  In the case
+	     the destination of weakref became available because of LTO, we must
+	     mark it as needed.  */
+	  if (in_lto_p
+	      && lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl))
+	      && !vnode->needed)
+	    varpool_mark_needed_node (vnode);
 	  gcc_assert (vnode->needed);
 	  pointer_set_insert (aliased_vnodes, vnode);
 	  if (dump_file)
@@ -869,6 +810,8 @@ function_and_variable_visibility (bool whole_program)
   for (node = cgraph_nodes; node; node = node->next)
     {
       int flags = flags_from_decl_or_type (node->decl);
+
+      /* Optimize away PURE and CONST constructors and destructors.  */
       if (optimize
 	  && (flags & (ECF_CONST | ECF_PURE))
 	  && !(flags & ECF_LOOPING_CONST_OR_PURE))
@@ -876,6 +819,13 @@ function_and_variable_visibility (bool whole_program)
 	  DECL_STATIC_CONSTRUCTOR (node->decl) = 0;
 	  DECL_STATIC_DESTRUCTOR (node->decl) = 0;
 	}
+
+      /* Frontends and alias code marks nodes as needed before parsing is finished.
+	 We may end up marking as node external nodes where this flag is meaningless
+	 strip it.  */
+      if (node->needed
+	  && (DECL_EXTERNAL (node->decl) || !node->analyzed))
+	node->needed = 0;
 
       /* C++ FE on lack of COMDAT support create local COMDAT functions
 	 (that ought to be shared but can not due to object format
@@ -1423,7 +1373,7 @@ ipa_profile (void)
   bool something_changed = false;
   int i;
 
-  order_pos = cgraph_postorder (order);
+  order_pos = ipa_reverse_postorder (order);
   for (i = order_pos - 1; i >= 0; i--)
     {
       if (order[i]->local.local && cgraph_propagate_frequency (order[i]))
@@ -1601,8 +1551,8 @@ record_cdtor_fn (struct cgraph_node *node)
     VEC_safe_push (tree, heap, static_ctors, node->decl);
   if (DECL_STATIC_DESTRUCTOR (node->decl))
     VEC_safe_push (tree, heap, static_dtors, node->decl);
-  node = cgraph_node (node->decl);
-  node->local.disregard_inline_limits = 1;
+  node = cgraph_get_node (node->decl);
+  DECL_DISREGARD_INLINE_LIMITS (node->decl) = 1;
 }
 
 /* Define global constructors/destructor functions for the CDTORS, of

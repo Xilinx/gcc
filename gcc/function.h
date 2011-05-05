@@ -1,6 +1,6 @@
 /* Structure for saving state for a nested function.
    Copyright (C) 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008, 2009
+   1999, 2000, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -713,6 +713,7 @@ extern void number_blocks (tree);
 
 extern void clear_block_marks (tree);
 extern tree blocks_nreverse (tree);
+extern tree block_chainon (tree, tree);
 
 /* Return size needed for stack frame based on slots so far allocated.
    This size counts from zero.  It is not rounded to STACK_BOUNDARY;
@@ -754,6 +755,7 @@ extern bool reference_callee_copied (CUMULATIVE_ARGS *, enum machine_mode,
 extern void used_types_insert (tree);
 
 extern int get_next_funcdef_no (void);
+extern int get_last_funcdef_no (void);
 
 /* In predict.c */
 extern bool optimize_function_for_size_p (struct function *);

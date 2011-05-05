@@ -270,6 +270,7 @@ check_handled_ts_structures (void)
   /* These are the TS_* structures that are either handled or
      explicitly ignored by the streamer routines.  */
   handled_p[TS_BASE] = true;
+  handled_p[TS_TYPED] = true;
   handled_p[TS_COMMON] = true;
   handled_p[TS_INT_CST] = true;
   handled_p[TS_REAL_CST] = true;
@@ -314,29 +315,25 @@ check_handled_ts_structures (void)
 
 
 /* Helper for lto_streamer_cache_insert_1.  Add T to CACHE->NODES at
-   slot IX.  Add OFFSET to CACHE->OFFSETS at slot IX.  */
+   slot IX.  */
 
 static void
 lto_streamer_cache_add_to_node_array (struct lto_streamer_cache_d *cache,
-				      int ix, tree t, unsigned offset)
+				      unsigned ix, tree t)
 {
-  gcc_assert (ix >= 0);
+  /* Make sure we're either replacing an old element or
+     appending consecutively.  */
+  gcc_assert (ix <= VEC_length (tree, cache->nodes));
 
-  /* Grow the array of nodes and offsets to accomodate T at IX.  */
-  if (ix >= (int) VEC_length (tree, cache->nodes))
-    {
-      size_t sz = ix + (20 + ix) / 4;
-      VEC_safe_grow_cleared (tree, heap, cache->nodes, sz);
-      VEC_safe_grow_cleared (unsigned, heap, cache->offsets, sz);
-    }
-
-  VEC_replace (tree, cache->nodes, ix, t);
-  VEC_replace (unsigned, cache->offsets, ix, offset);
+  if (ix == VEC_length (tree, cache->nodes))
+    VEC_safe_push (tree, heap, cache->nodes, t);
+  else
+    VEC_replace (tree, cache->nodes, ix, t);
 }
 
 
 /* Helper for lto_streamer_cache_insert and lto_streamer_cache_insert_at.
-   CACHE, T, IX_P and OFFSET_P are as in lto_streamer_cache_insert.
+   CACHE, T, and IX_P are as in lto_streamer_cache_insert.
 
    If INSERT_AT_NEXT_SLOT_P is true, T is inserted at the next available
    slot in the cache.  Otherwise, T is inserted at the position indicated
@@ -347,67 +344,41 @@ lto_streamer_cache_add_to_node_array (struct lto_streamer_cache_d *cache,
 
 static bool
 lto_streamer_cache_insert_1 (struct lto_streamer_cache_d *cache,
-			     tree t, int *ix_p, unsigned *offset_p,
+			     tree t, unsigned *ix_p,
 			     bool insert_at_next_slot_p)
 {
   void **slot;
-  struct tree_int_map d_entry, *entry;
-  int ix;
-  unsigned offset;
+  unsigned ix;
   bool existed_p;
 
   gcc_assert (t);
 
-  d_entry.base.from = t;
-  slot = htab_find_slot (cache->node_map, &d_entry, INSERT);
-  if (*slot == NULL)
+  slot = pointer_map_insert (cache->node_map, t);
+  if (!*slot)
     {
       /* Determine the next slot to use in the cache.  */
       if (insert_at_next_slot_p)
-	ix = cache->next_slot++;
+	ix = VEC_length (tree, cache->nodes);
       else
 	ix = *ix_p;
+       *slot = (void *)(size_t) (ix + 1);
 
-      entry = (struct tree_int_map *)pool_alloc (cache->node_map_entries);
-      entry->base.from = t;
-      entry->to = (unsigned) ix;
-      *slot = entry;
-
-      /* If no offset was given, store the invalid offset -1.  */
-      offset = (offset_p) ? *offset_p : (unsigned) -1;
-
-      lto_streamer_cache_add_to_node_array (cache, ix, t, offset);
+      lto_streamer_cache_add_to_node_array (cache, ix, t);
 
       /* Indicate that the item was not present in the cache.  */
       existed_p = false;
     }
   else
     {
-      entry = (struct tree_int_map *) *slot;
-      ix = (int) entry->to;
-      offset = VEC_index (unsigned, cache->offsets, ix);
+      ix = (size_t) *slot - 1;
 
       if (!insert_at_next_slot_p && ix != *ix_p)
 	{
 	  /* If the caller wants to insert T at a specific slot
 	     location, and ENTRY->TO does not match *IX_P, add T to
-	     the requested location slot.  This situation arises when
-	     streaming builtin functions.
-
-	     For instance, on the writer side we could have two
-	     FUNCTION_DECLS T1 and T2 that are represented by the same
-	     builtin function.  The reader will only instantiate the
-	     canonical builtin, but since T1 and T2 had been
-	     originally stored in different cache slots (S1 and S2),
-	     the reader must be able to find the canonical builtin
-	     function at slots S1 and S2.  */
-	  gcc_assert (lto_stream_as_builtin_p (t));
+	     the requested location slot.  */
 	  ix = *ix_p;
-
-	  /* Since we are storing a builtin, the offset into the
-	     stream is not necessary as we will not need to read
-	     forward in the stream.  */
-	  lto_streamer_cache_add_to_node_array (cache, ix, t, -1);
+	  lto_streamer_cache_add_to_node_array (cache, ix, t);
 	}
 
       /* Indicate that T was already in the cache.  */
@@ -417,9 +388,6 @@ lto_streamer_cache_insert_1 (struct lto_streamer_cache_d *cache,
   if (ix_p)
     *ix_p = ix;
 
-  if (offset_p)
-    *offset_p = offset;
-
   return existed_p;
 }
 
@@ -428,21 +396,13 @@ lto_streamer_cache_insert_1 (struct lto_streamer_cache_d *cache,
    return true.  Otherwise, return false.
 
    If IX_P is non-null, update it with the index into the cache where
-   T has been stored.
-
-   *OFFSET_P represents the offset in the stream where T is physically
-   written out.  The first time T is added to the cache, *OFFSET_P is
-   recorded in the cache together with T.  But if T already existed
-   in the cache, *OFFSET_P is updated with the value that was recorded
-   the first time T was added to the cache.
-
-   If OFFSET_P is NULL, it is ignored.  */
+   T has been stored.  */
 
 bool
 lto_streamer_cache_insert (struct lto_streamer_cache_d *cache, tree t,
-			   int *ix_p, unsigned *offset_p)
+			   unsigned *ix_p)
 {
-  return lto_streamer_cache_insert_1 (cache, t, ix_p, offset_p, true);
+  return lto_streamer_cache_insert_1 (cache, t, ix_p, true);
 }
 
 
@@ -451,29 +411,36 @@ lto_streamer_cache_insert (struct lto_streamer_cache_d *cache, tree t,
 
 bool
 lto_streamer_cache_insert_at (struct lto_streamer_cache_d *cache,
-			      tree t, int ix)
+			      tree t, unsigned ix)
 {
-  return lto_streamer_cache_insert_1 (cache, t, &ix, NULL, false);
+  return lto_streamer_cache_insert_1 (cache, t, &ix, false);
 }
 
 
-/* Return true if tree node T exists in CACHE.  If IX_P is
+/* Appends tree node T to CACHE, even if T already existed in it.  */
+
+void
+lto_streamer_cache_append (struct lto_streamer_cache_d *cache, tree t)
+{
+  unsigned ix = VEC_length (tree, cache->nodes);
+  lto_streamer_cache_insert_1 (cache, t, &ix, false);
+}
+
+/* Return true if tree node T exists in CACHE, otherwise false.  If IX_P is
    not NULL, write to *IX_P the index into the cache where T is stored
-   (-1 if T is not found).  */
+   ((unsigned)-1 if T is not found).  */
 
 bool
 lto_streamer_cache_lookup (struct lto_streamer_cache_d *cache, tree t,
-			   int *ix_p)
+			   unsigned *ix_p)
 {
   void **slot;
-  struct tree_int_map d_slot;
   bool retval;
-  int ix;
+  unsigned ix;
 
   gcc_assert (t);
 
-  d_slot.base.from = t;
-  slot = htab_find_slot (cache->node_map, &d_slot, NO_INSERT);
+  slot = pointer_map_contains  (cache->node_map, t);
   if (slot == NULL)
     {
       retval = false;
@@ -482,7 +449,7 @@ lto_streamer_cache_lookup (struct lto_streamer_cache_d *cache, tree t,
   else
     {
       retval = true;
-      ix = (int) ((struct tree_int_map *) *slot)->to;
+      ix = (size_t) *slot - 1;
     }
 
   if (ix_p)
@@ -495,17 +462,14 @@ lto_streamer_cache_lookup (struct lto_streamer_cache_d *cache, tree t,
 /* Return the tree node at slot IX in CACHE.  */
 
 tree
-lto_streamer_cache_get (struct lto_streamer_cache_d *cache, int ix)
+lto_streamer_cache_get (struct lto_streamer_cache_d *cache, unsigned ix)
 {
   gcc_assert (cache);
 
-  /* If the reader is requesting an index beyond the length of the
-     cache, it will need to read ahead.  Return NULL_TREE to indicate
-     that.  */
-  if ((unsigned) ix >= VEC_length (tree, cache->nodes))
-    return NULL_TREE;
+  /* Make sure we're not requesting something we don't have.  */
+  gcc_assert (ix < VEC_length (tree, cache->nodes));
 
-  return VEC_index (tree, cache->nodes, (unsigned) ix);
+  return VEC_index (tree, cache->nodes, ix);
 }
 
 
@@ -527,7 +491,11 @@ lto_record_common_node (tree *nodep, VEC(tree, heap) **common_nodes,
 	 are set by the middle-end.  */
       if (in_lto_p)
 	TYPE_CANONICAL (node) = NULL_TREE;
-      *nodep = node = gimple_register_type (node);
+      node = gimple_register_type (node);
+      TYPE_CANONICAL (node) = gimple_register_canonical_type (node);
+      if (in_lto_p)
+	TYPE_CANONICAL (*nodep) = TYPE_CANONICAL (node);
+      *nodep = node;
     }
 
   /* Return if node is already seen.  */
@@ -536,18 +504,15 @@ lto_record_common_node (tree *nodep, VEC(tree, heap) **common_nodes,
 
   VEC_safe_push (tree, heap, *common_nodes, node);
 
-  if (tree_node_can_be_shared (node))
-    {
-      if (POINTER_TYPE_P (node)
-	  || TREE_CODE (node) == COMPLEX_TYPE
-	  || TREE_CODE (node) == ARRAY_TYPE)
-	lto_record_common_node (&TREE_TYPE (node), common_nodes, seen_nodes);
-    }
+  if (POINTER_TYPE_P (node)
+      || TREE_CODE (node) == COMPLEX_TYPE
+      || TREE_CODE (node) == ARRAY_TYPE)
+    lto_record_common_node (&TREE_TYPE (node), common_nodes, seen_nodes);
 }
 
 
 /* Generate a vector of common nodes and make sure they are merged
-   properly according to the the gimple type table.  */
+   properly according to the gimple type table.  */
 
 static VEC(tree,heap) *
 lto_get_common_nodes (void)
@@ -605,7 +570,7 @@ preload_common_node (struct lto_streamer_cache_d *cache, tree t)
 {
   gcc_assert (t);
 
-  lto_streamer_cache_insert (cache, t, NULL, NULL);
+  lto_streamer_cache_insert (cache, t, NULL);
 
  /* The FIELD_DECLs of structures should be shared, so that every
     COMPONENT_REF uses the same tree node when referencing a field.
@@ -634,11 +599,7 @@ lto_streamer_cache_create (void)
 
   cache = XCNEW (struct lto_streamer_cache_d);
 
-  cache->node_map = htab_create (101, tree_int_map_hash, tree_int_map_eq, NULL);
-
-  cache->node_map_entries = create_alloc_pool ("node map",
-					       sizeof (struct tree_int_map),
-					       100);
+  cache->node_map = pointer_map_create ();
 
   /* Load all the well-known tree nodes that are always created by
      the compiler on startup.  This prevents writing them out
@@ -662,10 +623,8 @@ lto_streamer_cache_delete (struct lto_streamer_cache_d *c)
   if (c == NULL)
     return;
 
-  htab_delete (c->node_map);
-  free_alloc_pool (c->node_map_entries);
+  pointer_map_destroy (c->node_map);
   VEC_free (tree, heap, c->nodes);
-  VEC_free (unsigned, heap, c->offsets);
   free (c);
 }
 

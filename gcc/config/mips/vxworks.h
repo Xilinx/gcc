@@ -1,4 +1,4 @@
-/* Copyright (C) 1999, 2003, 2004, 2007, 2008, 2010
+/* Copyright (C) 1999, 2003, 2004, 2007, 2008, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -17,9 +17,6 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-#undef  TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (MIPS, VxWorks syntax)");
-
 #undef  ASM_SPEC
 #define ASM_SPEC "\
 %{!G:-G 0} %{G*} %(endian_spec) %{mips1} %{mips2} %{mips3} %{mips4} \
@@ -33,11 +30,9 @@ along with GCC; see the file COPYING3.  If not see
 %(subtarget_asm_spec)"
 
 #undef LINK_SPEC
-/* LINK_SPEC is clobbered in svr4.h. ugh!  */
 #define LINK_SPEC "\
 %(endian_spec) \
-%{!G:-G 0} %{G*} %{mips1} %{mips2} %{mips3} %{mips4} %{mips32} %{mips64} \
-%{bestGnum}" \
+%{!G:-G 0} %{G*} %{mips1} %{mips2} %{mips3} %{mips4} %{mips32} %{mips64} " \
 VXWORKS_LINK_SPEC
 
 #undef  LIB_SPEC

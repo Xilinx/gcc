@@ -1,5 +1,6 @@
 /* Definitions of target machine for GCC, for SPARC64, ELF.
-   Copyright (C) 1994, 1995, 1996, 1997, 1998, 2000, 2004, 2005, 2007, 2010
+   Copyright (C) 1994, 1995, 1996, 1997, 1998, 2000, 2004, 2005, 2007, 2010,
+   2011
    Free Software Foundation, Inc.
    Contributed by Doug Evans, dje@cygnus.com.
 
@@ -19,9 +20,6 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
-#undef TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (sparc64-elf)")
-
 /* A 64 bit v9 compiler in a Medium/Anywhere code model environment.  */
 #undef TARGET_DEFAULT
 #define TARGET_DEFAULT \
@@ -40,7 +38,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef ASM_SPEC
 #define ASM_SPEC "\
-%{v:-V} -s %{fpic|fPIC|fpie|fPIE:-K PIC} \
+-s %{fpic|fPIC|fpie|fPIE:-K PIC} \
 %{mlittle-endian:-EL} \
 %(asm_cpu) %(asm_arch) \
 "

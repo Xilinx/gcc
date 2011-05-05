@@ -216,6 +216,9 @@ typedef struct _loop_vec_info {
   /* The mask used to check the alignment of pointers or arrays.  */
   int ptr_mask;
 
+  /* The loop nest in which the data dependences are computed.  */
+  VEC (loop_p, heap) *loop_nest;
+
   /* All data references in the loop.  */
   VEC (data_reference_p, heap) *datarefs;
 
@@ -261,6 +264,7 @@ typedef struct _loop_vec_info {
 #define LOOP_VINFO_VECTORIZABLE_P(L)       (L)->vectorizable
 #define LOOP_VINFO_VECT_FACTOR(L)          (L)->vectorization_factor
 #define LOOP_VINFO_PTR_MASK(L)             (L)->ptr_mask
+#define LOOP_VINFO_LOOP_NEST(L)            (L)->loop_nest
 #define LOOP_VINFO_DATAREFS(L)             (L)->datarefs
 #define LOOP_VINFO_DDRS(L)                 (L)->ddrs
 #define LOOP_VINFO_INT_NITERS(L)           (TREE_INT_CST_LOW ((L)->num_iters))
@@ -819,20 +823,19 @@ extern bool vect_verify_datarefs_alignment (loop_vec_info, bb_vec_info);
 extern bool vect_analyze_data_ref_accesses (loop_vec_info, bb_vec_info);
 extern bool vect_prune_runtime_alias_test_list (loop_vec_info);
 extern bool vect_analyze_data_refs (loop_vec_info, bb_vec_info, int *);
-extern tree vect_create_data_ref_ptr (gimple, struct loop *, tree, tree *,
-                                      gimple *, bool, bool *);
+extern tree vect_create_data_ref_ptr (gimple, tree, struct loop *, tree,
+				      tree *, gimple_stmt_iterator *,
+				      gimple *, bool, bool *);
 extern tree bump_vector_ptr (tree, gimple, gimple_stmt_iterator *, gimple, tree);
 extern tree vect_create_destination_var (tree, tree);
-extern bool vect_strided_store_supported (tree);
-extern bool vect_strided_load_supported (tree);
-extern bool vect_permute_store_chain (VEC(tree,heap) *,unsigned int, gimple,
+extern bool vect_strided_store_supported (tree, unsigned HOST_WIDE_INT);
+extern bool vect_strided_load_supported (tree, unsigned HOST_WIDE_INT);
+extern void vect_permute_store_chain (VEC(tree,heap) *,unsigned int, gimple,
                                     gimple_stmt_iterator *, VEC(tree,heap) **);
 extern tree vect_setup_realignment (gimple, gimple_stmt_iterator *, tree *,
                                     enum dr_alignment_support, tree,
                                     struct loop **);
-extern bool vect_permute_load_chain (VEC(tree,heap) *,unsigned int, gimple,
-                                    gimple_stmt_iterator *, VEC(tree,heap) **);
-extern bool vect_transform_strided_load (gimple, VEC(tree,heap) *, int,
+extern void vect_transform_strided_load (gimple, VEC(tree,heap) *, int,
                                          gimple_stmt_iterator *);
 extern int vect_get_place_in_interleaving_chain (gimple, gimple);
 extern tree vect_get_new_vect_var (tree, enum vect_var_kind, const char *);
@@ -867,7 +870,7 @@ extern bool vect_transform_slp_perm_load (gimple, VEC (tree, heap) *,
 extern bool vect_schedule_slp (loop_vec_info, bb_vec_info);
 extern void vect_update_slp_costs_according_to_vf (loop_vec_info);
 extern bool vect_analyze_slp (loop_vec_info, bb_vec_info);
-extern void vect_make_slp_decision (loop_vec_info);
+extern bool vect_make_slp_decision (loop_vec_info);
 extern void vect_detect_hybrid_slp (loop_vec_info);
 extern void vect_get_slp_defs (tree, tree, slp_tree, VEC (tree,heap) **,
                                VEC (tree,heap) **, int);

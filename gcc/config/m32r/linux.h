@@ -1,5 +1,6 @@
 /* Definitions for Renesas M32R running Linux-based GNU systems using ELF.
-   Copyright (C) 2003, 2004, 2006, 2007, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2006, 2007, 2010, 2011
+   Free Software Foundation, Inc.
 
    This file is part of GCC.
 
@@ -16,15 +17,6 @@
    You should have received a copy of the GNU General Public License
    along with GCC; see the file COPYING3.  If not see
    <http://www.gnu.org/licenses/>.  */
-
-#define LINUX_DEFAULT_ELF
-
-/* A lie, I guess, but the general idea behind linux/ELF is that we are
-   supposed to be outputting something that will assemble under SVr4.
-   This gets us pretty close.  */
-
-#undef  TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (M32R GNU/Linux with ELF)");
 
 #undef  SIZE_TYPE
 #define SIZE_TYPE "unsigned int"
@@ -52,19 +44,17 @@
 #if TARGET_LITTLE_ENDIAN
 #define LINK_SPEC "%(link_cpu) -m m32rlelf_linux %{shared:-shared} \
   %{!shared: \
-    %{!ibcs: \
-      %{!static: \
-	%{rdynamic:-export-dynamic} \
-	-dynamic-linker " LINUX_DYNAMIC_LINKER "} \
-	%{static:-static}}}"
+    %{!static: \
+      %{rdynamic:-export-dynamic} \
+      -dynamic-linker " GNU_USER_DYNAMIC_LINKER "} \
+      %{static:-static}}"
 #else
 #define LINK_SPEC "%(link_cpu) -m m32relf_linux %{shared:-shared} \
   %{!shared: \
-    %{!ibcs: \
-      %{!static: \
-	%{rdynamic:-export-dynamic} \
-	-dynamic-linker " LINUX_DYNAMIC_LINKER "} \
-	%{static:-static}}}"
+    %{!static: \
+      %{rdynamic:-export-dynamic} \
+      -dynamic-linker " GNU_USER_DYNAMIC_LINKER "} \
+      %{static:-static}}"
 #endif
 
 #undef	LIB_SPEC
@@ -97,6 +87,6 @@
    %{pthread:-D_REENTRANT -D_PTHREADS} \
 "
                                                                                 
-#define TARGET_OS_CPP_BUILTINS() LINUX_TARGET_OS_CPP_BUILTINS()
+#define TARGET_OS_CPP_BUILTINS() GNU_USER_TARGET_OS_CPP_BUILTINS()
 
 #define TARGET_ASM_FILE_END file_end_indicate_exec_stack

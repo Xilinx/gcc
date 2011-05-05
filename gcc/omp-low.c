@@ -1209,7 +1209,8 @@ new_omp_context (gimple stmt, omp_context *outer_ctx)
     {
       ctx->cb.src_fn = current_function_decl;
       ctx->cb.dst_fn = current_function_decl;
-      ctx->cb.src_node = cgraph_node (current_function_decl);
+      ctx->cb.src_node = cgraph_get_node (current_function_decl);
+      gcc_checking_assert (ctx->cb.src_node);
       ctx->cb.dst_node = ctx->cb.src_node;
       ctx->cb.src_cfun = cfun;
       ctx->cb.copy_decl = omp_copy_decl;
@@ -5005,6 +5006,8 @@ expand_omp_atomic_fetch_op (basic_block load_bb,
     return false;
 
   decl = built_in_decls[base + index + 1];
+  if (decl == NULL_TREE)
+    return false;
   itype = TREE_TYPE (TREE_TYPE (decl));
 
   if (direct_optab_handler (optab, TYPE_MODE (itype)) == CODE_FOR_nothing)
@@ -5056,6 +5059,8 @@ expand_omp_atomic_pipeline (basic_block load_bb, basic_block store_bb,
   edge e;
 
   cmpxchg = built_in_decls[BUILT_IN_VAL_COMPARE_AND_SWAP_N + index + 1];
+  if (cmpxchg == NULL_TREE)
+    return false;
   type = TYPE_MAIN_VARIANT (TREE_TYPE (TREE_TYPE (addr)));
   itype = TREE_TYPE (TREE_TYPE (cmpxchg));
 
@@ -6263,7 +6268,8 @@ create_task_copyfn (gimple task_stmt, omp_context *ctx)
       memset (&tcctx, '\0', sizeof (tcctx));
       tcctx.cb.src_fn = ctx->cb.src_fn;
       tcctx.cb.dst_fn = child_fn;
-      tcctx.cb.src_node = cgraph_node (tcctx.cb.src_fn);
+      tcctx.cb.src_node = cgraph_get_node (tcctx.cb.src_fn);
+      gcc_checking_assert (tcctx.cb.src_node);
       tcctx.cb.dst_node = tcctx.cb.src_node;
       tcctx.cb.src_cfun = ctx->cb.src_cfun;
       tcctx.cb.copy_decl = task_copyfn_copy_decl;

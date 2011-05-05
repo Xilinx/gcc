@@ -1,7 +1,7 @@
 /* Gcov.c: prepend line execution counts and branch probabilities to a
    source file.
    Copyright (C) 1990, 1991, 1992, 1993, 1994, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by James E. Wilson of Cygnus Support.
    Mangled by Bob Manson of Cygnus Support.
@@ -53,6 +53,13 @@ along with Gcov; see the file COPYING3.  If not see
    are very similar to functions in the gcc source file profile.c.  In
    some places we make use of the knowledge of how profile.c works to
    select particular algorithms here.  */
+
+/* The code validates that the profile information read in corresponds
+   to the code currently being compiled.  Rather than checking for
+   identical files, the code below computes a checksum on the CFG
+   (based on the order of basic blocks and the arcs in the CFG).  If
+   the CFG checksum in the gcda file match the CFG checksum for the
+   code currently being compiled, the profile data will be used.  */
 
 /* This is the size of the buffer used to read in source file lines.  */
 
@@ -161,7 +168,8 @@ typedef struct function_info
   /* Name of function.  */
   char *name;
   unsigned ident;
-  unsigned checksum;
+  unsigned lineno_checksum;
+  unsigned cfg_checksum;
 
   /* Array of basic blocks.  */
   block_t *blocks;
@@ -440,7 +448,7 @@ static void
 print_version (void)
 {
   fnotice (stdout, "gcov %s%s\n", pkgversion_string, version_string);
-  fprintf (stdout, "Copyright %s 2010 Free Software Foundation, Inc.\n",
+  fprintf (stdout, "Copyright %s 2011 Free Software Foundation, Inc.\n",
 	   _("(C)"));
   fnotice (stdout,
 	   _("This is free software; see the source for copying conditions.\n"
@@ -661,10 +669,8 @@ create_file_names (const char *file_name)
   int base;
 
   /* Free previous file names.  */
-  if (bbg_file_name)
-    free (bbg_file_name);
-  if (da_file_name)
-    free (da_file_name);
+  free (bbg_file_name);
+  free (da_file_name);
   da_file_name = bbg_file_name = NULL;
   bbg_file_time = 0;
   bbg_stamp = 0;
@@ -728,7 +734,7 @@ find_source (const char *file_name)
     file_name = "<unknown>";
 
   for (src = sources; src; src = src->next)
-    if (!strcmp (file_name, src->name))
+    if (!filename_cmp (file_name, src->name))
       break;
 
   if (!src)
@@ -809,12 +815,14 @@ read_graph_file (void)
       if (tag == GCOV_TAG_FUNCTION)
 	{
 	  char *function_name;
-	  unsigned ident, checksum, lineno;
+	  unsigned ident, lineno;
+	  unsigned lineno_checksum, cfg_checksum;
 	  source_t *src;
 	  function_t *probe, *prev;
 
 	  ident = gcov_read_unsigned ();
-	  checksum = gcov_read_unsigned ();
+	  lineno_checksum = gcov_read_unsigned ();
+	  cfg_checksum = gcov_read_unsigned ();
 	  function_name = xstrdup (gcov_read_string ());
 	  src = find_source (gcov_read_string ());
 	  lineno = gcov_read_unsigned ();
@@ -822,7 +830,8 @@ read_graph_file (void)
 	  fn = XCNEW (function_t);
 	  fn->name = function_name;
 	  fn->ident = ident;
-	  fn->checksum = checksum;
+	  fn->lineno_checksum = lineno_checksum;
+	  fn->cfg_checksum = cfg_checksum;
 	  fn->src = src;
 	  fn->line = lineno;
 
@@ -1109,7 +1118,8 @@ read_count_file (void)
 
 	  if (!fn)
 	    ;
-	  else if (gcov_read_unsigned () != fn->checksum)
+	  else if (gcov_read_unsigned () != fn->lineno_checksum
+		   || gcov_read_unsigned () != fn->cfg_checksum)
 	    {
 	    mismatch:;
 	      fnotice (stderr, "%s:profile mismatch for '%s'\n",
@@ -1527,7 +1537,7 @@ make_gcov_file_name (const char *input_name, const char *src_name)
 
   if (flag_preserve_paths)
     {
-      /* Convert '/' and '\' to '#', remove '/./', convert '/../' to '/^/',
+      /* Convert '/' and '\' to '#', remove '/./', convert '/../' to '#^#',
 	 convert ':' to '~' on DOS based file system.  */
       char *pnew = name, *pold = name;
 
@@ -1535,32 +1545,41 @@ make_gcov_file_name (const char *input_name, const char *src_name)
 
       while (*pold != '\0')
 	{
-	  if (*pold == '/' || *pold == '\\')
-	    {
-	      *pnew++ = '#';
-	      pold++;
-	    }
 #if defined (HAVE_DOS_BASED_FILE_SYSTEM)
-	  else if (*pold == ':')
+	  if (*pold == ':')
 	    {
 	      *pnew++ = '~';
 	      pold++;
 	    }
+	  else
 #endif
-	  else if ((*pold == '/' && strstr (pold, "/./") == pold)
-		   || (*pold == '\\' && strstr (pold, "\\.\\") == pold))
+	  if ((*pold == '/'
+		    && (strstr (pold, "/./") == pold
+		        || strstr (pold, "/.\\") == pold))
+		   || (*pold == '\\'
+		       && (strstr (pold, "\\.\\") == pold
+		           || strstr (pold, "\\./") == pold)))
 	      pold += 3;
-	  else if (*pold == '/' && strstr (pold, "/../") == pold)
+	  else if (*pold == '/'
+		   && (strstr (pold, "/../") == pold
+		       || strstr (pold, "/..\\") == pold))
 	    {
-	      strcpy (pnew, "/^/");
+	      strcpy (pnew, "#^#");
 	      pnew += 3;
 	      pold += 4;
 	    }
-	  else if (*pold == '\\' && strstr (pold, "\\..\\") == pold)
+	  else if (*pold == '\\'
+		   && (strstr (pold, "\\..\\") == pold
+		       || strstr (pold, "\\../") == pold))
 	    {
-	      strcpy (pnew, "\\^\\");
+	      strcpy (pnew, "#^#");
 	      pnew += 3;
 	      pold += 4;
+	    }
+	  else if (*pold == '/' || *pold == '\\')
+	    {
+	      *pnew++ = '#';
+	      pold++;
 	    }
 	  else
 	    *pnew++ = *pold++;

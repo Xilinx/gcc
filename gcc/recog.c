@@ -277,8 +277,8 @@ canonicalize_change_group (rtx insn, rtx x)
       /* Oops, the caller has made X no longer canonical.
 	 Let's redo the changes in the correct order.  */
       rtx tem = XEXP (x, 0);
-      validate_change (insn, &XEXP (x, 0), XEXP (x, 1), 1);
-      validate_change (insn, &XEXP (x, 1), tem, 1);
+      validate_unshare_change (insn, &XEXP (x, 0), XEXP (x, 1), 1);
+      validate_unshare_change (insn, &XEXP (x, 1), tem, 1);
       return true;
     }
   else
@@ -930,7 +930,9 @@ general_operand (rtx op, enum machine_mode mode)
     return ((GET_MODE (op) == VOIDmode || GET_MODE (op) == mode
 	     || mode == VOIDmode)
 	    && (! flag_pic || LEGITIMATE_PIC_OPERAND_P (op))
-	    && LEGITIMATE_CONSTANT_P (op));
+	    && targetm.legitimate_constant_p (mode == VOIDmode
+					      ? GET_MODE (op)
+					      : mode, op));
 
   /* Except for certain constants with VOIDmode, already checked for,
      OP's mode must match MODE if MODE specifies a mode.  */
@@ -1107,7 +1109,9 @@ immediate_operand (rtx op, enum machine_mode mode)
 	  && (GET_MODE (op) == mode || mode == VOIDmode
 	      || GET_MODE (op) == VOIDmode)
 	  && (! flag_pic || LEGITIMATE_PIC_OPERAND_P (op))
-	  && LEGITIMATE_CONSTANT_P (op));
+	  && targetm.legitimate_constant_p (mode == VOIDmode
+					    ? GET_MODE (op)
+					    : mode, op));
 }
 
 /* Returns 1 if OP is an operand that is a CONST_INT.  */

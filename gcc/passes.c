@@ -73,6 +73,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "predict.h"
 #include "lto-streamer.h"
 #include "plugin.h"
+#include "ipa-utils.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
 #include "dwarf2out.h"
@@ -144,6 +145,7 @@ rest_of_decl_compilation (tree decl,
 {
   /* We deferred calling assemble_alias so that we could collect
      other attributes such as visibility.  Emit the alias now.  */
+  if (!in_lto_p)
   {
     tree alias;
     alias = lookup_attribute ("alias", DECL_ATTRIBUTES (decl));
@@ -728,7 +730,6 @@ init_optimization_passes (void)
   NEXT_PASS (pass_build_cfg);
   NEXT_PASS (pass_warn_function_return);
   NEXT_PASS (pass_build_cgraph_edges);
-  NEXT_PASS (pass_inline_parameters);
   *p = NULL;
 
   /* Interprocedural optimization passes.  */
@@ -746,12 +747,8 @@ init_optimization_passes (void)
       NEXT_PASS (pass_build_ssa);
       NEXT_PASS (pass_lower_vector);
       NEXT_PASS (pass_early_warn_uninitialized);
-      /* Note that it is not strictly necessary to schedule an early
-	 inline pass here.  However, some test cases (e.g.,
-	 g++.dg/other/p334435.C g++.dg/other/i386-1.C) expect extern
-	 inline functions to be inlined even at -O0.  This does not
-	 happen during the first early inline pass.  */
       NEXT_PASS (pass_rebuild_cgraph_edges);
+      NEXT_PASS (pass_inline_parameters);
       NEXT_PASS (pass_early_inline);
       NEXT_PASS (pass_all_early_optimizations);
 	{
@@ -766,6 +763,7 @@ init_optimization_passes (void)
 	     locals into SSA form if possible.  */
 	  NEXT_PASS (pass_build_ealias);
 	  NEXT_PASS (pass_sra_early);
+	  NEXT_PASS (pass_fre);
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_merge_phi);
 	  NEXT_PASS (pass_cd_dce);
@@ -785,6 +783,10 @@ init_optimization_passes (void)
       NEXT_PASS (pass_inline_parameters);
     }
   NEXT_PASS (pass_ipa_tree_profile);
+    {
+      struct opt_pass **p = &pass_ipa_tree_profile.pass.sub;
+      NEXT_PASS (pass_feedback_split_functions);
+    }
   NEXT_PASS (pass_ipa_increase_alignment);
   NEXT_PASS (pass_ipa_matrix_reorg);
   NEXT_PASS (pass_ipa_lower_emutls);
@@ -798,9 +800,7 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_inline);
   NEXT_PASS (pass_ipa_pure_const);
   NEXT_PASS (pass_ipa_reference);
-  NEXT_PASS (pass_ipa_type_escape);
   NEXT_PASS (pass_ipa_pta);
-  NEXT_PASS (pass_ipa_struct_reorg);
   *p = NULL;
 
   p = &all_lto_gen_passes;
@@ -882,15 +882,14 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_record_bounds);
 	  NEXT_PASS (pass_check_data_deps);
 	  NEXT_PASS (pass_loop_distribution);
-	  NEXT_PASS (pass_linear_transform);
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_graphite);
 	    {
 	      struct opt_pass **p = &pass_graphite.pass.sub;
 	      NEXT_PASS (pass_graphite_transforms);
+	      NEXT_PASS (pass_lim);
 	      NEXT_PASS (pass_copy_prop);
 	      NEXT_PASS (pass_dce_loop);
-	      NEXT_PASS (pass_lim);
 	    }
 	  NEXT_PASS (pass_iv_canon);
 	  NEXT_PASS (pass_if_conversion);
@@ -1017,6 +1016,7 @@ init_optimization_passes (void)
 	  NEXT_PASS (pass_gcse2);
 	  NEXT_PASS (pass_split_after_reload);
 	  NEXT_PASS (pass_implicit_zee);
+	  NEXT_PASS (pass_compare_elim_after_reload);
 	  NEXT_PASS (pass_branch_target_load_optimize1);
 	  NEXT_PASS (pass_thread_prologue_and_epilogue);
 	  NEXT_PASS (pass_rtl_dse2);
@@ -1125,7 +1125,7 @@ do_per_function_toporder (void (*callback) (void *data), void *data)
     {
       gcc_assert (!order);
       order = ggc_alloc_vec_cgraph_node_ptr (cgraph_n_nodes);
-      nnodes = cgraph_postorder (order);
+      nnodes = ipa_reverse_postorder (order);
       for (i = nnodes - 1; i >= 0; i--)
         order[i]->process = 1;
       for (i = nnodes - 1; i >= 0; i--)
@@ -1227,6 +1227,9 @@ execute_function_todo (void *data)
   if (flags & TODO_rebuild_frequencies)
     rebuild_frequencies ();
 
+  if (flags & TODO_rebuild_cgraph_edges)
+    rebuild_cgraph_edges ();
+
   /* If we've seen errors do not bother running any verifiers.  */
   if (seen_error ())
     return;
@@ -1238,7 +1241,7 @@ execute_function_todo (void *data)
   if (flags & TODO_verify_flow)
     verify_flow_info ();
   if (flags & TODO_verify_stmts)
-    verify_stmts ();
+    verify_gimple_in_cfg (cfun);
   if (current_loops && loops_state_satisfies_p (LOOP_CLOSED_SSA))
     verify_loop_closed_ssa (false);
   if (flags & TODO_verify_rtl_sharing)
@@ -1341,7 +1344,7 @@ pass_init_dump_file (struct opt_pass *pass)
       if (dump_file && current_function_decl)
 	{
 	  const char *dname, *aname;
-	  struct cgraph_node *node = cgraph_node (current_function_decl);
+	  struct cgraph_node *node = cgraph_get_node (current_function_decl);
 	  dname = lang_hooks.decl_printable_name (current_function_decl, 2);
 	  aname = (IDENTIFIER_POINTER
 		   (DECL_ASSEMBLER_NAME (current_function_decl)));
@@ -1473,7 +1476,7 @@ execute_all_ipa_transforms (void)
   struct cgraph_node *node;
   if (!cfun)
     return;
-  node = cgraph_node (current_function_decl);
+  node = cgraph_get_node (current_function_decl);
 
   if (node->ipa_transforms_to_apply)
     {
@@ -1695,7 +1698,7 @@ ipa_write_summaries (void)
      since it causes the gimple file to be processed in the same order
      as the source code.  */
   order = XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
-  order_pos = cgraph_postorder (order);
+  order_pos = ipa_reverse_postorder (order);
   gcc_assert (order_pos == cgraph_n_nodes);
 
   for (i = order_pos - 1; i >= 0; i--)
@@ -2027,7 +2030,9 @@ bool
 function_called_by_processed_nodes_p (void)
 {
   struct cgraph_edge *e;
-  for (e = cgraph_node (current_function_decl)->callers; e; e = e->next_caller)
+  for (e = cgraph_get_node (current_function_decl)->callers;
+       e;
+       e = e->next_caller)
     {
       if (e->caller->decl == current_function_decl)
         continue;

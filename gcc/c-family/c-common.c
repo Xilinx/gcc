@@ -1,6 +1,6 @@
 /* Subroutines shared by all languages that are variants of C.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -255,12 +255,10 @@ int flag_use_repository;
 enum cxx_dialect cxx_dialect = cxx98;
 
 /* Maximum template instantiation depth.  This limit exists to limit the
-   time it takes to notice infinite template instantiations; the default
-   value of 1024 is likely to be in the next C++ standard.  */
+   time it takes to notice excessively recursive template instantiations;
+   the default value of 1024 is likely to be in the next C++ standard.  */
 
 int max_tinst_depth = 1024;
-
-
 
 /* The elements of `ridpointers' are identifier nodes for the reserved
    type names and storage classes.  It is indexed by a RID_... value.  */
@@ -452,6 +450,7 @@ const struct c_common_resword c_common_reswords[] =
   { "__is_trivial",     RID_IS_TRIVIAL, D_CXXONLY },
   { "__is_union",	RID_IS_UNION,	D_CXXONLY },
   { "__is_literal_type", RID_IS_LITERAL_TYPE, D_CXXONLY },
+  { "__underlying_type", RID_UNDERLYING_TYPE, D_CXXONLY },
   { "__imag",		RID_IMAGPART,	0 },
   { "__imag__",		RID_IMAGPART,	0 },
   { "__inline",		RID_INLINE,	0 },
@@ -585,123 +584,125 @@ const unsigned int num_c_common_reswords =
 /* Table of machine-independent attributes common to all C-like languages.  */
 const struct attribute_spec c_common_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
   { "packed",                 0, 0, false, false, false,
-			      handle_packed_attribute },
+			      handle_packed_attribute , false},
   { "nocommon",               0, 0, true,  false, false,
-			      handle_nocommon_attribute },
+			      handle_nocommon_attribute, false},
   { "common",                 0, 0, true,  false, false,
-			      handle_common_attribute },
+			      handle_common_attribute, false },
   /* FIXME: logically, noreturn attributes should be listed as
      "false, true, true" and apply to function types.  But implementing this
      would require all the places in the compiler that use TREE_THIS_VOLATILE
      on a decl to identify non-returning functions to be located and fixed
      to check the function type instead.  */
   { "noreturn",               0, 0, true,  false, false,
-			      handle_noreturn_attribute },
+			      handle_noreturn_attribute, false },
   { "volatile",               0, 0, true,  false, false,
-			      handle_noreturn_attribute },
+			      handle_noreturn_attribute, false },
   { "noinline",               0, 0, true,  false, false,
-			      handle_noinline_attribute },
+			      handle_noinline_attribute, false },
   { "noclone",                0, 0, true,  false, false,
-			      handle_noclone_attribute },
+			      handle_noclone_attribute, false },
   { "leaf",                   0, 0, true,  false, false,
-			      handle_leaf_attribute },
+			      handle_leaf_attribute, false },
   { "always_inline",          0, 0, true,  false, false,
-			      handle_always_inline_attribute },
+			      handle_always_inline_attribute, false },
   { "gnu_inline",             0, 0, true,  false, false,
-			      handle_gnu_inline_attribute },
+			      handle_gnu_inline_attribute, false },
   { "artificial",             0, 0, true,  false, false,
-			      handle_artificial_attribute },
+			      handle_artificial_attribute, false },
   { "flatten",                0, 0, true,  false, false,
-			      handle_flatten_attribute },
+			      handle_flatten_attribute, false },
   { "used",                   0, 0, true,  false, false,
-			      handle_used_attribute },
+			      handle_used_attribute, false },
   { "unused",                 0, 0, false, false, false,
-			      handle_unused_attribute },
+			      handle_unused_attribute, false },
   { "externally_visible",     0, 0, true,  false, false,
-			      handle_externally_visible_attribute },
+			      handle_externally_visible_attribute, false },
   /* The same comments as for noreturn attributes apply to const ones.  */
   { "const",                  0, 0, true,  false, false,
-			      handle_const_attribute },
+			      handle_const_attribute, false },
   { "transparent_union",      0, 0, false, false, false,
-			      handle_transparent_union_attribute },
+			      handle_transparent_union_attribute, false },
   { "constructor",            0, 1, true,  false, false,
-			      handle_constructor_attribute },
+			      handle_constructor_attribute, false },
   { "destructor",             0, 1, true,  false, false,
-			      handle_destructor_attribute },
+			      handle_destructor_attribute, false },
   { "mode",                   1, 1, false,  true, false,
-			      handle_mode_attribute },
+			      handle_mode_attribute, false },
   { "section",                1, 1, true,  false, false,
-			      handle_section_attribute },
+			      handle_section_attribute, false },
   { "aligned",                0, 1, false, false, false,
-			      handle_aligned_attribute },
+			      handle_aligned_attribute, false },
   { "weak",                   0, 0, true,  false, false,
-			      handle_weak_attribute },
+			      handle_weak_attribute, false },
   { "ifunc",                  1, 1, true,  false, false,
-			      handle_ifunc_attribute },
+			      handle_ifunc_attribute, false },
   { "alias",                  1, 1, true,  false, false,
-			      handle_alias_attribute },
+			      handle_alias_attribute, false },
   { "weakref",                0, 1, true,  false, false,
-			      handle_weakref_attribute },
+			      handle_weakref_attribute, false },
   { "no_instrument_function", 0, 0, true,  false, false,
-			      handle_no_instrument_function_attribute },
+			      handle_no_instrument_function_attribute,
+			      false },
   { "malloc",                 0, 0, true,  false, false,
-			      handle_malloc_attribute },
+			      handle_malloc_attribute, false },
   { "returns_twice",          0, 0, true,  false, false,
-			      handle_returns_twice_attribute },
+			      handle_returns_twice_attribute, false },
   { "no_stack_limit",         0, 0, true,  false, false,
-			      handle_no_limit_stack_attribute },
+			      handle_no_limit_stack_attribute, false },
   { "pure",                   0, 0, true,  false, false,
-			      handle_pure_attribute },
+			      handle_pure_attribute, false },
   /* For internal use (marking of builtins) only.  The name contains space
      to prevent its usage in source code.  */
   { "no vops",                0, 0, true,  false, false,
-			      handle_novops_attribute },
+			      handle_novops_attribute, false },
   { "deprecated",             0, 1, false, false, false,
-			      handle_deprecated_attribute },
+			      handle_deprecated_attribute, false },
   { "vector_size",	      1, 1, false, true, false,
-			      handle_vector_size_attribute },
+			      handle_vector_size_attribute, false },
   { "visibility",	      1, 1, false, false, false,
-			      handle_visibility_attribute },
+			      handle_visibility_attribute, false },
   { "tls_model",	      1, 1, true,  false, false,
-			      handle_tls_model_attribute },
+			      handle_tls_model_attribute, false },
   { "nonnull",                0, -1, false, true, true,
-			      handle_nonnull_attribute },
+			      handle_nonnull_attribute, false },
   { "nothrow",                0, 0, true,  false, false,
-			      handle_nothrow_attribute },
-  { "may_alias",	      0, 0, false, true, false, NULL },
+			      handle_nothrow_attribute, false },
+  { "may_alias",	      0, 0, false, true, false, NULL, false },
   { "cleanup",		      1, 1, true, false, false,
-			      handle_cleanup_attribute },
+			      handle_cleanup_attribute, false },
   { "warn_unused_result",     0, 0, false, true, true,
-			      handle_warn_unused_result_attribute },
+			      handle_warn_unused_result_attribute, false },
   { "sentinel",               0, 1, false, true, true,
-			      handle_sentinel_attribute },
+			      handle_sentinel_attribute, false },
   /* For internal use (marking of builtins) only.  The name contains space
      to prevent its usage in source code.  */
   { "type generic",           0, 0, false, true, true,
-			      handle_type_generic_attribute },
+			      handle_type_generic_attribute, false },
   { "alloc_size",	      1, 2, false, true, true,
-			      handle_alloc_size_attribute },
+			      handle_alloc_size_attribute, false },
   { "cold",                   0, 0, true,  false, false,
-			      handle_cold_attribute },
+			      handle_cold_attribute, false },
   { "hot",                    0, 0, true,  false, false,
-			      handle_hot_attribute },
+			      handle_hot_attribute, false },
   { "warning",		      1, 1, true,  false, false,
-			      handle_error_attribute },
+			      handle_error_attribute, false },
   { "error",		      1, 1, true,  false, false,
-			      handle_error_attribute },
+			      handle_error_attribute, false },
   { "target",                 1, -1, true, false, false,
-			      handle_target_attribute },
+			      handle_target_attribute, false },
   { "optimize",               1, -1, true, false, false,
-			      handle_optimize_attribute },
+			      handle_optimize_attribute, false },
   { "no_split_stack",	      0, 0, true,  false, false,
-			      handle_no_split_stack_attribute },
+			      handle_no_split_stack_attribute, false },
   /* For internal use (marking of builtins and runtime functions) only.
      The name contains space to prevent its usage in source code.  */
   { "fn spec",	 	      1, 1, false, true, true,
-			      handle_fnspec_attribute },
-  { NULL,                     0, 0, false, false, false, NULL }
+			      handle_fnspec_attribute, false },
+  { NULL,                     0, 0, false, false, false, NULL, false }
 };
 
 /* Give the specifications for the format attributes, used by C and all
@@ -709,12 +710,13 @@ const struct attribute_spec c_common_attribute_table[] =
 
 const struct attribute_spec c_common_format_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
   { "format",                 3, 3, false, true,  true,
-			      handle_format_attribute },
+			      handle_format_attribute, false },
   { "format_arg",             1, 1, false, true,  true,
-			      handle_format_arg_attribute },
-  { NULL,                     0, 0, false, false, false, NULL }
+			      handle_format_arg_attribute, false },
+  { NULL,                     0, 0, false, false, false, NULL, false }
 };
 
 /* Return identifier for address space AS.  */
@@ -1213,6 +1215,7 @@ c_fully_fold_internal (tree expr, bool in_init, bool *maybe_const_operands,
     case FIX_TRUNC_EXPR:
     case FLOAT_EXPR:
     CASE_CONVERT:
+    case VIEW_CONVERT_EXPR:
     case NON_LVALUE_EXPR:
     case NEGATE_EXPR:
     case BIT_NOT_EXPR:
@@ -3299,6 +3302,20 @@ shorten_compare (tree *op0_ptr, tree *op1_ptr, tree *restype_ptr,
   primop0 = get_narrower (op0, &unsignedp0);
   primop1 = get_narrower (op1, &unsignedp1);
 
+  /* If primopN is first sign-extended from primopN's precision to opN's
+     precision, then zero-extended from opN's precision to
+     *restype_ptr precision, shortenings might be invalid.  */
+  if (TYPE_PRECISION (TREE_TYPE (primop0)) < TYPE_PRECISION (TREE_TYPE (op0))
+      && TYPE_PRECISION (TREE_TYPE (op0)) < TYPE_PRECISION (*restype_ptr)
+      && !unsignedp0
+      && TYPE_UNSIGNED (TREE_TYPE (op0)))
+    primop0 = op0;
+  if (TYPE_PRECISION (TREE_TYPE (primop1)) < TYPE_PRECISION (TREE_TYPE (op1))
+      && TYPE_PRECISION (TREE_TYPE (op1)) < TYPE_PRECISION (*restype_ptr)
+      && !unsignedp1
+      && TYPE_UNSIGNED (TREE_TYPE (op1)))
+    primop1 = op1;
+
   /* Handle the case that OP0 does not *contain* a conversion
      but it *requires* conversion to FINAL_TYPE.  */
 
@@ -3923,16 +3940,25 @@ c_common_truthvalue_conversion (location_t location, tree expr)
 	}
 
     CASE_CONVERT:
-      /* Don't cancel the effect of a CONVERT_EXPR from a REFERENCE_TYPE,
-	 since that affects how `default_conversion' will behave.  */
-      if (TREE_CODE (TREE_TYPE (expr)) == REFERENCE_TYPE
-	  || TREE_CODE (TREE_TYPE (TREE_OPERAND (expr, 0))) == REFERENCE_TYPE)
-	break;
-      /* If this is widening the argument, we can ignore it.  */
-      if (TYPE_PRECISION (TREE_TYPE (expr))
-	  >= TYPE_PRECISION (TREE_TYPE (TREE_OPERAND (expr, 0))))
-	return c_common_truthvalue_conversion (location,
-					       TREE_OPERAND (expr, 0));
+      {
+	tree totype = TREE_TYPE (expr);
+	tree fromtype = TREE_TYPE (TREE_OPERAND (expr, 0));
+
+	/* Don't cancel the effect of a CONVERT_EXPR from a REFERENCE_TYPE,
+	   since that affects how `default_conversion' will behave.  */
+	if (TREE_CODE (totype) == REFERENCE_TYPE
+	    || TREE_CODE (fromtype) == REFERENCE_TYPE)
+	  break;
+	/* Don't strip a conversion from C++0x scoped enum, since they
+	   don't implicitly convert to other types.  */
+	if (TREE_CODE (fromtype) == ENUMERAL_TYPE
+	    && ENUM_IS_SCOPED (fromtype))
+	  break;
+	/* If this isn't narrowing the argument, we can ignore it.  */
+	if (TYPE_PRECISION (totype) >= TYPE_PRECISION (fromtype))
+	  return c_common_truthvalue_conversion (location,
+						 TREE_OPERAND (expr, 0));
+      }
       break;
 
     case MODIFY_EXPR:
@@ -4034,7 +4060,7 @@ c_apply_type_quals_to_decl (int type_quals, tree decl)
 static hashval_t
 c_type_hash (const void *p)
 {
-  int i = 0;
+  int n_elements;
   int shift, size;
   const_tree const t = (const_tree) p;
   tree t2;
@@ -4063,14 +4089,15 @@ c_type_hash (const void *p)
     default:
       gcc_unreachable ();
     }
-  for (; t2; t2 = DECL_CHAIN (t2))
-    i++;
+  /* FIXME: We want to use a DECL_CHAIN iteration method here, but
+     TYPE_VALUES of ENUMERAL_TYPEs is stored as a TREE_LIST.  */
+  n_elements = list_length (t2);
   /* We might have a VLA here.  */
   if (TREE_CODE (TYPE_SIZE (t)) != INTEGER_CST)
     size = 0;
   else
     size = TREE_INT_CST_LOW (TYPE_SIZE (t));
-  return ((size << 24) | (i << shift));
+  return ((size << 24) | (n_elements << shift));
 }
 
 static GTY((param_is (union tree_node))) htab_t type_hash_table;
@@ -4411,6 +4438,7 @@ def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
 
  egress:
   builtin_types[def] = t;
+  va_end (list);
 }
 
 /* Build builtin functions common to both C and C++ language
@@ -5663,9 +5691,14 @@ c_init_attributes (void)
 bool
 attribute_takes_identifier_p (const_tree attr_id)
 {
-  if (is_attribute_p ("mode", attr_id)
-      || is_attribute_p ("format", attr_id)
-      || is_attribute_p ("cleanup", attr_id))
+  const struct attribute_spec *spec = lookup_attribute_spec (attr_id);
+  if (spec == NULL)
+    /* Unknown attribute that we'll end up ignoring, return true so we
+       don't complain about an identifier argument.  */
+    return true;
+  else if (!strcmp ("mode", spec->name)
+	   || !strcmp ("format", spec->name)
+	   || !strcmp ("cleanup", spec->name))
     return true;
   else
     return targetm.attribute_takes_identifier_p (attr_id);
@@ -6142,6 +6175,7 @@ handle_transparent_union_attribute (tree *node, tree name,
       if (!(flags & (int) ATTR_FLAG_TYPE_IN_PLACE))
 	{
 	  if (TYPE_FIELDS (type) == NULL_TREE
+	      || c_dialect_cxx ()
 	      || TYPE_MODE (type) != DECL_MODE (TYPE_FIELDS (type)))
 	    goto ignored;
 
@@ -6656,7 +6690,7 @@ handle_weak_attribute (tree *node, tree name,
   if (TREE_CODE (*node) == FUNCTION_DECL
       && DECL_DECLARED_INLINE_P (*node))
     {
-      error ("inline function %q+D cannot be declared weak", *node);
+      warning (OPT_Wattributes, "inline function %q+D declared weak", *node);
       *no_add_attrs = true;
     }
   else if (lookup_attribute ("ifunc", DECL_ATTRIBUTES (*node)))
@@ -7348,7 +7382,7 @@ handle_nonnull_attribute (tree *node, tree ARG_UNUSED (name),
      will have the correct types when we actually check them later.  */
   if (!args)
     {
-      if (!TYPE_ARG_TYPES (type))
+      if (!prototype_p (type))
 	{
 	  error ("nonnull attribute without arguments on a non-prototype");
 	  *no_add_attrs = true;
@@ -7629,9 +7663,7 @@ static tree
 handle_sentinel_attribute (tree *node, tree name, tree args,
 			   int ARG_UNUSED (flags), bool *no_add_attrs)
 {
-  tree params = TYPE_ARG_TYPES (*node);
-
-  if (!params)
+  if (!prototype_p (*node))
     {
       warning (OPT_Wattributes,
 	       "%qE attribute requires prototypes with named arguments", name);
@@ -7639,10 +7671,7 @@ handle_sentinel_attribute (tree *node, tree name, tree args,
     }
   else
     {
-      while (TREE_CHAIN (params))
-	params = TREE_CHAIN (params);
-
-      if (VOID_TYPE_P (TREE_VALUE (params)))
+      if (!stdarg_p (*node))
 	{
 	  warning (OPT_Wattributes,
 		   "%qE attribute only applies to variadic functions", name);
@@ -7681,17 +7710,11 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
 			       tree ARG_UNUSED (args), int ARG_UNUSED (flags),
 			       bool * ARG_UNUSED (no_add_attrs))
 {
-  tree params;
-
   /* Ensure we have a function type.  */
   gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE);
 
-  params = TYPE_ARG_TYPES (*node);
-  while (params && ! VOID_TYPE_P (TREE_VALUE (params)))
-    params = TREE_CHAIN (params);
-
   /* Ensure we have a variadic function.  */
-  gcc_assert (!params);
+  gcc_assert (!prototype_p (*node) || stdarg_p (*node));
 
   return NULL_TREE;
 }
@@ -8631,27 +8654,28 @@ readonly_error (tree arg, enum lvalue_use use)
 }
 
 /* Print an error message for an invalid lvalue.  USE says
-   how the lvalue is being used and so selects the error message.  */
+   how the lvalue is being used and so selects the error message.  LOC
+   is the location for the error.  */
 
 void
-lvalue_error (enum lvalue_use use)
+lvalue_error (location_t loc, enum lvalue_use use)
 {
   switch (use)
     {
     case lv_assign:
-      error ("lvalue required as left operand of assignment");
+      error_at (loc, "lvalue required as left operand of assignment");
       break;
     case lv_increment:
-      error ("lvalue required as increment operand");
+      error_at (loc, "lvalue required as increment operand");
       break;
     case lv_decrement:
-      error ("lvalue required as decrement operand");
+      error_at (loc, "lvalue required as decrement operand");
       break;
     case lv_addressof:
-      error ("lvalue required as unary %<&%> operand");
+      error_at (loc, "lvalue required as unary %<&%> operand");
       break;
     case lv_asm:
-      error ("lvalue required in asm statement");
+      error_at (loc, "lvalue required in asm statement");
       break;
     default:
       gcc_unreachable ();
@@ -8787,7 +8811,9 @@ complete_array_type (tree *ptype, tree initial_value, bool do_default)
      TYPE_LANG_FLAG_? bits that the front end may have set.  */
   main_type = build_distinct_type_copy (TYPE_MAIN_VARIANT (type));
   TREE_TYPE (main_type) = unqual_elt;
-  TYPE_DOMAIN (main_type) = build_index_type (maxindex);
+  TYPE_DOMAIN (main_type)
+    = build_range_type (TREE_TYPE (maxindex),
+			build_int_cst (TREE_TYPE (maxindex), 0), maxindex);
   layout_type (main_type);
 
   /* Make sure we have the canonical MAIN_TYPE. */
@@ -9227,10 +9253,6 @@ warn_for_unused_label (tree label)
     }
 }
 
-#ifndef TARGET_HAS_TARGETCM
-struct gcc_targetcm targetcm = TARGETCM_INITIALIZER;
-#endif
-
 /* Warn for division by zero according to the value of DIVISOR.  LOC
    is the location of the division operator.  */
 
@@ -9558,6 +9580,17 @@ make_tree_vector_single (tree t)
   return ret;
 }
 
+/* Get a new tree vector of the TREE_VALUEs of a TREE_LIST chain.  */
+
+VEC(tree,gc) *
+make_tree_vector_from_list (tree list)
+{
+  VEC(tree,gc) *ret = make_tree_vector ();
+  for (; list; list = TREE_CHAIN (list))
+    VEC_safe_push (tree, gc, ret, TREE_VALUE (list));
+  return ret;
+}
+
 /* Get a new tree vector which is a copy of an existing one.  */
 
 VEC(tree,gc) *
@@ -9650,6 +9683,53 @@ keyword_is_storage_class_specifier (enum rid keyword)
     default:
       return false;
     }
+}
+
+/* Return true if KEYWORD names a function-specifier [dcl.fct.spec].  */
+
+static bool
+keyword_is_function_specifier (enum rid keyword)
+{
+  switch (keyword)
+    {
+    case RID_INLINE:
+    case RID_VIRTUAL:
+    case RID_EXPLICIT:
+      return true;
+    default:
+      return false;
+    }
+}
+
+/* Return true if KEYWORD names a decl-specifier [dcl.spec] or a
+   declaration-specifier (C99 6.7).  */
+
+bool
+keyword_is_decl_specifier (enum rid keyword)
+{
+  if (keyword_is_storage_class_specifier (keyword)
+      || keyword_is_type_qualifier (keyword)
+      || keyword_is_function_specifier (keyword))
+    return true;
+
+  switch (keyword)
+    {
+    case RID_TYPEDEF:
+    case RID_FRIEND:
+    case RID_CONSTEXPR:
+      return true;
+    default:
+      return false;
+    }
+}
+
+/* Initialize language-specific-bits of tree_contains_struct.  */
+
+void
+c_common_init_ts (void)
+{
+  MARK_TS_TYPED (C_MAYBE_CONST_EXPR);
+  MARK_TS_TYPED (EXCESS_PRECISION_EXPR);
 }
 
 #include "gt-c-family-c-common.h"

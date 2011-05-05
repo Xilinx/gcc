@@ -1635,6 +1635,22 @@ getdecls (void)
   return current_binding_level->names;
 }
 
+/* Return how many function prototypes we are currently nested inside.  */
+
+int
+function_parm_depth (void)
+{
+  int level = 0;
+  struct cp_binding_level *b;
+
+  for (b = current_binding_level;
+       b->kind == sk_function_parms;
+       b = b->level_chain)
+    ++level;
+
+  return level;
+}
+
 /* For debugging.  */
 static int no_print_functions = 0;
 static int no_print_builtins = 0;
@@ -4130,10 +4146,10 @@ qualified_lookup_using_namespace (tree name, tree scope,
   /* Look through namespace aliases.  */
   scope = ORIGINAL_NAMESPACE (scope);
 
-  /* Algorithm: Starting with SCOPE, walk through the the set of used
+  /* Algorithm: Starting with SCOPE, walk through the set of used
      namespaces.  For each used namespace, look through its inline
-     namespace set for any bindings and usings.  If no bindings are found,
-     add any usings seen to the set of used namespaces.  */
+     namespace set for any bindings and usings.  If no bindings are
+     found, add any usings seen to the set of used namespaces.  */
   VEC_safe_push (tree, gc, todo, scope);
 
   while (VEC_length (tree, todo))
@@ -4189,8 +4205,13 @@ qualified_lookup_using_namespace (tree name, tree scope,
 }
 
 /* Subroutine of outer_binding.
-   Returns TRUE if BINDING is a binding to a template parameter of SCOPE,
-   FALSE otherwise.  */
+
+   Returns TRUE if BINDING is a binding to a template parameter of
+   SCOPE.  In that case SCOPE is the scope of a primary template
+   parameter -- in the sense of G++, i.e, a template that has its own
+   template header.
+
+   Returns FALSE otherwise.  */
 
 static bool
 binding_to_template_parms_of_scope_p (cxx_binding *binding,
@@ -4206,6 +4227,8 @@ binding_to_template_parms_of_scope_p (cxx_binding *binding,
   return (scope
 	  && scope->this_entity
 	  && get_template_info (scope->this_entity)
+	  && PRIMARY_TEMPLATE_P (TI_TEMPLATE
+				 (get_template_info (scope->this_entity)))
 	  && parameter_of_template_p (binding_value,
 				      TI_TEMPLATE (get_template_info \
 						    (scope->this_entity))));
@@ -4702,7 +4725,11 @@ add_function (struct arg_lookup *k, tree fn)
   else if (fn == k->functions)
     ;
   else
-    k->functions = build_overload (fn, k->functions);
+    {
+      k->functions = build_overload (fn, k->functions);
+      if (TREE_CODE (k->functions) == OVERLOAD)
+	OVL_ARG_DEPENDENT (k->functions) = true;
+    }
 
   return false;
 }
@@ -5112,8 +5139,8 @@ arg_assoc (struct arg_lookup *k, tree n)
     }
   else if (TREE_CODE (n) == OVERLOAD)
     {
-      for (; n; n = OVL_CHAIN (n))
-	if (arg_assoc_type (k, TREE_TYPE (OVL_FUNCTION (n))))
+      for (; n; n = OVL_NEXT (n))
+	if (arg_assoc_type (k, TREE_TYPE (OVL_CURRENT (n))))
 	  return true;
     }
 

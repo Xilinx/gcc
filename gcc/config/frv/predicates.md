@@ -1,5 +1,5 @@
 ;; Predicate definitions for Frv.
-;; Copyright (C) 2005, 2007 Free Software Foundation, Inc.
+;; Copyright (C) 2005, 2007, 2010 Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
 ;;
@@ -55,7 +55,7 @@
 	tmp = SUBREG_REG (tmp);
       if (GET_CODE (tmp) == REG
 	  && REGNO (tmp) >= FIRST_PSEUDO_REGISTER)
-	op = reg_equiv_memory_loc[REGNO (tmp)];
+	op = reg_equiv_memory_loc (REGNO (tmp));
     }
 
   return op && memory_operand (op, mode);

@@ -1,3 +1,7 @@
+2011-05-05  Diego Novillo  <dnovillo@google.com>
+
+	Merge from mainline rev 173270.
+
 2011-01-04  Diego Novillo  <dnovillo@google.com>
 
 	* gcc.c	(default_compilers): Add entry for .gimple files.

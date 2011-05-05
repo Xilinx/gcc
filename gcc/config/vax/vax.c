@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "debug.h"
 #include "diagnostic-core.h"
+#include "reload.h"
 #include "tm-preds.h"
 #include "tm-constrs.h"
 #include "tm_p.h"
@@ -1602,15 +1603,6 @@ legitimate_constant_address_p (rtx x)
    return true;
 }
 
-/* True if the constant value X is a legitimate general operand.
-   It is given that X satisfies CONSTANT_P or is a CONST_DOUBLE.  */
-
-bool
-legitimate_constant_p (rtx x ATTRIBUTE_UNUSED)
-{
-  return true;
-}
-
 /* The other macros defined here are used only in legitimate_address_p ().  */
 
 /* Nonzero if X is a hard reg that can be used as an index
@@ -1676,10 +1668,9 @@ nonindexed_address_p (rtx x, bool strict)
   rtx xfoo0;
   if (REG_P (x))
     {
-      extern rtx *reg_equiv_mem;
       if (! reload_in_progress
-	  || reg_equiv_mem[REGNO (x)] == 0
-	  || indirectable_address_p (reg_equiv_mem[REGNO (x)], strict, false))
+	  || reg_equiv_mem (REGNO (x)) == 0
+	  || indirectable_address_p (reg_equiv_mem (REGNO (x)), strict, false))
 	return true;
     }
   if (indirectable_constant_address_p (x, false))

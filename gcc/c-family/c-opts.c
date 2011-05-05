@@ -1,5 +1,5 @@
 /* C/ObjC/C++ command line option handling.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Neil Booth.
 
@@ -36,7 +36,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "opts.h"
 #include "options.h"
 #include "mkdeps.h"
-#include "target.h"		/* For gcc_targetcm.  */
+#include "c-target.h"
+#include "tm.h"			/* For BYTES_BIG_ENDIAN,
+				   DOLLARS_IN_IDENTIFIERS,
+				   STDC_0_IN_SYSTEM_HEADERS,
+				   TARGET_FLT_EVAL_METHOD_NON_DEFAULT and
+				   TARGET_OPTF.  */
 #include "tm_p.h"		/* For C_COMMON_OVERRIDE_OPTIONS.  */
 
 #ifndef DOLLARS_IN_IDENTIFIERS
@@ -379,6 +384,7 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       warn_unknown_pragmas = value;
 
       warn_uninitialized = value;
+      warn_maybe_uninitialized = value;
 
       if (!c_dialect_cxx ())
 	{
@@ -809,6 +815,16 @@ c_common_handle_option (size_t scode, const char *arg, int value,
   return result;
 }
 
+/* Default implementation of TARGET_HANDLE_C_OPTION.  */
+
+bool
+default_handle_c_option (size_t code ATTRIBUTE_UNUSED,
+			 const char *arg ATTRIBUTE_UNUSED,
+			 int value ATTRIBUTE_UNUSED)
+{
+  return false;
+}
+
 /* Post-switch processing.  */
 bool
 c_common_post_options (const char **pfilename)
@@ -994,6 +1010,12 @@ c_common_post_options (const char **pfilename)
   else
     {
       init_c_lex ();
+
+      /* When writing a PCH file, avoid reading some other PCH file,
+	 because the default address space slot then can't be used
+	 for the output PCH file.  */
+      if (pch_file)
+	c_common_no_more_pch ();
 
       /* Yuk.  WTF is this?  I do know ObjC relies on it somewhere.  */
       input_location = UNKNOWN_LOCATION;

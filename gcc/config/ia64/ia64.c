@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler.
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010
+   2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by James E. Wilson <wilson@cygnus.com> and
 		  David Mosberger <davidm@hpl.hp.com>.
@@ -60,6 +60,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm-constrs.h"
 #include "sel-sched.h"
 #include "reload.h"
+#include "dwarf2out.h"
+#include "opts.h"
 
 /* This is used for communication between ASM_OUTPUT_LABEL and
    ASM_OUTPUT_LABELREF.  */
@@ -100,9 +102,6 @@ static const char * const ia64_local_reg_names[80] =
 /* ??? These strings could be shared with REGISTER_NAMES.  */
 static const char * const ia64_output_reg_names[8] =
 { "out0", "out1", "out2", "out3", "out4", "out5", "out6", "out7" };
-
-/* Which cpu are we scheduling for.  */
-enum processor_type ia64_tune = PROCESSOR_ITANIUM2;
 
 /* Determines whether we run our final scheduling pass or not.  We always
    avoid the normal second scheduling pass.  */
@@ -230,7 +229,8 @@ static int ia64_memory_move_cost (enum machine_mode mode, reg_class_t,
 static bool ia64_rtx_costs (rtx, int, int, int *, bool);
 static int ia64_unspec_may_trap_p (const_rtx, unsigned);
 static void fix_range (const char *);
-static bool ia64_handle_option (size_t, const char *, int);
+static bool ia64_handle_option (struct gcc_options *, struct gcc_options *,
+				const struct cl_decoded_option *, location_t);
 static struct machine_function * ia64_init_machine_status (void);
 static void emit_insn_group_barriers (FILE *);
 static void emit_all_insn_group_barriers (FILE *);
@@ -316,7 +316,8 @@ static rtx ia64_struct_value_rtx (tree, int);
 static tree ia64_gimplify_va_arg (tree, tree, gimple_seq *, gimple_seq *);
 static bool ia64_scalar_mode_supported_p (enum machine_mode mode);
 static bool ia64_vector_mode_supported_p (enum machine_mode mode);
-static bool ia64_cannot_force_const_mem (rtx);
+static bool ia64_legitimate_constant_p (enum machine_mode, rtx);
+static bool ia64_cannot_force_const_mem (enum machine_mode, rtx);
 static const char *ia64_mangle_type (const_tree);
 static const char *ia64_invalid_conversion (const_tree, const_tree);
 static const char *ia64_invalid_unary_op (int, const_tree);
@@ -341,15 +342,18 @@ static section * ia64_hpux_function_section (tree, enum node_frequency,
 /* Table of valid machine attributes.  */
 static const struct attribute_spec ia64_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "syscall_linkage", 0, 0, false, true,  true,  NULL },
-  { "model",	       1, 1, true, false, false, ia64_handle_model_attribute },
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
+  { "syscall_linkage", 0, 0, false, true,  true,  NULL, false },
+  { "model",	       1, 1, true, false, false, ia64_handle_model_attribute,
+    false },
 #if TARGET_ABI_OPEN_VMS
-  { "common_object",   1, 1, true, false, false, ia64_vms_common_object_attribute},
+  { "common_object",   1, 1, true, false, false,
+    ia64_vms_common_object_attribute, false },
 #endif
   { "version_id",      1, 1, true, false, false,
-    ia64_handle_version_id_attribute },
-  { NULL,	       0, 0, false, false, false, NULL }
+    ia64_handle_version_id_attribute, false },
+  { NULL,	       0, 0, false, false, false, NULL, false }
 };
 
 /* Implement overriding of the optimization options.  */
@@ -601,6 +605,9 @@ static const struct default_options ia64_option_optimization_table[] =
 #define TARGET_DEFAULT_TARGET_FLAGS (TARGET_DEFAULT | TARGET_CPU_DEFAULT)
 #undef TARGET_HANDLE_OPTION
 #define TARGET_HANDLE_OPTION ia64_handle_option
+
+#undef TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P ia64_legitimate_constant_p
 
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM ia64_cannot_force_const_mem
@@ -950,8 +957,8 @@ tls_symbolic_operand_type (rtx addr)
 /* Return true if X is a constant that is valid for some immediate
    field in an instruction.  */
 
-bool
-ia64_legitimate_constant_p (rtx x)
+static bool
+ia64_legitimate_constant_p (enum machine_mode mode, rtx x)
 {
   switch (GET_CODE (x))
     {
@@ -960,8 +967,7 @@ ia64_legitimate_constant_p (rtx x)
       return true;
 
     case CONST_DOUBLE:
-      if (GET_MODE (x) == VOIDmode || GET_MODE (x) == SFmode
-	  || GET_MODE (x) == DFmode)
+      if (GET_MODE (x) == VOIDmode || mode == SFmode || mode == DFmode)
 	return true;
       return satisfies_constraint_G (x);
 
@@ -983,25 +989,21 @@ ia64_legitimate_constant_p (rtx x)
 	      op = XEXP (XEXP (op, 0), 0);
 	    }
 
-          if (any_offset_symbol_operand (op, GET_MODE (op))
-              || function_operand (op, GET_MODE (op)))
+          if (any_offset_symbol_operand (op, mode)
+              || function_operand (op, mode))
             return true;
-	  if (aligned_offset_symbol_operand (op, GET_MODE (op)))
+	  if (aligned_offset_symbol_operand (op, mode))
 	    return (addend & 0x3fff) == 0;
 	  return false;
 	}
       return false;
 
     case CONST_VECTOR:
-      {
-	enum machine_mode mode = GET_MODE (x);
+      if (mode == V2SFmode)
+	return satisfies_constraint_Y (x);
 
-	if (mode == V2SFmode)
-	  return satisfies_constraint_Y (x);
-
-	return (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
-		&& GET_MODE_SIZE (mode) <= 8);
-      }
+      return (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
+	      && GET_MODE_SIZE (mode) <= 8);
 
     default:
       return false;
@@ -1011,9 +1013,9 @@ ia64_legitimate_constant_p (rtx x)
 /* Don't allow TLS addresses to get spilled to memory.  */
 
 static bool
-ia64_cannot_force_const_mem (rtx x)
+ia64_cannot_force_const_mem (enum machine_mode mode, rtx x)
 {
-  if (GET_MODE (x) == RFmode)
+  if (mode == RFmode)
     return true;
   return tls_symbolic_operand_type (x) != 0;
 }
@@ -1971,12 +1973,13 @@ ia64_expand_vecint_minmax (enum rtx_code code, enum machine_mode mode,
   return true;
 }
 
-/* Emit an integral vector unpack operation.  */
+/* The vectors LO and HI each contain N halves of a double-wide vector.
+   Reassemble either the first N/2 or the second N/2 elements.  */
 
 void
-ia64_expand_unpack (rtx operands[3], bool unsignedp, bool highp)
+ia64_unpack_assemble (rtx out, rtx lo, rtx hi, bool highp)
 {
-  enum machine_mode mode = GET_MODE (operands[1]);
+  enum machine_mode mode = GET_MODE (lo);
   rtx (*gen) (rtx, rtx, rtx);
   rtx x;
 
@@ -1992,21 +1995,43 @@ ia64_expand_unpack (rtx operands[3], bool unsignedp, bool highp)
       gcc_unreachable ();
     }
 
-  /* Fill in x with the sign extension of each element in op1.  */
+  x = gen_lowpart (mode, out);
+  if (TARGET_BIG_ENDIAN)
+    x = gen (x, hi, lo);
+  else
+    x = gen (x, lo, hi);
+  emit_insn (x);
+}
+
+/* Return a vector of the sign-extension of VEC.  */
+
+static rtx
+ia64_unpack_sign (rtx vec, bool unsignedp)
+{
+  enum machine_mode mode = GET_MODE (vec);
+  rtx zero = CONST0_RTX (mode);
+
   if (unsignedp)
-    x = CONST0_RTX (mode);
+    return zero;
   else
     {
+      rtx sign = gen_reg_rtx (mode);
       bool neg;
 
-      x = gen_reg_rtx (mode);
-
-      neg = ia64_expand_vecint_compare (LT, mode, x, operands[1],
-					CONST0_RTX (mode));
+      neg = ia64_expand_vecint_compare (LT, mode, sign, vec, zero);
       gcc_assert (!neg);
-    }
 
-  emit_insn (gen (gen_lowpart (mode, operands[0]), operands[1], x));
+      return sign;
+    }
+}
+
+/* Emit an integral vector unpack operation.  */
+
+void
+ia64_expand_unpack (rtx operands[3], bool unsignedp, bool highp)
+{
+  rtx sign = ia64_unpack_sign (operands[1], unsignedp);
+  ia64_unpack_assemble (operands[0], operands[1], sign, highp);
 }
 
 /* Emit an integral vector widening sum operations.  */
@@ -2014,74 +2039,22 @@ ia64_expand_unpack (rtx operands[3], bool unsignedp, bool highp)
 void
 ia64_expand_widen_sum (rtx operands[3], bool unsignedp)
 {
-  rtx l, h, x, s;
-  enum machine_mode wmode, mode;
-  rtx (*unpack_l) (rtx, rtx, rtx);
-  rtx (*unpack_h) (rtx, rtx, rtx);
-  rtx (*plus) (rtx, rtx, rtx);
+  enum machine_mode wmode;
+  rtx l, h, t, sign;
+
+  sign = ia64_unpack_sign (operands[1], unsignedp);
 
   wmode = GET_MODE (operands[0]);
-  mode = GET_MODE (operands[1]);
-
-  switch (mode)
-    {
-    case V8QImode:
-      unpack_l = gen_vec_interleave_lowv8qi;
-      unpack_h = gen_vec_interleave_highv8qi;
-      plus = gen_addv4hi3;
-      break;
-    case V4HImode:
-      unpack_l = gen_vec_interleave_lowv4hi;
-      unpack_h = gen_vec_interleave_highv4hi;
-      plus = gen_addv2si3;
-      break;
-    default:
-      gcc_unreachable ();
-    }
-
-  /* Fill in x with the sign extension of each element in op1.  */
-  if (unsignedp)
-    x = CONST0_RTX (mode);
-  else
-    {
-      bool neg;
-
-      x = gen_reg_rtx (mode);
-
-      neg = ia64_expand_vecint_compare (LT, mode, x, operands[1],
-					CONST0_RTX (mode));
-      gcc_assert (!neg);
-    }
-
   l = gen_reg_rtx (wmode);
   h = gen_reg_rtx (wmode);
-  s = gen_reg_rtx (wmode);
 
-  emit_insn (unpack_l (gen_lowpart (mode, l), operands[1], x));
-  emit_insn (unpack_h (gen_lowpart (mode, h), operands[1], x));
-  emit_insn (plus (s, l, operands[2]));
-  emit_insn (plus (operands[0], h, s));
-}
+  ia64_unpack_assemble (l, operands[1], sign, false);
+  ia64_unpack_assemble (h, operands[1], sign, true);
 
-void
-ia64_expand_widen_mul_v4hi (rtx operands[3], bool unsignedp, bool highp)
-{
-  rtx l = gen_reg_rtx (V4HImode);
-  rtx h = gen_reg_rtx (V4HImode);
-  rtx (*mulhigh)(rtx, rtx, rtx, rtx);
-  rtx (*interl)(rtx, rtx, rtx);
-
-  emit_insn (gen_mulv4hi3 (l, operands[1], operands[2]));
-
-  /* For signed, pmpy2.r would appear to more closely match this operation.
-     However, the vectorizer is more likely to use the LO and HI patterns
-     in pairs. At which point, with this formulation, the first two insns
-     of each can be CSEd.  */
-  mulhigh = unsignedp ? gen_pmpyshr2_u : gen_pmpyshr2;
-  emit_insn (mulhigh (h, operands[1], operands[2], GEN_INT (16)));
-
-  interl = highp ? gen_vec_interleave_highv4hi : gen_vec_interleave_lowv4hi;
-  emit_insn (interl (gen_lowpart (V4HImode, operands[0]), l, h));
+  t = expand_binop (wmode, add_optab, l, operands[2], NULL, 0, OPTAB_DIRECT);
+  t = expand_binop (wmode, add_optab, h, t, operands[0], 0, OPTAB_DIRECT);
+  if (t != operands[0])
+    emit_move_insn (operands[0], t);
 }
 
 /* Emit a signed or unsigned V8QI dot product operation.  */
@@ -2089,48 +2062,31 @@ ia64_expand_widen_mul_v4hi (rtx operands[3], bool unsignedp, bool highp)
 void
 ia64_expand_dot_prod_v8qi (rtx operands[4], bool unsignedp)
 {
-  rtx l1, l2, h1, h2, x1, x2, p1, p2, p3, p4, s1, s2, s3;
+  rtx op1, op2, sn1, sn2, l1, l2, h1, h2;
+  rtx p1, p2, p3, p4, s1, s2, s3;
 
-  /* Fill in x1 and x2 with the sign extension of each element.  */
-  if (unsignedp)
-    x1 = x2 = CONST0_RTX (V8QImode);
-  else
-    {
-      bool neg;
-
-      x1 = gen_reg_rtx (V8QImode);
-      x2 = gen_reg_rtx (V8QImode);
-
-      neg = ia64_expand_vecint_compare (LT, V8QImode, x1, operands[1],
-					CONST0_RTX (V8QImode));
-      gcc_assert (!neg);
-      neg = ia64_expand_vecint_compare (LT, V8QImode, x2, operands[2],
-					CONST0_RTX (V8QImode));
-      gcc_assert (!neg);
-    }
+  op1 = operands[1];
+  op2 = operands[2];
+  sn1 = ia64_unpack_sign (op1, unsignedp);
+  sn2 = ia64_unpack_sign (op2, unsignedp);
 
   l1 = gen_reg_rtx (V4HImode);
   l2 = gen_reg_rtx (V4HImode);
   h1 = gen_reg_rtx (V4HImode);
   h2 = gen_reg_rtx (V4HImode);
-
-  emit_insn (gen_vec_interleave_lowv8qi
-	     (gen_lowpart (V8QImode, l1), operands[1], x1));
-  emit_insn (gen_vec_interleave_lowv8qi
-	     (gen_lowpart (V8QImode, l2), operands[2], x2));
-  emit_insn (gen_vec_interleave_highv8qi
-	     (gen_lowpart (V8QImode, h1), operands[1], x1));
-  emit_insn (gen_vec_interleave_highv8qi
-	     (gen_lowpart (V8QImode, h2), operands[2], x2));
+  ia64_unpack_assemble (l1, op1, sn1, false);
+  ia64_unpack_assemble (l2, op2, sn2, false);
+  ia64_unpack_assemble (h1, op1, sn1, true);
+  ia64_unpack_assemble (h2, op2, sn2, true);
 
   p1 = gen_reg_rtx (V2SImode);
   p2 = gen_reg_rtx (V2SImode);
   p3 = gen_reg_rtx (V2SImode);
   p4 = gen_reg_rtx (V2SImode);
-  emit_insn (gen_pmpy2_r (p1, l1, l2));
-  emit_insn (gen_pmpy2_l (p2, l1, l2));
-  emit_insn (gen_pmpy2_r (p3, h1, h2));
-  emit_insn (gen_pmpy2_l (p4, h1, h2));
+  emit_insn (gen_pmpy2_even (p1, l1, l2));
+  emit_insn (gen_pmpy2_even (p2, h1, h2));
+  emit_insn (gen_pmpy2_odd (p3, l1, l2));
+  emit_insn (gen_pmpy2_odd (p4, h1, h2));
 
   s1 = gen_reg_rtx (V2SImode);
   s2 = gen_reg_rtx (V2SImode);
@@ -3586,6 +3542,7 @@ ia64_start_function (FILE *file, const char *fnname,
 {
 #if VMS_DEBUGGING_INFO
   if (vms_debug_main
+      && debug_info_level > DINFO_LEVEL_NONE
       && strncmp (vms_debug_main, fnname, strlen (vms_debug_main)) == 0)
     {
       targetm.asm_out.globalize_label (asm_out_file, VMS_DEBUG_MAIN_POINTER);
@@ -5390,12 +5347,9 @@ ia64_rtx_costs (rtx x, int code, int outer_code, int *total,
    one in class TO, using MODE.  */
 
 static int
-ia64_register_move_cost (enum machine_mode mode, reg_class_t from_i,
-			 reg_class_t to_i)
+ia64_register_move_cost (enum machine_mode mode, reg_class_t from,
+			 reg_class_t to)
 {
-  enum reg_class from = (enum reg_class) from_i;
-  enum reg_class to = (enum reg_class) to_i;
-
   /* ADDL_REGS is the same as GR_REGS for movement purposes.  */
   if (to == ADDL_REGS)
     to = GR_REGS;
@@ -5406,7 +5360,7 @@ ia64_register_move_cost (enum machine_mode mode, reg_class_t from_i,
      lower number class as the destination.  */
   if (from < to)
     {
-      enum reg_class tmp = to;
+      reg_class_t tmp = to;
       to = from, from = tmp;
     }
 
@@ -5697,44 +5651,21 @@ fix_range (const char *const_str)
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
-ia64_handle_option (size_t code, const char *arg, int value)
+ia64_handle_option (struct gcc_options *opts ATTRIBUTE_UNUSED,
+		    struct gcc_options *opts_set ATTRIBUTE_UNUSED,
+		    const struct cl_decoded_option *decoded,
+		    location_t loc)
 {
+  size_t code = decoded->opt_index;
+  const char *arg = decoded->arg;
+  int value = decoded->value;
+
   switch (code)
     {
-    case OPT_mfixed_range_:
-      fix_range (arg);
-      return true;
-
     case OPT_mtls_size_:
       if (value != 14 && value != 22 && value != 64)
-	error ("bad value %<%s%> for -mtls-size= switch", arg);
+	error_at (loc, "bad value %<%s%> for -mtls-size= switch", arg);
       return true;
-
-    case OPT_mtune_:
-      {
-	static struct pta
-	  {
-	    const char *name;		/* processor name or nickname.  */
-	    enum processor_type processor;
-	  }
-	const processor_alias_table[] =
-	  {
-	    {"itanium2", PROCESSOR_ITANIUM2},
-	    {"mckinley", PROCESSOR_ITANIUM2},
-	  };
-	int const pta_size = ARRAY_SIZE (processor_alias_table);
-	int i;
-
-	for (i = 0; i < pta_size; i++)
-	  if (!strcmp (arg, processor_alias_table[i].name))
-	    {
-	      ia64_tune = processor_alias_table[i].processor;
-	      break;
-	    }
-	if (i == pta_size)
-	  error ("bad value %<%s%> for -mtune= switch", arg);
-	return true;
-      }
 
     default:
       return true;
@@ -5746,6 +5677,24 @@ ia64_handle_option (size_t code, const char *arg, int value)
 static void
 ia64_option_override (void)
 {
+  unsigned int i;
+  cl_deferred_option *opt;
+  VEC(cl_deferred_option,heap) *vec
+    = (VEC(cl_deferred_option,heap) *) ia64_deferred_options;
+
+  FOR_EACH_VEC_ELT (cl_deferred_option, vec, i, opt)
+    {
+      switch (opt->opt_index)
+	{
+	case OPT_mfixed_range_:
+	  fix_range (opt->arg);
+	  break;
+
+	default:
+	  gcc_unreachable ();
+	}
+    }
+
   if (TARGET_AUTO_PIC)
     target_flags |= MASK_CONST_GP;
 
@@ -10213,7 +10162,7 @@ ia64_init_builtins (void)
       (*lang_hooks.types.register_builtin_type) (float128_type, "__float128");
 
       /* TFmode support builtins.  */
-      ftype = build_function_type (float128_type, void_list_node);
+      ftype = build_function_type_list (float128_type, NULL_TREE);
       decl = add_builtin_function ("__builtin_infq", ftype,
 				   IA64_BUILTIN_INFQ, BUILT_IN_MD,
 				   NULL, NULL_TREE);
@@ -10260,13 +10209,13 @@ ia64_init_builtins (void)
 		       NULL, NULL_TREE)
 
   decl = def_builtin ("__builtin_ia64_bsp",
-	       build_function_type (ptr_type_node, void_list_node),
-	       IA64_BUILTIN_BSP);
+		      build_function_type_list (ptr_type_node, NULL_TREE),
+		      IA64_BUILTIN_BSP);
   ia64_builtins[IA64_BUILTIN_BSP] = decl;
 
   decl = def_builtin ("__builtin_ia64_flushrs",
-	       build_function_type (void_type_node, void_list_node),
-	       IA64_BUILTIN_FLUSHRS);
+		      build_function_type_list (void_type_node, NULL_TREE),
+		      IA64_BUILTIN_FLUSHRS);
   ia64_builtins[IA64_BUILTIN_FLUSHRS] = decl;
 
 #undef def_builtin
@@ -11049,7 +10998,7 @@ ia64_promote_function_mode (const_tree type,
      For all other types passed in the general registers, unused bits are
      undefined."  */
 
-  if (!AGGREGATE_TYPE_P (type)
+  if (for_return != 2
       && GET_MODE_CLASS (mode) == MODE_INT
       && GET_MODE_SIZE (mode) < UNITS_PER_WORD)
     {

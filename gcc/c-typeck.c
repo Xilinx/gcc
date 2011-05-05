@@ -1,6 +1,6 @@
 /* Build expressions with type checking for C compiler.
    Copyright (C) 1987, 1988, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -98,7 +98,7 @@ static void set_nonincremental_init (struct obstack *);
 static void set_nonincremental_init_from_string (tree, struct obstack *);
 static tree find_init_member (tree, struct obstack *);
 static void readonly_warning (tree, enum lvalue_use);
-static int lvalue_or_else (const_tree, enum lvalue_use);
+static int lvalue_or_else (location_t, const_tree, enum lvalue_use);
 static void record_maybe_used_decl (tree);
 static int comptypes_internal (const_tree, const_tree, bool *, bool *);
 
@@ -1079,7 +1079,7 @@ comptypes_internal (const_tree type1, const_tree type2, bool *enum_and_int_p,
     return 1;
 
   /* 1 if no need for warning yet, 2 if warning cause has been seen.  */
-  if (!(attrval = targetm.comp_type_attributes (t1, t2)))
+  if (!(attrval = comp_type_attributes (t1, t2)))
      return 0;
 
   /* 1 if no need for warning yet, 2 if warning cause has been seen.  */
@@ -3564,7 +3564,8 @@ build_unary_op (location_t location,
       /* Complain about anything that is not a true lvalue.  In
 	 Objective-C, skip this check for property_refs.  */
       if (!objc_is_property_ref (arg) 
-	  && !lvalue_or_else (arg, ((code == PREINCREMENT_EXPR
+	  && !lvalue_or_else (location,
+			      arg, ((code == PREINCREMENT_EXPR
 				     || code == POSTINCREMENT_EXPR)
 				    ? lv_increment
 				    : lv_decrement)))
@@ -3736,18 +3737,12 @@ build_unary_op (location_t location,
 	  tree op0 = TREE_OPERAND (arg, 0);
 	  if (!c_mark_addressable (op0))
 	    return error_mark_node;
-	  return build_binary_op (location, PLUS_EXPR,
-				  (TREE_CODE (TREE_TYPE (op0)) == ARRAY_TYPE
-				   ? array_to_pointer_conversion (location,
-								  op0)
-				   : op0),
-				  TREE_OPERAND (arg, 1), 1);
 	}
 
       /* Anything not already handled and not a true memory reference
 	 or a non-lvalue array is an error.  */
       else if (typecode != FUNCTION_TYPE && !flag
-	       && !lvalue_or_else (arg, lv_addressof))
+	       && !lvalue_or_else (location, arg, lv_addressof))
 	return error_mark_node;
 
       /* Move address operations inside C_MAYBE_CONST_EXPR to simplify
@@ -3768,10 +3763,11 @@ build_unary_op (location_t location,
       argtype = TREE_TYPE (arg);
 
       /* If the lvalue is const or volatile, merge that into the type
-	 to which the address will point.  This should only be needed
+	 to which the address will point.  This is only needed
 	 for function types.  */
       if ((DECL_P (arg) || REFERENCE_CLASS_P (arg))
-	  && (TREE_READONLY (arg) || TREE_THIS_VOLATILE (arg)))
+	  && (TREE_READONLY (arg) || TREE_THIS_VOLATILE (arg))
+	  && TREE_CODE (argtype) == FUNCTION_TYPE)
 	{
 	  int orig_quals = TYPE_QUALS (strip_array_types (argtype));
 	  int quals = orig_quals;
@@ -3780,9 +3776,6 @@ build_unary_op (location_t location,
 	    quals |= TYPE_QUAL_CONST;
 	  if (TREE_THIS_VOLATILE (arg))
 	    quals |= TYPE_QUAL_VOLATILE;
-
-	  gcc_assert (quals == orig_quals
-		      || TREE_CODE (argtype) == FUNCTION_TYPE);
 
 	  argtype = c_build_qualified_type (argtype, quals);
 	}
@@ -3905,15 +3898,16 @@ readonly_warning (tree arg, enum lvalue_use use)
 
 /* Return nonzero if REF is an lvalue valid for this language;
    otherwise, print an error message and return zero.  USE says
-   how the lvalue is being used and so selects the error message.  */
+   how the lvalue is being used and so selects the error message.
+   LOCATION is the location at which any error should be reported.  */
 
 static int
-lvalue_or_else (const_tree ref, enum lvalue_use use)
+lvalue_or_else (location_t loc, const_tree ref, enum lvalue_use use)
 {
   int win = lvalue_p (ref);
 
   if (!win)
-    lvalue_error (use);
+    lvalue_error (loc, use);
 
   return win;
 }
@@ -4801,7 +4795,7 @@ build_modify_expr (location_t location, tree lhs, tree lhs_origtype,
     return error_mark_node;
 
   /* For ObjC properties, defer this check.  */
-  if (!objc_is_property_ref (lhs) && !lvalue_or_else (lhs, lv_assign))
+  if (!objc_is_property_ref (lhs) && !lvalue_or_else (location, lhs, lv_assign))
     return error_mark_node;
 
   if (TREE_CODE (rhs) == EXCESS_PRECISION_EXPR)
@@ -4851,7 +4845,7 @@ build_modify_expr (location_t location, tree lhs, tree lhs_origtype,
 	return result;
 
       /* Else, do the check that we postponed for Objective-C.  */
-      if (!lvalue_or_else (lhs, lv_assign))
+      if (!lvalue_or_else (location, lhs, lv_assign))
 	return error_mark_node;
     }
 
@@ -5272,10 +5266,10 @@ convert_for_assignment (location_t location, tree type, tree rhs,
     {
       tree ret;
       bool save = in_late_binary_op;
-      if (codel == BOOLEAN_TYPE)
+      if (codel == BOOLEAN_TYPE || codel == COMPLEX_TYPE)
 	in_late_binary_op = true;
       ret = convert_and_check (type, orig_rhs);
-      if (codel == BOOLEAN_TYPE)
+      if (codel == BOOLEAN_TYPE || codel == COMPLEX_TYPE)
 	in_late_binary_op = save;
       return ret;
     }
@@ -5771,11 +5765,13 @@ store_init_value (location_t init_loc, tree decl, tree init, tree origtype)
 	      /* For int foo[] = (int [3]){1}; we need to set array size
 		 now since later on array initializer will be just the
 		 brace enclosed list of the compound literal.  */
+	      tree etype = strip_array_types (TREE_TYPE (decl));
 	      type = build_distinct_type_copy (TYPE_MAIN_VARIANT (type));
-	      TREE_TYPE (decl) = type;
 	      TYPE_DOMAIN (type) = TYPE_DOMAIN (TREE_TYPE (cldecl));
 	      layout_type (type);
 	      layout_decl (cldecl, 0);
+	      TREE_TYPE (decl)
+		= c_build_qualified_type (type, TYPE_QUALS (etype));
 	    }
 	}
     }
@@ -6930,15 +6926,23 @@ pop_init_level (int implicit, struct obstack * braced_init_obstack)
       && TREE_CODE (constructor_type) == RECORD_TYPE
       && constructor_unfilled_fields)
     {
+	bool constructor_zeroinit =
+	 (VEC_length (constructor_elt, constructor_elements) == 1
+	  && integer_zerop
+	      (VEC_index (constructor_elt, constructor_elements, 0)->value));
+
 	/* Do not warn for flexible array members or zero-length arrays.  */
 	while (constructor_unfilled_fields
 	       && (!DECL_SIZE (constructor_unfilled_fields)
 		   || integer_zerop (DECL_SIZE (constructor_unfilled_fields))))
 	  constructor_unfilled_fields = DECL_CHAIN (constructor_unfilled_fields);
 
-	/* Do not warn if this level of the initializer uses member
-	   designators; it is likely to be deliberate.  */
-	if (constructor_unfilled_fields && !constructor_designated)
+	if (constructor_unfilled_fields
+	    /* Do not warn if this level of the initializer uses member
+	       designators; it is likely to be deliberate.  */
+	    && !constructor_designated
+	    /* Do not warn about initializing with ` = {0}'.  */
+	    && !constructor_zeroinit)
 	  {
 	    push_member_name (constructor_unfilled_fields);
 	    warning_init (OPT_Wmissing_field_initializers,
@@ -8479,7 +8483,7 @@ build_asm_expr (location_t loc, tree string, tree outputs, tree inputs,
 	 get an error.  Gross, but ...  */
       STRIP_NOPS (output);
 
-      if (!lvalue_or_else (output, lv_asm))
+      if (!lvalue_or_else (loc, output, lv_asm))
 	output = error_mark_node;
 
       if (output != error_mark_node
@@ -8500,6 +8504,13 @@ build_asm_expr (location_t loc, tree string, tree outputs, tree inputs,
 	     mark it addressable.  */
 	  if (!allows_reg && !c_mark_addressable (output))
 	    output = error_mark_node;
+	  if (!(!allows_reg && allows_mem)
+	      && output != error_mark_node
+	      && VOID_TYPE_P (TREE_TYPE (output)))
+	    {
+	      error_at (loc, "invalid use of void expression");
+	      output = error_mark_node;
+	    }
 	}
       else
 	output = error_mark_node;
@@ -8526,7 +8537,12 @@ build_asm_expr (location_t loc, tree string, tree outputs, tree inputs,
 	      STRIP_NOPS (input);
 	      if (!c_mark_addressable (input))
 		input = error_mark_node;
-	  }
+	    }
+	  else if (input != error_mark_node && VOID_TYPE_P (TREE_TYPE (input)))
+	    {
+	      error_at (loc, "invalid use of void expression");
+	      input = error_mark_node;
+	    }
 	}
       else
 	input = error_mark_node;
@@ -10174,7 +10190,7 @@ build_binary_op (location_t location, enum tree_code code,
 		warn_for_sign_compare (location, orig_op0_folded,
 				       orig_op1_folded, op0, op1,
 				       result_type, resultcode);
-	      if (!in_late_binary_op)
+	      if (!in_late_binary_op && !int_operands)
 		{
 		  if (!op0_maybe_const || TREE_CODE (op0) != INTEGER_CST)
 		    op0 = c_wrap_maybe_const (op0, !op0_maybe_const);
@@ -10268,6 +10284,10 @@ c_objc_common_truthvalue_conversion (location_t location, tree expr)
       error_at (location, "used union type value where scalar is required");
       return error_mark_node;
 
+    case VOID_TYPE:
+      error_at (location, "void value not ignored as it ought to be");
+      return error_mark_node;
+
     case FUNCTION_TYPE:
       gcc_unreachable ();
 
@@ -10280,8 +10300,8 @@ c_objc_common_truthvalue_conversion (location_t location, tree expr)
   if (int_operands)
     expr = remove_c_maybe_const_expr (expr);
 
-  /* ??? Should we also give an error for void and vectors rather than
-     leaving those to give errors later?  */
+  /* ??? Should we also give an error for vectors rather than leaving
+     those to give errors later?  */
   expr = c_common_truthvalue_conversion (location, expr);
 
   if (TREE_CODE (expr) == INTEGER_CST && int_operands && !int_const)

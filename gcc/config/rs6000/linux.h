@@ -1,7 +1,7 @@
 /* Definitions of target machine for GNU compiler,
    for PowerPC machines running Linux.
    Copyright (C) 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003,
-   2004, 2005, 2006, 2007, 2010 Free Software Foundation, Inc.
+   2004, 2005, 2006, 2007, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Michael Meissner (meissner@cygnus.com).
 
    This file is part of GCC.
@@ -27,7 +27,11 @@
 /* We use glibc _mcount for profiling.  */
 #define NO_PROFILE_COUNTERS 1
 
+#ifdef SINGLE_LIBC
+#define OPTION_GLIBC  (DEFAULT_LIBC == LIBC_GLIBC)
+#else
 #define OPTION_GLIBC  (linux_libc == LIBC_GLIBC)
+#endif
 
 /* glibc has float and long double forms of math functions.  */
 #undef  TARGET_C99_FUNCTIONS
@@ -84,9 +88,6 @@
 #define USE_LD_AS_NEEDED 1
 #endif
 
-#undef  TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (PowerPC GNU/Linux)");
-
 /* Override rs6000.h definition.  */
 #undef  ASM_APP_ON
 #define ASM_APP_ON "#APP\n"
@@ -109,8 +110,6 @@
 #undef RELOCATABLE_NEEDS_FIXUP
 #define RELOCATABLE_NEEDS_FIXUP \
   (target_flags & target_flags_explicit & MASK_RELOCATABLE)
-
-#define TARGET_ASM_FILE_END file_end_indicate_exec_stack
 
 #define TARGET_POSIX_IO
 
