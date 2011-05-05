@@ -1,5 +1,5 @@
 /* Header for code translation functions
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Paul Brook
 
@@ -104,7 +104,7 @@ gfc_se;
 
 typedef struct gfc_ss_info
 {
-  int dimen;
+  int dimen, codimen;
   /* The ref that holds information on this section.  */
   gfc_ref *ref;
   /* The descriptor of this array.  */
@@ -198,7 +198,7 @@ typedef struct gfc_ss
     {
       /* The rank of the temporary.  May be less than the rank of the
          assigned expression.  */
-      int dimen;
+      int dimen, codimen;
       tree type;
     }
     temp;
@@ -231,7 +231,7 @@ typedef struct gfc_loopinfo
   stmtblock_t pre;
   stmtblock_t post;
 
-  int dimen;
+  int dimen, codimen;
 
   /* All the SS involved with this loop.  */
   gfc_ss *ss;
@@ -319,9 +319,6 @@ void gfc_conv_string_parameter (gfc_se * se);
 /* Compare two strings.  */
 tree gfc_build_compare_string (tree, tree, tree, tree, int, enum tree_code);
 
-/* Add an item to the end of TREE_LIST.  */
-tree gfc_chainon_list (tree, tree);
-
 /* When using the gfc_conv_* make sure you understand what they do, i.e.
    when a POST chain may be created, and what the returned expression may be
    used for.  Note that character strings have special handling.  This
@@ -396,6 +393,8 @@ void gfc_trans_vla_type_sizes (gfc_symbol *, stmtblock_t *);
 
 /* Add an expression to the end of a block.  */
 void gfc_add_expr_to_block (stmtblock_t *, tree);
+/* Add an expression to the beginning of a block.  */
+void gfc_prepend_expr_to_block (stmtblock_t *, tree);
 /* Add a block to the end of a block.  */
 void gfc_add_block_to_block (stmtblock_t *, stmtblock_t *);
 /* Add a MODIFY_EXPR to a block.  */
@@ -449,6 +448,9 @@ bool gfc_get_module_backend_decl (gfc_symbol *);
 
 /* Return the variable decl for a symbol.  */
 tree gfc_get_symbol_decl (gfc_symbol *);
+
+/* Initialize coarray global variables.  */
+void gfc_init_coarray_decl (void);
 
 /* Build a static initializer.  */
 tree gfc_conv_initializer (gfc_expr *, gfc_typespec *, tree, bool, bool, bool);
@@ -506,6 +508,9 @@ void gfc_generate_constructors (void);
 
 /* Get the string length of an array constructor.  */
 bool get_array_ctor_strlen (stmtblock_t *, gfc_constructor_base, tree *);
+
+/* Mark a condition as unlikely.  */
+tree gfc_unlikely (tree);
 
 /* Generate a runtime error call.  */
 tree gfc_trans_runtime_error (bool, locus*, const char*, ...);
@@ -611,6 +616,22 @@ extern GTY(()) tree gfor_fndecl_in_pack;
 extern GTY(()) tree gfor_fndecl_in_unpack;
 extern GTY(()) tree gfor_fndecl_associated;
 
+
+/* Coarray run-time library function decls.  */
+extern GTY(()) tree gfor_fndecl_caf_init;
+extern GTY(()) tree gfor_fndecl_caf_finalize;
+extern GTY(()) tree gfor_fndecl_caf_critical;
+extern GTY(()) tree gfor_fndecl_caf_end_critical;
+extern GTY(()) tree gfor_fndecl_caf_sync_all;
+extern GTY(()) tree gfor_fndecl_caf_sync_images;
+extern GTY(()) tree gfor_fndecl_caf_error_stop;
+extern GTY(()) tree gfor_fndecl_caf_error_stop_str;
+
+/* Coarray global variables for num_images/this_image.  */
+extern GTY(()) tree gfort_gvar_caf_num_images;
+extern GTY(()) tree gfort_gvar_caf_this_image;
+
+
 /* Math functions.  Many other math functions are handled in
    trans-intrinsic.c.  */
 
@@ -692,7 +713,7 @@ enum gfc_array_kind
    variable-sized in some other frontends.  Due to gengtype deficiency the GTY
    options of such types have to agree across all frontends. */
 struct GTY((variable_size))	lang_type	 {
-  int rank;
+  int rank, corank;
   enum gfc_array_kind akind;
   tree lbound[GFC_MAX_DIMENSIONS];
   tree ubound[GFC_MAX_DIMENSIONS];
@@ -747,6 +768,7 @@ struct GTY((variable_size)) lang_decl {
 #define GFC_TYPE_ARRAY_STRIDE(node, dim) \
   (TYPE_LANG_SPECIFIC(node)->stride[dim])
 #define GFC_TYPE_ARRAY_RANK(node) (TYPE_LANG_SPECIFIC(node)->rank)
+#define GFC_TYPE_ARRAY_CORANK(node) (TYPE_LANG_SPECIFIC(node)->corank)
 #define GFC_TYPE_ARRAY_SIZE(node) (TYPE_LANG_SPECIFIC(node)->size)
 #define GFC_TYPE_ARRAY_OFFSET(node) (TYPE_LANG_SPECIFIC(node)->offset)
 #define GFC_TYPE_ARRAY_AKIND(node) (TYPE_LANG_SPECIFIC(node)->akind)

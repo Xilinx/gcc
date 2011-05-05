@@ -1,3 +1,23 @@
+2011-04-15  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libobjc/32037
+	* Makefile.in (OBJC_GCFLAGS): Move ...
+	* configure.ac (enable_objc_gc): ... here.
+	Add $(libsuffix) to OBJC_BOEHM_GC.
+	* configure: Regenerate.
+
+2011-02-28  Nicola Pero  <nicola.pero@meta-innovation.com>
+	
+	* selector.c (sel_getTypedSelector): Return NULL if there are
+	multiple selectors with conflicting types.
+	* objc/runtime.h (sel_getTypedSelector): Updated documentation.
+	
+2011-02-28  Richard Frith-Macdonald <rfm@gnu.org>
+
+	PR libobjc/47922
+	* gc.c (class_ivar_set_gcinvisible): Use _C_GCINVISIBLE instead of
+	a hardcoded "!".
+
 2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure: Regenerate.

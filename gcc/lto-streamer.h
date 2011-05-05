@@ -1,7 +1,7 @@
 /* Data structures and declarations used for reading and writing
    GIMPLE to a file stream.
 
-   Copyright (C) 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Doug Kwan <dougkwan@google.com>
 
 This file is part of GCC.
@@ -264,6 +264,7 @@ enum lto_section_type
   LTO_section_symtab,
   LTO_section_opts,
   LTO_section_cgraph_opt_sum,
+  LTO_section_inline_summary,
   LTO_N_SECTION_TYPES		/* Must be last.  */
 };
 
@@ -345,19 +346,10 @@ typedef void (lto_free_section_data_f) (struct lto_file_decl_data *,
 struct lto_streamer_cache_d
 {
   /* The mapping between tree nodes and slots into the nodes array.  */
-  htab_t node_map;
-
-  /* Node map to store entries into.  */
-  alloc_pool node_map_entries;
-
-  /* Next available slot in the nodes and offsets arrays.  */
-  unsigned next_slot;
+  struct pointer_map_t *node_map;
 
   /* The nodes pickled so far.  */
   VEC(tree,heap) *nodes;
-
-  /* Offset into the stream where the nodes have been written.  */
-  VEC(unsigned,heap) *offsets;
 };
 
 
@@ -763,7 +755,6 @@ extern const char *lto_get_section_data (struct lto_file_decl_data *,
 extern void lto_free_section_data (struct lto_file_decl_data *,
 				   enum lto_section_type,
 				   const char *, const char *, size_t);
-extern unsigned char lto_input_1_unsigned (struct lto_input_block *);
 extern unsigned HOST_WIDE_INT lto_input_uleb128 (struct lto_input_block *);
 extern unsigned HOST_WIDEST_INT lto_input_widest_uint_uleb128 (
 						struct lto_input_block *);
@@ -779,6 +770,7 @@ extern hashval_t lto_hash_in_decl_state (const void *);
 extern int lto_eq_in_decl_state (const void *, const void *);
 extern struct lto_in_decl_state *lto_get_function_in_decl_state (
 				      struct lto_file_decl_data *, tree);
+extern void lto_section_overrun (struct lto_input_block *) ATTRIBUTE_NORETURN;
 
 /* In lto-section-out.c  */
 extern hashval_t lto_hash_decl_slot_node (const void *);
@@ -788,7 +780,6 @@ extern int lto_eq_type_slot_node (const void *, const void *);
 extern void lto_begin_section (const char *, bool);
 extern void lto_end_section (void);
 extern void lto_write_stream (struct lto_output_stream *);
-extern void lto_output_1_stream (struct lto_output_stream *, char);
 extern void lto_output_data_stream (struct lto_output_stream *, const void *,
 				    size_t);
 extern void lto_output_uleb128_stream (struct lto_output_stream *,
@@ -822,6 +813,7 @@ extern void lto_push_out_decl_state (struct lto_out_decl_state *);
 extern struct lto_out_decl_state *lto_pop_out_decl_state (void);
 extern void lto_record_function_out_decl_state (tree,
 						struct lto_out_decl_state *);
+extern void lto_append_block (struct lto_output_stream *);
 
 
 /* In lto-streamer.c.  */
@@ -831,12 +823,13 @@ extern void lto_bitmap_free (bitmap);
 extern char *lto_get_section_name (int, const char *, struct lto_file_decl_data *);
 extern void print_lto_report (void);
 extern bool lto_streamer_cache_insert (struct lto_streamer_cache_d *, tree,
-				       int *, unsigned *);
+				       unsigned *);
 extern bool lto_streamer_cache_insert_at (struct lto_streamer_cache_d *, tree,
-					  int);
+					  unsigned);
+extern void lto_streamer_cache_append (struct lto_streamer_cache_d *, tree);
 extern bool lto_streamer_cache_lookup (struct lto_streamer_cache_d *, tree,
-				       int *);
-extern tree lto_streamer_cache_get (struct lto_streamer_cache_d *, int);
+				       unsigned *);
+extern tree lto_streamer_cache_get (struct lto_streamer_cache_d *, unsigned);
 extern struct lto_streamer_cache_d *lto_streamer_cache_create (void);
 extern void lto_streamer_cache_delete (struct lto_streamer_cache_d *);
 extern void lto_streamer_init (void);
@@ -862,6 +855,9 @@ extern struct data_in *lto_data_in_create (struct lto_file_decl_data *,
 				    const char *, unsigned,
 				    VEC(ld_plugin_symbol_resolution_t,heap) *);
 extern void lto_data_in_delete (struct data_in *);
+extern const char *lto_input_string (struct data_in *,
+				     struct lto_input_block *);
+extern void lto_input_data_block (struct lto_input_block *, void *, size_t);
 
 
 /* In lto-streamer-out.c  */
@@ -870,6 +866,18 @@ extern struct output_block *create_output_block (enum lto_section_type);
 extern void destroy_output_block (struct output_block *);
 extern void lto_output_tree (struct output_block *, tree, bool);
 extern void produce_asm (struct output_block *ob, tree fn);
+extern void lto_output_string (struct output_block *,
+			       struct lto_output_stream *,
+			       const char *);
+extern void lto_output_string_with_length (struct output_block *,
+			                   struct lto_output_stream *,
+			                   const char *,
+			                   unsigned int);
+void lto_output_decl_state_streams (struct output_block *,
+				    struct lto_out_decl_state *);
+void lto_output_decl_state_refs (struct output_block *,
+			         struct lto_output_stream *,
+			         struct lto_out_decl_state *);
 
 
 /* In lto-cgraph.c  */
@@ -918,7 +926,7 @@ extern GTY(()) VEC(tree,gc) *lto_global_var_decls;
 
 
 /* In lto-opts.c.  */
-extern void lto_register_user_option (size_t, const char *, int, int);
+extern void lto_register_user_option (size_t, const char *, int, unsigned int);
 extern void lto_read_file_options (struct lto_file_decl_data *);
 extern void lto_write_options (void);
 extern void lto_reissue_options (void);
@@ -1161,6 +1169,34 @@ bp_unpack_value (struct bitpack_d *bp, unsigned nbits)
   bp->pos = pos + nbits;
 
   return val & mask;
+}
+
+
+/* Write a character to the output block.  */
+
+static inline void
+lto_output_1_stream (struct lto_output_stream *obs, char c)
+{
+  /* No space left.  */
+  if (obs->left_in_block == 0)
+    lto_append_block (obs);
+
+  /* Write the actual character.  */
+  *obs->current_pointer = c;
+  obs->current_pointer++;
+  obs->total_size++;
+  obs->left_in_block--;
+}
+
+
+/* Read byte from the input block.  */
+
+static inline unsigned char
+lto_input_1_unsigned (struct lto_input_block *ib)
+{
+  if (ib->p >= ib->len)
+    lto_section_overrun (ib);
+  return (ib->data[ib->p++]);
 }
 
 #endif /* GCC_LTO_STREAMER_H  */

@@ -757,6 +757,7 @@ enable_intermodule
 enable_maintainer_mode
 enable_multilib
 enable_dependency_tracking
+enable_symvers
 enable_shared
 enable_static
 with_pic
@@ -1406,6 +1407,7 @@ Optional Features:
   --enable-multilib       build many library versions (default)
   --disable-dependency-tracking  speeds up one-time build
   --enable-dependency-tracking   do not reject slow dependency extractors
+  --disable-symvers       disable symbol versioning for libgfortran
   --enable-shared[=PKGS]  build shared libraries [default=yes]
   --enable-static[=PKGS]  build static libraries [default=yes]
   --enable-fast-install[=PKGS]
@@ -5564,14 +5566,22 @@ fi
 # Check for symbol versioning (copied from libssp).
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether symbol versioning is supported" >&5
 $as_echo_n "checking whether symbol versioning is supported... " >&6; }
-save_LDFLAGS="$LDFLAGS"
-LDFLAGS="$LDFLAGS -fPIC -shared -Wl,--version-script,./conftest.map"
-cat > conftest.map <<EOF
+# Check whether --enable-symvers was given.
+if test "${enable_symvers+set}" = set; then :
+  enableval=$enable_symvers; gfortran_use_symver=$enableval
+else
+  gfortran_use_symver=yes
+fi
+
+if test "x$gfortran_use_symver" = xyes; then
+  save_LDFLAGS="$LDFLAGS"
+  LDFLAGS="$LDFLAGS -fPIC -shared -Wl,--version-script,./conftest.map"
+  cat > conftest.map <<EOF
 FOO_1.0 {
   global: *foo*; bar; local: *;
 };
 EOF
-if test x$gcc_no_link = xyes; then
+  if test x$gcc_no_link = xyes; then
   as_fn_error "Link tests are not allowed after GCC_NO_EXECUTABLES." "$LINENO" 5
 fi
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -5592,18 +5602,18 @@ else
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-if test x$gfortran_use_symver = xno; then
-  case "$target_os" in
-    solaris2*)
-      LDFLAGS="$save_LDFLAGS"
-      LDFLAGS="$LDFLAGS -fPIC -shared -Wl,-M,./conftest.map"
-      # Sun ld cannot handle wildcards and treats all entries as undefined.
-      cat > conftest.map <<EOF
+  if test x$gfortran_use_symver = xno; then
+    case "$target_os" in
+      solaris2*)
+        LDFLAGS="$save_LDFLAGS"
+        LDFLAGS="$LDFLAGS -fPIC -shared -Wl,-M,./conftest.map"
+        # Sun ld cannot handle wildcards and treats all entries as undefined.
+        cat > conftest.map <<EOF
 FOO_1.0 {
   global: foo; local: *;
 };
 EOF
-      if test x$gcc_no_link = xyes; then
+        if test x$gcc_no_link = xyes; then
   as_fn_error "Link tests are not allowed after GCC_NO_EXECUTABLES." "$LINENO" 5
 fi
 cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -5624,10 +5634,11 @@ else
 fi
 rm -f core conftest.err conftest.$ac_objext \
     conftest$ac_exeext conftest.$ac_ext
-      ;;
-  esac
+        ;;
+    esac
+  fi
+  LDFLAGS="$save_LDFLAGS"
 fi
-LDFLAGS="$save_LDFLAGS"
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $gfortran_use_symver" >&5
 $as_echo "$gfortran_use_symver" >&6; }
  if test "x$gfortran_use_symver" != xno; then
@@ -12101,7 +12112,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 12104 "configure"
+#line 12115 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -12207,7 +12218,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 12210 "configure"
+#line 12221 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -15623,6 +15634,8 @@ rm -rf conftest*
   fi
 fi
 
+
+# Types
 ac_fn_c_check_type "$LINENO" "off_t" "ac_cv_type_off_t" "$ac_includes_default"
 if test "x$ac_cv_type_off_t" = x""yes; then :
 
@@ -15631,6 +15644,87 @@ else
 cat >>confdefs.h <<_ACEOF
 #define off_t long int
 _ACEOF
+
+fi
+
+
+  ac_fn_c_check_type "$LINENO" "intptr_t" "ac_cv_type_intptr_t" "$ac_includes_default"
+if test "x$ac_cv_type_intptr_t" = x""yes; then :
+
+$as_echo "#define HAVE_INTPTR_T 1" >>confdefs.h
+
+else
+  for ac_type in 'int' 'long int' 'long long int'; do
+       cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$ac_includes_default
+int
+main ()
+{
+static int test_array [1 - 2 * !(sizeof (void *) <= sizeof ($ac_type))];
+test_array [0] = 0
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+cat >>confdefs.h <<_ACEOF
+#define intptr_t $ac_type
+_ACEOF
+
+	  ac_type=
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+       test -z "$ac_type" && break
+     done
+fi
+
+
+
+  ac_fn_c_check_type "$LINENO" "uintptr_t" "ac_cv_type_uintptr_t" "$ac_includes_default"
+if test "x$ac_cv_type_uintptr_t" = x""yes; then :
+
+$as_echo "#define HAVE_UINTPTR_T 1" >>confdefs.h
+
+else
+  for ac_type in 'unsigned int' 'unsigned long int' \
+	'unsigned long long int'; do
+       cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+$ac_includes_default
+int
+main ()
+{
+static int test_array [1 - 2 * !(sizeof (void *) <= sizeof ($ac_type))];
+test_array [0] = 0
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_compile "$LINENO"; then :
+
+cat >>confdefs.h <<_ACEOF
+#define uintptr_t $ac_type
+_ACEOF
+
+	  ac_type=
+fi
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+       test -z "$ac_type" && break
+     done
+fi
+
+
+ac_fn_c_check_type "$LINENO" "ptrdiff_t" "ac_cv_type_ptrdiff_t" "$ac_includes_default"
+if test "x$ac_cv_type_ptrdiff_t" = x""yes; then :
+
+cat >>confdefs.h <<_ACEOF
+#define HAVE_PTRDIFF_T 1
+_ACEOF
+
 
 fi
 
@@ -16312,7 +16406,7 @@ _ACEOF
 fi
 done
 
-for ac_func in sleep time ttyname signal alarm ctime clock access fork execl
+for ac_func in sleep time ttyname signal alarm clock access fork execl
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -16351,7 +16445,7 @@ _ACEOF
 fi
 done
 
-for ac_func in localtime_r gmtime_r strerror_r getpwuid_r ttyname_r ctime_r
+for ac_func in localtime_r gmtime_r strerror_r getpwuid_r ttyname_r
 do :
   as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
 ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
@@ -16364,12 +16458,14 @@ _ACEOF
 fi
 done
 
-for ac_func in clock_gettime
+for ac_func in clock_gettime strftime
 do :
-  ac_fn_c_check_func "$LINENO" "clock_gettime" "ac_cv_func_clock_gettime"
-if test "x$ac_cv_func_clock_gettime" = x""yes; then :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+eval as_val=\$$as_ac_var
+   if test "x$as_val" = x""yes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_CLOCK_GETTIME 1
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
 _ACEOF
 
 fi
@@ -16389,28 +16485,6 @@ _ACEOF
 
 fi
 done
-
-
-# Check for types
-ac_fn_c_check_type "$LINENO" "intptr_t" "ac_cv_type_intptr_t" "$ac_includes_default"
-if test "x$ac_cv_type_intptr_t" = x""yes; then :
-
-cat >>confdefs.h <<_ACEOF
-#define HAVE_INTPTR_T 1
-_ACEOF
-
-
-fi
-
-ac_fn_c_check_type "$LINENO" "uintptr_t" "ac_cv_type_uintptr_t" "$ac_includes_default"
-if test "x$ac_cv_type_uintptr_t" = x""yes; then :
-
-cat >>confdefs.h <<_ACEOF
-#define HAVE_UINTPTR_T 1
-_ACEOF
-
-
-fi
 
 
 # Check libc for getgid, getpid, getuid
@@ -25301,10 +25375,11 @@ $as_echo "#define HAVE_FEENABLEEXCEPT 1" >>confdefs.h
 fi
 
 
-# At least for glibc, clock_gettime is in librt.  But don't pull that
-# in if it still doesn't give us the function we want.
-# This test is copied from libgomp, and modified to not link in -lrt
-# as libgfortran calls clock_gettime via a weak reference.
+# At least for glibc and Tru64, clock_gettime is in librt.  But don't
+# pull that in if it still doesn't give us the function we want.  This
+# test is copied from libgomp, and modified to not link in -lrt as
+# libgfortran calls clock_gettime via a weak reference if it's found
+# in librt.
 if test $ac_cv_func_clock_gettime = no; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for clock_gettime in -lrt" >&5
 $as_echo_n "checking for clock_gettime in -lrt... " >&6; }
@@ -25347,7 +25422,7 @@ fi
 $as_echo "$ac_cv_lib_rt_clock_gettime" >&6; }
 if test "x$ac_cv_lib_rt_clock_gettime" = x""yes; then :
 
-$as_echo "#define HAVE_CLOCK_GETTIME 1" >>confdefs.h
+$as_echo "#define HAVE_CLOCK_GETTIME_LIBRT 1" >>confdefs.h
 
 fi
 
@@ -25393,6 +25468,7 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $libgfor_cv_have_fpsetmask" >&5
 $as_echo "$libgfor_cv_have_fpsetmask" >&6; }
   if test x"$libgfor_cv_have_fpsetmask" = xyes; then
+    have_fpsetmask=yes
 
 $as_echo "#define HAVE_FPSETMASK 1" >>confdefs.h
 
@@ -25426,6 +25502,56 @@ FPU_HOST_HEADER=config/${fpu_host}.h
 
 # Some targets require additional compiler options for IEEE compatibility.
 IEEE_FLAGS="${ieee_flags}"
+
+
+
+# Check for POSIX getpwuid_r
+#
+# There are two versions of getpwuid_r, the POSIX one with 5
+# arguments, and another one with 4 arguments used by at least HP-UX
+# 10.2.
+if test "$ac_cv_func_getpwuid_r" = "yes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: checking POSIX version of getpwuid_r with 5 arguments" >&5
+$as_echo_n "checking POSIX version of getpwuid_r with 5 arguments... " >&6; }
+if test "${libgfor_cv_posix_getpwuid_r+set}" = set; then :
+  $as_echo_n "(cached) " >&6
+else
+
+   if test x$gcc_no_link = xyes; then
+  as_fn_error "Link tests are not allowed after GCC_NO_EXECUTABLES." "$LINENO" 5
+fi
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <pwd.h>
+int
+main ()
+{
+
+    getpwuid_r(0, NULL, NULL, 0, NULL);
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  libgfor_cv_posix_getpwuid_r="yes"
+else
+  libgfor_cv_posix_getpwuid_r="no"
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $libgfor_cv_posix_getpwuid_r" >&5
+$as_echo "$libgfor_cv_posix_getpwuid_r" >&6; }
+fi
+if test "$libgfor_cv_posix_getpwuid_r" = "yes"; then
+
+$as_echo "#define HAVE_POSIX_GETPWUID_R 1" >>confdefs.h
+
+fi
 
 
 # Check out attribute support.
@@ -25609,8 +25735,10 @@ else
   CFLAGS="$CFLAGS -Wunknown-pragmas"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
+
 void foo (void);
 #pragma weak foo
+
 int
 main ()
 {
@@ -25634,7 +25762,7 @@ $as_echo "#define SUPPORTS_WEAK 1" >>confdefs.h
 
   fi
   case "$host" in
-    *-*-darwin* | *-*-hpux* | *-*-cygwin* | *-*-mingw* )
+    *-*-darwin* | *-*-hpux* | *-*-cygwin* | *-*-mingw* | alpha*-dec-osf* )
 
 $as_echo "#define GTHREAD_USE_WEAK 0" >>confdefs.h
 

@@ -49,9 +49,6 @@ test04()
 // { dg-error "instantiated from here" "" { target *-*-* } 34 }
 // { dg-error "instantiated from here" "" { target *-*-* } 40 }
 // { dg-error "instantiated from here" "" { target *-*-* } 46 }
-// { dg-error "denominator cannot be zero" "" { target *-*-* } 155 }
-// { dg-error "out of range" "" { target *-*-* } 156 }
-// { dg-error "non-constant expression" "" { target *-*-* } 61 }
-// { dg-error "overflow in constant expression" "" { target *-*-* } 61 }
-// { dg-error "not a member" "" { target *-*-* } 164 }
-// { dg-error "not a valid template argument" "" { target *-*-* } 166 }
+// { dg-error "denominator cannot be zero" "" { target *-*-* } 268 }
+// { dg-error "out of range" "" { target *-*-* } 269 }
+// { dg-error "overflow in constant expression" "" { target *-*-* } 99 }

@@ -36,24 +36,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #endif
 
 
-/* If the re-entrant versions of localtime and gmtime are not
-   available, provide fallback implementations.  On some targets where
-   the _r versions are not available, localtime and gmtime use
-   thread-local storage so they are threadsafe.  */
-
-#ifndef HAVE_LOCALTIME_R
-/* If _POSIX is defined localtime_r gets defined by mingw-w64 headers.  */
-#ifdef localtime_r
-#undef localtime_r
-#endif
-
-static struct tm *
-localtime_r (const time_t * timep, struct tm * result)
-{
-  *result = *localtime (timep);
-  return result;
-}
-#endif
+/* If the re-entrant version of gmtime is not available, provide a
+   fallback implementation.  On some targets where the _r version is
+   not available, gmtime uses thread-local storage so it's
+   threadsafe.  */
 
 #ifndef HAVE_GMTIME_R
 /* If _POSIX is defined gmtime_r gets defined by mingw-w64 headers.  */
@@ -182,7 +168,6 @@ date_and_time (char *__date, char *__time, char *__zone,
       values[5] = local_time.tm_min;
       values[6] = local_time.tm_sec;
 
-#if HAVE_SNPRINTF
       if (__date)
 	snprintf (date, DATE_LEN + 1, "%04d%02d%02d",
 		  values[0], values[1], values[2]);
@@ -193,18 +178,6 @@ date_and_time (char *__date, char *__time, char *__zone,
       if (__zone)
 	snprintf (zone, ZONE_LEN + 1, "%+03d%02d",
 		  values[3] / 60, abs (values[3] % 60));
-#else
-      if (__date)
-	sprintf (date, "%04d%02d%02d", values[0], values[1], values[2]);
-
-      if (__time)
-	sprintf (timec, "%02d%02d%02d.%03d",
-		 values[4], values[5], values[6], values[7]);
-
-      if (__zone)
-	sprintf (zone, "%+03d%02d",
-		 values[3] / 60, abs (values[3] % 60));
-#endif
     }
   else
     {

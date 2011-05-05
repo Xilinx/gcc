@@ -639,7 +639,6 @@ static void
 check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
 {
   gimple stmt = gsi_stmt (*gsip);
-  unsigned int i = 0;
 
   if (is_gimple_debug (stmt))
     return;
@@ -693,16 +692,12 @@ check_stmt (gimple_stmt_iterator *gsip, funct_state local, bool ipa)
 	}
       break;
     case GIMPLE_ASM:
-      for (i = 0; i < gimple_asm_nclobbers (stmt); i++)
+      if (gimple_asm_clobbers_memory_p (stmt))
 	{
-	  tree op = gimple_asm_clobber_op (stmt, i);
-	  if (strcmp (TREE_STRING_POINTER (TREE_VALUE (op)), "memory") == 0)
-	    {
-              if (dump_file)
-                fprintf (dump_file, "    memory asm clobber is not const/pure");
-	      /* Abandon all hope, ye who enter here. */
-	      local->pure_const_state = IPA_NEITHER;
-	    }
+	  if (dump_file)
+	    fprintf (dump_file, "    memory asm clobber is not const/pure");
+	  /* Abandon all hope, ye who enter here. */
+	  local->pure_const_state = IPA_NEITHER;
 	}
       if (gimple_asm_volatile_p (stmt))
 	{
@@ -1094,11 +1089,11 @@ propagate_pure_const (void)
   int i;
   struct ipa_dfs_info * w_info;
 
-  order_pos = ipa_utils_reduced_inorder (order, true, false, NULL);
+  order_pos = ipa_reduced_postorder (order, true, false, NULL);
   if (dump_file)
     {
       dump_cgraph (dump_file);
-      ipa_utils_print_order(dump_file, "reduced", order, order_pos);
+      ipa_print_order(dump_file, "reduced", order, order_pos);
     }
 
   /* Propagate the local information thru the call graph to produce
@@ -1344,18 +1339,7 @@ propagate_pure_const (void)
 	}
     }
 
-  /* Cleanup. */
-  for (node = cgraph_nodes; node; node = node->next)
-    {
-      /* Get rid of the aux information.  */
-      if (node->aux)
-	{
-	  w_info = (struct ipa_dfs_info *) node->aux;
-	  free (node->aux);
-	  node->aux = NULL;
-	}
-    }
-
+  ipa_free_postorder_info ();
   free (order);
 }
 
@@ -1373,11 +1357,11 @@ propagate_nothrow (void)
   int i;
   struct ipa_dfs_info * w_info;
 
-  order_pos = ipa_utils_reduced_inorder (order, true, false, ignore_edge);
+  order_pos = ipa_reduced_postorder (order, true, false, ignore_edge);
   if (dump_file)
     {
       dump_cgraph (dump_file);
-      ipa_utils_print_order(dump_file, "reduced for nothrow", order, order_pos);
+      ipa_print_order (dump_file, "reduced for nothrow", order, order_pos);
     }
 
   /* Propagate the local information thru the call graph to produce
@@ -1450,18 +1434,7 @@ propagate_nothrow (void)
 	}
     }
 
-  /* Cleanup. */
-  for (node = cgraph_nodes; node; node = node->next)
-    {
-      /* Get rid of the aux information.  */
-      if (node->aux)
-	{
-	  w_info = (struct ipa_dfs_info *) node->aux;
-	  free (node->aux);
-	  node->aux = NULL;
-	}
-    }
-
+  ipa_free_postorder_info ();
   free (order);
 }
 
@@ -1563,7 +1536,7 @@ local_pure_const (void)
   bool skip;
   struct cgraph_node *node;
 
-  node = cgraph_node (current_function_decl);
+  node = cgraph_get_node (current_function_decl);
   skip = skip_function_for_local_pure_const (node);
   if (!warn_suggest_attribute_const
       && !warn_suggest_attribute_pure
@@ -1667,8 +1640,7 @@ local_pure_const (void)
 		 lang_hooks.decl_printable_name (current_function_decl,
 						 2));
     }
-  if (l)
-    free (l);
+  free (l);
   if (changed)
     return execute_fixup_cfg ();
   else

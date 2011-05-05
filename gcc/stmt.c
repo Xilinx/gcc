@@ -1455,7 +1455,7 @@ expand_expr_stmt (tree exp)
       if (TYPE_MODE (type) == VOIDmode)
 	;
       else if (TYPE_MODE (type) != BLKmode)
-	value = copy_to_reg (value);
+	copy_to_reg (value);
       else
 	{
 	  rtx lab = gen_label_rtx ();
@@ -2006,7 +2006,7 @@ expand_stack_save (void)
   rtx ret = NULL_RTX;
 
   do_pending_stack_adjust ();
-  emit_stack_save (SAVE_BLOCK, &ret, NULL_RTX);
+  emit_stack_save (SAVE_BLOCK, &ret);
   return ret;
 }
 
@@ -2017,7 +2017,7 @@ expand_stack_restore (tree var)
   rtx sa = expand_normal (var);
 
   sa = convert_memory_address (Pmode, sa);
-  emit_stack_restore (SAVE_BLOCK, sa, NULL_RTX);
+  emit_stack_restore (SAVE_BLOCK, sa);
 }
 
 /* Do the insertion of a case label into case_list.  The labels are

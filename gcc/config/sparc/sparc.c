@@ -1,6 +1,7 @@
 /* Subroutines for insn-output.c for SPARC.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com)
    64-bit SPARC-V9 support by Michael Tiemann, Jim Wilson, and Doug Evans,
@@ -54,6 +55,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "df.h"
 #include "dwarf2out.h"
+#include "opts.h"
 
 /* Processor costs */
 static const
@@ -365,7 +367,6 @@ static HOST_WIDE_INT frame_base_offset;
 /* 1 if the next opcode is to be specially indented.  */
 int sparc_indent_opcode = 0;
 
-static bool sparc_handle_option (size_t, const char *, int);
 static void sparc_option_override (void);
 static void sparc_init_modes (void);
 static void scan_record_type (const_tree, int *, int *, int *);
@@ -381,6 +382,7 @@ static void sparc_output_addr_vec (rtx);
 static void sparc_output_addr_diff_vec (rtx);
 static void sparc_output_deferred_case_vectors (void);
 static bool sparc_legitimate_address_p (enum machine_mode, rtx, bool);
+static bool sparc_legitimate_constant_p (enum machine_mode, rtx);
 static rtx sparc_builtin_saveregs (void);
 static int epilogue_renumber (rtx *, int);
 static bool sparc_assemble_integer (rtx, unsigned int, int);
@@ -416,11 +418,13 @@ static void sparc_output_mi_thunk (FILE *, tree, HOST_WIDE_INT,
 static bool sparc_can_output_mi_thunk (const_tree, HOST_WIDE_INT,
 				       HOST_WIDE_INT, const_tree);
 static struct machine_function * sparc_init_machine_status (void);
-static bool sparc_cannot_force_const_mem (rtx);
+static bool sparc_cannot_force_const_mem (enum machine_mode, rtx);
 static rtx sparc_tls_get_addr (void);
 static rtx sparc_tls_got (void);
 static const char *get_some_local_dynamic_name (void);
 static int get_some_local_dynamic_name_1 (rtx *, void *);
+static int sparc_register_move_cost (enum machine_mode,
+				     reg_class_t, reg_class_t);
 static bool sparc_rtx_costs (rtx, int, int, int *, bool);
 static rtx sparc_function_value (const_tree, const_tree, bool);
 static rtx sparc_libcall_value (enum machine_mode, const_rtx);
@@ -464,14 +468,19 @@ static const char *sparc_mangle_type (const_tree);
 #endif
 static void sparc_trampoline_init (rtx, tree, rtx);
 static enum machine_mode sparc_preferred_simd_mode (enum machine_mode);
+static reg_class_t sparc_preferred_reload_class (rtx x, reg_class_t rclass);
+static bool sparc_print_operand_punct_valid_p (unsigned char);
+static void sparc_print_operand (FILE *, rtx, int);
+static void sparc_print_operand_address (FILE *, rtx);
 
 #ifdef SUBTARGET_ATTRIBUTE_TABLE
 /* Table of valid machine attributes.  */
 static const struct attribute_spec sparc_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       do_diagnostic } */
   SUBTARGET_ATTRIBUTE_TABLE,
-  { NULL,        0, 0, false, false, false, NULL }
+  { NULL,        0, 0, false, false, false, NULL, false }
 };
 #endif
 
@@ -481,21 +490,6 @@ static const struct attribute_spec sparc_attribute_table[] =
 enum cmodel sparc_cmodel;
 
 char sparc_hard_reg_printed[8];
-
-struct sparc_cpu_select sparc_select[] =
-{
-  /* switch	name,		tune	arch */
-  { (char *)0,	"default",	1,	1 },
-  { (char *)0,	"-mcpu=",	1,	1 },
-  { (char *)0,	"-mtune=",	1,	0 },
-  { 0, 0, 0, 0 }
-};
-
-/* CPU type.  This is set from TARGET_CPU_DEFAULT and -m{cpu,tune}=xxx.  */
-enum processor_type sparc_cpu;
-
-/* Whetheran FPU option was specified.  */
-static bool fpu_option_set = false;
 
 /* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
 static const struct default_options sparc_option_optimization_table[] =
@@ -572,6 +566,8 @@ static const struct default_options sparc_option_optimization_table[] =
 #define TARGET_RTX_COSTS sparc_rtx_costs
 #undef TARGET_ADDRESS_COST
 #define TARGET_ADDRESS_COST hook_int_rtx_bool_0
+#undef TARGET_REGISTER_MOVE_COST
+#define TARGET_REGISTER_MOVE_COST sparc_register_move_cost
 
 #undef TARGET_PROMOTE_FUNCTION_MODE
 #define TARGET_PROMOTE_FUNCTION_MODE sparc_promote_function_mode
@@ -636,8 +632,6 @@ static const struct default_options sparc_option_optimization_table[] =
 
 #undef TARGET_DEFAULT_TARGET_FLAGS
 #define TARGET_DEFAULT_TARGET_FLAGS TARGET_DEFAULT
-#undef TARGET_HANDLE_OPTION
-#define TARGET_HANDLE_OPTION sparc_handle_option
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE sparc_option_override
 #undef TARGET_OPTION_OPTIMIZATION_TABLE
@@ -656,6 +650,8 @@ static const struct default_options sparc_option_optimization_table[] =
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE sparc_can_eliminate
+#undef  TARGET_PREFERRED_RELOAD_CLASS
+#define TARGET_PREFERRED_RELOAD_CLASS sparc_preferred_reload_class
 
 #undef TARGET_CONDITIONAL_REGISTER_USAGE
 #define TARGET_CONDITIONAL_REGISTER_USAGE sparc_conditional_register_usage
@@ -668,35 +664,20 @@ static const struct default_options sparc_option_optimization_table[] =
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P sparc_legitimate_address_p
 
+#undef TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P sparc_legitimate_constant_p
+
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT sparc_trampoline_init
 
+#undef TARGET_PRINT_OPERAND_PUNCT_VALID_P
+#define TARGET_PRINT_OPERAND_PUNCT_VALID_P sparc_print_operand_punct_valid_p
+#undef TARGET_PRINT_OPERAND
+#define TARGET_PRINT_OPERAND sparc_print_operand
+#undef TARGET_PRINT_OPERAND_ADDRESS
+#define TARGET_PRINT_OPERAND_ADDRESS sparc_print_operand_address
+
 struct gcc_target targetm = TARGET_INITIALIZER;
-
-/* Implement TARGET_HANDLE_OPTION.  */
-
-static bool
-sparc_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
-{
-  switch (code)
-    {
-    case OPT_mfpu:
-    case OPT_mhard_float:
-    case OPT_msoft_float:
-      fpu_option_set = true;
-      break;
-
-    case OPT_mcpu_:
-      sparc_select[1].string = arg;
-      break;
-
-    case OPT_mtune_:
-      sparc_select[2].string = arg;
-      break;
-    }
-
-  return true;
-}
 
 /* Validate and override various options, and do some machine dependent
    initialization.  */
@@ -719,68 +700,64 @@ sparc_option_override (void)
   /* Map TARGET_CPU_DEFAULT to value for -m{cpu,tune}=.  */
   static struct cpu_default {
     const int cpu;
-    const char *const name;
+    const enum processor_type processor;
   } const cpu_default[] = {
     /* There must be one entry here for each TARGET_CPU value.  */
-    { TARGET_CPU_sparc, "cypress" },
-    { TARGET_CPU_v8, "v8" },
-    { TARGET_CPU_supersparc, "supersparc" },
-    { TARGET_CPU_hypersparc, "hypersparc" },
-    { TARGET_CPU_leon, "leon" },
-    { TARGET_CPU_sparclite, "f930" },
-    { TARGET_CPU_sparclite86x, "sparclite86x" },
-    { TARGET_CPU_sparclet, "tsc701" },
-    { TARGET_CPU_v9, "v9" },
-    { TARGET_CPU_ultrasparc, "ultrasparc" },
-    { TARGET_CPU_ultrasparc3, "ultrasparc3" },
-    { TARGET_CPU_niagara, "niagara" },
-    { TARGET_CPU_niagara2, "niagara2" },
-    { 0, 0 }
+    { TARGET_CPU_sparc, PROCESSOR_CYPRESS },
+    { TARGET_CPU_v8, PROCESSOR_V8 },
+    { TARGET_CPU_supersparc, PROCESSOR_SUPERSPARC },
+    { TARGET_CPU_hypersparc, PROCESSOR_HYPERSPARC },
+    { TARGET_CPU_leon, PROCESSOR_LEON },
+    { TARGET_CPU_sparclite, PROCESSOR_F930 },
+    { TARGET_CPU_sparclite86x, PROCESSOR_SPARCLITE86X },
+    { TARGET_CPU_sparclet, PROCESSOR_TSC701 },
+    { TARGET_CPU_v9, PROCESSOR_V9 },
+    { TARGET_CPU_ultrasparc, PROCESSOR_ULTRASPARC },
+    { TARGET_CPU_ultrasparc3, PROCESSOR_ULTRASPARC3 },
+    { TARGET_CPU_niagara, PROCESSOR_NIAGARA },
+    { TARGET_CPU_niagara2, PROCESSOR_NIAGARA2 },
+    { -1, PROCESSOR_V7 }
   };
   const struct cpu_default *def;
-  /* Table of values for -m{cpu,tune}=.  */
+  /* Table of values for -m{cpu,tune}=.  This must match the order of
+     the PROCESSOR_* enumeration.  */
   static struct cpu_table {
-    const char *const name;
-    const enum processor_type processor;
     const int disable;
     const int enable;
   } const cpu_table[] = {
-    { "v7",         PROCESSOR_V7, MASK_ISA, 0 },
-    { "cypress",    PROCESSOR_CYPRESS, MASK_ISA, 0 },
-    { "v8",         PROCESSOR_V8, MASK_ISA, MASK_V8 },
+    { MASK_ISA, 0 },
+    { MASK_ISA, 0 },
+    { MASK_ISA, MASK_V8 },
     /* TI TMS390Z55 supersparc */
-    { "supersparc", PROCESSOR_SUPERSPARC, MASK_ISA, MASK_V8 },
-    { "hypersparc", PROCESSOR_HYPERSPARC, MASK_ISA, MASK_V8|MASK_FPU },
+    { MASK_ISA, MASK_V8 },
+    { MASK_ISA, MASK_V8|MASK_FPU },
     /* LEON */
-    { "leon",       PROCESSOR_LEON, MASK_ISA, MASK_V8|MASK_FPU },
-    { "sparclite",  PROCESSOR_SPARCLITE, MASK_ISA, MASK_SPARCLITE },
+    { MASK_ISA, MASK_V8|MASK_FPU },
+    { MASK_ISA, MASK_SPARCLITE },
     /* The Fujitsu MB86930 is the original sparclite chip, with no FPU.  */
-    { "f930",       PROCESSOR_F930, MASK_ISA|MASK_FPU, MASK_SPARCLITE },
+    { MASK_ISA|MASK_FPU, MASK_SPARCLITE },
     /* The Fujitsu MB86934 is the recent sparclite chip, with an FPU.  */
-    { "f934",       PROCESSOR_F934, MASK_ISA, MASK_SPARCLITE|MASK_FPU },
-    { "sparclite86x",  PROCESSOR_SPARCLITE86X, MASK_ISA|MASK_FPU,
-      MASK_SPARCLITE },
-    { "sparclet",   PROCESSOR_SPARCLET, MASK_ISA, MASK_SPARCLET },
+    { MASK_ISA, MASK_SPARCLITE|MASK_FPU },
+    { MASK_ISA|MASK_FPU, MASK_SPARCLITE },
+    { MASK_ISA, MASK_SPARCLET },
     /* TEMIC sparclet */
-    { "tsc701",     PROCESSOR_TSC701, MASK_ISA, MASK_SPARCLET },
-    { "v9",         PROCESSOR_V9, MASK_ISA, MASK_V9 },
+    { MASK_ISA, MASK_SPARCLET },
+    { MASK_ISA, MASK_V9 },
     /* UltraSPARC I, II, IIi */
-    { "ultrasparc", PROCESSOR_ULTRASPARC, MASK_ISA,
+    { MASK_ISA,
     /* Although insns using %y are deprecated, it is a clear win.  */
       MASK_V9|MASK_DEPRECATED_V8_INSNS},
     /* UltraSPARC III */
     /* ??? Check if %y issue still holds true.  */
-    { "ultrasparc3", PROCESSOR_ULTRASPARC3, MASK_ISA,
+    { MASK_ISA,
       MASK_V9|MASK_DEPRECATED_V8_INSNS},
     /* UltraSPARC T1 */
-    { "niagara", PROCESSOR_NIAGARA, MASK_ISA,
+    { MASK_ISA,
       MASK_V9|MASK_DEPRECATED_V8_INSNS},
     /* UltraSPARC T2 */
-    { "niagara2", PROCESSOR_NIAGARA, MASK_ISA, MASK_V9},
-    { 0, (enum processor_type) 0, 0, 0 }
+    { MASK_ISA, MASK_V9},
   };
   const struct cpu_table *cpu;
-  const struct sparc_cpu_select *sel;
   int fpu;
 
 #ifdef SUBTARGET_OVERRIDE_OPTIONS
@@ -828,38 +805,24 @@ sparc_option_override (void)
   fpu = target_flags & MASK_FPU; /* save current -mfpu status */
 
   /* Set the default CPU.  */
-  for (def = &cpu_default[0]; def->name; ++def)
-    if (def->cpu == TARGET_CPU_DEFAULT)
-      break;
-  gcc_assert (def->name);
-  sparc_select[0].string = def->name;
-
-  for (sel = &sparc_select[0]; sel->name; ++sel)
+  if (!global_options_set.x_sparc_cpu_and_features)
     {
-      if (sel->string)
-	{
-	  for (cpu = &cpu_table[0]; cpu->name; ++cpu)
-	    if (! strcmp (sel->string, cpu->name))
-	      {
-		if (sel->set_tune_p)
-		  sparc_cpu = cpu->processor;
-
-		if (sel->set_arch_p)
-		  {
-		    target_flags &= ~cpu->disable;
-		    target_flags |= cpu->enable;
-		  }
-		break;
-	      }
-
-	  if (! cpu->name)
-	    error ("bad value (%s) for %s switch", sel->string, sel->name);
-	}
+      for (def = &cpu_default[0]; def->cpu != -1; ++def)
+	if (def->cpu == TARGET_CPU_DEFAULT)
+	  break;
+      gcc_assert (def->cpu != -1);
+      sparc_cpu_and_features = def->processor;
     }
+  if (!global_options_set.x_sparc_cpu)
+    sparc_cpu = sparc_cpu_and_features;
+
+  cpu = &cpu_table[(int) sparc_cpu_and_features];
+  target_flags &= ~cpu->disable;
+  target_flags |= cpu->enable;
 
   /* If -mfpu or -mno-fpu was explicitly used, don't override with
      the processor default.  */
-  if (fpu_option_set)
+  if (target_flags_explicit & MASK_FPU)
     target_flags = (target_flags & ~MASK_FPU) | fpu;
 
   /* Don't allow -mvis if FPU is disabled.  */
@@ -2975,7 +2938,7 @@ reg_unused_after (rtx reg, rtx insn)
    not constant (TLS) or not known at final link time (PIC).  */
 
 static bool
-sparc_cannot_force_const_mem (rtx x)
+sparc_cannot_force_const_mem (enum machine_mode mode, rtx x)
 {
   switch (GET_CODE (x))
     {
@@ -2998,11 +2961,11 @@ sparc_cannot_force_const_mem (rtx x)
 	return flag_pic != 0;
 
     case CONST:
-      return sparc_cannot_force_const_mem (XEXP (x, 0));
+      return sparc_cannot_force_const_mem (mode, XEXP (x, 0));
     case PLUS:
     case MINUS:
-      return sparc_cannot_force_const_mem (XEXP (x, 0))
-         || sparc_cannot_force_const_mem (XEXP (x, 1));
+      return sparc_cannot_force_const_mem (mode, XEXP (x, 0))
+         || sparc_cannot_force_const_mem (mode, XEXP (x, 1));
     case UNSPEC:
       return true;
     default:
@@ -3068,8 +3031,8 @@ pic_address_needs_scratch (rtx x)
 /* Determine if a given RTX is a valid constant.  We already know this
    satisfies CONSTANT_P.  */
 
-bool
-legitimate_constant_p (rtx x)
+static bool
+sparc_legitimate_constant_p (enum machine_mode mode, rtx x)
 {
   switch (GET_CODE (x))
     {
@@ -3086,8 +3049,8 @@ legitimate_constant_p (rtx x)
       /* Floating point constants are generally not ok.
 	 The only exception is 0.0 in VIS.  */
       if (TARGET_VIS
-	  && SCALAR_FLOAT_MODE_P (GET_MODE (x))
-	  && const_zero_operand (x, GET_MODE (x)))
+	  && SCALAR_FLOAT_MODE_P (mode)
+	  && const_zero_operand (x, mode))
 	return true;
 
       return false;
@@ -3096,7 +3059,7 @@ legitimate_constant_p (rtx x)
       /* Vector constants are generally not ok.
 	 The only exception is 0 in VIS.  */
       if (TARGET_VIS
-	  && const_zero_operand (x, GET_MODE (x)))
+	  && const_zero_operand (x, mode))
 	return true;
 
       return false;
@@ -3123,10 +3086,10 @@ constant_address_p (rtx x)
     case CONST:
       if (flag_pic && pic_address_needs_scratch (x))
 	return false;
-      return legitimate_constant_p (x);
+      return sparc_legitimate_constant_p (Pmode, x);
 
     case SYMBOL_REF:
-      return !flag_pic && legitimate_constant_p (x);
+      return !flag_pic && sparc_legitimate_constant_p (Pmode, x);
 
     default:
       return false;
@@ -3366,9 +3329,7 @@ sparc_legitimize_tls_address (rtx addr)
 	    insn = emit_call_insn (gen_tgd_call64 (o0, sparc_tls_get_addr (),
 						   addr, const1_rtx));
 	  }
-        CALL_INSN_FUNCTION_USAGE (insn)
-	  = gen_rtx_EXPR_LIST (VOIDmode, gen_rtx_USE (VOIDmode, o0),
-			       CALL_INSN_FUNCTION_USAGE (insn));
+	use_reg (&CALL_INSN_FUNCTION_USAGE (insn), o0);
 	insn = get_insns ();
 	end_sequence ();
 	emit_libcall_block (insn, ret, o0, addr);
@@ -3396,9 +3357,7 @@ sparc_legitimize_tls_address (rtx addr)
 	    insn = emit_call_insn (gen_tldm_call64 (o0, sparc_tls_get_addr (),
 						    const1_rtx));
 	  }
-        CALL_INSN_FUNCTION_USAGE (insn)
-	  = gen_rtx_EXPR_LIST (VOIDmode, gen_rtx_USE (VOIDmode, o0),
-			       CALL_INSN_FUNCTION_USAGE (insn));
+	use_reg (&CALL_INSN_FUNCTION_USAGE (insn), o0);
 	insn = get_insns ();
 	end_sequence ();
 	emit_libcall_block (insn, temp3, o0,
@@ -3659,6 +3618,18 @@ sparc_delegitimize_address (rtx x)
     {
       x = XVECEXP (XEXP (x, 1), 0, 0);
       gcc_assert (GET_CODE (x) == SYMBOL_REF);
+    }
+
+  /* This is generated by mov{si,di}_pic_label_ref in PIC mode.  */
+  if (GET_CODE (x) == MINUS
+      && REG_P (XEXP (x, 0))
+      && REGNO (XEXP (x, 0)) == PIC_OFFSET_TABLE_REGNUM
+      && GET_CODE (XEXP (x, 1)) == LO_SUM
+      && GET_CODE (XEXP (XEXP (x, 1), 1)) == UNSPEC
+      && XINT (XEXP (XEXP (x, 1), 1), 1) == UNSPEC_MOVE_PIC_LABEL)
+    {
+      x = XVECEXP (XEXP (XEXP (x, 1), 1), 0, 0);
+      gcc_assert (GET_CODE (x) == LABEL_REF);
     }
 
   return x;
@@ -5012,13 +4983,13 @@ init_cumulative_args (struct sparc_args *cum, tree fntype,
 /* Handle promotion of pointer and integer arguments.  */
 
 static enum machine_mode
-sparc_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
+sparc_promote_function_mode (const_tree type,
                              enum machine_mode mode,
-                             int *punsignedp ATTRIBUTE_UNUSED,
+                             int *punsignedp,
                              const_tree fntype ATTRIBUTE_UNUSED,
                              int for_return ATTRIBUTE_UNUSED)
 {
-  if (POINTER_TYPE_P (type))
+  if (type != NULL_TREE && POINTER_TYPE_P (type))
     {
       *punsignedp = POINTERS_EXTEND_UNSIGNED;
       return Pmode;
@@ -6092,7 +6063,7 @@ sparc_struct_value_rtx (tree fndecl, int incoming)
 	  /* We must check and adjust the return address, as it is
 	     optional as to whether the return object is really
 	     provided.  */
-	  rtx ret_rtx = gen_rtx_REG (Pmode, 31);
+	  rtx ret_reg = gen_rtx_REG (Pmode, 31);
 	  rtx scratch = gen_reg_rtx (SImode);
 	  rtx endlab = gen_label_rtx ();
 
@@ -6109,12 +6080,12 @@ sparc_struct_value_rtx (tree fndecl, int incoming)
 	     it's an unimp instruction (the most significant 10 bits
 	     will be zero).  */
 	  emit_move_insn (scratch, gen_rtx_MEM (SImode,
-						plus_constant (ret_rtx, 8)));
+						plus_constant (ret_reg, 8)));
 	  /* Assume the size is valid and pre-adjust */
-	  emit_insn (gen_add3_insn (ret_rtx, ret_rtx, GEN_INT (4)));
+	  emit_insn (gen_add3_insn (ret_reg, ret_reg, GEN_INT (4)));
 	  emit_cmp_and_jump_insns (scratch, size_rtx, EQ, const0_rtx, SImode,
 				   0, endlab);
-	  emit_insn (gen_sub3_insn (ret_rtx, ret_rtx, GEN_INT (4)));
+	  emit_insn (gen_sub3_insn (ret_reg, ret_reg, GEN_INT (4)));
 	  /* Write the address of the memory pointed to by temp_val into
 	     the memory pointed to by mem */
 	  emit_move_insn (mem, XEXP (temp_val, 0));
@@ -7369,12 +7340,29 @@ memory_ok_for_ldd (rtx op)
   return 1;
 }
 
-/* Print operand X (an rtx) in assembler syntax to file FILE.
+/* Implement TARGET_PRINT_OPERAND_PUNCT_VALID_P.  */
+
+static bool
+sparc_print_operand_punct_valid_p (unsigned char code)
+{
+  if (code == '#'
+      || code == '*'
+      || code == '('
+      || code == ')'
+      || code == '_'
+      || code == '&')
+    return true;
+
+  return false;
+}
+
+/* Implement TARGET_PRINT_OPERAND.
+   Print operand X (an rtx) in assembler syntax to file FILE.
    CODE is a letter or dot (`z' in `%z0') or 0 if no letter was specified.
    For `%' followed by punctuation, CODE is the punctuation and X is null.  */
 
-void
-print_operand (FILE *file, rtx x, int code)
+static void
+sparc_print_operand (FILE *file, rtx x, int code)
 {
   switch (code)
     {
@@ -7652,7 +7640,7 @@ print_operand (FILE *file, rtx x, int code)
     }
   else if (GET_CODE (x) == LO_SUM)
     {
-      print_operand (file, XEXP (x, 0), 0);
+      sparc_print_operand (file, XEXP (x, 0), 0);
       if (TARGET_CM_MEDMID)
 	fputs ("+%l44(", file);
       else
@@ -7675,6 +7663,89 @@ print_operand (FILE *file, rtx x, int code)
   else if (GET_CODE (x) == CONST_DOUBLE)
     output_operand_lossage ("floating point constant not a valid immediate operand");
   else { output_addr_const (file, x); }
+}
+
+/* Implement TARGET_PRINT_OPERAND_ADDRESS.  */
+
+static void
+sparc_print_operand_address (FILE *file, rtx x)
+{
+  register rtx base, index = 0;
+  int offset = 0;
+  register rtx addr = x;
+
+  if (REG_P (addr))
+    fputs (reg_names[REGNO (addr)], file);
+  else if (GET_CODE (addr) == PLUS)
+    {
+      if (CONST_INT_P (XEXP (addr, 0)))
+	offset = INTVAL (XEXP (addr, 0)), base = XEXP (addr, 1);
+      else if (CONST_INT_P (XEXP (addr, 1)))
+	offset = INTVAL (XEXP (addr, 1)), base = XEXP (addr, 0);
+      else
+	base = XEXP (addr, 0), index = XEXP (addr, 1);
+      if (GET_CODE (base) == LO_SUM)
+	{
+	  gcc_assert (USE_AS_OFFSETABLE_LO10
+		      && TARGET_ARCH64
+		      && ! TARGET_CM_MEDMID);
+	  output_operand (XEXP (base, 0), 0);
+	  fputs ("+%lo(", file);
+	  output_address (XEXP (base, 1));
+	  fprintf (file, ")+%d", offset);
+	}
+      else
+	{
+	  fputs (reg_names[REGNO (base)], file);
+	  if (index == 0)
+	    fprintf (file, "%+d", offset);
+	  else if (REG_P (index))
+	    fprintf (file, "+%s", reg_names[REGNO (index)]);
+	  else if (GET_CODE (index) == SYMBOL_REF
+		   || GET_CODE (index) == LABEL_REF
+		   || GET_CODE (index) == CONST)
+	    fputc ('+', file), output_addr_const (file, index);
+	  else gcc_unreachable ();
+	}
+    }
+  else if (GET_CODE (addr) == MINUS
+	   && GET_CODE (XEXP (addr, 1)) == LABEL_REF)
+    {
+      output_addr_const (file, XEXP (addr, 0));
+      fputs ("-(", file);
+      output_addr_const (file, XEXP (addr, 1));
+      fputs ("-.)", file);
+    }
+  else if (GET_CODE (addr) == LO_SUM)
+    {
+      output_operand (XEXP (addr, 0), 0);
+      if (TARGET_CM_MEDMID)
+        fputs ("+%l44(", file);
+      else
+        fputs ("+%lo(", file);
+      output_address (XEXP (addr, 1));
+      fputc (')', file);
+    }
+  else if (flag_pic
+	   && GET_CODE (addr) == CONST
+	   && GET_CODE (XEXP (addr, 0)) == MINUS
+	   && GET_CODE (XEXP (XEXP (addr, 0), 1)) == CONST
+	   && GET_CODE (XEXP (XEXP (XEXP (addr, 0), 1), 0)) == MINUS
+	   && XEXP (XEXP (XEXP (XEXP (addr, 0), 1), 0), 1) == pc_rtx)
+    {
+      addr = XEXP (addr, 0);
+      output_addr_const (file, XEXP (addr, 0));
+      /* Group the args of the second CONST in parenthesis.  */
+      fputs ("-(", file);
+      /* Skip past the second CONST--it does nothing for us.  */
+      output_addr_const (file, XEXP (XEXP (addr, 1), 0));
+      /* Close the parenthesis.  */
+      fputc (')', file);
+    }
+  else
+    {
+      output_addr_const (file, addr);
+    }
 }
 
 /* Target hook for assembling integer objects.  The sparc version has
@@ -7875,16 +7946,14 @@ sparc32_initialize_trampoline (rtx m_tramp, rtx fnaddr, rtx cxt)
   emit_move_insn
     (adjust_address (m_tramp, SImode, 0),
      expand_binop (SImode, ior_optab,
-		   expand_shift (RSHIFT_EXPR, SImode, fnaddr,
-				 size_int (10), 0, 1),
+		   expand_shift (RSHIFT_EXPR, SImode, fnaddr, 10, 0, 1),
 		   GEN_INT (trunc_int_for_mode (0x03000000, SImode)),
 		   NULL_RTX, 1, OPTAB_DIRECT));
 
   emit_move_insn
     (adjust_address (m_tramp, SImode, 4),
      expand_binop (SImode, ior_optab,
-		   expand_shift (RSHIFT_EXPR, SImode, cxt,
-				 size_int (10), 0, 1),
+		   expand_shift (RSHIFT_EXPR, SImode, cxt, 10, 0, 1),
 		   GEN_INT (trunc_int_for_mode (0x05000000, SImode)),
 		   NULL_RTX, 1, OPTAB_DIRECT));
 
@@ -9171,6 +9240,37 @@ sparc_rtx_costs (rtx x, int code, int outer_code, int *total,
     }
 }
 
+/* Return true if CLASS is either GENERAL_REGS or I64_REGS.  */
+
+static inline bool
+general_or_i64_p (reg_class_t rclass)
+{
+  return (rclass == GENERAL_REGS || rclass == I64_REGS);
+}
+
+/* Implement TARGET_REGISTER_MOVE_COST.  */
+
+static int
+sparc_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
+			  reg_class_t from, reg_class_t to)
+{
+  if ((FP_REG_CLASS_P (from) && general_or_i64_p (to))
+      || (general_or_i64_p (from) && FP_REG_CLASS_P (to))
+      || from == FPCC_REGS
+      || to == FPCC_REGS)  
+    {
+      if (sparc_cpu == PROCESSOR_ULTRASPARC
+	  || sparc_cpu == PROCESSOR_ULTRASPARC3
+	  || sparc_cpu == PROCESSOR_NIAGARA
+	  || sparc_cpu == PROCESSOR_NIAGARA2)
+	return 12;
+
+      return 6;
+    }
+
+  return 2;
+}
+
 /* Emit the sequence of insns SEQ while preserving the registers REG and REG2.
    This is achieved by means of a manual dynamic stack space allocation in
    the current frame.  We make the assumption that SEQ doesn't contain any
@@ -9513,8 +9613,8 @@ sparc_file_end (void)
 	{
 	  tree decl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL,
 				  get_identifier (name),
-				  build_function_type (void_type_node,
-						       void_list_node));
+				  build_function_type_list (void_type_node,
+                                                            NULL_TREE));
 	  DECL_RESULT (decl) = build_decl (BUILTINS_LOCATION, RESULT_DECL,
 					   NULL_TREE, void_type_node);
 	  TREE_STATIC (decl) = 1;
@@ -9743,6 +9843,35 @@ sparc_conditional_register_usage (void)
     fixed_regs[4] = 1;
   else if (fixed_regs[4] == 2)
     fixed_regs[4] = 0;
+}
+
+/* Implement TARGET_PREFERRED_RELOAD_CLASS
+
+   - We can't load constants into FP registers.
+   - We can't load FP constants into integer registers when soft-float,
+     because there is no soft-float pattern with a r/F constraint.
+   - We can't load FP constants into integer registers for TFmode unless
+     it is 0.0L, because there is no movtf pattern with a r/F constraint.
+   - Try and reload integer constants (symbolic or otherwise) back into
+     registers directly, rather than having them dumped to memory.  */
+
+static reg_class_t
+sparc_preferred_reload_class (rtx x, reg_class_t rclass)
+{
+  if (CONSTANT_P (x))
+    {
+      if (FP_REG_CLASS_P (rclass)
+	  || rclass == GENERAL_OR_FP_REGS
+	  || rclass == GENERAL_OR_EXTRA_FP_REGS
+	  || (GET_MODE_CLASS (GET_MODE (x)) == MODE_FLOAT && ! TARGET_FPU)
+	  || (GET_MODE (x) == TFmode && ! const_zero_operand (x, TFmode)))
+	return NO_REGS;
+
+      if (GET_MODE_CLASS (GET_MODE (x)) == MODE_INT)
+	return GENERAL_REGS;
+    }
+
+  return rclass;
 }
 
 #include "gt-sparc.h"

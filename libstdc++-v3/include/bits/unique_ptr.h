@@ -79,6 +79,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		      "can't delete pointer to incomplete type");
 	delete [] __ptr;
       }
+
+      template<typename _Up> void operator()(_Up*) const = delete;
     };
 
   /// 20.7.12.2 unique_ptr for single objects.
@@ -100,11 +102,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	typedef decltype( __test<_Del>(0)) type;
       };
 
-      typedef std::tuple<_Tp*, _Dp>  	__tuple_type;
-      __tuple_type 			_M_t;
+      typedef std::tuple<typename _Pointer::type, _Dp>  __tuple_type;
+      __tuple_type                                      _M_t;
 
     public:
-      typedef typename _Pointer::type	pointer;
+      typedef typename _Pointer::type   pointer;
       typedef _Tp                       element_type;
       typedef _Dp                       deleter_type;
 
@@ -151,7 +153,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		   && std::is_convertible<_Ep, _Dp>::value))>
 	     ::type>
 	unique_ptr(unique_ptr<_Up, _Ep>&& __u)
-	: _M_t(__u.release(), std::forward<deleter_type>(__u.get_deleter()))
+	: _M_t(__u.release(), std::forward<_Ep>(__u.get_deleter()))
 	{ }
 
 #if _GLIBCXX_USE_DEPRECATED
@@ -171,7 +173,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       operator=(unique_ptr&& __u)
       {
 	reset(__u.release());
-	get_deleter() = std::move(__u.get_deleter());
+	get_deleter() = std::forward<deleter_type>(__u.get_deleter());
 	return *this;
       }
 
@@ -184,7 +186,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator=(unique_ptr<_Up, _Ep>&& __u)
 	{
 	  reset(__u.release());
-	  get_deleter() = std::move(__u.get_deleter());
+	  get_deleter() = std::forward<_Ep>(__u.get_deleter());
 	  return *this;
 	}
 
@@ -304,7 +306,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
       template<typename _Up, typename _Ep>
 	unique_ptr(unique_ptr<_Up, _Ep>&& __u)
-	: _M_t(__u.release(), std::forward<deleter_type>(__u.get_deleter()))
+	: _M_t(__u.release(), std::forward<_Ep>(__u.get_deleter()))
 	{ }
 
       // Destructor.
@@ -315,7 +317,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       operator=(unique_ptr&& __u)
       {
 	reset(__u.release());
-	get_deleter() = std::move(__u.get_deleter());
+	get_deleter() = std::forward<deleter_type>(__u.get_deleter());
 	return *this;
       }
 
@@ -324,7 +326,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 	operator=(unique_ptr<_Up, _Ep>&& __u)
 	{
 	  reset(__u.release());
-	  get_deleter() = std::move(__u.get_deleter());
+	  get_deleter() = std::forward<_Ep>(__u.get_deleter());
 	  return *this;
 	}
 
@@ -435,58 +437,107 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   template<typename _Tp, typename _Dp>
     inline bool
-    operator==(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
-    { return __x.get() == nullptr; }
+    operator==(const unique_ptr<_Tp, _Dp>& __x, nullptr_t) noexcept
+    { return !__x; }
 
   template<typename _Tp, typename _Dp>
     inline bool
-    operator==(nullptr_t, const unique_ptr<_Tp, _Dp>& __y)
-    { return nullptr == __y.get(); }
+    operator==(nullptr_t, const unique_ptr<_Tp, _Dp>& __x) noexcept
+    { return !__x; }
 
   template<typename _Tp, typename _Dp,
 	   typename _Up, typename _Ep>
     inline bool
     operator!=(const unique_ptr<_Tp, _Dp>& __x,
 	       const unique_ptr<_Up, _Ep>& __y)
-    { return !(__x.get() == __y.get()); }
+    { return __x.get() != __y.get(); }
 
   template<typename _Tp, typename _Dp>
     inline bool
-    operator!=(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
-    { return __x.get() != nullptr; }
+    operator!=(const unique_ptr<_Tp, _Dp>& __x, nullptr_t) noexcept
+    { return (bool)__x; }
 
   template<typename _Tp, typename _Dp>
     inline bool
-    operator!=(nullptr_t, const unique_ptr<_Tp, _Dp>& __y)
-    { return nullptr != __y.get(); }
+    operator!=(nullptr_t, const unique_ptr<_Tp, _Dp>& __x) noexcept
+    { return (bool)__x; }
 
   template<typename _Tp, typename _Dp,
 	   typename _Up, typename _Ep>
     inline bool
     operator<(const unique_ptr<_Tp, _Dp>& __x,
 	      const unique_ptr<_Up, _Ep>& __y)
-    { return __x.get() < __y.get(); }
+    {
+      typedef typename
+	std::common_type<typename unique_ptr<_Tp, _Dp>::pointer,
+	                 typename unique_ptr<_Up, _Ep>::pointer>::type _CT;
+      return std::less<_CT>()(__x.get(), __y.get());
+    }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator<(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
+    { return std::less<typename unique_ptr<_Tp, _Dp>::pointer>()(__x.get(),
+								 nullptr); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator<(nullptr_t, const unique_ptr<_Tp, _Dp>& __x)
+    { return std::less<typename unique_ptr<_Tp, _Dp>::pointer>()(nullptr,
+								 __x.get()); }
 
   template<typename _Tp, typename _Dp,
 	   typename _Up, typename _Ep>
     inline bool
     operator<=(const unique_ptr<_Tp, _Dp>& __x,
 	       const unique_ptr<_Up, _Ep>& __y)
-    { return !(__y.get() < __x.get()); }
+    { return !(__y < __x); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator<=(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
+    { return !(nullptr < __x); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator<=(nullptr_t, const unique_ptr<_Tp, _Dp>& __x)
+    { return !(__x < nullptr); }
 
   template<typename _Tp, typename _Dp,
 	   typename _Up, typename _Ep>
     inline bool
     operator>(const unique_ptr<_Tp, _Dp>& __x,
 	      const unique_ptr<_Up, _Ep>& __y)
-    { return __y.get() < __x.get(); }
+    { return (__y < __x); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator>(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
+    { return std::less<typename unique_ptr<_Tp, _Dp>::pointer>()(nullptr,
+								 __x.get()); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator>(nullptr_t, const unique_ptr<_Tp, _Dp>& __x)
+    { return std::less<typename unique_ptr<_Tp, _Dp>::pointer>()(__x.get(),
+								 nullptr); }
 
   template<typename _Tp, typename _Dp,
 	   typename _Up, typename _Ep>
     inline bool
     operator>=(const unique_ptr<_Tp, _Dp>& __x,
 	       const unique_ptr<_Up, _Ep>& __y)
-    { return !(__x.get() < __y.get()); }
+    { return !(__x < __y); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator>=(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
+    { return !(__x < nullptr); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator>=(nullptr_t, const unique_ptr<_Tp, _Dp>& __x)
+    { return !(nullptr < __x); }
 
   /// std::hash specialization for unique_ptr.
   template<typename _Tp, typename _Dp>

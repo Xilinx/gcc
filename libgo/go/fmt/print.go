@@ -74,15 +74,42 @@ type pp struct {
 	fmt     fmt
 }
 
-// A leaky bucket of reusable pp structures.
-var ppFree = make(chan *pp, 100)
+// A cache holds a set of reusable objects.
+// The buffered channel holds the currently available objects.
+// If more are needed, the cache creates them by calling new.
+type cache struct {
+	saved chan interface{}
+	new   func() interface{}
+}
 
-// Allocate a new pp struct.  Probably can grab the previous one from ppFree.
-func newPrinter() *pp {
-	p, ok := <-ppFree
-	if !ok {
-		p = new(pp)
+func (c *cache) put(x interface{}) {
+	select {
+	case c.saved <- x:
+		// saved in cache
+	default:
+		// discard
 	}
+}
+
+func (c *cache) get() interface{} {
+	select {
+	case x := <-c.saved:
+		return x // reused from cache
+	default:
+		return c.new()
+	}
+	panic("not reached")
+}
+
+func newCache(f func() interface{}) *cache {
+	return &cache{make(chan interface{}, 100), f}
+}
+
+var ppFree = newCache(func() interface{} { return new(pp) })
+
+// Allocate a new pp struct or grab a cached one.
+func newPrinter() *pp {
+	p := ppFree.get().(*pp)
 	p.fmt.init(&p.buf)
 	return p
 }
@@ -94,7 +121,7 @@ func (p *pp) free() {
 		return
 	}
 	p.buf.Reset()
-	_ = ppFree <- p
+	ppFree.put(p)
 }
 
 func (p *pp) Width() (wid int, ok bool) { return p.fmt.wid, p.fmt.widPresent }
@@ -321,11 +348,11 @@ func (p *pp) fmtInt64(v int64, verb int, value interface{}) {
 	}
 }
 
-// fmt0x64 formats a uint64 in hexadecimal and prefixes it with 0x by
-// temporarily turning on the sharp flag.
-func (p *pp) fmt0x64(v uint64) {
+// fmt0x64 formats a uint64 in hexadecimal and prefixes it with 0x or
+// not, as requested, by temporarily setting the sharp flag.
+func (p *pp) fmt0x64(v uint64, leading0x bool) {
 	sharp := p.fmt.sharp
-	p.fmt.sharp = true // turn on 0x
+	p.fmt.sharp = leading0x
 	p.fmt.integer(int64(v), 16, unsigned, ldigits)
 	p.fmt.sharp = sharp
 }
@@ -357,7 +384,7 @@ func (p *pp) fmtUint64(v uint64, verb int, goSyntax bool, value interface{}) {
 		p.fmt.integer(int64(v), 10, unsigned, ldigits)
 	case 'v':
 		if goSyntax {
-			p.fmt0x64(v)
+			p.fmt0x64(v, true)
 		} else {
 			p.fmt.integer(int64(v), 10, unsigned, ldigits)
 		}
@@ -493,12 +520,14 @@ func (p *pp) fmtBytes(v []byte, verb int, goSyntax bool, depth int, value interf
 }
 
 func (p *pp) fmtPointer(field interface{}, value reflect.Value, verb int, goSyntax bool) {
-	v, ok := value.(uintptrGetter)
-	if !ok { // reflect.PtrValue is a uintptrGetter, so failure means it's not a pointer at all.
+	var u uintptr
+	switch value.(type) {
+	case *reflect.ChanValue, *reflect.FuncValue, *reflect.MapValue, *reflect.PtrValue, *reflect.SliceValue, *reflect.UnsafePointerValue:
+		u = value.(uintptrGetter).Get()
+	default:
 		p.badVerb(verb, field)
 		return
 	}
-	u := v.Get()
 	if goSyntax {
 		p.add('(')
 		p.buf.WriteString(reflect.Typeof(field).String())
@@ -507,11 +536,11 @@ func (p *pp) fmtPointer(field interface{}, value reflect.Value, verb int, goSynt
 		if u == 0 {
 			p.buf.Write(nilBytes)
 		} else {
-			p.fmt0x64(uint64(v.Get()))
+			p.fmt0x64(uint64(u), true)
 		}
 		p.add(')')
 	} else {
-		p.fmt0x64(uint64(u))
+		p.fmt0x64(uint64(u), !p.fmt.sharp)
 	}
 }
 
@@ -774,7 +803,7 @@ BigSwitch:
 			if v == 0 {
 				p.buf.Write(nilBytes)
 			} else {
-				p.fmt0x64(uint64(v))
+				p.fmt0x64(uint64(v), true)
 			}
 			p.buf.WriteByte(')')
 			break
@@ -783,8 +812,8 @@ BigSwitch:
 			p.buf.Write(nilAngleBytes)
 			break
 		}
-		p.fmt0x64(uint64(v))
-	case uintptrGetter:
+		p.fmt0x64(uint64(v), true)
+	case *reflect.ChanValue, *reflect.FuncValue, *reflect.UnsafePointerValue:
 		p.fmtPointer(field, value, verb, goSyntax)
 	default:
 		p.unknownType(f)

@@ -14,7 +14,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	pathutil "path"
+	"path/filepath"
 )
 
 
@@ -69,7 +69,7 @@ func ParseExpr(fset *token.FileSet, filename string, src interface{}) (ast.Expr,
 
 	var p parser
 	p.init(fset, filename, data, 0)
-	x := p.parseExpr()
+	x := p.parseRhs()
 	if p.tok == token.SEMICOLON {
 		p.next() // consume automatically inserted semicolon, if any
 	}
@@ -159,7 +159,8 @@ func ParseFiles(fset *token.FileSet, filenames []string, mode uint) (pkgs map[st
 			name := src.Name.Name
 			pkg, found := pkgs[name]
 			if !found {
-				pkg = &ast.Package{name, nil, make(map[string]*ast.File)}
+				// TODO(gri) Use NewPackage here; reconsider ParseFiles API.
+				pkg = &ast.Package{name, nil, nil, make(map[string]*ast.File)}
 				pkgs[name] = pkg
 			}
 			pkg.Files[filename] = src
@@ -182,7 +183,7 @@ func ParseFiles(fset *token.FileSet, filenames []string, mode uint) (pkgs map[st
 // error are returned.
 //
 func ParseDir(fset *token.FileSet, path string, filter func(*os.FileInfo) bool, mode uint) (map[string]*ast.Package, os.Error) {
-	fd, err := os.Open(path, os.O_RDONLY, 0)
+	fd, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +199,7 @@ func ParseDir(fset *token.FileSet, path string, filter func(*os.FileInfo) bool, 
 	for i := 0; i < len(list); i++ {
 		d := &list[i]
 		if filter == nil || filter(d) {
-			filenames[n] = pathutil.Join(path, d.Name)
+			filenames[n] = filepath.Join(path, d.Name)
 			n++
 		}
 	}

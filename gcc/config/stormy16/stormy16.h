@@ -55,8 +55,6 @@
       builtin_assert ("cpu=xstormy16");		\
     }						\
   while (0)
-
-#define TARGET_VERSION fprintf (stderr, " (xstormy16 cpu core)");
 
 /* Storage Layout.  */
 
@@ -179,11 +177,6 @@ enum reg_class
 
 #define N_REG_CLASSES ((int) LIM_REG_CLASSES)
 
-#define IRA_COVER_CLASSES			\
-{						\
-  GENERAL_REGS, LIM_REG_CLASSES			\
-}
-
 #define REG_CLASS_NAMES				\
 {						\
   "NO_REGS", 					\
@@ -228,12 +221,6 @@ enum reg_class
 #define REGNO_OK_FOR_BASE_P(NUM) 1
 
 #define REGNO_OK_FOR_INDEX_P(NUM) REGNO_OK_FOR_BASE_P (NUM)
-
-#define PREFERRED_RELOAD_CLASS(X, CLASS) \
-  xstormy16_preferred_reload_class (X, CLASS)
-
-#define PREFERRED_OUTPUT_RELOAD_CLASS(X, CLASS) \
-  xstormy16_preferred_reload_class (X, CLASS)
 
 /* This chip has the interesting property that only the first eight
    registers can be moved to/from memory.  */
@@ -325,13 +312,6 @@ enum reg_class
 /* The number of the hard register that is used to return a scalar value from a
    function call.  */
 #define RETURN_VALUE_REGNUM	FIRST_ARGUMENT_REGISTER
-     
-#define FUNCTION_VALUE(VALTYPE, FUNC) \
-  xstormy16_function_value (VALTYPE, FUNC)
-
-#define LIBCALL_VALUE(MODE) gen_rtx_REG (MODE, RETURN_VALUE_REGNUM)
-
-#define FUNCTION_VALUE_REGNO_P(REGNO) ((REGNO) == RETURN_VALUE_REGNUM)
 
 
 /* Function Entry and Exit.  */
@@ -362,23 +342,8 @@ enum reg_class
 
 #define MAX_REGS_PER_ADDRESS 1
 
-#ifdef REG_OK_STRICT
-#define REG_OK_FOR_BASE_P(X) 						   \
-  (REGNO_OK_FOR_BASE_P (REGNO (X)) && (REGNO (X) < FIRST_PSEUDO_REGISTER))
-#else
-#define REG_OK_FOR_BASE_P(X) REGNO_OK_FOR_BASE_P (REGNO (X))
-#endif
-
-#define REG_OK_FOR_INDEX_P(X) REG_OK_FOR_BASE_P (X)
-
-#define LEGITIMATE_CONSTANT_P(X) 1
-
 
 /* Describing Relative Costs of Operations.  */
-
-#define REGISTER_MOVE_COST(MODE, FROM, TO) 2
-
-#define MEMORY_MOVE_COST(M,C,I) (5 + memory_move_secondary_cost (M, C, I))
 
 #define BRANCH_COST(speed_p, predictable_p) 5
 
@@ -465,10 +430,6 @@ enum reg_class
 #define ADDITIONAL_REGISTER_NAMES		\
   { { "r14", 14 },				\
     { "r15", 15 } }
-
-#define PRINT_OPERAND(STREAM, X, CODE) xstormy16_print_operand (STREAM, X, CODE)
-
-#define PRINT_OPERAND_ADDRESS(STREAM, X) xstormy16_print_operand_address (STREAM, X)
 
 #define REGISTER_PREFIX ""
 #define LOCAL_LABEL_PREFIX "."

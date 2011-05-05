@@ -22,6 +22,9 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_GRAPHITE_CLAST_TO_GIMPLE_H
 
 #include "graphite-cloog-util.h"
+
+extern CloogState *cloog_state;
+
 /* Data structure for CLooG program representation.  */
 
 typedef struct cloog_prog_clast {
@@ -35,7 +38,7 @@ typedef struct bb_pbb_def
 {
   basic_block bb;
   poly_bb_p pbb;
-}bb_pbb_def;
+} bb_pbb_def;
 
 /* From graphite-opencl.c  */
 extern void opencl_transform_clast (struct clast_stmt *, sese, edge,
@@ -45,7 +48,7 @@ extern void graphite_opencl_init (void);
 
 /* From graphite-clast-to-gimple.c  */
 extern bool gloog (scop_p, htab_t);
-extern cloog_prog_clast scop_to_clast (scop_p, CloogState *);
+extern cloog_prog_clast scop_to_clast (scop_p);
 extern void debug_clast_stmt (struct clast_stmt *);
 extern void print_clast_stmt (FILE *, struct clast_stmt *);
 extern void build_iv_mapping (VEC (tree, heap) *, sese, VEC (tree, heap) *,

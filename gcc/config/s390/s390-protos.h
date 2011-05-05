@@ -66,7 +66,6 @@ extern bool tls_symbolic_reference_mentioned_p (rtx);
 extern bool legitimate_la_operand_p (rtx);
 extern bool preferred_la_operand_p (rtx, rtx);
 extern int legitimate_pic_operand_p (rtx);
-extern int legitimate_constant_p (rtx);
 extern bool legitimate_reload_constant_p (rtx);
 extern rtx legitimize_pic_address (rtx, rtx);
 extern rtx legitimize_reload_address (rtx, enum machine_mode, int, int);
@@ -101,6 +100,7 @@ extern void s390_split_access_reg (rtx, rtx *, rtx *);
 extern void print_operand_address (FILE *, rtx);
 extern void print_operand (FILE *, rtx, int);
 extern void s390_output_pool_entry (rtx, enum machine_mode, unsigned int);
+extern int s390_label_align (rtx);
 extern int s390_agen_dep_p (rtx, rtx);
 extern rtx s390_load_got (void);
 extern rtx s390_get_thread_pointer (void);
@@ -111,9 +111,3 @@ extern int s390_branch_condition_mask (rtx);
 extern int s390_compare_and_branch_condition_mask (rtx);
 
 #endif /* RTX_CODE */
-
-#ifdef TREE_CODE
-#ifdef RTX_CODE
-extern rtx s390_function_value (const_tree, const_tree, enum machine_mode);
-#endif /* RTX_CODE */
-#endif /* TREE_CODE */

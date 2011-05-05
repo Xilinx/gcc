@@ -63,7 +63,7 @@ namespace std
 
     nested_exception& operator=(const nested_exception&) = default;
 
-    inline virtual ~nested_exception();
+    virtual ~nested_exception();
 
     void
     rethrow_nested() const __attribute__ ((__noreturn__))
@@ -73,8 +73,6 @@ namespace std
     nested_ptr() const
     { return _M_ptr; }
   };
-
-  inline nested_exception::~nested_exception() = default;
 
   template<typename _Except>
     struct _Nested_exception : public _Except, public nested_exception
@@ -119,7 +117,7 @@ namespace std
   // with a type that has an accessible nested_exception base.
   template<typename _Ex>
     inline void
-    __throw_with_nested(_Ex&& __ex, const nested_exception* = 0)
+    __throw_with_nested(_Ex&& __ex, const nested_exception*)
     { throw __ex; }
 
   template<typename _Ex>

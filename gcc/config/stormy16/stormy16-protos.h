@@ -37,16 +37,12 @@ extern void xstormy16_asm_output_aligned_common (FILE *, tree, const char *,
 
 #if defined (TREE_CODE) && defined (RTX_CODE)
 extern void xstormy16_initialize_trampoline (rtx, rtx, rtx);
-extern rtx xstormy16_function_value (const_tree, const_tree);
 #endif
 
 #ifdef RTX_CODE
 extern void xstormy16_emit_cbranch (enum rtx_code, rtx, rtx, rtx);
 extern char *xstormy16_output_cbranch_hi (rtx, const char *, int, rtx);
 extern char *xstormy16_output_cbranch_si (rtx, const char *, int, rtx);
-
-extern void xstormy16_print_operand (FILE *, rtx, int);
-extern void xstormy16_print_operand_address (FILE *, rtx);
 
 extern void xstormy16_expand_casesi (rtx, rtx, rtx, rtx, rtx);
 extern void xstormy16_output_addr_vec (FILE *, rtx, rtx);
@@ -61,7 +57,6 @@ extern int  short_memory_operand (rtx, enum machine_mode);
 extern int  nonimmediate_nonstack_operand (rtx, enum machine_mode);
 extern enum reg_class xstormy16_secondary_reload_class 
  (enum reg_class, enum machine_mode, rtx);
-extern enum reg_class xstormy16_preferred_reload_class (rtx, enum reg_class);
 extern void xstormy16_split_move (enum machine_mode, rtx, rtx);
 extern void xstormy16_expand_move (enum machine_mode, rtx, rtx);
 extern void xstormy16_expand_arith (enum machine_mode, enum rtx_code, 

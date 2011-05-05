@@ -24,11 +24,19 @@ along with GCC; see the file COPYING3.  If not see
   { "fbsd_dynamic_linker", FBSD_DYNAMIC_LINKER }
 
 /* FreeBSD needs the platform name (sparc64) defined.
-   Emacs needs to know if the arch is 64 or 32-bits.  */
+   Emacs etc needs to know if the arch is 64 or 32-bits.
+   This also selects which targets are available via -mcpu.  */
 
-#undef  CPP_CPU64_DEFAULT_SPEC
-#define CPP_CPU64_DEFAULT_SPEC \
-  "-D__sparc64__ -D__sparc_v9__ -D__sparcv9 -D__arch64__"
+#undef  FBSD_TARGET_CPU_CPP_BUILTINS
+#define FBSD_TARGET_CPU_CPP_BUILTINS()		\
+  do						\
+    {						\
+      builtin_define ("__sparc64__");		\
+      builtin_define ("__sparc__");		\
+      builtin_define ("__sparc_v9__");		\
+      builtin_define ("__sparcv9");		\
+    }						\
+  while (0)
 
 #undef ASM_SPEC
 #define ASM_SPEC "%{fpic|fPIC|fpie|fPIE:-K PIC} %(asm_cpu)"
@@ -73,9 +81,6 @@ along with GCC; see the file COPYING3.  If not see
 #endif
 
 /* Definitions for 64-bit SPARC running systems with ELF. */
-
-#undef  TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (FreeBSD/sparc64 ELF)");
 
 #define TARGET_ELF		1
 
@@ -152,9 +157,16 @@ along with GCC; see the file COPYING3.  If not see
 
 /* #define DWARF_OFFSET_SIZE PTR_SIZE */
 
+#ifdef HAVE_AS_TLS
+#undef TARGET_SUN_TLS
+#undef TARGET_GNU_TLS
+#define TARGET_SUN_TLS 0
+#define TARGET_GNU_TLS 1
+#endif
+
 #undef ENDFILE_SPEC
 #define ENDFILE_SPEC						\
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} "	\
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} "	\
   FBSD_ENDFILE_SPEC
 
 /* We use GNU ld so undefine this so that attribute((init_priority)) works.  */

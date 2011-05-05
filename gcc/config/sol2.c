@@ -1,5 +1,5 @@
 /* General Solaris system support.
-   Copyright (C) 2004, 2005 , 2007, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005 , 2007, 2010, 2011 Free Software Foundation, Inc.
    Contributed by CodeSourcery, LLC.
 
 This file is part of GCC.
@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "tm.h"
 #include "rtl.h"
+#include "target.h"
 #include "tm_p.h"
 #include "diagnostic-core.h"
 #include "ggc.h"
@@ -134,10 +135,8 @@ solaris_assemble_visibility (tree decl ATTRIBUTE_UNUSED,
      STV_SINGLETON, and STV_ELIMINATE.
 
      See Linker and Libraries Guide, Ch. 2, Link-Editor, Defining
-     Additional Symbols with a mapfile,
-     http://docs.sun.com/app/docs/doc/819-0690/gdzmc?a=view
-     and Ch. 7, Object-File Format, Symbol Table Section,
-     http://docs.sun.com/app/docs/doc/819-0690/chapter6-79797?a=view  */
+     Additional Symbols, and Ch. 7, Object-File Format, Symbol Table
+     Section.  */
 
   static const char * const visibility_types[] = {
     NULL, "symbolic", "hidden", "hidden"

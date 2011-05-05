@@ -1,7 +1,7 @@
 /* Write and read the cgraph to the memory mapped representation of a
    .o file.
 
-   Copyright 2009, 2010 Free Software Foundation, Inc.
+   Copyright 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Kenneth Zadeck <zadeck@naturalbridge.com>
 
 This file is part of GCC.
@@ -285,7 +285,6 @@ lto_output_edge (struct lto_simple_output_block *ob, struct cgraph_edge *edge,
   bp_pack_value (&bp, uid, HOST_BITS_PER_INT);
   bp_pack_value (&bp, edge->inline_failed, HOST_BITS_PER_INT);
   bp_pack_value (&bp, edge->frequency, HOST_BITS_PER_INT);
-  bp_pack_value (&bp, edge->loop_nest, 30);
   bp_pack_value (&bp, edge->indirect_inlining_edge, 1);
   bp_pack_value (&bp, edge->call_stmt_cannot_inline_p, 1);
   bp_pack_value (&bp, edge->can_throw_external, 1);
@@ -463,16 +462,6 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
 
   if (tag == LTO_cgraph_analyzed_node)
     {
-      lto_output_sleb128_stream (ob->main_stream,
-				 node->local.inline_summary.estimated_self_stack_size);
-      lto_output_sleb128_stream (ob->main_stream,
-				 node->local.inline_summary.self_size);
-      lto_output_sleb128_stream (ob->main_stream,
-				 node->local.inline_summary.size_inlining_benefit);
-      lto_output_sleb128_stream (ob->main_stream,
-				 node->local.inline_summary.self_time);
-      lto_output_sleb128_stream (ob->main_stream,
-				 node->local.inline_summary.time_inlining_benefit);
       if (node->global.inlined_to)
 	{
 	  ref = lto_cgraph_encoder_lookup (encoder, node->global.inlined_to);
@@ -497,12 +486,8 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
   bp_pack_value (&bp, node->local.local, 1);
   bp_pack_value (&bp, node->local.externally_visible, 1);
   bp_pack_value (&bp, node->local.finalized, 1);
-  bp_pack_value (&bp, node->local.inlinable, 1);
-  bp_pack_value (&bp, node->local.versionable, 1);
   bp_pack_value (&bp, node->local.can_change_signature, 1);
-  bp_pack_value (&bp, node->local.disregard_inline_limits, 1);
   bp_pack_value (&bp, node->local.redefined_extern_inline, 1);
-  bp_pack_value (&bp, node->local.vtable_method, 1);
   bp_pack_value (&bp, node->needed, 1);
   bp_pack_value (&bp, node->address_taken, 1);
   bp_pack_value (&bp, node->abstract_and_needed, 1);
@@ -514,7 +499,6 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
   bp_pack_value (&bp, node->lowered, 1);
   bp_pack_value (&bp, in_other_partition, 1);
   bp_pack_value (&bp, node->alias, 1);
-  bp_pack_value (&bp, node->finalized_by_frontend, 1);
   bp_pack_value (&bp, node->frequency, 2);
   bp_pack_value (&bp, node->only_called_at_startup, 1);
   bp_pack_value (&bp, node->only_called_at_exit, 1);
@@ -551,6 +535,7 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
 	      lto_output_fn_decl_index (ob->decl_state, ob->main_stream,
 					alias->thunk.alias);
 	    }
+	  gcc_assert (cgraph_get_node (alias->thunk.alias) == node);
 	  lto_output_uleb128_stream (ob->main_stream, alias->resolution);
 	  alias = alias->previous;
 	}
@@ -927,34 +912,16 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
 		      struct cgraph_node *node,
 		      enum LTO_cgraph_tags tag,
 		      struct bitpack_d *bp,
-		      unsigned int stack_size,
-		      unsigned int self_time,
-		      unsigned int time_inlining_benefit,
-		      unsigned int self_size,
-		      unsigned int size_inlining_benefit,
 		      enum ld_plugin_symbol_resolution resolution)
 {
   node->aux = (void *) tag;
-  node->local.inline_summary.estimated_self_stack_size = stack_size;
-  node->local.inline_summary.self_time = self_time;
-  node->local.inline_summary.time_inlining_benefit = time_inlining_benefit;
-  node->local.inline_summary.self_size = self_size;
-  node->local.inline_summary.size_inlining_benefit = size_inlining_benefit;
-  node->global.time = self_time;
-  node->global.size = self_size;
-  node->global.estimated_stack_size = stack_size;
-  node->global.estimated_growth = INT_MIN;
   node->local.lto_file_data = file_data;
 
   node->local.local = bp_unpack_value (bp, 1);
   node->local.externally_visible = bp_unpack_value (bp, 1);
   node->local.finalized = bp_unpack_value (bp, 1);
-  node->local.inlinable = bp_unpack_value (bp, 1);
-  node->local.versionable = bp_unpack_value (bp, 1);
   node->local.can_change_signature = bp_unpack_value (bp, 1);
-  node->local.disregard_inline_limits = bp_unpack_value (bp, 1);
   node->local.redefined_extern_inline = bp_unpack_value (bp, 1);
-  node->local.vtable_method = bp_unpack_value (bp, 1);
   node->needed = bp_unpack_value (bp, 1);
   node->address_taken = bp_unpack_value (bp, 1);
   node->abstract_and_needed = bp_unpack_value (bp, 1);
@@ -977,7 +944,6 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
       TREE_STATIC (node->decl) = 0;
     }
   node->alias = bp_unpack_value (bp, 1);
-  node->finalized_by_frontend = bp_unpack_value (bp, 1);
   node->frequency = (enum node_frequency)bp_unpack_value (bp, 2);
   node->only_called_at_startup = bp_unpack_value (bp, 1);
   node->only_called_at_exit = bp_unpack_value (bp, 1);
@@ -1020,13 +986,8 @@ input_node (struct lto_file_decl_data *file_data,
   tree fn_decl;
   struct cgraph_node *node;
   struct bitpack_d bp;
-  int stack_size = 0;
   unsigned decl_index;
   int ref = LCC_NOT_FOUND, ref2 = LCC_NOT_FOUND;
-  int self_time = 0;
-  int self_size = 0;
-  int time_inlining_benefit = 0;
-  int size_inlining_benefit = 0;
   unsigned long same_body_count = 0;
   int clone_ref;
   enum ld_plugin_symbol_resolution resolution;
@@ -1039,24 +1000,16 @@ input_node (struct lto_file_decl_data *file_data,
   if (clone_ref != LCC_NOT_FOUND)
     {
       node = cgraph_clone_node (VEC_index (cgraph_node_ptr, nodes, clone_ref), fn_decl,
-				0, CGRAPH_FREQ_BASE, 0, false, NULL);
+				0, CGRAPH_FREQ_BASE, false, NULL);
     }
   else
-    node = cgraph_node (fn_decl);
+    node = cgraph_get_create_node (fn_decl);
 
   node->count = lto_input_sleb128 (ib);
   node->count_materialization_scale = lto_input_sleb128 (ib);
 
   if (tag == LTO_cgraph_analyzed_node)
-    {
-      stack_size = lto_input_sleb128 (ib);
-      self_size = lto_input_sleb128 (ib);
-      size_inlining_benefit = lto_input_sleb128 (ib);
-      self_time = lto_input_sleb128 (ib);
-      time_inlining_benefit = lto_input_sleb128 (ib);
-
-      ref = lto_input_sleb128 (ib);
-    }
+    ref = lto_input_sleb128 (ib);
 
   ref2 = lto_input_sleb128 (ib);
 
@@ -1070,9 +1023,7 @@ input_node (struct lto_file_decl_data *file_data,
 
   bp = lto_input_bitpack (ib);
   resolution = (enum ld_plugin_symbol_resolution)lto_input_uleb128 (ib);
-  input_overwrite_node (file_data, node, tag, &bp, stack_size, self_time,
-  			time_inlining_benefit, self_size,
-			size_inlining_benefit, resolution);
+  input_overwrite_node (file_data, node, tag, &bp, resolution);
 
   /* Store a reference for now, and fix up later to be a pointer.  */
   node->global.inlined_to = (cgraph_node_ptr) (intptr_t) ref;
@@ -1094,7 +1045,7 @@ input_node (struct lto_file_decl_data *file_data,
 	  tree real_alias;
 	  decl_index = lto_input_uleb128 (ib);
 	  real_alias = lto_file_decl_data_get_fn_decl (file_data, decl_index);
-	  alias = cgraph_same_body_alias (alias_decl, real_alias);
+	  alias = cgraph_same_body_alias (node, alias_decl, real_alias);
 	}
       else
         {
@@ -1103,12 +1054,13 @@ input_node (struct lto_file_decl_data *file_data,
 	  tree real_alias;
 	  decl_index = lto_input_uleb128 (ib);
 	  real_alias = lto_file_decl_data_get_fn_decl (file_data, decl_index);
-	  alias = cgraph_add_thunk (alias_decl, fn_decl, type & 2, fixed_offset,
+	  alias = cgraph_add_thunk (node, alias_decl, fn_decl, type & 2, fixed_offset,
 				    virtual_value,
 				    (type & 4) ? size_int (virtual_value) : NULL_TREE,
 				    real_alias);
 	}
-       alias->resolution = (enum ld_plugin_symbol_resolution)lto_input_uleb128 (ib);
+      gcc_assert (alias);
+      alias->resolution = (enum ld_plugin_symbol_resolution)lto_input_uleb128 (ib);
     }
   return node;
 }
@@ -1209,7 +1161,6 @@ input_edge (struct lto_input_block *ib, VEC(cgraph_node_ptr, heap) *nodes,
   unsigned int stmt_id;
   gcov_type count;
   int freq;
-  unsigned int nest;
   cgraph_inline_failed_t inline_failed;
   struct bitpack_d bp;
   int ecf_flags = 0;
@@ -1234,12 +1185,11 @@ input_edge (struct lto_input_block *ib, VEC(cgraph_node_ptr, heap) *nodes,
   inline_failed = (cgraph_inline_failed_t) bp_unpack_value (&bp,
 							    HOST_BITS_PER_INT);
   freq = (int) bp_unpack_value (&bp, HOST_BITS_PER_INT);
-  nest = (unsigned) bp_unpack_value (&bp, 30);
 
   if (indirect)
-    edge = cgraph_create_indirect_edge (caller, NULL, 0, count, freq, nest);
+    edge = cgraph_create_indirect_edge (caller, NULL, 0, count, freq);
   else
-    edge = cgraph_create_edge (caller, callee, NULL, count, freq, nest);
+    edge = cgraph_create_edge (caller, callee, NULL, count, freq);
 
   edge->indirect_inlining_edge = bp_unpack_value (&bp, 1);
   edge->lto_stmt_uid = stmt_id;
@@ -1499,7 +1449,8 @@ merge_profile_summaries (struct lto_file_decl_data **file_data_vec)
      During LTRANS we already have values of count_materialization_scale
      computed, so just update them.  */
   for (node = cgraph_nodes; node; node = node->next)
-    if (node->local.lto_file_data->profile_info.runs)
+    if (node->local.lto_file_data
+	&& node->local.lto_file_data->profile_info.runs)
       {
 	int scale;
 
@@ -1571,8 +1522,8 @@ input_cgraph (void)
       VEC_free (cgraph_node_ptr, heap, nodes);
       VEC_free (varpool_node_ptr, heap, varpool);
     }
+
   merge_profile_summaries (file_data_vec);
-    
 
   /* Clear out the aux field that was used to store enough state to
      tell which nodes should be overwritten.  */

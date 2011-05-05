@@ -134,12 +134,13 @@ by type.  Explanations are in the following sections.
 @item Error and Warning Options
 @xref{Error and Warning Options,,Options to request or suppress errors
 and warnings}.
-@gccoptlist{-fmax-errors=@var{n} @gol
--fsyntax-only  -pedantic  -pedantic-errors @gol
--Wall  -Waliasing  -Wampersand  -Warray-bounds -Wcharacter-truncation @gol
--Wconversion -Wimplicit-interface  -Wimplicit-procedure  -Wline-truncation @gol
--Wintrinsics-std  -Wsurprising  -Wno-tabs  -Wunderflow  -Wunused-parameter @gol
--Wintrinsics-shadow  -Wno-align-commons}
+@gccoptlist{-fmax-errors=@var{n}
+-fsyntax-only -pedantic -pedantic-errors -Wall @gol
+-Waliasing -Wampersand -Warray-bounds -Wcharacter-truncation @gol
+-Wconversion -Wimplicit-interface -Wimplicit-procedure -Wline-truncation @gol
+-Wintrinsics-std -Wreal-q-constant -Wsurprising -Wno-tabs -Wunderflow @gol
+-Wunused-parameter -Wintrinsic-shadow -Wno-align-commons @gol
+-Wfunction-elimination}
 
 @item Debugging Options
 @xref{Debugging Options,,Options for debugging your program or GNU Fortran}.
@@ -166,12 +167,14 @@ and warnings}.
 -fwhole-file -fsecond-underscore @gol
 -fbounds-check -fcheck-array-temporaries  -fmax-array-constructor =@var{n} @gol
 -fcheck=@var{<all|array-temps|bounds|do|mem|pointer|recursion>} @gol
--fcoarray=@var{<none|single>} -fmax-stack-var-size=@var{n} @gol
+-fcoarray=@var{<none|single|lib>} -fmax-stack-var-size=@var{n} @gol
+-fstack-arrays @gol
 -fpack-derived  -frepack-arrays  -fshort-enums  -fexternal-blas @gol
 -fblas-matmul-limit=@var{n} -frecursive -finit-local-zero @gol
 -finit-integer=@var{n} -finit-real=@var{<zero|inf|-inf|nan|snan>} @gol
 -finit-logical=@var{<true|false>} -finit-character=@var{n} @gol
--fno-align-commons -fno-protect-parens -frealloc-lhs}
+-fno-align-commons -fno-protect-parens -frealloc-lhs @gol
+-faggressive-function-elimination -ffrontend-optimize}
 @end table
 
 @menu
@@ -198,7 +201,7 @@ accepted by the compiler:
 
 @table @gcctabopt
 @item -ffree-form
-@item -ffixed-form
+@itemx -ffixed-form
 @opindex @code{ffree-form}
 @opindex @code{fno-fixed-form}
 @cindex options, fortran dialect
@@ -219,7 +222,7 @@ will be ignored and no user-defined procedure with the same name as any
 intrinsic will be called except when it is explicitly declared @code{EXTERNAL}.
 
 @item -fd-lines-as-code
-@item -fd-lines-as-comments
+@itemx -fd-lines-as-comments
 @opindex @code{fd-lines-as-code}
 @opindex @code{fd-lines-as-comments}
 Enable special treatment for lines beginning with @code{d} or @code{D}
@@ -381,7 +384,7 @@ information on preprocessing in @command{gfortran}.
 
 @table @gcctabopt
 @item -cpp
-@item -nocpp
+@itemx -nocpp
 @opindex @code{cpp}
 @opindex @code{fpp}
 @cindex preprocessor, enable
@@ -521,14 +524,14 @@ The standard predefined macros remain defined.
 
 @item -A@var{predicate}=@var{answer}
 @opindex @code{A@var{predicate}=@var{answer}}
-@cindex preprocessing, assertation
+@cindex preprocessing, assertion
 Make an assertion with the predicate @var{predicate} and answer @var{answer}.
 This form is preferred to the older form -A predicate(answer), which is still
 supported, because it does not use shell special characters.
 
 @item -A-@var{predicate}=@var{answer}
 @opindex @code{A-@var{predicate}=@var{answer}}
-@cindex preprocessing, assertation
+@cindex preprocessing, assertion
 Cancel an assertion with the predicate @var{predicate} and answer @var{answer}.
 
 @item -C
@@ -692,7 +695,7 @@ we recommend avoiding and that we believe are easy to avoid.
 This currently includes @option{-Waliasing}, @option{-Wampersand}, 
 @option{-Wconversion}, @option{-Wsurprising}, @option{-Wintrinsics-std},
 @option{-Wno-tabs}, @option{-Wintrinsic-shadow}, @option{-Wline-truncation},
-and @option{-Wunused}.
+@option{-Wreal-q-constant} and @option{-Wunused}.
 
 @item -Waliasing
 @opindex @code{Waliasing}
@@ -780,6 +783,12 @@ it as @code{EXTERNAL} procedure because of this.  @option{-fall-intrinsics} can
 be used to never trigger this behavior and always link to the intrinsic
 regardless of the selected standard.
 
+@item -Wreal-q-constant
+@opindex @code{Wreal-q-constant}
+@cindex warnings, @code{q} exponent-letter
+Produce a warning if a real-literal-constant contains a @code{q}
+exponent-letter.
+
 @item -Wsurprising
 @opindex @code{Wsurprising}
 @cindex warnings, suspicious code
@@ -858,6 +867,14 @@ is not included in @option{-Wall} but is implied by @option{-Wall -Wextra}.
 By default, @command{gfortran} warns about any occasion of variables being
 padded for proper alignment inside a @code{COMMON} block. This warning can be turned
 off via @option{-Wno-align-commons}. See also @option{-falign-commons}.
+
+@item -Wfunction-elimination
+@opindex @code{Wfunction-elimination}
+@cindex function elimination
+@cindex warnings, function elimination
+Warn if any calls to functions are eliminated by the optimizations
+enabled by the @option{-ffrontend-optimize} option.
+
 
 @item -Werror
 @opindex @code{Werror}
@@ -1019,6 +1036,7 @@ configured, this option has no effect.
 @cindex options, runtime
 
 These options affect the runtime behavior of programs compiled with GNU Fortran.
+
 @table @gcctabopt
 @item -fconvert=@var{conversion}
 @opindex @code{fconvert=}@var{conversion}
@@ -1248,6 +1266,10 @@ statements will produce a compile-time error. (Default)
 
 @item @samp{single}
 Single-image mode, i.e. @code{num_images()} is always one.
+
+@item @samp{lib}
+Library-based coarray parallelization; a suitable GNU Fortran coarray
+library needs to be linked.
 @end table
 
 
@@ -1356,6 +1378,13 @@ Future versions of GNU Fortran may improve this behavior.
 
 The default value for @var{n} is 32768.
 
+@item -fstack-arrays
+@opindex @code{fstack-arrays}
+Adding this option will make the fortran compiler put all local arrays,
+even those of unknown size onto stack memory.  If your program uses very
+large local arrays it's possible that you'll have to extend your runtime
+limits for stack memory on some operating systems.
+
 @item -fpack-derived
 @opindex @code{fpack-derived}
 @cindex structure packing
@@ -1409,10 +1438,10 @@ on the stack. This flag cannot be used together with
 @option{-fmax-stack-var-size=} or @option{-fno-automatic}.
 
 @item -finit-local-zero
-@item -finit-integer=@var{n}
-@item -finit-real=@var{<zero|inf|-inf|nan|snan>} 
-@item -finit-logical=@var{<true|false>}
-@item -finit-character=@var{n}
+@itemx -finit-integer=@var{n}
+@itemx -finit-real=@var{<zero|inf|-inf|nan|snan>}
+@itemx -finit-logical=@var{<true|false>}
+@itemx -finit-character=@var{n}
 @opindex @code{finit-local-zero}
 @opindex @code{finit-integer}
 @opindex @code{finit-real}
@@ -1449,17 +1478,18 @@ consistent data types everywhere, this padding can cause trouble, and
 @option{-fno-align-commons} can be used to disable automatic alignment. The
 same form of this option should be used for all files that share a @code{COMMON} block.
 To avoid potential alignment issues in @code{COMMON} blocks, it is recommended to order
-objects from largests to smallest.
+objects from largest to smallest.
 
 @item -fno-protect-parens
 @opindex @code{fno-protect-parens}
-@cindex re-association of parenthesed expressions
+@cindex re-association of parenthesized expressions
 By default the parentheses in expression are honored for all optimization
 levels such that the compiler does not do any re-association. Using
 @option{-fno-protect-parens} allows the compiler to reorder @code{REAL} and
 @code{COMPLEX} expressions to produce faster code. Note that for the re-association
 optimization @option{-fno-signed-zeros} and @option{-fno-trapping-math}
-need to be in effect.
+need to be in effect. The parentheses protection is enabled by default, unless
+@option{-Ofast} is given.
 
 @item -frealloc-lhs
 @opindex @code{frealloc-lhs}
@@ -1467,13 +1497,35 @@ need to be in effect.
 An allocatable left-hand side of an intrinsic assignment is automatically
 (re)allocated if it is either unallocated or has a different shape. The
 option is enabled by default except when @option{-std=f95} is given.
+
+@item -faggressive-function-elimination
+@opindex @code{faggressive-function-elimination}
+@cindex Elimination of functions with identical argument lists
+Functions with identical argument lists are eliminated within
+statements, regardless of whether these functions are marked
+@code{PURE} or not. For example, in
+@smallexample
+  a = f(b,c) + f(b,c)
+@end smallexample
+there will only be a single call to @code{f}.  This option only works
+if @option{-ffrontend-optimize} is in effect.
+
+@item -ffrontend-optimize
+@opindex @code{frontend-optimize}
+@cindex Front-end optimization
+This option performs front-end optimization, based on manipulating
+parts the Fortran parse tree.  Enabled by default by any @option{-O}
+option.  Optimizations enabled by this option include elimination of
+identical function calls within expressions, removing unnecessary
+calls to @code{TRIM} in comparisons and assignments and replacing
+@code{TRIM(a)} with @code{a(1:LEN_TRIM(a))}. 
+It can be deselected by specifying @option{-fno-frontend-optimize}.
 @end table
 
 @xref{Code Gen Options,,Options for Code Generation Conventions,
 gcc,Using the GNU Compiler Collection (GCC)}, for information on more options
 offered by the GBE
 shared by @command{gfortran}, @command{gcc}, and other GNU compilers.
-
 
 @c man end
 

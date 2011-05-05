@@ -1,6 +1,6 @@
 /* Subroutines for insn-output.c for HPPA.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001,
-   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Tim Moore (moore@cs.utah.edu), based on sparc.c
 
@@ -48,6 +48,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target-def.h"
 #include "langhooks.h"
 #include "df.h"
+#include "opts.h"
 
 /* Return nonzero if there is a bypass for the output of 
    OUT_INSN and the fp store IN_INSN.  */
@@ -87,7 +88,8 @@ hppa_fpstore_bypass_p (rtx out_insn, rtx in_insn)
 static void pa_option_override (void);
 static void copy_reg_pointer (rtx, rtx);
 static void fix_range (const char *);
-static bool pa_handle_option (size_t, const char *, int);
+static bool pa_handle_option (struct gcc_options *, struct gcc_options *,
+			      const struct cl_decoded_option *, location_t);
 static int hppa_register_move_cost (enum machine_mode mode, reg_class_t,
 				    reg_class_t);
 static int hppa_address_cost (rtx, bool);
@@ -185,17 +187,13 @@ static bool pa_can_eliminate (const int, const int);
 static void pa_conditional_register_usage (void);
 static enum machine_mode pa_c_mode_for_suffix (char);
 static section *pa_function_section (tree, enum node_frequency, bool, bool);
+static bool pa_cannot_force_const_mem (enum machine_mode, rtx);
+static bool pa_legitimate_constant_p (enum machine_mode, rtx);
 
 /* The following extra sections are only used for SOM.  */
 static GTY(()) section *som_readonly_data_section;
 static GTY(()) section *som_one_only_readonly_data_section;
 static GTY(()) section *som_one_only_data_section;
-
-/* Which cpu we are scheduling for.  */
-enum processor_type pa_cpu = TARGET_SCHED_DEFAULT;
-
-/* The UNIX standard to use for predefines and linking.  */
-int flag_pa_unix = TARGET_HPUX_11_11 ? 1998 : TARGET_HPUX_10_10 ? 1995 : 1993;
 
 /* Counts for the number of callee-saved general and floating point
    registers which were saved by the current function's prologue.  */
@@ -373,7 +371,7 @@ static const struct default_options pa_option_optimization_table[] =
 #define TARGET_SCALAR_MODE_SUPPORTED_P pa_scalar_mode_supported_p
 
 #undef TARGET_CANNOT_FORCE_CONST_MEM
-#define TARGET_CANNOT_FORCE_CONST_MEM pa_tls_referenced_p
+#define TARGET_CANNOT_FORCE_CONST_MEM pa_cannot_force_const_mem
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD pa_secondary_reload
@@ -399,6 +397,9 @@ static const struct default_options pa_option_optimization_table[] =
 #define TARGET_C_MODE_FOR_SUFFIX pa_c_mode_for_suffix
 #undef TARGET_ASM_FUNCTION_SECTION
 #define TARGET_ASM_FUNCTION_SECTION pa_function_section
+
+#undef TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P pa_legitimate_constant_p
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 
@@ -478,66 +479,32 @@ fix_range (const char *const_str)
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
-pa_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
+pa_handle_option (struct gcc_options *opts,
+		  struct gcc_options *opts_set ATTRIBUTE_UNUSED,
+		  const struct cl_decoded_option *decoded,
+		  location_t loc ATTRIBUTE_UNUSED)
 {
+  size_t code = decoded->opt_index;
+
   switch (code)
     {
     case OPT_mnosnake:
     case OPT_mpa_risc_1_0:
     case OPT_march_1_0:
-      target_flags &= ~(MASK_PA_11 | MASK_PA_20);
+      opts->x_target_flags &= ~(MASK_PA_11 | MASK_PA_20);
       return true;
 
     case OPT_msnake:
     case OPT_mpa_risc_1_1:
     case OPT_march_1_1:
-      target_flags &= ~MASK_PA_20;
-      target_flags |= MASK_PA_11;
+      opts->x_target_flags &= ~MASK_PA_20;
+      opts->x_target_flags |= MASK_PA_11;
       return true;
 
     case OPT_mpa_risc_2_0:
     case OPT_march_2_0:
-      target_flags |= MASK_PA_11 | MASK_PA_20;
+      opts->x_target_flags |= MASK_PA_11 | MASK_PA_20;
       return true;
-
-    case OPT_mschedule_:
-      if (strcmp (arg, "8000") == 0)
-	pa_cpu = PROCESSOR_8000;
-      else if (strcmp (arg, "7100") == 0)
-	pa_cpu = PROCESSOR_7100;
-      else if (strcmp (arg, "700") == 0)
-	pa_cpu = PROCESSOR_700;
-      else if (strcmp (arg, "7100LC") == 0)
-	pa_cpu = PROCESSOR_7100LC;
-      else if (strcmp (arg, "7200") == 0)
-	pa_cpu = PROCESSOR_7200;
-      else if (strcmp (arg, "7300") == 0)
-	pa_cpu = PROCESSOR_7300;
-      else
-	return false;
-      return true;
-
-    case OPT_mfixed_range_:
-      fix_range (arg);
-      return true;
-
-#if TARGET_HPUX
-    case OPT_munix_93:
-      flag_pa_unix = 1993;
-      return true;
-#endif
-
-#if TARGET_HPUX_10_10
-    case OPT_munix_95:
-      flag_pa_unix = 1995;
-      return true;
-#endif
-
-#if TARGET_HPUX_11_11
-    case OPT_munix_98:
-      flag_pa_unix = 1998;
-      return true;
-#endif
 
     default:
       return true;
@@ -549,6 +516,24 @@ pa_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
 static void
 pa_option_override (void)
 {
+  unsigned int i;
+  cl_deferred_option *opt;
+  VEC(cl_deferred_option,heap) *vec
+    = (VEC(cl_deferred_option,heap) *) pa_deferred_options;
+
+  FOR_EACH_VEC_ELT (cl_deferred_option, vec, i, opt)
+    {
+      switch (opt->opt_index)
+	{
+	case OPT_mfixed_range_:
+	  fix_range (opt->arg);
+	  break;
+
+	default:
+	  gcc_unreachable ();
+	}
+    }
+
   /* Unconditional branches in the delay slot are not compatible with dwarf2
      call frame information.  There is no benefit in using this optimization
      on PA8000 and later processors.  */
@@ -661,7 +646,7 @@ pa_init_builtins (void)
       TREE_READONLY (decl) = 1;
       pa_builtins[PA_BUILTIN_COPYSIGNQ] = decl;
 
-      ftype = build_function_type (long_double_type_node, void_list_node);
+      ftype = build_function_type_list (long_double_type_node, NULL_TREE);
       decl = add_builtin_function ("__builtin_infq", ftype,
 				   PA_BUILTIN_INFQ, BUILT_IN_MD,
 				   NULL, NULL_TREE);
@@ -759,35 +744,6 @@ cint_ok_for_move (HOST_WIDE_INT ival)
 	  || zdepi_cint_p (ival));
 }
 
-/* Return truth value of whether OP can be used as an operand in a
-   adddi3 insn.  */
-int
-adddi3_operand (rtx op, enum machine_mode mode)
-{
-  return (register_operand (op, mode)
-	  || (GET_CODE (op) == CONST_INT
-	      && (TARGET_64BIT ? INT_14_BITS (op) : INT_11_BITS (op))));
-}
-
-/* True iff the operand OP can be used as the destination operand of
-   an integer store.  This also implies the operand could be used as
-   the source operand of an integer load.  Symbolic, lo_sum and indexed
-   memory operands are not allowed.  We accept reloading pseudos and
-   other memory operands.  */
-int
-integer_store_memory_operand (rtx op, enum machine_mode mode)
-{
-  return ((reload_in_progress
-	   && REG_P (op)
-	   && REGNO (op) >= FIRST_PSEUDO_REGISTER
-	   && reg_renumber [REGNO (op)] < 0)
-	  || (GET_CODE (op) == MEM
-	      && (reload_in_progress || memory_address_p (mode, XEXP (op, 0)))
-	      && !symbolic_memory_operand (op, VOIDmode)
-	      && !IS_LO_SUM_DLT_ADDR_P (XEXP (op, 0))
-	      && !IS_INDEX_ADDR_P (XEXP (op, 0))));
-}
-
 /* True iff ldil can be used to load this CONST_INT.  The least
    significant 11 bits of the value must be zero and the value must
    not change sign when extended from 32 to 64 bits.  */
@@ -895,7 +851,7 @@ legitimize_pic_address (rtx orig, enum machine_mode mode, rtx reg)
       tmp_reg = ((reload_in_progress || reload_completed)
 		 ? reg : gen_reg_rtx (Pmode));
 
-      if (function_label_operand (orig, mode))
+      if (function_label_operand (orig, VOIDmode))
 	{
 	  /* Force function label into memory in word mode.  */
 	  orig = XEXP (force_const_mem (word_mode, orig), 0);
@@ -1467,6 +1423,8 @@ hppa_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 {
   if (from == SHIFT_REGS)
     return 0x100;
+  else if (to == SHIFT_REGS && FP_REG_CLASS_P (from))
+    return 18;
   else if ((FP_REG_CLASS_P (from) && ! FP_REG_CLASS_P (to))
            || (FP_REG_CLASS_P (to) && ! FP_REG_CLASS_P (from)))
     return 16;
@@ -1610,6 +1568,14 @@ pa_tls_referenced_p (rtx x)
   return for_each_rtx (&x, &pa_tls_symbol_ref_1, 0);
 }
 
+/* Implement TARGET_CANNOT_FORCE_CONST_MEM.  */
+
+static bool
+pa_cannot_force_const_mem (enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
+{
+  return pa_tls_referenced_p (x);
+}
+
 /* Emit insns to move operands[1] into operands[0].
 
    Return 1 if we have written out everything that needs to be done to
@@ -1658,7 +1624,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
   if (scratch_reg
       && reload_in_progress && GET_CODE (operand0) == REG
       && REGNO (operand0) >= FIRST_PSEUDO_REGISTER)
-    operand0 = reg_equiv_mem[REGNO (operand0)];
+    operand0 = reg_equiv_mem (REGNO (operand0));
   else if (scratch_reg
 	   && reload_in_progress && GET_CODE (operand0) == SUBREG
 	   && GET_CODE (SUBREG_REG (operand0)) == REG
@@ -1667,7 +1633,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
      /* We must not alter SUBREG_BYTE (operand0) since that would confuse
 	the code which tracks sets/uses for delete_output_reload.  */
       rtx temp = gen_rtx_SUBREG (GET_MODE (operand0),
-				 reg_equiv_mem [REGNO (SUBREG_REG (operand0))],
+				 reg_equiv_mem (REGNO (SUBREG_REG (operand0))),
 				 SUBREG_BYTE (operand0));
       operand0 = alter_subreg (&temp);
     }
@@ -1675,7 +1641,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
   if (scratch_reg
       && reload_in_progress && GET_CODE (operand1) == REG
       && REGNO (operand1) >= FIRST_PSEUDO_REGISTER)
-    operand1 = reg_equiv_mem[REGNO (operand1)];
+    operand1 = reg_equiv_mem (REGNO (operand1));
   else if (scratch_reg
 	   && reload_in_progress && GET_CODE (operand1) == SUBREG
 	   && GET_CODE (SUBREG_REG (operand1)) == REG
@@ -1684,7 +1650,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
      /* We must not alter SUBREG_BYTE (operand0) since that would confuse
 	the code which tracks sets/uses for delete_output_reload.  */
       rtx temp = gen_rtx_SUBREG (GET_MODE (operand1),
-				 reg_equiv_mem [REGNO (SUBREG_REG (operand1))],
+				 reg_equiv_mem (REGNO (SUBREG_REG (operand1))),
 				 SUBREG_BYTE (operand1));
       operand1 = alter_subreg (&temp);
     }
@@ -1810,15 +1776,12 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
       return 1;
     }
   /* Handle secondary reloads for SAR.  These occur when trying to load
-     the SAR from memory, FP register, or with a constant.  */
+     the SAR from memory or a constant.  */
   else if (scratch_reg
 	   && GET_CODE (operand0) == REG
 	   && REGNO (operand0) < FIRST_PSEUDO_REGISTER
 	   && REGNO_REG_CLASS (REGNO (operand0)) == SHIFT_REGS
-	   && (GET_CODE (operand1) == MEM
-	       || GET_CODE (operand1) == CONST_INT
-	       || (GET_CODE (operand1) == REG
-		   && FP_REG_CLASS_P (REGNO_REG_CLASS (REGNO (operand1))))))
+	   && (GET_CODE (operand1) == MEM || GET_CODE (operand1) == CONST_INT))
     {
       /* D might not fit in 14 bits either; for such cases load D into
 	 scratch reg.  */
@@ -1958,7 +1921,7 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
      not consider them legitimate constants.  Loop optimizations can
      call the emit_move_xxx with one as a source.  */
   if ((GET_CODE (operand1) != HIGH && immediate_operand (operand1, mode))
-      || function_label_operand (operand1, mode)
+      || function_label_operand (operand1, VOIDmode)
       || (GET_CODE (operand1) == HIGH
 	  && symbolic_operand (XEXP (operand1, 0), mode)))
     {
@@ -1978,8 +1941,9 @@ emit_move_sequence (rtx *operands, enum machine_mode mode, rtx scratch_reg)
 	     the memory location, then add in the constant part.  */
 	  if ((GET_CODE (operand1) == CONST
 	       && GET_CODE (XEXP (operand1, 0)) == PLUS
-	       && function_label_operand (XEXP (XEXP (operand1, 0), 0), Pmode))
-	      || function_label_operand (operand1, mode))
+	       && function_label_operand (XEXP (XEXP (operand1, 0), 0),
+					  VOIDmode))
+	      || function_label_operand (operand1, VOIDmode))
 	    {
 	      rtx temp, const_part;
 
@@ -2322,28 +2286,6 @@ reloc_needed (tree exp)
       break;
     }
   return reloc;
-}
-
-/* Does operand (which is a symbolic_operand) live in text space?
-   If so, SYMBOL_REF_FLAG, which is set by pa_encode_section_info,
-   will be true.  */
-
-int
-read_only_operand (rtx operand, enum machine_mode mode ATTRIBUTE_UNUSED)
-{
-  if (GET_CODE (operand) == CONST)
-    operand = XEXP (XEXP (operand, 0), 0);
-  if (flag_pic)
-    {
-      if (GET_CODE (operand) == SYMBOL_REF)
-	return SYMBOL_REF_FLAG (operand) && !CONSTANT_POOL_ADDRESS_P (operand);
-    }
-  else
-    {
-      if (GET_CODE (operand) == SYMBOL_REF)
-	return SYMBOL_REF_FLAG (operand) || CONSTANT_POOL_ADDRESS_P (operand);
-    }
-  return 1;
 }
 
 
@@ -5883,6 +5825,10 @@ output_arg_descriptor (rtx call_insn)
   fputc ('\n', asm_out_file);
 }
 
+/* Inform reload about cases where moving X with a mode MODE to a register in
+   RCLASS requires an extra scratch or immediate register.  Return the class
+   needed for the immediate register.  */
+
 static reg_class_t
 pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 		     enum machine_mode mode, secondary_reload_info *sri)
@@ -5985,24 +5931,29 @@ pa_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
       return NO_REGS;
     }
 
-  /* We need a secondary register (GPR) for copies between the SAR
-     and anything other than a general register.  */
-  if (rclass == SHIFT_REGS && (regno <= 0 || regno >= 32))
+  /* A SAR<->FP register copy requires an intermediate general register
+     and secondary memory.  We need a secondary reload with a general
+     scratch register for spills.  */
+  if (rclass == SHIFT_REGS)
     {
-      sri->icode = (in_p
-		    ? direct_optab_handler (reload_in_optab, mode)
-		    : direct_optab_handler (reload_out_optab, mode));
-      return NO_REGS;
+      /* Handle spill.  */
+      if (regno >= FIRST_PSEUDO_REGISTER || regno < 0)
+	{
+	  sri->icode = (in_p
+			? direct_optab_handler (reload_in_optab, mode)
+			: direct_optab_handler (reload_out_optab, mode));
+	  return NO_REGS;
+	}
+
+      /* Handle FP copy.  */
+      if (FP_REG_CLASS_P (REGNO_REG_CLASS (regno)))
+	return GENERAL_REGS;
     }
 
-  /* A SAR<->FP register copy requires a secondary register (GPR) as
-     well as secondary memory.  */
   if (regno >= 0 && regno < FIRST_PSEUDO_REGISTER
-      && (REGNO_REG_CLASS (regno) == SHIFT_REGS
-      && FP_REG_CLASS_P (rclass)))
-    sri->icode = (in_p
-		  ? direct_optab_handler (reload_in_optab, mode)
-		  : direct_optab_handler (reload_out_optab, mode));
+      && REGNO_REG_CLASS (regno) == SHIFT_REGS
+      && FP_REG_CLASS_P (rclass))
+    return GENERAL_REGS;
 
   return NO_REGS;
 }
@@ -8202,12 +8153,6 @@ pa_strip_name_encoding (const char *str)
   return str;
 }
 
-int
-function_label_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
-{
-  return GET_CODE (op) == SYMBOL_REF && FUNCTION_NAME_P (XSTR (op, 0));
-}
-
 /* Returns 1 if OP is a function label involved in a simple addition
    with a constant.  Used to keep certain patterns from matching
    during instruction combination.  */
@@ -8219,7 +8164,7 @@ is_function_label_plus_const (rtx op)
     op = XEXP (op, 0);
 
   return (GET_CODE (op) == PLUS
-	  && function_label_operand (XEXP (op, 0), Pmode)
+	  && function_label_operand (XEXP (op, 0), VOIDmode)
 	  && GET_CODE (XEXP (op, 1)) == CONST_INT);
 }
 
@@ -8781,43 +8726,6 @@ shadd_constant_p (int val)
     return 0;
 }
 
-/* Return 1 if OP is valid as a base or index register in a
-   REG+REG address.  */
-
-int
-borx_reg_operand (rtx op, enum machine_mode mode)
-{
-  if (GET_CODE (op) != REG)
-    return 0;
-
-  /* We must reject virtual registers as the only expressions that
-     can be instantiated are REG and REG+CONST.  */
-  if (op == virtual_incoming_args_rtx
-      || op == virtual_stack_vars_rtx
-      || op == virtual_stack_dynamic_rtx
-      || op == virtual_outgoing_args_rtx
-      || op == virtual_cfa_rtx)
-    return 0;
-
-  /* While it's always safe to index off the frame pointer, it's not
-     profitable to do so when the frame pointer is being eliminated.  */
-  if (!reload_completed
-      && flag_omit_frame_pointer
-      && !cfun->calls_alloca
-      && op == frame_pointer_rtx)
-    return 0;
-
-  return register_operand (op, mode);
-}
-
-/* Return 1 if this operand is anything other than a hard register.  */
-
-int
-non_hard_reg_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
-{
-  return ! (GET_CODE (op) == REG && REGNO (op) < FIRST_PSEUDO_REGISTER);
-}
-
 /* Return TRUE if INSN branches forward.  */
 
 static bool
@@ -8840,13 +8748,6 @@ forward_branch_p (rtx insn)
     }
 
   return false;
-}
-
-/* Return 1 if OP is an equality comparison, else return 0.  */
-int
-eq_neq_comparison_operator (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
-{
-  return (GET_CODE (op) == EQ || GET_CODE (op) == NE);
 }
 
 /* Return 1 if INSN is in the delay slot of a call instruction.  */
@@ -10377,6 +10278,42 @@ pa_function_section (tree decl, enum node_frequency freq,
 
   /* Otherwise, use the default function section.  */
   return default_function_section (decl, freq, startup, exit);
+}
+
+/* Implement TARGET_LEGITIMATE_CONSTANT_P.
+
+   In 64-bit mode, we reject CONST_DOUBLES.  We also reject CONST_INTS
+   that need more than three instructions to load prior to reload.  This
+   limit is somewhat arbitrary.  It takes three instructions to load a
+   CONST_INT from memory but two are memory accesses.  It may be better
+   to increase the allowed range for CONST_INTS.  We may also be able
+   to handle CONST_DOUBLES.  */
+
+static bool
+pa_legitimate_constant_p (enum machine_mode mode, rtx x)
+{
+  if (GET_MODE_CLASS (mode) == MODE_FLOAT && x != CONST0_RTX (mode))
+    return false;
+
+  if (!NEW_HP_ASSEMBLER && !TARGET_GAS && GET_CODE (x) == LABEL_REF)
+    return false;
+
+  if (TARGET_64BIT && GET_CODE (x) == CONST_DOUBLE)
+    return false;
+
+  if (TARGET_64BIT
+      && HOST_BITS_PER_WIDE_INT > 32
+      && GET_CODE (x) == CONST_INT
+      && !reload_in_progress
+      && !reload_completed
+      && !LEGITIMATE_64BIT_CONST_INT_P (INTVAL (x))
+      && !cint_ok_for_move (INTVAL (x)))
+    return false;
+
+  if (function_label_operand (x, mode))
+    return false;
+
+  return true;
 }
 
 #include "gt-pa.h"

@@ -25,7 +25,7 @@ func runEcho(fd io.ReadWriter, done chan<- int) {
 
 	for {
 		n, err := fd.Read(buf[0:])
-		if err != nil || n == 0 {
+		if err != nil || n == 0 || string(buf[:n]) == "END" {
 			break
 		}
 		fd.Write(buf[0:n])
@@ -54,13 +54,15 @@ func runServe(t *testing.T, network, addr string, listening chan<- string, done 
 }
 
 func connect(t *testing.T, network, addr string, isEmpty bool) {
-	var laddr string
+	var fd Conn
+	var err os.Error
 	if network == "unixgram" {
-		laddr = addr + ".local"
+		fd, err = DialUnix(network, &UnixAddr{addr + ".local", network}, &UnixAddr{addr, network})
+	} else {
+		fd, err = Dial(network, addr)
 	}
-	fd, err := Dial(network, laddr, addr)
 	if err != nil {
-		t.Fatalf("net.Dial(%q, %q, %q) = _, %v", network, laddr, addr, err)
+		t.Fatalf("net.Dial(%q, %q) = _, %v", network, addr, err)
 	}
 	fd.SetReadTimeout(1e9) // 1s
 
@@ -79,6 +81,13 @@ func connect(t *testing.T, network, addr string, isEmpty bool) {
 	if n != len(b) || err1 != nil {
 		t.Fatalf("fd.Read() = %d, %v (want %d, nil)", n, err1, len(b))
 	}
+
+	// Send explicit ending for unixpacket.
+	// Older Linux kernels do stop reads on close.
+	if network == "unixpacket" {
+		fd.Write([]byte("END"))
+	}
+
 	fd.Close()
 }
 
@@ -133,13 +142,16 @@ func runPacket(t *testing.T, network, addr string, listening chan<- string, done
 	listening <- c.LocalAddr().String()
 	c.SetReadTimeout(10e6) // 10ms
 	var buf [1000]byte
+Run:
 	for {
 		n, addr, err := c.ReadFrom(buf[0:])
 		if e, ok := err.(Error); ok && e.Timeout() {
-			if done <- 1 {
-				break
+			select {
+			case done <- 1:
+				break Run
+			default:
+				continue Run
 			}
-			continue
 		}
 		if err != nil {
 			break
