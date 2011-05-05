@@ -213,6 +213,27 @@ is_last_module (unsigned mod_id)
   return (mod_id == module_infos[num_in_fnames - 1]->ident);
 }
 
+/* String hash function  */
+
+static hashval_t
+str_hash (const void *p)
+{
+  const char *s = (const char *)p;
+  return htab_hash_string (s);
+}
+
+/* String equal function  */
+
+static int
+str_eq (const void *p1, const void *p2)
+{
+  const char *s1 = (const char *)p1;
+  const char *s2 = (const char *)p2;
+
+  return !strcmp (s1, s2);
+}
+
+
 /* Returns true if the command-line arguments stored in the given module-infos
    are incompatible.  */
 static bool
@@ -227,6 +248,9 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
   unsigned int num_non_warning_opts1 = 0, num_non_warning_opts2 = 0;
   bool warning_mismatch = false;
   bool non_warning_mismatch = false;
+  bool with_fexceptions1 = true;
+  bool with_fexceptions2 = true;
+  htab_t option_tab1, option_tab2;
   unsigned int start_index1 = mod_info1->num_quote_paths +
     mod_info1->num_bracket_paths + mod_info1->num_cpp_defines +
     mod_info1->num_cpp_includes;
@@ -234,22 +258,52 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
     mod_info2->num_bracket_paths + mod_info2->num_cpp_defines +
     mod_info2->num_cpp_includes;
 
+  option_tab1 = htab_create (10, str_hash, str_eq, NULL);
+  option_tab2 = htab_create (10, str_hash, str_eq, NULL);
+
   /* First, separate the warning and non-warning options.  */
   for (i = 0; i < mod_info1->num_cl_args; i++)
     if (mod_info1->string_array[start_index1 + i][1] == 'W')
       warning_opts1[num_warning_opts1++] =
 	mod_info1->string_array[start_index1 + i];
     else
-      non_warning_opts1[num_non_warning_opts1++] =
-	mod_info1->string_array[start_index1 + i];
+      {
+        void **slot;
+        char* option_string = mod_info1->string_array[start_index1 + i];
+
+        if (!strcmp ("-fexceptions", option_string))
+          with_fexceptions1 = true;
+        else if (!strcmp ("-fno-exceptions", option_string))
+          with_fexceptions1 = false;
+
+        slot = htab_find_slot (option_tab1, option_string, INSERT);
+        if (!*slot)
+          {
+            *slot = option_string;
+            non_warning_opts1[num_non_warning_opts1++] = option_string;
+          }
+      }
 
   for (i = 0; i < mod_info2->num_cl_args; i++)
     if (mod_info2->string_array[start_index2 + i][1] == 'W')
       warning_opts2[num_warning_opts2++] =
 	mod_info2->string_array[start_index2 + i];
     else
-      non_warning_opts2[num_non_warning_opts2++] =
-	mod_info2->string_array[start_index2 + i];
+      {
+        void **slot;
+        char* option_string = mod_info2->string_array[start_index2 + i];
+
+        if (!strcmp ("-fexceptions", option_string))
+          with_fexceptions2 = true;
+        else if (!strcmp ("-fno-exceptions", option_string))
+          with_fexceptions2 = false;
+        slot = htab_find_slot (option_tab2, option_string, INSERT);
+        if (!*slot)
+          {
+            *slot = option_string;
+            non_warning_opts2[num_non_warning_opts2++] = option_string;
+          }
+      }
 
   /* Compare warning options. If these mismatch, we emit a warning.  */
   if (num_warning_opts1 != num_warning_opts2)
@@ -272,11 +326,24 @@ incompatible_cl_args (struct gcov_module_info* mod_info1,
     warning (OPT_Wripa_opt_mismatch, "command line arguments mismatch for %s "
 	     "and %s", mod_info1->source_filename, mod_info2->source_filename);
 
+   if (warn_ripa_opt_mismatch && non_warning_mismatch && flag_ripa_verbose)
+     {
+       inform (UNKNOWN_LOCATION, "Options for %s", mod_info1->source_filename);
+       for (i = 0; i < num_non_warning_opts1; i++)
+         inform (UNKNOWN_LOCATION, non_warning_opts1[i]);
+       inform (UNKNOWN_LOCATION, "Options for %s", mod_info2->source_filename);
+       for (i = 0; i < num_non_warning_opts2; i++)
+         inform (UNKNOWN_LOCATION, non_warning_opts2[i]);
+     }
+
   XDELETEVEC (warning_opts1);
   XDELETEVEC (warning_opts2);
   XDELETEVEC (non_warning_opts1);
   XDELETEVEC (non_warning_opts2);
-  return flag_ripa_disallow_opt_mismatch && non_warning_mismatch;
+  htab_delete (option_tab1);
+  htab_delete (option_tab2);
+  return ((flag_ripa_disallow_opt_mismatch && non_warning_mismatch)
+          || (with_fexceptions1 != with_fexceptions2));
 }
 
 /* Read in the counts file, if available. DA_FILE_NAME is the

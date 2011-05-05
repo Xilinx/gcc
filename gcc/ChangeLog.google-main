@@ -1,3 +1,9 @@
+2011-05-04  David Li  <davidxl@google.com>
+
+	* coverage.c (incompatible_cl_args): Better handling
+	of option mismatch.
+
+
 2011-05-04  Sriraman Tallam  <tmsriram@google.com>
 
 	* tree-pass.h (pass_tree_convert_builtin_dispatch): New pass.
