@@ -1,6 +1,6 @@
 2011-05-06  Easwaran Raman  <eraman@google.com>
 
-Backport r172837:
+	Backport r172837:
 
 	* cfgexpand.c (stack_var): Remove OFFSET...
 	(add_stack_var): ...and its reference here...
@@ -13,7 +13,7 @@ Backport r172837:
 	
 2011-05-06  Easwaran Raman  <eraman@google.com>
 
-Backport r172788:
+	Backport r172788:
 
 	* cfgexpand.c (add_alias_set_conflicts): Add conflicts with a variable
 	containing union type only with -fstrict-aliasing.
@@ -68,7 +68,7 @@ Backport r172788:
 
 2011-05-03  David Li  <davidxl@google.com>
 
-Backport r173177:
+	Backport r173177:
 
 	* tree-profile.c (init_ic_make_global_vars): Set
 	tls attribute on ic vars.
@@ -77,7 +77,7 @@ Backport r173177:
 
 2011-05-03  David Li  <davidxl@google.com>
 
-Backport r173147:
+	Backport r173147:
 
 	* tree.c (crc32_string): Use crc32_byte.
 	(crc32_byte): New function.

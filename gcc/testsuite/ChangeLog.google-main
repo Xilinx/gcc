@@ -1,12 +1,12 @@
 2011-05-06  Easwaran Raman  <eraman@google.com>
 
-Backport r172837:
+	Backport r172837:
 
 	* gcc.dg/stack-layout-2.c: New test.
 	
 2011-05-06  Easwaran Raman  <eraman@google.com>
 
-Backport r172788:
+	Backport r172788:
 
 	* gcc.dg/stack-layout-1.c: New test.
 
@@ -38,7 +38,7 @@ Backport r172788:
 
 2011-05-03  Xinliang David Li  <davidxl@google.com>
 
-Backport r17342:
+	Backport r17342:
 
 	* gcc.dg/tree-ssa/integer-addr.c: New test.
 	* gcc.dg/tree-ssa/alias_bug.c: New test.
