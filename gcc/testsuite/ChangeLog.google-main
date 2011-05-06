@@ -1,3 +1,15 @@
+2011-05-06  Easwaran Raman  <eraman@google.com>
+
+Backport r172837:
+
+	* gcc.dg/stack-layout-2.c: New test.
+	
+2011-05-06  Easwaran Raman  <eraman@google.com>
+
+Backport r172788:
+
+	* gcc.dg/stack-layout-1.c: New test.
+
 2011-05-04  Sriraman Tallam  <tmsriram@google.com>
 
 	* testsuite/gcc.dg/mversn7.c: New test.

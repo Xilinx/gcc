@@ -1,3 +1,23 @@
+2011-05-06  Easwaran Raman  <eraman@google.com>
+
+Backport r172837:
+
+	* cfgexpand.c (stack_var): Remove OFFSET...
+	(add_stack_var): ...and its reference here...
+	(expand_stack_vars): ...and here.
+	(stack_var_cmp): Sort by descending order of size.
+	(partition_stack_vars): Change heuristic.
+	(union_stack_vars): Fix to reflect changes in
+	partition_stack_vars.
+	(dump_stack_var_partition): Add newline after each partition.
+	
+2011-05-06  Easwaran Raman  <eraman@google.com>
+
+Backport r172788:
+
+	* cfgexpand.c (add_alias_set_conflicts): Add conflicts with a variable
+	containing union type only with -fstrict-aliasing.
+
 2011-05-04  David Li  <davidxl@google.com>
 
 	* coverage.c (incompatible_cl_args): Better handling
