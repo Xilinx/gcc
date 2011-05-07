@@ -101,6 +101,7 @@ pph_stream_hooks_init (void)
   h->unpack_value_fields = pph_stream_unpack_value_fields;
   h->alloc_tree = pph_stream_alloc_tree;
   h->output_tree_header = pph_stream_output_tree_header;
+  h->has_unique_integer_csts_p = true;
 }
 
 

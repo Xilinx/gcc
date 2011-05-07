@@ -113,6 +113,12 @@ typedef struct lto_streamer_hooks {
      global symbol tables.  */
   unsigned register_decls_in_symtab_p : 1;
 
+  /* Non-zero if the streamer has special constants that cannot be
+     shared and are used in pointer-equality tests (e.g., void_zero_node,
+     truthvalue_false_node, etc).  These constants will be present in
+     the streamer cache and should be streamed as references.  */
+  unsigned has_unique_integer_csts_p : 1;
+
   /* Called by lto_materialize_tree for tree nodes that it does not
      know how to allocate memory for.  If defined, this hook should
      return a new tree node of the given code.  The data_in and

@@ -1387,8 +1387,27 @@ lto_output_tree (struct output_block *ob, tree expr, bool ref_p)
      to be materialized by the reader (to implement TYPE_CACHED_VALUES).  */
   if (TREE_CODE (expr) == INTEGER_CST)
     {
-      lto_output_integer_cst (ob, expr, ref_p);
-      return;
+      bool is_special;
+
+     /* There are some constants that are special to the streamer
+	(e.g., void_zero_node, truthvalue_false_node).
+	These constants cannot be rematerialized with
+	build_int_cst_wide because they may actually lack a type (like
+	void_zero_node) and they need to be pointer-identical to trees
+	materialized by the compiler tables like global_trees or
+	c_global_trees.
+
+	If the streamer told us that it has special constants, they
+	will be preloaded in the streamer cache.  If we find a match,
+	then stream the constant as a reference so the reader can
+	re-materialize it from the cache.  */
+      is_special = streamer_hooks ()->has_unique_integer_csts_p
+		   && lto_streamer_cache_lookup (ob->writer_cache, expr, NULL);
+      if (!is_special)
+	{
+	  lto_output_integer_cst (ob, expr, ref_p);
+	  return;
+	}
     }
 
   existed_p = lto_streamer_cache_insert (ob->writer_cache, expr, &ix);

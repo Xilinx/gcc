@@ -1,3 +1,11 @@
+2011-05-06  Diego Novillo  <dnovillo@google.com>
+
+	* lto-streamer-out.c (lto_output_tree): If the streamer
+	has unique INTEGER_CST nodes and a match is found in the
+	streamer cache, do not call lto_output_integer_cst.
+	* lto-streamer.h (struct lto_streamer_hooks): Add field
+	has_unique_integer_csts_p.
+
 2011-05-04  Diego Novillo  <dnovillo@google.com>
 
 	* Makefile.in (cgraphunit.o): Add dependency on LTO_STREAMER_H.
