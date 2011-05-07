@@ -3135,6 +3135,7 @@ gfc_namespace*
 gfc_build_block_ns (gfc_namespace *parent_ns)
 {
   gfc_namespace* my_ns;
+  static int numblock = 1;
 
   my_ns = gfc_get_namespace (parent_ns, 1);
   my_ns->construct_entities = 1;
@@ -3149,8 +3150,10 @@ gfc_build_block_ns (gfc_namespace *parent_ns)
   else
     {
       gfc_try t;
+      char buffer[20];  /* Enough to hold "block@2147483648\n".  */
 
-      gfc_get_symbol ("block@", my_ns, &my_ns->proc_name);
+      snprintf(buffer, sizeof(buffer), "block@%d", numblock++);
+      gfc_get_symbol (buffer, my_ns, &my_ns->proc_name);
       t = gfc_add_flavor (&my_ns->proc_name->attr, FL_LABEL,
 			  my_ns->proc_name->name, NULL);
       gcc_assert (t == SUCCESS);
@@ -4228,12 +4231,18 @@ clean_up_modules (gfc_gsymbol *gsym)
    is active. This could be in a different order to resolution if
    there are forward references in the file.  */
 static void
-translate_all_program_units (gfc_namespace *gfc_global_ns_list)
+translate_all_program_units (gfc_namespace *gfc_global_ns_list,
+			     bool main_in_tu)
 {
   int errors;
 
   gfc_current_ns = gfc_global_ns_list;
   gfc_get_errors (NULL, &errors);
+
+  /* If the main program is in the translation unit and we have
+     -fcoarray=libs, generate the static variables.  */
+  if (gfc_option.coarray == GFC_FCOARRAY_LIB && main_in_tu)
+    gfc_init_coarray_decl (true);
 
   /* We first translate all modules to make sure that later parts
      of the program can use the decl. Then we translate the nonmodules.  */
@@ -4472,7 +4481,7 @@ prog_units:
       }
 
   /* Do the translation.  */
-  translate_all_program_units (gfc_global_ns_list);
+  translate_all_program_units (gfc_global_ns_list, seen_program);
 
 termination:
 

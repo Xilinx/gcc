@@ -3280,6 +3280,7 @@ case "$target" in
       gcc_cv_as_sparc_gotdata_op,,
       [-K PIC],
 [.text
+.align 4
 foo:
 	nop
 bar:

@@ -401,7 +401,7 @@ pack_ts_decl_common_value_fields (struct bitpack_d *bp, tree expr)
     {
       bp_pack_value (bp, DECL_PACKED (expr), 1);
       bp_pack_value (bp, DECL_NONADDRESSABLE_P (expr), 1);
-      bp_pack_value (bp, DECL_OFFSET_ALIGN (expr), 8);
+      bp_pack_value (bp, expr->decl_common.off_align, 8);
     }
 
   if (TREE_CODE (expr) == RESULT_DECL
@@ -1929,7 +1929,6 @@ output_function (struct cgraph_node *node)
   bp_pack_value (&bp, fn->can_throw_non_call_exceptions, 1);
   bp_pack_value (&bp, fn->always_inline_functions_inlined, 1);
   bp_pack_value (&bp, fn->after_inlining, 1);
-  bp_pack_value (&bp, fn->dont_save_pending_sizes_p, 1);
   bp_pack_value (&bp, fn->stdarg, 1);
   bp_pack_value (&bp, fn->has_nonlocal_label, 1);
   bp_pack_value (&bp, fn->calls_alloca, 1);
@@ -2197,7 +2196,8 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
   for (i = 0; i < n_nodes; i++)
     {
       node = lto_cgraph_encoder_deref (encoder, i);
-      if (lto_cgraph_encoder_encode_body_p (encoder, node))
+      if (lto_cgraph_encoder_encode_body_p (encoder, node)
+	  && !node->thunk.thunk_p)
 	{
 #ifdef ENABLE_CHECKING
 	  gcc_assert (!bitmap_bit_p (output, DECL_UID (node->decl)));

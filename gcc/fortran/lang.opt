@@ -242,6 +242,10 @@ Wintrinsics-std
 Fortran Warning
 Warn on intrinsics not part of the selected standard
 
+Wreal-q-constant
+Fortran Warning
+Warn about real-literal-constants with 'q' exponent-letter
+
 Wreturn-type
 Fortran Warning
 ; Documented in C
@@ -585,6 +589,10 @@ Conform to the ISO Fortran 2003 standard
 std=f2008
 Fortran
 Conform to the ISO Fortran 2008 standard
+
+std=f2008tr
+Fortran
+Conform to the ISO Fortran 2008 standard including TR 29113
 
 std=f95
 Fortran

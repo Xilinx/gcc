@@ -203,8 +203,6 @@ Gogo::Gogo(Backend* backend, int int_type_size, int pointer_size)
   imag_type->set_is_varargs();
   imag_type->set_is_builtin();
   this->globals_->add_function_declaration("imag", NULL, imag_type, loc);
-
-  this->define_builtin_function_trees();
 }
 
 // Munge name for use in an error message.
@@ -3705,7 +3703,7 @@ Variable::get_backend_variable(Gogo* gogo, Named_object* function,
 	    }
 
 	  std::string n = Gogo::unpack_hidden_name(name);
-	  Btype* btype = tree_to_type(type->get_tree(gogo));
+	  Btype* btype = type->get_backend(gogo);
 
 	  Bvariable* bvar;
 	  if (this->is_global_)
@@ -3755,7 +3753,7 @@ Result_variable::get_backend_variable(Gogo* gogo, Named_object* function,
 	{
 	  if (this->is_in_heap())
 	    type = Type::make_pointer_type(type);
-	  Btype* btype = tree_to_type(type->get_tree(gogo));
+	  Btype* btype = type->get_backend(gogo);
 	  tree fndecl = function->func_value()->get_decl();
 	  Bfunction* bfunction = tree_to_function(fndecl);
 	  std::string n = Gogo::unpack_hidden_name(name);

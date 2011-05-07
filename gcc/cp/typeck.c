@@ -834,7 +834,7 @@ merge_types (tree t1, tree t2)
       {
 	/* Get this value the long way, since TYPE_METHOD_BASETYPE
 	   is just the main variant of this.  */
-	tree basetype = TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (t2)));
+	tree basetype = class_of_this_parm (t2);
 	tree raises = merge_exception_specifiers (TYPE_RAISES_EXCEPTIONS (t1),
 						  TYPE_RAISES_EXCEPTIONS (t2));
 	tree t3;
@@ -1330,6 +1330,10 @@ structural_comptypes (tree t1, tree t2, int strict)
                              DECLTYPE_TYPE_EXPR (t2)))
         return false;
       break;
+
+    case UNDERLYING_TYPE:
+      return same_type_p (UNDERLYING_TYPE_TYPE (t1), 
+			  UNDERLYING_TYPE_TYPE (t2));
 
     default:
       return false;
@@ -8030,7 +8034,7 @@ type_memfn_quals (const_tree type)
   if (TREE_CODE (type) == FUNCTION_TYPE)
     return TYPE_QUALS (type);
   else if (TREE_CODE (type) == METHOD_TYPE)
-    return cp_type_quals (TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (type))));
+    return cp_type_quals (class_of_this_parm (type));
   else
     gcc_unreachable ();
 }

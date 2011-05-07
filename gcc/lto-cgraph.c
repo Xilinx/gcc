@@ -285,9 +285,6 @@ lto_output_edge (struct lto_simple_output_block *ob, struct cgraph_edge *edge,
   bp_pack_value (&bp, uid, HOST_BITS_PER_INT);
   bp_pack_value (&bp, edge->inline_failed, HOST_BITS_PER_INT);
   bp_pack_value (&bp, edge->frequency, HOST_BITS_PER_INT);
-  bp_pack_value (&bp, edge->call_stmt_size, HOST_BITS_PER_INT);
-  bp_pack_value (&bp, edge->call_stmt_time, HOST_BITS_PER_INT);
-  bp_pack_value (&bp, edge->loop_nest, 30);
   bp_pack_value (&bp, edge->indirect_inlining_edge, 1);
   bp_pack_value (&bp, edge->call_stmt_cannot_inline_p, 1);
   bp_pack_value (&bp, edge->can_throw_external, 1);
@@ -505,8 +502,23 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
   bp_pack_value (&bp, node->frequency, 2);
   bp_pack_value (&bp, node->only_called_at_startup, 1);
   bp_pack_value (&bp, node->only_called_at_exit, 1);
+  bp_pack_value (&bp, node->thunk.thunk_p && !boundary_p, 1);
   lto_output_bitpack (&bp);
   lto_output_uleb128_stream (ob->main_stream, node->resolution);
+
+  if (node->thunk.thunk_p && !boundary_p)
+    {
+      lto_output_uleb128_stream
+	 (ob->main_stream,
+	  1 + (node->thunk.this_adjusting != 0) * 2
+	  + (node->thunk.virtual_offset_p != 0) * 4);
+      lto_output_uleb128_stream (ob->main_stream,
+				 node->thunk.fixed_offset);
+      lto_output_uleb128_stream (ob->main_stream,
+				 node->thunk.virtual_value);
+      lto_output_fn_decl_index (ob->decl_state, ob->main_stream,
+				node->thunk.alias);
+    }
 
   if (node->same_body)
     {
@@ -519,25 +531,8 @@ lto_output_node (struct lto_simple_output_block *ob, struct cgraph_node *node,
 	{
 	  lto_output_fn_decl_index (ob->decl_state, ob->main_stream,
 				    alias->decl);
-	  if (alias->thunk.thunk_p)
-	    {
-              lto_output_uleb128_stream
-	         (ob->main_stream,
-	      	  1 + (alias->thunk.this_adjusting != 0) * 2
-		  + (alias->thunk.virtual_offset_p != 0) * 4);
-	      lto_output_uleb128_stream (ob->main_stream,
-	      				 alias->thunk.fixed_offset);
-	      lto_output_uleb128_stream (ob->main_stream,
-	      				 alias->thunk.virtual_value);
-	      lto_output_fn_decl_index (ob->decl_state, ob->main_stream,
-					alias->thunk.alias);
-	    }
-	  else
-	    {
-	      lto_output_uleb128_stream (ob->main_stream, 0);
-	      lto_output_fn_decl_index (ob->decl_state, ob->main_stream,
-					alias->thunk.alias);
-	    }
+	  lto_output_fn_decl_index (ob->decl_state, ob->main_stream,
+				    alias->thunk.alias);
 	  gcc_assert (cgraph_get_node (alias->thunk.alias) == node);
 	  lto_output_uleb128_stream (ob->main_stream, alias->resolution);
 	  alias = alias->previous;
@@ -950,6 +945,7 @@ input_overwrite_node (struct lto_file_decl_data *file_data,
   node->frequency = (enum node_frequency)bp_unpack_value (bp, 2);
   node->only_called_at_startup = bp_unpack_value (bp, 1);
   node->only_called_at_exit = bp_unpack_value (bp, 1);
+  node->thunk.thunk_p = bp_unpack_value (bp, 1);
   node->resolution = resolution;
 }
 
@@ -1003,7 +999,7 @@ input_node (struct lto_file_decl_data *file_data,
   if (clone_ref != LCC_NOT_FOUND)
     {
       node = cgraph_clone_node (VEC_index (cgraph_node_ptr, nodes, clone_ref), fn_decl,
-				0, CGRAPH_FREQ_BASE, 0, false, NULL);
+				0, CGRAPH_FREQ_BASE, false, NULL);
     }
   else
     node = cgraph_get_create_node (fn_decl);
@@ -1034,34 +1030,33 @@ input_node (struct lto_file_decl_data *file_data,
   /* Store a reference for now, and fix up later to be a pointer.  */
   node->same_comdat_group = (cgraph_node_ptr) (intptr_t) ref2;
 
+  if (node->thunk.thunk_p)
+    {
+      int type = lto_input_uleb128 (ib);
+      HOST_WIDE_INT fixed_offset = lto_input_uleb128 (ib);
+      HOST_WIDE_INT virtual_value = lto_input_uleb128 (ib);
+      tree real_alias;
+
+      decl_index = lto_input_uleb128 (ib);
+      real_alias = lto_file_decl_data_get_fn_decl (file_data, decl_index);
+      node->thunk.fixed_offset = fixed_offset;
+      node->thunk.this_adjusting = (type & 2);
+      node->thunk.virtual_value = virtual_value;
+      node->thunk.virtual_offset_p = (type & 4);
+      node->thunk.alias = real_alias;
+    }
+
   same_body_count = lto_input_uleb128 (ib);
   while (same_body_count-- > 0)
     {
-      tree alias_decl;
-      int type;
+      tree alias_decl, real_alias;
       struct cgraph_node *alias;
+
       decl_index = lto_input_uleb128 (ib);
       alias_decl = lto_file_decl_data_get_fn_decl (file_data, decl_index);
-      type = lto_input_uleb128 (ib);
-      if (!type)
-	{
-	  tree real_alias;
-	  decl_index = lto_input_uleb128 (ib);
-	  real_alias = lto_file_decl_data_get_fn_decl (file_data, decl_index);
-	  alias = cgraph_same_body_alias (node, alias_decl, real_alias);
-	}
-      else
-        {
-	  HOST_WIDE_INT fixed_offset = lto_input_uleb128 (ib);
-	  HOST_WIDE_INT virtual_value = lto_input_uleb128 (ib);
-	  tree real_alias;
-	  decl_index = lto_input_uleb128 (ib);
-	  real_alias = lto_file_decl_data_get_fn_decl (file_data, decl_index);
-	  alias = cgraph_add_thunk (node, alias_decl, fn_decl, type & 2, fixed_offset,
-				    virtual_value,
-				    (type & 4) ? size_int (virtual_value) : NULL_TREE,
-				    real_alias);
-	}
+      decl_index = lto_input_uleb128 (ib);
+      real_alias = lto_file_decl_data_get_fn_decl (file_data, decl_index);
+      alias = cgraph_same_body_alias (node, alias_decl, real_alias);
       gcc_assert (alias);
       alias->resolution = (enum ld_plugin_symbol_resolution)lto_input_uleb128 (ib);
     }
@@ -1164,11 +1159,9 @@ input_edge (struct lto_input_block *ib, VEC(cgraph_node_ptr, heap) *nodes,
   unsigned int stmt_id;
   gcov_type count;
   int freq;
-  unsigned int nest;
   cgraph_inline_failed_t inline_failed;
   struct bitpack_d bp;
   int ecf_flags = 0;
-  int call_stmt_time, call_stmt_size;
 
   caller = VEC_index (cgraph_node_ptr, nodes, lto_input_sleb128 (ib));
   if (caller == NULL || caller->decl == NULL_TREE)
@@ -1190,22 +1183,17 @@ input_edge (struct lto_input_block *ib, VEC(cgraph_node_ptr, heap) *nodes,
   inline_failed = (cgraph_inline_failed_t) bp_unpack_value (&bp,
 							    HOST_BITS_PER_INT);
   freq = (int) bp_unpack_value (&bp, HOST_BITS_PER_INT);
-  call_stmt_size = (int) bp_unpack_value (&bp, HOST_BITS_PER_INT);
-  call_stmt_time = (int) bp_unpack_value (&bp, HOST_BITS_PER_INT);
-  nest = (unsigned) bp_unpack_value (&bp, 30);
 
   if (indirect)
-    edge = cgraph_create_indirect_edge (caller, NULL, 0, count, freq, nest);
+    edge = cgraph_create_indirect_edge (caller, NULL, 0, count, freq);
   else
-    edge = cgraph_create_edge (caller, callee, NULL, count, freq, nest);
+    edge = cgraph_create_edge (caller, callee, NULL, count, freq);
 
   edge->indirect_inlining_edge = bp_unpack_value (&bp, 1);
   edge->lto_stmt_uid = stmt_id;
   edge->inline_failed = inline_failed;
   edge->call_stmt_cannot_inline_p = bp_unpack_value (&bp, 1);
   edge->can_throw_external = bp_unpack_value (&bp, 1);
-  edge->call_stmt_size = call_stmt_size;
-  edge->call_stmt_time = call_stmt_time;
   if (indirect)
     {
       if (bp_unpack_value (&bp, 1))

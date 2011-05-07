@@ -1991,6 +1991,10 @@ write_type (tree type)
 	      sorry ("mangling typeof, use decltype instead");
 	      break;
 
+	    case UNDERLYING_TYPE:
+	      sorry ("mangling __underlying_type");
+	      break;
+
 	    case LANG_TYPE:
 	      /* fall through.  */
 
@@ -2243,7 +2247,7 @@ write_function_type (const tree type)
     {
       /* The first parameter must be a POINTER_TYPE pointing to the
 	 `this' parameter.  */
-      tree this_type = TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (type)));
+      tree this_type = class_of_this_parm (type);
       write_CV_qualifiers_for_type (this_type);
     }
 

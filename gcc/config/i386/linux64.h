@@ -29,5 +29,3 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define GLIBC_DYNAMIC_LINKERX32 "/libx32/ld-linux-x32.so.2"
 
 #define MD_UNWIND_SUPPORT "config/i386/linux-unwind.h"
-
-#define REG_NAME(reg) reg
