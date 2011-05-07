@@ -7673,7 +7673,7 @@ ix86_promote_function_mode (const_tree type, enum machine_mode mode,
 			    int *punsignedp, const_tree fntype,
 			    int for_return)
 {
-  if (for_return != 1 && POINTER_TYPE_P (type))
+  if (for_return != 1 && type != NULL_TREE && POINTER_TYPE_P (type))
     {
       *punsignedp = POINTERS_EXTEND_UNSIGNED;
       return Pmode;
