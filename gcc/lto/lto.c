@@ -147,9 +147,9 @@ lto_materialize_function (struct cgraph_node *node)
   decl = node->decl;
   /* Read in functions with body (analyzed nodes)
      and also functions that are needed to produce virtual clones.  */
-  if (node->analyzed || has_analyzed_clone_p (node))
+  if (cgraph_function_with_gimple_body_p (node) || has_analyzed_clone_p (node))
     {
-      /* Clones don't need to be read.  */
+      /* Clones and thunks don't need to be read.  */
       if (node->clone_of)
 	return;
 
@@ -1127,19 +1127,19 @@ free_section_data (struct lto_file_decl_data *file_data ATTRIBUTE_UNUSED,
 
 /* Structure describing ltrans partitions.  */
 
-struct GTY (()) ltrans_partition_def
+struct ltrans_partition_def
 {
   cgraph_node_set cgraph_set;
   varpool_node_set varpool_set;
-  const char * GTY ((skip)) name;
+  const char * name;
   int insns;
 };
 
 typedef struct ltrans_partition_def *ltrans_partition;
 DEF_VEC_P(ltrans_partition);
-DEF_VEC_ALLOC_P(ltrans_partition,gc);
+DEF_VEC_ALLOC_P(ltrans_partition,heap);
 
-static GTY (()) VEC(ltrans_partition, gc) *ltrans_partitions;
+static VEC(ltrans_partition, heap) *ltrans_partitions;
 
 static void add_cgraph_node_to_partition (ltrans_partition part, struct cgraph_node *node);
 static void add_varpool_node_to_partition (ltrans_partition part, struct varpool_node *vnode);
@@ -1148,13 +1148,27 @@ static void add_varpool_node_to_partition (ltrans_partition part, struct varpool
 static ltrans_partition
 new_partition (const char *name)
 {
-  ltrans_partition part = ggc_alloc_ltrans_partition_def ();
+  ltrans_partition part = XCNEW (struct ltrans_partition_def);
   part->cgraph_set = cgraph_node_set_new ();
   part->varpool_set = varpool_node_set_new ();
   part->name = name;
   part->insns = 0;
-  VEC_safe_push (ltrans_partition, gc, ltrans_partitions, part);
+  VEC_safe_push (ltrans_partition, heap, ltrans_partitions, part);
   return part;
+}
+
+/* Free memory used by ltrans datastructures.  */
+static void
+free_ltrans_partitions (void)
+{
+  unsigned int idx;
+  ltrans_partition part;
+  for (idx = 0; VEC_iterate (ltrans_partition, ltrans_partitions, idx, part); idx++)
+    {
+      free_cgraph_node_set (part->cgraph_set);
+      free (part);
+    }
+  VEC_free (ltrans_partition, heap, ltrans_partitions);
 }
 
 /* See all references that go to comdat objects and bring them into partition too.  */
@@ -1183,6 +1197,12 @@ static void
 add_cgraph_node_to_partition (ltrans_partition part, struct cgraph_node *node)
 {
   struct cgraph_edge *e;
+  cgraph_node_set_iterator csi;
+
+  /* If NODE is already there, we have nothing to do.  */
+  csi = cgraph_node_set_find (part->cgraph_set, node);
+  if (!csi_end_p (csi))
+    return;
 
   part->insns += inline_summary (node)->self_size;
 
@@ -1196,6 +1216,13 @@ add_cgraph_node_to_partition (ltrans_partition part, struct cgraph_node *node)
   node->aux = (void *)((size_t)node->aux + 1);
 
   cgraph_node_set_add (part->cgraph_set, node);
+
+  /* Thunks always must go along with function they reffer to.  */
+  if (node->thunk.thunk_p)
+    add_cgraph_node_to_partition (part, node->callees->callee);
+  for (e = node->callers; e; e = e->next_caller)
+    if (e->caller->thunk.thunk_p)
+      add_cgraph_node_to_partition (part, e->caller);
 
   for (e = node->callees; e; e = e->next_callee)
     if ((!e->inline_failed || DECL_COMDAT (e->callee->decl))
@@ -1214,6 +1241,13 @@ add_cgraph_node_to_partition (ltrans_partition part, struct cgraph_node *node)
 static void
 add_varpool_node_to_partition (ltrans_partition part, struct varpool_node *vnode)
 {
+  varpool_node_set_iterator vsi;
+
+  /* If NODE is already there, we have nothing to do.  */
+  vsi = varpool_node_set_find (part->varpool_set, vnode);
+  if (!vsi_end_p (vsi))
+    return;
+
   varpool_node_set_add (part->varpool_set, vnode);
 
   if (vnode->aux)
@@ -1976,6 +2010,8 @@ lto_wpa_write_files (void)
   /* Close the LTRANS output list.  */
   if (fclose (ltrans_output_list_stream))
     fatal_error ("closing LTRANS output list %s: %m", ltrans_output_list);
+
+  free_ltrans_partitions();
 
   timevar_pop (TV_WHOPR_WPA_IO);
 }

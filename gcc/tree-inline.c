@@ -662,8 +662,6 @@ copy_statement_list (tree *tp)
   for (; !tsi_end_p (oi); tsi_next (&oi))
     {
       tree stmt = tsi_stmt (oi);
-      if (TREE_CODE (stmt) == STATEMENT_LIST)
-	copy_statement_list (&stmt);
       tsi_link_after (&ni, stmt, TSI_CONTINUE_LINKING);
     }
 }
@@ -2080,7 +2078,6 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
   cfun->va_list_fpr_size = src_cfun->va_list_fpr_size;
   cfun->has_nonlocal_label = src_cfun->has_nonlocal_label;
   cfun->stdarg = src_cfun->stdarg;
-  cfun->dont_save_pending_sizes_p = src_cfun->dont_save_pending_sizes_p;
   cfun->after_inlining = src_cfun->after_inlining;
   cfun->can_throw_non_call_exceptions
     = src_cfun->can_throw_non_call_exceptions;
@@ -4271,14 +4268,16 @@ copy_tree_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 					 CONSTRUCTOR_ELTS (*tp));
       *tp = new_tree;
     }
+  else if (code == STATEMENT_LIST)
+    /* We used to just abort on STATEMENT_LIST, but we can run into them
+       with statement-expressions (c++/40975).  */
+    copy_statement_list (tp);
   else if (TREE_CODE_CLASS (code) == tcc_type)
     *walk_subtrees = 0;
   else if (TREE_CODE_CLASS (code) == tcc_declaration)
     *walk_subtrees = 0;
   else if (TREE_CODE_CLASS (code) == tcc_constant)
     *walk_subtrees = 0;
-  else
-    gcc_assert (code != STATEMENT_LIST);
   return NULL_TREE;
 }
 

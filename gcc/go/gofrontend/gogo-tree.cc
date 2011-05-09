@@ -909,10 +909,13 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
 	    Type* type = named_constant->type();
 	    if (type != NULL && !type->is_abstract())
 	      {
-		if (!type->is_error())
-		  expr_tree = fold_convert(type->get_tree(gogo), expr_tree);
-		else
+		if (type->is_error())
 		  expr_tree = error_mark_node;
+		else
+		  {
+		    Btype* btype = type->get_backend(gogo);
+		    expr_tree = fold_convert(type_to_tree(btype), expr_tree);
+		  }
 	      }
 	    if (expr_tree == error_mark_node)
 	      decl = error_mark_node;
@@ -939,7 +942,7 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
     case NAMED_OBJECT_TYPE:
       {
 	Named_type* named_type = this->u_.type_value;
-	tree type_tree = named_type->get_tree(gogo);
+	tree type_tree = type_to_tree(named_type->get_backend(gogo));
 	if (type_tree == error_mark_node)
 	  decl = error_mark_node;
 	else
@@ -1104,7 +1107,7 @@ Function::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 {
   if (this->fndecl_ == NULL_TREE)
     {
-      tree functype = this->type_->get_tree(gogo);
+      tree functype = type_to_tree(this->type_->get_backend(gogo));
       if (functype == error_mark_node)
 	this->fndecl_ = error_mark_node;
       else
@@ -1217,7 +1220,7 @@ Function_declaration::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 	    }
 	}
 
-      tree functype = this->fntype_->get_tree(gogo);
+      tree functype = type_to_tree(this->fntype_->get_backend(gogo));
       tree decl;
       if (functype == error_mark_node)
 	decl = error_mark_node;
@@ -1424,7 +1427,7 @@ Function::build_tree(Gogo* gogo, Named_object* named_function)
 	  else
 	    {
 	      source_location loc = (*p)->location();
-	      tree type_tree = type->get_tree(gogo);
+	      tree type_tree = type_to_tree(type->get_backend(gogo));
 	      tree space = gogo->allocate_memory(type,
 						 TYPE_SIZE_UNIT(type_tree),
 						 loc);
@@ -1712,7 +1715,7 @@ go_type_for_size(unsigned int bits, int unsignedp)
 	return NULL_TREE;
     }
   Type* type = Type::lookup_integer_type(name);
-  return type->get_tree(go_get_gogo());
+  return type_to_tree(type->get_backend(go_get_gogo()));
 }
 
 // Return the type to use for a mode.
@@ -1743,7 +1746,7 @@ go_type_for_mode(enum machine_mode mode, int unsignedp)
 	    return long_double_type_node;
 	  return NULL_TREE;
 	}
-      return type->get_tree(go_get_gogo());
+      return type_to_tree(type->get_backend(go_get_gogo()));
     }
   else if (mc == MODE_COMPLEX_FLOAT)
     {
@@ -1763,7 +1766,7 @@ go_type_for_mode(enum machine_mode mode, int unsignedp)
 	    return complex_long_double_type_node;
 	  return NULL_TREE;
 	}
-      return type->get_tree(go_get_gogo());
+      return type_to_tree(type->get_backend(go_get_gogo()));
     }
   else
     return NULL_TREE;
@@ -1887,7 +1890,7 @@ Gogo::string_constant_tree(const std::string& val)
 tree
 Gogo::go_string_constant_tree(const std::string& val)
 {
-  tree string_type = Type::make_string_type()->get_tree(this);
+  tree string_type = type_to_tree(Type::make_string_type()->get_backend(this));
 
   VEC(constructor_elt, gc)* init = VEC_alloc(constructor_elt, gc, 2);
 
@@ -1936,38 +1939,6 @@ Gogo::ptr_go_string_constant_tree(const std::string& val)
   return build_fold_addr_expr(decl);
 }
 
-// Build the type of the struct that holds a slice for the given
-// element type.
-
-tree
-Gogo::slice_type_tree(tree element_type_tree)
-{
-  // We use int for the count and capacity fields in a slice header.
-  // This matches 6g.  The language definition guarantees that we
-  // can't allocate space of a size which does not fit in int
-  // anyhow. FIXME: integer_type_node is the the C type "int" but is
-  // not necessarily the Go type "int".  They will differ when the C
-  // type "int" has fewer than 32 bits.
-  return Gogo::builtin_struct(NULL, "__go_slice", NULL_TREE, 3,
-			      "__values",
-			      build_pointer_type(element_type_tree),
-			      "__count",
-			      integer_type_node,
-			      "__capacity",
-			      integer_type_node);
-}
-
-// Given the tree for a slice type, return the tree for the type of
-// the elements of the slice.
-
-tree
-Gogo::slice_element_type_tree(tree slice_type_tree)
-{
-  go_assert(TREE_CODE(slice_type_tree) == RECORD_TYPE
-	     && POINTER_TYPE_P(TREE_TYPE(TYPE_FIELDS(slice_type_tree))));
-  return TREE_TYPE(TREE_TYPE(TYPE_FIELDS(slice_type_tree)));
-}
-
 // Build a constructor for a slice.  SLICE_TYPE_TREE is the type of
 // the slice.  VALUES is the value pointer and COUNT is the number of
 // entries.  If CAPACITY is not NULL, it is the capacity; otherwise
@@ -2011,21 +1982,6 @@ Gogo::slice_constructor(tree slice_type_tree, tree values, tree count,
   return build_constructor(slice_type_tree, init);
 }
 
-// Build a constructor for an empty slice.
-
-tree
-Gogo::empty_slice_constructor(tree slice_type_tree)
-{
-  tree element_field = TYPE_FIELDS(slice_type_tree);
-  tree ret = Gogo::slice_constructor(slice_type_tree,
-				     fold_convert(TREE_TYPE(element_field),
-						  null_pointer_node),
-				     size_zero_node,
-				     size_zero_node);
-  TREE_CONSTANT(ret) = 1;
-  return ret;
-}
-
 // Build a map descriptor for a map of type MAPTYPE.
 
 tree
@@ -2063,13 +2019,15 @@ Gogo::map_descriptor(Map_type* maptype)
 
   tree map_entry_type = make_node(RECORD_TYPE);
 
+  Btype* bkey_type = keytype->get_backend(this);
+  Btype* bval_type = valtype->get_backend(this);
   map_entry_type = Gogo::builtin_struct(NULL, "__map", map_entry_type, 3,
 					"__next",
 					build_pointer_type(map_entry_type),
 					"__key",
-					keytype->get_tree(this),
+					type_to_tree(bkey_type),
 					"__val",
-					valtype->get_tree(this));
+					type_to_tree(bval_type));
   if (map_entry_type == error_mark_node)
     {
       p->second = error_mark_node;
@@ -2144,7 +2102,8 @@ tree
 Gogo::map_descriptor_type()
 {
   static tree struct_type;
-  tree dtype = Type::make_type_descriptor_type()->get_tree(this);
+  Type* tdt = Type::make_type_descriptor_type();
+  tree dtype = type_to_tree(tdt->get_backend(this));
   dtype = build_qualified_type(dtype, TYPE_QUAL_CONST);
   return Gogo::builtin_struct(&struct_type, "__go_map_descriptor", NULL_TREE,
 			      4,
@@ -2285,7 +2244,8 @@ Gogo::build_type_descriptor_decl(const Type* type, Expression* initializer,
     decl_name = this->type_descriptor_decl_name(name->named_object(),
 						name->in_function());
   tree id = get_identifier_from_string(decl_name);
-  tree descriptor_type_tree = initializer->type()->get_tree(this);
+  Type* init_type = initializer->type();
+  tree descriptor_type_tree = type_to_tree(init_type->get_backend(this));
   if (descriptor_type_tree == error_mark_node)
     {
       *pdecl = error_mark_node;

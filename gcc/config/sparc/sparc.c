@@ -4983,13 +4983,13 @@ init_cumulative_args (struct sparc_args *cum, tree fntype,
 /* Handle promotion of pointer and integer arguments.  */
 
 static enum machine_mode
-sparc_promote_function_mode (const_tree type ATTRIBUTE_UNUSED,
+sparc_promote_function_mode (const_tree type,
                              enum machine_mode mode,
-                             int *punsignedp ATTRIBUTE_UNUSED,
+                             int *punsignedp,
                              const_tree fntype ATTRIBUTE_UNUSED,
                              int for_return ATTRIBUTE_UNUSED)
 {
-  if (POINTER_TYPE_P (type))
+  if (type != NULL_TREE && POINTER_TYPE_P (type))
     {
       *punsignedp = POINTERS_EXTEND_UNSIGNED;
       return Pmode;
@@ -6063,7 +6063,7 @@ sparc_struct_value_rtx (tree fndecl, int incoming)
 	  /* We must check and adjust the return address, as it is
 	     optional as to whether the return object is really
 	     provided.  */
-	  rtx ret_rtx = gen_rtx_REG (Pmode, 31);
+	  rtx ret_reg = gen_rtx_REG (Pmode, 31);
 	  rtx scratch = gen_reg_rtx (SImode);
 	  rtx endlab = gen_label_rtx ();
 
@@ -6080,12 +6080,12 @@ sparc_struct_value_rtx (tree fndecl, int incoming)
 	     it's an unimp instruction (the most significant 10 bits
 	     will be zero).  */
 	  emit_move_insn (scratch, gen_rtx_MEM (SImode,
-						plus_constant (ret_rtx, 8)));
+						plus_constant (ret_reg, 8)));
 	  /* Assume the size is valid and pre-adjust */
-	  emit_insn (gen_add3_insn (ret_rtx, ret_rtx, GEN_INT (4)));
+	  emit_insn (gen_add3_insn (ret_reg, ret_reg, GEN_INT (4)));
 	  emit_cmp_and_jump_insns (scratch, size_rtx, EQ, const0_rtx, SImode,
 				   0, endlab);
-	  emit_insn (gen_sub3_insn (ret_rtx, ret_rtx, GEN_INT (4)));
+	  emit_insn (gen_sub3_insn (ret_reg, ret_reg, GEN_INT (4)));
 	  /* Write the address of the memory pointed to by temp_val into
 	     the memory pointed to by mem */
 	  emit_move_insn (mem, XEXP (temp_val, 0));
@@ -9613,8 +9613,8 @@ sparc_file_end (void)
 	{
 	  tree decl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL,
 				  get_identifier (name),
-				  build_function_type (void_type_node,
-						       void_list_node));
+				  build_function_type_list (void_type_node,
+                                                            NULL_TREE));
 	  DECL_RESULT (decl) = build_decl (BUILTINS_LOCATION, RESULT_DECL,
 					   NULL_TREE, void_type_node);
 	  TREE_STATIC (decl) = 1;

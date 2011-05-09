@@ -433,10 +433,6 @@ struct GTY(()) indirect_string_node {
 
 static GTY ((param_is (struct indirect_string_node))) htab_t debug_str_hash;
 
-/* True if the compilation unit has location entries that reference
-   debug strings.  */
-static GTY(()) bool debug_str_hash_forced = false;
-
 static GTY(()) int dw2_string_counter;
 static GTY(()) unsigned long dwarf2out_cfi_label_num;
 
@@ -2241,7 +2237,7 @@ dwarf2out_frame_debug_cfa_restore (rtx reg, const char *label)
 	   cfa_temp.offset = <const_int>
 
   Rule 10:
-  (set (mem (pre_modify sp:cfa_store (???? <reg1> <const_int>))) <reg2>)
+  (set (mem ({pre,post}_modify sp:cfa_store (???? <reg1> <const_int>))) <reg2>)
   effects: cfa_store.offset -= <const_int>
 	   cfa.offset = cfa_store.offset if cfa.reg == sp
 	   cfa.reg = sp
@@ -2582,6 +2578,7 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	  /* Rule 10 */
 	  /* With a push.  */
 	case PRE_MODIFY:
+	case POST_MODIFY:
 	  /* We can't handle variable size modifications.  */
 	  gcc_assert (GET_CODE (XEXP (XEXP (XEXP (dest, 0), 1), 1))
 		      == CONST_INT);
@@ -2594,7 +2591,10 @@ dwarf2out_frame_debug_expr (rtx expr, const char *label)
 	  if (cfa.reg == STACK_POINTER_REGNUM)
 	    cfa.offset = cfa_store.offset;
 
-	  offset = -cfa_store.offset;
+	  if (GET_CODE (XEXP (dest, 0)) == POST_MODIFY)
+	    offset -= cfa_store.offset;
+	  else
+	    offset = -cfa_store.offset;
 	  break;
 
 	  /* Rule 11 */
@@ -7676,37 +7676,6 @@ add_AT_string (dw_die_ref die, enum dwarf_attribute attr_kind, const char *str)
   add_dwarf_attr (die, &attr);
 }
 
-/* Create a label for an indirect string node, ensuring it is going to
-   be output, unless its reference count goes down to zero.  */
-
-static inline void
-gen_label_for_indirect_string (struct indirect_string_node *node)
-{
-  char label[32];
-
-  if (node->label)
-    return;
-
-  ASM_GENERATE_INTERNAL_LABEL (label, "LASF", dw2_string_counter);
-  ++dw2_string_counter;
-  node->label = xstrdup (label);
-}
-
-/* Create a SYMBOL_REF rtx whose value is the initial address of a
-   debug string STR.  */
-
-static inline rtx
-get_debug_string_label (const char *str)
-{
-  struct indirect_string_node *node = find_AT_string (str);
-
-  debug_str_hash_forced = true;
-
-  gen_label_for_indirect_string (node);
-
-  return gen_rtx_SYMBOL_REF (Pmode, node->label);
-}
-
 static inline const char *
 AT_string (dw_attr_ref a)
 {
@@ -7722,6 +7691,7 @@ AT_string_form (dw_attr_ref a)
 {
   struct indirect_string_node *node;
   unsigned int len;
+  char label[32];
 
   gcc_assert (a && AT_class (a) == dw_val_class_str);
 
@@ -7744,7 +7714,9 @@ AT_string_form (dw_attr_ref a)
       && (len - DWARF_OFFSET_SIZE) * node->refcount <= len))
     return node->form = DW_FORM_string;
 
-  gen_label_for_indirect_string (node);
+  ASM_GENERATE_INTERNAL_LABEL (label, "LASF", dw2_string_counter);
+  ++dw2_string_counter;
+  node->label = xstrdup (label);
 
   return node->form = DW_FORM_strp;
 }
@@ -10198,6 +10170,20 @@ is_nested_in_subprogram (dw_die_ref die)
   return local_scope_p (decl);
 }
 
+/* Return non-zero if this DIE contains a defining declaration of a
+   subprogram.  */
+
+static int
+contains_subprogram_definition (dw_die_ref die)
+{
+  dw_die_ref c;
+
+  if (die->die_tag == DW_TAG_subprogram && ! is_declaration_die (die))
+    return 1;
+  FOR_EACH_CHILD (die, c, if (contains_subprogram_definition(c)) return 1);
+  return 0;
+}
+
 /* Return non-zero if this is a type DIE that should be moved to a
    COMDAT .debug_types section.  */
 
@@ -10216,6 +10202,8 @@ should_move_die_to_comdat (dw_die_ref die)
           || get_AT (die, DW_AT_abstract_origin)
           || is_nested_in_subprogram (die))
         return 0;
+      /* A type definition should never contain a subprogram definition.  */
+      gcc_assert (!contains_subprogram_definition (die));
       return 1;
     case DW_TAG_array_type:
     case DW_TAG_interface_type:
@@ -13915,7 +13903,7 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 
 	  mem_loc_result = mem_loc_descriptor (SUBREG_REG (rtl),
 					       GET_MODE (SUBREG_REG (rtl)),
-					       mode, initialized);
+					       mem_mode, initialized);
 	  if (mem_loc_result == NULL)
 	    break;
 	  type_die = base_type_for_mode (mode, 0);
@@ -13938,7 +13926,11 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 
     case REG:
       if (GET_MODE_CLASS (mode) != MODE_INT
-	  || GET_MODE_SIZE (mode) > DWARF2_ADDR_SIZE)
+	  || (GET_MODE_SIZE (mode) > DWARF2_ADDR_SIZE
+#ifdef POINTERS_EXTEND_UNSIGNED
+	      && (mode != Pmode || mem_mode == VOIDmode)
+#endif
+	      ))
 	{
 	  dw_die_ref type_die;
 
@@ -14081,8 +14073,12 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	 pool.  */
     case CONST:
     case SYMBOL_REF:
-      if (GET_MODE_SIZE (mode) > DWARF2_ADDR_SIZE
-	  || GET_MODE_CLASS (mode) != MODE_INT)
+      if (GET_MODE_CLASS (mode) != MODE_INT
+	  || (GET_MODE_SIZE (mode) > DWARF2_ADDR_SIZE
+#ifdef POINTERS_EXTEND_UNSIGNED
+	      && (mode != Pmode || mem_mode == VOIDmode)
+#endif
+	      ))
 	break;
       if (GET_CODE (rtl) == SYMBOL_REF
 	  && SYMBOL_REF_TLS_MODEL (rtl) != TLS_MODEL_NONE)
@@ -14320,7 +14316,13 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
       break;
 
     case CONST_INT:
-      if (GET_MODE_SIZE (mode) <= DWARF2_ADDR_SIZE)
+      if (GET_MODE_SIZE (mode) <= DWARF2_ADDR_SIZE
+#ifdef POINTERS_EXTEND_UNSIGNED
+	  || (mode == Pmode
+	      && mem_mode != VOIDmode
+	      && trunc_int_for_mode (INTVAL (rtl), ptr_mode) == INTVAL (rtl))
+#endif
+	  )
 	{
 	  mem_loc_result = int_loc_descriptor (INTVAL (rtl));
 	  break;
@@ -23069,7 +23071,7 @@ output_indirect_string (void **h, void *v ATTRIBUTE_UNUSED)
 {
   struct indirect_string_node *node = (struct indirect_string_node *) *h;
 
-  if (node->label && node->refcount)
+  if (node->form == DW_FORM_strp)
     {
       switch_to_section (debug_str_section);
       ASM_OUTPUT_LABEL (asm_out_file, node->label);
@@ -23386,21 +23388,6 @@ prune_unused_types_prune (dw_die_ref die)
   } while (c != die->die_child);
 }
 
-/* A helper function for dwarf2out_finish called through
-   htab_traverse.  Clear .debug_str strings that we haven't already
-   decided to emit.  */
-
-static int
-prune_indirect_string (void **h, void *v ATTRIBUTE_UNUSED)
-{
-  struct indirect_string_node *node = (struct indirect_string_node *) *h;
-
-  if (!node->label || !node->refcount)
-    htab_clear_slot (debug_str_hash, h);
-
-  return 1;
-}
-
 /* Remove dies representing declarations that we never use.  */
 
 static void
@@ -23441,10 +23428,7 @@ prune_unused_types (void)
   for (i = 0; VEC_iterate (dw_die_ref, base_types, i, base_type); i++)
     prune_unused_types_mark (base_type, 1);
 
-  /* Get rid of nodes that aren't marked; and update the string counts.  */
-  if (debug_str_hash && debug_str_hash_forced)
-    htab_traverse (debug_str_hash, prune_indirect_string, NULL);
-  else if (debug_str_hash)
+  if (debug_str_hash)
     htab_empty (debug_str_hash);
   prune_unused_types_prune (comp_unit_die ());
   for (node = limbo_die_list; node; node = node->next)
@@ -24587,21 +24571,17 @@ dwarf2out_finish (const char *filename)
 	}
     }
 
-  /* Output the address range information.  We only put functions in the
-     arange table, so don't write it out if we don't have any.  */
+  /* Output the address range information if a CU (.debug_info section)
+     was emitted.  We output an empty table even if we had no functions
+     to put in it.  This because the consumer has no way to tell the
+     difference between an empty table that we omitted and failure to
+     generate a table that would have contained data.  */
   if (info_section_emitted)
     {
       unsigned long aranges_length = size_of_aranges ();
 
-      /* Empty .debug_aranges would contain just header and
-	 terminating 0,0.  */
-      if (aranges_length
-	  != (unsigned long) (DWARF_ARANGES_HEADER_SIZE
-			      + 2 * DWARF2_ADDR_SIZE))
-	{
-	  switch_to_section (debug_aranges_section);
-	  output_aranges (aranges_length);
-	}
+      switch_to_section (debug_aranges_section);
+      output_aranges (aranges_length);
     }
 
   /* Output ranges section if necessary.  */

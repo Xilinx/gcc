@@ -1,6 +1,7 @@
 /* Functions related to invoking methods and overloaded functions.
    Copyright (C) 1987, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+   2010, 2011
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) and
    modified by Brendan Kehoe (brendan@cygnus.com).
@@ -39,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "convert.h"
 #include "langhooks.h"
 #include "c-family/c-objc.h"
+#include "timevar.h"
 
 /* The various kinds of conversion.  */
 
@@ -1144,8 +1146,8 @@ standard_conversion (tree to, tree from, tree expr, bool c_cast_p,
     {
       tree fromfn = TREE_TYPE (TYPE_PTRMEMFUNC_FN_TYPE (from));
       tree tofn = TREE_TYPE (TYPE_PTRMEMFUNC_FN_TYPE (to));
-      tree fbase = TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (fromfn)));
-      tree tbase = TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (tofn)));
+      tree fbase = class_of_this_parm (fromfn);
+      tree tbase = class_of_this_parm (tofn);
 
       if (!DERIVED_FROM_P (fbase, tbase)
 	  || !same_type_p (TREE_TYPE (fromfn), TREE_TYPE (tofn))
@@ -1263,7 +1265,7 @@ reference_compatible_p (tree t1, tree t2)
    converted to T as in [over.match.ref].  */
 
 static conversion *
-convert_class_to_reference (tree reference_type, tree s, tree expr, int flags)
+convert_class_to_reference_1 (tree reference_type, tree s, tree expr, int flags)
 {
   tree conversions;
   tree first_arg;
@@ -1397,6 +1399,18 @@ convert_class_to_reference (tree reference_type, tree s, tree expr, int flags)
   cand->second_conv = merge_conversion_sequences (conv, cand->second_conv);
 
   return cand->second_conv;
+}
+
+/* Wrapper for above.  */
+
+static conversion *
+convert_class_to_reference (tree reference_type, tree s, tree expr, int flags)
+{
+  conversion *ret;
+  bool subtime = timevar_cond_start (TV_OVERLOAD);
+  ret = convert_class_to_reference_1 (reference_type, s, expr, flags);
+  timevar_cond_stop (TV_OVERLOAD, subtime);
+  return ret;
 }
 
 /* A reference of the indicated TYPE is being bound directly to the
@@ -2573,6 +2587,12 @@ add_builtin_candidate (struct z_candidate **candidates, enum tree_code code,
 	 types are TYPE2.  */
       break;
 
+    case REALPART_EXPR:
+    case IMAGPART_EXPR:
+      if (ARITHMETIC_TYPE_P (type1))
+	break;
+      return;
+ 
     default:
       gcc_unreachable ();
     }
@@ -3493,20 +3513,32 @@ build_user_type_conversion_1 (tree totype, tree expr, int flags)
   return cand;
 }
 
+/* Wrapper for above. */
+
 tree
 build_user_type_conversion (tree totype, tree expr, int flags)
 {
-  struct z_candidate *cand
-    = build_user_type_conversion_1 (totype, expr, flags);
+  struct z_candidate *cand;
+  tree ret;
+
+  timevar_start (TV_OVERLOAD);
+  cand = build_user_type_conversion_1 (totype, expr, flags);
 
   if (cand)
     {
       if (cand->second_conv->kind == ck_ambig)
-	return error_mark_node;
-      expr = convert_like (cand->second_conv, expr, tf_warning_or_error);
-      return convert_from_reference (expr);
+	ret = error_mark_node;
+      else
+        {
+          expr = convert_like (cand->second_conv, expr, tf_warning_or_error);
+          ret = convert_from_reference (expr);
+        }
     }
-  return NULL_TREE;
+  else
+    ret = NULL_TREE;
+
+  timevar_stop (TV_OVERLOAD);
+  return ret;
 }
 
 /* Subroutine of convert_nontype_argument.
@@ -3622,8 +3654,13 @@ perform_overload_resolution (tree fn,
 			     bool *any_viable_p)
 {
   struct z_candidate *cand;
-  tree explicit_targs = NULL_TREE;
-  int template_only = 0;
+  tree explicit_targs;
+  int template_only;
+
+  bool subtime = timevar_cond_start (TV_OVERLOAD);
+
+  explicit_targs = NULL_TREE;
+  template_only = 0;
 
   *candidates = NULL;
   *any_viable_p = true;
@@ -3650,10 +3687,12 @@ perform_overload_resolution (tree fn,
 		  candidates);
 
   *candidates = splice_viable (*candidates, pedantic, any_viable_p);
-  if (!*any_viable_p)
-    return NULL;
+  if (*any_viable_p)
+    cand = tourney (*candidates);
+  else
+    cand = NULL;
 
-  cand = tourney (*candidates);
+  timevar_cond_stop (TV_OVERLOAD, subtime);
   return cand;
 }
 
@@ -3852,8 +3891,8 @@ build_operator_new_call (tree fnname, VEC(tree,gc) **args,
 
 /* Build a new call to operator().  This may change ARGS.  */
 
-tree
-build_op_call (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
+static tree
+build_op_call_1 (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
 {
   struct z_candidate *candidates = 0, *cand;
   tree fns, convs, first_mem_arg = NULL_TREE;
@@ -3982,6 +4021,18 @@ build_op_call (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
   obstack_free (&conversion_obstack, p);
 
   return result;
+}
+
+/* Wrapper for above.  */
+
+tree
+build_op_call (tree obj, VEC(tree,gc) **args, tsubst_flags_t complain)
+{
+  tree ret;
+  timevar_start (TV_OVERLOAD);
+  ret = build_op_call_1 (obj, args, complain);
+  timevar_stop (TV_OVERLOAD);
+  return ret;
 }
 
 static void
@@ -4121,9 +4172,9 @@ conditional_conversion (tree e1, tree e2)
 /* Implement [expr.cond].  ARG1, ARG2, and ARG3 are the three
    arguments to the conditional expression.  */
 
-tree
-build_conditional_expr (tree arg1, tree arg2, tree arg3,
-                        tsubst_flags_t complain)
+static tree
+build_conditional_expr_1 (tree arg1, tree arg2, tree arg3,
+                          tsubst_flags_t complain)
 {
   tree arg2_type;
   tree arg3_type;
@@ -4552,6 +4603,19 @@ build_conditional_expr (tree arg1, tree arg2, tree arg3,
   return result;
 }
 
+/* Wrapper for above.  */
+
+tree
+build_conditional_expr (tree arg1, tree arg2, tree arg3,
+                        tsubst_flags_t complain)
+{
+  tree ret;
+  bool subtime = timevar_cond_start (TV_OVERLOAD);
+  ret = build_conditional_expr_1 (arg1, arg2, arg3, complain);
+  timevar_cond_stop (TV_OVERLOAD, subtime);
+  return ret;
+}
+
 /* OPERAND is an operand to an expression.  Perform necessary steps
    required before using it.  If OPERAND is NULL_TREE, NULL_TREE is
    returned.  */
@@ -4720,8 +4784,8 @@ avoid_sign_compare_warnings (tree orig_arg, tree arg)
     TREE_NO_WARNING (arg) = 1;
 }
 
-tree
-build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
+static tree
+build_new_op_1 (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	      bool *overloaded_p, tsubst_flags_t complain)
 {
   tree orig_arg1 = arg1;
@@ -4888,8 +4952,8 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	    code = PREINCREMENT_EXPR;
 	  else
 	    code = PREDECREMENT_EXPR;
-	  result = build_new_op (code, flags, arg1, NULL_TREE, NULL_TREE,
-				 overloaded_p, complain);
+	  result = build_new_op_1 (code, flags, arg1, NULL_TREE, NULL_TREE,
+				   overloaded_p, complain);
 	  break;
 
 	  /* The caller will deal with these.  */
@@ -5090,6 +5154,19 @@ build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
       gcc_unreachable ();
     }
   return NULL_TREE;
+}
+
+/* Wrapper for above.  */
+
+tree
+build_new_op (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
+	      bool *overloaded_p, tsubst_flags_t complain)
+{
+  tree ret;
+  bool subtime = timevar_cond_start (TV_OVERLOAD);
+  ret = build_new_op_1 (code, flags, arg1, arg2, arg3, overloaded_p, complain);
+  timevar_cond_stop (TV_OVERLOAD, subtime);
+  return ret;
 }
 
 /* Returns true iff T, an element of an OVERLOAD chain, is a usual
@@ -6862,10 +6939,10 @@ name_as_c_string (tree name, tree type, bool *free_p)
    be set, upon return, to the function called.  ARGS may be NULL.
    This may change ARGS.  */
 
-tree
-build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
-		       tree conversion_path, int flags,
-		       tree *fn_p, tsubst_flags_t complain)
+static tree
+build_new_method_call_1 (tree instance, tree fns, VEC(tree,gc) **args,
+		         tree conversion_path, int flags,
+		         tree *fn_p, tsubst_flags_t complain)
 {
   struct z_candidate *candidates = 0, *cand;
   tree explicit_targs = NULL_TREE;
@@ -7169,6 +7246,21 @@ build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
     release_tree_vector (orig_args);
 
   return call;
+}
+
+/* Wrapper for above.  */
+
+tree
+build_new_method_call (tree instance, tree fns, VEC(tree,gc) **args,
+		       tree conversion_path, int flags,
+		       tree *fn_p, tsubst_flags_t complain)
+{
+  tree ret;
+  bool subtime = timevar_cond_start (TV_OVERLOAD);
+  ret = build_new_method_call_1 (instance, fns, args, conversion_path, flags,
+                                 fn_p, complain);
+  timevar_cond_stop (TV_OVERLOAD, subtime);
+  return ret;
 }
 
 /* Returns true iff standard conversion sequence ICS1 is a proper

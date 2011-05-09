@@ -1,3 +1,137 @@
+2011-05-07  François Dumont  <francois.cppdevs@free.fr>
+
+	* include/debug/macro.h (_GLIBCXX_DEBUG_VERIFY_AT): New.
+	(_GLICXX_DEBUG_VERIFY): Use latter.
+	* include/ext/pb_ds/detail/resize_policy/
+	hash_load_check_resize_trigger_imp.hpp: Emit assertion on the line
+	containing the original assert call.
+	* include/ext/pb_ds/detail/binomial_heap_base_/erase_fn_imps.hpp,
+	find_fn_imps.hpp, insert_fn_imps.hpp, binomial_heap_base_.hpp,
+	constructors_destructor_fn_imps.hpp, debug_fn_imps.hpp,
+	split_join_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/cc_hash_table_map_/
+	erase_store_hash_fn_imps.hpp, insert_no_store_hash_fn_imps.hpp,
+	find_fn_imps.hpp, insert_store_hash_fn_imps.hpp, debug_fn_imps.hpp,
+	debug_no_store_hash_fn_imps.hpp, cc_ht_map_.hpp, resize_fn_imps.hpp,
+	constructor_destructor_fn_imps.hpp, debug_store_hash_fn_imps.hpp,
+	erase_no_store_hash_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/pat_trie_/find_fn_imps.hpp,
+	insert_join_fn_imps.hpp, pat_trie_/head.hpp, debug_fn_imps.hpp,
+	constructors_destructor_fn_imps.hpp, pat_trie_.hpp, split_fn_imps.hpp,
+	leaf.hpp, erase_fn_imps.hpp, node_base.hpp, internal_node.hpp:
+	Likewise.
+	* include/ext/pb_ds/detail/bin_search_tree_/find_fn_imps.hpp,
+	r_erase_fn_imps.hpp, constructors_destructor_fn_imps.hpp,
+	debug_fn_imps.hpp, rotate_fn_imps.hpp, erase_fn_imps.hpp,
+	bin_search_tree_.hpp, insert_fn_imps.hpp, split_join_fn_imps.hpp:
+	Likewise.
+	* include/ext/pb_ds/detail/gp_hash_table_map_/
+	erase_store_hash_fn_imps.hpp, insert_no_store_hash_fn_imps.hpp,
+	find_fn_imps.hpp, gp_ht_map_.hpp, insert_store_hash_fn_imps.hpp,
+	debug_fn_imps.hpp, erase_fn_imps.hpp, debug_no_store_hash_fn_imps.hpp,
+	resize_fn_imps.hpp, constructor_destructor_fn_imps.hpp,
+	debug_store_hash_fn_imps.hpp, erase_no_store_hash_fn_imps.hpp:
+	Likewise.
+	* include/ext/pb_ds/detail/binary_heap_/find_fn_imps.hpp,
+	constructors_destructor_fn_imps.hpp, debug_fn_imps.hpp,
+	erase_fn_imps.hpp, insert_fn_imps.hpp, binary_heap_.hpp,
+	resize_policy.hpp, split_join_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/pairing_heap_/erase_fn_imps.hpp,
+	find_fn_imps.hpp, insert_fn_imps.hpp,
+	constructors_destructor_fn_imps.hpp, debug_fn_imps.hpp,
+	pairing_heap_.hpp, split_join_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/binomial_heap_/
+	constructors_destructor_fn_imps.hpp, debug_fn_imps.hpp,
+	binomial_heap_.hpp: Likewise.
+	* include/ext/pb_ds/detail/left_child_next_sibling_heap_/
+	erase_fn_imps.hpp, left_child_next_sibling_heap_.hpp,
+	constructors_destructor_fn_imps.hpp, debug_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/thin_heap_/erase_fn_imps.hpp,
+	find_fn_imps.hpp, thin_heap_.hpp, insert_fn_imps.hpp,
+	constructors_destructor_fn_imps.hpp, debug_fn_imps.hpp,
+	split_join_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/ov_tree_map_/erase_fn_imps.hpp,
+	ov_tree_map_.hpp, constructors_destructor_fn_imps.hpp,
+	debug_fn_imps.hpp, split_join_fn_imps.hpp, info_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/debug_map_base.hpp: Likewise.
+	* include/ext/pb_ds/detail/splay_tree_/erase_fn_imps.hpp,
+	find_fn_imps.hpp, insert_fn_imps.hpp,
+	constructors_destructor_fn_imps.hpp, debug_fn_imps.hpp,
+	splay_fn_imps.hpp, split_join_fn_imps.hpp, splay_tree_.hpp: Likewise.
+	* include/ext/pb_ds/detail/list_update_map_/erase_fn_imps.hpp,
+	find_fn_imps.hpp, lu_map_.hpp, constructor_destructor_fn_imps.hpp,
+	insert_fn_imps.hpp, debug_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/rc_binomial_heap_/erase_fn_imps.hpp,
+	rc_binomial_heap_.hpp, insert_fn_imps.hpp,
+	constructors_destructor_fn_imps.hpp, debug_fn_imps.hpp, rc.hpp,
+	split_join_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/rb_tree_map_/erase_fn_imps.hpp,
+	insert_fn_imps.hpp, constructors_destructor_fn_imps.hpp,
+	debug_fn_imps.hpp, rb_tree_.hpp, split_join_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/hash_policy.hpp: Likewise.
+
+2011-05-06  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/22_locale/messages_byname/named_equivalence.cc: Fix.
+
+2011-05-04  Marc Glisse  <marc.glisse@normalesup.org>
+
+	PR libstdc++/47913 (again)
+	* include/std/ratio (ratio_add, ratio_less): Rewrite.
+	* testsuite/20_util/ratio/operations/47913.cc: Extend.
+	* testsuite/20_util/ratio/cons/cons_overflow_neg.cc: Adjust dg-error
+	line numbers.
+	* testsuite/20_util/ratio/operations/ops_overflow_neg.cc: Likewise.
+
+2011-05-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/48848
+	* include/std/valarray (valarray<>::valarray(valarray&&),
+	valarray<>::operator=(valarray&&), valarray<>::swap): Add.
+	* doc/xml/manual/status_cxx200x.xml: Update.
+	* testsuite/26_numerics/valarray/moveable.cc: New.
+	* testsuite/26_numerics/valarray/swap.cc: Likewise.
+
+2011-05-03  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/48750
+	* include/parallel/multiway_merge.h: Run _ValueType destructors.
+	* include/parallel/multiway_mergesort.h: Likewise.
+	* include/parallel/quicksort.h: Likewise.
+	* include/parallel/random_shuffle.h: Likewise.
+	* include/parallel/partial_sum.h: Likewise.
+	* include/parallel/losertree.h: Run destructors; minor tweaks.
+	* include/parallel/par_loop.h: Run destructors, fix memory
+	allocations and deallocations.
+	* testsuite/26_numerics/accumulate/48750.cc: New.
+
+	* testsuite/ext/profile/mutex_extensions_neg.cc: Do not run in
+	parallel-mode to avoid spurious multiple errors.
+
+2011-05-03  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/functional (bind): Remove from overload set when first
+	argument type might be a socket file descriptor.
+	* testsuite/20_util/bind/socket.cc: New.
+
+2011-05-03  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/48848
+	* doc/xml/manual/status_cxx200x.xml: Update valarray status.
+	* doc/html/*: Regenerate.
+
+2011-05-02  Ollie Wild  <aaw@google.com>
+
+	* include/ext/sso_string_base.h (__sso_string_base<>::_M_construct):
+	Fix unqualified lookup.
+	(__sso_string_base<>::_M_assign): Likewise.
+	(__sso_string_base<>::_M_reserve): Likewise.
+	(__sso_string_base<>::_M_mutate): Likewise.
+	(__sso_string_base<>::_M_erase): Likewise.
+	* include/ext/vstring.h (__versa_string<>::replace): Likewise.
+	(__versa_string<>::compare): Likewise.
+	* include/ext/vstring.tcc (__versa_string<>::compare): Likewise.
+
 2011-05-02  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
 	* doc/xml/manual/status_cxx200x.xml: Update to reflect current status
