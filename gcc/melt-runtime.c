@@ -1159,16 +1159,13 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 			melt_nb_garbcoll, melt_startalz, melt_endalz);
   if (needfull)
     {
-      bool wasforced = ggc_force_collect;
       melt_nb_full_garbcoll++;
       debugeprintf ("melt_garbcoll #%ld fullgarbcoll #%ld",
 		    melt_nb_garbcoll, melt_nb_full_garbcoll);
       /* force major collection, with our callback */
-      ggc_force_collect = true;
-      debugeprintf ("melt_garbcoll forcing fullgarbcoll #%ld", melt_nb_full_garbcoll);
+      debugeprintf ("melt_garbcoll calling gcc_collect #%ld", melt_nb_full_garbcoll);
       ggc_collect ();
-      ggc_force_collect = wasforced;
-      debugeprintf ("melt_garbcoll forced fullgarbcoll #%ld", melt_nb_full_garbcoll);
+      debugeprintf ("melt_garbcoll after fullgarbcoll #%ld", melt_nb_full_garbcoll);
       /* Delete the unmarked specials.  */
       prevspecptr = &melt_oldspeclist;
       for (specp = melt_oldspeclist; specp; specp = nextspecp)
