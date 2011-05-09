@@ -82,9 +82,6 @@ along with GCC; see the file COPYING3.   If not see
 /* GCC 4.6 has it: */
 #include "gimple-pretty-print.h"
 
-/* Flag ggc_force_collect is defined in ggc-internal.h so is officially not
-   public.  */
-extern bool ggc_force_collect;
 
 #endif /*GCC 4.6*/
 
@@ -1162,8 +1159,8 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
       melt_nb_full_garbcoll++;
       debugeprintf ("melt_garbcoll #%ld fullgarbcoll #%ld",
 		    melt_nb_garbcoll, melt_nb_full_garbcoll);
-      /* force major collection, with our callback */
       debugeprintf ("melt_garbcoll calling gcc_collect #%ld", melt_nb_full_garbcoll);
+      /* There is no need to force a GGC collection.  */
       ggc_collect ();
       debugeprintf ("melt_garbcoll after fullgarbcoll #%ld", melt_nb_full_garbcoll);
       /* Delete the unmarked specials.  */

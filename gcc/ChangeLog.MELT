@@ -1,4 +1,9 @@
 
+2011-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (ggc_force_collect): Remove extern declaration.
+	(melt_garbcoll): Update comment.
+
 2011-05-09  Pierre Vittet  <piervit@pvittet.com>
 
 	* melt-runtime.c (melt_garbcoll): Don't force collection by
