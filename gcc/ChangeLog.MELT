@@ -1,4 +1,8 @@
 
+2011-05-10  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (MELT_VERSION_STR): Increase to 0.7.1
+
 2011-05-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.c (ggc_force_collect): Remove extern declaration.

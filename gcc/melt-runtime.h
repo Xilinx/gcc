@@ -87,7 +87,7 @@ extern void melt_fatal_info (const char*filename, int lineno);
 extern char* melt_gccversionstr;
 
 /* the version string of MELT */
-#define MELT_VERSION_STRING "0.7"
+#define MELT_VERSION_STRING "0.7.1"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);
