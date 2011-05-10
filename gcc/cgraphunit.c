@@ -480,6 +480,10 @@ verify_cgraph_node (struct cgraph_node *node)
   if (seen_error ())
     return;
 
+  /* Disable checking for LIPO for now.  */
+  if (L_IPO_COMP_MODE)
+    return;
+
   timevar_push (TV_CGRAPH_VERIFY);
   for (e = node->callees; e; e = e->next_callee)
     if (e->aux)
@@ -1315,7 +1319,8 @@ cgraph_mark_functions_to_output (void)
 		 are inside partition, we can end up not removing the body since we no longer
 		 have analyzed node pointing to it.  */
 	      && !node->in_other_partition
-	      && !(DECL_EXTERNAL (decl) || cgraph_is_aux_decl_external (node)))
+	      && !(DECL_EXTERNAL (decl) || cgraph_is_aux_decl_external (node))
+	      && !L_IPO_COMP_MODE)
 	    {
 	      dump_cgraph_node (stderr, node);
 	      internal_error ("failed to reclaim unneeded function");
@@ -1331,7 +1336,7 @@ cgraph_mark_functions_to_output (void)
 
     }
 #ifdef ENABLE_CHECKING
-  if (check_same_comdat_groups)
+  if (check_same_comdat_groups && !L_IPO_COMP_MODE)
     for (node = cgraph_nodes; node; node = node->next)
       if (node->same_comdat_group && !node->process)
 	{

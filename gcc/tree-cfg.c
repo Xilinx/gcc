@@ -4159,6 +4159,10 @@ verify_stmt (gimple_stmt_iterator *gsi)
   gimple stmt = gsi_stmt (*gsi);
   int lp_nr;
 
+  /* TODO: Disable for now.  */
+  if (L_IPO_COMP_MODE)
+    return false;
+
   if (is_gimple_omp (stmt))
     {
       /* OpenMP directives are validated by the FE and never operated

@@ -1,3 +1,10 @@
+2011-05-10  David Li  <davidxl@google.com>
+
+	* cgraphunit.c (verify_cgraph_node): Disable checking
+	in LIPO mode temporarily.
+	(cgraph_mark_functions_to_output): Ditto.
+	* tree-cfg.c (verify_stmt): Ditto.
+
 2011-05-06  David Li  <davidxl@google.com>
 
 	Revert r173158.
