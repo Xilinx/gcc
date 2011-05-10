@@ -1192,6 +1192,12 @@ branch_prob (void)
   EXIT_BLOCK_PTR->index = EXIT_BLOCK;
 #undef BB_TO_GCOV_INDEX
 
+  if (flag_profile_reusedist)
+    gimple_gen_reusedist ();
+
+  if (flag_optimize_locality)
+    optimize_reusedist ();
+
   if (flag_profile_values)
     gimple_find_values_to_profile (&values);
 

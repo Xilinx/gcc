@@ -374,7 +374,8 @@ typedef HOST_WIDEST_INT gcov_type;
 #define GCOV_LAST_VALUE_COUNTER 8  /* The last of counters used for value
 				      profiling.  */
 #define GCOV_COUNTER_DIRECT_CALL 9 /* Direct call counts.  */
-#define GCOV_COUNTERS		10
+#define GCOV_COUNTER_REUSE_DIST 10 /* Reuse distance measure.  */
+#define GCOV_COUNTERS		11
 
 /* Number of counters used for value profiling.  */
 #define GCOV_N_VALUE_COUNTERS \
@@ -383,7 +384,8 @@ typedef HOST_WIDEST_INT gcov_type;
   /* A list of human readable names of the counters */
 #define GCOV_COUNTER_NAMES	{"arcs", "interval", "pow2", "single", \
 				 "delta","indirect_call", "average", "ior", \
-				 "indirect_call_topn", "direct_call"}
+				 "indirect_call_topn", "direct_call", \
+                                 "reuse_distance"}
 
 #define GCOV_ICALL_TOPN_VAL  2   /* Track two hottest callees */
 #define GCOV_ICALL_TOPN_NCOUNTS  9 /* The number of counter entries per icall callsite */
@@ -397,7 +399,8 @@ typedef HOST_WIDEST_INT gcov_type;
 				 "__gcov_merge_add",	\
 				 "__gcov_merge_ior",	\
 				 "__gcov_merge_icall_topn",\
-                                 "__gcov_merge_dc" }
+                                 "__gcov_merge_dc",\
+                                 "__gcov_merge_reusedist" }
 
 /* Convert a counter index to a tag.  */
 #define GCOV_TAG_FOR_COUNTER(COUNT)				\
@@ -569,6 +572,9 @@ extern void __gcov_merge_ior (gcov_type *, unsigned) ATTRIBUTE_HIDDEN;
 
 /* The merge function used for direct call counters.  */
 extern void __gcov_merge_dc (gcov_type *, unsigned) ATTRIBUTE_HIDDEN;
+
+/* The merge function used for reuse distance counters.  */
+extern void __gcov_merge_reusedist (gcov_type *, unsigned) ATTRIBUTE_HIDDEN;
 
 /* The merge function used for indirect call counters.  */
 extern void __gcov_merge_icall_topn (gcov_type *, unsigned) ATTRIBUTE_HIDDEN;

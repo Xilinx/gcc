@@ -1708,6 +1708,14 @@ interesting_stringop_to_profile_p (tree fndecl, gimple call, int *size_arg)
 {
   enum built_in_function fcode = DECL_FUNCTION_CODE (fndecl);
 
+  /* Disable stringop collection with reuse distance instrumentation
+     or optimization.  Otherwise we end up with hard to correct profile
+     mismatches for functions where reuse distance-based transformation are
+     made.  We see a number of "memcpy" at instrumentation time and a different
+     number of "memcpy" at profile use time.  */
+  if (flag_profile_reusedist || flag_optimize_locality)
+    return false;
+
   if (fcode != BUILT_IN_MEMCPY && fcode != BUILT_IN_MEMPCPY
       && fcode != BUILT_IN_MEMSET && fcode != BUILT_IN_BZERO)
     return false;

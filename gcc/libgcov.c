@@ -879,6 +879,59 @@ __gcov_merge_ior (gcov_type *counters, unsigned n_counters)
 }
 #endif
 
+#ifdef L_gcov_merge_reusedist
+
+/* Return the weighted arithmetic mean of two values.  */
+
+static gcov_type
+__gcov_weighted_mean2 (gcov_type value1, gcov_type count1,
+                       gcov_type value2, gcov_type count2)
+{
+  if (count1 + count2 == 0)
+    return 0;
+  else
+    return (value1 * count1 + value2 * count2) / (count1 + count2);
+}
+
+void
+__gcov_merge_reusedist (gcov_type *counters, unsigned n_counters)
+{
+  unsigned i;
+
+  gcc_assert(!(n_counters % 4));
+
+  for (i = 0; i < n_counters; i += 4)
+    {
+      /* Decode current values.  */
+      gcov_type c_mean_dist = counters[i];
+      gcov_type c_mean_size = counters[i+1];
+      gcov_type c_count = counters[i+2];
+      gcov_type c_dist_x_size = counters[i+3];
+
+      /* Read and decode values in file.  */
+      gcov_type f_mean_dist = __gcov_read_counter ();
+      gcov_type f_mean_size = __gcov_read_counter ();
+      gcov_type f_count = __gcov_read_counter ();
+      gcov_type f_dist_x_size = __gcov_read_counter ();
+
+      /* Compute aggregates.  */
+      gcov_type a_mean_dist = __gcov_weighted_mean2 (
+          f_mean_dist, f_count, c_mean_dist, c_count);
+      gcov_type a_mean_size = __gcov_weighted_mean2 (
+          f_mean_size, f_count, c_mean_size, c_count);
+      gcov_type a_count = f_count + c_count;
+      gcov_type a_dist_x_size = f_dist_x_size + c_dist_x_size;
+
+      /* Encode back into counters.  */
+      counters[i] = a_mean_dist;
+      counters[i+1] = a_mean_size;
+      counters[i+2] = a_count;
+      counters[i+3] = a_dist_x_size;
+    }
+}
+
+#endif
+
 #ifdef L_gcov_merge_dc
 
 /* Returns 1 if the function global id GID is not valid.  */

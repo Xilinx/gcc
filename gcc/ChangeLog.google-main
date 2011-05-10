@@ -1,3 +1,41 @@
+2011-05-09  Silvius Rus <silvius.rus@gmail.com>
+
+	* value-prof.c (interesting_stringop_to_profile_p): Disbale
+	stringop profiling if reuse distance profiling is turned on.
+	* value-prof.h (gimple_gen_reusedist, optimize_reusedist): Declare.
+	* gcov-io.h: (GCOV_COUNTER_REUSE_DIST): New counter.
+	(GCOV_COUNTERS): Update.
+	(GCOV_COUNTER_NAMES): Add reuse_distance.
+	(GCOV_MERGE_FUNCTIONS): Add __gcov_merge_reusedist.
+	(__gcov_merge_reusedist): New declaration.
+	* profile.c (branch_prob): Enable reuse distance profiling and
+	optimization.
+	* common.opt (fprofile-reusedist, foptimize-locality): New options.
+	* tree-profile.c: Include params.h.
+	(stringop_subst, reusedist_t): New structures.
+	(stringop_subst_t, reusedist_t): New typedefs.
+	(stringop_decl): New global array.
+	(RD_NUM_COUNTERS): New constant.
+	(get_stringop_subst, reusedist_is_interesting_call)
+	(reusedist_instr_func_name, reusedist_get_instr_decl)
+	(reusedist_make_instr_call, reusedist_from_counters)
+	(gimple_gen_reusedist, nt_op_name, reusedist_get_size_threshold)
+	(reusedist_get_distance_large_threshold)
+	(reusedist_get_distance_small_threshold)
+	(reusedist_get_count_threshold, reusedist_nt_is_worth_it)
+	(reusedist_get_nt_decl, maybe_issue_profile_use_note)
+	(reusedist_maybe_replace_with_nt_version, optimize_reusedist): New
+	functions.
+	(gate_tree_profile_ipa): Return true if reuse distance instrumentation
+	or use is turned on.
+	* Makefile.in (LIBGCOV): Add _gcov_merge_reusedist.
+	* libgcov.c (__gcov_weighted_mean2, __gcov_merge_reusedist): New
+	functions.
+	* params.def (PARAM_REUSEDIST_MEAN_DIST_LARGE_THRESH)
+	(PARAM_REUSEDIST_MEAN_DIST_SMALL_THRESH)
+	(PARAM_REUSEDIST_CALL_COUNT_THRESH, PARAM_REUSEDIST_MEMCPY_SIZE_THRESH)
+	(PARAM_REUSEDIST_MEMSET_SIZE_THRESH): New params.
+
 2011-05-06  Lawrence Crowl  <crowl@google.com>
 
 	* timevar.h (timevar_cond_start): Remove unused POP_TIMEVAR_AND_RETURN.

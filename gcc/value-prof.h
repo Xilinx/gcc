@@ -103,6 +103,8 @@ extern void gimple_gen_const_delta_profiler (histogram_value,
 					     unsigned, unsigned);
 extern void gimple_gen_average_profiler (histogram_value, unsigned, unsigned);
 extern void gimple_gen_ior_profiler (histogram_value, unsigned, unsigned);
+extern void gimple_gen_reusedist (void);
+extern void optimize_reusedist (void);
 
 /* In profile.c.  */
 extern void init_branch_prob (void);

@@ -892,6 +892,31 @@ DEFPARAM (PARAM_GCOV_DEBUG,
 	  "Looking for gcda file in current dir.",
 	  1, 0, 1)
 
+DEFPARAM (PARAM_REUSEDIST_MEAN_DIST_LARGE_THRESH,
+          "reusedist-mean-dist-large-thresh",
+          "Generate NTA stringops only if reusedist at least this size",
+          10000000, 0, 0)
+
+DEFPARAM (PARAM_REUSEDIST_MEAN_DIST_SMALL_THRESH,
+          "reusedist-mean-dist-small-thresh",
+          "Force temporal stringops if reusedist at most this size",
+          100000, 0, 0)
+
+DEFPARAM (PARAM_REUSEDIST_CALL_COUNT_THRESH,
+          "reusedist-call-count-thresh",
+          "Generate NTA stringops only if call count at least this large",
+          0, 0, 0)
+
+DEFPARAM (PARAM_REUSEDIST_MEMCPY_SIZE_THRESH,
+          "reusedist-memcpy-size-thresh",
+          "Generate memcpy-nta only if size at least this large",
+          4096, 0, 0)
+
+DEFPARAM (PARAM_REUSEDIST_MEMSET_SIZE_THRESH,
+          "reusedist-memset-size-thresh",
+          "Generate NTA memset only if size at least this large",
+          122880, 0, 0)
+
 /* Avoid SLP vectorization of large basic blocks.  */
 DEFPARAM (PARAM_SLP_MAX_INSNS_IN_BB,
           "slp-max-insns-in-bb",
