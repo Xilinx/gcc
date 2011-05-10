@@ -395,8 +395,8 @@ Objective-C and Objective-C++ Dialects}.
 -fsel-sched-pipelining -fsel-sched-pipelining-outer-loops @gol
 -fsignaling-nans -fsingle-precision-constant -fsplit-ivs-in-unroller @gol
 -fsplit-wide-types -fstack-protector -fstack-protector-all @gol
--fstrict-aliasing -fstrict-overflow -fno-strict-enum-precision -fthread-jumps
--ftracer -ftree-bit-ccp @gol
+-fstrict-aliasing -fstrict-overflow -fthread-jumps -ftracer @gol
+-ftree-bit-ccp @gol
 -ftree-builtin-call-dce -ftree-ccp -ftree-ch -ftree-copy-prop @gol
 -ftree-copyrename -ftree-dce -ftree-dominator-opts -ftree-dse @gol
 -ftree-forwprop -ftree-fre -ftree-loop-if-convert @gol
@@ -2074,11 +2074,6 @@ defined in the C++ standard; basically, a value which can be
 represented in the minimum number of bits needed to represent all the
 enumerators).  This assumption may not be valid if the program uses a
 cast to convert an arbitrary integer value to the enumeration type.
-
-@item -fno-strict-enum-precision
-@opindex fno-strict-enum-precision
-Do not perform optimizations of switch() statements based on the
-precision of enum types.
 
 @item -ftemplate-depth=@var{n}
 @opindex ftemplate-depth

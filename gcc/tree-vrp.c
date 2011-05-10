@@ -5553,9 +5553,7 @@ stmt_interesting_for_vrp (gimple stmt)
 	  && ((is_gimple_call (stmt)
 	       && gimple_call_fndecl (stmt) != NULL_TREE
 	       && DECL_IS_BUILTIN (gimple_call_fndecl (stmt)))
-	      || !gimple_vuse (stmt))
-          && (flag_strict_enum_precision
-              || TREE_CODE (TREE_TYPE (lhs)) != ENUMERAL_TYPE))
+	      || !gimple_vuse (stmt)))
 	return true;
     }
   else if (gimple_code (stmt) == GIMPLE_COND

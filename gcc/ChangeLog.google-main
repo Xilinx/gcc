@@ -1,3 +1,16 @@
+<<<<<<< .mine
+2011-05-06  David Li  <davidxl@google.com>
+
+	Revert r173158.
+	* doc/invoke.texi (fno-strict-enum-precision): Document.
+	* gimplify.c (gimplify_switch_expr): If
+	-fno-strict-enum-precision is given, do not consider enum
+	types.
+	* tree-vrp.c (stmt_interesting_for_vrp): If
+	-fno-strict-enum-precision is given, do not look at enum
+	types.
+
+=======
 2011-05-09  Silvius Rus <silvius.rus@gmail.com>
 
 	* value-prof.c (interesting_stringop_to_profile_p): Disbale
@@ -96,6 +109,7 @@
 	* cfgexpand.c (add_alias_set_conflicts): Add conflicts with a variable
 	containing union type only with -fstrict-aliasing.
 
+>>>>>>> .r173625
 2011-05-04  David Li  <davidxl@google.com>
 
 	* coverage.c (incompatible_cl_args): Better handling

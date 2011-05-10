@@ -1,5 +1,5 @@
 /* { dg-do run } */
-/* { dg-options "-fno-strict-enum-precision" } */
+/* { dg-options "-fno-strict-enums" } */
 
 extern "C" void abort (void);
 

@@ -1,3 +1,9 @@
+2011-05-06  Xinliang David Li  <davidxl@google.com>
+
+	* g++.dg/other/no-strict-enum-precision-1.C: Use -fno-strict-enums.
+	* g++.dg/other/no-strict-enum-precision-2.C: Ditto.
+	* g++.dg/other/no-strict-enum-precision-3.C: Ditto.
+
 2011-05-06  Easwaran Raman  <eraman@google.com>
 
 	Backport r172837:
