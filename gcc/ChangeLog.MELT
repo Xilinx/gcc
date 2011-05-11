@@ -1,5 +1,11 @@
 
 2011-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (at_end_melt_pass_first)
+	(at_end_melt_pass_last): New exported functions.
+	(end_melt_pass_execution_delayed_queue): New private instance.
+	(end_melt_pass_runner): New internal function.
+
+2011-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (FSYSDAT_MELTPASS_AFTER_HOOK): New.
 
 	* melt-runtime.c (melt_attr_spec): Sets affects_type_identity.

@@ -2785,6 +2785,95 @@ exit, in last place.}#
     (if (is_closure fun) (list_append lastlist fun)))
   )
 
+
+;;;;;; private queue for end of MELT pass execution
+(definstance end_melt_pass_execution_delayed_queue class_delayed_queue
+  :named_name '"end_melt_pass_execution_delayed_queue"
+  ;; the first and last are filled lazily!
+  :delqu_first ()
+  :delqu_last ()
+)
+
+(defun end_melt_pass_runner (noarg :cstring passname :long passnumber)
+  (let ( (firstlist (unsafe_get_field :delqu_first end_melt_pass_execution_delayed_queue))
+	 (lastlist (unsafe_get_field :delqu_last end_melt_pass_execution_delayed_queue))
+	 (revlastlist (make_list discr_list))
+	 (rescont (instance class_container))
+	 (valpassname (make_stringconst discr_string passname))
+	 (valpassnumber (make_integerbox discr_constant_integer passnumber))
+	 )
+    ;; clear the delayed_queue to ensure that this function will be
+    ;; registered again
+    (put_fields
+     end_melt_pass_execution_delayed_queue
+     :delqu_first ()
+     :delqu_last ())
+;;; call the first routines in natural order
+    (list_every 
+     firstlist
+     (lambda (firstproc)
+       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+	      (nextres (firstproc prevres valpassname valpassnumber))
+	      )
+	 (unsafe_put_fields rescont :container_value nextres)
+	 )))
+;;; reverse the last list
+    (list_every 
+     lastlist 
+     (lambda (lastproc)
+       (if (is_closure lastproc) (list_prepend revlastlist lastproc))))
+;;; call the last routines in reverse order
+    (list_every
+     revlastlist
+     (lambda (lastproc)
+       (let ( (prevres (unsafe_get_field :container_value rescont)) 
+	      (nextres (lastproc prevres valpassname valpassnumber))
+	      )
+	 (unsafe_put_fields rescont :container_value nextres)
+	 )))
+    ))
+
+
+(defun at_end_melt_pass_first (fun)
+  :doc #{Use $AT_END_MELT_PASS_FIRST to register a function $FUN to be
+  run at end of MELT passes' execution, in first place. At the end of
+  the currently active MELT pass execution function, $FUN will be
+  called with the result of the previously executed function, the
+  boxed pass name, the boxed pass number.}#
+  (let ( (firstlist (unsafe_get_field :delqu_first final_delayed_queue))
+	 )
+    (if (null firstlist)
+	(progn
+	  (setq firstlist (make_list discr_list))
+	  (put_fields 
+	   end_melt_pass_execution_delayed_queue
+	   :delqu_first  firstlist
+	   :delqu_last (make_list discr_list))
+	  (put_fields
+	   initial_system_data
+	   :sysdata_meltpass_after_hook end_melt_pass_runner)))
+    (if (is_closure fun) (list_append firstlist fun)))
+  )
+
+(defun at_end_melt_pass_last (fun)
+  :doc #{Use $AT_END_MELT_PASS_LAST to register a function to be run
+  at end of MELT passes' execution, in last place. See also
+  $AT_END_MELT_PASS_FIRST.}#
+  (let ( (lastlist (unsafe_get_field :delqu_last final_delayed_queue))
+	 )
+    (if (null lastlist)
+	(progn
+	  (setq lastlist (make_list discr_list))
+	  (put_fields 
+	   end_melt_pass_execution_delayed_queue
+	   :delqu_first (make_list discr_list)
+	   :delqu_last lastlist)
+	  (put_fields
+	   initial_system_data
+	   :sysdata_meltpass_after_hook end_melt_pass_runner)))
+    (if (is_closure fun) (list_append lastlist fun)))
+  )
+
 ;;;;;; private queue for start of compilation unit
 (definstance start_unit_delayed_queue class_delayed_queue
   :named_name '"start_unit_delayed_queue"
@@ -3998,6 +4087,8 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
 (export_values
  at_exit_first
  at_exit_last
+ at_end_melt_pass_first
+ at_end_melt_pass_last
  at_finish_unit_first
  at_finish_unit_last
  at_start_unit_first
