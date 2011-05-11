@@ -1,4 +1,8 @@
 
+2011-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* gengtype.c: Merge manually from trunk 173646.
+
 2011-05-10  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (MELT_VERSION_STR): Increase to 0.7.1
