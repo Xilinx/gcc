@@ -53,7 +53,23 @@ along with GCC; see the file COPYING3.  If not see
 #include "df.h"
 #include "params.h"
 #include "cfgloop.h"
+#include "opts.h"
 
+static const int processor_flags_table[] =
+  {
+    /* g5 */     PF_IEEE_FLOAT,
+    /* g6 */     PF_IEEE_FLOAT,
+    /* z900 */   PF_IEEE_FLOAT | PF_ZARCH,
+    /* z990 */   PF_IEEE_FLOAT | PF_ZARCH | PF_LONG_DISPLACEMENT,
+    /* z9-109 */ PF_IEEE_FLOAT | PF_ZARCH | PF_LONG_DISPLACEMENT
+                 | PF_EXTIMM,
+    /* z9-ec */  PF_IEEE_FLOAT | PF_ZARCH | PF_LONG_DISPLACEMENT
+                 | PF_EXTIMM | PF_DFP,
+    /* z10 */    PF_IEEE_FLOAT | PF_ZARCH | PF_LONG_DISPLACEMENT
+                 | PF_EXTIMM | PF_DFP | PF_Z10,
+    /* z196 */   PF_IEEE_FLOAT | PF_ZARCH | PF_LONG_DISPLACEMENT
+                 | PF_EXTIMM | PF_DFP | PF_Z10 | PF_Z196
+  };
 
 /* Define the specific costs for a given cpu.  */
 
@@ -276,17 +292,6 @@ struct s390_address
   bool pointer;
   bool literal_pool;
 };
-
-/* Which cpu are we tuning for.  */
-enum processor_type s390_tune = PROCESSOR_max;
-int s390_tune_flags;
-/* Which instruction set architecture to use.  */
-enum processor_type s390_arch;
-int s390_arch_flags;
-
-HOST_WIDE_INT s390_warn_framesize = 0;
-HOST_WIDE_INT s390_stack_size = 0;
-HOST_WIDE_INT s390_stack_guard = 0;
 
 /* The following structure is embedded in the machine
    specific part of struct function.  */
@@ -1540,80 +1545,42 @@ s390_option_init_struct (struct gcc_options *opts)
   opts->x_flag_asynchronous_unwind_tables = 1;
 }
 
-/* Return true if ARG is the name of a processor.  Set *TYPE and *FLAGS
-   to the associated processor_type and processor_flags if so.  */
-
-static bool
-s390_handle_arch_option (const char *arg,
-			 enum processor_type *type,
-			 int *flags)
-{
-  static struct pta
-    {
-      const char *const name;		/* processor name or nickname.  */
-      const enum processor_type processor;
-      const int flags;			/* From enum processor_flags. */
-    }
-  const processor_alias_table[] =
-    {
-      {"g5", PROCESSOR_9672_G5, PF_IEEE_FLOAT},
-      {"g6", PROCESSOR_9672_G6, PF_IEEE_FLOAT},
-      {"z900", PROCESSOR_2064_Z900, PF_IEEE_FLOAT | PF_ZARCH},
-      {"z990", PROCESSOR_2084_Z990, PF_IEEE_FLOAT | PF_ZARCH
-				    | PF_LONG_DISPLACEMENT},
-      {"z9-109", PROCESSOR_2094_Z9_109, PF_IEEE_FLOAT | PF_ZARCH
-                                       | PF_LONG_DISPLACEMENT | PF_EXTIMM},
-      {"z9-ec", PROCESSOR_2094_Z9_109, PF_IEEE_FLOAT | PF_ZARCH
-                             | PF_LONG_DISPLACEMENT | PF_EXTIMM | PF_DFP },
-      {"z10", PROCESSOR_2097_Z10, PF_IEEE_FLOAT | PF_ZARCH
-       | PF_LONG_DISPLACEMENT | PF_EXTIMM | PF_DFP | PF_Z10},
-      {"z196", PROCESSOR_2817_Z196, PF_IEEE_FLOAT | PF_ZARCH
-       | PF_LONG_DISPLACEMENT | PF_EXTIMM | PF_DFP | PF_Z10 | PF_Z196 },
-    };
-  size_t i;
-
-  for (i = 0; i < ARRAY_SIZE (processor_alias_table); i++)
-    if (strcmp (arg, processor_alias_table[i].name) == 0)
-      {
-	*type = processor_alias_table[i].processor;
-	*flags = processor_alias_table[i].flags;
-	return true;
-      }
-
-  *type = PROCESSOR_max;
-  *flags = 0;
-  return false;
-}
-
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
-s390_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
+s390_handle_option (struct gcc_options *opts,
+		    struct gcc_options *opts_set ATTRIBUTE_UNUSED,
+  		    const struct cl_decoded_option *decoded,
+		    location_t loc)
 {
+  size_t code = decoded->opt_index;
+  const char *arg = decoded->arg;
+  int value = decoded->value;
+
   switch (code)
     {
     case OPT_march_:
-      return s390_handle_arch_option (arg, &s390_arch, &s390_arch_flags);
+      opts->x_s390_arch_flags = processor_flags_table[value];
+      opts->x_s390_arch_string = arg;
+      return true;
 
     case OPT_mstack_guard_:
-      if (sscanf (arg, HOST_WIDE_INT_PRINT_DEC, &s390_stack_guard) != 1)
-	return false;
-      if (exact_log2 (s390_stack_guard) == -1)
-	error ("stack guard value must be an exact power of 2");
+      if (exact_log2 (value) == -1)
+	error_at (loc, "stack guard value must be an exact power of 2");
       return true;
 
     case OPT_mstack_size_:
-      if (sscanf (arg, HOST_WIDE_INT_PRINT_DEC, &s390_stack_size) != 1)
-	return false;
-      if (exact_log2 (s390_stack_size) == -1)
-	error ("stack size must be an exact power of 2");
+      if (exact_log2 (value) == -1)
+	error_at (loc, "stack size must be an exact power of 2");
       return true;
 
     case OPT_mtune_:
-      return s390_handle_arch_option (arg, &s390_tune, &s390_tune_flags);
+      opts->x_s390_tune_flags = processor_flags_table[value];
+      return true;
 
     case OPT_mwarn_framesize_:
-      return sscanf (arg, HOST_WIDE_INT_PRINT_DEC, &s390_warn_framesize) == 1;
+      return sscanf (arg, HOST_WIDE_INT_PRINT_DEC,
+		     &opts->x_s390_warn_framesize) == 1;
 
     default:
       return true;
@@ -1635,18 +1602,14 @@ s390_option_override (void)
 	target_flags &= ~MASK_ZARCH;
     }
 
-  /* Determine processor architectural level.  */
-  if (!s390_arch_string)
+  /* Set the march default in case it hasn't been specified on
+     cmdline.  */
+  if (s390_arch == PROCESSOR_max)
     {
       s390_arch_string = TARGET_ZARCH? "z900" : "g5";
-      s390_handle_arch_option (s390_arch_string, &s390_arch, &s390_arch_flags);
+      s390_arch = TARGET_ZARCH ? PROCESSOR_2064_Z900 : PROCESSOR_9672_G5;
+      s390_arch_flags = processor_flags_table[(int)s390_arch];
     }
-
-  /* This check is triggered when the user specified a wrong -march=
-     string and prevents subsequent error messages from being
-     issued.  */
-  if (s390_arch == PROCESSOR_max)
-    return;
 
   /* Determine processor to tune for.  */
   if (s390_tune == PROCESSOR_max)
@@ -2814,15 +2777,15 @@ legitimate_pic_operand_p (rtx op)
 /* Returns true if the constant value OP is a legitimate general operand.
    It is given that OP satisfies CONSTANT_P or is a CONST_DOUBLE.  */
 
-int
-legitimate_constant_p (rtx op)
+static bool
+s390_legitimate_constant_p (enum machine_mode mode, rtx op)
 {
   /* Accept all non-symbolic constants.  */
   if (!SYMBOLIC_CONST (op))
     return 1;
 
   /* Accept immediate LARL operands.  */
-  if (TARGET_CPU_ZARCH && larl_operand (op, VOIDmode))
+  if (TARGET_CPU_ZARCH && larl_operand (op, mode))
     return 1;
 
   /* Thread-local symbols are never legal constants.  This is
@@ -2847,7 +2810,7 @@ legitimate_constant_p (rtx op)
    not constant (TLS) or not known at final link time (PIC).  */
 
 static bool
-s390_cannot_force_const_mem (rtx x)
+s390_cannot_force_const_mem (enum machine_mode mode, rtx x)
 {
   switch (GET_CODE (x))
     {
@@ -2869,11 +2832,11 @@ s390_cannot_force_const_mem (rtx x)
 	return flag_pic != 0;
 
     case CONST:
-      return s390_cannot_force_const_mem (XEXP (x, 0));
+      return s390_cannot_force_const_mem (mode, XEXP (x, 0));
     case PLUS:
     case MINUS:
-      return s390_cannot_force_const_mem (XEXP (x, 0))
-	     || s390_cannot_force_const_mem (XEXP (x, 1));
+      return s390_cannot_force_const_mem (mode, XEXP (x, 0))
+	     || s390_cannot_force_const_mem (mode, XEXP (x, 1));
 
     case UNSPEC:
       switch (XINT (x, 1))
@@ -3011,12 +2974,16 @@ s390_preferred_reload_class (rtx op, reg_class_t rclass)
 	 it is most likely being used as an address, so
 	 prefer ADDR_REGS.  If 'class' is not a superset
 	 of ADDR_REGS, e.g. FP_REGS, reject this reload.  */
-      case PLUS:
       case LABEL_REF:
       case SYMBOL_REF:
       case CONST:
+	if (!legitimate_reload_constant_p (op))
+          return NO_REGS;
+	/* fallthrough */
+      case PLUS:
+	/* load address will be used.  */
 	if (reg_class_subset_p (ADDR_REGS, rclass))
-          return ADDR_REGS;
+	  return ADDR_REGS;
 	else
 	  return NO_REGS;
 
@@ -3134,12 +3101,16 @@ s390_secondary_reload (bool in_p, rtx x, reg_class_t rclass_i,
 
   if (TARGET_Z10)
     {
+      HOST_WIDE_INT offset;
+      rtx symref;
+
       /* On z10 several optimizer steps may generate larl operands with
 	 an odd addend.  */
       if (in_p
-	  && s390_symref_operand_p (x, NULL, NULL)
+	  && s390_symref_operand_p (x, &symref, &offset)
 	  && mode == Pmode
-	  && !s390_check_symref_alignment (x, 2))
+	  && !SYMBOL_REF_ALIGN1_P (symref)
+	  && (offset & 1) == 1)
 	sri->icode = ((mode == DImode) ? CODE_FOR_reloaddi_larl_odd_addend_z10
 		      : CODE_FOR_reloadsi_larl_odd_addend_z10);
 
@@ -4041,7 +4012,7 @@ s390_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
 }
 
 /* Try a machine-dependent way of reloading an illegitimate address AD
-   operand.  If we find one, push the reload and and return the new address.
+   operand.  If we find one, push the reload and return the new address.
 
    MODE is the mode of the enclosing MEM.  OPNUM is the operand number
    and TYPE is the reload type of the current reload.  */
@@ -5015,6 +4986,39 @@ s390_delegitimize_address (rtx orig_x)
 
   orig_x = delegitimize_mem_from_attrs (orig_x);
   x = orig_x;
+
+  /* Extract the symbol ref from:
+     (plus:SI (reg:SI 12 %r12)
+              (const:SI (unspec:SI [(symbol_ref/f:SI ("*.LC0"))]
+	                            UNSPEC_GOTOFF/PLTOFF)))
+     and
+     (plus:SI (reg:SI 12 %r12)
+              (const:SI (plus:SI (unspec:SI [(symbol_ref:SI ("L"))]
+                                             UNSPEC_GOTOFF/PLTOFF)
+				 (const_int 4 [0x4]))))  */
+  if (GET_CODE (x) == PLUS
+      && REG_P (XEXP (x, 0))
+      && REGNO (XEXP (x, 0)) == PIC_OFFSET_TABLE_REGNUM
+      && GET_CODE (XEXP (x, 1)) == CONST)
+    {
+      HOST_WIDE_INT offset = 0;
+
+      /* The const operand.  */
+      y = XEXP (XEXP (x, 1), 0);
+
+      if (GET_CODE (y) == PLUS
+	  && GET_CODE (XEXP (y, 1)) == CONST_INT)
+	{
+	  offset = INTVAL (XEXP (y, 1));
+	  y = XEXP (y, 0);
+	}
+
+      if (GET_CODE (y) == UNSPEC
+	  && (XINT (y, 1) == UNSPEC_GOTOFF
+	      || XINT (y, 1) == UNSPEC_PLTOFF))
+	return plus_constant (XVECEXP (y, 0, 0), offset);
+    }
+
   if (GET_CODE (x) != MEM)
     return orig_x;
 
@@ -5033,9 +5037,14 @@ s390_delegitimize_address (rtx orig_x)
     }
   else if (GET_CODE (x) == CONST)
     {
+      /* Extract the symbol ref from:
+	 (mem:QI (const:DI (unspec:DI [(symbol_ref:DI ("foo"))]
+	                               UNSPEC_PLT/GOTENT)))  */
+
       y = XEXP (x, 0);
       if (GET_CODE (y) == UNSPEC
-	  && XINT (y, 1) == UNSPEC_GOTENT)
+	  && (XINT (y, 1) == UNSPEC_GOTENT
+	      || XINT (y, 1) == UNSPEC_PLT))
 	y = XVECEXP (y, 0, 0);
       else
 	return orig_x;
@@ -5045,6 +5054,8 @@ s390_delegitimize_address (rtx orig_x)
 
   if (GET_MODE (orig_x) != Pmode)
     {
+      if (GET_MODE (orig_x) == BLKmode)
+	return orig_x;
       y = lowpart_subreg (GET_MODE (orig_x), y, Pmode);
       if (y == NULL_RTX)
 	return orig_x;
@@ -6651,7 +6662,7 @@ s390_chunkify_start (void)
 	  s390_add_execute (curr_pool, insn);
 	  s390_add_pool_insn (curr_pool, insn);
 	}
-      else if (GET_CODE (insn) == INSN || GET_CODE (insn) == CALL_INSN)
+      else if (GET_CODE (insn) == INSN || CALL_P (insn))
 	{
 	  rtx pool_ref = NULL_RTX;
 	  find_constant_pool_ref (PATTERN (insn), &pool_ref);
@@ -6675,6 +6686,15 @@ s390_chunkify_start (void)
 		  gcc_assert (!pending_ltrel);
 		  pending_ltrel = pool_ref;
 		}
+	    }
+	  /* Make sure we do not split between a call and its
+	     corresponding CALL_ARG_LOCATION note.  */
+	  if (CALL_P (insn))
+	    {
+	      rtx next = NEXT_INSN (insn);
+	      if (next && NOTE_P (next)
+		  && NOTE_KIND (next) == NOTE_INSN_CALL_ARG_LOCATION)
+		continue;
 	    }
 	}
 
@@ -8104,10 +8124,9 @@ s390_emit_prologue (void)
 
 	  if (cfun_frame_layout.frame_size >= s390_stack_size)
 	    {
-	      warning (0, "frame size of function %qs is "
-		       HOST_WIDE_INT_PRINT_DEC
+	      warning (0, "frame size of function %qs is %wd"
 		       " bytes exceeding user provided stack limit of "
-		       HOST_WIDE_INT_PRINT_DEC " bytes.  "
+		       "%d bytes.  "
 		       "An unconditional trap is added.",
 		       current_function_name(), cfun_frame_layout.frame_size,
 		       s390_stack_size);
@@ -8120,8 +8139,7 @@ s390_emit_prologue (void)
 		 not match the test under mask pattern.  */
 	      if (stack_guard >= s390_stack_size)
 		{
-		  warning (0, "frame size of function %qs is "
-			   HOST_WIDE_INT_PRINT_DEC
+		  warning (0, "frame size of function %qs is %wd"
 			   " bytes which is more than half the stack size. "
 			   "The dynamic check would not be reliable. "
 			   "No check emitted for this function.",
@@ -8149,7 +8167,7 @@ s390_emit_prologue (void)
 
       if (s390_warn_framesize > 0
 	  && cfun_frame_layout.frame_size >= s390_warn_framesize)
-	warning (0, "frame size of %qs is " HOST_WIDE_INT_PRINT_DEC " bytes",
+	warning (0, "frame size of %qs is %wd bytes",
 		 current_function_name (), cfun_frame_layout.frame_size);
 
       if (s390_warn_dynamicstack_p && cfun->calls_alloca)
@@ -8467,7 +8485,7 @@ s390_emit_epilogue (bool sibcall)
 
       p = rtvec_alloc (2);
 
-      RTVEC_ELT (p, 0) = gen_rtx_RETURN (VOIDmode);
+      RTVEC_ELT (p, 0) = ret_rtx;
       RTVEC_ELT (p, 1) = gen_rtx_USE (VOIDmode, return_reg);
       emit_jump_insn (gen_rtx_PARALLEL (VOIDmode, p));
     }
@@ -8724,7 +8742,7 @@ s390_promote_function_mode (const_tree type, enum machine_mode mode,
   if (INTEGRAL_MODE_P (mode)
       && GET_MODE_SIZE (mode) < UNITS_PER_LONG)
     {
-      if (POINTER_TYPE_P (type))
+      if (type != NULL_TREE && POINTER_TYPE_P (type))
 	*punsignedp = POINTERS_EXTEND_UNSIGNED;
       return Pmode;
     }
@@ -9154,7 +9172,7 @@ s390_init_builtins (void)
 {
   tree ftype;
 
-  ftype = build_function_type (ptr_type_node, void_list_node);
+  ftype = build_function_type_list (ptr_type_node, NULL_TREE);
   add_builtin_function ("__builtin_thread_pointer", ftype,
 			S390_BUILTIN_THREAD_POINTER, BUILT_IN_MD,
 			NULL, NULL_TREE);
@@ -9269,16 +9287,16 @@ s390_asm_trampoline_template (FILE *file)
 
   if (TARGET_64BIT)
     {
-      output_asm_insn ("basr\t%1,0", op);
-      output_asm_insn ("lmg\t%0,%1,14(%1)", op);
-      output_asm_insn ("br\t%1", op);
+      output_asm_insn ("basr\t%1,0", op);         /* 2 byte */
+      output_asm_insn ("lmg\t%0,%1,14(%1)", op);  /* 6 byte */
+      output_asm_insn ("br\t%1", op);             /* 2 byte */
       ASM_OUTPUT_SKIP (file, (HOST_WIDE_INT)(TRAMPOLINE_SIZE - 10));
     }
   else
     {
-      output_asm_insn ("basr\t%1,0", op);
-      output_asm_insn ("lm\t%0,%1,6(%1)", op);
-      output_asm_insn ("br\t%1", op);
+      output_asm_insn ("basr\t%1,0", op);         /* 2 byte */
+      output_asm_insn ("lm\t%0,%1,6(%1)", op);    /* 4 byte */
+      output_asm_insn ("br\t%1", op);             /* 2 byte */
       ASM_OUTPUT_SKIP (file, (HOST_WIDE_INT)(TRAMPOLINE_SIZE - 8));
     }
 }
@@ -9294,11 +9312,11 @@ s390_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
   rtx mem;
 
   emit_block_move (m_tramp, assemble_trampoline_template (),
-		   GEN_INT (2*UNITS_PER_WORD), BLOCK_OP_NORMAL);
+		   GEN_INT (2 * UNITS_PER_LONG), BLOCK_OP_NORMAL);
 
-  mem = adjust_address (m_tramp, Pmode, 2*UNITS_PER_WORD);
+  mem = adjust_address (m_tramp, Pmode, 2 * UNITS_PER_LONG);
   emit_move_insn (mem, cxt);
-  mem = adjust_address (m_tramp, Pmode, 3*UNITS_PER_WORD);
+  mem = adjust_address (m_tramp, Pmode, 3 * UNITS_PER_LONG);
   emit_move_insn (mem, fnaddr);
 }
 
@@ -10810,6 +10828,9 @@ s390_loop_unroll_adjust (unsigned nunroll, struct loop *loop)
 
 #undef TARGET_LEGITIMATE_ADDRESS_P
 #define TARGET_LEGITIMATE_ADDRESS_P s390_legitimate_address_p
+
+#undef TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P s390_legitimate_constant_p
 
 #undef TARGET_CAN_ELIMINATE
 #define TARGET_CAN_ELIMINATE s390_can_eliminate

@@ -12,7 +12,7 @@ AC_CONFIG_HEADER(config.h)
 ### am handles this now?  ORIGINAL_LD_FOR_MULTILIBS=$LD
 
 # For libtool versioning info, format is CURRENT:REVISION:AGE
-libtool_VERSION=6:15:0
+libtool_VERSION=6:16:0
 AC_SUBST(libtool_VERSION)
 
 # Find the rest of the source tree framework.
@@ -308,7 +308,6 @@ GLIBCXX_ENABLE_VISIBILITY([yes])
 ac_ldbl_compat=no
 case "$target" in
   powerpc*-*-linux* | \
-  powerpc*-*-gnu* | \
   sparc*-*-linux* | \
   s390*-*-linux* | \
   alpha*-*-linux*)

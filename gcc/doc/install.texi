@@ -45,8 +45,8 @@
 @end ifset
 
 @c Copyright (C) 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 
-@c 2010 Free Software Foundation, Inc.
+@c 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009,
+@c 2010, 2011 Free Software Foundation, Inc.
 @c *** Converted to texinfo by Dean Wakerley, dean@wakerley.com
 
 @c IMPORTANT: whenever you modify this file, run `install.texi2html' to
@@ -303,6 +303,34 @@ Necessary (only on some platforms) to untar the source code.  Many
 systems' @command{tar} programs will also work, only try GNU
 @command{tar} if you have problems.
 
+@item Perl version 5.6.1 (or later)
+
+Necessary when targetting Darwin, building @samp{libstdc++},
+and not using @option{--disable-symvers}.
+Necessary when targetting Solaris 2 with Sun @command{ld} and not using
+@option{--disable-symvers}.  The bundled @command{perl} in Solaris@tie{}8
+and up works.
+
+Necessary when regenerating @file{Makefile} dependencies in libiberty.
+Necessary when regenerating @file{libiberty/functions.texi}.
+Necessary when generating manpages from Texinfo manuals.
+Used by various scripts to generate some files included in SVN (mainly
+Unicode-related and rarely changing) from source tables.
+
+@item @command{jar}, or InfoZIP (@command{zip} and @command{unzip})
+
+Necessary to build libgcj, the GCJ runtime.
+
+@end table
+
+Several support libraries are necessary to build GCC, some are required,
+others optional.  While any sufficiently new version of required tools
+usually work, library requirements are generally stricter.  Newer
+versions may work in some cases, but it's safer to use the exact
+versions documented.  We appreciate bug reports about problems with
+newer versions, though.
+
+@table @asis
 @item GNU Multiple Precision Library (GMP) version 4.3.2 (or later)
 
 Necessary to build GCC@.  If you do not have it installed in your
@@ -357,10 +385,6 @@ does not use PPL, PPL is still required for Graphite.
 
 In both cases @option{--with-cloog} configure option should be used
 if CLooG is not installed in your default library search path.
-
-@item @command{jar}, or InfoZIP (@command{zip} and @command{unzip})
-
-Necessary to build libgcj, the GCJ runtime.
 
 @end table
 
@@ -437,7 +461,7 @@ included in releases.
 
 @item @TeX{} (any working version)
 
-Necessary for running @command{texi2dvi} and @command{texi2pdf}, which 
+Necessary for running @command{texi2dvi} and @command{texi2pdf}, which
 are used when running @command{make dvi} or @command{make pdf} to create
 DVI or PDF files, respectively.
 
@@ -446,21 +470,6 @@ DVI or PDF files, respectively.
 
 Necessary to access the SVN repository.  Public releases and weekly
 snapshots of the development sources are also available via FTP@.
-
-@item Perl version 5.6.1 (or later)
-
-Necessary when regenerating @file{Makefile} dependencies in libiberty.
-Necessary when regenerating @file{libiberty/functions.texi}.
-Necessary when generating manpages from Texinfo manuals.
-Necessary when targetting Darwin, building @samp{libstdc++},
-and not using @option{--disable-symvers}.
-Necessary when targetting Solaris 2 with Sun @command{ld}, building
-@samp{libstdc++}, and not using @option{--disable-symvers}.  A helper
-scripts needs @samp{Glob.pm}, which is missing from @command{perl} 5.005
-included in Solaris@tie{}8.  The bundled @command{perl} in Solaris@tie{}9 and up
-works.
-Used by various scripts to generate some files included in SVN (mainly
-Unicode-related and rarely changing) from source tables.
 
 @item GNU diffutils version 2.7 (or later)
 
@@ -1003,9 +1012,6 @@ predefined set of them.
 Some targets provide finer-grained control over which multilibs are built
 (e.g., @option{--disable-softfloat}):
 @table @code
-@item arc-*-elf*
-biendian.
-
 @item arm-*-*
 fpu, 26bit, underscore, interwork, biendian, nofmult.
 
@@ -1106,10 +1112,12 @@ to @samp{single}.  When used in conjunction with the Ada run time, it
 causes GCC to use the same thread primitives as Ada uses.  This option
 is necessary when using both Ada and the back end exception handling,
 which is the default for most Ada targets.
-@item mach
-Generic MACH thread support, known to work on NeXTSTEP@.  (Please note
-that the file needed to support this configuration, @file{gthr-mach.h}, is
-missing and thus this setting will cause a known bootstrap failure.)
+@item lynx
+LynxOS thread support.
+@item mipssde
+MIPS SDE thread support.
+@item nks
+Novell Kernel Services thread support.
 @item no
 This is an alias for @samp{single}.
 @item posix
@@ -1120,15 +1128,12 @@ Generic POSIX/Unix95 thread support.
 RTEMS thread support.
 @item single
 Disable thread support, should work for all platforms.
-@item solaris
-Sun Solaris 2/Unix International thread support.  Only use this if you
-really need to use this legacy API instead of the default, @samp{posix}.
+@item tpf
+TPF thread support.
 @item vxworks
 VxWorks thread support.
 @item win32
 Microsoft Win32 API thread support.
-@item nks
-Novell Kernel Services thread support.
 @end table
 
 @item --enable-tls
@@ -1209,7 +1214,7 @@ On MIPS targets, make @option{-mno-llsc} the default when no
 On MIPS targets, make @option{-msynci} the default when no
 @option{-mno-synci} option is passed.
 
-@item --without-synci 
+@item --without-synci
 On MIPS targets, make @option{-mno-synci} the default when no
 @option{-msynci} option is passed.  This is the default.
 
@@ -1666,13 +1671,12 @@ GLIBC 2.11 or above, otherwise disabled.
 Enable support for link-time optimization (LTO).  This is enabled by
 default, and may be disabled using @option{--disable-lto}.
 
-@item --enable-gold
-Enable support for using @command{gold} as the linker.  If gold support is
-enabled together with @option{--enable-lto}, an additional directory
-@file{lto-plugin} will be built.  The code in this directory is a
-plugin for gold that allows the link-time optimizer to extract object
-files with LTO information out of library archives.  See
-@option{-flto} and @option{-fwhopr} for details.
+@item --with-plugin-ld=@var{pathname}
+Enable an alternate linker to be used at link-time optimization (LTO)
+link time when @option{-fuse-linker-plugin} is enabled.
+This linker should have plugin support such as gold starting with
+version 2.20 or GNU ld starting with version 2.21.
+See @option{-fuse-linker-plugin} for details.
 @end table
 
 @subheading Cross-Compiler-Specific Options
@@ -1707,7 +1711,7 @@ the directory specified with @option{--with-sysroot}.  This option is
 only useful when you are already using @option{--with-sysroot}.  You
 can use @option{--with-build-sysroot} when you are configuring with
 @option{--prefix} set to a directory that is different from the one in
-which you are installing GCC and your target libraries.  
+which you are installing GCC and your target libraries.
 
 This option affects the system root for the compiler used to build
 target libraries (which runs on the build system); it does not affect
@@ -1899,8 +1903,8 @@ Note that if --enable-java-home is used, --with-arch-directory=ARCH must also
 be specified.
 
 @item --with-arch-directory=ARCH
-Specifies the name to use for the @file{jre/lib/ARCH} directory in the SDK 
-environment created when --enable-java-home is passed. Typical names for this 
+Specifies the name to use for the @file{jre/lib/ARCH} directory in the SDK
+environment created when --enable-java-home is passed. Typical names for this
 directory include i386, amd64, ia64, etc.
 
 @item --with-os-directory=DIR
@@ -1912,7 +1916,7 @@ Specifies the JPackage origin name. This defaults to the 'gcj' in
 java-1.5.0-gcj.
 
 @item --with-arch-suffix=SUFFIX
-Specifies the suffix for the sdk directory. Defaults to the empty string. 
+Specifies the suffix for the sdk directory. Defaults to the empty string.
 Examples include '.x86_64' in 'java-1.5.0-gcj-1.5.0.0.x86_64'.
 
 @item --with-jvm-root-dir=DIR
@@ -1924,7 +1928,7 @@ Specifies where to install jars. Default is $(prefix)/lib/jvm-exports.
 @item --with-python-dir=DIR
 Specifies where to install the Python modules used for aot-compile. DIR should
 not include the prefix used in installation. For example, if the Python modules
-are to be installed in /usr/lib/python2.5/site-packages, then 
+are to be installed in /usr/lib/python2.5/site-packages, then
 --with-python-dir=/lib/python2.5/site-packages should be passed. If this is
 not specified, then the Python modules are installed in $(prefix)/share/python.
 
@@ -2340,7 +2344,7 @@ compilation options.  Check your target's definition of
 
 GNU Make 3.80 and above, which is necessary to build GCC, support
 building in parallel.  To activate this, you can use @samp{make -j 2}
-instead of @samp{make}.  You can also specify a bigger number, and 
+instead of @samp{make}.  You can also specify a bigger number, and
 in most cases using a value greater than the number of processors in
 your machine will result in fewer and shorter I/O latency hits, thus
 improving overall throughput; this is especially true for slow drives
@@ -2935,8 +2939,6 @@ information are.
 @item
 @uref{#alpha-dec-osf51,,alpha*-dec-osf5.1}
 @item
-@uref{#arc-x-elf,,arc-*-elf}
-@item
 @uref{#arm-x-elf,,arm-*-elf}
 @item
 @uref{#avr,,avr}
@@ -2978,10 +2980,6 @@ information are.
 @uref{#m32c-x-elf,,m32c-*-elf}
 @item
 @uref{#m32r-x-elf,,m32r-*-elf}
-@item
-@uref{#m6811-elf,,m6811-elf}
-@item
-@uref{#m6812-elf,,m6812-elf}
 @item
 @uref{#m68k-x-x,,m68k-*-*}
 @item
@@ -3102,9 +3100,13 @@ or applying the patch in
 the OS version used, you need a data segment size between 512 MB and
 1 GB, so simply use @command{ulimit -Sd unlimited}.
 
-As of GNU binutils 2.20.1, neither GNU @command{as} nor GNU @command{ld}
+As of GNU binutils 2.21, neither GNU @command{as} nor GNU @command{ld}
 are supported on Tru64 UNIX, so you must not configure GCC with
 @option{--with-gnu-as} or @option{--with-gnu-ld}.
+
+Cross-compilers for the Tru64 UNIX target currently do not work because
+the auxiliary programs @command{mips-tdump} and @command{mips-tfile} can't
+be compiled on anything but Tru64 UNIX.
 
 GCC writes a @samp{.verstamp} directive to the assembler output file
 unless it is built as a cross-compiler.  It gets the version to use from
@@ -3131,13 +3133,6 @@ DBX@.  DEC is now aware of this problem with the assembler and hopes to
 provide a fix shortly.
 
 @c FIXME: still applicable?
-
-@html
-<hr />
-@end html
-@heading @anchor{arc-x-elf}arc-*-elf
-Argonaut ARC processor.
-This configuration is intended for embedded systems.
 
 @html
 <hr />
@@ -3236,35 +3231,6 @@ Pre-packaged tools can be obtained from
 @uref{ftp://ftp.axis.com/@/pub/@/axis/@/tools/@/cris/@/compiler-kit/}.  More
 information about this platform is available at
 @uref{http://developer.axis.com/}.
-
-@html
-<hr />
-@end html
-@heading @anchor{crx}CRX
-
-The CRX CompactRISC architecture is a low-power 32-bit architecture with
-fast context switching and architectural extensibility features.
-
-@ifnothtml
-@xref{CRX Options,, CRX Options, gcc, Using and Porting the GNU Compiler
-Collection (GCC)},
-@end ifnothtml
-
-@ifhtml
-See ``CRX Options'' in the main manual for a list of CRX-specific options.
-@end ifhtml
-
-Use @samp{configure --target=crx-elf --enable-languages=c,c++} to configure
-GCC@ for building a CRX cross-compiler. The option @samp{--target=crx-elf}
-is also used to build the @samp{newlib} C library for CRX.
-
-It is also possible to build libstdc++-v3 for the CRX architecture. This
-needs to be done in a separate step with the following configure settings:
-
-@smallexample
-gcc/libstdc++-v3/configure --host=crx-elf --with-newlib \
-    --enable-sjlj-exceptions --enable-cxx-flags='-fexceptions -frtti'
-@end smallexample
 
 @html
 <hr />
@@ -3534,7 +3500,7 @@ The Sun assembler in Solaris 8 and 9 has several bugs and limitations.
 While GCC works around them, several features are missing, so it is
 @c FIXME: which ones?
 recommended to use the GNU assembler instead.  There is no bundled
-version, but the current version, from GNU binutils 2.20.1, is known to
+version, but the current version, from GNU binutils 2.21, is known to
 work.
 
 Solaris@tie{}2/x86 doesn't support the execution of SSE/SSE2 instructions
@@ -3560,7 +3526,7 @@ It is recommended that you configure GCC to use the GNU assembler, in
 @file{/usr/sfw/bin/gas}.  The versions included in Solaris 10, from GNU
 binutils 2.15, and Solaris 11, from GNU binutils 2.19, work fine,
 although the current version, from GNU binutils
-2.20.1, is known to work, too.  Recent versions of the Sun assembler in
+2.21, is known to work, too.  Recent versions of the Sun assembler in
 @file{/usr/ccs/bin/as} work almost as well, though.
 @c FIXME: as patch requirements?
 
@@ -3568,7 +3534,7 @@ For linking, the Sun linker, is preferred.  If you want to use the GNU
 linker instead, which is available in @file{/usr/sfw/bin/gld}, note that
 due to a packaging bug the version in Solaris 10, from GNU binutils
 2.15, cannot be used, while the version in Solaris 11, from GNU binutils
-2.19, works, as does the latest version, from GNU binutils 2.20.1.
+2.19, works, as does the latest version, from GNU binutils 2.21.
 
 To use GNU @command{as}, configure with the options
 @option{--with-gnu-as --with-as=@//usr/@/sfw/@/bin/@/gas}.  It may be necessary
@@ -3790,20 +3756,6 @@ This configuration is intended for embedded systems.
 @html
 <hr />
 @end html
-@heading @anchor{m6811-elf}m6811-elf
-Motorola 68HC11 family micro controllers.  These are used in embedded
-applications.  There are no standard Unix configurations.
-
-@html
-<hr />
-@end html
-@heading @anchor{m6812-elf}m6812-elf
-Motorola 68HC12 family micro controllers.  These are used in embedded
-applications.  There are no standard Unix configurations.
-
-@html
-<hr />
-@end html
 @heading @anchor{m68k-x-x}m68k-*-*
 By default,
 @samp{m68k-*-elf*}, @samp{m68k-*-rtems},  @samp{m68k-*-uclinux} and
@@ -3827,6 +3779,8 @@ be a @option{-mcpu} argument or one of the following values:
 @samp{m68000}, @samp{m68010}, @samp{m68020}, @samp{m68030},
 @samp{m68040}, @samp{m68060}, @samp{m68020-40} and @samp{m68020-60}.
 
+GCC requires at least binutils version 2.17 on these targets.
+
 @html
 <hr />
 @end html
@@ -3834,9 +3788,7 @@ be a @option{-mcpu} argument or one of the following values:
 GCC 4.3 changed the uClinux configuration so that it uses the
 @samp{m68k-linux-gnu} ABI rather than the @samp{m68k-elf} ABI.
 It also added improved support for C++ and flat shared libraries,
-both of which were ABI changes.  However, you can still use the
-original ABI by configuring for @samp{m68k-uclinuxoldabi} or
-@samp{m68k-@var{vendor}-uclinuxoldabi}.
+both of which were ABI changes.
 
 
 @html
@@ -3896,12 +3848,6 @@ prevents trap from generating the proper signal (@code{SIGFPE}).  To enable
 the use of break, use the @option{--with-divide=breaks}
 @command{configure} option when configuring GCC@.  The default is to
 use traps on systems that support them.
-
-Cross-compilers for the MIPS as target using the MIPS assembler
-currently do not work, because the auxiliary programs
-@file{mips-tdump.c} and @file{mips-tfile.c} can't be compiled on
-anything but a MIPS@.  It does work to cross compile for a MIPS
-if you use the GNU assembler and linker.
 
 The assembler from GNU binutils 2.17 and earlier has a bug in the way
 it sorts relocations for REL targets (o32, o64, EABI).  This can cause
@@ -3997,7 +3943,7 @@ Look for @file{/usr/lib64/libc.so.1} to see if you
 have the 64-bit libraries installed.
 
 GCC must be configured with GNU @command{as}.  The latest version, from GNU
-binutils 2.20.1, is known to work.  On the other hand, bootstrap fails
+binutils 2.21, is known to work.  On the other hand, bootstrap fails
 with GNU @command{ld} at least since GNU binutils 2.17.
 
 The @option{--enable-libgcj}
@@ -4137,11 +4083,12 @@ supported as cross-compilation target only.
 @c alone is too unspecific and must be avoided.
 @heading @anchor{x-x-solaris2}*-*-solaris2*
 
-Support for Solaris 7 has been removed in GCC 4.6.
+Support for Solaris 8 has been obsoleted in GCC 4.7, but can still be
+enabled by configuring with @option{--enable-obsolete}.  Support will be
+removed in GCC 4.8.  Support for Solaris 7 has been removed in GCC 4.6.
 
 Sun does not ship a C compiler with Solaris 2, though you can download
-the Sun Studio compilers for free from
-@uref{http://developers.sun.com/sunstudio/downloads/}.  Alternatively,
+the Sun Studio compilers for free.  Alternatively,
 you can install a pre-built GCC to bootstrap and install GCC.  See the
 @uref{binaries.html,,binaries page} for details.
 
@@ -4184,7 +4131,7 @@ We recommend the use of the Sun assembler or the GNU assembler, in
 conjunction with the Sun linker.  The GNU @command{as}
 versions included in Solaris 10, from GNU binutils 2.15, and Solaris 11,
 from GNU binutils 2.19, are known to work.  They can be found in
-@file{/usr/sfw/bin/gas}.  Current versions of GNU binutils (2.20.1)
+@file{/usr/sfw/bin/gas}.  Current versions of GNU binutils (2.21)
 are known to work as well.  Note that your mileage may vary
 if you use a combination of the GNU tools and the Sun tools: while the
 combination GNU @command{as} + Sun @command{ld} should reasonably work,
@@ -4193,7 +4140,7 @@ cause memory corruption at runtime in some cases for C++ programs.
 @c FIXME: still?
 GNU @command{ld} usually works as well, although the version included in
 Solaris 10 cannot be used due to several bugs.  Again, the current
-version (2.20.1) is known to work, but generally lacks platform specific
+version (2.21) is known to work, but generally lacks platform specific
 features, so better stay with Sun @command{ld}.
 
 To enable symbol versioning in @samp{libstdc++} with Sun @command{ld},
@@ -4464,27 +4411,27 @@ respects, this target is the same as the
 @heading @anchor{windows}Microsoft Windows
 
 @subheading Intel 16-bit versions
-The 16-bit versions of Microsoft Windows, such as Windows 3.1, are not 
+The 16-bit versions of Microsoft Windows, such as Windows 3.1, are not
 supported.
 
-However, the 32-bit port has limited support for Microsoft 
+However, the 32-bit port has limited support for Microsoft
 Windows 3.11 in the Win32s environment, as a target only.  See below.
 
 @subheading Intel 32-bit versions
 
-The 32-bit versions of Windows, including Windows 95, Windows NT, Windows 
-XP, and Windows Vista, are supported by several different target 
-platforms.  These targets differ in which Windows subsystem they target 
+The 32-bit versions of Windows, including Windows 95, Windows NT, Windows
+XP, and Windows Vista, are supported by several different target
+platforms.  These targets differ in which Windows subsystem they target
 and which C libraries are used.
 
 @itemize
-@item Cygwin @uref{#x-x-cygwin,,*-*-cygwin}: Cygwin provides a user-space 
+@item Cygwin @uref{#x-x-cygwin,,*-*-cygwin}: Cygwin provides a user-space
 Linux API emulation layer in the Win32 subsystem.
-@item Interix @uref{#x-x-interix,,*-*-interix}: The Interix subsystem 
+@item Interix @uref{#x-x-interix,,*-*-interix}: The Interix subsystem
 provides native support for POSIX.
-@item MinGW @uref{#x-x-mingw32,,*-*-mingw32}: MinGW is a native GCC port for 
+@item MinGW @uref{#x-x-mingw32,,*-*-mingw32}: MinGW is a native GCC port for
 the Win32 subsystem that provides a subset of POSIX.
-@item MKS i386-pc-mks: NuTCracker from MKS.  See 
+@item MKS i386-pc-mks: NuTCracker from MKS.  See
 @uref{http://www.mkssoftware.com/} for more information.
 @end itemize
 
@@ -4498,19 +4445,19 @@ Presently Windows for Itanium is not supported.
 
 @subheading Windows CE
 
-Windows CE is supported as a target only on ARM (arm-wince-pe), Hitachi 
+Windows CE is supported as a target only on ARM (arm-wince-pe), Hitachi
 SuperH (sh-wince-pe), and MIPS (mips-wince-pe).
 
 @subheading Other Windows Platforms
 
 GCC no longer supports Windows NT on the Alpha or PowerPC.
 
-GCC no longer supports the Windows POSIX subsystem.  However, it does 
+GCC no longer supports the Windows POSIX subsystem.  However, it does
 support the Interix subsystem.  See above.
 
 Old target names including *-*-winnt and *-*-windowsnt are no longer used.
 
-PW32 (i386-pc-pw32) support was never completed, and the project seems to 
+PW32 (i386-pc-pw32) support was never completed, and the project seems to
 be inactive.  See @uref{http://pw32.sourceforge.net/} for more information.
 
 UWIN support has been removed due to a lack of maintenance.
@@ -4537,9 +4484,9 @@ or version 2.20 or above if building your own.
 @end html
 @heading @anchor{x-x-interix}*-*-interix
 
-The Interix target is used by OpenNT, Interix, Services For UNIX (SFU), 
-and Subsystem for UNIX-based Applications (SUA).  Applications compiled 
-with this target run in the Interix subsystem, which is separate from 
+The Interix target is used by OpenNT, Interix, Services For UNIX (SFU),
+and Subsystem for UNIX-based Applications (SUA).  Applications compiled
+with this target run in the Interix subsystem, which is separate from
 the Win32 subsystem.  This target was last known to work in GCC 3.3.
 
 @html

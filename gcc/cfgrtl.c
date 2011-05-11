@@ -30,6 +30,8 @@ along with GCC; see the file COPYING3.  If not see
 	 insert_insn_on_edge, commit_edge_insertions
      - CFG updating after insn simplification
 	 purge_dead_edges, purge_all_dead_edges
+     - CFG fixing after coarse manipulation
+	fixup_abnormal_edges
 
    Functions not supposed for generic use:
      - Infrastructure to determine quickly basic block for insn
@@ -1277,8 +1279,8 @@ force_nonfallthru_and_redirect (edge e, basic_block target)
    (and possibly create new basic block) to make edge non-fallthru.
    Return newly created BB or NULL if none.  */
 
-basic_block
-force_nonfallthru (edge e)
+static basic_block
+rtl_force_nonfallthru (edge e)
 {
   return force_nonfallthru_and_redirect (e, e->dest);
 }
@@ -1564,10 +1566,6 @@ commit_one_edge_insertion (edge e)
     }
   else
     gcc_assert (!JUMP_P (last));
-
-  /* Mark the basic block for find_many_sub_basic_blocks.  */
-  if (current_ir_type () != IR_RTL_CFGLAYOUT)
-    bb->aux = &bb->aux;
 }
 
 /* Update the CFG for all queued instructions.  */
@@ -1576,8 +1574,6 @@ void
 commit_edge_insertions (void)
 {
   basic_block bb;
-  sbitmap blocks;
-  bool changed = false;
 
 #ifdef ENABLE_CHECKING
   verify_flow_info ();
@@ -1590,35 +1586,8 @@ commit_edge_insertions (void)
 
       FOR_EACH_EDGE (e, ei, bb->succs)
 	if (e->insns.r)
-	  {
-	    changed = true;
-	    commit_one_edge_insertion (e);
-	  }
+	  commit_one_edge_insertion (e);
     }
-
-  if (!changed)
-    return;
-
-  /* In the old rtl CFG API, it was OK to insert control flow on an
-     edge, apparently?  In cfglayout mode, this will *not* work, and
-     the caller is responsible for making sure that control flow is
-     valid at all times.  */
-  if (current_ir_type () == IR_RTL_CFGLAYOUT)
-    return;
-
-  blocks = sbitmap_alloc (last_basic_block);
-  sbitmap_zero (blocks);
-  FOR_EACH_BB (bb)
-    if (bb->aux)
-      {
-	SET_BIT (blocks, bb->index);
-	/* Check for forgotten bb->aux values before commit_edge_insertions
-	   call.  */
-	gcc_assert (bb->aux == &bb->aux);
-	bb->aux = NULL;
-      }
-  find_many_sub_basic_blocks (blocks);
-  sbitmap_free (blocks);
 }
 
 
@@ -2471,6 +2440,95 @@ purge_all_dead_edges (void)
   return purged;
 }
 
+/* This is used by a few passes that emit some instructions after abnormal
+   calls, moving the basic block's end, while they in fact do want to emit
+   them on the fallthru edge.  Look for abnormal call edges, find backward
+   the call in the block and insert the instructions on the edge instead.
+
+   Similarly, handle instructions throwing exceptions internally.
+
+   Return true when instructions have been found and inserted on edges.  */
+
+bool
+fixup_abnormal_edges (void)
+{
+  bool inserted = false;
+  basic_block bb;
+
+  FOR_EACH_BB (bb)
+    {
+      edge e;
+      edge_iterator ei;
+
+      /* Look for cases we are interested in - calls or instructions causing
+         exceptions.  */
+      FOR_EACH_EDGE (e, ei, bb->succs)
+	if ((e->flags & EDGE_ABNORMAL_CALL)
+	    || ((e->flags & (EDGE_ABNORMAL | EDGE_EH))
+		== (EDGE_ABNORMAL | EDGE_EH)))
+	  break;
+
+      if (e && !CALL_P (BB_END (bb)) && !can_throw_internal (BB_END (bb)))
+	{
+	  rtx insn;
+
+	  /* Get past the new insns generated.  Allow notes, as the insns
+	     may be already deleted.  */
+	  insn = BB_END (bb);
+	  while ((NONJUMP_INSN_P (insn) || NOTE_P (insn))
+		 && !can_throw_internal (insn)
+		 && insn != BB_HEAD (bb))
+	    insn = PREV_INSN (insn);
+
+	  if (CALL_P (insn) || can_throw_internal (insn))
+	    {
+	      rtx stop, next;
+
+	      e = find_fallthru_edge (bb->succs);
+
+	      stop = NEXT_INSN (BB_END (bb));
+	      BB_END (bb) = insn;
+
+	      for (insn = NEXT_INSN (insn); insn != stop; insn = next)
+		{
+		  next = NEXT_INSN (insn);
+		  if (INSN_P (insn))
+		    {
+		      delete_insn (insn);
+
+		      /* Sometimes there's still the return value USE.
+			 If it's placed after a trapping call (i.e. that
+			 call is the last insn anyway), we have no fallthru
+			 edge.  Simply delete this use and don't try to insert
+			 on the non-existent edge.  */
+		      if (GET_CODE (PATTERN (insn)) != USE)
+			{
+			  /* We're not deleting it, we're moving it.  */
+			  INSN_DELETED_P (insn) = 0;
+			  PREV_INSN (insn) = NULL_RTX;
+			  NEXT_INSN (insn) = NULL_RTX;
+
+			  insert_insn_on_edge (insn, e);
+			  inserted = true;
+			}
+		    }
+		  else if (!BARRIER_P (insn))
+		    set_block_for_insn (insn, NULL);
+		}
+	    }
+
+	  /* It may be that we don't find any trapping insn.  In this
+	     case we discovered quite late that the insn that had been
+	     marked as can_throw_internal in fact couldn't trap at all.
+	     So we should in fact delete the EH edges out of the block.  */
+	  else
+	    purge_dead_edges (bb);
+	}
+    }
+
+  return inserted;
+}
+
 /* Same as split_block but update cfg_layout structures.  */
 
 static basic_block
@@ -2537,9 +2595,9 @@ cfg_layout_redirect_edge_and_branch (edge e, basic_block dest)
 	  e->flags &= ~EDGE_FALLTHRU;
 	  redirected = redirect_branch_edge (e, dest);
 	  gcc_assert (redirected);
-	  e->flags |= EDGE_FALLTHRU;
-	  df_set_bb_dirty (e->src);
-	  return e;
+	  redirected->flags |= EDGE_FALLTHRU;
+	  df_set_bb_dirty (redirected->src);
+	  return redirected;
 	}
       /* In case we are redirecting fallthru edge to the branch edge
 	 of conditional jump, remove it.  */
@@ -2553,10 +2611,10 @@ cfg_layout_redirect_edge_and_branch (edge e, basic_block dest)
 	      && onlyjump_p (BB_END (src)))
 	    delete_insn (BB_END (src));
 	}
-      ret = redirect_edge_succ_nodup (e, dest);
       if (dump_file)
 	fprintf (dump_file, "Fallthru edge %i->%i redirected to %i\n",
 		 e->src->index, e->dest->index, dest->index);
+      ret = redirect_edge_succ_nodup (e, dest);
     }
   else
     ret = redirect_branch_edge (e, dest);
@@ -3142,6 +3200,7 @@ struct cfg_hooks rtl_cfg_hooks = {
   rtl_split_edge,
   rtl_make_forwarder_block,
   rtl_tidy_fallthru_edge,
+  rtl_force_nonfallthru,
   rtl_block_ends_with_call_p,
   rtl_block_ends_with_condjump_p,
   rtl_flow_call_edges_add,
@@ -3185,7 +3244,8 @@ struct cfg_hooks cfg_layout_rtl_cfg_hooks = {
   cfg_layout_duplicate_bb,
   cfg_layout_split_edge,
   rtl_make_forwarder_block,
-  NULL,
+  NULL, /* tidy_fallthru_edge */
+  rtl_force_nonfallthru,
   rtl_block_ends_with_call_p,
   rtl_block_ends_with_condjump_p,
   rtl_flow_call_edges_add,

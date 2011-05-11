@@ -456,11 +456,20 @@ Driver Joined Separate
 Tbss
 Driver Separate
 
+Tbss=
+Driver Joined
+
 Tdata
 Driver Separate
 
+Tdata=
+Driver Joined
+
 Ttext
 Driver Separate
+
+Ttext=
+Driver Joined
 
 W
 Common RejectNegative Warning Alias(Wextra)
@@ -621,6 +630,10 @@ Warn if a comparison is always true or always false due to the limited range of 
 Wuninitialized
 Common Var(warn_uninitialized) Init(-1) Warning
 Warn about uninitialized automatic variables
+
+Wmaybe-uninitialized
+Common Var(warn_maybe_uninitialized) Warning
+Warn about maybe uninitialized automatic variables
 
 Wunreachable-code
 Common Ignore
@@ -1031,6 +1044,10 @@ fdebug-prefix-map=
 Common Joined RejectNegative Var(common_deferred_options) Defer
 Map one directory name to another in debug information
 
+fdebug-types-section
+Common Report Var(flag_debug_types_section) Init(1)
+Output .debug_types section when using DWARF v4 debuginfo.
+
 ; Nonzero for -fdefer-pop: don't pop args after each function call
 ; instead save them up to pop many calls' args with one insns.
 fdefer-pop
@@ -1124,10 +1141,6 @@ Perform unused type elimination in debug info
 femit-class-debug-always
 Common Report Var(flag_emit_class_debug_always) Init(0)
 Do not suppress C++ class debug information.
-
-fenable-icf-debug
-Common Report Var(flag_enable_icf_debug)
-Generate debug information to support Identical Code Folding (ICF)
 
 fexceptions
 Common Report Var(flag_exceptions) Optimization
@@ -1366,9 +1379,8 @@ Perform matrix layout flattening and transposing based
 on profiling information.
 
 fipa-struct-reorg
-Common Report Var(flag_ipa_struct_reorg)
-Perform structure layout optimizations based
-on profiling information.
+Common Ignore
+Does nothing. Preserved for backward compatibility.
 
 fira-algorithm=
 Common Joined RejectNegative Enum(ira_algorithm) Var(flag_ira_algorithm) Init(IRA_ALGORITHM_CB)

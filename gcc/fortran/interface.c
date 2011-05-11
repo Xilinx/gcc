@@ -87,7 +87,7 @@ gfc_free_interface (gfc_interface *intr)
   for (; intr; intr = next)
     {
       next = intr->next;
-      gfc_free (intr);
+      free (intr);
     }
 }
 
@@ -912,7 +912,7 @@ count_types_test (gfc_formal_arglist *f1, gfc_formal_arglist *f2)
       k++;
     }
 
-  gfc_free (arg);
+  free (arg);
 
   return rc;
 }
@@ -1128,6 +1128,12 @@ check_interface0 (gfc_interface *p, const char *interface_name)
 		     " or all FUNCTIONs", interface_name, &p->sym->declared_at);
 	  return 1;
 	}
+
+      if (p->sym->attr.proc == PROC_INTERNAL
+	  && gfc_notify_std (GFC_STD_GNU, "Extension: Internal procedure '%s' "
+			     "in %s at %L", p->sym->name, interface_name,
+			     &p->sym->declared_at) == FAILURE)
+	return 1;
     }
   p = psave;
 
@@ -1147,7 +1153,7 @@ check_interface0 (gfc_interface *p, const char *interface_name)
 	    {
 	      /* Duplicate interface.  */
 	      qlast->next = q->next;
-	      gfc_free (q);
+	      free (q);
 	      q = qlast->next;
 	    }
 	}
@@ -1564,8 +1570,7 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
       gfc_ref *last = NULL;
 
       if (actual->expr_type != EXPR_VARIABLE
-	  || (actual->ref == NULL
-	      && !actual->symtree->n.sym->attr.codimension))
+	  || !gfc_expr_attr (actual).codimension)
 	{
 	  if (where)
 	    gfc_error ("Actual argument to '%s' at %L must be a coarray",
@@ -1573,15 +1578,16 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 	  return 0;
 	}
 
+      if (gfc_is_coindexed (actual))
+	{
+	  if (where)
+	    gfc_error ("Actual argument to '%s' at %L must be a coarray "
+		       "and not coindexed", formal->name, &actual->where);
+	  return 0;
+	}
+
       for (ref = actual->ref; ref; ref = ref->next)
 	{
-	  if (ref->type == REF_ARRAY && ref->u.ar.codimen != 0)
-	    {
-	      if (where)
-		gfc_error ("Actual argument to '%s' at %L must be a coarray "
-			   "and not coindexed", formal->name, &ref->u.ar.where);
-	      return 0;
-	    }
 	  if (ref->type == REF_ARRAY && ref->u.ar.as->corank
 	      && ref->u.ar.type != AR_FULL && ref->u.ar.dimen != 0)
 	    {
@@ -1593,14 +1599,6 @@ compare_parameter (gfc_symbol *formal, gfc_expr *actual,
 	    }
 	  if (ref->type == REF_COMPONENT)
 	    last = ref;
-	}
-
-      if (last && !last->u.c.component->attr.codimension)
-      	{
-	  if (where)
-	    gfc_error ("Actual argument to '%s' at %L must be a coarray",
-		       formal->name, &actual->where);
-	  return 0;
 	}
 
       /* F2008, 12.5.2.6.  */
@@ -3149,9 +3147,8 @@ gfc_extend_expr (gfc_expr *e, bool *real_error)
 	}
 
       /* Don't use gfc_free_actual_arglist().  */
-      if (actual->next != NULL)
-	gfc_free (actual->next);
-      gfc_free (actual);
+      free (actual->next);
+      free (actual);
 
       return FAILURE;
     }
@@ -3242,8 +3239,8 @@ gfc_extend_assign (gfc_code *c, gfc_namespace *ns)
 	  return SUCCESS;
 	}
 
-      gfc_free (actual->next);
-      gfc_free (actual);
+      free (actual->next);
+      free (actual);
       return FAILURE;
     }
 
@@ -3444,6 +3441,6 @@ gfc_free_formal_arglist (gfc_formal_arglist *p)
   for (; p; p = q)
     {
       q = p->next;
-      gfc_free (p);
+      free (p);
     }
 }

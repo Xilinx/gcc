@@ -49,7 +49,6 @@ along with GCC; see the file COPYING3.  If not see
 #define MAX_SUBRECORD_LENGTH 2147483639   /* 2**31-9 */
 
 
-#define free(x) Use_gfc_free_instead_of_free()
 #define gfc_is_whitespace(c) ((c==' ') || (c=='\t'))
 
 /* Stringization.  */
@@ -458,7 +457,7 @@ enum gfc_isym_id
   GFC_ISYM_NORM2,
   GFC_ISYM_NOT,
   GFC_ISYM_NULL,
-  GFC_ISYM_NUMIMAGES,
+  GFC_ISYM_NUM_IMAGES,
   GFC_ISYM_OR,
   GFC_ISYM_PACK,
   GFC_ISYM_PARITY,
@@ -572,7 +571,8 @@ init_local_integer;
 typedef enum
 {
   GFC_FCOARRAY_NONE = 0,
-  GFC_FCOARRAY_SINGLE
+  GFC_FCOARRAY_SINGLE,
+  GFC_FCOARRAY_LIB
 }
 gfc_fcoarray;
 
@@ -1272,8 +1272,7 @@ typedef struct gfc_entry_list
 }
 gfc_entry_list;
 
-#define gfc_get_entry_list() \
-  (gfc_entry_list *) gfc_getmem(sizeof(gfc_entry_list))
+#define gfc_get_entry_list() XCNEW (gfc_entry_list)
 
 /* Lists of rename info for the USE statement.  */
 
@@ -1302,8 +1301,7 @@ typedef struct gfc_use_list
 }
 gfc_use_list;
 
-#define gfc_get_use_list() \
-  (gfc_use_list *) gfc_getmem(sizeof(gfc_use_list))
+#define gfc_get_use_list() XCNEW (gfc_use_list)
 
 /* Within a namespace, symbols are pointed to by symtree nodes that
    are linked together in a balanced binary tree.  There can be
@@ -1485,7 +1483,7 @@ extern gfc_interface_info current_interface;
 
 enum gfc_array_ref_dimen_type
 {
-  DIMEN_ELEMENT = 1, DIMEN_RANGE, DIMEN_VECTOR, DIMEN_STAR, DIMEN_UNKNOWN
+  DIMEN_ELEMENT = 1, DIMEN_RANGE, DIMEN_VECTOR, DIMEN_STAR, DIMEN_THIS_IMAGE, DIMEN_UNKNOWN
 };
 
 typedef struct gfc_array_ref
@@ -1783,7 +1781,7 @@ typedef struct gfc_expr
 gfc_expr;
 
 
-#define gfc_get_shape(rank) ((mpz_t *) gfc_getmem((rank)*sizeof(mpz_t)))
+#define gfc_get_shape(rank) (XCNEWVEC (mpz_t, (rank)))
 
 /* Structures for information associated with different kinds of
    numbers.  The first set of integer parameters define all there is
@@ -2179,6 +2177,7 @@ typedef struct
   int warn_ampersand;
   int gfc_warn_conversion;
   int warn_conversion_extra;
+  int warn_function_elimination;
   int warn_implicit_interface;
   int warn_implicit_procedure;
   int warn_line_truncation;
@@ -2190,6 +2189,7 @@ typedef struct
   int warn_character_truncation;
   int warn_array_temp;
   int warn_align_commons;
+  int warn_real_q_constant;
   int warn_unused_dummy_argument;
   int max_errors;
 
@@ -2219,6 +2219,7 @@ typedef struct
   int flag_d_lines;
   int gfc_flag_openmp;
   int flag_sign_zero;
+  int flag_stack_arrays;
   int flag_module_private;
   int flag_recursive;
   int flag_init_local_zero;
@@ -2232,6 +2233,8 @@ typedef struct
   int flag_whole_file;
   int flag_protect_parens;
   int flag_realloc_lhs;
+  int flag_aggressive_function_elimination;
+  int flag_frontend_optimize;
 
   int fpe;
   int rtcheck;
@@ -2365,8 +2368,6 @@ void gfc_start_source_files (void);
 void gfc_end_source_files (void);
 
 /* misc.c */
-void *gfc_getmem (size_t) ATTRIBUTE_MALLOC;
-void gfc_free (void *);
 int gfc_terminal_width (void);
 void gfc_clear_ts (gfc_typespec *);
 FILE *gfc_open_file (const char *);
@@ -2850,6 +2851,7 @@ bool gfc_is_function_return_value (gfc_symbol *, gfc_namespace *);
 /* trans.c */
 void gfc_generate_code (gfc_namespace *);
 void gfc_generate_module_code (gfc_namespace *);
+void gfc_init_coarray_decl (bool);
 
 /* bbt.c */
 typedef int (*compare_fn) (void *, void *);
@@ -2865,6 +2867,7 @@ void gfc_global_used (gfc_gsymbol *, locus *);
 gfc_namespace* gfc_build_block_ns (gfc_namespace *);
 
 /* dependency.c */
+int gfc_dep_compare_functions (gfc_expr *, gfc_expr *, bool);
 int gfc_dep_compare_expr (gfc_expr *, gfc_expr *);
 
 /* check.c */

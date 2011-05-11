@@ -399,8 +399,10 @@ find_tail_calls (basic_block bb, struct tailcall **ret)
     {
       stmt = gsi_stmt (gsi);
 
-      /* Ignore labels.  */
-      if (gimple_code (stmt) == GIMPLE_LABEL || is_gimple_debug (stmt))
+      /* Ignore labels, returns and debug stmts.  */
+      if (gimple_code (stmt) == GIMPLE_LABEL
+	  || gimple_code (stmt) == GIMPLE_RETURN
+	  || is_gimple_debug (stmt))
 	continue;
 
       /* Check for a call.  */
@@ -1017,6 +1019,14 @@ tree_optimize_tail_calls_1 (bool opt_tailcalls)
       if (act->mult && !m_acc)
 	m_acc = create_tailcall_accumulator ("mult_acc", first,
 					     integer_one_node);
+    }
+
+  if (a_acc || m_acc)
+    {
+      /* When the tail call elimination using accumulators is performed,
+	 statements adding the accumulated value are inserted at all exits.
+	 This turns all other tail calls to non-tail ones.  */
+      opt_tailcalls = false;
     }
 
   for (; tailcalls; tailcalls = next)

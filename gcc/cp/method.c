@@ -259,8 +259,10 @@ make_alias_for_thunk (tree function)
 
   if (!flag_syntax_only)
     {
-      struct cgraph_node *aliasn = cgraph_same_body_alias (cgraph_node (function),
-							   alias, function);
+      struct cgraph_node *funcn, *aliasn;
+      funcn = cgraph_get_node (function);
+      gcc_checking_assert (funcn);
+      aliasn = cgraph_same_body_alias (funcn, alias, function);
       DECL_ASSEMBLER_NAME (function);
       gcc_assert (aliasn != NULL);
     }
@@ -279,6 +281,7 @@ use_thunk (tree thunk_fndecl, bool emit_p)
   tree virtual_offset;
   HOST_WIDE_INT fixed_offset, virtual_value;
   bool this_adjusting = DECL_THIS_THUNK_P (thunk_fndecl);
+  struct cgraph_node *funcn;
 
   /* We should have called finish_thunk to give it a name.  */
   gcc_assert (DECL_NAME (thunk_fndecl));
@@ -378,7 +381,9 @@ use_thunk (tree thunk_fndecl, bool emit_p)
   a = nreverse (t);
   DECL_ARGUMENTS (thunk_fndecl) = a;
   TREE_ASM_WRITTEN (thunk_fndecl) = 1;
-  cgraph_add_thunk (cgraph_node (function), thunk_fndecl, function,
+  funcn = cgraph_get_node (function);
+  gcc_checking_assert (funcn);
+  cgraph_add_thunk (funcn, thunk_fndecl, function,
 		    this_adjusting, fixed_offset, virtual_value,
 		    virtual_offset, alias);
 
@@ -1080,14 +1085,9 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
   tsubst_flags_t complain;
   const char *msg;
   bool ctor_p;
-  tree cleanup_spec;
-  bool cleanup_trivial = true;
-  bool cleanup_deleted = false;
 
-  cleanup_spec
-    = (cxx_dialect >= cxx0x ? noexcept_true_spec : empty_except_spec);
   if (spec_p)
-    *spec_p = cleanup_spec;
+    *spec_p = (cxx_dialect >= cxx0x ? noexcept_true_spec : empty_except_spec);
 
   if (deleted_p)
     {
@@ -1228,8 +1228,10 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 	     destructors for cleanup of partially constructed objects.  */
 	  rval = locate_fn_flags (base_binfo, complete_dtor_identifier,
 				  NULL_TREE, flags, complain);
-	  process_subob_fn (rval, false, &cleanup_spec, &cleanup_trivial,
-			    &cleanup_deleted, NULL, NULL,
+	  /* Note that we don't pass down trivial_p; the subobject
+	     destructors don't affect triviality of the constructor.  */
+	  process_subob_fn (rval, false, spec_p, NULL,
+			    deleted_p, NULL, NULL,
 			    basetype);
 	}
 
@@ -1275,8 +1277,8 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
 	    {
 	      rval = locate_fn_flags (base_binfo, complete_dtor_identifier,
 				      NULL_TREE, flags, complain);
-	      process_subob_fn (rval, false, &cleanup_spec, &cleanup_trivial,
-				&cleanup_deleted, NULL, NULL,
+	      process_subob_fn (rval, false, spec_p, NULL,
+				deleted_p, NULL, NULL,
 				basetype);
 	    }
 	}
@@ -1295,23 +1297,14 @@ synthesized_method_walk (tree ctype, special_function_kind sfk, bool const_p,
   if (ctor_p)
     walk_field_subobs (TYPE_FIELDS (ctype), complete_dtor_identifier,
 		       sfk_destructor, TYPE_UNQUALIFIED, false,
-		       false, false, &cleanup_spec, &cleanup_trivial,
-		       &cleanup_deleted, NULL,
+		       false, false, spec_p, NULL,
+		       deleted_p, NULL,
 		       NULL, flags, complain);
 
   pop_scope (scope);
 
   --cp_unevaluated_operand;
   --c_inhibit_evaluation_warnings;
-
-  /* If the constructor isn't trivial, consider the subobject cleanups.  */
-  if (ctor_p && trivial_p && !*trivial_p)
-    {
-      if (deleted_p && cleanup_deleted)
-	*deleted_p = true;
-      if (spec_p)
-	*spec_p = merge_exception_specifiers (*spec_p, cleanup_spec);
-    }
 }
 
 /* DECL is a deleted function.  If it's implicitly deleted, explain why and
@@ -1566,6 +1559,12 @@ defaulted_late_check (tree fn)
   if (DECL_DEFAULTED_IN_CLASS_P (fn))
     {
       tree eh_spec = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (implicit_fn));
+      if (TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn))
+	  && !comp_except_specs (TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn)),
+				 eh_spec, ce_normal))
+	error ("function %q+D defaulted on its first declaration "
+	       "with an exception-specification that differs from "
+	       "the implicit declaration %q#D", fn, implicit_fn);
       TREE_TYPE (fn) = build_exception_variant (TREE_TYPE (fn), eh_spec);
       if (DECL_DECLARED_CONSTEXPR_P (implicit_fn))
 	/* Hmm...should we do this for out-of-class too? Should it be OK to
@@ -1593,6 +1592,12 @@ bool
 defaultable_fn_check (tree fn)
 {
   special_function_kind kind = sfk_none;
+
+  if (template_parm_scope_p ())
+    {
+      error ("a template cannot be defaulted");
+      return false;
+    }
 
   if (DECL_CONSTRUCTOR_P (fn))
     {
@@ -1631,14 +1636,7 @@ defaultable_fn_check (tree fn)
 	    break;
 	  }
       if (TYPE_BEING_DEFINED (DECL_CONTEXT (fn)))
-	{
-	  if (TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn)))
-	    error ("function %q+D defaulted on its first declaration "
-		   "must not have an exception-specification", fn);
-	  if (DECL_VIRTUAL_P (fn))
-	    error ("%qD declared virtual cannot be defaulted in the class "
-		   "body", fn);
-	}
+	/* Defer checking.  */;
       else if (!processing_template_decl)
 	defaulted_late_check (fn);
 

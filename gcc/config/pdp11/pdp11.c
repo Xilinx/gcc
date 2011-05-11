@@ -1,6 +1,6 @@
 /* Subroutines for gcc2 for pdp11.
    Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2001, 2004, 2005,
-   2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Michael K. Gschwind (mike@vlsivie.tuwien.ac.at).
 
 This file is part of GCC.
@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "target-def.h"
 #include "df.h"
+#include "opts.h"
 
 /* this is the current value returned by the macro FIRST_PARM_OFFSET 
    defined in tm.h */
@@ -138,7 +139,8 @@ decode_pdp11_d (const struct real_format *fmt ATTRIBUTE_UNUSED,
 /* This is where the condition code register lives.  */
 /* rtx cc0_reg_rtx; - no longer needed? */
 
-static bool pdp11_handle_option (size_t, const char *, int);
+static bool pdp11_handle_option (struct gcc_options *, struct gcc_options *,
+				 const struct cl_decoded_option *, location_t);
 static void pdp11_option_init_struct (struct gcc_options *);
 static const char *singlemove_string (rtx *);
 static bool pdp11_assemble_integer (rtx, unsigned int, int);
@@ -155,6 +157,7 @@ static rtx pdp11_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
 static void pdp11_function_arg_advance (CUMULATIVE_ARGS *,
 					enum machine_mode, const_tree, bool);
 static void pdp11_conditional_register_usage (void);
+static bool pdp11_legitimate_constant_p (enum machine_mode, rtx);
 
 /* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
 
@@ -241,17 +244,24 @@ static const struct default_options pdp11_option_optimization_table[] =
 
 #undef  TARGET_PRINT_OPERAND_PUNCT_VALID_P
 #define TARGET_PRINT_OPERAND_PUNCT_VALID_P pdp11_asm_print_operand_punct_valid_p
+
+#undef  TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P pdp11_legitimate_constant_p
 
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
-pdp11_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
-		     int value ATTRIBUTE_UNUSED)
+pdp11_handle_option (struct gcc_options *opts,
+		     struct gcc_options *opts_set ATTRIBUTE_UNUSED,
+		     const struct cl_decoded_option *decoded,
+		     location_t loc ATTRIBUTE_UNUSED)
 {
+  size_t code = decoded->opt_index;
+
   switch (code)
     {
     case OPT_m10:
-      target_flags &= ~(MASK_40 | MASK_45);
+      opts->x_target_flags &= ~(MASK_40 | MASK_45);
       return true;
 
     default:
@@ -1918,6 +1928,14 @@ pdp11_function_section (tree decl ATTRIBUTE_UNUSED,
 			bool exit ATTRIBUTE_UNUSED)
 {
   return NULL;
+}
+
+/* Implement TARGET_LEGITIMATE_CONSTANT_P.  */
+
+static bool
+pdp11_legitimate_constant_p (enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
+{
+  return GET_CODE (x) != CONST_DOUBLE || legitimate_const_double_p (x);
 }
 
 struct gcc_target targetm = TARGET_INITIALIZER;

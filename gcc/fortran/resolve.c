@@ -315,7 +315,8 @@ resolve_formal_arglist (gfc_symbol *proc)
 	 shape until we know if it has the pointer or allocatable attributes.
       */
       if (sym->as && sym->as->rank > 0 && sym->as->type == AS_DEFERRED
-	  && !(sym->attr.pointer || sym->attr.allocatable))
+	  && !(sym->attr.pointer || sym->attr.allocatable)
+	  && sym->attr.flavor != FL_PROCEDURE)
 	{
 	  sym->as->type = AS_ASSUMED_SHAPE;
 	  for (i = 0; i < sym->as->rank; i++)
@@ -1091,7 +1092,7 @@ resolve_structure_cons (gfc_expr *expr, int init)
 		    cl2->next = cl->next;
 
 		  gfc_free_expr (cl->length);
-		  gfc_free (cl);
+		  free (cl);
 		}
 
 	      cons->expr->ts.u.cl = gfc_new_charlen (gfc_current_ns, NULL);
@@ -2187,7 +2188,7 @@ resolve_global_procedure (gfc_symbol *sym, locus *where,
 
 	  /* F2003, 12.3.1.1 (3c); F2008, 12.4.2.2 (3c)  */
 	  if (sym->ts.type == BT_CHARACTER && sym->attr.if_source != IFSRC_IFBODY
-	      && def_sym->ts.u.cl->length != NULL)
+	      && def_sym->ts.type == BT_CHARACTER && def_sym->ts.u.cl->length != NULL)
 	    {
 	      gfc_charlen *cl = sym->ts.u.cl;
 
@@ -4157,6 +4158,7 @@ check_dimension (int i, gfc_array_ref *ar, gfc_array_spec *as)
   switch (ar->dimen_type[i])
     {
     case DIMEN_VECTOR:
+    case DIMEN_THIS_IMAGE:
       break;
 
     case DIMEN_STAR:
@@ -4324,7 +4326,8 @@ compare_spec_to_ref (gfc_array_ref *ar)
   if (ar->codimen != 0)
     for (i = as->rank; i < as->rank + as->corank; i++)
       {
-	if (ar->dimen_type[i] != DIMEN_ELEMENT && !ar->in_allocate)
+	if (ar->dimen_type[i] != DIMEN_ELEMENT && !ar->in_allocate
+	    && ar->dimen_type[i] != DIMEN_THIS_IMAGE)
 	  {
 	    gfc_error ("Coindex of codimension %d must be a scalar at %L",
 		       i + 1 - as->rank, &ar->where);
@@ -4333,6 +4336,14 @@ compare_spec_to_ref (gfc_array_ref *ar)
 	if (check_dimension (i, ar, as) == FAILURE)
 	  return FAILURE;
       }
+
+  if (as->corank && ar->codimen == 0)
+    {
+      int n;
+      ar->codimen = as->corank;
+      for (n = ar->dimen; n < ar->dimen + ar->codimen; n++)
+	ar->dimen_type[n] = DIMEN_THIS_IMAGE;
+    }
 
   return SUCCESS;
 }
@@ -5184,7 +5195,7 @@ check_host_association (gfc_expr *e)
 	      for (n = 0; n < e->rank; n++)
 		mpz_clear (e->shape[n]);
 
-	      gfc_free (e->shape);
+	      free (e->shape);
 	    }
 
 	  /* Give the expression the right symtree!  */
@@ -5674,7 +5685,7 @@ success:
   /* Make sure that we have the right specific instance for the name.  */
   derived = get_declared_from_expr (NULL, NULL, e);
 
-  st = gfc_find_typebound_proc (derived, NULL, genname, false, &e->where);
+  st = gfc_find_typebound_proc (derived, NULL, genname, true, &e->where);
   if (st)
     e->value.compcall.tbp = st->n.tb;
 
@@ -6626,6 +6637,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 {
   int i, pointer, allocatable, dimension, is_abstract;
   int codimension;
+  bool coindexed;
   symbol_attribute attr;
   gfc_ref *ref, *ref2;
   gfc_expr *e2;
@@ -6683,18 +6695,32 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 	  codimension = sym->attr.codimension;
 	}
 
+      coindexed = false;
+
       for (ref = e->ref; ref; ref2 = ref, ref = ref->next)
 	{
 	  switch (ref->type)
 	    {
  	      case REF_ARRAY:
+                if (ref->u.ar.codimen > 0)
+		  {
+		    int n;
+		    for (n = ref->u.ar.dimen;
+			 n < ref->u.ar.dimen + ref->u.ar.codimen; n++)
+		      if (ref->u.ar.dimen_type[n] != DIMEN_THIS_IMAGE)
+			{
+			  coindexed = true;
+			  break;
+			}
+		   }
+
 		if (ref->next != NULL)
 		  pointer = 0;
 		break;
 
 	      case REF_COMPONENT:
 		/* F2008, C644.  */
-		if (gfc_is_coindexed (e))
+		if (coindexed)
 		  {
 		    gfc_error ("Coindexed allocatable object at %L",
 			       &e->where);
@@ -6848,12 +6874,14 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 
   ar = &ref2->u.ar;
 
-  if (codimension && ar->codimen == 0)
-    {
-      gfc_error ("Coarray specification required in ALLOCATE statement "
-		 "at %L", &e->where);
-      goto failure;
-    }
+  if (codimension)
+    for (i = ar->dimen; i < ar->dimen + ar->codimen; i++)
+      if (ar->dimen_type[i] == DIMEN_THIS_IMAGE)
+	{
+	  gfc_error ("Coarray specification required in ALLOCATE statement "
+		     "at %L", &e->where);
+	  goto failure;
+	}
 
   for (i = 0; i < ar->dimen; i++)
     {
@@ -6876,6 +6904,7 @@ resolve_allocate_expr (gfc_expr *e, gfc_code *code)
 	case DIMEN_UNKNOWN:
 	case DIMEN_VECTOR:
 	case DIMEN_STAR:
+	case DIMEN_THIS_IMAGE:
 	  gfc_error ("Bad array specification in ALLOCATE statement at %L",
 		     &e->where);
 	  goto failure;
@@ -8585,7 +8614,7 @@ gfc_resolve_forall (gfc_code *code, gfc_namespace *ns, int forall_save)
       total_var = gfc_count_forall_iterators (code);
 
       /* Allocate VAR_EXPR with NUMBER_OF_FORALL_INDEX elements.  */
-      var_expr = (gfc_expr **) gfc_getmem (total_var * sizeof (gfc_expr *));
+      var_expr = XCNEWVEC (gfc_expr *, total_var);
     }
 
   /* The information about FORALL iterator, including FORALL index start, end
@@ -8630,7 +8659,7 @@ gfc_resolve_forall (gfc_code *code, gfc_namespace *ns, int forall_save)
       gcc_assert (forall_save == 0);
 
       /* VAR_EXPR is not needed any more.  */
-      gfc_free (var_expr);
+      free (var_expr);
       total_var = 0;
     }
 }
@@ -9858,6 +9887,11 @@ apply_default_init_local (gfc_symbol *sym)
 static gfc_try
 resolve_fl_var_and_proc (gfc_symbol *sym, int mp_flag)
 {
+  /* Avoid double diagnostics for function result symbols.  */
+  if ((sym->result || sym->attr.result) && !sym->attr.dummy
+      && (sym->ns != gfc_current_ns))
+    return SUCCESS;
+
   /* Constraints on deferred shape variable.  */
   if (sym->as == NULL || sym->as->type != AS_DEFERRED)
     {
@@ -9885,7 +9919,7 @@ resolve_fl_var_and_proc (gfc_symbol *sym, int mp_flag)
   else
     {
       if (!mp_flag && !sym->attr.allocatable && !sym->attr.pointer
-	  && !sym->attr.dummy && sym->ts.type != BT_CLASS && !sym->assoc)
+	  && sym->ts.type != BT_CLASS && !sym->assoc)
 	{
 	  gfc_error ("Array '%s' at %L cannot have a deferred shape",
 		     sym->name, &sym->declared_at);
@@ -11946,11 +11980,6 @@ resolve_symbol (gfc_symbol *sym)
   gfc_namespace *ns;
   gfc_component *c;
 
-  /* Avoid double resolution of function result symbols.  */
-  if ((sym->result || sym->attr.result) && !sym->attr.dummy
-      && (sym->ns != gfc_current_ns))
-    return;
-  
   if (sym->attr.flavor == FL_UNKNOWN)
     {
 
@@ -12501,17 +12530,17 @@ check_data_variable (gfc_data_variable *var, locus *where)
 
   has_pointer = sym->attr.pointer;
 
+  if (gfc_is_coindexed (e))
+    {
+      gfc_error ("DATA element '%s' at %L cannot have a coindex", sym->name,
+		 where);
+      return FAILURE;
+    }
+
   for (ref = e->ref; ref; ref = ref->next)
     {
       if (ref->type == REF_COMPONENT && ref->u.c.component->attr.pointer)
 	has_pointer = 1;
-
-      if (ref->type == REF_ARRAY && ref->u.ar.codimen)
-	{
-	  gfc_error ("DATA element '%s' at %L cannot have a coindex",
-		     sym->name, where);
-	  return FAILURE;
-	}
 
       if (has_pointer
 	    && ref->type == REF_ARRAY
@@ -13171,7 +13200,7 @@ resolve_equivalence (gfc_equiv *eq)
 		  e->ts.u.cl = NULL;
 		}
 	      ref = ref->next;
-	      gfc_free (mem);
+	      free (mem);
 	    }
 
 	  /* Any further ref is an error.  */
@@ -13504,6 +13533,10 @@ resolve_types (gfc_namespace *ns)
   resolve_common_blocks (ns->common_root);
 
   resolve_contained_functions (ns);
+
+  if (ns->proc_name && ns->proc_name->attr.flavor == FL_PROCEDURE
+      && ns->proc_name->attr.if_source == IFSRC_IFBODY)
+    resolve_formal_arglist (ns->proc_name);
 
   gfc_traverse_ns (ns, resolve_bind_c_derived_types);
 

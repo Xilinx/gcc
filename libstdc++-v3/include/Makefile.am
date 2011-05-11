@@ -827,7 +827,6 @@ host_installdir = ${gxx_include_dir}/${host_alias}$(MULTISUBDIR)/bits
 host_headers = \
 	${host_srcdir}/ctype_base.h \
 	${host_srcdir}/ctype_inline.h \
-	${host_srcdir}/ctype_noninline.h \
 	${host_srcdir}/os_defines.h \
 	${glibcxx_srcdir}/$(ATOMIC_WORD_SRCDIR)/atomic_word.h \
 	${glibcxx_srcdir}/$(ABI_TWEAKS_SRCDIR)/cxxabi_tweaks.h \
@@ -1200,7 +1199,9 @@ endif
 install-freestanding-headers:
 	$(mkinstalldirs) $(DESTDIR)${gxx_include_dir}
 	$(mkinstalldirs) $(DESTDIR)${host_installdir}
-	for file in ${host_srcdir}/os_defines.h ${host_builddir}/c++config.h; do \
+	for file in ${host_srcdir}/os_defines.h ${host_builddir}/c++config.h \
+	  ${glibcxx_srcdir}/$(ABI_TWEAKS_SRCDIR)/cxxabi_tweaks.h \
+	  ${glibcxx_srcdir}/$(CPU_DEFINES_SRCDIR)/cpu_defines.h; do \
 	  $(INSTALL_DATA) $${file} $(DESTDIR)${host_installdir}; done
 	$(mkinstalldirs) $(DESTDIR)${gxx_include_dir}/${std_builddir}
 	$(INSTALL_DATA) ${std_builddir}/limits $(DESTDIR)${gxx_include_dir}/${std_builddir}

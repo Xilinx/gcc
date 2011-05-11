@@ -52,29 +52,30 @@ static tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 /* Table of machine-independent attributes supported in GIMPLE.  */
 const struct attribute_spec lto_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       do_diagnostic } */
   { "noreturn",               0, 0, true,  false, false,
-			      handle_noreturn_attribute },
+			      handle_noreturn_attribute, false },
   { "leaf",		      0, 0, true,  false, false,
-			      handle_leaf_attribute },
+			      handle_leaf_attribute, false },
   /* The same comments as for noreturn attributes apply to const ones.  */
   { "const",                  0, 0, true,  false, false,
-			      handle_const_attribute },
+			      handle_const_attribute, false },
   { "malloc",                 0, 0, true,  false, false,
-			      handle_malloc_attribute },
+			      handle_malloc_attribute, false },
   { "pure",                   0, 0, true,  false, false,
-			      handle_pure_attribute },
+			      handle_pure_attribute, false },
   { "no vops",                0, 0, true,  false, false,
-			      handle_novops_attribute },
+			      handle_novops_attribute, false },
   { "nonnull",                0, -1, false, true, true,
-			      handle_nonnull_attribute },
+			      handle_nonnull_attribute, false },
   { "nothrow",                0, 0, true,  false, false,
-			      handle_nothrow_attribute },
+			      handle_nothrow_attribute, false },
   { "sentinel",               0, 1, false, true, true,
-			      handle_sentinel_attribute },
+			      handle_sentinel_attribute, false },
   { "type generic",           0, 0, false, true, true,
-			      handle_type_generic_attribute },
-  { NULL,                     0, 0, false, false, false, NULL }
+			      handle_type_generic_attribute, false },
+  { NULL,                     0, 0, false, false, false, NULL, false }
 };
 
 /* Give the specifications for the format attributes, used by C and all
@@ -82,12 +83,13 @@ const struct attribute_spec lto_attribute_table[] =
 
 const struct attribute_spec lto_format_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
   { "format",                 3, 3, false, true,  true,
-			      handle_format_attribute },
+			      handle_format_attribute, false },
   { "format_arg",             1, 1, false, true,  true,
-			      handle_format_arg_attribute },
-  { NULL,                     0, 0, false, false, false, NULL }
+			      handle_format_arg_attribute, false },
+  { NULL,                     0, 0, false, false, false, NULL, false }
 };
 
 enum built_in_attribute
@@ -371,13 +373,7 @@ handle_sentinel_attribute (tree *node, tree ARG_UNUSED (name), tree args,
 			   int ARG_UNUSED (flags),
 			   bool * ARG_UNUSED (no_add_attrs))
 {
-  tree params = TYPE_ARG_TYPES (*node);
-  gcc_assert (params);
-
-  while (TREE_CHAIN (params))
-    params = TREE_CHAIN (params);
-
-  gcc_assert (!VOID_TYPE_P (TREE_VALUE (params)));
+  gcc_assert (stdarg_p (*node));
 
   if (args)
     {
@@ -397,17 +393,11 @@ handle_type_generic_attribute (tree *node, tree ARG_UNUSED (name),
 			       tree ARG_UNUSED (args), int ARG_UNUSED (flags),
 			       bool * ARG_UNUSED (no_add_attrs))
 {
-  tree params;
-  
   /* Ensure we have a function type.  */
   gcc_assert (TREE_CODE (*node) == FUNCTION_TYPE);
   
-  params = TYPE_ARG_TYPES (*node);
-  while (params && ! VOID_TYPE_P (TREE_VALUE (params)))
-    params = TREE_CHAIN (params);
-
   /* Ensure we have a variadic function.  */
-  gcc_assert (!params);
+  gcc_assert (!prototype_p (*node) || stdarg_p (*node));
 
   return NULL_TREE;
 }
@@ -443,7 +433,8 @@ handle_format_arg_attribute (tree * ARG_UNUSED (node), tree ARG_UNUSED (name),
 static void
 def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
 {
-  tree args = NULL, t;
+  tree t;
+  tree *args = XALLOCAVEC (tree, n);
   va_list list;
   int i;
 
@@ -454,21 +445,21 @@ def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
       t = builtin_types[a];
       if (t == error_mark_node)
 	goto egress;
-      args = tree_cons (NULL_TREE, t, args);
+      args[i] = t;
     }
   va_end (list);
-
-  args = nreverse (args);
-  if (!var)
-    args = chainon (args, void_list_node);
 
   t = builtin_types[ret];
   if (t == error_mark_node)
     goto egress;
-  t = build_function_type (t, args);
+  if (var)
+    t = build_varargs_function_type_array (t, n, args);
+  else
+    t = build_function_type_array (t, n, args);
 
  egress:
   builtin_types[def] = t;
+  va_end (list);
 }
 
 /* Used to help initialize the builtin-types.def table.  When a type of
@@ -611,11 +602,6 @@ lto_define_builtins (tree va_list_ref_type_node ATTRIBUTE_UNUSED,
 }
 
 static GTY(()) tree registered_builtin_types;
-
-/* A chain of builtin functions that we need to recognize.  We will
-   assume that all other function names we see will be defined by the
-   user's program.  */
-static GTY(()) tree registered_builtin_fndecls;
 
 /* Language hooks.  */
 
@@ -952,8 +938,10 @@ lto_type_for_mode (enum machine_mode mode, int unsigned_p)
   return NULL_TREE;
 }
 
-static int
-lto_global_bindings_p (void) 
+/* Return true if we are in the global binding level.  */
+
+static bool
+lto_global_bindings_p (void)
 {
   return cfun == NULL;
 }
@@ -991,7 +979,10 @@ lto_pushdecl (tree t ATTRIBUTE_UNUSED)
 static tree
 lto_getdecls (void)
 {
-  return registered_builtin_fndecls;
+  /* We have our own write_globals langhook, hence the getdecls
+     langhook shouldn't be used, except by dbxout.c, so we can't
+     just abort here.  */
+  return NULL_TREE;
 }
 
 static void
@@ -1007,10 +998,6 @@ lto_write_globals (void)
 static tree
 lto_builtin_function (tree decl)
 {
-  /* Record it.  */
-  TREE_CHAIN (decl) = registered_builtin_fndecls;
-  registered_builtin_fndecls = decl;
-
   return decl;
 }
 

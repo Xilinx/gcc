@@ -1,5 +1,5 @@
 /* Swing Modulo Scheduling implementation.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Ayal Zaks and Mustafa Hagog <zaks,mustafa@il.ibm.com>
 
@@ -275,7 +275,7 @@ static struct haifa_sched_info sms_sched_info =
   NULL, NULL,
   0, 0,
 
-  NULL, NULL, NULL,
+  NULL, NULL, NULL, NULL,
   0
 };
 
@@ -310,10 +310,10 @@ doloop_register_get (rtx head ATTRIBUTE_UNUSED, rtx tail ATTRIBUTE_UNUSED)
      either a single (parallel) branch-on-count or a (non-parallel)
      branch immediately preceded by a single (decrement) insn.  */
   first_insn_not_to_check = (GET_CODE (PATTERN (tail)) == PARALLEL ? tail
-                             : PREV_INSN (tail));
+                             : prev_nondebug_insn (tail));
 
   for (insn = head; insn != first_insn_not_to_check; insn = NEXT_INSN (insn))
-    if (reg_mentioned_p (reg, insn))
+    if (reg_mentioned_p (reg, insn) && !DEBUG_INSN_P (insn))
       {
         if (dump_file)
         {
@@ -1009,9 +1009,11 @@ sms_schedule (void)
 	continue;
       }
 
-      /* Don't handle BBs with calls or barriers, or !single_set insns,
-         or auto-increment insns (to avoid creating invalid reg-moves
-         for the auto-increment insns).
+      /* Don't handle BBs with calls or barriers or auto-increment insns 
+	 (to avoid creating invalid reg-moves for the auto-increment insns),
+	 or !single_set with the exception of instructions that include
+	 count_reg---these instructions are part of the control part
+	 that do-loop recognizes.
          ??? Should handle auto-increment insns.
          ??? Should handle insns defining subregs.  */
      for (insn = head; insn != NEXT_INSN (tail); insn = NEXT_INSN (insn))
@@ -1021,7 +1023,8 @@ sms_schedule (void)
         if (CALL_P (insn)
             || BARRIER_P (insn)
             || (NONDEBUG_INSN_P (insn) && !JUMP_P (insn)
-                && !single_set (insn) && GET_CODE (PATTERN (insn)) != USE)
+                && !single_set (insn) && GET_CODE (PATTERN (insn)) != USE
+                && !reg_mentioned_p (count_reg, insn))
             || (FIND_REG_INC_NOTE (insn, NULL_RTX) != 0)
             || (INSN_P (insn) && (set = single_set (insn))
                 && GET_CODE (SET_DEST (set)) == SUBREG))
@@ -1162,9 +1165,10 @@ sms_schedule (void)
         gcc_assert(stage_count >= 1);
       }
 
-      /* Stage count of 1 means that there is no interleaving between
-         iterations, let the scheduling passes do the job.  */
-      if (stage_count <= 1
+      /* The default value of PARAM_SMS_MIN_SC is 2 as stage count of
+	 1 means that there is no interleaving between iterations thus
+	 we let the scheduling passes do the job in this case.  */
+      if (stage_count < (unsigned) PARAM_VALUE (PARAM_SMS_MIN_SC)
 	  || (count_init && (loop_count <= stage_count))
 	  || (flag_branch_probabilities && (trip_count <= stage_count)))
 	{
@@ -1177,7 +1181,6 @@ sms_schedule (void)
 	      fprintf (dump_file, HOST_WIDEST_INT_PRINT_DEC, trip_count);
 	      fprintf (dump_file, ")\n");
 	    }
-	  continue;
 	}
       else
 	{

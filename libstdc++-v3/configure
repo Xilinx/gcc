@@ -2825,7 +2825,7 @@ ac_config_headers="$ac_config_headers config.h"
 ### am handles this now?  ORIGINAL_LD_FOR_MULTILIBS=$LD
 
 # For libtool versioning info, format is CURRENT:REVISION:AGE
-libtool_VERSION=6:15:0
+libtool_VERSION=6:16:0
 
 
 # Find the rest of the source tree framework.
@@ -64486,7 +64486,6 @@ $as_echo "$as_me: visibility supported: $enable_visibility" >&6;}
 ac_ldbl_compat=no
 case "$target" in
   powerpc*-*-linux* | \
-  powerpc*-*-gnu* | \
   sparc*-*-linux* | \
   s390*-*-linux* | \
   alpha*-*-linux*)

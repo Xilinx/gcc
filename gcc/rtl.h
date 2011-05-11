@@ -833,6 +833,10 @@ extern void rtl_check_failed_flag (const char *, const_rtx, const char *,
    but a value from enum reg_note.  */
 #define REG_NOTES(INSN)	XEXP(INSN, 7)
 
+/* In an ENTRY_VALUE this is the DECL_INCOMING_RTL of the argument in
+   question.  */
+#define ENTRY_VALUE_EXP(RTX) (RTL_CHECKC1 (RTX, 0, ENTRY_VALUE).rt_rtx)
+
 enum reg_note
 {
 #define DEF_REG_NOTE(NAME) NAME,
@@ -1664,6 +1668,7 @@ extern rtx get_pool_constant (rtx);
 extern rtx get_pool_constant_mark (rtx, bool *);
 extern enum machine_mode get_pool_mode (const_rtx);
 extern rtx simplify_subtraction (rtx);
+extern void decide_function_section (tree);
 
 /* In function.c  */
 extern rtx assign_stack_local (enum machine_mode, HOST_WIDE_INT, int);
@@ -1988,7 +1993,7 @@ extern const char *decode_asm_operands (rtx, rtx *, rtx **, const char **,
 
 extern enum reg_class reg_preferred_class (int);
 extern enum reg_class reg_alternate_class (int);
-extern enum reg_class reg_cover_class (int);
+extern enum reg_class reg_allocno_class (int);
 extern void setup_reg_classes (int, enum reg_class, enum reg_class,
 			       enum reg_class);
 
@@ -2041,6 +2046,7 @@ enum global_rtl_index
 {
   GR_PC,
   GR_CC0,
+  GR_RETURN,
   GR_STACK_POINTER,
   GR_FRAME_POINTER,
 /* For register elimination to work properly these hard_frame_pointer_rtx,
@@ -2130,6 +2136,7 @@ extern struct target_rtl *this_target_rtl;
 
 /* Standard pieces of rtx, to be substituted directly into things.  */
 #define pc_rtx                  (global_rtl[GR_PC])
+#define ret_rtx                 (global_rtl[GR_RETURN])
 #define cc0_rtx                 (global_rtl[GR_CC0])
 
 /* All references to certain hard regs, except those created
@@ -2311,6 +2318,7 @@ extern int redirect_jump_1 (rtx, rtx);
 extern void redirect_jump_2 (rtx, rtx, rtx, int, int);
 extern int redirect_jump (rtx, rtx, int);
 extern void rebuild_jump_labels (rtx);
+extern void rebuild_jump_labels_chain (rtx);
 extern rtx reversed_comparison (const_rtx, enum machine_mode);
 extern enum rtx_code reversed_comparison_code (const_rtx, const_rtx);
 extern enum rtx_code reversed_comparison_code_parts (enum rtx_code, const_rtx,

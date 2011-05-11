@@ -1,6 +1,6 @@
 /* Standard problems for dataflow support routines.
    Copyright (C) 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009, 2010 Free Software Foundation, Inc.
+   2008, 2009, 2010, 2011 Free Software Foundation, Inc.
    Originally contributed by Michael P. Hayes
              (m.hayes@elec.canterbury.ac.nz, mhayes@redhat.com)
    Major rewrite contributed by Danny Berlin (dberlin@dberlin.org)
@@ -3774,12 +3774,9 @@ df_simulate_one_insn_forwards (basic_block bb, rtx insn, bitmap live)
 	  {
 	    rtx reg = XEXP (link, 0);
 	    int regno = REGNO (reg);
-	    if (regno < FIRST_PSEUDO_REGISTER)
-	      {
-		int n = hard_regno_nregs[regno][GET_MODE (reg)];
-		while (--n >= 0)
-		  bitmap_clear_bit (live, regno + n);
-	      }
+	    if (HARD_REGISTER_NUM_P (regno))
+	      bitmap_clear_range (live, regno,
+				  hard_regno_nregs[regno][GET_MODE (reg)]);
 	    else
 	      bitmap_clear_bit (live, regno);
 	  }
@@ -4004,7 +4001,10 @@ can_move_insns_across (rtx from, rtx to, rtx across_from, rtx across_to,
 	  if (bitmap_intersect_p (merge_set, test_use)
 	      || bitmap_intersect_p (merge_use, test_set))
 	    break;
-	  max_to = insn;
+#ifdef HAVE_cc0
+	  if (!sets_cc0_p (insn))
+#endif
+	    max_to = insn;
 	}
       next = NEXT_INSN (insn);
       if (insn == to)
@@ -4041,7 +4041,11 @@ can_move_insns_across (rtx from, rtx to, rtx across_from, rtx across_to,
     {
       if (NONDEBUG_INSN_P (insn))
 	{
-	  if (!bitmap_intersect_p (test_set, local_merge_live))
+	  if (!bitmap_intersect_p (test_set, local_merge_live)
+#ifdef HAVE_cc0
+	      && !sets_cc0_p (insn)
+#endif
+	      )
 	    {
 	      max_to = insn;
 	      break;

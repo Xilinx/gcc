@@ -1,5 +1,5 @@
 /* The Blackfin code generation auxiliary output file.
-   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Analog Devices.
 
@@ -56,6 +56,7 @@
 #include "timevar.h"
 #include "df.h"
 #include "sel-sched.h"
+#include "opts.h"
 
 /* A C structure for machine-specific, per-function data.
    This is added to the cfun structure.  */
@@ -85,9 +86,6 @@ const char *byte_reg_names[]   =  BYTE_REGISTER_NAMES;
 static int arg_regs[] = FUNCTION_ARG_REGISTERS;
 static int ret_regs[] = FUNCTION_RETURN_REGISTERS;
 
-/* Nonzero if -mshared-library-id was given.  */
-static int bfin_lib_id_given;
-
 /* Nonzero if -fschedule-insns2 was given.  We override it and
    call the scheduler ourselves during reorg.  */
 static int bfin_flag_schedule_insns2;
@@ -95,17 +93,6 @@ static int bfin_flag_schedule_insns2;
 /* Determines whether we run variable tracking in machine dependent
    reorganization.  */
 static int bfin_flag_var_tracking;
-
-/* -mcpu support */
-bfin_cpu_t bfin_cpu_type = BFIN_CPU_UNKNOWN;
-
-/* -msi-revision support. There are three special values:
-   -1      -msi-revision=none.
-   0xffff  -msi-revision=any.  */
-int bfin_si_revision;
-
-/* The workarounds enabled */
-unsigned int bfin_workarounds = 0;
 
 struct bfin_cpu
 {
@@ -115,17 +102,34 @@ struct bfin_cpu
   unsigned int workarounds;
 };
 
-struct bfin_cpu bfin_cpus[] =
+static const struct bfin_cpu bfin_cpus[] =
 {
+
+  {"bf512", BFIN_CPU_BF512, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_05000074},
+  {"bf512", BFIN_CPU_BF512, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_05000074},
   {"bf512", BFIN_CPU_BF512, 0x0000,
    WA_SPECULATIVE_LOADS | WA_05000074},
 
+  {"bf514", BFIN_CPU_BF514, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_05000074},
+  {"bf514", BFIN_CPU_BF514, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_05000074},
   {"bf514", BFIN_CPU_BF514, 0x0000,
    WA_SPECULATIVE_LOADS | WA_05000074},
 
+  {"bf516", BFIN_CPU_BF516, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_05000074},
+  {"bf516", BFIN_CPU_BF516, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_05000074},
   {"bf516", BFIN_CPU_BF516, 0x0000,
    WA_SPECULATIVE_LOADS | WA_05000074},
 
+  {"bf518", BFIN_CPU_BF518, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_05000074},
+  {"bf518", BFIN_CPU_BF518, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_05000074},
   {"bf518", BFIN_CPU_BF518, 0x0000,
    WA_SPECULATIVE_LOADS | WA_05000074},
 
@@ -273,6 +277,8 @@ struct bfin_cpu bfin_cpus[] =
   {"bf542m", BFIN_CPU_BF542M, 0x0003,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
 
+  {"bf542", BFIN_CPU_BF542, 0x0004,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf542", BFIN_CPU_BF542, 0x0002,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf542", BFIN_CPU_BF542, 0x0001,
@@ -284,6 +290,8 @@ struct bfin_cpu bfin_cpus[] =
   {"bf544m", BFIN_CPU_BF544M, 0x0003,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
 
+  {"bf544", BFIN_CPU_BF544, 0x0004,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf544", BFIN_CPU_BF544, 0x0002,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf544", BFIN_CPU_BF544, 0x0001,
@@ -295,6 +303,8 @@ struct bfin_cpu bfin_cpus[] =
   {"bf547m", BFIN_CPU_BF547M, 0x0003,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
 
+  {"bf547", BFIN_CPU_BF547, 0x0004,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf547", BFIN_CPU_BF547, 0x0002,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf547", BFIN_CPU_BF547, 0x0001,
@@ -306,6 +316,8 @@ struct bfin_cpu bfin_cpus[] =
   {"bf548m", BFIN_CPU_BF548M, 0x0003,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
 
+  {"bf548", BFIN_CPU_BF548, 0x0004,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf548", BFIN_CPU_BF548, 0x0002,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf548", BFIN_CPU_BF548, 0x0001,
@@ -317,6 +329,8 @@ struct bfin_cpu bfin_cpus[] =
   {"bf549m", BFIN_CPU_BF549M, 0x0003,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
 
+  {"bf549", BFIN_CPU_BF549, 0x0004,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf549", BFIN_CPU_BF549, 0x0002,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf549", BFIN_CPU_BF549, 0x0001,
@@ -1308,7 +1322,7 @@ bfin_load_pic_reg (rtx dest)
   if (i && i->local)
     return pic_offset_table_rtx;
       
-  if (bfin_lib_id_given)
+  if (global_options_set.x_bfin_library_id)
     addr = plus_constant (pic_offset_table_rtx, -4 - bfin_library_id * 4);
   else
     addr = gen_rtx_PLUS (Pmode, pic_offset_table_rtx,
@@ -1344,8 +1358,10 @@ bfin_expand_prologue (void)
 	= bfin_initial_elimination_offset (ARG_POINTER_REGNUM,
 					   STACK_POINTER_REGNUM);
       rtx lim = crtl->limit_stack ? stack_limit_rtx : NULL_RTX;
+      rtx tmp = gen_rtx_REG (Pmode, REG_R3);
       rtx p2reg = gen_rtx_REG (Pmode, REG_P2);
 
+      emit_move_insn (tmp, p2reg);
       if (!lim)
 	{
 	  emit_move_insn (p2reg, gen_int_mode (0xFFB00000, SImode));
@@ -1382,6 +1398,7 @@ bfin_expand_prologue (void)
 	}
       emit_insn (gen_compare_lt (bfin_cc_rtx, spreg, lim));
       emit_insn (gen_trapifcc ());
+      emit_move_insn (p2reg, tmp);
     }
   expand_prologue_reg_save (spreg, all, false);
 
@@ -1443,6 +1460,14 @@ bfin_hard_regno_rename_ok (unsigned int old_reg ATTRIBUTE_UNUSED,
     return 0;
 
   return 1;
+}
+
+/* Implement TARGET_EXTRA_LIVE_ON_ENTRY.  */
+static void
+bfin_extra_live_on_entry (bitmap regs)
+{
+  if (TARGET_FDPIC)
+    bitmap_set_bit (regs, FDPIC_REGNO);
 }
 
 /* Return the value of the return address for the frame COUNT steps up
@@ -2176,7 +2201,7 @@ expand_move (rtx *operands, enum machine_mode mode)
   else if (mode == SImode && GET_CODE (op) == CONST
 	   && GET_CODE (XEXP (op, 0)) == PLUS
 	   && GET_CODE (XEXP (XEXP (op, 0), 0)) == SYMBOL_REF
-	   && !bfin_legitimate_constant_p (op))
+	   && !targetm.legitimate_constant_p (mode, op))
     {
       rtx dest = operands[0];
       rtx op0, op1;
@@ -2347,7 +2372,7 @@ bfin_expand_call (rtx retval, rtx fnaddr, rtx callarg1, rtx cookie, int sibcall)
     XVECEXP (pat, 0, n++) = gen_rtx_USE (VOIDmode, picreg);
   XVECEXP (pat, 0, n++) = gen_rtx_USE (VOIDmode, cookie);
   if (sibcall)
-    XVECEXP (pat, 0, n++) = gen_rtx_RETURN (VOIDmode);
+    XVECEXP (pat, 0, n++) = ret_rtx;
   else
     XVECEXP (pat, 0, n++) = gen_rtx_CLOBBER (VOIDmode, retsreg);
   call = emit_call_insn (pat);
@@ -2558,15 +2583,21 @@ bfin_class_likely_spilled_p (reg_class_t rclass)
 /* Implement TARGET_HANDLE_OPTION.  */
 
 static bool
-bfin_handle_option (size_t code, const char *arg, int value)
+bfin_handle_option (struct gcc_options *opts,
+		    struct gcc_options *opts_set ATTRIBUTE_UNUSED,
+		    const struct cl_decoded_option *decoded,
+		    location_t loc)
 {
+  size_t code = decoded->opt_index;
+  const char *arg = decoded->arg;
+  int value = decoded->value;
+
   switch (code)
     {
     case OPT_mshared_library_id_:
       if (value > MAX_LIBRARY_ID)
-	error ("-mshared-library-id=%s is not between 0 and %d",
-	       arg, MAX_LIBRARY_ID);
-      bfin_lib_id_given = 1;
+	error_at (loc, "-mshared-library-id=%s is not between 0 and %d",
+		  arg, MAX_LIBRARY_ID);
       return true;
 
     case OPT_mcpu_:
@@ -2584,27 +2615,27 @@ bfin_handle_option (size_t code, const char *arg, int value)
 
 	if (p == NULL)
 	  {
-	    error ("-mcpu=%s is not valid", arg);
+	    error_at (loc, "-mcpu=%s is not valid", arg);
 	    return false;
 	  }
 
-	bfin_cpu_type = bfin_cpus[i].type;
+	opts->x_bfin_cpu_type = bfin_cpus[i].type;
 
 	q = arg + strlen (p);
 
 	if (*q == '\0')
 	  {
-	    bfin_si_revision = bfin_cpus[i].si_revision;
-	    bfin_workarounds |= bfin_cpus[i].workarounds;
+	    opts->x_bfin_si_revision = bfin_cpus[i].si_revision;
+	    opts->x_bfin_workarounds |= bfin_cpus[i].workarounds;
 	  }
 	else if (strcmp (q, "-none") == 0)
-	  bfin_si_revision = -1;
+	  opts->x_bfin_si_revision = -1;
       	else if (strcmp (q, "-any") == 0)
 	  {
-	    bfin_si_revision = 0xffff;
-	    while (bfin_cpus[i].type == bfin_cpu_type)
+	    opts->x_bfin_si_revision = 0xffff;
+	    while (bfin_cpus[i].type == opts->x_bfin_cpu_type)
 	      {
-		bfin_workarounds |= bfin_cpus[i].workarounds;
+		opts->x_bfin_workarounds |= bfin_cpus[i].workarounds;
 		i++;
 	      }
 	  }
@@ -2620,20 +2651,20 @@ bfin_handle_option (size_t code, const char *arg, int value)
 		|| si_major > 0xff || si_minor > 0xff)
 	      {
 	      invalid_silicon_revision:
-		error ("-mcpu=%s has invalid silicon revision", arg);
+		error_at (loc, "-mcpu=%s has invalid silicon revision", arg);
 		return false;
 	      }
 
-	    bfin_si_revision = (si_major << 8) | si_minor;
+	    opts->x_bfin_si_revision = (si_major << 8) | si_minor;
 
-	    while (bfin_cpus[i].type == bfin_cpu_type
-		   && bfin_cpus[i].si_revision != bfin_si_revision)
+	    while (bfin_cpus[i].type == opts->x_bfin_cpu_type
+		   && bfin_cpus[i].si_revision != opts->x_bfin_si_revision)
 	      i++;
 
-	    if (bfin_cpus[i].type != bfin_cpu_type)
+	    if (bfin_cpus[i].type != opts->x_bfin_cpu_type)
 	      goto invalid_silicon_revision;
 
-	    bfin_workarounds |= bfin_cpus[i].workarounds;
+	    opts->x_bfin_workarounds |= bfin_cpus[i].workarounds;
 	  }
 
 	return true;
@@ -2679,9 +2710,20 @@ bfin_option_override (void)
   if (TARGET_OMIT_LEAF_FRAME_POINTER)
     flag_omit_frame_pointer = 1;
 
+#ifdef SUBTARGET_FDPIC_NOT_SUPPORTED
+  if (TARGET_FDPIC)
+    error ("-mfdpic is not supported, please use a bfin-linux-uclibc target");
+#endif
+
   /* Library identification */
-  if (bfin_lib_id_given && ! TARGET_ID_SHARED_LIBRARY)
+  if (global_options_set.x_bfin_library_id && ! TARGET_ID_SHARED_LIBRARY)
     error ("-mshared-library-id= specified without -mid-shared-library");
+
+  if (stack_limit_rtx && TARGET_FDPIC)
+    {
+      warning (0, "-fstack-limit- options are ignored with -mfdpic; use -mstack-check-l1");
+      stack_limit_rtx = NULL_RTX;
+    }
 
   if (stack_limit_rtx && TARGET_STACK_CHECK_L1)
     error ("can%'t use multiple stack checking methods together");
@@ -3062,7 +3104,8 @@ bfin_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
    another way.  */
 
 static bool
-bfin_cannot_force_const_mem (rtx x ATTRIBUTE_UNUSED)
+bfin_cannot_force_const_mem (enum machine_mode mode ATTRIBUTE_UNUSED,
+			     rtx x ATTRIBUTE_UNUSED)
 {
   /* We have only one class of non-legitimate constants, and our movsi
      expander knows how to handle them.  Dropping these constants into the
@@ -3076,8 +3119,8 @@ bfin_cannot_force_const_mem (rtx x ATTRIBUTE_UNUSED)
    This ensures that flat binaries never have to deal with relocations
    crossing section boundaries.  */
 
-bool
-bfin_legitimate_constant_p (rtx x)
+static bool
+bfin_legitimate_constant_p (enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
 {
   rtx sym;
   HOST_WIDE_INT offset;
@@ -5765,21 +5808,30 @@ bfin_handle_l2_attribute (tree *node, tree ARG_UNUSED (name),
 /* Table of valid machine attributes.  */
 static const struct attribute_spec bfin_attribute_table[] =
 {
-  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler } */
-  { "interrupt_handler", 0, 0, false, true,  true, handle_int_attribute },
-  { "exception_handler", 0, 0, false, true,  true, handle_int_attribute },
-  { "nmi_handler", 0, 0, false, true,  true, handle_int_attribute },
-  { "nesting", 0, 0, false, true,  true, NULL },
-  { "kspisusp", 0, 0, false, true,  true, NULL },
-  { "saveall", 0, 0, false, true,  true, NULL },
-  { "longcall",  0, 0, false, true,  true,  bfin_handle_longcall_attribute },
-  { "shortcall", 0, 0, false, true,  true,  bfin_handle_longcall_attribute },
-  { "l1_text", 0, 0, true, false, false,  bfin_handle_l1_text_attribute },
-  { "l1_data", 0, 0, true, false, false,  bfin_handle_l1_data_attribute },
-  { "l1_data_A", 0, 0, true, false, false, bfin_handle_l1_data_attribute },
-  { "l1_data_B", 0, 0, true, false, false,  bfin_handle_l1_data_attribute },
-  { "l2", 0, 0, true, false, false,  bfin_handle_l2_attribute },
-  { NULL, 0, 0, false, false, false, NULL }
+  /* { name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+       affects_type_identity } */
+  { "interrupt_handler", 0, 0, false, true,  true, handle_int_attribute,
+    false },
+  { "exception_handler", 0, 0, false, true,  true, handle_int_attribute,
+    false },
+  { "nmi_handler", 0, 0, false, true,  true, handle_int_attribute, false },
+  { "nesting", 0, 0, false, true,  true, NULL, false },
+  { "kspisusp", 0, 0, false, true,  true, NULL, false },
+  { "saveall", 0, 0, false, true,  true, NULL, false },
+  { "longcall",  0, 0, false, true,  true,  bfin_handle_longcall_attribute,
+    false },
+  { "shortcall", 0, 0, false, true,  true,  bfin_handle_longcall_attribute,
+    false },
+  { "l1_text", 0, 0, true, false, false,  bfin_handle_l1_text_attribute,
+    false },
+  { "l1_data", 0, 0, true, false, false,  bfin_handle_l1_data_attribute,
+    false },
+  { "l1_data_A", 0, 0, true, false, false, bfin_handle_l1_data_attribute,
+    false },
+  { "l1_data_B", 0, 0, true, false, false,  bfin_handle_l1_data_attribute,
+    false },
+  { "l2", 0, 0, true, false, false,  bfin_handle_l2_attribute, false },
+  { NULL, 0, 0, false, false, false, NULL, false }
 };
 
 /* Implementation of TARGET_ASM_INTEGER.  When using FD-PIC, we need to
@@ -5965,7 +6017,7 @@ bfin_init_builtins (void)
 {
   tree V2HI_type_node = build_vector_type_for_mode (intHI_type_node, V2HImode);
   tree void_ftype_void
-    = build_function_type (void_type_node, void_list_node);
+    = build_function_type_list (void_type_node, NULL_TREE);
   tree short_ftype_short
     = build_function_type_list (short_integer_type_node, short_integer_type_node,
 				NULL_TREE);
@@ -6679,6 +6731,9 @@ bfin_conditional_register_usage (void)
 #undef TARGET_DELEGITIMIZE_ADDRESS
 #define TARGET_DELEGITIMIZE_ADDRESS bfin_delegitimize_address
 
+#undef TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P bfin_legitimate_constant_p
+
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM bfin_cannot_force_const_mem
 
@@ -6701,5 +6756,8 @@ bfin_conditional_register_usage (void)
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE bfin_asm_trampoline_template
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT bfin_trampoline_init
+
+#undef TARGET_EXTRA_LIVE_ON_ENTRY
+#define TARGET_EXTRA_LIVE_ON_ENTRY bfin_extra_live_on_entry
 
 struct gcc_target targetm = TARGET_INITIALIZER;

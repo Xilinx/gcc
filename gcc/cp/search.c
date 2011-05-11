@@ -1451,7 +1451,7 @@ lookup_fnfields_1 (tree type, tree name)
 tree
 lookup_fnfields_slot (tree type, tree name)
 {
-  int ix = lookup_fnfields_1 (type, name);
+  int ix = lookup_fnfields_1 (complete_type (type), name);
   if (ix < 0)
     return NULL_TREE;
   return VEC_index (tree, CLASSTYPE_METHOD_VEC (type), ix);
@@ -1897,7 +1897,7 @@ check_final_overrider (tree overrider, tree basefn)
     }
 
   /* Check for conflicting type attributes.  */
-  if (!targetm.comp_type_attributes (over_type, base_type))
+  if (!comp_type_attributes (over_type, base_type))
     {
       error ("conflicting type attributes specified for %q+#D", overrider);
       error ("  overriding %q+#D", basefn);
@@ -1918,6 +1918,12 @@ check_final_overrider (tree overrider, tree basefn)
 	  error ("non-deleted function %q+D", overrider);
 	  error ("overriding deleted function %q+D", basefn);
 	}
+      return 0;
+    }
+  if (DECL_FINAL_P (basefn))
+    {
+      error ("virtual function %q+D", overrider);
+      error ("overriding final function %q+D", basefn);
       return 0;
     }
   return 1;

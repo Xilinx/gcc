@@ -166,7 +166,7 @@ AC_PATH_PROG([UNZIP], [unzip], unzip)
 # We need a jar that supports -@.  This is a GNU extension.
 if test "$JAR" != no; then
    rm -f config-test.jar
-   echo $srcdir/configure.ac | $JAR -cf@ config-test.jar
+   echo $srcdir/configure.ac | $JAR -cf@ config-test.jar >/dev/null 2>&1
    if test -f config-test.jar; then
      rm -f config-test.jar
    else
@@ -214,6 +214,16 @@ if test -z "$libgcj_ld_symbolic"; then
   libgcj_ld_symbolic=$SYMBOLIC_LDFLAGS
 fi
 
+# for windows native targets enforce export of all symbols for shared libgcj.
+libgcj_ld_export_all=
+case "$host" in
+      *mingw*)
+	libgcj_ld_export_all=-Wl,--export-all-symbols
+	;;
+      *)
+        ;;
+esac
+
 LIBGCJ_CFLAGS="${libgcj_cflags}"
 LIBGCJ_CXXFLAGS="${libgcj_cxxflags}"
 LIBGCJ_JAVAFLAGS="${libgcj_javaflags}"
@@ -221,6 +231,7 @@ LIBGCJ_SUBLIB_LTFLAGS="${libgcj_sublib_ltflags}"
 LIBGCJ_SUBLIB_CORE_EXTRA_DEPS="${libgcj_sublib_core_extra_deps}"
 LIBGCJ_LD_SYMBOLIC="${libgcj_ld_symbolic}"
 LIBGCJ_LD_SYMBOLIC_FUNCTIONS="${libgcj_ld_symbolic_functions}"
+LIBGCJ_LD_EXPORT_ALL="${libgcj_ld_export_all}"
 AC_SUBST(LIBGCJ_CFLAGS)
 AC_SUBST(LIBGCJ_CXXFLAGS)
 AC_SUBST(LIBGCJ_JAVAFLAGS)
@@ -228,6 +239,7 @@ AC_SUBST(LIBGCJ_SUBLIB_LTFLAGS)
 AC_SUBST(LIBGCJ_SUBLIB_CORE_EXTRA_DEPS)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC)
 AC_SUBST(LIBGCJ_LD_SYMBOLIC_FUNCTIONS)
+AC_SUBST(LIBGCJ_LD_EXPORT_ALL)
 
 # Only use libltdl for non-newlib builds.
 if test "x${with_newlib}" = "x" || test "x${with_newlib}" = "xno"; then
@@ -930,6 +942,9 @@ arm*linux*eabi)
 *-*-cygwin)
     extra_ldflags_libjava=-liconv
     ;;
+*-*-mingw*)
+    extra_ldflags_libjava=-lws2_32
+    ;;
 esac
 
 LIBMATHSPEC=
@@ -1033,7 +1048,7 @@ case "$THREADS" in
     ;;
  win32)
     ;;
- decosf1 | irix | mach | os2 | solaris | dce | vxworks)
+ dce | vxworks)
     AC_MSG_ERROR(thread package $THREADS not yet supported)
     ;;
  *)
@@ -1800,26 +1815,38 @@ GCC_CHECK_UNWIND_GETIPINFO
 # See if linker supports anonymous version scripts.
 AC_CACHE_CHECK([whether ld supports anonymous version scripts],
   [libjava_cv_anon_version_script],
-  [save_CFLAGS="$CFLAGS"; save_LDFLAGS="$LDFLAGS"
-   libjava_cv_anon_version_script=no
-   CFLAGS="$CFLAGS -fPIC";
-   LDFLAGS="$LDFLAGS -shared -Wl,--version-script,conftest.map"
-   echo '{ global: globalsymb*; local: *; };' > conftest.map
-   AC_TRY_LINK(void globalsymbol (void) {} void localsymbol (void) {},,
-	       [libjava_cv_anon_version_script=gnu], [])
-   if test x$libjava_cv_anon_version_script = xno; then
-     case "$target_os" in
-       solaris2*)
-         LDFLAGS="$save_LDFLAGS"
-         LDFLAGS="$LDFLAGS -shared -Wl,-M,conftest.map"
-         # Sun ld doesn't understand wildcards here.
-         echo '{ global: globalsymbol; local: *; };' > conftest.map
-         AC_TRY_LINK(void globalsymbol (void) {} void localsymbol (void) {},,
-	 	     [libjava_cv_anon_version_script=sun], [])
-         ;;
-     esac
+  [AC_ARG_ENABLE(symvers,
+     AS_HELP_STRING([--disable-symvers],
+		    [disable symbol versioning for libjava]),
+       [case "$enableval" in
+         yes) libjava_cv_anon_version_script=yes ;;
+         no)  libjava_cv_anon_version_script=no ;;
+         *)   AC_MSG_ERROR([Unknown argument to enable/disable symvers]);;
+        esac],
+       [libjava_cv_anon_version_script=yes]
+   )
+   if test x$libjava_cv_anon_version_script = xyes; then
+     save_CFLAGS="$CFLAGS"; save_LDFLAGS="$LDFLAGS"
+     CFLAGS="$CFLAGS -fPIC";
+     LDFLAGS="$LDFLAGS -shared -Wl,--version-script,conftest.map"
+     echo '{ global: globalsymb*; local: *; };' > conftest.map
+     AC_TRY_LINK(void globalsymbol (void) {} void localsymbol (void) {},,
+	         [libjava_cv_anon_version_script=gnu],
+		 [libjava_cv_anon_version_script=no])
+     if test x$libjava_cv_anon_version_script = xno; then
+       case "$target_os" in
+         solaris2*)
+           LDFLAGS="$save_LDFLAGS"
+           LDFLAGS="$LDFLAGS -shared -Wl,-M,conftest.map"
+           # Sun ld doesn't understand wildcards here.
+           echo '{ global: globalsymbol; local: *; };' > conftest.map
+           AC_TRY_LINK(void globalsymbol (void) {} void localsymbol (void) {},,
+	 	       [libjava_cv_anon_version_script=sun], [])
+           ;;
+       esac
+     fi
+     CFLAGS="$save_CFLAGS"; LDFLAGS="$save_LDFLAGS"
    fi
-   CFLAGS="$save_CFLAGS"; LDFLAGS="$save_LDFLAGS"
   ])
 AM_CONDITIONAL(ANONVERSCRIPT, test "$libjava_cv_anon_version_script" != no)
 AM_CONDITIONAL(ANONVERSCRIPT_GNU, test "$libjava_cv_anon_version_script" = gnu)

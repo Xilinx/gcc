@@ -512,7 +512,7 @@ init_vectorized_lexer (void)
   search_line_fast = impl;
 }
 
-#elif defined(__GNUC__) && defined(__ALTIVEC__)
+#elif (GCC_VERSION >= 4005) && defined(__ALTIVEC__)
 
 /* A vection of the fast scanner using AltiVec vectorized byte compares.  */
 /* ??? Unfortunately, attribute(target("altivec")) is not yet supported,
@@ -1410,7 +1410,9 @@ lex_raw_string (cpp_reader *pfile, cpp_token *token, const uchar *base,
 				       raw_prefix_len) == 0
 			   && cur[raw_prefix_len+1] == '"')
 		    {
-		      cur += raw_prefix_len+2;
+		      BUF_APPEND (")", 1);
+		      base++;
+		      cur += raw_prefix_len + 2;
 		      goto break_outer_loop;
 		    }
 		  else

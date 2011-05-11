@@ -1,5 +1,5 @@
 /* Miscellaneous SSA utility functions.
-   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   Copyright (C) 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -352,6 +352,10 @@ insert_debug_temp_for_var_def (gimple_stmt_iterator *gsi, tree var)
       value = degenerate_phi_result (def_stmt);
       if (value && walk_tree (&value, find_released_ssa_name, NULL, NULL))
 	value = NULL;
+      /* error_mark_node is what fixup_noreturn_call changes PHI arguments
+	 to.  */
+      else if (value == error_mark_node)
+	value = NULL;
     }
   else if (is_gimple_assign (def_stmt))
     {
@@ -455,13 +459,19 @@ insert_debug_temp_for_var_def (gimple_stmt_iterator *gsi, tree var)
 	continue;
 
       if (value)
-	FOR_EACH_IMM_USE_ON_STMT (use_p, imm_iter)
-	  /* unshare_expr is not needed here.  vexpr is either a
-	     SINGLE_RHS, that can be safely shared, some other RHS
-	     that was unshared when we found it had a single debug
-	     use, or a DEBUG_EXPR_DECL, that can be safely
-	     shared.  */
-	  SET_USE (use_p, value);
+	{
+	  FOR_EACH_IMM_USE_ON_STMT (use_p, imm_iter)
+	    /* unshare_expr is not needed here.  vexpr is either a
+	       SINGLE_RHS, that can be safely shared, some other RHS
+	       that was unshared when we found it had a single debug
+	       use, or a DEBUG_EXPR_DECL, that can be safely
+	       shared.  */
+	    SET_USE (use_p, value);
+	  /* If we didn't replace uses with a debug decl fold the
+	     resulting expression.  Otherwise we end up with invalid IL.  */
+	  if (TREE_CODE (value) != DEBUG_EXPR_DECL)
+	    fold_stmt_inplace (stmt);
+	}
       else
 	gimple_debug_bind_reset_value (stmt);
 
@@ -875,7 +885,7 @@ verify_ssa (bool check_modified_stmt)
 
   gcc_assert (!need_ssa_update_p (cfun));
 
-  verify_stmts ();
+  verify_gimple_in_cfg (cfun);
 
   timevar_push (TV_TREE_SSA_VERIFY);
 
@@ -1177,8 +1187,6 @@ delete_tree_ssa (void)
   if (ssa_operands_active ())
     fini_ssa_operands ();
 
-  delete_alias_heapvars ();
-
   htab_delete (cfun->gimple_df->default_defs);
   cfun->gimple_df->default_defs = NULL;
   pt_solution_reset (&cfun->gimple_df->escaped);
@@ -1233,17 +1241,8 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
 	  && TYPE_RESTRICT (outer_type))
 	return false;
 
-      /* If the outer type is (void *) or a pointer to an incomplete
-	 record type or a pointer to an unprototyped function,
-	 then the conversion is not necessary.  */
-      if (VOID_TYPE_P (TREE_TYPE (outer_type))
-	  || ((TREE_CODE (TREE_TYPE (outer_type)) == FUNCTION_TYPE
-	       || TREE_CODE (TREE_TYPE (outer_type)) == METHOD_TYPE)
-	      && (TREE_CODE (TREE_TYPE (outer_type))
-		  == TREE_CODE (TREE_TYPE (inner_type)))
-	      && !prototype_p (TREE_TYPE (outer_type))
-	      && useless_type_conversion_p (TREE_TYPE (TREE_TYPE (outer_type)),
-					    TREE_TYPE (TREE_TYPE (inner_type)))))
+      /* If the outer type is (void *), the conversion is not necessary.  */
+      if (VOID_TYPE_P (TREE_TYPE (outer_type)))
 	return true;
     }
 
@@ -1299,8 +1298,8 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
       /* Do not lose casts to function pointer types.  */
       if ((TREE_CODE (TREE_TYPE (outer_type)) == FUNCTION_TYPE
 	   || TREE_CODE (TREE_TYPE (outer_type)) == METHOD_TYPE)
-	  && !useless_type_conversion_p (TREE_TYPE (outer_type),
-					 TREE_TYPE (inner_type)))
+	  && !(TREE_CODE (TREE_TYPE (inner_type)) == FUNCTION_TYPE
+	       || TREE_CODE (TREE_TYPE (inner_type)) == METHOD_TYPE))
 	return false;
 
       /* We do not care for const qualification of the pointed-to types
@@ -1432,7 +1431,7 @@ useless_type_conversion_p (tree outer_type, tree inner_type)
 
       /* Defer to the target if necessary.  */
       if (TYPE_ATTRIBUTES (inner_type) || TYPE_ATTRIBUTES (outer_type))
-	return targetm.comp_type_attributes (outer_type, inner_type) != 0;
+	return comp_type_attributes (outer_type, inner_type) != 0;
 
       return true;
     }
@@ -1616,10 +1615,11 @@ walk_use_def_chains (tree var, walk_use_def_chains_fn fn, void *data,
    changed conditionally uninitialized to unconditionally uninitialized.  */
 
 /* Emit a warning for T, an SSA_NAME, being uninitialized.  The exact
-   warning text is in MSGID and LOCUS may contain a location or be null.  */
+   warning text is in MSGID and LOCUS may contain a location or be null.
+   WC is the warning code.  */
 
 void
-warn_uninit (tree t, const char *gmsgid, void *data)
+warn_uninit (enum opt_code wc, tree t, const char *gmsgid, void *data)
 {
   tree var = SSA_NAME_VAR (t);
   gimple context = (gimple) data;
@@ -1643,7 +1643,7 @@ warn_uninit (tree t, const char *gmsgid, void *data)
 	     : DECL_SOURCE_LOCATION (var);
   xloc = expand_location (location);
   floc = expand_location (DECL_SOURCE_LOCATION (cfun->decl));
-  if (warning_at (location, OPT_Wuninitialized, gmsgid, var))
+  if (warning_at (location, wc, gmsgid, var))
     {
       TREE_NO_WARNING (var) = 1;
 
@@ -1725,10 +1725,12 @@ warn_uninitialized_var (tree *tp, int *walk_subtrees, void *data_)
       /* We only do data flow with SSA_NAMEs, so that's all we
 	 can warn about.  */
       if (data->always_executed)
-        warn_uninit (t, "%qD is used uninitialized in this function",
+        warn_uninit (OPT_Wuninitialized,
+	             t, "%qD is used uninitialized in this function",
 		     data->stmt);
       else if (data->warn_possibly_uninitialized)
-        warn_uninit (t, "%qD may be used uninitialized in this function",
+        warn_uninit (OPT_Wuninitialized,
+	             t, "%qD may be used uninitialized in this function",
 		     data->stmt);
       *walk_subtrees = 0;
       break;
@@ -1838,18 +1840,40 @@ maybe_rewrite_mem_ref_base (tree *tp)
     tp = &TREE_OPERAND (*tp, 0);
   if (TREE_CODE (*tp) == MEM_REF
       && TREE_CODE (TREE_OPERAND (*tp, 0)) == ADDR_EXPR
-      && integer_zerop (TREE_OPERAND (*tp, 1))
       && (sym = TREE_OPERAND (TREE_OPERAND (*tp, 0), 0))
       && DECL_P (sym)
       && !TREE_ADDRESSABLE (sym)
       && symbol_marked_for_renaming (sym))
     {
-      if (!useless_type_conversion_p (TREE_TYPE (*tp),
-				      TREE_TYPE (sym)))
-	*tp = build1 (VIEW_CONVERT_EXPR,
+      if (TREE_CODE (TREE_TYPE (sym)) == VECTOR_TYPE
+	  && useless_type_conversion_p (TREE_TYPE (*tp),
+					TREE_TYPE (TREE_TYPE (sym)))
+	  && multiple_of_p (sizetype, TREE_OPERAND (*tp, 1),
+			    TYPE_SIZE_UNIT (TREE_TYPE (*tp))))
+	{
+	  *tp = build3 (BIT_FIELD_REF, TREE_TYPE (*tp), sym, 
+			TYPE_SIZE (TREE_TYPE (*tp)),
+			int_const_binop (MULT_EXPR,
+					 bitsize_int (BITS_PER_UNIT),
+					 TREE_OPERAND (*tp, 1)));
+	}
+      else if (TREE_CODE (TREE_TYPE (sym)) == COMPLEX_TYPE
+	       && useless_type_conversion_p (TREE_TYPE (*tp),
+					     TREE_TYPE (TREE_TYPE (sym))))
+	{
+	  *tp = build1 (integer_zerop (TREE_OPERAND (*tp, 1))
+			? REALPART_EXPR : IMAGPART_EXPR,
 			TREE_TYPE (*tp), sym);
-      else
-	*tp = sym;
+	}
+      else if (integer_zerop (TREE_OPERAND (*tp, 1)))
+	{
+	  if (!useless_type_conversion_p (TREE_TYPE (*tp),
+					  TREE_TYPE (sym)))
+	    *tp = build1 (VIEW_CONVERT_EXPR,
+			  TREE_TYPE (*tp), sym);
+	  else
+	    *tp = sym;
+	}
     }
 }
 
@@ -1869,11 +1893,22 @@ non_rewritable_mem_ref_base (tree ref)
     base = TREE_OPERAND (base, 0);
 
   /* But watch out for MEM_REFs we cannot lower to a
-     VIEW_CONVERT_EXPR.  */
+     VIEW_CONVERT_EXPR or a BIT_FIELD_REF.  */
   if (TREE_CODE (base) == MEM_REF
       && TREE_CODE (TREE_OPERAND (base, 0)) == ADDR_EXPR)
     {
       tree decl = TREE_OPERAND (TREE_OPERAND (base, 0), 0);
+      if ((TREE_CODE (TREE_TYPE (decl)) == VECTOR_TYPE
+	   || TREE_CODE (TREE_TYPE (decl)) == COMPLEX_TYPE)
+	  && useless_type_conversion_p (TREE_TYPE (base),
+					TREE_TYPE (TREE_TYPE (decl)))
+	  && double_int_fits_in_uhwi_p (mem_ref_offset (base))
+	  && double_int_ucmp
+	       (tree_to_double_int (TYPE_SIZE_UNIT (TREE_TYPE (decl))),
+		mem_ref_offset (base)) == 1
+	  && multiple_of_p (sizetype, TREE_OPERAND (base, 1),
+			    TYPE_SIZE_UNIT (TREE_TYPE (base))))
+	return NULL_TREE;
       if (DECL_P (decl)
 	  && (!integer_zerop (TREE_OPERAND (base, 1))
 	      || (DECL_SIZE (decl)

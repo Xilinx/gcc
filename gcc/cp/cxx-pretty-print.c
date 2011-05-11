@@ -1,6 +1,6 @@
 /* Implementation of subroutines for the GNU C++ pretty-printer.
    Copyright (C) 2003, 2004, 2005, 2007, 2008,
-   2009, 2010 Free Software Foundation, Inc.
+   2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@integrable-solutions.net>
 
 This file is part of GCC.
@@ -1323,6 +1323,8 @@ pp_cxx_ptr_operator (cxx_pretty_printer *pp, tree t)
       if (TREE_CODE (TREE_TYPE (t)) == POINTER_TYPE
 	  || TYPE_PTR_TO_MEMBER_P (TREE_TYPE (t)))
 	pp_cxx_ptr_operator (pp, TREE_TYPE (t));
+      pp_c_attributes_display (pp_c_base (pp),
+			       TYPE_ATTRIBUTES (TREE_TYPE (t)));
       if (TREE_CODE (t) == POINTER_TYPE)
 	{
 	  pp_star (pp);
@@ -1361,7 +1363,7 @@ pp_cxx_ptr_operator (cxx_pretty_printer *pp, tree t)
 static inline tree
 pp_cxx_implicit_parameter_type (tree mf)
 {
-  return TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (mf))));
+  return class_of_this_parm (TREE_TYPE (mf));
 }
 
 /*
@@ -1650,8 +1652,7 @@ pp_cxx_direct_abstract_declarator (cxx_pretty_printer *pp, tree t)
       if (TREE_CODE (t) == METHOD_TYPE)
 	{
 	  pp_base (pp)->padding = pp_before;
-	  pp_cxx_cv_qualifier_seq
-	    (pp, TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (t))));
+	  pp_cxx_cv_qualifier_seq (pp, class_of_this_parm (t));
 	}
       pp_cxx_exception_specification (pp, t);
       break;
@@ -1692,6 +1693,7 @@ pp_cxx_type_id (cxx_pretty_printer *pp, tree t)
     case TEMPLATE_PARM_INDEX:
     case TEMPLATE_DECL:
     case TYPEOF_TYPE:
+    case UNDERLYING_TYPE:
     case DECLTYPE_TYPE:
     case TEMPLATE_ID_EXPR:
       pp_cxx_type_specifier_seq (pp, t);
@@ -2131,7 +2133,6 @@ pp_cxx_template_declaration (cxx_pretty_printer *pp, tree t)
 {
   tree tmpl = most_general_template (t);
   tree level;
-  int i = 0;
 
   pp_maybe_newline_and_indent (pp, 0);
   for (level = DECL_TEMPLATE_PARMS (tmpl); level; level = TREE_CHAIN (level))
@@ -2141,7 +2142,6 @@ pp_cxx_template_declaration (cxx_pretty_printer *pp, tree t)
       pp_cxx_template_parameter_list (pp, TREE_VALUE (level));
       pp_cxx_end_template_argument_list (pp);
       pp_newline_and_indent (pp, 3);
-      i += 3;
     }
   if (TREE_CODE (t) == FUNCTION_DECL && DECL_SAVED_TREE (t))
     pp_cxx_function_definition (pp, t);

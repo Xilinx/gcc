@@ -86,7 +86,6 @@
    beginning of the file.  This variable starts off TRUE and later
    becomes FALSE.  */
 extern int ok_to_change_target_memregs;
-extern int target_memregs;
 
 /* TARGET_CPU is a multi-way option set in m32c.opt.  While we could
    use enums or defines for this, this and m32c.opt are the only
@@ -100,8 +99,6 @@ extern int target_memregs;
    to select between the two CPU families in general.  */
 #define TARGET_A16	(TARGET_R8C || TARGET_M16C)
 #define TARGET_A24	(TARGET_M32CM || TARGET_M32C)
-
-#define TARGET_VERSION fprintf (stderr, " (m32c)");
 
 /* Defining data structures for per-function information */
 
@@ -204,7 +201,7 @@ machine_function;
 #define WCHAR_TYPE "long int"
 
 #undef  WCHAR_TYPE_SIZE
-#define WCHAR_TYPE_SIZE BITS_PER_WORD
+#define WCHAR_TYPE_SIZE 32
 
 /* REGISTER USAGE */
 
@@ -291,19 +288,15 @@ machine_function;
   { 0x00000003 }, /* R02 - r0r2 */\
   { 0x0000000c }, /* R13 - r1r3 */\
   { 0x00000005 }, /* HL  - r0 r1 */\
-  { 0x00000005 }, /* QI  - r0 r1 */\
   { 0x0000000a }, /* R23 - r2 r3 */\
   { 0x0000000f }, /* R03 - r0r2 r1r3 */\
-  { 0x0000000f }, /* DI  - r0r2r1r3 + mems */\
   { 0x00000010 }, /* A0  - a0 */\
   { 0x00000020 }, /* A1  - a1 */\
   { 0x00000030 }, /* A   - a0 a1 */\
   { 0x000000f0 }, /* AD  - a0 a1 sb fp */\
   { 0x000001f0 }, /* PS  - a0 a1 sb fp sp */\
-  { 0x0000000f }, /* SI  - r0r2 r1r3 a0a1 */\
-  { 0x0000003f }, /* HI  - r0 r1 r2 r3 a0 a1 */\
   { 0x00000033 }, /* R02A  - r0r2 a0 a1 */ \
-  { 0x0000003f }, /* RA  - r0..r3 a0 a1 */\
+  { 0x0000003f }, /* RA  - r0 r1 r2 r3 a0 a1 */\
   { 0x0000007f }, /* GENERAL */\
   { 0x00000400 }, /* FLG */\
   { 0x000001ff }, /* HC  - r0l r1 r2 r3 a0 a1 sb fb sp */\
@@ -314,8 +307,13 @@ machine_function;
   { 0x000ff00f }, /* R03_MEM */\
   { 0x000ff03f }, /* A_HI_MEM */\
   { 0x000ff0ff }, /* A_AD_CR_MEM_SI */\
-  { 0x000ff1ff }, /* ALL */\
+  { 0x000ff5ff }, /* ALL */\
 }
+
+#define QI_REGS HL_REGS
+#define HI_REGS RA_REGS
+#define SI_REGS R03_REGS
+#define DI_REGS R03_REGS
 
 enum reg_class
 {
@@ -331,17 +329,13 @@ enum reg_class
   R02_REGS,
   R13_REGS,
   HL_REGS,
-  QI_REGS,
   R23_REGS,
   R03_REGS,
-  DI_REGS,
   A0_REGS,
   A1_REGS,
   A_REGS,
   AD_REGS,
   PS_REGS,
-  SI_REGS,
-  HI_REGS,
   R02A_REGS,
   RA_REGS,
   GENERAL_REGS,
@@ -373,17 +367,13 @@ enum reg_class
 "R02_REGS", \
 "R13_REGS", \
 "HL_REGS", \
-"QI_REGS", \
 "R23_REGS", \
 "R03_REGS", \
-"DI_REGS", \
 "A0_REGS", \
 "A1_REGS", \
 "A_REGS", \
 "AD_REGS", \
 "PS_REGS", \
-"SI_REGS", \
-"HI_REGS", \
 "R02A_REGS", \
 "RA_REGS", \
 "GENERAL_REGS", \
@@ -579,8 +569,6 @@ typedef struct m32c_cumulative_args
 #define LEGITIMIZE_RELOAD_ADDRESS(X,MODE,OPNUM,TYPE,IND_LEVELS,WIN) \
 	if (m32c_legitimize_reload_address(&(X),MODE,OPNUM,TYPE,IND_LEVELS)) \
 	  goto WIN;
-
-#define LEGITIMATE_CONSTANT_P(X) m32c_legitimate_constant_p (X)
 
 /* Address spaces.  */
 #define ADDR_SPACE_FAR	1

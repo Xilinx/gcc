@@ -49,9 +49,8 @@ avr port		Denis Chertykov		chertykov@gmail.com
 avr port		Anatoly Sokolov		aesok@post.ru
 avr port		Eric Weddington		eric.weddington@atmel.com
 bfin port		Bernd Schmidt		bernds@codesourcery.com
-bfin port		Jie Zhang		jie@codesourcery.com
+bfin port		Jie Zhang		jzhang918@gmail.com
 cris port		Hans-Peter Nilsson	hp@axis.com
-crx port		Pompapathi V Gadad 	Pompapathi.V.Gadad@nsc.com
 fr30 port		Nick Clifton		nickc@redhat.com
 frv port		Nick Clifton		nickc@redhat.com
 frv port		Alexandre Oliva		aoliva@redhat.com
@@ -68,7 +67,6 @@ iq2000 port		Nick Clifton		nickc@redhat.com
 lm32 port		Sebastien Bourdeauducq	sebastien@milkymist.org
 m32c port		DJ Delorie		dj@redhat.com
 m32r port		Nick Clifton		nickc@redhat.com
-m68hc11 port		Stephane Carrez		stcarrez@nerim.fr
 m68k port (?)		Jeff Law		law@redhat.com
 m68k port		Andreas Schwab		schwab@linux-m68k.org
 m68k-motorola-sysv port	Philippe De Muyter	phdm@macqel.be
@@ -105,11 +103,10 @@ v850 port		Nick Clifton		nickc@redhat.com
 vax port		Matt Thomas		matt@3am-software.com
 x86-64 port		Jan Hubicka		jh@suse.cz
 xstormy16 port		Nick Clifton		nickc@redhat.com
-xtensa port		Sterling Augustine	sterling@tensilica.com
+xtensa port		Sterling Augustine	augustine.sterling@gmail.com
 
 			OS Port Maintainers	(OS alphabetical order)
 
-darwin port		Dale Johannesen		dalej@apple.com
 darwin port		Mike Stump		mikestump@comcast.net
 darwin port		Eric Christopher	echristo@apple.com
 darwin port		Stan Shebs		stanshebs@earthlink.net
@@ -326,6 +323,7 @@ Julian Brown					julian@codesourcery.com
 Christian Bruel					christian.bruel@st.com
 Kevin Buettner					kevinb@redhat.com
 Andrew Cagney					cagney@redhat.com
+Stephane Carrez					stcarrez@nerim.fr
 Chandra Chavva					cchavva@redhat.com
 Fabien Chêne					fabien@gcc.gnu.org
 William Cohen					wcohen@redhat.com
@@ -357,6 +355,7 @@ John Freeman					jfreeman08@gmail.com
 Nathan Froyd					froydnj@codesourcery.com
 Chao-ying Fu					fu@mips.com
 Gary Funck					gary@intrepid.com
+Pompapathi V Gadad 				Pompapathi.V.Gadad@nsc.com
 Kaveh Ghazi					ghazi@gcc.gnu.org
 Matthew Gingell					gingell@gnat.com
 Tristan Gingold					gingold@adacore.com
@@ -373,6 +372,7 @@ Pat Haugen					pthaugen@us.ibm.com
 Mark Heffernan					meheff@google.com
 George Helffrich				george@gcc.gnu.org
 Fergus Henderson				fjh@cs.mu.oz.au
+Stuart Henderson				shenders@gcc.gnu.org
 Matthew Hiller					hiller@redhat.com
 Manfred Hollstein				mh@suse.com
 Falk Hueffner					falk@debian.org
@@ -385,6 +385,7 @@ Harsha Jagasia					harsha.jagasia@amd.com
 Fariborz Jahanian				fjahanian@apple.com
 Martin Jambor					mjambor@suse.cz
 Andrew Jenner					andrew@codesourcery.com
+Janis Johnson					janisjo@codesourcery.com
 Kean Johnston					jkj@sco.com
 Phillip Jordan					phillip.m.jordan@gmail.com
 Tim Josling					tej@melbpc.org.au
@@ -406,6 +407,7 @@ Rask Ingemann Lambertsen			ccc94453@vip.cybercity.dk
 Asher Langton					langton2@llnl.gov
 Chris Lattner					sabre@nondot.org
 Terry Laurenzo					tlaurenzo@gmail.com
+Georg-Johann Lay				avr@gjlay.de
 Marc Lehmann					pcg@goof.com
 James Lemke					jwlemke@juniper.net
 Kriang Lerdsuwanakij				lerdsuwa@users.sourceforge.net
@@ -425,6 +427,7 @@ Michael Matz					matz@suse.de
 Greg McGary					gkm@gnu.org
 Adam Megacz					adam@xwt.org
 Bingfeng Mei					bmei@broadcom.com
+Jim Meyering					jim@meyering.net
 Martin Michlmayr				tbm@cyrius.com
 Lee Millward					lee.millward@gmail.com
 Alan Modra					amodra@gmail.com
@@ -452,6 +455,7 @@ Vladimir Prus					vladimir@codesourcery.com
 Yao Qi						yao@codesourcery.com
 Jerry Quinn					jlquinn@optonline.net
 Ramana Radhakrishnan				ramana.radhakrishnan@arm.com
+Easwaran Raman					eraman@google.com
 Rolf Rasmussen					rolfwr@gcc.gnu.org
 Volker Reichelt					v.reichelt@netcologne.de
 Joern Rennecke					amylaar@spamcop.net
@@ -467,7 +471,7 @@ Matthew Sachs					msachs@apple.com
 Iain Sandoe					iains@gcc.gnu.org
 Duncan Sands					baldrick@gcc.gnu.org
 William Schmidt 				wschmidt@linux.vnet.ibm.com
-Dodji Seketeli					dseketel@redhat.com
+Dodji Seketeli					dodji@gcc.gnu.org
 Svein Seldal					svein@dev.seldal.com
 Thiemo Seufer					ths@networkno.de
 Marcus Shawcroft				marcus.shawcroft@arm.com
@@ -509,6 +513,7 @@ Jeffrey Yasskin					jyasskin@google.com
 Joey Ye						joey.ye@arm.com
 David Yuste					david.yuste@gmail.com
 Kenneth Zadeck					zadeck@naturalbridge.com
+Yufeng Zhang					yufeng.zhang@arm.com
 Shujing Zhao					pearly.zhao@oracle.com
 Jon Ziegler					jonz@apple.com
 Roman Zippel					zippel@linux-m68k.org

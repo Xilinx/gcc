@@ -104,10 +104,20 @@ cc1plus$(exeext): $(CXX_OBJS) cc1plus-checksum.o $(BACKEND) $(LIBDEPS)
 	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
 	      $(CXX_OBJS) cc1plus-checksum.o $(BACKEND) $(LIBS) $(BACKENDLIBS)
 
-# Special build rules.
+ifeq ($(ENABLE_MAINTAINER_RULES), true)
+# Special build rule.  This is a maintainer rule, that is only
+# available when GCC is configured with --enable-maintainer-mode.  In
+# other cases, it is not available to avoid triggering rebuilds if a
+# user has the source checked out with unusual timestamps.
 $(srcdir)/cp/cfns.h: $(srcdir)/cp/cfns.gperf
+else
+# We keep the rule so that you can still force a rebuild, even if you
+# didn't configure GCC with --enable-maintainer-mode, by manually
+# deleting the $(srcdir)/cp/cfns.h file.
+$(srcdir)/cp/cfns.h:
+endif
 	gperf -o -C -E -k '1-6,$$' -j1 -D -N 'libc_name_p' -L ANSI-C \
-		$(srcdir)/cp/cfns.gperf > $(srcdir)/cp/cfns.h
+		$(srcdir)/cp/cfns.gperf --output-file $(srcdir)/cp/cfns.h
 
 #
 # Build hooks:
@@ -243,7 +253,7 @@ CXX_TREE_H = $(TREE_H) cp/name-lookup.h cp/cp-tree.h $(C_COMMON_H) \
 	$(FUNCTION_H) \
 	$(SYSTEM_H) coretypes.h $(CONFIG_H) $(TARGET_H) $(GGC_H) \
 	$(srcdir)/../include/hashtab.h
-
+CXX_PARSER_H = tree.h c-family/c-pragma.h cp/parser.h
 CXX_PRETTY_PRINT_H = cp/cxx-pretty-print.h $(C_PRETTY_PRINT_H)
 
 cp/lex.o: cp/lex.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
@@ -251,7 +261,7 @@ cp/lex.o: cp/lex.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   c-family/c-objc.h
 cp/cp-lang.o: cp/cp-lang.c $(CXX_TREE_H) $(TM_H) debug.h langhooks.h \
   $(LANGHOOKS_DEF_H) $(C_COMMON_H) gtype-cp.h gt-cp-cp-lang.h \
-  cp/cp-objcp-common.h $(EXPR_H) $(TARGET_H)
+  cp/cp-objcp-common.h $(EXPR_H) $(TARGET_H) $(CXX_PARSER_H)
 cp/decl.o: cp/decl.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   output.h toplev.h $(HASHTAB_H) $(RTL_H) \
   cp/operators.def $(TM_P_H) $(TREE_INLINE_H) $(DIAGNOSTIC_H) $(C_PRAGMA_H) \
@@ -277,7 +287,7 @@ cp/class.o: cp/class.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h \
   $(SPLAY_TREE_H)
 cp/call.o: cp/call.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) toplev.h \
   $(DIAGNOSTIC_CORE_H) intl.h gt-cp-call.h convert.h $(TARGET_H) langhooks.h \
-  c-family/c-objc.h
+  $(TIMEVAR_H) c-family/c-objc.h
 cp/friend.o: cp/friend.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H)
 cp/init.o: cp/init.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) \
   $(EXCEPT_H) $(TARGET_H)
@@ -316,7 +326,7 @@ cp/mangle.o: cp/mangle.c $(CXX_TREE_H) $(TM_H) $(REAL_H) \
   gt-cp-mangle.h $(TARGET_H) $(TM_P_H) $(CGRAPH_H)
 cp/parser.o: cp/parser.c $(CXX_TREE_H) $(TM_H) $(DIAGNOSTIC_CORE_H) \
   gt-cp-parser.h output.h $(TARGET_H) $(PLUGIN_H) intl.h \
-  c-family/c-objc.h
+  c-family/c-objc.h tree-pretty-print.h $(CXX_PARSER_H) $(TIMEVAR.H)
 cp/cp-gimplify.o: cp/cp-gimplify.c $(CXX_TREE_H) $(C_COMMON_H) \
 	$(TM_H) coretypes.h pointer-set.h tree-iterator.h
 

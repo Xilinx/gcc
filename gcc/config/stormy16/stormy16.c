@@ -2170,11 +2170,15 @@ static tree xstormy16_handle_below100_attribute
 
 static const struct attribute_spec xstormy16_attribute_table[] =
 {
-  /* name, min_len, max_len, decl_req, type_req, fn_type_req, handler.  */
-  { "interrupt", 0, 0, false, true,  true,  xstormy16_handle_interrupt_attribute },
-  { "BELOW100",  0, 0, false, false, false, xstormy16_handle_below100_attribute },
-  { "below100",  0, 0, false, false, false, xstormy16_handle_below100_attribute },
-  { NULL,        0, 0, false, false, false, NULL }
+  /* name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+     affects_type_identity.  */
+  { "interrupt", 0, 0, false, true,  true,
+    xstormy16_handle_interrupt_attribute , false },
+  { "BELOW100",  0, 0, false, false, false,
+    xstormy16_handle_below100_attribute, false },
+  { "below100",  0, 0, false, false, false,
+    xstormy16_handle_below100_attribute, false },
+  { NULL,        0, 0, false, false, false, NULL, false }
 };
 
 /* Handle an "interrupt" attribute;
@@ -2251,15 +2255,21 @@ static struct
 static void
 xstormy16_init_builtins (void)
 {
-  tree args, ret_type, arg;
-  int i, a;
+  tree args[2], ret_type, arg = NULL_TREE, ftype;
+  int i, a, n_args;
 
   ret_type = void_type_node;
 
   for (i = 0; s16builtins[i].name; i++)
     {
-      args = void_list_node;
-      for (a = strlen (s16builtins[i].arg_types) - 1; a >= 0; a--)
+      n_args = strlen (s16builtins[i].arg_types) - 1;
+
+      gcc_assert (n_args <= (int) ARRAY_SIZE (args));
+
+      for (a = n_args; a >= 0; a--)
+	args[a] = NULL_TREE;
+
+      for (a = n_args; a >= 0; a--)
 	{
 	  switch (s16builtins[i].arg_types[a])
 	    {
@@ -2272,10 +2282,10 @@ xstormy16_init_builtins (void)
 	  if (a == 0)
 	    ret_type = arg;
 	  else
-	    args = tree_cons (NULL_TREE, arg, args);
+	    args[a-1] = arg;
 	}
-      add_builtin_function (s16builtins[i].name,
-			    build_function_type (ret_type, args),
+      ftype = build_function_type_list (ret_type, arg[0], arg[1], NULL_TREE);
+      add_builtin_function (s16builtins[i].name, ftype,
 			    i, BUILT_IN_MD, NULL, NULL);
     }
 }
