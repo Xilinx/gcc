@@ -448,6 +448,11 @@ don't instanciate this class!}#
 	   sysdata_option_set 		;closure to set a MELT option
 	   sysdata_passexec_hook	;internal closure if any to be
 					;called using PLUGIN_PASS_EXECUTION
+	   sysdata_meltpass_after_hook	;closure to be called after
+					;MELT pass execution
+					;functions, it is
+					;automatically cleared after
+					;usage.
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -3033,6 +3038,7 @@ accessed or updated but is intenally useful to many MELT mechanisms.}#
   :sysdata_unit_finisher init_unitfinisher
   :sysdata_option_set init_optionsetter
   :sysdata_passexec_hook ()		;initialized later, lazily
+  :sysdata_meltpass_after_hook () 	;initialized lazily
   )
 
 

@@ -1,5 +1,23 @@
 
 2011-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (FSYSDAT_MELTPASS_AFTER_HOOK): New.
+
+	* melt-runtime.c (melt_attr_spec): Sets affects_type_identity.
+	(melt_clear_inisysdata): New function.
+	(meltgc_run_meltpass_after_hook): New function.
+	(meltgc_gimple_execute,meltgc_rtl_execute,meltgc_simple_ipa_execute):
+	Call it.
+	(meltgc_notify_sysdata_passexec_hook): Reduce melt stack frame size.
+
+	* Makefile.in (melt_cflags): Add $(INCLUDES) to them.
+	(melt_default_modules_list): Restore definition.
+
+	* melt/warmelt-first.melt (class_initial_data): Add
+	sysdata_meltpass_after_hook field.
+	* melt/warmelt-base.melt (register_pass_execution_hook): Typo in
+	doc string.
+
+2011-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* Makefile.in: File simplified for MELT specific targets after svn
 	rev 173652. No more melt-run.d. Trigger error when plugins are

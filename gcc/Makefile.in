@@ -5340,13 +5340,14 @@ melt_make_move=$(SHELL) $(srcdir)/../move-if-change
 ## CC1 forbids -pipe and -Wp,-D_FORTIFY_SOURCE=2
 comma= ,
 MELTHERE_CC1_CFLAGS=$(filter-out -pipe -Wp$(comma)-D_FORTIFY_SOURCE=2, $(MELTHERE_CFLAGS))
-melt_make_cc1flags= -I. $(MELTHERE_CC1_CFLAGS) -I $(melt_build_include_dir)
-melt_cflags=  -I. $(MELTHERE_CFLAGS) -I $(melt_build_include_dir) -I $(srcdir)/melt/generated/
+melt_make_cc1flags= -I. $(MELTHERE_CC1_CFLAGS)
+melt_cflags=  -I. $(MELTHERE_CFLAGS) -I $(srcdir)/melt/generated/ $(INCLUDES)
 export melt_cflags
 ## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c
 melt_extra_cflags= -g
 export melt_extra_cflags
 melt_installed_cflags= -I $(plugin_includedir) -DIN_GCC -O
+melt_default_modules_list=melt-default-modules
 ## leave melt_is_plugin as empty 
 melt_is_plugin=
 

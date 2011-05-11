@@ -2258,6 +2258,7 @@ enum
   FSYSDAT_UNIT_FINISHER,        /* closure for start of compilation unit */
   FSYSDAT_OPTION_SET,		/* closure to set options */
   FSYSDAT_PASSEXEC_HOOK,	/* closure for PLUGIN_PASS_EXECUTION */
+  FSYSDAT_MELTPASS_AFTER_HOOK,	/* closure for end of MELT pass execution */
   FSYSDAT__LAST
 };
 

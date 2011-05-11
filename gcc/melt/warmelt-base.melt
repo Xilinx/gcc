@@ -1063,7 +1063,7 @@ significant iff ENABLE_CHECKING.}# #{(melt_application_depth() <
 (defun register_pass_execution_hook (fun)
   :doc #{Register closure $FUN as the hook for pass execution using
 PLUGIN_PASS_EXECUTION. These hooks are called in order of
-registrration.  Their first argument is the boxed pass name string,
+registration.  Their first argument is the boxed pass name string,
 their second argument is the raw pass number stuff.  See also
 $UNREGISTER_PASS_EXECUTION_HOOK.}#
   (if (is_closure fun)

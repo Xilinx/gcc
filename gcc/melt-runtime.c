@@ -4914,9 +4914,29 @@ melt_get_inisysdata(int off)
 	return inisys->obj_vartab[off];
     }
   return NULL;  
-  
 }
 
+
+/* Clear a slot inside the INITIAL_SYSTEM_DATA. */
+static inline void
+melt_clear_inisysdata(int off)
+{
+  meltobject_ptr_t inisys = (meltobject_ptr_t) MELT_PREDEF(INITIAL_SYSTEM_DATA);
+  if (melt_magic_discr ((melt_ptr_t) inisys) == MELTOBMAG_OBJECT) 
+    {
+      int leninisys = inisys->obj_len;
+      gcc_assert(melt_is_instance_of
+		 ((melt_ptr_t) inisys,
+		  (melt_ptr_t) MELT_PREDEF (CLASS_SYSTEM_DATA)));
+      if (off>=0 && off<leninisys)
+	{
+	  /* Don't bother to call meltgc_touch because we simply clear
+	     a pointer slot in the initial_system_data, so this cannot
+	     add naughty old to young references. */
+	  inisys->obj_vartab[off] = NULL;
+	}
+    }
+}
 
 /* our temporary directory */
 /* maybe it should not be static, or have a bigger length */
@@ -8936,7 +8956,7 @@ handle_melt_attribute(tree *node, tree name,
 static struct attribute_spec 
 melt_attr_spec =
   { "melt",                   1, 1, true, false, false,
-    handle_melt_attribute };
+    handle_melt_attribute, false };
 
 
 /* the plugin callback to register melt attributes */
@@ -11127,6 +11147,36 @@ melt_check_failed (const char *msg, const char *filnam,
 	   lbasename (filnam), lineno, fun, msg);
 }
 
+/* internal function to run the melt pass after hook, at end of every
+   MELT pass exec function.  */
+static void 
+meltgc_run_meltpass_after_hook (void)
+{
+  const char* passname = current_pass?current_pass->name:NULL;
+  int passnumber = current_pass?current_pass->static_pass_number:0;
+  MELT_ENTERFRAME (2, NULL);
+#define pahookv      meltfram__.mcfr_varptr[0]
+  pahookv =  melt_get_inisysdata (FSYSDAT_MELTPASS_AFTER_HOOK);
+  if (pahookv == NULL) 
+    goto end;
+  if (melt_magic_discr ((melt_ptr_t) pahookv) == MELTOBMAG_CLOSURE)
+    {
+      union meltparam_un argtab[2];
+      memset (argtab, 0, sizeof (argtab));
+      argtab[0].meltbp_cstring = passname;
+      argtab[1].meltbp_long = passnumber;
+      MELT_LOCATION_HERE ("meltgc_run_meltpass_after_hook before apply");
+      (void)
+	melt_apply ((meltclosure_ptr_t) pahookv, NULL,
+		    MELTBPARSTR_CSTRING MELTBPARSTR_LONG, argtab,
+		    "",  (union meltparam_un*)0);
+      MELT_LOCATION_HERE ("meltgc_run_meltpass_after_hook after apply");
+    }
+   melt_clear_inisysdata (FSYSDAT_MELTPASS_AFTER_HOOK);
+ end:
+  MELT_EXITFRAME ();
+}
+
 
 /* convert a MELT value to a plugin flag or option */
 static unsigned long 
@@ -11383,6 +11433,7 @@ meltgc_gimple_execute(void)
       };
     if (resvalv)
       res = (unsigned int) todol;
+    meltgc_run_meltpass_after_hook ();
     /* force a minor GC to be sure that nothing is in the young region */
     melt_garbcoll (0, MELT_ONLY_MINOR);
   }
@@ -11547,6 +11598,7 @@ meltgc_rtl_execute(void)
       };
     if (resvalv)
       res = (unsigned int) todol;
+    meltgc_run_meltpass_after_hook ();
     /* force a minor GC to be sure that nothing is in the young region */
     melt_garbcoll (0, MELT_ONLY_MINOR);
   }
@@ -11720,6 +11772,7 @@ meltgc_simple_ipa_execute(void)
 		  current_pass->name, passdbgcounter);
     if (resvalv)
       res = (unsigned int) todol;
+    meltgc_run_meltpass_after_hook ();
     /* force a minor GC to be sure that nothing is in the young region */
     melt_garbcoll (0, MELT_ONLY_MINOR);
   }
@@ -11929,7 +11982,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
    is changed. */
 void meltgc_notify_sysdata_passexec_hook (void)
 {
-  MELT_ENTERFRAME (4, NULL);
+  MELT_ENTERFRAME (2, NULL);
 #define pxhookv      meltfram__.mcfr_varptr[0]
   pxhookv =  melt_get_inisysdata (FSYSDAT_PASSEXEC_HOOK);
   if (pxhookv == NULL) 
@@ -11952,8 +12005,6 @@ void meltgc_notify_sysdata_passexec_hook (void)
   MELT_EXITFRAME ();
 #undef passxhv
 }
-
-
 
 
 /*****
