@@ -1,6 +1,22 @@
 
 2011-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* Makefile.in: File simplified for MELT specific targets after svn
+	rev 173652. No more melt-run.d. Trigger error when plugins are
+	disabled.
+	(install-melt-headers-*): Remove intermediate targets.
+	(melt-run.d): Remove directory.
+	(warmelt*.modlis): Remove.
+	(all.internal): Add melt.encap.
+	(MISSINGMELT_PLUGIN_HEADERS): Remove variable.
+	(melt_private_include_dir, melt_source_dir, melt_module_dir)
+	(melt_build_include_dir, MELT_RAW_CFLAGS, MELTHERE_CFLAGS): Remove
+	variables.
+	(melt-run-deps,melt-run.d,install-melt-*): Remove targets.
+	And many other minor changes.
+
+2011-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* gengtype.c: Merge manually from trunk 173646.
 
 2011-05-10  Basile Starynkevitch  <basile@starynkevitch.net>

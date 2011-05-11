@@ -1,6 +1,10 @@
 
 2011-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* Makefile.tpl: Remove blank line.
+
+2011-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	MELT branch merged with trunk rev 173647 using svnmerge
 
 
