@@ -1,3 +1,10 @@
+2011-05-13  Sandeep Soni  <soni.sandeepb@gmail.com>
+
+	* parser.c (gl_gimple_code_for_token): New.
+	(gp_parse_var_decl): New.
+	(gp_parse_decl): New.
+	(gp_parse): Addition of call to new functions.
+
 2011-05-05  Diego Novillo  <dnovillo@google.com>
 
 	* gimple-lang.c (gimple_attribute_table): Add initializer for

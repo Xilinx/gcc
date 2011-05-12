@@ -124,6 +124,15 @@ gl_gimple_code_for_token (const gimple_token *token)
   return (enum gimple_code) code;
 }
 
+/* Return true if TOKEN is the start of a declaration.  */
+
+static bool
+gl_token_starts_decl (gimple_token *token)
+{
+  enum tree_code code = gl_tree_code_for_token (token);
+  return code == VAR_DECL;
+}
+
 
 /* Return true if TOKEN is the start of a type declaration.  */
 
@@ -798,6 +807,148 @@ gp_parse_type (gimple_parser *parser, const gimple_token *token)
     }
 }
 
+/* The Declaration section within a .gimple file can consist of 
+   a) Declaration of variables.
+   b) Declaration of functions.
+
+   The syntax of a variable declaration is as follows:
+
+   <VAR_DECL<Name, Type>>
+
+   Following are the broad cases for which the syntax of a variable 
+   declaration is described:
+
+   Example:
+
+   1. C-like declaration as,
+     int var;
+
+   The Corresponding gimple syntax,
+     VAR_DECL <var, INTEGER_TYPE <4>>
+
+   In General,any variable of an atomic data type,
+     VAR_DECL <var_name, TYPE <size>>
+
+   2. C-like declaration as,
+     int array[10];
+
+   The Corresponding gimple syntax,
+     VAR_DECL <name, ARRAY_TYPE < 0 , 9 , INTEGER_TYPE <4>>>
+
+   In General,any variable of an array type,
+     VAR_DECL <array_name, ARRAY_TYPE < min_index, max_index, TYPE <size>>>
+
+   3. C-like declaration as,
+     int *ptr;
+
+   The Corresponding gimple syntax,
+     VAR_DECL <ptr,POINTER_TYPE < INTEGER_TYPE <4>>>
+
+   In General,any variable of a pointer type,
+     VAR_DECL <pointer_name, POINTER_TYPE <TYPE<size>>>
+ 
+   Note: The Nested Type in the Pointer Type tuple is the type of 
+         the element to which the variable points.
+
+   4. C-like declaration as,
+    struct A a;
+
+   The Corresponding gimple syntax,
+     VAR_DECL <a, RECORD_TYPE <A>>
+
+   In General, any variable of an aggregate type,
+     VAR_DECL <var_name, AGGREGATE_TYPE <aggregate_name>>
+
+   Note: 1) Records, Unions and Enumerals are considered as Aggregates.  
+	 2) For the aggregates we store only the name of the aggregate.
+            The other properties of the aggregate will already be stored 
+            from the type declarations parsing and can thus be deduced.   */
+
+/* Recognizer function for variable declarations. The declaration tuple is read
+   from gimple_parser PARSER.  */
+
+static void
+gp_parse_var_decl (gimple_parser *parser)
+{
+  const gimple_token *next_token;
+  enum tree_code code ;
+
+  gl_consume_expected_token (parser->lexer, CPP_LESS);
+  gl_consume_expected_token (parser->lexer, CPP_NAME);
+  gl_consume_expected_token (parser->lexer, CPP_COMMA);
+
+  next_token = gl_consume_token (parser->lexer);
+  code = gl_tree_code_for_token (next_token);
+  switch (code)
+    {
+    case INTEGER_TYPE:
+      gl_consume_expected_token (parser->lexer, CPP_NUMBER);
+      gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+      break;
+
+    case ARRAY_TYPE:
+      gl_consume_expected_token (parser->lexer, CPP_LESS);
+      gl_consume_expected_token (parser->lexer, CPP_NUMBER);
+      gl_consume_expected_token (parser->lexer, CPP_COMMA);
+      gl_consume_expected_token (parser->lexer, CPP_NUMBER);
+      gl_consume_expected_token (parser->lexer, CPP_COMMA);
+      
+      /*TODO The tree code that we recognize below can be processed further.
+	     No action is taken for now.  */
+
+      gl_consume_expected_token (parser->lexer, CPP_NAME);
+      gl_consume_expected_token (parser->lexer, CPP_LESS);
+      gl_consume_expected_token (parser->lexer, CPP_NUMBER);
+      gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+      gl_consume_expected_token (parser->lexer, CPP_GREATER);
+      break;
+
+    case POINTER_TYPE:
+      gl_consume_expected_token (parser->lexer, CPP_LESS);
+
+      /*TODO The tree code that we recognize below can be processed further.
+	     No action is taken for now.  */
+
+      gl_consume_expected_token (parser->lexer, CPP_NAME);
+      gl_consume_expected_token (parser->lexer, CPP_LESS);
+      gl_consume_expected_token (parser->lexer, CPP_NUMBER);
+      gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+      gl_consume_expected_token (parser->lexer, CPP_GREATER);
+      break;
+
+    case RECORD_TYPE:
+    case UNION_TYPE:
+    case ENUMERAL_TYPE:
+      gl_consume_expected_token (parser->lexer, CPP_LESS);
+      gl_consume_expected_token (parser->lexer, CPP_NAME);
+      gl_consume_expected_token (parser->lexer, CPP_RSHIFT);
+      break;
+
+    default: 
+      break;
+    }
+}
+
+
+/* The token TOKEN read from the reader PARSER is looked up for a match.
+   Calls the corresponding function to do the parsing for the match.
+   Gets called for recognizing variable and function declarations. */
+
+static void
+gp_parse_decl (gimple_parser *parser, const gimple_token *token)
+{
+  enum tree_code code = gl_tree_code_for_token (token);
+  switch (code)
+    {
+    case VAR_DECL:
+      gp_parse_var_decl (parser);
+      break;
+
+    default:
+      break;
+    }
+}
+
 
 /* Initialize the lexer.  PARSER points to the main parsing object.
    FNAME is the name of the input gimple file being compiled.  */
@@ -1222,6 +1373,8 @@ gp_parse (gimple_parser *parser)
       gimple_token *token = gl_consume_token (parser->lexer);
       if (gl_token_starts_type (token))
 	gp_parse_type (parser, token);
+      else if (gl_token_starts_decl (token))
+	gp_parse_decl (parser, token);
       else
 	gp_parse_stmt (parser, token);
     }
