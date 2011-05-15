@@ -3581,6 +3581,9 @@ ix86_option_override_internal (bool main_args_p)
 	  if (!TARGET_64BIT)
 	    error ("code model %qs not supported in the %s bit mode",
 		   "medium", "32");
+	  else if (TARGET_X32)
+	    error ("code model %qs not supported in x32 mode",
+		   "medium");
 	  break;
 
 	case CM_LARGE:
@@ -3590,6 +3593,9 @@ ix86_option_override_internal (bool main_args_p)
 	  if (!TARGET_64BIT)
 	    error ("code model %qs not supported in the %s bit mode",
 		   "large", "32");
+	  else if (TARGET_X32)
+	    error ("code model %qs not supported in x32 mode",
+		   "medium");
 	  break;
 
 	case CM_32:
@@ -3633,11 +3639,6 @@ ix86_option_override_internal (bool main_args_p)
       error ("-masm=intel not supported in this configuration");
       ix86_asm_dialect = ASM_ATT;
     }
-  if (ix86_cmodel != CM_SMALL
-      && ix86_cmodel != CM_SMALL_PIC
-      && TARGET_X32)
-    error ("code model %qs not supported in x32 mode",
-	   ix86_cmodel_string);
   if ((TARGET_64BIT != 0) != ((ix86_isa_flags & OPTION_MASK_ISA_64BIT) != 0))
     sorry ("%i-bit mode not compiled in",
 	   (ix86_isa_flags & OPTION_MASK_ISA_64BIT) ? 64 : 32);
