@@ -1,3 +1,13 @@
+2011-05-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47715
+	* config/i386/i386.md (PTR64): New.
+	(*tls_global_dynamic_64): Rename to ...
+	(*tls_global_dynamic_64_<mode>): This.  Put PTR64 on operand 1.
+	(tls_global_dynamic_64): Rename to ...
+	(tls_global_dynamic_64_<mode>): This.  Put PTR64 on operand 1.
+	* config/i386/i386.c (legitimize_tls_address): Updated.
+
 2011-05-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_promote_function_mode): Handle NULL
