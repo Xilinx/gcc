@@ -2083,6 +2083,11 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   /* X86_TUNE_VECTORIZE_DOUBLE: Enable double precision vector
      instructions.  */
   ~m_ATOM,
+
+  /* X86_SOFTARE_PREFETCHING_BENEFICIAL: Enable software prefetching
+     at -O3.  For the moment, the prefetching seems badly tuned for Intel
+     chips.  */
+  m_K6_GEODE | m_AMD_MULTIPLE
 };
 
 /* Feature tests against the various architecture variations.  */
@@ -2114,8 +2119,6 @@ static const unsigned int x86_accumulate_outgoing_args
 static const unsigned int x86_arch_always_fancy_math_387
   = m_PENT | m_ATOM | m_PPRO | m_AMD_MULTIPLE | m_PENT4
     | m_NOCONA | m_CORE2I7 | m_GENERIC;
-
-static enum stringop_alg stringop_alg = no_stringop;
 
 /* In case the average insn count for single function invocation is
    lower than this constant, emit fast (but longer) prologue and
@@ -2322,13 +2325,6 @@ struct ix86_frame
   bool save_regs_using_mov;
 };
 
-/* Code model option.  */
-enum cmodel ix86_cmodel;
-/* Asm dialect.  */
-enum asm_dialect ix86_asm_dialect = ASM_ATT;
-/* TLS dialects.  */
-enum tls_dialect ix86_tls_dialect = TLS_DIALECT_GNU;
-
 /* Which unit we are generating floating point math for.  */
 enum fpmath_unit ix86_fpmath;
 
@@ -2343,9 +2339,6 @@ enum processor_type ix86_arch;
 
 /* true if sse prefetch instruction is not NOOP.  */
 int x86_prefetch_sse;
-
-/* ix86_regparm_string as a number */
-static int ix86_regparm;
 
 /* -mstackrealign option */
 static const char ix86_force_align_arg_pointer_string[]
@@ -2375,20 +2368,9 @@ static unsigned int ix86_default_incoming_stack_boundary;
 /* Alignment for incoming stack boundary in bits.  */
 unsigned int ix86_incoming_stack_boundary;
 
-/* The abi used by target.  */
-enum calling_abi ix86_abi;
-
-/* Values 1-5: see jump.c */
-int ix86_branch_cost;
-
 /* Calling abi specific va_list type nodes.  */
 static GTY(()) tree sysv_va_list_type_node;
 static GTY(()) tree ms_va_list_type_node;
-
-/* Variables which are this size or smaller are put in the data/bss
-   or ldata/lbss sections.  */
-
-int ix86_section_threshold = 65536;
 
 /* Prefix built by ASM_GENERATE_INTERNAL_LABEL.  */
 char internal_label_prefix[16];
@@ -2683,7 +2665,7 @@ static bool
 ix86_handle_option (struct gcc_options *opts,
 		    struct gcc_options *opts_set ATTRIBUTE_UNUSED,
 		    const struct cl_decoded_option *decoded,
-		    location_t loc ATTRIBUTE_UNUSED)
+		    location_t loc)
 {
   size_t code = decoded->opt_index;
   int value = decoded->value;
@@ -3054,6 +3036,45 @@ ix86_handle_option (struct gcc_options *opts,
 	}
       return true;
 
+  /* Comes from final.c -- no real reason to change it.  */
+#define MAX_CODE_ALIGN 16
+
+    case OPT_malign_loops_:
+      warning_at (loc, 0, "-malign-loops is obsolete, use -falign-loops");
+      if (value > MAX_CODE_ALIGN)
+	error_at (loc, "-malign-loops=%d is not between 0 and %d",
+		  value, MAX_CODE_ALIGN);
+      else
+	opts->x_align_loops = 1 << value;
+      return true;
+
+    case OPT_malign_jumps_:
+      warning_at (loc, 0, "-malign-jumps is obsolete, use -falign-jumps");
+      if (value > MAX_CODE_ALIGN)
+	error_at (loc, "-malign-jumps=%d is not between 0 and %d",
+		  value, MAX_CODE_ALIGN);
+      else
+	opts->x_align_jumps = 1 << value;
+      return true;
+
+    case OPT_malign_functions_:
+      warning_at (loc, 0,
+		  "-malign-functions is obsolete, use -falign-functions");
+      if (value > MAX_CODE_ALIGN)
+	error_at (loc, "-malign-functions=%d is not between 0 and %d",
+		  value, MAX_CODE_ALIGN);
+      else
+	opts->x_align_functions = 1 << value;
+      return true;
+
+    case OPT_mbranch_cost_:
+      if (value > 5)
+	{
+	  error_at (loc, "-mbranch-cost=%d is not between 0 and 5", value);
+	  opts->x_ix86_branch_cost = 5;
+	}
+      return true;
+
     default:
       return true;
     }
@@ -3257,27 +3278,6 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
   return ret;
 }
 
-/* Return TRUE if software prefetching is beneficial for the
-   given CPU. */
-
-static bool
-software_prefetching_beneficial_p (void)
-{
-  switch (ix86_tune)
-    {
-    case PROCESSOR_GEODE:
-    case PROCESSOR_K6:
-    case PROCESSOR_ATHLON:
-    case PROCESSOR_K8:
-    case PROCESSOR_AMDFAM10:
-    case PROCESSOR_BTVER1:
-      return true;
-
-    default:
-      return false;
-    }
-}
-
 /* Return true, if profiling code should be emitted before
    prologue. Otherwise it returns false.
    Note: For x86 with "hotfix" it is sorried.  */
@@ -3320,9 +3320,6 @@ ix86_option_override_internal (bool main_args_p)
   const char *prefix;
   const char *suffix;
   const char *sw;
-
-  /* Comes from final.c -- no real reason to change it.  */
-#define MAX_CODE_ALIGN 16
 
   enum pta_flags
     {
@@ -3549,27 +3546,11 @@ ix86_option_override_internal (bool main_args_p)
 	}
     }
 
-  if (ix86_stringop_string)
+  if (ix86_stringop_alg == rep_prefix_8_byte && !TARGET_64BIT)
     {
-      if (!strcmp (ix86_stringop_string, "rep_byte"))
-	stringop_alg = rep_prefix_1_byte;
-      else if (!strcmp (ix86_stringop_string, "libcall"))
-	stringop_alg = libcall;
-      else if (!strcmp (ix86_stringop_string, "rep_4byte"))
-	stringop_alg = rep_prefix_4_byte;
-      else if (!strcmp (ix86_stringop_string, "rep_8byte")
-	       && TARGET_64BIT)
-	/* rep; movq isn't available in 32-bit code.  */
-	stringop_alg = rep_prefix_8_byte;
-      else if (!strcmp (ix86_stringop_string, "byte_loop"))
-	stringop_alg = loop_1_byte;
-      else if (!strcmp (ix86_stringop_string, "loop"))
-	stringop_alg = loop;
-      else if (!strcmp (ix86_stringop_string, "unrolled_loop"))
-	stringop_alg = unrolled_loop;
-      else
-	error ("bad value (%s) for %sstringop-strategy=%s %s",
-	       ix86_stringop_string, prefix, suffix, sw);
+      /* rep; movq isn't available in 32-bit code.  */
+      error ("-mstringop-strategy=rep_8byte not supported for 32-bit code");
+      ix86_stringop_alg = no_stringop;
     }
 
   if (!ix86_arch_string)
@@ -3577,37 +3558,62 @@ ix86_option_override_internal (bool main_args_p)
   else
     ix86_arch_specified = 1;
 
-  /* Validate -mabi= value.  */
-  if (ix86_abi_string)
-    {
-      if (strcmp (ix86_abi_string, "sysv") == 0)
-	ix86_abi = SYSV_ABI;
-      else if (strcmp (ix86_abi_string, "ms") == 0)
-	ix86_abi = MS_ABI;
-      else
-	error ("unknown ABI (%s) for %sabi=%s %s",
-	       ix86_abi_string, prefix, suffix, sw);
-    }
-  else
+  if (!global_options_set.x_ix86_abi)
     ix86_abi = DEFAULT_ABI;
 
-  if (ix86_cmodel_string != 0)
+  if (global_options_set.x_ix86_cmodel)
     {
-      if (!strcmp (ix86_cmodel_string, "small"))
-	ix86_cmodel = flag_pic ? CM_SMALL_PIC : CM_SMALL;
-      else if (!strcmp (ix86_cmodel_string, "medium"))
-	ix86_cmodel = flag_pic ? CM_MEDIUM_PIC : CM_MEDIUM;
-      else if (!strcmp (ix86_cmodel_string, "large"))
-	ix86_cmodel = flag_pic ? CM_LARGE_PIC : CM_LARGE;
-      else if (flag_pic)
-	error ("code model %s does not support PIC mode", ix86_cmodel_string);
-      else if (!strcmp (ix86_cmodel_string, "32"))
-	ix86_cmodel = CM_32;
-      else if (!strcmp (ix86_cmodel_string, "kernel") && !flag_pic)
-	ix86_cmodel = CM_KERNEL;
-      else
-	error ("bad value (%s) for %scmodel=%s %s",
-	       ix86_cmodel_string, prefix, suffix, sw);
+      switch (ix86_cmodel)
+	{
+	case CM_SMALL:
+	case CM_SMALL_PIC:
+	  if (flag_pic)
+	    ix86_cmodel = CM_SMALL_PIC;
+	  if (!TARGET_64BIT)
+	    error ("code model %qs not supported in the %s bit mode",
+		   "small", "32");
+	  break;
+
+	case CM_MEDIUM:
+	case CM_MEDIUM_PIC:
+	  if (flag_pic)
+	    ix86_cmodel = CM_MEDIUM_PIC;
+	  if (!TARGET_64BIT)
+	    error ("code model %qs not supported in the %s bit mode",
+		   "medium", "32");
+	  break;
+
+	case CM_LARGE:
+	case CM_LARGE_PIC:
+	  if (flag_pic)
+	    ix86_cmodel = CM_LARGE_PIC;
+	  if (!TARGET_64BIT)
+	    error ("code model %qs not supported in the %s bit mode",
+		   "large", "32");
+	  break;
+
+	case CM_32:
+	  if (flag_pic)
+	    error ("code model %s does not support PIC mode", "32");
+	  if (TARGET_64BIT)
+	    error ("code model %qs not supported in the %s bit mode",
+		   "32", "64");
+	  break;
+
+	case CM_KERNEL:
+	  if (flag_pic)
+	    {
+	      error ("code model %s does not support PIC mode", "kernel");
+	      ix86_cmodel = CM_32;
+	    }
+	  if (!TARGET_64BIT)
+	    error ("code model %qs not supported in the %s bit mode",
+		   "kernel", "32");
+	  break;
+
+	default:
+	  gcc_unreachable ();
+	}
     }
   else
     {
@@ -3622,20 +3628,11 @@ ix86_option_override_internal (bool main_args_p)
       else
         ix86_cmodel = CM_32;
     }
-  if (ix86_asm_string != 0)
+  if (TARGET_MACHO && ix86_asm_dialect == ASM_INTEL)
     {
-      if (! TARGET_MACHO
-	  && !strcmp (ix86_asm_string, "intel"))
-	ix86_asm_dialect = ASM_INTEL;
-      else if (!strcmp (ix86_asm_string, "att"))
-	ix86_asm_dialect = ASM_ATT;
-      else
-	error ("bad value (%s) for %sasm=%s %s",
-	       ix86_asm_string, prefix, suffix, sw);
+      error ("-masm=intel not supported in this configuration");
+      ix86_asm_dialect = ASM_ATT;
     }
-  if ((TARGET_64BIT == 0) != (ix86_cmodel == CM_32))
-    error ("code model %qs not supported in the %s bit mode",
-	   ix86_cmodel_string, TARGET_64BIT ? "64" : "32");
   if (ix86_cmodel != CM_SMALL
       && ix86_cmodel != CM_SMALL_PIC
       && TARGET_X32)
@@ -3860,67 +3857,19 @@ ix86_option_override_internal (bool main_args_p)
   init_machine_status = ix86_init_machine_status;
 
   /* Validate -mregparm= value.  */
-  if (ix86_regparm_string)
+  if (global_options_set.x_ix86_regparm)
     {
       if (TARGET_64BIT)
-	warning (0, "%sregparm%s is ignored in 64-bit mode", prefix, suffix);
-      i = atoi (ix86_regparm_string);
-      if (i < 0 || i > REGPARM_MAX)
-	error ("%sregparm=%d%s is not between 0 and %d",
-	       prefix, i, suffix, REGPARM_MAX);
-      else
-	ix86_regparm = i;
+	warning (0, "-mregparm is ignored in 64-bit mode");
+      if (ix86_regparm > REGPARM_MAX)
+	{
+	  error ("-mregparm=%d is not between 0 and %d",
+		 ix86_regparm, REGPARM_MAX);
+	  ix86_regparm = 0;
+	}
     }
   if (TARGET_64BIT)
     ix86_regparm = REGPARM_MAX;
-
-  /* If the user has provided any of the -malign-* options,
-     warn and use that value only if -falign-* is not set.
-     Remove this code in GCC 3.2 or later.  */
-  if (ix86_align_loops_string)
-    {
-      warning (0, "%salign-loops%s is obsolete, use -falign-loops%s",
-	       prefix, suffix, suffix);
-      if (align_loops == 0)
-	{
-	  i = atoi (ix86_align_loops_string);
-	  if (i < 0 || i > MAX_CODE_ALIGN)
-	    error ("%salign-loops=%d%s is not between 0 and %d",
-		   prefix, i, suffix, MAX_CODE_ALIGN);
-	  else
-	    align_loops = 1 << i;
-	}
-    }
-
-  if (ix86_align_jumps_string)
-    {
-      warning (0, "%salign-jumps%s is obsolete, use -falign-jumps%s",
-	       prefix, suffix, suffix);
-      if (align_jumps == 0)
-	{
-	  i = atoi (ix86_align_jumps_string);
-	  if (i < 0 || i > MAX_CODE_ALIGN)
-	    error ("%salign-loops=%d%s is not between 0 and %d",
-		   prefix, i, suffix, MAX_CODE_ALIGN);
-	  else
-	    align_jumps = 1 << i;
-	}
-    }
-
-  if (ix86_align_funcs_string)
-    {
-      warning (0, "%salign-functions%s is obsolete, use -falign-functions%s",
-	       prefix, suffix, suffix);
-      if (align_functions == 0)
-	{
-	  i = atoi (ix86_align_funcs_string);
-	  if (i < 0 || i > MAX_CODE_ALIGN)
-	    error ("%salign-loops=%d%s is not between 0 and %d",
-		   prefix, i, suffix, MAX_CODE_ALIGN);
-	  else
-	    align_functions = 1 << i;
-	}
-    }
 
   /* Default align_* from the processor table.  */
   if (align_loops == 0)
@@ -3938,42 +3887,9 @@ ix86_option_override_internal (bool main_args_p)
       align_functions = processor_target_table[ix86_tune].align_func;
     }
 
-  /* Validate -mbranch-cost= value, or provide default.  */
-  ix86_branch_cost = ix86_cost->branch_cost;
-  if (ix86_branch_cost_string)
-    {
-      i = atoi (ix86_branch_cost_string);
-      if (i < 0 || i > 5)
-	error ("%sbranch-cost=%d%s is not between 0 and 5", prefix, i, suffix);
-      else
-	ix86_branch_cost = i;
-    }
-  if (ix86_section_threshold_string)
-    {
-      i = atoi (ix86_section_threshold_string);
-      if (i < 0)
-	error ("%slarge-data-threshold=%d%s is negative", prefix, i, suffix);
-      else
-	ix86_section_threshold = i;
-    }
-
-  if (ix86_tls_dialect_string)
-    {
-      if (strcmp (ix86_tls_dialect_string, "gnu") == 0)
-	ix86_tls_dialect = TLS_DIALECT_GNU;
-      else if (strcmp (ix86_tls_dialect_string, "gnu2") == 0)
-	ix86_tls_dialect = TLS_DIALECT_GNU2;
-      else
-	error ("bad value (%s) for %stls-dialect=%s %s",
-	       ix86_tls_dialect_string, prefix, suffix, sw);
-    }
-
-  if (ix87_precision_string)
-    {
-      i = atoi (ix87_precision_string);
-      if (i != 32 && i != 64 && i != 80)
-	error ("pc%d is not valid precision setting (32, 64 or 80)", i);
-    }
+  /* Provide default for -mbranch-cost= value.  */
+  if (!global_options_set.x_ix86_branch_cost)
+    ix86_branch_cost = ix86_cost->branch_cost;
 
   if (TARGET_64BIT)
     {
@@ -4025,6 +3941,13 @@ ix86_option_override_internal (bool main_args_p)
   if (!TARGET_80387)
     target_flags |= MASK_NO_FANCY_MATH_387;
 
+  /* On 32bit targets, avoid moving DFmode values in
+     integer registers when optimizing for size.  */
+  if (TARGET_64BIT)
+    target_flags |= TARGET_INTEGER_DFMODE_MOVES;
+  else if (optimize_size)
+    target_flags &= ~TARGET_INTEGER_DFMODE_MOVES;
+
   /* Turn on MMX builtins for -msse.  */
   if (TARGET_SSE)
     {
@@ -4039,23 +3962,24 @@ ix86_option_override_internal (bool main_args_p)
   /* Validate -mpreferred-stack-boundary= value or default it to
      PREFERRED_STACK_BOUNDARY_DEFAULT.  */
   ix86_preferred_stack_boundary = PREFERRED_STACK_BOUNDARY_DEFAULT;
-  if (ix86_preferred_stack_boundary_string)
+  if (global_options_set.x_ix86_preferred_stack_boundary_arg)
     {
       int min = (TARGET_64BIT ? 4 : 2);
       int max = (TARGET_SEH ? 4 : 12);
 
-      i = atoi (ix86_preferred_stack_boundary_string);
-      if (i < min || i > max)
+      if (ix86_preferred_stack_boundary_arg < min
+	  || ix86_preferred_stack_boundary_arg > max)
 	{
 	  if (min == max)
-	    error ("%spreferred-stack-boundary%s is not supported "
-		   "for this target", prefix, suffix);
+	    error ("-mpreferred-stack-boundary is not supported "
+		   "for this target");
 	  else
-	    error ("%spreferred-stack-boundary=%d%s is not between %d and %d",
-		   prefix, i, suffix, min, max);
+	    error ("-mpreferred-stack-boundary=%d is not between %d and %d",
+		   ix86_preferred_stack_boundary_arg, min, max);
 	}
       else
-	ix86_preferred_stack_boundary = (1 << i) * BITS_PER_UNIT;
+	ix86_preferred_stack_boundary
+	  = (1 << ix86_preferred_stack_boundary_arg) * BITS_PER_UNIT;
     }
 
   /* Set the default value for -mstackrealign.  */
@@ -4067,15 +3991,16 @@ ix86_option_override_internal (bool main_args_p)
   /* Validate -mincoming-stack-boundary= value or default it to
      MIN_STACK_BOUNDARY/PREFERRED_STACK_BOUNDARY.  */
   ix86_incoming_stack_boundary = ix86_default_incoming_stack_boundary;
-  if (ix86_incoming_stack_boundary_string)
+  if (global_options_set.x_ix86_incoming_stack_boundary_arg)
     {
-      i = atoi (ix86_incoming_stack_boundary_string);
-      if (i < (TARGET_64BIT ? 4 : 2) || i > 12)
+      if (ix86_incoming_stack_boundary_arg < (TARGET_64BIT ? 4 : 2)
+	  || ix86_incoming_stack_boundary_arg > 12)
 	error ("-mincoming-stack-boundary=%d is not between %d and 12",
-	       i, TARGET_64BIT ? 4 : 2);
+	       ix86_incoming_stack_boundary_arg, TARGET_64BIT ? 4 : 2);
       else
 	{
-	  ix86_user_incoming_stack_boundary = (1 << i) * BITS_PER_UNIT;
+	  ix86_user_incoming_stack_boundary
+	    = (1 << ix86_incoming_stack_boundary_arg) * BITS_PER_UNIT;
 	  ix86_incoming_stack_boundary
 	    = ix86_user_incoming_stack_boundary;
 	}
@@ -4130,17 +4055,20 @@ ix86_option_override_internal (bool main_args_p)
     target_flags &= ~MASK_FLOAT_RETURNS;
 
   /* Use external vectorized library in vectorizing intrinsics.  */
-  if (ix86_veclibabi_string)
-    {
-      if (strcmp (ix86_veclibabi_string, "svml") == 0)
+  if (global_options_set.x_ix86_veclibabi_type)
+    switch (ix86_veclibabi_type)
+      {
+      case ix86_veclibabi_type_svml:
 	ix86_veclib_handler = ix86_veclibabi_svml;
-      else if (strcmp (ix86_veclibabi_string, "acml") == 0)
+	break;
+
+      case ix86_veclibabi_type_acml:
 	ix86_veclib_handler = ix86_veclibabi_acml;
-      else
-	error ("unknown vectorization library ABI type (%s) for "
-	       "%sveclibabi=%s %s", ix86_veclibabi_string,
-	       prefix, suffix, sw);
-    }
+	break;
+
+      default:
+	gcc_unreachable ();
+      }
 
   if ((!USE_IX86_FRAME_POINTER
        || (x86_accumulate_outgoing_args & ix86_tune_mask))
@@ -4213,7 +4141,7 @@ ix86_option_override_internal (bool main_args_p)
   if (flag_prefetch_loop_arrays < 0
       && HAVE_prefetch
       && optimize >= 3
-      && software_prefetching_beneficial_p ())
+      && TARGET_SOFTWARE_PREFETCHING_BENEFICIAL)
     flag_prefetch_loop_arrays = 1;
 
   /* If using typedef char *va_list, signal that __builtin_va_start (&ap, 0)
@@ -8684,17 +8612,17 @@ standard_sse_constant_opcode (rtx insn, rtx x)
       switch (get_attr_mode (insn))
 	{
 	case MODE_V4SF:
-	  return TARGET_AVX ? "vxorps\t%0, %0, %0" : "xorps\t%0, %0";
+	  return "%vxorps\t%0, %d0";
 	case MODE_V2DF:
 	  if (TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	    return TARGET_AVX ? "vxorps\t%0, %0, %0" : "xorps\t%0, %0";
+	    return "%vxorps\t%0, %d0";
 	  else
-	    return TARGET_AVX ? "vxorpd\t%0, %0, %0" : "xorpd\t%0, %0";
+	    return "%vxorpd\t%0, %d0";
 	case MODE_TI:
 	  if (TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	    return TARGET_AVX ? "vxorps\t%0, %0, %0" : "xorps\t%0, %0";
+	    return "%vxorps\t%0, %d0";
 	  else
-	    return TARGET_AVX ? "vpxor\t%0, %0, %0" : "pxor\t%0, %0";
+	    return "%vpxor\t%0, %d0";
 	case MODE_V8SF:
 	  return "vxorps\t%x0, %x0, %x0";
 	case MODE_V4DF:
@@ -8711,7 +8639,7 @@ standard_sse_constant_opcode (rtx insn, rtx x)
 	  break;
 	}
     case 2:
-      return TARGET_AVX ? "vpcmpeqd\t%0, %0, %0" : "pcmpeqd\t%0, %0";
+      return "%vpcmpeqd\t%0, %d0";
     default:
       break;
     }
@@ -9105,9 +9033,10 @@ ix86_select_alt_pic_regnum (void)
   return INVALID_REGNUM;
 }
 
-/* Return 1 if we need to save REGNO.  */
-static int
-ix86_save_reg (unsigned int regno, int maybe_eh_return)
+/* Return TRUE if we need to save REGNO.  */
+
+static bool
+ix86_save_reg (unsigned int regno, bool maybe_eh_return)
 {
   if (pic_offset_table_rtx
       && regno == REAL_PIC_OFFSET_TABLE_REGNUM
@@ -9115,11 +9044,7 @@ ix86_save_reg (unsigned int regno, int maybe_eh_return)
 	  || crtl->profile
 	  || crtl->calls_eh_return
 	  || crtl->uses_const_pool))
-    {
-      if (ix86_select_alt_pic_regnum () != INVALID_REGNUM)
-	return 0;
-      return 1;
-    }
+    return ix86_select_alt_pic_regnum () == INVALID_REGNUM;
 
   if (crtl->calls_eh_return && maybe_eh_return)
     {
@@ -9130,12 +9055,12 @@ ix86_save_reg (unsigned int regno, int maybe_eh_return)
 	  if (test == INVALID_REGNUM)
 	    break;
 	  if (test == regno)
-	    return 1;
+	    return true;
 	}
     }
 
   if (crtl->drap_reg && regno == REGNO (crtl->drap_reg))
-    return 1;
+    return true;
 
   return (df_regs_ever_live_p (regno)
 	  && !call_used_regs[regno]
@@ -10939,7 +10864,7 @@ ix86_emit_leave (void)
    First register is restored from CFA - CFA_OFFSET.  */
 static void
 ix86_emit_restore_regs_using_mov (HOST_WIDE_INT cfa_offset,
-				  int maybe_eh_return)
+				  bool maybe_eh_return)
 {
   struct machine_function *m = cfun->machine;
   unsigned int regno;
@@ -10978,7 +10903,7 @@ ix86_emit_restore_regs_using_mov (HOST_WIDE_INT cfa_offset,
    First register is restored from CFA - CFA_OFFSET.  */
 static void
 ix86_emit_restore_sse_regs_using_mov (HOST_WIDE_INT cfa_offset,
-				      int maybe_eh_return)
+				      bool maybe_eh_return)
 {
   unsigned int regno;
 
@@ -12889,7 +12814,7 @@ legitimize_pic_address (rtx orig, rtx reg)
 /* Load the thread pointer.  If TO_REG is true, force it into a register.  */
 
 static rtx
-get_thread_pointer (int to_reg)
+get_thread_pointer (bool to_reg)
 {
   rtx tp, reg, insn;
 
@@ -12906,76 +12831,154 @@ get_thread_pointer (int to_reg)
   return reg;
 }
 
+/* Construct the SYMBOL_REF for the tls_get_addr function.  */
+
+static GTY(()) rtx ix86_tls_symbol;
+
+static rtx
+ix86_tls_get_addr (void)
+{
+  if (!ix86_tls_symbol)
+    {
+      const char *sym
+	= ((TARGET_ANY_GNU_TLS && !TARGET_64BIT)
+	   ? "___tls_get_addr" : "__tls_get_addr");
+
+      ix86_tls_symbol = gen_rtx_SYMBOL_REF (Pmode, sym);
+    }
+
+  return ix86_tls_symbol;
+}
+
+/* Construct the SYMBOL_REF for the _TLS_MODULE_BASE_ symbol.  */
+
+static GTY(()) rtx ix86_tls_module_base_symbol;
+
+rtx
+ix86_tls_module_base (void)
+{
+  if (!ix86_tls_module_base_symbol)
+    {
+      ix86_tls_module_base_symbol
+	= gen_rtx_SYMBOL_REF (Pmode, "_TLS_MODULE_BASE_");
+
+      SYMBOL_REF_FLAGS (ix86_tls_module_base_symbol)
+	|= TLS_MODEL_GLOBAL_DYNAMIC << SYMBOL_FLAG_TLS_SHIFT;
+    }
+
+  return ix86_tls_module_base_symbol;
+}
+
 /* A subroutine of ix86_legitimize_address and ix86_expand_move.  FOR_MOV is
    false if we expect this to be used for a memory address and true if
    we expect to load the address into a register.  */
 
 static rtx
-legitimize_tls_address (rtx x, enum tls_model model, int for_mov)
+legitimize_tls_address (rtx x, enum tls_model model, bool for_mov)
 {
-  rtx dest, base, off, pic, tp;
+  rtx dest, base, off;
+  rtx pic = NULL_RTX, tp = NULL_RTX;
   int type;
 
   switch (model)
     {
     case TLS_MODEL_GLOBAL_DYNAMIC:
       dest = gen_reg_rtx (Pmode);
-      tp = TARGET_GNU2_TLS ? get_thread_pointer (1) : 0;
 
-      if (TARGET_64BIT && ! TARGET_GNU2_TLS)
+      if (!TARGET_64BIT)
 	{
-	  rtx rax = gen_rtx_REG (Pmode, AX_REG), insns;
-
-	  start_sequence ();
-	  emit_call_insn (gen_tls_global_dynamic_64 (rax, x));
-	  insns = get_insns ();
-	  end_sequence ();
-
-	  RTL_CONST_CALL_P (insns) = 1;
-	  emit_libcall_block (insns, dest, rax, x);
+	  if (flag_pic)
+	    pic = pic_offset_table_rtx;
+	  else
+	    {
+	      pic = gen_reg_rtx (Pmode);
+	      emit_insn (gen_set_got (pic));
+	    }
 	}
-      else if (TARGET_64BIT && TARGET_GNU2_TLS)
-	emit_insn (gen_tls_global_dynamic_64 (dest, x));
-      else
-	emit_insn (gen_tls_global_dynamic_32 (dest, x));
 
       if (TARGET_GNU2_TLS)
 	{
+	  if (TARGET_64BIT)
+	    emit_insn (gen_tls_dynamic_gnu2_64 (dest, x));
+	  else
+	    emit_insn (gen_tls_dynamic_gnu2_32 (dest, x, pic));
+
+	  tp = get_thread_pointer (true);
 	  dest = force_reg (Pmode, gen_rtx_PLUS (Pmode, tp, dest));
 
 	  set_unique_reg_note (get_last_insn (), REG_EQUIV, x);
+	}
+      else
+	{
+	  rtx caddr = ix86_tls_get_addr ();
+
+	  if (TARGET_64BIT)
+	    {
+	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns;
+
+	      start_sequence ();
+	      emit_call_insn (gen_tls_global_dynamic_64 (rax, x, caddr));
+	      insns = get_insns ();
+	      end_sequence ();
+
+	      RTL_CONST_CALL_P (insns) = 1;
+	      emit_libcall_block (insns, dest, rax, x);
+	    }
+	  else
+	    emit_insn (gen_tls_global_dynamic_32 (dest, x, pic, caddr));
 	}
       break;
 
     case TLS_MODEL_LOCAL_DYNAMIC:
       base = gen_reg_rtx (Pmode);
-      tp = TARGET_GNU2_TLS ? get_thread_pointer (1) : 0;
 
-      if (TARGET_64BIT && ! TARGET_GNU2_TLS)
+      if (!TARGET_64BIT)
 	{
-	  rtx rax = gen_rtx_REG (Pmode, AX_REG), insns, note;
-
-	  start_sequence ();
-	  emit_call_insn (gen_tls_local_dynamic_base_64 (rax));
-	  insns = get_insns ();
-	  end_sequence ();
-
-	  note = gen_rtx_EXPR_LIST (VOIDmode, const0_rtx, NULL);
-	  note = gen_rtx_EXPR_LIST (VOIDmode, ix86_tls_get_addr (), note);
-	  RTL_CONST_CALL_P (insns) = 1;
-	  emit_libcall_block (insns, base, rax, note);
+	  if (flag_pic)
+	    pic = pic_offset_table_rtx;
+	  else
+	    {
+	      pic = gen_reg_rtx (Pmode);
+	      emit_insn (gen_set_got (pic));
+	    }
 	}
-      else if (TARGET_64BIT && TARGET_GNU2_TLS)
-	emit_insn (gen_tls_local_dynamic_base_64 (base));
-      else
-	emit_insn (gen_tls_local_dynamic_base_32 (base));
 
       if (TARGET_GNU2_TLS)
 	{
-	  rtx x = ix86_tls_module_base ();
+	  rtx tmp = ix86_tls_module_base ();
 
+	  if (TARGET_64BIT)
+	    emit_insn (gen_tls_dynamic_gnu2_64 (base, tmp));
+	  else
+	    emit_insn (gen_tls_dynamic_gnu2_32 (base, tmp, pic));
+
+	  tp = get_thread_pointer (true);
 	  set_unique_reg_note (get_last_insn (), REG_EQUIV,
-			       gen_rtx_MINUS (Pmode, x, tp));
+			       gen_rtx_MINUS (Pmode, tmp, tp));
+	}
+      else
+	{
+	  rtx caddr = ix86_tls_get_addr ();
+
+	  if (TARGET_64BIT)
+	    {
+	      rtx rax = gen_rtx_REG (Pmode, AX_REG), insns, eqv;
+
+	      start_sequence ();
+	      emit_call_insn (gen_tls_local_dynamic_base_64 (rax, caddr));
+	      insns = get_insns ();
+	      end_sequence ();
+
+	      /* Attach a unique REG_EQUIV, to allow the RTL optimizers to
+		 share the LD_BASE result with other LD model accesses.  */
+	      eqv = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const0_rtx),
+				    UNSPEC_TLS_LD_BASE);
+
+	      RTL_CONST_CALL_P (insns) = 1;
+	      emit_libcall_block (insns, base, rax, eqv);
+	    }
+	  else
+	    emit_insn (gen_tls_local_dynamic_base_32 (base, pic, caddr));
 	}
 
       off = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, x), UNSPEC_DTPOFF);
@@ -12989,7 +12992,6 @@ legitimize_tls_address (rtx x, enum tls_model model, int for_mov)
 
 	  set_unique_reg_note (get_last_insn (), REG_EQUIV, x);
 	}
-
       break;
 
     case TLS_MODEL_INITIAL_EXEC:
@@ -21071,8 +21073,8 @@ decide_alg (HOST_WIDE_INT count, HOST_WIDE_INT expected_size, bool memset,
     algs = &cost->memset[TARGET_64BIT != 0];
   else
     algs = &cost->memcpy[TARGET_64BIT != 0];
-  if (stringop_alg != no_stringop && ALG_USABLE_P (stringop_alg))
-    return stringop_alg;
+  if (ix86_stringop_alg != no_stringop && ALG_USABLE_P (ix86_stringop_alg))
+    return ix86_stringop_alg;
   /* rep; movq or rep; movl is the smallest variant.  */
   else if (!optimize_for_speed)
     {
@@ -22442,43 +22444,6 @@ assign_386_stack_local (enum machine_mode mode, enum ix86_stack_slot n)
   s->next = ix86_stack_locals;
   ix86_stack_locals = s;
   return s->rtl;
-}
-
-/* Construct the SYMBOL_REF for the tls_get_addr function.  */
-
-static GTY(()) rtx ix86_tls_symbol;
-rtx
-ix86_tls_get_addr (void)
-{
-
-  if (!ix86_tls_symbol)
-    {
-      ix86_tls_symbol = gen_rtx_SYMBOL_REF (Pmode,
-					    (TARGET_ANY_GNU_TLS
-					     && !TARGET_64BIT)
-					    ? "___tls_get_addr"
-					    : "__tls_get_addr");
-    }
-
-  return ix86_tls_symbol;
-}
-
-/* Construct the SYMBOL_REF for the _TLS_MODULE_BASE_ symbol.  */
-
-static GTY(()) rtx ix86_tls_module_base_symbol;
-rtx
-ix86_tls_module_base (void)
-{
-
-  if (!ix86_tls_module_base_symbol)
-    {
-      ix86_tls_module_base_symbol = gen_rtx_SYMBOL_REF (Pmode,
-							"_TLS_MODULE_BASE_");
-      SYMBOL_REF_FLAGS (ix86_tls_module_base_symbol)
-	|= TLS_MODEL_GLOBAL_DYNAMIC << SYMBOL_FLAG_TLS_SHIFT;
-    }
-
-  return ix86_tls_module_base_symbol;
 }
 
 /* Calculate the length of the memory address in the instruction
@@ -28819,7 +28784,7 @@ ix86_preferred_reload_class (rtx x, reg_class_t regclass)
 	 zero above.  We only want to wind up preferring 80387 registers if
 	 we plan on doing computation with them.  */
       if (TARGET_80387
-	  && standard_80387_constant_p (x))
+	  && standard_80387_constant_p (x) > 0)
 	{
 	  /* Limit class to non-sse.  */
 	  if (regclass == FLOAT_SSE_REGS)
@@ -29270,7 +29235,8 @@ ix86_register_move_cost (enum machine_mode mode, reg_class_t class1_i,
   return 2;
 }
 
-/* Return 1 if hard register REGNO can hold a value of machine-mode MODE.  */
+/* Return TRUE if hard register REGNO can hold a value of machine-mode
+   MODE.  */
 
 bool
 ix86_hard_regno_mode_ok (int regno, enum machine_mode mode)
@@ -29281,7 +29247,7 @@ ix86_hard_regno_mode_ok (int regno, enum machine_mode mode)
   if (GET_MODE_CLASS (mode) == MODE_CC
       || GET_MODE_CLASS (mode) == MODE_RANDOM
       || GET_MODE_CLASS (mode) == MODE_PARTIAL_INT)
-    return 0;
+    return false;
   if (FP_REGNO_P (regno))
     return VALID_FP_MODE_P (mode);
   if (SSE_REGNO_P (regno))
@@ -29311,26 +29277,26 @@ ix86_hard_regno_mode_ok (int regno, enum machine_mode mode)
       /* Take care for QImode values - they can be in non-QI regs,
 	 but then they do cause partial register stalls.  */
       if (regno <= BX_REG || TARGET_64BIT)
-	return 1;
+	return true;
       if (!TARGET_PARTIAL_REG_STALL)
-	return 1;
-      return reload_in_progress || reload_completed;
+	return true;
+      return !can_create_pseudo_p ();
     }
   /* We handle both integer and floats in the general purpose registers.  */
   else if (VALID_INT_MODE_P (mode))
-    return 1;
+    return true;
   else if (VALID_FP_MODE_P (mode))
-    return 1;
+    return true;
   else if (VALID_DFP_MODE_P (mode))
-    return 1;
+    return true;
   /* Lots of MMX code casts 8 byte vector modes to DImode.  If we then go
      on to use that value in smaller contexts, this can easily force a
      pseudo to be allocated to GENERAL_REGS.  Since this is no worse than
      supporting DImode, allow it.  */
   else if (VALID_MMX_REG_MODE_3DNOW (mode) || VALID_MMX_REG_MODE (mode))
-    return 1;
+    return true;
 
-  return 0;
+  return false;
 }
 
 /* A subroutine of ix86_modes_tieable_p.  Return true if MODE is a
@@ -35429,32 +35395,38 @@ has_dispatch (rtx insn, int action)
 static enum machine_mode
 ix86_preferred_simd_mode (enum machine_mode mode)
 {
-  /* Disable double precision vectorizer if needed.  */
-  if (mode == DFmode && !TARGET_VECTORIZE_DOUBLE)
-    return word_mode;
-
-  if (!TARGET_AVX && !TARGET_SSE)
+  if (!TARGET_SSE)
     return word_mode;
 
   switch (mode)
     {
-    case SFmode:
-      return (TARGET_AVX && !flag_prefer_avx128) ? V8SFmode : V4SFmode;
-    case DFmode:
-      return (TARGET_AVX && !flag_prefer_avx128) ? V4DFmode : V2DFmode;
-    case DImode:
-      return V2DImode;
-    case SImode:
-      return V4SImode;
-    case HImode:
-      return V8HImode;
     case QImode:
       return V16QImode;
+    case HImode:
+      return V8HImode;
+    case SImode:
+      return V4SImode;
+    case DImode:
+      return V2DImode;
 
-    default:;
+    case SFmode:
+      if (TARGET_AVX && !flag_prefer_avx128)
+	return V8SFmode;
+      else
+	return V4SFmode;
+
+    case DFmode:
+      if (!TARGET_VECTORIZE_DOUBLE)
+	return word_mode;
+      else if (TARGET_AVX && !flag_prefer_avx128)
+	return V4DFmode;
+      else if (TARGET_SSE2)
+	return V2DFmode;
+      /* FALLTHRU */
+
+    default:
+      return word_mode;
     }
-
-  return word_mode;
 }
 
 /* If AVX is enabled then try vectorizing with both 256bit and 128bit
@@ -35463,7 +35435,7 @@ ix86_preferred_simd_mode (enum machine_mode mode)
 static unsigned int
 ix86_autovectorize_vector_sizes (void)
 {
-  return TARGET_AVX ? 32 | 16 : 0;
+  return (TARGET_AVX && !flag_prefer_avx128) ? 32 | 16 : 0;
 }
 
 /* Initialize the GCC target structure.  */
