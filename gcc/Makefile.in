@@ -5338,9 +5338,8 @@ melt_make_move=$(SHELL) $(srcdir)/../move-if-change
 ## Don't use := definitions here!
 ## CC1 forbids -pipe and -Wp,-D_FORTIFY_SOURCE=2
 comma= ,
-MELTHERE_CC1_CFLAGS=$(filter-out -pipe -Wp$(comma)-D_FORTIFY_SOURCE=2, $(MELTHERE_CFLAGS))
-melt_make_cc1flags= -I. $(MELTHERE_CC1_CFLAGS)
-melt_cflags=  -I. $(MELTHERE_CFLAGS) -I $(srcdir)/melt/generated/ $(INCLUDES)
+melt_make_cc1flags= -I. 
+melt_cflags=  -I. -I $(srcdir)/melt/generated/ $(INCLUDES)
 export melt_cflags
 ## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c
 melt_extra_cflags= -g
@@ -5372,10 +5371,10 @@ include $(srcdir)/melt-build.mk
 melt.encap: cc1$(exeext) $(melt_make_cc1_dependency)
 	echo melt.encap making Makefile and melt-build.mk
 	$(MAKE) Makefile $(srcdir)/melt-build.mk
-	echo melt.encap making warmelt0 with MELTHERE_CFLAGS= $(MELTHERE_CFLAGS) melt_cflags= $(melt_cflags)
+	echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags)
 	$(MAKE) warmelt0
-	echo melt.encap making warmelt1 with MELTHERE_CFLAGS= $(MELTHERE_CFLAGS) melt_cflags= $(melt_cflags)
-## MELTHERE_CFLAGS & melt_cflags are exported!
+	echo melt.encap making warmelt1 with melt_cflags= $(melt_cflags)
+##  melt_cflags are exported!
 	$(MAKE) warmelt1
 	echo melt.encap making warmelt2
 	$(MAKE) warmelt2
