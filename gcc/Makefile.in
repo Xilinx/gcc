@@ -743,7 +743,7 @@ SFP_MACHINE =
 LIBCONVERT =
 
 # Control whether header files are installed.
-INSTALL_HEADERS=install-headers install-mkheaders install-melt-headers
+INSTALL_HEADERS=install-headers install-mkheaders install-melt-includes
 
 # Control whether Info documentation is built and installed.
 BUILD_INFO = @BUILD_INFO@

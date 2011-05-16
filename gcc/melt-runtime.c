@@ -6258,7 +6258,6 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase, unsigned f
   if (modpathstr && modpathstr[0]) 
     inform (UNKNOWN_LOCATION, 
 	    "MELT tried to load module list %s from MELT module path %s", modlistbase, modpathstr);
-  envpath = flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_MODULE_PATH"));
   if (envpath && envpath[0])
     inform (UNKNOWN_LOCATION, 
 	    "MELT tried to load module list %s from GCCMELT_MODULE_PATH=%s environment variable", 
@@ -6269,7 +6268,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase, unsigned f
   inform (UNKNOWN_LOCATION,
 	  "MELT tried to load module list %s from temporary directory %s",
 	  modlistbase, melt_tempdir_path("",""));
-  /* at last make a fatal error, because loading a module list is so important! */
+  /* At last make a fatal error, because loading a module list is so important!  */
   melt_fatal_error ("MELT failed to load module list '%s' with a suffix of '%s'", modlistbase, MODLIS_SUFFIX);
   goto end;
  loadit:
