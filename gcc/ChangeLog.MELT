@@ -1,4 +1,14 @@
 
+2011-05-16  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normatch.melt:
+	(normalize_test_matcher, normalize_fill_matcher): New selectors.
+	(normtestmatch_catchall,normfillmatch_catchall): New catchall
+	functions for them.
+	(normtestmatch_cmatcher): New embryonic function.
+	(normstep_mtestmatcher): Compute normouts. Send
+	normalize_test_matcher. Still incomplete.
+
 2011-05-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
