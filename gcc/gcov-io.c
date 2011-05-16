@@ -32,6 +32,10 @@ static const gcov_unsigned_t *gcov_read_words (unsigned);
 static void gcov_allocate (unsigned);
 #endif
 
+#ifdef __GCOV_KERNEL__
+struct gcov_var gcov_var ATTRIBUTE_HIDDEN;
+#endif
+
 static inline gcov_unsigned_t from_file (gcov_unsigned_t value)
 {
 #if !IN_LIBGCOV
@@ -54,6 +58,7 @@ static inline gcov_unsigned_t from_file (gcov_unsigned_t value)
    Return zero on failure, >0 on opening an existing file and <0 on
    creating a new one.  */
 
+#ifndef __GCOV_KERNEL__
 GCOV_LINKAGE int
 #if IN_LIBGCOV
 gcov_open (const char *name)
@@ -148,6 +153,23 @@ gcov_open (const char *name, int mode)
 
   return 1;
 }
+#else /* __GCOV_KERNEL__ */
+
+extern _GCOV_FILE *gcov_current_file;
+
+GCOV_LINKAGE int
+gcov_open (const char *name)
+{
+  gcov_var.start = 0;
+  gcov_var.offset = gcov_var.length = 0;
+  gcov_var.overread = -1u;
+  gcov_var.error = 0;
+  gcov_var.file = gcov_current_file;
+  gcov_var.mode = 1;
+
+  return 1;
+}
+#endif /* __GCOV_KERNEL__ */
 
 /* Close the current gcov file. Flushes data to disk. Returns nonzero
    on failure or error flag set.  */
@@ -161,7 +183,7 @@ gcov_close (void)
       if (gcov_var.offset && gcov_var.mode < 0)
 	gcov_write_block (gcov_var.offset);
 #endif
-      fclose (gcov_var.file);
+      _GCOV_fclose (gcov_var.file);
       gcov_var.file = 0;
       gcov_var.length = 0;
     }
@@ -217,7 +239,7 @@ gcov_allocate (unsigned length)
 static void
 gcov_write_block (unsigned size)
 {
-  if (fwrite (gcov_var.buffer, size << 2, 1, gcov_var.file) != 1)
+  if (_GCOV_fwrite (gcov_var.buffer, size << 2, 1, gcov_var.file) != 1)
     gcov_var.error = 1;
   gcov_var.start += size;
   gcov_var.offset -= size;
@@ -413,7 +435,7 @@ gcov_read_words (unsigned words)
 	gcov_allocate (gcov_var.length + words);
       excess = gcov_var.alloc - gcov_var.length;
 #endif
-      excess = fread (gcov_var.buffer + gcov_var.length,
+      excess = _GCOV_fread (gcov_var.buffer + gcov_var.length,
 		      1, excess << 2, gcov_var.file) >> 2;
       gcov_var.length += excess;
       if (gcov_var.length < words)
@@ -554,6 +576,10 @@ gcov_read_module_info (struct gcov_module_info *mod_info,
 GCOV_LINKAGE void
 gcov_sync (gcov_position_t base, gcov_unsigned_t length)
 {
+#ifdef __GCOV_KERNEL__
+  /* should not reach this point */
+  gcc_assert (0);
+#else /* __GCOV_KERNEL__ */
   gcc_assert (gcov_var.mode > 0);
   base += length;
   if (base - gcov_var.start <= gcov_var.length)
@@ -561,9 +587,10 @@ gcov_sync (gcov_position_t base, gcov_unsigned_t length)
   else
     {
       gcov_var.offset = gcov_var.length = 0;
-      fseek (gcov_var.file, base << 2, SEEK_SET);
-      gcov_var.start = ftell (gcov_var.file) >> 2;
+      _GCOV_fseek (gcov_var.file, base << 2, SEEK_SET);
+      gcov_var.start = _GCOV_ftell (gcov_var.file) >> 2;
     }
+#endif /* __GCOV_KERNEL__ */
 }
 #endif
 
@@ -576,8 +603,8 @@ gcov_seek (gcov_position_t base)
   gcc_assert (gcov_var.mode < 0);
   if (gcov_var.offset)
     gcov_write_block (gcov_var.offset);
-  fseek (gcov_var.file, base << 2, SEEK_SET);
-  gcov_var.start = ftell (gcov_var.file) >> 2;
+  _GCOV_fseek (gcov_var.file, base << 2, SEEK_SET);
+  gcov_var.start = _GCOV_ftell (gcov_var.file) >> 2;
 }
 
 /* Truncate the gcov file at the current position.  */
@@ -585,6 +612,10 @@ gcov_seek (gcov_position_t base)
 GCOV_LINKAGE void
 gcov_truncate (void)
 {
+#ifdef __GCOV_KERNEL__
+  /* should not reach this point */
+  gcc_assert (0);
+#else /* __GCOV_KERNEL__ */
   long offs;
   int filenum;
   gcc_assert (gcov_var.mode < 0);
@@ -594,6 +625,7 @@ gcov_truncate (void)
   filenum = fileno (gcov_var.file);
   if (offs == -1 || filenum == -1 || ftruncate (filenum, offs))
     gcov_var.error = 1;
+#endif /* __GCOV_KERNEL__ */
 }
 #endif
 
@@ -611,3 +643,105 @@ gcov_time (void)
     return status.st_mtime;
 }
 #endif /* IN_GCOV */
+
+#ifdef __GCOV_KERNEL__
+
+/* File fclose operation in kernel mode.  */
+
+int
+kernel_file_fclose (gcov_kernel_vfile *fp)
+{
+  return 0;
+}
+
+/* File ftell operation in kernel mode. It currently should not
+   be called.  */
+
+long
+kernel_file_ftell (gcov_kernel_vfile *fp)
+{
+  gcc_assert (0);  /* should not reach here */
+  return 0;
+}
+
+/* File fseek operation in kernel mode. It should only be called
+   with OFFSET==0 and WHENCE==0 to a freshly opened file.  */
+
+int
+kernel_file_fseek (gcov_kernel_vfile *fp, long offset, int whence)
+{
+  gcc_assert (offset == 0 && whence == 0 && fp->count == 0);
+  return 0;
+}
+
+/* File ftruncate operation in kernel mode. It currently should not
+   be called.  */
+
+int
+kernel_file_ftruncate (gcov_kernel_vfile *fp, off_t value)
+{
+  gcc_assert (0);  /* should not reach here */
+  return 0;
+}
+
+/* File fread operation in kernel mode. It currently should not
+   be called.  */
+
+int
+kernel_file_fread (void *ptr, size_t size, size_t nitems,
+                  gcov_kernel_vfile *fp)
+{
+  gcc_assert (0);  /* should not reach here */
+  return 0;
+}
+
+/* File fwrite operation in kernel mode. It outputs the data
+   to a buffer in the virual file.  */
+
+int
+kernel_file_fwrite (const void *ptr, size_t size,
+                   size_t nitems, gcov_kernel_vfile *fp)
+{
+  char *vbuf;
+  unsigned vsize, vpos;
+  unsigned len;
+
+  if (!fp) return 0;
+
+  vbuf = fp->buf;
+  vsize = fp->size;
+  vpos = fp->count;
+
+  if (vsize <= vpos)
+    {
+      printk (KERN_ERR
+          "GCOV_KERNEL: something wrong: vbuf=%p vsize=%u vpos=%u\n",
+          vbuf, vsize, vpos);
+      return 0;
+    }
+  len = vsize - vpos;
+  len /= size;
+
+  if (len > nitems)
+    len = nitems;
+
+  memcpy (vbuf+vpos, ptr, size*len);
+  fp->count += len*size;
+
+  if (len != nitems)
+    printk (KERN_ERR
+        "GCOV_KERNEL: something wrong: size=%lu nitems=%lu ret=%d\n",
+        size, nitems, len);
+  return len;
+}
+
+/* File fileno operation in kernel mode. It currently should not
+   be called.  */
+
+int
+kernel_file_fileno (gcov_kernel_vfile *fp)
+{
+  gcc_assert (0);  /* should not reach here */
+  return 0;
+}
+#endif /* GCOV_KERNEL */

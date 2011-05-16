@@ -163,6 +163,88 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #ifndef GCC_GCOV_IO_H
 #define GCC_GCOV_IO_H
 
+#ifdef __KERNEL__
+#ifndef __GCOV_KERNEL__
+#define __GCOV_KERNEL__
+#endif /* __GCOV_KERNEL__ */
+#endif /* __KERNEL__ */
+
+#ifdef __GCOV_KERNEL__
+#define GCOV_LINKAGE /* nothing */
+
+/* We need the definitions for
+    BITS_PER_UNIT and
+    LONG_LONG_TYPE_SIZE
+  They are defined in gcc/defaults.h and gcc/config/<arch_depend_files>
+  (like, gcc/config/i386/i386.h). And it can be overridden by setting 
+  in build scripts. Here I hardcoded the value for x86.  
+  Todo: using a program to auto-generate the vaules in build time.  */
+#define BITS_PER_UNIT 8
+#define LONG_LONG_TYPE_SIZE 64
+
+/* There are many gcc_assertions. Set the vaule to 1 if we want a warning
+   message if the assertion fails.  */
+#ifndef ENABLE_ASSERT_CHECKING
+#define ENABLE_ASSERT_CHECKING 1
+#endif
+
+#include <linux/fs.h>
+#endif /* __GCOV_KERNEL__ */
+
+/* Wrappers to the file operations.  */
+#ifndef __GCOV_KERNEL__
+# define _GCOV_FILE      FILE
+# define _GCOV_fclose    fclose
+# define _GCOV_ftell     ftell
+# define _GCOV_fseek     fseek
+# define _GCOV_ftruncate ftruncate
+# define _GCOV_fread     fread
+# define _GCOV_fwrite    fwrite
+# define _GCOV_fread     fread
+# define _GCOV_fileno    fileno
+#else /* __GCOV_KERNEL__ */
+/* In Linux kernel mode, a virtual file is used for file operations.  */
+struct gcov_info;
+typedef struct {
+  long size; /* size of buf */
+  long count; /* element written into buf */
+  struct gcov_info *info;
+  char buf[0];
+} gcov_kernel_vfile;
+
+# define _GCOV_FILE gcov_kernel_vfile
+
+/* gcc_assert() prints out a warning if the check fails. It
+   will not abort.  */
+#if ENABLE_ASSERT_CHECKING
+# define gcc_assert(EXPR) \
+    ((void)(!(EXPR) ? printk (KERN_WARNING \
+      "GCOV assertion fails: func=%s line=%d\n", \
+      __FUNCTION__, __LINE__), 0 : 0))
+#else
+# define gcc_assert(EXPR) ((void)(0 && (EXPR)))
+#endif
+
+/* Wrappers to the file operations.  */
+# define _GCOV_fclose     kernel_file_fclose
+# define _GCOV_ftell      kernel_file_ftell
+# define _GCOV_fseek      kernel_file_fseek
+# define _GCOV_ftruncate  kernel_file_ftruncate
+# define _GCOV_fread      kernel_file_fread
+# define _GCOV_fwrite     kernel_file_fwrite
+# define _GCOV_fileno     kernel_file_fileno
+
+/* Declarations for virtual files operations.  */
+extern int kernel_file_fclose (gcov_kernel_vfile *);
+extern long kernel_file_ftell (gcov_kernel_vfile *);
+extern int kernel_file_fseek (gcov_kernel_vfile *, long, int);
+extern int kernel_file_ftruncate (gcov_kernel_vfile *, off_t);
+extern int kernel_file_fread (void *, size_t, size_t,
+    gcov_kernel_vfile *);
+extern int kernel_file_fwrite (const void *, size_t, size_t,
+    gcov_kernel_vfile *);
+extern int kernel_file_fileno(gcov_kernel_vfile *);
+#endif /* GCOV_KERNEL */
 #if IN_LIBGCOV
 
 #undef FUNC_ID_WIDTH
@@ -264,7 +346,9 @@ typedef HOST_WIDEST_INT gcov_type;
    is not also used in a DSO.  */
 #if IN_LIBGCOV
 
+#ifndef __GCOV_KERNEL__
 #include "tconfig.h"
+#endif /* __GCOV_KERNEL__ */
 
 #define gcov_var __gcov_var
 #define gcov_open __gcov_open
@@ -609,9 +693,9 @@ extern int __gcov_execve (const char *, char  *const [], char *const [])
 /* Optimum number of gcov_unsigned_t's read from or written to disk.  */
 #define GCOV_BLOCK_SIZE (1 << 10)
 
-GCOV_LINKAGE struct gcov_var
+struct gcov_var
 {
-  FILE *file;
+  _GCOV_FILE *file;
   gcov_position_t start;	/* Position of first byte of block */
   unsigned offset;		/* Read/write position within the block.  */
   unsigned length;		/* Read limit in the block.  */
@@ -631,7 +715,15 @@ GCOV_LINKAGE struct gcov_var
   size_t alloc;
   gcov_unsigned_t *buffer;
 #endif
-} gcov_var ATTRIBUTE_HIDDEN;
+};
+
+/* In kernel mode, move gcov_var definition to gcov-io.c
+   to avoid dulipcate definitions.  */
+#ifndef __GCOV_KERNEL__
+GCOV_LINKAGE struct gcov_var gcov_var ATTRIBUTE_HIDDEN;
+#else
+extern struct gcov_var gcov_var;
+#endif
 
 /* Functions for reading and writing gcov files. In libgcov you can
    open the file for reading then writing. Elsewhere you can open the
@@ -679,6 +771,7 @@ gcov_get_sorted_import_module_array (struct gcov_info *mod_info, unsigned *len)
 static void gcov_rewrite (void);
 GCOV_LINKAGE void gcov_seek (gcov_position_t /*position*/) ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE void gcov_truncate (void) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE unsigned gcov_gcda_file_size (struct gcov_info *);
 #else
 /* Available outside libgcov */
 GCOV_LINKAGE const char *gcov_read_string (void);
@@ -729,7 +822,7 @@ gcov_rewrite (void)
   gcov_var.mode = -1;
   gcov_var.start = 0;
   gcov_var.offset = 0;
-  fseek (gcov_var.file, 0L, SEEK_SET);
+  _GCOV_fseek (gcov_var.file, 0L, SEEK_SET);
 }
 #endif
 

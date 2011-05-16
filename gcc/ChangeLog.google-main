@@ -1,3 +1,89 @@
+2011-05-12  Rong Xu  <xur@google.com>
+
+	* gcc/coverage.c (coverage_note_define): set is_kernel_build if building
+	for Linux kernel.
+	* gcc/tree-profile.c (is_kernel_build): New declare.
+	(init_ic_make_global_vars): don't emit TLS declarations for Linux kernel
+	builds.
+	(direct_call_profiling): Ditto.
+	* gcc/gcov-io.h	(__GCOV_KERNEL__): Set if __KERNEL__ is defined.
+	(BTIS_PER_UNIT): Set the vaule under __GCOV_KERNEL__.
+	(LONG_LONG_TYPE_SIZE): Ditto.
+	(_GCOV_FILE, _GCOV_fclose, _GCOV_ftell, _GCOV_fseek, _GCOV_ftruncate,
+	_GCOV_fread, _GCOV_fwrite, _GCOV_fread, _GCOV_fileno): Wrapper macros.
+	(gcov_kernel_vfile): New type declare under __GCOV_KERNEL__.
+	(gcc_assert): New function under __GCOV_KERNEL__.
+	(gcov_var): Move the definition to gcov-io.c under __GCOV_KERNEL__.
+	(gcov_rewrite): Change fseek to _GCOV_fseek.
+	* gcc/gcov-io.c (gcov_var): Add declare under __GCOV_KERNEL__.
+	(gcov_open): New implementation under __GCOV_KERNEL__.
+	(gcov_sync): Ditto.
+	(gcov_truncate): Ditto.
+	(gcov_close): Replace calls to libc functions to macros.
+	(gcov_write_block): Ditto.
+	(gcov_read_words): Ditto.
+	(gcov_sync): Ditto.
+	(gcov_seek): Ditto.
+	(kernel_file_fclose): New functions under __GCOV_KERNEL__.
+	(kernel_file_ftell): Ditto.
+	(kernel_file_fseek): Ditto.
+	(kernel_file_ftruncate): Ditto.
+	(kernel_file_fread): Ditto.
+	(kernel_file_fwrite): Ditto.
+	(kernel_file_fileno): Ditto.
+	* gcc/libgcov.c	(L_gcov, L_gcov_interval_profiler, 
+	L_gcov_pow2_profiler, L_gcov_one_value_profiler,
+	L_gcov_indirect_call_profiler, L_gcov_average_profiler,
+	L_gcov_ior_profiler, TARGET_VTABLE_USES_DESCRIPTORS,
+	HAVE_CC_TLS, __GCOV_KERNEL__, IN_LIBGCOV, IN_GCOV): Set the value
+	under __KERNEL__ for Linux kernel FDO build support.
+	(tconfig.h, tsystem.h, coretypes.h, tm.h): Do not inlude for kernel 
+	builds (i.e. include under #ifndef __KERNELL__).
+	(string.h, fcntl.h, errno,h, sys/stat.h) Ditto.
+	(gcov_error): New function for error reporting.
+	(all, this_program, this_object, program, object, summary_pos,
+	eof_pos, gcov_prefix_strip, prefix_length
+	gi_filename, gi_filename_up): New declares.
+	(gcov_exit): Refactored.
+	(gcov_open_by_filename): New function.
+	(gcov_counter_active): Ditto.
+	(gcov_alloc_filename): Ditto.
+	(gcov_dump_module_info): Ditto.
+	(gcov_counter_array): Ditto.
+	(gcov_object_summary): Ditto.
+	(gcov_merge_gcda_file): Ditto.
+	(gcov_compute_fi_stride): Ditto.
+	(gcov_gcda_file_size): Ditto.
+	(gcov_write_gcda_file): Ditto.
+	(gcov_exit_init): Ditto.
+	(gcov_dump_one_gcov): Ditto.
+	(gcov_get_filename): New implementation under __GCOV_KERNEL__.
+	(gcov_sort_icall_topn_counter): Ditto.
+	(gcov_alloc_filename): Ditto.
+	(gcov_current_file): Ditto.
+	(gcov_set_vfile): Ditto.
+	(gcov_kernel_dump_one_gcov): Ditto.
+	(__gcov_merge_add): New dummy functions under __GCOV_KERNEL__.
+	(__gcov_merge_single): Ditto.
+	(__gcov_merge_delta): Ditto.
+	(__gcov_merge_ior): Ditto.
+	(__gcov_merge_icall_topn): Ditto.
+	(__gcov_merge_dc): Ditto.
+	(__gcov_merge_reusedist): Ditto.
+	(__gcov_merge_add): Export kernel symbol under __GCOV_KERNEL__.
+	(__gcov_merge_single): Ditto.
+	(__gcov_merge_delta): Ditto.
+	(__gcov_merge_ior): Ditto.
+	(__gcov_merge_icall_topn): Ditto.
+	(__gcov_merge_dc): Ditto.
+	(__gcov_merge_reusedist): Ditto.
+	(__gcov_average_profiler): Ditto.
+	(__gcov_indirect_call_profiler): Ditto.
+	(__gcov_interval_profiler): Ditto.
+	(__gcov_ior_profiler): Ditto.
+	(__gcov_one_value_profiler): Ditto.
+	(__gcov_pow2_profiler): Ditto.
+
 2011-05-10  David Li  <davidxl@google.com>
 
 	* cgraphunit.c (verify_cgraph_node): Disable checking

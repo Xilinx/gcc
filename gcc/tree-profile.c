@@ -76,6 +76,10 @@ static GTY(()) tree dc_gcov_type_ptr_var;
 static GTY(()) tree ptr_void;
 static GTY(()) tree gcov_info_decl;
 
+/* When -D__KERNEL__ is in the option list, we assume this is a
+   compilation for Linux Kernel.  */ 
+bool is_kernel_build;
+
 /* Do initialization work for the edge profiler.  */
 
 /* Add code:
@@ -102,7 +106,7 @@ init_ic_make_global_vars (void)
 		      ptr_void);
       TREE_PUBLIC (ic_void_ptr_var) = 1;
       DECL_EXTERNAL (ic_void_ptr_var) = 1;
-      if (targetm.have_tls)
+      if (targetm.have_tls && !is_kernel_build)
         DECL_TLS_MODEL (ic_void_ptr_var) =
           decl_default_tls_model (ic_void_ptr_var);
 
@@ -113,7 +117,7 @@ init_ic_make_global_vars (void)
 		      gcov_type_ptr);
       TREE_PUBLIC (ic_gcov_type_ptr_var) = 1;
       DECL_EXTERNAL (ic_gcov_type_ptr_var) = 1;
-      if (targetm.have_tls)
+      if (targetm.have_tls && !is_kernel_build)
         DECL_TLS_MODEL (ic_gcov_type_ptr_var) =
           decl_default_tls_model (ic_gcov_type_ptr_var);
     }
@@ -126,7 +130,7 @@ init_ic_make_global_vars (void)
       TREE_STATIC (ic_void_ptr_var) = 1;
       TREE_PUBLIC (ic_void_ptr_var) = 0;
       DECL_INITIAL (ic_void_ptr_var) = NULL;
-      if (targetm.have_tls)
+      if (targetm.have_tls && !is_kernel_build)
         DECL_TLS_MODEL (ic_void_ptr_var) =
           decl_default_tls_model (ic_void_ptr_var);
 
@@ -138,7 +142,7 @@ init_ic_make_global_vars (void)
       TREE_STATIC (ic_gcov_type_ptr_var) = 1;
       TREE_PUBLIC (ic_gcov_type_ptr_var) = 0;
       DECL_INITIAL (ic_gcov_type_ptr_var) = NULL;
-      if (targetm.have_tls)
+      if (targetm.have_tls && !is_kernel_build)
         DECL_TLS_MODEL (ic_gcov_type_ptr_var) =
           decl_default_tls_model (ic_gcov_type_ptr_var);
     }
@@ -318,7 +322,7 @@ gimple_init_instrumentation_sampling (void)
       TREE_PUBLIC (gcov_sample_counter_decl) = 1;
       DECL_EXTERNAL (gcov_sample_counter_decl) = 1;
       DECL_ARTIFICIAL (gcov_sample_counter_decl) = 1;
-      if (targetm.have_tls)
+      if (targetm.have_tls && !is_kernel_build)
         DECL_TLS_MODEL (gcov_sample_counter_decl) =
             decl_default_tls_model (gcov_sample_counter_decl);
       assemble_variable (gcov_sample_counter_decl, 0, 0, 0);
@@ -1479,8 +1483,9 @@ direct_call_profiling (void)
 		      build_pointer_type (gcov_type_node));
       DECL_ARTIFICIAL (dc_gcov_type_ptr_var) = 1;
       DECL_EXTERNAL (dc_gcov_type_ptr_var) = 1;
-      DECL_TLS_MODEL (dc_gcov_type_ptr_var) =
-	decl_default_tls_model (dc_gcov_type_ptr_var);
+      if (!is_kernel_build)
+        DECL_TLS_MODEL (dc_gcov_type_ptr_var) =
+	  decl_default_tls_model (dc_gcov_type_ptr_var);
 
       dc_void_ptr_var =
 	build_decl (UNKNOWN_LOCATION, VAR_DECL,
@@ -1488,8 +1493,9 @@ direct_call_profiling (void)
 		    ptr_void);
       DECL_ARTIFICIAL (dc_void_ptr_var) = 1;
       DECL_EXTERNAL (dc_void_ptr_var) = 1;
-      DECL_TLS_MODEL (dc_void_ptr_var) =
-	decl_default_tls_model (dc_void_ptr_var);
+      if (!is_kernel_build)
+        DECL_TLS_MODEL (dc_void_ptr_var) =
+	  decl_default_tls_model (dc_void_ptr_var);
     }
 
   add_referenced_var (gcov_info_decl);
