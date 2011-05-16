@@ -2842,7 +2842,6 @@ targhooks.o : targhooks.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TREE_H) \
    tree-ssa-alias.h $(TREE_FLOW_H)
 
 #### added for MELT http://gcc.gnu.org/wiki/MiddleEndLispTranslator
-## we pass the MELT_PRIVATE_INCLUDE_DIR 
 
 ## FIXME: melt_installed_cflags may vary from stage1 to stage2 so
 ## melt-runtime.o fails in the compare step.
@@ -5348,6 +5347,17 @@ melt_extra_cflags= -g
 export melt_extra_cflags
 melt_installed_cflags= -I $(plugin_includedir) -DIN_GCC -O
 melt_default_modules_list=melt-default-modules
+
+## this is the installation directory of melt sources (*.melt files,
+## MELT dialect and the corresponding *.c files)
+melt_source_dir=$(libexecsubdir)/melt-source/
+
+## this is the installation directory of melt dynamic modules (*.so)
+melt_module_dir=$(libexecsubdir)/melt-module/
+
+## this is the installed path of the MELT module makefile
+melt_installed_module_makefile=$(libexecsubdir)/melt-module.mk
+
 ## leave melt_is_plugin as empty 
 melt_is_plugin=
 

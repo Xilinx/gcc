@@ -1,5 +1,12 @@
 
 2011-05-16  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_really_initialize): Check melt_source_dir,
+	melt_module_dir, melt_module_makefile.
+	* Makefile.in
+	(melt_source_dir,melt_module_dir,melt_installed_module_makefile):
+	Set variables.
+
+2011-05-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_load_modulelist): Don't recompute twice
 	envpath. Adjust comment.
 	* Makefile.in (INSTALL_HEADERS): Use install-melt-includes.

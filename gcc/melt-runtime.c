@@ -9083,6 +9083,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   const char *modstr = 0;
   const char *inistr = 0;
   const char *countdbgstr = 0;
+  struct stat mystat;
   if (inited)
     return;
   debugeprintf ("melt_really_initialize pluginame '%s' versionstr '%s'", pluginame, versionstr);
@@ -9090,6 +9091,29 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 		update_path("plugins","GCC"));
   gcc_assert (pluginame && pluginame[0]);
   gcc_assert (versionstr && versionstr[0]);
+  /* Ensure that melt_source_dir & melt_module_dir are non-empty paths
+     and accessible directories.  Otherwise, this file has been
+     miscompiled.  */
+  errno = 0;
+  gcc_assert (melt_source_dir[0]);
+  gcc_assert (melt_module_dir[0]);
+  memset (&mystat, 0, sizeof(mystat));
+  if (!flag_melt_bootstrapping
+      && ((errno=ENOTDIR), (stat(melt_source_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
+    melt_fatal_error ("MELT with bad builtin source directory %s : %s", 
+		      melt_source_dir, xstrerror (errno));
+  memset (&mystat, 0, sizeof(mystat));
+  if (!flag_melt_bootstrapping
+      && ((errno=ENOTDIR), (stat(melt_module_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
+    melt_fatal_error ("MELT with bad builtin module directory %s : %s", 
+		      melt_module_dir, xstrerror (errno));
+  /* Ensure that the module makefile exists.  */
+  gcc_assert (melt_module_make_command[0]);
+  gcc_assert (melt_module_makefile[0]);
+  if (!flag_melt_bootstrapping && access(melt_module_makefile, R_OK))
+    melt_fatal_error ("MELT cannot access module makefile %s : %s",
+		      melt_module_makefile, xstrerror (errno));
+  errno = 0;
   /* These are probably never freed! */
   melt_gccversionstr = concat (versionstr, " MELT_", 
 			       MELT_VERSION_STRING, NULL);
