@@ -5075,17 +5075,18 @@ normalized expression.}#
 ;;; selector to normalize the test of matcher
 ;;; invoked with :
 (defselector normalize_test_matcher class_selector
-  :formals (recv sloc ndata nmctxt njelse)
+  :formals (recv sloc ndata bindlist nmctxt njelse)
   )
 
 (defselector normalize_fill_matcher class_selector
   :formals (recv sloc)
 )
 
-(defun normtestmatch_catchall (recv sloc ndata nmctxt njelse)
+(defun normtestmatch_catchall (recv sloc ndata bindlist nmctxt njelse)
   (debug_msg recv "normtestmatch_catchall recv")
   (debug_msg nmctxt "normtestmatch_catchall nmctxt")
   (debug_msg ndata "normtestmatch_catchall ndata")
+  (debug_msg bindlist "normtestmatch_catchall bindlist")
   (debug_msg njelse "normtestmatch_catchall njelse")
   (let ( (myclass (discrim recv))
 	 (myclassname (get_field :named_name myclass)) )
@@ -5107,14 +5108,86 @@ normalized expression.}#
 (install_method discr_any_receiver normalize_fill_matcher normfillmatch_catchall)
 
 ;;;;;;;;;;;;;;;;
-(defun normtestmatch_cmatcher  (recv sloc ndata nmctxt njelse)
+(defun normtestmatch_cmatcher  (recv sloc ndata bindlist nmctxt njelse)
   (debug_msg recv "normtestmatch_cmatcher recv")
+  (assert_msg "check recv" (is_a recv class_cmatcher))
   (debug_msg nmctxt "normtestmatch_cmatcher nmctxt")
   (debug_msg ndata "normtestmatch_cmatcher ndata")
   (debug_msg njelse "normtestmatch_cmatcher njelse")
-  (assert_msg "normtestmatch_cmatcher  unimplemented")
-)
-(install_method normalize_test_matcher class_cmatcher normtestmatch_cmatcher)
+  (debug_msg bindlist "normtestmatch_cmatcher bindlist")
+  (assert_msg "normtestmatch_cmatcher check nmctxt" (is_a nmctxt class_match_normalization_context))
+  (let (
+	(matbind (unsafe_get_field :amatch_matchbind recv))
+	(matstate (unsafe_get_field :cmatch_state recv))
+	(exptest (unsafe_get_field :cmatch_exptest recv))
+	(:long exptestlen (multiple_length exptest))
+	(:long lenbindlist (list_length bindlist))
+	(matsymb (get_field :binder matbind))
+	(expargs (make_multiple discr_multiple exptestlen))
+	(csymstate (clone_symbol matstate))
+	(csymstr (let ( (sbuf (make_strbuf discr_strbuf)) )
+		    (add2sbuf_string sbuf (get_field :named_name csymstate))
+		    (add2sbuf_strconst sbuf "__")
+		    (add2sbuf_longdec sbuf (get_int (get_field :csym_urank csymstate)))
+		    (strbuf2string discr_verbatim_string sbuf)
+		    ))
+	(nchunk (instance class_nrep_chunk
+			      :nrep_loc sloc
+			      :nchunk_expansion expargs
+			      :nchunk_oper recv
+			      :nexpr_ctyp ctype_long))
+	(ntestelse (instance class_nrep_if
+			    :nrep_loc sloc
+			    :nif_test nchunk
+			    :nif_then ()
+			    :nif_else njelse
+			    :nexpr_ctyp ctype_void))
+	(bindmap (make_mapobject discr_map_objects (+i 5 (*i 2 lenbindlist))))
+	)
+    (debug_msg matbind "normtestmatch_cmatcher matbind")
+    (debug_msg matstate "normtestmatch_cmatcher matstate")
+    (debug_msg exptest "normtestmatch_cmatcher exptest")
+    (foreach_in_list
+     (bindlist)
+     (curpairbind curbind)
+     (debug_msg curbind "normtestmatch_cmatcher curbind")
+     (assert_msg "normtestmatch_cmatcher check curbind" (is_a curbind class_normal_let_binding))
+     (mapobject_put bindmap (get_field :binder curbind) (get_field :letbind_expr curbind))
+     )
+    (assert_msg "normtestmatch_cmatcher check matbind" (is_a matbind class_any_binding))
+    (foreach_in_multiple
+     (exptest)
+     (curexp :long ix)
+     (debug_msg curexp "normtestmatch_cmatcher curexp")
+     (cond 
+      ( (is_string curexp)
+	(multiple_put_nth expargs ix curexp))
+      ( (== curexp matstate)
+	(multiple_put_nth expargs ix csymstr))
+      ( (== curexp matsymb)
+	(multiple_put_nth expargs ix ndata))
+      ( (is_a curexp class_symbol)
+	(let ( (nval (mapobject_get bindmap curexp))
+	       )
+	  (debug_msg nval "normtestmatch_cmatcher nval")
+	  (if (is_a nval class_nrep)
+	      (multiple_put_nth expargs ix nval)
+	    (progn
+	      (error_strv sloc "unexpected symbol in cmatcher" (get_field :named_name curexp))
+	      (shortbacktrace_dbg "normtestmatch_cmatcher unexpected curexp" 20)))
+	  ))
+      (:else
+       (error_plain sloc "unexpected thing in cmatcher")
+       (assert_msg "normtestmatch_cmatcher unimplemented case"))
+     ))
+    (debug_msg expargs "normtestmatch_cmatcher expargs")
+    (debug_msg ntestelse "normtestmatch_cmatcher return ntestelse")
+    (debug_msg csymstate "normtestmatch_cmatcher return csymstate")
+    (debug_msg csymstr "normtestmatch_cmatcher return csymstr")
+    (return ntestelse () csymstate csymstr)
+    )
+  )
+(install_method class_cmatcher normalize_test_matcher normtestmatch_cmatcher)
 
 
 ;;;;;;;;;;;;;;;;
@@ -5259,11 +5332,12 @@ normalized expression.}#
 	;; and another selector to make the fill part of it
 	(debug_msg matmatcher "normstep_mtestmatcher matmatcher before normalize_test_matcher")
 	(multicall
-	 (ntest ntestbind testextra)
-	 (normalize_test_matcher matmatcher sloc ndata nmctxt njelse)
+	 (ntest ntestbind testextra testdata)
+	 (normalize_test_matcher matmatcher sloc ndata newbindlist nmctxt njelse)
 	 (debug_msg ntest "normalize_test_matcher ntest after normalize_test_matcher")
+	 (debug_msg testextra "normalize_test_matcher testextra after normalize_test_matcher")
+	 (debug_msg testdata "normalize_test_matcher testdata after normalize_test_matcher")
 	 )
-	(compile_warning "normstep_mtestmatcher should handle amout & mouts")
 	;;;
 	(assert_msg "@$@unimplemented normstep_mtestmatcher")
 	;; should return a normal expression, or a list or tuple of them.
