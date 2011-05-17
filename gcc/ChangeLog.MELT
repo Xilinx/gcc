@@ -1,4 +1,10 @@
 
+2011-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_really_initialize): Check melt_source_dir,
+	melt_module_dir, melt_module_makefile, but issue only a warning.
+	Initialize flag_melt_debug & flag_melt_bootstrapping earlier in
+	plugin mode.
+
 2011-05-16  Pierre Vittet  <piervit@pvittet.com>
 
 	* Makefile.in: remove useless use of MELTHERE_CFLAGS,

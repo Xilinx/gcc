@@ -9088,40 +9088,9 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     return;
   debugeprintf ("melt_really_initialize pluginame '%s' versionstr '%s'", pluginame, versionstr);
   debugeprintf ("melt_really_initialize update_path(\"plugins\", \"GCC\")=%s",
-		update_path("plugins","GCC"));
+                update_path("plugins","GCC"));
   gcc_assert (pluginame && pluginame[0]);
   gcc_assert (versionstr && versionstr[0]);
-  /* Ensure that melt_source_dir & melt_module_dir are non-empty paths
-     and accessible directories.  Otherwise, this file has been
-     miscompiled.  */
-  errno = 0;
-  gcc_assert (melt_source_dir[0]);
-  gcc_assert (melt_module_dir[0]);
-  memset (&mystat, 0, sizeof(mystat));
-  if (!flag_melt_bootstrapping
-      && ((errno=ENOTDIR), (stat(melt_source_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
-    melt_fatal_error ("MELT with bad builtin source directory %s : %s", 
-		      melt_source_dir, xstrerror (errno));
-  memset (&mystat, 0, sizeof(mystat));
-  if (!flag_melt_bootstrapping
-      && ((errno=ENOTDIR), (stat(melt_module_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
-    melt_fatal_error ("MELT with bad builtin module directory %s : %s", 
-		      melt_module_dir, xstrerror (errno));
-  /* Ensure that the module makefile exists.  */
-  gcc_assert (melt_module_make_command[0]);
-  gcc_assert (melt_module_makefile[0]);
-  if (!flag_melt_bootstrapping && access(melt_module_makefile, R_OK))
-    melt_fatal_error ("MELT cannot access module makefile %s : %s",
-		      melt_module_makefile, xstrerror (errno));
-  errno = 0;
-  /* These are probably never freed! */
-  melt_gccversionstr = concat (versionstr, " MELT_", 
-			       MELT_VERSION_STRING, NULL);
-  melt_plugin_name = xstrdup (pluginame);
-  modstr = melt_argument ("mode");
-  inistr = melt_argument ("init");
-  countdbgstr = melt_argument ("debugskip");
-  parsedmeltfilevect = VEC_alloc (meltchar_p, heap, 12);
 
 #ifdef MELT_IS_PLUGIN
   /* when MELT is a plugin, we need to process the debug
@@ -9142,53 +9111,89 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     if (bootstr && (!bootstr[0] || !strchr("Nn0", bootstr[0])))
       flag_melt_bootstrapping = 1;
   }
-#endif	/* MELT_IS_PLUGIN */
+#endif  /* MELT_IS_PLUGIN */
+
+  /* Ensure that melt_source_dir & melt_module_dir are non-empty paths
+     and accessible directories.  Otherwise, this file has been
+     miscompiled, or something strange happens, so we issue a warning.  */
+  errno = 0;
+  gcc_assert (melt_source_dir[0]);
+  gcc_assert (melt_module_dir[0]);
+  debugeprintf ("melt_really_initialize builtin melt_source_dir %s", melt_source_dir);
+  debugeprintf ("melt_really_initialize builtin melt_module_dir %s", melt_module_dir);
+  memset (&mystat, 0, sizeof(mystat));
+  if (!flag_melt_bootstrapping
+    && ((errno=ENOTDIR), (stat(melt_source_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
+    warning (0, "MELT with bad builtin source directory %s : %s", 
+    melt_source_dir, xstrerror (errno));
+  memset (&mystat, 0, sizeof(mystat));
+  if (!flag_melt_bootstrapping
+    && ((errno=ENOTDIR), (stat(melt_module_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
+    warning (0, "MELT with bad builtin module directory %s : %s", 
+    melt_module_dir, xstrerror (errno));
+  /* Ensure that the module makefile exists.  */
+  gcc_assert (melt_module_make_command[0]);
+  gcc_assert (melt_module_makefile[0]);
+  if (!flag_melt_bootstrapping && access(melt_module_makefile, R_OK))
+    warning (0, "MELT cannot access module makefile %s : %s",
+    melt_module_makefile, xstrerror (errno));
+  errno = 0;
+
+  /* These are probably never freed! */
+  melt_gccversionstr = concat (versionstr, " MELT_", 
+    MELT_VERSION_STRING, NULL);
+  melt_plugin_name = xstrdup (pluginame);
+  modstr = melt_argument ("mode");
+  inistr = melt_argument ("init");
+  countdbgstr = melt_argument ("debugskip");
+  parsedmeltfilevect = VEC_alloc (meltchar_p, heap, 12);
+
   if (flag_melt_bootstrapping) 
     {
-      char* envpath = NULL;
-      inform  (UNKNOWN_LOCATION,
-	       "MELT is bootstrapping so ignore builtin source directory %s and module directory %s",
-	       melt_source_dir, melt_module_dir);
-      if ((envpath = getenv ("GCCMELT_SOURCE_PATH")) != NULL)
-	inform  (UNKNOWN_LOCATION, 
-		 "MELT is bootstrapping so ignore GCCMELT_SOURCE_PATH=%s", 
-		 envpath);
-      if ((envpath = getenv ("GCCMELT_MODULE_PATH")) != NULL)
-	inform  (UNKNOWN_LOCATION,
-		 "MELT is bootstrapping so ignore GCCMELT_MODULE_PATH=%s", 
-		 envpath);
-	
-    }
+  char* envpath = NULL;
+  inform  (UNKNOWN_LOCATION,
+    "MELT is bootstrapping so ignore builtin source directory %s and module directory %s",
+    melt_source_dir, melt_module_dir);
+  if ((envpath = getenv ("GCCMELT_SOURCE_PATH")) != NULL)
+    inform  (UNKNOWN_LOCATION, 
+    "MELT is bootstrapping so ignore GCCMELT_SOURCE_PATH=%s", 
+    envpath);
+  if ((envpath = getenv ("GCCMELT_MODULE_PATH")) != NULL)
+    inform  (UNKNOWN_LOCATION,
+    "MELT is bootstrapping so ignore GCCMELT_MODULE_PATH=%s", 
+    envpath);
+        
+}
   if (!modstr || *modstr=='\0')
     {
-      debugeprintf ("melt_really_initialize return immediately since no mode (inistr=%s)",
-		    inistr);
-      return;
-    }
+  debugeprintf ("melt_really_initialize return immediately since no mode (inistr=%s)",
+    inistr);
+  return;
+}
   if (melt_minorsizekilow == 0)
     {
-      const char* minzstr = melt_argument ("minor-zone");
-      melt_minorsizekilow = minzstr ? (atol (minzstr)) : 0;
-      if (melt_minorsizekilow<256) melt_minorsizekilow=256;
-      else if (melt_minorsizekilow>16384) melt_minorsizekilow=16384;
-    }
+  const char* minzstr = melt_argument ("minor-zone");
+  melt_minorsizekilow = minzstr ? (atol (minzstr)) : 0;
+  if (melt_minorsizekilow<256) melt_minorsizekilow=256;
+  else if (melt_minorsizekilow>16384) melt_minorsizekilow=16384;
+}
   modinfvec = VEC_alloc (melt_module_info_t, heap, 32);
   /* don't use the index 0 so push a null */
   VEC_safe_push (melt_module_info_t, heap, modinfvec,
-		 (melt_module_info_t *) 0);
+    (melt_module_info_t *) 0);
   proghandle = dlopen (NULL, RTLD_NOW | RTLD_GLOBAL);
   if (!proghandle)
     /* Don't call melt_fatal_error - we are initializing! */
     fatal_error ("melt failed to get whole program handle - %s",
-		 dlerror ());
+    dlerror ());
   if (countdbgstr != (char *) 0)
     melt_debugskipcount = atol (countdbgstr);
   seed = 0;
   randomseed = get_random_seed (false);
   gcc_assert (randomseed != (char *) 0);
   gcc_assert (MELT_ALIGN == sizeof (void *)
-	      || MELT_ALIGN == 2 * sizeof (void *)
-	      || MELT_ALIGN == 4 * sizeof (void *));
+    || MELT_ALIGN == 2 * sizeof (void *)
+    || MELT_ALIGN == 4 * sizeof (void *));
   inited = 1;
   ggc_collect ();
   obstack_init (&melt_bstring_obstack);
@@ -9198,35 +9203,35 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   srand48 (seed);
   gcc_assert (!melt_curalz);
   {
-    size_t wantedwords = melt_minorsizekilow * 4096;
-    if (wantedwords < (1 << 20))
-      wantedwords = (1 << 20);
-    gcc_assert (melt_startalz == NULL && melt_endalz == NULL);
-    gcc_assert (wantedwords * sizeof (void *) >
-		300 * MELTGLOB__LASTGLOB * sizeof (struct meltobject_st));
-    melt_allocate_young_gc_zone (wantedwords / sizeof(void*));
-    melt_newspeclist = NULL;
-    melt_oldspeclist = NULL;
-    debugeprintf ("melt_really_initialize alz %p-%p (%ld Kw)",
-		  melt_startalz, melt_endalz, (long) wantedwords >> 10);
-  }
+  size_t wantedwords = melt_minorsizekilow * 4096;
+  if (wantedwords < (1 << 20))
+    wantedwords = (1 << 20);
+  gcc_assert (melt_startalz == NULL && melt_endalz == NULL);
+  gcc_assert (wantedwords * sizeof (void *) >
+    300 * MELTGLOB__LASTGLOB * sizeof (struct meltobject_st));
+  melt_allocate_young_gc_zone (wantedwords / sizeof(void*));
+  melt_newspeclist = NULL;
+  melt_oldspeclist = NULL;
+  debugeprintf ("melt_really_initialize alz %p-%p (%ld Kw)",
+    melt_startalz, melt_endalz, (long) wantedwords >> 10);
+}
   /* We are using register_callback here, even if MELT is not compiled
      as a plugin. */
   register_callback (melt_plugin_name, PLUGIN_GGC_MARKING, 
-		     melt_marking_callback,
-		     NULL);
+    melt_marking_callback,
+    NULL);
   register_callback (melt_plugin_name, PLUGIN_ATTRIBUTES,
-		     melt_attribute_callback,
-		     NULL);
+    melt_attribute_callback,
+    NULL);
   register_callback (melt_plugin_name, PLUGIN_START_UNIT,
-		     melt_startunit_callback,
-		     NULL);
+    melt_startunit_callback,
+    NULL);
   register_callback (melt_plugin_name, PLUGIN_FINISH_UNIT,
-		     melt_finishunit_callback,
-		     NULL);
+    melt_finishunit_callback,
+    NULL);
   register_callback (melt_plugin_name, PLUGIN_FINISH,
-		     melt_finishall_callback,
-		     NULL);
+    melt_finishall_callback,
+    NULL);
   debugeprintf ("melt_really_initialize cpp_PREFIX=%s", cpp_PREFIX);
   debugeprintf ("melt_really_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
   debugeprintf ("melt_really_initialize gcc_exec_prefix=%s", gcc_exec_prefix);
@@ -9239,20 +9244,20 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   /* I really want meltgc_make_special to be linked in, even in plugin
      mode... So I test that the routine exists! */
   debugeprintf ("melt_really_initialize meltgc_make_special=%#lx",
-		(long) meltgc_make_special);
+                (long) meltgc_make_special);
   load_melt_modules_and_do_mode ();
   /* force a minor GC */
   melt_garbcoll (0, MELT_ONLY_MINOR);
   debugeprintf ("melt_really_initialize ended init=%s mode=%s",
-		inistr, modstr);
+                inistr, modstr);
   if (!quiet_flag) 
     {
 #if MELT_IS_PLUGIN
       fprintf (stderr, "MELT plugin {%s} initialized for mode %s [%d modules]\n", 
-	       versionstr, modstr, melt_nb_modules);
+               versionstr, modstr, melt_nb_modules);
 #else
       fprintf (stderr, "GCC-MELT {%s} initialized for mode %s [%d modules]\n", 
-	       versionstr, modstr, melt_nb_modules);
+               versionstr, modstr, melt_nb_modules);
 #endif /*MELT_IS_PLUGIN*/
       fflush (stderr);
     }
@@ -9277,9 +9282,9 @@ do_finalize_melt (void)
   if (melt_magic_discr ((melt_ptr_t) finclosv) == MELTOBMAG_CLOSURE)
     {
       MELT_LOCATION_HERE
-	("do_finalize_melt before applying final closure");
+        ("do_finalize_melt before applying final closure");
       (void) melt_apply ((meltclosure_ptr_t) finclosv,
-			 (melt_ptr_t) NULL, "", NULL, "", NULL);
+                         (melt_ptr_t) NULL, "", NULL, "", NULL);
     }
   /* Always force a minor GC to be sure nothing stays in young
      region.  */
@@ -9292,37 +9297,37 @@ do_finalize_melt (void)
       int nbdelfil = 0;
       struct dirent *dent = 0;
       if (!tdir)
-	melt_fatal_error ("failed to open tempdir %s %m", tempdir_melt);
+        melt_fatal_error ("failed to open tempdir %s %m", tempdir_melt);
       dirvec = VEC_alloc (meltchar_p, heap, 30);
       while ((dent = readdir (tdir)) != NULL)
-	{
-	  if (dent->d_name[0] && dent->d_name[0] != '.')
-	    /* this skips  '.' & '..' and we have no  .* file */
-	    VEC_safe_push (meltchar_p, heap, dirvec,
-			   concat (tempdir_melt, "/", dent->d_name, NULL));
-	}
+        {
+          if (dent->d_name[0] && dent->d_name[0] != '.')
+            /* this skips  '.' & '..' and we have no  .* file */
+            VEC_safe_push (meltchar_p, heap, dirvec,
+                           concat (tempdir_melt, "/", dent->d_name, NULL));
+        }
       closedir (tdir);
       while (!VEC_empty (meltchar_p, dirvec))
-	{
-	  char *tfilnam = VEC_pop (meltchar_p, dirvec);
-	  debugeprintf ("melt_finalize remove file %s", tfilnam);
-	  if (!remove (tfilnam))
-	    nbdelfil++;
-	  free (tfilnam);
-	};
+        {
+          char *tfilnam = VEC_pop (meltchar_p, dirvec);
+          debugeprintf ("melt_finalize remove file %s", tfilnam);
+          if (!remove (tfilnam))
+            nbdelfil++;
+          free (tfilnam);
+        };
       VEC_free (meltchar_p, heap, dirvec);
       if (nbdelfil>0)
-	inform (UNKNOWN_LOCATION, "MELT removed %d temporary files from %s",
-		nbdelfil, tempdir_melt);
+        inform (UNKNOWN_LOCATION, "MELT removed %d temporary files from %s",
+                nbdelfil, tempdir_melt);
     }
   if (made_tempdir_melt && tempdir_melt[0])
     {
       errno = 0;
       if (rmdir (tempdir_melt))
-	/* @@@ I don't know if it should be a warning or a fatal error -
-	   we are finalizing! */
-	warning (0, "failed to rmdir melt tempdir %s (%s)",
-		 tempdir_melt, xstrerror (errno));
+        /* @@@ I don't know if it should be a warning or a fatal error -
+           we are finalizing! */
+        warning (0, "failed to rmdir melt tempdir %s (%s)",
+                 tempdir_melt, xstrerror (errno));
     }
   VEC_free (meltchar_p, heap, parsedmeltfilevect);
   parsedmeltfilevect = NULL;
@@ -9331,6 +9336,7 @@ do_finalize_melt (void)
   MELT_EXITFRAME ();
 #undef finclosv
 }
+
 
 #ifdef MELT_IS_PLUGIN
 /* this code is GPLv3 licenced & FSF copyrighted, so of course it is a
