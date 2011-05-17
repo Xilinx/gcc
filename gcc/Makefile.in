@@ -5352,7 +5352,7 @@ melt_default_modules_list=melt-default-modules
 melt_source_dir=$(libexecsubdir)/melt-source/
 
 ## this is the installation directory of melt dynamic modules (*.so)
-melt_module_dir=$(libexecsubdir)/melt-module/
+melt_module_dir=$(libexecsubdir)/melt-modules/
 
 ## this is the installed path of the MELT module makefile
 melt_installed_module_makefile=$(libexecsubdir)/melt-module.mk
@@ -5416,8 +5416,8 @@ install-melt-modules: melt-modules melt-all-modules
 
 ## install the makefile for MELT modules
 install-melt-mk: melt-module.mk
-	$(mkinstalldirs) $(DESTDIR)$(plugin_includedir)
-	$(INSTALL_DATA) $< $(DESTDIR)/$(plugin_includedir)/
+	$(mkinstalldirs) $(DESTDIR)$(libexecsubdir)
+	$(INSTALL_DATA) $< $(DESTDIR)/$(libexecsubdir)/
 
 ## install the default modules list
 install-melt-default-modules-list: $(melt_default_modules_list).modlis 

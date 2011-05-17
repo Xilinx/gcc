@@ -1,4 +1,9 @@
 
+2011-05-17  Pierre Vittet  <piervit@pvittet.com>
+
+	* Makefile.in (melt_module_dir,install-melt-mk): Correct path
+	errors.
+
 2011-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normatch.melt (normalize_test_matcher): Add
