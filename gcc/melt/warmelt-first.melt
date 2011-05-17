@@ -3435,63 +3435,89 @@ list of every element of the tuple transformed by $TRANSF.}#
 		     (f  (routine_nth rou ix) ix)
 		     (setq ix (+i ix 1)))))))	     
 
+
+
 ;;; installation of a method in a class or discriminant
-(defun install_method (cla sel fun)
-  :doc #{Install in class or discriminant $CLA for selector $SEL the function $FUN as method body.}#
-  (if (is_a cla class_discriminant)
-      (if (is_a sel class_selector)
-	  (if (is_closure fun)
-	      (let 
-		  ( (mapdict 
-		     (unsafe_get_field :disc_methodict cla)) )
-		(if (is_mapobject mapdict)
-		    (mapobject_put mapdict sel fun)
-		  (let ( (newmapdict (make_mapobject discr_method_map 35)) )
-		    (unsafe_put_fields cla :disc_methodict newmapdict)
-		    (mapobject_put newmapdict sel fun)
-		    )))
-	    (let (
-		  (clanam (get_field :named_name cla))
-		  (selnam (get_field :named_name sel))
-		  )
-	      (code_chunk 
-	       warn_non_fun
-	       #{
-	       warning (0, 
-			"MELT INSTALL_METHOD WARNING [#%ld] non-function in %s for selector %s",
-			melt_dbgcounter,
-			melt_string_str((melt_ptr_t) $CLANAM),
-			melt_string_str((melt_ptr_t) $SELNAM)) ;
-	       }#)
-	      (shortbacktrace_dbg "INSTALL_METHOD failing on non-function" 20)
-	      )
+(defun install_method (dis sel fun)
+  :doc #{Install in class or discriminant $DIS for selector $SEL the function $FUN as method body.}#
+  (cond 
+   ( (is_a dis class_discriminant)
+     (let ( (disname (unsafe_get_field :named_name dis))
 	    )
-	(let ( (clanam (get_field :named_name cla))
-	       )
-	  (code_chunk 
-	   warn_non_sel
-	   #{
-	   warning (0, 
-		    "MELT INSTALL_METHOD WARNING [#%ld] install with non-selector in %s",
+       (cond 
+	( (is_a sel class_selector)
+	  (let ( (selname (unsafe_get_field :named_name sel))
+		 )
+	    (cond
+	     ( (is_closure fun)
+	       (let 
+		   ( (mapdict 
+		      (unsafe_get_field :disc_methodict dis)) )
+		 (if (is_mapobject mapdict)
+		     (mapobject_put mapdict sel fun)
+		   (let ( (newmapdict (make_mapobject discr_method_map 35)) )
+		     (unsafe_put_fields dis :disc_methodict newmapdict)
+		     (mapobject_put newmapdict sel fun)
+		     ))))
+	     (:else			; fun not a closure
+	      (shortbacktrace_dbg "INSTALL_METHOD failing on non-function" 20)
+	      (code_chunk 
+	       error_non_fun
+	       #{ /* $ERROR_NON_FUN */
+	       error ("MELT INSTALL_METHOD ERROR [#%ld] non-function in discriminant %s for selector %s",
+		      melt_dbgcounter,
+		      melt_string_str((melt_ptr_t) $DISNAME),
+		      melt_string_str((melt_ptr_t) $SELNAME)) ;
+	       }#)
+	      ))))
+	( (is_a sel class_named)  ; sel is not a selector but is named
+	  (let ( (badselnam (unsafe_get_field :named_name sel))
+		 )
+	    (shortbacktrace_dbg "INSTALL_METHOD failing with bad named selector" 20)
+	    (code_chunk
+	     error_bad_named_sel
+	     #{ /* $ERROR_BAD_NAMED_SEL */
+	     error ("MELT INSTALL_METHOD ERROR [#%ld] bad named selector %s in discriminant %s",
 		    melt_dbgcounter,
-		    melt_string_str((melt_ptr_t) $CLANAM)) ;
-	   }#)
-	  (shortbacktrace_dbg "INSTALL_METHOD failing on non-selector" 20)
-	  )
-	)
-    (progn
-      (code_chunk 
-       warn_non_discr
-       #{
-       warning (0, 
-		"MELT INSTALL_METHOD WARNING [#%ld] non-discriminant",
-		melt_dbgcounter)	;
-       }#)
-      (shortbacktrace_dbg "INSTALL_METHOD failing on non-discriminant" 20)
-      ))
+		    melt_string_str((melt_ptr_t) $BADSELNAM),
+		    melt_string_str((melt_ptr_t) $DISNAME)) ;
+	     }#)
+	    ))
+	(:else				;selector is not even named
+	 (shortbacktrace_dbg "INSTALL_METHOD failing with bad selector" 20)
+	 (code_chunk
+	  error_bad_sel
+	  #{ /* $ERROR_BAD_SEL */
+	  error ("MELT INSTALL_METHOD ERROR [#%ld] bad selector in discriminant %s",
+		 melt_dbgcounter,
+		 melt_string_str((melt_ptr_t) $DISNAME)) ;
+	  }#)
+	 )
+	)				; end of cond about sel
+       )
+     )				  ;end when dis is a discriminant
+   ( (is_a dis class_named)	  ;dis is named but not a discriminant
+     (let ( (baddisnam (unsafe_get_field :named_name dis))
+	    )
+       (shortbacktrace_dbg "INSTALL_METHOD failing with bad named discriminant" 20)
+       (code_chunk
+	error_bad_named_dis
+	#{ /* $ERROR_BAD_NAMED_DIS */
+	error ("MELT INSTALL_METHOD ERROR [#%ld] bad named discriminant %s",
+	       melt_dbgcounter, 
+	       melt_string_str((melt_ptr_t) $BADDISNAM)) ;
+	}#)
+       ))				;end when dis is named
+   (:else				;dis is not even named
+    (shortbacktrace_dbg "INSTALL_METHOD failing with bad discriminant" 20)
+    (code_chunk
+     error_bad_dis
+     #{ /* $ERROR_BAD_DIS */
+     error ("MELT INSTALL_METHOD ERROR [#%ld] bad discriminant",
+	    melt_dbgcounter)		;
+     }#))		 
+   )
   )
-
-
 
 
 
