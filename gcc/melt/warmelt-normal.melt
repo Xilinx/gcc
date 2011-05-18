@@ -1894,8 +1894,8 @@ source location.}#
 	      (debug_msg selformals "normexp_msend")
 	      (assert_msg "check recvformal" (== (get_field :fbind_type recvformal) ctype_value))
 	      (if (!=i nbformals (+i 1 (multiple_length nargs)))
-		  (warning_strv sloc "unexpected number of arguments for method"
-				(get_field :named_name selnam))
+		  (error_strv sloc "unexpected number of arguments for method"
+			      (get_field :named_name selnam))
 		)
 	      (foreach_in_multiple 
 	       (nargs)

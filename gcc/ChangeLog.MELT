@@ -1,4 +1,10 @@
 
+2011-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normal.melt (normexp_msend): Make an error, not a
+	warning, when the formals given in the selector mismatch the
+	actual arguments.
+
 2011-05-17  Pierre Vittet  <piervit@pvittet.com>
 
 	* Makefile.in (melt_module_dir,install-melt-mk): Correct path
