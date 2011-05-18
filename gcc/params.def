@@ -110,6 +110,11 @@ DEFPARAM (PARAM_MIN_INLINE_RECURSIVE_PROBABILITY,
 	  "Inline recursively only when the probability of call being executed exceeds the parameter",
 	  10, 0, 0)
 
+DEFPARAM (PARAM_INLINE_FUNCTION_OVERHEAD_SIZE,
+	  "inline-function-overhead-size",
+	  "Size estimate of function overhead (prologue/epilogue) for inlining purposes",
+	  7, 0, 0)
+
 /* Limit of iterations of early inliner.  This basically bounds number of
    nested indirect calls early inliner can resolve.  Deeper chains are still
    handled by late inlining.  */

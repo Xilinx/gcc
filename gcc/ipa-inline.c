@@ -1979,10 +1979,11 @@ estimate_function_body_sizes (struct cgraph_node *node)
   gcov_type time = 0;
   gcov_type time_inlining_benefit = 0;
   /* Estimate static overhead for function prologue/epilogue and alignment. */
-  int size = 2;
+  int size = PARAM_VALUE (PARAM_INLINE_FUNCTION_OVERHEAD_SIZE);
   /* Benefits are scaled by probability of elimination that is in range
      <0,2>.  */
-  int size_inlining_benefit = 2 * 2;
+  int size_inlining_benefit =
+    PARAM_VALUE (PARAM_INLINE_FUNCTION_OVERHEAD_SIZE) * 2;
   basic_block bb;
   gimple_stmt_iterator bsi;
   struct function *my_function = DECL_STRUCT_FUNCTION (node->decl);
