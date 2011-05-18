@@ -1,3 +1,8 @@
+2011-05-18  Mark Heffernan  <meheff@google.com>
+
+       * opts.c (finish_options): Increase inlining limits with profile
+       generate and use.
+
 2011-05-17  Mark Heffernan  <meheff@google.com>
 
 	* ipa-inline.c (estimate_function_body_sizes): Parameterize static
@@ -206,7 +211,6 @@
 	* cfgexpand.c (add_alias_set_conflicts): Add conflicts with a variable
 	containing union type only with -fstrict-aliasing.
 
->>>>>>> .r173625
 2011-05-04  David Li  <davidxl@google.com>
 
 	* coverage.c (incompatible_cl_args): Better handling
