@@ -1,4 +1,11 @@
 
+2011-05-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-normatch.melt (normalize_fill_matcher):
+	Add more formal arguments to selector.
+	(normfillmatch_catchall): Ditto.
+	(normfillmatch_cmatcher): New function method for cmatcher.
+
 2011-05-17  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-normal.melt (normexp_msend): Make an error, not a
