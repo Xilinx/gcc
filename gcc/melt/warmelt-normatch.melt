@@ -4927,6 +4927,8 @@ normalized expression.}#
       )))
 (install_method class_match_step_test_instance normalize_step normstep_mtestinstance)
 
+
+
 (defun normstep_mtestvar (step nmctxt sloc)
   (debug_msg step "normstep_mtestvar step")
   (assert_msg "check step" (is_a step class_match_step_test_variable))
@@ -5004,6 +5006,14 @@ normalized expression.}#
 (install_method class_match_step_test_variable normalize_step normstep_mtestvar)
 
 
+(defun normstep_mgroup (step nmctxt sloc)
+  (debug_msg step "normstep_mgroup step")
+  (assert_msg "check step" (is_a step class_match_step_test_group))
+  (debug_msg nmctxt "normstep_mgroup nmctxt")
+  (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
+  (assert_msg "$@$unimplemented normstep_mgroup")
+)
+(install_method class_match_step_test_group normalize_step normstep_mgroup)
 
 ;;;;;;;;;;;;;;;;
 
@@ -5185,7 +5195,7 @@ normalized expression.}#
     (debug_msg csymstate "normtestmatch_cmatcher return csymstate")
     (debug_msg csymstr "normtestmatch_cmatcher return csymstr")
     (debug_msg bindmap "normtestmatch_cmatcher return bindmap")
-    (return ntestelse () (tuple csymstate csymstr bindmap))
+    (return ntestelse (tuple csymstate csymstr bindmap))
     )
   )
 (install_method class_cmatcher normalize_test_matcher normtestmatch_cmatcher)
@@ -5214,6 +5224,11 @@ normalized expression.}#
 	 (cstasym (multiple_nth testdata 0))
 	 (cstastr (multiple_nth testdata 1))
 	 (bindmap (multiple_nth testdata 2))
+	 (nfillchunk (instance class_nrep_chunk
+			       :nrep_loc sloc
+			       :nchunk_expansion nexpargs
+			       :nchunk_oper recv
+			       :nexpr_ctyp ctype_void))
 	 )
     (debug_msg matout "normfillmatch_cmatcher matout")
     (assert_msg "normfillmatch_cmatcher check nbnouts" (==i nbnouts (multiple_length matout)))
@@ -5223,16 +5238,16 @@ normalized expression.}#
      (let ( (curoutf (multiple_nth matout noutix)) 
 	    (curoutsym (get_field :binder curoutf))
 	    )
-       (debug_msg curoutf "normfillmatch_cmatcher curoutf")
-       (debug_msg curoutsym "normfillmatch_cmatcher curoutsym")
-       (debug_msg curnout "normfillmatch_cmatcher curnout")
+       ;;(debug_msg curoutf "normfillmatch_cmatcher curoutf")
+       ;;(debug_msg curoutsym "normfillmatch_cmatcher curoutsym")
+       ;;(debug_msg curnout "normfillmatch_cmatcher curnout")
        (assert_msg "normfillmatch_cmatcher check curoutf"
 		   (is_a curoutf class_formal_binding))
        (assert_msg "normfillmatch_cmatcher check curoutsym"
 		   (is_a curoutsym class_symbol))
        (mapobject_put bindmap curoutsym curnout)
        ))
-     (debug_msg bindmap "normfillmatch_cmatcher updated bindmap")
+    (debug_msg bindmap "normfillmatch_cmatcher updated bindmap")
     (debug_msg expfill "normfillmatch_cmatcher expfill")
     (foreach_in_multiple 
      (expfill)
@@ -5252,12 +5267,12 @@ normalized expression.}#
 	  (if nfill
 	      (multiple_put_nth nexpargs nix nfill)
 	    (assert_msg "normfillmatch_cmatcher no nfill"))
-	))
+	  ))
       (:else
        (assert_msg "unexpected curfull normfillmatch_cmatcher")))
      )
-    (debug_msg nexpargs "normfillmatch_cmatcher nexpargs")
-    (assert_msg "$@$unimplemented normfillmatch_cmatcher")
+    (debug_msg nfillchunk "normfillmatch_cmatcher return nfillchunk")
+    (return nfillchunk ())
     )
   )
 (install_method class_cmatcher normalize_fill_matcher normfillmatch_cmatcher)
@@ -5405,20 +5420,20 @@ normalized expression.}#
 	;; and another selector to make the fill part of it
 	(debug_msg matmatcher "normstep_mtestmatcher matmatcher before normalize_test_matcher")
 	(multicall
-	 (ntest ntestbind testdata)
+	 (ntest testdata)
 	 (normalize_test_matcher matmatcher sloc ndata newbindlist nmctxt njelse)
 	 (debug_msg ntest "normstep_mtestmatcher ntest after normalize_test_matcher")
 	 (debug_msg testdata "normstep_mtestmatcher testdata after normalize_test_matcher")
-	 (multicall
-	  (nfill nfillbind)
-	  (normalize_fill_matcher matmatcher sloc ndata newbindlist normouts nmctxt testdata)
-	  (debug_msg nfill "normstep_mtestmatcher after normalize_fill_matcher nfill")
-	  )
-	 )
-;;;
-	(assert_msg "@$@unimplemented normstep_mtestmatcher")
-	;; should return a normal expression, or a list or tuple of them.
-	))))
+	 (let ( 
+	       (nfill
+		(normalize_fill_matcher matmatcher 
+					sloc ndata newbindlist normouts nmctxt testdata))
+	       )
+	   (debug_msg nfill "normstep_mtestmatcher after normalize_fill_matcher nfill")
+	   (let ( (restup (tuple ntest nfill njelse)) )
+	     (debug_msg restup "normalize_fill_matcher return restup")
+	     (return restup)
+	     )))))))
 (install_method class_match_step_test_matcher normalize_step normstep_mtestmatcher)
 
 

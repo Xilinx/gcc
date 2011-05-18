@@ -1,6 +1,15 @@
 
 2011-05-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-normatch.melt (normstep_mgroup): Adding new
+	incomplete stub method for normalize_step for
+	class_match_step_test_group.
+	(normtestmatch_cmatcher): Return two values only.
+	(normfillmatch_cmatcher): Complete.
+	(normstep_mtestmatcher): Complete.
+
+2011-05-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-normatch.melt (normalize_fill_matcher):
 	Add more formal arguments to selector.
 	(normfillmatch_catchall): Ditto.
