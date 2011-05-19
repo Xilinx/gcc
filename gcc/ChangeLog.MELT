@@ -1,6 +1,11 @@
 
 2011-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-normatch.melt (normstep_mgroup): More code.  Still
+	incomplete.
+
+2011-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-debug.melt (dbgout_fields): Reduced width of
 	display before forcing newline.
 
