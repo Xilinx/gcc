@@ -723,6 +723,7 @@ static inline void
 check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
 		  const char *filenam, int lineno)
 {
+  unsigned magic = 0;
   melt_ptr_t ptr = *pptr;
   if (!ptr)
     return;
@@ -730,51 +731,12 @@ check_pointer_at (const char msg[], long count, melt_ptr_t * pptr,
     melt_fatal_error
       ("<%s#%ld> corrupted pointer %p (at %p) without discr at %s:%d", msg,
        count, (void *) ptr, (void *) pptr, lbasename (filenam), lineno);
-  switch (ptr->u_discr->meltobj_magic)
-    {
-    case MELTOBMAG_OBJECT:
-    case MELTOBMAG_DECAY:
-    case MELTOBMAG_BOX:
-    case MELTOBMAG_MULTIPLE:
-    case MELTOBMAG_CLOSURE:
-    case MELTOBMAG_ROUTINE:
-    case MELTOBMAG_LIST:
-    case MELTOBMAG_PAIR:
-    case MELTOBMAG_INT:
-    case MELTOBMAG_MIXINT:
-    case MELTOBMAG_MIXLOC:
-    case MELTOBMAG_MIXBIGINT:
-    case MELTOBMAG_REAL:
-    case MELTOBMAG_STRING:
-    case MELTOBMAG_STRBUF:
-    case MELTOBMAG_TREE:
-    case MELTOBMAG_GIMPLE:
-    case MELTOBMAG_GIMPLESEQ:
-    case MELTOBMAG_BASICBLOCK:
-    case MELTOBMAG_EDGE:
-    case MELTOBMAG_LOOP:
-    case MELTOBMAG_RTX:
-    case MELTOBMAG_RTVEC:
-    case MELTOBMAG_BITMAP:
-    case MELTOBMAG_MAPOBJECTS:
-    case MELTOBMAG_MAPTREES:
-    case MELTOBMAG_MAPGIMPLES:
-    case MELTOBMAG_MAPGIMPLESEQS:
-    case MELTOBMAG_MAPLOOPS:
-    case MELTOBMAG_MAPRTXS:
-    case MELTOBMAG_MAPRTVECS:
-    case MELTOBMAG_MAPBITMAPS:
-    case MELTOBMAG_MAPSTRINGS:
-    case MELTOBMAG_MAPBASICBLOCKS:
-    case MELTOBMAG_MAPEDGES:
-    case ALL_MELTOBMAG_SPECIAL_CASES:
-      break;
-    default:
-      melt_fatal_error ("<%s#%ld> bad pointer %p (at %p) bad magic %d at %s:%d",
-		   msg, count, (void *) ptr, (void *) pptr,
-		   (int) ptr->u_discr->meltobj_magic, lbasename (filenam),
-		   lineno);
-    }
+  magic = ptr->u_discr->meltobj_magic;
+  if (magic < MELTOBMAG__FIRST || magic >= MELTOBMAG__LAST)
+    melt_fatal_error ("<%s#%ld> bad pointer %p (at %p) bad magic %d at %s:%d",
+		      msg, count, (void *) ptr, (void *) pptr,
+		      (int) ptr->u_discr->meltobj_magic, lbasename (filenam),
+		      lineno);
 }
 
 static long nbcheckcallframes;

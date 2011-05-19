@@ -1,6 +1,10 @@
 
 2011-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (check_pointer_at): Use MELTOBMAG__FIRST.
+
+2011-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	{{Regenerated all}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.
