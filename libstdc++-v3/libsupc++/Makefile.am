@@ -216,3 +216,4 @@ uninstall-bitsHEADERS:
 # Google-specific pessimization
 eh_terminate.lo_no_omit_frame_pointer = -fno-omit-frame-pointer
 eh_throw.lo_no_omit_frame_pointer = -fno-omit-frame-pointer
+vterminate.lo_no_omit_frame_pointer = -fno-omit-frame-pointer
