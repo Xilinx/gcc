@@ -994,7 +994,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
     {
       const char* fullperstr = melt_argument ("full-period");
       melt_fullperiod = fullperstr ? (atoi (fullperstr)) : 0;
-      if (melt_fullperiod < 16) melt_fullperiod = 16;
+      if (melt_fullperiod < 32) melt_fullperiod = 32;
       else if (melt_fullperiod > 256) melt_fullperiod = 256;
     }
   melt_check_call_frames (MELT_ANYWHERE, "before garbage collection");

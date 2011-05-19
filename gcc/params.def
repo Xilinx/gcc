@@ -768,7 +768,7 @@ DEFPARAM (PARAM_MELT_FULL_THRESHOLD,
 DEFPARAM (PARAM_MELT_FULL_PERIOD,
 	 "melt-full-period",
 	 "period of full garbage collection in the specialized melt collector",
-	  16, 32, 128)
+	  32, 54, 128)
 /**** end of Melt stuff */
 
 

@@ -1,6 +1,12 @@
 
 2011-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* params.def (PARAM_MELT_FULL_PERIOD): Increase default.
+
+	* melt-runtime (melt_garbcoll): Increase minimal melt_fullperiod.
+
+2011-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (check_pointer_at): Use MELTOBMAG__FIRST.
 
 2011-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
