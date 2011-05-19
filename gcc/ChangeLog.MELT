@@ -1,6 +1,12 @@
 
 2011-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-outobj.melt
+	(generate_runtypesupport_enum_objmagic): Emit MELTOBMAG__FIRST
+	enumeration value.
+
+2011-05-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-normatch.melt (normstep_mgroup): More code.  Still
 	incomplete.
 

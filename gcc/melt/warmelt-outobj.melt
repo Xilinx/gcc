@@ -5574,6 +5574,11 @@ notice for file named $NAME.}#
      #{$' /** from generate_runtypesupport_enum_objmagic **/
      enum meltobmag_en /*generated*/ { MELTOBMAG__NONE = 0,
      }#)
+    (add2sbuf_indentnl outbuf 1)
+    (add2sbuf_strconst outbuf "MELTOBMAG__FIRST /* first valid object magic */ =")
+     (add2sbuf_longdec outbuf curobjmagic)
+    (add2sbuf_strconst outbuf ",")
+    (add2sbuf_indentnl outbuf 0)
     (add2sbuf_indentnl outbuf 0)
     (add2sbuf_strconst outbuf "/* value descriptor object magic */")
     (foreach_in_multiple
