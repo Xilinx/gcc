@@ -220,7 +220,7 @@ $DBGI at given $DEPTH}#
 			     )
 			 (setq fldcnt (+i fldcnt 1))
 			 (if (or 
-			      (>i outcuroff (+i outoff 140))
+			      (>i outcuroff (+i outoff 80))
 			      (==i (%iraw fldcnt 2) 0)
 			      )
 			     (progn
