@@ -1,3 +1,9 @@
+2011-05-19  Paul Pluzhnikov  <ppluzhnikov@google.com>
+
+	* libstdc++-v3/libsupc++/Makefile.am: Add -fno-omit-frame-pointer
+	to vterminate.
+	* libstdc++-v3/libsupc++/Makefile.in: Regenerate.
+
 2011-04-13  Paul Pluzhnikov  <ppluzhnikov@google.com>
 
 	* libstdc++-v3/include/bits/stl_algo.h: Add comparator debug checks
