@@ -1,2 +1,2 @@
 #include "c1funcstatic.h"
-int a = f();
+int g() { return f(); }

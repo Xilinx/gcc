@@ -224,7 +224,7 @@ pph_stream_read_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
 }
 
 
-/* Read and return a VEC of trees from STREAM.  */
+/* Read and return a gc VEC of trees from STREAM.  */
 
 VEC(tree,gc) *
 pph_stream_read_tree_vec (pph_stream *stream)
@@ -242,6 +242,46 @@ pph_stream_read_tree_vec (pph_stream *stream)
 
   return v;
 }
+
+
+/* Read and return a gc VEC of qualified_typedef_usage_t from STREAM.  */
+
+static VEC(qualified_typedef_usage_t,gc) *
+pph_stream_read_qual_use_vec (pph_stream *stream)
+{
+  unsigned i, num;
+  VEC(qualified_typedef_usage_t,gc) *v;
+
+  num = pph_input_uint (stream);
+  v = NULL;
+  for (i = 0; i < num; i++)
+    {
+      qualified_typedef_usage_t q;
+      q.typedef_decl = pph_input_tree (stream);
+      q.context = pph_input_tree (stream);
+      /* FIXME pph: also read location.  */
+      VEC_safe_push (qualified_typedef_usage_t, gc, v, &q);
+    }
+
+  return v;
+}
+
+
+/* Read a trees from STREAM and write into a none VEC v.  */
+
+static VEC(tree,none) *
+pph_stream_read_tree_vec_none (pph_stream *stream, VEC(tree,none) *v)
+{
+  unsigned i, num;
+
+  num = pph_input_uint (stream);
+  VEC_embedded_init (tree, v, num);
+  for (i = 0; i < num; i++)
+    VEC_quick_push (tree, v, pph_input_tree (stream));
+
+  return v;
+}
+
 
 /* Forward declaration to break cyclic dependencies.  */
 static struct cp_binding_level *pph_stream_read_binding_level (pph_stream *);
@@ -784,6 +824,7 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
   if (DECL_P (expr))
     {
       DECL_INITIAL (expr) = pph_input_tree (stream);
+      /* FIXME pph: DECL_NAME (expr) = pph_input_tree (stream); */
 
       if (TREE_CODE (expr) == FUNCTION_DECL
 	  || TREE_CODE (expr) == NAMESPACE_DECL
@@ -817,4 +858,57 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
           TYPE_BINFO (expr) = pph_input_tree (stream);
         }
     }
+  else if (TREE_CODE (expr) == OVERLOAD)
+    {
+      OVL_FUNCTION (expr) = pph_input_tree (stream);
+    }
+  else if (TREE_CODE (expr) == IDENTIFIER_NODE)
+    {
+      const char *str;
+      struct lang_identifier *id = LANG_IDENTIFIER_CAST(expr);
+      TREE_TYPE (expr) = pph_input_tree (stream);
+      str = pph_input_string (stream);
+      /* FIXME pph: There must be a better way.  */
+      IDENTIFIER_NODE_CHECK (expr)->identifier.id.str
+          = (const unsigned char *)str;
+      IDENTIFIER_LENGTH (expr) = strlen (str);
+      id->namespace_bindings = pph_stream_read_cxx_binding (stream);
+      id->bindings = pph_stream_read_cxx_binding (stream);
+      id->class_template_info = pph_input_tree (stream);
+      id->label_value = pph_input_tree (stream);
+    }
+  else if (TREE_CODE (expr) == BASELINK)
+    {
+      BASELINK_BINFO (expr) = pph_input_tree (stream);
+      BASELINK_FUNCTIONS (expr) = pph_input_tree (stream);
+      BASELINK_ACCESS_BINFO (expr) = pph_input_tree (stream);
+    }
+  else if (TREE_CODE (expr) == TREE_BINFO)
+    {
+      BINFO_OFFSET (expr) = pph_input_tree (stream);
+      BINFO_VTABLE (expr) = pph_input_tree (stream);
+      BINFO_VIRTUALS (expr) = pph_input_tree (stream);
+      BINFO_VPTR_FIELD (expr) = pph_input_tree (stream);
+      BINFO_BASE_ACCESSES (expr) = pph_stream_read_tree_vec (stream);
+      BINFO_INHERITANCE_CHAIN (expr) = pph_input_tree (stream);
+      BINFO_SUBVTT_INDEX (expr) = pph_input_tree (stream);
+      BINFO_VPTR_INDEX (expr) = pph_input_tree (stream);
+      pph_stream_read_tree_vec_none (stream, BINFO_BASE_BINFOS (expr) );
+    }
+  else if (TREE_CODE (expr) == TEMPLATE_DECL)
+    {
+      DECL_TEMPLATE_RESULT (expr) = pph_input_tree (stream);
+      DECL_TEMPLATE_PARMS (expr) = pph_input_tree (stream);
+      DECL_CONTEXT (expr) = pph_input_tree (stream);
+    }
+  else if (TREE_CODE (expr) == TEMPLATE_INFO)
+    {
+      TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr)
+          = pph_stream_read_tree_vec (stream);
+    }
+  else if (TREE_CODE (expr) == TREE_LIST)
+    ; /* FIXME pph: already handled?  */
+  else if (flag_pph_debug >= 2)
+    fprintf (pph_logfile, "PPH: unimplemented read of %s\n",
+             tree_code_name[TREE_CODE (expr)]);
 }

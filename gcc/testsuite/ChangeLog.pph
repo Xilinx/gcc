@@ -1,3 +1,9 @@
+2011-05-20  Lawrence Crowl  <crowl@google.com>
+
+	* x1funcstatic.h: Rename to c1funcstatic.h, as contents are C only.
+	* x1funcstatic.c: Use c1funcstatic.h instead of x1funcstatic.h.
+	* c1funcstatic.c: Add to test C functionality.
+
 2011-04-29  Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/pph.exp: Copy pph map file to avoid absolute paths in

@@ -262,8 +262,8 @@ pph_stream_write_ld_min (pph_stream *stream, struct lang_decl_min *ldm,
 }
 
 
-/* Write all the trees in VEC V to STREAM.  REF_P is true if the trees should
-   be written as references.  */
+/* Write all the trees in gc VEC V to STREAM.  REF_P is true if the
+   trees should be written as references. */
 
 void
 pph_stream_write_tree_vec (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
@@ -275,6 +275,43 @@ pph_stream_write_tree_vec (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
   for (i = 0; VEC_iterate (tree, v, i, t); i++)
     pph_output_tree_or_ref (stream, t, ref_p);
 }
+
+
+/* Write all the qualified_typedef_usage_t in VEC V to STREAM.
+   REF_P is true if the trees should be written as references. */
+
+static void
+pph_stream_write_qual_use_vec (pph_stream *stream,
+    VEC(qualified_typedef_usage_t,gc) *v, bool ref_p)
+{
+  unsigned i;
+  qualified_typedef_usage_t *q;
+
+  pph_output_uint (stream, VEC_length (qualified_typedef_usage_t, v));
+  for (i = 0; VEC_iterate (qualified_typedef_usage_t, v, i, q); i++)
+    {
+      pph_output_tree_or_ref (stream, q->typedef_decl, ref_p);
+      pph_output_tree_or_ref (stream, q->context, ref_p);
+      /* FIXME pph: also write location?  */
+    }
+}
+
+
+/* Write all the trees in non VEC V to STREAM.  REF_P is true if the
+   trees should be written as references. */
+
+static void
+pph_stream_write_tree_vec_none (pph_stream *stream, VEC(tree,none) *v,
+                                bool ref_p)
+{
+  unsigned i;
+  tree t;
+
+  pph_output_uint (stream, VEC_length (tree, v));
+  for (i = 0; VEC_iterate (tree, v, i, t); i++)
+    pph_output_tree_or_ref (stream, t, ref_p);
+}
+
 
 /* Forward declaration to break cyclic dependencies.  */
 static void pph_stream_write_binding_level (pph_stream *,
@@ -788,6 +825,9 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
   if (DECL_P (expr))
     {
       pph_output_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
+      /* FIXME pph:
+      pph_output_tree_or_ref_1 (stream, DECL_NAME (expr), ref_p, 3);
+      */
 
       if (TREE_CODE (expr) == FUNCTION_DECL
 	  || TREE_CODE (expr) == NAMESPACE_DECL
@@ -828,6 +868,57 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
           pph_output_tree_or_ref_1 (stream, TYPE_BINFO (expr), ref_p, 3);
         }
     }
+  else if (TREE_CODE (expr) == OVERLOAD)
+    {
+      pph_output_tree_or_ref_1 (stream, OVL_CURRENT (expr), ref_p, 3);
+    }
+  else if (TREE_CODE (expr) == IDENTIFIER_NODE)
+    {
+      struct lang_identifier *id = LANG_IDENTIFIER_CAST(expr);
+      pph_output_tree_or_ref_1 (stream, TREE_TYPE (expr), ref_p, 3);
+      pph_output_string_with_length (stream, IDENTIFIER_POINTER (expr),
+                                             IDENTIFIER_LENGTH (expr));
+      pph_stream_write_cxx_binding (stream, id->namespace_bindings, ref_p);
+      pph_stream_write_cxx_binding (stream, id->bindings, ref_p);
+      pph_output_tree_or_ref_1 (stream, id->class_template_info, ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, id->label_value, ref_p, 3);
+    }
+  else if (TREE_CODE (expr) == BASELINK)
+    {
+      pph_output_tree_or_ref_1 (stream, BASELINK_BINFO (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, BASELINK_FUNCTIONS (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, BASELINK_ACCESS_BINFO (expr), ref_p, 3);
+    }
+  else if (TREE_CODE (expr) == TREE_BINFO)
+    {
+      pph_output_tree_or_ref_1 (stream, BINFO_OFFSET (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, BINFO_VTABLE (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, BINFO_VIRTUALS (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, BINFO_VPTR_FIELD (expr), ref_p, 3);
+      pph_stream_write_tree_vec (stream, BINFO_BASE_ACCESSES (expr), ref_p);
+      pph_output_tree_or_ref_1 (stream, BINFO_INHERITANCE_CHAIN (expr),
+                                        ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, BINFO_SUBVTT_INDEX (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, BINFO_VPTR_INDEX (expr), ref_p, 3);
+      pph_stream_write_tree_vec_none (stream, BINFO_BASE_BINFOS (expr), ref_p);
+    }
+  else if (TREE_CODE (expr) == TEMPLATE_DECL)
+    {
+      pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_RESULT (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_PARMS (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, DECL_CONTEXT (expr), ref_p, 3);
+      /* FIXME pph: what of bit DECL_MEMBER_TEMPLATE_P (expr) */
+    }
+  else if (TREE_CODE (expr) == TEMPLATE_INFO)
+    {
+      pph_stream_write_qual_use_vec (stream,
+          TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr), ref_p);
+    }
+  else if (TREE_CODE (expr) == TREE_LIST)
+    ; /* FIXME pph: already handled?  */
+  else if (flag_pph_debug >= 2)
+    fprintf (pph_logfile, "PPH: unimplemented write of %s\n",
+             tree_code_name[TREE_CODE (expr)]);
 }
 
 
