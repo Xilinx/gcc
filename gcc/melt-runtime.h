@@ -118,10 +118,19 @@ extern int flag_melt_bootstrapping;
 
 #define debugeprintf_raw(Fmt,...) do{if (flag_melt_debug) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
-#define debugeprintf(Fmt,...) debugeprintf_raw("!@%s:%d:\n@! " Fmt "\n", \
-      basename(__FILE__), __LINE__, ##__VA_ARGS__)
-#define debugeprintfnonl(Fmt,...) debugeprintf_raw("!@%s:%d:\n@! " Fmt, \
-      basename(__FILE__), __LINE__, ##__VA_ARGS__)
+/* Sometimes we need to pass an explicit line number.  */
+#define debugeprintfline(Lin,Fmt,...) \
+   debugeprintf_raw("!@%s:%d:\n@! " Fmt "\n", \
+                    basename(__FILE__), Lin, ##__VA_ARGS__)
+/* The usual debugging macro.  */
+#define debugeprintf(Fmt,...) debugeprintfline(__LINE__,Fmt,##__VA_ARGS__)
+
+#define debugeprintflinenonl(Lin,Fmt,...)                       \
+  debugeprintf_raw("!@%s:%d:\n@! " Fmt,                         \
+                   basename(__FILE__), Lin, ##__VA_ARGS__)
+#define debugeprintfnonl(Fmt,...) \
+  debugeprintflinenonl(__LINE__, Fmt, ##__VA_ARGS__)
+
 #define debugeprintvalue(Msg,Val) do{if (flag_melt_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d:\n@! %s @%p= ",			\
