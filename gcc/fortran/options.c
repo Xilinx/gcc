@@ -125,7 +125,7 @@ gfc_init_options (unsigned int decoded_options_count,
 
   /* Default value of flag_max_stack_var_size is set in gfc_post_options.  */
   gfc_option.flag_max_stack_var_size = -2;
-  gfc_option.flag_stack_arrays = 0;
+  gfc_option.flag_stack_arrays = -1;
 
   gfc_option.flag_range_check = 1;
   gfc_option.flag_pack_derived = 0;
@@ -134,9 +134,8 @@ gfc_init_options (unsigned int decoded_options_count,
   gfc_option.flag_automatic = 1;
   gfc_option.flag_backslash = 0;
   gfc_option.flag_module_private = 0;
-  gfc_option.flag_backtrace = 0;
+  gfc_option.flag_backtrace = 1;
   gfc_option.flag_allow_leading_underscore = 0;
-  gfc_option.flag_dump_core = 0;
   gfc_option.flag_external_blas = 0;
   gfc_option.blas_matmul_limit = 30;
   gfc_option.flag_cray_pointer = 0;
@@ -274,6 +273,9 @@ gfc_post_options (const char **pfilename)
 
   if (gfc_option.flag_protect_parens == -1)
     gfc_option.flag_protect_parens = !optimize_fast;
+
+  if (gfc_option.flag_stack_arrays == -1)
+    gfc_option.flag_stack_arrays = optimize_fast;
 
   /* By default, disable (re)allocation during assignment for -std=f95,
      and enable it for F2003/F2008/GNU/Legacy. */
@@ -697,10 +699,6 @@ gfc_handle_option (size_t scode, const char *arg, int value,
       gfc_option.rtcheck |= GFC_RTCHECK_ARRAY_TEMPS;
       break;
       
-    case OPT_fdump_core:
-      gfc_option.flag_dump_core = value;
-      break;
-
     case OPT_fcray_pointer:
       gfc_option.flag_cray_pointer = value;
       break;

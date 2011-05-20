@@ -26,6 +26,15 @@ along with GCC; see the file COPYING3.  If not see
 #include "config.h"
 #include "system.h"
 #include "coretypes.h"
+#include "tm.h"		/* For INTMAX_TYPE, INT8_TYPE, INT16_TYPE, INT32_TYPE,
+			   INT64_TYPE, INT_LEAST8_TYPE, INT_LEAST16_TYPE,
+			   INT_LEAST32_TYPE, INT_LEAST64_TYPE, INT_FAST8_TYPE,
+			   INT_FAST16_TYPE, INT_FAST32_TYPE, INT_FAST64_TYPE,
+			   BOOL_TYPE_SIZE, BITS_PER_UNIT, POINTER_SIZE,
+			   INT_TYPE_SIZE, CHAR_TYPE_SIZE, SHORT_TYPE_SIZE,
+			   LONG_TYPE_SIZE, LONG_LONG_TYPE_SIZE,
+			   FLOAT_TYPE_SIZE, DOUBLE_TYPE_SIZE,
+			   LONG_DOUBLE_TYPE_SIZE and LIBGCC2_HAS_TF_MODE.  */
 #include "tree.h"
 #include "langhooks.h"	/* For iso-c-bindings.def.  */
 #include "target.h"
@@ -784,26 +793,6 @@ gfc_build_logical_type (gfc_logical_info *info)
   return new_type;
 }
 
-
-#if 0
-/* Return the bit size of the C "size_t".  */
-
-static unsigned int
-c_size_t_size (void)
-{
-#ifdef SIZE_TYPE  
-  if (strcmp (SIZE_TYPE, "unsigned int") == 0)
-    return INT_TYPE_SIZE;
-  if (strcmp (SIZE_TYPE, "long unsigned int") == 0)
-    return LONG_TYPE_SIZE;
-  if (strcmp (SIZE_TYPE, "short unsigned int") == 0)
-    return SHORT_TYPE_SIZE;
-  gcc_unreachable ();
-#else
-  return LONG_TYPE_SIZE;
-#endif
-}
-#endif
 
 /* Create the backend type nodes. We map them to their
    equivalent C type, at least for now.  We also give
@@ -1694,9 +1683,10 @@ gfc_get_array_type_bounds (tree etype, int dimen, int codimen, tree * lbound,
     stride = gfc_index_one_node;
   else
     stride = NULL_TREE;
-  for (n = 0; n < dimen; n++)
+  for (n = 0; n < dimen + codimen; n++)
     {
-      GFC_TYPE_ARRAY_STRIDE (fat_type, n) = stride;
+      if (n < dimen)
+	GFC_TYPE_ARRAY_STRIDE (fat_type, n) = stride;
 
       if (lbound)
 	lower = lbound[n];
@@ -1711,6 +1701,9 @@ gfc_get_array_type_bounds (tree etype, int dimen, int codimen, tree * lbound,
 	    lower = NULL_TREE;
 	}
 
+      if (codimen && n == dimen + codimen - 1)
+	break;
+
       upper = ubound[n];
       if (upper != NULL_TREE)
 	{
@@ -1719,6 +1712,9 @@ gfc_get_array_type_bounds (tree etype, int dimen, int codimen, tree * lbound,
 	  else
 	    upper = NULL_TREE;
 	}
+
+      if (n >= dimen)
+	continue;
 
       if (upper != NULL_TREE && lower != NULL_TREE && stride != NULL_TREE)
 	{
