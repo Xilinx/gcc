@@ -1,3 +1,8 @@
+2011-05-20  Simon Baldwin  <simonb@google.com>
+
+	* libstdc++-v3/scripts/extract_symvers.in: Handle processor/OS
+	specific or unknown symbol binding strings from readelf.
+
 2011-05-19  Paul Pluzhnikov  <ppluzhnikov@google.com>
 
 	* libstdc++-v3/libsupc++/Makefile.am: Add -fno-omit-frame-pointer
