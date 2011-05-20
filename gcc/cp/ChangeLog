@@ -1,3 +1,62 @@
+2011-05-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/49043
+	* decl.c (check_omp_return): Stop searching on sk_function_parms.
+
+	PR c++/48869
+	* method.c (get_dtor, get_copy_ctor): Add COMPLAIN argument,
+	pass it down to locate_fn_flags.
+	* cp-tree.h (get_dtor, get_copy_ctor): Adjust prototypes.
+	* semantics.c (cxx_omp_create_clause_info): Adjust callers.
+	* cp-gimplify.c: Include splay-tree.h.
+	(splay_tree_compare_decl_uid, omp_var_to_track,
+	omp_cxx_notice_variable): New functions.
+	(struct cp_genericize_omp_taskreg): New type.
+	(struct cp_genericize_data): Add omp_ctx field.
+	(cp_genericize_r): Attempt to determine implicitly determined
+	firstprivate class type variables.
+	(cp_genericize): Clear omp_ctx.
+	* Make-lang.in (cp/cp-gimplify.o): Depend on $(SPLAY_TREE_H).
+
+2011-05-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48948
+	PR c++/49015
+	* class.c (finalize_literal_type_property): Do check
+	for constexpr member functions of non-literal class.
+	(finish_struct): Don't call check_deferred_constexpr_decls.
+	* cp-tree.h: Don't declare it.
+	(DECL_DEFERRED_CONSTEXPR_CHECK): Remove.
+	* decl.c (grok_special_member_properties): Don't check it
+	(grokfnedcl): Don't call validate_constexpr_fundecl.
+	(start_preparsed_function): Do call it.
+	* pt.c (tsubst_decl): Don't call it.
+	(instantiate_class_template_1): Don't call
+	check_deferred_constexpr_decls.
+	* semantics.c (literal_type_p): Check for any incompleteness.
+	(ensure_literal_type_for_constexpr_object): Likewise.
+	(is_valid_constexpr_fn): Revert deferral changes.
+	(validate_constexpr_fundecl): Likewise.
+	(register_constexpr_fundef): Likewise.
+	(check_deferred_constexpr_decls): Remove.
+
+2011-05-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48969
+	* pt.c (deduction_tsubst_fntype): Use a VEC initially.
+
+2011-05-15  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* cxx-pretty-print.c: Update comment.
+	* semantics.c (trait_expr_value, finish_trait_expr):
+	Reorder the cases.
+	* parser.c (cp_parser_primary_expression): Likewise.
+
+2011-05-15  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/48994
+	* parser.c (cp_parser_perform_range_for_lookup): Call complete_type.
+
 2011-05-13  Ville Voutilainen  <ville.voutilainen@gmail.com>
 
 	Implement final on class.

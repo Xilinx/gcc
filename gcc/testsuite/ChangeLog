@@ -1,3 +1,87 @@
+2011-06-19  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_21.f90: New.
+
+2011-05-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* lib/prune.exe (prune_gcc_output): Expect "error:" in collect2
+	output.
+
+2011-05-19  Richard Guenther  <rguenther@suse.de>
+
+	PR testsuite/49063
+	* gcc.dg/builtin-object-size-11.c: Use -std=gnu89.
+
+2011-05-19  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48985
+	* gcc.dg/builtin-object-size-11.c: New testcase.
+
+2011-05-19  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/45098
+	* gcc.target/arm/ivopts.c: New test.
+	* gcc.target/arm/ivopts-2.c: New test.
+
+2011-05-19  Tom de Vries  <tom@codesourcery.com>
+
+	* lib/lib/scanasm.exp (object-size): Fix target selector handling.
+
+2011-05-19  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.c-torture/execute/960321-1.x: Remove.
+
+2011-05-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/49002
+	* gcc.target/i386/pr49002-1.c: New test.
+	* gcc.target/i386/pr49002-2.c: Likewise.
+
+2011-05-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49039
+	* gcc.c-torture/execute/pr49039.c: New test.
+	* gcc.dg/tree-ssa/pr49039.c: New test.
+	* g++.dg/torture/pr49039.C: New test.
+
+2011-05-18  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-incomplete3.C: New.
+	* g++.dg/cpp0x/constexpr-incomplete2.C: Adjust.
+	* g++.dg/cpp0x/constexpr-memfn1.C: Adjust.
+
+2011-05-18  Stuart Henderson  <shenders@gcc.gnu.org>
+
+	* gcc.target/bfin/mcpu-bf592.c: New test.
+
+2011-05-18  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/41881
+	* gcc.dg/vect/O3-pr41881.c: New test.
+	* gcc.dg/vect/O3-slp-reduc-10.c: New test.
+
+2011-05-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49000
+	* gcc.dg/pr49000.c: New test.
+
+2011-05-17  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/invalid1.adb: New test.
+
+2011-05-16  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/avx-vzeroupper-16.c: Update scan-assembler-times
+	scan pattern.
+	* gcc.target/i386/avx-vzeroupper-17.c: Ditto.
+	* gcc.target/i386/avx-vzeroupper-18.c: Ditto.
+
+2011-05-15  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/48994
+	* g++.dg/cpp0x/range-for18.C: New.
+
 2011-05-15  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/18918

@@ -1,3 +1,24 @@
+2011-05-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (*call_vzeroupper): Disabled for TARGET_X32.
+	(*call): Likewise.
+	(*call_value_vzeroupper): Likewise.
+	(*call_value): Likewise.
+	(*call_rex64_ms_sysv_vzeroupper): Check TARGET_LP64 instead of
+	TARGET_64BIT.
+	(*call_rex64_ms_sysv"): Likewise.
+	(*call_value_rex64_ms_sysv_vzeroupper): Likewise.
+	(*call_value_rex64_ms_sysv): Likewise.
+	(*call_vzeroupper_x32): New.
+	(*call_x32): Likewise.
+	(*call_rex64_ms_sysv_vzeroupper_x32): Likewise.
+	(*call_rex64_ms_sysv_x32): Likewise.
+	(*call_value_vzeroupper_x32): Likewise.
+	(*call_value_x32): Likewise.
+	(*call_value_rex64_ms_sysv_vzeroupper_x3): Likewise.
+	(*call_value_rex64_ms_sysv_x32): Likewise.
+	(*call_1_rex64_x32): Removed.
+
 2011-05-13  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/47715

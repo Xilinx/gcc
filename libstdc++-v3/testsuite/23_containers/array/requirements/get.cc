@@ -1,7 +1,9 @@
+// { dg-do compile }
 // { dg-options "-std=gnu++0x" }
-// 2010-06-08  Paolo Carlini  <paolo.carlini@oracle.com>
+
+// 2011-05-16  Paolo Carlini  <paolo.carlini@oracle.com>
 //
-// Copyright (C) 2010 Free Software Foundation, Inc.
+// Copyright (C) 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -18,19 +20,12 @@
 // with this library; see the file COPYING3.  If not see
 // <http://www.gnu.org/licenses/>.
 
-// 
-// NB: This file is for testing type_traits with NO OTHER INCLUDES.
-
-#include <type_traits>
-
-// { dg-do compile }
+#include <array>
 
 void test01()
 {
-  // Check for required typedefs
-  typedef std::has_nothrow_copy_assign<int>   test_type;
-  typedef test_type::value_type               value_type;
-  typedef test_type::type                     type;
-  typedef test_type::type::value_type         type_value_type;
-  typedef test_type::type::type               type_type;
+  std::array<int, 2> a;
+
+  int&& aone __attribute__((unused)) = std::get<0>(std::move(a));
+  int&& atwo __attribute__((unused)) = std::get<1>(std::move(a));
 }
