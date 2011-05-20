@@ -82,7 +82,24 @@
 	     (debugbasicblock "opengpudetect_exec looplatch" looplatch)
 	     (debug_msg curloopbodytuple "opengpudetect_exec parellelizable curloopbodytuple")
 	     (debug_msg curloopedgetuple "opengpudetect_exec parellelizable curloopedgetuple")
-	     )))
+	     (foreach_in_multiple
+	      (curloopbodytuple)
+	      (curloopbody :long bodyix)
+	      (debug_msg curloopbody "opengpudetect_exec curloopbody")
+	      (assert_msg "opengpudetect_exec check curloopbody" (is_basicblock curloopbody))
+	      (eachgimple_in_basicblock
+	       ((basicblock_content curloopbody))
+	       (:gimple gimbody)
+	       (debuggimple "opengpudetect_exec gimbody" gimbody)
+	       (match gimbody
+		      (?(gimple_assign_single ?lhs ?rhs)
+			(debugtree "opengpudetect_exec assign single plain lhs" lhs)
+			(debugtree "opengpudetect_exec assign single plain rhs" rhs)
+			)
+		      (?_
+		       ()))
+	       )
+	      ))))
      )
     ;;
     (debug_msg pass "opengpudetect_exec end")
