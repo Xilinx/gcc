@@ -831,7 +831,8 @@ Type::check_int_value(Expression* e, const char* errmsg,
   return false;
 }
 
-// A hash table mapping unnamed types to trees.
+// A hash table mapping unnamed types to the backend representation of
+// those types.
 
 Type::Type_btypes Type::type_btypes;
 
@@ -1431,7 +1432,7 @@ Type::methods_constructor(Gogo* gogo, Type* methods_type,
        p != smethods.end();
        ++p)
     vals->push_back(this->method_constructor(gogo, method_type, p->first,
-					     p->second));
+					     p->second, only_value_methods));
 
   return Expression::make_slice_composite_literal(methods_type, vals, bloc);
 }
@@ -1443,7 +1444,8 @@ Type::methods_constructor(Gogo* gogo, Type* methods_type,
 Expression*
 Type::method_constructor(Gogo*, Type* method_type,
 			 const std::string& method_name,
-			 const Method* m) const
+			 const Method* m,
+			 bool only_value_methods) const
 {
   source_location bloc = BUILTINS_LOCATION;
 
@@ -1486,6 +1488,25 @@ Type::method_constructor(Gogo*, Type* method_type,
 
   ++p;
   go_assert(p->field_name() == "typ");
+  if (!only_value_methods && m->is_value_method())
+    {
+      // This is a value method on a pointer type.  Change the type of
+      // the method to use a pointer receiver.  The implementation
+      // always uses a pointer receiver anyhow.
+      Type* rtype = mtype->receiver()->type();
+      Type* prtype = Type::make_pointer_type(rtype);
+      Typed_identifier* receiver =
+	new Typed_identifier(mtype->receiver()->name(), prtype,
+			     mtype->receiver()->location());
+      mtype = Type::make_function_type(receiver,
+				       (mtype->parameters() == NULL
+					? NULL
+					: mtype->parameters()->copy()),
+				       (mtype->results() == NULL
+					? NULL
+					: mtype->results()->copy()),
+				       mtype->location());
+    }
   vals->push_back(Expression::make_type_descriptor(mtype, bloc));
 
   ++p;
@@ -2588,10 +2609,10 @@ Function_type::do_hash_for_method(Gogo* gogo) const
   return ret;
 }
 
-// Get the tree for a function type.
+// Get the backend representation for a function type.
 
 Btype*
-Function_type::do_get_backend(Gogo* gogo)
+Function_type::get_function_backend(Gogo* gogo)
 {
   Backend::Btyped_identifier breceiver;
   if (this->receiver_ != NULL)
@@ -2641,6 +2662,46 @@ Function_type::do_get_backend(Gogo* gogo)
 
   return gogo->backend()->function_type(breceiver, bparameters, bresults,
 					this->location());
+}
+
+// A hash table mapping function types to their backend placeholders.
+
+Function_type::Placeholders Function_type::placeholders;
+
+// Get the backend representation for a function type.  If we are
+// still converting types, and this types has multiple results, return
+// a placeholder instead.  We do this because for multiple results we
+// build a struct, and we need to make sure that all the types in the
+// struct are valid before we create the struct.
+
+Btype*
+Function_type::do_get_backend(Gogo* gogo)
+{
+  if (!gogo->named_types_are_converted()
+      && this->results_ != NULL
+      && this->results_->size() > 1)
+    {
+      Btype* placeholder =
+	gogo->backend()->placeholder_pointer_type("", this->location(), true);
+      Function_type::placeholders.push_back(std::make_pair(this, placeholder));
+      return placeholder;
+    }
+  return this->get_function_backend(gogo);
+}
+
+// Convert function types after all named types are converted.
+
+void
+Function_type::convert_types(Gogo* gogo)
+{
+  for (Placeholders::const_iterator p = Function_type::placeholders.begin();
+       p != Function_type::placeholders.end();
+       ++p)
+    {
+      Btype* bt = p->first->get_function_backend(gogo);
+      if (!gogo->backend()->set_placeholder_function_type(p->second, bt))
+	go_assert(saw_errors());
+    }
 }
 
 // Functions are initialized to NULL.
@@ -2738,14 +2799,7 @@ Function_type::type_descriptor_params(Type* params_type,
 		+ (receiver != NULL ? 1 : 0));
 
   if (receiver != NULL)
-    {
-      Type* rtype = receiver->type();
-      // The receiver is always passed as a pointer.  FIXME: Is this
-      // right?  Should that fact affect the type descriptor?
-      if (rtype->points_to() == NULL)
-	rtype = Type::make_pointer_type(rtype);
-      vals->push_back(Expression::make_type_descriptor(rtype, bloc));
-    }
+    vals->push_back(Expression::make_type_descriptor(receiver->type(), bloc));
 
   if (params != NULL)
     {
@@ -4781,9 +4835,10 @@ Array_type::make_array_type_descriptor_type()
       Type* uintptr_type = Type::lookup_integer_type("uintptr");
 
       Struct_type* sf =
-	Type::make_builtin_struct_type(3,
+	Type::make_builtin_struct_type(4,
 				       "", tdt,
 				       "elem", ptdt,
+				       "slice", ptdt,
 				       "len", uintptr_type);
 
       ret = Type::make_builtin_named_type("ArrayType", sf);
@@ -4848,6 +4903,11 @@ Array_type::array_type_descriptor(Gogo* gogo, Named_type* name)
   ++p;
   go_assert(p->field_name() == "elem");
   vals->push_back(Expression::make_type_descriptor(this->element_type_, bloc));
+
+  ++p;
+  go_assert(p->field_name() == "slice");
+  Type* slice_type = Type::make_array_type(this->element_type_, NULL);
+  vals->push_back(Expression::make_type_descriptor(slice_type, bloc));
 
   ++p;
   go_assert(p->field_name() == "len");
@@ -5334,8 +5394,9 @@ Channel_type::do_make_expression_tree(Translate_context* context,
   Gogo* gogo = context->gogo();
   tree channel_type = type_to_tree(this->get_backend(gogo));
 
-  tree element_tree = type_to_tree(this->element_type_->get_backend(gogo));
-  tree element_size_tree = size_in_bytes(element_tree);
+  Type* ptdt = Type::make_type_descriptor_ptr_type();
+  tree element_type_descriptor =
+    this->element_type_->type_descriptor_pointer(gogo);
 
   tree bad_index = NULL_TREE;
 
@@ -5361,8 +5422,8 @@ Channel_type::do_make_expression_tree(Translate_context* context,
 				"__go_new_channel",
 				2,
 				channel_type,
-				sizetype,
-				element_size_tree,
+				type_to_tree(ptdt->get_backend(gogo)),
+				element_type_descriptor,
 				sizetype,
 				expr_tree);
   if (ret == error_mark_node)
@@ -6201,7 +6262,16 @@ Interface_type::do_reflection(Gogo* gogo, std::string* ret) const
 	  if (p != this->methods_->begin())
 	    ret->append(";");
 	  ret->push_back(' ');
-	  ret->append(Gogo::unpack_hidden_name(p->name()));
+	  if (!Gogo::is_hidden_name(p->name()))
+	    ret->append(p->name());
+	  else
+	    {
+	      // This matches what the gc compiler does.
+	      std::string prefix = Gogo::hidden_name_prefix(p->name());
+	      ret->append(prefix.substr(prefix.find('.') + 1));
+	      ret->push_back('.');
+	      ret->append(Gogo::unpack_hidden_name(p->name()));
+	    }
 	  std::string sub = p->type()->reflection(gogo);
 	  go_assert(sub.compare(0, 4, "func") == 0);
 	  sub = sub.substr(4);
@@ -7236,7 +7306,7 @@ Named_type::do_get_backend(Gogo* gogo)
       --this->seen_;
       if (this->is_circular_)
 	bt1 = gogo->backend()->circular_pointer_type(bt, true);
-      if (!gogo->backend()->set_placeholder_pointer_type(bt, bt1))
+      if (!gogo->backend()->set_placeholder_function_type(bt, bt1))
 	bt = gogo->backend()->error_type();
       return bt;
 

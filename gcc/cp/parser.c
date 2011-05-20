@@ -3274,8 +3274,11 @@ cp_parser_translation_unit (cp_parser* parser)
      __is_convertible_to ( type-id , type-id )     
      __is_empty ( type-id )
      __is_enum ( type-id )
+     __is_literal_type ( type-id )
      __is_pod ( type-id )
      __is_polymorphic ( type-id )
+     __is_std_layout ( type-id )
+     __is_trivial ( type-id )
      __is_union ( type-id )
 
    Objective-C++ Extension:
@@ -3601,12 +3604,12 @@ cp_parser_primary_expression (cp_parser *parser,
 	case RID_IS_CONVERTIBLE_TO:
 	case RID_IS_EMPTY:
 	case RID_IS_ENUM:
+	case RID_IS_LITERAL_TYPE:
 	case RID_IS_POD:
 	case RID_IS_POLYMORPHIC:
 	case RID_IS_STD_LAYOUT:
 	case RID_IS_TRIVIAL:
 	case RID_IS_UNION:
-	case RID_IS_LITERAL_TYPE:
 	  return cp_parser_trait_expr (parser, token->keyword);
 
 	/* Objective-C++ expressions.  */
@@ -8682,7 +8685,7 @@ cp_convert_range_for (tree statement, tree range_decl, tree range_expr)
 static tree
 cp_parser_perform_range_for_lookup (tree range, tree *begin, tree *end)
 {
-  if (!COMPLETE_TYPE_P (TREE_TYPE (range)))
+  if (!COMPLETE_TYPE_P (complete_type (TREE_TYPE (range))))
     {
       error ("range-based %<for%> expression of type %qT "
 	     "has incomplete type", TREE_TYPE (range));
@@ -17082,9 +17085,12 @@ cp_parser_class_specifier (cp_parser* parser)
 
    class-head:
      class-key identifier [opt] base-clause [opt]
-     class-key nested-name-specifier identifier base-clause [opt]
+     class-key nested-name-specifier identifier class-virt-specifier [opt] base-clause [opt]
      class-key nested-name-specifier [opt] template-id
        base-clause [opt]
+
+   class-virt-specifier:
+     final
 
    GNU Extensions:
      class-key attributes identifier [opt] base-clause [opt]
@@ -17117,6 +17123,7 @@ cp_parser_class_head (cp_parser* parser,
   tree id = NULL_TREE;
   tree type = NULL_TREE;
   tree attributes;
+  cp_virt_specifiers virt_specifiers = VIRT_SPEC_UNSPECIFIED;
   bool template_id_p = false;
   bool qualified_p = false;
   bool invalid_nested_name_p = false;
@@ -17260,8 +17267,11 @@ cp_parser_class_head (cp_parser* parser,
   pop_deferring_access_checks ();
 
   if (id)
-    cp_parser_check_for_invalid_template_id (parser, id,
-					     type_start_token->location);
+    {
+      cp_parser_check_for_invalid_template_id (parser, id,
+                                               type_start_token->location);
+      virt_specifiers = cp_parser_virt_specifier_seq_opt (parser);
+    }
 
   /* If it's not a `:' or a `{' then we can't really be looking at a
      class-head, since a class-head only appears as part of a
@@ -17277,6 +17287,13 @@ cp_parser_class_head (cp_parser* parser,
   /* At this point, we're going ahead with the class-specifier, even
      if some other problem occurs.  */
   cp_parser_commit_to_tentative_parse (parser);
+  if (virt_specifiers & VIRT_SPEC_OVERRIDE)
+    {
+      cp_parser_error (parser,
+                       "cannot specify %<override%> for a class");
+      type = error_mark_node;
+      goto out;
+    }
   /* Issue the error about the overly-qualified name now.  */
   if (qualified_p)
     {
@@ -17493,6 +17510,8 @@ cp_parser_class_head (cp_parser* parser,
   if (type)
     DECL_SOURCE_LOCATION (TYPE_NAME (type)) = type_start_token->location;
   *attributes_p = attributes;
+  if (type && (virt_specifiers & VIRT_SPEC_FINAL))
+    CLASSTYPE_FINAL (type) = 1;
  out:
   parser->colon_corrects_to_scope_p = saved_colon_corrects_to_scope_p;
   return type;

@@ -367,8 +367,8 @@ Fortran
 Allow dollar signs in entity names
 
 fdump-core
-Fortran
-Dump a core file when a runtime error occurs
+Fortran Ignore
+Does nothing. Preserved for backward compatibility.
 
 fdump-fortran-original
 Fortran

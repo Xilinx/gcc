@@ -385,11 +385,11 @@ lto_ft_type (tree t)
 
   /* Accessors are for derived node types only. */
   if (!POINTER_TYPE_P (t))
-    LTO_FIXUP_TREE (t->type.minval);
-  LTO_FIXUP_TREE (t->type.maxval);
+    LTO_FIXUP_TREE (TYPE_MINVAL (t));
+  LTO_FIXUP_TREE (TYPE_MAXVAL (t));
 
   /* Accessor is for derived node types only. */
-  LTO_FIXUP_TREE (t->type.binfo);
+  LTO_FIXUP_TREE (t->type_non_common.binfo);
 
   LTO_FIXUP_TREE (TYPE_CONTEXT (t));
 
@@ -605,6 +605,20 @@ uniquify_nodes (struct data_in *data_in, unsigned from)
   struct lto_streamer_cache_d *cache = data_in->reader_cache;
   unsigned len = VEC_length (tree, cache->nodes);
   unsigned i;
+
+  /* Go backwards because childs streamed for the first time come
+     as part of their parents, and hence are created after them.  */
+  for (i = len; i-- > from;)
+    {
+      tree t = VEC_index (tree, cache->nodes, i);
+      if (!t)
+	continue;
+
+      /* Now try to find a canonical variant of T itself.  */
+      if (TYPE_P (t))
+	gimple_register_type (t);
+    }
+
   /* Go backwards because childs streamed for the first time come
      as part of their parents, and hence are created after them.  */
   for (i = len; i-- > from;)
@@ -2079,9 +2093,9 @@ lto_fixup_prevailing_decls (tree t)
       LTO_NO_PREVAIL (TYPE_ATTRIBUTES (t));
       LTO_NO_PREVAIL (TYPE_NAME (t));
 
-      LTO_SET_PREVAIL (t->type.minval);
-      LTO_SET_PREVAIL (t->type.maxval);
-      LTO_SET_PREVAIL (t->type.binfo);
+      LTO_SET_PREVAIL (TYPE_MINVAL (t));
+      LTO_SET_PREVAIL (TYPE_MAXVAL (t));
+      LTO_SET_PREVAIL (t->type_non_common.binfo);
 
       LTO_SET_PREVAIL (TYPE_CONTEXT (t));
 
@@ -2511,7 +2525,6 @@ do_whole_program_analysis (void)
       dump_varpool (cgraph_dump_file);
     }
   bitmap_obstack_initialize (NULL);
-  ipa_register_cgraph_hooks ();
   cgraph_state = CGRAPH_STATE_IPA_SSA;
 
   execute_ipa_pass_list (all_regular_ipa_passes);

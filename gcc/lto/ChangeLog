@@ -1,3 +1,19 @@
+2011-05-19  Richard Guenther  <rguenther@suse.de>
+
+	* lto.c (uniquify_nodes): First register all types before
+	fixing up the tree SCC.
+
+2011-05-11  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/48952
+	* lto.c (do_whole_program_analysis): Do not register cgraph hooks.
+
+2011-05-11  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* lto.c (lto_ft_type): Use TYPE_MINVAL and TYPE_MAXVAL.  Adjust
+	location of binfo field.
+	(lto_fixup_prevailing_decls): Likewise.
+
 2011-05-10  Nathan Froyd  <froydnj@codesourcery.com>
 
 	* lto-lang.c (def_fn_type): Don't call build_function_type, call
