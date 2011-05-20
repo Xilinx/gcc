@@ -1,3 +1,9 @@
+2011-05-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/48529
+	* config/i386/i386.c (x86_output_mi_thunk): Use ptr_mode instead
+	of Pmode for vtable adjustment.
+
 2011-05-19  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/x86-64.h (SIZE_TYPE): Check TARGET_LP64 instead

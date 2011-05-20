@@ -30249,7 +30249,7 @@ x86_output_mi_thunk (FILE *file,
   if (vcall_offset)
     {
       if (TARGET_64BIT)
-	tmp = gen_rtx_REG (DImode, R10_REG);
+	tmp = gen_rtx_REG (ptr_mode, R10_REG);
       else
 	{
 	  int tmp_regno = CX_REG;
@@ -30259,7 +30259,7 @@ x86_output_mi_thunk (FILE *file,
 	  tmp = gen_rtx_REG (SImode, tmp_regno);
 	}
 
-      xops[0] = gen_rtx_MEM (Pmode, this_reg);
+      xops[0] = gen_rtx_MEM (ptr_mode, this_reg);
       xops[1] = tmp;
       output_asm_insn ("mov%z1\t{%0, %1|%1, %0}", xops);
 
@@ -30271,9 +30271,10 @@ x86_output_mi_thunk (FILE *file,
 	  xops[0] = GEN_INT (vcall_offset);
 	  xops[1] = tmp2;
 	  output_asm_insn ("mov{q}\t{%0, %1|%1, %0}", xops);
-	  xops[0] = gen_rtx_MEM (Pmode, gen_rtx_PLUS (Pmode, tmp, tmp2));
+	  xops[0] = gen_rtx_MEM (ptr_mode,
+				 gen_rtx_PLUS (Pmode, tmp, tmp2));
 	}
-      xops[1] = this_reg;
+      xops[1] = gen_rtx_REG (ptr_mode, REGNO (this_reg));
       output_asm_insn ("add%z1\t{%0, %1|%1, %0}", xops);
     }
 
