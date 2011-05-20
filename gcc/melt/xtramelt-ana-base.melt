@@ -5,6 +5,7 @@
     Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
                 and Jeremie Salvucci  <jeremie.salvucci@free.fr>
+                and Pierre Vittet  <piervit@pvittet.com>
 
     This file is part of GCC.
 
@@ -1871,7 +1872,6 @@
 (defprimitive make_basicblock (discr :basic_block bb) :value
  #{/*make_basicblock*/(meltgc_new_basicblock((meltobject_ptr_t)($discr),($bb)))}# )
 
-
 (defprimitive basicblock_content (v) :basic_block
  #{(melt_basicblock_content((melt_ptr_t)($v)))}# )
 
@@ -1909,6 +1909,218 @@
 
 (defprimitive basicblock_nth_succ_edge  (:basic_block bb :long ix) :edge
   #{(($bb && $ix>=0 && $ix<EDGE_COUNT($bb->succs))?EDGE_SUCC($bb,$ix):NULL)}#)
+
+;; Primitives concerning dominance in basic_blocks
+;; those functions mainly come from gcc/dominance.c
+
+(defprimitive is_dominance_info_available () :long
+  :doc #{Check if dominance info are already calculated.
+        User normally doesn't have to call this primitive, as MELT functions
+        check if there is a need to use this.}#
+  #{dom_info_available_p(CDI_DOMINATORS)}#
+)
+
+(defprimitive is_post_dominance_info_available () :long
+  :doc #{Check if post dominance info are already calculated.
+        User normally doesn't have to call this primitive, as MELT functions
+        check if there is a need to use this.}#
+  #{dom_info_available_p(CDI_POST_DOMINATORS)}#
+)
+
+(defprimitive calculate_dominance_info_unsafe () :void
+  :doc #{This primitive is internally called, user doesn't need it.
+        Build the struct containing dominance info.
+        This struct is necessary to use others dominance related function.
+        This function is unsafe because it does not register any future call to
+        free_dominance_info.}#
+  #{calculate_dominance_info(CDI_DOMINATORS)}#
+)
+
+(defprimitive calculate_post_dominance_info_unsafe () :void
+  :doc #{This primitive is internally called, user doesn't need it.
+        Build the struct containing post dominance info.
+        This struct is necessary to use other dominance related function.
+        This function is unsafe because it does not register any future call to
+        free_dominance_info.}#
+  #{calculate_dominance_info(CDI_POST_DOMINATORS)}#
+)
+
+(defprimitive free_dominance_info () :void
+  :doc #{This primitive is internally called, user doesn't need it.
+        Clear dominance info if they have been allocated.}#
+  #{free_dominance_info(CDI_DOMINATORS)}#
+)
+
+(defprimitive free_post_dominance_info () :void
+  :doc #{This primitive is internally called, user doesn't need it.
+    Clear post dominance info if they have been allocated.}#
+  #{free_dominance_info(CDI_POST_DOMINATORS)}#
+)
+
+(defun calculate_dominance_info ()
+  :doc #{This primitive is internally called, user doesn't need it.
+      Build the struct containing dominance info.
+      This struct is necessary to use other dominance related info.
+      It place a call to free dominance info when pass is finished if it is
+      necessary.}#
+  (if (is_dominance_info_available)
+    () ;; do nothing
+    (progn ;; else calculate dom and ask to free them at end of pass
+      (calculate_dominance_info_unsafe)
+      (at_end_melt_pass_first free_dominance_info)
+    ))
+)
+
+(defun calculate_post_dominance_info () 
+  :doc #{This primitive is internally called, user doesn't need it
+      Build the struct containing post dominance info.
+      This struct is necessary to use other post dominance related info.
+      It place a call to free dominance info when pass is finished if it is
+      necessary.}#
+  (if (is_post_dominance_info_available)
+    ()  ;; do nothing
+    (progn ;; else calculate dom and ask to free them at end of pass
+      (calculate_post_dominance_info_unsafe)
+      (at_end_melt_pass_first free_post_dominance_info)
+    ))
+)
+
+(defprimitive debug_dominance_info (:cstring msg) :void
+  :doc #{Debug-print the dominance information.}#
+  #{ if (flag_melt_debug) {
+       extern void debug_dominance_info (enum cdi_direction);
+       if (dom_info_available_p(CDI_DOMINATORS)) {
+         debugeprintfnonl("debug_dominance_info %s", $MSG);
+         debug_dominance_info (CDI_DOMINATORS);
+       } 
+       else debugeprintf("debug_dominance_info %s not available", $MSG);
+     }}#
+)
+
+(defprimitive debug_post_dominance_info (:cstring msg) :void
+  :doc #{Debug-print the post dominance information.}#
+  #{ if (flag_melt_debug) {
+       extern void debug_dominance_info (enum cdi_direction);
+       if (dom_info_available_p(CDI_DOMINATORS)) {
+         debugeprintfnonl("debug_post_dominance_info %s", $MSG);
+         debug_dominance_info (CDI_DOMINATORS);
+       } 
+       else debugeprintf("debug_post_dominance_info %s not available", $MSG);
+     }}#
+)
+
+(defprimitive get_immediate_dominator_unsafe (:basic_block bb) :basic_block
+  :doc#{It doesn't check that dominance info are build, use
+      get_immediate_dominator instead.}#
+  #{($bb) ? get_immediate_dominator (CDI_DOMINATORS, $bb) : NULL}#
+)
+
+(defun get_immediate_dominator (bb) 
+ :doc#{Return the next immediate dominator of the boxed basic_block $BB as a
+      MELT value.}#
+  (if (is_basicblock bb)
+  (progn
+    (calculate_dominance_info) 
+    (return (make_basicblock discr_basic_block 
+      (get_immediate_dominator_unsafe (basicblock_content bb))))))
+)
+
+(defprimitive get_immediate_post_dominator_unsafe (:basic_block bb) 
+  :basic_block
+  :doc#{It doesn't check that post_dominance info are build, use
+      get_immediate_post_dominator instead.}#
+  #{($bb) ? get_immediate_dominator (CDI_POST_DOMINATORS, $bb) : NULL}#
+)
+
+(defun get_immediate_post_dominator (bb)
+  :doc#{Return the next immediate post dominator of the boxed basic_block $BB as
+  a MELT value.}#
+  (if (is_basicblock bb)
+      (progn
+	(calculate_post_dominance_info) 
+	(return (make_basicblock discr_basic_block 
+				 (get_immediate_post_dominator_unsafe (basicblock_content bb))))))
+  )
+
+(defprimitive dominated_by_other_unsafe (:basic_block bba bbb) :long
+  :doc#{It doesn't check that dominance info is built, use
+  dominated_by_other instead.}#
+  #{ (($BBA) && ($BBB) && dominated_by_p (CDI_DOMINATORS, $BBA, $BBB)) }#
+  )
+
+(defun dominated_by_other (bbA bbB)
+  :doc#{true if boxed basic_block $BBA is dominated by boxed basic_block $BBB.}#
+  (if (and (is_basicblock bbA) (is_basicblock bbB))
+  (progn
+    (calculate_dominance_info) 
+    (if (dominated_by_other_unsafe (basicblock_content bbA) 
+                                   (basicblock_content bbB))
+      (return :true)
+    )))
+)
+
+(defprimitive post_dominated_by_other_unsafe (:basic_block bbA bbB) :long
+  :doc#{It doesn't check that post_dominance info are build, use
+      post_dominated_by_other instead.}#
+  #{ (($bbA) && ($bbB)) ?
+      dominated_by_p (CDI_POST_DOMINATORS, $bbA, $bbB) 
+      : 0 
+  }#
+)
+
+(defun post_dominated_by_other (bbA bbB)
+  :doc#{true if boxed basic_block $BBA is post dominated by boxed basic_block
+      $BBB.}#
+  (if (and (is_basicblock bbA) (is_basicblock bbB))
+  (progn
+    (calculate_post_dominance_info) 
+    (if (post_dominated_by_other_unsafe (basicblock_content bbA) 
+                                   (basicblock_content bbB))
+      (return :true)
+    )))
+)
+
+(defciterator foreach_dominated_unsafe
+  (:basic_block dominator_bb)
+  ebbdomd
+  (:basic_block dominated_bb)
+  #{
+    /* $EBBDOMD before+ */
+
+    VEC (basic_block, heap)*  $EBBDOMD#_bbvec = 0;
+    unsigned int $EBBDOMD#_ix = 0;
+    basic_block $EBBDOMD#_bb = 0;
+
+    if($DOMINATOR_BB){
+      $EBBDOMD#_bbvec = get_dominated_by(CDI_DOMINATORS, $DOMINATOR_BB);
+      if($EBBDOMD#_bbvec){
+        FOR_EACH_VEC_ELT (basic_block, $EBBDOMD#_bbvec, 
+          $EBBDOMD#_ix, $EBBDOMD#_bb){
+          if (!$EBBDOMD#_ix)
+            continue;
+          $DOMINATED_BB = $EBBDOMD#_bb;
+     /*$EBBDOMD before- */}#
+      ;; after expansion
+  #{/*$EBBDOMD after+ */
+          }
+      }}
+    VEC_free (basic_block, heap, $EBBDOMD#_bbvec);
+    $EBBDOMD#_bbvec = 0;
+    $EBBDOMD#_bb = 0;
+    /* $EBBDOMD after- */}#
+)
+
+(defun dominated_by_bb_iterator (f data bb)
+  :doc #{run function $F on every basicblocks dominated by boxed basic_block
+      $BB with $DATA as first parameters and ending with the dominated
+      basicblock as last parameters.}#
+  (calculate_dominance_info)
+  (foreach_dominated_unsafe
+    ((basicblock_content bb))
+    (:basic_block dominated_bb)
+    (f data dominated_bb)
+  )
+)
 
 ;;;;
 (defprimitive null_gimpleseq () :gimple_seq #{((gimple_seq)0)}#)
@@ -2931,6 +3143,17 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  basicblock_nb_succ
  basicblock_phinodes
  basicblock_single_succ 
+ debug_dominance_info
+ debug_post_dominance_info
+ get_immediate_dominator
+ get_immediate_post_dominator
+ dominated_by_other
+ post_dominated_by_other
+ dominated_by_bb_iterator
+ get_immediate_dominator
+ get_immediate_post_dominator
+ dominated_by_other
+ post_dominated_by_other
  cfun_decl
  cfun_gimple_body
  cfun_has_cfg

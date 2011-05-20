@@ -1,4 +1,21 @@
 
+2011-05-20  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt/xtramelt-ana-base.melt
+	(is_dominance_info_available, is_post_dominance_info_available)
+	(calculate_dominance_info_unsafe)
+	(calculate_post_dominance_info_unsafe, free_dominance_info)
+	(free_post_dominance_info)
+	(calculate_dominance_info)
+	(calculate_post_dominance_info, debug_dominance_info)
+	(debug_post_dominance_info, get_immediate_dominator_unsafe)
+	(get_immediate_dominator, get_immediate_post_dominator_unsafe)
+	(get_immediate_post_dominator, dominated_by_other_unsafe)
+	(dominated_by_other, post_dominated_by_other_unsafe)
+	(post_dominated_by_other, foreach_dominated_unsafe)
+	(dominated_by_bb_iterator): Add primitives, functions, iterators
+	for dominance info.
+
 2011-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-opengpu.melt (opengpudetect_exec): Iterate inside
