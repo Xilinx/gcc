@@ -1987,25 +1987,32 @@
 
 (defprimitive debug_dominance_info (:cstring msg) :void
   :doc #{Debug-print the dominance information.}#
-  #{ if (flag_melt_debug) {
+  ;; be careful to keep the __LINE__ on the first line of the macrostring.
+  #{ if (flag_melt_debug) { const int thislineno = __LINE__ ;
        extern void debug_dominance_info (enum cdi_direction);
        if (dom_info_available_p(CDI_DOMINATORS)) {
-         debugeprintfnonl("debug_dominance_info %s", $MSG);
+         debugeprintflinenonl (thislineno,
+			       "debug_dominance_info %s", $MSG);
          debug_dominance_info (CDI_DOMINATORS);
        } 
-       else debugeprintf("debug_dominance_info %s not available", $MSG);
+       else debugeprintfline (thislineno, 
+			      "debug_dominance_info %s not available", $MSG);
      }}#
 )
 
 (defprimitive debug_post_dominance_info (:cstring msg) :void
   :doc #{Debug-print the post dominance information.}#
-  #{ if (flag_melt_debug) {
+  ;; be careful to keep the __LINE__ on the first line of the macrostring.
+  #{ if (flag_melt_debug) { const int thislineno = __LINE__ ;
        extern void debug_dominance_info (enum cdi_direction);
-       if (dom_info_available_p(CDI_DOMINATORS)) {
-         debugeprintfnonl("debug_post_dominance_info %s", $MSG);
-         debug_dominance_info (CDI_DOMINATORS);
+       if (dom_info_available_p(CDI_POST_DOMINATORS)) {
+         debugeprintflinenonl (thislineno, 
+			       "debug_post_dominance_info %s", $MSG);
+         debug_dominance_info (CDI_POST_DOMINATORS);
        } 
-       else debugeprintf("debug_post_dominance_info %s not available", $MSG);
+       else debugeprintfline (thislineno,
+			      "debug_post_dominance_info %s not available", 
+			      $MSG);
      }}#
 )
 

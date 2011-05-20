@@ -1,6 +1,11 @@
 
 2011-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-ana-base.melt (debug_post_dominance_info):
+	Fix typo.
+
+2011-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (debugeprintfline, debugeprintflinenonl): New
 	macros.
 	(debugeprintf,debugeprintfnonl): Use them.
