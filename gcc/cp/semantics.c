@@ -1953,7 +1953,8 @@ empty_expr_stmt_p (tree expr_stmt)
    Returns the functions to be considered by overload resolution.  */
 
 tree
-perform_koenig_lookup (tree fn, VEC(tree,gc) *args, bool include_std)
+perform_koenig_lookup (tree fn, VEC(tree,gc) *args, bool include_std,
+		       tsubst_flags_t complain)
 {
   tree identifier = NULL_TREE;
   tree functions = NULL_TREE;
@@ -1991,8 +1992,13 @@ perform_koenig_lookup (tree fn, VEC(tree,gc) *args, bool include_std)
     {
       fn = lookup_arg_dependent (identifier, functions, args, include_std);
       if (!fn)
-	/* The unqualified name could not be resolved.  */
-	fn = unqualified_fn_lookup_error (identifier);
+	{
+	  /* The unqualified name could not be resolved.  */
+	  if (complain)
+	    fn = unqualified_fn_lookup_error (identifier);
+	  else
+	    fn = identifier;
+	}
     }
 
   if (fn && template_id)
@@ -2170,6 +2176,7 @@ finish_call_expr (tree fn, VEC(tree,gc) **args, bool disallow_virtual,
       if (TREE_CODE (result) == INDIRECT_REF)
 	result = TREE_OPERAND (result, 0);
       result = build_call_vec (TREE_TYPE (result), orig_fn, orig_args);
+      SET_EXPR_LOCATION (result, input_location);
       KOENIG_LOOKUP_P (result) = koenig_p;
       release_tree_vector (orig_args);
       result = convert_from_reference (result);

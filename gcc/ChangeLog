@@ -1,3 +1,120 @@
+2011-05-21  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* gengtype.c (walk_type): Implemented "atomic" GTY option.
+	* doc/gty.texi (GTY Options): Document "atomic" GTY option.
+
+2011-05-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* opt-read.awk: New.  Split out of optc-gen.awk and opth-gen.awk.
+	* optc-gen.awk: Move common code to opt-read.awk.
+	* opth-gen.awk: Likewise.
+	* Makefile.in (options.c, s-options-h): Update to use
+	opt-read.awk.
+
+2011-05-20  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* godump.c (go_format_type): Don't use TYPE_ARG_TYPES.
+
+2011-05-20  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/45098
+	* tree-ssa-loop-ivopts.c: Include expmed.h.
+	(get_shiftadd_cost): New function.
+	(force_expr_to_var_cost): Declare forward.  Use get_shiftadd_cost.
+
+2011-05-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR bootstrap/49086
+	* gimple-fold.c (and_comparisons_1, or_comparisons_1): Return NULL
+	for PHI args that are SSA_NAME_IS_DEFAULT_DEF.
+
+2011-05-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* Makefile.in: Update comment referring to $(OBJS-common).
+
+2011-05-20  Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (go_output_typedef): Put enum constants in the macro
+	hash table to avoid duplicate Go const definitions.
+
+2011-05-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* Makefile.in (LIBDEPS): Add libcommon.a.
+	(LIBS): Likewise.
+	(GCC_OBJS): Remove diagnostic.o, pretty-print.o and input.o.
+	(OBJS-common): Remove diagnostic.o, input.o, intl.o,
+	pretty-print.o and version.o.
+	(OBJS-libcommon): New.
+	(ALL_HOST_BACKEND_OBJS): Add $(OBJS-libcommon).
+	(BACKEND): Add libcommon.a.
+	(MOSTLYCLEANFILES): Likewise.
+	(libcommon.a): New.
+	(xgcc$(exeext)): Don't explicitly use version.o and intl.o.
+	(cpp$(exeext)): Likewise.
+	(COLLECT2_OBJS): Remove intl.o, version.o, diagnostic.o,
+	pretty-print.o and input.o.
+	(lto-wrapper$(exeext)): Don't explicitly use intl.o.
+	(lto-wrapper.o): Depend on $(DIAGNOSTIC_H).
+	(errors.o): Remove.
+	(mips-tfile): Don't explicitly use version.o.
+	(mips-tdump): Likewise.
+	(gcov.o): Depend on $(DIAGNOSTIC_H).
+	(gcov-dump.o): Depend on intl.h and $(DIAGNOSTIC_H).
+	(GCOV_OBJS): Remove intl.o, version.o and errors.o.
+	(GCOV_DUMP_OBJS): Remove version.o and errors.o.
+	* gcov-dump.c: Include intl.h and diagnostic.h.
+	(main): Initialize diagnostics.
+	* gcov.c: Include diagnostic.h.
+	(fnotice): Remove.
+	(main): Initialize diagnostics.
+	* lto-wrapper.c: Include diagnostic.h.
+	(main): Initialize diagnostics.
+
+2011-05-20  Michael Matz  <matz@suse.de>
+
+	* Makefile.in (OBJS-common, OBJS-md, OBJS-archive): Merge into OBJS.
+
+2011-05-20  Michael Matz  <matz@suse.de>
+	    Richard Guenther  <rguenther@suse.de>
+
+	* lto-streamer.c (lto_record_common_node): Don't track seen nodes,
+	use lto_streamer_cache_append directly instead of returning a VEC.
+	(preload_common_node): Remove.
+	(lto_get_common_nodes): Rename to lto_preload_common_nodes, don't
+	track seen nodes.
+	(lto_streamer_cache_create): Call lto_preload_common_nodes.
+
+2011-05-20  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49079
+	* tree-dfa.c (get_ref_base_and_extent): Handle view-converting
+	MEM_REFs correctly for the trailing array access detection.
+	Special case constants the same way as decls for overall size
+	constraining.
+
+2011-05-20  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/mingw32.h (OUTPUT_QUOTED_STRING): Fix macro
+	argument expansion.
+
+2011-05-20  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49073
+	* gimple-fold.c (and_comparisons_1, or_comparisons_1): Return NULL if
+	PHI argument is SSA_NAME, whose def_stmt is dominated by the PHI.
+	* tree-ssa-ifcombine.c (tree_ssa_ifcombine): Calculate dominators.
+
+2011-05-20  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/48849
+	* gimple.c (gimple_register_canonical_type): Compute TYPE_CANONICAL
+	of pointer types the same way the middle-end does.
+
+2011-05-20  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.c (gimple_register_type_1): Do not fiddle with main-variant
+	or pointer-to chains.  Delay all fixup to uniquify_nodes.
+
 2011-05-19  Quentin Neill  <quentin.neill@amd.com>
 
 	* config/i386/sse.md (fma4_fmsubadd): Use <ssemodesuffix>.
