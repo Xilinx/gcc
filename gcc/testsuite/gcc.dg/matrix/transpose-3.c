@@ -54,7 +54,7 @@ main (int argc, char **argv)
 /*--------------------------------------------------------------------------*/
 /* Dynamic memory allocations and initializations                           */
 
-void
+__attribute__((noinline)) void
 mem_init (void)
 {
 

@@ -673,7 +673,7 @@ struct GTY(()) function {
   GEN_FUNC_GLOBAL_ID (FUNC_DECL_MODULE_ID (func), FUNC_DECL_FUNC_ID (func))
 /* 32 bit wide unique id used for asm label (limit: 30k modules,
    128k funcs per module.  */
-#define FUNC_LABEL_ID(func) ((FUNC_DECL_MODULE_ID (func) << 17) +\
+#define FUNC_LABEL_ID(func) ((FUNC_DECL_MODULE_ID (func) << 18) +\
                              (func)->funcdef_no)
 
 /* Add the decl D to the local_decls list of FUN.  */

@@ -1,3 +1,7 @@
+2011-05-21  David Li  <davidxl@google.com>
+
+	* function.h: Give funcdef_no 18 bits in label name.
+
 2011-05-18  Mark Heffernan  <meheff@google.com>
 
        * opts.c (finish_options): Increase inlining limits with profile

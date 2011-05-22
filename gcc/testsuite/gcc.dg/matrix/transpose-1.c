@@ -52,7 +52,7 @@ main (int argc, char **argv)
 /*--------------------------------------------------------------------------*/
 /* Dynamic memory allocations and initializations                           */
 
-void
+__attribute__((noinline)) void
 mem_init (void)
 {
 
@@ -95,4 +95,3 @@ mem_init (void)
 /* { dg-final-use { scan-ipa-dump-times "Flattened 3 dimensions" 1 "matrix-reorg"  } } */
 /* { dg-final-use { scan-ipa-dump-times "Transposed" 3 "matrix-reorg"  } } */
 /* { dg-final-use { cleanup-ipa-dump "matrix-reorg" } } */
-

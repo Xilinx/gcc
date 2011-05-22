@@ -1,3 +1,13 @@
+2011-05-21  David Li  <davidxl@google.com>
+
+	* testsuite/gcc.dg/matrix/transpose-1.c: Do not inline mem_init.
+	* testsuite/gcc.dg/matrix/transpose-2.c: Ditto.
+	* testsuite/gcc.dg/matrix/transpose-3.c: Ditto.
+	* testsuite/gcc.dg/matrix/transpose-4.c: Ditto.
+	* testsuite/gcc.dg/matrix/transpose-5.c: Ditto.
+	* testsuite/gcc.dg/matrix/transpose-6.c: Ditto.
+
+
 2011-05-06  Xinliang David Li  <davidxl@google.com>
 
 	* g++.dg/other/no-strict-enum-precision-1.C: Use -fno-strict-enums.
