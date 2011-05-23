@@ -1,3 +1,8 @@
+2011-05-23  Rong Xu  <xur@google.com>
+
+        * gcc/libgcov.c (gcov_merge_gcda_file): initialize eof_pos for
+	every invocation.
+
 2011-05-21  David Li  <davidxl@google.com>
 
 	* function.h: Give funcdef_no 18 bits in label name.

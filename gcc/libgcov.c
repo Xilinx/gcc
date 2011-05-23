@@ -748,6 +748,8 @@ gcov_merge_gcda_file (struct gcov_info *info,
   int error = 0;
   gcov_unsigned_t tag, length;
 
+  eof_pos = 0;
+
   tag = gcov_read_unsigned ();
   if (tag)
     {
