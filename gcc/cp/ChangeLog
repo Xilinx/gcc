@@ -1,3 +1,107 @@
+2011-05-23  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/18016
+	* init.c (perform_member_init): Check for self-initialization.
+
+2011-05-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48647
+	* typeck.c (composite_pointer_type_r): Return error_mark_node
+	on error in SFINAE context.
+
+2011-05-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48945
+	* decl.c (grokdeclarator): Don't add set const function-cv-qual
+	for constexpr fns to memfn_quals, just add it to the type.
+	(revert_static_member_fn): Don't complain about quals.
+	(check_static_quals): New.
+	(grokfndecl): Call it.
+	(start_preparsed_function): Don't call revert_static_member_fn.
+
+	PR c++/48945
+	* decl.c (revert_static_member_fn): Ignore const on constexpr fn.
+
+	PR c++/48780
+	* cvt.c (type_promotes_to): Don't promote scoped enums.
+
+	PR c++/49066
+	* decl.c (duplicate_decls): Preserve DECL_DELETED_FN.
+
+	PR c++/48873
+	* tree.c (stabilize_expr): Fix typo.
+
+	DR 1073
+	PR c++/49082
+	* typeck.c (comp_except_specs): noexcept(false) is not compatible
+	with throw(type-list).
+	* typeck2.c (merge_exception_specifiers): noexcept(false)
+	beats any more limited specification.
+
+	PR c++/24163
+	PR c++/29131
+	* pt.c (tsubst_copy_and_build) [CALL_EXPR]: Avoid repeating
+	unqualified lookup.
+	* semantics.c (perform_koenig_lookup): Add complain parm.
+	* cp-tree.h: Adjust.
+	* parser.c (cp_parser_postfix_expression): Adjust.
+	(cp_parser_perform_range_for_lookup): Adjust.
+
+2011-05-20  Jason Merrill  <jason@redhat.com>
+
+	* semantics.c (finish_call_expr): SET_EXPR_LOCATION.
+
+2011-05-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (GXX_OBJS): Remove intl.o and version.o.
+
+2011-05-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/49043
+	* decl.c (check_omp_return): Stop searching on sk_function_parms.
+
+	PR c++/48869
+	* method.c (get_dtor, get_copy_ctor): Add COMPLAIN argument,
+	pass it down to locate_fn_flags.
+	* cp-tree.h (get_dtor, get_copy_ctor): Adjust prototypes.
+	* semantics.c (cxx_omp_create_clause_info): Adjust callers.
+	* cp-gimplify.c: Include splay-tree.h.
+	(splay_tree_compare_decl_uid, omp_var_to_track,
+	omp_cxx_notice_variable): New functions.
+	(struct cp_genericize_omp_taskreg): New type.
+	(struct cp_genericize_data): Add omp_ctx field.
+	(cp_genericize_r): Attempt to determine implicitly determined
+	firstprivate class type variables.
+	(cp_genericize): Clear omp_ctx.
+	* Make-lang.in (cp/cp-gimplify.o): Depend on $(SPLAY_TREE_H).
+
+2011-05-18  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48948
+	PR c++/49015
+	* class.c (finalize_literal_type_property): Do check
+	for constexpr member functions of non-literal class.
+	(finish_struct): Don't call check_deferred_constexpr_decls.
+	* cp-tree.h: Don't declare it.
+	(DECL_DEFERRED_CONSTEXPR_CHECK): Remove.
+	* decl.c (grok_special_member_properties): Don't check it
+	(grokfnedcl): Don't call validate_constexpr_fundecl.
+	(start_preparsed_function): Do call it.
+	* pt.c (tsubst_decl): Don't call it.
+	(instantiate_class_template_1): Don't call
+	check_deferred_constexpr_decls.
+	* semantics.c (literal_type_p): Check for any incompleteness.
+	(ensure_literal_type_for_constexpr_object): Likewise.
+	(is_valid_constexpr_fn): Revert deferral changes.
+	(validate_constexpr_fundecl): Likewise.
+	(register_constexpr_fundef): Likewise.
+	(check_deferred_constexpr_decls): Remove.
+
+2011-05-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48969
+	* pt.c (deduction_tsubst_fntype): Use a VEC initially.
+
 2011-05-15  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* cxx-pretty-print.c: Update comment.

@@ -8595,8 +8595,6 @@ instantiate_class_template_1 (tree type)
   pop_deferring_access_checks ();
   pop_tinst_level ();
 
-  check_deferred_constexpr_decls ();
-
   /* The vtable for a template class can be emitted in any translation
      unit in which the class is instantiated.  When there is no key
      method, however, finish_struct_1 will already have added TYPE to
@@ -9743,7 +9741,6 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	if (DECL_DEFAULTED_OUTSIDE_CLASS_P (r)
 	    && !processing_template_decl)
 	  defaulted_late_check (r);
-	validate_constexpr_fundecl (r);
 
 	apply_late_template_attributes (&r, DECL_ATTRIBUTES (r), 0,
 					args, complain, in_decl);
@@ -12897,6 +12894,20 @@ tsubst_copy_and_build (tree t,
 					    /*done=*/false,
 					    /*address_p=*/false);
 	  }
+	else if (koenig_p && TREE_CODE (function) == IDENTIFIER_NODE)
+	  {
+	    /* Do nothing; calling tsubst_copy_and_build on an identifier
+	       would incorrectly perform unqualified lookup again.
+
+	       Note that we can also have an IDENTIFIER_NODE if the earlier
+	       unqualified lookup found a member function; in that case
+	       koenig_p will be false and we do want to do the lookup
+	       again to find the instantiated member function.
+
+	       FIXME but doing that causes c++/15272, so we need to stop
+	       using IDENTIFIER_NODE in that situation.  */
+	    qualified_p = false;
+	  }
 	else
 	  {
 	    if (TREE_CODE (function) == COMPONENT_REF)
@@ -12968,14 +12979,59 @@ tsubst_copy_and_build (tree t,
 	       into a non-dependent call.  */
 	    && type_dependent_expression_p_push (t)
 	    && !any_type_dependent_arguments_p (call_args))
-	  function = perform_koenig_lookup (function, call_args, false);
+	  function = perform_koenig_lookup (function, call_args, false,
+					    tf_none);
 
 	if (TREE_CODE (function) == IDENTIFIER_NODE
-	    && !processing_template_decl)
+	    && !any_type_dependent_arguments_p (call_args))
 	  {
-	    unqualified_name_lookup_error (function);
-	    release_tree_vector (call_args);
-	    return error_mark_node;
+	    if (koenig_p && (complain & tf_warning_or_error))
+	      {
+		/* For backwards compatibility and good diagnostics, try
+		   the unqualified lookup again if we aren't in SFINAE
+		   context.  */
+		tree unq = (tsubst_copy_and_build
+			    (function, args, complain, in_decl, true,
+			     integral_constant_expression_p));
+		if (unq != function)
+		  {
+		    tree fn = unq;
+		    if (TREE_CODE (fn) == COMPONENT_REF)
+		      fn = TREE_OPERAND (fn, 1);
+		    if (is_overloaded_fn (fn))
+		      fn = get_first_fn (fn);
+		    permerror (EXPR_LOC_OR_HERE (t),
+			       "%qD was not declared in this scope, "
+			       "and no declarations were found by "
+			       "argument-dependent lookup at the point "
+			       "of instantiation", function);
+		    if (DECL_CLASS_SCOPE_P (fn))
+		      {
+			inform (EXPR_LOC_OR_HERE (t),
+				"declarations in dependent base %qT are "
+				"not found by unqualified lookup",
+				DECL_CLASS_CONTEXT (fn));
+			if (current_class_ptr)
+			  inform (EXPR_LOC_OR_HERE (t),
+				  "use %<this->%D%> instead", function);
+			else
+			  inform (EXPR_LOC_OR_HERE (t),
+				  "use %<%T::%D%> instead",
+				  TYPE_IDENTIFIER (current_class_type),
+				  function);
+		      }
+		    else
+		      inform (0, "%q+D declared here, later in the "
+				"translation unit", fn);
+		    function = unq;
+		  }
+	      }
+	    if (TREE_CODE (function) == IDENTIFIER_NODE)
+	      {
+		unqualified_name_lookup_error (function);
+		release_tree_vector (call_args);
+		return error_mark_node;
+	      }
 	  }
 
 	/* Remember that there was a reference to this entity.  */
@@ -13526,17 +13582,30 @@ check_instantiated_args (tree tmpl, tree args, tsubst_flags_t complain)
   return result;
 }
 
-static GTY((param_is (spec_entry))) htab_t current_deduction_substs;
+DEF_VEC_O (spec_entry);
+DEF_VEC_ALLOC_O (spec_entry,gc);
+static GTY(()) VEC(spec_entry,gc) *current_deduction_vec;
+static GTY((param_is (spec_entry))) htab_t current_deduction_htab;
 
 /* In C++0x, it's possible to have a function template whose type depends
    on itself recursively.  This is most obvious with decltype, but can also
    occur with enumeration scope (c++/48969).  So we need to catch infinite
-   recursion and reject the substitution at deduction time.  */
+   recursion and reject the substitution at deduction time.
+
+   Use of a VEC here is O(n^2) in the depth of function template argument
+   deduction substitution, but using a hash table creates a lot of constant
+   overhead for the typical case of very low depth.  So to make the typical
+   case fast we start out with a VEC and switch to a hash table only if
+   depth gets to be significant; in one metaprogramming testcase, even at
+   depth 80 the overhead of the VEC relative to a hash table was only about
+   0.5% of compile time.  */
 
 static tree
 deduction_tsubst_fntype (tree fn, tree targs)
 {
+  unsigned i;
   spec_entry **slot;
+  spec_entry *p;
   spec_entry elt;
   tree r;
   hashval_t hash;
@@ -13547,29 +13616,83 @@ deduction_tsubst_fntype (tree fn, tree targs)
   if (cxx_dialect < cxx0x)
     return tsubst (fntype, targs, tf_none, NULL_TREE);
 
+  /* If we're seeing a lot of recursion, switch over to a hash table.  The
+     constant 40 is fairly arbitrary.  */
+  if (!current_deduction_htab
+      && VEC_length (spec_entry, current_deduction_vec) > 40)
+    {
+      current_deduction_htab = htab_create_ggc (40*2, hash_specialization,
+						eq_specializations, ggc_free);
+      FOR_EACH_VEC_ELT (spec_entry, current_deduction_vec, i, p)
+	{
+	  slot = (spec_entry **) htab_find_slot (current_deduction_htab,
+						 p, INSERT);
+	  *slot = ggc_alloc_spec_entry ();
+	  **slot = *p;
+	}
+      VEC_free (spec_entry, gc, current_deduction_vec);
+    }
+
+  /* Now check everything in the vector, if any.  */
+  FOR_EACH_VEC_ELT (spec_entry, current_deduction_vec, i, p)
+    if (p->tmpl == fn && comp_template_args (p->args, targs))
+      {
+	p->spec = error_mark_node;
+	return error_mark_node;
+      }
+
   elt.tmpl = fn;
   elt.args = targs;
   elt.spec = NULL_TREE;
-  hash = hash_specialization (&elt);
 
-  slot = (spec_entry **)
-    htab_find_slot_with_hash (current_deduction_substs, &elt, hash, INSERT);
-  if (*slot)
-    /* We already have an entry for this.  */
-    (*slot)->spec = r = error_mark_node;
+  /* If we've created a hash table, look there.  */
+  if (current_deduction_htab)
+    {
+      hash = hash_specialization (&elt);
+      slot = (spec_entry **)
+	htab_find_slot_with_hash (current_deduction_htab, &elt, hash, INSERT);
+      if (*slot)
+	{
+	  /* We already have an entry for this.  */
+	  (*slot)->spec = error_mark_node;
+	  return error_mark_node;
+	}
+      else
+	{
+	  /* Create a new entry.  */
+	  *slot = ggc_alloc_spec_entry ();
+	  **slot = elt;
+	}
+    }
   else
     {
-      /* Create a new entry.  */
-      spec_entry *p = *slot = ggc_alloc_spec_entry ();
-      *p = elt;
-
-      r = tsubst (fntype, targs, tf_none, NULL_TREE);
-      if (p->spec == error_mark_node)
-	r = error_mark_node;
-
-      htab_remove_elt_with_hash (current_deduction_substs, p, hash);
+      /* No hash table, so add it to the VEC.  */
+      hash = 0;
+      VEC_safe_push (spec_entry, gc, current_deduction_vec, &elt);
     }
 
+  r = tsubst (fntype, targs, tf_none, NULL_TREE);
+
+  /* After doing the substitution, make sure we didn't hit it again.  Note
+     that we might have switched to a hash table during tsubst.  */
+  if (current_deduction_htab)
+    {
+      if (hash == 0)
+	hash = hash_specialization (&elt);
+      slot = (spec_entry **)
+	htab_find_slot_with_hash (current_deduction_htab, &elt, hash,
+				  NO_INSERT);
+      if ((*slot)->spec == error_mark_node)
+	r = error_mark_node;
+      htab_clear_slot (current_deduction_htab, (void**)slot);
+    }
+  else
+    {
+      if (VEC_last (spec_entry, current_deduction_vec)->spec
+	  == error_mark_node)
+	r = error_mark_node;
+      VEC_pop (spec_entry, current_deduction_vec);
+    }
   return r;
 }
 
@@ -19331,10 +19454,6 @@ init_template_processing (void)
 					  hash_specialization,
 					  eq_specializations,
 					  ggc_free);
-  if (cxx_dialect >= cxx0x)
-    current_deduction_substs = htab_create_ggc (37, hash_specialization,
-						eq_specializations,
-						ggc_free);
 }
 
 /* Print stats about the template hash tables for -fstats.  */
@@ -19350,10 +19469,11 @@ print_template_statistics (void)
 	   "%f collisions\n", (long) htab_size (type_specializations),
 	   (long) htab_elements (type_specializations),
 	   htab_collisions (type_specializations));
-  fprintf (stderr, "current_deduction_substs: size %ld, %ld elements, "
-	   "%f collisions\n", (long) htab_size (current_deduction_substs),
-	   (long) htab_elements (current_deduction_substs),
-	   htab_collisions (current_deduction_substs));
+  if (current_deduction_htab)
+    fprintf (stderr, "current_deduction_htab: size %ld, %ld elements, "
+	     "%f collisions\n", (long) htab_size (current_deduction_htab),
+	     (long) htab_elements (current_deduction_htab),
+	     htab_collisions (current_deduction_htab));
 }
 
 #include "gt-cp-pt.h"

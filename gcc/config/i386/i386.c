@@ -59,6 +59,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "sbitmap.h"
 #include "fibheap.h"
 #include "opts.h"
+#include "diagnostic.h"
 
 enum upper_128bits_state
 {
@@ -2325,9 +2326,6 @@ struct ix86_frame
   bool save_regs_using_mov;
 };
 
-/* Which unit we are generating floating point math for.  */
-enum fpmath_unit ix86_fpmath;
-
 /* Which cpu are we scheduling for.  */
 enum attr_cpu ix86_schedule;
 
@@ -2429,19 +2427,19 @@ enum ix86_function_specific_strings
 {
   IX86_FUNCTION_SPECIFIC_ARCH,
   IX86_FUNCTION_SPECIFIC_TUNE,
-  IX86_FUNCTION_SPECIFIC_FPMATH,
   IX86_FUNCTION_SPECIFIC_MAX
 };
 
 static char *ix86_target_string (int, int, const char *, const char *,
-				 const char *, bool);
+				 enum fpmath_unit, bool);
 static void ix86_debug_options (void) ATTRIBUTE_UNUSED;
 static void ix86_function_specific_save (struct cl_target_option *);
 static void ix86_function_specific_restore (struct cl_target_option *);
 static void ix86_function_specific_print (FILE *, int,
 					  struct cl_target_option *);
 static bool ix86_valid_target_attribute_p (tree, tree, tree, int);
-static bool ix86_valid_target_attribute_inner_p (tree, char *[]);
+static bool ix86_valid_target_attribute_inner_p (tree, char *[],
+						 struct gcc_options *);
 static bool ix86_can_inline_p (tree, tree);
 static void ix86_set_current_function (tree);
 static unsigned int ix86_minimum_incoming_stack_boundary (bool);
@@ -3085,7 +3083,7 @@ ix86_handle_option (struct gcc_options *opts,
 
 static char *
 ix86_target_string (int isa, int flags, const char *arch, const char *tune,
-		    const char *fpmath, bool add_nl_p)
+		    enum fpmath_unit fpmath, bool add_nl_p)
 {
   struct ix86_target_opts
   {
@@ -3219,7 +3217,23 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
   if (fpmath)
     {
       opts[num][0] = "-mfpmath=";
-      opts[num++][1] = fpmath;
+      switch ((int) fpmath)
+	{
+	case FPMATH_387:
+	  opts[num++][1] = "387";
+	  break;
+
+	case FPMATH_SSE:
+	  opts[num++][1] = "sse";
+	  break;
+
+	case FPMATH_387 | FPMATH_SSE:
+	  opts[num++][1] = "sse+387";
+	  break;
+
+	default:
+	  gcc_unreachable ();
+	}
     }
 
   /* Any options?  */
@@ -3294,7 +3308,7 @@ ix86_debug_options (void)
 {
   char *opts = ix86_target_string (ix86_isa_flags, target_flags,
 				   ix86_arch_string, ix86_tune_string,
-				   ix86_fpmath_string, true);
+				   ix86_fpmath, true);
 
   if (opts)
     {
@@ -4003,44 +4017,24 @@ ix86_option_override_internal (bool main_args_p)
       && ! TARGET_SSE)
     error ("%ssseregparm%s used without SSE enabled", prefix, suffix);
 
-  ix86_fpmath = TARGET_FPMATH_DEFAULT;
-  if (ix86_fpmath_string != 0)
+  if (global_options_set.x_ix86_fpmath)
     {
-      if (! strcmp (ix86_fpmath_string, "387"))
-	ix86_fpmath = FPMATH_387;
-      else if (! strcmp (ix86_fpmath_string, "sse"))
+      if (ix86_fpmath & FPMATH_SSE)
 	{
 	  if (!TARGET_SSE)
 	    {
 	      warning (0, "SSE instruction set disabled, using 387 arithmetics");
 	      ix86_fpmath = FPMATH_387;
 	    }
-	  else
-	    ix86_fpmath = FPMATH_SSE;
-	}
-      else if (! strcmp (ix86_fpmath_string, "387,sse")
-	       || ! strcmp (ix86_fpmath_string, "387+sse")
-	       || ! strcmp (ix86_fpmath_string, "sse,387")
-	       || ! strcmp (ix86_fpmath_string, "sse+387")
-	       || ! strcmp (ix86_fpmath_string, "both"))
-	{
-	  if (!TARGET_SSE)
-	    {
-	      warning (0, "SSE instruction set disabled, using 387 arithmetics");
-	      ix86_fpmath = FPMATH_387;
-	    }
-	  else if (!TARGET_80387)
+	  else if ((ix86_fpmath & FPMATH_387) && !TARGET_80387)
 	    {
 	      warning (0, "387 instruction set disabled, using SSE arithmetics");
 	      ix86_fpmath = FPMATH_SSE;
 	    }
-	  else
-	    ix86_fpmath = (enum fpmath_unit) (FPMATH_SSE | FPMATH_387);
 	}
-      else
-	error ("bad value (%s) for %sfpmath=%s %s",
-	       ix86_fpmath_string, prefix, suffix, sw);
     }
+  else
+    ix86_fpmath = TARGET_FPMATH_DEFAULT;
 
   /* If the i387 is disabled, then do not return values in it. */
   if (!TARGET_80387)
@@ -4097,8 +4091,9 @@ ix86_option_override_internal (bool main_args_p)
     }
 
   /* For sane SSE instruction set generation we need fcomi instruction.
-     It is safe to enable all CMOVE instructions.  */
-  if (TARGET_SSE)
+     It is safe to enable all CMOVE instructions.  Also, RDRAND intrinsic
+     expands to a sequence that includes conditional move. */
+  if (TARGET_SSE || TARGET_RDRND)
     TARGET_CMOVE = 1;
 
   /* Figure out what ASM_GENERATE_INTERNAL_LABEL builds as a prefix.  */
@@ -4344,7 +4339,6 @@ ix86_function_specific_save (struct cl_target_option *ptr)
   ptr->arch = ix86_arch;
   ptr->schedule = ix86_schedule;
   ptr->tune = ix86_tune;
-  ptr->fpmath = ix86_fpmath;
   ptr->branch_cost = ix86_branch_cost;
   ptr->tune_defaulted = ix86_tune_defaulted;
   ptr->arch_specified = ix86_arch_specified;
@@ -4356,7 +4350,6 @@ ix86_function_specific_save (struct cl_target_option *ptr)
   gcc_assert (ptr->arch == ix86_arch);
   gcc_assert (ptr->schedule == ix86_schedule);
   gcc_assert (ptr->tune == ix86_tune);
-  gcc_assert (ptr->fpmath == ix86_fpmath);
   gcc_assert (ptr->branch_cost == ix86_branch_cost);
 }
 
@@ -4373,7 +4366,6 @@ ix86_function_specific_restore (struct cl_target_option *ptr)
   ix86_arch = (enum processor_type) ptr->arch;
   ix86_schedule = (enum attr_cpu) ptr->schedule;
   ix86_tune = (enum processor_type) ptr->tune;
-  ix86_fpmath = (enum fpmath_unit) ptr->fpmath;
   ix86_branch_cost = ptr->branch_cost;
   ix86_tune_defaulted = ptr->tune_defaulted;
   ix86_arch_specified = ptr->arch_specified;
@@ -4407,7 +4399,7 @@ ix86_function_specific_print (FILE *file, int indent,
 {
   char *target_string
     = ix86_target_string (ptr->x_ix86_isa_flags, ptr->x_target_flags,
-			  NULL, NULL, NULL, false);
+			  NULL, NULL, ptr->x_ix86_fpmath, false);
 
   fprintf (file, "%*sarch = %d (%s)\n",
 	   indent, "",
@@ -4423,9 +4415,6 @@ ix86_function_specific_print (FILE *file, int indent,
 	    ? cpu_names[ptr->tune]
 	    : "<unknown>"));
 
-  fprintf (file, "%*sfpmath = %d%s%s\n", indent, "", ptr->fpmath,
-	   (ptr->fpmath & FPMATH_387) ? ", 387" : "",
-	   (ptr->fpmath & FPMATH_SSE) ? ", sse" : "");
   fprintf (file, "%*sbranch_cost = %d\n", indent, "", ptr->branch_cost);
 
   if (target_string)
@@ -4441,13 +4430,15 @@ ix86_function_specific_print (FILE *file, int indent,
    over the list.  */
 
 static bool
-ix86_valid_target_attribute_inner_p (tree args, char *p_strings[])
+ix86_valid_target_attribute_inner_p (tree args, char *p_strings[],
+				     struct gcc_options *enum_opts_set)
 {
   char *next_optstr;
   bool ret = true;
 
 #define IX86_ATTR_ISA(S,O)   { S, sizeof (S)-1, ix86_opt_isa, O, 0 }
 #define IX86_ATTR_STR(S,O)   { S, sizeof (S)-1, ix86_opt_str, O, 0 }
+#define IX86_ATTR_ENUM(S,O)  { S, sizeof (S)-1, ix86_opt_enum, O, 0 }
 #define IX86_ATTR_YES(S,O,M) { S, sizeof (S)-1, ix86_opt_yes, O, M }
 #define IX86_ATTR_NO(S,O,M)  { S, sizeof (S)-1, ix86_opt_no,  O, M }
 
@@ -4457,6 +4448,7 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[])
     ix86_opt_yes,
     ix86_opt_no,
     ix86_opt_str,
+    ix86_opt_enum,
     ix86_opt_isa
   };
 
@@ -4493,9 +4485,11 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[])
     IX86_ATTR_ISA ("rdrnd",	OPT_mrdrnd),
     IX86_ATTR_ISA ("f16c",	OPT_mf16c),
 
+    /* enum options */
+    IX86_ATTR_ENUM ("fpmath=",	OPT_mfpmath_),
+
     /* string options */
     IX86_ATTR_STR ("arch=",	IX86_FUNCTION_SPECIFIC_ARCH),
-    IX86_ATTR_STR ("fpmath=",	IX86_FUNCTION_SPECIFIC_FPMATH),
     IX86_ATTR_STR ("tune=",	IX86_FUNCTION_SPECIFIC_TUNE),
 
     /* flag options */
@@ -4536,7 +4530,8 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[])
 
       for (; args; args = TREE_CHAIN (args))
 	if (TREE_VALUE (args)
-	    && !ix86_valid_target_attribute_inner_p (TREE_VALUE (args), p_strings))
+	    && !ix86_valid_target_attribute_inner_p (TREE_VALUE (args),
+						     p_strings, enum_opts_set))
 	  ret = false;
 
       return ret;
@@ -4592,7 +4587,9 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[])
 	  type = attrs[i].type;
 	  opt_len = attrs[i].len;
 	  if (ch == attrs[i].string[0]
-	      && ((type != ix86_opt_str) ? len == opt_len : len > opt_len)
+	      && ((type != ix86_opt_str && type != ix86_opt_enum)
+		  ? len == opt_len
+		  : len > opt_len)
 	      && memcmp (p, attrs[i].string, opt_len) == 0)
 	    {
 	      opt = attrs[i].opt;
@@ -4640,6 +4637,23 @@ ix86_valid_target_attribute_inner_p (tree args, char *p_strings[])
 	    p_strings[opt] = xstrdup (p + opt_len);
 	}
 
+      else if (type == ix86_opt_enum)
+	{
+	  bool arg_ok;
+	  int value;
+
+	  arg_ok = opt_enum_arg_to_value (opt, p + opt_len, &value, CL_TARGET);
+	  if (arg_ok)
+	    set_option (&global_options, enum_opts_set, opt, value,
+			p + opt_len, DK_UNSPECIFIED, input_location,
+			global_dc);
+	  else
+	    {
+	      error ("attribute(target(\"%s\")) is unknown", orig_p);
+	      ret = false;
+	    }
+	}
+
       else
 	gcc_unreachable ();
     }
@@ -4654,17 +4668,21 @@ ix86_valid_target_attribute_tree (tree args)
 {
   const char *orig_arch_string = ix86_arch_string;
   const char *orig_tune_string = ix86_tune_string;
-  const char *orig_fpmath_string = ix86_fpmath_string;
+  enum fpmath_unit orig_fpmath_set = global_options_set.x_ix86_fpmath;
   int orig_tune_defaulted = ix86_tune_defaulted;
   int orig_arch_specified = ix86_arch_specified;
-  char *option_strings[IX86_FUNCTION_SPECIFIC_MAX] = { NULL, NULL, NULL };
+  char *option_strings[IX86_FUNCTION_SPECIFIC_MAX] = { NULL, NULL };
   tree t = NULL_TREE;
   int i;
   struct cl_target_option *def
     = TREE_TARGET_OPTION (target_option_default_node);
+  struct gcc_options enum_opts_set;
+
+  memset (&enum_opts_set, 0, sizeof (enum_opts_set));
 
   /* Process each of the options on the chain.  */
-  if (! ix86_valid_target_attribute_inner_p (args, option_strings))
+  if (! ix86_valid_target_attribute_inner_p (args, option_strings,
+					     &enum_opts_set))
     return NULL_TREE;
 
   /* If the changed options are different from the default, rerun
@@ -4675,7 +4693,7 @@ ix86_valid_target_attribute_tree (tree args)
       || target_flags != def->x_target_flags
       || option_strings[IX86_FUNCTION_SPECIFIC_ARCH]
       || option_strings[IX86_FUNCTION_SPECIFIC_TUNE]
-      || option_strings[IX86_FUNCTION_SPECIFIC_FPMATH])
+      || enum_opts_set.x_ix86_fpmath)
     {
       /* If we are using the default tune= or arch=, undo the string assigned,
 	 and use the default.  */
@@ -4690,10 +4708,13 @@ ix86_valid_target_attribute_tree (tree args)
 	ix86_tune_string = NULL;
 
       /* If fpmath= is not set, and we now have sse2 on 32-bit, use it.  */
-      if (option_strings[IX86_FUNCTION_SPECIFIC_FPMATH])
-	ix86_fpmath_string = option_strings[IX86_FUNCTION_SPECIFIC_FPMATH];
+      if (enum_opts_set.x_ix86_fpmath)
+	global_options_set.x_ix86_fpmath = (enum fpmath_unit) 1;
       else if (!TARGET_64BIT && TARGET_SSE)
-	ix86_fpmath_string = "sse,387";
+	{
+	  ix86_fpmath = (enum fpmath_unit) (FPMATH_SSE | FPMATH_387);
+	  global_options_set.x_ix86_fpmath = (enum fpmath_unit) 1;
+	}
 
       /* Do any overrides, such as arch=xxx, or tune=xxx support.  */
       ix86_option_override_internal (false);
@@ -4707,7 +4728,7 @@ ix86_valid_target_attribute_tree (tree args)
 
       ix86_arch_string = orig_arch_string;
       ix86_tune_string = orig_tune_string;
-      ix86_fpmath_string = orig_fpmath_string;
+      global_options_set.x_ix86_fpmath = orig_fpmath_set;
 
       /* Free up memory allocated to hold the strings */
       for (i = 0; i < IX86_FUNCTION_SPECIFIC_MAX; i++)
@@ -4805,7 +4826,7 @@ ix86_can_inline_p (tree caller, tree callee)
       else if (caller_opts->tune != callee_opts->tune)
 	ret = false;
 
-      else if (caller_opts->fpmath != callee_opts->fpmath)
+      else if (caller_opts->x_ix86_fpmath != callee_opts->x_ix86_fpmath)
 	ret = false;
 
       else if (caller_opts->branch_cost != callee_opts->branch_cost)
@@ -8748,6 +8769,10 @@ ix86_code_end (void)
   rtx xops[2];
   int regno;
 
+#ifdef TARGET_SOLARIS
+  solaris_code_end ();
+#endif
+
   for (regno = AX_REG; regno <= SP_REG; regno++)
     {
       char name[32];
@@ -11497,7 +11522,7 @@ ix86_expand_split_stack_prologue (void)
     }
   call_insn = ix86_expand_call (NULL_RTX, gen_rtx_MEM (QImode, fn),
 				GEN_INT (UNITS_PER_WORD), constm1_rtx,
-				NULL_RTX, 0);
+				NULL_RTX, false);
   add_function_usage_to (call_insn, call_fusage);
 
   /* In order to make call/return prediction work right, we now need
@@ -15176,7 +15201,7 @@ emit_i387_cw_initialization (int mode)
    operand may be [SDX]Fmode.  */
 
 const char *
-output_fix_trunc (rtx insn, rtx *operands, int fisttp)
+output_fix_trunc (rtx insn, rtx *operands, bool fisttp)
 {
   int stack_top_dies = find_regno_note (insn, REG_DEAD, FIRST_STACK_REG) != 0;
   int dimode_p = GET_MODE (operands[0]) == DImode;
@@ -15241,7 +15266,7 @@ output_387_ffreep (rtx *operands ATTRIBUTE_UNUSED, int opno)
    should be used.  UNORDERED_P is true when fucom should be used.  */
 
 const char *
-output_fp_compare (rtx insn, rtx *operands, int eflags_p, int unordered_p)
+output_fp_compare (rtx insn, rtx *operands, bool eflags_p, bool unordered_p)
 {
   int stack_top_dies;
   rtx cmp_op0, cmp_op1;
@@ -21941,7 +21966,7 @@ construct_plt_address (rtx symbol)
 rtx
 ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
 		  rtx callarg2,
-		  rtx pop, int sibcall)
+		  rtx pop, bool sibcall)
 {
   rtx use = NULL, call;
 
@@ -22073,23 +22098,25 @@ ix86_split_call_vzeroupper (rtx insn, rtx vzeroupper)
 /* Output the assembly for a call instruction.  */
 
 const char *
-ix86_output_call_insn (rtx insn, rtx call_op, int addr_op)
+ix86_output_call_insn (rtx insn, rtx call_op)
 {
   bool direct_p = constant_call_address_operand (call_op, Pmode);
   bool seh_nop_p = false;
-
-  gcc_assert (addr_op == 0 || addr_op == 1);
+  const char *xasm;
 
   if (SIBLING_CALL_P (insn))
     {
       if (direct_p)
-	return addr_op ? "jmp\t%P1" : "jmp\t%P0";
+	xasm = "jmp\t%P0";
       /* SEH epilogue detection requires the indirect branch case
 	 to include REX.W.  */
       else if (TARGET_SEH)
-	return addr_op ? "rex.W jmp %A1" : "rex.W jmp %A0";
+	xasm = "rex.W jmp %A0";
       else
-	return addr_op ? "jmp\t%A1" : "jmp\t%A0";
+	xasm = "jmp\t%A0";
+
+      output_asm_insn (xasm, &call_op);
+      return "";
     }
 
   /* SEH unwinding can require an extra nop to be emitted in several
@@ -22123,19 +22150,16 @@ ix86_output_call_insn (rtx insn, rtx call_op, int addr_op)
     }
 
   if (direct_p)
-    {
-      if (seh_nop_p)
-	return addr_op ? "call\t%P1\n\tnop" : "call\t%P0\n\tnop";
-      else
-	return addr_op ? "call\t%P1" : "call\t%P0";
-    }
+    xasm = "call\t%P0";
   else
-    {
-      if (seh_nop_p)
-	return addr_op ? "call\t%A1\n\tnop" : "call\t%A0\n\tnop";
-      else
-	return addr_op ? "call\t%A1" : "call\t%A0";
-    }
+    xasm = "call\t%A0";
+
+  output_asm_insn (xasm, &call_op);
+
+  if (seh_nop_p)
+    return "nop";
+
+  return "";
 }
 
 /* Clear stack slot assignments remembered from previous functions.
@@ -22307,7 +22331,7 @@ memory_address_length (rtx addr)
 /* Compute default value for "length_immediate" attribute.  When SHORTFORM
    is set, expect that insn have 8bit immediate alternative.  */
 int
-ix86_attr_length_immediate_default (rtx insn, int shortform)
+ix86_attr_length_immediate_default (rtx insn, bool shortform)
 {
   int len = 0;
   int i;
@@ -22417,8 +22441,7 @@ ix86_attr_length_address_default (rtx insn)
    2 or 3 byte VEX prefix and 1 opcode byte.  */
 
 int
-ix86_attr_length_vex_default (rtx insn, int has_0f_opcode,
-			      int has_vex_w)
+ix86_attr_length_vex_default (rtx insn, bool has_0f_opcode, bool has_vex_w)
 {
   int i;
 
@@ -22485,10 +22508,10 @@ ix86_issue_rate (void)
     }
 }
 
-/* A subroutine of ix86_adjust_cost -- return true iff INSN reads flags set
+/* A subroutine of ix86_adjust_cost -- return TRUE iff INSN reads flags set
    by DEP_INSN and nothing set by DEP_INSN.  */
 
-static int
+static bool
 ix86_flags_dependent (rtx insn, rtx dep_insn, enum attr_type insn_type)
 {
   rtx set, set2;
@@ -22498,7 +22521,7 @@ ix86_flags_dependent (rtx insn, rtx dep_insn, enum attr_type insn_type)
       && insn_type != TYPE_ICMOV
       && insn_type != TYPE_FCMOV
       && insn_type != TYPE_IBR)
-    return 0;
+    return false;
 
   if ((set = single_set (dep_insn)) != 0)
     {
@@ -22514,20 +22537,20 @@ ix86_flags_dependent (rtx insn, rtx dep_insn, enum attr_type insn_type)
       set2 = SET_DEST (XVECEXP (PATTERN (dep_insn), 0, 0));
     }
   else
-    return 0;
+    return false;
 
   if (!REG_P (set) || REGNO (set) != FLAGS_REG)
-    return 0;
+    return false;
 
   /* This test is true if the dependent insn reads the flags but
      not any other potentially set register.  */
   if (!reg_overlap_mentioned_p (set, PATTERN (insn)))
-    return 0;
+    return false;
 
   if (set2 && reg_overlap_mentioned_p (set2, PATTERN (insn)))
-    return 0;
+    return false;
 
-  return 1;
+  return true;
 }
 
 /* Return true iff USE_INSN has a memory address with operands set by
@@ -27379,7 +27402,7 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
       && !(ix86_builtins_isa[fcode].isa & ix86_isa_flags))
     {
       char *opts = ix86_target_string (ix86_builtins_isa[fcode].isa, 0, NULL,
-				       NULL, NULL, false);
+				       NULL, (enum fpmath_unit) 0, false);
 
       if (!opts)
 	error ("%qE needs unknown isa option", fndecl);
@@ -27591,6 +27614,12 @@ rdrand_step:
       op0 = gen_reg_rtx (mode0);
       emit_insn (GEN_FCN (icode) (op0));
 
+      arg0 = CALL_EXPR_ARG (exp, 0);
+      op1 = expand_normal (arg0);
+      if (!address_operand (op1, VOIDmode))
+	op1 = copy_addr_to_reg (op1);
+      emit_move_insn (gen_rtx_MEM (mode0, op1), op0);
+
       op1 = gen_reg_rtx (SImode);
       emit_move_insn (op1, CONST1_RTX (SImode));
 
@@ -27605,17 +27634,13 @@ rdrand_step:
       else
 	op2 = gen_rtx_SUBREG (SImode, op0, 0);
 
+      if (target == 0)
+	target = gen_reg_rtx (SImode);
+
       pat = gen_rtx_GEU (VOIDmode, gen_rtx_REG (CCCmode, FLAGS_REG),
 			 const0_rtx);
-      emit_insn (gen_rtx_SET (VOIDmode, op1,
+      emit_insn (gen_rtx_SET (VOIDmode, target,
 			      gen_rtx_IF_THEN_ELSE (SImode, pat, op2, op1)));
-      emit_move_insn (target, op1);
-
-      arg0 = CALL_EXPR_ARG (exp, 0);
-      op1 = expand_normal (arg0);
-      if (!address_operand (op1, VOIDmode))
-	op1 = copy_addr_to_reg (op1);
-      emit_move_insn (gen_rtx_MEM (mode0, op1), op0);
       return target;
 
     default:
@@ -32130,9 +32155,10 @@ void ix86_emit_swsqrtsf (rtx res, rtx a, enum machine_mode mode,
 			  gen_rtx_MULT (mode, e2, e3)));
 }
 
+#ifdef TARGET_SOLARIS
 /* Solaris implementation of TARGET_ASM_NAMED_SECTION.  */
 
-static void ATTRIBUTE_UNUSED
+static void
 i386_solaris_elf_named_section (const char *name, unsigned int flags,
 				tree decl)
 {
@@ -32146,8 +32172,18 @@ i386_solaris_elf_named_section (const char *name, unsigned int flags,
 	       flags & SECTION_WRITE ? "aw" : "a");
       return;
     }
+
+#ifndef USE_GAS
+  if (HAVE_COMDAT_GROUP && flags & SECTION_LINKONCE)
+    {
+      solaris_elf_asm_comdat_section (name, flags, decl);
+      return;
+    }
+#endif
+
   default_elf_asm_named_section (name, flags, decl);
 }
+#endif /* TARGET_SOLARIS */
 
 /* Return the mangling of TYPE if it is an extended fundamental type.  */
 

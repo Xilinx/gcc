@@ -1663,7 +1663,7 @@
 	   (match_operand:VF 3 "nonimmediate_operand" "xm,x")]
 	  UNSPEC_FMADDSUB))]
   "TARGET_FMA4"
-  "vfmaddsubps\t{%3, %2, %1, %0|%0, %1, %2, %3}"
+  "vfmaddsub<ssemodesuffix>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
@@ -1676,7 +1676,7 @@
 	     (match_operand:VF 3 "nonimmediate_operand" "xm,x"))]
 	  UNSPEC_FMADDSUB))]
   "TARGET_FMA4"
-  "vfmsubaddps\t{%3, %2, %1, %0|%0, %1, %2, %3}"
+  "vfmsubadd<ssemodesuffix>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
   [(set_attr "type" "ssemuladd")
    (set_attr "mode" "<MODE>")])
 
@@ -10294,12 +10294,13 @@
   "&& reload_completed"
   [(const_int 0)]
 {
+  rtx op0 = operands[0];
   rtx op1 = operands[1];
-  if (REG_P (op1))
+  if (REG_P (op0))
+    op0 = gen_rtx_REG (<ssehalfvecmode>mode, REGNO (op0));
+  else 
     op1 = gen_rtx_REG (<MODE>mode, REGNO (op1));
-  else
-    op1 = gen_lowpart (<MODE>mode, op1);
-  emit_move_insn (operands[0], op1);
+  emit_move_insn (op0, op1);
   DONE;
 })
 

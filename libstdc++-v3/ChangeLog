@@ -1,3 +1,204 @@
+2011-05-22  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/20_util/bind/cv_quals_2.cc: New.
+
+2011-05-22  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/49058
+	* include/std/functional (_Bind<_Functor(_Bound_args...)>::
+	operator()(_Args&&...)): Don't cv qualify _Functor directly
+	in the default template argument, SFINAE doesn't apply when
+	the functor has no arguments.
+	* testsuite/20_util/bind/49058_1.cc: New.
+	* testsuite/20_util/bind/49058_2.cc: Likewise.
+
+2011-05-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/unique_ptr.h: Use noexcept per the FDIS.
+
+2011-05-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/21_strings/basic_string/requirements/exception/
+	propagation_consistent.cc: Fix vs POD-ness of value_type.
+	* testsuite/21_strings/basic_string/requirements/exception/
+	basic.cc: Likewise.
+	* testsuite/ext/vstring/requirements/exception/
+	propagation_consistent.cc: Likewise.
+	* testsuite/ext/vstring/requirements/exception/basic.cc: Likewise.
+
+2011-05-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/char_traits.h: Use noexcept throughout.
+	* include/std/typeindex: Likewise.
+
+	* include/std/tuple (_Tuple_impl<>_Tuple_impl(_Tuple_impl&&)): Use
+	noexcept; adjust callers.
+	* include/bits/stl_pair.h (pair<>::pair(pair<>&&)): Use noexcept.
+	* testsuite/20_util/tuple/cons/noexcept_move_construct.cc: New.
+	* testsuite/20_util/pair/cons/noexcept_move_construct.cc: Likewise.
+	* testsuite/20_util/pair/noexcept_swap.cc: Likewise.
+	* testsuite/20_util/pair/noexcept_move_assign.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust dg-warning
+	line numbers.
+
+2011-05-20  Jason Merrill  <jason@redhat.com>
+
+	* include/ext/pb_ds/assoc_container.hpp: Explicitly qualify calls to
+	functions from dependent bases.
+	* include/ext/pb_ds/detail/rb_tree_map_/erase_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/rb_tree_map_/
+	split_join_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/splay_tree_/erase_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/splay_tree_/insert_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/splay_tree_/splay_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/splay_tree_/
+	split_join_fn_imps.hpp: Likewise.
+	* include/ext/pb_ds/detail/tree_policy/
+	order_statistics_imp.hpp: Likewise.
+	* include/ext/pb_ds/detail/trie_policy/
+	prefix_search_node_update_imp.hpp: Likewise.
+	* include/ext/rc_string_base.h: Likewise.
+	* include/ext/rope: Likewise.
+	* include/ext/ropeimpl.h: Likewise.
+	* testsuite/util/exception/safety.h: Likewise.
+	* testsuite/util/native_type/native_priority_queue.hpp: Likewise.
+	* testsuite/util/testsuite_io.h: Likewise.
+	* include/std/functional: Declare mem_fn earlier.
+	* include/tr1/functional: Likewise.
+	* include/tr1/exp_integral.tcc: Declare __expint_E1 earlier.
+
+2011-05-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple (tuple_element<__i, const _Tp>,
+	tuple_element<__i, volatile _Tp>, tuple_element<__i,
+	const volatile _Tp>, tuple_size<const _Tp>, tuple_size<volatile _Tp>,
+	tuple_size<const volatile _Tp>): Add.
+	* include/std/utility (tuple_size<std::pair<_Tp1, _Tp2>>): Tweak.
+	* include/std/array (tuple_size<array<_Tp, _Nm>>): Likewise.
+	* testsuite/20_util/tuple/cv_tuple_size.cc: New.
+	* testsuite/20_util/tuple/cv_tuple_element.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Tweak dg-warning
+	line number.
+
+2011-05-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple (tuple<>::operator=(tuple&&)): Specify as
+        noexcept.
+	(__get_helper): Likewise.
+	(_Head_base<>::_M_head, _Tuple_impl<>::_M_head, _M_tail): Likewise.
+	* include/bits/move.h (swap): Likewise.
+	* include/bits/algorithmfwd.h (swap): Adjust.
+	* include/bits/stl_pair.h (pair<>::operator=(pair&&)): Spec noexcept.
+	* testsuite/util/testsuite_allocator.h (uneq_allocator): In C++0x
+	mode, prefer delete to access control to make the type not copy
+	assignable.
+	* testsuite/util/testsuite_tr1.h: Add test classes.
+	* testsuite/20_util/tuple/noexcept_swap.cc: New.
+	* testsuite/20_util/tuple/noexcept_move_assign.cc: Likewise.
+	* testsuite/25_algorithms/reverse/moveable.cc: Likewise, prefer
+	delete to access control.
+	* testsuite/25_algorithms/swap_ranges/moveable.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust dg-warning
+	line numbers.
+
+2011-05-19  Daniel Krugler  <daniel.kruegler@googlemail.com>
+
+	* testsuite/util/testsuite_tr1.h: Add test classes.
+	* testsuite/20_util/is_nothrow_assignable/value.cc: Add.
+
+2011-05-19  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/type_traits (is_assignable, is_copy_assignable,
+	is_move_assignable, is_nothrow_assignable, is_nothrow_copy_assignable,
+	is_nothrow_move_assignable): Add; minor tweaks elsewhere.
+	(has_nothrow_copy_assign): Remove.
+	* testsuite/util/testsuite_tr1.h: Add test classes.
+	* testsuite/20_util/is_assignable/requirements/typedefs.cc: Add.
+	* testsuite/20_util/is_assignable/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_nothrow_assignable/value.cc: Likewise.
+	* testsuite/20_util/is_nothrow_assignable/requirements/typedefs.cc:
+	Likewise.
+	* testsuite/20_util/is_nothrow_assignable/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_move_assignable/value.cc: Likewise.
+	* testsuite/20_util/is_move_assignable/requirements/typedefs.cc:
+	Likewise.
+	* testsuite/20_util/is_move_assignable/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_copy_assignable/value.cc: Likewise.
+	* testsuite/20_util/is_copy_assignable/requirements/typedefs.cc:
+	Likewise.
+	* testsuite/20_util/is_copy_assignable/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_nothrow_move_assignable/value.cc: Likewise.
+	* testsuite/20_util/is_nothrow_move_assignable/requirements/
+	typedefs.cc: Likewise.
+	* testsuite/20_util/is_nothrow_move_assignable/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/is_nothrow_copy_assignable/value.cc: Likewise.
+	* testsuite/20_util/is_nothrow_copy_assignable/requirements/
+	typedefs.cc: Likewise.
+	* testsuite/20_util/is_nothrow_copy_assignable/requirements/
+	explicit_instantiation.cc: Likewise.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc: Adjust
+	dg-error line numbers.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Likewise.
+
+2011-05-18  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/shared_ptr_base.h: Use noexcept. Define special member
+	functions as defaulted/deleted.
+	* include/bits/shared_ptr.h: Use noexcept.
+	* 20_util/shared_ptr/cons/43820_neg.cc: Adjust dg-error line numbers.
+	* 20_util/weak_ptr/comparison/cmp_neg.cc: Likewise.
+
+2011-05-18  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/bitmap_allocator.xml: Fix typos.
+
+2011-05-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* libsupc++/initializer_list: Use noexcept specifier.
+	(initializer_list<>::size, begin, end): Qualify as const.
+	* include/bits/move.h (__addressof, forward, move, addressof): Specify
+	as noexcept.
+	* include/std/bitset: Use noexcept specifier throughout.
+	* include/debug/bitset: Update.
+	* include/profile/bitset: Likewise.
+
+2011-05-17  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple: Use noexcept where appropriate.
+	(tuple<>::swap): Rework implementation.
+	(_Head_base<>::_M_swap_impl): Remove.
+	(get(std::tuple<>&&)): Add.
+	* testsuite/20_util/tuple/element_access/get2.cc: New.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust dg-error
+	line number.
+
+2011-05-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/utility: Simplify the last commit, the whole
+	std::get code is C++0x only.
+
+2011-05-16  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/utility (get(std::pair<>&&)): Add.
+	* include/bits/stl_pair.h (pair::swap(pair&),
+	swap(pair<>&, pair<>&)): Use noexcept.
+	* include/bits/random.h (discard_block_engine<>::base,
+	independent_bits_engine<>::base, shuffle_order_engine<>::base,
+	random_device::entropy): Use noexcept.
+	* include/std/array: Use noexcept where appropriate.
+	(get(array<>&&)): Add.
+	* testsuite/23_containers/array/requirements/get.cc: New.
+	* testsuite/20_util/pair/get.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Tweak dg-error
+	line number.
+
 2011-05-15  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/bits/c++config (_GLIBCXX_NOEXCEPT, _GLIBCXX_USE_NOEXCEPT):
