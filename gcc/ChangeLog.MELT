@@ -1,4 +1,15 @@
 
+2011-05-23  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* testsuite/melt/topengpu-vecsum.c: New test file.
+
+	* melt/xtramelt-ana-base.melt (loop_inner): Correct type typo.
+	(loop_index_number): New primitive.
+	(dbgout_boxgimpleseq_method,dbgout_boxtree_method,dbgout_boxbasicblock_method):
+	Improve indentation in output.
+
+	* melt/xtramelt-opengpu.melt (opengpudetect_exec): Better debug.
+
 2011-05-20  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-ana-base.melt (debug_post_dominance_info):

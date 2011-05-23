@@ -72,7 +72,7 @@
 	    melt_sparebreakpoint_1($CURLOOP, 
 				   "$CURLOOP could be parallel in $LOOPPARACHUNK") ;
 	    }#)
-	   (debugloop curloop  "opengpudetect_exec curloop can be parallel")
+	   (debugloop curloop  "opengpudetect_exec curloop can be parallel!!!")
 	   (let ( (curloopbodytuple (loop_body_tuple discr_multiple curloop)) 
 		  (curloopedgetuple (loop_exit_edges_tuple discr_multiple curloop))
 		  (:basic_block loophead (loop_header curloop))
@@ -99,7 +99,9 @@
 		      (?_
 		       ()))
 	       )
-	      ))))
+	      )))
+       (debugloop curloop "opengpudetect_exec curloop is not parallel!!!")
+       )
      )
     ;;
     (debug_msg pass "opengpudetect_exec end")

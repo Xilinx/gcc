@@ -275,7 +275,11 @@
 
 (defprimitive loop_inner (:loop lo) :loop
   :doc #{The inner if any of loop $LO}#
-  #{($LO)?(($LO)->inner):(basic_block)0}#)
+  #{($LO)?(($LO)->inner):(loop)0}#)
+
+(defprimitive loop_index_number (:loop lo) :loop
+  :doc #{The index number if any of loop $LO}#
+  #{($LO)?(($LO)->num):0L}#)
 
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
@@ -2465,8 +2469,11 @@
     (add2out_strconst out " ?/")
     (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
     (add2out_strconst out "/{")
-    (ppstrbuf_gimple_seq out depth (gimpleseq_content self))
-    (add2out_strconst out "}/ ")
+    (add2out_indentnl out (+i 1 depth))
+    (ppstrbuf_gimple_seq out (+i 1 depth) (gimpleseq_content self))
+    (add2out_indentnl out (+i 1 depth))
+    (add2out_strconst out "}/")
+    (add2out_indentnl out depth)
     )
   )
 (install_method discr_gimple_seq dbg_output dbgout_boxgimpleseq_method)
@@ -2480,7 +2487,8 @@
     (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
     (add2out_strconst out "/{")
     (ppstrbuf_tree out depth (tree_content self))
-    (add2out_strconst out "}/ ")
+    (add2out_strconst out "}/")
+    (add2out_indentnl out depth)
     )
   )
 (install_method discr_tree dbg_output dbgout_boxtree_method)
@@ -2493,8 +2501,10 @@
     (add2out_strconst out " ?/")
     (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
     (add2out_strconst out "/{")
-    (ppstrbuf_basicblock out depth (basicblock_content self))
-    (add2out_strconst out "}/ ")
+    (add2out_indentnl out (+i 1 depth))
+    (ppstrbuf_basicblock out (+i 1 depth) (basicblock_content self))
+    (add2out_strconst out "}/")
+    (add2out_indentnl out depth)
     )
   )
 (install_method discr_basic_block dbg_output dbgout_boxbasicblock_method)
@@ -2509,7 +2519,8 @@
     (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
     (add2out_strconst out "/[")
     (output_edge out (edge_content self))
-    (add2out_strconst out "]/ ")
+    (add2out_strconst out "]/")
+    (add2out_indentnl out depth)
     )
   )
 (install_method discr_edge dbg_output dbgout_boxedge_method)
@@ -3289,6 +3300,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  loop_can_be_parallel
  loop_exit_edges_tuple
  loop_header
+ loop_index_number
  loop_inner
  loop_latch
  make_basicblock

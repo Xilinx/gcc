@@ -6,9 +6,9 @@
   ## it could be useful to pass -fdump-tree-all -fdump-ipa-all
 */
 float foobar (int sz, 
-	      /* we mean that all four arrays tr tx ty tz cannot be
-		 aliases, and they each are sized by sz ; See
-		 http://www.lysator.liu.se/c/restrict.html */
+              /* we mean that all four arrays tr tx ty tz cannot be
+                 aliases, and they each are sized by sz ; See
+                 http://www.lysator.liu.se/c/restrict.html */
               float tr[static restrict sz], 
               float tx[static restrict sz], 
               float ty[static restrict sz],  
@@ -19,8 +19,8 @@ float foobar (int sz,
   for (int i=0; i<sz; i++)
     {
       tr[i] = 
-	tx[i] + 
-	ty[i] * tz[i];
+        tx[i] + 
+        ty[i] * tz[i];
     }
   for (int i=0; i<sz; i++)
     {
