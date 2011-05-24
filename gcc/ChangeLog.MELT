@@ -1,6 +1,16 @@
 
 2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-ana-base.melt (each_loop): Get a new loopix local
+	formal.
+	(loop_index_number): Thingo in return type.
+	(loop_depth): New.
+
+	* melt/xtramelt-opengpu.melt (opengpudetect_exec): Correct
+	each_loop invocation.
+
+2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-macro.melt (check_c_expansion): Better error
 	messages.
 

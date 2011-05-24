@@ -62,8 +62,13 @@
     (debug_msg pass "opengpudetect_exec after each_bb_cfun before each_loop")
     (each_loop 
      ()
-     (:loop curloop)
+     (:loop curloop :long loopix)
      (debugloop curloop  "opengpudetect_exec curloop")
+     (debuglong "opengpudetect_exec loopix" loopix)
+     (debuglong "opengpudetect_exec computed loopnum"
+		(loop_index_number curloop))
+     (debuglong "opengpudetect_exec computed loopdepth" 
+		(loop_depth curloop))
      (if (loop_can_be_parallel curloop)
 	 (progn
 	   (code_chunk 

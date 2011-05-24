@@ -240,11 +240,12 @@
 (defciterator each_loop
   ()
   eachloop
-  (:loop curloop)
+  (:loop curloop :long loopix)
   ;; before expansion
   #{ /*$EACHLOOP +*/ 
    loop_iterator $EACHLOOP#_li = {};
    FOR_EACH_LOOP($EACHLOOP#_li, $CURLOOP, 0) {
+     $LOOPIX = $CURLOOP->num;
   }#
   ;;after expansion
    #{ } /*$EACHLOOP -*/
@@ -277,9 +278,13 @@
   :doc #{The inner if any of loop $LO}#
   #{($LO)?(($LO)->inner):(loop)0}#)
 
-(defprimitive loop_index_number (:loop lo) :loop
+(defprimitive loop_index_number (:loop lo) :long
   :doc #{The index number if any of loop $LO}#
   #{($LO)?(($LO)->num):0L}#)
+
+(defprimitive loop_depth (:loop lo) :long
+  :doc #{The depth of loop $LO}#
+  #{($LO)?loop_depth($LO):0L}#)
 
 (defprimitive number_of_loops () :long 
   :doc #{Return the number of loops in current_loops.}#
@@ -3305,6 +3310,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  loop_exit_edges_tuple
  loop_header
  loop_index_number
+ loop_depth
  loop_inner
  loop_latch
  make_basicblock
