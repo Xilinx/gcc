@@ -682,7 +682,7 @@ opencl_perfect_nested_to_kernel (opencl_main code_gen, struct clast_for *f,
    innermost iterators to append respectively.  */
 
 static void
-opencl_print_local_vars (const char *fist, const char *last,
+opencl_print_local_vars (const char *first, const char *last,
 			 const char *type, opencl_main code_gen)
 {
   char **names = cloog_names_scattering (code_gen->root_names);
@@ -693,7 +693,7 @@ opencl_print_local_vars (const char *fist, const char *last,
     {
       const char *tmp = names[i];
 
-      if (opencl_cmp_scat (fist, tmp) <= 0
+      if (opencl_cmp_scat (first, tmp) <= 0
 	  && opencl_cmp_scat (last, tmp) >= 0)
 	{
 	  const char **slot =
@@ -703,7 +703,7 @@ opencl_print_local_vars (const char *fist, const char *last,
 	  continue;
 	}
 
-      if (opencl_cmp_scat (fist, tmp) > 0)
+      if (opencl_cmp_scat (first, tmp) > 0)
 	continue;
 
       opencl_append_string_to_body (type, code_gen);
