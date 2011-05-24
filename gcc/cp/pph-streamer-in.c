@@ -824,7 +824,6 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
   if (DECL_P (expr))
     {
       DECL_INITIAL (expr) = pph_input_tree (stream);
-      /* FIXME pph: DECL_NAME (expr) = pph_input_tree (stream); */
 
       if (TREE_CODE (expr) == FUNCTION_DECL
 	  || TREE_CODE (expr) == NAMESPACE_DECL
@@ -864,14 +863,7 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     }
   else if (TREE_CODE (expr) == IDENTIFIER_NODE)
     {
-      const char *str;
-      struct lang_identifier *id = LANG_IDENTIFIER_CAST(expr);
-      TREE_TYPE (expr) = pph_input_tree (stream);
-      str = pph_input_string (stream);
-      /* FIXME pph: There must be a better way.  */
-      IDENTIFIER_NODE_CHECK (expr)->identifier.id.str
-          = (const unsigned char *)str;
-      IDENTIFIER_LENGTH (expr) = strlen (str);
+      struct lang_identifier *id = LANG_IDENTIFIER_CAST (expr);
       id->namespace_bindings = pph_stream_read_cxx_binding (stream);
       id->bindings = pph_stream_read_cxx_binding (stream);
       id->class_template_info = pph_input_tree (stream);
@@ -904,11 +896,6 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
   else if (TREE_CODE (expr) == TEMPLATE_INFO)
     {
       TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr)
-          = pph_stream_read_tree_vec (stream);
+          = pph_stream_read_qual_use_vec (stream);
     }
-  else if (TREE_CODE (expr) == TREE_LIST)
-    ; /* FIXME pph: already handled?  */
-  else if (flag_pph_debug >= 2)
-    fprintf (pph_logfile, "PPH: unimplemented read of %s\n",
-             tree_code_name[TREE_CODE (expr)]);
 }

@@ -825,9 +825,6 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
   if (DECL_P (expr))
     {
       pph_output_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
-      /* FIXME pph:
-      pph_output_tree_or_ref_1 (stream, DECL_NAME (expr), ref_p, 3);
-      */
 
       if (TREE_CODE (expr) == FUNCTION_DECL
 	  || TREE_CODE (expr) == NAMESPACE_DECL
@@ -874,10 +871,7 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
     }
   else if (TREE_CODE (expr) == IDENTIFIER_NODE)
     {
-      struct lang_identifier *id = LANG_IDENTIFIER_CAST(expr);
-      pph_output_tree_or_ref_1 (stream, TREE_TYPE (expr), ref_p, 3);
-      pph_output_string_with_length (stream, IDENTIFIER_POINTER (expr),
-                                             IDENTIFIER_LENGTH (expr));
+      struct lang_identifier *id = LANG_IDENTIFIER_CAST (expr);
       pph_stream_write_cxx_binding (stream, id->namespace_bindings, ref_p);
       pph_stream_write_cxx_binding (stream, id->bindings, ref_p);
       pph_output_tree_or_ref_1 (stream, id->class_template_info, ref_p, 3);
@@ -907,18 +901,12 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
       pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_RESULT (expr), ref_p, 3);
       pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_PARMS (expr), ref_p, 3);
       pph_output_tree_or_ref_1 (stream, DECL_CONTEXT (expr), ref_p, 3);
-      /* FIXME pph: what of bit DECL_MEMBER_TEMPLATE_P (expr) */
     }
   else if (TREE_CODE (expr) == TEMPLATE_INFO)
     {
       pph_stream_write_qual_use_vec (stream,
           TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr), ref_p);
     }
-  else if (TREE_CODE (expr) == TREE_LIST)
-    ; /* FIXME pph: already handled?  */
-  else if (flag_pph_debug >= 2)
-    fprintf (pph_logfile, "PPH: unimplemented write of %s\n",
-             tree_code_name[TREE_CODE (expr)]);
 }
 
 

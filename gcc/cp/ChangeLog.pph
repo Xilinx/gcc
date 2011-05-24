@@ -1,3 +1,12 @@
+2011-05-24  Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_stream_read_tree): For IDENTIFIER_NODE,
+	only read fields in struct lang_identifier.
+	Remove FIXME pph markers.
+	* pph-streamer-out.c (pph_stream_write_tree): For IDENTIFIER_NODE,
+	only write fields in struct lang_identifier.
+	Remove FIXME pph markers.
+
 2011-05-20  Lawrence Crowl <crowl@google.com>
 
 	* pph-streamer-in.c (pph_stream_read_qual_use_vec): Add.
