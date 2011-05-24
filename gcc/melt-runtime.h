@@ -628,7 +628,7 @@ melt_forwarded (void *ptr)
   return p;
 }
 
-#if GCC_VERSION > 4000
+#if defined(__GNUC__) && GCC_VERSION > 4000
 #define MELT_FORWARDED(P) do {if (P) { \
   (P) = (__typeof__(P))melt_forwarded((void*)(P));} } while(0)
 #else
