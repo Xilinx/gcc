@@ -754,7 +754,7 @@ graphite_outer_subscript_bound (poly_dr_p pdr)
   graphite_dim_t gdim = scop_nb_params (scop);
 
   graphite_dim_t dim = tdim + dim1;
-
+  unsigned i, pos, sub1_dim = dim - sdim + 1 - gdim;
   ppl_Pointset_Powerset_C_Polyhedron_t isc, idr, res;
 
   combine_context_id_scat (&isc, pbb, false);
@@ -772,23 +772,28 @@ graphite_outer_subscript_bound (poly_dr_p pdr)
   {
     ppl_Linear_Expression_t le;
     ppl_Coefficient_t coef;
-    mpz_t v;
-    unsigned i;
+    mpz_t one;
 
-    mpz_init (v);
-    mpz_set_si (v, 1);
+    mpz_init (one);
+    mpz_set_si (one, 1);
     ppl_new_Coefficient (&coef);
-    ppl_assign_Coefficient_from_mpz_t (coef, v);
+    ppl_assign_Coefficient_from_mpz_t (coef, one);
 
     ppl_new_Linear_Expression_with_dimension (&le, dim);
 
-    for (i = 0; i < dim - sdim + 1 - gdim; i++)
+    for (i = 0; i < sub1_dim; i++)
       ppl_Pointset_Powerset_C_Polyhedron_affine_image (res, i, le, coef);
+
+    ppl_delete_Linear_Expression (le);
+    ppl_delete_Coefficient (coef);
+    mpz_clear (one);
   }
 
   {
     ppl_dimension_type *ds = XNEWVEC (ppl_dimension_type, dim - gdim - 1);
-    unsigned i, pos, sub1_dim = dim - sdim + 1 - gdim;
+
+    gcc_assert (sub1_dim < dim - gdim);
+
     for (i = 0, pos = 0; i < dim - gdim; i++)
       if (i != sub1_dim)
 	ds[pos++] = i;
