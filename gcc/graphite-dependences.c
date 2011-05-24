@@ -743,8 +743,7 @@ graphite_legal_transform (scop_p scop)
    type is INDIRECT_REF), or NULL if the bound could not be found.  */
 
 tree
-graphite_outer_subscript_bound (poly_dr_p pdr,
-				bool minmax ATTRIBUTE_UNUSED)
+graphite_outer_subscript_bound (poly_dr_p pdr)
 {
   tree bound_tree = NULL_TREE;
   poly_bb_p pbb = PDR_PBB (pdr);

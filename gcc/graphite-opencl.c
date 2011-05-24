@@ -1419,7 +1419,7 @@ opencl_get_indirect_size (tree ptr, poly_dr_p ref)
     case POINTER_TYPE:
       {
 	tree inner_type = TREE_TYPE (ptr);
-	tree t = graphite_outer_subscript_bound (ref, false);
+	tree t = graphite_outer_subscript_bound (ref);
 	tree inner_type_size = TYPE_SIZE_UNIT (inner_type);
 
 	if (inner_type_size == NULL)

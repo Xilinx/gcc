@@ -1,3 +1,12 @@
+2011-05-24  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-dependences.c (graphite_outer_subscript_bound): Remove
+	unused parameter.
+	* graphite-dependences.h (graphite_outer_subscript_bound): Same.
+	* graphite-opencl-meta-clast.c (opencl_set_meta_rw_flags): Update
+	call to graphite_outer_subscript_bound.
+	* graphite-opencl.c (opencl_get_indirect_size): Same.
+
 2011-05-24  Alexey Kravets  <kayrick@ispras.ru>
 
 	* graphite-opencl.c (opencl_private_var_name_p): Removed.

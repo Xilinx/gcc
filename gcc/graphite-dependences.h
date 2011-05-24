@@ -60,7 +60,7 @@ extern hashval_t hash_poly_ddr_p (const void *);
 extern void free_poly_ddr (void *);
 extern void dot_deps (scop_p);
 extern void dot_deps_stmt (scop_p);
-extern tree graphite_outer_subscript_bound (poly_dr_p, bool);
+extern tree graphite_outer_subscript_bound (poly_dr_p);
 extern void print_pddr (FILE *, poly_ddr_p);
 extern void debug_pddr (poly_ddr_p);
 

@@ -433,7 +433,7 @@ opencl_set_meta_rw_flags (opencl_clast_meta meta,
       if (!data->supported)
         meta->access_unsupported = true;
 
-      if (!graphite_outer_subscript_bound (curr, false))
+      if (!graphite_outer_subscript_bound (curr))
         {
           meta->access_unsupported = true;
 
