@@ -9,7 +9,8 @@
 
 	* melt/xtramelt-ana-base.melt (loop_inner): Correct type typo.
 	(loop_index_number): New primitive.
-	(dbgout_boxgimpleseq_method,dbgout_boxtree_method,dbgout_boxbasicblock_method):
+	(dbgout_boxgimpleseq_method,dbgout_boxtree_method)
+	(dbgout_boxbasicblock_method):
 	Improve indentation in output.
 
 	* melt/xtramelt-opengpu.melt (opengpudetect_exec): Better debug.
