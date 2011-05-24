@@ -7947,6 +7947,8 @@ readval (struct reading_st *rd, bool * pgot)
     }
   else if (c == ':')
     {
+      if (!ISALPHA (rdfollowc(1)))
+	READ_ERROR ("MELT: colon should be followed by letter for keyword, but got %c", rdfollowc(1));
       nam = readsimplename (rd);
       readv = meltgc_named_keyword (nam, MELT_CREATE);
       if (!readv)

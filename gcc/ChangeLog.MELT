@@ -1,6 +1,11 @@
 
 2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (readval): Issue a lexing error for colon
+	followed by non-letter.
+
+2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-ana-base.melt (number_of_loops): New primitive.
 
 2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
