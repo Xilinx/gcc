@@ -1,6 +1,10 @@
 
 2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-ana-base.melt (number_of_loops): New primitive.
+
+2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (MELT_FORWARDED): Use typeof only with __GNUC__.
 
 2011-05-23  Basile Starynkevitch  <basile@starynkevitch.net>

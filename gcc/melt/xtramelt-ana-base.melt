@@ -281,6 +281,10 @@
   :doc #{The index number if any of loop $LO}#
   #{($LO)?(($LO)->num):0L}#)
 
+(defprimitive number_of_loops () :long 
+  :doc #{Return the number of loops in current_loops.}#
+  #{number_of_loops ()}#)
+
 ;; match a gimple value & extract the gimple of it
 (defcmatcher gimpleval
   (gv)					;match & no ins
@@ -3355,6 +3359,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  null_gimple
  null_gimpleseq
  null_tree
+ number_of_loops
  output_edge
  pop_cfun
  ppl_Constraint_System_insert_Constraint
