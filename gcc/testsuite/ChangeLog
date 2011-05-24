@@ -1,3 +1,118 @@
+2011-05-24  Tom de Vries  <tom@codesourcery.com>
+
+	PR tree-optimization/49121
+	* gcc.dg/tree-ssa/ivopt_infer_2.c: Adapt test.
+
+2011-05-23  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/defaulted28.C: New.
+
+	* g++.dg/cpp0x/sfinae25.C: New.
+
+	* g++.dg/cpp0x/rv-cast2.C: New.
+
+	* g++.dg/cpp0x/enum14.C: New.
+
+2011-05-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR lto/49123
+	* gcc.c-torture/execute/pr49123.c: New test.
+
+	PR debug/49032
+	* gcc.dg/debug/pr49032.c: New test.
+
+	PR c/49120
+	* gcc.dg/pr49120.c: New test.
+
+2011-05-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47315
+	* gcc.target/i386/pr47315.c: New test.
+
+2011-05-23  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-eh2.C: New.
+
+	* g++.dg/cpp0x/sfinae24.C: New.
+
+	* g++.dg/cpp0x/error3.C: New.
+
+	* g++.dg/cpp0x/defaulted27.C: New.
+
+	* g++.dg/cpp0x/decltype27.C: New.
+
+2011-05-23  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/forwprop-11.c: Adjust and un-XFAIL.
+
+2011-05-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/40874
+	* g++.dg/tree-ssa/pr40874.C: New testcase.
+
+2011-05-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49115
+	* g++.dg/torture/pr49115.C: New testcase.
+
+2011-05-23  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/15419
+	* gcc.dg/memcpy-3.c: New testcase.
+
+2011-05-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/48973
+	* gcc.c-torture/execute/pr48973-1.c: New test.
+	* gcc.c-torture/execute/pr48973-2.c: New test.
+
+2011-05-23  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/18016
+	* g++.dg/warn/pr18016.C: New.
+
+2011-05-23  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/45098
+	* gcc.target/arm/ivopts-6.c: New test.
+
+2011-05-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49029
+	* gcc.c-torture/compile/pr49029.c: New test.
+
+2011-05-22  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/sfinae23.C: New.
+	* g++.dg/cpp0x/sfinae8.C: Correct.
+
+2011-05-22  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* gfortran.dg/function_optimize_8.f90:  New test case.
+
+2011-05-22  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49087
+	* gcc.dg/vect/O3-pr49087.c: New test.
+
+2011-05-21  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/debug/const5.C: New.
+
+2011-05-20  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-static7.C: Extend.
+
+	* g++.dg/cpp0x/constexpr-static7.C: New.
+
+	* g++.dg/cpp0x/enum12.C: New.
+	* g++.dg/cpp0x/enum13.C: New.
+
+2011-05-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/48699
+	* gfortran.dg/select_type_23.f03: New.
+
 2011-05-20  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/defaulted26.C: New.

@@ -1,3 +1,215 @@
+2011-05-23  Joseph Myers  <joseph@codesourcery.com>
+
+	* optc-save-gen.awk: New.  Based on optc-gen.awk.  Don't generate
+	parts of output shared with the driver.
+	* optc-gen.awk: Don't generate parts of output not shared with the
+	driver.
+	* opth-gen.awk: Remove GCC_DRIVER conditionals.
+	* doc/options.texi (SourcerInclude): Mention options-save.c.
+	* Makefile.in (GCC_OBJS): Use options.o instead of gcc-options.o.
+	(OBJS): Add options-save.o.
+	(options-save.c, options-save.o): New.
+	(options.o): Update dependencies.
+	(gcc-options.o): Remove.
+	(mostlyclean): Remove options-save.c.
+
+2011-05-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/49032
+	* dbxout.c: Include cgraph.h.
+	(dbxout_expand_expr): If a VAR_DECL is TREE_STATIC, not written
+	and without value expr, return NULL if no varpool node exists for
+	it or if it is not needed.
+	* Makefile.in (dbxout.o): Depend on $(CGRAPH_H).
+
+	PR c/49120
+	* c-decl.c (start_decl): Convert expr to void_type_node.
+
+2011-05-23  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR rtl-optimization/48826
+	* emit-rtl.c (try_split): When splitting a call that is followed
+	by a NOTE_INSN_CALL_ARG_LOCATION, move the note after the new call.
+
+2011-05-23  Jakub Jelinek  <jakub@redhat.com>
+
+	* cfgexpand.c (expand_debug_expr): For unused non-addressable
+	parameters passed in memory prefer using DECL_INCOMING_RTL over
+	the pseudos it will be copied into.
+
+2011-05-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/47315
+	* config/i386/i386.c (ix86_option_override_internal): Save the
+	initial options after checking vzeroupper.
+
+2011-05-23  David Li  <davidxl@google.com>
+
+	PR tree-optimization/48988
+	* tree-ssa-uninit.c (convert_control_dep_chain_into_preds):
+	Initialize has_valid_pred for each pred chain.
+
+2011-05-23  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.c (gimple_types_compatible_p_1): Always compare type names.
+	(iterative_hash_gimple_type): Always hash type names.
+
+2011-05-23  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-typeck.c (build_function_call_vec): Tweak call to
+	check_function_arguments.
+
+2011-05-23  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49115
+	* tree-ssa-alias.c (stmt_kills_ref_p_1): If the assignment
+	is not necessarily carried out, do not claim it kills the ref.
+	* tree-ssa-dce.c (mark_aliased_reaching_defs_necessary_1): Likewise.
+
+2011-05-23  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/15419
+	* builtins.c (fold_builtin_memory_op): Be less restrictive about
+	what pointer types we accept for folding.
+
+2011-05-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gthr-gnat.c: Remove.
+	* gthr-gnat.h: Remove.
+	* Makefile.in (LIB2ADDEH): Remove $(srcdir)/gthr-gnat.c.
+	* config/t-freebsd (LIB2ADDEH): Likewise.
+	* config/t-linux (LIB2ADDEH): Likewise.
+	* config/t-sol2 (LIB2ADDEH): Likewise.
+	* config/ia64/t-vms (LIB2ADDEH): Likewise.
+	* configure.ac (target_thread_file): Remove gnat handling.
+	* configure: Regenerate.
+	* doc/install.texi (Configuration, --enable-threads): Remove gnat.
+
+2011-05-23  Tristan Gingold  <gingold@adacore.com>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcov.c (create_file_names): If no object directory is specified,
+	keep the directory of the file.
+
+2011-05-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (enable_threads): Remove irix; add lynx, tpf; sort list.
+	* configure: Regenerate.
+
+2011-05-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/48973
+	* expr.c (expand_expr_real_2) <case LT_EXPR>: If do_store_flag
+	failed and the comparison has a single bit signed type, use
+	constm1_rtx instead of const1_rtx for true value.
+	(do_store_flag): If ops->type is single bit signed type, disable
+	signel bit test optimization and pass -1 instead of 1 as last
+	parameter to emit_store_flag_force.
+
+2011-05-23  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/45098
+	* tree-ssa-loop-niter.c (infer_loop_bounds_from_pointer_arith): New
+	function.
+	(infer_loop_bounds_from_undefined): Use new function.
+
+2011-05-22  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.h (SUBTARGET_ASM_OPTIMIZING_SPEC): Delete.
+	(ASM_SPEC): Add a -O* option here.  Pass -O0 for -noasmopt,
+	-O1 for -fno-delayed-branch, -O2 if optimization is enabled,
+	and -O0 otherwise.
+	(EXTRA_SPECS): Remove subtarget_asm_optimizing_spec.
+
+2011-05-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cfgcleanup.c (try_forward_edges): Do not update BB_FORWARDER_BLOCK.
+	(try_optimize_cfg): Update BB_FORWARDER_BLOCK if try_forward_edges
+	returns true.
+
+2011-05-22  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	* config/mips/mips.c (mips_default_arch): Honor MIPS_ISA_DEFAULT.
+
+2011-05-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (sparc_delegitimize_address): Handle
+	UNSPEC_MOVE_PIC pattern.
+
+2011-05-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config.gcc (sparc-*-elf*): Add sparc/t-crtin.
+	(sparc-*-rtems*): Likewise.
+	(sparc64-*-elf*): Likewise.
+	(sparc64-*-rtems*): Likewise.
+	(sparc*-*-solaris2*): Likewise.  Remove crti.o crtn.o extra parts.
+	* config/sparc/t-crtin: New file.
+	* config/sparc/t-sol2 (crti.o): Delete rule.
+	(crtn.o): Likewise.
+	* config/sparc/t-linux64 (EXTRA_MULTILIB_PARTS): Delete.
+	* config/sparc/t-sol2-64 (EXTRA_MULTILIB_PARTS): Likewise.
+	* config/sparc/sp64-elf.h (STARTFILE_SPEC): Tidy and add crti.o.
+	(ENDFILE_SPEC): Add crtn.o.
+
+2011-05-22  Tom de Vries  <tom@codesourcery.com>
+
+	PR middle-end/48689
+	* fold-const.c (fold_checksum_tree): Guard TREE_CHAIN use with
+	CODE_CONTAINS_STRUCT (TS_COMMON).
+
+2011-05-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49029
+	* expmed.c (extract_fixed_bit_field): Test whether target can be used
+	only after deciding which mode to use.
+
+2011-05-22  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/45098
+	* tree-ssa-loop-ivopts.c (force_expr_to_var_cost): Fix const test
+	for call to get_shiftadd_cost.
+
+2011-05-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/49104
+	* config/i386/cpuid.h (bit_MMXEXT): New define.
+
+2011-05-22  Nick Clifton  <nickc@redhat.com>
+
+	* config/stormy16/stormy16.c (xstormy16_init_builtins): prevent
+	initialisation of non-existant args[2] element.  Use args[] array
+	not arg[] array to pass arguments to build_function_type_list.
+
+2011-05-22  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49087
+	* tree-vect-loop.c (vect_is_slp_reduction): Fail if LHS has no uses.
+
+2011-05-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49092
+	* dwarf2out.c (tree_add_const_value_attribute_for_decl): Check for
+	static storage duration.
+
+2011-05-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.md (setjmp): Handle PIC mode and use the hard
+	frame pointer.
+
+2011-05-21  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (eligible_for_return_delay): Do not return
+	false if there are call-saved registers here...
+	(sparc_can_use_return_insn_p): ...but here instead.
+	(save_or_restore_regs): Fix thinko.
+	(sparc_expand_prologue): Use current_function_is_leaf.
+	(sparc_frame_pointer_required): Likewise.
+
+2011-05-21  Nick Clifton  <nickc@redhat.com>
+
+	PR target/49098
+	* config/rx/rx.c (rx_memory_move_cost): Note unused parameters.
+
 2011-05-21  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* gengtype.c (walk_type): Implemented "atomic" GTY option.
@@ -8,8 +220,7 @@
 	* opt-read.awk: New.  Split out of optc-gen.awk and opth-gen.awk.
 	* optc-gen.awk: Move common code to opt-read.awk.
 	* opth-gen.awk: Likewise.
-	* Makefile.in (options.c, s-options-h): Update to use
-	opt-read.awk.
+	* Makefile.in (options.c, s-options-h): Update to use opt-read.awk.
 
 2011-05-20  Nathan Froyd  <froydnj@codesourcery.com>
 

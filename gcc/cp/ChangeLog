@@ -1,4 +1,65 @@
+2011-05-23  Jason Merrill  <jason@redhat.com>
+
+	* pt.c (tsubst_copy_and_build): Use current_class_name.
+
+	PR c++/49102
+	* call.c (convert_arg_to_ellipsis): Call force_rvalue.
+
+	PR c++/49105
+	* typeck.c (cp_build_c_cast): Don't strip cv-quals when
+	converting to reference.
+	(build_static_cast_1): Update for glvalues.
+
+	PR c++/49105
+	* typeck.c (build_const_cast_1): Handle rvalue references.
+
+	PR c++/47263
+	* decl.c (use_eh_spec_block): Do use an EH spec block for a
+	lambda op().
+
+	PR c++/49058
+	* call.c (splice_viable): Be strict in templates.
+
+	PR c++/47336
+	* error.c (dump_template_bindings): Suppress access control.
+
+	PR c++/47544
+	* pt.c (instantiate_decl): Handle =default.
+
+	PR c++/48617
+	* pt.c (invalid_nontype_parm_type_p): Allow DECLTYPE_TYPE.
+
+2011-05-23  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* call.c (build_over_call): Tweak call to check_function_arguments.
+	* typeck.c (cp_build_function_call_vec): Likewise.
+
+2011-05-23  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/18016
+	* init.c (perform_member_init): Check for self-initialization.
+
+2011-05-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48647
+	* typeck.c (composite_pointer_type_r): Return error_mark_node
+	on error in SFINAE context.
+
 2011-05-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48945
+	* decl.c (grokdeclarator): Don't add set const function-cv-qual
+	for constexpr fns to memfn_quals, just add it to the type.
+	(revert_static_member_fn): Don't complain about quals.
+	(check_static_quals): New.
+	(grokfndecl): Call it.
+	(start_preparsed_function): Don't call revert_static_member_fn.
+
+	PR c++/48945
+	* decl.c (revert_static_member_fn): Ignore const on constexpr fn.
+
+	PR c++/48780
+	* cvt.c (type_promotes_to): Don't promote scoped enums.
 
 	PR c++/49066
 	* decl.c (duplicate_decls): Preserve DECL_DELETED_FN.
