@@ -1,6 +1,11 @@
 
 2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/warmelt-macro.melt (check_c_expansion): Better error
+	messages.
+
+2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (readval): Issue a lexing error for colon
 	followed by non-letter.
 

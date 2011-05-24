@@ -1941,12 +1941,19 @@ the object-map for pattern variables.}#
    (etuple)
    (ecomp :long ix)
    (cond 
-   ( (null ecomp)
-     (error_plain loc "null component in C expansion"))  
+    ( (null ecomp)
+      (error_plain loc "null component in C expansion"))
+    ( (is_a ecomp class_keyword)
+      (debug_msg ecomp "check_c_expansion keyword ecomp")
+      (error_strv loc "unexpected keyword in C expansion"
+		  (unsafe_get_field :named_name ecomp))
+      )
     ( (is_a ecomp class_symbol)
       (if (null (mapobject_get substmap ecomp))
-	  (error_strv loc "unexpected symbol in C expansion"
-		      (get_field :named_name ecomp)))
+	  (progn
+	    (debug_msg ecomp "check_c_expansion ecomp")
+	    (error_strv loc "unexpected symbol in C expansion"
+			(unsafe_get_field :named_name ecomp))))
       ()
       )
     ( (is_string ecomp)
