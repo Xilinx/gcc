@@ -1,3 +1,7 @@
+2011-05-24  Simon Baldwin  <simonb@google.com>
+
+	* common.opt (-Wself-assign): New placeholder flag.
+
 2011-04-27  Ollie Wild  <aaw@google.com>
 
 	* config.gcc: Add GRTE detection.

@@ -561,6 +561,13 @@ Wpadded
 Common Var(warn_padded) Warning
 Warn when padding is required to align structure members
 
+; FIXME.  The following -Wself-assign flag is a placeholder to prevent
+; confusing the compiler when applications are built with these flags.
+; Actual support for this flag is found in the google/main branch.
+Wself-assign
+Common Var(warn_self_assign) Init(0) Warning
+Warn when a variable is assigned to itself
+
 Wshadow
 Common Var(warn_shadow) Warning
 Warn when one local variable shadows another
