@@ -330,42 +330,6 @@ zero_dim_array_p (tree var)
   return TREE_INT_CST_LOW (up_bound) == 0;
 }
 
-/* Check whether NAME is the name of the artificial array, which can be
-   privatized.  */
-
-static bool
-opencl_private_var_name_p (const char *name)
-{
-  static const char *general_reduction = "General_Reduction";
-  static const char *close_phi = "Close_Phi";
-  static const char *cross_bb = "Cross_BB_scalar_dependence";
-  static const char *commutative = "Commutative_Associative_Reduction";
-
-  if (!name)
-    return false;
-
-  return
-    ((strstr (name, general_reduction) == name)
-     || (strstr (name, close_phi) == name)
-     || (strstr (name, commutative) == name)
-     || (strstr (name, cross_bb) == name));
-}
-
-/* Check whether VAR is an artificial array, which can be privatized.  */
-
-static bool
-graphite_artificial_array_p (tree var)
-{
-  tree name;
-
-  if (TREE_CODE (var) != VAR_DECL
-      || !zero_dim_array_p (var)
-      || !(name = DECL_NAME (var)))
-    return false;
-
-  return opencl_private_var_name_p (IDENTIFIER_POINTER (name));
-}
-
 /* Get depth of type TYPE scalar (base) part.  */
 
 static int
@@ -393,7 +357,7 @@ opencl_data_create (tree var, tree size)
   opencl_data tmp = XNEW (struct opencl_data_def);
   tree type = TREE_TYPE (var);
 
-  tmp->can_be_private = graphite_artificial_array_p (var);
+  tmp->can_be_private = zero_dim_array_p (var);
   tmp->exact_object = var;
 
   tmp->supported = TREE_CODE (var) == VAR_DECL || TREE_CODE (var) == SSA_NAME;

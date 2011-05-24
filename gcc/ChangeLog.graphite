@@ -1,3 +1,10 @@
+2011-05-24  Alexey Kravets  <kayrick@ispras.ru>
+
+	* graphite-opencl.c (opencl_private_var_name_p): Removed.
+	(graphite_artificial_array_p): Removed.
+	(opencl_data_create): Use zero_dim_array_p instead of
+	graphite_artificial_array_p.
+
 2011-01-25  Sebastian Pop  <sebastian.pop@amd.com>
 
 	* graphite-opencl.c (opencl_create_function_call): Use cl_khr_fp64
