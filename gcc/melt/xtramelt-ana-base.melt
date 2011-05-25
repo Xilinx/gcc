@@ -2148,6 +2148,55 @@
   )
 )
 
+;;;;;;;;;;;;;;;; iterating on edges succeeding a given basic_block	
+;;;see also foreach_basicblock_succ_edge
+(defciterator foreach_edge_bb_succs
+  (:basic_block bb)			;the input formal
+  eachedgebbsucc			;the state symbol
+  (:edge edg)				;the local formal
+  ;;
+  ;; before expansion
+  #{ /* $EACHEDGEBBSUCC++ */		
+  if ($BB) {
+    edge_iterator $EACHEDGEBBSUCC#_iter = {};
+    edge $EACHEDGEBBSUCC#_edge = NULL;
+    FOR_EACH_EDGE($EACHEDGEBBSUCC#_edge, $EACHEDGEBBSUCC#_iter, ($BB)->succs) 
+      {
+        if (!$EACHEDGEBBSUCC#_edge) continue;
+	$EDG = $EACHEDGEBBSUCC#_edge;
+  }#
+  ;;
+  ;; after expansion 
+  #{ /* $EACHEDGEBBSUCC-- */
+     }; /* end FOR_EACH_EDGE $EACHEDGEBBSUCC */
+   } /* end if $BB $EACHEDGEBBSUCC */
+   }#
+)
+
+;;;;;;;;;;;;;;;; iterating on edges preceding a given basic_block
+(defciterator foreach_edge_bb_precs
+  (:basic_block bb)			;the input formal
+  eachedgebbprec			;the state symbol
+  (:edge edg)				;the local formal
+  ;;
+  ;; before expansion
+  #{ /* $EACHEDGEBBPREC++ */		
+  if ($BB) {
+    edge_iterator $EACHEDGEBBPREC#_iter = {};
+    edge $EACHEDGEBBPREC#_edge = NULL;
+    FOR_EACH_EDGE($EACHEDGEBBPREC#_edge, $EACHEDGEBBPREC#_iter, ($BB)->precs) 
+      {
+        if (!$EACHEDGEBBPREC#_edge) continue;
+	$EDG = $EACHEDGEBBPREC#_edge;
+  }#
+  ;;
+  ;; after expansion 
+  #{ /* $EACHEDGEBBPREC-- */
+     }; /* end FOR_EACH_EDGE $EACHEDGEBBPREC */
+   } /* end if $BB $EACHEDGEBBPREC */
+   }#
+)
+
 ;;;;
 (defprimitive null_gimpleseq () :gimple_seq #{((gimple_seq)0)}#)
 ;;;;;;;;;;;;;;;;
@@ -2202,6 +2251,8 @@
    }#
   )
 
+
+;; see also foreach_edge_bb_succs
 (defciterator foreach_basicblock_succ_edge
   (:basic_block bb)
   eachbbsucc
@@ -3240,6 +3291,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  foreach_argument_of_gimple_call
  foreach_basicblock_succ_edge
  foreach_case_of_gimple_switch
+ foreach_edge_bb_precs
+ foreach_edge_bb_succs
  foreach_field_in_record_type
  foreach_loop_exit_edges
  foreach_mapbasicblock

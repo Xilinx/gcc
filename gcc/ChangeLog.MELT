@@ -1,6 +1,11 @@
 
 2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-ana-base.melt
+	(foreach_edge_bb_precs,foreach_edge_bb_succs): New citerators.
+
+2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-ana-base.melt (output_loop)
 	(dbgout_boxloop_method): New.
 	Various fixes.
