@@ -121,11 +121,17 @@
   )
 
 
-(defprimitive make_edge (discr :edge g) :value
-  #{(meltgc_new_edge((meltobject_ptr_t)($discr),($g)))}# )
+(defprimitive make_edge (discr :edge edg) :value
+  :doc #{Box the edge stuff $EDG with discriminant $DISCR as a boxed edge value.}#
+  #{(meltgc_new_edge((meltobject_ptr_t)($DISCR),($EDG)))}# )
 
-(defprimitive edge_content (v) :edge
-  #{(melt_edge_content((melt_ptr_t)($v)))}# )
+(defprimitive edge_content (val) :edge
+  :doc #{Retrieve teh edge stuff from boxed edge value $VAL.}#
+  #{(melt_edge_content((melt_ptr_t)($VAL)))}# )
+
+(defprimitive is_edge (val) :long
+  :doc #{Test that $VAL is indeed a boxed edge value.}#
+  #{(($VAL) && melt_magic_discr ($VAL) == MELTOBMAG_EDGE)}#)
 
 (defprimitive ==e (:edge e1 e2) :long
   #{(($E1) == ($E2))}#)
@@ -163,24 +169,24 @@
   #{(melt_nthval_mapedges((struct meltmapedges_st*)($map), (int)($n)))}# )
 ;; iterator inside mapedge
 (defciterator foreach_mapedge 
-  (gimap)				; startformals
-  eachgimap 				;state symbol
+  (edgmap)				; startformals
+  eachedgemap 				;state symbol
   (:edge att :value val)	;local formals
   ;; before expansion
   #{
-   /*$eachgimap*/ int $eachgimap#_rk=0;
-   for ($eachgimap#_rk=0;
-        $eachgimap#_rk<melt_size_mapedges((struct meltmapedges_st*)($gimap));
-	$eachgimap#_rk++) {
-   edge $eachgimap#_tr=melt_nthattr_mapedges((struct meltmapedges_st*)($gimap), $eachgimap#_rk);
-   if (!$eachgimap#_tr) continue;
-   $att = $eachgimap#_tr;
-   $val =melt_nthval_mapedges((struct meltmapedges_st*)($gimap), 
-				   $eachgimap#_rk);
+   /*$EACHEDGEMAP*/ int $EACHEDGEMAP#_rk=0;
+   for ($EACHEDGEMAP#_rk=0;
+        $EACHEDGEMAP#_rk<melt_size_mapedges((struct meltmapedges_st*)($EDGMAP));
+	$EACHEDGEMAP#_rk++) {
+   edge $EACHEDGEMAP#_tr=melt_nthattr_mapedges((struct meltmapedges_st*)($EDGMAP), $EACHEDGEMAP#_rk);
+   if (!$EACHEDGEMAP#_tr) continue;
+   $att = $EACHEDGEMAP#_tr;
+   $val =melt_nthval_mapedges((struct meltmapedges_st*)($EDGMAP), 
+				   $EACHEDGEMAP#_rk);
    }#
   ;;after expansion
    #{
-   } /*end $eachgimap*/
+   } /*end $EACHEDGEMAP*/
    }#
   )
 
@@ -2522,6 +2528,7 @@
 ;;;; boxed edge debug
 (defun dbgout_boxedge_method (self dbgi :long depth)
   (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (assert_msg "check self" (is_edge self))
   (let ( (dis (discrim self)) 
 	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
     (add2out_strconst out " ?/")
@@ -2534,6 +2541,22 @@
   )
 (install_method discr_edge dbg_output dbgout_boxedge_method)
 
+
+;;; boxed loop debug
+(defun dbgout_boxloop_method (self dbgi :long depth)
+  (assert_msg "check self" (is_loop self))
+  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
+  (let ( (dis (discrim self)) 
+	 (out  (unsafe_get_field :dbgi_out dbgi)) ) 
+    (add2out_strconst out " ?/")
+    (if (is_a dis class_named) (add2out_string out (unsafe_get_field :named_name dis)))
+    (add2out_strconst out "/[")
+    (output_loop out (loop_content self))
+    (add2out_strconst out "]/")
+    (add2out_indentnl out depth)
+    )
+  )
+(install_method discr_loop dbg_output dbgout_boxloop_method)
 
 
 ;;;; basicblockmap debug
@@ -3028,6 +3051,10 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
   #{(melt_loop_content((melt_ptr_t)($v)))}# )
 
 
+(defprimitive output_loop (out :loop lo) :void
+  :doc #{Output to $OUT the loop $LO}#
+  #{ meltgc_out_loop((melt_ptr_t)($OUT), ($LO)) }# )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; retrieve the loop body as a tuple of boxed basic_block-s
@@ -3163,6 +3190,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
+ ==e
  ==g
  ==t
  basicblock_content
@@ -3203,6 +3231,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  each_loop
  each_param_in_fundecl
  eachgimple_in_basicblock
+ edge_content
  edge_dest_bb
  edge_for_false_value
  edge_for_true_value 
@@ -3214,12 +3243,11 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  foreach_field_in_record_type
  foreach_loop_exit_edges
  foreach_mapbasicblock
+ foreach_mapedge
  foreach_mapgimple
  foreach_maploop
  foreach_maptree
  get_immediate_dominator
- get_immediate_dominator
- get_immediate_post_dominator
  get_immediate_post_dominator
  gimple_asm
  gimple_assign_binaryop
@@ -3297,10 +3325,12 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  insert_ppl_constraint_in_boxed_system 
  install_melt_gcc_pass
  is_basicblock
+ is_edge
  is_gimple
  is_gimpleseq  
  is_loop
  is_mapbasicblock 
+ is_mapedge
  is_mapgimple 
  is_maploop
  is_maptree
@@ -3316,11 +3346,13 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  loop_inner
  loop_latch
  make_basicblock
+ make_edge
  make_gimple
  make_gimple_mixloc
  make_gimpleseq
  make_loop
  make_mapbasicblock
+ make_mapedge
  make_mapgimple
  make_maploop
  make_maptree
@@ -3366,11 +3398,13 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  maptree_size
  notnull_basicblock
  null_basicblock
+ null_edge
  null_gimple
  null_gimpleseq
  null_tree
  number_of_loops
  output_edge
+ output_loop
  pop_cfun
  post_dominated_by_other
  post_dominated_by_other

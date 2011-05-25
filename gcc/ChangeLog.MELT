@@ -1,6 +1,12 @@
 
 2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-ana-base.melt (output_loop)
+	(dbgout_boxloop_method): New.
+	Various fixes.
+
+2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (meltgc_out_loop): Add new declaration.
 
 	* melt-runtime.c (meltgc_out_loop): Add new function.
