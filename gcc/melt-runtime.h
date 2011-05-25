@@ -1745,6 +1745,9 @@ void meltgc_ppout_mixbigint(melt_ptr_t out_p, int indentsp, melt_ptr_t big_p);
 /* output print into an outbuf an edge */
 void meltgc_out_edge(melt_ptr_t out_p, edge edg);
 
+/* output print into an outbuf a loop */
+void meltgc_out_loop(melt_ptr_t out_p, loop_p loo);
+
 
 /***************** PASS MANAGEMENT ****************/
 /* register a Melt pass PASS; there is no way to unregister it, and the

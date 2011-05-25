@@ -1,6 +1,12 @@
 
 2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (meltgc_out_loop): Add new declaration.
+
+	* melt-runtime.c (meltgc_out_loop): Add new function.
+
+2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-opengpu.melt (opengpudetect_handle_parallel_loop):
 	Add new function.
 	(opengpudetect_exec): Call it.

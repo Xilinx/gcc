@@ -10192,7 +10192,7 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
 {
   int outmagic = 0;
 #define outv meltfram__.mcfr_varptr[0]
-  MELT_ENTERFRAME (2, NULL);
+  MELT_ENTERFRAME (1, NULL);
   outv = out_p;
   if (!outv) 
     goto end;
@@ -10200,7 +10200,7 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
   if (!edg)
     {
       meltgc_add_out ((melt_ptr_t) outv,
-			    "%nulledge%");
+		      "%nulledge%");
       goto end;
     }
   switch (outmagic) 
@@ -10229,7 +10229,58 @@ meltgc_out_edge (melt_ptr_t out_p, edge edg)
     default:
       goto end;
     }
-end:
+ end:
+  MELT_EXITFRAME ();
+#undef outv
+}
+
+
+/* print into an outbuf a loop */
+void
+meltgc_out_loop (melt_ptr_t out_p, loop_p loo)
+{
+  int outmagic = 0;
+#define outv meltfram__.mcfr_varptr[0]
+  MELT_ENTERFRAME (1, NULL);
+  outv = out_p;
+  if (!outv) 
+    goto end;
+  outmagic = melt_magic_discr ((melt_ptr_t) outv);
+  if (!loo)
+    {
+      meltgc_add_out ((melt_ptr_t) outv,
+		      "%null_loop%");
+      goto end;
+    }
+  switch (outmagic) 
+    {
+    case MELTOBMAG_STRBUF:
+      {
+	open_meltpp_file ();
+	fprintf (meltppfile, "loop@%p: ", (void*) loo);
+	flow_loop_dump (loo, meltppfile, NULL, 1);
+	close_meltpp_file ();
+	meltgc_add_out_raw_len ((melt_ptr_t) outv, meltppbuffer, (int) meltppbufsiz);
+	free(meltppbuffer);
+	meltppbuffer = 0;
+	meltppbufsiz = 0;
+      }
+      break;
+    case MELTOBMAG_SPEC_FILE:
+    case MELTOBMAG_SPEC_RAWFILE:
+      {
+	FILE* f = ((struct meltspecial_st*)outv)->val.sp_file;
+	if (!f) 
+	  goto end;
+	fprintf (f, "loop@%p: ", (void*) loo);
+	flow_loop_dump (loo, f, NULL, 1);
+	fflush (f);
+      }
+      break;
+    default:
+      goto end;
+    }
+ end:
   MELT_EXITFRAME ();
 #undef outv
 }
