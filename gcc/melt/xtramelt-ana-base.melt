@@ -2169,7 +2169,7 @@
   ;; after expansion 
   #{ /* $EACHEDGEBBSUCC-- */
      }; /* end FOR_EACH_EDGE $EACHEDGEBBSUCC */
-   } /* end if $BB $EACHEDGEBBSUCC */
+   } /* end if $EACHEDGEBBSUCC */
    }#
 )
 
@@ -2193,7 +2193,7 @@
   ;; after expansion 
   #{ /* $EACHEDGEBBPREC-- */
      }; /* end FOR_EACH_EDGE $EACHEDGEBBPREC */
-   } /* end if $BB $EACHEDGEBBPREC */
+   } /* end if $EACHEDGEBBPREC */
    }#
 )
 
