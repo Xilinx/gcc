@@ -1,3 +1,18 @@
+2011-05-24  Lawrence Crowl  <crowl@google.com>
+
+	* pph-streamer-in.c (pph_stream_read_tree): Refactor
+	from nested if statements to a switch statement.
+	For TEMPLATE_DECL, also input DECL_MEMBER_TEMPLATE_P.
+	Report unhandled trees when -fpph-untree.
+	Add already completely handled trees as separate cases.
+	(pph_stream_read_tree_vec_none): Remove.
+	* pph-streamer-out.c (pph_stream_write_tree): Refactor
+	from nested if statements to a switch statement.
+	For TEMPLATE_DECL, also output DECL_MEMBER_TEMPLATE_P.
+	Report unhandled trees when -fpph-untree.
+	Add already completely handled trees as separate cases.
+	(pph_stream_write_tree_vec_none): Remove.
+
 2011-05-24  Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_stream_read_tree): For IDENTIFIER_NODE,

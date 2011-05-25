@@ -1,3 +1,7 @@
+2011-05-24  Lawrence Crowl  <crowl@google.com>
+
+	* c.opt (fpph-untree): Add.
+
 2011-04-20  Lawrence Crowl  <crowl@google.com>
 
 	* c.opt (fpph-dump-tree): Add.

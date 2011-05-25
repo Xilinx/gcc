@@ -267,22 +267,6 @@ pph_stream_read_qual_use_vec (pph_stream *stream)
 }
 
 
-/* Read a trees from STREAM and write into a none VEC v.  */
-
-static VEC(tree,none) *
-pph_stream_read_tree_vec_none (pph_stream *stream, VEC(tree,none) *v)
-{
-  unsigned i, num;
-
-  num = pph_input_uint (stream);
-  VEC_embedded_init (tree, v, num);
-  for (i = 0; i < num; i++)
-    VEC_quick_push (tree, v, pph_input_tree (stream));
-
-  return v;
-}
-
-
 /* Forward declaration to break cyclic dependencies.  */
 static struct cp_binding_level *pph_stream_read_binding_level (pph_stream *);
 
@@ -821,24 +805,45 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 {
   pph_stream *stream = (pph_stream *) data_in->sdata;
 
-  if (DECL_P (expr))
+  switch (TREE_CODE (expr))
     {
+    case DEBUG_EXPR_DECL:
+    case IMPORTED_DECL:
+    case LABEL_DECL:
+    case RESULT_DECL:
       DECL_INITIAL (expr) = pph_input_tree (stream);
+      break;
 
-      if (TREE_CODE (expr) == FUNCTION_DECL
-	  || TREE_CODE (expr) == NAMESPACE_DECL
-	  || TREE_CODE (expr) == PARM_DECL
-	  || LANG_DECL_HAS_MIN (expr))
+    case CONST_DECL:
+    case FIELD_DECL:
+    case NAMESPACE_DECL:
+    case PARM_DECL:
+    case USING_DECL:
+    case VAR_DECL:
 	{
+      /* FIXME pph: Should we merge DECL_INITIAL into lang_specific? */
+      DECL_INITIAL (expr) = pph_input_tree (stream);
 	  pph_stream_read_lang_specific (stream, expr);
-	  if (TREE_CODE (expr) == FUNCTION_DECL)
+      break;
+        }
+
+    case FUNCTION_DECL:
+        {
+      DECL_INITIAL (expr) = pph_input_tree (stream);
+      pph_stream_read_lang_specific (stream, expr);
 	    DECL_SAVED_TREE (expr) = pph_input_tree (stream);
+      break;
 	}
 
-      if (TREE_CODE (expr) == TYPE_DECL)
+    case TYPE_DECL:
+    {
+      DECL_INITIAL (expr) = pph_input_tree (stream);
+      pph_stream_read_lang_specific (stream, expr);
 	DECL_ORIGINAL_TYPE (expr) = pph_input_tree (stream);
+      break;
     }
-  else if (TREE_CODE (expr) == STATEMENT_LIST)
+
+    case STATEMENT_LIST:
     {
       HOST_WIDE_INT i, num_trees = pph_input_uint (stream);
       for (i = 0; i < num_trees; i++)
@@ -846,56 +851,90 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 	  tree stmt = pph_input_tree (stream);
 	  append_to_statement_list (stmt, &expr);
 	}
+      break;
     }
-  else if (TYPE_P (expr))
+
+    case ARRAY_TYPE:
+    case BOOLEAN_TYPE:
+    case COMPLEX_TYPE:
+    case ENUMERAL_TYPE:
+    case FIXED_POINT_TYPE:
+    case FUNCTION_TYPE:
+    case INTEGER_TYPE:
+    case LANG_TYPE:
+    case METHOD_TYPE:
+    case NULLPTR_TYPE:
+    case OFFSET_TYPE:
+    case POINTER_TYPE:
+    case REAL_TYPE:
+    case REFERENCE_TYPE:
+    case VECTOR_TYPE:
+    case VOID_TYPE:
     {
       pph_stream_read_lang_type (stream, expr);
-      if (TREE_CODE (expr) == RECORD_TYPE
-          || TREE_CODE (expr) == UNION_TYPE
-          || TREE_CODE (expr) == QUAL_UNION_TYPE)
+      break;
+    }
+
+    case QUAL_UNION_TYPE:
+    case RECORD_TYPE:
+    case UNION_TYPE:
+    {
+          pph_stream_read_lang_type (stream, expr);
         {
           TYPE_BINFO (expr) = pph_input_tree (stream);
         }
+      break;
     }
-  else if (TREE_CODE (expr) == OVERLOAD)
+
+    case OVERLOAD:
     {
       OVL_FUNCTION (expr) = pph_input_tree (stream);
+      break;
     }
-  else if (TREE_CODE (expr) == IDENTIFIER_NODE)
+
+    case IDENTIFIER_NODE:
     {
       struct lang_identifier *id = LANG_IDENTIFIER_CAST (expr);
       id->namespace_bindings = pph_stream_read_cxx_binding (stream);
       id->bindings = pph_stream_read_cxx_binding (stream);
       id->class_template_info = pph_input_tree (stream);
       id->label_value = pph_input_tree (stream);
+      break;
     }
-  else if (TREE_CODE (expr) == BASELINK)
+
+    case BASELINK:
     {
       BASELINK_BINFO (expr) = pph_input_tree (stream);
       BASELINK_FUNCTIONS (expr) = pph_input_tree (stream);
       BASELINK_ACCESS_BINFO (expr) = pph_input_tree (stream);
+      break;
     }
-  else if (TREE_CODE (expr) == TREE_BINFO)
+
+    case TEMPLATE_DECL:
     {
-      BINFO_OFFSET (expr) = pph_input_tree (stream);
-      BINFO_VTABLE (expr) = pph_input_tree (stream);
-      BINFO_VIRTUALS (expr) = pph_input_tree (stream);
-      BINFO_VPTR_FIELD (expr) = pph_input_tree (stream);
-      BINFO_BASE_ACCESSES (expr) = pph_stream_read_tree_vec (stream);
-      BINFO_INHERITANCE_CHAIN (expr) = pph_input_tree (stream);
-      BINFO_SUBVTT_INDEX (expr) = pph_input_tree (stream);
-      BINFO_VPTR_INDEX (expr) = pph_input_tree (stream);
-      pph_stream_read_tree_vec_none (stream, BINFO_BASE_BINFOS (expr) );
-    }
-  else if (TREE_CODE (expr) == TEMPLATE_DECL)
-    {
+      DECL_INITIAL (expr) = pph_input_tree (stream);
+      pph_stream_read_lang_specific (stream, expr);
       DECL_TEMPLATE_RESULT (expr) = pph_input_tree (stream);
       DECL_TEMPLATE_PARMS (expr) = pph_input_tree (stream);
       DECL_CONTEXT (expr) = pph_input_tree (stream);
+      break;
     }
-  else if (TREE_CODE (expr) == TEMPLATE_INFO)
+
+    case TEMPLATE_INFO:
     {
       TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr)
           = pph_stream_read_qual_use_vec (stream);
+      break;
+    }
+
+    case TREE_LIST:
+    case TREE_BINFO:
+      /* These trees are already fully handled.  */
+      break;
+
+    default:
+      if (flag_pph_untree)
+        fprintf (pph_logfile, "PPH: unrecognized tree node %s\n",
+                 tree_code_name[TREE_CODE (expr)]);
     }
 }
