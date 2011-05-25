@@ -23,6 +23,39 @@
     <http://www.gnu.org/licenses/>.
 ***")
 
+(defun opengpudetect_handle_parallel_loop (curloopval :long loopix)
+  (debug_msg curloopval "opengpudetect_handle_parallel_loop start curloopval")
+  (let (
+	(:loop curloop (loop_content curloopval))
+	(curloopbodytuple (loop_body_tuple discr_multiple curloop)) 
+	(curloopedgetuple (loop_exit_edges_tuple discr_multiple curloop))
+	(:basic_block bbloophead (loop_header curloop))
+	(:basic_block bblooplatch (loop_latch curloop))
+	)
+    (debugbasicblock "opengpudetect_handle_parallel_loop bbloophead" bbloophead)
+    (debugbasicblock "opengpudetect_handle_parallel_loop bblooplatch" bblooplatch)
+    (debug_msg curloopbodytuple "opengpudetect_handle_parallel_loop parellelizable curloopbodytuple")
+    (debug_msg curloopedgetuple "opengpudetect_handle_parallel_loop parellelizable curloopedgetuple")
+    (foreach_in_multiple
+     (curloopbodytuple)
+     (curloopbody :long bodyix)
+     (debug_msg curloopbody "opengpudetect_handle_parallel_loop curloopbody")
+     (assert_msg "opengpudetect_handle_parallel_loop check curloopbody" (is_basicblock curloopbody))
+     (eachgimple_in_basicblock
+      ((basicblock_content curloopbody))
+      (:gimple gimbody)
+      (debuggimple "opengpudetect_handle_parallel_loop gimbody" gimbody)
+      (match gimbody
+	     (?(gimple_assign_single ?lhs ?rhs)
+	       (debugtree "opengpudetect_handle_parallel_loop assign single plain lhs" lhs)
+	       (debugtree "opengpudetect_handle_parallel_loop assign single plain rhs" rhs)
+	       )
+	     (?_
+	      ()))
+      )
+     )
+  (debug_msg curloopval "opengpudetect_handle_parallel_loop end curloopval")
+  ))
 
 (defun opengpudetect_gate (pass)
   (debug_msg pass "opengpudetect_gate start")
@@ -70,41 +103,12 @@
      (debuglong "opengpudetect_exec computed loopdepth" 
 		(loop_depth curloop))
      (if (loop_can_be_parallel curloop)
-	 (progn
-	   (code_chunk 
-	    loopparachunk
-	    #{ /*$LOOPPARACHUNK */
-	    melt_sparebreakpoint_1($CURLOOP, 
-				   "$CURLOOP could be parallel in $LOOPPARACHUNK") ;
-	    }#)
-	   (debugloop curloop  "opengpudetect_exec curloop can be parallel!!!")
-	   (let ( (curloopbodytuple (loop_body_tuple discr_multiple curloop)) 
-		  (curloopedgetuple (loop_exit_edges_tuple discr_multiple curloop))
-		  (:basic_block loophead (loop_header curloop))
-		  (:basic_block looplatch (loop_latch curloop))
-		  )
-	     (debugbasicblock "opengpudetect_exec loophead" loophead)
-	     (debugbasicblock "opengpudetect_exec looplatch" looplatch)
-	     (debug_msg curloopbodytuple "opengpudetect_exec parellelizable curloopbodytuple")
-	     (debug_msg curloopedgetuple "opengpudetect_exec parellelizable curloopedgetuple")
-	     (foreach_in_multiple
-	      (curloopbodytuple)
-	      (curloopbody :long bodyix)
-	      (debug_msg curloopbody "opengpudetect_exec curloopbody")
-	      (assert_msg "opengpudetect_exec check curloopbody" (is_basicblock curloopbody))
-	      (eachgimple_in_basicblock
-	       ((basicblock_content curloopbody))
-	       (:gimple gimbody)
-	       (debuggimple "opengpudetect_exec gimbody" gimbody)
-	       (match gimbody
-		      (?(gimple_assign_single ?lhs ?rhs)
-			(debugtree "opengpudetect_exec assign single plain lhs" lhs)
-			(debugtree "opengpudetect_exec assign single plain rhs" rhs)
-			)
-		      (?_
-		       ()))
+	 (let ( (curloopval (make_loop discr_loop curloop))
 	       )
-	      )))
+	   (debug_msg curloopval  "opengpudetect_exec curloopval can be parallel!!!")
+	   (opengpudetect_handle_parallel_loop curloopval)
+	   (debug_msg curloopval  "opengpudetect_exec after opengpudetect_handle_parallel_loop")
+	   )
        (debugloop curloop "opengpudetect_exec curloop is not parallel!!!")
        )
      )

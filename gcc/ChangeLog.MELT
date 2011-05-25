@@ -1,13 +1,19 @@
 
 2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt/xtramelt-opengpu.melt (opengpudetect_handle_parallel_loop):
+	Add new function.
+	(opengpudetect_exec): Call it.
+
+2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/xtramelt-ana-base.melt: Exporting loop primitives.
 
 2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-ana-base.melt (each_loop): Get a new loopix local
 	formal.
-	(loop_index_number): Thingo in return type.
+	(loop_index_number): Thinko in return type.
 	(loop_depth): New.
 
 	* melt/xtramelt-opengpu.melt (opengpudetect_exec): Correct
