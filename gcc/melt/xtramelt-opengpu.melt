@@ -34,6 +34,15 @@
 	)
     (debugbasicblock "opengpudetect_handle_parallel_loop bbloophead" bbloophead)
     (debugbasicblock "opengpudetect_handle_parallel_loop bblooplatch" bblooplatch)
+    (debuglong  "opengpudetect_handle_parallel_loop nbsucc bbloophead" (basicblock_nb_succ bbloophead))
+    (foreach_edge_bb_succs 
+     (bbloophead)
+     (:edge edgheadsuc)
+     (debugedge "opengpudetect_handle_parallel_loop edgheadsuc")
+     (debugbasicblock "opengpudetect_handle_parallel_loop edgheadsuc destbb"
+		      (edge_dest_bb edgheadsuc))
+     )
+    (debuglong  "opengpudetect_handle_parallel_loop nbsucc bblooplatch" (basicblock_nb_succ bblooplatch))
     (debug_msg curloopbodytuple "opengpudetect_handle_parallel_loop parellelizable curloopbodytuple")
     (debug_msg curloopedgetuple "opengpudetect_handle_parallel_loop parellelizable curloopedgetuple")
     (foreach_in_multiple
@@ -49,6 +58,36 @@
 	     (?(gimple_assign_single ?lhs ?rhs)
 	       (debugtree "opengpudetect_handle_parallel_loop assign single plain lhs" lhs)
 	       (debugtree "opengpudetect_handle_parallel_loop assign single plain rhs" rhs)
+	       )
+	     (?(gimple_assign_plus ?lhs ?rhs1 ?rhs2)
+	       (debugtree "opengpudetect_handle_parallel_loop assign plus lhs" lhs)
+	       (debugtree "opengpudetect_handle_parallel_loop assign plus rhs1" rhs1)
+	       (debugtree "opengpudetect_handle_parallel_loop assign plus rhs2" rhs2)
+	       )
+	     (?(gimple_assign_pointerplus ?lhs ?rhs1 ?rhs2)
+	       (debugtree "opengpudetect_handle_parallel_loop assign pointerplus lhs" lhs)
+	       (debugtree "opengpudetect_handle_parallel_loop assign pointerplus rhs1" rhs1)
+	       (debugtree "opengpudetect_handle_parallel_loop assign pointerplus rhs2" rhs2)
+	       )
+	     (?(gimple_assign_mult ?lhs ?rhs1 ?rhs2)
+	       (debugtree "opengpudetect_handle_parallel_loop assign mult lhs" lhs)
+	       (debugtree "opengpudetect_handle_parallel_loop assign mult rhs1" rhs1)
+	       (debugtree "opengpudetect_handle_parallel_loop assign mult rhs2" rhs2)
+	       )
+	     (?(gimple_assign_binaryop ?lhs ?rhs1 ?rhs2 ?opcod)
+	       (debugtree "opengpudetect_handle_parallel_loop assign binaryop lhs" lhs)
+	       (debugtree "opengpudetect_handle_parallel_loop assign binaryop rhs1" rhs1)
+	       (debugtree "opengpudetect_handle_parallel_loop assign binaryop rhs2" rhs2)
+	       (debuglong "opengpudetect_handle_parallel_loop assign binaryop opcod" opcod)
+	       (code_chunk 
+		debugopcodnam
+		#{/*$DEBUGOPCODNAM*/ const int $DEBUGOPCODNAM#_lin = __LINE__;
+		debugeprintfline($DEBUGOPCODNAM#_lin,
+				 "opengpudetect_handle_parallel_loop assign binaryopname %s",
+				 ($OPCOD>=0 && $OPCOD<MAX_TREE_CODES)?
+				 tree_code_name[$OPCOD]:"??");
+		}#)
+	       (assert_msg "opengpudetect_handle_parallel_loop unexpected binaryop") 
 	       )
 	     (?_
 	      ()))
