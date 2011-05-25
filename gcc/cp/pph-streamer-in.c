@@ -820,39 +820,33 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case PARM_DECL:
     case USING_DECL:
     case VAR_DECL:
-	{
       /* FIXME pph: Should we merge DECL_INITIAL into lang_specific? */
       DECL_INITIAL (expr) = pph_input_tree (stream);
-	  pph_stream_read_lang_specific (stream, expr);
+      pph_stream_read_lang_specific (stream, expr);
       break;
-        }
 
     case FUNCTION_DECL:
-        {
       DECL_INITIAL (expr) = pph_input_tree (stream);
       pph_stream_read_lang_specific (stream, expr);
-	    DECL_SAVED_TREE (expr) = pph_input_tree (stream);
+      DECL_SAVED_TREE (expr) = pph_input_tree (stream);
       break;
-	}
 
     case TYPE_DECL:
-    {
       DECL_INITIAL (expr) = pph_input_tree (stream);
       pph_stream_read_lang_specific (stream, expr);
-	DECL_ORIGINAL_TYPE (expr) = pph_input_tree (stream);
+      DECL_ORIGINAL_TYPE (expr) = pph_input_tree (stream);
       break;
-    }
 
     case STATEMENT_LIST:
-    {
-      HOST_WIDE_INT i, num_trees = pph_input_uint (stream);
-      for (i = 0; i < num_trees; i++)
-	{
-	  tree stmt = pph_input_tree (stream);
-	  append_to_statement_list (stmt, &expr);
-	}
+      {
+        HOST_WIDE_INT i, num_trees = pph_input_uint (stream);
+        for (i = 0; i < num_trees; i++)
+	  {
+	    tree stmt = pph_input_tree (stream);
+	    append_to_statement_list (stmt, &expr);
+	  }
+      }
       break;
-    }
 
     case ARRAY_TYPE:
     case BOOLEAN_TYPE:
@@ -870,62 +864,48 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case REFERENCE_TYPE:
     case VECTOR_TYPE:
     case VOID_TYPE:
-    {
       pph_stream_read_lang_type (stream, expr);
       break;
-    }
 
     case QUAL_UNION_TYPE:
     case RECORD_TYPE:
     case UNION_TYPE:
-    {
-          pph_stream_read_lang_type (stream, expr);
-        {
-          TYPE_BINFO (expr) = pph_input_tree (stream);
-        }
+      pph_stream_read_lang_type (stream, expr);
+      TYPE_BINFO (expr) = pph_input_tree (stream);
       break;
-    }
 
     case OVERLOAD:
-    {
       OVL_FUNCTION (expr) = pph_input_tree (stream);
       break;
-    }
 
     case IDENTIFIER_NODE:
-    {
-      struct lang_identifier *id = LANG_IDENTIFIER_CAST (expr);
-      id->namespace_bindings = pph_stream_read_cxx_binding (stream);
-      id->bindings = pph_stream_read_cxx_binding (stream);
-      id->class_template_info = pph_input_tree (stream);
-      id->label_value = pph_input_tree (stream);
+      {
+        struct lang_identifier *id = LANG_IDENTIFIER_CAST (expr);
+        id->namespace_bindings = pph_stream_read_cxx_binding (stream);
+        id->bindings = pph_stream_read_cxx_binding (stream);
+        id->class_template_info = pph_input_tree (stream);
+        id->label_value = pph_input_tree (stream);
+      }
       break;
-    }
 
     case BASELINK:
-    {
       BASELINK_BINFO (expr) = pph_input_tree (stream);
       BASELINK_FUNCTIONS (expr) = pph_input_tree (stream);
       BASELINK_ACCESS_BINFO (expr) = pph_input_tree (stream);
       break;
-    }
 
     case TEMPLATE_DECL:
-    {
       DECL_INITIAL (expr) = pph_input_tree (stream);
       pph_stream_read_lang_specific (stream, expr);
       DECL_TEMPLATE_RESULT (expr) = pph_input_tree (stream);
       DECL_TEMPLATE_PARMS (expr) = pph_input_tree (stream);
       DECL_CONTEXT (expr) = pph_input_tree (stream);
       break;
-    }
 
     case TEMPLATE_INFO:
-    {
       TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr)
           = pph_stream_read_qual_use_vec (stream);
       break;
-    }
 
     case TREE_LIST:
     case TREE_BINFO:

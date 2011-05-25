@@ -1,3 +1,8 @@
+2011-05-25  Lawrence Crowl  <crowl@google.com>
+
+	* pph-streamer-in.c (pph_stream_read_tree): Reformat for style.
+	* pph-streamer-out.c (pph_stream_write_tree): Reformat for style.
+
 2011-05-25  Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-out.c (pph_stream_write_tree) <TEMPLATE_DECL>:

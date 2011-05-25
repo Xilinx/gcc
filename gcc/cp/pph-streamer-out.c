@@ -821,45 +821,39 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
     case PARM_DECL:
     case USING_DECL:
     case VAR_DECL:
-	{
       /* FIXME pph: Should we merge DECL_INITIAL into lang_specific? */
       pph_output_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
-	  pph_stream_write_lang_specific (stream, expr, ref_p);
+      pph_stream_write_lang_specific (stream, expr, ref_p);
       break;
-        }
 
     case FUNCTION_DECL:
-        {
       pph_output_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
       pph_stream_write_lang_specific (stream, expr, ref_p);
-	    pph_output_tree_or_ref_1 (stream, DECL_SAVED_TREE (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, DECL_SAVED_TREE (expr), ref_p, 3);
       break;
-	}
 
     case TYPE_DECL:
-    {
       pph_output_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
       pph_stream_write_lang_specific (stream, expr, ref_p);
-	pph_output_tree_or_ref_1 (stream, DECL_ORIGINAL_TYPE (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, DECL_ORIGINAL_TYPE (expr), ref_p, 3);
       break;
-    }
 
     case STATEMENT_LIST:
-    {
-      tree_stmt_iterator i;
-      unsigned num_stmts;
+      {
+        tree_stmt_iterator i;
+        unsigned num_stmts;
 
-      /* Compute and write the number of statements in the list.  */
-      for (num_stmts = 0, i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
-	num_stmts++;
+        /* Compute and write the number of statements in the list.  */
+        for (num_stmts = 0, i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
+	  num_stmts++;
 
-      pph_output_uint (stream, num_stmts);
+        pph_output_uint (stream, num_stmts);
 
-      /* Write the statements.  */
-      for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
-	pph_output_tree_or_ref_1 (stream, tsi_stmt (i), ref_p, 3);
+        /* Write the statements.  */
+        for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
+	  pph_output_tree_or_ref_1 (stream, tsi_stmt (i), ref_p, 3);
+      }
       break;
-    }
 
     case ARRAY_TYPE:
     case BOOLEAN_TYPE:
@@ -877,62 +871,48 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
     case REFERENCE_TYPE:
     case VECTOR_TYPE:
     case VOID_TYPE:
-    {
       pph_stream_write_lang_type (stream, expr, ref_p);
       break;
-    }
 
     case QUAL_UNION_TYPE:
     case RECORD_TYPE:
     case UNION_TYPE:
-    {
-          pph_stream_write_lang_type (stream, expr, ref_p);
-        {
-          pph_output_tree_or_ref_1 (stream, TYPE_BINFO (expr), ref_p, 3);
-        }
+      pph_stream_write_lang_type (stream, expr, ref_p);
+      pph_output_tree_or_ref_1 (stream, TYPE_BINFO (expr), ref_p, 3);
       break;
-    }
 
     case OVERLOAD:
-    {
       pph_output_tree_or_ref_1 (stream, OVL_CURRENT (expr), ref_p, 3);
       break;
-    }
 
     case IDENTIFIER_NODE:
-    {
-      struct lang_identifier *id = LANG_IDENTIFIER_CAST (expr);
-      pph_stream_write_cxx_binding (stream, id->namespace_bindings, ref_p);
-      pph_stream_write_cxx_binding (stream, id->bindings, ref_p);
-      pph_output_tree_or_ref_1 (stream, id->class_template_info, ref_p, 3);
-      pph_output_tree_or_ref_1 (stream, id->label_value, ref_p, 3);
+      {
+        struct lang_identifier *id = LANG_IDENTIFIER_CAST (expr);
+        pph_stream_write_cxx_binding (stream, id->namespace_bindings, ref_p);
+        pph_stream_write_cxx_binding (stream, id->bindings, ref_p);
+        pph_output_tree_or_ref_1 (stream, id->class_template_info, ref_p, 3);
+        pph_output_tree_or_ref_1 (stream, id->label_value, ref_p, 3);
+      }
       break;
-    }
 
     case BASELINK:
-    {
       pph_output_tree_or_ref_1 (stream, BASELINK_BINFO (expr), ref_p, 3);
       pph_output_tree_or_ref_1 (stream, BASELINK_FUNCTIONS (expr), ref_p, 3);
       pph_output_tree_or_ref_1 (stream, BASELINK_ACCESS_BINFO (expr), ref_p, 3);
       break;
-    }
 
     case TEMPLATE_DECL:
-    {
       pph_output_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
       pph_stream_write_lang_specific (stream, expr, ref_p);
       pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_RESULT (expr), ref_p, 3);
       pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_PARMS (expr), ref_p, 3);
       pph_output_tree_or_ref_1 (stream, DECL_CONTEXT (expr), ref_p, 3);
       break;
-    }
 
     case TEMPLATE_INFO:
-    {
       pph_stream_write_qual_use_vec (stream,
           TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr), ref_p);
       break;
-    }
 
     case TREE_LIST:
     case TREE_BINFO:
