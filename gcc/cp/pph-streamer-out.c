@@ -924,7 +924,6 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
       pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_RESULT (expr), ref_p, 3);
       pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_PARMS (expr), ref_p, 3);
       pph_output_tree_or_ref_1 (stream, DECL_CONTEXT (expr), ref_p, 3);
-      pph_output_uchar (stream, DECL_MEMBER_TEMPLATE_P (expr));
       break;
     }
 

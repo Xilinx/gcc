@@ -1,3 +1,8 @@
+2011-05-25  Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-out.c (pph_stream_write_tree) <TEMPLATE_DECL>:
+	Do not write DECL_MEMBER_TEMPLATE_P.
+
 2011-05-24  Lawrence Crowl  <crowl@google.com>
 
 	* pph-streamer-in.c (pph_stream_read_tree): Refactor
