@@ -38,7 +38,7 @@
     (foreach_edge_bb_succs 
      (bbloophead)
      (:edge edgheadsuc)
-     (debugedge "opengpudetect_handle_parallel_loop edgheadsuc")
+     (debugedge "opengpudetect_handle_parallel_loop edgheadsuc" edgheadsuc)
      (debugbasicblock "opengpudetect_handle_parallel_loop edgheadsuc destbb"
 		      (edge_dest_bb edgheadsuc))
      )

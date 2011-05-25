@@ -2,6 +2,11 @@
 2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-opengpu.melt (opengpudetect_handle_parallel_loop):
+	Fix debugedge call.
+
+2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-opengpu.melt (opengpudetect_handle_parallel_loop):
 	More.
 
 2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
