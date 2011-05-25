@@ -3170,17 +3170,6 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  basicblock_nb_succ
  basicblock_phinodes
  basicblock_single_succ 
- debug_dominance_info
- debug_post_dominance_info
- get_immediate_dominator
- get_immediate_post_dominator
- dominated_by_other
- post_dominated_by_other
- dominated_by_bb_iterator
- get_immediate_dominator
- get_immediate_post_dominator
- dominated_by_other
- post_dominated_by_other
  cfun_decl
  cfun_gimple_body
  cfun_has_cfg
@@ -3188,6 +3177,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  cfun_nonlocal_goto_save_area
  cfun_static_chain_decl
  clear_special 
+ debug_dominance_info
+ debug_post_dominance_info
  debug_ppl_coefficient
  debug_ppl_constraint
  debug_ppl_linear_expression
@@ -3199,6 +3190,9 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  debugloop
  debugtree
  debugtreecodenum
+ dominated_by_bb_iterator
+ dominated_by_other
+ dominated_by_other
  each_bb_cfun
  each_bb_current_fun
  each_cgraph_decl
@@ -3221,7 +3215,12 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  foreach_loop_exit_edges
  foreach_mapbasicblock
  foreach_mapgimple
+ foreach_maploop
  foreach_maptree
+ get_immediate_dominator
+ get_immediate_dominator
+ get_immediate_post_dominator
+ get_immediate_post_dominator
  gimple_asm
  gimple_assign_binaryop
  gimple_assign_cast
@@ -3300,25 +3299,30 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  is_basicblock
  is_gimple
  is_gimpleseq  
+ is_loop
  is_mapbasicblock 
  is_mapgimple 
+ is_maploop
  is_maptree
  is_tree  
  isnull_basicblock
  loop_body_tuple
  loop_can_be_parallel
+ loop_content
+ loop_depth
  loop_exit_edges_tuple
  loop_header
  loop_index_number
- loop_depth
  loop_inner
  loop_latch
  make_basicblock
  make_gimple
- make_gimpleseq
  make_gimple_mixloc
+ make_gimpleseq
+ make_loop
  make_mapbasicblock
  make_mapgimple
+ make_maploop
  make_maptree
  make_ppl_constraint 
  make_ppl_linear_expression  
@@ -3368,6 +3372,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  number_of_loops
  output_edge
  pop_cfun
+ post_dominated_by_other
+ post_dominated_by_other
  ppl_Constraint_System_insert_Constraint
  ppl_Linear_Expression_add_to_coefficient
  ppl_Linear_Expression_add_to_inhomogeneous
@@ -3410,8 +3416,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_integer_type
  tree_list
  tree_of_type
- tree_pointer_type_p
  tree_parm_decl
+ tree_pointer_type_p
  tree_real_cst
  tree_real_type
  tree_record_type
@@ -3427,7 +3433,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  warning_at_gimple
  warning_at_tree
  with_cfun_decl
-)
+ )
 
 (export_class
  class_analysis_state

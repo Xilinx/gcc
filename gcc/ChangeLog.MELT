@@ -1,4 +1,8 @@
 
+2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-ana-base.melt: Exporting loop primitives.
+
 2011-05-24  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-ana-base.melt (each_loop): Get a new loopix local
