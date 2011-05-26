@@ -251,4 +251,6 @@ extern bool opencl_should_be_parallel_p (opencl_main, opencl_clast_meta, int);
 extern basic_block opencl_create_bb (opencl_main);
 extern bool dependency_in_clast_loop_p (opencl_main, opencl_clast_meta,
                                         struct clast_for *, int);
+extern bool enabled_dependency_in_clast_loop_p (opencl_main, opencl_clast_meta,
+                                                struct clast_for *, int);
 extern tree opencl_get_base_object_by_tree (tree);

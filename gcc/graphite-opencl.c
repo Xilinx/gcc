@@ -2144,9 +2144,8 @@ opencl_transform_stmt_list (struct clast_stmt *s, opencl_main code_gen,
           bool parallel = false;
 
           /* If there are dependencies in loop, it can't be parallelized.  */
-          if (!flag_graphite_opencl_no_dep_check &&
-              dependency_in_clast_loop_p (code_gen, current_clast,
-                                          for_stmt, depth))
+          if (enabled_dependency_in_clast_loop_p (code_gen, current_clast,
+                                                  for_stmt, depth))
             {
 	      if (dump_p)
 		fprintf (dump_file, "dependency in loop\n");
@@ -2607,6 +2606,20 @@ dependency_in_clast_loop_p (opencl_main code_gen, opencl_clast_meta meta,
 
   VEC_free (poly_bb_p, heap, pbbs);
   return false;
+}
+
+/* Returns true, if dependency checking enabled and there is dependency in
+   clast loop STMT on depth DEPTH.
+   CODE_GEN holds information related to code generation.  */
+
+bool
+enabled_dependency_in_clast_loop_p (opencl_main code_gen,
+                                    opencl_clast_meta meta,
+                                    struct clast_for *stmt, int depth)
+{
+  if (flag_graphite_opencl_no_dep_check)
+    return false;
+  return dependency_in_clast_loop_p (code_gen, meta, stmt, depth);
 }
 
 /* Init graphite-opencl pass.  Must be called in each function before

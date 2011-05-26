@@ -280,7 +280,7 @@ opencl_get_perfect_nested_loop_depth (opencl_main code_gen,
 {
   struct clast_for *child;
 
-  if (dependency_in_clast_loop_p (code_gen, meta, loop, depth))
+  if (enabled_dependency_in_clast_loop_p (code_gen, meta, loop, depth))
     return 0;
 
   child = opencl_get_single_loop_child (loop);
