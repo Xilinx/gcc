@@ -378,6 +378,55 @@ pph_stream_write_label_binding (pph_stream *stream, cp_label_binding *lb,
 }
 
 
+/* Output a chain of nodes to STREAM starting with FIRST.  Skip any
+   nodes that do not match FILTER.  REF_P is true if nodes in the chain
+   should be emitted as references.  */
+
+void
+pph_output_chain_filtered (pph_stream *stream, tree first, bool ref_p,
+			   enum chain_filter filter)
+{
+  unsigned count;
+  tree t;
+
+  /* Special case.  If the caller wants no filtering, it is much
+     faster to just call pph_output_chain directly.  */
+  if (filter == NONE)
+    {
+      pph_output_chain (stream, first, ref_p);
+      return;
+    }
+
+  /* Count all the nodes that match the filter.  */
+  for (t = first, count = 0; t; t = TREE_CHAIN (t))
+    {
+      if (filter == NO_BUILTINS && DECL_P (t) && DECL_IS_BUILTIN (t))
+	continue;
+      count++;
+    }
+  pph_output_uint (stream, count);
+
+  /* Output all the nodes that match the filter.  */
+  for (t = first; t; t = TREE_CHAIN (t))
+    {
+      tree saved_chain;
+
+      /* Apply filters to T.  */
+      if (filter == NO_BUILTINS && DECL_P (t) && DECL_IS_BUILTIN (t))
+	continue;
+
+      /* Clear TREE_CHAIN to avoid blindly recursing into the rest
+	 of the list.  */
+      saved_chain = TREE_CHAIN (t);
+      TREE_CHAIN (t) = NULL_TREE;
+
+      pph_output_tree_or_ref_1 (stream, t, ref_p, 2);
+
+      TREE_CHAIN (t) = saved_chain;
+    }
+}
+
+
 /* Write all the fields of cp_binding_level instance BL to STREAM.  If
    REF_P is true, tree fields will be written as references.  */
 
@@ -838,6 +887,14 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
       pph_output_tree_or_ref_1 (stream, DECL_ORIGINAL_TYPE (expr), ref_p, 3);
       break;
 
+    case TEMPLATE_DECL:
+      pph_output_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
+      pph_stream_write_lang_specific (stream, expr, ref_p);
+      pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_RESULT (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_PARMS (expr), ref_p, 3);
+      pph_output_tree_or_ref_1 (stream, DECL_CONTEXT (expr), ref_p, 3);
+      break;
+
     case STATEMENT_LIST:
       {
         tree_stmt_iterator i;
@@ -901,14 +958,6 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
       pph_output_tree_or_ref_1 (stream, BASELINK_ACCESS_BINFO (expr), ref_p, 3);
       break;
 
-    case TEMPLATE_DECL:
-      pph_output_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
-      pph_stream_write_lang_specific (stream, expr, ref_p);
-      pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_RESULT (expr), ref_p, 3);
-      pph_output_tree_or_ref_1 (stream, DECL_TEMPLATE_PARMS (expr), ref_p, 3);
-      pph_output_tree_or_ref_1 (stream, DECL_CONTEXT (expr), ref_p, 3);
-      break;
-
     case TEMPLATE_INFO:
       pph_stream_write_qual_use_vec (stream,
           TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr), ref_p);
@@ -923,54 +972,5 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
       if (flag_pph_untree)
         fprintf (pph_logfile, "PPH: unrecognized tree node %s\n",
                  tree_code_name[TREE_CODE (expr)]);
-    }
-}
-
-
-/* Output a chain of nodes to STREAM starting with FIRST.  Skip any
-   nodes that do not match FILTER.  REF_P is true if nodes in the chain
-   should be emitted as references.  */
-
-void
-pph_output_chain_filtered (pph_stream *stream, tree first, bool ref_p,
-			   enum chain_filter filter)
-{
-  unsigned count;
-  tree t;
-
-  /* Special case.  If the caller wants no filtering, it is much
-     faster to just call pph_output_chain directly.  */
-  if (filter == NONE)
-    {
-      pph_output_chain (stream, first, ref_p);
-      return;
-    }
-
-  /* Count all the nodes that match the filter.  */
-  for (t = first, count = 0; t; t = TREE_CHAIN (t))
-    {
-      if (filter == NO_BUILTINS && DECL_P (t) && DECL_IS_BUILTIN (t))
-	continue;
-      count++;
-    }
-  pph_output_uint (stream, count);
-
-  /* Output all the nodes that match the filter.  */
-  for (t = first; t; t = TREE_CHAIN (t))
-    {
-      tree saved_chain;
-
-      /* Apply filters to T.  */
-      if (filter == NO_BUILTINS && DECL_P (t) && DECL_IS_BUILTIN (t))
-	continue;
-
-      /* Clear TREE_CHAIN to avoid blindly recursing into the rest
-	 of the list.  */
-      saved_chain = TREE_CHAIN (t);
-      TREE_CHAIN (t) = NULL_TREE;
-
-      pph_output_tree_or_ref_1 (stream, t, ref_p, 2);
-
-      TREE_CHAIN (t) = saved_chain;
     }
 }

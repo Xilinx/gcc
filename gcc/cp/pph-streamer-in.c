@@ -837,6 +837,14 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
       DECL_ORIGINAL_TYPE (expr) = pph_input_tree (stream);
       break;
 
+    case TEMPLATE_DECL:
+      DECL_INITIAL (expr) = pph_input_tree (stream);
+      pph_stream_read_lang_specific (stream, expr);
+      DECL_TEMPLATE_RESULT (expr) = pph_input_tree (stream);
+      DECL_TEMPLATE_PARMS (expr) = pph_input_tree (stream);
+      DECL_CONTEXT (expr) = pph_input_tree (stream);
+      break;
+
     case STATEMENT_LIST:
       {
         HOST_WIDE_INT i, num_trees = pph_input_uint (stream);
@@ -892,14 +900,6 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
       BASELINK_BINFO (expr) = pph_input_tree (stream);
       BASELINK_FUNCTIONS (expr) = pph_input_tree (stream);
       BASELINK_ACCESS_BINFO (expr) = pph_input_tree (stream);
-      break;
-
-    case TEMPLATE_DECL:
-      DECL_INITIAL (expr) = pph_input_tree (stream);
-      pph_stream_read_lang_specific (stream, expr);
-      DECL_TEMPLATE_RESULT (expr) = pph_input_tree (stream);
-      DECL_TEMPLATE_PARMS (expr) = pph_input_tree (stream);
-      DECL_CONTEXT (expr) = pph_input_tree (stream);
       break;
 
     case TEMPLATE_INFO:
