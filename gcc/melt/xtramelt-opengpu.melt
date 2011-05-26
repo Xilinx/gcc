@@ -34,6 +34,9 @@
 	)
     (debugbasicblock "opengpudetect_handle_parallel_loop bbloophead" bbloophead)
     (debugbasicblock "opengpudetect_handle_parallel_loop bblooplatch" bblooplatch)
+    ;; loop into tree-parloops.c & tree-ssa-loop-manip.c &
+    ;; tree-ssa-loop-niter.c function try_get_loop_niter &
+    ;; canonicalize_loop_ivs & number_of_iterations_exit
     (debuglong  "opengpudetect_handle_parallel_loop nbsucc bbloophead" (basicblock_nb_succ bbloophead))
     (foreach_edge_bb_succs 
      (bbloophead)

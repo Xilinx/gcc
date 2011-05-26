@@ -4,7 +4,9 @@
   ln -s $GCCMELT_SOURCE/gcc/testsuite/melt/topengpu-vecsum.c .
  ./cc1 -std=gnu99 -fmelt-mode=opengpu -fmelt-module-path=melt-modules -fmelt-source-path=melt-sources -fmelt-debug -O2 -fgraphite -floop-parallelize-all  topengpu-vecsum.c
   ## it could be useful to pass -fdump-tree-all -fdump-ipa-all
-*/
+
+  ## it could be useful to pass -ftree-parallelize-loops=4 which
+triggers autopar in tree-parloops.c */
 
 void myvecsum (int sz, 
                /* NB: without the restrict below, the loop is not parallel for graphite */

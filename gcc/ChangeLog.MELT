@@ -1,4 +1,9 @@
 
+2011-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-opengpu.melt: Added comments with Konrad's
+	insights.
+	* testsuite/melt/topengpu-vecsum.c: Ditto.
+
 2011-05-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
