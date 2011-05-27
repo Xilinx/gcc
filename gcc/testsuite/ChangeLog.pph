@@ -1,5 +1,22 @@
 2011-05-27  Diego Novillo  <dnovillo@google.com>
 
+	* g++.dg/pph/c1attr-warn-unused-result.cc: New.
+	* g++.dg/pph/c1attr-warn-unused-result.h: New.
+	* g++.dg/pph/c1builtin-integral-1.cc: New.
+	* g++.dg/pph/c1builtin-integral-1.h: New.
+	* g++.dg/pph/c1builtin-object-size-2.cc: New.
+	* g++.dg/pph/c1builtin-object-size-2.h: New.
+	* g++.dg/pph/c1eabi1.cc: New.
+	* g++.dg/pph/c1eabi1.h: New.
+	* g++.dg/pph/c1meteor-contest.cc: New.
+	* g++.dg/pph/c1meteor-contest.h: New.
+	* g++.dg/pph/c1pr36533.cc: New.
+	* g++.dg/pph/c1pr36533.h: New.
+	* g++.dg/pph/c1pr44948-1a.cc: New.
+	* g++.dg/pph/c1pr44948-1a.h: New.
+
+2011-05-27  Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/pph/c1limits-externalid.cc: New.
 	* g++.dg/pph/c1limits-externalid.h: New.
 
