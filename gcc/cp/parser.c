@@ -2534,7 +2534,7 @@ cp_parser_diagnose_invalid_type_name (cp_parser *parser,
 		  "%qT is a dependent scope",
 		  parser->scope, id, parser->scope);
       else if (TYPE_P (parser->scope))
-	error_at (location, "%qE in class %qT does not name a type",
+	error_at (location, "%qE in %q#T does not name a type",
 		  id, parser->scope);
       else
 	gcc_unreachable ();
@@ -14901,6 +14901,9 @@ cp_parser_direct_declarator (cp_parser* parser,
 	      parser->num_template_parameter_lists
 		= saved_num_template_parameter_lists;
 
+	      /* Consume the `)'.  */
+	      cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
+
 	      /* If all went well, parse the cv-qualifier-seq and the
 		 exception-specification.  */
 	      if (member_p || cp_parser_parse_definitely (parser))
@@ -14915,8 +14918,6 @@ cp_parser_direct_declarator (cp_parser* parser,
 		  if (ctor_dtor_or_conv_p)
 		    *ctor_dtor_or_conv_p = *ctor_dtor_or_conv_p < 0;
 		  first = false;
-		  /* Consume the `)'.  */
-		  cp_parser_require (parser, CPP_CLOSE_PAREN, RT_CLOSE_PAREN);
 
 		  /* Parse the cv-qualifier-seq.  */
 		  cv_quals = cp_parser_cv_qualifier_seq_opt (parser);
@@ -16053,6 +16054,7 @@ cp_parser_parameter_declaration (cp_parser *parser,
 	     of some object of type "char" to "int".  */
 	  && !parser->in_type_id_in_expr_p
 	  && cp_parser_uncommitted_to_tentative_parse_p (parser)
+	  && cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_BRACE)
 	  && cp_lexer_next_token_is_not (parser->lexer, CPP_OPEN_PAREN))
 	cp_parser_commit_to_tentative_parse (parser);
       /* Parse the declarator.  */
@@ -17756,9 +17758,10 @@ cp_parser_member_declaration (cp_parser* parser)
 	    {
 	      /* If the `friend' keyword was present, the friend must
 		 be introduced with a class-key.  */
-	       if (!declares_class_or_enum)
-		 error_at (decl_spec_token_start->location,
-			   "a class-key must be used when declaring a friend");
+	       if (!declares_class_or_enum && cxx_dialect < cxx0x)
+		 pedwarn (decl_spec_token_start->location, OPT_pedantic,
+			  "in C++03 a class-key must be used "
+			  "when declaring a friend");
 	       /* In this case:
 
 		    template <typename T> struct A {
@@ -17767,10 +17770,12 @@ cp_parser_member_declaration (cp_parser* parser)
 
 		  A<T>::B will be represented by a TYPENAME_TYPE, and
 		  therefore not recognized by check_tag_decl.  */
-	       if (!type
-		   && decl_specifiers.type
-		   && TYPE_P (decl_specifiers.type))
-		 type = decl_specifiers.type;
+	       if (!type)
+		 {
+		   type = decl_specifiers.type;
+		   if (type && TREE_CODE (type) == TYPE_DECL)
+		     type = TREE_TYPE (type);
+		 }
 	       if (!type || !TYPE_P (type))
 		 error_at (decl_spec_token_start->location,
 			   "friend declaration does not name a class or "
@@ -19589,7 +19594,7 @@ cp_parser_constructor_declarator_p (cp_parser *parser, bool friend_p)
   /* If we have a class scope, this is easy; DR 147 says that S::S always
      names the constructor, and no other qualified name could.  */
   if (constructor_p && nested_name_specifier
-      && TYPE_P (nested_name_specifier))
+      && CLASS_TYPE_P (nested_name_specifier))
     {
       tree id = cp_parser_unqualified_id (parser,
 					  /*template_keyword_p=*/false,
@@ -22494,7 +22499,8 @@ cp_parser_objc_class_ivars (cp_parser* parser)
 			      NULL_TREE, attributes);
 
 	  /* Add the instance variable.  */
-	  objc_add_instance_variable (decl);
+	  if (decl != error_mark_node && decl != NULL_TREE)
+	    objc_add_instance_variable (decl);
 
 	  /* Reset PREFIX_ATTRIBUTES.  */
 	  while (attributes && TREE_CHAIN (attributes) != first_attribute)

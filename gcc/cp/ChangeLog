@@ -1,3 +1,152 @@
+2011-05-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47721
+	* parser.c (cp_parser_member_declaration): Allow friend T.
+	* friend.c (make_friend_class): Ignore non-classes.
+	* pt.c (instantiate_class_template_1): Handle TEMPLATE_TYPE_PARM.
+
+	DR 1004
+	* pt.c (convert_template_argument): Don't complain about using
+	injected-class-name as template template argument.
+
+	PR c++/47956
+	* decl.c (check_static_variable_definition): Now static.
+	(cp_finish_decl): Call it here.
+	(grokdeclarator): Not here.
+	* pt.c (instantiate_class_template_1): Or here.
+	* cp-tree.h: Don't declare it.
+
+2011-05-26  Janis Johnson  <janis187@us.ibm.com>
+	    Nathan Froyd  <froydnj@codesourcery.com>
+
+	PR c++/2288
+	PR c++/18770
+	* name-lookup.h (enum scope_kind): Add sk_cond.
+	* name-lookup.c (pushdecl_maybe_friend): Get scope of shadowed local.
+	Detect and report error for redeclaration from for-init or if
+	or switch condition.
+	(begin_scope): Handle sk_cond.
+	* semantics.c (begin_if_stmt): Use sk_cond.
+	(begin switch_stmt): Ditto.
+
+2011-05-26  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48211
+	* name-lookup.h (cp_class_binding): Make base a pointer.
+	* name-lookup.c (new_class_binding): Adjust.
+	(poplevel_class): Adjust.
+
+	PR c++/48424
+	* decl.c (grokparms): Function parameter packs don't need to
+	go at the end.
+	* pt.c (type_unification_real): But they aren't deduced otherwise.
+
+2011-05-25  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48536
+	* decl.c (build_enumerator): If incremented enumerator won't fit in
+	previous integral type, find one it will fit in.
+
+	PR c++/48599
+	* decl.c (create_array_type_for_decl): Complain about array of auto.
+
+	PR c++/44994
+	PR c++/49156
+	* error.c (dump_template_bindings): Set processing_template_decl
+	for a partial instantiation.
+
+	PR c++/45401
+	* decl.c (grokdeclarator): Don't change type when adding rvalue ref
+	to another reference type.
+
+	PR c++/44311
+	* decl.c (case_conversion): New.
+	(finish_case_label): Use it.
+
+	* ptree.c (cxx_print_xnode): Handle ARGUMENT_PACK_SELECT.
+
+	PR c++/45698
+	* pt.c (dependent_template_arg_p): See through ARGUMENT_PACK_SELECT.
+
+	PR c++/46005
+	* decl.c (grokdeclarator): Complain about auto typedef.
+
+	PR c++/46245
+	* decl.c (grokdeclarator): Complain later for auto parameter.
+	* pt.c (splice_late_return_type): Handle use in a template
+	type-parameter.
+
+	PR c++/46696
+	* typeck.c (cp_build_modify_expr): Check DECL_DEFAULTED_FN.
+
+	PR c++/47184
+	* parser.c (cp_parser_parameter_declaration): Recognize
+	list-initialization.
+	(cp_parser_direct_declarator): Check for the closing
+	paren before parsing definitely.
+
+	PR c++/48935
+	* parser.c (cp_parser_constructor_declarator_p): Don't check
+	constructor_name_p for enums.
+	(cp_parser_diagnose_invalid_type_name): Correct error message.
+
+	PR c++/45418
+	* init.c (perform_member_init): Handle list-initialization
+	of array of non-trivial class type.
+
+	PR c++/45080
+	* pt.c (instantiate_class_template_1): Call maybe_add_lambda_conv_op.
+	* semantics.c (lambda_function): Check COMPLETE_OR_OPEN_TYPE_P.
+
+	PR c++/48292
+	* pt.c (tsubst_decl) [PARM_DECL]: Handle partial instantiation of
+	function parameter pack.
+	(tsubst_pack_expansion): Likewise.
+
+	* cp-objcp-common.c (cp_common_init_ts): TYPE_ARGUMENT_PACK has
+	TS_COMMON.
+
+2011-05-25  Jakub Jelinek  <jakub@redhat.com>
+
+	* cp-objcp-common.c (cp_common_init_ts): Mark CTOR_INITIALIZER
+	as TS_TYPED.
+
+	PR c++/49136
+	* semantics.c (cxx_eval_bit_field_ref): Handle the
+	case when BIT_FIELD_REF doesn't cover only a single field.
+
+2011-05-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49042
+	* pt.c (get_mostly_instantiated_function_type): Use
+	push_deferring_access_checks rather than set flag_access_control.
+
+2011-05-24  Nicola Pero  <nicola.pero@meta-innovation.com>,
+
+	* parser.c (cp_parser_objc_class_ivars): Deal gracefully with a
+	syntax error in declaring an ObjC instance variable.
+
+2011-05-24  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48884
+	* class.c (pushclass): Accept NULL argument.
+	(popclass): Deal with popping null class.
+	* pt.c (push_access_scope, pop_access_scope): Use them rather than
+	push_to_top_level/pop_from_top_level.
+	(push_deduction_access_scope, pop_defarg_context): New.
+	(fn_type_unification): Use them.
+	* name-lookup.c (lookup_name_real_1): Check current_class_type.
+
+2011-05-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* decl.c (grokdeclarator): Use current_class_name.
+
+2011-05-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (GXX_OBJS): Remove prefix.o.
+	(g++$(exeext)): Use libcommon-target.a.
+	(CXX_C_OBJS): Remove prefix.o.
+
 2011-05-23  Jason Merrill  <jason@redhat.com>
 
 	* pt.c (tsubst_copy_and_build): Use current_class_name.

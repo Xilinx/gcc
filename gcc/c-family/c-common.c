@@ -2367,6 +2367,9 @@ warning_candidate_p (tree x)
   if (DECL_P (x) && DECL_ARTIFICIAL (x))
     return 0;
 
+  if (TREE_CODE (x) == BLOCK)
+    return 0;
+
   /* VOID_TYPE_P (TREE_TYPE (x)) is workaround for cp/tree.c
      (lvalue_p) crash on TRY/CATCH. */
   if (TREE_TYPE (x) == NULL_TREE || VOID_TYPE_P (TREE_TYPE (x)))
@@ -4451,7 +4454,6 @@ def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
 	goto egress;
       args[i] = t;
     }
-  va_end (list);
 
   t = builtin_types[ret];
   if (t == error_mark_node)

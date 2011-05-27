@@ -1,3 +1,16 @@
+2011-05-26  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.c (warning_candidate_p): Check for BLOCKs.
+
+2011-05-26  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* c-common.h (struct c_common_identifier): Inherit from tree_typed,
+	not tree_common.
+
+2011-05-25  Jakub Jelinek  <jakub@redhat.com>
+
+	* c-common.c (def_fn_type): Remove extra va_end.
+
 2011-05-23  Jason Merrill  <jason@redhat.com>
 
 	PR c++/48106

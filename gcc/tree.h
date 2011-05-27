@@ -1541,11 +1541,11 @@ struct GTY(()) tree_vector {
    pointer, and vice versa.  */
 
 #define HT_IDENT_TO_GCC_IDENT(NODE) \
-  ((tree) ((char *) (NODE) - sizeof (struct tree_common)))
+  ((tree) ((char *) (NODE) - sizeof (struct tree_typed)))
 #define GCC_IDENT_TO_HT_IDENT(NODE) (&((struct tree_identifier *) (NODE))->id)
 
 struct GTY(()) tree_identifier {
-  struct tree_common common;
+  struct tree_typed typed;
   struct ht_identifier id;
 };
 
@@ -1917,7 +1917,7 @@ enum omp_clause_default_kind
   (OMP_CLAUSE_SUBCODE_CHECK (NODE, OMP_CLAUSE_DEFAULT)->omp_clause.subcode.default_kind)
 
 struct GTY(()) tree_exp {
-  struct tree_common common;
+  struct tree_typed typed;
   location_t locus;
   tree block;
   tree GTY ((special ("tree_exp"),
@@ -2051,9 +2051,7 @@ struct GTY(()) tree_omp_clause {
   VEC_index (tree, BLOCK_NONLOCALIZED_VARS (NODE), N)
 #define BLOCK_SUBBLOCKS(NODE) (BLOCK_CHECK (NODE)->block.subblocks)
 #define BLOCK_SUPERCONTEXT(NODE) (BLOCK_CHECK (NODE)->block.supercontext)
-/* Note: when changing this, make sure to find the places
-   that use chainon or nreverse.  */
-#define BLOCK_CHAIN(NODE) TREE_CHAIN (BLOCK_CHECK (NODE))
+#define BLOCK_CHAIN(NODE) (BLOCK_CHECK (NODE)->block.chain)
 #define BLOCK_ABSTRACT_ORIGIN(NODE) (BLOCK_CHECK (NODE)->block.abstract_origin)
 #define BLOCK_ABSTRACT(NODE) (BLOCK_CHECK (NODE)->block.abstract_flag)
 
@@ -2094,7 +2092,8 @@ struct GTY(()) tree_omp_clause {
 #define BLOCK_SOURCE_LOCATION(NODE) (BLOCK_CHECK (NODE)->block.locus)
 
 struct GTY(()) tree_block {
-  struct tree_common common;
+  struct tree_base base;
+  tree chain;
 
   unsigned abstract_flag : 1;
   unsigned block_num : 31;

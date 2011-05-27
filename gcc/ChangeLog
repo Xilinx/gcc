@@ -1,3 +1,432 @@
+2011-05-26  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/49154
+	* ira.c (setup_pressure_classes): Process class without sublcasses
+	as a candidate for pressure classes.
+
+2011-05-26  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR rtl-optimization/48575
+	* genrecog.c (position_type): New enum.
+	(position): New structure.
+	(decision): Use position structure instead of a string.
+	(root_pos, peep2_insn_pos_list): New variables.
+	(next_position, compare_positions): New functions.
+	(new_decision): Use position structures instead of strings.
+	(maybe_both_true): Likewise.
+	(change_state): Likewise.
+	(write_tree): Likewise.
+	(make_insn_sequence): Likewise.
+
+2011-05-26  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.c (initialize_tree_contains_struct): Mark TS_BLOCK as
+	TS_BASE instead of TS_COMMON.
+	(find_decls_types_r): Check for TS_TYPED structure before looking at
+	TREE_TYPE.
+	* tree.h (struct tree_block): Inherit from tree_base, not tree_common.
+	Add chain field.
+	(BLOCK_CHAIN): Use new chain field.
+
+2011-05-26  Pat Haugen <pthaugen@us.ibm.com>
+
+	* config/rs6000/rs6000.c (rs6000_register_move_cost): Make LR/CTR
+	moves expensive on Power7 also.
+
+2011-05-26  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (fold_unary_loc): Remove bogus code.
+
+2011-05-26  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.h (struct tree_identifier): Inherit from tree_typed, not
+	tree_common.
+	(HT_IDENT_TO_GCC_IDENT): Adjust for said change.
+	* tree.c (initialize_tree_contains_struct): Mark TS_IDENTIFIER as
+	TS_BASE instead of TS_COMMON.
+	* varasm.c (assemble_name): Remove assert.
+
+2011-05-26  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* Makefile.in (srcdirify): Change order so that libgcc_objdir is
+	substituted first.
+	* libgcc-std.ver: Delete file.
+
+2011-05-26  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/48702
+	* tree-ssa-address.c (create_mem_ref_raw): Create MEM_REFs
+	only when we know the base address is within bounds.
+	* tree-ssa-alias.c (indirect_ref_may_alias_decl_p): Do not
+	assume the base address of TARGET_MEM_REFs is in bounds.
+
+2011-05-26  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/49099
+	* config/sparc/sparc.c (sparc_solaris_elf_asm_named_section): Wrap
+	declaration in TARGET_SOLARIS.
+
+2011-05-26  Hariharan Sandanagobalane <hariharan@picochip.com>
+
+	* config/picochip/picochip.md (cbranchhi4): No :CC for match_operator.
+	  The instruction is then expanded explicitly.
+	(supported_compare): Callable instruction.
+	(compare): Likewise.
+
+2011-05-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/49165
+	* gimplify.c (shortcut_cond_r): Don't special case
+	COND_EXPRs if they have void type on one of their arms.
+
+2011-05-26  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* haifa-sched.c (schedule-block): Reorder the inner scheduling loop
+	to reduce duplication, and to achieve a slightly more logical order
+	of operations.
+
+2011-05-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49161
+	* tree-vrp.c (struct case_info): New type.
+	(compare_case_labels): Sort case_info structs instead of
+	trees, and not primarily by CASE_LABEL uids but by
+	label_for_block indexes.
+	(find_switch_asserts): Put case labels into struct case_info
+	array instead of TREE_VEC, adjust sorting, compare label_for_block
+	values instead of CASE_LABELs.
+
+2011-05-26  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	* config/arm/neon.md ("orn<mode>3_neon"): Canonicalize not.
+	("orndi3_neon"): Likewise.
+	("bic<mode>3_neon"): Likewise.
+
+2011-05-26  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49038
+	* tree-vect-loop-manip.c (vect_generate_tmps_on_preheader):
+	Ensure at least one epilogue iteration if required by data
+	accesses with gaps.
+	* tree-vectorizer.h (struct _loop_vec_info): Add new field
+	to mark loops that require peeling for gaps.
+	* tree-vect-loop.c (new_loop_vec_info): Initialize new field.
+	(vect_get_known_peeling_cost): Take peeling for gaps into
+	account.
+	(vect_transform_loop): Generate epilogue if required by data
+	access with gaps.
+	* tree-vect-data-refs.c (vect_analyze_group_access): Mark the
+	loop as requiring an epilogue if there are gaps in the end of
+	the strided group.
+
+2011-05-25  Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (go_format_type): Output the first field with a usable
+	Go type, if any.
+
+2011-05-25  Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (go_format_type): Check for invalid type names, pointer
+	target types, and struct field types.
+
+2011-05-25  Jason Merrill  <jason@redhat.com>
+
+	* print-tree.c (print_node): Only look at TREE_TYPE if TS_TYPED.
+
+2011-05-25  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (*<sse>_maskcmp<mode>3_comm): New pattern.
+
+2011-05-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (*movqi_extv_1)): Put back
+	"register_operand" check in "type" calculation.
+	(*movqi_extzv_2): Likewise.
+
+2011-05-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* doc/extend.texi (X86 Built-in Functions): Update pause intrinsic.
+
+2011-05-25  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR bootstrap/49160
+	* libgcc2.h (__powisf2, __powidf2, __powitf2, __powixf2,
+	__mulsc3, __muldc3, __mulxc3, __multc3, __divsc3, __divdc3,
+	__divxc3, __divtc3): Wrap definitions in #ifndef.
+
+2011-05-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/49142
+	* config/i386/i386.md (*movqi_extv_1_rex64): Remove
+	"register_operand" check and replace q_regs_operand with
+	QIreg_operand in "type" calculation.
+	(*movqi_extv_1): Likewise.
+	(*movqi_extzv_2_rex64): Likewise.
+	(*movqi_extzv_2): Likewise.
+
+	* config/i386/predicates.md (QIreg_operand): New.
+
+2011-05-25  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-alias.c (indirect_ref_may_alias_decl_p): Fix
+	type-based offset disambiguation, streamline MEM_REF and
+	TARGET_MEM_REF handling.
+
+2011-05-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_builtins): Add IX86_BUILTIN_PAUSE.
+	(bdesc_special_args): Add pause intrinsic.
+
+	* config/i386/i386.md (UNSPEC_PAUSE): New.
+	(pause): Likewise.
+	(*pause): Likewise.
+	* config/i386/ia32intrin.h (__pause): Likewise.
+
+	* doc/extend.texi (X86 Built-in Functions): Add documentation for
+	pause intrinsic.
+
+2011-05-25  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/46728
+	* tree-ssa-math-opts.c (gimple_expand_builtin_pow): New.
+	(execute_cse_sincos): Add switch case for BUILT_IN_POW.
+
+2011-05-25  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* tree.h (struct tree_exp): Inherit from struct tree_typed.
+	* tree.c (initialize_tree_contains_struct): Mark TS_EXP as TS_TYPED
+	instead of TS_COMMON.
+
+2011-05-25  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* libgcc2.h (__NW, __NDW): Define using a __gnu_ prefix if
+	LIBGCC2_GNU_PREFIX is defined.
+	(__N): New macro.
+	(__powisf2, __powidf2, __powitf2, __powixf2, __bswapsi2, __bswapdi2,
+	__mulsc3, __muldc3, __mulxc3, __multc3, __divsc3, __divdc3, __divxc3,
+	__divtc3, __udiv_w_sdiv, __clear_cache, __enable_execute_stack,
+	__clz_tab): Define using __N.
+	(__absvsi2, __negvsi2, __addvsi3, __subvsi3, __mulvsi3): Likewise if
+	COMPAT_SIMODE_TRAPPING_ARITHMETIC.
+	* target.def (libfunc_gnu_prefix): New hook.
+	* doc/tm.texi.in (LIBGCC2_GNU_PREFIX): Document.
+	(TARGET_LIBFUNC_GNU_PREFIX): Add hook.
+	* doc/tm.texi: Regenerate.
+	* system.h (LIBGCC2_GNU_PREFIX): Poison.
+	* optabs.c (gen_libfunc): Take the libfunc_gnu_prefix hook into
+	account.
+	(gen_interclass_conv_libfunc, gen_intraclass_conv_libfunc): Likewise.
+	(init_optabs): Likewise for the bswap libfuncs.
+	* tree.c (build_common_builtin_nodes): Likewise for complex multiply
+	and divide.
+	* config/t-slibgcc-elf-ver (SHLIB_MAPFILES): Use $$(libgcc_objdir).
+	* config/t-slibgcc-sld (SHLIB_MAPFILES): Likewise.
+	* libgcc-std.ver: Remove.
+	* Makefile.in (srcdirify): Handle $$(libgcc_objdir).
+	* config/frv/t-linux (SHLIB_MAPFILES): Use $$(libgcc_objdir) for
+	libgcc-std.ver.
+	* config/i386/t-linux (SHLIB_MAPFILES): Likewise.
+	* config/mips/t-slibgcc-irix (SHLIB_MAPFILES): Likewise.
+	* config/rs6000/t-aix43 (SHLIB_MAPFILES): Likewise.
+	* config/rs6000/t-aix52 (SHLIB_MAPFILES): Likewise.
+	* config/sparc/t-linux (SHLIB_MAPFILES): Likewise.
+	* config/i386/t-linux (SHLIB_MAPFILES): Likewise.
+	* config/i386/t-linux (SHLIB_MAPFILES): Likewise.
+	* config/fixed-bit.h (FIXED_OP): Define differently depending on
+	LIBGCC2_GNU_PREFIX. All uses changed not to pass leading underscores.
+	(FIXED_CONVERT_OP, FIXED_CONVERT_OP2): Likewise.
+
+2011-05-25  Jan Hubicka  <jh@suse.cz>
+
+	* lto-streamer-out.c (output_record_start): Use lto_output_enum
+	(lto_output_tree): Use output_record_start.
+	* lto-streamer-in.c (input_record_start): Use lto_input_enum
+	(lto_get_pickled_tree): Use input_record_start.
+	* lto-section-in.c (lto_section_overrun): Turn into fatal error.
+	(lto_value_range_error): New function.
+	* lto-streamer.h (lto_value_range_error): Declare.
+	(lto_output_int_in_range, lto_input_int_in_range): New functions.
+	(lto_output_enum, lto_input_enum): New macros.
+
+2011-05-25  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* common.opt (flag_stack_usage_info): New variable.
+	(-Wstack-usage): New option.
+	* doc/invoke.texi (Warning options): Document -Wstack-usage.
+	* opts.c (common_handle_option) <OPT_Wstack_usage_>: New case.
+	<OPT_fstack_usage>: Likewise.
+	* toplev.c (output_stack_usage): Handle -Wstack-usage.
+	* calls.c (expand_call): Test flag_stack_usage_info variable instead
+	of flag_stack_usage.
+	(emit_library_call_value_1): Likewise.
+	* explow.c (allocate_dynamic_stack_space): Likewise.
+	* function.c (instantiate_virtual_regs ): Likewise.
+	(prepare_function_start): Likewise.
+	(rest_of_handle_thread_prologue_and_epilogue): Likewise.
+	* config/alpha/alpha.c (alpha_expand_prologue): Likewise.
+	* config/arm/arm.c (arm_expand_prologue): Likewise.
+	(thumb1_expand_prologue): Likewise.
+	* config/avr/avr.c (expand_prologue): Likewise.
+	* config/i386/i386.c (ix86_expand_prologue): Likewise.
+	* config/ia64/ia64.c (ia64_expand_prologue): Likewise.
+	* config/m68k/m68k.c (m68k_expand_prologue): Likewise.
+	* config/mips/mips.c (mips_expand_prologue): Likewise.
+	* config/pa/pa.c (hppa_expand_prologue): Likewise.
+	* config/rs6000/rs6000.c (rs6000_emit_prologue): Likewise.
+	* config/s390/s390.c (s390_emit_prologue): Likewise.
+	* config/sh/sh.c (sh_expand_prologue): Likewise.
+	* config/sparc/sparc.c (sparc_expand_prologue): Likewise.
+	* config/spu/spu.c (spu_expand_prologue): Likewise.
+
+2011-05-25  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.c (iterative_hash_canonical_type): Skip non-FIELD_DECLs.
+	(gimple_canonical_types_compatible_p): Likewise.
+
+2011-05-25  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/49062
+	* ipa.c (function_and_variable_visibility): Only add to same
+	comdat group list if DECL_ONE_ONLY.
+
+2011-05-25  Andrey Belevantsev  <abel@ispras.ru>
+
+	PR rtl-optimization/49014
+	* config/i386/athlon.md (athlon_ssecomi): Change type to ssecomi.
+
+2011-05-25  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/49128
+	* config/i386/driver-i386.c (host_detect_local_cpu): Fix a typo.
+
+2011-05-24  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/48757
+	* ira-build.c (loop_with_eh_edge_p): Rename to
+	loop_with_complex_edge_p, check edges on complexity, make function
+	conditional.
+	(mark_loops_for_removal): Make call of loop_with_complex_edge_p
+	conditional.
+
+2011-05-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (sparc_option_override): If not set by the user,
+	force flag_ira_share_save_slots to 0.
+
+2011-05-24  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* var-tracking.c (compute_cfa_pointer): Adjust head comment.
+	(vt_initialize): Set PROLOGUE_BB unconditionally.
+	Add block comment about CFA_BASE_RTX machinery.
+	Reset FP_CFA_OFFSET to -1 on all invalid paths.
+	Call vt_init_cfa_base only if FP_CFA_OFFSET isn't equal to -1.
+
+2011-05-24  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/48187
+	* c-parser.c (c_parser_objc_class_instance_variables): More robust
+	parsing of syntax error in ObjC instance variable lists.  In
+	particular, avoid an infinite loop if there is a stray ']'.
+	Updated error message.
+
+2011-05-24  Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (go_define): Don't accept a string immediately after
+	another operand.
+
+2011-05-24  Ian Lance Taylor  <iant@google.com>
+
+	* godump.c (struct godump_container): Add invalid_hash field.
+	(go_format_type): Return false if type is found in invalid_hash.
+	(go_output_typedef): Add invalid type to invalid_hash.
+	(go_finish): Create and delete invalid_hash.
+
+2011-05-24  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/46728
+	* tree-ssa-math-opts.c (powi_table): New.
+	(powi_lookup_cost): New.
+	(powi_cost): New.
+	(powi_as_mults_1): New.
+	(powi_as_mults): New.
+	(gimple_expand_builtin_powi): New.
+	(execute_cse_sincos): Add switch case for BUILT_IN_POWI.
+	(gate_cse_sincos): Remove sincos/cexp restriction.
+
+2011-05-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/3746
+	* config.gcc (alpha*-dec-osf5.1*): Only build mips-tfile,
+	mips-tdump native.
+	* mips-tfile.c: Remove CROSS_DIRECTORY_STRUCTURE handling.
+	* mips-tdump.c: Likewise.
+
+2011-05-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/49128
+	* config/i386/driver-i386.c (host_detect_local_cpu): Always
+	add -mno-XXX.  Handle FMA.
+
+2011-05-24  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/48633
+	* ira-build.c (loop_with_eh_edge_p): New function.
+	(mark_loops_for_removal): Use it.
+
+2011-05-24  Vladimir Makarov  <vmakarov@redhat.com>
+
+	PR rtl-optimization/48971
+	* ira.c (setup_pressure_classes): Don't check register move cost
+	for classes with one registers.  Don't add pressure class if there
+	is a pressure class with the same available hard registers.
+	Check contains_reg_of_mode.  Fix a typo in collecting
+	temp_hard_regset.  Ignore hard registers not belonging to a class.
+
+2011-05-24  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/49133
+	* config/i386/sse.md (sse2_loadhpd): Remove shufpd alternative.
+
+2011-05-24  Eric Botcazou  <ebotcazou@adacore.com>
+	    Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR gcov-profile/48845
+	* config/sol2.h (LIB_SPEC): Link TLS support for tree profiling.
+
+2011-05-24  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.c (compare_type_names_p): Remove for_completion_p arg.
+	(gimple_compatible_complete_and_incomplete_subtype_p): Remove.
+	(gimple_types_compatible_p_1): Adjust.
+	(iterative_hash_canonical_type): Do not bother about complete vs.
+	incomplete types.
+	(gimple_canonical_types_compatible_p): Likewise.
+
+2011-05-24  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/sol2.h (FORCE_CODE_SECTION_ALIGN): Remove.
+
+2011-05-24  Richard Guenther  <rguenther@suse.de>
+
+	PR bootstrap/49078
+	* gimple.c (gimple_register_canonical_type): Revert
+	previous change.
+	* alias.c (get_alias_set): Only assert that TYPE_CANONICAL
+	does not for a tree for the case where it matters.  Cache
+	pointer-type alias-sets.
+
+2011-05-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* Makefile.in (GCC_OBJS): Remove opts-common.o and options.o.
+	(OBJS): Remove options.o, opts-common.o and prefix.o.
+	(OBJS-libcommon-target): New.
+	(ALL_HOST_BACKEND_OBJS): Include $(OBJS-libcommon-target).
+	(BACKEND): Include libcommon-target.a.
+	(MOSTLYCLEANFILES): Include libcommon-target.a.
+	(libcommon-target.a): New.
+	(xgcc$(exeext), cpp$(exeext)): Use libcommon-target.a instead of
+	prefix.o.
+
 2011-05-23  Joseph Myers  <joseph@codesourcery.com>
 
 	* optc-save-gen.awk: New.  Based on optc-gen.awk.  Don't generate
@@ -424,7 +853,7 @@
 	TRUTH_AND_EXPR, TRUTH_OR_EXPR, and TRUTH_XOR_EXPR.
 	(gimplify_expr): Move TRUTH_AND|OR|XOR_EXPR to its binary form.
 
-2011-05-19  Anatoly Sokolov <aesok@post.ru>
+2011-05-19  Anatoly Sokolov  <aesok@post.ru>
 	    Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* config/t-sol2 (sol2.o): Add $(TARGET_H) dependency.
