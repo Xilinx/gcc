@@ -857,6 +857,10 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
 
   switch (TREE_CODE (expr))
     {
+    /* TREES NEEDING EXTRA WORK */
+
+    /* tcc_declaration */
+
     case DEBUG_EXPR_DECL:
     case IMPORTED_DECL:
     case LABEL_DECL:
@@ -895,22 +899,7 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
       pph_output_tree_or_ref_1 (stream, DECL_CONTEXT (expr), ref_p, 3);
       break;
 
-    case STATEMENT_LIST:
-      {
-        tree_stmt_iterator i;
-        unsigned num_stmts;
-
-        /* Compute and write the number of statements in the list.  */
-        for (num_stmts = 0, i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
-	  num_stmts++;
-
-        pph_output_uint (stream, num_stmts);
-
-        /* Write the statements.  */
-        for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
-	  pph_output_tree_or_ref_1 (stream, tsi_stmt (i), ref_p, 3);
-      }
-      break;
+    /* tcc_type */
 
     case ARRAY_TYPE:
     case BOOLEAN_TYPE:
@@ -938,6 +927,49 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
       pph_output_tree_or_ref_1 (stream, TYPE_BINFO (expr), ref_p, 3);
       break;
 
+    case BOUND_TEMPLATE_TEMPLATE_PARM:
+    case DECLTYPE_TYPE:
+    case TEMPLATE_TEMPLATE_PARM:
+    case TEMPLATE_TYPE_PARM:
+    case TYPENAME_TYPE:
+    case TYPEOF_TYPE:
+      pph_stream_write_lang_type (stream, expr, ref_p);
+      pph_output_tree_or_ref_1 (stream, TYPE_CACHED_VALUES (expr), ref_p, 3);
+      /* Note that we are using TYPED_CACHED_VALUES for it access to
+         the generic .values field of types. */
+      break;
+
+    /* tcc_statement */
+
+    case STATEMENT_LIST:
+      {
+        tree_stmt_iterator i;
+        unsigned num_stmts;
+
+        /* Compute and write the number of statements in the list.  */
+        for (num_stmts = 0, i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
+	  num_stmts++;
+
+        pph_output_uint (stream, num_stmts);
+
+        /* Write the statements.  */
+        for (i = tsi_start (expr); !tsi_end_p (i); tsi_next (&i))
+	  pph_output_tree_or_ref_1 (stream, tsi_stmt (i), ref_p, 3);
+      }
+      break;
+
+    /* tcc_expression */
+
+    /* tcc_unary */
+
+    /* tcc_vl_exp */
+
+    /* tcc_reference */
+
+    /* tcc_constant */
+
+    /* tcc_exceptional */
+
     case OVERLOAD:
       pph_output_tree_or_ref_1 (stream, OVL_CURRENT (expr), ref_p, 3);
       break;
@@ -963,10 +995,126 @@ pph_stream_write_tree (struct output_block *ob, tree expr, bool ref_p)
           TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr), ref_p);
       break;
 
-    case TREE_LIST:
-    case TREE_BINFO:
-      /* These trees are already fully handled.  */
+    case TEMPLATE_PARM_INDEX: 
+      {
+        template_parm_index *p = TEMPLATE_PARM_INDEX_CAST (expr);
+        pph_output_uint (stream, p->index);
+        pph_output_uint (stream, p->level);
+        pph_output_uint (stream, p->orig_level);
+        pph_output_uint (stream, p->num_siblings);
+        pph_output_tree_or_ref_1 (stream, p->decl, ref_p, 3);
+        /* FIXME pph: Is TEMPLATE_PARM_PARAMETER_PACK using TREE_LANG_FLAG_0
+           already handled?  */
+      }
       break;
+
+    /* TREES ALREADY HANDLED */
+
+    /* tcc_declaration */
+
+    case TRANSLATION_UNIT_DECL:
+
+    /* tcc_exceptional */
+
+    case TREE_BINFO:
+    case TREE_LIST:
+    case TREE_VEC:
+
+      break;
+
+    /* TREES UNIMPLEMENTED */
+
+    /* tcc_declaration */
+
+    /* tcc_type */
+
+    case TYPE_ARGUMENT_PACK:
+    case TYPE_PACK_EXPANSION:
+    case UNBOUND_CLASS_TEMPLATE:
+
+    /* tcc_statement */
+
+    case USING_STMT:
+    case TRY_BLOCK:
+    case EH_SPEC_BLOCK:
+    case HANDLER:
+    case CLEANUP_STMT:
+    case IF_STMT:
+    case FOR_STMT:
+    case RANGE_FOR_STMT:
+    case WHILE_STMT:
+    case DO_STMT:
+    case BREAK_STMT:
+    case CONTINUE_STMT:
+    case SWITCH_STMT:
+
+    /* tcc_expression */
+
+    case NEW_EXPR:
+    case VEC_NEW_EXPR:
+    case DELETE_EXPR:
+    case VEC_DELETE_EXPR:
+    case TYPE_EXPR:
+    case VEC_INIT_EXPR:
+    case THROW_EXPR:
+    case EMPTY_CLASS_EXPR:
+    case TEMPLATE_ID_EXPR:
+    case PSEUDO_DTOR_EXPR:
+    case MODOP_EXPR:
+    case DOTSTAR_EXPR:
+    case TYPEID_EXPR:
+    case NON_DEPENDENT_EXPR:
+    case CTOR_INITIALIZER:
+    case MUST_NOT_THROW_EXPR:
+    case EXPR_STMT:
+    case TAG_DEFN:
+    case OFFSETOF_EXPR:
+    case SIZEOF_EXPR:
+    case ARROW_EXPR:
+    case ALIGNOF_EXPR:
+    case AT_ENCODE_EXPR:
+    case STMT_EXPR:
+    case NONTYPE_ARGUMENT_PACK:
+    case EXPR_PACK_EXPANSION:
+
+    /* tcc_unary */
+
+    case CAST_EXPR:
+    case REINTERPRET_CAST_EXPR:
+    case CONST_CAST_EXPR:
+    case STATIC_CAST_EXPR:
+    case DYNAMIC_CAST_EXPR:
+    case NOEXCEPT_EXPR:
+    case UNARY_PLUS_EXPR:
+
+    /* tcc_reference */
+
+    case MEMBER_REF:
+    case OFFSET_REF:
+    case SCOPE_REF:
+
+    /* tcc_constant */
+
+    case PTRMEM_CST:
+
+    /* tcc_vl_exp */
+
+    case AGGR_INIT_EXPR:
+
+    /* tcc_exceptional */
+
+    case DEFAULT_ARG:
+    case STATIC_ASSERT:
+    case ARGUMENT_PACK_SELECT:
+    case TRAIT_EXPR:
+    case LAMBDA_EXPR:
+
+      if (flag_pph_untree)
+        fprintf (pph_logfile, "PPH: unimplemented tree node %s\n",
+                 tree_code_name[TREE_CODE (expr)]);
+      break;
+
+    /* TREES UNRECOGNIZED */
 
     default:
       if (flag_pph_untree)

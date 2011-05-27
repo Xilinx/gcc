@@ -99,6 +99,8 @@ cp_tree_size (enum tree_code code)
 
     case TEMPLATE_INFO:         return sizeof (struct tree_template_info);
 
+    case TREE_BINFO:            return sizeof (struct tree_binfo);
+
     default:
       gcc_unreachable ();
     }

@@ -2072,6 +2072,9 @@ pph_read_file (const char *filename)
     {
       pph_read_file_contents (stream);
       pph_stream_close (stream);
+
+      if (flag_pph_debug >= 1)
+        fprintf (pph_logfile, "PPH: Closing %s\n", filename);
     }
   else
     error ("Cannot open PPH file for reading: %s: %m", filename);

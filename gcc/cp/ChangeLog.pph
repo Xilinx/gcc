@@ -1,5 +1,31 @@
 2011-05-26  Lawrence Crowl  <crowl@google.com>
 
+	* cp-objcp-common.c (cp_tree_size): Add case TREE_BINFO.
+	* pph.c (pph_read_file): Also log closing of PPH files.
+	* pph-streamer-in.c (pph_stream_read_tree):
+	Organize the switch into tcc_* chunks.
+	Move tcc_statement case STATEMENT_LIST down.
+        Implement tcc_type cases for BOUND_TEMPLATE_TEMPLATE_PARM,
+	DECLTYPE_TYPE, TEMPLATE_TEMPLATE_PARM, TEMPLATE_TYPE_PARM,
+	TYPENAME_TYPE, and TYPEOF_TYPE.
+	Implement tcc_exceptional case TEMPLATE_PARM_INDEX.
+	Add tcc_declaration case TRANSLATION_UNIT_DECL to already handled list.
+        Create a section for unimplemented cases as opposed to unrecognized
+	cases.
+	* pph-streamer-out.c (pph_stream_write_tree):
+	Organize the switch into tcc_* chunks.
+	Move tcc_statement case STATEMENT_LIST down.
+	Implement tcc_type cases for BOUND_TEMPLATE_TEMPLATE_PARM,
+        DECLTYPE_TYPE, TEMPLATE_TEMPLATE_PARM, TEMPLATE_TYPE_PARM,
+	TYPENAME_TYPE, and TYPEOF_TYPE.
+        Move tcc_statement case STATEMENT_LIST down.
+	Implement tcc_exceptional case TEMPLATE_PARM_INDEX.
+	Add tcc_declaration case TRANSLATION_UNIT_DECL to already handled list.
+        Create a section for unimplemented cases as opposed to unrecognized
+	cases.
+
+2011-05-26  Lawrence Crowl  <crowl@google.com>
+
 	* pph-streamer-in.c (pph_stream_read_tree): Move TEMPLATE_DECL case
 	next to other DECLs.
 	* pph-streamer-out.c (pph_stream_write_tree): Move TEMPLATE_DECL case
