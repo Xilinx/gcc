@@ -1,3 +1,64 @@
+2011-05-27  Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer.h (enum pph_record_marker): Define.
+	Replace all users of PPH_RECORD_START and PPH_RECORD_END to
+	use the new enum type.
+	* pph-streamer-in.c (pph_stream_read_shared_data): New.
+	(pph_stream_register_shared_data): New.
+	(ALLOC_AND_REGISTER): Define.
+	(pph_start_record): Add argument CACHE_IX.  Update all users.
+	(pph_stream_read_ld_base): Do not call pph_start_record.
+	(pph_stream_read_ld_min): Likewise.
+	(pph_stream_read_cxx_binding_1): Handle PPH_RECORD_SHARED values
+	returned from pph_start_record.
+	Call pph_stream_register_shared_data.
+	(pph_stream_read_cxx_binding): Do not call pph_start_record.
+	Handle NULL values returned from pph_stream_read_cxx_binding_1.
+	(pph_stream_read_class_binding): Handle PPH_RECORD_SHARED
+	values returned from pph_start_record.
+	Call pph_stream_register_shared_data.
+	(pph_stream_read_label_binding): Likewise.
+	(pph_stream_read_binding_level): Likewise.
+	(pph_stream_read_c_language_function): Likewise.
+	(pph_stream_read_language_function): Likewise.
+	(pph_stream_read_ld_fn): Do not call pph_start_record.
+	(pph_stream_read_ld_ns): Likewise.
+	(pph_stream_read_lang_type_header): Likewise.
+	(pph_stream_read_lang_type_class): Likewise.
+	(pph_stream_read_lang_type_ptrmem): Likewise.
+	(pph_stream_read_lang_specific): Handle PPH_RECORD_SHARED
+	values returned from pph_start_record.
+	(pph_stream_read_lang_type_class): Likewise.
+	(pph_stream_read_lang_type_ptrmem): Likewise.
+	(pph_stream_read_lang_type): Likewise.
+	(pph_stream_read_sorted_fields_type): Likewise.
+	Call pph_stream_register_shared_data.
+	(pph_stream_read_lang_type): Remove TYPE argument.
+	Return a pointer to the newly materialized struct lang_type.
+	Update all users.
+	Support shared struct lang_type nodes.
+	* pph-streamer-out.c (pph_start_record): Call pph_stream_cache_add.
+	(pph_stream_write_ld_base): Do not call pph_start_record.
+	(pph_stream_write_ld_min): Likewise.
+	(pph_stream_write_cxx_binding): Likewise.
+	Handle the case when CB is NULL.
+	(pph_stream_write_ld_fn): Do not call pph_start_record.
+	(pph_stream_write_ld_ns): Likewise.
+	(pph_stream_write_ld_parm): Likewise.
+	(pph_stream_write_lang_type_header): Likewise.
+	(pph_stream_write_lang_type_ptrmem): Likewise.
+	* pph-streamer.c (pph_stream_open): Initialize stream->cache.v and
+	stream->cache.m.
+	(pph_stream_close): Free stream->cache.v, stream->cache.m and stream.
+	(pph_stream_cache_insert_at): New.
+	(pph_stream_cache_add): New.
+	(pph_stream_cache_get): New.
+	* pph-streamer.h (pph_stream_pickle_cache): Define.
+	(pph_stream): Add field 'cache'.
+	(pph_stream_cache_insert_at): Declare.
+	(pph_stream_cache_add): Declare.
+	(pph_stream_cache_get): Declare.
+
 2011-05-26  Lawrence Crowl  <crowl@google.com>
 
 	* cp-objcp-common.c (cp_tree_size): Add case TREE_BINFO.

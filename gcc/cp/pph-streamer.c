@@ -127,6 +127,8 @@ pph_stream_open (const char *name, const char *mode)
 	pph_stream_init_write (stream);
       else
 	pph_stream_init_read (stream);
+      stream->cache.v = NULL;
+      stream->cache.m = pointer_map_create ();
     }
 
   return stream;
@@ -143,6 +145,9 @@ pph_stream_close (pph_stream *stream)
     pph_stream_flush_buffers (stream);
   fclose (stream->file);
   stream->file = NULL;
+  VEC_free (void_p, heap, stream->cache.v);
+  pointer_map_destroy (stream->cache.m);
+  free (stream);
 }
 
 
@@ -325,4 +330,75 @@ void
 pph_stream_trace_bitpack (pph_stream *stream, struct bitpack_d *bp)
 {
   pph_stream_trace (stream, bp, sizeof (*bp), PPH_TRACE_BITPACK);
+}
+
+
+/* Insert DATA in STREAM's pickle cache at slot IX.  If DATA already
+   existed in the cache, IX must be the same as the previous entry.  */
+
+void
+pph_stream_cache_insert_at (pph_stream *stream, void *data, unsigned ix)
+{
+  void **map_slot;
+
+  map_slot = pointer_map_insert (stream->cache.m, data);
+  if (*map_slot)
+    {
+      /* DATA already existed in the cache.  Do nothing, but check
+	 that we are trying to insert DATA in the same slot that we
+	 had it in before.  */
+      unsigned HOST_WIDE_INT prev_ix = (unsigned HOST_WIDE_INT) *map_slot;
+      gcc_assert (prev_ix == ix);
+    }
+  else
+    {
+      *map_slot = (void *) (unsigned HOST_WIDE_INT) ix;
+      if (ix + 1 > VEC_length (void_p, stream->cache.v))
+	VEC_safe_grow_cleared (void_p, heap, stream->cache.v, ix + 1);
+      VEC_replace (void_p, stream->cache.v, ix, data);
+    }
+}
+
+
+/* Add pointer DATA to the pickle cache in STREAM.  On exit, *IX_P will
+   contain the slot number where DATA is stored.  Return true if DATA
+   already existed in the cache, false otherwise.  */
+
+bool
+pph_stream_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
+{
+  void **map_slot;
+  unsigned ix;
+  bool existed_p;
+
+  map_slot = pointer_map_contains (stream->cache.m, data);
+  if (map_slot == NULL)
+    {
+      existed_p = false;
+      ix = VEC_length (void_p, stream->cache.v);
+      pph_stream_cache_insert_at (stream, data, ix);
+    }
+  else
+    {
+      unsigned HOST_WIDE_INT slot_ix = (unsigned HOST_WIDE_INT) *map_slot;
+      gcc_assert (slot_ix == (unsigned) slot_ix);
+      ix = (unsigned) slot_ix;
+      existed_p = true;
+    }
+
+  *ix_p = ix;
+
+  return existed_p;
+}
+
+
+/* Return the pointer at slot IX in STREAM's pickle cache.  */
+
+void *
+pph_stream_cache_get (pph_stream *stream, unsigned ix)
+{
+  void *data = VEC_index (void_p, stream->cache.v, ix);
+  gcc_assert (data);
+
+  return data;
 }

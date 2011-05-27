@@ -32,6 +32,16 @@ along with GCC; see the file COPYING3.  If not see
 #include "version.h"
 #include "cppbuiltin.h"
 
+/* Wrapper for memory allocation calls that should have their results
+   registered in the PPH streamer cache.  DATA is the pointer returned
+   by the memory allocation call in ALLOC_EXPR.  IX is the cache slot 
+   in STREAM where the newly allocated DATA should be registered at.  */
+#define ALLOC_AND_REGISTER(STREAM, IX, DATA, ALLOC_EXPR)	\
+    do {							\
+      (DATA) = (ALLOC_EXPR);					\
+      pph_stream_register_shared_data (STREAM, DATA, IX);	\
+    } while (0)
+
 /* Callback for unpacking value fields in ASTs.  BP is the bitpack 
    we are unpacking from.  EXPR is the tree to unpack.  */
 
@@ -165,16 +175,62 @@ pph_stream_init_read (pph_stream *stream)
 }
 
 
-/* Read and return a record marker from STREAM.  The marker
-   must be one of PPH_RECORD_START or PPH_RECORD_END.  If PPH_RECORD_END
-   is read, return false.  Otherwise, return true.  */
+/* Read and return a record marker from STREAM.  When a PPH_RECORD_START
+   marker is read, the next word read is an index into the streamer
+   cache where the rematerialized data structure should be stored.
+   When the writer stored this data structure for the first time, it
+   added it to its own streamer cache at slot number *CACHE_IX.
 
-static inline bool
-pph_start_record (pph_stream *stream)
+   This way, if the same data structure was written a second time to
+   the stream, instead of writing the whole structure again, only the
+   index *CACHE_IX is written as a PPH_RECORD_SHARED record.
+
+   Therefore, when reading a PPH_RECORD_START marker, *CACHE_IX will
+   contain the slot number where the materialized data should be
+   cached at.  When reading a PPH_RECORD_SHARED marker, *CACHE_IX will
+   contain the slot number the reader can find the previously
+   materialized structure.  */
+
+static inline enum pph_record_marker
+pph_start_record (pph_stream *stream, unsigned *cache_ix)
 {
-  unsigned char marker = pph_input_uchar (stream);
-  gcc_assert (marker == PPH_RECORD_START || marker == PPH_RECORD_END);
-  return (marker == PPH_RECORD_START);
+  enum pph_record_marker marker;
+
+  marker = (enum pph_record_marker) pph_input_uchar (stream);
+
+  /* For PPH_RECORD_START and PPH_RECORD_SHARED markers, read the
+     streamer cache slot where we should store or find the
+     rematerialized data structure (see description above).  */
+  if (marker == PPH_RECORD_START || marker == PPH_RECORD_SHARED)
+    *cache_ix = pph_input_uint (stream);
+  else
+    gcc_assert (marker == PPH_RECORD_END);
+
+  return marker;
+}
+
+
+/* Return a shared pointer from the streamer cache in STREAM.  This is
+   called when pph_start_record returns PPH_RECORD_SHARED.  It means
+   that the data structure we are about to read has been instantiated
+   before and is present in the streamer cache.  */
+
+static void *
+pph_stream_read_shared_data (pph_stream *stream, unsigned ix)
+{
+  return pph_stream_cache_get (stream, ix);
+}
+
+
+/* Register DATA in STREAM's cache slot IX.  This is called when a
+   potentially shared data structure is first read from STREAM.
+   Subsequent reads of this data structure will get the index from the
+   table cache where this data was saved.  */
+
+static void
+pph_stream_register_shared_data (pph_stream *stream, void *data, unsigned ix)
+{
+  pph_stream_cache_insert_at (stream, data, ix);
 }
 
 
@@ -184,9 +240,6 @@ static void
 pph_stream_read_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
 {
   struct bitpack_d bp;
-
-  if (!pph_start_record (stream))
-    return;
 
   bp = pph_input_bitpack (stream);
   ldb->selector = bp_unpack_value (&bp, 16);
@@ -209,11 +262,6 @@ pph_stream_read_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
 static void
 pph_stream_read_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
 {
-  if (!pph_start_record (stream))
-    return;
-
-  gcc_assert (ldm->base.selector == 0);
-
   ldm->template_info = pph_input_tree (stream);
   if (ldm->base.u2sel == 0)
     ldm->u2.access = pph_input_tree (stream);
@@ -279,9 +327,14 @@ pph_stream_read_cxx_binding_1 (pph_stream *stream)
   struct bitpack_d bp;
   cxx_binding *cb;
   tree value, type;
+  enum pph_record_marker marker;
+  unsigned ix;
 
-  if (!pph_start_record (stream))
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
     return NULL;
+  else if (marker == PPH_RECORD_SHARED)
+    return (cxx_binding *) pph_stream_read_shared_data (stream, ix);
 
   value = pph_input_tree (stream);
   type = pph_input_tree (stream);
@@ -290,6 +343,8 @@ pph_stream_read_cxx_binding_1 (pph_stream *stream)
   bp = pph_input_bitpack (stream);
   cb->value_is_inherited = bp_unpack_value (&bp, 1);
   cb->is_local = bp_unpack_value (&bp, 1);
+
+  pph_stream_register_shared_data (stream, cb, ix);
 
   return cb;
 }
@@ -303,9 +358,6 @@ pph_stream_read_cxx_binding (pph_stream *stream)
   unsigned i, num_bindings;
   cxx_binding *curr, *cb;
 
-  if (!pph_start_record (stream))
-    return NULL;
-
   /* Read the list of previous bindings.  */
   num_bindings = pph_input_uint (stream);
   for (curr = NULL, i = 0; i < num_bindings; i++)
@@ -316,29 +368,38 @@ pph_stream_read_cxx_binding (pph_stream *stream)
       curr = prev;
     }
 
-  /* Read the current binding at the end.  */
+  /* Read the current binding at the end.  Note that we do not need
+     to call pph_stream_register_shared_data as it is already done
+     by pph_stream_read_cxx_binding_1.  */
   cb = pph_stream_read_cxx_binding_1 (stream);
-  cb->previous = curr;
+  if (cb)
+    cb->previous = curr;
 
   return cb;
 }
 
 
-/* Read all the fields of cp_class_binding instance CB to OB.  REF_P
-   is true if the tree fields should be written as references.  */
+/* Read all the fields of cp_class_binding instance CB to OB.  */
 
 static cp_class_binding *
 pph_stream_read_class_binding (pph_stream *stream)
 {
   cp_class_binding *cb;
+  enum pph_record_marker marker;
+  unsigned ix;
 
-  if (!pph_start_record (stream))
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
     return NULL;
+  else if (marker == PPH_RECORD_SHARED)
+    return (cp_class_binding *) pph_stream_read_shared_data (stream, ix);
 
   cb = ggc_alloc_cleared_cp_class_binding ();
   memcpy (&cb->base, pph_stream_read_cxx_binding (stream),
 	  sizeof (cxx_binding));
   cb->identifier = pph_input_tree (stream);
+
+  pph_stream_register_shared_data (stream, cb, ix);
 
   return cb;
 }
@@ -350,13 +411,20 @@ static cp_label_binding *
 pph_stream_read_label_binding (pph_stream *stream)
 {
   cp_label_binding *lb;
+  enum pph_record_marker marker;
+  unsigned ix;
 
-  if (!pph_start_record (stream))
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
     return NULL;
+  else if (marker == PPH_RECORD_SHARED)
+    return (cp_label_binding *) pph_stream_read_shared_data (stream, ix);
 
   lb = ggc_alloc_cleared_cp_label_binding ();
   lb->label = pph_input_tree (stream);
   lb->prev_value = pph_input_tree (stream);
+
+  pph_stream_register_shared_data (stream, lb, ix);
 
   return lb;
 }
@@ -367,15 +435,20 @@ pph_stream_read_label_binding (pph_stream *stream)
 static struct cp_binding_level *
 pph_stream_read_binding_level (pph_stream *stream)
 {
-  unsigned i, num;
+  unsigned i, num, ix;
   cp_label_binding *sl;
   struct cp_binding_level *bl;
   struct bitpack_d bp;
+  enum pph_record_marker marker;
 
-  if (!pph_start_record (stream))
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
     return NULL;
+  else if (marker == PPH_RECORD_SHARED)
+    return (struct cp_binding_level *) pph_stream_read_shared_data (stream, ix);
 
-  bl = ggc_alloc_cleared_cp_binding_level ();
+  ALLOC_AND_REGISTER (stream, ix, bl, ggc_alloc_cleared_cp_binding_level ());
+
   bl->names = pph_input_chain (stream);
   bl->names_size = pph_input_uint (stream);
   bl->namespaces = pph_input_chain (stream);
@@ -426,11 +499,18 @@ static struct c_language_function *
 pph_stream_read_c_language_function (pph_stream *stream)
 {
   struct c_language_function *clf;
+  enum pph_record_marker marker;
+  unsigned ix;
 
-  if (!pph_start_record (stream))
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
     return NULL;
+  else if (marker == PPH_RECORD_SHARED)
+    return (struct c_language_function *) pph_stream_read_shared_data (stream,
+	                                                               ix);
 
-  clf = ggc_alloc_cleared_c_language_function ();
+  ALLOC_AND_REGISTER (stream, ix, clf,
+		      ggc_alloc_cleared_c_language_function ());
   clf->x_stmt_tree.x_cur_stmt_list = pph_input_tree (stream);
   clf->x_stmt_tree.stmts_are_full_exprs_p = pph_input_uint (stream);
 
@@ -445,11 +525,17 @@ pph_stream_read_language_function (pph_stream *stream)
 {
   struct bitpack_d bp;
   struct language_function *lf;
+  enum pph_record_marker marker;
+  unsigned ix;
 
-  if (!pph_start_record (stream))
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
     return NULL;
+  else if (marker == PPH_RECORD_SHARED)
+    return (struct language_function *) pph_stream_read_shared_data (stream,
+								     ix);
 
-  lf = ggc_alloc_cleared_language_function ();
+  ALLOC_AND_REGISTER (stream, ix, lf, ggc_alloc_cleared_language_function ());
   memcpy (&lf->base, pph_stream_read_c_language_function (stream),
 	  sizeof (struct c_language_function));
   lf->x_cdtor_label = pph_input_tree (stream);
@@ -484,9 +570,6 @@ static void
 pph_stream_read_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
 {
   struct bitpack_d bp;
-
-  if (!pph_start_record (stream))
-    return;
 
   bp = pph_input_bitpack (stream);
   ldf->operator_code = (enum tree_code) bp_unpack_value (&bp, 16);
@@ -528,9 +611,6 @@ pph_stream_read_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
 static void
 pph_stream_read_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
 {
-  if (!pph_start_record (stream))
-    return;
-
   ldns->level = pph_stream_read_binding_level (stream);
 }
 
@@ -540,9 +620,6 @@ pph_stream_read_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
 static void
 pph_stream_read_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
 {
-  if (!pph_start_record (stream))
-    return;
-
   ldp->level = pph_input_uint (stream);
   ldp->index = pph_input_uint (stream);
 }
@@ -555,9 +632,16 @@ pph_stream_read_lang_specific (pph_stream *stream, tree decl)
 {
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
+  enum pph_record_marker marker;
+  unsigned ix;
 
-  if (!pph_start_record (stream))
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
     return;
+
+  /* Since lang_decl is embedded in every decl, LD cannot
+     be shared.  */
+  gcc_assert (marker != PPH_RECORD_SHARED);
 
   /* Allocate a lang_decl structure for DECL.  */
   retrofit_lang_decl (decl);
@@ -619,12 +703,9 @@ pph_stream_alloc_tree (enum tree_code code,
 
 static void
 pph_stream_read_lang_type_header (pph_stream *stream,
-				   struct lang_type_header *lth)
+				  struct lang_type_header *lth)
 {
   struct bitpack_d bp;
-
-  if (!pph_start_record (stream))
-    return;
 
   bp = pph_input_bitpack (stream);
   lth->is_lang_type_class = bp_unpack_value (&bp, 1);
@@ -666,12 +747,18 @@ pph_stream_read_sorted_fields_type (pph_stream *stream)
 {
   unsigned i, num_fields;
   struct sorted_fields_type *v;
+  enum pph_record_marker marker;
+  unsigned ix;
 
-  if (!pph_start_record (stream))
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
     return NULL;
+  else if (marker == PPH_RECORD_SHARED)
+    return (struct sorted_fields_type *) pph_stream_read_shared_data (stream,
+								      ix);
 
   num_fields = pph_input_uint (stream);
-  v = sorted_fields_type_new (num_fields);
+  ALLOC_AND_REGISTER (stream, ix, v, sorted_fields_type_new (num_fields));
   for (i = 0; i < num_fields; i++)
     v->elts[i] = pph_input_tree (stream);
 
@@ -688,9 +775,8 @@ pph_stream_read_lang_type_class (pph_stream *stream,
 				  struct lang_type_class *ltc)
 {
   struct bitpack_d bp;
-
-  if (!pph_start_record (stream))
-    return;
+  enum pph_record_marker marker;
+  unsigned ix;
 
   ltc->align = pph_input_uchar (stream);
 
@@ -744,8 +830,16 @@ pph_stream_read_lang_type_class (pph_stream *stream,
   ltc->vtables = pph_input_tree (stream);
   ltc->typeinfo_var = pph_input_tree (stream);
   ltc->vbases = pph_stream_read_tree_vec (stream);
-  if (pph_start_record (stream))
-    ltc->nested_udts = pph_stream_read_binding_table (stream);
+
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_START)
+    {
+      ltc->nested_udts = pph_stream_read_binding_table (stream);
+      pph_stream_register_shared_data (stream, ltc->nested_udts, ix);
+    }
+  else if (marker == PPH_RECORD_SHARED)
+    ltc->nested_udts = (binding_table) pph_stream_read_shared_data (stream, ix);
+
   ltc->as_base = pph_input_tree (stream);
   ltc->pure_virtuals = pph_stream_read_tree_vec (stream);
   ltc->friend_classes = pph_input_tree (stream);
@@ -766,31 +860,35 @@ static void
 pph_stream_read_lang_type_ptrmem (pph_stream *stream,
 				  struct lang_type_ptrmem *ltp)
 {
-  if (!pph_start_record (stream))
-    return;
-
   ltp->record = pph_input_tree (stream);
 }
 
 
-/* Read all the lang-specific fields of TYPE from STREAM.  */
+/* Read all the fields in struct lang_type from STREAM.  */
 
-static void
-pph_stream_read_lang_type (pph_stream *stream, tree type)
+static struct lang_type *
+pph_stream_read_lang_type (pph_stream *stream)
 {
   struct lang_type *lt;
+  enum pph_record_marker marker;
+  unsigned ix;
 
-  if (!pph_start_record (stream))
-    return;
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+  else if (marker == PPH_RECORD_SHARED)
+    return (struct lang_type *) pph_stream_read_shared_data (stream, ix);
 
-  lt = ggc_alloc_cleared_lang_type (sizeof (struct lang_type));
-  TYPE_LANG_SPECIFIC (type) = lt;
+  ALLOC_AND_REGISTER (stream, ix, lt,
+		      ggc_alloc_cleared_lang_type (sizeof (struct lang_type)));
 
   pph_stream_read_lang_type_header (stream, &lt->u.h);
   if (lt->u.h.is_lang_type_class)
     pph_stream_read_lang_type_class (stream, &lt->u.c);
   else
     pph_stream_read_lang_type_ptrmem (stream, &lt->u.ptrmem);
+
+  return lt;
 }
 
 
@@ -867,13 +965,13 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case REFERENCE_TYPE:
     case VECTOR_TYPE:
     case VOID_TYPE:
-      pph_stream_read_lang_type (stream, expr);
+      TYPE_LANG_SPECIFIC (expr) = pph_stream_read_lang_type (stream);
       break;
 
     case QUAL_UNION_TYPE:
     case RECORD_TYPE:
     case UNION_TYPE:
-      pph_stream_read_lang_type (stream, expr);
+      TYPE_LANG_SPECIFIC (expr) = pph_stream_read_lang_type (stream);
       TYPE_BINFO (expr) = pph_input_tree (stream);
       break;
 
@@ -883,7 +981,7 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case TEMPLATE_TYPE_PARM:
     case TYPENAME_TYPE:
     case TYPEOF_TYPE:
-      pph_stream_read_lang_type (stream, expr);
+      TYPE_LANG_SPECIFIC (expr) = pph_stream_read_lang_type (stream);
       TYPE_CACHED_VALUES (expr) = pph_input_tree (stream);
       /* Note that we are using TYPED_CACHED_VALUES for it access to 
          the generic .values field of types. */

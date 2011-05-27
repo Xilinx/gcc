@@ -25,8 +25,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree.h"
 
 /* Record markers.  */
-static const unsigned char PPH_RECORD_START = 0xff;
-static const unsigned char PPH_RECORD_END   = 0xfe;
+enum pph_record_marker {
+  PPH_RECORD_START = 0xfd,
+  PPH_RECORD_END,
+  PPH_RECORD_SHARED
+};
 
 /* Number of sections in a PPH file.  FIXME, currently only one section
    is supported.  To add more, it will also be necessary to handle
@@ -50,6 +53,31 @@ typedef struct pph_file_header {
   /* Size of the string table in bytes.  */
   unsigned int strtab_size;
 } pph_file_header;
+
+
+typedef void *void_p;
+DEF_VEC_P(void_p);
+DEF_VEC_ALLOC_P(void_p,heap);
+
+/* A cache for storing pickled data structures.  This is used to implement
+   pointer sharing.
+
+   When a data structure is initially pickled for writing, a pointer
+   to it is stored in this cache.  If the same data structure is
+   streamed again, instead of pickling it, the compiler will write
+   the index into the cache.
+
+   The same mechanism is used when reading. When the data structure is
+   first materialized, its address is saved into the same cache slot
+   used when writing.  Subsequent reads will simply get the
+   materialized pointer from that slot.  */
+typedef struct pph_stream_pickle_cache {
+  /* Array of entries.  */
+  VEC(void_p,heap) *v;
+
+  /* Map between slots in the array and pointers.  */
+  struct pointer_map_t *m;
+} pph_stream_pickle_cache;
 
 
 /* A PPH stream contains all the data and attributes needed to
@@ -83,6 +111,9 @@ typedef struct pph_stream {
   char *file_data;
   size_t file_size;
 
+  /* Cache of pickled data structures.  */
+  pph_stream_pickle_cache cache;
+
   /* Nonzero if the stream was opened for writing.  */
   unsigned int write_p : 1;
 } pph_stream;
@@ -100,6 +131,9 @@ void pph_stream_trace_string (pph_stream *, const char *);
 void pph_stream_trace_string_with_length (pph_stream *, const char *, unsigned);
 void pph_stream_trace_chain (pph_stream *, tree);
 void pph_stream_trace_bitpack (pph_stream *, struct bitpack_d *);
+void pph_stream_cache_insert_at (pph_stream *, void *, unsigned);
+bool pph_stream_cache_add (pph_stream *, void *, unsigned *);
+void *pph_stream_cache_get (pph_stream *, unsigned);
 
 /* In pph-streamer-out.c.  */
 void pph_stream_flush_buffers (pph_stream *);

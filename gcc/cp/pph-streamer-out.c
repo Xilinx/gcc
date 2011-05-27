@@ -193,17 +193,35 @@ pph_stream_flush_buffers (pph_stream *stream)
 }
 
 
-/* Start a new record in STREAM for data in DATA.  If DATA is NULL,
-   write an end-of-record marker and return false.  Otherwise, write a
-   start-of-record marker and return true.  */
+/* Start a new record in STREAM for data in DATA.  If DATA is NULL
+   write an end-of-record marker and return false.  If DATA is not NULL
+   and did not exist in the pickle cache, add it, write a
+   start-of-record marker and return true.  If DATA existed in the
+   cache, write a shared-record marker and return false.  */
 
 static inline bool
 pph_start_record (pph_stream *stream, void *data)
 {
   if (data)
     {
-      pph_output_uchar (stream, PPH_RECORD_START);
-      return true;
+      bool existed_p;
+      unsigned ix;
+      enum pph_record_marker marker;
+
+      /* If the memory at DATA has already been streamed out, make
+	 sure that we don't write it more than once.  Otherwise,
+	 the reader will instantiate two different pointers for
+	 the same object.
+
+	 Write the index into the cache where DATA has been stored.
+	 This way, the reader will know at which slot to
+	 re-materialize DATA the first time and where to access it on
+	 subsequent reads.  */
+      existed_p = pph_stream_cache_add (stream, data, &ix);
+      marker = (existed_p) ? PPH_RECORD_SHARED : PPH_RECORD_START;
+      pph_output_uchar (stream, marker);
+      pph_output_uint (stream, ix);
+      return marker == PPH_RECORD_START;
     }
   else
     {
@@ -219,9 +237,6 @@ static void
 pph_stream_write_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
 {
   struct bitpack_d bp;
-
-  if (!pph_start_record (stream, ldb))
-    return;
 
   bp = bitpack_create (stream->ob->main_stream);
   bp_pack_value (&bp, ldb->selector, 16);
@@ -247,11 +262,6 @@ static void
 pph_stream_write_ld_min (pph_stream *stream, struct lang_decl_min *ldm,
 		         bool ref_p)
 {
-  if (!pph_start_record (stream, ldm))
-    return;
-
-  gcc_assert (ldm->base.selector == 0);
-
   pph_output_tree_or_ref_1 (stream, ldm->template_info, ref_p, 1);
   if (ldm->base.u2sel == 0)
     pph_output_tree_or_ref_1 (stream, ldm->u2.access, ref_p, 1);
@@ -332,16 +342,15 @@ pph_stream_write_cxx_binding (pph_stream *stream, cxx_binding *cb, bool ref_p)
   unsigned num_bindings;
   cxx_binding *prev;
 
-  if (!pph_start_record (stream, cb))
-    return;
-
-  for (num_bindings = 0, prev = cb->previous; prev; prev = prev->previous)
+  num_bindings = 0;
+  for (prev = cb ? cb->previous : NULL; prev; prev = prev->previous)
     num_bindings++;
 
   /* Write the list of previous bindings.  */
   pph_output_uint (stream, num_bindings);
-  for (prev = cb->previous; prev; prev = prev->previous)
-    pph_stream_write_cxx_binding_1 (stream, prev, ref_p);
+  if (num_bindings > 0)
+    for (prev = cb->previous; prev; prev = prev->previous)
+      pph_stream_write_cxx_binding_1 (stream, prev, ref_p);
 
   /* Write the current binding at the end.  */
   pph_stream_write_cxx_binding_1 (stream, cb, ref_p);
@@ -541,9 +550,6 @@ pph_stream_write_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf,
 {
   struct bitpack_d bp;
 
-  if (!pph_start_record (stream, ldf))
-    return;
-
   bp = bitpack_create (stream->ob->main_stream);
   bp_pack_value (&bp, ldf->operator_code, 16);
   bp_pack_value (&bp, ldf->global_ctor_p, 1);
@@ -588,13 +594,7 @@ static void
 pph_stream_write_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns,
 			bool ref_p)
 {
-  struct cp_binding_level *level;
-
-  if (!pph_start_record (stream, ldns))
-    return;
-
-  level = ldns->level;
-  pph_stream_write_binding_level (stream, level, ref_p);
+  pph_stream_write_binding_level (stream, ldns->level, ref_p);
 }
 
 
@@ -604,9 +604,6 @@ pph_stream_write_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns,
 static void
 pph_stream_write_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
 {
-  if (!pph_start_record (stream, ldp))
-    return;
-
   pph_output_uint (stream, ldp->level);
   pph_output_uint (stream, ldp->index);
 }
@@ -662,9 +659,6 @@ pph_stream_write_lang_type_header (pph_stream *stream,
 				   struct lang_type_header *lth)
 {
   struct bitpack_d bp;
-
-  if (!pph_start_record (stream, lth))
-    return;
 
   bp = bitpack_create (stream->ob->main_stream);
   bp_pack_value (&bp, lth->is_lang_type_class, 1);
@@ -724,9 +718,6 @@ pph_stream_write_lang_type_class (pph_stream *stream,
 				  struct lang_type_class *ltc, bool ref_p)
 {
   struct bitpack_d bp;
-
-  if (!pph_start_record (stream, ltc))
-    return;
 
   pph_output_uchar (stream, ltc->align);
 
@@ -804,9 +795,6 @@ static void
 pph_stream_write_lang_type_ptrmem (pph_stream *stream, struct
 				   lang_type_ptrmem *ltp, bool ref_p)
 {
-  if (!pph_start_record (stream, ltp))
-    return;
-
   pph_output_tree_or_ref (stream, ltp->record, ref_p);
 }
 
