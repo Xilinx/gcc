@@ -10008,7 +10008,7 @@ mips_expand_prologue (void)
   frame = &cfun->machine->frame;
   size = frame->total_size;
 
-  if (flag_stack_usage)
+  if (flag_stack_usage_info)
     current_function_static_stack_size = size;
 
   /* Save the registers.  Allocate up to MIPS_MAX_FIRST_STACK_STEP
@@ -15239,12 +15239,14 @@ mips_cpu_info_from_opt (int opt)
 static const struct mips_cpu_info *
 mips_default_arch (void)
 {
-#ifdef MIPS_CPU_STRING_DEFAULT
+#if defined (MIPS_CPU_STRING_DEFAULT)
   unsigned int i;
   for (i = 0; i < ARRAY_SIZE (mips_cpu_info_table); i++)
     if (strcmp (mips_cpu_info_table[i].name, MIPS_CPU_STRING_DEFAULT) == 0)
       return mips_cpu_info_table + i;
   gcc_unreachable ();
+#elif defined (MIPS_ISA_DEFAULT)
+  return mips_cpu_info_from_isa (MIPS_ISA_DEFAULT);
 #else
   /* 'from-abi' makes a good default: you get whatever the ABI
      requires.  */

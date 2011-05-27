@@ -761,6 +761,7 @@ new_loop_vec_info (struct loop *loop)
   LOOP_VINFO_SLP_INSTANCES (res) = VEC_alloc (slp_instance, heap, 10);
   LOOP_VINFO_SLP_UNROLLING_FACTOR (res) = 1;
   LOOP_VINFO_PEELING_HTAB (res) = NULL;
+  LOOP_VINFO_PEELING_FOR_GAPS (res) = false;
 
   return res;
 }
@@ -1704,7 +1705,7 @@ vect_is_slp_reduction (loop_vec_info loop_info, gimple phi, gimple first_stmt)
   tree lhs;
   imm_use_iterator imm_iter;
   use_operand_p use_p;
-  int nloop_uses, size = 0;
+  int nloop_uses, size = 0, nuses;
   bool found = false;
 
   if (loop != vect_loop)
@@ -1715,9 +1716,11 @@ vect_is_slp_reduction (loop_vec_info loop_info, gimple phi, gimple first_stmt)
   while (1)
     {
       nloop_uses = 0;
+      nuses = 0;
       FOR_EACH_IMM_USE_FAST (use_p, imm_iter, lhs)
         {
           use_stmt = USE_STMT (use_p);
+          nuses++;
           if (is_gimple_debug (use_stmt))
             continue;
 
@@ -1738,6 +1741,10 @@ vect_is_slp_reduction (loop_vec_info loop_info, gimple phi, gimple first_stmt)
           if (nloop_uses > 1)
             return false;
         }
+
+      /* We reached a statement with no uses.  */
+      if (nuses == 0)
+	return false;
 
       if (found)
         break;
@@ -2327,6 +2334,10 @@ vect_get_known_peeling_cost (loop_vec_info loop_vinfo, int peel_iters_prologue,
       peel_iters_prologue = niters < peel_iters_prologue ?
                             niters : peel_iters_prologue;
       *peel_iters_epilogue = (niters - peel_iters_prologue) % vf;
+      /* If we need to peel for gaps, but no peeling is required, we have to
+	 peel VF iterations.  */
+      if (LOOP_VINFO_PEELING_FOR_GAPS (loop_vinfo) && !*peel_iters_epilogue)
+        *peel_iters_epilogue = vf;
     }
 
    return (peel_iters_prologue * scalar_single_iter_cost)
@@ -4981,7 +4992,8 @@ vect_transform_loop (loop_vec_info loop_vinfo)
   do_peeling_for_loop_bound
     = (!LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
        || (LOOP_VINFO_NITERS_KNOWN_P (loop_vinfo)
-	   && LOOP_VINFO_INT_NITERS (loop_vinfo) % vectorization_factor != 0));
+	   && LOOP_VINFO_INT_NITERS (loop_vinfo) % vectorization_factor != 0)
+       || LOOP_VINFO_PEELING_FOR_GAPS (loop_vinfo));
 
   if (LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT (loop_vinfo)
       || LOOP_REQUIRES_VERSIONING_FOR_ALIAS (loop_vinfo))

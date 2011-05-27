@@ -501,6 +501,17 @@ perform_member_init (tree member, tree init)
   if (decl == error_mark_node)
     return;
 
+  if (warn_init_self && init && TREE_CODE (init) == TREE_LIST
+      && TREE_CHAIN (init) == NULL_TREE)
+    {
+      tree val = TREE_VALUE (init);
+      if (TREE_CODE (val) == COMPONENT_REF && TREE_OPERAND (val, 1) == member
+	  && TREE_OPERAND (val, 0) == current_class_ref)
+	warning_at (DECL_SOURCE_LOCATION (current_function_decl),
+		    OPT_Wuninitialized, "%qD is initialized with itself",
+		    member);
+    }
+
   if (init == void_type_node)
     {
       /* mem() means value-initialization.  */
@@ -538,6 +549,8 @@ perform_member_init (tree member, tree init)
 	    {
 	      gcc_assert (TREE_CHAIN (init) == NULL_TREE);
 	      init = TREE_VALUE (init);
+	      if (BRACE_ENCLOSED_INITIALIZER_P (init))
+		init = digest_init (type, init, tf_warning_or_error);
 	    }
 	  if (init == NULL_TREE
 	      || same_type_ignoring_top_level_qualifiers_p (type,

@@ -307,7 +307,7 @@ enum c_tree_index
 /* Identifier part common to the C front ends.  Inherits from
    tree_identifier, despite appearances.  */
 struct GTY(()) c_common_identifier {
-  struct tree_common common;
+  struct tree_typed common;
   struct cpp_hashnode node;
 };
 
@@ -687,7 +687,7 @@ extern void finish_fname_decls (void);
 extern const char *fname_as_string (int);
 extern tree fname_decl (location_t, unsigned, tree);
 
-extern void check_function_arguments (tree, int, tree *, tree);
+extern void check_function_arguments (const_tree, int, tree *);
 extern void check_function_arguments_recurse (void (*)
 					      (void *, tree,
 					       unsigned HOST_WIDE_INT),
