@@ -1,3 +1,10 @@
+2011-05-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/49088
+	* combine.c (force_to_mode): If X is narrower than MODE and we
+	want all the bits in X's mode, just use the operand when it
+	is CONST_INT.
+
 2011-05-20  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR target/48529
