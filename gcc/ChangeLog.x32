@@ -1,3 +1,9 @@
+2011-05-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/49114
+	* reload1.c (gen_reload): Properly handle
+	(set reg:X (plus:X (subreg:X (reg:Y) 0) (const_int)))
+
 2011-05-21  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR rtl-optimization/49088
