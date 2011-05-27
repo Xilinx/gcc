@@ -1,6 +1,6 @@
 /* { dg-do run } */
 /* See if -forward::/-performv:: is able to work. */
-/* { dg-xfail-run-if "PR36610" { ! { { i?86-*-* x86_64-*-* } && ilp32 } } { "-fgnu-runtime" } { "" } } */
+/* { dg-xfail-run-if "PR36610" { ! { { i?86-*-* x86_64-*-* } && ia32 } } { "-fgnu-runtime" } { "" } } */
 /* { dg-skip-if "Needs OBJC2 Implementation" { *-*-darwin* && { lp64 } } { "-fnext-runtime" } { "" } } */
 /* There is no implementation of forward: in the NeXT m64 libobjc/Object
    neither have we implemented this in our extensions - so we have to skip it
