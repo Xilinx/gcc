@@ -393,6 +393,7 @@ add_stmt (tree t)
 
   /* Add T to the statement-tree.  Non-side-effect statements need to be
      recorded during statement expressions.  */
+  gcc_checking_assert (!VEC_empty (tree, stmt_list_stack));
   append_to_statement_list_force (t, &cur_stmt_list);
 
   return t;
@@ -8577,7 +8578,7 @@ maybe_add_lambda_conv_op (tree type)
     {
       /* Put the thunk in the same comdat group as the call op.  */
       struct cgraph_node *callop_node, *thunk_node;
-      DECL_COMDAT_GROUP (statfn) = DECL_COMDAT_GROUP (callop);
+      DECL_COMDAT_GROUP (statfn) = cxx_comdat_group (callop);
       callop_node = cgraph_get_create_node (callop);
       thunk_node = cgraph_get_create_node (statfn);
       gcc_assert (callop_node->same_comdat_group == NULL);

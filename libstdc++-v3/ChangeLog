@@ -1,3 +1,107 @@
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/20_util/pointer_traits/pointer_to.cc: Fix.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* acinclude.m4: Define GLIBCXX_CHECK_GET_NPROCS and
+	GLIBCXX_CHECK_SC_NPROCESSORS_ONLN.
+	* configure.ac: Use them. Increase minor version.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+	* include/std/thread (thread::hardware_concurrency): Remove inline
+	definition.
+	* src/thread.cc (thread::hardware_concurrency): Define.
+	* config/abi/pre/gnu.ver: Export new symbol @3.4.17
+	* testsuite/util/testsuite_abi.cc: Add new version.
+	* testsuite/lib/libstdc++.exp (check_v3_target_nprocs): Add.
+	* testsuite/lib/dg-options.exp (dg-require-nprocs): Add.
+	* testsuite/30_threads/thread/members/hardware_concurrency.cc: Use
+	dg-require-nprocs and verify hardware_concurrency returns non-zero.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/20_util/pointer_traits/pointer_to.cc: New.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/Makefile.am: Add new ptr_traits.h header.
+	* include/Makefile.in: Regenerate.
+	* include/bits/ptr_traits.h (pointer_traits): New.
+	* include/bits/allocator.h (allocator_traits): Add.
+	* include/ext/array_allocator.h (construct, destroy): Update C++0x
+	versions.
+	* include/ext/bitmap_allocator.h (construct, destroy): Likewise.
+	* include/ext/extptr_allocator.h (construct, destroy): Likewise.
+	* include/ext/malloc_allocator.h (construct, destroy): Likewise.
+	* include/ext/mt_allocator.h (construct, destroy): Likewise.
+	* include/ext/new_allocator.h (construct, destroy): Likewise.
+	* include/ext/pool_allocator.h (construct, destroy): Likewise.
+	* include/ext/throw_allocator.h (construct, destroy): Likewise.
+	* testsuite/20_util/allocator_traits/requirements/typedefs.cc: New.
+	* testsuite/20_util/allocator_traits/requirements/
+	explicit_instantiation.cc: New.
+	* testsuite/20_util/allocator_traits/members/max_size.cc: New.
+	* testsuite/20_util/allocator_traits/members/select.cc: New.
+	* testsuite/20_util/allocator_traits/members/construct.cc: New.
+	* testsuite/20_util/allocator_traits/members/allocate_hint.cc: New.
+	* testsuite/20_util/allocator_traits/members/destroy.cc: New.
+	* testsuite/20_util/pointer_traits/requirements/typedefs.cc: New.
+	* testsuite/20_util/pointer_traits/requirements/
+	explicit_instantiation.cc: New.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future (launch): Update enumerators and define
+	operators required for bitmask type. Remove trailing whitespace.
+	* src/future.cc: Remove trailing whitespace.
+	* testsuite/30_threads/async/any.cc: Adjust.
+	* testsuite/30_threads/async/sync.cc: Adjust.
+	* testsuite/30_threads/async/launch.cc: New.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future: Use noexcept.
+	* src/future.cc: Likewise.
+
+2011-05-27  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/thread (this_thread::sleep_until): Move after sleep_for.
+
+2011-05-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/49187
+	* include/parallel/losertree.h: Add missing using declarations
+	of _Base::_M_comp.
+	* include/parallel/algobase.h: Include <parallel/algorithmfwd.h>.
+	* include/parallel/multiway_merge.h: Include <parallel/
+	multiseq_selection.h>, forward declare __merge_advance.
+	* include/parallel/multiseq_selection.h: Don't include <parallel/
+	sort.h> here.
+	* include/ext/pb_ds/detail/thin_heap_/erase_fn_imps.hpp: Fix
+	qualification of upper_bound.
+
+	* testsuite/ext/pb_ds/regression/tree_no_data_map_rand_debug.cc:
+	Use dg-require-debug-mode.
+	* testsuite/ext/pb_ds/regression/tree_data_map_rand_debug.cc:
+	Likewise.
+	* testsuite/ext/pb_ds/regression/priority_queue_rand_debug.cc:
+	Likewise.
+	* testsuite/ext/pb_ds/regression/trie_no_data_map_rand_debug.cc:
+	Likewise.
+	* testsuite/ext/pb_ds/regression/trie_data_map_rand_debug.cc:
+	Likewise.
+	* testsuite/ext/pb_ds/regression/list_update_no_data_map_rand_debug.cc:
+	Likewise.
+	* testsuite/ext/pb_ds/regression/list_update_data_map_rand_debug.cc:
+	Likewise.
+	* testsuite/ext/pb_ds/regression/hash_no_data_map_rand_debug.cc:
+	Likewise.
+	* testsuite/ext/pb_ds/regression/hash_data_map_rand_debug.cc:
+	Likewise.
+
+	* include/parallel/algo.h: Minor uglification fixes.
+
 2011-05-26  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* src/list.cc: Use noexcept per the FDIS.

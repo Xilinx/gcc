@@ -1,3 +1,97 @@
+2011-05-29  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/boolean_subtype.adb: Rename to...
+	* gnat.dg/boolean_subtype1.adb: ...this.
+
+2011-05-28  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-syntax1.C: New.
+
+2011-05-27  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/enum18.C: Adjust.
+
+	* g++.dg/cpp0x/lambda/lambda-template2.C: New.
+
+2011-05-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_22.f90: New.
+
+2011-05-27  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/46728
+	* gcc.target/powerpc/pr46728-1.c: New.
+	* gcc.target/powerpc/pr46728-2.c: New.
+	* gcc.target/powerpc/pr46728-3.c: New.
+	* gcc.target/powerpc/pr46728-4.c: New.
+	* gcc.target/powerpc/pr46728-5.c: New.
+	* gcc.dg/pr46728-6.c: New.
+	* gcc.target/powerpc/pr46728-7.c: New.
+	* gcc.target/powerpc/pr46728-8.c: New.
+	* gcc.dg/pr46728-9.c: New.
+	* gcc.target/powerpc/pr46728-10.c: New.
+	* gcc.target/powerpc/pr46728-11.c: New.
+	* gcc.dg/pr46728-12.c: New.
+	* gcc.target/powerpc/pr46728-13.c: New.
+	* gcc.target/powerpc/pr46728-14.c: New.
+	* gcc.target/powerpc/pr46728-15.c: New.
+	* gcc.target/powerpc/pr46728-16.c: New.
+
+2011-05-27  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/mangle47.C: New.
+
+	PR c++/49176
+	* g++.dg/template/const5.C: New.
+
+	* g++.dg/cpp0x/enum18.C: New.
+
+	* g++.dg/cpp0x/lambda/lambda-nested4.C: New.
+
+	* g++.dg/cpp0x/error6.C: New.
+
+	* g++.dg/cpp0x/error5.C: New.
+
+2011-05-27  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/49165
+	* g++.dg/eh/cond6.C: New test.
+
+2011-05-27  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/48820
+	* gfortran.dg/rank_3.f90: New.
+	* gfortran.dg/rank_4.f90: New.
+
+2011-05-27  Janis Johnson  <janisjo@codesourcery.com>
+
+	* g++.dg/tree-ssa-pr43411.C: Rename function to be inlined and
+	replace dump search.
+
+2011-05-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/bit_packed_array5.ads: Move dg directive to...
+	* gnat.dg/bit_packed_array5.adb: ...here.
+
+2011-05-27  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/42056
+	* testsuite/g++.dg/cpp0x/auto25.C: New.
+
+2011-05-27  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/920711-1.x: Add -fwrapv.
+
+2011-05-27  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.c-torture/execute/920612-1.x: Add -fwrapv.
+
+2011-05-27  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/49189
+	* gnat.dg/bit_packed_array5.ad[sb]: New testcase.
+
 2011-05-26  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/friend1.C: New.

@@ -277,6 +277,10 @@ enum built_in_class
   BUILT_IN_NORMAL
 };
 
+/* Last marker used for LTO stremaing of built_in_class.  We can not add it
+   to the enum since we need the enumb to fit in 2 bits.  */
+#define BUILT_IN_LAST (BUILT_IN_NORMAL + 1)
+
 /* Names for the above.  */
 extern const char *const built_in_class_names[4];
 
@@ -3556,7 +3560,7 @@ struct GTY ((chain_next ("%h.next"), chain_prev ("%h.prev"))) tree_statement_lis
 
 struct GTY(()) tree_statement_list
  {
-  struct tree_common common;
+  struct tree_typed typed;
   struct tree_statement_list_node *head;
   struct tree_statement_list_node *tail;
 };
