@@ -1691,14 +1691,14 @@ dump_basic_block_info (FILE *file, rtx insn, basic_block *start_to_bb,
       edge e;
       edge_iterator ei;
 
-      fprintf (file, "# BLOCK %d", bb->index);
+      fprintf (file, "%s BLOCK %d", ASM_COMMENT_START, bb->index);
       if (bb->frequency)
         fprintf (file, " freq:%d", bb->frequency);
       if (bb->count)
         fprintf (file, " count:" HOST_WIDEST_INT_PRINT_DEC,
                  bb->count);
       fprintf (file, " seq:%d", (*bb_seqn)++);
-      fprintf (file, "\n# PRED:");
+      fprintf (file, "\n%s PRED:", ASM_COMMENT_START);
       FOR_EACH_EDGE (e, ei, bb->preds)
         {
           dump_edge_info (file, e, 0);
@@ -1711,7 +1711,7 @@ dump_basic_block_info (FILE *file, rtx insn, basic_block *start_to_bb,
       edge e;
       edge_iterator ei;
 
-      fprintf (asm_out_file, "# SUCC:");
+      fprintf (asm_out_file, "%s SUCC:", ASM_COMMENT_START);
       FOR_EACH_EDGE (e, ei, bb->succs)
        {
          dump_edge_info (asm_out_file, e, 1);
@@ -2312,6 +2312,11 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 	    const char *string;
 	    location_t loc;
 	    expanded_location expanded;
+
+	    /* Make sure we flush any queued register saves in case this
+	       clobbers affected registers.  */
+	    if (dwarf2out_do_frame ())
+	      dwarf2out_frame_debug (insn, false);
 
 	    /* There's no telling what that did to the condition codes.  */
 	    CC_STATUS_INIT;

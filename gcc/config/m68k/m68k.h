@@ -664,13 +664,7 @@ __transfer_from_trampoline ()					\
   ((GET_CODE (X) == LABEL_REF || GET_CODE (X) == SYMBOL_REF		\
     || GET_CODE (X) == CONST_INT || GET_CODE (X) == CONST		\
     || GET_CODE (X) == HIGH)						\
-   && LEGITIMATE_CONSTANT_P (X))
-
-/* Nonzero if the constant value X is a legitimate general operand.
-   It is given that X satisfies CONSTANT_P or is a CONST_DOUBLE.  */
-#define LEGITIMATE_CONSTANT_P(X)				\
-  (GET_MODE (X) != XFmode					\
-   && !m68k_illegitimate_symbolic_constant_p (X))
+   && m68k_legitimate_constant_p (Pmode, X))
 
 #ifndef REG_OK_STRICT
 #define REG_STRICT_P 0
@@ -947,36 +941,7 @@ do {							\
     goto FAIL;						\
 } while (0);
 
-/* Values used in the MICROARCH argument to M68K_DEVICE.  */
-enum uarch_type
-{
-  u68000,
-  u68010,
-  u68020,
-  u68020_40,
-  u68020_60,
-  u68030,
-  u68040,
-  u68060,
-  ucpu32,
-  ucfv1,
-  ucfv2,
-  ucfv3,
-  ucfv4,
-  ucfv4e,
-  ucfv5,
-  unk_arch
-};
-
-/* An enumeration of all supported target devices.  */
-enum target_device
-{
-#define M68K_DEVICE(NAME,ENUM_VALUE,FAMILY,MULTILIB,MICROARCH,ISA,FLAGS) \
-  ENUM_VALUE,
-#include "m68k-devices.def"
-#undef M68K_DEVICE
-  unk_device
-};
+#include "config/m68k/m68k-opts.h"
 
 enum fpu_type
 {
@@ -993,7 +958,6 @@ enum m68k_function_kind
 };
 
 /* Variables in m68k.c; see there for details.  */
-extern const char *m68k_library_id_string;
 extern enum target_device m68k_cpu;
 extern enum uarch_type m68k_tune;
 extern enum fpu_type m68k_fpu;

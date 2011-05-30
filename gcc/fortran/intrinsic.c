@@ -2433,6 +2433,11 @@ add_functions (void)
 
   make_generic ("range", GFC_ISYM_RANGE, GFC_STD_F95);
 
+  add_sym_1 ("rank", GFC_ISYM_RANK, CLASS_INQUIRY, ACTUAL_NO, BT_INTEGER, di,
+	     GFC_STD_F2008_TR, gfc_check_rank, gfc_simplify_rank, NULL,
+	     a, BT_REAL, dr, REQUIRED);
+  make_generic ("rank", GFC_ISYM_RANK, GFC_STD_F2008_TR);
+
   add_sym_2 ("real", GFC_ISYM_REAL, CLASS_ELEMENTAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F77,
 	     gfc_check_real, gfc_simplify_real, gfc_resolve_real,
 	     a, BT_UNKNOWN, dr, REQUIRED, kind, BT_INTEGER, di, OPTIONAL);
@@ -3408,9 +3413,9 @@ gfc_intrinsic_init_1 (void)
 void
 gfc_intrinsic_done_1 (void)
 {
-  gfc_free (functions);
-  gfc_free (conversion);
-  gfc_free (char_conversions);
+  free (functions);
+  free (conversion);
+  free (char_conversions);
   gfc_free_namespace (gfc_intrinsic_namespace);
 }
 
@@ -3972,6 +3977,10 @@ gfc_check_intrinsic_standard (const gfc_intrinsic_sym* isym,
       symstd_msg = "new in Fortran 2008";
       break;
 
+    case GFC_STD_F2008_TR:
+      symstd_msg = "new in TR 29113";
+      break;
+
     case GFC_STD_GNU:
       symstd_msg = "a GNU Fortran extension";
       break;
@@ -4368,7 +4377,7 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
 
   *expr = *new_expr;
 
-  gfc_free (new_expr);
+  free (new_expr);
   expr->ts = *ts;
 
   if (gfc_is_constant_expr (expr->value.function.actual->expr)
@@ -4437,7 +4446,7 @@ gfc_convert_chartype (gfc_expr *expr, gfc_typespec *ts)
 
   *expr = *new_expr;
 
-  gfc_free (new_expr);
+  free (new_expr);
   expr->ts = *ts;
 
   if (gfc_is_constant_expr (expr->value.function.actual->expr)

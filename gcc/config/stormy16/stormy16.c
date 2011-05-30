@@ -2255,15 +2255,21 @@ static struct
 static void
 xstormy16_init_builtins (void)
 {
-  tree args, ret_type, arg;
-  int i, a;
+  tree args[2], ret_type, arg = NULL_TREE, ftype;
+  int i, a, n_args;
 
   ret_type = void_type_node;
 
   for (i = 0; s16builtins[i].name; i++)
     {
-      args = void_list_node;
-      for (a = strlen (s16builtins[i].arg_types) - 1; a >= 0; a--)
+      n_args = strlen (s16builtins[i].arg_types) - 1;
+
+      gcc_assert (n_args <= (int) ARRAY_SIZE (args));
+
+      for (a = n_args - 1; a >= 0; a--)
+	args[a] = NULL_TREE;
+
+      for (a = n_args; a >= 0; a--)
 	{
 	  switch (s16builtins[i].arg_types[a])
 	    {
@@ -2276,11 +2282,11 @@ xstormy16_init_builtins (void)
 	  if (a == 0)
 	    ret_type = arg;
 	  else
-	    args = tree_cons (NULL_TREE, arg, args);
+	    args[a-1] = arg;
 	}
-      add_builtin_function (s16builtins[i].name,
-			    build_function_type (ret_type, args),
-			    i, BUILT_IN_MD, NULL, NULL);
+      ftype = build_function_type_list (ret_type, args[0], args[1], NULL_TREE);
+      add_builtin_function (s16builtins[i].name, ftype,
+			    i, BUILT_IN_MD, NULL, NULL_TREE);
     }
 }
 
@@ -2401,7 +2407,8 @@ combine_bnp (rtx insn)
     {
       /* LT and GE conditionals should have a sign extend before
 	 them.  */
-      for (and_insn = prev_real_insn (insn); and_insn;
+      for (and_insn = prev_real_insn (insn);
+	   and_insn != NULL_RTX;
 	   and_insn = prev_real_insn (and_insn))
 	{
 	  int and_code = recog_memoized (and_insn);
@@ -2430,7 +2437,8 @@ combine_bnp (rtx insn)
   else
     {
       /* EQ and NE conditionals have an AND before them.  */
-      for (and_insn = prev_real_insn (insn); and_insn;
+      for (and_insn = prev_real_insn (insn);
+	   and_insn != NULL_RTX;
 	   and_insn = prev_real_insn (and_insn))
 	{
 	  if (recog_memoized (and_insn) == CODE_FOR_andhi3
@@ -2475,7 +2483,8 @@ combine_bnp (rtx insn)
 	    }
 	}
     }
-  if (!and_insn)
+
+  if (and_insn == NULL_RTX)
     return;
 
   for (load = shift ? prev_real_insn (shift) : prev_real_insn (and_insn);

@@ -1991,6 +1991,10 @@ write_type (tree type)
 	      sorry ("mangling typeof, use decltype instead");
 	      break;
 
+	    case UNDERLYING_TYPE:
+	      sorry ("mangling __underlying_type");
+	      break;
+
 	    case LANG_TYPE:
 	      /* fall through.  */
 
@@ -2243,7 +2247,7 @@ write_function_type (const tree type)
     {
       /* The first parameter must be a POINTER_TYPE pointing to the
 	 `this' parameter.  */
-      tree this_type = TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (type)));
+      tree this_type = class_of_this_parm (type);
       write_CV_qualifiers_for_type (this_type);
     }
 
@@ -2595,6 +2599,15 @@ write_expression (tree expr)
       write_unqualified_id (fn);
       write_template_args (TREE_OPERAND (expr, 1));
     }
+  else if (TREE_CODE (expr) == MODOP_EXPR)
+    {
+      enum tree_code subop = TREE_CODE (TREE_OPERAND (expr, 1));
+      const char *name = (assignment_operator_name_info[(int) subop]
+			  .mangled_name);
+      write_string (name);
+      write_expression (TREE_OPERAND (expr, 0));
+      write_expression (TREE_OPERAND (expr, 2));
+    }
   else
     {
       int i, len;
@@ -2697,23 +2710,7 @@ write_expression (tree expr)
 	default:
 	  /* In the middle-end, some expressions have more operands than
 	     they do in templates (and mangling).  */
-	  switch (code)
-	    {
-	    case PREINCREMENT_EXPR:
-	    case PREDECREMENT_EXPR:
-	    case POSTINCREMENT_EXPR:
-	    case POSTDECREMENT_EXPR:
-	      len = 1;
-	      break;
-
-	    case ARRAY_REF:
-	      len = 2;
-	      break;
-
-	    default:
-	      len = TREE_OPERAND_LENGTH (expr);
-	      break;
-	    }
+	  len = cp_tree_operand_length (expr);
 
 	  for (i = 0; i < len; ++i)
 	    {

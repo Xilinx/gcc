@@ -143,7 +143,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef ENDFILE_SPEC
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
   crtend.o%s"
 
 /* Override startfile prefix defaults.  */
@@ -160,11 +160,12 @@ along with GCC; see the file COPYING3.  If not see
 #undef OUTPUT_QUOTED_STRING
 #define OUTPUT_QUOTED_STRING(FILE, STRING)               \
 do {						         \
+  const char *_string = (const char *) (STRING);	 \
   char c;					         \
 						         \
-  putc ('\"', asm_file);			         \
+  putc ('\"', (FILE));				         \
 						         \
-  while ((c = *string++) != 0)			         \
+  while ((c = *_string++) != 0)			         \
     {						         \
       if (c == '\\')				         \
 	c = '/';				         \
@@ -172,14 +173,14 @@ do {						         \
       if (ISPRINT (c))                                   \
         {                                                \
           if (c == '\"')			         \
-	    putc ('\\', asm_file);		         \
-          putc (c, asm_file);			         \
+	    putc ('\\', (FILE));		         \
+          putc (c, (FILE));			         \
         }                                                \
       else                                               \
-        fprintf (asm_file, "\\%03o", (unsigned char) c); \
+        fprintf ((FILE), "\\%03o", (unsigned char) c);	 \
     }						         \
 						         \
-  putc ('\"', asm_file);			         \
+  putc ('\"', (FILE));					 \
 } while (0)
 
 /* Define as short unsigned for compatibility with MS runtime.  */

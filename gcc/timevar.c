@@ -367,6 +367,7 @@ timevar_stop (timevar_id_t timevar)
   timevar_accumulate (&tv->elapsed, &tv->start_time, &now);
 }
 
+
 /* Conditionally start timing TIMEVAR independently of the timing stack.
    If the timer is already running, leave it running and return true.
    Otherwise, start the timer and return false.
@@ -418,6 +419,7 @@ timevar_cond_stop (timevar_id_t timevar, bool running)
   get_time (&now);
   timevar_accumulate (&tv->elapsed, &tv->start_time, &now);
 }
+
 
 /* Summarize timing variables to FP.  The timing variable TV_TOTAL has
    a special meaning -- it's considered to be the total elapsed time,

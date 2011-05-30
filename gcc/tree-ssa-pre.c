@@ -580,8 +580,7 @@ phi_trans_add (pre_expr e, pre_expr v, basic_block pred)
 
   slot = htab_find_slot_with_hash (phi_translate_table, new_pair,
 				   new_pair->hashcode, INSERT);
-  if (*slot)
-    free (*slot);
+  free (*slot);
   *slot = (void *) new_pair;
 }
 
@@ -2657,11 +2656,13 @@ compute_antic (void)
 }
 
 /* Return true if we can value number the call in STMT.  This is true
-   if we have a pure or constant call.  */
+   if we have a pure or constant call to a real function.  */
 
 static bool
 can_value_number_call (gimple stmt)
 {
+  if (gimple_call_internal_p (stmt))
+    return false;
   if (gimple_call_flags (stmt) & (ECF_PURE | ECF_CONST))
     return true;
   return false;
@@ -2770,7 +2771,7 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	    gcc_assert (base);
 	    offset = int_const_binop (PLUS_EXPR, offset,
 				      build_int_cst (TREE_TYPE (offset),
-						     off), 0);
+						     off));
 	    baseop = build_fold_addr_expr (base);
 	  }
 	return fold_build2 (MEM_REF, currop->type, baseop, offset);
@@ -4185,6 +4186,7 @@ static unsigned int
 eliminate (void)
 {
   VEC (gimple, heap) *to_remove = NULL;
+  VEC (gimple, heap) *to_update = NULL;
   basic_block b;
   unsigned int todo = 0;
   gimple_stmt_iterator gsi;
@@ -4384,6 +4386,8 @@ eliminate (void)
 	    {
 	      tree orig_fn = gimple_call_fn (stmt);
 	      tree fn;
+	      if (!orig_fn)
+		continue;
 	      if (TREE_CODE (orig_fn) == SSA_NAME)
 		fn = VN_INFO (orig_fn)->valnum;
 	      else if (TREE_CODE (orig_fn) == OBJ_TYPE_REF
@@ -4408,7 +4412,7 @@ eliminate (void)
 		    }
 
 		  gimple_call_set_fn (stmt, fn);
-		  update_stmt (stmt);
+		  VEC_safe_push (gimple, heap, to_update, stmt);
 
 		  /* When changing a call into a noreturn call, cfg cleanup
 		     is needed to fix up the noreturn call.  */
@@ -4559,6 +4563,13 @@ eliminate (void)
 	}
     }
   VEC_free (gimple, heap, to_remove);
+
+  /* We cannot update call statements with virtual operands during
+     SSA walk.  This might remove them which in turn makes our
+     VN lattice invalid.  */
+  FOR_EACH_VEC_ELT (gimple, to_update, i, stmt)
+    update_stmt (stmt);
+  VEC_free (gimple, heap, to_update);
 
   return todo;
 }

@@ -1402,17 +1402,17 @@ initiate_cost_vectors (void)
 
 /* Allocate and return a cost vector VEC for ACLASS.  */
 int *
-ira_allocate_cost_vector (enum reg_class aclass)
+ira_allocate_cost_vector (reg_class_t aclass)
 {
-  return (int *) pool_alloc (cost_vector_pool[aclass]);
+  return (int *) pool_alloc (cost_vector_pool[(int) aclass]);
 }
 
 /* Free a cost vector VEC for ACLASS.  */
 void
-ira_free_cost_vector (int *vec, enum reg_class aclass)
+ira_free_cost_vector (int *vec, reg_class_t aclass)
 {
   ira_assert (vec != NULL);
-  pool_free (cost_vector_pool[aclass], vec);
+  pool_free (cost_vector_pool[(int) aclass], vec);
 }
 
 /* Finish work with hard register cost vectors.  Release allocation
@@ -1806,6 +1806,29 @@ low_pressure_loop_node_p (ira_loop_tree_node_t node)
   return true;
 }
 
+#ifdef STACK_REGS
+/* Return TRUE if LOOP has a complex enter or exit edge.  We don't
+   form a region from such loop if the target use stack register
+   because reg-stack.c can not deal with such edges.  */
+static bool
+loop_with_complex_edge_p (struct loop *loop)
+{
+  int i;
+  edge_iterator ei;
+  edge e;
+  VEC (edge, heap) *edges;
+
+  FOR_EACH_EDGE (e, ei, loop->header->preds)
+    if (e->flags & EDGE_EH)
+      return true;
+  edges = get_loop_exit_edges (loop);
+  FOR_EACH_VEC_ELT (edge, edges, i, e)
+    if (e->flags & EDGE_COMPLEX)
+      return true;
+  return false;
+}
+#endif
+
 /* Sort loops for marking them for removal.  We put already marked
    loops first, then less frequent loops next, and then outer loops
    next.  */
@@ -1829,14 +1852,18 @@ loop_compare_func (const void *v1p, const void *v2p)
   return l1->loop->num - l2->loop->num;
 }
 
-
 /* Mark loops which should be removed from regional allocation.  We
    remove a loop with low register pressure inside another loop with
    register pressure.  In this case a separate allocation of the loop
    hardly helps (for irregular register file architecture it could
    help by choosing a better hard register in the loop but we prefer
    faster allocation even in this case).  We also remove cheap loops
-   if there are more than IRA_MAX_LOOPS_NUM of them.  */
+   if there are more than IRA_MAX_LOOPS_NUM of them.  Loop with EH
+   exit or enter edges are removed too because the allocation might
+   require put pseudo moves on the EH edges (we could still do this
+   for pseudos with caller saved hard registers in some cases but it
+   is impossible to say here or during top-down allocation pass what
+   hard register the pseudos get finally).  */
 static void
 mark_loops_for_removal (void)
 {
@@ -1859,8 +1886,12 @@ mark_loops_for_removal (void)
 	  }
 	sorted_loops[n++] = &ira_loop_nodes[i];
 	ira_loop_nodes[i].to_remove_p
-	  = (low_pressure_loop_node_p (ira_loop_nodes[i].parent)
-	     && low_pressure_loop_node_p (&ira_loop_nodes[i]));
+	  = ((low_pressure_loop_node_p (ira_loop_nodes[i].parent)
+	      && low_pressure_loop_node_p (&ira_loop_nodes[i]))
+#ifdef STACK_REGS
+	     || loop_with_complex_edge_p (ira_loop_nodes[i].loop)
+#endif
+	     );
       }
   qsort (sorted_loops, n, sizeof (ira_loop_tree_node_t), loop_compare_func);
   for (i = 0; n - i + 1 > IRA_MAX_LOOPS_NUM; i++)
@@ -2969,19 +3000,20 @@ update_conflict_hard_reg_costs (void)
 
   FOR_EACH_ALLOCNO (a, ai)
     {
-      enum reg_class aclass = ALLOCNO_CLASS (a);
-      enum reg_class pref = reg_preferred_class (ALLOCNO_REGNO (a));
+      reg_class_t aclass = ALLOCNO_CLASS (a);
+      reg_class_t pref = reg_preferred_class (ALLOCNO_REGNO (a));
 
-      if (reg_class_size[pref] != 1)
+      if (reg_class_size[(int) pref] != 1)
 	continue;
-      index = ira_class_hard_reg_index[aclass][ira_class_hard_regs[pref][0]];
+      index = ira_class_hard_reg_index[(int) aclass]
+				      [ira_class_hard_regs[(int) pref][0]];
       if (index < 0)
 	continue;
       if (ALLOCNO_CONFLICT_HARD_REG_COSTS (a) == NULL
 	  || ALLOCNO_HARD_REG_COSTS (a) == NULL)
 	continue;
       min = INT_MAX;
-      for (i = ira_class_hard_regs_num[aclass] - 1; i >= 0; i--)
+      for (i = ira_class_hard_regs_num[(int) aclass] - 1; i >= 0; i--)
 	if (ALLOCNO_HARD_REG_COSTS (a)[i] > ALLOCNO_CLASS_COST (a)
 	    && min > ALLOCNO_HARD_REG_COSTS (a)[i])
 	  min = ALLOCNO_HARD_REG_COSTS (a)[i];

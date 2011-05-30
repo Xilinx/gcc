@@ -132,19 +132,22 @@ eq_string_slot_node (const void *p1, const void *p2)
    IB.  Write the length to RLEN.  */
 
 static const char *
-input_string_internal (struct data_in *data_in, struct lto_input_block *ib,
-		       unsigned int *rlen)
+string_for_index (struct data_in *data_in,
+		  unsigned int loc,
+		  unsigned int *rlen)
 {
   struct lto_input_block str_tab;
   unsigned int len;
-  unsigned int loc;
   const char *result;
 
-  /* Read the location of the string from IB.  */
-  loc = lto_input_uleb128 (ib);
+  if (!loc)
+    {
+      *rlen = 0;
+      return NULL;
+    }
 
   /* Get the string stored at location LOC in DATA_IN->STRINGS.  */
-  LTO_INIT_INPUT_BLOCK (str_tab, data_in->strings, loc, data_in->strings_len);
+  LTO_INIT_INPUT_BLOCK (str_tab, data_in->strings, loc - 1, data_in->strings_len);
   len = lto_input_uleb128 (&str_tab);
   *rlen = len;
 
@@ -157,6 +160,17 @@ input_string_internal (struct data_in *data_in, struct lto_input_block *ib,
 }
 
 
+/* Read a string from the string table in DATA_IN using input block
+   IB.  Write the length to RLEN.  */
+
+static const char *
+input_string_internal (struct data_in *data_in, struct lto_input_block *ib,
+		       unsigned int *rlen)
+{
+  return string_for_index (data_in, lto_input_uleb128 (ib), rlen);
+}
+
+
 /* Read a STRING_CST from the string table in DATA_IN using input
    block IB.  */
 
@@ -165,13 +179,10 @@ input_string_cst (struct data_in *data_in, struct lto_input_block *ib)
 {
   unsigned int len;
   const char * ptr;
-  unsigned int is_null;
-
-  is_null = lto_input_uleb128 (ib);
-  if (is_null)
-    return NULL;
 
   ptr = input_string_internal (data_in, ib, &len);
+  if (!ptr)
+    return NULL;
   return build_string (len, ptr);
 }
 
@@ -184,13 +195,10 @@ input_identifier (struct data_in *data_in, struct lto_input_block *ib)
 {
   unsigned int len;
   const char *ptr;
-  unsigned int is_null;
-
-  is_null = lto_input_uleb128 (ib);
-  if (is_null)
-    return NULL;
 
   ptr = input_string_internal (data_in, ib, &len);
+  if (!ptr)
+    return NULL;
   return get_identifier_with_length (ptr, len);
 }
 
@@ -215,13 +223,10 @@ lto_input_string (struct data_in *data_in, struct lto_input_block *ib)
 {
   unsigned int len;
   const char *ptr;
-  unsigned int is_null;
-
-  is_null = lto_input_uleb128 (ib);
-  if (is_null)
-    return NULL;
 
   ptr = input_string_internal (data_in, ib, &len);
+  if (!ptr)
+    return NULL;
   if (ptr[len - 1] != '\0')
     internal_error ("bytecode stream: found non-null terminated string");
 
@@ -231,11 +236,10 @@ lto_input_string (struct data_in *data_in, struct lto_input_block *ib)
 
 /* Return the next tag in the input block IB.  */
 
-static enum LTO_tags
+static inline enum LTO_tags
 input_record_start (struct lto_input_block *ib)
 {
-  enum LTO_tags tag = (enum LTO_tags) lto_input_uleb128 (ib);
-  return tag;
+  return lto_input_enum (ib, LTO_tags, LTO_NUM_TAGS);
 }
 
 
@@ -285,37 +289,57 @@ clear_line_info (struct data_in *data_in)
 }
 
 
+/* Read a location bitpack from input block IB.  */
+
+static location_t
+lto_input_location_bitpack (struct data_in *data_in, struct bitpack_d *bp)
+{
+  bool file_change, line_change, column_change;
+  unsigned len;
+  bool prev_file = data_in->current_file != NULL;
+
+  if (bp_unpack_value (bp, 1))
+    return UNKNOWN_LOCATION;
+
+  file_change = bp_unpack_value (bp, 1);
+  if (file_change)
+    data_in->current_file = canon_file_name
+			      (string_for_index (data_in,
+						 bp_unpack_var_len_unsigned (bp),
+					         &len));
+
+  line_change = bp_unpack_value (bp, 1);
+  if (line_change)
+    data_in->current_line = bp_unpack_var_len_unsigned (bp);
+
+  column_change = bp_unpack_value (bp, 1);
+  if (column_change)
+    data_in->current_col = bp_unpack_var_len_unsigned (bp);
+
+  if (file_change)
+    {
+      if (prev_file)
+	linemap_add (line_table, LC_LEAVE, false, NULL, 0);
+
+      linemap_add (line_table, LC_ENTER, false, data_in->current_file,
+		   data_in->current_line);
+    }
+  else if (line_change)
+    linemap_line_start (line_table, data_in->current_line, data_in->current_col);
+
+  return linemap_position_for_column (line_table, data_in->current_col);
+}
+
+
 /* Read a location from input block IB.  */
 
 static location_t
 lto_input_location (struct lto_input_block *ib, struct data_in *data_in)
 {
-  expanded_location xloc;
+  struct bitpack_d bp;
 
-  xloc.file = lto_input_string (data_in, ib);
-  if (xloc.file == NULL)
-    return UNKNOWN_LOCATION;
-
-  xloc.file = canon_file_name (xloc.file);
-  xloc.line = lto_input_sleb128 (ib);
-  xloc.column = lto_input_sleb128 (ib);
-  xloc.sysp = lto_input_sleb128 (ib);
-
-  if (data_in->current_file != xloc.file)
-    {
-      if (data_in->current_file)
-	linemap_add (line_table, LC_LEAVE, false, NULL, 0);
-
-      linemap_add (line_table, LC_ENTER, xloc.sysp, xloc.file, xloc.line);
-    }
-  else if (data_in->current_line != xloc.line)
-    linemap_line_start (line_table, xloc.line, xloc.column);
-
-  data_in->current_file = xloc.file;
-  data_in->current_line = xloc.line;
-  data_in->current_col = xloc.column;
-
-  return linemap_position_for_column (line_table, xloc.column);
+  bp = lto_input_bitpack (ib);
+  return lto_input_location_bitpack (data_in, &bp);
 }
 
 
@@ -1063,7 +1087,13 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	    }
 	}
       if (is_gimple_call (stmt))
-	gimple_call_set_fntype (stmt, lto_input_tree (ib, data_in));
+	{
+	  if (gimple_call_internal_p (stmt))
+	    gimple_call_set_internal_fn
+	      (stmt, (enum internal_fn) lto_input_sleb128 (ib));
+	  else
+	    gimple_call_set_fntype (stmt, lto_input_tree (ib, data_in));
+	}
       break;
 
     case GIMPLE_NOP:
@@ -1245,7 +1275,6 @@ input_function (tree fn_decl, struct data_in *data_in,
   fn->can_throw_non_call_exceptions = bp_unpack_value (&bp, 1);
   fn->always_inline_functions_inlined = bp_unpack_value (&bp, 1);
   fn->after_inlining = bp_unpack_value (&bp, 1);
-  fn->dont_save_pending_sizes_p = bp_unpack_value (&bp, 1);
   fn->stdarg = bp_unpack_value (&bp, 1);
   fn->has_nonlocal_label = bp_unpack_value (&bp, 1);
   fn->calls_alloca = bp_unpack_value (&bp, 1);
@@ -1650,11 +1679,9 @@ unpack_ts_decl_common_value_fields (struct bitpack_d *bp, tree expr)
 
   if (TREE_CODE (expr) == FIELD_DECL)
     {
-      unsigned HOST_WIDE_INT off_align;
       DECL_PACKED (expr) = (unsigned) bp_unpack_value (bp, 1);
       DECL_NONADDRESSABLE_P (expr) = (unsigned) bp_unpack_value (bp, 1);
-      off_align = (unsigned HOST_WIDE_INT) bp_unpack_value (bp, 8);
-      SET_DECL_OFFSET_ALIGN (expr, off_align);
+      expr->decl_common.off_align = bp_unpack_value (bp, 8);
     }
 
   if (TREE_CODE (expr) == RESULT_DECL
@@ -1745,11 +1772,11 @@ unpack_ts_function_decl_value_fields (struct bitpack_d *bp, tree expr)
 }
 
 
-/* Unpack all the non-pointer fields of the TS_TYPE structure
+/* Unpack all the non-pointer fields of the TS_TYPE_COMMON structure
    of expression EXPR from bitpack BP.  */
 
 static void
-unpack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
+unpack_ts_type_common_value_fields (struct bitpack_d *bp, tree expr)
 {
   enum machine_mode mode;
 
@@ -1767,8 +1794,8 @@ unpack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
     	= (unsigned) bp_unpack_value (bp, 2);
   TYPE_USER_ALIGN (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_READONLY (expr) = (unsigned) bp_unpack_value (bp, 1);
-  TYPE_ALIGN (expr) = (unsigned) bp_unpack_value (bp, HOST_BITS_PER_INT);
-  TYPE_ALIAS_SET (expr) = bp_unpack_value (bp, BITS_PER_BITPACK_WORD);
+  TYPE_ALIGN (expr) = bp_unpack_var_len_unsigned (bp);
+  TYPE_ALIAS_SET (expr) = bp_unpack_var_len_int (bp);
 }
 
 
@@ -1821,8 +1848,8 @@ unpack_value_fields (struct bitpack_d *bp, tree expr)
   if (CODE_CONTAINS_STRUCT (code, TS_FUNCTION_DECL))
     unpack_ts_function_decl_value_fields (bp, expr);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_TYPE))
-    unpack_ts_type_value_fields (bp, expr);
+  if (CODE_CONTAINS_STRUCT (code, TS_TYPE_COMMON))
+    unpack_ts_type_common_value_fields (bp, expr);
 
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     unpack_ts_block_value_fields (bp, expr);
@@ -2087,13 +2114,37 @@ lto_input_ts_function_decl_tree_pointers (struct lto_input_block *ib,
 }
 
 
-/* Read all pointer fields in the TS_TYPE structure of EXPR from input
-   block IB.  DATA_IN contains tables and descriptors for the
+/* Read all pointer fields in the TS_TYPE_COMMON structure of EXPR from
+   input block IB.  DATA_IN contains tables and descriptors for the file
+   being read.  */
+
+static void
+lto_input_ts_type_common_tree_pointers (struct lto_input_block *ib,
+					struct data_in *data_in, tree expr)
+{
+  TYPE_SIZE (expr) = lto_input_tree (ib, data_in);
+  TYPE_SIZE_UNIT (expr) = lto_input_tree (ib, data_in);
+  TYPE_ATTRIBUTES (expr) = lto_input_tree (ib, data_in);
+  TYPE_NAME (expr) = lto_input_tree (ib, data_in);
+  /* Do not stream TYPE_POINTER_TO or TYPE_REFERENCE_TO.  They will be
+     reconstructed during fixup.  */
+  /* Do not stream TYPE_NEXT_VARIANT, we reconstruct the variant lists
+     during fixup.  */
+  TYPE_MAIN_VARIANT (expr) = lto_input_tree (ib, data_in);
+  TYPE_CONTEXT (expr) = lto_input_tree (ib, data_in);
+  /* TYPE_CANONICAL gets re-computed during type merging.  */
+  TYPE_CANONICAL (expr) = NULL_TREE;
+  TYPE_STUB_DECL (expr) = lto_input_tree (ib, data_in);
+}
+
+/* Read all pointer fields in the TS_TYPE_NON_COMMON structure of EXPR
+   from input block IB.  DATA_IN contains tables and descriptors for the
    file being read.  */
 
 static void
-lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
-				 struct data_in *data_in, tree expr)
+lto_input_ts_type_non_common_tree_pointers (struct lto_input_block *ib,
+					    struct data_in *data_in,
+					    tree expr)
 {
   if (TREE_CODE (expr) == ENUMERAL_TYPE)
     TYPE_VALUES (expr) = lto_input_tree (ib, data_in);
@@ -2105,24 +2156,11 @@ lto_input_ts_type_tree_pointers (struct lto_input_block *ib,
 	   || TREE_CODE (expr) == METHOD_TYPE)
     TYPE_ARG_TYPES (expr) = lto_input_tree (ib, data_in);
 
-  TYPE_SIZE (expr) = lto_input_tree (ib, data_in);
-  TYPE_SIZE_UNIT (expr) = lto_input_tree (ib, data_in);
-  TYPE_ATTRIBUTES (expr) = lto_input_tree (ib, data_in);
-  TYPE_NAME (expr) = lto_input_tree (ib, data_in);
-  /* Do not stream TYPE_POINTER_TO or TYPE_REFERENCE_TO nor
-     TYPE_NEXT_PTR_TO or TYPE_NEXT_REF_TO.  */
   if (!POINTER_TYPE_P (expr))
     TYPE_MINVAL (expr) = lto_input_tree (ib, data_in);
   TYPE_MAXVAL (expr) = lto_input_tree (ib, data_in);
-  TYPE_MAIN_VARIANT (expr) = lto_input_tree (ib, data_in);
-  /* Do not stream TYPE_NEXT_VARIANT, we reconstruct the variant lists
-     during fixup.  */
   if (RECORD_OR_UNION_TYPE_P (expr))
     TYPE_BINFO (expr) = lto_input_tree (ib, data_in);
-  TYPE_CONTEXT (expr) = lto_input_tree (ib, data_in);
-  /* TYPE_CANONICAL gets re-computed during type merging.  */
-  TYPE_CANONICAL (expr) = NULL_TREE;
-  TYPE_STUB_DECL (expr) = lto_input_tree (ib, data_in);
 }
 
 
@@ -2358,8 +2396,11 @@ lto_input_tree_pointers (struct lto_input_block *ib, struct data_in *data_in,
   if (CODE_CONTAINS_STRUCT (code, TS_FUNCTION_DECL))
     lto_input_ts_function_decl_tree_pointers (ib, data_in, expr);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_TYPE))
-    lto_input_ts_type_tree_pointers (ib, data_in, expr);
+  if (CODE_CONTAINS_STRUCT (code, TS_TYPE_COMMON))
+    lto_input_ts_type_common_tree_pointers (ib, data_in, expr);
+
+  if (CODE_CONTAINS_STRUCT (code, TS_TYPE_NON_COMMON))
+    lto_input_ts_type_non_common_tree_pointers (ib, data_in, expr);
 
   if (CODE_CONTAINS_STRUCT (code, TS_LIST))
     lto_input_ts_list_tree_pointers (ib, data_in, expr);
@@ -2509,7 +2550,7 @@ lto_get_pickled_tree (struct lto_input_block *ib, struct data_in *data_in)
   enum LTO_tags expected_tag;
 
   ix = lto_input_uleb128 (ib);
-  expected_tag = (enum LTO_tags) lto_input_uleb128 (ib);
+  expected_tag = lto_input_enum (ib, LTO_tags, LTO_NUM_TAGS);
 
   result = lto_streamer_cache_get (data_in->reader_cache, ix);
   gcc_assert (result

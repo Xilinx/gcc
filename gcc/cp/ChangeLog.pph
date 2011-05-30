@@ -1,3 +1,22 @@
+2011-05-30  Diego Novillo  <dnovillo@google.com>
+
+	* cp-objcp-common.c (cp_common_init_ts): Fix assertions for
+	EXPR_PACK_EXPANSION and TYPE_ARGUMENT_PACK.
+
+2011-05-30  Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_stream_read_cxx_binding_1): Call
+	ALLOC_AND_REGISTER.
+	(pph_stream_read_label_binding): Likewise.
+	(pph_stream_read_class_binding): Likewise.
+	Do not memcpy into cb->base.  Assign to it directly.
+	(pph_stream_read_c_language_function): Call
+	pph_stream_read_tree_vec instead of pph_input_tree.
+	* pph-streamer-out.c (pph_stream_write_class_binding): Do not
+	write &cb->base.  Write cb->base.
+	(pph_stream_write_c_language_function): Call
+	pph_stream_write_tree_vec instead of pph_output_tree_or_ref.
+
 2011-05-27  Lawrence Crowl  <crowl@google.com>
 
 	* cp-objcp-common.c (cp_tree_size): Remove case TREE_BINFO.

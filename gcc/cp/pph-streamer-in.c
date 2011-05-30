@@ -338,13 +338,11 @@ pph_stream_read_cxx_binding_1 (pph_stream *stream)
 
   value = pph_input_tree (stream);
   type = pph_input_tree (stream);
-  cb = cxx_binding_make (value, type);
+  ALLOC_AND_REGISTER (stream, ix, cb, cxx_binding_make (value, type));
   cb->scope = pph_stream_read_binding_level (stream);
   bp = pph_input_bitpack (stream);
   cb->value_is_inherited = bp_unpack_value (&bp, 1);
   cb->is_local = bp_unpack_value (&bp, 1);
-
-  pph_stream_register_shared_data (stream, cb, ix);
 
   return cb;
 }
@@ -368,9 +366,7 @@ pph_stream_read_cxx_binding (pph_stream *stream)
       curr = prev;
     }
 
-  /* Read the current binding at the end.  Note that we do not need
-     to call pph_stream_register_shared_data as it is already done
-     by pph_stream_read_cxx_binding_1.  */
+  /* Read the current binding at the end.  */
   cb = pph_stream_read_cxx_binding_1 (stream);
   if (cb)
     cb->previous = curr;
@@ -394,12 +390,9 @@ pph_stream_read_class_binding (pph_stream *stream)
   else if (marker == PPH_RECORD_SHARED)
     return (cp_class_binding *) pph_stream_read_shared_data (stream, ix);
 
-  cb = ggc_alloc_cleared_cp_class_binding ();
-  memcpy (&cb->base, pph_stream_read_cxx_binding (stream),
-	  sizeof (cxx_binding));
+  ALLOC_AND_REGISTER (stream, ix, cb, ggc_alloc_cleared_cp_class_binding ());
+  cb->base = pph_stream_read_cxx_binding (stream);
   cb->identifier = pph_input_tree (stream);
-
-  pph_stream_register_shared_data (stream, cb, ix);
 
   return cb;
 }
@@ -420,11 +413,9 @@ pph_stream_read_label_binding (pph_stream *stream)
   else if (marker == PPH_RECORD_SHARED)
     return (cp_label_binding *) pph_stream_read_shared_data (stream, ix);
 
-  lb = ggc_alloc_cleared_cp_label_binding ();
+  ALLOC_AND_REGISTER (stream, ix, lb, ggc_alloc_cleared_cp_label_binding ());
   lb->label = pph_input_tree (stream);
   lb->prev_value = pph_input_tree (stream);
-
-  pph_stream_register_shared_data (stream, lb, ix);
 
   return lb;
 }
@@ -511,7 +502,7 @@ pph_stream_read_c_language_function (pph_stream *stream)
 
   ALLOC_AND_REGISTER (stream, ix, clf,
 		      ggc_alloc_cleared_c_language_function ());
-  clf->x_stmt_tree.x_cur_stmt_list = pph_input_tree (stream);
+  clf->x_stmt_tree.x_cur_stmt_list = pph_stream_read_tree_vec (stream);
   clf->x_stmt_tree.stmts_are_full_exprs_p = pph_input_uint (stream);
 
   return clf;

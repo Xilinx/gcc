@@ -583,11 +583,11 @@ setup_class_subset_and_memory_move_costs (void)
 	    ira_max_memory_move_cost[mode][cl][0]
 	      = ira_memory_move_cost[mode][cl][0]
 	      = memory_move_cost ((enum machine_mode) mode,
-				  (enum reg_class) cl, false);
+				  (reg_class_t) cl, false);
 	    ira_max_memory_move_cost[mode][cl][1]
 	      = ira_memory_move_cost[mode][cl][1]
 	      = memory_move_cost ((enum machine_mode) mode,
-				  (enum reg_class) cl, true);
+				  (reg_class_t) cl, true);
 	    /* Costs for NO_REGS are used in cost calculation on the
 	       1st pass when the preferred register classes are not
 	       known yet.  In this case we take the best scenario.  */
@@ -799,27 +799,35 @@ setup_pressure_classes (void)
     {
       if (ira_available_class_regs[cl] == 0)
 	continue;
-      /* Check that the moves between any hard registers of the
-	 current class are not more expensive for a legal mode than
-	 load/store of the hard registers of the current class.  Such
-	 class is a potential candidate to be a register pressure
-	 class.  */
-      for (m = 0; m < NUM_MACHINE_MODES; m++)
+      if (ira_available_class_regs[cl] != 1
+	  /* A register class without subclasses may contain a few
+	     hard registers and movement between them is costly
+	     (e.g. SPARC FPCC registers).  We still should consider it
+	     as a candidate for a pressure class.  */
+	  && alloc_reg_class_subclasses[cl][0] != LIM_REG_CLASSES)
 	{
-	  COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
-	  AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
-	  AND_COMPL_HARD_REG_SET (temp_hard_regset,
-				  ira_prohibited_class_mode_regs[cl][m]);
-	  if (hard_reg_set_empty_p (temp_hard_regset))
+	  /* Check that the moves between any hard registers of the
+	     current class are not more expensive for a legal mode
+	     than load/store of the hard registers of the current
+	     class.  Such class is a potential candidate to be a
+	     register pressure class.  */
+	  for (m = 0; m < NUM_MACHINE_MODES; m++)
+	    {
+	      COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
+	      AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
+	      AND_COMPL_HARD_REG_SET (temp_hard_regset,
+				      ira_prohibited_class_mode_regs[cl][m]);
+	      if (hard_reg_set_empty_p (temp_hard_regset))
+		continue;
+	      ira_init_register_move_cost_if_necessary ((enum machine_mode) m);
+	      cost = ira_register_move_cost[m][cl][cl];
+	      if (cost <= ira_max_memory_move_cost[m][cl][1]
+		  || cost <= ira_max_memory_move_cost[m][cl][0])
+		break;
+	    }
+	  if (m >= NUM_MACHINE_MODES)
 	    continue;
-	  ira_init_register_move_cost_if_necessary ((enum machine_mode) m);
-	  cost = ira_register_move_cost[m][cl][cl];
-	  if (cost <= ira_max_memory_move_cost[m][cl][1]
-	      || cost <= ira_max_memory_move_cost[m][cl][0])
-	    break;
 	}
-      if (m >= NUM_MACHINE_MODES)
-	continue;
       curr = 0;
       insert_p = true;
       COPY_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
@@ -848,6 +856,8 @@ setup_pressure_classes (void)
 	      && (! hard_reg_set_equal_p (temp_hard_regset2, temp_hard_regset)
 		  || cl == (int) GENERAL_REGS))
 	    continue;
+	  if (hard_reg_set_equal_p (temp_hard_regset2, temp_hard_regset))
+	    insert_p = false;
 	  pressure_classes[curr++] = (enum reg_class) cl2;
 	}
       /* If the current candidate is a subset of a so far added
@@ -858,23 +868,44 @@ setup_pressure_classes (void)
       n = curr;
     }
 #ifdef ENABLE_IRA_CHECKING
-  /* Check pressure classes correctness: here we check that hard
-     registers from all register pressure classes contains all hard
-     registers available for the allocation.  */
-  CLEAR_HARD_REG_SET (temp_hard_regset);
-  CLEAR_HARD_REG_SET (temp_hard_regset2);
-  for (cl = 0; cl < LIM_REG_CLASSES; cl++)
-    {
-      for (i = 0; i < n; i++)
-	if ((int) pressure_classes[i] == cl)
-	  break;
-      IOR_HARD_REG_SET (temp_hard_regset2, reg_class_contents[cl]);
-      if (i >= n)
-	IOR_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
-    }
-  AND_COMPL_HARD_REG_SET (temp_hard_regset, no_unit_alloc_regs);
-  AND_COMPL_HARD_REG_SET (temp_hard_regset2, no_unit_alloc_regs);
-  ira_assert (hard_reg_set_subset_p (temp_hard_regset2, temp_hard_regset));
+  {
+    HARD_REG_SET ignore_hard_regs;
+
+    /* Check pressure classes correctness: here we check that hard
+       registers from all register pressure classes contains all hard
+       registers available for the allocation.  */
+    CLEAR_HARD_REG_SET (temp_hard_regset);
+    CLEAR_HARD_REG_SET (temp_hard_regset2);
+    COPY_HARD_REG_SET (ignore_hard_regs, no_unit_alloc_regs);
+    for (cl = 0; cl < LIM_REG_CLASSES; cl++)
+      {
+	/* For some targets (like MIPS with MD_REGS), there are some
+	   classes with hard registers available for allocation but
+	   not able to hold value of any mode.  */
+	for (m = 0; m < NUM_MACHINE_MODES; m++)
+	  if (contains_reg_of_mode[cl][m])
+	    break;
+	if (m >= NUM_MACHINE_MODES)
+	  {
+	    IOR_HARD_REG_SET (ignore_hard_regs, reg_class_contents[cl]);
+	    continue;
+	  }
+	for (i = 0; i < n; i++)
+	  if ((int) pressure_classes[i] == cl)
+	    break;
+	IOR_HARD_REG_SET (temp_hard_regset2, reg_class_contents[cl]);
+	if (i < n)
+	  IOR_HARD_REG_SET (temp_hard_regset, reg_class_contents[cl]);
+      }
+    for (i = 0; i < FIRST_PSEUDO_REGISTER; i++)
+      /* Some targets (like SPARC with ICC reg) have alocatable regs
+	 for which no reg class is defined.  */
+      if (REGNO_REG_CLASS (i) == NO_REGS)
+	SET_HARD_REG_BIT (ignore_hard_regs, i);
+    AND_COMPL_HARD_REG_SET (temp_hard_regset, ignore_hard_regs);
+    AND_COMPL_HARD_REG_SET (temp_hard_regset2, ignore_hard_regs);
+    ira_assert (hard_reg_set_subset_p (temp_hard_regset2, temp_hard_regset));
+  }
 #endif
   ira_pressure_classes_num = 0;
   for (i = 0; i < n; i++)
@@ -1422,6 +1453,12 @@ clarify_prohibited_class_mode_regs (void)
 	  if (TEST_HARD_REG_BIT (ira_prohibited_class_mode_regs[cl][j], hard_regno))
 	    continue;
 	  nregs = hard_regno_nregs[hard_regno][j];
+          if (hard_regno + nregs > FIRST_PSEUDO_REGISTER)
+            {
+              SET_HARD_REG_BIT (ira_prohibited_class_mode_regs[cl][j],
+                                hard_regno);
+               continue;
+            }
 	  pclass = ira_pressure_class_translate[REGNO_REG_CLASS (hard_regno)];
 	  for (nregs-- ;nregs >= 0; nregs--)
 	    if (((enum reg_class) pclass
@@ -1556,16 +1593,11 @@ free_register_move_costs (void)
 
   for (mode = 0; mode < MAX_MACHINE_MODE; mode++)
     {
-      if (ira_max_register_move_cost[mode] != NULL)
-	free (ira_max_register_move_cost[mode]);
-      if (ira_may_move_in_cost[mode] != NULL)
-	free (ira_may_move_in_cost[mode]);
-      if (ira_may_move_out_cost[mode] != NULL)
-	free (ira_may_move_out_cost[mode]);
-      if (ira_max_may_move_in_cost[mode] != NULL)
-	free (ira_max_may_move_in_cost[mode]);
-      if (ira_max_may_move_out_cost[mode] != NULL)
-	free (ira_max_may_move_out_cost[mode]);
+      free (ira_max_register_move_cost[mode]);
+      free (ira_may_move_in_cost[mode]);
+      free (ira_may_move_out_cost[mode]);
+      free (ira_max_may_move_in_cost[mode]);
+      free (ira_max_may_move_out_cost[mode]);
       ira_register_move_cost[mode] = NULL;
       ira_max_register_move_cost[mode] = NULL;
       ira_may_move_in_cost[mode] = NULL;
@@ -3461,8 +3493,7 @@ build_insn_chain (void)
     }
 
   for (i = 0; i < (unsigned int) max_regno; i++)
-    if (live_subregs[i])
-      free (live_subregs[i]);
+    free (live_subregs[i]);
 
   reload_insn_chain = c;
   *p = NULL;

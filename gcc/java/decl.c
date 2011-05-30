@@ -1302,9 +1302,9 @@ pushdecl_function_level (tree x)
   return t;
 }
 
-/* Nonzero if we are currently in the global binding level.  */
+/* Return true if we are in the global binding level.  */
 
-int
+bool
 global_bindings_p (void)
 {
   return current_binding_level == global_binding_level;
@@ -1425,10 +1425,7 @@ poplevel (int keep, int reverse, int functionbody)
 
   block = 0;
   if (keep || functionbody)
-    {
-      block = make_node (BLOCK);
-      TREE_TYPE (block) = void_type_node;
-    }
+    block = make_node (BLOCK);
 
   if (current_binding_level->exception_range)
     expand_end_java_handler (current_binding_level->exception_range);
@@ -1456,7 +1453,7 @@ poplevel (int keep, int reverse, int functionbody)
 	    }
 	  *var = NULL;
 	    
-	  bind = build3 (BIND_EXPR, TREE_TYPE (block), BLOCK_VARS (block), 
+	  bind = build3 (BIND_EXPR, void_type_node, BLOCK_VARS (block), 
 			 BLOCK_EXPR_BODY (block), block);
 	  BIND_EXPR_BODY (bind) = current_binding_level->stmts;
 	  

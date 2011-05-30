@@ -36,10 +36,10 @@ gospec.o: $(srcdir)/go/gospec.c $(SYSTEM_H) coretypes.h $(TM_H) $(GCC_H) \
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(DRIVER_DEFINES) \
 		$(INCLUDES) $(srcdir)/go/gospec.c)
 
-GCCGO_OBJS = $(GCC_OBJS) gospec.o intl.o prefix.o version.o
-gccgo$(exeext): $(GCCGO_OBJS) $(EXTRA_GCC_OBJS) $(LIBDEPS)
+GCCGO_OBJS = $(GCC_OBJS) gospec.o
+gccgo$(exeext): $(GCCGO_OBJS) $(EXTRA_GCC_OBJS) libcommon-target.a $(LIBDEPS)
 	$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
-	  $(GCCGO_OBJS) $(EXTRA_GCC_OBJS) $(LIBS)
+	  $(GCCGO_OBJS) $(EXTRA_GCC_OBJS) libcommon-target.a $(LIBS)
 
 # Use strict warnings.
 go-warn = $(STRICT_WARN)
@@ -211,7 +211,7 @@ go.stagefeedback: stagefeedback-start
 	-mv go/*$(objext) stagefeedback/go
 
 GO_SYSTEM_H = go/go-system.h $(CONFIG_H) $(SYSTEM_H) coretypes.h \
-	$(DIAGNOSTIC_CORE_H) $(INPUT_H)
+	$(DIAGNOSTIC_CORE_H) $(INPUT_H) intl.h
 
 GO_C_H = go/go-c.h $(MACHMODE_H)
 GO_LEX_H = go/gofrontend/lex.h go/gofrontend/operator.h
@@ -239,7 +239,7 @@ go/go-lang.o: go/go-lang.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(OPTS_H) \
 GOINCLUDES = -I $(srcdir)/go -I $(srcdir)/go/gofrontend
 
 go/go-gcc.o: go/go-gcc.cc $(GO_SYSTEM_H) $(TREE_H) tree-iterator.h \
-		$(GIMPLE_H) $(GO_GOGO_H) go/gofrontend/backend.h
+		$(GIMPLE_H) $(GO_C_H) $(GO_GOGO_H) go/gofrontend/backend.h
 	$(CXX) -c $(GOINCLUDES) $(ALL_CPPFLAGS) $(ALL_CXXFLAGS) $< $(OUTPUT_OPTION)
 
 go/%.o: go/gofrontend/%.cc
@@ -262,7 +262,8 @@ go/go-dump.o: go/gofrontend/go-dump.cc $(GO_SYSTEM_H) $(GO_C_H) \
 go/gogo-tree.o: go/gofrontend/gogo-tree.cc $(GO_SYSTEM_H) $(TOPLEV_H) \
 	$(TREE_H) $(GIMPLE_H) tree-iterator.h $(CGRAPH_H) langhooks.h \
 	convert.h output.h $(DIAGNOSTIC_H) $(GO_TYPES_H) \
-	$(GO_EXPRESSIONS_H) $(GO_STATEMENTS_H) $(GO_RUNTIME_H) $(GO_GOGO_H)
+	$(GO_EXPRESSIONS_H) $(GO_STATEMENTS_H) $(GO_RUNTIME_H) \
+	go/gofrontend/backend.h $(GO_GOGO_H)
 go/gogo.o: go/gofrontend/gogo.cc $(GO_SYSTEM_H) $(GO_C_H) \
 	go/gofrontend/go-dump.h $(GO_LEX_H) $(GO_TYPES_H) $(GO_STATEMENTS_H) \
 	$(GO_EXPRESSIONS_H) go/gofrontend/dataflow.h $(GO_RUNTIME_H) \
@@ -280,13 +281,13 @@ go/parse.o: go/gofrontend/parse.cc $(GO_SYSTEM_H) $(GO_LEX_H) $(GO_GOGO_H) \
 go/runtime.o: go/gofrontend/runtime.cc $(GO_SYSTEM_H) $(GO_GOGO_H) \
 	$(GO_TYPES_H) $(GO_EXPRESSIONS_H) $(GO_RUNTIME_H) \
 	go/gofrontend/runtime.def
-go/statements.o: go/gofrontend/statements.cc $(GO_SYSTEM_H) intl.h $(TREE_H) \
-	$(GIMPLE_H) convert.h tree-iterator.h $(TREE_FLOW_H) $(REAL_H) \
+go/statements.o: go/gofrontend/statements.cc $(GO_SYSTEM_H) \
 	$(GO_C_H) $(GO_TYPES_H) $(GO_EXPRESSIONS_H) $(GO_GOGO_H) \
 	$(GO_RUNTIME_H) go/gofrontend/backend.h $(GO_STATEMENTS_H)
 go/types.o: go/gofrontend/types.cc $(GO_SYSTEM_H) $(TOPLEV_H) intl.h $(TREE_H) \
 	$(GIMPLE_H) $(REAL_H) convert.h $(GO_C_H) $(GO_GOGO_H) \
 	go/gofrontend/operator.h $(GO_EXPRESSIONS_H) $(GO_STATEMENTS_H) \
-	go/gofrontend/export.h $(GO_IMPORT_H) $(GO_TYPES_H)
+	go/gofrontend/export.h $(GO_IMPORT_H) go/gofrontend/backend.h \
+	$(GO_TYPES_H)
 go/unsafe.o: go/gofrontend/unsafe.cc $(GO_SYSTEM_H) $(GO_C_H) $(GO_TYPES_H) \
 	$(GO_GOGO_H)

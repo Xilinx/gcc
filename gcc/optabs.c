@@ -2453,8 +2453,8 @@ widen_bswap (enum machine_mode mode, rtx op0, rtx target)
 
   if (x != 0)
     x = expand_shift (RSHIFT_EXPR, wider_mode, x,
-		      size_int (GET_MODE_BITSIZE (wider_mode)
-			        - GET_MODE_BITSIZE (mode)),
+		      GET_MODE_BITSIZE (wider_mode)
+		      - GET_MODE_BITSIZE (mode),
 		      NULL_RTX, true);
 
   if (x != 0)
@@ -3150,7 +3150,7 @@ expand_abs_nojump (enum machine_mode mode, rtx op0, rtx target,
 	      	      false) >= 2)
     {
       rtx extended = expand_shift (RSHIFT_EXPR, mode, op0,
-				   size_int (GET_MODE_BITSIZE (mode) - 1),
+				   GET_MODE_BITSIZE (mode) - 1,
 				   NULL_RTX, 0);
 
       temp = expand_binop (mode, xor_optab, extended, op0, target, 0,
@@ -3251,7 +3251,7 @@ expand_one_cmpl_abs_nojump (enum machine_mode mode, rtx op0, rtx target)
 	             false) >= 2)
     {
       rtx extended = expand_shift (RSHIFT_EXPR, mode, op0,
-				   size_int (GET_MODE_BITSIZE (mode) - 1),
+				   GET_MODE_BITSIZE (mode) - 1,
 				   NULL_RTX, 0);
 
       temp = expand_binop (mode, xor_optab, extended, op0, target, 0,
@@ -4724,8 +4724,7 @@ expand_float (rtx to, rtx from, int unsignedp)
 	      emit_label (neglabel);
 	      temp = expand_binop (imode, and_optab, from, const1_rtx,
 				   NULL_RTX, 1, OPTAB_LIB_WIDEN);
-	      temp1 = expand_shift (RSHIFT_EXPR, imode, from, integer_one_node,
-				    NULL_RTX, 1);
+	      temp1 = expand_shift (RSHIFT_EXPR, imode, from, 1, NULL_RTX, 1);
 	      temp = expand_binop (imode, ior_optab, temp, temp1, temp, 1,
 				   OPTAB_LIB_WIDEN);
 	      expand_float (target, temp, 0);
@@ -5153,13 +5152,22 @@ gen_libfunc (optab optable, const char *opname, int suffix, enum machine_mode mo
   unsigned opname_len = strlen (opname);
   const char *mname = GET_MODE_NAME (mode);
   unsigned mname_len = strlen (mname);
-  char *libfunc_name = XALLOCAVEC (char, 2 + opname_len + mname_len + 1 + 1);
+  int prefix_len = targetm.libfunc_gnu_prefix ? 6 : 2;
+  int len = prefix_len + opname_len + mname_len + 1 + 1;
+  char *libfunc_name = XALLOCAVEC (char, len);
   char *p;
   const char *q;
 
   p = libfunc_name;
   *p++ = '_';
   *p++ = '_';
+  if (targetm.libfunc_gnu_prefix)
+    {
+      *p++ = 'g';
+      *p++ = 'n';
+      *p++ = 'u';
+      *p++ = '_';
+    }
   for (q = opname; *q; )
     *p++ = *q++;
   for (q = mname; *q; q++)
@@ -5363,6 +5371,7 @@ gen_interclass_conv_libfunc (convert_optab tab,
 
   const char *fname, *tname;
   const char *q;
+  int prefix_len = targetm.libfunc_gnu_prefix ? 6 : 2;
   char *libfunc_name, *suffix;
   char *nondec_name, *dec_name, *nondec_suffix, *dec_suffix;
   char *p;
@@ -5373,11 +5382,19 @@ gen_interclass_conv_libfunc (convert_optab tab,
 
   mname_len = strlen (GET_MODE_NAME (tmode)) + strlen (GET_MODE_NAME (fmode));
 
-  nondec_name = XALLOCAVEC (char, 2 + opname_len + mname_len + 1 + 1);
+  nondec_name = XALLOCAVEC (char, prefix_len + opname_len + mname_len + 1 + 1);
   nondec_name[0] = '_';
   nondec_name[1] = '_';
-  memcpy (&nondec_name[2], opname, opname_len);
-  nondec_suffix = nondec_name + opname_len + 2;
+  if (targetm.libfunc_gnu_prefix)
+    {
+      nondec_name[2] = 'g';
+      nondec_name[3] = 'n';
+      nondec_name[4] = 'u';
+      nondec_name[5] = '_';
+    }
+
+  memcpy (&nondec_name[prefix_len], opname, opname_len);
+  nondec_suffix = nondec_name + opname_len + prefix_len;
 
   dec_name = XALLOCAVEC (char, 2 + dec_len + opname_len + mname_len + 1 + 1);
   dec_name[0] = '_';
@@ -5488,6 +5505,7 @@ gen_intraclass_conv_libfunc (convert_optab tab, const char *opname,
 
   const char *fname, *tname;
   const char *q;
+  int prefix_len = targetm.libfunc_gnu_prefix ? 6 : 2;
   char *nondec_name, *dec_name, *nondec_suffix, *dec_suffix;
   char *libfunc_name, *suffix;
   char *p;
@@ -5501,8 +5519,15 @@ gen_intraclass_conv_libfunc (convert_optab tab, const char *opname,
   nondec_name = XALLOCAVEC (char, 2 + opname_len + mname_len + 1 + 1);
   nondec_name[0] = '_';
   nondec_name[1] = '_';
-  memcpy (&nondec_name[2], opname, opname_len);
-  nondec_suffix = nondec_name + opname_len + 2;
+  if (targetm.libfunc_gnu_prefix)
+    {
+      nondec_name[2] = 'g';
+      nondec_name[3] = 'n';
+      nondec_name[4] = 'u';
+      nondec_name[5] = '_';
+    }
+  memcpy (&nondec_name[prefix_len], opname, opname_len);
+  nondec_suffix = nondec_name + opname_len + prefix_len;
 
   dec_name = XALLOCAVEC (char, 2 + dec_len + opname_len + mname_len + 1 + 1);
   dec_name[0] = '_';
@@ -6232,8 +6257,16 @@ init_optabs (void)
 
   /* Explicitly initialize the bswap libfuncs since we need them to be
      valid for things other than word_mode.  */
-  set_optab_libfunc (bswap_optab, SImode, "__bswapsi2");
-  set_optab_libfunc (bswap_optab, DImode, "__bswapdi2");
+  if (targetm.libfunc_gnu_prefix)
+    {
+      set_optab_libfunc (bswap_optab, SImode, "__gnu_bswapsi2");
+      set_optab_libfunc (bswap_optab, DImode, "__gnu_bswapdi2");
+    }
+  else
+    {
+      set_optab_libfunc (bswap_optab, SImode, "__bswapsi2");
+      set_optab_libfunc (bswap_optab, DImode, "__bswapdi2");
+    }
 
   /* Use cabs for double complex abs, since systems generally have cabs.
      Don't define any libcall for float complex, so that cabs will be used.  */

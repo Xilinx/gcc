@@ -358,6 +358,8 @@ convert_control_dep_chain_into_preds (VEC(edge, heap) **dep_chains,
   for (i = 0; i < num_chains; i++)
     {
       VEC(edge, heap) *one_cd_chain = dep_chains[i];
+
+      has_valid_pred = false;
       for (j = 0; j < VEC_length (edge, one_cd_chain); j++)
         {
           gimple cond_stmt;
@@ -1953,7 +1955,7 @@ warn_uninitialized_phi (gimple phi, VEC(gimple, heap) **worklist,
     return;
 
   uninit_op = gimple_phi_arg_def (phi, MASK_FIRST_SET_BIT (uninit_opnds));
-  warn_uninit (uninit_op,
+  warn_uninit (OPT_Wmaybe_uninitialized, uninit_op,
                "%qD may be used uninitialized in this function",
                uninit_use_stmt);
 

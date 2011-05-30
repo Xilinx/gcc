@@ -263,13 +263,15 @@ cp_common_init_ts (void)
   gcc_assert (tree_contains_struct[TEMPLATE_INFO][TS_COMMON]);
   gcc_assert (tree_contains_struct[TYPENAME_TYPE][TS_COMMON]);
   gcc_assert (tree_contains_struct[TYPEOF_TYPE][TS_COMMON]);
+  gcc_assert (tree_contains_struct[UNDERLYING_TYPE][TS_COMMON]);
   gcc_assert (tree_contains_struct[BASELINK][TS_COMMON]);
   gcc_assert (tree_contains_struct[TYPE_PACK_EXPANSION][TS_COMMON]);
-  gcc_assert (tree_contains_struct[EXPR_PACK_EXPANSION][TS_COMMON]);
+  gcc_assert (tree_contains_struct[TYPE_ARGUMENT_PACK][TS_COMMON]);
   gcc_assert (tree_contains_struct[DECLTYPE_TYPE][TS_COMMON]);
   gcc_assert (tree_contains_struct[BOUND_TEMPLATE_TEMPLATE_PARM][TS_COMMON]);
   gcc_assert (tree_contains_struct[UNBOUND_CLASS_TEMPLATE][TS_COMMON]);
 
+  gcc_assert (tree_contains_struct[EXPR_PACK_EXPANSION][TS_TYPED]);
   gcc_assert (tree_contains_struct[SWITCH_STMT][TS_TYPED]);
   gcc_assert (tree_contains_struct[IF_STMT][TS_TYPED]);
   gcc_assert (tree_contains_struct[FOR_STMT][TS_TYPED]);
@@ -321,6 +323,7 @@ cp_common_init_ts (void)
   gcc_assert (tree_contains_struct[VEC_INIT_EXPR][TS_TYPED]);
   gcc_assert (tree_contains_struct[USING_STMT][TS_TYPED]);
   gcc_assert (tree_contains_struct[LAMBDA_EXPR][TS_TYPED]);
+  gcc_assert (tree_contains_struct[CTOR_INITIALIZER][TS_TYPED]);
 }
 
 #include "gt-cp-cp-objcp-common.h"

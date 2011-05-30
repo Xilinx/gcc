@@ -33,7 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "alloc-pool.h"
 #include "gcov-io.h"
 
-/* Forward declarations to avoid included unnecessary headers.  */
+/* Forward declarations to avoid including unnecessary headers.  */
 struct output_block;
 struct lto_input_block;
 struct data_in;
@@ -46,98 +46,6 @@ struct bitpack_d;
    With this value, set a breakpoint in the writer (e.g., lto_output_tree)
    to trace how the faulty node is being emitted.  */
 /* #define LTO_STREAMER_DEBUG	1  */
-
-/* Streamer hooks.  These functions do additional processing as
-   needed by the module.  There are two types of callbacks, those that
-   replace the default behavior and those that supplement it.  Any
-   or all of these hooks can be NULL.  */
-typedef struct lto_streamer_hooks {
-  /* A string identifying this streamer.  */
-  const char *name;
-
-  /* Called by lto_streamer_cache_create to instantiate a cache of
-     well-known nodes.  These are tree nodes that are always
-     instantiated by the compiler on startup.  Additionally, these
-     nodes need to be shared.  This function produces a vector of
-     these well known trees that are then added to the streamer cache.
-     This way, the writer will only write out a reference to the tree
-     and the reader will instantiate the tree out of this
-     pre-populated cache.  */
-  VEC(tree,heap) *(*get_common_nodes) (void);
-
-  /* Called by lto_reader_init after it does basic initialization.  */
-  void (*reader_init) (void);
-
-  /* Called by lto_writer_init after it does basic initalization.  */
-  void (*writer_init) (void);
-
-  /* Return true if the given tree is supported by this streamer.  */
-  bool (*is_streamable) (tree);
-
-  /* Called by lto_write_tree after writing all the common parts of
-     a tree.  If defined, the callback is in charge of writing all
-     the fields that lto_write_tree did not write out.  Arguments
-     are as in lto_write_tree.
-
-     The following tree fields are not handled by common code:
-
-	DECL_ABSTRACT_ORIGIN
-	DECL_INITIAL
-	DECL_SAVED_TREE
-
-     Callbacks may choose to ignore or handle them.  If handled,
-     the reader should read them in the exact same sequence written
-     by the writer.  */
-  void (*write_tree) (struct output_block *, tree, bool);
-
-  /* Called by lto_read_tree after reading all the common parts of
-     a tree.  If defined, the callback is in charge of reading all
-     the fields that lto_read_tree did not read in.  Arguments
-     are as in lto_read_tree.  */
-  void (*read_tree) (struct lto_input_block *, struct data_in *, tree);
-
-  /* Called by lto_output_tree_ref to determine if the given tree node
-     should be emitted as a reference to the table of declarations
-     (the same table that holds VAR_DECLs).  */
-  bool (*indexable_with_decls_p) (tree);
-
-  /* Called by pack_value_fields to store any non-pointer fields
-     in the tree structure.  The arguments are as in pack_value_fields.  */
-  void (*pack_value_fields) (struct bitpack_d *, tree);
-
-  /* Called by unpack_value_fields to retrieve any non-pointer fields
-     in the tree structure.  The arguments are as in unpack_value_fields.  */
-  void (*unpack_value_fields) (struct bitpack_d *, tree);
-
-  /* Non-zero if the streamer should register decls in the LTO
-     global symbol tables.  */
-  unsigned register_decls_in_symtab_p : 1;
-
-  /* Non-zero if the streamer has special constants that cannot be
-     shared and are used in pointer-equality tests (e.g., void_zero_node,
-     truthvalue_false_node, etc).  These constants will be present in
-     the streamer cache and should be streamed as references.  */
-  unsigned has_unique_integer_csts_p : 1;
-
-  /* Called by lto_materialize_tree for tree nodes that it does not
-     know how to allocate memory for.  If defined, this hook should
-     return a new tree node of the given code.  The data_in and
-     input_block arguments are passed in case the hook needs to
-     read more data from the stream to allocate the node.
-     If this hook returns NULL, then lto_materialize_tree will attempt
-     to allocate the tree by calling make_node directly.  */
-  tree (*alloc_tree) (enum tree_code, struct lto_input_block *,
-                      struct data_in *);
-
-  /* Called by lto_output_tree_header to write any streamer-specific
-     information needed to allocate the tree.  This hook may assume
-     that the basic header data (tree code, etc) has already been
-     written.  It should only write any extra data needed to allocate
-     the node (e.g., in the case of CALL_EXPR, this hook would write
-     the number of arguments to the CALL_EXPR).  */
-  void (*output_tree_header) (struct output_block *, tree);
-} lto_streamer_hooks;
-
 
 /* The encoding for a function consists of the following sections:
 
@@ -336,10 +244,9 @@ enum LTO_tags
   LTO_imported_decl_ref,
   LTO_translation_unit_decl_ref,
   LTO_global_decl_ref,			/* Do not change.  */
-  LTO_LAST_TAG,
 
   /* This tag must always be last.  */
-  LTO_NUM_TAGS = LTO_LAST_TAG + MAX_TREE_CODES + LAST_AND_UNUSED_GIMPLE_CODE
+  LTO_NUM_TAGS
 };
 
 
@@ -445,10 +352,7 @@ typedef void (lto_free_section_data_f) (struct lto_file_decl_data *,
 struct lto_streamer_cache_d
 {
   /* The mapping between tree nodes and slots into the nodes array.  */
-  htab_t node_map;
-
-  /* Node map to store entries into.  */
-  alloc_pool node_map_entries;
+  struct pointer_map_t *node_map;
 
   /* The nodes pickled so far.  */
   VEC(tree,heap) *nodes;
@@ -848,6 +752,98 @@ struct data_in
 };
 
 
+/* Streamer hooks.  These functions do additional processing as
+   needed by the module.  There are two types of callbacks, those that
+   replace the default behavior and those that supplement it.  Any
+   or all of these hooks can be NULL.  */
+typedef struct lto_streamer_hooks {
+  /* A string identifying this streamer.  */
+  const char *name;
+
+  /* Called by lto_streamer_cache_create to instantiate a cache of
+     well-known nodes.  These are tree nodes that are always
+     instantiated by the compiler on startup.  Additionally, these
+     nodes need to be shared.  This function should call
+     lto_streamer_cache_append on every tree node that it wishes to
+     preload in the streamer cache.  This way, the writer will only
+     write out a reference to the tree and the reader will instantiate
+     the tree out of this pre-populated cache.  */
+  void (*preload_common_nodes) (struct lto_streamer_cache_d *);
+
+  /* Called by lto_reader_init after it does basic initialization.  */
+  void (*reader_init) (void);
+
+  /* Called by lto_writer_init after it does basic initalization.  */
+  void (*writer_init) (void);
+
+  /* Return true if the given tree is supported by this streamer.  */
+  bool (*is_streamable) (tree);
+
+  /* Called by lto_write_tree after writing all the common parts of
+     a tree.  If defined, the callback is in charge of writing all
+     the fields that lto_write_tree did not write out.  Arguments
+     are as in lto_write_tree.
+
+     The following tree fields are not handled by common code:
+
+	DECL_ABSTRACT_ORIGIN
+	DECL_INITIAL
+	DECL_SAVED_TREE
+
+     Callbacks may choose to ignore or handle them.  If handled,
+     the reader should read them in the exact same sequence written
+     by the writer.  */
+  void (*write_tree) (struct output_block *, tree, bool);
+
+  /* Called by lto_read_tree after reading all the common parts of
+     a tree.  If defined, the callback is in charge of reading all
+     the fields that lto_read_tree did not read in.  Arguments
+     are as in lto_read_tree.  */
+  void (*read_tree) (struct lto_input_block *, struct data_in *, tree);
+
+  /* Called by lto_output_tree_ref to determine if the given tree node
+     should be emitted as a reference to the table of declarations
+     (the same table that holds VAR_DECLs).  */
+  bool (*indexable_with_decls_p) (tree);
+
+  /* Called by pack_value_fields to store any non-pointer fields
+     in the tree structure.  The arguments are as in pack_value_fields.  */
+  void (*pack_value_fields) (struct bitpack_d *, tree);
+
+  /* Called by unpack_value_fields to retrieve any non-pointer fields
+     in the tree structure.  The arguments are as in unpack_value_fields.  */
+  void (*unpack_value_fields) (struct bitpack_d *, tree);
+
+  /* Non-zero if the streamer should register decls in the LTO
+     global symbol tables.  */
+  unsigned register_decls_in_symtab_p : 1;
+
+  /* Non-zero if the streamer has special constants that cannot be
+     shared and are used in pointer-equality tests (e.g., void_zero_node,
+     truthvalue_false_node, etc).  These constants will be present in
+     the streamer cache and should be streamed as references.  */
+  unsigned has_unique_integer_csts_p : 1;
+
+  /* Called by lto_materialize_tree for tree nodes that it does not
+     know how to allocate memory for.  If defined, this hook should
+     return a new tree node of the given code.  The data_in and
+     input_block arguments are passed in case the hook needs to
+     read more data from the stream to allocate the node.
+     If this hook returns NULL, then lto_materialize_tree will attempt
+     to allocate the tree by calling make_node directly.  */
+  tree (*alloc_tree) (enum tree_code, struct lto_input_block *,
+                      struct data_in *);
+
+  /* Called by lto_output_tree_header to write any streamer-specific
+     information needed to allocate the tree.  This hook may assume
+     that the basic header data (tree code, etc) has already been
+     written.  It should only write any extra data needed to allocate
+     the node (e.g., in the case of CALL_EXPR, this hook would write
+     the number of arguments to the CALL_EXPR).  */
+  void (*output_tree_header) (struct output_block *, tree);
+} lto_streamer_hooks;
+
+
 /* In lto-section-in.c  */
 extern struct lto_input_block * lto_create_simple_input_block (
 			       struct lto_file_decl_data *,
@@ -866,7 +862,6 @@ extern const char *lto_get_section_data (struct lto_file_decl_data *,
 extern void lto_free_section_data (struct lto_file_decl_data *,
 				   enum lto_section_type,
 				   const char *, const char *, size_t);
-extern unsigned char lto_input_1_unsigned (struct lto_input_block *);
 extern unsigned HOST_WIDE_INT lto_input_uleb128 (struct lto_input_block *);
 extern unsigned HOST_WIDEST_INT lto_input_widest_uint_uleb128 (
 						struct lto_input_block *);
@@ -882,6 +877,14 @@ extern hashval_t lto_hash_in_decl_state (const void *);
 extern int lto_eq_in_decl_state (const void *, const void *);
 extern struct lto_in_decl_state *lto_get_function_in_decl_state (
 				      struct lto_file_decl_data *, tree);
+extern void lto_section_overrun (struct lto_input_block *) ATTRIBUTE_NORETURN;
+extern void lto_value_range_error (const char *,
+				   HOST_WIDE_INT, HOST_WIDE_INT,
+				   HOST_WIDE_INT) ATTRIBUTE_NORETURN;
+extern void bp_pack_var_len_unsigned (struct bitpack_d *, unsigned HOST_WIDE_INT);
+extern void bp_pack_var_len_int (struct bitpack_d *, HOST_WIDE_INT);
+extern unsigned HOST_WIDE_INT bp_unpack_var_len_unsigned (struct bitpack_d *);
+extern HOST_WIDE_INT bp_unpack_var_len_int (struct bitpack_d *);
 
 /* In lto-section-out.c  */
 extern hashval_t lto_hash_decl_slot_node (const void *);
@@ -891,7 +894,6 @@ extern int lto_eq_type_slot_node (const void *, const void *);
 extern void lto_begin_section (const char *, bool);
 extern void lto_end_section (void);
 extern void lto_write_stream (struct lto_output_stream *);
-extern void lto_output_1_stream (struct lto_output_stream *, char);
 extern void lto_output_data_stream (struct lto_output_stream *, const void *,
 				    size_t);
 extern void lto_output_uleb128_stream (struct lto_output_stream *,
@@ -925,6 +927,7 @@ extern void lto_push_out_decl_state (struct lto_out_decl_state *);
 extern struct lto_out_decl_state *lto_pop_out_decl_state (void);
 extern void lto_record_function_out_decl_state (tree,
 						struct lto_out_decl_state *);
+extern void lto_append_block (struct lto_output_stream *);
 
 
 /* In lto-streamer.c.  */
@@ -1205,12 +1208,9 @@ bp_pack_value (struct bitpack_d *bp, bitpack_word_t val, unsigned nbits)
   bitpack_word_t word = bp->word;
   int pos = bp->pos;
 
-  /* We shouldn't try to pack more bits than can fit in a bitpack word.  */
-  gcc_assert (nbits > 0 && nbits <= BITS_PER_BITPACK_WORD);
-
-  /* The value to pack should not overflow NBITS.  */
-  gcc_assert (nbits == BITS_PER_BITPACK_WORD
-	      || val <= ((bitpack_word_t) 1 << nbits));
+  /* Verify that VAL fits in the NBITS.  */
+  gcc_checking_assert (nbits == BITS_PER_BITPACK_WORD
+		       || !(val & ~(((bitpack_word_t)1<<nbits)-1)));
 
   /* If val does not fit into the current bitpack word switch to the
      next one.  */
@@ -1275,5 +1275,95 @@ bp_unpack_value (struct bitpack_d *bp, unsigned nbits)
 
   return val & mask;
 }
+
+
+/* Write a character to the output block.  */
+
+static inline void
+lto_output_1_stream (struct lto_output_stream *obs, char c)
+{
+  /* No space left.  */
+  if (obs->left_in_block == 0)
+    lto_append_block (obs);
+
+  /* Write the actual character.  */
+  *obs->current_pointer = c;
+  obs->current_pointer++;
+  obs->total_size++;
+  obs->left_in_block--;
+}
+
+
+/* Read byte from the input block.  */
+
+static inline unsigned char
+lto_input_1_unsigned (struct lto_input_block *ib)
+{
+  if (ib->p >= ib->len)
+    lto_section_overrun (ib);
+  return (ib->data[ib->p++]);
+}
+
+/* Output VAL into OBS and verify it is in range MIN...MAX that is supposed
+   to be compile time constant.
+   Be host independent, limit range to 31bits.  */
+
+static inline void
+lto_output_int_in_range (struct lto_output_stream *obs,
+			 HOST_WIDE_INT min,
+			 HOST_WIDE_INT max,
+			 HOST_WIDE_INT val)
+{
+  HOST_WIDE_INT range = max - min;
+
+  gcc_checking_assert (val >= min && val <= max && range > 0
+		       && range < 0x7fffffff);
+
+  val -= min;
+  lto_output_1_stream (obs, val & 255);
+  if (range >= 0xff)
+    lto_output_1_stream (obs, (val >> 8) & 255);
+  if (range >= 0xffff)
+    lto_output_1_stream (obs, (val >> 16) & 255);
+  if (range >= 0xffffff)
+    lto_output_1_stream (obs, (val >> 24) & 255);
+}
+
+/* Input VAL into OBS and verify it is in range MIN...MAX that is supposed
+   to be compile time constant.  PURPOSE is used for error reporting.  */
+
+static inline HOST_WIDE_INT
+lto_input_int_in_range (struct lto_input_block *ib,
+			const char *purpose,
+			HOST_WIDE_INT min,
+			HOST_WIDE_INT max)
+{
+  HOST_WIDE_INT range = max - min;
+  HOST_WIDE_INT val = lto_input_1_unsigned (ib);
+
+  gcc_checking_assert (range > 0 && range < 0x7fffffff);
+
+  if (range >= 0xff)
+    val |= ((HOST_WIDE_INT)lto_input_1_unsigned (ib)) << 8;
+  if (range >= 0xffff)
+    val |= ((HOST_WIDE_INT)lto_input_1_unsigned (ib)) << 16;
+  if (range >= 0xffffff)
+    val |= ((HOST_WIDE_INT)lto_input_1_unsigned (ib)) << 24;
+  val += min;
+  if (val < min || val > max)
+    lto_value_range_error (purpose, val, min, max);
+  return val;
+}
+
+/* Output VAL of type "enum enum_name" into OBS.
+   Assume range 0...ENUM_LAST - 1.  */
+#define lto_output_enum(obs,enum_name,enum_last,val) \
+  lto_output_int_in_range ((obs), 0, (int)(enum_last) - 1, (int)(val))
+
+/* Input enum of type "enum enum_name" from IB.
+   Assume range 0...ENUM_LAST - 1.  */
+#define lto_input_enum(ib,enum_name,enum_last) \
+  (enum enum_name)lto_input_int_in_range ((ib), #enum_name, 0, \
+					  (int)(enum_last) - 1)
 
 #endif /* GCC_LTO_STREAMER_H  */

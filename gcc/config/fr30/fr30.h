@@ -667,12 +667,6 @@ enum reg_class
    will reload one or both registers only if neither labeling works.  */
 #define REG_OK_FOR_INDEX_P(X) REG_OK_FOR_BASE_P (X)
 
-/* A C expression that is nonzero if X is a legitimate constant for an
-   immediate operand on the target machine.  You can assume that X satisfies
-   `CONSTANT_P', so you need not check this.  In fact, `1' is a suitable
-   definition for this macro on machines where anything `CONSTANT_P' is valid.  */
-#define LEGITIMATE_CONSTANT_P(X) 1
-
 /*}}}*/ 
 /*{{{  Describing Relative Costs of Operations */ 
 
@@ -844,11 +838,6 @@ fprintf (STREAM, "\t.word .L%d\n", VALUE)
    called, in `call' RTL expressions.  On most machines this should be
    `QImode'.  */
 #define FUNCTION_MODE QImode
-
-/* If cross-compiling, don't require stdio.h etc to build libgcc.a.  */
-#if defined CROSS_DIRECTORY_STRUCTURE && ! defined inhibit_libc
-#define inhibit_libc
-#endif
 
 /*}}}*/ 
 

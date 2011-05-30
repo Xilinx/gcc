@@ -108,6 +108,7 @@ static void avr_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
 				      const_tree, bool);
 static void avr_help (void);
 static bool avr_function_ok_for_sibcall (tree, tree);
+static void avr_asm_named_section (const char *name, unsigned int flags, tree decl);
 
 /* Allocate registers from r25 to r8 for parameters for function calls.  */
 #define FIRST_CUM_REG 26
@@ -131,6 +132,10 @@ const struct base_arch_s *avr_current_arch;
 const struct mcu_type_s *avr_current_device;
 
 section *progmem_section;
+
+/* To track if code will use .bss and/or .data.  */
+bool avr_need_clear_bss_p = false;
+bool avr_need_copy_data_p = false;
 
 /* AVR attributes.  */
 static const struct attribute_spec avr_attribute_table[] =
@@ -197,6 +202,12 @@ static const struct default_options avr_option_optimization_table[] =
 #define TARGET_INSERT_ATTRIBUTES avr_insert_attributes
 #undef TARGET_SECTION_TYPE_FLAGS
 #define TARGET_SECTION_TYPE_FLAGS avr_section_type_flags
+
+/* `TARGET_ASM_NAMED_SECTION' must be defined in avr.h.  */
+
+#undef TARGET_ASM_INIT_SECTIONS
+#define TARGET_ASM_INIT_SECTIONS avr_asm_init_sections
+
 #undef TARGET_REGISTER_MOVE_COST
 #define TARGET_REGISTER_MOVE_COST avr_register_move_cost
 #undef TARGET_MEMORY_MOVE_COST
@@ -881,7 +892,7 @@ expand_prologue (void)
         }
     }
 
-  if (flag_stack_usage)
+  if (flag_stack_usage_info)
     current_function_static_stack_size = cfun->machine->stack_usage;
 }
 
@@ -1307,7 +1318,9 @@ print_operand_address (FILE *file, rtx addr)
       if (CONSTANT_ADDRESS_P (addr)
 	  && text_segment_operand (addr, VOIDmode))
 	{
-	  rtx x = XEXP (addr,0);
+	  rtx x = addr;
+	  if (GET_CODE (x) == CONST)
+	    x = XEXP (x, 0);
 	  if (GET_CODE (x) == PLUS && GET_CODE (XEXP (x,1)) == CONST_INT)
 	    {
 	      /* Assembler gs() will implant word address. Make offset 
@@ -1783,6 +1796,20 @@ avr_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
       cfun->machine->sibcall_fails = 1;
     }
 
+  /* Test if all registers needed by the ABI are actually available.  If the
+     user has fixed a GPR needed to pass an argument, an (implicit) function
+     call would clobber that fixed register.  See PR45099 for an example.  */
+  
+  if (cum->regno >= 0)
+    {
+      int regno;
+
+      for (regno = cum->regno; regno < cum->regno + bytes; regno++)
+        if (fixed_regs[regno])
+          error ("Register %s is needed to pass a parameter but is fixed",
+                 reg_names[regno]);
+    }
+      
   if (cum->nregs <= 0)
     {
       cum->nregs = 0;
@@ -5190,7 +5217,60 @@ avr_output_progmem_section_asm_op (const void *arg ATTRIBUTE_UNUSED)
   fprintf (asm_out_file, "\t.p2align 1\n");
 }
 
-/* Implement TARGET_ASM_INIT_SECTIONS.  */
+
+/* Implement `ASM_OUTPUT_ALIGNED_DECL_LOCAL'.  */
+/* Implement `ASM_OUTPUT_ALIGNED_DECL_COMMON'.  */
+/* Track need of __do_clear_bss.  */
+
+void
+avr_asm_output_aligned_decl_common (FILE * stream, const_tree decl ATTRIBUTE_UNUSED,
+                                    const char *name, unsigned HOST_WIDE_INT size,
+                                    unsigned int align, bool local_p)
+{
+  avr_need_clear_bss_p = true;
+
+  if (local_p)
+    {
+      fputs ("\t.local\t", stream);
+      assemble_name (stream, name);
+      fputs ("\n", stream);
+    }
+  
+  fputs ("\t.comm\t", stream);
+  assemble_name (stream, name);
+  fprintf (stream,
+           "," HOST_WIDE_INT_PRINT_UNSIGNED ",%u\n",
+           size, align / BITS_PER_UNIT);
+}
+
+
+/* Unnamed section callback for data_section
+   to track need of __do_copy_data.  */
+
+static void
+avr_output_data_section_asm_op (const void *data)
+{
+  avr_need_copy_data_p = true;
+  
+  /* Dispatch to default.  */
+  output_section_asm_op (data);
+}
+
+
+/* Unnamed section callback for bss_section
+   to track need of __do_clear_bss.  */
+
+static void
+avr_output_bss_section_asm_op (const void *data)
+{
+  avr_need_clear_bss_p = true;
+  
+  /* Dispatch to default.  */
+  output_section_asm_op (data);
+}
+
+
+/* Implement `TARGET_ASM_INIT_SECTIONS'.  */
 
 static void
 avr_asm_init_sections (void)
@@ -5199,6 +5279,27 @@ avr_asm_init_sections (void)
 					 avr_output_progmem_section_asm_op,
 					 NULL);
   readonly_data_section = data_section;
+
+  data_section->unnamed.callback = avr_output_data_section_asm_op;
+  bss_section->unnamed.callback = avr_output_bss_section_asm_op;
+}
+
+
+/* Implement `TARGET_ASM_NAMED_SECTION'.  */
+/* Track need of __do_clear_bss, __do_copy_data for named sections.  */
+
+void
+avr_asm_named_section (const char *name, unsigned int flags, tree decl)
+{
+  if (!avr_need_copy_data_p)
+    avr_need_copy_data_p = (0 == strncmp (name, ".data", 5)
+                            || 0 == strncmp (name, ".rodata", 7)
+                            || 0 == strncmp (name, ".gnu.linkonce.d", 15));
+  
+  if (!avr_need_clear_bss_p)
+    avr_need_clear_bss_p = (0 == strncmp (name, ".bss", 4));
+  
+  default_elf_asm_named_section (name, flags, decl);
 }
 
 static unsigned int
@@ -5219,6 +5320,8 @@ avr_section_type_flags (tree decl, const char *name, int reloc)
   return flags;
 }
 
+
+/* Implement `TARGET_ASM_FILE_START'.  */
 /* Outputs some appropriate text to go at the start of an assembler
    file.  */
 
@@ -5237,20 +5340,27 @@ avr_file_start (void)
   
   fputs ("__tmp_reg__ = 0\n" 
          "__zero_reg__ = 1\n", asm_out_file);
-
-  /* FIXME: output these only if there is anything in the .data / .bss
-     sections - some code size could be saved by not linking in the
-     initialization code from libgcc if one or both sections are empty.  */
-  fputs ("\t.global __do_copy_data\n", asm_out_file);
-  fputs ("\t.global __do_clear_bss\n", asm_out_file);
 }
 
+
+/* Implement `TARGET_ASM_FILE_END'.  */
 /* Outputs to the stdio stream FILE some
    appropriate text to go at the end of an assembler file.  */
 
 static void
 avr_file_end (void)
 {
+  /* Output these only if there is anything in the
+     .data* / .rodata* / .gnu.linkonce.* resp. .bss*
+     input section(s) - some code size can be saved by not
+     linking in the initialization code from libgcc if resp.
+     sections are empty.  */
+
+  if (avr_need_copy_data_p)
+    fputs (".global __do_copy_data\n", asm_out_file);
+
+  if (avr_need_clear_bss_p)
+    fputs (".global __do_clear_bss\n", asm_out_file);
 }
 
 /* Choose the order in which to allocate hard registers for
@@ -6082,7 +6192,7 @@ avr_reorg (void)
 
 /* Returns register number for function return value.*/
 
-static inline int
+static inline unsigned int
 avr_ret_register (void)
 {
   return 24;
@@ -6113,18 +6223,14 @@ avr_libcall_value (enum machine_mode mode,
    function returns a value of data type VALTYPE.  */
 
 static rtx
-avr_function_value (const_tree type, const_tree fn_decl_or_type,
-		    bool outgoing ATTRIBUTE_UNUSED)
+avr_function_value (const_tree type,
+                    const_tree fn_decl_or_type ATTRIBUTE_UNUSED,
+                    bool outgoing ATTRIBUTE_UNUSED)
 {
   unsigned int offs;
-  const_rtx func = fn_decl_or_type;
-
-  if (fn_decl_or_type
-      && !DECL_P (fn_decl_or_type))
-  fn_decl_or_type = NULL;
 
   if (TYPE_MODE (type) != BLKmode)
-    return avr_libcall_value (TYPE_MODE (type), func);
+    return avr_libcall_value (TYPE_MODE (type), NULL_RTX);
   
   offs = int_size_in_bytes (type);
   if (offs < 2)
@@ -6535,7 +6641,7 @@ static void
 avr_init_builtins (void)
 {
   tree void_ftype_void
-    = build_function_type (void_type_node, void_list_node);
+    = build_function_type_list (void_type_node, NULL_TREE);
   tree uchar_ftype_uchar
     = build_function_type_list (unsigned_char_type_node, 
                                 unsigned_char_type_node,
@@ -6615,7 +6721,7 @@ avr_expand_unop_builtin (enum insn_code icode, tree exp,
 {
   rtx pat;
   tree arg0 = CALL_EXPR_ARG (exp, 0);
-  rtx op0 = expand_expr (arg0, NULL_RTX, VOIDmode, 0);
+  rtx op0 = expand_expr (arg0, NULL_RTX, VOIDmode, EXPAND_NORMAL);
   enum machine_mode op0mode = GET_MODE (op0);
   enum machine_mode tmode = insn_data[icode].operand[0].mode;
   enum machine_mode mode0 = insn_data[icode].operand[1].mode;
@@ -6656,8 +6762,8 @@ avr_expand_binop_builtin (enum insn_code icode, tree exp, rtx target)
   rtx pat;
   tree arg0 = CALL_EXPR_ARG (exp, 0);
   tree arg1 = CALL_EXPR_ARG (exp, 1);
-  rtx op0 = expand_expr (arg0, NULL_RTX, VOIDmode, 0);
-  rtx op1 = expand_expr (arg1, NULL_RTX, VOIDmode, 0);
+  rtx op0 = expand_expr (arg0, NULL_RTX, VOIDmode, EXPAND_NORMAL);
+  rtx op1 = expand_expr (arg1, NULL_RTX, VOIDmode, EXPAND_NORMAL);
   enum machine_mode op0mode = GET_MODE (op0);
   enum machine_mode op1mode = GET_MODE (op1);
   enum machine_mode tmode = insn_data[icode].operand[0].mode;
@@ -6749,7 +6855,7 @@ avr_expand_builtin (tree exp, rtx target,
     case AVR_BUILTIN_DELAY_CYCLES:
       {
         arg0 = CALL_EXPR_ARG (exp, 0);
-        op0 = expand_expr (arg0, NULL_RTX, VOIDmode, 0);
+        op0 = expand_expr (arg0, NULL_RTX, VOIDmode, EXPAND_NORMAL);
 
         if (! CONST_INT_P (op0))
           error ("__builtin_avr_delay_cycles expects a compile time integer constant.");

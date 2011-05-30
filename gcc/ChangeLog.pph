@@ -1,3 +1,24 @@
+2011-05-30  Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 174363.
+
+	* lto-streamer.h (enum LTO_tags): Remove LTO_LAST_TAG.
+	Do not force the value on LTO_NUM_TAGS.
+
+	* lto-streamer-out.c (lto_output_ts_decl_with_vis_tree_pointers): Call
+	output_record_start with LTO_null instead of output_zero.
+	(lto_output_ts_binfo_tree_pointers): Likewise.
+	(lto_output_tree): Likewise.
+	(output_eh_try_list): Likewise.
+	(output_eh_region): Likewise.
+	(output_eh_lp): Likewise.
+	(output_eh_regions): Likewise.
+	(output_bb): Likewise.
+	(output_function): Likewise.
+	(output_unreferenced_globals): Likewise.
+	* lto-streamer.h (lto_output_int_in_range): Fix shift sign
+	when splitting values into byte-sized ranges.
+
 2011-05-06  Diego Novillo  <dnovillo@google.com>
 
 	* lto-streamer-out.c (lto_output_tree): If the streamer

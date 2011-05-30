@@ -599,9 +599,6 @@ try_forward_edges (int mode, basic_block b)
 			     + REG_BR_PROB_BASE / 2)
 			    / REG_BR_PROB_BASE);
 
-	  if (!FORWARDER_BLOCK_P (b) && forwarder_block_p (b))
-	    b->flags |= BB_FORWARDER_BLOCK;
-
 	  do
 	    {
 	      edge t;
@@ -646,8 +643,7 @@ try_forward_edges (int mode, basic_block b)
       ei_next (&ei);
     }
 
-  if (threaded_edges)
-    free (threaded_edges);
+  free (threaded_edges);
   return changed;
 }
 
@@ -2694,7 +2690,10 @@ try_optimize_cfg (int mode)
 
 	      /* Simplify branch to branch.  */
 	      if (try_forward_edges (mode, b))
-		changed_here = true;
+		{
+		  update_forwarder_flag (b);
+		  changed_here = true;
+		}
 
 	      /* Look for shared code between blocks.  */
 	      if ((mode & CLEANUP_CROSSJUMP)

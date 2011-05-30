@@ -196,7 +196,9 @@ maybe_hot_edge_p (edge e)
   return maybe_hot_frequency_p (EDGE_FREQUENCY (e));
 }
 
+
 /* Return true in case BB is probably never executed.  */
+
 bool
 probably_never_executed_bb_p (const_basic_block bb)
 {
@@ -209,22 +211,29 @@ probably_never_executed_bb_p (const_basic_block bb)
   return false;
 }
 
+/* Return true if NODE should be optimized for size.  */
+
+bool
+cgraph_optimize_for_size_p (struct cgraph_node *node)
+{
+  if (optimize_size)
+    return true;
+  if (node && (node->frequency == NODE_FREQUENCY_UNLIKELY_EXECUTED))
+    return true;
+  else
+    return false;
+}
+
 /* Return true when current function should always be optimized for size.  */
 
 bool
 optimize_function_for_size_p (struct function *fun)
 {
-  struct cgraph_node *node;
-
   if (optimize_size)
     return true;
   if (!fun || !fun->decl)
     return false;
-  node = cgraph_get_node (fun->decl);
-  if (node && (node->frequency == NODE_FREQUENCY_UNLIKELY_EXECUTED))
-    return true;
-  else
-    return false;
+  return cgraph_optimize_for_size_p (cgraph_get_node (fun->decl));
 }
 
 /* Return true when current function should always be optimized for speed.  */
@@ -2282,7 +2291,7 @@ tree
 build_predict_expr (enum br_predictor predictor, enum prediction taken)
 {
   tree t = build1 (PREDICT_EXPR, void_type_node,
-		   build_int_cst (NULL, predictor));
+		   build_int_cst (integer_type_node, predictor));
   SET_PREDICT_EXPR_OUTCOME (t, taken);
   return t;
 }

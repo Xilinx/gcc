@@ -663,6 +663,9 @@ copy_statement_list (tree *tp)
     {
       tree stmt = tsi_stmt (oi);
       if (TREE_CODE (stmt) == STATEMENT_LIST)
+	/* This copy is not redundant; tsi_link_after will smash this
+	   STATEMENT_LIST into the end of the one we're building, and we
+	   don't want to do that with the original.  */
 	copy_statement_list (&stmt);
       tsi_link_after (&ni, stmt, TSI_CONTINUE_LINKING);
     }
@@ -813,9 +816,15 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
     {
       /* Otherwise, just copy the node.  Note that copy_tree_r already
 	 knows not to copy VAR_DECLs, etc., so this is safe.  */
+
+      /* We should never have TREE_BLOCK set on non-statements.  */
+      if (EXPR_P (*tp))
+	gcc_assert (!TREE_BLOCK (*tp));
+
       if (TREE_CODE (*tp) == MEM_REF)
 	{
 	  tree ptr = TREE_OPERAND (*tp, 0);
+	  tree type = remap_type (TREE_TYPE (*tp), id);
 	  tree old = *tp;
 	  tree tem;
 
@@ -826,7 +835,7 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 	  if ((tem = maybe_fold_offset_to_reference (EXPR_LOCATION (*tp),
 						     ptr,
 						     TREE_OPERAND (*tp, 1),
-						     TREE_TYPE (*tp)))
+						     type))
 	      && TREE_THIS_VOLATILE (tem) == TREE_THIS_VOLATILE (old))
 	    {
 	      tree *tem_basep = &tem;
@@ -848,7 +857,7 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 	    }
 	  else
 	    {
-	      *tp = fold_build2 (MEM_REF, TREE_TYPE (*tp),
+	      *tp = fold_build2 (MEM_REF, type,
 				 ptr, TREE_OPERAND (*tp, 1));
 	      TREE_THIS_VOLATILE (*tp) = TREE_THIS_VOLATILE (old);
 	      TREE_THIS_NOTRAP (*tp) = TREE_THIS_NOTRAP (old);
@@ -862,6 +871,9 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 	 tweak some special cases.  */
       copy_tree_r (tp, walk_subtrees, NULL);
 
+      if (TREE_CODE (*tp) != OMP_CLAUSE)
+	TREE_TYPE (*tp) = remap_type (TREE_TYPE (*tp), id);
+
       /* Global variables we haven't seen yet need to go into referenced
 	 vars.  If not referenced from types only.  */
       if (gimple_in_ssa_p (cfun)
@@ -869,13 +881,6 @@ remap_gimple_op_r (tree *tp, int *walk_subtrees, void *data)
 	  && id->remapping_type_depth == 0
 	  && !processing_debug_stmt)
 	add_referenced_var (*tp);
-
-      /* We should never have TREE_BLOCK set on non-statements.  */
-      if (EXPR_P (*tp))
-	gcc_assert (!TREE_BLOCK (*tp));
-
-      if (TREE_CODE (*tp) != OMP_CLAUSE)
-	TREE_TYPE (*tp) = remap_type (TREE_TYPE (*tp), id);
 
       if (TREE_CODE (*tp) == TARGET_EXPR && TREE_OPERAND (*tp, 3))
 	{
@@ -1204,7 +1209,7 @@ remap_eh_region_tree_nr (tree old_t_nr, copy_body_data *id)
   old_nr = tree_low_cst (old_t_nr, 0);
   new_nr = remap_eh_region_nr (old_nr, id);
 
-  return build_int_cst (NULL, new_nr);
+  return build_int_cst (integer_type_node, new_nr);
 }
 
 /* Helper for copy_bb.  Remap statement STMT using the inlining
@@ -1678,7 +1683,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		      edge = cgraph_clone_edge (edge, id->dst_node, stmt,
 					        gimple_uid (stmt),
 					        REG_BR_PROB_BASE, CGRAPH_FREQ_BASE,
-					        edge->frequency, true);
+					        true);
 		      /* We could also just rescale the frequency, but
 		         doing so would introduce roundoff errors and make
 			 verifier unhappy.  */
@@ -1725,6 +1730,7 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 	      if ((!edge
 		   || (edge->indirect_inlining_edge
 		       && id->transform_call_graph_edges == CB_CGE_MOVE_CLONES))
+		  && id->dst_node->analyzed
 		  && (fn = gimple_call_fndecl (stmt)) != NULL)
 		{
 		  struct cgraph_node *dest = cgraph_get_node (fn);
@@ -1744,13 +1750,12 @@ copy_bb (copy_body_data *id, basic_block bb, int frequency_scale,
 		      (id->dst_node, dest, orig_stmt, stmt, bb->count,
 		       compute_call_stmt_bb_frequency (id->dst_node->decl,
 		       				       copy_basic_block),
-		       bb->loop_depth, CIF_ORIGINALLY_INDIRECT_CALL);
+		       CIF_ORIGINALLY_INDIRECT_CALL);
 		  else
 		    cgraph_create_edge (id->dst_node, dest, stmt,
 					bb->count,
 					compute_call_stmt_bb_frequency
-					  (id->dst_node->decl, copy_basic_block),
-					bb->loop_depth)->inline_failed
+					  (id->dst_node->decl, copy_basic_block))->inline_failed
 		      = CIF_ORIGINALLY_INDIRECT_CALL;
 		  if (dump_file)
 		    {
@@ -2080,7 +2085,6 @@ initialize_cfun (tree new_fndecl, tree callee_fndecl, gcov_type count)
   cfun->va_list_fpr_size = src_cfun->va_list_fpr_size;
   cfun->has_nonlocal_label = src_cfun->has_nonlocal_label;
   cfun->stdarg = src_cfun->stdarg;
-  cfun->dont_save_pending_sizes_p = src_cfun->dont_save_pending_sizes_p;
   cfun->after_inlining = src_cfun->after_inlining;
   cfun->can_throw_non_call_exceptions
     = src_cfun->can_throw_non_call_exceptions;
@@ -3744,7 +3748,9 @@ expand_call_inline (basic_block bb, gimple stmt, copy_body_data *id)
 		 _(cgraph_inline_failed_string (reason)));
 	  sorry ("called from here");
 	}
-      else if (warn_inline && DECL_DECLARED_INLINE_P (fn)
+      else if (warn_inline
+	       && DECL_DECLARED_INLINE_P (fn)
+	       && !DECL_NO_INLINE_WARNING_P (fn)
 	       && !DECL_IN_SYSTEM_HEADER (fn)
 	       && reason != CIF_UNSPECIFIED
 	       && !lookup_attribute ("noinline", DECL_ATTRIBUTES (fn))
@@ -4213,7 +4219,7 @@ optimize_inline_calls (tree fn)
 /* Passed to walk_tree.  Copies the node pointed to, if appropriate.  */
 
 tree
-copy_tree_r (tree *tp, int *walk_subtrees, void *data)
+copy_tree_r (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 {
   enum tree_code code = TREE_CODE (*tp);
   enum tree_code_class cl = TREE_CODE_CLASS (code);
@@ -4269,19 +4275,16 @@ copy_tree_r (tree *tp, int *walk_subtrees, void *data)
 					 CONSTRUCTOR_ELTS (*tp));
       *tp = new_tree;
     }
+  else if (code == STATEMENT_LIST)
+    /* We used to just abort on STATEMENT_LIST, but we can run into them
+       with statement-expressions (c++/40975).  */
+    copy_statement_list (tp);
   else if (TREE_CODE_CLASS (code) == tcc_type)
     *walk_subtrees = 0;
   else if (TREE_CODE_CLASS (code) == tcc_declaration)
     *walk_subtrees = 0;
   else if (TREE_CODE_CLASS (code) == tcc_constant)
     *walk_subtrees = 0;
-  else if (data == NULL)
-    /* FIXME pph.  DATA is non-NULL only when called from
-       pph_copy_decls_into_cache.  We don't really need to handle
-       STATEMENT_LISTs properly, just do the copy to collect rough
-       timings.  This routine will need to be revamped when we are
-       caching for real.  */
-    gcc_assert (code != STATEMENT_LIST);
   return NULL_TREE;
 }
 
@@ -5229,7 +5232,7 @@ maybe_inline_call_in_expr (tree exp)
       id.transform_call_graph_edges = CB_CGE_DUPLICATE;
       id.transform_new_cfg = false;
       id.transform_return_to_modify = true;
-      id.transform_lang_insert_block = false;
+      id.transform_lang_insert_block = NULL;
 
       /* Make sure not to unshare trees behind the front-end's back
 	 since front-end specific mechanisms may rely on sharing.  */

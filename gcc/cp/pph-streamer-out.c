@@ -367,7 +367,7 @@ pph_stream_write_class_binding (pph_stream *stream, cp_class_binding *cb,
   if (!pph_start_record (stream, cb))
     return;
 
-  pph_stream_write_cxx_binding (stream, &cb->base, ref_p);
+  pph_stream_write_cxx_binding (stream, cb->base, ref_p);
   pph_output_tree_or_ref (stream, cb->identifier, ref_p);
 }
 
@@ -497,7 +497,7 @@ pph_stream_write_c_language_function (pph_stream *stream,
   if (!pph_start_record (stream, clf))
     return;
 
-  pph_output_tree_or_ref (stream, clf->x_stmt_tree.x_cur_stmt_list, ref_p);
+  pph_stream_write_tree_vec (stream, clf->x_stmt_tree.x_cur_stmt_list, ref_p);
   pph_output_uint (stream, clf->x_stmt_tree.stmts_are_full_exprs_p);
 }
 
