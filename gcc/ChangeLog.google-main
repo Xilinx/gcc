@@ -1,3 +1,20 @@
+2011-05-30  David Li  <davidxl@google.com>
+
+	* cgraphunit.c (cgraph_optimize):  Remove call to static
+	promotion funciton.
+	* cp/decl2.c (cp_process_pending_declarations):  Do not
+	remove body of __static_init functions for aux modules.
+	* ipa-inline.c (leaf_node_p):  Filter indirect callsite
+	to make sure profile gen and profile use consistency
+	(cgraph_decide_inlining_incrementally):  Remove LIPO
+	specific inline rule used to workaround size estimation
+	problem for static functions.
+	* tree-profile.c (tree_profiling):  Do static promotion here.
+	* l-ipo.c (cgraph_is_aux_decl_external):  Handle non-promoted
+	static function.
+	(create_unique_name): New function.
+	(promote_static_var_func): Do not promote non addr taken statics.
+
 2011-05-23  Rong Xu  <xur@google.com>
 
         * gcc/libgcov.c (gcov_merge_gcda_file): initialize eof_pos for

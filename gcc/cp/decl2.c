@@ -3901,10 +3901,11 @@ cp_process_pending_declarations (location_t locus)
          to be created for auxiliary modules -- they are created to keep
          funcdef_no consistent between profile use and profile gen.  */
       for (i = 0; VEC_iterate (tree, ssdf_decls, i, fndecl); ++i)
-         {
-           TREE_STATIC (fndecl) = 0;
-           DECL_INITIAL (fndecl) = 0;
-         }
+        /* Such ssdf_decls are not called from GLOBAL ctor/dtor, mark
+	   them reachable to avoid being eliminated too early before
+	   gimplication.  */
+        cgraph_mark_reachable_node (cgraph_node (fndecl));
+
       ssdf_decls = NULL;
       return;
     }

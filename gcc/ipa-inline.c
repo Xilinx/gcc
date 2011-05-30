@@ -1624,8 +1624,10 @@ static bool
 leaf_node_p (struct cgraph_node *n)
 {
   struct cgraph_edge *e;
+  /* The following is buggy -- indirect call is not considered.  */
   for (e = n->callees; e; e = e->next_callee)
-    if (!is_inexpensive_builtin (e->callee->decl))
+    if (e->call_stmt /* Only exisit in profile use pass in LIPO */
+	&& !is_inexpensive_builtin (e->callee->decl))
       return false;
   return true;
 }
@@ -1640,8 +1642,6 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
   struct cgraph_edge *e;
   bool inlined = false;
   cgraph_inline_failed_t failed_reason;
-  bool after_tree_profile =
-    (DECL_STRUCT_FUNCTION (node->decl))->after_tree_profile;
 
 #ifdef ENABLE_CHECKING
   verify_cgraph_node (node);
@@ -1718,20 +1718,7 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	      || !e->inline_failed
 	      || e->callee->local.disregard_inline_limits)
 	    continue;
-	  /* Don't do cross-module inlining before profile-use, so that we have
-	     a consistent CFG between profile-gen and profile-use passes.  */
-	  if (!after_tree_profile
-	      && L_IPO_COMP_MODE
-	      && !cgraph_is_inline_body_available_in_module (
-		  e->callee->decl, cgraph_get_module_id (e->caller->decl)))
-	    {
-	      e->inline_failed = CIF_NO_INTERMODULE_INLINE;
-	      if (dump_file)
-		fprintf (dump_file, "Not inlining considering inlining %s: %s\n",
-			 cgraph_node_name (e->callee),
-			 "Inter-module inlining disabled");
-	      continue;
-	    }
+
 	  if (dump_file)
 	    fprintf (dump_file, "Considering inline candidate %s.\n",
 		     cgraph_node_name (e->callee));
@@ -1751,8 +1738,7 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 	    }
 
 	  if (cgraph_maybe_hot_edge_p (e) && leaf_node_p (e->callee)
-	      && optimize_function_for_speed_p (cfun)
-	      && (after_tree_profile || !flag_dyn_ipa))
+	      && optimize_function_for_speed_p (cfun))
 	    allowed_growth = PARAM_VALUE (PARAM_EARLY_INLINING_INSNS);
 
 	  /* When the function body would grow and inlining the function
@@ -1763,12 +1749,7 @@ cgraph_decide_inlining_incrementally (struct cgraph_node *node,
 		   && !DECL_DECLARED_INLINE_P (e->callee->decl)))
 	      && (cgraph_estimate_size_after_inlining (e->caller, e->callee)
 		  > e->caller->global.size + allowed_growth)
-	      && (cgraph_estimate_growth (e->callee) > allowed_growth
-		  /* With lightweight IPO, due to static function promtion,
-		     it is hard to enable this heuristic and maintain consistent
-		     pre-profiling inline decisions between profiile generate
-		     and profile use passes.  */
-		  || (!after_tree_profile && flag_dyn_ipa)))
+	      && (cgraph_estimate_growth (e->callee) > allowed_growth))
 	    {
 	      if (dump_file)
 		fprintf (dump_file,

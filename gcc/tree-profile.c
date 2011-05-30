@@ -1347,6 +1347,7 @@ tree_profiling (void)
      function body from being deleted) won't be needed.  */
 
   cgraph_pre_profiling_inlining_done = true;
+  cgraph_process_module_scope_statics ();
   /* Now perform link to allow cross module inlining.  */
   cgraph_do_link ();
   varpool_do_link ();

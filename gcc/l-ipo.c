@@ -1117,6 +1117,9 @@ cgraph_is_aux_decl_external (struct cgraph_node *node)
   if (DECL_COMDAT (decl) || DECL_WEAK (decl))
     return false;
 
+  if (!TREE_PUBLIC (decl))
+    return false;
+
   /* The others from aux modules are external. */
   return true;
 }
@@ -1675,32 +1678,16 @@ get_name_seq_num (const char *name)
   return (*slot)->seq;
 }
 
-/* Promote DECL to be global. MODULE_ID is the id of the module where
-   DECL is defined. IS_EXTERN is a flag indicating if externalization
-   is needed.  */
+/* Returns a unique assembler name for DECL.  */
 
-static void
-promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
+static tree
+create_unique_name (tree decl, unsigned module_id)
 {
   tree id, assemb_id;
   char *assembler_name;
   const char *name;
   struct  function *context = NULL;
-  tree alias;
   int seq = 0;
-
-  /* No need to promote symbol alias.  */
-  alias = lookup_attribute ("alias", DECL_ATTRIBUTES (decl));
-  if (alias)
-    return;
-
-  /* Function decls in C++ may contain characters not taken by assembler.
-     Similarly, function scope static variable has UID as the assembler name
-     suffix which is not consistent across modules.  */
-
-  if (DECL_ASSEMBLER_NAME_SET_P (decl)
-      && TREE_CODE (decl) == FUNCTION_DECL)
-    cgraph_remove_assembler_hash_node (cgraph_node (decl));
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
     {
@@ -1748,6 +1735,34 @@ promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
     sprintf (assembler_name, "%s_%d", assembler_name, seq);
 
   assemb_id = get_identifier (assembler_name);
+
+  return assemb_id;
+}
+
+/* Promote DECL to be global. MODULE_ID is the id of the module where
+   DECL is defined. IS_EXTERN is a flag indicating if externalization
+   is needed.  */
+
+static void
+promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
+{
+  tree assemb_id;
+  tree alias;
+
+  /* No need to promote symbol alias.  */
+  alias = lookup_attribute ("alias", DECL_ATTRIBUTES (decl));
+  if (alias)
+    return;
+
+  /* Function decls in C++ may contain characters not taken by assembler.
+     Similarly, function scope static variable has UID as the assembler name
+     suffix which is not consistent across modules.  */
+
+  if (DECL_ASSEMBLER_NAME_SET_P (decl)
+      && TREE_CODE (decl) == FUNCTION_DECL)
+    cgraph_remove_assembler_hash_node (cgraph_node (decl));
+
+  assemb_id = create_unique_name (decl, module_id);
   SET_DECL_ASSEMBLER_NAME (decl, assemb_id);
   TREE_PUBLIC (decl) = 1;
   DECL_VISIBILITY (decl) = VISIBILITY_HIDDEN;
@@ -1756,11 +1771,14 @@ promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
   if (TREE_CODE (decl) == FUNCTION_DECL)
     {
       struct cgraph_node *node = cgraph_node (decl);
+
+      node->resolution = LDPR_UNKNOWN;
       cgraph_add_assembler_hash_node (node);
     }
   else
     {
       struct varpool_node *node = varpool_node (decl);
+      node->resolution = LDPR_UNKNOWN;
       varpool_link_node (node);
     }
 
@@ -1843,13 +1861,24 @@ process_module_scope_static_func (struct cgraph_node *cnode)
       && lookup_attribute ("always_inline", DECL_ATTRIBUTES (decl)) != NULL)
     return;
 
-  if (cgraph_is_auxiliary (cnode->decl))
+  /* Can be local -- the promotion pass need to be done after
+     callgraph build when address taken bit is set.  */
+  if (!cnode->address_taken)
     {
-      gcc_assert (cgraph_get_module_id (cnode->decl)
-                  != primary_module_id);
+      tree assemb_id = create_unique_name (decl, cgraph_get_module_id (decl));
+
+      if (DECL_ASSEMBLER_NAME_SET_P (decl))
+        cgraph_remove_assembler_hash_node (cnode);
+      SET_DECL_ASSEMBLER_NAME (decl, assemb_id);
+      return;
+    }
+
+  if (cgraph_is_auxiliary (decl))
+    {
+      gcc_assert (cgraph_get_module_id (decl) != primary_module_id);
       /* Promote static function to global.  */
-      if (cgraph_get_module_id (cnode->decl))
-        promote_static_var_func (cgraph_get_module_id (cnode->decl), decl, 1);
+      if (cgraph_get_module_id (decl))
+        promote_static_var_func (cgraph_get_module_id (decl), decl, 1);
     }
   else
     {
@@ -1857,7 +1886,7 @@ process_module_scope_static_func (struct cgraph_node *cnode)
           /* skip static_init routines.  */
           && !DECL_ARTIFICIAL (decl))
         {
-          promote_static_var_func (cgraph_get_module_id (cnode->decl), decl, 0);
+          promote_static_var_func (cgraph_get_module_id (decl), decl, 0);
           cgraph_mark_if_needed (decl);
         }
     }

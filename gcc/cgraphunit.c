@@ -2030,9 +2030,6 @@ cgraph_optimize (void)
     {
       cgraph_init_gid_map ();
       cgraph_add_fake_indirect_call_edges ();
-     /* Perform static promotion before IPA passes to avoid
-        needed static functions being deleted.  */
-      cgraph_process_module_scope_statics ();
     }
 
   /* Don't run the IPA passes if there was any error or sorry messages.  */
