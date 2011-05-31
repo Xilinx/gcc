@@ -1,5 +1,16 @@
 
 2011-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-predef.list: Add CLASS_GCC_PRAGMA.
+	* melt-runtime.h: Better comment.
+	(FSYSDAT_MELTPRAGMAS, FGCCPRAGMA_HANDLER, FGCCPRAGMA_DATA)
+	(FGCCPRAGMA__LAST): New enum values.
+
+	* melt/warmelt-first.melt:
+	(class_initial_system_data): Add new field systda_meltpragmas
+	(initial_system_data): Clear it.
+	(class_gcc_pragma): New predefined class.
+
+2011-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_list_length): Reindent.
 	(meltgc_output_file): Loop on list test better the pairs.
 

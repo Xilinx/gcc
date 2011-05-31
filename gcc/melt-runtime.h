@@ -4,6 +4,7 @@
    www.gcc-melt.org ]]
    Copyright (C)  2008, 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+   and Pierre Vittet <piervit@pvittet.com>
 
 This file is part of GCC.
 
@@ -2175,6 +2176,10 @@ extern GTY (()) melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB];
 
 /* *INDENT-ON* */
 
+/* All the fields enum below should be carefully kept in sync with
+   MELT code inside warmelt-first.melt; so change them with great
+   care. */
+
 /* fields inside container */
 enum
 {
@@ -2271,11 +2276,21 @@ enum
   FSYSDAT_OPTION_SET,		/* closure to set options */
   FSYSDAT_PASSEXEC_HOOK,	/* closure for PLUGIN_PASS_EXECUTION */
   FSYSDAT_MELTPASS_AFTER_HOOK,	/* closure for end of MELT pass execution */
+  FSYSDAT_MELTPRAGMAS,		/* list or tuple of MELT pragma descriptors */
   FSYSDAT__LAST
 };
 
 
-/* fields inside GCC passes, i.e. class_gcc_pass */
+/* Fields inside GCC pragmas, i.e. class_gcc_pragma instances; keep in
+   sync with warmelt-first.melt */
+enum {
+  FGCCPRAGMA_HANDLER = FNAMED__LAST, /* the closure to handle the pragma */
+  FGCCPRAGMA_DATA,		     /* extra data */
+  FGCCPRAGMA__LAST
+};
+
+/* fields inside GCC passes, i.e. class_gcc_pass instances; keep in
+   sync with warmelt-first.melt */
 enum {
   FGCCPASS_GATE = FNAMED__LAST,	/* the gate closure */
   FGCCPASS_EXEC,		/* the execute closure */

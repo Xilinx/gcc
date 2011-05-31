@@ -453,6 +453,9 @@ don't instanciate this class!}#
 					;functions, it is
 					;automatically cleared after
 					;usage.
+	   sysdata_meltpragmas		;a list or tuple of pragma
+					;descriptor object of
+					;CLASS_GCC_PRAGMA
 	   ;;;keep these spare slots to ease the addition of other slots
 	   sysdata___spare1
 	   sysdata___spare2
@@ -683,6 +686,24 @@ $FOREVER and $EXIT macros. The label source location is $LABIND_LOC,
 the cloned symbol unique to the label is $LABIND_CLONSY. The local
 variables for the result is $LABIND_RES.}# )
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; ================ GCC pragmas
+;;;@@@@ for Pierre Vittet
+(defclass class_gcc_pragma
+  :predef CLASS_GCC_PRAGMA
+  :super class_named
+  ;; keep the fields list in sync with melt-runtime.h FGCCPRAGMA_*
+  :fields (gccpragma_handler            ;the closure to handle the pragma
+           gccpragma_data               ;extra data
+           )
+  :doc #{The $CLASS_GCC_PRAGMA is for objects describing GCC pragmas,
+  as provided by MELT code. Once correctly instanciated, such a pragma
+  descriptor should be registered thru the $INSTALL_MELT_GCC_PRAGMA
+  primitive.  MELT pragmas are named, and all belong to the same MELT
+  pragma namespace.  C code using them will use: #pragma MELT name ...
+  and the name there is the string given by the $NAMED_NAME field of
+  the pragma descriptor.}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; ================ GCC compiler passes
@@ -3128,6 +3149,7 @@ accessed or updated but is intenally useful to many MELT mechanisms.}#
   :sysdata_option_set init_optionsetter
   :sysdata_passexec_hook ()		;initialized later, lazily
   :sysdata_meltpass_after_hook () 	;initialized lazily
+  :sysdata_meltpragmas ()
   )
 
 
@@ -3895,6 +3917,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_c_generation_context
  class_gcc_gimple_pass
  class_gcc_pass
+ class_gcc_pragma
  class_gcc_rtl_pass
  class_gcc_any_ipa_pass
  class_gcc_simple_ipa_pass
