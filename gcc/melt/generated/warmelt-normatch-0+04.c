@@ -15800,7 +15800,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /36c7b902 checkpair", melt_magic_discr((melt_ptr_t)(/*_.NRESBIND__V174*/ meltfptr[173]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /2889f2cc checkpair", melt_magic_discr((melt_ptr_t)(/*_.NRESBIND__V174*/ meltfptr[173]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.NRESBIND__V174*/ meltfptr[173]))->hd = (melt_ptr_t) (/*_.NRESBIND__V147*/ meltfptr[82]);
   ;
   /*^touch*/

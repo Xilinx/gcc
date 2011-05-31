@@ -1349,7 +1349,7 @@ gt_ggc_mx_VEC_melt_ptr_t_gc (void *x_p)
     {
       {
         size_t i0;
-        size_t l0 = (size_t)(((*x).base).num);
+        size_t l0 = (size_t)(((*x).base).prefix.num);
         for (i0 = 0; i0 != l0; i0++) {
           gt_ggc_m_7melt_un ((*x).base.vec[i0]);
         }
@@ -1727,8 +1727,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Wed 25 May 2011 03:04:05 PM CEST
+/* gt-melt-runtime-plugin.h file generated Tue May 31 18:34:12 2011
 
-406f278933d07eb8493a73bc854425bf  melt-runtime.h
-44a560ddaf39d732d69a4843af633104  melt-runtime.c
+c25f6695a4ea25aa1b9199878c0f1169  melt-runtime.h
+277a2f66c0c92992ed92c63d526d9062  melt-runtime.c
 */
