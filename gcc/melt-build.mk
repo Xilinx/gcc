@@ -2377,6 +2377,7 @@ warmelt-upgrade-translator: \
    melt-sources/warmelt-outobj.c \
          $(wildcard  melt-sources/warmelt-outobj+*.c)
 	@echo upgrading the MELT translator
+	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
 
 	@echo upgrading MELT translator warmelt-first	
 	for f in melt-sources/warmelt-first*.c ; do \

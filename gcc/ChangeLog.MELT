@@ -1,5 +1,10 @@
 
 2011-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl (warmelt-upgrade-translator): Test with which
+	that unifdef exists.
+	* melt-build.mk: Regenerate.
+
+2011-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-predef.list: Add CLASS_GCC_PRAGMA.
 	* melt-runtime.h: Better comment.
 	(FSYSDAT_MELTPRAGMAS, FGCCPRAGMA_HANDLER, FGCCPRAGMA_DATA)

@@ -416,6 +416,7 @@ warmelt-upgrade-translator: \
          $(wildcard  melt-sources/[+base+]+*.c)[+
 ENDFOR melt_translator_file+]
 	@echo upgrading the MELT translator
+	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
 [+FOR melt_translator_file+]
 	@echo upgrading MELT translator [+base+]	
 	for f in melt-sources/[+base+]*.c ; do \
