@@ -700,6 +700,10 @@ struct output_block
 
   /* Cache of nodes written in this section.  */
   struct lto_streamer_cache_d *writer_cache;
+
+  /* All data persistent across whole duration of output block
+     can go here.  */
+  struct obstack obstack;
 };
 
 
@@ -774,6 +778,10 @@ extern void lto_section_overrun (struct lto_input_block *) ATTRIBUTE_NORETURN;
 extern void lto_value_range_error (const char *,
 				   HOST_WIDE_INT, HOST_WIDE_INT,
 				   HOST_WIDE_INT) ATTRIBUTE_NORETURN;
+extern void bp_pack_var_len_unsigned (struct bitpack_d *, unsigned HOST_WIDE_INT);
+extern void bp_pack_var_len_int (struct bitpack_d *, HOST_WIDE_INT);
+extern unsigned HOST_WIDE_INT bp_unpack_var_len_unsigned (struct bitpack_d *);
+extern HOST_WIDE_INT bp_unpack_var_len_int (struct bitpack_d *);
 
 /* In lto-section-out.c  */
 extern hashval_t lto_hash_decl_slot_node (const void *);
@@ -869,13 +877,6 @@ extern struct output_block *create_output_block (enum lto_section_type);
 extern void destroy_output_block (struct output_block *);
 extern void lto_output_tree (struct output_block *, tree, bool);
 extern void produce_asm (struct output_block *ob, tree fn);
-extern void lto_output_string (struct output_block *,
-			       struct lto_output_stream *,
-			       const char *);
-extern void lto_output_string_with_length (struct output_block *,
-			                   struct lto_output_stream *,
-			                   const char *,
-			                   unsigned int);
 void lto_output_decl_state_streams (struct output_block *,
 				    struct lto_out_decl_state *);
 void lto_output_decl_state_refs (struct output_block *,
@@ -1110,6 +1111,11 @@ bp_pack_value (struct bitpack_d *bp, bitpack_word_t val, unsigned nbits)
 {
   bitpack_word_t word = bp->word;
   int pos = bp->pos;
+
+  /* Verify that VAL fits in the NBITS.  */
+  gcc_checking_assert (nbits == BITS_PER_BITPACK_WORD
+		       || !(val & ~(((bitpack_word_t)1<<nbits)-1)));
+
   /* If val does not fit into the current bitpack word switch to the
      next one.  */
   if (pos + nbits > BITS_PER_BITPACK_WORD)
@@ -1253,6 +1259,47 @@ lto_input_int_in_range (struct lto_input_block *ib,
   return val;
 }
 
+
+/* Output VAL into BP and verify it is in range MIN...MAX that is supposed
+   to be compile time constant.
+   Be host independent, limit range to 31bits.  */
+
+static inline void
+bp_pack_int_in_range (struct bitpack_d *bp,
+		      HOST_WIDE_INT min,
+		      HOST_WIDE_INT max,
+		      HOST_WIDE_INT val)
+{
+  HOST_WIDE_INT range = max - min;
+  int nbits = floor_log2 (range) + 1;
+
+  gcc_checking_assert (val >= min && val <= max && range > 0
+		       && range < 0x7fffffff);
+
+  val -= min;
+  bp_pack_value (bp, val, nbits);
+}
+
+/* Input VAL into BP and verify it is in range MIN...MAX that is supposed
+   to be compile time constant.  PURPOSE is used for error reporting.  */
+
+static inline HOST_WIDE_INT
+bp_unpack_int_in_range (struct bitpack_d *bp,
+		        const char *purpose,
+		        HOST_WIDE_INT min,
+		        HOST_WIDE_INT max)
+{
+  HOST_WIDE_INT range = max - min;
+  int nbits = floor_log2 (range) + 1;
+  HOST_WIDE_INT val = bp_unpack_value (bp, nbits);
+
+  gcc_checking_assert (range > 0 && range < 0x7fffffff);
+
+  if (val < min || val > max)
+    lto_value_range_error (purpose, val, min, max);
+  return val;
+}
+
 /* Output VAL of type "enum enum_name" into OBS.
    Assume range 0...ENUM_LAST - 1.  */
 #define lto_output_enum(obs,enum_name,enum_last,val) \
@@ -1263,5 +1310,16 @@ lto_input_int_in_range (struct lto_input_block *ib,
 #define lto_input_enum(ib,enum_name,enum_last) \
   (enum enum_name)lto_input_int_in_range ((ib), #enum_name, 0, \
 					  (int)(enum_last) - 1)
+
+/* Output VAL of type "enum enum_name" into BP.
+   Assume range 0...ENUM_LAST - 1.  */
+#define bp_pack_enum(bp,enum_name,enum_last,val) \
+  bp_pack_int_in_range ((bp), 0, (int)(enum_last) - 1, (int)(val))
+
+/* Input enum of type "enum enum_name" from BP.
+   Assume range 0...ENUM_LAST - 1.  */
+#define bp_unpack_enum(bp,enum_name,enum_last) \
+  (enum enum_name)bp_unpack_int_in_range ((bp), #enum_name, 0, \
+					(int)(enum_last) - 1)
 
 #endif /* GCC_LTO_STREAMER_H  */

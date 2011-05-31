@@ -3947,13 +3947,6 @@ ix86_option_override_internal (bool main_args_p)
   if (!TARGET_80387)
     target_flags |= MASK_NO_FANCY_MATH_387;
 
-  /* On 32bit targets, avoid moving DFmode values in
-     integer registers when optimizing for size.  */
-  if (TARGET_64BIT)
-    target_flags |= TARGET_INTEGER_DFMODE_MOVES;
-  else if (optimize_size)
-    target_flags &= ~TARGET_INTEGER_DFMODE_MOVES;
-
   /* Turn on MMX builtins for -msse.  */
   if (TARGET_SSE)
     {
@@ -13918,6 +13911,7 @@ get_some_local_dynamic_name (void)
    d -- print duplicated register operand for AVX instruction.
    D -- print condition for SSE cmp instruction.
    P -- if PIC, print an @PLT suffix.
+   p -- print raw symbol name.
    X -- don't print any sort of PIC '@' suffix for a symbol.
    & -- print some in-use local-dynamic symbol name.
    H -- print a memory address offset by 8; used for sse high-parts
@@ -14123,6 +14117,7 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	case 'x':
 	case 'X':
 	case 'P':
+	case 'p':
 	  break;
 
 	case 's':
@@ -14522,7 +14517,7 @@ ix86_print_operand (FILE *file, rtx x, int code)
 	  x = const0_rtx;
 	}
 
-      if (code != 'P')
+      if (code != 'P' && code != 'p')
 	{
 	  if (CONST_INT_P (x) || GET_CODE (x) == CONST_DOUBLE)
 	    {

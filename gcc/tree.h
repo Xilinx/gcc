@@ -277,6 +277,10 @@ enum built_in_class
   BUILT_IN_NORMAL
 };
 
+/* Last marker used for LTO stremaing of built_in_class.  We can not add it
+   to the enum since we need the enumb to fit in 2 bits.  */
+#define BUILT_IN_LAST (BUILT_IN_NORMAL + 1)
+
 /* Names for the above.  */
 extern const char *const built_in_class_names[4];
 
@@ -1541,11 +1545,11 @@ struct GTY(()) tree_vector {
    pointer, and vice versa.  */
 
 #define HT_IDENT_TO_GCC_IDENT(NODE) \
-  ((tree) ((char *) (NODE) - sizeof (struct tree_typed)))
+  ((tree) ((char *) (NODE) - sizeof (struct tree_common)))
 #define GCC_IDENT_TO_HT_IDENT(NODE) (&((struct tree_identifier *) (NODE))->id)
 
 struct GTY(()) tree_identifier {
-  struct tree_typed typed;
+  struct tree_common common;
   struct ht_identifier id;
 };
 
@@ -3556,7 +3560,7 @@ struct GTY ((chain_next ("%h.next"), chain_prev ("%h.prev"))) tree_statement_lis
 
 struct GTY(()) tree_statement_list
  {
-  struct tree_common common;
+  struct tree_typed typed;
   struct tree_statement_list_node *head;
   struct tree_statement_list_node *tail;
 };
