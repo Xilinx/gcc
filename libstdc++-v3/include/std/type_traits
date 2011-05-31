@@ -550,7 +550,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     struct __is_array_unknown_bounds
     : public __and_<is_array<_Tp>, __not_<extent<_Tp>>>::type
     { };
-
+    
+  // In N3290 is_destructible does not say anything about function 
+  // types and abstract types, see LWG 2049. This implementation
+  // describes function types as trivially nothrow destructible and
+  // abstract types as destructible, iff the  explicit destructor
+  // call expression is wellformed.
   struct __do_is_destructible_impl_1
   {
     template<typename _Up>
@@ -571,6 +576,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       typedef decltype(__test<_Tp>(0)) type;
     };
 
+  // Special implementation for abstract types
   struct __do_is_destructible_impl_2
   {
     template<typename _Tp, typename = decltype(declval<_Tp&>().~_Tp())>
@@ -632,23 +638,23 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   template<typename _Tp>
     struct __is_default_constructible_atom
-    : public __and_<is_destructible<_Tp>,
-                    __is_default_constructible_impl<_Tp>>::type::type
+    : public __and_<__not_<is_void<_Tp>>,
+                    __is_default_constructible_impl<_Tp>>::type
     { };
 
   template<typename _Tp, bool = is_array<_Tp>::value>
     struct __is_default_constructible_safe;
 
-  // The following technique is a workaround for a gcc defect, which does
-  // not sfinae away attempts to default-construct arrays of unknown bounds.
-  // Complete arrays can be default-constructed, if the element type is
-  // default-constructible, but arrays with unknown bounds are not:
-
+  // The following technique is a workaround for a current core language
+  // restriction, which does not allow for array types to occur in 
+  // functional casts of the form T().  Complete arrays can be default-
+  // constructed, if the element type is default-constructible, but 
+  // arrays with unknown bounds are not.
   template<typename _Tp>
     struct __is_default_constructible_safe<_Tp, true>
     : public __and_<__is_array_known_bounds<_Tp>,
 		    __is_default_constructible_atom<typename
-                      remove_all_extents<_Tp>::type>>::type::type
+                      remove_all_extents<_Tp>::type>>::type
     { };
 
   template<typename _Tp>
@@ -663,6 +669,18 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 				      _Tp>::value)>
     { };
 
+
+  // Implementation of is_constructible.
+
+  // The hardest part of this trait is the binary direct-initialization
+  // case, because we hit into a functional cast of the form T(arg).
+  // This implementation uses different strategies depending on the
+  // target type to reduce the test overhead as much as possible:
+  //
+  // a) For a reference target type, we use a static_cast expression 
+  //    modulo its extra cases.
+  //
+  // b) For a non-reference target type we use a ::new expression.
   struct __do_is_static_castable_impl
   {
     template<typename _From, typename _To, typename
@@ -682,8 +700,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   template<typename _From, typename _To>
     struct __is_static_castable_safe
-    : public __and_<__or_<is_void<_To>, is_destructible<_To>>,
-                    __is_static_castable_impl<_From, _To>>::type::type
+    : public __is_static_castable_impl<_From, _To>::type
     { };
 
   // __is_static_castable
@@ -693,6 +710,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 				      _From, _To>::value)>
     { };
 
+  // Implementation for non-reference types. To meet the proper
+  // variable definition semantics, we also need to test for
+  // is_destructible in this case.
   struct __do_is_direct_constructible_impl
   {
     template<typename _Tp, typename _Arg, typename
@@ -713,7 +733,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Tp, typename _Arg>
     struct __is_direct_constructible_new_safe
     : public __and_<is_destructible<_Tp>,
-                    __is_direct_constructible_impl<_Tp, _Arg>>::type::type
+                    __is_direct_constructible_impl<_Tp, _Arg>>::type
     { };
 
   template<typename, typename>
@@ -736,10 +756,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
         >::type>::type __src_t;
       typedef typename remove_cv<typename remove_reference<_To
         >::type>::type __dst_t;
-      typedef typename __and_<
-        __not_<is_same<__src_t, __dst_t>>,
-        is_base_of<__src_t, __dst_t>
-      >::type type;
+      typedef __and_<__not_<is_same<__src_t, __dst_t>>,
+		     is_base_of<__src_t, __dst_t>> type;
       static constexpr bool value = type::value;
     };
 
@@ -760,10 +778,8 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
         _From>::type>::type __src_t;
       typedef typename remove_cv<typename remove_reference<
         _To>::type>::type __dst_t;
-      typedef typename __or_<
-        is_same<__src_t, __dst_t>,
-        is_base_of<__dst_t, __src_t>
-      >::type type;
+      typedef __or_<is_same<__src_t, __dst_t>,
+		    is_base_of<__dst_t, __src_t>> type;
       static constexpr bool value = type::value;
     };
 
@@ -772,24 +788,19 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
     : public false_type
     { };
 
-  // Here we handle direct-initialization to a reference type
-  // as equivalent to a static_cast modulo overshooting conversions.
-  // These are restricted to the following conversion:
-  //    a) A base class to a derived class reference
-  //    b) An lvalue-reference to an rvalue-reference
-
+  // Here we handle direct-initialization to a reference type as 
+  // equivalent to a static_cast modulo overshooting conversions.
+  // These are restricted to the following conversions:
+  //    a) A glvalue of a base class to a derived class reference
+  //    b) An lvalue to an rvalue-reference of reference-compatible 
+  //       types
   template<typename _Tp, typename _Arg>
     struct __is_direct_constructible_ref_cast
     : public __and_<__is_static_castable<_Arg, _Tp>,
                     __not_<__or_<__is_base_to_derived_ref<_Arg, _Tp>,
                                  __is_lvalue_to_rvalue_ref<_Arg, _Tp>
-                   >>>::type::type
+                   >>>::type
     { };
-
-  // Direct-initialization is tricky, because of functional
-  // casts: For a conversion to reference we fall back to a
-  // static_cast modulo extra cases, otherwise we use a
-  // new expression:
 
   template<typename _Tp, typename _Arg>
     struct __is_direct_constructible_new
@@ -802,9 +813,12 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Tp, typename _Arg>
     struct __is_direct_constructible
     : public integral_constant<bool, (__is_direct_constructible_new<
-				      _Tp, _Arg>::type::value)>
+				      _Tp, _Arg>::value)>
     { };
 
+  // Since default-construction and binary direct-initialization have
+  // been handled separately, the implementation of the remaining
+  // n-ary construction cases is rather straightforward.
   struct __do_is_nary_constructible_impl
   {
     template<typename _Tp, typename... _Args, typename
@@ -824,9 +838,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   template<typename _Tp, typename... _Args>
     struct __is_nary_constructible
-    : public __and_<is_destructible<_Tp>,
-		    __is_nary_constructible_impl<_Tp, _Args...>
-                   >::type::type
+    : public __is_nary_constructible_impl<_Tp, _Args...>::type
     {
       static_assert(sizeof...(_Args) > 1,
                     "Only useful for > 1 arguments");
@@ -854,27 +866,232 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 				      _Args...>::value)>
     { };
 
+  template<typename _Tp, bool = is_void<_Tp>::value>
+    struct __is_copy_constructible_impl;
 
-  template<bool, typename _Tp, typename... _Args>
-    struct __is_nt_constructible_helper
-    { static const bool __value = false; };
+  template<typename _Tp>
+    struct __is_copy_constructible_impl<_Tp, true>
+    : public false_type { };
+
+  template<typename _Tp>
+    struct __is_copy_constructible_impl<_Tp, false>
+    : public is_constructible<_Tp, const _Tp&>
+    { };
+
+  /// is_copy_constructible
+  template<typename _Tp>
+    struct is_copy_constructible
+    : public __is_copy_constructible_impl<_Tp>
+    { };
+
+  template<typename _Tp, bool = is_void<_Tp>::value>
+    struct __is_move_constructible_impl;
+
+  template<typename _Tp>
+    struct __is_move_constructible_impl<_Tp, true>
+    : public false_type { };
+
+  template<typename _Tp>
+    struct __is_move_constructible_impl<_Tp, false>
+    : public is_constructible<_Tp, _Tp&&>
+    { };
+
+  /// is_move_constructible
+  template<typename _Tp>
+    struct is_move_constructible
+    : public __is_move_constructible_impl<_Tp>
+    { };
+
+  template<typename _Tp>
+    struct __is_nt_default_constructible_atom
+    : public integral_constant<bool, noexcept(_Tp())>
+    { };
+
+  template<typename _Tp, bool = is_array<_Tp>::value>
+    struct __is_nt_default_constructible_impl;
+
+  template<typename _Tp>
+    struct __is_nt_default_constructible_impl<_Tp, true>
+    : public __and_<__is_array_known_bounds<_Tp>,
+		    __is_nt_default_constructible_atom<typename
+                      remove_all_extents<_Tp>::type>>::type
+    { };
+
+  template<typename _Tp>
+    struct __is_nt_default_constructible_impl<_Tp, false>
+    : public __is_nt_default_constructible_atom<_Tp>
+    { };
+
+  /// is_nothrow_default_constructible
+  template<typename _Tp>
+    struct is_nothrow_default_constructible
+    : public __and_<is_default_constructible<_Tp>,
+                    __is_nt_default_constructible_impl<_Tp>>::type
+    { };
 
   template<typename _Tp, typename... _Args>
-    struct __is_nt_constructible_helper<true, _Tp, _Args...>
-    { static const bool __value = noexcept(_Tp(declval<_Args>()...)); };
+    struct __is_nt_constructible_impl
+    : public integral_constant<bool, noexcept(_Tp(declval<_Args>()...))>
+    { };
 
   template<typename _Tp, typename _Arg>
-    struct __is_nt_constructible_helper<true, _Tp, _Arg>
-    {
-      static const bool __value = noexcept(static_cast<_Tp>(declval<_Arg>()));
-    };
+    struct __is_nt_constructible_impl<_Tp, _Arg>
+    : public integral_constant<bool,
+                               noexcept(static_cast<_Tp>(declval<_Arg>()))>
+    { };
+
+  template<typename _Tp>
+    struct __is_nt_constructible_impl<_Tp>
+    : public is_nothrow_default_constructible<_Tp>
+    { };
 
   /// is_nothrow_constructible
   template<typename _Tp, typename... _Args>
     struct is_nothrow_constructible
+    : public __and_<is_constructible<_Tp, _Args...>,
+		    __is_nt_constructible_impl<_Tp, _Args...>>::type
+    { };
+
+  template<typename _Tp, bool = is_void<_Tp>::value>
+    struct __is_nothrow_copy_constructible_impl;
+
+  template<typename _Tp>
+    struct __is_nothrow_copy_constructible_impl<_Tp, true>
+    : public false_type { };
+
+  template<typename _Tp>
+    struct __is_nothrow_copy_constructible_impl<_Tp, false>
+    : public is_nothrow_constructible<_Tp, const _Tp&>
+    { };
+
+  /// is_nothrow_copy_constructible
+  template<typename _Tp>
+    struct is_nothrow_copy_constructible
+    : public __is_nothrow_copy_constructible_impl<_Tp>
+    { };
+
+  template<typename _Tp, bool = is_void<_Tp>::value>
+    struct __is_nothrow_move_constructible_impl;
+
+  template<typename _Tp>
+    struct __is_nothrow_move_constructible_impl<_Tp, true>
+    : public false_type { };
+
+  template<typename _Tp>
+    struct __is_nothrow_move_constructible_impl<_Tp, false>
+    : public is_nothrow_constructible<_Tp, _Tp&&>
+    { };
+
+  /// is_nothrow_move_constructible
+  template<typename _Tp>
+    struct is_nothrow_move_constructible
+    : public __is_nothrow_move_constructible_impl<_Tp>
+    { };
+
+  template<typename _Tp, typename _Up>
+    class __is_assignable_helper
+    : public __sfinae_types
+    {
+      template<typename _Tp1, typename _Up1>
+        static decltype(declval<_Tp1>() = declval<_Up1>(), __one())
+	__test(int);
+
+      template<typename, typename>
+        static __two __test(...);
+
+    public:
+      static constexpr bool value = sizeof(__test<_Tp, _Up>(0)) == 1;
+    };
+
+  /// is_assignable
+  template<typename _Tp, typename _Up>
+    struct is_assignable
     : public integral_constant<bool,
-	  __is_nt_constructible_helper<is_constructible<_Tp, _Args...>::value,
-				       _Tp, _Args...>::__value>
+                               __is_assignable_helper<_Tp, _Up>::value>
+    { };
+
+  template<typename _Tp, bool = is_void<_Tp>::value>
+    struct __is_copy_assignable_impl;
+
+  template<typename _Tp>
+    struct __is_copy_assignable_impl<_Tp, true>
+    : public false_type { };
+
+  template<typename _Tp>
+    struct __is_copy_assignable_impl<_Tp, false>
+    : public is_assignable<_Tp&, const _Tp&&>
+    { };
+
+  /// is_copy_assignable
+  template<typename _Tp>
+    struct is_copy_assignable
+    : public __is_copy_assignable_impl<_Tp>
+    { };
+
+  template<typename _Tp, bool = is_void<_Tp>::value>
+    struct __is_move_assignable_impl;
+
+  template<typename _Tp>
+    struct __is_move_assignable_impl<_Tp, true>
+    : public false_type { };
+
+  template<typename _Tp>
+    struct __is_move_assignable_impl<_Tp, false>
+    : public is_assignable<_Tp&, _Tp&&>
+    { };
+
+  /// is_move_assignable
+  template<typename _Tp>
+    struct is_move_assignable
+    : public __is_move_assignable_impl<_Tp>
+    { };
+
+  template<typename _Tp, typename _Up>
+    struct __is_nt_assignable_impl
+    : public integral_constant<bool, noexcept(declval<_Tp>() = declval<_Up>())>
+    { };
+
+  /// is_nothrow_assignable
+  template<typename _Tp, typename _Up>
+    struct is_nothrow_assignable
+    : public __and_<is_assignable<_Tp, _Up>,
+		    __is_nt_assignable_impl<_Tp, _Up>>::type
+    { };
+
+  template<typename _Tp, bool = is_void<_Tp>::value>
+    struct __is_nt_copy_assignable_impl;
+
+  template<typename _Tp>
+    struct __is_nt_copy_assignable_impl<_Tp, true>
+    : public false_type { };
+
+  template<typename _Tp>
+    struct __is_nt_copy_assignable_impl<_Tp, false>
+    : public is_nothrow_assignable<_Tp&, const _Tp&&>
+    { };
+
+  /// is_nothrow_copy_assignable
+  template<typename _Tp>
+    struct is_nothrow_copy_assignable
+    : public __is_nt_copy_assignable_impl<_Tp>
+    { };
+
+  template<typename _Tp, bool = is_void<_Tp>::value>
+    struct __is_nt_move_assignable_impl;
+
+  template<typename _Tp>
+    struct __is_nt_move_assignable_impl<_Tp, true>
+    : public false_type { };
+
+  template<typename _Tp>
+    struct __is_nt_move_assignable_impl<_Tp, false>
+    : public is_nothrow_assignable<_Tp&, _Tp&&>
+    { };
+
+  /// is_nothrow_move_assignable
+  template<typename _Tp>
+    struct is_nothrow_move_assignable
+    : public __is_nt_move_assignable_impl<_Tp>
     { };
 
   /// has_trivial_default_constructor
@@ -899,24 +1116,6 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
   template<typename _Tp>
     struct has_trivial_destructor
     : public integral_constant<bool, __has_trivial_destructor(_Tp)>
-    { };
-
-  /// has_nothrow_default_constructor
-  template<typename _Tp>
-    struct has_nothrow_default_constructor
-    : public integral_constant<bool, __has_nothrow_constructor(_Tp)>
-    { };
-
-  /// has_nothrow_copy_constructor
-  template<typename _Tp>
-    struct has_nothrow_copy_constructor
-    : public integral_constant<bool, __has_nothrow_copy(_Tp)>
-    { };
-
-  /// has_nothrow_copy_assign
-  template<typename _Tp>
-    struct has_nothrow_copy_assign
-    : public integral_constant<bool, __has_nothrow_assign(_Tp)>
     { };
 
   /// has_virtual_destructor
@@ -987,7 +1186,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
            bool = __or_<is_void<_From>, is_function<_To>,
                         is_array<_To>>::value>
     struct __is_convertible_helper
-    { static const bool __value = is_void<_To>::value; };
+    { static constexpr bool value = is_void<_To>::value; };
 
   template<typename _From, typename _To>
     class __is_convertible_helper<_From, _To, false>
@@ -1004,14 +1203,14 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
         static __two __test(...);
 
     public:
-      static const bool __value = sizeof(__test<_From, _To>(0)) == 1;
+      static constexpr bool value = sizeof(__test<_From, _To>(0)) == 1;
     };
 
   /// is_convertible
   template<typename _From, typename _To>
     struct is_convertible
     : public integral_constant<bool,
-			       __is_convertible_helper<_From, _To>::__value>
+			       __is_convertible_helper<_From, _To>::value>
     { };
 
   /// is_explicitly_convertible
@@ -1494,18 +1693,11 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
         common_type<typename common_type<_Tp, _Up>::type, _Vp...>::type type;
     };
 
-  /// underlying_type (still unimplemented)
-
-  /// result_of
-  template<typename _Signature>
-    class result_of;
-
-  template<typename _Functor, typename... _ArgTypes>
-    struct result_of<_Functor(_ArgTypes...)>
+  /// underlying_type
+  template<typename _Tp>
+    struct underlying_type
     {
-      typedef
-        decltype( std::declval<_Functor>()(std::declval<_ArgTypes>()...) )
-        type;
+      typedef __underlying_type(_Tp) type;
     };
 
   /// declval
@@ -1524,6 +1716,98 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
 		    "declval() must not be used!");
       return __declval_protector<_Tp>::__delegate();
     }
+
+  /// result_of
+  template<typename _Signature>
+    class result_of;
+
+  template<typename _MemPtr, typename _Arg>
+    struct _Result_of_memobj;
+
+  template<typename _Res, typename _Class, typename _Arg>
+    struct _Result_of_memobj<_Res _Class::*, _Arg>
+    {
+    private:
+      typedef _Res _Class::* _Func;
+
+      template<typename _Tp>
+	static _Tp _S_get(const _Class&);
+      template<typename _Tp>
+	static decltype(*std::declval<_Tp>()) _S_get(...);
+        
+    public:
+      typedef
+        decltype(_S_get<_Arg>(std::declval<_Arg>()).*std::declval<_Func>())
+        __type;
+    };
+
+  template<typename _MemPtr, typename _Arg, typename... _ArgTypes>
+    struct _Result_of_memfun;
+
+  template<typename _Res, typename _Class, typename _Arg, typename... _Args>
+    struct _Result_of_memfun<_Res _Class::*, _Arg, _Args...>
+    {
+    private:
+      typedef _Res _Class::* _Func;
+
+      template<typename _Tp>
+	static _Tp _S_get(const _Class&);
+      template<typename _Tp>
+	static decltype(*std::declval<_Tp>()) _S_get(...);
+        
+    public:
+      typedef
+        decltype((_S_get<_Arg>(std::declval<_Arg>()).*std::declval<_Func>())
+            (std::declval<_Args>()...) )
+        __type;
+    };
+
+  template<bool, bool, typename _Functor, typename... _ArgTypes>
+    struct _Result_of_impl;
+
+  template<typename _Functor, typename... _ArgTypes>
+    struct _Result_of_impl<false, false, _Functor, _ArgTypes...>
+    {
+      typedef
+        decltype( std::declval<_Functor>()(std::declval<_ArgTypes>()...) )
+        __type;
+    };
+
+  template<typename _MemPtr, typename _Arg>
+    struct _Result_of_impl<true, false, _MemPtr, _Arg>
+    : _Result_of_memobj<typename remove_reference<_MemPtr>::type, _Arg>
+    {
+      typedef typename _Result_of_memobj<
+	typename remove_reference<_MemPtr>::type, _Arg>::__type
+	__type;
+    };
+
+  template<typename _MemPtr, typename _Arg, typename... _ArgTypes>
+    struct _Result_of_impl<false, true, _MemPtr, _Arg, _ArgTypes...>
+    : _Result_of_memfun<typename remove_reference<_MemPtr>::type, _Arg,
+                        _ArgTypes...>
+    {
+      typedef typename _Result_of_memfun<
+	typename remove_reference<_MemPtr>::type, _Arg, _ArgTypes...>::__type
+	__type;
+    };
+
+  template<typename _Functor, typename... _ArgTypes>
+    struct result_of<_Functor(_ArgTypes...)>
+    : _Result_of_impl<is_member_object_pointer<
+                        typename remove_reference<_Functor>::type >::value,
+                      is_member_function_pointer<
+			typename remove_reference<_Functor>::type >::value,
+		      _Functor, _ArgTypes...>
+    {
+      typedef typename _Result_of_impl<
+	is_member_object_pointer<
+	  typename remove_reference<_Functor>::type >::value,
+        is_member_function_pointer<
+	  typename remove_reference<_Functor>::type >::value,
+       	_Functor, _ArgTypes...>::__type
+	type;
+    };
 
   /**
    *  Use SFINAE to determine if the type _Tp has a publicly-accessible
@@ -1545,7 +1829,7 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
         static __two __test(...);                                \
                                                                  \
     public:                                                      \
-      static const bool value = sizeof(__test<_Tp>(0)) == 1;     \
+      static constexpr bool value = sizeof(__test<_Tp>(0)) == 1; \
     };                                                           \
                                                                  \
   template<typename _Tp>                                         \

@@ -52,10 +52,9 @@
 # define _GLIBCXX_NORETURN __attribute__ ((__noreturn__))
 #endif
 
+// See below for C++
 #ifndef _GLIBCXX_NOTHROW
-# ifdef __cplusplus
-#  define _GLIBCXX_NOTHROW throw()
-# else
+# ifndef __cplusplus
 #  define _GLIBCXX_NOTHROW __attribute__((__nothrow__))
 # endif
 #endif
@@ -97,6 +96,21 @@
 #  define _GLIBCXX_CONSTEXPR
 #  define _GLIBCXX_USE_CONSTEXPR const
 # endif
+#endif
+
+// Macro for noexcept, to support in mixed 03/0x mode.
+#ifndef _GLIBCXX_NOEXCEPT
+# ifdef __GXX_EXPERIMENTAL_CXX0X__
+#  define _GLIBCXX_NOEXCEPT noexcept
+#  define _GLIBCXX_USE_NOEXCEPT noexcept
+# else
+#  define _GLIBCXX_NOEXCEPT
+#  define _GLIBCXX_USE_NOEXCEPT throw()
+# endif
+#endif
+
+#ifndef _GLIBCXX_NOTHROW
+# define _GLIBCXX_NOTHROW _GLIBCXX_USE_NOEXCEPT
 #endif
 
 // Macro for extern template, ie controling template linkage via use

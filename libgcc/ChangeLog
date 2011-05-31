@@ -1,3 +1,41 @@
+2011-05-27  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR bootstrap/49173
+	* config/t-slibgcc-darwin (SHLIB_MAPFILES): Look for
+	libgcc-std.ver in the build directory.
+	* config/s390/t-linux (SHLIB_MAPFILES): Likewise.
+	* config/sh/t-linux (SHLIB_MAPFILES): Likewise.
+
+2011-05-25  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* libgcc-std.ver.in: New file.
+	* Makefile.in (LIBGCC_VER_GNU_PREFIX, LIBGCC_VER_SYMBOLS_PREFIX): New
+	variables.
+	(libgcc-std.ver): New rule.
+	* config/t-gnu-prefix: New file.
+
+2011-05-23  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/s390/t-tpf (LIB2ADDEH): Remove $(gcc_srcdir)/gthr-gnat.c.
+
+2011-05-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/darwin-lib.h: New file.
+
+2011-05-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/arm/symbian-lib.h: New.
+
+2011-05-04  Chris Demetriou  <cgd@google.com>
+
+	* config/i386/morestack.S (__i686.get_pc_thunk.bx): Rename to...
+	(__x86.get_pc_thunk.bx): ...this.
+	(__morestack): Adjust for rename, remove undef of __i686.
+
+2011-05-03  Chris Demetriou  <cgd@google.com>
+
+	* config/i386/morestack.S (__i686.get_pc_thunk.bx): New.
+
 2011-03-22  Joseph Myers  <joseph@codesourcery.com>
 
 	* config.host (alpha*-*-gnu*, arc-*-elf*, arm*-*-netbsd*,

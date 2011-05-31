@@ -1001,8 +1001,7 @@ make_cpp_file (cpp_reader *pfile, cpp_dir *dir, const char *fname)
 static void
 destroy_cpp_file (_cpp_file *file)
 {
-  if (file->buffer_start)
-    free ((void *) file->buffer_start);
+  free ((void *) file->buffer_start);
   free ((void *) file->name);
   free (file);
 }
