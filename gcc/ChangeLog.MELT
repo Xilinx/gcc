@@ -1,5 +1,9 @@
 
 2011-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl: Update copyright year.
+	* melt-build.mk: Regenerate.
+
+2011-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

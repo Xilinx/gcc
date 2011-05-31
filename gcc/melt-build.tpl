@@ -6,7 +6,7 @@ mk
 # DON'T EDIT melt-build.mk but only edit: melt-build.tpl or melt-build.def
 #
 # Makefile fragment for MELT modules and MELT translator bootstrap.
-#   Copyright (C) 2010  Free Software Foundation
+#   Copyright (C) 2010,2011  Free Software Foundation
 #
 # This file is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
