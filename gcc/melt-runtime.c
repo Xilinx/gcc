@@ -3308,7 +3308,8 @@ melt_list_length (melt_ptr_t list_p)
     return -1;
   for (pair = ((struct meltlist_st *) list_p)->first;
        melt_magic_discr ((melt_ptr_t) pair) ==
-       MELTOBMAG_PAIR; pair = (struct meltpair_st *) (pair->tl))
+	 MELTOBMAG_PAIR; 
+       pair = (struct meltpair_st *) (pair->tl))
     ln++;
   return ln;
 }
@@ -11075,7 +11076,7 @@ void meltgc_output_file (FILE* fil, melt_ptr_t val_p)
   case MELTOBMAG_LIST:
     {
       for (pairv = ((struct meltlist_st*)(valv))->first;
-	   pairv && melt_magic_discr((melt_ptr_t)pairv);
+	   pairv && melt_magic_discr((melt_ptr_t)pairv) == MELTOBMAG_PAIR;
 	   pairv = ((struct meltpair_st*)(pairv))->tl)
 	{
 	  compv = ((struct meltpair_st*)(pairv))->hd;

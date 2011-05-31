@@ -1,4 +1,8 @@
 
+2011-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_list_length): Reindent.
+	(meltgc_output_file): Loop on list test better the pairs.
+
 2011-05-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-opengpu.melt: Added comments with Konrad's
 	insights.
