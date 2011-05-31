@@ -13031,7 +13031,7 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
     }
   else if (code == REFERENCE_TYPE)
     {
-      if (TYPE_REF_IS_RVALUE (type) && use_debug_types)
+      if (TYPE_REF_IS_RVALUE (type) && dwarf_version >= 4)
 	mod_type_die = new_die (DW_TAG_rvalue_reference_type, comp_unit_die (),
 				type);
       else
@@ -19636,6 +19636,12 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 
       subr_die = new_die (DW_TAG_subprogram, context_die, decl);
       add_abstract_origin_attribute (subr_die, origin);
+      /*  This is where the actual code for a cloned function is.
+	  Let's emit linkage name attribute for it.  This helps
+	  debuggers to e.g, set breakpoints into
+	  constructors/destructors when the user asks "break
+	  K::K".  */
+      add_linkage_name (subr_die, decl);
     }
   else if (old_die)
     {
@@ -20686,7 +20692,7 @@ gen_reference_type_die (tree type, dw_die_ref context_die)
 {
   dw_die_ref ref_die, scope_die = scope_die_for (type, context_die);
 
-  if (TYPE_REF_IS_RVALUE (type) && use_debug_types)
+  if (TYPE_REF_IS_RVALUE (type) && dwarf_version >= 4)
     ref_die = new_die (DW_TAG_rvalue_reference_type, scope_die, type);
   else
     ref_die = new_die (DW_TAG_reference_type, scope_die, type);

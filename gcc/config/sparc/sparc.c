@@ -392,8 +392,10 @@ static int save_or_restore_regs (int, int, rtx, int, int);
 static void emit_save_or_restore_regs (int);
 static void sparc_asm_function_prologue (FILE *, HOST_WIDE_INT);
 static void sparc_asm_function_epilogue (FILE *, HOST_WIDE_INT);
+#ifdef TARGET_SOLARIS
 static void sparc_solaris_elf_asm_named_section (const char *, unsigned int,
 						 tree) ATTRIBUTE_UNUSED;
+#endif
 static int sparc_adjust_cost (rtx, rtx, rtx, int);
 static int sparc_issue_rate (void);
 static void sparc_sched_init (FILE *, int, int);
@@ -933,6 +935,12 @@ sparc_option_override (void)
 			  ? 64 : 32),
 			 global_options.x_param_values,
 			 global_options_set.x_param_values);
+
+  /* Disable save slot sharing for call-clobbered registers by default.
+     The IRA sharing algorithm works on single registers only and this
+     pessimizes for double floating-point registers.  */
+  if (!global_options_set.x_flag_ira_share_save_slots)
+    flag_ira_share_save_slots = 0;
 }
 
 /* Miscellaneous utilities.  */
@@ -4516,7 +4524,7 @@ sparc_expand_prologue (void)
   /* Advertise that the data calculated just above are now valid.  */
   sparc_prologue_data_valid_p = true;
 
-  if (flag_stack_usage)
+  if (flag_stack_usage_info)
     current_function_static_stack_size = actual_fsize;
 
   if (flag_stack_check == STATIC_BUILTIN_STACK_CHECK && actual_fsize)

@@ -472,6 +472,7 @@ enum gfc_isym_id
   GFC_ISYM_RANDOM_NUMBER,
   GFC_ISYM_RANDOM_SEED,
   GFC_ISYM_RANGE,
+  GFC_ISYM_RANK,
   GFC_ISYM_REAL,
   GFC_ISYM_RENAME,
   GFC_ISYM_REPEAT,
@@ -578,10 +579,10 @@ gfc_fcoarray;
 
 typedef enum
 {
-  GFC_REVERSE_NOT_SET,
+  GFC_ENABLE_REVERSE,
+  GFC_FORWARD_SET,
   GFC_REVERSE_SET,
-  GFC_CAN_REVERSE,
-  GFC_CANNOT_REVERSE
+  GFC_INHIBIT_REVERSE
 }
 gfc_reverse;
 
@@ -2815,6 +2816,7 @@ gfc_symtree* gfc_find_sym_in_symtree (gfc_symbol*);
 bool gfc_arglist_matches_symbol (gfc_actual_arglist**, gfc_symbol*);
 bool gfc_check_operator_interface (gfc_symbol*, gfc_intrinsic_op, locus);
 int gfc_has_vector_subscript (gfc_expr*);
+gfc_intrinsic_op gfc_equivalent_op (gfc_intrinsic_op);
 
 /* io.c */
 extern gfc_st_label format_asterisk;
