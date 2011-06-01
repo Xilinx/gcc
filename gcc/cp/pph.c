@@ -326,8 +326,8 @@ pth_write_number (pph_stream *f, tree val)
 
   pth_get_index_from_type (TREE_TYPE (val), &type_idx, &type_kind);
 
-  pph_output_uint (f, type_idx);
-  pph_output_uint (f, type_kind);
+  pph_out_uint (f, type_idx);
+  pph_out_uint (f, type_kind);
 
   if (type_kind == CPP_N_INTEGER)
     {
@@ -335,17 +335,17 @@ pth_write_number (pph_stream *f, tree val)
 
       v[0] = TREE_INT_CST_LOW (val);
       v[1] = TREE_INT_CST_HIGH (val);
-      pph_output_bytes (f, v, 2 * sizeof (HOST_WIDE_INT));
+      pph_out_bytes (f, v, 2 * sizeof (HOST_WIDE_INT));
     }
   else if (type_kind == CPP_N_FLOATING)
     {
       REAL_VALUE_TYPE r = TREE_REAL_CST (val);
-      pph_output_bytes (f, &r, sizeof (REAL_VALUE_TYPE));
+      pph_out_bytes (f, &r, sizeof (REAL_VALUE_TYPE));
     }
   else if (type_kind == CPP_N_FRACT)
     {
       FIXED_VALUE_TYPE fv = TREE_FIXED_CST (val);
-      pph_output_bytes (f, &fv, sizeof (FIXED_VALUE_TYPE));
+      pph_out_bytes (f, &fv, sizeof (FIXED_VALUE_TYPE));
     }
   else if (type_kind == CPP_N_IMAGINARY)
     {
@@ -377,7 +377,7 @@ pth_save_token_value (pph_stream *f, cp_token *token)
 	/* FIXME pph.  Hash the strings and emit a string table.  */
 	str = IDENTIFIER_POINTER (val);
 	len = IDENTIFIER_LENGTH (val);
-	pph_output_string_with_length (f, str, len);
+	pph_out_string_with_length (f, str, len);
 	break;
 
       case CPP_KEYWORD:
@@ -400,7 +400,7 @@ pth_save_token_value (pph_stream *f, cp_token *token)
 	/* FIXME pph.  Need to represent the type.  */
 	str = TREE_STRING_POINTER (val);
 	len = TREE_STRING_LENGTH (val);
-	pph_output_string_with_length (f, str, len);
+	pph_out_string_with_length (f, str, len);
 	break;
 
       case CPP_PRAGMA:
@@ -409,7 +409,7 @@ pth_save_token_value (pph_stream *f, cp_token *token)
 
       default:
 	gcc_assert (token->u.value == NULL);
-	pph_output_bytes (f, &token->u.value, sizeof (token->u.value));
+	pph_out_bytes (f, &token->u.value, sizeof (token->u.value));
     }
 }
 
@@ -424,7 +424,7 @@ pth_save_token (cp_token *token, pph_stream *f)
 
      FIXME pph - Need to also emit the location_t table so we can
      reconstruct it when reading the PTH state.  */
-  pph_output_bytes (f, token, sizeof (cp_token) - sizeof (void *));
+  pph_out_bytes (f, token, sizeof (cp_token) - sizeof (void *));
   pth_save_token_value (f, token);
 }
 
@@ -439,14 +439,14 @@ pth_save_token_cache (cp_token_cache *cache, pph_stream *f)
 
   if (cache == NULL)
     {
-      pph_output_uint (f, 0);
+      pph_out_uint (f, 0);
       return;
     }
 
   for (num = 0, tok = cache->first; tok != cache->last; tok++)
     num++;
 
-  pph_output_uint (f, num);
+  pph_out_uint (f, num);
   for (i = 0, tok = cache->first; i < num; tok++, i++)
     pth_save_token (tok, f);
 }
@@ -465,8 +465,8 @@ pth_write_header (pth_image *image, pph_stream *stream)
       image->digest_computed_p = true;
     }
 
-  pph_output_bytes (stream, id, strlen (id));
-  pph_output_bytes (stream, image->digest, DIGEST_LEN);
+  pph_out_bytes (stream, id, strlen (id));
+  pph_out_bytes (stream, image->digest, DIGEST_LEN);
 }
 
 
@@ -772,8 +772,8 @@ pth_save_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
   unsigned int num_entries, active_entries, id;
 
   num_entries = identifiers->num_entries;
-  pph_output_uint (stream, identifiers->max_ident_len);
-  pph_output_uint (stream, identifiers->max_value_len);
+  pph_out_uint (stream, identifiers->max_ident_len);
+  pph_out_uint (stream, identifiers->max_value_len);
 
   active_entries = 0;
   for ( id = 0; id < num_entries; ++id )
@@ -784,7 +784,7 @@ pth_save_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
       ++active_entries;
     }
 
-  pph_output_uint (stream, active_entries);
+  pph_out_uint (stream, active_entries);
 
   for ( id = 0; id < num_entries; ++id )
     {
@@ -796,19 +796,19 @@ pth_save_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
       /* FIXME pph: We are wasting space; ident_len, used_by_directive
       and expanded_to_text together could fit into a single uint. */
 
-      pph_output_uint (stream, entry->used_by_directive);
-      pph_output_uint (stream, entry->expanded_to_text);
+      pph_out_uint (stream, entry->used_by_directive);
+      pph_out_uint (stream, entry->expanded_to_text);
 
       gcc_assert (entry->ident_len <= identifiers->max_ident_len);
-      pph_output_string_with_length (stream, entry->ident_str,
+      pph_out_string_with_length (stream, entry->ident_str,
 				     entry->ident_len);
 
       gcc_assert (entry->before_len <= identifiers->max_value_len);
-      pph_output_string_with_length (stream, entry->before_str,
+      pph_out_string_with_length (stream, entry->before_str,
 				     entry->before_len);
 
       gcc_assert (entry->after_len <= identifiers->max_value_len);
-      pph_output_string_with_length (stream, entry->after_str,
+      pph_out_string_with_length (stream, entry->after_str,
 				     entry->after_len);
     }
 }
@@ -828,7 +828,7 @@ pth_save_hunk (cp_token_hunk *hunk, pph_stream *stream)
   pth_save_identifiers (&hunk->identifiers, stream);
 
   /* Write the number of tokens in HUNK.  */
-  pph_output_uint (stream, VEC_length (cp_token, hunk->buffer));
+  pph_out_uint (stream, VEC_length (cp_token, hunk->buffer));
 
   /* Write the tokens.  */
   for (j = 0; VEC_iterate (cp_token, hunk->buffer, j, token); j++)
@@ -841,11 +841,11 @@ pth_save_hunk (cp_token_hunk *hunk, pph_stream *stream)
 static void
 pth_save_include (pth_include *include, pph_stream *stream)
 {
-  pph_output_string (stream, include->image->fname);
-  pph_output_uint (stream, (unsigned int) include->itype);
-  pph_output_uint (stream, include->angle_brackets);
-  pph_output_string (stream, include->iname);
-  pph_output_string (stream, include->dname);
+  pph_out_string (stream, include->image->fname);
+  pph_out_uint (stream, (unsigned int) include->itype);
+  pph_out_uint (stream, include->angle_brackets);
+  pph_out_string (stream, include->iname);
+  pph_out_string (stream, include->dname);
 }
 
 
@@ -870,19 +870,19 @@ pth_save_image (pth_image *image)
 
   /* Write the include-hunk (IH) sequencing vector.  */
   num = VEC_length (char, image->ih_sequence);
-  pph_output_uint (stream, num);
+  pph_out_uint (stream, num);
   if (num > 0)
-    pph_output_bytes (stream, VEC_address (char, image->ih_sequence), num);
+    pph_out_bytes (stream, VEC_address (char, image->ih_sequence), num);
   
   /* Write the number of #include commands.  */
-  pph_output_uint (stream, VEC_length (pth_include_ptr, image->includes));
+  pph_out_uint (stream, VEC_length (pth_include_ptr, image->includes));
 
   /* Write all the #include commands used by IMAGE.  */
   for (i = 0; VEC_iterate (pth_include_ptr, image->includes, i, include); i++)
     pth_save_include (include, stream);
 
   /* Write the number of token caches in the cache.  */
-  pph_output_uint (stream, VEC_length (cp_token_hunk_ptr, image->token_hunks));
+  pph_out_uint (stream, VEC_length (cp_token_hunk_ptr, image->token_hunks));
 
   /* Write all the token hunks in image.  */
   for (i = 0; VEC_iterate (cp_token_hunk_ptr, image->token_hunks, i, hunk); i++)
@@ -931,27 +931,27 @@ pth_load_number (pph_stream *f)
   unsigned type_idx, type_kind;
   tree type, val;
 
-  type_idx = pph_input_uint (f);
-  type_kind = pph_input_uint (f);
+  type_idx = pph_in_uint (f);
+  type_kind = pph_in_uint (f);
 
   type = pth_get_type_from_index (type_idx, type_kind);
 
   if (type_kind == CPP_N_INTEGER)
     {
       HOST_WIDE_INT v[2];
-      pph_input_bytes (f, v, 2 * sizeof (HOST_WIDE_INT));
+      pph_in_bytes (f, v, 2 * sizeof (HOST_WIDE_INT));
       val = build_int_cst_wide (type, v[0], v[1]);
     }
   else if (type_kind == CPP_N_FLOATING)
     {
       REAL_VALUE_TYPE r;
-      pph_input_bytes (f, &r, sizeof (REAL_VALUE_TYPE));
+      pph_in_bytes (f, &r, sizeof (REAL_VALUE_TYPE));
       val = build_real (type, r);
     }
   else if (type_kind == CPP_N_FRACT)
     {
       FIXED_VALUE_TYPE fv;
-      pph_input_bytes (f, &fv, sizeof (FIXED_VALUE_TYPE));
+      pph_in_bytes (f, &fv, sizeof (FIXED_VALUE_TYPE));
       val = build_fixed (type, fv);
     }
   else if (type_kind == CPP_N_IMAGINARY)
@@ -981,7 +981,7 @@ pth_load_token_value (cp_token *token, pph_stream *f)
 	break;
 
       case CPP_NAME:
-	str = pph_input_string (f);
+	str = pph_in_string (f);
 	token->u.value = get_identifier (str);
 	break;
 
@@ -1001,7 +1001,7 @@ pth_load_token_value (cp_token *token, pph_stream *f)
       case CPP_WSTRING:
       case CPP_STRING16:
       case CPP_STRING32:
-	str = pph_input_string (f);
+	str = pph_in_string (f);
 	token->u.value = build_string (strlen (str), str);
 	break;
 
@@ -1010,7 +1010,7 @@ pth_load_token_value (cp_token *token, pph_stream *f)
 	break;
 
       default:
-	pph_input_bytes (f, &token->u.value, sizeof (token->u.value));
+	pph_in_bytes (f, &token->u.value, sizeof (token->u.value));
 	gcc_assert (token->u.value == NULL);
     }
 }
@@ -1027,7 +1027,7 @@ pth_load_token (pph_stream *stream)
      dynamic size as it contains swizzled pointers.
      FIXME pph, restructure to allow bulk reads of the whole
      section.  */
-  pph_input_bytes (stream, token, sizeof (cp_token) - sizeof (void *));
+  pph_in_bytes (stream, token, sizeof (cp_token) - sizeof (void *));
 
   /* FIXME pph.  Use an arbitrary (but valid) location to avoid
      confusing the rest of the compiler for now.  */
@@ -1048,7 +1048,7 @@ pth_load_token_cache (pph_stream *stream)
   unsigned i, num;
   cp_token *first, *last;
 
-  num = pph_input_uint (stream);
+  num = pph_in_uint (stream);
   for (last = first = NULL, i = 0; i < num; i++)
     {
       last = pth_load_token (stream);
@@ -1069,11 +1069,11 @@ pth_load_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
   unsigned int max_ident_len, max_value_len, num_entries;
   unsigned int ident_len, before_len, after_len;
 
-  max_ident_len = pph_input_uint (stream);
+  max_ident_len = pph_in_uint (stream);
   identifiers->max_ident_len = max_ident_len;
-  max_value_len = pph_input_uint (stream);
+  max_value_len = pph_in_uint (stream);
   identifiers->max_value_len = max_value_len;
-  num_entries = pph_input_uint (stream);
+  num_entries = pph_in_uint (stream);
   identifiers->num_entries = num_entries;
   identifiers->entries = XCNEWVEC (cpp_ident_use, num_entries);
   identifiers->strings = XCNEW (struct obstack);
@@ -1089,16 +1089,16 @@ pth_load_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
   for (j = 0; j < num_entries; ++j)
     {
       const char *s;
-      identifiers->entries[j].used_by_directive = pph_input_uint (stream);
-      identifiers->entries[j].expanded_to_text = pph_input_uint (stream);
-      s = pph_input_string (stream);
+      identifiers->entries[j].used_by_directive = pph_in_uint (stream);
+      identifiers->entries[j].expanded_to_text = pph_in_uint (stream);
+      s = pph_in_string (stream);
       gcc_assert (s);
       ident_len = strlen (s);
       identifiers->entries[j].ident_len = ident_len;
       identifiers->entries[j].ident_str =
         (const char *) obstack_copy0 (identifiers->strings, s, ident_len);
 
-      s = pph_input_string (stream);
+      s = pph_in_string (stream);
       if (s)
 	{
 	  before_len = strlen (s);
@@ -1114,7 +1114,7 @@ pth_load_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
 	  identifiers->entries[j].before_str = NULL;
 	}
 
-      s = pph_input_string (stream);
+      s = pph_in_string (stream);
       if (s)
 	{
 	  after_len = strlen (s);
@@ -1147,7 +1147,7 @@ pth_load_hunk (pth_image *image, pph_stream *stream)
   pth_load_identifiers (&hunk->identifiers, stream);
 
   /* Read the number of tokens in HUNK. */
-  num_tokens = pph_input_uint (stream);
+  num_tokens = pph_in_uint (stream);
 
   /* Read the tokens in the HUNK. */
   hunk->buffer = VEC_alloc (cp_token, gc, num_tokens);
@@ -1191,17 +1191,17 @@ pth_load_include (pth_state *state, pth_image *image, cpp_reader *reader,
 
   include = pth_create_include (IT_INCLUDE, false, NULL);
 
-  s = pph_input_string (stream);
+  s = pph_in_string (stream);
   include->image = pth_image_lookup (state, s, reader);
 
-  tmp = pph_input_uint (stream);
+  tmp = pph_in_uint (stream);
   include->itype = (enum include_type) tmp;
 
-  tmp = pph_input_uint (stream);
+  tmp = pph_in_uint (stream);
   include->angle_brackets = (tmp != 0);
 
-  include->iname = pph_input_string (stream);
-  include->dname = pph_input_string (stream);
+  include->iname = pph_in_string (stream);
+  include->dname = pph_in_string (stream);
 
   VEC_safe_push (pth_include_ptr, gc, image->includes, include);
 }
@@ -1223,21 +1223,21 @@ pth_load_image (pth_state *state, pth_image *image, cpp_reader *reader)
   /* Skip over the header, as we assume that it has already been
      validated by pth_have_valid_image_for.  */
   buf = XCNEWVEC (char, pth_header_len ());
-  pph_input_bytes (stream, buf, pth_header_len ());
+  pph_in_bytes (stream, buf, pth_header_len ());
   free (buf);
 
   /* Read the include-hunk (IH) sequencing vector.  */
-  num = pph_input_uint (stream);
+  num = pph_in_uint (stream);
   if (num > 0)
     {
       image->ih_sequence = VEC_alloc (char, gc, num);
       VEC_safe_grow (char, gc, image->ih_sequence, num);
-      pph_input_bytes (stream, VEC_address (char, image->ih_sequence), num);
+      pph_in_bytes (stream, VEC_address (char, image->ih_sequence), num);
     }
 
   /* Read the number path names of all the files #included by
      IMAGE->FNAME.  */
-  num = pph_input_uint (stream);
+  num = pph_in_uint (stream);
   image->includes = VEC_alloc (pth_include_ptr, gc, num);
 
   /* Now read all the path names #included by IMAGE->FNAME.  */
@@ -1245,7 +1245,7 @@ pth_load_image (pth_state *state, pth_image *image, cpp_reader *reader)
     pth_load_include (state, image, reader, stream);
 
   /* Read how many token hunks are contained in this image.  */
-  num = pph_input_uint (stream);
+  num = pph_in_uint (stream);
   image->token_hunks = VEC_alloc (cp_token_hunk_ptr, gc, num);
 
   PTH_STATS_INCR (hunks, num);
@@ -1296,13 +1296,13 @@ pth_have_valid_image_for (const char *fname, pth_image *image)
 
   good_id = pth_id_str ();
   id = XCNEWVEC (char, strlen (good_id) + 1);
-  pph_input_bytes (f, id, strlen (good_id));
+  pph_in_bytes (f, id, strlen (good_id));
   if (strcmp (id, good_id) != 0)
     goto invalid_img;
 
   /* Now check if the MD5 digest stored in the image file matches the
      digest for FNAME.  */
-  pph_input_bytes (f, saved_digest, DIGEST_LEN);
+  pph_in_bytes (f, saved_digest, DIGEST_LEN);
   pth_get_md5_digest (fname, image->digest);
   image->digest_computed_p = true;
   if (memcmp (image->digest, saved_digest, DIGEST_LEN) != 0)
@@ -1923,9 +1923,9 @@ pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
   pth_save_identifiers (idents_used, stream);
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
-  pph_output_tree (stream, global_namespace, false);
-  pph_output_tree (stream, keyed_classes, false);
-  pph_stream_write_tree_vec (stream, unemitted_tinfo_decls, false);
+  pph_out_tree (stream, global_namespace, false);
+  pph_out_tree (stream, keyed_classes, false);
+  pph_out_tree_vec (stream, unemitted_tinfo_decls, false);
 }
 
 
@@ -2046,14 +2046,14 @@ pph_read_file_contents (pph_stream *stream)
 
   /* Read global_namespace from STREAM and add all the names defined
      there to the current global_namespace.  */
-  file_ns = pph_input_tree (stream);
+  file_ns = pph_in_tree (stream);
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, file_ns);
   pph_add_names_to_namespace (global_namespace, file_ns);
-  keyed_classes = pph_input_tree (stream);
-  unemitted_tinfo_decls = pph_stream_read_tree_vec (stream);
+  keyed_classes = pph_in_tree (stream);
+  unemitted_tinfo_decls = pph_in_tree_vec (stream);
   /* FIXME pph: This call replaces the tinfo, we should merge instead.
-     See pph_input_tree_VEC.  */
+     See pph_in_tree_VEC.  */
 }
 
 

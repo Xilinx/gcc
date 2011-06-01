@@ -1,3 +1,208 @@
+2011-05-31  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (pph_unpack_value_fields): Rename
+	from pph_stream_unpack_value_fields.
+	Update all users.
+	(pph_init_read): Rename from pph_stream_init_read.
+	Update all users.
+	(pph_in_shared_data): Rename from pph_stream_read_shared_data.
+	Update all users.
+	(pph_register_shared_data): Rename from pph_stream_register_shared_data.
+	Update all users.
+	(pph_in_ld_base): Rename from pph_stream_read_ld_base.
+	Update all users.
+	(pph_in_ld_min): Rename from pph_stream_read_ld_min.
+	Update all users.
+	(pph_in_tree_vec): Rename from pph_stream_read_tree_vec.
+	Update all users.
+	(pph_in_qual_use_vec): Rename from pph_stream_read_qual_use_vec.
+	Update all users.
+	(pph_in_cxx_binding_1):  Rename from pph_stream_read_cxx_binding_1.
+	Update all users.
+	(pph_in_cxx_binding): Rename from pph_stream_read_cxx_binding.
+	Update all users.
+	(pph_in_class_binding): Rename from pph_stream_read_class_binding.
+	Update all users.
+	(pph_in_label_binding): Rename from pph_stream_read_label_binding.
+	Update all users.
+	(pph_in_binding_level): Rename from pph_stream_read_binding_level.
+	Update all users.
+	(pph_in_c_language_function): Rename from
+	pph_stream_read_c_language_function.
+	Update all users.
+	(pph_in_language_function): Rename from
+	pph_stream_read_language_function.
+	Update all users.
+	(pph_in_ld_fn): Rename from pph_stream_read_ld_fn.
+	Update all users.
+	(pph_in_ld_ns): Rename from pph_stream_read_ld_ns.
+	Update all users.
+	(pph_in_ld_parm): Remame from pph_stream_read_ld_parm.
+	Update all users.
+	(pph_in_lang_specific): Rename from pph_stream_read_lang_specific.
+	Update all users.
+	(pph_alloc_tree): Rename from pph_stream_alloc_tree.
+	Update all users.
+	(pph_in_lang_type_header): Rename from pph_stream_read_lang_type_header.
+	Update all users.
+	(pph_in_tree_pair_vec): Rename from pph_stream_read_tree_pair_vec.
+	Update all users.
+	(pph_in_sorted_fields_type): Rename from
+	pph_stream_read_sorted_fields_type.
+	Update all users.
+	(pph_in_lang_type_class): Rename from pph_stream_read_lang_type_class.
+	Update all users.
+	(pph_in_lang_type_ptrmem): Rename from pph_stream_read_lang_type_ptrmem.
+	Update all users.
+	(pph_in_lang_type): Rename from pph_stream_read_lang_type.
+	Update all users.
+	(pph_read_tree): Rename from pph_stream_read_tree.
+	Update all users.
+	* pph-streamer.c (pph_hooks_init): Rename from pph_stream_hooks_init.
+	Update all users.
+	(pph_trace): Rename from pph_stream_trace.
+	Update all users.
+	(pph_trace_tree): Rename from pph_stream_trace_tree.
+	Update all users.
+	(pph_trace_uint): Rename from pph_stream_trace_uint.
+	Update all users.
+	(pph_trace_bytes): Rename from pph_stream_trace_bytes.
+	Update all users.
+	(pph_trace_string): Rename from pph_stream_trace_string.
+	Update all users.
+	(pph_trace_string_with_length): Rename from
+	pph_stream_trace_string_with_length.
+	Update all users.
+	(pph_trace_chain): Rename from pph_stream_trace_chain.
+	Update all users.
+	(pph_trace_bitpack): Rename from pph_stream_trace_bitpack.
+	Update all users.
+	(pph_cache_insert_at): Rename from pph_stream_cache_insert_at.
+	Update all users.
+	(pph_cache_add): Rename from pph_stream_cache_add.
+	Update all users.
+	(pph_cache_get): Rename from pph_stream_cache_get.
+	Update all users.
+	* pph-streamer.h (pph_pickle_cache): Rename from
+	pph_stream_pickle_cache.
+	Update all users.
+	(pph_out_tree): Rename from pph_output_tree.
+	Update all users.
+	(pph_out_tree_array): Rename from pph_output_tree_array.
+	Update all users.
+	(pph_out_tree_or_ref_1): Rename from pph_output_tree_or_ref_1.
+	Update all users.
+	(pph_out_tree_or_ref): Rename from pph_output_tree_or_ref.
+	Update all users.
+	(pph_out_uint): Rename from pph_output_uint.
+	Update all users.
+	(pph_out_uchar): Rename from pph_output_uchar.
+	Update all users.
+	(pph_out_bytes): Rename from pph_output_bytes.
+	Update all users.
+	(pph_out_string): Rename from pph_output_string.
+	Update all users.
+	(pph_out_string_with_length): Rename from pph_output_string_with_length.
+	Update all users.
+	(pph_out_tree_VEC): Rename from pph_output_tree_VEC.
+	Update all users.
+	(pph_out_chain): Rename from pph_output_chain.
+	Update all users.
+	(pph_out_bitpack): Rename from pph_output_bitpack.
+	Update all users.
+	(pph_in_uint): Rename from pph_input_uint.
+	Update all users.
+	(pph_in_uchar): Rename from pph_input_uchar.
+	Update all users.
+	(pph_in_bytes): Rename from pph_input_bytes.
+	Update all users.
+	(pph_in_string): Rename from pph_input_string.
+	Update all users.
+	(pph_in_tree): Rename from pph_input_tree.
+	Update all users.
+	(pph_in_tree_array): Rename from pph_input_tree_array.
+	Update all users.
+	(pph_in_tree_VEC): Rename from pph_input_tree_VEC.
+	Update all users.
+	(pph_in_chain): Rename from pph_input_chain.
+	Update all users.
+	(pph_in_bitpack): Rename from pph_input_bitpack.
+	Update all users.
+	* pph-streamer-out.c (pph_pack_value_fields): Rename from
+	pph_stream_pack_value_fields.
+	Update all users.
+	(pph_init_write): Rename from pph_stream_init_write.
+	Update all users.
+	(pph_begin_section): Rename from pph_stream_begin_section.
+	Update all users.
+	(pph_out): Rename from pph_stream_write.
+	Update all users.
+	(pph_end_section): Rename from pph_stream_end_section.
+	Update all users.
+	(pph_out_header): Rename from pph_stream_write_head.
+	Update all users.
+	(pph_out_body): Rename from pph_stream_write_body.
+	Update all users.
+	(pph_flush_buffers): Rename from pph_stream_flush_buffers.
+	Update all users.
+	(pph_out_ld_base): Rename from pph_stream_write_ld_base.
+	Update all users.
+	(pph_out_ld_min): Rename from pph_stream_write_ld_min.
+	Update all users.
+	(pph_out_tree_vec): Rename from pph_stream_write_tree_vec.
+	Update all users.
+	(pph_out_qual_use_vec): Rename from pph_stream_write_qual_use_vec.
+	Update all users.
+	(pph_out_cxx_binding_1): Rename from pph_stream_write_cxx_binding_1.
+	Update all users.
+	(pph_out_cxx_binding): Rename from pph_stream_write_cxx_binding.
+	Update all users.
+	(pph_out_class_binding): Rename from pph_stream_write_class_binding.
+	Update all users.
+	(pph_out_label_binding): Rename from pph_stream_write_label_binding.
+	Update all users.
+	(pph_out_chain_filtered): Rename from pph_output_chain_filtered.
+	Update all users.
+	(pph_out_binding_level): Rename from pph_stream_write_binding_level.
+	Update all users.
+	(pph_out_c_language_function): Rename from
+	pph_stream_write_c_language_function.
+	Update all users.
+	(pph_out_language_function): Rename from
+	pph_stream_write_language_function.
+	Update all users.
+	(pph_out_ld_fn): Rename from pph_stream_write_ld_fn.
+	Update all users.
+	(pph_out_ld_ns): Rename from pph_stream_write_ld_ns.
+	Update all users.
+	(pph_out_ld_parm): Rename from pph_stream_write_ld_parm.
+	Update all users.
+	(pph_out_lang_specific): Rename from pph_stream_write_lang_specific.
+	Update all users.
+	(pph_out_lang_type_header): Rename from
+	pph_stream_write_lang_type_header.
+	Update all users.
+	(pph_out_tree_pair_vec): Rename from pph_stream_write_tree_pair_vec.
+	Update all users.
+	(pph_out_sorted_fields_type): Rename from
+	pph_stream_write_sorted_fields_type.
+	Update all users.
+	(pph_out_lang_type_class): Rename from pph_stream_write_lang_type_class.
+	Update all users.
+	(pph_out_lang_type_ptrmem): Rename from
+	pph_stream_write_lang_type_ptrmem.
+	Update all users.
+	(pph_out_lang_type): Rename from pph_stream_write_lang_type.
+	Update all users.
+	(pph_output_tree_header): Rename from pph_stream_output_tree_header.
+	Update all users.
+	(pph_write_tree): Rename from pph_stream_write_tree.
+	* name-lookup.c (pph_out_binding_table): Rename from
+	pph_stream_write_binding_table.
+	Update all users.
+	(pph_in_binding_table): Rename from pph_stream_read_binding_table.
+	Update all users.
+
 2011-05-30  Diego Novillo  <dnovillo@google.com>
 
 	* cp-objcp-common.c (cp_common_init_ts): Fix assertions for

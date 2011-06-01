@@ -84,19 +84,19 @@ pph_preload_common_nodes (struct lto_streamer_cache_d *cache)
 /* Initialize all the streamer hooks used for streaming ASTs.  */
 
 static void
-pph_stream_hooks_init (void)
+pph_hooks_init (void)
 {
   lto_streamer_hooks *h = streamer_hooks_init ();
   h->name = "C++ AST";
   h->preload_common_nodes = pph_preload_common_nodes;
   h->is_streamable = pph_is_streamable;
-  h->write_tree = pph_stream_write_tree;
-  h->read_tree = pph_stream_read_tree;
-  h->pack_value_fields = pph_stream_pack_value_fields;
+  h->write_tree = pph_write_tree;
+  h->read_tree = pph_read_tree;
+  h->pack_value_fields = pph_pack_value_fields;
   h->indexable_with_decls_p = pph_indexable_with_decls_p;
-  h->unpack_value_fields = pph_stream_unpack_value_fields;
-  h->alloc_tree = pph_stream_alloc_tree;
-  h->output_tree_header = pph_stream_output_tree_header;
+  h->unpack_value_fields = pph_unpack_value_fields;
+  h->alloc_tree = pph_alloc_tree;
+  h->output_tree_header = pph_output_tree_header;
   h->has_unique_integer_csts_p = true;
 }
 
@@ -114,15 +114,15 @@ pph_stream_open (const char *name, const char *mode)
   f = fopen (name, mode);
   if (f)
     {
-      pph_stream_hooks_init ();
+      pph_hooks_init ();
       stream = XCNEW (pph_stream);
       stream->file = f;
       stream->name = xstrdup (name);
       stream->write_p = (strchr (mode, 'w') != NULL);
       if (stream->write_p)
-	pph_stream_init_write (stream);
+	pph_init_write (stream);
       else
-	pph_stream_init_read (stream);
+	pph_init_read (stream);
       stream->cache.v = NULL;
       stream->cache.m = pointer_map_create ();
     }
@@ -138,7 +138,7 @@ void
 pph_stream_close (pph_stream *stream)
 {
   if (stream->write_p)
-    pph_stream_flush_buffers (stream);
+    pph_flush_buffers (stream);
   fclose (stream->file);
   stream->file = NULL;
   VEC_free (void_p, heap, stream->cache.v);
@@ -165,7 +165,7 @@ enum pph_trace_type
    is the kind of data to print.  */
 
 static void
-pph_stream_trace (pph_stream *stream, const void *data, unsigned int nbytes,
+pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
 		  enum pph_trace_type type)
 {
   const char *op = (stream->write_p) ? "<<" : ">>";
@@ -265,9 +265,9 @@ pph_stream_trace (pph_stream *stream, const void *data, unsigned int nbytes,
 /* Show tracing information for T on STREAM.  */
 
 void
-pph_stream_trace_tree (pph_stream *stream, tree t, bool ref_p)
+pph_trace_tree (pph_stream *stream, tree t, bool ref_p)
 {
-  pph_stream_trace (stream, t, t ? tree_code_size (TREE_CODE (t)) : 0,
+  pph_trace (stream, t, t ? tree_code_size (TREE_CODE (t)) : 0,
 		    ref_p ? PPH_TRACE_REF : PPH_TRACE_TREE);
 }
 
@@ -275,9 +275,9 @@ pph_stream_trace_tree (pph_stream *stream, tree t, bool ref_p)
 /* Show tracing information for VAL on STREAM.  */
 
 void
-pph_stream_trace_uint (pph_stream *stream, unsigned int val)
+pph_trace_uint (pph_stream *stream, unsigned int val)
 {
-  pph_stream_trace (stream, &val, sizeof (val), PPH_TRACE_UINT);
+  pph_trace (stream, &val, sizeof (val), PPH_TRACE_UINT);
 }
 
 
@@ -285,37 +285,37 @@ pph_stream_trace_uint (pph_stream *stream, unsigned int val)
    STREAM.  */
 
 void
-pph_stream_trace_bytes (pph_stream *stream, const void *data, size_t nbytes)
+pph_trace_bytes (pph_stream *stream, const void *data, size_t nbytes)
 {
-  pph_stream_trace (stream, data, nbytes, PPH_TRACE_BYTES);
+  pph_trace (stream, data, nbytes, PPH_TRACE_BYTES);
 }
 
 
 /* Show tracing information for S on STREAM.  */
 
 void
-pph_stream_trace_string (pph_stream *stream, const char *s)
+pph_trace_string (pph_stream *stream, const char *s)
 {
-  pph_stream_trace (stream, s, s ? strlen (s) : 0, PPH_TRACE_STRING);
+  pph_trace (stream, s, s ? strlen (s) : 0, PPH_TRACE_STRING);
 }
 
 
 /* Show tracing information for LEN bytes of S on STREAM.  */
 
 void
-pph_stream_trace_string_with_length (pph_stream *stream, const char *s,
+pph_trace_string_with_length (pph_stream *stream, const char *s,
 				     unsigned int len)
 {
-  pph_stream_trace (stream, s, len, PPH_TRACE_STRING);
+  pph_trace (stream, s, len, PPH_TRACE_STRING);
 }
 
 
 /* Show tracing information for a tree chain starting with T on STREAM.  */
 
 void
-pph_stream_trace_chain (pph_stream *stream, tree t)
+pph_trace_chain (pph_stream *stream, tree t)
 {
-  pph_stream_trace (stream, t, t ? tree_code_size (TREE_CODE (t)) : 0,
+  pph_trace (stream, t, t ? tree_code_size (TREE_CODE (t)) : 0,
 		    PPH_TRACE_CHAIN);
 }
 
@@ -323,9 +323,9 @@ pph_stream_trace_chain (pph_stream *stream, tree t)
 /* Show tracing information for a bitpack BP on STREAM.  */
 
 void
-pph_stream_trace_bitpack (pph_stream *stream, struct bitpack_d *bp)
+pph_trace_bitpack (pph_stream *stream, struct bitpack_d *bp)
 {
-  pph_stream_trace (stream, bp, sizeof (*bp), PPH_TRACE_BITPACK);
+  pph_trace (stream, bp, sizeof (*bp), PPH_TRACE_BITPACK);
 }
 
 
@@ -333,7 +333,7 @@ pph_stream_trace_bitpack (pph_stream *stream, struct bitpack_d *bp)
    existed in the cache, IX must be the same as the previous entry.  */
 
 void
-pph_stream_cache_insert_at (pph_stream *stream, void *data, unsigned ix)
+pph_cache_insert_at (pph_stream *stream, void *data, unsigned ix)
 {
   void **map_slot;
 
@@ -361,7 +361,7 @@ pph_stream_cache_insert_at (pph_stream *stream, void *data, unsigned ix)
    already existed in the cache, false otherwise.  */
 
 bool
-pph_stream_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
+pph_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
 {
   void **map_slot;
   unsigned ix;
@@ -372,7 +372,7 @@ pph_stream_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
     {
       existed_p = false;
       ix = VEC_length (void_p, stream->cache.v);
-      pph_stream_cache_insert_at (stream, data, ix);
+      pph_cache_insert_at (stream, data, ix);
     }
   else
     {
@@ -391,7 +391,7 @@ pph_stream_cache_add (pph_stream *stream, void *data, unsigned *ix_p)
 /* Return the pointer at slot IX in STREAM's pickle cache.  */
 
 void *
-pph_stream_cache_get (pph_stream *stream, unsigned ix)
+pph_cache_get (pph_stream *stream, unsigned ix)
 {
   void *data = VEC_index (void_p, stream->cache.v, ix);
   gcc_assert (data);

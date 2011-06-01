@@ -39,14 +39,14 @@ along with GCC; see the file COPYING3.  If not see
 #define ALLOC_AND_REGISTER(STREAM, IX, DATA, ALLOC_EXPR)	\
     do {							\
       (DATA) = (ALLOC_EXPR);					\
-      pph_stream_register_shared_data (STREAM, DATA, IX);	\
+      pph_register_shared_data (STREAM, DATA, IX);		\
     } while (0)
 
 /* Callback for unpacking value fields in ASTs.  BP is the bitpack 
    we are unpacking from.  EXPR is the tree to unpack.  */
 
 void
-pph_stream_unpack_value_fields (struct bitpack_d *bp, tree expr)
+pph_unpack_value_fields (struct bitpack_d *bp, tree expr)
 {
   if (TYPE_P (expr))
     {
@@ -122,7 +122,7 @@ pph_free_section_data (struct lto_file_decl_data *file_data,
    ASTs in the file.  */
 
 void
-pph_stream_init_read (pph_stream *stream)
+pph_init_read (pph_stream *stream)
 {
   struct stat st;
   size_t i, bytes_read, strtab_size, body_size;
@@ -196,13 +196,13 @@ pph_start_record (pph_stream *stream, unsigned *cache_ix)
 {
   enum pph_record_marker marker;
 
-  marker = (enum pph_record_marker) pph_input_uchar (stream);
+  marker = (enum pph_record_marker) pph_in_uchar (stream);
 
   /* For PPH_RECORD_START and PPH_RECORD_SHARED markers, read the
      streamer cache slot where we should store or find the
      rematerialized data structure (see description above).  */
   if (marker == PPH_RECORD_START || marker == PPH_RECORD_SHARED)
-    *cache_ix = pph_input_uint (stream);
+    *cache_ix = pph_in_uint (stream);
   else
     gcc_assert (marker == PPH_RECORD_END);
 
@@ -216,9 +216,9 @@ pph_start_record (pph_stream *stream, unsigned *cache_ix)
    before and is present in the streamer cache.  */
 
 static void *
-pph_stream_read_shared_data (pph_stream *stream, unsigned ix)
+pph_in_shared_data (pph_stream *stream, unsigned ix)
 {
-  return pph_stream_cache_get (stream, ix);
+  return pph_cache_get (stream, ix);
 }
 
 
@@ -228,20 +228,20 @@ pph_stream_read_shared_data (pph_stream *stream, unsigned ix)
    table cache where this data was saved.  */
 
 static void
-pph_stream_register_shared_data (pph_stream *stream, void *data, unsigned ix)
+pph_register_shared_data (pph_stream *stream, void *data, unsigned ix)
 {
-  pph_stream_cache_insert_at (stream, data, ix);
+  pph_cache_insert_at (stream, data, ix);
 }
 
 
 /* Read all fields in lang_decl_base instance LDB from STREAM.  */
 
 static void
-pph_stream_read_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
+pph_in_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
 {
   struct bitpack_d bp;
 
-  bp = pph_input_bitpack (stream);
+  bp = pph_in_bitpack (stream);
   ldb->selector = bp_unpack_value (&bp, 16);
   ldb->language = (enum languages) bp_unpack_value (&bp, 4);
   ldb->use_template = bp_unpack_value (&bp, 2);
@@ -260,13 +260,13 @@ pph_stream_read_ld_base (pph_stream *stream, struct lang_decl_base *ldb)
 /* Read all the fields in lang_decl_min instance LDM from STREAM.  */
 
 static void
-pph_stream_read_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
+pph_in_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
 {
-  ldm->template_info = pph_input_tree (stream);
+  ldm->template_info = pph_in_tree (stream);
   if (ldm->base.u2sel == 0)
-    ldm->u2.access = pph_input_tree (stream);
+    ldm->u2.access = pph_in_tree (stream);
   else if (ldm->base.u2sel == 1)
-    ldm->u2.discriminator = pph_input_uint (stream);
+    ldm->u2.discriminator = pph_in_uint (stream);
   else
     gcc_unreachable ();
 }
@@ -275,16 +275,16 @@ pph_stream_read_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
 /* Read and return a gc VEC of trees from STREAM.  */
 
 VEC(tree,gc) *
-pph_stream_read_tree_vec (pph_stream *stream)
+pph_in_tree_vec (pph_stream *stream)
 {
   unsigned i, num;
   VEC(tree,gc) *v;
 
-  num = pph_input_uint (stream);
+  num = pph_in_uint (stream);
   v = NULL;
   for (i = 0; i < num; i++)
     {
-      tree t = pph_input_tree (stream);
+      tree t = pph_in_tree (stream);
       VEC_safe_push (tree, gc, v, t);
     }
 
@@ -295,18 +295,18 @@ pph_stream_read_tree_vec (pph_stream *stream)
 /* Read and return a gc VEC of qualified_typedef_usage_t from STREAM.  */
 
 static VEC(qualified_typedef_usage_t,gc) *
-pph_stream_read_qual_use_vec (pph_stream *stream)
+pph_in_qual_use_vec (pph_stream *stream)
 {
   unsigned i, num;
   VEC(qualified_typedef_usage_t,gc) *v;
 
-  num = pph_input_uint (stream);
+  num = pph_in_uint (stream);
   v = NULL;
   for (i = 0; i < num; i++)
     {
       qualified_typedef_usage_t q;
-      q.typedef_decl = pph_input_tree (stream);
-      q.context = pph_input_tree (stream);
+      q.typedef_decl = pph_in_tree (stream);
+      q.context = pph_in_tree (stream);
       /* FIXME pph: also read location.  */
       VEC_safe_push (qualified_typedef_usage_t, gc, v, &q);
     }
@@ -316,13 +316,13 @@ pph_stream_read_qual_use_vec (pph_stream *stream)
 
 
 /* Forward declaration to break cyclic dependencies.  */
-static struct cp_binding_level *pph_stream_read_binding_level (pph_stream *);
+static struct cp_binding_level *pph_in_binding_level (pph_stream *);
 
-/* Helper for pph_stream_read_cxx_binding.  Read and return a cxx_binding
+/* Helper for pph_in_cxx_binding.  Read and return a cxx_binding
    instance from STREAM.  */
 
 static cxx_binding *
-pph_stream_read_cxx_binding_1 (pph_stream *stream)
+pph_in_cxx_binding_1 (pph_stream *stream)
 {
   struct bitpack_d bp;
   cxx_binding *cb;
@@ -334,13 +334,13 @@ pph_stream_read_cxx_binding_1 (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (cxx_binding *) pph_stream_read_shared_data (stream, ix);
+    return (cxx_binding *) pph_in_shared_data (stream, ix);
 
-  value = pph_input_tree (stream);
-  type = pph_input_tree (stream);
+  value = pph_in_tree (stream);
+  type = pph_in_tree (stream);
   ALLOC_AND_REGISTER (stream, ix, cb, cxx_binding_make (value, type));
-  cb->scope = pph_stream_read_binding_level (stream);
-  bp = pph_input_bitpack (stream);
+  cb->scope = pph_in_binding_level (stream);
+  bp = pph_in_bitpack (stream);
   cb->value_is_inherited = bp_unpack_value (&bp, 1);
   cb->is_local = bp_unpack_value (&bp, 1);
 
@@ -351,23 +351,23 @@ pph_stream_read_cxx_binding_1 (pph_stream *stream)
 /* Read and return an instance of cxx_binding from STREAM.  */
 
 static cxx_binding *
-pph_stream_read_cxx_binding (pph_stream *stream)
+pph_in_cxx_binding (pph_stream *stream)
 {
   unsigned i, num_bindings;
   cxx_binding *curr, *cb;
 
   /* Read the list of previous bindings.  */
-  num_bindings = pph_input_uint (stream);
+  num_bindings = pph_in_uint (stream);
   for (curr = NULL, i = 0; i < num_bindings; i++)
     {
-      cxx_binding *prev = pph_stream_read_cxx_binding_1 (stream);
+      cxx_binding *prev = pph_in_cxx_binding_1 (stream);
       if (curr)
 	curr->previous = prev;
       curr = prev;
     }
 
   /* Read the current binding at the end.  */
-  cb = pph_stream_read_cxx_binding_1 (stream);
+  cb = pph_in_cxx_binding_1 (stream);
   if (cb)
     cb->previous = curr;
 
@@ -378,7 +378,7 @@ pph_stream_read_cxx_binding (pph_stream *stream)
 /* Read all the fields of cp_class_binding instance CB to OB.  */
 
 static cp_class_binding *
-pph_stream_read_class_binding (pph_stream *stream)
+pph_in_class_binding (pph_stream *stream)
 {
   cp_class_binding *cb;
   enum pph_record_marker marker;
@@ -388,11 +388,11 @@ pph_stream_read_class_binding (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (cp_class_binding *) pph_stream_read_shared_data (stream, ix);
+    return (cp_class_binding *) pph_in_shared_data (stream, ix);
 
   ALLOC_AND_REGISTER (stream, ix, cb, ggc_alloc_cleared_cp_class_binding ());
-  cb->base = pph_stream_read_cxx_binding (stream);
-  cb->identifier = pph_input_tree (stream);
+  cb->base = pph_in_cxx_binding (stream);
+  cb->identifier = pph_in_tree (stream);
 
   return cb;
 }
@@ -401,7 +401,7 @@ pph_stream_read_class_binding (pph_stream *stream)
 /* Read and return an instance of cp_label_binding from STREAM.  */
 
 static cp_label_binding *
-pph_stream_read_label_binding (pph_stream *stream)
+pph_in_label_binding (pph_stream *stream)
 {
   cp_label_binding *lb;
   enum pph_record_marker marker;
@@ -411,11 +411,11 @@ pph_stream_read_label_binding (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (cp_label_binding *) pph_stream_read_shared_data (stream, ix);
+    return (cp_label_binding *) pph_in_shared_data (stream, ix);
 
   ALLOC_AND_REGISTER (stream, ix, lb, ggc_alloc_cleared_cp_label_binding ());
-  lb->label = pph_input_tree (stream);
-  lb->prev_value = pph_input_tree (stream);
+  lb->label = pph_in_tree (stream);
+  lb->prev_value = pph_in_tree (stream);
 
   return lb;
 }
@@ -424,7 +424,7 @@ pph_stream_read_label_binding (pph_stream *stream)
 /* Read and return an instance of cp_binding_level from STREAM.  */
 
 static struct cp_binding_level *
-pph_stream_read_binding_level (pph_stream *stream)
+pph_in_binding_level (pph_stream *stream)
 {
   unsigned i, num, ix;
   cp_label_binding *sl;
@@ -436,45 +436,45 @@ pph_stream_read_binding_level (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct cp_binding_level *) pph_stream_read_shared_data (stream, ix);
+    return (struct cp_binding_level *) pph_in_shared_data (stream, ix);
 
   ALLOC_AND_REGISTER (stream, ix, bl, ggc_alloc_cleared_cp_binding_level ());
 
-  bl->names = pph_input_chain (stream);
-  bl->names_size = pph_input_uint (stream);
-  bl->namespaces = pph_input_chain (stream);
+  bl->names = pph_in_chain (stream);
+  bl->names_size = pph_in_uint (stream);
+  bl->namespaces = pph_in_chain (stream);
 
-  bl->static_decls = pph_stream_read_tree_vec (stream);
+  bl->static_decls = pph_in_tree_vec (stream);
 
-  bl->usings = pph_input_chain (stream);
-  bl->using_directives = pph_input_chain (stream);
+  bl->usings = pph_in_chain (stream);
+  bl->using_directives = pph_in_chain (stream);
 
-  num = pph_input_uint (stream);
+  num = pph_in_uint (stream);
   bl->class_shadowed = NULL;
   for (i = 0; i < num; i++)
     {
-      cp_class_binding *cb = pph_stream_read_class_binding (stream);
+      cp_class_binding *cb = pph_in_class_binding (stream);
       VEC_safe_push (cp_class_binding, gc, bl->class_shadowed, cb);
     }
 
-  bl->type_shadowed = pph_input_tree (stream);
+  bl->type_shadowed = pph_in_tree (stream);
 
-  num = pph_input_uint (stream);
+  num = pph_in_uint (stream);
   bl->shadowed_labels = NULL;
   for (i = 0; VEC_iterate (cp_label_binding, bl->shadowed_labels, i, sl); i++)
     {
-      cp_label_binding *sl = pph_stream_read_label_binding (stream);
+      cp_label_binding *sl = pph_in_label_binding (stream);
       VEC_safe_push (cp_label_binding, gc, bl->shadowed_labels, sl);
     }
 
-  bl->blocks = pph_input_chain (stream);
-  bl->this_entity = pph_input_tree (stream);
-  bl->level_chain = pph_stream_read_binding_level (stream);
-  bl->dead_vars_from_for = pph_stream_read_tree_vec (stream);
-  bl->statement_list = pph_input_chain (stream);
-  bl->binding_depth = pph_input_uint (stream);
+  bl->blocks = pph_in_chain (stream);
+  bl->this_entity = pph_in_tree (stream);
+  bl->level_chain = pph_in_binding_level (stream);
+  bl->dead_vars_from_for = pph_in_tree_vec (stream);
+  bl->statement_list = pph_in_chain (stream);
+  bl->binding_depth = pph_in_uint (stream);
 
-  bp = pph_input_bitpack (stream);
+  bp = pph_in_bitpack (stream);
   bl->kind = (enum scope_kind) bp_unpack_value (&bp, 4);
   bl->keep = bp_unpack_value (&bp, 1);
   bl->more_cleanups_ok = bp_unpack_value (&bp, 1);
@@ -487,7 +487,7 @@ pph_stream_read_binding_level (pph_stream *stream)
 /* Read and return an instance of struct c_language_function from STREAM.  */
 
 static struct c_language_function *
-pph_stream_read_c_language_function (pph_stream *stream)
+pph_in_c_language_function (pph_stream *stream)
 {
   struct c_language_function *clf;
   enum pph_record_marker marker;
@@ -497,13 +497,13 @@ pph_stream_read_c_language_function (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct c_language_function *) pph_stream_read_shared_data (stream,
+    return (struct c_language_function *) pph_in_shared_data (stream,
 	                                                               ix);
 
   ALLOC_AND_REGISTER (stream, ix, clf,
 		      ggc_alloc_cleared_c_language_function ());
-  clf->x_stmt_tree.x_cur_stmt_list = pph_stream_read_tree_vec (stream);
-  clf->x_stmt_tree.stmts_are_full_exprs_p = pph_input_uint (stream);
+  clf->x_stmt_tree.x_cur_stmt_list = pph_in_tree_vec (stream);
+  clf->x_stmt_tree.stmts_are_full_exprs_p = pph_in_uint (stream);
 
   return clf;
 }
@@ -512,7 +512,7 @@ pph_stream_read_c_language_function (pph_stream *stream)
 /* Read and return an instance of struct language_function from STREAM.  */
 
 static struct language_function *
-pph_stream_read_language_function (pph_stream *stream)
+pph_in_language_function (pph_stream *stream)
 {
   struct bitpack_d bp;
   struct language_function *lf;
@@ -523,20 +523,20 @@ pph_stream_read_language_function (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct language_function *) pph_stream_read_shared_data (stream,
+    return (struct language_function *) pph_in_shared_data (stream,
 								     ix);
 
   ALLOC_AND_REGISTER (stream, ix, lf, ggc_alloc_cleared_language_function ());
-  memcpy (&lf->base, pph_stream_read_c_language_function (stream),
+  memcpy (&lf->base, pph_in_c_language_function (stream),
 	  sizeof (struct c_language_function));
-  lf->x_cdtor_label = pph_input_tree (stream);
-  lf->x_current_class_ptr = pph_input_tree (stream);
-  lf->x_current_class_ref = pph_input_tree (stream);
-  lf->x_eh_spec_block = pph_input_tree (stream);
-  lf->x_in_charge_parm = pph_input_tree (stream);
-  lf->x_vtt_parm = pph_input_tree (stream);
-  lf->x_return_value = pph_input_tree (stream);
-  bp = pph_input_bitpack (stream);
+  lf->x_cdtor_label = pph_in_tree (stream);
+  lf->x_current_class_ptr = pph_in_tree (stream);
+  lf->x_current_class_ref = pph_in_tree (stream);
+  lf->x_eh_spec_block = pph_in_tree (stream);
+  lf->x_in_charge_parm = pph_in_tree (stream);
+  lf->x_vtt_parm = pph_in_tree (stream);
+  lf->x_return_value = pph_in_tree (stream);
+  bp = pph_in_bitpack (stream);
   lf->x_returns_value = bp_unpack_value (&bp, 1);
   lf->x_returns_null = bp_unpack_value (&bp, 1);
   lf->x_returns_abnormally = bp_unpack_value (&bp, 1);
@@ -546,8 +546,8 @@ pph_stream_read_language_function (pph_stream *stream)
 
   /* FIXME pph.  We are not reading lf->x_named_labels.  */
 
-  lf->bindings = pph_stream_read_binding_level (stream);
-  lf->x_local_names = pph_stream_read_tree_vec (stream);
+  lf->bindings = pph_in_binding_level (stream);
+  lf->x_local_names = pph_in_tree_vec (stream);
 
   /* FIXME pph.  We are not reading lf->extern_decl_map.  */
 
@@ -558,11 +558,11 @@ pph_stream_read_language_function (pph_stream *stream)
 /* Read all the fields of lang_decl_fn instance LDF from STREAM.  */
 
 static void
-pph_stream_read_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
+pph_in_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
 {
   struct bitpack_d bp;
 
-  bp = pph_input_bitpack (stream);
+  bp = pph_in_bitpack (stream);
   ldf->operator_code = (enum tree_code) bp_unpack_value (&bp, 16);
   ldf->global_ctor_p = bp_unpack_value (&bp, 1);
   ldf->global_dtor_p = bp_unpack_value (&bp, 1);
@@ -580,46 +580,46 @@ pph_stream_read_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
   ldf->this_thunk_p = bp_unpack_value (&bp, 1);
   ldf->hidden_friend_p = bp_unpack_value (&bp, 1);
 
-  ldf->befriending_classes = pph_input_tree (stream);
-  ldf->context = pph_input_tree (stream);
+  ldf->befriending_classes = pph_in_tree (stream);
+  ldf->context = pph_in_tree (stream);
 
   if (ldf->thunk_p == 0)
-    ldf->u5.cloned_function = pph_input_tree (stream);
+    ldf->u5.cloned_function = pph_in_tree (stream);
   else if (ldf->thunk_p == 1)
-    ldf->u5.fixed_offset = pph_input_uint (stream);
+    ldf->u5.fixed_offset = pph_in_uint (stream);
   else
     gcc_unreachable ();
 
   if (ldf->pending_inline_p == 1)
     ldf->u.pending_inline_info = pth_load_token_cache (stream);
   else if (ldf->pending_inline_p == 0)
-    ldf->u.saved_language_function = pph_stream_read_language_function (stream);
+    ldf->u.saved_language_function = pph_in_language_function (stream);
 }
 
 
 /* Read all the fields of lang_decl_ns instance LDNS from STREAM.  */
 
 static void
-pph_stream_read_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
+pph_in_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
 {
-  ldns->level = pph_stream_read_binding_level (stream);
+  ldns->level = pph_in_binding_level (stream);
 }
 
 
 /* Read all the fields of lang_decl_parm instance LDP from STREAM.  */
 
 static void
-pph_stream_read_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
+pph_in_ld_parm (pph_stream *stream, struct lang_decl_parm *ldp)
 {
-  ldp->level = pph_input_uint (stream);
-  ldp->index = pph_input_uint (stream);
+  ldp->level = pph_in_uint (stream);
+  ldp->index = pph_in_uint (stream);
 }
 
 
 /* Read language specific data in DECL from STREAM.  */
 
 static void
-pph_stream_read_lang_specific (pph_stream *stream, tree decl)
+pph_in_lang_specific (pph_stream *stream, tree decl)
 {
   struct lang_decl *ld;
   struct lang_decl_base *ldb;
@@ -641,27 +641,27 @@ pph_stream_read_lang_specific (pph_stream *stream, tree decl)
   ldb = &ld->u.base;
 
   /* Read all the fields in lang_decl_base.  */
-  pph_stream_read_ld_base (stream, ldb);
+  pph_in_ld_base (stream, ldb);
 
   if (ldb->selector == 0)
     {
       /* Read all the fields in lang_decl_min.  */
-      pph_stream_read_ld_min (stream, &ld->u.min);
+      pph_in_ld_min (stream, &ld->u.min);
     }
   else if (ldb->selector == 1)
     {
       /* Read all the fields in lang_decl_fn.  */
-      pph_stream_read_ld_fn (stream, &ld->u.fn);
+      pph_in_ld_fn (stream, &ld->u.fn);
     }
   else if (ldb->selector == 2)
     {
       /* Read all the fields in lang_decl_ns.  */
-      pph_stream_read_ld_ns (stream, &ld->u.ns);
+      pph_in_ld_ns (stream, &ld->u.ns);
     }
   else if (ldb->selector == 3)
     {
       /* Read all the fields in lang_decl_parm.  */
-      pph_stream_read_ld_parm (stream, &ld->u.parm);
+      pph_in_ld_parm (stream, &ld->u.parm);
     }
   else
     gcc_unreachable ();
@@ -674,7 +674,7 @@ pph_stream_read_lang_specific (pph_stream *stream, tree decl)
    the caller will call make_node to allocate this tree.  */
 
 tree
-pph_stream_alloc_tree (enum tree_code code,
+pph_alloc_tree (enum tree_code code,
 	               struct lto_input_block *ib ATTRIBUTE_UNUSED,
 		       struct data_in *data_in)
 {
@@ -682,7 +682,7 @@ pph_stream_alloc_tree (enum tree_code code,
 
   if (code == CALL_EXPR)
     {
-      unsigned nargs = pph_input_uint (stream);
+      unsigned nargs = pph_in_uint (stream);
       return build_vl_exp (CALL_EXPR, nargs + 3);
     }
 
@@ -693,12 +693,12 @@ pph_stream_alloc_tree (enum tree_code code,
 /* Read all the fields in lang_type_header instance LTH from STREAM.  */
 
 static void
-pph_stream_read_lang_type_header (pph_stream *stream,
+pph_in_lang_type_header (pph_stream *stream,
 				  struct lang_type_header *lth)
 {
   struct bitpack_d bp;
 
-  bp = pph_input_bitpack (stream);
+  bp = pph_in_bitpack (stream);
   lth->is_lang_type_class = bp_unpack_value (&bp, 1);
   lth->has_type_conversion = bp_unpack_value (&bp, 1);
   lth->has_copy_ctor = bp_unpack_value (&bp, 1);
@@ -712,17 +712,17 @@ pph_stream_read_lang_type_header (pph_stream *stream,
 /* Read the vector V of tree_pair_s instances from STREAM.  */
 
 static VEC(tree_pair_s,gc) *
-pph_stream_read_tree_pair_vec (pph_stream *stream)
+pph_in_tree_pair_vec (pph_stream *stream)
 {
   unsigned i, num;
   VEC(tree_pair_s,gc) *v;
 
-  num = pph_input_uint (stream);
+  num = pph_in_uint (stream);
   for (i = 0, v = NULL; i < num; i++)
     {
       tree_pair_s p;
-      p.purpose = pph_input_tree (stream);
-      p.value = pph_input_tree (stream);
+      p.purpose = pph_in_tree (stream);
+      p.value = pph_in_tree (stream);
       VEC_safe_push (tree_pair_s, gc, v, &p);
     }
 
@@ -734,7 +734,7 @@ pph_stream_read_tree_pair_vec (pph_stream *stream)
    true if the tree nodes should be written as references.  */
 
 static struct sorted_fields_type *
-pph_stream_read_sorted_fields_type (pph_stream *stream)
+pph_in_sorted_fields_type (pph_stream *stream)
 {
   unsigned i, num_fields;
   struct sorted_fields_type *v;
@@ -745,13 +745,13 @@ pph_stream_read_sorted_fields_type (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct sorted_fields_type *) pph_stream_read_shared_data (stream,
+    return (struct sorted_fields_type *) pph_in_shared_data (stream,
 								      ix);
 
-  num_fields = pph_input_uint (stream);
+  num_fields = pph_in_uint (stream);
   ALLOC_AND_REGISTER (stream, ix, v, sorted_fields_type_new (num_fields));
   for (i = 0; i < num_fields; i++)
-    v->elts[i] = pph_input_tree (stream);
+    v->elts[i] = pph_in_tree (stream);
 
   return v;
 }
@@ -762,16 +762,16 @@ pph_stream_read_sorted_fields_type (pph_stream *stream)
    as references.  */
 
 static void
-pph_stream_read_lang_type_class (pph_stream *stream,
+pph_in_lang_type_class (pph_stream *stream,
 				  struct lang_type_class *ltc)
 {
   struct bitpack_d bp;
   enum pph_record_marker marker;
   unsigned ix;
 
-  ltc->align = pph_input_uchar (stream);
+  ltc->align = pph_in_uchar (stream);
 
-  bp = pph_input_bitpack (stream);
+  bp = pph_in_bitpack (stream);
   ltc->has_mutable = bp_unpack_value (&bp, 1);
   ltc->com_interface = bp_unpack_value (&bp, 1);
   ltc->non_pod_class = bp_unpack_value (&bp, 1);
@@ -816,49 +816,49 @@ pph_stream_read_lang_type_class (pph_stream *stream,
   ltc->has_complex_move_assign = bp_unpack_value (&bp, 1);
   ltc->has_constexpr_ctor = bp_unpack_value (&bp, 1);
 
-  ltc->primary_base = pph_input_tree (stream);
-  ltc->vcall_indices = pph_stream_read_tree_pair_vec (stream);
-  ltc->vtables = pph_input_tree (stream);
-  ltc->typeinfo_var = pph_input_tree (stream);
-  ltc->vbases = pph_stream_read_tree_vec (stream);
+  ltc->primary_base = pph_in_tree (stream);
+  ltc->vcall_indices = pph_in_tree_pair_vec (stream);
+  ltc->vtables = pph_in_tree (stream);
+  ltc->typeinfo_var = pph_in_tree (stream);
+  ltc->vbases = pph_in_tree_vec (stream);
 
   marker = pph_start_record (stream, &ix);
   if (marker == PPH_RECORD_START)
     {
-      ltc->nested_udts = pph_stream_read_binding_table (stream);
-      pph_stream_register_shared_data (stream, ltc->nested_udts, ix);
+      ltc->nested_udts = pph_in_binding_table (stream);
+      pph_register_shared_data (stream, ltc->nested_udts, ix);
     }
   else if (marker == PPH_RECORD_SHARED)
-    ltc->nested_udts = (binding_table) pph_stream_read_shared_data (stream, ix);
+    ltc->nested_udts = (binding_table) pph_in_shared_data (stream, ix);
 
-  ltc->as_base = pph_input_tree (stream);
-  ltc->pure_virtuals = pph_stream_read_tree_vec (stream);
-  ltc->friend_classes = pph_input_tree (stream);
-  ltc->methods = pph_stream_read_tree_vec (stream);
-  ltc->key_method = pph_input_tree (stream);
-  ltc->decl_list = pph_input_tree (stream);
-  ltc->template_info = pph_input_tree (stream);
-  ltc->befriending_classes = pph_input_tree (stream);
-  ltc->objc_info = pph_input_tree (stream);
-  ltc->sorted_fields = pph_stream_read_sorted_fields_type (stream);
-  ltc->lambda_expr = pph_input_tree (stream);
+  ltc->as_base = pph_in_tree (stream);
+  ltc->pure_virtuals = pph_in_tree_vec (stream);
+  ltc->friend_classes = pph_in_tree (stream);
+  ltc->methods = pph_in_tree_vec (stream);
+  ltc->key_method = pph_in_tree (stream);
+  ltc->decl_list = pph_in_tree (stream);
+  ltc->template_info = pph_in_tree (stream);
+  ltc->befriending_classes = pph_in_tree (stream);
+  ltc->objc_info = pph_in_tree (stream);
+  ltc->sorted_fields = pph_in_sorted_fields_type (stream);
+  ltc->lambda_expr = pph_in_tree (stream);
 }
 
 
 /* Read all fields of struct lang_type_ptrmem instance LTP from STREAM.  */
 
 static void
-pph_stream_read_lang_type_ptrmem (pph_stream *stream,
+pph_in_lang_type_ptrmem (pph_stream *stream,
 				  struct lang_type_ptrmem *ltp)
 {
-  ltp->record = pph_input_tree (stream);
+  ltp->record = pph_in_tree (stream);
 }
 
 
 /* Read all the fields in struct lang_type from STREAM.  */
 
 static struct lang_type *
-pph_stream_read_lang_type (pph_stream *stream)
+pph_in_lang_type (pph_stream *stream)
 {
   struct lang_type *lt;
   enum pph_record_marker marker;
@@ -868,16 +868,16 @@ pph_stream_read_lang_type (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct lang_type *) pph_stream_read_shared_data (stream, ix);
+    return (struct lang_type *) pph_in_shared_data (stream, ix);
 
   ALLOC_AND_REGISTER (stream, ix, lt,
 		      ggc_alloc_cleared_lang_type (sizeof (struct lang_type)));
 
-  pph_stream_read_lang_type_header (stream, &lt->u.h);
+  pph_in_lang_type_header (stream, &lt->u.h);
   if (lt->u.h.is_lang_type_class)
-    pph_stream_read_lang_type_class (stream, &lt->u.c);
+    pph_in_lang_type_class (stream, &lt->u.c);
   else
-    pph_stream_read_lang_type_ptrmem (stream, &lt->u.ptrmem);
+    pph_in_lang_type_ptrmem (stream, &lt->u.ptrmem);
 
   return lt;
 }
@@ -889,7 +889,7 @@ pph_stream_read_lang_type (pph_stream *stream)
    tree.  */
 
 void
-pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
+pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 		      struct data_in *data_in, tree expr)
 {
   pph_stream *stream = (pph_stream *) data_in->sdata;
@@ -904,7 +904,7 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case IMPORTED_DECL:
     case LABEL_DECL:
     case RESULT_DECL:
-      DECL_INITIAL (expr) = pph_input_tree (stream);
+      DECL_INITIAL (expr) = pph_in_tree (stream);
       break;
 
     case CONST_DECL:
@@ -914,28 +914,28 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case USING_DECL:
     case VAR_DECL:
       /* FIXME pph: Should we merge DECL_INITIAL into lang_specific? */
-      DECL_INITIAL (expr) = pph_input_tree (stream);
-      pph_stream_read_lang_specific (stream, expr);
+      DECL_INITIAL (expr) = pph_in_tree (stream);
+      pph_in_lang_specific (stream, expr);
       break;
 
     case FUNCTION_DECL:
-      DECL_INITIAL (expr) = pph_input_tree (stream);
-      pph_stream_read_lang_specific (stream, expr);
-      DECL_SAVED_TREE (expr) = pph_input_tree (stream);
+      DECL_INITIAL (expr) = pph_in_tree (stream);
+      pph_in_lang_specific (stream, expr);
+      DECL_SAVED_TREE (expr) = pph_in_tree (stream);
       break;
 
     case TYPE_DECL:
-      DECL_INITIAL (expr) = pph_input_tree (stream);
-      pph_stream_read_lang_specific (stream, expr);
-      DECL_ORIGINAL_TYPE (expr) = pph_input_tree (stream);
+      DECL_INITIAL (expr) = pph_in_tree (stream);
+      pph_in_lang_specific (stream, expr);
+      DECL_ORIGINAL_TYPE (expr) = pph_in_tree (stream);
       break;
 
     case TEMPLATE_DECL:
-      DECL_INITIAL (expr) = pph_input_tree (stream);
-      pph_stream_read_lang_specific (stream, expr);
-      DECL_TEMPLATE_RESULT (expr) = pph_input_tree (stream);
-      DECL_TEMPLATE_PARMS (expr) = pph_input_tree (stream);
-      DECL_CONTEXT (expr) = pph_input_tree (stream);
+      DECL_INITIAL (expr) = pph_in_tree (stream);
+      pph_in_lang_specific (stream, expr);
+      DECL_TEMPLATE_RESULT (expr) = pph_in_tree (stream);
+      DECL_TEMPLATE_PARMS (expr) = pph_in_tree (stream);
+      DECL_CONTEXT (expr) = pph_in_tree (stream);
       break;
 
     /* tcc_type */
@@ -956,14 +956,14 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case REFERENCE_TYPE:
     case VECTOR_TYPE:
     case VOID_TYPE:
-      TYPE_LANG_SPECIFIC (expr) = pph_stream_read_lang_type (stream);
+      TYPE_LANG_SPECIFIC (expr) = pph_in_lang_type (stream);
       break;
 
     case QUAL_UNION_TYPE:
     case RECORD_TYPE:
     case UNION_TYPE:
-      TYPE_LANG_SPECIFIC (expr) = pph_stream_read_lang_type (stream);
-      TYPE_BINFO (expr) = pph_input_tree (stream);
+      TYPE_LANG_SPECIFIC (expr) = pph_in_lang_type (stream);
+      TYPE_BINFO (expr) = pph_in_tree (stream);
       break;
 
     case BOUND_TEMPLATE_TEMPLATE_PARM:
@@ -972,8 +972,8 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case TEMPLATE_TYPE_PARM:
     case TYPENAME_TYPE:
     case TYPEOF_TYPE:
-      TYPE_LANG_SPECIFIC (expr) = pph_stream_read_lang_type (stream);
-      TYPE_CACHED_VALUES (expr) = pph_input_tree (stream);
+      TYPE_LANG_SPECIFIC (expr) = pph_in_lang_type (stream);
+      TYPE_CACHED_VALUES (expr) = pph_in_tree (stream);
       /* Note that we are using TYPED_CACHED_VALUES for it access to 
          the generic .values field of types. */
       break;
@@ -982,10 +982,10 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 
     case STATEMENT_LIST:
       {
-        HOST_WIDE_INT i, num_trees = pph_input_uint (stream);
+        HOST_WIDE_INT i, num_trees = pph_in_uint (stream);
         for (i = 0; i < num_trees; i++)
 	  {
-	    tree stmt = pph_input_tree (stream);
+	    tree stmt = pph_in_tree (stream);
 	    append_to_statement_list (stmt, &expr);
 	  }
       }
@@ -1004,38 +1004,38 @@ pph_stream_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     /* tcc_exceptional */
 
     case OVERLOAD:
-      OVL_FUNCTION (expr) = pph_input_tree (stream);
+      OVL_FUNCTION (expr) = pph_in_tree (stream);
       break;
 
     case IDENTIFIER_NODE:
       {
         struct lang_identifier *id = LANG_IDENTIFIER_CAST (expr);
-        id->namespace_bindings = pph_stream_read_cxx_binding (stream);
-        id->bindings = pph_stream_read_cxx_binding (stream);
-        id->class_template_info = pph_input_tree (stream);
-        id->label_value = pph_input_tree (stream);
+        id->namespace_bindings = pph_in_cxx_binding (stream);
+        id->bindings = pph_in_cxx_binding (stream);
+        id->class_template_info = pph_in_tree (stream);
+        id->label_value = pph_in_tree (stream);
       }
       break;
 
     case BASELINK:
-      BASELINK_BINFO (expr) = pph_input_tree (stream);
-      BASELINK_FUNCTIONS (expr) = pph_input_tree (stream);
-      BASELINK_ACCESS_BINFO (expr) = pph_input_tree (stream);
+      BASELINK_BINFO (expr) = pph_in_tree (stream);
+      BASELINK_FUNCTIONS (expr) = pph_in_tree (stream);
+      BASELINK_ACCESS_BINFO (expr) = pph_in_tree (stream);
       break;
 
     case TEMPLATE_INFO:
       TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr)
-          = pph_stream_read_qual_use_vec (stream);
+          = pph_in_qual_use_vec (stream);
       break;
 
     case TEMPLATE_PARM_INDEX:
       {
         template_parm_index *p = TEMPLATE_PARM_INDEX_CAST (expr);
-        p->index = pph_input_uint (stream);
-        p->level = pph_input_uint (stream);
-        p->orig_level = pph_input_uint (stream);
-        p->num_siblings = pph_input_uint (stream);
-        p->decl = pph_input_tree (stream);
+        p->index = pph_in_uint (stream);
+        p->level = pph_in_uint (stream);
+        p->orig_level = pph_in_uint (stream);
+        p->num_siblings = pph_in_uint (stream);
+        p->decl = pph_in_tree (stream);
         /* FIXME pph: Is TEMPLATE_PARM_PARAMETER_PACK using TREE_LANG_FLAG_0
            already handled?  */
       }

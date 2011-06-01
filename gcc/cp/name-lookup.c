@@ -5958,48 +5958,48 @@ cp_emit_debug_info_for_using (tree t, tree context)
    tree nodes in the table are written as references.  */
 
 void
-pph_stream_write_binding_table (pph_stream *stream, binding_table bt,
+pph_out_binding_table (pph_stream *stream, binding_table bt,
 				bool ref_p)
 {
   size_t i;
 
-  pph_output_uint (stream, bt->chain_count);
+  pph_out_uint (stream, bt->chain_count);
   for (i = 0; i < bt->chain_count; i++)
     {
       if (bt->chain[i])
 	{
-	  pph_output_uchar (stream, PPH_RECORD_START);
-	  pph_output_tree_or_ref (stream, bt->chain[i]->name, ref_p);
-	  pph_output_tree_or_ref (stream, bt->chain[i]->type, ref_p);
+	  pph_out_uchar (stream, PPH_RECORD_START);
+	  pph_out_tree_or_ref (stream, bt->chain[i]->name, ref_p);
+	  pph_out_tree_or_ref (stream, bt->chain[i]->type, ref_p);
 	}
       else
-	pph_output_uchar (stream, PPH_RECORD_END);
+	pph_out_uchar (stream, PPH_RECORD_END);
     }
-  pph_output_uint (stream, bt->entry_count);
+  pph_out_uint (stream, bt->entry_count);
 }
 
 
 /* Read and return a binding_entry instance BT from STREAM.  */
 
 binding_table
-pph_stream_read_binding_table (pph_stream *stream)
+pph_in_binding_table (pph_stream *stream)
 {
   size_t i, chain_count;
   binding_table bt;
 
-  chain_count = pph_input_uint (stream);
+  chain_count = pph_in_uint (stream);
   bt = binding_table_new (chain_count);
   for (i = 0; i < chain_count; i++)
     {
-      unsigned char record_marker = pph_input_uchar (stream);
+      unsigned char record_marker = pph_in_uchar (stream);
       if (record_marker == PPH_RECORD_START)
 	{
-	  tree name = pph_input_tree (stream);
-	  tree type = pph_input_tree (stream);
+	  tree name = pph_in_tree (stream);
+	  tree type = pph_in_tree (stream);
 	  binding_table_insert (bt, name, type);
 	}
     }
-  bt->entry_count = pph_input_uint (stream);
+  bt->entry_count = pph_in_uint (stream);
 
   return bt;
 }

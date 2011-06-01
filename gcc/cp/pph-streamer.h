@@ -71,13 +71,13 @@ DEF_VEC_ALLOC_P(void_p,heap);
    first materialized, its address is saved into the same cache slot
    used when writing.  Subsequent reads will simply get the
    materialized pointer from that slot.  */
-typedef struct pph_stream_pickle_cache {
+typedef struct pph_pickle_cache {
   /* Array of entries.  */
   VEC(void_p,heap) *v;
 
   /* Map between slots in the array and pointers.  */
   struct pointer_map_t *m;
-} pph_stream_pickle_cache;
+} pph_pickle_cache;
 
 
 /* A PPH stream contains all the data and attributes needed to
@@ -112,51 +112,51 @@ typedef struct pph_stream {
   size_t file_size;
 
   /* Cache of pickled data structures.  */
-  pph_stream_pickle_cache cache;
+  pph_pickle_cache cache;
 
   /* Nonzero if the stream was opened for writing.  */
   unsigned int write_p : 1;
 } pph_stream;
 
-/* Filter values for pph_output_chain_filtered.  */
+/* Filter values for pph_out_chain_filtered.  */
 enum chain_filter { NONE, NO_BUILTINS };
 
 /* In pph-streamer.c.  */
 pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
-void pph_stream_trace_tree (pph_stream *, tree, bool ref_p);
-void pph_stream_trace_uint (pph_stream *, unsigned int);
-void pph_stream_trace_bytes (pph_stream *, const void *, size_t);
-void pph_stream_trace_string (pph_stream *, const char *);
-void pph_stream_trace_string_with_length (pph_stream *, const char *, unsigned);
-void pph_stream_trace_chain (pph_stream *, tree);
-void pph_stream_trace_bitpack (pph_stream *, struct bitpack_d *);
-void pph_stream_cache_insert_at (pph_stream *, void *, unsigned);
-bool pph_stream_cache_add (pph_stream *, void *, unsigned *);
-void *pph_stream_cache_get (pph_stream *, unsigned);
+void pph_trace_tree (pph_stream *, tree, bool ref_p);
+void pph_trace_uint (pph_stream *, unsigned int);
+void pph_trace_bytes (pph_stream *, const void *, size_t);
+void pph_trace_string (pph_stream *, const char *);
+void pph_trace_string_with_length (pph_stream *, const char *, unsigned);
+void pph_trace_chain (pph_stream *, tree);
+void pph_trace_bitpack (pph_stream *, struct bitpack_d *);
+void pph_cache_insert_at (pph_stream *, void *, unsigned);
+bool pph_cache_add (pph_stream *, void *, unsigned *);
+void *pph_cache_get (pph_stream *, unsigned);
 
 /* In pph-streamer-out.c.  */
-void pph_stream_flush_buffers (pph_stream *);
-void pph_stream_write_tree_vec (pph_stream *stream, VEC(tree,gc) *v,
+void pph_flush_buffers (pph_stream *);
+void pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v,
                                 bool ref_p);
-void pph_stream_init_write (pph_stream *);
-void pph_stream_write_tree (struct output_block *, tree, bool ref_p);
-void pph_stream_pack_value_fields (struct bitpack_d *, tree);
-void pph_stream_output_tree_header (struct output_block *, tree);
-void pph_output_chain_filtered (pph_stream *, tree, bool, enum chain_filter);
+void pph_init_write (pph_stream *);
+void pph_write_tree (struct output_block *, tree, bool ref_p);
+void pph_pack_value_fields (struct bitpack_d *, tree);
+void pph_output_tree_header (struct output_block *, tree);
+void pph_out_chain_filtered (pph_stream *, tree, bool, enum chain_filter);
 
 /* In name-lookup.c.  */
 struct binding_table_s;
-void pph_stream_write_binding_table (pph_stream *, struct binding_table_s *,
+void pph_out_binding_table (pph_stream *, struct binding_table_s *,
 				     bool);
-struct binding_table_s *pph_stream_read_binding_table (pph_stream *);
+struct binding_table_s *pph_in_binding_table (pph_stream *);
 
 /* In pph-streamer-in.c.  */
-void pph_stream_init_read (pph_stream *);
-VEC(tree,gc) *pph_stream_read_tree_vec (pph_stream *stream);
-void pph_stream_read_tree (struct lto_input_block *, struct data_in *, tree);
-void pph_stream_unpack_value_fields (struct bitpack_d *, tree);
-tree pph_stream_alloc_tree (enum tree_code, struct lto_input_block *,
+void pph_init_read (pph_stream *);
+VEC(tree,gc) *pph_in_tree_vec (pph_stream *stream);
+void pph_read_tree (struct lto_input_block *, struct data_in *, tree);
+void pph_unpack_value_fields (struct bitpack_d *, tree);
+tree pph_alloc_tree (enum tree_code, struct lto_input_block *,
 			    struct data_in *);
 /* In pph.c.  FIXME pph move these to pph-streamer.c.  */
 struct cp_token_cache;
@@ -168,10 +168,10 @@ struct cp_token_cache *pth_load_token_cache (pph_stream *);
 /* Output AST T to STREAM.  If REF_P is true, output all the leaves of T
    as references.  This function is the primary interface.  */
 static inline void
-pph_output_tree (pph_stream *stream, tree t, bool ref_p)
+pph_out_tree (pph_stream *stream, tree t, bool ref_p)
 {
   if (flag_pph_tracer >= 1)
-    pph_stream_trace_tree (stream, t, ref_p);
+    pph_trace_tree (stream, t, ref_p);
   lto_output_tree (stream->ob, t, ref_p);
 }
 
@@ -180,13 +180,13 @@ pph_output_tree (pph_stream *stream, tree t, bool ref_p)
 /* FIXME pph: hold for alternate routine. */
 #if 0
 static inline void
-pph_output_tree_array (pph_stream *stream, tree *a, size_t c, bool ref_p)
+pph_out_tree_array (pph_stream *stream, tree *a, size_t c, bool ref_p)
 {
   size_t i;
   for (i = 0; i < c; ++i)
     {
       if (flag_pph_tracer >= 1)
-        pph_stream_trace_tree (stream, a[i], ref_p);
+        pph_trace_tree (stream, a[i], ref_p);
       lto_output_tree (stream->ob, a[i], ref_p);
     }
 }
@@ -194,68 +194,68 @@ pph_output_tree_array (pph_stream *stream, tree *a, size_t c, bool ref_p)
 
 /* Output AST T to STREAM.  If REF_P is true, output a reference to T.
    If -fpph-tracer is set to TLEVEL or higher, T is sent to
-   pph_stream_trace_tree.  */
+   pph_trace_tree.  */
 static inline void
-pph_output_tree_or_ref_1 (pph_stream *stream, tree t, bool ref_p, int tlevel)
+pph_out_tree_or_ref_1 (pph_stream *stream, tree t, bool ref_p, int tlevel)
 {
   if (flag_pph_tracer >= tlevel)
-    pph_stream_trace_tree (stream, t, ref_p);
+    pph_trace_tree (stream, t, ref_p);
   lto_output_tree_or_ref (stream->ob, t, ref_p);
 }
 
 /* Output AST T to STREAM.  If REF_P is true, output a reference to T.
    Trigger tracing at -fpph-tracer=2.  */
 static inline void
-pph_output_tree_or_ref (pph_stream *stream, tree t, bool ref_p)
+pph_out_tree_or_ref (pph_stream *stream, tree t, bool ref_p)
 {
-  pph_output_tree_or_ref_1 (stream, t, ref_p, 2);
+  pph_out_tree_or_ref_1 (stream, t, ref_p, 2);
 }
 
 /* Write an unsigned int VALUE to STREAM.  */
 static inline void
-pph_output_uint (pph_stream *stream, unsigned int value)
+pph_out_uint (pph_stream *stream, unsigned int value)
 {
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_uint (stream, value);
+    pph_trace_uint (stream, value);
   lto_output_sleb128_stream (stream->ob->main_stream, value);
 }
 
 /* Write an unsigned char VALUE to STREAM.  */
 static inline void
-pph_output_uchar (pph_stream *stream, unsigned char value)
+pph_out_uchar (pph_stream *stream, unsigned char value)
 {
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_uint (stream, value);
+    pph_trace_uint (stream, value);
   lto_output_1_stream (stream->ob->main_stream, value);
 }
 
 /* Write N bytes from P to STREAM.  */
 static inline void
-pph_output_bytes (pph_stream *stream, const void *p, size_t n)
+pph_out_bytes (pph_stream *stream, const void *p, size_t n)
 {
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_bytes (stream, p, n);
+    pph_trace_bytes (stream, p, n);
   lto_output_data_stream (stream->ob->main_stream, p, n);
 }
 
 /* Write string STR to STREAM.  */
 static inline void
-pph_output_string (pph_stream *stream, const char *str)
+pph_out_string (pph_stream *stream, const char *str)
 {
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_string (stream, str);
+    pph_trace_string (stream, str);
   lto_output_string (stream->ob, stream->ob->main_stream, str);
 }
 
 /* Write string STR of length LEN to STREAM.  */
 static inline void
-pph_output_string_with_length (pph_stream *stream, const char *str,
+pph_out_string_with_length (pph_stream *stream, const char *str,
 			       unsigned int len)
 {
   if (str)
     {
       if (flag_pph_tracer >= 4)
-	pph_stream_trace_string_with_length (stream, str, len);
+	pph_trace_string_with_length (stream, str, len);
       lto_output_string_with_length (stream->ob, stream->ob->main_stream,
 				     str, len + 1);
     }
@@ -264,8 +264,8 @@ pph_output_string_with_length (pph_stream *stream, const char *str,
       /* lto_output_string_with_length does not handle NULL strings,
 	 but lto_output_string does.  */
       if (flag_pph_tracer >= 4)
-	pph_stream_trace_string (stream, str);
-      pph_output_string (stream, NULL);
+	pph_trace_string (stream, str);
+      pph_out_string (stream, NULL);
     }
 }
 
@@ -274,16 +274,16 @@ pph_output_string_with_length (pph_stream *stream, const char *str,
 /* FIXME pph: hold for alternate routine. */
 #if 0
 static inline void
-pph_output_tree_VEC (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
+pph_out_tree_VEC (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
 {
   tree t;
   size_t i;
   size_t c = VEC_length (tree, v);
-  pph_output_uint (stream, c);
+  pph_out_uint (stream, c);
   for (i = 0; VEC_iterate (tree, v, i, t); i++)
     {
       if (flag_pph_tracer >= 1)
-        pph_stream_trace_tree (stream, t, ref_p);
+        pph_trace_tree (stream, t, ref_p);
       lto_output_tree (stream->ob, t, ref_p);
     }
 }
@@ -292,52 +292,52 @@ pph_output_tree_VEC (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
 /* Write a chain of ASTs to STREAM starting with FIRST.  REF_P is true
    if the nodes should be emitted as references.  */
 static inline void
-pph_output_chain (pph_stream *stream, tree first, bool ref_p)
+pph_out_chain (pph_stream *stream, tree first, bool ref_p)
 {
   if (flag_pph_tracer >= 2)
-    pph_stream_trace_chain (stream, first);
+    pph_trace_chain (stream, first);
   lto_output_chain (stream->ob, first, ref_p);
 }
 
 /* Write a bitpack BP to STREAM.  */
 static inline void
-pph_output_bitpack (pph_stream *stream, struct bitpack_d *bp)
+pph_out_bitpack (pph_stream *stream, struct bitpack_d *bp)
 {
   gcc_assert (stream->ob->main_stream == bp->stream);
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_bitpack (stream, bp);
+    pph_trace_bitpack (stream, bp);
   lto_output_bitpack (bp);
 }
 
 /* Read an unsigned HOST_WIDE_INT integer from STREAM.  */
 static inline unsigned int
-pph_input_uint (pph_stream *stream)
+pph_in_uint (pph_stream *stream)
 {
   HOST_WIDE_INT unsigned n = lto_input_uleb128 (stream->ib);
   gcc_assert (n == (unsigned) n);
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_uint (stream, n);
+    pph_trace_uint (stream, n);
   return (unsigned) n;
 }
 
 /* Read an unsigned char VALUE to STREAM.  */
 static inline unsigned char
-pph_input_uchar (pph_stream *stream)
+pph_in_uchar (pph_stream *stream)
 {
   unsigned char n = lto_input_1_unsigned (stream->ib);
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_uint (stream, n);
+    pph_trace_uint (stream, n);
   return n;
 }
 
 /* Read N bytes from STREAM into P.  The caller is responsible for 
    allocating a sufficiently large buffer.  */
 static inline void
-pph_input_bytes (pph_stream *stream, void *p, size_t n)
+pph_in_bytes (pph_stream *stream, void *p, size_t n)
 {
   lto_input_data_block (stream->ib, p, n);
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_bytes (stream, p, n);
+    pph_trace_bytes (stream, p, n);
 }
 
 /* Read and return a string of up to MAX characters from STREAM.
@@ -345,21 +345,21 @@ pph_input_bytes (pph_stream *stream, void *p, size_t n)
    for the string.  */
 
 static inline const char *
-pph_input_string (pph_stream *stream)
+pph_in_string (pph_stream *stream)
 {
   const char *s = lto_input_string (stream->data_in, stream->ib);
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_string (stream, s);
+    pph_trace_string (stream, s);
   return s;
 }
 
 /* Load an AST from STREAM.  Return the corresponding tree.  */
 static inline tree
-pph_input_tree (pph_stream *stream)
+pph_in_tree (pph_stream *stream)
 {
   tree t = lto_input_tree (stream->ib, stream->data_in);
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_tree (stream, t, false); /* FIXME pph: always false? */
+    pph_trace_tree (stream, t, false); /* FIXME pph: always false? */
   return t;
 }
 
@@ -367,14 +367,14 @@ pph_input_tree (pph_stream *stream)
 /* FIXME pph: Hold for later use. */
 #if 0
 static inline void
-pph_input_tree_array (pph_stream *stream, tree *a, size_t c)
+pph_in_tree_array (pph_stream *stream, tree *a, size_t c)
 {
   size_t i;
   for (i = 0; i < c; ++i)
     {
       tree t = lto_input_tree (stream->ib, stream->data_in);
       if (flag_pph_tracer >= 4)
-        pph_stream_trace_tree (stream, t, false); /* FIXME pph: always false? */
+        pph_trace_tree (stream, t, false); /* FIXME pph: always false? */
       a[i] = t;
     }
 }
@@ -384,15 +384,15 @@ pph_input_tree_array (pph_stream *stream, tree *a, size_t c)
 /* FIXME pph: Hold for later use. */
 #if 0
 static inline void
-pph_input_tree_VEC (pph_stream *stream, VEC(tree,gc) *v)
+pph_in_tree_VEC (pph_stream *stream, VEC(tree,gc) *v)
 {
   size_t i;
-  unsigned int c = pph_input_uint (stream);
+  unsigned int c = pph_in_uint (stream);
   for (i = 0; i < c; ++i)
     {
       tree t = lto_input_tree (stream->ib, stream->data_in);
       if (flag_pph_tracer >= 4)
-        pph_stream_trace_tree (stream, t, false); /* FIXME pph: always false? */
+        pph_trace_tree (stream, t, false); /* FIXME pph: always false? */
       VEC_safe_push (tree, gc, v, t);
     }
 }
@@ -400,21 +400,21 @@ pph_input_tree_VEC (pph_stream *stream, VEC(tree,gc) *v)
 
 /* Read a chain of ASTs from STREAM.  */
 static inline tree
-pph_input_chain (pph_stream *stream)
+pph_in_chain (pph_stream *stream)
 {
   tree t = lto_input_chain (stream->ib, stream->data_in);
   if (flag_pph_tracer >= 2)
-    pph_stream_trace_chain (stream, t);
+    pph_trace_chain (stream, t);
   return t;
 }
 
 /* Read a bitpack from STREAM.  */
 static inline struct bitpack_d
-pph_input_bitpack (pph_stream *stream)
+pph_in_bitpack (pph_stream *stream)
 {
   struct bitpack_d bp = lto_input_bitpack (stream->ib);
   if (flag_pph_tracer >= 4)
-    pph_stream_trace_bitpack (stream, &bp);
+    pph_trace_bitpack (stream, &bp);
   return bp;
 }
 
