@@ -1,3 +1,8 @@
+2011-06-01  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/c1return-5.cc: New.
+	* g++.dg/pph/c1return-5.h: New.
+
 2011-05-27  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c1attr-warn-unused-result.cc: New.
