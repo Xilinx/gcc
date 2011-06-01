@@ -1,5 +1,10 @@
 2011-06-01  Diego Novillo  <dnovillo@google.com>
 
+	* g++.dg/pph/c120060625-1.cc: New.
+	* g++.dg/pph/c120060625-1.h: New.
+
+2011-06-01  Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/pph/c1return-5.cc: New.
 	* g++.dg/pph/c1return-5.h: New.
 
