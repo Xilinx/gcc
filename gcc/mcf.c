@@ -52,6 +52,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "tree.h"
 #include "gcov-io.h"
+#include "params.h"
+#include "diagnostic-core.h"
 
 #include "profile.h"
 
@@ -64,15 +66,18 @@ along with GCC; see the file COPYING3.  If not see
 #define COST(k, w)      ((k) / mcf_ln ((w) + 2))
 /* Limit the number of iterations for cancel_negative_cycles() to ensure
    reasonable compile time.  */
-#define MAX_ITER(n, e)  10 + (1000000 / ((n) * (e)))
+#define MAX_ITER(n, e)  (PARAM_VALUE (PARAM_MIN_MCF_CANCEL_ITERS) + \
+			 (1000000 / ((n) * (e))))
+
 typedef enum
 {
-  INVALID_EDGE,
+  INVALID_EDGE = 0,
   VERTEX_SPLIT_EDGE,	    /* Edge to represent vertex with w(e) = w(v).  */
   REDIRECT_EDGE,	    /* Edge after vertex transformation.  */
   REVERSE_EDGE,
   SOURCE_CONNECT_EDGE,	    /* Single edge connecting to single source.  */
   SINK_CONNECT_EDGE,	    /* Single edge connecting to single sink.  */
+  SINK_SOURCE_EDGE,	    /* Single edge connecting sink to source.  */
   BALANCE_EDGE,		    /* Edge connecting with source/sink: cp(e) = 0.  */
   REDIRECT_NORMALIZED_EDGE, /* Normalized edge for a redirect edge.  */
   REVERSE_NORMALIZED_EDGE   /* Normalized edge for a reverse edge.  */
@@ -248,6 +253,10 @@ dump_fixup_edge (FILE *file, fixup_graph_type *fixup_graph, fixup_edge_p fedge)
 
 	case SINK_CONNECT_EDGE:
 	  fputs (" @SINK_CONNECT_EDGE", file);
+	  break;
+
+	case SINK_SOURCE_EDGE:
+	  fputs (" @SINK_SOURCE_EDGE", file);
 	  break;
 
 	case REVERSE_EDGE:
@@ -465,7 +474,7 @@ create_fixup_graph (fixup_graph_type *fixup_graph)
   double k_neg = 0;
   /* Vector to hold D(v) = sum_out_edges(v) - sum_in_edges(v).  */
   gcov_type *diff_out_in = NULL;
-  gcov_type supply_value = 1, demand_value = 0;
+  gcov_type supply_value = 0, demand_value = 0;
   gcov_type fcost = 0;
   int new_entry_index = 0, new_exit_index = 0;
   int i = 0, j = 0;
@@ -486,14 +495,15 @@ create_fixup_graph (fixup_graph_type *fixup_graph)
     fnum_vertices_after_transform + n_edges + n_basic_blocks + 2;
 
   /* In create_fixup_graph: Each basic block and edge can be split into 3
-     edges. Number of balance edges = n_basic_blocks. So after
-     create_fixup_graph:
-     max_edges = 4 * n_basic_blocks + 3 * n_edges
+     edges. Number of balance edges = n_basic_blocks - 1. And there is 1 edge
+     connecting new_entry and new_exit, and 2 edges connecting new_entry to
+     entry, and exit to new_exit. So after create_fixup_graph:
+     max_edges = 4 * n_basic_blocks + 3 * n_edges + 2
      Accounting for residual flow edges
-     max_edges = 2 * (4 * n_basic_blocks + 3 * n_edges)
-     = 8 * n_basic_blocks + 6 * n_edges
-     < 8 * n_basic_blocks + 8 * n_edges.  */
-  int fmax_num_edges = 8 * (n_basic_blocks + n_edges);
+     max_edges = 2 * (4 * n_basic_blocks + 3 * n_edges + 2)
+     = 8 * n_basic_blocks + 6 * n_edges + 4
+     < 8 * n_basic_blocks + 8 * n_edges + 8.  */
+  int fmax_num_edges = 8 * (n_basic_blocks + n_edges + 1);
 
   /* Initial num of vertices in the fixup graph.  */
   fixup_graph->num_vertices = n_basic_blocks;
@@ -512,7 +522,7 @@ create_fixup_graph (fixup_graph_type *fixup_graph)
 
   /* Compute constants b, k_pos, k_neg used in the cost function calculation.
      b = sqrt(avg_vertex_weight(cfg)); k_pos = b; k_neg = 50b.  */
-  FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
+  FOR_ALL_BB (bb)
     total_vertex_weight += bb->count;
 
   sqrt_avg_vertex_weight = mcf_sqrt (total_vertex_weight / n_basic_blocks);
@@ -526,10 +536,11 @@ create_fixup_graph (fixup_graph_type *fixup_graph)
   if (dump_file)
     fprintf (dump_file, "\nVertex transformation:\n");
 
-  FOR_BB_BETWEEN (bb, ENTRY_BLOCK_PTR, NULL, next_bb)
+  FOR_ALL_BB (bb)
   {
     /* v'->v'': index1->(index1+1).  */
     i = 2 * bb->index;
+
     fcost = (gcov_type) COST (k_pos, bb->count);
     add_fixup_edge (fixup_graph, i, i + 1, VERTEX_SPLIT_EDGE, bb->count,
                     fcost, CAP_INFINITY);
@@ -593,23 +604,45 @@ create_fixup_graph (fixup_graph_type *fixup_graph)
 
   new_entry_index = fixup_graph->new_entry_index = fixup_graph->num_vertices;
   fixup_graph->num_vertices++;
-  /* Set supply_value to 1 to avoid zero count function ENTRY.  */
-  add_fixup_edge (fixup_graph, new_entry_index, ENTRY_BLOCK, SOURCE_CONNECT_EDGE,
-		  1 /* supply_value */, 0, 1 /* supply_value */);
+  /* Set capacity to 0 initially, it will be updated after
+     supply_value is computed. */
+  add_fixup_edge (fixup_graph, new_entry_index, ENTRY_BLOCK,
+		  SOURCE_CONNECT_EDGE, 0 /* supply_value */, 0,
+		  0 /* supply_value */);
+  add_fixup_edge (fixup_graph, ENTRY_BLOCK, new_entry_index,
+                  SOURCE_CONNECT_EDGE, 0 /* supply_value */, 0,
+                  0 /* supply_value */);
 
-  /* Create new exit with EXIT_BLOCK as single pred.  */
+
+  /* Set capacity to 0 initially, it will be updated after
+     demand_value is computed. */
   new_exit_index = fixup_graph->new_exit_index = fixup_graph->num_vertices;
   fixup_graph->num_vertices++;
   add_fixup_edge (fixup_graph, 2 * EXIT_BLOCK + 1, new_exit_index,
                   SINK_CONNECT_EDGE,
                   0 /* demand_value */, 0, 0 /* demand_value */);
+  add_fixup_edge (fixup_graph, new_exit_index, 2 * EXIT_BLOCK + 1,
+                  SINK_CONNECT_EDGE,
+                  0 /* demand_value */, 0, 0 /* demand_value */);
+
+
+  /* Create a back edge from the new_exit to the new_entry.
+     Initially, its capacity will be set to 0 so that it does not
+     affect max flow, but later its capacity will be changed to
+     infinity to cancel negative cycles. */
+  add_fixup_edge (fixup_graph, new_exit_index, new_entry_index,
+		  SINK_SOURCE_EDGE, 0, 0, 0);
+
+
 
   /* Connect vertices with unbalanced D(v) to source/sink.  */
   if (dump_file)
     fprintf (dump_file, "\nD(v) balance:\n");
-  /* Skip vertices for ENTRY (0, 1) and EXIT (2,3) blocks, so start with i = 4.
-     diff_out_in[v''] will be 0, so skip v'' vertices, hence i += 2.  */
-  for (i = 4; i < new_entry_index; i += 2)
+
+  /* Skip vertices for ENTRY (0, 1) and EXIT (2,3) blocks, so start
+     with i = 4.  diff_out_in[v''] should be 0, but may not be due to
+     rounding error.  So here we consider all vertices.  */
+  for (i = 4; i < new_entry_index; i += 1)
     {
       if (diff_out_in[i] > 0)
 	{
@@ -674,7 +707,6 @@ create_fixup_graph (fixup_graph_type *fixup_graph)
 	      fprintf (dump_file, "------------------\n");
 	    }
 
-	  pfedge->cost /= 2;
 	  pfedge->norm_vertex_index = new_index;
 	  if (dump_file)
 	    {
@@ -684,7 +716,7 @@ create_fixup_graph (fixup_graph_type *fixup_graph)
 
 	  /* Add a new fixup edge: new_index->src.  */
 	  add_fixup_edge (fixup_graph, new_index, pfedge->src,
-			  REVERSE_NORMALIZED_EDGE, 0, r_pfedge->cost,
+			  REVERSE_NORMALIZED_EDGE, 0, 0,
 			  r_pfedge->max_capacity);
 	  gcc_assert (fixup_graph->num_vertices <= fmax_num_vertices);
 
@@ -692,7 +724,6 @@ create_fixup_graph (fixup_graph_type *fixup_graph)
              ==> r_pfedge->src -> new_index.  */
 	  r_pfedge->dest = new_index;
 	  r_pfedge->type = REVERSE_NORMALIZED_EDGE;
-	  r_pfedge->cost = pfedge->cost;
 	  r_pfedge->max_capacity = pfedge->max_capacity;
 	  if (dump_file)
 	    dump_fixup_edge (dump_file, fixup_graph, r_pfedge);
@@ -794,14 +825,12 @@ cancel_negative_cycle (fixup_graph_type *fixup_graph,
   bool found_cycle = false;
   int cycle_start = 0, cycle_end = 0;
   gcov_type sum_cost = 0, cycle_flow = 0;
-  int new_entry_index;
   bool propagated = false;
 
   gcc_assert (fixup_graph);
   fnum_vertices = fixup_graph->num_vertices;
   fnum_edges = fixup_graph->num_edges;
   fedge_list = fixup_graph->edge_list;
-  new_entry_index = fixup_graph->new_entry_index;
 
   /* Initialize.  */
   /* Skip ENTRY.  */
@@ -820,8 +849,6 @@ cancel_negative_cycle (fixup_graph_type *fixup_graph,
     for (i = 0; i < fnum_edges; i++)
       {
 	pfedge = fedge_list + i;
-	if (pfedge->src == new_entry_index)
-	  continue;
 	if (pfedge->is_rflow_valid && pfedge->rflow
             && d[pfedge->src] != CAP_INFINITY
 	    && (d[pfedge->dest] > d[pfedge->src] + pfedge->cost))
@@ -843,8 +870,6 @@ cancel_negative_cycle (fixup_graph_type *fixup_graph,
   for (i = 0; i < fnum_edges; i++)
     {
       pfedge = fedge_list + i;
-      if (pfedge->src == new_entry_index)
-	continue;
       if (pfedge->is_rflow_valid && pfedge->rflow
           && d[pfedge->src] != CAP_INFINITY
 	  && (d[pfedge->dest] > d[pfedge->src] + pfedge->cost))
@@ -912,10 +937,12 @@ cancel_negative_cycle (fixup_graph_type *fixup_graph,
     {
       pfedge = find_fixup_edge (fixup_graph, cycle[k + 1], cycle[k]);
       r_pfedge = find_fixup_edge (fixup_graph, cycle[k], cycle[k + 1]);
-      pfedge->rflow -= cycle_flow;
+      if (pfedge->rflow != CAP_INFINITY)
+        pfedge->rflow -= cycle_flow;
       if (pfedge->type)
 	pfedge->flow += cycle_flow;
-      r_pfedge->rflow += cycle_flow;
+      if (r_pfedge->rflow != CAP_INFINITY)
+        r_pfedge->rflow += cycle_flow;
       if (r_pfedge->type)
 	r_pfedge->flow -= cycle_flow;
     }
@@ -945,7 +972,8 @@ compute_residual_flow (fixup_graph_type *fixup_graph)
   for (i = 0; i < fnum_edges; i++)
     {
       pfedge = fedge_list + i;
-      pfedge->rflow = pfedge->max_capacity - pfedge->flow;
+      pfedge->rflow = pfedge->max_capacity == CAP_INFINITY ?
+                      CAP_INFINITY : pfedge->max_capacity - pfedge->flow;
       pfedge->is_rflow_valid = true;
       add_rfixup_edge (fixup_graph, pfedge->dest, pfedge->src, pfedge->flow,
 		       -pfedge->cost);
@@ -1070,20 +1098,22 @@ find_max_flow (fixup_graph_type *fixup_graph, int source, int sink)
 	{
 	  pfedge = find_fixup_edge (fixup_graph, bb_pred[u], u);
 	  r_pfedge = find_fixup_edge (fixup_graph, u, bb_pred[u]);
+
+          if (pfedge->rflow != CAP_INFINITY)
+	    pfedge->rflow -= increment;
+          if (r_pfedge->rflow != CAP_INFINITY)
+	    r_pfedge->rflow += increment;
+
 	  if (pfedge->type)
 	    {
 	      /* forward edge.  */
 	      pfedge->flow += increment;
-	      pfedge->rflow -= increment;
-	      r_pfedge->rflow += increment;
 	    }
 	  else
 	    {
 	      /* backward edge.  */
 	      gcc_assert (r_pfedge->type);
-	      r_pfedge->rflow += increment;
 	      r_pfedge->flow -= increment;
-	      pfedge->rflow -= increment;
 	    }
 	}
 
@@ -1302,6 +1332,60 @@ adjust_cfg_counts (fixup_graph_type *fixup_graph)
 }
 
 
+/* Called before negative_cycle_cancellation, to form a cycle between
+ * new_exit to new_entry in FIXUP_GRAPH with capacity MAX_FLOW. We
+ * don't want the flow in the BALANCE_EDGE to be modified, so we set
+ * the residural flow of those edges to 0 */
+
+static void
+modify_sink_source_capacity (fixup_graph_type *fixup_graph, gcov_type max_flow)
+{
+  fixup_edge_p edge, r_edge;
+  int i;
+  int entry = ENTRY_BLOCK;
+  int exit = 2 * EXIT_BLOCK + 1;
+  int new_entry = fixup_graph->new_entry_index;
+  int new_exit = fixup_graph->new_exit_index;
+
+  edge = find_fixup_edge (fixup_graph, new_entry, entry);
+  edge->max_capacity = CAP_INFINITY;
+  edge->rflow = CAP_INFINITY;
+
+  edge = find_fixup_edge (fixup_graph, entry, new_entry);
+  edge->max_capacity = CAP_INFINITY;
+  edge->rflow = CAP_INFINITY;
+
+  edge = find_fixup_edge (fixup_graph, exit, new_exit);
+  edge->max_capacity = CAP_INFINITY;
+  edge->rflow = CAP_INFINITY;
+
+  edge = find_fixup_edge (fixup_graph, new_exit, exit);
+  edge->max_capacity = CAP_INFINITY;
+  edge->rflow = CAP_INFINITY;
+
+  edge = find_fixup_edge (fixup_graph, new_exit, new_entry);
+  edge->max_capacity = CAP_INFINITY;
+  edge->flow = max_flow;
+  edge->rflow = CAP_INFINITY;
+
+  r_edge = find_fixup_edge (fixup_graph, new_entry, new_exit);
+  r_edge->rflow = max_flow;
+
+  /* Find all the backwards residual edges corresponding to
+     BALANCE_EDGEs and set their residual flow to 0 to enforce a
+     minimum flow constraint on these edges. */
+  for (i = 4; i < new_entry; i += 1)
+    {
+      edge = find_fixup_edge (fixup_graph, i, new_entry);
+      if (edge)
+	edge->rflow = 0;
+      edge = find_fixup_edge (fixup_graph, new_exit, i);
+      if (edge)
+	edge->rflow = 0;
+    }
+}
+
+
 /* Implements the negative cycle canceling algorithm to compute a minimum cost
    flow.
 Algorithm:
@@ -1330,13 +1414,18 @@ find_minimum_cost_flow (fixup_graph_type *fixup_graph)
   int fnum_vertices;
   int new_exit_index;
   int new_entry_index;
+  gcov_type max_flow;
 
   gcc_assert (fixup_graph);
   fnum_vertices = fixup_graph->num_vertices;
   new_exit_index = fixup_graph->new_exit_index;
   new_entry_index = fixup_graph->new_entry_index;
 
-  find_max_flow (fixup_graph, new_entry_index, new_exit_index);
+  max_flow = find_max_flow (fixup_graph, new_entry_index, new_exit_index);
+
+  /* Adjust the fixup graph to translate things into a minimum cost
+     circulation problem. */
+  modify_sink_source_capacity (fixup_graph, max_flow);
 
   /* Initialize the structures for find_negative_cycle().  */
   pred = (int *) xcalloc (fnum_vertices, sizeof (int));
@@ -1352,7 +1441,12 @@ find_minimum_cost_flow (fixup_graph_type *fixup_graph)
       iteration++;
       if (iteration > MAX_ITER (fixup_graph->num_vertices,
                                 fixup_graph->num_edges))
-        break;
+	{
+	  inform (DECL_SOURCE_LOCATION (current_function_decl),
+		  "Exiting profile correction early to avoid excessive "
+		  "compile time");
+	  break;
+	}
     }
 
   if (dump_file)

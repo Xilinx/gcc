@@ -8341,6 +8341,12 @@ whether the result of a complex multiplication or division is @code{NaN
 
 The default is @option{-fno-cx-fortran-rules}.
 
+@item min-mcf-cancel-iters
+The minimum number of iterations of negative cycle cancellation during
+MCF profile correction before early termination.  This parameter is
+only useful when using @option{-fprofile-correction}.
+
+
 @end table
 
 The following options control optimizations that may improve

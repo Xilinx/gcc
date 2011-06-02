@@ -1,3 +1,19 @@
+2011-06-02  Neil Vachharajani  <nvachhar@gmail.com>, Dehao Chen
+	<danielcdh@gmail.com>
+
+	* gcc/doc/invoke.texi (min-mcf-cancel-iters): Document.
+	* gcc/mcf.c (MAX_ITER): Use new param PARAM_MIN_MCF_CANCEL_ITERS.
+	(edge_type): Add SINK_SOURCE_EDGE.
+	(dump_fixup_edge): Handle SINK_SOURCE_EDGE.
+	(create_fixup_graph): Make problem miminum cost circulation.
+	(cancel_negative_cycle): Update handling of infinite capacity.
+	(compute_residual_flow): Update handling of infinite capacity.
+	(find_max_flow): Update handling of infinite capacity.
+	(modify_sink_source_capacity): New function.
+	(find_minimum_cost_flow): Make problem miminum cost circulation.
+	Use param PARAM_MIN_MCF_CANCEL_ITERS.
+	* gcc/params.def (PARAM_MIN_MCF_CANCEL_ITERS): Define.
+
 2011-05-30  Xinliang David Li  <davidxl@google.com>
 
 	Backport trunk r174423, r174424
