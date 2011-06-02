@@ -1,3 +1,10 @@
+2011-06-01  Lawrence Crowl <crowl@google.com>
+
+	* pph-streamer-in.c (pph_in_ld_fn): Stream in struct
+	lang_decl_min because it is a member of struct lang_decl_fn.
+	* pph-streamer-out.c (pph_in_ld_fn): Stream out struct
+	lang_decl_min because it is a member of struct lang_decl_fn.
+
 2011-05-31  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (pph_unpack_value_fields): Rename

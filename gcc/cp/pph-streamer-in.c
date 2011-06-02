@@ -562,6 +562,9 @@ pph_in_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
 {
   struct bitpack_d bp;
 
+  /* Read all the fields in lang_decl_min.  */
+  pph_in_ld_min (stream, &ldf->min);
+
   bp = pph_in_bitpack (stream);
   ldf->operator_code = (enum tree_code) bp_unpack_value (&bp, 16);
   ldf->global_ctor_p = bp_unpack_value (&bp, 1);

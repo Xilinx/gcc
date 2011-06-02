@@ -550,6 +550,9 @@ pph_out_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf,
 {
   struct bitpack_d bp;
 
+  /* Write all the fields in lang_decl_min.  */
+  pph_out_ld_min (stream, &ldf->min, ref_p);
+
   bp = bitpack_create (stream->ob->main_stream);
   bp_pack_value (&bp, ldf->operator_code, 16);
   bp_pack_value (&bp, ldf->global_ctor_p, 1);
