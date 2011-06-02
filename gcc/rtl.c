@@ -150,6 +150,9 @@ struct obstack *rtl_obstack = &function_obstack;
 static unsigned int obstack_nesting_level;
 static void *function_ob_first_obj;
 
+/* obstack.[ch] explicitly declined to prototype this.  */
+extern int _obstack_allocated_p (struct obstack *h, void *obj);
+
 /* Prepares for allocation of RTXes.  */
 void
 init_rtl (void)
@@ -323,6 +326,21 @@ shared_const_p (const_rtx orig)
 	  && CONST_INT_P(XEXP (XEXP (orig, 0), 1)));
 }
 
+/* Return TRUE if PTR points to function RTL memory.  */
+static bool
+allocated_in_function_mem_p(void * ptr)
+{
+  return _obstack_allocated_p (&function_obstack, ptr);
+}
+
+/* If original is in the function memory and the current allocation mode
+   is permanent memory, do a copy, share otherwise.  */
+static bool
+need_copy_p(rtx orig)
+{
+  return allocated_in_function_mem_p (orig)
+    && rtl_obstack == &permanent_obstack;
+}
 
 /* Create a new copy of an rtx.
    Recursively copies the operands of the rtx,
@@ -346,21 +364,33 @@ copy_rtx (rtx orig)
     case CONST_INT:
     case CONST_DOUBLE:
     case CONST_FIXED:
+    case CONST_VECTOR:
     case SYMBOL_REF:
     case CODE_LABEL:
     case PC:
     case CC0:
     case SCRATCH:
+      if (!need_copy_p (orig))
+	return orig;
+      /* TODO gc-improv: this and other RTX where it really does not make sense
+	 to copy.  */
       /* SCRATCH must be shared because they represent distinct values.  */
-      return orig;
+      gcc_assert(code != SCRATCH);
+      break;
     case CLOBBER:
-      if (REG_P (XEXP (orig, 0)) && REGNO (XEXP (orig, 0)) < FIRST_PSEUDO_REGISTER)
+      if (!need_copy_p (orig)
+	  && REG_P (XEXP (orig, 0))
+	  && REGNO (XEXP (orig, 0)) < FIRST_PSEUDO_REGISTER)
 	return orig;
       break;
 
     case CONST:
       if (shared_const_p (orig))
-	return orig;
+	{
+	  /* Shared constants must be allocated in the permanent memory.  */
+	  gcc_assert (!need_copy_p (orig));
+	  return orig;
+	}
       break;
 
       /* A MEM with a constant address is not sharable.  The problem is that

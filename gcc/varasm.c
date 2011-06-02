@@ -1238,6 +1238,9 @@ make_decl_rtl (tree decl)
 		     "optimization may eliminate reads and/or "
 		     "writes to register variables");
 
+	  if (TREE_STATIC (decl))
+	    use_rtl_permanent_mem ();
+
 	  /* If the user specified one of the eliminables registers here,
 	     e.g., FRAME_POINTER_REGNUM, we don't want to get this variable
 	     confused with that register and be eliminated.  This usage is
@@ -1246,6 +1249,9 @@ make_decl_rtl (tree decl)
 	  SET_DECL_RTL (decl, gen_rtx_raw_REG (DECL_MODE (decl), reg_number));
 	  ORIGINAL_REGNO (DECL_RTL (decl)) = reg_number;
 	  REG_USERVAR_P (DECL_RTL (decl)) = 1;
+
+	  if (TREE_STATIC (decl))
+	    use_rtl_function_mem ();
 
 	  if (TREE_STATIC (decl))
 	    {

@@ -1,3 +1,22 @@
+2011-06-02  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
+
+	* varasm.c (make_decl_rtl): Allocate DECL_RTL in the permanent RTL
+	memory.
+
+	* rtl.c: (_obstack_allocated_p): Declare.
+	(allocated_in_function_mem_p): New.
+	(need_copy_p): New.
+	(copy_rtx): Re-enable sharing of CONST_VECTOR rtxes.  Use
+	need_copy_p to decide on copying vs. sharing of rtxes.
+
+	* function.c (reinit_struct_function): New.
+	(set_cfun, prepare_function_start): Call it.
+
+	* config/i386/i386.c (ix86_expand_split_stack_prologue): Allocate
+	split_stack_fn in the permanent RTL memory.
+	(ix86_expand_split_stack_prologue): Allocate split_stack_fn_large
+	in the permanent RTL memory.
+
 2011-04-07  Laurynas Biveinis  <laurynas.biveinis@gmail.com>
 
 	* stmt.c (label_rtx): Allocate RTX in permanent RTL memory.

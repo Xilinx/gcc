@@ -151,6 +151,7 @@ static void prepare_function_start (void);
 static void do_clobber_return_reg (rtx, void *);
 static void do_use_return_reg (rtx, void *);
 static void set_insn_locators (rtx, int) ATTRIBUTE_UNUSED;
+static void reinit_struct_function (void);
 
 /* Stack of nested functions.  */
 /* Keep track of the cfun stack.  */
@@ -4316,6 +4317,7 @@ set_cfun (struct function *new_cfun)
     {
       cfun = new_cfun;
       invoke_set_current_function_hook (new_cfun ? new_cfun->decl : NULL_TREE);
+      reinit_struct_function ();
     }
 }
 
@@ -4417,6 +4419,16 @@ push_struct_function (tree fndecl)
   allocate_struct_function (fndecl, false);
 }
 
+/* Initialize those parts of struct function that are cleared during PCH read
+   and write.  */
+
+static void
+reinit_struct_function (void)
+{
+  if (cfun && !cfun->machine && init_machine_status)
+    cfun->machine = (*init_machine_status) ();
+}
+
 /* Reset crtl and other non-struct-function variables to defaults as
    appropriate for emitting rtl at the start of a function.  */
 
@@ -4437,8 +4449,7 @@ prepare_function_start (void)
     }
 
   /* cfun->machine is NULL after PCH read.  Initialize it.  */
-  if (!cfun->machine && init_machine_status)
-    cfun->machine = (*init_machine_status) ();
+  reinit_struct_function ();
 
   cse_not_expected = ! optimize;
 
