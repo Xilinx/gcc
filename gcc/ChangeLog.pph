@@ -1,3 +1,9 @@
+2011-06-03  Gabriel Charette  <gchare@google.com>
+
+	* timevar.def (TV_PPH_CACHE_IN): Remove.
+	(TV_PPH_CACHE_OUT): Remove.
+	(TV_PPH_MANAGE): Remove.
+
 2011-06-03  Diego Novillo  <dnovillo@google.com>
 
 	* langhooks-def.h (LANG_HOOKS_PPH_CATCH_TREE): Remove.  Update

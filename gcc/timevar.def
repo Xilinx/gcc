@@ -69,11 +69,6 @@ DEFTIMEVAR (TV_PTH_SAVE              , "PTH stream save")
 DEFTIMEVAR (TV_PTH_SKIP_TOKENS       , "PTH skip cached tokens")
 DEFTIMEVAR (TV_PTH_INIT              , "PTH initialization")
 
-/* Time spent handling PPH state.  */
-DEFTIMEVAR (TV_PPH_CACHE_IN          , "PPH cache in")
-DEFTIMEVAR (TV_PPH_CACHE_OUT         , "PPH cache out")
-DEFTIMEVAR (TV_PPH_MANAGE            , "PPH bookkeeping")
-
 DEFTIMEVAR (TV_CGRAPH                , "callgraph construction")
 DEFTIMEVAR (TV_CGRAPHOPT             , "callgraph optimization")
 DEFTIMEVAR (TV_VARPOOL               , "varpool construction")
