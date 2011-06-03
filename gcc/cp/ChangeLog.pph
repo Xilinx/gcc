@@ -1,3 +1,20 @@
+2011-06-03  Gabriel Charette  <gchare@google.com>
+
+	* pph.h (struct pph_stats_d): Remove.  Update all users.
+	(struct pph_decl_deps_d): Likewise.
+	(PPH_POP_TIMEVAR_AND_RETURN): Likewise.
+	(pph_start_exposed): Likewise.
+	(pph_stop_exposed): Likewise.
+	(pph_catch_tree): Likewise.
+	(pph_uncatch_tree): Likewise.
+	(pph_catch_name_lookup): Likewise.
+	* pph.c (pph_print_trees_tokens): Likewise.
+	(pph_tree_catcher): Likewise.
+	(pph_name_lookups): Likewise.
+	(pph_nl_token_map): Likewise.
+	(pph_decl_head_token_cache): Likewise.
+	(pph_decl_body_token_cache): Likewise.
+
 2011-06-01  Lawrence Crowl <crowl@google.com>
 
 	* pph-streamer-in.c (pph_in_ld_fn): Stream in struct
