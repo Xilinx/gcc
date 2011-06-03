@@ -473,11 +473,6 @@ struct lang_hooks
      gimplification.  */
   bool deep_unsharing;
 
-  /* Used by pre-parsed header (PPH) to intercept certain tree nodes
-     created by make_node_stat during parsing.  */
-  void (*pph_catch_tree) (tree t);
-  void (*pph_uncatch_tree) (tree t);
-
   /* Whenever you add entries here, make sure you adjust langhooks-def.h
      and langhooks.c accordingly.  */
 };

@@ -1,3 +1,11 @@
+2011-06-03  Diego Novillo  <dnovillo@google.com>
+
+	* langhooks-def.h (LANG_HOOKS_PPH_CATCH_TREE): Remove.  Update
+	all users.
+	(LANG_HOOKS_PPH_UNCATCH_TREE): Remove.  Update all users.
+	* langhooks.h (struct lang_hooks): Remove fields pph_catch_tree
+	and pph_uncatch_tree.  Update all users.
+
 2011-05-30  Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 174363.
