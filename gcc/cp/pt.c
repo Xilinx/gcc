@@ -7173,7 +7173,6 @@ lookup_template_class (tree d1, tree arglist, tree in_decl, tree context,
   timevar_push (TV_TEMPLATE_INST);
   ret = lookup_template_class_1 (d1, arglist, in_decl, context,
                                  entering_scope, complain);
-  pph_catch_name_lookup (ret);
   timevar_pop (TV_TEMPLATE_INST);
   return ret;
 }

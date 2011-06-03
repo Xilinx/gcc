@@ -208,67 +208,11 @@ extern struct pth_stats_d pth_stats;
 	      pth_stats.CNT += (N);		\
 	} while (0)
 
-
-/* Statistics on PPH.  */
-
-struct pph_stats_d
-{
-  /* Number of tokens parsed in this TU.  */
-  size_t parsed_tokens;
-
-  /* Number of tokens in the lexer buffer.  */
-  size_t lexed_tokens;
-
-  /* Number of declarations copied into the parser cache.  */
-  size_t cached_decls;
-
-  /* Number of declarations restored from the parser cache.  */
-  size_t restored_decls;
-
-  /* Number of references rebound when going in/out of the cache.  */
-  size_t cached_refs;
-
-  /* Number of name lookups done by the parser.  */
-  size_t name_lookups;
-
-  /* Number of decl lookups that were changed to something weird.  */
-  size_t bad_lookups;
-};
-
-extern struct pph_stats_d pph_stats;
-  
-#define PPH_STATS_INCR(CNT,N)			\
-  	do {					\
-	    if (flag_pph_stats)			\
-	      pph_stats.CNT += (N);		\
-	} while (0)
-
-
-/* Maps for tracking decl dependencies.  For each *_DECL tree intercepted
-   during parsing, we store the trees on which the node depends for
-   its declaration.  Two maps are kept, one for the head of the declaration
-   and another for its body.  */
-struct pph_decl_deps_d
-{
-  /* Symbol dependencies on the declaration header.  */
-  struct pointer_map_t *header;
-
-  /* Symbol dependencies on the declaration body.  */
-  struct pointer_map_t *body;
-};
-
 /* Global state.  FIXME pph, get rid of these.  */
 
 /* Log file where PPH analysis is written to.  Controlled by
    -fpph_logfile.  If this flag is not given, stdout is used.  */
 extern FILE *pph_logfile;
-
-#define PPH_POP_TIMEVAR_AND_RETURN(TV, T)				\
-  do {									\
-    pph_catch_name_lookup (T);						\
-    POP_TIMEVAR_AND_RETURN(TV, T);					\
-  } while (0)
-
 
 /* In pph.c  */
 extern void pth_init (cp_lexer *);
@@ -278,12 +222,7 @@ extern void pth_debug_token_hunks (pth_image *);
 extern pth_image *pth_image_lookup (pth_state *, const char *, cpp_reader *);
 extern pth_state *pth_get_state (void);
 extern void pth_print_stats (FILE *, cp_lexer *);
-extern cp_token *pph_start_exposed (cp_parser *);
-extern void pph_stop_exposed (cp_parser *, cp_token *);
 extern void pph_init (void);
 extern void pph_finish (void);
-extern void pph_catch_tree (tree);
-extern void pph_uncatch_tree (tree);
-extern void pph_catch_name_lookup (tree);
 
 #endif  /* GCC_CP_PPH_H  */

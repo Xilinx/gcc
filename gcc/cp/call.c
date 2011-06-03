@@ -1759,7 +1759,6 @@ implicit_conversion (tree to, tree from, tree expr, bool c_cast_p,
       if (cand)
         {
 	  conv = cand->second_conv;
-          pph_catch_name_lookup (DECL_ORIGIN (cand->fn));
         }
 
       /* We used to try to bind a reference to a temporary here, but that
@@ -5016,7 +5015,6 @@ build_new_op_1 (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	    result = error_mark_node;
 	  else
             {
-              pph_catch_name_lookup (DECL_ORIGIN (cand->fn));
 	      result = build_over_call (cand, LOOKUP_NORMAL, complain);
             }
 	}
@@ -5578,7 +5576,6 @@ convert_like_real (conversion *convs, tree expr, tree fn, int argnum,
 	for (i = 0; i < cand->num_convs; ++i)
 	  cand->convs[i]->user_conv_p = true;
 
-        pph_catch_name_lookup (DECL_ORIGIN (cand->fn));
 	expr = build_over_call (cand, LOOKUP_NORMAL, complain);
 
 	/* If this is a constructor or a function returning an aggr type,
@@ -7206,7 +7203,6 @@ build_new_method_call_1 (tree instance, tree fns, VEC(tree,gc) **args,
 	      if (fn_p)
 		*fn_p = fn;
 	      /* Build the actual CALL_EXPR.  */
-              pph_catch_name_lookup (DECL_ORIGIN (cand->fn));
 	      call = build_over_call (cand, flags, complain);
 	      /* In an expression of the form `a->f()' where `f' turns
 		 out to be a static member function, `a' is

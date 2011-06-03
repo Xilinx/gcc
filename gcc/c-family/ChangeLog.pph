@@ -1,3 +1,14 @@
+2011-06-03  Gabriel Charette  <gchare@google.com>
+
+	* c.opt (fpph): Remove.
+	Update all users.
+	(fpph-decls): Remove.
+	Update all users.
+	(fpph-decls-debug): Remove.
+	Update all users.
+	(fpph-stats): Remove.
+	Update all users.
+
 2011-05-24  Lawrence Crowl  <crowl@google.com>
 
 	* c.opt (fpph-untree): Add.

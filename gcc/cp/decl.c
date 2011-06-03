@@ -2311,7 +2311,7 @@ duplicate_decls_internal (tree newdecl, tree olddecl, bool newdecl_is_friend)
 tree
 duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 {
-  tree gooddecl, baddecl;
+  tree gooddecl;
 
   gooddecl = duplicate_decls_internal (newdecl, olddecl, newdecl_is_friend);
 
@@ -2320,13 +2320,6 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
      in that case.  */
   if (gooddecl == NULL_TREE)
     return NULL_TREE;
-
-  baddecl = (gooddecl == newdecl) ? olddecl : newdecl;
-  if (lang_hooks.pph_uncatch_tree)
-    lang_hooks.pph_uncatch_tree (baddecl);
-
-  if (lang_hooks.pph_catch_tree)
-    lang_hooks.pph_catch_tree (gooddecl);
 
   return gooddecl;
 }
@@ -2598,7 +2591,6 @@ lookup_label (tree id)
   tree ret;
   bool subtime = timevar_cond_start (TV_NAME_LOOKUP);
   ret = lookup_label_1 (id);
-  pph_catch_name_lookup (ret);
   timevar_cond_stop (TV_NAME_LOOKUP, subtime);
   return ret;
 }
@@ -2931,7 +2923,6 @@ define_label (location_t location, tree name)
   tree ret;
   timevar_start (TV_NAME_LOOKUP);
   ret = define_label_1 (location, name);
-  pph_catch_name_lookup (ret);
   timevar_stop (TV_NAME_LOOKUP);
   return ret;
 }
@@ -11559,7 +11550,6 @@ xref_tag (enum tag_types tag_code, tree name,
   tree ret;
   timevar_start (TV_NAME_LOOKUP);
   ret = xref_tag_1 (tag_code, name, scope, template_header_p);
-  pph_catch_name_lookup (ret);
   timevar_stop (TV_NAME_LOOKUP);
   return ret;
 }

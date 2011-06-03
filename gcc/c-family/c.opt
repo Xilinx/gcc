@@ -921,21 +921,9 @@ fplan9-extensions
 C ObjC Var(flag_plan9_extensions)
 Enable Plan 9 language extensions
 
-fpph
-C++ Var(flag_pph)
--fpph   Enable pre-parsed header (PPH) support
-
 fpph-debug=
 C++ Joined RejectNegative UInteger Var(flag_pph_debug)
 -fpph-debug=N   Enable debugging output at level N from PPH support
-
-fpph-decls=
-C++ Joined RejectNegative UInteger Var(flag_pph_decls)
--fpph-decls=N   Enable declaration identifier output at level N from PPH support
-
-fpph-decls-debug=
-C++ Joined RejectNegative UInteger Var(flag_pph_decls_debug)
--fpph-decls=N   Enable declaration identifier output at level N from PPH support
 
 fpph-dump-tree
 C++ Var(flag_pph_dump_tree)
@@ -952,10 +940,6 @@ C++ Joined RejectNegative Var(flag_pph_logfile)
 fpph-map=
 C++ ObjC++ Joined MissingArgError(missing filename after %qs)
 -fpph-map=<file-name>   A file of mappings from #include to PPH file
-
-fpph-stats
-C++ Var(flag_pph_stats)
--fpph-stats	Enable statistics gathering for PPH
 
 fpph-tracer=
 C++ Joined RejectNegative UInteger Var(flag_pph_tracer)

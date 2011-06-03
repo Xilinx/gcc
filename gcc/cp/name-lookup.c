@@ -555,12 +555,6 @@ add_decl_to_level (tree decl, cxx_scope *b)
 		&& (!TREE_PUBLIC (decl) || DECL_DECLARED_INLINE_P (decl))))
           {
 	    VEC_safe_push (tree, gc, b->static_decls, decl);
-            if (flag_pph_decls_debug >= 3)
-              {
-                fprintf (stderr, "Adding %p to static_decls:\n", (void*)decl);
-                print_generic_expr (stderr, decl, 0);
-                fprintf (stderr, "\n");
-              }
           }
     }
 }
@@ -1855,7 +1849,6 @@ identifier_type_value (tree id)
   tree ret;
   timevar_start (TV_NAME_LOOKUP);
   ret = identifier_type_value_1 (id);
-  pph_catch_name_lookup (ret);
   timevar_stop (TV_NAME_LOOKUP);
   return ret;
 }
@@ -2150,7 +2143,6 @@ pushdecl_with_scope (tree x, cxx_scope *level, bool is_friend)
   tree ret;
   bool subtime = timevar_cond_start (TV_NAME_LOOKUP);
   ret = pushdecl_with_scope_1 (x, level, is_friend);
-  pph_catch_name_lookup (ret);
   timevar_cond_stop (TV_NAME_LOOKUP, subtime);
   return ret;
 }
@@ -4787,7 +4779,6 @@ lookup_type_scope (tree name, tag_scope scope)
   tree ret;
   bool subtime = timevar_cond_start (TV_NAME_LOOKUP);
   ret = lookup_type_scope_1 (name, scope);
-  pph_catch_name_lookup (ret);
   timevar_cond_stop (TV_NAME_LOOKUP, subtime);
   return ret;
 }
@@ -4842,7 +4833,6 @@ lookup_name_innermost_nonclass_level (tree name)
   tree ret;
   bool subtime = timevar_cond_start (TV_NAME_LOOKUP);
   ret = lookup_name_innermost_nonclass_level_1 (name);
-  pph_catch_name_lookup (ret);
   timevar_cond_stop (TV_NAME_LOOKUP, subtime);
   return ret;
 }
@@ -5430,7 +5420,6 @@ lookup_arg_dependent (tree name, tree fns, VEC(tree,gc) *args,
   tree ret;
   timevar_start (TV_NAME_LOOKUP);
   ret = lookup_arg_dependent_1 (name, fns, args, include_std);
-  pph_catch_name_lookup (ret);
   timevar_stop (TV_NAME_LOOKUP);
   return ret;
 }
@@ -5710,7 +5699,6 @@ pushtag (tree name, tree type, tag_scope scope)
   tree ret;
   bool subtime = timevar_cond_start (TV_NAME_LOOKUP);
   ret = pushtag_1 (name, type, scope);
-  pph_catch_name_lookup (ret);
   timevar_cond_stop (TV_NAME_LOOKUP, subtime);
   return ret;
 }

@@ -663,8 +663,6 @@ cp_lexer_new_main (void)
       cp_lexer_debug_tokens (lexer->buffer);
     }
 
-  PPH_STATS_INCR (lexed_tokens, VEC_length (cp_token, lexer->buffer));
-
   if (flag_pth_stats)
     pth_print_stats (pph_logfile, lexer);
 
@@ -1047,8 +1045,6 @@ cp_lexer_consume_token (cp_lexer* lexer)
       cp_lexer_print_token (cp_lexer_debug_stream, token);
       putc ('\n', cp_lexer_debug_stream);
     }
-
-  PPH_STATS_INCR (parsed_tokens, 1);
 
   return token;
 }
@@ -9614,32 +9610,24 @@ cp_parser_declaration (cp_parser* parser)
       if (token2.type == CPP_LESS
 	  && cp_lexer_peek_nth_token (parser->lexer, 3)->type == CPP_GREATER)
         {
-          cp_token *pph_first_token = pph_start_exposed (parser);
 	  cp_parser_explicit_specialization (parser);
-          pph_stop_exposed (parser, pph_first_token);
         }
       /* `template <' indicates a template declaration.  */
       else if (token2.type == CPP_LESS)
         {
-          cp_token *pph_first_token = pph_start_exposed (parser);
 	  cp_parser_template_declaration (parser, /*member_p=*/false);
-          pph_stop_exposed (parser, pph_first_token);
         }
       /* Anything else must be an explicit instantiation.  */
       else
         {
-          cp_token *pph_first_token = pph_start_exposed (parser);
 	  cp_parser_explicit_instantiation (parser);
-          pph_stop_exposed (parser, pph_first_token);
         }
     }
   /* If the next token is `export', then we have a template
      declaration.  */
   else if (token1.keyword == RID_EXPORT)
     {
-      cp_token *pph_first_token = pph_start_exposed (parser);
       cp_parser_template_declaration (parser, /*member_p=*/false);
-      pph_stop_exposed (parser, pph_first_token);
     }
   /* If the next token is `extern', 'static' or 'inline' and the one
      after that is `template', we have a GNU extended explicit
@@ -9650,9 +9638,7 @@ cp_parser_declaration (cp_parser* parser)
 	       || token1.keyword == RID_INLINE)
 	   && token2.keyword == RID_TEMPLATE)
     {
-      cp_token *pph_first_token = pph_start_exposed (parser);
       cp_parser_explicit_instantiation (parser);
-      pph_stop_exposed (parser, pph_first_token);
     }
   /* If the next token is `namespace', check for a named or unnamed
      namespace definition.  */
@@ -9681,9 +9667,7 @@ cp_parser_declaration (cp_parser* parser)
   else
     {
       /* Try to parse a block-declaration, or a function-definition.  */
-      cp_token *pph_first_token = pph_start_exposed (parser);
       cp_parser_block_declaration (parser, /*statement_p=*/false);
-      pph_stop_exposed (parser, pph_first_token);
     }
 
   /* Free any declarators allocated.  */
@@ -13536,9 +13520,6 @@ cp_parser_elaborated_type_specifier (cp_parser* parser,
 						    /*declarator=*/NULL))
 	    return error_mark_node;
 	  type = xref_tag (tag_type, identifier, ts, template_p);
-          if (flag_pph_decls_debug >= 4)
-            fprintf (pph_logfile, "PPH: creating tag %p %s in hunk #\n",
-                     (void*)identifier, IDENTIFIER_POINTER (identifier));
 	}
     }
 
@@ -19420,7 +19401,7 @@ cp_parser_label_declaration (cp_parser* parser)
    NULL_TREE otherwise.  */
 
 static tree
-cp_parser_lookup_name_1 (cp_parser *parser, tree name,
+cp_parser_lookup_name (cp_parser *parser, tree name,
 		       enum tag_types tag_type,
 		       bool is_template,
 		       bool is_namespace,
@@ -19661,26 +19642,6 @@ cp_parser_lookup_name_1 (cp_parser *parser, tree name,
     check_accessibility_of_qualified_id (decl, object_type, parser->scope);
 
   return decl;
-}
-
-
-/* Wrapper for cp_parser_lookup_name_1.  Call pph_catch_name_lookup
-   for every resolved NAME.  */
-
-static tree
-cp_parser_lookup_name (cp_parser *parser, tree name,
-		       enum tag_types tag_type,
-		       bool is_template,
-		       bool is_namespace,
-		       bool check_dependency,
-		       tree *ambiguous_decls,
-		       location_t name_location)
-{
-  tree t = cp_parser_lookup_name_1 (parser, name, tag_type, is_template,
-				    is_namespace, check_dependency,
-				    ambiguous_decls, name_location);
-  pph_catch_name_lookup (t);
-  return t;
 }
 
 

@@ -24,7 +24,7 @@
 	Update all users.
 	(pph_in_qual_use_vec): Rename from pph_stream_read_qual_use_vec.
 	Update all users.
-	(pph_in_cxx_binding_1):  Rename from pph_stream_read_cxx_binding_1.
+	(pph_in_cxx_binding_1): Rename from pph_stream_read_cxx_binding_1.
 	Update all users.
 	(pph_in_cxx_binding): Rename from pph_stream_read_cxx_binding.
 	Update all users.
