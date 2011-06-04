@@ -589,24 +589,6 @@ pack_value_fields (struct bitpack_d *bp, tree expr)
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     pack_ts_block_value_fields (bp, expr);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_SSA_NAME))
-    {
-      /* We only stream the version number of SSA names.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_STATEMENT_LIST))
-    {
-      /* This is only used by GENERIC.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OMP_CLAUSE))
-    {
-      /* This is only used by High GIMPLE.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
     pack_ts_translation_unit_decl_value_fields (bp, expr);
 }
@@ -931,11 +913,6 @@ lto_output_ts_decl_non_common_tree_pointers (struct output_block *ob,
 {
   if (TREE_CODE (expr) == FUNCTION_DECL)
     {
-      /* DECL_SAVED_TREE holds the GENERIC representation for DECL.
-	 At this point, it should not exist.  Either because it was
-	 converted to gimple or because DECL didn't have a GENERIC
-	 representation in this TU.  */
-      gcc_assert (DECL_SAVED_TREE (expr) == NULL_TREE);
       lto_output_tree_or_ref (ob, DECL_ARGUMENTS (expr), ref_p);
       lto_output_tree_or_ref (ob, DECL_RESULT (expr), ref_p);
     }
@@ -955,7 +932,7 @@ lto_output_ts_decl_with_vis_tree_pointers (struct output_block *ob, tree expr,
   if (DECL_ASSEMBLER_NAME_SET_P (expr))
     lto_output_tree_or_ref (ob, DECL_ASSEMBLER_NAME (expr), ref_p);
   else
-    output_zero (ob);
+    output_record_start (ob, LTO_null);
 
   lto_output_tree_or_ref (ob, DECL_SECTION_NAME (expr), ref_p);
   lto_output_tree_or_ref (ob, DECL_COMDAT_GROUP (expr), ref_p);
@@ -1136,7 +1113,7 @@ lto_output_ts_binfo_tree_pointers (struct output_block *ob, tree expr,
      is needed to build the empty BINFO node on the reader side.  */
   FOR_EACH_VEC_ELT (tree, BINFO_BASE_BINFOS (expr), i, t)
     lto_output_tree_or_ref (ob, t, ref_p);
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 
   lto_output_tree_or_ref (ob, BINFO_OFFSET (expr), ref_p);
   lto_output_tree_or_ref (ob, BINFO_VTABLE (expr), ref_p);
@@ -1256,12 +1233,6 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
   if (CODE_CONTAINS_STRUCT (code, TS_EXP))
     lto_output_ts_exp_tree_pointers (ob, expr, ref_p);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_SSA_NAME))
-    {
-      /* We only stream the version number of SSA names.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     lto_output_ts_block_tree_pointers (ob, expr, ref_p);
 
@@ -1270,21 +1241,6 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 
   if (CODE_CONTAINS_STRUCT (code, TS_CONSTRUCTOR))
     lto_output_ts_constructor_tree_pointers (ob, expr, ref_p);
-
-  if (CODE_CONTAINS_STRUCT (code, TS_STATEMENT_LIST))
-    {
-      /* This should only appear in GENERIC.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OMP_CLAUSE))
-    {
-      /* This should only appear in High GIMPLE.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OPTIMIZATION))
-    sorry ("gimple bytecode streams do not support the optimization attribute");
 
   if (CODE_CONTAINS_STRUCT (code, TS_TARGET_OPTION))
     lto_output_ts_target_option (ob, expr);
@@ -1430,7 +1386,7 @@ lto_output_tree (struct output_block *ob, tree expr, bool ref_p)
 
   if (expr == NULL_TREE)
     {
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
       return;
     }
 
@@ -1486,7 +1442,7 @@ output_eh_try_list (struct output_block *ob, eh_catch first)
       lto_output_tree_ref (ob, n->label);
     }
 
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 }
 
 
@@ -1501,7 +1457,7 @@ output_eh_region (struct output_block *ob, eh_region r)
 
   if (r == NULL)
     {
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
       return;
     }
 
@@ -1564,7 +1520,7 @@ output_eh_lp (struct output_block *ob, eh_landing_pad lp)
 {
   if (lp == NULL)
     {
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
       return;
     }
 
@@ -1633,9 +1589,9 @@ output_eh_regions (struct output_block *ob, struct function *fn)
 	}
     }
 
-  /* The 0 either terminates the record or indicates that there are no
-     eh_records at all.  */
-  output_zero (ob);
+  /* The LTO_null either terminates the record or indicates that there
+     are no eh_records at all.  */
+  output_record_start (ob, LTO_null);
 }
 
 
@@ -1880,10 +1836,10 @@ output_bb (struct output_block *ob, basic_block bb, struct function *fn)
 	      output_sleb128 (ob, region);
 	    }
 	  else
-	    output_zero (ob);
+	    output_record_start (ob, LTO_null);
 	}
 
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
 
       for (bsi = gsi_start_phis (bb); !gsi_end_p (bsi); gsi_next (&bsi))
 	{
@@ -1896,7 +1852,7 @@ output_bb (struct output_block *ob, basic_block bb, struct function *fn)
 	    output_phi (ob, phi);
 	}
 
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
     }
 }
 
@@ -2053,7 +2009,7 @@ output_function (struct cgraph_node *node)
     output_bb (ob, bb, fn);
 
   /* The terminator for this function.  */
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 
   output_cfg (ob, fn);
 
@@ -2167,7 +2123,7 @@ output_unreferenced_globals (cgraph_node_set set, varpool_node_set vset)
       }
   symbol_alias_set_destroy (defined);
 
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 
   produce_asm (ob, NULL);
   destroy_output_block (ob);

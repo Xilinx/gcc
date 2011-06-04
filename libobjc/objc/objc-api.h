@@ -49,9 +49,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* TODO: A deprecation warning any time the file is included ? */
 
 #include "objc.h"
-#ifndef GNU_LIBOBJC_COMPILING_LIBOBJC_ITSELF
-# include "deprecated/hash.h"
-#endif
 #include "thr.h"
 #include "objc-decls.h"
 #include <stdio.h>
@@ -60,8 +57,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
-#include "deprecated/METHOD_NULL.h"
 
 /* Method descriptor returned by introspective Object methods.
    This is really just the first part of the more complete objc_method
@@ -109,9 +104,6 @@ struct objc_method_description
    equivalent to "*".  */
 #define _C_ATOM     '%'
 
-#include "deprecated/objc_error.h"
-
-#include "deprecated/struct_objc_static_instances.h"
 #include "deprecated/struct_objc_symtab.h"
 #include "deprecated/struct_objc_module.h"
 #include "deprecated/struct_objc_ivar.h"
@@ -198,8 +190,6 @@ objc_EXPORT Class (*_objc_lookup_class)(const char *name);
 */
 objc_EXPORT void (*_objc_load_callback)(Class _class, Category* category);
 
-#include "deprecated/objc_object_alloc.h"
-
 /*
   Standard functions for memory allocation and disposal.  Users should
   use these functions in their ObjC programs so that they work so that
@@ -222,11 +212,6 @@ objc_calloc(size_t nelem, size_t size);
 
 objc_EXPORT void
 objc_free(void *mem);
-
-#include "deprecated/objc_valloc.h"
-#include "deprecated/objc_malloc.h"
-
-#include "deprecated/objc_unexpected_exception.h"
 
 objc_EXPORT Method_t class_get_class_method(MetaClass _class, SEL aSel);
 
@@ -398,8 +383,6 @@ object_is_meta_class (id object)
 	  &&  !object_is_instance (object)  
 	  &&  !object_is_class (object));
 }
-
-#include "deprecated/objc_get_uninstalled_dtable.h"
 
 #ifdef __cplusplus
 }
