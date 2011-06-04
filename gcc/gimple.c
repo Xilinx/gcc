@@ -3772,10 +3772,16 @@ gimple_types_compatible_p_1 (tree t1, tree t2, type_pair_t p,
 	     f1 && f2;
 	     f1 = TREE_CHAIN (f1), f2 = TREE_CHAIN (f2))
 	  {
-	    /* The fields must have the same name, offset and type.  */
+	    /* Different field kinds are not compatible.  */
+	    if (TREE_CODE (f1) != TREE_CODE (f2))
+	      goto different_types;
+	    /* Field decls must have the same name and offset.  */
+	    if (TREE_CODE (f1) == FIELD_DECL
+		&& (DECL_NONADDRESSABLE_P (f1) != DECL_NONADDRESSABLE_P (f2)
+		    || !gimple_compare_field_offset (f1, f2)))
+	      goto different_types;
+	    /* All entities should have the same name and type.  */
 	    if (DECL_NAME (f1) != DECL_NAME (f2)
-		|| DECL_NONADDRESSABLE_P (f1) != DECL_NONADDRESSABLE_P (f2)
-		|| !gimple_compare_field_offset (f1, f2)
 		|| !gtc_visit (TREE_TYPE (f1), TREE_TYPE (f2),
 			       state, sccstack, sccstate, sccstate_obstack))
 	      goto different_types;
@@ -4743,17 +4749,8 @@ tree
 gimple_register_canonical_type (tree t)
 {
   void **slot;
-  tree orig_t = t;
 
   gcc_assert (TYPE_P (t));
-
-  if (TYPE_CANONICAL (t))
-    return TYPE_CANONICAL (t);
-
-  /* Use the leader of our main variant for determining our canonical
-     type.  The main variant leader is a type that will always
-     prevail.  */
-  t = gimple_register_type (TYPE_MAIN_VARIANT (t));
 
   if (TYPE_CANONICAL (t))
     return TYPE_CANONICAL (t);
@@ -4776,9 +4773,6 @@ gimple_register_canonical_type (tree t)
       TYPE_CANONICAL (t) = t;
       *slot = (void *) t;
     }
-
-  /* Also cache the canonical type in the non-leaders.  */
-  TYPE_CANONICAL (orig_t) = t;
 
   return t;
 }

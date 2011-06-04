@@ -3956,13 +3956,6 @@ ix86_option_override_internal (bool main_args_p)
   if (!TARGET_80387)
     target_flags |= MASK_NO_FANCY_MATH_387;
 
-  /* On 32bit targets, avoid moving DFmode values in
-     integer registers when optimizing for size.  */
-  if (TARGET_64BIT)
-    target_flags |= TARGET_INTEGER_DFMODE_MOVES;
-  else if (optimize_size)
-    target_flags &= ~TARGET_INTEGER_DFMODE_MOVES;
-
   /* Turn on MMX builtins for -msse.  */
   if (TARGET_SSE)
     {
@@ -8634,33 +8627,28 @@ standard_sse_constant_opcode (rtx insn, rtx x)
     case 1:
       switch (get_attr_mode (insn))
 	{
+	case MODE_TI:
+	  if (!TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
+	    return "%vpxor\t%0, %d0";
+	case MODE_V2DF:
+	  if (!TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
+	    return "%vxorpd\t%0, %d0";
 	case MODE_V4SF:
 	  return "%vxorps\t%0, %d0";
-	case MODE_V2DF:
-	  if (TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	    return "%vxorps\t%0, %d0";
-	  else
-	    return "%vxorpd\t%0, %d0";
-	case MODE_TI:
-	  if (TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	    return "%vxorps\t%0, %d0";
-	  else
-	    return "%vpxor\t%0, %d0";
+
+	case MODE_OI:
+	  if (!TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
+	    return "vpxor\t%x0, %x0, %x0";
+	case MODE_V4DF:
+	  if (!TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
+	    return "vxorpd\t%x0, %x0, %x0";
 	case MODE_V8SF:
 	  return "vxorps\t%x0, %x0, %x0";
-	case MODE_V4DF:
-	  if (TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	    return "vxorps\t%x0, %x0, %x0";
-	  else
-	    return "vxorpd\t%x0, %x0, %x0";
-	case MODE_OI:
-	  if (TARGET_SSE_PACKED_SINGLE_INSN_OPTIMAL)
-	    return "vxorps\t%x0, %x0, %x0";
-	  else
-	    return "vpxor\t%x0, %x0, %x0";
+
 	default:
 	  break;
 	}
+
     case 2:
       return "%vpcmpeqd\t%0, %d0";
     default:
@@ -29542,12 +29530,12 @@ ix86_rtx_costs (rtx x, int code, int outer_code_i, int *total, bool speed)
         /* Negate in op0 or op2 is free: FMS, FNMA, FNMS.  */
 	sub = XEXP (x, 0);
 	if (GET_CODE (sub) == NEG)
-	  sub = XEXP (x, 0);
+	  sub = XEXP (sub, 0);
 	*total += rtx_cost (sub, FMA, speed);
 
 	sub = XEXP (x, 2);
 	if (GET_CODE (sub) == NEG)
-	  sub = XEXP (x, 0);
+	  sub = XEXP (sub, 0);
 	*total += rtx_cost (sub, FMA, speed);
 	return true;
       }

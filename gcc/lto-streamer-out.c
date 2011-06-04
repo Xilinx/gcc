@@ -51,13 +51,19 @@ struct string_slot
 };
 
 
-/* Returns a hash code for P.  */
+/* Returns a hash code for P.  
+   Shamelessly stollen from libiberty.  */
 
 static hashval_t
 hash_string_slot_node (const void *p)
 {
   const struct string_slot *ds = (const struct string_slot *) p;
-  return (hashval_t) htab_hash_string (ds->s);
+  hashval_t r = ds->len;
+  int i;
+
+  for (i = 0; i < ds->len; i++)
+     r = r * 67 + (unsigned)ds->s[i] - 113;
+  return r;
 }
 
 
@@ -73,17 +79,6 @@ eq_string_slot_node (const void *p1, const void *p2)
     return memcmp (ds1->s, ds2->s, ds1->len) == 0;
 
   return 0;
-}
-
-
-/* Free the string slot pointed-to by P.  */
-
-static void
-string_slot_free (void *p)
-{
-  struct string_slot *slot = (struct string_slot *) p;
-  free (CONST_CAST (void *, (const void *) slot->s));
-  free (slot);
 }
 
 
@@ -118,7 +113,8 @@ create_output_block (enum lto_section_type section_type)
   clear_line_info (ob);
 
   ob->string_hash_table = htab_create (37, hash_string_slot_node,
-				       eq_string_slot_node, string_slot_free);
+				       eq_string_slot_node, NULL);
+  gcc_obstack_init (&ob->obstack);
 
   return ob;
 }
@@ -139,26 +135,27 @@ destroy_output_block (struct output_block *ob)
     free (ob->cfg_stream);
 
   lto_streamer_cache_delete (ob->writer_cache);
+  obstack_free (&ob->obstack, NULL);
 
   free (ob);
 }
 
 /* Return index used to reference STRING of LEN characters in the string table
    in OB.  The string might or might not include a trailing '\0'.
-   Then put the index onto the INDEX_STREAM.  */
+   Then put the index onto the INDEX_STREAM.  
+   When PERSISTENT is set, the string S is supposed to not change during
+   duration of the OB and thus OB can keep pointer into it.  */
 
 static unsigned
 lto_string_index (struct output_block *ob,
 		  const char *s,
-		  unsigned int len)
+		  unsigned int len,
+		  bool persistent)
 {
   struct string_slot **slot;
   struct string_slot s_slot;
-  char *string = (char *) xmalloc (len + 1);
-  memcpy (string, s, len);
-  string[len] = '\0';
 
-  s_slot.s = string;
+  s_slot.s = s;
   s_slot.len = len;
   s_slot.slot_num = 0;
 
@@ -169,7 +166,17 @@ lto_string_index (struct output_block *ob,
       struct lto_output_stream *string_stream = ob->string_stream;
       unsigned int start = string_stream->total_size;
       struct string_slot *new_slot
-	= (struct string_slot *) xmalloc (sizeof (struct string_slot));
+	= XOBNEW (&ob->obstack, struct string_slot);
+      const char *string;
+
+      if (!persistent)
+	{
+	  char *tmp;
+	  string = tmp = XOBNEWVEC (&ob->obstack, char, len);
+          memcpy (tmp, s, len);
+        }
+      else
+	string = s;
 
       new_slot->s = string;
       new_slot->len = len;
@@ -182,7 +189,6 @@ lto_string_index (struct output_block *ob,
   else
     {
       struct string_slot *old_slot = *slot;
-      free (string);
       return old_slot->slot_num + 1;
     }
 }
@@ -190,29 +196,39 @@ lto_string_index (struct output_block *ob,
 
 /* Output STRING of LEN characters to the string
    table in OB. The string might or might not include a trailing '\0'.
-   Then put the index onto the INDEX_STREAM.  */
+   Then put the index onto the INDEX_STREAM. 
+   When PERSISTENT is set, the string S is supposed to not change during
+   duration of the OB and thus OB can keep pointer into it.  */
 
-void
+static void
 lto_output_string_with_length (struct output_block *ob,
 			       struct lto_output_stream *index_stream,
 			       const char *s,
-			       unsigned int len)
+			       unsigned int len,
+			       bool persistent)
 {
-  lto_output_uleb128_stream (index_stream,
-			     lto_string_index (ob, s, len));
+  if (s)
+    lto_output_uleb128_stream (index_stream,
+			       lto_string_index (ob, s, len, persistent));
+  else
+    lto_output_1_stream (index_stream, 0);
 }
 
 /* Output the '\0' terminated STRING to the string
-   table in OB.  Then put the index onto the INDEX_STREAM.  */
+   table in OB.  Then put the index onto the INDEX_STREAM.
+   When PERSISTENT is set, the string S is supposed to not change during
+   duration of the OB and thus OB can keep pointer into it.  */
 
-void
+static void
 lto_output_string (struct output_block *ob,
 	           struct lto_output_stream *index_stream,
-	           const char *string)
+	           const char *string,
+		   bool persistent)
 {
   if (string)
     lto_output_string_with_length (ob, index_stream, string,
-				   strlen (string) + 1);
+				   strlen (string) + 1,
+				   persistent);
   else
     lto_output_1_stream (index_stream, 0);
 }
@@ -226,12 +242,10 @@ output_string_cst (struct output_block *ob,
 		   struct lto_output_stream *index_stream,
 		   tree string)
 {
-  if (string)
-    lto_output_string_with_length (ob, index_stream,
-				   TREE_STRING_POINTER (string),
-				   TREE_STRING_LENGTH (string ));
-  else
-    lto_output_1_stream (index_stream, 0);
+  lto_output_string_with_length (ob, index_stream,
+				 TREE_STRING_POINTER (string),
+				 TREE_STRING_LENGTH (string),
+				 true);
 }
 
 
@@ -243,12 +257,10 @@ output_identifier (struct output_block *ob,
 		   struct lto_output_stream *index_stream,
 		   tree id)
 {
-  if (id)
-    lto_output_string_with_length (ob, index_stream,
-				   IDENTIFIER_POINTER (id),
-				   IDENTIFIER_LENGTH (id));
-  else
-    lto_output_1_stream (index_stream, 0);
+  lto_output_string_with_length (ob, index_stream,
+				 IDENTIFIER_POINTER (id),
+				 IDENTIFIER_LENGTH (id),
+				 true);
 }
 
 
@@ -577,24 +589,6 @@ pack_value_fields (struct bitpack_d *bp, tree expr)
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     pack_ts_block_value_fields (bp, expr);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_SSA_NAME))
-    {
-      /* We only stream the version number of SSA names.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_STATEMENT_LIST))
-    {
-      /* This is only used by GENERIC.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OMP_CLAUSE))
-    {
-      /* This is only used by High GIMPLE.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
     pack_ts_translation_unit_decl_value_fields (bp, expr);
 }
@@ -620,8 +614,9 @@ lto_output_location_bitpack (struct bitpack_d *bp,
   bp_pack_value (bp, ob->current_file != xloc.file, 1);
   if (ob->current_file != xloc.file)
     bp_pack_var_len_unsigned (bp, lto_string_index (ob,
-					          xloc.file,
-						  strlen (xloc.file) + 1));
+					            xloc.file,
+						    strlen (xloc.file) + 1,
+						    true));
   ob->current_file = xloc.file;
 
   bp_pack_value (bp, ob->current_line != xloc.line, 1);
@@ -918,11 +913,6 @@ lto_output_ts_decl_non_common_tree_pointers (struct output_block *ob,
 {
   if (TREE_CODE (expr) == FUNCTION_DECL)
     {
-      /* DECL_SAVED_TREE holds the GENERIC representation for DECL.
-	 At this point, it should not exist.  Either because it was
-	 converted to gimple or because DECL didn't have a GENERIC
-	 representation in this TU.  */
-      gcc_assert (DECL_SAVED_TREE (expr) == NULL_TREE);
       lto_output_tree_or_ref (ob, DECL_ARGUMENTS (expr), ref_p);
       lto_output_tree_or_ref (ob, DECL_RESULT (expr), ref_p);
     }
@@ -942,7 +932,7 @@ lto_output_ts_decl_with_vis_tree_pointers (struct output_block *ob, tree expr,
   if (DECL_ASSEMBLER_NAME_SET_P (expr))
     lto_output_tree_or_ref (ob, DECL_ASSEMBLER_NAME (expr), ref_p);
   else
-    output_zero (ob);
+    output_record_start (ob, LTO_null);
 
   lto_output_tree_or_ref (ob, DECL_SECTION_NAME (expr), ref_p);
   lto_output_tree_or_ref (ob, DECL_COMDAT_GROUP (expr), ref_p);
@@ -1123,7 +1113,7 @@ lto_output_ts_binfo_tree_pointers (struct output_block *ob, tree expr,
      is needed to build the empty BINFO node on the reader side.  */
   FOR_EACH_VEC_ELT (tree, BINFO_BASE_BINFOS (expr), i, t)
     lto_output_tree_or_ref (ob, t, ref_p);
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 
   lto_output_tree_or_ref (ob, BINFO_OFFSET (expr), ref_p);
   lto_output_tree_or_ref (ob, BINFO_VTABLE (expr), ref_p);
@@ -1186,7 +1176,8 @@ static void
 lto_output_ts_translation_unit_decl_tree_pointers (struct output_block *ob,
 						   tree expr)
 {
-  lto_output_string (ob, ob->main_stream, TRANSLATION_UNIT_LANGUAGE (expr));
+  lto_output_string (ob, ob->main_stream,
+		     TRANSLATION_UNIT_LANGUAGE (expr), true);
 }
 
 /* Helper for lto_output_tree.  Write all pointer fields in EXPR to output
@@ -1242,12 +1233,6 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
   if (CODE_CONTAINS_STRUCT (code, TS_EXP))
     lto_output_ts_exp_tree_pointers (ob, expr, ref_p);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_SSA_NAME))
-    {
-      /* We only stream the version number of SSA names.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     lto_output_ts_block_tree_pointers (ob, expr, ref_p);
 
@@ -1256,21 +1241,6 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 
   if (CODE_CONTAINS_STRUCT (code, TS_CONSTRUCTOR))
     lto_output_ts_constructor_tree_pointers (ob, expr, ref_p);
-
-  if (CODE_CONTAINS_STRUCT (code, TS_STATEMENT_LIST))
-    {
-      /* This should only appear in GENERIC.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OMP_CLAUSE))
-    {
-      /* This should only appear in High GIMPLE.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OPTIMIZATION))
-    sorry ("gimple bytecode streams do not support the optimization attribute");
 
   if (CODE_CONTAINS_STRUCT (code, TS_TARGET_OPTION))
     lto_output_ts_target_option (ob, expr);
@@ -1353,12 +1323,12 @@ lto_output_builtin_tree (struct output_block *ob, tree expr)
 	 reader side from adding a second '*', we omit it here.  */
       const char *str = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (expr));
       if (strlen (str) > 1 && str[0] == '*')
-	lto_output_string (ob, ob->main_stream, &str[1]);
+	lto_output_string (ob, ob->main_stream, &str[1], true);
       else
-	lto_output_string (ob, ob->main_stream, NULL);
+	lto_output_string (ob, ob->main_stream, NULL, true);
     }
   else
-    lto_output_string (ob, ob->main_stream, NULL);
+    lto_output_string (ob, ob->main_stream, NULL, true);
 }
 
 
@@ -1416,7 +1386,7 @@ lto_output_tree (struct output_block *ob, tree expr, bool ref_p)
 
   if (expr == NULL_TREE)
     {
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
       return;
     }
 
@@ -1472,7 +1442,7 @@ output_eh_try_list (struct output_block *ob, eh_catch first)
       lto_output_tree_ref (ob, n->label);
     }
 
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 }
 
 
@@ -1487,7 +1457,7 @@ output_eh_region (struct output_block *ob, eh_region r)
 
   if (r == NULL)
     {
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
       return;
     }
 
@@ -1550,7 +1520,7 @@ output_eh_lp (struct output_block *ob, eh_landing_pad lp)
 {
   if (lp == NULL)
     {
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
       return;
     }
 
@@ -1619,9 +1589,9 @@ output_eh_regions (struct output_block *ob, struct function *fn)
 	}
     }
 
-  /* The 0 either terminates the record or indicates that there are no
-     eh_records at all.  */
-  output_zero (ob);
+  /* The LTO_null either terminates the record or indicates that there
+     are no eh_records at all.  */
+  output_record_start (ob, LTO_null);
 }
 
 
@@ -1772,7 +1742,7 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_noutputs (stmt));
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_nclobbers (stmt));
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_nlabels (stmt));
-      lto_output_string (ob, ob->main_stream, gimple_asm_string (stmt));
+      lto_output_string (ob, ob->main_stream, gimple_asm_string (stmt), true);
       /* Fallthru  */
 
     case GIMPLE_ASSIGN:
@@ -1866,10 +1836,10 @@ output_bb (struct output_block *ob, basic_block bb, struct function *fn)
 	      output_sleb128 (ob, region);
 	    }
 	  else
-	    output_zero (ob);
+	    output_record_start (ob, LTO_null);
 	}
 
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
 
       for (bsi = gsi_start_phis (bb); !gsi_end_p (bsi); gsi_next (&bsi))
 	{
@@ -1882,7 +1852,7 @@ output_bb (struct output_block *ob, basic_block bb, struct function *fn)
 	    output_phi (ob, phi);
 	}
 
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
     }
 }
 
@@ -2039,7 +2009,7 @@ output_function (struct cgraph_node *node)
     output_bb (ob, bb, fn);
 
   /* The terminator for this function.  */
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 
   output_cfg (ob, fn);
 
@@ -2153,7 +2123,7 @@ output_unreferenced_globals (cgraph_node_set set, varpool_node_set vset)
       }
   symbol_alias_set_destroy (defined);
 
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 
   produce_asm (ob, NULL);
   destroy_output_block (ob);

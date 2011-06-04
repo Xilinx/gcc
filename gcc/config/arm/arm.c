@@ -255,6 +255,8 @@ static bool arm_builtin_support_vector_misalignment (enum machine_mode mode,
 static void arm_conditional_register_usage (void);
 static reg_class_t arm_preferred_rename_class (reg_class_t rclass);
 static unsigned int arm_autovectorize_vector_sizes (void);
+static int arm_default_branch_cost (bool, bool);
+static int arm_cortex_a5_branch_cost (bool, bool);
 
 
 /* Table of machine attributes.  */
@@ -662,12 +664,13 @@ static int thumb_call_reg_needed;
 #define FL_THUMB2     (1 << 16)	      /* Thumb-2.  */
 #define FL_NOTM	      (1 << 17)	      /* Instructions not present in the 'M'
 					 profile.  */
-#define FL_DIV	      (1 << 18)	      /* Hardware divide.  */
+#define FL_THUMB_DIV  (1 << 18)	      /* Hardware divide (Thumb mode).  */
 #define FL_VFPV3      (1 << 19)       /* Vector Floating Point V3.  */
 #define FL_NEON       (1 << 20)       /* Neon instructions.  */
 #define FL_ARCH7EM    (1 << 21)	      /* Instructions present in the ARMv7E-M
 					 architecture.  */
 #define FL_ARCH7      (1 << 22)       /* Architecture 7.  */
+#define FL_ARM_DIV    (1 << 23)	      /* Hardware divide (ARM mode).  */
 
 #define FL_IWMMXT     (1 << 29)	      /* XScale v2 or "Intel Wireless MMX technology".  */
 
@@ -694,8 +697,8 @@ static int thumb_call_reg_needed;
 #define FL_FOR_ARCH6M	(FL_FOR_ARCH6 & ~FL_NOTM)
 #define FL_FOR_ARCH7	((FL_FOR_ARCH6T2 & ~FL_NOTM) | FL_ARCH7)
 #define FL_FOR_ARCH7A	(FL_FOR_ARCH7 | FL_NOTM | FL_ARCH6K)
-#define FL_FOR_ARCH7R	(FL_FOR_ARCH7A | FL_DIV)
-#define FL_FOR_ARCH7M	(FL_FOR_ARCH7 | FL_DIV)
+#define FL_FOR_ARCH7R	(FL_FOR_ARCH7A | FL_THUMB_DIV)
+#define FL_FOR_ARCH7M	(FL_FOR_ARCH7 | FL_THUMB_DIV)
 #define FL_FOR_ARCH7EM  (FL_FOR_ARCH7M | FL_ARCH7EM)
 
 /* The bits in this mask specify which
@@ -781,7 +784,8 @@ int arm_cpp_interwork = 0;
 int arm_arch_thumb2;
 
 /* Nonzero if chip supports integer division instruction.  */
-int arm_arch_hwdiv;
+int arm_arch_arm_hwdiv;
+int arm_arch_thumb_hwdiv;
 
 /* In case of a PRE_INC, POST_INC, PRE_DEC, POST_DEC memory reference,
    we must report the mode of the memory reference from
@@ -854,48 +858,117 @@ const struct tune_params arm_slowmul_tune =
 {
   arm_slowmul_rtx_costs,
   NULL,
-  3,
-  ARM_PREFETCH_NOT_BENEFICIAL
+  3,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
 };
 
 const struct tune_params arm_fastmul_tune =
 {
   arm_fastmul_rtx_costs,
   NULL,
-  1,
-  ARM_PREFETCH_NOT_BENEFICIAL
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
+};
+
+/* StrongARM has early execution of branches, so a sequence that is worth
+   skipping is shorter.  Set max_insns_skipped to a lower value.  */
+
+const struct tune_params arm_strongarm_tune =
+{
+  arm_fastmul_rtx_costs,
+  NULL,
+  1,						/* Constant limit.  */
+  3,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
 };
 
 const struct tune_params arm_xscale_tune =
 {
   arm_xscale_rtx_costs,
   xscale_sched_adjust_cost,
-  2,
-  ARM_PREFETCH_NOT_BENEFICIAL
+  2,						/* Constant limit.  */
+  3,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
 };
 
 const struct tune_params arm_9e_tune =
 {
   arm_9e_rtx_costs,
   NULL,
-  1,
-  ARM_PREFETCH_NOT_BENEFICIAL
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
+};
+
+const struct tune_params arm_v6t2_tune =
+{
+  arm_9e_rtx_costs,
+  NULL,
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  false,					/* Prefer constant pool.  */
+  arm_default_branch_cost
+};
+
+/* Generic Cortex tuning.  Use more specific tunings if appropriate.  */
+const struct tune_params arm_cortex_tune =
+{
+  arm_9e_rtx_costs,
+  NULL,
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  false,					/* Prefer constant pool.  */
+  arm_default_branch_cost
+};
+
+/* Branches can be dual-issued on Cortex-A5, so conditional execution is
+   less appealing.  Set max_insns_skipped to a low value.  */
+
+const struct tune_params arm_cortex_a5_tune =
+{
+  arm_9e_rtx_costs,
+  NULL,
+  1,						/* Constant limit.  */
+  1,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  false,					/* Prefer constant pool.  */
+  arm_cortex_a5_branch_cost
 };
 
 const struct tune_params arm_cortex_a9_tune =
 {
   arm_9e_rtx_costs,
   cortex_a9_sched_adjust_cost,
-  1,
-  ARM_PREFETCH_BENEFICIAL(4,32,32)
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_BENEFICIAL(4,32,32),
+  false,					/* Prefer constant pool.  */
+  arm_default_branch_cost
 };
 
 const struct tune_params arm_fa726te_tune =
 {
   arm_9e_rtx_costs,
   fa726te_sched_adjust_cost,
-  1,
-  ARM_PREFETCH_NOT_BENEFICIAL
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
 };
 
 
@@ -1449,7 +1522,8 @@ arm_option_override (void)
   arm_tune_wbuf = (tune_flags & FL_WBUF) != 0;
   arm_tune_xscale = (tune_flags & FL_XSCALE) != 0;
   arm_arch_iwmmxt = (insn_flags & FL_IWMMXT) != 0;
-  arm_arch_hwdiv = (insn_flags & FL_DIV) != 0;
+  arm_arch_thumb_hwdiv = (insn_flags & FL_THUMB_DIV) != 0;
+  arm_arch_arm_hwdiv = (insn_flags & FL_ARM_DIV) != 0;
   arm_tune_cortex_a9 = (arm_tune == cortexa9) != 0;
 
   /* If we are not using the default (ARM mode) section anchor offset
@@ -1687,12 +1761,7 @@ arm_option_override (void)
       max_insns_skipped = 6;
     }
   else
-    {
-      /* StrongARM has early execution of branches, so a sequence
-         that is worth skipping is shorter.  */
-      if (arm_tune_strongarm)
-        max_insns_skipped = 3;
-    }
+    max_insns_skipped = current_tune->max_insns_skipped;
 
   /* Hot/Cold partitioning is not currently supported, since we can't
      handle literal pool placement in that case.  */
@@ -8006,6 +8075,21 @@ arm_adjust_cost (rtx insn, rtx link, rtx dep, int cost)
     }
 
   return cost;
+}
+
+static int
+arm_default_branch_cost (bool speed_p, bool predictable_p ATTRIBUTE_UNUSED)
+{
+  if (TARGET_32BIT)
+    return (TARGET_THUMB2 && !speed_p) ? 1 : 4;
+  else
+    return (optimize > 0) ? 2 : 0;
+}
+
+static int
+arm_cortex_a5_branch_cost (bool speed_p, bool predictable_p)
+{
+  return speed_p ? 0 : arm_default_branch_cost (speed_p, predictable_p);
 }
 
 static int fp_consts_inited = 0;
@@ -23019,6 +23103,7 @@ arm_issue_rate (void)
     {
     case cortexr4:
     case cortexr4f:
+    case cortexr5:
     case cortexa5:
     case cortexa8:
     case cortexa9:

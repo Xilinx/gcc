@@ -306,6 +306,8 @@ enum gfc_isym_id
   GFC_ISYM_ATAN,
   GFC_ISYM_ATAN2,
   GFC_ISYM_ATANH,
+  GFC_ISYM_ATOMIC_DEF,
+  GFC_ISYM_ATOMIC_REF,
   GFC_ISYM_BGE,
   GFC_ISYM_BGT,
   GFC_ISYM_BIT_SIZE,
@@ -2464,6 +2466,8 @@ extern int gfc_default_character_kind;
 extern int gfc_default_logical_kind;
 extern int gfc_default_complex_kind;
 extern int gfc_c_int_kind;
+extern int gfc_atomic_int_kind;
+extern int gfc_atomic_logical_kind;
 extern int gfc_intio_kind;
 extern int gfc_charlen_int_kind;
 extern int gfc_numeric_storage_size;
@@ -2816,6 +2820,7 @@ gfc_symtree* gfc_find_sym_in_symtree (gfc_symbol*);
 bool gfc_arglist_matches_symbol (gfc_actual_arglist**, gfc_symbol*);
 bool gfc_check_operator_interface (gfc_symbol*, gfc_intrinsic_op, locus);
 int gfc_has_vector_subscript (gfc_expr*);
+gfc_intrinsic_op gfc_equivalent_op (gfc_intrinsic_op);
 
 /* io.c */
 extern gfc_st_label format_asterisk;
