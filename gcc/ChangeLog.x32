@@ -1,3 +1,7 @@
+2011-06-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* doc/invoke.texi: Document -mx32.
+
 2011-05-24  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR rtl-optimization/49114
