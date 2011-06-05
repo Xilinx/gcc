@@ -1,5 +1,9 @@
+// pph asm xdiff
+
 #include "x1hardlookup.h"
+
 D P;
+
 int I(int arg)
 { return arg + V; }
 

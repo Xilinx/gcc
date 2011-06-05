@@ -1,3 +1,46 @@
+2011-06-05  Lawrence Crowl  <crowl@google.com>
+
+	* lib/dg-pph.exp (dg-pph-hdr): Add blank lines to logfile.
+	Format if statements and calls consistently.
+	(dg-pph-neg): Remove extraneous assembly files. Add blank
+	lines to logfile. Format if statements and calls consistently.
+	(dg-pph-pos): Stop test when a compilation fails. Recognize
+	expected failing compilations. Recognize expected assembly
+	miscompares. Parenthesize failure notes. Remove extraneous
+	assembly files. Add blank lines to logfile. Format if
+	statements and calls consistently.
+	* g++.dg/pph/c1simple.cc: Add comment "pph asm xdiff"
+	indicating expected assembly difference failure. Add line
+	spacing to test.
+	* g++.dg/pph/c1struct.cc: Likewise.
+	* g++.dg/pph/c1variables.cc: Likewise.
+	* g++.dg/pph/c2builtin1.cc: Likewise.
+	* g++.dg/pph/x1globalref.cc: Likewise.
+	* g++.dg/pph/x1hardlookup.cc: Likewise.
+	* g++.dg/pph/x1struct1.cc: Likewise.
+	* g++.dg/pph/x1struct2.cc: Likewise.
+	* g++.dg/pph/x2nontrivinit.cc: Likewise.
+	* c120060625-1.h: Add dg-xfail-if for -fpph-map. Add bogus
+	message for ICE. Prune output. Add line spacing to text.
+	* g++.dg/pph/c120060625-1.cc: Likewise.
+	* g++.dg/pph/c1eabi1.h: Likewise.
+	* g++.dg/pph/c1eabi1.cc: Likewise.
+	* g++.dg/pph/x1autometh.cc: Likewise.
+	* g++.dg/pph/x1functions.cc: Likewise.
+	* g++.dg/pph/x1special.cc: Likewise.
+	* g++.dg/pph/x1template.cc: Likewise.
+	* g++.dg/pph/x1tmplclass.cc: Likewise.
+	* g++.dg/pph/x1tmplfunc.cc: Likewise.
+	* g++.dg/pph/x1typerefs.cc: Likewise.
+	* g++.dg/pph/x1variables.cc: Likewise.
+	* g++.dg/pph/p1mean.cc: Change syntax error preventing infinite
+	recursion to a dg-timeout. Add dg-xfail-if for -fpph-map.
+	* g++.dg/pph/c1return-5.h: Remove dg-final as we do not generate
+	assembly on compiling headers. Change dg directive location.
+	* g++.dg/pph/c1return-5.cc: Add dg-final as we _do_ generate
+	assembly on compiling sources. Copy up dg-options from
+	c1return-5.h as well.
+
 2011-06-01  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c120060625-1.cc: New.

@@ -1,9 +1,10 @@
+// { dg-timeout 2 { target *-*-* } }
+// { dg-xfail-if "INFINITE" { "*-*-*" } { "-fpph-map=pph.map" } }
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
-
-SYNTAX ERROR TO AVOID COMPILING THIS - IT CAUSES INFINITE RECURSION.
 
 static unsigned long long MAX_ITEMS = 10000;
 

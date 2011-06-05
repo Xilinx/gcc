@@ -24,13 +24,14 @@ proc dg-pph-hdr { subdir test options mapflag suffix } {
     global runtests dg-do-what-default
 
     # If we're only testing specific files and this isn't one of them, skip it.
-    if ![runtest_file_p $runtests $test] {
+    if { ![runtest_file_p $runtests $test] } {
 	return
     }
 
     set nshort "$subdir/[file tail $test]"
     set bname "[file rootname [file tail $nshort]]"
-    verbose "Testing $nshort, $options" 1
+    verbose -log "\nTesting $nshort, $options"
+
     set dg-do-what-default preparse
     dg-test -keep-output $test "$options $mapflag -I." ""
 
@@ -41,16 +42,19 @@ proc dg-pph-neg { subdir test options mapflag suffix } {
     global runtests dg-do-what-default
 
     # If we're only testing specific files and this isn't one of them, skip it.
-    if ![runtest_file_p $runtests $test] {
+    if { ![runtest_file_p $runtests $test] } {
 	return
     }
 
     set nshort "$subdir/[file tail $test]"
     set bname "[file rootname [file tail $nshort]]"
-    verbose "Testing $nshort, $options" 1
+    verbose -log "\nTesting $nshort, $options"
+
     set dg-do-what-default compile
     dg-test -keep-output $test "$options $mapflag -I." ""
-    file_on_host delete "$bname.s"
+    if { ![file_on_host exists "$bname.s"] } {
+	file_on_host delete "$bname.s"
+    }
 }
 
 proc dg-pph-pos { subdir test options mapflag suffix } {
@@ -58,64 +62,72 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     global runtests dg-do-what-default
 
     # If we're only testing specific files and this isn't one of them, skip it.
-    if ![runtest_file_p $runtests $test] {
+    if { ![runtest_file_p $runtests $test] } {
 	return
     }
 
     set nshort "$subdir/[file tail $test]"
     set bname "[file rootname [file tail $nshort]]"
-    verbose "Testing $nshort, $options" 1
-    set dg-do-what-default compile
+    verbose -log "\nTesting $nshort, $options"
 
-    set have_errs [llength [grep $test "{\[ \t\]\+dg-error\[ \t\]\+.*\[ \t\]\+}"]]
     # Compile the file the first time for a base case.
+    set dg-do-what-default compile
     dg-test -keep-output $test "$options -I." ""
 
-    if { $have_errs } {
-	verbose -log "regular compilation failed"
-	fail "$nshort $options, regular compilation failed"
-	return
-    }
-
-    if { ! [ file_on_host exists "$bname.s" ] } {
-	verbose -log "regular assembly file '$bname.s' missing"
-	fail "$nshort $options, regular assembly missing"
+    # Quit if it did not compile successfully.
+    if { ![file_on_host exists "$bname.s"] } {
+	# All regular compiles should pass.
+	fail "$nshort $options (regular assembly missing)"
 	return
     }
 
     # Rename the .s file into .s-pph to compare it after the second build.
     remote_upload host "$bname.s" "$bname.s-pph"
     remote_download host "$bname.s-pph"
+    file_on_host delete "$bname.s"
+
+    verbose -log ""
 
     # Compile a second time using the pph files.
     dg-test -keep-output $test "$options $mapflag -I." ""
 
-    if { $have_errs } {
-	verbose -log "PPH compilation failed"
-	fail "$nshort $options, PPH compilation failed"
-	return
-    }
-
-    if { ! [ file_on_host exists "$bname.s" ] } {
-	verbose -log "PPH assembly file '$bname.s' missing"
-	fail "$nshort $options, PPH assembly missing"
+    # Quit if it did not compile successfully.
+    if { ![file_on_host exists "$bname.s"] } {
+	# Expect assembly to be missing when the compile is an expected fail.
+	if { [llength [grep $test "dg-xfail-if.*-fpph-map"]] } {
+	    xfail "$nshort $options (pph assembly missing)"
+	} else {
+	    fail "$nshort $options (pph assembly missing)"
+	}
 	return
     }
 
     # Rename the .s file into .s+pph to compare it.
     remote_upload host "$bname.s" "$bname.s+pph"
     remote_download host "$bname.s+pph"
+    file_on_host delete "$bname.s"
+
+    verbose -log ""
 
     # Compare the two assembly files.  They should be identical.
-    set tmp [ diff "$bname.s-pph" "$bname.s+pph" ]
-    if { $tmp == 0 } {
-	verbose -log "assembly file '$bname.s-pph', '$bname.s+pph' comparison error"
-	fail "$nshort $options assembly comparison"
-    } elseif { $tmp == 1 } {
-	pass "$nshort $options assembly comparison"
+    set adiff [diff "$bname.s-pph" "$bname.s+pph"]
+    # The sources mark when they expect the comparison to differ.
+    set xdiff [llength [grep $test "pph asm xdiff"]]
+    if { $adiff == 0 } {
+	fail "$nshort $options comparison failure"
+    } elseif { $adiff == 1 } {
+	if { $xdiff } {
+	    xpass "$nshort $options (assembly identical)"
+	} else {
+	    pass "$nshort $options (assembly identical)"
+	}
 	file_on_host delete "$bname.s-pph"
 	file_on_host delete "$bname.s+pph"
     } else {
-	fail "$nshort $options assembly comparison"
+	if { $xdiff } {
+	    xfail "$nshort $options (assembly mismatch)"
+	} else {
+	    fail "$nshort $options (assembly mismatch)"
+	}
     }
 }

@@ -1,8 +1,12 @@
+// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "mathcalls.h:365:1: internal compiler error: Segmentation fault" "" { xfail *-*-* } 0 }
+// { dg-prune-output "In file included " }
+// { dg-prune-output "                 from " }
+// { dg-options "-w -fpermissive" }
+
 #ifndef __PPH_GUARD_H
 #define __PPH_GUARD_H
-/* { dg-options "-w -fpermissive" } */
-/* { dg-xfail-if "ICEs the compiler during PPH read" { "*-*-*" } } */
-/* { dg-prune-output "In file included.*" } */
+
 /* This file tests most of the non-C++ run-time helper functions
    described in Section 4 of the "Run-Time ABI for the ARM
    Architecture".  These are basic tests; they do not try to validate
