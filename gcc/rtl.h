@@ -1992,7 +1992,7 @@ extern const char *decode_asm_operands (rtx, rtx *, rtx **, const char **,
 
 extern enum reg_class reg_preferred_class (int);
 extern enum reg_class reg_alternate_class (int);
-extern enum reg_class reg_cover_class (int);
+extern enum reg_class reg_allocno_class (int);
 extern void setup_reg_classes (int, enum reg_class, enum reg_class,
 			       enum reg_class);
 
@@ -2315,6 +2315,7 @@ extern int redirect_jump_1 (rtx, rtx);
 extern void redirect_jump_2 (rtx, rtx, rtx, int, int);
 extern int redirect_jump (rtx, rtx, int);
 extern void rebuild_jump_labels (rtx);
+extern void rebuild_jump_labels_chain (rtx);
 extern rtx reversed_comparison (const_rtx, enum machine_mode);
 extern enum rtx_code reversed_comparison_code (const_rtx, const_rtx);
 extern enum rtx_code reversed_comparison_code_parts (enum rtx_code, const_rtx,

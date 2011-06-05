@@ -222,6 +222,10 @@ Wconversion-extra
 Fortran Warning
 Warn about most implicit conversions
 
+Wfunction-elimination
+Fortran Warning
+Warn about function call elimination
+
 Wimplicit-interface
 Fortran Warning
 Warn about calls with implicit interface
@@ -414,6 +418,10 @@ ffree-line-length-
 Fortran RejectNegative Joined UInteger
 -ffree-line-length-<n>	Use n as character line width in free mode
 
+ffrontend-optimize
+Fortran
+Enable front end optimization
+
 fimplicit-none
 Fortran
 Specify that no implicit typing is allowed, unless overridden by explicit IMPLICIT statements
@@ -453,6 +461,10 @@ Fortran RejectNegative Joined UInteger
 fmax-stack-var-size=
 Fortran RejectNegative Joined UInteger
 -fmax-stack-var-size=<n>	Size in bytes of the largest array that will be put on the stack
+
+fstack-arrays
+Fortran
+Put all local arrays on stack.
 
 fmodule-private
 Fortran

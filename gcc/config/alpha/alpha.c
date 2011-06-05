@@ -95,10 +95,6 @@ int alpha_memory_latency = 3;
 
 static int alpha_function_needs_gp;
 
-/* The alias set for prologue/epilogue register save/restore.  */
-
-static GTY(()) alias_set_type alpha_sr_alias_set;
-
 /* The assembler name of the current function.  */
 
 static const char *alpha_fnname;
@@ -476,9 +472,6 @@ alpha_option_override (void)
   if (align_functions <= 0)
     align_functions = 16;
 
-  /* Acquire a unique set number for our register saves and restores.  */
-  alpha_sr_alias_set = new_alias_set ();
-
   /* Register variables and functions with the garbage collector.  */
 
   /* Set up function hooks.  */
@@ -555,7 +548,7 @@ resolve_reload_operand (rtx op)
       if (REG_P (tmp)
 	  && REGNO (tmp) >= FIRST_PSEUDO_REGISTER)
 	{
-	  op = reg_equiv_memory_loc[REGNO (tmp)];
+	  op = reg_equiv_memory_loc (REGNO (tmp));
 	  if (op == 0)
 	    return 0;
 	}
@@ -1102,7 +1095,7 @@ alpha_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
    should never be spilling symbolic operands to the constant pool, ever.  */
 
 static bool
-alpha_cannot_force_const_mem (rtx x)
+alpha_cannot_force_const_mem (enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
 {
   enum rtx_code code = GET_CODE (x);
   return code == SYMBOL_REF || code == LABEL_REF || code == CONST;
@@ -2030,15 +2023,14 @@ alpha_extract_integer (rtx x, HOST_WIDE_INT *p0, HOST_WIDE_INT *p1)
   *p1 = i1;
 }
 
-/* Implement LEGITIMATE_CONSTANT_P.  This is all constants for which we
-   are willing to load the value into a register via a move pattern.
+/* Implement TARGET_LEGITIMATE_CONSTANT_P.  This is all constants for which
+   we are willing to load the value into a register via a move pattern.
    Normally this is all symbolic constants, integral constants that
    take three or fewer instructions, and floating-point zero.  */
 
 bool
-alpha_legitimate_constant_p (rtx x)
+alpha_legitimate_constant_p (enum machine_mode mode, rtx x)
 {
-  enum machine_mode mode = GET_MODE (x);
   HOST_WIDE_INT i0, i1;
 
   switch (GET_CODE (x))
@@ -3006,7 +2998,7 @@ alpha_emit_xfloating_libcall (rtx func, rtx target, rtx operands[],
 	}
 
       emit_move_insn (reg, operands[i]);
-      usage = alloc_EXPR_LIST (0, gen_rtx_USE (VOIDmode, reg), usage);
+      use_reg (&usage, reg);
     }
 
   switch (GET_MODE (target))
@@ -4613,7 +4605,7 @@ struct GTY(()) machine_function
   const char *some_ld_name;
 
   /* For TARGET_LD_BUGGY_LDGP.  */
-  struct rtx_def *gp_save_rtx;
+  rtx gp_save_rtx;
 
   /* For VMS condition handlers.  */
   bool uses_condition_handler;  
@@ -7448,8 +7440,7 @@ emit_frame_store_1 (rtx value, rtx base_reg, HOST_WIDE_INT frame_bias,
   rtx addr, mem, insn;
 
   addr = plus_constant (base_reg, base_ofs);
-  mem = gen_rtx_MEM (DImode, addr);
-  set_mem_alias_set (mem, alpha_sr_alias_set);
+  mem = gen_frame_mem (DImode, addr);
 
   insn = emit_move_insn (mem, value);
   RTX_FRAME_RELATED_P (insn) = 1;
@@ -8056,9 +8047,7 @@ alpha_expand_epilogue (void)
 
       /* Restore registers in order, excepting a true frame pointer.  */
 
-      mem = gen_rtx_MEM (DImode, plus_constant (sa_reg, reg_offset));
-      if (! eh_ofs)
-        set_mem_alias_set (mem, alpha_sr_alias_set);
+      mem = gen_frame_mem (DImode, plus_constant (sa_reg, reg_offset));
       reg = gen_rtx_REG (DImode, REG_RA);
       emit_move_insn (reg, mem);
       cfa_restores = alloc_reg_note (REG_CFA_RESTORE, reg, cfa_restores);
@@ -8073,8 +8062,8 @@ alpha_expand_epilogue (void)
 	      fp_offset = reg_offset;
 	    else
 	      {
-		mem = gen_rtx_MEM (DImode, plus_constant(sa_reg, reg_offset));
-		set_mem_alias_set (mem, alpha_sr_alias_set);
+		mem = gen_frame_mem (DImode,
+				     plus_constant (sa_reg, reg_offset));
 		reg = gen_rtx_REG (DImode, i);
 		emit_move_insn (reg, mem);
 		cfa_restores = alloc_reg_note (REG_CFA_RESTORE, reg,
@@ -8086,8 +8075,7 @@ alpha_expand_epilogue (void)
       for (i = 0; i < 31; ++i)
 	if (fmask & (1UL << i))
 	  {
-	    mem = gen_rtx_MEM (DFmode, plus_constant(sa_reg, reg_offset));
-	    set_mem_alias_set (mem, alpha_sr_alias_set);
+	    mem = gen_frame_mem (DFmode, plus_constant (sa_reg, reg_offset));
 	    reg = gen_rtx_REG (DFmode, i+32);
 	    emit_move_insn (reg, mem);
 	    cfa_restores = alloc_reg_note (REG_CFA_RESTORE, reg, cfa_restores);
@@ -8145,8 +8133,7 @@ alpha_expand_epilogue (void)
       if (fp_is_frame_pointer)
 	{
 	  emit_insn (gen_blockage ());
-	  mem = gen_rtx_MEM (DImode, plus_constant (sa_reg, fp_offset));
-	  set_mem_alias_set (mem, alpha_sr_alias_set);
+	  mem = gen_frame_mem (DImode, plus_constant (sa_reg, fp_offset));
 	  emit_move_insn (hard_frame_pointer_rtx, mem);
 	  cfa_restores = alloc_reg_note (REG_CFA_RESTORE,
 					 hard_frame_pointer_rtx, cfa_restores);
@@ -9876,6 +9863,8 @@ alpha_conditional_register_usage (void)
 #define TARGET_FUNCTION_OK_FOR_SIBCALL alpha_function_ok_for_sibcall
 #undef TARGET_CANNOT_COPY_INSN_P
 #define TARGET_CANNOT_COPY_INSN_P alpha_cannot_copy_insn_p
+#undef TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P alpha_legitimate_constant_p
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM alpha_cannot_force_const_mem
 

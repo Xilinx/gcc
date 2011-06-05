@@ -31,9 +31,6 @@
 #define BRT 1
 #define BRF 0
 
-/* Print subsidiary information on the compiler version in use.  */
-#define TARGET_VERSION fprintf (stderr, " (BlackFin bfin)")
-
 /* Predefinition in the preprocessor for this target machine */
 #ifndef TARGET_CPU_CPP_BUILTINS
 #define TARGET_CPU_CPP_BUILTINS()		\
@@ -664,19 +661,6 @@ enum reg_class
  : (REGNO) >= REG_RETS ? PROLOGUE_REGS			\
  : NO_REGS)
 
-/* The following macro defines cover classes for Integrated Register
-   Allocator.  Cover classes is a set of non-intersected register
-   classes covering all hard registers used for register allocation
-   purpose.  Any move between two registers of a cover class should be
-   cheaper than load or store of the registers.  The macro value is
-   array of register classes with LIM_REG_CLASSES used as the end
-   marker.  */
-
-#define IRA_COVER_CLASSES				\
-{							\
-    MOST_REGS, AREGS, CCREGS, LIM_REG_CLASSES		\
-}
-
 /* When this hook returns true for MODE, the compiler allows
    registers explicitly used in the rtl to be used as spill registers
    but prevents the compiler from extending the lifetime of these
@@ -799,13 +783,6 @@ typedef struct {
     gen_frame_mem (Pmode, plus_constant (frame_pointer_rtx, UNITS_PER_WORD))
 
 /* Addressing Modes */
-
-/* Nonzero if the constant value X is a legitimate general operand.
-   symbol_ref are not legitimate and will be put into constant pool.
-   See force_const_mem().
-   If -mno-pool, all constants are legitimate.
- */
-#define LEGITIMATE_CONSTANT_P(X) bfin_legitimate_constant_p (X)
 
 /*   A number, the maximum number of registers that can appear in a
      valid memory address.  Note that it is up to you to specify a
@@ -1160,7 +1137,7 @@ do { 						\
 #define ASM_OUTPUT_REG_PUSH(FILE, REGNO) fprintf (FILE, "[SP--] = %s;\n", reg_names[REGNO])
 #define ASM_OUTPUT_REG_POP(FILE, REGNO)  fprintf (FILE, "%s = [SP++];\n", reg_names[REGNO])
 
-extern struct rtx_def *bfin_cc_rtx, *bfin_rets_rtx;
+extern rtx bfin_cc_rtx, bfin_rets_rtx;
 
 /* This works for GAS and some other assemblers.  */
 #define SET_ASM_OP              ".set "

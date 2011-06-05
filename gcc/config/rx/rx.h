@@ -52,15 +52,6 @@
     }                                           \
   while (0)
 
-enum rx_cpu_types
-{
-  RX600,
-  RX610,
-  RX200
-};
-
-extern enum rx_cpu_types  rx_cpu_type;
-
 #undef  CC1_SPEC
 #define CC1_SPEC "\
   %{mas100-syntax:%{gdwarf*:%e-mas100-syntax is incompatible with -gdwarf}} \
@@ -153,8 +144,6 @@ extern enum rx_cpu_types  rx_cpu_type;
 
 #define TRULY_NOOP_TRUNCATION(OUTPREC, INPREC)   1
 
-#define LEGITIMATE_CONSTANT_P(X) 	rx_is_legitimate_constant (X)
-
 #define HAVE_PRE_DECCREMENT		1
 #define HAVE_POST_INCREMENT		1
 
@@ -186,11 +175,6 @@ enum reg_class
   { 0x0000ffff },	/* Integer registers.  */	\
   { 0x0000ffff }	/* All registers.  */		\
 }
-
-#define IRA_COVER_CLASSES				\
-  {							\
-    GR_REGS, LIM_REG_CLASSES				\
-  }
 
 #define SMALL_REGISTER_CLASSES 		0
 #define N_REG_CLASSES			(int) LIM_REG_CLASSES
@@ -635,3 +619,10 @@ typedef unsigned int CUMULATIVE_ARGS;
 #define REGISTER_MOVE_COST(MODE,FROM,TO) 2
 
 #define SELECT_CC_MODE(OP,X,Y)  rx_select_cc_mode(OP, X, Y)
+
+#define ADJUST_INSN_LENGTH(INSN,LENGTH)				\
+  do								\
+    {								\
+      (LENGTH) = rx_adjust_insn_length ((INSN), (LENGTH));	\
+    }								\
+  while (0)

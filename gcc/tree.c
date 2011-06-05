@@ -41,6 +41,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "toplev.h"
 #include "ggc.h"
 #include "hashtab.h"
+#include "filenames.h"
 #include "output.h"
 #include "target.h"
 #include "langhooks.h"
@@ -351,47 +352,6 @@ initialize_tree_contains_struct (void)
 {
   unsigned i;
 
-#define MARK_TS_BASE(C)					\
-  do {							\
-    tree_contains_struct[C][TS_BASE] = 1;		\
-  } while (0)
-
-#define MARK_TS_COMMON(C)				\
-  do {							\
-    MARK_TS_BASE (C);					\
-    tree_contains_struct[C][TS_COMMON] = 1;		\
-  } while (0)
-
-#define MARK_TS_DECL_MINIMAL(C)				\
-  do {							\
-    MARK_TS_COMMON (C);					\
-    tree_contains_struct[C][TS_DECL_MINIMAL] = 1;	\
-  } while (0)
-
-#define MARK_TS_DECL_COMMON(C)				\
-  do {							\
-    MARK_TS_DECL_MINIMAL (C);				\
-    tree_contains_struct[C][TS_DECL_COMMON] = 1;	\
-  } while (0)
-
-#define MARK_TS_DECL_WRTL(C)				\
-  do {							\
-    MARK_TS_DECL_COMMON (C);				\
-    tree_contains_struct[C][TS_DECL_WRTL] = 1;		\
-  } while (0)
-
-#define MARK_TS_DECL_WITH_VIS(C)			\
-  do {							\
-    MARK_TS_DECL_WRTL (C);				\
-    tree_contains_struct[C][TS_DECL_WITH_VIS] = 1;	\
-  } while (0)
-
-#define MARK_TS_DECL_NON_COMMON(C)			\
-  do {							\
-    MARK_TS_DECL_WITH_VIS (C);				\
-    tree_contains_struct[C][TS_DECL_NON_COMMON] = 1;	\
-  } while (0)
-
   for (i = ERROR_MARK; i < LAST_AND_UNUSED_TREE_CODE; i++)
     {
       enum tree_code code;
@@ -406,27 +366,31 @@ initialize_tree_contains_struct (void)
       /* Mark all the structures that TS is derived from.  */
       switch (ts_code)
 	{
-	case TS_COMMON:
+	case TS_TYPED:
 	  MARK_TS_BASE (code);
 	  break;
 
+	case TS_COMMON:
 	case TS_INT_CST:
 	case TS_REAL_CST:
 	case TS_FIXED_CST:
 	case TS_VECTOR:
 	case TS_STRING:
 	case TS_COMPLEX:
+	case TS_SSA_NAME:
+	case TS_CONSTRUCTOR:
+	  MARK_TS_TYPED (code);
+	  break;
+
 	case TS_IDENTIFIER:
 	case TS_DECL_MINIMAL:
 	case TS_TYPE:
 	case TS_LIST:
 	case TS_VEC:
 	case TS_EXP:
-	case TS_SSA_NAME:
 	case TS_BLOCK:
 	case TS_BINFO:
 	case TS_STATEMENT_LIST:
-	case TS_CONSTRUCTOR:
 	case TS_OMP_CLAUSE:
 	case TS_OPTIMIZATION:
 	case TS_TARGET_OPTION:
@@ -438,6 +402,7 @@ initialize_tree_contains_struct (void)
 	  break;
 
 	case TS_DECL_WRTL:
+	case TS_CONST_DECL:
 	  MARK_TS_DECL_COMMON (code);
 	  break;
 
@@ -449,7 +414,6 @@ initialize_tree_contains_struct (void)
 	case TS_PARM_DECL:
 	case TS_LABEL_DECL:
 	case TS_RESULT_DECL:
-	case TS_CONST_DECL:
 	  MARK_TS_DECL_WRTL (code);
 	  break;
 
@@ -487,7 +451,6 @@ initialize_tree_contains_struct (void)
   gcc_assert (tree_contains_struct[TRANSLATION_UNIT_DECL][TS_DECL_COMMON]);
   gcc_assert (tree_contains_struct[LABEL_DECL][TS_DECL_COMMON]);
   gcc_assert (tree_contains_struct[FIELD_DECL][TS_DECL_COMMON]);
-  gcc_assert (tree_contains_struct[CONST_DECL][TS_DECL_WRTL]);
   gcc_assert (tree_contains_struct[VAR_DECL][TS_DECL_WRTL]);
   gcc_assert (tree_contains_struct[PARM_DECL][TS_DECL_WRTL]);
   gcc_assert (tree_contains_struct[RESULT_DECL][TS_DECL_WRTL]);
@@ -515,14 +478,6 @@ initialize_tree_contains_struct (void)
   gcc_assert (tree_contains_struct[FUNCTION_DECL][TS_FUNCTION_DECL]);
   gcc_assert (tree_contains_struct[IMPORTED_DECL][TS_DECL_MINIMAL]);
   gcc_assert (tree_contains_struct[IMPORTED_DECL][TS_DECL_COMMON]);
-
-#undef MARK_TS_BASE
-#undef MARK_TS_COMMON
-#undef MARK_TS_DECL_MINIMAL
-#undef MARK_TS_DECL_COMMON
-#undef MARK_TS_DECL_WRTL
-#undef MARK_TS_DECL_WITH_VIS
-#undef MARK_TS_DECL_NON_COMMON
 }
 
 
@@ -958,7 +913,7 @@ make_node_stat (enum tree_code code MEM_STAT_DECL)
 }
 
 /* Return a new node with the same contents as NODE except that its
-   TREE_CHAIN is zero and it has a fresh uid.  */
+   TREE_CHAIN, if it has one, is zero and it has a fresh uid.  */
 
 tree
 copy_node_stat (tree node MEM_STAT_DECL)
@@ -974,7 +929,8 @@ copy_node_stat (tree node MEM_STAT_DECL)
   t = ggc_alloc_zone_tree_node_stat (&tree_zone, length PASS_MEM_STAT);
   memcpy (t, node, length);
 
-  TREE_CHAIN (t) = 0;
+  if (CODE_CONTAINS_STRUCT (code, TS_COMMON))
+    TREE_CHAIN (t) = 0;
   TREE_ASM_WRITTEN (t) = 0;
   TREE_VISITED (t) = 0;
   if (code == VAR_DECL || code == PARM_DECL || code == RESULT_DECL)
@@ -1048,7 +1004,7 @@ copy_list (tree list)
 }
 
 
-/* Create an INT_CST node with a LOW value sign extended.  */
+/* Create an INT_CST node with a LOW value sign extended to TYPE.  */
 
 tree
 build_int_cst (tree type, HOST_WIDE_INT low)
@@ -1057,17 +1013,10 @@ build_int_cst (tree type, HOST_WIDE_INT low)
   if (!type)
     type = integer_type_node;
 
-  return build_int_cst_wide (type, low, low < 0 ? -1 : 0);
+  return double_int_to_tree (type, shwi_to_double_int (low));
 }
 
-/* Create an INT_CST node with a LOW value in TYPE.  The value is sign extended
-   if it is negative.  This function is similar to build_int_cst, but
-   the extra bits outside of the type precision are cleared.  Constants
-   with these extra bits may confuse the fold so that it detects overflows
-   even in cases when they do not occur, and in general should be avoided.
-   We cannot however make this a default behavior of build_int_cst without
-   more intrusive changes, since there are parts of gcc that rely on the extra
-   precision of the integer constants.  */
+/* Create an INT_CST node with a LOW value sign extended to TYPE.  */
 
 tree
 build_int_cst_type (tree type, HOST_WIDE_INT low)
@@ -1565,7 +1514,7 @@ build_string (int len, const char *str)
 
   s = ggc_alloc_tree_node (length);
 
-  memset (s, 0, sizeof (struct tree_common));
+  memset (s, 0, sizeof (struct tree_typed));
   TREE_SET_CODE (s, STRING_CST);
   TREE_CONSTANT (s) = 1;
   TREE_STRING_LENGTH (s) = len;
@@ -2461,6 +2410,10 @@ array_type_nelts (const_tree type)
   index_type = TYPE_DOMAIN (type);
   min = TYPE_MIN_VALUE (index_type);
   max = TYPE_MAX_VALUE (index_type);
+
+  /* TYPE_MAX_VALUE may not be set if the array has unknown length.  */
+  if (!max)
+    return error_mark_node;
 
   return (integer_zerop (min)
 	  ? max
@@ -4601,10 +4554,6 @@ free_lang_data_in_decl (tree decl)
   TREE_LANG_FLAG_5 (decl) = 0;
   TREE_LANG_FLAG_6 (decl) = 0;
 
-  /* Identifiers need not have a type.  */
-  if (DECL_NAME (decl))
-    TREE_TYPE (DECL_NAME (decl)) = NULL_TREE;
-
   free_lang_data_in_one_sizepos (&DECL_SIZE (decl));
   free_lang_data_in_one_sizepos (&DECL_SIZE_UNIT (decl));
   if (TREE_CODE (decl) == FIELD_DECL)
@@ -4646,6 +4595,13 @@ free_lang_data_in_decl (tree decl)
 	  && RECORD_OR_UNION_TYPE_P
 	       (DECL_CONTEXT (DECL_ABSTRACT_ORIGIN (decl))))
 	DECL_ABSTRACT_ORIGIN (decl) = NULL_TREE;
+
+      /* Sometimes the C++ frontend doesn't manage to transform a temporary
+         DECL_VINDEX referring to itself into a vtable slot number as it
+	 should.  Happens with functions that are copied and then forgotten
+	 about.  Just clear it, it won't matter anymore.  */
+      if (DECL_VINDEX (decl) && !host_integerp (DECL_VINDEX (decl), 0))
+	DECL_VINDEX (decl) = NULL_TREE;
     }
   else if (TREE_CODE (decl) == VAR_DECL)
     {
@@ -5209,7 +5165,12 @@ free_lang_data (void)
   lang_hooks.callgraph.analyze_expr = NULL;
   lang_hooks.dwarf_name = lhd_dwarf_name;
   lang_hooks.decl_printable_name = gimple_decl_printable_name;
-  lang_hooks.set_decl_assembler_name = lhd_set_decl_assembler_name;
+  /* We do not want the default decl_assembler_name implementation,
+     rather if we have fixed everything we want a wrapper around it
+     asserting that all non-local symbols already got their assembler
+     name and only produce assembler names for local symbols.  Or rather
+     make sure we never call decl_assembler_name on local symbols and
+     devise a separate, middle-end private scheme for it.  */
 
   /* Reset diagnostic machinery.  */
   diagnostic_starter (global_dc) = default_tree_diagnostic_starter;
@@ -5912,6 +5873,8 @@ decl_init_priority_insert (tree decl, priority_type priority)
   struct tree_priority_map *h;
 
   gcc_assert (VAR_OR_FUNCTION_DECL_P (decl));
+  if (priority == DEFAULT_INIT_PRIORITY)
+    return;
   h = decl_priority_info (decl);
   h->init = priority;
 }
@@ -5924,6 +5887,8 @@ decl_fini_priority_insert (tree decl, priority_type priority)
   struct tree_priority_map *h;
 
   gcc_assert (TREE_CODE (decl) == FUNCTION_DECL);
+  if (priority == DEFAULT_INIT_PRIORITY)
+    return;
   h = decl_priority_info (decl);
   h->fini = priority;
 }
@@ -8612,12 +8577,7 @@ get_file_function_name (const char *type)
 	file = input_filename;
       /* Just use the file's basename, because the full pathname
 	 might be quite long.  */
-      p = strrchr (file, '/');
-      if (p)
-	p++;
-      else
-	p = file;
-      p = q = ASTRDUP (p);
+      p = q = ASTRDUP (lbasename (file));
     }
   else
     {
@@ -9897,50 +9857,6 @@ needs_to_live_in_memory (const_tree t)
 	      && aggregate_value_p (t, current_function_decl)));
 }
 
-/* There are situations in which a language considers record types
-   compatible which have different field lists.  Decide if two fields
-   are compatible.  It is assumed that the parent records are compatible.  */
-
-bool
-fields_compatible_p (const_tree f1, const_tree f2)
-{
-  if (!operand_equal_p (DECL_FIELD_BIT_OFFSET (f1),
-			DECL_FIELD_BIT_OFFSET (f2), OEP_ONLY_CONST))
-    return false;
-
-  if (!operand_equal_p (DECL_FIELD_OFFSET (f1),
-                        DECL_FIELD_OFFSET (f2), OEP_ONLY_CONST))
-    return false;
-
-  if (!types_compatible_p (TREE_TYPE (f1), TREE_TYPE (f2)))
-    return false;
-
-  return true;
-}
-
-/* Locate within RECORD a field that is compatible with ORIG_FIELD.  */
-
-tree
-find_compatible_field (tree record, tree orig_field)
-{
-  tree f;
-
-  for (f = TYPE_FIELDS (record); f ; f = TREE_CHAIN (f))
-    if (TREE_CODE (f) == FIELD_DECL
-	&& fields_compatible_p (f, orig_field))
-      return f;
-
-  /* ??? Why isn't this on the main fields list?  */
-  f = TYPE_VFIELD (record);
-  if (f && TREE_CODE (f) == FIELD_DECL
-      && fields_compatible_p (f, orig_field))
-    return f;
-
-  /* ??? We should abort here, but Java appears to do Bad Things
-     with inherited fields.  */
-  return orig_field;
-}
-
 /* Return value of a constant X and sign-extend it.  */
 
 HOST_WIDE_INT
@@ -10042,7 +9958,7 @@ signed_type_for (tree type)
 tree
 upper_bound_in_type (tree outer, tree inner)
 {
-  unsigned HOST_WIDE_INT lo, hi;
+  double_int high;
   unsigned int det = 0;
   unsigned oprec = TYPE_PRECISION (outer);
   unsigned iprec = TYPE_PRECISION (inner);
@@ -10089,18 +10005,18 @@ upper_bound_in_type (tree outer, tree inner)
   /* Compute 2^^prec - 1.  */
   if (prec <= HOST_BITS_PER_WIDE_INT)
     {
-      hi = 0;
-      lo = ((~(unsigned HOST_WIDE_INT) 0)
+      high.high = 0;
+      high.low = ((~(unsigned HOST_WIDE_INT) 0)
 	    >> (HOST_BITS_PER_WIDE_INT - prec));
     }
   else
     {
-      hi = ((~(unsigned HOST_WIDE_INT) 0)
+      high.high = ((~(unsigned HOST_WIDE_INT) 0)
 	    >> (2 * HOST_BITS_PER_WIDE_INT - prec));
-      lo = ~(unsigned HOST_WIDE_INT) 0;
+      high.low = ~(unsigned HOST_WIDE_INT) 0;
     }
 
-  return build_int_cst_wide (outer, lo, hi);
+  return double_int_to_tree (outer, high);
 }
 
 /* Returns the smallest value obtainable by casting something in INNER type to
@@ -10109,7 +10025,7 @@ upper_bound_in_type (tree outer, tree inner)
 tree
 lower_bound_in_type (tree outer, tree inner)
 {
-  unsigned HOST_WIDE_INT lo, hi;
+  double_int low;
   unsigned oprec = TYPE_PRECISION (outer);
   unsigned iprec = TYPE_PRECISION (inner);
 
@@ -10120,7 +10036,7 @@ lower_bound_in_type (tree outer, tree inner)
 	 contains all values of INNER type.  In particular, both INNER
 	 and OUTER types have zero in common.  */
       || (oprec > iprec && TYPE_UNSIGNED (inner)))
-    lo = hi = 0;
+    low.low = low.high = 0;
   else
     {
       /* If we are widening a signed type to another signed type, we
@@ -10131,18 +10047,18 @@ lower_bound_in_type (tree outer, tree inner)
 
       if (prec <= HOST_BITS_PER_WIDE_INT)
 	{
-	  hi = ~(unsigned HOST_WIDE_INT) 0;
-	  lo = (~(unsigned HOST_WIDE_INT) 0) << (prec - 1);
+	  low.high = ~(unsigned HOST_WIDE_INT) 0;
+	  low.low = (~(unsigned HOST_WIDE_INT) 0) << (prec - 1);
 	}
       else
 	{
-	  hi = ((~(unsigned HOST_WIDE_INT) 0)
+	  low.high = ((~(unsigned HOST_WIDE_INT) 0)
 		<< (prec - HOST_BITS_PER_WIDE_INT - 1));
-	  lo = 0;
+	  low.low = 0;
 	}
     }
 
-  return build_int_cst_wide (outer, lo, hi);
+  return double_int_to_tree (outer, low);
 }
 
 /* Return nonzero if two operands that are suitable for PHI nodes are

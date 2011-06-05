@@ -5773,11 +5773,13 @@ store_init_value (location_t init_loc, tree decl, tree init, tree origtype)
 	      /* For int foo[] = (int [3]){1}; we need to set array size
 		 now since later on array initializer will be just the
 		 brace enclosed list of the compound literal.  */
+	      tree etype = strip_array_types (TREE_TYPE (decl));
 	      type = build_distinct_type_copy (TYPE_MAIN_VARIANT (type));
-	      TREE_TYPE (decl) = type;
 	      TYPE_DOMAIN (type) = TYPE_DOMAIN (TREE_TYPE (cldecl));
 	      layout_type (type);
 	      layout_decl (cldecl, 0);
+	      TREE_TYPE (decl)
+		= c_build_qualified_type (type, TYPE_QUALS (etype));
 	    }
 	}
     }
@@ -6932,15 +6934,23 @@ pop_init_level (int implicit, struct obstack * braced_init_obstack)
       && TREE_CODE (constructor_type) == RECORD_TYPE
       && constructor_unfilled_fields)
     {
+	bool constructor_zeroinit =
+	 (VEC_length (constructor_elt, constructor_elements) == 1
+	  && integer_zerop
+	      (VEC_index (constructor_elt, constructor_elements, 0)->value));
+
 	/* Do not warn for flexible array members or zero-length arrays.  */
 	while (constructor_unfilled_fields
 	       && (!DECL_SIZE (constructor_unfilled_fields)
 		   || integer_zerop (DECL_SIZE (constructor_unfilled_fields))))
 	  constructor_unfilled_fields = DECL_CHAIN (constructor_unfilled_fields);
 
-	/* Do not warn if this level of the initializer uses member
-	   designators; it is likely to be deliberate.  */
-	if (constructor_unfilled_fields && !constructor_designated)
+	if (constructor_unfilled_fields
+	    /* Do not warn if this level of the initializer uses member
+	       designators; it is likely to be deliberate.  */
+	    && !constructor_designated
+	    /* Do not warn about initializing with ` = {0}'.  */
+	    && !constructor_zeroinit)
 	  {
 	    push_member_name (constructor_unfilled_fields);
 	    warning_init (OPT_Wmissing_field_initializers,
@@ -8502,6 +8512,13 @@ build_asm_expr (location_t loc, tree string, tree outputs, tree inputs,
 	     mark it addressable.  */
 	  if (!allows_reg && !c_mark_addressable (output))
 	    output = error_mark_node;
+	  if (!(!allows_reg && allows_mem)
+	      && output != error_mark_node
+	      && VOID_TYPE_P (TREE_TYPE (output)))
+	    {
+	      error_at (loc, "invalid use of void expression");
+	      output = error_mark_node;
+	    }
 	}
       else
 	output = error_mark_node;
@@ -8528,7 +8545,12 @@ build_asm_expr (location_t loc, tree string, tree outputs, tree inputs,
 	      STRIP_NOPS (input);
 	      if (!c_mark_addressable (input))
 		input = error_mark_node;
-	  }
+	    }
+	  else if (input != error_mark_node && VOID_TYPE_P (TREE_TYPE (input)))
+	    {
+	      error_at (loc, "invalid use of void expression");
+	      input = error_mark_node;
+	    }
 	}
       else
 	input = error_mark_node;

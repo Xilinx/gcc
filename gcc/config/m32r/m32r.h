@@ -26,7 +26,6 @@
 #undef PTRDIFF_TYPE
 #undef WCHAR_TYPE
 #undef WCHAR_TYPE_SIZE
-#undef TARGET_VERSION
 #undef CPP_SPEC
 #undef ASM_SPEC
 #undef LINK_SPEC
@@ -38,8 +37,6 @@
 
 
 /* M32R/X overrides.  */
-/* Print subsidiary information on the compiler version in use.  */
-#define TARGET_VERSION fprintf (stderr, " (m32r/x/2)");
 
 /* Additional flags for the preprocessor.  */
 #define CPP_CPU_SPEC "%{m32rx:-D__M32RX__ -D__m32rx__ -U__M32R2__ -U__m32r2__} \
@@ -85,11 +82,6 @@
 /* Define additional register names.  */
 #define SUBTARGET_REGISTER_NAMES , "a1"
 /* end M32R/X overrides.  */
-
-/* Print subsidiary information on the compiler version in use.  */
-#ifndef	TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (m32r)")
-#endif
 
 /* Names to predefine in the preprocessor for this target machine.  */
 /* __M32R__ is defined by the existing compiler so we use that.  */
@@ -459,11 +451,6 @@ enum reg_class
   NO_REGS, CARRY_REG, ACCUM_REGS, GENERAL_REGS, ALL_REGS, LIM_REG_CLASSES
 };
 
-#define IRA_COVER_CLASSES				\
-{							\
-  ACCUM_REGS, GENERAL_REGS, LIM_REG_CLASSES		\
-}
-
 #define N_REG_CLASSES ((int) LIM_REG_CLASSES)
 
 /* Give names of register classes as strings for dump file.  */
@@ -762,19 +749,6 @@ L2:     .word STATIC
    ||  CONST_INT_P (X)  \
    || (GET_CODE (X) == CONST      \
        && ! (flag_pic && ! m32r_legitimate_pic_operand_p (X))))
-
-/* Nonzero if the constant value X is a legitimate general operand.
-   We don't allow (plus symbol large-constant) as the relocations can't
-   describe it.  INTVAL > 32767 handles both 16-bit and 24-bit relocations.
-   We allow all CONST_DOUBLE's as the md file patterns will force the
-   constant to memory if they can't handle them.  */
-
-#define LEGITIMATE_CONSTANT_P(X)					\
-  (! (GET_CODE (X) == CONST						\
-      && GET_CODE (XEXP (X, 0)) == PLUS					\
-      && (GET_CODE (XEXP (XEXP (X, 0), 0)) == SYMBOL_REF || GET_CODE (XEXP (XEXP (X, 0), 0)) == LABEL_REF) \
-      && CONST_INT_P (XEXP (XEXP (X, 0), 1))			\
-      && (unsigned HOST_WIDE_INT) INTVAL (XEXP (XEXP (X, 0), 1)) > 32767))
 
 /* Condition code usage.  */
 

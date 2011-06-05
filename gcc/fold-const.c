@@ -141,6 +141,15 @@ static tree fold_not_const (const_tree, tree);
 static tree fold_relational_const (enum tree_code, tree, tree, tree);
 static tree fold_convert_const (enum tree_code, tree, tree);
 
+/* Return EXPR_LOCATION of T if it is not UNKNOWN_LOCATION.
+   Otherwise, return LOC.  */
+
+static location_t
+expr_location_or (tree t, location_t loc)
+{
+  location_t tloc = EXPR_LOCATION (t);
+  return tloc != UNKNOWN_LOCATION ? tloc : loc;
+}
 
 /* Similar to protected_set_expr_location, but never modify x in place,
    if location can and needs to be set, unshare it.  */
@@ -3079,23 +3088,15 @@ fold_truth_not_expr (location_t loc, tree arg)
       return constant_boolean_node (integer_zerop (arg), type);
 
     case TRUTH_AND_EXPR:
-      loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
-      loc2 = EXPR_LOCATION (TREE_OPERAND (arg, 1));
-      if (loc1 == UNKNOWN_LOCATION)
-	loc1 = loc;
-      if (loc2 == UNKNOWN_LOCATION)
-	loc2 = loc;
+      loc1 = expr_location_or (TREE_OPERAND (arg, 0), loc);
+      loc2 = expr_location_or (TREE_OPERAND (arg, 1), loc);
       return build2_loc (loc, TRUTH_OR_EXPR, type,
 			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
 			 invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
 
     case TRUTH_OR_EXPR:
-      loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
-      loc2 = EXPR_LOCATION (TREE_OPERAND (arg, 1));
-      if (loc1 == UNKNOWN_LOCATION)
-	loc1 = loc;
-      if (loc2 == UNKNOWN_LOCATION)
-	loc2 = loc;
+      loc1 = expr_location_or (TREE_OPERAND (arg, 0), loc);
+      loc2 = expr_location_or (TREE_OPERAND (arg, 1), loc);
       return build2_loc (loc, TRUTH_AND_EXPR, type,
 			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
 			 invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
@@ -3115,23 +3116,15 @@ fold_truth_not_expr (location_t loc, tree arg)
 			   TREE_OPERAND (arg, 1));
 
     case TRUTH_ANDIF_EXPR:
-      loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
-      loc2 = EXPR_LOCATION (TREE_OPERAND (arg, 1));
-      if (loc1 == UNKNOWN_LOCATION)
-	loc1 = loc;
-      if (loc2 == UNKNOWN_LOCATION)
-	loc2 = loc;
+      loc1 = expr_location_or (TREE_OPERAND (arg, 0), loc);
+      loc2 = expr_location_or (TREE_OPERAND (arg, 1), loc);
       return build2_loc (loc, TRUTH_ORIF_EXPR, type,
 			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
 			 invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
 
     case TRUTH_ORIF_EXPR:
-      loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
-      loc2 = EXPR_LOCATION (TREE_OPERAND (arg, 1));
-      if (loc1 == UNKNOWN_LOCATION)
-	loc1 = loc;
-      if (loc2 == UNKNOWN_LOCATION)
-	loc2 = loc;
+      loc1 = expr_location_or (TREE_OPERAND (arg, 0), loc);
+      loc2 = expr_location_or (TREE_OPERAND (arg, 1), loc);
       return build2_loc (loc, TRUTH_ANDIF_EXPR, type,
 			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)),
 			 invert_truthvalue_loc (loc2, TREE_OPERAND (arg, 1)));
@@ -3144,12 +3137,8 @@ fold_truth_not_expr (location_t loc, tree arg)
 	tree arg1 = TREE_OPERAND (arg, 1);
 	tree arg2 = TREE_OPERAND (arg, 2);
 
-	loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 1));
-	loc2 = EXPR_LOCATION (TREE_OPERAND (arg, 2));
-	if (loc1 == UNKNOWN_LOCATION)
-	  loc1 = loc;
-	if (loc2 == UNKNOWN_LOCATION)
-	  loc2 = loc;
+	loc1 = expr_location_or (TREE_OPERAND (arg, 1), loc);
+	loc2 = expr_location_or (TREE_OPERAND (arg, 2), loc);
 
 	/* A COND_EXPR may have a throw as one operand, which
 	   then has void type.  Just leave void operands
@@ -3162,17 +3151,13 @@ fold_truth_not_expr (location_t loc, tree arg)
       }
 
     case COMPOUND_EXPR:
-      loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 1));
-      if (loc1 == UNKNOWN_LOCATION)
-	loc1 = loc;
+      loc1 = expr_location_or (TREE_OPERAND (arg, 1), loc);
       return build2_loc (loc, COMPOUND_EXPR, type,
 			 TREE_OPERAND (arg, 0),
 			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 1)));
 
     case NON_LVALUE_EXPR:
-      loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
-      if (loc1 == UNKNOWN_LOCATION)
-	loc1 = loc;
+      loc1 = expr_location_or (TREE_OPERAND (arg, 0), loc);
       return invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0));
 
     CASE_CONVERT:
@@ -3182,9 +3167,7 @@ fold_truth_not_expr (location_t loc, tree arg)
       /* ... fall through ...  */
 
     case FLOAT_EXPR:
-      loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
-      if (loc1 == UNKNOWN_LOCATION)
-	loc1 = loc;
+      loc1 = expr_location_or (TREE_OPERAND (arg, 0), loc);
       return build1_loc (loc, TREE_CODE (arg), type,
 			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)));
 
@@ -3197,9 +3180,7 @@ fold_truth_not_expr (location_t loc, tree arg)
       return build1_loc (loc, TRUTH_NOT_EXPR, type, arg);
 
     case CLEANUP_POINT_EXPR:
-      loc1 = EXPR_LOCATION (TREE_OPERAND (arg, 0));
-      if (loc1 == UNKNOWN_LOCATION)
-	loc1 = loc;
+      loc1 = expr_location_or (TREE_OPERAND (arg, 0), loc);
       return build1_loc (loc, CLEANUP_POINT_EXPR, type,
 			 invert_truthvalue_loc (loc1, TREE_OPERAND (arg, 0)));
 
@@ -9249,30 +9230,10 @@ get_pointer_modulus_and_residue (tree expr, unsigned HOST_WIDE_INT *residue,
   code = TREE_CODE (expr);
   if (code == ADDR_EXPR)
     {
-      expr = TREE_OPERAND (expr, 0);
-      if (handled_component_p (expr))
-	{
-	  HOST_WIDE_INT bitsize, bitpos;
-	  tree offset;
-	  enum machine_mode mode;
-	  int unsignedp, volatilep;
-
-	  expr = get_inner_reference (expr, &bitsize, &bitpos, &offset,
-				      &mode, &unsignedp, &volatilep, false);
-	  *residue = bitpos / BITS_PER_UNIT;
-	  if (offset)
-	    {
-	      if (TREE_CODE (offset) == INTEGER_CST)
-		*residue += TREE_INT_CST_LOW (offset);
-	      else
-		/* We don't handle more complicated offset expressions.  */
-		return 1;
-	    }
-	}
-
-      if (DECL_P (expr)
-	  && (allow_func_align || TREE_CODE (expr) != FUNCTION_DECL))
-	return DECL_ALIGN_UNIT (expr);
+      unsigned int bitalign;
+      bitalign = get_object_alignment_1 (TREE_OPERAND (expr, 0), residue);
+      *residue /= BITS_PER_UNIT;
+      return bitalign / BITS_PER_UNIT;
     }
   else if (code == POINTER_PLUS_EXPR)
     {
@@ -9317,9 +9278,9 @@ get_pointer_modulus_and_residue (tree expr, unsigned HOST_WIDE_INT *residue,
 	}
     }
 
-    /* If we get here, we were unable to determine anything useful about the
-       expression.  */
-    return 1;
+  /* If we get here, we were unable to determine anything useful about the
+     expression.  */
+  return 1;
 }
 
 
@@ -10698,6 +10659,28 @@ fold_binary_loc (location_t loc,
 	  && operand_equal_p (arg0, TREE_OPERAND (arg1, 1), 0)
 	  && reorder_operands_p (arg0, TREE_OPERAND (arg1, 0)))
 	return omit_one_operand_loc (loc, type, arg0, TREE_OPERAND (arg1, 0));
+
+      /* (X & ~Y) | (~X & Y) is X ^ Y */
+      if (TREE_CODE (arg0) == BIT_AND_EXPR
+	  && TREE_CODE (arg1) == BIT_AND_EXPR)
+        {
+	  tree a0, a1, l0, l1, n0, n1;
+
+	  a0 = fold_convert_loc (loc, type, TREE_OPERAND (arg1, 0));
+	  a1 = fold_convert_loc (loc, type, TREE_OPERAND (arg1, 1));
+
+	  l0 = fold_convert_loc (loc, type, TREE_OPERAND (arg0, 0));
+	  l1 = fold_convert_loc (loc, type, TREE_OPERAND (arg0, 1));
+	  
+	  n0 = fold_build1_loc (loc, BIT_NOT_EXPR, type, l0);
+	  n1 = fold_build1_loc (loc, BIT_NOT_EXPR, type, l1);
+	  
+	  if ((operand_equal_p (n0, a0, 0)
+	       && operand_equal_p (n1, a1, 0))
+	      || (operand_equal_p (n0, a1, 0)
+		  && operand_equal_p (n1, a0, 0)))
+	    return fold_build2_loc (loc, BIT_XOR_EXPR, type, l0, n1);
+	}
 
       t1 = distribute_bit_expr (loc, code, type, arg0, arg1);
       if (t1 != NULL_TREE)
@@ -12078,6 +12061,27 @@ fold_binary_loc (location_t loc,
 	  && operand_equal_p (arg0, TREE_OPERAND (arg1, 0), 0))
 	return omit_one_operand_loc (loc, type, integer_one_node, arg0);
 
+      /* (X && !Y) || (!X && Y) is X ^ Y */
+      if (TREE_CODE (arg0) == TRUTH_AND_EXPR
+	  && TREE_CODE (arg1) == TRUTH_AND_EXPR)
+        {
+	  tree a0, a1, l0, l1, n0, n1;
+
+	  a0 = fold_convert_loc (loc, type, TREE_OPERAND (arg1, 0));
+	  a1 = fold_convert_loc (loc, type, TREE_OPERAND (arg1, 1));
+
+	  l0 = fold_convert_loc (loc, type, TREE_OPERAND (arg0, 0));
+	  l1 = fold_convert_loc (loc, type, TREE_OPERAND (arg0, 1));
+	  
+	  n0 = fold_build1_loc (loc, TRUTH_NOT_EXPR, type, l0);
+	  n1 = fold_build1_loc (loc, TRUTH_NOT_EXPR, type, l1);
+	  
+	  if ((operand_equal_p (n0, a0, 0)
+	       && operand_equal_p (n1, a1, 0))
+	      || (operand_equal_p (n0, a1, 0)
+		  && operand_equal_p (n1, a0, 0)))
+	    return fold_build2_loc (loc, TRUTH_XOR_EXPR, type, l0, n1);
+	}
       goto truth_andor;
 
     case TRUTH_XOR_EXPR:
@@ -12625,13 +12629,21 @@ fold_binary_loc (location_t loc,
 	     operand_equal_p guarantees no side-effects so we don't need
 	     to use omit_one_operand on Z.  */
 	  if (operand_equal_p (arg01, arg11, 0))
-	    return fold_build2_loc (loc, code, type, arg00, arg10);
+	    return fold_build2_loc (loc, code, type, arg00,
+				    fold_convert_loc (loc, TREE_TYPE (arg00),
+						      arg10));
 	  if (operand_equal_p (arg01, arg10, 0))
-	    return fold_build2_loc (loc, code, type, arg00, arg11);
+	    return fold_build2_loc (loc, code, type, arg00,
+				    fold_convert_loc (loc, TREE_TYPE (arg00),
+						      arg11));
 	  if (operand_equal_p (arg00, arg11, 0))
-	    return fold_build2_loc (loc, code, type, arg01, arg10);
+	    return fold_build2_loc (loc, code, type, arg01,
+				    fold_convert_loc (loc, TREE_TYPE (arg01),
+						      arg10));
 	  if (operand_equal_p (arg00, arg10, 0))
-	    return fold_build2_loc (loc, code, type, arg01, arg11);
+	    return fold_build2_loc (loc, code, type, arg01,
+				    fold_convert_loc (loc, TREE_TYPE (arg01),
+						      arg11));
 
 	  /* Optimize (X ^ C1) op (Y ^ C2) as (X ^ (C1 ^ C2)) op Y.  */
 	  if (TREE_CODE (arg01) == INTEGER_CST

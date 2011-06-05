@@ -794,7 +794,7 @@ poplevel (int keep, int reverse, int functionbody)
     }
   else if (block)
     current_binding_level->blocks
-      = chainon (current_binding_level->blocks, block);
+      = block_chainon (current_binding_level->blocks, block);
 
   /* If we did not make a block for the level just exited,
      any blocks made for inner levels
@@ -803,7 +803,7 @@ poplevel (int keep, int reverse, int functionbody)
      of something else.  */
   else if (subblocks)
     current_binding_level->blocks
-      = chainon (current_binding_level->blocks, subblocks);
+      = block_chainon (current_binding_level->blocks, subblocks);
 
   /* Each and every BLOCK node created here in `poplevel' is important
      (e.g. for proper debugging information) so if we created one
@@ -1089,7 +1089,7 @@ warn_extern_redeclared_static (tree newdecl, tree olddecl)
     return;
 
   /* If the old declaration was `static', or the new one isn't, then
-     then everything is OK.  */
+     everything is OK.  */
   if (DECL_THIS_STATIC (olddecl) || !DECL_THIS_STATIC (newdecl))
     return;
 
@@ -2052,6 +2052,19 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 
 	  /* [temp.expl.spec/14] We don't inline explicit specialization
 	     just because the primary template says so.  */
+
+	  /* But still keep DECL_DISREGARD_INLINE_LIMITS in sync with
+	     the always_inline attribute.  */
+	  if (DECL_DISREGARD_INLINE_LIMITS (olddecl)
+	      && !DECL_DISREGARD_INLINE_LIMITS (newdecl))
+	    {
+	      if (DECL_DECLARED_INLINE_P (newdecl))
+		DECL_DISREGARD_INLINE_LIMITS (newdecl) = true;
+	      else
+		DECL_ATTRIBUTES (newdecl)
+		  = remove_attribute ("always_inline",
+				      DECL_ATTRIBUTES (newdecl));
+	    }
 	}
       else if (new_defines_function && DECL_INITIAL (olddecl))
 	{
@@ -4562,7 +4575,7 @@ build_init_list_var_init (tree decl, tree type, tree init, tree *array_init,
     return error_mark_node;
 
   aggr_init = TARGET_EXPR_INITIAL (init);
-  array = AGGR_INIT_EXPR_ARG (aggr_init, 1);
+  array = CONSTRUCTOR_ELT (aggr_init, 0)->value;
   arrtype = TREE_TYPE (array);
   STRIP_NOPS (array);
   gcc_assert (TREE_CODE (array) == ADDR_EXPR);
@@ -4574,7 +4587,7 @@ build_init_list_var_init (tree decl, tree type, tree init, tree *array_init,
       tree var = set_up_extended_ref_temp (decl, array, cleanup, array_init);
       var = build_address (var);
       var = convert (arrtype, var);
-      AGGR_INIT_EXPR_ARG (aggr_init, 1) = var;
+      CONSTRUCTOR_ELT (aggr_init, 0)->value = var;
     }
   return init;
 }
@@ -4905,6 +4918,8 @@ reshape_init_array_1 (tree elt_type, tree max_index, reshape_iter *d)
 	return error_mark_node;
       CONSTRUCTOR_APPEND_ELT (CONSTRUCTOR_ELTS (new_init),
 			      size_int (index), elt_init);
+      if (!TREE_CONSTANT (elt_init))
+	TREE_CONSTANT (new_init) = false;
     }
 
   return new_init;
@@ -5395,7 +5410,8 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 		 init appropriately so we can pass it into store_init_value
 		 for the error.  */
 	      if (init && BRACE_ENCLOSED_INITIALIZER_P (init))
-		init = finish_compound_literal (type, init);
+		init = finish_compound_literal (type, init,
+						tf_warning_or_error);
 	      else if (CLASS_TYPE_P (type)
 		       && (!init || TREE_CODE (init) == TREE_LIST))
 		{
@@ -5734,7 +5750,6 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
   const char *asmspec = NULL;
   int was_readonly = 0;
   bool var_definition_p = false;
-  int saved_processing_template_decl;
   tree auto_node;
 
   if (decl == error_mark_node)
@@ -5756,7 +5771,6 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 
   /* Assume no cleanup is required.  */
   cleanup = NULL_TREE;
-  saved_processing_template_decl = processing_template_decl;
 
   /* If a name was specified, get the string.  */
   if (global_scope_p (current_binding_level))
@@ -5794,7 +5808,10 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	}
     }
 
-  if (TREE_CODE (decl) == FUNCTION_DECL)
+  if (TREE_CODE (decl) == FUNCTION_DECL
+      /* For members, defer until finalize_literal_type_property.  */
+      && (!DECL_CLASS_SCOPE_P (decl)
+	  || !TYPE_BEING_DEFINED (DECL_CONTEXT (decl))))
     validate_constexpr_fundecl (decl);
 
   else if (!ensure_literal_type_for_constexpr_object (decl))
@@ -5859,39 +5876,24 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	 template is instantiated.  But, if DECL is a variable constant
 	 then it can be used in future constant expressions, so its value
 	 must be available. */
-      if (!(init
-	    && DECL_CLASS_SCOPE_P (decl)
-	    /* We just set TREE_CONSTANT appropriately; see above.  */
-	    && TREE_CONSTANT (decl)
-	    && !type_dependent_p
-	    /* FIXME non-value-dependent constant expression  */
-	    && !value_dependent_init_p (init)))
+      if (init
+	  && init_const_expr_p
+	  && !type_dependent_p
+	  && decl_maybe_constant_var_p (decl)
+	  && !value_dependent_init_p (init))
 	{
-	  if (init)
-	    DECL_INITIAL (decl) = init;
-	  if (TREE_CODE (decl) == VAR_DECL
-	      && !DECL_PRETTY_FUNCTION_P (decl)
-	      && !type_dependent_p)
-	    maybe_deduce_size_from_array_init (decl, init);
-	  goto finish_end;
+	  tree init_code = check_initializer (decl, init, flags, &cleanup);
+	  if (init_code == NULL_TREE)
+	    init = NULL_TREE;
 	}
+      else if (TREE_CODE (decl) == VAR_DECL
+	       && !DECL_PRETTY_FUNCTION_P (decl)
+	       && !type_dependent_p)
+	maybe_deduce_size_from_array_init (decl, init);
 
-      if (TREE_CODE (init) == TREE_LIST)
-	{
-	  /* If the parenthesized-initializer form was used (e.g.,
-	     "int A<N>::i(X)"), then INIT will be a TREE_LIST of initializer
-	     arguments.  (There is generally only one.)  We convert them
-	     individually.  */
-	  tree list = init;
-	  for (; list; list = TREE_CHAIN (list))
-	    {
-	      tree elt = TREE_VALUE (list);
-	      TREE_VALUE (list) = fold_non_dependent_expr (elt);
-	    }
-	}
-      else
-	init = fold_non_dependent_expr (init);
-      processing_template_decl = 0;
+      if (init)
+	DECL_INITIAL (decl) = init;
+      return;
     }
 
   /* Take care of TYPE_DECLs up front.  */
@@ -5914,7 +5916,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 
       rest_of_decl_compilation (decl, DECL_FILE_SCOPE_P (decl),
 				at_eof);
-      goto finish_end;
+      return;
     }
 
   /* A reference will be modified here, as it is initialized.  */
@@ -6038,8 +6040,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
       else if (TREE_CODE (type) == ARRAY_TYPE)
 	layout_type (type);
 
-      if (!processing_template_decl
-	  && TREE_STATIC (decl)
+      if (TREE_STATIC (decl)
 	  && !at_function_scope_p ()
 	  && current_function_decl == NULL)
 	/* So decl is a global variable or a static member of a
@@ -6059,9 +6060,8 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 
   /* Let the middle end know about variables and functions -- but not
      static data members in uninstantiated class templates.  */
-  if (!saved_processing_template_decl
-      && (TREE_CODE (decl) == VAR_DECL 
-	  || TREE_CODE (decl) == FUNCTION_DECL))
+  if (TREE_CODE (decl) == VAR_DECL
+      || TREE_CODE (decl) == FUNCTION_DECL)
     {
       if (TREE_CODE (decl) == VAR_DECL)
 	{
@@ -6147,9 +6147,6 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
      reference, insert it in the statement-tree now.  */
   if (cleanup)
     push_cleanup (decl, cleanup, false);
-
- finish_end:
-  processing_template_decl = saved_processing_template_decl;
 
   if (was_readonly)
     TREE_READONLY (decl) = 1;
@@ -6681,6 +6678,39 @@ cp_complete_array_type (tree *ptype, tree initial_value, bool do_default)
 	= TYPE_HAS_NONTRIVIAL_DESTRUCTOR (elt_type);
     }
 
+  return failure;
+}
+
+/* As above, but either give an error or reject zero-size arrays, depending
+   on COMPLAIN.  */
+
+int
+cp_complete_array_type_or_error (tree *ptype, tree initial_value,
+				 bool do_default, tsubst_flags_t complain)
+{
+  int failure;
+  bool sfinae = !(complain & tf_error);
+  /* In SFINAE context we can't be lenient about zero-size arrays.  */
+  if (sfinae)
+    ++pedantic;
+  failure = cp_complete_array_type (ptype, initial_value, do_default);
+  if (sfinae)
+    --pedantic;
+  if (failure)
+    {
+      if (sfinae)
+	/* Not an error.  */;
+      else if (failure == 1)
+	error ("initializer fails to determine size of %qT", *ptype);
+      else if (failure == 2)
+	{
+	  if (do_default)
+	    error ("array size missing in %qT", *ptype);
+	}
+      else if (failure == 3)
+	error ("zero-size array %qT", *ptype);
+      *ptype = error_mark_node;
+    }
   return failure;
 }
 
@@ -7671,8 +7701,16 @@ compute_array_index_type (tree name, tree size, tsubst_flags_t complain)
       processing_template_decl = saved_processing_template_decl;
 
       if (!TREE_CONSTANT (itype))
-	/* A variable sized array.  */
-	itype = variable_size (itype);
+	{
+	  /* A variable sized array.  */
+	  if (TREE_SIDE_EFFECTS (itype))
+	    /* Use get_temp_regvar rather than variable_size here so that
+	       people walking expressions that use a variable of this type
+	       don't walk into this expression.  */
+	    itype = get_temp_regvar (TREE_TYPE (itype), itype);
+	  else
+	    itype = variable_size (itype);
+	}
       /* Make sure that there was no overflow when creating to a signed
 	 index type.  (For example, on a 32-bit machine, an array with
 	 size 2^32 - 1 is too big.)  */

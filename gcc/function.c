@@ -211,8 +211,7 @@ free_after_compilation (struct function *f)
   prologue_insn_hash = NULL;
   epilogue_insn_hash = NULL;
 
-  if (crtl->emit.regno_pointer_align)
-    free (crtl->emit.regno_pointer_align);
+  free (crtl->emit.regno_pointer_align);
 
   memset (crtl, 0, sizeof (struct rtl_data));
   f->eh = NULL;
@@ -2912,12 +2911,8 @@ static void
 record_hard_reg_sets (rtx x, const_rtx pat ATTRIBUTE_UNUSED, void *data)
 {
   HARD_REG_SET *pset = (HARD_REG_SET *)data;
-  if (REG_P (x) && REGNO (x) < FIRST_PSEUDO_REGISTER)
-    {
-      int nregs = hard_regno_nregs[REGNO (x)][GET_MODE (x)];
-      while (nregs-- > 0)
-	SET_HARD_REG_BIT (*pset, REGNO (x) + nregs);
-    }
+  if (REG_P (x) && HARD_REGISTER_P (x))
+    add_to_hard_reg_set (pset, GET_MODE (x), REGNO (x));
 }
 
 /* A subroutine of assign_parms.  Allocate a pseudo to hold the current
@@ -3656,7 +3651,7 @@ gimplify_parameters (void)
 		  t = built_in_decls[BUILT_IN_ALLOCA];
 		  t = build_call_expr (t, 1, DECL_SIZE_UNIT (parm));
 		  /* The call has been built for a variable-sized object.  */
-		  ALLOCA_FOR_VAR_P (t) = 1;
+		  CALL_ALLOCA_FOR_VAR_P (t) = 1;
 		  t = fold_convert (ptr_type, t);
 		  t = build2 (MODIFY_EXPR, TREE_TYPE (addr), addr, t);
 		  gimplify_and_add (t, &stmts);
@@ -4183,6 +4178,34 @@ blocks_nreverse (tree t)
   return prev;
 }
 
+/* Concatenate two chains of blocks (chained through BLOCK_CHAIN)
+   by modifying the last node in chain 1 to point to chain 2.  */
+
+tree
+block_chainon (tree op1, tree op2)
+{
+  tree t1;
+
+  if (!op1)
+    return op2;
+  if (!op2)
+    return op1;
+
+  for (t1 = op1; BLOCK_CHAIN (t1); t1 = BLOCK_CHAIN (t1))
+    continue;
+  BLOCK_CHAIN (t1) = op2;
+
+#ifdef ENABLE_TREE_CHECKING
+  {
+    tree t2;
+    for (t2 = op2; t2; t2 = BLOCK_CHAIN (t2))
+      gcc_assert (t2 != t1);
+  }
+#endif
+
+  return op1;
+}
+
 /* Count the subblocks of the list starting with BLOCK.  If VECTOR is
    non-NULL, list them all into VECTOR, in a depth-first preorder
    traversal of the block tree.  Also clear TREE_ASM_WRITTEN in all
@@ -4353,6 +4376,13 @@ int
 get_next_funcdef_no (void)
 {
   return funcdef_no++;
+}
+
+/* Return value of funcdef.  */
+int
+get_last_funcdef_no (void)
+{
+  return funcdef_no;
 }
 
 /* Allocate a function structure for FNDECL and set its contents
@@ -5263,6 +5293,19 @@ prologue_epilogue_contains (const_rtx insn)
 }
 
 #ifdef HAVE_return
+/* Insert use of return register before the end of BB.  */
+
+static void
+emit_use_return_register_into_block (basic_block bb)
+{
+  rtx seq;
+  start_sequence ();
+  use_return_register ();
+  seq = get_insns ();
+  end_sequence ();
+  emit_insn_before (seq, BB_END (bb));
+}
+
 /* Insert gen_return at the end of block BB.  This also means updating
    block_for_insn appropriately.  */
 
@@ -5282,8 +5325,7 @@ thread_prologue_and_epilogue_insns (void)
 {
   bool inserted;
   rtx seq ATTRIBUTE_UNUSED, epilogue_end ATTRIBUTE_UNUSED;
-  edge entry_edge ATTRIBUTE_UNUSED;
-  edge e;
+  edge entry_edge, e;
   edge_iterator ei;
 
   rtl_profile_for_bb (ENTRY_BLOCK_PTR);
@@ -5315,10 +5357,6 @@ thread_prologue_and_epilogue_insns (void)
       record_insns (seq, NULL, &prologue_insn_hash);
       set_insn_locators (seq, prologue_locator);
 
-      /* This relies on the fact that committing the edge insertion
-	 will look for basic blocks within the inserted instructions,
-	 which in turn relies on the fact that we are not in CFG
-	 layout mode here.  */
       insert_insn_on_edge (seq, entry_edge);
       inserted = true;
 #endif
@@ -5416,6 +5454,15 @@ thread_prologue_and_epilogue_insns (void)
 		 with a simple return instruction.  */
 	      if (simplejump_p (jump))
 		{
+		  /* The use of the return register might be present in the exit
+		     fallthru block.  Either:
+		     - removing the use is safe, and we should remove the use in
+		       the exit fallthru block, or
+		     - removing the use is not safe, and we should add it here.
+		     For now, we conservatively choose the latter.  Either of the
+		     2 helps in crossjumping.  */
+		  emit_use_return_register_into_block (bb);
+
 		  emit_return_into_block (bb);
 		  delete_insn (jump);
 		}
@@ -5429,6 +5476,9 @@ thread_prologue_and_epilogue_insns (void)
 		      ei_next (&ei2);
 		      continue;
 		    }
+
+		  /* See comment in simple_jump_p case above.  */
+		  emit_use_return_register_into_block (bb);
 
 		  /* If this block has only one successor, it both jumps
 		     and falls through to the fallthru block, so we can't
@@ -5541,12 +5591,22 @@ thread_prologue_and_epilogue_insns (void)
 	  cur_bb->aux = cur_bb->next_bb;
       cfg_layout_finalize ();
     }
+
 epilogue_done:
   default_rtl_profile ();
 
   if (inserted)
     {
+      sbitmap blocks;
+
       commit_edge_insertions ();
+
+      /* Look for basic blocks within the prologue insns.  */
+      blocks = sbitmap_alloc (last_basic_block);
+      sbitmap_zero (blocks);
+      SET_BIT (blocks, entry_edge->dest->index);
+      find_many_sub_basic_blocks (blocks);
+      sbitmap_free (blocks);
 
       /* The epilogue insns we inserted may cause the exit edge to no longer
 	 be fallthru.  */

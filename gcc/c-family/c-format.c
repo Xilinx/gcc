@@ -1,6 +1,6 @@
 /* Check calls to formatted I/O functions (-Wformat).
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
+   2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -32,7 +32,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "c-format.h"
 #include "alloc-pool.h"
-#include "target.h"
+#include "c-target.h"
 
 /* Set format warning options according to a -Wformat=n option.  */
 
@@ -1107,10 +1107,8 @@ init_dollar_format_checking (int first_arg_num, tree params)
     }
   if (dollar_arguments_alloc < dollar_arguments_count)
     {
-      if (dollar_arguments_used)
-	free (dollar_arguments_used);
-      if (dollar_arguments_pointer_p)
-	free (dollar_arguments_pointer_p);
+      free (dollar_arguments_used);
+      free (dollar_arguments_pointer_p);
       dollar_arguments_alloc = dollar_arguments_count;
       dollar_arguments_used = XNEWVEC (char, dollar_arguments_alloc);
       dollar_arguments_pointer_p = XNEWVEC (char, dollar_arguments_alloc);

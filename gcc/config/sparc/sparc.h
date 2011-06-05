@@ -513,31 +513,6 @@ extern enum cmodel sparc_cmodel;
    -mno-app-regs).  */
 #define TARGET_DEFAULT (MASK_APP_REGS + MASK_FPU)
 
-/* Processor type.
-   These must match the values for the cpu attribute in sparc.md.  */
-enum processor_type {
-  PROCESSOR_V7,
-  PROCESSOR_CYPRESS,
-  PROCESSOR_V8,
-  PROCESSOR_SUPERSPARC,
-  PROCESSOR_HYPERSPARC,
-  PROCESSOR_LEON,
-  PROCESSOR_SPARCLITE,
-  PROCESSOR_F930,
-  PROCESSOR_F934,
-  PROCESSOR_SPARCLITE86X,
-  PROCESSOR_SPARCLET,
-  PROCESSOR_TSC701,
-  PROCESSOR_V9,
-  PROCESSOR_ULTRASPARC,
-  PROCESSOR_ULTRASPARC3,
-  PROCESSOR_NIAGARA,
-  PROCESSOR_NIAGARA2
-};
-
-/* This is set from -m{cpu,tune}=xxx.  */
-extern enum processor_type sparc_cpu;
-
 /* Recast the cpu class to be the cpu attribute.
    Every file includes us, but not every file includes insn-attr.h.  */
 #define sparc_cpu_attr ((enum attr_cpu) sparc_cpu)
@@ -551,17 +526,6 @@ extern enum processor_type sparc_cpu;
   {"cpu", "%{!mcpu=*:-mcpu=%(VALUE)}" }, \
   {"tune", "%{!mtune=*:-mtune=%(VALUE)}" }, \
   {"float", "%{!msoft-float:%{!mhard-float:%{!mfpu:%{!mno-fpu:-m%(VALUE)-float}}}}" }
-
-/* sparc_select[0] is reserved for the default cpu.  */
-struct sparc_cpu_select
-{
-  const char *string;
-  const char *const name;
-  const int set_tune_p;
-  const int set_arch_p;
-};
-
-extern struct sparc_cpu_select sparc_select[];
 
 /* target machine storage layout */
 
@@ -1008,19 +972,6 @@ extern enum reg_class sparc_regno_reg_class[FIRST_PSEUDO_REGISTER];
 
 #define REGNO_REG_CLASS(REGNO) sparc_regno_reg_class[(REGNO)]
 
-/* The following macro defines cover classes for Integrated Register
-   Allocator.  Cover classes is a set of non-intersected register
-   classes covering all hard registers used for register allocation
-   purpose.  Any move between two registers of a cover class should be
-   cheaper than load or store of the registers.  The macro value is
-   array of register classes with LIM_REG_CLASSES used as the end
-   marker.  */
-
-#define IRA_COVER_CLASSES						     \
-{									     \
-  GENERAL_REGS, EXTRA_FP_REGS, FPCC_REGS, LIM_REG_CLASSES		     \
-}
-
 /* Defines invalid mode changes.  Borrowed from pa64-regs.h.
 
    SImode loads to floating-point registers are not zero-extended.
@@ -1152,34 +1103,6 @@ extern char leaf_reg_remap[];
 /* Version of the above predicate for SImode constants and below.  */
 #define SPARC_SETHI32_P(X) \
   (SPARC_SETHI_P ((unsigned HOST_WIDE_INT) (X) & GET_MODE_MASK (SImode)))
-
-/* Given an rtx X being reloaded into a reg required to be
-   in class CLASS, return the class of reg to actually use.
-   In general this is just CLASS; but on some machines
-   in some cases it is preferable to use a more restrictive class.  */
-/* - We can't load constants into FP registers.
-   - We can't load FP constants into integer registers when soft-float,
-     because there is no soft-float pattern with a r/F constraint.
-   - We can't load FP constants into integer registers for TFmode unless
-     it is 0.0L, because there is no movtf pattern with a r/F constraint.
-   - Try and reload integer constants (symbolic or otherwise) back into
-     registers directly, rather than having them dumped to memory.  */
-
-#define PREFERRED_RELOAD_CLASS(X,CLASS)			\
-  (CONSTANT_P (X)					\
-   ? ((FP_REG_CLASS_P (CLASS)				\
-       || (CLASS) == GENERAL_OR_FP_REGS			\
-       || (CLASS) == GENERAL_OR_EXTRA_FP_REGS		\
-       || (GET_MODE_CLASS (GET_MODE (X)) == MODE_FLOAT	\
-	   && ! TARGET_FPU)				\
-       || (GET_MODE (X) == TFmode			\
-	   && ! const_zero_operand (X, TFmode)))	\
-      ? NO_REGS						\
-      : (!FP_REG_CLASS_P (CLASS)			\
-         && GET_MODE_CLASS (GET_MODE (X)) == MODE_INT)	\
-      ? GENERAL_REGS					\
-      : (CLASS))					\
-   : (CLASS))
 
 /* Return the register class of a scratch register needed to load IN into
    a register of class CLASS in MODE.
@@ -1616,12 +1539,6 @@ do {									\
 
 #define LEGITIMATE_PIC_OPERAND_P(X) legitimate_pic_operand_p (X)
 
-/* Nonzero if the constant value X is a legitimate general operand.
-   Anything can be made to work except floating point constants.
-   If TARGET_VIS, 0.0 can be made to work as well.  */
-
-#define LEGITIMATE_CONSTANT_P(X) legitimate_constant_p (X)
-
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
    and check its validity for a certain class.
    We have two alternate definitions for each of them.
@@ -1791,18 +1708,6 @@ do {									   \
 #define SUN_CONVERSION_LIBFUNCS 	0
 #define DITF_CONVERSION_LIBFUNCS	0
 #define SUN_INTEGER_MULTIPLY_64 	0
-
-/* Compute extra cost of moving data between one register class
-   and another.  */
-#define GENERAL_OR_I64(C) ((C) == GENERAL_REGS || (C) == I64_REGS)
-#define REGISTER_MOVE_COST(MODE, CLASS1, CLASS2)		\
-  (((FP_REG_CLASS_P (CLASS1) && GENERAL_OR_I64 (CLASS2)) \
-    || (GENERAL_OR_I64 (CLASS1) && FP_REG_CLASS_P (CLASS2)) \
-    || (CLASS1) == FPCC_REGS || (CLASS2) == FPCC_REGS)		\
-   ? ((sparc_cpu == PROCESSOR_ULTRASPARC \
-       || sparc_cpu == PROCESSOR_ULTRASPARC3 \
-       || sparc_cpu == PROCESSOR_NIAGARA \
-       || sparc_cpu == PROCESSOR_NIAGARA2) ? 12 : 6) : 2)
 
 /* Provide the cost of a branch.  For pre-v9 processors we use
    a value of 3 to take into account the potential annulling of

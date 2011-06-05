@@ -57,21 +57,6 @@
 #ifndef IQ2000_ISA_DEFAULT
 #define IQ2000_ISA_DEFAULT 1
 #endif
-
-#define IQ2000_VERSION "[1.0]"
-
-#ifndef MACHINE_TYPE
-#define MACHINE_TYPE "IQ2000"
-#endif
-
-#ifndef TARGET_VERSION_INTERNAL
-#define TARGET_VERSION_INTERNAL(STREAM)					\
-  fprintf (STREAM, " %s %s", IQ2000_VERSION, MACHINE_TYPE)
-#endif
-
-#ifndef TARGET_VERSION
-#define TARGET_VERSION TARGET_VERSION_INTERNAL (stderr)
-#endif
 
 /* Storage Layout.  */
 
@@ -209,11 +194,6 @@ enum reg_class
 
 #define N_REG_CLASSES (int) LIM_REG_CLASSES
 
-#define IRA_COVER_CLASSES	\
-{				\
-  GR_REGS, LIM_REG_CLASSES	\
-}
-
 #define REG_CLASS_NAMES						\
 {								\
   "NO_REGS",							\
@@ -334,7 +314,7 @@ typedef struct iq2000_args
   int fp_code;			/* Mode of FP arguments.  */
   unsigned int num_adjusts;	/* Number of adjustments made.  */
 				/* Adjustments made to args pass in regs.  */
-  struct rtx_def * adjust[MAX_ARGS_IN_REGISTERS * 2];
+  rtx adjust[MAX_ARGS_IN_REGISTERS * 2];
 } CUMULATIVE_ARGS;
 
 /* Initialize a variable CUM of type CUMULATIVE_ARGS
@@ -408,8 +388,6 @@ typedef struct iq2000_args
 #define MAX_REGS_PER_ADDRESS 1
 
 #define REG_OK_FOR_INDEX_P(X) 0
-
-#define LEGITIMATE_CONSTANT_P(X) (1)
 
 
 /* Describing Relative Costs of Operations.  */

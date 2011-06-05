@@ -550,8 +550,6 @@ enum reg_class
 
 #define INDEX_REG_CLASS GENERAL_REGS
 
-#define IRA_COVER_CLASSES { GENERAL_REGS, SPECIAL_REGS, LIM_REG_CLASSES }
-
 #define REG_CLASS_FROM_LETTER(C)		\
   (						\
    (C) == 'a' ? ACR_REGS :			\
@@ -1021,8 +1019,6 @@ struct cum_args {int regs;};
 	goto WIN;							\
     }									\
   while (0)
-
-#define LEGITIMATE_CONSTANT_P(X) 1
 
 
 /* Node: Condition Code */

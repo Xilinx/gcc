@@ -308,10 +308,10 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 
   /* Record the builtin types.  Define `integer' and `character' first so that
      dbx will output them first.  */
-  record_builtin_type ("integer", integer_type_node);
-  record_builtin_type ("character", unsigned_char_type_node);
-  record_builtin_type ("boolean", boolean_type_node);
-  record_builtin_type ("void", void_type_node);
+  record_builtin_type ("integer", integer_type_node, false);
+  record_builtin_type ("character", unsigned_char_type_node, false);
+  record_builtin_type ("boolean", boolean_type_node, false);
+  record_builtin_type ("void", void_type_node, false);
 
   /* Save the type we made for integer as the type for Standard.Integer.  */
   save_gnu_tree (Base_Type (standard_integer),
@@ -357,7 +357,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 			   build_function_type (ptr_void_type_node,
 						tree_cons (NULL_TREE,
 							   sizetype, t)),
-			   NULL_TREE, false, true, true, NULL, Empty);
+			   NULL_TREE, false, true, true, true, NULL, Empty);
   DECL_IS_MALLOC (malloc_decl) = 1;
 
   /* malloc32 is a function declaration tree for a function to allocate
@@ -367,7 +367,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 			   build_function_type (ptr_void_type_node,
 						tree_cons (NULL_TREE,
 							   sizetype, t)),
-			   NULL_TREE, false, true, true, NULL, Empty);
+			   NULL_TREE, false, true, true, true, NULL, Empty);
   DECL_IS_MALLOC (malloc32_decl) = 1;
 
   /* free is a function declaration tree for a function to free memory.  */
@@ -377,14 +377,14 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 						tree_cons (NULL_TREE,
 							   ptr_void_type_node,
 							   t)),
-			   NULL_TREE, false, true, true, NULL, Empty);
+			   NULL_TREE, false, true, true, true, NULL, Empty);
 
   /* This is used for 64-bit multiplication with overflow checking.  */
   mulv64_decl
     = create_subprog_decl (get_identifier ("__gnat_mulv64"), NULL_TREE,
 			   build_function_type_list (int64_type, int64_type,
 						     int64_type, NULL_TREE),
-			   NULL_TREE, false, true, true, NULL, Empty);
+			   NULL_TREE, false, true, true, true, NULL, Empty);
 
   /* Name of the _Parent field in tagged record types.  */
   parent_name_id = get_identifier (Get_Name_String (Name_uParent));
@@ -397,7 +397,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
   jmpbuf_type
     = build_array_type (gnat_type_for_mode (Pmode, 0),
 			build_index_type (size_int (5)));
-  record_builtin_type ("JMPBUF_T", jmpbuf_type);
+  record_builtin_type ("JMPBUF_T", jmpbuf_type, true);
   jmpbuf_ptr_type = build_pointer_type (jmpbuf_type);
 
   /* Functions to get and set the jumpbuf pointer for the current thread.  */
@@ -405,7 +405,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
     = create_subprog_decl
     (get_identifier ("system__soft_links__get_jmpbuf_address_soft"),
      NULL_TREE, build_function_type (jmpbuf_ptr_type, NULL_TREE),
-     NULL_TREE, false, true, true, NULL, Empty);
+     NULL_TREE, false, true, true, true, NULL, Empty);
   DECL_IGNORED_P (get_jmpbuf_decl) = 1;
 
   set_jmpbuf_decl
@@ -414,7 +414,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
      NULL_TREE,
      build_function_type (void_type_node,
 			  tree_cons (NULL_TREE, jmpbuf_ptr_type, t)),
-     NULL_TREE, false, true, true, NULL, Empty);
+     NULL_TREE, false, true, true, true, NULL, Empty);
   DECL_IGNORED_P (set_jmpbuf_decl) = 1;
 
   /* setjmp returns an integer and has one operand, which is a pointer to
@@ -424,7 +424,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
       (get_identifier ("__builtin_setjmp"), NULL_TREE,
        build_function_type (integer_type_node,
 			    tree_cons (NULL_TREE,  jmpbuf_ptr_type, t)),
-       NULL_TREE, false, true, true, NULL, Empty);
+       NULL_TREE, false, true, true, true, NULL, Empty);
   DECL_BUILT_IN_CLASS (setjmp_decl) = BUILT_IN_NORMAL;
   DECL_FUNCTION_CODE (setjmp_decl) = BUILT_IN_SETJMP;
 
@@ -435,7 +435,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
       (get_identifier ("__builtin_update_setjmp_buf"), NULL_TREE,
        build_function_type (void_type_node,
 			    tree_cons (NULL_TREE,  jmpbuf_ptr_type, t)),
-       NULL_TREE, false, true, true, NULL, Empty);
+       NULL_TREE, false, true, true, true, NULL, Empty);
   DECL_BUILT_IN_CLASS (update_setjmp_buf_decl) = BUILT_IN_NORMAL;
   DECL_FUNCTION_CODE (update_setjmp_buf_decl) = BUILT_IN_UPDATE_SETJMP_BUF;
 
@@ -446,7 +446,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 						tree_cons (NULL_TREE,
 							   ptr_void_type_node,
 							   t)),
-			   NULL_TREE, false, true, true, NULL, Empty);
+			   NULL_TREE, false, true, true, true, NULL, Empty);
   DECL_IGNORED_P (begin_handler_decl) = 1;
 
   end_handler_decl
@@ -455,7 +455,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 						tree_cons (NULL_TREE,
 							   ptr_void_type_node,
 							   t)),
-			   NULL_TREE, false, true, true, NULL, Empty);
+			   NULL_TREE, false, true, true, true, NULL, Empty);
   DECL_IGNORED_P (end_handler_decl) = 1;
 
   /* If in no exception handlers mode, all raise statements are redirected to
@@ -473,7 +473,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 					   tree_cons (NULL_TREE,
 						      integer_type_node,
 						      t))),
-	   NULL_TREE, false, true, true, NULL, Empty);
+	   NULL_TREE, false, true, true, true, NULL, Empty);
       TREE_THIS_VOLATILE (decl) = 1;
       TREE_SIDE_EFFECTS (decl) = 1;
       TREE_TYPE (decl)
@@ -506,7 +506,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
     (get_identifier ("system__soft_links__get_gnat_exception"),
      NULL_TREE,
      build_function_type (build_pointer_type (except_type_node), NULL_TREE),
-     NULL_TREE, false, true, true, NULL, Empty);
+     NULL_TREE, false, true, true, true, NULL, Empty);
 
   raise_nodefer_decl
     = create_subprog_decl
@@ -515,7 +515,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 			    tree_cons (NULL_TREE,
 				       build_pointer_type (except_type_node),
 				       t)),
-       NULL_TREE, false, true, true, NULL, Empty);
+       NULL_TREE, false, true, true, true, NULL, Empty);
 
   /* Indicate that these never return.  */
   TREE_THIS_VOLATILE (raise_nodefer_decl) = 1;
@@ -552,7 +552,7 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
 	}
 
       finish_record_type (fdesc_type_node, nreverse (field_list), 0, false);
-      record_builtin_type ("descriptor", fdesc_type_node);
+      record_builtin_type ("descriptor", fdesc_type_node, true);
       null_fdesc_node = gnat_build_constructor (fdesc_type_node, null_vec);
     }
 
@@ -566,7 +566,8 @@ gigi (Node_Id gnat_root, int max_gnat_node, int number_name ATTRIBUTE_UNUSED,
       longest_float_type_node = make_node (REAL_TYPE);
       TYPE_PRECISION (longest_float_type_node) = LONG_DOUBLE_TYPE_SIZE;
       layout_type (longest_float_type_node);
-      record_builtin_type ("longest float type", longest_float_type_node);
+      record_builtin_type ("longest float type", longest_float_type_node,
+			   false);
     }
   else
     longest_float_type_node = TREE_TYPE (long_long_float_type);
@@ -664,7 +665,7 @@ build_raise_check (int check, tree void_tree, enum exception_info_kind kind)
 						tree_cons (NULL_TREE,
 							   integer_type_node,
 							   void_tree)))))),
-	   NULL_TREE, false, true, true, NULL, Empty);
+	   NULL_TREE, false, true, true, true, NULL, Empty);
     }
   else
     {
@@ -677,7 +678,7 @@ build_raise_check (int check, tree void_tree, enum exception_info_kind kind)
 	    tree_cons
 	    (NULL_TREE, build_pointer_type (unsigned_char_type_node),
 	     tree_cons (NULL_TREE, integer_type_node, void_tree))),
-	   NULL_TREE, false, true, true, NULL, Empty);
+	   NULL_TREE, false, true, true, true, NULL, Empty);
     }
 
   TREE_THIS_VOLATILE (result) = 1;
@@ -1057,10 +1058,14 @@ Identifier_to_gnu (Node_Id gnat_node, tree *gnu_result_type_p)
 
   /* If we have a constant declaration and its initializer, try to return the
      latter to avoid the need to call fold in lots of places and the need for
-     elaboration code if this identifier is used as an initializer itself.  */
+     elaboration code if this identifier is used as an initializer itself.
+     Don't do it for aggregate types that contain a placeholder since their
+     initializers cannot be manipulated easily.  */
   if (TREE_CONSTANT (gnu_result)
       && DECL_P (gnu_result)
-      && DECL_INITIAL (gnu_result))
+      && DECL_INITIAL (gnu_result)
+      && !(AGGREGATE_TYPE_P (TREE_TYPE (gnu_result))
+	   && type_contains_placeholder_p (TREE_TYPE (gnu_result))))
     {
       bool constant_only = (TREE_CODE (gnu_result) == CONST_DECL
 			    && !DECL_CONST_CORRESPONDING_VAR (gnu_result));
@@ -2422,7 +2427,8 @@ establish_gnat_vms_condition_handler (void)
 							 ptr_void_type_node,
 							 ptr_void_type_node,
 							 NULL_TREE),
-			       NULL_TREE, 0, 1, 1, 0, Empty);
+			       NULL_TREE, false, true, true, true, NULL,
+			       Empty);
 
       /* ??? DECL_CONTEXT shouldn't have been set because of DECL_EXTERNAL.  */
       DECL_CONTEXT (gnat_vms_condition_handler_decl) = NULL_TREE;
@@ -2502,10 +2508,6 @@ Subprogram_Body_to_gnu (Node_Id gnat_node)
 	= build_reference_type (TREE_TYPE (gnu_result_decl));
       relayout_decl (gnu_result_decl);
     }
-
-  /* Propagate the debug mode.  */
-  if (!Needs_Debug_Info (gnat_subprog_id))
-    DECL_IGNORED_P (gnu_subprog_decl) = 1;
 
   /* Set the line number in the decl to correspond to that of the body so that
      the line number notes are written correctly.  */
@@ -3769,7 +3771,8 @@ Compilation_Unit_to_gnu (Node_Id gnat_node)
   tree gnu_elab_proc_decl
     = create_subprog_decl
       (create_concat_name (gnat_unit_entity, body_p ? "elabb" : "elabs"),
-       NULL_TREE, void_ftype, NULL_TREE, false, true, false, NULL, gnat_unit);
+       NULL_TREE, void_ftype, NULL_TREE, false, true, false, true, NULL,
+       gnat_unit);
   struct elab_info *info;
 
   VEC_safe_push (tree, gc, gnu_elab_proc_stack, gnu_elab_proc_decl);
@@ -3785,13 +3788,23 @@ Compilation_Unit_to_gnu (Node_Id gnat_node)
   gnat_pushlevel ();
 
   /* For a body, first process the spec if there is one.  */
-  if (Nkind (Unit (gnat_node)) == N_Package_Body
-      || (Nkind (Unit (gnat_node)) == N_Subprogram_Body
-	      && !Acts_As_Spec (gnat_node)))
+  if (Nkind (gnat_unit) == N_Package_Body
+      || (Nkind (gnat_unit) == N_Subprogram_Body && !Acts_As_Spec (gnat_node)))
+    add_stmt (gnat_to_gnu (Library_Unit (gnat_node)));
+
+  if (type_annotate_only && gnat_node == Cunit (Main_Unit))
     {
-      add_stmt (gnat_to_gnu (Library_Unit (gnat_node)));
-      finalize_from_with_types ();
+      elaborate_all_entities (gnat_node);
+
+      if (Nkind (gnat_unit) == N_Subprogram_Declaration
+	  || Nkind (gnat_unit) == N_Generic_Package_Declaration
+	  || Nkind (gnat_unit) == N_Generic_Subprogram_Declaration)
+	return;
     }
+
+  process_decls (Declarations (Aux_Decls_Node (gnat_node)), Empty, Empty,
+		 true, true);
+  add_stmt (gnat_to_gnu (gnat_unit));
 
   /* If we can inline, generate code for all the inlined subprograms.  */
   if (optimize)
@@ -3821,20 +3834,6 @@ Compilation_Unit_to_gnu (Node_Id gnat_node)
 	    }
 	}
     }
-
-  if (type_annotate_only && gnat_node == Cunit (Main_Unit))
-    {
-      elaborate_all_entities (gnat_node);
-
-      if (Nkind (Unit (gnat_node)) == N_Subprogram_Declaration
-	  || Nkind (Unit (gnat_node)) == N_Generic_Package_Declaration
-	  || Nkind (Unit (gnat_node)) == N_Generic_Subprogram_Declaration)
-	return;
-    }
-
-  process_decls (Declarations (Aux_Decls_Node (gnat_node)), Empty, Empty,
-		 true, true);
-  add_stmt (gnat_to_gnu (Unit (gnat_node)));
 
   /* Process any pragmas and actions following the unit.  */
   add_stmt_list (Pragmas_After (Aux_Decls_Node (gnat_node)));
@@ -4504,7 +4503,7 @@ gnat_to_gnu (Node_Id gnat_node)
 				 (Entity (Prefix (gnat_node)),
 				  attr == Attr_Elab_Body ? "elabb" : "elabs"),
 				 NULL_TREE, void_ftype, NULL_TREE, false,
-				 true, true, NULL, gnat_node);
+				 true, true, true, NULL, gnat_node);
 
 	gnu_result = Attribute_to_gnu (gnat_node, &gnu_result_type, attr);
       }
@@ -6612,11 +6611,17 @@ process_freeze_entity (Node_Id gnat_node)
       && Root_Type (Class_Wide_Type (gnat_entity)) == gnat_entity)
     save_gnu_tree (Class_Wide_Type (gnat_entity), gnu_new, false);
 
-  /* If we've made any pointers to the old version of this type, we
-     have to update them.  */
+  /* If we have an old type and we've made pointers to this type, update those
+     pointers.  If this is a Taft amendment type in the main unit, we need to
+     mark the type as used since other units referencing it don't see the full
+     declaration and, therefore, cannot mark it as used themselves.  */
   if (gnu_old)
-    update_pointer_to (TYPE_MAIN_VARIANT (TREE_TYPE (gnu_old)),
-		       TREE_TYPE (gnu_new));
+    {
+      update_pointer_to (TYPE_MAIN_VARIANT (TREE_TYPE (gnu_old)),
+			 TREE_TYPE (gnu_new));
+      if (DECL_TAFT_TYPE_P (gnu_old))
+	used_types_insert (TREE_TYPE (gnu_new));
+    }
 }
 
 /* Elaborate decls in the lists GNAT_DECLS and GNAT_DECLS2, if present.
@@ -7459,7 +7464,11 @@ process_type (Entity_Id gnat_entity)
 	  save_gnu_tree (gnat_entity, gnu_decl, false);
 	  if (IN (Ekind (gnat_entity), Incomplete_Or_Private_Kind)
 	      && Present (Full_View (gnat_entity)))
-	    save_gnu_tree (Full_View (gnat_entity), gnu_decl, false);
+	    {
+	      if (Has_Completion_In_Body (gnat_entity))
+		DECL_TAFT_TYPE_P (gnu_decl) = 1;
+	      save_gnu_tree (Full_View (gnat_entity), gnu_decl, false);
+	    }
 	}
 
       return;
@@ -7481,11 +7490,17 @@ process_type (Entity_Id gnat_entity)
   gnu_new = gnat_to_gnu_entity (gnat_entity, NULL_TREE, 1);
   gcc_assert (TREE_CODE (gnu_new) == TYPE_DECL);
 
-  /* If we have an old type and we've made pointers to this type,
-     update those pointers.  */
+  /* If we have an old type and we've made pointers to this type, update those
+     pointers.  If this is a Taft amendment type in the main unit, we need to
+     mark the type as used since other units referencing it don't see the full
+     declaration and, therefore, cannot mark it as used themselves.  */
   if (gnu_old)
-    update_pointer_to (TYPE_MAIN_VARIANT (TREE_TYPE (gnu_old)),
-		       TREE_TYPE (gnu_new));
+    {
+      update_pointer_to (TYPE_MAIN_VARIANT (TREE_TYPE (gnu_old)),
+			 TREE_TYPE (gnu_new));
+      if (DECL_TAFT_TYPE_P (gnu_old))
+	used_types_insert (TREE_TYPE (gnu_new));
+    }
 
   /* If this is a record type corresponding to a task or protected type
      that is a completion of an incomplete type, perform a similar update

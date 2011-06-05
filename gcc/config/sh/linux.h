@@ -1,5 +1,5 @@
 /* Definitions for SH running Linux-based GNU systems using ELF
-   Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007, 2010
+   Copyright (C) 1999, 2000, 2002, 2003, 2004, 2005, 2006, 2007, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Kazumoto Kojima <kkojima@rr.iij4u.or.jp>
 
@@ -20,8 +20,6 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 /* Run-time Target Specification.  */
-#undef TARGET_VERSION
-#define TARGET_VERSION  fputs (" (SH GNU/Linux with ELF)", stderr);
 
 /* Enable DWARF 2 exceptions.  */
 #undef DWARF2_UNWIND_INFO
@@ -36,7 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_OS_CPP_BUILTINS() \
   do						\
     {						\
-      LINUX_TARGET_OS_CPP_BUILTINS();		\
+      GNU_USER_TARGET_OS_CPP_BUILTINS();	\
     }						\
   while (0)
 
@@ -56,7 +54,7 @@ along with GCC; see the file COPYING3.  If not see
   "%{shared:-shared} \
    %{!static: \
      %{rdynamic:-export-dynamic} \
-     -dynamic-linker " LINUX_DYNAMIC_LINKER "} \
+     -dynamic-linker " GNU_USER_DYNAMIC_LINKER "} \
    %{static:-static}"
 
 /* Output assembler code to STREAM to call the profiler.  */

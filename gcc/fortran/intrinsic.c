@@ -2358,7 +2358,8 @@ add_functions (void)
 
   make_generic ("null", GFC_ISYM_NULL, GFC_STD_F95);
 
-  add_sym_0 ("num_images", GFC_ISYM_NUMIMAGES, CLASS_INQUIRY, ACTUAL_NO, BT_INTEGER, di, GFC_STD_F2008,
+  add_sym_0 ("num_images", GFC_ISYM_NUM_IMAGES, CLASS_INQUIRY, ACTUAL_NO,
+	     BT_INTEGER, di, GFC_STD_F2008,
 	     NULL, gfc_simplify_num_images, NULL);
 
   add_sym_3 ("pack", GFC_ISYM_PACK, CLASS_TRANSFORMATIONAL, ACTUAL_NO, BT_REAL, dr, GFC_STD_F95,
@@ -3407,9 +3408,9 @@ gfc_intrinsic_init_1 (void)
 void
 gfc_intrinsic_done_1 (void)
 {
-  gfc_free (functions);
-  gfc_free (conversion);
-  gfc_free (char_conversions);
+  free (functions);
+  free (conversion);
+  free (char_conversions);
   gfc_free_namespace (gfc_intrinsic_namespace);
 }
 
@@ -4367,7 +4368,7 @@ gfc_convert_type_warn (gfc_expr *expr, gfc_typespec *ts, int eflag, int wflag)
 
   *expr = *new_expr;
 
-  gfc_free (new_expr);
+  free (new_expr);
   expr->ts = *ts;
 
   if (gfc_is_constant_expr (expr->value.function.actual->expr)
@@ -4436,7 +4437,7 @@ gfc_convert_chartype (gfc_expr *expr, gfc_typespec *ts)
 
   *expr = *new_expr;
 
-  gfc_free (new_expr);
+  free (new_expr);
   expr->ts = *ts;
 
   if (gfc_is_constant_expr (expr->value.function.actual->expr)

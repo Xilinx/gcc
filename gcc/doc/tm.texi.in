@@ -91,6 +91,14 @@ form part of the @code{targetm} structure, it is documented below as a
 from being defined in the @file{.h} file to being part of the
 @code{targetm} structure.
 
+Similarly, there is a @code{targetcm} variable for hooks that are
+specific to front ends for C-family languages, documented as ``C
+Target Hook''.  This is declared in @file{c-family/c-target.h}, the
+initializer @code{TARGETCM_INITIALIZER} in
+@file{c-family/c-target-def.h}.  If targets initialize @code{targetcm}
+themselves, they should set @code{target_has_targetcm=yes} in
+@file{config.gcc}; otherwise a default definition is used.
+
 @node Driver
 @section Controlling the Compilation Driver, @file{gcc}
 @cindex driver
@@ -697,22 +705,6 @@ should use @code{TARGET_HANDLE_C_OPTION} instead.
 @hook TARGET_STRING_OBJECT_REF_TYPE_P
 
 @hook TARGET_CHECK_STRING_OBJECT_FORMAT_ARG
-
-@defmac TARGET_VERSION
-This macro is a C statement to print on @code{stderr} a string
-describing the particular machine description choice.  Every machine
-description should define @code{TARGET_VERSION}.  For example:
-
-@smallexample
-#ifdef MOTOROLA
-#define TARGET_VERSION \
-  fprintf (stderr, " (68k, Motorola syntax)");
-#else
-#define TARGET_VERSION \
-  fprintf (stderr, " (68k, MIT syntax)");
-#endif
-@end smallexample
-@end defmac
 
 @hook TARGET_OVERRIDE_OPTIONS_AFTER_CHANGE
 This target function is similar to the hook @code{TARGET_OPTION_OVERRIDE}
@@ -2330,7 +2322,7 @@ either a floating point (coprocessor) register or a general register for a
 certain operand, you should define a class @code{FLOAT_OR_GENERAL_REGS}
 which includes both of them.  Otherwise you will get suboptimal code,
 or even internal compiler errors when reload cannot find a register in the
-the class computed via @code{reg_class_subunion}.
+class computed via @code{reg_class_subunion}.
 
 You must also specify certain redundant information about the register
 classes: for each class, which classes contain it and which ones are
@@ -2518,7 +2510,7 @@ instruction for loading an immediate value into a floating-point
 register, so @code{TARGET_PREFERRED_RELOAD_CLASS} returns @code{NO_REGS} when
 @var{x} is a floating-point constant.  If the constant can't be loaded
 into any kind of register, code generation will be better if
-@code{LEGITIMATE_CONSTANT_P} makes the constant illegitimate instead
+@code{TARGET_LEGITIMATE_CONSTANT_P} makes the constant illegitimate instead
 of using @code{TARGET_PREFERRED_RELOAD_CLASS}.
 
 If an insn has pseudos in it after register allocation, reload will go
@@ -2555,8 +2547,8 @@ instruction for loading an immediate value into a floating-point
 register, so @code{PREFERRED_RELOAD_CLASS} returns @code{NO_REGS} when
 @var{x} is a floating-point constant.  If the constant can't be loaded
 into any kind of register, code generation will be better if
-@code{LEGITIMATE_CONSTANT_P} makes the constant illegitimate instead
-of using @code{PREFERRED_RELOAD_CLASS}.
+@code{TARGET_LEGITIMATE_CONSTANT_P} makes the constant illegitimate instead
+of using @code{TARGET_PREFERRED_RELOAD_CLASS}.
 
 If an insn has pseudos in it after register allocation, reload will go
 through the alternatives and call repeatedly @code{PREFERRED_RELOAD_CLASS}
@@ -2840,36 +2832,6 @@ as below:
   (GET_MODE_SIZE (FROM) != GET_MODE_SIZE (TO) \
    ? reg_classes_intersect_p (FLOAT_REGS, (CLASS)) : 0)
 @end smallexample
-@end defmac
-
-@hook TARGET_IRA_COVER_CLASSES
-Return an array of cover classes for the Integrated Register Allocator
-(@acronym{IRA}).  Cover classes are a set of non-intersecting register
-classes covering all hard registers used for register allocation
-purposes.  If a move between two registers in the same cover class is
-possible, it should be cheaper than a load or store of the registers.
-The array is terminated by a @code{LIM_REG_CLASSES} element.
-
-The order of cover classes in the array is important.  If two classes
-have the same cost of usage for a pseudo, the class occurred first in
-the array is chosen for the pseudo.
-
-This hook is called once at compiler startup, after the command-line
-options have been processed. It is then re-examined by every call to
-@code{target_reinit}.
-
-The default implementation returns @code{IRA_COVER_CLASSES}, if defined,
-otherwise there is no default implementation.  You must define either this
-macro or @code{IRA_COVER_CLASSES} in order to use the integrated register
-allocator with Chaitin-Briggs coloring. If the macro is not defined,
-the only available coloring algorithm is Chow's priority coloring.
-
-This hook must not be modified from @code{NULL} to non-@code{NULL} or
-vice versa by command-line option processing.
-@end deftypefn
-
-@defmac IRA_COVER_CLASSES
-See the documentation for @code{TARGET_IRA_COVER_CLASSES}.
 @end defmac
 
 @node Old Constraints
@@ -5551,13 +5513,13 @@ These are obsolete macros, replaced by the
 @code{TARGET_MODE_DEPENDENT_ADDRESS_P} target hook.
 @end defmac
 
-@defmac LEGITIMATE_CONSTANT_P (@var{x})
-A C expression that is nonzero if @var{x} is a legitimate constant for
-an immediate operand on the target machine.  You can assume that
-@var{x} satisfies @code{CONSTANT_P}, so you need not check this.  In fact,
-@samp{1} is a suitable definition for this macro on machines where
-anything @code{CONSTANT_P} is valid.
-@end defmac
+@hook TARGET_LEGITIMATE_CONSTANT_P
+This hook returns true if @var{x} is a legitimate constant for a
+@var{mode}-mode immediate operand on the target machine.  You can assume that
+@var{x} satisfies @code{CONSTANT_P}, so you need not check this.
+
+The default definition returns true.
+@end deftypefn
 
 @hook TARGET_DELEGITIMIZE_ADDRESS
 This hook is used to undo the possibly obfuscating effects of the
@@ -5571,8 +5533,10 @@ into their original form.
 
 @hook TARGET_CANNOT_FORCE_CONST_MEM
 This hook should return true if @var{x} is of a form that cannot (or
-should not) be spilled to the constant pool.  The default version of
-this hook returns false.
+should not) be spilled to the constant pool.  @var{mode} is the mode
+of @var{x}.
+
+The default version of this hook returns false.
 
 The primary reason to define this hook is to prevent reload from
 deciding that a non-legitimate constant would be better reloaded
@@ -6837,8 +6801,8 @@ data.
 @defmac BSS_SECTION_ASM_OP
 If defined, a C expression whose value is a string, including spacing,
 containing the assembler operation to identify the following data as
-uninitialized global data.  If not defined, and neither
-@code{ASM_OUTPUT_BSS} nor @code{ASM_OUTPUT_ALIGNED_BSS} are defined,
+uninitialized global data.  If not defined, and
+@code{ASM_OUTPUT_ALIGNED_BSS} not defined,
 uninitialized global data will be output in the data section if
 @option{-fno-common} is passed, otherwise @code{ASM_OUTPUT_COMMON} will be
 used.
@@ -7602,20 +7566,19 @@ in place of both @code{ASM_OUTPUT_COMMON} and
 the variable's decl in order to chose what to output.
 @end defmac
 
-@defmac ASM_OUTPUT_BSS (@var{stream}, @var{decl}, @var{name}, @var{size}, @var{rounded})
+@defmac ASM_OUTPUT_ALIGNED_BSS (@var{stream}, @var{decl}, @var{name}, @var{size}, @var{alignment})
 A C statement (sans semicolon) to output to the stdio stream
 @var{stream} the assembler definition of uninitialized global @var{decl} named
-@var{name} whose size is @var{size} bytes.  The variable @var{rounded}
-is the size rounded up to whatever alignment the caller wants.
+@var{name} whose size is @var{size} bytes.  The variable @var{alignment}
+is the alignment specified as the number of bits.
 
-Try to use function @code{asm_output_bss} defined in @file{varasm.c} when
-defining this macro.  If unable, use the expression
+Try to use function @code{asm_output_aligned_bss} defined in file
+@file{varasm.c} when defining this macro.  If unable, use the expression
 @code{assemble_name (@var{stream}, @var{name})} to output the name itself;
 before and after that, output the additional assembler syntax for defining
 the name, and a newline.
 
-There are two ways of handling global BSS@.  One is to define either
-this macro or its aligned counterpart, @code{ASM_OUTPUT_ALIGNED_BSS}.
+There are two ways of handling global BSS@.  One is to define this macro.
 The other is to have @code{TARGET_ASM_SELECT_SECTION} return a
 switchable BSS section (@pxref{TARGET_HAVE_SWITCHABLE_BSS_SECTIONS}).
 You do not need to do both.
@@ -7625,17 +7588,6 @@ non-common form of global BSS in order to handle uninitialized globals
 efficiently.  C++ is one example of this.  However, if the target does
 not support global BSS, the front end may choose to make globals
 common in order to save space in the object file.
-@end defmac
-
-@defmac ASM_OUTPUT_ALIGNED_BSS (@var{stream}, @var{decl}, @var{name}, @var{size}, @var{alignment})
-Like @code{ASM_OUTPUT_BSS} except takes the required alignment as a
-separate, explicit argument.  If you define this macro, it is used in
-place of @code{ASM_OUTPUT_BSS}, and gives you more flexibility in
-handling the required alignment of the variable.  The alignment is specified
-as the number of bits.
-
-Try to use function @code{asm_output_aligned_bss} defined in file
-@file{varasm.c} when defining this macro.
 @end defmac
 
 @defmac ASM_OUTPUT_LOCAL (@var{stream}, @var{name}, @var{size}, @var{rounded})

@@ -1252,34 +1252,6 @@ enum reg_class
   { 0xffffffff, 0xffffffff, 0xffffffff, 0x0003ffff }  /* ALL_REGS */	     \
 }
 
-/* The following macro defines cover classes for Integrated Register
-   Allocator.  Cover classes is a set of non-intersected register
-   classes covering all hard registers used for register allocation
-   purpose.  Any move between two registers of a cover class should be
-   cheaper than load or store of the registers.  The macro value is
-   array of register classes with LIM_REG_CLASSES used as the end
-   marker.
-
-   We need two IRA_COVER_CLASSES, one for pre-VSX, and the other for VSX to
-   account for the Altivec and Floating registers being subsets of the VSX
-   register set.  */
-
-#define IRA_COVER_CLASSES_PRE_VSX					     \
-{									     \
-  GENERAL_REGS, SPECIAL_REGS, FLOAT_REGS, ALTIVEC_REGS, /* VSX_REGS, */	     \
-  /* VRSAVE_REGS,*/ VSCR_REGS, SPE_ACC_REGS, SPEFSCR_REGS,		     \
-  /* MQ_REGS, LINK_REGS, CTR_REGS, */					     \
-  CR_REGS, CA_REGS, LIM_REG_CLASSES					     \
-}
-
-#define IRA_COVER_CLASSES_VSX						     \
-{									     \
-  GENERAL_REGS, SPECIAL_REGS, /* FLOAT_REGS, ALTIVEC_REGS, */ VSX_REGS,	     \
-  /* VRSAVE_REGS,*/ VSCR_REGS, SPE_ACC_REGS, SPEFSCR_REGS,		     \
-  /* MQ_REGS, LINK_REGS, CTR_REGS, */					     \
-  CR_REGS, CA_REGS, LIM_REG_CLASSES					     \
-}
-
 /* The same information, inverted:
    Return the class number of the smallest class containing
    reg number REGNO.  This could be a conditional expression
@@ -1755,22 +1727,6 @@ typedef struct rs6000_args
   (GET_CODE (X) == LABEL_REF || GET_CODE (X) == SYMBOL_REF		\
    || GET_CODE (X) == CONST_INT || GET_CODE (X) == CONST		\
    || GET_CODE (X) == HIGH)
-
-/* Nonzero if the constant value X is a legitimate general operand.
-   It is given that X satisfies CONSTANT_P or is a CONST_DOUBLE.
-
-   On the RS/6000, all integer constants are acceptable, most won't be valid
-   for particular insns, though.  Only easy FP constants are
-   acceptable.  */
-
-#define LEGITIMATE_CONSTANT_P(X)				\
-  (((GET_CODE (X) != CONST_DOUBLE				\
-     && GET_CODE (X) != CONST_VECTOR)				\
-    || GET_MODE (X) == VOIDmode					\
-    || (TARGET_POWERPC64 && GET_MODE (X) == DImode)		\
-    || easy_fp_constant (X, GET_MODE (X))			\
-    || easy_vector_constant (X, GET_MODE (X)))			\
-   && !rs6000_tls_referenced_p (X))
 
 #define EASY_VECTOR_15(n) ((n) >= -16 && (n) <= 15)
 #define EASY_VECTOR_15_ADD_SELF(n) (!EASY_VECTOR_15((n))	\

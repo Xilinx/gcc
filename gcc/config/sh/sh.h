@@ -1,6 +1,6 @@
 /* Definitions of target machine for GNU compiler for Renesas / SuperH SH.
    Copyright (C) 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Steve Chamberlain (sac@cygnus.com).
    Improved by Jim Wilson (wilson@cygnus.com).
@@ -25,9 +25,6 @@ along with GCC; see the file COPYING3.  If not see
 #define GCC_SH_H
 
 #include "config/vxworks-dummy.h"
-
-#define TARGET_VERSION \
-  fputs (" (Hitachi SH)", stderr);
 
 /* Unfortunately, insn-attrtab.c doesn't include insn-codes.h.  We can't
    include it here, because bconfig.h is also included by gencodes.c .  */
@@ -1133,20 +1130,6 @@ enum reg_class
 extern enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
 #define REGNO_REG_CLASS(REGNO) regno_reg_class[(REGNO)]
 
-/* The following macro defines cover classes for Integrated Register
-   Allocator.  Cover classes is a set of non-intersected register
-   classes covering all hard registers used for register allocation
-   purpose.  Any move between two registers of a cover class should be
-   cheaper than load or store of the registers.  The macro value is
-   array of register classes with LIM_REG_CLASSES used as the end
-   marker.  */
-
-#define IRA_COVER_CLASSES						     \
-{									     \
-  GENERAL_REGS, FP_REGS, PR_REGS, T_REGS, MAC_REGS, TARGET_REGS,  	     \
-  FPUL_REGS, LIM_REG_CLASSES						     \
-}
-
 /* When this hook returns true for MODE, the compiler allows
    registers explicitly used in the rtl to be used as spill registers
    but prevents the compiler from extending the lifetime of these
@@ -1778,20 +1761,6 @@ struct sh_args {
 
 #define CONSTANT_ADDRESS_P(X)	(GET_CODE (X) == LABEL_REF)
 
-/* Nonzero if the constant value X is a legitimate general operand.  */
-/* can_store_by_pieces constructs VOIDmode CONST_DOUBLEs.  */
-
-#define LEGITIMATE_CONSTANT_P(X) \
-  (TARGET_SHMEDIA							\
-   ? ((GET_MODE (X) != DFmode						\
-       && GET_MODE_CLASS (GET_MODE (X)) != MODE_VECTOR_FLOAT)		\
-      || (X) == CONST0_RTX (GET_MODE (X))				\
-      || ! TARGET_SHMEDIA_FPU						\
-      || TARGET_SHMEDIA64)						\
-   : (GET_CODE (X) != CONST_DOUBLE					\
-      || GET_MODE (X) == DFmode || GET_MODE (X) == SFmode		\
-      || GET_MODE (X) == DImode || GET_MODE (X) == VOIDmode))
-
 /* The macros REG_OK_FOR..._P assume that the arg is a REG rtx
    and check its validity for a certain class.
    The suitable hard regs are always accepted and all pseudo regs
@@ -2130,26 +2099,10 @@ struct sh_args {
 # endif
 #endif
 
-
-/* If defined, a C expression whose value is a string containing the
-   assembler operation to identify the following data as
-   uninitialized global data.  If not defined, and neither
-   `ASM_OUTPUT_BSS' nor `ASM_OUTPUT_ALIGNED_BSS' are defined,
-   uninitialized global data will be output in the data section if
-   `-fno-common' is passed, otherwise `ASM_OUTPUT_COMMON' will be
-   used.  */
 #ifndef BSS_SECTION_ASM_OP
 #define BSS_SECTION_ASM_OP	"\t.section\t.bss"
 #endif
 
-/* Like `ASM_OUTPUT_BSS' except takes the required alignment as a
-   separate, explicit argument.  If you define this macro, it is used
-   in place of `ASM_OUTPUT_BSS', and gives you more flexibility in
-   handling the required alignment of the variable.  The alignment is
-   specified as the number of bits.
-
-   Try to use function `asm_output_aligned_bss' defined in file
-   `varasm.c' when defining this macro.  */
 #ifndef ASM_OUTPUT_ALIGNED_BSS
 #define ASM_OUTPUT_ALIGNED_BSS(FILE, DECL, NAME, SIZE, ALIGN) \
   asm_output_aligned_bss (FILE, DECL, NAME, SIZE, ALIGN)
@@ -2338,8 +2291,8 @@ struct sh_args {
   final_prescan_insn ((INSN), (OPVEC), (NOPERANDS))
 
 
-extern struct rtx_def *sh_compare_op0;
-extern struct rtx_def *sh_compare_op1;
+extern rtx sh_compare_op0;
+extern rtx sh_compare_op1;
 
 /* Which processor to schedule for.  The elements of the enumeration must
    match exactly the cpu attribute in the sh.md file.  */

@@ -105,6 +105,7 @@ func main() {
 	// 15          16
 	//	*f(), p1 = <-e1(c, 16)
 	*f(), p1 = <-e1(c, 16), true // delete uncommenting above
+	close(c)
 	// 17          18
 	//	*f(), p2 = <-e1(c, 18)
 	*f(), p2, _ = 0, false, e1(c, 18) // delete when uncommenting above
