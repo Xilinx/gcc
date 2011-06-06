@@ -682,6 +682,9 @@ case "${target}" in
     noconfigdirs="$noconfigdirs target-libffi target-qthreads"
     libgloss_dir=arm
     ;;
+  arm*-*-linux-androideabi)
+    noconfigdirs="$noconfigdirs target-libiberty"
+    ;;
   arm*-*-linux-gnueabi)
     noconfigdirs="$noconfigdirs target-qthreads"
     case ${with_newlib} in
