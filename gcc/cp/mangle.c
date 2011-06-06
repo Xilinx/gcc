@@ -1,6 +1,6 @@
 /* Name mangling for the 3.0 C++ ABI.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010,
+   2011  Free Software Foundation, Inc.
    Written by Alex Samuel <samuel@codesourcery.com>
 
    This file is part of GCC.
@@ -943,7 +943,7 @@ write_nested_name (const tree decl)
   else
     {
       /* No, just use <prefix>  */
-      write_prefix (DECL_CONTEXT (decl));
+      write_prefix (CP_DECL_CONTEXT (decl));
       write_unqualified_name (decl);
     }
   write_char ('E');
@@ -3094,6 +3094,9 @@ mangle_decl_string (const tree decl)
   location_t saved_loc = input_location;
   tree saved_fn = NULL_TREE;
   bool template_p = false;
+
+  /* We shouldn't be trying to mangle an uninstantiated template.  */
+  gcc_assert (!type_dependent_expression_p (decl));
 
   if (DECL_LANG_SPECIFIC (decl) && DECL_USE_TEMPLATE (decl))
     {

@@ -320,7 +320,7 @@ gfc_build_array_ref (tree base, tree offset, tree decl)
     {
       gcc_assert (GFC_TYPE_ARRAY_CORANK (type) > 0);
 
-      return fold_convert (TREE_TYPE (type), base);
+      return fold_convert (TYPE_MAIN_VARIANT (type), base);
     }
 
   gcc_assert (TREE_CODE (type) == ARRAY_TYPE);
@@ -1245,15 +1245,20 @@ trans_code (gfc_code * code, tree cond)
 	     dependency check, too.  */
 	  {
 	    bool is_mvbits = false;
+
+	    if (code->resolved_isym)
+	      {
+		res = gfc_conv_intrinsic_subroutine (code);
+		if (res != NULL_TREE)
+		  break;
+	      }
+
 	    if (code->resolved_isym
 		&& code->resolved_isym->id == GFC_ISYM_MVBITS)
 	      is_mvbits = true;
-	    if (code->resolved_isym
-		&& code->resolved_isym->id == GFC_ISYM_MOVE_ALLOC)
-	      res = gfc_conv_intrinsic_move_alloc (code);
-	    else
-	      res = gfc_trans_call (code, is_mvbits, NULL_TREE,
-				    NULL_TREE, false);
+
+	    res = gfc_trans_call (code, is_mvbits, NULL_TREE,
+				  NULL_TREE, false);
 	  }
 	  break;
 

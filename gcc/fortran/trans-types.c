@@ -118,6 +118,8 @@ int gfc_default_character_kind;
 int gfc_default_logical_kind;
 int gfc_default_complex_kind;
 int gfc_c_int_kind;
+int gfc_atomic_int_kind;
+int gfc_atomic_logical_kind;
 
 /* The kind size used for record offsets. If the target system supports
    kind=8, this will be set to 8, otherwise it is set to 4.  */
@@ -577,6 +579,10 @@ gfc_init_kinds (void)
   gfc_index_integer_kind = POINTER_SIZE / 8;
   /* Pick a kind the same size as the C "int" type.  */
   gfc_c_int_kind = INT_TYPE_SIZE / 8;
+
+  /* Choose atomic kinds to match C's int.  */
+  gfc_atomic_int_kind = gfc_c_int_kind;
+  gfc_atomic_logical_kind = gfc_c_int_kind;
 
   /* initialize the C interoperable kinds  */
   init_c_interop_kinds();
@@ -1423,10 +1429,7 @@ gfc_get_nodesc_array_type (tree etype, gfc_array_spec * as, gfc_packed packed,
   if (as->rank)
     type = make_node (ARRAY_TYPE);
   else
-    {
-      type = build_variant_type_copy (etype);
-      TREE_TYPE (type) = etype;
-    }
+    type = build_variant_type_copy (etype);
 
   GFC_ARRAY_TYPE_P (type) = 1;
   TYPE_LANG_SPECIFIC (type)
@@ -1543,13 +1546,12 @@ gfc_get_nodesc_array_type (tree etype, gfc_array_spec * as, gfc_packed packed,
   if (as->rank == 0)
     {
       if (packed != PACKED_STATIC  || gfc_option.coarray == GFC_FCOARRAY_LIB)
-	type = build_pointer_type (type);
-
-      if (restricted)
-        type = build_qualified_type (type, TYPE_QUAL_RESTRICT);	
-
-      if (packed != PACKED_STATIC  || gfc_option.coarray == GFC_FCOARRAY_LIB)
 	{
+	  type = build_pointer_type (type);
+
+	  if (restricted)
+	    type = build_qualified_type (type, TYPE_QUAL_RESTRICT);	
+
 	  GFC_ARRAY_TYPE_P (type) = 1;
 	  TYPE_LANG_SPECIFIC (type) = TYPE_LANG_SPECIFIC (TREE_TYPE (type)); 
 	}

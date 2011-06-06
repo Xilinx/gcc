@@ -25,6 +25,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #include "objc-private/common.h"
 #include <stdarg.h>
+#include <string.h> /* For strcmp.  */
 #include <errno.h>
 #include "objc/Object.h"
 #include "objc/Protocol.h"
@@ -248,36 +249,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
             :class_get_class_method(self->isa, aSel)));
 }
 
-- perform:(SEL)aSel
-{
-  IMP msg = objc_msg_lookup(self, aSel);
-  if (!msg)
-    return [self error:"invalid selector passed to %s", sel_get_name(_cmd)];
-  return (*msg)(self, aSel);
-}
-
-- perform:(SEL)aSel with:anObject
-{
-  IMP msg = objc_msg_lookup(self, aSel);
-  if (!msg)
-    return [self error:"invalid selector passed to %s", sel_get_name(_cmd)];
-  return (*msg)(self, aSel, anObject);
-}
-
-- perform:(SEL)aSel with:anObject1 with:anObject2
-{
-  IMP msg = objc_msg_lookup(self, aSel);
-  if (!msg)
-    return [self error:"invalid selector passed to %s", sel_get_name(_cmd)];
-  return (*msg)(self, aSel, anObject1, anObject2);
-}
-
-- (retval_t)forward:(SEL)aSel :(arglist_t)argFrame
-{
-  (void) argFrame; /* UNUSED */
-  return (retval_t)[self doesNotRecognize: aSel];
-}
-
 - (retval_t)performv:(SEL)aSel :(arglist_t)argFrame
 {
   return objc_msg_sendv(self, aSel, argFrame);
@@ -302,45 +273,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
   return nil;
 }
 
-- subclassResponsibility:(SEL)aSel
-{
-  return [self error:"subclass should override %s", sel_get_name(aSel)];
-}
-
-- notImplemented:(SEL)aSel
-{
-  return [self error:"method %s not implemented", sel_get_name(aSel)];
-}
-
-- shouldNotImplement:(SEL)aSel
-{
-  return [self error:"%s should not implement %s", 
-	             object_get_class_name(self), sel_get_name(aSel)];
-}
-
-- doesNotRecognize:(SEL)aSel
-{
-  return [self error:"%s does not recognize %s",
-                     object_get_class_name(self), sel_get_name(aSel)];
-}
-
-- error:(const char *)aString, ...
-{
-#define FMT "error: %s (%s)\n%s\n"
-  char fmt[(strlen((char*)FMT)+strlen((char*)object_get_class_name(self))
-            +((aString!=NULL)?strlen((char*)aString):0)+8)];
-  va_list ap;
-
-  sprintf(fmt, FMT, object_get_class_name(self),
-                    object_is_instance(self)?"instance":"class",
-                    (aString!=NULL)?aString:"");
-  va_start(ap, aString);
-  objc_verror(self, OBJC_ERR_UNKNOWN, fmt, ap);
-  va_end(ap);
-  return nil;
-#undef FMT
-}
-
 + (int)version
 {
   return class_get_version(self);
@@ -349,40 +281,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 + setVersion:(int)aVersion
 {
   class_set_version(self, aVersion);
-  return self;
-}
-
-+ (int)streamVersion: (TypedStream*)aStream
-{
-  if (aStream->mode == OBJC_READONLY)
-    return objc_get_stream_class_version (aStream, self);
-  else
-    return class_get_version (self);
-}
-
-// These are used to write or read the instance variables 
-// declared in this particular part of the object.  Subclasses
-// should extend these, by calling [super read/write: aStream]
-// before doing their own archiving.  These methods are private, in
-// the sense that they should only be called from subclasses.
-
-- read: (TypedStream*)aStream
-{
-  (void) aStream; /* UNUSED */
-  // [super read: aStream];  
-  return self;
-}
-
-- write: (TypedStream*)aStream
-{
-  (void) aStream; /* UNUSED */
-  // [super write: aStream];
-  return self;
-}
-
-- awake
-{
-  // [super awake];
   return self;
 }
 

@@ -1,3 +1,249 @@
+2011-06-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/util/testsuite_allocator.h (tracker_allocator::construct):
+	Update to C++0x definition using type to construct as template
+	parameter.
+	(tracker_allocator::destroy): Likewise for type to destroy.
+	(uneq_allocator::construct, uneq_allocator::destroy): Likewise.
+
+2011-06-01  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable.h (_Hashtable<>::_Hashtable(_Hashtable&&)):
+	Use std::move on the allocator, use noexcept.
+	(_Hashtable<>::~_Hashtable): Use noexcept.
+	* include/bits/stl_list.h: Likewise.
+	* include/bits/forward_list.h: Likewise.
+	* include/bits/stl_vector.h: Likewise.
+	* include/bits/stl_bvector.h: Likewise.
+	* include/bits/stl_map.h (map<>::map(map&&)): Use noexcept.
+	* include/bits/stl_set.h: Likewise.
+	* include/bits/stl_multimap.h: Likewise.
+	* include/bits/stl_multiset.h: Likewise.
+	* include/bits/stl_tree.h (_Rb_tree<>::_Rb_tree(_Rb_tree&&)): Use
+	std::move on the allocator.
+	(_Rb_tree<>::~_Rb_tree): Use noexcept.
+	* include/bits/stl_deque.h: Likewise.
+	* include/bits/basic_string.h (basic_string<>::~basic_string): Use
+	noexcept.
+	* include/ext/vstring.h (__versa_string<>::~__versa_string): Likewise.
+	* include/debug/set.h: Adjust.
+	* include/debug/unordered_map: Likewise.
+	* include/debug/multiset.h: Likewise.
+	* include/debug/forward_list: Likewise.
+	* include/debug/vector: Likewise.
+	* include/debug/unordered_set: Likewise.
+	* include/debug/deque: Likewise.
+	* include/debug/map.h: Likewise.
+	* include/debug/string: Likewise.
+	* include/debug/list: Likewise.
+	* include/debug/multimap.h: Likewise.
+	* include/profile/set.h: Likewise.
+	* include/profile/unordered_map: Likewise.
+	* include/profile/multiset.h: Likewise.
+	* include/profile/forward_list: Likewise.
+	* include/profile/unordered_set: Likewise.
+	* include/profile/vector: Likewise.
+	* include/profile/deque: Likewise.
+	* include/profile/map.h: Likewise.
+	* include/profile/list: Likewise.
+	* include/profile/multimap.h: Likewise.
+	* testsuite/21_strings/basic_string/cons/wchar_t/
+	noexcept_move_construct.cc: New.
+	* testsuite/21_strings/basic_string/cons/char/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/ext/vstring/cons/noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/unordered_map/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/multimap/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/set/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/unordered_multimap/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/forward_list/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/unordered_set/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/vector/bool/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/vector/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/multiset/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/list/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/unordered_multiset/cons/
+	noexcept_move_construct.cc: Likewise.
+	* testsuite/23_containers/map/cons/noexcept_move_construct.cc
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	assign_neg.cc: Adjust dg-error line numbers.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/forward_list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/deque/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	assign_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	insert_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/list/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+	* include/bits/move.h (swap): Use __and_ in the noexcept.
+	* include/bits/algorithmfwd.h: Adjust.
+
+2011-05-31  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/basic_string.h: Use noexcept per the FDIS (minus
+	compare(const string&), which uses char_traits::compare, which
+	isn't noexcept; also no noexcept in the move assignment operator
+	and move assign, see c++std-lib-30855).
+	* include/bits/basic_string.tcc: Likewise.
+	* include/ext/vstring.h: Likewise.
+	* include/ext/vstring.tcc: Likewise.
+	* include/debug/string: Likewise.
+
+2011-05-31  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/xml/manual/status_cxx200x.xml: Update.
+	* doc/html/*: Regenerate.
+
+2011-05-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/type_traits (__or_, __and_): Add trivial definitions
+	for a single element.
+	* include/bits/stl_pair.h: Use __and_ in noexcept specs and
+	constraints.
+	(pair<>::pair(pair&&)): Define.
+	(pair<>::pair(const pair<>&)): Constrain with is_convertible.
+	(pair<>::pair(pair<>&&)): Likewise, remove noexcept.
+	* include/std/tuple: Use __and_ in noexcept specs and constraints.
+	(_Tuple_impl<>::_Tuple_impl(allocator_arg_t, const _Alloc&,
+	_Tuple_impl&&)): Remove noexcept.
+	(tuple<>::tuple(_UElements&&...), tuple(const tuple<_UElements...>&),
+	tuple(tuple<_UElements...>&&), tuple(const pair<_U1, _U2>&),
+	tuple(pair<_U1, _U2>&&)): Constrain with is_convertible.
+	* testsuite/20_util/tuple/moveable2.cc: Use = delete.
+	* testsuite/20_util/make_signed/requirements/typedefs_neg.cc:
+	Adjust dg-error line numbers.
+	* testsuite/20_util/make_unsigned/requirements/typedefs_neg.cc:
+	Likewise.
+	* testsuite/20_util/declval/requirements/1_neg.cc: Likewise.
+	* testsuite/20_util/ratio/cons/cons_overflow_neg.cc: Likewise.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Likewise.
+
+2011-05-31  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/tuple: Restore is_convertible constraint.
+	* testsuite/20_util/tuple/cons/allocate_noncopyable.cc: Remove.
+
+2011-05-30  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/49236
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Adjust dg-warning
+	line number.
+
+2011-05-30  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/tuple: Implement uses-allocator construction.
+	* include/bits/allocator.h (uses_allocator): Move to ...
+	* include/bits/uses_allocator.h: New file.
+	* include/Makefile.am: Add new header.
+	* include/Makefile.in: Regenerate.
+	* testsuite/20_util/uses_allocator/cons_neg.cc: New.
+	* testsuite/20_util/uses_allocator/construction.cc: New.
+	* testsuite/20_util/tuple/cons/allocate_noncopyable.cc: New.
+	* testsuite/20_util/tuple/cons/allocators.cc: New.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/20_util/pointer_traits/pointer_to.cc: Fix.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* acinclude.m4: Define GLIBCXX_CHECK_GET_NPROCS and
+	GLIBCXX_CHECK_SC_NPROCESSORS_ONLN.
+	* configure.ac: Use them. Increase minor version.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+	* include/std/thread (thread::hardware_concurrency): Remove inline
+	definition.
+	* src/thread.cc (thread::hardware_concurrency): Define.
+	* config/abi/pre/gnu.ver: Export new symbol @3.4.17
+	* testsuite/util/testsuite_abi.cc: Add new version.
+	* testsuite/lib/libstdc++.exp (check_v3_target_nprocs): Add.
+	* testsuite/lib/dg-options.exp (dg-require-nprocs): Add.
+	* testsuite/30_threads/thread/members/hardware_concurrency.cc: Use
+	dg-require-nprocs and verify hardware_concurrency returns non-zero.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/20_util/pointer_traits/pointer_to.cc: New.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/Makefile.am: Add new ptr_traits.h header.
+	* include/Makefile.in: Regenerate.
+	* include/bits/ptr_traits.h (pointer_traits): New.
+	* include/bits/allocator.h (allocator_traits): Add.
+	* include/ext/array_allocator.h (construct, destroy): Update C++0x
+	versions.
+	* include/ext/bitmap_allocator.h (construct, destroy): Likewise.
+	* include/ext/extptr_allocator.h (construct, destroy): Likewise.
+	* include/ext/malloc_allocator.h (construct, destroy): Likewise.
+	* include/ext/mt_allocator.h (construct, destroy): Likewise.
+	* include/ext/new_allocator.h (construct, destroy): Likewise.
+	* include/ext/pool_allocator.h (construct, destroy): Likewise.
+	* include/ext/throw_allocator.h (construct, destroy): Likewise.
+	* testsuite/20_util/allocator_traits/requirements/typedefs.cc: New.
+	* testsuite/20_util/allocator_traits/requirements/
+	explicit_instantiation.cc: New.
+	* testsuite/20_util/allocator_traits/members/max_size.cc: New.
+	* testsuite/20_util/allocator_traits/members/select.cc: New.
+	* testsuite/20_util/allocator_traits/members/construct.cc: New.
+	* testsuite/20_util/allocator_traits/members/allocate_hint.cc: New.
+	* testsuite/20_util/allocator_traits/members/destroy.cc: New.
+	* testsuite/20_util/pointer_traits/requirements/typedefs.cc: New.
+	* testsuite/20_util/pointer_traits/requirements/
+	explicit_instantiation.cc: New.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future (launch): Update enumerators and define
+	operators required for bitmask type. Remove trailing whitespace.
+	* src/future.cc: Remove trailing whitespace.
+	* testsuite/30_threads/async/any.cc: Adjust.
+	* testsuite/30_threads/async/sync.cc: Adjust.
+	* testsuite/30_threads/async/launch.cc: New.
+
+2011-05-28  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/future: Use noexcept.
+	* src/future.cc: Likewise.
+
+2011-05-27  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/std/thread (this_thread::sleep_until): Move after sleep_for.
+
 2011-05-27  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR libstdc++/49187

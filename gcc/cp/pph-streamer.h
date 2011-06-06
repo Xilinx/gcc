@@ -244,7 +244,7 @@ pph_out_string (pph_stream *stream, const char *str)
 {
   if (flag_pph_tracer >= 4)
     pph_trace_string (stream, str);
-  lto_output_string (stream->ob, stream->ob->main_stream, str);
+  lto_output_string (stream->ob, stream->ob->main_stream, str, false);
 }
 
 /* Write string STR of length LEN to STREAM.  */
@@ -257,7 +257,7 @@ pph_out_string_with_length (pph_stream *stream, const char *str,
       if (flag_pph_tracer >= 4)
 	pph_trace_string_with_length (stream, str, len);
       lto_output_string_with_length (stream->ob, stream->ob->main_stream,
-				     str, len + 1);
+				     str, len + 1, false);
     }
   else
     {

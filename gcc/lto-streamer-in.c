@@ -798,8 +798,7 @@ input_cfg (struct lto_input_block *ib, struct function *fn,
   init_empty_tree_cfg_for_function (fn);
   init_ssa_operands ();
 
-  profile_status_for_function (fn) =
-    (enum profile_status_d) lto_input_uleb128 (ib);
+  profile_status_for_function (fn) = lto_input_enum (ib, profile_status_d, PROFILE_LAST);
 
   bb_count = lto_input_uleb128 (ib);
 
@@ -960,13 +959,13 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 
   /* Read the tuple header.  */
   bp = lto_input_bitpack (ib);
-  num_ops = bp_unpack_value (&bp, sizeof (unsigned) * 8);
+  num_ops = bp_unpack_var_len_unsigned (&bp);
   stmt = gimple_alloc (code, num_ops);
   stmt->gsbase.no_warning = bp_unpack_value (&bp, 1);
   if (is_gimple_assign (stmt))
     stmt->gsbase.nontemporal_move = bp_unpack_value (&bp, 1);
   stmt->gsbase.has_volatile_ops = bp_unpack_value (&bp, 1);
-  stmt->gsbase.subcode = bp_unpack_value (&bp, 16);
+  stmt->gsbase.subcode = bp_unpack_var_len_unsigned (&bp);
 
   /* Read location information.  */
   gimple_set_location (stmt, lto_input_location (ib, data_in));
@@ -1090,7 +1089,7 @@ input_gimple_stmt (struct lto_input_block *ib, struct data_in *data_in,
 	{
 	  if (gimple_call_internal_p (stmt))
 	    gimple_call_set_internal_fn
-	      (stmt, (enum internal_fn) lto_input_sleb128 (ib));
+	      (stmt, lto_input_enum (ib, internal_fn, IFN_LAST));
 	  else
 	    gimple_call_set_fntype (stmt, lto_input_tree (ib, data_in));
 	}
@@ -1534,31 +1533,6 @@ lto_input_constructors_and_inits (struct lto_file_decl_data *file_data,
 }
 
 
-/* Return the resolution for the decl with index INDEX from DATA_IN. */
-
-static enum ld_plugin_symbol_resolution
-get_resolution (struct data_in *data_in, unsigned index)
-{
-  if (data_in->globals_resolution)
-    {
-      ld_plugin_symbol_resolution_t ret;
-      /* We can have references to not emitted functions in
-	 DECL_FUNCTION_PERSONALITY at least.  So we can and have
-	 to indeed return LDPR_UNKNOWN in some cases.   */
-      if (VEC_length (ld_plugin_symbol_resolution_t,
-		      data_in->globals_resolution) <= index)
-	return LDPR_UNKNOWN;
-      ret = VEC_index (ld_plugin_symbol_resolution_t,
-		       data_in->globals_resolution,
-		       index);
-      return ret;
-    }
-  else
-    /* Delay resolution finding until decl merging.  */
-    return LDPR_UNKNOWN;
-}
-
-
 /* Unpack all the non-pointer fields of the TS_BASE structure of
    expression EXPR from bitpack BP.  */
 
@@ -1641,9 +1615,9 @@ unpack_ts_fixed_cst_value_fields (struct bitpack_d *bp, tree expr)
 {
   struct fixed_value fv;
 
-  fv.data.low = (HOST_WIDE_INT) bp_unpack_value (bp, HOST_BITS_PER_WIDE_INT);
-  fv.data.high = (HOST_WIDE_INT) bp_unpack_value (bp, HOST_BITS_PER_WIDE_INT);
-  fv.mode = (enum machine_mode) bp_unpack_value (bp, HOST_BITS_PER_INT);
+  fv.mode = bp_unpack_enum (bp, machine_mode, MAX_MACHINE_MODE);
+  fv.data.low = bp_unpack_var_len_int (bp);
+  fv.data.high = bp_unpack_var_len_int (bp);
   TREE_FIXED_CST (expr) = fv;
 }
 
@@ -1654,7 +1628,7 @@ unpack_ts_fixed_cst_value_fields (struct bitpack_d *bp, tree expr)
 static void
 unpack_ts_decl_common_value_fields (struct bitpack_d *bp, tree expr)
 {
-  DECL_MODE (expr) = (enum machine_mode) bp_unpack_value (bp, 8);
+  DECL_MODE (expr) = bp_unpack_enum (bp, machine_mode, MAX_MACHINE_MODE);
   DECL_NONLOCAL (expr) = (unsigned) bp_unpack_value (bp, 1);
   DECL_VIRTUAL_P (expr) = (unsigned) bp_unpack_value (bp, 1);
   DECL_IGNORED_P (expr) = (unsigned) bp_unpack_value (bp, 1);
@@ -1665,12 +1639,12 @@ unpack_ts_decl_common_value_fields (struct bitpack_d *bp, tree expr)
   DECL_DEBUG_EXPR_IS_FROM (expr) = (unsigned) bp_unpack_value (bp, 1);
   DECL_EXTERNAL (expr) = (unsigned) bp_unpack_value (bp, 1);
   DECL_GIMPLE_REG_P (expr) = (unsigned) bp_unpack_value (bp, 1);
-  DECL_ALIGN (expr) = (unsigned) bp_unpack_value (bp, HOST_BITS_PER_INT);
+  DECL_ALIGN (expr) = (unsigned) bp_unpack_var_len_unsigned (bp);
 
   if (TREE_CODE (expr) == LABEL_DECL)
     {
       DECL_ERROR_ISSUED (expr) = (unsigned) bp_unpack_value (bp, 1);
-      EH_LANDING_PAD_NR (expr) = (int) bp_unpack_value (bp, HOST_BITS_PER_INT);
+      EH_LANDING_PAD_NR (expr) = (int) bp_unpack_var_len_unsigned (bp);
 
       /* Always assume an initial value of -1 for LABEL_DECL_UID to
 	 force gimple_set_bb to recreate label_to_block_map.  */
@@ -1733,7 +1707,7 @@ unpack_ts_decl_with_vis_value_fields (struct bitpack_d *bp, tree expr)
   if (VAR_OR_FUNCTION_DECL_P (expr))
     {
       priority_type p;
-      p = (priority_type) bp_unpack_value (bp, HOST_BITS_PER_SHORT);
+      p = (priority_type) bp_unpack_var_len_unsigned (bp);
       SET_DECL_INIT_PRIORITY (expr, p);
     }
 }
@@ -1745,8 +1719,8 @@ unpack_ts_decl_with_vis_value_fields (struct bitpack_d *bp, tree expr)
 static void
 unpack_ts_function_decl_value_fields (struct bitpack_d *bp, tree expr)
 {
-  DECL_FUNCTION_CODE (expr) = (enum built_in_function) bp_unpack_value (bp, 11);
-  DECL_BUILT_IN_CLASS (expr) = (enum built_in_class) bp_unpack_value (bp, 2);
+  DECL_BUILT_IN_CLASS (expr) = bp_unpack_enum (bp, built_in_class,
+					       BUILT_IN_LAST);
   DECL_STATIC_CONSTRUCTOR (expr) = (unsigned) bp_unpack_value (bp, 1);
   DECL_STATIC_DESTRUCTOR (expr) = (unsigned) bp_unpack_value (bp, 1);
   DECL_UNINLINABLE (expr) = (unsigned) bp_unpack_value (bp, 1);
@@ -1764,10 +1738,24 @@ unpack_ts_function_decl_value_fields (struct bitpack_d *bp, tree expr)
   DECL_DISREGARD_INLINE_LIMITS (expr) = (unsigned) bp_unpack_value (bp, 1);
   DECL_PURE_P (expr) = (unsigned) bp_unpack_value (bp, 1);
   DECL_LOOPING_CONST_OR_PURE_P (expr) = (unsigned) bp_unpack_value (bp, 1);
+  if (DECL_BUILT_IN_CLASS (expr) != NOT_BUILT_IN)
+    {
+      DECL_FUNCTION_CODE (expr) = (enum built_in_function) bp_unpack_value (bp, 11);
+      if (DECL_BUILT_IN_CLASS (expr) == BUILT_IN_NORMAL
+	  && DECL_FUNCTION_CODE (expr) >= END_BUILTINS)
+	fatal_error ("machine independent builtin code out of range");
+      else if (DECL_BUILT_IN_CLASS (expr) == BUILT_IN_MD)
+	{
+          tree result = targetm.builtin_decl (DECL_FUNCTION_CODE (expr), true);
+	  if (!result || result == error_mark_node)
+	    fatal_error ("target specific builtin not available");
+	}
+    }
   if (DECL_STATIC_DESTRUCTOR (expr))
     {
-       priority_type p = (priority_type) bp_unpack_value (bp, HOST_BITS_PER_SHORT);
-       SET_DECL_FINI_PRIORITY (expr, p);
+      priority_type p;
+      p = (priority_type) bp_unpack_var_len_unsigned (bp);
+      SET_DECL_FINI_PRIORITY (expr, p);
     }
 }
 
@@ -1780,8 +1768,7 @@ unpack_ts_type_common_value_fields (struct bitpack_d *bp, tree expr)
 {
   enum machine_mode mode;
 
-  TYPE_PRECISION (expr) = (unsigned) bp_unpack_value (bp, 10);
-  mode = (enum machine_mode) bp_unpack_value (bp, 8);
+  mode = bp_unpack_enum (bp, machine_mode, MAX_MACHINE_MODE);
   SET_TYPE_MODE (expr, mode);
   TYPE_STRING_FLAG (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_NO_FORCE_BLK (expr) = (unsigned) bp_unpack_value (bp, 1);
@@ -1794,6 +1781,7 @@ unpack_ts_type_common_value_fields (struct bitpack_d *bp, tree expr)
     	= (unsigned) bp_unpack_value (bp, 2);
   TYPE_USER_ALIGN (expr) = (unsigned) bp_unpack_value (bp, 1);
   TYPE_READONLY (expr) = (unsigned) bp_unpack_value (bp, 1);
+  TYPE_PRECISION (expr) = bp_unpack_var_len_unsigned (bp);
   TYPE_ALIGN (expr) = bp_unpack_var_len_unsigned (bp);
   TYPE_ALIAS_SET (expr) = bp_unpack_var_len_int (bp);
 }
@@ -1806,7 +1794,7 @@ static void
 unpack_ts_block_value_fields (struct bitpack_d *bp, tree expr)
 {
   BLOCK_ABSTRACT (expr) = (unsigned) bp_unpack_value (bp, 1);
-  BLOCK_NUMBER (expr) = (unsigned) bp_unpack_value (bp, 31);
+  /* BLOCK_NUMBER is recomputed.  */
 }
 
 /* Unpack all the non-pointer fields of the TS_TRANSLATION_UNIT_DECL
@@ -2428,117 +2416,6 @@ lto_input_tree_pointers (struct lto_input_block *ib, struct data_in *data_in,
 }
 
 
-/* Register DECL with the global symbol table and change its
-   name if necessary to avoid name clashes for static globals across
-   different files.  */
-
-static void
-lto_register_var_decl_in_symtab (struct data_in *data_in, tree decl)
-{
-  tree context;
-
-  /* Variable has file scope, not local. Need to ensure static variables
-     between different files don't clash unexpectedly.  */
-  if (!TREE_PUBLIC (decl)
-      && !((context = decl_function_context (decl))
-	   && auto_var_in_fn_p (decl, context)))
-    {
-      /* ??? We normally pre-mangle names before we serialize them
-	 out.  Here, in lto1, we do not know the language, and
-	 thus cannot do the mangling again. Instead, we just
-	 append a suffix to the mangled name.  The resulting name,
-	 however, is not a properly-formed mangled name, and will
-	 confuse any attempt to unmangle it.  */
-      const char *name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-      char *label;
-
-      ASM_FORMAT_PRIVATE_NAME (label, name, DECL_UID (decl));
-      SET_DECL_ASSEMBLER_NAME (decl, get_identifier (label));
-      rest_of_decl_compilation (decl, 1, 0);
-
-      VEC_safe_push (tree, gc, lto_global_var_decls, decl);
-    }
-
-  /* If this variable has already been declared, queue the
-     declaration for merging.  */
-  if (TREE_PUBLIC (decl))
-    {
-      unsigned ix;
-      if (!lto_streamer_cache_lookup (data_in->reader_cache, decl, &ix))
-	gcc_unreachable ();
-      lto_symtab_register_decl (decl, get_resolution (data_in, ix),
-				data_in->file_data);
-    }
-}
-
-
-
-/* Register DECL with the global symbol table and change its
-   name if necessary to avoid name clashes for static globals across
-   different files.  DATA_IN contains descriptors and tables for the
-   file being read.  */
-
-static void
-lto_register_function_decl_in_symtab (struct data_in *data_in, tree decl)
-{
-  /* Need to ensure static entities between different files
-     don't clash unexpectedly.  */
-  if (!TREE_PUBLIC (decl))
-    {
-      /* We must not use the DECL_ASSEMBLER_NAME macro here, as it
-	 may set the assembler name where it was previously empty.  */
-      tree old_assembler_name = decl->decl_with_vis.assembler_name;
-
-      /* FIXME lto: We normally pre-mangle names before we serialize
-	 them out.  Here, in lto1, we do not know the language, and
-	 thus cannot do the mangling again. Instead, we just append a
-	 suffix to the mangled name.  The resulting name, however, is
-	 not a properly-formed mangled name, and will confuse any
-	 attempt to unmangle it.  */
-      const char *name = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (decl));
-      char *label;
-
-      ASM_FORMAT_PRIVATE_NAME (label, name, DECL_UID (decl));
-      SET_DECL_ASSEMBLER_NAME (decl, get_identifier (label));
-
-      /* We may arrive here with the old assembler name not set
-	 if the function body is not needed, e.g., it has been
-	 inlined away and does not appear in the cgraph.  */
-      if (old_assembler_name)
-	{
-	  tree new_assembler_name = DECL_ASSEMBLER_NAME (decl);
-
-	  /* Make the original assembler name available for later use.
-	     We may have used it to indicate the section within its
-	     object file where the function body may be found.
-	     FIXME lto: Find a better way to maintain the function decl
-	     to body section mapping so we don't need this hack.  */
-	  lto_record_renamed_decl (data_in->file_data,
-				   IDENTIFIER_POINTER (old_assembler_name),
-				   IDENTIFIER_POINTER (new_assembler_name));
-
-	  /* Also register the reverse mapping so that we can find the
-	     new name given to an existing assembler name (used when
-	     restoring alias pairs in input_constructors_or_inits.  */
-	  lto_record_renamed_decl (data_in->file_data,
-				   IDENTIFIER_POINTER (new_assembler_name),
-				   IDENTIFIER_POINTER (old_assembler_name));
-	}
-    }
-
-  /* If this variable has already been declared, queue the
-     declaration for merging.  */
-  if (TREE_PUBLIC (decl) && !DECL_ABSTRACT (decl))
-    {
-      unsigned ix;
-      if (!lto_streamer_cache_lookup (data_in->reader_cache, decl, &ix))
-	gcc_unreachable ();
-      lto_symtab_register_decl (decl, get_resolution (data_in, ix),
-				data_in->file_data);
-    }
-}
-
-
 /* Read an index IX from input block IB and return the tree node at
    DATA_IN->FILE_DATA->GLOBALS_INDEX[IX].  */
 
@@ -2571,14 +2448,15 @@ lto_get_builtin_tree (struct lto_input_block *ib, struct data_in *data_in)
   const char *asmname;
   tree result;
 
-  fclass = (enum built_in_class) lto_input_uleb128 (ib);
+  fclass = lto_input_enum (ib, built_in_class, BUILT_IN_LAST);
   gcc_assert (fclass == BUILT_IN_NORMAL || fclass == BUILT_IN_MD);
 
   fcode = (enum built_in_function) lto_input_uleb128 (ib);
 
   if (fclass == BUILT_IN_NORMAL)
     {
-      gcc_assert (fcode < END_BUILTINS);
+      if (fcode >= END_BUILTINS)
+	fatal_error ("machine independent builtin code out of range");
       result = built_in_decls[fcode];
       gcc_assert (result);
     }
@@ -2623,14 +2501,6 @@ lto_read_tree (struct lto_input_block *ib, struct data_in *data_in,
   /* We should never try to instantiate an MD or NORMAL builtin here.  */
   if (TREE_CODE (result) == FUNCTION_DECL)
     gcc_assert (!lto_stream_as_builtin_p (result));
-
-  if (streamer_hooks ()->register_decls_in_symtab_p)
-    {
-      if (TREE_CODE (result) == VAR_DECL)
-	lto_register_var_decl_in_symtab (data_in, result);
-      else if (TREE_CODE (result) == FUNCTION_DECL && !DECL_BUILT_IN (result))
-	lto_register_function_decl_in_symtab (data_in, result);
-    }
 
   /* end_marker = */ lto_input_1_unsigned (ib);
 

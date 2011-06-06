@@ -25,5 +25,3 @@ along with GCC; see the file COPYING3.  If not see
 #define RUNTIME_ROOT_PREFIX ""
 #endif
 #define GLIBC_DYNAMIC_LINKER RUNTIME_ROOT_PREFIX "/lib/ld-linux.so.2"
-
-#define MD_UNWIND_SUPPORT "config/i386/linux-unwind.h"

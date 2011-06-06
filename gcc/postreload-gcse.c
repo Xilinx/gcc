@@ -1,5 +1,5 @@
 /* Post reload partially redundant load elimination
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -921,6 +921,9 @@ bb_has_well_behaved_predecessors (basic_block bb)
   FOR_EACH_EDGE (pred, ei, bb->preds)
     {
       if ((pred->flags & EDGE_ABNORMAL) && EDGE_CRITICAL_P (pred))
+	return false;
+
+      if ((pred->flags & EDGE_ABNORMAL_CALL) && cfun->has_nonlocal_label)
 	return false;
 
       if (JUMP_TABLE_DATA_P (BB_END (pred->src)))
