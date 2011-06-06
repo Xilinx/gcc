@@ -186,7 +186,7 @@ enum LTO_tags
 
      Conversely, to map between LTO tags and tree/gimple codes, the
      reverse operation must be applied.  */
-  LTO_bb0 = 1 + NUM_TREE_CODES + LAST_AND_UNUSED_GIMPLE_CODE,
+  LTO_bb0 = 1 + MAX_TREE_CODES + LAST_AND_UNUSED_GIMPLE_CODE,
   LTO_bb1,
 
   /* EH region holding the previous statement.  */
@@ -957,7 +957,7 @@ extern VEC(lto_out_decl_state_ptr, heap) *lto_function_decl_states;
 static inline bool
 lto_tag_is_tree_code_p (enum LTO_tags tag)
 {
-  return tag > LTO_null && (unsigned) tag <= NUM_TREE_CODES;
+  return tag > LTO_null && (unsigned) tag <= MAX_TREE_CODES;
 }
 
 
@@ -1081,6 +1081,8 @@ lto_is_streamable (tree expr)
 	 && code != BIND_EXPR
 	 && code != WITH_CLEANUP_EXPR
 	 && code != STATEMENT_LIST
+	 && code != OMP_CLAUSE
+	 && code != OPTIMIZATION_NODE
 	 && (code == CASE_LABEL_EXPR
 	     || code == DECL_EXPR
 	     || TREE_CODE_CLASS (code) != tcc_statement);
@@ -1226,11 +1228,11 @@ lto_output_int_in_range (struct lto_output_stream *obs,
   val -= min;
   lto_output_1_stream (obs, val & 255);
   if (range >= 0xff)
-    lto_output_1_stream (obs, (val << 8) & 255);
+    lto_output_1_stream (obs, (val >> 8) & 255);
   if (range >= 0xffff)
-    lto_output_1_stream (obs, (val << 16) & 255);
+    lto_output_1_stream (obs, (val >> 16) & 255);
   if (range >= 0xffffff)
-    lto_output_1_stream (obs, (val << 24) & 255);
+    lto_output_1_stream (obs, (val >> 24) & 255);
 }
 
 /* Input VAL into OBS and verify it is in range MIN...MAX that is supposed

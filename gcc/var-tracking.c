@@ -4837,7 +4837,7 @@ get_address_mode (rtx mem)
 static rtx
 replace_expr_with_values (rtx loc)
 {
-  if (REG_P (loc))
+  if (REG_P (loc) || GET_CODE (loc) == ENTRY_VALUE)
     return NULL;
   else if (MEM_P (loc))
     {
@@ -5052,6 +5052,7 @@ add_uses (rtx *ploc, void *data)
 	  if (MEM_P (vloc)
 	      && !REG_P (XEXP (vloc, 0))
 	      && !MEM_P (XEXP (vloc, 0))
+	      && GET_CODE (XEXP (vloc, 0)) != ENTRY_VALUE
 	      && (GET_CODE (XEXP (vloc, 0)) != PLUS
 		  || XEXP (XEXP (vloc, 0), 0) != cfa_base_rtx
 		  || !CONST_INT_P (XEXP (XEXP (vloc, 0), 1))))
@@ -5130,6 +5131,7 @@ add_uses (rtx *ploc, void *data)
 	  if (MEM_P (oloc)
 	      && !REG_P (XEXP (oloc, 0))
 	      && !MEM_P (XEXP (oloc, 0))
+	      && GET_CODE (XEXP (oloc, 0)) != ENTRY_VALUE
 	      && (GET_CODE (XEXP (oloc, 0)) != PLUS
 		  || XEXP (XEXP (oloc, 0), 0) != cfa_base_rtx
 		  || !CONST_INT_P (XEXP (XEXP (oloc, 0), 1))))
@@ -5214,6 +5216,8 @@ add_uses_1 (rtx *x, void *cui)
 {
   for_each_rtx (x, add_uses, cui);
 }
+
+#define EXPR_DEPTH (PARAM_VALUE (PARAM_MAX_VARTRACK_EXPR_DEPTH))
 
 /* Attempt to reverse the EXPR operation in the debug info.  Say for
    reg1 = reg2 + 6 even when reg2 is no longer live we
@@ -5381,6 +5385,7 @@ add_stores (rtx loc, const_rtx expr, void *cuip)
       if (MEM_P (loc) && type == MO_VAL_SET
 	  && !REG_P (XEXP (loc, 0))
 	  && !MEM_P (XEXP (loc, 0))
+	  && GET_CODE (XEXP (loc, 0)) != ENTRY_VALUE
 	  && (GET_CODE (XEXP (loc, 0)) != PLUS
 	      || XEXP (XEXP (loc, 0), 0) != cfa_base_rtx
 	      || !CONST_INT_P (XEXP (XEXP (loc, 0), 1))))
@@ -7416,7 +7421,7 @@ vt_expand_loc (rtx loc, htab_t vars, bool ignore_cur_loc)
   data.dummy = false;
   data.cur_loc_changed = false;
   data.ignore_cur_loc = ignore_cur_loc;
-  loc = cselib_expand_value_rtx_cb (loc, scratch_regs, 8,
+  loc = cselib_expand_value_rtx_cb (loc, scratch_regs, EXPR_DEPTH,
 				    vt_expand_loc_callback, &data);
 
   if (loc && MEM_P (loc))
@@ -7438,7 +7443,7 @@ vt_expand_loc_dummy (rtx loc, htab_t vars, bool *pcur_loc_changed)
   data.dummy = true;
   data.cur_loc_changed = false;
   data.ignore_cur_loc = false;
-  ret = cselib_dummy_expand_value_rtx_cb (loc, scratch_regs, 8,
+  ret = cselib_dummy_expand_value_rtx_cb (loc, scratch_regs, EXPR_DEPTH,
 					  vt_expand_loc_callback, &data);
   *pcur_loc_changed = data.cur_loc_changed;
   return ret;
@@ -8376,6 +8381,39 @@ vt_get_decl_and_offset (rtx rtl, tree *declp, HOST_WIDE_INT *offsetp)
   return false;
 }
 
+/* Helper function for vt_add_function_parameter.  RTL is
+   the expression and VAL corresponding cselib_val pointer
+   for which ENTRY_VALUE should be created.  */
+
+static void
+create_entry_value (rtx rtl, cselib_val *val)
+{
+  cselib_val *val2;
+  struct elt_loc_list *el;
+  el = (struct elt_loc_list *) ggc_alloc_cleared_atomic (sizeof (*el));
+  el->next = val->locs;
+  el->loc = gen_rtx_ENTRY_VALUE (GET_MODE (rtl));
+  ENTRY_VALUE_EXP (el->loc) = rtl;
+  el->setting_insn = get_insns ();
+  val->locs = el;
+  val2 = cselib_lookup_from_insn (el->loc, GET_MODE (rtl), true,
+				  VOIDmode, get_insns ());
+  if (val2
+      && val2 != val
+      && val2->locs
+      && rtx_equal_p (val2->locs->loc, el->loc))
+    {
+      struct elt_loc_list *el2;
+
+      preserve_value (val2);
+      el2 = (struct elt_loc_list *) ggc_alloc_cleared_atomic (sizeof (*el2));
+      el2->next = val2->locs;
+      el2->loc = val->val_rtx;
+      el2->setting_insn = get_insns ();
+      val2->locs = el2;
+    }
+}
+
 /* Insert function parameter PARM in IN and OUT sets of ENTRY_BLOCK.  */
 
 static void
@@ -8499,32 +8537,8 @@ vt_add_function_parameter (tree parm)
 			 VAR_INIT_STATUS_INITIALIZED, NULL, INSERT);
       if (dv_is_value_p (dv))
 	{
-	  cselib_val *val = CSELIB_VAL_PTR (dv_as_value (dv)), *val2;
-	  struct elt_loc_list *el;
-	  el = (struct elt_loc_list *)
-	    ggc_alloc_cleared_atomic (sizeof (*el));
-	  el->next = val->locs;
-	  el->loc = gen_rtx_ENTRY_VALUE (GET_MODE (incoming));
-	  ENTRY_VALUE_EXP (el->loc) = incoming;
-	  el->setting_insn = get_insns ();
-	  val->locs = el;
-	  val2 = cselib_lookup_from_insn (el->loc, GET_MODE (incoming),
-					  true, VOIDmode, get_insns ());
-	  if (val2
-	      && val2 != val
-	      && val2->locs
-	      && rtx_equal_p (val2->locs->loc, el->loc))
-	    {
-	      struct elt_loc_list *el2;
-
-	      preserve_value (val2);
-	      el2 = (struct elt_loc_list *)
-		ggc_alloc_cleared_atomic (sizeof (*el2));
-	      el2->next = val2->locs;
-	      el2->loc = dv_as_value (dv);
-	      el2->setting_insn = get_insns ();
-	      val2->locs = el2;
-	    }
+	  cselib_val *val = CSELIB_VAL_PTR (dv_as_value (dv));
+	  create_entry_value (incoming, val);
 	  if (TREE_CODE (TREE_TYPE (parm)) == REFERENCE_TYPE
 	      && INTEGRAL_TYPE_P (TREE_TYPE (TREE_TYPE (parm))))
 	    {
@@ -8536,31 +8550,7 @@ vt_add_function_parameter (tree parm)
 	      if (val)
 		{
 		  preserve_value (val);
-		  el = (struct elt_loc_list *)
-		    ggc_alloc_cleared_atomic (sizeof (*el));
-		  el->next = val->locs;
-		  el->loc = gen_rtx_ENTRY_VALUE (indmode);
-		  ENTRY_VALUE_EXP (el->loc) = mem;
-		  el->setting_insn = get_insns ();
-		  val->locs = el;
-		  val2 = cselib_lookup_from_insn (el->loc, GET_MODE (mem),
-						  true, VOIDmode,
-						  get_insns ());
-		  if (val2
-		      && val2 != val
-		      && val2->locs
-		      && rtx_equal_p (val2->locs->loc, el->loc))
-		    {
-		      struct elt_loc_list *el2;
-
-		      preserve_value (val2);
-		      el2 = (struct elt_loc_list *)
-			ggc_alloc_cleared_atomic (sizeof (*el2));
-		      el2->next = val2->locs;
-		      el2->loc = val->val_rtx;
-		      el2->setting_insn = get_insns ();
-		      val2->locs = el2;
-		    }
+		  create_entry_value (mem, val);
 		}
 	    }
 	}
@@ -9121,7 +9111,7 @@ variable_tracking_main (void)
 static bool
 gate_handle_var_tracking (void)
 {
-  return (flag_var_tracking);
+  return (flag_var_tracking && !targetm.delay_vartrack);
 }
 
 

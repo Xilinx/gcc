@@ -1,3 +1,250 @@
+2011-06-06  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR tree-optimization/49243
+	* gcc.dg/pr49243.c: New.
+
+2011-06-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/cond_expr1.ads: New test.
+
+2011-06-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/deferred_const4.ad[sb]: New test.
+	* gnat.dg/deferred_const4_pkg.ads: New helper.
+
+2011-06-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/test_tamdt.adb: Rename to...
+	* gnat.dg/taft_type1.adb: ...this.
+	* gnat.dg/tamdt.ad[sb]: Rename to...
+	* gnat.dg/taft_type1_pkg1.ad[sb]: ...this.
+	* gnat.dg/tamdt_aux.ads: Rename to...
+	* gnat.dg/taft_type1_pkg2.ads: ...this.
+	* gnat.dg/taft_type2.ad[sb]: New test.
+	* gnat.dg/taft_type2_pkg.ads: New helper.
+	* gnat.dg/taft_type3.adb: New test.
+	* gnat.dg/taft_type3_pkg.ads: New helper.
+
+2011-06-05  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49255
+	* trans-expr.c (gfc_conv_procedure_call): Fix -fcheck=pointer
+	for F2008.
+
+2011-06-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR testsuite/49287
+	* objc.dg/gnu-api-2-class.m: Updated testcase silencing compiler
+	warning.
+	* objc.dg/gnu-api-2-objc.m: Likewise.
+	* obj-c++.dg/gnu-api-2-class.mm: Likewise
+	* obj-c++.dg/gnu-api-2-objc.mm: Likewise.
+	
+2011-06-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-objc.m: Fixed testcase.  Use log2 of the
+	alignment, not the alignment, when calling class_addIvar().  Add
+	an 'isa' instance variable to the test root class.
+	* obj-c++.dg/gnu-api-2-objc.mm: Likewise.
+	
+2011-06-04  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/48893
+	PR tree-optimization/49091
+	PR tree-optimization/49179
+	* gfortran.dg/pr49179.f90: New testcase
+
+2011-06-04  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/48954
+	* g++.dg/torture/pr48954.C: New testcase.
+
+2011-06-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/g++.dg/warn/delete-non-virtual-dtor.C: New.
+
+2011-06-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/33840
+	* g++.dg/diagnostic/bitfld2.C: New.
+
+2011-06-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/49281
+	* gcc.c-torture/execute/pr49281.c: New test.
+
+2011-06-04  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/48929
+	* gcc.c-torture/compile/pr48929.c: New testcase.
+
+2011-06-04  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/guality/rotatetest.c (f5, f6): Fix up pastos.
+
+2011-06-03  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/49276
+	* g++.dg/cpp0x/lambda/lambda-mangle2.C: New test.
+
+2011-06-03  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/headers.m: Do not include sarray.h and hash.h.
+
+2011-06-03  Richard Henderson  <rth@redhat.com>
+	    Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/target-supports.exp (check_sse_os_support_available): Use
+	movaps.
+
+2011-06-03  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/headers.m: Do not include objc-list.h.
+
+2011-06-03  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/type-stream-1.m: Test removed.
+	* objc.dg/headers.m: Do not include typedstream.h.
+	
+2011-06-02  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/torture/forward-1.m (main): Updated testcase.
+
+2011-06-02  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/49163
+	* gcc.c-torture/compile/pr49163.c: New.
+
+2011-06-02  Asher Langton  <langton2@llnl.gov>
+
+	PR fortran/49268
+	* gfortran.dg/PR49268.f90: New test.
+
+2011-06-02  Asher Langton  <langton2@llnl.gov>
+
+	PR fortran/37039
+	* gfortran.dg/PR37039.f90: New test.
+
+2011-06-02  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR objc/48539
+	* objc.dg/method-5.m: Updated.	
+	* objc.dg/method-19.m: Updated.
+	* objc.dg/method-lookup-1.m: New.	
+	* obj-c++.dg/method-6.mm: Updated.
+	* obj-c++.dg/method-7.mm: Updated.
+	* obj-c++.dg/method-lookup-1.mm: New.	
+
+2011-06-02  DJ Delorie  <dj@redhat.com>
+
+	* lib/timeout.exp (timeout): Add board_info support.
+
+2011-06-02  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.target/i386/sse2-init-v2di-2: Update scan-assembler-times string.
+
+2011-06-02  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	PR fortran/49265
+	* gfortran.dg/module_procedure_double_colon_1.f90: New test.
+	* gfortran.dg/module_procedure_double_colon_2.f90: New test.
+
+2011-06-02  Eric Botcazou  <ebotcazou@adacore.com>
+	    Hans-Peter Nilsson  <hp@axis.com>
+
+	PR rtl-optimization/48840
+	* gcc.target/sparc/ultrasp13.c: New test.
+
+2011-06-01  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/49238
+	* gcc.c-torture/compile/pr49238.c: New.
+
+2011-06-01  Sofiane Naci  <sofiane.naci@arm.com>
+
+	* gcc.target/arm/g2.c: Skip test in -mthumb.
+	Skip test unless cpu is xscale.
+	* gcc.target/arm/scd42-2.c: Likewise.
+	* gcc.target/arm/mmx-1.c: Skip test in -mthumb.
+
+2011-06-01  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/decltype28.C: New.
+	* g++.dg/cpp0x/decltype29.C: New.
+
+2011-06-01  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR target/45074
+	* gcc.target/mips/pr45074.c: New test.
+
+2011-06-01  Eric Botcazou  <ebotcazou@adacore.com>
+	    Hans-Peter Nilsson  <hp@axis.com>
+
+	PR rtl-optimization/48830
+	* gcc.target/sparc/ultrasp12.c: New test.
+
+2011-06-01  David Li  <davidxl@google.com>
+
+	* testsuite/gcc.dg/profile-dir-1.c: Change pass name.
+	* testsuite/gcc.dg/profile-dir-2.c: Ditto.
+	* testsuite/gcc.dg/tree-ssa/dump-1.c: Ditto.
+	* testsuite/gcc.dg/tree-ssa/loop-25.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/stringop-1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/update-loopch.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/stringop-2.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/ic-misattribution-1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/ic-misattribution-1a.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/indir-call-prof.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/val-prof-1.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/val-prof-2.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/val-prof-3.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/val-prof-4.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/val-prof-5.c: Ditto.
+	* testsuite/gcc.dg/tree-prof/val-prof-7.c: Ditto.
+	* testsuite/gcc.dg/profile-dir-3.c: Ditto.
+	* testsuite/g++.dg/tree-prof/indir-call-prof.C: Ditto.
+
+2011-06-01  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/attributes/method-nonnull-1.m: New test.
+	* obj-c++.dg/attributes/method-nonnull-1.mm: New test.	
+
+2011-05-31  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_atomic_1.f90: New.
+	* gfortran.dg/coarray/atomic_1.f90: New.
+
+2011-05-31  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/guality/bswaptest.c: New test.
+	* gcc.dg/guality/clztest.c: New test.
+	* gcc.dg/guality/ctztest.c: New test.
+	* gcc.dg/guality/rotatetest.c: New test.
+
+	PR target/48688
+	* gcc.target/i386/pr48688.c: New test.
+
+2010-11-15  Fabien Chêne  <fabien@gcc.gnu.org>
+
+	PR c++/48010
+	* g++.dg/lookup/name-clash9.C: New.
+
+2011-05-31  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray/dummy_1.f90: New.
+
+2011-05-31  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray/save_1.f90: New.
+	* gfortran.dg/coarray_4.f90: Update dg-error.
+
+2011-05-31  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/rv-template1.C: New.
+
 2011-05-31  Jakub Jelinek  <jakub@redhat.com>
 
 	PR rtl-optimization/49235

@@ -555,8 +555,16 @@ evaluate_conditions_for_known_args (struct cgraph_node *node,
 
   for (i = 0; VEC_iterate (condition, info->conds, i, c); i++)
     {
-      tree val = VEC_index (tree, known_vals, c->operand_num);
+      tree val;
       tree res;
+
+      /* We allow call stmt to have fewer arguments than the callee
+	 function (especially for K&R style programs).  So bound
+	 check here.  */
+      if (c->operand_num < (int)VEC_length (tree, known_vals))
+        val = VEC_index (tree, known_vals, c->operand_num);
+      else
+	val = NULL;
 
       if (!val)
 	{
@@ -1949,6 +1957,8 @@ remap_edge_predicates (struct cgraph_node *node,
       if (!e->inline_failed)
 	remap_edge_predicates (e->callee, info, callee_info, operand_map,
 			       possible_truths, toplev_predicate);
+      else
+	edge_set_predicate (e, toplev_predicate);
     }
   for (e = node->indirect_calls; e; e = e->next_callee)
     {
@@ -1969,6 +1979,8 @@ remap_edge_predicates (struct cgraph_node *node,
 	      e->frequency = 0;
 	    }
 	}
+      else
+	edge_set_predicate (e, toplev_predicate);
     }
 }
 
