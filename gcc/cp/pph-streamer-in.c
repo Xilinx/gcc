@@ -484,6 +484,15 @@ pph_in_binding_level (pph_stream *stream)
 }
 
 
+/* Read in the tree_common fields.  */
+
+static void
+pph_in_tree_common (pph_stream *stream, tree t)
+{
+  /* The 'struct tree_typed typed' base class is handled in LTO.  */
+  TREE_CHAIN (t) = pph_in_tree (stream);
+}
+
 /* Read and return an instance of struct c_language_function from STREAM.  */
 
 static struct c_language_function *
@@ -1007,6 +1016,7 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     /* tcc_exceptional */
 
     case OVERLOAD:
+      pph_in_tree_common (stream, expr);
       OVL_FUNCTION (expr) = pph_in_tree (stream);
       break;
 
@@ -1021,12 +1031,14 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
       break;
 
     case BASELINK:
+      pph_in_tree_common (stream, expr);
       BASELINK_BINFO (expr) = pph_in_tree (stream);
       BASELINK_FUNCTIONS (expr) = pph_in_tree (stream);
       BASELINK_ACCESS_BINFO (expr) = pph_in_tree (stream);
       break;
 
     case TEMPLATE_INFO:
+      pph_in_tree_common (stream, expr);
       TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr)
           = pph_in_qual_use_vec (stream);
       break;
@@ -1034,6 +1046,7 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case TEMPLATE_PARM_INDEX:
       {
         template_parm_index *p = TEMPLATE_PARM_INDEX_CAST (expr);
+        pph_in_tree_common (stream, expr);
         p->index = pph_in_uint (stream);
         p->level = pph_in_uint (stream);
         p->orig_level = pph_in_uint (stream);
@@ -1043,6 +1056,56 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
            already handled?  */
       }
       break;
+
+    /* tcc_constant */
+
+    case PTRMEM_CST:
+      pph_in_tree_common (stream, expr);
+      PTRMEM_CST_MEMBER (expr) = pph_in_tree (stream);
+      break;
+
+    /* tcc_exceptional */
+
+    case DEFAULT_ARG:
+      pph_in_tree_common (stream, expr);
+      DEFARG_TOKENS (expr) = pth_load_token_cache (stream);
+      DEFARG_INSTANTIATIONS (expr) = pph_in_tree_vec (stream);
+      break;
+
+    case STATIC_ASSERT:
+      pph_in_tree_common (stream, expr);
+      STATIC_ASSERT_CONDITION (expr) = pph_in_tree (stream);
+      STATIC_ASSERT_MESSAGE (expr) = pph_in_tree (stream);
+      /* FIXME pph: also STATIC_ASSERT_SOURCE_LOCATION (expr).  */
+      break;
+
+    case ARGUMENT_PACK_SELECT:
+      pph_in_tree_common (stream, expr);
+      ARGUMENT_PACK_SELECT_FROM_PACK (expr) = pph_in_tree (stream);
+      ARGUMENT_PACK_SELECT_INDEX (expr) = pph_in_uint (stream);
+      break;
+
+    case TRAIT_EXPR:
+      pph_in_tree_common (stream, expr);
+      TRAIT_EXPR_TYPE1 (expr) = pph_in_tree (stream);
+      TRAIT_EXPR_TYPE2 (expr) = pph_in_tree (stream);
+      TRAIT_EXPR_KIND (expr) = (enum cp_trait_kind) pph_in_uint (stream);
+      break;
+
+    case LAMBDA_EXPR:
+      {
+        struct tree_lambda_expr *e
+            = (struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (expr);
+        pph_in_tree_common (stream, expr);
+        /* FIXME pph: also e->locus.  */
+        e->capture_list = pph_in_tree (stream);
+        e->this_capture = pph_in_tree (stream);
+        e->return_type = pph_in_tree (stream);
+        e->extra_scope = pph_in_tree (stream);
+        e->discriminator = pph_in_uint (stream);
+      }
+      break;
+
 
     /* TREES ALREADY HANDLED */
 
@@ -1057,6 +1120,7 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case TREE_VEC:
 
       break;
+
 
     /* TREES UNIMPLEMENTED */
 
@@ -1129,26 +1193,16 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
     case OFFSET_REF:
     case SCOPE_REF:
 
-    /* tcc_constant */
-
-    case PTRMEM_CST:
-
     /* tcc_vl_exp */
 
     case AGGR_INIT_EXPR:
 
-    /* tcc_exceptional */
-
-    case DEFAULT_ARG:
-    case STATIC_ASSERT:
-    case ARGUMENT_PACK_SELECT:
-    case TRAIT_EXPR:
-    case LAMBDA_EXPR:
 
       if (flag_pph_untree)
         fprintf (pph_logfile, "PPH: unimplemented tree node %s\n",
                  tree_code_name[TREE_CODE (expr)]);
       break;
+
 
     /* TREES UNRECOGNIZED */
 

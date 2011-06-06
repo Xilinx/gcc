@@ -1,3 +1,14 @@
+2011-06-05  Lawrence Crowl <crowl@google.com>
+
+	* pph-streamer.c (pph_trace): Clean up trace formatting.
+	* pph-streamer-in.c (pph_in_tree_common): New for TS_COMMON chain.
+	(pph_read_tree): Call pph_in_tree_common in existing readers for trees.
+	Implement readers for C++-specific trees that need pph_in_tree_common.
+	* pph-streamer-out.c (pph_out_tree_common): New for TS_COMMON chain.
+	(pph_write_tree): Call pph_out_tree_common in existing writers for
+	trees.  Implement readers for C++-specific trees that need
+	pph_out_tree_common.
+
 2011-06-03  Gabriel Charette  <gchare@google.com>
 
 	* pph.h (struct pph_stats_d): Remove.  Update all users.

@@ -1,5 +1,5 @@
 // { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x1tmplfunc.h:12:30: internal compiler error: Segmentation fault" "" { xfail *-*-* } 0 }
+// { dg-bogus "x1tmplfunc.h:8:16: internal compiler error: Segmentation fault" "" { xfail *-*-* } 0 }
 // { dg-prune-output "In file included from " }
 
 #include "x1tmplfunc.h"

@@ -177,43 +177,35 @@ pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
       && flag_pph_tracer <= 3)
     return;
 
-  fprintf (pph_logfile, "*** %s: %s%s/%u, value=",
+  fprintf (pph_logfile, "PPH: %s %s %s/%u",
 	   stream->name, op, type_s[type], (unsigned) nbytes);
 
   switch (type)
     {
     case PPH_TRACE_TREE:
-      {
-	const_tree t = (const_tree) data;
-	if (t)
-	  {
-	    print_generic_expr (pph_logfile, CONST_CAST (union tree_node *, t),
-				0);
-	    fprintf (pph_logfile, ", code=%s", tree_code_name[TREE_CODE (t)]);
-	  }
-	else
-	  fprintf (pph_logfile, "NULL_TREE");
-      }
-      break;
-
     case PPH_TRACE_REF:
       {
 	const_tree t = (const_tree) data;
 	if (t)
-	  {
-	    print_generic_expr (pph_logfile, CONST_CAST (union tree_node *, t),
-				0);
-	    fprintf (pph_logfile, ", code=%s", tree_code_name[TREE_CODE (t)]);
-	  }
+          {
+            fprintf (pph_logfile, ", code=%s", tree_code_name[TREE_CODE (t)]);
+            if (DECL_P (t))
+              {
+                const char *label = type == PPH_TRACE_TREE ? "value" : "refer";
+                fprintf (pph_logfile, ", %s=", label );
+                print_generic_decl (pph_logfile,
+                                    CONST_CAST (union tree_node *, t), 0);
+              }
+          }
 	else
-	  fprintf (pph_logfile, "NULL_TREE");
+	  fprintf (pph_logfile, ", NULL_TREE");
       }
       break;
 
     case PPH_TRACE_UINT:
       {
 	unsigned int val = *((const unsigned int *) data);
-	fprintf (pph_logfile, "%u (0x%x)", val, val);
+	fprintf (pph_logfile, ", value=%u (0x%x)", val, val);
       }
       break;
 
@@ -221,6 +213,7 @@ pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
       {
 	size_t i;
 	const char *buffer = (const char *) data;
+        fprintf (pph_logfile, ", value=");
 	for (i = 0; i < MIN (nbytes, 100); i++)
 	  {
 	    if (ISPRINT (buffer[i]))
@@ -233,14 +226,16 @@ pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
 
     case PPH_TRACE_STRING:
       if (data)
-	fprintf (pph_logfile, "%.*s", (int) nbytes, (const char *) data);
+	fprintf (pph_logfile, ", value=%.*s",
+                              (int) nbytes, (const char *) data);
       else
-	fprintf (pph_logfile, "<nil>");
+	fprintf (pph_logfile, ", NULL_STRING");
       break;
 
     case PPH_TRACE_CHAIN:
       {
 	const_tree t = (const_tree) data;
+	fprintf (pph_logfile, ", value=" );
 	print_generic_expr (pph_logfile, CONST_CAST (union tree_node *, t),
 			    TDF_SLIM);
 	fprintf (pph_logfile, " (%d nodes in chain)", list_length (t));
@@ -250,7 +245,7 @@ pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
     case PPH_TRACE_BITPACK:
       {
 	const struct bitpack_d *bp = (const struct bitpack_d *) data;
-	fprintf (pph_logfile, "0x%lx", bp->word);
+	fprintf (pph_logfile, ", value=0x%lx", bp->word);
       }
     break;
 

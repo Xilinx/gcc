@@ -1,5 +1,11 @@
 2011-06-05  Lawrence Crowl  <crowl@google.com>
 
+	* g++.dg/pph/x1special.cc: Change to new ICE.
+	* g++.dg/pph/x1template.cc: Change old ICE to new location.
+	* g++.dg/pph/x1tmplfunc.cc: Change to new ICE.
+
+2011-06-05  Lawrence Crowl  <crowl@google.com>
+
 	* lib/dg-pph.exp (dg-pph-hdr): Add blank lines to logfile.
 	Format if statements and calls consistently.
 	(dg-pph-neg): Remove extraneous assembly files. Add blank

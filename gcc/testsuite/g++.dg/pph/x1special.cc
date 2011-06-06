@@ -1,5 +1,5 @@
 // { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x1special.h:19:6: internal compiler error: tree check: expected tree that contains 'decl minimal' structure, have 'overload' in context_for_name_lookup, at cp/search.c:570" "" { xfail *-*-* } 0 }
+// { dg-bogus "x1special.h:10:5: internal compiler error: Segmentation fault" "" { xfail *-*-* } 0 }
 // { dg-prune-output "In file included from " }
 
 #include "x1special.h"

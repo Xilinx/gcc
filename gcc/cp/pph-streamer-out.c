@@ -302,7 +302,7 @@ pph_out_qual_use_vec (pph_stream *stream,
     {
       pph_out_tree_or_ref (stream, q->typedef_decl, ref_p);
       pph_out_tree_or_ref (stream, q->context, ref_p);
-      /* FIXME pph: also write location?  */
+      /* FIXME pph: also write location.  */
     }
 }
 
@@ -483,6 +483,16 @@ pph_out_binding_level (pph_stream *stream, struct cp_binding_level *bl,
   bp_pack_value (&bp, bl->more_cleanups_ok, 1);
   bp_pack_value (&bp, bl->have_cleanups, 1);
   pph_out_bitpack (stream, &bp);
+}
+
+
+/* Write out the tree_common fields.  */
+
+static void
+pph_out_tree_common (pph_stream *stream, tree t, bool ref_p)
+{
+  /* The 'struct tree_typed typed' base class is handled in LTO.  */
+  pph_out_tree_or_ref (stream, TREE_CHAIN (t), ref_p);
 }
 
 
@@ -962,6 +972,7 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
     /* tcc_exceptional */
 
     case OVERLOAD:
+      pph_out_tree_common (stream, expr, ref_p);
       pph_out_tree_or_ref_1 (stream, OVL_CURRENT (expr), ref_p, 3);
       break;
 
@@ -976,12 +987,14 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
       break;
 
     case BASELINK:
+      pph_out_tree_common (stream, expr, ref_p);
       pph_out_tree_or_ref_1 (stream, BASELINK_BINFO (expr), ref_p, 3);
       pph_out_tree_or_ref_1 (stream, BASELINK_FUNCTIONS (expr), ref_p, 3);
       pph_out_tree_or_ref_1 (stream, BASELINK_ACCESS_BINFO (expr), ref_p, 3);
       break;
 
     case TEMPLATE_INFO:
+      pph_out_tree_common (stream, expr, ref_p);
       pph_out_qual_use_vec (stream,
           TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr), ref_p);
       break;
@@ -989,6 +1002,7 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
     case TEMPLATE_PARM_INDEX: 
       {
         template_parm_index *p = TEMPLATE_PARM_INDEX_CAST (expr);
+        pph_out_tree_common (stream, expr, ref_p);
         pph_out_uint (stream, p->index);
         pph_out_uint (stream, p->level);
         pph_out_uint (stream, p->orig_level);
@@ -998,6 +1012,57 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
            already handled?  */
       }
       break;
+
+    /* tcc_constant */
+
+    case PTRMEM_CST:
+      pph_out_tree_common (stream, expr, ref_p);
+      pph_out_tree_or_ref_1 (stream, PTRMEM_CST_MEMBER (expr), ref_p, 3);
+      break;
+
+    /* tcc_exceptional */
+
+    case DEFAULT_ARG:
+      pph_out_tree_common (stream, expr, ref_p);
+      pth_save_token_cache (DEFARG_TOKENS (expr), stream);
+      pph_out_tree_vec (stream, DEFARG_INSTANTIATIONS (expr), ref_p);
+      break;
+
+    case STATIC_ASSERT:
+      pph_out_tree_common (stream, expr, ref_p);
+      pph_out_tree_or_ref_1 (stream, STATIC_ASSERT_CONDITION (expr), ref_p, 3);
+      pph_out_tree_or_ref_1 (stream, STATIC_ASSERT_MESSAGE (expr), ref_p, 3);
+      /* FIXME pph: also STATIC_ASSERT_SOURCE_LOCATION (expr).  */
+      break;
+
+    case ARGUMENT_PACK_SELECT:
+      pph_out_tree_common (stream, expr, ref_p);
+      pph_out_tree_or_ref_1 (stream, ARGUMENT_PACK_SELECT_FROM_PACK (expr),
+                                     ref_p, 3);
+      pph_out_uint (stream, ARGUMENT_PACK_SELECT_INDEX (expr));
+      break;
+
+    case TRAIT_EXPR:
+      pph_out_tree_common (stream, expr, ref_p);
+      pph_out_tree_or_ref_1 (stream, TRAIT_EXPR_TYPE1 (expr), ref_p, 3);
+      pph_out_tree_or_ref_1 (stream, TRAIT_EXPR_TYPE2 (expr), ref_p, 3);
+      pph_out_uint (stream, TRAIT_EXPR_KIND (expr));
+      break;
+
+    case LAMBDA_EXPR:
+      {
+        struct tree_lambda_expr *e
+            = (struct tree_lambda_expr *)LAMBDA_EXPR_CHECK (expr);
+        pph_out_tree_common (stream, expr, ref_p);
+        /* FIXME pph: also e->locus.  */
+        pph_out_tree_or_ref_1 (stream, e->capture_list, ref_p, 3);
+        pph_out_tree_or_ref_1 (stream, e->this_capture, ref_p, 3);
+        pph_out_tree_or_ref_1 (stream, e->return_type, ref_p, 3);
+        pph_out_tree_or_ref_1 (stream, e->extra_scope, ref_p, 3);
+        pph_out_uint (stream, e->discriminator);
+      }
+      break;
+
 
     /* TREES ALREADY HANDLED */
 
@@ -1084,26 +1149,16 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
     case OFFSET_REF:
     case SCOPE_REF:
 
-    /* tcc_constant */
-
-    case PTRMEM_CST:
-
     /* tcc_vl_exp */
 
     case AGGR_INIT_EXPR:
 
-    /* tcc_exceptional */
-
-    case DEFAULT_ARG:
-    case STATIC_ASSERT:
-    case ARGUMENT_PACK_SELECT:
-    case TRAIT_EXPR:
-    case LAMBDA_EXPR:
 
       if (flag_pph_untree)
         fprintf (pph_logfile, "PPH: unimplemented tree node %s\n",
                  tree_code_name[TREE_CODE (expr)]);
       break;
+
 
     /* TREES UNRECOGNIZED */
 
