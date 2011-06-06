@@ -1,5 +1,9 @@
-2011-06-02  Neil Vachharajani  <nvachhar@gmail.com>, Dehao Chen
-	<danielcdh@gmail.com>
+2011-06-06  Diego Novillo  <dnovillo@google.com>
+
+	Merge from google/integration rev 174705.
+
+2011-06-02  Neil Vachharajani  <nvachhar@gmail.com>
+	    Dehao Chen <danielcdh@gmail.com>
 
 	* gcc/doc/invoke.texi (min-mcf-cancel-iters): Document.
 	* gcc/mcf.c (MAX_ITER): Use new param PARAM_MIN_MCF_CANCEL_ITERS.
