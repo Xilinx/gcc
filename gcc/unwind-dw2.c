@@ -59,16 +59,31 @@
 #define DWARF_REG_TO_UNWIND_COLUMN(REGNO) (REGNO)
 #endif
 
+#ifndef UNIQUE_UNWIND_CONTEXT
+#if defined __x86_64 && !defined __LP64__
+# define UNIQUE_UNWIND_CONTEXT
+#endif
+#endif
+
 /* This is the register and unwind state for a particular frame.  This
    provides the information necessary to unwind up past a frame and return
    to its caller.  */
 struct _Unwind_Context
 {
-  _Unwind_Word reg[DWARF_FRAME_REGISTERS+1];
+  void *reg[DWARF_FRAME_REGISTERS+1];
   void *cfa;
   void *ra;
   void *lsda;
   struct dwarf_eh_bases bases;
+#ifdef UNIQUE_UNWIND_CONTEXT
+  /* Used to check for unique _Unwind_Context.  */
+  void *dwarf_reg_size_table;
+  /* Signal frame context.  */
+#define SIGNAL_FRAME_BIT ((_Unwind_Word) 1 >> 0)
+  _Unwind_Word flags;
+  _Unwind_Word args_size;
+  _Unwind_Word value[DWARF_FRAME_REGISTERS+1];
+#else
   /* Signal frame context.  */
 #define SIGNAL_FRAME_BIT ((~(_Unwind_Word) 0 >> 1) + 1)
   /* Context which has version/args_size/by_value fields.  */
@@ -79,6 +94,7 @@ struct _Unwind_Context
   _Unwind_Word version;
   _Unwind_Word args_size;
   char by_value[DWARF_FRAME_REGISTERS+1];
+#endif
 };
 
 /* Byte size of every register managed by these routines.  */
@@ -144,11 +160,13 @@ _Unwind_SetSignalFrame (struct _Unwind_Context *context, int val)
     context->flags &= ~SIGNAL_FRAME_BIT;
 }
 
+#ifndef UNIQUE_UNWIND_CONTEXT
 static inline _Unwind_Word
 _Unwind_IsExtendedContext (struct _Unwind_Context *context)
 {
   return context->flags & EXTENDED_CONTEXT_BIT;
 }
+#endif
 
 /* Get the value of register INDEX as saved in CONTEXT.  */
 
@@ -156,7 +174,7 @@ inline _Unwind_Word
 _Unwind_GetGR (struct _Unwind_Context *context, int index)
 {
   int size;
-  _Unwind_Word val;
+  void *ptr;
 
 #ifdef DWARF_ZERO_REG
   if (index == DWARF_ZERO_REG)
@@ -166,18 +184,24 @@ _Unwind_GetGR (struct _Unwind_Context *context, int index)
   index = DWARF_REG_TO_UNWIND_COLUMN (index);
   gcc_assert (index < (int) sizeof(dwarf_reg_size_table));
   size = dwarf_reg_size_table[index];
-  val = context->reg[index];
+  ptr = context->reg[index];
 
+#ifdef UNIQUE_UNWIND_CONTEXT
+  gcc_assert (context->dwarf_reg_size_table == &dwarf_reg_size_table);
+  if (context->reg[index] == &context->value[index])
+    return context->value[index];
+#else
   if (_Unwind_IsExtendedContext (context) && context->by_value[index])
-    return val;
+    return (_Unwind_Word) (_Unwind_Internal_Ptr) ptr;
+#endif
 
   /* This will segfault if the register hasn't been saved.  */
   if (size == sizeof(_Unwind_Ptr))
-    return * (_Unwind_Ptr *) (intptr_t) val;
+    return * (_Unwind_Ptr *) ptr;
   else
     {
       gcc_assert (size == sizeof(_Unwind_Word));
-      return * (_Unwind_Word *) (intptr_t) val;
+      return * (_Unwind_Word *) ptr;
     }
 }
 
@@ -207,13 +231,22 @@ _Unwind_SetGR (struct _Unwind_Context *context, int index, _Unwind_Word val)
   gcc_assert (index < (int) sizeof(dwarf_reg_size_table));
   size = dwarf_reg_size_table[index];
 
-  if (_Unwind_IsExtendedContext (context) && context->by_value[index])
+#ifdef UNIQUE_UNWIND_CONTEXT
+  gcc_assert (context->dwarf_reg_size_table == &dwarf_reg_size_table);
+  if (context->reg[index] == &context->value[index])
     {
-      context->reg[index] = val;
+      context->value[index] = val;
       return;
     }
+#else
+  if (_Unwind_IsExtendedContext (context) && context->by_value[index])
+    {
+      context->reg[index] = (void *) (_Unwind_Internal_Ptr) val;
+      return;
+    }
+#endif
 
-  ptr = (void *) (intptr_t) context->reg[index];
+  ptr = context->reg[index];
 
   if (size == sizeof(_Unwind_Ptr))
     * (_Unwind_Ptr *) ptr = val;
@@ -230,9 +263,11 @@ static inline void *
 _Unwind_GetGRPtr (struct _Unwind_Context *context, int index)
 {
   index = DWARF_REG_TO_UNWIND_COLUMN (index);
+#ifndef UNIQUE_UNWIND_CONTEXT
   if (_Unwind_IsExtendedContext (context) && context->by_value[index])
-    return (void *) (intptr_t) &context->reg[index];
-  return (void *) (intptr_t) context->reg[index];
+    return &context->reg[index];
+#endif
+  return context->reg[index];
 }
 
 /* Set the pointer to a register INDEX as saved in CONTEXT.  */
@@ -241,9 +276,11 @@ static inline void
 _Unwind_SetGRPtr (struct _Unwind_Context *context, int index, void *p)
 {
   index = DWARF_REG_TO_UNWIND_COLUMN (index);
+#ifndef UNIQUE_UNWIND_CONTEXT
   if (_Unwind_IsExtendedContext (context))
     context->by_value[index] = 0;
-  context->reg[index] = (_Unwind_Word) (intptr_t) p;
+#endif
+  context->reg[index] = p;
 }
 
 /* Overwrite the saved value for register INDEX in CONTEXT with VAL.  */
@@ -254,10 +291,15 @@ _Unwind_SetGRValue (struct _Unwind_Context *context, int index,
 {
   index = DWARF_REG_TO_UNWIND_COLUMN (index);
   gcc_assert (index < (int) sizeof(dwarf_reg_size_table));
+#ifdef UNIQUE_UNWIND_CONTEXT
   gcc_assert (dwarf_reg_size_table[index] == sizeof (_Unwind_Word));
-
+  context->value[index] = val;
+  context->reg[index] = &context->value[index];
+#else
+  gcc_assert (dwarf_reg_size_table[index] == sizeof (_Unwind_Ptr));
   context->by_value[index] = 1;
-  context->reg[index] = val;
+  context->reg[index] = (void *) (_Unwind_Internal_Ptr) val;
+#endif
 }
 
 /* Return nonzero if register INDEX is stored by value rather than
@@ -267,7 +309,11 @@ static inline int
 _Unwind_GRByValue (struct _Unwind_Context *context, int index)
 {
   index = DWARF_REG_TO_UNWIND_COLUMN (index);
+#ifdef UNIQUE_UNWIND_CONTEXT
+  return context->reg[index] == &context->value[index];
+#else
   return context->by_value[index];
+#endif
 }
 
 /* Retrieve the return address for CONTEXT.  */
@@ -1215,7 +1261,11 @@ __frame_state_for (void *pc_target, struct frame_state *state_in)
   int reg;
 
   memset (&context, 0, sizeof (struct _Unwind_Context));
+#ifdef UNIQUE_UNWIND_CONTEXT
+  context.dwarf_reg_size_table = &dwarf_reg_size_table;
+#else
   context.flags = EXTENDED_CONTEXT_BIT;
+#endif
   context.ra = pc_target + 1;
 
   if (uw_frame_state_for (&context, &fs) != _URC_NO_REASON)
@@ -1453,7 +1503,11 @@ uw_init_context_1 (struct _Unwind_Context *context,
 
   memset (context, 0, sizeof (struct _Unwind_Context));
   context->ra = ra;
+#ifdef UNIQUE_UNWIND_CONTEXT
+  context->dwarf_reg_size_table = &dwarf_reg_size_table;
+#else
   context->flags = EXTENDED_CONTEXT_BIT;
+#endif
 
   code = uw_frame_state_for (context, &fs);
   gcc_assert (code == _URC_NO_REASON);
@@ -1532,11 +1586,16 @@ uw_install_context_1 (struct _Unwind_Context *current,
 
   for (i = 0; i < DWARF_FRAME_REGISTERS; ++i)
     {
-      void *c = (void *) (intptr_t) current->reg[i];
-      void *t = (void *) (intptr_t) target->reg[i];
+      void *c = current->reg[i];
+      void *t = target->reg[i];
 
+#ifdef UNIQUE_UNWIND_CONTEXT
+      gcc_assert (current->reg[i] != &current->value[i]);
+      if (target->reg[i] == &target->value[i] && c)
+#else
       gcc_assert (current->by_value[i] == 0);
       if (target->by_value[i] && c)
+#endif
 	{
 	  _Unwind_Word w;
 	  _Unwind_Ptr p;

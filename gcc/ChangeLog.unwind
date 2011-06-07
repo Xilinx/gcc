@@ -1,0 +1,30 @@
+2011-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR other/48007
+	* unwind-dw2.c (UNIQUE_UNWIND_CONTEXT): New.
+	(_Unwind_Context): If UNIQUE_UNWIND_CONTEXT is defined, add
+	dwarf_reg_size_table and value, remove version and by_value.
+	(EXTENDED_CONTEXT_BIT): Don't define if UNIQUE_UNWIND_CONTEXT
+	is defined.
+	(_Unwind_IsExtendedContext): Likewise.
+	(_Unwind_GetGR): Support UNIQUE_UNWIND_CONTEXT.
+	(_Unwind_SetGR): Likewise.
+	(_Unwind_GetGRPtr): Likewise.
+	(_Unwind_SetGRPtr): Likewise.
+	(_Unwind_SetGRValue): Likewise.
+	(_Unwind_GRByValue): Likewise.
+	(__frame_state_for): Initialize dwarf_reg_size_table field if
+	UNIQUE_UNWIND_CONTEXT is defined.
+	(uw_install_context_1): Likewise.  Support UNIQUE_UNWIND_CONTEXT.
+
+2011-04-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR other/48007
+	* unwind-dw2.c (_Unwind_Context): Revert saving call frame hard
+	registers as _Unwind_Word.
+	(_Unwind_GetGR): Don't get GR value as _Unwind_Word.
+	(_Unwind_SetGR): Don't set GR value as _Unwind_Word.
+	(_Unwind_SetGRValue): Likewise.
+	(_Unwind_GetGRPtr): Don't cast return to "void *".
+	(_Unwind_SetGRPtr): Don't cast pointer to _Unwind_Word.
+	(uw_install_context_1): Don't cast pointer to "void *".
