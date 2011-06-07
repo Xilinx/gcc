@@ -58,15 +58,18 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #if TARGET_64BIT_DEFAULT
 #define SPEC_32 "m32"
-#define SPEC_64 "!m32"
+#define SPEC_64 "m32|mx32:;"
+#define SPEC_X32 "mx32"
 #else
-#define SPEC_32 "!m64"
+#define SPEC_32 "m64|mx32:;"
 #define SPEC_64 "m64"
+#define SPEC_X32 "mx32"
 #endif
 
 #undef ASM_SPEC
-#define ASM_SPEC "%{" SPEC_32 ":%{!mx32:--32}} %{" \
- SPEC_64 ":%{!mx32:--64}} %{mx32:--x32} \
+#define ASM_SPEC "%{" SPEC_32 ":--32} \
+ %{" SPEC_64 ":--64} \
+ %{" SPEC_X32 ":--x32} \
  %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
 
 #undef	LINK_SPEC
@@ -76,9 +79,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
   %{!shared: \
     %{!static: \
       %{rdynamic:-export-dynamic} \
-      %{" SPEC_32 ":%{!mx32:-dynamic-linker " GNU_USER_DYNAMIC_LINKER32 "}} \
-      %{" SPEC_64 ":%{!mx32:-dynamic-linker " GNU_USER_DYNAMIC_LINKER64 "}} \
-      %{mx32:-dynamic-linker " GNU_USER_DYNAMIC_LINKERX32 "}} \
+      %{" SPEC_32 ":-dynamic-linker " GNU_USER_DYNAMIC_LINKER32 "} \
+      %{" SPEC_64 ":-dynamic-linker " GNU_USER_DYNAMIC_LINKER64 "} \
+      %{" SPEC_X32 ":-dynamic-linker " GNU_USER_DYNAMIC_LINKERX32 "}} \
     %{static:-static}}"
 
 /* Similar to standard GNU userspace, but adding -ffast-math support.  */

@@ -519,8 +519,8 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 #define OPT_ARCH64 "!m32"
 #define OPT_ARCH32 "m32"
 #else
-#define OPT_ARCH64 "m64"
-#define OPT_ARCH32 "!m64"
+#define OPT_ARCH64 "m64|mx32"
+#define OPT_ARCH32 "m64|mx32:;"
 #endif
 
 /* Support for configure-time defaults of some command line options.

@@ -1,5 +1,16 @@
 2011-06-07  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/gnu-user64.h (SPEC_64): Support x32.
+	(SPEC_32): Likewise.
+	(SPEC_X32): New.
+	(ASM_SPEC): Use SPEC_X32.
+	(LINK_SPEC): Likewise.
+
+	* config/i386/i386.h (OPT_ARCH64): Support x32.
+	(OPT_ARCH32): Likewise.
+
+2011-06-07  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* doc/invoke.texi: Use @option{} on -mx32, -m64 and -mx32.
 
 2011-06-07  H.J. Lu  <hongjiu.lu@intel.com>
