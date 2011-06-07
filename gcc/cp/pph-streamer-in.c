@@ -1027,6 +1027,7 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
         id->bindings = pph_in_cxx_binding (stream);
         id->class_template_info = pph_in_tree (stream);
         id->label_value = pph_in_tree (stream);
+	TREE_TYPE (expr) = pph_in_tree (stream);
       }
       break;
 

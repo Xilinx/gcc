@@ -1,5 +1,12 @@
 2011-06-07  Gabriel Charette  <gchare@google.com>
 
+	* pph-streamer-in.c (pph_read_tree): Read TREE_TYPE from
+	id_node.
+	* pph-streamer-out.c (pph_write_tree): Write TREE_TYPE
+	from id_node.
+
+2011-06-07  Gabriel Charette  <gchare@google.com>
+
 	* timevar.def (TV_PTH_DEPENDENCY): Remove.
 	(TV_PTH_MANAGE): Likewise.
 	(TV_PTH_MD5): Likewise.

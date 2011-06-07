@@ -983,6 +983,7 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
         pph_out_cxx_binding (stream, id->bindings, ref_p);
         pph_out_tree_or_ref_1 (stream, id->class_template_info, ref_p, 3);
         pph_out_tree_or_ref_1 (stream, id->label_value, ref_p, 3);
+	pph_out_tree_or_ref_1 (stream, TREE_TYPE (expr), ref_p, 3);
       }
       break;
 
