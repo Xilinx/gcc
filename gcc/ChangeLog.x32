@@ -1,3 +1,7 @@
+2011-06-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* doc/install.texi: Document --enable-ia32 and --enable-x32.
+
 2011-06-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config.gcc: Replace i386/t-linuxx32 with i386/t-linux-x32.
