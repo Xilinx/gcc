@@ -1,3 +1,25 @@
+2011-06-07  David Li  <davidxl@google.com>
+
+	Backport trunk r174536,174537,174762,174698
+
+	* passes.c (enable_disable_pass): Handle assembler name.
+	(is_pass_explicitly_enabled_or_disabled): Ditto.
+	* predict.c : Change pass name
+	* ipa.c: Ditto.
+	* dce.c: Ditto.
+	* tree-profile.c: Ditto.
+	* except.c: Ditto.
+	* tree-pretty-print.c (dump_function_header): New function.
+	* final.c (rest_of_clean_state): Use header dumper.
+	* tree-cfg.c (gimple_dump_cfg): Use header dumper.
+	* passes.c (pass_init_dump_file): Use header dumper.
+	* tree-pretty-print.c (dump_function_header): Add flags.
+	Don't dump decl_uid with nouid.
+	* tree-pretty-print.h (dump_function_header): Adjust.
+	* final.c (rest_of_clean_state): Pass dump_flags on, with nouid.
+	* passes.c (pass_init_dump_file): Pass dump_flags on.
+	* tree-cfg.c (gimple_dump_cfg): Pass flags on.
+
 2011-06-06  Diego Novillo  <dnovillo@google.com>
 
 	Merge from google/integration rev 174705.
