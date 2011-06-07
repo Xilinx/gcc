@@ -758,13 +758,15 @@ struct data_in
 
 /* Streamer hooks.  These functions do additional processing as
    needed by the module.  There are two types of callbacks, those that
-   replace the default behavior and those that supplement it.  Any
-   or all of these hooks can be NULL.  */
-typedef struct lto_streamer_hooks {
-  /* A string identifying this streamer.  */
+   replace the default behavior and those that supplement it.
+
+   Hooks marked [REQ] are required to be set.  Those marked [OPT] may
+   be NULL, if the streamer does not need to implement them.  */
+struct streamer_hooks {
+  /* [REQ] A string identifying this streamer.  */
   const char *name;
 
-  /* Called by lto_streamer_cache_create to instantiate a cache of
+  /* [REQ] Called by lto_streamer_cache_create to instantiate a cache of
      well-known nodes.  These are tree nodes that are always
      instantiated by the compiler on startup.  Additionally, these
      nodes need to be shared.  This function should call
@@ -774,16 +776,10 @@ typedef struct lto_streamer_hooks {
      the tree out of this pre-populated cache.  */
   void (*preload_common_nodes) (struct lto_streamer_cache_d *);
 
-  /* Called by lto_reader_init after it does basic initialization.  */
-  void (*reader_init) (void);
-
-  /* Called by lto_writer_init after it does basic initalization.  */
-  void (*writer_init) (void);
-
-  /* Return true if the given tree is supported by this streamer.  */
+  /* [REQ] Return true if the given tree is supported by this streamer.  */
   bool (*is_streamable) (tree);
 
-  /* Called by lto_write_tree after writing all the common parts of
+  /* [OPT] Called by lto_write_tree after writing all the common parts of
      a tree.  If defined, the callback is in charge of writing all
      the fields that lto_write_tree did not write out.  Arguments
      are as in lto_write_tree.
@@ -799,36 +795,26 @@ typedef struct lto_streamer_hooks {
      by the writer.  */
   void (*write_tree) (struct output_block *, tree, bool);
 
-  /* Called by lto_read_tree after reading all the common parts of
+  /* [OPT] Called by lto_read_tree after reading all the common parts of
      a tree.  If defined, the callback is in charge of reading all
      the fields that lto_read_tree did not read in.  Arguments
      are as in lto_read_tree.  */
   void (*read_tree) (struct lto_input_block *, struct data_in *, tree);
 
-  /* Called by lto_output_tree_ref to determine if the given tree node
+  /* [OPT] Called by lto_output_tree_ref to determine if the given tree node
      should be emitted as a reference to the table of declarations
-     (the same table that holds VAR_DECLs).  */
+     (the same table that holds global declarations).  */
   bool (*indexable_with_decls_p) (tree);
 
-  /* Called by pack_value_fields to store any non-pointer fields
+  /* [OPT] Called by pack_value_fields to store any non-pointer fields
      in the tree structure.  The arguments are as in pack_value_fields.  */
   void (*pack_value_fields) (struct bitpack_d *, tree);
 
-  /* Called by unpack_value_fields to retrieve any non-pointer fields
+  /* [OPT] Called by unpack_value_fields to retrieve any non-pointer fields
      in the tree structure.  The arguments are as in unpack_value_fields.  */
   void (*unpack_value_fields) (struct bitpack_d *, tree);
 
-  /* Non-zero if the streamer should register decls in the LTO
-     global symbol tables.  */
-  unsigned register_decls_in_symtab_p : 1;
-
-  /* Non-zero if the streamer has special constants that cannot be
-     shared and are used in pointer-equality tests (e.g., void_zero_node,
-     truthvalue_false_node, etc).  These constants will be present in
-     the streamer cache and should be streamed as references.  */
-  unsigned has_unique_integer_csts_p : 1;
-
-  /* Called by lto_materialize_tree for tree nodes that it does not
+  /* [OPT] Called by lto_materialize_tree for tree nodes that it does not
      know how to allocate memory for.  If defined, this hook should
      return a new tree node of the given code.  The data_in and
      input_block arguments are passed in case the hook needs to
@@ -838,15 +824,23 @@ typedef struct lto_streamer_hooks {
   tree (*alloc_tree) (enum tree_code, struct lto_input_block *,
                       struct data_in *);
 
-  /* Called by lto_output_tree_header to write any streamer-specific
+  /* [OPT] Called by lto_output_tree_header to write any streamer-specific
      information needed to allocate the tree.  This hook may assume
      that the basic header data (tree code, etc) has already been
      written.  It should only write any extra data needed to allocate
      the node (e.g., in the case of CALL_EXPR, this hook would write
      the number of arguments to the CALL_EXPR).  */
   void (*output_tree_header) (struct output_block *, tree);
-} lto_streamer_hooks;
 
+  /* [OPT] Non-zero if the streamer has special constants that cannot be
+     shared and are used in pointer-equality tests (e.g., void_zero_node,
+     truthvalue_false_node, etc).  These constants will be present in
+     the streamer cache and should be streamed as references.  */
+  unsigned has_unique_integer_csts_p : 1;
+};
+
+/* Streamer hooks.  */
+extern struct streamer_hooks streamer_hooks;
 
 /* In lto-section-in.c  */
 extern struct lto_input_block * lto_create_simple_input_block (
@@ -958,12 +952,11 @@ extern intptr_t lto_orig_address_get (tree);
 extern void lto_orig_address_remove (tree);
 #endif
 extern void lto_check_version (int, int);
-extern void gimple_streamer_hooks_init (void);
-extern void gimple_streamer_write_tree (struct output_block *, tree, bool);
-extern void gimple_streamer_read_tree (struct lto_input_block *,
-				       struct data_in *, tree);
-extern lto_streamer_hooks *streamer_hooks (void);
-extern lto_streamer_hooks *streamer_hooks_init (void);
+extern void lto_streamer_hooks_init (void);
+extern void lto_streamer_write_tree (struct output_block *, tree, bool);
+extern void lto_streamer_read_tree (struct lto_input_block *,
+				     struct data_in *, tree);
+extern void streamer_hooks_init (void);
 
 /* In lto-streamer-in.c */
 extern void lto_input_cgraph (struct lto_file_decl_data *, const char *);

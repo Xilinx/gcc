@@ -1095,7 +1095,7 @@ cgraph_finalize_compilation_unit (void)
 
   /* If LTO is enabled, initialize the streamer hooks needed by GIMPLE.  */
   if (flag_lto)
-    gimple_streamer_hooks_init ();
+    lto_streamer_hooks_init ();
 
   /* If we're here there's no current function anymore.  Some frontends
      are lazy in clearing these.  */

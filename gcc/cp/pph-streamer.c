@@ -86,18 +86,18 @@ pph_preload_common_nodes (struct lto_streamer_cache_d *cache)
 static void
 pph_hooks_init (void)
 {
-  lto_streamer_hooks *h = streamer_hooks_init ();
-  h->name = "C++ AST";
-  h->preload_common_nodes = pph_preload_common_nodes;
-  h->is_streamable = pph_is_streamable;
-  h->write_tree = pph_write_tree;
-  h->read_tree = pph_read_tree;
-  h->pack_value_fields = pph_pack_value_fields;
-  h->indexable_with_decls_p = pph_indexable_with_decls_p;
-  h->unpack_value_fields = pph_unpack_value_fields;
-  h->alloc_tree = pph_alloc_tree;
-  h->output_tree_header = pph_output_tree_header;
-  h->has_unique_integer_csts_p = true;
+  streamer_hooks_init ();
+  streamer_hooks.name = "C++ AST";
+  streamer_hooks.preload_common_nodes = pph_preload_common_nodes;
+  streamer_hooks.is_streamable = pph_is_streamable;
+  streamer_hooks.write_tree = pph_write_tree;
+  streamer_hooks.read_tree = pph_read_tree;
+  streamer_hooks.pack_value_fields = pph_pack_value_fields;
+  streamer_hooks.indexable_with_decls_p = pph_indexable_with_decls_p;
+  streamer_hooks.unpack_value_fields = pph_unpack_value_fields;
+  streamer_hooks.alloc_tree = pph_alloc_tree;
+  streamer_hooks.output_tree_header = pph_output_tree_header;
+  streamer_hooks.has_unique_integer_csts_p = true;
 }
 
 

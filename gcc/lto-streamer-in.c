@@ -1845,8 +1845,8 @@ unpack_value_fields (struct bitpack_d *bp, tree expr)
   if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
     unpack_ts_translation_unit_decl_value_fields (bp, expr);
 
-  if (streamer_hooks ()->unpack_value_fields)
-    streamer_hooks ()->unpack_value_fields (bp, expr);
+  if (streamer_hooks.unpack_value_fields)
+    streamer_hooks.unpack_value_fields (bp, expr);
 }
 
 
@@ -1900,8 +1900,8 @@ lto_materialize_tree (struct lto_input_block *ib, struct data_in *data_in,
     {
       /* For all other nodes, see if the streamer knows how to allocate
 	 it.  */
-      if (streamer_hooks ()->alloc_tree)
-	result = streamer_hooks ()->alloc_tree (code, ib, data_in);
+      if (streamer_hooks.alloc_tree)
+	result = streamer_hooks.alloc_tree (code, ib, data_in);
 
       /* If the hook did not handle it, materialize the tree with a raw
 	 make_node call.  */
@@ -2495,8 +2495,8 @@ lto_read_tree (struct lto_input_block *ib, struct data_in *data_in,
 
   /* Call back into the streaming module to read anything else it
      may need.  */
-  if (streamer_hooks ()->read_tree)
-    streamer_hooks ()->read_tree (ib, data_in, result);
+  if (streamer_hooks.read_tree)
+    streamer_hooks.read_tree (ib, data_in, result);
 
   /* We should never try to instantiate an MD or NORMAL builtin here.  */
   if (TREE_CODE (result) == FUNCTION_DECL)
@@ -2519,9 +2519,8 @@ lto_read_tree (struct lto_input_block *ib, struct data_in *data_in,
    needs GIMPLE specific data to be filled in.  */
 
 void
-gimple_streamer_read_tree (struct lto_input_block *ib,
-			   struct data_in *data_in,
-			   tree expr)
+lto_streamer_read_tree (struct lto_input_block *ib, struct data_in *data_in,
+			tree expr)
 {
   if (DECL_P (expr)
       && TREE_CODE (expr) != FUNCTION_DECL
@@ -2616,19 +2615,6 @@ lto_reader_init (void)
   lto_streamer_init ();
   file_name_hash_table = htab_create (37, hash_string_slot_node,
 				      eq_string_slot_node, free);
-  if (streamer_hooks ()->reader_init)
-    streamer_hooks ()->reader_init ();
-}
-
-
-/* GIMPLE streamer hook for initializing the LTO reader.  */
-
-void
-gimple_streamer_reader_init (void)
-{
-  memset (&lto_stats, 0, sizeof (lto_stats));
-  bitmap_obstack_initialize (NULL);
-  gimple_register_cfg_hooks ();
 }
 
 

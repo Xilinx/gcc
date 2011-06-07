@@ -1,3 +1,74 @@
+2011-06-06  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/regress/ptrmem1.C: New.
+
+2011-06-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR rtl-optimization/49145
+	From Ryan Mansfield
+	* gcc.c-torture/compile/pr49145.c: New test.
+
+2011-06-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/49288
+	* g++.dg/debug/dwarf2/cdtor-1.C: Add -fno-merge-debug-strings
+	to dg-options, match also DW_AT_linkage_name.
+
+	PR debug/49294
+	* gcc.dg/debug/pr49294.c: New test.
+
+	PR c++/49264
+	* g++.dg/opt/pr49264.C: New test.
+
+2011-06-06  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR tree-optimization/49243
+	* gcc.dg/pr49243.c: New.
+
+2011-06-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/cond_expr1.ads: New test.
+
+2011-06-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/deferred_const4.ad[sb]: New test.
+	* gnat.dg/deferred_const4_pkg.ads: New helper.
+
+2011-06-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/test_tamdt.adb: Rename to...
+	* gnat.dg/taft_type1.adb: ...this.
+	* gnat.dg/tamdt.ad[sb]: Rename to...
+	* gnat.dg/taft_type1_pkg1.ad[sb]: ...this.
+	* gnat.dg/tamdt_aux.ads: Rename to...
+	* gnat.dg/taft_type1_pkg2.ads: ...this.
+	* gnat.dg/taft_type2.ad[sb]: New test.
+	* gnat.dg/taft_type2_pkg.ads: New helper.
+	* gnat.dg/taft_type3.adb: New test.
+	* gnat.dg/taft_type3_pkg.ads: New helper.
+
+2011-06-05  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49255
+	* trans-expr.c (gfc_conv_procedure_call): Fix -fcheck=pointer
+	for F2008.
+
+2011-06-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	PR testsuite/49287
+	* objc.dg/gnu-api-2-class.m: Updated testcase silencing compiler
+	warning.
+	* objc.dg/gnu-api-2-objc.m: Likewise.
+	* obj-c++.dg/gnu-api-2-class.mm: Likewise
+	* obj-c++.dg/gnu-api-2-objc.mm: Likewise.
+	
+2011-06-05  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc.dg/gnu-api-2-objc.m: Fixed testcase.  Use log2 of the
+	alignment, not the alignment, when calling class_addIvar().  Add
+	an 'isa' instance variable to the test root class.
+	* obj-c++.dg/gnu-api-2-objc.mm: Likewise.
+	
 2011-06-04  Jan Hubicka  <jh@suse.cz>
 
 	PR tree-optimization/48893

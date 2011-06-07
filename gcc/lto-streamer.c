@@ -37,6 +37,9 @@ along with GCC; see the file COPYING3.  If not see
 /* Statistics gathered during LTO, WPA and LTRANS.  */
 struct lto_stats_d lto_stats;
 
+/* Streamer hooks.  */
+struct streamer_hooks streamer_hooks;
+
 /* LTO uses bitmaps with different life-times.  So use a seperate
    obstack for all LTO bitmaps.  */
 static bitmap_obstack lto_obstack;
@@ -568,7 +571,7 @@ lto_streamer_cache_create (void)
   /* Load all the well-known tree nodes that are always created by
      the compiler on startup.  This prevents writing them out
      unnecessarily.  */
-  streamer_hooks ()->preload_common_nodes (cache);
+  streamer_hooks.preload_common_nodes (cache);
 
   return cache;
 }
@@ -716,7 +719,6 @@ lto_check_version (int major, int minor)
 
 
 /* Return true if EXPR is a tree node that can be written to disk.  */
-
 static inline bool
 lto_is_streamable (tree expr)
 {
@@ -745,38 +747,21 @@ lto_is_streamable (tree expr)
 /* Initialize all the streamer hooks used for streaming GIMPLE.  */
 
 void
-gimple_streamer_hooks_init (void)
+lto_streamer_hooks_init (void)
 {
-  lto_streamer_hooks *h = streamer_hooks_init ();
-  h->name = "gimple";
-  h->reader_init = gimple_streamer_reader_init;
-  h->writer_init = NULL;
-  h->preload_common_nodes = lto_preload_common_nodes;
-  h->is_streamable = lto_is_streamable;
-  h->write_tree = gimple_streamer_write_tree;
-  h->read_tree = gimple_streamer_read_tree;
-  h->register_decls_in_symtab_p = true;
+  streamer_hooks_init ();
+  streamer_hooks.name = "gimple";
+  streamer_hooks.preload_common_nodes = lto_preload_common_nodes;
+  streamer_hooks.is_streamable = lto_is_streamable;
+  streamer_hooks.write_tree = lto_streamer_write_tree;
+  streamer_hooks.read_tree = lto_streamer_read_tree;
 }
 
 
-/* Return the current set of streamer hooks.  Note that only one set
-   of streamer hooks can be active at a time.  */
+/* Initialize the current set of streamer hooks.  */
 
-static lto_streamer_hooks streamer_hooks_;
-
-lto_streamer_hooks *
-streamer_hooks (void)
-{
-  return &streamer_hooks_;
-}
-
-
-/* Initialize and return the current set of streamer hooks.  */
-
-lto_streamer_hooks *
+void
 streamer_hooks_init (void)
 {
-  lto_streamer_hooks *h = streamer_hooks ();
-  memset (h, 0, sizeof (lto_streamer_hooks));
-  return h;
+  memset (&streamer_hooks, 0, sizeof (streamer_hooks));
 }

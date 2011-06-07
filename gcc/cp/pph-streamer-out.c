@@ -82,7 +82,7 @@ pph_pack_value_fields (struct bitpack_d *bp, tree expr)
 void
 pph_init_write (pph_stream *stream)
 {
-  lto_writer_init ();
+  lto_streamer_init ();
   stream->out_state = lto_new_out_decl_state ();
   lto_push_out_decl_state (stream->out_state);
   stream->decl_state_stream = XCNEW (struct lto_output_stream);
