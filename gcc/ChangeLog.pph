@@ -1,3 +1,13 @@
+2011-06-07  Gabriel Charette  <gchare@google.com>
+
+	* timevar.def (TV_PTH_DEPENDENCY): Remove.
+	(TV_PTH_MANAGE): Likewise.
+	(TV_PTH_MD5): Likewise.
+	(TV_PTH_LOAD): Likewise.
+	(TV_PTH_SAVE): Likewise.
+	(TV_PTH_SKIP_TOKENS): Likewise.
+	(TV_PTH_INIT): Likewise.
+
 2011-06-06  Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 174724.

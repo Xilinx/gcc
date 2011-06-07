@@ -585,17 +585,7 @@ cp_lexer_new_main (void)
   cp_lexer *lexer;
   cp_token token;
 
-  if (flag_pth)
-    {
-      /* FIXME pph.  PTH is incompatible with PCH, so do not read ahead to
-	 the first token looking for a PCH pragma.  This convoluted
-	 initialization could be simplified if PCH was implemented in
-	 terms of the incremental compiler.  */
-      lexer = cp_lexer_alloc ();
-      pth_init (lexer);
-      cp_lexer_get_tokens (lexer);
-    }
-  else if (pph_out_file != NULL || query_have_pph_map ())
+  if (pph_out_file != NULL || query_have_pph_map ())
     {
       /* FIXME pph.  PPH is incompatible with PCH, so do not read ahead to
 	 the first token looking for a PCH pragma.  This convoluted
@@ -642,32 +632,6 @@ cp_lexer_new_main (void)
   done_lexing = true;
 
   gcc_assert (!lexer->next_token->purged_p);
-
-  if (flag_pth_debug >= 1)
-    {
-      if (flag_pth)
-	{
-	  if (flag_pth_debug >= 3)
-	    pth_debug_state ();
-
-          if (flag_pth_debug >= 4)
-            {
-	      fprintf (stderr, "Partitioned token stream\n");
-	      pth_debug_token_hunks (pth_image_lookup (pth_get_state (),
-		                                       main_input_filename,
-						       parse_in));
-            }
-	}
-
-      fprintf (stderr, "\n\nGlobal token stream\n");
-      cp_lexer_debug_tokens (lexer->buffer);
-    }
-
-  if (flag_pth_stats)
-    pth_print_stats (pph_logfile, lexer);
-
-  if (flag_pth)
-    pth_finish ();
 
   return lexer;
 }
@@ -852,11 +816,6 @@ cp_lexer_get_preprocessor_token (cp_lexer *lexer, cp_token *token)
       token->pragma_kind = ((enum pragma_kind)
 			    TREE_INT_CST_LOW (token->u.value));
       token->u.value = NULL_TREE;
-
-      /* PTH and PCH are not compatible.  Make sure we are not trying
-	 to use a PCH image.  */
-      if (flag_pth && token->pragma_kind == PRAGMA_GCC_PCH_PREPROCESS)
-	error ("PTH cannot be used with PCH");
     }
 }
 

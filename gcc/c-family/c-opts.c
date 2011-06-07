@@ -1226,12 +1226,6 @@ c_common_finish (void)
 {
   FILE *deps_stream = NULL;
 
-  /* FIXME.  Hack!  When using a PTH image, we did not allow the 
-     pre-processor to keep track of dependencies, so we cannot
-     write them out.  */
-  if (flag_pth)
-    return;
-
   /* Don't write the deps file if there are errors.  */
   /* FIXME.  We are emitting the deps file even if there were errors.
      This is a temporary workaround to avoid confusing Google's build

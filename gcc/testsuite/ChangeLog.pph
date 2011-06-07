@@ -1,3 +1,8 @@
+2011-06-06  Gabriel Charette  <gchare@google.com>
+
+	* gcc/testsuite/g++.dg/pth/*: Remove.
+	* gcc/testsuite/lib/dg-pth.exp: Remove. Update all users.
+
 2011-06-05  Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/x1special.cc: Change to new ICE.

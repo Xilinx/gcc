@@ -1,3 +1,10 @@
+2011-06-07  Gabriel Charette  <gchare@google.com>
+
+	* c.opt (fpth): Remove. Update all users.
+	(fpth-debug): Likewise.
+	(fpth-stats). Likewise.
+	(fpth-md5). Likewise.
+
 2011-06-03  Gabriel Charette  <gchare@google.com>
 
 	* c.opt (fpph): Remove.

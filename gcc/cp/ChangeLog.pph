@@ -1,3 +1,19 @@
+2011-06-06  Gabriel Charette  <gchare@google.com>
+
+	* pph.c (pth_stats): Remove field. Update all users.
+	(pth_get_state): Remove. Update all users.
+	(pth_debug_identifiers): Likewise.
+	(pth_debug_token_hunks): Likewise.
+	(pth_debug_state): Likewise.
+	(pth_image_lookup): Likewise.
+	(pth_init): Likewise.
+	(pth_print_stats): Likewise.
+	(pth_finish): Likewise.
+	* pph.h (struct pth_include): Likewise.
+	(struct pth_image): Likewise.
+	(struct pth_state): Likewise.
+	(PTH_STATS_INCR): Likewise.
+
 2011-06-05  Lawrence Crowl <crowl@google.com>
 
 	* pph-streamer.c (pph_trace): Clean up trace formatting.
