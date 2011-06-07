@@ -12820,14 +12820,14 @@ on AMD x86-64 processors in 64-bit environments.
 @opindex m64
 @opindex mx32
 Generate code for a 32-bit or 64-bit environment.
-The -m32 option sets int, long and pointer to 32 bits and
+The @option{-m32} option sets int, long and pointer to 32 bits and
 generates code that runs on any i386 system.
-The -m64 option sets int to 32 bits and long and pointer
+The @option{-m64} option sets int to 32 bits and long and pointer
 to 64 bits and generates code for AMD's x86-64 architecture.
-The -mx32 option sets int, long and pointer to 32 bits and generates
-code for AMD's x86-64 architecture.
-For darwin only the -m64 option turns off the @option{-fno-pic} and
-@option{-mdynamic-no-pic} options.
+The @option{-mx32} option sets int, long and pointer to 32 bits and
+generates code for AMD's x86-64 architecture.
+For darwin only the @option{-m64} option turns off the @option{-fno-pic}
+and @option{-mdynamic-no-pic} options.
 
 @item -mno-red-zone
 @opindex mno-red-zone

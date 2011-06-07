@@ -1,5 +1,9 @@
 2011-06-07  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* doc/invoke.texi: Use @option{} on -mx32, -m64 and -mx32.
+
+2011-06-07  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* doc/install.texi: Document --enable-ia32 and --enable-x32.
 
 2011-06-06  H.J. Lu  <hongjiu.lu@intel.com>
