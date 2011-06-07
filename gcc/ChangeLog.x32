@@ -1,3 +1,10 @@
+2011-06-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Replace i386/t-linuxx32 with i386/t-linux-x32.
+
+	* config/i386/t-linuxx32: Renamed to ...
+	* config/i386/t-linux-x32: This.
+
 2011-06-05  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* doc/invoke.texi: Document -mx32.
