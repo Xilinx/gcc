@@ -1,4 +1,4 @@
-/* { dg-options "-O2 -fdump-ipa-tree_profile_ipa" } */
+/* { dg-options "-O2 -fdump-ipa-profile" } */
 
 extern void callee (void);
 extern void caller (void (*func) (void));
@@ -15,5 +15,5 @@ main ()
   return 0;
 }
 
-/* { dg-final-use { scan-ipa-dump-times "Indirect call -> direct call" 2 "tree_profile_ipa" } } */
-/* { dg-final-use { cleanup-ipa-dump "tree_profile_ipa" } } */
+/* { dg-final-use { scan-ipa-dump-times "Indirect call -> direct call" 2 "profile" } } */
+/* { dg-final-use { cleanup-ipa-dump "profile" } } */

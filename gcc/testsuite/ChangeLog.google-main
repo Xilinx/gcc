@@ -1,3 +1,24 @@
+2011-06-07  David Li  <davidxl@google.com>
+
+	* testsuite/gcc.dg/tree-prof/lipo/indir-call-prof_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/indir-call-prof_1.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-1_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-2_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-3_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-4_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-5_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/val-prof-7_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/indir-call-prof-single_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/stringop-1_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/ic-misattribution-1_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/stringop-2_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/update-loopch_0.c: Pass name fix.
+	* testsuite/gcc.dg/tree-prof/lipo/ic-misattribution-1_1.c: Pass name fix.
+	* testsuite/g++.dg/tree-prof/lipo/vcall1_0.C: Pass name fix.
+	* testsuite/g++.dg/tree-prof/lipo/indir-call-prof_0.C: Pass name fix.
+	* testsuite/g++.dg/tree-prof/lipo/vcall1_1.C: Pass name fix.
+	* testsuite/g++.dg/tree-prof/lipo/vcall1_2.C: Pass name fix.
+
 2011-06-02  Jing Yu  <jingyu@google.com>
 
 	Backport r174549

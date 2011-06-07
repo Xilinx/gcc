@@ -1,4 +1,4 @@
-/* { dg-options "-O2 -fdump-tree-optimized -fdump-ipa-tree_profile_ipa" } */
+/* { dg-options "-O2 -fdump-tree-optimized -fdump-ipa-profile" } */
 #include <stdio.h>
 struct A {
   A () {}
@@ -35,7 +35,7 @@ main (void)
    printf ("result = %d\n",s);
 }
 
-/* { dg-final-use { scan-ipa-dump-times "Indirect call -> direct call" 2 "tree_profile_ipa" } } */
+/* { dg-final-use { scan-ipa-dump-times "Indirect call -> direct call" 2 "profile" } } */
 /* { dg-final-use { scan-tree-dump-not "Invalid sum" "optimized" } } */
 /* { dg-final-use { cleanup-tree-dump "optimized" } } */
-/* { dg-final-use { cleanup-ipa-dump "tree_profile_ipa" } } */
+/* { dg-final-use { cleanup-ipa-dump "profile" } } */
