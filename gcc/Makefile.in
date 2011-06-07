@@ -2787,7 +2787,7 @@ tree-nomudflap.o : $(CONFIG_H) $(SYSTEM_H) $(TREE_H) $(TREE_INLINE_H) \
 tree-pretty-print.o : tree-pretty-print.c $(CONFIG_H) $(SYSTEM_H) \
    $(TREE_H) $(DIAGNOSTIC_H) $(HASHTAB_H) $(TREE_FLOW_H) \
    $(TM_H) coretypes.h tree-iterator.h $(SCEV_H) langhooks.h \
-   $(TREE_PASS_H) value-prof.h output.h tree-pretty-print.h
+   $(TREE_PASS_H) value-prof.h output.h tree-pretty-print.h l-ipo.h
 tree-diagnostic.o : tree-diagnostic.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TREE_H) $(DIAGNOSTIC_H) tree-diagnostic.h langhooks.h $(LANGHOOKS_DEF_H)
 fold-const.o : fold-const.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \

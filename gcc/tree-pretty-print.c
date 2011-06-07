@@ -34,6 +34,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "value-prof.h"
 #include "predict.h"
+#include "l-ipo.h"
 
 /* Local functions, macros and variables.  */
 static const char *op_symbol (const_tree);
@@ -3034,8 +3035,13 @@ dump_function_header (FILE *dump_file, tree fdecl, int flags)
   else
     aname = "<unset-asm-name>";
 
-  fprintf (dump_file, "\n;; Function %s (%s, funcdef_no=%d",
-	   dname, aname, fun->funcdef_no);
+  if (L_IPO_COMP_MODE)
+    fprintf (dump_file, "\n;; Function %s (%s, funcdef_no=%d:%d",
+             dname, aname, FUNC_DECL_MODULE_ID (fun),
+             FUNC_DECL_FUNC_ID (fun));
+  else
+    fprintf (dump_file, "\n;; Function %s (%s, funcdef_no=%d",
+             dname, aname, fun->funcdef_no);
   if (!(flags & TDF_NOUID))
     fprintf (dump_file, ", decl_uid=%d", DECL_UID (fdecl));
   if (node)

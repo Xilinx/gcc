@@ -1,5 +1,10 @@
 2011-06-07  David Li  <davidxl@google.com>
 
+	* tree-pretty-print.c	(revision 174779)
+	(dump_function_header): dump module id.
+
+2011-06-07  David Li  <davidxl@google.com>
+
 	Backport trunk r174536,174537,174762,174698
 
 	* passes.c (enable_disable_pass): Handle assembler name.
