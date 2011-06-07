@@ -14,7 +14,7 @@ package os
 // and returns nil.
 func MkdirAll(path string, perm uint32) Error {
 	// If path exists, stop with success or error.
-	dir, err := Lstat(path)
+	dir, err := Stat(path)
 	if err == nil {
 		if dir.IsDirectory() {
 			return nil
@@ -33,7 +33,7 @@ func MkdirAll(path string, perm uint32) Error {
 		j--
 	}
 
-	if j > 0 {
+	if j > 1 {
 		// Create parent
 		err = MkdirAll(path[0:j-1], perm)
 		if err != nil {
@@ -80,7 +80,7 @@ func RemoveAll(path string) Error {
 	}
 
 	// Directory.
-	fd, err := Open(path, O_RDONLY, 0)
+	fd, err := Open(path)
 	if err != nil {
 		return err
 	}

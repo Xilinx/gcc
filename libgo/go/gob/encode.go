@@ -6,16 +6,14 @@ package gob
 
 import (
 	"bytes"
-	"io"
 	"math"
-	"os"
 	"reflect"
 	"unsafe"
 )
 
 const uint64Size = unsafe.Sizeof(uint64(0))
 
-// The global execution state of an instance of the encoder.
+// encoderState is the global execution state of an instance of the encoder.
 // Field numbers are delta encoded and always increase. The field
 // number is initialized to -1 so 0 comes out as delta(1). A delta of
 // 0 terminates the structure.
@@ -25,10 +23,26 @@ type encoderState struct {
 	sendZero bool                 // encoding an array element or map key/value pair; send zero values
 	fieldnum int                  // the last field number written.
 	buf      [1 + uint64Size]byte // buffer used by the encoder; here to avoid allocation.
+	next     *encoderState        // for free list
 }
 
-func newEncoderState(enc *Encoder, b *bytes.Buffer) *encoderState {
-	return &encoderState{enc: enc, b: b}
+func (enc *Encoder) newEncoderState(b *bytes.Buffer) *encoderState {
+	e := enc.freeList
+	if e == nil {
+		e = new(encoderState)
+		e.enc = enc
+	} else {
+		enc.freeList = e.next
+	}
+	e.sendZero = false
+	e.fieldnum = 0
+	e.b = b
+	return e
+}
+
+func (enc *Encoder) freeEncoderState(e *encoderState) {
+	e.next = enc.freeList
+	enc.freeList = e
 }
 
 // Unsigned integers have a two-state encoding.  If the number is less
@@ -37,7 +51,7 @@ func newEncoderState(enc *Encoder, b *bytes.Buffer) *encoderState {
 // by the byte length, negated.
 
 // encodeUint writes an encoded unsigned integer to state.b.
-func encodeUint(state *encoderState, x uint64) {
+func (state *encoderState) encodeUint(x uint64) {
 	if x <= 0x7F {
 		err := state.b.WriteByte(uint8(x))
 		if err != nil {
@@ -62,16 +76,17 @@ func encodeUint(state *encoderState, x uint64) {
 // encodeInt writes an encoded signed integer to state.w.
 // The low bit of the encoding says whether to bit complement the (other bits of the)
 // uint to recover the int.
-func encodeInt(state *encoderState, i int64) {
+func (state *encoderState) encodeInt(i int64) {
 	var x uint64
 	if i < 0 {
 		x = uint64(^i<<1) | 1
 	} else {
 		x = uint64(i << 1)
 	}
-	encodeUint(state, uint64(x))
+	state.encodeUint(uint64(x))
 }
 
+// encOp is the signature of an encoding operator for a given type.
 type encOp func(i *encInstr, state *encoderState, p unsafe.Pointer)
 
 // The 'instructions' of the encoding machine
@@ -82,21 +97,25 @@ type encInstr struct {
 	offset uintptr // offset in the structure of the field to encode
 }
 
-// Emit a field number and update the state to record its value for delta encoding.
-// If the instruction pointer is nil, do nothing
+// update emits a field number and updates the state to record its value for delta encoding.
+// If the instruction pointer is nil, it does nothing
 func (state *encoderState) update(instr *encInstr) {
 	if instr != nil {
-		encodeUint(state, uint64(instr.field-state.fieldnum))
+		state.encodeUint(uint64(instr.field - state.fieldnum))
 		state.fieldnum = instr.field
 	}
 }
 
-// Each encoder is responsible for handling any indirections associated
-// with the data structure.  If any pointer so reached is nil, no bytes are written.
-// If the data item is zero, no bytes are written.
-// Otherwise, the output (for a scalar) is the field number, as an encoded integer,
-// followed by the field data in its appropriate format.
+// Each encoder for a composite is responsible for handling any
+// indirections associated with the elements of the data structure.
+// If any pointer so reached is nil, no bytes are written.  If the
+// data item is zero, no bytes are written.  Single values - ints,
+// strings etc. - are indirected before calling their encoders.
+// Otherwise, the output (for a scalar) is the field number, as an
+// encoded integer, followed by the field data in its appropriate
+// format.
 
+// encIndirect dereferences p indir times and returns the result.
 func encIndirect(p unsafe.Pointer, indir int) unsafe.Pointer {
 	for ; indir > 0; indir-- {
 		p = *(*unsafe.Pointer)(p)
@@ -107,106 +126,119 @@ func encIndirect(p unsafe.Pointer, indir int) unsafe.Pointer {
 	return p
 }
 
+// encBool encodes the bool with address p as an unsigned 0 or 1.
 func encBool(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	b := *(*bool)(p)
 	if b || state.sendZero {
 		state.update(i)
 		if b {
-			encodeUint(state, 1)
+			state.encodeUint(1)
 		} else {
-			encodeUint(state, 0)
+			state.encodeUint(0)
 		}
 	}
 }
 
+// encInt encodes the int with address p.
 func encInt(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := int64(*(*int)(p))
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeInt(state, v)
+		state.encodeInt(v)
 	}
 }
 
+// encUint encodes the uint with address p.
 func encUint(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := uint64(*(*uint)(p))
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeUint(state, v)
+		state.encodeUint(v)
 	}
 }
 
+// encInt8 encodes the int8 with address p.
 func encInt8(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := int64(*(*int8)(p))
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeInt(state, v)
+		state.encodeInt(v)
 	}
 }
 
+// encUint8 encodes the uint8 with address p.
 func encUint8(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := uint64(*(*uint8)(p))
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeUint(state, v)
+		state.encodeUint(v)
 	}
 }
 
+// encInt16 encodes the int16 with address p.
 func encInt16(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := int64(*(*int16)(p))
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeInt(state, v)
+		state.encodeInt(v)
 	}
 }
 
+// encUint16 encodes the uint16 with address p.
 func encUint16(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := uint64(*(*uint16)(p))
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeUint(state, v)
+		state.encodeUint(v)
 	}
 }
 
+// encInt32 encodes the int32 with address p.
 func encInt32(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := int64(*(*int32)(p))
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeInt(state, v)
+		state.encodeInt(v)
 	}
 }
 
+// encUint encodes the uint32 with address p.
 func encUint32(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := uint64(*(*uint32)(p))
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeUint(state, v)
+		state.encodeUint(v)
 	}
 }
 
+// encInt64 encodes the int64 with address p.
 func encInt64(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := *(*int64)(p)
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeInt(state, v)
+		state.encodeInt(v)
 	}
 }
 
+// encInt64 encodes the uint64 with address p.
 func encUint64(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := *(*uint64)(p)
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeUint(state, v)
+		state.encodeUint(v)
 	}
 }
 
+// encUintptr encodes the uintptr with address p.
 func encUintptr(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	v := uint64(*(*uintptr)(p))
 	if v != 0 || state.sendZero {
 		state.update(i)
-		encodeUint(state, v)
+		state.encodeUint(v)
 	}
 }
 
+// floatBits returns a uint64 holding the bits of a floating-point number.
 // Floating-point numbers are transmitted as uint64s holding the bits
 // of the underlying representation.  They are sent byte-reversed, with
 // the exponent end coming out first, so integer floating point numbers
@@ -223,95 +255,82 @@ func floatBits(f float64) uint64 {
 	return v
 }
 
-func encFloat(i *encInstr, state *encoderState, p unsafe.Pointer) {
-	f := *(*float)(p)
-	if f != 0 || state.sendZero {
-		v := floatBits(float64(f))
-		state.update(i)
-		encodeUint(state, v)
-	}
-}
-
+// encFloat32 encodes the float32 with address p.
 func encFloat32(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	f := *(*float32)(p)
 	if f != 0 || state.sendZero {
 		v := floatBits(float64(f))
 		state.update(i)
-		encodeUint(state, v)
+		state.encodeUint(v)
 	}
 }
 
+// encFloat64 encodes the float64 with address p.
 func encFloat64(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	f := *(*float64)(p)
 	if f != 0 || state.sendZero {
 		state.update(i)
 		v := floatBits(f)
-		encodeUint(state, v)
+		state.encodeUint(v)
 	}
 }
 
+// encComplex64 encodes the complex64 with address p.
 // Complex numbers are just a pair of floating-point numbers, real part first.
-func encComplex(i *encInstr, state *encoderState, p unsafe.Pointer) {
-	c := *(*complex)(p)
-	if c != 0+0i || state.sendZero {
-		rpart := floatBits(float64(real(c)))
-		ipart := floatBits(float64(imag(c)))
-		state.update(i)
-		encodeUint(state, rpart)
-		encodeUint(state, ipart)
-	}
-}
-
 func encComplex64(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	c := *(*complex64)(p)
 	if c != 0+0i || state.sendZero {
 		rpart := floatBits(float64(real(c)))
 		ipart := floatBits(float64(imag(c)))
 		state.update(i)
-		encodeUint(state, rpart)
-		encodeUint(state, ipart)
+		state.encodeUint(rpart)
+		state.encodeUint(ipart)
 	}
 }
 
+// encComplex128 encodes the complex128 with address p.
 func encComplex128(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	c := *(*complex128)(p)
 	if c != 0+0i || state.sendZero {
 		rpart := floatBits(real(c))
 		ipart := floatBits(imag(c))
 		state.update(i)
-		encodeUint(state, rpart)
-		encodeUint(state, ipart)
+		state.encodeUint(rpart)
+		state.encodeUint(ipart)
 	}
 }
 
+// encUint8Array encodes the byte slice whose header has address p.
 // Byte arrays are encoded as an unsigned count followed by the raw bytes.
 func encUint8Array(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	b := *(*[]byte)(p)
 	if len(b) > 0 || state.sendZero {
 		state.update(i)
-		encodeUint(state, uint64(len(b)))
+		state.encodeUint(uint64(len(b)))
 		state.b.Write(b)
 	}
 }
 
+// encString encodes the string whose header has address p.
 // Strings are encoded as an unsigned count followed by the raw bytes.
 func encString(i *encInstr, state *encoderState, p unsafe.Pointer) {
 	s := *(*string)(p)
 	if len(s) > 0 || state.sendZero {
 		state.update(i)
-		encodeUint(state, uint64(len(s)))
-		io.WriteString(state.b, s)
+		state.encodeUint(uint64(len(s)))
+		state.b.WriteString(s)
 	}
 }
 
-// The end of a struct is marked by a delta field number of 0.
+// encStructTerminator encodes the end of an encoded struct
+// as delta field number of 0.
 func encStructTerminator(i *encInstr, state *encoderState, p unsafe.Pointer) {
-	encodeUint(state, 0)
+	state.encodeUint(0)
 }
 
 // Execution engine
 
-// The encoder engine is an array of instructions indexed by field number of the encoding
+// encEngine an array of instructions indexed by field number of the encoding
 // data, typically a struct.  It is executed top to bottom, walking the struct.
 type encEngine struct {
 	instr []encInstr
@@ -319,8 +338,9 @@ type encEngine struct {
 
 const singletonField = 0
 
+// encodeSingle encodes a single top-level non-struct value.
 func (enc *Encoder) encodeSingle(b *bytes.Buffer, engine *encEngine, basep uintptr) {
-	state := newEncoderState(enc, b)
+	state := enc.newEncoderState(b)
 	state.fieldnum = singletonField
 	// There is no surrounding struct to frame the transmission, so we must
 	// generate data even if the item is zero.  To do this, set sendZero.
@@ -333,10 +353,12 @@ func (enc *Encoder) encodeSingle(b *bytes.Buffer, engine *encEngine, basep uintp
 		}
 	}
 	instr.op(instr, state, p)
+	enc.freeEncoderState(state)
 }
 
+// encodeStruct encodes a single struct value.
 func (enc *Encoder) encodeStruct(b *bytes.Buffer, engine *encEngine, basep uintptr) {
-	state := newEncoderState(enc, b)
+	state := enc.newEncoderState(b)
 	state.fieldnum = -1
 	for i := 0; i < len(engine.instr); i++ {
 		instr := &engine.instr[i]
@@ -348,13 +370,15 @@ func (enc *Encoder) encodeStruct(b *bytes.Buffer, engine *encEngine, basep uintp
 		}
 		instr.op(instr, state, p)
 	}
+	enc.freeEncoderState(state)
 }
 
+// encodeArray encodes the array whose 0th element is at p.
 func (enc *Encoder) encodeArray(b *bytes.Buffer, p uintptr, op encOp, elemWid uintptr, elemIndir int, length int) {
-	state := newEncoderState(enc, b)
+	state := enc.newEncoderState(b)
 	state.fieldnum = -1
 	state.sendZero = true
-	encodeUint(state, uint64(length))
+	state.encodeUint(uint64(length))
 	for i := 0; i < length; i++ {
 		elemp := p
 		up := unsafe.Pointer(elemp)
@@ -367,8 +391,10 @@ func (enc *Encoder) encodeArray(b *bytes.Buffer, p uintptr, op encOp, elemWid ui
 		op(nil, state, unsafe.Pointer(elemp))
 		p += uintptr(elemWid)
 	}
+	enc.freeEncoderState(state)
 }
 
+// encodeReflectValue is a helper for maps. It encodes the value v.
 func encodeReflectValue(state *encoderState, v reflect.Value, op encOp, indir int) {
 	for i := 0; i < indir && v != nil; i++ {
 		v = reflect.Indirect(v)
@@ -376,61 +402,87 @@ func encodeReflectValue(state *encoderState, v reflect.Value, op encOp, indir in
 	if v == nil {
 		errorf("gob: encodeReflectValue: nil element")
 	}
-	op(nil, state, unsafe.Pointer(v.Addr()))
+	op(nil, state, unsafe.Pointer(v.UnsafeAddr()))
 }
 
+// encodeMap encodes a map as unsigned count followed by key:value pairs.
+// Because map internals are not exposed, we must use reflection rather than
+// addresses.
 func (enc *Encoder) encodeMap(b *bytes.Buffer, mv *reflect.MapValue, keyOp, elemOp encOp, keyIndir, elemIndir int) {
-	state := newEncoderState(enc, b)
+	state := enc.newEncoderState(b)
 	state.fieldnum = -1
 	state.sendZero = true
 	keys := mv.Keys()
-	encodeUint(state, uint64(len(keys)))
+	state.encodeUint(uint64(len(keys)))
 	for _, key := range keys {
 		encodeReflectValue(state, key, keyOp, keyIndir)
 		encodeReflectValue(state, mv.Elem(key), elemOp, elemIndir)
 	}
+	enc.freeEncoderState(state)
 }
 
+// encodeInterface encodes the interface value iv.
 // To send an interface, we send a string identifying the concrete type, followed
 // by the type identifier (which might require defining that type right now), followed
 // by the concrete value.  A nil value gets sent as the empty string for the name,
 // followed by no value.
 func (enc *Encoder) encodeInterface(b *bytes.Buffer, iv *reflect.InterfaceValue) {
-	state := newEncoderState(enc, b)
+	state := enc.newEncoderState(b)
 	state.fieldnum = -1
 	state.sendZero = true
 	if iv.IsNil() {
-		encodeUint(state, 0)
+		state.encodeUint(0)
 		return
 	}
 
-	typ, _ := indirect(iv.Elem().Type())
-	name, ok := concreteTypeToName[typ]
+	ut := userType(iv.Elem().Type())
+	name, ok := concreteTypeToName[ut.base]
 	if !ok {
-		errorf("gob: type not registered for interface: %s", typ)
+		errorf("gob: type not registered for interface: %s", ut.base)
 	}
 	// Send the name.
-	encodeUint(state, uint64(len(name)))
-	_, err := io.WriteString(state.b, name)
+	state.encodeUint(uint64(len(name)))
+	_, err := state.b.WriteString(name)
 	if err != nil {
 		error(err)
 	}
-	// Send (and maybe first define) the type id.
-	enc.sendTypeDescriptor(typ)
-	// Encode the value into a new buffer.
+	// Define the type id if necessary.
+	enc.sendTypeDescriptor(enc.writer(), state, ut)
+	// Send the type id.
+	enc.sendTypeId(state, ut)
+	// Encode the value into a new buffer.  Any nested type definitions
+	// should be written to b, before the encoded value.
+	enc.pushWriter(b)
 	data := new(bytes.Buffer)
-	err = enc.encode(data, iv.Elem())
-	if err != nil {
+	enc.encode(data, iv.Elem(), ut)
+	if enc.err != nil {
+		error(enc.err)
+	}
+	enc.popWriter()
+	enc.writeMessage(b, data)
+	if enc.err != nil {
 		error(err)
 	}
-	encodeUint(state, uint64(data.Len()))
-	_, err = state.b.Write(data.Bytes())
-	if err != nil {
-		error(err)
-	}
+	enc.freeEncoderState(state)
 }
 
-var encOpMap = []encOp{
+// encGobEncoder encodes a value that implements the GobEncoder interface.
+// The data is sent as a byte array.
+func (enc *Encoder) encodeGobEncoder(b *bytes.Buffer, v reflect.Value, index int) {
+	// TODO: should we catch panics from the called method?
+	// We know it's a GobEncoder, so just call the method directly.
+	data, err := v.Interface().(GobEncoder).GobEncode()
+	if err != nil {
+		error(err)
+	}
+	state := enc.newEncoderState(b)
+	state.fieldnum = -1
+	state.encodeUint(uint64(len(data)))
+	state.b.Write(data)
+	enc.freeEncoderState(state)
+}
+
+var encOpTable = [...]encOp{
 	reflect.Bool:       encBool,
 	reflect.Int:        encInt,
 	reflect.Int8:       encInt8,
@@ -443,25 +495,35 @@ var encOpMap = []encOp{
 	reflect.Uint32:     encUint32,
 	reflect.Uint64:     encUint64,
 	reflect.Uintptr:    encUintptr,
-	reflect.Float:      encFloat,
 	reflect.Float32:    encFloat32,
 	reflect.Float64:    encFloat64,
-	reflect.Complex:    encComplex,
 	reflect.Complex64:  encComplex64,
 	reflect.Complex128: encComplex128,
 	reflect.String:     encString,
 }
 
-// Return the encoding op for the base type under rt and
+// encOpFor returns (a pointer to) the encoding op for the base type under rt and
 // the indirection count to reach it.
-func (enc *Encoder) encOpFor(rt reflect.Type) (encOp, int) {
-	typ, indir := indirect(rt)
-	var op encOp
+func (enc *Encoder) encOpFor(rt reflect.Type, inProgress map[reflect.Type]*encOp) (*encOp, int) {
+	ut := userType(rt)
+	// If the type implements GobEncoder, we handle it without further processing.
+	if ut.isGobEncoder {
+		return enc.gobEncodeOpFor(ut)
+	}
+	// If this type is already in progress, it's a recursive type (e.g. map[string]*T).
+	// Return the pointer to the op we're already building.
+	if opPtr := inProgress[rt]; opPtr != nil {
+		return opPtr, ut.indir
+	}
+	typ := ut.base
+	indir := ut.indir
 	k := typ.Kind()
-	if int(k) < len(encOpMap) {
-		op = encOpMap[k]
+	var op encOp
+	if int(k) < len(encOpTable) {
+		op = encOpTable[k]
 	}
 	if op == nil {
+		inProgress[rt] = &op
 		// Special cases
 		switch t := typ.(type) {
 		case *reflect.SliceType:
@@ -470,40 +532,40 @@ func (enc *Encoder) encOpFor(rt reflect.Type) (encOp, int) {
 				break
 			}
 			// Slices have a header; we decode it to find the underlying array.
-			elemOp, indir := enc.encOpFor(t.Elem())
+			elemOp, indir := enc.encOpFor(t.Elem(), inProgress)
 			op = func(i *encInstr, state *encoderState, p unsafe.Pointer) {
 				slice := (*reflect.SliceHeader)(p)
-				if slice.Len == 0 {
+				if !state.sendZero && slice.Len == 0 {
 					return
 				}
 				state.update(i)
-				state.enc.encodeArray(state.b, slice.Data, elemOp, t.Elem().Size(), indir, int(slice.Len))
+				state.enc.encodeArray(state.b, slice.Data, *elemOp, t.Elem().Size(), indir, int(slice.Len))
 			}
 		case *reflect.ArrayType:
 			// True arrays have size in the type.
-			elemOp, indir := enc.encOpFor(t.Elem())
+			elemOp, indir := enc.encOpFor(t.Elem(), inProgress)
 			op = func(i *encInstr, state *encoderState, p unsafe.Pointer) {
 				state.update(i)
-				state.enc.encodeArray(state.b, uintptr(p), elemOp, t.Elem().Size(), indir, t.Len())
+				state.enc.encodeArray(state.b, uintptr(p), *elemOp, t.Elem().Size(), indir, t.Len())
 			}
 		case *reflect.MapType:
-			keyOp, keyIndir := enc.encOpFor(t.Key())
-			elemOp, elemIndir := enc.encOpFor(t.Elem())
+			keyOp, keyIndir := enc.encOpFor(t.Key(), inProgress)
+			elemOp, elemIndir := enc.encOpFor(t.Elem(), inProgress)
 			op = func(i *encInstr, state *encoderState, p unsafe.Pointer) {
 				// Maps cannot be accessed by moving addresses around the way
 				// that slices etc. can.  We must recover a full reflection value for
 				// the iteration.
-				v := reflect.NewValue(unsafe.Unreflect(t, unsafe.Pointer((p))))
+				v := reflect.NewValue(unsafe.Unreflect(t, unsafe.Pointer(p)))
 				mv := reflect.Indirect(v).(*reflect.MapValue)
-				if mv.Len() == 0 {
+				if !state.sendZero && mv.Len() == 0 {
 					return
 				}
 				state.update(i)
-				state.enc.encodeMap(state.b, mv, keyOp, elemOp, keyIndir, elemIndir)
+				state.enc.encodeMap(state.b, mv, *keyOp, *elemOp, keyIndir, elemIndir)
 			}
 		case *reflect.StructType:
 			// Generate a closure that calls out to the engine for the nested type.
-			enc.getEncEngine(typ)
+			enc.getEncEngine(userType(typ))
 			info := mustGetTypeInfo(typ)
 			op = func(i *encInstr, state *encoderState, p unsafe.Pointer) {
 				state.update(i)
@@ -514,7 +576,7 @@ func (enc *Encoder) encOpFor(rt reflect.Type) (encOp, int) {
 			op = func(i *encInstr, state *encoderState, p unsafe.Pointer) {
 				// Interfaces transmit the name and contents of the concrete
 				// value they contain.
-				v := reflect.NewValue(unsafe.Unreflect(t, unsafe.Pointer((p))))
+				v := reflect.NewValue(unsafe.Unreflect(t, unsafe.Pointer(p)))
 				iv := reflect.Indirect(v).(*reflect.InterfaceValue)
 				if !state.sendZero && (iv == nil || iv.IsNil()) {
 					return
@@ -527,63 +589,113 @@ func (enc *Encoder) encOpFor(rt reflect.Type) (encOp, int) {
 	if op == nil {
 		errorf("gob enc: can't happen: encode type %s", rt.String())
 	}
-	return op, indir
+	return &op, indir
 }
 
-// The local Type was compiled from the actual value, so we know it's compatible.
-func (enc *Encoder) compileEnc(rt reflect.Type) *encEngine {
-	srt, isStruct := rt.(*reflect.StructType)
-	engine := new(encEngine)
-	if isStruct {
-		engine.instr = make([]encInstr, srt.NumField()+1) // +1 for terminator
-		for fieldnum := 0; fieldnum < srt.NumField(); fieldnum++ {
-			f := srt.Field(fieldnum)
-			op, indir := enc.encOpFor(f.Type)
-			engine.instr[fieldnum] = encInstr{op, fieldnum, indir, uintptr(f.Offset)}
+// methodIndex returns which method of rt implements the method.
+func methodIndex(rt reflect.Type, method string) int {
+	for i := 0; i < rt.NumMethod(); i++ {
+		if rt.Method(i).Name == method {
+			return i
 		}
-		engine.instr[srt.NumField()] = encInstr{encStructTerminator, 0, 0, 0}
+	}
+	errorf("gob: internal error: can't find method %s", method)
+	return 0
+}
+
+// gobEncodeOpFor returns the op for a type that is known to implement
+// GobEncoder.
+func (enc *Encoder) gobEncodeOpFor(ut *userTypeInfo) (*encOp, int) {
+	rt := ut.user
+	if ut.encIndir == -1 {
+		rt = reflect.PtrTo(rt)
+	} else if ut.encIndir > 0 {
+		for i := int8(0); i < ut.encIndir; i++ {
+			rt = rt.(*reflect.PtrType).Elem()
+		}
+	}
+	var op encOp
+	op = func(i *encInstr, state *encoderState, p unsafe.Pointer) {
+		var v reflect.Value
+		if ut.encIndir == -1 {
+			// Need to climb up one level to turn value into pointer.
+			v = reflect.NewValue(unsafe.Unreflect(rt, unsafe.Pointer(&p)))
+		} else {
+			v = reflect.NewValue(unsafe.Unreflect(rt, p))
+		}
+		state.update(i)
+		state.enc.encodeGobEncoder(state.b, v, methodIndex(rt, gobEncodeMethodName))
+	}
+	return &op, int(ut.encIndir) // encIndir: op will get called with p == address of receiver.
+}
+
+// compileEnc returns the engine to compile the type.
+func (enc *Encoder) compileEnc(ut *userTypeInfo) *encEngine {
+	srt, isStruct := ut.base.(*reflect.StructType)
+	engine := new(encEngine)
+	seen := make(map[reflect.Type]*encOp)
+	rt := ut.base
+	if ut.isGobEncoder {
+		rt = ut.user
+	}
+	if !ut.isGobEncoder && isStruct {
+		for fieldNum, wireFieldNum := 0, 0; fieldNum < srt.NumField(); fieldNum++ {
+			f := srt.Field(fieldNum)
+			if !isExported(f.Name) {
+				continue
+			}
+			op, indir := enc.encOpFor(f.Type, seen)
+			engine.instr = append(engine.instr, encInstr{*op, wireFieldNum, indir, uintptr(f.Offset)})
+			wireFieldNum++
+		}
+		if srt.NumField() > 0 && len(engine.instr) == 0 {
+			errorf("gob: type %s has no exported fields", rt)
+		}
+		engine.instr = append(engine.instr, encInstr{encStructTerminator, 0, 0, 0})
 	} else {
 		engine.instr = make([]encInstr, 1)
-		op, indir := enc.encOpFor(rt)
-		engine.instr[0] = encInstr{op, singletonField, indir, 0} // offset is zero
+		op, indir := enc.encOpFor(rt, seen)
+		engine.instr[0] = encInstr{*op, singletonField, indir, 0} // offset is zero
 	}
 	return engine
 }
 
+// getEncEngine returns the engine to compile the type.
 // typeLock must be held (or we're in initialization and guaranteed single-threaded).
-// The reflection type must have all its indirections processed out.
-func (enc *Encoder) getEncEngine(rt reflect.Type) *encEngine {
-	info, err1 := getTypeInfo(rt)
+func (enc *Encoder) getEncEngine(ut *userTypeInfo) *encEngine {
+	info, err1 := getTypeInfo(ut)
 	if err1 != nil {
 		error(err1)
 	}
 	if info.encoder == nil {
 		// mark this engine as underway before compiling to handle recursive types.
 		info.encoder = new(encEngine)
-		info.encoder = enc.compileEnc(rt)
+		info.encoder = enc.compileEnc(ut)
 	}
 	return info.encoder
 }
 
-// Put this in a function so we can hold the lock only while compiling, not when encoding.
-func (enc *Encoder) lockAndGetEncEngine(rt reflect.Type) *encEngine {
+// lockAndGetEncEngine is a function that locks and compiles.
+// This lets us hold the lock only while compiling, not when encoding.
+func (enc *Encoder) lockAndGetEncEngine(ut *userTypeInfo) *encEngine {
 	typeLock.Lock()
 	defer typeLock.Unlock()
-	return enc.getEncEngine(rt)
+	return enc.getEncEngine(ut)
 }
 
-func (enc *Encoder) encode(b *bytes.Buffer, value reflect.Value) (err os.Error) {
-	defer catchError(&err)
-	// Dereference down to the underlying object.
-	rt, indir := indirect(value.Type())
+func (enc *Encoder) encode(b *bytes.Buffer, value reflect.Value, ut *userTypeInfo) {
+	defer catchError(&enc.err)
+	engine := enc.lockAndGetEncEngine(ut)
+	indir := ut.indir
+	if ut.isGobEncoder {
+		indir = int(ut.encIndir)
+	}
 	for i := 0; i < indir; i++ {
 		value = reflect.Indirect(value)
 	}
-	engine := enc.lockAndGetEncEngine(rt)
-	if value.Type().Kind() == reflect.Struct {
-		enc.encodeStruct(b, engine, value.Addr())
+	if !ut.isGobEncoder && value.Type().Kind() == reflect.Struct {
+		enc.encodeStruct(b, engine, value.UnsafeAddr())
 	} else {
-		enc.encodeSingle(b, engine, value.Addr())
+		enc.encodeSingle(b, engine, value.UnsafeAddr())
 	}
-	return nil
 }

@@ -9,14 +9,14 @@
 #include "malloc.h"
 
 struct __go_string
-__go_byte_array_to_string (const void* p, size_t len)
+__go_byte_array_to_string (const void* p, int len)
 {
   const unsigned char *bytes;
   unsigned char *retdata;
   struct __go_string ret;
 
   bytes = (const unsigned char *) p;
-  retdata = runtime_mallocgc (len, RefNoPointers, 1, 0);
+  retdata = runtime_mallocgc (len, FlagNoPointers, 1, 0);
   __builtin_memcpy (retdata, bytes, len);
   ret.__data = retdata;
   ret.__length = len;

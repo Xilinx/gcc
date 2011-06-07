@@ -48,25 +48,21 @@ objc/runtime.h.  */
 #include <stddef.h>		/* so noone else will get system versions */
 #include <assert.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
-
-extern void __objc_add_class_to_hash(Class);   /* (objc-class.c) */
-extern void __objc_init_class_tables(void);    /* (objc-class.c) */
-extern void __objc_init_dispatch_tables(void); /* (objc-dispatch.c) */
-extern void __objc_install_premature_dtable(Class); /* (objc-dispatch.c) */
-extern void __objc_resolve_class_links(void);  /* (objc-class.c) */
+extern BOOL __objc_add_class_to_hash (Class);   /* (objc-class.c) */
+extern void __objc_init_class_tables (void);    /* (objc-class.c) */
+extern void __objc_init_dispatch_tables (void); /* (objc-dispatch.c) */
+extern void __objc_install_premature_dtable (Class); /* (objc-dispatch.c) */
+extern void __objc_resolve_class_links (void);  /* (objc-class.c) */
 extern void __objc_update_dispatch_table_for_class (Class);/* (objc-msg.c) */
 
-extern int  __objc_init_thread_system(void);    /* thread.c */
-extern int  __objc_fini_thread_system(void);    /* thread.c */
-extern void __objc_init_class (Class class);  /* init.c */
-extern void class_add_method_list(Class, struct objc_method_list *);
+extern int  __objc_init_thread_system (void);    /* thread.c */
+extern int  __objc_fini_thread_system (void);    /* thread.c */
+extern BOOL __objc_init_class (Class class);  /* init.c */
+extern void class_add_method_list (Class, struct objc_method_list *);
 
 /* Registering instance methods as class methods for root classes */
-extern void __objc_register_instance_methods_to_class(Class);
-extern struct objc_method * search_for_method_in_list(struct objc_method_list * list, SEL op);
+extern void __objc_register_instance_methods_to_class (Class);
+extern struct objc_method * search_for_method_in_list (struct objc_method_list * list, SEL op);
 
 extern void
 __objc_update_classes_with_methods (struct objc_method *method_a, struct objc_method *method_b); /* class.c */
@@ -77,17 +73,7 @@ extern objc_mutex_t __objc_runtime_mutex;
 /* Number of threads which are alive. */
 extern int __objc_runtime_threads_alive;
 
-#ifdef DEBUG
-#define DEBUG_PRINTF(format, args...) printf (format, ## args)
-#else
-#define DEBUG_PRINTF(format, args...)
-#endif 
-
 BOOL __objc_responds_to (id object, SEL sel); /* for internal use only! */
 extern void __objc_generate_gc_type_description (Class);
-
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
 
 #endif /* not __objc_private_runtime_INCLUDE_GNU */

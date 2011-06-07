@@ -113,7 +113,7 @@ var untarTests = []*untarTest{
 func TestReader(t *testing.T) {
 testLoop:
 	for i, test := range untarTests {
-		f, err := os.Open(test.file, os.O_RDONLY, 0444)
+		f, err := os.Open(test.file)
 		if err != nil {
 			t.Errorf("test %d: Unexpected error: %v", i, err)
 			continue
@@ -136,14 +136,14 @@ testLoop:
 			break
 		}
 		if hdr != nil || err != nil {
-			t.Errorf("test %d: Unexpected entry or error: hdr=%v err=%v", i, err)
+			t.Errorf("test %d: Unexpected entry or error: hdr=%v err=%v", i, hdr, err)
 		}
 		f.Close()
 	}
 }
 
 func TestPartialRead(t *testing.T) {
-	f, err := os.Open("testdata/gnu.tar", os.O_RDONLY, 0444)
+	f, err := os.Open("testdata/gnu.tar")
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -181,7 +181,7 @@ func TestPartialRead(t *testing.T) {
 
 func TestIncrementalRead(t *testing.T) {
 	test := gnuTarTest
-	f, err := os.Open(test.file, os.O_RDONLY, 0444)
+	f, err := os.Open(test.file)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -235,7 +235,7 @@ func TestIncrementalRead(t *testing.T) {
 
 func TestNonSeekable(t *testing.T) {
 	test := gnuTarTest
-	f, err := os.Open(test.file, os.O_RDONLY, 0444)
+	f, err := os.Open(test.file)
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}

@@ -18,7 +18,9 @@ var onceReadServices sync.Once
 func readServices() {
 	services = make(map[string]map[string]int)
 	var file *file
-	file, servicesError = open("/etc/services")
+	if file, servicesError = open("/etc/services"); servicesError != nil {
+		return
+	}
 	for line, ok := file.readLine(); ok; line, ok = file.readLine() {
 		// "http 80/tcp www www-http # World Wide Web HTTP"
 		if i := byteIndex(line, '#'); i >= 0 {
@@ -48,8 +50,8 @@ func readServices() {
 	file.close()
 }
 
-// LookupPort looks up the port for the given network and service.
-func LookupPort(network, service string) (port int, err os.Error) {
+// goLookupPort is the native Go implementation of LookupPort.
+func goLookupPort(network, service string) (port int, err os.Error) {
 	onceReadServices.Do(readServices)
 
 	switch network {

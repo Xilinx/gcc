@@ -141,7 +141,7 @@ testLoop:
 			}
 		}
 		if err := tw.Close(); err != nil {
-			t.Errorf("test %d: Failed closing archive: %v", err)
+			t.Errorf("test %d: Failed closing archive: %v", i, err)
 			continue testLoop
 		}
 
@@ -149,6 +149,9 @@ testLoop:
 		if !bytes.Equal(expected, actual) {
 			t.Errorf("test %d: Incorrect result: (-=expected, +=actual)\n%v",
 				i, bytediff(expected, actual))
+		}
+		if testing.Short() { // The second test is expensive.
+			break
 		}
 	}
 }

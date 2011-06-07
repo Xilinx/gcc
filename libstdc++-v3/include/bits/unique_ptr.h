@@ -1,6 +1,6 @@
 // unique_ptr implementation -*- C++ -*-
 
-// Copyright (C) 2008, 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -36,7 +36,9 @@
 #include <utility>
 #include <tuple>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   /**
    * @addtogroup pointer_abstractions
@@ -47,7 +49,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _Tp>
     struct default_delete
     {
-      constexpr default_delete() { }
+      constexpr default_delete() = default;
 
       template<typename _Up, typename = typename
 	       std::enable_if<std::is_convertible<_Up*, _Tp*>::value>::type>
@@ -68,7 +70,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
   template<typename _Tp>
     struct default_delete<_Tp[]>
     {
-      constexpr default_delete() { }
+      constexpr default_delete() = default;
 
       void
       operator()(_Tp* __ptr) const
@@ -77,6 +79,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		      "can't delete pointer to incomplete type");
 	delete [] __ptr;
       }
+
+      template<typename _Up> void operator()(_Up*) const = delete;
     };
 
   /// 20.7.12.2 unique_ptr for single objects.
@@ -98,11 +102,11 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	typedef decltype( __test<_Del>(0)) type;
       };
 
-      typedef std::tuple<_Tp*, _Dp>  	__tuple_type;
-      __tuple_type 			_M_t;
+      typedef std::tuple<typename _Pointer::type, _Dp>  __tuple_type;
+      __tuple_type                                      _M_t;
 
     public:
-      typedef typename _Pointer::type	pointer;
+      typedef typename _Pointer::type   pointer;
       typedef _Tp                       element_type;
       typedef _Dp                       deleter_type;
 
@@ -149,10 +153,10 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 		   && std::is_convertible<_Ep, _Dp>::value))>
 	     ::type>
 	unique_ptr(unique_ptr<_Up, _Ep>&& __u)
-	: _M_t(__u.release(), std::forward<deleter_type>(__u.get_deleter()))
+	: _M_t(__u.release(), std::forward<_Ep>(__u.get_deleter()))
 	{ }
 
-#if _GLIBCXX_DEPRECATED
+#if _GLIBCXX_USE_DEPRECATED
       template<typename _Up, typename = typename
 	std::enable_if<std::is_convertible<_Up*, _Tp*>::value
 		       && std::is_same<_Dp,
@@ -169,7 +173,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       operator=(unique_ptr&& __u)
       {
 	reset(__u.release());
-	get_deleter() = std::move(__u.get_deleter());
+	get_deleter() = std::forward<deleter_type>(__u.get_deleter());
 	return *this;
       }
 
@@ -182,7 +186,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	operator=(unique_ptr<_Up, _Ep>&& __u)
 	{
 	  reset(__u.release());
-	  get_deleter() = std::move(__u.get_deleter());
+	  get_deleter() = std::forward<_Ep>(__u.get_deleter());
 	  return *this;
 	}
 
@@ -302,7 +306,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
       template<typename _Up, typename _Ep>
 	unique_ptr(unique_ptr<_Up, _Ep>&& __u)
-	: _M_t(__u.release(), std::forward<deleter_type>(__u.get_deleter()))
+	: _M_t(__u.release(), std::forward<_Ep>(__u.get_deleter()))
 	{ }
 
       // Destructor.
@@ -313,7 +317,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
       operator=(unique_ptr&& __u)
       {
 	reset(__u.release());
-	get_deleter() = std::move(__u.get_deleter());
+	get_deleter() = std::forward<deleter_type>(__u.get_deleter());
 	return *this;
       }
 
@@ -322,7 +326,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	operator=(unique_ptr<_Up, _Ep>&& __u)
 	{
 	  reset(__u.release());
-	  get_deleter() = std::move(__u.get_deleter());
+	  get_deleter() = std::forward<_Ep>(__u.get_deleter());
 	  return *this;
 	}
 
@@ -433,58 +437,107 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   template<typename _Tp, typename _Dp>
     inline bool
-    operator==(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
-    { return __x.get() == nullptr; }
+    operator==(const unique_ptr<_Tp, _Dp>& __x, nullptr_t) noexcept
+    { return !__x; }
 
   template<typename _Tp, typename _Dp>
     inline bool
-    operator==(nullptr_t, const unique_ptr<_Tp, _Dp>& __y)
-    { return nullptr == __y.get(); }
+    operator==(nullptr_t, const unique_ptr<_Tp, _Dp>& __x) noexcept
+    { return !__x; }
 
   template<typename _Tp, typename _Dp,
 	   typename _Up, typename _Ep>
     inline bool
     operator!=(const unique_ptr<_Tp, _Dp>& __x,
 	       const unique_ptr<_Up, _Ep>& __y)
-    { return !(__x.get() == __y.get()); }
+    { return __x.get() != __y.get(); }
 
   template<typename _Tp, typename _Dp>
     inline bool
-    operator!=(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
-    { return __x.get() != nullptr; }
+    operator!=(const unique_ptr<_Tp, _Dp>& __x, nullptr_t) noexcept
+    { return (bool)__x; }
 
   template<typename _Tp, typename _Dp>
     inline bool
-    operator!=(nullptr_t, const unique_ptr<_Tp, _Dp>& __y)
-    { return nullptr != __y.get(); }
+    operator!=(nullptr_t, const unique_ptr<_Tp, _Dp>& __x) noexcept
+    { return (bool)__x; }
 
   template<typename _Tp, typename _Dp,
 	   typename _Up, typename _Ep>
     inline bool
     operator<(const unique_ptr<_Tp, _Dp>& __x,
 	      const unique_ptr<_Up, _Ep>& __y)
-    { return __x.get() < __y.get(); }
+    {
+      typedef typename
+	std::common_type<typename unique_ptr<_Tp, _Dp>::pointer,
+	                 typename unique_ptr<_Up, _Ep>::pointer>::type _CT;
+      return std::less<_CT>()(__x.get(), __y.get());
+    }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator<(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
+    { return std::less<typename unique_ptr<_Tp, _Dp>::pointer>()(__x.get(),
+								 nullptr); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator<(nullptr_t, const unique_ptr<_Tp, _Dp>& __x)
+    { return std::less<typename unique_ptr<_Tp, _Dp>::pointer>()(nullptr,
+								 __x.get()); }
 
   template<typename _Tp, typename _Dp,
 	   typename _Up, typename _Ep>
     inline bool
     operator<=(const unique_ptr<_Tp, _Dp>& __x,
 	       const unique_ptr<_Up, _Ep>& __y)
-    { return !(__y.get() < __x.get()); }
+    { return !(__y < __x); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator<=(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
+    { return !(nullptr < __x); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator<=(nullptr_t, const unique_ptr<_Tp, _Dp>& __x)
+    { return !(__x < nullptr); }
 
   template<typename _Tp, typename _Dp,
 	   typename _Up, typename _Ep>
     inline bool
     operator>(const unique_ptr<_Tp, _Dp>& __x,
 	      const unique_ptr<_Up, _Ep>& __y)
-    { return __y.get() < __x.get(); }
+    { return (__y < __x); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator>(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
+    { return std::less<typename unique_ptr<_Tp, _Dp>::pointer>()(nullptr,
+								 __x.get()); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator>(nullptr_t, const unique_ptr<_Tp, _Dp>& __x)
+    { return std::less<typename unique_ptr<_Tp, _Dp>::pointer>()(__x.get(),
+								 nullptr); }
 
   template<typename _Tp, typename _Dp,
 	   typename _Up, typename _Ep>
     inline bool
     operator>=(const unique_ptr<_Tp, _Dp>& __x,
 	       const unique_ptr<_Up, _Ep>& __y)
-    { return !(__x.get() < __y.get()); }
+    { return !(__x < __y); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator>=(const unique_ptr<_Tp, _Dp>& __x, nullptr_t)
+    { return !(__x < nullptr); }
+
+  template<typename _Tp, typename _Dp>
+    inline bool
+    operator>=(nullptr_t, const unique_ptr<_Tp, _Dp>& __x)
+    { return !(nullptr < __x); }
 
   /// std::hash specialization for unique_ptr.
   template<typename _Tp, typename _Dp>
@@ -501,6 +554,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   // @} group pointer_abstractions
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif /* _UNIQUE_PTR_H */

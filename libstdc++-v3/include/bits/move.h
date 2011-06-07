@@ -1,6 +1,6 @@
 // Move, forward and identity for C++0x + swap -*- C++ -*-
 
-// Copyright (C) 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+// Copyright (C) 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
 // software; you can redistribute it and/or modify it under the
@@ -33,7 +33,9 @@
 #include <bits/c++config.h>
 #include <bits/concept_check.h>
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   // Used, in C++03 mode too, by allocators, etc.
   template<typename _Tp>
@@ -44,12 +46,15 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	(&const_cast<char&>(reinterpret_cast<const volatile char&>(__r)));
     }
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
 #include <type_traits> // Brings in std::declval too.
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
   
   /// forward (as per N3143)
   template<typename _Tp>
@@ -68,7 +73,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 
   /**
    *  @brief Move a value.
-   *  @ingroup mutating_algorithms
+   *  @ingroup utilities
    *  @param  __t  A thing of arbitrary type.
    *  @return Same, moved.
   */
@@ -77,12 +82,27 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     move(_Tp&& __t)
     { return static_cast<typename std::remove_reference<_Tp>::type&&>(__t); }
 
+  /**
+   *  @brief Move unless it could throw and the type is copyable.
+   *  @ingroup utilities
+   *  @param  __x  A thing of arbitrary type.
+   *  @return Same, possibly moved.
+   */
+  template<typename _Tp>
+    inline typename
+    conditional<(!is_nothrow_move_constructible<_Tp>::value
+		 && is_copy_constructible<_Tp>::value),
+                const _Tp&, _Tp&&>::type
+    move_if_noexcept(_Tp& __x) noexcept
+    { return std::move(__x); }
+
   /// declval, from type_traits.
 
   /**
    *  @brief Returns the actual address of the object or function
    *         referenced by r, even in the presence of an overloaded
    *         operator&.
+   *  @ingroup utilities
    *  @param  __r  Reference to an object or function.
    *  @return   The actual address.
   */
@@ -91,7 +111,8 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
     addressof(_Tp& __r)
     { return std::__addressof(__r); }
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #define _GLIBCXX_MOVE(__val) std::move(__val)
 #define _GLIBCXX_FORWARD(_Tp, __val) std::forward<_Tp>(__val)
@@ -100,11 +121,13 @@ _GLIBCXX_END_NAMESPACE
 #define _GLIBCXX_FORWARD(_Tp, __val) (__val)
 #endif
 
-_GLIBCXX_BEGIN_NAMESPACE(std)
+namespace std _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
 
   /**
    *  @brief Swaps two values.
-   *  @ingroup mutating_algorithms
+   *  @ingroup utilities
    *  @param  __a  A thing of arbitrary type.
    *  @param  __b  Another thing of arbitrary type.
    *  @return   Nothing.
@@ -131,6 +154,7 @@ _GLIBCXX_BEGIN_NAMESPACE(std)
 	swap(__a[__n], __b[__n]);
     }
 
-_GLIBCXX_END_NAMESPACE
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace
 
 #endif /* _MOVE_H */

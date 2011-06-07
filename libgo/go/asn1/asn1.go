@@ -389,6 +389,11 @@ func parseSequenceOf(bytes []byte, sliceType *reflect.SliceType, elemType reflec
 		if err != nil {
 			return
 		}
+		// We pretend that GENERAL STRINGs are PRINTABLE STRINGs so
+		// that a sequence of them can be parsed into a []string.
+		if t.tag == tagGeneralString {
+			t.tag = tagPrintableString
+		}
 		if t.class != classUniversal || t.isCompound != compoundType || t.tag != expectedTag {
 			err = StructuralError{"sequence tag mismatch"}
 			return
@@ -516,7 +521,11 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 		return
 	}
 	if params.explicit {
-		if t.class == classContextSpecific && t.tag == *params.tag && (t.length == 0 || t.isCompound) {
+		expectedClass := classContextSpecific
+		if params.application {
+			expectedClass = classApplication
+		}
+		if t.class == expectedClass && t.tag == *params.tag && (t.length == 0 || t.isCompound) {
 			if t.length > 0 {
 				t, offset, err = parseTagAndLength(bytes, offset)
 				if err != nil {
@@ -551,6 +560,10 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 	if universalTag == tagPrintableString && t.tag == tagIA5String {
 		universalTag = tagIA5String
 	}
+	// Likewise for GeneralString
+	if universalTag == tagPrintableString && t.tag == tagGeneralString {
+		universalTag = tagGeneralString
+	}
 
 	// Special case for time: UTCTime and GeneralizedTime both map to the
 	// Go type time.Time.
@@ -563,6 +576,11 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 
 	if !params.explicit && params.tag != nil {
 		expectedClass = classContextSpecific
+		expectedTag = *params.tag
+	}
+
+	if !params.explicit && params.application && params.tag != nil {
+		expectedClass = classApplication
 		expectedTag = *params.tag
 	}
 
@@ -591,7 +609,7 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 		sliceValue := v.(*reflect.SliceValue)
 		sliceValue.Set(reflect.MakeSlice(sliceValue.Type().(*reflect.SliceType), len(newSlice), len(newSlice)))
 		if err1 == nil {
-			reflect.ArrayCopy(sliceValue, reflect.NewValue(newSlice).(reflect.ArrayOrSliceValue))
+			reflect.Copy(sliceValue, reflect.NewValue(newSlice).(reflect.ArrayOrSliceValue))
 		}
 		err = err1
 		return
@@ -683,7 +701,7 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 		sliceType := fieldType.(*reflect.SliceType)
 		if sliceType.Elem().Kind() == reflect.Uint8 {
 			val.Set(reflect.MakeSlice(sliceType, len(innerBytes), len(innerBytes)))
-			reflect.ArrayCopy(val, reflect.NewValue(innerBytes).(reflect.ArrayOrSliceValue))
+			reflect.Copy(val, reflect.NewValue(innerBytes).(reflect.ArrayOrSliceValue))
 			return
 		}
 		newSlice, err1 := parseSequenceOf(innerBytes, sliceType, sliceType.Elem())
@@ -700,6 +718,12 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 		case tagIA5String:
 			v, err = parseIA5String(innerBytes)
 		case tagT61String:
+			v, err = parseT61String(innerBytes)
+		case tagGeneralString:
+			// GeneralString is specified in ISO-2022/ECMA-35,
+			// A brief review suggests that it includes structures
+			// that allow the encoding to change midstring and
+			// such. We give up and pass it as an 8-bit string.
 			v, err = parseT61String(innerBytes)
 		default:
 			err = SyntaxError{fmt.Sprintf("internal error: unknown string type %d", universalTag)}
@@ -776,8 +800,14 @@ func setDefaultValue(v reflect.Value, params fieldParameters) (ok bool) {
 // Other ASN.1 types are not supported; if it encounters them,
 // Unmarshal returns a parse error.
 func Unmarshal(b []byte, val interface{}) (rest []byte, err os.Error) {
+	return UnmarshalWithParams(b, val, "")
+}
+
+// UnmarshalWithParams allows field parameters to be specified for the
+// top-level element. The form of the params is the same as the field tags.
+func UnmarshalWithParams(b []byte, val interface{}, params string) (rest []byte, err os.Error) {
 	v := reflect.NewValue(val).(*reflect.PtrValue).Elem()
-	offset, err := parseField(v, b, 0, fieldParameters{})
+	offset, err := parseField(v, b, 0, parseFieldParameters(params))
 	if err != nil {
 		return nil, err
 	}

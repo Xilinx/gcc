@@ -119,9 +119,19 @@ func LastIndex(s, sep string) int {
 // IndexRune returns the index of the first instance of the Unicode code point
 // rune, or -1 if rune is not present in s.
 func IndexRune(s string, rune int) int {
-	for i, c := range s {
-		if c == rune {
-			return i
+	switch {
+	case rune < 0x80:
+		b := byte(rune)
+		for i := 0; i < len(s); i++ {
+			if s[i] == b {
+				return i
+			}
+		}
+	default:
+		for i, c := range s {
+			if c == rune {
+				return i
+			}
 		}
 	}
 	return -1
@@ -134,6 +144,24 @@ func IndexAny(s, chars string) int {
 		for i, c := range s {
 			for _, m := range chars {
 				if c == m {
+					return i
+				}
+			}
+		}
+	}
+	return -1
+}
+
+// LastIndexAny returns the index of the last instance of any Unicode code
+// point from chars in s, or -1 if no Unicode code point from chars is
+// present in s.
+func LastIndexAny(s, chars string) int {
+	if len(chars) > 0 {
+		for i := len(s); i > 0; {
+			rune, size := utf8.DecodeLastRuneInString(s[0:i])
+			i -= size
+			for _, m := range chars {
+				if rune == m {
 					return i
 				}
 			}
@@ -197,8 +225,8 @@ func Fields(s string) []string {
 }
 
 // FieldsFunc splits the string s at each run of Unicode code points c satisfying f(c)
-// and returns an array of slices of s. If no code points in s satisfy f(c), an empty slice
-// is returned.
+// and returns an array of slices of s. If all code points in s satisfy f(c) or the
+// string is empty, an empty slice is returned.
 func FieldsFunc(s string, f func(int) bool) []string {
 	// First count the fields.
 	n := 0
@@ -247,20 +275,10 @@ func Join(a []string, sep string) string {
 	}
 
 	b := make([]byte, n)
-	bp := 0
-	for i := 0; i < len(a); i++ {
-		s := a[i]
-		for j := 0; j < len(s); j++ {
-			b[bp] = s[j]
-			bp++
-		}
-		if i+1 < len(a) {
-			s = sep
-			for j := 0; j < len(s); j++ {
-				b[bp] = s[j]
-				bp++
-			}
-		}
+	bp := copy(b, a[0])
+	for _, s := range a[1:] {
+		bp += copy(b[bp:], sep)
+		bp += copy(b[bp:], s)
 	}
 	return string(b)
 }
@@ -284,9 +302,19 @@ func Map(mapping func(rune int) int, s string) string {
 	// fine.  It could also shrink but that falls out naturally.
 	maxbytes := len(s) // length of b
 	nbytes := 0        // number of bytes encoded in b
-	b := make([]byte, maxbytes)
-	for _, c := range s {
+	// The output buffer b is initialized on demand, the first
+	// time a character differs.
+	var b []byte
+
+	for i, c := range s {
 		rune := mapping(c)
+		if b == nil {
+			if rune == c {
+				continue
+			}
+			b = make([]byte, maxbytes)
+			nbytes = copy(b, s[:i])
+		}
 		if rune >= 0 {
 			wid := 1
 			if rune >= utf8.RuneSelf {
@@ -299,8 +327,11 @@ func Map(mapping func(rune int) int, s string) string {
 				copy(nb, b[0:nbytes])
 				b = nb
 			}
-			nbytes += utf8.EncodeRune(rune, b[nbytes:maxbytes])
+			nbytes += utf8.EncodeRune(b[nbytes:maxbytes], rune)
 		}
+	}
+	if b == nil {
+		return s
 	}
 	return string(b[0:nbytes])
 }

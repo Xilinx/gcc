@@ -8,10 +8,7 @@
 //
 package token
 
-import (
-	"fmt"
-	"strconv"
-)
+import "strconv"
 
 
 // Token is the set of lexical tokens of the Go programming language.
@@ -129,10 +126,7 @@ const (
 )
 
 
-// At the moment we have no array literal syntax that lets us describe
-// the index for each element - use a map for now to make sure they are
-// in sync.
-var tokens = map[Token]string{
+var tokens = [...]string{
 	ILLEGAL: "ILLEGAL",
 
 	EOF:     "EOF",
@@ -240,10 +234,14 @@ var tokens = map[Token]string{
 // constant name (e.g. for the token IDENT, the string is "IDENT").
 //
 func (tok Token) String() string {
-	if str, exists := tokens[tok]; exists {
-		return str
+	s := ""
+	if 0 <= tok && tok < Token(len(tokens)) {
+		s = tokens[tok]
 	}
-	return "token(" + strconv.Itoa(int(tok)) + ")"
+	if s == "" {
+		s = "token(" + strconv.Itoa(int(tok)) + ")"
+	}
+	return s
 }
 
 
@@ -255,8 +253,8 @@ func (tok Token) String() string {
 //
 const (
 	LowestPrec  = 0 // non-operators
-	UnaryPrec   = 7
-	HighestPrec = 8
+	UnaryPrec   = 6
+	HighestPrec = 7
 )
 
 
@@ -270,14 +268,12 @@ func (op Token) Precedence() int {
 		return 1
 	case LAND:
 		return 2
-	case ARROW:
-		return 3
 	case EQL, NEQ, LSS, LEQ, GTR, GEQ:
-		return 4
+		return 3
 	case ADD, SUB, OR, XOR:
-		return 5
+		return 4
 	case MUL, QUO, REM, SHL, SHR, AND, AND_NOT:
-		return 6
+		return 5
 	}
 	return LowestPrec
 }
@@ -321,39 +317,3 @@ func (tok Token) IsOperator() bool { return operator_beg < tok && tok < operator
 // returns false otherwise.
 //
 func (tok Token) IsKeyword() bool { return keyword_beg < tok && tok < keyword_end }
-
-
-// Token source positions are represented by a Position value.
-// A Position is valid if the line number is > 0.
-//
-type Position struct {
-	Filename string // filename, if any
-	Offset   int    // byte offset, starting at 0
-	Line     int    // line number, starting at 1
-	Column   int    // column number, starting at 1 (character count)
-}
-
-
-// Pos is an accessor method for anonymous Position fields.
-// It returns its receiver.
-//
-func (pos *Position) Pos() Position { return *pos }
-
-
-// IsValid returns true if the position is valid.
-func (pos *Position) IsValid() bool { return pos.Line > 0 }
-
-
-func (pos Position) String() string {
-	s := pos.Filename
-	if pos.IsValid() {
-		if s != "" {
-			s += ":"
-		}
-		s += fmt.Sprintf("%d:%d", pos.Line, pos.Column)
-	}
-	if s == "" {
-		s = "-"
-	}
-	return s
-}

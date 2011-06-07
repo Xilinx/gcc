@@ -13,7 +13,7 @@ import (
 
 
 var ints = [...]int{74, 59, 238, -784, 9845, 959, 905, 0, 0, 42, 7586, -5467984, 7586}
-var floats = [...]float{74.3, 59.0, 238.2, -784.0, 2.3, 9845.768, -959.7485, 905, 7.8, 7.8}
+var float64s = [...]float64{74.3, 59.0, 238.2, -784.0, 2.3, 9845.768, -959.7485, 905, 7.8, 7.8}
 var strings = [...]string{"", "Hello", "foo", "bar", "foo", "f00", "%*&^*&^&", "***"}
 
 func TestSortIntArray(t *testing.T) {
@@ -26,12 +26,12 @@ func TestSortIntArray(t *testing.T) {
 	}
 }
 
-func TestSortFloatArray(t *testing.T) {
-	data := floats
-	a := FloatArray(data[0:])
+func TestSortFloat64Array(t *testing.T) {
+	data := float64s
+	a := Float64Array(data[0:])
 	Sort(a)
 	if !IsSorted(a) {
-		t.Errorf("sorted %v", floats)
+		t.Errorf("sorted %v", float64s)
 		t.Errorf("   got %v", data)
 	}
 }
@@ -55,11 +55,11 @@ func TestSortInts(t *testing.T) {
 	}
 }
 
-func TestSortFloats(t *testing.T) {
-	data := floats
-	SortFloats(data[0:])
-	if !FloatsAreSorted(data[0:]) {
-		t.Errorf("sorted %v", floats)
+func TestSortFloat64s(t *testing.T) {
+	data := float64s
+	SortFloat64s(data[0:])
+	if !Float64sAreSorted(data[0:]) {
+		t.Errorf("sorted %v", float64s)
 		t.Errorf("   got %v", data)
 	}
 }
@@ -74,7 +74,11 @@ func TestSortStrings(t *testing.T) {
 }
 
 func TestSortLarge_Random(t *testing.T) {
-	data := make([]int, 1000000)
+	n := 1000000
+	if testing.Short() {
+		n /= 100
+	}
+	data := make([]int, n)
 	for i := 0; i < len(data); i++ {
 		data[i] = rand.Intn(100)
 	}
@@ -174,6 +178,9 @@ func lg(n int) int {
 
 func TestBentleyMcIlroy(t *testing.T) {
 	sizes := []int{100, 1023, 1024, 1025}
+	if testing.Short() {
+		sizes = []int{100, 127, 128, 129}
+	}
 	dists := []string{"sawtooth", "rand", "stagger", "plateau", "shuffle"}
 	modes := []string{"copy", "reverse", "reverse1", "reverse2", "sort", "dither"}
 	var tmp1, tmp2 [1025]int

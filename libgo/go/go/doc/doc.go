@@ -66,7 +66,7 @@ func (doc *docReader) addDoc(comments *ast.CommentGroup) {
 	n2 := len(comments.List)
 	list := make([]*ast.Comment, n1+1+n2) // + 1 for separator line
 	copy(list, doc.doc.List)
-	list[n1] = &ast.Comment{token.Position{}, []byte("//")} // separator line
+	list[n1] = &ast.Comment{token.NoPos, "//"} // separator line
 	copy(list[n1+1:], comments.List)
 	doc.doc = &ast.CommentGroup{list}
 }
@@ -105,7 +105,7 @@ func baseTypeName(typ ast.Expr) string {
 		// if the type is not exported, the effect to
 		// a client is as if there were no type name
 		if t.IsExported() {
-			return string(t.Name)
+			return t.Name
 		}
 	case *ast.StarExpr:
 		return baseTypeName(t.X)
@@ -127,7 +127,7 @@ func (doc *docReader) addValue(decl *ast.GenDecl) {
 			name := ""
 			switch {
 			case v.Type != nil:
-				// a type is present; determine it's name
+				// a type is present; determine its name
 				name = baseTypeName(v.Type)
 			case decl.Tok == token.CONST:
 				// no type is present but we have a constant declaration;
@@ -154,7 +154,7 @@ func (doc *docReader) addValue(decl *ast.GenDecl) {
 	// determine values list
 	const threshold = 0.75
 	values := &doc.values
-	if domName != "" && domFreq >= int(float(len(decl.Specs))*threshold) {
+	if domName != "" && domFreq >= int(float64(len(decl.Specs))*threshold) {
 		// typed entries are sufficiently frequent
 		typ := doc.lookupTypeDoc(domName)
 		if typ != nil {
@@ -249,7 +249,6 @@ func (doc *docReader) addDecl(decl ast.Decl) {
 				doc.addValue(d)
 			case token.TYPE:
 				// types are handled individually
-				var noPos token.Position
 				for _, spec := range d.Specs {
 					// make a (fake) GenDecl node for this TypeSpec
 					// (we need to do this here - as opposed to just
@@ -262,7 +261,7 @@ func (doc *docReader) addDecl(decl ast.Decl) {
 					// makeTypeDocs below). Simpler data structures, but
 					// would lose GenDecl documentation if the TypeSpec
 					// has documentation as well.
-					doc.addType(&ast.GenDecl{d.Doc, d.Pos(), token.TYPE, noPos, []ast.Spec{spec}, noPos})
+					doc.addType(&ast.GenDecl{d.Doc, d.Pos(), token.TYPE, token.NoPos, []ast.Spec{spec}, token.NoPos})
 					// A new GenDecl node is created, no need to nil out d.Doc.
 				}
 			}
@@ -301,9 +300,9 @@ func (doc *docReader) addFile(src *ast.File) {
 	// collect BUG(...) comments
 	for _, c := range src.Comments {
 		text := c.List[0].Text
-		if m := bug_markers.FindIndex(text); m != nil {
+		if m := bug_markers.FindStringIndex(text); m != nil {
 			// found a BUG comment; maybe empty
-			if btxt := text[m[1]:]; bug_content.Match(btxt) {
+			if btxt := text[m[1]:]; bug_content.MatchString(btxt) {
 				// non-empty BUG comment; collect comment without BUG prefix
 				list := copyCommentList(c.List)
 				list[0].Text = text[m[1]:]

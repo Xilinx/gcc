@@ -6,9 +6,12 @@ package strings_test
 
 import (
 	"os"
+	"reflect"
+	"strconv"
 	. "strings"
 	"testing"
 	"unicode"
+	"unsafe"
 	"utf8"
 )
 
@@ -86,6 +89,19 @@ var indexAnyTests = []IndexTest{
 	{"aRegExp*", ".(|)*+?^$[]", 7},
 	{dots + dots + dots, " ", -1},
 }
+var lastIndexAnyTests = []IndexTest{
+	{"", "", -1},
+	{"", "a", -1},
+	{"", "abc", -1},
+	{"a", "", -1},
+	{"a", "a", 0},
+	{"aaa", "a", 2},
+	{"abc", "xyz", -1},
+	{"abc", "ab", 1},
+	{"a☺b☻c☹d", "uvw☻xyz", 2 + len("☺")},
+	{"a.RegExp*", ".(|)*+?^$[]", 8},
+	{dots + dots + dots, " ", -1},
+}
 
 // Execute f on each test case.  funcName should be the name of f; it's used
 // in failure reports.
@@ -98,9 +114,61 @@ func runIndexTests(t *testing.T, f func(s, sep string) int, funcName string, tes
 	}
 }
 
-func TestIndex(t *testing.T)     { runIndexTests(t, Index, "Index", indexTests) }
-func TestLastIndex(t *testing.T) { runIndexTests(t, LastIndex, "LastIndex", lastIndexTests) }
-func TestIndexAny(t *testing.T)  { runIndexTests(t, IndexAny, "IndexAny", indexAnyTests) }
+func TestIndex(t *testing.T)        { runIndexTests(t, Index, "Index", indexTests) }
+func TestLastIndex(t *testing.T)    { runIndexTests(t, LastIndex, "LastIndex", lastIndexTests) }
+func TestIndexAny(t *testing.T)     { runIndexTests(t, IndexAny, "IndexAny", indexAnyTests) }
+func TestLastIndexAny(t *testing.T) { runIndexTests(t, LastIndexAny, "LastIndexAny", lastIndexAnyTests) }
+
+type IndexRuneTest struct {
+	s    string
+	rune int
+	out  int
+}
+
+var indexRuneTests = []IndexRuneTest{
+	{"a A x", 'A', 2},
+	{"some_text=some_value", '=', 9},
+	{"☺a", 'a', 3},
+	{"a☻☺b", '☺', 4},
+}
+
+func TestIndexRune(t *testing.T) {
+	for _, test := range indexRuneTests {
+		if actual := IndexRune(test.s, test.rune); actual != test.out {
+			t.Errorf("IndexRune(%q,%d)= %v; want %v", test.s, test.rune, actual, test.out)
+		}
+	}
+}
+
+const benchmarkString = "some_text=some☺value"
+
+func BenchmarkIndexRune(b *testing.B) {
+	if got := IndexRune(benchmarkString, '☺'); got != 14 {
+		panic("wrong index: got=" + strconv.Itoa(got))
+	}
+	for i := 0; i < b.N; i++ {
+		IndexRune(benchmarkString, '☺')
+	}
+}
+
+func BenchmarkIndexRuneFastPath(b *testing.B) {
+	if got := IndexRune(benchmarkString, 'v'); got != 17 {
+		panic("wrong index: got=" + strconv.Itoa(got))
+	}
+	for i := 0; i < b.N; i++ {
+		IndexRune(benchmarkString, 'v')
+	}
+}
+
+func BenchmarkIndex(b *testing.B) {
+	if got := Index(benchmarkString, "v"); got != 17 {
+		panic("wrong index: got=" + strconv.Itoa(got))
+	}
+	for i := 0; i < b.N; i++ {
+		Index(benchmarkString, "v")
+	}
+}
+
 
 type ExplodeTest struct {
 	s string
@@ -363,11 +431,31 @@ func TestMap(t *testing.T) {
 	if m != expect {
 		t.Errorf("drop: expected %q got %q", expect, m)
 	}
+
+	// 6. Identity
+	identity := func(rune int) int {
+		return rune
+	}
+	orig := "Input string that we expect not to be copied."
+	m = Map(identity, orig)
+	if (*reflect.StringHeader)(unsafe.Pointer(&orig)).Data !=
+		(*reflect.StringHeader)(unsafe.Pointer(&m)).Data {
+		t.Error("unexpected copy during identity map")
+	}
 }
 
 func TestToUpper(t *testing.T) { runStringTests(t, ToUpper, "ToUpper", upperTests) }
 
 func TestToLower(t *testing.T) { runStringTests(t, ToLower, "ToLower", lowerTests) }
+
+func BenchmarkMapNoChanges(b *testing.B) {
+	identity := func(rune int) int {
+		return rune
+	}
+	for i := 0; i < b.N; i++ {
+		Map(identity, "Some string that won't be modified.")
+	}
+}
 
 func TestSpecialCase(t *testing.T) {
 	lower := "abcçdefgğhıijklmnoöprsştuüvyz"
@@ -551,7 +639,11 @@ func equal(m string, s1, s2 string, t *testing.T) bool {
 
 func TestCaseConsistency(t *testing.T) {
 	// Make a string of all the runes.
-	a := make([]int, unicode.MaxRune+1)
+	numRunes := unicode.MaxRune + 1
+	if testing.Short() {
+		numRunes = 1000
+	}
+	a := make([]int, numRunes)
 	for i := range a {
 		a[i] = i
 	}
@@ -561,10 +653,10 @@ func TestCaseConsistency(t *testing.T) {
 	lower := ToLower(s)
 
 	// Consistency checks
-	if n := utf8.RuneCountInString(upper); n != unicode.MaxRune+1 {
+	if n := utf8.RuneCountInString(upper); n != numRunes {
 		t.Error("rune count wrong in upper:", n)
 	}
-	if n := utf8.RuneCountInString(lower); n != unicode.MaxRune+1 {
+	if n := utf8.RuneCountInString(lower); n != numRunes {
 		t.Error("rune count wrong in lower:", n)
 	}
 	if !equal("ToUpper(upper)", ToUpper(upper), upper, t) {

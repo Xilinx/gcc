@@ -2,9 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package bufio
+package bufio_test
 
 import (
+	. "bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -337,7 +338,7 @@ func TestReadWriteRune(t *testing.T) {
 	// Write the runes out using WriteRune
 	buf := make([]byte, utf8.UTFMax)
 	for rune := 0; rune < NRune; rune++ {
-		size := utf8.EncodeRune(rune, buf)
+		size := utf8.EncodeRune(buf, rune)
 		nbytes, err := w.WriteRune(rune)
 		if err != nil {
 			t.Fatalf("WriteRune(0x%x) error: %s", rune, err)
@@ -351,7 +352,7 @@ func TestReadWriteRune(t *testing.T) {
 	r := NewReader(byteBuf)
 	// Read them back with ReadRune
 	for rune := 0; rune < NRune; rune++ {
-		size := utf8.EncodeRune(rune, buf)
+		size := utf8.EncodeRune(buf, rune)
 		nr, nbytes, err := r.ReadRune()
 		if nr != rune || nbytes != size || err != nil {
 			t.Fatalf("ReadRune(0x%x) got 0x%x,%d not 0x%x,%d (err=%s)", r, nr, nbytes, r, size, err)
@@ -397,9 +398,9 @@ func TestWriter(t *testing.T) {
 			}
 			for l := 0; l < len(written); l++ {
 				if written[i] != data[i] {
-					t.Errorf("%s: wrong bytes written")
-					t.Errorf("want=%s", data[0:len(written)])
-					t.Errorf("have=%s", written)
+					t.Errorf("wrong bytes written")
+					t.Errorf("want=%q", data[0:len(written)])
+					t.Errorf("have=%q", written)
 				}
 			}
 		}
@@ -502,9 +503,8 @@ func TestWriteString(t *testing.T) {
 	b.WriteString("7890")                      // easy after flush
 	b.WriteString("abcdefghijklmnopqrstuvwxy") // hard
 	b.WriteString("z")
-	b.Flush()
-	if b.err != nil {
-		t.Error("WriteString", b.err)
+	if err := b.Flush(); err != nil {
+		t.Error("WriteString", err)
 	}
 	s := "01234567890abcdefghijklmnopqrstuvwxyz"
 	if string(buf.Bytes()) != s {

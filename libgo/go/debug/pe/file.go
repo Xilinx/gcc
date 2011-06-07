@@ -49,6 +49,16 @@ type Section struct {
 	sr *io.SectionReader
 }
 
+type ImportDirectory struct {
+	OriginalFirstThunk uint32
+	TimeDateStamp      uint32
+	ForwarderChain     uint32
+	Name               uint32
+	FirstThunk         uint32
+
+	dll string
+}
+
 // Data reads and returns the contents of the PE section.
 func (s *Section) Data() ([]byte, os.Error) {
 	dat := make([]byte, s.sr.Size())
@@ -77,7 +87,7 @@ func (e *FormatError) String() string {
 
 // Open opens the named file using os.Open and prepares it for use as a PE binary.
 func Open(name string) (*File, os.Error) {
-	f, err := os.Open(name, os.O_RDONLY, 0)
+	f, err := os.Open(name)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +132,7 @@ func NewFile(r io.ReaderAt) (*File, os.Error) {
 	} else {
 		base = int64(0)
 	}
-	sr.Seek(base, 0)
+	sr.Seek(base, os.SEEK_SET)
 	if err := binary.Read(sr, binary.LittleEndian, &f.FileHeader); err != nil {
 		return nil, err
 	}
@@ -130,7 +140,7 @@ func NewFile(r io.ReaderAt) (*File, os.Error) {
 		return nil, os.NewError("Invalid PE File Format.")
 	}
 	// get symbol string table
-	sr.Seek(int64(f.FileHeader.PointerToSymbolTable+18*f.FileHeader.NumberOfSymbols), 0)
+	sr.Seek(int64(f.FileHeader.PointerToSymbolTable+18*f.FileHeader.NumberOfSymbols), os.SEEK_SET)
 	var l uint32
 	if err := binary.Read(sr, binary.LittleEndian, &l); err != nil {
 		return nil, err
@@ -139,9 +149,9 @@ func NewFile(r io.ReaderAt) (*File, os.Error) {
 	if _, err := r.ReadAt(ss, int64(f.FileHeader.PointerToSymbolTable+18*f.FileHeader.NumberOfSymbols)); err != nil {
 		return nil, err
 	}
-	sr.Seek(base, 0)
+	sr.Seek(base, os.SEEK_SET)
 	binary.Read(sr, binary.LittleEndian, &f.FileHeader)
-	sr.Seek(int64(f.FileHeader.SizeOfOptionalHeader), 1) //Skip OptionalHeader
+	sr.Seek(int64(f.FileHeader.SizeOfOptionalHeader), os.SEEK_CUR) //Skip OptionalHeader
 	f.Sections = make([]*Section, f.FileHeader.NumberOfSections)
 	for i := 0; i < int(f.FileHeader.NumberOfSections); i++ {
 		sh := new(SectionHeader32)
@@ -228,4 +238,65 @@ func (f *File) DWARF() (*dwarf.Data, os.Error) {
 
 	abbrev, info, str := dat[0], dat[1], dat[2]
 	return dwarf.New(abbrev, nil, nil, info, nil, nil, nil, str)
+}
+
+// ImportedSymbols returns the names of all symbols
+// referred to by the binary f that are expected to be
+// satisfied by other libraries at dynamic load time.
+// It does not return weak symbols.
+func (f *File) ImportedSymbols() ([]string, os.Error) {
+	ds := f.Section(".idata")
+	if ds == nil {
+		// not dynamic, so no libraries
+		return nil, nil
+	}
+	d, err := ds.Data()
+	if err != nil {
+		return nil, err
+	}
+	var ida []ImportDirectory
+	for len(d) > 0 {
+		var dt ImportDirectory
+		dt.OriginalFirstThunk = binary.LittleEndian.Uint32(d[0:4])
+		dt.Name = binary.LittleEndian.Uint32(d[12:16])
+		dt.FirstThunk = binary.LittleEndian.Uint32(d[16:20])
+		d = d[20:]
+		if dt.OriginalFirstThunk == 0 {
+			break
+		}
+		ida = append(ida, dt)
+	}
+	names, _ := ds.Data()
+	var all []string
+	for _, dt := range ida {
+		dt.dll, _ = getString(names, int(dt.Name-ds.VirtualAddress))
+		d, _ = ds.Data()
+		// seek to OriginalFirstThunk
+		d = d[dt.OriginalFirstThunk-ds.VirtualAddress:]
+		for len(d) > 0 {
+			va := binary.LittleEndian.Uint32(d[0:4])
+			d = d[4:]
+			if va == 0 {
+				break
+			}
+			if va&0x80000000 > 0 { // is Ordinal
+				// TODO add dynimport ordinal support.
+				//ord := va&0x0000FFFF
+			} else {
+				fn, _ := getString(names, int(va-ds.VirtualAddress+2))
+				all = append(all, fn+":"+dt.dll)
+			}
+		}
+	}
+
+	return all, nil
+}
+
+// ImportedLibraries returns the names of all libraries
+// referred to by the binary f that are expected to be
+// linked with the binary at dynamic link time.
+func (f *File) ImportedLibraries() ([]string, os.Error) {
+	// TODO
+	// cgo -dynimport don't use this for windows PE, so just return.
+	return nil, nil
 }

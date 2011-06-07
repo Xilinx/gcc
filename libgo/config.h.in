@@ -15,6 +15,9 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* Define to 1 if you have the `mincore' function. */
+#undef HAVE_MINCORE
+
 /* Define to 1 if the system has the type `off64_t'. */
 #undef HAVE_OFF64_T
 
@@ -30,6 +33,9 @@
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
 
+/* Define to 1 if you have the `strerror_r' function. */
+#undef HAVE_STRERROR_R
+
 /* Define to 1 if you have the <strings.h> header file. */
 #undef HAVE_STRINGS_H
 
@@ -38,6 +44,14 @@
 
 /* Define to 1 if you have the `strsignal' function. */
 #undef HAVE_STRSIGNAL
+
+/* Define to 1 if the compiler provides the __sync_bool_compare_and_swap
+   function for uint32 */
+#undef HAVE_SYNC_BOOL_COMPARE_AND_SWAP_4
+
+/* Define to 1 if the compiler provides the __sync_fetch_and_add function for
+   uint32 */
+#undef HAVE_SYNC_FETCH_AND_ADD_4
 
 /* Define to 1 if you have the <syscall.h> header file. */
 #undef HAVE_SYSCALL_H
@@ -51,8 +65,14 @@
 /* Define to 1 if you have the <sys/ptrace.h> header file. */
 #undef HAVE_SYS_PTRACE_H
 
+/* Define to 1 if you have the <sys/select.h> header file. */
+#undef HAVE_SYS_SELECT_H
+
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/syscall.h> header file. */
+#undef HAVE_SYS_SYSCALL_H
 
 /* Define to 1 if you have the <sys/types.h> header file. */
 #undef HAVE_SYS_TYPES_H
@@ -65,6 +85,12 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the `wait4' function. */
+#undef HAVE_WAIT4
+
+/* Define if the C++ compiler is configured for setjmp/longjmp exceptions. */
+#undef LIBGO_SJLJ_EXCEPTIONS
 
 /* Define if the linker support split stack adjustments */
 #undef LINKER_SUPPORTS_SPLIT_STACK

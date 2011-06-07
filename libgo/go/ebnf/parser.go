@@ -13,11 +13,12 @@ import (
 
 
 type parser struct {
+	fset *token.FileSet
 	scanner.ErrorVector
 	scanner scanner.Scanner
-	pos     token.Position // token position
-	tok     token.Token    // one token look-ahead
-	lit     []byte         // token literal
+	pos     token.Pos   // token position
+	tok     token.Token // one token look-ahead
+	lit     string      // token literal
 }
 
 
@@ -31,21 +32,26 @@ func (p *parser) next() {
 }
 
 
-func (p *parser) errorExpected(pos token.Position, msg string) {
+func (p *parser) error(pos token.Pos, msg string) {
+	p.Error(p.fset.Position(pos), msg)
+}
+
+
+func (p *parser) errorExpected(pos token.Pos, msg string) {
 	msg = "expected " + msg
-	if pos.Offset == p.pos.Offset {
+	if pos == p.pos {
 		// the error happened at the current position;
 		// make the error message more specific
 		msg += ", found '" + p.tok.String() + "'"
 		if p.tok.IsLiteral() {
-			msg += " " + string(p.lit)
+			msg += " " + p.lit
 		}
 	}
-	p.Error(pos, msg)
+	p.error(pos, msg)
 }
 
 
-func (p *parser) expect(tok token.Token) token.Position {
+func (p *parser) expect(tok token.Token) token.Pos {
 	pos := p.pos
 	if p.tok != tok {
 		p.errorExpected(pos, "'"+tok.String()+"'")
@@ -57,7 +63,7 @@ func (p *parser) expect(tok token.Token) token.Position {
 
 func (p *parser) parseIdentifier() *Name {
 	pos := p.pos
-	name := string(p.lit)
+	name := p.lit
 	p.expect(token.IDENT)
 	return &Name{pos, name}
 }
@@ -67,7 +73,7 @@ func (p *parser) parseToken() *Token {
 	pos := p.pos
 	value := ""
 	if p.tok == token.STRING {
-		value, _ = strconv.Unquote(string(p.lit))
+		value, _ = strconv.Unquote(p.lit)
 		// Unquote may fail with an error, but only if the scanner found
 		// an illegal string in the first place. In this case the error
 		// has already been reported.
@@ -167,10 +173,11 @@ func (p *parser) parseProduction() *Production {
 }
 
 
-func (p *parser) parse(filename string, src []byte) Grammar {
+func (p *parser) parse(fset *token.FileSet, filename string, src []byte) Grammar {
 	// initialize parser
+	p.fset = fset
 	p.ErrorVector.Reset()
-	p.scanner.Init(filename, src, p, 0)
+	p.scanner.Init(fset.AddFile(filename, fset.Base(), len(src)), src, p, 0)
 	p.next() // initializes pos, tok, lit
 
 	grammar := make(Grammar)
@@ -180,7 +187,7 @@ func (p *parser) parse(filename string, src []byte) Grammar {
 		if _, found := grammar[name]; !found {
 			grammar[name] = prod
 		} else {
-			p.Error(prod.Pos(), name+" declared already")
+			p.error(prod.Pos(), name+" declared already")
 		}
 	}
 
@@ -191,10 +198,11 @@ func (p *parser) parse(filename string, src []byte) Grammar {
 // Parse parses a set of EBNF productions from source src.
 // It returns a set of productions. Errors are reported
 // for incorrect syntax and if a production is declared
-// more than once.
+// more than once. Position information is recorded relative
+// to the file set fset.
 //
-func Parse(filename string, src []byte) (Grammar, os.Error) {
+func Parse(fset *token.FileSet, filename string, src []byte) (Grammar, os.Error) {
 	var p parser
-	grammar := p.parse(filename, src)
+	grammar := p.parse(fset, filename, src)
 	return grammar, p.GetError(scanner.Sorted)
 }

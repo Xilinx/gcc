@@ -128,43 +128,42 @@ func (b *Reader) Peek(n int) ([]byte, os.Error) {
 
 // Read reads data into p.
 // It returns the number of bytes read into p.
-// If nn < len(p), also returns an error explaining
-// why the read is short.  At EOF, the count will be
-// zero and err will be os.EOF.
-func (b *Reader) Read(p []byte) (nn int, err os.Error) {
-	nn = 0
-	for len(p) > 0 {
-		n := len(p)
-		if b.w == b.r {
-			if b.err != nil {
-				return nn, b.err
-			}
-			if len(p) >= len(b.buf) {
-				// Large read, empty buffer.
-				// Read directly into p to avoid copy.
-				n, b.err = b.rd.Read(p)
-				if n > 0 {
-					b.lastByte = int(p[n-1])
-					b.lastRuneSize = -1
-				}
-				p = p[n:]
-				nn += n
-				continue
-			}
-			b.fill()
-			continue
-		}
-		if n > b.w-b.r {
-			n = b.w - b.r
-		}
-		copy(p[0:n], b.buf[b.r:])
-		p = p[n:]
-		b.r += n
-		b.lastByte = int(b.buf[b.r-1])
-		b.lastRuneSize = -1
-		nn += n
+// It calls Read at most once on the underlying Reader,
+// hence n may be less than len(p).
+// At EOF, the count will be zero and err will be os.EOF.
+func (b *Reader) Read(p []byte) (n int, err os.Error) {
+	n = len(p)
+	if n == 0 {
+		return 0, b.err
 	}
-	return nn, nil
+	if b.w == b.r {
+		if b.err != nil {
+			return 0, b.err
+		}
+		if len(p) >= len(b.buf) {
+			// Large read, empty buffer.
+			// Read directly into p to avoid copy.
+			n, b.err = b.rd.Read(p)
+			if n > 0 {
+				b.lastByte = int(p[n-1])
+				b.lastRuneSize = -1
+			}
+			return n, b.err
+		}
+		b.fill()
+		if b.w == b.r {
+			return 0, b.err
+		}
+	}
+
+	if n > b.w-b.r {
+		n = b.w - b.r
+	}
+	copy(p[0:n], b.buf[b.r:])
+	b.r += n
+	b.lastByte = int(b.buf[b.r-1])
+	b.lastRuneSize = -1
+	return n, nil
 }
 
 // ReadByte reads and returns a single byte.
@@ -287,7 +286,8 @@ func (b *Reader) ReadSlice(delim byte) (line []byte, err os.Error) {
 // returning a slice containing the data up to and including the delimiter.
 // If ReadBytes encounters an error before finding a delimiter,
 // it returns the data read before the error and the error itself (often os.EOF).
-// ReadBytes returns err != nil if and only if line does not end in delim.
+// ReadBytes returns err != nil if and only if the returned data does not end in
+// delim.
 func (b *Reader) ReadBytes(delim byte) (line []byte, err os.Error) {
 	// Use ReadSlice to look for array,
 	// accumulating full buffers.
@@ -333,7 +333,8 @@ func (b *Reader) ReadBytes(delim byte) (line []byte, err os.Error) {
 // returning a string containing the data up to and including the delimiter.
 // If ReadString encounters an error before finding a delimiter,
 // it returns the data read before the error and the error itself (often os.EOF).
-// ReadString returns err != nil if and only if line does not end in delim.
+// ReadString returns err != nil if and only if the returned data does not end in
+// delim.
 func (b *Reader) ReadString(delim byte) (line string, err os.Error) {
 	bytes, e := b.ReadBytes(delim)
 	return string(bytes), e
@@ -384,6 +385,9 @@ func (b *Writer) Flush() os.Error {
 	if b.err != nil {
 		return b.err
 	}
+	if b.n == 0 {
+		return nil
+	}
 	n, e := b.wr.Write(b.buf[0:b.n])
 	if n < b.n && e == nil {
 		e = io.ErrShortWrite
@@ -411,38 +415,27 @@ func (b *Writer) Buffered() int { return b.n }
 // If nn < len(p), it also returns an error explaining
 // why the write is short.
 func (b *Writer) Write(p []byte) (nn int, err os.Error) {
-	if b.err != nil {
-		return 0, b.err
-	}
-	nn = 0
-	for len(p) > 0 {
-		n := b.Available()
-		if n <= 0 {
-			if b.Flush(); b.err != nil {
-				break
-			}
-			n = b.Available()
-		}
-		if b.Buffered() == 0 && len(p) >= len(b.buf) {
+	for len(p) > b.Available() && b.err == nil {
+		var n int
+		if b.Buffered() == 0 {
 			// Large write, empty buffer.
 			// Write directly from p to avoid copy.
 			n, b.err = b.wr.Write(p)
-			nn += n
-			p = p[n:]
-			if b.err != nil {
-				break
-			}
-			continue
+		} else {
+			n = copy(b.buf[b.n:], p)
+			b.n += n
+			b.Flush()
 		}
-		if n > len(p) {
-			n = len(p)
-		}
-		copy(b.buf[b.n:b.n+n], p[0:n])
-		b.n += n
 		nn += n
 		p = p[n:]
 	}
-	return nn, b.err
+	if b.err != nil {
+		return nn, b.err
+	}
+	n := copy(b.buf[b.n:], p)
+	b.n += n
+	nn += n
+	return nn, nil
 }
 
 // WriteByte writes a single byte.
@@ -482,7 +475,7 @@ func (b *Writer) WriteRune(rune int) (size int, err os.Error) {
 			return b.WriteString(string(rune))
 		}
 	}
-	size = utf8.EncodeRune(rune, b.buf[b.n:])
+	size = utf8.EncodeRune(b.buf[b.n:], rune)
 	b.n += size
 	return size, nil
 }
@@ -492,24 +485,21 @@ func (b *Writer) WriteRune(rune int) (size int, err os.Error) {
 // If the count is less than len(s), it also returns an error explaining
 // why the write is short.
 func (b *Writer) WriteString(s string) (int, os.Error) {
+	nn := 0
+	for len(s) > b.Available() && b.err == nil {
+		n := copy(b.buf[b.n:], s)
+		b.n += n
+		nn += n
+		s = s[n:]
+		b.Flush()
+	}
 	if b.err != nil {
-		return 0, b.err
+		return nn, b.err
 	}
-	// Common case, worth making fast.
-	if b.Available() >= len(s) || len(b.buf) >= len(s) && b.Flush() == nil {
-		for i := 0; i < len(s); i++ { // loop over bytes, not runes.
-			b.buf[b.n] = s[i]
-			b.n++
-		}
-		return len(s), nil
-	}
-	for i := 0; i < len(s); i++ { // loop over bytes, not runes.
-		b.WriteByte(s[i])
-		if b.err != nil {
-			return i, b.err
-		}
-	}
-	return len(s), nil
+	n := copy(b.buf[b.n:], s)
+	b.n += n
+	nn += n
+	return nn, nil
 }
 
 // buffered input and output
