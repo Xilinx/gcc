@@ -128,7 +128,7 @@ VEC(tree,gc) * gpy_stmt_process_print (gpy_symbol_obj *sym,
       tree * args = XNEWVEC( tree,len );
       for( idx=0; idx<len; ++idx )
 	{
-	  VEC(tree,gc) * x = gpy_stmt_get_tree (t, context);
+	  VEC(tree,gc) * x = gpy_stmt_get_tree_2 (t, NULL_TREE, context);
 	  gcc_assert( VEC_length(tree,x) == 1 );
 	  args[idy] = VEC_index(tree,x,0);
 	  idy++;

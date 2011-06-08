@@ -32,11 +32,8 @@ extern VEC(tree,gc) * gpy_stmt_process_expression (const gpy_symbol_obj * const,
 
 extern VEC(tree,gc) * gpy_stmt_process_print (gpy_symbol_obj *, VEC(gpy_ctx_t,gc) *);
 
-extern tree gpy_stmt_process_functor_1 (gpy_symbol_obj * const, const char *,
-					VEC(gpy_ctx_t,gc) *);
-
-extern tree gpy_stmt_process_functor_2 (gpy_symbol_obj * const, const char *,
-					tree, VEC(gpy_ctx_t,gc) *);
+extern tree gpy_stmt_process_functor (gpy_symbol_obj * const, const char *,
+				      tree, VEC(gpy_ctx_t,gc) *);
 
 extern void gpy_stmt_process_decl (gpy_symbol_obj * const);
 
