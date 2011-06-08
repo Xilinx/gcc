@@ -1,4 +1,9 @@
 
+2011-06-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	MELT branch merged with trunk rev 174972 using svnmerge
+	also patched fixincludes/genfixes
+
 2011-06-04  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 174636 using svnmerge

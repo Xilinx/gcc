@@ -1,3 +1,293 @@
+2011-06-08  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	* config/sh/sh.c (prepare_move_operands): Set pic register
+	appropriately for global and local dynamic tls models even
+	if flag_pic is unset.
+
+2011-06-07  Jason Merrill  <jason@redhat.com>
+
+	* pretty-print.h (ATTRIBUTE_GCC_PPDIAG): Use GCC_DIAG_STYLE if set.
+
+2011-06-07  Xinliang David Li  <davidxl@google.com>
+	* passes.c (enable_disable_pass): Handle assembler name.
+	(is_pass_explicitly_enabled_or_disabled): Ditto.
+
+2011-06-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR tree-optimization/48497
+	* doc/sourcebuild.texi (Directives, dg-additional-options): Document.
+
+2011-06-07  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/46728
+	* tree-ssa-math-opts.c (gimple_expand_builtin_pow): Change FIXME
+	to use gimple_val_nonnegative_real_p.
+	* gimple-fold.c (gimple_val_nonnegative_real_p): New function.
+	* gimple.h (gimple_val_nonnegative_real_p): New declaration.
+	
+2011-06-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (*movsf_internal): Optimize AVX check.
+
+2011-06-07  Sergey Grechanik  <mouseentity@ispras.ru>
+
+	* config/arm/arm.c (coproc_secondary_reload_class): Return NO_REGS for
+	constant vectors.
+
+2011-06-07  Richard Guenther  <rguenther@suse.de>
+
+	* stor-layout.c (initialize_sizetypes): Initialize all
+	sizetypes based on target definitions.
+	(set_sizetype): Remove.
+	* tree.c (build_common_tree_nodes): Do not call set_sizetype.
+	* tree.h (set_sizetype): Remove.
+
+2011-06-07  Nick Clifton  <nickc@redhat.com>
+
+	* config.gcc: Unify V850 architecture options and add support for
+	newer V850 architectures.
+	* config/v850/t-v850e: Delete.
+
+2011-06-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree.c (build_common_tree_nodes): Also initialize size_type_node.
+	Call set_sizetype from here.
+
+2011-06-07  Andrew Stubbs  <ams@codesourcery.com>
+
+	* config/arm/arm.md (*maddhidi4tb, *maddhidi4tt): New define_insns.
+	(*maddhisi4tb, *maddhisi4tt): New define_insns.
+
+2011-06-07  Bernd Schmidt  <bernds@codesourcery.com>
+	    Andrew Stubbs  <ams@codesourcery.com>
+
+	* simplify-rtx.c (simplify_unary_operation_1): Canonicalize widening
+	multiplies.
+	* doc/md.texi (Canonicalization of Instructions): Document widening
+	multiply canonicalization.
+
+2011-06-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR gcov-profile/49299
+	* value-prof.c (gimple_ic): Don't assume icall has
+	a fallthru edge.
+
+2011-06-07  Ira Rosen  <ira.rosen@linaro.org>
+
+	* tree-vectorizer.h (vect_recog_func_ptr): Make last argument to be
+	a pointer.
+	* tree-vect-patterns.c (vect_recog_widen_sum_pattern,
+	vect_recog_widen_mult_pattern, vect_recog_dot_prod_pattern,
+	vect_recog_pow_pattern): Likewise.
+	(vect_pattern_recog_1): Remove declaration.
+	(widened_name_p): Remove declaration.  Add new argument to specify
+	whether to check that both types are either signed or unsigned.
+	(vect_recog_widen_mult_pattern): Update documentation.  Handle
+	unsigned patterns and multiplication by constants.
+	(vect_pattern_recog_1): Update vect_recog_func references.  Use
+	statement information from the statement returned from pattern
+	detection functions.
+	(vect_pattern_recog): Update vect_recog_func reference.
+	* tree-vect-stmts.c (vectorizable_type_promotion): For widening
+	multiplication by a constant use the type of the other operand.
+
+2011-06-06  Richard Sandiford  <rdsandiford@googlemail.com>
+
+	PR rtl-optimization/49145
+	* combine.c (make_compound_operation): Handle ZERO_EXTEND specially.
+
+2011-06-06  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/49262
+	* dwarf2out.c (native_encode_initializer): Decrement count in each
+	iteration.
+
+	PR debug/49294
+	* dwarf2out.c (mem_loc_descriptor) <do_shift>: Give up for
+	non-MODE_INT modes.
+
+	PR c++/49264
+	* gimple-fold.c (fold_stmt_1): Don't try to fold *& on the lhs
+	if stmt folded into nothing.
+	* tree-inline.c (fold_marked_statements): If a builtin at the
+	end of a bb folded into nothing, just update cgraph edges
+	and move to next bb.
+	* cgraph.c (cgraph_update_edges_for_call_stmt_node): Allow new_stmt
+	to be NULL.  Don't compute count and frequency if new_call is NULL.
+
+2011-06-04  Diego Novillo  <dnovillo@google.com>
+
+	* Makefile.in (lto-compress.o): Add dependency on LTO_STREAMER_H.
+	(cgraph.o): Likewise.
+	(cgraphunit.o): Likewise.
+	* cgraphunit.c: Include lto-streamer.h
+	(cgraph_finalize_compilation_unit): Call lto_streamer_hooks_init
+	if LTO is enabled.
+	* lto-streamer-in.c (unpack_value_fields): Call
+	streamer_hooks.unpack_value_fields if set.
+	(lto_materialize_tree): For unhandled nodes, first try to
+	call lto_streamer_hooks.alloc_tree, if it exists.
+	(lto_input_ts_decl_common_tree_pointers): Move reading of
+	DECL_INITIAL to lto_streamer_read_tree.
+	(lto_read_tree): Call lto_streamer_hooks.read_tree if set.
+	(lto_streamer_read_tree): New.
+	(lto_reader_init): Rename from lto_init_reader.
+	Move initialization code to lto/lto.c.
+	* lto-streamer-out.c (pack_value_fields): Call
+	streamer_hooks.pack_value_fields if set.
+	(lto_output_tree_ref): For tree nodes that are not
+	normally indexable, call streamer_hooks.indexable_with_decls_p
+	before giving up.
+	(lto_output_ts_decl_common_tree_pointers): Move handling
+	for FUNCTION_DECL and TRANSLATION_UNIT_DECL to
+	lto_streamer_write_tree.
+	(lto_output_tree_header): Call streamer_hooks.is_streamable
+	instead of lto_is_streamable.
+	Call lto_streamer_hooks.output_tree_header if set.
+	(lto_write_tree): Call lto_streamer_hooks.write_tree if
+	set.
+	(lto_streamer_write_tree): New.
+	(lto_output): Call lto_streamer_init directly.
+	(lto_writer_init): Remove.
+	* lto-streamer.c (streamer_hooks): New.
+	(lto_streamer_cache_create): Call streamer_hooks.preload_common_nodes
+	instead of lto_preload_common_nodes.
+	(lto_is_streamable): Move from lto-streamer.h
+	(lto_streamer_hooks_init): New.
+	(streamer_hooks): New.
+	(streamer_hooks_init): New.
+	* lto-streamer.h (struct output_block): Forward declare.
+	(struct lto_input_block): Likewise.
+	(struct data_in): Likewise.
+	(struct bitpack_d): Likewise.
+	(struct streamer_hooks): Declare.
+	(streamer_hooks): Declare.
+	(lto_streamer_hooks_init): Declare.
+	(lto_streamer_write_tree): Declare.
+	(lto_streamer_read_tree): Declare.
+	(streamer_hooks_init): Declare.
+	(lto_is_streamable): Move to lto-streamer.c
+
+2011-06-06  Andreas Krebbel  <Andreas.Krebbel@de.ibm.com>
+
+	* longlong.h (smul_ppmm): The resulting register pair contains the
+	higher order word first.
+
+2011-06-06  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/46728
+	* builtins.c (powi_table): Remove.
+	(powi_lookup_cost): Remove.
+	(powi_cost): Remove.
+	(expand_powi_1): Remove.
+	(expand_powi): Remove.
+	(expand_builtin_pow_root): Remove.
+	(expand_builtin_pow): Remove.
+	(expand_builtin_powi): Eliminate handling of constant exponent.
+	(expand_builtin): Use expand_builtin_mathfn_2 for BUILT_IN_POW.
+	
+2011-06-06  Alexandre Oliva  <aoliva@redhat.com>
+
+	* cprop.c (local_cprop_pass): Don't set changed for debug insns.
+
+2011-06-06  Alexandre Oliva  <aoliva@redhat.com>
+
+	* dce.c (reset_unmarked_insns_debug_uses): New.
+	(delete_unmarked_insns): Skip debug insns.
+	(prescan_insns_for_dce): Likewise.
+	(rest_of_handle_ud_dce): Reset debug uses of removed sets.
+	* reg-stack.c (subst_stack_regs_in_debug_insn): Signal when no
+	active reg can be found.
+	(subst_all_stack_regs_in_debug_insn): New.  Reset debug insn then.
+	(convert_regs_1): Use it.
+
+2011-06-06  Alexandre Oliva  <aoliva@redhat.com>
+
+	* tree-pretty-print.c (dump_function_header): Add flags.
+	Don't dump decl_uid with nouid.
+	* tree-pretty-print.h (dump_function_header): Adjust.
+	* final.c (rest_of_clean_state): Pass dump_flags on, with nouid.
+	* passes.c (pass_init_dump_file): Pass dump_flags on.
+	* tree-cfg.c (gimple_dump_cfg): Pass flags on.
+
+2011-06-06  Alexandre Oliva  <aoliva@redhat.com>
+
+	PR bootstrap/49270
+	* ipa-inline-analysis.c (read_predicate): Initialize all clauses.
+
+2011-06-06  Mikael Pettersson  <mikpe@it.uu.se>
+
+	PR tree-optimization/49243
+	* calls.c (setjmp_call_p): Also check if fndecl has the
+	returns_twice attribute.
+
+2011-06-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/mips/iris6.h (ENDFILE_SPEC): Use crtfastmath.o if
+	-ffast-math etc.
+
+2011-06-06  Richard Henderson  <rth@redhat.com>
+	    Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/42210
+	* config/avr/predicates.md (const1_operand, const_0_to_7_operand):
+	New predicates.
+	* config/avr/avr.md ("insv"): New insn expander.
+	("*movbitqi.1-6.a", "*movbitqi.1-6.b", "*movbitqi.0", "*insv.io",
+	"*insv.not.io", "*insv.reg"): New insns.
+
+2011-06-06  Hans-Peter Nilsson  <hp@bitrange.com>
+
+	PR target/49285
+	* config/mmix/mmix.md ("truncdfsf2", "extendsfdf2"): Correct
+	predicate to nonimmediate_operand from memory_operand for the
+	operand that is to be forced to memory by the expander.  Lose
+	the constraints.
+
+2011-06-05  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (output_return): Fix thinko in the output of an
+	EH return when delayed branches are disabled.
+
+2011-06-05  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.md (*movdf_internal_rex64) <case 8,9,10>:
+	Remove MODE_TI handling.  Remove SSE1 handling in attribute "mode"
+	calculation.
+	(*movdf_internal_rex64) <case 6,7,8>: Remove MODE_TI handling.
+	Simplify MODE_V1DF and MODE_V2SF handling.
+	(*movsf_internal): Remove x constraint from alternative 7 of operand 1.
+	Simplify MODE_SF handling.
+
+2011-06-04  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimization/48893
+	PR tree-optimization/49091
+	PR tree-optimization/49179
+	* ipa-inline-analysis.c (evaluate_conditions_for_known_args):
+	Bounds check.
+
+2011-06-04  Jan Hubicka  <jh@suse.cz>
+
+	PR lto/48954
+	* lto-cgraph.c (output_node_opt_summary): Handle NULL skip args bitmaps.
+
+2011-06-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* doc/invoke.texi: Document -Wdelete-non-virtual-dtor.
+
+2011-06-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/49281
+	* config/i386/i386.md (*lea_general_4): Require INTVAL (operands[3])
+	to be strictly smaller than 1 << shiftcount.
+
+2011-06-04  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/48929
+	* ipa-inline-analysis.c (remap_edge_predicates): Fix handling
+	of empty predicate.
+
 2011-06-04  Alexandre Oliva  <aoliva@redhat.com>
 
 	PR debug/48333
@@ -120,8 +410,7 @@
 
 	* config/arm/arm-cores.def (strongarm, strongarm110, strongarm1100)
 	(strongarm1110): Use strongarm tuning.
-	* config/arm/arm-protos.h (tune_params): Add max_insns_skipped
-	field.
+	* config/arm/arm-protos.h (tune_params): Add max_insns_skipped field.
 	* config/arm/arm.c (arm_strongarm_tune): New.
 	(arm_slowmul_tune, arm_fastmul_tune, arm_xscale_tune, arm_9e_tune)
 	(arm_v6t2_tune, arm_cortex_tune, arm_cortex_a5_tune)

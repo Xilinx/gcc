@@ -1,3 +1,20 @@
+2011-06-07  Richard Guenther  <rguenther@suse.de>
+
+	* f95-lang.c (gfc_init_decl_processing): Do not set
+	size_type_node or call set_sizetype.
+
+2011-06-05  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49255
+	* trans-expr.c (gfc_conv_procedure_call): Fix -fcheck=pointer
+	for F2008.
+
+2011-06-05  Andreas Schmidt  <andreas.schmidt.42@gmx.net>
+	Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* dump-parse-tree.c (show_symbol):  Don't dump namespace
+	for ENTRY to avoid infinite recursion.
+
 2011-06-02  Asher Langton  <langton2@llnl.gov>
 
 	PR fortran/49268
@@ -16,7 +33,7 @@
 	procedure statement.
 	* parse.c ( decode_statement): Deal with whitespace around :: in
 	gfc_match_modproc.
- 
+
 2011-05-31  Tobias Burnus  <burnus@net-b.de>
 
 	PR fortran/18918
