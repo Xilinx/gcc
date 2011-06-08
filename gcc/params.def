@@ -1002,6 +1002,15 @@ DEFPARAM (PARAM_MVERSN_CLONE_CGRAPH_DEPTH,
 	  "maximum length of the call graph path to be cloned "
           "while doing multiversioning",
 	  2, 0, 5)
+
+/* Only output those call graph edges in .note.callgraph.text sections
+   whose count is greater than this value. */
+DEFPARAM (PARAM_NOTE_CGRAPH_SECTION_EDGE_THRESHOLD,
+	  "note-cgraph-section-edge-threshold",
+	  "minimum call graph edge count for inclusion in "
+          ".note.callgraph.text section",
+	  0, 0, 0)
+
 /*
 Local variables:
 mode:c

@@ -4321,13 +4321,37 @@ debug_free_queue (void)
       symbol_queue_size = 0;
     }
 }
-
+
+/* List the call graph profiled edges whise value is greater than
+   PARAM_NOTE_CGRAPH_SECTION_EDGE_THRESHOLD in the
+   ".note.callgraph.text" section. */
+static void
+dump_cgraph_profiles (void)
+{
+  struct cgraph_node *node = cgraph_node (current_function_decl);
+  struct cgraph_edge *e;
+  struct cgraph_node *callee;
+
+  for (e = node->callees; e != NULL; e = e->next_callee)
+    {
+      if (e->count <= PARAM_VALUE (PARAM_NOTE_CGRAPH_SECTION_EDGE_THRESHOLD))
+        continue;
+      callee = e->callee;
+      fprintf (asm_out_file, "\t.string \"%s\"\n",
+               IDENTIFIER_POINTER (decl_assembler_name (callee->decl)));
+      fprintf (asm_out_file, "\t.string \"" HOST_WIDEST_INT_PRINT_DEC "\"\n",
+               e->count);
+    }
+}
+
 /* Turn the RTL into assembly.  */
 static unsigned int
 rest_of_handle_final (void)
 {
   rtx x;
   const char *fnname;
+  char *profile_fnname;
+  unsigned int flags;
 
   /* Get the function's name, as described by its RTL.  This may be
      different from the DECL_NAME name used in the source file.  */
@@ -4387,6 +4411,21 @@ rest_of_handle_final (void)
     targetm.asm_out.destructor (XEXP (DECL_RTL (current_function_decl), 0),
 				decl_fini_priority_lookup
 				  (current_function_decl));
+
+  /* With -fcgraph-section, add ".note.callgraph.text" section for storing
+     profiling information. */
+  if (flag_callgraph_profiles_sections
+      && flag_profile_use
+      && cgraph_node (current_function_decl) != NULL)
+    {
+      flags = SECTION_DEBUG;
+      asprintf (&profile_fnname, ".note.callgraph.text.%s", fnname);
+      switch_to_section (get_section (profile_fnname, flags, NULL));
+      fprintf (asm_out_file, "\t.string \"Function %s\"\n", fnname);
+      dump_cgraph_profiles ();
+      free (profile_fnname);
+    }
+
   return 0;
 }
 

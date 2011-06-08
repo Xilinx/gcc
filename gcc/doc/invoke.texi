@@ -351,7 +351,7 @@ Objective-C and Objective-C++ Dialects}.
 -falign-labels[=@var{n}] -falign-loops[=@var{n}] -fassociative-math @gol
 -fauto-inc-dec -fbranch-probabilities -fbranch-target-load-optimize @gol
 -fbranch-target-load-optimize2 -fbtr-bb-exclusive -fcaller-saves @gol
--fcheck-data-deps -fclone-hot-version-paths @gol
+-fcallgraph-profiles-sections -fcheck-data-deps -fclone-hot-version-paths @gol
 -fcombine-stack-adjustments -fconserve-stack @gol
 -fcompare-elim -fcprop-registers -fcrossjumping @gol
 -fcse-follow-jumps -fcse-skip-blocks -fcx-fortran-rules @gol
@@ -8114,6 +8114,15 @@ Do not promote static functions with always inline attribute in LIPO compilation
 @opindex fripa-verbose
 Enable printing of verbose information about dynamic inter-procedural optimizations.
 This is used in conjunction with the @option{-fripa}.
+
+@item -fcallgraph-profiles-sections
+@opindex fcallgraph-profiles-sections
+Emit call graph edge profile counts in .note.callgraph.text sections. This is
+used in conjunction with @option{-fprofile-use}. A new .note.callgraph.text
+section is created for each function. This section lists every callee and the
+number of times it is called. The params variable
+"note-cgraph-section-edge-threshold" can be used to only list edges above a
+certain threshold.
 @end table
 
 The following options control compiler behavior regarding floating

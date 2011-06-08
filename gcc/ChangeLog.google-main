@@ -1,3 +1,13 @@
+2011-06-08  Sriraman Tallam  <tmsriram@google.com>
+
+	* doc/invoke.texi: document option -fcallgraph-profiles-sections.
+	* final.c  (dump_cgraph_profiles): New function.
+	(rest_of_handle_final): Create new section '.note.callgraph.text'
+	with compiler flag -fcallgraph-profiles-sections
+	* common.opt: New option -fcallgraph-profiles-sections.
+	* params.def (DEFPARAM): New param
+        PARAM_NOTE_CGRAPH_SECTION_EDGE_THRESHOLD.
+
 2011-06-07  Mark Heffernan  <meheff@google.com>
 
 	* cgraph.h (cgraph_global_info): Remove field.

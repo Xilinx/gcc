@@ -907,6 +907,10 @@ fcaller-saves
 Common Report Var(flag_caller_saves) Optimization
 Save registers around function calls
 
+fcallgraph-profiles-sections
+Common Report Var(flag_callgraph_profiles_sections) Init(0)
+Generate .note.callgraph.text sections listing callees and edge counts.
+
 fcheck-data-deps
 Common Report Var(flag_check_data_deps)
 Compare the results of several data dependence analyzers.
