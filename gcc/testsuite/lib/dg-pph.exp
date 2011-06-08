@@ -94,9 +94,7 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     # Quit if it did not compile successfully.
     if { ![file_on_host exists "$bname.s"] } {
 	# Expect assembly to be missing when the compile is an expected fail.
-	if { [llength [grep $test "dg-xfail-if.*-fpph-map"]] } {
-	    xfail "$nshort $options (pph assembly missing)"
-	} else {
+	if { ![llength [grep $test "dg-xfail-if.*-fpph-map"]] } {
 	    fail "$nshort $options (pph assembly missing)"
 	}
 	return

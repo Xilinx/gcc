@@ -1,7 +1,6 @@
 // { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "c1variables.h:4:8: error: 'int D::mbr_uninit_plain' is not a static member of 'struct D'" "" { xfail *-*-* } 0 }
-// { dg-bogus "c1variables.h:5:14: error: 'const int D::mbr_init_const' is not a static member of 'struct D'" "" { xfail *-*-* } 0 }
-// { dg-prune-output "In file included from " }
+// { dg-bogus "c1variables.h:5:8: error: 'int D::mbr_uninit_plain' is not a static member of 'struct D'" "" { xfail *-*-* } 0 }
+// { dg-bogus "c1variables.h:6:14: error: 'const int D::mbr_init_const' is not a static member of 'struct D'" "" { xfail *-*-* } 0 }
 
 #include "x1variables.h"
 

@@ -1,6 +1,5 @@
-// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x1tmplclass.h:14:17: internal compiler error: Segmentation fault" "" { xfail *-*-* } 0 }
-// { dg-prune-output "In file included from " }
+// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "x1tmplclass.h:14:5: error: specializing member .wrapper<char>::cache. requires .template<>. syntax" "" { xfail *-*-* } 0 }
 
 #include "x1tmplclass.h"
 

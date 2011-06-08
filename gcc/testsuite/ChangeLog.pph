@@ -1,3 +1,17 @@
+2011-06-08  Lawrence Crowl <crowl@google.com>
+
+	* lib/dg-pph.exp (dg-pph-pos): Stop redundantly reporting a missing
+	pph assembly as an xfail when its compile xfails.
+	* g++.dg/pph/x1typerefs.cc: Replace ICE xfail with a bogus error xfail.
+	* g++.dg/pph/x1tmplclass.cc: Likewise.
+	* g++.dg/pph/x1autometh.cc: Replace ICE xfail with an assembly diff
+	xfail.
+	* g++.dg/pph/x1special.cc: Remove ICE xfail.
+	* g++.dg/pph/x1functions.cc: Correct xfail to BOGUS rather than ERROR.
+	Remove leftover pruning from previous ICE.
+	* g++.dg/pph/x1template.cc: Update line number of ICE.
+	* g++.dg/pph/x1variables.cc: Update line number of BOGUS.
+
 2011-06-06  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/x1functions.cc (dg-xfail-if "ICE"): Remove.
