@@ -1,5 +1,10 @@
 2011-06-08  Lawrence Crowl <crowl@google.com>
 
+	* g++.dg/pph/c120060625-1.h: Make expected pass.
+	* g++.dg/pph/c120060625-1.cc: Make expected pass.
+
+2011-06-08  Lawrence Crowl <crowl@google.com>
+
 	* lib/dg-pph.exp (dg-pph-pos): Stop redundantly reporting a missing
 	pph assembly as an xfail when its compile xfails.
 	* g++.dg/pph/x1typerefs.cc: Replace ICE xfail with a bogus error xfail.

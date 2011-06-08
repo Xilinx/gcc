@@ -1,3 +1,9 @@
+2011-06-08  Lawrence Crowl  <crowl@google.com>
+
+	* symtab.c (lt_query_macro): Querying "user builtin" macros should not
+	call _cpp_builtin_macro_text.  Instead, call regular query, but first
+	let the front end define the value.
+
 2011-04-17  Lawrence Crowl  <crowl@google.com>
 
 	* directives.c (too_many_directives_for_bitfield): Make static assert

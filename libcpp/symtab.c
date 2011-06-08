@@ -494,7 +494,8 @@ static const char *
 lt_query_macro (cpp_reader *reader, cpp_hashnode *cpp_node)
 {
   const char *definition = NULL;
-  if (cpp_node->flags & NODE_BUILTIN)
+  if ((cpp_node->flags & NODE_BUILTIN)
+      && cpp_node->value.builtin < BT_FIRST_USER)
     {
       const char *str = (const char *)cpp_node->ident.str;
       if (   strcmp(str, "__DATE__") == 0
@@ -527,6 +528,8 @@ lt_query_macro (cpp_reader *reader, cpp_hashnode *cpp_node)
   else
     {
       char c;
+      if ((cpp_node->flags & NODE_BUILTIN) && reader->cb.user_builtin_macro)
+        reader->cb.user_builtin_macro (reader, cpp_node);
       definition = (const char *) cpp_macro_definition (reader, cpp_node);
       /* Skip over the macro name within the definition.  */
       c = *definition;
