@@ -229,8 +229,6 @@ void
 cgraph_clone_inlined_nodes (struct cgraph_edge *e, bool duplicate,
 			    bool update_original)
 {
-  HOST_WIDE_INT peak;
-
   if (duplicate)
     {
       /* We may eliminate the need for out-of-line copy to be output.
@@ -279,13 +277,13 @@ cgraph_clone_inlined_nodes (struct cgraph_edge *e, bool duplicate,
     e->callee->global.inlined_to = e->caller->global.inlined_to;
   else
     e->callee->global.inlined_to = e->caller;
-  e->callee->global.stack_frame_offset
-    = e->caller->global.stack_frame_offset
-      + inline_summary (e->caller)->estimated_self_stack_size;
-  peak = e->callee->global.stack_frame_offset
-      + inline_summary (e->callee)->estimated_self_stack_size;
-  if (e->callee->global.inlined_to->global.estimated_stack_size < peak)
-    e->callee->global.inlined_to->global.estimated_stack_size = peak;
+
+  /* Pessimistically assume no sharing of stack space.  That is, the
+     frame size of a function is estimated as the original frame size
+     plus the sum of the frame sizes of all inlined callees.  */
+  e->callee->global.inlined_to->global.estimated_stack_size +=
+    inline_summary (e->callee)->estimated_self_stack_size;
+
   cgraph_propagate_frequency (e->callee);
 
   /* Recursively clone all bodies.  */
@@ -430,8 +428,7 @@ cgraph_check_inline_limits (struct cgraph_node *to, struct cgraph_node *what,
 
   stack_size_limit += stack_size_limit * PARAM_VALUE (PARAM_STACK_FRAME_GROWTH) / 100;
 
-  inlined_stack = (to->global.stack_frame_offset
-		   + inline_summary (to)->estimated_self_stack_size
+  inlined_stack = (to->global.estimated_stack_size
 		   + what->global.estimated_stack_size);
   if (inlined_stack  > stack_size_limit
       && inlined_stack > PARAM_VALUE (PARAM_LARGE_STACK_FRAME))
@@ -2064,7 +2061,6 @@ compute_inline_parameters (struct cgraph_node *node)
   self_stack_size = optimize ? estimated_stack_frame_size (node) : 0;
   inline_summary (node)->estimated_self_stack_size = self_stack_size;
   node->global.estimated_stack_size = self_stack_size;
-  node->global.stack_frame_offset = 0;
 
   /* Can this function be inlined at all?  */
   node->local.inlinable = tree_inlinable_function_p (node->decl);

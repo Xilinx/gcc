@@ -136,8 +136,6 @@ struct GTY(()) cgraph_local_info {
 struct GTY(()) cgraph_global_info {
   /* Estimated stack frame consumption by the function.  */
   HOST_WIDE_INT estimated_stack_size;
-  /* Expected offset of the stack frame of inlined function.  */
-  HOST_WIDE_INT stack_frame_offset;
 
   /* For inline clones this points to the function they will be
      inlined into.  */

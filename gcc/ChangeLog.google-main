@@ -1,3 +1,11 @@
+2011-06-07  Mark Heffernan  <meheff@google.com>
+
+	* cgraph.h (cgraph_global_info): Remove field.
+	* ipa-inline.c (cgraph_clone_inlined_nodes): Change
+	stack frame computation.
+	(cgraph_check_inline_limits): Change stack frame computation.
+	(compute_inline_parameters): Remove dead initialization.
+
 2011-06-07  David Li  <davidxl@google.com>
 
 	* tree-pretty-print.c	(revision 174779)
