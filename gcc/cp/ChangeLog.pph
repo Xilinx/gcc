@@ -1,3 +1,10 @@
+2011-06-08   Diego Novillo  <dnovillo@google.com>
+
+	* parser.c (cp_lexer_dump_tokens): If START_TOKEN is NULL,
+	set it to the start of the token buffer.
+	If BUFFER is NULL, do nothing.
+	(cp_debug_parser): Increase token window size.
+
 2011-06-08  Diego Novillo  <dnovillo@google.com>
 
 	Fix spurious differences with trunk.

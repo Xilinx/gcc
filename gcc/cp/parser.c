@@ -265,10 +265,16 @@ cp_lexer_dump_tokens (FILE *file, VEC(cp_token,gc) *buffer,
 
   fprintf (file, "%u tokens\n", VEC_length (cp_token, buffer));
 
+  if (buffer == NULL)
+    return;
+
   if (num == 0)
     num = VEC_length (cp_token, buffer);
 
-  if (start_token && start_token > VEC_address (cp_token, buffer))
+  if (start_token == NULL)
+    start_token = VEC_address (cp_token, buffer);
+
+  if (start_token > VEC_address (cp_token, buffer))
     {
       cp_lexer_print_token (file, VEC_index (cp_token, buffer, 0));
       fprintf (file, " ... ");
@@ -436,7 +442,7 @@ void
 cp_debug_parser (FILE *file, cp_parser *parser)
 {
   cp_token *start_token, *first_token, *next_token;
-  const size_t window_size = 20;
+  const size_t window_size = 200;
 
   if (file == NULL)
     file = stderr;
