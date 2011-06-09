@@ -2,6 +2,13 @@
 
 	Fix spurious differences with trunk.
 
+	* input.h (LOCATION_COLUMN): Remove unused macro.
+	* tree.c (make_node_stat): Add blank line.
+
+2011-06-08   Diego Novillo  <dnovillo@google.com>
+
+	Fix spurious differences with trunk.
+
 	* c-parser.c (c_parser_declaration_or_fndef): Remove call to
 	timevar_push.
 	* ggc-page.c (ggc_collect): Change timevar_start to
