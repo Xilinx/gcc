@@ -291,8 +291,8 @@ tree gpy_stmt_process_functor (gpy_symbol_obj * const functor, const char * pref
   
   gimplify_function_tree (fndecl);
   
-  cgraph_add_new_function (fndecl, false);
-  cgraph_finalize_function (fndecl, true);
+  // cgraph_add_new_function (fndecl, false);
+  // cgraph_finalize_function (fndecl, true);
   
   return fndecl;
 }
@@ -503,7 +503,6 @@ VEC(tree,gc) * gpy_stmt_pass_2 (VEC(gpy_sym,gc) * const decls,
 
       gpy_hash_tab_t ctx;
       gpy_dd_hash_init_table (&ctx);
-
       tree field = TYPE_FIELDS (module);
       while (field)
 	{
@@ -536,6 +535,43 @@ VEC(tree,gc) * gpy_stmt_pass_2 (VEC(gpy_sym,gc) * const decls,
 	      break;
 	    }
 	}
+
+      int size = ctx->size;
+      gpy_hash_entry_t *array= ctx->array;
+  
+      for (idx = 0; idx<size; ++idx)
+	{
+	  if (array[idx].data)
+	    {
+	      tree x = (tree) array[idx].data;
+	      if (TREE_CODE(x) == VAR_DECL)
+		{
+		  debug("got decl <%p>:<%s> within func <%s>!\n", (void*)x,
+			IDENTIFIER_POINTER (DECL_NAME(x)), functor->identifier);
+		  TREE_CHAIN( x ) = declare_vars;
+		  declare_vars = x;
+		}
+	    }
+	}
+  
+      tree bl = make_node(BLOCK);
+      BLOCK_SUPERCONTEXT(bl) = fndecl;
+      DECL_INITIAL(fndecl) = bl;
+      BLOCK_VARS(bl) = declare_vars;
+      TREE_USED(bl) = 1;
+      bind = build3(BIND_EXPR, void_type_node, BLOCK_VARS(bl),
+		    NULL_TREE, bl);
+      TREE_SIDE_EFFECTS(bind) = 1;
+  
+      BIND_EXPR_BODY(bind) = block;
+      block = bind;
+      DECL_SAVED_TREE(fndecl) = block;
+  
+      gimplify_function_tree (fndecl);
+  
+      cgraph_add_new_function (fndecl, false);
+      cgraph_finalize_function (fndecl, true);
+
       VEC_pop (gpy_ctx_t, context);
       gpy_dd_hash_init_table (&ctx);
       
