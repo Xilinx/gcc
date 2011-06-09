@@ -1,0 +1,49 @@
+#!/bin/bash
+#
+# Script to reproduce a test failure from a dejagnu .log file
+#
+# Contributed by Diego Novillo <dnovillo@google.com>
+#
+# Copyright (C) 2011 Free Software Foundation, Inc.
+#
+# This file is part of GCC.
+#
+# GCC is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3, or (at your option)
+# any later version.
+#
+# GCC is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with GCC; see the file COPYING.  If not, write to
+# the Free Software Foundation, 51 Franklin Street, Fifth Floor,
+# Boston, MA 02110-1301, USA.
+
+if [ $# -lt 2 ] ; then
+    echo "usage: $0 pattern file.log [additional-args]"
+    echo
+    echo "Finds the 'spawn' line matching PATTERN in FILE.LOG and executes"
+    echo "the command with any arguments in ADDITIONAL-ARGS."
+    echo
+    exit 1
+fi
+
+set -e
+pattern=$1
+logf=$2
+shift 2
+args="$@"
+line=$(grep "^spawn .*$pattern" $logf | sed -e "s:^spawn ::")
+
+if [ "$line" = "" ] ; then
+    echo "Could not find a spawn command for pattern $1"
+    exit 1
+fi
+
+set -x +e
+$line $args
+exit $?
