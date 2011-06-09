@@ -1,5 +1,10 @@
 2011-06-09  David Li  <davidxl@google.com>
 
+	* gcse.c (gate_rtl_cprop): Gate cleanup
+	(execute_rtl_cprop): Gate cleanup
+
+2011-06-09  David Li  <davidxl@google.com>
+
 	Backport trunk 174849
 	* cgraphunit.c (cgraph_finalize_compilation_unit): Pass dump.
 	* passes.c (passr_eq): New function.
