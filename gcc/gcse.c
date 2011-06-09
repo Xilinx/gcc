@@ -5309,17 +5309,15 @@ one_cprop_pass (void)
 static bool
 gate_rtl_cprop (void)
 {
-  return optimize > 0 && flag_gcse;
+  return optimize > 0 && flag_gcse
+    && !cfun->calls_setjmp
+    && dbg_cnt (cprop);
 }
 
 static unsigned int
 execute_rtl_cprop (void)
 {
   int changed;
-  if (cfun->calls_setjmp
-      || !dbg_cnt (cprop))
-    return 0;
-
   delete_unreachable_blocks ();
   df_set_flags (DF_LR_RUN_DCE);
   df_analyze ();
@@ -5334,17 +5332,15 @@ static bool
 gate_rtl_pre (void)
 {
   return optimize > 0 && flag_gcse
-         && optimize_function_for_speed_p (cfun);
+    && !cfun->calls_setjmp
+    && optimize_function_for_speed_p (cfun)
+    && dbg_cnt (pre);
 }
 
 static unsigned int
 execute_rtl_pre (void)
 {
   int changed;
-
-  if (cfun->calls_setjmp || !dbg_cnt (pre))
-    return 0;
-
   delete_unreachable_blocks ();
   df_analyze ();
   changed = one_pre_gcse_pass ();
@@ -5358,20 +5354,18 @@ static bool
 gate_rtl_hoist (void)
 {
   return optimize > 0 && flag_gcse
-        /* It does not make sense to run code hoisting unless we are optimizing
-         for code size -- it rarely makes programs faster, and can make then
-         bigger if we did PRE (when optimizing for space, we don't run PRE).  */
-        && optimize_function_for_size_p (cfun);
+    && !cfun->calls_setjmp
+    /* It does not make sense to run code hoisting unless we are optimizing
+       for code size -- it rarely makes programs faster, and can make then
+       bigger if we did PRE (when optimizing for space, we don't run PRE).  */
+    && optimize_function_for_size_p (cfun)
+    && dbg_cnt (hoist);
 }
 
 static unsigned int
 execute_rtl_hoist (void)
 {
   int changed;
-
-  if (cfun->calls_setjmp || !dbg_cnt (hoist))
-      return 0;
-
   delete_unreachable_blocks ();
   df_analyze ();
   changed = one_code_hoisting_pass ();
@@ -5445,3 +5439,4 @@ struct rtl_opt_pass pass_rtl_hoist =
 };
 
 #include "gt-gcse.h"
+
