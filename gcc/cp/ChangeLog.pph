@@ -1,3 +1,21 @@
+2011-06-08  Diego Novillo  <dnovillo@google.com>
+
+	Fix spurious differences with trunk.
+
+	* call.c: Do not include pph.h.
+	(implicit_conversion): Remove unnecessary braces.
+	(build_new_op_1): Likewise.
+	* cp-gimplify.c (cp_genericize): Remove FIXME comment.
+	* cp-lang.c: Do not include pph.h.
+	* decl.c (duplicate_decls): Rename from duplicate_decls_internal.
+	(xref_tag_1): Remove FIXME comment.
+	* Make-lang.in (cp/cp-lang.o): Remove $(CXX_PPH_H) dependency.
+	(cp/decl.o): Remove $(CXX_PPH_H) and langhooks.h dependencies.
+	(cp/pt.o): Remove $(CXX_PPH_H) dependency.
+	* pt.c: Do not include pph.h.
+	* rtti.c (create_pseudo_type_info): Remove setting of
+	DECL_ARTIFICIAL.
+
 2011-06-06  Gabriel Charette  <gchare@google.com>
 
 	* pph.c (pth_stats): Remove field. Update all users.

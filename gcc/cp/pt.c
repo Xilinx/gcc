@@ -45,7 +45,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-iterator.h"
 #include "vecprim.h"
-#include "pph.h"
 
 /* The type of functions taking a tree, and some additional data, and
    returning an int.  */

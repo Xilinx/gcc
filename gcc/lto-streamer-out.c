@@ -1275,7 +1275,6 @@ lto_output_tree_header (struct output_block *ob, tree expr)
      EXPR on the reading side (such as the number of slots in
      variable sized nodes).  */
   tag = lto_tree_code_to_tag (code);
-  gcc_assert ((unsigned) tag < (unsigned) LTO_NUM_TAGS);
   output_record_start (ob, tag);
 
   /* The following will cause bootstrap miscomparisons.  Enable with care.  */

@@ -1685,7 +1685,6 @@ c_parser_declaration_or_fndef (c_parser *parser, bool fndef_ok,
 	  return;
 	}
       /* Function definition (nested or otherwise).  */
-      timevar_push (TV_PARSE_FUNC);
       if (nested)
 	{
 	  pedwarn (here, OPT_pedantic, "ISO C forbids nested functions");

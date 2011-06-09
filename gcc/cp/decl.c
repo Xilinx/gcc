@@ -54,8 +54,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "splay-tree.h"
 #include "plugin.h"
-#include "langhooks.h"
-#include "pph.h"
 
 /* Possible cases of bad specifiers type used by bad_specifiers. */
 enum bad_spec_place {
@@ -1180,8 +1178,8 @@ validate_constexpr_redeclaration (tree old_decl, tree new_decl)
 
    NEWDECL_IS_FRIEND is true if NEWDECL was declared as a friend.  */
 
-static tree
-duplicate_decls_internal (tree newdecl, tree olddecl, bool newdecl_is_friend)
+tree
+duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
 {
   unsigned olddecl_uid = DECL_UID (olddecl);
   int olddecl_friend = 0, types_match = 0, hidden_friend = 0;
@@ -2300,28 +2298,6 @@ duplicate_decls_internal (tree newdecl, tree olddecl, bool newdecl_is_friend)
   ggc_free (newdecl);
 
   return olddecl;
-}
-
-
-/* Wrapper for duplicate_decls_internal used by PPH support to
-   decide whether NEWDECL or OLDDECL should be removed from the
-   AST catching data structures.  This is necessary when NEWDECL
-   is a re-declaration of OLDDECL.  */
-
-tree
-duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
-{
-  tree gooddecl;
-
-  gooddecl = duplicate_decls_internal (newdecl, olddecl, newdecl_is_friend);
-
-  /* If duplicate_decls_internal returns NULL, it means that NEWDECL
-     is not a re-declaration of OLDDECL, so nothing needs to be done
-     in that case.  */
-  if (gooddecl == NULL_TREE)
-    return NULL_TREE;
-
-  return gooddecl;
 }
 
 /* Return zero if the declaration NEWDECL is valid
@@ -11503,7 +11479,6 @@ xref_tag_1 (enum tag_types tag_code, tree name,
 	{
 	  t = make_class_type (code);
 	  TYPE_CONTEXT (t) = context;
-          /* FIXME pph: creating incomplete class.  */
 	  t = pushtag (name, t, scope);
 	}
     }

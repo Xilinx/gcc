@@ -1,3 +1,21 @@
+2011-06-08   Diego Novillo  <dnovillo@google.com>
+
+	Fix spurious differences with trunk.
+
+	* c-parser.c (c_parser_declaration_or_fndef): Remove call to
+	timevar_push.
+	* ggc-page.c (ggc_collect): Change timevar_start to
+	timevar_push and timevar_stop to timevar_pop.
+	* ggc-zone.c (ggc_collect): Likewise.
+	* langhooks-def.h (LANG_HOOKS_INITIALIZER): Remove ',' at the
+	end.
+	* lto-streamer-out.c (lto_output_tree_header): Remove
+	assertion.
+	* timevar.def (TV_GC): Revert to trunk version.
+	* toplev.c (compile_file): Remove some timevar_start and
+	timevar_stop calls.
+	(do_compile): Likewise.
+
 2011-06-07  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (pph_read_tree): Read TREE_TYPE from

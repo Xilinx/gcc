@@ -39,7 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "convert.h"
 #include "langhooks.h"
-#include "pph.h"
 #include "c-family/c-objc.h"
 #include "timevar.h"
 
@@ -1757,9 +1756,7 @@ implicit_conversion (tree to, tree from, tree expr, bool c_cast_p,
 
       cand = build_user_type_conversion_1 (to, expr, convflags);
       if (cand)
-        {
-	  conv = cand->second_conv;
-        }
+	conv = cand->second_conv;
 
       /* We used to try to bind a reference to a temporary here, but that
 	 is now handled after the recursive call to this function at the end
@@ -5014,9 +5011,7 @@ build_new_op_1 (enum tree_code code, int flags, tree arg1, tree arg2, tree arg3,
 	  if (resolve_args (arglist, complain) == NULL)
 	    result = error_mark_node;
 	  else
-            {
-	      result = build_over_call (cand, LOOKUP_NORMAL, complain);
-            }
+	    result = build_over_call (cand, LOOKUP_NORMAL, complain);
 	}
       else
 	{

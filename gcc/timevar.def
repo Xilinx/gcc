@@ -47,7 +47,7 @@ DEFTIMEVAR (TV_NAME_LOOKUP           , "|name lookup")
 DEFTIMEVAR (TV_OVERLOAD              , "|overload resolution")
 
 /* Time spent garbage-collecting.  */
-DEFTIMEVAR (TV_GC                    , "|garbage collection")
+DEFTIMEVAR (TV_GC                    , "garbage collection")
 
 /* Time spent generating dump files.  */
 DEFTIMEVAR (TV_DUMP                  , "dump files")

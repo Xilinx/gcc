@@ -33,7 +33,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 #include "target.h"
 #include "parser.h"
-#include "pph.h"
 
 enum c_language_kind c_language = clk_cxx;
 static void cp_init_ts (void);

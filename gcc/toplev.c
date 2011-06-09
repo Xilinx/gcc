@@ -575,8 +575,6 @@ compile_file (void)
   /* Compilation is now finished except for writing
      what's left of the symbol table output.  */
 
-  timevar_stop (TV_PHASE_PARSING);
-
   if (flag_syntax_only || flag_wpa)
     return;
 
@@ -592,8 +590,6 @@ compile_file (void)
       timevar_stop (TV_PHASE_GENERATE);
       return;
     }
-
-  timevar_start (TV_PHASE_GENERATE);
 
   varpool_assemble_pending_decls ();
   finish_aliases_2 ();
@@ -1908,8 +1904,6 @@ do_compile (void)
       /* Set up the back-end if requested.  */
       if (!no_backend)
 	backend_init ();
-
-      timevar_stop (TV_PHASE_SETUP);
 
       /* Language-dependent initialization.  Returns true on success.  */
       if (lang_dependent_init (main_input_filename))

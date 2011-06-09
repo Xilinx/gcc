@@ -1177,8 +1177,6 @@ cp_genericize (tree fndecl)
   pointer_set_destroy (wtd.p_set);
   VEC_free (tree, heap, wtd.bind_expr_stack);
 
-  /* FIXME pph: save function to hunk.  */
-
   /* Do everything else.  */
   c_genericize (fndecl);
 
