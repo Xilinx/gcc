@@ -4951,6 +4951,20 @@ if test "${ENABLE_LIBQUADMATH_SUPPORT}" != "no" ; then
 fi
 
 
+warn_frame_larger_than_extra_text=
+AC_ARG_WITH(warn-frame-larger-than-extra-text,
+[  --with-warn-frame-larger-than-extra-text=TEXT
+                          specifies extra text for frame size warnings],
+[case "${withval}" in
+yes)	AC_MSG_ERROR(bad value ${withval} given for frame size warning text) ;;
+no)	;;
+*)	warn_frame_larger_than_extra_text="$withval" ;;
+esac])
+AC_DEFINE_UNQUOTED(WARN_FRAME_LARGER_THAN_EXTRA_TEXT,
+                   "$warn_frame_larger_than_extra_text",
+                   [Define to be extra text for frame size warnings.])
+
+
 # Configure the subdirectories
 # AC_CONFIG_SUBDIRS($subdirs)
 

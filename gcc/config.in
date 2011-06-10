@@ -1787,6 +1787,12 @@
 #endif
 
 
+/* Define to be extra text for frame size warnings. */
+#ifndef USED_FOR_TARGET
+#undef WARN_FRAME_LARGER_THAN_EXTRA_TEXT
+#endif
+
+
 /* Define to be the last component of the Windows registry key under which to
    look for installation paths. The full key used will be
    HKEY_LOCAL_MACHINE/SOFTWARE/Free Software Foundation/{WIN32_REGISTRY_KEY}.

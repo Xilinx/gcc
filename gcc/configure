@@ -919,6 +919,7 @@ with_slibdir
 enable_canonical_prefixes
 enable_plugin
 enable_libquadmath_support
+with_warn_frame_larger_than_extra_text
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1678,6 +1679,8 @@ Optional Packages:
                           with the compiler
   --with-system-zlib      use installed libz
   --with-slibdir=DIR      shared libraries in DIR [LIBDIR]
+  --with-warn-frame-larger-than-extra-text=TEXT
+                          specifies extra text for frame size warnings
 
 Some influential environment variables:
   CC          C compiler command
@@ -17578,7 +17581,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17581 "configure"
+#line 17584 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17684,7 +17687,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17687 "configure"
+#line 17690 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -26508,6 +26511,24 @@ if test "${ENABLE_LIBQUADMATH_SUPPORT}" != "no" ; then
 $as_echo "#define ENABLE_LIBQUADMATH_SUPPORT 1" >>confdefs.h
 
 fi
+
+
+warn_frame_larger_than_extra_text=
+
+# Check whether --with-warn-frame-larger-than-extra-text was given.
+if test "${with_warn_frame_larger_than_extra_text+set}" = set; then :
+  withval=$with_warn_frame_larger_than_extra_text; case "${withval}" in
+yes)	as_fn_error "bad value ${withval} given for frame size warning text" "$LINENO" 5 ;;
+no)	;;
+*)	warn_frame_larger_than_extra_text="$withval" ;;
+esac
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define WARN_FRAME_LARGER_THAN_EXTRA_TEXT "$warn_frame_larger_than_extra_text"
+_ACEOF
+
 
 
 # Configure the subdirectories

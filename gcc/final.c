@@ -1577,9 +1577,13 @@ final_start_function (rtx first ATTRIBUTE_UNUSED, FILE *file,
   if (warn_frame_larger_than
     && get_frame_size () > frame_larger_than_size)
   {
-      /* Issue a warning */
+      /* Issue a warning.  (WARN_FRAME_LARGER_THAN_EXTRA_TEXT is
+         provided by configuration.  The way extra text is added
+         here may prevent localization from working properly.
+         It's totally broken.)  */
       warning (OPT_Wframe_larger_than_,
-               "the frame size of %wd bytes is larger than %wd bytes",
+               "the frame size of %wd bytes is larger than %wd bytes"
+               WARN_FRAME_LARGER_THAN_EXTRA_TEXT,
                get_frame_size (), frame_larger_than_size);
   }
 
