@@ -33,7 +33,7 @@ proc dg-pph-hdr { subdir test options mapflag suffix } {
     verbose -log "\nTesting $nshort, $options"
 
     set dg-do-what-default preparse
-    dg-test -keep-output $test "$options $mapflag -I." ""
+    dg-test -keep-output $test "-fpph-gen $options $mapflag -I." ""
 
 }
 
@@ -51,7 +51,7 @@ proc dg-pph-neg { subdir test options mapflag suffix } {
     verbose -log "\nTesting $nshort, $options"
 
     set dg-do-what-default compile
-    dg-test -keep-output $test "$options $mapflag -I." ""
+    dg-test -keep-output $test "-fpph-gen $options $mapflag -I." ""
     if { ![file_on_host exists "$bname.s"] } {
 	file_on_host delete "$bname.s"
     }

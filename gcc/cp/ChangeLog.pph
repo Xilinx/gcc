@@ -1,3 +1,8 @@
+2011-06-10  Diego Novillo  <dnovillo@google.com>
+
+	* lang-specs.h (@c++-header): Disable PCH if -fpph-gen is given.
+	Emit --output-pph if -fpph-gen is used.
+
 2011-06-09  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-out.c (pph_out_tree_header): Rename from

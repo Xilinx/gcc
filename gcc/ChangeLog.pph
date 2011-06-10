@@ -1,3 +1,7 @@
+2011-06-10  Diego Novillo  <dnovillo@google.com>
+
+	* doc/invoke.texi: Document -fpph-gen, -fpph-map and -fpph-hdr.
+
 2011-06-08   Diego Novillo  <dnovillo@google.com>
 
 	Fix spurious differences with trunk.

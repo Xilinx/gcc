@@ -1,3 +1,12 @@
+2011-06-10   Diego Novillo  <dnovillo@google.com>
+
+	* c-opts.c (c_common_handle_option): Handle OPT__output_pph_.
+	Do not set pph_out_file in the handler for OPT__output_pch_.
+	* c.opt (-output-pph): New.
+	(fpph-gen): New.
+	(fpph-hdr): Remove ObjC++ support.
+	(fpph-map): Likewise.
+
 2011-06-07  Gabriel Charette  <gchare@google.com>
 
 	* c.opt (fpth): Remove. Update all users.

@@ -195,6 +195,7 @@ in the following sections.
 -fno-threadsafe-statics -fuse-cxa-atexit  -fno-weak  -nostdinc++ @gol
 -fno-default-inline  -fvisibility-inlines-hidden @gol
 -fvisibility-ms-compat @gol
+-fpph-hdr -fpph-map -fpph-gen @gol
 -Wabi  -Wconversion-null  -Wctor-dtor-privacy @gol
 -Wnoexcept -Wnon-virtual-dtor  -Wreorder @gol
 -Weffc++  -Wstrict-null-sentinel @gol
@@ -2170,6 +2171,42 @@ By default, G++ will use weak symbols if they are available.  This
 option exists only for testing, and should not be used by end-users;
 it will result in inferior code and has no benefits.  This option may
 be removed in a future release of G++.
+
+@item -fpph-gen
+@opindex fpph-gen
+Generate a Pre-Parsed Header (PPH) file instead of a PCH file.  This option
+is only valid when compiling header files separately.  Instead of generating
+a PCH files, G++ will save the parsed declarations in a header file to
+a PPH file.  By default, the PPH image for a header file named @file{foo.h}
+is @file{foo.pph}.
+
+NOTE: This option is temporary.  It is only meant to serve the initial
+implementation of this feature.  The final user interface will likely
+use a different mechanism for PPH.
+
+@item -fpph-map=@var{file.map}
+@opindex fpph-map
+Use PPH mapping file @file{file.map} to determine what headers should be
+processed from their PPH images.  This file contains a list of file name
+pairs in the form ``@var{file.h} @var{file.pph}''.  When the pre-processor
+finds the directive @code{#include "file.h"}, and there exists a mapping
+between @var{file.h} and @var{file.pph} in @file{file.map}, then the
+compiler will instantiate the PPH image @var{file.pph}.  The text
+in @var{file.h} will be ignored.
+
+NOTE: This option is temporary.  It is only meant to serve the initial
+implementation of this feature.  The final user interface will likely
+use a different mechanism for PPH.
+
+@item -fpph-hdr=@var{file.h}
+@opindex fpph-hdr
+This is a short-hand notation to map a single header @file{file.h} to
+its image @file{file.pph}.  Multiple occurrences of this flag will
+introduce multiple mappings.
+
+NOTE: This option is temporary.  It is only meant to serve the initial
+implementation of this feature.  The final user interface will likely
+use a different mechanism for PPH.
 
 @item -nostdinc++
 @opindex nostdinc++

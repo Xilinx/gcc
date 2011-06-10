@@ -368,13 +368,11 @@ c_common_handle_option (size_t scode, const char *arg, int value,
       break;
 
     case OPT__output_pch_:
-      {
-        char *dot = strrchr (arg, '.');
-        if (dot != NULL && strcmp (dot, ".pph") == 0)
-          pph_out_file = arg;
-        else
-          pch_file = arg;
-      }
+      pch_file = arg;
+      break;
+
+    case OPT__output_pph_:
+      pph_out_file = arg;
       break;
 
     case OPT_A:

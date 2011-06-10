@@ -1,3 +1,8 @@
+2011-06-10  Diego Novillo  <dnovillo@google.com>
+
+	* lib/dg-pph.exp (dg-pph-hdr): Use -fpph-gen.
+	(dg-pph-neg): Likewise.
+
 2011-06-08  Lawrence Crowl <crowl@google.com>
 
 	* g++.dg/pph/c120060625-1.h: Make expected pass.

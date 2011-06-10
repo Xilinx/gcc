@@ -139,6 +139,9 @@ C ObjC C++ ObjC++ Joined Alias(o)
 -output-pch=
 C ObjC C++ ObjC++ Joined Separate
 
+-output-pph=
+C++ Joined Separate
+
 -pedantic
 C ObjC C++ ObjC++ Alias(pedantic)
 
@@ -933,8 +936,12 @@ fpph-dump-tree
 C++ Var(flag_pph_dump_tree)
 -fpph-dump-tree	Dump global namespace tree around PPH reads/writes.
 
+fpph-gen
+C++
+-fpph-gen	Generate a PPH image from the input file
+
 fpph-hdr=
-C++ ObjC++ Joined MissingArgError(missing filename after %qs)
+C++ Joined MissingArgError(missing filename after %qs)
 -fpph-hdr=<base-name>   A mapping from <base-name>.h to <base-name>.pph
 
 fpph-logfile=
@@ -942,7 +949,7 @@ C++ Joined RejectNegative Var(flag_pph_logfile)
 -fpph-logfile=<file-name>	Emit PPH debug information to <file-name>
 
 fpph-map=
-C++ ObjC++ Joined MissingArgError(missing filename after %qs)
+C++ Joined MissingArgError(missing filename after %qs)
 -fpph-map=<file-name>   A file of mappings from #include to PPH file
 
 fpph-tracer=
