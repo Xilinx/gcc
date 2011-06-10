@@ -1,3 +1,23 @@
+2011-06-10  Rong Xu  <xur@google.com>
+
+	* gcc/tree-ssa-loop-im.c (maxmimu_lsm): New define.
+	(find_refs_for_sm): Limit excessive lsm.
+	* gcc/gcse.c (cfgloop.h): New include.
+	(maximum_lsm_limit): New define.
+	(struct loop_lsm_limit_map): Ditto.
+	(loop_lsm_limit_map_htab): Ditto.
+	(loops_lsm): Ditto.
+	(dominator_info_avail_before_lsm_limit): Ditto.
+	(compute_ld_motion_mems): Limit execssive lsm.
+	(find_loop_lsm_limit): New functions.
+	(adjust_loop_lsm_limit): Ditto.
+	(init_loop_lsm_limit): Ditto.
+	(fini_loop_lsm_limit): Ditto.
+	(estimate_reg_pressure_before_lsm): Ditto.
+	(loop_lsm_limit_map_hash): Ditto.
+	(loop_lsm_limit_map_eq): Ditto.
+	(free_loop_lsm_limit_map): Ditto.
+
 2011-06-09  Chris Demetriou  <cgd@google.com>
 
 	* doc/install.texi (--with-warn-frame-larger-than-extra-text): New.

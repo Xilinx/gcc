@@ -171,6 +171,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "dbgcnt.h"
 #include "target.h"
 #include "gcse.h"
+#include "cfgloop.h"
 
 /* We support GCSE via Partial Redundancy Elimination.  PRE optimizations
    are a superset of those done by classic GCSE.
@@ -543,6 +544,10 @@ static void local_cprop_find_used_regs (rtx *, void *);
 static bool do_local_cprop (rtx, rtx);
 static int local_cprop_pass (void);
 static bool is_too_expensive (const char *);
+static unsigned find_loop_lsm_limit (struct loop*);
+static void adjust_loop_lsm_limit (struct loop*, unsigned);
+static void init_loop_lsm_limit (void);
+static void fini_loop_lsm_limit (void);
 
 #define GNEW(T)			((T *) gmalloc (sizeof (T)))
 #define GCNEW(T)		((T *) gcalloc (1, sizeof (T)))
@@ -4979,6 +4984,10 @@ invalidate_any_buried_refs (rtx x)
     }
 }
 
+/* The maximum number of load/store motions that can be performed for one
+   loop.  */
+static unsigned maximum_lsm_limit;
+
 /* Find all the 'simple' MEMs which are used in LOADs and STORES.  Simple
    being defined as MEM loads and stores to symbols, with no side effects
    and no registers in the expression.  For a MEM destination, we also
@@ -4994,12 +5003,18 @@ compute_ld_motion_mems (void)
   basic_block bb;
   rtx insn;
 
+  init_loop_lsm_limit ();
+
   pre_ldst_mems = NULL;
   pre_ldst_table = htab_create (13, pre_ldst_expr_hash,
 				pre_ldst_expr_eq, NULL);
 
   FOR_EACH_BB (bb)
     {
+      struct loop *loop = bb->loop_father;
+      unsigned ld_motion_limit = find_loop_lsm_limit (loop);
+      unsigned ld_motion_count = 0;
+
       FOR_BB_INSNS (bb, insn)
 	{
 	  if (NONDEBUG_INSN_P (insn))
@@ -5032,21 +5047,228 @@ compute_ld_motion_mems (void)
 		    {
 		      ptr = ldst_entry (dest);
 
-		      if (! MEM_P (src)
-			  && GET_CODE (src) != ASM_OPERANDS
-			  /* Check for REG manually since want_to_gcse_p
-			     returns 0 for all REGs.  */
-			  && can_assign_to_reg_without_clobbers_p (src))
-			ptr->stores = alloc_INSN_LIST (insn, ptr->stores);
+                      if (! MEM_P (src)
+                          && GET_CODE (src) != ASM_OPERANDS
+                          /* Check for REG manually since want_to_gcse_p
+                             returns 0 for all REGs.  */
+                          && can_assign_to_reg_without_clobbers_p (src)
+			  && ld_motion_count < ld_motion_limit)
+                        {
+                          ptr->stores = alloc_INSN_LIST (insn, ptr->stores);
+                          ld_motion_count++;
+                        }
 		      else
-			ptr->invalid = 1;
+		        {
+			  ptr->invalid = 1;
+                          if (dump_file && ld_motion_count >= ld_motion_limit)
+                            fprintf (dump_file,
+                                     "suppress ld_motion in loop=%d bb=%d due"
+                                     " to reg pressure.\n",
+                                     loop->num, bb->index);
+
+			}
 		    }
 		}
 	      else
 		invalidate_any_buried_refs (PATTERN (insn));
 	    }
 	}
+      adjust_loop_lsm_limit (loop, ld_motion_count);
     }
+
+  fini_loop_lsm_limit ();
+}
+
+typedef struct 
+{
+  struct loop *loop;
+  unsigned lsm_limit;
+} loop_lsm_limit_map;
+
+/* hash_table that maps loop to lsm_limit.  */
+static htab_t loop_lsm_limit_map_htab = NULL;
+
+/* hash function for loop_lsm_limit_map_htab.  */
+
+static hashval_t
+loop_lsm_limit_map_hash (const void *p)
+{
+  const loop_lsm_limit_map *const x = (const loop_lsm_limit_map*) p;
+  return htab_hash_pointer (x->loop);
+}
+
+/* hash equal function for loop_lsm_limit_map_htab.  */
+
+static int
+loop_lsm_limit_map_eq (const void *p1, const void *p2)
+{
+  const loop_lsm_limit_map *const ptr1 = (const loop_lsm_limit_map *) p1;
+  const loop_lsm_limit_map *const ptr2 = (const loop_lsm_limit_map *) p2;
+
+  return htab_eq_pointer (ptr1->loop, ptr2->loop);
+}
+
+/* free one entry in loop_lsm_limit_map_htab.  */
+
+static int
+free_loop_lsm_limit_map (void **slot, void *data ATTRIBUTE_UNUSED)
+{
+  free(*(loop_lsm_limit_map **) slot);
+  return 1;
+}
+
+/* use the loops strcture to find enclosing loop for each basic_block */
+static struct loops loops_lsm;
+static bool dominator_info_avail_before_lsm_limit = false;
+
+/* Initalization function for suppressing execessive load/store motions.
+   Build the loop structure so that we can count the number of motions 
+   performed. Set the maximum number of motions for a loop.  */
+
+static void
+init_loop_lsm_limit (void)
+{
+  dominator_info_avail_before_lsm_limit = dom_info_available_p(CDI_DOMINATORS);
+  flow_loops_find (&loops_lsm);
+
+  loop_lsm_limit_map_htab = htab_create (59, loop_lsm_limit_map_hash,
+                                         loop_lsm_limit_map_eq, NULL);
+
+  /* avail_regs minus the induction variables  */
+  maximum_lsm_limit = target_avail_regs - 1;
+}
+
+/* Cleanup function: destroy loop structure and free space.  */
+
+static void
+fini_loop_lsm_limit (void)
+{
+  basic_block bb;
+
+  flow_loops_free (&loops_lsm);
+
+  if (!dominator_info_avail_before_lsm_limit)
+    free_dominance_info (CDI_DOMINATORS);
+  
+  FOR_ALL_BB (bb)
+    bb->loop_father = NULL;
+
+  if (loop_lsm_limit_map_htab)
+    {
+      htab_traverse (loop_lsm_limit_map_htab, free_loop_lsm_limit_map, NULL);
+      htab_delete (loop_lsm_limit_map_htab);
+    }
+}
+
+/* This routine tries to find the number of registers that
+   (1) live across the iteration, and
+   (2) referenced in the loop.
+   those store-motions performed in tree-lim falls into this category.  */
+
+static unsigned
+estimate_reg_pressure_before_lsm (struct loop *loop)
+{
+  basic_block *body;
+  unsigned int i;
+  unsigned int count;
+  regset live_across_iteration;
+  regset used_in_loop;
+  basic_block header, latch;
+
+  if (!loop)
+    return 0;
+
+  gcc_assert (loop != loops_lsm.tree_root);
+
+  latch = loop->latch;
+  /* don't handle multiple latches */
+  if (!latch)
+    return 0;
+
+  header = loop->header;
+  gcc_assert (header);
+
+  live_across_iteration = ALLOC_REG_SET (&reg_obstack);
+  COPY_REG_SET (live_across_iteration, DF_LR_IN (header));
+  AND_REG_SET (live_across_iteration, DF_LR_OUT (latch));
+
+  used_in_loop = ALLOC_REG_SET (&reg_obstack);
+  CLEAR_REG_SET (used_in_loop);
+
+  body = get_loop_body (loop);
+  /* this loop computes a subset of must-use */
+  for (i=0; i<loop->num_nodes; i++)
+    {
+       basic_block bb = *(body + i);
+
+       if (dominated_by_p (CDI_DOMINATORS, latch, bb))
+         IOR_REG_SET (used_in_loop, &(DF_LR_BB_INFO (bb)->use));
+    }
+
+
+  AND_REG_SET (live_across_iteration, used_in_loop);
+
+  count = bitmap_count_bits (live_across_iteration);
+
+  FREE_REG_SET (live_across_iteration);
+  FREE_REG_SET (used_in_loop);
+
+  return count;
+}
+
+/* Find the number of load/store motion we can perform without
+   create excessive register pressure to loop LOOP  */
+
+static unsigned
+find_loop_lsm_limit (struct loop *loop)
+{
+  void **slot;
+  loop_lsm_limit_map t, *ret;
+  unsigned reg_pressure;
+  unsigned limit = maximum_lsm_limit;
+
+  if (!loop || loop == loops_lsm.tree_root)
+    return (unsigned)-1;
+
+  t.loop = loop;
+  slot = htab_find_slot (loop_lsm_limit_map_htab, &t, NO_INSERT);
+  if (slot)
+    return (*(loop_lsm_limit_map**)slot)->lsm_limit;
+
+  /* insert this loop and initialize it  */
+  reg_pressure = estimate_reg_pressure_before_lsm (loop);
+  ret = (loop_lsm_limit_map*) gmalloc (sizeof (loop_lsm_limit_map));
+  gcc_assert (ret);
+
+  limit = (limit > reg_pressure ? limit - reg_pressure : 0);
+  ret->loop = loop;
+  ret->lsm_limit = limit;
+  slot = htab_find_slot (loop_lsm_limit_map_htab, ret, INSERT);
+  gcc_assert (slot);
+  (*slot) = (void**)ret;
+
+  return limit;
+}
+
+/* Adjust the lsm limit based on the instances that have been
+   performed.  */
+
+static void
+adjust_loop_lsm_limit (struct loop *loop, unsigned performed)
+{
+  void **slot;
+  loop_lsm_limit_map t;
+  unsigned limit;
+
+  if (performed == 0 || loop == NULL || loop == loops_lsm.tree_root)
+    return;
+
+  t.loop = loop;
+  slot = htab_find_slot (loop_lsm_limit_map_htab, &t, NO_INSERT);
+  gcc_assert (slot);
+  limit = (*(loop_lsm_limit_map**)slot)->lsm_limit;
+  gcc_assert (limit >= performed);
+  (*(loop_lsm_limit_map**)slot)->lsm_limit = limit - performed;
 }
 
 /* Remove any references that have been either invalidated or are not in the

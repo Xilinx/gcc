@@ -97,6 +97,9 @@ struct lim_aux_data
 				   MAX_LOOP loop.  */
 };
 
+/* limit for lsm that can be performed for one loop.  */
+static unsigned maximum_lsm;
+
 /* Maps statements to their lim_aux_data.  */
 
 static struct pointer_map_t *lim_aux_data_map;
@@ -2359,12 +2362,16 @@ find_refs_for_sm (struct loop *loop, bitmap sm_executed, bitmap refs_to_sm)
   unsigned i;
   bitmap_iterator bi;
   mem_ref_p ref;
+  unsigned sm_count = 0;
 
   EXECUTE_IF_AND_COMPL_IN_BITMAP (refs, sm_executed, 0, i, bi)
     {
       ref = VEC_index (mem_ref_p, memory_accesses.refs_list, i);
-      if (can_sm_ref_p (loop, ref))
-	bitmap_set_bit (refs_to_sm, i);
+      if (sm_count < maximum_lsm && can_sm_ref_p (loop, ref))
+        {
+          bitmap_set_bit (refs_to_sm, i);
+          ++sm_count;
+        }
     }
 }
 
@@ -2524,6 +2531,10 @@ tree_ssa_lim_initialize (void)
   sbitmap_free (contains_call);
 
   lim_aux_data_map = pointer_map_create ();
+
+  /* Supress execeesive store-motion. Minus target_avail_regs by 1
+     for the induction varialbe. Maybe we should use even less?  */
+  maximum_lsm = (target_avail_regs < 1 ? 0 : target_avail_regs - 1);
 }
 
 /* Cleans up after the invariant motion pass.  */
