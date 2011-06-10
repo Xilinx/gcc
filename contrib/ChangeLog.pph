@@ -1,3 +1,7 @@
+2011-06-10   Diego Novillo  <dnovillo@google.com>
+
+	* repro_fail: Add support for patterns matching multiple spawns.
+
 2011-06-09   Diego Novillo  <dnovillo@google.com>
 
 	* repro_fail: New.

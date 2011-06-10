@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/bash -eu
 #
-# Script to reproduce a test failure from a dejagnu .log file
+# Script to reproduce a test failure from a dejagnu .log file.
 #
 # Contributed by Diego Novillo <dnovillo@google.com>
 #
@@ -23,6 +23,13 @@
 # the Free Software Foundation, 51 Franklin Street, Fifth Floor,
 # Boston, MA 02110-1301, USA.
 
+# This script will search a line starting with 'spawn' that includes the
+# pattern you are looking for (typically a source file name).
+#
+# Once it finds that pattern, it re-executes the whole command
+# in the spawn line.  If the pattern matches more than one spawn
+# command, it asks which one you want.
+
 if [ $# -lt 2 ] ; then
     echo "usage: $0 pattern file.log [additional-args]"
     echo
@@ -32,18 +39,44 @@ if [ $# -lt 2 ] ; then
     exit 1
 fi
 
-set -e
-pattern=$1
-logf=$2
+pattern="$1"
+logf="$2"
 shift 2
-args="$@"
-line=$(grep "^spawn .*$pattern" $logf | sed -e "s:^spawn ::")
 
-if [ "$line" = "" ] ; then
-    echo "Could not find a spawn command for pattern $1"
+# Find the commands in LOGF that reference PATTERN.
+lines=$(grep -E "^spawn .*$pattern" $logf | sed -e 's/^spawn //')
+if [ -z "$lines" ] ; then
+    echo "Could not find a spawn command for pattern $pattern"
     exit 1
 fi
 
-set -x +e
-$line $args
-exit $?
+# Collect all the command lines into the COMMANDS array.
+old_IFS="$IFS"
+IFS=""
+num_lines=0
+for line in $lines ; do
+    num_lines=$[$num_lines + 1]
+    echo "[$num_lines] $line"
+    commands[$num_lines]=$line
+done
+
+# If we found more than one line for PATTERN, ask which one we should run.
+cmds_to_run='0'
+if [ $num_lines -gt 1 ] ; then
+    echo
+    echo
+    echo -n "Enter the list of commands to run or '0' to run them all: "
+    read cmds_to_run
+fi
+if [ "$cmds_to_run" = "0" ] ; then
+    cmds_to_run=$(seq 1 $num_lines)
+fi
+IFS="$old_IFS"
+
+# Finally, execute all the commands we were told to execute.
+for cmd_num in $cmds_to_run ; do
+    cmd=${commands[$cmd_num]}
+    set -x +e
+    $cmd "$@"
+    set +x -e
+done
