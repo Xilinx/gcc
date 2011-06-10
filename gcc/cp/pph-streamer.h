@@ -142,7 +142,7 @@ void pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v,
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool ref_p);
 void pph_pack_value_fields (struct bitpack_d *, tree);
-void pph_output_tree_header (struct output_block *, tree);
+void pph_out_tree_header (struct output_block *, tree);
 void pph_out_chain_filtered (pph_stream *, tree, bool, enum chain_filter);
 
 /* In name-lookup.c.  */

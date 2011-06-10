@@ -838,7 +838,7 @@ pph_out_lang_type (pph_stream *stream, tree type, bool ref_p)
    OB.  If EXPR does not need to be handled specially, do nothing.  */
 
 void
-pph_output_tree_header (struct output_block *ob, tree expr)
+pph_out_tree_header (struct output_block *ob, tree expr)
 {
   pph_stream *stream = (pph_stream *) ob->sdata;
 

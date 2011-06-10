@@ -96,7 +96,7 @@ pph_hooks_init (void)
   streamer_hooks.indexable_with_decls_p = pph_indexable_with_decls_p;
   streamer_hooks.unpack_value_fields = pph_unpack_value_fields;
   streamer_hooks.alloc_tree = pph_alloc_tree;
-  streamer_hooks.output_tree_header = pph_output_tree_header;
+  streamer_hooks.output_tree_header = pph_out_tree_header;
   streamer_hooks.has_unique_integer_csts_p = true;
 }
 
