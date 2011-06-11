@@ -10342,7 +10342,8 @@ static tree
 tsubst_exception_specification (tree fntype,
 				tree args,
 				tsubst_flags_t complain,
-				tree in_decl)
+				tree in_decl,
+				bool defer_ok)
 {
   tree specs;
   tree new_specs;
@@ -10352,9 +10353,33 @@ tsubst_exception_specification (tree fntype,
   if (specs && TREE_PURPOSE (specs))
     {
       /* A noexcept-specifier.  */
-      new_specs = tsubst_copy_and_build
-	(TREE_PURPOSE (specs), args, complain, in_decl, /*function_p=*/false,
-	 /*integral_constant_expression_p=*/true);
+      tree expr = TREE_PURPOSE (specs);
+      if (expr == boolean_true_node || expr == boolean_false_node)
+	new_specs = expr;
+      else if (defer_ok)
+	{
+	  /* Defer instantiation of noexcept-specifiers to avoid
+	     excessive instantiations (c++/49107).  */
+	  new_specs = make_node (DEFERRED_NOEXCEPT);
+	  if (DEFERRED_NOEXCEPT_SPEC_P (specs))
+	    {
+	      /* We already partially instantiated this member template,
+		 so combine the new args with the old.  */
+	      DEFERRED_NOEXCEPT_PATTERN (new_specs)
+		= DEFERRED_NOEXCEPT_PATTERN (expr);
+	      DEFERRED_NOEXCEPT_ARGS (new_specs)
+		= add_to_template_args (DEFERRED_NOEXCEPT_ARGS (expr), args);
+	    }
+	  else
+	    {
+	      DEFERRED_NOEXCEPT_PATTERN (new_specs) = expr;
+	      DEFERRED_NOEXCEPT_ARGS (new_specs) = args;
+	    }
+	}
+      else
+	new_specs = tsubst_copy_and_build
+	  (expr, args, complain, in_decl, /*function_p=*/false,
+	   /*integral_constant_expression_p=*/true);
       new_specs = build_noexcept_spec (new_specs, complain);
     }
   else if (specs)
@@ -10879,7 +10904,7 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 
 	/* Substitute the exception specification.  */
 	specs = tsubst_exception_specification (t, args, complain,
-						in_decl);
+						in_decl, /*defer_ok*/true);
 	if (specs == error_mark_node)
 	  return error_mark_node;
 	if (specs)
@@ -12728,7 +12753,7 @@ tsubst_copy_and_build (tree t,
 	 (TREE_NO_WARNING (TREE_OPERAND (t, 1))
 	  ? ERROR_MARK
 	  : TREE_CODE (TREE_OPERAND (t, 1))),
-	 /*overloaded_p=*/NULL,
+	 /*overload=*/NULL,
 	 complain);
 
     case SCOPE_REF:
@@ -13611,6 +13636,7 @@ deduction_tsubst_fntype (tree fn, tree targs)
   static bool excessive_deduction_depth;
   static int deduction_depth;
   location_t save_loc = input_location;
+  struct pending_template *old_last_pend = last_pending_template;
 
   tree fntype = TREE_TYPE (fn);
   tree tinst;
@@ -13644,7 +13670,9 @@ deduction_tsubst_fntype (tree fn, tree targs)
     }
 
   pop_tinst_level ();
-  ggc_free (tinst);
+  /* We can't free this if a pending_template entry is pointing at it.  */
+  if (last_pending_template == old_last_pend)
+    ggc_free (tinst);
   return r;
 }
 
@@ -17156,7 +17184,8 @@ regenerate_decl_from_template (tree decl, tree tmpl)
 	args = get_innermost_template_args (args, parms_depth);
 
       specs = tsubst_exception_specification (TREE_TYPE (code_pattern),
-					      args, tf_error, NULL_TREE);
+					      args, tf_error, NULL_TREE,
+					      /*defer_ok*/false);
       if (specs)
 	TREE_TYPE (decl) = build_exception_variant (TREE_TYPE (decl),
 						    specs);
@@ -17321,6 +17350,46 @@ always_instantiate_p (tree decl)
 	      && decl_maybe_constant_var_p (decl)));
 }
 
+/* If FN has a noexcept-specifier that hasn't been instantiated yet,
+   instantiate it now, modifying TREE_TYPE (fn).  */
+
+void
+maybe_instantiate_noexcept (tree fn)
+{
+  tree fntype = TREE_TYPE (fn);
+  tree spec = TYPE_RAISES_EXCEPTIONS (fntype);
+  tree noex = NULL_TREE;
+  location_t saved_loc = input_location;
+  tree clone;
+
+  if (!DEFERRED_NOEXCEPT_SPEC_P (spec))
+    return;
+  noex = TREE_PURPOSE (spec);
+
+  push_tinst_level (fn);
+  push_access_scope (fn);
+  input_location = DECL_SOURCE_LOCATION (fn);
+  noex = tsubst_copy_and_build (DEFERRED_NOEXCEPT_PATTERN (noex),
+				DEFERRED_NOEXCEPT_ARGS (noex),
+				tf_warning_or_error, fn, /*function_p=*/false,
+				/*integral_constant_expression_p=*/true);
+  input_location = saved_loc;
+  pop_access_scope (fn);
+  pop_tinst_level ();
+  spec = build_noexcept_spec (noex, tf_warning_or_error);
+  if (spec == error_mark_node)
+    spec = noexcept_false_spec;
+  TREE_TYPE (fn) = build_exception_variant (fntype, spec);
+
+  FOR_EACH_CLONE (clone, fn)
+    {
+      if (TREE_TYPE (clone) == fntype)
+	TREE_TYPE (clone) = TREE_TYPE (fn);
+      else
+	TREE_TYPE (clone) = build_exception_variant (TREE_TYPE (clone), spec);
+    }
+}
+
 /* Produce the definition of D, a _DECL generated from a template.  If
    DEFER_OK is nonzero, then we don't have to actually do the
    instantiation now; we just have to do it sometime.  Normally it is
@@ -17457,6 +17526,9 @@ instantiate_decl (tree d, int defer_ok,
       SET_DECL_IMPLICIT_INSTANTIATION (d);
     }
 
+  if (TREE_CODE (d) == FUNCTION_DECL)
+    maybe_instantiate_noexcept (d);
+
   /* Recheck the substitutions to obtain any warning messages
      about ignoring cv qualifiers.  Don't do this for artificial decls,
      as it breaks the context-sensitive substitution for lambda op(). */
@@ -17474,7 +17546,7 @@ instantiate_decl (tree d, int defer_ok,
 	{
 	  tsubst (DECL_ARGUMENTS (gen), gen_args, tf_warning_or_error, d);
           tsubst_exception_specification (type, gen_args, tf_warning_or_error,
-                                          d);
+                                          d, /*defer_ok*/true);
 	  /* Don't simply tsubst the function type, as that will give
 	     duplicate warnings about poor parameter qualifications.
 	     The function arguments are the same as the decl_arguments
@@ -19052,7 +19124,7 @@ build_non_dependent_expr (tree expr)
   /* Try to get a constant value for all non-type-dependent expressions in
       order to expose bugs in *_dependent_expression_p and constexpr.  */
   if (cxx_dialect >= cxx0x)
-    maybe_constant_value (fold_non_dependent_expr (expr));
+    maybe_constant_value (fold_non_dependent_expr_sfinae (expr, tf_none));
 #endif
 
   /* Preserve OVERLOADs; the functions must be available to resolve

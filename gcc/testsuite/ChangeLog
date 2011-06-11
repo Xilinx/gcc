@@ -1,3 +1,164 @@
+2011-06-10  Wei Guozhi  <carrot@google.com>
+
+	PR target/45335
+	* gcc.target/arm/pr45335.c: New test.
+	* gcc.target/arm/pr45335-2.c: New test.
+	* gcc.target/arm/pr45335-3.c: New test.
+	* gcc.target/arm/pr40457-1.c: Add another possible output "ldrd".
+	* gcc.target/arm/pr40457-2.c: Changed to store 3 words.
+	* gcc.target/arm/pr40457-3.c: Changed to store 3 words.
+
+2011-06-10  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/41769
+	* g++.dg/parse/error39.C: New.
+
+2011-06-10  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc/testsuite/gcc.target/arm/20090811-1.c: Skip for incompatible
+	options, do not override other options.
+	* gcc/testsuite/gcc.target/arm/combine-cmp-shift.c: Skip for
+	incompatible options.
+	* gcc/testsuite/gcc.target/arm/pr45094.c: Likewise.
+	* gcc/testsuite/gcc.target/arm/scd42-1.c: Likewise.
+	* gcc/testsuite/gcc.target/arm/scd42-3.c: Likewise.
+	* gcc/testsuite/gcc.target/arm/thumb-ltu.c: Likewise.
+
+	* lib/target-supports.exp
+	(check_effective_target_arm_neon_fp16_ok_nocache): Return 0 if
+	multilib flags use -mfpu with a value other than neon-fp16.
+
+2011-06-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/torture/tls/tls.exp: Load torture-options.exp.
+	Run tests with -fpic/-fPIC, -pie -fpie/-fPIE if supported.
+
+2011-06-10  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* lib/target-supports.exp (check_effective_target_pie): New proc.
+	* gcc.dg/pie-link.c: Use target pie.
+
+2011-06-10  Eric Botcazou  <ebotcazou@adacore.com>
+	    Laurent Rougé  <laurent.rouge@menta.fr>
+
+	* gcc.dg/20020503-1.c: Add back -mflat option on the SPARC.
+	* gcc.target/sparc/sparc-ret.c: Skip if -mflat is passed.
+
+2011-06-10  Daniel Carrera  <dcarrera@gmail.com>
+
+	* gfortran.dg/coarray/sync_1.f90: New test for
+	"SYNC ALL", "SYNC MEMORY" and "SYNC IMAGES".
+
+2011-06-10  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49318
+	* gcc.dg/vect/pr49318.c: New test.
+
+2011-06-09  David Krauss  <potswa@mac.com>
+
+	* g++.dg/template/arrow1.C: New.
+
+2011-06-09  Jason Merrill  <jason@redhat.com>
+
+	* lib/prune.exp: Prune "note"s.
+	* g++.dg/uninit-pred-3_b.C: Remove dg-excess-errors.
+
+	* g++.dg/ext/injected-ttp.C: Specify -std=c++98.
+	* g++.dg/template/dependent-expr3.C: Likewise.
+	* g++.dg/parse/template7.C: Likewise.
+	* g++.old-deja/g++.bugs/900119_01.C: Likewise.
+	* g++.old-deja/g++.jason/rfg10.C: Likewise.
+	* g++.old-deja/g++.pt/friend38.C: Likewise.
+	* g++.old-deja/g++.pt/crash32.C: Likewise.
+	* g++.old-deja/g++.other/init4.C: Likewise.
+	* g++.old-deja/g++.other/friend8.C: Likewise.
+
+	* g++.dg/ext/complex7.C: Adjust expected output.
+	* g++.dg/diagnostic/method1.C: Likewise.
+	* g++.dg/parse/parameter-declaration-2.C: Likewise.
+	* g++.dg/parse/crash33.C: Likewise.
+	* g++.dg/other/warning1.C: Likewise.
+	* g++.dg/init/pr29571.C: Likewise.
+	* g++.dg/warn/overflow-warn-1.C: Likewise.
+	* g++.dg/warn/overflow-warn-3.C: Likewise.
+	* g++.dg/warn/overflow-warn-4.C: Likewise.
+	* g++.old-deja/g++.oliva/template1.C: Likewise.
+
+	* g++.dg/cpp0x/regress/error-recovery1.C: Adjust.
+	* g++.dg/parse/template7.C: Adjust.
+
+2011-06-09  Kaz Kojima  <kkojima@gcc.gnu.org>
+
+	PR target/49307
+	* gcc.dg/pr49307.c: New.
+
+2011-06-09  Wei Guozhi  <carrot@google.com>
+
+	PR target/46975
+	* gcc.target/arm/pr46975.c: New testcase.
+
+2011-06-09  Nicola Pero  <nicola.pero@meta-innovation.com>
+
+	* objc-obj-c++-shared/objc-test-suite-next-encode-assist.h
+	(PMETH, arglist_t): Removed.
+	(method_get_number_of_arguments): Removed.
+	(method_get_nth_argument): Removed.
+	(method_get_first_argument): Removed.
+	(method_get_next_argument): Removed.
+	(method_get_sizeof_arguments): Removed.
+	* objc-obj-c++-shared/objc-test-suite-next-encode-assist-impl.h
+	(PMETH): Removed.
+	(method_get_number_of_arguments): Removed.
+	(method_get_nth_argument): Removed.
+	(method_get_first_argument): Removed.
+	(method_get_next_argument): Removed.
+	(method_get_sizeof_arguments): Removed.
+	* objc-obj-c++-shared/objc-test-suite-types.h (PMETH): Removed.
+
+2011-06-09  David Li  <davidxl@google.com>
+
+	* testsuite/gcc.dg/dump-pass.c: New test.
+
+2011-06-09  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/29003
+	* g++.dg/parse/error38.C: New.
+
+2011-06-09  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49308
+	* gfortran.dg/pr49308.f90: New test.
+
+2011-06-08  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/noexcept11.C: New.
+	* g++.dg/cpp0x/noexcept12.C: New.
+	* g++.dg/cpp0x/sfinae11.C: Adjust.
+
+2011-06-08  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/49323
+	* g++.dg/debug/dwarf2/integer-typedef.C: Add -fno-merge-debug-strings
+	to dg-options, match also DW_AT_linkage_name.
+
+2011-06-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR middle-end/21953
+	* gcc.dg/compat/struct-layout-1_generate.c (dg-options): Use
+	-fno-common on alpha*-dec-osf*.
+	* g++.dg/compat/struct-layout-1_generate.c (dg-options): Likewise.
+
+2011-06-08  Alexander Monakov  <amonakov@ispras.ru>
+
+	PR rtl-optimization/49303
+	* gcc.target/ia64/pr49303.c: New test.
+
+2011-06-08  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_lock_1.f90: New.
+	* gfortran.dg/coarray_lock_2.f90: New.
+
 2011-06-07  Jason Merrill  <jason@redhat.com>
 
 	* lib/prune.exp: Look for "required" rather than "instantiated".
@@ -140,7 +301,7 @@
 	* objc-obj-c++-shared/TestsuiteObject.h ([-free]): Return 'id'.
 	* objc-obj-c++-shared/TestsuiteObject.m ([-free]): Return 'id'.
 	Added cast.
-	
+
 2011-06-07  Xinliang David Li  <davidxl@google.com>
 
 	* testsuite/gcc.dg/inline_2.c: New test.
@@ -220,8 +381,8 @@
 	* objc-obj-c++-shared/runtime.h: New.
 	* objc-obj-c++-shared/TestsuiteObject.h: New.
 	* objc-obj-c++-shared/TestsuiteObject.m: New.
-	
-	* objc/compile/trivial.m: Use TestsuiteObject instead of Object.	
+
+	* objc/compile/trivial.m: Use TestsuiteObject instead of Object.
 	* objc/execute/IMP.m: Include ../../objc-obj-c++-shared/runtime.h.
 	Use the Modern Objective-C runtime API. ([TestClass -next:]): Made
 	it a class method.
@@ -287,7 +448,7 @@
 	* objc/execute/exceptions/catchall-1.m: Likewise.
 	* objc/execute/exceptions/finally-1.m: Likewise.
 	* objc/execute/exceptions/foward-1.m: Likewise.
-	* objc/execute/exceptions/local-variables-1.m: Likewise.	
+	* objc/execute/exceptions/local-variables-1.m: Likewise.
 	* objc/execute/exceptions/throw-nil.m: Likewise.
 	* objc/execute/exceptions/trivial.m: Likewise.
 	* objc/execute/exceptions/handler-1.m: Use TestsuiteObject instead
@@ -353,15 +514,15 @@
 	runtime as well.
 	* objc.dg/attributes/categ-attribute-1.m: Use TestsuiteObject
 	instead of Object.
-	* obj-c++.dg/attributes/categ-attribute-1.mm: Likewise.	
+	* obj-c++.dg/attributes/categ-attribute-1.mm: Likewise.
 	* objc.dg/attributes/categ-attributes-2.m: Likewise.
 	* obj-c++.dg/attributes/categ-attributes-2.mm: Likewise.
 	* objc.dg/attributes/method-attribute-1.m: Likewise.
-	* obj-c++.dg/attributes/method-attribute-1.mm: Likewise.	
+	* obj-c++.dg/attributes/method-attribute-1.mm: Likewise.
 	* objc.dg/attributes/method-attribute-2.m: Likewise.
-	* obj-c++.dg/attributes/method-attribute-2.mm: Likewise.	
+	* obj-c++.dg/attributes/method-attribute-2.mm: Likewise.
 	* objc.dg/attributes/method-attribute-3.m: Likewise.
-	* obj-c++.dg/attributes/method-attribute-3.mm: Likewise.	
+	* obj-c++.dg/attributes/method-attribute-3.mm: Likewise.
 	* obj-c++.dg/basic.mm: Use TestsuiteObject instead of Object.
 	* objc.dg/bitfield-1.m: Use TestsuiteObject instead of Object.
 	* obj-c++.dg/bitfield-1.mm: Likewise.
@@ -376,10 +537,10 @@
 	../objc-obj-c++-shared/runtime.h.
 	* objc.dg/call-super-3.m: Use TestsuiteObject instead of Object.
 	* objc.dg/category-1.m: Use TestsuiteObject instead of Object.
-	Use the Modern Objective-C runtime API.	
+	Use the Modern Objective-C runtime API.
 	* objc.dg/class-protocol-1.m: Include
 	../objc-obj-c++-shared/runtime.h instead of objc/objc-api.h.
-	* obj-c++.dg/class-protocol-1.mm: Likewise.	
+	* obj-c++.dg/class-protocol-1.mm: Likewise.
 	* objc.dg/comp-types-8.m: Use TestsuiteObject instead of Object.
 	* objc.dg/comp-types-10.m: Likewise.
 	* objc.dg/comp-types-11.m: Likewise.
@@ -409,7 +570,7 @@
 	* objc.dg/encode-5.m: Use TestsuiteObject instead of Object.  Use
 	the Modern Objective-C runtime API.
 	* objc.dg/encode-7.m: Include objc/runtime.h instead of
-	objc/encoding.h.	
+	objc/encoding.h.
 	* objc.dg/encode-7-next.m: Use TestsuiteObject instead of Object.
 	* objc.dg/encode-7-next-64bit.m: Updated include.
 	* objc.dg/encode-8.m: Include objc/runtime.h instead of
@@ -423,7 +584,7 @@
 	the Modern Objective-C runtime API except when using an older NeXT
 	runtime.
 	* obj-c++.dg/encode-7.mm:  Use TestsuiteObject instead of Object.  Use
-	the Modern Objective-C runtime API.	
+	the Modern Objective-C runtime API.
 	* objc.dg/fix-and-continue-1.m: Use TestsuiteObject instead of
 	Object.
 	* obj-c++.dg/fix-and-continue-2.mm: Likewise.
@@ -441,8 +602,8 @@
 	* objc.dg/fsf-package-0.m: Use TestsuiteObject instead of Object.
 	Do not include objc/objc-api.h.
 	* obj-c++.dg/fsf-package-0.mm: Likewise.
-	* objc.dg/gnu-encoding/struct-layout-encoding-1_generate.c (switchfiles):
-	Include objc/runtime.h instead of objc/encoding.h.	
+	* objc.dg/gnu-encoding/struct-layout-encoding-1_generate.c
+	(switchfiles): Include objc/runtime.h instead of objc/encoding.h.
 	* objc.dg/gnu-runtime-1.m: Updated to use TestsuiteObject instead
 	of Object.
 	* obj-c++.dg/gnu-runtime-1.mm: Likewise.
@@ -514,7 +675,7 @@
 	* obj-c++.dg/proto-lossage-3.mm: Likewise.
 	* objc.dg/proto-qual-1.m: Updated includes.  Use the Modern
 	Objective-C runtime API.
-	* obj-c++.dg/proto-qual-1.mm: Likewise.	
+	* obj-c++.dg/proto-qual-1.mm: Likewise.
 	* objc.dg/property/property-1.m: Use TestsuiteObject instead of
 	Object.
 	* obj-c++.dg/property/property-1.mm: Likewise.
@@ -572,7 +733,7 @@
 	Object.  Use Modern Objective-C runtime API.  Do not use
 	performv::.
 	* objc.dg/torture/trivial.m: Use TestsuiteObject intead of Object.
-	* obj-c++.dg/torture/trivial.mm: Likewise.	
+	* obj-c++.dg/torture/trivial.mm: Likewise.
 	* objc.dg/torture/strings/const-str-10.m: Include objc/Object.h
 	instead of ../objc-obj-c++-shared/Object1.h.  Include
 	../objc-obj-c++-shared/runtime.h.
@@ -596,16 +757,16 @@
 	* obj-c++.dg/va-meth-1.mm: Likewise.
 	* objc.dg/zero-link-1.m: Include objc/Object.h instead of
 	../objc-obj-c++-shared/Object1.h.
-	* objc.dg/zero-link-3.m: Likewise.	
-	
+	* objc.dg/zero-link-3.m: Likewise.
+
 2011-06-06  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* obj-c++.dg/try-catch-2.mm: Fixed unterminated comment.
-	
+
 2011-06-06  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	PR objc-++/48275
-	* obj-c++.dg/property/cxx-property-1.mm: New.	
+	* obj-c++.dg/property/cxx-property-1.mm: New.
 	* obj-c++.dg/property/cxx-property-2.mm: New.
 
 2011-06-06  Jason Merrill  <jason@redhat.com>
@@ -671,14 +832,14 @@
 	* objc.dg/gnu-api-2-objc.m: Likewise.
 	* obj-c++.dg/gnu-api-2-class.mm: Likewise
 	* obj-c++.dg/gnu-api-2-objc.mm: Likewise.
-	
+
 2011-06-05  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/gnu-api-2-objc.m: Fixed testcase.  Use log2 of the
 	alignment, not the alignment, when calling class_addIvar().  Add
 	an 'isa' instance variable to the test root class.
 	* obj-c++.dg/gnu-api-2-objc.mm: Likewise.
-	
+
 2011-06-04  Jan Hubicka  <jh@suse.cz>
 
 	PR tree-optimization/48893
@@ -737,7 +898,7 @@
 
 	* objc.dg/type-stream-1.m: Test removed.
 	* objc.dg/headers.m: Do not include typedstream.h.
-	
+
 2011-06-02  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/torture/forward-1.m (main): Updated testcase.
@@ -760,12 +921,12 @@
 2011-06-02  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	PR objc/48539
-	* objc.dg/method-5.m: Updated.	
+	* objc.dg/method-5.m: Updated.
 	* objc.dg/method-19.m: Updated.
-	* objc.dg/method-lookup-1.m: New.	
+	* objc.dg/method-lookup-1.m: New.
 	* obj-c++.dg/method-6.mm: Updated.
 	* obj-c++.dg/method-7.mm: Updated.
-	* obj-c++.dg/method-lookup-1.mm: New.	
+	* obj-c++.dg/method-lookup-1.mm: New.
 
 2011-06-02  DJ Delorie  <dj@redhat.com>
 
@@ -839,7 +1000,7 @@
 2011-06-01  Nicola Pero  <nicola.pero@meta-innovation.com>
 
 	* objc.dg/attributes/method-nonnull-1.m: New test.
-	* obj-c++.dg/attributes/method-nonnull-1.mm: New test.	
+	* obj-c++.dg/attributes/method-nonnull-1.mm: New test.
 
 2011-05-31  Tobias Burnus  <burnus@net-b.de>
 

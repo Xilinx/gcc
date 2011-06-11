@@ -291,6 +291,7 @@ Objective-C and Objective-C++ Dialects}.
 -fdump-translation-unit@r{[}-@var{n}@r{]} @gol
 -fdump-class-hierarchy@r{[}-@var{n}@r{]} @gol
 -fdump-ipa-all -fdump-ipa-cgraph -fdump-ipa-inline @gol
+-fdump-passes @gol
 -fdump-statistics @gol
 -fdump-tree-all @gol
 -fdump-tree-original@r{[}-@var{n}@r{]}  @gol
@@ -864,7 +865,7 @@ See RS/6000 and PowerPC Options.
 -mtune=@var{cpu-type} @gol
 -mcmodel=@var{code-model} @gol
 -m32  -m64  -mapp-regs  -mno-app-regs @gol
--mfaster-structs  -mno-faster-structs @gol
+-mfaster-structs  -mno-faster-structs  -mflat  -mno-flat @gol
 -mfpu  -mno-fpu  -mhard-float  -msoft-float @gol
 -mhard-quad-float  -msoft-quad-float @gol
 -mlittle-endian @gol
@@ -5076,7 +5077,8 @@ pair seperated by a colon.  The range is inclusive in both ends.  If the range
 is trivial, the number pair can be simplified as a single number.  If the
 function's cgraph node's @var{uid} is falling within one of the specified ranges,
 the @var{pass} is disabled for that function.  The @var{uid} is shown in the
-function header of a dump file.
+function header of a dump file, and the pass names can be dumped by using
+option @option{-fdump-passes}.
 
 @item -fdisable-tree-@var{pass}
 @item -fdisable-tree-@var{pass}=@var{range-list}
@@ -5500,6 +5502,11 @@ and inlining decisions.
 Dump after function inlining.
 
 @end table
+
+@item -fdump-passes
+@opindex fdump-passes
+Dump the list of optimization passes that are turned on and off by
+the current command line options.
 
 @item -fdump-statistics-@var{option}
 @opindex fdump-statistics
@@ -10186,10 +10193,11 @@ Generate reentrant, position independent code.  The default is
 @item -mthumb-interwork
 @opindex mthumb-interwork
 Generate code which supports calling between the ARM and Thumb
-instruction sets.  Without this option the two instruction sets cannot
-be reliably used inside one program.  The default is
-@option{-mno-thumb-interwork}, since slightly larger code is generated
-when @option{-mthumb-interwork} is specified.
+instruction sets.  Without this option, on pre-v5 architectures, the
+two instruction sets cannot be reliably used inside one program.  The
+default is @option{-mno-thumb-interwork}, since slightly larger code
+is generated when @option{-mthumb-interwork} is specified.  In AAPCS
+configurations this option is meaningless.
 
 @item -mno-sched-prolog
 @opindex mno-sched-prolog
@@ -17047,6 +17055,19 @@ is the default.
 To be fully SVR4 ABI compliant at the cost of some performance loss,
 specify @option{-mno-app-regs}.  You should compile libraries and system
 software with this option.
+
+@item -mflat
+@itemx -mno-flat
+@opindex mflat
+@opindex mno-flat
+With @option{-mflat}, the compiler does not generate save/restore instructions
+and uses a ``flat'' or single register window model.  This model is compatible
+with the regular register window model.  The local registers and the input
+registers (0--5) are still treated as ``call-saved'' registers and will be
+saved on the stack as needed.
+
+With @option{-mno-flat} (the default), the compiler generates save/restore
+instructions (except for leaf functions).  This is the normal operating mode.
 
 @item -mfpu
 @itemx -mhard-float

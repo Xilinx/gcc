@@ -1784,6 +1784,9 @@ duplicate_decls (tree newdecl, tree olddecl, bool newdecl_is_friend)
       tree oldtype = TREE_TYPE (olddecl);
       tree newtype;
 
+      if (TREE_CODE (newdecl) == FUNCTION_DECL)
+	maybe_instantiate_noexcept (olddecl);
+
       /* Merge the data types specified in the two decls.  */
       newtype = merge_types (TREE_TYPE (newdecl), TREE_TYPE (olddecl));
 
@@ -8438,6 +8441,20 @@ grokdeclarator (const cp_declarator *declarator,
       return error_mark_node;
     }
 
+  if (dname && IDENTIFIER_OPNAME_P (dname))
+    {
+      if (declspecs->specs[(int)ds_typedef])
+	{
+	  error ("declaration of %qD as %<typedef%>", dname);
+	  return error_mark_node;
+	}
+      else if (decl_context == PARM || decl_context == CATCHPARM)
+	{
+	  error ("declaration of %qD as parameter", dname);
+	  return error_mark_node;
+	}
+    }
+
   /* Anything declared one level down from the top level
      must be one of the parameters of a function
      (because the body is at least two levels down).  */
@@ -13665,6 +13682,7 @@ cp_tree_node_structure (union lang_tree_node * t)
   switch (TREE_CODE (&t->generic))
     {
     case DEFAULT_ARG:		return TS_CP_DEFAULT_ARG;
+    case DEFERRED_NOEXCEPT:	return TS_CP_DEFERRED_NOEXCEPT;
     case IDENTIFIER_NODE:	return TS_CP_IDENTIFIER;
     case OVERLOAD:		return TS_CP_OVERLOAD;
     case TEMPLATE_PARM_INDEX:	return TS_CP_TPI;
