@@ -1,4 +1,10 @@
 
+2011-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in
+	(install-melt-source,install-melt-modules,install-melt-mk)
+	(install-melt-default-modules-list): Install at correct wired-in
+	locations.
+
 2011-05-31  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Update copyright year.
 	* melt-build.mk: Regenerate.
