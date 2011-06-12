@@ -101,10 +101,10 @@ searchc (struct searchc_env* env, struct cgraph_node *v,
   for (edge = v->callees; edge; edge = edge->next_callee)
     {
       struct ipa_dfs_info * w_info;
-      struct cgraph_node *w = edge->callee;
-      enum availability avail = cgraph_function_body_availability (w);
+      enum availability avail;
+      struct cgraph_node *w = cgraph_function_or_thunk_node (edge->callee, &avail);
 
-      if (ignore_edge && ignore_edge (edge))
+      if (!w || (ignore_edge && ignore_edge (edge)))
         continue;
 
       if (w->aux
@@ -234,7 +234,8 @@ ipa_free_postorder_info (void)
 }
 
 /* Fill array order with all nodes with output flag set in the reverse
-   topological order.  Return the number of elements in the array.  */
+   topological order.  Return the number of elements in the array.
+   FIXME: While walking, consider aliases, too.  */
 
 int
 ipa_reverse_postorder (struct cgraph_node **order)
@@ -260,7 +261,7 @@ ipa_reverse_postorder (struct cgraph_node **order)
 	  && (pass
 	      || (!node->address_taken
 		  && !node->global.inlined_to
-		  && !cgraph_only_called_directly_p (node))))
+		  && !cgraph_only_called_directly_or_aliased_p (node))))
 	{
 	  node2 = node;
 	  if (!node->callers)

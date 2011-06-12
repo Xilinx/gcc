@@ -113,17 +113,51 @@ process_references (struct ipa_ref_list *list,
     }
 }
 
+
+/* Return true when NODE can not be local. Worker for cgraph_local_node_p.  */
+
+static bool
+cgraph_non_local_node_p_1 (struct cgraph_node *node, void *data ATTRIBUTE_UNUSED)
+{
+   /* FIXME: Aliases can be local, but i386 gets thunks wrong then.  */
+   return !(cgraph_only_called_directly_or_aliased_p (node)
+	    && !ipa_ref_has_aliases_p (&node->ref_list)
+	    && node->analyzed
+	    && !DECL_EXTERNAL (node->decl)
+	    && !node->local.externally_visible
+	    && !node->reachable_from_other_partition
+	    && !node->in_other_partition);
+}
+
 /* Return true when function can be marked local.  */
 
 static bool
 cgraph_local_node_p (struct cgraph_node *node)
 {
-   return (cgraph_only_called_directly_p (node)
-	   && node->analyzed
-	   && !DECL_EXTERNAL (node->decl)
-	   && !node->local.externally_visible
-	   && !node->reachable_from_other_partition
-	   && !node->in_other_partition);
+   struct cgraph_node *n = cgraph_function_or_thunk_node (node, NULL);
+
+   /* FIXME: thunks can be considered local, but we need prevent i386
+      from attempting to change calling convention of them.  */
+   if (n->thunk.thunk_p)
+     return false;
+   return !cgraph_for_node_and_aliases (n,
+					cgraph_non_local_node_p_1, NULL, true);
+					
+}
+
+/* Return true when NODE has ADDR reference.  */
+
+static bool
+has_addr_references_p (struct cgraph_node *node,
+		       void *data ATTRIBUTE_UNUSED)
+{
+  int i;
+  struct ipa_ref *ref;
+
+  for (i = 0; ipa_ref_list_refering_iterate (&node->ref_list, i, ref); i++)
+    if (ref->use == IPA_REF_ADDR)
+      return true;
+  return false;
 }
 
 /* Perform reachability analysis and reclaim all unreachable nodes.
@@ -417,16 +451,7 @@ cgraph_remove_unreachable_nodes (bool before_inlining_p, FILE *file)
     if (node->address_taken
 	&& !node->reachable_from_other_partition)
       {
-	int i;
-        struct ipa_ref *ref;
-	bool found = false;
-        for (i = 0; ipa_ref_list_refering_iterate (&node->ref_list, i, ref)
-		    && !found; i++)
-	  {
-	    gcc_assert (ref->use == IPA_REF_ADDR);
-	    found = true;
-	  }
-	if (!found)
+	if (!cgraph_for_node_and_aliases (node, has_addr_references_p, NULL, true))
 	  {
 	    if (file)
 	      fprintf (file, " %s", cgraph_node_name (node));
@@ -554,7 +579,7 @@ cgraph_comdat_can_be_unshared_p (struct cgraph_node *node)
          address taken.  */
       for (next = node->same_comdat_group;
 	   next != node; next = next->same_comdat_group)
-	if (cgraph_address_taken_from_non_vtable_p (node)
+	if (cgraph_address_taken_from_non_vtable_p (next)
 	    && !DECL_VIRTUAL_P (next->decl))
 	  return false;
     }
@@ -564,9 +589,9 @@ cgraph_comdat_can_be_unshared_p (struct cgraph_node *node)
 /* Return true when function NODE should be considered externally visible.  */
 
 static bool
-cgraph_externally_visible_p (struct cgraph_node *node, bool whole_program, bool aliased)
+cgraph_externally_visible_p (struct cgraph_node *node,
+			     bool whole_program, bool aliased)
 {
-  struct cgraph_node *alias;
   if (!node->local.finalized)
     return false;
   if (!DECL_COMDAT (node->decl)
@@ -611,18 +636,6 @@ cgraph_externally_visible_p (struct cgraph_node *node, bool whole_program, bool 
   if ((in_lto_p || whole_program)
       && DECL_COMDAT (node->decl)
       && cgraph_comdat_can_be_unshared_p (node))
-    return false;
-
-  /* See if we have linker information about symbol not being used or
-     if we need to make guess based on the declaration.
-
-     Even if the linker clams the symbol is unused, never bring internal
-     symbols that are declared by user as used or externally visible.
-     This is needed for i.e. references from asm statements.   */
-  for (alias = node->same_body; alias; alias = alias->next)
-    if (alias->resolution != LDPR_PREVAILING_DEF_IRONLY)
-      break;
-  if (!alias && node->resolution == LDPR_PREVAILING_DEF_IRONLY)
     return false;
 
   /* When doing link time optimizations, hidden symbols become local.  */
@@ -864,12 +877,9 @@ function_and_variable_visibility (bool whole_program)
       if (!node->local.externally_visible && node->analyzed
 	  && !DECL_EXTERNAL (node->decl))
 	{
-          struct cgraph_node *alias;
 	  gcc_assert (whole_program || in_lto_p || !TREE_PUBLIC (node->decl));
 	  cgraph_make_decl_local (node->decl);
 	  node->resolution = LDPR_PREVAILING_DEF_IRONLY;
-	  for (alias = node->same_body; alias; alias = alias->next)
-	    cgraph_make_decl_local (alias->decl);
 	  if (node->same_comdat_group)
 	    /* cgraph_externally_visible_p has already checked all other nodes
 	       in the group and they will all be made local.  We need to
@@ -883,8 +893,7 @@ function_and_variable_visibility (bool whole_program)
 	{
 	  struct cgraph_node *decl_node = node;
 
-	  while (decl_node->thunk.thunk_p)
-	    decl_node = decl_node->callees->callee;
+	  decl_node = cgraph_function_node (decl_node->callees->callee, NULL);
 
 	  /* Thunks have the same visibility as function they are attached to.
 	     For some reason C++ frontend don't seem to care. I.e. in 
@@ -916,9 +925,9 @@ function_and_variable_visibility (bool whole_program)
 	  if (DECL_EXTERNAL (decl_node->decl))
 	    DECL_EXTERNAL (node->decl) = 1;
 	}
-      node->local.local = cgraph_local_node_p (node);
-
     }
+  for (node = cgraph_nodes; node; node = node->next)
+    node->local.local = cgraph_local_node_p (node);
   for (vnode = varpool_nodes; vnode; vnode = vnode->next)
     {
       /* weak flag makes no sense on local variables.  */

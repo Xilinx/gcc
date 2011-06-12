@@ -500,6 +500,14 @@ optimize_assignment (gfc_code * c)
 
   if (lhs->ts.type == BT_CHARACTER)
     {
+      /* Check for a // b // trim(c).  Looping is probably not
+	 necessary because the parser usually generates
+	 (// (// a b ) trim(c) ) , but better safe than sorry.  */
+
+      while (rhs->expr_type == EXPR_OP
+	     && rhs->value.op.op == INTRINSIC_CONCAT)
+	rhs = rhs->value.op.op2;
+
       if (rhs->expr_type == EXPR_FUNCTION &&
 	  rhs->value.function.isym &&
 	  rhs->value.function.isym->id == GFC_ISYM_TRIM)
@@ -1190,6 +1198,7 @@ gfc_code_walker (gfc_code **c, walk_code_fn_t codefn, walk_expr_fn_t exprfn,
 	  WALK_SUBEXPR (co->expr1);
 	  WALK_SUBEXPR (co->expr2);
 	  WALK_SUBEXPR (co->expr3);
+	  WALK_SUBEXPR (co->expr4);
 	  for (b = co->block; b; b = b->block)
 	    {
 	      WALK_SUBEXPR (b->expr1);

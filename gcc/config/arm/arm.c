@@ -2231,7 +2231,8 @@ const_ok_for_op (HOST_WIDE_INT i, enum rtx_code code)
       if (arm_arch_thumb2 && (i & 0xffff0000) == 0)
 	return 1;
       else
-	return 0;
+	/* Otherwise, try mvn.  */
+	return const_ok_for_arm (ARM_SIGN_EXTEND (~i));
 
     case PLUS:
     case COMPARE:
@@ -3345,6 +3346,28 @@ arm_libcall_uses_aapcs_base (const_rtx libcall)
 		   convert_optab_libfunc (sfix_optab, DImode, SFmode));
       add_libcall (libcall_htab,
 		   convert_optab_libfunc (ufix_optab, DImode, SFmode));
+
+      /* Values from double-precision helper functions are returned in core
+	 registers if the selected core only supports single-precision
+	 arithmetic, even if we are using the hard-float ABI.  The same is
+	 true for single-precision helpers, but we will never be using the
+	 hard-float ABI on a CPU which doesn't support single-precision
+	 operations in hardware.  */
+      add_libcall (libcall_htab, optab_libfunc (add_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (sdiv_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (smul_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (neg_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (sub_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (eq_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (lt_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (le_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (ge_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (gt_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (unord_optab, DFmode));
+      add_libcall (libcall_htab, convert_optab_libfunc (sext_optab, DFmode,
+							SFmode));
+      add_libcall (libcall_htab, convert_optab_libfunc (trunc_optab, SFmode,
+							DFmode));
     }
 
   return libcall && htab_find (libcall_htab, libcall) != NULL;
@@ -9079,7 +9102,7 @@ coproc_secondary_reload_class (enum machine_mode mode, rtx x, bool wb)
   /* The neon move patterns handle all legitimate vector and struct
      addresses.  */
   if (TARGET_NEON
-      && MEM_P (x)
+      && (MEM_P (x) || GET_CODE (x) == CONST_VECTOR)
       && (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
 	  || GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT
 	  || VALID_NEON_STRUCT_MODE (mode)))
@@ -23828,6 +23851,236 @@ arm_attr_length_push_multi(rtx parallel_op, rtx first_op)
   if (!hi_reg)
     return 2;
   return 4;
+}
+
+/* Check the validity of operands in an ldrd/strd instruction.  */
+bool
+arm_check_ldrd_operands (rtx reg1, rtx reg2, rtx off1, rtx off2)
+{
+  HOST_WIDE_INT offset1 = 0;
+  HOST_WIDE_INT offset2 = 0;
+  int regno1 = REGNO (reg1);
+  int regno2 = REGNO (reg2);
+  HOST_WIDE_INT max_offset = 1020;
+
+  if (TARGET_ARM)
+    max_offset = 255;
+
+  if (off1 != NULL_RTX)
+    offset1 = INTVAL (off1);
+  if (off2 != NULL_RTX)
+    offset2 = INTVAL (off2);
+
+  /* The offset range of LDRD is [-max_offset, max_offset]. Here we check if
+     both offsets lie in the range [-max_offset, max_offset+4]. If one of the
+     offsets is max_offset+4, the following condition
+	((offset1 + 4) == offset2)
+     will ensure offset1 to be max_offset, suitable for instruction LDRD.  */
+  if ((offset1 > (max_offset + 4)) || (offset1 < -max_offset)
+      || ((offset1 & 3) != 0))
+    return false;
+  if ((offset2 > (max_offset + 4)) || (offset2 < -max_offset)
+      || ((offset2 & 3) != 0))
+    return false;
+
+  if ((offset1 + 4) == offset2)
+    {
+      if (TARGET_THUMB2)
+	return true;
+
+      /* TARGET_ARM  */
+      if (((regno1 & 1) == 0) && ((regno1 + 1) == regno2))           /* ldrd  */
+	return true;
+
+      if ((regno1 < regno2) && ((offset1 <= 4) && (offset1 >= -8)))  /* ldm  */
+	return true;
+    }
+  if ((offset2 + 4) == offset1)
+    {
+      if (TARGET_THUMB2)
+	return true;
+
+      /* TARGET_ARM  */
+      if (((regno2 & 1) == 0) && ((regno2 + 1) == regno1))           /* ldrd  */
+	return true;
+
+      if ((regno2 < regno1) && ((offset2 <= 4) && (offset2 >= -8)))  /* ldm  */
+	return true;
+    }
+
+  return false;
+}
+
+/* Check if the two memory accesses can be merged to an ldrd/strd instruction.
+   That is they use the same base register, and the gap between constant
+   offsets should be 4.  */
+bool
+arm_legitimate_ldrd_p (rtx reg1, rtx reg2, rtx mem1, rtx mem2, bool ldrd)
+{
+  rtx base1, base2;
+  rtx offset1 = NULL_RTX;
+  rtx offset2 = NULL_RTX;
+  rtx addr1 = XEXP (mem1, 0);
+  rtx addr2 = XEXP (mem2, 0);
+
+  if (MEM_VOLATILE_P (mem1) || MEM_VOLATILE_P (mem2))
+    return false;
+
+  if (REG_P (addr1))
+    base1 = addr1;
+  else if (GET_CODE (addr1) == PLUS)
+    {
+      base1 = XEXP (addr1, 0);
+      offset1 = XEXP (addr1, 1);
+      if (!REG_P (base1) || (GET_CODE (offset1) != CONST_INT))
+	return false;
+    }
+  else
+    return false;
+
+  if (REG_P (addr2))
+    base2 = addr2;
+  else if (GET_CODE (addr2) == PLUS)
+    {
+      base2 = XEXP (addr2, 0);
+      offset2 = XEXP (addr2, 1);
+      if (!REG_P (base2) || (GET_CODE (offset2) != CONST_INT))
+	return false;
+    }
+  else
+    return false;
+
+  if (base1 != base2)
+    return false;
+
+  if (ldrd && ((reg1 == reg2) || (reg1 == base1)))
+    return false;
+
+  return arm_check_ldrd_operands (reg1, reg2, offset1, offset2);
+}
+
+/* Output instructions for ldrd and count the number of bytes has been
+   outputted. Do not actually output instructions if EMIT_P is false.  */
+int
+arm_output_ldrd (rtx reg1, rtx reg2, rtx base, rtx off1, rtx off2, bool emit_p)
+{
+  int length = 0;
+  rtx operands[5];
+  HOST_WIDE_INT offset1 = 0;
+  HOST_WIDE_INT offset2 = 0;
+
+  if (off1 != NULL_RTX)
+    offset1 = INTVAL (off1);
+  else
+    off1 = GEN_INT (0);
+  if (off2 != NULL_RTX)
+    offset2 = INTVAL (off2);
+  else
+    off2 = GEN_INT (0);
+  if (offset1 > offset2)
+    {
+      rtx tmp;
+      HOST_WIDE_INT t = offset1;   offset1 = offset2;   offset2 = t;
+      tmp = off1;   off1 = off2;   off2 = tmp;
+      tmp = reg1;   reg1 = reg2;   reg2 = tmp;
+    }
+
+  operands[0] = reg1;
+  operands[1] = reg2;
+  operands[2] = base;
+  operands[3] = off1;
+  operands[4] = off2;
+
+  if (TARGET_THUMB2)
+    {
+      if (fix_cm3_ldrd && (base == reg1))
+	{
+	  if (offset1 <= -256)
+	    {
+	      if (emit_p)
+		output_asm_insn ("sub\t%2, %2, %n3", operands);
+	      length = 4;
+
+	      if (emit_p)
+		output_asm_insn ("ldr\t%1, [%2, #4]", operands);
+	      if (low_register_operand (reg2, SImode)
+		  && low_register_operand (base, SImode))
+		length += 2;
+	      else
+		length += 4;
+
+	      if (emit_p)
+		output_asm_insn ("ldr\t%0, [%2]", operands);
+	      if (low_register_operand (base, SImode))
+		length += 2;
+	      else
+		length += 4;
+	    }
+	  else
+	    {
+	      if (emit_p)
+		output_asm_insn ("ldr\t%1, [%2, %4]", operands);
+	      if (low_register_operand (reg2, SImode) && (offset2 >= 0)
+		  && low_register_operand (base, SImode) && (offset2 < 128))
+		length += 2;
+	      else
+		length += 4;
+
+	      if (emit_p)
+		output_asm_insn ("ldr\t%0, [%2, %3]", operands);
+	      if (low_register_operand (base, SImode)
+		  && (offset1 >= 0) && (offset1 < 128))
+		length += 2;
+	      else
+		length += 4;
+	    }
+	}
+      else
+	{
+	  if (emit_p)
+	    output_asm_insn ("ldrd\t%0, %1, [%2, %3]", operands);
+	  length = 4;
+	}
+    }
+  else    /* TARGET_ARM  */
+    {
+      if ((REGNO (reg2) == (REGNO (reg1) + 1)) && ((REGNO (reg1) & 1) == 0))
+	{
+	  if (emit_p)
+	    output_asm_insn ("ldrd\t%0, %1, [%2, %3]", operands);
+	  length = 4;
+	}
+      else
+	{
+	  if (emit_p)
+	    {
+	      switch (offset1)
+		{
+		case -8:
+		  output_asm_insn ("ldm%(db%)\t%2, {%0, %1}", operands);
+		  break;
+
+		case -4:
+		  output_asm_insn ("ldm%(da%)\t%2, {%0, %1}", operands);
+		  break;
+
+		case 0:
+		  output_asm_insn ("ldm%(ia%)\t%2, {%0, %1}", operands);
+		  break;
+
+		case 4:
+		  output_asm_insn ("ldm%(ib%)\t%2, {%0, %1}", operands);
+		  break;
+
+		default:
+		  gcc_unreachable ();
+		}
+	    }
+	  length = 4;
+	}
+    }
+
+  return length;
 }
 
 #include "gt-arm.h"
