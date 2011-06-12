@@ -1,5 +1,8 @@
 
 2011-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (install-melt-source): Typo.
+
+2011-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in
 	(install-melt-source,install-melt-modules,install-melt-mk)
 	(install-melt-default-modules-list): Install at correct wired-in

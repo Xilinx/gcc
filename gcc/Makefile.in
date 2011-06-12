@@ -5418,9 +5418,9 @@ install-melt-includes: melt-runtime.h melt-predef.h melt-run.h melt-run-md5.h me
 
 ### notice that melt-sources is a directory, but melt-all-sources is a
 ### phony makefile target from melt-build.mk
-install-melt-source: melt-source  melt-all-sources
+install-melt-source: melt-sources  melt-all-sources
 	$(mkinstalldirs) $(DESTDIR)$(melt_source_dir)
-	for f in $</*.c $</*.melt ; do \
+	for f in melt-sources/*.c melt-sources/*.melt ; do \
 	   $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_source_dir) ; \
 	done
 
