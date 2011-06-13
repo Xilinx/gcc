@@ -376,8 +376,7 @@ pph_out_class_binding (pph_stream *stream, cp_class_binding *cb,
    REF_P is true, tree fields will be written as references.  */
 
 static void
-pph_out_label_binding (pph_stream *stream, cp_label_binding *lb,
-				bool ref_p)
+pph_out_label_binding (pph_stream *stream, cp_label_binding *lb, bool ref_p)
 {
   if (!pph_start_record (stream, lb))
     return;

@@ -1,3 +1,7 @@
+2011-06-13   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-out.c (pph_out_class_binding): Tidy.
+
 2011-06-10  Diego Novillo  <dnovillo@google.com>
 
 	* lang-specs.h (@c++-header): Disable PCH if -fpph-gen is given.
