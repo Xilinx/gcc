@@ -1,3 +1,9 @@
+2011-06-13  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/c1eabi1.h: Remove XFAIL markers.
+	* g++.dg/pph/c1eabi1.cc: Likewise.
+	Add assembly mis-comparison expectation.
+
 2011-06-10  Diego Novillo  <dnovillo@google.com>
 
 	* lib/dg-pph.exp (dg-pph-hdr): Use -fpph-gen.

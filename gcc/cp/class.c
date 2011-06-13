@@ -5579,8 +5579,12 @@ determine_key_method (tree type)
 struct sorted_fields_type *
 sorted_fields_type_new (int n)
 {
-  return ggc_alloc_sorted_fields_type (sizeof (struct sorted_fields_type)
-				       + n * sizeof (tree));
+  struct sorted_fields_type *sft;
+  sft = ggc_alloc_sorted_fields_type (sizeof (struct sorted_fields_type)
+				      + n * sizeof (tree));
+  sft->len = n;
+
+  return sft;
 }
 
 
@@ -5714,7 +5718,6 @@ finish_struct_1 (tree t)
   if (n_fields > 7)
     {
       struct sorted_fields_type *field_vec = sorted_fields_type_new (n_fields);
-      field_vec->len = n_fields;
       add_fields_to_record_type (TYPE_FIELDS (t), field_vec, 0);
       qsort (field_vec->elts, n_fields, sizeof (tree),
 	     field_decl_cmp);

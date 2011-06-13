@@ -1,7 +1,3 @@
-// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "mathcalls.h:365:1: internal compiler error: Segmentation fault" "" { xfail *-*-* } 0 }
-// { dg-prune-output "In file included " }
-// { dg-prune-output "                 from " }
 // { dg-options "-w -fpermissive" }
 
 #ifndef __PPH_GUARD_H
