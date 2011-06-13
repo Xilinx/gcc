@@ -757,8 +757,7 @@ pph_in_sorted_fields_type (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct sorted_fields_type *) pph_in_shared_data (stream,
-								      ix);
+    return (struct sorted_fields_type *) pph_in_shared_data (stream, ix);
 
   num_fields = pph_in_uint (stream);
   ALLOC_AND_REGISTER (stream, ix, v, sorted_fields_type_new (num_fields));
