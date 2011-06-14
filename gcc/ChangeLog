@@ -1,3 +1,191 @@
+2011-06-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47364
+	* builtins.c (expand_builtin_strlen): Expand strlen to Pmode
+	and properly handle result not in Pmode.
+
+2011-06-14  Robert Millan  <rmh@gnu.org>
+
+	* config/i386/kfreebsd-gnu.h: Resync with `config/i386/linux.h'.
+	* config/kfreebsd-gnu.h (GNU_USER_DYNAMIC_LINKER): Resync with
+	`config/linux.h'.
+
+	* config/i386/kfreebsd-gnu64.h: New file.
+	* config.gcc (x86_64-*-kfreebsd*-gnu): Replace `i386/kfreebsd-gnu.h'
+	with `i386/kfreebsd-gnu64.h'.
+
+	* config/i386/linux64.h (GNU_USER_LINK_EMULATION32)
+	(GNU_USER_LINK_EMULATION64): New macros.
+	* config/i386/gnu-user64.h (LINK_SPEC): Rely on
+	`GNU_USER_LINK_EMULATION32' and `GNU_USER_LINK_EMULATION64' instead
+	of hardcoding `elf_i386' and `elf_x86_64'.
+
+2011-06-14  Nick Clifton  <nickc@redhat.com>
+
+	PR target/49403
+	* config/v850/v850.c (v850_memory_move_cost): Add reg_class_t parameter.
+
+	PR target/49402
+	* config.gcc(v850*-*-*): Avoid duplication of v850.opt.
+
+2011-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/49103
+	* tree.h (DECL_NONSHAREABLE): Define.
+	(struct tree_decl_common): Change decl_common_unused to
+	decl_nonshareable_flag.
+	* cfgexpand.c (expand_used_vars_for_block, clear_tree_used):
+	Ignore vars with DECL_NONSHAREABLE bit set.
+	* tree-cfg.c (gimple_duplicate_bb): Set DECL_NONSHAREABLE
+	on stores to automatic aggregate vars.
+
+	PR rtl-optimization/49390
+	Revert:
+	2010-06-29  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* cse.c (exp_equiv_p): For MEMs, if for_gcse, only compare
+	MEM_ALIAS_SET.
+
+2011-06-14  Zdenek Dvorak  <ook@ucw.cz>
+	    Tom de Vries  <tom@codesourcery.com>
+
+	PR target/45098
+	* cfgloop.h (nb_iterations_upper_bound, nb_iterations_estimate):
+	Document changed semantics.
+	(max_stmt_executions, max_stmt_executions_int): Declare.
+	* tree-data-ref.c (estimated_loop_iterations)
+	(estimated_loop_iterations_int): Move functions...
+	* tree-ssa-loop-niter.c (estimated_loop_iterations)
+	(estimated_loop_iterations_int): here.
+	(record_estimate): Change nb_iterations_upper_bound and
+	nb_iterations_estimate semantics.
+	(max_stmt_executions, max_stmt_executions_int): New function.
+	* tree-data-ref.c (estimated_loop_iterations_tree): Rename to ...
+	(max_stmt_executions_tree): this.
+	(analyze_miv_subscript): Use max_stmt_executions_tree instead of
+	estimated_loop_iterations_tree.
+	tree-ssa-loop-ivopts.c (avg_loop_niter): Use
+	max_stmt_executions_int instead of estimated_loop_iterations_int.
+	* predict.c (predict_loops): Idem.
+	* tree-parloops.c (parallelize_loops): Idem.
+	* tree-data-ref.c (analyze_siv_subscript_cst_affine)
+	(compute_overlap_steps_for_affine_1_2, analyze_subscript_affine_affine)
+	(init_omega_for_ddr_1): Idem.
+	* tree-ssa-loop-prefetch.c (determine_loop_nest_reuse)
+	(loop_prefetch_arrays): Idem
+	* graphite-sese-to-poly.c (build_loop_iteration_domains): Use
+	max_stmt_executions instead of estimated_loop_iterations.
+	* tree-data-ref.c (estimated_loop_iterations_tree): Idem.
+	* tree-vrp.c (adjust_range_with_scev): Use estimated_loop_iterations
+	instead of nb_iterations_upper_bound.
+
+2011-06-13  Jan Hubicka  <jh@suse.cz>
+
+	* ipa.c (cgraph_address_taken_from_non_vtable_p): Check the ref type.
+
+2011-06-14  Richard Henderson  <rth@redhat.com>
+
+	PR debug/48459
+	* dwarf2out.c (frame_pointer_fb_offset_valid): New.
+	(based_loc_descr): Assert it's true.
+	(compute_frame_pointer_to_fb_displacement): Set it, rather than
+	aborting immediately.
+
+2011-06-14  Sanjin Liu	<scliu@faraday-tech.com>
+	    Mingfeng Wu  <mingfeng@faraday-tech.com>
+
+	* doc/invoke.texi: Re-add missing -mcpu docs for Faraday cores.
+
+2011-06-13  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-cp.c (ipcp_iterate_stage): Revert accidental commit.
+
+2011-06-13  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (cgraph_make_decl_local): Handle DECL_ONE_ONLY
+	similarly to DECL_COMDAT.
+	* cgraphunit.c (cgraph_analyze_function): Likewise.
+	* ipa.c (function_and_variable_visibility): Likewise.
+
+2011-06-13  Jan Hubicka  <jh@suse.cz>
+
+	* lto-streamer-out.c (lto_output_ts_binfo_tree_pointers): Do not output
+	BINFO_VIRTUALS when streaming for ltrans unit.
+
+2011-06-13  David Edelsohn  <dje.gcc@gmail.com>
+
+	* config/rs6000/rs6000.md (movdi_mfpgpr): Remove POWER mnemonic.
+	(movdi_internal64): Same.
+
+2011-06-13  Edmar Wienskoski  <edmar@freescale.com>
+
+	* config/rs6000/rs6000.md (save_gpregs_<mode>): Replaced pattern with
+	a set of similar patterns, where the MATCH_OPERAND for the function
+	argument is replaced with individual references to hardware registers.
+	(save_fpregs_<mode>): Ditto
+	(restore_gpregs_<mode>): Ditto
+	(return_and_restore_gpregs_<mode>): Ditto
+	(return_and_restore_fpregs_<mode>): Ditto
+	(return_and_restore_fpregs_aix_<mode>): Ditto
+
+2011-06-13  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-utils.c (postorder_stack): New structure.
+	(ipa_reverse_postorder): Handle aliases.
+
+2011-06-13  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline.c (reset_edge_caches): Walk aliases.
+	(update_caller_keys): Do not test inlinability of aliases.
+	* ipa-inline-analysis.c (do_estimate_edge_time): Look through alias.
+	(do_estimate_growth): Fix typo.
+
+2011-06-13  Jan Hubicka  <jh@suse.cz>
+
+	* ipa-inline-transform.c (+can_remove_node_now_p_1): Break out from...
+	(can_remove_node_now_p): ... here; handle same comdat groups.
+	(clone_inlined_nodes): Update use of can_remove_node_now_p add TODO.
+	(inline_call): Update use of can_remove_node_now_p.
+
+2011-06-13  Kaushik Phatak  <kaushik.phatak@kpitcummins.com>
+
+	* config/h8300/h8300.md (bsetqi_msx, bclrqi_msx, bnotqi_msx): Added
+	condition to disallow non-identical memory locations.
+	(*andqi3_2, andqi3_1, iorqi3_1, xorqi3_1): Reorder insn to give
+	preference to bit manipulation instructions.
+
+2011-06-13  Jan Hubicka  <jh@suse.cz>
+
+	* cgraph.c (cgraph_for_node_thunks_and_aliases,
+	cgraph_for_node_and_aliases): Fix thinko in recursive walking.
+	(nonremovable_p): New function.
+	(cgraph_can_remove_if_no_direct_calls_p): New function.
+	(used_from_object_file_p): New functoin.
+	(cgraph_will_be_removed_from_program_if_no_direct_calls): Look for
+	references from aliases.
+	* cgraph.h (cgraph_can_remove_if_no_direct_calls_p): Bring offline.
+	* ipa-inline.c (check_caller_edge): New function.
+	(want_inline_function_called_once_p): Use it; accept aliases called
+	once, too.
+	* ipa-inline-analysis.c (do_estimate_growth): Remove FIXME.
+
+2011-06-13  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/48454
+	* config/arm/neon.md (vec_pack_trunc): Set the lengths
+	correctly for the case with Quad vectors.
+
+2011-06-13 Jakub Jelinek  <jakub@redhat.com>
+	   Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49352
+	* tree-vect-loop.c (vect_is_slp_reduction): Don't count debug uses at
+	all, make sure loop_use_stmt after the loop is a def stmt of a used
+	SSA_NAME that is the only one defined inside of the loop.  Don't
+	check for COND_EXPR and GIMPLE_BINARY_RHS.
+	(vect_is_simple_reduction_1): Call vect_is_slp_reduction only if
+	check_reduction is true.
+
 2011-06-11  Jan Hubicka  <jh@suse.cz>
 
 	PR middle-end/49373
@@ -29,7 +217,8 @@
 
 2011-06-11  Jan Hubicka  <jh@suse.cz>
 
-	* ipa-prop.c (ipa_make_edge_direct_to_target): Fix code setting varying args.
+	* ipa-prop.c (ipa_make_edge_direct_to_target): Fix code setting varying
+	args.
 	(ipa_update_after_lto_read): Likewise.
 	(ipa_write_node_info): Do not sream call_with_var_arguments.
 	(ipa_read_node_info): Likewise.
@@ -73,8 +262,8 @@
 	(cgraph_function_or_thunk_node): Likewise.
 	* ipa-inline-transform.c (can_remove_node_now_p): Look for aliases.
 	(inline_call): Remove dead aliases.
-	* cgraphunit.c (cgraph_decide_is_function_needed): Disable assembler name
-	hack for same body aliases.
+	* cgraphunit.c (cgraph_decide_is_function_needed): Disable assembler
+	name hack for same body aliases.
 	(clone_of_p): Look through aliases.
 	(verify_cgraph_node): Verify aliases.
 	(cgraph_analyze_function): Analyze aliases; fixup C++ bugs.
@@ -1025,7 +1214,7 @@
 	* config/ia64/unwind-ia64.c: Likewise.
 	* config/xtensa/unwind-dw2-xtensa.c: Likewise.
 
-2011-06-03  Jack Howarth <howarth@bromo.med.uc.edu>
+2011-06-03  Jack Howarth  <howarth@bromo.med.uc.edu>
 
 	* varpool.c (varpool_extra_name_alias): Return NULL, not false.
 

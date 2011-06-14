@@ -543,14 +543,15 @@ cgraph_address_taken_from_non_vtable_p (struct cgraph_node *node)
   int i;
   struct ipa_ref *ref;
   for (i = 0; ipa_ref_list_reference_iterate (&node->ref_list, i, ref); i++)
-    {
-      struct varpool_node *node;
-      if (ref->refered_type == IPA_REF_CGRAPH)
-	return true;
-      node = ipa_ref_varpool_node (ref);
-      if (!DECL_VIRTUAL_P (node->decl))
-	return true;
-    }
+    if (ref->use == IPA_REF_ADDR)
+      {
+	struct varpool_node *node;
+	if (ref->refered_type == IPA_REF_CGRAPH)
+	  return true;
+	node = ipa_ref_varpool_node (ref);
+	if (!DECL_VIRTUAL_P (node->decl))
+	  return true;
+      }
   return false;
 }
 
@@ -904,9 +905,9 @@ function_and_variable_visibility (bool whole_program)
 
 	     We also need to arrange the thunk into the same comdat group as
 	     the function it reffers to.  */
-	  if (DECL_COMDAT (decl_node->decl))
+	  if (DECL_ONE_ONLY (decl_node->decl))
 	    {
-	      DECL_COMDAT (node->decl) = 1;
+	      DECL_COMDAT (node->decl) = DECL_COMDAT (decl_node->decl);
 	      DECL_COMDAT_GROUP (node->decl) = DECL_COMDAT_GROUP (decl_node->decl);
 	      if (DECL_ONE_ONLY (decl_node->decl) && !node->same_comdat_group)
 		{

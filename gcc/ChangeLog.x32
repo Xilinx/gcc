@@ -1,5 +1,13 @@
 2011-06-14  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/gnu-user64.h (LINK_SPEC): Use
+	GNU_USER_LINK_EMULATIONX32.
+
+	* config/i386/kfreebsd-gnu64.h (GNU_USER_LINK_EMULATIONX32): New.
+	* config/i386/linux64.h (GNU_USER_LINK_EMULATIONX32): Likewise.
+
+2011-06-14  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR middle-end/47364
 	* builtins.c (expand_builtin_strlen): Expand strlen to Pmode.
 

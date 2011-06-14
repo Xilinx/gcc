@@ -73,8 +73,9 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
  %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
 
 #undef	LINK_SPEC
-#define LINK_SPEC "%{" SPEC_64 ":%{!mx32:-m elf_x86_64}} %{" \
-  SPEC_32 ":%{!mx32:-m elf_i386}} %{mx32:-m elf32_x86_64} \
+#define LINK_SPEC "%{" SPEC_64 ":-m " GNU_USER_LINK_EMULATION64 "} \
+                   %{" SPEC_32 ":-m " GNU_USER_LINK_EMULATION32 "} \
+                   %{" SPEC_X32 ":-m " GNU_USER_LINK_EMULATIONX32 "} \
   %{shared:-shared} \
   %{!shared: \
     %{!static: \

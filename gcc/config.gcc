@@ -1277,7 +1277,7 @@ x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 	x86_64-*-linux*)
 	  tm_file="${tm_file} linux.h i386/linux64.h"
 	  default_gnu_indirect_function=glibc-2011 ;;
-	x86_64-*-kfreebsd*-gnu) tm_file="${tm_file} kfreebsd-gnu.h i386/kfreebsd-gnu.h" ;;
+	x86_64-*-kfreebsd*-gnu) tm_file="${tm_file} kfreebsd-gnu.h i386/kfreebsd-gnu64.h" ;;
 	x86_64-*-knetbsd*-gnu) tm_file="${tm_file} knetbsd-gnu.h" ;;
 	esac
 	case x${enable_x32}${enable_ia32} in
@@ -2605,7 +2605,7 @@ v850*-*-*)
 	md_file=v850/v850.md
 	extra_modes=v850/v850-modes.def
 	out_file=v850/v850.c
-	extra_options="${extra_options} v850/v850.opt"
+	extra_options="v850/v850.opt"
 	if test x$stabs = xyes
 	then
 		tm_file="${tm_file} dbx.h"

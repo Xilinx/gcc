@@ -1,3 +1,69 @@
+2011-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/49103
+	* gfortran.dg/pr49103.f90: New test.
+
+2011-06-14  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/45098
+	* gcc.target/arm/ivopts-3.c: New test.
+	* gcc.target/arm/ivopts-4.c: New test.
+	* gcc.target/arm/ivopts-5.c: New test.
+
+2011-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/49390
+	* gcc.c-torture/execute/pr49390.c: New test.
+
+2011-06-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/torture/pr48954.C: Use dg-require-effective-target lto.
+
+2011-06-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.c-torture/execute/cmpsi-2.c: Undo 172757.
+	* gcc.c-torture/execute/cmpsi-2.x: New file.
+	* gcc.c-torture/execute/pr45262.c: Undo 172757.
+	* gcc.c-torture/execute/pr45262.x: New file.
+	* gcc.c-torture/compile/pr46534.c: Skip for AVR.
+	* gcc.c-torture/compile/pr49029.c: Add dg-require-effective-target
+	int32plus
+	* gcc.c-torture/compile/pr49163.c: Ditto.
+
+2011-06-14  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/vect-16.c: Rename to...
+	* gcc.dg/vect/no-fast-math-vect16.c: ...this.
+	* gcc.dg/vect/vect-peel-3.c: Adjust misalignment values
+	for double-word vectors.
+	* gcc.dg/vect/vect-peel-4.c: Likewise.
+	* gcc.dg/vect/bb-slp-10.c: Replace vect_hw_misalign with
+	vect_element_align.
+	* gcc.dg/vect/vect.exp: Run no-fast-math-* tests with
+	-fno-fast-math.
+
+2011-06-13  Edmar Wienskoski  <edmar@freescale.com>
+
+	* gcc.target/powerpc/outofline_rnreg.c: New testcase.
+
+2011-06-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/h8300-bit-insn-ice2.c: Remove duplicated lines.
+
+2011-06-13  Kaushik Phatak <kaushik.phatak@kpitcummins.com>
+
+	* gcc.dg/h8300-bit-insn-ice2.c: New testcase.
+
+2011-06-13  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* gfortran.dg/trim_optimize_8.f90:  New test case.
+
+2011-06-13 Jakub Jelinek  <jakub@redhat.com>
+	   Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49352
+	* gcc.dg/vect/pr49352.c: New test.
+
 2011-06-12  Tobias Burnus
 
 	PR fortran/49324

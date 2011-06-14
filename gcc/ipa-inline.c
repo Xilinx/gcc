@@ -643,6 +643,16 @@ want_inline_self_recursive_call_p (struct cgraph_edge *edge,
   return want_inline;
 }
 
+/* Return true when NODE has caller other than EDGE. 
+   Worker for cgraph_for_node_and_aliases.  */
+
+static bool
+check_caller_edge (struct cgraph_node *node, void *edge)
+{
+  return (node->callers
+          && node->callers != edge);
+}
+
 
 /* Decide if NODE is called once inlining it would eliminate need
    for the offline copy of function.  */
@@ -650,24 +660,26 @@ want_inline_self_recursive_call_p (struct cgraph_edge *edge,
 static bool
 want_inline_function_called_once_p (struct cgraph_node *node)
 {
-   if (node->alias)
-     return false;
+   struct cgraph_node *function = cgraph_function_or_thunk_node (node, NULL);
    /* Already inlined?  */
-   if (node->global.inlined_to)
+   if (function->global.inlined_to)
      return false;
    /* Zero or more then one callers?  */
    if (!node->callers
        || node->callers->next_caller)
      return false;
+   /* Maybe other aliases has more direct calls.  */
+   if (cgraph_for_node_and_aliases (node, check_caller_edge, node->callers, true))
+     return false;
    /* Recursive call makes no sense to inline.  */
-   if (node->callers->caller == node)
+   if (cgraph_edge_recursive_p (node->callers))
      return false;
    /* External functions are not really in the unit, so inlining
       them when called once would just increase the program size.  */
-   if (DECL_EXTERNAL (node->decl))
+   if (DECL_EXTERNAL (function->decl))
      return false;
    /* Offline body must be optimized out.  */
-   if (!cgraph_will_be_removed_from_program_if_no_direct_calls (node))
+   if (!cgraph_will_be_removed_from_program_if_no_direct_calls (function))
      return false;
    if (!can_inline_edge_p (node->callers, true))
      return false;
@@ -917,6 +929,8 @@ reset_edge_caches (struct cgraph_node *node)
   struct cgraph_edge *edge;
   struct cgraph_edge *e = node->callees;
   struct cgraph_node *where = node;
+  int i;
+  struct ipa_ref *ref;
 
   if (where->global.inlined_to)
     where = where->global.inlined_to;
@@ -927,6 +941,9 @@ reset_edge_caches (struct cgraph_node *node)
   for (edge = where->callers; edge; edge = edge->next_caller)
     if (edge->inline_failed)
       reset_edge_growth_cache (edge);
+  for (i = 0; ipa_ref_list_refering_iterate (&where->ref_list, i, ref); i++)
+    if (ref->use == IPA_REF_ALIAS)
+      reset_edge_caches (ipa_ref_refering_node (ref));
 
   if (!e)
     return;
@@ -968,7 +985,7 @@ update_caller_keys (fibheap_t heap, struct cgraph_node *node,
   int i;
   struct ipa_ref *ref;
 
-  if (!inline_summary (node)->inlinable
+  if ((!node->alias && !inline_summary (node)->inlinable)
       || cgraph_function_body_availability (node) <= AVAIL_OVERWRITABLE
       || node->global.inlined_to)
     return;
