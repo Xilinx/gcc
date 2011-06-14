@@ -1,3 +1,14 @@
+2011-06-10  David Li  <davidxl@google.com>
+
+	Backport 174930
+	* cgraphunit.c (cgraph_finalize_compilation_unit): Pass dump.
+	* passes.c (passr_eq): New function.
+	(create_pass_tab): New function.
+	(pass_traverse): New function.
+	(dump_one_pass): New function.
+	(dump_pass_list): New function.
+	(dump_passes): New function.
+
 2011-06-14   David Li  <davidxl@google.com>
 
 	* cp/semantics.c (emit_associated_thunks):
