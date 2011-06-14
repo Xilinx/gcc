@@ -1,3 +1,8 @@
+2011-06-14   David Li  <davidxl@google.com>
+
+	* cp/semantics.c (emit_associated_thunks):
+	Do not omit thunk emission for aux modules.
+
 2011-06-10  Rong Xu  <xur@google.com>
 
 	* gcc/tree-ssa-loop-im.c (maxmimu_lsm): New define.
