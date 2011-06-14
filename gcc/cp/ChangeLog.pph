@@ -1,3 +1,9 @@
+2011-06-14  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (pph_in_binding_level): Fix read
+	of shadowed_labels.
+	Remove unused variable sl.
+
 2011-06-13   Diego Novillo  <dnovillo@google.com>
 
 	* class.c (sorted_fields_type_new): Set field LEN in the

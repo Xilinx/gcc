@@ -427,7 +427,6 @@ static struct cp_binding_level *
 pph_in_binding_level (pph_stream *stream)
 {
   unsigned i, num, ix;
-  cp_label_binding *sl;
   struct cp_binding_level *bl;
   struct bitpack_d bp;
   enum pph_record_marker marker;
@@ -461,7 +460,7 @@ pph_in_binding_level (pph_stream *stream)
 
   num = pph_in_uint (stream);
   bl->shadowed_labels = NULL;
-  for (i = 0; VEC_iterate (cp_label_binding, bl->shadowed_labels, i, sl); i++)
+  for (i = 0; i < num; i++)
     {
       cp_label_binding *sl = pph_in_label_binding (stream);
       VEC_safe_push (cp_label_binding, gc, bl->shadowed_labels, sl);
