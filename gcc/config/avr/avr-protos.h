@@ -24,7 +24,7 @@
 
 extern int function_arg_regno_p (int r);
 extern void avr_cpu_cpp_builtins (struct cpp_reader * pfile);
-extern enum reg_class avr_regno_reg_class (int r);
+extern reg_class_t avr_regno_reg_class (unsigned int r);
 extern void asm_globalize_label (FILE *file, const char *name);
 extern void avr_asm_declare_function_name (FILE *, const char *, tree);
 extern void order_regs_for_local_alloc (void);
@@ -88,9 +88,6 @@ extern int extra_constraint_Q (rtx x);
 extern int adjust_insn_length (rtx insn, int len);
 extern const char *output_reload_inhi (rtx insn, rtx *operands, int *len);
 extern const char *output_reload_insisf (rtx insn, rtx *operands, int *len);
-extern enum reg_class secondary_input_reload_class (enum reg_class,
-						    enum machine_mode,
-						    rtx);
 extern void notice_update_cc (rtx body, rtx insn);
 extern void print_operand (FILE *file, rtx x, int code);
 extern void print_operand_address (FILE *file, rtx addr);
@@ -109,6 +106,8 @@ extern RTX_CODE avr_normalize_condition (RTX_CODE condition);
 extern int compare_eq_p (rtx insn);
 extern void out_shift_with_cnt (const char *templ, rtx insn,
 				rtx operands[], int *len, int t_len);
+extern reg_class_t avr_mode_code_base_reg_class (enum machine_mode, RTX_CODE, RTX_CODE);
+extern bool avr_regno_mode_code_ok_for_base_p (int, enum machine_mode, RTX_CODE, RTX_CODE);
 extern rtx avr_incoming_return_addr_rtx (void);
 #endif /* RTX_CODE */
 

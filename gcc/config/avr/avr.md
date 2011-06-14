@@ -246,8 +246,8 @@
   ")
 
 (define_insn "*movqi"
-  [(set (match_operand:QI 0 "nonimmediate_operand" "=r,d,Qm,r,q,r,*r")
-	(match_operand:QI 1 "general_operand"       "rL,i,rL,Qm,r,q,i"))]
+  [(set (match_operand:QI 0 "nonimmediate_operand" "=r,d,m,r,q,r,*r")
+	(match_operand:QI 1 "general_operand"       "rL,i,rL,m,r,q,i"))]
   "(register_operand (operands[0],QImode)
     || register_operand (operands[1], QImode) || const0_rtx == operands[1])"
   "* return output_movqi (insn, operands, NULL);"
@@ -294,15 +294,6 @@
       operands[1] = copy_to_mode_reg(HImode, operand1);
     }
 }")
-
-(define_insn "*movhi_sp"
-  [(set (match_operand:HI 0 "register_operand" "=q,r")
-        (match_operand:HI 1 "register_operand"  "r,q"))]
-  "((stack_register_operand(operands[0], HImode) && register_operand (operands[1], HImode))
-    || (register_operand (operands[0], HImode) && stack_register_operand(operands[1], HImode)))"
-  "* return output_movhi (insn, operands, NULL);"
-  [(set_attr "length" "5,2")
-   (set_attr "cc" "none,none")])
 
 (define_insn "movhi_sp_r_irq_off"
   [(set (match_operand:HI 0 "stack_register_operand" "=q")
@@ -425,8 +416,8 @@
 
 
 (define_insn "*movsi"
-  [(set (match_operand:SI 0 "nonimmediate_operand" "=r,r,r,Qm,!d,r")
-        (match_operand:SI 1 "general_operand"       "r,L,Qm,rL,i,i"))]
+  [(set (match_operand:SI 0 "nonimmediate_operand" "=r,r,r,m,!d,r")
+        (match_operand:SI 1 "general_operand"       "r,L,m,rL,i,i"))]
   "(register_operand (operands[0],SImode)
     || register_operand (operands[1],SImode) || const0_rtx == operands[1])"
   "* return output_movsisf (insn, operands, NULL);"
@@ -451,8 +442,8 @@
 }")
 
 (define_insn "*movsf"
-  [(set (match_operand:SF 0 "nonimmediate_operand" "=r,r,r,Qm,!d,r")
-        (match_operand:SF 1 "general_operand"       "r,G,Qm,r,F,F"))]
+  [(set (match_operand:SF 0 "nonimmediate_operand" "=r,r,r,m,!d,r")
+        (match_operand:SF 1 "general_operand"       "r,G,m,r,F,F"))]
   "register_operand (operands[0], SFmode)
    || register_operand (operands[1], SFmode)"
   "* return output_movsisf (insn, operands, NULL);"
@@ -1518,8 +1509,8 @@
 (define_mode_attr rotsmode [(DI "QI") (SI "HI") (HI "QI")])
 
 (define_expand "rotl<mode>3"
-  [(parallel [(set (match_operand:HIDI 0 "register_operand" "")
-		   (rotate:HIDI (match_operand:HIDI 1 "register_operand" "")
+  [(parallel [(set (match_operand:HISI 0 "register_operand" "")
+		   (rotate:HISI (match_operand:HISI 1 "register_operand" "")
 				(match_operand:VOID 2 "const_int_operand" "")))
 		(clobber (match_dup 3))])]
   ""
@@ -1618,7 +1609,7 @@
 (define_insn "*ashlqi3"
   [(set (match_operand:QI 0 "register_operand"           "=r,r,r,r,!d,r,r")
 	(ashift:QI (match_operand:QI 1 "register_operand" "0,0,0,0,0,0,0")
-		   (match_operand:QI 2 "general_operand"  "r,L,P,K,n,n,Qm")))]
+		   (match_operand:QI 2 "general_operand"  "r,L,P,K,n,n,m")))]
   ""
   "* return ashlqi3_out (insn, operands, NULL);"
   [(set_attr "length" "5,0,1,2,4,6,9")
@@ -1627,7 +1618,7 @@
 (define_insn "ashlhi3"
   [(set (match_operand:HI 0 "register_operand"           "=r,r,r,r,r,r,r")
 	(ashift:HI (match_operand:HI 1 "register_operand" "0,0,0,r,0,0,0")
-		   (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,Qm")))]
+		   (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,m")))]
   ""
   "* return ashlhi3_out (insn, operands, NULL);"
   [(set_attr "length" "6,0,2,2,4,10,10")
@@ -1636,7 +1627,7 @@
 (define_insn "ashlsi3"
   [(set (match_operand:SI 0 "register_operand"           "=r,r,r,r,r,r,r")
 	(ashift:SI (match_operand:SI 1 "register_operand" "0,0,0,r,0,0,0")
-		   (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,Qm")))]
+		   (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,m")))]
   ""
   "* return ashlsi3_out (insn, operands, NULL);"
   [(set_attr "length" "8,0,4,4,8,10,12")
@@ -1725,7 +1716,7 @@
 (define_insn "ashrqi3"
   [(set (match_operand:QI 0 "register_operand" "=r,r,r,r,r,r")
 	(ashiftrt:QI (match_operand:QI 1 "register_operand" "0,0,0,0,0,0")
-		     (match_operand:QI 2 "general_operand"  "r,L,P,K,n,Qm")))]
+		     (match_operand:QI 2 "general_operand"  "r,L,P,K,n,m")))]
   ""
   "* return ashrqi3_out (insn, operands, NULL);"
   [(set_attr "length" "5,0,1,2,5,9")
@@ -1734,7 +1725,7 @@
 (define_insn "ashrhi3"
   [(set (match_operand:HI 0 "register_operand"             "=r,r,r,r,r,r,r")
 	(ashiftrt:HI (match_operand:HI 1 "register_operand" "0,0,0,r,0,0,0")
-		     (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,Qm")))]
+		     (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,m")))]
   ""
   "* return ashrhi3_out (insn, operands, NULL);"
   [(set_attr "length" "6,0,2,4,4,10,10")
@@ -1743,7 +1734,7 @@
 (define_insn "ashrsi3"
   [(set (match_operand:SI 0 "register_operand"             "=r,r,r,r,r,r,r")
 	(ashiftrt:SI (match_operand:SI 1 "register_operand" "0,0,0,r,0,0,0")
-		     (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,Qm")))]
+		     (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,m")))]
   ""
   "* return ashrsi3_out (insn, operands, NULL);"
   [(set_attr "length" "8,0,4,6,8,10,12")
@@ -1833,7 +1824,7 @@
 (define_insn "*lshrqi3"
   [(set (match_operand:QI 0 "register_operand"             "=r,r,r,r,!d,r,r")
 	(lshiftrt:QI (match_operand:QI 1 "register_operand" "0,0,0,0,0,0,0")
-		     (match_operand:QI 2 "general_operand"  "r,L,P,K,n,n,Qm")))]
+		     (match_operand:QI 2 "general_operand"  "r,L,P,K,n,n,m")))]
   ""
   "* return lshrqi3_out (insn, operands, NULL);"
   [(set_attr "length" "5,0,1,2,4,6,9")
@@ -1842,7 +1833,7 @@
 (define_insn "lshrhi3"
   [(set (match_operand:HI 0 "register_operand"             "=r,r,r,r,r,r,r")
 	(lshiftrt:HI (match_operand:HI 1 "register_operand" "0,0,0,r,0,0,0")
-		     (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,Qm")))]
+		     (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,m")))]
   ""
   "* return lshrhi3_out (insn, operands, NULL);"
   [(set_attr "length" "6,0,2,2,4,10,10")
@@ -1851,7 +1842,7 @@
 (define_insn "lshrsi3"
   [(set (match_operand:SI 0 "register_operand"             "=r,r,r,r,r,r,r")
 	(lshiftrt:SI (match_operand:SI 1 "register_operand" "0,0,0,r,0,0,0")
-		     (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,Qm")))]
+		     (match_operand:QI 2 "general_operand"  "r,L,P,O,K,n,m")))]
   ""
   "* return lshrsi3_out (insn, operands, NULL);"
   [(set_attr "length" "8,0,4,4,8,10,12")
@@ -2124,54 +2115,6 @@
   operands[3] = simplify_gen_subreg (HImode, operands[0], SImode, high_off);
 })
 
-(define_insn_and_split "zero_extendqidi2"
-  [(set (match_operand:DI 0 "register_operand" "=r")
-        (zero_extend:DI (match_operand:QI 1 "register_operand" "r")))]
-  ""
-  "#"
-  "reload_completed"
-  [(set (match_dup 2) (zero_extend:SI (match_dup 1)))
-   (set (match_dup 3) (const_int 0))]
-{
-  unsigned int low_off = subreg_lowpart_offset (SImode, DImode);
-  unsigned int high_off = subreg_highpart_offset (SImode, DImode);
-
-  operands[2] = simplify_gen_subreg (SImode, operands[0], DImode, low_off);
-  operands[3] = simplify_gen_subreg (SImode, operands[0], DImode, high_off);
-})
-
-(define_insn_and_split "zero_extendhidi2"
-  [(set (match_operand:DI 0 "register_operand" "=r")
-        (zero_extend:DI (match_operand:HI 1 "register_operand" "r")))]
-  ""
-  "#"
-  "reload_completed"
-  [(set (match_dup 2) (zero_extend:SI (match_dup 1)))
-   (set (match_dup 3) (const_int 0))]
-{
-  unsigned int low_off = subreg_lowpart_offset (SImode, DImode);
-  unsigned int high_off = subreg_highpart_offset (SImode, DImode);
-
-  operands[2] = simplify_gen_subreg (SImode, operands[0], DImode, low_off);
-  operands[3] = simplify_gen_subreg (SImode, operands[0], DImode, high_off);
-})
-
-(define_insn_and_split "zero_extendsidi2"
-  [(set (match_operand:DI 0 "register_operand" "=r")
-        (zero_extend:DI (match_operand:SI 1 "register_operand" "r")))]
-  ""
-  "#"
-  "reload_completed"
-  [(set (match_dup 2) (match_dup 1))
-   (set (match_dup 3) (const_int 0))]
-{
-  unsigned int low_off = subreg_lowpart_offset (SImode, DImode);
-  unsigned int high_off = subreg_highpart_offset (SImode, DImode);
-
-  operands[2] = simplify_gen_subreg (SImode, operands[0], DImode, low_off);
-  operands[3] = simplify_gen_subreg (SImode, operands[0], DImode, high_off);
-})
-
 ;;<=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=><=>
 ;; compare
 
@@ -2430,7 +2373,7 @@
   [(set (pc)
         (if_then_else
 	 (match_operator 0 "eqne_operator"
-			 [(zero_extract:QIDI
+			 [(zero_extract:QISI
 			   (match_operand:VOID 1 "register_operand" "r")
 			   (const_int 1)
 			   (match_operand 2 "const_int_operand" "n"))

@@ -343,18 +343,27 @@ avr_help (void)
 
 /*  return register class from register number.  */
 
-static const enum reg_class reg_class_tab[]={
-  GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,
-  GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,
-  GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,GENERAL_REGS,
-  GENERAL_REGS, /* r0 - r15 */
-  LD_REGS,LD_REGS,LD_REGS,LD_REGS,LD_REGS,LD_REGS,LD_REGS,
-  LD_REGS,                      /* r16 - 23 */
-  ADDW_REGS,ADDW_REGS,          /* r24,r25 */
-  POINTER_X_REGS,POINTER_X_REGS, /* r26,27 */
-  POINTER_Y_REGS,POINTER_Y_REGS, /* r28,r29 */
-  POINTER_Z_REGS,POINTER_Z_REGS, /* r30,r31 */
-  STACK_REG,STACK_REG           /* SPL,SPH */
+static const reg_class_t reg_class_tab[] =
+  {
+    /* r0 */
+    R0_REG,
+    /* r1 - r15 */
+    NO_LD_REGS, NO_LD_REGS, NO_LD_REGS, NO_LD_REGS, NO_LD_REGS,
+    NO_LD_REGS, NO_LD_REGS, NO_LD_REGS, NO_LD_REGS, NO_LD_REGS,
+    NO_LD_REGS, NO_LD_REGS, NO_LD_REGS, NO_LD_REGS, NO_LD_REGS,
+    /* r16 - r23 */
+    SIMPLE_LD_REGS, SIMPLE_LD_REGS, SIMPLE_LD_REGS, SIMPLE_LD_REGS,
+    SIMPLE_LD_REGS, SIMPLE_LD_REGS, SIMPLE_LD_REGS, SIMPLE_LD_REGS,
+    /* r24, r25 */
+    ADDW_REGS, ADDW_REGS,
+    /* r26, r27 */
+    POINTER_X_REGS, POINTER_X_REGS,
+    /* r28, r29 */
+    POINTER_Y_REGS, POINTER_Y_REGS,
+    /* r30, r31 */
+    POINTER_Z_REGS, POINTER_Z_REGS,
+    /* SPL, SPH */
+    STACK_REG, STACK_REG
 };
 
 /* Function to set up the backend function structure.  */
@@ -367,8 +376,8 @@ avr_init_machine_status (void)
 
 /* Return register class for register R.  */
 
-enum reg_class
-avr_regno_reg_class (int r)
+reg_class_t
+avr_regno_reg_class (unsigned int r)
 {
   if (r <= 33)
     return reg_class_tab[r];
@@ -1146,74 +1155,75 @@ avr_cannot_modify_jumps_p (void)
 }
 
 
-/* Return nonzero if X (an RTX) is a legitimate memory address on the target
-   machine for a memory operand of mode MODE.  */
+/* Helper function for `avr_legitimate_address_p'.  */
+
+static inline int
+avr_reg_ok_for_addr (rtx reg, int strict)
+{
+  return (REG_P (reg)
+          && (avr_regno_mode_code_ok_for_base_p (REGNO (reg), QImode, MEM, SCRATCH)
+              || (!strict && REGNO (reg) >= FIRST_PSEUDO_REGISTER)));
+}
+
+
+/* Implement `TARGET_LEGITIMATE_ADDRESS_P'.  */
 
 bool
 avr_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 {
-  enum reg_class r = NO_REGS;
-  
-  if (TARGET_ALL_DEBUG)
-    {
-      fprintf (stderr, "mode: (%s) %s %s %s %s:",
-	       GET_MODE_NAME(mode),
-	       strict ? "(strict)": "",
-	       reload_completed ? "(reload_completed)": "",
-	       reload_in_progress ? "(reload_in_progress)": "",
-	       reg_renumber ? "(reg_renumber)" : "");
-      if (GET_CODE (x) == PLUS
-	  && REG_P (XEXP (x, 0))
-	  && GET_CODE (XEXP (x, 1)) == CONST_INT
-	  && INTVAL (XEXP (x, 1)) >= 0
-	  && INTVAL (XEXP (x, 1)) <= MAX_LD_OFFSET (mode)
-	  && reg_renumber
-	  )
-	fprintf (stderr, "(r%d ---> r%d)", REGNO (XEXP (x, 0)),
-		 true_regnum (XEXP (x, 0)));
-      debug_rtx (x);
-    }
-  if (!strict && GET_CODE (x) == SUBREG)
-	x = SUBREG_REG (x);
-  if (REG_P (x) && (strict ? REG_OK_FOR_BASE_STRICT_P (x)
-                    : REG_OK_FOR_BASE_NOSTRICT_P (x)))
-    r = POINTER_REGS;
-  else if (CONSTANT_ADDRESS_P (x))
-    r = ALL_REGS;
-  else if (GET_CODE (x) == PLUS
-           && REG_P (XEXP (x, 0))
-	   && GET_CODE (XEXP (x, 1)) == CONST_INT
-	   && INTVAL (XEXP (x, 1)) >= 0)
-    {
-      int fit = INTVAL (XEXP (x, 1)) <= MAX_LD_OFFSET (mode);
-      if (fit)
-	{
-	  if (! strict
-	      || REGNO (XEXP (x,0)) == REG_X
-	      || REGNO (XEXP (x,0)) == REG_Y
-	      || REGNO (XEXP (x,0)) == REG_Z)
-	    r = BASE_POINTER_REGS;
-	  if (XEXP (x,0) == frame_pointer_rtx
-	      || XEXP (x,0) == arg_pointer_rtx)
-	    r = BASE_POINTER_REGS;
-	}
-      else if (frame_pointer_needed && XEXP (x,0) == frame_pointer_rtx)
-	r = POINTER_Y_REGS;
-    }
-  else if ((GET_CODE (x) == PRE_DEC || GET_CODE (x) == POST_INC)
-           && REG_P (XEXP (x, 0))
-           && (strict ? REG_OK_FOR_BASE_STRICT_P (XEXP (x, 0))
-               : REG_OK_FOR_BASE_NOSTRICT_P (XEXP (x, 0))))
-    {
-      r = POINTER_REGS;
-    }
-  if (TARGET_ALL_DEBUG)
-    {
-      fprintf (stderr, "   ret = %c\n", r + '0');
-    }
-  return r == NO_REGS ? 0 : (int)r;
-}
+  bool ok = false;
 
+  switch (GET_CODE (x))
+    {
+    case REG:
+      ok = avr_reg_ok_for_addr (x, strict);
+      if (strict
+          && DImode == mode
+          && REG_X == REGNO (x))
+        {
+          ok = false;
+        }
+      break;
+
+    case POST_INC:
+    case PRE_DEC:
+      ok = avr_reg_ok_for_addr (XEXP (x, 0), strict);
+      break;
+
+    case SYMBOL_REF:
+    case CONST_INT:
+    case CONST:
+      ok = true;
+      break;
+      
+    case PLUS:
+      {
+        rtx op0 = XEXP (x, 0);
+        rtx op1 = XEXP (x, 1);
+            
+        if (REG_P (op0)
+            && CONST_INT_P (op1))
+          {
+            ok = (avr_reg_ok_for_addr (op0, strict)
+                  && INTVAL (op1) >= 0
+                  && INTVAL (op1) <= MAX_LD_OFFSET (mode));
+            
+            if (strict
+                && REG_X == REGNO (op0))
+              {
+                ok = false;
+              }
+          }
+        break;
+      }
+      
+    default:
+      break;
+    }
+
+  return ok;
+}
+ 
 /* Attempts to replace X with a valid
    memory address for an operand of mode MODE  */
 
@@ -6278,27 +6288,74 @@ jump_over_one_insn_p (rtx insn, rtx dest)
 int
 avr_hard_regno_mode_ok (int regno, enum machine_mode mode)
 {
-  /* Disallow QImode in stack pointer regs.  */
-  if ((regno == REG_SP || regno == (REG_SP + 1)) && mode == QImode)
-    return 0;
+  /* Any GENERAL_REGS register can hold 8-bit values.  */
+  /* FIXME:  8-bit values must not be disallowed for R28 or R29.
+     Disallowing QI et al. in these registers might lead to code like
+         (set (subreg:QI (reg:HI 28) n) ...)
+     which will result in wrong code because reload does not handle
+     SUBREGs of hard regsisters like this.  This could be fixed in reload.
+     However, it appears that fixing reload is not wanted by reload people.  */
+  
+  if (GET_MODE_SIZE (mode) == 1)
+     return 1;
+   
+   /* All modes larger than 8 bits should start in an even register.  */
+   
+  return regno % 2 == 0;
+}
 
-  /* The only thing that can go into registers r28:r29 is a Pmode.  */
-  if (regno == REG_Y && mode == Pmode)
-    return 1;
 
-  /* Otherwise disallow all regno/mode combinations that span r28:r29.  */
-  if (regno <= (REG_Y + 1) && (regno + GET_MODE_SIZE (mode)) >= (REG_Y + 1))
-    return 0;
+/* Worker function for `MODE_CODE_BASE_REG_CLASS'.  */
 
-  if (mode == QImode)
-    return 1;
+reg_class_t
+avr_mode_code_base_reg_class (enum machine_mode mode ATTRIBUTE_UNUSED,
+                              RTX_CODE outer_code, RTX_CODE index_code ATTRIBUTE_UNUSED)
+{
+  reg_class_t rclass = BASE_POINTER_REGS;
+  
+  switch (outer_code)
+    {
+    case MEM:
+    case POST_INC:
+    case PRE_DEC:
+      rclass = POINTER_REGS;
+      break;
+      
+    default:
+      break;
+    }
+  
+  return rclass;
+}
 
-  /* Modes larger than QImode occupy consecutive registers.  */
-  if (regno + GET_MODE_SIZE (mode) > FIRST_PSEUDO_REGISTER)
-    return 0;
 
-  /* All modes larger than QImode should start in an even register.  */
-  return !(regno & 1);
+/* Worker function for `REGNO_MODE_CODE_OK_FOR_BASE_P'.  */
+
+bool
+avr_regno_mode_code_ok_for_base_p (int regno, enum machine_mode mode ATTRIBUTE_UNUSED,
+                                   RTX_CODE outer_code, RTX_CODE index_code ATTRIBUTE_UNUSED)
+{
+  bool ok;
+  
+  switch (outer_code)
+    {
+    case PLUS:
+      ok = regno == REG_Z || regno == REG_Y;
+      break;
+      
+    case MEM: /* plain reg */
+    case POST_INC:
+    case PRE_DEC:
+      ok = regno == REG_Z || regno == REG_Y || regno == REG_X;
+      break;
+      
+    default:
+      ok = false;
+      break;
+      
+    }
+
+  return ok;
 }
 
 const char *
@@ -6424,13 +6481,23 @@ avr_hard_regno_scratch_ok (unsigned int regno)
       && !df_regs_ever_live_p (regno))
     return false;
 
+  /* Don't allow hard registers that might be part of the frame pointer.
+     Some places in the compiler just test for [HARD_]FRAME_POINTER_REGNUM
+     and don't care for a frame pointer that spans more than one register.  */
+
+  if ((!reload_completed || frame_pointer_needed)
+      && (regno == REG_Y || regno == REG_Y + 1))
+    {
+      return false;
+    }
+
   return true;
 }
 
 /* Return nonzero if register OLD_REG can be renamed to register NEW_REG.  */
 
 int
-avr_hard_regno_rename_ok (unsigned int old_reg ATTRIBUTE_UNUSED,
+avr_hard_regno_rename_ok (unsigned int old_reg,
 			  unsigned int new_reg)
 {
   /* Interrupt functions can only use registers that have already been
@@ -6441,6 +6508,17 @@ avr_hard_regno_rename_ok (unsigned int old_reg ATTRIBUTE_UNUSED,
       && !df_regs_ever_live_p (new_reg))
     return 0;
 
+  /* Don't allow hard registers that might be part of the frame pointer.
+     Some places in the compiler just test for [HARD_]FRAME_POINTER_REGNUM
+     and don't care for a frame pointer that spans more than one register.  */
+
+  if ((!reload_completed || frame_pointer_needed)
+      && (old_reg == REG_Y || old_reg == REG_Y + 1
+          || new_reg == REG_Y || new_reg == REG_Y + 1))
+    {
+      return 0;
+    }
+  
   return 1;
 }
 
