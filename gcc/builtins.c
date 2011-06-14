@@ -2942,8 +2942,11 @@ expand_builtin_strlen (tree exp, rtx target,
       pat = expand_expr (src, src_reg, ptr_mode, EXPAND_NORMAL);
       if (pat != src_reg)
 	{
+#ifdef POINTERS_EXTEND_UNSIGNED
 	  if (GET_MODE (pat) != Pmode)
-	    pat = convert_to_mode (Pmode, pat, 1);
+	    pat = convert_to_mode (Pmode, pat,
+				   POINTERS_EXTEND_UNSIGNED);
+#endif
 	  emit_move_insn (src_reg, pat);
 	}
       pat = get_insns ();

@@ -1,3 +1,9 @@
+2011-06-12  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47364
+	* builtins.c (expand_builtin_strlen): Properly handle target
+	not in Pmode if POINTERS_EXTEND_UNSIGNED is defined.
+
 2011-06-07  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/gnu-user64.h (SPEC_64): Support x32.
