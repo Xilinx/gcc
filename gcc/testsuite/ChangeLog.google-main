@@ -1,3 +1,7 @@
+2011-06-14  Le-Chun Wu  <lcwu@google.com>
+
+	* g++.dg/thread-ann/thread_annot_lock-78.C: New test.
+
 2011-06-07  David Li  <davidxl@google.com>
 
 	* testsuite/gcc.dg/tree-prof/lipo/indir-call-prof_0.c: Pass name fix.

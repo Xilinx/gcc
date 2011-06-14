@@ -1,3 +1,13 @@
+2011-06-14  Le-Chun Wu  <lcwu@google.com>
+
+	* tree-threadsafe-analyze.c (build_fully_qualified_lock): Handle
+	IPA-SRA cloned methods.
+	(get_canonical_lock_expr): Fold expressions that are INDIRECT_REF on
+	top of ADDR_EXPR.
+	(check_lock_required): Handle IPA-SRA cloned methods.
+	(check_func_lock_excluded): Likewise.
+	(process_function_attrs): Likewise.
+
 2011-06-10  David Li  <davidxl@google.com>
 
 	Backport 174930

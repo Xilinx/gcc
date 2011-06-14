@@ -696,9 +696,13 @@ build_fully_qualified_lock (tree lock_field, tree base)
      rid of the ADDR_EXPR operator before we form the new lock expression.  */
   if (TREE_CODE (canon_base) != ADDR_EXPR)
     {
-      gcc_assert (POINTER_TYPE_P (TREE_TYPE (canon_base)));
-      canon_base = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (canon_base)),
-                           canon_base);
+      /* Note that if the base object is neither an ADDR_EXPR, nor a pointer,
+         most likely we have done IPA-SRA optimization and the DECL is a
+         cloned method, where reference parameters are changed to be passed
+         by value. So in this case, we don't need to do anything.  */
+      if (POINTER_TYPE_P (TREE_TYPE (canon_base)))
+        canon_base = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (canon_base)),
+                             canon_base);
     }
   else
     canon_base = TREE_OPERAND (canon_base, 0);
@@ -956,8 +960,18 @@ get_canonical_lock_expr (tree lock, tree base_obj, bool is_temp_expr,
                                                      true /* is_temp_expr */,
                                                      new_leftmost_base_var);
           if (base != canon_base)
-            lock = build1 (INDIRECT_REF, TREE_TYPE (TREE_TYPE (canon_base)),
-                           canon_base);
+            {
+              /* If CANON_BASE is an ADDR_EXPR (e.g. &a), doing an indirect or
+                 memory reference on top of it is equivalent to accessing the
+                 variable itself. That is, *(&a) == a. So if that's the case,
+                 simply return the variable. Otherwise, build an indirect ref
+                 expression.  */
+              if (TREE_CODE (canon_base) == ADDR_EXPR)
+                lock = TREE_OPERAND (canon_base, 0);
+              else
+                lock = build1 (INDIRECT_REF,
+                               TREE_TYPE (TREE_TYPE (canon_base)), canon_base);
+            }
           break;
         }
       default:
@@ -1135,10 +1149,18 @@ check_lock_required (tree lock, tree decl, tree base_obj, bool is_indirect_ref,
                                                      NULL_TREE);
           if (TREE_CODE (canon_base) != ADDR_EXPR)
             {
-              gcc_assert (POINTER_TYPE_P (TREE_TYPE (canon_base)));
-              base_obj = build1 (INDIRECT_REF,
-                                 TREE_TYPE (TREE_TYPE (canon_base)),
-                                 canon_base);
+              if (POINTER_TYPE_P (TREE_TYPE (canon_base)))
+                base_obj = build1 (INDIRECT_REF,
+                                   TREE_TYPE (TREE_TYPE (canon_base)),
+                                   canon_base);
+              /* If the base object is neither an ADDR_EXPR, nor a pointer,
+                 and DECL is a cloned method, most likely we have done IPA-SRA
+                 optimization, where reference parameters are changed to be
+                 passed by value. So in this case, just use the CANON_BASE.  */
+              else if (DECL_ABSTRACT_ORIGIN (decl))
+                base_obj = canon_base;
+              else
+                gcc_unreachable ();
             }
           else
             base_obj = TREE_OPERAND (canon_base, 0);
@@ -1154,9 +1176,9 @@ check_lock_required (tree lock, tree decl, tree base_obj, bool is_indirect_ref,
 
   /* We want to use fully-qualified expressions (i.e. including base_obj
      if any) for DECL when emitting warning messages.  */
-  if (base_obj)
+  if (TREE_CODE (decl) != FUNCTION_DECL)
     {
-      if (TREE_CODE (decl) != FUNCTION_DECL)
+      if (base_obj)
         {
           tree full_decl = build3 (COMPONENT_REF, TREE_TYPE (decl),
                                    base_obj, decl, NULL_TREE);
@@ -1164,6 +1186,10 @@ check_lock_required (tree lock, tree decl, tree base_obj, bool is_indirect_ref,
                                           true /* is_temp_expr */, NULL_TREE);
         }
     }
+  else
+    /* If DECL is a function, call DECL_ORIGIN first in case it is a clone so
+       that we can avoid using the cloned name in the warning messages.  */
+    decl = DECL_ORIGIN (decl);
 
   if (!lock)
     {
@@ -1963,10 +1989,18 @@ check_func_lock_excluded (tree lock, tree fdecl, tree base_obj,
                                                  NULL_TREE);
       if (TREE_CODE (canon_base) != ADDR_EXPR)
         {
-          gcc_assert (POINTER_TYPE_P (TREE_TYPE (canon_base)));
-          base_obj = build1 (INDIRECT_REF,
-                             TREE_TYPE (TREE_TYPE (canon_base)),
-                             canon_base);
+          if (POINTER_TYPE_P (TREE_TYPE (canon_base)))
+            base_obj = build1 (INDIRECT_REF,
+                               TREE_TYPE (TREE_TYPE (canon_base)),
+                               canon_base);
+          /* If the base object is neither an ADDR_EXPR, nor a pointer,
+             and DECL is a cloned method, most likely we have done IPA-SRA
+             optimization, where reference parameters are changed to be
+             passed by value. So in this case, just use the CANON_BASE.  */
+          else if (DECL_ABSTRACT_ORIGIN (fdecl))
+            base_obj = canon_base;
+          else
+            gcc_unreachable ();
         }
       else
         base_obj = TREE_OPERAND (canon_base, 0);
@@ -2116,8 +2150,17 @@ process_function_attrs (gimple call, tree fdecl,
     current_bb_info->writes_ignored = false;
 
   /* If the function is a class member, the first argument of the function
-     (i.e. "this" pointer) would be the base object.  */
-  if (TREE_CODE (TREE_TYPE (fdecl)) == METHOD_TYPE)
+     (i.e. "this" pointer) would be the base object. Note that here we call
+     DECL_ORIGIN on fdecl first before we check whether it's a METHOD_TYPE
+     because if fdecl is a cloned method, the TREE_CODE of its type would be
+     FUNCTION_DECL instead of METHOD_DECL, which would lead us to not grab
+     its base object. One possible situation where fdecl could be a clone is
+     when -fipa-sra is enabled. (-fipa-sra is enabled by default at -O2
+     starting from GCC-4.5.). The clones could be created as early as when
+     constructing SSA. Also note that the parameters of a cloned method could
+     be optimized away.  */
+  if (TREE_CODE (TREE_TYPE (DECL_ORIGIN (fdecl))) == METHOD_TYPE
+      && gimple_call_num_args(call) > 0)
     base_obj = gimple_call_arg (call, 0);
 
   /* Check whether this is a locking primitive of any kind.  */
