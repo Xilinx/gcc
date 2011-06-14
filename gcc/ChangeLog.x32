@@ -1,5 +1,9 @@
 2011-06-14  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/kfreebsd-gnu64.h (GLIBC_DYNAMIC_LINKERX32): New.
+
+2011-06-14  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/gnu-user64.h (LINK_SPEC): Use
 	GNU_USER_LINK_EMULATIONX32.
 

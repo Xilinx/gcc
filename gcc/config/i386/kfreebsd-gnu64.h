@@ -25,3 +25,4 @@ along with GCC; see the file COPYING3.  If not see
 
 #define GLIBC_DYNAMIC_LINKER32 "/lib/ld.so.1"
 #define GLIBC_DYNAMIC_LINKER64 "/lib/ld-kfreebsd-x86-64.so.1"
+#define GLIBC_DYNAMIC_LINKERX32 "/lib/ld-kfreebsd-x32.so.1"
