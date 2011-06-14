@@ -1,3 +1,8 @@
+2011-06-14  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47364
+	* builtins.c (expand_builtin_strlen): Expand strlen to Pmode.
+
 2011-06-12  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/47364

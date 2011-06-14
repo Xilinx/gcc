@@ -2939,7 +2939,7 @@ expand_builtin_strlen (tree exp, rtx target,
 
       /* Now that we are assured of success, expand the source.  */
       start_sequence ();
-      pat = expand_expr (src, src_reg, ptr_mode, EXPAND_NORMAL);
+      pat = expand_expr (src, src_reg, Pmode, EXPAND_NORMAL);
       if (pat != src_reg)
 	{
 #ifdef POINTERS_EXTEND_UNSIGNED
