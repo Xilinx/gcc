@@ -599,6 +599,89 @@ pph_out_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf,
 }
 
 
+/* A callback of htab_traverse. Just extracts a (type) tree from SLOT
+   and writes it out for PPH. */
+
+struct pph_tree_info {
+  pph_stream *stream;
+  bool ref_p;
+};
+
+static int
+pph_out_used_types_slot (void **slot, void *aux)
+{
+  struct pph_tree_info *pti = (struct pph_tree_info *)aux;
+  pph_out_tree_or_ref (pti->stream, (tree) *slot, pti->ref_p);
+  return 1;
+}
+
+
+/* Write applicable fields of struct function instance FN to STREAM.
+   If REF_P is true, all tree fields should be written as references.  */
+
+static void
+pph_out_struct_function (pph_stream *stream, struct function *fn, bool ref_p)
+{
+  struct pph_tree_info pti;
+
+  if (!pph_start_record (stream, fn))
+    return;
+
+  output_struct_function_base (stream->ob, fn);
+
+  /* struct eh_status *eh;					-- ignored */
+  gcc_assert (fn->cfg == NULL);
+  gcc_assert (fn->gimple_body == NULL);
+  gcc_assert (fn->gimple_df == NULL);
+  gcc_assert (fn->x_current_loops == NULL);
+  gcc_assert (fn->su == NULL);
+  /* htab_t value_histograms;					-- ignored */
+  /* tree decl;							-- ignored */
+  /* tree static_chain_decl;					-- in base */
+  /* tree nonlocal_goto_save_area;				-- in base */
+  /* VEC(tree,gc) *local_decls;					-- in base */
+  /* struct machine_function *machine;				-- ignored */
+  pph_out_language_function (stream, fn->language, ref_p);
+
+  /*FIXME pph: We would like to detect improper sharing here.  */
+  if (fn->used_types_hash)
+    {
+      /*FIXME pph: This write may be unstable.  */
+      pph_out_uint (stream, htab_elements (fn->used_types_hash));
+      pti.stream = stream;
+      pti.ref_p = ref_p;
+      htab_traverse_noresize (fn->used_types_hash,
+			      pph_out_used_types_slot, &pti);
+    }
+  else
+    pph_out_uint (stream, 0);
+
+  gcc_assert (fn->last_stmt_uid == 0);
+  /* int funcdef_no;						-- ignored */
+  /* location_t function_start_locus;				-- in base */
+  /* location_t function_end_locus;				-- in base */
+  /* unsigned int curr_properties;				-- in base */
+  /* unsigned int last_verified;				-- ignored */
+  /* const char *cannot_be_copied_reason;			-- ignored */
+
+  /* unsigned int va_list_gpr_size : 8;				-- in base */
+  /* unsigned int va_list_fpr_size : 8;				-- in base */
+  /* unsigned int calls_setjmp : 1;				-- in base */
+  /* unsigned int calls_alloca : 1;				-- in base */
+  /* unsigned int has_nonlocal_label : 1;			-- in base */
+  /* unsigned int cannot_be_copied_set : 1;			-- ignored */
+  /* unsigned int stdarg : 1;					-- in base */
+  /* unsigned int after_inlining : 1;				-- in base */
+  /* unsigned int always_inline_functions_inlined : 1;		-- in base */
+  /* unsigned int can_throw_non_call_exceptions : 1;		-- in base */
+  /* unsigned int returns_struct : 1;				-- in base */
+  /* unsigned int returns_pcc_struct : 1;			-- in base */
+  /* unsigned int after_tree_profile : 1;			-- in base */
+  /* unsigned int has_local_explicit_reg_vars : 1;		-- in base */
+  /* unsigned int is_thunk : 1;					-- in base */
+}
+
+
 /* Write all the fields of lang_decl_ns instance LDNS to STREAM.  If REF_P
    is true, all tree fields should be written as references.  */
 
@@ -883,6 +966,7 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
       pph_out_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
       pph_out_lang_specific (stream, expr, ref_p);
       pph_out_tree_or_ref_1 (stream, DECL_SAVED_TREE (expr), ref_p, 3);
+      pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (expr), ref_p);
       break;
 
     case TYPE_DECL:

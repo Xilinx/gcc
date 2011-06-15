@@ -608,6 +608,88 @@ pph_in_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
 }
 
 
+/* Read applicable fields of struct function instance FN from STREAM.  */
+
+static struct function *
+pph_in_struct_function (pph_stream *stream)
+{
+  size_t count, i;
+  unsigned ix;
+  enum pph_record_marker marker;
+  struct function *fn;
+
+  gcc_assert (stream->data_in != NULL);
+
+  marker = pph_start_record (stream, &ix);
+  if (marker == PPH_RECORD_END)
+    return NULL;
+
+  /* Since struct function is embedded in every decl, fn cannot be shared.  */
+  gcc_assert (marker != PPH_RECORD_SHARED);
+
+  fn = ggc_alloc_cleared_function ();
+
+  input_struct_function_base (fn, stream->data_in, stream->ib);
+
+  /* struct eh_status *eh;					-- zero init */
+  /* struct control_flow_graph *cfg;				-- zero init */
+  /* struct gimple_seq_d *gimple_body;				-- zero init */
+  /* struct gimple_df *gimple_df;				-- zero init */
+  /* struct loops *x_current_loops;				-- zero init */
+  /* struct stack_usage *su;					-- zero init */
+  /* htab_t value_histograms;					-- zero init */
+  /* tree decl;							-- zero init */
+  /* tree static_chain_decl;					-- in base */
+  /* tree nonlocal_goto_save_area;				-- in base */
+  /* tree local_decls;						-- in base */
+  /* struct machine_function * machine;				-- zero init */
+
+  fn->language = pph_in_language_function (stream);
+
+  count = pph_in_uint (stream);
+  if ( count > 0 )
+    {
+      fn->used_types_hash = htab_create_ggc (37, htab_hash_pointer,
+					     htab_eq_pointer, NULL);
+      for (i = 0; i < count;  i++)
+	{
+	  void **slot;
+	  tree type = pph_in_tree (stream);
+	  slot = htab_find_slot (fn->used_types_hash, type, INSERT);
+	  if (*slot == NULL)
+	    *slot = type;
+	}
+    }
+  /* else zero initialized */
+
+  /* int last_stmt_uid;						-- zero init */
+  /* int funcdef_no;						-- zero init */
+  /* location_t function_start_locus;				-- in base */
+  /* location_t function_end_locus;				-- in base */
+  /* unsigned int curr_properties;				-- in base */
+  /* unsigned int last_verified;				-- zero init */
+  /* const char *cannot_be_copied_reason;			-- zero init */
+
+  /* unsigned int va_list_gpr_size : 8;				-- in base */
+  /* unsigned int va_list_fpr_size : 8;				-- in base */
+  /* unsigned int calls_setjmp : 1;				-- in base */
+  /* unsigned int calls_alloca : 1;				-- in base */
+  /* unsigned int has_nonlocal_label : 1;			-- in base */
+  /* unsigned int cannot_be_copied_set : 1;			-- zero init */
+  /* unsigned int stdarg : 1;					-- in base */
+  /* unsigned int after_inlining : 1;				-- in base */
+  /* unsigned int always_inline_functions_inlined : 1;		-- in base */
+  /* unsigned int can_throw_non_call_exceptions : 1;		-- in base */
+  /* unsigned int returns_struct : 1;				-- in base */
+  /* unsigned int returns_pcc_struct : 1;			-- in base */
+  /* unsigned int after_tree_profile : 1;			-- in base */
+  /* unsigned int has_local_explicit_reg_vars : 1;		-- in base */
+  /* unsigned int is_thunk : 1;					-- in base */
+
+  return fn;
+}
+
+
 /* Read all the fields of lang_decl_ns instance LDNS from STREAM.  */
 
 static void
@@ -932,6 +1014,7 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
       DECL_INITIAL (expr) = pph_in_tree (stream);
       pph_in_lang_specific (stream, expr);
       DECL_SAVED_TREE (expr) = pph_in_tree (stream);
+      DECL_STRUCT_FUNCTION (expr) = pph_in_struct_function (stream);
       break;
 
     case TYPE_DECL:

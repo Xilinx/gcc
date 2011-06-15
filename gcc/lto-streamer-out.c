@@ -967,8 +967,8 @@ static void
 lto_output_ts_function_decl_tree_pointers (struct output_block *ob, tree expr,
 					   bool ref_p)
 {
-  /* DECL_STRUCT_FUNCTION is handled by lto_output_function.  FIXME lto,
-     maybe it should be handled here?  */
+  /* DECL_STRUCT_FUNCTION is handled by lto_streamer-out.c:output_function
+     or by pph-specific code.  */
   lto_output_tree_or_ref (ob, DECL_FUNCTION_PERSONALITY (expr), ref_p);
   lto_output_tree_or_ref (ob, DECL_FUNCTION_SPECIFIC_TARGET (expr), ref_p);
   lto_output_tree_or_ref (ob, DECL_FUNCTION_SPECIFIC_OPTIMIZATION (expr),
@@ -1974,18 +1974,79 @@ produce_asm (struct output_block *ob, tree fn)
 }
 
 
+/* Output the base body of struct function FN using output block OB.  */
+
+void
+output_struct_function_base (struct output_block *ob, struct function *fn)
+{
+  struct bitpack_d bp;
+  unsigned i;
+  tree t;
+
+  /* struct eh_status *eh;				-- maybe elsewhere */
+  /* struct control_flow_graph *cfg;			-- maybe elsewhere */
+  /* struct gimple_seq_d *gimple_body;			-- maybe elsewhere */
+  /* struct gimple_df *gimple_df;			-- maybe elsewhere */
+  /* struct loops *x_current_loops;			-- maybe elsewhere */
+  /* struct stack_usage *su;				-- maybe elsewhere */
+  /* htab_t value_histograms;				-- ignored */
+  /* tree decl;						-- ignored */
+
+  /* Output the static chain and non-local goto save area.  */
+  lto_output_tree_ref (ob, fn->static_chain_decl);
+  lto_output_tree_ref (ob, fn->nonlocal_goto_save_area);
+
+  /* Output all the local variables in the function.  */
+  output_sleb128 (ob, VEC_length (tree, fn->local_decls));
+  FOR_EACH_VEC_ELT (tree, fn->local_decls, i, t)
+    lto_output_tree_ref (ob, t);
+
+  /* struct machine_function * machine;			-- ignored */
+  /* struct language_function * language;		-- maybe elsewhere */
+  /* htab_t used_types_hash;				-- maybe elsewhere */
+  /* int last_stmt_uid;					-- maybe elsewhere */
+  /* int funcdef_no;					-- maybe elsewhere */
+
+  /* Output the function start and end loci.  */
+  lto_output_location (ob, fn->function_start_locus);
+  lto_output_location (ob, fn->function_end_locus);
+
+  /* Output current IL state of the function.  */
+  output_uleb128 (ob, fn->curr_properties);
+
+  /* unsigned int last_verified;			-- ignored */
+  /* const char *cannot_be_copied_reason;		-- ignored */
+
+  /* Write all the attributes for FN.  */
+  bp = bitpack_create (ob->main_stream);
+  bp_pack_value (&bp, fn->is_thunk, 1);
+  bp_pack_value (&bp, fn->has_local_explicit_reg_vars, 1);
+  bp_pack_value (&bp, fn->after_tree_profile, 1);
+  bp_pack_value (&bp, fn->returns_pcc_struct, 1);
+  bp_pack_value (&bp, fn->returns_struct, 1);
+  bp_pack_value (&bp, fn->can_throw_non_call_exceptions, 1);
+  bp_pack_value (&bp, fn->always_inline_functions_inlined, 1);
+  bp_pack_value (&bp, fn->after_inlining, 1);
+  bp_pack_value (&bp, fn->stdarg, 1);
+  /* unsigned int cannot_be_copied_set : 1;		-- ignored */
+  bp_pack_value (&bp, fn->has_nonlocal_label, 1);
+  bp_pack_value (&bp, fn->calls_alloca, 1);
+  bp_pack_value (&bp, fn->calls_setjmp, 1);
+  bp_pack_value (&bp, fn->va_list_fpr_size, 8);
+  bp_pack_value (&bp, fn->va_list_gpr_size, 8);
+  lto_output_bitpack (&bp);
+}
+
+
 /* Output the body of function NODE->DECL.  */
 
 static void
 output_function (struct cgraph_node *node)
 {
-  struct bitpack_d bp;
   tree function;
   struct function *fn;
   basic_block bb;
   struct output_block *ob;
-  unsigned i;
-  tree t;
 
   function = node->decl;
   fn = DECL_STRUCT_FUNCTION (function);
@@ -2005,39 +2066,7 @@ output_function (struct cgraph_node *node)
 
   output_record_start (ob, LTO_function);
 
-  /* Write all the attributes for FN.  */
-  bp = bitpack_create (ob->main_stream);
-  bp_pack_value (&bp, fn->is_thunk, 1);
-  bp_pack_value (&bp, fn->has_local_explicit_reg_vars, 1);
-  bp_pack_value (&bp, fn->after_tree_profile, 1);
-  bp_pack_value (&bp, fn->returns_pcc_struct, 1);
-  bp_pack_value (&bp, fn->returns_struct, 1);
-  bp_pack_value (&bp, fn->can_throw_non_call_exceptions, 1);
-  bp_pack_value (&bp, fn->always_inline_functions_inlined, 1);
-  bp_pack_value (&bp, fn->after_inlining, 1);
-  bp_pack_value (&bp, fn->stdarg, 1);
-  bp_pack_value (&bp, fn->has_nonlocal_label, 1);
-  bp_pack_value (&bp, fn->calls_alloca, 1);
-  bp_pack_value (&bp, fn->calls_setjmp, 1);
-  bp_pack_value (&bp, fn->va_list_fpr_size, 8);
-  bp_pack_value (&bp, fn->va_list_gpr_size, 8);
-  lto_output_bitpack (&bp);
-
-  /* Output the function start and end loci.  */
-  lto_output_location (ob, fn->function_start_locus);
-  lto_output_location (ob, fn->function_end_locus);
-
-  /* Output current IL state of the function.  */
-  output_uleb128 (ob, fn->curr_properties);
-
-  /* Output the static chain and non-local goto save area.  */
-  lto_output_tree_ref (ob, fn->static_chain_decl);
-  lto_output_tree_ref (ob, fn->nonlocal_goto_save_area);
-
-  /* Output all the local variables in the function.  */
-  output_sleb128 (ob, VEC_length (tree, fn->local_decls));
-  FOR_EACH_VEC_ELT (tree, fn->local_decls, i, t)
-    lto_output_tree_ref (ob, t);
+  output_struct_function_base (ob, fn);
 
   /* Output the head of the arguments list.  */
   lto_output_tree_ref (ob, DECL_ARGUMENTS (function));

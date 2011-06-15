@@ -1,3 +1,8 @@
+2011-06-14  Lawrence Crowl <crowl@google.com>
+
+	* g++.dg/pph/x1tmplfunc.cc: Replace ICE xfail with an assembly diff
+        xfail.
+
 2011-06-13  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c1eabi1.h: Remove XFAIL markers.

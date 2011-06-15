@@ -963,6 +963,9 @@ extern void lto_input_cgraph (struct lto_file_decl_data *, const char *);
 extern void lto_reader_init (void);
 extern tree lto_input_tree (struct lto_input_block *, struct data_in *);
 extern tree lto_input_chain (struct lto_input_block *, struct data_in *);
+extern void input_struct_function_base (struct function *fn,
+					struct data_in *data_in,
+					struct lto_input_block *ib);
 extern void lto_input_function_body (struct lto_file_decl_data *, tree,
 				     const char *);
 extern void lto_input_constructors_and_inits (struct lto_file_decl_data *,
@@ -985,6 +988,8 @@ extern void destroy_output_block (struct output_block *);
 extern void lto_output_tree (struct output_block *, tree, bool);
 extern void lto_output_tree_or_ref (struct output_block *, tree, bool);
 extern void lto_output_chain (struct output_block *, tree, bool);
+extern void output_struct_function_base (struct output_block *ob,
+					 struct function *fn);
 extern void produce_asm (struct output_block *ob, tree fn);
 void lto_output_decl_state_streams (struct output_block *,
 				    struct lto_out_decl_state *);

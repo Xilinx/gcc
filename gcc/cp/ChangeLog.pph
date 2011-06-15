@@ -1,3 +1,14 @@
+2011-06-14  Lawrence Crowl <crowl@google.com>
+
+	* pph-streamer-out.c (pph_out_struct_function): New.
+	(pph_out_used_types_slot): New for pph_out_struct_function.
+	(struct pph_tree_info): New for pph_out_struct_function.
+	(pph_write_tree): Save DECL_STRUCT_FUNCTION of FUNCTION_DECL with
+	pph_out_struct_function.
+	* pph-streamer-in.c (pph_in_struct_function): New.
+	(pph_read_tree): Load DECL_STRUCT_FUNCTION of FUNCTION_DECL with
+	pph_in_struct_function.
+
 2011-06-14  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (pph_in_binding_level): Fix read

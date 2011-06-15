@@ -1,3 +1,16 @@
+2011-06-14  Lawrence Crowl  <crowl@google.com>
+
+	* lto-streamer.h (extern output_struct_function_base): New.
+	(extern input_struct_function_base): New.
+	* lto-streamer-out.c (lto_output_ts_function_decl_tree_pointers):
+	Update comment.
+	(output_struct_function_base): New.
+	(output_function): Factor out code common with PPH into
+	output_struct_function_base.
+	* lto-streamer-in.c (input_struct_function_base): New.
+	(input_function): Factor out common code with PPH into
+	input_struct_function_base.
+
 2011-06-10  Diego Novillo  <dnovillo@google.com>
 
 	* doc/invoke.texi: Document -fpph-gen, -fpph-map and -fpph-hdr.
