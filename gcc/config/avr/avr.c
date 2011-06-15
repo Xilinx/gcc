@@ -3019,6 +3019,7 @@ out_movhi_mr_r (rtx insn, rtx op[], int *l)
 bool
 avr_frame_pointer_required_p (void)
 {
+  return 0;
   return (cfun->calls_alloca
 	  || crtl->args.info.nregs == 0
   	  || get_frame_size () > 0);
