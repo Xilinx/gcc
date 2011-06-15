@@ -1160,7 +1160,7 @@ static inline int
 avr_reg_ok_for_addr (rtx reg, int strict)
 {
   return (REG_P (reg)
-          && (avr_regno_mode_code_ok_for_base_p (REGNO (reg), QImode, MEM, SCRATCH)
+          && (avr_regno_mode_code_ok_for_base_p (REGNO (reg), QImode, MEM, UNKNOWN)
               || (!strict && REGNO (reg) >= FIRST_PSEUDO_REGISTER)));
 }
 
@@ -1226,12 +1226,88 @@ avr_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
 /* Attempts to replace X with a valid
    memory address for an operand of mode MODE  */
 
-rtx
-avr_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED, enum machine_mode mode ATTRIBUTE_UNUSED)
+static rtx
+avr_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED,
+                        enum machine_mode mode)
 {
+  if (GET_CODE (x) == PLUS && CONST_INT_P (XEXP (x, 1)))
+    {
+      HOST_WIDE_INT addend = INTVAL (XEXP (x, 1));
+
+      if (addend > MAX_LD_OFFSET (mode))
+	{
+	  HOST_WIDE_INT hi, lo;
+
+	  x = XEXP (x, 0);
+	  if (!REG_P (x)
+	      || !avr_regno_mode_code_ok_for_base_p (REGNO (x), mode,
+						     PLUS, UNKNOWN))
+	    x = force_reg (Pmode, x);
+
+	  lo = addend & 63;
+	  hi = addend - lo;
+	  x = force_reg (Pmode, plus_constant (x, hi));
+	  return plus_constant (x, lo);
+	}
+    }
+
   return x;
 }
 
+rtx
+avr_legitimize_reload_address (rtx x, enum machine_mode mode,
+			       int opnum, int type, int addr_type,
+			       int ind_levels ATTRIBUTE_UNUSED)
+{
+  /* We must recognize output that we have already generated ourselves.  */
+  if (GET_CODE (x) == PLUS
+      && GET_CODE (XEXP (x, 0)) == PLUS
+      && REG_P (XEXP (XEXP (x, 0), 0))
+      && CONST_INT_P (XEXP (XEXP (x, 0), 1))
+      && CONST_INT_P (XEXP (x, 1)))
+    {
+      push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
+		   BASE_POINTER_REGS, GET_MODE (x), VOIDmode, 0, 0,
+		   opnum, (enum reload_type) addr_type);
+      return x;
+    }
+
+  /* We wish to handle large displacements off a register by splitting
+     the addend into two parts.  This may allow some sharing.  */
+  if (GET_CODE (x) == PLUS
+      && REG_P (XEXP (x, 0))
+      && CONST_INT_P (XEXP (x, 1)))
+    {
+      HOST_WIDE_INT val = INTVAL (XEXP (x, 1));
+      HOST_WIDE_INT hi, lo;
+
+      lo = val & 63;
+      hi = val - lo;
+
+      if (val > MAX_LD_OFFSET (mode) && hi && lo)
+	{
+          /* Reload the high part into a base reg; leave the low part
+	     in the mem directly.  */
+          x = plus_constant (XEXP (x, 0), hi);
+          x = gen_rtx_PLUS (Pmode, x, GEN_INT (lo));
+
+          push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
+		       BASE_POINTER_REGS, GET_MODE (x), VOIDmode, 0, 0,
+		       opnum, (enum reload_type) addr_type);
+          return x;
+	}
+    }
+
+  if (GET_CODE (x) == POST_INC || GET_CODE (x) == PRE_DEC)
+    {
+      push_reload (XEXP (x, 0), NULL, &XEXP (x,0), NULL,
+	           POINTER_REGS, GET_MODE (x), VOIDmode, 0, 0,
+		   opnum, (enum reload_type) type);
+      return x;
+    }
+
+  return NULL_RTX;
+}
 
 /* Return a pointer register name as a string.  */
 
