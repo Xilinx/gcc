@@ -98,6 +98,7 @@ extern int byte_immediate_operand (rtx op, enum machine_mode mode);
 extern int test_hard_reg_class (enum reg_class rclass, rtx x);
 extern int jump_over_one_insn_p (rtx insn, rtx dest);
 
+extern int avr_hard_regno_nregs (int regno, enum machine_mode mode);
 extern int avr_hard_regno_mode_ok (int regno, enum machine_mode mode);
 extern void final_prescan_insn (rtx insn, rtx *operand, int num_operands);
 extern int avr_simplify_comparison_p (enum machine_mode mode,

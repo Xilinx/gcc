@@ -493,29 +493,28 @@ avr_regs_to_save (HARD_REG_SET *set)
 /* Return true if register FROM can be eliminated via register TO.  */
 
 bool
-avr_can_eliminate (const int from, const int to)
+avr_can_eliminate (int from ATTRIBUTE_UNUSED, int to)
 {
-  return ((from == ARG_POINTER_REGNUM && to == FRAME_POINTER_REGNUM)
-	  || ((from == FRAME_POINTER_REGNUM 
-	       || from == FRAME_POINTER_REGNUM + 1)
-	      && !frame_pointer_needed));
+  return 1 || to == HARD_FRAME_POINTER_REGNUM;
 }
 
 /* Compute offset between arg_pointer and frame_pointer.  */
 
 int
-avr_initial_elimination_offset (int from, int to)
+avr_initial_elimination_offset (int from, int to ATTRIBUTE_UNUSED)
 {
-  if (from == FRAME_POINTER_REGNUM && to == STACK_POINTER_REGNUM)
-    return 0;
-  else
-    {
-      int offset = frame_pointer_needed ? 2 : 0;
-      int avr_pc_size = AVR_HAVE_EIJMP_EICALL ? 3 : 2;
+  int offset = 0;
 
+  if (from == ARG_POINTER_REGNUM)
+    {
+      offset += AVR_HAVE_EIJMP_EICALL ? 3 : 2;
+      offset += frame_pointer_needed ? 2 : 0;
       offset += avr_regs_to_save (NULL);
-      return get_frame_size () + (avr_pc_size) + 1 + offset;
+      offset += get_frame_size ();
+      offset += 1; /* post-dec stack space */
     }
+
+  return offset;
 }
 
 /* Actual start of frame is virtual_stack_vars_rtx this is offset from 
@@ -747,12 +746,12 @@ expand_prologue (void)
 	 notes to the front.  Thus we build them in the reverse order of
 	 how we want dwarf2out to process them.  */
 
-      /* The function does always set frame_pointer_rtx, but whether that
+      /* The function does always set hard_frame_pointer_rtx, but whether that
 	 is going to be permanent in the function is frame_pointer_needed.  */
       add_reg_note (insn, REG_CFA_ADJUST_CFA,
 		    gen_rtx_SET (VOIDmode,
 				 (frame_pointer_needed
-				  ? frame_pointer_rtx : stack_pointer_rtx),
+				  ? hard_frame_pointer_rtx : stack_pointer_rtx),
 				 plus_constant (stack_pointer_rtx,
 						-(size + live_seq))));
 
@@ -793,7 +792,7 @@ expand_prologue (void)
 
           if (!size)
             {
-              insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+              insn = emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);
               RTX_FRAME_RELATED_P (insn) = 1;
             }
           else
@@ -816,12 +815,12 @@ expand_prologue (void)
                 {
                   /* The high byte (r29) doesn't change.  Prefer 'subi'
 		     (1 cycle) over 'sbiw' (2 cycles, same size).  */
-                  myfp = gen_rtx_REG (QImode, FRAME_POINTER_REGNUM);
+                  myfp = gen_rtx_REG (QImode, HARD_FRAME_POINTER_REGNUM);
                 }
               else 
                 {
                   /*  Normal sized addition.  */
-                  myfp = frame_pointer_rtx;
+                  myfp = hard_frame_pointer_rtx;
                 }
 
 	      /* Method 1-Adjust frame pointer.  */
@@ -833,12 +832,12 @@ expand_prologue (void)
 		 instead indicate that the entire operation is complete after
 		 the frame pointer subtraction is done.  */
 
-              emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+              emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);
 
               insn = emit_move_insn (myfp, plus_constant (myfp, -size));
               RTX_FRAME_RELATED_P (insn) = 1;
 	      add_reg_note (insn, REG_CFA_ADJUST_CFA,
-			    gen_rtx_SET (VOIDmode, frame_pointer_rtx,
+			    gen_rtx_SET (VOIDmode, hard_frame_pointer_rtx,
 					 plus_constant (stack_pointer_rtx,
 							-size)));
 
@@ -847,23 +846,23 @@ expand_prologue (void)
 		 need not be annotated at all.  */
 	      if (AVR_HAVE_8BIT_SP)
 		{
-		  emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
+		  emit_move_insn (stack_pointer_rtx, hard_frame_pointer_rtx);
 		}
 	      else if (TARGET_NO_INTERRUPTS 
 		       || cfun->machine->is_signal
 		       || cfun->machine->is_OS_main)
 		{
 		  emit_insn (gen_movhi_sp_r_irq_off (stack_pointer_rtx, 
-						     frame_pointer_rtx));
+						     hard_frame_pointer_rtx));
 		}
 	      else if (cfun->machine->is_interrupt)
 		{
 		  emit_insn (gen_movhi_sp_r_irq_on (stack_pointer_rtx, 
-						    frame_pointer_rtx));
+						    hard_frame_pointer_rtx));
 		}
 	      else
 		{
-		  emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
+		  emit_move_insn (stack_pointer_rtx, hard_frame_pointer_rtx);
 		}
 
 	      fp_plus_insns = get_insns ();
@@ -880,7 +879,7 @@ expand_prologue (void)
 		  insn = emit_move_insn (stack_pointer_rtx, insn);
 		  RTX_FRAME_RELATED_P (insn) = 1;
 		  
-		  insn = emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+		  insn = emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);
 		  RTX_FRAME_RELATED_P (insn) = 1;
 
 		  sp_plus_insns = get_insns ();
@@ -997,13 +996,13 @@ expand_epilogue (bool sibcall_p)
       if (frame_pointer_needed)
 	{
           /*  Get rid of frame.  */
-	  emit_move_insn(frame_pointer_rtx,
-                         gen_rtx_PLUS (HImode, frame_pointer_rtx,
-                                       gen_int_mode (size, HImode)));
+	  emit_move_insn (hard_frame_pointer_rtx,
+                          gen_rtx_PLUS (HImode, hard_frame_pointer_rtx,
+                                        gen_int_mode (size, HImode)));
 	}
       else
 	{
-          emit_move_insn (frame_pointer_rtx, stack_pointer_rtx);
+          emit_move_insn (hard_frame_pointer_rtx, stack_pointer_rtx);
 	}
 	
       emit_insn (gen_epilogue_restores (gen_int_mode (live_seq, HImode)));
@@ -1022,12 +1021,12 @@ expand_epilogue (bool sibcall_p)
                 {
                   /* The high byte (r29) doesn't change - prefer 'subi' 
                      (1 cycle) over 'sbiw' (2 cycles, same size).  */
-                  myfp = gen_rtx_REG (QImode, FRAME_POINTER_REGNUM);
+                  myfp = gen_rtx_REG (QImode, HARD_FRAME_POINTER_REGNUM);
                 }
               else 
                 {
                   /* Normal sized addition.  */
-                  myfp = frame_pointer_rtx;
+                  myfp = hard_frame_pointer_rtx;
                 }
 	      
               /* Method 1-Adjust frame pointer.  */
@@ -1038,22 +1037,22 @@ expand_epilogue (bool sibcall_p)
 	      /* Copy to stack pointer.  */
 	      if (AVR_HAVE_8BIT_SP)
 		{
-		  emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
+		  emit_move_insn (stack_pointer_rtx, hard_frame_pointer_rtx);
 		}
 	      else if (TARGET_NO_INTERRUPTS 
 		       || cfun->machine->is_signal)
 		{
 		  emit_insn (gen_movhi_sp_r_irq_off (stack_pointer_rtx, 
-						     frame_pointer_rtx));
+						     hard_frame_pointer_rtx));
 		}
 	      else if (cfun->machine->is_interrupt)
 		{
 		  emit_insn (gen_movhi_sp_r_irq_on (stack_pointer_rtx, 
-						    frame_pointer_rtx));
+						    hard_frame_pointer_rtx));
 		}
 	      else
 		{
-		  emit_move_insn (stack_pointer_rtx, frame_pointer_rtx);
+		  emit_move_insn (stack_pointer_rtx, hard_frame_pointer_rtx);
 		}
 
 	      fp_plus_insns = get_insns ();
@@ -1228,32 +1227,8 @@ avr_legitimate_address_p (enum machine_mode mode, rtx x, bool strict)
    memory address for an operand of mode MODE  */
 
 rtx
-avr_legitimize_address (rtx x, rtx oldx, enum machine_mode mode)
+avr_legitimize_address (rtx x, rtx oldx ATTRIBUTE_UNUSED, enum machine_mode mode ATTRIBUTE_UNUSED)
 {
-  x = oldx;
-  if (TARGET_ALL_DEBUG)
-    {
-      fprintf (stderr, "legitimize_address mode: %s", GET_MODE_NAME(mode));
-      debug_rtx (oldx);
-    }
-  
-  if (GET_CODE (oldx) == PLUS
-      && REG_P (XEXP (oldx,0)))
-    {
-      if (REG_P (XEXP (oldx,1)))
-	x = force_reg (GET_MODE (oldx), oldx);
-      else if (GET_CODE (XEXP (oldx, 1)) == CONST_INT)
-	{
-	  int offs = INTVAL (XEXP (oldx,1));
-	  if (frame_pointer_rtx != XEXP (oldx,0))
-	    if (offs > MAX_LD_OFFSET (mode))
-	      {
-		if (TARGET_ALL_DEBUG)
-		  fprintf (stderr, "force_reg (big offset)\n");
-		x = force_reg (GET_MODE (oldx), oldx);
-	      }
-	}
-    }
   return x;
 }
 
@@ -6096,8 +6071,7 @@ extra_constraint_Q (rtx x)
 	return 1;		/* allocate pseudos */
       else if (regno == REG_Z || regno == REG_Y)
 	return 1;		/* strictly check */
-      else if (xx == frame_pointer_rtx
-	       || xx == arg_pointer_rtx)
+      else if (xx == frame_pointer_rtx || xx == arg_pointer_rtx)
 	return 1;		/* XXX frame & arg pointer checks */
     }
   return 0;
@@ -6280,6 +6254,18 @@ jump_over_one_insn_p (rtx insn, rtx dest)
   return dest_addr - jump_addr == get_attr_length (insn) + 1;
 }
 
+/* Returns the number of registers required to hold a value of MODE.  */
+
+int
+avr_hard_regno_nregs (int regno, enum machine_mode mode)
+{
+  /* The fake registers are designed to hold exactly a pointer.  */
+  if (regno == ARG_POINTER_REGNUM || regno == FRAME_POINTER_REGNUM)
+    return 1;
+
+  return (GET_MODE_SIZE (mode) + UNITS_PER_WORD - 1) / UNITS_PER_WORD;
+}
+
 /* Returns 1 if a value of mode MODE can be stored starting with hard
    register number REGNO.  On the enhanced core, anything larger than
    1 byte must start in even numbered register for "movw" to work
@@ -6288,6 +6274,10 @@ jump_over_one_insn_p (rtx insn, rtx dest)
 int
 avr_hard_regno_mode_ok (int regno, enum machine_mode mode)
 {
+  /* The fake registers are designed to hold exactly a pointer.  */
+  if (regno == ARG_POINTER_REGNUM || regno == FRAME_POINTER_REGNUM)
+    return mode == Pmode;
+
   /* Any GENERAL_REGS register can hold 8-bit values.  */
   /* FIXME:  8-bit values must not be disallowed for R28 or R29.
      Disallowing QI et al. in these registers might lead to code like
@@ -6299,8 +6289,7 @@ avr_hard_regno_mode_ok (int regno, enum machine_mode mode)
   if (GET_MODE_SIZE (mode) == 1)
      return 1;
    
-   /* All modes larger than 8 bits should start in an even register.  */
-   
+  /* All modes larger than 8 bits should start in an even register.  */
   return regno % 2 == 0;
 }
 
@@ -6332,27 +6321,35 @@ avr_mode_code_base_reg_class (enum machine_mode mode ATTRIBUTE_UNUSED,
 /* Worker function for `REGNO_MODE_CODE_OK_FOR_BASE_P'.  */
 
 bool
-avr_regno_mode_code_ok_for_base_p (int regno, enum machine_mode mode ATTRIBUTE_UNUSED,
-                                   RTX_CODE outer_code, RTX_CODE index_code ATTRIBUTE_UNUSED)
+avr_regno_mode_code_ok_for_base_p (int regno,
+				   enum machine_mode mode ATTRIBUTE_UNUSED,
+                                   RTX_CODE outer_code,
+				   RTX_CODE index_code ATTRIBUTE_UNUSED)
 {
   bool ok;
   
+  ok = (regno == REG_Z
+        || regno == REG_Y
+        || regno == ARG_POINTER_REGNUM
+        || regno == FRAME_POINTER_REGNUM);
+
   switch (outer_code)
     {
     case PLUS:
-      ok = regno == REG_Z || regno == REG_Y;
+      /* Computed above */
       break;
       
     case MEM: /* plain reg */
     case POST_INC:
     case PRE_DEC:
-      ok = regno == REG_Z || regno == REG_Y || regno == REG_X;
+      /* As above, but also X.  */
+      if (regno == REG_X)
+	ok = true;
       break;
       
     default:
       ok = false;
       break;
-      
     }
 
   return ok;

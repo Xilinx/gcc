@@ -191,7 +191,8 @@ extern GTY(()) section *progmem_section;
   0,0,/* r28 r29 */\
   0,0,/* r30 r31 */\
   1,1,/*  STACK */\
-  1,1 /* arg pointer */  }
+  1,  /* arg pointer */\
+  1   /* frame pointer */  }
 
 #define CALL_USED_REGISTERS {			\
   1,1,/* r0 r1 */				\
@@ -211,7 +212,8 @@ extern GTY(()) section *progmem_section;
     0,0,/* r28 r29 */				\
     1,1,/* r30 r31 */				\
     1,1,/*  STACK */				\
-    1,1 /* arg pointer */  }
+    1,  /* arg pointer */			\
+    1   /* frame pointer */ }
 
 #define REG_ALLOC_ORDER {			\
     24,25,					\
@@ -229,7 +231,7 @@ extern GTY(()) section *progmem_section;
 #define ADJUST_REG_ALLOC_ORDER order_regs_for_local_alloc ()
 
 
-#define HARD_REGNO_NREGS(REGNO, MODE) ((GET_MODE_SIZE (MODE) + UNITS_PER_WORD - 1) / UNITS_PER_WORD)
+#define HARD_REGNO_NREGS(REGNO, MODE) avr_hard_regno_nregs(REGNO, MODE)
 
 #define HARD_REGNO_MODE_OK(REGNO, MODE) avr_hard_regno_mode_ok(REGNO, MODE)
 
@@ -279,17 +281,17 @@ enum reg_class {
   {3 << REG_Z,0x00000000},      /* POINTER_Z_REGS, r30 - r31 */		\
   {0x00000000,0x00000003},	/* STACK_REG, STACK */			\
   {(3 << REG_Y) | (3 << REG_Z),						\
-     0x00000000},		/* BASE_POINTER_REGS, r28 - r31 */	\
+     0x0000000c},		/* BASE_POINTER_REGS, r28 - r31,ap,fp */\
   {(3 << REG_X) | (3 << REG_Y) | (3 << REG_Z),				\
-     0x00000000},		/* POINTER_REGS, r26 - r31 */		\
+     0x0000000c},		/* POINTER_REGS, r26 - r31,ap,fp */	\
   {(3 << REG_X) | (3 << REG_Y) | (3 << REG_Z) | (3 << REG_W),		\
      0x00000000},		/* ADDW_REGS, r24 - r31 */		\
   {0x00ff0000,0x00000000},	/* SIMPLE_LD_REGS r16 - r23 */          \
   {(3 << REG_X)|(3 << REG_Y)|(3 << REG_Z)|(3 << REG_W)|(0xff << 16),	\
-     0x00000000},	/* LD_REGS, r16 - r31 */			\
+     0x0000000c},	/* LD_REGS, r16 - r31 */			\
   {0x0000ffff,0x00000000},	/* NO_LD_REGS  r0 - r15 */              \
-  {0xffffffff,0x00000000},	/* GENERAL_REGS, r0 - r31 */		\
-  {0xffffffff,0x00000003}	/* ALL_REGS */				\
+  {0xffffffff,0x0000000c},	/* GENERAL_REGS, r0 - r31,ap,fp */	\
+  {0xffffffff,0x0000000f}	/* ALL_REGS */				\
 }
 
 #define REGNO_REG_CLASS(R) avr_regno_reg_class(R)
@@ -322,16 +324,18 @@ enum reg_class {
 
 #define STACK_POINTER_REGNUM 32
 
-#define FRAME_POINTER_REGNUM REG_Y
+#define HARD_FRAME_POINTER_REGNUM REG_Y
 
 #define ARG_POINTER_REGNUM 34
+#define FRAME_POINTER_REGNUM 35
 
 #define STATIC_CHAIN_REGNUM 2
 
 #define ELIMINABLE_REGS {					\
-      {ARG_POINTER_REGNUM, FRAME_POINTER_REGNUM},		\
-	{FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM}		\
-       ,{FRAME_POINTER_REGNUM+1,STACK_POINTER_REGNUM+1}}
+      { ARG_POINTER_REGNUM, STACK_POINTER_REGNUM },		\
+      { ARG_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM },	\
+      { FRAME_POINTER_REGNUM, STACK_POINTER_REGNUM },		\
+      { FRAME_POINTER_REGNUM, HARD_FRAME_POINTER_REGNUM }}
 
 #define INITIAL_ELIMINATION_OFFSET(FROM, TO, OFFSET)			\
   OFFSET = avr_initial_elimination_offset (FROM, TO)
@@ -582,7 +586,7 @@ sprintf (STRING, "*.%s%lu", PREFIX, (unsigned long)(NUM))
     "r8","r9","r10","r11","r12","r13","r14","r15",	\
     "r16","r17","r18","r19","r20","r21","r22","r23",	\
     "r24","r25","r26","r27","r28","r29","r30","r31",	\
-    "__SP_L__","__SP_H__","argL","argH"}
+    "__SP_L__","__SP_H__","ap","fp"}
 
 #define FINAL_PRESCAN_INSN(insn, operand, nop) final_prescan_insn (insn, operand,nop)
 
