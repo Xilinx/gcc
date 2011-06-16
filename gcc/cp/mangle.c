@@ -1,6 +1,6 @@
 /* Name mangling for the 3.0 C++ ABI.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010,
+   2011  Free Software Foundation, Inc.
    Written by Alex Samuel <samuel@codesourcery.com>
 
    This file is part of GCC.
@@ -943,7 +943,7 @@ write_nested_name (const tree decl)
   else
     {
       /* No, just use <prefix>  */
-      write_prefix (DECL_CONTEXT (decl));
+      write_prefix (CP_DECL_CONTEXT (decl));
       write_unqualified_name (decl);
     }
   write_char ('E');
@@ -2247,7 +2247,7 @@ write_function_type (const tree type)
     {
       /* The first parameter must be a POINTER_TYPE pointing to the
 	 `this' parameter.  */
-      tree this_type = TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (type)));
+      tree this_type = class_of_this_parm (type);
       write_CV_qualifiers_for_type (this_type);
     }
 
@@ -2599,6 +2599,15 @@ write_expression (tree expr)
       write_unqualified_id (fn);
       write_template_args (TREE_OPERAND (expr, 1));
     }
+  else if (TREE_CODE (expr) == MODOP_EXPR)
+    {
+      enum tree_code subop = TREE_CODE (TREE_OPERAND (expr, 1));
+      const char *name = (assignment_operator_name_info[(int) subop]
+			  .mangled_name);
+      write_string (name);
+      write_expression (TREE_OPERAND (expr, 0));
+      write_expression (TREE_OPERAND (expr, 2));
+    }
   else
     {
       int i, len;
@@ -2701,23 +2710,7 @@ write_expression (tree expr)
 	default:
 	  /* In the middle-end, some expressions have more operands than
 	     they do in templates (and mangling).  */
-	  switch (code)
-	    {
-	    case PREINCREMENT_EXPR:
-	    case PREDECREMENT_EXPR:
-	    case POSTINCREMENT_EXPR:
-	    case POSTDECREMENT_EXPR:
-	      len = 1;
-	      break;
-
-	    case ARRAY_REF:
-	      len = 2;
-	      break;
-
-	    default:
-	      len = TREE_OPERAND_LENGTH (expr);
-	      break;
-	    }
+	  len = cp_tree_operand_length (expr);
 
 	  for (i = 0; i < len; ++i)
 	    {
@@ -3101,6 +3094,9 @@ mangle_decl_string (const tree decl)
   location_t saved_loc = input_location;
   tree saved_fn = NULL_TREE;
   bool template_p = false;
+
+  /* We shouldn't be trying to mangle an uninstantiated template.  */
+  gcc_assert (!type_dependent_expression_p (decl));
 
   if (DECL_LANG_SPECIFIC (decl) && DECL_USE_TEMPLATE (decl))
     {

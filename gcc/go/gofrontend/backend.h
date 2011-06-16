@@ -108,7 +108,103 @@ class Backend
 
   // Get an array type.
   virtual Btype*
-  array_type(const Btype* element_type, const Bexpression* length) = 0;
+  array_type(Btype* element_type, Bexpression* length) = 0;
+
+  // Create a placeholder pointer type.  This is used for a named
+  // pointer type, since in Go a pointer type may refer to itself.
+  // NAME is the name of the type, and the location is where the named
+  // type is defined.  This function is also used for unnamed function
+  // types with multiple results, in which case the type has no name
+  // and NAME will be empty.  FOR_FUNCTION is true if this is for a Go
+  // function type, which corresponds to a C/C++ pointer to function
+  // type.  The return value will later be passed as the first
+  // parameter to set_placeholder_pointer_type or
+  // set_placeholder_function_type.
+  virtual Btype*
+  placeholder_pointer_type(const std::string& name, source_location,
+			   bool for_function) = 0;
+
+  // Fill in a placeholder pointer type as a pointer.  This takes a
+  // type returned by placeholder_pointer_type and arranges for it to
+  // point to to_type.  Returns true on success, false on failure.
+  virtual bool
+  set_placeholder_pointer_type(Btype* placeholder, Btype* to_type) = 0;
+
+  // Fill in a placeholder pointer type as a function.  This takes a
+  // type returned by placeholder_pointer_type and arranges for it to
+  // become a real Go function type (which corresponds to a C/C++
+  // pointer to function type).  FT will be something returned by the
+  // function_type method.  Returns true on success, false on failure.
+  virtual bool
+  set_placeholder_function_type(Btype* placeholder, Btype* ft) = 0;
+
+  // Create a placeholder struct type.  This is used for a named
+  // struct type, as with placeholder_pointer_type.
+  virtual Btype*
+  placeholder_struct_type(const std::string& name, source_location) = 0;
+
+  // Fill in a placeholder struct type.  This takes a type returned by
+  // placeholder_struct_type and arranges for it to become a real
+  // struct type.  The parameter is as for struct_type.  Returns true
+  // on success, false on failure.
+  virtual bool
+  set_placeholder_struct_type(Btype* placeholder,
+			      const std::vector<Btyped_identifier>& fields)
+  			= 0;
+
+  // Create a placeholder array type.  This is used for a named array
+  // type, as with placeholder_pointer_type, to handle cases like
+  // type A []*A.
+  virtual Btype*
+  placeholder_array_type(const std::string& name, source_location) = 0;
+
+  // Fill in a placeholder array type.  This takes a type returned by
+  // placeholder_array_type and arranges for it to become a real array
+  // type.  The parameters are as for array_type.  Returns true on
+  // success, false on failure.
+  virtual bool
+  set_placeholder_array_type(Btype* placeholder, Btype* element_type,
+			     Bexpression* length) = 0;
+
+  // Return a named version of a type.  The location is the location
+  // of the type definition.  This will not be called for a type
+  // created via placeholder_pointer_type, placeholder_struct_type, or
+  // placeholder_array_type..  (It may be called for a pointer,
+  // struct, or array type in a case like "type P *byte; type Q P".)
+  virtual Btype*
+  named_type(const std::string& name, Btype*, source_location) = 0;
+
+  // Create a marker for a circular pointer type.  Go pointer and
+  // function types can refer to themselves in ways that are not
+  // permitted in C/C++.  When a circular type is found, this function
+  // is called for the circular reference.  This permits the backend
+  // to decide how to handle such a type.  PLACEHOLDER is the
+  // placeholder type which has already been created; if the backend
+  // is prepared to handle a circular pointer type, it may simply
+  // return PLACEHOLDER.  FOR_FUNCTION is true if this is for a
+  // function type.
+  //
+  // For "type P *P" the sequence of calls will be
+  //   bt1 = placeholder_pointer_type();
+  //   bt2 = circular_pointer_type(bt1, false);
+  //   set_placeholder_pointer_type(bt1, bt2);
+  virtual Btype*
+  circular_pointer_type(Btype* placeholder, bool for_function) = 0;
+
+  // Return whether the argument could be a special type created by
+  // circular_pointer_type.  This is used to introduce explicit type
+  // conversions where needed.  If circular_pointer_type returns its
+  // PLACEHOLDER parameter, this may safely always return false.
+  virtual bool
+  is_circular_pointer_type(Btype*) = 0;
+
+  // Expressions.
+
+  // Return an expression for a zero value of the given type.  This is
+  // used for cases such as local variable initialization and
+  // converting nil to other types.
+  virtual Bexpression*
+  zero_expression(Btype*) = 0;
 
   // Statements.
 
@@ -231,19 +327,23 @@ class Backend
   // Create a local variable.  The frontend will create the local
   // variables first, and then create the block which contains them.
   // FUNCTION is the function in which the variable is defined.  NAME
-  // is the name of the variable.  TYPE is the type.  LOCATION is
-  // where the variable is defined.  For each local variable the
-  // frontend will call init_statement to set the initial value.
+  // is the name of the variable.  TYPE is the type.  IS_ADDRESS_TAKEN
+  // is true if the address of this variable is taken (this implies
+  // that the address does not escape the function, as otherwise the
+  // variable would be on the heap).  LOCATION is where the variable
+  // is defined.  For each local variable the frontend will call
+  // init_statement to set the initial value.
   virtual Bvariable*
   local_variable(Bfunction* function, const std::string& name, Btype* type,
-		 source_location location) = 0;
+		 bool is_address_taken, source_location location) = 0;
 
   // Create a function parameter.  This is an incoming parameter, not
   // a result parameter (result parameters are treated as local
   // variables).  The arguments are as for local_variable.
   virtual Bvariable*
   parameter_variable(Bfunction* function, const std::string& name,
-		     Btype* type, source_location location) = 0;
+		     Btype* type, bool is_address_taken,
+		     source_location location) = 0;
 
   // Create a temporary variable.  A temporary variable has no name,
   // just a type.  We pass in FUNCTION and BLOCK in case they are
@@ -260,6 +360,52 @@ class Backend
   temporary_variable(Bfunction*, Bblock*, Btype*, Bexpression* init,
 		     bool address_is_taken, source_location location,
 		     Bstatement** pstatement) = 0;
+
+  // Create a named immutable initialized data structure.  This is
+  // used for type descriptors and map descriptors.  This returns a
+  // Bvariable because it corresponds to an initialized const global
+  // variable in C.
+  //
+  // NAME is the name to use for the initialized global variable which
+  // this call will create.
+  //
+  // IS_COMMON is true if NAME may be defined by several packages, and
+  // the linker should merge all such definitions.  If IS_COMMON is
+  // false, NAME should be defined in only one file.  In general
+  // IS_COMMON will be true for the type descriptor of an unnamed type
+  // or a builtin type.
+  //
+  // TYPE will be a struct type; the type of the returned expression
+  // must be a pointer to this struct type.
+  // 
+  // We must create the named structure before we know its
+  // initializer, because the initializer refer to its own address.
+  // After calling this the frontend will call
+  // set_immutable_struct_initializer.
+  virtual Bvariable*
+  immutable_struct(const std::string& name, bool is_common, Btype* type,
+		   source_location) = 0;
+
+  // Set the initial value of a variable created by immutable_struct.
+  // The NAME, IS_COMMON, TYPE, and location parameters are the same
+  // ones passed to immutable_struct.  INITIALIZER will be a composite
+  // literal of type TYPE.  It will not contain any function calls or
+  // anything else which can not be put into a read-only data section.
+  // It may contain the address of variables created by
+  // immutable_struct.
+  virtual void
+  immutable_struct_set_init(Bvariable*, const std::string& name,
+			    bool is_common, Btype* type, source_location,
+			    Bexpression* initializer) = 0;
+
+  // Create a reference to a named immutable initialized data
+  // structure defined in some other package.  This will be a
+  // structure created by a call to immutable_struct_expression with
+  // the same NAME and TYPE and with IS_COMMON passed as false.  This
+  // corresponds to an extern const global variable in C.
+  virtual Bvariable*
+  immutable_struct_reference(const std::string& name, Btype* type,
+			     source_location) = 0;
 
   // Labels.
   

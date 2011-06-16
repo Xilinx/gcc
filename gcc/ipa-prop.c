@@ -93,7 +93,7 @@ ipa_init_func_list (void)
 
   wl = NULL;
   for (node = cgraph_nodes; node; node = node->next)
-    if (node->analyzed)
+    if (node->analyzed && !node->alias)
       {
 	struct ipa_node_params *info = IPA_NODE_REF (node);
 	/* Unreachable nodes should have been eliminated before ipcp and
@@ -1096,6 +1096,7 @@ ipa_compute_jump_functions (struct cgraph_node *node,
 
   for (cs = node->callees; cs; cs = cs->next_callee)
     {
+      struct cgraph_node *callee = cgraph_function_or_thunk_node (cs->callee, NULL);
       /* We do not need to bother analyzing calls to unknown
 	 functions unless they may become known during lto/whopr.  */
       if (!cs->callee->analyzed && !flag_lto)
@@ -1103,11 +1104,11 @@ ipa_compute_jump_functions (struct cgraph_node *node,
       ipa_count_arguments (cs);
       /* If the descriptor of the callee is not initialized yet, we have to do
 	 it now. */
-      if (cs->callee->analyzed)
-	ipa_initialize_node_params (cs->callee);
+      if (callee->analyzed)
+	ipa_initialize_node_params (callee);
       if (ipa_get_cs_argument_count (IPA_EDGE_REF (cs))
-	  != ipa_get_param_count (IPA_NODE_REF (cs->callee)))
-	ipa_set_called_with_variable_arg (IPA_NODE_REF (cs->callee));
+	  != ipa_get_param_count (IPA_NODE_REF (callee)))
+	ipa_set_called_with_variable_arg (IPA_NODE_REF (callee));
       ipa_compute_jump_functions_for_edge (parms_info, cs);
     }
 
@@ -1718,6 +1719,7 @@ ipa_make_edge_direct_to_target (struct cgraph_edge *ie, tree target, tree delta)
 	  fprintf (dump_file, "\n");
 	}
     }
+  callee = cgraph_function_or_thunk_node (callee, NULL);
 
   if (ipa_get_cs_argument_count (IPA_EDGE_REF (ie))
       != ipa_get_param_count (IPA_NODE_REF (callee)))
@@ -1771,7 +1773,7 @@ try_make_edge_direct_virtual_call (struct cgraph_edge *ie,
   type = ie->indirect_info->otr_type;
   binfo = get_binfo_at_offset (binfo, ie->indirect_info->anc_offset, type);
   if (binfo)
-    target = gimple_get_virt_method_for_binfo (token, binfo, &delta, true);
+    target = gimple_get_virt_method_for_binfo (token, binfo, &delta);
   else
     return NULL;
 
@@ -2465,7 +2467,7 @@ ipa_modify_call_arguments (struct cgraph_edge *cs, gimple stmt,
 				       base_offset
 				       + adj->offset / BITS_PER_UNIT);
 		  off = int_const_binop (PLUS_EXPR, TREE_OPERAND (base, 1),
-					 off, 0);
+					 off);
 		  base = TREE_OPERAND (base, 0);
 		}
 	      else
@@ -2814,7 +2816,6 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
   lto_output_uleb128_stream (ob->main_stream, node_ref);
 
   bp = bitpack_create (ob->main_stream);
-  bp_pack_value (&bp, info->called_with_var_arguments, 1);
   gcc_assert (info->uses_analysis_done
 	      || ipa_get_param_count (info) == 0);
   gcc_assert (!info->node_enqueued);
@@ -2832,7 +2833,15 @@ ipa_write_node_info (struct output_block *ob, struct cgraph_node *node)
 	ipa_write_jump_function (ob, ipa_get_ith_jump_func (args, j));
     }
   for (e = node->indirect_calls; e; e = e->next_callee)
-    ipa_write_indirect_edge_info (ob, e);
+    {
+      struct ipa_edge_args *args = IPA_EDGE_REF (e);
+
+      lto_output_uleb128_stream (ob->main_stream,
+				 ipa_get_cs_argument_count (args));
+      for (j = 0; j < ipa_get_cs_argument_count (args); j++)
+	ipa_write_jump_function (ob, ipa_get_ith_jump_func (args, j));
+      ipa_write_indirect_edge_info (ob, e);
+    }
 }
 
 /* Stream in NODE info from IB.  */
@@ -2849,7 +2858,6 @@ ipa_read_node_info (struct lto_input_block *ib, struct cgraph_node *node,
   ipa_initialize_node_params (node);
 
   bp = lto_input_bitpack (ib);
-  info->called_with_var_arguments = bp_unpack_value (&bp, 1);
   if (ipa_get_param_count (info) != 0)
     info->uses_analysis_done = true;
   info->node_enqueued = false;
@@ -2870,7 +2878,20 @@ ipa_read_node_info (struct lto_input_block *ib, struct cgraph_node *node,
 	ipa_read_jump_function (ib, ipa_get_ith_jump_func (args, k), data_in);
     }
   for (e = node->indirect_calls; e; e = e->next_callee)
-    ipa_read_indirect_edge_info (ib, data_in, e);
+    {
+      struct ipa_edge_args *args = IPA_EDGE_REF (e);
+      int count = lto_input_uleb128 (ib);
+
+      ipa_set_cs_argument_count (args, count);
+      if (count)
+	{
+          args->jump_functions = ggc_alloc_cleared_vec_ipa_jump_func
+	    (ipa_get_cs_argument_count (args));
+          for (k = 0; k < ipa_get_cs_argument_count (args); k++)
+	    ipa_read_jump_function (ib, ipa_get_ith_jump_func (args, k), data_in);
+	}
+      ipa_read_indirect_edge_info (ib, data_in, e);
+    }
 }
 
 /* Write jump functions for nodes in SET.  */
@@ -2888,7 +2909,8 @@ ipa_prop_write_jump_functions (cgraph_node_set set)
   for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
     {
       node = csi_node (csi);
-      if (node->analyzed && IPA_NODE_REF (node) != NULL)
+      if (cgraph_function_with_gimple_body_p (node)
+	  && IPA_NODE_REF (node) != NULL)
 	count++;
     }
 
@@ -2898,7 +2920,8 @@ ipa_prop_write_jump_functions (cgraph_node_set set)
   for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
     {
       node = csi_node (csi);
-      if (node->analyzed && IPA_NODE_REF (node) != NULL)
+      if (cgraph_function_with_gimple_body_p (node)
+	  && IPA_NODE_REF (node) != NULL)
         ipa_write_node_info (ob, node);
     }
   lto_output_1_stream (ob->main_stream, 0);
@@ -2991,15 +3014,19 @@ ipa_update_after_lto_read (void)
     if (node->analyzed)
       for (cs = node->callees; cs; cs = cs->next_callee)
 	{
+	  struct cgraph_node *callee;
+
+	  callee = cgraph_function_or_thunk_node (cs->callee, NULL);
 	  if (ipa_get_cs_argument_count (IPA_EDGE_REF (cs))
-	      != ipa_get_param_count (IPA_NODE_REF (cs->callee)))
-	    ipa_set_called_with_variable_arg (IPA_NODE_REF (cs->callee));
+	      != ipa_get_param_count (IPA_NODE_REF (callee)))
+	    ipa_set_called_with_variable_arg (IPA_NODE_REF (callee));
 	}
 }
 
 /* Given the jump function JFUNC, compute the lattice LAT that describes the
    value coming down the callsite. INFO describes the caller node so that
    pass-through jump functions can be evaluated.  */
+
 void
 ipa_lattice_from_jfunc (struct ipa_node_params *info, struct ipcp_lattice *lat,
 			 struct ipa_jump_func *jfunc)
@@ -3058,4 +3085,20 @@ ipa_lattice_from_jfunc (struct ipa_node_params *info, struct ipcp_lattice *lat,
     }
   else
     lat->type = IPA_BOTTOM;
+}
+
+/* Determine whether JFUNC evaluates to a constant and if so, return it.
+   Otherwise return NULL. INFO describes the caller node so that pass-through
+   jump functions can be evaluated.  */
+
+tree
+ipa_cst_from_jfunc (struct ipa_node_params *info, struct ipa_jump_func *jfunc)
+{
+  struct ipcp_lattice lat;
+
+  ipa_lattice_from_jfunc (info, &lat, jfunc);
+  if (lat.type == IPA_CONST_VALUE)
+    return lat.constant;
+  else
+    return NULL_TREE;
 }

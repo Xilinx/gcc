@@ -51,13 +51,19 @@ struct string_slot
 };
 
 
-/* Returns a hash code for P.  */
+/* Returns a hash code for P.  
+   Shamelessly stollen from libiberty.  */
 
 static hashval_t
 hash_string_slot_node (const void *p)
 {
   const struct string_slot *ds = (const struct string_slot *) p;
-  return (hashval_t) htab_hash_string (ds->s);
+  hashval_t r = ds->len;
+  int i;
+
+  for (i = 0; i < ds->len; i++)
+     r = r * 67 + (unsigned)ds->s[i] - 113;
+  return r;
 }
 
 
@@ -73,17 +79,6 @@ eq_string_slot_node (const void *p1, const void *p2)
     return memcmp (ds1->s, ds2->s, ds1->len) == 0;
 
   return 0;
-}
-
-
-/* Free the string slot pointed-to by P.  */
-
-static void
-string_slot_free (void *p)
-{
-  struct string_slot *slot = (struct string_slot *) p;
-  free (CONST_CAST (void *, (const void *) slot->s));
-  free (slot);
 }
 
 
@@ -118,7 +113,8 @@ create_output_block (enum lto_section_type section_type)
   clear_line_info (ob);
 
   ob->string_hash_table = htab_create (37, hash_string_slot_node,
-				       eq_string_slot_node, string_slot_free);
+				       eq_string_slot_node, NULL);
+  gcc_obstack_init (&ob->obstack);
 
   return ob;
 }
@@ -139,33 +135,29 @@ destroy_output_block (struct output_block *ob)
     free (ob->cfg_stream);
 
   lto_streamer_cache_delete (ob->writer_cache);
+  obstack_free (&ob->obstack, NULL);
 
   free (ob);
 }
 
+/* Return index used to reference STRING of LEN characters in the string table
+   in OB.  The string might or might not include a trailing '\0'.
+   Then put the index onto the INDEX_STREAM.  
+   When PERSISTENT is set, the string S is supposed to not change during
+   duration of the OB and thus OB can keep pointer into it.  */
 
-/* Output STRING of LEN characters to the string
-   table in OB. The string might or might not include a trailing '\0'.
-   Then put the index onto the INDEX_STREAM.  */
-
-void
-lto_output_string_with_length (struct output_block *ob,
-			       struct lto_output_stream *index_stream,
-			       const char *s,
-			       unsigned int len)
+static unsigned
+lto_string_index (struct output_block *ob,
+		  const char *s,
+		  unsigned int len,
+		  bool persistent)
 {
   struct string_slot **slot;
   struct string_slot s_slot;
-  char *string = (char *) xmalloc (len + 1);
-  memcpy (string, s, len);
-  string[len] = '\0';
 
-  s_slot.s = string;
+  s_slot.s = s;
   s_slot.len = len;
   s_slot.slot_num = 0;
-
-  /* Indicate that this is not a NULL string.  */
-  lto_output_uleb128_stream (index_stream, 0);
 
   slot = (struct string_slot **) htab_find_slot (ob->string_hash_table,
 						 &s_slot, INSERT);
@@ -174,37 +166,71 @@ lto_output_string_with_length (struct output_block *ob,
       struct lto_output_stream *string_stream = ob->string_stream;
       unsigned int start = string_stream->total_size;
       struct string_slot *new_slot
-	= (struct string_slot *) xmalloc (sizeof (struct string_slot));
+	= XOBNEW (&ob->obstack, struct string_slot);
+      const char *string;
+
+      if (!persistent)
+	{
+	  char *tmp;
+	  string = tmp = XOBNEWVEC (&ob->obstack, char, len);
+          memcpy (tmp, s, len);
+        }
+      else
+	string = s;
 
       new_slot->s = string;
       new_slot->len = len;
       new_slot->slot_num = start;
       *slot = new_slot;
-      lto_output_uleb128_stream (index_stream, start);
       lto_output_uleb128_stream (string_stream, len);
       lto_output_data_stream (string_stream, string, len);
+      return start + 1;
     }
   else
     {
       struct string_slot *old_slot = *slot;
-      lto_output_uleb128_stream (index_stream, old_slot->slot_num);
-      free (string);
+      return old_slot->slot_num + 1;
     }
 }
 
-/* Output the '\0' terminated STRING to the string
-   table in OB.  Then put the index onto the INDEX_STREAM.  */
 
-void
+/* Output STRING of LEN characters to the string
+   table in OB. The string might or might not include a trailing '\0'.
+   Then put the index onto the INDEX_STREAM. 
+   When PERSISTENT is set, the string S is supposed to not change during
+   duration of the OB and thus OB can keep pointer into it.  */
+
+static void
+lto_output_string_with_length (struct output_block *ob,
+			       struct lto_output_stream *index_stream,
+			       const char *s,
+			       unsigned int len,
+			       bool persistent)
+{
+  if (s)
+    lto_output_uleb128_stream (index_stream,
+			       lto_string_index (ob, s, len, persistent));
+  else
+    lto_output_1_stream (index_stream, 0);
+}
+
+/* Output the '\0' terminated STRING to the string
+   table in OB.  Then put the index onto the INDEX_STREAM.
+   When PERSISTENT is set, the string S is supposed to not change during
+   duration of the OB and thus OB can keep pointer into it.  */
+
+static void
 lto_output_string (struct output_block *ob,
 	           struct lto_output_stream *index_stream,
-	           const char *string)
+	           const char *string,
+		   bool persistent)
 {
   if (string)
     lto_output_string_with_length (ob, index_stream, string,
-				   strlen (string) + 1);
+				   strlen (string) + 1,
+				   persistent);
   else
-    lto_output_uleb128_stream (index_stream, 1);
+    lto_output_1_stream (index_stream, 0);
 }
 
 
@@ -216,12 +242,10 @@ output_string_cst (struct output_block *ob,
 		   struct lto_output_stream *index_stream,
 		   tree string)
 {
-  if (string)
-    lto_output_string_with_length (ob, index_stream,
-				   TREE_STRING_POINTER (string),
-				   TREE_STRING_LENGTH (string ));
-  else
-    lto_output_uleb128_stream (index_stream, 1);
+  lto_output_string_with_length (ob, index_stream,
+				 TREE_STRING_POINTER (string),
+				 TREE_STRING_LENGTH (string),
+				 true);
 }
 
 
@@ -233,13 +257,12 @@ output_identifier (struct output_block *ob,
 		   struct lto_output_stream *index_stream,
 		   tree id)
 {
-  if (id)
-    lto_output_string_with_length (ob, index_stream,
-				   IDENTIFIER_POINTER (id),
-				   IDENTIFIER_LENGTH (id));
-  else
-    lto_output_uleb128_stream (index_stream, 1);
+  lto_output_string_with_length (ob, index_stream,
+				 IDENTIFIER_POINTER (id),
+				 IDENTIFIER_LENGTH (id),
+				 true);
 }
+
 
 /* Write a zero to the output stream.  */
 
@@ -270,12 +293,10 @@ output_sleb128 (struct output_block *ob, HOST_WIDE_INT work)
 
 /* Output the start of a record with TAG to output block OB.  */
 
-static void
+static inline void
 output_record_start (struct output_block *ob, enum LTO_tags tag)
 {
-  /* Make sure TAG fits inside an unsigned int.  */
-  gcc_assert (tag == (enum LTO_tags) (unsigned) tag);
-  output_uleb128 (ob, tag);
+  lto_output_enum (ob->main_stream, LTO_tags, LTO_NUM_TAGS, tag);
 }
 
 
@@ -363,9 +384,9 @@ static void
 pack_ts_fixed_cst_value_fields (struct bitpack_d *bp, tree expr)
 {
   struct fixed_value fv = TREE_FIXED_CST (expr);
-  bp_pack_value (bp, fv.data.low, HOST_BITS_PER_WIDE_INT);
-  bp_pack_value (bp, fv.data.high, HOST_BITS_PER_WIDE_INT);
-  bp_pack_value (bp, fv.mode, HOST_BITS_PER_INT);
+  bp_pack_enum (bp, machine_mode, MAX_MACHINE_MODE, fv.mode);
+  bp_pack_var_len_int (bp, fv.data.low);
+  bp_pack_var_len_int (bp, fv.data.high);
 }
 
 
@@ -375,7 +396,7 @@ pack_ts_fixed_cst_value_fields (struct bitpack_d *bp, tree expr)
 static void
 pack_ts_decl_common_value_fields (struct bitpack_d *bp, tree expr)
 {
-  bp_pack_value (bp, DECL_MODE (expr), 8);
+  bp_pack_enum (bp, machine_mode, MAX_MACHINE_MODE, DECL_MODE (expr));
   bp_pack_value (bp, DECL_NONLOCAL (expr), 1);
   bp_pack_value (bp, DECL_VIRTUAL_P (expr), 1);
   bp_pack_value (bp, DECL_IGNORED_P (expr), 1);
@@ -386,7 +407,7 @@ pack_ts_decl_common_value_fields (struct bitpack_d *bp, tree expr)
   bp_pack_value (bp, DECL_DEBUG_EXPR_IS_FROM (expr), 1);
   bp_pack_value (bp, DECL_EXTERNAL (expr), 1);
   bp_pack_value (bp, DECL_GIMPLE_REG_P (expr), 1);
-  bp_pack_value (bp, DECL_ALIGN (expr), HOST_BITS_PER_INT);
+  bp_pack_var_len_unsigned (bp, DECL_ALIGN (expr));
 
   if (TREE_CODE (expr) == LABEL_DECL)
     {
@@ -394,14 +415,14 @@ pack_ts_decl_common_value_fields (struct bitpack_d *bp, tree expr)
 	 always assume an initial value of -1 so that the
 	 label_to_block_map is recreated by gimple_set_bb.  */
       bp_pack_value (bp, DECL_ERROR_ISSUED (expr), 1);
-      bp_pack_value (bp, EH_LANDING_PAD_NR (expr), HOST_BITS_PER_INT);
+      bp_pack_var_len_unsigned (bp, EH_LANDING_PAD_NR (expr));
     }
 
   if (TREE_CODE (expr) == FIELD_DECL)
     {
       bp_pack_value (bp, DECL_PACKED (expr), 1);
       bp_pack_value (bp, DECL_NONADDRESSABLE_P (expr), 1);
-      bp_pack_value (bp, DECL_OFFSET_ALIGN (expr), 8);
+      bp_pack_value (bp, expr->decl_common.off_align, 8);
     }
 
   if (TREE_CODE (expr) == RESULT_DECL
@@ -451,7 +472,7 @@ pack_ts_decl_with_vis_value_fields (struct bitpack_d *bp, tree expr)
     }
 
   if (VAR_OR_FUNCTION_DECL_P (expr))
-    bp_pack_value (bp, DECL_INIT_PRIORITY (expr), HOST_BITS_PER_SHORT);
+    bp_pack_var_len_unsigned (bp, DECL_INIT_PRIORITY (expr));
 }
 
 
@@ -465,8 +486,8 @@ pack_ts_function_decl_value_fields (struct bitpack_d *bp, tree expr)
      should never be handled here.  */
   gcc_assert (!lto_stream_as_builtin_p (expr));
 
-  bp_pack_value (bp, DECL_FUNCTION_CODE (expr), 11);
-  bp_pack_value (bp, DECL_BUILT_IN_CLASS (expr), 2);
+  bp_pack_enum (bp, built_in_class, BUILT_IN_LAST,
+		DECL_BUILT_IN_CLASS (expr));
   bp_pack_value (bp, DECL_STATIC_CONSTRUCTOR (expr), 1);
   bp_pack_value (bp, DECL_STATIC_DESTRUCTOR (expr), 1);
   bp_pack_value (bp, DECL_UNINLINABLE (expr), 1);
@@ -483,19 +504,20 @@ pack_ts_function_decl_value_fields (struct bitpack_d *bp, tree expr)
   bp_pack_value (bp, DECL_DISREGARD_INLINE_LIMITS (expr), 1);
   bp_pack_value (bp, DECL_PURE_P (expr), 1);
   bp_pack_value (bp, DECL_LOOPING_CONST_OR_PURE_P (expr), 1);
+  if (DECL_BUILT_IN_CLASS (expr) != NOT_BUILT_IN)
+    bp_pack_value (bp, DECL_FUNCTION_CODE (expr), 11);
   if (DECL_STATIC_DESTRUCTOR (expr))
-    bp_pack_value (bp, DECL_FINI_PRIORITY (expr), HOST_BITS_PER_SHORT);
+    bp_pack_var_len_unsigned (bp, DECL_FINI_PRIORITY (expr));
 }
 
 
-/* Pack all the non-pointer fields of the TS_TYPE structure
+/* Pack all the non-pointer fields of the TS_TYPE_COMMON structure
    of expression EXPR into bitpack BP.  */
 
 static void
-pack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
+pack_ts_type_common_value_fields (struct bitpack_d *bp, tree expr)
 {
-  bp_pack_value (bp, TYPE_PRECISION (expr), 10);
-  bp_pack_value (bp, TYPE_MODE (expr), 8);
+  bp_pack_enum (bp, machine_mode, MAX_MACHINE_MODE, TYPE_MODE (expr));
   bp_pack_value (bp, TYPE_STRING_FLAG (expr), 1);
   bp_pack_value (bp, TYPE_NO_FORCE_BLK (expr), 1);
   bp_pack_value (bp, TYPE_NEEDS_CONSTRUCTING (expr), 1);
@@ -506,8 +528,9 @@ pack_ts_type_value_fields (struct bitpack_d *bp, tree expr)
   bp_pack_value (bp, TYPE_CONTAINS_PLACEHOLDER_INTERNAL (expr), 2);
   bp_pack_value (bp, TYPE_USER_ALIGN (expr), 1);
   bp_pack_value (bp, TYPE_READONLY (expr), 1);
-  bp_pack_value (bp, TYPE_ALIGN (expr), HOST_BITS_PER_INT);
-  bp_pack_value (bp, TYPE_ALIAS_SET (expr) == 0 ? 0 : -1, HOST_BITS_PER_INT);
+  bp_pack_var_len_unsigned (bp, TYPE_PRECISION (expr));
+  bp_pack_var_len_unsigned (bp, TYPE_ALIGN (expr));
+  bp_pack_var_len_int (bp, TYPE_ALIAS_SET (expr) == 0 ? 0 : -1);
 }
 
 
@@ -518,7 +541,7 @@ static void
 pack_ts_block_value_fields (struct bitpack_d *bp, tree expr)
 {
   bp_pack_value (bp, BLOCK_ABSTRACT (expr), 1);
-  bp_pack_value (bp, BLOCK_NUMBER (expr), 31);
+  /* BLOCK_NUMBER is recomputed.  */
 }
 
 /* Pack all the non-pointer fields of the TS_TRANSLATION_UNIT_DECL structure
@@ -560,58 +583,67 @@ pack_value_fields (struct bitpack_d *bp, tree expr)
   if (CODE_CONTAINS_STRUCT (code, TS_FUNCTION_DECL))
     pack_ts_function_decl_value_fields (bp, expr);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_TYPE))
-    pack_ts_type_value_fields (bp, expr);
+  if (CODE_CONTAINS_STRUCT (code, TS_TYPE_COMMON))
+    pack_ts_type_common_value_fields (bp, expr);
 
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     pack_ts_block_value_fields (bp, expr);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_SSA_NAME))
-    {
-      /* We only stream the version number of SSA names.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_STATEMENT_LIST))
-    {
-      /* This is only used by GENERIC.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OMP_CLAUSE))
-    {
-      /* This is only used by High GIMPLE.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_TRANSLATION_UNIT_DECL))
     pack_ts_translation_unit_decl_value_fields (bp, expr);
+
+  if (streamer_hooks.pack_value_fields)
+    streamer_hooks.pack_value_fields (bp, expr);
 }
 
 
-/* Emit location LOC to output block OB.  */
+/* Output info about new location into bitpack BP.
+   After outputting bitpack, lto_output_location_data has
+   to be done to output actual data.  */
+
+static inline void
+lto_output_location_bitpack (struct bitpack_d *bp,
+			     struct output_block *ob,
+			     location_t loc)
+{
+  expanded_location xloc;
+
+  bp_pack_value (bp, loc == UNKNOWN_LOCATION, 1);
+  if (loc == UNKNOWN_LOCATION)
+    return;
+
+  xloc = expand_location (loc);
+
+  bp_pack_value (bp, ob->current_file != xloc.file, 1);
+  if (ob->current_file != xloc.file)
+    bp_pack_var_len_unsigned (bp, lto_string_index (ob,
+					            xloc.file,
+						    strlen (xloc.file) + 1,
+						    true));
+  ob->current_file = xloc.file;
+
+  bp_pack_value (bp, ob->current_line != xloc.line, 1);
+  if (ob->current_line != xloc.line)
+    bp_pack_var_len_unsigned (bp, xloc.line);
+  ob->current_line = xloc.line;
+
+  bp_pack_value (bp, ob->current_col != xloc.column, 1);
+  if (ob->current_col != xloc.column)
+    bp_pack_var_len_unsigned (bp, xloc.column);
+  ob->current_col = xloc.column;
+}
+
+
+/* Emit location LOC to output block OB.
+   When bitpack is handy, it is more space effecient to call
+   lto_output_location_bitpack with existing bitpack.  */
 
 static void
 lto_output_location (struct output_block *ob, location_t loc)
 {
-  expanded_location xloc;
-
-  if (loc == UNKNOWN_LOCATION)
-    {
-      lto_output_string (ob, ob->main_stream, NULL);
-      return;
-    }
-
-  xloc = expand_location (loc);
-
-  lto_output_string (ob, ob->main_stream, xloc.file);
-  output_sleb128 (ob, xloc.line);
-  output_sleb128 (ob, xloc.column);
-  output_sleb128 (ob, xloc.sysp);
-
-  ob->current_file = xloc.file;
-  ob->current_line = xloc.line;
-  ob->current_col = xloc.column;
+  struct bitpack_d bp = bitpack_create (ob->main_stream);
+  lto_output_location_bitpack (&bp, ob, loc);
+  lto_output_bitpack (&bp);
 }
 
 
@@ -644,7 +676,7 @@ lto_output_tree_ref (struct output_block *ob, tree expr)
 
   if (expr == NULL_TREE)
     {
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
       return;
     }
 
@@ -725,9 +757,22 @@ lto_output_tree_ref (struct output_block *ob, tree expr)
       break;
 
     default:
-      /* No other node is indexable, so it should have been handled
-	 by lto_output_tree.  */
-      gcc_unreachable ();
+      {
+	/* See if the streamer allows this node to be indexable
+	   like other global declarations.  */
+	if (streamer_hooks.indexable_with_decls_p
+	    && streamer_hooks.indexable_with_decls_p (expr))
+	  {
+	    output_record_start (ob, LTO_global_decl_ref);
+	    lto_output_var_decl_index (ob->decl_state, ob->main_stream, expr);
+	  }
+	else
+	  {
+	    /* No other node is indexable, so it should have been
+	      handled by lto_output_tree.  */
+	    gcc_unreachable ();
+	  }
+      }
     }
 }
 
@@ -836,27 +881,11 @@ lto_output_ts_decl_common_tree_pointers (struct output_block *ob, tree expr,
   lto_output_tree_or_ref (ob, DECL_SIZE (expr), ref_p);
   lto_output_tree_or_ref (ob, DECL_SIZE_UNIT (expr), ref_p);
 
-  if (TREE_CODE (expr) != FUNCTION_DECL
-      && TREE_CODE (expr) != TRANSLATION_UNIT_DECL)
-    {
-      tree initial = DECL_INITIAL (expr);
-      if (TREE_CODE (expr) == VAR_DECL
-	  && (TREE_STATIC (expr) || DECL_EXTERNAL (expr))
-	  && initial)
-	{
-	  lto_varpool_encoder_t varpool_encoder = ob->decl_state->varpool_node_encoder;
-	  struct varpool_node *vnode = varpool_get_node (expr);
-	  if (!vnode)
-	    initial = error_mark_node;
-	  else if (!lto_varpool_encoder_encode_initializer_p (varpool_encoder,
-							      vnode))
-	    initial = NULL;
-	}
-    
-      lto_output_tree_or_ref (ob, initial, ref_p);
-    }
+  /* Note, DECL_INITIAL is not handled here.  Since DECL_INITIAL needs
+     special handling in LTO, it must be handled by streamer hooks.  */
 
   lto_output_tree_or_ref (ob, DECL_ATTRIBUTES (expr), ref_p);
+
   /* Do not stream DECL_ABSTRACT_ORIGIN.  We cannot handle debug information
      for early inlining so drop it on the floor instead of ICEing in
      dwarf2out.c.  */
@@ -884,11 +913,6 @@ lto_output_ts_decl_non_common_tree_pointers (struct output_block *ob,
 {
   if (TREE_CODE (expr) == FUNCTION_DECL)
     {
-      /* DECL_SAVED_TREE holds the GENERIC representation for DECL.
-	 At this point, it should not exist.  Either because it was
-	 converted to gimple or because DECL didn't have a GENERIC
-	 representation in this TU.  */
-      gcc_assert (DECL_SAVED_TREE (expr) == NULL_TREE);
       lto_output_tree_or_ref (ob, DECL_ARGUMENTS (expr), ref_p);
       lto_output_tree_or_ref (ob, DECL_RESULT (expr), ref_p);
     }
@@ -908,7 +932,7 @@ lto_output_ts_decl_with_vis_tree_pointers (struct output_block *ob, tree expr,
   if (DECL_ASSEMBLER_NAME_SET_P (expr))
     lto_output_tree_or_ref (ob, DECL_ASSEMBLER_NAME (expr), ref_p);
   else
-    output_zero (ob);
+    output_record_start (ob, LTO_null);
 
   lto_output_tree_or_ref (ob, DECL_SECTION_NAME (expr), ref_p);
   lto_output_tree_or_ref (ob, DECL_COMDAT_GROUP (expr), ref_p);
@@ -949,13 +973,36 @@ lto_output_ts_function_decl_tree_pointers (struct output_block *ob, tree expr,
 }
 
 
-/* Write all pointer fields in the TS_TYPE structure of EXPR to output
-   block OB.  If REF_P is true, write a reference to EXPR's pointer
-   fields.  */
+/* Write all pointer fields in the TS_TYPE_COMMON structure of EXPR to
+   output block OB.  If REF_P is true, write a reference to EXPR's
+   pointer fields.  */
 
 static void
-lto_output_ts_type_tree_pointers (struct output_block *ob, tree expr,
-				  bool ref_p)
+lto_output_ts_type_common_tree_pointers (struct output_block *ob, tree expr,
+					 bool ref_p)
+{
+  lto_output_tree_or_ref (ob, TYPE_SIZE (expr), ref_p);
+  lto_output_tree_or_ref (ob, TYPE_SIZE_UNIT (expr), ref_p);
+  lto_output_tree_or_ref (ob, TYPE_ATTRIBUTES (expr), ref_p);
+  lto_output_tree_or_ref (ob, TYPE_NAME (expr), ref_p);
+  /* Do not stream TYPE_POINTER_TO or TYPE_REFERENCE_TO.  They will be
+     reconstructed during fixup.  */
+  /* Do not stream TYPE_NEXT_VARIANT, we reconstruct the variant lists
+     during fixup.  */
+  lto_output_tree_or_ref (ob, TYPE_MAIN_VARIANT (expr), ref_p);
+  lto_output_tree_or_ref (ob, TYPE_CONTEXT (expr), ref_p);
+  /* TYPE_CANONICAL is re-computed during type merging, so no need
+     to stream it here.  */
+  lto_output_tree_or_ref (ob, TYPE_STUB_DECL (expr), ref_p);
+}
+
+/* Write all pointer fields in the TS_TYPE_NON_COMMON structure of EXPR
+   to output block OB.  If REF_P is true, write a reference to EXPR's
+   pointer fields.  */
+
+static void
+lto_output_ts_type_non_common_tree_pointers (struct output_block *ob,
+					     tree expr, bool ref_p)
 {
   if (TREE_CODE (expr) == ENUMERAL_TYPE)
     lto_output_tree_or_ref (ob, TYPE_VALUES (expr), ref_p);
@@ -967,24 +1014,11 @@ lto_output_ts_type_tree_pointers (struct output_block *ob, tree expr,
 	   || TREE_CODE (expr) == METHOD_TYPE)
     lto_output_tree_or_ref (ob, TYPE_ARG_TYPES (expr), ref_p);
 
-  lto_output_tree_or_ref (ob, TYPE_SIZE (expr), ref_p);
-  lto_output_tree_or_ref (ob, TYPE_SIZE_UNIT (expr), ref_p);
-  lto_output_tree_or_ref (ob, TYPE_ATTRIBUTES (expr), ref_p);
-  lto_output_tree_or_ref (ob, TYPE_NAME (expr), ref_p);
-  /* Do not stream TYPE_POINTER_TO or TYPE_REFERENCE_TO nor
-     TYPE_NEXT_PTR_TO or TYPE_NEXT_REF_TO.  */
   if (!POINTER_TYPE_P (expr))
     lto_output_tree_or_ref (ob, TYPE_MINVAL (expr), ref_p);
   lto_output_tree_or_ref (ob, TYPE_MAXVAL (expr), ref_p);
-  lto_output_tree_or_ref (ob, TYPE_MAIN_VARIANT (expr), ref_p);
-  /* Do not stream TYPE_NEXT_VARIANT, we reconstruct the variant lists
-     during fixup.  */
   if (RECORD_OR_UNION_TYPE_P (expr))
     lto_output_tree_or_ref (ob, TYPE_BINFO (expr), ref_p);
-  lto_output_tree_or_ref (ob, TYPE_CONTEXT (expr), ref_p);
-  /* TYPE_CANONICAL is re-computed during type merging, so no need
-     to stream it here.  */
-  lto_output_tree_or_ref (ob, TYPE_STUB_DECL (expr), ref_p);
 }
 
 
@@ -1079,11 +1113,15 @@ lto_output_ts_binfo_tree_pointers (struct output_block *ob, tree expr,
      is needed to build the empty BINFO node on the reader side.  */
   FOR_EACH_VEC_ELT (tree, BINFO_BASE_BINFOS (expr), i, t)
     lto_output_tree_or_ref (ob, t, ref_p);
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 
   lto_output_tree_or_ref (ob, BINFO_OFFSET (expr), ref_p);
   lto_output_tree_or_ref (ob, BINFO_VTABLE (expr), ref_p);
-  lto_output_tree_or_ref (ob, BINFO_VIRTUALS (expr), ref_p);
+  /* BINFO_VIRTUALS is used to drive type based devirtualizatoin.  It often links
+     together large portions of programs making it harder to partition.  Becuase
+     devirtualization is interesting before inlining, only, there is no real
+     need to ship it into ltrans partition.  */
+  lto_output_tree_or_ref (ob, flag_wpa ? NULL : BINFO_VIRTUALS (expr), ref_p);
   lto_output_tree_or_ref (ob, BINFO_VPTR_FIELD (expr), ref_p);
 
   output_uleb128 (ob, VEC_length (tree, BINFO_BASE_ACCESSES (expr)));
@@ -1142,7 +1180,8 @@ static void
 lto_output_ts_translation_unit_decl_tree_pointers (struct output_block *ob,
 						   tree expr)
 {
-  lto_output_string (ob, ob->main_stream, TRANSLATION_UNIT_LANGUAGE (expr));
+  lto_output_string (ob, ob->main_stream,
+		     TRANSLATION_UNIT_LANGUAGE (expr), true);
 }
 
 /* Helper for lto_output_tree.  Write all pointer fields in EXPR to output
@@ -1183,8 +1222,11 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
   if (CODE_CONTAINS_STRUCT (code, TS_FUNCTION_DECL))
     lto_output_ts_function_decl_tree_pointers (ob, expr, ref_p);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_TYPE))
-    lto_output_ts_type_tree_pointers (ob, expr, ref_p);
+  if (CODE_CONTAINS_STRUCT (code, TS_TYPE_COMMON))
+    lto_output_ts_type_common_tree_pointers (ob, expr, ref_p);
+
+  if (CODE_CONTAINS_STRUCT (code, TS_TYPE_NON_COMMON))
+    lto_output_ts_type_non_common_tree_pointers (ob, expr, ref_p);
 
   if (CODE_CONTAINS_STRUCT (code, TS_LIST))
     lto_output_ts_list_tree_pointers (ob, expr, ref_p);
@@ -1195,12 +1237,6 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
   if (CODE_CONTAINS_STRUCT (code, TS_EXP))
     lto_output_ts_exp_tree_pointers (ob, expr, ref_p);
 
-  if (CODE_CONTAINS_STRUCT (code, TS_SSA_NAME))
-    {
-      /* We only stream the version number of SSA names.  */
-      gcc_unreachable ();
-    }
-
   if (CODE_CONTAINS_STRUCT (code, TS_BLOCK))
     lto_output_ts_block_tree_pointers (ob, expr, ref_p);
 
@@ -1209,21 +1245,6 @@ lto_output_tree_pointers (struct output_block *ob, tree expr, bool ref_p)
 
   if (CODE_CONTAINS_STRUCT (code, TS_CONSTRUCTOR))
     lto_output_ts_constructor_tree_pointers (ob, expr, ref_p);
-
-  if (CODE_CONTAINS_STRUCT (code, TS_STATEMENT_LIST))
-    {
-      /* This should only appear in GENERIC.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OMP_CLAUSE))
-    {
-      /* This should only appear in High GIMPLE.  */
-      gcc_unreachable ();
-    }
-
-  if (CODE_CONTAINS_STRUCT (code, TS_OPTIMIZATION))
-    sorry ("gimple bytecode streams do not support the optimization attribute");
 
   if (CODE_CONTAINS_STRUCT (code, TS_TARGET_OPTION))
     lto_output_ts_target_option (ob, expr);
@@ -1244,11 +1265,11 @@ lto_output_tree_header (struct output_block *ob, tree expr)
   enum LTO_tags tag;
   enum tree_code code;
 
-  /* We should not see any non-GIMPLE tree nodes here.  */
+  /* We should not see any tree nodes not handled by the streamer.  */
   code = TREE_CODE (expr);
-  if (!lto_is_streamable (expr))
-    internal_error ("tree code %qs is not supported in gimple streams",
-		    tree_code_name[code]);
+  if (!streamer_hooks.is_streamable (expr))
+    internal_error ("tree code %qs is not supported in %s streams",
+		    tree_code_name[code], streamer_hooks.name);
 
   /* The header of a tree node consists of its tag, the size of
      the node, and any other information needed to instantiate
@@ -1277,6 +1298,11 @@ lto_output_tree_header (struct output_block *ob, tree expr)
     output_sleb128 (ob, TREE_VEC_LENGTH (expr));
   else if (CODE_CONTAINS_STRUCT (code, TS_BINFO))
     output_uleb128 (ob, BINFO_N_BASE_BINFOS (expr));
+
+  /* Allow the streamer to write any streamer-specific information
+     needed to instantiate the node when reading.  */
+  if (streamer_hooks.output_tree_header)
+    streamer_hooks.output_tree_header (ob, expr);
 }
 
 
@@ -1294,7 +1320,8 @@ lto_output_builtin_tree (struct output_block *ob, tree expr)
 	   "functions on this target");
 
   output_record_start (ob, LTO_builtin_decl);
-  output_uleb128 (ob, DECL_BUILT_IN_CLASS (expr));
+  lto_output_enum (ob->main_stream, built_in_class, BUILT_IN_LAST,
+		   DECL_BUILT_IN_CLASS (expr));
   output_uleb128 (ob, DECL_FUNCTION_CODE (expr));
 
   if (DECL_ASSEMBLER_NAME_SET_P (expr))
@@ -1305,12 +1332,12 @@ lto_output_builtin_tree (struct output_block *ob, tree expr)
 	 reader side from adding a second '*', we omit it here.  */
       const char *str = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (expr));
       if (strlen (str) > 1 && str[0] == '*')
-	lto_output_string (ob, ob->main_stream, &str[1]);
+	lto_output_string (ob, ob->main_stream, &str[1], true);
       else
-	lto_output_string (ob, ob->main_stream, NULL);
+	lto_output_string (ob, ob->main_stream, NULL, true);
     }
   else
-    lto_output_string (ob, ob->main_stream, NULL);
+    lto_output_string (ob, ob->main_stream, NULL, true);
 }
 
 
@@ -1337,8 +1364,46 @@ lto_write_tree (struct output_block *ob, tree expr, bool ref_p)
   /* Write all the pointer fields in EXPR.  */
   lto_output_tree_pointers (ob, expr, ref_p);
 
+  /* Call back into the streaming module to see if it needs to write
+     anything that was not written by the common streamer.  */
+  if (streamer_hooks.write_tree)
+    streamer_hooks.write_tree (ob, expr, ref_p);
+
   /* Mark the end of EXPR.  */
   output_zero (ob);
+}
+
+
+/* GIMPLE hook for writing GIMPLE-specific parts of trees.  OB, EXPR
+   and REF_P are as in lto_write_tree.  */
+
+void
+lto_streamer_write_tree (struct output_block *ob, tree expr, bool ref_p)
+{
+  if (DECL_P (expr)
+      && TREE_CODE (expr) != FUNCTION_DECL
+      && TREE_CODE (expr) != TRANSLATION_UNIT_DECL)
+    {
+      /* Handle DECL_INITIAL for symbols.  */
+      tree initial = DECL_INITIAL (expr);
+      if (TREE_CODE (expr) == VAR_DECL
+	  && (TREE_STATIC (expr) || DECL_EXTERNAL (expr))
+	  && initial)
+	{
+	  lto_varpool_encoder_t varpool_encoder;
+	  struct varpool_node *vnode;
+
+	  varpool_encoder = ob->decl_state->varpool_node_encoder;
+	  vnode = varpool_get_node (expr);
+	  if (!vnode)
+	    initial = error_mark_node;
+	  else if (!lto_varpool_encoder_encode_initializer_p (varpool_encoder,
+							      vnode))
+	    initial = NULL;
+	}
+
+      lto_output_tree_or_ref (ob, initial, ref_p);
+    }
 }
 
 
@@ -1368,7 +1433,7 @@ lto_output_tree (struct output_block *ob, tree expr, bool ref_p)
 
   if (expr == NULL_TREE)
     {
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
       return;
     }
 
@@ -1388,7 +1453,8 @@ lto_output_tree (struct output_block *ob, tree expr, bool ref_p)
 	 will instantiate two different nodes for the same object.  */
       output_record_start (ob, LTO_tree_pickle_reference);
       output_uleb128 (ob, ix);
-      output_uleb128 (ob, lto_tree_code_to_tag (TREE_CODE (expr)));
+      lto_output_enum (ob->main_stream, LTO_tags, LTO_NUM_TAGS,
+		       lto_tree_code_to_tag (TREE_CODE (expr)));
     }
   else if (lto_stream_as_builtin_p (expr))
     {
@@ -1423,7 +1489,7 @@ output_eh_try_list (struct output_block *ob, eh_catch first)
       lto_output_tree_ref (ob, n->label);
     }
 
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 }
 
 
@@ -1438,7 +1504,7 @@ output_eh_region (struct output_block *ob, eh_region r)
 
   if (r == NULL)
     {
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
       return;
     }
 
@@ -1501,7 +1567,7 @@ output_eh_lp (struct output_block *ob, eh_landing_pad lp)
 {
   if (lp == NULL)
     {
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
       return;
     }
 
@@ -1570,9 +1636,9 @@ output_eh_regions (struct output_block *ob, struct function *fn)
 	}
     }
 
-  /* The 0 either terminates the record or indicates that there are no
-     eh_records at all.  */
-  output_zero (ob);
+  /* The LTO_null either terminates the record or indicates that there
+     are no eh_records at all.  */
+  output_record_start (ob, LTO_null);
 }
 
 
@@ -1614,7 +1680,8 @@ output_cfg (struct output_block *ob, struct function *fn)
 
   ob->main_stream = ob->cfg_stream;
 
-  output_uleb128 (ob, profile_status_for_function (fn));
+  lto_output_enum (ob->main_stream, profile_status_d, PROFILE_LAST,
+		   profile_status_for_function (fn));
 
   /* Output the number of the highest basic block.  */
   output_uleb128 (ob, last_basic_block_for_function (fn));
@@ -1688,12 +1755,12 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
 
   /* Emit the tuple header.  */
   bp = bitpack_create (ob->main_stream);
-  bp_pack_value (&bp, gimple_num_ops (stmt), sizeof (unsigned) * 8);
+  bp_pack_var_len_unsigned (&bp, gimple_num_ops (stmt));
   bp_pack_value (&bp, gimple_no_warning_p (stmt), 1);
   if (is_gimple_assign (stmt))
     bp_pack_value (&bp, gimple_assign_nontemporal_move_p (stmt), 1);
   bp_pack_value (&bp, gimple_has_volatile_ops (stmt), 1);
-  bp_pack_value (&bp, stmt->gsbase.subcode, 16);
+  bp_pack_var_len_unsigned (&bp, stmt->gsbase.subcode);
   lto_output_bitpack (&bp);
 
   /* Emit location information for the statement.  */
@@ -1722,7 +1789,7 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_noutputs (stmt));
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_nclobbers (stmt));
       lto_output_uleb128_stream (ob->main_stream, gimple_asm_nlabels (stmt));
-      lto_output_string (ob, ob->main_stream, gimple_asm_string (stmt));
+      lto_output_string (ob, ob->main_stream, gimple_asm_string (stmt), true);
       /* Fallthru  */
 
     case GIMPLE_ASSIGN:
@@ -1762,7 +1829,8 @@ output_gimple_stmt (struct output_block *ob, gimple stmt)
       if (is_gimple_call (stmt))
 	{
 	  if (gimple_call_internal_p (stmt))
-	    output_sleb128 (ob, (int) gimple_call_internal_fn (stmt));
+	    lto_output_enum (ob->main_stream, internal_fn,
+			     IFN_LAST, gimple_call_internal_fn (stmt));
 	  else
 	    lto_output_tree_ref (ob, gimple_call_fntype (stmt));
 	}
@@ -1815,10 +1883,10 @@ output_bb (struct output_block *ob, basic_block bb, struct function *fn)
 	      output_sleb128 (ob, region);
 	    }
 	  else
-	    output_zero (ob);
+	    output_record_start (ob, LTO_null);
 	}
 
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
 
       for (bsi = gsi_start_phis (bb); !gsi_end_p (bsi); gsi_next (&bsi))
 	{
@@ -1831,7 +1899,7 @@ output_bb (struct output_block *ob, basic_block bb, struct function *fn)
 	    output_phi (ob, phi);
 	}
 
-      output_zero (ob);
+      output_record_start (ob, LTO_null);
     }
 }
 
@@ -1929,7 +1997,6 @@ output_function (struct cgraph_node *node)
   bp_pack_value (&bp, fn->can_throw_non_call_exceptions, 1);
   bp_pack_value (&bp, fn->always_inline_functions_inlined, 1);
   bp_pack_value (&bp, fn->after_inlining, 1);
-  bp_pack_value (&bp, fn->dont_save_pending_sizes_p, 1);
   bp_pack_value (&bp, fn->stdarg, 1);
   bp_pack_value (&bp, fn->has_nonlocal_label, 1);
   bp_pack_value (&bp, fn->calls_alloca, 1);
@@ -1989,7 +2056,7 @@ output_function (struct cgraph_node *node)
     output_bb (ob, bb, fn);
 
   /* The terminator for this function.  */
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 
   output_cfg (ob, fn);
 
@@ -2103,7 +2170,7 @@ output_unreferenced_globals (cgraph_node_set set, varpool_node_set vset)
       }
   symbol_alias_set_destroy (defined);
 
-  output_zero (ob);
+  output_record_start (ob, LTO_null);
 
   produce_asm (ob, NULL);
   destroy_output_block (ob);
@@ -2168,15 +2235,6 @@ copy_function (struct cgraph_node *node)
 }
 
 
-/* Initialize the LTO writer.  */
-
-static void
-lto_writer_init (void)
-{
-  lto_streamer_init ();
-}
-
-
 /* Main entry point from the pass manager.  */
 
 static void
@@ -2190,14 +2248,17 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
   int i, n_nodes;
   lto_cgraph_encoder_t encoder = lto_get_out_decl_state ()->cgraph_node_encoder;
 
-  lto_writer_init ();
+  /* Initialize the streamer.  */
+  lto_streamer_init ();
 
   n_nodes = lto_cgraph_encoder_size (encoder);
   /* Process only the functions with bodies.  */
   for (i = 0; i < n_nodes; i++)
     {
       node = lto_cgraph_encoder_deref (encoder, i);
-      if (lto_cgraph_encoder_encode_body_p (encoder, node))
+      if (lto_cgraph_encoder_encode_body_p (encoder, node)
+	  && !node->alias
+	  && !node->thunk.thunk_p)
 	{
 #ifdef ENABLE_CHECKING
 	  gcc_assert (!bitmap_bit_p (output, DECL_UID (node->decl)));
@@ -2241,7 +2302,7 @@ struct ipa_opt_pass_d pass_ipa_lto_gimple_out =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,            			/* todo_flags_start */
-  TODO_dump_func                        /* todo_flags_finish */
+  0                                     /* todo_flags_finish */
  },
  NULL,		                        /* generate_summary */
  lto_output,           			/* write_summary */
@@ -2495,7 +2556,7 @@ produce_symtab (struct output_block *ob,
   struct lto_streamer_cache_d *cache = ob->writer_cache;
   char *section_name = lto_get_section_name (LTO_section_symtab, NULL, NULL);
   struct pointer_set_t *seen;
-  struct cgraph_node *node, *alias;
+  struct cgraph_node *node;
   struct varpool_node *vnode, *valias;
   struct lto_output_stream stream;
   lto_varpool_encoder_t varpool_encoder = ob->decl_state->varpool_node_encoder;
@@ -2525,11 +2586,9 @@ produce_symtab (struct output_block *ob,
       if (DECL_COMDAT (node->decl)
 	  && cgraph_comdat_can_be_unshared_p (node))
 	continue;
-      if (node->alias || node->global.inlined_to)
+      if ((node->alias && !node->thunk.alias) || node->global.inlined_to)
 	continue;
       write_symbol (cache, &stream, node->decl, seen, false);
-      for (alias = node->same_body; alias; alias = alias->next)
-        write_symbol (cache, &stream, alias->decl, seen, true);
     }
   for (i = 0; i < lto_cgraph_encoder_size (encoder); i++)
     {
@@ -2539,11 +2598,9 @@ produce_symtab (struct output_block *ob,
       if (DECL_COMDAT (node->decl)
 	  && cgraph_comdat_can_be_unshared_p (node))
 	continue;
-      if (node->alias || node->global.inlined_to)
+      if ((node->alias && !node->thunk.alias) || node->global.inlined_to)
 	continue;
       write_symbol (cache, &stream, node->decl, seen, false);
-      for (alias = node->same_body; alias; alias = alias->next)
-        write_symbol (cache, &stream, alias->decl, seen, true);
     }
 
   /* Write all variables.  */

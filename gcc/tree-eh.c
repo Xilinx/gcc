@@ -1340,9 +1340,9 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
 					      fallthru_index));
       gimple_seq_add_stmt (&tf->top_p_seq, x);
 
-      last_case = build3 (CASE_LABEL_EXPR, void_type_node,
-			  build_int_cst (integer_type_node, fallthru_index),
-			  NULL, create_artificial_label (tf_loc));
+      tmp = build_int_cst (integer_type_node, fallthru_index);
+      last_case = build_case_label (tmp, NULL,
+				    create_artificial_label (tf_loc));
       VEC_quick_push (tree, case_label_vec, last_case);
       last_case_index++;
 
@@ -1365,9 +1365,9 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
       x = gimple_build_goto (finally_label);
       gimple_seq_add_stmt (&eh_seq, x);
 
-      last_case = build3 (CASE_LABEL_EXPR, void_type_node,
-			  build_int_cst (integer_type_node, eh_index),
-			  NULL, create_artificial_label (tf_loc));
+      tmp = build_int_cst (integer_type_node, eh_index);
+      last_case = build_case_label (tmp, NULL,
+				    create_artificial_label (tf_loc));
       VEC_quick_push (tree, case_label_vec, last_case);
       last_case_index++;
 
@@ -1419,9 +1419,9 @@ lower_try_finally_switch (struct leh_state *state, struct leh_tf_state *tf)
         {
           tree case_lab;
           void **slot;
-          case_lab = build3 (CASE_LABEL_EXPR, void_type_node,
-                             build_int_cst (integer_type_node, switch_id),
-			     NULL, create_artificial_label (tf_loc));
+	  tmp = build_int_cst (integer_type_node, switch_id);
+          case_lab = build_case_label (tmp, NULL,
+				       create_artificial_label (tf_loc));
           /* We store the cont_stmt in the pointer map, so that we can recover
              it in the loop below.  */
           if (!cont_map)
@@ -2052,7 +2052,7 @@ struct gimple_opt_pass pass_lower_eh =
   PROP_gimple_leh,			/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func			/* todo_flags_finish */
+  0             			/* todo_flags_finish */
  }
 };
 
@@ -2865,7 +2865,7 @@ struct gimple_opt_pass pass_refactor_eh =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func			/* todo_flags_finish */
+  0             			/* todo_flags_finish */
  }
 };
 
@@ -3071,7 +3071,7 @@ struct gimple_opt_pass pass_lower_resx =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_flow	/* todo_flags_finish */
+  TODO_verify_flow	                /* todo_flags_finish */
  }
 };
 
@@ -3132,8 +3132,8 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 		   blocks at the end of this pass.  */
 		if (! pointer_set_contains (seen_values, TREE_VALUE (flt_node)))
 		  {
-		    tree t = build3 (CASE_LABEL_EXPR, void_type_node,
-				     TREE_VALUE (flt_node), NULL, lab);
+		    tree t = build_case_label (TREE_VALUE (flt_node),
+					       NULL, lab);
 		    VEC_safe_push (tree, heap, labels, t);
 		    pointer_set_insert (seen_values, TREE_VALUE (flt_node));
 		    have_label = true;
@@ -3181,8 +3181,7 @@ lower_eh_dispatch (basic_block src, gimple stmt)
 	    gsi_insert_before (&gsi, x, GSI_SAME_STMT);
 
 	    /* Turn the default label into a default case.  */
-	    default_label = build3 (CASE_LABEL_EXPR, void_type_node,
-				    NULL, NULL, default_label);
+	    default_label = build_case_label (NULL, NULL, default_label);
 	    sort_case_labels (labels);
 
 	    x = gimple_build_switch_vec (filter, default_label, labels);
@@ -3273,7 +3272,7 @@ struct gimple_opt_pass pass_lower_eh_dispatch =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_flow	/* todo_flags_finish */
+  TODO_verify_flow	                /* todo_flags_finish */
  }
 };
 
@@ -3316,6 +3315,19 @@ remove_unreachable_handlers (void)
 	      region = get_eh_region_from_lp_number (lp_nr);
 	      SET_BIT (r_reachable, region->index);
 	      SET_BIT (lp_reachable, lp_nr);
+	    }
+
+	  /* Avoid removing regions referenced from RESX/EH_DISPATCH.  */
+	  switch (gimple_code (stmt))
+	    {
+	    case GIMPLE_RESX:
+	      SET_BIT (r_reachable, gimple_resx_region (stmt));
+	      break;
+	    case GIMPLE_EH_DISPATCH:
+	      SET_BIT (r_reachable, gimple_eh_dispatch_region (stmt));
+	      break;
+	    default:
+	      break;
 	    }
 	}
     }
@@ -4003,7 +4015,7 @@ struct gimple_opt_pass pass_cleanup_eh = {
    0,				/* properties_provided */
    0,				/* properties_destroyed */
    0,				/* todo_flags_start */
-   TODO_dump_func		/* todo_flags_finish */
+   0             		/* todo_flags_finish */
    }
 };
 

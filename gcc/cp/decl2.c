@@ -161,8 +161,7 @@ change_return_type (tree new_ret, tree fntype)
     }
   else
     newtype = build_method_type_directly
-      (TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (fntype))),
-       new_ret, TREE_CHAIN (args));
+      (class_of_this_parm (fntype), new_ret, TREE_CHAIN (args));
   if (raises)
     newtype = build_exception_variant (newtype, raises);
   if (attrs)
@@ -362,7 +361,7 @@ grok_array_decl (tree array_expr, tree index_exp)
   if (MAYBE_CLASS_TYPE_P (type) || MAYBE_CLASS_TYPE_P (TREE_TYPE (index_exp)))
     expr = build_new_op (ARRAY_REF, LOOKUP_NORMAL,
 			 array_expr, index_exp, NULL_TREE,
-			 /*overloaded_p=*/NULL, tf_warning_or_error);
+			 /*overload=*/NULL, tf_warning_or_error);
   else
     {
       tree p1, p2, i1, i2;
@@ -925,7 +924,7 @@ grokfield (const cp_declarator *declarator,
       else if (!processing_template_decl)
 	{
 	  if (TREE_CODE (init) == CONSTRUCTOR)
-	    init = digest_init (TREE_TYPE (value), init);
+	    init = digest_init (TREE_TYPE (value), init, tf_warning_or_error);
 	  init = maybe_constant_init (init);
 
 	  if (init != error_mark_node && !TREE_CONSTANT (init))
@@ -1249,8 +1248,7 @@ cp_reconstruct_complex_type (tree type, tree bottom)
 	 so we must compensate by getting rid of it.  */
       outer
 	= build_method_type_directly
-	    (TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (type))),
-	     inner,
+	    (class_of_this_parm (type), inner,
 	     TREE_CHAIN (TYPE_ARG_TYPES (type)));
     }
   else if (TREE_CODE (type) == OFFSET_TYPE)
@@ -1439,7 +1437,7 @@ finish_anon_union (tree anon_union_decl)
     }
 
   pushdecl (anon_union_decl);
-  if (building_stmt_tree ()
+  if (building_stmt_list_p ()
       && at_function_scope_p ())
     add_decl_expr (anon_union_decl);
   else if (!processing_template_decl)
@@ -3637,6 +3635,15 @@ collect_all_refs (const char *source_file)
   collect_ada_namespace (global_namespace, source_file);
 }
 
+/* Clear DECL_EXTERNAL for NODE.  */
+
+static bool
+clear_decl_external (struct cgraph_node *node, void *data ATTRIBUTE_UNUSED)
+{
+  DECL_EXTERNAL (node->decl) = 0;
+  return false;
+}
+
 /* This routine is called at the end of compilation.
    Its job is to create all the code needed to initialize and
    destroy the global aggregates.  We do the destruction
@@ -3665,6 +3672,8 @@ cp_write_global_declarations (void)
   if (pch_file)
     c_common_write_pch ();
 
+  cgraph_process_same_body_aliases ();
+
   /* Handle -fdump-ada-spec[-slim] */
   if (dump_enabled_p (TDI_ada))
     {
@@ -3677,6 +3686,8 @@ cp_write_global_declarations (void)
     }
 
   /* FIXME - huh?  was  input_line -= 1;*/
+
+  timevar_start (TV_PHASE_DEFERRED);
 
   /* We now have to write out all the stuff we put off writing out.
      These include:
@@ -3693,8 +3704,6 @@ cp_write_global_declarations (void)
      instantiating one function may cause another to be needed, and
      generating the initializer for an object may cause templates to be
      instantiated, etc., etc.  */
-
-  timevar_push (TV_VARCONST);
 
   emit_support_tinfos ();
 
@@ -3859,17 +3868,14 @@ cp_write_global_declarations (void)
 	      && DECL_INITIAL (decl)
 	      && decl_needed_p (decl))
 	    {
-	      struct cgraph_node *node = cgraph_get_node (decl), *alias, *next;
+	      struct cgraph_node *node, *next;
 
-	      DECL_EXTERNAL (decl) = 0;
-	      /* If we mark !DECL_EXTERNAL one of the same body aliases,
-		 we need to mark all of them that way.  */
-	      if (node && node->same_body)
-		{
-		  DECL_EXTERNAL (node->decl) = 0;
-		  for (alias = node->same_body; alias; alias = alias->next)
-		    DECL_EXTERNAL (alias->decl) = 0;
-		}
+	      node = cgraph_get_node (decl);
+	      if (node->same_body_alias)
+		node = cgraph_alias_aliased_node (node);
+
+	      cgraph_for_node_and_aliases (node, clear_decl_external,
+					   NULL, true);
 	      /* If we mark !DECL_EXTERNAL one of the symbols in some comdat
 		 group, we need to mark all symbols in the same comdat group
 		 that way.  */
@@ -3877,16 +3883,8 @@ cp_write_global_declarations (void)
 		for (next = node->same_comdat_group;
 		     next != node;
 		     next = next->same_comdat_group)
-		  {
-		    DECL_EXTERNAL (next->decl) = 0;
-		    if (next->same_body)
-		      {
-			for (alias = next->same_body;
-			     alias;
-			     alias = alias->next)
-			  DECL_EXTERNAL (alias->decl) = 0;
-		      }
-		  }
+	          cgraph_for_node_and_aliases (next, clear_decl_external,
+					       NULL, true);
 	    }
 
 	  /* If we're going to need to write this function out, and
@@ -4002,7 +4000,13 @@ cp_write_global_declarations (void)
   /* Collect candidates for Java hidden aliases.  */
   candidates = collect_candidates_for_java_method_aliases ();
 
+  timevar_stop (TV_PHASE_DEFERRED);
+  timevar_start (TV_PHASE_CGRAPH);
+
   cgraph_finalize_compilation_unit ();
+
+  timevar_stop (TV_PHASE_CGRAPH);
+  timevar_start (TV_PHASE_CHECK_DBGINFO);
 
   /* Now, issue warnings about static, but not defined, functions,
      etc., and emit debugging information.  */
@@ -4039,8 +4043,6 @@ cp_write_global_declarations (void)
       }
   }
 
-  timevar_pop (TV_VARCONST);
-
   if (flag_detailed_statistics)
     {
       dump_tree_statistics ();
@@ -4051,6 +4053,8 @@ cp_write_global_declarations (void)
 #ifdef ENABLE_CHECKING
   validate_conversion_obstack ();
 #endif /* ENABLE_CHECKING */
+
+  timevar_stop (TV_PHASE_CHECK_DBGINFO);
 }
 
 /* FN is an OFFSET_REF, DOTSTAR_EXPR or MEMBER_REF indicating the
@@ -4223,6 +4227,9 @@ mark_used (tree decl)
       VEC_safe_push (tree, gc, deferred_mark_used_calls, decl);
       return;
     }
+
+  if (TREE_CODE (decl) == FUNCTION_DECL)
+    maybe_instantiate_noexcept (decl);
 
   /* Normally, we can wait until instantiation-time to synthesize DECL.
      However, if DECL is a static data member initialized with a constant

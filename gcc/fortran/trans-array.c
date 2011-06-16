@@ -1364,7 +1364,7 @@ gfc_trans_array_constructor_value (stmtblock_t * pblock, tree type,
 		  p = gfc_constructor_next (p);
 		}
 
-	      bound = build_int_cst (NULL_TREE, n - 1);
+	      bound = size_int (n - 1);
               /* Create an array type to hold them.  */
 	      tmptype = build_range_type (gfc_array_index_type,
 					  gfc_index_zero_node, bound);
@@ -1390,7 +1390,7 @@ gfc_trans_array_constructor_value (stmtblock_t * pblock, tree type,
 	      init = gfc_build_addr_expr (NULL_TREE, init);
 
 	      size = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (type));
-	      bound = build_int_cst (NULL_TREE, n * size);
+	      bound = build_int_cst (size_type_node, n * size);
 	      tmp = build_call_expr_loc (input_location,
 				     built_in_decls[BUILT_IN_MEMCPY], 3,
 				     tmp, init, bound);
@@ -2244,7 +2244,7 @@ gfc_init_loopinfo (gfc_loopinfo * loop)
   for (n = 0; n < GFC_MAX_DIMENSIONS; n++)
     {
       loop->order[n] = n;
-      loop->reverse[n] = GFC_CANNOT_REVERSE;
+      loop->reverse[n] = GFC_INHIBIT_REVERSE;
     }
 
   loop->ss = gfc_ss_terminator;
@@ -2621,7 +2621,16 @@ gfc_conv_array_ref (gfc_se * se, gfc_array_ref * ar, gfc_symbol * sym,
   gfc_se tmpse;
 
   if (ar->dimen == 0)
-    return;
+    {
+      gcc_assert (ar->codimen);
+      if (GFC_ARRAY_TYPE_P (TREE_TYPE (se->expr))
+	  && TREE_CODE (TREE_TYPE (se->expr)) == POINTER_TYPE)
+	se->expr = build_fold_indirect_ref_loc (input_location, se->expr);
+
+      /* Use the actual tree type and not the wrapped coarray. */
+      se->expr = fold_convert (TYPE_MAIN_VARIANT (TREE_TYPE (se->expr)), se->expr);
+      return;
+    }
 
   /* Handle scalarized references separately.  */
   if (ar->type != AR_ELEMENT)
@@ -4639,6 +4648,43 @@ gfc_conv_array_initializer (tree type, gfc_expr * expr)
 }
 
 
+/* Generate code to evaluate non-constant coarray cobounds.  */
+
+void
+gfc_trans_array_cobounds (tree type, stmtblock_t * pblock,
+			  const gfc_symbol *sym)
+{
+  int dim;
+  tree ubound;
+  tree lbound;
+  gfc_se se;
+  gfc_array_spec *as;
+
+  as = sym->as;
+
+  for (dim = as->rank; dim < as->rank + as->corank; dim++)
+    {
+      /* Evaluate non-constant array bound expressions.  */
+      lbound = GFC_TYPE_ARRAY_LBOUND (type, dim);
+      if (as->lower[dim] && !INTEGER_CST_P (lbound))
+        {
+          gfc_init_se (&se, NULL);
+          gfc_conv_expr_type (&se, as->lower[dim], gfc_array_index_type);
+          gfc_add_block_to_block (pblock, &se.pre);
+          gfc_add_modify (pblock, lbound, se.expr);
+        }
+      ubound = GFC_TYPE_ARRAY_UBOUND (type, dim);
+      if (as->upper[dim] && !INTEGER_CST_P (ubound))
+        {
+          gfc_init_se (&se, NULL);
+          gfc_conv_expr_type (&se, as->upper[dim], gfc_array_index_type);
+          gfc_add_block_to_block (pblock, &se.pre);
+          gfc_add_modify (pblock, ubound, se.expr);
+        }
+    }
+}
+
+
 /* Generate code to evaluate non-constant array bounds.  Sets *poffset and
    returns the size (in elements) of the array.  */
 
@@ -4719,26 +4765,8 @@ gfc_trans_array_bounds (tree type, gfc_symbol * sym, tree * poffset,
 
       size = stride;
     }
-  for (dim = as->rank; dim < as->rank + as->corank; dim++)
-    {
-      /* Evaluate non-constant array bound expressions.  */
-      lbound = GFC_TYPE_ARRAY_LBOUND (type, dim);
-      if (as->lower[dim] && !INTEGER_CST_P (lbound))
-        {
-          gfc_init_se (&se, NULL);
-          gfc_conv_expr_type (&se, as->lower[dim], gfc_array_index_type);
-          gfc_add_block_to_block (pblock, &se.pre);
-          gfc_add_modify (pblock, lbound, se.expr);
-        }
-      ubound = GFC_TYPE_ARRAY_UBOUND (type, dim);
-      if (as->upper[dim] && !INTEGER_CST_P (ubound))
-        {
-          gfc_init_se (&se, NULL);
-          gfc_conv_expr_type (&se, as->upper[dim], gfc_array_index_type);
-          gfc_add_block_to_block (pblock, &se.pre);
-          gfc_add_modify (pblock, ubound, se.expr);
-        }
-    }
+
+  gfc_trans_array_cobounds (type, pblock, sym);
   gfc_trans_vla_type_sizes (sym, pblock);
 
   *poffset = offset;
@@ -5203,6 +5231,8 @@ gfc_trans_dummy_array_bias (gfc_symbol * sym, tree tmpdesc,
 	    }
 	}
     }
+
+  gfc_trans_array_cobounds (type, &init, sym);
 
   /* Set the offset.  */
   if (TREE_CODE (GFC_TYPE_ARRAY_OFFSET (type)) == VAR_DECL)
@@ -5778,7 +5808,8 @@ gfc_conv_expr_descriptor (gfc_se * se, gfc_expr * expr, gfc_ss * ss)
 
       lse.string_length = rse.string_length;
       tmp = gfc_trans_scalar_assign (&lse, &rse, expr->ts, true,
-				     expr->expr_type == EXPR_VARIABLE, true);
+				     expr->expr_type == EXPR_VARIABLE
+				     || expr->expr_type == EXPR_ARRAY, true);
       gfc_add_expr_to_block (&block, tmp);
 
       /* Finish the copying loops.  */
@@ -7443,7 +7474,7 @@ gfc_walk_variable_expr (gfc_ss * ss, gfc_expr * expr)
 
       ar = &ref->u.ar;
 
-      if (ar->as->rank == 0)
+      if (ar->as->rank == 0 && ref->next != NULL)
 	{
 	  /* Scalar coarray.  */
 	  continue;

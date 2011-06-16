@@ -272,7 +272,20 @@ emit_call_1 (rtx funexp, tree fntree ATTRIBUTE_UNUSED, tree fndecl ATTRIBUTE_UNU
 
   funmem = gen_rtx_MEM (FUNCTION_MODE, funexp);
   if (fndecl && TREE_CODE (fndecl) == FUNCTION_DECL)
-    set_mem_expr (funmem, fndecl);
+    {
+      tree t = fndecl;
+      /* Although a built-in FUNCTION_DECL and its non-__builtin
+	 counterpart compare equal and get a shared mem_attrs, they
+	 produce different dump output in compare-debug compilations,
+	 if an entry gets garbage collected in one compilation, then
+	 adds a different (but equivalent) entry, while the other
+	 doesn't run the garbage collector at the same spot and then
+	 shares the mem_attr with the equivalent entry. */
+      if (DECL_BUILT_IN_CLASS (t) == BUILT_IN_NORMAL
+	  && built_in_decls[DECL_FUNCTION_CODE (t)])
+	t = built_in_decls[DECL_FUNCTION_CODE (t)];
+      set_mem_expr (funmem, t);
+    }
   else if (fntree)
     set_mem_expr (funmem, build_simple_mem_ref (CALL_EXPR_FN (fntree)));
 
@@ -554,6 +567,8 @@ special_function_p (const_tree fndecl, int flags)
 int
 setjmp_call_p (const_tree fndecl)
 {
+  if (DECL_IS_RETURNS_TWICE (fndecl))
+    return ECF_RETURNS_TWICE;
   return special_function_p (fndecl, 0) & ECF_RETURNS_TWICE;
 }
 
@@ -2501,7 +2516,7 @@ expand_call (tree exp, rtx target, int ignore)
 	      stack_arg_under_construction = 0;
 	    }
 	  argblock = push_block (ARGS_SIZE_RTX (adjusted_args_size), 0, 0);
-	  if (flag_stack_usage)
+	  if (flag_stack_usage_info)
 	    current_function_has_unbounded_dynamic_stack_size = 1;
 	}
       else
@@ -2708,7 +2723,7 @@ expand_call (tree exp, rtx target, int ignore)
       /* Record the maximum pushed stack space size.  We need to delay
 	 doing it this far to take into account the optimization done
 	 by combine_pending_stack_adjustment_and_call.  */
-      if (flag_stack_usage
+      if (flag_stack_usage_info
 	  && !ACCUMULATE_OUTGOING_ARGS
 	  && pass
 	  && adjusted_args_size.var == 0)
@@ -3477,6 +3492,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
     {
       rtx val = va_arg (p, rtx);
       enum machine_mode mode = (enum machine_mode) va_arg (p, int);
+      int unsigned_p = 0;
 
       /* We cannot convert the arg value to the mode the library wants here;
 	 must do it earlier where we know the signedness of the arg.  */
@@ -3524,9 +3540,9 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
 	  val = force_operand (XEXP (slot, 0), NULL_RTX);
 	}
 
-      argvec[count].value = val;
+      mode = promote_function_mode (NULL_TREE, mode, &unsigned_p, NULL_TREE, 0);
       argvec[count].mode = mode;
-
+      argvec[count].value = convert_modes (mode, GET_MODE (val), val, unsigned_p);
       argvec[count].reg = targetm.calls.function_arg (&args_so_far, mode,
 						      NULL_TREE, true);
 
@@ -3572,7 +3588,7 @@ emit_library_call_value_1 (int retval, rtx orgfun, rtx value,
   if (args_size.constant > crtl->outgoing_args_size)
     crtl->outgoing_args_size = args_size.constant;
 
-  if (flag_stack_usage && !ACCUMULATE_OUTGOING_ARGS)
+  if (flag_stack_usage_info && !ACCUMULATE_OUTGOING_ARGS)
     {
       int pushed = args_size.constant + pending_stack_adjust;
       if (pushed > current_function_pushed_stack_size)

@@ -27,7 +27,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #define TARGET_OS_CPP_BUILTINS() GNU_USER_TARGET_OS_CPP_BUILTINS()
 
-#define MD_UNWIND_SUPPORT "config/bfin/linux-unwind.h"
+#undef LINK_GCC_C_SEQUENCE_SPEC
+#define LINK_GCC_C_SEQUENCE_SPEC "\
+  %{mfast-fp:-lbffastfp} %G %L %{mfast-fp:-lbffastfp} %G \
+"
 
 /* Like the definition in gcc.c, but for purposes of uClinux, every link is
    static.  */
@@ -39,3 +42,5 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 
 #undef TARGET_SUPPORTS_SYNC_CALLS
 #define TARGET_SUPPORTS_SYNC_CALLS 1
+
+#define SUBTARGET_FDPIC_NOT_SUPPORTED

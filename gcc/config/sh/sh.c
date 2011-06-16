@@ -1844,12 +1844,30 @@ prepare_move_operands (rtx operands[], enum machine_mode mode)
 	{
 	  rtx tga_op1, tga_ret, tmp, tmp2;
 
+	  if (! flag_pic
+	      && (tls_kind == TLS_MODEL_GLOBAL_DYNAMIC
+		  || tls_kind == TLS_MODEL_LOCAL_DYNAMIC
+		  || tls_kind == TLS_MODEL_INITIAL_EXEC))
+	    {
+	      /* Don't schedule insns for getting GOT address when
+		 the first scheduling is enabled, to avoid spill
+		 failures for R0.  */
+	      if (flag_schedule_insns)
+		emit_insn (gen_blockage ());
+	      emit_insn (gen_GOTaddr2picreg ());
+	      emit_use (gen_rtx_REG (SImode, PIC_REG));
+	      if (flag_schedule_insns)
+		emit_insn (gen_blockage ());
+	}
+
 	  switch (tls_kind)
 	    {
 	    case TLS_MODEL_GLOBAL_DYNAMIC:
 	      tga_ret = gen_rtx_REG (Pmode, R0_REG);
 	      emit_call_insn (gen_tls_global_dynamic (tga_ret, op1));
-	      op1 = tga_ret;
+	      tmp = gen_reg_rtx (Pmode);
+	      emit_move_insn (tmp, tga_ret);
+	      op1 = tmp;
 	      break;
 
 	    case TLS_MODEL_LOCAL_DYNAMIC:
@@ -1869,18 +1887,6 @@ prepare_move_operands (rtx operands[], enum machine_mode mode)
 	      break;
 
 	    case TLS_MODEL_INITIAL_EXEC:
-	      if (! flag_pic)
-		{
-		  /* Don't schedule insns for getting GOT address when
-		     the first scheduling is enabled, to avoid spill
-		     failures for R0.  */
-		  if (flag_schedule_insns)
-		    emit_insn (gen_blockage ());
-		  emit_insn (gen_GOTaddr2picreg ());
-		  emit_use (gen_rtx_REG (SImode, PIC_REG));
-		  if (flag_schedule_insns)
-		    emit_insn (gen_blockage ());
-		}
 	      tga_op1 = !can_create_pseudo_p () ? op0 : gen_reg_rtx (Pmode);
 	      tmp = gen_sym2GOTTPOFF (op1);
 	      emit_insn (gen_tls_initial_exec (tga_op1, tmp));
@@ -2143,7 +2149,10 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
 	  else if (op2h != CONST0_RTX (SImode))
 	    msw_taken = LTU;
 	  else
-	    break;
+	    {
+	      msw_skip = swap_condition (LTU);
+	      break;
+	    }
 	  msw_skip = swap_condition (msw_taken);
 	}
       break;
@@ -2196,6 +2205,13 @@ expand_cbranchdi4 (rtx *operands, enum rtx_code comparison)
 	{
 	  operands[1] = op1h;
 	  operands[2] = op2h;
+	  if (reload_completed
+	      && ! arith_reg_or_0_operand (op2h, SImode)
+	      && (true_regnum (op1h) || (comparison != EQ && comparison != NE)))
+	    {
+	      emit_move_insn (scratch, operands[2]);
+	      operands[2] = scratch;
+	    }
 	}
 
       operands[3] = skip_label = gen_label_rtx ();
@@ -7349,7 +7365,7 @@ sh_expand_prologue (void)
       emit_insn (gen_shcompact_incoming_args ());
     }
 
-  if (flag_stack_usage)
+  if (flag_stack_usage_info)
     current_function_static_stack_size = stack_usage;
 }
 
@@ -11231,6 +11247,7 @@ sh_media_init_builtins (void)
       else
 	{
 	  int has_result = signature_args[signature][0] != 0;
+	  tree args[3];
 
 	  if ((signature_args[signature][1] & 8)
 	      && (((signature_args[signature][1] & 1) && TARGET_SHMEDIA32)
@@ -11239,7 +11256,8 @@ sh_media_init_builtins (void)
 	  if (! TARGET_FPU_ANY
 	      && FLOAT_MODE_P (insn_data[d->icode].operand[0].mode))
 	    continue;
-	  type = void_list_node;
+	  for (i = 0; i < (int) ARRAY_SIZE (args); i++)
+	    args[i] = NULL_TREE;
 	  for (i = 3; ; i--)
 	    {
 	      int arg = signature_args[signature][i];
@@ -11257,9 +11275,10 @@ sh_media_init_builtins (void)
 		arg_type = void_type_node;
 	      if (i == 0)
 		break;
-	      type = tree_cons (NULL_TREE, arg_type, type);
+	      args[i-1] = arg_type;
 	    }
-	  type = build_function_type (arg_type, type);
+	  type = build_function_type_list (arg_type, args[0], args[1],
+					   args[2], NULL_TREE);
 	  if (signature < SH_BLTIN_NUM_SHARED_SIGNATURES)
 	    shared[signature] = type;
 	}

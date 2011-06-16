@@ -1668,6 +1668,7 @@ extern rtx get_pool_constant (rtx);
 extern rtx get_pool_constant_mark (rtx, bool *);
 extern enum machine_mode get_pool_mode (const_rtx);
 extern rtx simplify_subtraction (rtx);
+extern void decide_function_section (tree);
 
 /* In function.c  */
 extern rtx assign_stack_local (enum machine_mode, HOST_WIDE_INT, int);
@@ -2045,6 +2046,7 @@ enum global_rtl_index
 {
   GR_PC,
   GR_CC0,
+  GR_RETURN,
   GR_STACK_POINTER,
   GR_FRAME_POINTER,
 /* For register elimination to work properly these hard_frame_pointer_rtx,
@@ -2134,6 +2136,7 @@ extern struct target_rtl *this_target_rtl;
 
 /* Standard pieces of rtx, to be substituted directly into things.  */
 #define pc_rtx                  (global_rtl[GR_PC])
+#define ret_rtx                 (global_rtl[GR_RETURN])
 #define cc0_rtx                 (global_rtl[GR_CC0])
 
 /* All references to certain hard regs, except those created
@@ -2448,7 +2451,7 @@ extern void mark_elimination (int, int);
 /* In reginfo.c */
 extern int reg_classes_intersect_p (reg_class_t, reg_class_t);
 extern int reg_class_subset_p (reg_class_t, reg_class_t);
-extern void globalize_reg (int);
+extern void globalize_reg (tree, int);
 extern void init_reg_modes_target (void);
 extern void init_regs (void);
 extern void reinit_regs (void);

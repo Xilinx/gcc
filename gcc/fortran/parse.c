@@ -398,8 +398,12 @@ decode_statement (void)
       match ("intrinsic", gfc_match_intrinsic, ST_ATTR_DECL);
       break;
 
+    case 'l':
+      match ("lock", gfc_match_lock, ST_LOCK);
+      break;
+
     case 'm':
-      match ("module% procedure% ", gfc_match_modproc, ST_MODULE_PROC);
+      match ("module% procedure", gfc_match_modproc, ST_MODULE_PROC);
       match ("module", gfc_match_module, ST_MODULE);
       break;
 
@@ -449,6 +453,7 @@ decode_statement (void)
       break;
 
     case 'u':
+      match ("unlock", gfc_match_unlock, ST_UNLOCK);
       match ("use", gfc_match_use, ST_USE);
       break;
 
@@ -953,7 +958,8 @@ next_statement (void)
   case ST_ASSIGNMENT: case ST_ARITHMETIC_IF: case ST_WHERE: case ST_FORALL: \
   case ST_LABEL_ASSIGNMENT: case ST_FLUSH: case ST_OMP_FLUSH: \
   case ST_OMP_BARRIER: case ST_OMP_TASKWAIT: case ST_ERROR_STOP: \
-  case ST_SYNC_ALL: case ST_SYNC_IMAGES: case ST_SYNC_MEMORY
+  case ST_SYNC_ALL: case ST_SYNC_IMAGES: case ST_SYNC_MEMORY: \
+  case ST_LOCK: case ST_UNLOCK
 
 /* Statements that mark other executable statements.  */
 
@@ -1334,6 +1340,9 @@ gfc_ascii_statement (gfc_statement st)
     case ST_INTERFACE:
       p = "INTERFACE";
       break;
+    case ST_LOCK:
+      p = "LOCK";
+      break;
     case ST_PARAMETER:
       p = "PARAMETER";
       break;
@@ -1393,6 +1402,9 @@ gfc_ascii_statement (gfc_statement st)
       break;
     case ST_TYPE:
       p = "TYPE";
+      break;
+    case ST_UNLOCK:
+      p = "UNLOCK";
       break;
     case ST_USE:
       p = "USE";
@@ -4231,12 +4243,18 @@ clean_up_modules (gfc_gsymbol *gsym)
    is active. This could be in a different order to resolution if
    there are forward references in the file.  */
 static void
-translate_all_program_units (gfc_namespace *gfc_global_ns_list)
+translate_all_program_units (gfc_namespace *gfc_global_ns_list,
+			     bool main_in_tu)
 {
   int errors;
 
   gfc_current_ns = gfc_global_ns_list;
   gfc_get_errors (NULL, &errors);
+
+  /* If the main program is in the translation unit and we have
+     -fcoarray=libs, generate the static variables.  */
+  if (gfc_option.coarray == GFC_FCOARRAY_LIB && main_in_tu)
+    gfc_init_coarray_decl (true);
 
   /* We first translate all modules to make sure that later parts
      of the program can use the decl. Then we translate the nonmodules.  */
@@ -4475,7 +4493,7 @@ prog_units:
       }
 
   /* Do the translation.  */
-  translate_all_program_units (gfc_global_ns_list);
+  translate_all_program_units (gfc_global_ns_list, seen_program);
 
 termination:
 

@@ -909,10 +909,13 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
 	    Type* type = named_constant->type();
 	    if (type != NULL && !type->is_abstract())
 	      {
-		if (!type->is_error())
-		  expr_tree = fold_convert(type->get_tree(gogo), expr_tree);
-		else
+		if (type->is_error())
 		  expr_tree = error_mark_node;
+		else
+		  {
+		    Btype* btype = type->get_backend(gogo);
+		    expr_tree = fold_convert(type_to_tree(btype), expr_tree);
+		  }
 	      }
 	    if (expr_tree == error_mark_node)
 	      decl = error_mark_node;
@@ -939,7 +942,7 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
     case NAMED_OBJECT_TYPE:
       {
 	Named_type* named_type = this->u_.type_value;
-	tree type_tree = named_type->get_tree(gogo);
+	tree type_tree = type_to_tree(named_type->get_backend(gogo));
 	if (type_tree == error_mark_node)
 	  decl = error_mark_node;
 	else
@@ -956,9 +959,9 @@ Named_object::get_tree(Gogo* gogo, Named_object* function)
 	    // descriptor, even though we don't do anything with it.
 	    if (this->package_ == NULL)
 	      {
-		named_type->type_descriptor_pointer(gogo);
+		named_type->type_descriptor_pointer(gogo, BUILTINS_LOCATION);
 		Type* pn = Type::make_pointer_type(named_type);
-		pn->type_descriptor_pointer(gogo);
+		pn->type_descriptor_pointer(gogo, BUILTINS_LOCATION);
 	      }
 	  }
       }
@@ -1032,9 +1035,10 @@ Variable::get_init_tree(Gogo* gogo, Named_object* function)
   if (this->init_ == NULL)
     {
       go_assert(!this->is_parameter_);
-      return this->type_->get_init_tree(gogo,
-					(this->is_global_
-					 || this->is_in_heap()));
+      if (this->is_global_ || this->is_in_heap())
+	return NULL;
+      Btype* btype = this->type_->get_backend(gogo);
+      return expr_to_tree(gogo->backend()->zero_expression(btype));
     }
   else
     {
@@ -1104,7 +1108,7 @@ Function::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 {
   if (this->fndecl_ == NULL_TREE)
     {
-      tree functype = this->type_->get_tree(gogo);
+      tree functype = type_to_tree(this->type_->get_backend(gogo));
       if (functype == error_mark_node)
 	this->fndecl_ = error_mark_node;
       else
@@ -1217,7 +1221,7 @@ Function_declaration::get_or_make_decl(Gogo* gogo, Named_object* no, tree id)
 	    }
 	}
 
-      tree functype = this->fntype_->get_tree(gogo);
+      tree functype = type_to_tree(this->fntype_->get_backend(gogo));
       tree decl;
       if (functype == error_mark_node)
 	decl = error_mark_node;
@@ -1283,7 +1287,8 @@ Function::make_receiver_parm_decl(Gogo* gogo, Named_object* no, tree var_decl)
 						null_pointer_node));
   tree ind = build_fold_indirect_ref_loc(loc, parm_decl);
   TREE_THIS_NOTRAP(ind) = 1;
-  tree zero_init = no->var_value()->type()->get_init_tree(gogo, false);
+  Btype* btype = no->var_value()->type()->get_backend(gogo);
+  tree zero_init = expr_to_tree(gogo->backend()->zero_expression(btype));
   tree init = fold_build3_loc(loc, COND_EXPR, TREE_TYPE(ind),
 			      check, ind, zero_init);
 
@@ -1420,29 +1425,19 @@ Function::build_tree(Gogo* gogo, Named_object* named_function)
 	  Type* type = (*p)->result_var_value()->type();
 	  tree init;
 	  if (!(*p)->result_var_value()->is_in_heap())
-	    init = type->get_init_tree(gogo, false);
+	    {
+	      Btype* btype = type->get_backend(gogo);
+	      init = expr_to_tree(gogo->backend()->zero_expression(btype));
+	    }
 	  else
 	    {
 	      source_location loc = (*p)->location();
-	      tree type_tree = type->get_tree(gogo);
+	      tree type_tree = type_to_tree(type->get_backend(gogo));
 	      tree space = gogo->allocate_memory(type,
 						 TYPE_SIZE_UNIT(type_tree),
 						 loc);
 	      tree ptr_type_tree = build_pointer_type(type_tree);
-	      tree subinit = type->get_init_tree(gogo, true);
-	      if (subinit == NULL_TREE)
-		init = fold_convert_loc(loc, ptr_type_tree, space);
-	      else
-		{
-		  space = save_expr(space);
-		  space = fold_convert_loc(loc, ptr_type_tree, space);
-		  tree spaceref = build_fold_indirect_ref_loc(loc, space);
-		  TREE_THIS_NOTRAP(spaceref) = 1;
-		  tree set = fold_build2_loc(loc, MODIFY_EXPR, void_type_node,
-					     spaceref, subinit);
-		  init = fold_build2_loc(loc, COMPOUND_EXPR, TREE_TYPE(space),
-					 set, space);
-		}
+	      init = fold_convert_loc(loc, ptr_type_tree, space);
 	    }
 
 	  if (var_decl != error_mark_node)
@@ -1712,7 +1707,7 @@ go_type_for_size(unsigned int bits, int unsignedp)
 	return NULL_TREE;
     }
   Type* type = Type::lookup_integer_type(name);
-  return type->get_tree(go_get_gogo());
+  return type_to_tree(type->get_backend(go_get_gogo()));
 }
 
 // Return the type to use for a mode.
@@ -1743,7 +1738,7 @@ go_type_for_mode(enum machine_mode mode, int unsignedp)
 	    return long_double_type_node;
 	  return NULL_TREE;
 	}
-      return type->get_tree(go_get_gogo());
+      return type_to_tree(type->get_backend(go_get_gogo()));
     }
   else if (mc == MODE_COMPLEX_FLOAT)
     {
@@ -1763,7 +1758,7 @@ go_type_for_mode(enum machine_mode mode, int unsignedp)
 	    return complex_long_double_type_node;
 	  return NULL_TREE;
 	}
-      return type->get_tree(go_get_gogo());
+      return type_to_tree(type->get_backend(go_get_gogo()));
     }
   else
     return NULL_TREE;
@@ -1887,7 +1882,7 @@ Gogo::string_constant_tree(const std::string& val)
 tree
 Gogo::go_string_constant_tree(const std::string& val)
 {
-  tree string_type = Type::make_string_type()->get_tree(this);
+  tree string_type = type_to_tree(Type::make_string_type()->get_backend(this));
 
   VEC(constructor_elt, gc)* init = VEC_alloc(constructor_elt, gc, 2);
 
@@ -1936,38 +1931,6 @@ Gogo::ptr_go_string_constant_tree(const std::string& val)
   return build_fold_addr_expr(decl);
 }
 
-// Build the type of the struct that holds a slice for the given
-// element type.
-
-tree
-Gogo::slice_type_tree(tree element_type_tree)
-{
-  // We use int for the count and capacity fields in a slice header.
-  // This matches 6g.  The language definition guarantees that we
-  // can't allocate space of a size which does not fit in int
-  // anyhow. FIXME: integer_type_node is the the C type "int" but is
-  // not necessarily the Go type "int".  They will differ when the C
-  // type "int" has fewer than 32 bits.
-  return Gogo::builtin_struct(NULL, "__go_slice", NULL_TREE, 3,
-			      "__values",
-			      build_pointer_type(element_type_tree),
-			      "__count",
-			      integer_type_node,
-			      "__capacity",
-			      integer_type_node);
-}
-
-// Given the tree for a slice type, return the tree for the type of
-// the elements of the slice.
-
-tree
-Gogo::slice_element_type_tree(tree slice_type_tree)
-{
-  go_assert(TREE_CODE(slice_type_tree) == RECORD_TYPE
-	     && POINTER_TYPE_P(TREE_TYPE(TYPE_FIELDS(slice_type_tree))));
-  return TREE_TYPE(TREE_TYPE(TYPE_FIELDS(slice_type_tree)));
-}
-
 // Build a constructor for a slice.  SLICE_TYPE_TREE is the type of
 // the slice.  VALUES is the value pointer and COUNT is the number of
 // entries.  If CAPACITY is not NULL, it is the capacity; otherwise
@@ -2009,336 +1972,6 @@ Gogo::slice_constructor(tree slice_type_tree, tree values, tree count,
   elt->value = fold_convert(TREE_TYPE(field), capacity);
 
   return build_constructor(slice_type_tree, init);
-}
-
-// Build a constructor for an empty slice.
-
-tree
-Gogo::empty_slice_constructor(tree slice_type_tree)
-{
-  tree element_field = TYPE_FIELDS(slice_type_tree);
-  tree ret = Gogo::slice_constructor(slice_type_tree,
-				     fold_convert(TREE_TYPE(element_field),
-						  null_pointer_node),
-				     size_zero_node,
-				     size_zero_node);
-  TREE_CONSTANT(ret) = 1;
-  return ret;
-}
-
-// Build a map descriptor for a map of type MAPTYPE.
-
-tree
-Gogo::map_descriptor(Map_type* maptype)
-{
-  if (this->map_descriptors_ == NULL)
-    this->map_descriptors_ = new Map_descriptors(10);
-
-  std::pair<const Map_type*, tree> val(maptype, NULL);
-  std::pair<Map_descriptors::iterator, bool> ins =
-    this->map_descriptors_->insert(val);
-  Map_descriptors::iterator p = ins.first;
-  if (!ins.second)
-    {
-      if (p->second == error_mark_node)
-	return error_mark_node;
-      go_assert(p->second != NULL_TREE && DECL_P(p->second));
-      return build_fold_addr_expr(p->second);
-    }
-
-  Type* keytype = maptype->key_type();
-  Type* valtype = maptype->val_type();
-
-  std::string mangled_name = ("__go_map_" + maptype->mangled_name(this));
-
-  tree id = get_identifier_from_string(mangled_name);
-
-  // Get the type of the map descriptor.  This is __go_map_descriptor
-  // in libgo/map.h.
-
-  tree struct_type = this->map_descriptor_type();
-
-  // The map entry type is a struct with three fields.  This struct is
-  // specific to MAPTYPE.  Build it.
-
-  tree map_entry_type = make_node(RECORD_TYPE);
-
-  map_entry_type = Gogo::builtin_struct(NULL, "__map", map_entry_type, 3,
-					"__next",
-					build_pointer_type(map_entry_type),
-					"__key",
-					keytype->get_tree(this),
-					"__val",
-					valtype->get_tree(this));
-  if (map_entry_type == error_mark_node)
-    {
-      p->second = error_mark_node;
-      return error_mark_node;
-    }
-
-  tree map_entry_key_field = DECL_CHAIN(TYPE_FIELDS(map_entry_type));
-  go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(map_entry_key_field)),
-		    "__key") == 0);
-
-  tree map_entry_val_field = DECL_CHAIN(map_entry_key_field);
-  go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(map_entry_val_field)),
-		    "__val") == 0);
-
-  // Initialize the entries.
-
-  tree map_descriptor_field = TYPE_FIELDS(struct_type);
-  go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(map_descriptor_field)),
-		    "__map_descriptor") == 0);
-  tree entry_size_field = DECL_CHAIN(map_descriptor_field);
-  go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(entry_size_field)),
-		    "__entry_size") == 0);
-  tree key_offset_field = DECL_CHAIN(entry_size_field);
-  go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(key_offset_field)),
-		    "__key_offset") == 0);
-  tree val_offset_field = DECL_CHAIN(key_offset_field);
-  go_assert(strcmp(IDENTIFIER_POINTER(DECL_NAME(val_offset_field)),
-		    "__val_offset") == 0);
-
-  VEC(constructor_elt, gc)* descriptor = VEC_alloc(constructor_elt, gc, 6);
-
-  constructor_elt* elt = VEC_quick_push(constructor_elt, descriptor, NULL);
-  elt->index = map_descriptor_field;
-  elt->value = maptype->type_descriptor_pointer(this);
-
-  elt = VEC_quick_push(constructor_elt, descriptor, NULL);
-  elt->index = entry_size_field;
-  elt->value = TYPE_SIZE_UNIT(map_entry_type);
-
-  elt = VEC_quick_push(constructor_elt, descriptor, NULL);
-  elt->index = key_offset_field;
-  elt->value = byte_position(map_entry_key_field);
-
-  elt = VEC_quick_push(constructor_elt, descriptor, NULL);
-  elt->index = val_offset_field;
-  elt->value = byte_position(map_entry_val_field);
-
-  tree constructor = build_constructor(struct_type, descriptor);
-
-  tree decl = build_decl(BUILTINS_LOCATION, VAR_DECL, id, struct_type);
-  TREE_STATIC(decl) = 1;
-  TREE_USED(decl) = 1;
-  TREE_READONLY(decl) = 1;
-  TREE_CONSTANT(decl) = 1;
-  DECL_INITIAL(decl) = constructor;
-  make_decl_one_only(decl, DECL_ASSEMBLER_NAME(decl));
-  resolve_unique_section(decl, 1, 0);
-
-  rest_of_decl_compilation(decl, 1, 0);
-
-  go_preserve_from_gc(decl);
-  p->second = decl;
-
-  return build_fold_addr_expr(decl);
-}
-
-// Return a tree for the type of a map descriptor.  This is struct
-// __go_map_descriptor in libgo/runtime/map.h.  This is the same for
-// all map types.
-
-tree
-Gogo::map_descriptor_type()
-{
-  static tree struct_type;
-  tree dtype = Type::make_type_descriptor_type()->get_tree(this);
-  dtype = build_qualified_type(dtype, TYPE_QUAL_CONST);
-  return Gogo::builtin_struct(&struct_type, "__go_map_descriptor", NULL_TREE,
-			      4,
-			      "__map_descriptor",
-			      build_pointer_type(dtype),
-			      "__entry_size",
-			      sizetype,
-			      "__key_offset",
-			      sizetype,
-			      "__val_offset",
-			      sizetype);
-}
-
-// Return the name to use for a type descriptor decl for TYPE.  This
-// is used when TYPE does not have a name.
-
-std::string
-Gogo::unnamed_type_descriptor_decl_name(const Type* type)
-{
-  return "__go_td_" + type->mangled_name(this);
-}
-
-// Return the name to use for a type descriptor decl for a type named
-// NAME, defined in the function IN_FUNCTION.  IN_FUNCTION will
-// normally be NULL.
-
-std::string
-Gogo::type_descriptor_decl_name(const Named_object* no,
-				const Named_object* in_function)
-{
-  std::string ret = "__go_tdn_";
-  if (no->type_value()->is_builtin())
-    go_assert(in_function == NULL);
-  else
-    {
-      const std::string& unique_prefix(no->package() == NULL
-				       ? this->unique_prefix()
-				       : no->package()->unique_prefix());
-      const std::string& package_name(no->package() == NULL
-				      ? this->package_name()
-				      : no->package()->name());
-      ret.append(unique_prefix);
-      ret.append(1, '.');
-      ret.append(package_name);
-      ret.append(1, '.');
-      if (in_function != NULL)
-	{
-	  ret.append(Gogo::unpack_hidden_name(in_function->name()));
-	  ret.append(1, '.');
-	}
-    }
-  ret.append(no->name());
-  return ret;
-}
-
-// Where a type descriptor decl should be defined.
-
-Gogo::Type_descriptor_location
-Gogo::type_descriptor_location(const Type* type)
-{
-  const Named_type* name = type->named_type();
-  if (name != NULL)
-    {
-      if (name->named_object()->package() != NULL)
-	{
-	  // This is a named type defined in a different package.  The
-	  // descriptor should be defined in that package.
-	  return TYPE_DESCRIPTOR_UNDEFINED;
-	}
-      else if (name->is_builtin())
-	{
-	  // We create the descriptor for a builtin type whenever we
-	  // need it.
-	  return TYPE_DESCRIPTOR_COMMON;
-	}
-      else
-	{
-	  // This is a named type defined in this package.  The
-	  // descriptor should be defined here.
-	  return TYPE_DESCRIPTOR_DEFINED;
-	}
-    }
-  else
-    {
-      if (type->points_to() != NULL
-	  && type->points_to()->named_type() != NULL
-	  && type->points_to()->named_type()->named_object()->package() != NULL)
-	{
-	  // This is an unnamed pointer to a named type defined in a
-	  // different package.  The descriptor should be defined in
-	  // that package.
-	  return TYPE_DESCRIPTOR_UNDEFINED;
-	}
-      else
-	{
-	  // This is an unnamed type.  The descriptor could be defined
-	  // in any package where it is needed, and the linker will
-	  // pick one descriptor to keep.
-	  return TYPE_DESCRIPTOR_COMMON;
-	}
-    }
-}
-
-// Build a type descriptor decl for TYPE.  INITIALIZER is a struct
-// composite literal which initializers the type descriptor.
-
-void
-Gogo::build_type_descriptor_decl(const Type* type, Expression* initializer,
-				 tree* pdecl)
-{
-  const Named_type* name = type->named_type();
-
-  // We can have multiple instances of unnamed types, but we only want
-  // to emit the type descriptor once.  We use a hash table to handle
-  // this.  This is not necessary for named types, as they are unique,
-  // and we store the type descriptor decl in the type itself.
-  tree* phash = NULL;
-  if (name == NULL)
-    {
-      if (this->type_descriptor_decls_ == NULL)
-	this->type_descriptor_decls_ = new Type_descriptor_decls(10);
-
-      std::pair<Type_descriptor_decls::iterator, bool> ins =
-	this->type_descriptor_decls_->insert(std::make_pair(type, NULL_TREE));
-      if (!ins.second)
-	{
-	  // We've already built a type descriptor for this type.
-	  *pdecl = ins.first->second;
-	  return;
-	}
-      phash = &ins.first->second;
-    }
-
-  std::string decl_name;
-  if (name == NULL)
-    decl_name = this->unnamed_type_descriptor_decl_name(type);
-  else
-    decl_name = this->type_descriptor_decl_name(name->named_object(),
-						name->in_function());
-  tree id = get_identifier_from_string(decl_name);
-  tree descriptor_type_tree = initializer->type()->get_tree(this);
-  if (descriptor_type_tree == error_mark_node)
-    {
-      *pdecl = error_mark_node;
-      return;
-    }
-  tree decl = build_decl(name == NULL ? BUILTINS_LOCATION : name->location(),
-			 VAR_DECL, id,
-			 build_qualified_type(descriptor_type_tree,
-					      TYPE_QUAL_CONST));
-  TREE_READONLY(decl) = 1;
-  TREE_CONSTANT(decl) = 1;
-  DECL_ARTIFICIAL(decl) = 1;
-
-  go_preserve_from_gc(decl);
-  if (phash != NULL)
-    *phash = decl;
-
-  // We store the new DECL now because we may need to refer to it when
-  // expanding INITIALIZER.
-  *pdecl = decl;
-
-  // If appropriate, just refer to the exported type identifier.
-  Gogo::Type_descriptor_location type_descriptor_location =
-    this->type_descriptor_location(type);
-  if (type_descriptor_location == TYPE_DESCRIPTOR_UNDEFINED)
-    {
-      TREE_PUBLIC(decl) = 1;
-      DECL_EXTERNAL(decl) = 1;
-      return;
-    }
-
-  TREE_STATIC(decl) = 1;
-  TREE_USED(decl) = 1;
-
-  Translate_context context(this, NULL, NULL, NULL);
-  context.set_is_const();
-  tree constructor = initializer->get_tree(&context);
-
-  if (constructor == error_mark_node)
-    go_assert(saw_errors());
-
-  DECL_INITIAL(decl) = constructor;
-
-  if (type_descriptor_location == TYPE_DESCRIPTOR_DEFINED)
-    TREE_PUBLIC(decl) = 1;
-  else
-    {
-      go_assert(type_descriptor_location == TYPE_DESCRIPTOR_COMMON);
-      make_decl_one_only(decl, DECL_ASSEMBLER_NAME(decl));
-      resolve_unique_section(decl, 1, 0);
-    }
-
-  rest_of_decl_compilation(decl, 1, 0);
 }
 
 // Build an interface method table for a type: a list of function
@@ -2401,8 +2034,8 @@ Gogo::interface_method_table_for_type(const Interface_type* interface,
     td_type = type;
   else
     td_type = Type::make_pointer_type(type);
-  elt->value = fold_convert(const_ptr_type_node,
-			    td_type->type_descriptor_pointer(this));
+  tree tdp = td_type->type_descriptor_pointer(this, BUILTINS_LOCATION);
+  elt->value = fold_convert(const_ptr_type_node, tdp);
 
   size_t i = 1;
   for (Typed_identifier_list::const_iterator p = interface_methods->begin();

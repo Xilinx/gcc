@@ -1,5 +1,5 @@
 /* If-conversion for vectorizer.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Devang Patel <dpatel@apple.com>
 
@@ -1637,6 +1637,7 @@ combine_blocks (struct loop *loop)
   for (i = 0; i < orig_loop_num_nodes; i++)
     {
       bb = ifc_bbs[i];
+      free_bb_predicate (bb);
       if (bb_with_exit_edge_p (loop, bb))
 	{
 	  exit_bb = bb;
@@ -1712,6 +1713,9 @@ combine_blocks (struct loop *loop)
       && exit_bb != loop->header
       && can_merge_blocks_p (loop->header, exit_bb))
     merge_blocks (loop->header, exit_bb);
+
+  free (ifc_bbs);
+  ifc_bbs = NULL;
 }
 
 /* If-convert LOOP when it is legal.  For the moment this pass has no
@@ -1804,7 +1808,7 @@ struct gimple_opt_pass pass_if_conversion =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_stmts | TODO_verify_flow
+  TODO_verify_stmts | TODO_verify_flow
                                         /* todo_flags_finish */
  }
 };

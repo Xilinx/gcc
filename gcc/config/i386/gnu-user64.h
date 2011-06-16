@@ -69,7 +69,8 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
  %{!mno-sse2avx:%{mavx:-msse2avx}} %{msse2avx:%{!mavx:-msse2avx}}"
 
 #undef	LINK_SPEC
-#define LINK_SPEC "%{" SPEC_64 ":-m elf_x86_64} %{" SPEC_32 ":-m elf_i386} \
+#define LINK_SPEC "%{" SPEC_64 ":-m " GNU_USER_LINK_EMULATION64 "} \
+                   %{" SPEC_32 ":-m " GNU_USER_LINK_EMULATION32 "} \
   %{shared:-shared} \
   %{!shared: \
     %{!static: \
@@ -81,7 +82,7 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 /* Similar to standard GNU userspace, but adding -ffast-math support.  */
 #undef  ENDFILE_SPEC
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
    %{mpc32:crtprec32.o%s} \
    %{mpc64:crtprec64.o%s} \
    %{mpc80:crtprec80.o%s} \

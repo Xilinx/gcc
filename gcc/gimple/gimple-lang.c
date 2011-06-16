@@ -875,7 +875,7 @@ gimple_type_for_mode (enum machine_mode mode, int unsigned_p)
   return NULL_TREE;
 }
 
-static int
+static bool
 gimple_global_bindings_p (void) 
 {
   return cfun == NULL;
@@ -997,25 +997,6 @@ gimple_init (void)
      See PR42528.  */
   char_type_node
     = flag_signed_char ? signed_char_type_node : unsigned_char_type_node;
-
-  /* Tell the middle end what type to use for the size of objects.  */
-  if (strcmp (SIZE_TYPE, "unsigned int") == 0)
-    {
-      set_sizetype (unsigned_type_node);
-      size_type_node = unsigned_type_node;
-    }
-  else if (strcmp (SIZE_TYPE, "long unsigned int") == 0)
-    {
-      set_sizetype (long_unsigned_type_node);
-      size_type_node = long_unsigned_type_node;
-    }
-  else if (strcmp (SIZE_TYPE, "long long unsigned int") == 0)
-    {
-      set_sizetype (long_long_unsigned_type_node);
-      size_type_node = long_long_unsigned_type_node;
-    }
-  else
-    gcc_unreachable ();
 
   /* The global tree for the main identifier is filled in by
      language-specific front-end initialization that is not run in the

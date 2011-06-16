@@ -637,4 +637,8 @@ extern bool first_pass_instance;
 /* Declare for plugins.  */
 extern void do_per_function_toporder (void (*) (void *), void *);
 
+extern void disable_pass (const char *);
+extern void enable_pass (const char *);
+extern void dump_passes (void);
+
 #endif /* GCC_TREE_PASS_H */

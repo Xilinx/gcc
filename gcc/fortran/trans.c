@@ -63,19 +63,6 @@ gfc_advance_chain (tree t, int n)
 }
 
 
-/* Wrap a node in a TREE_LIST node and add it to the end of a list.  */
-
-tree
-gfc_chainon_list (tree list, tree add)
-{
-  tree l;
-
-  l = tree_cons (NULL_TREE, add, NULL_TREE);
-
-  return chainon (list, l);
-}
-
-
 /* Strip off a legitimate source ending from the input
    string NAME of length LEN.  */
 
@@ -328,6 +315,13 @@ gfc_build_array_ref (tree base, tree offset, tree decl)
 {
   tree type = TREE_TYPE (base);
   tree tmp;
+
+  if (GFC_ARRAY_TYPE_P (type) && GFC_TYPE_ARRAY_RANK (type) == 0)
+    {
+      gcc_assert (GFC_TYPE_ARRAY_CORANK (type) > 0);
+
+      return fold_convert (TYPE_MAIN_VARIANT (type), base);
+    }
 
   gcc_assert (TREE_CODE (type) == ARRAY_TYPE);
   type = TREE_TYPE (type);
@@ -703,8 +697,9 @@ gfc_allocate_array_with_status (stmtblock_t * block, tree mem, tree size,
 
   /* Create a variable to hold the result.  */
   res = gfc_create_var (type, NULL);
-  null_mem = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node, mem,
-			      build_int_cst (type, 0));
+  null_mem = gfc_unlikely (fold_build2_loc (input_location, NE_EXPR,
+					    boolean_type_node, mem,
+					    build_int_cst (type, 0)));
 
   /* If mem is NULL, we call gfc_allocate_with_status.  */
   gfc_start_block (&alloc_block);
@@ -757,7 +752,7 @@ gfc_allocate_array_with_status (stmtblock_t * block, tree mem, tree size,
     }
 
   tmp = fold_build3_loc (input_location, COND_EXPR, void_type_node, null_mem,
-			 alloc, error);
+			 error, alloc);
   gfc_add_expr_to_block (block, tmp);
 
   return res;
@@ -1251,15 +1246,20 @@ trans_code (gfc_code * code, tree cond)
 	     dependency check, too.  */
 	  {
 	    bool is_mvbits = false;
+
+	    if (code->resolved_isym)
+	      {
+		res = gfc_conv_intrinsic_subroutine (code);
+		if (res != NULL_TREE)
+		  break;
+	      }
+
 	    if (code->resolved_isym
 		&& code->resolved_isym->id == GFC_ISYM_MVBITS)
 	      is_mvbits = true;
-	    if (code->resolved_isym
-		&& code->resolved_isym->id == GFC_ISYM_MOVE_ALLOC)
-	      res = gfc_conv_intrinsic_move_alloc (code);
-	    else
-	      res = gfc_trans_call (code, is_mvbits, NULL_TREE,
-				    NULL_TREE, false);
+
+	    res = gfc_trans_call (code, is_mvbits, NULL_TREE,
+				  NULL_TREE, false);
 	  }
 	  break;
 

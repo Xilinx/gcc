@@ -137,8 +137,7 @@ optimize_expr (gfc_expr **e, int *walk_subtrees ATTRIBUTE_UNUSED,
 
 
 /* Callback function for common function elimination, called from cfe_expr_0.
-   Put all eligible function expressions into expr_array.  We can't do
-   allocatable functions.  */
+   Put all eligible function expressions into expr_array.  */
 
 static int
 cfe_register_funcs (gfc_expr **e, int *walk_subtrees ATTRIBUTE_UNUSED,
@@ -148,24 +147,23 @@ cfe_register_funcs (gfc_expr **e, int *walk_subtrees ATTRIBUTE_UNUSED,
   if ((*e)->expr_type != EXPR_FUNCTION)
     return 0;
 
-  /* We don't do character functions (yet).  */
-  if ((*e)->ts.type == BT_CHARACTER)
+  /* We don't do character functions with unknown charlens.  */
+  if ((*e)->ts.type == BT_CHARACTER 
+      && ((*e)->ts.u.cl == NULL || (*e)->ts.u.cl->length == NULL
+	  || (*e)->ts.u.cl->length->expr_type != EXPR_CONSTANT))
     return 0;
 
-  /* If we don't know the shape at compile time, we do not create a temporary
-     variable to hold the intermediate result.  FIXME: Change this later when
-     allocation on assignment works for intrinsics.  */
+  /* If we don't know the shape at compile time, we create an allocatable
+     temporary variable to hold the intermediate result, but only if
+     allocation on assignment is active.  */
 
-  if ((*e)->rank > 0 && (*e)->shape == NULL)
+  if ((*e)->rank > 0 && (*e)->shape == NULL && !gfc_option.flag_realloc_lhs)
     return 0;
   
   /* Skip the test for pure functions if -faggressive-function-elimination
      is specified.  */
   if ((*e)->value.function.esym)
     {
-      if ((*e)->value.function.esym->attr.allocatable)
-	return 0;
-
       /* Don't create an array temporary for elemental functions.  */
       if ((*e)->value.function.esym->attr.elemental && (*e)->rank > 0)
 	return 0;
@@ -181,9 +179,10 @@ cfe_register_funcs (gfc_expr **e, int *walk_subtrees ATTRIBUTE_UNUSED,
   if ((*e)->value.function.isym)
     {
       /* Conversions are handled on the fly by the middle end,
-	 transpose during trans-* stages.  */
+	 transpose during trans-* stages and TRANSFER by the middle end.  */
       if ((*e)->value.function.isym->id == GFC_ISYM_CONVERSION
-	  || (*e)->value.function.isym->id == GFC_ISYM_TRANSPOSE)
+	  || (*e)->value.function.isym->id == GFC_ISYM_TRANSPOSE
+	  || (*e)->value.function.isym->id == GFC_ISYM_TRANSFER)
 	return 0;
 
       /* Don't create an array temporary for elemental functions,
@@ -250,22 +249,38 @@ create_var (gfc_expr * e)
 
   symbol = symtree->n.sym;
   symbol->ts = e->ts;
-  symbol->as = gfc_get_array_spec ();
-  symbol->as->rank = e->rank;
-  symbol->as->type = AS_EXPLICIT;
-  for (i=0; i<e->rank; i++)
+
+  if (e->rank > 0)
     {
-      gfc_expr *p, *q;
+      symbol->as = gfc_get_array_spec ();
+      symbol->as->rank = e->rank;
+
+      if (e->shape == NULL)
+	{
+	  /* We don't know the shape at compile time, so we use an
+	     allocatable. */
+	  symbol->as->type = AS_DEFERRED;
+	  symbol->attr.allocatable = 1;
+	}
+      else
+	{
+	  symbol->as->type = AS_EXPLICIT;
+	  /* Copy the shape.  */
+	  for (i=0; i<e->rank; i++)
+	    {
+	      gfc_expr *p, *q;
       
-      p = gfc_get_constant_expr (BT_INTEGER, gfc_default_integer_kind,
-				 &(e->where));
-      mpz_set_si (p->value.integer, 1);
-      symbol->as->lower[i] = p;
-	  
-      q = gfc_get_constant_expr (BT_INTEGER, gfc_index_integer_kind,
-				 &(e->where));
-      mpz_set (q->value.integer, e->shape[i]);
-      symbol->as->upper[i] = q;
+	      p = gfc_get_constant_expr (BT_INTEGER, gfc_default_integer_kind,
+					 &(e->where));
+	      mpz_set_si (p->value.integer, 1);
+	      symbol->as->lower[i] = p;
+	      
+	      q = gfc_get_constant_expr (BT_INTEGER, gfc_index_integer_kind,
+					 &(e->where));
+	      mpz_set (q->value.integer, e->shape[i]);
+	      symbol->as->upper[i] = q;
+	    }
+	}
     }
 
   symbol->attr.flavor = FL_VARIABLE;
@@ -471,6 +486,35 @@ optimize_binop_array_assignment (gfc_code *c, gfc_expr **rhs, bool seen_op)
   return false;
 }
 
+/* Remove unneeded TRIMs at the end of expressions.  */
+
+static bool
+remove_trim (gfc_expr *rhs)
+{
+  bool ret;
+
+  ret = false;
+
+  /* Check for a // b // trim(c).  Looping is probably not
+     necessary because the parser usually generates
+     (// (// a b ) trim(c) ) , but better safe than sorry.  */
+
+  while (rhs->expr_type == EXPR_OP
+	 && rhs->value.op.op == INTRINSIC_CONCAT)
+    rhs = rhs->value.op.op2;
+
+  while (rhs->expr_type == EXPR_FUNCTION && rhs->value.function.isym
+	 && rhs->value.function.isym->id == GFC_ISYM_TRIM)
+    {
+      strip_function_call (rhs);
+      /* Recursive call to catch silly stuff like trim ( a // trim(b)).  */
+      remove_trim (rhs);
+      ret = true;
+    }
+
+  return ret;
+}
+
 /* Optimizations for an assignment.  */
 
 static void
@@ -484,16 +528,7 @@ optimize_assignment (gfc_code * c)
   /* Optimize away a = trim(b), where a is a character variable.  */
 
   if (lhs->ts.type == BT_CHARACTER)
-    {
-      if (rhs->expr_type == EXPR_FUNCTION &&
-	  rhs->value.function.isym &&
-	  rhs->value.function.isym->id == GFC_ISYM_TRIM)
-	{
-	  strip_function_call (rhs);
-	  optimize_assignment (c);
-	  return;
-	}
-    }
+    remove_trim (rhs);
 
   if (lhs->rank > 0 && gfc_check_dependency (lhs, rhs, true) == 0)
     optimize_binop_array_assignment (c, &rhs, false);
@@ -616,36 +651,17 @@ optimize_comparison (gfc_expr *e, gfc_intrinsic_op op)
 
   /* Strip off unneeded TRIM calls from string comparisons.  */
 
-  change = false;
+  change = remove_trim (op1);
 
-  if (op1->expr_type == EXPR_FUNCTION 
-      && op1->value.function.isym
-      && op1->value.function.isym->id == GFC_ISYM_TRIM)
-    {
-      strip_function_call (op1);
-      change = true;
-    }
-
-  if (op2->expr_type == EXPR_FUNCTION 
-      && op2->value.function.isym
-      && op2->value.function.isym->id == GFC_ISYM_TRIM)
-    {
-      strip_function_call (op2);
-      change = true;
-    }
-
-  if (change)
-    {
-      optimize_comparison (e, op);
-      return true;
-    }
+  if (remove_trim (op2))
+    change = true;
 
   /* An expression of type EXPR_CONSTANT is only valid for scalars.  */
   /* TODO: A scalar constant may be acceptable in some cases (the scalarizer
      handles them well). However, there are also cases that need a non-scalar
      argument. For example the any intrinsic. See PR 45380.  */
   if (e->rank > 0)
-    return false;
+    return change;
 
   /* Don't compare REAL or COMPLEX expressions when honoring NaNs.  */
 
@@ -675,7 +691,7 @@ optimize_comparison (gfc_expr *e, gfc_intrinsic_op op)
 			&& op2_left->expr_type == EXPR_CONSTANT
 			&& op1_left->value.character.length
 			   != op2_left->value.character.length)
-		    return false;
+		    return change;
 		  else
 		    {
 		      free (op1_left);
@@ -764,7 +780,7 @@ optimize_comparison (gfc_expr *e, gfc_intrinsic_op op)
 	}
     }
 
-  return false;
+  return change;
 }
 
 /* Optimize a trim function by replacing it with an equivalent substring
@@ -1175,6 +1191,7 @@ gfc_code_walker (gfc_code **c, walk_code_fn_t codefn, walk_expr_fn_t exprfn,
 	  WALK_SUBEXPR (co->expr1);
 	  WALK_SUBEXPR (co->expr2);
 	  WALK_SUBEXPR (co->expr3);
+	  WALK_SUBEXPR (co->expr4);
 	  for (b = co->block; b; b = b->block)
 	    {
 	      WALK_SUBEXPR (b->expr1);

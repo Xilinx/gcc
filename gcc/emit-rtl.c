@@ -2413,7 +2413,7 @@ struct rtl_opt_pass pass_unshare_all_rtl =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_verify_rtl_sharing /* todo_flags_finish */
+  TODO_verify_rtl_sharing               /* todo_flags_finish */
  }
 };
 
@@ -2450,6 +2450,7 @@ verify_rtx_sharing (rtx orig, rtx insn)
     case CODE_LABEL:
     case PC:
     case CC0:
+    case RETURN:
     case SCRATCH:
       return;
       /* SCRATCH must be shared because they represent distinct values.  */
@@ -3469,17 +3470,39 @@ try_split (rtx pat, rtx trial, int last)
     }
 
   /* If we are splitting a CALL_INSN, look for the CALL_INSN
-     in SEQ and copy our CALL_INSN_FUNCTION_USAGE to it.  */
+     in SEQ and copy any additional information across.  */
   if (CALL_P (trial))
     {
       for (insn = insn_last; insn ; insn = PREV_INSN (insn))
 	if (CALL_P (insn))
 	  {
-	    rtx *p = &CALL_INSN_FUNCTION_USAGE (insn);
+	    rtx next, *p;
+
+	    /* Add the old CALL_INSN_FUNCTION_USAGE to whatever the
+	       target may have explicitly specified.  */
+	    p = &CALL_INSN_FUNCTION_USAGE (insn);
 	    while (*p)
 	      p = &XEXP (*p, 1);
 	    *p = CALL_INSN_FUNCTION_USAGE (trial);
+
+	    /* If the old call was a sibling call, the new one must
+	       be too.  */
 	    SIBLING_CALL_P (insn) = SIBLING_CALL_P (trial);
+
+	    /* If the new call is the last instruction in the sequence,
+	       it will effectively replace the old call in-situ.  Otherwise
+	       we must move any following NOTE_INSN_CALL_ARG_LOCATION note
+	       so that it comes immediately after the new call.  */
+	    if (NEXT_INSN (insn))
+	      for (next = NEXT_INSN (trial);
+		   next && NOTE_P (next);
+		   next = NEXT_INSN (next))
+		if (NOTE_KIND (next) == NOTE_INSN_CALL_ARG_LOCATION)
+		  {
+		    remove_insn (next);
+		    add_insn_after (next, insn, NULL);
+		    break;
+		  }
 	  }
     }
 
@@ -5416,8 +5439,9 @@ init_emit_regs (void)
   init_reg_modes_target ();
 
   /* Assign register numbers to the globally defined register rtx.  */
-  pc_rtx = gen_rtx_PC (VOIDmode);
-  cc0_rtx = gen_rtx_CC0 (VOIDmode);
+  pc_rtx = gen_rtx_fmt_ (PC, VOIDmode);
+  ret_rtx = gen_rtx_fmt_ (RETURN, VOIDmode);
+  cc0_rtx = gen_rtx_fmt_ (CC0, VOIDmode);
   stack_pointer_rtx = gen_raw_REG (Pmode, STACK_POINTER_REGNUM);
   frame_pointer_rtx = gen_raw_REG (Pmode, FRAME_POINTER_REGNUM);
   hard_frame_pointer_rtx = gen_raw_REG (Pmode, HARD_FRAME_POINTER_REGNUM);

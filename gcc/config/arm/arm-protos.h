@@ -153,6 +153,9 @@ extern const char *arm_output_memory_barrier (rtx *);
 extern const char *arm_output_sync_insn (rtx, rtx *);
 extern unsigned int arm_sync_loop_insns (rtx , rtx *);
 extern int arm_attr_length_push_multi(rtx, rtx);
+extern bool arm_check_ldrd_operands (rtx, rtx, rtx, rtx);
+extern bool arm_legitimate_ldrd_p (rtx, rtx, rtx, rtx, bool);
+extern int arm_output_ldrd (rtx, rtx, rtx, rtx, rtx, bool);
 
 #if defined TREE_CODE
 extern void arm_init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);
@@ -221,9 +224,14 @@ struct tune_params
   bool (*rtx_costs) (rtx, RTX_CODE, RTX_CODE, int *, bool);
   bool (*sched_adjust_cost) (rtx, rtx, rtx, int *);
   int constant_limit;
+  /* Maximum number of instructions to conditionalise in
+     arm_final_prescan_insn.  */
+  int max_insns_skipped;
   int num_prefetch_slots;
   int l1_cache_size;
   int l1_cache_line_size;
+  bool prefer_constant_pool;
+  int (*branch_cost) (bool, bool);
 };
 
 extern const struct tune_params *current_tune;

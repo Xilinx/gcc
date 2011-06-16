@@ -507,9 +507,6 @@ composite_type (tree t1, tree t2)
 
 	/* If both args specify argument types, we must merge the two
 	   lists, argument by argument.  */
-	/* Tell global_bindings_p to return false so that variable_size
-	   doesn't die on VLAs in parameter types.  */
-	c_override_global_bindings_to_false = true;
 
 	len = list_length (p1);
 	newargs = 0;
@@ -592,7 +589,6 @@ composite_type (tree t1, tree t2)
 	  parm_done: ;
 	  }
 
-	c_override_global_bindings_to_false = false;
 	t1 = build_function_type (valtype, newargs);
 	t1 = qualify_type (t1, t2);
 	/* ... falls through ...  */
@@ -2812,8 +2808,7 @@ build_function_call_vec (location_t loc, tree function, VEC(tree,gc) *params,
     return error_mark_node;
 
   /* Check that the arguments to the function are valid.  */
-  check_function_arguments (TYPE_ATTRIBUTES (fntype), nargs, argarray,
-			    TYPE_ARG_TYPES (fntype));
+  check_function_arguments (fntype, nargs, argarray);
 
   if (name != NULL_TREE
       && !strncmp (IDENTIFIER_POINTER (name), "__builtin_", 10))
@@ -6636,7 +6631,7 @@ really_start_incremental_init (tree type)
     {
       /* Vectors are like simple fixed-size arrays.  */
       constructor_max_index =
-	build_int_cst (NULL_TREE, TYPE_VECTOR_SUBPARTS (constructor_type) - 1);
+	bitsize_int (TYPE_VECTOR_SUBPARTS (constructor_type) - 1);
       constructor_index = bitsize_zero_node;
       constructor_unfilled_index = constructor_index;
     }
@@ -6805,8 +6800,8 @@ push_init_level (int implicit, struct obstack * braced_init_obstack)
     {
       /* Vectors are like simple fixed-size arrays.  */
       constructor_max_index =
-	build_int_cst (NULL_TREE, TYPE_VECTOR_SUBPARTS (constructor_type) - 1);
-      constructor_index = convert (bitsizetype, integer_zero_node);
+	bitsize_int (TYPE_VECTOR_SUBPARTS (constructor_type) - 1);
+      constructor_index = bitsize_int (0);
       constructor_unfilled_index = constructor_index;
     }
   else if (TREE_CODE (constructor_type) == ARRAY_TYPE)
@@ -9298,7 +9293,7 @@ c_end_compound_stmt (location_t loc, tree stmt, bool do_scope)
      do the wrong thing for ({ { 1; } }) or ({ 1; { } }).  In particular,
      STATEMENT_LISTs merge, and thus we can lose track of what statement
      was really last.  */
-  if (cur_stmt_list
+  if (building_stmt_list_p ()
       && STATEMENT_LIST_STMT_EXPR (cur_stmt_list)
       && TREE_CODE (stmt) != BIND_EXPR)
     {

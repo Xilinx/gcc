@@ -486,6 +486,7 @@ static const struct default_options default_options_table[] =
     /* Inlining of functions reducing size is a good idea with -Os
        regardless of them being declared inline.  */
     { OPT_LEVELS_3_PLUS_AND_SIZE, OPT_finline_functions, NULL, 1 },
+    { OPT_LEVELS_1_PLUS, OPT_finline_functions_called_once, NULL, 1 },
     { OPT_LEVELS_3_PLUS, OPT_funswitch_loops, NULL, 1 },
     { OPT_LEVELS_3_PLUS, OPT_fgcse_after_reload, NULL, 1 },
     { OPT_LEVELS_3_PLUS, OPT_ftree_vectorize, NULL, 1 },
@@ -807,6 +808,31 @@ finish_options (struct gcc_options *opts, struct gcc_options *opts_set,
   if (!opts->x_flag_tree_vectorize || !opts->x_flag_tree_loop_if_convert)
     maybe_set_param_value (PARAM_MAX_STORES_TO_SINK, 0,
                            opts->x_param_values, opts_set->x_param_values);
+
+  /* This replaces set_Wunused.  */
+  if (opts->x_warn_unused_function == -1)
+    opts->x_warn_unused_function = opts->x_warn_unused;
+  if (opts->x_warn_unused_label == -1)
+    opts->x_warn_unused_label = opts->x_warn_unused;
+  /* Wunused-parameter is enabled if both -Wunused -Wextra are enabled.  */
+  if (opts->x_warn_unused_parameter == -1)
+    opts->x_warn_unused_parameter = (opts->x_warn_unused
+				     && opts->x_extra_warnings);
+  if (opts->x_warn_unused_variable == -1)
+    opts->x_warn_unused_variable = opts->x_warn_unused;
+  /* Wunused-but-set-parameter is enabled if both -Wunused -Wextra are
+     enabled.  */
+  if (opts->x_warn_unused_but_set_parameter == -1)
+    opts->x_warn_unused_but_set_parameter = (opts->x_warn_unused
+					     && opts->x_extra_warnings);
+  if (opts->x_warn_unused_but_set_variable == -1)
+    opts->x_warn_unused_but_set_variable = opts->x_warn_unused;
+  if (opts->x_warn_unused_value == -1)
+    opts->x_warn_unused_value = opts->x_warn_unused;
+
+  /* This replaces set_Wextra.  */
+  if (opts->x_warn_uninitialized == -1)
+    opts->x_warn_uninitialized = opts->x_extra_warnings;
 }
 
 #define LEFT_COLUMN	27
@@ -1397,6 +1423,11 @@ common_handle_option (struct gcc_options *opts,
       opts->x_warn_frame_larger_than = value != -1;
       break;
 
+    case OPT_Wstack_usage_:
+      opts->x_warn_stack_usage = value;
+      opts->x_flag_stack_usage_info = value != -1;
+      break;
+
     case OPT_Wstrict_aliasing:
       set_Wstrict_aliasing (opts, value);
       break;
@@ -1616,6 +1647,11 @@ common_handle_option (struct gcc_options *opts,
     case OPT_fstack_limit_register_:
     case OPT_fstack_limit_symbol_:
       /* Deferred.  */
+      break;
+
+    case OPT_fstack_usage:
+      opts->x_flag_stack_usage = value;
+      opts->x_flag_stack_usage_info = value != 0;
       break;
 
     case OPT_ftree_vectorizer_verbose_:

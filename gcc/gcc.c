@@ -1439,7 +1439,8 @@ init_spec (void)
   }
 #endif
 
-#if defined LINK_EH_SPEC || defined LINK_BUILDID_SPEC
+#if defined LINK_EH_SPEC || defined LINK_BUILDID_SPEC || \
+    defined LINKER_HASH_STYLE
 # ifdef LINK_BUILDID_SPEC
   /* Prepend LINK_BUILDID_SPEC to whatever link_spec we had before.  */
   obstack_grow (&obstack, LINK_BUILDID_SPEC, sizeof(LINK_BUILDID_SPEC) - 1);
@@ -1447,6 +1448,16 @@ init_spec (void)
 # ifdef LINK_EH_SPEC
   /* Prepend LINK_EH_SPEC to whatever link_spec we had before.  */
   obstack_grow (&obstack, LINK_EH_SPEC, sizeof(LINK_EH_SPEC) - 1);
+# endif
+# ifdef LINKER_HASH_STYLE
+  /* Prepend --hash-style=LINKER_HASH_STYLE to whatever link_spec we had
+     before.  */
+  {
+    static const char hash_style[] = "--hash-style=";
+    obstack_grow (&obstack, hash_style, sizeof(hash_style) - 1);
+    obstack_grow (&obstack, LINKER_HASH_STYLE, sizeof(LINKER_HASH_STYLE) - 1);
+    obstack_1grow (&obstack, ' ');
+  }
 # endif
   obstack_grow0 (&obstack, link_spec, strlen (link_spec));
   link_spec = XOBFINISH (&obstack, const char *);
@@ -3267,7 +3278,7 @@ driver_handle_option (struct gcc_options *opts,
     compare_debug_with_arg:
       gcc_assert (decoded->canonical_option_num_elements == 1);
       gcc_assert (arg != NULL);
-      if (arg)
+      if (*arg)
 	compare_debug = 1;
       else
 	compare_debug = -1;

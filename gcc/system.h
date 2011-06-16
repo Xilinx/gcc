@@ -761,6 +761,11 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	CAN_DEBUG_WITHOUT_FP UNLIKELY_EXECUTED_TEXT_SECTION_NAME	\
 	HOT_TEXT_SECTION_NAME LEGITIMATE_CONSTANT_P
 
+/* Target macros only used for code built for the target, that have
+   moved to libgcc-tm.h or have never been present elsewhere.  */
+ #pragma GCC poison DECLARE_LIBRARY_RENAMES LIBGCC2_GNU_PREFIX		\
+	MD_UNWIND_SUPPORT ENABLE_EXECUTE_STACK
+
 /* Other obsolete target macros, or macros that used to be in target
    headers and were not used, and may be obsolete or may never have
    been used.  */
@@ -821,7 +826,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	FUNCTION_ARG_BOUNDARY MUST_USE_SJLJ_EXCEPTIONS US_SOFTWARE_GOFAST  \
 	USING_SVR4_H SVR4_ASM_SPEC FUNCTION_ARG FUNCTION_ARG_ADVANCE	   \
 	FUNCTION_INCOMING_ARG IRA_COVER_CLASSES TARGET_VERSION		   \
-	MACHINE_TYPE TARGET_HAS_TARGETCM ASM_OUTPUT_BSS
+	MACHINE_TYPE TARGET_HAS_TARGETCM ASM_OUTPUT_BSS			   \
+	SETJMP_VIA_SAVE_AREA FORBIDDEN_INC_DEC_CLASSES
 
 /* Hooks that are no longer used.  */
  #pragma GCC poison LANG_HOOKS_FUNCTION_MARK LANG_HOOKS_FUNCTION_FREE	\

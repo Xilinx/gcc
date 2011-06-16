@@ -13,13 +13,26 @@
 #include "channel.h"
 
 struct __go_channel*
-__go_new_channel (uintptr_t element_size, uintptr_t entries)
+__go_new_channel (const struct __go_type_descriptor *channel_type,
+		  uintptr_t entries)
 {
+  const struct __go_channel_type *ctd;
+  const struct __go_type_descriptor *element_type;
+  uintptr_t element_size;
+  int ientries;
   struct __go_channel* ret;
   size_t alloc_size;
   int i;
 
-  if ((uintptr_t) (int) entries != entries
+  __go_assert (channel_type->__code == GO_CHAN);
+  ctd = (const struct __go_channel_type *) channel_type;
+  element_type = ctd->__element_type;
+
+  element_size = element_type->__size;
+
+  ientries = (int) entries;
+  if (ientries < 0
+      || (uintptr_t) ientries != entries
       || entries > (uintptr_t) -1 / element_size)
     __go_panic_msg ("chan size out of range");
 
@@ -40,7 +53,7 @@ __go_new_channel (uintptr_t element_size, uintptr_t entries)
   __go_assert (i == 0);
   i = pthread_cond_init (&ret->cond, NULL);
   __go_assert (i == 0);
-  ret->element_size = element_size;
+  ret->element_type = element_type;
   ret->waiting_to_send = 0;
   ret->waiting_to_receive = 0;
   ret->selected_for_send = 0;

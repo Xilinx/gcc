@@ -243,6 +243,8 @@ static rtx arm_pic_static_addr (rtx orig, rtx reg);
 static bool cortex_a9_sched_adjust_cost (rtx, rtx, rtx, int *);
 static bool xscale_sched_adjust_cost (rtx, rtx, rtx, int *);
 static bool fa726te_sched_adjust_cost (rtx, rtx, rtx, int *);
+static bool arm_array_mode_supported_p (enum machine_mode,
+					unsigned HOST_WIDE_INT);
 static enum machine_mode arm_preferred_simd_mode (enum machine_mode);
 static bool arm_class_likely_spilled_p (reg_class_t);
 static bool arm_vector_alignment_reachable (const_tree type, bool is_packed);
@@ -253,6 +255,8 @@ static bool arm_builtin_support_vector_misalignment (enum machine_mode mode,
 static void arm_conditional_register_usage (void);
 static reg_class_t arm_preferred_rename_class (reg_class_t rclass);
 static unsigned int arm_autovectorize_vector_sizes (void);
+static int arm_default_branch_cost (bool, bool);
+static int arm_cortex_a5_branch_cost (bool, bool);
 
 
 /* Table of machine attributes.  */
@@ -399,6 +403,8 @@ static const struct default_options arm_option_optimization_table[] =
 #define TARGET_SHIFT_TRUNCATION_MASK arm_shift_truncation_mask
 #undef TARGET_VECTOR_MODE_SUPPORTED_P
 #define TARGET_VECTOR_MODE_SUPPORTED_P arm_vector_mode_supported_p
+#undef TARGET_ARRAY_MODE_SUPPORTED_P
+#define TARGET_ARRAY_MODE_SUPPORTED_P arm_array_mode_supported_p
 #undef TARGET_VECTORIZE_PREFERRED_SIMD_MODE
 #define TARGET_VECTORIZE_PREFERRED_SIMD_MODE arm_preferred_simd_mode
 #undef TARGET_VECTORIZE_AUTOVECTORIZE_VECTOR_SIZES
@@ -632,21 +638,6 @@ int arm_fpu_attr;
 /* Which floating popint hardware to use.  */
 const struct arm_fpu_desc *arm_fpu_desc;
 
-/* Whether to use floating point hardware.  */
-enum float_abi_type arm_float_abi;
-
-/* Which __fp16 format to use.  */
-enum arm_fp16_format_type arm_fp16_format;
-
-/* Which ABI to use.  */
-enum arm_abi_type arm_abi;
-
-/* Which thread pointer model to use.  */
-enum arm_tp_type target_thread_pointer = TP_AUTO;
-
-/* Used to parse -mstructure_size_boundary command line option.  */
-int    arm_structure_size_boundary = DEFAULT_STRUCTURE_SIZE_BOUNDARY;
-
 /* Used for Thumb call_via trampolines.  */
 rtx thumb_call_via_label[14];
 static int thumb_call_reg_needed;
@@ -673,12 +664,13 @@ static int thumb_call_reg_needed;
 #define FL_THUMB2     (1 << 16)	      /* Thumb-2.  */
 #define FL_NOTM	      (1 << 17)	      /* Instructions not present in the 'M'
 					 profile.  */
-#define FL_DIV	      (1 << 18)	      /* Hardware divide.  */
+#define FL_THUMB_DIV  (1 << 18)	      /* Hardware divide (Thumb mode).  */
 #define FL_VFPV3      (1 << 19)       /* Vector Floating Point V3.  */
 #define FL_NEON       (1 << 20)       /* Neon instructions.  */
 #define FL_ARCH7EM    (1 << 21)	      /* Instructions present in the ARMv7E-M
 					 architecture.  */
 #define FL_ARCH7      (1 << 22)       /* Architecture 7.  */
+#define FL_ARM_DIV    (1 << 23)	      /* Hardware divide (ARM mode).  */
 
 #define FL_IWMMXT     (1 << 29)	      /* XScale v2 or "Intel Wireless MMX technology".  */
 
@@ -705,8 +697,8 @@ static int thumb_call_reg_needed;
 #define FL_FOR_ARCH6M	(FL_FOR_ARCH6 & ~FL_NOTM)
 #define FL_FOR_ARCH7	((FL_FOR_ARCH6T2 & ~FL_NOTM) | FL_ARCH7)
 #define FL_FOR_ARCH7A	(FL_FOR_ARCH7 | FL_NOTM | FL_ARCH6K)
-#define FL_FOR_ARCH7R	(FL_FOR_ARCH7A | FL_DIV)
-#define FL_FOR_ARCH7M	(FL_FOR_ARCH7 | FL_DIV)
+#define FL_FOR_ARCH7R	(FL_FOR_ARCH7A | FL_THUMB_DIV)
+#define FL_FOR_ARCH7M	(FL_FOR_ARCH7 | FL_THUMB_DIV)
 #define FL_FOR_ARCH7EM  (FL_FOR_ARCH7M | FL_ARCH7EM)
 
 /* The bits in this mask specify which
@@ -792,7 +784,8 @@ int arm_cpp_interwork = 0;
 int arm_arch_thumb2;
 
 /* Nonzero if chip supports integer division instruction.  */
-int arm_arch_hwdiv;
+int arm_arch_arm_hwdiv;
+int arm_arch_thumb_hwdiv;
 
 /* In case of a PRE_INC, POST_INC, PRE_DEC, POST_DEC memory reference,
    we must report the mode of the memory reference from
@@ -865,48 +858,117 @@ const struct tune_params arm_slowmul_tune =
 {
   arm_slowmul_rtx_costs,
   NULL,
-  3,
-  ARM_PREFETCH_NOT_BENEFICIAL
+  3,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
 };
 
 const struct tune_params arm_fastmul_tune =
 {
   arm_fastmul_rtx_costs,
   NULL,
-  1,
-  ARM_PREFETCH_NOT_BENEFICIAL
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
+};
+
+/* StrongARM has early execution of branches, so a sequence that is worth
+   skipping is shorter.  Set max_insns_skipped to a lower value.  */
+
+const struct tune_params arm_strongarm_tune =
+{
+  arm_fastmul_rtx_costs,
+  NULL,
+  1,						/* Constant limit.  */
+  3,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
 };
 
 const struct tune_params arm_xscale_tune =
 {
   arm_xscale_rtx_costs,
   xscale_sched_adjust_cost,
-  2,
-  ARM_PREFETCH_NOT_BENEFICIAL
+  2,						/* Constant limit.  */
+  3,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
 };
 
 const struct tune_params arm_9e_tune =
 {
   arm_9e_rtx_costs,
   NULL,
-  1,
-  ARM_PREFETCH_NOT_BENEFICIAL
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
+};
+
+const struct tune_params arm_v6t2_tune =
+{
+  arm_9e_rtx_costs,
+  NULL,
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  false,					/* Prefer constant pool.  */
+  arm_default_branch_cost
+};
+
+/* Generic Cortex tuning.  Use more specific tunings if appropriate.  */
+const struct tune_params arm_cortex_tune =
+{
+  arm_9e_rtx_costs,
+  NULL,
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  false,					/* Prefer constant pool.  */
+  arm_default_branch_cost
+};
+
+/* Branches can be dual-issued on Cortex-A5, so conditional execution is
+   less appealing.  Set max_insns_skipped to a low value.  */
+
+const struct tune_params arm_cortex_a5_tune =
+{
+  arm_9e_rtx_costs,
+  NULL,
+  1,						/* Constant limit.  */
+  1,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  false,					/* Prefer constant pool.  */
+  arm_cortex_a5_branch_cost
 };
 
 const struct tune_params arm_cortex_a9_tune =
 {
   arm_9e_rtx_costs,
   cortex_a9_sched_adjust_cost,
-  1,
-  ARM_PREFETCH_BENEFICIAL(4,32,32)
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_BENEFICIAL(4,32,32),
+  false,					/* Prefer constant pool.  */
+  arm_default_branch_cost
 };
 
 const struct tune_params arm_fa726te_tune =
 {
   arm_9e_rtx_costs,
   fa726te_sched_adjust_cost,
-  1,
-  ARM_PREFETCH_NOT_BENEFICIAL
+  1,						/* Constant limit.  */
+  5,						/* Max cond insns.  */
+  ARM_PREFETCH_NOT_BENEFICIAL,
+  true,						/* Prefer constant pool.  */
+  arm_default_branch_cost
 };
 
 
@@ -950,79 +1012,12 @@ char arm_arch_name[] = "__ARM_ARCH_0UNK__";
 
 static const struct arm_fpu_desc all_fpus[] =
 {
-  {"fpa",		ARM_FP_MODEL_FPA, 0, VFP_NONE, false, false},
-  {"fpe2",		ARM_FP_MODEL_FPA, 2, VFP_NONE, false, false},
-  {"fpe3",		ARM_FP_MODEL_FPA, 3, VFP_NONE, false, false},
-  {"maverick",		ARM_FP_MODEL_MAVERICK, 0, VFP_NONE, false, false},
-  {"vfp",		ARM_FP_MODEL_VFP, 2, VFP_REG_D16, false, false},
-  {"vfpv3",		ARM_FP_MODEL_VFP, 3, VFP_REG_D32, false, false},
-  {"vfpv3-fp16",	ARM_FP_MODEL_VFP, 3, VFP_REG_D32, false, true},
-  {"vfpv3-d16",		ARM_FP_MODEL_VFP, 3, VFP_REG_D16, false, false},
-  {"vfpv3-d16-fp16",	ARM_FP_MODEL_VFP, 3, VFP_REG_D16, false, true},
-  {"vfpv3xd",		ARM_FP_MODEL_VFP, 3, VFP_REG_SINGLE, false, false},
-  {"vfpv3xd-fp16",	ARM_FP_MODEL_VFP, 3, VFP_REG_SINGLE, false, true},
-  {"neon",		ARM_FP_MODEL_VFP, 3, VFP_REG_D32, true , false},
-  {"neon-fp16",		ARM_FP_MODEL_VFP, 3, VFP_REG_D32, true , true },
-  {"vfpv4",		ARM_FP_MODEL_VFP, 4, VFP_REG_D32, false, true},
-  {"vfpv4-d16",		ARM_FP_MODEL_VFP, 4, VFP_REG_D16, false, true},
-  {"fpv4-sp-d16",	ARM_FP_MODEL_VFP, 4, VFP_REG_SINGLE, false, true},
-  {"neon-vfpv4",	ARM_FP_MODEL_VFP, 4, VFP_REG_D32, true, true},
-  /* Compatibility aliases.  */
-  {"vfp3",		ARM_FP_MODEL_VFP, 3, VFP_REG_D32, false, false},
+#define ARM_FPU(NAME, MODEL, REV, VFP_REGS, NEON, FP16) \
+  { NAME, MODEL, REV, VFP_REGS, NEON, FP16 },
+#include "arm-fpus.def"
+#undef ARM_FPU
 };
 
-
-struct float_abi
-{
-  const char * name;
-  enum float_abi_type abi_type;
-};
-
-
-/* Available values for -mfloat-abi=.  */
-
-static const struct float_abi all_float_abis[] =
-{
-  {"soft",	ARM_FLOAT_ABI_SOFT},
-  {"softfp",	ARM_FLOAT_ABI_SOFTFP},
-  {"hard",	ARM_FLOAT_ABI_HARD}
-};
-
-
-struct fp16_format
-{
-  const char *name;
-  enum arm_fp16_format_type fp16_format_type;
-};
-
-
-/* Available values for -mfp16-format=.  */
-
-static const struct fp16_format all_fp16_formats[] =
-{
-  {"none",		ARM_FP16_FORMAT_NONE},
-  {"ieee",		ARM_FP16_FORMAT_IEEE},
-  {"alternative",	ARM_FP16_FORMAT_ALTERNATIVE}
-};
-
-
-struct abi_name
-{
-  const char *name;
-  enum arm_abi_type abi_type;
-};
-
-
-/* Available values for -mabi=.  */
-
-static const struct abi_name arm_all_abis[] =
-{
-  {"apcs-gnu",    ARM_ABI_APCS},
-  {"atpcs",   ARM_ABI_ATPCS},
-  {"aapcs",   ARM_ABI_AAPCS},
-  {"iwmmxt",  ARM_ABI_IWMMXT},
-  {"aapcs-linux",   ARM_ABI_AAPCS_LINUX}
-};
 
 /* Supported TLS relocations.  */
 
@@ -1307,8 +1302,6 @@ arm_gimplify_va_arg_expr (tree valist, tree type, gimple_seq *pre_p,
 static void
 arm_option_override (void)
 {
-  unsigned i;
-
   if (global_options_set.x_arm_arch_option)
     arm_selected_arch = &all_architectures[arm_arch_option];
 
@@ -1443,39 +1436,6 @@ arm_option_override (void)
   tune_flags = arm_selected_tune->flags;
   current_tune = arm_selected_tune->tune;
 
-  if (target_fp16_format_name)
-    {
-      for (i = 0; i < ARRAY_SIZE (all_fp16_formats); i++)
-	{
-	  if (streq (all_fp16_formats[i].name, target_fp16_format_name))
-	    {
-	      arm_fp16_format = all_fp16_formats[i].fp16_format_type;
-	      break;
-	    }
-	}
-      if (i == ARRAY_SIZE (all_fp16_formats))
-	error ("invalid __fp16 format option: -mfp16-format=%s",
-	       target_fp16_format_name);
-    }
-  else
-    arm_fp16_format = ARM_FP16_FORMAT_NONE;
-
-  if (target_abi_name)
-    {
-      for (i = 0; i < ARRAY_SIZE (arm_all_abis); i++)
-	{
-	  if (streq (arm_all_abis[i].name, target_abi_name))
-	    {
-	      arm_abi = arm_all_abis[i].abi_type;
-	      break;
-	    }
-	}
-      if (i == ARRAY_SIZE (arm_all_abis))
-	error ("invalid ABI option: -mabi=%s", target_abi_name);
-    }
-  else
-    arm_abi = ARM_DEFAULT_ABI;
-
   /* Make sure that the processor choice does not conflict with any of the
      other command line choices.  */
   if (TARGET_ARM && !(insn_flags & FL_NOTM))
@@ -1562,7 +1522,8 @@ arm_option_override (void)
   arm_tune_wbuf = (tune_flags & FL_WBUF) != 0;
   arm_tune_xscale = (tune_flags & FL_XSCALE) != 0;
   arm_arch_iwmmxt = (insn_flags & FL_IWMMXT) != 0;
-  arm_arch_hwdiv = (insn_flags & FL_DIV) != 0;
+  arm_arch_thumb_hwdiv = (insn_flags & FL_THUMB_DIV) != 0;
+  arm_arch_arm_hwdiv = (insn_flags & FL_ARM_DIV) != 0;
   arm_tune_cortex_a9 = (arm_tune == cortexa9) != 0;
 
   /* If we are not using the default (ARM mode) section anchor offset
@@ -1603,19 +1564,11 @@ arm_option_override (void)
   if (TARGET_IWMMXT_ABI && !TARGET_IWMMXT)
     error ("iwmmxt abi requires an iwmmxt capable cpu");
 
-  if (target_fpu_name == NULL && target_fpe_name != NULL)
+  if (!global_options_set.x_arm_fpu_index)
     {
-      if (streq (target_fpe_name, "2"))
-	target_fpu_name = "fpe2";
-      else if (streq (target_fpe_name, "3"))
-	target_fpu_name = "fpe3";
-      else
-	error ("invalid floating point emulation option: -mfpe=%s",
-	       target_fpe_name);
-    }
+      const char *target_fpu_name;
+      bool ok;
 
-  if (target_fpu_name == NULL)
-    {
 #ifdef FPUTYPE_DEFAULT
       target_fpu_name = FPUTYPE_DEFAULT;
 #else
@@ -1624,23 +1577,13 @@ arm_option_override (void)
       else
 	target_fpu_name = "fpe2";
 #endif
+
+      ok = opt_enum_arg_to_value (OPT_mfpu_, target_fpu_name, &arm_fpu_index,
+				  CL_TARGET);
+      gcc_assert (ok);
     }
 
-  arm_fpu_desc = NULL;
-  for (i = 0; i < ARRAY_SIZE (all_fpus); i++)
-    {
-      if (streq (all_fpus[i].name, target_fpu_name))
-	{
-	  arm_fpu_desc = &all_fpus[i];
-	  break;
-	}
-    }
-
-  if (!arm_fpu_desc)
-    {
-      error ("invalid floating point option: -mfpu=%s", target_fpu_name);
-      return;
-    }
+  arm_fpu_desc = &all_fpus[arm_fpu_index];
 
   switch (arm_fpu_desc->model)
     {
@@ -1664,24 +1607,6 @@ arm_option_override (void)
     default:
       gcc_unreachable();
     }
-
-  if (target_float_abi_name != NULL)
-    {
-      /* The user specified a FP ABI.  */
-      for (i = 0; i < ARRAY_SIZE (all_float_abis); i++)
-	{
-	  if (streq (all_float_abis[i].name, target_float_abi_name))
-	    {
-	      arm_float_abi = all_float_abis[i].abi_type;
-	      break;
-	    }
-	}
-      if (i == ARRAY_SIZE (all_float_abis))
-	error ("invalid floating point abi: -mfloat-abi=%s",
-	       target_float_abi_name);
-    }
-  else
-    arm_float_abi = TARGET_DEFAULT_FLOAT_ABI;
 
   if (TARGET_AAPCS_BASED
       && (arm_fpu_desc->model == ARM_FP_MODEL_FPA))
@@ -1743,18 +1668,6 @@ arm_option_override (void)
       && (tune_flags & FL_MODE32) == 0)
     flag_schedule_insns = flag_schedule_insns_after_reload = 0;
 
-  if (target_thread_switch)
-    {
-      if (strcmp (target_thread_switch, "soft") == 0)
-	target_thread_pointer = TP_SOFT;
-      else if (strcmp (target_thread_switch, "auto") == 0)
-	target_thread_pointer = TP_AUTO;
-      else if (strcmp (target_thread_switch, "cp15") == 0)
-	target_thread_pointer = TP_CP15;
-      else
-	error ("invalid thread pointer option: -mtp=%s", target_thread_switch);
-    }
-
   /* Use the cp15 method if it is available.  */
   if (target_thread_pointer == TP_AUTO)
     {
@@ -1768,19 +1681,25 @@ arm_option_override (void)
     error ("can not use -mtp=cp15 with 16-bit Thumb");
 
   /* Override the default structure alignment for AAPCS ABI.  */
-  if (TARGET_AAPCS_BASED)
-    arm_structure_size_boundary = 8;
-
-  if (structure_size_string != NULL)
+  if (!global_options_set.x_arm_structure_size_boundary)
     {
-      int size = strtol (structure_size_string, NULL, 0);
-
-      if (size == 8 || size == 32
-	  || (ARM_DOUBLEWORD_ALIGN && size == 64))
-	arm_structure_size_boundary = size;
-      else
-	warning (0, "structure size boundary can only be set to %s",
-		 ARM_DOUBLEWORD_ALIGN ? "8, 32 or 64": "8 or 32");
+      if (TARGET_AAPCS_BASED)
+	arm_structure_size_boundary = 8;
+    }
+  else
+    {
+      if (arm_structure_size_boundary != 8
+	  && arm_structure_size_boundary != 32
+	  && !(ARM_DOUBLEWORD_ALIGN && arm_structure_size_boundary == 64))
+	{
+	  if (ARM_DOUBLEWORD_ALIGN)
+	    warning (0,
+		     "structure size boundary can only be set to 8, 32 or 64");
+	  else
+	    warning (0, "structure size boundary can only be set to 8 or 32");
+	  arm_structure_size_boundary
+	    = (TARGET_AAPCS_BASED ? 8 : DEFAULT_STRUCTURE_SIZE_BOUNDARY);
+	}
     }
 
   if (!TARGET_ARM && TARGET_VXWORKS_RTP && flag_pic)
@@ -1842,12 +1761,7 @@ arm_option_override (void)
       max_insns_skipped = 6;
     }
   else
-    {
-      /* StrongARM has early execution of branches, so a sequence
-         that is worth skipping is shorter.  */
-      if (arm_tune_strongarm)
-        max_insns_skipped = 3;
-    }
+    max_insns_skipped = current_tune->max_insns_skipped;
 
   /* Hot/Cold partitioning is not currently supported, since we can't
      handle literal pool placement in that case.  */
@@ -2317,7 +2231,8 @@ const_ok_for_op (HOST_WIDE_INT i, enum rtx_code code)
       if (arm_arch_thumb2 && (i & 0xffff0000) == 0)
 	return 1;
       else
-	return 0;
+	/* Otherwise, try mvn.  */
+	return const_ok_for_arm (ARM_SIGN_EXTEND (~i));
 
     case PLUS:
     case COMPARE:
@@ -3431,6 +3346,28 @@ arm_libcall_uses_aapcs_base (const_rtx libcall)
 		   convert_optab_libfunc (sfix_optab, DImode, SFmode));
       add_libcall (libcall_htab,
 		   convert_optab_libfunc (ufix_optab, DImode, SFmode));
+
+      /* Values from double-precision helper functions are returned in core
+	 registers if the selected core only supports single-precision
+	 arithmetic, even if we are using the hard-float ABI.  The same is
+	 true for single-precision helpers, but we will never be using the
+	 hard-float ABI on a CPU which doesn't support single-precision
+	 operations in hardware.  */
+      add_libcall (libcall_htab, optab_libfunc (add_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (sdiv_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (smul_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (neg_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (sub_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (eq_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (lt_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (le_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (ge_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (gt_optab, DFmode));
+      add_libcall (libcall_htab, optab_libfunc (unord_optab, DFmode));
+      add_libcall (libcall_htab, convert_optab_libfunc (sext_optab, DFmode,
+							SFmode));
+      add_libcall (libcall_htab, convert_optab_libfunc (trunc_optab, SFmode,
+							DFmode));
     }
 
   return libcall && htab_find (libcall_htab, libcall) != NULL;
@@ -8163,6 +8100,21 @@ arm_adjust_cost (rtx insn, rtx link, rtx dep, int cost)
   return cost;
 }
 
+static int
+arm_default_branch_cost (bool speed_p, bool predictable_p ATTRIBUTE_UNUSED)
+{
+  if (TARGET_32BIT)
+    return (TARGET_THUMB2 && !speed_p) ? 1 : 4;
+  else
+    return (optimize > 0) ? 2 : 0;
+}
+
+static int
+arm_cortex_a5_branch_cost (bool speed_p, bool predictable_p)
+{
+  return speed_p ? 0 : arm_default_branch_cost (speed_p, predictable_p);
+}
+
 static int fp_consts_inited = 0;
 
 /* Only zero is valid for VFP.  Other values are also valid for FPA.  */
@@ -9150,7 +9102,7 @@ coproc_secondary_reload_class (enum machine_mode mode, rtx x, bool wb)
   /* The neon move patterns handle all legitimate vector and struct
      addresses.  */
   if (TARGET_NEON
-      && MEM_P (x)
+      && (MEM_P (x) || GET_CODE (x) == CONST_VECTOR)
       && (GET_MODE_CLASS (mode) == MODE_VECTOR_INT
 	  || GET_MODE_CLASS (mode) == MODE_VECTOR_FLOAT
 	  || VALID_NEON_STRUCT_MODE (mode)))
@@ -15970,7 +15922,7 @@ arm_expand_prologue (void)
 	}
     }
 
-  if (flag_stack_usage)
+  if (flag_stack_usage_info)
     current_function_static_stack_size
       = offsets->outgoing_args - offsets->saved_args;
 
@@ -20955,7 +20907,7 @@ thumb1_expand_prologue (void)
     emit_move_insn (gen_rtx_REG (Pmode, ARM_HARD_FRAME_POINTER_REGNUM),
 		    stack_pointer_rtx);
 
-  if (flag_stack_usage)
+  if (flag_stack_usage_info)
     current_function_static_stack_size
       = offsets->outgoing_args - offsets->saved_args;
 
@@ -22453,6 +22405,20 @@ arm_vector_mode_supported_p (enum machine_mode mode)
   return false;
 }
 
+/* Implements target hook array_mode_supported_p.  */
+
+static bool
+arm_array_mode_supported_p (enum machine_mode mode,
+			    unsigned HOST_WIDE_INT nelems)
+{
+  if (TARGET_NEON
+      && (VALID_NEON_DREG_MODE (mode) || VALID_NEON_QREG_MODE (mode))
+      && (nelems >= 2 && nelems <= 4))
+    return true;
+
+  return false;
+}
+
 /* Use the option -mvectorize-with-neon-quad to override the use of doubleword
    registers when autovectorizing for Neon, at least until multiple vector
    widths are supported properly by the middle-end.  */
@@ -23160,6 +23126,7 @@ arm_issue_rate (void)
     {
     case cortexr4:
     case cortexr4f:
+    case cortexr5:
     case cortexa5:
     case cortexa8:
     case cortexa9:
@@ -23884,6 +23851,236 @@ arm_attr_length_push_multi(rtx parallel_op, rtx first_op)
   if (!hi_reg)
     return 2;
   return 4;
+}
+
+/* Check the validity of operands in an ldrd/strd instruction.  */
+bool
+arm_check_ldrd_operands (rtx reg1, rtx reg2, rtx off1, rtx off2)
+{
+  HOST_WIDE_INT offset1 = 0;
+  HOST_WIDE_INT offset2 = 0;
+  int regno1 = REGNO (reg1);
+  int regno2 = REGNO (reg2);
+  HOST_WIDE_INT max_offset = 1020;
+
+  if (TARGET_ARM)
+    max_offset = 255;
+
+  if (off1 != NULL_RTX)
+    offset1 = INTVAL (off1);
+  if (off2 != NULL_RTX)
+    offset2 = INTVAL (off2);
+
+  /* The offset range of LDRD is [-max_offset, max_offset]. Here we check if
+     both offsets lie in the range [-max_offset, max_offset+4]. If one of the
+     offsets is max_offset+4, the following condition
+	((offset1 + 4) == offset2)
+     will ensure offset1 to be max_offset, suitable for instruction LDRD.  */
+  if ((offset1 > (max_offset + 4)) || (offset1 < -max_offset)
+      || ((offset1 & 3) != 0))
+    return false;
+  if ((offset2 > (max_offset + 4)) || (offset2 < -max_offset)
+      || ((offset2 & 3) != 0))
+    return false;
+
+  if ((offset1 + 4) == offset2)
+    {
+      if (TARGET_THUMB2)
+	return true;
+
+      /* TARGET_ARM  */
+      if (((regno1 & 1) == 0) && ((regno1 + 1) == regno2))           /* ldrd  */
+	return true;
+
+      if ((regno1 < regno2) && ((offset1 <= 4) && (offset1 >= -8)))  /* ldm  */
+	return true;
+    }
+  if ((offset2 + 4) == offset1)
+    {
+      if (TARGET_THUMB2)
+	return true;
+
+      /* TARGET_ARM  */
+      if (((regno2 & 1) == 0) && ((regno2 + 1) == regno1))           /* ldrd  */
+	return true;
+
+      if ((regno2 < regno1) && ((offset2 <= 4) && (offset2 >= -8)))  /* ldm  */
+	return true;
+    }
+
+  return false;
+}
+
+/* Check if the two memory accesses can be merged to an ldrd/strd instruction.
+   That is they use the same base register, and the gap between constant
+   offsets should be 4.  */
+bool
+arm_legitimate_ldrd_p (rtx reg1, rtx reg2, rtx mem1, rtx mem2, bool ldrd)
+{
+  rtx base1, base2;
+  rtx offset1 = NULL_RTX;
+  rtx offset2 = NULL_RTX;
+  rtx addr1 = XEXP (mem1, 0);
+  rtx addr2 = XEXP (mem2, 0);
+
+  if (MEM_VOLATILE_P (mem1) || MEM_VOLATILE_P (mem2))
+    return false;
+
+  if (REG_P (addr1))
+    base1 = addr1;
+  else if (GET_CODE (addr1) == PLUS)
+    {
+      base1 = XEXP (addr1, 0);
+      offset1 = XEXP (addr1, 1);
+      if (!REG_P (base1) || (GET_CODE (offset1) != CONST_INT))
+	return false;
+    }
+  else
+    return false;
+
+  if (REG_P (addr2))
+    base2 = addr2;
+  else if (GET_CODE (addr2) == PLUS)
+    {
+      base2 = XEXP (addr2, 0);
+      offset2 = XEXP (addr2, 1);
+      if (!REG_P (base2) || (GET_CODE (offset2) != CONST_INT))
+	return false;
+    }
+  else
+    return false;
+
+  if (base1 != base2)
+    return false;
+
+  if (ldrd && ((reg1 == reg2) || (reg1 == base1)))
+    return false;
+
+  return arm_check_ldrd_operands (reg1, reg2, offset1, offset2);
+}
+
+/* Output instructions for ldrd and count the number of bytes has been
+   outputted. Do not actually output instructions if EMIT_P is false.  */
+int
+arm_output_ldrd (rtx reg1, rtx reg2, rtx base, rtx off1, rtx off2, bool emit_p)
+{
+  int length = 0;
+  rtx operands[5];
+  HOST_WIDE_INT offset1 = 0;
+  HOST_WIDE_INT offset2 = 0;
+
+  if (off1 != NULL_RTX)
+    offset1 = INTVAL (off1);
+  else
+    off1 = GEN_INT (0);
+  if (off2 != NULL_RTX)
+    offset2 = INTVAL (off2);
+  else
+    off2 = GEN_INT (0);
+  if (offset1 > offset2)
+    {
+      rtx tmp;
+      HOST_WIDE_INT t = offset1;   offset1 = offset2;   offset2 = t;
+      tmp = off1;   off1 = off2;   off2 = tmp;
+      tmp = reg1;   reg1 = reg2;   reg2 = tmp;
+    }
+
+  operands[0] = reg1;
+  operands[1] = reg2;
+  operands[2] = base;
+  operands[3] = off1;
+  operands[4] = off2;
+
+  if (TARGET_THUMB2)
+    {
+      if (fix_cm3_ldrd && (base == reg1))
+	{
+	  if (offset1 <= -256)
+	    {
+	      if (emit_p)
+		output_asm_insn ("sub\t%2, %2, %n3", operands);
+	      length = 4;
+
+	      if (emit_p)
+		output_asm_insn ("ldr\t%1, [%2, #4]", operands);
+	      if (low_register_operand (reg2, SImode)
+		  && low_register_operand (base, SImode))
+		length += 2;
+	      else
+		length += 4;
+
+	      if (emit_p)
+		output_asm_insn ("ldr\t%0, [%2]", operands);
+	      if (low_register_operand (base, SImode))
+		length += 2;
+	      else
+		length += 4;
+	    }
+	  else
+	    {
+	      if (emit_p)
+		output_asm_insn ("ldr\t%1, [%2, %4]", operands);
+	      if (low_register_operand (reg2, SImode) && (offset2 >= 0)
+		  && low_register_operand (base, SImode) && (offset2 < 128))
+		length += 2;
+	      else
+		length += 4;
+
+	      if (emit_p)
+		output_asm_insn ("ldr\t%0, [%2, %3]", operands);
+	      if (low_register_operand (base, SImode)
+		  && (offset1 >= 0) && (offset1 < 128))
+		length += 2;
+	      else
+		length += 4;
+	    }
+	}
+      else
+	{
+	  if (emit_p)
+	    output_asm_insn ("ldrd\t%0, %1, [%2, %3]", operands);
+	  length = 4;
+	}
+    }
+  else    /* TARGET_ARM  */
+    {
+      if ((REGNO (reg2) == (REGNO (reg1) + 1)) && ((REGNO (reg1) & 1) == 0))
+	{
+	  if (emit_p)
+	    output_asm_insn ("ldrd\t%0, %1, [%2, %3]", operands);
+	  length = 4;
+	}
+      else
+	{
+	  if (emit_p)
+	    {
+	      switch (offset1)
+		{
+		case -8:
+		  output_asm_insn ("ldm%(db%)\t%2, {%0, %1}", operands);
+		  break;
+
+		case -4:
+		  output_asm_insn ("ldm%(da%)\t%2, {%0, %1}", operands);
+		  break;
+
+		case 0:
+		  output_asm_insn ("ldm%(ia%)\t%2, {%0, %1}", operands);
+		  break;
+
+		case 4:
+		  output_asm_insn ("ldm%(ib%)\t%2, {%0, %1}", operands);
+		  break;
+
+		default:
+		  gcc_unreachable ();
+		}
+	    }
+	  length = 4;
+	}
+    }
+
+  return length;
 }
 
 #include "gt-arm.h"

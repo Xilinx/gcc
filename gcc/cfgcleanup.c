@@ -599,9 +599,6 @@ try_forward_edges (int mode, basic_block b)
 			     + REG_BR_PROB_BASE / 2)
 			    / REG_BR_PROB_BASE);
 
-	  if (!FORWARDER_BLOCK_P (b) && forwarder_block_p (b))
-	    b->flags |= BB_FORWARDER_BLOCK;
-
 	  do
 	    {
 	      edge t;
@@ -2693,7 +2690,10 @@ try_optimize_cfg (int mode)
 
 	      /* Simplify branch to branch.  */
 	      if (try_forward_edges (mode, b))
-		changed_here = true;
+		{
+		  update_forwarder_flag (b);
+		  changed_here = true;
+		}
 
 	      /* Look for shared code between blocks.  */
 	      if ((mode & CLEANUP_CROSSJUMP)
@@ -2989,8 +2989,6 @@ struct rtl_opt_pass pass_jump2 =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   TODO_ggc_collect,                     /* todo_flags_start */
-  TODO_dump_func | TODO_verify_rtl_sharing,/* todo_flags_finish */
+  TODO_verify_rtl_sharing,              /* todo_flags_finish */
  }
 };
-
-

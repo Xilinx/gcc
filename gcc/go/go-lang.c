@@ -87,15 +87,6 @@ go_langhook_init (void)
 {
   build_common_tree_nodes (false);
 
-  /* The sizetype may be "unsigned long" or "unsigned long long".  */
-  if (TYPE_MODE (long_unsigned_type_node) == ptr_mode)
-    size_type_node = long_unsigned_type_node;
-  else if (TYPE_MODE (long_long_unsigned_type_node) == ptr_mode)
-    size_type_node = long_long_unsigned_type_node;
-  else
-    size_type_node = long_unsigned_type_node;
-  set_sizetype (size_type_node);
-
   build_common_tree_nodes_2 (0);
 
   /* We must create the gogo IR after calling build_common_tree_nodes
@@ -308,10 +299,12 @@ go_langhook_builtin_function (tree decl)
   return decl;
 }
 
-static int
+/* Return true if we are in the global binding level.  */
+
+static bool
 go_langhook_global_bindings_p (void)
 {
-  return current_function_decl == NULL ? 1 : 0;
+  return current_function_decl == NULL_TREE;
 }
 
 /* Push a declaration into the current binding level.  We can't

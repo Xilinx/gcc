@@ -102,7 +102,7 @@ along with GCC; see the file COPYING3.  If not see
   "%{!shared:%{pg:gcrt0.o%s}%{!pg:%{p:mcrt0.o%s}%{!p:crt0.o%s}}}"
 
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
 
 #define MD_STARTFILE_PREFIX "/usr/lib/cmplrs/cc/"
 
@@ -165,22 +165,7 @@ along with GCC; see the file COPYING3.  If not see
 #define HAVE_STAMP_H 1
 #endif
 
-/* Attempt to turn on access permissions for the stack.  */
-
-#define ENABLE_EXECUTE_STACK						\
-void									\
-__enable_execute_stack (void *addr)					\
-{									\
-  extern int mprotect (const void *, size_t, int);			\
-  long size = getpagesize ();						\
-  long mask = ~(size-1);						\
-  char *page = (char *) (((long) addr) & mask);				\
-  char *end  = (char *) ((((long) (addr + TRAMPOLINE_SIZE)) & mask) + size); \
-									\
-  /* 7 is PROT_READ | PROT_WRITE | PROT_EXEC */				\
-  if (mprotect (page, end - page, 7) < 0)				\
-    perror ("mprotect of trampoline code");				\
-}
+#define HAVE_ENABLE_EXECUTE_STACK
 
 /* Digital UNIX V4.0E (1091)/usr/include/sys/types.h 4.3.49.9 1997/08/14 */
 #define SIZE_TYPE	"long unsigned int"
@@ -274,5 +259,3 @@ __enable_execute_stack (void *addr)					\
 
 /* Handle #pragma extern_prefix.  */
 #define TARGET_HANDLE_PRAGMA_EXTERN_PREFIX 1
-
-#define MD_UNWIND_SUPPORT "config/alpha/osf5-unwind.h"

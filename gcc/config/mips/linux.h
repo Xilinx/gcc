@@ -99,8 +99,6 @@ along with GCC; see the file COPYING3.  If not see
 %{!shared: \
   %{profile:-lc_p} %{!profile:-lc}}"
 
-#define MD_UNWIND_SUPPORT "config/mips/linux-unwind.h"
-
 #ifdef HAVE_AS_NO_SHARED
 /* Default to -mno-shared for non-PIC.  */
 # define NO_SHARED_SPECS \
@@ -140,5 +138,5 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 /* Similar to standard Linux, but adding -ffast-math support.  */
 #undef  ENDFILE_SPEC
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
    %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"

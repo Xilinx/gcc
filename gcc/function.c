@@ -1937,17 +1937,6 @@ instantiate_virtual_regs (void)
      frame_pointer_rtx.  */
   virtuals_instantiated = 1;
 
-  /* See allocate_dynamic_stack_space for the rationale.  */
-#ifdef SETJMP_VIA_SAVE_AREA
-  if (flag_stack_usage && cfun->calls_setjmp)
-    {
-      int align = PREFERRED_STACK_BOUNDARY / BITS_PER_UNIT;
-      dynamic_offset = (dynamic_offset + align - 1) / align * align;
-      current_function_dynamic_stack_size
-	+= current_function_dynamic_alloc_count * dynamic_offset;
-    }
-#endif
-
   return 0;
 }
 
@@ -1966,7 +1955,7 @@ struct rtl_opt_pass pass_instantiate_virtual_regs =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func                        /* todo_flags_finish */
+  0                                     /* todo_flags_finish */
  }
 };
 
@@ -4465,7 +4454,7 @@ prepare_function_start (void)
   init_expr ();
   default_rtl_profile ();
 
-  if (flag_stack_usage)
+  if (flag_stack_usage_info)
     {
       cfun->su = ggc_alloc_cleared_stack_usage ();
       cfun->su->static_stack_size = -1;
@@ -4515,6 +4504,7 @@ init_function_start (tree subr)
   else
     allocate_struct_function (subr, false);
   prepare_function_start ();
+  decide_function_section (subr);
 
   /* Warn if this value is an aggregate type,
      regardless of which calling convention we are using for it.  */
@@ -4812,9 +4802,8 @@ expand_function_start (tree subr)
 #endif
     }
 
-  /* After the display initializations is where the stack checking
-     probe should go.  */
-  if(flag_stack_check)
+  /* If we are doing generic stack checking, the probe should go here.  */
+  if (flag_stack_check == GENERIC_STACK_CHECK)
     stack_check_probe_note = emit_note (NOTE_INSN_DELETED);
 
   /* Make sure there is a line number after the function entry setup code.  */
@@ -5939,7 +5928,7 @@ rest_of_handle_thread_prologue_and_epilogue (void)
   thread_prologue_and_epilogue_insns ();
 
   /* The stack usage info is finalized during prologue expansion.  */
-  if (flag_stack_usage)
+  if (flag_stack_usage_info)
     output_stack_usage ();
 
   return 0;
@@ -5960,7 +5949,6 @@ struct rtl_opt_pass pass_thread_prologue_and_epilogue =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   TODO_verify_flow,                     /* todo_flags_start */
-  TODO_dump_func |
   TODO_df_verify |
   TODO_df_finish | TODO_verify_rtl_sharing |
   TODO_ggc_collect                      /* todo_flags_finish */
@@ -6162,7 +6150,7 @@ struct rtl_opt_pass pass_match_asm_constraints =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func                       /* todo_flags_finish */
+  0                                     /* todo_flags_finish */
  }
 };
 

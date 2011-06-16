@@ -352,7 +352,7 @@ Li Feng						nemokingdom@gmail.com
 Thomas Fitzsimmons				fitzsim@redhat.com
 Brian Ford					ford@vss.fsi.com
 John Freeman					jfreeman08@gmail.com
-Nathan Froyd					froydnj@codesourcery.com
+Nathan Froyd					froydnj@gcc.gnu.org
 Chao-ying Fu					fu@mips.com
 Gary Funck					gary@intrepid.com
 Pompapathi V Gadad 				Pompapathi.V.Gadad@nsc.com
@@ -379,12 +379,13 @@ Falk Hueffner					falk@debian.org
 Andrew John Hughes				gnu_andrew@member.fsf.org
 Andy Hutchinson					hutchinsonandy@aim.com
 Bernardo Innocenti				bernie@develer.com
-Daniel Jacobowitz				dan@codesourcery.com
+Daniel Jacobowitz				drow@false.org
 Andreas Jaeger					aj@suse.de
 Harsha Jagasia					harsha.jagasia@amd.com
 Fariborz Jahanian				fjahanian@apple.com
 Martin Jambor					mjambor@suse.cz
 Andrew Jenner					andrew@codesourcery.com
+Janis Johnson					janisjo@codesourcery.com
 Kean Johnston					jkj@sco.com
 Phillip Jordan					phillip.m.jordan@gmail.com
 Tim Josling					tej@melbpc.org.au
@@ -449,6 +450,7 @@ Devang Patel					dpatel@apple.com
 Fernando Pereira				pronesto@gmail.com
 Kaushik Phatak					kaushik.phatak@kpitcummins.com
 Nicolas Pitre					nico@cam.org
+Paul Pluzhnikov					ppluzhnikov@google.com
 Antoniu Pop					antoniu.pop@gmail.com
 Vladimir Prus					vladimir@codesourcery.com
 Yao Qi						yao@codesourcery.com
@@ -496,6 +498,7 @@ Konrad Trifunovic				konrad.trifunovic@inria.fr
 David Ung					davidu@mips.com
 Neil Vachharajani				nvachhar@gmail.com
 Kris Van Hees					kris.van.hees@oracle.com
+Nenad Vukicevic					nenad@intrepid.com
 Feng Wang					fengwang@nudt.edu.cn
 Stephen M. Webb					stephen.webb@bregmasoft.com
 John Wehle					john@feith.com

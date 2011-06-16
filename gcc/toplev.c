@@ -562,28 +562,23 @@ emit_debug_global_declarations (tree *vec, int len)
 static void
 compile_file (void)
 {
-  /* Initialize yet another pass.  */
-
-  ggc_protect_identifiers = true;
-
-  init_cgraph ();
-  init_final (main_input_filename);
-  coverage_init (aux_base_name);
-  statistics_init ();
-  invoke_plugin_callbacks (PLUGIN_START_UNIT, NULL);
-
-  timevar_push (TV_PARSE);
+  timevar_start (TV_PHASE_PARSING);
+  timevar_push (TV_PARSE_GLOBAL);
 
   /* Call the parser, which parses the entire file (calling
      rest_of_compilation for each function).  */
   lang_hooks.parse_file ();
 
+  timevar_pop (TV_PARSE_GLOBAL);
+  timevar_stop (TV_PHASE_PARSING);
+
   /* Compilation is now finished except for writing
      what's left of the symbol table output.  */
-  timevar_pop (TV_PARSE);
 
   if (flag_syntax_only || flag_wpa)
     return;
+
+  timevar_start (TV_PHASE_GENERATE);
 
   ggc_protect_identifiers = false;
 
@@ -591,7 +586,10 @@ compile_file (void)
   lang_hooks.decls.final_write_globals ();
 
   if (seen_error ())
-    return;
+    {
+      timevar_stop (TV_PHASE_GENERATE);
+      return;
+    }
 
   varpool_assemble_pending_decls ();
   finish_aliases_2 ();
@@ -671,6 +669,8 @@ compile_file (void)
      into the assembly file here, and hence we can not output anything to the
      assembly file after this point.  */
   targetm.asm_out.file_end ();
+
+  timevar_stop (TV_PHASE_GENERATE);
 }
 
 /* Indexed by enum debug_info_type.  */
@@ -1048,14 +1048,12 @@ output_stack_usage (void)
   };
   HOST_WIDE_INT stack_usage = current_function_static_stack_size;
   enum stack_usage_kind_type stack_usage_kind;
-  expanded_location loc;
-  const char *raw_id, *id;
 
   if (stack_usage < 0)
     {
       if (!warning_issued)
 	{
-	  warning (0, "-fstack-usage not supported for this target");
+	  warning (0, "stack usage computation not supported for this target");
 	  warning_issued = true;
 	}
       return;
@@ -1082,24 +1080,44 @@ output_stack_usage (void)
       stack_usage += current_function_dynamic_stack_size;
     }
 
-  loc = expand_location (DECL_SOURCE_LOCATION (current_function_decl));
+  if (flag_stack_usage)
+    {
+      expanded_location loc
+	= expand_location (DECL_SOURCE_LOCATION (current_function_decl));
+      const char *raw_id, *id;
 
-  /* Strip the scope prefix if any.  */
-  raw_id = lang_hooks.decl_printable_name (current_function_decl, 2);
-  id = strrchr (raw_id, '.');
-  if (id)
-    id++;
-  else
-    id = raw_id;
+      /* Strip the scope prefix if any.  */
+      raw_id = lang_hooks.decl_printable_name (current_function_decl, 2);
+      id = strrchr (raw_id, '.');
+      if (id)
+	id++;
+      else
+	id = raw_id;
 
-  fprintf (stack_usage_file,
-	   "%s:%d:%d:%s\t"HOST_WIDE_INT_PRINT_DEC"\t%s\n",
-	   lbasename (loc.file),
-	   loc.line,
-	   loc.column,
-	   id,
-	   stack_usage,
-	   stack_usage_kind_str[stack_usage_kind]);
+      fprintf (stack_usage_file,
+	       "%s:%d:%d:%s\t"HOST_WIDE_INT_PRINT_DEC"\t%s\n",
+	       lbasename (loc.file),
+	       loc.line,
+	       loc.column,
+	       id,
+	       stack_usage,
+	       stack_usage_kind_str[stack_usage_kind]);
+    }
+
+  if (warn_stack_usage >= 0)
+    {
+      if (stack_usage_kind == DYNAMIC)
+	warning (OPT_Wstack_usage_, "stack usage might be unbounded");
+      else if (stack_usage > warn_stack_usage)
+	{
+	  if (stack_usage_kind == DYNAMIC_BOUNDED)
+	    warning (OPT_Wstack_usage_, "stack usage might be %wd bytes",
+		     stack_usage);
+	  else
+	    warning (OPT_Wstack_usage_, "stack usage is %wd bytes",
+		     stack_usage);
+	}
+    }
 }
 
 /* Open an auxiliary output file.  */
@@ -1252,29 +1270,6 @@ process_options (void)
   debug_hooks = &do_nothing_debug_hooks;
 
   maximum_field_alignment = initial_max_fld_align * BITS_PER_UNIT;
-
-  /* This replaces set_Wunused.  */
-  if (warn_unused_function == -1)
-    warn_unused_function = warn_unused;
-  if (warn_unused_label == -1)
-    warn_unused_label = warn_unused;
-  /* Wunused-parameter is enabled if both -Wunused -Wextra are enabled.  */
-  if (warn_unused_parameter == -1)
-    warn_unused_parameter = (warn_unused && extra_warnings);
-  if (warn_unused_variable == -1)
-    warn_unused_variable = warn_unused;
-  /* Wunused-but-set-parameter is enabled if both -Wunused -Wextra are
-     enabled.  */
-  if (warn_unused_but_set_parameter == -1)
-    warn_unused_but_set_parameter = (warn_unused && extra_warnings);
-  if (warn_unused_but_set_variable == -1)
-    warn_unused_but_set_variable = warn_unused;
-  if (warn_unused_value == -1)
-    warn_unused_value = warn_unused;
-
-  /* This replaces set_Wextra.  */
-  if (warn_uninitialized == -1)
-    warn_uninitialized = extra_warnings;
 
   /* Allow the front end to perform consistency checks and do further
      initialization based on the command line options.  This hook also
@@ -1899,6 +1894,8 @@ do_compile (void)
   /* Don't do any more if an error has already occurred.  */
   if (!seen_error ())
     {
+      timevar_start (TV_PHASE_SETUP);
+
       /* This must be run always, because it is needed to compute the FP
 	 predefined macros, such as __LDBL_MAX__, for targets using non
 	 default FP formats.  */
@@ -1910,9 +1907,31 @@ do_compile (void)
 
       /* Language-dependent initialization.  Returns true on success.  */
       if (lang_dependent_init (main_input_filename))
-	compile_file ();
+        {
+          /* Initialize yet another pass.  */
+
+          ggc_protect_identifiers = true;
+
+          init_cgraph ();
+          init_final (main_input_filename);
+          coverage_init (aux_base_name);
+          statistics_init ();
+          invoke_plugin_callbacks (PLUGIN_START_UNIT, NULL);
+
+          timevar_stop (TV_PHASE_SETUP);
+
+          compile_file ();
+        }
+      else
+        {
+          timevar_stop (TV_PHASE_SETUP);
+        }
+
+      timevar_start (TV_PHASE_FINALIZE);
 
       finalize (no_backend);
+
+      timevar_stop (TV_PHASE_FINALIZE);
     }
 
   /* Stop timing and print the times.  */

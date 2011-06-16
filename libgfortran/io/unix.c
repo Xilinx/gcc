@@ -560,6 +560,11 @@ buf_write (unix_stream * s, const void * buf, ssize_t nbyte)
 static gfc_offset
 buf_seek (unix_stream * s, gfc_offset offset, int whence)
 {
+  if (s->file_length == -1)
+    {
+      errno = ESPIPE;
+      return -1;
+    }
   switch (whence)
     {
     case SEEK_SET:
@@ -585,7 +590,7 @@ buf_seek (unix_stream * s, gfc_offset offset, int whence)
 static gfc_offset
 buf_tell (unix_stream * s)
 {
-  return s->logical_offset;
+  return buf_seek (s, 0, SEEK_CUR);
 }
 
 static int
@@ -952,15 +957,15 @@ fd_to_stream (int fd)
 
   if (S_ISREG (statbuf.st_mode))
     s->file_length = statbuf.st_size;
-  else if (S_ISBLK (statbuf.st_mode))
-    {
-      /* Hopefully more portable than ioctl(fd, BLKGETSIZE64, &size)?  */
-      gfc_offset cur = lseek (fd, 0, SEEK_CUR);
-      s->file_length = lseek (fd, 0, SEEK_END);
-      lseek (fd, cur, SEEK_SET);
-    }
   else
-    s->file_length = -1;
+    {
+      /* Some character special files are seekable but most are not,
+	 so figure it out by trying to seek.  On Linux, /dev/null is
+	 an example of such a special file.  */
+      s->file_length = lseek (fd, 0, SEEK_END);
+      if (s->file_length > 0)
+	lseek (fd, 0, SEEK_SET);
+    }
 
   if (!(S_ISREG (statbuf.st_mode) || S_ISBLK (statbuf.st_mode))
       || options.all_unbuffered
@@ -1350,61 +1355,6 @@ error_stream (void)
 
   s = fd_to_stream (STDERR_FILENO);
   return s;
-}
-
-
-/* st_vprintf()-- vprintf function for error output.  To avoid buffer
-   overruns, we limit the length of the buffer to ST_VPRINTF_SIZE.  2k
-   is big enough to completely fill a 80x25 terminal, so it shuld be
-   OK.  We use a direct write() because it is simpler and least likely
-   to be clobbered by memory corruption.  Writing an error message
-   longer than that is an error.  */
-
-#define ST_VPRINTF_SIZE 2048
-
-int
-st_vprintf (const char *format, va_list ap)
-{
-  static char buffer[ST_VPRINTF_SIZE];
-  int written;
-  int fd;
-
-  fd = options.use_stderr ? STDERR_FILENO : STDOUT_FILENO;
-#ifdef HAVE_VSNPRINTF
-  written = vsnprintf(buffer, ST_VPRINTF_SIZE, format, ap);
-#else
-  written = vsprintf(buffer, format, ap);
-
-  if (written >= ST_VPRINTF_SIZE-1)
-    {
-      /* The error message was longer than our buffer.  Ouch.  Because
-	 we may have messed up things badly, report the error and
-	 quit.  */
-#define ERROR_MESSAGE "Internal error: buffer overrun in st_vprintf()\n"
-      write (fd, buffer, ST_VPRINTF_SIZE-1);
-      write (fd, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
-      sys_exit(2);
-#undef ERROR_MESSAGE
-
-    }
-#endif
-
-  written = write (fd, buffer, written);
-  return written;
-}
-
-/* st_printf()-- printf() function for error output.  This just calls
-   st_vprintf() to do the actual work.  */
-
-int
-st_printf (const char *format, ...)
-{
-  int written;
-  va_list ap;
-  va_start (ap, format);
-  written = st_vprintf(format, ap);
-  va_end (ap);
-  return written;
 }
 
 

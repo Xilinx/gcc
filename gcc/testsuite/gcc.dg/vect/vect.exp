@@ -107,6 +107,12 @@ lappend DEFAULT_VECTCFLAGS "-ffast-math"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/fast-math-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
 
+# -fno-fast-math tests
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fno-fast-math"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-fast-math-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
+
 # -fno-math-errno tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-fno-math-errno"
@@ -171,6 +177,12 @@ dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-trapping-math-*.\[cS\]]] 
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-fno-tree-scev-cprop"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-scevccp-vect-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
+
+# -fno-tree-scev-cprop
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fno-tree-scev-cprop"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-scevccp-pr*.\[cS\]]]  \
         "" $DEFAULT_VECTCFLAGS
 
 # -fno-tree-scev-cprop

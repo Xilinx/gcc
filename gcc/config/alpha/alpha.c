@@ -5395,7 +5395,7 @@ alpha_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
   if (TARGET_ABI_OSF)
     {
       emit_insn (gen_imb ());
-#ifdef ENABLE_EXECUTE_STACK
+#ifdef HAVE_ENABLE_EXECUTE_STACK
       emit_library_call (init_one_libfunc ("__enable_execute_stack"),
 			 LCT_NORMAL, VOIDmode, 1, XEXP (m_tramp, 0), Pmode);
 #endif
@@ -6408,7 +6408,7 @@ alpha_init_builtins (void)
   implicit_built_in_decls[(int) BUILT_IN_FWRITE_UNLOCKED] = NULL_TREE;
 #endif
 
-  ftype = build_function_type (dimode_integer_type_node, void_list_node);
+  ftype = build_function_type_list (dimode_integer_type_node, NULL_TREE);
   alpha_add_builtins (zero_arg_builtins, ARRAY_SIZE (zero_arg_builtins),
 		      ftype);
 
@@ -6423,7 +6423,7 @@ alpha_init_builtins (void)
   alpha_add_builtins (two_arg_builtins, ARRAY_SIZE (two_arg_builtins),
 		      ftype);
 
-  ftype = build_function_type (ptr_type_node, void_list_node);
+  ftype = build_function_type_list (ptr_type_node, NULL_TREE);
   alpha_builtin_function ("__builtin_thread_pointer", ftype,
 			  ALPHA_BUILTIN_THREAD_POINTER, ECF_NOTHROW);
 
@@ -7522,7 +7522,7 @@ alpha_expand_prologue (void)
   sa_size = alpha_sa_size ();
   frame_size = compute_frame_size (get_frame_size (), sa_size);
 
-  if (flag_stack_usage)
+  if (flag_stack_usage_info)
     current_function_static_stack_size = frame_size;
 
   if (TARGET_ABI_OPEN_VMS)

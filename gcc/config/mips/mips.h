@@ -72,12 +72,7 @@ struct mips_cpu_info {
   unsigned int tune_flags;
 };
 
-/* Enumerates the setting of the -mcode-readable option.  */
-enum mips_code_readable_setting {
-  CODE_READABLE_NO,
-  CODE_READABLE_PCREL,
-  CODE_READABLE_YES
-};
+#include "config/mips/mips-opts.h"
 
 /* Macros to silence warnings about numbers being signed in traditional
    C and unsigned in ISO C when compiled on 32-bit hosts.  */
@@ -575,13 +570,6 @@ enum mips_code_readable_setting {
 
 #ifndef TARGET_FP_EXCEPTIONS_DEFAULT
 #define TARGET_FP_EXCEPTIONS_DEFAULT MASK_FP_EXCEPTIONS
-#endif
-
-/* 'from-abi' makes a good default: you get whatever the ABI requires.  */
-#ifndef MIPS_ISA_DEFAULT
-#ifndef MIPS_CPU_STRING_DEFAULT
-#define MIPS_CPU_STRING_DEFAULT "from-abi"
-#endif
 #endif
 
 #ifdef IN_LIBGCC2
@@ -1091,14 +1079,6 @@ enum mips_code_readable_setting {
 #endif
 
 
-/* SUBTARGET_ASM_OPTIMIZING_SPEC handles passing optimization options
-   to the assembler.  It may be overridden by subtargets.  */
-#ifndef SUBTARGET_ASM_OPTIMIZING_SPEC
-#define SUBTARGET_ASM_OPTIMIZING_SPEC "\
-%{noasmopt:-O0} \
-%{!noasmopt:%{O:-O2} %{O1:-O2} %{O2:-O2} %{O3:-O3}}"
-#endif
-
 /* SUBTARGET_ASM_DEBUGGING_SPEC handles passing debugging options to
    the assembler.  It may be overridden by subtargets.
 
@@ -1135,7 +1115,7 @@ enum mips_code_readable_setting {
 %{mmt} %{mno-mt} \
 %{mfix-vr4120} %{mfix-vr4130} \
 %{mfix-24k} \
-%(subtarget_asm_optimizing_spec) \
+%{noasmopt:-O0; O0|fno-delayed-branch:-O1; O*:-O2; :-O1} \
 %(subtarget_asm_debugging_spec) \
 %{mabi=*} %{!mabi=*: %(asm_abi_default_spec)} \
 %{mgp32} %{mgp64} %{march=*} %{mxgot:-xgot} \
@@ -1193,7 +1173,6 @@ enum mips_code_readable_setting {
 #define EXTRA_SPECS							\
   { "subtarget_cc1_spec", SUBTARGET_CC1_SPEC },				\
   { "subtarget_cpp_spec", SUBTARGET_CPP_SPEC },				\
-  { "subtarget_asm_optimizing_spec", SUBTARGET_ASM_OPTIMIZING_SPEC },	\
   { "subtarget_asm_debugging_spec", SUBTARGET_ASM_DEBUGGING_SPEC },	\
   { "subtarget_asm_spec", SUBTARGET_ASM_SPEC },				\
   { "asm_abi_default_spec", "-" MULTILIB_ABI_DEFAULT },			\
@@ -2896,11 +2875,9 @@ extern bool mips_split_hi_p[];
 extern enum processor mips_arch;        /* which cpu to codegen for */
 extern enum processor mips_tune;        /* which cpu to schedule for */
 extern int mips_isa;			/* architectural level */
-extern int mips_abi;			/* which ABI to use */
 extern const struct mips_cpu_info *mips_arch_info;
 extern const struct mips_cpu_info *mips_tune_info;
 extern bool mips_base_mips16;
-extern enum mips_code_readable_setting mips_code_readable;
 extern GTY(()) struct target_globals *mips16_globals;
 #endif
 

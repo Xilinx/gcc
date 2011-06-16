@@ -63,6 +63,7 @@
   DONE;
 })
 
+;; movd instead of movq is required to handle broken assemblers.
 (define_insn "*mov<mode>_internal_rex64"
   [(set (match_operand:MMXMODEI8 0 "nonimmediate_operand"
 	 "=rm,r,!?y,!y,!?y,m  ,!y ,*Y2,x,x ,m,r ,Yi")
@@ -82,9 +83,21 @@
     %vpxor\t%0, %d0
     %vmovq\t{%1, %0|%0, %1}
     %vmovq\t{%1, %0|%0, %1}
-    %vmovq\t{%1, %0|%0, %1}
-    %vmovq\t{%1, %0|%0, %1}"
-  [(set_attr "type" "imov,imov,mmx,mmxmov,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,ssemov,ssemov")
+    %vmovd\t{%1, %0|%0, %1}
+    %vmovd\t{%1, %0|%0, %1}"
+  [(set (attr "type")
+     (cond [(eq_attr "alternative" "0,1")
+	      (const_string "imov")
+	    (eq_attr "alternative" "2")
+	      (const_string "mmx")
+	    (eq_attr "alternative" "3,4,5")
+	      (const_string "mmxmov")
+	    (eq_attr "alternative" "6,7")
+	      (const_string "ssecvt")
+	    (eq_attr "alternative" "8")
+	      (const_string "sselog1")
+	   ]
+	   (const_string "ssemov")))
    (set_attr "unit" "*,*,*,*,*,*,mmx,mmx,*,*,*,*,*")
    (set_attr "prefix_rep" "*,*,*,*,*,*,1,1,*,1,*,*,*")
    (set_attr "prefix_data16" "*,*,*,*,*,*,*,*,*,*,1,1,1")
@@ -124,8 +137,20 @@
   [(set (attr "isa")
      (if_then_else (eq_attr "alternative" "9,10,11,12")
        (const_string "noavx")
-       (const_string "base")))
-   (set_attr "type" "mmx,mmxmov,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,sselog1,ssemov,ssemov,ssemov,*,*")
+       (const_string "*")))
+   (set (attr "type")
+     (cond [(eq_attr "alternative" "0")
+	      (const_string "mmx")
+	    (eq_attr "alternative" "1,2,3")
+	      (const_string "mmxmov")
+	    (eq_attr "alternative" "4,5")
+	      (const_string "ssecvt")
+	    (eq_attr "alternative" "6,9")
+	      (const_string "sselog1")
+	    (eq_attr "alternative" "13,14")
+	      (const_string "multi")
+	   ]
+	   (const_string "ssemov")))
    (set_attr "unit" "*,*,*,*,mmx,mmx,*,*,*,*,*,*,*,*,*")
    (set (attr "prefix_rep")
      (if_then_else
@@ -155,6 +180,7 @@
   DONE;
 })
 
+;; movd instead of movq is required to handle broken assemblers.
 (define_insn "*movv2sf_internal_rex64"
   [(set (match_operand:V2SF 0 "nonimmediate_operand"
 	 "=rm,r,!?y,!y,!?y,m  ,!y ,*Y2,x,x,x,m,r ,Yi")
@@ -175,9 +201,21 @@
     %vmovaps\t{%1, %0|%0, %1}
     %vmovlps\t{%1, %d0|%d0, %1}
     %vmovlps\t{%1, %0|%0, %1}
-    %vmovq\t{%1, %0|%0, %1}
-    %vmovq\t{%1, %0|%0, %1}"
-  [(set_attr "type" "imov,imov,mmx,mmxmov,mmxmov,mmxmov,ssecvt,ssecvt,ssemov,sselog1,ssemov,ssemov,ssemov,ssemov")
+    %vmovd\t{%1, %0|%0, %1}
+    %vmovd\t{%1, %0|%0, %1}"
+  [(set (attr "type")
+     (cond [(eq_attr "alternative" "0,1")
+	      (const_string "imov")
+	    (eq_attr "alternative" "2")
+	      (const_string "mmx")
+	    (eq_attr "alternative" "3,4,5")
+	      (const_string "mmxmov")
+	    (eq_attr "alternative" "6,7")
+	      (const_string "ssecvt")
+	    (eq_attr "alternative" "9")
+	      (const_string "sselog1")
+	   ]
+	   (const_string "ssemov")))
    (set_attr "unit" "*,*,*,*,*,*,mmx,mmx,*,*,*,*,*,*")
    (set_attr "prefix_rep" "*,*,*,*,*,*,1,1,*,*,*,*,*,*")
    (set (attr "length_vex")
@@ -212,7 +250,19 @@
     %vmovlps\t{%1, %0|%0, %1}
     #
     #"
-  [(set_attr "type" "mmx,mmxmov,mmxmov,mmxmov,ssecvt,ssecvt,sselog1,ssemov,ssemov,ssemov,*,*")
+  [(set (attr "type")
+     (cond [(eq_attr "alternative" "0")
+	      (const_string "mmx")
+	    (eq_attr "alternative" "1,2,3")
+	      (const_string "mmxmov")
+	    (eq_attr "alternative" "4,5")
+	      (const_string "ssecvt")
+	    (eq_attr "alternative" "6")
+	      (const_string "sselog1")
+	    (eq_attr "alternative" "10,11")
+	      (const_string "multi")
+	   ]
+	   (const_string "ssemov")))
    (set_attr "unit" "*,*,*,*,mmx,mmx,*,*,*,*,*,*")
    (set_attr "prefix_rep" "*,*,*,*,1,1,*,*,*,*,*,*")
    (set (attr "prefix")
@@ -226,8 +276,8 @@
   [(set (match_operand:MMXMODE 0 "nonimmediate_operand" "")
         (match_operand:MMXMODE 1 "general_operand" ""))]
   "!TARGET_64BIT && reload_completed
-   && (!MMX_REG_P (operands[0]) && !SSE_REG_P (operands[0]))
-   && (!MMX_REG_P (operands[1]) && !SSE_REG_P (operands[1]))"
+   && !(MMX_REG_P (operands[0]) || SSE_REG_P (operands[0])
+	|| MMX_REG_P (operands[1]) || SSE_REG_P (operands[1]))"
   [(const_int 0)]
   "ix86_split_long_move (operands); DONE;")
 
@@ -1195,8 +1245,10 @@
           (vec_duplicate:V4HI
             (match_operand:HI 2 "nonimmediate_operand" "rm"))
 	  (match_operand:V4HI 1 "register_operand" "0")
-          (match_operand:SI 3 "const_pow2_1_to_8_operand" "n")))]
-  "TARGET_SSE || TARGET_3DNOW_A"
+          (match_operand:SI 3 "const_int_operand" "")))]
+  "(TARGET_SSE || TARGET_3DNOW_A)
+   && ((unsigned) exact_log2 (INTVAL (operands[3]))
+       < GET_MODE_NUNITS (V4HImode))"
 {
   operands[3] = GEN_INT (exact_log2 (INTVAL (operands[3])));
   if (MEM_P (operands[2]))

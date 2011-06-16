@@ -1,3 +1,21 @@
+2011-05-19  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc_update (gcc/config/arm/arm-tables.opt): Also depend on
+	gcc/config/arm/arm-fpus.def.
+
+2011-05-10  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc_update (gcc/config/rs6000/rs6000-tables.opt): New
+	dependencies.
+
+2011-05-09  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc_update (gcc/config/mips/mips-tables.opt): New dependencies.
+
+2010-05-05  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	* config-list.mk: New file.
+
 2011-05-02  Joseph Myers  <joseph@codesourcery.com>
 
 	* gcc_update (gcc/config/m68k/m68k-tables.opt): New dependencies.

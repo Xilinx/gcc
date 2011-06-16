@@ -42,6 +42,9 @@ class Function;
 class Translate_context;
 class Export;
 class Import;
+class Btype;
+class Bexpression;
+class Bvariable;
 
 // Type codes used in type descriptors.  These must match the values
 // in libgo/runtime/go-type.h.  They also match the values in the gc
@@ -74,6 +77,8 @@ static const int RUNTIME_TYPE_KIND_SLICE = 23;
 static const int RUNTIME_TYPE_KIND_STRING = 24;
 static const int RUNTIME_TYPE_KIND_STRUCT = 25;
 static const int RUNTIME_TYPE_KIND_UNSAFE_POINTER = 26;
+
+static const int RUNTIME_TYPE_KIND_NO_POINTERS = (1 << 7);
 
 // To build the complete list of methods for a named type we need to
 // gather all methods from anonymous fields.  Those methods may
@@ -808,44 +813,19 @@ class Type
   is_unexported_field_or_method(Gogo*, const Type*, const std::string&,
 				std::vector<const Named_type*>*);
 
-  // This type was passed to the builtin function make.  ARGS are the
-  // arguments passed to make after the type; this may be NULL if
-  // there were none.  Issue any required errors.
-  bool
-  check_make_expression(Expression_list* args, source_location location)
-  { return this->do_check_make_expression(args, location); }
-
   // Convert the builtin named types.
   static void
   convert_builtin_named_types(Gogo*);
 
-  // Return a tree representing this type.
-  tree
-  get_tree(Gogo*);
-
-  // Return a tree representing a zero initialization for this type.
-  // This will be something like an INTEGER_CST or a CONSTRUCTOR.  If
-  // IS_CLEAR is true, then the memory is known to be zeroed; in that
-  // case, this will return NULL if there is nothing to be done.
-  tree
-  get_init_tree(Gogo*, bool is_clear);
-
-  // Like get_init_tree, but passing in the type to use for the
-  // initializer.
-  tree
-  get_typed_init_tree(Gogo* gogo, tree type_tree, bool is_clear)
-  { return this->do_get_init_tree(gogo, type_tree, is_clear); }
-
-  // Return a tree for a make expression applied to this type.
-  tree
-  make_expression_tree(Translate_context* context, Expression_list* args,
-		       source_location location)
-  { return this->do_make_expression_tree(context, args, location); }
+  // Return the backend representation of this type.
+  Btype*
+  get_backend(Gogo*);
 
   // Build a type descriptor entry for this type.  Return a pointer to
-  // it.
+  // it.  The location is the location which causes us to need the
+  // entry.
   tree
-  type_descriptor_pointer(Gogo* gogo);
+  type_descriptor_pointer(Gogo* gogo, source_location);
 
   // Return the type reflection string for this type.
   std::string
@@ -887,19 +867,8 @@ class Type
   virtual unsigned int
   do_hash_for_method(Gogo*) const;
 
-  virtual bool
-  do_check_make_expression(Expression_list* args, source_location);
-
-
-  virtual tree
-  do_get_tree(Gogo*) = 0;
-
-  virtual tree
-  do_get_init_tree(Gogo*, tree, bool) = 0;
-
-  virtual tree
-  do_make_expression_tree(Translate_context*, Expression_list*,
-			  source_location);
+  virtual Btype*
+  do_get_backend(Gogo*) = 0;
 
   virtual Expression*
   do_type_descriptor(Gogo*, Named_type* name) = 0;
@@ -913,10 +882,6 @@ class Type
 
   virtual void
   do_export(Export*) const;
-
-  // Return whether an expression is an integer.
-  static bool
-  check_int_value(Expression*, const char*, source_location);
 
   // Return whether a method expects a pointer as the receiver.
   static bool
@@ -973,10 +938,11 @@ class Type
   static unsigned int
   hash_string(const std::string&, unsigned int);
 
-  // Return a tree for the underlying type of a named type.
-  static tree
-  get_named_type_tree(Gogo* gogo, Type* base_type)
-  { return base_type->get_tree_without_hash(gogo); }
+  // Return the backend representation for the underlying type of a
+  // named type.
+  static Btype*
+  get_named_base_btype(Gogo* gogo, Type* base_type)
+  { return base_type->get_btype_without_hash(gogo); }
 
  private:
   // Convert to the desired type classification, or return NULL.  This
@@ -1024,6 +990,25 @@ class Type
   are_assignable_check_hidden(const Type* lhs, const Type* rhs,
 			      bool check_hidden_fields, std::string* reason);
 
+  // Map unnamed types to type descriptor decls.
+  typedef Unordered_map_hash(const Type*, Bvariable*, Type_hash_identical,
+			     Type_identical) Type_descriptor_vars;
+
+  static Type_descriptor_vars type_descriptor_vars;
+
+  // Build the type descriptor variable for this type.
+  void
+  make_type_descriptor_var(Gogo*);
+
+  // Return the name of the type descriptor variable for an unnamed
+  // type.
+  std::string
+  unnamed_type_descriptor_var_name(Gogo*);
+
+  // Return the name of the type descriptor variable for a named type.
+  std::string
+  type_descriptor_var_name(Gogo*);
+
   // Get the hash and equality functions for a type.
   void
   type_functions(const char** hash_fn, const char** equal_fn) const;
@@ -1042,7 +1027,7 @@ class Type
   // Build a composite literal for one method.
   Expression*
   method_constructor(Gogo*, Type* method_type, const std::string& name,
-		     const Method*) const;
+		     const Method*, bool only_value_methods) const;
 
   static tree
   build_receive_return_type(tree type);
@@ -1095,28 +1080,29 @@ class Type
 		       bool* is_method, bool* found_pointer_method,
 		       std::string* ambig1, std::string* ambig2);
 
-  // Get a tree for a type without looking in the hash table for
-  // identical types.
-  tree
-  get_tree_without_hash(Gogo*);
+  // Get the backend representation for a type without looking in the
+  // hash table for identical types.
+  Btype*
+  get_btype_without_hash(Gogo*);
 
-  // A mapping from Type to tree, used to ensure that the GIMPLE
+  // A mapping from Type to Btype*, used to ensure that the backend
   // representation of identical types is identical.
-  typedef Unordered_map_hash(const Type*, tree, Type_hash_identical,
-			     Type_identical) Type_trees;
+  typedef Unordered_map_hash(const Type*, Btype*, Type_hash_identical,
+			     Type_identical) Type_btypes;
 
-  static Type_trees type_trees;
+  static Type_btypes type_btypes;
 
   // A list of builtin named types.
   static std::vector<Named_type*> named_builtin_types;
 
   // The type classification.
   Type_classification classification_;
-  // The tree representation of the type, once it has been determined.
-  tree tree_;
-  // The decl for the type descriptor for this type.  This starts out
-  // as NULL and is filled in as needed.
-  tree type_descriptor_decl_;
+  // The backend representation of the type, once it has been
+  // determined.
+  Btype* btype_;
+  // The type descriptor for this type.  This starts out as NULL and
+  // is filled in as needed.
+  Bvariable* type_descriptor_var_;
 };
 
 // Type hash table operations.
@@ -1328,11 +1314,8 @@ class Integer_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo*, tree, bool);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -1400,11 +1383,8 @@ class Float_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo*, tree, bool);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -1468,11 +1448,8 @@ class Complex_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo*, tree, bool);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -1524,11 +1501,8 @@ class String_type : public Type
   do_has_pointer() const
   { return true; }
 
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo* gogo, tree, bool);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -1625,6 +1599,10 @@ class Function_type : public Type
   Function_type*
   copy_with_receiver(Type*) const;
 
+  // Finishing converting function types.
+  static void
+  convert_types(Gogo*);
+
   static Type*
   make_function_type_descriptor_type();
 
@@ -1640,11 +1618,8 @@ class Function_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo*, tree, bool);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -1662,6 +1637,16 @@ class Function_type : public Type
   Expression*
   type_descriptor_params(Type*, const Typed_identifier*,
 			 const Typed_identifier_list*);
+
+  Btype*
+  get_function_backend(Gogo*);
+
+  // A list of function types with multiple results and their
+  // placeholder backend representations, used to postpone building
+  // the structs we use for multiple results until all types are
+  // converted.
+  typedef std::vector<std::pair<Function_type*, Btype*> > Placeholders;
+  static Placeholders placeholders;
 
   // The receiver name and type.  This will be NULL for a normal
   // function, non-NULL for a method.
@@ -1714,11 +1699,8 @@ class Pointer_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo*, tree, bool);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -1952,10 +1934,6 @@ class Struct_type : public Type
   static Struct_type*
   do_import(Import*);
 
-  // Fill in the fields for a named struct type.
-  tree
-  fill_in_tree(Gogo*, tree);
-
   static Type*
   make_struct_type_descriptor_type();
 
@@ -1972,11 +1950,8 @@ class Struct_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo*, tree, bool);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -2056,13 +2031,13 @@ class Array_type : public Type
   static Array_type*
   do_import(Import*);
 
-  // Fill in the fields for a named array type.
-  tree
-  fill_in_array_tree(Gogo*, tree);
+  // Return the backend representation of the element type.
+  Btype*
+  get_backend_element(Gogo*);
 
-  // Fill in the fields for a named slice type.
-  tree
-  fill_in_slice_tree(Gogo*, tree);
+  // Return the backend representation of the length.
+  Bexpression*
+  get_backend_length(Gogo*);
 
   static Type*
   make_array_type_descriptor_type();
@@ -2086,18 +2061,8 @@ class Array_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  bool
-  do_check_make_expression(Expression_list*, source_location);
-
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo*, tree, bool);
-
-  tree
-  do_make_expression_tree(Translate_context*, Expression_list*,
-			  source_location);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -2163,6 +2128,15 @@ class Map_type : public Type
   static Type*
   make_map_type_descriptor_type();
 
+  static Type*
+  make_map_descriptor_type();
+
+  // Build a map descriptor for this type.  Return a pointer to it.
+  // The location is the location which causes us to need the
+  // descriptor.
+  tree
+  map_descriptor_pointer(Gogo* gogo, source_location);
+
  protected:
   int
   do_traverse(Traverse*);
@@ -2177,18 +2151,8 @@ class Map_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  bool
-  do_check_make_expression(Expression_list*, source_location);
-
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo*, tree, bool);
-
-  tree
-  do_make_expression_tree(Translate_context*, Expression_list*,
-			  source_location);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -2203,6 +2167,14 @@ class Map_type : public Type
   do_export(Export*) const;
 
  private:
+  // Mapping from map types to map descriptors.
+  typedef Unordered_map_hash(const Map_type*, Bvariable*, Type_hash_identical,
+			     Type_identical) Map_descriptors;
+  static Map_descriptors map_descriptors;
+
+  Bvariable*
+  map_descriptor(Gogo*);
+
   // The key type.
   Type* key_type_;
   // The value type.
@@ -2261,18 +2233,8 @@ class Channel_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  bool
-  do_check_make_expression(Expression_list*, source_location);
-
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo*, tree, bool);
-
-  tree
-  do_make_expression_tree(Translate_context*, Expression_list*,
-			  source_location);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -2365,16 +2327,8 @@ class Interface_type : public Type
   do_import(Import*);
 
   // Make a struct for an empty interface type.
-  static tree
-  empty_type_tree(Gogo*);
-
-  // Make a struct for non-empty interface type.
-  static tree
-  non_empty_type_tree(source_location);
-
-  // Fill in the fields for a named interface type.
-  tree
-  fill_in_tree(Gogo*, tree);
+  static Btype*
+  get_backend_empty_interface_type(Gogo*);
 
   static Type*
   make_interface_type_descriptor_type();
@@ -2390,11 +2344,8 @@ class Interface_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo* gogo, tree, bool);
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -2430,7 +2381,7 @@ class Named_type : public Type
       named_object_(named_object), in_function_(NULL), type_(type),
       local_methods_(NULL), all_methods_(NULL),
       interface_method_tables_(NULL), pointer_interface_method_tables_(NULL),
-      location_(location), named_tree_(NULL), dependencies_(),
+      location_(location), named_btype_(NULL), dependencies_(),
       is_visible_(true), is_error_(false), is_converted_(false),
       is_circular_(false), seen_(0)
   { }
@@ -2617,21 +2568,8 @@ class Named_type : public Type
   unsigned int
   do_hash_for_method(Gogo*) const;
 
-  bool
-  do_check_make_expression(Expression_list* args, source_location location)
-  { return this->type_->check_make_expression(args, location); }
-
-  tree
-  do_get_tree(Gogo*);
-
-  tree
-  do_get_init_tree(Gogo* gogo, tree type_tree, bool is_clear)
-  { return this->type_->get_typed_init_tree(gogo, type_tree, is_clear); }
-
-  tree
-  do_make_expression_tree(Translate_context* context, Expression_list* args,
-			  source_location location)
-  { return this->type_->make_expression_tree(context, args, location); }
+  Btype*
+  do_get_backend(Gogo*);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);
@@ -2676,9 +2614,10 @@ class Named_type : public Type
   Interface_method_tables* pointer_interface_method_tables_;
   // The location where this type was defined.
   source_location location_;
-  // The tree for this type while converting to GENERIC.  This is used
-  // to avoid endless recursion when a named type refers to itself.
-  tree named_tree_;
+  // The backend representation of this type during backend
+  // conversion.  This is used to avoid endless recursion when a named
+  // type refers to itself.
+  Btype* named_btype_;
   // A list of types which must be converted to the backend
   // representation before this type can be converted.  This is for
   // cases like
@@ -2760,21 +2699,8 @@ class Forward_declaration_type : public Type
   do_hash_for_method(Gogo* gogo) const
   { return this->real_type()->hash_for_method(gogo); }
 
-  bool
-  do_check_make_expression(Expression_list* args, source_location location)
-  { return this->base()->check_make_expression(args, location); }
-
-  tree
-  do_get_tree(Gogo* gogo);
-
-  tree
-  do_get_init_tree(Gogo* gogo, tree type_tree, bool is_clear)
-  { return this->base()->get_typed_init_tree(gogo, type_tree, is_clear); }
-
-  tree
-  do_make_expression_tree(Translate_context* context, Expression_list* args,
-			  source_location location)
-  { return this->base()->make_expression_tree(context, args, location); }
+  Btype*
+  do_get_backend(Gogo* gogo);
 
   Expression*
   do_type_descriptor(Gogo*, Named_type*);

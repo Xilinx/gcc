@@ -261,8 +261,7 @@ struct gimple_opt_pass pass_build_cfg =
   PROP_cfg,				/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_verify_stmts | TODO_cleanup_cfg
-  | TODO_dump_func			/* todo_flags_finish */
+  TODO_verify_stmts | TODO_cleanup_cfg  /* todo_flags_finish */
  }
 };
 
@@ -843,7 +842,7 @@ edge_to_cases_cleanup (const void *key ATTRIBUTE_UNUSED, void **value,
     }
 
   *value = NULL;
-  return false;
+  return true;
 }
 
 /* Start recording information mapping edges to case labels.  */
@@ -1358,13 +1357,14 @@ group_case_labels_stmt (gimple stmt)
 	{
 	  tree merge_case = gimple_switch_label (stmt, i);
 	  tree merge_label = CASE_LABEL (merge_case);
-	  tree t = int_const_binop (PLUS_EXPR, base_high,
-				    integer_one_node, 1);
+	  double_int bhp1 = double_int_add (tree_to_double_int (base_high),
+					    double_int_one);
 
 	  /* Merge the cases if they jump to the same place,
 	     and their ranges are consecutive.  */
 	  if (merge_label == base_label
-	      && tree_int_cst_equal (CASE_LOW (merge_case), t))
+	      && double_int_equal_p (tree_to_double_int (CASE_LOW (merge_case)),
+				     bhp1))
 	    {
 	      base_high = CASE_HIGH (merge_case) ?
 		  CASE_HIGH (merge_case) : CASE_LOW (merge_case);
@@ -2051,11 +2051,7 @@ gimple_dump_cfg (FILE *file, int flags)
 {
   if (flags & TDF_DETAILS)
     {
-      const char *funcname
-	= lang_hooks.decl_printable_name (current_function_decl, 2);
-
-      fputc ('\n', file);
-      fprintf (file, ";; Function %s\n\n", funcname);
+      dump_function_header (file, current_function_decl, flags);
       fprintf (file, ";; \n%d basic blocks, %d edges, last basic block %d.\n\n",
 	       n_basic_blocks, n_edges, last_basic_block);
 
@@ -2829,6 +2825,14 @@ verify_expr (tree *tp, int *walk_subtrees, void *data ATTRIBUTE_UNUSED)
 	*walk_subtrees = 0;
       break;
 
+    case CASE_LABEL_EXPR:
+      if (CASE_CHAIN (t))
+	{
+	  error ("invalid CASE_CHAIN");
+	  return t;
+	}
+      break;
+
     default:
       break;
     }
@@ -3341,6 +3345,18 @@ verify_gimple_assign_unary (gimple stmt)
       return false;
 
     case TRUTH_NOT_EXPR:
+      /* We require two-valued operand types.  */
+      if (!(TREE_CODE (rhs1_type) == BOOLEAN_TYPE
+	    || (INTEGRAL_TYPE_P (rhs1_type)
+		&& TYPE_PRECISION (rhs1_type) == 1)))
+        {
+	  error ("invalid types in truth not");
+	  debug_generic_expr (lhs_type);
+	  debug_generic_expr (rhs1_type);
+	  return true;
+        }
+      break;
+
     case NEGATE_EXPR:
     case ABS_EXPR:
     case BIT_NOT_EXPR:
@@ -3534,26 +3550,11 @@ do_pointer_plus_expr_check:
 
     case TRUTH_ANDIF_EXPR:
     case TRUTH_ORIF_EXPR:
-      gcc_unreachable ();
-
     case TRUTH_AND_EXPR:
     case TRUTH_OR_EXPR:
     case TRUTH_XOR_EXPR:
-      {
-	/* We allow any kind of integral typed argument and result.  */
-	if (!INTEGRAL_TYPE_P (rhs1_type)
-	    || !INTEGRAL_TYPE_P (rhs2_type)
-	    || !INTEGRAL_TYPE_P (lhs_type))
-	  {
-	    error ("type mismatch in binary truth expression");
-	    debug_generic_expr (lhs_type);
-	    debug_generic_expr (rhs1_type);
-	    debug_generic_expr (rhs2_type);
-	    return true;
-	  }
 
-	return false;
-      }
+      gcc_unreachable ();
 
     case LT_EXPR:
     case LE_EXPR:
@@ -5088,6 +5089,7 @@ gimple_duplicate_bb (basic_block bb)
     {
       def_operand_p def_p;
       ssa_op_iter op_iter;
+      tree lhs;
 
       stmt = gsi_stmt (gsi);
       if (gimple_code (stmt) == GIMPLE_LABEL)
@@ -5100,6 +5102,24 @@ gimple_duplicate_bb (basic_block bb)
 
       maybe_duplicate_eh_stmt (copy, stmt);
       gimple_duplicate_stmt_histograms (cfun, copy, cfun, stmt);
+
+      /* When copying around a stmt writing into a local non-user
+	 aggregate, make sure it won't share stack slot with other
+	 vars.  */
+      lhs = gimple_get_lhs (stmt);
+      if (lhs && TREE_CODE (lhs) != SSA_NAME)
+	{
+	  tree base = get_base_address (lhs);
+	  if (base
+	      && (TREE_CODE (base) == VAR_DECL
+		  || TREE_CODE (base) == RESULT_DECL)
+	      && DECL_IGNORED_P (base)
+	      && !TREE_STATIC (base)
+	      && !DECL_EXTERNAL (base)
+	      && (TREE_CODE (base) != VAR_DECL
+		  || !DECL_HAS_VALUE_EXPR_P (base)))
+	    DECL_NONSHAREABLE (base) = 1;
+	}
 
       /* Create new names for all the definitions created by COPY and
 	 add replacement mappings for each new name.  */
@@ -7232,7 +7252,7 @@ struct gimple_opt_pass pass_split_crit_edges =
   PROP_no_crit_edges,            /* properties_provided */
   0,                             /* properties_destroyed */
   0,                             /* todo_flags_start */
-  TODO_dump_func | TODO_verify_flow  /* todo_flags_finish */
+  TODO_verify_flow               /* todo_flags_finish */
  }
 };
 
@@ -7519,4 +7539,3 @@ struct gimple_opt_pass pass_warn_unused_result =
     0,					/* todo_flags_finish */
   }
 };
-

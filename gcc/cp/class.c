@@ -289,6 +289,12 @@ build_base_path (enum tree_code code,
   offset = BINFO_OFFSET (binfo);
   fixed_type_p = resolves_to_fixed_type_p (expr, &nonnull);
   target_type = code == PLUS_EXPR ? BINFO_TYPE (binfo) : BINFO_TYPE (d_binfo);
+  /* TARGET_TYPE has been extracted from BINFO, and, is therefore always
+     cv-unqualified.  Extract the cv-qualifiers from EXPR so that the
+     expression returned matches the input.  */
+  target_type = cp_build_qualified_type
+    (target_type, cp_type_quals (TREE_TYPE (TREE_TYPE (expr))));
+  ptr_target_type = build_pointer_type (target_type);
 
   /* Do we need to look in the vtable for the real offset?  */
   virtual_access = (v_binfo && fixed_type_p <= 0);
@@ -297,7 +303,7 @@ build_base_path (enum tree_code code,
      source type is incomplete and the pointer value doesn't matter.  */
   if (cp_unevaluated_operand != 0)
     {
-      expr = build_nop (build_pointer_type (target_type), expr);
+      expr = build_nop (ptr_target_type, expr);
       if (!want_pointer)
 	expr = build_indirect_ref (EXPR_LOCATION (expr), expr, RO_NULL);
       return expr;
@@ -312,18 +318,7 @@ build_base_path (enum tree_code code,
 	 field, because other parts of the compiler know that such
 	 expressions are always non-NULL.  */
       if (!virtual_access && integer_zerop (offset))
-	{
-	  tree class_type;
-	  /* TARGET_TYPE has been extracted from BINFO, and, is
-	     therefore always cv-unqualified.  Extract the
-	     cv-qualifiers from EXPR so that the expression returned
-	     matches the input.  */
-	  class_type = TREE_TYPE (TREE_TYPE (expr));
-	  target_type
-	    = cp_build_qualified_type (target_type,
-				       cp_type_quals (class_type));
-	  return build_nop (build_pointer_type (target_type), expr);
-	}
+	return build_nop (ptr_target_type, expr);
       null_test = error_mark_node;
     }
 
@@ -407,9 +402,6 @@ build_base_path (enum tree_code code,
 	offset = v_offset;
     }
 
-  target_type = cp_build_qualified_type
-    (target_type, cp_type_quals (TREE_TYPE (TREE_TYPE (expr))));
-  ptr_target_type = build_pointer_type (target_type);
   if (want_pointer)
     target_type = ptr_target_type;
 
@@ -1267,6 +1259,10 @@ check_bases (tree t,
       tree basetype = TREE_TYPE (base_binfo);
 
       gcc_assert (COMPLETE_TYPE_P (basetype));
+
+      if (CLASSTYPE_FINAL (basetype))
+        error ("cannot derive from %<final%> base %qT in derived type %qT",
+               basetype, t);
 
       /* If any base class is non-literal, so is the derived class.  */
       if (!CLASSTYPE_LITERAL_P (basetype))
@@ -2453,6 +2449,7 @@ get_basefndecls (tree name, tree t)
 void
 check_for_override (tree decl, tree ctype)
 {
+  bool overrides_found = false;
   if (TREE_CODE (decl) == TEMPLATE_DECL)
     /* In [temp.mem] we have:
 
@@ -2467,7 +2464,10 @@ check_for_override (tree decl, tree ctype)
     /* Set DECL_VINDEX to a value that is neither an INTEGER_CST nor
        the error_mark_node so that we know it is an overriding
        function.  */
-    DECL_VINDEX (decl) = decl;
+    {
+      DECL_VINDEX (decl) = decl;
+      overrides_found = true;
+    }
 
   if (DECL_VIRTUAL_P (decl))
     {
@@ -2477,6 +2477,10 @@ check_for_override (tree decl, tree ctype)
       if (DECL_DESTRUCTOR_P (decl))
 	TYPE_HAS_NONTRIVIAL_DESTRUCTOR (ctype) = true;
     }
+  else if (DECL_FINAL_P (decl))
+    error ("%q+#D marked final, but is not virtual", decl);
+  if (DECL_OVERRIDE_P (decl) && !overrides_found)
+    error ("%q+#D marked override, but does not override", decl);
 }
 
 /* Warn about hidden virtual functions that are not overridden in t.
@@ -4458,6 +4462,27 @@ type_has_move_assign (tree t)
   return false;
 }
 
+/* Nonzero if we need to build up a constructor call when initializing an
+   object of this class, either because it has a user-provided constructor
+   or because it doesn't have a default constructor (so we need to give an
+   error if no initializer is provided).  Use TYPE_NEEDS_CONSTRUCTING when
+   what you care about is whether or not an object can be produced by a
+   constructor (e.g. so we don't set TREE_READONLY on const variables of
+   such type); use this function when what you care about is whether or not
+   to try to call a constructor to create an object.  The latter case is
+   the former plus some cases of constructors that cannot be called.  */
+
+bool
+type_build_ctor_call (tree t)
+{
+  tree inner;
+  if (TYPE_NEEDS_CONSTRUCTING (t))
+    return true;
+  inner = strip_array_types (t);
+  return (CLASS_TYPE_P (inner) && !TYPE_HAS_DEFAULT_CONSTRUCTOR (inner)
+	  && !ANON_AGGR_TYPE_P (inner));
+}
+
 /* Remove all zero-width bit-fields from T.  */
 
 static void
@@ -4561,10 +4586,17 @@ finalize_literal_type_property (tree t)
 	   && !TYPE_HAS_CONSTEXPR_CTOR (t))
     CLASSTYPE_LITERAL_P (t) = false;
 
-  for (fn = TYPE_METHODS (t); fn; fn = DECL_CHAIN (fn))
-    if (DECL_DECLARED_CONSTEXPR_P (fn)
-	&& TREE_CODE (fn) != TEMPLATE_DECL)
-      validate_constexpr_fundecl (fn);
+  if (!CLASSTYPE_LITERAL_P (t))
+    for (fn = TYPE_METHODS (t); fn; fn = DECL_CHAIN (fn))
+      if (DECL_DECLARED_CONSTEXPR_P (fn)
+	  && TREE_CODE (fn) != TEMPLATE_DECL
+	  && DECL_NONSTATIC_MEMBER_FUNCTION_P (fn)
+	  && !DECL_CONSTRUCTOR_P (fn))
+	{
+	  DECL_DECLARED_CONSTEXPR_P (fn) = false;
+	  if (!DECL_TEMPLATE_INFO (fn))
+	    error ("enclosing class of %q+#D is not a literal type", fn);
+	}
 }
 
 /* Check the validity of the bases and members declared in T.  Add any
@@ -5939,7 +5971,7 @@ fixed_type_or_null (tree instance, int *nonnull, int *cdtorp)
 	     itself.  */
 	  if (TREE_CODE (instance) == VAR_DECL
 	      && DECL_INITIAL (instance)
-	      && !type_dependent_expression_p (DECL_INITIAL (instance))
+	      && !type_dependent_expression_p_push (DECL_INITIAL (instance))
 	      && !htab_find (ht, instance))
 	    {
 	      tree type;
@@ -5980,7 +6012,17 @@ resolves_to_fixed_type_p (tree instance, int* nonnull)
 {
   tree t = TREE_TYPE (instance);
   int cdtorp = 0;
-  tree fixed = fixed_type_or_null (instance, nonnull, &cdtorp);
+  tree fixed;
+
+  if (processing_template_decl)
+    {
+      /* In a template we only care about the type of the result.  */
+      if (nonnull)
+	*nonnull = true;
+      return true;
+    }
+
+  fixed = fixed_type_or_null (instance, nonnull, &cdtorp);
   if (fixed == NULL_TREE)
     return 0;
   if (POINTER_TYPE_P (t))
@@ -6032,6 +6074,9 @@ restore_class_cache (void)
    So that we may avoid calls to lookup_name, we cache the _TYPE
    nodes of local TYPE_DECLs in the TREE_TYPE field of the name.
 
+   For use by push_access_scope, we allow TYPE to be null to temporarily
+   push out of class scope.  This does not actually change binding levels.
+
    For multiple inheritance, we perform a two-pass depth-first search
    of the type lattice.  */
 
@@ -6039,8 +6084,6 @@ void
 pushclass (tree type)
 {
   class_stack_node_t csn;
-
-  type = TYPE_MAIN_VARIANT (type);
 
   /* Make sure there is enough room for the new entry on the stack.  */
   if (current_class_depth + 1 >= current_class_stack_size)
@@ -6059,6 +6102,15 @@ pushclass (tree type)
   csn->names_used = 0;
   csn->hidden = 0;
   current_class_depth++;
+
+  if (type == NULL_TREE)
+    {
+      current_class_name = current_class_type = NULL_TREE;
+      csn->hidden = true;
+      return;
+    }
+
+  type = TYPE_MAIN_VARIANT (type);
 
   /* Now set up the new type.  */
   current_class_name = TYPE_NAME (type);
@@ -6104,7 +6156,11 @@ invalidate_class_lookup_cache (void)
 void
 popclass (void)
 {
-  poplevel_class ();
+  if (current_class_type)
+    poplevel_class ();
+  else
+    gcc_assert (current_class_depth
+		&& current_class_stack[current_class_depth - 1].hidden);
 
   current_class_depth--;
   current_class_name = current_class_stack[current_class_depth].name;

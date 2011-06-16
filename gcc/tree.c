@@ -303,7 +303,7 @@ tree_node_structure_for_code (enum tree_code code)
 	  }
       }
     case tcc_type:
-      return TS_TYPE;
+      return TS_TYPE_NON_COMMON;
     case tcc_reference:
     case tcc_comparison:
     case tcc_unary:
@@ -368,6 +368,7 @@ initialize_tree_contains_struct (void)
       switch (ts_code)
 	{
 	case TS_TYPED:
+	case TS_BLOCK:
 	  MARK_TS_BASE (code);
 	  break;
 
@@ -380,22 +381,29 @@ initialize_tree_contains_struct (void)
 	case TS_COMPLEX:
 	case TS_SSA_NAME:
 	case TS_CONSTRUCTOR:
+	case TS_EXP:
+	case TS_STATEMENT_LIST:
 	  MARK_TS_TYPED (code);
 	  break;
 
 	case TS_IDENTIFIER:
 	case TS_DECL_MINIMAL:
-	case TS_TYPE:
+	case TS_TYPE_COMMON:
 	case TS_LIST:
 	case TS_VEC:
-	case TS_EXP:
-	case TS_BLOCK:
 	case TS_BINFO:
-	case TS_STATEMENT_LIST:
 	case TS_OMP_CLAUSE:
 	case TS_OPTIMIZATION:
 	case TS_TARGET_OPTION:
 	  MARK_TS_COMMON (code);
+	  break;
+
+	case TS_TYPE_WITH_LANG_SPECIFIC:
+	  MARK_TS_TYPE_COMMON (code);
+	  break;
+
+	case TS_TYPE_NON_COMMON:
+	  MARK_TS_TYPE_WITH_LANG_SPECIFIC (code);
 	  break;
 
 	case TS_DECL_COMMON:
@@ -639,7 +647,7 @@ tree_code_size (enum tree_code code)
       }
 
     case tcc_type:  /* a type node */
-      return sizeof (struct tree_type);
+      return sizeof (struct tree_type_non_common);
 
     case tcc_reference:   /* a reference */
     case tcc_expression:  /* an expression */
@@ -1653,6 +1661,23 @@ make_tree_binfo_stat (unsigned base_binfos MEM_STAT_DECL)
   return t;
 }
 
+/* Create a CASE_LABEL_EXPR tree node and return it.  */
+
+tree
+build_case_label (tree low_value, tree high_value, tree label_decl)
+{
+  tree t = make_node (CASE_LABEL_EXPR);
+
+  TREE_TYPE (t) = void_type_node;
+  SET_EXPR_LOCATION (t, DECL_SOURCE_LOCATION (label_decl));
+
+  CASE_LOW (t) = low_value;
+  CASE_HIGH (t) = high_value;
+  CASE_LABEL (t) = label_decl;
+  CASE_CHAIN (t) = NULL_TREE;
+
+  return t;
+}
 
 /* Build a newly constructed TREE_VEC node of length LEN.  */
 
@@ -4867,7 +4892,8 @@ find_decls_types_r (tree *tp, int *ws, void *data)
       fld_worklist_push (BLOCK_ABSTRACT_ORIGIN (t), fld);
     }
 
-  if (TREE_CODE (t) != IDENTIFIER_NODE)
+  if (TREE_CODE (t) != IDENTIFIER_NODE
+      && CODE_CONTAINS_STRUCT (TREE_CODE (t), TS_TYPED))
     fld_worklist_push (TREE_TYPE (t), fld);
 
   return NULL_TREE;
@@ -5150,25 +5176,6 @@ free_lang_data (void)
   /* Create gimple variants for common types.  */
   ptrdiff_type_node = integer_type_node;
   fileptr_type_node = ptr_type_node;
-  if (TREE_CODE (boolean_type_node) != BOOLEAN_TYPE
-      || (TYPE_MODE (boolean_type_node)
-	  != mode_for_size (BOOL_TYPE_SIZE, MODE_INT, 0))
-      || TYPE_PRECISION (boolean_type_node) != 1
-      || !TYPE_UNSIGNED (boolean_type_node))
-    {
-      boolean_type_node = make_unsigned_type (BOOL_TYPE_SIZE);
-      TREE_SET_CODE (boolean_type_node, BOOLEAN_TYPE);
-      TYPE_MAX_VALUE (boolean_type_node) = build_int_cst (boolean_type_node, 1);
-      TYPE_PRECISION (boolean_type_node) = 1;
-      boolean_false_node = TYPE_MIN_VALUE (boolean_type_node);
-      boolean_true_node = TYPE_MAX_VALUE (boolean_type_node);
-    }
-
-  /* Unify char_type_node with its properly signed variant.  */
-  if (TYPE_UNSIGNED (char_type_node))
-    unsigned_char_type_node = char_type_node;
-  else
-    signed_char_type_node = char_type_node;
 
   /* Reset some langhooks.  Do not reset types_compatible_p, it may
      still be used indirectly via the get_alias_set langhook.  */
@@ -6192,7 +6199,7 @@ type_hash_canon (unsigned int hashcode, tree type)
 #ifdef GATHER_STATISTICS
       tree_code_counts[(int) TREE_CODE (type)]--;
       tree_node_counts[(int) t_kind]--;
-      tree_node_sizes[(int) t_kind] -= sizeof (struct tree_type);
+      tree_node_sizes[(int) t_kind] -= sizeof (struct tree_type_non_common);
 #endif
       return t1;
     }
@@ -7340,6 +7347,15 @@ build_nonshared_array_type (tree elt_type, tree index_type)
   return build_array_type_1 (elt_type, index_type, false);
 }
 
+/* Return a representation of ELT_TYPE[NELTS], using indices of type
+   sizetype.  */
+
+tree
+build_array_type_nelts (tree elt_type, unsigned HOST_WIDE_INT nelts)
+{
+  return build_array_type (elt_type, build_index_type (size_int (nelts - 1)));
+}
+
 /* Recursively examines the array elements of TYPE, until a non-array
    element type is found.  */
 
@@ -7629,6 +7645,44 @@ build_varargs_function_type_list (tree return_type, ...)
   va_end (p);
 
   return args;
+}
+
+/* Build a function type.  RETURN_TYPE is the type returned by the
+   function; VAARGS indicates whether the function takes varargs.  The
+   function takes N named arguments, the types of which are provided in
+   ARG_TYPES.  */
+
+static tree
+build_function_type_array_1 (bool vaargs, tree return_type, int n,
+			     tree *arg_types)
+{
+  int i;
+  tree t = vaargs ? NULL_TREE : void_list_node;
+
+  for (i = n - 1; i >= 0; i--)
+    t = tree_cons (NULL_TREE, arg_types[i], t);
+
+  return build_function_type (return_type, t);
+}
+
+/* Build a function type.  RETURN_TYPE is the type returned by the
+   function.  The function takes N named arguments, the types of which
+   are provided in ARG_TYPES.  */
+
+tree
+build_function_type_array (tree return_type, int n, tree *arg_types)
+{
+  return build_function_type_array_1 (false, return_type, n, arg_types);
+}
+
+/* Build a variable argument function type.  RETURN_TYPE is the type
+   returned by the function.  The function takes N named arguments, the
+   types of which are provided in ARG_TYPES.  */
+
+tree
+build_varargs_function_type_array (tree return_type, int n, tree *arg_types)
+{
+  return build_function_type_array_1 (true, return_type, n, arg_types);
 }
 
 /* Build a METHOD_TYPE for a member of BASETYPE.  The RETTYPE (a TYPE)
@@ -9044,8 +9098,7 @@ make_or_reuse_accum_type (unsigned size, int unsignedp, int satp)
 }
 
 /* Create nodes for all integer types (and error_mark_node) using the sizes
-   of C datatypes.  The caller should call set_sizetype soon after calling
-   this function to select one of the types as sizetype.  */
+   of C datatypes.  */
 
 void
 build_common_tree_nodes (bool signed_char)
@@ -9088,6 +9141,7 @@ build_common_tree_nodes (bool signed_char)
         int128_unsigned_type_node = make_unsigned_type (128);
       }
 #endif
+
   /* Define a boolean type.  This type only represents boolean values but
      may be larger than char depending on the value of BOOL_TYPE_SIZE.
      Front ends which want to override this size (i.e. Java) can redefine
@@ -9096,6 +9150,16 @@ build_common_tree_nodes (bool signed_char)
   TREE_SET_CODE (boolean_type_node, BOOLEAN_TYPE);
   TYPE_MAX_VALUE (boolean_type_node) = build_int_cst (boolean_type_node, 1);
   TYPE_PRECISION (boolean_type_node) = 1;
+
+  /* Define what type to use for size_t.  */
+  if (strcmp (SIZE_TYPE, "unsigned int") == 0)
+    size_type_node = unsigned_type_node;
+  else if (strcmp (SIZE_TYPE, "long unsigned int") == 0)
+    size_type_node = long_unsigned_type_node;
+  else if (strcmp (SIZE_TYPE, "long long unsigned int") == 0)
+    size_type_node = long_long_unsigned_type_node;
+  else
+    gcc_unreachable ();
 
   /* Fill in the rest of the sized types.  Reuse existing type nodes
      when possible.  */
@@ -9116,7 +9180,7 @@ build_common_tree_nodes (bool signed_char)
   access_private_node = get_identifier ("private");
 }
 
-/* Call this function after calling build_common_tree_nodes and set_sizetype.
+/* Call this function after calling build_common_tree_nodes.
    It will create several other common tree nodes.  */
 
 void
@@ -9453,6 +9517,10 @@ build_common_builtin_nodes (void)
 	const char *p;
 	enum built_in_function mcode, dcode;
 	tree type, inner_type;
+	const char *prefix = "__";
+
+	if (targetm.libfunc_gnu_prefix)
+	  prefix = "__gnu_";
 
 	type = lang_hooks.types.type_for_mode ((enum machine_mode) mode, 0);
 	if (type == NULL)
@@ -9471,13 +9539,17 @@ build_common_builtin_nodes (void)
 	  *q = TOLOWER (*p);
 	*q = '\0';
 
-	built_in_names[mcode] = concat ("__mul", mode_name_buf, "3", NULL);
+	built_in_names[mcode] = concat (prefix, "mul", mode_name_buf, "3",
+					NULL);
         local_define_builtin (built_in_names[mcode], ftype, mcode,
-			      built_in_names[mcode], ECF_CONST | ECF_NOTHROW | ECF_LEAF);
+			      built_in_names[mcode],
+			      ECF_CONST | ECF_NOTHROW | ECF_LEAF);
 
-	built_in_names[dcode] = concat ("__div", mode_name_buf, "3", NULL);
+	built_in_names[dcode] = concat (prefix, "div", mode_name_buf, "3",
+					NULL);
         local_define_builtin (built_in_names[dcode], ftype, dcode,
-			      built_in_names[dcode], ECF_CONST | ECF_NOTHROW | ECF_LEAF);
+			      built_in_names[dcode],
+			      ECF_CONST | ECF_NOTHROW | ECF_LEAF);
       }
   }
 }

@@ -1285,12 +1285,11 @@ sjlj_emit_dispatch_table (rtx dispatch_label, int num_dispatch)
 
 	if (num_dispatch > 1)
 	  {
-	    tree t_label, case_elt;
+	    tree t_label, case_elt, t;
 
 	    t_label = create_artificial_label (UNKNOWN_LOCATION);
-	    case_elt = build3 (CASE_LABEL_EXPR, void_type_node,
-			       build_int_cst (integer_type_node, disp_index),
-			       NULL, t_label);
+	    t = build_int_cst (integer_type_node, disp_index);
+	    case_elt = build_case_label (t, NULL, t_label);
 	    gimple_switch_set_label (switch_stmt, disp_index, case_elt);
 
 	    label = label_rtx (t_label);
@@ -1458,7 +1457,7 @@ struct rtl_opt_pass pass_rtl_eh =
 {
  {
   RTL_PASS,
-  "rtl eh",                             /* name */
+  "rtl_eh",                             /* name */
   gate_handle_eh,                       /* gate */
   rest_of_handle_eh,			/* execute */
   NULL,                                 /* sub */
@@ -1469,7 +1468,7 @@ struct rtl_opt_pass pass_rtl_eh =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func                        /* todo_flags_finish */
+  0                                     /* todo_flags_finish */
  }
 };
 
@@ -1911,7 +1910,7 @@ struct rtl_opt_pass pass_set_nothrow_function_flags =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func,                       /* todo_flags_finish */
+  0                                     /* todo_flags_finish */
  }
 };
 
@@ -2666,7 +2665,7 @@ struct rtl_opt_pass pass_convert_to_eh_region_ranges =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func,			/* todo_flags_finish */
+  0              			/* todo_flags_finish */
  }
 };
 

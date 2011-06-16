@@ -50,7 +50,7 @@ do {						\
 /* Similar to standard Linux, but adding -ffast-math support.  */
 #undef  ENDFILE_SPEC
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
    %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"
 
 /* Define this for shared library support because it isn't in the main
@@ -76,8 +76,6 @@ do {						\
    linked against -lgcc_s.  */
 #undef LINK_EH_SPEC
 #define LINK_EH_SPEC ""
-
-#define MD_UNWIND_SUPPORT "config/ia64/linux-unwind.h"
 
 /* Put all *tf routines in libgcc.  */
 #undef LIBGCC2_HAS_TF_MODE

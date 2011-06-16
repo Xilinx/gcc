@@ -68,6 +68,18 @@ extern unsigned char tree_contains_struct[MAX_TREE_CODES][64];
     tree_contains_struct[C][TS_COMMON] = 1;		\
   } while (0)
 
+#define MARK_TS_TYPE_COMMON(C)				\
+  do {							\
+    MARK_TS_COMMON (C);					\
+    tree_contains_struct[C][TS_TYPE_COMMON] = 1;	\
+  } while (0)
+
+#define MARK_TS_TYPE_WITH_LANG_SPECIFIC(C)		\
+  do {							\
+    MARK_TS_TYPE_COMMON (C);				\
+    tree_contains_struct[C][TS_TYPE_WITH_LANG_SPECIFIC] = 1;	\
+  } while (0)
+
 #define MARK_TS_DECL_MINIMAL(C)				\
   do {							\
     MARK_TS_COMMON (C);					\
@@ -264,6 +276,10 @@ enum built_in_class
   BUILT_IN_MD,
   BUILT_IN_NORMAL
 };
+
+/* Last marker used for LTO stremaing of built_in_class.  We can not add it
+   to the enum since we need the enumb to fit in 2 bits.  */
+#define BUILT_IN_LAST (BUILT_IN_NORMAL + 1)
 
 /* Names for the above.  */
 extern const char *const built_in_class_names[4];
@@ -1382,6 +1398,10 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
 #define DECL_READ_P(NODE) \
   (TREE_CHECK2 (NODE, VAR_DECL, PARM_DECL)->decl_common.decl_read_flag)
 
+#define DECL_NONSHAREABLE(NODE) \
+  (TREE_CHECK2 (NODE, VAR_DECL, \
+		RESULT_DECL)->decl_common.decl_nonshareable_flag)
+
 /* In a CALL_EXPR, means that the call is the jump from a thunk to the
    thunked-to function.  */
 #define CALL_FROM_THUNK_P(NODE) (CALL_EXPR_CHECK (NODE)->base.protected_flag)
@@ -1689,7 +1709,7 @@ extern void protected_set_expr_location (tree, location_t);
 #define CASE_LOW(NODE)          	TREE_OPERAND (CASE_LABEL_EXPR_CHECK (NODE), 0)
 #define CASE_HIGH(NODE)         	TREE_OPERAND (CASE_LABEL_EXPR_CHECK (NODE), 1)
 #define CASE_LABEL(NODE)		TREE_OPERAND (CASE_LABEL_EXPR_CHECK (NODE), 2)
-#define CASE_CHAIN(NODE)		TREE_CHAIN (CASE_LABEL_EXPR_CHECK (NODE))
+#define CASE_CHAIN(NODE)		TREE_OPERAND (CASE_LABEL_EXPR_CHECK (NODE), 3)
 
 /* The operands of a TARGET_MEM_REF.  Operands 0 and 1 have to match
    corresponding MEM_REF operands.  */
@@ -1905,7 +1925,7 @@ enum omp_clause_default_kind
   (OMP_CLAUSE_SUBCODE_CHECK (NODE, OMP_CLAUSE_DEFAULT)->omp_clause.subcode.default_kind)
 
 struct GTY(()) tree_exp {
-  struct tree_common common;
+  struct tree_typed typed;
   location_t locus;
   tree block;
   tree GTY ((special ("tree_exp"),
@@ -2039,9 +2059,7 @@ struct GTY(()) tree_omp_clause {
   VEC_index (tree, BLOCK_NONLOCALIZED_VARS (NODE), N)
 #define BLOCK_SUBBLOCKS(NODE) (BLOCK_CHECK (NODE)->block.subblocks)
 #define BLOCK_SUPERCONTEXT(NODE) (BLOCK_CHECK (NODE)->block.supercontext)
-/* Note: when changing this, make sure to find the places
-   that use chainon or nreverse.  */
-#define BLOCK_CHAIN(NODE) TREE_CHAIN (BLOCK_CHECK (NODE))
+#define BLOCK_CHAIN(NODE) (BLOCK_CHECK (NODE)->block.chain)
 #define BLOCK_ABSTRACT_ORIGIN(NODE) (BLOCK_CHECK (NODE)->block.abstract_origin)
 #define BLOCK_ABSTRACT(NODE) (BLOCK_CHECK (NODE)->block.abstract_flag)
 
@@ -2082,7 +2100,8 @@ struct GTY(()) tree_omp_clause {
 #define BLOCK_SOURCE_LOCATION(NODE) (BLOCK_CHECK (NODE)->block.locus)
 
 struct GTY(()) tree_block {
-  struct tree_common common;
+  struct tree_base base;
+  tree chain;
 
   unsigned abstract_flag : 1;
   unsigned block_num : 31;
@@ -2110,39 +2129,24 @@ struct GTY(()) tree_block {
    type.  Note also that some of the front-ends also overload these fields,
    so they must be checked as well.  */
 
-#define TYPE_UID(NODE) (TYPE_CHECK (NODE)->type.uid)
-#define TYPE_SIZE(NODE) (TYPE_CHECK (NODE)->type.size)
-#define TYPE_SIZE_UNIT(NODE) (TYPE_CHECK (NODE)->type.size_unit)
-#define TYPE_VALUES(NODE) (ENUMERAL_TYPE_CHECK (NODE)->type.values)
-#define TYPE_DOMAIN(NODE) (ARRAY_TYPE_CHECK (NODE)->type.values)
-#define TYPE_FIELDS(NODE) (RECORD_OR_UNION_CHECK (NODE)->type.values)
-#define TYPE_CACHED_VALUES(NODE) (TYPE_CHECK(NODE)->type.values)
-#define TYPE_METHODS(NODE) (RECORD_OR_UNION_CHECK (NODE)->type.maxval)
-#define TYPE_VFIELD(NODE) (RECORD_OR_UNION_CHECK (NODE)->type.minval)
-#define TYPE_ARG_TYPES(NODE) (FUNC_OR_METHOD_CHECK (NODE)->type.values)
-#define TYPE_METHOD_BASETYPE(NODE) (FUNC_OR_METHOD_CHECK (NODE)->type.maxval)
-#define TYPE_OFFSET_BASETYPE(NODE) (OFFSET_TYPE_CHECK (NODE)->type.maxval)
-#define TYPE_POINTER_TO(NODE) (TYPE_CHECK (NODE)->type.pointer_to)
-#define TYPE_REFERENCE_TO(NODE) (TYPE_CHECK (NODE)->type.reference_to)
-#define TYPE_NEXT_PTR_TO(NODE) (POINTER_TYPE_CHECK (NODE)->type.minval)
-#define TYPE_NEXT_REF_TO(NODE) (REFERENCE_TYPE_CHECK (NODE)->type.minval)
-#define TYPE_MIN_VALUE(NODE) (NUMERICAL_TYPE_CHECK (NODE)->type.minval)
-#define TYPE_MAX_VALUE(NODE) (NUMERICAL_TYPE_CHECK (NODE)->type.maxval)
-#define TYPE_PRECISION(NODE) (TYPE_CHECK (NODE)->type.precision)
-#define TYPE_NAME(NODE) (TYPE_CHECK (NODE)->type.name)
-#define TYPE_NEXT_VARIANT(NODE) (TYPE_CHECK (NODE)->type.next_variant)
-#define TYPE_MAIN_VARIANT(NODE) (TYPE_CHECK (NODE)->type.main_variant)
-#define TYPE_CONTEXT(NODE) (TYPE_CHECK (NODE)->type.context)
-#define TYPE_MAXVAL(NODE) (TYPE_CHECK (NODE)->type.maxval)
-#define TYPE_MINVAL(NODE) (TYPE_CHECK (NODE)->type.minval)
+#define TYPE_UID(NODE) (TYPE_CHECK (NODE)->type_common.uid)
+#define TYPE_SIZE(NODE) (TYPE_CHECK (NODE)->type_common.size)
+#define TYPE_SIZE_UNIT(NODE) (TYPE_CHECK (NODE)->type_common.size_unit)
+#define TYPE_POINTER_TO(NODE) (TYPE_CHECK (NODE)->type_common.pointer_to)
+#define TYPE_REFERENCE_TO(NODE) (TYPE_CHECK (NODE)->type_common.reference_to)
+#define TYPE_PRECISION(NODE) (TYPE_CHECK (NODE)->type_common.precision)
+#define TYPE_NAME(NODE) (TYPE_CHECK (NODE)->type_common.name)
+#define TYPE_NEXT_VARIANT(NODE) (TYPE_CHECK (NODE)->type_common.next_variant)
+#define TYPE_MAIN_VARIANT(NODE) (TYPE_CHECK (NODE)->type_common.main_variant)
+#define TYPE_CONTEXT(NODE) (TYPE_CHECK (NODE)->type_common.context)
 
 /* Vector types need to check target flags to determine type.  */
 extern enum machine_mode vector_type_mode (const_tree);
 #define TYPE_MODE(NODE) \
   (TREE_CODE (TYPE_CHECK (NODE)) == VECTOR_TYPE \
-   ? vector_type_mode (NODE) : (NODE)->type.mode)
+   ? vector_type_mode (NODE) : (NODE)->type_common.mode)
 #define SET_TYPE_MODE(NODE, MODE) \
-  (TYPE_CHECK (NODE)->type.mode = (MODE))
+  (TYPE_CHECK (NODE)->type_common.mode = (MODE))
 
 /* The "canonical" type for this type node, which is used by frontends to
    compare the type for equality with another type.  If two types are
@@ -2160,7 +2164,7 @@ extern enum machine_mode vector_type_mode (const_tree);
    to each other without a conversion.  The middle-end also makes sure
    to assign the same alias-sets to the type partition with equal
    TYPE_CANONICAL of their unqualified variants.  */
-#define TYPE_CANONICAL(NODE) (TYPE_CHECK (NODE)->type.canonical)
+#define TYPE_CANONICAL(NODE) (TYPE_CHECK (NODE)->type_common.canonical)
 /* Indicates that the type node requires structural equality
    checks.  The compiler will need to look at the composition of the
    type to determine whether it is equal to another type, rather than
@@ -2172,35 +2176,28 @@ extern enum machine_mode vector_type_mode (const_tree);
    type node requires structural equality.  */
 #define SET_TYPE_STRUCTURAL_EQUALITY(NODE) (TYPE_CANONICAL (NODE) = NULL_TREE)
 
-#define TYPE_LANG_SPECIFIC(NODE) (TYPE_CHECK (NODE)->type.lang_specific)
 #define TYPE_IBIT(NODE) (GET_MODE_IBIT (TYPE_MODE (NODE)))
 #define TYPE_FBIT(NODE) (GET_MODE_FBIT (TYPE_MODE (NODE)))
-
-/* For record and union types, information about this type, as a base type
-   for itself.  */
-#define TYPE_BINFO(NODE) (RECORD_OR_UNION_CHECK(NODE)->type.binfo)
-
-/* For non record and union types, used in a language-dependent way.  */
-#define TYPE_LANG_SLOT_1(NODE) (NOT_RECORD_OR_UNION_CHECK(NODE)->type.binfo)
 
 /* The (language-specific) typed-based alias set for this type.
    Objects whose TYPE_ALIAS_SETs are different cannot alias each
    other.  If the TYPE_ALIAS_SET is -1, no alias set has yet been
    assigned to this type.  If the TYPE_ALIAS_SET is 0, objects of this
    type can alias objects of any type.  */
-#define TYPE_ALIAS_SET(NODE) (TYPE_CHECK (NODE)->type.alias_set)
+#define TYPE_ALIAS_SET(NODE) (TYPE_CHECK (NODE)->type_common.alias_set)
 
 /* Nonzero iff the typed-based alias set for this type has been
    calculated.  */
-#define TYPE_ALIAS_SET_KNOWN_P(NODE) (TYPE_CHECK (NODE)->type.alias_set != -1)
+#define TYPE_ALIAS_SET_KNOWN_P(NODE) \
+  (TYPE_CHECK (NODE)->type_common.alias_set != -1)
 
 /* A TREE_LIST of IDENTIFIER nodes of the attributes that apply
    to this type.  */
-#define TYPE_ATTRIBUTES(NODE) (TYPE_CHECK (NODE)->type.attributes)
+#define TYPE_ATTRIBUTES(NODE) (TYPE_CHECK (NODE)->type_common.attributes)
 
 /* The alignment necessary for objects of this type.
    The value is an int, measured in bits.  */
-#define TYPE_ALIGN(NODE) (TYPE_CHECK (NODE)->type.align)
+#define TYPE_ALIGN(NODE) (TYPE_CHECK (NODE)->type_common.align)
 
 /* 1 if the alignment for this type was requested by "aligned" attribute,
    0 if it is the default for this type.  */
@@ -2221,7 +2218,8 @@ extern enum machine_mode vector_type_mode (const_tree);
 /* In a RECORD_TYPE, UNION_TYPE or QUAL_UNION_TYPE, it means the type
    has BLKmode only because it lacks the alignment requirement for
    its size.  */
-#define TYPE_NO_FORCE_BLK(NODE) (TYPE_CHECK (NODE)->type.no_force_blk_flag)
+#define TYPE_NO_FORCE_BLK(NODE) \
+  (TYPE_CHECK (NODE)->type_common.no_force_blk_flag)
 
 /* In an INTEGER_TYPE, it means the type represents a size.  We use
    this both for validity checking and to permit optimizations that
@@ -2232,7 +2230,7 @@ extern enum machine_mode vector_type_mode (const_tree);
    properties.  Expressions whose type have TYPE_IS_SIZETYPE set are
    always actual sizes.  */
 #define TYPE_IS_SIZETYPE(NODE) \
-  (INTEGER_TYPE_CHECK (NODE)->type.no_force_blk_flag)
+  (INTEGER_TYPE_CHECK (NODE)->type_common.no_force_blk_flag)
 
 /* Nonzero in a type considered volatile as a whole.  */
 #define TYPE_VOLATILE(NODE) (TYPE_CHECK (NODE)->base.volatile_flag)
@@ -2242,7 +2240,7 @@ extern enum machine_mode vector_type_mode (const_tree);
 
 /* If nonzero, this type is `restrict'-qualified, in the C sense of
    the term.  */
-#define TYPE_RESTRICT(NODE) (TYPE_CHECK (NODE)->type.restrict_flag)
+#define TYPE_RESTRICT(NODE) (TYPE_CHECK (NODE)->type_common.restrict_flag)
 
 /* If nonzero, type's name shouldn't be emitted into debug info.  */
 #define TYPE_NAMELESS(NODE) (TYPE_CHECK (NODE)->base.nameless_flag)
@@ -2253,11 +2251,13 @@ extern enum machine_mode vector_type_mode (const_tree);
 /* There is a TYPE_QUAL value for each type qualifier.  They can be
    combined by bitwise-or to form the complete set of qualifiers for a
    type.  */
-
-#define TYPE_UNQUALIFIED   0x0
-#define TYPE_QUAL_CONST    0x1
-#define TYPE_QUAL_VOLATILE 0x2
-#define TYPE_QUAL_RESTRICT 0x4
+enum cv_qualifier
+  {
+    TYPE_UNQUALIFIED   = 0x0,
+    TYPE_QUAL_CONST    = 0x1,
+    TYPE_QUAL_VOLATILE = 0x2,
+    TYPE_QUAL_RESTRICT = 0x4
+  };
 
 /* Encode/decode the named memory support as part of the qualifier.  If more
    than 8 qualifiers are added, these macros need to be adjusted.  */
@@ -2285,13 +2285,13 @@ extern enum machine_mode vector_type_mode (const_tree);
    | (TYPE_RESTRICT (NODE) * TYPE_QUAL_RESTRICT))
 
 /* These flags are available for each language front end to use internally.  */
-#define TYPE_LANG_FLAG_0(NODE) (TYPE_CHECK (NODE)->type.lang_flag_0)
-#define TYPE_LANG_FLAG_1(NODE) (TYPE_CHECK (NODE)->type.lang_flag_1)
-#define TYPE_LANG_FLAG_2(NODE) (TYPE_CHECK (NODE)->type.lang_flag_2)
-#define TYPE_LANG_FLAG_3(NODE) (TYPE_CHECK (NODE)->type.lang_flag_3)
-#define TYPE_LANG_FLAG_4(NODE) (TYPE_CHECK (NODE)->type.lang_flag_4)
-#define TYPE_LANG_FLAG_5(NODE) (TYPE_CHECK (NODE)->type.lang_flag_5)
-#define TYPE_LANG_FLAG_6(NODE) (TYPE_CHECK (NODE)->type.lang_flag_6)
+#define TYPE_LANG_FLAG_0(NODE) (TYPE_CHECK (NODE)->type_common.lang_flag_0)
+#define TYPE_LANG_FLAG_1(NODE) (TYPE_CHECK (NODE)->type_common.lang_flag_1)
+#define TYPE_LANG_FLAG_2(NODE) (TYPE_CHECK (NODE)->type_common.lang_flag_2)
+#define TYPE_LANG_FLAG_3(NODE) (TYPE_CHECK (NODE)->type_common.lang_flag_3)
+#define TYPE_LANG_FLAG_4(NODE) (TYPE_CHECK (NODE)->type_common.lang_flag_4)
+#define TYPE_LANG_FLAG_5(NODE) (TYPE_CHECK (NODE)->type_common.lang_flag_5)
+#define TYPE_LANG_FLAG_6(NODE) (TYPE_CHECK (NODE)->type_common.lang_flag_6)
 
 /* Used to keep track of visited nodes in tree traversals.  This is set to
    0 by copy_node and make_node.  */
@@ -2300,22 +2300,16 @@ extern enum machine_mode vector_type_mode (const_tree);
 /* If set in an ARRAY_TYPE, indicates a string type (for languages
    that distinguish string from array of char).
    If set in a INTEGER_TYPE, indicates a character type.  */
-#define TYPE_STRING_FLAG(NODE) (TYPE_CHECK (NODE)->type.string_flag)
-
-/* If non-NULL, this is an upper bound of the size (in bytes) of an
-   object of the given ARRAY_TYPE.  This allows temporaries to be
-   allocated.  */
-#define TYPE_ARRAY_MAX_SIZE(ARRAY_TYPE) \
-  (ARRAY_TYPE_CHECK (ARRAY_TYPE)->type.maxval)
+#define TYPE_STRING_FLAG(NODE) (TYPE_CHECK (NODE)->type_common.string_flag)
 
 /* For a VECTOR_TYPE, this is the number of sub-parts of the vector.  */
 #define TYPE_VECTOR_SUBPARTS(VECTOR_TYPE) \
   (((unsigned HOST_WIDE_INT) 1) \
-   << VECTOR_TYPE_CHECK (VECTOR_TYPE)->type.precision)
+   << VECTOR_TYPE_CHECK (VECTOR_TYPE)->type_common.precision)
 
 /* Set precision to n when we have 2^n sub-parts of the vector.  */
 #define SET_TYPE_VECTOR_SUBPARTS(VECTOR_TYPE, X) \
-  (VECTOR_TYPE_CHECK (VECTOR_TYPE)->type.precision = exact_log2 (X))
+  (VECTOR_TYPE_CHECK (VECTOR_TYPE)->type_common.precision = exact_log2 (X))
 
 /* Nonzero in a VECTOR_TYPE if the frontends should not emit warnings
    about missing conversions to other vector types of the same size.  */
@@ -2325,20 +2319,20 @@ extern enum machine_mode vector_type_mode (const_tree);
 /* Indicates that objects of this type must be initialized by calling a
    function when they are created.  */
 #define TYPE_NEEDS_CONSTRUCTING(NODE) \
-  (TYPE_CHECK (NODE)->type.needs_constructing_flag)
+  (TYPE_CHECK (NODE)->type_common.needs_constructing_flag)
 
 /* Indicates that a UNION_TYPE object should be passed the same way that
    the first union alternative would be passed, or that a RECORD_TYPE
    object should be passed the same way that the first (and only) member
    would be passed.  */
 #define TYPE_TRANSPARENT_AGGR(NODE) \
-  (RECORD_OR_UNION_CHECK (NODE)->type.transparent_aggr_flag)
+  (RECORD_OR_UNION_CHECK (NODE)->type_common.transparent_aggr_flag)
 
 /* For an ARRAY_TYPE, indicates that it is not permitted to take the
    address of a component of the type.  This is the counterpart of
    DECL_NONADDRESSABLE_P for arrays, see the definition of this flag.  */
 #define TYPE_NONALIASED_COMPONENT(NODE) \
-  (ARRAY_TYPE_CHECK (NODE)->type.transparent_aggr_flag)
+  (ARRAY_TYPE_CHECK (NODE)->type_common.transparent_aggr_flag)
 
 /* Indicated that objects of this type should be laid out in as
    compact a way as possible.  */
@@ -2348,7 +2342,7 @@ extern enum machine_mode vector_type_mode (const_tree);
    Values are: 0 (unknown), 1 (false), 2 (true).  Never access
    this field directly.  */
 #define TYPE_CONTAINS_PLACEHOLDER_INTERNAL(NODE) \
-  (TYPE_CHECK (NODE)->type.contains_placeholder_bits)
+  (TYPE_CHECK (NODE)->type_common.contains_placeholder_bits)
 
 /* The debug output functions use the symtab union field to store
    information specific to the debugging format.  The different debug
@@ -2359,15 +2353,18 @@ extern enum machine_mode vector_type_mode (const_tree);
 
 /* Symtab field as an integer.  Used by stabs generator in dbxout.c to
    hold the type's number in the generated stabs.  */
-#define TYPE_SYMTAB_ADDRESS(NODE) (TYPE_CHECK (NODE)->type.symtab.address)
+#define TYPE_SYMTAB_ADDRESS(NODE) \
+  (TYPE_CHECK (NODE)->type_common.symtab.address)
 
 /* Symtab field as a string.  Used by COFF generator in sdbout.c to
    hold struct/union type tag names.  */
-#define TYPE_SYMTAB_POINTER(NODE) (TYPE_CHECK (NODE)->type.symtab.pointer)
+#define TYPE_SYMTAB_POINTER(NODE) \
+  (TYPE_CHECK (NODE)->type_common.symtab.pointer)
 
 /* Symtab field as a pointer to a DWARF DIE.  Used by DWARF generator
    in dwarf2out.c to point to the DIE generated for the type.  */
-#define TYPE_SYMTAB_DIE(NODE) (TYPE_CHECK (NODE)->type.symtab.die)
+#define TYPE_SYMTAB_DIE(NODE) \
+  (TYPE_CHECK (NODE)->type_common.symtab.die)
 
 /* The garbage collector needs to know the interpretation of the
    symtab field.  These constants represent the different types in the
@@ -2379,9 +2376,8 @@ extern enum machine_mode vector_type_mode (const_tree);
 
 struct die_struct;
 
-struct GTY(()) tree_type {
+struct GTY(()) tree_type_common {
   struct tree_common common;
-  tree values;
   tree size;
   tree size_unit;
   tree attributes;
@@ -2415,15 +2411,69 @@ struct GTY(()) tree_type {
     struct die_struct * GTY ((tag ("TYPE_SYMTAB_IS_DIE"))) die;
   } GTY ((desc ("debug_hooks->tree_type_symtab_field"))) symtab;
   tree name;
-  tree minval;
-  tree maxval;
   tree next_variant;
   tree main_variant;
-  tree binfo;
   tree context;
   tree canonical;
+};
+
+#define TYPE_LANG_SPECIFIC(NODE) \
+  (TYPE_CHECK (NODE)->type_with_lang_specific.lang_specific)
+
+struct GTY(()) tree_type_with_lang_specific {
+  struct tree_type_common common;
   /* Points to a structure whose details depend on the language in use.  */
   struct lang_type *lang_specific;
+};
+
+#define TYPE_VALUES(NODE) (ENUMERAL_TYPE_CHECK (NODE)->type_non_common.values)
+#define TYPE_DOMAIN(NODE) (ARRAY_TYPE_CHECK (NODE)->type_non_common.values)
+#define TYPE_FIELDS(NODE) \
+  (RECORD_OR_UNION_CHECK (NODE)->type_non_common.values)
+#define TYPE_CACHED_VALUES(NODE) (TYPE_CHECK(NODE)->type_non_common.values)
+#define TYPE_ARG_TYPES(NODE) \
+  (FUNC_OR_METHOD_CHECK (NODE)->type_non_common.values)
+#define TYPE_VALUES_RAW(NODE) (TYPE_CHECK(NODE)->type_non_common.values)
+
+#define TYPE_METHODS(NODE) \
+  (RECORD_OR_UNION_CHECK (NODE)->type_non_common.maxval)
+#define TYPE_VFIELD(NODE) \
+  (RECORD_OR_UNION_CHECK (NODE)->type_non_common.minval)
+#define TYPE_METHOD_BASETYPE(NODE) \
+  (FUNC_OR_METHOD_CHECK (NODE)->type_non_common.maxval)
+#define TYPE_OFFSET_BASETYPE(NODE) \
+  (OFFSET_TYPE_CHECK (NODE)->type_non_common.maxval)
+#define TYPE_MAXVAL(NODE) (TYPE_CHECK (NODE)->type_non_common.maxval)
+#define TYPE_MINVAL(NODE) (TYPE_CHECK (NODE)->type_non_common.minval)
+#define TYPE_NEXT_PTR_TO(NODE) \
+  (POINTER_TYPE_CHECK (NODE)->type_non_common.minval)
+#define TYPE_NEXT_REF_TO(NODE) \
+  (REFERENCE_TYPE_CHECK (NODE)->type_non_common.minval)
+#define TYPE_MIN_VALUE(NODE) \
+  (NUMERICAL_TYPE_CHECK (NODE)->type_non_common.minval)
+#define TYPE_MAX_VALUE(NODE) \
+  (NUMERICAL_TYPE_CHECK (NODE)->type_non_common.maxval)
+
+/* If non-NULL, this is an upper bound of the size (in bytes) of an
+   object of the given ARRAY_TYPE_NON_COMMON.  This allows temporaries to be
+   allocated.  */
+#define TYPE_ARRAY_MAX_SIZE(ARRAY_TYPE) \
+  (ARRAY_TYPE_CHECK (ARRAY_TYPE)->type_non_common.maxval)
+
+/* For record and union types, information about this type, as a base type
+   for itself.  */
+#define TYPE_BINFO(NODE) (RECORD_OR_UNION_CHECK(NODE)->type_non_common.binfo)
+
+/* For non record and union types, used in a language-dependent way.  */
+#define TYPE_LANG_SLOT_1(NODE) \
+  (NOT_RECORD_OR_UNION_CHECK(NODE)->type_non_common.binfo)
+
+struct GTY(()) tree_type_non_common {
+  struct tree_type_with_lang_specific with_lang_specific;
+  tree values;
+  tree minval;
+  tree maxval;
+  tree binfo;
 };
 
 /* Define accessor macros for information about type inheritance
@@ -2841,8 +2891,9 @@ struct GTY(()) tree_decl_common {
      being set.  */
   unsigned decl_read_flag : 1;
 
-  /* Padding so that 'off_align' can be on a 32-bit boundary.  */
-  unsigned decl_common_unused : 1;
+  /* In VAR_DECL or RESULT_DECL set when significant code movement precludes
+     attempting to share the stack slot with some other variable.  */
+  unsigned decl_nonshareable_flag : 1;
 
   /* DECL_OFFSET_ALIGN, used only for FIELD_DECLs.  */
   unsigned int off_align : 8;
@@ -3514,7 +3565,7 @@ struct GTY ((chain_next ("%h.next"), chain_prev ("%h.prev"))) tree_statement_lis
 
 struct GTY(()) tree_statement_list
  {
-  struct tree_common common;
+  struct tree_typed typed;
   struct tree_statement_list_node *head;
   struct tree_statement_list_node *tail;
 };
@@ -3582,7 +3633,11 @@ union GTY ((ptr_alias (union lang_tree_node),
   struct tree_function_decl GTY ((tag ("TS_FUNCTION_DECL"))) function_decl;
   struct tree_translation_unit_decl GTY ((tag ("TS_TRANSLATION_UNIT_DECL")))
     translation_unit_decl;
-  struct tree_type GTY ((tag ("TS_TYPE"))) type;
+  struct tree_type_common GTY ((tag ("TS_TYPE_COMMON"))) type_common;
+  struct tree_type_with_lang_specific GTY ((tag ("TS_TYPE_WITH_LANG_SPECIFIC")))
+    type_with_lang_specific;
+  struct tree_type_non_common GTY ((tag ("TS_TYPE_NON_COMMON")))
+    type_non_common;
   struct tree_list GTY ((tag ("TS_LIST"))) list;
   struct tree_vec GTY ((tag ("TS_VEC"))) vec;
   struct tree_exp GTY ((tag ("TS_EXP"))) exp;
@@ -4003,6 +4058,12 @@ enum ptrmemfunc_vbit_where_t
 
 #define NULL_TREE (tree) NULL
 
+/* True if NODE is an erroneous expression.  */
+
+#define error_operand_p(NODE)					\
+  ((NODE) == error_mark_node					\
+   || ((NODE) && TREE_TYPE ((NODE)) == error_mark_node))
+
 extern tree decl_assembler_name (tree);
 extern bool decl_assembler_name_equal (tree decl, const_tree asmname);
 extern hashval_t decl_assembler_name_hash (const_tree asmname);
@@ -4035,6 +4096,10 @@ extern tree copy_node_stat (tree MEM_STAT_DECL);
 /* Make a copy of a chain of TREE_LIST nodes.  */
 
 extern tree copy_list (tree);
+
+/* Make a CASE_LABEL_EXPR.  */
+
+extern tree build_case_label (tree, tree, tree);
 
 /* Make a BINFO.  */
 extern tree make_tree_binfo_stat (unsigned MEM_STAT_DECL);
@@ -4237,7 +4302,6 @@ extern tree signed_or_unsigned_type_for (int, tree);
 extern tree signed_type_for (tree);
 extern tree unsigned_type_for (tree);
 extern void initialize_sizetypes (void);
-extern void set_sizetype (tree);
 extern void fixup_unsigned_type (tree);
 extern tree build_pointer_type_for_mode (tree, enum machine_mode, bool);
 extern tree build_pointer_type (tree);
@@ -4250,11 +4314,19 @@ extern tree build_type_no_quals (tree);
 extern tree build_index_type (tree);
 extern tree build_array_type (tree, tree);
 extern tree build_nonshared_array_type (tree, tree);
+extern tree build_array_type_nelts (tree, unsigned HOST_WIDE_INT);
 extern tree build_function_type (tree, tree);
 extern tree build_function_type_list (tree, ...);
 extern tree build_function_type_skip_args (tree, bitmap);
 extern tree build_function_decl_skip_args (tree, bitmap);
 extern tree build_varargs_function_type_list (tree, ...);
+extern tree build_function_type_array (tree, int, tree *);
+extern tree build_varargs_function_type_array (tree, int, tree *);
+#define build_function_type_vec(RET, V) \
+  build_function_type_array (RET, VEC_length (tree, V), VEC_address (tree, V))
+#define build_varargs_function_type_vec(RET, V) \
+  build_varargs_function_type_array (RET, VEC_length (tree, V), \
+				     VEC_address (tree, V))
 extern tree build_method_type_directly (tree, tree, tree);
 extern tree build_method_type (tree, tree);
 extern tree build_offset_type (tree, tree);
@@ -4630,9 +4702,6 @@ extern tree size_diffop_loc (location_t, tree, tree);
 extern tree round_up_loc (location_t, tree, int);
 #define round_down(T,N) round_down_loc (UNKNOWN_LOCATION, T, N)
 extern tree round_down_loc (location_t, tree, int);
-extern VEC(tree,gc) *get_pending_sizes (void);
-extern void put_pending_size (tree);
-extern void put_pending_sizes (VEC(tree,gc) *);
 extern void finalize_size_functions (void);
 
 /* Type for sizes of data-type.  */
@@ -5141,7 +5210,7 @@ extern tree fold_truth_not_expr (location_t, tree);
 extern tree fold_unary_to_constant (enum tree_code, tree, tree);
 extern tree fold_binary_to_constant (enum tree_code, tree, tree, tree);
 extern tree fold_read_from_constant_string (tree);
-extern tree int_const_binop (enum tree_code, const_tree, const_tree, int);
+extern tree int_const_binop (enum tree_code, const_tree, const_tree);
 #define build_fold_addr_expr(T)\
         build_fold_addr_expr_loc (UNKNOWN_LOCATION, (T))
 extern tree build_fold_addr_expr_loc (location_t, tree);

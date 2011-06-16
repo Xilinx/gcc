@@ -313,7 +313,11 @@ get_section (const char *name, unsigned int flags, tree decl)
 	  if (decl == 0)
 	    decl = sect->named.decl;
 	  gcc_assert (decl);
-	  error ("%+D causes a section type conflict", decl);
+	  error ("%+D causes a section type conflict with %D", 
+			decl, sect->named.decl);
+	  if (decl != sect->named.decl)
+            inform (DECL_SOURCE_LOCATION (sect->named.decl), 
+		    "%qD was declared here", sect->named.decl);
 	  /* Make sure we don't error about one section multiple times.  */
 	  sect->common.flags |= SECTION_OVERRIDE;
 	}
@@ -1237,7 +1241,7 @@ make_decl_rtl (tree decl)
 #endif
 	      nregs = hard_regno_nregs[reg_number][DECL_MODE (decl)];
 	      while (nregs > 0)
-		globalize_reg (reg_number + --nregs);
+		globalize_reg (decl, reg_number + --nregs);
 	    }
 
 	  /* As a register variable, it has no section.  */
@@ -1512,6 +1516,33 @@ notice_global_symbol (tree decl)
     }
 }
 
+/* If not using flag_reorder_blocks_and_partition, decide early whether the
+   current function goes into the cold section, so that targets can use
+   current_function_section during RTL expansion.  DECL describes the
+   function.  */
+
+void
+decide_function_section (tree decl)
+{
+  first_function_block_is_cold = false;
+
+  if (flag_reorder_blocks_and_partition)
+    /* We will decide in assemble_start_function.  */
+    return;
+
+ if (DECL_SECTION_NAME (decl))
+    {
+      struct cgraph_node *node = cgraph_get_node (current_function_decl);
+      /* Calls to function_section rely on first_function_block_is_cold
+	 being accurate.  */
+      first_function_block_is_cold = (node
+				      && node->frequency
+				      == NODE_FREQUENCY_UNLIKELY_EXECUTED);
+    }
+
+  in_cold_section_p = first_function_block_is_cold;
+}
+
 /* Output assembler code for the constant pool of a function and associated
    with defining the name of the function.  DECL describes the function.
    NAME is the function's name.  For the constant pool, we use the current
@@ -1524,7 +1555,6 @@ assemble_start_function (tree decl, const char *fnname)
   char tmp_label[100];
   bool hot_label_written = false;
 
-  first_function_block_is_cold = false;
   if (flag_reorder_blocks_and_partition)
     {
       ASM_GENERATE_INTERNAL_LABEL (tmp_label, "LHOTB", const_labelno);
@@ -1559,6 +1589,8 @@ assemble_start_function (tree decl, const char *fnname)
 
   if (flag_reorder_blocks_and_partition)
     {
+      first_function_block_is_cold = false;
+
       switch_to_section (unlikely_text_section ());
       assemble_align (DECL_ALIGN (decl));
       ASM_OUTPUT_LABEL (asm_out_file, crtl->subsections.cold_section_label);
@@ -1575,18 +1607,9 @@ assemble_start_function (tree decl, const char *fnname)
 	  hot_label_written = true;
 	  first_function_block_is_cold = true;
 	}
-    }
-  else if (DECL_SECTION_NAME (decl))
-    {
-      struct cgraph_node *node = cgraph_get_node (current_function_decl);
-      /* Calls to function_section rely on first_function_block_is_cold
-	 being accurate.  */
-      first_function_block_is_cold = (node
-				      && node->frequency
-				      == NODE_FREQUENCY_UNLIKELY_EXECUTED);
+      in_cold_section_p = first_function_block_is_cold;
     }
 
-  in_cold_section_p = first_function_block_is_cold;
 
   /* Switch to the correct text section for the start of the function.  */
 

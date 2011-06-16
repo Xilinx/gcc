@@ -91,7 +91,7 @@ static void gfc_finish (void);
 static void gfc_write_global_declarations (void);
 static void gfc_print_identifier (FILE *, tree, int);
 void do_function_end (void);
-int global_bindings_p (void);
+bool global_bindings_p (void);
 static void clear_binding_stack (void);
 static void gfc_be_parse_file (void);
 static alias_set_type gfc_get_alias_set (tree);
@@ -373,12 +373,12 @@ static GTY(()) struct binding_level *global_binding_level;
 static struct binding_level clear_binding_level = { NULL, NULL, NULL };
 
 
-/* Return nonzero if we are currently in the global binding level.  */
+/* Return true if we are in the global binding level.  */
 
-int
+bool
 global_bindings_p (void)
 {
-  return current_binding_level == global_binding_level ? -1 : 0;
+  return current_binding_level == global_binding_level;
 }
 
 tree
@@ -589,9 +589,6 @@ gfc_init_decl_processing (void)
      only use it for actual characters, not for INTEGER(1). Also, we
      want double_type_node to actually have double precision.  */
   build_common_tree_nodes (false);
-
-  size_type_node = gfc_build_uint_type (POINTER_SIZE);
-  set_sizetype (size_type_node);
 
   build_common_tree_nodes_2 (0);
   void_list_node = build_tree_list (NULL_TREE, void_type_node);

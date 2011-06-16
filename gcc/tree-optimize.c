@@ -208,8 +208,7 @@ struct gimple_opt_pass pass_cleanup_cfg_post_optimizing =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func			/* todo_flags_finish */
-    | TODO_remove_unused_locals
+  TODO_remove_unused_locals             /* todo_flags_finish */
  }
 };
 
@@ -402,12 +401,6 @@ tree_rest_of_compilation (tree fndecl)
   saved_loc = input_location;
   input_location = DECL_SOURCE_LOCATION (fndecl);
   init_function_start (fndecl);
-
-  /* Even though we're inside a function body, we still don't want to
-     call expand_expr to calculate the size of a variable-sized array.
-     We haven't necessarily assigned RTL to all variables yet, so it's
-     not safe to try to expand expressions involving them.  */
-  cfun->dont_save_pending_sizes_p = 1;
 
   gimple_register_cfg_hooks ();
 

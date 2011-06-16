@@ -578,6 +578,9 @@ enum convert_optab_index
   COI_satfract,
   COI_satfractuns,
 
+  COI_vec_load_lanes,
+  COI_vec_store_lanes,
+
   COI_MAX
 };
 
@@ -598,6 +601,8 @@ enum convert_optab_index
 #define fractuns_optab (&convert_optab_table[COI_fractuns])
 #define satfract_optab (&convert_optab_table[COI_satfract])
 #define satfractuns_optab (&convert_optab_table[COI_satfractuns])
+#define vec_load_lanes_optab (&convert_optab_table[COI_vec_load_lanes])
+#define vec_store_lanes_optab (&convert_optab_table[COI_vec_store_lanes])
 
 /* Contains the optab used for each rtx code.  */
 extern optab code_to_optab[NUM_RTX_CODE + 1];
@@ -1053,6 +1058,8 @@ create_integer_operand (struct expand_operand *op, HOST_WIDE_INT intval)
 {
   create_expand_operand (op, EXPAND_INTEGER, GEN_INT (intval), VOIDmode, false);
 }
+
+extern bool valid_multiword_target_p (rtx);
 
 extern bool maybe_legitimize_operands (enum insn_code icode,
 				       unsigned int opno, unsigned int nops,

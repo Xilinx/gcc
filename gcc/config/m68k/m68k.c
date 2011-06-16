@@ -981,7 +981,7 @@ m68k_expand_prologue (void)
 
   m68k_compute_frame_layout ();
 
-  if (flag_stack_usage)
+  if (flag_stack_usage_info)
     current_function_static_stack_size
       = current_frame.size + current_frame.offset;
 
@@ -1308,7 +1308,7 @@ m68k_expand_epilogue (bool sibcall_p)
 			   EH_RETURN_STACKADJ_RTX));
 
   if (!sibcall_p)
-    emit_jump_insn (gen_rtx_RETURN (VOIDmode));
+    emit_jump_insn (ret_rtx);
 }
 
 /* Return true if X is a valid comparison operator for the dbcc 

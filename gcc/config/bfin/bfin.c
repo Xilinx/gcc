@@ -86,14 +86,6 @@ const char *byte_reg_names[]   =  BYTE_REGISTER_NAMES;
 static int arg_regs[] = FUNCTION_ARG_REGISTERS;
 static int ret_regs[] = FUNCTION_RETURN_REGISTERS;
 
-/* Nonzero if -fschedule-insns2 was given.  We override it and
-   call the scheduler ourselves during reorg.  */
-static int bfin_flag_schedule_insns2;
-
-/* Determines whether we run variable tracking in machine dependent
-   reorganization.  */
-static int bfin_flag_var_tracking;
-
 struct bfin_cpu
 {
   const char *name;
@@ -104,15 +96,32 @@ struct bfin_cpu
 
 static const struct bfin_cpu bfin_cpus[] =
 {
+
+  {"bf512", BFIN_CPU_BF512, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_05000074},
+  {"bf512", BFIN_CPU_BF512, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_05000074},
   {"bf512", BFIN_CPU_BF512, 0x0000,
    WA_SPECULATIVE_LOADS | WA_05000074},
 
+  {"bf514", BFIN_CPU_BF514, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_05000074},
+  {"bf514", BFIN_CPU_BF514, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_05000074},
   {"bf514", BFIN_CPU_BF514, 0x0000,
    WA_SPECULATIVE_LOADS | WA_05000074},
 
+  {"bf516", BFIN_CPU_BF516, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_05000074},
+  {"bf516", BFIN_CPU_BF516, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_05000074},
   {"bf516", BFIN_CPU_BF516, 0x0000,
    WA_SPECULATIVE_LOADS | WA_05000074},
 
+  {"bf518", BFIN_CPU_BF518, 0x0002,
+   WA_SPECULATIVE_LOADS | WA_05000074},
+  {"bf518", BFIN_CPU_BF518, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_05000074},
   {"bf518", BFIN_CPU_BF518, 0x0000,
    WA_SPECULATIVE_LOADS | WA_05000074},
 
@@ -260,6 +269,8 @@ static const struct bfin_cpu bfin_cpus[] =
   {"bf542m", BFIN_CPU_BF542M, 0x0003,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
 
+  {"bf542", BFIN_CPU_BF542, 0x0004,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf542", BFIN_CPU_BF542, 0x0002,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf542", BFIN_CPU_BF542, 0x0001,
@@ -271,6 +282,8 @@ static const struct bfin_cpu bfin_cpus[] =
   {"bf544m", BFIN_CPU_BF544M, 0x0003,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
 
+  {"bf544", BFIN_CPU_BF544, 0x0004,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf544", BFIN_CPU_BF544, 0x0002,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf544", BFIN_CPU_BF544, 0x0001,
@@ -282,6 +295,8 @@ static const struct bfin_cpu bfin_cpus[] =
   {"bf547m", BFIN_CPU_BF547M, 0x0003,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
 
+  {"bf547", BFIN_CPU_BF547, 0x0004,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf547", BFIN_CPU_BF547, 0x0002,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf547", BFIN_CPU_BF547, 0x0001,
@@ -293,6 +308,8 @@ static const struct bfin_cpu bfin_cpus[] =
   {"bf548m", BFIN_CPU_BF548M, 0x0003,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
 
+  {"bf548", BFIN_CPU_BF548, 0x0004,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf548", BFIN_CPU_BF548, 0x0002,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf548", BFIN_CPU_BF548, 0x0001,
@@ -304,6 +321,8 @@ static const struct bfin_cpu bfin_cpus[] =
   {"bf549m", BFIN_CPU_BF549M, 0x0003,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
 
+  {"bf549", BFIN_CPU_BF549, 0x0004,
+   WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf549", BFIN_CPU_BF549, 0x0002,
    WA_SPECULATIVE_LOADS | WA_INDIRECT_CALLS | WA_05000074},
   {"bf549", BFIN_CPU_BF549, 0x0001,
@@ -322,6 +341,11 @@ static const struct bfin_cpu bfin_cpus[] =
    WA_SPECULATIVE_LOADS | WA_SPECULATIVE_SYNCS | WA_RETS
    | WA_05000283 | WA_05000257 | WA_05000315 | WA_LOAD_LCREGS
    | WA_05000074},
+
+  {"bf592", BFIN_CPU_BF592, 0x0001,
+   WA_SPECULATIVE_LOADS | WA_05000074},
+  {"bf592", BFIN_CPU_BF592, 0x0000,
+   WA_SPECULATIVE_LOADS | WA_05000074},
 
   {NULL, BFIN_CPU_UNKNOWN, 0, 0}
 };
@@ -342,13 +366,6 @@ output_file_start (void)
 {
   FILE *file = asm_out_file;
   int i;
-
-  /* Variable tracking should be run after all optimizations which change order
-     of insns.  It also needs a valid CFG.  This can't be done in
-     bfin_option_override, because flag_var_tracking is finalized after
-     that.  */
-  bfin_flag_var_tracking = flag_var_tracking;
-  flag_var_tracking = 0;
 
   fprintf (file, ".file \"%s\";\n", input_filename);
   
@@ -1331,8 +1348,10 @@ bfin_expand_prologue (void)
 	= bfin_initial_elimination_offset (ARG_POINTER_REGNUM,
 					   STACK_POINTER_REGNUM);
       rtx lim = crtl->limit_stack ? stack_limit_rtx : NULL_RTX;
+      rtx tmp = gen_rtx_REG (Pmode, REG_R3);
       rtx p2reg = gen_rtx_REG (Pmode, REG_P2);
 
+      emit_move_insn (tmp, p2reg);
       if (!lim)
 	{
 	  emit_move_insn (p2reg, gen_int_mode (0xFFB00000, SImode));
@@ -1369,6 +1388,7 @@ bfin_expand_prologue (void)
 	}
       emit_insn (gen_compare_lt (bfin_cc_rtx, spreg, lim));
       emit_insn (gen_trapifcc ());
+      emit_move_insn (p2reg, tmp);
     }
   expand_prologue_reg_save (spreg, all, false);
 
@@ -1430,6 +1450,14 @@ bfin_hard_regno_rename_ok (unsigned int old_reg ATTRIBUTE_UNUSED,
     return 0;
 
   return 1;
+}
+
+/* Implement TARGET_EXTRA_LIVE_ON_ENTRY.  */
+static void
+bfin_extra_live_on_entry (bitmap regs)
+{
+  if (TARGET_FDPIC)
+    bitmap_set_bit (regs, FDPIC_REGNO);
 }
 
 /* Return the value of the return address for the frame COUNT steps up
@@ -2067,6 +2095,8 @@ bfin_function_ok_for_sibcall (tree decl ATTRIBUTE_UNUSED,
  
   this_func = cgraph_local_info (current_function_decl);
   called_func = cgraph_local_info (decl);
+  if (!called_func)
+    return false;
   return !called_func->local || this_func->local;
 }
 
@@ -2334,7 +2364,7 @@ bfin_expand_call (rtx retval, rtx fnaddr, rtx callarg1, rtx cookie, int sibcall)
     XVECEXP (pat, 0, n++) = gen_rtx_USE (VOIDmode, picreg);
   XVECEXP (pat, 0, n++) = gen_rtx_USE (VOIDmode, cookie);
   if (sibcall)
-    XVECEXP (pat, 0, n++) = gen_rtx_RETURN (VOIDmode);
+    XVECEXP (pat, 0, n++) = ret_rtx;
   else
     XVECEXP (pat, 0, n++) = gen_rtx_CLOBBER (VOIDmode, retsreg);
   call = emit_call_insn (pat);
@@ -2672,9 +2702,20 @@ bfin_option_override (void)
   if (TARGET_OMIT_LEAF_FRAME_POINTER)
     flag_omit_frame_pointer = 1;
 
+#ifdef SUBTARGET_FDPIC_NOT_SUPPORTED
+  if (TARGET_FDPIC)
+    error ("-mfdpic is not supported, please use a bfin-linux-uclibc target");
+#endif
+
   /* Library identification */
   if (global_options_set.x_bfin_library_id && ! TARGET_ID_SHARED_LIBRARY)
     error ("-mshared-library-id= specified without -mid-shared-library");
+
+  if (stack_limit_rtx && TARGET_FDPIC)
+    {
+      warning (0, "-fstack-limit- options are ignored with -mfdpic; use -mstack-check-l1");
+      stack_limit_rtx = NULL_RTX;
+    }
 
   if (stack_limit_rtx && TARGET_STACK_CHECK_L1)
     error ("can%'t use multiple stack checking methods together");
@@ -2717,11 +2758,6 @@ bfin_option_override (void)
     error ("-mcorea and -mcoreb can%'t be used together");
 
   flag_schedule_insns = 0;
-
-  /* Passes after sched2 can break the helpful TImode annotations that
-     haifa-sched puts on every insn.  Just do scheduling in reorg.  */
-  bfin_flag_schedule_insns2 = flag_schedule_insns_after_reload;
-  flag_schedule_insns_after_reload = 0;
 
   init_machine_status = bfin_init_machine_status;
 }
@@ -5496,7 +5532,7 @@ bfin_reorg (void)
      with old MDEP_REORGS that are not CFG based.  Recompute it now.  */
   compute_bb_for_insn ();
 
-  if (bfin_flag_schedule_insns2)
+  if (flag_schedule_insns_after_reload)
     {
       splitting_for_sched = 1;
       split_all_insns ();
@@ -5525,7 +5561,7 @@ bfin_reorg (void)
 
   workaround_speculation ();
 
-  if (bfin_flag_var_tracking)
+  if (flag_var_tracking)
     {
       timevar_push (TV_VAR_TRACKING);
       variable_tracking_main ();
@@ -5968,7 +6004,7 @@ bfin_init_builtins (void)
 {
   tree V2HI_type_node = build_vector_type_for_mode (intHI_type_node, V2HImode);
   tree void_ftype_void
-    = build_function_type (void_type_node, void_list_node);
+    = build_function_type_list (void_type_node, NULL_TREE);
   tree short_ftype_short
     = build_function_type_list (short_integer_type_node, short_integer_type_node,
 				NULL_TREE);
@@ -6707,5 +6743,18 @@ bfin_conditional_register_usage (void)
 #define TARGET_ASM_TRAMPOLINE_TEMPLATE bfin_asm_trampoline_template
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT bfin_trampoline_init
+
+#undef TARGET_EXTRA_LIVE_ON_ENTRY
+#define TARGET_EXTRA_LIVE_ON_ENTRY bfin_extra_live_on_entry
+
+/* Passes after sched2 can break the helpful TImode annotations that
+   haifa-sched puts on every insn.  Just do scheduling in reorg.  */
+#undef TARGET_DELAY_SCHED2
+#define TARGET_DELAY_SCHED2 true
+
+/* Variable tracking should be run after all optimizations which
+   change order of insns.  It also needs a valid CFG.  */
+#undef TARGET_DELAY_VARTRACK
+#define TARGET_DELAY_VARTRACK true
 
 struct gcc_target targetm = TARGET_INITIALIZER;

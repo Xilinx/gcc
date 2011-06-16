@@ -904,7 +904,7 @@ unsigned get_gimple_rhs_num_ops (enum tree_code);
 gimple gimple_alloc_stat (enum gimple_code, unsigned MEM_STAT_DECL);
 const char *gimple_decl_printable_name (tree, int);
 bool gimple_fold_call (gimple_stmt_iterator *gsi, bool inplace);
-tree gimple_get_virt_method_for_binfo (HOST_WIDE_INT, tree, tree *, bool);
+tree gimple_get_virt_method_for_binfo (HOST_WIDE_INT, tree, tree *);
 void gimple_adjust_this_by_delta (gimple_stmt_iterator *, tree);
 tree gimple_extract_devirt_binfo_from_cst (tree);
 /* Returns true iff T is a valid GIMPLE statement.  */
@@ -965,8 +965,6 @@ extern void recalculate_side_effects (tree);
 extern bool gimple_compare_field_offset (tree, tree);
 extern tree gimple_register_type (tree);
 extern tree gimple_register_canonical_type (tree);
-enum gtc_mode { GTC_MERGE = 0, GTC_DIAG = 1 };
-extern bool gimple_types_compatible_p (tree, tree, enum gtc_mode);
 extern void print_gimple_types_stats (void);
 extern void free_gimple_type_tables (void);
 extern tree gimple_unsigned_type (tree);
@@ -4990,4 +4988,5 @@ extern tree maybe_fold_and_comparisons (enum tree_code, tree, tree,
 extern tree maybe_fold_or_comparisons (enum tree_code, tree, tree,
 				       enum tree_code, tree, tree);
 
+bool gimple_val_nonnegative_real_p (tree);
 #endif  /* GCC_GIMPLE_H */

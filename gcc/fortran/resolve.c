@@ -1441,6 +1441,10 @@ resolve_intrinsic (gfc_symbol *sym, locus *loc)
   if (sym->formal)
     return SUCCESS;
 
+  /* Already resolved.  */
+  if (sym->from_intmod && sym->ts.type != BT_UNKNOWN)
+    return SUCCESS;
+
   /* We already know this one is an intrinsic, so we don't call
      gfc_is_intrinsic for full checking but rather use gfc_find_function and
      gfc_find_subroutine directly to check whether it is a function or
@@ -6490,6 +6494,13 @@ resolve_deallocate_expr (gfc_expr *e)
       return FAILURE;
     }
 
+  /* F2008, C644.  */
+  if (gfc_is_coindexed (e))
+    {
+      gfc_error ("Coindexed allocatable object at %L", &e->where);
+      return FAILURE;
+    }
+
   if (pointer
       && gfc_check_vardef_context (e, true, _("DEALLOCATE object")) == FAILURE)
     return FAILURE;
@@ -8188,6 +8199,40 @@ find_reachable_labels (gfc_code *block)
 
 
 static void
+resolve_lock_unlock (gfc_code *code)
+{
+  /* FIXME: Add more lock-variable checks. For now, always reject it.
+     Note that ISO_FORTRAN_ENV's LOCK_TYPE is not yet available.  */
+  /* if (code->expr2->ts.type != BT_DERIVED
+	 || code->expr2->rank != 0
+	 || code->expr2->expr_type != EXPR_VARIABLE)  */
+  gfc_error ("Lock variable at %L must be a scalar of type LOCK_TYPE",
+	     &code->expr1->where);
+
+  /* Check STAT.  */
+  if (code->expr2
+      && (code->expr2->ts.type != BT_INTEGER || code->expr2->rank != 0
+	  || code->expr2->expr_type != EXPR_VARIABLE))
+    gfc_error ("STAT= argument at %L must be a scalar INTEGER variable",
+	       &code->expr2->where);
+
+  /* Check ERRMSG.  */
+  if (code->expr3
+      && (code->expr3->ts.type != BT_CHARACTER || code->expr3->rank != 0
+	  || code->expr3->expr_type != EXPR_VARIABLE))
+    gfc_error ("ERRMSG= argument at %L must be a scalar CHARACTER variable",
+	       &code->expr3->where);
+
+  /* Check ACQUIRED_LOCK.  */
+  if (code->expr4
+      && (code->expr4->ts.type != BT_LOGICAL || code->expr4->rank != 0
+	  || code->expr4->expr_type != EXPR_VARIABLE))
+    gfc_error ("ACQUIRED_LOCK= argument at %L must be a scalar LOGICAL "
+	       "variable", &code->expr4->where);
+}
+
+
+static void
 resolve_sync (gfc_code *code)
 {
   /* Check imageset. The * case matches expr1 == NULL.  */
@@ -9052,6 +9097,11 @@ resolve_code (gfc_code *code, gfc_namespace *ns)
 	case EXEC_SYNC_IMAGES:
 	case EXEC_SYNC_MEMORY:
 	  resolve_sync (code);
+	  break;
+
+	case EXEC_LOCK:
+	case EXEC_UNLOCK:
+	  resolve_lock_unlock (code);
 	  break;
 
 	case EXEC_ENTRY:
@@ -10107,7 +10157,14 @@ resolve_fl_variable (gfc_symbol *sym, int mp_flag)
 
       /* Also, they must not have the SAVE attribute.
 	 SAVE_IMPLICIT is checked below.  */
-      if (sym->attr.save == SAVE_EXPLICIT)
+      if (sym->as && sym->attr.codimension)
+	{
+	  int corank = sym->as->corank;
+	  sym->as->corank = 0;
+	  no_init_flag = automatic_flag = is_non_constant_shape_array (sym);
+	  sym->as->corank = corank;
+	}
+      if (automatic_flag && sym->attr.save == SAVE_EXPLICIT)
 	{
 	  gfc_error (auto_save_msg, sym->name, &sym->declared_at);
 	  return FAILURE;
@@ -12326,6 +12383,7 @@ resolve_symbol (gfc_symbol *sym)
   if (((sym->ts.type == BT_DERIVED && sym->ts.u.derived->attr.coarray_comp)
        || sym->attr.codimension)
       && !(sym->attr.allocatable || sym->attr.dummy || sym->attr.save
+	   || sym->ns->save_all
 	   || sym->ns->proc_name->attr.flavor == FL_MODULE
 	   || sym->ns->proc_name->attr.is_main_program
 	   || sym->attr.function || sym->attr.result || sym->attr.use_assoc))

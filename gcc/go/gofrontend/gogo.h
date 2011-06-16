@@ -465,16 +465,6 @@ class Gogo
   static void
   mark_fndecl_as_builtin_library(tree fndecl);
 
-  // Build the type of the struct that holds a slice for the given
-  // element type.
-  tree
-  slice_type_tree(tree element_type_tree);
-
-  // Given a tree for a slice type, return the tree for the element
-  // type.
-  static tree
-  slice_element_type_tree(tree slice_type_tree);
-
   // Build a constructor for a slice.  SLICE_TYPE_TREE is the type of
   // the slice.  VALUES points to the values.  COUNT is the size,
   // CAPACITY is the capacity.  If CAPACITY is NULL, it is set to
@@ -482,27 +472,6 @@ class Gogo
   static tree
   slice_constructor(tree slice_type_tree, tree values, tree count,
 		    tree capacity);
-
-  // Build a constructor for an empty slice.  SLICE_TYPE_TREE is the
-  // type of the slice.
-  static tree
-  empty_slice_constructor(tree slice_type_tree);
-
-  // Build a map descriptor.
-  tree
-  map_descriptor(Map_type*);
-
-  // Return a tree for the type of a map descriptor.  This is struct
-  // __go_map_descriptor in libgo/runtime/map.h.  This is the same for
-  // all map types.
-  tree
-  map_descriptor_type();
-
-  // Build a type descriptor for TYPE using INITIALIZER as the type
-  // descriptor.  This builds a new decl stored in *PDECL.
-  void
-  build_type_descriptor_decl(const Type*, Expression* initializer,
-			     tree* pdecl);
 
   // Build required interface method tables.
   void
@@ -607,32 +576,6 @@ class Gogo
   tree
   ptr_go_string_constant_tree(const std::string&);
 
-  // Return the name to use for a type descriptor decl for an unnamed
-  // type.
-  std::string
-  unnamed_type_descriptor_decl_name(const Type* type);
-
-  // Return the name to use for a type descriptor decl for a type
-  // named NO, defined in IN_FUNCTION.
-  std::string
-  type_descriptor_decl_name(const Named_object* no,
-			    const Named_object* in_function);
-
-  // Where a type descriptor should be defined.
-  enum Type_descriptor_location
-    {
-      // Defined in this file.
-      TYPE_DESCRIPTOR_DEFINED,
-      // Defined in some other file.
-      TYPE_DESCRIPTOR_UNDEFINED,
-      // Common definition which may occur in multiple files.
-      TYPE_DESCRIPTOR_COMMON
-    };
-
-  // Return where the decl for TYPE should be defined.
-  Type_descriptor_location
-  type_descriptor_location(const Type* type);
-
   // Return the type of a trampoline.
   static tree
   trampoline_type_tree();
@@ -645,14 +588,6 @@ class Gogo
 
   // Type used to map special names in the sys package.
   typedef std::map<std::string, std::string> Sys_names;
-
-  // Hash table mapping map types to map descriptor decls.
-  typedef Unordered_map_hash(const Map_type*, tree, Type_hash_identical,
-			     Type_identical) Map_descriptors;
-
-  // Map unnamed types to type descriptor decls.
-  typedef Unordered_map_hash(const Type*, tree, Type_hash_identical,
-			     Type_identical) Type_descriptor_decls;
 
   // The backend generator.
   Backend* backend_;
@@ -670,10 +605,6 @@ class Gogo
   // Mapping from package names we have seen to packages.  This does
   // not include the package we are compiling.
   Packages packages_;
-  // Mapping from map types to map descriptors.
-  Map_descriptors* map_descriptors_;
-  // Mapping from unnamed types to type descriptor decls.
-  Type_descriptor_decls* type_descriptor_decls_;
   // The functions named "init", if there are any.
   std::vector<Named_object*> init_functions_;
   // Whether we need a magic initialization function.
@@ -1175,6 +1106,22 @@ class Variable
   is_in_heap() const
   { return this->is_address_taken_ && !this->is_global_; }
 
+  // Note that something takes the address of this variable.
+  void
+  set_address_taken()
+  { this->is_address_taken_ = true; }
+
+  // Return whether the address is taken but does not escape.
+  bool
+  is_non_escaping_address_taken() const
+  { return this->is_non_escaping_address_taken_; }
+
+  // Note that something takes the address of this variable such that
+  // the address does not escape the function.
+  void
+  set_non_escaping_address_taken()
+  { this->is_non_escaping_address_taken_ = true; }
+
   // Get the source location of the variable's declaration.
   source_location
   location() const
@@ -1267,11 +1214,6 @@ class Variable
   void
   determine_type();
 
-  // Note that something takes the address of this variable.
-  void
-  set_address_taken()
-  { this->is_address_taken_ = true; }
-
   // Get the backend representation of the variable.
   Bvariable*
   get_backend_variable(Gogo*, Named_object*, const Package*,
@@ -1329,8 +1271,13 @@ class Variable
   bool is_receiver_ : 1;
   // Whether this is the varargs parameter of a function.
   bool is_varargs_parameter_ : 1;
-  // Whether something takes the address of this variable.
+  // Whether something takes the address of this variable.  For a
+  // local variable this implies that the variable has to be on the
+  // heap.
   bool is_address_taken_ : 1;
+  // Whether something takes the address of this variable such that
+  // the address does not escape the function.
+  bool is_non_escaping_address_taken_ : 1;
   // True if we have seen this variable in a traversal.
   bool seen_ : 1;
   // True if we have lowered the initialization expression.
@@ -1358,7 +1305,8 @@ class Result_variable
   Result_variable(Type* type, Function* function, int index,
 		  source_location location)
     : type_(type), function_(function), index_(index), location_(location),
-      backend_(NULL), is_address_taken_(false)
+      backend_(NULL), is_address_taken_(false),
+      is_non_escaping_address_taken_(false)
   { }
 
   // Get the type of the result variable.
@@ -1391,6 +1339,17 @@ class Result_variable
   set_address_taken()
   { this->is_address_taken_ = true; }
 
+  // Return whether the address is taken but does not escape.
+  bool
+  is_non_escaping_address_taken() const
+  { return this->is_non_escaping_address_taken_; }
+
+  // Note that something takes the address of this variable such that
+  // the address does not escape the function.
+  void
+  set_non_escaping_address_taken()
+  { this->is_non_escaping_address_taken_ = true; }
+
   // Whether this variable should live in the heap.
   bool
   is_in_heap() const
@@ -1419,6 +1378,9 @@ class Result_variable
   Bvariable* backend_;
   // Whether something takes the address of this variable.
   bool is_address_taken_;
+  // Whether something takes the address of this variable such that
+  // the address does not escape the function.
+  bool is_non_escaping_address_taken_;
 };
 
 // The value we keep for a named constant.  This lets us hold a type

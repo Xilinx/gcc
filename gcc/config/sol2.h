@@ -19,6 +19,9 @@ You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
+/* We are compiling for Solaris 2 now.  */
+#define TARGET_SOLARIS 1
+
 /* We use stabs-in-elf for debugging, because that is what the native
    toolchain uses.  */
 #undef PREFERRED_DEBUGGING_TYPE
@@ -133,10 +136,14 @@ along with GCC; see the file COPYING3.  If not see
    %{!symbolic:\
      %{pthreads|pthread:" \
         LIB_THREAD_LDFLAGS_SPEC " -lpthread " LIB_TLS_SPEC "} \
+     %{fprofile-generate*:" \
+        LIB_THREAD_LDFLAGS_SPEC " " LIB_TLS_SPEC "} \
      %{p|pg:-ldl} -lc}"
 
 #undef  ENDFILE_SPEC
-#define ENDFILE_SPEC "crtend.o%s crtn.o%s"
+#define ENDFILE_SPEC \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+   crtend.o%s crtn.o%s"
 
 /* We don't use the standard svr4 STARTFILE_SPEC because it's wrong for us.  */
 #undef STARTFILE_SPEC
@@ -200,52 +207,7 @@ along with GCC; see the file COPYING3.  If not see
 
 #define STDC_0_IN_SYSTEM_HEADERS 1
 
-/*
- * Attempt to turn on access permissions for the stack.
- *
- * _SC_STACK_PROT is only defined for post 2.6, but we want this code
- * to run always.  2.6 can change the stack protection but has no way to
- * query it.
- *
- */
-
-/* sys/mman.h is not present on some non-Solaris configurations
-   that use sol2.h, so ENABLE_EXECUTE_STACK must use a magic
-   number instead of the appropriate PROT_* flags.  */
-
-#define ENABLE_EXECUTE_STACK					\
-									\
-/* #define STACK_PROT_RWX (PROT_READ | PROT_WRITE | PROT_EXEC) */	\
-									\
-static int need_enable_exec_stack;					\
-									\
-static void check_enabling(void) __attribute__ ((constructor));		\
-static void check_enabling(void)					\
-{									\
-  extern long sysconf(int);						\
-									\
-  int prot = (int) sysconf(515 /* _SC_STACK_PROT */);			\
-  if (prot != 7 /* STACK_PROT_RWX */)					\
-    need_enable_exec_stack = 1;						\
-}									\
-									\
-extern void __enable_execute_stack (void *);				\
-void									\
-__enable_execute_stack (void *addr)					\
-{									\
-  extern int mprotect(void *, size_t, int);				\
-  if (!need_enable_exec_stack)						\
-    return;								\
-  else {								\
-    long size = getpagesize ();						\
-    long mask = ~(size-1);						\
-    char *page = (char *) (((long) addr) & mask); 			\
-    char *end  = (char *) ((((long) (addr + TRAMPOLINE_SIZE)) & mask) + size); \
-									\
-    if (mprotect (page, end - page, 7 /* STACK_PROT_RWX */) < 0)	\
-      perror ("mprotect of trampoline code");				\
-  }									\
-}
+#define HAVE_ENABLE_EXECUTE_STACK
 
 /* Support Solaris-specific format checking for cmn_err.  */
 #define TARGET_N_FORMAT_TYPES 1
@@ -257,9 +219,8 @@ __enable_execute_stack (void *addr)					\
   { "init",      0, 0, true,  false,  false, NULL, false },		\
   { "fini",      0, 0, true,  false,  false, NULL, false }
 
-/* Solaris/x86 as and gas support the common ELF .section/.pushsection
-   syntax.  */
-#define PUSHSECTION_FORMAT	"\t.pushsection\t%s\n"
+/* Solaris/x86 as and gas support unquoted section names.  */
+#define SECTION_NAME_FORMAT	"%s"
 
 /* This is how to declare the size of a function.  For Solaris, we output
    any .init or .fini entries here.  */

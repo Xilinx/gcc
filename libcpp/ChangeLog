@@ -1,3 +1,19 @@
+2011-06-06  Dodji Seketeli  <dodji@redhat.com>
+
+	PR preprocessor/48532
+	* directives.c (do_pragma): Don't forget the invocation location
+	when parsing the pragma name of a namespaced pragma directive.
+
+2011-05-29  John Tytgat  <John.Tytgat@aaug.net>
+
+	* files.c (read_file_guts): Add test on non-zero value of S_ISREG.
+
+2011-05-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/49104
+	* lex.c (init_vectorized_lexer): Do not set "minimum" when __3dNOW_A__
+	is defined.  Check bit_MMXEXT and bit_CMOV to use search_line_mmx.
+
 2011-04-25  Jan Kratochvil  <jan.kratochvil@redhat.com>
 
 	* system.h (ENUM_BITFIELD): Remove.

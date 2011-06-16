@@ -433,7 +433,8 @@ handle_format_arg_attribute (tree * ARG_UNUSED (node), tree ARG_UNUSED (name),
 static void
 def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
 {
-  tree args = NULL, t;
+  tree t;
+  tree *args = XALLOCAVEC (tree, n);
   va_list list;
   int i;
 
@@ -444,18 +445,17 @@ def_fn_type (builtin_type def, builtin_type ret, bool var, int n, ...)
       t = builtin_types[a];
       if (t == error_mark_node)
 	goto egress;
-      args = tree_cons (NULL_TREE, t, args);
+      args[i] = t;
     }
   va_end (list);
-
-  args = nreverse (args);
-  if (!var)
-    args = chainon (args, void_list_node);
 
   t = builtin_types[ret];
   if (t == error_mark_node)
     goto egress;
-  t = build_function_type (t, args);
+  if (var)
+    t = build_varargs_function_type_array (t, n, args);
+  else
+    t = build_function_type_array (t, n, args);
 
  egress:
   builtin_types[def] = t;
@@ -938,8 +938,10 @@ lto_type_for_mode (enum machine_mode mode, int unsigned_p)
   return NULL_TREE;
 }
 
-static int
-lto_global_bindings_p (void) 
+/* Return true if we are in the global binding level.  */
+
+static bool
+lto_global_bindings_p (void)
 {
   return cfun == NULL;
 }
@@ -1050,12 +1052,31 @@ lto_build_c_type_nodes (void)
   pid_type_node = integer_type_node;
 }
 
+/* Re-compute TYPE_CANONICAL for NODE and related types.  */
+
+static void
+lto_register_canonical_types (tree node)
+{
+  if (!node
+      || !TYPE_P (node))
+    return;
+
+  TYPE_CANONICAL (node) = NULL_TREE;
+  TYPE_CANONICAL (node) = gimple_register_canonical_type (node);
+
+  if (POINTER_TYPE_P (node)
+      || TREE_CODE (node) == COMPLEX_TYPE
+      || TREE_CODE (node) == ARRAY_TYPE)
+    lto_register_canonical_types (TREE_TYPE (node));
+}
 
 /* Perform LTO-specific initialization.  */
 
 static bool
 lto_init (void)
 {
+  unsigned i;
+
   /* We need to generate LTO if running in WPA mode.  */
   flag_generate_lto = flag_wpa;
 
@@ -1065,34 +1086,6 @@ lto_init (void)
 
   /* Create the basic integer types.  */
   build_common_tree_nodes (flag_signed_char);
-
-  /* Share char_type_node with whatever would be the default for the target.
-     char_type_node will be used for internal types such as
-     va_list_type_node but will not be present in the lto stream.  */
-  /* ???  This breaks the more common case of consistent but non-standard
-     setting of flag_signed_char, so share according to flag_signed_char.
-     See PR42528.  */
-  char_type_node
-    = flag_signed_char ? signed_char_type_node : unsigned_char_type_node;
-
-  /* Tell the middle end what type to use for the size of objects.  */
-  if (strcmp (SIZE_TYPE, "unsigned int") == 0)
-    {
-      set_sizetype (unsigned_type_node);
-      size_type_node = unsigned_type_node;
-    }
-  else if (strcmp (SIZE_TYPE, "long unsigned int") == 0)
-    {
-      set_sizetype (long_unsigned_type_node);
-      size_type_node = long_unsigned_type_node;
-    }
-  else if (strcmp (SIZE_TYPE, "long long unsigned int") == 0)
-    {
-      set_sizetype (long_long_unsigned_type_node);
-      size_type_node = long_long_unsigned_type_node;
-    }
-  else
-    gcc_unreachable ();
 
   /* The global tree for the main identifier is filled in by
      language-specific front-end initialization that is not run in the
@@ -1155,6 +1148,17 @@ lto_init (void)
   NAME_TYPE (void_type_node, "void");
   NAME_TYPE (boolean_type_node, "bool");
 #undef NAME_TYPE
+
+  /* Register the common node types with the canonical type machinery so
+     we properly share alias-sets across languages and TUs.  Do not
+     expose the common nodes as type merge target - those that should be
+     are already exposed so by pre-loading the LTO streamer caches.  */
+  for (i = 0; i < itk_none; ++i)
+    lto_register_canonical_types (integer_types[i]);
+  /* The sizetypes are not used to access data so we do not need to
+     do anything about them.  */
+  for (i = 0; i < TI_MAX; ++i)
+    lto_register_canonical_types (global_trees[i]);
 
   /* Initialize LTO-specific data structures.  */
   lto_global_var_decls = VEC_alloc (tree, gc, 256);

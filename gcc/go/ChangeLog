@@ -1,3 +1,79 @@
+2011-06-13  Ian Lance Taylor  <iant@google.com>
+
+	* Make-lang.in (go/expressions.o): Depend on $(GO_RUNTIME_H).
+
+2011-06-10  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc: Include "toplev.h".
+	(Gcc_backend::immutable_struct): New function.
+	(Gcc_backend::immutable_struct_set_init): New function.
+	(Gcc_backend::immutable_struct_reference): New function.
+	* Make-lang.in (go/go-gcc.o): Depend on toplev.h.
+
+2011-06-09  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::zero_expression): New function.
+
+2011-06-07  Richard Guenther  <rguenther@suse.de>
+
+	* go-lang.c (go_langhook_init): Do not set
+	size_type_node or call set_sizetype.
+
+2011-05-27  Ian Lance Taylor  <iant@google.com>
+
+	* go-backend.c: Include "output.h".
+	(go_write_export_data): New function.
+	* go-c.h (go_write_export_data): Declare.
+	* Make-lang.in (go/go-backend.o): Depend on output.h.
+	(go/export.o): Depend on $(GO_C_H).  Do not depend on
+	$(MACHMODE_H), output.h, or $(TARGET_H).
+
+2011-05-24  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (GCCGO_OBJS): Remove prefix.o.
+	(gccgo$(exeext)): Use libcommon-target.a.
+
+2011-05-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (GCCGO_OBJS): Remove intl.o and version.o.
+
+2011-05-13  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::function_type): When building a struct
+	for multiple results, check that all fields types have a size.
+	(Gcc_backend::placeholder_pointer_type): Permit name to be empty.
+
+2011-05-12  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::local_variable): Add is_address_taken
+	parameter.
+	(Gcc_backend::parameter_variable): Likewise.
+
+2011-05-07  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* go-lang.c (global_bindings_p): Return bool and simplify.
+
+2011-05-05  Nathan Froyd  <froydnj@codesourcery.com>
+
+	* go-gcc.cc (Gcc_backend::switch_statement): Call build_case_label.
+
+2011-05-04  Ian Lance Taylor  <iant@google.com>
+
+	* go-gcc.cc (Gcc_backend::struct_type): Call fill_in_struct.
+	(Gcc_backend::fill_in_struct): New function.
+	(Gcc_backend::array_type): Implement.
+	(Gcc_backend::fill_in_array): New function.
+	(Gcc_backend::placeholder_pointer_type): New function.
+	(Gcc_backend::set_placeholder_pointer_type): New function.
+	(Gcc_backend::set_placeholder_function_type): New function.
+	(Gcc_backend::placeholder_struct_type): New function.
+	(Gcc_backend::set_placeholder_struct_type): New function.
+	(Gcc_backend::placeholder_array_type): New function.
+	(Gcc_backend::set_placeholder_array_type): New function.
+	(Gcc_backend::named_type): New function.
+	(Gcc_backend::circular_pointer_type): New function.
+	(Gcc_backend::is_circular_pointer_type): New function.
+
 2011-04-26  Ian Lance Taylor  <iant@google.com>
 
 	* go-gcc.cc (Gcc_backend::struct_type): Implement.

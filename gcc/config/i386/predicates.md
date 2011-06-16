@@ -1,5 +1,5 @@
 ;; Predicate definitions for IA-32 and x86-64.
-;; Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
+;; Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
 ;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
@@ -81,6 +81,10 @@
 (define_predicate "flags_reg_operand"
   (and (match_code "reg")
        (match_test "REGNO (op) == FLAGS_REG")))
+
+;; Return true if op is one of QImode registers: %[abcd][hl].
+(define_predicate "QIreg_operand"
+  (match_test "QI_REG_P (op)"))
 
 ;; Return true if op is a QImode register operand other than
 ;; %[abcd][hl].
@@ -688,36 +692,6 @@
   (and (match_code "const_int")
        (match_test "IN_RANGE (INTVAL (op), 12, 15)")))
 
-;; Match exactly one bit in 2-bit mask.
-(define_predicate "const_pow2_1_to_2_operand"
-  (and (match_code "const_int")
-       (ior (match_test "op == const1_rtx")
-	    (match_test "op == const2_rtx"))))
-
-;; Match exactly one bit in 4-bit mask.
-(define_predicate "const_pow2_1_to_8_operand"
-  (match_code "const_int")
-{
-  unsigned int log = exact_log2 (INTVAL (op));
-  return log <= 3;
-})
-
-;; Match exactly one bit in 8-bit mask.
-(define_predicate "const_pow2_1_to_128_operand"
-  (match_code "const_int")
-{
-  unsigned int log = exact_log2 (INTVAL (op));
-  return log <= 7;
-})
-
-;; Match exactly one bit in 16-bit mask.
-(define_predicate "const_pow2_1_to_32768_operand"
-  (match_code "const_int")
-{
-  unsigned int log = exact_log2 (INTVAL (op));
-  return log <= 15;
-})
-
 ;; True if this is a constant appropriate for an increment or decrement.
 (define_predicate "incdec_operand"
   (match_code "const_int")
@@ -1095,6 +1069,10 @@
 ;; Return true if this is a division operation.
 (define_predicate "div_operator"
   (match_code "div"))
+
+;; Return true if this is a plus, minus, and, ior or xor operation.
+(define_predicate "plusminuslogic_operator"
+  (match_code "plus,minus,and,ior,xor"))
 
 ;; Return true if this is a float extend operation.
 (define_predicate "float_operator"

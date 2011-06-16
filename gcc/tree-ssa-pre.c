@@ -2771,7 +2771,7 @@ create_component_ref_by_pieces_1 (basic_block block, vn_reference_t ref,
 	    gcc_assert (base);
 	    offset = int_const_binop (PLUS_EXPR, offset,
 				      build_int_cst (TREE_TYPE (offset),
-						     off), 0);
+						     off));
 	    baseop = build_fold_addr_expr (base);
 	  }
 	return fold_build2 (MEM_REF, currop->type, baseop, offset);
@@ -4978,7 +4978,7 @@ struct gimple_opt_pass pass_pre =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   TODO_rebuild_alias,			/* todo_flags_start */
-  TODO_update_ssa_only_virtuals | TODO_dump_func | TODO_ggc_collect
+  TODO_update_ssa_only_virtuals  | TODO_ggc_collect
   | TODO_verify_ssa /* todo_flags_finish */
  }
 };
@@ -5013,6 +5013,6 @@ struct gimple_opt_pass pass_fre =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_ggc_collect | TODO_verify_ssa /* todo_flags_finish */
+  TODO_ggc_collect | TODO_verify_ssa /* todo_flags_finish */
  }
 };

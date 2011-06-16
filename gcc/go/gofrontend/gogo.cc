@@ -29,8 +29,6 @@ Gogo::Gogo(Backend* backend, int int_type_size, int pointer_size)
     imports_(),
     imported_unsafe_(false),
     packages_(),
-    map_descriptors_(NULL),
-    type_descriptor_decls_(NULL),
     init_functions_(),
     need_init_fn_(false),
     init_fn_name_(),
@@ -1498,6 +1496,10 @@ Check_types_traverse::variable(Named_object* named_object)
   if (named_object->is_variable())
     {
       Variable* var = named_object->var_value();
+
+      // Give error if variable type is not defined.
+      var->type()->base();
+
       Expression* init = var->init();
       std::string reason;
       if (init != NULL
@@ -2593,11 +2595,14 @@ Gogo::convert_named_types()
   Array_type::make_array_type_descriptor_type();
   Array_type::make_slice_type_descriptor_type();
   Map_type::make_map_type_descriptor_type();
+  Map_type::make_map_descriptor_type();
   Channel_type::make_chan_type_descriptor_type();
   Interface_type::make_interface_type_descriptor_type();
   Type::convert_builtin_named_types(this);
 
   Runtime::convert_types(this);
+
+  Function_type::convert_types(this);
 
   this->named_types_are_converted_ = true;
 }
@@ -3333,10 +3338,11 @@ Variable::Variable(Type* type, Expression* init, bool is_global,
   : type_(type), init_(init), preinit_(NULL), location_(location),
     backend_(NULL), is_global_(is_global), is_parameter_(is_parameter),
     is_receiver_(is_receiver), is_varargs_parameter_(false),
-    is_address_taken_(false), seen_(false), init_is_lowered_(false),
-    type_from_init_tuple_(false), type_from_range_index_(false),
-    type_from_range_value_(false), type_from_chan_element_(false),
-    is_type_switch_var_(false), determined_type_(false)
+    is_address_taken_(false), is_non_escaping_address_taken_(false),
+    seen_(false), init_is_lowered_(false), type_from_init_tuple_(false),
+    type_from_range_index_(false), type_from_range_value_(false),
+    type_from_chan_element_(false), is_type_switch_var_(false),
+    determined_type_(false)
 {
   go_assert(type != NULL || init != NULL);
   go_assert(!is_parameter || init == NULL);
@@ -3703,7 +3709,7 @@ Variable::get_backend_variable(Gogo* gogo, Named_object* function,
 	    }
 
 	  std::string n = Gogo::unpack_hidden_name(name);
-	  Btype* btype = tree_to_type(type->get_tree(gogo));
+	  Btype* btype = type->get_backend(gogo);
 
 	  Bvariable* bvar;
 	  if (this->is_global_)
@@ -3722,11 +3728,15 @@ Variable::get_backend_variable(Gogo* gogo, Named_object* function,
 	    {
 	      tree fndecl = function->func_value()->get_decl();
 	      Bfunction* bfunction = tree_to_function(fndecl);
+	      bool is_address_taken = (this->is_non_escaping_address_taken_
+				       && !this->is_in_heap());
 	      if (is_parameter)
 		bvar = backend->parameter_variable(bfunction, n, btype,
+						   is_address_taken,
 						   this->location_);
 	      else
 		bvar = backend->local_variable(bfunction, n, btype,
+					       is_address_taken,
 					       this->location_);
 	    }
 	  this->backend_ = bvar;
@@ -3753,11 +3763,14 @@ Result_variable::get_backend_variable(Gogo* gogo, Named_object* function,
 	{
 	  if (this->is_in_heap())
 	    type = Type::make_pointer_type(type);
-	  Btype* btype = tree_to_type(type->get_tree(gogo));
+	  Btype* btype = type->get_backend(gogo);
 	  tree fndecl = function->func_value()->get_decl();
 	  Bfunction* bfunction = tree_to_function(fndecl);
 	  std::string n = Gogo::unpack_hidden_name(name);
+	  bool is_address_taken = (this->is_non_escaping_address_taken_
+				   && !this->is_in_heap());
 	  this->backend_ = backend->local_variable(bfunction, n, btype,
+						   is_address_taken,
 						   this->location_);
 	}
     }

@@ -32,6 +32,7 @@ extern "C"
 #include "tree.h"
 #include "tree-iterator.h"
 #include "gimple.h"
+#include "toplev.h"
 
 #ifndef ENABLE_BUILD_WITH_CXX
 }
@@ -161,8 +162,43 @@ class Gcc_backend : public Backend
   struct_type(const std::vector<Btyped_identifier>&);
 
   Btype*
-  array_type(const Btype* /* element_type */, const Bexpression* /* length */)
-  { gcc_unreachable(); }
+  array_type(Btype*, Bexpression*);
+
+  Btype*
+  placeholder_pointer_type(const std::string&, source_location, bool);
+
+  bool
+  set_placeholder_pointer_type(Btype*, Btype*);
+
+  bool
+  set_placeholder_function_type(Btype*, Btype*);
+
+  Btype*
+  placeholder_struct_type(const std::string&, source_location);
+
+  bool
+  set_placeholder_struct_type(Btype* placeholder,
+			      const std::vector<Btyped_identifier>&);
+
+  Btype*
+  placeholder_array_type(const std::string&, source_location);
+
+  bool
+  set_placeholder_array_type(Btype*, Btype*, Bexpression*);
+
+  Btype*
+  named_type(const std::string&, Btype*, source_location);
+
+  Btype*
+  circular_pointer_type(Btype*, bool);
+
+  bool
+  is_circular_pointer_type(Btype*);
+
+  // Expressions.
+
+  Bexpression*
+  zero_expression(Btype*);
 
   // Statements.
 
@@ -230,16 +266,26 @@ class Gcc_backend : public Backend
   global_variable_set_init(Bvariable*, Bexpression*);
 
   Bvariable*
-  local_variable(Bfunction*, const std::string& name, Btype* type,
+  local_variable(Bfunction*, const std::string&, Btype*, bool,
 		 source_location);
 
   Bvariable*
-  parameter_variable(Bfunction*, const std::string& name, Btype* type,
+  parameter_variable(Bfunction*, const std::string&, Btype*, bool,
 		     source_location);
 
   Bvariable*
   temporary_variable(Bfunction*, Bblock*, Btype*, Bexpression*, bool,
 		     source_location, Bstatement**);
+
+  Bvariable*
+  immutable_struct(const std::string&, bool, Btype*, source_location);
+
+  void
+  immutable_struct_set_init(Bvariable*, const std::string&, bool, Btype*,
+			    source_location, Bexpression*);
+
+  Bvariable*
+  immutable_struct_reference(const std::string&, Btype*, source_location);
 
   // Labels.
 
@@ -270,6 +316,12 @@ class Gcc_backend : public Backend
   Btype*
   make_type(tree t)
   { return new Btype(t); }
+
+  Btype*
+  fill_in_struct(Btype*, const std::vector<Btyped_identifier>&);
+
+  Btype*
+  fill_in_array(Btype*, Btype*, Bexpression*);
 };
 
 // A helper function.
@@ -429,6 +481,7 @@ Gcc_backend::function_type(const Btyped_identifier& receiver,
 	  tree field_type_tree = p->btype->get_tree();
 	  if (field_type_tree == error_mark_node)
 	    return this->error_type();
+	  gcc_assert(TYPE_SIZE(field_type_tree) != NULL_TREE);
 	  tree field = build_decl(location, FIELD_DECL, name_tree,
 				  field_type_tree);
 	  DECL_CONTEXT(field) = result;
@@ -453,7 +506,16 @@ Gcc_backend::function_type(const Btyped_identifier& receiver,
 Btype*
 Gcc_backend::struct_type(const std::vector<Btyped_identifier>& fields)
 {
-  tree ret = make_node(RECORD_TYPE);
+  return this->fill_in_struct(this->make_type(make_node(RECORD_TYPE)), fields);
+}
+
+// Fill in the fields of a struct type.
+
+Btype*
+Gcc_backend::fill_in_struct(Btype* fill,
+			    const std::vector<Btyped_identifier>& fields)
+{
+  tree fill_tree = fill->get_tree();
   tree field_trees = NULL_TREE;
   tree* pp = &field_trees;
   for (std::vector<Btyped_identifier>::const_iterator p = fields.begin();
@@ -465,13 +527,207 @@ Gcc_backend::struct_type(const std::vector<Btyped_identifier>& fields)
       if (type_tree == error_mark_node)
 	return this->error_type();
       tree field = build_decl(p->location, FIELD_DECL, name_tree, type_tree);
-      DECL_CONTEXT(field) = ret;
+      DECL_CONTEXT(field) = fill_tree;
       *pp = field;
       pp = &DECL_CHAIN(field);
     }
-  TYPE_FIELDS(ret) = field_trees;
-  layout_type(ret);
+  TYPE_FIELDS(fill_tree) = field_trees;
+  layout_type(fill_tree);
+  return fill;
+}
+
+// Make an array type.
+
+Btype*
+Gcc_backend::array_type(Btype* element_btype, Bexpression* length)
+{
+  return this->fill_in_array(this->make_type(make_node(ARRAY_TYPE)),
+			     element_btype, length);
+}
+
+// Fill in an array type.
+
+Btype*
+Gcc_backend::fill_in_array(Btype* fill, Btype* element_type,
+			   Bexpression* length)
+{
+  tree element_type_tree = element_type->get_tree();
+  tree length_tree = length->get_tree();
+  if (element_type_tree == error_mark_node || length_tree == error_mark_node)
+    return this->error_type();
+
+  gcc_assert(TYPE_SIZE(element_type_tree) != NULL_TREE);
+
+  length_tree = fold_convert(sizetype, length_tree);
+
+  // build_index_type takes the maximum index, which is one less than
+  // the length.
+  tree index_type_tree = build_index_type(fold_build2(MINUS_EXPR, sizetype,
+						      length_tree,
+						      size_one_node));
+
+  tree fill_tree = fill->get_tree();
+  TREE_TYPE(fill_tree) = element_type_tree;
+  TYPE_DOMAIN(fill_tree) = index_type_tree;
+  TYPE_ADDR_SPACE(fill_tree) = TYPE_ADDR_SPACE(element_type_tree);
+  layout_type(fill_tree);
+
+  if (TYPE_STRUCTURAL_EQUALITY_P(element_type_tree))
+    SET_TYPE_STRUCTURAL_EQUALITY(fill_tree);
+  else if (TYPE_CANONICAL(element_type_tree) != element_type_tree
+	   || TYPE_CANONICAL(index_type_tree) != index_type_tree)
+    TYPE_CANONICAL(fill_tree) =
+      build_array_type(TYPE_CANONICAL(element_type_tree),
+		       TYPE_CANONICAL(index_type_tree));
+
+  return fill;
+}
+
+// Create a placeholder for a pointer type.
+
+Btype*
+Gcc_backend::placeholder_pointer_type(const std::string& name,
+				      source_location location, bool)
+{
+  tree ret = build_variant_type_copy(ptr_type_node);
+  if (!name.empty())
+    {
+      tree decl = build_decl(location, TYPE_DECL,
+			     get_identifier_from_string(name),
+			     ret);
+      TYPE_NAME(ret) = decl;
+    }
   return this->make_type(ret);
+}
+
+// Set the real target type for a placeholder pointer type.
+
+bool
+Gcc_backend::set_placeholder_pointer_type(Btype* placeholder,
+					  Btype* to_type)
+{
+  tree pt = placeholder->get_tree();
+  if (pt == error_mark_node)
+    return false;
+  gcc_assert(TREE_CODE(pt) == POINTER_TYPE);
+  tree tt = to_type->get_tree();
+  if (tt == error_mark_node)
+    {
+      TREE_TYPE(pt) = tt;
+      return false;
+    }
+  gcc_assert(TREE_CODE(tt) == POINTER_TYPE);
+  TREE_TYPE(pt) = TREE_TYPE(tt);
+  return true;
+}
+
+// Set the real values for a placeholder function type.
+
+bool
+Gcc_backend::set_placeholder_function_type(Btype* placeholder, Btype* ft)
+{
+  return this->set_placeholder_pointer_type(placeholder, ft);
+}
+
+// Create a placeholder for a struct type.
+
+Btype*
+Gcc_backend::placeholder_struct_type(const std::string& name,
+				     source_location location)
+{
+  tree ret = make_node(RECORD_TYPE);
+  tree decl = build_decl(location, TYPE_DECL,
+			 get_identifier_from_string(name),
+			 ret);
+  TYPE_NAME(ret) = decl;
+  return this->make_type(ret);
+}
+
+// Fill in the fields of a placeholder struct type.
+
+bool
+Gcc_backend::set_placeholder_struct_type(
+    Btype* placeholder,
+    const std::vector<Btyped_identifier>& fields)
+{
+  tree t = placeholder->get_tree();
+  gcc_assert(TREE_CODE(t) == RECORD_TYPE && TYPE_FIELDS(t) == NULL_TREE);
+  Btype* r = this->fill_in_struct(placeholder, fields);
+  return r->get_tree() != error_mark_node;
+}
+
+// Create a placeholder for an array type.
+
+Btype*
+Gcc_backend::placeholder_array_type(const std::string& name,
+				    source_location location)
+{
+  tree ret = make_node(ARRAY_TYPE);
+  tree decl = build_decl(location, TYPE_DECL,
+			 get_identifier_from_string(name),
+			 ret);
+  TYPE_NAME(ret) = decl;
+  return this->make_type(ret);
+}
+
+// Fill in the fields of a placeholder array type.
+
+bool
+Gcc_backend::set_placeholder_array_type(Btype* placeholder,
+					Btype* element_btype,
+					Bexpression* length)
+{
+  tree t = placeholder->get_tree();
+  gcc_assert(TREE_CODE(t) == ARRAY_TYPE && TREE_TYPE(t) == NULL_TREE);
+  Btype* r = this->fill_in_array(placeholder, element_btype, length);
+  return r->get_tree() != error_mark_node;
+}
+
+// Return a named version of a type.
+
+Btype*
+Gcc_backend::named_type(const std::string& name, Btype* btype,
+			source_location location)
+{
+  tree type = btype->get_tree();
+  if (type == error_mark_node)
+    return this->error_type();
+  type = build_variant_type_copy(type);
+  tree decl = build_decl(location, TYPE_DECL,
+			 get_identifier_from_string(name),
+			 type);
+  TYPE_NAME(type) = decl;
+  return this->make_type(type);
+}
+
+// Return a pointer type used as a marker for a circular type.
+
+Btype*
+Gcc_backend::circular_pointer_type(Btype*, bool)
+{
+  return this->make_type(ptr_type_node);
+}
+
+// Return whether we might be looking at a circular type.
+
+bool
+Gcc_backend::is_circular_pointer_type(Btype* btype)
+{
+  return btype->get_tree() == ptr_type_node;
+}
+
+// Return the zero value for a type.
+
+Bexpression*
+Gcc_backend::zero_expression(Btype* btype)
+{
+  tree t = btype->get_tree();
+  tree ret;
+  if (t == error_mark_node)
+    ret = error_mark_node;
+  else
+    ret = build_zero_cst(t);
+  return tree_to_expr(ret);
 }
 
 // An expression as a statement.
@@ -613,8 +869,7 @@ Gcc_backend::switch_statement(
 				 ? EXPR_LOCATION((*ps)->get_tree())
 				 : UNKNOWN_LOCATION);
 	  tree label = create_artificial_label(loc);
-	  tree c = build3_loc(loc, CASE_LABEL_EXPR, void_type_node, NULL_TREE,
-			      NULL_TREE, label);
+	  tree c = build_case_label(NULL_TREE, NULL_TREE, label);
 	  append_to_statement_list(c, &stmt_list);
 	}
       else
@@ -628,8 +883,7 @@ Gcc_backend::switch_statement(
 		return this->error_statement();
 	      source_location loc = EXPR_LOCATION(t);
 	      tree label = create_artificial_label(loc);
-	      tree c = build3_loc(loc, CASE_LABEL_EXPR, void_type_node,
-				  (*pcv)->get_tree(), NULL_TREE, label);
+	      tree c = build_case_label((*pcv)->get_tree(), NULL_TREE, label);
 	      append_to_statement_list(c, &stmt_list);
 	    }
 	}
@@ -854,7 +1108,8 @@ Gcc_backend::global_variable_set_init(Bvariable* var, Bexpression* expr)
 
 Bvariable*
 Gcc_backend::local_variable(Bfunction* function, const std::string& name,
-			    Btype* btype, source_location location)
+			    Btype* btype, bool is_address_taken,
+			    source_location location)
 {
   tree type_tree = btype->get_tree();
   if (type_tree == error_mark_node)
@@ -864,6 +1119,8 @@ Gcc_backend::local_variable(Bfunction* function, const std::string& name,
 			 type_tree);
   DECL_CONTEXT(decl) = function->get_tree();
   TREE_USED(decl) = 1;
+  if (is_address_taken)
+    TREE_ADDRESSABLE(decl) = 1;
   go_preserve_from_gc(decl);
   return new Bvariable(decl);
 }
@@ -872,7 +1129,8 @@ Gcc_backend::local_variable(Bfunction* function, const std::string& name,
 
 Bvariable*
 Gcc_backend::parameter_variable(Bfunction* function, const std::string& name,
-				Btype* btype, source_location location)
+				Btype* btype, bool is_address_taken,
+				source_location location)
 {
   tree type_tree = btype->get_tree();
   if (type_tree == error_mark_node)
@@ -883,6 +1141,8 @@ Gcc_backend::parameter_variable(Bfunction* function, const std::string& name,
   DECL_CONTEXT(decl) = function->get_tree();
   DECL_ARG_TYPE(decl) = type_tree;
   TREE_USED(decl) = 1;
+  if (is_address_taken)
+    TREE_ADDRESSABLE(decl) = 1;
   go_preserve_from_gc(decl);
   return new Bvariable(decl);
 }
@@ -947,6 +1207,83 @@ Gcc_backend::temporary_variable(Bfunction* function, Bblock* bblock,
   *pstatement = this->make_statement(build1_loc(location, DECL_EXPR,
 						void_type_node, var));
   return new Bvariable(var);
+}
+
+// Create a named immutable initialized data structure.
+
+Bvariable*
+Gcc_backend::immutable_struct(const std::string& name, bool, Btype* btype,
+			      source_location location)
+{
+  tree type_tree = btype->get_tree();
+  if (type_tree == error_mark_node)
+    return this->error_variable();
+  gcc_assert(TREE_CODE(type_tree) == RECORD_TYPE);
+  tree decl = build_decl(location, VAR_DECL,
+			 get_identifier_from_string(name),
+			 build_qualified_type(type_tree, TYPE_QUAL_CONST));
+  TREE_STATIC(decl) = 1;
+  TREE_READONLY(decl) = 1;
+  TREE_CONSTANT(decl) = 1;
+  TREE_USED(decl) = 1;
+  DECL_ARTIFICIAL(decl) = 1;
+
+  // We don't call rest_of_decl_compilation until we have the
+  // initializer.
+
+  go_preserve_from_gc(decl);
+  return new Bvariable(decl);
+}
+
+// Set the initializer for a variable created by immutable_struct.
+// This is where we finish compiling the variable.
+
+void
+Gcc_backend::immutable_struct_set_init(Bvariable* var, const std::string&,
+				       bool is_common, Btype*,
+				       source_location,
+				       Bexpression* initializer)
+{
+  tree decl = var->get_tree();
+  tree init_tree = initializer->get_tree();
+  if (decl == error_mark_node || init_tree == error_mark_node)
+    return;
+
+  DECL_INITIAL(decl) = init_tree;
+
+  // We can't call make_decl_one_only until we set DECL_INITIAL.
+  if (!is_common)
+    TREE_PUBLIC(decl) = 1;
+  else
+    {
+      make_decl_one_only(decl, DECL_ASSEMBLER_NAME(decl));
+      resolve_unique_section(decl, 1, 0);
+    }
+
+  rest_of_decl_compilation(decl, 1, 0);
+}
+
+// Return a reference to an immutable initialized data structure
+// defined in another package.
+
+Bvariable*
+Gcc_backend::immutable_struct_reference(const std::string& name, Btype* btype,
+					source_location location)
+{
+  tree type_tree = btype->get_tree();
+  if (type_tree == error_mark_node)
+    return this->error_variable();
+  gcc_assert(TREE_CODE(type_tree) == RECORD_TYPE);
+  tree decl = build_decl(location, VAR_DECL,
+			 get_identifier_from_string(name),
+			 build_qualified_type(type_tree, TYPE_QUAL_CONST));
+  TREE_READONLY(decl) = 1;
+  TREE_CONSTANT(decl) = 1;
+  DECL_ARTIFICIAL(decl) = 1;
+  TREE_PUBLIC(decl) = 1;
+  DECL_EXTERNAL(decl) = 1;
+  go_preserve_from_gc(decl);
+  return new Bvariable(decl);
 }
 
 // Make a label.
