@@ -49,7 +49,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "py-tree.h"
 #include "py-runtime.h"
 
-static VEC(gpy_sym,gc) * gpy_symbol_stack;
+static VEC(gpydot,gc) * gpy_symbol_stack;
 
 extern int yylineno;
 //yydebug = 1;
@@ -172,8 +172,8 @@ declarations:
 	      if( $2 )
 		{
 		  debug ("passing decl <%p> type <0x%x>!\n",
-			 (void*)$2, $2->type );
-		  gpy_stmt_process_decl( $2 ); 
+			 (void*)$2, DOT_TYPE($2) );
+		  gpy_stmt_process_decl ($2); 
 		}
 	    }
             ;
@@ -189,33 +189,28 @@ compound_stmt: funcdef
 
 classdef: CLASS classname ':' suite
         {
-	   gpy_symbol_obj *sym;
-	   Gpy_Symbol_Init( sym );
-
-	   sym->identifier = $2;
-	   sym->type = STRUCTURE_OBJECT_DEF;
-	   sym->op_a_t = TYPE_SYMBOL;
-	  
-	   sym->op_a.symbol_table= $4;
-	   $$= sym;
+	  gpy_dot_tree_t *dot = dot_build_class_decl ($2, $4);
+	  $$ = dot;
 	}
         ;
 
 classname: IDENTIFIER
+         { $$ = dot_build_identifier ($1); }
          ;
 
 funcname: IDENTIFIER
+        { $$ = dot_build_identifier ($1); }
         ;
 
 parameter_list_stmt:
-                   { $$=NULL; }
+                   { $$ = NULL; }
                    | parameter_list
-                   { $$ = VEC_pop( gpy_sym, gpy_symbol_stack ); }
+                   { $$ = VEC_pop (gpy_sym, gpy_symbol_stack); }
 		   ;
 
 parameter_list: parameter_list ',' target
               {
-		$1->next = $3;
+		DOT_CHAIN($1) = $3;
 		$$ = $3;
 	      }
               | target
@@ -228,39 +223,29 @@ parameter_list: parameter_list ',' target
 
 funcdef: DEF funcname '(' parameter_list_stmt ')' ':' suite
        {
-	 gpy_symbol_obj *sym;
-	 Gpy_Symbol_Init( sym );
-
-	 sym->identifier = $2;
-	 sym->type = STRUCTURE_FUNCTION_DEF;
-	 sym->op_a_t = TYPE_SYMBOL;
-	 sym->op_b_t = TYPE_SYMBOL;
-	  
-	 sym->op_a.symbol_table= $7;
-	 sym->op_b.symbol_table = $4;
-
-	 $$= sym;
+	 gpy_dot_tree_t *dot = dot_build_func_decl ($2, $4, $7);
+	 $$ = dot;
        }
        ;
 
 suite: stmt_list NEWLINE
      | NEWLINE INDENT suite_statement_list DEDENT
      {
-       $$ = VEC_pop( gpy_sym, gpy_symbol_stack );
+       $$ = VEC_pop (gpydot, gpy_symbol_stack);
        printf("poping suite!\n");
      }
      ;
 
 suite_statement_list: suite_statement_list indent_stmt
                    {
-		     $1->next = $2;
+		     DOT_CHAIN($1) = $2;
 		     $$ = $2;
 		   }
                    | indent_stmt
                    {
-		     VEC_safe_push( gpy_sym, gc,
-				    gpy_symbol_stack, $1 );
-		     $$=$1;
+		     VEC_safe_push (gpydot, gc,
+				    gpy_symbol_stack, $1);
+		     $$ = $1;
 		   }
                    ;
 
@@ -282,32 +267,26 @@ simple_stmt: assignment_stmt
 argument_list_stmt:
                   { $$ = NULL; }
                   | argument_list
-                  { $$ = VEC_pop( gpy_sym, gpy_symbol_stack ); }
+                  { $$ = VEC_pop (gpydot, gpy_symbol_stack); }
 		  ;
 
 argument_list: argument_list ',' expression
              {
-	       $1->next = $3;
+	       DOT_CHAIN($1) = $3;
 	       $$ = $3;
 	     }
              | expression
              {
-	       VEC_safe_push( gpy_sym, gc,
-			      gpy_symbol_stack, $1 );
+	       VEC_safe_push (gpydot, gc,
+			      gpy_symbol_stack, $1);
 	       $$ = $1;
 	     }
              ;
 
 print_stmt: PRINT argument_list_stmt
           {
-	    gpy_symbol_obj* sym;
-	    Gpy_Symbol_Init( sym );
-
-	    sym->type= KEY_PRINT;
-	    sym->op_a_t= TYPE_SYMBOL;
-	    
-	    sym->op_a.symbol_table= $2;
-	    $$= sym;
+	    gpy_dot_tree_t *dot = dot_build_decl1 (D_PRINT_STMT, $2);
+	    $$ = dot;
 	  }
 	  ;
 
@@ -317,17 +296,8 @@ expression_stmt: expression_list
 
 assignment_stmt: target_list '=' expression_list
                {
-		 gpy_symbol_obj* sym;
-		 Gpy_Symbol_Init( sym );
-
-		 sym->exp= OP_EXPRESS;
-		 sym->type= OP_ASSIGN_EVAL;
-		 sym->op_a_t= TYPE_SYMBOL;
-		 sym->op_b_t= TYPE_SYMBOL;
-		 
-		 sym->op_a.symbol_table= $1;
-		 sym->op_b.symbol_table= $3;
-		 $$= sym;
+		 gpy_dot_tree_t *dot = dot_build_decl2 (D_MODIFY_EXPR, $1, $2);
+		 $$ = dot;
 	       }
                ;
   
@@ -336,15 +306,8 @@ target_list: target
   
 target: IDENTIFIER
       {
-	gpy_symbol_obj *sym;
-	Gpy_Symbol_Init( sym );
-	
-	sym->exp = OP_EXPRESS;
-	sym->type= SYMBOL_REFERENCE;
-	sym->op_a_t= TYPE_STRING;
-	
-	sym->op_a.string= $1;
-	$$= sym;
+	gpy_dot_tree_t *dot = dot_build_identifier ($1);
+	$$ = dot;
       }
       ;
 
@@ -363,62 +326,26 @@ u_expr: primary
 m_expr: u_expr
       | m_expr '*' u_expr
       {
-	gpy_symbol_obj* sym;
-	Gpy_Symbol_Init( sym );
-
-	sym->exp= OP_EXPRESS;
-	sym->type= OP_BIN_MULTIPLY;
-	sym->op_a_t= TYPE_SYMBOL;
-	sym->op_b_t= TYPE_SYMBOL;
-	
-	sym->op_a.symbol_table= $1;
-	sym->op_b.symbol_table= $3;
-	$$= sym;
+	gpy_dot_tree_t *dot = dot_build_decl2 (D_MULT_EXPR, $1, $3);
+	$$ = dot;
       }
       | m_expr '/' u_expr
       {
-	gpy_symbol_obj* sym;
-	Gpy_Symbol_Init( sym );
-
-	sym->exp= OP_EXPRESS;
-	sym->type= OP_BIN_DIVIDE;
-	sym->op_a_t= TYPE_SYMBOL;
-	sym->op_b_t= TYPE_SYMBOL;
-	
-	sym->op_a.symbol_table= $1;
-	sym->op_b.symbol_table= $3;
-	$$= sym;
+	gpy_dot_tree_t *dot = dot_build_decl2 (D_DIVD_EXPR, $1, $3);
+	$$ = dot;
       }
       ;
   
 a_expr: m_expr
       | a_expr '+' m_expr
       {
-	gpy_symbol_obj* sym;
-	Gpy_Symbol_Init( sym );
-
-	sym->exp= OP_EXPRESS;
-	sym->type= OP_BIN_ADDITION;
-	sym->op_a_t= TYPE_SYMBOL;
-	sym->op_b_t= TYPE_SYMBOL;
-	
-	sym->op_a.symbol_table= $1;
-	sym->op_b.symbol_table= $3;
-	$$= sym;
+	gpy_dot_tree_t *dot = dot_build_decl2 (D_ADD_EXPR, $1, $3);
+	$$ = dot;
       }
       | a_expr '-' m_expr
       {
-	gpy_symbol_obj* sym;
-	Gpy_Symbol_Init( sym );
-
-	sym->exp= OP_EXPRESS;
-	sym->type= OP_BIN_SUBTRACTION;
-	sym->op_a_t= TYPE_SYMBOL;
-	sym->op_b_t= TYPE_SYMBOL;
-	
-	sym->op_a.symbol_table= $1;
-	sym->op_b.symbol_table= $3;
-	$$= sym;
+	gpy_dot_tree_t *dot = dot_build_decl2 (D_MINUS_EXPR, $1, $3);
+	$$ = dot;
       }
       ;
 
@@ -430,51 +357,13 @@ comparison: shift_expr
 
 literal: INTEGER
        {
-	 gpy_symbol_obj *sym;
-	 Gpy_Symbol_Init( sym );
-	 
-	 sym->exp = OP_EXPRESS;
-	 sym->type= SYMBOL_PRIMARY;
-	 sym->op_a_t= TYPE_INTEGER;
-	 
-	 sym->op_a.integer= $1;
-	 $$= sym;
+	 gpy_dot_tree_t *dot = dot_build_integer ($1);
+	 $$ = dot;
        }
        | STRING
        {
-	 gpy_symbol_obj *sym;
-	 Gpy_Symbol_Init( sym );
-	 
-	 sym->exp = OP_EXPRESS;
-	 sym->type= SYMBOL_PRIMARY;
-	 sym->op_a_t= TYPE_STRING;
-	 
-	 sym->op_a.string= $1;
-	 $$= sym;
-       }
-       | V_TRUE
-       {
-	 gpy_symbol_obj *sym;
-	 Gpy_Symbol_Init( sym );
-	 
-	 sym->exp = OP_EXPRESS;
-	 sym->type= SYMBOL_PRIMARY;
-	 sym->op_a_t= TYPE_BOOLEAN;
-	 
-	 sym->op_a.boolean= true;
-	 $$= sym;
-       }
-       | V_FALSE
-       {
-	 gpy_symbol_obj *sym;
-	 Gpy_Symbol_Init( sym );
-	 
-	 sym->exp = OP_EXPRESS;
-	 sym->type= SYMBOL_PRIMARY;
-	 sym->op_a_t= TYPE_BOOLEAN;
-	 
-	 sym->op_a.boolean= false;
-	 $$= sym;
+	 gpy_dot_tree_t *dot = dot_build_string ($1);
+	 $$ = dot;
        }
        ;
 
@@ -484,18 +373,8 @@ atom: target
 
 call: IDENTIFIER '(' argument_list_stmt ')'
     {
-      gpy_symbol_obj *sym= NULL;
-      Gpy_Symbol_Init( sym );
-
-      sym->exp = OP_EXPRESS;
-      sym->type= OP_CALL_GOTO;
-      sym->op_a_t= TYPE_STRING;
-      sym->op_b_t= TYPE_SYMBOL;
-
-      sym->op_a.string = $1;
-      sym->op_b.symbol_table = $3;
-
-      $$= sym;
+      gpy_dot_tree_t *dot = dot_build_decl2 (D_CALL_EXPR, $1, $3);
+      $$ = dot;
     }
     ;
 

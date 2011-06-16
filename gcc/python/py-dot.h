@@ -17,47 +17,57 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __SYMBOLS_H_
 #define __SYMBOLS_H__
 
-typedef unsigned short gpy_opcode_t;
-
-typedef struct GTY(()) gpy_symbol_table_t {
-  char * identifier; gpy_opcode_t exp;
-  gpy_opcode_t type, op_a_t, op_b_t;
-  location_t loc;
-  union {
-    /* literal primitive semantic types! */
-    int integer;
-    char * string;
-    bool boolean;
-    struct gpy_symbol_table_t * symbol_table;
-  } op_a;
+typedef enum gpy_dot_code_T opcode_t;
+typedef struct GTY(()) gpy_tree_common_dot_t {
+  opcode_t T;
   union {
     int integer;
+    unsigned char c;
     char * string;
-    bool boolean;
-    struct gpy_symbol_table_t * symbol_table;
-  } op_b;
-  struct gpy_symbol_table_t *next;
-} gpy_symbol_obj ;
+  } o;
+} gpy_dot_tree_common ;
 
-#define Gpy_Symbol_Init_Ctx( x )		\
-  x->identifier = NULL;				\
-  x->exp = TYPE_SYMBOL_NIL;			\
-  x->type = SYMBOL_PRIMARY;			\
-  x->loc = UNKNOWN_LOCATION;			\
-  x->op_a_t = TYPE_SYMBOL_NIL;			\
-  x->op_b_t = TYPE_SYMBOL_NIL;			\
-  x->op_a.symbol_table = NULL;			\
-  x->op_b.symbol_table = NULL;			\
-  x->next = NULL;
+typedef struct GTY(()) gpy_tree_dot_t {
+  opcode_t T, opaT, opbT;
+  struct gpy_tree_dot_t * field;
+  union {
+    struct dpy_tree_dot_t * t;
+    gpy_dot_tree_common tc;
+  } opa;
+  union {
+    struct gpy_tree_dot_t * t;
+    gpy_dot_tree_common tc;
+  } opb;
+  struct cm_tree_dot_t * next;
+} gpy_dot_tree_t ;
 
-#define Gpy_Symbol_Init( x )				\
-  x = (gpy_symbol_obj*)					\
-    xmalloc( sizeof(gpy_symbol_obj) );			\
-  debug("object created at <%p>!\n", (void*)x );	\
-  Gpy_Symbol_Init_Ctx( x );
+#define DOT_TYPE(x)      x->T
+#define DOT_CHAIN(x)     x->next
+#define DOT_FIELD(x)     x->field
 
-#define Gpy_Mark_Garbage_obj( x )			\
-  debug("marking object <%p> as garbage!\n", x );	\
-  VEC_safe_push( gpy_sym,gc, gpy_garbage_decls, x );
+#define DOT_lhs_T(x)     x->opaT
+#define DOT_rhs_T(x)     x->opbT
+
+#define DOT_lhs_TT(x)    x->opa.t
+#define DOT_rhs_TT(x)    x->opb.t
+#define DOT_lhs_TC(x)    x->opa.tc
+#define DOT_rhs_TC(x)    x->opb.tc
+
+#define NULL_DOT         (gpy_dot_tree_t *)0
+#define DOT_alloc        (gpy_dot_tree_t *)	\
+  xmalloc (sizeof (gpy_dot_tree_t));
+
+extern gpy_dot_tree_t * dot_build_class_decl (gpy_dot_tree_t *, gpy_dot_tree_t *);
+
+extern gpy_dot_tree_t * dot_build_func_decl (gpy_dot_tree_t *, gpy_dot_tree_t *,
+					    gpy_dot_tree_t *);
+
+extern gpy_dot_tree_t * dot_build_decl1 (opcode_t, gpy_dot_tree_t *);
+
+extern gpy_dot_tree_t * dot_build_decl2 (opcode_t, gpy_dot_tree_t *, gpy_dot_tree_t *);
+
+extern gpy_dot_tree_t * dot_build_integer (int);
+extern gpy_dot_tree_t * dot_build_string (char *);
+extern gpy_dot_tree_t * dot_build_identifier (char *);
 
 #endif /* __SYMBOLS_H_ */

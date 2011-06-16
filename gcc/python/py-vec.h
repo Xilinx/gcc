@@ -37,34 +37,30 @@ typedef struct GTY(()) gpy_hash_table_t {
   unsigned int size, length;
   gpy_hash_entry_t * array;
 } gpy_hash_tab_t ;
-typedef gpy_symbol_obj * gpy_sym;
+typedef gpy_dot_tree_t * gpydot;
 typedef gpy_hash_tab_t * gpy_ctx_t;
 
 typedef int gpy_int;
-DEF_VEC_I( gpy_int );
-DEF_VEC_ALLOC_I( gpy_int,gc );
+DEF_VEC_I (gpy_int);
+DEF_VEC_ALLOC_I (gpy_int, gc);
 
-DEF_VEC_P( gpy_sym );
-DEF_VEC_ALLOC_P( gpy_sym,gc );
+DEF_VEC_P (gpydot);
+DEF_VEC_ALLOC_P (gpydot,gc);
 
-DEF_VEC_P( gpy_ctx_t );
-DEF_VEC_ALLOC_P( gpy_ctx_t,gc );
+DEF_VEC_P (gpy_ctx_t);
+DEF_VEC_ALLOC_P (gpy_ctx_t, gc);
 
 extern VEC(gpy_ctx_t,gc) * gpy_ctx_table;
-extern VEC(gpy_sym,gc) * gpy_garbage_decls;
 
-extern gpy_hashval_t gpy_dd_hash_string( const char * );
+extern gpy_hashval_t gpy_dd_hash_string (const char *);
 
-extern gpy_hash_entry_t * gpy_dd_hash_lookup_table( gpy_hash_tab_t *, gpy_hashval_t );
+extern gpy_hash_entry_t * gpy_dd_hash_lookup_table (gpy_hash_tab_t *, gpy_hashval_t);
 
-extern void ** gpy_dd_hash_insert( gpy_hashval_t, void *, gpy_hash_tab_t * );
+extern void ** gpy_dd_hash_insert( gpy_hashval_t, void *,
+				   gpy_hash_tab_t * );
 
 extern void gpy_dd_hash_grow_table( gpy_hash_tab_t * );
 
 extern void gpy_dd_hash_init_table( gpy_hash_tab_t * );
-
-extern void gpy_gg_invoke_garbage( void );
-
-extern void gpy_garbage_free_obj( gpy_symbol_obj ** );
 
 #endif /*__PY_VEC_H__*/

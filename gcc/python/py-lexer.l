@@ -231,7 +231,7 @@ else                    { LANG_TOKEN_ACTION; return ELSE; }
 
 {ID}                    {
                           LANG_TOKEN_ACTION;
-                          printf("IDENTIFIER!\n");
+                          // printf("IDENTIFIER!\n");
                           yylval.string= xstrdup( yytext );
                           return IDENTIFIER;
                         }

@@ -17,69 +17,30 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __OPCODES_H_
 #define __OPCODES_H_
 
-#define OP_EXPRESS             0xF000
-#define OP_BIN_ACCESSOR        0xF001
-#define OP_BIN_ADDITION        0xF002
-#define OP_BIN_SUBTRACTION     0xF003
-#define OP_BIN_MULTIPLY        0xF004
-#define OP_BIN_DIVIDE          0xF005
-#define OP_BIN_POWER           0xF006
-#define OP_BIN_AND             0xF007
-#define OP_BIN_OR              0xF008
-#define OP_BIN_LESS            0xF009
-#define OP_BIN_LESS_EQ         0xF01A
-#define OP_BIN_GREATER         0xF01B
-#define OP_BIN_GREATER_EQ      0xF01C
-#define OP_BIN_EQ_EQ           0xF01D
-#define OP_BIN_NOT_EQ          0xF01E
+enum gpy_dot_opcode_T {
+  D_PRINT_STMT,
+  D_IDENTIFIER,
+  
+  D_MODIFY_EXPR,
+  D_MULT_EXPR,
+  D_DIVD_EXPR,
+  D_ADD_EXPR,
+  D_MINUS_EXPR,
 
-#define OP_CALL_GOTO           0xF01F
-#define OP_NEW_OBJ             0xF020
+  D_T_INTEGER,
+  D_T_FLOAT,
+  D_T_STRING,
 
-#define OP_ASSIGN              0xF021
-#define OP_ASSIGN_EVAL         0xF022
+  D_CALL_EXPR,
 
-#define TYPE_INTEGER           0xF023
-#define TYPE_FLOAT             0xF024
-#define TYPE_CHAR              0xF025
-#define TYPE_STRING            0xF026
-#define TYPE_LIST              0xF027
-#define TYPE_BOOLEAN           0xF028
-#define TYPE_OBJECT            0xF029
-#define TYPE_IDENTIFIER        0xF02A
+  D_STRUCT_CLASS,
+  D_STRUCT_METHOD,
 
-#define SYMBOL_REFERENCE       0xF02B
-#define SYMBOL_INDEX_REF       0xF02C
-#define SYMBOL_PRIMARY         0xF02D
+  D_TD_COM,
+  D_TD_DOT,
+  D_TD_NULL,
 
-#define TYPE_SYMBOL            0xF02E
-#define TYPE_ARGUMENTS         0xF02F
-#define TYPE_PARAMETERS        0xF030
-#define TYPE_PARAMETER         0xF031
-#define TYPE_DEPENDANCIES      0xF032
-#define TYPE_SYMBOL_NIL        0xF033
-#define TYPE_PARAMETERS_ANON   0xF034
-#define TYPE_LOOP_CTX          0xF035
-
-#define STRUCTURE_LOOP_WHILE   0xF036
-#define STRUCTURE_LOOP_FOR     0xF037
-#define STRUCTURE_OBJECT_DEF   0xF038
-#define STRUCTURE_FUNCTION_DEF 0xF039
-#define STRUCTURE_RULE_DEF     0xF03A
-
-#define STRUCTURE_IF           0xF03B
-#define STRUCTURE_ELIF         0xF03C
-#define STRUCTURE_ELSE         0xF03D
-#define STRUCTURE_CONDIT_CTX   0xF03E
-#define STRUCTURE_ELIF_CTX     0xF03F
-
-#define KEY_DELETE             0xF040
-#define KEY_BREAK              0xF041
-#define KEY_CONTINUE           0xF042
-#define KEY_RETURN             0xF043
-#define KEY_PRINT              0xF044
-
-#define SYMBOL_RET_BREAK       0xF045
-#define SYMBOL_RET_CONTINUE    0xF046
+  D_PRIMITIVE,
+} gpy_dot_code_T; 
 
 #endif /* __OPCODES_H_ */
