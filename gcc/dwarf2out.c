@@ -467,7 +467,6 @@ static void output_call_frame_info (int);
 static void dwarf2out_note_section_used (void);
 static bool clobbers_queued_reg_save (const_rtx);
 static void dwarf2out_frame_debug_expr (rtx);
-static void dwarf2out_frame_debug_restore_state (void);
 
 /* Support for complex CFA locations.  */
 static void output_cfa_loc (dw_cfi_ref, int);
@@ -1913,7 +1912,7 @@ add_cfis_to_fde (void)
 
 /* A subroutine of dwarf2out_frame_debug_init, emit a CFA_restore_state.  */
 
-void
+static void
 dwarf2out_frame_debug_restore_state (void)
 {
   dw_cfi_ref cfi = new_cfi ();
