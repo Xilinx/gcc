@@ -283,6 +283,9 @@ DEF_VEC_ALLOC_P (dw_cfi_ref, gc);
 
 typedef VEC(dw_cfi_ref, gc) *cfi_vec;
 
+/* A vector of call frame insns for the CIE.  */
+static GTY(()) cfi_vec cie_cfi_vec;
+
 /* This is how we define the location of the CFA. We use to handle it
    as REG + OFFSET all the time,  but now it can be more complex.
    It can now be either REG + CFA_OFFSET or *(REG + BASE_OFFSET) + CFA_OFFSET.
@@ -395,36 +398,20 @@ dw_fde_node;
 #define DWARF_CIE_ID DW_CIE_ID
 #endif
 
+DEF_VEC_O (dw_fde_node);
+DEF_VEC_ALLOC_O (dw_fde_node, gc);
+
 /* A pointer to the base of a table that contains frame description
    information for each routine.  */
-static GTY((length ("fde_table_allocated"))) dw_fde_ref fde_table;
+static GTY(()) VEC(dw_fde_node, gc) *fde_vec;
 
-/* Number of elements currently allocated for fde_table.  */
-static GTY(()) unsigned fde_table_allocated;
+/* The current fde_vec entry we should use.  */
+static dw_fde_ref current_fde;
 
-/* Number of elements in fde_table currently in use.  */
-static GTY(()) unsigned fde_table_in_use;
-
-/* Size (in elements) of increments by which we may expand the
-   fde_table.  */
-#define FDE_TABLE_INCREMENT 256
-
-/* Get the current fde_table entry we should use.  */
-
-static inline dw_fde_ref
-current_fde (void)
-{
-  return fde_table_in_use ? &fde_table[fde_table_in_use - 1] : NULL;
-}
-
-/* A vector of call frame insns for the CIE.  */
-static GTY(()) cfi_vec cie_cfi_vec;
-
-/* Some DWARF extensions (e.g., MIPS/SGI) implement a subprogram
-   attribute that accelerates the lookup of the FDE associated
-   with the subprogram.  This variable holds the table index of the FDE
-   associated with the current function (body) definition.  */
-static unsigned current_funcdef_fde;
+/* Some DWARF extensions (e.g., MIPS/SGI) implement a subprogram attribute
+   that accelerates the lookup of the FDE associated with the subprogram.
+   This variable holds the table index of current_fde, above.  */
+static unsigned current_fde_index;
 
 struct GTY(()) indirect_string_node {
   const char *str;
@@ -454,11 +441,10 @@ static GTY(()) section *cold_text_section;
 static char *stripattributes (const char *);
 static const char *dwarf_cfi_name (unsigned);
 static dw_cfi_ref new_cfi (void);
-static void add_fde_cfi (dw_cfi_ref);
-static void add_cie_cfi (dw_cfi_ref);
+static void add_cfi (dw_cfi_ref);
 static void lookup_cfa_1 (dw_cfi_ref, dw_cfa_location *, dw_cfa_location *);
 static void lookup_cfa (dw_cfa_location *);
-static void reg_save (bool, unsigned, unsigned, HOST_WIDE_INT);
+static void reg_save (unsigned, unsigned, HOST_WIDE_INT);
 static void initial_return_save (rtx);
 static HOST_WIDE_INT stack_adjust_offset (const_rtx, HOST_WIDE_INT,
 					  HOST_WIDE_INT);
@@ -478,7 +464,7 @@ static struct dw_loc_descr_struct *build_cfa_loc
   (dw_cfa_location *, HOST_WIDE_INT);
 static struct dw_loc_descr_struct *build_cfa_aligned_loc
   (HOST_WIDE_INT, HOST_WIDE_INT);
-static void def_cfa_1 (bool, dw_cfa_location *);
+static void def_cfa_1 (dw_cfa_location *);
 static struct dw_loc_descr_struct *mem_loc_descriptor
   (rtx, enum machine_mode mode, enum machine_mode mem_mode,
    enum var_init_status);
@@ -857,7 +843,7 @@ dwarf2out_maybe_emit_cfi_label (void)
       xcfi = new_cfi ();
       xcfi->dw_cfi_opc = DW_CFA_advance_loc4;
       xcfi->dw_cfi_oprnd1.dw_cfi_addr = l;
-      add_fde_cfi (xcfi);
+      add_cfi (xcfi);
     }
 }
 
@@ -869,42 +855,28 @@ add_cfa_remember (void)
   /* Emit the state save.  */
   cfi_remember = new_cfi ();
   cfi_remember->dw_cfi_opc = DW_CFA_remember_state;
-  add_fde_cfi (cfi_remember);
+  add_cfi (cfi_remember);
 }
 
-/* Nonnull if add_fde_cfi should not just emit a NOTE_INSN_CFI, but
-   also add the CFI to this vector.  */
-static cfi_vec *cfi_insn_vec;
+/* Nonnull if add_cfi should add the CFI to this vector.  */
+static cfi_vec *add_cfi_vec;
 
 /* Add CFI to the current fde at the PC value indicated by LABEL if specified,
    or to the CIE if LABEL is NULL.  */
 
 static void
-add_fde_cfi (dw_cfi_ref cfi)
+add_cfi (dw_cfi_ref cfi)
 {
-  any_cfis_emitted = true;
-  if (cfi_insn != NULL)
+  if (cfi_insn)
     {
+      any_cfis_emitted = true;
+
       cfi_insn = emit_note_after (NOTE_INSN_CFI, cfi_insn);
       NOTE_CFI (cfi_insn) = cfi;
-      if (cfi_insn_vec != NULL)
-	VEC_safe_push (dw_cfi_ref, gc, *cfi_insn_vec, cfi);
     }
-  else
-    {
-      dw_fde_ref fde = current_fde ();
-      VEC_safe_push (dw_cfi_ref, gc, fde->dw_fde_cfi, cfi);
-      dwarf2out_emit_cfi (cfi);
-    }
-}
 
-static void
-add_cie_cfi (dw_cfi_ref cfi)
-{
-  if (cie_cfi_vec == NULL)
-    cie_cfi_vec = VEC_alloc (dw_cfi_ref, gc, 20);
-
-  VEC_safe_push (dw_cfi_ref, gc, cie_cfi_vec, cfi);
+  if (add_cfi_vec)
+    VEC_safe_push (dw_cfi_ref, gc, *add_cfi_vec, cfi);
 }
 
 /* Subroutine of lookup_cfa.  */
@@ -963,7 +935,7 @@ lookup_cfa (dw_cfa_location *loc)
   FOR_EACH_VEC_ELT (dw_cfi_ref, cie_cfi_vec, ix, cfi)
     lookup_cfa_1 (cfi, loc, &remember);
 
-  fde = current_fde ();
+  fde = current_fde;
   if (fde)
     FOR_EACH_VEC_ELT (dw_cfi_ref, fde->dw_fde_cfi, ix, cfi)
       lookup_cfa_1 (cfi, loc, &remember);
@@ -989,14 +961,14 @@ static HOST_WIDE_INT old_args_size;
    of CFA is now to be calculated from REG+OFFSET.  */
 
 void
-dwarf2out_def_cfa (bool for_cie, unsigned int reg, HOST_WIDE_INT offset)
+dwarf2out_def_cfa (unsigned int reg, HOST_WIDE_INT offset)
 {
   dw_cfa_location loc;
   loc.indirect = 0;
   loc.base_offset = 0;
   loc.reg = reg;
   loc.offset = offset;
-  def_cfa_1 (for_cie, &loc);
+  def_cfa_1 (&loc);
 }
 
 /* Determine if two dw_cfa_location structures define the same data.  */
@@ -1015,7 +987,7 @@ cfa_equal_p (const dw_cfa_location *loc1, const dw_cfa_location *loc2)
    the dw_cfa_location structure.  */
 
 static void
-def_cfa_1 (bool for_cie, dw_cfa_location *loc_p)
+def_cfa_1 (dw_cfa_location *loc_p)
 {
   dw_cfi_ref cfi;
   dw_cfa_location loc;
@@ -1087,10 +1059,7 @@ def_cfa_1 (bool for_cie, dw_cfa_location *loc_p)
       cfi->dw_cfi_oprnd1.dw_cfi_loc = loc_list;
     }
 
-  if (for_cie)
-    add_cie_cfi (cfi);
-  else
-    add_fde_cfi (cfi);
+  add_cfi (cfi);
   old_cfa = loc;
 }
 
@@ -1099,15 +1068,14 @@ def_cfa_1 (bool for_cie, dw_cfa_location *loc_p)
    otherwise it is saved in SREG.  */
 
 static void
-reg_save (bool for_cie, unsigned int reg, unsigned int sreg, HOST_WIDE_INT offset)
+reg_save (unsigned int reg, unsigned int sreg, HOST_WIDE_INT offset)
 {
   dw_cfi_ref cfi = new_cfi ();
-  dw_fde_ref fde = current_fde ();
+  dw_fde_ref fde = current_fde;
 
   cfi->dw_cfi_oprnd1.dw_cfi_reg_num = reg;
 
-  /* When stack is aligned, store REG using DW_CFA_expression with
-     FP.  */
+  /* When stack is aligned, store REG using DW_CFA_expression with FP.  */
   if (fde
       && fde->stack_realign
       && sreg == INVALID_REGNUM)
@@ -1135,10 +1103,7 @@ reg_save (bool for_cie, unsigned int reg, unsigned int sreg, HOST_WIDE_INT offse
       cfi->dw_cfi_oprnd2.dw_cfi_reg_num = sreg;
     }
 
-  if (for_cie)
-    add_cie_cfi (cfi);
-  else
-    add_fde_cfi (cfi);
+  add_cfi (cfi);
 }
 
 /* Add the CFI for saving a register window.
@@ -1154,7 +1119,7 @@ dwarf2out_window_save (void)
   dw_cfi_ref cfi = new_cfi ();
 
   cfi->dw_cfi_opc = DW_CFA_GNU_window_save;
-  add_fde_cfi (cfi);
+  add_cfi (cfi);
 }
 
 /* Entry point for saving a register to the stack.  REG is the GCC register
@@ -1163,7 +1128,7 @@ dwarf2out_window_save (void)
 void
 dwarf2out_reg_save (unsigned int reg, HOST_WIDE_INT offset)
 {
-  reg_save (false, DWARF_FRAME_REGNUM (reg), INVALID_REGNUM, offset);
+  reg_save (DWARF_FRAME_REGNUM (reg), INVALID_REGNUM, offset);
 }
 
 /* Entry point for saving the return address in the stack.
@@ -1172,7 +1137,7 @@ dwarf2out_reg_save (unsigned int reg, HOST_WIDE_INT offset)
 void
 dwarf2out_return_save (HOST_WIDE_INT offset)
 {
-  reg_save (false, DWARF_FRAME_RETURN_COLUMN, INVALID_REGNUM, offset);
+  reg_save (DWARF_FRAME_RETURN_COLUMN, INVALID_REGNUM, offset);
 }
 
 /* Entry point for saving the return address in a register.
@@ -1181,7 +1146,7 @@ dwarf2out_return_save (HOST_WIDE_INT offset)
 void
 dwarf2out_return_reg (unsigned int sreg)
 {
-  reg_save (false, DWARF_FRAME_RETURN_COLUMN, DWARF_FRAME_REGNUM (sreg), 0);
+  reg_save (DWARF_FRAME_RETURN_COLUMN, DWARF_FRAME_REGNUM (sreg), 0);
 }
 
 /* Record the initial position of the return address.  RTL is
@@ -1239,7 +1204,7 @@ initial_return_save (rtx rtl)
     }
 
   if (reg != DWARF_FRAME_RETURN_COLUMN)
-    reg_save (true, DWARF_FRAME_RETURN_COLUMN, reg, offset - cfa.offset);
+    reg_save (DWARF_FRAME_RETURN_COLUMN, reg, offset - cfa.offset);
 }
 
 /* Given a SET, calculate the amount of stack adjustment it
@@ -1348,7 +1313,7 @@ dwarf2out_args_size (HOST_WIDE_INT size)
   cfi = new_cfi ();
   cfi->dw_cfi_opc = DW_CFA_GNU_args_size;
   cfi->dw_cfi_oprnd1.dw_cfi_offset = size;
-  add_fde_cfi (cfi);
+  add_cfi (cfi);
 }
 
 /* Record a stack adjustment of OFFSET bytes.  */
@@ -1373,7 +1338,7 @@ dwarf2out_stack_adjust (HOST_WIDE_INT offset)
   if (args_size < 0)
     args_size = 0;
 
-  def_cfa_1 (false, &cfa);
+  def_cfa_1 (&cfa);
   if (flag_asynchronous_unwind_tables)
     dwarf2out_args_size (args_size);
 }
@@ -1534,7 +1499,7 @@ dwarf2out_flush_queued_reg_saves (void)
 	sreg = DWARF_FRAME_REGNUM (REGNO (q->saved_reg));
       else
 	sreg = INVALID_REGNUM;
-      reg_save (false, reg, sreg, q->cfa_offset);
+      reg_save (reg, sreg, q->cfa_offset);
     }
 
   queued_reg_saves = NULL;
@@ -1585,7 +1550,7 @@ dwarf2out_reg_save_reg (rtx reg, rtx sreg)
 
   regno = DWARF_FRAME_REGNUM (REGNO (reg));
   sregno = DWARF_FRAME_REGNUM (REGNO (sreg));
-  reg_save (false, regno, sregno, 0);
+  reg_save (regno, sregno, 0);
 }
 
 /* What register, if any, is currently saved in REG?  */
@@ -1649,7 +1614,7 @@ dwarf2out_frame_debug_def_cfa (rtx pat)
       gcc_unreachable ();
     }
 
-  def_cfa_1 (false, &cfa);
+  def_cfa_1 (&cfa);
 }
 
 /* A subroutine of dwarf2out_frame_debug, process a REG_ADJUST_CFA note.  */
@@ -1680,7 +1645,7 @@ dwarf2out_frame_debug_adjust_cfa (rtx pat)
   cfa.reg = REGNO (dest);
   gcc_assert (cfa.indirect == 0);
 
-  def_cfa_1 (false, &cfa);
+  def_cfa_1 (&cfa);
 }
 
 /* A subroutine of dwarf2out_frame_debug, process a REG_CFA_OFFSET note.  */
@@ -1716,7 +1681,7 @@ dwarf2out_frame_debug_cfa_offset (rtx set)
   /* ??? We'd like to use queue_reg_save, but we need to come up with
      a different flushing heuristic for epilogues.  */
   if (!span)
-    reg_save (false, DWARF_FRAME_REGNUM (REGNO (src)), INVALID_REGNUM, offset);
+    reg_save (DWARF_FRAME_REGNUM (REGNO (src)), INVALID_REGNUM, offset);
   else
     {
       /* We have a PARALLEL describing where the contents of SRC live.
@@ -1732,7 +1697,7 @@ dwarf2out_frame_debug_cfa_offset (rtx set)
 	{
 	  rtx elem = XVECEXP (span, 0, par_index);
 
-	  reg_save (false, DWARF_FRAME_REGNUM (REGNO (elem)),
+	  reg_save (DWARF_FRAME_REGNUM (REGNO (elem)),
 		    INVALID_REGNUM, span_offset);
 	  span_offset += GET_MODE_SIZE (GET_MODE (elem));
 	}
@@ -1759,7 +1724,7 @@ dwarf2out_frame_debug_cfa_register (rtx set)
 
   /* ??? We'd like to use queue_reg_save, but we need to come up with
      a different flushing heuristic for epilogues.  */
-  reg_save (false, sregno, dregno, 0);
+  reg_save (sregno, dregno, 0);
 }
 
 /* Helper function to get mode of MEM's address.  */
@@ -1798,7 +1763,7 @@ dwarf2out_frame_debug_cfa_expression (rtx set)
 
   /* ??? We'd like to use queue_reg_save, were the interface different,
      and, as above, we could manage flushing for epilogues.  */
-  add_fde_cfi (cfi);
+  add_cfi (cfi);
 }
 
 /* A subroutine of dwarf2out_frame_debug, process a REG_CFA_RESTORE note.  */
@@ -1812,7 +1777,7 @@ dwarf2out_frame_debug_cfa_restore (rtx reg)
   cfi->dw_cfi_opc = (regno & ~0x3f ? DW_CFA_restore_extended : DW_CFA_restore);
   cfi->dw_cfi_oprnd1.dw_cfi_reg_num = regno;
 
-  add_fde_cfi (cfi);
+  add_cfi (cfi);
 }
 
 /* Examine CFI and return true if a cfi label and set_loc is needed before
@@ -1851,71 +1816,6 @@ cfi_label_required_p (dw_cfi_ref cfi)
   return false;
 }
 
-/* Called once at the start of final to initialize some data for the
-   current function.  */
-
-void
-dwarf2out_frame_debug_init (void)
-{
-  dw_fde_ref fde = current_fde ();
-  rtx insn, next;
-  /* We always start with a function_begin label.  */
-  bool first = false;
-
-  /* Walk the function, looking for NOTE_INSN_CFI notes.  Add the CFIs to
-     the function's FDE, adding CFI labels and set_loc/advance_loc opcodes
-     as necessary.  */
-
-  for (insn = get_insns (); insn; insn = next)
-    {
-      next = NEXT_INSN (insn);
-
-      if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_SWITCH_TEXT_SECTIONS)
-	{
-	  fde->dw_fde_switch_cfi_index
-	    = VEC_length (dw_cfi_ref, fde->dw_fde_cfi);
-	  /* Don't attempt to advance_loc4 between labels in different
-	     sections.  */
-	  first = true;
-	}
-
-      if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_CFI)
-	{
-	  bool required = cfi_label_required_p (NOTE_CFI (insn));
-	  while (next && NOTE_P (next) && NOTE_KIND (next) == NOTE_INSN_CFI)
-	    {
-	      required |= cfi_label_required_p (NOTE_CFI (next));
-	      next = NEXT_INSN (next);
-	    }
-	  if (required)
-	    {
-	      int num = dwarf2out_cfi_label_num;
-	      const char *label = dwarf2out_cfi_label ();
-	      dw_cfi_ref xcfi;
-	      rtx tmp;
-
-	      /* Set the location counter to the new label.  */
-	      xcfi = new_cfi ();
-	      xcfi->dw_cfi_opc = (first ? DW_CFA_set_loc
-				  : DW_CFA_advance_loc4);
-	      xcfi->dw_cfi_oprnd1.dw_cfi_addr = label;
-	      VEC_safe_push (dw_cfi_ref, gc, fde->dw_fde_cfi, xcfi);
-
-	      tmp = emit_note_before (NOTE_INSN_CFI_LABEL, insn);
-	      NOTE_LABEL_NUMBER (tmp) = num;
-	    }
-
-	  do
-	    {
-	      VEC_safe_push (dw_cfi_ref, gc, fde->dw_fde_cfi, NOTE_CFI (insn));
-	      insn = NEXT_INSN (insn);
-	    }
-	  while (insn != next);
-	  first = false;
-	}
-    }
-}
-
 /* A subroutine of dwarf2out_frame_debug_init, emit a CFA_restore_state.  */
 
 static void
@@ -1924,7 +1824,7 @@ dwarf2out_frame_debug_restore_state (void)
   dw_cfi_ref cfi = new_cfi ();
 
   cfi->dw_cfi_opc = DW_CFA_restore_state;
-  add_fde_cfi (cfi);
+  add_cfi (cfi);
 }
 
 /* Record call frame debugging information for an expression EXPR,
@@ -2189,7 +2089,7 @@ dwarf2out_frame_debug_expr (rtx expr)
 	src = rsi;
     }
 
-  fde = current_fde ();
+  fde = current_fde;
 
   switch (GET_CODE (dest))
     {
@@ -2390,7 +2290,7 @@ dwarf2out_frame_debug_expr (rtx expr)
 	  gcc_unreachable ();
 	}
 
-      def_cfa_1 (false, &cfa);
+      def_cfa_1 (&cfa);
       break;
 
     case MEM:
@@ -2550,14 +2450,14 @@ dwarf2out_frame_debug_expr (rtx expr)
 
 		  fde->drap_reg_saved = 1;
 
-		  def_cfa_1 (false, &cfa_exp);
+		  def_cfa_1 (&cfa_exp);
 		  break;
                 }
 
 	      /* If the source register is exactly the CFA, assume
 		 we're saving SP like any other register; this happens
 		 on the ARM.  */
-	      def_cfa_1 (false, &cfa);
+	      def_cfa_1 (&cfa);
 	      queue_reg_save (stack_pointer_rtx, NULL_RTX, offset);
 	      break;
 	    }
@@ -2574,12 +2474,12 @@ dwarf2out_frame_debug_expr (rtx expr)
 	      cfa.reg = REGNO (x);
 	      cfa.base_offset = offset;
 	      cfa.indirect = 1;
-	      def_cfa_1 (false, &cfa);
+	      def_cfa_1 (&cfa);
 	      break;
 	    }
 	}
 
-      def_cfa_1 (false, &cfa);
+      def_cfa_1 (&cfa);
       {
 	span = targetm.dwarf_register_span (src);
 
@@ -2620,7 +2520,7 @@ dwarf2out_frame_debug_expr (rtx expr)
    If AFTER_P is false, we're being called before the insn is emitted,
    otherwise after.  Call instructions get invoked twice.  */
 
-void
+static void
 dwarf2out_frame_debug (rtx insn, bool after_p)
 {
   rtx note, n;
@@ -2713,7 +2613,7 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
 	n = XEXP (note, 0);
 	if (REG_P (n))
 	  {
-	    dw_fde_ref fde = current_fde ();
+	    dw_fde_ref fde = current_fde;
 	    if (fde)
 	      {
 		gcc_assert (fde->vdrap_reg == INVALID_REGNUM);
@@ -2803,7 +2703,7 @@ save_point_p (rtx insn)
 static void
 record_current_state (jump_target_info *info)
 {
-  info->cfis = copy_cfi_vec_parts (*cfi_insn_vec);
+  info->cfis = copy_cfi_vec_parts (*add_cfi_vec);
   info->args_size = args_size;
   info->cfa = cfa;
   info->old_cfa = old_cfa;
@@ -2873,7 +2773,7 @@ append_extra_cfis (cfi_vec prefix, cfi_vec full)
   for (; i < len; i++)
     {
       dw_cfi_ref elt = VEC_index (dw_cfi_ref, full, i);
-      add_fde_cfi (elt);
+      add_cfi (elt);
     }
 }
 
@@ -3079,15 +2979,48 @@ execute_dwarf2_frame (void)
 {
   int max_uid = get_max_uid ();
   int i, n_saves_restores, prologue_end_point, switch_note_point;
-  rtx insn, save_point;
+  rtx insn, save_point, next;
   VEC (rtx, heap) *start_points;
   int n_points;
   int *uid_luid;
-  bool remember_needed;
+  bool remember_needed, first;
   jump_target_info *point_info, *save_point_info;
+  dw_fde_ref fde;
   cfi_vec current_vec;
 
-  /* Reset state to default for the function.  */
+  /* Do one-time setup of CIE info.  */
+  if (cie_cfi_vec == NULL)
+    {
+      /* Generate the CFA instructions common to all FDE's.
+	 Do it now for the sake of lookup_cfa.  */
+      add_cfi_vec = &cie_cfi_vec;
+
+      /* On entry, the Canonical Frame Address is at SP.  */
+      old_cfa.reg = INVALID_REGNUM;
+      dwarf2out_def_cfa (STACK_POINTER_REGNUM, INCOMING_FRAME_SP_OFFSET);
+
+      if (targetm.debug_unwind_info () == UI_DWARF2
+          || targetm_common.except_unwind_info (&global_options) == UI_DWARF2)
+        initial_return_save (INCOMING_RETURN_ADDR_RTX);
+
+      add_cfi_vec = NULL;
+    }
+  
+  current_fde_index = VEC_length (dw_fde_node, fde_vec);
+  current_fde = fde = VEC_safe_push (dw_fde_node, gc, fde_vec, NULL);
+
+  /* Initialize what bits of CURRENT_FDE that we can; the rest will be done
+     in dwarf2out_begin_prologue during pass_final.  */
+  memset (fde, 0, sizeof(dw_fde_node));
+  fde->decl = current_function_decl;
+  fde->funcdef_number = current_function_funcdef_no;
+  fde->all_throwers_are_sibcalls = crtl->all_throwers_are_sibcalls;
+  fde->uses_eh_lsda = crtl->uses_eh_lsda;
+  fde->nothrow = crtl->nothrow;
+  fde->drap_reg = INVALID_REGNUM;
+  fde->vdrap_reg = INVALID_REGNUM;
+
+  /* Reset state to default for this function.  */
   memset(regs_saved_in_regs, 0, sizeof(regs_saved_in_regs));
   num_regs_saved_in_regs = 0;
   queued_reg_saves = NULL;
@@ -3127,16 +3060,13 @@ execute_dwarf2_frame (void)
 
   start_points = VEC_alloc (rtx, heap, 20);
   insn = get_insns ();
-  current_vec = VEC_alloc (dw_cfi_ref, gc, 10);
+  current_vec = NULL;
+  add_cfi_vec = &current_vec;
 
   /* At a NOTE_INSN_SWITCH_TEXT_SECTIONS we'll emit a cfi_startproc.
      Ensure the state at this note reflects that.  */
   if (switch_note_point != -1)
-    {
-      cfi_insn_vec = &current_vec;
-      record_current_state (point_info + switch_note_point);
-      cfi_insn_vec = NULL;
-    }
+    record_current_state (point_info + switch_note_point);
   args_size = old_args_size = 0;
 
   for (;;)
@@ -3145,9 +3075,7 @@ execute_dwarf2_frame (void)
       jump_target_info *restart_info;
 
       /* Scan the insns and emit NOTE_CFIs where necessary.  */
-      cfi_insn_vec = &current_vec;
       scan_until_barrier (insn, point_info, uid_luid, &start_points);
-      cfi_insn_vec = NULL;
 
       insn = find_best_starting_point (point_info, uid_luid, &start_points);
 
@@ -3203,6 +3131,7 @@ execute_dwarf2_frame (void)
 
       insn = NEXT_INSN (insn);
     }
+  add_cfi_vec = NULL;
 
   VEC_free (rtx, heap, start_points);
 
@@ -3440,6 +3369,63 @@ execute_dwarf2_frame (void)
     }
   free (uid_luid);
   free (point_info);
+
+  /* Walk the function, looking for NOTE_INSN_CFI notes.  Add the CFIs to
+     the function's FDE, adding CFI labels and set_loc/advance_loc opcodes
+     as necessary.  */
+  /* ??? Can we merge this with the previous walk over the function, while
+     we were generating these CFI notes in the first place?  */
+
+  /* We always start with a function_begin label.  */
+  first = false;
+  for (insn = get_insns (); insn; insn = next)
+    {
+      next = NEXT_INSN (insn);
+
+      if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_SWITCH_TEXT_SECTIONS)
+	{
+	  fde->dw_fde_switch_cfi_index
+	    = VEC_length (dw_cfi_ref, fde->dw_fde_cfi);
+	  /* Don't attempt to advance_loc4 between labels in different
+	     sections.  */
+	  first = true;
+	}
+
+      if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_CFI)
+	{
+	  bool required = cfi_label_required_p (NOTE_CFI (insn));
+	  while (next && NOTE_P (next) && NOTE_KIND (next) == NOTE_INSN_CFI)
+	    {
+	      required |= cfi_label_required_p (NOTE_CFI (next));
+	      next = NEXT_INSN (next);
+	    }
+	  if (required)
+	    {
+	      int num = dwarf2out_cfi_label_num;
+	      const char *label = dwarf2out_cfi_label ();
+	      dw_cfi_ref xcfi;
+	      rtx tmp;
+
+	      /* Set the location counter to the new label.  */
+	      xcfi = new_cfi ();
+	      xcfi->dw_cfi_opc = (first ? DW_CFA_set_loc
+				  : DW_CFA_advance_loc4);
+	      xcfi->dw_cfi_oprnd1.dw_cfi_addr = label;
+	      VEC_safe_push (dw_cfi_ref, gc, fde->dw_fde_cfi, xcfi);
+
+	      tmp = emit_note_before (NOTE_INSN_CFI_LABEL, insn);
+	      NOTE_LABEL_NUMBER (tmp) = num;
+	    }
+
+	  do
+	    {
+	      VEC_safe_push (dw_cfi_ref, gc, fde->dw_fde_cfi, NOTE_CFI (insn));
+	      insn = NEXT_INSN (insn);
+	    }
+	  while (insn != next);
+	  first = false;
+	}
+    }
 
   return 0;
 }
@@ -3760,7 +3746,7 @@ output_cfi_directive (FILE *f, dw_cfi_ref cfi)
     case DW_CFA_advance_loc4:
     case DW_CFA_MIPS_advance_loc8:
     case DW_CFA_set_loc:
-      /* Should only be created by add_fde_cfi in a code path not
+      /* Should only be created by add_cfi in a code path not
 	 followed when emitting via directives.  The assembler is
 	 going to take care of this for us.  */
       if (f == asm_out_file)
@@ -4198,7 +4184,7 @@ output_call_frame_info (int for_eh)
   int dw_cie_version;
 
   /* Don't emit a CIE if there won't be any FDEs.  */
-  if (fde_table_in_use == 0)
+  if (fde_vec == NULL)
     return;
 
   /* Nothing to do if the assembler's doing it all.  */
@@ -4214,15 +4200,15 @@ output_call_frame_info (int for_eh)
   if (for_eh)
     {
       bool any_eh_needed = false;
+      dw_fde_ref fde;
 
-      for (i = 0; i < fde_table_in_use; i++)
-	if (fde_table[i].uses_eh_lsda)
+      FOR_EACH_VEC_ELT (dw_fde_node, fde_vec, i, fde)
+	if (fde->uses_eh_lsda)
 	  any_eh_needed = any_lsda_needed = true;
-	else if (fde_needed_for_eh_p (&fde_table[i]))
+	else if (fde_needed_for_eh_p (fde))
 	  any_eh_needed = true;
 	else if (TARGET_USES_WEAK_UNWIND_INFO)
-	  targetm.asm_out.emit_unwind_label (asm_out_file, fde_table[i].decl,
-					     1, 1);
+	  targetm.asm_out.emit_unwind_label (asm_out_file, fde->decl, 1, 1);
 
       if (!any_eh_needed)
 	return;
@@ -4375,10 +4361,9 @@ output_call_frame_info (int for_eh)
   ASM_OUTPUT_LABEL (asm_out_file, l2);
 
   /* Loop through all of the FDE's.  */
-  for (i = 0; i < fde_table_in_use; i++)
+  FOR_EACH_VEC_ELT (dw_fde_node, fde_vec, i, fde)
     {
       unsigned int k;
-      fde = &fde_table[i];
 
       /* Don't emit EH unwind info for leaf functions that don't need it.  */
       if (for_eh && !fde_needed_for_eh_p (fde))
@@ -4486,39 +4471,12 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
   if (!do_frame)
     return;
 
-  /* Expand the fde table if necessary.  */
-  if (fde_table_in_use == fde_table_allocated)
-    {
-      fde_table_allocated += FDE_TABLE_INCREMENT;
-      fde_table = GGC_RESIZEVEC (dw_fde_node, fde_table, fde_table_allocated);
-      memset (fde_table + fde_table_in_use, 0,
-	      FDE_TABLE_INCREMENT * sizeof (dw_fde_node));
-    }
-
-  /* Record the FDE associated with this function.  */
-  current_funcdef_fde = fde_table_in_use;
-
-  /* Add the new FDE at the end of the fde_table.  */
-  fde = &fde_table[fde_table_in_use++];
-  fde->decl = current_function_decl;
+  /* Initialize the bits of CURRENT_FDE that were not available earlier.  */
+  fde = current_fde;
   fde->dw_fde_begin = dup_label;
-  fde->dw_fde_end = NULL;
   fde->dw_fde_current_label = dup_label;
-  fde->dw_fde_second_begin = NULL;
-  fde->dw_fde_second_end = NULL;
-  fde->dw_fde_vms_end_prologue = NULL;
-  fde->dw_fde_vms_begin_epilogue = NULL;
-  fde->dw_fde_cfi = VEC_alloc (dw_cfi_ref, gc, 20);
-  fde->dw_fde_switch_cfi_index = 0;
-  fde->funcdef_number = current_function_funcdef_no;
-  fde->all_throwers_are_sibcalls = crtl->all_throwers_are_sibcalls;
-  fde->uses_eh_lsda = crtl->uses_eh_lsda;
-  fde->nothrow = crtl->nothrow;
-  fde->drap_reg = INVALID_REGNUM;
-  fde->vdrap_reg = INVALID_REGNUM;
   fde->in_std_section = (fnsec == text_section
 			 || (cold_text_section && fnsec == cold_text_section));
-  fde->second_in_std_section = 0;
 
   args_size = old_args_size = 0;
 
@@ -4554,7 +4512,6 @@ void
 dwarf2out_vms_end_prologue (unsigned int line ATTRIBUTE_UNUSED,
 			const char *file ATTRIBUTE_UNUSED)
 {
-  dw_fde_ref fde;
   char label[MAX_ARTIFICIAL_LABEL_BYTES];
 
   /* Output a label to mark the endpoint of the code generated for this
@@ -4563,8 +4520,7 @@ dwarf2out_vms_end_prologue (unsigned int line ATTRIBUTE_UNUSED,
 			       current_function_funcdef_no);
   ASM_OUTPUT_DEBUG_LABEL (asm_out_file, PROLOGUE_END_LABEL,
 			  current_function_funcdef_no);
-  fde = &fde_table[fde_table_in_use - 1];
-  fde->dw_fde_vms_end_prologue = xstrdup (label);
+  current_fde->dw_fde_vms_end_prologue = xstrdup (label);
 }
 
 /* Output a marker (i.e. a label) for the beginning of the generated code
@@ -4575,10 +4531,9 @@ void
 dwarf2out_vms_begin_epilogue (unsigned int line ATTRIBUTE_UNUSED,
 			  const char *file ATTRIBUTE_UNUSED)
 {
-  dw_fde_ref fde;
+  dw_fde_ref fde = current_fde;
   char label[MAX_ARTIFICIAL_LABEL_BYTES];
 
-  fde = &fde_table[fde_table_in_use - 1];
   if (fde->dw_fde_vms_begin_epilogue)
     return;
 
@@ -4612,30 +4567,10 @@ dwarf2out_end_epilogue (unsigned int line ATTRIBUTE_UNUSED,
   ASM_GENERATE_INTERNAL_LABEL (label, FUNC_END_LABEL,
 			       current_function_funcdef_no);
   ASM_OUTPUT_LABEL (asm_out_file, label);
-  fde = current_fde ();
+  fde = current_fde;
   gcc_assert (fde != NULL);
   if (fde->dw_fde_second_begin == NULL)
     fde->dw_fde_end = xstrdup (label);
-}
-
-void
-dwarf2out_frame_init (void)
-{
-  /* Allocate the initial hunk of the fde_table.  */
-  fde_table = ggc_alloc_cleared_vec_dw_fde_node (FDE_TABLE_INCREMENT);
-  fde_table_allocated = FDE_TABLE_INCREMENT;
-  fde_table_in_use = 0;
-
-  /* Generate the CFA instructions common to all FDE's.  Do it now for the
-     sake of lookup_cfa.  */
-
-  /* On entry, the Canonical Frame Address is at SP.  */
-  old_cfa.reg = INVALID_REGNUM;
-  dwarf2out_def_cfa (true, STACK_POINTER_REGNUM, INCOMING_FRAME_SP_OFFSET);
-
-  if (targetm.debug_unwind_info () == UI_DWARF2
-      || targetm_common.except_unwind_info (&global_options) == UI_DWARF2)
-    initial_return_save (INCOMING_RETURN_ADDR_RTX);
 }
 
 void
@@ -4670,7 +4605,7 @@ void
 dwarf2out_switch_text_section (void)
 {
   section *sect;
-  dw_fde_ref fde = current_fde ();
+  dw_fde_ref fde = current_fde;
 
   gcc_assert (cfun && fde && fde->dw_fde_second_begin == NULL);
 
@@ -11518,12 +11453,11 @@ size_of_aranges (void)
     size += 2 * DWARF2_ADDR_SIZE;
   if (have_multiple_function_sections)
     {
-      unsigned fde_idx = 0;
+      unsigned fde_idx;
+      dw_fde_ref fde;
 
-      for (fde_idx = 0; fde_idx < fde_table_in_use; fde_idx++)
+      FOR_EACH_VEC_ELT (dw_fde_node, fde_vec, fde_idx, fde)
 	{
-	  dw_fde_ref fde = &fde_table[fde_idx];
-
 	  if (!fde->in_std_section)
 	    size += 2 * DWARF2_ADDR_SIZE;
 	  if (fde->dw_fde_second_begin && !fde->second_in_std_section)
@@ -12414,12 +12348,11 @@ output_aranges (unsigned long aranges_length)
 
   if (have_multiple_function_sections)
     {
-      unsigned fde_idx = 0;
+      unsigned fde_idx;
+      dw_fde_ref fde;
 
-      for (fde_idx = 0; fde_idx < fde_table_in_use; fde_idx++)
+      FOR_EACH_VEC_ELT (dw_fde_node, fde_vec, fde_idx, fde)
 	{
-	  dw_fde_ref fde = &fde_table[fde_idx];
-
 	  if (!fde->in_std_section)
 	    {
 	      dw2_asm_output_addr (DWARF2_ADDR_SIZE, fde->dw_fde_begin,
@@ -13985,7 +13918,7 @@ based_loc_descr (rtx reg, HOST_WIDE_INT offset,
 {
   unsigned int regno;
   dw_loc_descr_ref result;
-  dw_fde_ref fde = current_fde ();
+  dw_fde_ref fde = current_fde;
 
   /* We only use "frame base" when we're sure we're talking about the
      post-prologue local stack frame.  We do this by *not* running
@@ -16479,7 +16412,7 @@ dw_loc_list (var_loc_list *loc_list, tree decl, int want_address)
 		&& (node != loc_list->first || loc_list->first->next)
 		&& current_function_decl)
 	      {
-		endname = current_fde ()->dw_fde_end;
+		endname = current_fde->dw_fde_end;
 		range_across_switch = true;
 	      }
 	    /* The variable has a location between NODE->LABEL and
@@ -16522,9 +16455,9 @@ dw_loc_list (var_loc_list *loc_list, tree decl, int want_address)
 		if (node->next)
 		  endname = node->next->label;
 		else
-		  endname = current_fde ()->dw_fde_second_end;
+		  endname = current_fde->dw_fde_second_end;
 		*listp = new_loc_list (descr,
-				       current_fde ()->dw_fde_second_begin,
+				       current_fde->dw_fde_second_begin,
 				       endname, secname);
 		listp = &(*listp)->dw_loc_next;
 	      }
@@ -18630,7 +18563,7 @@ convert_cfa_to_fb_loc_list (HOST_WIDE_INT offset)
   const char *start_label, *last_label, *section;
   dw_cfa_location remember;
 
-  fde = current_fde ();
+  fde = current_fde;
   gcc_assert (fde != NULL);
 
   section = secname_for_decl (current_function_decl);
@@ -20650,7 +20583,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 
       if (!flag_reorder_blocks_and_partition)
 	{
-	  dw_fde_ref fde = &fde_table[current_funcdef_fde];
+	  dw_fde_ref fde = current_fde;
 	  if (fde->dw_fde_begin)
 	    {
 	      /* We have already generated the labels.  */
@@ -20696,9 +20629,9 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 	  add_pubname (decl, subr_die);
 	}
       else
-	{  /* Generate pubnames entries for the split function code
-	      ranges.  */
-	  dw_fde_ref fde = &fde_table[current_funcdef_fde];
+	{
+          /* Generate pubnames entries for the split function code ranges.  */
+	  dw_fde_ref fde = current_fde;
 
 	  if (fde->dw_fde_second_begin)
 	    {
@@ -20779,7 +20712,7 @@ gen_subprogram_die (tree decl, dw_die_ref context_die)
 
 #ifdef MIPS_DEBUGGING_INFO
       /* Add a reference to the FDE for this routine.  */
-      add_AT_fde_ref (subr_die, DW_AT_MIPS_fde, current_funcdef_fde);
+      add_AT_fde_ref (subr_die, DW_AT_MIPS_fde, current_fde_index);
 #endif
 
       cfa_fb_offset = CFA_FRAME_BASE_OFFSET (decl);
@@ -25395,7 +25328,8 @@ dwarf2out_finish (const char *filename)
     }
   else
     {
-      unsigned fde_idx = 0;
+      unsigned fde_idx;
+      dw_fde_ref fde;
       bool range_list_added = false;
 
       if (text_section_used)
@@ -25405,10 +25339,8 @@ dwarf2out_finish (const char *filename)
 	add_ranges_by_labels (comp_unit_die (), cold_text_section_label,
 			      cold_end_label, &range_list_added);
 
-      for (fde_idx = 0; fde_idx < fde_table_in_use; fde_idx++)
+      FOR_EACH_VEC_ELT (dw_fde_node, fde_vec, fde_idx, fde)
 	{
-	  dw_fde_ref fde = &fde_table[fde_idx];
-
 	  if (!fde->in_std_section)
 	    add_ranges_by_labels (comp_unit_die (), fde->dw_fde_begin,
 				  fde->dw_fde_end, &range_list_added);

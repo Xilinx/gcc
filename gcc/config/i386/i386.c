@@ -55,12 +55,12 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "cselib.h"
 #include "debug.h"
-#include "dwarf2out.h"
 #include "sched-int.h"
 #include "sbitmap.h"
 #include "fibheap.h"
 #include "opts.h"
 #include "diagnostic.h"
+#include "tree-pass.h"
 
 enum upper_128bits_state
 {
@@ -2423,6 +2423,7 @@ static tree ix86_canonical_va_list_type (tree);
 static void predict_jump (int);
 static unsigned int split_stack_prologue_scratch_regno (void);
 static bool i386_asm_output_addr_const_extra (FILE *, rtx);
+static void ix86_split_set_got (void);
 
 enum ix86_function_specific_strings
 {
@@ -8291,7 +8292,7 @@ ix86_code_end (void)
 /* Emit code for the SET_GOT patterns.  */
 
 const char *
-output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
+output_set_got (rtx dest, rtx label)
 {
   rtx xops[3];
 
@@ -8315,33 +8316,11 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
 
   xops[1] = gen_rtx_SYMBOL_REF (Pmode, GOT_SYMBOL_NAME);
 
-  if (! TARGET_DEEP_BRANCH_PREDICTION || !flag_pic)
+  if (!flag_pic)
     {
       xops[2] = gen_rtx_LABEL_REF (Pmode, label ? label : gen_label_rtx ());
 
-      if (!flag_pic)
-	output_asm_insn ("mov%z0\t{%2, %0|%0, %2}", xops);
-      else
-	{
-	  /* For normal functions, this pattern is split, but we can still
-	     get here for thunks.  */
-	  output_asm_insn ("call\t%a2", xops);
-#ifdef DWARF2_UNWIND_INFO
-	  /* The call to next label acts as a push.  */
-	  if (dwarf2out_do_frame ())
-	    {
-	      rtx insn;
-	      start_sequence ();
-	      insn = emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-					     gen_rtx_PLUS (Pmode,
-							   stack_pointer_rtx,
-							   GEN_INT (-4))));
-	      RTX_FRAME_RELATED_P (insn) = 1;
-	      dwarf2out_frame_debug (insn, true);
-	      end_sequence ();
-	    }
-#endif
-	}
+      output_asm_insn ("mov%z0\t{%2, %0|%0, %2}", xops);
 
 #if TARGET_MACHO
       /* Output the Mach-O "canonical" label name ("Lxx$pb") here too.  This
@@ -8352,35 +8331,15 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
 
       targetm.asm_out.internal_label (asm_out_file, "L",
 				      CODE_LABEL_NUMBER (XEXP (xops[2], 0)));
-
-      if (flag_pic)
-	{
-	  output_asm_insn ("pop%z0\t%0", xops);
-#ifdef DWARF2_UNWIND_INFO
-	  /* The pop is a pop and clobbers dest, but doesn't restore it
-	     for unwind info purposes.  */
-	  if (dwarf2out_do_frame ())
-	    {
-	      rtx insn;
-	      start_sequence ();
-	      insn = emit_insn (gen_rtx_SET (VOIDmode, dest, const0_rtx));
-	      dwarf2out_frame_debug (insn, true);
-	      insn = emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-					     gen_rtx_PLUS (Pmode,
-							   stack_pointer_rtx,
-							   GEN_INT (4))));
-	      RTX_FRAME_RELATED_P (insn) = 1;
-	      dwarf2out_frame_debug (insn, true);
-	      end_sequence ();
-	    }
-#endif
-	}
     }
   else
     {
       char name[32];
       get_pc_thunk_name (name, REGNO (dest));
       pic_labels_used |= 1 << REGNO (dest);
+
+      /* For pic & !deep, this pattern should have been split.  */
+      gcc_assert (TARGET_DEEP_BRANCH_PREDICTION);
 
       xops[2] = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (name));
       xops[2] = gen_rtx_MEM (QImode, xops[2]);
@@ -8392,18 +8351,14 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
 	ASM_OUTPUT_LABEL (asm_out_file, MACHOPIC_FUNCTION_BASE_NAME);
       else
         targetm.asm_out.internal_label (asm_out_file, "L",
-					   CODE_LABEL_NUMBER (label));
+					CODE_LABEL_NUMBER (label));
 #endif
     }
 
   if (TARGET_MACHO)
     return "";
 
-  if (!flag_pic || TARGET_DEEP_BRANCH_PREDICTION)
-    output_asm_insn ("add%z0\t{%1, %0|%0, %1}", xops);
-  else
-    output_asm_insn ("add%z0\t{%1+[.-%a2], %0|%0, %1+(.-%a2)}", xops);
-
+  output_asm_insn ("add%z0\t{%1, %0|%0, %1}", xops);
   return "";
 }
 
@@ -29295,12 +29250,8 @@ x86_output_mi_thunk (FILE *file,
 		     tree thunk ATTRIBUTE_UNUSED, HOST_WIDE_INT delta,
 		     HOST_WIDE_INT vcall_offset, tree function)
 {
-  rtx xops[3];
   rtx this_param = x86_this_parameter (function);
-  rtx this_reg, tmp;
-
-  /* Make sure unwind info is emitted for the thunk if needed.  */
-  final_start_function (emit_barrier (), file, 1);
+  rtx this_reg, tmp, fnaddr;
 
   /* If VCALL_OFFSET, we'll need THIS in a register.  Might as well
      pull it in now and let DELTA benefit.  */
@@ -29309,9 +29260,8 @@ x86_output_mi_thunk (FILE *file,
   else if (vcall_offset)
     {
       /* Put the this parameter into %eax.  */
-      xops[0] = this_param;
-      xops[1] = this_reg = gen_rtx_REG (Pmode, AX_REG);
-      output_asm_insn ("mov%z1\t{%0, %1|%1, %0}", xops);
+      this_reg = gen_rtx_REG (Pmode, AX_REG);
+      emit_move_insn (this_reg, this_param);
     }
   else
     this_reg = NULL_RTX;
@@ -29319,32 +29269,23 @@ x86_output_mi_thunk (FILE *file,
   /* Adjust the this parameter by a fixed constant.  */
   if (delta)
     {
-      xops[0] = GEN_INT (delta);
-      xops[1] = this_reg ? this_reg : this_param;
-      if (TARGET_64BIT)
+      rtx delta_rtx = GEN_INT (delta);
+      rtx adjust_rtx = this_reg ? this_reg : this_param;
+
+      if (TARGET_64BIT && !x86_64_general_operand (delta_rtx, DImode))
 	{
-	  if (!x86_64_general_operand (xops[0], DImode))
-	    {
-	      tmp = gen_rtx_REG (DImode, R10_REG);
-	      xops[1] = tmp;
-	      output_asm_insn ("mov{q}\t{%1, %0|%0, %1}", xops);
-	      xops[0] = tmp;
-	      xops[1] = this_param;
-	    }
-	  if (x86_maybe_negate_const_int (&xops[0], DImode))
-	    output_asm_insn ("sub{q}\t{%0, %1|%1, %0}", xops);
-	  else
-	    output_asm_insn ("add{q}\t{%0, %1|%1, %0}", xops);
+	  tmp = gen_rtx_REG (DImode, R10_REG);
+	  emit_move_insn (tmp, delta_rtx);
+          delta_rtx = tmp;
 	}
-      else if (x86_maybe_negate_const_int (&xops[0], SImode))
-	output_asm_insn ("sub{l}\t{%0, %1|%1, %0}", xops);
-      else
-	output_asm_insn ("add{l}\t{%0, %1|%1, %0}", xops);
+      emit_insn (ix86_gen_add3 (adjust_rtx, adjust_rtx, delta_rtx));
     }
 
   /* Adjust the this parameter by a value stored in the vtable.  */
   if (vcall_offset)
     {
+      rtx vcall_mem;
+
       if (TARGET_64BIT)
 	tmp = gen_rtx_REG (DImode, R10_REG);
       else
@@ -29356,55 +29297,44 @@ x86_output_mi_thunk (FILE *file,
 	  tmp = gen_rtx_REG (SImode, tmp_regno);
 	}
 
-      xops[0] = gen_rtx_MEM (Pmode, this_reg);
-      xops[1] = tmp;
-      output_asm_insn ("mov%z1\t{%0, %1|%1, %0}", xops);
+      emit_move_insn (tmp, gen_rtx_MEM (Pmode, this_reg));
 
       /* Adjust the this parameter.  */
-      xops[0] = gen_rtx_MEM (Pmode, plus_constant (tmp, vcall_offset));
-      if (TARGET_64BIT && !memory_operand (xops[0], Pmode))
+      vcall_mem = gen_rtx_MEM (Pmode, plus_constant (tmp, vcall_offset));
+      if (TARGET_64BIT && !memory_operand (tmp, Pmode))
 	{
 	  rtx tmp2 = gen_rtx_REG (DImode, R11_REG);
-	  xops[0] = GEN_INT (vcall_offset);
-	  xops[1] = tmp2;
-	  output_asm_insn ("mov{q}\t{%0, %1|%1, %0}", xops);
-	  xops[0] = gen_rtx_MEM (Pmode, gen_rtx_PLUS (Pmode, tmp, tmp2));
+	  emit_move_insn (tmp2, GEN_INT (vcall_offset));
+	  vcall_mem = gen_rtx_MEM (Pmode, gen_rtx_PLUS (Pmode, tmp, tmp2));
 	}
-      xops[1] = this_reg;
-      output_asm_insn ("add%z1\t{%0, %1|%1, %0}", xops);
+      emit_insn (ix86_gen_add3 (this_reg, this_reg, vcall_mem));
     }
 
   /* If necessary, drop THIS back to its stack slot.  */
   if (this_reg && this_reg != this_param)
-    {
-      xops[0] = this_reg;
-      xops[1] = this_param;
-      output_asm_insn ("mov%z1\t{%0, %1|%1, %0}", xops);
-    }
+    emit_move_insn (this_param, this_reg);
 
-  xops[0] = XEXP (DECL_RTL (function), 0);
+  fnaddr = XEXP (DECL_RTL (function), 0);
   if (TARGET_64BIT)
     {
       if (!flag_pic || targetm.binds_local_p (function)
 	  || DEFAULT_ABI == MS_ABI)
-	output_asm_insn ("jmp\t%P0", xops);
+	;
       /* All thunks should be in the same object as their target,
 	 and thus binds_local_p should be true.  */
-      else if (TARGET_64BIT && cfun->machine->call_abi == MS_ABI)
+      else if (cfun->machine->call_abi == MS_ABI)
 	gcc_unreachable ();
       else
 	{
-	  tmp = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, xops[0]), UNSPEC_GOTPCREL);
+	  tmp = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, fnaddr), UNSPEC_GOTPCREL);
 	  tmp = gen_rtx_CONST (Pmode, tmp);
-	  tmp = gen_rtx_MEM (QImode, tmp);
-	  xops[0] = tmp;
-	  output_asm_insn ("jmp\t%A0", xops);
+	  fnaddr = gen_const_mem (Pmode, tmp);
 	}
     }
   else
     {
       if (!flag_pic || targetm.binds_local_p (function))
-	output_asm_insn ("jmp\t%P0", xops);
+	;
       else
 #if TARGET_MACHO
 	if (TARGET_MACHO)
@@ -29414,21 +29344,52 @@ x86_output_mi_thunk (FILE *file,
 	      sym_ref = (gen_rtx_SYMBOL_REF
 		   (Pmode,
 		    machopic_indirection_name (sym_ref, /*stub_p=*/true)));
-	    tmp = gen_rtx_MEM (QImode, sym_ref);
-	    xops[0] = tmp;
-	    output_asm_insn ("jmp\t%0", xops);
+	    fnaddr = gen_rtx_MEM (QImode, sym_ref);
 	  }
 	else
 #endif /* TARGET_MACHO */
 	{
 	  tmp = gen_rtx_REG (SImode, CX_REG);
-	  output_set_got (tmp, NULL_RTX);
+	  emit_insn (gen_set_got (tmp));
 
-	  xops[1] = tmp;
-	  output_asm_insn ("mov{l}\t{%0@GOT(%1), %1|%1, %0@GOT[%1]}", xops);
-	  output_asm_insn ("jmp\t{*}%1", xops);
+	  /* Make sure to get the set_got pattern properly split when
+	     it needs to be.  Failure to do so results in incorrect
+	     unwind info being generated.  */
+	  ix86_split_set_got ();
+
+	  fnaddr = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, fnaddr), UNSPEC_GOT);
+	  fnaddr = gen_rtx_CONST (Pmode, fnaddr);
+	  fnaddr = gen_rtx_PLUS (Pmode, tmp, fnaddr);
+	  fnaddr = gen_const_mem (Pmode, fnaddr);
 	}
     }
+
+  /* ??? The sibcall patterns do not handle memories.  This is normally
+     all well and good, because in general we cannot be certain that the
+     memory is outside the local stack frame.  However, that gets in our
+     way here.  Work around this by simply representing the sibcall with
+     an indirect jump.  Since we're doing no real optimization here, the
+     rue should go undetected.  */
+  if (MEM_P (fnaddr))
+    emit_insn (gen_indirect_jump (fnaddr));
+  else
+    {
+      gcc_assert (sibcall_insn_operand (fnaddr, Pmode));
+      tmp = gen_rtx_MEM (FUNCTION_MODE, fnaddr);
+      tmp = gen_rtx_CALL (VOIDmode, tmp, const0_rtx);
+      tmp = emit_call_insn (tmp);
+      SIBLING_CALL_P (tmp) = 1;
+    }
+  emit_barrier ();
+
+  /* Run just enough of rest_of_compilation to get the insns emitted.  Note
+     that use_thunk calls assemble_start_function and assemble_end_function.  */
+  tmp = get_insns ();
+  insn_locators_alloc ();
+  if (pass_dwarf2_frame.pass.gate ())
+    pass_dwarf2_frame.pass.execute ();
+  final_start_function (tmp, file, 1);
+  final (tmp, file, 1);
   final_end_function ();
 }
 
@@ -29832,17 +29793,12 @@ ix86_pad_short_function (void)
     }
 }
 
-/* Implement machine specific optimizations.  We implement padding of returns
-   for K8 CPUs and pass to avoid 4 jumps in the single 16 byte window.  */
-static void
-ix86_reorg (void)
-{
-  /* We are freeing block_for_insn in the toplev to keep compatibility
-     with old MDEP_REORGS that are not CFG based.  Recompute it now.  */
-  compute_bb_for_insn ();
+/* Split any set_got patterns so that we interact correctly with
+   dwarf2out.  */
 
-  /* Split any set_got patterns so that we interact correctly with
-     dwarf2out.  */
+static void
+ix86_split_set_got (void)
+{
   if (!TARGET_64BIT
       && !TARGET_VXWORKS_RTP
       && !TARGET_DEEP_BRANCH_PREDICTION
@@ -29892,6 +29848,18 @@ ix86_reorg (void)
 	  delete_insn (insn);
 	}
     }
+}
+
+/* Implement machine specific optimizations.  We implement padding of returns
+   for K8 CPUs and pass to avoid 4 jumps in the single 16 byte window.  */
+static void
+ix86_reorg (void)
+{
+  /* We are freeing block_for_insn in the toplev to keep compatibility
+     with old MDEP_REORGS that are not CFG based.  Recompute it now.  */
+  compute_bb_for_insn ();
+
+  ix86_split_set_got ();
 
   /* Run the vzeroupper optimization if needed.  */
   if (TARGET_VZEROUPPER)
