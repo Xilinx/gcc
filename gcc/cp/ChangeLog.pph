@@ -1,3 +1,8 @@
+2011-06-16  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (pph_in_cxx_binding): Fix streaming logic.
+	* pph-streamer-out.c (pph_out_cxx_binding): Fix streaming logic.
+
 2011-06-14  Lawrence Crowl <crowl@google.com>
 
 	* pph-streamer-out.c (pph_out_struct_function): New.

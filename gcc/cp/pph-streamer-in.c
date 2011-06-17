@@ -353,23 +353,17 @@ pph_in_cxx_binding_1 (pph_stream *stream)
 static cxx_binding *
 pph_in_cxx_binding (pph_stream *stream)
 {
-  unsigned i, num_bindings;
-  cxx_binding *curr, *cb;
+  cxx_binding *curr, *prev, *cb;
+
+  /* Read the current binding first.  */
+  cb = pph_in_cxx_binding_1 (stream);
 
   /* Read the list of previous bindings.  */
-  num_bindings = pph_in_uint (stream);
-  for (curr = NULL, i = 0; i < num_bindings; i++)
+  for (curr = cb; curr; curr = prev)
     {
-      cxx_binding *prev = pph_in_cxx_binding_1 (stream);
-      if (curr)
-	curr->previous = prev;
-      curr = prev;
+      prev = pph_in_cxx_binding_1 (stream);
+      curr->previous = prev;
     }
-
-  /* Read the current binding at the end.  */
-  cb = pph_in_cxx_binding_1 (stream);
-  if (cb)
-    cb->previous = curr;
 
   return cb;
 }

@@ -339,21 +339,18 @@ pph_out_cxx_binding_1 (pph_stream *stream, cxx_binding *cb, bool ref_p)
 static void
 pph_out_cxx_binding (pph_stream *stream, cxx_binding *cb, bool ref_p)
 {
-  unsigned num_bindings;
   cxx_binding *prev;
 
-  num_bindings = 0;
-  for (prev = cb ? cb->previous : NULL; prev; prev = prev->previous)
-    num_bindings++;
+  /* Write the current binding first.  */
+  pph_out_cxx_binding_1 (stream, cb, ref_p);
 
   /* Write the list of previous bindings.  */
-  pph_out_uint (stream, num_bindings);
-  if (num_bindings > 0)
-    for (prev = cb->previous; prev; prev = prev->previous)
-      pph_out_cxx_binding_1 (stream, prev, ref_p);
+  for (prev = cb ? cb->previous : NULL; prev; prev = prev->previous)
+    pph_out_cxx_binding_1 (stream, prev, ref_p);
 
-  /* Write the current binding at the end.  */
-  pph_out_cxx_binding_1 (stream, cb, ref_p);
+  /* Mark the end of the list (if there was a list).  */
+  if (cb)
+    pph_out_cxx_binding_1 (stream, NULL, ref_p);
 }
 
 
