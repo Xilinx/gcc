@@ -1589,11 +1589,6 @@ final_start_function (rtx first ATTRIBUTE_UNUSED, FILE *file,
   /* First output the function prologue: code to set up the stack frame.  */
   targetm.asm_out.function_prologue (file, get_frame_size ());
 
-#if defined (HAVE_prologue)
-  if (dwarf2out_do_frame ())
-    dwarf2out_frame_debug_after_prologue ();
-#endif
-
   /* If the machine represents the prologue as RTL, the profiling code must
      be emitted when NOTE_INSN_PROLOGUE_END is scanned.  */
 #ifdef HAVE_prologue
@@ -2328,11 +2323,6 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 	    const char *string;
 	    location_t loc;
 	    expanded_location expanded;
-
-	    /* Make sure we flush any queued register saves in case this
-	       clobbers affected registers.  */
-	    if (dwarf2out_do_frame ())
-	      dwarf2out_frame_debug (insn, false);
 
 	    /* There's no telling what that did to the condition codes.  */
 	    CC_STATUS_INIT;

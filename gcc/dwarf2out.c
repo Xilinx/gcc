@@ -94,6 +94,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "tree-flow.h"
 #include "cfglayout.h"
+#include "tree-pass.h"
 
 static void dwarf2out_source_line (unsigned int, const char *, int, bool);
 static rtx last_var_location_insn;
@@ -139,7 +140,7 @@ static GTY(()) bool saved_do_cfi_asm = 0;
 /* Decide whether we want to emit frame unwind information for the current
    translation unit.  */
 
-int
+bool
 dwarf2out_do_frame (void)
 {
   /* We want to emit correct CFA location expressions or lists, so we
@@ -163,7 +164,7 @@ dwarf2out_do_frame (void)
 
 /* Decide whether to emit frame unwind via assembler directives.  */
 
-int
+bool
 dwarf2out_do_cfi_asm (void)
 {
   int enc;
@@ -1850,16 +1851,20 @@ cfi_label_required_p (dw_cfi_ref cfi)
   return false;
 }
 
-/* Walk the functino, looking for NOTE_INSN_CFI notes.  Add the CFIs to the
-   function's FDE, adding CFI labels and set_loc/advance_loc opcodes as
-   necessary.  */
-static void
-add_cfis_to_fde (void)
+/* Called once at the start of final to initialize some data for the
+   current function.  */
+
+void
+dwarf2out_frame_debug_init (void)
 {
   dw_fde_ref fde = current_fde ();
   rtx insn, next;
   /* We always start with a function_begin label.  */
   bool first = false;
+
+  /* Walk the function, looking for NOTE_INSN_CFI notes.  Add the CFIs to
+     the function's FDE, adding CFI labels and set_loc/advance_loc opcodes
+     as necessary.  */
 
   for (insn = get_insns (); insn; insn = next)
     {
@@ -1867,7 +1872,8 @@ add_cfis_to_fde (void)
 
       if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_SWITCH_TEXT_SECTIONS)
 	{
-	  fde->dw_fde_switch_cfi_index = VEC_length (dw_cfi_ref, fde->dw_fde_cfi);
+	  fde->dw_fde_switch_cfi_index
+	    = VEC_length (dw_cfi_ref, fde->dw_fde_cfi);
 	  /* Don't attempt to advance_loc4 between labels in different
 	     sections.  */
 	  first = true;
@@ -2741,35 +2747,6 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
   cfi_insn = NULL;
 }
 
-/* Called once at the start of final to initialize some data for the
-   current function.  */
-void
-dwarf2out_frame_debug_init (void)
-{
-  size_t i;
-
-  /* Flush any queued register saves.  */
-  dwarf2out_flush_queued_reg_saves ();
-
-  /* Set up state for generating call frame debug info.  */
-  lookup_cfa (&cfa);
-  gcc_assert (cfa.reg
-	      == (unsigned long)DWARF_FRAME_REGNUM (STACK_POINTER_REGNUM));
-
-  old_cfa = cfa;
-  cfa.reg = STACK_POINTER_REGNUM;
-  cfa_store = cfa;
-  cfa_temp.reg = -1;
-  cfa_temp.offset = 0;
-
-  for (i = 0; i < num_regs_saved_in_regs; i++)
-    {
-      regs_saved_in_regs[i].orig_reg = NULL_RTX;
-      regs_saved_in_regs[i].saved_in_reg = NULL_RTX;
-    }
-  num_regs_saved_in_regs = 0;
-}
-
 /* Copy a CFI vector, except for args_size opcodes.  */
 static cfi_vec
 copy_cfi_vec_parts (cfi_vec in_vec)
@@ -3093,11 +3070,12 @@ find_best_starting_point (jump_target_info *point_info, int *uid_luid,
   return insn;
 }
 
-/* After the (optional) text prologue has been written, emit CFI insns
-   and update the FDE for frame-related instructions.  */
+/* Annotate the function with NOTE_INSN_CFI notes to record the CFI
+   state at each location within the function.  These will note be
+   emitted until pass_final.  */
 
-void
-dwarf2out_frame_debug_after_prologue (void)
+static unsigned int
+execute_dwarf2_frame (void)
 {
   int max_uid = get_max_uid ();
   int i, n_saves_restores, prologue_end_point, switch_note_point;
@@ -3108,6 +3086,22 @@ dwarf2out_frame_debug_after_prologue (void)
   bool remember_needed;
   jump_target_info *point_info, *save_point_info;
   cfi_vec current_vec;
+
+  /* Reset state to default for the function.  */
+  memset(regs_saved_in_regs, 0, sizeof(regs_saved_in_regs));
+  num_regs_saved_in_regs = 0;
+  queued_reg_saves = NULL;
+
+  /* Load the CFA state from the CIE CFI insns.  */
+  lookup_cfa (&cfa);
+  gcc_assert (cfa.reg
+	      == (unsigned long)DWARF_FRAME_REGNUM (STACK_POINTER_REGNUM));
+
+  old_cfa = cfa;
+  cfa.reg = STACK_POINTER_REGNUM;
+  cfa_store = cfa;
+  cfa_temp.reg = -1;
+  cfa_temp.offset = 0;
 
   n_points = 0;
   for (insn = get_insns (); insn != NULL_RTX; insn = NEXT_INSN (insn))
@@ -3447,7 +3441,7 @@ dwarf2out_frame_debug_after_prologue (void)
   free (uid_luid);
   free (point_info);
 
-  add_cfis_to_fde ();
+  return 0;
 }
 
 void
@@ -25578,5 +25572,39 @@ dwarf2out_finish (const char *filename)
   if (debug_str_hash)
     htab_traverse (debug_str_hash, output_indirect_string, NULL);
 }
+
+static bool
+gate_dwarf2_frame (void)
+{
+#ifndef HAVE_prologue
+  /* Targets which still implement the prologue in assembler text
+     cannot use the generic dwarf2 unwinding.  */
+  return false;
+#endif
+
+  /* ??? I'm pretty sure that IA-64 and ARM are going to want the
+     CFI annotations, even though they're going to do something
+     else with them besides emit dwarf2 information.  Start here.  */
+  return dwarf2out_do_frame ();
+}
+
+struct rtl_opt_pass pass_dwarf2_frame =
+{
+ {
+  RTL_PASS,
+  "dwarf2",			/* name */
+  gate_dwarf2_frame,		/* gate */
+  execute_dwarf2_frame,		/* execute */
+  NULL,				/* sub */
+  NULL,				/* next */
+  0,				/* static_pass_number */
+  TV_FINAL,			/* tv_id */
+  0,				/* properties_required */
+  0,				/* properties_provided */
+  0,				/* properties_destroyed */
+  0,				/* todo_flags_start */
+  0				/* todo_flags_finish */
+ }
+};
 
 #include "gt-dwarf2out.h"
