@@ -832,6 +832,12 @@ arm*-*-linux*)			# ARM GNU/Linux with ELF
 		tmake_file="$tmake_file arm/t-linux-androideabi"
 		;;
 	    esac
+	    # Pull in spec changes for GRTEv2 configurations.
+	    case ${target} in
+	    *-grtev2-*)
+		tm_file="${tm_file} linux-grtev2.h arm/linux-grtev2.h"
+		;;
+	    esac
   	    # The BPABI long long divmod functions return a 128-bit value in
 	    # registers r0-r3.  Correctly modeling that requires the use of
 	    # TImode.

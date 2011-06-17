@@ -1,3 +1,13 @@
+2011-06-17  Chris Demetriou  <cgd@google.com>
+
+	* config/arm/linux-grtev2.h: New file.
+	* config/arm/linux-elf.h (GLIBC_DYNAMIC_LINKER): Prefix with
+	RUNTIME_ROOT_PREFIX.
+	* config/arm/linux-eabi.h (GLIBC_DYNAMIC_LINKER): Likewise.
+	* config/linux-grtev2.h (LIB_SPEC): Update comment about what
+	this definition overrides.
+	* config.gcc: Use linux-grtev2.h for arm-grtev2-linux-*eabi targets.
+
 2011-05-24  Simon Baldwin  <simonb@google.com>
 
 	* common.opt (-Wself-assign): New placeholder flag.
