@@ -63,7 +63,7 @@ int main (void)
   return main1 (N);
 }
 
-/* { dg-final { scan-tree-dump-times "vectorized 1 loops" 0 "vect" } } */
-/* { dg-final { scan-tree-dump-times "possible dependence between data-refs" 1 "vect" } } */
+/* { dg-final { scan-tree-dump-not "vectorized 1 loops" "vect" } } */
+/* { dg-final { scan-tree-dump "possible dependence between data-refs" "vect" } } */
 /* { dg-final { cleanup-tree-dump "vect" } } */
 

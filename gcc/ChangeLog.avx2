@@ -1,0 +1,1250 @@
+2011-06-10  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (*gather*): Fixed all gather*
+	intrinsics. Because of immediate, decls splitted, under
+	__OPTIMIZE_FLAG. Mask init error fixed as well.
+
+	* gcc/config/i386/sse.md (avx2_vphaddd): Fixed error.
+
+	(avx2_vbroadcasti128): Fixed incorrect constraint for op0.
+
+	(avx2_extracti128): Fixed error. "Parallel" added to
+	vec_select.
+
+2011-06-07  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/i386.c (ix86_expand_args_builtin): Fixed ugly
+	misprint.
+
+2011-06-07  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm_maskstore_epi32): Fixed pointer
+	type.
+	(_mm_maskstore_epi64): Likewise.
+
+	* doc/extend.texi: Added description of AVX2 built-ins.
+
+2011-06-07  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/sse.md: Fixing trailing spaces.
+	* config/i386/i386.c: Likewise.
+
+2011-06-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/avx2intrin.h: Put __attribute__ on a separate
+	line.
+
+2011-06-02  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm_i32gather_ps): New.
+	(_mm_mask_i32gather_ps): Likewise.
+	(_mm256_i32gather_ps): Likewise.
+	(_mm256_mask_i32gather_ps): Likewise.
+	(_mm_i64gather_ps): Likewise.
+	(_mm_mask_i64gather_ps): Likewise.
+	(_mm256_i64gather_ps): Likewise.
+	(_mm256_mask_i64gather_ps): Likewise.
+	(_mm_i32gather_epi64): Likewise.
+	(_mm_mask_i32gather_epi64): Likewise.
+	(_mm256_i32gather_epi64): Likewise.
+	(_mm256_mask_i32gather_epi64): Likewise.
+	(_mm_i64gather_epi64): Likewise.
+	(_mm_mask_i64gather_epi64): Likewise.
+	(_mm256_i64gather_epi64): Likewise.
+	(_mm256_mask_i64gather_epi64): Likewise.
+	(_mm_i32gather_epi32): Likewise.
+	(_mm_mask_i32gather_epi32): Likewise.
+	(_mm256_i32gather_epi32): Likewise.
+	(_mm256_mask_i32gather_epi32): Likewise.
+	(_mm_i64gather_epi32): Likewise.
+	(_mm_mask_i64gather_epi32): Likewise.
+	(_mm256_i64gather_epi32): Likewise.
+	(_mm256_mask_i64gather_epi32): Likewise.
+
+	* config/i386/sse.md (gthrfirstp): New mode attr to place
+	"p"-acked letter to proper place in gather insn.
+	(gthrlastp): Likewise.
+
+	(*avx2_gathersi<mode>): Placing "p"-acked latter in insn in
+	proper place.
+	(*avx2_gatherdi<mode>): Likewise.
+	(*avx2_gatherdi<mode>256): Likewise.
+
+2011-06-01  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_i32gather_pd): Fixed
+	256-bit mask creation.
+	(_mm256_i64gather_pd): Likewise.
+
+	* config/i386/i386.c (ix86_init_mmx_sse_builtins): Fixed
+	icode selection depending on type of gather* insn.
+
+	* config/i386/sse.md (*avx2_gathersi<mode>): Use mode attr
+	to emit correct instruction.
+	(*avx2_gatherdi<mode>): Likewise.
+
+2011-06-01  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/i386.c (ix86_expand_args_builtin): Removed
+	useless 5-args built-in handling (fails bootstrap).
+
+2011-05-31  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm_i32gather_pd): Fixed layout
+	of declaration.
+
+	(_mm_mask_i32gather_pd): New.
+	(_mm256_i32gather_pd): Likewise.
+	(_mm256_i32gather_pd): Likewise.
+	(_mm256_mask_i32gather_pd): Likewise.
+	(_mm_i64gather_pd): Likewise.
+	(_mm_mask_i64gather_pd): Likewise.
+	(_mm256_i64gather_pd): Likewise.
+	(_mm256_mask_i64gather_pd): Likewise.
+
+	* config/i386/i386-builtin-types.def (PCINT): New.
+	(PCINT64): Likewise.
+	(V2DF_FTYPE_V2DF_PCDOUBLE_V4SI_V2DF_INT): Likewise.
+	(V4DF_FTYPE_V4DF_PCDOUBLE_V4SI_V4DF_INT): Likewise.
+	(V2DF_FTYPE_V2DF_PCDOUBLE_V2DI_V2DF_INT): Likewise.
+	(V4DF_FTYPE_V4DF_PCDOUBLE_V4DI_V4DF_INT): Likewise.
+	(V4SF_FTYPE_V4SF_PCFLOAT_V4SI_V4SF_INT): Likewise.
+	(V8SF_FTYPE_V8SF_PCFLOAT_V8SI_V8SF_INT): Likewise.
+	(V4SF_FTYPE_V4SF_PCFLOAT_V2DI_V4SF_INT): Likewise.
+	(V4SF_FTYPE_V4SF_PCFLOAT_V4DI_V4SF_INT): Likewise.
+	(V2DI_FTYPE_V2DI_PCINT64_V4SI_V2DI_INT): Likewise.
+	(V4DI_FTYPE_V4DI_PCINT64_V4SI_V4DI_INT): Likewise.
+	(V2DI_FTYPE_V2DI_PCINT64_V2DI_V2DI_INT): Likewise.
+	(V4DI_FTYPE_V4DI_PCINT64_V4DI_V4DI_INT): Likewise.
+	(V4SI_FTYPE_V4SI_PCINT_V4SI_V4SI_INT): Likewise.
+	(V8SI_FTYPE_V8SI_PCINT_V8SI_V8SI_INT): Likewise.
+	(V4SI_FTYPE_V4SI_PCINT_V2DI_V4SI_INT): Likewise.
+	(V4SI_FTYPE_V4SI_PCINT_V4DI_V4SI_INT): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_GATHERSIV2DF): New.
+	(IX86_BUILTIN_GATHERSIV4DF): Likewise.
+	(IX86_BUILTIN_GATHERDIV2DF): Likewise.
+	(IX86_BUILTIN_GATHERDIV4DF): Likewise.
+	(IX86_BUILTIN_GATHERSIV4SF): Likewise.
+	(IX86_BUILTIN_GATHERSIV8SF): Likewise.
+	(IX86_BUILTIN_GATHERDIV4SF): Likewise.
+	(IX86_BUILTIN_GATHERDIV8SF): Likewise.
+	(IX86_BUILTIN_GATHERSIV4DI): Likewise.
+	(IX86_BUILTIN_GATHERDIV2DI): Likewise.
+	(IX86_BUILTIN_GATHERDIV4DI): Likewise.
+	(IX86_BUILTIN_GATHERSIV4SI): Likewise.
+	(IX86_BUILTIN_GATHERSIV8SI): Likewise.
+	(IX86_BUILTIN_GATHERDIV4SI): Likewise.
+	(IX86_BUILTIN_GATHERDIV8SI): Likewise.
+
+	(ix86_init_mmx_sse_builtins): New built-ins:
+	__builtin_ia32_gathersiv4df
+	__builtin_ia32_gatherdiv2df
+	__builtin_ia32_gatherdiv4df
+	__builtin_ia32_gathersiv4sf
+	__builtin_ia32_gathersiv8sf
+	__builtin_ia32_gatherdiv4sf
+	__builtin_ia32_gatherdiv4sf256
+	__builtin_ia32_gathersiv2di
+	__builtin_ia32_gathersiv4di
+	__builtin_ia32_gatherdiv2di
+	__builtin_ia32_gatherdiv4di
+	__builtin_ia32_gathersiv4si
+	__builtin_ia32_gathersiv8si
+	__builtin_ia32_gatherdiv4si
+	__builtin_ia32_gatherdiv4si256
+
+	(ix86_expand_builtin): Expanding new built-ins.
+
+	* config/i386/sse.md (AVXMODE48P_SI): New gather* iterator.
+	(AVXMODE48P_DI): Likewise.
+
+	(AVXMODE48P_SI): Mode attr to pass correct index type
+	to gather*
+	(AVXMODE48P_DI): Likewise.
+
+	(avx2_gathersiv2df): Extanded to support all SI-indexed
+	gather insns.
+	(*avx2_gathersiv2df): Likewise + fixed mode attr.
+
+	(avx2_gatherdi<mode>): New to handle DI-index based
+	gather insn
+	(*avx2_gatherdi<mode>): Likewise.
+
+	(avx2_gatherdi<mode>256): Handling 256-bit V4S[F|I] gather,
+	it is special since besides 256-bit insn width, argumants are
+	128 bit long.
+	(*avx2_gatherdi<mode>256): Likewise.
+
+2011-05-29  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_expand_builtin): Correct mode
+	on operand 2 for IX86_BUILTIN_GATHERSIV2DI.
+	* config/i386/sse.md (avx2_gathersiv2df): Likewise.
+	(*avx2_gathersiv2df): Likewise.
+
+2011-05-27  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (bdesc_args): Remove
+	IX86_BUILTIN_GATHERSIV2DI.
+	(ix86_init_mmx_sse_builtins): Add IX86_BUILTIN_GATHERSIV2DI.
+	(ix86_expand_args_builtin): Don't handle
+	V2DF_FTYPE_V2DF_PCDOUBLE_V4SI_V2DF_INT here.
+	(ix86_expand_builtin): Handle IX86_BUILTIN_GATHERSIV2DI.
+
+	* config/i386/sse.md (avx2_gathersiv2df): Add V2DF to operand 2.
+	Remove constraints.  Don't call force_reg.
+	(avx2_gathersiv2df1): Renamed to ...
+	(*avx2_gathersiv2df): This.  Correct operand 2.  Replace N
+	with n on operand 5.
+
+2011-05-25  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm_i32gather_pd): Fixed input
+	initialization.
+
+	* config/i386/i386.c (ix86_expand_args_builtin): Handling mem ref
+	with VOIDmode mode.
+
+	* config/i386/predicates.md (const1248_operand): New predicate.
+
+	* config/i386/sse.md (avx2_gathersiv2df1): Fixed to work both with
+	32- and 64-bit addresses.
+
+2011-05-24  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/i386.c (bdesc_args): Fixed code for
+	__builtin_ia32_vbroadcastss_ps.
+
+	* config/i386/sse.md (avx2_vec_dupv4sf): Fixed
+	pattern, spaces replaced with tabs.
+	(avx2_vec_dupv8sf): Likewise.
+
+	(avx2_vec_dupv4df): Moved to proper place, fixed pattern.
+
+2011-05-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/sse.md (SSEMODE): Removed.
+	(AVX256MODE): Likewise.
+	(AVXMODE): Likewise.
+	(AVX256MODE4P): Likewise.
+	(AVX256MODE8P): Likewise.
+	(AVXMODEF2P): Likewise.
+	(AVXMODEFDP): Likewise.
+	(AVXMODEFSP): Likewise.
+	(AVX256MODE12): Likewise.
+	(AVX256MODE24): Likewise.
+
+2011-05-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (bdesc_args): Fix [avx2|ssse3] abs built-in
+	names.
+
+	* gcc/config/i386/sse.md (<ssse3_avx2>_abs<mode>2): Renamed to ...
+	(abs<mode>2): This.
+
+2011-05-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (bdesc_args): Fix [avx2|sse2]
+	smul/umul highpart  built-in names.
+
+	* gcc/config/i386/sse.md (<sse2_avx2>_<s>mul<mode>3_highpart):
+	Renamed to ...
+	(<s>mul<mode>3_highpart): This.
+	(vec_widen_smult_hi_v8hi): Undo the last change.
+	(vec_widen_smult_lo_v8hi): Likewise.
+	(vec_widen_umult_hi_v8hi): Likewise.
+	(vec_widen_umult_lo_v8hi): Likewise.
+
+2011-05-18  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/i386.c (bdesc_args): Fixed [avx2|sse2]
+	sat_[add|sub] built-in names.
+
+	* gcc/config/i386/sse.md (<plusminus_insn><mode>3): Fixed
+	expand name.
+
+2011-05-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (OPTION_MASK_ISA_AVX_UNSET): Add
+	OPTION_MASK_ISA_AVX2_UNSET.
+	(OPTION_MASK_ISA_FMA_UNSET): Don't add OPTION_MASK_ISA_AVX2_UNSET.
+
+2011-05-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/cpuid.h (bit_AVX2): Moved after bit_BMI.
+
+2011-05-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/avx2intrin.h: Correct copyright year.
+
+2011-05-11  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* gcc/config/i386/sse.md (avx2_gathersiv2df): Fixed expand and insn
+	not to use pow2 constraint. It was removed by Uros on May,09.
+
+2011-05-04  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* gcc/config/i386/avx2intrin.h (_mm_i32gather_pd): New.
+
+	* config/i386/i386-builtin-types.def (V2DF_FTYPE_V2DF_PCDOUBLE_V4SI_V2DF_INT):
+	New built-in type.
+
+	* gcc/config/i386/i386.c (IX86_BUILTIN_GATHERSIV2DI): New.
+
+	(bdesc_args): New built-ins: gatherdpd (128-bit).
+
+	(ix86_expand_args_builtin): Extended to support built-ins with 5 arguments,
+	handling new built-in type.
+
+	* gcc/config/i386/i386.md (UNSPEC_GATHER): New unspec type.
+
+	* gcc/config/i386/sse.md (avx2_gathersiv2df): New expand and insn.
+
+2011-04-28  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/sse.md (avx2modesuffix): Added to distinguish from ssemodesuffix.
+	It has slightly diffrent mapping.
+
+	(ssemodesuffix): Merging with master.
+	(ssescalarmodesuffix): Likewise.
+	(sserotatemax): Likewise.
+	(ssescalarmode): Likewise.
+	(ssescalarnum): Likewise.
+	(blendbits): Likewise.
+
+	(<avx_avx2>_maskload<avx2modesuffix><avxmodesuffix>): Replaced suffix.
+	(<avx_avx2>_maskstore<avx2modesuffix><avxmodesuffix>): Likewise.
+	(*avx2_maskmov<avx2modesuffix><avxmodesuffix>): Likewise.
+
+2011-04-28  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_sllv_epi32): New.
+	(_mm_sllv_epi32): Likewise.
+	(_mm256_sllv_epi64): Likewise.
+	(_mm_sllv_epi64): Likewise.
+	(_mm256_srav_epi32): Likewise.
+	(_mm_srav_epi32): Likewise.
+	(_mm256_srlv_epi32): Likewise.
+	(_mm_srlv_epi32): Likewise.
+	(_mm256_srlv_epi64): Likewise.
+	(_mm_srlv_epi64): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_PSLLVV4DI): New.
+	(IX86_BUILTIN_PSLLVV2DI): Likewise.
+	(IX86_BUILTIN_PSLLVV8SI): Likewise.
+	(IX86_BUILTIN_PSLLVV4SI): Likewise.
+	(IX86_BUILTIN_PSRAVV8SI): Likewise.
+	(IX86_BUILTIN_PSRAVV4SI): Likewise.
+	(IX86_BUILTIN_PSRLVV4DI): Likewise.
+	(IX86_BUILTIN_PSRLVV2DI): Likewise.
+	(IX86_BUILTIN_PSRLVV8SI): Likewise.
+	(IX86_BUILTIN_PSRLVV4SI): Likewise.
+
+	(bdesc_args): New built-ins: vps[ll|rl]v[d|q][128|256],
+	vpsravd[128|256].
+
+	* config/i386/i386.md (avx2_ashrvv8si): New.
+	(avx2_ashrvv4si): Likewise.
+	(avx2_<lshift>vv8si): Likewise.
+	(avx2_<lshift>v<mode>): Likewise.
+	(avx2_<lshift>vv2di): Likewise.
+
+2011-04-27  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (almost all decls): Fixed spaces.
+
+	(_mm256_permute4x64_epi64): New.
+	(_mm256_permute2x128_si256): Likewise.
+	(_mm256_extracti128_si256): Likewise.
+	(_mm256_inserti128_si256): Likewise.
+	(_mm256_maskload_epi32): Likewise.
+	(_mm256_maskload_epi64): Likewise.
+	(_mm_maskload_epi32): Likewise.
+	(_mm_maskload_epi64): Likewise.
+	(_mm256_maskstore_epi32): Likewise.
+	(_mm256_maskstore_epi64): Likewise.
+	(_mm_maskstore_epi32): Likewise.
+	(_mm_maskstore_epi64): Likewise.
+
+	* i386-builtin-types.def (PV4SI): New built-in type.
+	(PV8SI): Likewise.
+	(PCV2DI): Likewise.
+	(PCV4SI): Likewise.
+	(PCV4DI): Likewise.
+	(PCV8SI): Likewise.
+	(V2DI_FTYPE_PCV2DI_V2DI): Likewise.
+	(V4SI_FTYPE_PCV4SI_V4SI): Likewise.
+	(V8SI_FTYPE_PCV8SI_V8SI): Likewise.
+	(V4DI_FTYPE_PCV4DI_V4DI): Likewise.
+	(V2DI_FTYPE_V4DI_INT): Likewise.
+	(V4DI_FTYPEV4DI_V2DI_INT): Likewise.
+	(VOID_FTYPE_PV2DI_V2DI_V2DI): Likewise.
+	(VOID_FTYPE_PV4DI_V4DI_V4DI): Likewise.
+	(VOID_FTYPE_PV4SI_V4SI_V4SI): Likewise.
+	(VOID_FTYPE_PV8SI_V8SI_V8SI): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_VPERMDF256): Fixed name.
+
+	(IX86_BUILTIN_VPERMDI256): New.
+	(IX86_BUILTIN_VPERMTI256): Likewise.
+	(IX86_BUILTIN_VEXTRACT128I256): Likewise.
+	(IX86_BUILTIN_VINSERT128I256): Likewise.
+	(IX86_BUILTIN_MASKLOADD): Likewise.
+	(IX86_BUILTIN_MASKLOADQ): Likewise.
+	(IX86_BUILTIN_MASKLOADD256): Likewise.
+	(IX86_BUILTIN_MASKLOADQ256): Likewise.
+	(IX86_BUILTIN_MASKSTORED): Likewise.
+	(IX86_BUILTIN_MASKSTOREQ): Likewise.
+	(IX86_BUILTIN_MASKSTORED256): Likewise.
+	(IX86_BUILTIN_MASKSTOREQ256): Likewise.
+
+	(bdesc_special_arg): New built-ins: mask[load|store][d|q]{256}.
+
+	(bdesc_args): Fixed built-in name. New built-ins for permvv[4d|2t]i,
+	vextracti128, vinserti128.
+
+	(ix86_expand_args_builtin): Handling new built-in types.
+
+	* config/i386/i386.md (UNSPEC_VPERMDI): New.
+	(UNSPEC_VPERMTI): Likewise.
+
+	* config/i386/sse.md (VI48_AVX2): New.
+	(V48_AVX2): Likewise.
+
+	(SSEHALFMODE): Removed.
+
+	(avx_avx2): New.
+
+	(ssemodesuffix): Extended toward integers.
+	(avxpermvecmode): Likewise.
+
+	(<sse2_avx2>_packsswb): Fixed to use correct iterator.
+	(<sse2_avx2>_packssdw): Likewise.
+	(<sse2_avx2>_packuswb): Likewise.
+
+	(avx2_permv4df): Fixed name.
+
+	(avx2_permv4di): New.
+	(avx2_permv2ti): Likewise.
+	(avx2_vec_set_lo_v4di): Likewise.
+	(avx2_vec_set_hi_v4di): Likewise.
+
+	(<avx_avx2>_maskload<ssemodesuffix><avxmodesuffix>): Extended
+	to support AVX2
+	(<avx_avx2>_maskstore<ssemodesuffix><avxmodesuffix>): Likewise.
+
+	(*avx2_maskmov<ssemodesuffix><avxmodesuffix>): New.
+	(avx2_extracti128): Likewise.
+	(avx2_inserti128): Likewise.
+
+2011-04-25  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/i386.c (IX86_BUILTIN_PBLENDD256): New.
+	(IX86_BUILTIN_PBLENDD128): Likewise.
+	(IX86_BUILTIN_PBROADCASTB256): Likewise.
+	(IX86_BUILTIN_PBROADCASTW256): Likewise.
+	(IX86_BUILTIN_PBROADCASTD256): Likewise.
+	(IX86_BUILTIN_PBROADCASTQ256): Likewise.
+	(IX86_BUILTIN_PBROADCASTB128): Likewise.
+	(IX86_BUILTIN_PBROADCASTW128): Likewise.
+	(IX86_BUILTIN_PBROADCASTD128): Likewise.
+	(IX86_BUILTIN_PBROADCASTQ128): Likewise.
+	(IX86_BUILTIN_VPERMVARSI256): Likewise.
+	(IX86_BUILTIN_VPERMVARDF256): Likewise.
+	(IX86_BUILTIN_VPERMVARSF256): Likewise.
+
+	(bdesc_args): New built-in for AVX2's vplendd[128|256],
+	vpbroadcast[b|w|d|q][128|256], vpermd, vpermpd, vpermps.
+
+	(ix86_expand_args_builtin): Handling new build-in types.
+
+	* config/i386/i386.md (UNSPEC_VPERMSI): New UNSPEC type.
+	(UNSPEC_VPERMDF): Likewise.
+	(UNSPEC_VPERMSF): Likewise.
+
+	* config/i386/sse.md (AVXTOSSEMODE): New mode iterator.
+
+	(avx2_pblendd<mode>): New.
+	(avx2_pbroadcast<mode>): Likewise.
+	(avx2_permvarv8si): Likewise.
+	(avx2_permvarv4df): Likewise.
+	(avx2_permvarv8sf): Likewise.
+
+2011-04-22  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/i386.c (ix86_expand_int_vcond): Updated name.
+
+	(bdesc_args): Updated names for: [u|s][add|sub]v[16q|8h|4s|2d|32q|16q|8s|4d]i3,
+	mulv8hi3, [a|l]shrv[8h|4s|2d|16h|8s|4d]i3, palignrti, mulv[4|8]si3, andv4di.
+
+	(expand_vec_perm_palignr): Fixed insn code for palign insn pattern.
+
+	* config/i386/sse.md (SSESCALARMODE): New.
+
+	(ssse3_avx2): Fixed type for SSSE3.
+
+	(avxvecmode): Extended for one more type.
+
+	(<plusminus_insn><mode>3): Removed prefix.
+	(mul<mode>3): Likewise.
+	(<code><mode>3): Likewise.
+	(ashr<mode>3): Likewise.
+	(lshr<mode>3): Likewise.
+	(gen_mulv8hi3): Likewise.
+	(gen_addv2di3): Likewise.
+	(gen_addv4si3): Likewise.
+	(gen_addv2di3): Likewise.
+
+	(<ssse3_avx2>_palignr<mode>): Fixed insn type pattern.
+
+2011-04-21  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/i386.c (bdesc_args): Updated insn code names.
+	(expand_vec_perm_palignr): Likewise.
+
+	* config/i386/sse.md (VI8_AVX2): New.
+	(VI24_AVX2): Likewise.
+	(VI248_AVX2): Likewise.
+	(sse_avx2): Likewise.
+
+	(ssse3_avx2): Extended to support V1TI.
+
+	(sse4_1_avx2): Extended to support other vector types.
+
+	(SSEHALFMODE): Uppercased.
+
+	(SSESHORTMODE): New.
+	(SSELONGMODE): Likewise.
+	(SSEBYTEMODE): Likewise.
+	(shortmode): Likewise.
+
+	(ssepackmode): Extended to support AVX2.
+
+	(VIMAX_AVX2): Fixed iterator's mode entry.
+
+	(movdi_to_sse): Fixed insn name.
+
+	(avx2_smulv16hi3_low): Removed.
+	(*avx2_smulv16hi3_low): Likewise.
+	(avx2_<s>mulv16hi3_high): Likewise.
+	(*avx2_<s>mulv16hi3_high): Likewise.
+	(avx2_smulv4siv4di3): Likewise.
+	(*avx2_smulv4siv4di3): Likewise.
+	(avx2_smulv8si3_low): Likewise.
+	(*avx2_smulv8si3_low): Likewise.
+	(avx2_ashr<mode>3): Likewise.
+	(avx2_lshr<mode>3): Likewise.
+	(avx2_andnot<mode>3): Likewise.
+	(avx2_<code><mode>3): Likewise.
+	(avx2_psadv32qiv16hi3): Likewise.
+	(avx2_pshufbv3): Likewise.
+	(avx2_psign<mode>3): Likewise.
+	(avx2_psign<mode>3): Likewise.
+	(avx2_movntdqa): Likewise.
+	(avx2_pblendvb): Likewise.
+	(avx2_pblendw): Likewise.
+
+	(<sse2_avx2>_mul<mode>3): Extended to support AVX2.
+	(*mul<mode>3): Likewise.
+	(<sse2_avx2>_<s>mul<mode>3_highpart): Likewise.
+	(*<s>mul<mode>3_highpart): Likewise.
+	(<sse4_1_avx2>_mul<shortmode><mode>3): Likewise.
+	(*<sse4_1_avx2>_mulv2siv2di3): Likewise.
+	(<sse4_1_avx2>_mul<mode>3): Likewise.
+	(*<sse4_1_avx2>_mul<mode>3): Likewise.
+	(<sse2_avx2>_ashr<mode>3): Likewise.
+	(<sse2_avx2>_lshr<mode>3): Likewise.
+	(<sse2_avx2>_ashl<mode>3): Likewise.
+	(<sse2_avx2>_andnot<mode>3): Likewise.
+	(*andnot<mode>3): Likewise.
+	(<sse_avx2><code><mode>3): Likewise.
+	(*<code><mode>3): Likewise.
+	(<sse2_avx2>_packsswb): Likewise.
+	(<sse2_avx2>_packssdw): Likewise.
+	(<sse2_avx2>_packuswb): Likewise.
+	(<sse2_avx2>_psadbw): Likewise.
+	(<ssse3_avx2>_pshufb<mode>3): Likewise.
+	(<ssse3_avx2>_psign<mode>3): Likewise.
+	(<sse4_1_avx2>_movntdqa): Likewise.
+	(<sse4_1_avx2>_pblendvb): Likewise.
+	(<sse4_1_avx2>_pblendw): Likewise.
+
+	(mulv2di3): Fixed insn names while emit.
+
+2011-04-19  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/i386.c (ix86_expand_int_vcond): Added sse2_ prefix to
+	vector arithmetic.
+
+	(bdesc_args): Prefixed codenames for: sse2_[add|sub]*, ssse3_abs*,
+	avx2_palignv4di
+
+	* config/i386/sse.md (VI1_AVX2): New mode iterator.
+	(VI2_AVX2): Likewise.
+	(VI4_AVX2): Likewise.
+	(VIMAX_AVX2): Likewise.
+	(VI124_AVX2): Likewise.
+
+	(sse2_avx2): New case for mode attribute.
+
+	(ssse3_avx2): New.
+	(sse4_1_avx2): Likewise.
+	(ssehalfmode): Likewise.
+
+	(sseunpackmode): Extended to support AVX2.
+
+	(<sse2_avx2>_<plusminus_insn><mode>3): Updated insn name.
+
+	(mulv2di3): Fixed sse2_ insn name.
+	(sdot_prodv8hi): Likewise.
+	(udot_prodv4si): Likewise.
+	(umaxv8hi3): Likewise.
+
+	(avx2_packsswb): Removed.
+	(avx2_packssdw): Likewise.
+	(avx2_packuswb): Likewise.
+	(avx2_palignr<mode>4): Likewise.
+	(avx2_pabs<mode>2): Likewise.
+	(avx2_mpsadbw): Likewise.
+
+	(<sse2_avx2>_packssdw): Extended to support AVX2.
+	(<sse2_avx2>_packsswb): Likewise.
+	(<sse2_avx2>_packssdw): Likewise.
+	(<sse2_avx2>_packuswb): Likewise.
+	(<ssse3_avx2>_palignr<mode>): Likewise.
+	(<ssse3_avx2>_abs<mode>2): Likewise.
+	(<sse4_1_avx2>_mpsadbw): Likewise.
+
+2011-04-19  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/sse.md (VI_AVX2): Renamed from VI2.
+
+	(VI12_AVX2): New.
+	(sse2_avx2): Likewise.
+
+	(<avx2><plusminus_insn><mode>3): Likewise.
+	(*<plusminus_insn><mode>3): Likewise.
+	(<sse2_avx2>_<plusminus_insn><mode>3): Likewise.
+
+2011-04-18  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/sse.md (*avx_umulv4siv4di3): Restored vpmuludq,
+	which was lost while merge.
+
+2011-04-16  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/sse.md (avx2): New prefix for AVX2's names.
+	(ssevecsize): Added modes for AVX2.
+
+	(VI2): Experimental mode iterator, enables AVX2 modes.
+
+	(avx2_<plusminus_insn><mode>3): Removed.
+	(*avx2_<plusminus_insn><mode>3): Likewise.
+
+	(<plusminus_insn><mode>3): Added mode for AVX2.
+	("*<plusminus_insn><mode>3): Likewise.
+
+2011-04-12  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/i386-modes.def (V1OI): Removed unused.
+
+	* config/i386/i386.c (bdesc_args): Fixed built-in types.
+	(ix86_expand_args_builtin): Removed handling of unused type.
+
+	* config/i386/i386.h (VALID_AVX256_REG_MODE): Removed unused mode.
+
+	* config/i386/sse.md (avx2_lshrqv4di3): Fixed.
+	(avx2_lshlqv4di3): Likewise.
+
+2011-04-12  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_stream_load_si256): Fixed types.
+	(_mm_broadcastsi128_si256): Likewise.
+
+	(mm_broadcastss_ps): New.
+	(_mm256_broadcastss_ps): Likewise.
+	(_mm256_broadcastsd_pd): Likewise.
+
+	* config/i386/i386-builtin-types.def (V4DI_FTYPE_V4DI): Pointer removed.
+
+	* config/i386/i386.c (IX86_BUILTIN_VBROADCASTSS_PS): New.
+	(IX86_BUILTIN_VBROADCASTSS_PS256): Likewise.
+	(IX86_BUILTIN_VBROADCASTSD_PD256): Likewise.
+
+	(bdesc_special_args): vbroadcasti128 moved to bdesc_args, types fixed.
+
+	(bdesc_args): New built-in for AVX2's vbroadcastss, vbroadcastsd
+
+	(ix86_expand_args_builtin): Fixed type handling.
+	(ix86_expand_special_args_builtin): Likewise.
+
+	* config/i386/sse.md (avx2_vec_dupv4sf): Fixed name.
+	(avx2_vec_dupv8sf): Likewise.
+	(avx2_vec_dupv4df): Likewise.
+
+	(vpunpckhbw): Correct semantics.
+	(vpavgb): Likewise.
+
+2011-04-11  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_xor_si256): New.
+	(_mm256_stream_load_si256): Likewise.
+	(_mm_broadcastsi128_si256): Likewise.
+
+	* config/i386/i386-builtin-types.def (V4DI_FTYPE_PV4DI): New.
+	(V4DI_FTYPE_PV2DI): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_PXOR256): New.
+	(IX86_BUILTIN_MOVNTDQA256): Likewise.
+	(IX86_BUILTIN_VBROADCASTSI256): Likewise.
+
+	(bdesc_special_args): New built-in for AVX2's movntdqa and
+	vbroadcasti128.
+
+	(bdesc_args): New built-in for AVX2's pxor.
+
+	* config/i386/sse.md (*vec_dupv4sf_avx2): New.
+	(*vec_dupv8sf_avx2): Likewise.
+	(*vec_dupv4sd_avx2): Likewise.
+	(avx2_movntdqa): Likewise.
+	(avx2_vbroadcasti128_<mode>): Likewise.
+
+2011-04-08  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_unpackhi_epi8): New.
+	(_mm256_unpackhi_epi16): Likewise.
+	(_mm256_unpackhi_epi32): Likewise.
+	(_mm256_unpackhi_epi64): Likewise.
+	(_mm256_unpacklo_epi8): Likewise.
+	(_mm256_unpacklo_epi16): Likewise.
+	(_mm256_unpacklo_epi32): Likewise.
+	(_mm256_unpacklo_epi64): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_PUNPCKHBW256): New.
+	(IX86_BUILTIN_PUNPCKHWD256): Likewise.
+	(IX86_BUILTIN_PUNPCKHDQ256): Likewise.
+	(IX86_BUILTIN_PUNPCKHQDQ256): Likewise.
+	(IX86_BUILTIN_PUNPCKLBW256): Likewise.
+	(IX86_BUILTIN_PUNPCKLWD256): Likewise.
+	(IX86_BUILTIN_PUNPCKLDQ256): Likewise.
+	(IX86_BUILTIN_PUNPCKLQDQ256): Likewise.
+
+	(bdesc_args): New built-in for AVX2's punpchkhbw,  punpchkhwd,
+	punpchkhdq, punpchkhqdq, punpchklbw,  punpchklwd, punpchkldq,
+	punpchklqd.
+
+	* config/i386/sse.md (avx2_interleave_highv4di): New.
+	(avx2_interleave_lowv4di): Likewise.
+	(avx2_interleave_highv32qi): Likewise.
+	(avx2_interleave_lowv32qi): Likewise.
+	(avx2_interleave_highv16hi): Likewise.
+	(avx2_interleave_lowv16hi): Likewise.
+	(avx2_interleave_highv8si): Likewise.
+	(avx2_interleave_lowv8si): Likewise.
+
+2011-04-05  Yukhin Kirill  <kirill.yukhin@intel.com>
+	* config/i386/avx2intrin.h (_mm256_srli_si256): New.
+	(_mm256_srli_epi16): Likewise.
+	(_mm256_srl_epi16): Likewise.
+	(_mm256_srli_epi32): Likewise.
+	(_mm256_srl_epi32): Likewise.
+	(_mm256_srli_epi64): Likewise.
+	(_mm256_srl_epi64): Likewise.
+	(_mm256_sub_epi8): Likewise.
+	(_mm256_sub_epi16): Likewise.
+	(_mm256_sub_epi32): Likewise.
+	(_mm256_sub_epi64): Likewise.
+	(_mm256_subs_epi8): Likewise.
+	(_mm256_subs_epi16): Likewise.
+	(_mm256_subs_epu8): Likewise.
+	(_mm256_subs_epu16): Likewise.
+
+	* gcc/config/i386/i386.c (IX86_BUILTIN_PSRLDQI256): New.
+	(IX86_BUILTIN_PSRLWI256): Likewise.
+	(IX86_BUILTIN_PSRLW256): Likewise.
+	(IX86_BUILTIN_PSRLDI256): Likewise.
+	(IX86_BUILTIN_PSRLD256): Likewise.
+	(IX86_BUILTIN_PSRLQI256): Likewise.
+	(IX86_BUILTIN_PSRLQ256): Likewise.
+	(IX86_BUILTIN_PSUBB256): Likewise.
+	(IX86_BUILTIN_PSUBW256): Likewise.
+	(IX86_BUILTIN_PSUBD256): Likewise.
+	(IX86_BUILTIN_PSUBQ256): Likewise.
+	(IX86_BUILTIN_PSUBSB256): Likewise.
+	(IX86_BUILTIN_PSUBSW256): Likewise.
+	(IX86_BUILTIN_PSUBUSB256): Likewise.
+	(IX86_BUILTIN_PSUBUSW256): Likewise.
+
+	(bdesc_args): New built-in for AVX2's psrldq, psrlw, psrld, psrlq,
+	psubb, psubw, psubd, psubq, psubusb, psubusw, psubsb, psubsw. Fixed code names
+	for AVX2's addv*, lshlv*.
+
+	* config/i386/sse.md (avx2_<plusminus_insn><mode>3): Fixed insn name
+
+	(avx2_lshrv1oi3): New.
+	(avx2_lshr<mode>3): Likewise.
+
+	(avx2_ashlv1oi3): Fixed insn name.
+	(avx2_lshl<mode>3): Likewise.
+
+
+2011-04-04  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_slli_si256): New.
+	(_mm256_slli_epi16): Likewise.
+	(_mm256_sll_epi16): Likewise.
+	(_mm256_slli_epi32): Likewise.
+	(_mm256_sll_epi32): Likewise.
+	(_mm256_slli_epi64): Likewise.
+	(_mm256_sll_epi64): Likewise.
+	(_mm256_srai_epi16): Likewise.
+	(_mm256_sra_epi16): Likewise.
+	(_mm256_srai_epi32): Likewise.
+	(_mm256_sra_epi32): Likewise.
+
+	* config/i386/i386-builtin-types.def (V16HI_FTYPE_V16HI_V8HI): New.
+	(V16HI_FTYPE_V16HI_INT): Likewise.
+	(V8SI_FTYPE_V8SI_V4SI): Likewise.
+	(V8SI_FTYPE_V8SI_INT): Likewise.
+	(V4DI_FTYPE_V4DI_V2DI): Likewise.
+	(V4DI_FTYPE_V4DI_INT): Likewise.
+	(V16HI_FTYPE_V16HI_SI_COUNT): Likewise.
+	(V16HI_FTYPE_V16HI_V8HI_COUNT): Likewise.
+	(V8SI_FTYPE_V8SI_SI_COUNT): Likewise.
+	(V8SI_FTYPE_V8SI_V4SI_COUNT): Likewise.
+	(V4DI_FTYPE_V4DI_INT_COUNT): Likewise.
+	(V4DI_FTYPE_V4DI_V2DI_COUNT): Likewise.
+	(V4DI_FTYPE_V4DI_INT_CONVERT): Likewise.
+
+	* config/i386/i386-modes.def (OI): Moved upper.
+	(V1OI): New.
+
+	* gcc/config/i386/i386.c (IX86_BUILTIN_PSLLDQI256): New.
+	(IX86_BUILTIN_PSLLWI256): Likewise.
+	(IX86_BUILTIN_PSLLW256): Likewise.
+	(IX86_BUILTIN_PSLLDI256): Likewise.
+	(IX86_BUILTIN_PSLLD256): Likewise.
+	(IX86_BUILTIN_PSLLQI256): Likewise.
+	(IX86_BUILTIN_PSLLQ256): Likewise.
+	(IX86_BUILTIN_PSRAWI256): Likewise.
+	(IX86_BUILTIN_PSRAW256): Likewise.
+	(IX86_BUILTIN_PSRADI256): Likewise.
+	(IX86_BUILTIN_PSRAD256): Likewise.
+
+	(bdesc_args): New built-in for AVX2's pslldq, psllw, pslld, psllq,
+	psraw, psrad.
+
+	(ix86_expand_args_built-in): Handle new built-in types.
+
+	* config/i386/i386.h (VALID_AVX256_REG_MODE): Support of V1OI.
+
+	* config/i386/sse.md (AVX256MODE248) New.
+	(AVX256MODE24): Likewise.
+	(avx2_ashr<mode>3): Likewise.
+	(avx2_ashlv1oi3): Likewise.
+	(avx2_ashl<mode>3): Likewise.
+
+2011-03-31  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_sign_epi8): New.
+	(_mm256_sign_epi16): Likewise.
+	(_mm256_sign_epi32): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_PSIGNB256): New.
+	(IX86_BUILTIN_PSIGNW256): Likewise.
+	(IX86_BUILTIN_PSIGND256): Likewise.
+
+	(bdesc_args): New built-in for AVX2's psignb, psignw, psignd
+
+	* config/i386/sse.md (avx2_psign<mode>3): New.
+
+2011-03-30  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_mul_epi32): New.
+	(_mm256_mulhrs_epi16): Likewise.
+	(_mm256_mulhi_epu16): Likewise.
+	(_mm256_mulhi_epi16): Likewise.
+	(_mm256_mullo_epi16): Likewise.
+	(_mm256_mullo_epi32): Likewise.
+	(_mm256_mul_epu32): Likewise.
+	(_mm256_or_si256): Likewise.
+	(_mm256_sad_epu8): Likewise.
+	(_mm256_shuffle_epi8): Likewise.
+	(_mm256_shuffle_epi32): Likewise.
+	(_mm256_shufflehi_epi16): Likewise.
+	(_mm256_shufflelo_epi16): Likewise.
+
+	* config/i386/i386-builtin-types.def (V4DI_FTYPE_V8SI_V8SI): New.
+	(V16HI_FTYPE_V16HI_INT): Likewise.
+	(V8SI_FTYPE_V8SI_INT): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_PMULDQ256): New.
+	(IX86_BUILTIN_PMULHRSW256): Likewise.
+	(IX86_BUILTIN_PMULHUW256): Likewise.
+	(IX86_BUILTIN_PMULHW256): Likewise.
+	(IX86_BUILTIN_PMULLW256): Likewise.
+	(IX86_BUILTIN_PMULLD256): Likewise.
+	(IX86_BUILTIN_PMULUDQ256): Likewise.
+	(IX86_BUILTIN_POR256): Likewise.
+	(IX86_BUILTIN_PSADBW256): Likewise.
+	(IX86_BUILTIN_PSHUFB256): Likewise.
+	(IX86_BUILTIN_PSHUFD256): Likewise.
+	(IX86_BUILTIN_PSHUFHW256): Likewise.
+	(IX86_BUILTIN_PSHUFLW256): Likewise.
+
+	(bdesc_args): New built-in for AVX2's pmuldq, pmulhrsw, pmulhuw,
+	pmulhw, pmullw, pmulld, pmuludq, psadbw, pshufb, pshufb, phufhw,
+	phuflw, por.
+
+	(ix86_expand_args_built-in): Handle new built-in type.
+
+	* config/i386/sse.md (avx2_smulv16hi3_low): New.
+	(*avx2_smulv16hi3_low): Likewise.
+	(avx2_<s>mulv16hi3_high): Likewise.
+	(*avx2_<s>mulv16hi3_high): Likewise.
+	(avx2_umulv4siv4di3): Likewise.
+	(*avx_umulv4siv4di3): Likewise.
+	(avx2_smulv4siv4di3): Likewise.
+	(*avx2_smulv4siv4di3): Likewise.
+	(avx2_smulv8si3_low): Likewise.
+	(*avx2_smulv8si3_low): Likewise.
+	(avx2_umulhrswv16hi3): Likewise.
+	(*avx2_umulhrswv16hi3): Likewise.
+	(avx2_pshufdv3): Likewise.
+	(avx2_pshufd_1): Likewise.
+	(avx2_pshuflwv3): Likewise.
+	(avx2_pshuflw_1): Likewise.
+	(avx2_pshufhwv3): Likewise.
+	(avx2_pshufhw_1): Likewise.
+	(avx2_psadv32qiv16hi3): Likewise.
+	(avx2_pshufbv3): Likewise.
+
+2011-03-29  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_cmpeq_epi8): Fixed line width.
+	(_mm256_cmpeq_epi16): Likewise.
+	(_mm256_cmpeq_epi32): Likewise.
+	(_mm256_cmpeq_epi64): Likewise.
+	(_mm256_cmpgt_epi8): Likewise.
+	(_mm256_cmpgt_epi16): Likewise.
+	(_mm256_cmpgt_epi32): Likewise.
+	(_mm256_cmpgt_epi64): Likewise.
+	(_mm256_hadd_epi16): Likewise.
+	(_mm256_hadd_epi32): Likewise.
+	(_mm256_hadds_epi16): Likewise.
+	(_mm256_hsub_epi16): Likewise.
+	(_mm256_hsub_epi32): Likewise.
+	(_mm256_hsubs_epi16): Likewise.
+	(_mm256_maddubs_epi16): Likewise.
+	(_mm256_madd_epi16): Likewise.
+
+	(_mm256_max_epi8): New.
+	(_mm256_max_epi16): Likewise.
+	(_mm256_max_epi32): Likewise.
+	(_mm256_max_epu8): Likewise.
+	(_mm256_max_epu16): Likewise.
+	(_mm256_max_epu32): Likewise.
+	(_mm256_min_epi8): Likewise.
+	(_mm256_min_epi16): Likewise.
+	(_mm256_min_epi32): Likewise.
+	(_mm256_min_epu8): Likewise.
+	(_mm256_min_epu16): Likewise.
+	(_mm256_min_epu32): Likewise.
+	(_mm256_movemask_epi8): Likewise.
+	(_mm256_cvtepi8_epi16): Likewise.
+	(_mm256_cvtepi8_epi32): Likewise.
+	(_mm256_cvtepi8_epi64): Likewise.
+	(_mm256_cvtepi16_epi32): Likewise.
+	(_mm256_cvtepi16_epi64): Likewise.
+	(_mm256_cvtepi32_epi64): Likewise.
+	(_mm256_cvtepu8_epi16): Likewise.
+	(_mm256_cvtepu8_epi32): Likewise.
+	(_mm256_cvtepu8_epi64): Likewise.
+	(_mm256_cvtepu16_epi32): Likewise.
+	(_mm256_cvtepu16_epi64): Likewise.
+	(_mm256_cvtepu32_epi64): Likewise.
+
+	* config/i386/i386-builtin-types.def (INT_FTYPE_V32QI): New.
+	(V16HI_FTYPE_V16QI): Likewise.
+	(V8SI_FTYPE_V16QI): Likewise.
+	(V4DI_FTYPE_V16QI): Likewise.
+	(V8SI_FTYPE_V8HI): Likewise.
+	(V4DI_FTYPE_V8HI): Likewise.
+	(V4DI_FTYPE_V4SI): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_PBLENDVB256): New.
+	(IX86_BUILTIN_PMAXSB256): Likewise.
+	(IX86_BUILTIN_PMAXSW256): Likewise.
+	(IX86_BUILTIN_PMAXSD256): Likewise.
+	(IX86_BUILTIN_PMAXUB256): Likewise.
+	(IX86_BUILTIN_PMAXUW256): Likewise.
+	(IX86_BUILTIN_PMAXUD256): Likewise.
+	(IX86_BUILTIN_PMINSB256): Likewise.
+	(IX86_BUILTIN_PMINSW256): Likewise.
+	(IX86_BUILTIN_PMINSD256): Likewise.
+	(IX86_BUILTIN_PMINUB256): Likewise.
+	(IX86_BUILTIN_PMINUW256): Likewise.
+	(IX86_BUILTIN_PMINUD256): Likewise.
+	(IX86_BUILTIN_PMOVMSKB256): Likewise.
+	(IX86_BUILTIN_PMOVSXBW256): Likewise.
+	(IX86_BUILTIN_PMOVSXBD256): Likewise.
+	(IX86_BUILTIN_PMOVSXBQ256): Likewise.
+	(IX86_BUILTIN_PMOVSXWD256): Likewise.
+	(IX86_BUILTIN_PMOVSXWQ256): Likewise.
+	(IX86_BUILTIN_PMOVSXDQ256): Likewise.
+	(IX86_BUILTIN_PMOVZXBW256): Likewise.
+	(IX86_BUILTIN_PMOVZXBD256): Likewise.
+	(IX86_BUILTIN_PMOVZXBQ256): Likewise.
+	(IX86_BUILTIN_PMOVZXWD256): Likewise.
+	(IX86_BUILTIN_PMOVZXWQ256): Likewise.
+	(IX86_BUILTIN_PMOVZXDQ256): Likewise.
+
+	(bdesc_args): New built-in for AVX2's vpmaxub, vpmaxuw, vpmaxud,
+	vpmaxsb, vpmaxsw, vpmaxsd, vpminub, vpminuw, vpminud, vpminsb,
+	vpminsw, vpminsd, vmovmskb, vpmovzxbw, vpmovzxbd, vpmovzxbq,
+	vpmovzxwd, vpmovzxwq, vpmovzxdq, vpmovsxbw, vpmovsxbd, vpmovsxbq,
+	vpmovsxwd, vpmovsxwq, vpmovsxdq.
+
+	(ix86_expand_args_built-in): Handle new built-in types.
+
+	* config/i386/sse.md (avx2_<code><mode>3): New (umaxmin).
+	(*avx2_<code><mode>3): Likewise (umaxmin).
+	(avx2_<code><mode>3): Likewisee (smaxmin).
+	(*avx2_<code><mode>3): Likewisee (smaxmin).
+	(avx2_pmovmskb): Likewise.
+	(avx2_<code>v16qiv16hi2): Likewise.
+	(avx2_<code>v8qiv8si2): Likewise.
+	(avx2_<code>v8hiv8si2): Likewise.
+	(avx2_<code>v4qiv4di2): Likewise.
+	(avx2_<code>v4siv4di2): Likewise.
+
+2011-03-28  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_blendv_epi8): New.
+	(_mm256_blend_epi16): Likewise.
+	(_mm256_cmpeq_epi8): Likewise.
+	(_mm256_cmpeq_epi16): Likewise.
+	(_mm256_cmpeq_epi32): Likewise.
+	(_mm256_cmpeq_epi64): Likewise.
+	(_mm256_cmpgt_epi8): Likewise.
+	(_mm256_cmpgt_epi16): Likewise.
+	(_mm256_cmpgt_epi32): Likewise.
+	(_mm256_cmpgt_epi64): Likewise.
+	(_mm256_hadd_epi16): Likewise.
+	(_mm256_hadd_epi32): Likewise.
+	(_mm256_hadds_epi16): Likewise.
+	(_mm256_hsub_epi16): Likewise.
+	(_mm256_hsub_epi32): Likewise.
+	(_mm256_hsubs_epi16): Likewise.
+	(_mm256_maddubs_epi16): Likewise.
+	(_mm256_madd_epi16): Likewise.
+
+	* config/i386/i386-builtin-types.def (V16HI_FTYPE_V32QI_V32QI): New.
+	(V16HI_FTYPE_V16HI_V16HI_INT): Likewise.
+	(V8SI_FTYPE_V16HI_V16HI): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_PBLENDVB256): New.
+	(IX86_BUILTIN_PBLENDVW256): Likewise.
+	(IX86_BUILTIN_PCMPEQB256): Likewise.
+	(IX86_BUILTIN_PCMPEQW256): Likewise.
+	(IX86_BUILTIN_PCMPEQD256): Likewise.
+	(IX86_BUILTIN_PCMPEQQ256): Likewise.
+	(IX86_BUILTIN_PCMPGTB256): Likewise.
+	(IX86_BUILTIN_PCMPGTW256): Likewise.
+	(IX86_BUILTIN_PCMPGTD256): Likewise.
+	(IX86_BUILTIN_PCMPGTQ256): Likewise.
+	(IX86_BUILTIN_PHADDW256): Likewise.
+	(IX86_BUILTIN_PHADDD256): Likewise.
+	(IX86_BUILTIN_PHADDSW256): Likewise.
+	(IX86_BUILTIN_PHSUBW256): Likewise.
+	(IX86_BUILTIN_PHSUBD256): Likewise.
+	(IX86_BUILTIN_PHSUBSW256): Likewise.
+	(IX86_BUILTIN_PMADDUBSW256): Likewise.
+	(IX86_BUILTIN_PMADDWD256): Likewise.
+
+	(bdesc_args): New built-in for AVX2's pblendvb, pblendw,
+	pcmp[eq|gt][b|w|d|q], phadd[w|d], phaddsw, phsub[w|d],
+	phsubsw, pmaddubsw, pmaddwd.
+
+	(ix86_expand_args_built-in): Handle new built-in types.
+
+	* config/i386/sse.md (AVX256MODE1248): New.
+	(avx2_pmaddwd): Likewise.
+	(*avx2_pmaddwd): Likewise.
+	(avx2_eq<mode>3): Likewise.
+	(*avx2_eq<mode>3): Likewise.
+	(avx2_gt<mode>3): Likewise.
+	(avx2_phaddwv16hi3): Likewise.
+	(avx2_phadddv8si3): Likewise.
+	(avx2_phaddswv16hi3): Likewise.
+	(avx2_phsubwv16hi3): Likewise.
+	(avx2_phsubdv8si3): Likewise.
+	(avx2_phsubswv16hi3): Likewise.
+	(avx2_pmaddubsw256): Likewise.
+	(avx2_pblendvb): Likewise.
+	(avx2_pblendw): Likewise.
+
+2011-03-25  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h: Reduced line width (<72) everywhere.
+
+	* gcc/config/i386/sse.md (*avx2_<plusminus_insn><mode>3): Line width.
+	(*avx2_<plusminus_insn><mode>3): Likewise.
+	(avx2_andnot<mode>3): Likewise.
+	(avx2_uavgv32qi3): Likewise.
+	(avx2_uavgv16hi3): Likewise.
+	(*avx2_uavgv16hi3): Likewise.
+	(avx2_palignr<mode>4): Likewise.
+	(avx2_pabs<mode>2): Likewise.
+	(avx2_mpsadbw): Likewise.
+
+2011-03-23  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_avg_epu8): New.
+	(_mm256_avg_epu16): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_PAVGB256): New.
+	(IX86_BUILTIN_PAVGW256): Likewise.
+	(bdesc_args): New built-in for AVX2 pavgb, pavgw.
+
+	* config/i386/sse.md (avx2_uavgv32qi3): New.
+	(*avx2_uavgv32qi3): Likewise.
+	(avx2_uavgv16hi3): Likewise.
+	(*avx2_uavgv16hi3): Likewise.
+
+2011-03-21  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/i386.opt (ISA_AVX2): Added Save flag.
+
+2011-03-21  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_mpsadbw_epu8): New.
+	(_mm256_abs_epi8): Likewise.
+	(_mm256_abs_epi16): Likewise.
+	(_mm256_abs_epi32): Likewise.
+	(_mm256_packs_epi32): Likewise.
+	(_mm256_packs_epi16): Likewise.
+	(_mm256_packus_epi32): Likewise.
+	(_mm256_packus_epi16): Likewise.
+
+	* config/i386/i386-builtin-types.def (V32QI_FTYPE_V32QI): New
+	(V16HI_FTYPE_V16HI): Likewise.
+	(V8SI_FTYPE_V8SI): Likewise.
+	(V32QI_FTYPE_V16HI_V16HI): Likewise.
+	(V16HI_FTYPE_V8SI_V8SI): Likewise.
+	(V32QI_FTYPE_V32QI_V32QI_INT): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_MPSADBW256): New.
+	(IX86_BUILTIN_PABSB256): Likewise.
+	(IX86_BUILTIN_PABSW2566): Likewise.
+	(IX86_BUILTIN_PABSD2566): Likewise.
+	(IX86_BUILTIN_PACKSSDW2566): Likewise.
+	(IX86_BUILTIN_PACKSSWB2566): Likewise.
+	(IX86_BUILTIN_PACKUSDW2566): Likewise.
+	(IX86_BUILTIN_PACKUSWB2566): Likewise.
+	(bdesc_args): New built-in for AVX2 mpsadbw, pabsb, pabsw,
+	pabsd, packsswb, packssdw, packusdw, packuswb.
+	(ix86_expand_args_built-in): Handle new built-in types.
+
+	* config/i386/sse.md (AVX256MODE124): New.
+	(avx2_packsswb): Likewise.
+	(avx2_packssdw): Likewise.
+	(avx2_packssd): Likewise.
+	(avx2_packuswb): Likewise.
+	(avx2_pabs<mode>2): Likewise.
+	(avx2_mpsadbw): Likewise.
+	(avx2_packusdw): Likewise.
+
+2011-03-20  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/sse.md (avx2vecsize): Removed.
+	(*avx2_<plusminus_insn><mode>3): avx2vecsize replaced with avxvecsize.
+
+2011-03-18  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_add_epi8): New.
+	(_mm256_add_epi16): Likewise.
+	(_mm256_add_epi32): Likewise.
+	(_mm256_add_epi64): Likewise.
+	(_mm256_adds_epi8): Likewise.
+	(_mm256_adds_epi16): Likewise.
+	(_mm256_adds_epu8): Likewise.
+	(_mm256_adds_epu16): Likewise.
+
+	* config/i386/i386-builtin-types.def (V32QI_FTYPE_V32QI_V32QI_INT): New.
+	(V16HI_FTYPE_V16HI_V16HI_INT): Likewise.
+	(V8SI_FTYPE_V8SI_V8SI_INT): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_PADDB256): New.
+	(IX86_BUILTIN_PADDW256): Likewise.
+	(IX86_BUILTIN_PADDD256): Likewise.
+	(IX86_BUILTIN_PADDQ256): Likewise.
+	(IX86_BUILTIN_PADDSB256): Likewise.
+	(IX86_BUILTIN_PADDSW256): Likewise.
+	(IX86_BUILTIN_PADDUSB256): Likewise.
+	(IX86_BUILTIN_PADDUSW256): Likewise.
+	(bdesc_args): New built-in for AVX2 vpaddb, vpaddw, vpaddd, vpaddq,
+			vpaddsb, vpaddsw, vpaddusb, vpaddusw.
+	(ix86_expand_args_built-in): Handle new built-in type.
+
+	* config/i386/sse.md (AVX256MODE12): New.
+	(avxvecsize): Likewise.
+	(avx2vecsize): Likewise.
+	(plusminus_insn): Extended to support 256-bit wide regs.
+	(*avx2_<plusminus_insn><mode>3): New.
+	(avx2_<plusminus_insn><mode>3): New.
+	(*avx2_<plusminus_insn><mode>3): New (handling saturation cases).
+
+2011-03-17  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/i386.opt (mavx2): Added 'Save' attribute.
+
+2011-03-16  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/avx2intrin.h (_mm256_and_si256): New.
+	(_m256_alignr_epi8): Likewise.
+
+	* config/i386/i386.c (IX86_BUILTIN_PALIGNR256): New.
+	(IX86_BUILTIN_AND256I): Likewise.
+	(bdesc_args): New built-in for AVX2 vpand, vpalignr.
+	(ix86_expand_args_built-in): Handle new built-in type.
+
+	* config/i386/sse.md (*avx2_<code><mode>3): Make insn visible through enum.
+	(avx2_palignr<mode>4): New.
+
+	* config/i386/i386-builtin-types.def(V4DI_FTYPE_V4DI_V4DI_INT): New.
+	(V4DI_FTYPE_V4DI_V4DI_INT_CONVERT): Likewise.
+
+2011-03-15  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	* config/i386/cpuid.h (bit_AVX2): New.
+
+	* config/i386/i386.c (bdesc_args): Fixed AVX2 andnot code name.
+
+	* config/i386/sse.md (avx2_andnot<mode>3): Made insn visible to i386.c.
+
+2011-03-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/sse.md (avxvecpsmode): Removed.
+	(*avx2_andnot<mode>3): New.
+	(*avx2_<code><mode>3:any_logic): Likewise.
+	(*avx_andnot<mode>3): Replace <avxvecpsmode> with V8SF.
+	(*avx_<code><mode>3:any_logic): Likewise.
+
+2011-03-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386-c.c (ix86_target_macros_internal): Support
+	OPTION_MASK_ISA_AVX2.
+
+	* config/i386/i386.c (OPTION_MASK_ISA_AVX2_SET): New.
+	(OPTION_MASK_ISA_AVX2_UNSET): Likewise.
+	(OPTION_MASK_ISA_FMA_UNSET): Updated.
+	(ix86_handle_option): Handle OPT_mavx2.
+	(pta_flags): Add PTA_AVX2.
+	(processor_alias_table): Add corei7-avx2.
+	(ix86_option_override_internal): Handle PTA_AVX2.
+
+	* config/i386/i386.h (TARGET_AVX2): New.
+
+	* config/i386/i386.opt: Add mavx2.

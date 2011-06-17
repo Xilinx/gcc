@@ -1149,6 +1149,41 @@ proc check_avx_hw_available { } {
     }]
 }
 
+# Return 1 if the target supports executing AVX2 instructions, 0
+# otherwise.  Cache the result.
+
+proc check_avx2_hw_available { } {
+    return [check_cached_effective_target avx2_hw_available {
+	# If this is not the right target then we can skip the test.
+	if { !([istarget x86_64-*-*] || [istarget i?86-*-*]) } {
+	    expr 0
+	} else {
+            if { check_avx_hw_available } {
+                check_runtime_nocache avx2_hw_available {
+                    #include "cpuid.h"
+                    int main ()
+                    {
+                      unsigned int eax, ebx, ecx, edx;
+                      if (!__get_cpuid (1, &eax, &ebx, &ecx, &edx))
+                        return 0;
+                      if ((ecx & bit_OSXSAVE) == (bit_OSXSAVE)) {
+                         __asm__ ("xchg{l}\t{%%}ebx, %1\n\t"               
+                                  "cpuid\n\t"					
+                                  "xchg{l}\t{%%}ebx, %1\n\t"			
+                                  : "=a" (eax), "=r" (ebx), "=c" (ecx), "=d" (edx)	
+                                  : "0" (7), "2" (0));
+                        return !(ebx & bit_AVX2);
+                      }
+                      return 0;
+                    }
+                } ""
+            } else {
+                expr 0
+            }
+        }
+    }]
+}
+
 # Return 1 if the target supports running SSE executables, 0 otherwise.
 
 proc check_effective_target_sse_runtime { } {
@@ -1176,6 +1211,16 @@ proc check_effective_target_sse2_runtime { } {
 proc check_effective_target_avx_runtime { } {
     if { [check_effective_target_avx]
 	 && [check_avx_hw_available] } {
+	return 1
+    }
+    return 0
+}
+
+# Return 1 if the target supports running AVX2 executables, 0 otherwise.
+
+proc check_effective_target_avx2_runtime { } {
+    if { [check_effective_target_avx2]
+	 && [check_avx2_hw_available] } {
 	return 1
     }
     return 0
@@ -3696,6 +3741,18 @@ proc check_effective_target_avx { } {
 	   __builtin_ia32_vzeroall ();
 	}
     } "-O2 -mavx" ]
+}
+
+# Return 1 if avx 2 instructions can be compiled.
+
+proc check_effective_target_avx2 { } {
+    return [check_no_compiler_messages avx2 object {
+	void _mm256_andnot_si256 (void)
+        {
+          long long x __attribute__ ((__vector_size__ (32)));
+          x = __builtin_ia32_andnotsi256 (x,x);
+	}
+    } "-O0 -mavx2" ]
 }
 
 # Return 1 if sse instructions can be compiled.

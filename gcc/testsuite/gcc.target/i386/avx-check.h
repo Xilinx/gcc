@@ -11,6 +11,8 @@ do_test (void)
   avx_test ();
 }
 
+#define DEBUG
+
 int
 main ()
 {
