@@ -60,6 +60,59 @@ proc verify-lines { testcase file } {
 }
 
 #
+# verify-intermediate -- check that intermediate file has certain lines
+#
+# TESTCASE is the name of the test.
+# FILE is the name of the gcov output file.
+#
+# Checks are very loose, they are based on being certain tags present
+# in the output. They do not check for exact expected execution
+# counts. For that the regular gcov format should be checked.
+#
+proc verify-intermediate { testcase file } {
+    set failed 0
+    set sf 0
+    set fn 0
+    set fnda 0
+    set da 0
+    set fd [open $file r]
+    while { [gets $fd line] >= 0 } {
+	if [regexp "^SF:" $line] {
+	    incr sf
+	}
+	if [regexp "^FN:(\[0-9\]+)," $line] {
+	    incr fn
+	}
+	if [regexp "^FNDA:(\[0-9\]+)," $line] {
+	    incr fnda
+	}
+	if [regexp "^DA:(\[0-9\]+),(\[0-9\]+)" $line] {
+	    incr da
+	}
+    }
+
+    # We should see at least one tag of each type
+    if {$sf == 0} {
+	fail "expected SF: not found"
+	incr failed
+    }
+    if {$fn == 0} {
+	fail "expected FN: not found"
+	incr failed
+    }
+    if {$fnda == 0} {
+	fail "expected FNDA: not found"
+	incr failed
+    }
+    if {$da == 0} {
+	fail "expected DA: not found"
+	incr failed
+    }
+    return $failed
+}
+
+
+#
 # verify-branches -- check that branch percentages are as expected
 #
 # TESTCASE is the name of the test.
@@ -234,6 +287,8 @@ proc run-gcov { args } {
 
     set gcov_verify_calls 0
     set gcov_verify_branches 0
+    set gcov_verify_lines 1
+    set gcov_verify_intermediate 0
     set gcov_execute_xfail ""
     set gcov_verify_xfail ""
 
@@ -242,6 +297,11 @@ proc run-gcov { args } {
 	  set gcov_verify_calls 1
 	} elseif { $a == "branches" } {
 	  set gcov_verify_branches 1
+	} elseif { $a == "intermediate" } {
+	  set gcov_verify_intermediate 1
+	  set gcov_verify_calls 0
+	  set gcov_verify_branches 0
+	  set gcov_verify_lines 0
 	}
     }
 
@@ -274,8 +334,12 @@ proc run-gcov { args } {
 	eval setup_xfail [split $gcov_verify_xfail]
     }
 
-    # Check that line execution counts are as expected.
-    set lfailed [verify-lines $testcase $testcase.gcov]
+    if { $gcov_verify_lines } {
+	# Check that line execution counts are as expected.
+	set lfailed [verify-lines $testcase $testcase.gcov]
+    } else {
+	set lfailed 0
+    }
 
     # If requested via the .x file, check that branch and call information
     # is correct.
@@ -289,12 +353,18 @@ proc run-gcov { args } {
     } else {
 	set cfailed 0
     }
+    if { $gcov_verify_intermediate } {
+	# Check that intermediate format has the expected format
+	set ifailed [verify-intermediate $testcase $testcase.gcov]
+    } else {
+	set ifailed 0
+    }
 
     # Report whether the gcov test passed or failed.  If there were
     # multiple failures then the message is a summary.
-    set tfailed [expr $lfailed + $bfailed + $cfailed]
+    set tfailed [expr $lfailed + $bfailed + $cfailed + $ifailed]
     if { $tfailed > 0 } {
-	fail "$subdir/$testcase gcov: $lfailed failures in line counts, $bfailed in branch percentages, $cfailed in return percentages"
+	fail "$subdir/$testcase gcov: $lfailed failures in line counts, $bfailed in branch percentages, $cfailed in return percentages, $ifailed in intermediate format"
     } else {
 	pass "$subdir/$testcase gcov"
 	clean-gcov $testcase

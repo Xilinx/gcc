@@ -1,3 +1,8 @@
+2011-06-16   Sharad Singhai  <singhai@google.com>
+
+	* testsuite/lib/gcov.exp: Handle intermediate format.
+	* testsuite/g++.dg/gcov/gcov-7.C: New test.
+
 2011-06-14  Le-Chun Wu  <lcwu@google.com>
 
 	* g++.dg/thread-ann/thread_annot_lock-78.C: New test.

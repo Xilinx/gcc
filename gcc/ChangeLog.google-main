@@ -1,3 +1,11 @@
+2011-06-16   Sharad Singhai  <singhai@google.com>
+
+	Google Ref 39999
+
+	* doc/gcov.texi: Document gcov intermediate format.
+	* gcov.c (get_gcov_file_intermediate_name): New function.
+	(output_intermediate_file): New function.
+
 2011-06-14  Le-Chun Wu  <lcwu@google.com>
 
 	* tree-threadsafe-analyze.c (build_fully_qualified_lock): Handle

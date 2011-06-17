@@ -130,6 +130,7 @@ gcov [@option{-v}|@option{--version}] [@option{-h}|@option{--help}]
      [@option{-f}|@option{--function-summaries}]
      [@option{-o}|@option{--object-directory} @var{directory|file}] @var{sourcefiles}
      [@option{-u}|@option{--unconditional-branches}]
+     [@option{-i}|@option{--intermediate-format}]
      [@option{-d}|@option{--display-progress}]
 @c man end
 @c man begin SEEALSO
@@ -215,6 +216,32 @@ Unconditional branches are normally not interesting.
 @item -d
 @itemx --display-progress
 Display the progress on the standard output.
+
+@item -i
+@itemx --intermediate-format
+Output gcov file in an intermediate text format that can be used by
+@command{lcov} or other applications. It will output a single *.gcov file per
+*.gcda file. No source code is required.
+
+The format of the intermediate @file{.gcov} file is plain text with
+one entry per line
+
+@smallexample
+SF:@var{source_file_name}
+FN:@var{line_number},@var{function_name}
+FNDA:@var{execution_count},@var{function_name}
+BA:@var{line_num},@var{branch_coverage_type}
+DA:@var{line number},@var{execution_count}
+
+Where the @var{branch_coverage_type} is
+   0 (Branch not executed)
+   1 (Branch executed, but not taken)
+   2 (Branch executed and taken)
+
+There can be multiple SF entries in an intermediate gcov file. All
+entries following SF pertain to that source file until the next SF
+entry.
+@end smallexample
 
 @end table
 
