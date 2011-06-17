@@ -449,7 +449,6 @@ static void initial_return_save (rtx);
 static HOST_WIDE_INT stack_adjust_offset (const_rtx, HOST_WIDE_INT,
 					  HOST_WIDE_INT);
 static void output_cfi (dw_cfi_ref, dw_fde_ref, int);
-static void output_cfi_directive (FILE *, dw_cfi_ref);
 static void output_call_frame_info (int);
 static void dwarf2out_note_section_used (void);
 static bool clobbers_queued_reg_save (const_rtx);
@@ -3733,7 +3732,7 @@ output_cfi (dw_cfi_ref cfi, dw_fde_ref fde, int for_eh)
 
 /* Similar, but do it via assembler directives instead.  */
 
-static void
+void
 output_cfi_directive (FILE *f, dw_cfi_ref cfi)
 {
   unsigned long r, r2;

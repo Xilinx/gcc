@@ -19,6 +19,7 @@ along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
 
 struct dw_cfi_struct;
+
 /* In dwarf2out.c */
 /* Interface of the DWARF2 unwind info support.  */
 
@@ -52,6 +53,9 @@ extern void dwarf2out_reg_save_reg (rtx, rtx);
 
 extern void dwarf2out_decl (tree);
 extern void dwarf2out_emit_cfi (struct dw_cfi_struct *);
+
+/* Exported only for print-rtl.c.  */
+extern void output_cfi_directive (FILE *f, struct dw_cfi_struct *cfi);
 
 extern void debug_dwarf (void);
 struct die_struct;
