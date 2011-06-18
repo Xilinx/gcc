@@ -1,3 +1,9 @@
+2011-11-08  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* longlong.h (count_leading_zeros): Use long long builtin for
+	x86-64.
+	(count_trailing_zeros): Likewise.
+
 2011-11-04  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* dwarf2out.c (dwarf2out_frame_debug_expr): Check
