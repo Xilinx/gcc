@@ -188,6 +188,15 @@ gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t ** dot)
   return retval;
 }
 
+VEC(tree,gc) * gpy_stmt_pass_generate_types (VEC(gpydot,gc) * decls)
+{
+  VEC(tree,gc) * retval = VEC_alloc(tree,gc,0);
+
+  
+
+  return retval;
+}
+
 /**
  * Things are quite complicated from here on and will change frequently
  * We need to do a 1st pass over the code to generate our module.
@@ -241,8 +250,50 @@ gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t ** dot)
  **/
 void gpy_stmt_write_globals (void)
 {
-  VEC(tree,gc) * module_types = gpy_stmt_pass_1 (gpy_decls);
-  VEC(tree,gc) * dot2gen_trees = gpy_stmt_pass_2 (module_types, gpy_decls);
+  VEC(tree,gc) * module_types = gpy_stmt_pass_generate_types (gpy_decls);
+  VEC(tree,gc) * dot2gen_trees = gpy_stmt_lower (module_types, gpy_decls);
 
-  
+  VEC(tree,gc) * globals = dot2gen_trees;
+  int idx = 0;
+  while (gpy_stmt_pass_mngr[idx] != NULL)
+    {
+      DOT_stmt_pass x = gpy_stmt_pass_mngr[idx];
+      globals = x(module_types, globals);
+      idx++
+    }
+
+  int global_vec_len = VEC_length (tree, globals);
+  tree * global_vec = XNEWVEC (tree, global_vec_len);
+  tree itx = NULL_TREE;
+  int idy = 0;
+
+  FILE *tu_stream = dump_begin (TDI_tu, NULL);
+  for (idx=0; VEC_iterate (tree,globals,idx,itx); ++idx)
+    {
+      // debug_tree (itx);
+
+      if (tu_stream)
+	dump_node (itx, 0, tu_stream);
+
+      global_vec [idy] = itx;
+      idy++;
+    }
+  if (tu_stream)
+    dump_end(TDI_tu, tu_stream);
+
+  debug("Finished processing!\n\n");
+
+  debug("global_vec len = <%i>!\n", global_vec_len);
+
+  wrapup_global_declarations (global_vec, global_vec_len);
+
+  check_global_declarations (global_vec, global_vec_len);
+  emit_debug_global_declarations (global_vec, global_vec_len);
+
+  cgraph_finalize_compilation_unit ();
+
+  debug("finished passing to middle-end!\n\n");
 }
+
+typedef VEC(tree,gc) * (*DOT_stmt_pass__)(VEC(tree,gc) *, VEC(tree,gc) *);
+static DOT_stmt_pass gpy_stmt_pass_mngr[] = { NULL };
