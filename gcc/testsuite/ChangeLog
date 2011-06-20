@@ -1,3 +1,92 @@
+2011-06-16  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	Revert 
+	2011-06-10  Wei Guozhi  <carrot@google.com>
+
+	PR target/45335
+	* gcc.target/arm/pr45335.c: New test.
+	* gcc.target/arm/pr45335-2.c: New test.
+	* gcc.target/arm/pr45335-3.c: New test.
+	* gcc.target/arm/pr40457-1.c: Add another possible output "ldrd".
+	* gcc.target/arm/pr40457-2.c: Changed to store 3 words.
+	* gcc.target/arm/pr40457-3.c: Changed to store 3 words.
+
+2011-06-16  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/vect-widen-mult-half-u8.c: New test.
+
+2011-06-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49417
+	* gfortran.dg/class_43.f03: New.
+
+2011-06-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49419
+	* gcc.c-torture/execute/pr49419.c: New test.
+
+2011-06-16  Revital Eres  <revital.eres@linaro.org>
+
+	* gcc.dg/sms-9.c: New file.
+
+2011-06-15  Easwaran Raman  <eraman@google.com>
+
+	PR rtl-optimization/49414
+	* gcc.dg/pr44194-1.c: Restrict test to 64-bit targets.
+
+2011-06-14  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/noexcept13.C: New.
+
+2011-06-14  Easwaran Raman  <eraman@google.com>
+
+	PR rtl-optimization/44194
+	* gcc.dg/pr44194-1.c: New test.
+	* gcc.dg/pr44194-2.c: New test.
+
+2011-06-14  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/pr45701-1.c: Ignore warnings about conflicting switches.
+	* gcc.target/arm/pr45701-2.c: Likewise.
+	* gcc.target/arm/thumb-branch1.c: Likewise.
+
+2011-06-14  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/48727
+	* g++.dg/opt/devirt2.C: Fix scan rules for ia64*-*-hpux* and hppa*-*-*.
+
+2011-06-14  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/pr45701-1.c: Require thumb support.
+	* gcc.target/arm/pr45701-2.c: Likewise.
+	* gcc.target/arm/thumb-branch1.c: Likewise.
+
+	* gcc.target/arm/mla-1.c: Ignore warnings about conflicting switches.
+	* gcc.target/arm/pr39839.c: Likewise.
+	* gcc.target/arm/pr40657-2.c: Likewise.
+	* gcc.target/arm/pr40956.c: Likewise.
+	* gcc.target/arm/pr41679.c: Likewise.
+	* gcc.target/arm/pr42235.c: Likewise.
+	* gcc.target/arm/pr42495.c: Likewise.
+	* gcc.target/arm/pr42505.c: Likewise.
+	* gcc.target/arm/pr42574.c: Likewise.
+	* gcc.target/arm/pr46883.c: Likewise.
+	* gcc.target/arm/pr46934.c: Likewise.
+	* gcc.target/arm/xor-and.c: Likewise.
+
+2011-06-14  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/other/error23.C: Adjust error message.
+	* g++.dg/other/error32.C: Likewise.
+
+	PR c++/49389
+	* g++.dg/cpp0x/rv-dotstar.C: New.
+
+	PR c++/49369
+	* g++.dg/cpp0x/decltype30.C: New.
+
+	* g++.dg/cpp0x/constexpr-array-ptr7.C: New.
+
 2011-06-14  Jakub Jelinek  <jakub@redhat.com>
 
 	PR fortran/49103
@@ -44,6 +133,7 @@
 
 2011-06-13  Edmar Wienskoski  <edmar@freescale.com>
 
+	PR target/44618
 	* gcc.target/powerpc/outofline_rnreg.c: New testcase.
 
 2011-06-13  H.J. Lu  <hongjiu.lu@intel.com>

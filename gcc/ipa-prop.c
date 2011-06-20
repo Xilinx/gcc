@@ -1347,7 +1347,8 @@ ipa_analyze_indirect_call_uses (struct cgraph_node *node,
   if (!branch || gimple_code (branch) != GIMPLE_COND)
     return;
 
-  if (gimple_cond_code (branch) != NE_EXPR
+  if ((gimple_cond_code (branch) != NE_EXPR
+       && gimple_cond_code (branch) != EQ_EXPR)
       || !integer_zerop (gimple_cond_rhs (branch)))
     return;
 
@@ -2900,12 +2901,15 @@ void
 ipa_prop_write_jump_functions (cgraph_node_set set)
 {
   struct cgraph_node *node;
-  struct output_block *ob = create_output_block (LTO_section_jump_functions);
+  struct output_block *ob;
   unsigned int count = 0;
   cgraph_node_set_iterator csi;
 
-  ob->cgraph_node = NULL;
+  if (!ipa_node_params_vector)
+    return;
 
+  ob = create_output_block (LTO_section_jump_functions);
+  ob->cgraph_node = NULL;
   for (csi = csi_start (set); !csi_end_p (csi); csi_next (&csi))
     {
       node = csi_node (csi);

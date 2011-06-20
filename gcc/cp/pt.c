@@ -13635,7 +13635,6 @@ deduction_tsubst_fntype (tree fn, tree targs)
 {
   static bool excessive_deduction_depth;
   static int deduction_depth;
-  location_t save_loc = input_location;
   struct pending_template *old_last_pend = last_pending_template;
 
   tree fntype = TREE_TYPE (fn);
@@ -13659,7 +13658,6 @@ deduction_tsubst_fntype (tree fn, tree targs)
   r = tsubst (fntype, targs, tf_none, NULL_TREE);
   pop_deduction_access_scope (fn);
   --deduction_depth;
-  input_location = save_loc;
 
   if (excessive_deduction_depth)
     {
@@ -17356,29 +17354,49 @@ always_instantiate_p (tree decl)
 void
 maybe_instantiate_noexcept (tree fn)
 {
-  tree fntype = TREE_TYPE (fn);
-  tree spec = TYPE_RAISES_EXCEPTIONS (fntype);
-  tree noex = NULL_TREE;
-  location_t saved_loc = input_location;
-  tree clone;
+  tree fntype, spec, noex, clone;
+
+  if (DECL_CLONED_FUNCTION_P (fn))
+    fn = DECL_CLONED_FUNCTION (fn);
+  fntype = TREE_TYPE (fn);
+  spec = TYPE_RAISES_EXCEPTIONS (fntype);
 
   if (!DEFERRED_NOEXCEPT_SPEC_P (spec))
     return;
+
   noex = TREE_PURPOSE (spec);
 
-  push_tinst_level (fn);
-  push_access_scope (fn);
-  input_location = DECL_SOURCE_LOCATION (fn);
-  noex = tsubst_copy_and_build (DEFERRED_NOEXCEPT_PATTERN (noex),
-				DEFERRED_NOEXCEPT_ARGS (noex),
-				tf_warning_or_error, fn, /*function_p=*/false,
-				/*integral_constant_expression_p=*/true);
-  input_location = saved_loc;
-  pop_access_scope (fn);
-  pop_tinst_level ();
-  spec = build_noexcept_spec (noex, tf_warning_or_error);
-  if (spec == error_mark_node)
-    spec = noexcept_false_spec;
+  if (TREE_CODE (noex) == DEFERRED_NOEXCEPT)
+    {
+      push_tinst_level (fn);
+      push_access_scope (fn);
+      input_location = DECL_SOURCE_LOCATION (fn);
+      noex = tsubst_copy_and_build (DEFERRED_NOEXCEPT_PATTERN (noex),
+				    DEFERRED_NOEXCEPT_ARGS (noex),
+				    tf_warning_or_error, fn, /*function_p=*/false,
+				    /*integral_constant_expression_p=*/true);
+      pop_access_scope (fn);
+      pop_tinst_level ();
+      spec = build_noexcept_spec (noex, tf_warning_or_error);
+      if (spec == error_mark_node)
+	spec = noexcept_false_spec;
+    }
+  else
+    {
+      /* This is an implicitly declared function, so NOEX is a list of
+	 other functions to evaluate and merge.  */
+      tree elt;
+      spec = noexcept_true_spec;
+      for (elt = noex; elt; elt = OVL_NEXT (elt))
+	{
+	  tree fn = OVL_CURRENT (elt);
+	  tree subspec;
+	  maybe_instantiate_noexcept (fn);
+	  subspec = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn));
+	  spec = merge_exception_specifiers (spec, subspec, NULL_TREE);
+	}
+    }
+
   TREE_TYPE (fn) = build_exception_variant (fntype, spec);
 
   FOR_EACH_CLONE (clone, fn)

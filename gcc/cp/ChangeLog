@@ -1,3 +1,53 @@
+2011-06-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/49412
+	* decl.c (get_dso_handle_node): Mark __dso_handle hidden if
+	assembler supports hidden visibility.
+
+2011-06-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49107
+	* cp-tree.h (DEFERRED_NOEXCEPT_SPEC_P): Handle overload.
+	* method.c (defaulted_late_check): Only maybe_instantiate_noexcept
+	if the declaration had an exception-specifier.
+	(process_subob_fn): Don't maybe_instantiate_noexcept.
+	* pt.c (maybe_instantiate_noexcept): Handle overload.
+	* typeck2.c (nothrow_spec_p_uninst): New.
+	(merge_exception_specifiers): Add 'fn' parm.  Build up overload.
+	* typeck.c (merge_types): Adjust.
+
+	* pt.c (deduction_tsubst_fntype): Don't save input_location.
+	(maybe_instantiate_noexcept): Likewise.
+
+2011-06-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (cp/method.o): Update dependencies.
+	* method.c: Include common/common-target.h.
+	(use_thunk): Use targetm_common.have_named_sections.
+
+2011-06-14  Steve Ellcey  <sje@cup.hp.com>
+
+	* decl.c (cxx_init_decl_processing): Use ptr_mode instead of Pmode.
+
+2011-06-14  Jason Merrill  <jason@redhat.com>
+
+	* error.c (type_to_string): Print typedef-stripped version too.
+
+	PR c++/49117
+	* call.c (perform_implicit_conversion_flags): Print source type as
+	well as expression.
+
+	PR c++/49389
+	* typeck2.c (build_m_component_ref): Preserve rvalueness.
+
+	PR c++/49369
+	* class.c (build_base_path): Fix cv-quals in unevaluated context.
+
+	PR c++/49290
+	* semantics.c (cxx_fold_indirect_ref): Local, more permissive copy
+	of fold_indirect_ref_1.
+	(cxx_eval_indirect_ref): Use it.
+
 2011-06-11  Jan Hubicka  <jh@suse.cz>
 
 	* decl2.c (cp_write_global_declarations): Process aliases; look trhough

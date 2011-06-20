@@ -166,11 +166,11 @@ static rtx arm_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
 static tree arm_builtin_decl (unsigned, bool);
 static void emit_constant_insn (rtx cond, rtx pattern);
 static rtx emit_set_insn (rtx, rtx);
-static int arm_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
+static int arm_arg_partial_bytes (cumulative_args_t, enum machine_mode,
 				  tree, bool);
-static rtx arm_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx arm_function_arg (cumulative_args_t, enum machine_mode,
 			     const_tree, bool);
-static void arm_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+static void arm_function_arg_advance (cumulative_args_t, enum machine_mode,
 				      const_tree, bool);
 static unsigned int arm_function_arg_boundary (enum machine_mode, const_tree);
 static rtx aapcs_allocate_return_reg (enum machine_mode, const_tree,
@@ -188,9 +188,9 @@ static void arm_encode_section_info (tree, rtx, int);
 static void arm_file_end (void);
 static void arm_file_start (void);
 
-static void arm_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
+static void arm_setup_incoming_varargs (cumulative_args_t, enum machine_mode,
 					tree, int *, int);
-static bool arm_pass_by_reference (CUMULATIVE_ARGS *,
+static bool arm_pass_by_reference (cumulative_args_t,
 				   enum machine_mode, const_tree, bool);
 static bool arm_promote_prototypes (const_tree);
 static bool arm_default_short_enums (void);
@@ -204,7 +204,6 @@ static bool arm_output_ttype (rtx);
 static void arm_asm_emit_except_personality (rtx);
 static void arm_asm_init_sections (void);
 #endif
-static enum unwind_info_type arm_except_unwind_info (struct gcc_options *);
 static void arm_dwarf_handle_frame_unspec (const char *, rtx, int);
 static rtx arm_dwarf_register_span (rtx);
 
@@ -303,15 +302,6 @@ static const struct attribute_spec arm_attribute_table[] =
 #endif
   { NULL,           0, 0, false, false, false, NULL, false }
 };
-
-/* Set default optimization options.  */
-static const struct default_options arm_option_optimization_table[] =
-  {
-    /* Enable section anchors by default at -O1 or higher.  */
-    { OPT_LEVELS_1_PLUS, OPT_fsection_anchors, NULL, 1 },
-    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
-    { OPT_LEVELS_NONE, 0, NULL, 0 }
-  };
 
 /* Initialize the GCC target structure.  */
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
@@ -351,12 +341,8 @@ static const struct default_options arm_option_optimization_table[] =
 #undef  TARGET_ASM_FUNCTION_EPILOGUE
 #define TARGET_ASM_FUNCTION_EPILOGUE arm_output_function_epilogue
 
-#undef  TARGET_DEFAULT_TARGET_FLAGS
-#define TARGET_DEFAULT_TARGET_FLAGS (TARGET_DEFAULT | MASK_SCHED_PROLOG)
 #undef  TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE arm_option_override
-#undef  TARGET_OPTION_OPTIMIZATION_TABLE
-#define TARGET_OPTION_OPTIMIZATION_TABLE arm_option_optimization_table
 
 #undef  TARGET_COMP_TYPE_ATTRIBUTES
 #define TARGET_COMP_TYPE_ATTRIBUTES arm_comp_type_attributes
@@ -515,9 +501,6 @@ static const struct default_options arm_option_optimization_table[] =
 #undef TARGET_ASM_INIT_SECTIONS
 #define TARGET_ASM_INIT_SECTIONS arm_asm_init_sections
 #endif /* ARM_UNWIND_INFO */
-
-#undef TARGET_EXCEPT_UNWIND_INFO
-#define TARGET_EXCEPT_UNWIND_INFO  arm_except_unwind_info
 
 #undef TARGET_DWARF_HANDLE_FRAME_UNSPEC
 #define TARGET_DWARF_HANDLE_FRAME_UNSPEC arm_dwarf_handle_frame_unspec
@@ -4406,9 +4389,10 @@ arm_needs_doubleword_align (enum machine_mode mode, const_tree type)
    indeed make it pass in the stack if necessary).  */
 
 static rtx
-arm_function_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
+arm_function_arg (cumulative_args_t pcum_v, enum machine_mode mode,
 		  const_tree type, bool named)
 {
+  CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
   int nregs;
 
   /* Handle the special case quickly.  Pick an arbitrary value for op2 of
@@ -4466,9 +4450,10 @@ arm_function_arg_boundary (enum machine_mode mode, const_tree type)
 }
 
 static int
-arm_arg_partial_bytes (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
+arm_arg_partial_bytes (cumulative_args_t pcum_v, enum machine_mode mode,
 		       tree type, bool named)
 {
+  CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
   int nregs = pcum->nregs;
 
   if (pcum->pcs_variant <= ARM_PCS_AAPCS_LOCAL)
@@ -4493,9 +4478,11 @@ arm_arg_partial_bytes (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
    (TYPE is null for libcalls where that information may not be available.)  */
 
 static void
-arm_function_arg_advance (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
+arm_function_arg_advance (cumulative_args_t pcum_v, enum machine_mode mode,
 			  const_tree type, bool named)
 {
+  CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
+
   if (pcum->pcs_variant <= ARM_PCS_AAPCS_LOCAL)
     {
       aapcs_layout_arg (pcum, mode, type, named);
@@ -4529,7 +4516,7 @@ arm_function_arg_advance (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
    extension to the ARM ABI.  */
 
 static bool
-arm_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
+arm_pass_by_reference (cumulative_args_t cum ATTRIBUTE_UNUSED,
 		       enum machine_mode mode ATTRIBUTE_UNUSED,
 		       const_tree type, bool named ATTRIBUTE_UNUSED)
 {
@@ -21950,12 +21937,13 @@ arm_output_load_gr (rtx *operands)
    that way.  */
 
 static void
-arm_setup_incoming_varargs (CUMULATIVE_ARGS *pcum,
+arm_setup_incoming_varargs (cumulative_args_t pcum_v,
 			    enum machine_mode mode,
 			    tree type,
 			    int *pretend_size,
 			    int second_time ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
   int nregs;
   
   cfun->machine->uses_anonymous_args = 1;
@@ -22847,33 +22835,6 @@ arm_asm_init_sections (void)
 					   "\t.handlerdata");
 }
 #endif /* ARM_UNWIND_INFO */
-
-/* Implement TARGET_EXCEPT_UNWIND_INFO.  */
-
-static enum unwind_info_type
-arm_except_unwind_info (struct gcc_options *opts)
-{
-  /* Honor the --enable-sjlj-exceptions configure switch.  */
-#ifdef CONFIG_SJLJ_EXCEPTIONS
-  if (CONFIG_SJLJ_EXCEPTIONS)
-    return UI_SJLJ;
-#endif
-
-  /* If not using ARM EABI unwind tables... */
-  if (ARM_UNWIND_INFO)
-    {
-      /* For simplicity elsewhere in this file, indicate that all unwind
-	 info is disabled if we're not emitting unwind tables.  */
-      if (!opts->x_flag_exceptions && !opts->x_flag_unwind_tables)
-	return UI_NONE;
-      else
-	return UI_TARGET;
-    }
-
-  /* ... we use sjlj exceptions for backwards compatibility.  */
-  return UI_SJLJ;
-}
-
 
 /* Handle UNSPEC DWARF call frame instructions.  These are needed for dynamic
    stack alignment.  */
@@ -23851,236 +23812,6 @@ arm_attr_length_push_multi(rtx parallel_op, rtx first_op)
   if (!hi_reg)
     return 2;
   return 4;
-}
-
-/* Check the validity of operands in an ldrd/strd instruction.  */
-bool
-arm_check_ldrd_operands (rtx reg1, rtx reg2, rtx off1, rtx off2)
-{
-  HOST_WIDE_INT offset1 = 0;
-  HOST_WIDE_INT offset2 = 0;
-  int regno1 = REGNO (reg1);
-  int regno2 = REGNO (reg2);
-  HOST_WIDE_INT max_offset = 1020;
-
-  if (TARGET_ARM)
-    max_offset = 255;
-
-  if (off1 != NULL_RTX)
-    offset1 = INTVAL (off1);
-  if (off2 != NULL_RTX)
-    offset2 = INTVAL (off2);
-
-  /* The offset range of LDRD is [-max_offset, max_offset]. Here we check if
-     both offsets lie in the range [-max_offset, max_offset+4]. If one of the
-     offsets is max_offset+4, the following condition
-	((offset1 + 4) == offset2)
-     will ensure offset1 to be max_offset, suitable for instruction LDRD.  */
-  if ((offset1 > (max_offset + 4)) || (offset1 < -max_offset)
-      || ((offset1 & 3) != 0))
-    return false;
-  if ((offset2 > (max_offset + 4)) || (offset2 < -max_offset)
-      || ((offset2 & 3) != 0))
-    return false;
-
-  if ((offset1 + 4) == offset2)
-    {
-      if (TARGET_THUMB2)
-	return true;
-
-      /* TARGET_ARM  */
-      if (((regno1 & 1) == 0) && ((regno1 + 1) == regno2))           /* ldrd  */
-	return true;
-
-      if ((regno1 < regno2) && ((offset1 <= 4) && (offset1 >= -8)))  /* ldm  */
-	return true;
-    }
-  if ((offset2 + 4) == offset1)
-    {
-      if (TARGET_THUMB2)
-	return true;
-
-      /* TARGET_ARM  */
-      if (((regno2 & 1) == 0) && ((regno2 + 1) == regno1))           /* ldrd  */
-	return true;
-
-      if ((regno2 < regno1) && ((offset2 <= 4) && (offset2 >= -8)))  /* ldm  */
-	return true;
-    }
-
-  return false;
-}
-
-/* Check if the two memory accesses can be merged to an ldrd/strd instruction.
-   That is they use the same base register, and the gap between constant
-   offsets should be 4.  */
-bool
-arm_legitimate_ldrd_p (rtx reg1, rtx reg2, rtx mem1, rtx mem2, bool ldrd)
-{
-  rtx base1, base2;
-  rtx offset1 = NULL_RTX;
-  rtx offset2 = NULL_RTX;
-  rtx addr1 = XEXP (mem1, 0);
-  rtx addr2 = XEXP (mem2, 0);
-
-  if (MEM_VOLATILE_P (mem1) || MEM_VOLATILE_P (mem2))
-    return false;
-
-  if (REG_P (addr1))
-    base1 = addr1;
-  else if (GET_CODE (addr1) == PLUS)
-    {
-      base1 = XEXP (addr1, 0);
-      offset1 = XEXP (addr1, 1);
-      if (!REG_P (base1) || (GET_CODE (offset1) != CONST_INT))
-	return false;
-    }
-  else
-    return false;
-
-  if (REG_P (addr2))
-    base2 = addr2;
-  else if (GET_CODE (addr2) == PLUS)
-    {
-      base2 = XEXP (addr2, 0);
-      offset2 = XEXP (addr2, 1);
-      if (!REG_P (base2) || (GET_CODE (offset2) != CONST_INT))
-	return false;
-    }
-  else
-    return false;
-
-  if (base1 != base2)
-    return false;
-
-  if (ldrd && ((reg1 == reg2) || (reg1 == base1)))
-    return false;
-
-  return arm_check_ldrd_operands (reg1, reg2, offset1, offset2);
-}
-
-/* Output instructions for ldrd and count the number of bytes has been
-   outputted. Do not actually output instructions if EMIT_P is false.  */
-int
-arm_output_ldrd (rtx reg1, rtx reg2, rtx base, rtx off1, rtx off2, bool emit_p)
-{
-  int length = 0;
-  rtx operands[5];
-  HOST_WIDE_INT offset1 = 0;
-  HOST_WIDE_INT offset2 = 0;
-
-  if (off1 != NULL_RTX)
-    offset1 = INTVAL (off1);
-  else
-    off1 = GEN_INT (0);
-  if (off2 != NULL_RTX)
-    offset2 = INTVAL (off2);
-  else
-    off2 = GEN_INT (0);
-  if (offset1 > offset2)
-    {
-      rtx tmp;
-      HOST_WIDE_INT t = offset1;   offset1 = offset2;   offset2 = t;
-      tmp = off1;   off1 = off2;   off2 = tmp;
-      tmp = reg1;   reg1 = reg2;   reg2 = tmp;
-    }
-
-  operands[0] = reg1;
-  operands[1] = reg2;
-  operands[2] = base;
-  operands[3] = off1;
-  operands[4] = off2;
-
-  if (TARGET_THUMB2)
-    {
-      if (fix_cm3_ldrd && (base == reg1))
-	{
-	  if (offset1 <= -256)
-	    {
-	      if (emit_p)
-		output_asm_insn ("sub\t%2, %2, %n3", operands);
-	      length = 4;
-
-	      if (emit_p)
-		output_asm_insn ("ldr\t%1, [%2, #4]", operands);
-	      if (low_register_operand (reg2, SImode)
-		  && low_register_operand (base, SImode))
-		length += 2;
-	      else
-		length += 4;
-
-	      if (emit_p)
-		output_asm_insn ("ldr\t%0, [%2]", operands);
-	      if (low_register_operand (base, SImode))
-		length += 2;
-	      else
-		length += 4;
-	    }
-	  else
-	    {
-	      if (emit_p)
-		output_asm_insn ("ldr\t%1, [%2, %4]", operands);
-	      if (low_register_operand (reg2, SImode) && (offset2 >= 0)
-		  && low_register_operand (base, SImode) && (offset2 < 128))
-		length += 2;
-	      else
-		length += 4;
-
-	      if (emit_p)
-		output_asm_insn ("ldr\t%0, [%2, %3]", operands);
-	      if (low_register_operand (base, SImode)
-		  && (offset1 >= 0) && (offset1 < 128))
-		length += 2;
-	      else
-		length += 4;
-	    }
-	}
-      else
-	{
-	  if (emit_p)
-	    output_asm_insn ("ldrd\t%0, %1, [%2, %3]", operands);
-	  length = 4;
-	}
-    }
-  else    /* TARGET_ARM  */
-    {
-      if ((REGNO (reg2) == (REGNO (reg1) + 1)) && ((REGNO (reg1) & 1) == 0))
-	{
-	  if (emit_p)
-	    output_asm_insn ("ldrd\t%0, %1, [%2, %3]", operands);
-	  length = 4;
-	}
-      else
-	{
-	  if (emit_p)
-	    {
-	      switch (offset1)
-		{
-		case -8:
-		  output_asm_insn ("ldm%(db%)\t%2, {%0, %1}", operands);
-		  break;
-
-		case -4:
-		  output_asm_insn ("ldm%(da%)\t%2, {%0, %1}", operands);
-		  break;
-
-		case 0:
-		  output_asm_insn ("ldm%(ia%)\t%2, {%0, %1}", operands);
-		  break;
-
-		case 4:
-		  output_asm_insn ("ldm%(ib%)\t%2, {%0, %1}", operands);
-		  break;
-
-		default:
-		  gcc_unreachable ();
-		}
-	    }
-	  length = 4;
-	}
-    }
-
-  return length;
 }
 
 #include "gt-arm.h"

@@ -624,6 +624,8 @@ tm_defines
 tm_include_list
 tm_file_list
 thread_file
+common_out_object_file
+common_out_file
 out_object_file
 out_file
 objc_boehm_gc
@@ -11239,6 +11241,7 @@ done
 tmake_file="${tmake_file_}"
 
 out_object_file=`basename $out_file .c`.o
+common_out_object_file=`basename $common_out_file .c`.o
 
 tm_file_list="options.h"
 tm_include_list="options.h insn-constants.h"
@@ -17539,7 +17542,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17542 "configure"
+#line 17545 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17645,7 +17648,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17648 "configure"
+#line 17651 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -26416,6 +26419,8 @@ fi
 
 
 
+
+
 # Echo link setup.
 if test x${build} = x${host} ; then
   if test x${host} = x${target} ; then
@@ -27973,7 +27978,7 @@ case ${CONFIG_HEADERS} in
   echo > cstamp-h ;;
 esac
 # Make sure all the subdirs exist.
-for d in $subdirs doc build c-family
+for d in $subdirs doc build common c-family
 do
     test -d $d || mkdir $d
 done

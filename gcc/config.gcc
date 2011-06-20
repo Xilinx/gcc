@@ -96,6 +96,9 @@
 #  out_file		The name of the machine description C support
 #			file, if different from "$cpu_type/$cpu_type.c".
 #
+#  common_out_file	The name of the source file for code shared between
+#			the compiler proper and the driver.
+#
 #  md_file		The name of the machine-description file, if
 #			different from "$cpu_type/$cpu_type.md".
 #
@@ -192,8 +195,12 @@
 #
 #  target_has_targetcm	Set to yes or no depending on whether the target
 #			has its own definition of targetcm.
+#
+#  target_has_targetm_common	Set to yes or no depending on whether the
+#			target has its own definition of targetm_common.
 
 out_file=
+common_out_file=
 tmake_file=
 extra_headers=
 user_headers_inc_next_pre=
@@ -210,6 +217,7 @@ c_target_objs=
 cxx_target_objs=
 fortran_target_objs=
 target_has_targetcm=no
+target_has_targetm_common=yes
 tm_defines=
 xm_defines=
 libgcc_tm_file=
@@ -321,6 +329,7 @@ frv*)	cpu_type=frv
 	extra_options="${extra_options} g.opt"
 	;;
 moxie*)	cpu_type=moxie
+	target_has_targetm_common=no
 	;;
 fido-*-*)
 	cpu_type=m68k
@@ -420,6 +429,9 @@ s390*-*-*)
 sh[123456789lbe]*-*-* | sh-*-*)
 	cpu_type=sh
 	need_64bit_hwint=yes
+	;;
+v850*-*-*)
+	cpu_type=v850
 	;;
 xtensa*-*-*)
 	extra_options="${extra_options} fused-madd.opt"
@@ -2600,12 +2612,6 @@ v850*-*-*)
 		;;
 	esac
 	tm_file="dbxelf.h elfos.h newlib-stdint.h v850/v850.h"
-	tm_p_file=v850/v850-protos.h
-	tmake_file=v850/t-v850
-	md_file=v850/v850.md
-	extra_modes=v850/v850-modes.def
-	out_file=v850/v850.c
-	extra_options="v850/v850.opt"
 	if test x$stabs = xyes
 	then
 		tm_file="${tm_file} dbx.h"
@@ -2686,6 +2692,14 @@ esac
 if [ "$target_has_targetcm" = "no" ]; then
   c_target_objs="$c_target_objs default-c.o"
   cxx_target_objs="$cxx_target_objs default-c.o"
+fi
+
+if [ "$common_out_file" = "" ]; then
+  if [ "$target_has_targetm_common" = "yes" ]; then
+    common_out_file="$cpu_type/$cpu_type-common.c"
+  else
+    common_out_file="default-common.c"
+  fi
 fi
 
 # Support for --with-cpu and related options (and a few unrelated options,

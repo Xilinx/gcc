@@ -3672,7 +3672,7 @@ cxx_init_decl_processing (void)
     TYPE_SIZE_UNIT (nullptr_type_node) = size_int (GET_MODE_SIZE (ptr_mode));
     TYPE_UNSIGNED (nullptr_type_node) = 1;
     TYPE_PRECISION (nullptr_type_node) = GET_MODE_BITSIZE (ptr_mode);
-    SET_TYPE_MODE (nullptr_type_node, Pmode);
+    SET_TYPE_MODE (nullptr_type_node, ptr_mode);
     record_builtin_type (RID_MAX, "decltype(nullptr)", nullptr_type_node);
     nullptr_node = build_int_cst (nullptr_type_node, 0);
   }
@@ -6434,6 +6434,11 @@ get_dso_handle_node (void)
   /* Declare the variable.  */
   dso_handle_node = declare_global_var (get_identifier ("__dso_handle"),
 					ptr_type_node);
+
+#ifdef HAVE_GAS_HIDDEN
+  DECL_VISIBILITY (dso_handle_node) = VISIBILITY_HIDDEN;
+  DECL_VISIBILITY_SPECIFIED (dso_handle_node) = 1;
+#endif
 
   return dso_handle_node;
 }

@@ -85,6 +85,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pretty-print.h"
 #include "debug.h"
 #include "target.h"
+#include "common/common-target.h"
 #include "langhooks.h"
 #include "hashtab.h"
 #include "cgraph.h"
@@ -154,7 +155,7 @@ dwarf2out_do_frame (void)
     return true;
 
   if ((flag_unwind_tables || flag_exceptions)
-      && targetm.except_unwind_info (&global_options) == UI_DWARF2)
+      && targetm_common.except_unwind_info (&global_options) == UI_DWARF2)
     return true;
 
   return false;
@@ -190,7 +191,7 @@ dwarf2out_do_cfi_asm (void)
      dwarf2 unwind info for exceptions, then emit .debug_frame by hand.  */
   if (!HAVE_GAS_CFI_SECTIONS_DIRECTIVE
       && !flag_unwind_tables && !flag_exceptions
-      && targetm.except_unwind_info (&global_options) != UI_DWARF2)
+      && targetm_common.except_unwind_info (&global_options) != UI_DWARF2)
     return false;
 
   saved_do_cfi_asm = true;
@@ -4081,7 +4082,7 @@ dwarf2out_begin_prologue (unsigned int line ATTRIBUTE_UNUSED,
      call-site information.  We must emit this label if it might be used.  */
   if (!do_frame
       && (!flag_exceptions
-	  || targetm.except_unwind_info (&global_options) != UI_TARGET))
+	  || targetm_common.except_unwind_info (&global_options) != UI_TARGET))
     return;
 
   fnsec = function_section (current_function_decl);
@@ -4244,7 +4245,7 @@ dwarf2out_frame_init (void)
   dwarf2out_def_cfa (NULL, STACK_POINTER_REGNUM, INCOMING_FRAME_SP_OFFSET);
 
   if (targetm.debug_unwind_info () == UI_DWARF2
-      || targetm.except_unwind_info (&global_options) == UI_DWARF2)
+      || targetm_common.except_unwind_info (&global_options) == UI_DWARF2)
     initial_return_save (INCOMING_RETURN_ADDR_RTX);
 }
 
@@ -4257,7 +4258,7 @@ dwarf2out_frame_finish (void)
 
   /* Output another copy for the unwinder.  */
   if ((flag_unwind_tables || flag_exceptions)
-      && targetm.except_unwind_info (&global_options) == UI_DWARF2)
+      && targetm_common.except_unwind_info (&global_options) == UI_DWARF2)
     output_call_frame_info (1);
 }
 
@@ -4466,6 +4467,9 @@ typedef struct GTY(()) dw_loc_list_struct {
   /* True if this list has been replaced by dw_loc_next.  */
   bool replaced;
   bool emitted;
+  /* True if the range should be emitted even if begin and end
+     are the same.  */
+  bool force;
 } dw_loc_list_node;
 
 static dw_loc_descr_ref int_loc_descriptor (HOST_WIDE_INT);
@@ -8620,7 +8624,30 @@ add_var_loc_to_decl (tree decl, rtx loc_note, const char *label)
   else
     temp = (var_loc_list *) *slot;
 
-  if (temp->last)
+  /* For PARM_DECLs try to keep around the original incoming value,
+     even if that means we'll emit a zero-range .debug_loc entry.  */
+  if (temp->last
+      && temp->first == temp->last
+      && TREE_CODE (decl) == PARM_DECL
+      && GET_CODE (temp->first->loc) == NOTE
+      && NOTE_VAR_LOCATION_DECL (temp->first->loc) == decl
+      && DECL_INCOMING_RTL (decl)
+      && NOTE_VAR_LOCATION_LOC (temp->first->loc)
+      && GET_CODE (NOTE_VAR_LOCATION_LOC (temp->first->loc))
+	 == GET_CODE (DECL_INCOMING_RTL (decl))
+      && prev_real_insn (temp->first->loc) == NULL_RTX
+      && (bitsize != -1
+	  || !rtx_equal_p (NOTE_VAR_LOCATION_LOC (temp->first->loc),
+			   NOTE_VAR_LOCATION_LOC (loc_note))
+	  || (NOTE_VAR_LOCATION_STATUS (temp->first->loc)
+	      != NOTE_VAR_LOCATION_STATUS (loc_note))))
+    {
+      loc = ggc_alloc_cleared_var_loc_node ();
+      temp->first->next = loc;
+      temp->last = loc;
+      loc->loc = construct_piece_list (loc_note, bitpos, bitsize);
+    }
+  else if (temp->last)
     {
       struct var_loc_node *last = temp->last, *unused = NULL;
       rtx *piece_loc = NULL, last_loc_note;
@@ -8666,7 +8693,9 @@ add_var_loc_to_decl (tree decl, rtx loc_note, const char *label)
 	    }
 	  else
 	    {
-	      gcc_assert (temp->first == temp->last);
+	      gcc_assert (temp->first == temp->last
+			  || (temp->first->next == temp->last
+			      && TREE_CODE (decl) == PARM_DECL));
 	      memset (temp->last, '\0', sizeof (*temp->last));
 	      temp->last->loc = construct_piece_list (loc_note, bitpos, bitsize);
 	      return temp->last;
@@ -11393,7 +11422,7 @@ output_loc_list (dw_loc_list_ref list_head)
     {
       unsigned long size;
       /* Don't output an entry that starts and ends at the same address.  */
-      if (strcmp (curr->begin, curr->end) == 0)
+      if (strcmp (curr->begin, curr->end) == 0 && !curr->force)
 	continue;
       if (!have_multiple_function_sections)
 	{
@@ -16089,6 +16118,11 @@ dw_loc_list (var_loc_list *loc_list, tree decl, int want_address)
 	      }
 
 	    *listp = new_loc_list (descr, node->label, endname, secname);
+	    if (TREE_CODE (decl) == PARM_DECL
+		&& node == loc_list->first
+		&& GET_CODE (node->loc) == NOTE
+		&& strcmp (node->label, endname) == 0)
+	      (*listp)->force = true;
 	    listp = &(*listp)->dw_loc_next;
 
 	    if (range_across_switch)
@@ -23538,7 +23572,7 @@ dwarf2out_assembly_start (void)
   if (HAVE_GAS_CFI_SECTIONS_DIRECTIVE
       && dwarf2out_do_cfi_asm ()
       && (!(flag_unwind_tables || flag_exceptions)
-	  || targetm.except_unwind_info (&global_options) != UI_DWARF2))
+	  || targetm_common.except_unwind_info (&global_options) != UI_DWARF2))
     fprintf (asm_out_file, "\t.cfi_sections\t.debug_frame\n");
 }
 
