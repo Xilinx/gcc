@@ -101,8 +101,16 @@ gpy_dot_tree_t * dot_build_decl2 (opcode_t o, gpy_dot_tree_t * t1,
 {
   gpy_dot_tree_t * decl = DOT_alloc;
   
-  DOT_TYPE(decl) = o;
-  DOT_FIELD(decl) = NULL_DOT;
+  DOT_TYPE (decl) = o;
+  if ((o == D_MODIFY_EXPR)
+      || (o == D_ADD_EXPR)
+      || (o == D_MINUS_EXPR)
+      || (o == D_MULT_EXPR)
+      || (o == D_DIVD_EXPR)
+      )
+    DOT_FIELD (decl) = D_D_EXPR;
+  else
+    DOT_FIELD (field) = NULL_DOT;
   
   decl->opaT = D_TD_DOT;
   decl->opa.t = t1;

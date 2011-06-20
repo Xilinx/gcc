@@ -57,6 +57,9 @@ typedef struct GTY(()) gpy_tree_dot_t {
 #define DOT_alloc        (gpy_dot_tree_t *)	\
   xmalloc (sizeof (gpy_dot_tree_t));
 
+#define DOT_IDENTIFIER_POINTER(x)		\
+  x->opa.tc.o.string
+
 extern gpy_dot_tree_t * dot_build_class_decl (gpy_dot_tree_t *, gpy_dot_tree_t *);
 
 extern gpy_dot_tree_t * dot_build_func_decl (gpy_dot_tree_t *, gpy_dot_tree_t *,

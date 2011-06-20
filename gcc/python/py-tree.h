@@ -17,30 +17,11 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __PY_TREE_H__
 #define __PY_TREE_H__
 
-extern VEC(tree,gc) * gpy_decl_process_assign (gpy_symbol_obj ** , gpy_symbol_obj **,
-					       VEC(gpy_ctx_t,gc) *);
-extern VEC(tree,gc) * gpy_decl_process_bin_expression (gpy_symbol_obj ** , gpy_symbol_obj **,
-						       gpy_opcode_t, VEC(gpy_ctx_t,gc) *);
-					
-extern VEC(tree,gc) * gpy_decl_fold_primitive (const gpy_symbol_obj * const);
+extern VEC(tree,gc) * gpy_stmt_pass_generate_types (VEC(gpydot,gc) *);
 
-extern VEC(tree,gc) * gpy_stmt_get_tree_1 (gpy_symbol_obj *, VEC(gpy_ctx_t,gc) *);
-extern VEC(tree,gc) * gpy_stmt_get_tree_2 (gpy_symbol_obj *, tree, VEC(gpy_ctx_t,gc) *);
+extern gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t **);
 
-extern VEC(tree,gc) * gpy_stmt_process_expression (const gpy_symbol_obj * const,
-						   VEC(gpy_ctx_t,gc) *);
-
-extern VEC(tree,gc) * gpy_stmt_process_print (gpy_symbol_obj *, VEC(gpy_ctx_t,gc) *);
-
-extern tree gpy_stmt_process_functor (gpy_symbol_obj * const, const char *,
-				      tree, VEC(gpy_ctx_t,gc) *);
-
-extern void gpy_stmt_process_decl (gpy_symbol_obj * const);
-
-extern tree gpy_ctx_lookup_decl (VEC(gpy_ctx_t,gc) *, const char *);
-
-extern bool gpy_ctx_push_decl (tree, const char *, gpy_hash_tab_t *);
-	    
+/* WARN: requires type to be of <tree> */
 #define GPY_VEC_stmts_append(x,y)			\
   do {							\
     int x_ = 0; tree t_ = NULL_TREE;			\

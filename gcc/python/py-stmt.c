@@ -51,8 +51,6 @@ along with GCC; see the file COPYING3.  If not see
 
 static VEC(gpydot,gc) * gpy_decls;
 
-static gpy_symbol_obj * gpy_stmt_process_AST_Align (gpy_dot_tree_t **);
-
 void gpy_stmt_process_decl (gpy_dot_tree_t * const dot)
 {
   /* Push the declaration! */
@@ -102,7 +100,6 @@ void gpy_stmt_process_decl (gpy_dot_tree_t * const dot)
                     / \
                    2   2
  **/
-static
 gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t ** dot)
 {
   gpy_dot_tree_t *retval = NULL_DOT;
@@ -188,14 +185,8 @@ gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t ** dot)
   return retval;
 }
 
-VEC(tree,gc) * gpy_stmt_pass_generate_types (VEC(gpydot,gc) * decls)
-{
-  VEC(tree,gc) * retval = VEC_alloc(tree,gc,0);
 
-  
 
-  return retval;
-}
 
 /**
  * Things are quite complicated from here on and will change frequently

@@ -60,7 +60,7 @@ gpy_hash_entry_t *
 gpy_dd_hash_lookup_table (gpy_hash_tab_t * tbl, gpy_hashval_t h)
 {
   gpy_hash_entry_t* retval = NULL;
-  if( tbl->array )
+  if (tbl->array)
     {
       int size= tbl->size, idx= (h % size);
       gpy_hash_entry_t *array= tbl->array;
@@ -87,12 +87,12 @@ void ** gpy_dd_hash_insert (gpy_hashval_t h, void * obj,
 {
   void **retval = NULL;
   gpy_hash_entry_t *entry = NULL;
-  if( tbl->length >= tbl->size )
+  if (tbl->length >= tbl->size)
     gpy_dd_hash_grow_table( tbl );
 
   entry= gpy_dd_hash_lookup_table( tbl, h );
-  if( entry->data )
-    retval= &( entry->data );
+  if (entry->data)
+    retval = &( entry->data );
   else
     {
       entry->data= obj;
