@@ -138,6 +138,10 @@ enum vect_verbosity_levels user_vect_verbosity_level = MAX_VERBOSITY_LEVEL
 Variable
 enum stack_check_type flag_stack_check = NO_STACK_CHECK
 
+; True if stack usage information needs to be computed.
+Variable
+bool flag_stack_usage_info = false
+
 ; -dA causes debug commentary information to be produced in
 ; the generated assembly code (to make it more readable).  This option
 ; is generally only of use to those who actually need to read the
@@ -456,11 +460,20 @@ Driver Joined Separate
 Tbss
 Driver Separate
 
+Tbss=
+Driver Joined
+
 Tdata
 Driver Separate
 
+Tdata=
+Driver Joined
+
 Ttext
 Driver Separate
+
+Ttext=
+Driver Joined
 
 W
 Common RejectNegative Warning Alias(Wextra)
@@ -566,6 +579,10 @@ Wstack-protector
 Common Var(warn_stack_protect) Warning
 Warn when not issuing stack smashing protection for some reason
 
+Wstack-usage=
+Common Joined RejectNegative UInteger Var(warn_stack_usage) Init(-1) Warning
+Warn if stack usage might be larger than specified amount
+
 Wstrict-aliasing
 Common Warning
 Warn about code which might break strict aliasing rules
@@ -621,6 +638,10 @@ Warn if a comparison is always true or always false due to the limited range of 
 Wuninitialized
 Common Var(warn_uninitialized) Init(-1) Warning
 Warn about uninitialized automatic variables
+
+Wmaybe-uninitialized
+Common Var(warn_maybe_uninitialized) Warning
+Warn about maybe uninitialized automatic variables
 
 Wunreachable-code
 Common Ignore
@@ -745,6 +766,9 @@ Driver Undocumented
 ;    in function pointer mangling, and corrects mangling of decltype and
 ;    function parameters used in other parameters and the return type.
 ;    First selectable in G++ 4.6.
+;
+; 6: The version of the ABI that doesn't promote scoped enums to int.
+;    First selectable in G++ 4.7.
 ;
 ; Additional positive integers will be assigned as new versions of
 ; the ABI become the default version of the ABI.
@@ -918,6 +942,10 @@ fdebug-prefix-map=
 Common Joined RejectNegative Var(common_deferred_options) Defer
 Map one directory name to another in debug information
 
+fdebug-types-section
+Common Report Var(flag_debug_types_section) Init(1)
+Output .debug_types section when using DWARF v4 debuginfo.
+
 ; Nonzero for -fdefer-pop: don't pop args after each function call
 ; instead save them up to pop many calls' args with one insns.
 fdefer-pop
@@ -957,6 +985,14 @@ fdiagnostics-show-option
 Common Var(flag_diagnostics_show_option) Init(1)
 Amend appropriate diagnostic messages with the command line option that controls them
 
+fdisable-
+Common Joined RejectNegative Var(common_deferred_options) Defer
+-fdisable-[tree|rtl|ipa]-<pass>=range1+range2 disables an optimization pass
+
+fenable-
+Common Joined RejectNegative Var(common_deferred_options) Defer
+-fenable-[tree|rtl|ipa]-<pass>=range1+range2 enables an optimization pass
+
 fdump-
 Common Joined RejectNegative Var(common_deferred_options) Defer
 -fdump-<type>	Dump various compiler internals to a file
@@ -975,6 +1011,10 @@ Common RejectNegative Joined Var(flag_dump_go_spec)
 fdump-noaddr
 Common Report Var(flag_dump_noaddr)
 Suppress output of addresses in debugging dumps
+
+fdump-passes
+Common Var(flag_dump_passes) Init(0)
+Dump optimization passes
 
 fdump-unnumbered
 Common Report Var(flag_dump_unnumbered)
@@ -1011,10 +1051,6 @@ Perform unused type elimination in debug info
 femit-class-debug-always
 Common Report Var(flag_emit_class_debug_always) Init(0)
 Do not suppress C++ class debug information.
-
-fenable-icf-debug
-Common Report Var(flag_enable_icf_debug)
-Generate debug information to support Identical Code Folding (ICF)
 
 fexceptions
 Common Report Var(flag_exceptions) Optimization
@@ -1201,7 +1237,7 @@ Common Report Var(flag_inline_functions) Optimization
 Integrate simple functions into their callers
 
 finline-functions-called-once
-Common Report Var(flag_inline_functions_called_once) Init(1) Optimization
+Common Report Var(flag_inline_functions_called_once) Optimization
 Integrate functions called once into their callers
 
 finline-limit-
@@ -1253,9 +1289,8 @@ Perform matrix layout flattening and transposing based
 on profiling information.
 
 fipa-struct-reorg
-Common Report Var(flag_ipa_struct_reorg)
-Perform structure layout optimizations based
-on profiling information.
+Common Ignore
+Does nothing. Preserved for backward compatibility.
 
 fira-algorithm=
 Common Joined RejectNegative Enum(ira_algorithm) Var(flag_ira_algorithm) Init(IRA_ALGORITHM_CB)

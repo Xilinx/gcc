@@ -1039,8 +1039,7 @@ resolve_shift_zext (rtx insn)
 	src_reg = expand_shift (GET_CODE (op) == ASHIFT ?
 				LSHIFT_EXPR : RSHIFT_EXPR,
 				word_mode, src_reg,
-				build_int_cst (NULL_TREE,
-					       shift_count - BITS_PER_WORD),
+				shift_count - BITS_PER_WORD,
 				dest_reg, 1);
     }
 
@@ -1371,7 +1370,6 @@ struct rtl_opt_pass pass_lower_subreg =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func |
   TODO_ggc_collect |
   TODO_verify_flow                      /* todo_flags_finish */
  }
@@ -1393,7 +1391,6 @@ struct rtl_opt_pass pass_lower_subreg2 =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_ggc_collect |
   TODO_verify_flow                      /* todo_flags_finish */
  }

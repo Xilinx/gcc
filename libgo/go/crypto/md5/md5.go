@@ -2,13 +2,18 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This package implements the MD5 hash algorithm as defined in RFC 1321.
+// Package md5 implements the MD5 hash algorithm as defined in RFC 1321.
 package md5
 
 import (
+	"crypto"
 	"hash"
 	"os"
 )
+
+func init() {
+	crypto.RegisterHash(crypto.MD5, New)
+}
 
 // The size of an MD5 checksum in bytes.
 const Size = 16

@@ -135,9 +135,10 @@ enum rid
   RID_IS_ABSTRACT,             RID_IS_BASE_OF,
   RID_IS_CONVERTIBLE_TO,       RID_IS_CLASS,
   RID_IS_EMPTY,                RID_IS_ENUM,
-  RID_IS_POD,                  RID_IS_POLYMORPHIC,
-  RID_IS_STD_LAYOUT,           RID_IS_TRIVIAL,
-  RID_IS_UNION,                RID_IS_LITERAL_TYPE,
+  RID_IS_LITERAL_TYPE,         RID_IS_POD,
+  RID_IS_POLYMORPHIC,          RID_IS_STD_LAYOUT,
+  RID_IS_TRIVIAL,              RID_IS_UNION,
+  RID_UNDERLYING_TYPE,
 
   /* C++0x */
   RID_CONSTEXPR, RID_DECLTYPE, RID_NOEXCEPT, RID_NULLPTR, RID_STATIC_ASSERT,
@@ -451,8 +452,8 @@ typedef enum ref_operator {
 /* Information about a statement tree.  */
 
 struct GTY(()) stmt_tree_s {
-  /* The current statement list being collected.  */
-  tree x_cur_stmt_list;
+  /* A stack of statement lists being collected.  */
+  VEC(tree,gc) *x_cur_stmt_list;
 
   /* In C++, Nonzero if we should treat statements as full
      expressions.  In particular, this variable is no-zero if at the
@@ -482,11 +483,17 @@ struct GTY(()) c_language_function {
   struct stmt_tree_s x_stmt_tree;
 };
 
-/* When building a statement-tree, this is the current statement list
-   being collected.  It's TREE_CHAIN is a back-pointer to the previous
-   statement list.  */
+#define stmt_list_stack (current_stmt_tree ()->x_cur_stmt_list)
 
-#define cur_stmt_list (current_stmt_tree ()->x_cur_stmt_list)
+/* When building a statement-tree, this is the current statement list
+   being collected.  We define it in this convoluted way, rather than
+   using VEC_last, because it must be an lvalue.  */
+
+#define cur_stmt_list							\
+  (*(VEC_address (tree, stmt_list_stack)				\
+     + VEC_length (tree, stmt_list_stack) - 1))
+
+#define building_stmt_list_p() (!VEC_empty (tree, stmt_list_stack))
 
 /* Language-specific hooks.  */
 
@@ -619,7 +626,7 @@ extern enum cxx_dialect cxx_dialect;
 
 /* Maximum template instantiation depth.  This limit is rather
    arbitrary, but it exists to limit the time it takes to notice
-   infinite template instantiations.  */
+   excessively recursive template instantiations.  */
 
 extern int max_tinst_depth;
 
@@ -686,7 +693,7 @@ extern void finish_fname_decls (void);
 extern const char *fname_as_string (int);
 extern tree fname_decl (location_t, unsigned, tree);
 
-extern void check_function_arguments (tree, int, tree *, tree);
+extern void check_function_arguments (const_tree, int, tree *);
 extern void check_function_arguments_recurse (void (*)
 					      (void *, tree,
 					       unsigned HOST_WIDE_INT),
@@ -700,6 +707,7 @@ extern tree handle_format_arg_attribute (tree *, tree, tree, int, bool *);
 extern bool attribute_takes_identifier_p (const_tree);
 extern bool c_common_handle_option (size_t, const char *, int, int, location_t,
 				    const struct cl_option_handlers *);
+extern bool default_handle_c_option (size_t, const char *, int);
 extern tree c_common_type_for_mode (enum machine_mode, int);
 extern tree c_common_type_for_size (unsigned int, int);
 extern tree c_common_fixed_point_type_for_size (unsigned int, unsigned int,
@@ -707,6 +715,7 @@ extern tree c_common_fixed_point_type_for_size (unsigned int, unsigned int,
 extern tree c_common_unsigned_type (tree);
 extern tree c_common_signed_type (tree);
 extern tree c_common_signed_or_unsigned_type (int, tree);
+extern void c_common_init_ts (void);
 extern tree c_build_bitfield_integer_type (unsigned HOST_WIDE_INT, int);
 extern bool decl_with_nonnull_addr_p (const_tree);
 extern tree c_fully_fold (tree, bool, bool *);
@@ -828,7 +837,6 @@ extern void warn_for_omitted_condop (location_t, tree);
 
 extern tree do_case (location_t, tree, tree);
 extern tree build_stmt (location_t, enum tree_code, ...);
-extern tree build_case_label (location_t, tree, tree, tree);
 extern tree build_real_imag_expr (location_t, enum tree_code, tree);
 
 /* These functions must be defined by each front-end which implements
@@ -956,6 +964,7 @@ extern void set_underlying_type (tree x);
 extern VEC(tree,gc) *make_tree_vector (void);
 extern void release_tree_vector (VEC(tree,gc) *);
 extern VEC(tree,gc) *make_tree_vector_single (tree);
+extern VEC(tree,gc) *make_tree_vector_from_list (tree);
 extern VEC(tree,gc) *make_tree_vector_copy (const VEC(tree,gc) *);
 
 /* In c-gimplify.c  */

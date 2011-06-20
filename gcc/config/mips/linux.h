@@ -27,20 +27,13 @@ along with GCC; see the file COPYING3.  If not see
 #undef ASM_DECLARE_OBJECT_NAME
 #define ASM_DECLARE_OBJECT_NAME mips_declare_object_name
 
-#undef TARGET_VERSION
-#if TARGET_ENDIAN_DEFAULT == 0
-#define TARGET_VERSION fprintf (stderr, " (MIPSel GNU/Linux with ELF)");
-#else
-#define TARGET_VERSION fprintf (stderr, " (MIPS GNU/Linux with ELF)");
-#endif
-
 /* If we don't set MASK_ABICALLS, we can't default to PIC.  */
 #undef TARGET_DEFAULT
 #define TARGET_DEFAULT MASK_ABICALLS
 
 #define TARGET_OS_CPP_BUILTINS()				\
   do {								\
-    LINUX_TARGET_OS_CPP_BUILTINS();				\
+    GNU_USER_TARGET_OS_CPP_BUILTINS();				\
     /* The GNU C++ standard library requires this.  */		\
     if (c_dialect_cxx ())					\
       builtin_define ("_GNU_SOURCE");				\
@@ -71,7 +64,7 @@ along with GCC; see the file COPYING3.  If not see
   %{!shared: \
     %{!static: \
       %{rdynamic:-export-dynamic} \
-      -dynamic-linker " LINUX_DYNAMIC_LINKER "} \
+      -dynamic-linker " GNU_USER_DYNAMIC_LINKER "} \
       %{static:-static}}"
 
 #undef SUBTARGET_ASM_SPEC
@@ -105,8 +98,6 @@ along with GCC; see the file COPYING3.  If not see
 %{shared:-lc} \
 %{!shared: \
   %{profile:-lc_p} %{!profile:-lc}}"
-
-#define MD_UNWIND_SUPPORT "config/mips/linux-unwind.h"
 
 #ifdef HAVE_AS_NO_SHARED
 /* Default to -mno-shared for non-PIC.  */
@@ -147,5 +138,5 @@ extern const char *host_detect_local_cpu (int argc, const char **argv);
 /* Similar to standard Linux, but adding -ffast-math support.  */
 #undef  ENDFILE_SPEC
 #define ENDFILE_SPEC \
-  "%{ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
    %{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s"

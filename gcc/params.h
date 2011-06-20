@@ -118,8 +118,6 @@ extern int default_param_value (compiler_param num);
 extern void init_param_values (int *params);
 
 /* Macros for the various parameters.  */
-#define STRUCT_REORG_COLD_STRUCT_RATIO \
-  PARAM_VALUE (PARAM_STRUCT_REORG_COLD_STRUCT_RATIO)
 #define MAX_INLINE_INSNS_SINGLE \
   PARAM_VALUE (PARAM_MAX_INLINE_INSNS_SINGLE)
 #define MAX_INLINE_INSNS \
@@ -206,6 +204,8 @@ extern void init_param_values (int *params);
   PARAM_VALUE (PARAM_PREFETCH_MIN_INSN_TO_MEM_RATIO)
 #define MIN_NONDEBUG_INSN_UID \
   PARAM_VALUE (PARAM_MIN_NONDEBUG_INSN_UID)
+#define MAX_STORES_TO_SINK \
+  PARAM_VALUE (PARAM_MAX_STORES_TO_SINK)
 #define ALLOW_LOAD_DATA_RACES \
   PARAM_VALUE (PARAM_ALLOW_LOAD_DATA_RACES)
 #define ALLOW_STORE_DATA_RACES \

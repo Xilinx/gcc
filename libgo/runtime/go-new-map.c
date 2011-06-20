@@ -73,8 +73,8 @@ static const unsigned long prime_list[] = /* 256 + 1 or 256 + 48 + 1 */
 
 /* Return the next number from PRIME_LIST >= N.  */
 
-unsigned long
-__go_map_next_prime (unsigned long n)
+uintptr_t
+__go_map_next_prime (uintptr_t n)
 {
   size_t low;
   size_t high;
@@ -85,7 +85,7 @@ __go_map_next_prime (unsigned long n)
     {
       size_t mid;
 
-      mid = (low + high / 2);
+      mid = (low + high) / 2;
 
       /* Here LOW <= MID < HIGH.  */
 
@@ -104,11 +104,13 @@ __go_map_next_prime (unsigned long n)
 /* Allocate a new map.  */
 
 struct __go_map *
-__go_new_map (const struct __go_map_descriptor *descriptor, size_t entries)
+__go_new_map (const struct __go_map_descriptor *descriptor, uintptr_t entries)
 {
+  int ientries;
   struct __go_map *ret;
 
-  if ((size_t) (int) entries != entries)
+  ientries = (int) entries;
+  if (ientries < 0 || (uintptr_t) ientries != entries)
     __go_panic_msg ("map size out of range");
 
   if (entries == 0)

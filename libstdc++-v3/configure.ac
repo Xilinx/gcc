@@ -12,7 +12,7 @@ AC_CONFIG_HEADER(config.h)
 ### am handles this now?  ORIGINAL_LD_FOR_MULTILIBS=$LD
 
 # For libtool versioning info, format is CURRENT:REVISION:AGE
-libtool_VERSION=6:15:0
+libtool_VERSION=6:17:0
 AC_SUBST(libtool_VERSION)
 
 # Find the rest of the source tree framework.
@@ -170,6 +170,12 @@ GLIBCXX_CHECK_GTHREADS
 
 AC_LC_MESSAGES
 
+# For hardware_concurrency
+AC_CHECK_HEADERS(sys/sysinfo.h)
+GLIBCXX_CHECK_GET_NPROCS
+AC_CHECK_HEADERS(unistd.h)
+GLIBCXX_CHECK_SC_NPROCESSORS_ONLN
+
 # Check for available headers.
 AC_CHECK_HEADERS([endian.h execinfo.h float.h fp.h ieeefp.h inttypes.h \
 locale.h machine/endian.h machine/param.h nan.h stdint.h stdlib.h string.h \
@@ -308,7 +314,6 @@ GLIBCXX_ENABLE_VISIBILITY([yes])
 ac_ldbl_compat=no
 case "$target" in
   powerpc*-*-linux* | \
-  powerpc*-*-gnu* | \
   sparc*-*-linux* | \
   s390*-*-linux* | \
   alpha*-*-linux*)
@@ -344,11 +349,7 @@ AC_CHECK_PROG([DOT], dot, yes, no)
 # Check for docbook
 AC_CHECK_PROG([XSLTPROC], xsltproc, yes, no)
 AC_CHECK_PROG([XMLLINT], xmllint, yes, no)
-
-glibcxx_stylesheets=no
-if test -f /usr/share/sgml/docbook/xsl-ns-stylesheets/VERSION; then
-  glibcxx_stylesheets=yes
-fi
+GLIBCXX_CONFIGURE_DOCBOOK
 
 # Check for xml/html dependencies.
 AM_CONDITIONAL(BUILD_XML,
@@ -378,7 +379,7 @@ AM_CONDITIONAL(BUILD_PDF,
 	       test $ac_cv_prog_PDFLATEX = "yes")
 
 AC_CHECK_PROG([RUBY], ruby, yes, no)
-AC_CHECK_PROG([DBTOEPUB], dbtoepubm, yes, no)
+AC_CHECK_PROG([DBTOEPUB], dbtoepub, yes, no)
 AM_CONDITIONAL(BUILD_EPUB,
 	       test $ac_cv_prog_RUBY = "yes" &&
 	       test $ac_cv_prog_DBTOEPUB = "yes")

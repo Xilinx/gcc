@@ -1000,6 +1000,48 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 	  && GET_CODE (XEXP (XEXP (op, 0), 1)) == LABEL_REF)
 	return XEXP (op, 0);
 
+      /* Extending a widening multiplication should be canonicalized to
+	 a wider widening multiplication.  */
+      if (GET_CODE (op) == MULT)
+	{
+	  rtx lhs = XEXP (op, 0);
+	  rtx rhs = XEXP (op, 1);
+	  enum rtx_code lcode = GET_CODE (lhs);
+	  enum rtx_code rcode = GET_CODE (rhs);
+
+	  /* Widening multiplies usually extend both operands, but sometimes
+	     they use a shift to extract a portion of a register.  */
+	  if ((lcode == SIGN_EXTEND
+	       || (lcode == ASHIFTRT && CONST_INT_P (XEXP (lhs, 1))))
+	      && (rcode == SIGN_EXTEND
+		  || (rcode == ASHIFTRT && CONST_INT_P (XEXP (rhs, 1)))))
+	    {
+	      enum machine_mode lmode = GET_MODE (lhs);
+	      enum machine_mode rmode = GET_MODE (rhs);
+	      int bits;
+
+	      if (lcode == ASHIFTRT)
+		/* Number of bits not shifted off the end.  */
+		bits = GET_MODE_PRECISION (lmode) - INTVAL (XEXP (lhs, 1));
+	      else /* lcode == SIGN_EXTEND */
+		/* Size of inner mode.  */
+		bits = GET_MODE_PRECISION (GET_MODE (XEXP (lhs, 0)));
+
+	      if (rcode == ASHIFTRT)
+		bits += GET_MODE_PRECISION (rmode) - INTVAL (XEXP (rhs, 1));
+	      else /* rcode == SIGN_EXTEND */
+		bits += GET_MODE_PRECISION (GET_MODE (XEXP (rhs, 0)));
+
+	      /* We can only widen multiplies if the result is mathematiclly
+		 equivalent.  I.e. if overflow was impossible.  */
+	      if (bits <= GET_MODE_PRECISION (GET_MODE (op)))
+		return simplify_gen_binary
+			 (MULT, mode,
+			  simplify_gen_unary (SIGN_EXTEND, mode, lhs, lmode),
+			  simplify_gen_unary (SIGN_EXTEND, mode, rhs, rmode));
+	    }
+	}
+
       /* Check for a sign extension of a subreg of a promoted
 	 variable, where the promotion is sign-extended, and the
 	 target mode is the same as the variable's promotion.  */
@@ -1070,6 +1112,48 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 	  && SUBREG_PROMOTED_UNSIGNED_P (op) > 0
 	  && GET_MODE_SIZE (mode) <= GET_MODE_SIZE (GET_MODE (XEXP (op, 0))))
 	return rtl_hooks.gen_lowpart_no_emit (mode, op);
+
+      /* Extending a widening multiplication should be canonicalized to
+	 a wider widening multiplication.  */
+      if (GET_CODE (op) == MULT)
+	{
+	  rtx lhs = XEXP (op, 0);
+	  rtx rhs = XEXP (op, 1);
+	  enum rtx_code lcode = GET_CODE (lhs);
+	  enum rtx_code rcode = GET_CODE (rhs);
+
+	  /* Widening multiplies usually extend both operands, but sometimes
+	     they use a shift to extract a portion of a register.  */
+	  if ((lcode == ZERO_EXTEND
+	       || (lcode == LSHIFTRT && CONST_INT_P (XEXP (lhs, 1))))
+	      && (rcode == ZERO_EXTEND
+		  || (rcode == LSHIFTRT && CONST_INT_P (XEXP (rhs, 1)))))
+	    {
+	      enum machine_mode lmode = GET_MODE (lhs);
+	      enum machine_mode rmode = GET_MODE (rhs);
+	      int bits;
+
+	      if (lcode == LSHIFTRT)
+		/* Number of bits not shifted off the end.  */
+		bits = GET_MODE_PRECISION (lmode) - INTVAL (XEXP (lhs, 1));
+	      else /* lcode == ZERO_EXTEND */
+		/* Size of inner mode.  */
+		bits = GET_MODE_PRECISION (GET_MODE (XEXP (lhs, 0)));
+
+	      if (rcode == LSHIFTRT)
+		bits += GET_MODE_PRECISION (rmode) - INTVAL (XEXP (rhs, 1));
+	      else /* rcode == ZERO_EXTEND */
+		bits += GET_MODE_PRECISION (GET_MODE (XEXP (rhs, 0)));
+
+	      /* We can only widen multiplies if the result is mathematiclly
+		 equivalent.  I.e. if overflow was impossible.  */
+	      if (bits <= GET_MODE_PRECISION (GET_MODE (op)))
+		return simplify_gen_binary
+			 (MULT, mode,
+			  simplify_gen_unary (ZERO_EXTEND, mode, lhs, lmode),
+			  simplify_gen_unary (ZERO_EXTEND, mode, rhs, rmode));
+	    }
+	}
 
       /* (zero_extend:M (zero_extend:N <X>)) is (zero_extend:M <X>).  */
       if (GET_CODE (op) == ZERO_EXTEND)
@@ -1526,7 +1610,8 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
     }
 
   else if (GET_CODE (op) == CONST_DOUBLE
-	   && SCALAR_FLOAT_MODE_P (mode))
+	   && SCALAR_FLOAT_MODE_P (mode)
+	   && SCALAR_FLOAT_MODE_P (GET_MODE (op)))
     {
       REAL_VALUE_TYPE d, t;
       REAL_VALUE_FROM_CONST_DOUBLE (d, op);
@@ -1549,7 +1634,10 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	  d = real_value_truncate (mode, d);
 	  break;
 	case FLOAT_EXTEND:
-	  /* All this does is change the mode.  */
+	  /* All this does is change the mode, unless changing
+	     mode class.  */
+	  if (GET_MODE_CLASS (mode) != GET_MODE_CLASS (GET_MODE (op)))
+	    real_convert (&d, mode, &d);
 	  break;
 	case FIX:
 	  real_arithmetic (&d, FIX_TRUNC_EXPR, &d, NULL);
@@ -2479,6 +2567,46 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 				    simplify_gen_unary (NOT, mode,
 							XEXP (op0, 1), mode),
 				    op1);
+
+      /* Given (xor (and A B) C), using P^Q == (~P&Q) | (~Q&P),
+	 we can transform like this:
+            (A&B)^C == ~(A&B)&C | ~C&(A&B)
+                    == (~A|~B)&C | ~C&(A&B)    * DeMorgan's Law
+                    == ~A&C | ~B&C | A&(~C&B)  * Distribute and re-order
+	 Attempt a few simplifications when B and C are both constants.  */
+      if (GET_CODE (op0) == AND
+	  && CONST_INT_P (op1)
+	  && CONST_INT_P (XEXP (op0, 1)))
+	{
+	  rtx a = XEXP (op0, 0);
+	  rtx b = XEXP (op0, 1);
+	  rtx c = op1;
+	  HOST_WIDE_INT bval = INTVAL (b);
+	  HOST_WIDE_INT cval = INTVAL (c);
+
+	  rtx na_c
+	    = simplify_binary_operation (AND, mode,
+					 simplify_gen_unary (NOT, mode, a, mode),
+					 c);
+	  if ((~cval & bval) == 0)
+	    {
+	      /* Try to simplify ~A&C | ~B&C.  */
+	      if (na_c != NULL_RTX)
+		return simplify_gen_binary (IOR, mode, na_c,
+					    GEN_INT (~bval & cval));
+	    }
+	  else
+	    {
+	      /* If ~A&C is zero, simplify A&(~C&B) | ~B&C.  */
+	      if (na_c == const0_rtx)
+		{
+		  rtx a_nc_b = simplify_gen_binary (AND, mode, a,
+						    GEN_INT (~cval & bval));
+		  return simplify_gen_binary (IOR, mode, a_nc_b,
+					      GEN_INT (~bval & cval));
+		}
+	    }
+	}
 
       /* (xor (comparison foo bar) (const_int 1)) can become the reversed
 	 comparison if STORE_FLAG_VALUE is 1.  */

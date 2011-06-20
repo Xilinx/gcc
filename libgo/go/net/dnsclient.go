@@ -21,6 +21,7 @@ import (
 	"rand"
 	"sync"
 	"time"
+	"sort"
 )
 
 // DNSError represents a DNS lookup error.
@@ -98,18 +99,18 @@ func exchange(cfg *dnsConfig, c Conn, name string, qtype uint16) (*dnsMsg, os.Er
 
 // Find answer for name in dns message.
 // On return, if err == nil, addrs != nil.
-func answer(name, server string, dns *dnsMsg, qtype uint16) (addrs []dnsRR, err os.Error) {
+func answer(name, server string, dns *dnsMsg, qtype uint16) (cname string, addrs []dnsRR, err os.Error) {
 	addrs = make([]dnsRR, 0, len(dns.answer))
 
 	if dns.rcode == dnsRcodeNameError && dns.recursion_available {
-		return nil, &DNSError{Error: noSuchHost, Name: name}
+		return "", nil, &DNSError{Error: noSuchHost, Name: name}
 	}
 	if dns.rcode != dnsRcodeSuccess {
 		// None of the error codes make sense
 		// for the query we sent.  If we didn't get
 		// a name error and we didn't get success,
 		// the server is behaving incorrectly.
-		return nil, &DNSError{Error: "server misbehaving", Name: name, Server: server}
+		return "", nil, &DNSError{Error: "server misbehaving", Name: name, Server: server}
 	}
 
 	// Look for the name.
@@ -120,15 +121,19 @@ func answer(name, server string, dns *dnsMsg, qtype uint16) (addrs []dnsRR, err 
 Cname:
 	for cnameloop := 0; cnameloop < 10; cnameloop++ {
 		addrs = addrs[0:0]
-		for i := 0; i < len(dns.answer); i++ {
-			rr := dns.answer[i]
+		for _, rr := range dns.answer {
+			if _, justHeader := rr.(*dnsRR_Header); justHeader {
+				// Corrupt record: we only have a
+				// header. That header might say it's
+				// of type qtype, but we don't
+				// actually have it. Skip.
+				continue
+			}
 			h := rr.Header()
 			if h.Class == dnsClassINET && h.Name == name {
 				switch h.Rrtype {
 				case qtype:
-					n := len(addrs)
-					addrs = addrs[0 : n+1]
-					addrs[n] = rr
+					addrs = append(addrs, rr)
 				case dnsTypeCNAME:
 					// redirect to cname
 					name = rr.(*dnsRR_CNAME).Cname
@@ -137,19 +142,19 @@ Cname:
 			}
 		}
 		if len(addrs) == 0 {
-			return nil, &DNSError{Error: noSuchHost, Name: name, Server: server}
+			return "", nil, &DNSError{Error: noSuchHost, Name: name, Server: server}
 		}
-		return addrs, nil
+		return name, addrs, nil
 	}
 
-	return nil, &DNSError{Error: "too many redirects", Name: name, Server: server}
+	return "", nil, &DNSError{Error: "too many redirects", Name: name, Server: server}
 }
 
 // Do a lookup for a single name, which must be rooted
 // (otherwise answer will not find the answers).
-func tryOneName(cfg *dnsConfig, name string, qtype uint16) (addrs []dnsRR, err os.Error) {
+func tryOneName(cfg *dnsConfig, name string, qtype uint16) (cname string, addrs []dnsRR, err os.Error) {
 	if len(cfg.servers) == 0 {
-		return nil, &DNSError{Error: "no DNS servers", Name: name}
+		return "", nil, &DNSError{Error: "no DNS servers", Name: name}
 	}
 	for i := 0; i < len(cfg.servers); i++ {
 		// Calling Dial here is scary -- we have to be sure
@@ -159,7 +164,7 @@ func tryOneName(cfg *dnsConfig, name string, qtype uint16) (addrs []dnsRR, err o
 		// all the cfg.servers[i] are IP addresses, which
 		// Dial will use without a DNS lookup.
 		server := cfg.servers[i] + ":53"
-		c, cerr := Dial("udp", "", server)
+		c, cerr := Dial("udp", server)
 		if cerr != nil {
 			err = cerr
 			continue
@@ -170,7 +175,7 @@ func tryOneName(cfg *dnsConfig, name string, qtype uint16) (addrs []dnsRR, err o
 			err = merr
 			continue
 		}
-		addrs, err = answer(name, server, msg, qtype)
+		cname, addrs, err = answer(name, server, msg, qtype)
 		if err == nil || err.(*DNSError).Error == noSuchHost {
 			break
 		}
@@ -178,12 +183,21 @@ func tryOneName(cfg *dnsConfig, name string, qtype uint16) (addrs []dnsRR, err o
 	return
 }
 
-func convertRR_A(records []dnsRR) []string {
-	addrs := make([]string, len(records))
-	for i := 0; i < len(records); i++ {
-		rr := records[i]
+func convertRR_A(records []dnsRR) []IP {
+	addrs := make([]IP, len(records))
+	for i, rr := range records {
 		a := rr.(*dnsRR_A).A
-		addrs[i] = IPv4(byte(a>>24), byte(a>>16), byte(a>>8), byte(a)).String()
+		addrs[i] = IPv4(byte(a>>24), byte(a>>16), byte(a>>8), byte(a))
+	}
+	return addrs
+}
+
+func convertRR_AAAA(records []dnsRR) []IP {
+	addrs := make([]IP, len(records))
+	for i, rr := range records {
+		a := make(IP, 16)
+		copy(a, rr.(*dnsRR_AAAA).AAAA[:])
+		addrs[i] = a
 	}
 	return addrs
 }
@@ -261,9 +275,8 @@ func lookup(name string, qtype uint16) (cname string, addrs []dnsRR, err os.Erro
 			rname += "."
 		}
 		// Can try as ordinary name.
-		addrs, err = tryOneName(cfg, rname, qtype)
+		cname, addrs, err = tryOneName(cfg, rname, qtype)
 		if err == nil {
-			cname = rname
 			return
 		}
 	}
@@ -277,9 +290,8 @@ func lookup(name string, qtype uint16) (cname string, addrs []dnsRR, err os.Erro
 		if rname[len(rname)-1] != '.' {
 			rname += "."
 		}
-		addrs, err = tryOneName(cfg, rname, qtype)
+		cname, addrs, err = tryOneName(cfg, rname, qtype)
 		if err == nil {
-			cname = rname
 			return
 		}
 	}
@@ -289,38 +301,96 @@ func lookup(name string, qtype uint16) (cname string, addrs []dnsRR, err os.Erro
 	if !rooted {
 		rname += "."
 	}
-	addrs, err = tryOneName(cfg, rname, qtype)
+	cname, addrs, err = tryOneName(cfg, rname, qtype)
 	if err == nil {
-		cname = rname
 		return
 	}
 	return
 }
 
-// LookupHost looks for name using the local hosts file and DNS resolver.
-// It returns the canonical name for the host and an array of that
-// host's addresses.
-func LookupHost(name string) (cname string, addrs []string, err os.Error) {
+// goLookupHost is the native Go implementation of LookupHost.
+// Used only if cgoLookupHost refuses to handle the request
+// (that is, only if cgoLookupHost is the stub in cgo_stub.go).
+// Normally we let cgo use the C library resolver instead of
+// depending on our lookup code, so that Go and C get the same
+// answers.
+func goLookupHost(name string) (addrs []string, err os.Error) {
+	// Use entries from /etc/hosts if they match.
+	addrs = lookupStaticHost(name)
+	if len(addrs) > 0 {
+		return
+	}
 	onceLoadConfig.Do(loadConfig)
 	if dnserr != nil || cfg == nil {
 		err = dnserr
 		return
 	}
-	// Use entries from /etc/hosts if they match.
-	addrs = lookupStaticHost(name)
-	if len(addrs) > 0 {
-		cname = name
+	ips, err := goLookupIP(name)
+	if err != nil {
+		return
+	}
+	addrs = make([]string, 0, len(ips))
+	for _, ip := range ips {
+		addrs = append(addrs, ip.String())
+	}
+	return
+}
+
+// goLookupIP is the native Go implementation of LookupIP.
+// Used only if cgoLookupIP refuses to handle the request
+// (that is, only if cgoLookupIP is the stub in cgo_stub.go).
+// Normally we let cgo use the C library resolver instead of
+// depending on our lookup code, so that Go and C get the same
+// answers.
+func goLookupIP(name string) (addrs []IP, err os.Error) {
+	onceLoadConfig.Do(loadConfig)
+	if dnserr != nil || cfg == nil {
+		err = dnserr
 		return
 	}
 	var records []dnsRR
+	var cname string
 	cname, records, err = lookup(name, dnsTypeA)
 	if err != nil {
 		return
 	}
 	addrs = convertRR_A(records)
+	if cname != "" {
+		name = cname
+	}
+	_, records, err = lookup(name, dnsTypeAAAA)
+	if err != nil && len(addrs) > 0 {
+		// Ignore error because A lookup succeeded.
+		err = nil
+	}
+	if err != nil {
+		return
+	}
+	addrs = append(addrs, convertRR_AAAA(records)...)
 	return
 }
 
+// goLookupCNAME is the native Go implementation of LookupCNAME.
+// Used only if cgoLookupCNAME refuses to handle the request
+// (that is, only if cgoLookupCNAME is the stub in cgo_stub.go).
+// Normally we let cgo use the C library resolver instead of
+// depending on our lookup code, so that Go and C get the same
+// answers.
+func goLookupCNAME(name string) (cname string, err os.Error) {
+	onceLoadConfig.Do(loadConfig)
+	if dnserr != nil || cfg == nil {
+		err = dnserr
+		return
+	}
+	_, rr, err := lookup(name, dnsTypeCNAME)
+	if err != nil {
+		return
+	}
+	cname = rr[0].(*dnsRR_CNAME).Cname
+	return
+}
+
+// An SRV represents a single DNS SRV record.
 type SRV struct {
 	Target   string
 	Port     uint16
@@ -340,29 +410,45 @@ func LookupSRV(service, proto, name string) (cname string, addrs []*SRV, err os.
 		return
 	}
 	addrs = make([]*SRV, len(records))
-	for i := 0; i < len(records); i++ {
-		r := records[i].(*dnsRR_SRV)
+	for i, rr := range records {
+		r := rr.(*dnsRR_SRV)
 		addrs[i] = &SRV{r.Target, r.Port, r.Priority, r.Weight}
 	}
 	return
 }
 
+// An MX represents a single DNS MX record.
 type MX struct {
 	Host string
 	Pref uint16
 }
 
-func LookupMX(name string) (entries []*MX, err os.Error) {
-	var records []dnsRR
-	_, records, err = lookup(name, dnsTypeMX)
+// byPref implements sort.Interface to sort MX records by preference
+type byPref []*MX
+
+func (s byPref) Len() int { return len(s) }
+
+func (s byPref) Less(i, j int) bool { return s[i].Pref < s[j].Pref }
+
+func (s byPref) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
+// LookupMX returns the DNS MX records for the given domain name sorted by preference.
+func LookupMX(name string) (mx []*MX, err os.Error) {
+	_, rr, err := lookup(name, dnsTypeMX)
 	if err != nil {
 		return
 	}
-	entries = make([]*MX, len(records))
-	for i := range records {
-		r := records[i].(*dnsRR_MX)
-		entries[i] = &MX{r.Mx, r.Pref}
+	mx = make([]*MX, len(rr))
+	for i := range rr {
+		r := rr[i].(*dnsRR_MX)
+		mx[i] = &MX{r.Mx, r.Pref}
 	}
+	// Shuffle the records to match RFC 5321 when sorted
+	for i := range mx {
+		j := rand.Intn(i + 1)
+		mx[i], mx[j] = mx[j], mx[i]
+	}
+	sort.Sort(byPref(mx))
 	return
 }
 

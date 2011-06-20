@@ -1,6 +1,6 @@
 /* Intrinsic function resolution.
    Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-   2009, 2010
+   2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Andy Vaught & Katherine Holcomb
 
@@ -2547,16 +2547,25 @@ void
 gfc_resolve_image_index (gfc_expr *f, gfc_expr *array ATTRIBUTE_UNUSED,
 			 gfc_expr *sub ATTRIBUTE_UNUSED)
 {
-  static char this_image[] = "__image_index";
+  static char image_index[] = "__image_index";
+  f->ts.type = BT_INTEGER;
   f->ts.kind = gfc_default_integer_kind;
-  f->value.function.name = this_image;
+  f->value.function.name = image_index;
 }
 
 
 void
 gfc_resolve_this_image (gfc_expr *f, gfc_expr *array, gfc_expr *dim)
 {
-  resolve_bound (f, array, dim, NULL, "__this_image", true);
+  static char this_image[] = "__this_image";
+  if (array)
+    resolve_bound (f, array, dim, NULL, "__this_image", true);
+  else
+    {
+      f->ts.type = BT_INTEGER;
+      f->ts.kind = gfc_default_integer_kind;
+      f->value.function.name = this_image;
+    }
 }
 
 
@@ -2882,6 +2891,22 @@ create_formal_for_intents (gfc_actual_arglist* actual, const sym_intent* ints)
     }
 
   return head;
+}
+
+
+void
+gfc_resolve_atomic_def (gfc_code *c)
+{
+  const char *name = "atomic_define";
+  c->resolved_sym = gfc_get_intrinsic_sub_symbol (name);
+}
+
+
+void
+gfc_resolve_atomic_ref (gfc_code *c)
+{
+  const char *name = "atomic_ref";
+  c->resolved_sym = gfc_get_intrinsic_sub_symbol (name);
 }
 
 

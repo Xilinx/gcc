@@ -1125,6 +1125,9 @@ finish_noexcept_expr (tree expr, tsubst_flags_t complain)
 {
   tree fn;
 
+  if (expr == error_mark_node)
+    return error_mark_node;
+
   if (processing_template_decl)
     return build_min (NOEXCEPT_EXPR, boolean_type_node, expr);
 
@@ -1157,6 +1160,7 @@ finish_noexcept_expr (tree expr, tsubst_flags_t complain)
 bool
 nothrow_spec_p (const_tree spec)
 {
+  gcc_assert (!DEFERRED_NOEXCEPT_SPEC_P (spec));
   if (spec == NULL_TREE
       || TREE_VALUE (spec) != NULL_TREE
       || spec == noexcept_false_spec)
@@ -1177,6 +1181,7 @@ bool
 type_noexcept_p (const_tree type)
 {
   tree spec = TYPE_RAISES_EXCEPTIONS (type);
+  gcc_assert (!DEFERRED_NOEXCEPT_SPEC_P (spec));
   if (flag_nothrow_opt)
     return nothrow_spec_p (spec);
   else
@@ -1190,6 +1195,7 @@ bool
 type_throw_all_p (const_tree type)
 {
   tree spec = TYPE_RAISES_EXCEPTIONS (type);
+  gcc_assert (!DEFERRED_NOEXCEPT_SPEC_P (spec));
   return spec == NULL_TREE || spec == noexcept_false_spec;
 }
 
@@ -1201,20 +1207,23 @@ build_noexcept_spec (tree expr, int complain)
 {
   /* This isn't part of the signature, so don't bother trying to evaluate
      it until instantiation.  */
-  if (!processing_template_decl)
+  if (!processing_template_decl && TREE_CODE (expr) != DEFERRED_NOEXCEPT)
     {
-      expr = cxx_constant_value (expr);
       expr = perform_implicit_conversion_flags (boolean_type_node, expr,
 						complain,
 						LOOKUP_NORMAL);
+      expr = cxx_constant_value (expr);
     }
   if (expr == boolean_true_node)
     return noexcept_true_spec;
   else if (expr == boolean_false_node)
     return noexcept_false_spec;
+  else if (expr == error_mark_node)
+    return error_mark_node;
   else
     {
-      gcc_assert (processing_template_decl || expr == error_mark_node);
+      gcc_assert (processing_template_decl || expr == error_mark_node
+		  || TREE_CODE (expr) == DEFERRED_NOEXCEPT);
       return build_tree_list (expr, NULL_TREE);
     }
 }

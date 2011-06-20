@@ -65,10 +65,6 @@ static int excess_unit_span (HOST_WIDE_INT, HOST_WIDE_INT, HOST_WIDE_INT,
 #endif
 extern void debug_rli (record_layout_info);
 
-/* SAVE_EXPRs for sizes of types and decls, waiting to be expanded.  */
-
-static GTY(()) VEC(tree,gc) *pending_sizes;
-
 /* Show that REFERENCE_TYPES are internal and should use address_mode.
    Called only by front end.  */
 
@@ -78,48 +74,12 @@ internal_reference_types (void)
   reference_types_internal = 1;
 }
 
-/* Get a VEC of all the objects put on the pending sizes list.  */
-
-VEC(tree,gc) *
-get_pending_sizes (void)
-{
-  VEC(tree,gc) *chain = pending_sizes;
-
-  pending_sizes = 0;
-  return chain;
-}
-
-/* Add EXPR to the pending sizes list.  */
-
-void
-put_pending_size (tree expr)
-{
-  /* Strip any simple arithmetic from EXPR to see if it has an underlying
-     SAVE_EXPR.  */
-  expr = skip_simple_arithmetic (expr);
-
-  if (TREE_CODE (expr) == SAVE_EXPR)
-    VEC_safe_push (tree, gc, pending_sizes, expr);
-}
-
-/* Put a chain of objects into the pending sizes list, which must be
-   empty.  */
-
-void
-put_pending_sizes (VEC(tree,gc) *chain)
-{
-  gcc_assert (!pending_sizes);
-  pending_sizes = chain;
-}
-
 /* Given a size SIZE that may not be a constant, return a SAVE_EXPR
    to serve as the actual size-expression for a type or decl.  */
 
 tree
 variable_size (tree size)
 {
-  tree save;
-
   /* Obviously.  */
   if (TREE_CONSTANT (size))
     return size;
@@ -129,42 +89,13 @@ variable_size (tree size)
   if (CONTAINS_PLACEHOLDER_P (size))
     return self_referential_size (size);
 
-  /* If the language-processor is to take responsibility for variable-sized
-     items (e.g., languages which have elaboration procedures like Ada),
-     just return SIZE unchanged.  */
-  if (lang_hooks.decls.global_bindings_p () < 0)
-    return size;
-
-  size = save_expr (size);
-
-  /* If an array with a variable number of elements is declared, and
-     the elements require destruction, we will emit a cleanup for the
-     array.  That cleanup is run both on normal exit from the block
-     and in the exception-handler for the block.  Normally, when code
-     is used in both ordinary code and in an exception handler it is
-     `unsaved', i.e., all SAVE_EXPRs are recalculated.  However, we do
-     not wish to do that here; the array-size is the same in both
-     places.  */
-  save = skip_simple_arithmetic (size);
-
-  if (cfun && cfun->dont_save_pending_sizes_p)
-    /* The front-end doesn't want us to keep a list of the expressions
-       that determine sizes for variable size objects.  Trust it.  */
-    return size;
-
+  /* If we are in the global binding level, we can't make a SAVE_EXPR
+     since it may end up being shared across functions, so it is up
+     to the front-end to deal with this case.  */
   if (lang_hooks.decls.global_bindings_p ())
-    {
-      if (TREE_CONSTANT (size))
-	error ("type size can%'t be explicitly evaluated");
-      else
-	error ("variable-size type declared outside of any function");
+    return size;
 
-      return size_one_node;
-    }
-
-  put_pending_size (save);
-
-  return size;
+  return save_expr (size);
 }
 
 /* An array of functions used for self-referential size computation.  */
@@ -245,6 +176,9 @@ copy_self_referential_tree_r (tree *tp, int *walk_subtrees, void *data)
      cannot always guarantee in practice.  So punt in this case.  */
   else if (code == SAVE_EXPR)
     return error_mark_node;
+
+  else if (code == STATEMENT_LIST)
+    gcc_unreachable ();
 
   return copy_tree_r (tp, walk_subtrees, data);
 }
@@ -367,7 +301,7 @@ self_referential_size (tree size)
   VEC_safe_push (tree, gc, size_functions, fndecl);
 
   /* Replace the original expression with a call to the size function.  */
-  return build_call_expr_loc_vec (input_location, fndecl, args);
+  return build_call_expr_loc_vec (UNKNOWN_LOCATION, fndecl, args);
 }
 
 /* Take, queue and compile all the size functions.  It is essential that
@@ -546,6 +480,34 @@ get_mode_alignment (enum machine_mode mode)
   return MIN (BIGGEST_ALIGNMENT, MAX (1, mode_base_align[mode]*BITS_PER_UNIT));
 }
 
+/* Return the natural mode of an array, given that it is SIZE bytes in
+   total and has elements of type ELEM_TYPE.  */
+
+static enum machine_mode
+mode_for_array (tree elem_type, tree size)
+{
+  tree elem_size;
+  unsigned HOST_WIDE_INT int_size, int_elem_size;
+  bool limit_p;
+
+  /* One-element arrays get the component type's mode.  */
+  elem_size = TYPE_SIZE (elem_type);
+  if (simple_cst_equal (size, elem_size))
+    return TYPE_MODE (elem_type);
+
+  limit_p = true;
+  if (host_integerp (size, 1) && host_integerp (elem_size, 1))
+    {
+      int_size = tree_low_cst (size, 1);
+      int_elem_size = tree_low_cst (elem_size, 1);
+      if (int_elem_size > 0
+	  && int_size % int_elem_size == 0
+	  && targetm.array_mode_supported_p (TYPE_MODE (elem_type),
+					     int_size / int_elem_size))
+	limit_p = false;
+    }
+  return mode_for_size_tree (size, MODE_INT, limit_p);
+}
 
 /* Subroutine of layout_decl: Force alignment required for the data type.
    But if the decl itself wants greater alignment, don't override that.  */
@@ -1922,9 +1884,9 @@ layout_type (tree type)
         TYPE_UNSIGNED (type) = TYPE_UNSIGNED (TREE_TYPE (type));
 	TYPE_SIZE_UNIT (type) = int_const_binop (MULT_EXPR,
 					         TYPE_SIZE_UNIT (innertype),
-					         size_int (nunits), 0);
+					         size_int (nunits));
 	TYPE_SIZE (type) = int_const_binop (MULT_EXPR, TYPE_SIZE (innertype),
-					    bitsize_int (nunits), 0);
+					    bitsize_int (nunits));
 
 	/* Always naturally align vectors.  This prevents ABI changes
 	   depending on whether or not native vector modes are supported.  */
@@ -1996,15 +1958,16 @@ layout_type (tree type)
 	    if (integer_zerop (element_size))
 	      length = size_zero_node;
 
-	    /* The initial subtraction should happen in the original type so
+	    /* The computation should happen in the original type so
 	       that (possible) negative values are handled appropriately.  */
 	    else
 	      length
-		= size_binop (PLUS_EXPR, size_one_node,
-			      fold_convert (sizetype,
-					    fold_build2 (MINUS_EXPR,
-							 TREE_TYPE (lb),
-							 ub, lb)));
+		= fold_convert (sizetype,
+				fold_build2 (PLUS_EXPR, TREE_TYPE (lb),
+					     build_int_cst (TREE_TYPE (lb), 1),
+					     fold_build2 (MINUS_EXPR,
+							  TREE_TYPE (lb),
+							  ub, lb)));
 
 	    TYPE_SIZE (type) = size_binop (MULT_EXPR, element_size,
 					   fold_convert (bitsizetype,
@@ -2028,11 +1991,6 @@ layout_type (tree type)
 #else
 	TYPE_ALIGN (type) = MAX (TYPE_ALIGN (element), BITS_PER_UNIT);
 #endif
-	if (!TYPE_SIZE (element))
-	  /* We don't know the size of the underlying element type, so
-	     our alignment calculations will be wrong, forcing us to
-	     fall back on structural equality. */
-	  SET_TYPE_STRUCTURAL_EQUALITY (type);
 	TYPE_USER_ALIGN (type) = TYPE_USER_ALIGN (element);
 	SET_TYPE_MODE (type, BLKmode);
 	if (TYPE_SIZE (type) != 0
@@ -2044,14 +2002,8 @@ layout_type (tree type)
 	    && (TYPE_MODE (TREE_TYPE (type)) != BLKmode
 		|| TYPE_NO_FORCE_BLK (TREE_TYPE (type))))
 	  {
-	    /* One-element arrays get the component type's mode.  */
-	    if (simple_cst_equal (TYPE_SIZE (type),
-				  TYPE_SIZE (TREE_TYPE (type))))
-	      SET_TYPE_MODE (type, TYPE_MODE (TREE_TYPE (type)));
-	    else
-	      SET_TYPE_MODE (type, mode_for_size_tree (TYPE_SIZE (type),
-						       MODE_INT, 1));
-
+	    SET_TYPE_MODE (type, mode_for_array (TREE_TYPE (type),
+						 TYPE_SIZE (type)));
 	    if (TYPE_MODE (type) != BLKmode
 		&& STRICT_ALIGNMENT && TYPE_ALIGN (type) < BIGGEST_ALIGNMENT
 		&& TYPE_ALIGN (type) < GET_MODE_ALIGNMENT (TYPE_MODE (type)))
@@ -2136,12 +2088,12 @@ vector_type_mode (const_tree t)
 
   gcc_assert (TREE_CODE (t) == VECTOR_TYPE);
 
-  mode = t->type.mode;
+  mode = t->type_common.mode;
   if (VECTOR_MODE_P (mode)
       && (!targetm.vector_mode_supported_p (mode)
 	  || !have_regs_of_mode[mode]))
     {
-      enum machine_mode innermode = TREE_TYPE (t)->type.mode;
+      enum machine_mode innermode = TREE_TYPE (t)->type_common.mode;
 
       /* For integers, try mapping it to a same-sized scalar mode.  */
       if (GET_MODE_CLASS (innermode) == MODE_INT)
@@ -2237,93 +2189,70 @@ make_accum_type (int precision, int unsignedp, int satp)
   return type;
 }
 
-/* Initialize sizetype and bitsizetype to a reasonable and temporary
-   value to enable integer types to be created.  */
+/* Initialize sizetypes so layout_type can use them.  */
 
 void
 initialize_sizetypes (void)
 {
-  tree t = make_node (INTEGER_TYPE);
-  int precision = GET_MODE_BITSIZE (SImode);
+  int precision, bprecision;
 
-  SET_TYPE_MODE (t, SImode);
-  TYPE_ALIGN (t) = GET_MODE_ALIGNMENT (SImode);
-  TYPE_IS_SIZETYPE (t) = 1;
-  TYPE_UNSIGNED (t) = 1;
-  TYPE_SIZE (t) = build_int_cst (t, precision);
-  TYPE_SIZE_UNIT (t) = build_int_cst (t, GET_MODE_SIZE (SImode));
-  TYPE_PRECISION (t) = precision;
+  /* Get sizetypes precision from the SIZE_TYPE target macro.  */
+  if (strcmp (SIZE_TYPE, "unsigned int") == 0)
+    precision = INT_TYPE_SIZE;
+  else if (strcmp (SIZE_TYPE, "long unsigned int") == 0)
+    precision = LONG_TYPE_SIZE;
+  else if (strcmp (SIZE_TYPE, "long long unsigned int") == 0)
+    precision = LONG_LONG_TYPE_SIZE;
+  else
+    gcc_unreachable ();
 
-  set_min_and_max_values_for_integral_type (t, precision, true);
+  bprecision
+    = MIN (precision + BITS_PER_UNIT_LOG + 1, MAX_FIXED_MODE_SIZE);
+  bprecision
+    = GET_MODE_PRECISION (smallest_mode_for_size (bprecision, MODE_INT));
+  if (bprecision > HOST_BITS_PER_WIDE_INT * 2)
+    bprecision = HOST_BITS_PER_WIDE_INT * 2;
 
-  sizetype = t;
-  bitsizetype = build_distinct_type_copy (t);
-}
+  /* Create stubs for sizetype and bitsizetype so we can create constants.  */
+  sizetype = make_node (INTEGER_TYPE);
+  TYPE_NAME (sizetype) = get_identifier ("sizetype");
+  TYPE_PRECISION (sizetype) = precision;
+  TYPE_UNSIGNED (sizetype) = 1;
+  TYPE_IS_SIZETYPE (sizetype) = 1;
+  bitsizetype = make_node (INTEGER_TYPE);
+  TYPE_NAME (bitsizetype) = get_identifier ("bitsizetype");
+  TYPE_PRECISION (bitsizetype) = bprecision;
+  TYPE_UNSIGNED (bitsizetype) = 1;
+  TYPE_IS_SIZETYPE (bitsizetype) = 1;
 
-/* Make sizetype a version of TYPE, and initialize *sizetype accordingly.
-   We do this by overwriting the stub sizetype and bitsizetype nodes created
-   by initialize_sizetypes.  This makes sure that (a) anything stubby about
-   them no longer exists and (b) any INTEGER_CSTs created with such a type,
-   remain valid.  */
-
-void
-set_sizetype (tree type)
-{
-  tree t, max;
-  int oprecision = TYPE_PRECISION (type);
-  /* The *bitsizetype types use a precision that avoids overflows when
-     calculating signed sizes / offsets in bits.  However, when
-     cross-compiling from a 32 bit to a 64 bit host, we are limited to 64 bit
-     precision.  */
-  int precision
-    = MIN (oprecision + BITS_PER_UNIT_LOG + 1, MAX_FIXED_MODE_SIZE);
-  precision
-    = GET_MODE_PRECISION (smallest_mode_for_size (precision, MODE_INT));
-  if (precision > HOST_BITS_PER_WIDE_INT * 2)
-    precision = HOST_BITS_PER_WIDE_INT * 2;
-
-  /* sizetype must be an unsigned type.  */
-  gcc_assert (TYPE_UNSIGNED (type));
-
-  t = build_distinct_type_copy (type);
-  /* We want to use sizetype's cache, as we will be replacing that type.  */
-  TYPE_CACHED_VALUES (t) = TYPE_CACHED_VALUES (sizetype);
-  TYPE_CACHED_VALUES_P (t) = TYPE_CACHED_VALUES_P (sizetype);
-  TREE_TYPE (TYPE_CACHED_VALUES (t)) = type;
-  TYPE_UID (t) = TYPE_UID (sizetype);
-  TYPE_IS_SIZETYPE (t) = 1;
-
-  /* Replace our original stub sizetype.  */
-  memcpy (sizetype, t, tree_size (sizetype));
-  TYPE_MAIN_VARIANT (sizetype) = sizetype;
-  TYPE_CANONICAL (sizetype) = sizetype;
-
+  /* Now layout both types manually.  */
+  SET_TYPE_MODE (sizetype, smallest_mode_for_size (precision, MODE_INT));
+  TYPE_ALIGN (sizetype) = GET_MODE_ALIGNMENT (TYPE_MODE (sizetype));
+  TYPE_SIZE (sizetype) = bitsize_int (precision);
+  TYPE_SIZE_UNIT (sizetype) = size_int (GET_MODE_SIZE (TYPE_MODE (sizetype)));
+  set_min_and_max_values_for_integral_type (sizetype, precision,
+					    /*is_unsigned=*/true);
   /* sizetype is unsigned but we need to fix TYPE_MAX_VALUE so that it is
      sign-extended in a way consistent with force_fit_type.  */
-  max = TYPE_MAX_VALUE (sizetype);
   TYPE_MAX_VALUE (sizetype)
-    = double_int_to_tree (sizetype, tree_to_double_int (max));
+    = double_int_to_tree (sizetype,
+			  tree_to_double_int (TYPE_MAX_VALUE (sizetype)));
 
-  t = make_node (INTEGER_TYPE);
-  TYPE_NAME (t) = get_identifier ("bit_size_type");
-  /* We want to use bitsizetype's cache, as we will be replacing that type.  */
-  TYPE_CACHED_VALUES (t) = TYPE_CACHED_VALUES (bitsizetype);
-  TYPE_CACHED_VALUES_P (t) = TYPE_CACHED_VALUES_P (bitsizetype);
-  TYPE_PRECISION (t) = precision;
-  TYPE_UID (t) = TYPE_UID (bitsizetype);
-  TYPE_IS_SIZETYPE (t) = 1;
-
-  /* Replace our original stub bitsizetype.  */
-  memcpy (bitsizetype, t, tree_size (bitsizetype));
-  TYPE_MAIN_VARIANT (bitsizetype) = bitsizetype;
-  TYPE_CANONICAL (bitsizetype) = bitsizetype;
-
-  fixup_unsigned_type (bitsizetype);
+  SET_TYPE_MODE (bitsizetype, smallest_mode_for_size (bprecision, MODE_INT));
+  TYPE_ALIGN (bitsizetype) = GET_MODE_ALIGNMENT (TYPE_MODE (bitsizetype));
+  TYPE_SIZE (bitsizetype) = bitsize_int (bprecision);
+  TYPE_SIZE_UNIT (bitsizetype)
+    = size_int (GET_MODE_SIZE (TYPE_MODE (bitsizetype)));
+  set_min_and_max_values_for_integral_type (bitsizetype, bprecision,
+					    /*is_unsigned=*/true);
+  /* ???  TYPE_MAX_VALUE is not properly sign-extended.  */
 
   /* Create the signed variants of *sizetype.  */
-  ssizetype = make_signed_type (oprecision);
+  ssizetype = make_signed_type (TYPE_PRECISION (sizetype));
+  TYPE_NAME (ssizetype) = get_identifier ("ssizetype");
   TYPE_IS_SIZETYPE (ssizetype) = 1;
-  sbitsizetype = make_signed_type (precision);
+  sbitsizetype = make_signed_type (TYPE_PRECISION (bitsizetype));
+  TYPE_NAME (sbitsizetype) = get_identifier ("sbitsizetype");
   TYPE_IS_SIZETYPE (sbitsizetype) = 1;
 }
 

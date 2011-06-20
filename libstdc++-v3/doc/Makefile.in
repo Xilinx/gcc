@@ -180,6 +180,7 @@ WERROR = @WERROR@
 # Validate existing XML structure.
 XMLLINT = xmllint
 XSLTPROC = xsltproc
+XSL_STYLE_DIR = @XSL_STYLE_DIR@
 abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
@@ -323,6 +324,7 @@ AM_CPPFLAGS = $(GLIBCXX_INCLUDES)
 
 # XML
 xmldir = "$(DESTDIR)@docdir@"
+copydir = ${docbook_outdir}/html/manual/ext/
 
 # EPUB
 # Assumes ruby installed
@@ -418,22 +420,17 @@ xml_noinst = \
 	${xml_dir}/images/confdeps.pdf
 
 XSLTPROC_FLAGS = --nonet --xinclude
-#XSL_STYLE_DIR = /usr/share/sgml/docbook/xsl-stylesheets
-XSL_STYLE_DIR = /usr/share/sgml/docbook/xsl-ns-stylesheets
+#XSL_STYLE_DIR = /usr/share/xml/docbook/stylesheet/docbook-xsl-ns
+#XSL_STYLE_DIR = /usr/share/sgml/docbook/xsl-ns-stylesheets
 XSL_FO_STYLE = $(XSL_STYLE_DIR)/fo/docbook.xsl
-#XSL_HTML_STYLE = $(XSL_STYLE_DIR)/xhtml/chunk.xsl
-#XSL_HTML_SINGLE_STYLE = $(XSL_STYLE_DIR)/xhtml/onechunk.xsl
-#XSL_HTML_SINGLE_STYLE = $(XSL_STYLE_DIR)/xhtml/docbook.xsl
 XSL_HTML_STYLE = $(XSL_STYLE_DIR)/xhtml-1_1/chunk.xsl
 XSL_HTML_SINGLE_STYLE = $(XSL_STYLE_DIR)/xhtml-1_1/docbook.xsl
 XSL_EPUB_STYLE = $(XSL_STYLE_DIR)/epub/docbook.xsl
-#LINT_FLAGS = --debug --xinclude --nsclean --postvalid --nowarning --nonet
-#LINT_FLAGS = --xinclude --postvalid --noent --noblanks --noout
-LINT_FLAGS = --debug --xinclude --noent --noblanks  --nonet --noout
-#SCHEMA_FLAGS = --relaxng /usr/share/xml/docbook5/schema/rng/5.0/docbookxi.rng
-SCHEMA_FLAGS = --dtdvalid /usr/share/xml/docbook5/schema/dtd/5.0/docbook.dtd
+LINT_FLAGS = --debug --xinclude --noent --noblanks --noout
+SCHEMA_FLAGS = http://www.docbook.org/xml/5.0/dtd/docbook.dtd
+#SCHEMA_FLAGS = --nonet /usr/share/xml/docbook5/schema/dtd/5.0/docbook.dtd
+XMLLINT_VALID_FLAGS = $(LINT_FLAGS) --dtdvalid $(SCHEMA_FLAGS)
 XMLLINT_FLAGS = --xinclude --nsclean --c14n --noent --noblanks --nocdata
-XMLLINT_VALID_FLAGS = $(LINT_FLAGS) $(SCHEMA_FLAGS)
 
 # XML, all one page
 # Some info on canonicalization
@@ -653,8 +650,14 @@ doc-install-xml: doc-xml
 	test -z ${xmldir} || $(mkinstalldirs) ${xmldir}
 	$(INSTALL_DATA) ${manual_xml} ${xmldir}
 	$(INSTALL_DATA)	${api_xml} ${xmldir}
-stamp-html: stamp-html-docbook stamp-html-doxygen
+stamp-html: stamp-html-copy stamp-html-doxygen
 	$(STAMP) stamp-html
+stamp-html-copy: stamp-html-docbook
+	cp -r ${top_srcdir}/doc/html/ext ${docbook_outdir}/html/manual/ext
+	cd ${docbook_outdir}/html/manual/ext
+	rm -rf ${docbook_outdir}/html/manual/ext/.svn 
+	rm -rf ${docbook_outdir}/html/manual/ext/pb_ds/.svn
+	$(STAMP) stamp-html-copy
 
 doc-html: stamp-html
 

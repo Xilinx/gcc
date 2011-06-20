@@ -463,9 +463,7 @@ extern struct simple_ipa_opt_pass pass_ipa_free_lang_data;
 extern struct ipa_opt_pass_d pass_ipa_cp;
 extern struct ipa_opt_pass_d pass_ipa_reference;
 extern struct ipa_opt_pass_d pass_ipa_pure_const;
-extern struct simple_ipa_opt_pass pass_ipa_type_escape;
 extern struct simple_ipa_opt_pass pass_ipa_pta;
-extern struct simple_ipa_opt_pass pass_ipa_struct_reorg;
 extern struct ipa_opt_pass_d pass_ipa_lto_wpa_fixup;
 extern struct ipa_opt_pass_d pass_ipa_lto_finish_out;
 extern struct ipa_opt_pass_d pass_ipa_profile;
@@ -638,5 +636,9 @@ extern bool first_pass_instance;
 
 /* Declare for plugins.  */
 extern void do_per_function_toporder (void (*) (void *), void *);
+
+extern void disable_pass (const char *);
+extern void enable_pass (const char *);
+extern void dump_passes (void);
 
 #endif /* GCC_TREE_PASS_H */

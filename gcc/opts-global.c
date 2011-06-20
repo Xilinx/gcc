@@ -310,11 +310,6 @@ decode_options (struct gcc_options *opts, struct gcc_options *opts_set,
 
   set_default_handlers (&handlers);
 
-  /* Enable -Werror=coverage-mismatch by default.  */
-  control_warning_option (OPT_Wcoverage_mismatch, (int) DK_ERROR, true,
-			  loc, lang_mask,
-			  &handlers, opts, opts_set, dc);
-
   default_options_optimization (opts, opts_set,
 				decoded_options, decoded_options_count,
 				loc, lang_mask, &handlers, dc);
@@ -374,6 +369,14 @@ handle_common_deferred_options (void)
 	  if (!dump_switch_p (opt->arg))
 	    error ("unrecognized command line option %<-fdump-%s%>", opt->arg);
 	  break;
+
+	case OPT_fenable_:
+	case OPT_fdisable_:
+	  if (opt->opt_index == OPT_fenable_)
+	    enable_pass (opt->arg);
+          else
+	    disable_pass (opt->arg);
+          break;
 
 	case OPT_ffixed_:
 	  /* Deferred.  */

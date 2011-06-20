@@ -201,7 +201,7 @@ E
 C ObjC C++ ObjC++ Undocumented Var(flag_preprocess_only)
 
 F
-C ObjC C++ ObjC++ Joined Separate MissingArgError(missing path after %qs)
+Driver C ObjC C++ ObjC++ Joined Separate MissingArgError(missing path after %qs)
 -F <dir>	Add <dir> to the end of the main framework include path
 
 H
@@ -330,6 +330,10 @@ Warn when all constructors and destructors are private
 Wdeclaration-after-statement
 C ObjC Var(warn_declaration_after_statement) Warning
 Warn when a declaration is found after a statement
+
+Wdelete-non-virtual-dtor
+C++ ObjC++ Var(warn_delnonvdtor) Warning
+Warn about deleting polymorphic objects with non-virtual destructors
 
 Wdeprecated
 C C++ ObjC ObjC++ Var(warn_deprecated) Init(1) Warning
@@ -696,6 +700,10 @@ fasm
 C ObjC C++ ObjC++ Var(flag_no_asm, 0)
 Recognize the \"asm\" keyword
 
+; Define extra predefined macros for use in libgcc.
+fbuilding-libgcc
+C ObjC C++ ObjC++ Undocumented Var(flag_building_libgcc)
+
 fbuiltin
 C ObjC C++ ObjC++ Var(flag_no_builtin, 0)
 Recognize built-in functions
@@ -718,6 +726,10 @@ Reduce the size of object files
 fconstant-string-class=
 ObjC ObjC++ Joined MissingArgError(no class name specified with %qs)
 -fconst-string-class=<name>	Use class <name> for constant strings
+
+fconstexpr-depth=
+C++ ObjC++ Joined RejectNegative UInteger Var(max_constexpr_depth) Init(512)
+-fconstexpr-depth=<number>	Specify maximum constexpr recursion depth
 
 fdeduce-init-list
 C++ ObjC++ Var(flag_deduce_init_list) Init(1)
@@ -1133,7 +1145,11 @@ Remap file names when including files
 
 std=c++98
 C++ ObjC++
-Conform to the ISO 1998 C++ standard
+Conform to the ISO 1998 C++ standard revised by the 2003 technical corrigendum
+
+std=c++03
+C++ ObjC++ Alias(std=c++98)
+Conform to the ISO 1998 C++ standard revised by the 2003 technical corrigendum
 
 std=c++0x
 C++ ObjC++

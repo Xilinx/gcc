@@ -55,8 +55,6 @@
       builtin_assert ("cpu=xstormy16");		\
     }						\
   while (0)
-
-#define TARGET_VERSION fprintf (stderr, " (xstormy16 cpu core)");
 
 /* Storage Layout.  */
 
@@ -178,11 +176,6 @@ enum reg_class
 };
 
 #define N_REG_CLASSES ((int) LIM_REG_CLASSES)
-
-#define IRA_COVER_CLASSES			\
-{						\
-  GENERAL_REGS, LIM_REG_CLASSES			\
-}
 
 #define REG_CLASS_NAMES				\
 {						\
@@ -349,8 +342,6 @@ enum reg_class
 
 #define MAX_REGS_PER_ADDRESS 1
 
-#define LEGITIMATE_CONSTANT_P(X) 1
-
 
 /* Describing Relative Costs of Operations.  */
 
@@ -439,10 +430,6 @@ enum reg_class
 #define ADDITIONAL_REGISTER_NAMES		\
   { { "r14", 14 },				\
     { "r15", 15 } }
-
-#define PRINT_OPERAND(STREAM, X, CODE) xstormy16_print_operand (STREAM, X, CODE)
-
-#define PRINT_OPERAND_ADDRESS(STREAM, X) xstormy16_print_operand_address (STREAM, X)
 
 #define REGISTER_PREFIX ""
 #define LOCAL_LABEL_PREFIX "."

@@ -1,6 +1,6 @@
 /* Output variables, constants and external declarations, for GNU compiler.
    Copyright (C) 1996, 1997, 1998, 2000, 2001, 2002, 2004, 2005, 2007, 2008,
-   2009, 2010
+   2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -49,11 +49,6 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_DEFAULT (MASK_FPREGS|MASK_GAS)
 #undef TARGET_ABI_OPEN_VMS
 #define TARGET_ABI_OPEN_VMS 1
-
-#undef TARGET_NAME   
-#define TARGET_NAME "OpenVMS/Alpha"
-#undef TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (%s)", TARGET_NAME);           
 
 #define VMS_DEBUG_MAIN_POINTER "TRANSFER$BREAK$GO"
 
@@ -188,7 +183,6 @@ typedef struct {int num_args; enum avms_arg_type atypes[6];} avms_arg_info;
    asm (SECTION_OP "\n\t.long " #FUNC"\n");
 
 #undef ASM_OUTPUT_ADDR_DIFF_ELT
-#define ASM_OUTPUT_ADDR_DIFF_ELT(FILE, BODY, VALUE, REL) gcc_unreachable ()
 
 #undef ASM_OUTPUT_ADDR_VEC_ELT
 #define ASM_OUTPUT_ADDR_VEC_ELT(FILE, VALUE) \
@@ -230,14 +224,6 @@ typedef struct {int num_args; enum avms_arg_type atypes[6];} avms_arg_info;
 
 #define LINK_EH_SPEC "vms-dwarf2eh.o%s "
 #define LINK_GCC_C_SEQUENCE_SPEC "%G"
-
-#ifdef IN_LIBGCC2
-/* Get the definition for MD_FALLBACK_FRAME_STATE_FOR from a separate
-   file. This avoids having to recompile the world instead of libgcc only
-   when changes to this macro are exercised.  */
-
-#define MD_UNWIND_SUPPORT "config/alpha/vms-unwind.h"
-#endif
 
 #define ASM_OUTPUT_EXTERNAL(FILE, DECL, NAME) \
   avms_asm_output_external (FILE, DECL, NAME)
@@ -334,11 +320,16 @@ do {                                                \
     }                                               \
 } while (0)
 
+#undef LINK_SPEC
+#if HAVE_GNU_LD
+/* GNU-ld built-in linker script already handles the dwarf2 debug sections.  */
+#define LINK_SPEC "%{shared} %{v}"
+#else
 /* Link with vms-dwarf2.o if -g (except -g0). This causes the
    VMS link to pull all the dwarf2 debug sections together.  */
-#undef LINK_SPEC
 #define LINK_SPEC "%{g:-g vms-dwarf2.o%s} %{g0} %{g1:-g1 vms-dwarf2.o%s} \
 %{g2:-g2 vms-dwarf2.o%s} %{g3:-g3 vms-dwarf2.o%s} %{shared} %{v} %{map}"
+#endif
 
 #undef STARTFILE_SPEC
 #define STARTFILE_SPEC \

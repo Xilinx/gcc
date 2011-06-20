@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// The net package provides a portable interface to Unix
-// networks sockets, including TCP/IP, UDP, domain name
-// resolution, and Unix domain sockets.
+// Package net provides a portable interface to Unix networks sockets,
+// including TCP/IP, UDP, domain name resolution, and Unix domain sockets.
 package net
 
 // TODO(rsc):
@@ -31,7 +30,6 @@ type Conn interface {
 	Write(b []byte) (n int, err os.Error)
 
 	// Close closes the connection.
-	// The error returned is an os.Error to satisfy io.Closer;
 	Close() os.Error
 
 	// LocalAddr returns the local network address.
@@ -83,7 +81,6 @@ type PacketConn interface {
 	WriteTo(b []byte, addr Addr) (n int, err os.Error)
 
 	// Close closes the connection.
-	// The error returned is an os.Error to satisfy io.Closer;
 	Close() os.Error
 
 	// LocalAddr returns the local network address.
@@ -112,7 +109,6 @@ type Listener interface {
 	Accept() (c Conn, err os.Error)
 
 	// Close closes the listener.
-	// The error returned is an os.Error to satisfy io.Closer;
 	Close() os.Error
 
 	// Addr returns the listener's network address.

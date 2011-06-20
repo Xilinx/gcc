@@ -23,6 +23,7 @@
 #ifndef GCC_ARM_PROTOS_H
 #define GCC_ARM_PROTOS_H
 
+extern enum unwind_info_type arm_except_unwind_info (struct gcc_options *);
 extern int use_return_insn (int, rtx);
 extern enum reg_class arm_regno_class (int);
 extern void arm_load_pic_register (unsigned long);
@@ -58,6 +59,7 @@ extern bool arm_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 					   int);
 extern rtx thumb_legitimize_reload_address (rtx *, enum machine_mode, int, int,
 					    int);
+extern int thumb1_legitimate_address_p (enum machine_mode, rtx, int);
 extern int arm_const_double_rtx (rtx);
 extern int neg_const_double_rtx_ok_for_fpa (rtx);
 extern int vfp3_const_double_rtx (rtx);
@@ -81,7 +83,6 @@ extern void neon_disambiguate_copy (rtx *, rtx *, rtx *, unsigned int);
 extern enum reg_class coproc_secondary_reload_class (enum machine_mode, rtx,
 						     bool);
 extern bool arm_tls_referenced_p (rtx);
-extern bool arm_cannot_force_const_mem (rtx);
 
 extern int cirrus_memory_offset (rtx);
 extern int arm_coproc_mem_operand (rtx, bool);
@@ -152,6 +153,7 @@ extern void arm_expand_sync (enum machine_mode, struct arm_sync_generator *,
 extern const char *arm_output_memory_barrier (rtx *);
 extern const char *arm_output_sync_insn (rtx, rtx *);
 extern unsigned int arm_sync_loop_insns (rtx , rtx *);
+extern int arm_attr_length_push_multi(rtx, rtx);
 
 #if defined TREE_CODE
 extern void arm_init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);
@@ -220,9 +222,14 @@ struct tune_params
   bool (*rtx_costs) (rtx, RTX_CODE, RTX_CODE, int *, bool);
   bool (*sched_adjust_cost) (rtx, rtx, rtx, int *);
   int constant_limit;
+  /* Maximum number of instructions to conditionalise in
+     arm_final_prescan_insn.  */
+  int max_insns_skipped;
   int num_prefetch_slots;
   int l1_cache_size;
   int l1_cache_line_size;
+  bool prefer_constant_pool;
+  int (*branch_cost) (bool, bool);
 };
 
 extern const struct tune_params *current_tune;

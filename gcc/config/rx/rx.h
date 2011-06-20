@@ -52,15 +52,6 @@
     }                                           \
   while (0)
 
-enum rx_cpu_types
-{
-  RX600,
-  RX610,
-  RX200
-};
-
-extern enum rx_cpu_types  rx_cpu_type;
-
 #undef  CC1_SPEC
 #define CC1_SPEC "\
   %{mas100-syntax:%{gdwarf*:%e-mas100-syntax is incompatible with -gdwarf}} \
@@ -153,9 +144,7 @@ extern enum rx_cpu_types  rx_cpu_type;
 
 #define TRULY_NOOP_TRUNCATION(OUTPREC, INPREC)   1
 
-#define LEGITIMATE_CONSTANT_P(X) 	rx_is_legitimate_constant (X)
-
-#define HAVE_PRE_DECCREMENT		1
+#define HAVE_PRE_DECREMENT		1
 #define HAVE_POST_INCREMENT		1
 
 #define MOVE_RATIO(SPEED) 		((SPEED) ? 4 : 2)
@@ -186,11 +175,6 @@ enum reg_class
   { 0x0000ffff },	/* Integer registers.  */	\
   { 0x0000ffff }	/* All registers.  */		\
 }
-
-#define IRA_COVER_CLASSES				\
-  {							\
-    GR_REGS, LIM_REG_CLASSES				\
-  }
 
 #define SMALL_REGISTER_CLASSES 		0
 #define N_REG_CLASSES			(int) LIM_REG_CLASSES
@@ -413,6 +397,31 @@ typedef unsigned int CUMULATIVE_ARGS;
 #undef  USER_LABEL_PREFIX
 #define USER_LABEL_PREFIX	"_"
 
+/* Compute the alignment needed for label X in various situations.
+   If the user has specified an alignment then honour that, otherwise
+   use rx_align_for_label.  */
+#define JUMP_ALIGN(x)				(align_jumps ? align_jumps : rx_align_for_label (x, 0))
+#define LABEL_ALIGN(x)				(align_labels ? align_labels : rx_align_for_label (x, 3))
+#define LOOP_ALIGN(x)				(align_loops ? align_loops : rx_align_for_label (x, 2))
+#define LABEL_ALIGN_AFTER_BARRIER(x)		rx_align_for_label (x, 0)
+
+#define ASM_OUTPUT_MAX_SKIP_ALIGN(STREAM, LOG, MAX_SKIP)	\
+  do						\
+    {						\
+      if ((LOG) == 0 || (MAX_SKIP) == 0)	\
+        break;					\
+      if (TARGET_AS100_SYNTAX)			\
+	{					\
+	  if ((LOG) >= 2)			\
+	    fprintf (STREAM, "\t.ALIGN 4\t; %d alignment actually requested\n", 1 << (LOG)); \
+	  else					\
+	    fprintf (STREAM, "\t.ALIGN 2\n");	\
+	}					\
+      else					\
+	fprintf (STREAM, "\t.balign %d,3,%d\n", 1 << (LOG), (MAX_SKIP));	\
+    }						\
+  while (0)
+
 #define ASM_OUTPUT_ALIGN(STREAM, LOG)		\
   do						\
     {						\
@@ -616,3 +625,10 @@ typedef unsigned int CUMULATIVE_ARGS;
 #define REGISTER_MOVE_COST(MODE,FROM,TO) 2
 
 #define SELECT_CC_MODE(OP,X,Y)  rx_select_cc_mode(OP, X, Y)
+
+#define ADJUST_INSN_LENGTH(INSN,LENGTH)				\
+  do								\
+    {								\
+      (LENGTH) = rx_adjust_insn_length ((INSN), (LENGTH));	\
+    }								\
+  while (0)

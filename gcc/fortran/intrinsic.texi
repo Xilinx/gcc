@@ -61,6 +61,8 @@ Some basic guidelines for editing this document:
 * @code{ATAN}:          ATAN,      Arctangent function
 * @code{ATAN2}:         ATAN2,     Arctangent function
 * @code{ATANH}:         ATANH,     Inverse hyperbolic tangent function
+* @code{ATOMIC_DEFINE}: ATOMIC_DEFINE, Setting a variable atomically
+* @code{ATOMIC_REF}:    ATOMIC_REF, Obtaining the value of a variable atomically
 * @code{BESSEL_J0}:     BESSEL_J0, Bessel function of the first kind of order 0
 * @code{BESSEL_J1}:     BESSEL_J1, Bessel function of the first kind of order 1
 * @code{BESSEL_JN}:     BESSEL_JN, Bessel function of the first kind
@@ -236,6 +238,7 @@ Some basic guidelines for editing this document:
 * @code{RANDOM_SEED}:   RANDOM_SEED, Initialize a pseudo-random number sequence
 * @code{RAND}:          RAND,      Real pseudo-random number
 * @code{RANGE}:         RANGE,     Decimal exponent range
+* @code{RANK} :         RANK,      Rank of a data object
 * @code{RAN}:           RAN,       Real pseudo-random number
 * @code{REAL}:          REAL,      Convert to real type 
 * @code{RENAME}:        RENAME,    Rename a file
@@ -345,10 +348,7 @@ the applicable standard for each intrinsic procedure is noted.
 @table @asis
 @item @emph{Description}:
 @code{ABORT} causes immediate termination of the program.  On operating
-systems that support a core dump, @code{ABORT} will produce a core dump even if
-the option @option{-fno-dump-core} is in effect, which is suitable for debugging
-purposes.
-@c TODO: Check if this (with -fno-dump-core) is correct.
+systems that support a core dump, @code{ABORT} will produce a core dump.
 
 @item @emph{Standard}:
 GNU extension
@@ -1544,6 +1544,100 @@ END PROGRAM
 
 @item @emph{See also}:
 Inverse function: @ref{TANH}
+@end table
+
+
+
+@node ATOMIC_DEFINE
+@section @code{ATOMIC_DEFINE} --- Setting a variable atomically
+@fnindex ATOMIC_DEFINE
+@cindex Atomic subroutine, define
+
+@table @asis
+@item @emph{Description}:
+@code{ATOMIC_DEFINE(ATOM, VALUE)} defines the variable @var{ATOM} with the value
+@var{VALUE} atomically.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Atomic subroutine
+
+@item @emph{Syntax}:
+@code{CALL ATOMIC_DEFINE(ATOM, VALUE)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{ATOM}   @tab Scalar coarray or coindexed variable of either integer
+                        type with @code{ATOMIC_INT_KIND} kind or logical type
+                        with @code{ATOMIC_LOGICAL_KIND} kind.
+@item @var{VALURE} @tab Scalar and of the same type as @var{ATOM}. If the kind
+                        is different, the value is converted to the kind of
+                        @var{ATOM}.
+@end multitable
+
+@item @emph{Example}:
+@smallexample
+program atomic
+  use iso_fortran_env
+  integer(atomic_int_kind) :: atom[*]
+  call atomic_define (atom[1], this_image())
+end program atomic
+@end smallexample
+
+@item @emph{See also}:
+@ref{ATOMIC_REF}, @ref{ISO_FORTRAN_ENV}
+@end table
+
+
+
+@node ATOMIC_REF
+@section @code{ATOMIC_REF} --- Obtaining the value of a variable atomically
+@fnindex ATOMIC_REF
+@cindex Atomic subroutine, reference
+
+@table @asis
+@item @emph{Description}:
+@code{ATOMIC_DEFINE(ATOM, VALUE)} atomically assigns the value of the
+variable @var{ATOM} to @var{VALUE}.
+
+@item @emph{Standard}:
+Fortran 2008 and later
+
+@item @emph{Class}:
+Atomic subroutine
+
+@item @emph{Syntax}:
+@code{CALL ATOMIC_REF(VALUE, ATOM)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{VALURE} @tab Scalar and of the same type as @var{ATOM}. If the kind
+                        is different, the value is converted to the kind of
+                        @var{ATOM}.
+@item @var{ATOM}   @tab Scalar coarray or coindexed variable of either integer
+                        type with @code{ATOMIC_INT_KIND} kind or logical type
+                        with @code{ATOMIC_LOGICAL_KIND} kind.
+@end multitable
+
+@item @emph{Example}:
+@smallexample
+program atomic
+  use iso_fortran_env
+  logical(atomic_logical_kind) :: atom[*]
+  logical :: val
+  call atomic_ref (atom, .false.)
+  ! ...
+  call atomic_ref (atom, val)
+  if (val) then
+    print *, "Obtained"
+  end if
+end program atomic
+@end smallexample
+
+@item @emph{See also}:
+@ref{ATOMIC_DEFINE}, @ref{ISO_FORTRAN_ENV}
 @end table
 
 
@@ -2763,7 +2857,7 @@ the @code{COMPILER_OPTIONS} intrinsic.
 @smallexample
    use iso_fortran_env
    print '(4a)', 'This file was compiled by ', &
-                 compiler_version(), ' using the the options ', &
+                 compiler_version(), ' using the options ', &
                  compiler_options()
    end
 @end smallexample
@@ -2805,7 +2899,7 @@ It contains the name of the compiler and its version number.
 @smallexample
    use iso_fortran_env
    print '(4a)', 'This file was compiled by ', &
-                 compiler_version(), ' using the the options ', &
+                 compiler_version(), ' using the options ', &
                  compiler_options()
    end
 @end smallexample
@@ -4285,7 +4379,7 @@ end program test_exit
 @fnindex ZEXP
 @fnindex CDEXP
 @cindex exponential function
-@cindex logarithmic function, inverse
+@cindex logarithm function, inverse
 
 @table @asis
 @item @emph{Description}:
@@ -7766,7 +7860,7 @@ end program test_loc
 
 
 @node LOG
-@section @code{LOG} --- Logarithm function
+@section @code{LOG} --- Natural logarithm function
 @fnindex LOG
 @fnindex ALOG
 @fnindex DLOG
@@ -7774,11 +7868,13 @@ end program test_loc
 @fnindex ZLOG
 @fnindex CDLOG
 @cindex exponential function, inverse
-@cindex logarithmic function
+@cindex logarithm function
+@cindex natural logarithm function
 
 @table @asis
 @item @emph{Description}:
-@code{LOG(X)} computes the logarithm of @var{X}.
+@code{LOG(X)} computes the natural logarithm of @var{X}, i.e. the
+logarithm to the base @math{e}.
 
 @item @emph{Standard}:
 Fortran 77 and later
@@ -7804,9 +7900,9 @@ If @var{X} is @code{COMPLEX}, the imaginary part @math{\omega} is in the range
 @item @emph{Example}:
 @smallexample
 program test_log
-  real(8) :: x = 1.0_8
+  real(8) :: x = 2.7182818284590451_8
   complex :: z = (1.0, 2.0)
-  x = log(x)
+  x = log(x)    ! will yield (approximately) 1
   z = log(z)
 end program test_log
 @end smallexample
@@ -7830,7 +7926,8 @@ end program test_log
 @fnindex ALOG10
 @fnindex DLOG10
 @cindex exponential function, inverse
-@cindex logarithmic function
+@cindex logarithm function with base 10
+@cindex base 10 logarithm function
 
 @table @asis
 @item @emph{Description}:
@@ -10111,6 +10208,47 @@ kind.
 
 @item @emph{Example}:
 See @code{PRECISION} for an example.
+@end table
+
+
+
+@node RANK
+@section @code{RANK} --- Rank of a data object
+@fnindex RANK
+@cindex rank
+
+@table @asis
+@item @emph{Description}:
+@code{RANK(A)} returns the rank of a scalar or array data object.
+
+@item @emph{Standard}:
+Technical Report (TR) 29113
+
+@item @emph{Class}:
+Inquiry function
+
+@item @emph{Syntax}:
+@code{RESULT = RANGE(A)}
+
+@item @emph{Arguments}:
+@multitable @columnfractions .15 .70
+@item @var{A} @tab can be of any type
+@end multitable
+
+@item @emph{Return value}:
+The return value is of type @code{INTEGER} and of the default integer
+kind. For arrays, their rank is returned; for scalars zero is returned.
+
+@item @emph{Example}:
+@smallexample
+program test_rank
+  integer :: a
+  real, allocatable :: b(:,:)
+
+  print *, rank(a), rank(b) ! Prints:  0  3
+end program test_rank
+@end smallexample
+
 @end table
 
 

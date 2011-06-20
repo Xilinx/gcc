@@ -541,6 +541,17 @@ match_real_constant (gfc_expr **result, int signflag)
     goto done;
   exp_char = c;
 
+
+  if (c == 'q')
+    {
+      if (gfc_notify_std (GFC_STD_GNU, "Extension: exponent-letter 'q' in "
+			 "real-literal-constant at %C") == FAILURE)
+	return MATCH_ERROR;
+      else if (gfc_option.warn_real_q_constant)
+	gfc_warning("Extension: exponent-letter 'q' in real-literal-constant "
+		    "at %C");
+    }
+
   /* Scan exponent.  */
   c = gfc_next_ascii_char ();
   count++;
@@ -614,6 +625,30 @@ done:
 	  goto cleanup;
 	}
       kind = gfc_default_double_kind;
+      break;
+
+    case 'q':
+      if (kind != -2)
+	{
+	  gfc_error ("Real number at %C has a 'q' exponent and an explicit "
+		     "kind");
+	  goto cleanup;
+	}
+
+      /* The maximum possible real kind type parameter is 16.  First, try
+	 that for the kind, then fallback to trying kind=10 (Intel 80 bit)
+	 extended precision.  If neither value works, just given up.  */
+      kind = 16;
+      if (gfc_validate_kind (BT_REAL, kind, true) < 0)
+	{
+	  kind = 10;
+          if (gfc_validate_kind (BT_REAL, kind, true) < 0)
+	    {
+	      gfc_error ("Invalid exponent-letter 'q' in "
+			 "real-literal-constant at %C");
+	      goto cleanup;
+	    }
+	}
       break;
 
     default:
@@ -980,9 +1015,6 @@ got_delim:
     goto no_match;
 
   e = gfc_get_character_expr (kind, &start_locus, NULL, length);
-  e->ref = NULL;
-  e->ts.is_c_interop = 0;
-  e->ts.is_iso_c = 0;
 
   gfc_current_locus = start_locus;
 
@@ -1086,8 +1118,6 @@ match_logical_constant (gfc_expr **result)
     }
 
   e = gfc_get_logical_expr (kind, &gfc_current_locus, i);
-  e->ts.is_c_interop = 0;
-  e->ts.is_iso_c = 0;
 
   *result = e;
   return MATCH_YES;
@@ -1269,10 +1299,9 @@ match_complex_constant (gfc_expr **result)
       else
 	kind = gfc_default_real_kind;
     }
+  gfc_clear_ts (&target);
   target.type = BT_REAL;
   target.kind = kind;
-  target.is_c_interop = 0;
-  target.is_iso_c = 0;
 
   if (real->ts.type != BT_REAL || kind != real->ts.kind)
     gfc_convert_type (real, &target, 2);
@@ -2185,9 +2214,9 @@ gfc_structure_ctor_component;
 static void
 gfc_free_structure_ctor_component (gfc_structure_ctor_component *comp)
 {
-  gfc_free (comp->name);
+  free (comp->name);
   gfc_free_expr (comp->val);
-  gfc_free (comp);
+  free (comp);
 }
 
 

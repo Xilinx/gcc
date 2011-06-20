@@ -1,6 +1,6 @@
 /* Name mangling for the 3.0 C++ ABI.
-   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008, 2009, 2010,
+   2011  Free Software Foundation, Inc.
    Written by Alex Samuel <samuel@codesourcery.com>
 
    This file is part of GCC.
@@ -943,7 +943,7 @@ write_nested_name (const tree decl)
   else
     {
       /* No, just use <prefix>  */
-      write_prefix (DECL_CONTEXT (decl));
+      write_prefix (CP_DECL_CONTEXT (decl));
       write_unqualified_name (decl);
     }
   write_char ('E');
@@ -1880,16 +1880,25 @@ write_type (tree type)
 	      break;
 
 	    case POINTER_TYPE:
-	      write_char ('P');
-	      write_type (TREE_TYPE (type));
-	      break;
-
 	    case REFERENCE_TYPE:
-	      if (TYPE_REF_IS_RVALUE (type))
-        	write_char('O');
+	      if (TREE_CODE (type) == POINTER_TYPE)
+		write_char ('P');
+	      else if (TYPE_REF_IS_RVALUE (type))
+		write_char ('O');
               else
                 write_char ('R');
-	      write_type (TREE_TYPE (type));
+	      {
+		tree target = TREE_TYPE (type);
+		/* Attribute const/noreturn are not reflected in mangling.
+		   We strip them here rather than at a lower level because
+		   a typedef or template argument can have function type
+		   with function-cv-quals (that use the same representation),
+		   but you can't have a pointer/reference to such a type.  */
+		if (abi_version_at_least (5)
+		    && TREE_CODE (target) == FUNCTION_TYPE)
+		  target = build_qualified_type (target, TYPE_UNQUALIFIED);
+		write_type (target);
+	      }
 	      break;
 
 	    case TEMPLATE_TYPE_PARM:
@@ -1982,6 +1991,10 @@ write_type (tree type)
 	      sorry ("mangling typeof, use decltype instead");
 	      break;
 
+	    case UNDERLYING_TYPE:
+	      sorry ("mangling __underlying_type");
+	      break;
+
 	    case LANG_TYPE:
 	      /* fall through.  */
 
@@ -2016,12 +2029,6 @@ write_CV_qualifiers_for_type (const tree type)
      int[3]", the "const" is emitted with the "int", not with the
      array.  */
   cp_cv_quals quals = TYPE_QUALS (type);
-
-  /* Attribute const/noreturn are not reflected in mangling.  */
-  if (abi_version_at_least (5)
-      && (TREE_CODE (type) == FUNCTION_TYPE
-	  || TREE_CODE (type) == METHOD_TYPE))
-    return 0;
 
   if (quals & TYPE_QUAL_RESTRICT)
     {
@@ -2240,7 +2247,7 @@ write_function_type (const tree type)
     {
       /* The first parameter must be a POINTER_TYPE pointing to the
 	 `this' parameter.  */
-      tree this_type = TREE_TYPE (TREE_VALUE (TYPE_ARG_TYPES (type)));
+      tree this_type = class_of_this_parm (type);
       write_CV_qualifiers_for_type (this_type);
     }
 
@@ -2592,6 +2599,15 @@ write_expression (tree expr)
       write_unqualified_id (fn);
       write_template_args (TREE_OPERAND (expr, 1));
     }
+  else if (TREE_CODE (expr) == MODOP_EXPR)
+    {
+      enum tree_code subop = TREE_CODE (TREE_OPERAND (expr, 1));
+      const char *name = (assignment_operator_name_info[(int) subop]
+			  .mangled_name);
+      write_string (name);
+      write_expression (TREE_OPERAND (expr, 0));
+      write_expression (TREE_OPERAND (expr, 2));
+    }
   else
     {
       int i, len;
@@ -2694,23 +2710,7 @@ write_expression (tree expr)
 	default:
 	  /* In the middle-end, some expressions have more operands than
 	     they do in templates (and mangling).  */
-	  switch (code)
-	    {
-	    case PREINCREMENT_EXPR:
-	    case PREDECREMENT_EXPR:
-	    case POSTINCREMENT_EXPR:
-	    case POSTDECREMENT_EXPR:
-	      len = 1;
-	      break;
-
-	    case ARRAY_REF:
-	      len = 2;
-	      break;
-
-	    default:
-	      len = TREE_OPERAND_LENGTH (expr);
-	      break;
-	    }
+	  len = cp_tree_operand_length (expr);
 
 	  for (i = 0; i < len; ++i)
 	    {
@@ -2759,6 +2759,10 @@ write_template_arg_literal (const tree value)
 
     case REAL_CST:
       write_real_cst (value);
+      break;
+
+    case STRING_CST:
+      sorry ("string literal in function template signature");
       break;
 
     default:
@@ -3091,6 +3095,9 @@ mangle_decl_string (const tree decl)
   tree saved_fn = NULL_TREE;
   bool template_p = false;
 
+  /* We shouldn't be trying to mangle an uninstantiated template.  */
+  gcc_assert (!type_dependent_expression_p (decl));
+
   if (DECL_LANG_SPECIFIC (decl) && DECL_USE_TEMPLATE (decl))
     {
       struct tinst_level *tl = current_instantiation ();
@@ -3163,7 +3170,7 @@ mangle_decl (const tree decl)
       if (vague_linkage_p (decl))
 	DECL_WEAK (alias) = 1;
       if (TREE_CODE (decl) == FUNCTION_DECL)
-	cgraph_same_body_alias (cgraph_node (decl), alias, decl);
+	cgraph_same_body_alias (cgraph_get_create_node (decl), alias, decl);
       else
 	varpool_extra_name_alias (alias, decl);
 #endif

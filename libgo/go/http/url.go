@@ -213,8 +213,8 @@ func urlEscape(s string, mode encoding) string {
 			j++
 		case shouldEscape(c, mode):
 			t[j] = '%'
-			t[j+1] = "0123456789abcdef"[c>>4]
-			t[j+2] = "0123456789abcdef"[c&15]
+			t[j+1] = "0123456789ABCDEF"[c>>4]
+			t[j+2] = "0123456789ABCDEF"[c&15]
 			j += 3
 		default:
 			t[j] = s[i]
@@ -449,7 +449,7 @@ func ParseURLReference(rawurlref string) (url *URL, err os.Error) {
 //
 // There are redundant fields stored in the URL structure:
 // the String method consults Scheme, Path, Host, RawUserinfo,
-// RawQuery, and Fragment, but not Raw, RawPath or Authority.
+// RawQuery, and Fragment, but not Raw, RawPath or RawAuthority.
 func (url *URL) String() string {
 	result := ""
 	if url.Scheme != "" {

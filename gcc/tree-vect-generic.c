@@ -209,7 +209,7 @@ expand_vector_piecewise (gimple_stmt_iterator *gsi, elem_op_func f,
 
   v = VEC_alloc(constructor_elt, gc, (nunits + delta - 1) / delta);
   for (i = 0; i < nunits;
-       i += delta, index = int_const_binop (PLUS_EXPR, index, part_width, 0))
+       i += delta, index = int_const_binop (PLUS_EXPR, index, part_width))
     {
       tree result = f (gsi, inner_type, a, b, index, part_width, code);
       constructor_elt *ce = VEC_quick_push (constructor_elt, v, NULL);
@@ -658,7 +658,7 @@ struct gimple_opt_pass pass_lower_vector =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_update_ssa	/* todo_flags_finish */
+  TODO_update_ssa	                /* todo_flags_finish */
     | TODO_verify_ssa
     | TODO_verify_stmts | TODO_verify_flow
  }
@@ -679,7 +679,7 @@ struct gimple_opt_pass pass_lower_vector_ssa =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_update_ssa	/* todo_flags_finish */
+  TODO_update_ssa	                /* todo_flags_finish */
     | TODO_verify_ssa
     | TODO_verify_stmts | TODO_verify_flow
  }

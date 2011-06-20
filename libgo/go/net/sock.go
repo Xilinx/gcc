@@ -32,17 +32,7 @@ func socket(net string, f, p, t int, la, ra syscall.Sockaddr, toAddr func(syscal
 	syscall.CloseOnExec(s)
 	syscall.ForkLock.RUnlock()
 
-	// Allow reuse of recently-used addresses.
-	syscall.SetsockoptInt(s, syscall.SOL_SOCKET, syscall.SO_REUSEADDR, 1)
-
-	// Allow broadcast.
-	syscall.SetsockoptInt(s, syscall.SOL_SOCKET, syscall.SO_BROADCAST, 1)
-
-	if f == syscall.AF_INET6 {
-		// using ip, tcp, udp, etc.
-		// allow both protocols even if the OS default is otherwise.
-		syscall.SetsockoptInt(s, syscall.IPPROTO_IPV6, syscall.IPV6_V6ONLY, 0)
-	}
+	setKernelSpecificSockopt(s, f)
 
 	if la != nil {
 		e = syscall.Bind(s, la)
@@ -52,11 +42,16 @@ func socket(net string, f, p, t int, la, ra syscall.Sockaddr, toAddr func(syscal
 		}
 	}
 
+	if fd, err = newFD(s, f, p, net); err != nil {
+		closesocket(s)
+		return nil, err
+	}
+
 	if ra != nil {
-		e = syscall.Connect(s, ra)
-		if e != 0 {
+		if err = fd.connect(ra); err != nil {
+			fd.sysfd = -1
 			closesocket(s)
-			return nil, os.Errno(e)
+			return nil, err
 		}
 	}
 
@@ -65,12 +60,7 @@ func socket(net string, f, p, t int, la, ra syscall.Sockaddr, toAddr func(syscal
 	sa, _ = syscall.Getpeername(s)
 	raddr := toAddr(sa)
 
-	fd, err = newFD(s, f, p, net, laddr, raddr)
-	if err != nil {
-		closesocket(s)
-		return nil, err
-	}
-
+	fd.setAddr(laddr, raddr)
 	return fd, nil
 }
 
@@ -161,15 +151,15 @@ type UnknownSocketError struct {
 }
 
 func (e *UnknownSocketError) String() string {
-	return "unknown socket address type " + reflect.Typeof(e.sa).String()
+	return "unknown socket address type " + reflect.TypeOf(e.sa).String()
 }
 
 func sockaddrToString(sa syscall.Sockaddr) (name string, err os.Error) {
 	switch a := sa.(type) {
 	case *syscall.SockaddrInet4:
-		return joinHostPort(IP(a.Addr[0:]).String(), itoa(a.Port)), nil
+		return JoinHostPort(IP(a.Addr[0:]).String(), itoa(a.Port)), nil
 	case *syscall.SockaddrInet6:
-		return joinHostPort(IP(a.Addr[0:]).String(), itoa(a.Port)), nil
+		return JoinHostPort(IP(a.Addr[0:]).String(), itoa(a.Port)), nil
 	case *syscall.SockaddrUnix:
 		return a.Name, nil
 	}

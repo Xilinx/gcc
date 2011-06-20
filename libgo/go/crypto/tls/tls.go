@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This package partially implements the TLS 1.1 protocol, as specified in RFC 4346.
+// Package tls partially implements the TLS 1.1 protocol, as specified in RFC
+// 4346.
 package tls
 
 import (
@@ -87,8 +88,9 @@ func Listen(network, laddr string, config *Config) (*Listener, os.Error) {
 // Dial interprets a nil configuration as equivalent to
 // the zero configuration; see the documentation of Config
 // for the defaults.
-func Dial(network, laddr, raddr string, config *Config) (*Conn, os.Error) {
-	c, err := net.Dial(network, laddr, raddr)
+func Dial(network, addr string, config *Config) (*Conn, os.Error) {
+	raddr := addr
+	c, err := net.Dial(network, raddr)
 	if err != nil {
 		return nil, err
 	}
@@ -123,17 +125,29 @@ func LoadX509KeyPair(certFile string, keyFile string) (cert Certificate, err os.
 	if err != nil {
 		return
 	}
-
-	certDERBlock, _ := pem.Decode(certPEMBlock)
-	if certDERBlock == nil {
-		err = os.ErrorString("crypto/tls: failed to parse certificate PEM data")
-		return
-	}
-
-	cert.Certificate = [][]byte{certDERBlock.Bytes}
-
 	keyPEMBlock, err := ioutil.ReadFile(keyFile)
 	if err != nil {
+		return
+	}
+	return X509KeyPair(certPEMBlock, keyPEMBlock)
+}
+
+// X509KeyPair parses a public/private key pair from a pair of
+// PEM encoded data.
+func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (cert Certificate, err os.Error) {
+	var certDERBlock *pem.Block
+	for {
+		certDERBlock, certPEMBlock = pem.Decode(certPEMBlock)
+		if certDERBlock == nil {
+			break
+		}
+		if certDERBlock.Type == "CERTIFICATE" {
+			cert.Certificate = append(cert.Certificate, certDERBlock.Bytes)
+		}
+	}
+
+	if len(cert.Certificate) == 0 {
+		err = os.ErrorString("crypto/tls: failed to parse certificate PEM data")
 		return
 	}
 
@@ -153,7 +167,7 @@ func LoadX509KeyPair(certFile string, keyFile string) (cert Certificate, err os.
 
 	// We don't need to parse the public key for TLS, but we so do anyway
 	// to check that it looks sane and matches the private key.
-	x509Cert, err := x509.ParseCertificate(certDERBlock.Bytes)
+	x509Cert, err := x509.ParseCertificate(cert.Certificate[0])
 	if err != nil {
 		return
 	}

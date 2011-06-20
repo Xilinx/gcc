@@ -186,22 +186,28 @@ known_alignment (tree exp)
 static tree
 find_common_type (tree t1, tree t2)
 {
-  /* ??? As of today, various constructs lead here with types of different
+  /* ??? As of today, various constructs lead to here with types of different
      sizes even when both constants (e.g. tagged types, packable vs regular
      component types, padded vs unpadded types, ...).  While some of these
      would better be handled upstream (types should be made consistent before
      calling into build_binary_op), some others are really expected and we
      have to be careful.  */
 
-  /* We must prevent writing more than what the target may hold if this is for
+  /* We must avoid writing more than what the target can hold if this is for
      an assignment and the case of tagged types is handled in build_binary_op
-     so use the lhs type if it is known to be smaller, or of constant size and
-     the rhs type is not, whatever the modes.  We also force t1 in case of
+     so we use the lhs type if it is known to be smaller or of constant size
+     and the rhs type is not, whatever the modes.  We also force t1 in case of
      constant size equality to minimize occurrences of view conversions on the
-     lhs of assignments.  */
+     lhs of an assignment, except for the case of record types with a variant
+     part on the lhs but not on the rhs to make the conversion simpler.  */
   if (TREE_CONSTANT (TYPE_SIZE (t1))
       && (!TREE_CONSTANT (TYPE_SIZE (t2))
-          || !tree_int_cst_lt (TYPE_SIZE (t2), TYPE_SIZE (t1))))
+	  || tree_int_cst_lt (TYPE_SIZE (t1), TYPE_SIZE (t2))
+	  || (TYPE_SIZE (t1) == TYPE_SIZE (t2)
+	      && !(TREE_CODE (t1) == RECORD_TYPE
+		   && TREE_CODE (t2) == RECORD_TYPE
+		   && get_variant_part (t1) != NULL_TREE
+		   && get_variant_part (t2) == NULL_TREE))))
     return t1;
 
   /* Otherwise, if the lhs type is non-BLKmode, use it.  Note that we know
@@ -608,6 +614,15 @@ build_binary_op (enum tree_code op_code, tree result_type,
 			   (DECL_SIZE (TYPE_FIELDS (left_type)))))
 	       && !integer_zerop (TYPE_SIZE (right_type)))
 	operation_type = left_type;
+
+      /* If we have a call to a function that returns an unconstrained type
+	 with default discriminant on the RHS, use the RHS type (which is
+	 padded) as we cannot compute the size of the actual assignment.  */
+      else if (TREE_CODE (right_operand) == CALL_EXPR
+	       && TYPE_IS_PADDING_P (right_type)
+	       && CONTAINS_PLACEHOLDER_P
+		  (TYPE_SIZE (TREE_TYPE (TYPE_FIELDS (right_type)))))
+	operation_type = right_type;
 
       /* Find the best type to use for copying between aggregate types.  */
       else if (((TREE_CODE (left_type) == ARRAY_TYPE
@@ -2126,17 +2141,9 @@ build_allocator (tree type, tree init, tree result_type, Entity_Id gnat_proc,
 					  gnat_proc, gnat_pool, gnat_node);
       storage = convert (storage_ptr_type, gnat_protect_expr (storage));
 
-      if (TYPE_IS_PADDING_P (type))
-	{
-	  type = TREE_TYPE (TYPE_FIELDS (type));
-	  if (init)
-	    init = convert (type, init);
-	}
-
-      /* If there is an initializing expression, make a constructor for
-	 the entire object including the bounds and copy it into the
-	 object.  If there is no initializing expression, just set the
-	 bounds.  */
+      /* If there is an initializing expression, then make a constructor for
+	 the entire object including the bounds and copy it into the object.
+	 If there is no initializing expression, just set the bounds.  */
       if (init)
 	{
 	  VEC(constructor_elt,gc) *v = VEC_alloc (constructor_elt, gc, 2);
@@ -2145,7 +2152,6 @@ build_allocator (tree type, tree init, tree result_type, Entity_Id gnat_proc,
 				  build_template (template_type, type, init));
 	  CONSTRUCTOR_APPEND_ELT (v, DECL_CHAIN (TYPE_FIELDS (storage_type)),
 				  init);
-
 	  return convert
 	    (result_type,
 	     build2 (COMPOUND_EXPR, storage_ptr_type,
@@ -2512,8 +2518,8 @@ gnat_stabilize_reference (tree ref, bool force, bool *success)
       result = build2 (COMPOUND_EXPR, type,
 		       gnat_stabilize_reference (TREE_OPERAND (ref, 0), force,
 						 success),
-		       gnat_stabilize_reference_1 (TREE_OPERAND (ref, 1),
-						   force));
+		       gnat_stabilize_reference (TREE_OPERAND (ref, 1), force,
+						 success));
       break;
 
     case CONSTRUCTOR:
@@ -2563,6 +2569,9 @@ gnat_stabilize_reference (tree ref, bool force, bool *success)
   TREE_READONLY (result) = TREE_READONLY (ref);
   TREE_SIDE_EFFECTS (result) |= TREE_SIDE_EFFECTS (ref);
   TREE_THIS_VOLATILE (result) = TREE_THIS_VOLATILE (ref);
+
+  if (code == INDIRECT_REF || code == ARRAY_REF || code == ARRAY_RANGE_REF)
+    TREE_THIS_NOTRAP (result) = TREE_THIS_NOTRAP (ref);
 
   return result;
 }

@@ -1,5 +1,5 @@
 ;; Predicate definitions for POWER and PowerPC.
-;; Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+;; Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
 ;; Free Software Foundation, Inc.
 ;;
 ;; This file is part of GCC.
@@ -371,7 +371,10 @@
        (and (match_test "TARGET_ALTIVEC")
 	    (match_test "easy_altivec_constant (op, mode)")))
 {
-  HOST_WIDE_INT val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
+  HOST_WIDE_INT val;
+  if (mode == V2DImode || mode == V2DFmode)
+    return 0;
+  val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
   val = ((val & 0xff) ^ 0x80) - 0x80;
   return EASY_VECTOR_15_ADD_SELF (val);
 })
@@ -382,7 +385,10 @@
        (and (match_test "TARGET_ALTIVEC")
 	    (match_test "easy_altivec_constant (op, mode)")))
 {
-  HOST_WIDE_INT val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
+  HOST_WIDE_INT val;
+  if (mode == V2DImode || mode == V2DFmode)
+    return 0;
+  val = const_vector_elt_as_int (op, GET_MODE_NUNITS (mode) - 1);
   return EASY_VECTOR_MSB (val, GET_MODE_INNER (mode));
 })
 
@@ -429,9 +435,12 @@
     op = XEXP (op, 0);
   else if (GET_CODE (op) == PRE_MODIFY)
     op = XEXP (op, 1);
+  else if (GET_CODE (op) == LO_SUM
+	   && GET_CODE (XEXP (op, 0)) == REG
+	   && GET_CODE (XEXP (op, 1)) == CONST)
+    op = XEXP (XEXP (op, 1), 0);
 
   return (GET_CODE (op) != PLUS
-	  || ! REG_P (XEXP (op, 0))
 	  || GET_CODE (XEXP (op, 1)) != CONST_INT
 	  || INTVAL (XEXP (op, 1)) % 4 == 0);
 })
@@ -848,7 +857,7 @@
     return 1;
 
   /* A SYMBOL_REF referring to the TOC is valid.  */
-  if (legitimate_constant_pool_address_p (op, false))
+  if (legitimate_constant_pool_address_p (op, mode, false))
     return 1;
 
   /* A constant pool expression (relative to the TOC) is valid */
@@ -863,6 +872,23 @@
     return 1;
 
   return 0;
+})
+
+;; Return 1 if this operand is a valid input for a vsx_splat insn.
+(define_predicate "splat_input_operand"
+  (match_code "label_ref,symbol_ref,const,high,reg,subreg,mem,
+	       const_double,const_vector,const_int,plus")
+{
+  if (MEM_P (op))
+    {
+      if (mode == DFmode)
+	mode = V2DFmode;
+      else if (mode == DImode)
+	mode = V2DImode;
+      else
+	gcc_unreachable ();        
+    }
+  return input_operand (op, mode);
 })
 
 ;; Return true if OP is an invalid SUBREG operation on the e500.

@@ -990,7 +990,7 @@ copyprop_hardreg_forward (void)
   visited = sbitmap_alloc (last_basic_block);
   sbitmap_zero (visited);
 
-  if (MAY_HAVE_DEBUG_STMTS)
+  if (MAY_HAVE_DEBUG_INSNS)
     debug_insn_changes_pool
       = create_alloc_pool ("debug insn changes pool",
 			   sizeof (struct queued_debug_insn_change), 256);
@@ -1029,7 +1029,7 @@ copyprop_hardreg_forward (void)
       copyprop_hardreg_forward_1 (bb, all_vd + bb->index);
     }
 
-  if (MAY_HAVE_DEBUG_STMTS)
+  if (MAY_HAVE_DEBUG_INSNS)
     {
       FOR_EACH_BB (bb)
 	if (TEST_BIT (visited, bb->index)
@@ -1188,7 +1188,7 @@ struct rtl_opt_pass pass_cprop_hardreg =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_df_finish
+  TODO_df_finish
   | TODO_verify_rtl_sharing		/* todo_flags_finish */
  }
 };
