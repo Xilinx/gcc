@@ -111,37 +111,42 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 	}
     }
 
-  const char * ident = "main.main";
-  tree field = NULL_TREE, last_field = NULL_TREE;
-
-  gpy_hash_entry_t *array = context.array;
-  for (idx = 0; idx<context.size; ++idx)
+  if (context.length > 0)
     {
-      gpy_dot_tree_t * d = array[idx].data;
-      if (d)
+      const char * ident = "main.main";
+      tree field = NULL_TREE, last_field = NULL_TREE;
+
+      gpy_hash_entry_t *array = context.array;
+      for (idx = 0; idx<context.size; ++idx)
 	{
-	  field = build_decl (BUILTINS_LOCATION, FIELD_DECL,
-			      get_identifier (DOT_IDENTIFIER_POINTER (d)),
-			      gpy_object_type_ptr);
-	  DECL_CONTEXT(field) = retval;
-	  if (idx>0)
-	    DECL_CHAIN (last_field) = field;
-	  else
-	    TYPE_FIELDS (retval) = field;
-	  last_field = field;
+	  gpy_dot_tree_t * d = array[idx].data;
+	  if (d)
+	    {
+	      field = build_decl (BUILTINS_LOCATION, FIELD_DECL,
+				  get_identifier (DOT_IDENTIFIER_POINTER (d)),
+				  gpy_object_type_ptr);
+	      DECL_CONTEXT(field) = retval;
+	      if (idx>0)
+		DECL_CHAIN (last_field) = field;
+	      else
+		TYPE_FIELDS (retval) = field;
+	      last_field = field;
+	    }
 	}
+
+      // free (context.array);
+
+      finish_builtin_struct (retval, ident, field, NULL_TREE);
+      TYPE_NAME (retval) = get_identifier (ident);
+
+      /*
+	DECL_ARTIFICIAL (retval) = 1;
+	gpy_preserve_from_gc (retval);
+	rest_of_decl_compilation (retval, 1, 0);
+      */
     }
-
-  // free (context.array);
-
-  finish_builtin_struct (retval, ident, field, NULL_TREE);
-  TYPE_NAME (retval) = get_identifier (ident);
-
-  /*
-  DECL_ARTIFICIAL (retval) = 1;
-  gpy_preserve_from_gc (retval);
-  rest_of_decl_compilation (retval, 1, 0);
-  */
+  else
+    retval = error_mark_node;
   
   return retval;
 }

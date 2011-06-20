@@ -17,6 +17,35 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __SYMBOLS_H_
 #define __SYMBOLS_H__
 
+/*
+  DOT tree codes...
+*/
+enum gpy_dot_opcode_T {
+  D_PRINT_STMT,
+  D_IDENTIFIER,
+  
+  D_MODIFY_EXPR,
+  D_MULT_EXPR,
+  D_DIVD_EXPR,
+  D_ADD_EXPR,
+  D_MINUS_EXPR,
+
+  D_T_INTEGER,
+  D_T_FLOAT,
+  D_T_STRING,
+
+  D_CALL_EXPR,
+
+  D_STRUCT_CLASS,
+  D_STRUCT_METHOD,
+
+  D_TD_COM,
+  D_TD_DOT,
+  D_TD_NULL,
+
+  D_PRIMITIVE,
+} gpy_dot_code_T; 
+
 typedef enum gpy_dot_code_T opcode_t;
 typedef struct GTY(()) gpy_tree_common_dot_t {
   opcode_t T;
@@ -58,7 +87,7 @@ typedef struct GTY(()) gpy_tree_dot_t {
   xmalloc (sizeof (gpy_dot_tree_t));
 
 #define DOT_IDENTIFIER_POINTER(x)		\
-  x->opa.tc.o.string
+  DOT_lhs_TC(x).o.string
 
 extern gpy_dot_tree_t * dot_build_class_decl (gpy_dot_tree_t *, gpy_dot_tree_t *);
 
