@@ -1022,11 +1022,6 @@ pushdecl_maybe_friend_1 (tree x, bool is_friend)
                        || (TREE_CODE (oldlocal) == TYPE_DECL
                            && (!DECL_ARTIFICIAL (oldlocal)
                                || TREE_CODE (x) == TYPE_DECL)))
-		   /* Don't check the `this' parameter or internally generated
-                      vars unless it's an implicit typedef (see
-                      create_implicit_typedef in decl.c).  */
-		   && (!DECL_ARTIFICIAL (oldlocal)
-                       || DECL_IMPLICIT_TYPEDEF_P (oldlocal))
                    /* Don't check for internally generated vars unless
                       it's an implicit typedef (see create_implicit_typedef
                       in decl.c).  */
@@ -1094,6 +1089,10 @@ pushdecl_maybe_friend_1 (tree x, bool is_friend)
 		  if (TREE_CODE (oldlocal) == PARM_DECL)
 		    warning_at (input_location, OPT_Wshadow,
 				"declaration of %q#D shadows a parameter", x);
+		  else if (is_capture_proxy (oldlocal))
+		    warning_at (input_location, OPT_Wshadow,
+				"declaration of %qD shadows a lambda capture",
+				x);
 		  else
 		    warning_at (input_location, OPT_Wshadow,
 				"declaration of %qD shadows a previous local",
@@ -2066,7 +2065,12 @@ push_using_decl (tree scope, tree name)
 }
 
 /* Same as pushdecl, but define X in binding-level LEVEL.  We rely on the
-   caller to set DECL_CONTEXT properly.  */
+   caller to set DECL_CONTEXT properly.
+
+   Note that this must only be used when X will be the new innermost
+   binding for its name, as we tack it onto the front of IDENTIFIER_BINDING
+   without checking to see if the current IDENTIFIER_BINDING comes from a
+   closer binding level than LEVEL.  */
 
 static tree
 pushdecl_with_scope_1 (tree x, cxx_scope *level, bool is_friend)
@@ -4002,13 +4006,8 @@ qualify_lookup (tree val, int flags)
     return true;
   if (flags & (LOOKUP_PREFER_NAMESPACES | LOOKUP_PREFER_TYPES))
     return false;
-  /* In unevaluated context, look past normal capture fields.  */
-  if (cp_unevaluated_operand && TREE_CODE (val) == FIELD_DECL
-      && DECL_NORMAL_CAPTURE_P (val))
-    return false;
-  /* None of the lookups that use qualify_lookup want the op() from the
-     lambda; they want the one from the enclosing class.  */
-  if (TREE_CODE (val) == FUNCTION_DECL && LAMBDA_FUNCTION_P (val))
+  /* Look through lambda things that we shouldn't be able to see.  */
+  if (is_lambda_ignored_entity (val))
     return false;
   return true;
 }

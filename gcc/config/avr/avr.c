@@ -102,9 +102,9 @@ static unsigned int avr_case_values_threshold (void);
 static bool avr_frame_pointer_required_p (void);
 static bool avr_can_eliminate (const int, const int);
 static bool avr_class_likely_spilled_p (reg_class_t c);
-static rtx avr_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx avr_function_arg (cumulative_args_t , enum machine_mode,
 			     const_tree, bool);
-static void avr_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+static void avr_function_arg_advance (cumulative_args_t, enum machine_mode,
 				      const_tree, bool);
 static void avr_help (void);
 static bool avr_function_ok_for_sibcall (tree, tree);
@@ -156,13 +156,6 @@ static const struct attribute_spec avr_attribute_table[] =
     false },
   { NULL,        0, 0, false, false, false, NULL, false }
 };
-
-/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
-static const struct default_options avr_option_optimization_table[] =
-  {
-    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
-    { OPT_LEVELS_NONE, 0, NULL, 0 }
-  };
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_ALIGNED_HI_OP
@@ -254,17 +247,11 @@ static const struct default_options avr_option_optimization_table[] =
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE avr_option_override
 
-#undef TARGET_OPTION_OPTIMIZATION_TABLE
-#define TARGET_OPTION_OPTIMIZATION_TABLE avr_option_optimization_table
-
 #undef TARGET_CANNOT_MODIFY_JUMPS_P
 #define TARGET_CANNOT_MODIFY_JUMPS_P avr_cannot_modify_jumps_p
 
 #undef TARGET_HELP
 #define TARGET_HELP avr_help
-
-#undef TARGET_EXCEPT_UNWIND_INFO
-#define TARGET_EXCEPT_UNWIND_INFO sjlj_except_unwind_info
 
 #undef TARGET_FUNCTION_OK_FOR_SIBCALL
 #define TARGET_FUNCTION_OK_FOR_SIBCALL avr_function_ok_for_sibcall
@@ -1756,9 +1743,10 @@ avr_num_arg_regs (enum machine_mode mode, const_tree type)
    in a register, and which register.  */
 
 static rtx
-avr_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+avr_function_arg (cumulative_args_t cum_v, enum machine_mode mode,
 		  const_tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
   int bytes = avr_num_arg_regs (mode, type);
 
   if (cum->nregs && bytes <= cum->nregs)
@@ -1771,9 +1759,10 @@ avr_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
    in the argument list.  */
    
 static void
-avr_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+avr_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
 			  const_tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
   int bytes = avr_num_arg_regs (mode, type);
 
   cum->nregs -= bytes;

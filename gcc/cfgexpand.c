@@ -1098,7 +1098,9 @@ expand_used_vars_for_block (tree block, bool toplevel)
 
   /* Expand all variables at this level.  */
   for (t = BLOCK_VARS (block); t ; t = DECL_CHAIN (t))
-    if (TREE_USED (t))
+    if (TREE_USED (t)
+        && ((TREE_CODE (t) != VAR_DECL && TREE_CODE (t) != RESULT_DECL)
+	    || !DECL_NONSHAREABLE (t)))
       expand_one_var (t, toplevel, true);
 
   this_sv_num = stack_vars_num;
@@ -1131,6 +1133,8 @@ clear_tree_used (tree block)
 
   for (t = BLOCK_VARS (block); t ; t = DECL_CHAIN (t))
     /* if (!TREE_STATIC (t) && !DECL_EXTERNAL (t)) */
+    if ((TREE_CODE (t) != VAR_DECL && TREE_CODE (t) != RESULT_DECL)
+	|| !DECL_NONSHAREABLE (t))
       TREE_USED (t) = 0;
 
   for (t = BLOCK_SUBBLOCKS (block); t ; t = BLOCK_CHAIN (t))
@@ -4269,7 +4273,6 @@ struct rtl_opt_pass pass_expand =
   PROP_ssa | PROP_trees,		/* properties_destroyed */
   TODO_verify_ssa | TODO_verify_flow
     | TODO_verify_stmts,		/* todo_flags_start */
-  TODO_dump_func
-  | TODO_ggc_collect			/* todo_flags_finish */
+  TODO_ggc_collect			/* todo_flags_finish */
  }
 };

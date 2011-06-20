@@ -6634,7 +6634,7 @@ struct gimple_opt_pass pass_build_alias =
   0,			    /* properties_provided */
   0,                        /* properties_destroyed */
   0,                        /* todo_flags_start */
-  TODO_rebuild_alias | TODO_dump_func  /* todo_flags_finish */
+  TODO_rebuild_alias        /* todo_flags_finish */
  }
 };
 
@@ -6656,7 +6656,7 @@ struct gimple_opt_pass pass_build_ealias =
   0,			    /* properties_provided */
   0,                        /* properties_destroyed */
   0,                        /* todo_flags_start */
-  TODO_rebuild_alias | TODO_dump_func  /* todo_flags_finish */
+  TODO_rebuild_alias        /* todo_flags_finish */
  }
 };
 
@@ -6675,6 +6675,26 @@ gate_ipa_pta (void)
 struct pt_solution ipa_escaped_pt
   = { true, false, false, false, false, false, false, NULL };
 
+/* Associate node with varinfo DATA. Worker for
+   cgraph_for_node_and_aliases.  */
+static bool
+associate_varinfo_to_alias (struct cgraph_node *node, void *data)
+{
+  if (node->alias || node->thunk.thunk_p)
+    insert_vi_for_tree (node->decl, (varinfo_t)data);
+  return false;
+}
+
+/* Associate node with varinfo DATA. Worker for
+   varpool_for_node_and_aliases.  */
+static bool
+associate_varinfo_to_alias_1 (struct varpool_node *node, void *data)
+{
+  if (node->alias)
+    insert_vi_for_tree (node->decl, (varinfo_t)data);
+  return false;
+}
+
 /* Execute the driver for IPA PTA.  */
 static unsigned int
 ipa_pta_execute (void)
@@ -6690,35 +6710,28 @@ ipa_pta_execute (void)
   /* Build the constraints.  */
   for (node = cgraph_nodes; node; node = node->next)
     {
-      struct cgraph_node *alias;
       varinfo_t vi;
-
       /* Nodes without a body are not interesting.  Especially do not
          visit clones at this point for now - we get duplicate decls
 	 there for inline clones at least.  */
-      if (!gimple_has_body_p (node->decl)
+      if (!cgraph_function_with_gimple_body_p (node)
 	  || node->clone_of)
 	continue;
 
       vi = create_function_info_for (node->decl,
-				     alias_get_name (node->decl));
-
-      /* Associate the varinfo node with all aliases.  */
-      for (alias = node->same_body; alias; alias = alias->next)
-	insert_vi_for_tree (alias->decl, vi);
+			             alias_get_name (node->decl));
+      cgraph_for_node_and_aliases (node, associate_varinfo_to_alias, vi, true);
     }
 
   /* Create constraints for global variables and their initializers.  */
   for (var = varpool_nodes; var; var = var->next)
     {
-      struct varpool_node *alias;
       varinfo_t vi;
+      if (var->alias)
+	continue;
 
       vi = get_vi_for_tree (var->decl);
-
-      /* Associate the varinfo node with all aliases.  */
-      for (alias = var->extra_name; alias; alias = alias->next)
-	insert_vi_for_tree (alias->decl, vi);
+      varpool_for_node_and_aliases (var, associate_varinfo_to_alias_1, vi, true);
     }
 
   if (dump_file)
@@ -6737,7 +6750,7 @@ ipa_pta_execute (void)
       tree old_func_decl;
 
       /* Nodes without a body are not interesting.  */
-      if (!gimple_has_body_p (node->decl)
+      if (!cgraph_function_with_gimple_body_p (node)
 	  || node->clone_of)
 	continue;
 
@@ -6846,7 +6859,7 @@ ipa_pta_execute (void)
       struct cgraph_edge *e;
 
       /* Nodes without a body are not interesting.  */
-      if (!gimple_has_body_p (node->decl)
+      if (!cgraph_function_with_gimple_body_p (node)
 	  || node->clone_of)
 	continue;
 

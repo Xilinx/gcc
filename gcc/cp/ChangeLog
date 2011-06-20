@@ -1,3 +1,159 @@
+2011-06-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47080
+	* call.c (rejection_reason_code): Add rr_explicit_conversion.
+	(print_z_candidate): Handle it.
+	(explicit_conversion_rejection): New.
+	(build_user_type_conversion_1): Reject an explicit conversion
+	function that requires more than a qualification conversion.
+
+	PR c++/47635
+	* decl.c (grokdeclarator): Don't set ctype to an ENUMERAL_TYPE.
+
+	PR c++/48138
+	* tree.c (strip_typedefs): Use build_aligned_type.
+
+	PR c++/49205
+	* call.c (sufficient_parms_p): Allow parameter packs too.
+
+	PR c++/43321
+	* semantics.c (describable_type): Remove.
+	* cp-tree.h: Likewise.
+	* decl.c (cp_finish_decl): Don't call it.
+	* init.c (build_new): Likewise.
+	* parser.c (cp_parser_omp_for_loop): Likewise.
+	* pt.c (tsubst_decl): Likewise.
+	(do_auto_deduction): If we fail in a template, try again
+	at instantiation time.
+
+	PR c++/43831
+	* parser.c (cp_parser_lambda_introducer): Complain about redundant
+	captures.
+	* semantics.c (add_capture): Likewise.
+	(register_capture_members): Clear IDENTIFIER_MARKED.
+
+2011-06-17  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49458
+	* call.c (convert_class_to_reference_1): Allow binding function
+	lvalue to rvalue reference.
+
+	PR c++/43912
+	Generate proxy VAR_DECLs for better lambda debug info.
+	* cp-tree.h (FUNCTION_NEEDS_BODY_BLOCK): Add lambda operator().
+	(LAMBDA_EXPR_PENDING_PROXIES): New.
+	(struct tree_lambda_expr): Add pending_proxies.
+	* name-lookup.c (pushdecl_maybe_friend_1): Handle capture shadowing.
+	(qualify_lookup): Use is_lambda_ignored_entity.
+	* parser.c (cp_parser_lambda_expression): Don't adjust field names.
+	Call insert_pending_capture_proxies.
+	(cp_parser_lambda_introducer): Use this_identifier.
+	(cp_parser_lambda_declarator_opt): Call the object parameter
+	of the op() "__closure" instead of "this".
+	(cp_parser_lambda_body): Call build_capture_proxy.
+	* semantics.c (build_capture_proxy, is_lambda_ignored_entity): New.
+	(insert_pending_capture_proxies, insert_capture_proxy): New.
+	(is_normal_capture_proxy, is_capture_proxy): New.
+	(add_capture): Add __ to field names here, return capture proxy.
+	(add_default_capture): Use this_identifier, adjust to expect
+	add_capture to return a capture proxy.
+	(outer_lambda_capture_p, thisify_lambda_field): Remove.
+	(finish_id_expression, lambda_expr_this_capture): Adjust.
+	(build_lambda_expr): Initialize LAMBDA_EXPR_PENDING_PROXIES.
+	* pt.c (tsubst_copy_and_build): Check that LAMBDA_EXPR_PENDING_PROXIES
+	is null.
+
+	* name-lookup.c (pushdecl_maybe_friend_1): Do check for shadowing
+	of artificial locals.
+
+	* parser.c (cp_parser_lambda_expression): Clear
+	LAMBDA_EXPR_THIS_CAPTURE after parsing.
+	* pt.c (tsubst_copy_and_build): Make sure it isn't set.
+
+	* cp-tree.h (struct tree_lambda_expr): Change common to typed.
+	Move non-pointers to end of struct.
+
+	* pt.c (tsubst_decl): Handle DECL_VALUE_EXPR on reference.
+	* decl.c (check_initializer): Handle DECL_VALUE_EXPR_P.
+
+	* semantics.c (finish_non_static_data_member): Preserve dereference
+	in template.
+
+2011-06-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44160
+	* parser.c (cp_parser_lambda_body): Share code between
+	simple and complex cases instead of using cp_parser_function_body.
+
+	PR c++/45378
+	* decl.c (check_initializer): Check narrowing.
+
+	PR c++/49229
+	* pt.c (tsubst_decl) [FUNCTION_DECL]: Handle substitution failure.
+
+	PR c++/49251
+	* semantics.c (finish_id_expression): Mark even dependent
+	variables as used.
+
+	PR c++/49420
+	* error.c (dump_template_argument): Don't try to omit default
+	template args from an argument pack.
+
+2011-06-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR c++/49412
+	* decl.c (get_dso_handle_node): Mark __dso_handle hidden if
+	assembler supports hidden visibility.
+
+2011-06-14  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49107
+	* cp-tree.h (DEFERRED_NOEXCEPT_SPEC_P): Handle overload.
+	* method.c (defaulted_late_check): Only maybe_instantiate_noexcept
+	if the declaration had an exception-specifier.
+	(process_subob_fn): Don't maybe_instantiate_noexcept.
+	* pt.c (maybe_instantiate_noexcept): Handle overload.
+	* typeck2.c (nothrow_spec_p_uninst): New.
+	(merge_exception_specifiers): Add 'fn' parm.  Build up overload.
+	* typeck.c (merge_types): Adjust.
+
+	* pt.c (deduction_tsubst_fntype): Don't save input_location.
+	(maybe_instantiate_noexcept): Likewise.
+
+2011-06-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* Make-lang.in (cp/method.o): Update dependencies.
+	* method.c: Include common/common-target.h.
+	(use_thunk): Use targetm_common.have_named_sections.
+
+2011-06-14  Steve Ellcey  <sje@cup.hp.com>
+
+	* decl.c (cxx_init_decl_processing): Use ptr_mode instead of Pmode.
+
+2011-06-14  Jason Merrill  <jason@redhat.com>
+
+	* error.c (type_to_string): Print typedef-stripped version too.
+
+	PR c++/49117
+	* call.c (perform_implicit_conversion_flags): Print source type as
+	well as expression.
+
+	PR c++/49389
+	* typeck2.c (build_m_component_ref): Preserve rvalueness.
+
+	PR c++/49369
+	* class.c (build_base_path): Fix cv-quals in unevaluated context.
+
+	PR c++/49290
+	* semantics.c (cxx_fold_indirect_ref): Local, more permissive copy
+	of fold_indirect_ref_1.
+	(cxx_eval_indirect_ref): Use it.
+
+2011-06-11  Jan Hubicka  <jh@suse.cz>
+
+	* decl2.c (cp_write_global_declarations): Process aliases; look trhough
+	same body aliases.
+
 2011-06-10  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/41769

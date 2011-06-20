@@ -671,8 +671,7 @@ type_internals_preclude_sra_p (tree type)
 		    && int_bit_position (fld) % BITS_PER_UNIT != 0))
 	      return true;
 
-	    if (AGGREGATE_TYPE_P (ft)
-		&& type_internals_preclude_sra_p (ft))
+	    if (AGGREGATE_TYPE_P (ft) && type_internals_preclude_sra_p (ft))
 	      return true;
 	  }
 
@@ -681,10 +680,13 @@ type_internals_preclude_sra_p (tree type)
     case ARRAY_TYPE:
       et = TREE_TYPE (type);
 
-      if (AGGREGATE_TYPE_P (et))
-	return type_internals_preclude_sra_p (et);
-      else
-	return false;
+      if (TYPE_VOLATILE (et))
+	return true;
+
+      if (AGGREGATE_TYPE_P (et) && type_internals_preclude_sra_p (et))
+	return true;
+
+      return false;
 
     default:
       return false;
@@ -1421,12 +1423,16 @@ build_ref_for_model (location_t loc, tree base, HOST_WIDE_INT offset,
 {
   if (TREE_CODE (model->expr) == COMPONENT_REF)
     {
-      tree t, exp_type;
-      offset -= int_bit_position (TREE_OPERAND (model->expr, 1));
+      tree t, exp_type, fld = TREE_OPERAND (model->expr, 1);
+      tree cr_offset = component_ref_field_offset (model->expr);
+
+      gcc_assert (cr_offset && host_integerp (cr_offset, 1));
+      offset -= TREE_INT_CST_LOW (cr_offset) * BITS_PER_UNIT;
+      offset -= TREE_INT_CST_LOW (DECL_FIELD_BIT_OFFSET (fld));
       exp_type = TREE_TYPE (TREE_OPERAND (model->expr, 0));
       t = build_ref_for_offset (loc, base, offset, exp_type, gsi, insert_after);
-      return fold_build3_loc (loc, COMPONENT_REF, model->type, t,
-			      TREE_OPERAND (model->expr, 1), NULL_TREE);
+      return fold_build3_loc (loc, COMPONENT_REF, model->type, t, fld,
+			      TREE_OPERAND (model->expr, 2));
     }
   else
     return build_ref_for_offset (loc, base, offset, model->type,
@@ -3093,8 +3099,7 @@ struct gimple_opt_pass pass_sra_early =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func
-  | TODO_update_ssa
+  TODO_update_ssa
   | TODO_ggc_collect
   | TODO_verify_ssa			/* todo_flags_finish */
  }
@@ -3115,8 +3120,7 @@ struct gimple_opt_pass pass_sra =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   TODO_update_address_taken,		/* todo_flags_start */
-  TODO_dump_func
-  | TODO_update_ssa
+  TODO_update_ssa
   | TODO_ggc_collect
   | TODO_verify_ssa			/* todo_flags_finish */
  }
@@ -4589,8 +4593,6 @@ struct gimple_opt_pass pass_early_ipa_sra =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_dump_cgraph 	/* todo_flags_finish */
+  TODO_dump_cgraph              	/* todo_flags_finish */
  }
 };
-
-

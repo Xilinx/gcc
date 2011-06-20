@@ -1,3 +1,50 @@
+2011-06-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49400
+	* decl.c (gfc_match_procedure): Allow PROCEDURE declarations inside
+	BLOCK constructs.
+
+2011-06-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/48699
+	* check.c (gfc_check_move_alloc): If 'TO' argument is polymorphic,
+	make sure the vtab is present.
+
+2011-06-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49074
+	* interface.c (gfc_extend_assign): Propagate the locus from the
+	assignment to the type-bound procedure call.
+
+2011-06-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49417
+	* module.c (mio_component): Make sure the 'class_ok' attribute is set
+	for use-associated CLASS components.
+	* parse.c (parse_derived): Check for 'class_ok' attribute.
+	* resolve.c (resolve_fl_derived): Ditto.
+
+2011-06-13  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* frontend-passes.c (remove_trim):  New function.
+	(optimize_assignment):  Use it.
+	(optimize_comparison):  Likewise.  Return correct status
+	for previous change.
+
+2011-06-12  Tobias Burnus
+
+	PR fortran/49324
+	* trans-expr.c (gfc_trans_assignment_1): Tell
+	gfc_trans_scalar_assign to also deep-copy RHS nonvariables
+	with allocatable components.
+	* trans-array.c (gfc_conv_expr_descriptor): Ditto.
+
+2011-05-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* frontend-passes.c (optimize_assignment): Follow chains
+	of concatenation operators to the end for removing trailing
+	TRIMS for assignments.
+
 2011-06-10  Daniel Carrera  <dcarrera@gmail.com>
 
 	* trans-decl.c (gfc_build_builtin_function_decls):

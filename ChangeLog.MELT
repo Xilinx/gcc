@@ -1,4 +1,9 @@
 
+2011-06-20  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	MELT branch merged with trunk rev 175225 using svnmerge. Using
+	c_register_pragma_with_expansion_and_data is now possible...
+
 2011-06-11  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	MELT branch merged with trunk rev 174941 using svnmerge

@@ -9548,6 +9548,8 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
                                           (DECL_TEMPLATE_RESULT
                                                  (DECL_TI_TEMPLATE (t))),
 					   args, complain, in_decl);
+	    if (argvec == error_mark_node)
+	      RETURN (error_mark_node);
 
 	    /* Check to see if we already have this specialization.  */
 	    hash = hash_tmpl_and_args (gen_tmpl, argvec);
@@ -10059,6 +10061,11 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 		tree ve = DECL_VALUE_EXPR (t);
 		ve = tsubst_expr (ve, args, complain, in_decl,
 				  /*constant_expression_p=*/false);
+		if (REFERENCE_REF_P (ve))
+		  {
+		    gcc_assert (TREE_CODE (type) == REFERENCE_TYPE);
+		    ve = TREE_OPERAND (ve, 0);
+		  }
 		SET_DECL_VALUE_EXPR (r, ve);
 	      }
 	  }
@@ -10115,11 +10122,8 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	    if (auto_node && init)
 	      {
 		init = resolve_nondeduced_context (init);
-		if (describable_type (init))
-		  {
-		    type = do_auto_deduction (type, init, auto_node);
-		    TREE_TYPE (r) = type;
-		  }
+		TREE_TYPE (r) = type
+		  = do_auto_deduction (type, init, auto_node);
 	      }
 	  }
 	else
@@ -13491,10 +13495,10 @@ tsubst_copy_and_build (tree t,
 	  = (LAMBDA_EXPR_DISCRIMINATOR (t));
 	LAMBDA_EXPR_CAPTURE_LIST (r)
 	  = RECUR (LAMBDA_EXPR_CAPTURE_LIST (t));
-	LAMBDA_EXPR_THIS_CAPTURE (r)
-	  = RECUR (LAMBDA_EXPR_THIS_CAPTURE (t));
 	LAMBDA_EXPR_EXTRA_SCOPE (r)
 	  = RECUR (LAMBDA_EXPR_EXTRA_SCOPE (t));
+	gcc_assert (LAMBDA_EXPR_THIS_CAPTURE (t) == NULL_TREE
+		    && LAMBDA_EXPR_PENDING_PROXIES (t) == NULL);
 
 	/* Do this again now that LAMBDA_EXPR_EXTRA_SCOPE is set.  */
 	determine_visibility (TYPE_NAME (type));
@@ -13635,7 +13639,6 @@ deduction_tsubst_fntype (tree fn, tree targs)
 {
   static bool excessive_deduction_depth;
   static int deduction_depth;
-  location_t save_loc = input_location;
   struct pending_template *old_last_pend = last_pending_template;
 
   tree fntype = TREE_TYPE (fn);
@@ -13659,7 +13662,6 @@ deduction_tsubst_fntype (tree fn, tree targs)
   r = tsubst (fntype, targs, tf_none, NULL_TREE);
   pop_deduction_access_scope (fn);
   --deduction_depth;
-  input_location = save_loc;
 
   if (excessive_deduction_depth)
     {
@@ -17356,29 +17358,49 @@ always_instantiate_p (tree decl)
 void
 maybe_instantiate_noexcept (tree fn)
 {
-  tree fntype = TREE_TYPE (fn);
-  tree spec = TYPE_RAISES_EXCEPTIONS (fntype);
-  tree noex = NULL_TREE;
-  location_t saved_loc = input_location;
-  tree clone;
+  tree fntype, spec, noex, clone;
+
+  if (DECL_CLONED_FUNCTION_P (fn))
+    fn = DECL_CLONED_FUNCTION (fn);
+  fntype = TREE_TYPE (fn);
+  spec = TYPE_RAISES_EXCEPTIONS (fntype);
 
   if (!DEFERRED_NOEXCEPT_SPEC_P (spec))
     return;
+
   noex = TREE_PURPOSE (spec);
 
-  push_tinst_level (fn);
-  push_access_scope (fn);
-  input_location = DECL_SOURCE_LOCATION (fn);
-  noex = tsubst_copy_and_build (DEFERRED_NOEXCEPT_PATTERN (noex),
-				DEFERRED_NOEXCEPT_ARGS (noex),
-				tf_warning_or_error, fn, /*function_p=*/false,
-				/*integral_constant_expression_p=*/true);
-  input_location = saved_loc;
-  pop_access_scope (fn);
-  pop_tinst_level ();
-  spec = build_noexcept_spec (noex, tf_warning_or_error);
-  if (spec == error_mark_node)
-    spec = noexcept_false_spec;
+  if (TREE_CODE (noex) == DEFERRED_NOEXCEPT)
+    {
+      push_tinst_level (fn);
+      push_access_scope (fn);
+      input_location = DECL_SOURCE_LOCATION (fn);
+      noex = tsubst_copy_and_build (DEFERRED_NOEXCEPT_PATTERN (noex),
+				    DEFERRED_NOEXCEPT_ARGS (noex),
+				    tf_warning_or_error, fn, /*function_p=*/false,
+				    /*integral_constant_expression_p=*/true);
+      pop_access_scope (fn);
+      pop_tinst_level ();
+      spec = build_noexcept_spec (noex, tf_warning_or_error);
+      if (spec == error_mark_node)
+	spec = noexcept_false_spec;
+    }
+  else
+    {
+      /* This is an implicitly declared function, so NOEX is a list of
+	 other functions to evaluate and merge.  */
+      tree elt;
+      spec = noexcept_true_spec;
+      for (elt = noex; elt; elt = OVL_NEXT (elt))
+	{
+	  tree fn = OVL_CURRENT (elt);
+	  tree subspec;
+	  maybe_instantiate_noexcept (fn);
+	  subspec = TYPE_RAISES_EXCEPTIONS (TREE_TYPE (fn));
+	  spec = merge_exception_specifiers (spec, subspec, NULL_TREE);
+	}
+    }
+
   TREE_TYPE (fn) = build_exception_variant (fntype, spec);
 
   FOR_EACH_CLONE (clone, fn)
@@ -19277,6 +19299,12 @@ do_auto_deduction (tree type, tree init, tree auto_node)
   tree decl;
   int val;
 
+  if (processing_template_decl
+      && (TREE_TYPE (init) == NULL_TREE
+	  || BRACE_ENCLOSED_INITIALIZER_P (init)))
+    /* Not enough information to try this yet.  */
+    return type;
+
   /* The name of the object being declared shall not appear in the
      initializer expression.  */
   decl = cp_walk_tree_without_duplicates (&init, contains_auto_r, type);
@@ -19306,6 +19334,9 @@ do_auto_deduction (tree type, tree init, tree auto_node)
 			       DEDUCE_CALL, LOOKUP_NORMAL);
   if (val > 0)
     {
+      if (processing_template_decl)
+	/* Try again at instantiation time.  */
+	return type;
       if (type && type != error_mark_node)
 	/* If type is error_mark_node a diagnostic must have been
 	   emitted by now.  Also, having a mention to '<type error>'

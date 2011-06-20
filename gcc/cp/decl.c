@@ -3672,7 +3672,7 @@ cxx_init_decl_processing (void)
     TYPE_SIZE_UNIT (nullptr_type_node) = size_int (GET_MODE_SIZE (ptr_mode));
     TYPE_UNSIGNED (nullptr_type_node) = 1;
     TYPE_PRECISION (nullptr_type_node) = GET_MODE_BITSIZE (ptr_mode);
-    SET_TYPE_MODE (nullptr_type_node, Pmode);
+    SET_TYPE_MODE (nullptr_type_node, ptr_mode);
     record_builtin_type (RID_MAX, "decltype(nullptr)", nullptr_type_node);
     nullptr_node = build_int_cst (nullptr_type_node, 0);
   }
@@ -5387,6 +5387,14 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
      type.  */
   TREE_TYPE (decl) = type = complete_type (TREE_TYPE (decl));
 
+  if (DECL_HAS_VALUE_EXPR_P (decl))
+    {
+      /* A variable with DECL_HAS_VALUE_EXPR_P set is just a placeholder,
+	 it doesn't have storage to be initialized.  */
+      gcc_assert (init == NULL_TREE);
+      return NULL_TREE;
+    }
+
   if (type == error_mark_node)
     /* We will have already complained.  */
     return NULL_TREE;
@@ -5464,7 +5472,11 @@ check_initializer (tree decl, tree init, int flags, tree *cleanup)
 	      init = error_mark_node;
 	    }
 	  else
-	    init = reshape_init (type, init, tf_warning_or_error);	    
+	    {
+	      init = reshape_init (type, init, tf_warning_or_error);
+	      if (cxx_dialect >= cxx0x && SCALAR_TYPE_P (type))
+		check_narrowing (type, init);
+	    }
 	}
 
       /* If DECL has an array type without a specific bound, deduce the
@@ -5932,13 +5944,10 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	d_init = build_x_compound_expr_from_list (d_init, ELK_INIT,
 						  tf_warning_or_error);
       d_init = resolve_nondeduced_context (d_init);
-      if (describable_type (d_init))
-	{
-	  type = TREE_TYPE (decl) = do_auto_deduction (type, d_init,
-						       auto_node);
-	  if (type == error_mark_node)
-	    return;
-	}
+      type = TREE_TYPE (decl) = do_auto_deduction (type, d_init,
+						   auto_node);
+      if (type == error_mark_node)
+	return;
     }
 
   if (!ensure_literal_type_for_constexpr_object (decl))
@@ -6434,6 +6443,11 @@ get_dso_handle_node (void)
   /* Declare the variable.  */
   dso_handle_node = declare_global_var (get_identifier ("__dso_handle"),
 					ptr_type_node);
+
+#ifdef HAVE_GAS_HIDDEN
+  DECL_VISIBILITY (dso_handle_node) = VISIBILITY_HIDDEN;
+  DECL_VISIBILITY_SPECIFIED (dso_handle_node) = 1;
+#endif
 
   return dso_handle_node;
 }
@@ -8324,10 +8338,15 @@ grokdeclarator (const cp_declarator *declarator,
 		else if (TYPE_P (qualifying_scope))
 		  {
 		    ctype = qualifying_scope;
-		    if (innermost_code != cdk_function
-			&& current_class_type
-			&& !UNIQUELY_DERIVED_FROM_P (ctype,
-						     current_class_type))
+		    if (!MAYBE_CLASS_TYPE_P (ctype))
+		      {
+			error ("%q#T is not a class or a namespace", ctype);
+			ctype = NULL_TREE;
+		      }
+		    else if (innermost_code != cdk_function
+			     && current_class_type
+			     && !UNIQUELY_DERIVED_FROM_P (ctype,
+							  current_class_type))
 		      {
 			error ("type %qT is not derived from type %qT",
 			       ctype, current_class_type);
@@ -9336,7 +9355,7 @@ grokdeclarator (const cp_declarator *declarator,
      would not have exited the loop above.  */
   if (declarator
       && declarator->u.id.qualifying_scope
-      && TYPE_P (declarator->u.id.qualifying_scope))
+      && MAYBE_CLASS_TYPE_P (declarator->u.id.qualifying_scope))
     {
       tree t;
 
@@ -10140,13 +10159,6 @@ grokdeclarator (const cp_declarator *declarator,
 	      pedwarn (input_location, OPT_pedantic, 
 		       "%<inline%> specifier invalid for function %qs "
 		       "declared out of global scope", name);
-	  }
-
-	if (ctype != NULL_TREE
-	    && TREE_CODE (ctype) != NAMESPACE_DECL && !MAYBE_CLASS_TYPE_P (ctype))
-	  {
-	    error ("%q#T is not a class or a namespace", ctype);
-	    ctype = NULL_TREE;
 	  }
 
 	if (ctype == NULL_TREE)
@@ -13043,7 +13055,8 @@ finish_destructor_body (void)
 /* Do the necessary processing for the beginning of a function body, which
    in this case includes member-initializers, but not the catch clauses of
    a function-try-block.  Currently, this means opening a binding level
-   for the member-initializers (in a ctor) and member cleanups (in a dtor).  */
+   for the member-initializers (in a ctor), member cleanups (in a dtor),
+   and capture proxies (in a lambda operator()).  */
 
 tree
 begin_function_body (void)

@@ -1,3 +1,95 @@
+2011-06-20  Daniel Krugler  <daniel.kruegler@googlemail.com>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/tuple (__conv_types, __one_by_one_convertible,
+	__all_convertible): Add.
+	(tuple): Use the latter.
+	(tuple<_T1>): Remove.
+	* testsuite/20_util/uses_allocator/cons_neg.cc: Adjust dg-error
+	line number.
+	* testsuite/20_util/weak_ptr/comparison/cmp_neg.cc: Likewise.
+
+2011-06-14  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/ptr_traits.h (pointer_traits<T*>::pointer_to): Use
+	noexcept.
+
+2011-06-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/valarray (~valarray): Use noexcept.
+	* include/bits/unique_ptr.h (~unique_ptr): Likewise.
+	* testsuite/26_numerics/valarray/noexcept_move_construct.cc: New.
+	* testsuite/20_util/shared_ptr/cons/noexcept_move_construct.cc:
+	Likewise.
+	* testsuite/20_util/unique_ptr/cons/noexcept_move_construct.cc:
+	Likewise.
+	* testsuite/20_util/weak_ptr/cons/noexcept_move_construct.cc:
+	Likewise.
+
+2011-06-14  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/functional: Use noexcept.
+	* include/bits/stl_tempbuf.h: Likewise.
+
+2011-06-12  François Dumont  <francois.cppdevs@free.fr>
+	    Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/allocator.h (__shrink_to_fit): Rename to
+	__shrink_to_fit_aux, fix.
+	* include/bits/stl_vector.h (_M_shrink_to_fit): Declare.
+	(shrink_to_fit): Use the latter.
+	* include/debug/vector (shrink_to_fit): Likewise.
+	* include/bits/vector.tcc (_M_shrink_to_fit): Define.
+	* include/bits/stl_deque.h (_M_shrink_to_fit): Declare.
+	(shrink_to_fit): Use the latter.
+	* include/debug/deque (shrink_to_fit): Likewise.
+	* include/bits/deque.tcc (_M_shrink_to_fit): Define.
+	* include/bits/vector.tcc (vector<bool>::_M_reallocate): Add.
+	* include/bits/stl_bvector.h (_M_shrink_to_fit): Declare.
+	(shrink_to_fit): Use the latter.
+	(reserve): Use _M_reallocate, move inline.
+	(_Bvector_base<>::_S_nword): Add, use it throughout.
+	* include/debug/string (shrink_to_fit): Redo.
+	* include/ext/vstring.h (shrink_to_fit): Optimize.
+	* include/bits/basic_string.h (shrink_to_fit): Likewise.
+	* testsuite/21_strings/debug/shrink_to_fit.cc: New.
+	* testsuite/23_containers/vector/debug/shrink_to_fit.cc: Likewise.
+	* testsuite/23_containers/vector/debug/bool/shrink_to_fit.cc:
+	Likewise.
+	* testsuite/23_containers/vector/bool/capacity/shrink_to_fit.cc:
+	Likewise.
+	* testsuite/23_containers/deque/debug/shrink_to_fit.cc: Likewise.
+
+2011-06-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/tr1/6_containers/tuple/creation_functions/tie2.cc: Fix for
+	C++0x mode.
+	* testsuite/25_algorithms/sort/35588.cc: Likewise.
+	* testsuite/26_numerics/headers/complex/synopsis.cc: Likewise.
+
+2011-06-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/ext/extptr_allocator.h (construct, destroy): Fix for C++0x
+	mode by overloading to take allocator's pointer type.
+	* testsuite/23_containers/vector/ext_pointer/types/2.cc: New.
+	* testsuite/23_containers/vector/ext_pointer/explicit_instantiation/
+	2.cc: New.
+
+2011-06-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/20_util/allocator_traits/requirements/
+	explicit_instantiation.cc: Add another instantiation.
+
+2011-06-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/20_util/allocator_traits/requirements/typedefs.cc: Check
+	for allocator_type and value_type.
+
+2011-06-11  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* testsuite/30_threads/packaged_task/uses_allocator.cc: New.
+	* testsuite/30_threads/promise/uses_allocator.cc: Likewise.
+
 2011-06-10  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/ext/throw_allocator.h: Use noexcept.

@@ -23,6 +23,7 @@
 #ifndef GCC_ARM_PROTOS_H
 #define GCC_ARM_PROTOS_H
 
+extern enum unwind_info_type arm_except_unwind_info (struct gcc_options *);
 extern int use_return_insn (int, rtx);
 extern enum reg_class arm_regno_class (int);
 extern void arm_load_pic_register (unsigned long);
@@ -153,9 +154,6 @@ extern const char *arm_output_memory_barrier (rtx *);
 extern const char *arm_output_sync_insn (rtx, rtx *);
 extern unsigned int arm_sync_loop_insns (rtx , rtx *);
 extern int arm_attr_length_push_multi(rtx, rtx);
-extern bool arm_check_ldrd_operands (rtx, rtx, rtx, rtx);
-extern bool arm_legitimate_ldrd_p (rtx, rtx, rtx, rtx, bool);
-extern int arm_output_ldrd (rtx, rtx, rtx, rtx, rtx, bool);
 
 #if defined TREE_CODE
 extern void arm_init_cumulative_args (CUMULATIVE_ARGS *, tree, rtx, tree);

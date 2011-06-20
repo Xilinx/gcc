@@ -1117,7 +1117,11 @@ lto_output_ts_binfo_tree_pointers (struct output_block *ob, tree expr,
 
   lto_output_tree_or_ref (ob, BINFO_OFFSET (expr), ref_p);
   lto_output_tree_or_ref (ob, BINFO_VTABLE (expr), ref_p);
-  lto_output_tree_or_ref (ob, BINFO_VIRTUALS (expr), ref_p);
+  /* BINFO_VIRTUALS is used to drive type based devirtualizatoin.  It often links
+     together large portions of programs making it harder to partition.  Becuase
+     devirtualization is interesting before inlining, only, there is no real
+     need to ship it into ltrans partition.  */
+  lto_output_tree_or_ref (ob, flag_wpa ? NULL : BINFO_VIRTUALS (expr), ref_p);
   lto_output_tree_or_ref (ob, BINFO_VPTR_FIELD (expr), ref_p);
 
   output_uleb128 (ob, VEC_length (tree, BINFO_BASE_ACCESSES (expr)));
@@ -2253,6 +2257,7 @@ lto_output (cgraph_node_set set, varpool_node_set vset)
     {
       node = lto_cgraph_encoder_deref (encoder, i);
       if (lto_cgraph_encoder_encode_body_p (encoder, node)
+	  && !node->alias
 	  && !node->thunk.thunk_p)
 	{
 #ifdef ENABLE_CHECKING
@@ -2297,7 +2302,7 @@ struct ipa_opt_pass_d pass_ipa_lto_gimple_out =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,            			/* todo_flags_start */
-  TODO_dump_func                        /* todo_flags_finish */
+  0                                     /* todo_flags_finish */
  },
  NULL,		                        /* generate_summary */
  lto_output,           			/* write_summary */
@@ -2551,8 +2556,8 @@ produce_symtab (struct output_block *ob,
   struct lto_streamer_cache_d *cache = ob->writer_cache;
   char *section_name = lto_get_section_name (LTO_section_symtab, NULL, NULL);
   struct pointer_set_t *seen;
-  struct cgraph_node *node, *alias;
-  struct varpool_node *vnode, *valias;
+  struct cgraph_node *node;
+  struct varpool_node *vnode;
   struct lto_output_stream stream;
   lto_varpool_encoder_t varpool_encoder = ob->decl_state->varpool_node_encoder;
   lto_cgraph_encoder_t encoder = ob->decl_state->cgraph_node_encoder;
@@ -2581,11 +2586,9 @@ produce_symtab (struct output_block *ob,
       if (DECL_COMDAT (node->decl)
 	  && cgraph_comdat_can_be_unshared_p (node))
 	continue;
-      if (node->alias || node->global.inlined_to)
+      if ((node->alias && !node->thunk.alias) || node->global.inlined_to)
 	continue;
       write_symbol (cache, &stream, node->decl, seen, false);
-      for (alias = node->same_body; alias; alias = alias->next)
-        write_symbol (cache, &stream, alias->decl, seen, true);
     }
   for (i = 0; i < lto_cgraph_encoder_size (encoder); i++)
     {
@@ -2595,11 +2598,9 @@ produce_symtab (struct output_block *ob,
       if (DECL_COMDAT (node->decl)
 	  && cgraph_comdat_can_be_unshared_p (node))
 	continue;
-      if (node->alias || node->global.inlined_to)
+      if ((node->alias && !node->thunk.alias) || node->global.inlined_to)
 	continue;
       write_symbol (cache, &stream, node->decl, seen, false);
-      for (alias = node->same_body; alias; alias = alias->next)
-        write_symbol (cache, &stream, alias->decl, seen, true);
     }
 
   /* Write all variables.  */
@@ -2616,11 +2617,9 @@ produce_symtab (struct output_block *ob,
 	  && vnode->finalized 
 	  && DECL_VIRTUAL_P (vnode->decl))
 	continue;
-      if (vnode->alias)
+      if (vnode->alias && !vnode->alias_of)
 	continue;
       write_symbol (cache, &stream, vnode->decl, seen, false);
-      for (valias = vnode->extra_name; valias; valias = valias->next)
-        write_symbol (cache, &stream, valias->decl, seen, true);
     }
   for (i = 0; i < lto_varpool_encoder_size (varpool_encoder); i++)
     {
@@ -2632,11 +2631,9 @@ produce_symtab (struct output_block *ob,
 	  && vnode->finalized 
 	  && DECL_VIRTUAL_P (vnode->decl))
 	continue;
-      if (vnode->alias)
+      if (vnode->alias && !vnode->alias_of)
 	continue;
       write_symbol (cache, &stream, vnode->decl, seen, false);
-      for (valias = vnode->extra_name; valias; valias = valias->next)
-        write_symbol (cache, &stream, valias->decl, seen, true);
     }
 
   /* Write all aliases.  */
