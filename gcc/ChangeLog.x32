@@ -1,3 +1,11 @@
+2011-06-15  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/48016
+	* explow.c (emit_stack_save): Don'ty adjust mode of stack save
+	area.
+	(update_nonlocal_goto_save_area): Use proper mode for stack save
+	area.
+
 2011-06-14  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/kfreebsd-gnu64.h (GLIBC_DYNAMIC_LINKERX32): New.
