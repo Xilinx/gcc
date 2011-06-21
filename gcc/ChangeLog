@@ -1,4 +1,492 @@
-2011-05-06  Jeff Law  <law@redhat.com>
+2011-06-20  Changpeng Fang <changpeng.fang@amd.com>
+
+        PR i386/49089
+	* config/i386/i386.c (avx256_split_unaligned_load): New definition.
+	(avx256_split_unaligned_store): New definition.
+	(ix86_option_override_internal): Enable avx256 unaligned load/store
+	splitting only when avx256_split_unaligned_load/store is set.
+
+2011-06-20  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* regrename.c (scan_rtx_reg): Handle the case where we write to an
+	open chain in a smaller mode without failing the entire block.
+
+2011-06-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47725
+	* combine.c (cant_combine_insn_p): Don't check zero/sign
+	extended hard registers.
+
+2011-06-21  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/rs6000.c (rs6000_cannot_force_const_mem): Match
+	CONST high part large-toc address.
+	(rs6000_tls_referenced_p): Make static.
+	* config/rs6000/rs6000-protos.h (rs6000_tls_referenced_p): Delete.
+
+2011-06-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47725
+	* combine.c (cant_combine_insn_p): Check zero/sign extended
+	hard registers.
+
+2011-06-20  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/49385
+	* config/arm/thumb2.md (*thumb2_movhi_insn): Make sure atleast
+	one of the operands is a register.
+
+2011-06-20  Kai Tietz  <ktietz@redhat.com>
+
+	* fold-const.c (fold_binary_loc): Add missing
+	folding for truth-not operations in combination
+	with binary and.
+
+2011-06-20  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* regrename.c (do_replace): Don't update notes.
+
+2011-06-20  Alan Modra  <amodra@gmail.com>
+
+	* config/rs6000/rs6000.c (create_TOC_reference): Wrap high part
+	of toc-relative address in CONST.
+	(rs6000_delegitimize_address): Recognize changed address.
+	(rs6000_legitimize_reload_address): Likewise.
+	(rs6000_emit_move): Don't force these constants to memory.
+	* config/rs6000/rs6000.md (tls_gd, tls_gd_high): Wrap high part of
+	toc-relative address in CONST.
+	(tls_ld, tls_ld_high, tls_got_dtprel, tls_got_dtprel_high): Likewise.
+	(tls_got_tprel, tls_got_tprel_high, largetoc_high): Likewise.
+
+2011-06-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* longlong.h (count_leading_zeros): Use long long builtin for
+	x86-64.
+	(count_trailing_zeros): Likewise.
+
+2011-06-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR other/49325
+	* acinclude.m4 (gcc_AC_INITFINI_ARRAY): Properly check if
+	.init_array can be used with .ctors on targets.
+	* configure: Regenerated.
+
+2011-06-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* tree-sra.c (type_internals_preclude_sra_p) <ARRAY_TYPE>: Return true
+	if the element type is volatile.
+
+2011-06-18  Jan Hubicka  <jh@suse.cz>
+
+	* lto-symtab.c (lto_varpool_replace_node): Remove code handling
+	extra name aliases.
+	(lto_symtab_resolve_can_prevail_p): Likewise.
+	(lto_symtab_merge_cgraph_nodes): Update alias_of pointers.
+	* cgraphbuild.c (record_reference): Remove extra body alias code.
+	(mark_load): Likewise.
+	(mark_store): Likewise.
+	* cgraph.h (varpool_node): Remove extra_name filed;
+	add alias_of and extraname_alias.
+	(varpool_create_variable_alias, varpool_for_node_and_aliases): Declare.
+	(varpool_alias_aliased_node): New inline function.
+	(varpool_variable_node): New function.
+	* cgraphunit.c (handle_alias_pairs): Handle also variable aliases.
+	* ipa-ref.c (ipa_record_reference): Allow aliases on variables.
+	* lto-cgraph.c (lto_output_varpool_node): Update streaming.
+	(input_varpool_node): Likewise.
+	* lto-streamer-out.c (produce_symtab): Remove extra name aliases.
+	(varpool_externally_visible_p): Remove extra body alias code.
+	(function_and_variable_visibility): Likewise.
+	* tree-ssa-structalias.c (associate_varinfo_to_alias_1): New function.
+	(ipa_pta_execute): Use it.
+	* varpool.c (varpool_remove_node): Remove extra name alias code.
+	(varpool_mark_needed_node): Likewise.
+	(varpool_analyze_pending_decls): Analyze aliases.
+	(assemble_aliases): New functoin.
+	(varpool_assemble_decl): Use it.
+	(varpool_create_variable_alias): New function.
+	(varpool_extra_name_alias): Rewrite.
+	(varpool_for_node_and_aliases): New function.
+
+2011-06-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/49411
+	* config/i386/i386.c (ix86_expand_multi_arg_builtins): If
+	last_arg_constant and last argument doesn't match its predicate,
+	for xop_vpermil2<mode>3 error out and for xop_rotl<mode>3
+	if it is CONST_INT, mask it, otherwise expand using rotl<mode>3.
+	(ix86_expand_sse_pcmpestr, ix86_expand_sse_pcmpistr): Fix
+	spelling of error message.
+	* config/i386/sse.md (sse4a_extrqi, sse4a_insertqi,
+	vcvtps2ph, *vcvtps2ph, *vcvtps2ph_store, vcvtps2ph256): Use
+	const_0_to_255_operand instead of const_int_operand.
+
+	Revert:
+	2011-05-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/sse.md (blendbits): Remove mode attribute.
+	(<sse4_1>_blend<ssemodesuffix><avxsizesuffix>): Use const_int_operand
+	instead of const_0_to_<blendbits>_operand for operand 3 predicate.
+	Check integer value of operand 3 in insn constraint.
+
+2011-06-17  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR rtl-optimization/48542
+	* reload.c (find_equiv_reg): Stop looking when finding a
+	setjmp-type call.
+	* reload1.c (reload_as_needed): Invalidate all reload
+	registers when crossing a setjmp-type call.
+
+2011-06-16  Jeff Law  <law@redhat.com>
+
+	* tree-ssa-threadupdate.c (struct redirection_data): New field
+	intermediate_edge.
+	(THREAD_TARGET2): Define.
+	(redirection_data_eq): Also check that the intermediate edge is
+	equal.
+	(lookup_redirection_data): Drop useless argument.  Extract the
+	outgoing_edge and intermediate edge from E.  Callers updated.
+	(copy_phi_args, update_destination_phis): New functions.
+	(fix_duplicate_block_edges): Likewise.
+	(create_edge_and_update_destination_phis): Duplicate all the edges
+	hung off e->aux.  Use copy_phi_args.
+	(create_duplicates): Use fix_duplicate_block_edges.
+	(fixup_template_block): Likewise.
+	(redirect_edges): If necessary, redirect the joiner block's incoming
+	edge to the duplicate of the joiner block.
+	(thread_block): Don't muck up loops when threading through a joiner
+	block.
+	(thread_through_loop_header): Handle threading through a joiner
+	block.
+	(mark_threaded_blocks, register_jump_thread): Likewise.
+	* tree-flow.h (register_jump_thread): Add new argument.  Callers
+	updated.
+	* tree-ssa-threadedge.c (phi_args_equal_on_edges): New function.
+	(thread_across_edge): Handle threading through a joiner block.
+	
+2011-06-16  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/49343
+	* tree-sra.c (build_ref_for_model): Use component_ref_field_offset to
+	calculate offset, provide 2nd operand for the new COMPONENT_REF.
+
+2011-06-16  Iain Sandoe  <iains@gcc.gnu.org>
+
+	* config/darwin-protos.h (machopic_select_rtx_section): Move to
+	inside RTX_CODE ifdef.
+
+2011-06-16  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/45098
+	* tree-ssa-loop-niter.c (infer_loop_bounds_from_pointer_arith): Disallow
+	NULL pointer for pointer arithmetic.
+
+2011-06-16  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/49398
+	Revert.
+	2011-06-10  Wei Guozhi  <carrot@google.com>
+
+	PR target/45335
+	* config/arm/ldmstm.md (ldm2_ia, stm2_ia, ldm2_ib, stm2_ib, ldm2_da,
+	stm2_da, ldm2_db, stm2_db): Add condition !arm_arch7 to these insns.
+	(ldrd, ldrd_reg1, ldrd_reg2 and peephole2): New insn patterns and
+	related peephole2.
+	(strd, strd_reg1, strd_reg2 and peephole2): New insn patterns and
+	related peephole2.
+	* config/arm/arm-protos.h (arm_check_ldrd_operands): New prototype.
+	(arm_legitimate_ldrd_p): New prototype.
+	(arm_output_ldrd): New prototype.
+	* config/arm/arm.c (arm_check_ldrd_operands): New function.
+	(arm_legitimate_ldrd_p): New function.
+	(arm_output_ldrd): New function.
+
+2011-06-16  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR middle-end/46500
+	* doc/tm.texi.in: Update Copyright date.
+	* doc/tm.texi: Regenerate.
+	* targhooks.c (default_setup_incoming_varargs): Replace
+	CUMULATIVE_ARGS* argument type with cumulative_args_t.
+	(default_pretend_outgoing_varargs_named): Likewise.
+	(hook_pass_by_reference_must_pass_in_stack): Likewise.
+	(hook_callee_copies_named): Likewise.
+	(default_function_arg_advance): Likewise.
+	(default_function_arg): Likewise.
+	(default_function_incoming_arg): Likewise.
+	(hook_bool_CUMULATIVE_ARGS_false): Likewise.
+	(hook_bool_CUMULATIVE_ARGS_true): Likewise.
+	(hook_bool_CUMULATIVE_ARGS_mode_tree_bool_false): Likewise.
+	(hook_bool_CUMULATIVE_ARGS_mode_tree_bool_true): Likewise.
+	(hook_int_CUMULATIVE_ARGS_mode_tree_bool_0): Likewise.
+	* targhooks.h (default_setup_incoming_varargs): Likewise.
+	(default_pretend_outgoing_varargs_named): Likewise.
+	(hook_pass_by_reference_must_pass_in_stack): Likewise.
+	(hook_callee_copies_named): Likewise.
+	(default_function_arg_advance): Likewise.
+	(default_function_arg): Likewise.
+	(default_function_incoming_arg): Likewise.
+	(hook_bool_CUMULATIVE_ARGS_false): Likewise.
+	(hook_bool_CUMULATIVE_ARGS_true): Likewise.
+	(hook_bool_CUMULATIVE_ARGS_mode_tree_bool_false): Likewise.
+	(hook_bool_CUMULATIVE_ARGS_mode_tree_bool_true): Likewise.
+	(hook_int_CUMULATIVE_ARGS_mode_tree_bool_0): Likewise.
+	* target.def (pass_by_reference): Likewise.
+	(setup_incoming_varargs, strict_argument_naming): Likewise.
+	(pretend_outgoing_varargs_named, callee_copies): Likewise.
+	(arg_partial_bytes, function_arg_advance, function_arg): Likewise.
+	(function_incoming_arg): Likewise.
+	* target.h: Don't include "tm.h" .
+	(cumulative_args_t): New typedef.
+	[GCC_TM_H] (get_cumulative_args): New static inline function.
+	[GCC_TM_H] (pack_cumulative_args): Likewise.
+	* config/alpha/alpha.c (alpha_function_arg): Replace CUMULATIVE_ARGS*
+	argument type with cumulative_args_t.
+	(alpha_function_arg_advance, alpha_arg_partial_bytes): Likewise.
+	(alpha_pass_by_reference, alpha_setup_incoming_varargs): Likewise.
+	* config/frv/frv.c (frv_setup_incoming_varargs): Likewise.
+	(frv_arg_partial_bytes, frv_function_arg): Likewise.
+	(frv_function_incoming_arg, frv_function_arg_advance): Likewise.
+	(frv_function_arg_1): Likewise.
+	* config/s390/s390.c (s390_pass_by_reference): Likewise.
+	(s390_function_arg_advance, s390_function_arg): Likewise.
+	* config/m32c/m32c.c (m32c_function_arg): Likewise.
+	(m32c_pass_by_reference, m32c_function_arg_advance): Likewise.
+	(m32c_strict_argument_naming): Likewise.
+	* config/spu/spu.c (spu_pass_by_reference, spu_function_arg): Likewise.
+	(spu_function_arg_advance): Likewise.
+	(spu_setup_incoming_varargs): Likewise.  Make static.
+	* config/spu/spu-protos.h (spu_setup_incoming_varargs):
+	Remove prototype.
+	* config/sparc/sparc.c (sparc_strict_argument_naming): Replace
+	CUMULATIVE_ARGS* argument type with cumulative_args_t.
+	(sparc_pass_by_reference, sparc_function_arg_advance): Likewise.
+	(sparc_function_arg, sparc_function_incoming_arg): Likewise.
+	(sparc_arg_partial_bytes, sparc_function_arg_1): Likewise.
+	* config/mep/mep.c (mep_setup_incoming_varargs): Likewise.
+	(mep_pass_by_reference, mep_function_arg): Likewise.
+	(mep_function_arg_advance): Likewise.
+	* config/m32r/m32r.c (m32r_setup_incoming_varargs): Likewise.
+	(m32r_pass_by_reference, m32r_arg_partial_bytes): Likewise.
+	(m32r_function_arg, m32r_function_arg_advance): Likewise.
+	* config/rx/rx.c (rx_function_arg, rx_function_arg_advance): Likewise.
+	* config/i386/i386.c (ix86_function_arg_advance): Likewise.
+	(ix86_function_arg, ix86_pass_by_reference): Likewise.
+	(ix86_setup_incoming_varargs): Likewise.
+	* config/sh/sh.c (sh_setup_incoming_varargs): Likewise.
+	(sh_strict_argument_naming): Likewise.
+	(sh_pretend_outgoing_varargs_named, sh_pass_by_reference): Likewise.
+	(sh_callee_copies, sh_arg_partial_bytes): Likewise.
+	(sh_function_arg_advance, sh_function_arg): Likewise.
+	* config/pdp11/pdp11.c (pdp11_function_arg): Likewise.
+	(pdp11_function_arg_advance): Likewise.
+	* config/microblaze/microblaze.c (microblaze_function_arg_advance):
+	Likewise.
+	(microblaze_function_arg, function_arg_partial_bytes): Likewise.
+	* config/avr/avr.c (avr_function_arg): Likewise.
+	(avr_function_arg_advance): Likewise.
+	* config/xtensa/xtensa.c (xtensa_function_arg_advance): Likewise.
+	(xtensa_function_arg, xtensa_function_incoming_arg): Likewise.
+	(xtensa_function_arg_1): Likewise.
+	* config/stormy16/stormy16.c (xstormy16_function_arg_advance): Likewise.
+	(xstormy16_function_arg): Likewise.
+	* config/fr30/fr30.c (fr30_setup_incoming_varargs): Likewise.
+	(fr30_arg_partial_bytes, fr30_function_arg): Likewise.
+	(fr30_function_arg_advance): Likewise.
+	* config/lm32/lm32.c (lm32_setup_incoming_varargs): Likewise.
+	(lm32_function_arg, lm32_function_arg_advance): Likewise.
+	* config/moxie/moxie.c (moxie_setup_incoming_varargs): Likewise.
+	(moxie_function_arg, moxie_function_arg_advance): Likewise.
+	(moxie_pass_by_reference, moxie_arg_partial_bytes): Likewise.
+	* config/cris/cris.c (cris_setup_incoming_varargs): Likewise.
+	(cris_pass_by_reference, cris_arg_partial_bytes): Likewise.
+	(cris_function_arg, cris_function_incoming_arg): Likewise.
+	(cris_function_arg_advance, cris_function_arg_1): Likewise.
+	* config/iq2000/iq2000.c (iq2000_setup_incoming_varargs): Likewise.
+	(iq2000_pass_by_reference, iq2000_arg_partial_bytes): Likewise.
+	(iq2000_function_arg, iq2000_function_arg_advance): Likewise.
+	* config/mn10300/mn10300.c (mn10300_pass_by_reference): Likewise.
+	(mn10300_function_arg, mn10300_function_arg_advance): Likewise.
+	(mn10300_arg_partial_bytes): Likewise.
+	* config/ia64/ia64.c (ia64_setup_incoming_varargs): Likewise.
+	(ia64_arg_partial_bytes, ia64_function_arg): Likewise.
+	(ia64_function_incoming_arg, ia64_function_arg_advance): Likewise.
+	(ia64_function_arg_1): Likewise.
+	* config/m68k/m68k.c (m68k_function_arg_advance): Likewise.
+	(m68k_function_arg): Likewise.
+	* config/rs6000/rs6000.c (rs6000_function_arg_advance): Likewise.
+	(rs6000_function_arg, setup_incoming_varargs): Likewise.
+	(rs6000_pass_by_reference, rs6000_arg_partial_bytes): Likewise.
+	* config/picochip/picochip.c (picochip_arg_partial_bytes): Likewise.
+	(picochip_function_arg, picochip_incoming_function_arg): Likewise.
+	(picochip_arg_advance): Likewise.
+	* config/mcore/mcore.c (mcore_setup_incoming_varargs): Likewise.
+	(mcore_arg_partial_bytes, mcore_function_arg): Likewise.
+	(mcore_function_arg_advance): Likewise.
+	* config/score/score.c (score_pass_by_reference): Likewise.
+	(score_function_arg_advance): Likewise.
+	(score_arg_partial_bytes): Likewise.  Make static.
+	* config/score/score-protos.h (score_arg_partial_bytes): Don't declare.
+	* config/arm/arm.c (arm_arg_partial_bytes): Replace
+	CUMULATIVE_ARGS* argument type with cumulative_args_t.
+	(arm_function_arg, arm_function_arg_advance): Likewise.
+	(arm_setup_incoming_varargs, arm_pass_by_reference): Likewise.
+	* config/pa/pa.c (pa_pass_by_reference): Likewise.
+	(pa_arg_partial_bytes, pa_function_arg_advance): Likewise.
+	(pa_function_arg): Likewise.
+	* config/mips/mips.c (mips_strict_argument_naming): Likewise.
+	(mips_function_arg, mips_function_arg_advance): Likewise.
+	(mips_arg_partial_bytes, mips_pass_by_reference): Likewise.
+	(mips_callee_copies, mips_setup_incoming_varargs): Likewise.
+	* config/vax/vax.c (vax_function_arg): Likewise.
+	(vax_function_arg_advance): Likewise.
+	* config/h8300/h8300.c (h8300_function_arg): Likewise.
+	(h8300_function_arg_advance): Likewise.
+	* config/v850/v850.c (v850_pass_by_reference): Likewise.
+	(v850_strict_argument_naming, v850_function_arg): Likewise.
+	(v850_arg_partial_bytes, v850_function_arg_advance): Likewise.
+	(v850_setup_incoming_varargs): Likewise.
+	* config/mmix/mmix.c (mmix_setup_incoming_varargs): Likewise.
+	(mmix_function_arg_advance, mmix_function_incoming_arg): Likewise.
+	(mmix_function_arg, mmix_pass_by_reference): Likewise.
+	(mmix_function_arg_1): Replace const CUMULATIVE_ARGS* argument type
+	with const void *.
+	* config/bfin/bfin.c (setup_incoming_varargs): Replace
+	CUMULATIVE_ARGS* argument type with cumulative_args_t.
+	(bfin_function_arg_advance, bfin_function_arg): Likewise.
+	(bfin_arg_partial_bytes, bfin_pass_by_reference): Likewise.
+	* calls.c (emit_call_1): Change type of args_so_far to
+	cumulative_args_t.  Changed all callers.
+	(initialize_argument_information): Likewise.
+	(expand_call, emit_library_call_value_1): Use pack_cumulative_args.
+	* dse.c (get_call_args): Likewise.
+	* expr.c (block_move_libcall_safe_for_call_parm): Likewise.
+	* function.c (pass_by_reference, reference_callee_copied): Likewise.
+	(struct assign_parm_data_all): Rename args_so_far to args_so_far_v.
+	New member args_so_far_v.  Changed all users.
+	* var-tracking.c (prepare_call_arguments): Use pack_cumulative_args.
+	* config/iq2000/iq2000.c (iq2000_expand_prologue): Likewise.
+	* config/mips/mips.c (mips_output_args_xfer): Likewise.
+	* config/s390/s390.c (s390_call_saved_register_used): Likewise.
+	* config/sh/sh.c (sh_output_mi_thunk): Likewise.
+	* config/microblaze/microblaze.c (microblaze_expand_prologue): Likewise.
+	* config/m32r/m32r.c (m32r_return_in_memory): Adjust for changed
+	m32r_pass_by_reference.
+
+2011-06-16  Ira Rosen  <ira.rosen@linaro.org>
+
+	* tree-vectorizer.h (vect_recog_func_ptr): Change the first
+	argument to be a VEC of statements.
+	* tree-vect-loop.c (vect_determine_vectorization_factor):
+	Remove the assert that pattern statements have to have their
+	vector type set.
+	* tree-vect-patterns.c (vect_recog_widen_sum_pattern):
+	Change the first argument to be a VEC of statements.  Update
+	documentation.
+	(vect_recog_dot_prod_pattern, vect_recog_pow_pattern): Likewise.
+	(vect_handle_widen_mult_by_const): New function.
+	(vect_recog_widen_mult_pattern):  Change the first argument to
+	be a VEC of statements.  Update documentation.  Check that the
+	constant is INTEGER_CST.  Support multiplication by a constant
+	that fits an intermediate type - call
+	vect_handle_widen_mult_by_const.
+	(vect_pattern_recog_1): Update vect_recog_func_ptr and its
+	call.  Handle additional pattern statements if necessary.
+
+2011-06-16  Nick Clifton  <nickc@redhat.com>
+
+	PR target/49427
+	* config.gcc: Set cpu_type to v850 for any V850 architecture.
+	(v850*-*-*): Delete explicit setting of tm_p_file, tmake_file,
+	md_file, extra_modes, out_file and extra_options are these are all
+	deduced from cpu_type.
+
+2011-06-16  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/libgcc.S (__ashldi3, __ashrdi3, __lshrdi3): Set shift
+	truncation mask to 63.
+
+2011-06-16  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49313
+	PR target/29524
+	* longlong.h: Add AVR support:
+	(count_leading_zeros): New macro.
+	(count_trailing_zeros): New macro.
+	(COUNT_LEADING_ZEROS_0): New macro.
+	* config/avr/t-avr (LIB1ASMFUNCS): Add
+	_ffssi2, _ffshi2, _loop_ffsqi2,
+	_ctzsi2, _ctzhi2, _clzdi2, _clzsi2, _clzhi2,
+	_paritydi2, _paritysi2, _parityhi2,
+	_popcounthi2,_popcountsi2, _popcountdi2, _popcountqi2,
+	_bswapsi2, _bswapdi2,
+	_ashldi3, _ashrdi3, _lshrdi3
+	(LIB2FUNCS_EXCLUDE): Add _clz.
+	* config/avr/libgcc.S (XCALL): Move up in file.
+	(XJMP): New C Macro.
+	(DEFUN): New asm macro.
+	(ENDF): New asm macro.
+	(__ffssi2): New function.
+	(__ffshi2): New function.
+	(__loop_ffsqi2): New function.
+	(__ctzsi2): New function.
+	(__ctzhi2): New function.
+	(__clzdi2): New function.
+	(__clzsi2): New function.
+	(__clzhi2): New function.
+	(__paritydi2): New function.
+	(__paritysi2): New function.
+	(__parityhi2): New function.
+	(__parityqi2): New function.
+	(__popcounthi2): New function.
+	(__popcountsi2): New function.
+	(__popcountdi2): New function.
+	(__popcountqi2): New function.
+	(__bswapsi2): New function.
+	(__bswapdi2): New function.
+	(__ashldi3): New function.
+	(__ashrdi3): New function.
+	(__lshrdi3): New function.
+	Fix suspicous lines.
+
+2011-06-16  Richard Guenther  <rguenther@suse.de>
+
+	* gimple.c (canonicalize_cond_expr_cond): (bool)x is not
+	the same as x != 0.
+	* fold-const.c (fold_binary_loc): Do not fold X & 1 != 0 to
+	(bool) X & 1.
+	* ipa-prop.c (ipa_analyze_indirect_call_uses): Also allow
+	equality compares against zero for the lower bit.
+
+2011-06-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49419
+	* tree-vrp.c (execute_vrp): Call init_range_assertions
+	before estimate_numbers_of_iterations, call
+	free_number_of_iterations_estimates before calling
+	remove_range_assertions.
+
+2011-06-16  Revital Eres  <revital.eres@linaro.org>
+
+	* modulo-sched.c (struct ps_insn): Remove row_rest_count field.
+	(struct partial_schedule): Add rows_length field.
+	(verify_partial_schedule): Check rows_length.
+	(ps_insert_empty_row): Handle rows_length.
+	(create_partial_schedule): Likewise.
+	(free_partial_schedule): Likewise.
+	(reset_partial_schedule): Likewise.
+	(create_ps_insn): Remove rest_count argument.
+	(remove_node_from_ps): Update rows_length.
+	(add_node_to_ps): Update rows_length and call create_ps_insn
+	without passing row_rest_count.
+	(rotate_partial_schedule): Update rows_length.
+
+2011-06-16  Revital Eres  <revital.eres@linaro.org>
+
+	* ddg.c (add_intra_loop_mem_dep): New function.
+	(build_intra_loop_deps): Call it.
+
+2011-06-13  Jeff Law  <law@redhat.com>
 
 	* df-problems.c (df_lr_local_compute): Manually CSE
 	PIC_OFFSET_TABLE_REGNUM.
@@ -23,7 +511,7 @@
 	PR tree-optimization/48613
 	* ipa-prop.c (ipa_prop_write_jump_functions): Return immediately if
 	ipa_node_params_vector is NULL.
-	
+
 2011-06-15  Jakub Jelinek  <jakub@redhat.com>
 
 	PR debug/49382
@@ -650,6 +1138,7 @@
 
 2011-06-13  Edmar Wienskoski  <edmar@freescale.com>
 
+	PR target/44618
 	* config/rs6000/rs6000.md (save_gpregs_<mode>): Replaced pattern with
 	a set of similar patterns, where the MATCH_OPERAND for the function
 	argument is replaced with individual references to hardware registers.

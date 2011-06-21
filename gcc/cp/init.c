@@ -2600,8 +2600,7 @@ build_new (VEC(tree,gc) **placement, tree type, tree nelts,
 	{
 	  tree d_init = VEC_index (tree, *init, 0);
 	  d_init = resolve_nondeduced_context (d_init);
-	  if (describable_type (d_init))
-	    type = do_auto_deduction (type, d_init, auto_node);
+	  type = do_auto_deduction (type, d_init, auto_node);
 	}
     }
 
@@ -3083,8 +3082,9 @@ build_vec_init (tree base, tree maxindex, tree init,
       unsigned HOST_WIDE_INT idx;
       tree field, elt;
       /* Should we try to create a constant initializer?  */
-      bool try_const = (literal_type_p (inner_elt_type)
-			|| TYPE_HAS_CONSTEXPR_CTOR (inner_elt_type));
+      bool try_const = (TREE_CODE (atype) == ARRAY_TYPE
+			&& (literal_type_p (inner_elt_type)
+			    || TYPE_HAS_CONSTEXPR_CTOR (inner_elt_type)));
       bool saw_non_const = false;
       bool saw_const = false;
       /* If we're initializing a static array, we want to do static

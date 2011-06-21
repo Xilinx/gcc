@@ -2122,6 +2122,12 @@ static const unsigned int x86_arch_always_fancy_math_387
   = m_PENT | m_ATOM | m_PPRO | m_AMD_MULTIPLE | m_PENT4
     | m_NOCONA | m_CORE2I7 | m_GENERIC;
 
+static const unsigned int x86_avx256_split_unaligned_load
+  = m_COREI7 | m_GENERIC;
+
+static const unsigned int x86_avx256_split_unaligned_store
+  = m_COREI7 | m_BDVER1 | m_GENERIC;
+
 /* In case the average insn count for single function invocation is
    lower than this constant, emit fast (but longer) prologue and
    epilogue code.  */
@@ -3668,9 +3674,11 @@ ix86_option_override_internal (bool main_args_p)
 	  if (flag_expensive_optimizations
 	      && !(target_flags_explicit & MASK_VZEROUPPER))
 	    target_flags |= MASK_VZEROUPPER;
-	  if (!(target_flags_explicit & MASK_AVX256_SPLIT_UNALIGNED_LOAD))
+	  if ((x86_avx256_split_unaligned_load & ix86_tune_mask)
+	      && !(target_flags_explicit & MASK_AVX256_SPLIT_UNALIGNED_LOAD))
 	    target_flags |= MASK_AVX256_SPLIT_UNALIGNED_LOAD;
-	  if (!(target_flags_explicit & MASK_AVX256_SPLIT_UNALIGNED_STORE))
+	  if ((x86_avx256_split_unaligned_store & ix86_tune_mask)
+	      && !(target_flags_explicit & MASK_AVX256_SPLIT_UNALIGNED_STORE))
 	    target_flags |= MASK_AVX256_SPLIT_UNALIGNED_STORE;
 	}
     }
@@ -6347,9 +6355,10 @@ function_arg_advance_ms_64 (CUMULATIVE_ARGS *cum, HOST_WIDE_INT bytes,
    may not be available.)  */
 
 static void
-ix86_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+ix86_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
 			   const_tree type, bool named)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
   HOST_WIDE_INT bytes, words;
 
   if (mode == BLKmode)
@@ -6594,9 +6603,10 @@ function_arg_ms_64 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
    ellipsis).  */
 
 static rtx
-ix86_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode omode,
+ix86_function_arg (cumulative_args_t cum_v, enum machine_mode omode,
 		   const_tree type, bool named)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
   enum machine_mode mode = omode;
   HOST_WIDE_INT bytes, words;
   rtx arg;
@@ -6638,10 +6648,12 @@ ix86_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode omode,
    appropriate for passing a pointer to that type.  */
 
 static bool
-ix86_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
+ix86_pass_by_reference (cumulative_args_t cum_v ATTRIBUTE_UNUSED,
 			enum machine_mode mode ATTRIBUTE_UNUSED,
 			const_tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   /* See Windows x64 Software Convention.  */
   if (TARGET_64BIT && (cum ? cum->call_abi : ix86_abi) == MS_ABI)
     {
@@ -7389,10 +7401,11 @@ setup_incoming_varargs_ms_64 (CUMULATIVE_ARGS *cum)
 }
 
 static void
-ix86_setup_incoming_varargs (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+ix86_setup_incoming_varargs (cumulative_args_t cum_v, enum machine_mode mode,
 			     tree type, int *pretend_size ATTRIBUTE_UNUSED,
 			     int no_rtl)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
   CUMULATIVE_ARGS next_cum;
   tree fntype;
 
@@ -7409,7 +7422,8 @@ ix86_setup_incoming_varargs (CUMULATIVE_ARGS *cum, enum machine_mode mode,
      For stdargs, we do want to skip the last named argument.  */
   next_cum = *cum;
   if (stdarg_p (fntype))
-    ix86_function_arg_advance (&next_cum, mode, type, true);
+    ix86_function_arg_advance (pack_cumulative_args (&next_cum), mode, type,
+			       true);
 
   if (cum->call_abi == MS_ABI)
     setup_incoming_varargs_ms_64 (&next_cum);
@@ -25967,16 +25981,61 @@ ix86_expand_multi_arg_builtin (enum insn_code icode, tree exp, rtx target,
       int adjust = (comparison_p) ? 1 : 0;
       enum machine_mode mode = insn_data[icode].operand[i+adjust+1].mode;
 
-      if (last_arg_constant && i == nargs-1)
+      if (last_arg_constant && i == nargs - 1)
 	{
-	  if (!CONST_INT_P (op))
+	  if (!insn_data[icode].operand[i + 1].predicate (op, mode))
 	    {
-	      error ("last argument must be an immediate");
-	      return gen_reg_rtx (tmode);
+	      enum insn_code new_icode = icode;
+	      switch (icode)
+		{
+		case CODE_FOR_xop_vpermil2v2df3:
+		case CODE_FOR_xop_vpermil2v4sf3:
+		case CODE_FOR_xop_vpermil2v4df3:
+		case CODE_FOR_xop_vpermil2v8sf3:
+		  error ("the last argument must be a 2-bit immediate");
+		  return gen_reg_rtx (tmode);
+		case CODE_FOR_xop_rotlv2di3:
+		  new_icode = CODE_FOR_rotlv2di3;
+		  goto xop_rotl;
+		case CODE_FOR_xop_rotlv4si3:
+		  new_icode = CODE_FOR_rotlv4si3;
+		  goto xop_rotl;
+		case CODE_FOR_xop_rotlv8hi3:
+		  new_icode = CODE_FOR_rotlv8hi3;
+		  goto xop_rotl;
+		case CODE_FOR_xop_rotlv16qi3:
+		  new_icode = CODE_FOR_rotlv16qi3;
+		xop_rotl:
+		  if (CONST_INT_P (op))
+		    {
+		      int mask = GET_MODE_BITSIZE (GET_MODE_INNER (tmode)) - 1;
+		      op = GEN_INT (INTVAL (op) & mask);
+		      gcc_checking_assert
+			(insn_data[icode].operand[i + 1].predicate (op, mode));
+		    }
+		  else
+		    {
+		      gcc_checking_assert
+			(nargs == 2
+			 && insn_data[new_icode].operand[0].mode == tmode
+			 && insn_data[new_icode].operand[1].mode == tmode
+			 && insn_data[new_icode].operand[2].mode == mode
+			 && insn_data[new_icode].operand[0].predicate
+			    == insn_data[icode].operand[0].predicate
+			 && insn_data[new_icode].operand[1].predicate
+			    == insn_data[icode].operand[1].predicate);
+		      icode = new_icode;
+		      goto non_constant;
+		    }
+		  break;
+		default:
+		  gcc_unreachable ();
+		}
 	    }
 	}
       else
 	{
+	non_constant:
 	  if (VECTOR_MODE_P (mode))
 	    op = safe_vector_operand (op, mode);
 
@@ -26301,7 +26360,7 @@ ix86_expand_sse_pcmpestr (const struct builtin_description *d,
 
   if (!insn_data[d->icode].operand[6].predicate (op4, modeimm))
     {
-      error ("the fifth argument must be a 8-bit immediate");
+      error ("the fifth argument must be an 8-bit immediate");
       return const0_rtx;
     }
 
@@ -26396,7 +26455,7 @@ ix86_expand_sse_pcmpistr (const struct builtin_description *d,
 
   if (!insn_data[d->icode].operand[4].predicate (op2, modeimm))
     {
-      error ("the third argument must be a 8-bit immediate");
+      error ("the third argument must be an 8-bit immediate");
       return const0_rtx;
     }
 

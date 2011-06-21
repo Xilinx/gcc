@@ -338,6 +338,10 @@
 
 (define_mode_iterator FMAMODE [SF DF V4SF V2DF V8SF V4DF])
 
+;; Mapping of immediate bits for blend instructions
+(define_mode_attr blendbits
+  [(V8SF "255") (V4SF "15") (V4DF "15") (V2DF "3")])
+
 (define_mode_attr avx2
   [(V32QI "avx2_") (V16HI "avx2_") (V8SI "avx2_") (V4DI "avx2_")
    (V16QI "") (V8HI "") (V4SI "") (V2DI "")])
@@ -9136,8 +9140,8 @@
 (define_insn "sse4a_extrqi"
   [(set (match_operand:V2DI 0 "register_operand" "=x")
         (unspec:V2DI [(match_operand:V2DI 1 "register_operand" "0")
-                      (match_operand 2 "const_int_operand" "")
-                      (match_operand 3 "const_int_operand" "")]
+                      (match_operand 2 "const_0_to_255_operand" "")
+                      (match_operand 3 "const_0_to_255_operand" "")]
                      UNSPEC_EXTRQI))]
   "TARGET_SSE4A"
   "extrq\t{%3, %2, %0|%0, %2, %3}"
@@ -9161,8 +9165,8 @@
   [(set (match_operand:V2DI 0 "register_operand" "=x")
         (unspec:V2DI [(match_operand:V2DI 1 "register_operand" "0")
         	      (match_operand:V2DI 2 "register_operand" "x")
-                      (match_operand 3 "const_int_operand" "")
-                      (match_operand 4 "const_int_operand" "")]
+                      (match_operand 3 "const_0_to_255_operand" "")
+                      (match_operand 4 "const_0_to_255_operand" "")]
                      UNSPEC_INSERTQI))]
   "TARGET_SSE4A"
   "insertq\t{%4, %3, %2, %0|%0, %2, %3, %4}"
@@ -9195,9 +9199,8 @@
 	(vec_merge:VF
 	  (match_operand:VF 2 "nonimmediate_operand" "xm,xm")
 	  (match_operand:VF 1 "register_operand" "0,x")
-	  (match_operand:SI 3 "const_int_operand" "")))]
-  "TARGET_SSE4_1
-   && IN_RANGE (INTVAL (operands[3]), 0, (1 << GET_MODE_NUNITS (<MODE>mode))-1)"
+	  (match_operand:SI 3 "const_0_to_<blendbits>_operand" "")))]
+  "TARGET_SSE4_1"
   "@
    blend<ssemodesuffix>\t{%3, %2, %0|%0, %2, %3}
    vblend<ssemodesuffix>\t{%3, %2, %1, %0|%0, %1, %2, %3}"
@@ -12292,7 +12295,7 @@
   [(set (match_operand:V8HI 0 "register_operand" "")
 	(vec_concat:V8HI
 	  (unspec:V4HI [(match_operand:V4SF 1 "register_operand" "")
-			(match_operand:SI 2 "immediate_operand" "")]
+			(match_operand:SI 2 "const_0_to_255_operand" "")]
 		       UNSPEC_VCVTPS2PH)
 	  (match_dup 3)))]
   "TARGET_F16C"
@@ -12302,7 +12305,7 @@
   [(set (match_operand:V8HI 0 "register_operand" "=x")
 	(vec_concat:V8HI
 	  (unspec:V4HI [(match_operand:V4SF 1 "register_operand" "x")
-			(match_operand:SI 2 "immediate_operand" "N")]
+			(match_operand:SI 2 "const_0_to_255_operand" "N")]
 		       UNSPEC_VCVTPS2PH)
 	  (match_operand:V4HI 3 "const0_operand" "")))]
   "TARGET_F16C"
@@ -12314,7 +12317,7 @@
 (define_insn "*vcvtps2ph_store"
   [(set (match_operand:V4HI 0 "memory_operand" "=m")
 	(unspec:V4HI [(match_operand:V4SF 1 "register_operand" "x")
-		      (match_operand:SI 2 "immediate_operand" "N")]
+		      (match_operand:SI 2 "const_0_to_255_operand" "N")]
 		     UNSPEC_VCVTPS2PH))]
   "TARGET_F16C"
   "vcvtps2ph\t{%2, %1, %0|%0, %1, %2}"
@@ -12325,7 +12328,7 @@
 (define_insn "vcvtps2ph256"
   [(set (match_operand:V8HI 0 "nonimmediate_operand" "=xm")
 	(unspec:V8HI [(match_operand:V8SF 1 "register_operand" "x")
-		      (match_operand:SI 2 "immediate_operand" "N")]
+		      (match_operand:SI 2 "const_0_to_255_operand" "N")]
 		     UNSPEC_VCVTPS2PH))]
   "TARGET_F16C"
   "vcvtps2ph\t{%2, %1, %0|%0, %1, %2}"

@@ -1081,19 +1081,19 @@ static void rs6000_darwin64_record_arg_recurse (CUMULATIVE_ARGS *,
 						rtx[], int *);
 static rtx rs6000_darwin64_record_arg (CUMULATIVE_ARGS *, const_tree, bool, bool);
 static rtx rs6000_mixed_function_arg (enum machine_mode, const_tree, int);
-static void rs6000_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+static void rs6000_function_arg_advance (cumulative_args_t, enum machine_mode,
 					 const_tree, bool);
-static rtx rs6000_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx rs6000_function_arg (cumulative_args_t, enum machine_mode,
 				const_tree, bool);
 static unsigned int rs6000_function_arg_boundary (enum machine_mode,
 						  const_tree);
 static void rs6000_move_block_from_reg (int regno, rtx x, int nregs);
-static void setup_incoming_varargs (CUMULATIVE_ARGS *,
+static void setup_incoming_varargs (cumulative_args_t,
 				    enum machine_mode, tree,
 				    int *, int);
-static bool rs6000_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
+static bool rs6000_pass_by_reference (cumulative_args_t, enum machine_mode,
 				      const_tree, bool);
-static int rs6000_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
+static int rs6000_arg_partial_bytes (cumulative_args_t, enum machine_mode,
 				     tree, bool);
 static const char *invalid_arg_for_unprototyped_fn (const_tree, const_tree, const_tree);
 #if TARGET_MACHO
@@ -5803,12 +5803,13 @@ rs6000_delegitimize_address (rtx orig_x)
 		   || TARGET_MINIMAL_TOC
 		   || TARGET_CMODEL != CMODEL_SMALL))
 	      || (TARGET_CMODEL != CMODEL_SMALL
-		  && GET_CODE (XEXP (x, 0)) == PLUS
-		  && GET_CODE (XEXP (XEXP (x, 0), 0)) == REG
-		  && REGNO (XEXP (XEXP (x, 0), 0)) == TOC_REGISTER
-		  && GET_CODE (XEXP (XEXP (x, 0), 1)) == HIGH
+		  && GET_CODE (XEXP (x, 0)) == CONST
+		  && GET_CODE (XEXP (XEXP (x, 0), 0)) == PLUS
+		  && GET_CODE (XEXP (XEXP (XEXP (x, 0), 0), 0)) == REG
+		  && REGNO (XEXP (XEXP (XEXP (x, 0), 0), 0)) == TOC_REGISTER
+		  && GET_CODE (XEXP (XEXP (XEXP (x, 0), 0), 1)) == HIGH
 		  && rtx_equal_p (XEXP (x, 1),
-				  XEXP (XEXP (XEXP (x, 0), 1), 0)))))
+				  XEXP (XEXP (XEXP (XEXP (x, 0), 0), 1), 0)))))
 	{
 	  y = XVECEXP (y, 0, 0);
 	  if (offset != NULL_RTX)
@@ -6044,7 +6045,7 @@ rs6000_legitimize_tls_address (rtx addr, enum tls_model model)
 
 /* Return 1 if X contains a thread-local symbol.  */
 
-bool
+static bool
 rs6000_tls_referenced_p (rtx x)
 {
   if (! TARGET_HAVE_TLS)
@@ -6058,6 +6059,11 @@ rs6000_tls_referenced_p (rtx x)
 static bool
 rs6000_cannot_force_const_mem (enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
 {
+  if (GET_CODE (x) == CONST
+      && GET_CODE (XEXP (x, 0)) == PLUS
+      && GET_CODE (XEXP (XEXP (x, 0), 1)) == HIGH)
+    return true;
+
   return rs6000_tls_referenced_p (x);
 }
 
@@ -6147,11 +6153,12 @@ rs6000_legitimize_reload_address (rtx x, enum machine_mode mode,
       && GET_CODE (XEXP (x, 0)) == PLUS
       && GET_CODE (XEXP (XEXP (x, 0), 0)) == REG
       && REGNO (XEXP (XEXP (x, 0), 0)) == TOC_REGISTER
-      && GET_CODE (XEXP (XEXP (x, 0), 1)) == HIGH
+      && GET_CODE (XEXP (XEXP (x, 0), 1)) == CONST
+      && GET_CODE (XEXP (XEXP (XEXP (x, 0), 1), 0)) == HIGH
       && GET_CODE (XEXP (x, 1)) == CONST
       && GET_CODE (XEXP (XEXP (x, 1), 0)) == UNSPEC
       && XINT (XEXP (XEXP (x, 1), 0), 1) == UNSPEC_TOCREL
-      && rtx_equal_p (XEXP (XEXP (XEXP (x, 0), 1), 0), XEXP (x, 1)))
+      && rtx_equal_p (XEXP (XEXP (XEXP (XEXP (x, 0), 1), 0), 0), XEXP (x, 1)))
     {
       push_reload (XEXP (x, 0), NULL_RTX, &XEXP (x, 0), NULL,
 		   BASE_REG_CLASS, Pmode, VOIDmode, 0, 0,
@@ -7197,6 +7204,11 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
 	}
       else if (mode == Pmode
 	       && CONSTANT_P (operands[1])
+	       && GET_CODE (operands[1]) != HIGH
+	       && !(TARGET_CMODEL != CMODEL_SMALL
+		    && GET_CODE (operands[1]) == CONST
+		    && GET_CODE (XEXP (operands[1], 0)) == PLUS
+		    && GET_CODE (XEXP (XEXP (operands[1], 0), 1)) == HIGH)
 	       && ((GET_CODE (operands[1]) != CONST_INT
 		    && ! easy_fp_constant (operands[1], mode))
 		   || (GET_CODE (operands[1]) == CONST_INT
@@ -7204,7 +7216,6 @@ rs6000_emit_move (rtx dest, rtx source, enum machine_mode mode)
 			   > (TARGET_CMODEL != CMODEL_SMALL ? 3 : 2)))
 		   || (GET_CODE (operands[0]) == REG
 		       && FP_REGNO_P (REGNO (operands[0]))))
-	       && GET_CODE (operands[1]) != HIGH
 	       && ! legitimate_constant_pool_address_p (operands[1], mode,
 							false)
 	       && ! toc_relative_expr_p (operands[1])
@@ -8040,10 +8051,11 @@ rs6000_function_arg_advance_1 (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 }
 
 static void
-rs6000_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+rs6000_function_arg_advance (cumulative_args_t cum, enum machine_mode mode,
 			     const_tree type, bool named)
 {
-  rs6000_function_arg_advance_1 (cum, mode, type, named, 0);
+  rs6000_function_arg_advance_1 (get_cumulative_args (cum), mode, type, named,
+				 0);
 }
 
 static rtx
@@ -8407,9 +8419,10 @@ rs6000_mixed_function_arg (enum machine_mode mode, const_tree type,
    itself.  */
 
 static rtx
-rs6000_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+rs6000_function_arg (cumulative_args_t cum_v, enum machine_mode mode,
 		     const_tree type, bool named)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
   enum rs6000_abi abi = DEFAULT_ABI;
 
   /* Return a marker to indicate whether CR1 needs to set or clear the
@@ -8679,9 +8692,10 @@ rs6000_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
    returns the number of bytes used by the first element of the PARALLEL.  */
 
 static int
-rs6000_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+rs6000_arg_partial_bytes (cumulative_args_t cum_v, enum machine_mode mode,
 			  tree type, bool named)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
   int ret = 0;
   int align_words;
 
@@ -8742,7 +8756,7 @@ rs6000_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
    reference.  */
 
 static bool
-rs6000_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
+rs6000_pass_by_reference (cumulative_args_t cum ATTRIBUTE_UNUSED,
 			  enum machine_mode mode, const_tree type,
 			  bool named ATTRIBUTE_UNUSED)
 {
@@ -8842,7 +8856,7 @@ rs6000_move_block_from_reg (int regno, rtx x, int nregs)
    stack and set PRETEND_SIZE to the length of the registers pushed.  */
 
 static void
-setup_incoming_varargs (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+setup_incoming_varargs (cumulative_args_t cum, enum machine_mode mode,
 			tree type, int *pretend_size ATTRIBUTE_UNUSED,
 			int no_rtl)
 {
@@ -8853,7 +8867,7 @@ setup_incoming_varargs (CUMULATIVE_ARGS *cum, enum machine_mode mode,
   alias_set_type set;
 
   /* Skip the last named argument.  */
-  next_cum = *cum;
+  next_cum = *get_cumulative_args (cum);
   rs6000_function_arg_advance_1 (&next_cum, mode, type, true, 0);
 
   if (DEFAULT_ABI == ABI_V4)
@@ -19060,7 +19074,9 @@ create_TOC_reference (rtx symbol, rtx largetoc_reg)
   tocreg = gen_rtx_REG (Pmode, TOC_REGISTER);
   if (TARGET_CMODEL != CMODEL_SMALL)
     {
-      rtx hi = gen_rtx_PLUS (Pmode, tocreg, gen_rtx_HIGH (Pmode, tocrel));
+      rtx hi = gen_rtx_CONST (Pmode,
+			      gen_rtx_PLUS (Pmode, tocreg, 
+					    gen_rtx_HIGH (Pmode, tocrel)));
       if (largetoc_reg != NULL)
 	{
 	  emit_move_insn (largetoc_reg, hi);
