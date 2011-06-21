@@ -1,4 +1,30 @@
+2011-06-21  Jason Merrill  <jason@redhat.com>
+
+	* call.c (add_builtin_candidates): Use cv_unqualified rather than
+	TYPE_MAIN_VARIANT.
+	* pt.c (tsubst_arg_types): Likewise.
+	* except.c (build_throw): Use cv_unqualified.
+
+	PR c++/49418
+	* call.c (cxx_type_promotes_to): Don't strip cv-quals.
+	* semantics.c (lambda_return_type): Strip them here.
+
+2011-06-21  Andrew MacLeod  <amacleod@redhat.com>
+
+	* semantics.c: Add sync_ or SYNC__ to builtin names.
+
 2011-06-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49216
+	* init.c (build_vec_init): Don't try to use a CONSTRUCTOR when
+	base is a pointer.
+	* typeck2.c (process_init_constructor_array): Use {} for classes,
+	too.
+	* call.c (convert_like_real): Handle substitution failure.
+
+	PR c++/48138
+	* pt.c (canonicalize_type_argument): New.
+	(convert_template_argument, unify): Use it.
 
 	PR c++/47080
 	* call.c (rejection_reason_code): Add rr_explicit_conversion.

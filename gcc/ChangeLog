@@ -1,3 +1,220 @@
+2011-06-21  Andrew MacLeod  <amacleod@redhat.com>
+
+	* builtins.c: Add sync_ or SYNC__ to builtin names.
+	* sync-builtins.def: Add sync_ or SYNC__ to builtin names.
+	* omp-low.c: Add sync_ or SYNC__ to builtin names.
+
+2011-06-21  Georg-Johann Lay  <avr@gjlay.de>
+	
+	PR target/33049
+	* config/avr/avr.md (extzv): New expander.
+	(*extzv): New insn.
+	(*extzv.qihi1, *extzv.qihi2): New insn-and-split.
+	* config/avr/constraints.md (C04): New constraint.
+	* doc/md.texi (Machine Constraints): Document it.
+
+2011-06-21  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49489
+	* builtins.c (expand_builtin_unop): Call expand_unop with 0 as
+	unsignedp argument instead of 1 for clrsb_optab.
+	(fold_builtin_bitop): Fix masking for width > HOST_BITS_PER_WIDE_INT
+	and < 2 * HOST_BITS_PER_WIDE_INT.  Optimize BUILT_IN_CLRSB*.
+	(fold_builtin_1): Call fold_builtin_binop for BUILT_IN_CLRSB*.
+	* optabs.c (widen_leading): Call widen_operand and expand_unop
+	with 0 as unsignedp argument instead of 1 for clrsb_optab.
+	(expand_unop): Subtract difference of mode sizes also for
+	clrsb_optab.
+
+2011-06-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.md (*jcindirect_jump): Fix build warning.
+
+2011-06-21  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* gensupport.c (add_define_attr): New static function.
+	(is_predicable): Allow multi-alternative lists for the "predicable"
+	attribute.
+	(modify_attr_enabled_ce, alter_attrs_for_insn): New static functions.
+	(process_one_cond_exec): Call alter_attrs_for_insn.
+	* doc/md.texi (Defining Attributes): Mention some standard names.
+	(Conditional Execution): Update documentation for "predicable".
+
+	* doc/extend.texi (__builtin_clrsb, __builtin_clrsbl,
+	__builtin_clrsbll): Document.
+	* doc/rtl.texi (clrsb): New entry.
+	* optabs.c (widen_leading): Renamed from widen_clz.  New argument
+	UNOPTAB.  All callers changed.  Use UNOPTAB instead of clz_optab.
+	(expand_unop): Handle clrsb_optab.
+	(init_optabs): Initialize it.
+	* optabs.h (enum optab_index): New entry OTI_clrsb.
+	(clrsb_optab): Define.
+	* genopinit.c (optabs): Add an entry for it.
+	* builtins.c (expand_builtin): Handle clrsb builtin functions.
+	* builtins.def (BUILT_IN_CLRSB, BUILT_IN_CLRSBIMAX, BUILT_IN_CLRSBL,
+	BUILT_IN_CLRSBLL): New.
+	* rtl.def (CLRSB): New code.
+	* dwarf2out.c (mem_loc_descriptor): Handle it.
+	* simplify-rtx.c (simplify_const_unary_operation): Likewise.
+	Use op_mode rather than mode when optimizing ffs, clz, ctz, parity
+	and popcount.
+	* libgcc2.c (__clrsbSI2, __clrsbDI2): New functions.
+	* libgcc2.h (__clrsbSI2, __clrsbDI2): Define and declare.
+	(__ctzDI2): Move declaration.
+	* config/bfin/bfin.md (clrsbsi2): New expander.
+	(signbitssi2): Use the CLRSB rtx.
+	(clrsbhi2): Renamed from signbitshi2.  Use the CLRSB rtx.
+	* config/bfin/bfin.c (bdesc_1arg): Changed accordingly.
+
+2011-06-21  Richard Guenther  <rguenther@suse.de>
+
+	* ipa-inline-transform.c (inline_transform): Fix previous
+	change.
+
+2011-06-21  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49478
+	* tree-vect-loop.c (vectorizable_reduction): Handle DOT_PROD_EXPR
+	with constant operand.
+
+2011-06-21  Richard Guenther  <rguenther@suse.de>
+
+	* ipa-inline-transform.c (inline_transform): Fix typo.
+ 
+2011-06-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49483
+	* tree-vect-stmts.c (vectorizable_assignment): Also handle
+	VIEW_CONVERT_EXPR conversions.
+
+2011-06-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/avr/avr-mcus.def, config/avr/genopt.sh: New files.
+	* config/avr/avr-tables.opt: New file (generated).
+	* config.gcc (avr-*-*): Use avr/avr-tables.opt.
+	* config/avr/avr-devices.c (avr_mcu_types): Move contents to
+	avr-mcus.def.
+	* config/avr/avr.c (avr_help, TARGET_HELP): Remove.
+	(avr_option_override): Don't process -mmcu= argument here.  Set
+	avr_current_device using avr_mcu_index.
+	(avr_file_start): Use avr_current_device->name instead of
+	avr_mcu_name.
+	* config/avr/avr.opt (mmcu=): Use Enum.
+	* config/avr/t-avr (avr-devices.o): Update dependencies.
+	($(srcdir)/config/avr/avr-tables.opt): New.
+	* target.def (help): Remove.
+	* doc/tm.texi.in (TARGET_HELP): Remove.
+	* doc/tm.texi: Regenerate.
+	* opts.c: Don't include target.h.
+	(common_handle_option): Don't call targetm.help.
+	* system.h (TARGET_HELP): Poison.
+	* Makefile.in (opts.o): Update dependencies.
+
+2011-06-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/usegld.h: New file.
+	* config/sol2.h (PREFERRED_DEBUGGING_TYPE): Remove.
+	(CPP_SUBTARGET_SPEC): Remove -compat-bsd support.
+	(LIB_SPEC): Likewise.
+	Search /lib.
+	(LINK_ARCH32_SPEC_BASE): Remove -compat-bsd support.
+	(RDYNAMIC_SPEC): Handle GNU ld.
+	[HAVE_LD_EH_FRAME_HDR && TARGET_DL_ITERATE_PHDR] (LINK_EH_SPEC): Define.
+	(SUPPORTS_INIT_PRIORITY): Only disable for Sun ld.
+	(SUBTARGET_INSERT_ATTRIBUTES, SUBTARGET_ATTRIBUTE_TABLE): Define.
+	[!USE_GAS] (NO_DBX_BNSYM_ENSYM): Redefine.
+	(STACK_CHECK_STATIC_BUILTIN): Define.
+	* config/sol2.opt (compat-bsd): Remove.
+	* config/sol2-10.h (TARGET_C99_FUNCTIONS): Remove undef.
+	* config/sol2-bi.h: New file.
+	* config/sol2-gld.h: Remove.
+	* config/i386/sol2.h (TLS_COMMON_ASM_OP): Only define if !USE_GAS.
+	(NO_DBX_BNSYM_ENSYM): Remove.
+	(SUBTARGET_INSERT_ATTRIBUTES, SUBTARGET_ATTRIBUTE_TABLE): Remove.
+	(STACK_CHECK_STATIC_BUILTIN): Remove.
+	Test USE_GLD instead of TARGET_GNU_LD.
+	* config/i386/sol2-10.h: Rename to ...
+	* config/i386/sol2-bi.h .. this.
+	(SUBTARGET_EXTRA_SPECS): Redefine.
+	(WCHAR_TYPE, WCHAR_TYPE_SIZE, WINT_TYPE, WINT_TYPE_SIZE): Remove.
+	(MULTILIB_DEFAULTS): Remove.
+	(DEFAULT_ARCH32_P): Define.
+	(LINK_ARCH64_SPEC_BASE, LINK_ARCH64_SPEC): Remove.
+	(ARCH64_SUBDIR): Define.
+	Test USE_GLD instead of TARGET_GNU_LD.
+	(I386_EMULATION): Rename to ...
+	(ARCH32_EMULATION): ... this.
+	(X86_64_EMULATION): Rename to ...
+	(ARCH64_EMULATION): ... this.
+	(TARGET_LD_EMULATION): Remove.
+	(LINK_ARCH_SPEC): Remove.
+	* config/i386/sol2-gas.h: Remove.
+	* config/i386/t-sol2-10: Rename to ...
+	* config/i386/t-sol2-64: ... this.
+	* config/sparc/sol2.h (SPARC_DEFAULT_CMODEL): Redefine.
+	(AS_SPARC64_FLAG): Define.
+	(ASM_CPU32_DEFAULT_SPEC, ASM_CPU64_DEFAULT_SPEC): Redefine.
+	(CPP_CPU64_DEFAULT_SPEC, ASM_CPU32_DEFAULT_SPEC): Redefine
+	depending on TARGET_CPU_DEFAULT.
+	(CPP_CPU_SPEC): Redefine.
+	(ASM_CPU_SPEC): Handle DEFAULT_ARCH32_P.
+	(CPP_CPU_DEFAULT_SPEC, ASM_CPU_DEFAULT_SPEC): Redefine.
+	(CPP_ARCH32_SPEC, CPP_ARCH64_SPEC, CPP_ARCH_SPEC): Redefine.
+	(ASM_ARCH_SPEC, ASM_ARCH32_SPEC, ASM_ARCH64_SPEC,
+	ASM_ARCH_DEFAULT_SPEC): Redefine.
+	(SUBTARGET_EXTRA_SPECS): Add LINK_ARCH32_SPEC, LINK_ARCH64_SPEC,
+	LINK_ARCH_DEFAULT_SPEC.
+	[USE_GLD] (ARCH32_EMULATION, ARCH64_EMULATION): Define.
+	[USE_GLD] (LINK_ARCH32_SPEC, LINK_ARCH64_SPEC): Redefine.
+	(ARCH64_SUBDIR): Define.
+	(LINK_ARCH64_SPEC): Redefine.
+	(CC1_SPEC): Redefine.
+	(OPTION_DEFAULT_SPECS): Redefine.
+	(MULTILIB_DEFAULTS): Define.
+	(WCHAR_TYPE, WCHAR_TYPE_SIZE, WINT_TYPE, WINT_TYPE_SIZE): Redefine.
+	[USE_GAS && HAVE_AS_TLS] (TARGET_SUN_TLS, TARGET_GNU_TLS): Redefine.
+	[USE_GLD] (CTORS_SECTION_ASM_OP, DTORS_SECTION_ASM_OP): Undef.
+	(NO_DBX_BNSYM_ENSYM): Remove.
+	(SUBTARGET_INSERT_ATTRIBUTES, SUBTARGET_ATTRIBUTE_TABLE): Remove.
+	(ASM_OUTPUT_ALIGN_WITH_NOP): Only define if !USE_GAS.
+	(TARGET_ASM_NAMED_SECTION): Likewise.
+	(STACK_CHECK_STATIC_BUILTIN): Remove.
+	* config/sparc/sol2-bi.h: Remove.
+	* config/sparc/sol2-gas-bi.h: Remove.
+	* config/sparc/sol2-gas.h: Remove.
+	* config/sparc/sol2-gld-bi.h: Remove.
+	* config.gcc (i[34567]86-*-solaris2*, sparc*-*-solaris2*): Move
+	common parts ...
+	(*-*-solaris2*): ... here.
+
+2011-06-21  Christian Bruel  <christian.bruel@st.com>
+	
+	PR other/43564
+	* ipa-inline.c (can_inline_edge_p): Check !DECL_DISREGARD_INLINE_LIMITS.
+	
+2011-06-21  Christian Bruel  <christian.bruel@st.com>
+	
+	PR middle-end/49139
+	* cgraphunit.c (process_function_and_variable_attributes): warn when
+	always_inline functions that are not inline.
+	* ipa-inline-transform.c (inline_transform): Always call optimize_inline.
+	* tree-inline.c (tree_inlinable_function_p): Use error instead of sorry.
+	(expand_call_inline): Likewise.
+	
+2011-06-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* Makefile.in (dg_target_exps): Set.
+	(check_gcc_parallelize): Parallelize gcc testing into 10 jobs
+	instead of 7, try to divide it more evenly.
+
+2011-06-20  Changpeng Fang  <changpeng.fang@amd.com>
+
+        PR i386/49089
+	* config/i386/i386.c (avx256_split_unaligned_load): New definition.
+	(avx256_split_unaligned_store): New definition.
+	(ix86_option_override_internal): Enable avx256 unaligned load/store
+	splitting only when avx256_split_unaligned_load/store is set.
+
 2011-06-20  Bernd Schmidt  <bernds@codesourcery.com>
 
 	* regrename.c (scan_rtx_reg): Handle the case where we write to an

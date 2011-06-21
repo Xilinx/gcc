@@ -4722,7 +4722,7 @@ finish_omp_barrier (void)
 void
 finish_omp_flush (void)
 {
-  tree fn = built_in_decls[BUILT_IN_SYNCHRONIZE];
+  tree fn = built_in_decls[BUILT_IN_SYNC_SYNCHRONIZE];
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -8177,7 +8177,7 @@ lambda_return_type (tree expr)
       SET_TYPE_STRUCTURAL_EQUALITY (type);
     }
   else
-    type = type_decays_to (unlowered_expr_type (expr));
+    type = cv_unqualified (type_decays_to (unlowered_expr_type (expr)));
   return type;
 }
 

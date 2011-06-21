@@ -4578,7 +4578,7 @@ expand_builtin_unop (enum machine_mode target_mode, tree exp, rtx target,
   /* Compute op, into TARGET if possible.
      Set TARGET to wherever the result comes back.  */
   target = expand_unop (TYPE_MODE (TREE_TYPE (CALL_EXPR_ARG (exp, 0))),
-			op_optab, op0, target, 1);
+			op_optab, op0, target, op_optab != clrsb_optab);
   gcc_assert (target);
 
   return convert_to_mode (target_mode, target, 0);
@@ -5083,30 +5083,30 @@ expand_builtin_sync_operation (enum machine_mode mode, tree exp,
 
       switch (fcode)
 	{
-	case BUILT_IN_FETCH_AND_NAND_1:
-	case BUILT_IN_FETCH_AND_NAND_2:
-	case BUILT_IN_FETCH_AND_NAND_4:
-	case BUILT_IN_FETCH_AND_NAND_8:
-	case BUILT_IN_FETCH_AND_NAND_16:
+	case BUILT_IN_SYNC_FETCH_AND_NAND_1:
+	case BUILT_IN_SYNC_FETCH_AND_NAND_2:
+	case BUILT_IN_SYNC_FETCH_AND_NAND_4:
+	case BUILT_IN_SYNC_FETCH_AND_NAND_8:
+	case BUILT_IN_SYNC_FETCH_AND_NAND_16:
 
 	  if (warned_f_a_n)
 	    break;
 
-	  fndecl = implicit_built_in_decls[BUILT_IN_FETCH_AND_NAND_N];
+	  fndecl = implicit_built_in_decls[BUILT_IN_SYNC_FETCH_AND_NAND_N];
 	  inform (loc, "%qD changed semantics in GCC 4.4", fndecl);
 	  warned_f_a_n = true;
 	  break;
 
-	case BUILT_IN_NAND_AND_FETCH_1:
-	case BUILT_IN_NAND_AND_FETCH_2:
-	case BUILT_IN_NAND_AND_FETCH_4:
-	case BUILT_IN_NAND_AND_FETCH_8:
-	case BUILT_IN_NAND_AND_FETCH_16:
+	case BUILT_IN_SYNC_NAND_AND_FETCH_1:
+	case BUILT_IN_SYNC_NAND_AND_FETCH_2:
+	case BUILT_IN_SYNC_NAND_AND_FETCH_4:
+	case BUILT_IN_SYNC_NAND_AND_FETCH_8:
+	case BUILT_IN_SYNC_NAND_AND_FETCH_16:
 
 	  if (warned_n_a_f)
 	    break;
 
-	  fndecl = implicit_built_in_decls[BUILT_IN_NAND_AND_FETCH_N];
+	  fndecl = implicit_built_in_decls[BUILT_IN_SYNC_NAND_AND_FETCH_N];
 	  inform (loc, "%qD changed semantics in GCC 4.4", fndecl);
 	  warned_n_a_f = true;
 	  break;
@@ -5180,7 +5180,7 @@ expand_builtin_compare_and_swap (enum machine_mode mode, tree exp,
    the results.  */
 
 static rtx
-expand_builtin_lock_test_and_set (enum machine_mode mode, tree exp,
+expand_builtin_sync_lock_test_and_set (enum machine_mode mode, tree exp,
 				  rtx target)
 {
   rtx val, mem;
@@ -5202,7 +5202,7 @@ expand_builtin_lock_test_and_set (enum machine_mode mode, tree exp,
 /* Expand the __sync_synchronize intrinsic.  */
 
 static void
-expand_builtin_synchronize (void)
+expand_builtin_sync_synchronize (void)
 {
   gimple x;
   VEC (tree, gc) *v_clobbers;
@@ -5234,7 +5234,7 @@ expand_builtin_synchronize (void)
 /* Expand the __sync_lock_release intrinsic.  EXP is the CALL_EXPR.  */
 
 static void
-expand_builtin_lock_release (enum machine_mode mode, tree exp)
+expand_builtin_sync_lock_release (enum machine_mode mode, tree exp)
 {
   struct expand_operand ops[2];
   enum insn_code icode;
@@ -5255,7 +5255,7 @@ expand_builtin_lock_release (enum machine_mode mode, tree exp)
 
   /* Otherwise we can implement this operation by emitting a barrier
      followed by a store of zero.  */
-  expand_builtin_synchronize ();
+  expand_builtin_sync_synchronize ();
   emit_move_insn (mem, const0_rtx);
 }
 
@@ -5580,6 +5580,14 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 	return target;
       break;
 
+    CASE_INT_FN (BUILT_IN_CLRSB):
+    case BUILT_IN_CLRSBIMAX:
+      target = expand_builtin_unop (target_mode, exp, target,
+				    subtarget, clrsb_optab);
+      if (target)
+	return target;
+      break;
+
     CASE_INT_FN (BUILT_IN_POPCOUNT):
     case BUILT_IN_POPCOUNTIMAX:
       target = expand_builtin_unop (target_mode, exp, target,
@@ -5836,199 +5844,201 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
 	return target;
       break;
 
-    case BUILT_IN_FETCH_AND_ADD_1:
-    case BUILT_IN_FETCH_AND_ADD_2:
-    case BUILT_IN_FETCH_AND_ADD_4:
-    case BUILT_IN_FETCH_AND_ADD_8:
-    case BUILT_IN_FETCH_AND_ADD_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_FETCH_AND_ADD_1);
+    case BUILT_IN_SYNC_FETCH_AND_ADD_1:
+    case BUILT_IN_SYNC_FETCH_AND_ADD_2:
+    case BUILT_IN_SYNC_FETCH_AND_ADD_4:
+    case BUILT_IN_SYNC_FETCH_AND_ADD_8:
+    case BUILT_IN_SYNC_FETCH_AND_ADD_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_FETCH_AND_ADD_1);
       target = expand_builtin_sync_operation (mode, exp, PLUS,
 					      false, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_FETCH_AND_SUB_1:
-    case BUILT_IN_FETCH_AND_SUB_2:
-    case BUILT_IN_FETCH_AND_SUB_4:
-    case BUILT_IN_FETCH_AND_SUB_8:
-    case BUILT_IN_FETCH_AND_SUB_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_FETCH_AND_SUB_1);
+    case BUILT_IN_SYNC_FETCH_AND_SUB_1:
+    case BUILT_IN_SYNC_FETCH_AND_SUB_2:
+    case BUILT_IN_SYNC_FETCH_AND_SUB_4:
+    case BUILT_IN_SYNC_FETCH_AND_SUB_8:
+    case BUILT_IN_SYNC_FETCH_AND_SUB_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_FETCH_AND_SUB_1);
       target = expand_builtin_sync_operation (mode, exp, MINUS,
 					      false, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_FETCH_AND_OR_1:
-    case BUILT_IN_FETCH_AND_OR_2:
-    case BUILT_IN_FETCH_AND_OR_4:
-    case BUILT_IN_FETCH_AND_OR_8:
-    case BUILT_IN_FETCH_AND_OR_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_FETCH_AND_OR_1);
+    case BUILT_IN_SYNC_FETCH_AND_OR_1:
+    case BUILT_IN_SYNC_FETCH_AND_OR_2:
+    case BUILT_IN_SYNC_FETCH_AND_OR_4:
+    case BUILT_IN_SYNC_FETCH_AND_OR_8:
+    case BUILT_IN_SYNC_FETCH_AND_OR_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_FETCH_AND_OR_1);
       target = expand_builtin_sync_operation (mode, exp, IOR,
 					      false, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_FETCH_AND_AND_1:
-    case BUILT_IN_FETCH_AND_AND_2:
-    case BUILT_IN_FETCH_AND_AND_4:
-    case BUILT_IN_FETCH_AND_AND_8:
-    case BUILT_IN_FETCH_AND_AND_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_FETCH_AND_AND_1);
+    case BUILT_IN_SYNC_FETCH_AND_AND_1:
+    case BUILT_IN_SYNC_FETCH_AND_AND_2:
+    case BUILT_IN_SYNC_FETCH_AND_AND_4:
+    case BUILT_IN_SYNC_FETCH_AND_AND_8:
+    case BUILT_IN_SYNC_FETCH_AND_AND_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_FETCH_AND_AND_1);
       target = expand_builtin_sync_operation (mode, exp, AND,
 					      false, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_FETCH_AND_XOR_1:
-    case BUILT_IN_FETCH_AND_XOR_2:
-    case BUILT_IN_FETCH_AND_XOR_4:
-    case BUILT_IN_FETCH_AND_XOR_8:
-    case BUILT_IN_FETCH_AND_XOR_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_FETCH_AND_XOR_1);
+    case BUILT_IN_SYNC_FETCH_AND_XOR_1:
+    case BUILT_IN_SYNC_FETCH_AND_XOR_2:
+    case BUILT_IN_SYNC_FETCH_AND_XOR_4:
+    case BUILT_IN_SYNC_FETCH_AND_XOR_8:
+    case BUILT_IN_SYNC_FETCH_AND_XOR_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_FETCH_AND_XOR_1);
       target = expand_builtin_sync_operation (mode, exp, XOR,
 					      false, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_FETCH_AND_NAND_1:
-    case BUILT_IN_FETCH_AND_NAND_2:
-    case BUILT_IN_FETCH_AND_NAND_4:
-    case BUILT_IN_FETCH_AND_NAND_8:
-    case BUILT_IN_FETCH_AND_NAND_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_FETCH_AND_NAND_1);
+    case BUILT_IN_SYNC_FETCH_AND_NAND_1:
+    case BUILT_IN_SYNC_FETCH_AND_NAND_2:
+    case BUILT_IN_SYNC_FETCH_AND_NAND_4:
+    case BUILT_IN_SYNC_FETCH_AND_NAND_8:
+    case BUILT_IN_SYNC_FETCH_AND_NAND_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_FETCH_AND_NAND_1);
       target = expand_builtin_sync_operation (mode, exp, NOT,
 					      false, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_ADD_AND_FETCH_1:
-    case BUILT_IN_ADD_AND_FETCH_2:
-    case BUILT_IN_ADD_AND_FETCH_4:
-    case BUILT_IN_ADD_AND_FETCH_8:
-    case BUILT_IN_ADD_AND_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_ADD_AND_FETCH_1);
+    case BUILT_IN_SYNC_ADD_AND_FETCH_1:
+    case BUILT_IN_SYNC_ADD_AND_FETCH_2:
+    case BUILT_IN_SYNC_ADD_AND_FETCH_4:
+    case BUILT_IN_SYNC_ADD_AND_FETCH_8:
+    case BUILT_IN_SYNC_ADD_AND_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_ADD_AND_FETCH_1);
       target = expand_builtin_sync_operation (mode, exp, PLUS,
 					      true, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_SUB_AND_FETCH_1:
-    case BUILT_IN_SUB_AND_FETCH_2:
-    case BUILT_IN_SUB_AND_FETCH_4:
-    case BUILT_IN_SUB_AND_FETCH_8:
-    case BUILT_IN_SUB_AND_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_SUB_AND_FETCH_1);
+    case BUILT_IN_SYNC_SUB_AND_FETCH_1:
+    case BUILT_IN_SYNC_SUB_AND_FETCH_2:
+    case BUILT_IN_SYNC_SUB_AND_FETCH_4:
+    case BUILT_IN_SYNC_SUB_AND_FETCH_8:
+    case BUILT_IN_SYNC_SUB_AND_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_SUB_AND_FETCH_1);
       target = expand_builtin_sync_operation (mode, exp, MINUS,
 					      true, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_OR_AND_FETCH_1:
-    case BUILT_IN_OR_AND_FETCH_2:
-    case BUILT_IN_OR_AND_FETCH_4:
-    case BUILT_IN_OR_AND_FETCH_8:
-    case BUILT_IN_OR_AND_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_OR_AND_FETCH_1);
+    case BUILT_IN_SYNC_OR_AND_FETCH_1:
+    case BUILT_IN_SYNC_OR_AND_FETCH_2:
+    case BUILT_IN_SYNC_OR_AND_FETCH_4:
+    case BUILT_IN_SYNC_OR_AND_FETCH_8:
+    case BUILT_IN_SYNC_OR_AND_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_OR_AND_FETCH_1);
       target = expand_builtin_sync_operation (mode, exp, IOR,
 					      true, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_AND_AND_FETCH_1:
-    case BUILT_IN_AND_AND_FETCH_2:
-    case BUILT_IN_AND_AND_FETCH_4:
-    case BUILT_IN_AND_AND_FETCH_8:
-    case BUILT_IN_AND_AND_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_AND_AND_FETCH_1);
+    case BUILT_IN_SYNC_AND_AND_FETCH_1:
+    case BUILT_IN_SYNC_AND_AND_FETCH_2:
+    case BUILT_IN_SYNC_AND_AND_FETCH_4:
+    case BUILT_IN_SYNC_AND_AND_FETCH_8:
+    case BUILT_IN_SYNC_AND_AND_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_AND_AND_FETCH_1);
       target = expand_builtin_sync_operation (mode, exp, AND,
 					      true, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_XOR_AND_FETCH_1:
-    case BUILT_IN_XOR_AND_FETCH_2:
-    case BUILT_IN_XOR_AND_FETCH_4:
-    case BUILT_IN_XOR_AND_FETCH_8:
-    case BUILT_IN_XOR_AND_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_XOR_AND_FETCH_1);
+    case BUILT_IN_SYNC_XOR_AND_FETCH_1:
+    case BUILT_IN_SYNC_XOR_AND_FETCH_2:
+    case BUILT_IN_SYNC_XOR_AND_FETCH_4:
+    case BUILT_IN_SYNC_XOR_AND_FETCH_8:
+    case BUILT_IN_SYNC_XOR_AND_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_XOR_AND_FETCH_1);
       target = expand_builtin_sync_operation (mode, exp, XOR,
 					      true, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_NAND_AND_FETCH_1:
-    case BUILT_IN_NAND_AND_FETCH_2:
-    case BUILT_IN_NAND_AND_FETCH_4:
-    case BUILT_IN_NAND_AND_FETCH_8:
-    case BUILT_IN_NAND_AND_FETCH_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_NAND_AND_FETCH_1);
+    case BUILT_IN_SYNC_NAND_AND_FETCH_1:
+    case BUILT_IN_SYNC_NAND_AND_FETCH_2:
+    case BUILT_IN_SYNC_NAND_AND_FETCH_4:
+    case BUILT_IN_SYNC_NAND_AND_FETCH_8:
+    case BUILT_IN_SYNC_NAND_AND_FETCH_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_NAND_AND_FETCH_1);
       target = expand_builtin_sync_operation (mode, exp, NOT,
 					      true, target, ignore);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_BOOL_COMPARE_AND_SWAP_1:
-    case BUILT_IN_BOOL_COMPARE_AND_SWAP_2:
-    case BUILT_IN_BOOL_COMPARE_AND_SWAP_4:
-    case BUILT_IN_BOOL_COMPARE_AND_SWAP_8:
-    case BUILT_IN_BOOL_COMPARE_AND_SWAP_16:
+    case BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_1:
+    case BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_2:
+    case BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_4:
+    case BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_8:
+    case BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_16:
       if (mode == VOIDmode)
 	mode = TYPE_MODE (boolean_type_node);
       if (!target || !register_operand (target, mode))
 	target = gen_reg_rtx (mode);
 
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_BOOL_COMPARE_AND_SWAP_1);
+      mode = get_builtin_sync_mode 
+				(fcode - BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_1);
       target = expand_builtin_compare_and_swap (mode, exp, true, target);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_VAL_COMPARE_AND_SWAP_1:
-    case BUILT_IN_VAL_COMPARE_AND_SWAP_2:
-    case BUILT_IN_VAL_COMPARE_AND_SWAP_4:
-    case BUILT_IN_VAL_COMPARE_AND_SWAP_8:
-    case BUILT_IN_VAL_COMPARE_AND_SWAP_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_VAL_COMPARE_AND_SWAP_1);
+    case BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_1:
+    case BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_2:
+    case BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_4:
+    case BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_8:
+    case BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_16:
+      mode = get_builtin_sync_mode 
+				(fcode - BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_1);
       target = expand_builtin_compare_and_swap (mode, exp, false, target);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_LOCK_TEST_AND_SET_1:
-    case BUILT_IN_LOCK_TEST_AND_SET_2:
-    case BUILT_IN_LOCK_TEST_AND_SET_4:
-    case BUILT_IN_LOCK_TEST_AND_SET_8:
-    case BUILT_IN_LOCK_TEST_AND_SET_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_LOCK_TEST_AND_SET_1);
-      target = expand_builtin_lock_test_and_set (mode, exp, target);
+    case BUILT_IN_SYNC_LOCK_TEST_AND_SET_1:
+    case BUILT_IN_SYNC_LOCK_TEST_AND_SET_2:
+    case BUILT_IN_SYNC_LOCK_TEST_AND_SET_4:
+    case BUILT_IN_SYNC_LOCK_TEST_AND_SET_8:
+    case BUILT_IN_SYNC_LOCK_TEST_AND_SET_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_LOCK_TEST_AND_SET_1);
+      target = expand_builtin_sync_lock_test_and_set (mode, exp, target);
       if (target)
 	return target;
       break;
 
-    case BUILT_IN_LOCK_RELEASE_1:
-    case BUILT_IN_LOCK_RELEASE_2:
-    case BUILT_IN_LOCK_RELEASE_4:
-    case BUILT_IN_LOCK_RELEASE_8:
-    case BUILT_IN_LOCK_RELEASE_16:
-      mode = get_builtin_sync_mode (fcode - BUILT_IN_LOCK_RELEASE_1);
-      expand_builtin_lock_release (mode, exp);
+    case BUILT_IN_SYNC_LOCK_RELEASE_1:
+    case BUILT_IN_SYNC_LOCK_RELEASE_2:
+    case BUILT_IN_SYNC_LOCK_RELEASE_4:
+    case BUILT_IN_SYNC_LOCK_RELEASE_8:
+    case BUILT_IN_SYNC_LOCK_RELEASE_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_LOCK_RELEASE_1);
+      expand_builtin_sync_lock_release (mode, exp);
       return const0_rtx;
 
-    case BUILT_IN_SYNCHRONIZE:
-      expand_builtin_synchronize ();
+    case BUILT_IN_SYNC_SYNCHRONIZE:
+      expand_builtin_sync_synchronize ();
       return const0_rtx;
 
     case BUILT_IN_OBJECT_SIZE:
@@ -7257,7 +7267,8 @@ fold_builtin_bitop (tree fndecl, tree arg)
 	{
 	  hi = TREE_INT_CST_HIGH (arg);
 	  if (width < 2 * HOST_BITS_PER_WIDE_INT)
-	    hi &= ~((HOST_WIDE_INT) (-1) >> (width - HOST_BITS_PER_WIDE_INT));
+	    hi &= ~((unsigned HOST_WIDE_INT) (-1)
+		    << (width - HOST_BITS_PER_WIDE_INT));
 	}
       else
 	{
@@ -7293,6 +7304,26 @@ fold_builtin_bitop (tree fndecl, tree arg)
 	    result = HOST_BITS_PER_WIDE_INT + ctz_hwi (hi);
 	  else if (! CTZ_DEFINED_VALUE_AT_ZERO (TYPE_MODE (type), result))
 	    result = width;
+	  break;
+
+	CASE_INT_FN (BUILT_IN_CLRSB):
+	  if (width > HOST_BITS_PER_WIDE_INT
+	      && (hi & ((unsigned HOST_WIDE_INT) 1
+			<< (width - HOST_BITS_PER_WIDE_INT - 1))) != 0)
+	    {
+	      hi = ~hi & ~((unsigned HOST_WIDE_INT) (-1)
+			   << (width - HOST_BITS_PER_WIDE_INT - 1));
+	      lo = ~lo;
+	    }
+	  else if (width <= HOST_BITS_PER_WIDE_INT
+		   && (lo & ((unsigned HOST_WIDE_INT) 1 << (width - 1))) != 0)
+	    lo = ~lo & ~((unsigned HOST_WIDE_INT) (-1) << (width - 1));
+	  if (hi != 0)
+	    result = width - floor_log2 (hi) - 2 - HOST_BITS_PER_WIDE_INT;
+	  else if (lo != 0)
+	    result = width - floor_log2 (lo) - 2;
+	  else
+	    result = width - 1;
 	  break;
 
 	CASE_INT_FN (BUILT_IN_POPCOUNT):
@@ -9729,6 +9760,7 @@ fold_builtin_1 (location_t loc, tree fndecl, tree arg0, bool ignore)
     CASE_INT_FN (BUILT_IN_FFS):
     CASE_INT_FN (BUILT_IN_CLZ):
     CASE_INT_FN (BUILT_IN_CTZ):
+    CASE_INT_FN (BUILT_IN_CLRSB):
     CASE_INT_FN (BUILT_IN_POPCOUNT):
     CASE_INT_FN (BUILT_IN_PARITY):
       return fold_builtin_bitop (fndecl, arg0);
