@@ -1837,30 +1837,6 @@ clobbers_queued_reg_save (const_rtx insn)
   return false;
 }
 
-/* Entry point for saving the first register into the second.  */
-
-void
-dwarf2out_reg_save_reg (const char *label, rtx reg, rtx sreg)
-{
-  size_t i;
-  unsigned int regno, sregno;
-
-  for (i = 0; i < num_regs_saved_in_regs; i++)
-    if (REGNO (regs_saved_in_regs[i].orig_reg) == REGNO (reg))
-      break;
-  if (i == num_regs_saved_in_regs)
-    {
-      gcc_assert (i != ARRAY_SIZE (regs_saved_in_regs));
-      num_regs_saved_in_regs++;
-    }
-  regs_saved_in_regs[i].orig_reg = reg;
-  regs_saved_in_regs[i].saved_in_reg = sreg;
-
-  regno = DWARF_FRAME_REGNUM (REGNO (reg));
-  sregno = DWARF_FRAME_REGNUM (REGNO (sreg));
-  reg_save (label, regno, sregno, 0);
-}
-
 /* What register, if any, is currently saved in REG?  */
 
 static rtx
@@ -2019,16 +1995,31 @@ dwarf2out_frame_debug_cfa_register (rtx set, const char *label)
 {
   rtx src, dest;
   unsigned sregno, dregno;
+  size_t i;
 
   src = XEXP (set, 1);
   dest = XEXP (set, 0);
+  dregno = DWARF_FRAME_REGNUM (REGNO (dest));
 
   if (src == pc_rtx)
     sregno = DWARF_FRAME_RETURN_COLUMN;
   else
-    sregno = DWARF_FRAME_REGNUM (REGNO (src));
+    {
+      sregno = REGNO (src);
 
-  dregno = DWARF_FRAME_REGNUM (REGNO (dest));
+      /* ??? We're not prepared to enter an equivalency when
+	 the source is PC_RTX.  But do so otherwise.  */
+      for (i = 0; i < num_regs_saved_in_regs; i++)
+	if (REGNO (regs_saved_in_regs[i].orig_reg) == sregno)
+	  goto found;
+      gcc_assert (i != ARRAY_SIZE (regs_saved_in_regs));
+      num_regs_saved_in_regs++;
+    found:
+      regs_saved_in_regs[i].orig_reg = src;
+      regs_saved_in_regs[i].saved_in_reg = dest;
+
+      sregno = DWARF_FRAME_REGNUM (sregno);
+    }
 
   /* ??? We'd like to use queue_reg_save, but we need to come up with
      a different flushing heuristic for epilogues.  */
