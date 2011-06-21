@@ -62,7 +62,7 @@
 /* Use ld-linux.so.3 so that it will be possible to run "classic"
    GNU/Linux binaries on an EABI system.  */
 #undef  GLIBC_DYNAMIC_LINKER
-#define GLIBC_DYNAMIC_LINKER "/lib/ld-linux.so.3"
+#define GLIBC_DYNAMIC_LINKER RUNTIME_ROOT_PREFIX "/lib/ld-linux.so.3"
 
 /* At this point, bpabi.h will have clobbered LINK_SPEC.  We want to
    use the GNU/Linux version, not the generic BPABI version.  */

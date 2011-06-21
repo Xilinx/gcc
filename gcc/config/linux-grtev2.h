@@ -23,7 +23,7 @@ a copy of the GCC Runtime Library Exception along with this program;
 see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
-/* Overrides LIB_SPEC from linux.h.  */
+/* Overrides LIB_SPEC from gnu-user.h.  */
 #undef	LIB_SPEC
 #define LIB_SPEC \
   "%{pthread:-lpthread} \
