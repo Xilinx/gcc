@@ -684,10 +684,6 @@ extern void gt_ggc_mx_constexpr_fundef (void *);
   if (X != NULL) gt_ggc_mx_VEC_deferred_access_gc (X);\
   } while (0)
 extern void gt_ggc_mx_VEC_deferred_access_gc (void *);
-#define gt_ggc_m_17VEC_spec_entry_gc(X) do { \
-  if (X != NULL) gt_ggc_mx_VEC_spec_entry_gc (X);\
-  } while (0)
-extern void gt_ggc_mx_VEC_spec_entry_gc (void *);
 #define gt_ggc_m_10spec_entry(X) do { \
   if (X != NULL) gt_ggc_mx_spec_entry (X);\
   } while (0)
@@ -1727,7 +1723,7 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Tue May 31 18:34:12 2011
+/* gt-melt-runtime-plugin.h file generated Tue 21 Jun 2011 02:51:33 PM CEST
 
 c25f6695a4ea25aa1b9199878c0f1169  melt-runtime.h
 277a2f66c0c92992ed92c63d526d9062  melt-runtime.c
