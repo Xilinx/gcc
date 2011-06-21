@@ -1,0 +1,20 @@
+;; -*- lisp -*-
+;; See http://groups.google.com/group/gcc-melt-french/browse_thread/thread/e6ca3cff7c07bd80
+;; bug reported by Pierre Vittet
+;; this program should give an error
+
+#| run in buildir/gcc
+ ./cc1 -fmelt-mode=translatetomodule \
+    -fmelt-module-path=melt-modules:. -fmelt-source-path=melt-sources:.:$GCCMELTSOURCE/gcc/melt \
+    -fmelt-tempdir=/tmp \
+    -fmelt-arg=$GCCMELT_SOURCE/gcc/testsuite/melt/tbad-4.melt \
+    -fmelt-debug empty-file-for-melt.c
+|#
+
+(defun test ()
+   (defun test2 ()
+     (code_chunk test #{printf("test!");}#)
+   )
+   (test2)
+)
+;; eof tbad-4.melt

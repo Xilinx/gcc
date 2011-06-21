@@ -1,4 +1,8 @@
 
+2011-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tbad-4.melt: New file, testcase of nested defun
+	which should fail properly.
+
 2011-06-12  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (install-melt-source): Typo.
 
