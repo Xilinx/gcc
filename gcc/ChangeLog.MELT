@@ -1,5 +1,11 @@
 
 2011-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_defun): Reject nested defun-s,
+	so testsuite/melt/tbad-4.melt fails properly.
+
+	* testsuite/melt/tbad-4.melt: Improved comment.
+
+2011-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tbad-4.melt: New file, testcase of nested defun
 	which should fail properly.
 

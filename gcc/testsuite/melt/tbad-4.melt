@@ -1,7 +1,7 @@
-;; -*- lisp -*-
-;; See http://groups.google.com/group/gcc-melt-french/browse_thread/thread/e6ca3cff7c07bd80
-;; bug reported by Pierre Vittet
-;; this program should give an error
+;; -*- lisp -*- See
+;; http://groups.google.com/group/gcc-melt-french/browse_thread/thread/e6ca3cff7c07bd80
+;; bug reported by Pierre Vittet this program should give an error; in
+;; MELT rev 175247 it crashes with an assert failure in NORMEXP_DEFUN
 
 #| run in buildir/gcc
  ./cc1 -fmelt-mode=translatetomodule \

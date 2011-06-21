@@ -3237,7 +3237,12 @@ source location.}#
 		       :nctx_symbcachemap (make_mapobject discr_map_objects 40))
     (add_nctx_data ncx ndatarout)
     (add_nctx_data ncx ndataclos)
-    (assert_msg "check sfubind" (is_a sfubind class_function_binding))
+    (if (is_not_a sfubind class_function_binding)
+	(progn
+	(error_strv sloc
+		    "bad DEFUN-ed function [nested definitions are prohibited; consider using LETREC]"
+		    (get_field :named_name snam))
+	(return)))
     (unsafe_put_fields nproc :nrpro_datarout ndatarout :nrpro_dataclos ndataclos)
     (multiple_every 
      sformals
