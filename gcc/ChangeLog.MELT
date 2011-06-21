@@ -1,4 +1,9 @@
 
+2011-06-21  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt-runtime.c (meltgc_new_split_string): Fix issue with string
+	starting with seperator.
+
 2011-06-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.

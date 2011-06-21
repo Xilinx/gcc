@@ -4638,6 +4638,12 @@ meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr_p)
     {
       cursep = NULL;
       strv = NULL;
+      /* avoid errors when we have str which starts with the separator or when
+         we have a separator immediatly followed by another one (like
+         'first::second').
+      */
+      while (*pc == sep)
+        pc++;
       if (ISSPACE (sep)) 
 	  for (cursep=pc; *cursep && !ISSPACE (*cursep); cursep++);
       else
