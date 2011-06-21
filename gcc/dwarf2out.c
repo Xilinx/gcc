@@ -1738,10 +1738,11 @@ struct GTY(()) reg_saved_in_data {
 };
 
 /* A list of registers saved in other registers.
-   The list intentionally has a small maximum capacity of 4; if your
+   The list intentionally has a small maximum capacity of 5; if your
    port needs more than that, you might consider implementing a
    more efficient data structure.  */
-static GTY(()) struct reg_saved_in_data regs_saved_in_regs[4];
+/* Note that ia64 uses 5 entries and other ports so far only use 1.  */
+static GTY(()) struct reg_saved_in_data regs_saved_in_regs[5];
 static GTY(()) size_t num_regs_saved_in_regs;
 
 static const char *last_reg_save_label;
