@@ -202,6 +202,9 @@ scanning variables.}#
 			 (unsafe_get_field :named_name rectyp))
 	     (warning_strv sloc "got ctype"
 			   (unsafe_get_field :named_name ctyp))
+	     (warning_plain 
+	      (get_field :loca_location (get_field :pctn_src pcn))
+	      "perhaps this MATCH expression is badly parenthesised")
 	     ))
       )))
 (install_method class_source_pattern_constant scan_pattern scanpat_srcpatconst)
