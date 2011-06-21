@@ -4604,7 +4604,8 @@ end:
 #undef str_strv
 }
 
-
+/* Split a string into a list of string value using sep as separating character.
+*/
 melt_ptr_t
 meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr_p)
 {

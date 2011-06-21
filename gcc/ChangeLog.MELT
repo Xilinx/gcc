@@ -1,6 +1,10 @@
 
 2011-06-21  Pierre Vittet  <piervit@pvittet.com>
 
+	* melt-runtime.c (meltgc_new_split_string): Add comment.
+
+2011-06-21  Pierre Vittet  <piervit@pvittet.com>
+
 	* melt-runtime.c (meltgc_new_split_string): Fix issue with string
 	starting with seperator.
 
