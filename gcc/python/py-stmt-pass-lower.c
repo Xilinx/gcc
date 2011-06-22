@@ -49,12 +49,50 @@ along with GCC; see the file COPYING3.  If not see
 #include "py-types.h"
 #include "py-runtime.h"
 
+static VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t *, VEC(gpydot,gc) *);
+
+static
+VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
+					       VEC(gpydot,gc) * decls)
+{
+  VEC(tree,gc) * retval;
+
+  
+
+  return retval;
+}
+
+/* Now we start to iterate over the dot IL to lower it down to */
+/* a vector of GENERIC decls */
+
+/* Which is then passed over to the pass manager for any other */
+/* defined passes which can be placed into the queue but arent */
+/* nessecary for now. */
 VEC(tree,gc) * gpy_stmt_pass_lower (VEC(tree,gc) *modules,
 				    VEC(gpydot,gc) *decls)
 {
   VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
+  gpy_hash_tab_t module_ctx;
+  gpy_dd_hash_init_table (&module_ctx);
 
-  
+  int idx = 0;
+  gpy_dot_tree_t * idtx = NULL_DOT;
+  tree itx = NULL_TREE;
+
+  for (; VEC_iterate (tree, modules, idx, itx); ++idx)
+    {
+      gcc_assert (TREE_CODE (itx) == TYPE_DECL);
+
+      debug ("hashing module name <%s>!\n", IDENTIFIER_POINTER (DECL_NAME(itx)));
+      gpy_hashval_t h = gpy_dd_hash_string (IDENTIFIER_POINTER (DECL_NAME(itx)));
+      void ** e = gpy_dd_hash_insert (h, itx, &module_ctx);
+
+      if (e)
+	fatal_error ("module <%q+E> is already defined!\n", itx);
+    }
+
+  retval =  gpy_stmt_pass_lower_genericify (&module_ctx, decls);
+  // free (context.array);
 
   return retval;
 }
