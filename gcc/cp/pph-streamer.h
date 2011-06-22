@@ -137,13 +137,11 @@ void *pph_cache_get (pph_stream *, unsigned);
 
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);
-void pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v,
-                                bool ref_p);
 void pph_init_write (pph_stream *);
 void pph_write_tree (struct output_block *, tree, bool ref_p);
 void pph_pack_value_fields (struct bitpack_d *, tree);
 void pph_out_tree_header (struct output_block *, tree);
-void pph_out_chain_filtered (pph_stream *, tree, bool, enum chain_filter);
+void pph_write_file (void);
 
 /* In name-lookup.c.  */
 struct binding_table_s;
@@ -153,11 +151,12 @@ struct binding_table_s *pph_in_binding_table (pph_stream *);
 
 /* In pph-streamer-in.c.  */
 void pph_init_read (pph_stream *);
-VEC(tree,gc) *pph_in_tree_vec (pph_stream *stream);
 void pph_read_tree (struct lto_input_block *, struct data_in *, tree);
 void pph_unpack_value_fields (struct bitpack_d *, tree);
 tree pph_alloc_tree (enum tree_code, struct lto_input_block *,
 			    struct data_in *);
+void pph_read_file (const char *filename);
+
 /* In pph.c.  FIXME pph move these to pph-streamer.c.  */
 struct cp_token_cache;
 void pth_save_token_cache (struct cp_token_cache *, pph_stream *);

@@ -275,7 +275,7 @@ pph_out_ld_min (pph_stream *stream, struct lang_decl_min *ldm,
 /* Write all the trees in gc VEC V to STREAM.  REF_P is true if the
    trees should be written as references. */
 
-void
+static void
 pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
 {
   unsigned i;
@@ -387,7 +387,7 @@ pph_out_label_binding (pph_stream *stream, cp_label_binding *lb, bool ref_p)
    nodes that do not match FILTER.  REF_P is true if nodes in the chain
    should be emitted as references.  */
 
-void
+static void
 pph_out_chain_filtered (pph_stream *stream, tree first, bool ref_p,
 			   enum chain_filter filter)
 {
@@ -909,6 +909,92 @@ pph_out_lang_type (pph_stream *stream, tree type, bool ref_p)
     pph_out_lang_type_class (stream, &lt->u.c, ref_p);
   else
     pph_out_lang_type_ptrmem (stream, &lt->u.ptrmem, ref_p);
+}
+
+
+/* Save the IDENTIFIERS to the STREAM.  */
+
+static void
+pth_save_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
+{
+  unsigned int num_entries, active_entries, id;
+
+  num_entries = identifiers->num_entries;
+  pph_out_uint (stream, identifiers->max_ident_len);
+  pph_out_uint (stream, identifiers->max_value_len);
+
+  active_entries = 0;
+  for ( id = 0; id < num_entries; ++id )
+    {
+      cpp_ident_use *entry = identifiers->entries + id;
+      if (!(entry->used_by_directive || entry->expanded_to_text))
+        continue;
+      ++active_entries;
+    }
+
+  pph_out_uint (stream, active_entries);
+
+  for ( id = 0; id < num_entries; ++id )
+    {
+      cpp_ident_use *entry = identifiers->entries + id;
+
+      if (!(entry->used_by_directive || entry->expanded_to_text))
+        continue;
+
+      /* FIXME pph: We are wasting space; ident_len, used_by_directive
+      and expanded_to_text together could fit into a single uint. */
+
+      pph_out_uint (stream, entry->used_by_directive);
+      pph_out_uint (stream, entry->expanded_to_text);
+
+      gcc_assert (entry->ident_len <= identifiers->max_ident_len);
+      pph_out_string_with_length (stream, entry->ident_str,
+				     entry->ident_len);
+
+      gcc_assert (entry->before_len <= identifiers->max_value_len);
+      pph_out_string_with_length (stream, entry->before_str,
+				     entry->before_len);
+
+      gcc_assert (entry->after_len <= identifiers->max_value_len);
+      pph_out_string_with_length (stream, entry->after_str,
+				     entry->after_len);
+    }
+}
+
+
+/* Write PPH output symbols and IDENTS_USED to STREAM as an object.  */
+
+static void
+pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
+{ 
+  pth_save_identifiers (idents_used, stream);
+  if (flag_pph_dump_tree)
+    pph_dump_namespace (pph_logfile, global_namespace);
+  pph_out_tree (stream, global_namespace, false);
+  pph_out_tree (stream, keyed_classes, false);
+  pph_out_tree_vec (stream, unemitted_tinfo_decls, false);
+}
+
+
+/* Write PPH output file.  */
+
+void
+pph_write_file (void)
+{
+  pph_stream *stream;
+  cpp_idents_used idents_used;
+
+  if (flag_pph_debug >= 1)
+    fprintf (pph_logfile, "PPH: Writing %s\n", pph_out_file);
+
+  stream = pph_stream_open (pph_out_file, "wb");
+  if (!stream)
+    fatal_error ("Cannot open PPH file for writing: %s: %m", pph_out_file);
+
+  idents_used = cpp_lt_capture (parse_in);
+  pph_write_file_contents (stream, &idents_used);
+
+  pph_stream_close (stream);
 }
 
 

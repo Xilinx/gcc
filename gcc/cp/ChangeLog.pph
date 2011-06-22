@@ -1,5 +1,26 @@
 2011-06-22  Gabriel Charette  <gchare@google.com>
 
+	* pph-streamer-in.c (pph_in_tree_vec): Make static.
+	(pph_add_names_to_namespace): Moved from pph.c.
+	(wrap_macro_def): Moved from pph.c.
+	(report_validation_error): Moved from pph.c.
+	(pth_load_identifiers): Moved from pph.c.
+	(pph_read_file_contents): Moved from pph.c.
+	(pph_read_file): Moved from pph.c
+	* pph-streamer-out.c (pph_out_tree_vec): Make static.
+	(pph_out_chain_filtered): Make static.
+	(pth_save_identifiers): Moved from pph.c.
+	(pph_write_file_contents): Moved from pph.c.
+	(pph_write_file): Moved from pph.c.
+	* pph-streamer.h (pph_out_tree_vec): Now static, removed.
+	(pph_out_chain_filtered): Now static, removed.
+	(pph_write_file): Now public, added.
+	(pph_in_tree_vec): Now static, removed.
+	(pph_read_file): Now public, added.
+	* pph.h (pph_dump_namespace): Declare.
+
+2011-06-22  Gabriel Charette  <gchare@google.com>
+
 	* pph-streamer-in.c (pph_start_record): Initialize
 	cache_ix in all paths.
 

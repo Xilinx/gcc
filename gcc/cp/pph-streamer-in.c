@@ -282,7 +282,7 @@ pph_in_ld_min (pph_stream *stream, struct lang_decl_min *ldm)
 
 /* Read and return a gc VEC of trees from STREAM.  */
 
-VEC(tree,gc) *
+static VEC(tree,gc) *
 pph_in_tree_vec (pph_stream *stream)
 {
   unsigned i, num;
@@ -974,6 +974,208 @@ pph_in_lang_type (pph_stream *stream)
     pph_in_lang_type_ptrmem (stream, &lt->u.ptrmem);
 
   return lt;
+}
+
+
+/* Add all the new names declared in NEW_NS to NS.  */
+
+static void
+pph_add_names_to_namespace (tree ns, tree new_ns)
+{
+  tree t, chain;
+  struct cp_binding_level *level = NAMESPACE_LEVEL (new_ns);
+
+  for (t = level->names; t; t = chain)
+    {
+      /* Pushing a decl into a scope clobbers its DECL_CHAIN.
+	 Preserve it.  */
+      chain = DECL_CHAIN (t);
+      pushdecl_into_namespace (t, ns);
+    }
+
+  for (t = level->namespaces; t; t = chain)
+    {
+      /* Pushing a decl into a scope clobbers its DECL_CHAIN.
+	 Preserve it.  */
+      /* FIXME pph: we should first check to see if it isn't already there.  */
+      chain = DECL_CHAIN (t);
+      pushdecl_into_namespace (t, ns);
+      pph_add_names_to_namespace (t, t);
+    }
+}
+
+
+/* Wrap a macro DEFINITION for printing in an error.  */
+
+static char *
+wrap_macro_def (const char *definition)
+{
+  char *string;
+  if (definition)
+    {
+      size_t length;
+      length = strlen (definition);
+      string = (char *) xmalloc (length+3);
+      string[0] = '"';
+      strcpy (string + 1, definition);
+      string[length + 1] = '"';
+      string[length + 2] = '\0';
+    }
+  else
+    string = xstrdup ("undefined");
+  return string;
+}
+
+
+/* Report a macro validation error in FILENAME for macro IDENT,
+   which should have the value EXPECTED but actually had the value FOUND. */
+
+static void
+report_validation_error (const char *filename,
+			 const char *ident, const char *found,
+			 const char *before, const char *after)
+{
+  char* quote_found = wrap_macro_def (found);
+  char* quote_before = wrap_macro_def (before);
+  char* quote_after = wrap_macro_def (after);
+  error ("PPH file %s fails macro validation, "
+         "%s is %s and should be %s or %s\n",
+         filename, ident, quote_found, quote_before, quote_after);
+  free (quote_found);
+  free (quote_before);
+  free (quote_after);
+}
+
+
+/* Load the IDENTIFERS for a hunk from a STREAM.  */
+
+static void
+pth_load_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
+{
+  unsigned int j;
+  unsigned int max_ident_len, max_value_len, num_entries;
+  unsigned int ident_len, before_len, after_len;
+
+  max_ident_len = pph_in_uint (stream);
+  identifiers->max_ident_len = max_ident_len;
+  max_value_len = pph_in_uint (stream);
+  identifiers->max_value_len = max_value_len;
+  num_entries = pph_in_uint (stream);
+  identifiers->num_entries = num_entries;
+  identifiers->entries = XCNEWVEC (cpp_ident_use, num_entries);
+  identifiers->strings = XCNEW (struct obstack);
+
+  /* Strings need no alignment.  */
+  _obstack_begin (identifiers->strings, 0, 0,
+                  (void *(*) (long)) xmalloc,
+                  (void (*) (void *)) free);
+  obstack_alignment_mask (identifiers->strings) = 0;
+  /* FIXME pph: We probably need to free all these things somewhere.  */
+
+  /* Read the identifiers in HUNK. */
+  for (j = 0; j < num_entries; ++j)
+    {
+      const char *s;
+      identifiers->entries[j].used_by_directive = pph_in_uint (stream);
+      identifiers->entries[j].expanded_to_text = pph_in_uint (stream);
+      s = pph_in_string (stream);
+      gcc_assert (s);
+      ident_len = strlen (s);
+      identifiers->entries[j].ident_len = ident_len;
+      identifiers->entries[j].ident_str =
+        (const char *) obstack_copy0 (identifiers->strings, s, ident_len);
+
+      s = pph_in_string (stream);
+      if (s)
+	{
+	  before_len = strlen (s);
+	  identifiers->entries[j].before_len = before_len;
+	  identifiers->entries[j].before_str = (const char *)
+	      obstack_copy0 (identifiers->strings, s, before_len);
+	}
+      else
+	{
+	  /* The identifier table expects NULL entries to have
+	     a length of -1U.  */
+	  identifiers->entries[j].before_len = -1U;
+	  identifiers->entries[j].before_str = NULL;
+	}
+
+      s = pph_in_string (stream);
+      if (s)
+	{
+	  after_len = strlen (s);
+	  identifiers->entries[j].after_len = after_len;
+	  identifiers->entries[j].after_str = (const char *)
+	      obstack_copy0 (identifiers->strings, s, after_len);
+	}
+      else
+	{
+	  /* The identifier table expects NULL entries to have
+	     a length of -1U.  */
+	  identifiers->entries[j].after_len = -1U;
+	  identifiers->entries[j].after_str = NULL;
+	}
+    }
+}
+
+
+/* Read contents of PPH file in STREAM.  */
+
+static void
+pph_read_file_contents (pph_stream *stream)
+{
+  bool verified;
+  cpp_ident_use *bad_use;
+  const char *cur_def;
+  cpp_idents_used idents_used;
+  tree file_ns;
+
+  pth_load_identifiers (&idents_used, stream);
+
+  /* FIXME pph: This validation is weak.  */
+  verified = cpp_lt_verify_1 (parse_in, &idents_used, &bad_use, &cur_def, true);
+  if (!verified)
+    report_validation_error (stream->name, bad_use->ident_str, cur_def,
+                             bad_use->before_str, bad_use->after_str);
+
+  /* Re-instantiate all the pre-processor symbols defined by STREAM.  */
+  cpp_lt_replay (parse_in, &idents_used);
+
+  /* Read global_namespace from STREAM and add all the names defined
+     there to the current global_namespace.  */
+  file_ns = pph_in_tree (stream);
+  if (flag_pph_dump_tree)
+    pph_dump_namespace (pph_logfile, file_ns);
+  pph_add_names_to_namespace (global_namespace, file_ns);
+  keyed_classes = pph_in_tree (stream);
+  unemitted_tinfo_decls = pph_in_tree_vec (stream);
+  /* FIXME pph: This call replaces the tinfo, we should merge instead.
+     See pph_in_tree_VEC.  */
+}
+
+
+/* Read PPH file FILENAME.  */
+
+void
+pph_read_file (const char *filename)
+{
+  pph_stream *stream;
+
+  if (flag_pph_debug >= 1)
+    fprintf (pph_logfile, "PPH: Reading %s\n", filename);
+
+  stream = pph_stream_open (filename, "rb");
+  if (stream)
+    {
+      pph_read_file_contents (stream);
+      pph_stream_close (stream);
+
+      if (flag_pph_debug >= 1)
+        fprintf (pph_logfile, "PPH: Closing %s\n", filename);
+    }
+  else
+    error ("Cannot open PPH file for reading: %s: %m", filename);
 }
 
 
