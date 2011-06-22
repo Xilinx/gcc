@@ -200,7 +200,7 @@ pph_flush_buffers (pph_stream *stream)
    cache, write a shared-record marker and return false.  */
 
 static inline bool
-pph_start_record (pph_stream *stream, void *data)
+pph_out_start_record (pph_stream *stream, void *data)
 {
   if (data)
     {
@@ -320,7 +320,7 @@ pph_out_cxx_binding_1 (pph_stream *stream, cxx_binding *cb, bool ref_p)
 {
   struct bitpack_d bp;
 
-  if (!pph_start_record (stream, cb))
+  if (!pph_out_start_record (stream, cb))
     return;
 
   pph_out_tree_or_ref (stream, cb->value, ref_p);
@@ -361,7 +361,7 @@ static void
 pph_out_class_binding (pph_stream *stream, cp_class_binding *cb,
 			        bool ref_p)
 {
-  if (!pph_start_record (stream, cb))
+  if (!pph_out_start_record (stream, cb))
     return;
 
   pph_out_cxx_binding (stream, cb->base, ref_p);
@@ -375,7 +375,7 @@ pph_out_class_binding (pph_stream *stream, cp_class_binding *cb,
 static void
 pph_out_label_binding (pph_stream *stream, cp_label_binding *lb, bool ref_p)
 {
-  if (!pph_start_record (stream, lb))
+  if (!pph_out_start_record (stream, lb))
     return;
 
   pph_out_tree_or_ref (stream, lb->label, ref_p);
@@ -444,7 +444,7 @@ pph_out_binding_level (pph_stream *stream, struct cp_binding_level *bl,
   cp_label_binding *sl;
   struct bitpack_d bp;
 
-  if (!pph_start_record (stream, bl))
+  if (!pph_out_start_record (stream, bl))
     return;
 
   pph_out_chain_filtered (stream, bl->names, ref_p, NO_BUILTINS);
@@ -500,7 +500,7 @@ pph_out_c_language_function (pph_stream *stream,
 				      struct c_language_function *clf,
 				      bool ref_p)
 {
-  if (!pph_start_record (stream, clf))
+  if (!pph_out_start_record (stream, clf))
     return;
 
   pph_out_tree_vec (stream, clf->x_stmt_tree.x_cur_stmt_list, ref_p);
@@ -518,7 +518,7 @@ pph_out_language_function (pph_stream *stream,
 {
   struct bitpack_d bp;
 
-  if (!pph_start_record (stream, lf))
+  if (!pph_out_start_record (stream, lf))
     return;
 
   pph_out_c_language_function (stream, &lf->base, ref_p);
@@ -621,7 +621,7 @@ pph_out_struct_function (pph_stream *stream, struct function *fn, bool ref_p)
 {
   struct pph_tree_info pti;
 
-  if (!pph_start_record (stream, fn))
+  if (!pph_out_start_record (stream, fn))
     return;
 
   output_struct_function_base (stream->ob, fn);
@@ -712,7 +712,7 @@ pph_out_lang_specific (pph_stream *stream, tree decl, bool ref_p)
   struct lang_decl_base *ldb;
 
   ld = DECL_LANG_SPECIFIC (decl);
-  if (!pph_start_record (stream, ld))
+  if (!pph_out_start_record (stream, ld))
     return;
     
   /* Write all the fields in lang_decl_base.  */
@@ -792,7 +792,7 @@ pph_out_sorted_fields_type (pph_stream *stream,
 {
   int i;
 
-  if (!pph_start_record (stream, sft))
+  if (!pph_out_start_record (stream, sft))
     return;
 
   pph_out_uint (stream, sft->len);
@@ -864,7 +864,7 @@ pph_out_lang_type_class (pph_stream *stream,
   pph_out_tree_or_ref (stream, ltc->vtables, ref_p);
   pph_out_tree_or_ref (stream, ltc->typeinfo_var, ref_p);
   pph_out_tree_vec (stream, ltc->vbases, ref_p);
-  if (pph_start_record (stream, ltc->nested_udts))
+  if (pph_out_start_record (stream, ltc->nested_udts))
     pph_out_binding_table (stream, ltc->nested_udts, ref_p);
   pph_out_tree_or_ref (stream, ltc->as_base, ref_p);
   pph_out_tree_vec (stream, ltc->pure_virtuals, ref_p);
@@ -901,7 +901,7 @@ pph_out_lang_type (pph_stream *stream, tree type, bool ref_p)
   struct lang_type *lt;
 
   lt = TYPE_LANG_SPECIFIC (type);
-  if (!pph_start_record (stream, lt))
+  if (!pph_out_start_record (stream, lt))
     return;
 
   pph_out_lang_type_header (stream, &lt->u.h);

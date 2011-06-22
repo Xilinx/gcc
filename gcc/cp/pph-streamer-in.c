@@ -192,7 +192,7 @@ pph_init_read (pph_stream *stream)
    materialized structure.  */
 
 static inline enum pph_record_marker
-pph_start_record (pph_stream *stream, unsigned *cache_ix)
+pph_in_start_record (pph_stream *stream, unsigned *cache_ix)
 {
   enum pph_record_marker marker;
 
@@ -211,7 +211,7 @@ pph_start_record (pph_stream *stream, unsigned *cache_ix)
 
 
 /* Return a shared pointer from the streamer cache in STREAM.  This is
-   called when pph_start_record returns PPH_RECORD_SHARED.  It means
+   called when pph_in_start_record returns PPH_RECORD_SHARED.  It means
    that the data structure we are about to read has been instantiated
    before and is present in the streamer cache.  */
 
@@ -330,7 +330,7 @@ pph_in_cxx_binding_1 (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned ix;
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
@@ -378,7 +378,7 @@ pph_in_class_binding (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned ix;
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
@@ -401,7 +401,7 @@ pph_in_label_binding (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned ix;
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
@@ -425,7 +425,7 @@ pph_in_binding_level (pph_stream *stream)
   struct bitpack_d bp;
   enum pph_record_marker marker;
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
@@ -495,7 +495,7 @@ pph_in_c_language_function (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned ix;
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
@@ -521,7 +521,7 @@ pph_in_language_function (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned ix;
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
@@ -614,7 +614,7 @@ pph_in_struct_function (pph_stream *stream)
 
   gcc_assert (stream->data_in != NULL);
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
 
@@ -713,7 +713,7 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
   enum pph_record_marker marker;
   unsigned ix;
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return;
 
@@ -828,7 +828,7 @@ pph_in_sorted_fields_type (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned ix;
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
@@ -908,7 +908,7 @@ pph_in_lang_type_class (pph_stream *stream,
   ltc->typeinfo_var = pph_in_tree (stream);
   ltc->vbases = pph_in_tree_vec (stream);
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_START)
     {
       ltc->nested_udts = pph_in_binding_table (stream);
@@ -950,7 +950,7 @@ pph_in_lang_type (pph_stream *stream)
   enum pph_record_marker marker;
   unsigned ix;
 
-  marker = pph_start_record (stream, &ix);
+  marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
