@@ -241,6 +241,7 @@ static const char * const optabs[] =
   "set_direct_optab_handler (sync_compare_and_swap_optab, $A, CODE_FOR_$(sync_compare_and_swap$I$a$))",
   "set_direct_optab_handler (sync_lock_test_and_set_optab, $A, CODE_FOR_$(sync_lock_test_and_set$I$a$))",
   "set_direct_optab_handler (sync_lock_release_optab, $A, CODE_FOR_$(sync_lock_release$I$a$))",
+  "set_direct_optab_handler (sync_mem_exchange_optab, $A, CODE_FOR_$(sync_mem_exchange$I$a$))",
   "set_optab_handler (vec_set_optab, $A, CODE_FOR_$(vec_set$a$))",
   "set_optab_handler (vec_extract_optab, $A, CODE_FOR_$(vec_extract$a$))",
   "set_optab_handler (vec_extract_even_optab, $A, CODE_FOR_$(vec_extract_even$a$))",

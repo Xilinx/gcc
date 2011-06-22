@@ -4083,7 +4083,7 @@ PREPROCESSOR_DEFINES = \
   @TARGET_SYSTEM_ROOT_DEFINE@
 
 cppbuiltin.o: cppbuiltin.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-	cppbuiltin.h Makefile
+	$(TREE_H) cppbuiltin.h Makefile
 	$(COMPILER) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
 	  $(PREPROCESSOR_DEFINES) -DBASEVER=$(BASEVER_s) \
 	  -c $(srcdir)/cppbuiltin.c $(OUTPUT_OPTION)

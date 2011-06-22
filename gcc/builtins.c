@@ -5199,9 +5199,69 @@ expand_builtin_sync_lock_test_and_set (enum machine_mode mode, tree exp,
   return expand_sync_lock_test_and_set (mem, val, target);
 }
 
+/* Given an integer representing an ``enum memmodel'', verify its
+   correctness and return the memory model enum.  */
+
+static enum memmodel
+get_memmodel (tree exp)
+{
+  rtx op;
+
+  if (TREE_CODE (exp) != INTEGER_CST)
+    {
+      error ("third argument to builtin is an invalid memory model");
+      return MEMMODEL_SEQ_CST;
+    }
+  op = expand_normal (exp);
+  if (INTVAL (op) < 0 || INTVAL (op) >= MEMMODEL_LAST)
+    {
+      error ("third argument to builtin is an invalid memory model");
+      return MEMMODEL_SEQ_CST;
+    }
+  return (enum memmodel) INTVAL (op);
+}
+
+/* Expand the __sync_mem_exchange intrinsic:
+
+   	TYPE __sync_mem_exchange (TYPE *to, TYPE from, enum memmodel)
+
+   EXP is the CALL_EXPR.
+   TARGET is an optional place for us to store the results.  */
+
+static rtx
+expand_builtin_sync_mem_exchange (enum machine_mode mode, tree exp, rtx target)
+{
+  rtx val, mem;
+  enum machine_mode old_mode;
+  enum memmodel model;
+
+  model = get_memmodel (CALL_EXPR_ARG (exp, 2));
+  if (model != MEMMODEL_RELAXED
+      && model != MEMMODEL_SEQ_CST
+      && model != MEMMODEL_ACQ_REL
+      && model != MEMMODEL_RELEASE
+      && model != MEMMODEL_ACQUIRE)
+    {
+      error ("invalid memory model for %<__sync_mem_exchange%>");
+      return NULL_RTX;
+    }
+
+  /* Expand the operands.  */
+  mem = get_builtin_sync_mem (CALL_EXPR_ARG (exp, 0), mode);
+  val = expand_expr (CALL_EXPR_ARG (exp, 1), NULL_RTX, mode, EXPAND_NORMAL);
+  /* If VAL is promoted to a wider mode, convert it back to MODE.  Take care
+     of CONST_INTs, where we know the old_mode only from the call argument.  */
+  old_mode = GET_MODE (val);
+  if (old_mode == VOIDmode)
+    old_mode = TYPE_MODE (TREE_TYPE (CALL_EXPR_ARG (exp, 1)));
+  val = convert_modes (mode, old_mode, val, 1);
+
+  return expand_sync_mem_exchange (model, mem, val, target);
+}
+
 /* Expand the __sync_synchronize intrinsic.  */
 
-static void
+void
 expand_builtin_sync_synchronize (void)
 {
   gimple x;
@@ -6013,6 +6073,17 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       mode = get_builtin_sync_mode 
 				(fcode - BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_1);
       target = expand_builtin_compare_and_swap (mode, exp, false, target);
+      if (target)
+	return target;
+      break;
+
+    case BUILT_IN_SYNC_MEM_EXCHANGE_1:
+    case BUILT_IN_SYNC_MEM_EXCHANGE_2:
+    case BUILT_IN_SYNC_MEM_EXCHANGE_4:
+    case BUILT_IN_SYNC_MEM_EXCHANGE_8:
+    case BUILT_IN_SYNC_MEM_EXCHANGE_16:
+      mode = get_builtin_sync_mode (fcode - BUILT_IN_SYNC_MEM_EXCHANGE_1);
+      target = expand_builtin_sync_mem_exchange (mode, exp, target);
       if (target)
 	return target;
       break;

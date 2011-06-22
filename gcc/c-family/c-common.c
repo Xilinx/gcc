@@ -9060,6 +9060,7 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
     case BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_N:
     case BUILT_IN_SYNC_LOCK_TEST_AND_SET_N:
     case BUILT_IN_SYNC_LOCK_RELEASE_N:
+    case BUILT_IN_SYNC_MEM_EXCHANGE_N:
       {
 	int n = sync_resolve_size (function, params);
 	tree new_function, first_param, result;

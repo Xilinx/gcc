@@ -7056,6 +7056,46 @@ expand_sync_lock_test_and_set (rtx mem, rtx val, rtx target)
 
   return NULL_RTX;
 }
+
+/* This function expands the atomic exchange operation:
+   atomically store VAL in MEM and return the previous value in MEM.
+
+   MEMMODEL is the memory model variant to use.
+   TARGET is an option place to stick the return value.  */
+
+rtx
+expand_sync_mem_exchange (enum memmodel model, rtx mem, rtx val, rtx target)
+{
+  enum machine_mode mode = GET_MODE (mem);
+  enum insn_code icode;
+
+  /* If the target supports the exchange directly, great.  */
+  icode = direct_optab_handler (sync_mem_exchange_optab, mode);
+  if (icode != CODE_FOR_nothing)
+    {
+      struct expand_operand ops[4];
+
+      create_output_operand (&ops[0], target, mode);
+      create_fixed_operand (&ops[1], mem);
+      /* VAL may have been promoted to a wider mode.  Shrink it if so.  */
+      create_convert_operand_to (&ops[2], val, mode, true);
+      create_integer_operand (&ops[3], model);
+      if (maybe_expand_insn (icode, 4, ops))
+	return ops[0].value;
+    }
+
+  /* Legacy sync_lock_test_and_set works the same, but is only defined as an 
+     acquire barrier.  If the pattern exists, and the memory model is stronger
+     than acquire, add a release barrier before the instruction.
+     The barrier is not needed if sync_lock_test_and_set doesn't exist since
+     it will expand into a compare-and-swap loop.  */
+  icode = direct_optab_handler (sync_lock_test_and_set_optab, mode);
+  if ((icode != CODE_FOR_nothing) && (model == MEMMODEL_SEQ_CST || 
+				     model == MEMMODEL_ACQ_REL))
+    expand_builtin_sync_synchronize ();
+
+  return expand_sync_lock_test_and_set (mem, val, target);
+}
 
 /* Return true if OPERAND is suitable for operand number OPNO of
    instruction ICODE.  */

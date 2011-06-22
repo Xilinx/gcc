@@ -677,6 +677,9 @@ enum direct_optab_index
   /* Atomic clear with release semantics.  */
   DOI_sync_lock_release,
 
+  /* Atomic operations with C++0x memory model parameters. */
+  DOI_sync_mem_exchange,
+
   DOI_MAX
 };
 
@@ -724,6 +727,9 @@ typedef struct direct_optab_d *direct_optab;
   (&direct_optab_table[(int) DOI_sync_lock_test_and_set])
 #define sync_lock_release_optab \
   (&direct_optab_table[(int) DOI_sync_lock_release])
+
+#define sync_mem_exchange_optab \
+  (&direct_optab_table[(int) DOI_sync_mem_exchange])
 
 /* Target-dependent globals.  */
 struct target_optabs {

@@ -232,6 +232,20 @@
   return "lock{%;} add{<imodesuffix>}\t{%1, %0|%0, %1}";
 })
 
+(define_expand "sync_mem_exchange<mode>"
+  [(match_operand:SWI 0 "register_operand" "")		;; output
+   (match_operand:SWI 1 "memory_operand" "")		;; memory
+   (match_operand:SWI 2 "register_operand" "")		;; input
+   (match_operand:SI  3 "const_int_operand" "")]	;; memory model
+  ""
+{
+  /* On i386 the xchg instruction is a full barrier.  Thus we
+     can completely ignore the memory model operand.  */
+  emit_insn (gen_sync_lock_test_and_set<mode>
+		(operands[0], operands[1], operands[2]));
+  DONE;
+})
+
 ;; Recall that xchg implicitly sets LOCK#, so adding it again wastes space.
 (define_insn "sync_lock_test_and_set<mode>"
   [(set (match_operand:SWI 0 "register_operand" "=<r>")

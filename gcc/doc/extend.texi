@@ -6728,6 +6728,24 @@ This builtin is not a full barrier, but rather a @dfn{release barrier}.
 This means that all previous memory stores are globally visible, and all
 previous memory loads have been satisfied, but following memory reads
 are not prevented from being speculated to before the barrier.
+
+@item @var{type} __sync_mem_exchange (@var{type} *ptr, @var{type} value, int memmodel, ...)
+@findex __sync_mem_exchange
+This builtin implements an atomic exchange operation within the
+constraints of a memory model.  It writes @var{value} into
+@code{*@var{ptr}}, and returns the previous contents of
+@code{*@var{ptr}}.
+
+The valid memory model variants for this builtin are
+__SYNC_MEM_RELAXED, __SYNC_MEM_SEQ_CST, __SYNC_MEM_ACQUIRE,
+__SYNC_MEM_RELEASE, and __SYNC_MEM_ACQ_REL.  The target pattern is responsible
+for issuing the different synchronization instructions. It should default to 
+the more restrictive memory model, the sequentially consistent model.  If 
+nothing is implemented for the target, the compiler will implement it by
+calling the __sync_lock_test_and_set builtin.  If the memory model is more
+restrictive than memory_order_acquire, a memory barrier is emitted before
+the instruction.
+
 @end table
 
 @node Object Size Checking

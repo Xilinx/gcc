@@ -217,6 +217,7 @@ rtx expand_bool_compare_and_swap (rtx, rtx, rtx, rtx);
 rtx expand_sync_operation (rtx, rtx, enum rtx_code);
 rtx expand_sync_fetch_operation (rtx, rtx, enum rtx_code, bool, rtx);
 rtx expand_sync_lock_test_and_set (rtx, rtx, rtx);
+rtx expand_sync_mem_exchange (enum memmodel, rtx, rtx, rtx);
 
 /* Functions from expmed.c:  */
 
@@ -248,6 +249,7 @@ extern void expand_builtin_setjmp_receiver (rtx);
 extern rtx expand_builtin_saveregs (void);
 extern void expand_builtin_trap (void);
 extern rtx builtin_strncpy_read_str (void *, HOST_WIDE_INT, enum machine_mode);
+extern void expand_builtin_sync_synchronize (void);
 
 /* Functions from expr.c:  */
 
