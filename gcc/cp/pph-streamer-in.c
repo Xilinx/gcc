@@ -204,7 +204,15 @@ pph_in_start_record (pph_stream *stream, unsigned *cache_ix)
   if (marker == PPH_RECORD_START || marker == PPH_RECORD_SHARED)
     *cache_ix = pph_in_uint (stream);
   else
-    gcc_assert (marker == PPH_RECORD_END);
+    {
+      gcc_assert (marker == PPH_RECORD_END);
+
+      /* Initialize CACHE_IX to an invalid index. Even though this
+	 is never used in practice, the compiler will throw an error
+	 if the optimizer inlines this function in a given build as
+	 it will complain that " 'ix' may be used uninitialized".  */
+      *cache_ix = -1;
+    }
 
   return marker;
 }
