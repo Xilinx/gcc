@@ -106,7 +106,7 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 	      do {
 		gpy_hashval_t h = gpy_dd_hash_string (DOT_IDENTIFIER_POINTER (target));
 		gpy_dd_hash_insert (h, target, &context);
-	      } while (target = DOT_CHAIN(target));
+	      } while (target = DOT_CHAIN (target));
 	    }
 	}
     }

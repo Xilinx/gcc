@@ -17,6 +17,15 @@ along with GCC; see the file COPYING3.  If not see
 #ifndef __PY_TREE_H__
 #define __PY_TREE_H__
 
+extern VEC(tree,gc) * gpy_builtin_types_vec;
+
+#define gpy_object_type_ptr     VEC_index(tree,gpy_builtin_types_vec,0)
+#define gpy_object_type_ptr_ptr VEC_index(tree,gpy_builtin_types_vec,1)
+#define gpy_const_char_ptr      VEC_index(tree,gpy_builtin_types_vec,2)
+
+extern tree gpy_init_callable_record (tree, int, tree);
+extern void gpy_initilize_types (void);
+
 extern VEC(tree,gc) * gpy_stmt_pass_generate_types (VEC(gpydot,gc) *);
 extern VEC(tree,gc) * gpy_stmt_pass_lower (VEC(tree,gc) *, VEC(gpydot,gc) *);
 
