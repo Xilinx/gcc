@@ -313,6 +313,7 @@ typedef signed gcov_type __attribute__ ((mode (QI)));
 
 typedef unsigned gcov_unsigned_t;
 typedef unsigned gcov_position_t;
+
 /* gcov_type is typedef'd elsewhere for the compiler */
 #if IN_GCOV
 #define GCOV_LINKAGE static
@@ -363,15 +364,24 @@ typedef HOST_WIDEST_INT gcov_type;
 #define gcov_write_counter __gcov_write_counter
 #define gcov_write_summary __gcov_write_summary
 #define gcov_write_module_info __gcov_write_module_info
+#define gcov_write_string __gcov_write_string
+#define gcov_string_length __gcov_string_length
 #define gcov_read_unsigned __gcov_read_unsigned
 #define gcov_read_counter __gcov_read_counter
+#define gcov_read_string __gcov_read_string
 #define gcov_read_summary __gcov_read_summary
 #define gcov_read_module_info __gcov_read_module_info
 #define gcov_sort_n_vals __gcov_sort_n_vals
+#define gcov_canonical_filename _gcov_canonical_filename
+#define gcov_read_pmu_load_latency_info __gcov_read_pmu_load_latency_info
+#define gcov_read_pmu_branch_mispredict_info __gcov_read_pmu_branch_mispredict_info
+#define gcov_read_pmu_tool_header __gcov_read_pmu_tool_header
+#define destroy_pmu_tool_header __destroy_pmu_tool_header
+
 
 /* Poison these, so they don't accidentally slip in.  */
-#pragma GCC poison gcov_write_string gcov_write_tag gcov_write_length
-#pragma GCC poison gcov_read_string gcov_sync gcov_time gcov_magic
+#pragma GCC poison gcov_write_tag gcov_write_length
+#pragma GCC poison gcov_sync gcov_time gcov_magic
 
 #ifdef HAVE_GAS_HIDDEN
 #define ATTRIBUTE_HIDDEN  __attribute__ ((__visibility__ ("hidden")))
@@ -432,6 +442,13 @@ typedef HOST_WIDEST_INT gcov_type;
 #define GCOV_TAG_SUMMARY_LENGTH  \
 	(1 + GCOV_COUNTERS_SUMMABLE * (2 + 3 * 2))
 #define GCOV_TAG_MODULE_INFO ((gcov_unsigned_t)0xa4000000)
+#define GCOV_TAG_PMU_LOAD_LATENCY_INFO ((gcov_unsigned_t)0xa5000000)
+#define GCOV_TAG_PMU_LOAD_LATENCY_LENGTH(filename)  \
+  (gcov_string_length (filename) + 12 + 2)
+#define GCOV_TAG_PMU_BRANCH_MISPREDICT_INFO ((gcov_unsigned_t)0xa7000000)
+#define GCOV_TAG_PMU_BRANCH_MISPREDICT_LENGTH(filename)  \
+  (gcov_string_length (filename) + 5 + 2)
+#define GCOV_TAG_PMU_TOOL_HEADER ((gcov_unsigned_t)0xa9000000)
 
 /* Counters that are collected.  */
 #define GCOV_COUNTER_ARCS 	0  /* Arc transitions.  */
@@ -545,6 +562,8 @@ struct gcov_summary
 #define GCOV_MODULE_ASM_STMTS (1 << 16)
 #define GCOV_MODULE_LANG_MASK 0xffff
 
+enum print_newline {no_newline, add_newline};
+
 /* Source module info. The data structure is used in
    both runtime and profile-use phase. Make sure to allocate
    enough space for the variable length member.  */
@@ -575,6 +594,91 @@ extern unsigned primary_module_id;
   (module_infos[0]->is_exported						\
    && !((module_infos[0]->lang & GCOV_MODULE_ASM_STMTS)			\
 	&& flag_ripa_disallow_asm_modules))
+
+/* Information about the hardware performance monitoring unit.  */
+struct gcov_pmu_info
+{
+  const char *pmu_profile_filename;	/* pmu profile filename  */
+  const char *pmu_tool;  	/* canonical pmu tool options  */
+  gcov_unsigned_t pmu_top_n_address;  /* how many top addresses to symbolize */
+};
+
+/* Information about the PMU tool header.  */
+typedef struct gcov_pmu_tool_header {
+  char *host_cpu;
+  char *hostname;
+  char *kernel_version;
+  char *column_header;
+  char *column_description;
+  char *full_header;
+} gcov_pmu_tool_header_t;
+
+/* Available only for PMUs which support PEBS or IBS using pfmon
+   tool. If any field here is changed, the length computation in
+   GCOV_TAG_PMU_LOAD_LATENCY_LENGTH must be updated as well. All
+   percentages are multiplied by 100 to make them out of 10000 and
+   only integer part is kept.  */
+typedef struct gcov_pmu_load_latency_info
+{
+  gcov_unsigned_t counts;     /* raw count of samples */
+  gcov_unsigned_t self;       /* per 10k of total samples */
+  gcov_unsigned_t cum;        /* per 10k cumulative weight */
+  gcov_unsigned_t lt_10;      /* per 10k with latency <= 10 cycles */
+  gcov_unsigned_t lt_32;      /* per 10k with latency <= 32 cycles */
+  gcov_unsigned_t lt_64;      /* per 10k with latency <= 64 cycles */
+  gcov_unsigned_t lt_256;     /* per 10k with latency <= 256 cycles */
+  gcov_unsigned_t lt_1024;    /* per 10k with latency <= 1024 cycles */
+  gcov_unsigned_t gt_1024;    /* per 10k with latency > 1024 cycles */
+  gcov_unsigned_t wself;      /* weighted average cost of this miss in cycles */
+  gcov_type code_addr;        /* the actual miss address (pc+1 for Intel) */
+  gcov_unsigned_t line;       /* line number corresponding to this miss */
+  gcov_unsigned_t discriminator;   /* discriminator information for this miss */
+  char *filename;       /* filename corresponding to this miss */
+} gcov_pmu_ll_info_t;
+
+/* This structure is used during runtime as well as in gcov.  */
+typedef struct load_latency_infos
+{
+  /* An array describing the total number of load latency fields.  */
+  gcov_pmu_ll_info_t **ll_array;
+  /* The total number of entries in the load latency array.  */
+  unsigned ll_count;
+  /* The total number of entries currently allocated in the array.
+     Used for bookkeeping.  */
+  unsigned alloc_ll_count;
+  /* PMU tool header */
+  gcov_pmu_tool_header_t *pmu_tool_header;
+} ll_infos_t;
+
+/* Available only for PMUs which support PEBS or IBS using pfmon
+   tool. If any field here is changed, the length computation in
+   GCOV_TAG_PMU_BR_MISPREDICT_LENGTH must be updated as well. All
+   percentages are multiplied by 100 to make them out of 10000 and
+   only integer part is kept.  */
+typedef struct gcov_pmu_branch_mispredict_info
+{
+  gcov_unsigned_t counts;     /* raw count of samples */
+  gcov_unsigned_t self;       /* per 10k of total samples */
+  gcov_unsigned_t cum;        /* per 10k cumulative weight */
+  gcov_type code_addr;        /* the actual mispredict address */
+  gcov_unsigned_t line;       /* line number corresponding to this event */
+  gcov_unsigned_t discriminator;   /* discriminator for this event */
+  char *filename;       /* filename corresponding to this event */
+} gcov_pmu_brm_info_t;
+
+/* This structure is used during runtime as well as in gcov.  */
+typedef struct branch_mispredict_infos
+{
+  /* An array describing the total number of mispredict entries.  */
+  gcov_pmu_brm_info_t **brm_array;
+  /* The total number of entries in the above array.  */
+  unsigned brm_count;
+  /* The total number of entries currently allocated in the array.
+     Used for bookkeeping.  */
+  unsigned alloc_brm_count;
+  /* PMU tool header */
+  gcov_pmu_tool_header_t *pmu_tool_header;
+} brm_infos_t;
 
 /* Structures embedded in coveraged program.  The structures generated
    by write_profile must match these.  */
@@ -635,9 +739,6 @@ struct dyn_imp_mod
 /* Register a new object file module.  */
 extern void __gcov_init (struct gcov_info *) ATTRIBUTE_HIDDEN;
 
-/* Set sampling rate to RATE.  */
-extern void __gcov_set_sampling_rate (unsigned int rate);
-
 /* Called before fork, to avoid double counting.  */
 extern void __gcov_flush (void) ATTRIBUTE_HIDDEN;
 
@@ -673,6 +774,12 @@ extern void __gcov_direct_call_profiler (void *, void *, gcov_unsigned_t) ATTRIB
 extern void __gcov_average_profiler (gcov_type *, gcov_type);
 extern void __gcov_ior_profiler (gcov_type *, gcov_type);
 extern void __gcov_sort_n_vals (gcov_type *value_array, int n);
+
+/* Initialize/start/stop/dump performance monitoring unit (PMU) profile */
+void __gcov_init_pmu_profiler (struct gcov_pmu_info *) ATTRIBUTE_HIDDEN;
+void __gcov_start_pmu_profiler (void) ATTRIBUTE_HIDDEN;
+void __gcov_stop_pmu_profiler (void) ATTRIBUTE_HIDDEN;
+void __gcov_end_pmu_profiler (int gcda_error) ATTRIBUTE_HIDDEN;
 
 #ifndef inhibit_libc
 /* The wrappers around some library functions..  */
@@ -746,12 +853,42 @@ GCOV_LINKAGE int gcov_close (void) ATTRIBUTE_HIDDEN;
 static gcov_position_t gcov_position (void);
 static int gcov_is_error (void);
 
+GCOV_LINKAGE const char *gcov_read_string (void) ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE gcov_unsigned_t gcov_read_unsigned (void) ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE gcov_type gcov_read_counter (void) ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE void gcov_read_summary (struct gcov_summary *) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE char *gcov_canonical_filename (char *filename) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE void
+gcov_read_pmu_load_latency_info (gcov_pmu_ll_info_t *ll_info,
+                                 gcov_unsigned_t len) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE void
+gcov_read_pmu_branch_mispredict_info (gcov_pmu_brm_info_t *brm_info,
+                                      gcov_unsigned_t len) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE void
+gcov_read_pmu_tool_header (gcov_pmu_tool_header_t *tool_header,
+                           gcov_unsigned_t len) ATTRIBUTE_HIDDEN;
+#ifndef __GCOV_KERNEL__
+GCOV_LINKAGE float convert_unsigned_to_pct (
+    const unsigned number) ATTRIBUTE_HIDDEN;
+#endif /* __GCOV_KERNEL__ */
+
 #if !IN_LIBGCOV && IN_GCOV != 1
 GCOV_LINKAGE void gcov_read_module_info (struct gcov_module_info *mod_info,
 					 gcov_unsigned_t len) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE void print_load_latency_line (FILE *fp,
+                                           const gcov_pmu_ll_info_t *ll_info,
+                                           const enum print_newline);
+GCOV_LINKAGE void
+print_branch_mispredict_line (FILE *fp, const gcov_pmu_brm_info_t *brm_info,
+                              const enum print_newline);
+GCOV_LINKAGE void print_pmu_tool_header (FILE *fp,
+                                         gcov_pmu_tool_header_t *tool_header,
+                                         const enum print_newline);
+#endif
+
+#if IN_GCOV != 1
+GCOV_LINKAGE void destroy_pmu_tool_header (gcov_pmu_tool_header_t *tool_header)
+  ATTRIBUTE_HIDDEN;
 #endif
 
 #if IN_LIBGCOV
@@ -771,10 +908,10 @@ gcov_get_sorted_import_module_array (struct gcov_info *mod_info, unsigned *len)
 static void gcov_rewrite (void);
 GCOV_LINKAGE void gcov_seek (gcov_position_t /*position*/) ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE void gcov_truncate (void) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE gcov_unsigned_t gcov_string_length (const char *) ATTRIBUTE_HIDDEN;
 GCOV_LINKAGE unsigned gcov_gcda_file_size (struct gcov_info *);
 #else
 /* Available outside libgcov */
-GCOV_LINKAGE const char *gcov_read_string (void);
 GCOV_LINKAGE void gcov_sync (gcov_position_t /*base*/,
 			     gcov_unsigned_t /*length */);
 #endif
@@ -782,11 +919,11 @@ GCOV_LINKAGE void gcov_sync (gcov_position_t /*base*/,
 #if !IN_GCOV
 /* Available outside gcov */
 GCOV_LINKAGE void gcov_write_unsigned (gcov_unsigned_t) ATTRIBUTE_HIDDEN;
+GCOV_LINKAGE void gcov_write_string (const char *) ATTRIBUTE_HIDDEN;
 #endif
 
 #if !IN_GCOV && !IN_LIBGCOV
 /* Available only in compiler */
-GCOV_LINKAGE void gcov_write_string (const char *);
 GCOV_LINKAGE gcov_position_t gcov_write_tag (gcov_unsigned_t);
 GCOV_LINKAGE void gcov_write_length (gcov_position_t /*position*/);
 #endif

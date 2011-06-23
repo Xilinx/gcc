@@ -124,9 +124,11 @@ gcov [@option{-v}|@option{--version}] [@option{-h}|@option{--help}]
      [@option{-a}|@option{--all-blocks}]
      [@option{-b}|@option{--branch-probabilities}]
      [@option{-c}|@option{--branch-counts}]
+     [@option{-m}|@option{--pmu-profile}]
      [@option{-n}|@option{--no-output}]
      [@option{-l}|@option{--long-file-names}]
      [@option{-p}|@option{--preserve-paths}]
+     [@option{-q}|@option{--pmu_profile-path}]
      [@option{-f}|@option{--function-summaries}]
      [@option{-o}|@option{--object-directory} @var{directory|file}] @var{sourcefiles}
      [@option{-u}|@option{--unconditional-branches}]
@@ -168,6 +170,14 @@ be shown, unless the @option{-u} option is given.
 @itemx --branch-counts
 Write branch frequencies as the number of branches taken, rather than
 the percentage of branches taken.
+
+@item -m
+@itemx --pmu-profile
+Output the additional PMU profile information if available.
+
+@item -q
+@itemx --pmu_profile-path
+PMU profile path (default @file{pmuprofile.gcda}).
 
 @item -n
 @itemx --no-output

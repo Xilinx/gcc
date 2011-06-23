@@ -388,6 +388,8 @@ Objective-C and Objective-C++ Dialects}.
 -fprofile-correction -fprofile-dir=@var{path} -fprofile-generate @gol
 -fprofile-generate=@var{path} -fprofile-generate-sampling @gol
 -fprofile-use -fprofile-use=@var{path} -fprofile-values @gol
+-fpmu-profile-generate=@var{pmuoption} @gol
+-fpmu-profile-use=@var{pmuoption} @gol
 -freciprocal-math -fregmove -frename-registers -freorder-blocks @gol
 -freorder-blocks-and-partition -freorder-functions @gol
 -frerun-cse-after-loop -freschedule-modulo-scheduled-loops @gol
@@ -8087,6 +8089,26 @@ code.
 
 If @var{path} is specified, GCC will look at the @var{path} to find
 the profile feedback data files. See @option{-fprofile-dir}.
+
+@item -fpmu-profile-generate=@var{pmuoption}
+@opindex fpmu-profile-generate
+
+Enable performance monitoring unit (PMU) profiling.  This collects
+hardware counter data corresponding to @var{pmuoption}.  Currently
+only @var{load-latency} and @var{branch-mispredict} are supported
+using pfmon tool.  You must use @option{-fpmu-profile-generate} both
+when compiling and when linking your program.  This PMU profile data
+may later be used by the compiler during optimizations as well can be
+displayed using coverage tool gcov. The params variable
+"pmu_profile_n_addresses" can be used to restrict PMU data collection
+to only this many addresses.
+
+@item -fpmu-profile-use=@var{pmuoption}
+@opindex fpmu-profile-use
+
+Enable performance monitoring unit (PMU) profiling based
+optimizations.  Currently only @var{load-latency} and
+@var{branch-mispredict} are supported.
 
 @item -fripa
 @opindex fripa

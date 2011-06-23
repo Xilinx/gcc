@@ -1,3 +1,89 @@
+2011-06-23   Sharad Singhai  <singhai@google.com>
+
+	* gcc/doc/invoke.texi: Document new pmu profile related options.
+	* gcc/doc/gcov.texi: Document new options -m and -q.
+	* gcc/gcc.c: Link libgcov for -fpmu-profile-generate option.
+	* gcc/gcov.c (filter_pmu_data_lines): New function.
+	(output_pmu_data_header): Ditto.
+	(output_pmu_data): Ditto.
+	(output_load_latency_line): Ditto.
+	(output_branch_mispredict_line): Ditto.
+	(static void process_pmu_profile): Ditto.
+	* gcc/gcov-io.c (gcov_canonical_filename): New function.
+	(gcov_read_pmu_load_latency_info): Ditto.
+	(gcov_read_pmu_branch_mispredict_info): Ditto.
+	(gcov_read_pmu_tool_header): Ditto.
+	(gcov_string_length): Ditto.
+	(convert_unsigned_to_pct): Ditto.
+	(print_load_latency_line): Ditto.
+	(print_branch_mispredict_line): Ditto.
+	(print_pmu_tool_header): Ditto.
+	(destroy_pmu_tool_header): Ditto.
+	(gcov_read_string): Make it unconditionally available.
+	* gcc/gcov-io.h (struct gcov_pmu_info): New structure.
+	* gcc/opts.c: New option -fpmu-profile-generate.
+	* gcc/pmu-profile.c (enum pmu_tool_type): New structure.
+	(enum pmu_event_type): Ditto.
+	(enum pmu_state): Ditto.
+	(enum cpu_vendor_signature): Ditto.
+	(struct pmu_tool_info): Ditto.
+	(get_x86cpu_vendor): New function.
+	(parse_pmu_profile_options): Ditto.
+	(start_addr2line_symbolizer): Ditto.
+	(reset_symbolizer_parent_pipes): Ditto.
+	(reset_symbolizer_child_pipes): Ditto.
+	(end_addr2line_symbolizer): Ditto.
+	(symbolize_addr2line): Ditto.
+	(start_pfmon_module): Ditto.
+	(convert_pct_to_unsigned): Ditto.
+	(parse_load_latency_line): Ditto.
+	(parse_branch_mispredict_line): Ditto.
+	(destroy_load_latency_infos): Ditto.
+	(destroy_branch_mispredict_infos): Ditto.
+	(parse_pfmon_load_latency): Ditto.
+	(parse_pfmon_tool_header): Ditto.
+	(parse_pfmon_branch_mispredicts): Ditto.
+	(pmu_start): Ditto.
+	(init_pmu_load_latency): Ditto.
+	(init_pmu_branch_mispredict): Ditto.
+	(init_pmu_tool): Ditto.
+	(__gcov_init_pmu_profiler): Ditto.
+	(__gcov_start_pmu_profiler): Ditto.
+	(__gcov_stop_pmu_profiler): Ditto.
+	(gcov_write_ll_line): Ditto.
+	(gcov_write_branch_mispredict_line): Ditto.
+	(gcov_write_load_latency_infos): Ditto.
+	(gcov_write_branch_mispredict_infos): Ditto.
+	(gcov_tag_pmu_tool_header_length): Ditto.
+	(gcov_write_tool_header): Ditto.
+	(__gcov_end_pmu_profiler): Ditto.
+	* gcc/coverage.c (get_const_string_type): New function.
+	(create_coverage): Do the coverage processing even if only
+	flag_pmu_profile_generate is specified.
+	(coverage_init): Call gimple_init_instrumentation_sampling from here instead
+	from tree-profile.c:gimple_init_edge_profiler.
+	(profiling_enabled_p): New function.
+	(init_pmu_profiling): Ditto.
+	(check_pmu_profile_options): Ditto.
+	* gcc/coverage.h (check_pmu_profile_options): Declaration.
+	(tree_init_instrumentation_sampling): Declaration.
+	* gcc/common.opt: Add new options -fpmu-profile-generate and
+	-fpmu-profile-use.
+	* gcc/tree-profile.c (gimple_init_instrumentation_sampling): Make
+	extern. Move the call from gimple_init_edge_profiler to
+	coverage.c:coverage_init.
+	* gcc/libgcov.c (gcov_alloc_filename) [__GCOV_KERNEL__]: Moved earlier.
+	(gcov_alloc_filename) [!__GCOV_KERNEL__]: Initialize gi_filename_up.
+	(pmu_profile_stop): New function.
+	(gcov_dump_module_info): Replace gcov_strip_leading_dirs with a macro.
+	(__gcov_init): Add initialization of PMU profiler.
+	(gcov_exit): Add finalization of PMU profiler.
+	(gcov_get_filename): Cleanup whitespaces.
+	* gcc/params.def: New parameter pmu_profile_n_addresses.
+	* gcc/gcov-dump.c (tag_pmu_load_latency_info): New function.
+	(tag_pmu_branch_mispredict_info): Ditto.
+	(tag_pmu_tool_header): Ditto.
+
 2011-06-22   Rong Xu  <xur@google.com>
 
 	* gcc/libgcov.c: (TARGET_VTABLE_USES_DESCRIPTORS): Remove.

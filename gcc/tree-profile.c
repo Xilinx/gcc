@@ -168,6 +168,9 @@ static tree gcov_sample_counter_decl = NULL_TREE;
 /* extern gcov_unsigned_t __gcov_sampling_rate  */
 static tree gcov_sampling_rate_decl = NULL_TREE;
 
+/* forward declaration.  */
+void gimple_init_instrumentation_sampling (void);
+
 /* Insert STMT_IF around given sequence of consecutive statements in the
    same basic block starting with STMT_START, ending with STMT_END.  */
 
@@ -287,7 +290,7 @@ add_sampling_to_edge_counters (void)
     }
 }
 
-static void
+void
 gimple_init_instrumentation_sampling (void)
 {
   if (!gcov_sampling_rate_decl)
@@ -340,8 +343,6 @@ gimple_init_edge_profiler (void)
   tree ic_topn_profiler_fn_type;
   tree dc_profiler_fn_type;
   tree average_profiler_fn_type;
-
-  gimple_init_instrumentation_sampling ();
 
   if (!gcov_type_node)
     {

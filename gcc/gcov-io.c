@@ -23,6 +23,12 @@ along with GCC; see the file COPYING3.  If not see
 /* Routines declared in gcov-io.h.  This file should be #included by
    another source file, after having #included gcov-io.h.  */
 
+/* Redefine these here, rather than using the ones in system.h since
+ * including system.h leads to conflicting definitions of other
+ * symbols and macros.  */
+#undef MIN
+#define MIN(X,Y) ((X) < (Y) ? (X) : (Y))
+
 #if !IN_GCOV
 static void gcov_write_block (unsigned);
 static gcov_unsigned_t *gcov_write_words (unsigned);
@@ -197,6 +203,104 @@ gcov_close (void)
 }
 
 #if !IN_LIBGCOV
+/* Modify FILENAME to a canonical form after stripping known prefixes
+   in place.  It removes '/proc/self/cwd' and '/proc/self/cwd/.'.
+   Returns the in-place modified filename.  */
+
+GCOV_LINKAGE char *
+gcov_canonical_filename (char *filename)
+{
+  static char cwd_dot_str[] = "/proc/self/cwd/./";
+  int cwd_dot_len = strlen (cwd_dot_str);
+  int cwd_len = cwd_dot_len - 2; /* without trailing './' */
+  int filename_len = strlen (filename);
+  /* delete the longer prefix first */
+  if (0 == strncmp (filename, cwd_dot_str, cwd_dot_len))
+    {
+      memmove (filename, filename + cwd_dot_len, filename_len - cwd_dot_len);
+      filename[filename_len - cwd_dot_len] = '\0';
+      return filename;
+    }
+
+  if (0 == strncmp (filename, cwd_dot_str, cwd_len))
+    {
+      memmove (filename, filename + cwd_len, filename_len - cwd_len);
+      filename[filename_len - cwd_len] = '\0';
+      return filename;
+    }
+  return filename;
+}
+
+/* Read LEN words and construct load latency info LL_INFO.  */
+
+GCOV_LINKAGE void
+gcov_read_pmu_load_latency_info (gcov_pmu_ll_info_t *ll_info,
+                                 gcov_unsigned_t len ATTRIBUTE_UNUSED)
+{
+  const char *filename;
+  ll_info->counts = gcov_read_unsigned ();
+  ll_info->self = gcov_read_unsigned ();
+  ll_info->cum = gcov_read_unsigned ();
+  ll_info->lt_10 = gcov_read_unsigned ();
+  ll_info->lt_32 = gcov_read_unsigned ();
+  ll_info->lt_64 = gcov_read_unsigned ();
+  ll_info->lt_256 = gcov_read_unsigned ();
+  ll_info->lt_1024 = gcov_read_unsigned ();
+  ll_info->gt_1024 = gcov_read_unsigned ();
+  ll_info->wself = gcov_read_unsigned ();
+  ll_info->code_addr = gcov_read_counter ();
+  ll_info->line = gcov_read_unsigned ();
+  ll_info->discriminator = gcov_read_unsigned ();
+  filename = gcov_read_string ();
+  if (filename)
+    ll_info->filename = gcov_canonical_filename (xstrdup (filename));
+  else
+    ll_info->filename = 0;
+}
+
+/* Read LEN words and construct branch mispredict info BRM_INFO.  */
+
+GCOV_LINKAGE void
+gcov_read_pmu_branch_mispredict_info (gcov_pmu_brm_info_t *brm_info,
+                                      gcov_unsigned_t len ATTRIBUTE_UNUSED)
+{
+  const char *filename;
+  brm_info->counts = gcov_read_unsigned ();
+  brm_info->self = gcov_read_unsigned ();
+  brm_info->cum = gcov_read_unsigned ();
+  brm_info->code_addr = gcov_read_counter ();
+  brm_info->line = gcov_read_unsigned ();
+  brm_info->discriminator = gcov_read_unsigned ();
+  filename = gcov_read_string ();
+  if (filename)
+    brm_info->filename = gcov_canonical_filename (xstrdup (filename));
+  else
+    brm_info->filename = 0;
+}
+
+/* Read LEN words from an open gcov file and construct data into pmu
+   tool header TOOL_HEADER.  */
+
+GCOV_LINKAGE void gcov_read_pmu_tool_header (gcov_pmu_tool_header_t *header,
+                                           gcov_unsigned_t len ATTRIBUTE_UNUSED)
+{
+  const char *str;
+  str = gcov_read_string ();
+  header->host_cpu = str ? xstrdup (str) : 0;
+  str = gcov_read_string ();
+  header->hostname = str ? xstrdup (str) : 0;
+  str = gcov_read_string ();
+  header->kernel_version = str ? xstrdup (str) : 0;
+  str = gcov_read_string ();
+  header->column_header = str ? xstrdup (str) : 0;
+  str = gcov_read_string ();
+  header->column_description = str ? xstrdup (str) : 0;
+  str = gcov_read_string ();
+  header->full_header = str ? xstrdup (str) : 0;
+}
+#endif
+
+#if !IN_LIBGCOV
 /* Check if MAGIC is EXPECTED. Use it to determine endianness of the
    file. Returns +1 for same endian, -1 for other endian and zero for
    not EXPECTED.  */
@@ -245,6 +349,24 @@ gcov_write_block (unsigned size)
   gcov_var.offset -= size;
 }
 
+#if IN_LIBGCOV
+/* Return the number of words STRING would need including the length
+   field in the output stream itself.  This should be identical to
+   "alloc" calculation in gcov_write_string().  */
+
+GCOV_LINKAGE gcov_unsigned_t
+gcov_string_length (const char *string)
+{
+  gcov_unsigned_t len = (string) ? strlen (string) : 0;
+  /* + 1 because of the length field.  */
+  gcov_unsigned_t alloc = 1 + ((len + 4) >> 2);
+
+  /* Can not write a bigger than GCOV_BLOCK_SIZE string yet */
+  gcc_assert (alloc < GCOV_BLOCK_SIZE);
+  return alloc;
+}
+#endif
+
 /* Allocate space to write BYTES bytes to the gcov file. Return a
    pointer to those bytes, or NULL on failure.  */
 
@@ -255,13 +377,15 @@ gcov_write_words (unsigned words)
 
   gcc_assert (gcov_var.mode < 0);
 #if IN_LIBGCOV
-  if (gcov_var.offset >= GCOV_BLOCK_SIZE)
+  if (gcov_var.offset + words >= GCOV_BLOCK_SIZE)
     {
-      gcov_write_block (GCOV_BLOCK_SIZE);
+      gcov_write_block (MIN (gcov_var.offset, GCOV_BLOCK_SIZE));
       if (gcov_var.offset)
 	{
-	  gcc_assert (gcov_var.offset == 1);
-	  memcpy (gcov_var.buffer, gcov_var.buffer + GCOV_BLOCK_SIZE, 4);
+	  gcc_assert (gcov_var.offset < GCOV_BLOCK_SIZE);
+	  memcpy (gcov_var.buffer,
+                  gcov_var.buffer + GCOV_BLOCK_SIZE,
+                  gcov_var.offset << 2);
 	}
     }
 #else
@@ -302,7 +426,6 @@ gcov_write_counter (gcov_type value)
 }
 #endif /* IN_LIBGCOV */
 
-#if !IN_LIBGCOV
 /* Write STRING to coverage file.  Sets error flag on file
    error, overflow flag on overflow */
 
@@ -325,7 +448,6 @@ gcov_write_string (const char *string)
   buffer[alloc] = 0;
   memcpy (&buffer[1], string, length);
 }
-#endif
 
 #if !IN_LIBGCOV
 /* Write a tag TAG and reserve space for the record length. Return a
@@ -413,14 +535,15 @@ gcov_read_words (unsigned words)
   unsigned excess = gcov_var.length - gcov_var.offset;
 
   gcc_assert (gcov_var.mode > 0);
+  gcc_assert (words < GCOV_BLOCK_SIZE);
   if (excess < words)
     {
       gcov_var.start += gcov_var.offset;
 #if IN_LIBGCOV
       if (excess)
 	{
-	  gcc_assert (excess == 1);
-	  memcpy (gcov_var.buffer, gcov_var.buffer + gcov_var.offset, 4);
+	  gcc_assert (excess < GCOV_BLOCK_SIZE);
+	  memmove (gcov_var.buffer, gcov_var.buffer + gcov_var.offset, excess * 4);
 	}
 #else
       memmove (gcov_var.buffer, gcov_var.buffer + gcov_var.offset, excess * 4);
@@ -428,8 +551,7 @@ gcov_read_words (unsigned words)
       gcov_var.offset = 0;
       gcov_var.length = excess;
 #if IN_LIBGCOV
-      gcc_assert (!gcov_var.length || gcov_var.length == 1);
-      excess = GCOV_BLOCK_SIZE;
+      excess = (sizeof (gcov_var.buffer) / sizeof (gcov_var.buffer[0])) - gcov_var.length;
 #else
       if (gcov_var.length + words > gcov_var.alloc)
 	gcov_allocate (gcov_var.length + words);
@@ -489,7 +611,6 @@ gcov_read_counter (void)
    buffer, or NULL on empty string. You must copy the string before
    calling another gcov function.  */
 
-#if !IN_LIBGCOV
 GCOV_LINKAGE const char *
 gcov_read_string (void)
 {
@@ -500,7 +621,6 @@ gcov_read_string (void)
 
   return (const char *) gcov_read_words (length);
 }
-#endif
 
 GCOV_LINKAGE void
 gcov_read_summary (struct gcov_summary *summary)
@@ -629,6 +749,89 @@ gcov_truncate (void)
 }
 #endif
 
+#ifndef __GCOV_KERNEL__
+/* Convert an unsigned NUMBER to a percentage after dividing by
+   100.  */
+
+GCOV_LINKAGE float
+convert_unsigned_to_pct (const unsigned number)
+{
+  return (float)number / 100.0f;
+}
+#endif
+
+#if !IN_LIBGCOV && IN_GCOV != 1
+/* Print load latency information given by LL_INFO in a human readable
+   format into an open output file pointed by FP. NEWLINE specifies
+   whether or not to print a trailing newline.  */
+
+GCOV_LINKAGE void
+print_load_latency_line (FILE *fp, const gcov_pmu_ll_info_t *ll_info,
+                         const enum print_newline newline)
+{
+  if (!ll_info)
+    return;
+  fprintf (fp, " %u %.2f%% %.2f%% %.2f%% %.2f%% %.2f%% %.2f%% %.2f%% "
+           "%.2f%% %.2f%% " HOST_WIDEST_INT_PRINT_HEX " %s %d %d",
+           ll_info->counts,
+           convert_unsigned_to_pct (ll_info->self),
+           convert_unsigned_to_pct (ll_info->cum),
+           convert_unsigned_to_pct (ll_info->lt_10),
+           convert_unsigned_to_pct (ll_info->lt_32),
+           convert_unsigned_to_pct (ll_info->lt_64),
+           convert_unsigned_to_pct (ll_info->lt_256),
+           convert_unsigned_to_pct (ll_info->lt_1024),
+           convert_unsigned_to_pct (ll_info->gt_1024),
+           convert_unsigned_to_pct (ll_info->wself),
+           ll_info->code_addr,
+           ll_info->filename,
+           ll_info->line,
+           ll_info->discriminator);
+  if (newline == add_newline)
+    fprintf (fp, "\n");
+}
+
+/* Print BRM_INFO into the file pointed by FP.  NEWLINE specifies
+   whether or not to print a trailing newline.  */
+
+GCOV_LINKAGE void
+print_branch_mispredict_line (FILE *fp, const gcov_pmu_brm_info_t *brm_info,
+                              const enum print_newline newline)
+{
+  if (!brm_info)
+    return;
+  fprintf (fp, " %u %.2f%% %.2f%% " HOST_WIDEST_INT_PRINT_HEX " %s %d %d",
+           brm_info->counts,
+           convert_unsigned_to_pct (brm_info->self),
+           convert_unsigned_to_pct (brm_info->cum),
+           brm_info->code_addr,
+           brm_info->filename,
+           brm_info->line,
+           brm_info->discriminator);
+  if (newline == add_newline)
+    fprintf (fp, "\n");
+}
+
+/* Print TOOL_HEADER into the file pointed by FP.  NEWLINE specifies
+   whether or not to print a trailing newline.  */
+
+GCOV_LINKAGE void
+print_pmu_tool_header (FILE *fp, gcov_pmu_tool_header_t *tool_header,
+                       const enum print_newline newline)
+{
+  if (!tool_header)
+    return;
+  fprintf (fp, "\nhost_cpu: %s\n", tool_header->host_cpu);
+  fprintf (fp, "hostname: %s\n", tool_header->hostname);
+  fprintf (fp, "kernel_version: %s\n", tool_header->kernel_version);
+  fprintf (fp, "column_header: %s\n", tool_header->column_header);
+  fprintf (fp, "column_description: %s\n", tool_header->column_description);
+  fprintf (fp, "full_header: %s\n", tool_header->full_header);
+  if (newline == add_newline)
+    fprintf (fp, "\n");
+}
+#endif
+
 #if IN_GCOV > 0
 /* Return the modification time of the current gcov file.  */
 
@@ -715,7 +918,7 @@ kernel_file_fwrite (const void *ptr, size_t size,
   if (vsize <= vpos)
     {
       printk (KERN_ERR
-          "GCOV_KERNEL: something wrong: vbuf=%p vsize=%u vpos=%u\n",
+         "GCOV_KERNEL: something wrong: vbuf=%p vsize=%u vpos=%u\n",
           vbuf, vsize, vpos);
       return 0;
     }
@@ -744,4 +947,29 @@ kernel_file_fileno (gcov_kernel_vfile *fp)
   gcc_assert (0);  /* should not reach here */
   return 0;
 }
+#else /* __GCOV_KERNEL__ */
+
+#if IN_GCOV != 1
+/* Delete pmu tool header TOOL_HEADER.  */
+
+GCOV_LINKAGE void
+destroy_pmu_tool_header (gcov_pmu_tool_header_t *tool_header)
+{
+  if (!tool_header)
+    return;
+  if (tool_header->host_cpu)
+    free (tool_header->host_cpu);
+  if (tool_header->hostname)
+    free (tool_header->hostname);
+  if (tool_header->kernel_version)
+    free (tool_header->kernel_version);
+  if (tool_header->column_header)
+    free (tool_header->column_header);
+  if (tool_header->column_description)
+    free (tool_header->column_description);
+  if (tool_header->full_header)
+    free (tool_header->full_header);
+}
+#endif
+
 #endif /* GCOV_KERNEL */

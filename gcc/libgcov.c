@@ -123,9 +123,15 @@ gcov_error (const char *fmt, ...)
 }
 
 #ifndef __GCOV_KERNEL__
+/* Emitted in coverage.c.  */
+extern char * __gcov_pmu_profile_filename;
+extern char * __gcov_pmu_profile_options;
+extern gcov_unsigned_t __gcov_pmu_top_n_address;
+
 /* Sampling rate.  */
 extern gcov_unsigned_t __gcov_sampling_rate;
 static int gcov_sampling_rate_initialized = 0;
+void __gcov_set_sampling_rate (unsigned int rate);
 
 /* Set sampling rate to RATE.  */
 
@@ -343,12 +349,94 @@ gcov_strip_leading_dirs (int prefix_length, int gcov_prefix_strip,
   /* Update complete filename with stripped original. */
   if (prefix_length != 0 && !IS_DIR_SEPARATOR (*filename))
     {
-      /* If prefix is given, add diretory separator.  */
+      /* If prefix is given, add directory separator.  */
       strcpy (gi_filename_up, "/");
       strcpy (gi_filename_up + 1, filename);
     }
   else
     strcpy (gi_filename_up, filename);
+}
+
+/* This function allocates the space to store current file name.  */
+
+static void
+gcov_alloc_filename (void)
+{
+  /* Get file name relocation prefix.  Non-absolute values are ignored.  */
+  char *gcov_prefix = 0;
+
+  prefix_length = 0;
+  gcov_prefix_strip = 0;
+
+  {
+    /* Check if the level of dirs to strip off specified. */
+    char *tmp = getenv ("GCOV_PREFIX_STRIP");
+    if (tmp)
+      {
+        gcov_prefix_strip = atoi (tmp);
+        /* Do not consider negative values. */
+        if (gcov_prefix_strip < 0)
+          gcov_prefix_strip = 0;
+      }
+  }
+  /* Get file name relocation prefix.  Non-absolute values are ignored. */
+  gcov_prefix = getenv ("GCOV_PREFIX");
+  if (gcov_prefix)
+    {
+      prefix_length = strlen(gcov_prefix);
+
+      /* Remove an unnecessary trailing '/' */
+      if (IS_DIR_SEPARATOR (gcov_prefix[prefix_length - 1]))
+        prefix_length--;
+    }
+  else
+    prefix_length = 0;
+
+  /* If no prefix was specified and a prefix stip, then we assume
+     relative.  */
+  if (gcov_prefix_strip != 0 && prefix_length == 0)
+    {
+      gcov_prefix = ".";
+      prefix_length = 1;
+    }
+
+  /* Allocate and initialize the filename scratch space.  */
+  gi_filename = (char *) malloc (prefix_length + gcov_max_filename + 2);
+  if (prefix_length)
+    memcpy (gi_filename, gcov_prefix, prefix_length);
+
+  gi_filename_up = gi_filename + prefix_length;
+}
+
+/* Stop the pmu profiler and dump pmu profile info into the global file.  */
+
+static void
+pmu_profile_stop (void)
+{
+  const char *pmu_profile_filename =  __gcov_pmu_profile_filename;
+  const char *pmu_options = __gcov_pmu_profile_options;
+  size_t filename_length;
+  int gcda_error;
+
+  if (!pmu_profile_filename || !pmu_options)
+    return;
+
+  __gcov_stop_pmu_profiler ();
+
+  filename_length = strlen (pmu_profile_filename);
+  if (filename_length > gcov_max_filename)
+    gcov_max_filename = filename_length;
+  /* Allocate and initialize the filename scratch space.  */
+  gcov_alloc_filename ();
+  GCOV_GET_FILENAME (prefix_length, gcov_prefix_strip, pmu_profile_filename,
+                     gi_filename_up);
+  /* Open the gcda file for writing. We don't support merge yet.  */
+  gcda_error = gcov_open_by_filename (gi_filename);
+  __gcov_end_pmu_profiler (gcda_error);
+  if ((gcda_error = gcov_close ()))
+    gcov_error (gcda_error  < 0 ?  "pmu_profile_stop:%s:Overflow writing\n" :
+                "pmu_profile_stop:%s:Error writing\n",
+                gi_filename);
 }
 
 /* Sort N entries in VALUE_ARRAY in descending order.
@@ -437,55 +525,6 @@ gcov_write_import_file (char *gi_filename, struct gcov_info *gi_ptr)
     }
 }
 
-/* This function allocates the space to store current file name.  */
-
-static void
-gcov_alloc_filename (void)
-{
-  /* Get file name relocation prefix.  Non-absolute values are ignored.  */
-  char *gcov_prefix = 0;
-
-  prefix_length = 0;
-  gcov_prefix_strip = 0;
-
-  {
-    /* Check if the level of dirs to strip off specified. */
-    char *tmp = getenv ("GCOV_PREFIX_STRIP");
-    if (tmp)
-      {
-        gcov_prefix_strip = atoi (tmp);
-        /* Do not consider negative values. */
-        if (gcov_prefix_strip < 0)
-          gcov_prefix_strip = 0;
-      }
-  }
-  /* Get file name relocation prefix.  Non-absolute values are ignored. */
-  gcov_prefix = getenv ("GCOV_PREFIX");
-  if (gcov_prefix)
-    {
-      prefix_length = strlen(gcov_prefix);
-
-      /* Remove an unnecessary trailing '/' */
-      if (IS_DIR_SEPARATOR (gcov_prefix[prefix_length - 1]))
-        prefix_length--;
-    }
-  else
-    prefix_length = 0;
-
-  /* If no prefix was specified and a prefix stip, then we assume
-     relative.  */
-  if (gcov_prefix_strip != 0 && prefix_length == 0)
-    {
-      gcov_prefix = ".";
-      prefix_length = 1;
-    }
-
-  /* Aelocate and initialize the filename scratch space.  */
-  gi_filename = (char *) malloc (prefix_length + gcov_max_filename + 2);
-  if (prefix_length)
-    memcpy (gi_filename, gcov_prefix, prefix_length);
-}
-
 static void
 gcov_dump_module_info (void)
 {
@@ -498,8 +537,8 @@ gcov_dump_module_info (void)
   {
     int error;
 
-    gcov_strip_leading_dirs (prefix_length, gcov_prefix_strip, 
-                             gi_ptr->filename, gi_filename_up);
+    GCOV_GET_FILENAME (prefix_length, gcov_prefix_strip, gi_ptr->filename,
+                       gi_filename_up);
     error = gcov_open_by_filename (gi_filename);
     if (error != 0)
       continue;
@@ -533,8 +572,10 @@ gcov_exit (void)
   struct gcov_info *gi_ptr;
   int dump_module_info;
 
-  dump_module_info = gcov_exit_init ();
+  /* Stop and write the PMU profile data into the global file.  */
+  pmu_profile_stop ();
 
+  dump_module_info = gcov_exit_init ();
 
   for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
     gcov_dump_one_gcov (gi_ptr);
@@ -571,10 +612,24 @@ __gcov_init (struct gcov_info *info)
       const char *ptr = info->filename;
       gcov_unsigned_t crc32 = gcov_crc32;
       size_t filename_length = strlen (info->filename);
+      struct gcov_pmu_info pmu_info;
 
       /* Refresh the longest file name information.  */
       if (filename_length > gcov_max_filename)
         gcov_max_filename = filename_length;
+
+      /* Initialize the pmu profiler.  */
+      pmu_info.pmu_profile_filename = __gcov_pmu_profile_filename;
+      pmu_info.pmu_tool = __gcov_pmu_profile_options;
+      pmu_info.pmu_top_n_address = __gcov_pmu_top_n_address;
+      __gcov_init_pmu_profiler (&pmu_info);
+      if (pmu_info.pmu_profile_filename)
+        {
+          /* Refresh the longest file name information.  */
+          filename_length = strlen (pmu_info.pmu_profile_filename);
+          if (filename_length > gcov_max_filename)
+            gcov_max_filename = filename_length;
+        }
 
       /* Assign the module ID (starting at 1).  */
       info->mod_info->ident = (++gcov_cur_module_id);
@@ -600,7 +655,11 @@ __gcov_init (struct gcov_info *info)
       gcov_crc32 = crc32;
 
       if (!__gcov_list)
-        atexit (gcov_exit);
+        {
+          atexit (gcov_exit);
+          /* Start pmu profiler. */
+          __gcov_start_pmu_profiler ();
+        }
 
       info->next = __gcov_list;
       __gcov_list = info;
@@ -617,6 +676,7 @@ __gcov_flush (void)
 {
   const struct gcov_info *gi_ptr;
 
+  __gcov_stop_pmu_profiler ();
   gcov_exit ();
   for (gi_ptr = __gcov_list; gi_ptr; gi_ptr = gi_ptr->next)
     {
@@ -630,6 +690,7 @@ __gcov_flush (void)
 	    ci_ptr++;
 	  }
     }
+  __gcov_start_pmu_profiler ();
 }
 
 #else /* __GCOV_KERNEL__ */
@@ -639,8 +700,8 @@ __gcov_flush (void)
 /* Copy the filename to the buffer.  */
 
 static inline void
-gcov_get_filename (int prefix_length __attribute__ ((unused)), 
-                   int gcov_prefix_strip __attribute__ ((unused)), 
+gcov_get_filename (int prefix_length __attribute__ ((unused)),
+                   int gcov_prefix_strip __attribute__ ((unused)),
                    const char *filename, char *gi_filename_up)
 {
     strcpy (gi_filename_up, filename);
@@ -666,6 +727,7 @@ gcov_alloc_filename (void)
   prefix_length = 0;
   gcov_prefix_strip = 0;
   gi_filename = _kernel_gi_filename;
+  gi_filename_up = _kernel_gi_filename;
 }
 
 #endif /* __GCOV_KERNEL__ */
@@ -1089,7 +1151,6 @@ gcov_exit_init (void)
     }
 
   gcov_alloc_filename ();
-  gi_filename_up = gi_filename + prefix_length;
 
   return dump_module_info;
 }

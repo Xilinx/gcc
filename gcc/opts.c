@@ -36,6 +36,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "insn-attr.h"		/* For INSN_SCHEDULING and DELAY_SLOTS.  */
 #include "target.h"
 
+/* Defined in coverage.c.  */
+extern int check_pmu_profile_options (const char *options);
+
 /* Parse the -femit-struct-debug-detailed option value
    and set the flag variables. */
 
@@ -1595,6 +1598,15 @@ common_handle_option (struct gcc_options *opts,
 	 is done.  */
       if (!opts_set->x_flag_ipa_reference && in_lto_p)
         opts->x_flag_ipa_reference = false;
+      break;
+
+    case OPT_fpmu_profile_generate_:
+      /* This should be ideally turned on in conjunction with
+         -fprofile-dir or -fprofile-generate in order to specify a
+         profile directory.  */
+      if (check_pmu_profile_options (arg))
+        error ("Unrecognized pmu_profile_generate value \"%s\"", arg);
+      flag_pmu_profile_generate = xstrdup (arg);
       break;
 
     case OPT_fshow_column:

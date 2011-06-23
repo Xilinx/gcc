@@ -1011,6 +1011,11 @@ DEFPARAM (PARAM_NOTE_CGRAPH_SECTION_EDGE_THRESHOLD,
           ".note.callgraph.text section",
 	  0, 0, 0)
 
+DEFPARAM (PARAM_PMU_PROFILE_N_ADDRESS,
+	  "pmu_profile_n_addresses",
+	  "While doing PMU profiling symbolize this many top addresses.",
+	  50, 1, 10000)
+
 /*
 Local variables:
 mode:c

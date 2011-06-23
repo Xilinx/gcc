@@ -1606,6 +1606,14 @@ fplugin-arg-
 Common Joined RejectNegative Var(common_deferred_options) Defer
 -fplugin-arg-<name>-<key>[=<value>]	Specify argument <key>=<value> for plugin <name>
 
+fpmu-profile-generate=
+Common Joined RejectNegative Var(flag_pmu_profile_generate)
+-fpmu-profile-generate=[load-latency]  Generate pmu profile for cache misses. Currently only pfmon based load latency profiling is supported on Intel/PEBS and AMD/IBS platforms.
+
+fpmu-profile-use=
+Common Joined RejectNegative Var(flag_pmu_profile_use)
+-fpmu-profile-use=[load-latency]  Use pmu profile data while optimizing.  Currently only perfmon based load latency profiling is supported on Intel/PEBS and AMD/IBS platforms.
+
 fpredictive-commoning
 Common Report Var(flag_predictive_commoning) Optimization
 Run predictive commoning optimization.
