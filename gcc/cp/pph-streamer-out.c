@@ -714,7 +714,7 @@ pph_out_lang_specific (pph_stream *stream, tree decl, bool ref_p)
   ld = DECL_LANG_SPECIFIC (decl);
   if (!pph_out_start_record (stream, ld))
     return;
-    
+
   /* Write all the fields in lang_decl_base.  */
   ldb = &ld->u.base;
   pph_out_ld_base (stream, ldb);
@@ -1166,7 +1166,7 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
           TI_TYPEDEFS_NEEDING_ACCESS_CHECKING (expr), ref_p);
       break;
 
-    case TEMPLATE_PARM_INDEX: 
+    case TEMPLATE_PARM_INDEX:
       {
         template_parm_index *p = TEMPLATE_PARM_INDEX_CAST (expr);
         pph_out_tree_common (stream, expr, ref_p);
