@@ -912,6 +912,35 @@ pph_out_lang_type (pph_stream *stream, tree type, bool ref_p)
 }
 
 
+/* Write saved_scope information stored in SS into STREAM.
+   This does NOT output all fields, it is meant to be used for the
+   global variable "scope_chain" only.  Output bindings as references
+   if REF_P is true.  */
+
+static void
+pph_out_scope_chain (pph_stream *stream, struct saved_scope *ss, bool ref_p)
+{
+  /* old_namespace should be global_namespace and all entries listed below
+     should be NULL or 0; otherwise the header parsed was incomplete.  */
+  gcc_assert (ss->old_namespace == global_namespace
+	      && !(ss->class_name || ss->class_type || ss->access_specifier
+		   || ss->function_decl || ss->template_parms
+		   || ss->x_saved_tree || ss->class_bindings || ss->prev
+		   || ss->unevaluated_operand
+		   || ss->inhibit_evaluation_warnings
+		   || ss->x_processing_template_decl
+		   || ss->x_processing_specialization
+		   || ss->x_processing_explicit_instantiation
+		   || ss->need_pop_function_context
+		   || ss->x_stmt_tree.x_cur_stmt_list
+		   || ss->x_stmt_tree.stmts_are_full_exprs_p));
+
+  /* We only need to write out the bindings, everything else should
+     be NULL or be some temporary disposable state.  */
+  pph_out_binding_level (stream, ss->bindings, ref_p);
+}
+
+
 /* Save the IDENTIFIERS to the STREAM.  */
 
 static void
@@ -968,9 +997,9 @@ static void
 pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
 { 
   pth_save_identifiers (idents_used, stream);
+  pph_out_scope_chain (stream, scope_chain, false);
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
-  pph_out_tree (stream, global_namespace, false);
   pph_out_tree (stream, keyed_classes, false);
   pph_out_tree_vec (stream, unemitted_tinfo_decls, false);
 }

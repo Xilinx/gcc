@@ -78,6 +78,8 @@ pph_preload_common_nodes (struct lto_streamer_cache_d *cache)
   for (i = 0; i < CTI_MAX; i++)
     if (c_global_trees[i])
       lto_streamer_cache_append (cache, c_global_trees[i]);
+
+  lto_streamer_cache_append (cache, global_namespace);
 }
 
 

@@ -977,15 +977,14 @@ pph_in_lang_type (pph_stream *stream)
 }
 
 
-/* Add all the new names declared in NEW_NS to NS.  */
+/* Add all bindings declared in BL to NS.  */
 
 static void
-pph_add_names_to_namespace (tree ns, tree new_ns)
+pph_add_bindings_to_namespace (struct cp_binding_level *bl, tree ns)
 {
   tree t, chain;
-  struct cp_binding_level *level = NAMESPACE_LEVEL (new_ns);
 
-  for (t = level->names; t; t = chain)
+  for (t = bl->names; t; t = chain)
     {
       /* Pushing a decl into a scope clobbers its DECL_CHAIN.
 	 Preserve it.  */
@@ -993,15 +992,31 @@ pph_add_names_to_namespace (tree ns, tree new_ns)
       pushdecl_into_namespace (t, ns);
     }
 
-  for (t = level->namespaces; t; t = chain)
+  for (t = bl->namespaces; t; t = chain)
     {
       /* Pushing a decl into a scope clobbers its DECL_CHAIN.
 	 Preserve it.  */
-      /* FIXME pph: we should first check to see if it isn't already there.  */
       chain = DECL_CHAIN (t);
+
+      /* FIXME pph: we should first check to see if it isn't already there.
+	 If it is, we should use this function recursively to merge
+	 the bindings in T in the corresponding namespace.  */
       pushdecl_into_namespace (t, ns);
-      pph_add_names_to_namespace (t, t);
     }
+}
+
+
+/* Merge scope_chain bindings from STREAM into global_namespace. */
+
+static void
+pph_in_scope_chain (pph_stream *stream)
+{
+  struct cp_binding_level *pph_bindings;
+
+  pph_bindings = pph_in_binding_level (stream);
+
+  /* Merge the bindings obtained from STREAM in the global namespace.  */
+  pph_add_bindings_to_namespace (pph_bindings, global_namespace);
 }
 
 
@@ -1129,7 +1144,6 @@ pph_read_file_contents (pph_stream *stream)
   cpp_ident_use *bad_use;
   const char *cur_def;
   cpp_idents_used idents_used;
-  tree file_ns;
 
   pth_load_identifiers (&idents_used, stream);
 
@@ -1142,16 +1156,16 @@ pph_read_file_contents (pph_stream *stream)
   /* Re-instantiate all the pre-processor symbols defined by STREAM.  */
   cpp_lt_replay (parse_in, &idents_used);
 
-  /* Read global_namespace from STREAM and add all the names defined
-     there to the current global_namespace.  */
-  file_ns = pph_in_tree (stream);
+  /* Read the bindings from STREAM and merge them with the current bindings.  */
+  pph_in_scope_chain (stream);
+
   if (flag_pph_dump_tree)
-    pph_dump_namespace (pph_logfile, file_ns);
-  pph_add_names_to_namespace (global_namespace, file_ns);
+    pph_dump_namespace (pph_logfile, global_namespace);
+
   keyed_classes = pph_in_tree (stream);
-  unemitted_tinfo_decls = pph_in_tree_vec (stream);
   /* FIXME pph: This call replaces the tinfo, we should merge instead.
-     See pph_in_tree_VEC.  */
+     See pph_in_tree_vec.  */
+  unemitted_tinfo_decls = pph_in_tree_vec (stream);
 }
 
 

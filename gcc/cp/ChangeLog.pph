@@ -1,5 +1,18 @@
 2011-06-22  Gabriel Charette  <gchare@google.com>
 
+	* pph-streamer-in.c (pph_add_names_to_namespace): Replaced by
+	pph_add_bindings_to_namespace.
+	(pph_add_bindings_to_namespace): New.
+	(pph_in_scope_chain): New.
+	(pph_read_file_contents): Remove unused variable file_ns.
+	(pph_read_file_contents): Call pph_in_scope_chain.
+	* pph-streamer-out.c (pph_out_scope_chain): New.
+	(pph_write_file_contents): Call pph_out_scope_chain.
+	* pph-streamer.c (pph_preload_common_nodes):
+	Call lto_streamer_cache_append.
+
+2011-06-22  Gabriel Charette  <gchare@google.com>
+
 	* pph-streamer-out.c (pph_out_lang_specific): Removed extra space.
 	(pph_write_tree): Removed extra space.
 
