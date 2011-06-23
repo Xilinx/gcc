@@ -8721,65 +8721,6 @@ load_melt_modules_and_do_mode (void)
     }
 
   /**
-   * Then we set MELT options.
-   **/
-  MELT_LOCATION_HERE ("before setting options");
-  optstr = melt_argument ("option");
-  debugeprintf ("load_initial_melt_modules optstr %s", optstr);
-  if (optstr && optstr[0]
-      && (optsetv=melt_get_inisysdata (FSYSDAT_OPTION_SET)) != NULL
-      && melt_magic_discr ((melt_ptr_t) optsetv) == MELTOBMAG_CLOSURE) 
-    {
-      char *optc = 0;
-      char *optname = 0;
-      char *optvalue = 0;
-      for (optc = CONST_CAST (char *, optstr);
-	   optc && *optc;
-	   )
-	{
-	  optname = optvalue = NULL;
-	  if (!ISALPHA(*optc))
-	    melt_fatal_error ("invalid MELT option name %s [should start with letter]",
-			      optc);
-	  optname = optc;
-	  while (*optc && (ISALNUM(*optc) || *optc=='_' || *optc=='-'))
-	    optc++;
-	  if (*optc == '=') {
-	    *optc = (char)0;
-	    optc++;
-	    optvalue = optc;
-	    while (*optc && *optc != ',')
-	      optc++;
-	  }
-	  if (*optc==',') {
-	    *optc = (char)0;
-	    optc++;
-	  }
-	  optsymbv = meltgc_named_symbol (optname, MELT_CREATE);
-	  {
-	    union meltparam_un pararg[1];
-	    memset (&pararg, 0, sizeof (pararg));
-	    pararg[0].meltbp_cstring = optvalue;
-	    MELT_LOCATION_HERE ("option set before apply");
-	    debugeprintf ("MELT option %s value %s", optname,
-			  optvalue?optvalue:"_");
-	    optresv =
-	      melt_apply ((meltclosure_ptr_t) optsetv,
-			  (melt_ptr_t) optsymbv,
-			  MELTBPARSTR_CSTRING, pararg, "", NULL);
-	    if (!optresv)
-	      warning (0, "unhandled MELT option %s", optname);
-	  }
-	}
-    
-      /* after options setting, force a minor collection to ensure
-	 nothing is left in young region */
-      MELT_LOCATION_HERE ("option set done");
-      melt_garbcoll (0, MELT_ONLY_MINOR);
-    }
-  MELT_LOCATION_HERE ("after setting options");
-
-  /**
    * Then we handle extra modules if given.
    **/
   debugeprintf ("xtrastr %p %s", xtrastr, xtrastr);
@@ -8843,6 +8784,65 @@ load_melt_modules_and_do_mode (void)
     }
   else
     debugeprintf ("no xtrastr %p", xtrastr);
+
+  /**
+   * Then we set MELT options.
+   **/
+  MELT_LOCATION_HERE ("before setting options");
+  optstr = melt_argument ("option");
+  debugeprintf ("load_initial_melt_modules optstr %s", optstr);
+  if (optstr && optstr[0]
+      && (optsetv=melt_get_inisysdata (FSYSDAT_OPTION_SET)) != NULL
+      && melt_magic_discr ((melt_ptr_t) optsetv) == MELTOBMAG_CLOSURE) 
+    {
+      char *optc = 0;
+      char *optname = 0;
+      char *optvalue = 0;
+      for (optc = CONST_CAST (char *, optstr);
+	   optc && *optc;
+	   )
+	{
+	  optname = optvalue = NULL;
+	  if (!ISALPHA(*optc))
+	    melt_fatal_error ("invalid MELT option name %s [should start with letter]",
+			      optc);
+	  optname = optc;
+	  while (*optc && (ISALNUM(*optc) || *optc=='_' || *optc=='-'))
+	    optc++;
+	  if (*optc == '=') {
+	    *optc = (char)0;
+	    optc++;
+	    optvalue = optc;
+	    while (*optc && *optc != ',')
+	      optc++;
+	  }
+	  if (*optc==',') {
+	    *optc = (char)0;
+	    optc++;
+	  }
+	  optsymbv = meltgc_named_symbol (optname, MELT_CREATE);
+	  {
+	    union meltparam_un pararg[1];
+	    memset (&pararg, 0, sizeof (pararg));
+	    pararg[0].meltbp_cstring = optvalue;
+	    MELT_LOCATION_HERE ("option set before apply");
+	    debugeprintf ("MELT option %s value %s", optname,
+			  optvalue?optvalue:"_");
+	    optresv =
+	      melt_apply ((meltclosure_ptr_t) optsetv,
+			  (melt_ptr_t) optsymbv,
+			  MELTBPARSTR_CSTRING, pararg, "", NULL);
+	    if (!optresv)
+	      warning (0, "unhandled MELT option %s", optname);
+	  }
+	}
+    
+      /* after options setting, force a minor collection to ensure
+	 nothing is left in young region */
+      MELT_LOCATION_HERE ("option set done");
+      melt_garbcoll (0, MELT_ONLY_MINOR);
+    }
+  MELT_LOCATION_HERE ("after setting options");
 
   /**
    * then we do the mode if needed 

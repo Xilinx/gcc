@@ -1,4 +1,9 @@
 
+2011-06-22  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt-runtime.c (load_melt_modules_and_do_mode): load extra
+	module before setting options.
+
 2011-06-21  Pierre Vittet  <piervit@pvittet.com>
 
 	* melt-runtime.c (meltgc_new_split_string): Add comment.
