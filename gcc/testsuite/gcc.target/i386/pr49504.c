@@ -12,7 +12,7 @@ foo (const void* p, unsigned long long q)
 int
 main ()
 {
-  if (foo ((const void*) 0x100, 0x100000000ULL) == 0)
+  if (foo (foo, 0x100000000ULL) != 0x1)
     __builtin_abort ();
   return 0;
 }
