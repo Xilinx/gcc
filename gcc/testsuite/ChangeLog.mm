@@ -1,3 +1,16 @@
+2011-06-23  Andrew MacLeod  <amacleod@redhat.com>
+
+	* lib/target-support.exp (check_effective_target_sync_int_128,
+	check_effective_target_sync_long_long): Check whether the target
+	supports 64 and 128 bit __sync builtins.
+	* gcc.dg/sync-mem.h: New. Common code to check memory model __syncs.
+	* gcc.dg/sync-mem-1.c: New. Check char size.
+	* gcc.dg/sync-mem-2.c: New. Check short size.
+	* gcc.dg/sync-mem-3.c: New. Check int size.
+	* gcc.dg/sync-mem-4.c: New. Check long long.
+	* gcc.dg/sync-mem-5.c: New. Check 128 bit.
+	* gcc.dg/sync-mem-invalid.c: New. Check invalid memory modes.
+
 2011-03-29  Aldy Hernandez  <aldyh@redhat.com>
 
 	* gcc.dg/memmodel/subfields.c (set_a): Set noinline attribute.
