@@ -1,3 +1,8 @@
+2011-06-23  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/49088
+	* combine.c (force_to_mode): Revert the last change.
+
 2011-06-22  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR rtl-optimization/49504

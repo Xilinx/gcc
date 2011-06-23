@@ -8334,26 +8334,8 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
       /* For most binary operations, just propagate into the operation and
 	 change the mode if we have an operation of that mode.  */
 
-      /* If X is narrower than MODE and we want all the bits in X's
-	 mode, just use the operand when it is CONST_INT.  */
-      if (SCALAR_INT_MODE_P (mode)
-	  && GET_MODE_SIZE (GET_MODE (x)) < GET_MODE_SIZE (mode)
-	  && (GET_MODE_MASK (GET_MODE (x)) & ~mask) == 0)
-	{
-	  if (CONST_INT_P (XEXP (x, 0)))
-	    op0 = XEXP (x, 0);
-	  else
-	    op0 = force_to_mode (XEXP (x, 0), mode, mask, next_select);
-	  if (CONST_INT_P (XEXP (x, 1)))
-	    op1 = XEXP (x, 1);
-	  else
-	    op1 = force_to_mode (XEXP (x, 1), mode, mask, next_select);
-	}
-      else
-	{
-	  op0 = force_to_mode (XEXP (x, 0), mode, mask, next_select);
-	  op1 = force_to_mode (XEXP (x, 1), mode, mask, next_select);
-	}
+      op0 = force_to_mode (XEXP (x, 0), mode, mask, next_select);
+      op1 = force_to_mode (XEXP (x, 1), mode, mask, next_select);
 
       /* If we ended up truncating both operands, truncate the result of the
 	 operation instead.  */
