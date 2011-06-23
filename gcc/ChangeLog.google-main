@@ -1,3 +1,7 @@
+2011-06-22   Rong Xu  <xur@google.com>
+
+	* gcc/libgcov.c: (TARGET_VTABLE_USES_DESCRIPTORS): Remove.
+
 2011-06-21  Diego Novillo  <dnovillo@google.com>
 
 	Merge from google/integration rev 175221.

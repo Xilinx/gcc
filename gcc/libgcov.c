@@ -36,7 +36,6 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 # define L_gcov_average_profiler
 # define L_gcov_ior_profiler
 
-# define TARGET_VTABLE_USES_DESCRIPTORS 0
 # define HAVE_CC_TLS 0
 # define __GCOV_KERNEL__
 
