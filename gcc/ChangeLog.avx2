@@ -1,3 +1,9 @@
+2011-06-21  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* gcc/config/i386/driver-i386.c (host_detect_local_cpu): Define
+	and set has_avx2.
+	* gcc/doc/invoke.texi: Document -mavx2 and -mno-avx2.
+
 2011-06-20  Yukhin Kirill  <kirill.yukhin@intel.com>
 
 	* gcc/config/i386/i386.c (ix86_expand_args_builtin): Improved

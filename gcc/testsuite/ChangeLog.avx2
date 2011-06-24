@@ -1,5 +1,11 @@
 2011-06-20  Yukhin Kirill  <kirill.yukhin@intel.com>
 
+	* gcc.target/i386/funcspec-5.c: Add avx2 and no-avx2 targets.
+	* gcc.target/i386/funcspec-6.c: Likewise.
+	* gcc.target/i386/sse-12.c: Likewise.
+
+2011-06-10  Yukhin Kirill  <kirill.yukhin@intel.com>
+
 	* gcc.target/i386/avx2-mpsadbw-3.c: New test to check error
 	diagnostic while passing wrong immediate.
 	* gcc.target/i386/avx2-vextracti128-3.c: Likewise.
