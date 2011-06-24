@@ -70,6 +70,9 @@ typedef struct GTY(()) gpy_tree_dot_t {
   struct cm_tree_dot_t * next;
 } gpy_dot_tree_t ;
 
+#define DOT_TYPE_STRING(x)			\
+  gpy_dot_find_type_str (x)
+
 #define DOT_TYPE(x)      x->T
 #define DOT_CHAIN(x)     x->next
 #define DOT_FIELD(x)     x->field

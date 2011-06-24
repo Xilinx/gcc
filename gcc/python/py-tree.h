@@ -23,21 +23,27 @@ extern VEC(tree,gc) * gpy_builtin_types_vec;
 #define gpy_object_type_ptr_ptr VEC_index(tree,gpy_builtin_types_vec,1)
 #define gpy_const_char_ptr      VEC_index(tree,gpy_builtin_types_vec,2)
 
-extern tree gpy_init_callable_record (tree, int, tree);
-extern void gpy_initilize_types (void);
+extern void gpy_types_init (void);
 
 extern VEC(tree,gc) * gpy_stmt_pass_generate_types (VEC(gpydot,gc) *);
 extern VEC(tree,gc) * gpy_stmt_pass_lower (VEC(tree,gc) *, VEC(gpydot,gc) *);
 
+extern tree gpy_stmt_decl_lower_expr (gpy_dot_tree_t *, VEC(gpy_ctx_t,gc) *);
+extern tree gpy_stmt_decl_lower_functor (gpy_dot_tree_t *, gpy_hash_tab_t *);
+extern tree gpy_stmt_decl_lower_scalar (gpy_dot_tree_t *);
+
+extern tree gpy_stmt_decl_lower_modify (gpy_dot_tree_t *, VEC(gpy_ctx_t,gc) *);
+extern tree gpy_stmt_decl_lower_addition (gpy_dot_tree_t *, VEC(gpy_ctx_t,gc) *);
+
 extern gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t **);
 
-/* WARN: requires type to be of <tree> */
-#define GPY_VEC_stmts_append(x,y)			\
+/* Appends vector y on x */  
+#define GPY_VEC_stmts_append(T,x,y)			\
   do {							\
     int x_ = 0; tree t_ = NULL_TREE;			\
-    for (; VEC_iterate(tree,y,x_,t_); ++x_)		\
+    for (; VEC_iterate (T,y,x_,t_); ++x_)		\
       {							\
-        VEC_safe_push(tree,gc,x,t_);			\
+        VEC_safe_push(T,gc,x,t_);			\
       }							\
   } while (0);						\
 

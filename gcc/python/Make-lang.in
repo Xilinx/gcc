@@ -49,18 +49,6 @@ py-lang.o: $(srcdir)/python/py-lang.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-lang.c
 
-py-stmt.o: $(srcdir)/python/py-stmt.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
-  gt-python-py-lang.h gtype-python.h
-	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-stmt.c
-
-py-decl.o: $(srcdir)/python/py-decl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
-  gt-python-py-lang.h gtype-python.h
-	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-decl.c
-
 py-vec.o: $(srcdir)/python/py-vec.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
@@ -73,28 +61,40 @@ py-builtins.o: $(srcdir)/python/py-runtime.c $(CONFIG_H) $(SYSTEM_H) coretypes.h
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-runtime.c
 
-py-types.o: $(srcdir)/python/py-types.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
-  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
-  gt-python-py-lang.h gtype-python.h
-	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
-	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-types.c
-
 py-dot.o: $(srcdir)/python/py-types.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
   $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
   gt-python-py-lang.h gtype-python.h
 	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
 	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-dot.c
+ 
+py-stmt-pass-mangr.o: $(srcdir)/python/py-types.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
+  gt-python-py-lang.h gtype-python.h
+	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-stmt-pass-mangr.c
+ 
+py-stmt-pass-types.o: $(srcdir)/python/py-types.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
+  gt-python-py-lang.h gtype-python.h
+	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-stmt-pass-types.c
+ 
+py-stmt-pass-lower.o: $(srcdir)/python/py-types.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+  $(FLAGS_H) toplev.h $(GGC_H) $(TREE_H) $(DIAGNOSTIC_H) input.h options.h opts.h \
+  gt-python-py-lang.h gtype-python.h
+	$(CC) $(GPY_CFLAGS) $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $(INCLUDES) \
+	$(LDFLAGS) -c -o $@ $(srcdir)/python/py-stmt-pass-lower.c
 
 GPY_OBJS = \
 	py-parser.o \
 	py-lexer.o \
 	py-lang.o \
-	py-stmt.o \
-	py-decl.o \
-	py-types.o \
 	py-vec.o \
 	py-builtins.o \
-	py-dot.o
+	py-dot.o \
+	py-stmt-pass-mangr.o \
+	py-stmt-pass-types.o \
+	py-stmt-pass-lower.o
 
 GCCPY_C_OBJS = $(GPY_OBJS) $(BACKEND) $(LIBSDEPS) attribs.o
 gpy1$(exeext): $(GCCPY_C_OBJS)

@@ -92,8 +92,132 @@ void gpy_stmt_pass_lower_gen_toplevl_context (tree module, tree param_decl,
     }
 }
 
+/* 
+   Creates a DECL_CHAIN of stmts to fold the scalar 
+   with the last tree being the address of the primitive 
+*/
+tree gpy_stmt_decl_lower_scalar (gpy_dot_tree  * decl)
+{
+  tree retval = error_mark_node;
+
+  gcc_assert (DOT_TYPE (decl) == D_PRIMITIVE);
+  gcc_assert (DOT_lhs_T (decl) == D_TD_COM);
+
+  switch (DOT_lhs_TC (decl).T)
+    {
+    case D_T_INTEGER:
+      {
+	tree address = build_decl (UNKNOWN_LOCATION, VAR_DECL,
+				   create_tmp_var_name ("P"),
+				   gpy_object_type_ptr);
+	retval = build2 (MODIFY_EXPR, gpy_object_type_ptr, address,
+			 gpy_builtin_get_fold_int_call (DOT_lhs_TC (decl).o.integer));
+	DECL_CHAIN (retval) = address;
+      }
+      break;
+
+    default:
+      error ("invalid scalar type!\n");
+      break;
+    }
+
+  return retval;
+}
+
+tree gpy_stmt_decl_lower_modify (gpy_dot_tree_t * decl,
+				 VEC(gpy_ctx_t,gc) * context)
+{
+  tree lhs = DOT_lhs_TT (decl);
+  tree rhs = DOT_rhs_TT (decl);
+
+  /*
+    We dont handle full target lists yet
+    all targets are in the lhs tree.
+   
+    To implment a target list such as:
+    x,y,z = 1
+
+    The lhs should be a DOT_CHAIN of identifiers!
+    So we just iterate over them and deal with it as such!
+   */
+
+  gcc_assert (DOT_TYPE (lhs) == D_IDENTIFIER);
+
+  tree addr = gpy_ctx_lookup_decl (context, DOT_IDENTIFIER_POINTER (lhs));
+  if (!addr)
+    {
+      /* since not previously declared we need to declare the variable! */
+      gpy_hash_tab_t * current_context = VEC_index (gpy_ctx_t, context,
+						    (VEC_length (gpy_ctx_t, context)
+						     - 1)
+						    );
+      addr = build_decl (UNKNOWN_LOCATION, VAR_DECL,
+			 get_identifier (DOT_IDENTIFIER_POINTER (lhs)),
+			 gpy_object_type_ptr);
+
+      if (!gpy_ctx_push_decl (addr, DOT_IDENTIFIER_POINTER (lhs), 
+			      current_context))
+	fatal_error ("error pushing decl <%q+E>!\n", IDENTIFIER_POINTER (addr));
+    }
+  gcc_assert (addr != error_mark_node);
+
+  tree evaluated_rhs_tree  = gpy_stmt_decl_lower_expr (rhs, context);
+
+  
+}
+
+tree gpy_stmt_decl_lower_addition (gpy_dot_tree_t * decl,
+				   VEC(gpy_ctx_t,gc) * context)
+{
+  
+}
+
 tree gpy_stmt_decl_lower_expr (gpy_dot_tree_t * decl,
 			       VEC(gpy_ctx_t,gc) * context)
+{
+  tree stmt_list = NULL_TREE;
+
+  switch (DOT_TYPE (decl))
+    {
+    case D_PRIMITIVE:
+      stmt_list = gpy_stmt_decl_lower_scalar (decl);
+      break;
+
+    case D_IDENTIFIER:
+      stmt_list = gpy_ctx_lookup_decl (context,
+				       DOT_IDENTIFIER_POINTER (decl));
+      break;
+
+    default:
+      {
+	switch (DOT_TYPE (decl))
+	  {
+	  case D_MODIFY_EXPR:
+	    stmt_list = gpy_stmt_decl_lower_modify (decl, context);
+	    break;
+
+	  case D_ADD_EXPR:
+	    stmt_list = gpy_stmt_decl_lower_addition (decl, context);
+	    break;
+
+	    // ... the rest of the binary operators!
+
+	  default:
+	    {
+	      error ("unhandled operation type!\n");
+	      stmt_list = error_mark_node;
+	    }
+	    break;
+	  }
+      }
+      break;
+    }
+
+  return stmt_list;
+}
+
+tree gpy_stmt_pass_lower_functor (gpy_dot_tree_t * decl,
+				  gpy_hash_tab_t * modules)
 {
   return error_mark_node;
 }
@@ -115,9 +239,10 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
 							       modules);
   
   tree main_init_fntype = build_function_type_list (build_pointer_type (main_init_module),
-						    , NULL_TREE);
+						    NULL_TREE);
   tree main_init_fndecl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL,
-				      get_identifier ("main.main.init"), main_init_fntype);
+				      get_identifier ("main.main.init"),
+				      main_init_fntype);
   DECL_EXTERNAL (main_init_fndecl) = 0;
   TREE_PUBLIC (main_init_fndecl) = 1;
   TREE_STATIC (main_init_fndecl) = 1;
@@ -139,10 +264,15 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
   
   int idx = 0;
   gpy_dot_tree_t * idtx = NULL_DOT;
+  /*
+    Iterating over the DOT IL to lower/generate the GENERIC code
+    required to compile the stmts and decls
+   */
   for (; VEC_iterate (gpydot, decls, idx, idtx); ++idx)
     {
       if (DOT_FIELD (idtx) ==  D_D_EXPR)
 	{
+	  // append to stmt list as this goes into the module initilizer...
 	  append_to_statement_list (gpy_stmt_decl_lower_expr (idtx,
 							      toplevl_context
 							      ),
@@ -154,8 +284,13 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
 	{
 	case D_STRUCT_METHOD:
 	  {
-	    tree lfunctor = gpy_stmt_pass_lower_functor (idtx, toplevl_context);
-	    VEC_safe_push (tree, gc, retval, lfunctor);
+	    /* 
+	       They are self contained decls so we just pass them to the 
+	       return vector for gimplification
+	    */
+	    VEC_safe_push (tree, gc, retval, 
+			   gpy_stmt_pass_lower_functor (idtx, modules)
+			   );
 	  }
 	  break;
 
