@@ -1,3 +1,14 @@
+2011-06-22  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* gcc/config/i386/avx2intrin.h (_mm_i32gather_epi64): Fixed
+	pointer type.
+	(_mm256_i32gather_epi64): Likewise.
+	(_mm256_mask_i32gather_epi64): Likewise.
+	(_mm_i64gather_epi64): Likewise.
+	(_mm_mask_i64gather_epi64): Likewise.
+	(_mm256_i64gather_epi64): Likewise.
+	(_mm256_mask_i64gather_epi64): Likewise.
+
 2011-06-21  Yukhin Kirill  <kirill.yukhin@intel.com>
 
 	* gcc/config/i386/driver-i386.c (host_detect_local_cpu): Define

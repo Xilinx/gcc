@@ -1,3 +1,15 @@
+2011-06-22  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* gcc.target/i386/avx2-vbroadcastsd_pd-2.c: Fixed test to run
+	on AVX2 machine, not AVX.
+	* gcc.target/i386/avx2-vbroadcastsi128-2.c: Likewise.
+	* gcc.target/i386/avx2-vbroadcastss_ps-2.c: Likewise.
+	* gcc.target/i386/avx2-vbroadcastss_ps256-2.c: Likewise.
+	* gcc.target/i386/avx2-vextracti128-2.c: Likewise.
+	* gcc.target/i386/avx2-vinserti128-2.c: Likewise.
+	* gcc.target/i386/avx2-vpmaskloadq256-2.c: Likewise.
+	* gcc.target/i386/avx2-vpmaskstoreq256-2.c: Likewise.
+
 2011-06-20  Yukhin Kirill  <kirill.yukhin@intel.com>
 
 	* gcc.target/i386/funcspec-5.c: Add avx2 and no-avx2 targets.

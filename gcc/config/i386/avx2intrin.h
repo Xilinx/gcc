@@ -1431,7 +1431,8 @@ _mm256_mask_i64gather_ps (__m128 src, float const *base,
 
 extern __inline __m128i
 __attribute__ ((__gnu_inline__, __always_inline__, __artificial__))
-_mm_i32gather_epi64 (int const *base, __m128i index, const int scale)
+_mm_i32gather_epi64 (long long int const *base,
+		     __m128i index, const int scale)
 {
   __v2di src = __extension__ (__v2di){ 0, 0 };
   __v2di mask = __extension__ (__v2di){ ~0, ~0 };
@@ -1445,8 +1446,8 @@ _mm_i32gather_epi64 (int const *base, __m128i index, const int scale)
 
 extern __inline __m128i
 __attribute__ ((__gnu_inline__, __always_inline__, __artificial__))
-_mm_mask_i32gather_epi64 (__m128i src, int const *base, __m128i index,
-			  __m128i mask, const int scale)
+_mm_mask_i32gather_epi64 (__m128i src, long long int const *base,
+			  __m128i index, __m128i mask, const int scale)
 {
   return (__m128i) __builtin_ia32_gathersiv2di ((__v2di)src,
 						base,
@@ -1457,7 +1458,8 @@ _mm_mask_i32gather_epi64 (__m128i src, int const *base, __m128i index,
 
 extern __inline __m256i
 __attribute__ ((__gnu_inline__, __always_inline__, __artificial__))
-_mm256_i32gather_epi64 (int const *base, __m128i index, const int scale)
+_mm256_i32gather_epi64 (long long int const *base,
+			__m128i index, const int scale)
 {
   __v4di src = __extension__ (__v4di){ 0, 0, 0, 0 };
   __v4di mask = __extension__ (__v4di){ ~0, ~0, ~0, ~0 };
@@ -1471,7 +1473,7 @@ _mm256_i32gather_epi64 (int const *base, __m128i index, const int scale)
 
 extern __inline __m256i
 __attribute__ ((__gnu_inline__, __always_inline__, __artificial__))
-_mm256_mask_i32gather_epi64 (__m256i src, int const *base,
+_mm256_mask_i32gather_epi64 (__m256i src, long long int const *base,
 			     __m128i index, __m256i mask, const int scale)
 {
   return (__m256i) __builtin_ia32_gathersiv4di ((__v4di)src,
@@ -1483,7 +1485,8 @@ _mm256_mask_i32gather_epi64 (__m256i src, int const *base,
 
 extern __inline __m128i
 __attribute__ ((__gnu_inline__, __always_inline__, __artificial__))
-_mm_i64gather_epi64 (int const *base, __m128i index, const int scale)
+_mm_i64gather_epi64 (long long int const *base,
+		     __m128i index, const int scale)
 {
   __v2di src = __extension__ (__v2di){ 0, 0 };
   __v2di mask = __extension__ (__v2di){ ~0, ~0 };
@@ -1497,7 +1500,7 @@ _mm_i64gather_epi64 (int const *base, __m128i index, const int scale)
 
 extern __inline __m128i
 __attribute__ ((__gnu_inline__, __always_inline__, __artificial__))
-_mm_mask_i64gather_epi64 (__m128i src, int const *base, __m128i index,
+_mm_mask_i64gather_epi64 (__m128i src, long long int const *base, __m128i index,
 			  __m128i mask, const int scale)
 {
   return (__m128i) __builtin_ia32_gatherdiv2di ((__v2di)src,
@@ -1509,7 +1512,8 @@ _mm_mask_i64gather_epi64 (__m128i src, int const *base, __m128i index,
 
 extern __inline __m256i
 __attribute__ ((__gnu_inline__, __always_inline__, __artificial__))
-_mm256_i64gather_epi64 (int const *base, __m256i index, const int scale)
+_mm256_i64gather_epi64 (long long int const *base,
+			__m256i index, const int scale)
 {
   __v4di src = __extension__ (__v4di){ 0, 0, 0, 0 };
   __v4di mask = __extension__ (__v4di){ ~0, ~0, ~0, ~0 };
@@ -1523,7 +1527,7 @@ _mm256_i64gather_epi64 (int const *base, __m256i index, const int scale)
 
 extern __inline __m256i
 __attribute__ ((__gnu_inline__, __always_inline__, __artificial__))
-_mm256_mask_i64gather_epi64 (__m256i src, int const *base,
+_mm256_mask_i64gather_epi64 (__m256i src, long long int const *base,
 			     __m256i index, __m256i mask, const int scale)
 {
   return (__m256i) __builtin_ia32_gatherdiv4di ((__v4di)src,

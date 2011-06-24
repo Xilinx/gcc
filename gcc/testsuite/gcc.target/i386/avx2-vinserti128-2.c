@@ -3,10 +3,10 @@
 /* { dg-options "-O0 -mavx2" } */
 
 #include <string.h>
-#include "avx-check.h"
+#include "avx2-check.h"
 
 void static
-avx_test (void)
+avx2_test (void)
 {
   union256i_q s1, res;
   union128i_q s2;

@@ -2,7 +2,7 @@
 /* { dg-require-effective-target avx2 } */
 /* { dg-options "-O0 -mavx2" } */
 
-#include "avx-check.h"
+#include "avx2-check.h"
 
 #ifndef MASK
 #define MASK 6
@@ -11,7 +11,7 @@
 #define mask_v(pos) (((MASK & (0x1ULL << (pos))) >> (pos)) << 63)
 
 void static
-avx_test (void)
+avx2_test (void)
 {
   int i;
   long long m[4] = {mask_v(0), mask_v(1), mask_v(2), mask_v(3)};
