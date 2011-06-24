@@ -1,3 +1,7 @@
+2011-06-24  Sharad Singhai  <singhai@google.com>
+
+	* Makefile.in: Add pmu-profile.o to libgcov.
+
 2011-05-04  Chris Demetriou  <cgd@google.com>
 
 	Backport from trunk r173391:
