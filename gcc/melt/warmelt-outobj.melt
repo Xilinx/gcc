@@ -886,7 +886,7 @@
 
 (defun outpucod_anydiscr (any declbuf implbuf :long depth)
   ;(debug_msg any "outpucod_anydiscr any")
-  (outcstring_err "* output_c_code unimplemented reciever discriminator ")
+  (outcstring_err "* output_c_code unimplemented receiver discriminator ")
   (let ( (discr (discrim any)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
   (assert_msg "@@ outpucod_anydiscr not able to output" ())
@@ -902,7 +902,7 @@
 (defun outpucod_catchall_root (anyr declbuf implbuf :long depth)
   (debug_msg anyr "outpucod_catchall_root anyr")
   (display_debug_message anyr "outpucod_catchall_root anyr")
-  (outcstring_err "* output_c_code unimplemented reciever class ")
+  (outcstring_err "* output_c_code unimplemented receiver class ")
   (let ( (discr (discrim anyr)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
   (assert_msg "@@ outpucod_catchall_root not able to output" ())
@@ -2911,7 +2911,7 @@
      (lambda (curdest) 
        (output_c_code curdest declbuf implbuf (get_int boxdepthp1))
        (add2sbuf_strconst implbuf " = ")))
-    ;; output the send and the reciever
+    ;; output the send and the receiver
     (add2sbuf_strconst implbuf " meltgc_send ((melt_ptr_t)(")
     (output_c_code orecv declbuf implbuf (+i 1 depth))
     (add2sbuf_strconst implbuf "), ((melt_ptr_t)(")

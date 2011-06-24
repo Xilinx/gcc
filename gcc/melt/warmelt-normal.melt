@@ -102,12 +102,13 @@ body.}#
 
 ;;; normal message sending
 (defclass class_nrep_msend
-  :doc #{The $CLASS_NREP_SEND is for normal message send, with a
-single result. $NSEND_SEL is the normalized selector, $NSEND_RECV
-the normalized reciever, with $NEXPR_ARGS giving the normalized arguments.}#
+  :doc #{The $CLASS_NREP_SEND is for normal message send (or message
+passing), with a single result. $NSEND_SEL is the normalized selector,
+$NSEND_RECV the normalized receiver, with $NEXPR_ARGS giving the
+normalized arguments.}#
   :super class_nrep_typed_expression_with_arguments
   :fields (nsend_sel		   ;the normalized selector occurrence
-	   nsend_recv		   ;the reciever
+	   nsend_recv		   ;the receiver
 	   ))
 
 
@@ -774,7 +775,7 @@ routine procedures.}#
 
 ;;; the normal_exp selector 
 ;;;;; expected arguments: 
-;;;   recv = the reciever, eg a sexpr
+;;;   recv = the receiver, eg a sexpr
 ;;;   env = the environment 
 ;;;   ncx = the normalization context 
 ;;;   psloc = (parent) source location
@@ -869,7 +870,7 @@ routine procedures.}#
   )
 
 ;;; selector to compile a normalized stuff into an object
-;;; reciever: the normalized stuff
+;;; receiver: the normalized stuff
 ;;; arguments: 
 ;;;; * GCX the code generation context
 ;;; result = the obj instruction or value
@@ -1840,11 +1841,11 @@ source location.}#
      (nrecv nbindrecv)
      (normal_exp msrecv env ncx sloc)
      (assert_msg "check nbindrecv" (is_list_or_null nbindrecv))
-     ;; check that reciever is a value
+     ;; check that receiver is a value
      (let ( (ctypr (get_ctype nrecv env)) )
        (assert_msg "normexp_msend check ctypr " (is_a ctypr class_ctype))
        (if (!= ctypr ctype_value)
-	   (error_strv sloc "non value reciever for message send of selector"
+	   (error_strv sloc "non value receiver for message send of selector"
 		       (unsafe_get_field :named_name selnam)))
        )
      (multicall
@@ -3768,7 +3769,7 @@ source location.}#
   (debug_msg recv "bad_prepare_constructor_binding recv")
   (debug_msg symb "bad_prepare_constructor_binding symb")
   (error_strv sloc "invalid constructor binding" (get_field :named_name symb))
-  (error_strv sloc "reciever unprepared to constructor binding" 
+  (error_strv sloc "receiver unprepared to constructor binding" 
 	      (get_field :named_name (discrim recv)))
   (assert_msg "@$@badmeth_prepare_constructor_binding" ())
 )
@@ -3778,7 +3779,7 @@ source location.}#
 ;;;;;;;;;;;;;;;;
 (defselector normal_letrec_constructive class_selector
   :doc #{The $NORMAL_LETREC selector applied to: a constructive
-  expression $CEXPR for reciever, a symbol $SYMB, a normal
+  expression $CEXPR for receiver, a symbol $SYMB, a normal
   constructive binding $CBIND, an environment $ENV, a normal context
   $NCX, a location $SLOC}#
   :formals (cexpr symb cbind env ncx sloc))
@@ -3788,7 +3789,7 @@ source location.}#
   (debug_msg symb "badmeth_normal_letrec_constructive symb")
   (debug_msg cbind "badmeth_normal_letrec_constructive cbind")
   (error_strv sloc "invalid letrec constructive symbol" (get_field :named_name symb))
-  (error_strv sloc "reciever unprepared to normal_letrec_constructive" 
+  (error_strv sloc "receiver unprepared to normal_letrec_constructive" 
 	      (get_field :named_name (discrim cexpr)))
   (assert_msg "@$@badmeth_normal_letrec_constructive" ())
 )

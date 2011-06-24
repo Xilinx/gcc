@@ -364,7 +364,7 @@
 (defclass class_objmsend
   :super class_objdestinstr
   :fields (obmsnd_sel			;selector object (compiled)
-	   obmsnd_recv			;message reciever (compiled)
+	   obmsnd_recv			;message receiver (compiled)
 	   obmsnd_args 			;argument tuple (compiled)
 	   ))
 
@@ -603,7 +603,7 @@
 (export_synonym class_objblock class_objplainblock)
 
 ;;;; selector to generate the declaration of an initial
-;;; reciever some objinielem
+;;; receiver some objinielem
 ;;; argument strbuf
 (defselector output_c_declinit class_selector
   :doc #{$OUTPUT_C_DECLINIT is the selector to generate the
@@ -613,14 +613,14 @@ $SBUF.}#
   )
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; selector to put a destination into an objcode
-;;; reciever: the objcode
+;;; receiver: the objcode
 ;;; argument: the destination value
-;;; result: the (modified) recieving objcode or its replacement
+;;; result: the (modified) receiving objcode or its replacement
 (defselector put_objdest class_selector
   )
 
 ;;; selector to generate the c code for an object
-;;; reciever: the object to output
+;;; receiver: the object to output
 ;;; arguments: 
 ;;;; * DECLBUF the stringbuffer for the declarations
 ;;;; * IMPLBUF the stringbuffer for implementations
@@ -629,14 +629,14 @@ $SBUF.}#
 
 (defselector output_c_code class_selector
   :doc #{$OUTPUT_C_CODE is the selector to generate C code. $RECV is
-  the reciever, $DECLBUF is the string-buffer for declarations,
+  the receiver, $DECLBUF is the string-buffer for declarations,
   $IMPLBUF is the string-buffer for implementations, $DEPTH is the raw
   integer depth.}#
   :formals (recv declbuf implbuf :long depth)
   )
 
 ;;;; selector to generate the initial fill of some objinit
-;;; reciever some objinitelem
+;;; receiver some objinitelem
 ;;; argument a stringbuffer
 (defselector output_c_initial_fill class_selector
   :doc #{$OUTPUT_C_INITIAL_FILL is the selector to generate the filling of
@@ -647,7 +647,7 @@ $SBUF.}#
 )
 
 ;;;; selector to generate the predef fill of some objinit
-;;; reciever some objinitelem
+;;; receiver some objinitelem
 ;;; argument a stringbuffer
 (defselector output_c_initial_predef class_selector
   :formals (recv sbuf prtrstr :long depth)
@@ -690,7 +690,7 @@ $SBUF.}#
 (defun putobjdest_catchall_anydiscr (recv desto)
   (debug_msg recv "putobjdest_catchall_anydiscr recv@@  " )
   (debug_msg desto "putobjdest_catchall_anydiscr desto@@  " )
-  (outcstring_err "* putobjdest unimplemented reciever discriminant ")
+  (outcstring_err "* putobjdest unimplemented receiver discriminant ")
   (let ( (discr (discrim recv)) 
 	 (discrname  (unsafe_get_field :named_name discr))
 	 )
@@ -1973,7 +1973,7 @@ $SBUF.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; selector to compile the fill inside a letrec
-;;; reciever: the normalized constructrive binding
+;;; receiver: the normalized constructrive binding
 ;;; arguments: 
 ;;;; * GCX the code generation context
 ;;; result = the obj instruction or value
@@ -3110,7 +3110,7 @@ $SBUF.}#
   (assert_msg "check bind" (is_a bind class_any_binding))
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (debug_msg bind "compilobj_any_binding bind")
-  (outcstring_err "* compilobj unimplemented reciever binding class ")
+  (outcstring_err "* compilobj unimplemented receiver binding class ")
   (let ( (discr (discrim bind)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
   (assert_msg "@@compile_obj should be implemented in anybinding-s subclasses" ()))
@@ -3392,7 +3392,7 @@ $SBUF.}#
 	 (typdesto (unsafe_get_field :obv_type desto)) 
 	 )
     (cond
-     ;; special case when reciever is void
+     ;; special case when receiver is void
      ( (== typrecv ctype_void)
        (if (== typdesto ctype_void)
 	   (return recv)
@@ -4804,7 +4804,7 @@ $SBUF.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; selector to compile a matcher
-;; reciever: some indirect instance of class_any_matcher
+;; receiver: some indirect instance of class_any_matcher
 ;; arguments:
 ;;; * the match compilation context
 ;;; * the generation context
@@ -4827,7 +4827,7 @@ $SBUF.}#
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; selector to compile a tester
-;;;; reciever: the tester
+;;;; receiver: the tester
 ;;;; first argument: the generator context gcx
 ;;;; second argument: the tester context tcx
 ;;;; return values: primary, the objcode or lists; secondary the destination objcode
@@ -4849,7 +4849,7 @@ $SBUF.}#
   (assert_msg "check gcx" (is_a gcx class_c_generation_context))
   (assert_msg "check tcx" (is_a tcx class_testercompilcontext))
   (debug_msg ntester "compiltst_anytester ntester")
-  (outcstring_err "* compiltst unimplemented reciever class ")
+  (outcstring_err "* compiltst unimplemented receiver class ")
   (let ( (discr (discrim ntester)) ) (outstr_err (unsafe_get_field :named_name discr)))
   (outnewline_err)
   (assert_msg "@@compile_tester should be implemented in normtesters-s subclasses" ())

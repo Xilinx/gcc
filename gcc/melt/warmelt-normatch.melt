@@ -71,7 +71,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; selector to scan a pattern
 ;;; invoked with :
-;;; * the source pattern as reciever
+;;; * the source pattern as receiver
 ;;; * a parent source location
 ;;; * a ctype
 ;;; * a normpatcontext
@@ -82,7 +82,7 @@ scanning variables.}#
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
-;;; catch-all for scanning any reciever (by failing)
+;;; catch-all for scanning any receiver (by failing)
 (defun scanpat_anyrecv (recv psloc ctyp pcn)
   (debug_msg recv "scanpat_anypattern recv")
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
@@ -90,7 +90,7 @@ scanning variables.}#
 	 (myclassname (get_field :named_name myclass)) )
     (error_strv psloc 
 		"unimplemented scan_pattern for any " myclassname)
-    (assert_msg "catchall scan_pattern unimplemented for any reciever" ())
+    (assert_msg "catchall scan_pattern unimplemented for any receiver" ())
     ))
 (install_method discr_any_receiver scan_pattern scanpat_anyrecv)
 
@@ -411,7 +411,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; selector to normalize a pattern
-;;; reciever is the pattern to normalize
+;;; receiver is the pattern to normalize
 ;;; arguments are
 ;;; the normal matched stuff
 ;;; the closure (if any) to handle the newly created stuff -e.g. tester
@@ -685,7 +685,7 @@ scanning variables.}#
 
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
-;;; catch-all for normpat any reciever (by failing)
+;;; catch-all for normpat any receiver (by failing)
 (defun normpat_anyrecv (recv nmatch hdler pcn)
   (debug_msg recv "normpat_anyrecv recv")
   (assert_msg "check pcn" (is_a pcn class_pattern_context))
@@ -2671,18 +2671,18 @@ originating matched data. Field $NRMATD_RANK is a unique rank.}#
 
 ;;;;;;;;;;;;;;;;
 (defselector scan_subpatterns class_selector
-  :doc #{Apply a given function $FUN to the subpatterns of reciever
+  :doc #{Apply a given function $FUN to the subpatterns of receiver
   $RECV with extra context $CTX.}#
   :formals (recv fun ctx)
 )
 
 (defselector scan_step_data class_selector
-  :doc #{Given a reciever $STEP, apply a given function $FUN to all
+  :doc #{Given a receiver $STEP, apply a given function $FUN to all
 the data of the $STEP with an extra context $CTX.}#
   :formals (step fun ctx))
 
 (defselector scan_step_flag class_selector
-  :doc #{Given a reciever $STEP, apply a given function $FUN to all
+  :doc #{Given a receiver $STEP, apply a given function $FUN to all
 the flags of the $STEP with an extra context $CTX.}#
   :formals (step fun ctx))
 
@@ -3057,7 +3057,7 @@ the flags of the $STEP with an extra context $CTX.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;; the selector to translate a pattern
 (defselector translate_pattern class_selector
-  :doc #{Translate a pattern into a match step. $RECV is the reciever,
+  :doc #{Translate a pattern into a match step. $RECV is the receiver,
   $MDATA is the matched data, $MCASE is the match case, and $SLOC is
   the source location. Returns the match step and secundarily the match flag.}#
   :formals (recv mdata mcase varmap sloc))
@@ -5162,7 +5162,7 @@ normalized expression.}#
 	 (myclassname (get_field :named_name myclass)) )
     (error_strv sloc 
 		"unimplemented normalize_test_matcher for any " myclassname)
-    (assert_msg "catchallnormalize_test_matcher  unimplemented for any reciever" ())
+    (assert_msg "catchallnormalize_test_matcher  unimplemented for any receiver" ())
     ))
 (install_method discr_any_receiver normalize_test_matcher normtestmatch_catchall)
 
@@ -5173,7 +5173,7 @@ normalized expression.}#
 	 (myclassname (get_field :named_name myclass)) )
     (error_strv sloc 
 		"unimplemented normalize_fill_matcher for any " myclassname)
-    (assert_msg "catchall normalize_test_matcher  unimplemented for any reciever" ())
+    (assert_msg "catchall normalize_test_matcher  unimplemented for any receiver" ())
     ))
 (install_method discr_any_receiver normalize_fill_matcher normfillmatch_catchall)
 

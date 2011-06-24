@@ -123,7 +123,7 @@ $FILENAM and $LINENO}#
 	)))
 
 ;;; selector to output for debugging
-;;; reciever: any object or value
+;;; receiver: any object or value
 ;;; arguments: the debuginfo (instance of class_debug_information), the depth (long)
 (defselector dbg_output class_selector
   :formals (recv dbginfo :long depth)
@@ -132,7 +132,7 @@ $FILENAM and $LINENO}#
 
 
 ;;; selector to output again for debugging
-;;; reciever: any object (already output)
+;;; receiver: any object (already output)
 ;;; arguments: the debuginfo (instance of class_debug_information), the depth (long)
 (defselector dbg_outputagain class_selector
   :formals (recv dbginfo :long depth)

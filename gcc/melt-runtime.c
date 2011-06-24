@@ -4742,7 +4742,7 @@ meltgc_send (melt_ptr_t recv_p,
      MELT_ENTERFRAME macro call below) to be active when the application
      for the sending is performed. This should make our call frames'
      linked list shorter. To do so, we put the closure to apply and
-     the reciever in the two variables below. Yes this is dirty, but
+     the receiver in the two variables below. Yes this is dirty, but
      it works! 
 
      We should be very careful when modifying this routine */
@@ -4770,7 +4770,7 @@ meltgc_send (melt_ptr_t recv_p,
 #define mul_ancv  ((struct meltmultiple_st*)(ancv))
   recv = recv_p;
   selv = sel_p;
-  /* the reciever can be null, using DISCR_NULL_RECEIVER */
+  /* the receiver can be null, using DISCR_NULL_RECEIVER */
 #ifdef ENABLE_CHECKING
   (void) sendnum;		/* to use it */
 #endif

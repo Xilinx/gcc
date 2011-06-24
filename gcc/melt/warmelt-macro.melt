@@ -76,11 +76,11 @@ subexpressions. Field $SARGOP_ARGS is the tuple of arguments.}#
 (defclass class_source_msend
   :doc #{The internal $CLASS_SOURCE_MSEND for message sending abstract
   syntax. $MSEND_SELSYMB is the message selector symbol, $MSEND_RECV
-  is the reciever, $SARGOP_ARGS is the tuple of arguments.}#
+  is the receiver, $SARGOP_ARGS is the tuple of arguments.}#
   :super class_source_argumented_operator
   :fields ( 
 	   msend_selsymb		;the selector symbol
-	   msend_recv			;the reciever
+	   msend_recv			;the receiver
 	   ))
 
 ;;; source primitive invocation
@@ -927,7 +927,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	 (spair (pair_tail (list_first scont)))
 	 )
     (if (not (is_pair spair))
-	(error_plain sloc "missing reciever expression in message send"_))
+	(error_plain sloc "missing receiver expression in message passing"_))
     (let ( (xrecv (pair_head spair))
 	   (argtup (expand_pairlist_as_tuple (pair_tail spair) env mexpander)) 
 	   (res (instance class_source_msend
@@ -3199,7 +3199,7 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
 			      (let ( (firstf (multiple_nth formals 0)) )
 				(cond
 				 ( (null firstf)
-				   (error_plain loc ":formals of DEFSELECTOR should have at least one value argument for the reciever"))
+				   (error_plain loc ":formals of DEFSELECTOR should have at least one value argument for the receiver"))
 				 ( (!= (get_field :fbind_type firstf) ctype_value)
 				   (error_plain loc "first :formals of DEFSELECTOR should be a :value"))
 			      )))

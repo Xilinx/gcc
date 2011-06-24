@@ -1,4 +1,15 @@
 
+2011-06-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: Spell "receive" correctly in comments or
+	strings.
+	* melt/warmelt-first.melt: Ditto.
+	* melt/warmelt-debug.melt: Ditto.
+	* melt/warmelt-macro.melt: Ditto.
+	* melt/warmelt-normal.melt: Ditto.
+	* melt/warmelt-normatch.melt: Ditto.
+	* melt/warmelt-genobj.melt: Ditto.
+	* melt/warmelt-outobj.melt: Ditto.
+
 2011-06-22  Pierre Vittet  <piervit@pvittet.com>
 
 	* melt-runtime.c (load_melt_modules_and_do_mode): load extra

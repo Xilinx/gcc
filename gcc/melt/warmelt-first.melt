@@ -1535,7 +1535,7 @@ $DISCR_NAME_STRING and $DISCR_VERBATIM_STRING.}#
 (unsafe_put_fields discr_string :disc_super discr_any_receiver)
 (unsafe_put_fields class_root :disc_super discr_any_receiver)
 
-;;; the discriminant for null reciever (used for sending to nil)
+;;; the discriminant for null receiver (used for sending to nil)
 (definstance discr_null_receiver class_discriminant
   :doc #{The $DISCR_NULL_RECEIVER is the discriminant of the nil value, handling messages sent to nil.}#
   :predef DISCR_NULL_RECEIVER
