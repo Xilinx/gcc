@@ -26850,6 +26850,11 @@ ix86_expand_args_builtin (const struct builtin_description *d,
 	  if (!match)
 	    switch (icode)
 	      {
+	      case CODE_FOR_avx2_inserti128:
+	      case CODE_FOR_avx2_extracti128:
+		error ("the last argument must be an 1-bit immediate");
+		return const0_rtx;
+
 	      case CODE_FOR_sse4_1_roundpd:
 	      case CODE_FOR_sse4_1_roundps:
 	      case CODE_FOR_sse4_1_roundsd:

@@ -1,3 +1,22 @@
+2011-06-20  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* gcc.target/i386/avx2-mpsadbw-3.c: New test to check error
+	diagnostic while passing wrong immediate.
+	* gcc.target/i386/avx2-vextracti128-3.c: Likewise.
+	* gcc.target/i386/avx2-vinserti128-3.c: Likewise.
+	* gcc.target/i386/avx2-vpalignr256-3.c: Likewise.
+	* gcc.target/i386/avx2-vpblendd128-3.c: Likewise.
+	* gcc.target/i386/avx2-vpblendd256-3.c: Likewise.
+	* gcc.target/i386/avx2-vpblendw-3.c: Likewise.
+	* gcc.target/i386/avx2-vperm2i128-3.c: Likewise.
+	* gcc.target/i386/avx2-vpermpd-3.c: Likewise.
+	* gcc.target/i386/avx2-vpermq-3.c: Likewise.
+	* gcc.target/i386/avx2-vpshufd-3.c: Likewise.
+	* gcc.target/i386/avx2-vpshufhw-3.c: Likewise.
+	* gcc.target/i386/avx2-vpshuflw-3.c: Likewise.
+	* gcc.target/i386/avx2-vpslldq-3.c: Likewise.
+	* gcc.target/i386/avx2-vpsrldq-3.c: Likewise.
+
 2011-06-10  Yukhin Kirill  <kirill.yukhin@intel.com>
 
 	* g++.dg/other/i386-2.C: Extended to check AVX2 as well.

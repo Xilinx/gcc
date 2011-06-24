@@ -1,5 +1,10 @@
 2011-06-20  Yukhin Kirill  <kirill.yukhin@intel.com>
 
+	* gcc/config/i386/i386.c (ix86_expand_args_builtin): Improved
+	error diagnistic for extracti128/inserti128 immediates.
+
+2011-06-20  Yukhin Kirill  <kirill.yukhin@intel.com>
+
 	* gcc/config/i386/sse.md (avx2_pshufdv3): Fixed immediate's
 	predicate.
 	(avx2_pshuflwv3): Likewise.
