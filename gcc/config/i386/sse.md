@@ -6823,7 +6823,7 @@
 (define_expand "avx2_pshufdv3"
   [(match_operand:V8SI 0 "register_operand" "")
    (match_operand:V8SI 1 "nonimmediate_operand" "")
-   (match_operand:SI 2 "const_int_operand" "")]
+   (match_operand:SI 2 "const_0_to_255_operand" "")]
   "TARGET_AVX2"
 {
   int mask = INTVAL (operands[2]);
@@ -6906,7 +6906,7 @@
 (define_expand "avx2_pshuflwv3"
   [(match_operand:V16HI 0 "register_operand" "")
    (match_operand:V16HI 1 "nonimmediate_operand" "")
-   (match_operand:SI 2 "const_int_operand" "")]
+   (match_operand:SI 2 "const_0_to_255_operand" "")]
   "TARGET_AVX2"
 {
   int mask = INTVAL (operands[2]);
@@ -7002,7 +7002,7 @@
 (define_expand "avx2_pshufhwv3"
   [(match_operand:V16HI 0 "register_operand" "")
    (match_operand:V16HI 1 "nonimmediate_operand" "")
-   (match_operand:SI 2 "const_int_operand" "")]
+   (match_operand:SI 2 "const_0_to_255_operand" "")]
   "TARGET_AVX2"
 {
   int mask = INTVAL (operands[2]);

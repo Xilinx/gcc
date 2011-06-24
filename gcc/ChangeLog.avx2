@@ -1,3 +1,10 @@
+2011-06-20  Yukhin Kirill  <kirill.yukhin@intel.com>
+
+	* gcc/config/i386/sse.md (avx2_pshufdv3): Fixed immediate's
+	predicate.
+	(avx2_pshuflwv3): Likewise.
+	(avx2_pshufhwv3): Likewise.
+
 2011-06-10  Yukhin Kirill  <kirill.yukhin@intel.com>
 
 	* config/i386/avx2intrin.h (*gather*): Fixed all gather*
