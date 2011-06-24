@@ -1,5 +1,10 @@
 2011-06-22  Gabriel Charette  <gchare@google.com>
 
+	* name-lookup.h (cp_binding_level): Removed unused
+	member names_size. Update all users.
+
+2011-06-22  Gabriel Charette  <gchare@google.com>
+
 	* pph-streamer-in.c (pph_add_names_to_namespace): Replaced by
 	pph_add_bindings_to_namespace.
 	(pph_add_bindings_to_namespace): New.

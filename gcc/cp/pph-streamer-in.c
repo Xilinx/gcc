@@ -442,7 +442,6 @@ pph_in_binding_level (pph_stream *stream)
   ALLOC_AND_REGISTER (stream, ix, bl, ggc_alloc_cleared_cp_binding_level ());
 
   bl->names = pph_in_chain (stream);
-  bl->names_size = pph_in_uint (stream);
   bl->namespaces = pph_in_chain (stream);
 
   bl->static_decls = pph_in_tree_vec (stream);

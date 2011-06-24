@@ -448,7 +448,6 @@ pph_out_binding_level (pph_stream *stream, struct cp_binding_level *bl,
     return;
 
   pph_out_chain_filtered (stream, bl->names, ref_p, NO_BUILTINS);
-  pph_out_uint (stream, bl->names_size);
   pph_out_chain_filtered (stream, bl->namespaces, ref_p, NO_BUILTINS);
 
   pph_out_tree_vec (stream, bl->static_decls, ref_p);
