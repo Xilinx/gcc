@@ -986,6 +986,14 @@ process_function_and_variable_attributes (struct cgraph_node *first,
 	  DECL_ATTRIBUTES (decl) = remove_attribute ("weakref",
 						     DECL_ATTRIBUTES (decl));
 	}
+
+      if (lookup_attribute ("always_inline", DECL_ATTRIBUTES (decl))
+	  && !DECL_DECLARED_INLINE_P (decl)
+	  /* redefining extern inline function makes it DECL_UNINLINABLE.  */
+	  && !DECL_UNINLINABLE (decl))
+	warning_at (DECL_SOURCE_LOCATION (decl), OPT_Wattributes,
+		    "always_inline function might not be inlinable");
+     
       process_common_attributes (decl);
     }
   for (vnode = varpool_nodes; vnode != first_var; vnode = vnode->next)
@@ -1186,6 +1194,7 @@ handle_alias_pairs (void)
   unsigned i;
   struct cgraph_node *target_node;
   struct cgraph_node *src_node;
+  struct varpool_node *target_vnode;
   
   for (i = 0; VEC_iterate (alias_pair, alias_pairs, i, p);)
     {
@@ -1204,6 +1213,20 @@ handle_alias_pairs (void)
 	  if (DECL_EXTERNAL (p->decl))
 	    DECL_EXTERNAL (p->decl) = 0;
 	  cgraph_create_function_alias (p->decl, target_node->decl);
+	  VEC_unordered_remove (alias_pair, alias_pairs, i);
+	}
+      else if (TREE_CODE (p->decl) == VAR_DECL
+	       && !lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl))
+	       && (target_vnode = varpool_node_for_asm (p->target)) != NULL)
+	{
+	  /* Normally EXTERNAL flag is used to mark external inlines,
+	     however for aliases it seems to be allowed to use it w/o
+	     any meaning. See gcc.dg/attr-alias-3.c  
+	     However for weakref we insist on EXTERNAL flag being set.
+	     See gcc.dg/attr-alias-5.c  */
+	  if (DECL_EXTERNAL (p->decl))
+	    DECL_EXTERNAL (p->decl) = 0;
+	  varpool_create_variable_alias (p->decl, target_vnode->decl);
 	  VEC_unordered_remove (alias_pair, alias_pairs, i);
 	}
       else
@@ -1397,7 +1420,7 @@ init_lowered_empty_function (tree decl)
   DECL_SAVED_TREE (decl) = error_mark_node;
   cfun->curr_properties |=
     (PROP_gimple_lcf | PROP_gimple_leh | PROP_cfg | PROP_referenced_vars |
-     PROP_ssa);
+     PROP_ssa | PROP_gimple_any);
 
   /* Create BB for body of the function and connect it properly.  */
   bb = create_basic_block (NULL, (void *) 0, ENTRY_BLOCK_PTR);
@@ -1558,10 +1581,11 @@ assemble_thunk (struct cgraph_node *node)
     {
       const char *fnname;
       tree fn_block;
+      tree restype = TREE_TYPE (TREE_TYPE (thunk_fndecl));
       
       DECL_RESULT (thunk_fndecl)
 	= build_decl (DECL_SOURCE_LOCATION (thunk_fndecl),
-		      RESULT_DECL, 0, integer_type_node);
+		      RESULT_DECL, 0, restype);
       fnname = IDENTIFIER_POINTER (DECL_ASSEMBLER_NAME (thunk_fndecl));
 
       /* The back end expects DECL_INITIAL to contain a BLOCK, so we
@@ -2078,6 +2102,13 @@ cgraph_optimize (void)
 #endif
 
   cgraph_materialize_all_clones ();
+  bitmap_obstack_initialize (NULL);
+  execute_ipa_pass_list (all_late_ipa_passes);
+  cgraph_remove_unreachable_nodes (true, dump_file);
+#ifdef ENABLE_CHECKING
+  verify_cgraph ();
+#endif
+  bitmap_obstack_release (NULL);
   cgraph_mark_functions_to_output ();
 
   cgraph_state = CGRAPH_STATE_EXPANSION;

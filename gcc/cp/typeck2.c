@@ -1051,14 +1051,9 @@ process_init_constructor_array (tree type, tree init,
 	if (type_build_ctor_call (TREE_TYPE (type)))
 	  {
 	    /* If this type needs constructors run for default-initialization,
-	      we can't rely on the back end to do it for us, so build up
-	      TARGET_EXPRs.  If the type in question is a class, just build
-	      one up; if it's an array, recurse.  */
-	    if (MAYBE_CLASS_TYPE_P (TREE_TYPE (type)))
-              next = build_functional_cast (TREE_TYPE (type), NULL_TREE,
-                                            complain);
-	    else
-	      next = build_constructor (init_list_type_node, NULL);
+	      we can't rely on the back end to do it for us, so make the
+	      initialization explicit by list-initializing from {}.  */
+	    next = build_constructor (init_list_type_node, NULL);
 	    next = digest_init (TREE_TYPE (type), next, complain);
 	  }
 	else if (!zero_init_p (TREE_TYPE (type)))
@@ -1646,7 +1641,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 	{
 	  if (VOID_TYPE_P (type))
 	    return void_zero_node;
-	  return build_value_init (type, complain);
+	  return build_value_init (cv_unqualified (type), complain);
 	}
 
       /* This must build a C cast.  */

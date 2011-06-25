@@ -1,5 +1,5 @@
 /* Tree based points-to analysis
-   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Daniel Berlin <dberlin@dberlin.org>
 
@@ -2746,6 +2746,18 @@ get_constraint_for_ssa_var (tree t, VEC(ce_s, heap) **results, bool address_p)
       return;
     }
 
+  /* For global variables resort to the alias target.  */
+  if (TREE_CODE (t) == VAR_DECL
+      && (TREE_STATIC (t) || DECL_EXTERNAL (t)))
+    {
+      struct varpool_node *node = varpool_get_node (t);
+      if (node && node->alias)
+	{
+	  node = varpool_variable_node (node, NULL);
+	  t = node->decl;
+	}
+    }
+
   vi = get_vi_for_tree (t);
   cexpr.var = vi->id;
   cexpr.type = SCALAR;
@@ -3982,6 +3994,14 @@ find_func_aliases_for_builtin_call (gimple t)
       case BUILT_IN_STPNCPY:
       case BUILT_IN_STRCAT:
       case BUILT_IN_STRNCAT:
+      case BUILT_IN_STRCPY_CHK:
+      case BUILT_IN_STRNCPY_CHK:
+      case BUILT_IN_MEMCPY_CHK:
+      case BUILT_IN_MEMMOVE_CHK:
+      case BUILT_IN_MEMPCPY_CHK:
+      case BUILT_IN_STPCPY_CHK:
+      case BUILT_IN_STRCAT_CHK:
+      case BUILT_IN_STRNCAT_CHK:
 	{
 	  tree res = gimple_call_lhs (t);
 	  tree dest = gimple_call_arg (t, (DECL_FUNCTION_CODE (fndecl)
@@ -4011,6 +4031,7 @@ find_func_aliases_for_builtin_call (gimple t)
 	  return true;
 	}
       case BUILT_IN_MEMSET:
+      case BUILT_IN_MEMSET_CHK:
 	{
 	  tree res = gimple_call_lhs (t);
 	  tree dest = gimple_call_arg (t, 0);
@@ -4627,6 +4648,14 @@ find_func_clobbers (gimple origt)
 	  case BUILT_IN_STPNCPY:
 	  case BUILT_IN_STRCAT:
 	  case BUILT_IN_STRNCAT:
+	  case BUILT_IN_STRCPY_CHK:
+	  case BUILT_IN_STRNCPY_CHK:
+	  case BUILT_IN_MEMCPY_CHK:
+	  case BUILT_IN_MEMMOVE_CHK:
+	  case BUILT_IN_MEMPCPY_CHK:
+	  case BUILT_IN_STPCPY_CHK:
+	  case BUILT_IN_STRCAT_CHK:
+	  case BUILT_IN_STRNCAT_CHK:
 	    {
 	      tree dest = gimple_call_arg (t, (DECL_FUNCTION_CODE (decl)
 					       == BUILT_IN_BCOPY ? 1 : 0));
@@ -4649,6 +4678,7 @@ find_func_clobbers (gimple origt)
 	  /* The following function clobbers memory pointed to by
 	     its argument.  */
 	  case BUILT_IN_MEMSET:
+	  case BUILT_IN_MEMSET_CHK:
 	    {
 	      tree dest = gimple_call_arg (t, 0);
 	      unsigned i;
@@ -6716,14 +6746,10 @@ ipa_pta_execute (void)
   /* Create constraints for global variables and their initializers.  */
   for (var = varpool_nodes; var; var = var->next)
     {
-      struct varpool_node *alias;
-      varinfo_t vi;
+      if (var->alias)
+	continue;
 
-      vi = get_vi_for_tree (var->decl);
-
-      /* Associate the varinfo node with all aliases.  */
-      for (alias = var->extra_name; alias; alias = alias->next)
-	insert_vi_for_tree (alias->decl, vi);
+      get_vi_for_tree (var->decl);
     }
 
   if (dump_file)

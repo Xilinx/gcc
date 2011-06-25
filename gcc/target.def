@@ -1021,13 +1021,6 @@ DEFHOOK
  void, (void),
  hook_void_void)
 
-/* Display extra, target specific information in response to a
-   --target-help switch.  */
-DEFHOOK
-(help,
- "",
- void, (void), NULL)
-
 DEFHOOK_UNDOC
 (eh_return_filter_mode,
  "Return machine mode for filter value.",
@@ -2549,13 +2542,6 @@ DEFHOOK
 DEFHOOK
 (override,
  "",
- void, (void),
- hook_void_void)
-
-DEFHOOK
-(default_params,
-"Set target-dependent default values for @option{--param} settings, using\
- calls to @code{set_default_param_value}.",
  void, (void),
  hook_void_void)
 
