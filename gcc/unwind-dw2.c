@@ -59,12 +59,6 @@
 #define DWARF_REG_TO_UNWIND_COLUMN(REGNO) (REGNO)
 #endif
 
-#ifndef UNIQUE_UNWIND_CONTEXT
-#if defined __x86_64 && !defined __LP64__
-# define UNIQUE_UNWIND_CONTEXT
-#endif
-#endif
-
 /* This is the register and unwind state for a particular frame.  This
    provides the information necessary to unwind up past a frame and return
    to its caller.  */

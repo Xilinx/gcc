@@ -1,3 +1,15 @@
+2011-06-25  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc (libgcc_tm_file): Add i386/unique-unwind.h for
+	Linux/x86.
+
+	* system.h (UNIQUE_UNWIND_CONTEXT): Poisoned.
+
+	* unwind-dw2.c (UNIQUE_UNWIND_CONTEXT): Don't define here.
+
+	* doc/tm.texi.in: Document UNIQUE_UNWIND_CONTEXT.
+	* doc/tm.texi: Regenerated.
+
 2011-04-09  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR other/48007

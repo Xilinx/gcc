@@ -3701,6 +3701,13 @@ return @code{@var{regno}}.
 
 @end defmac
 
+@defmac UNIQUE_UNWIND_CONTEXT
+
+Define this macro if the target only supports single unqiue unwind
+context.  The default is to support multiple unwind contexts.
+
+@end defmac
+
 @node Elimination
 @subsection Eliminating Frame Pointer and Arg Pointer
 
