@@ -1,5 +1,9 @@
+c120060625-1.h	c120060625-1.pph
 c1altinc1.h	c1altinc1.pph
 c1altinc2.h	c1altinc2.pph
+c1attr-warn-unused-result.h	c1attr-warn-unused-result.pph
+c1builtin-integral-1.h	c1builtin-integral-1.pph
+c1builtin-object-size-2.h	c1builtin-object-size-2.pph
 c1chained1.h	c1chained1.pph
 c1chained2.h	c1chained2.pph
 c1empty.h	c1empty.pph
@@ -9,8 +13,13 @@ c1functions.h	c1functions.pph
 c1guarded1.h	c1guarded1.pph
 c1guarded2.h	c1guarded2.pph
 c1guarded3.h	c1guarded3.pph
+c1limits-externalid.h	c1limits-externalid.pph
+c1meteor-contest.h	c1meteor-contest.pph
 c1multinc1.h	c1multinc1.pph
 c1multinc2.h	c1multinc2.pph
+c1pr36533.h	c1pr36533.pph
+c1pr44948-1a.h	c1pr44948-1a.pph
+c1return-5.h	c1return-5.pph
 c1simple1.h	c1simple1.pph
 c1simple2.h	c1simple2.pph
 c1struct.h	c1struct.pph
@@ -38,6 +47,7 @@ x1struct0.h	x1struct0.pph
 x1struct1.h	x1struct1.pph
 x1struct2.h	x1struct2.pph
 x1template.h	x1template.pph
+x1ten-hellos.h	x1ten-hellos.pph
 x1tmplclass.h	x1tmplclass.pph
 x1tmplfunc.h	x1tmplfunc.pph
 x1typerefs.h	x1typerefs.pph

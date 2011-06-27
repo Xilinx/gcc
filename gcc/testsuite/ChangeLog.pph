@@ -1,4 +1,26 @@
-2011-06-27  Diego Novillo  <dnovillo@google.com>
+2011-06-27   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/pph.map: Add entries for c120060625-1.cc,
+	c1attr-warn-unused-result.cc, c1builtin-integral-1.cc,
+	c1builtin-object-size-2.cc, c1eabi1.cc, c1eabi1.h,
+	c1limits-externalid.cc, c1meteor-contest.cc, c1pr36533.cc,
+	c1pr44948-1a.cc, c1return-5.cc, and x1template.cc.
+	* g++.dg/pph/c120060625-1.cc: Adjust XFAIL patterns.
+	* g++.dg/pph/c1attr-warn-unused-result.cc: Adjust XFAIL
+	patterns.
+	* g++.dg/pph/c1builtin-integral-1.cc: Adjust XFAIL patterns.
+	* g++.dg/pph/c1builtin-object-size-2.cc: Adjust XFAIL
+	patterns.
+	* g++.dg/pph/c1eabi1.cc: Adjust XFAIL patterns.
+	* g++.dg/pph/c1eabi1.h: Adjust XFAIL patterns.
+	* g++.dg/pph/c1limits-externalid.cc: Adjust XFAIL patterns.
+	* g++.dg/pph/c1meteor-contest.cc: Adjust XFAIL patterns.
+	* g++.dg/pph/c1pr36533.cc: Adjust XFAIL patterns.
+	* g++.dg/pph/c1pr44948-1a.cc: Adjust XFAIL patterns.
+	* g++.dg/pph/c1return-5.cc: Adjust XFAIL patterns.
+	* g++.dg/pph/x1template.cc: Adjust XFAIL patterns.
+
+2011-06-27  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/x1functions.cc: Fixed bogus, now asm diff.
 	* g++.dg/pph/x1variables.cc: Fixed bogus, now asm diff.

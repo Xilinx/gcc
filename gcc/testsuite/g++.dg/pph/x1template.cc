@@ -1,5 +1,5 @@
 // { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x1template.h:18:13: internal compiler error: in resume_scope, at cp/name-lookup.c:1568" "" { xfail *-*-* } 0 }
+// { dg-bogus "x1template.h:18:13: internal compiler error: in resume_scope" "" { xfail *-*-* } 0 }
 // { dg-prune-output "In file included from " }
 
 #include "x1template.h"

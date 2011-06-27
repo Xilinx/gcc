@@ -1,3 +1,4 @@
+// { dg-timeout 2 { target *-*-* } }
 // { dg-options "-w -fpermissive" }
 // pph asm xdiff
 
