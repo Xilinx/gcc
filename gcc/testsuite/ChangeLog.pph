@@ -1,3 +1,9 @@
+2011-06-27  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x1ten-hellos.cc: New.
+	* g++.dg/pph/x1ten-hellos.h: New.
+	* g++.dg/pph/pph.map: Add x1ten-hellos.h
+
 2011-06-27   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/pph.map: Add entries for c120060625-1.cc,
