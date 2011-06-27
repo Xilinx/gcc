@@ -157,11 +157,6 @@ tree pph_alloc_tree (enum tree_code, struct lto_input_block *,
 			    struct data_in *);
 void pph_read_file (const char *filename);
 
-/* In pph.c.  FIXME pph move these to pph-streamer.c.  */
-struct cp_token_cache;
-void pth_save_token_cache (struct cp_token_cache *, pph_stream *);
-struct cp_token_cache *pth_load_token_cache (pph_stream *);
-
 /* Inline functions.  */
 
 /* Output AST T to STREAM.  If REF_P is true, output all the leaves of T

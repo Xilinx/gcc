@@ -242,6 +242,164 @@ pph_register_shared_data (pph_stream *stream, void *data, unsigned ix)
 }
 
 
+/* Given a type index TYPE_IDX and TYPE_KIND specifying the kind of type,
+   return a type from integer_types or global_trees.  */
+
+static tree
+pth_get_type_from_index (unsigned type_idx, unsigned type_kind)
+{
+  if (type_kind == CPP_N_INTEGER)
+    return integer_types[type_idx];
+  else if (type_kind == CPP_N_FLOATING || type_kind == CPP_N_FRACT)
+    return global_trees[type_idx];
+  else if (type_kind == CPP_N_IMAGINARY)
+    {
+      /* We don't need a type for the complex number.  The type is
+	 associated with the real and imaginary parts.  */
+      return NULL_TREE;
+    }
+  else
+    gcc_unreachable ();
+}
+
+
+/* Load a numeric value from file F.  Return the corresponding tree.  */
+
+static tree
+pth_load_number (pph_stream *f)
+{
+  unsigned type_idx, type_kind;
+  tree type, val;
+
+  type_idx = pph_in_uint (f);
+  type_kind = pph_in_uint (f);
+
+  type = pth_get_type_from_index (type_idx, type_kind);
+
+  if (type_kind == CPP_N_INTEGER)
+    {
+      HOST_WIDE_INT v[2];
+      pph_in_bytes (f, v, 2 * sizeof (HOST_WIDE_INT));
+      val = build_int_cst_wide (type, v[0], v[1]);
+    }
+  else if (type_kind == CPP_N_FLOATING)
+    {
+      REAL_VALUE_TYPE r;
+      pph_in_bytes (f, &r, sizeof (REAL_VALUE_TYPE));
+      val = build_real (type, r);
+    }
+  else if (type_kind == CPP_N_FRACT)
+    {
+      FIXED_VALUE_TYPE fv;
+      pph_in_bytes (f, &fv, sizeof (FIXED_VALUE_TYPE));
+      val = build_fixed (type, fv);
+    }
+  else if (type_kind == CPP_N_IMAGINARY)
+    {
+      tree r = pth_load_number (f);
+      tree i = pth_load_number (f);
+      val = build_complex (NULL_TREE, r, i);
+    }
+  else
+    gcc_unreachable ();
+
+  return val;
+}
+
+
+/* Load the tree value associated with TOKEN to file F.  */
+
+static void
+pth_load_token_value (cp_token *token, pph_stream *f)
+{
+  const char *str;
+
+  switch (token->type)
+    {
+      case CPP_TEMPLATE_ID:
+      case CPP_NESTED_NAME_SPECIFIER:
+	break;
+
+      case CPP_NAME:
+	str = pph_in_string (f);
+	token->u.value = get_identifier (str);
+	break;
+
+      case CPP_KEYWORD:
+	token->u.value = ridpointers[token->keyword];
+	break;
+
+      case CPP_CHAR:
+      case CPP_WCHAR:
+      case CPP_CHAR16:
+      case CPP_CHAR32:
+      case CPP_NUMBER:
+	token->u.value = pth_load_number (f);
+	break;
+
+      case CPP_STRING:
+      case CPP_WSTRING:
+      case CPP_STRING16:
+      case CPP_STRING32:
+	str = pph_in_string (f);
+	token->u.value = build_string (strlen (str), str);
+	break;
+
+      case CPP_PRAGMA:
+	/* Nothing to do.  Field pragma_kind has already been loaded.  */
+	break;
+
+      default:
+	pph_in_bytes (f, &token->u.value, sizeof (token->u.value));
+	gcc_assert (token->u.value == NULL);
+    }
+}
+
+
+/* Read and return a token from STREAM.  */
+
+static cp_token *
+pth_load_token (pph_stream *stream)
+{
+  cp_token *token = ggc_alloc_cleared_cp_token ();
+
+  /* Do not read the whole structure, the token value has
+     dynamic size as it contains swizzled pointers.
+     FIXME pph, restructure to allow bulk reads of the whole
+     section.  */
+  pph_in_bytes (stream, token, sizeof (cp_token) - sizeof (void *));
+
+  /* FIXME pph.  Use an arbitrary (but valid) location to avoid
+     confusing the rest of the compiler for now.  */
+  token->location = input_location;
+
+  /* FIXME pph: verify that pth_load_token_value works with no tokens.  */
+  pth_load_token_value (token, stream);
+
+  return token;
+}
+
+
+/* Read and return a cp_token_cache instance from STREAM.  */
+
+static cp_token_cache *
+pth_load_token_cache (pph_stream *stream)
+{
+  unsigned i, num;
+  cp_token *first, *last;
+
+  num = pph_in_uint (stream);
+  for (last = first = NULL, i = 0; i < num; i++)
+    {
+      last = pth_load_token (stream);
+      if (first == NULL)
+	first = last;
+    }
+
+  return cp_token_cache_new (first, last);
+}
+
+
 /* Read all fields in lang_decl_base instance LDB from STREAM.  */
 
 static void

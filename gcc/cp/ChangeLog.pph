@@ -1,5 +1,22 @@
 2011-06-27  Gabriel Charette  <gchare@google.com>
 
+	* pph-streamer-in.c (pth_get_type_from_index): Moved from pph.c.
+	(pth_load_number): Moved from pph.c.
+	(pth_load_token_value): Moved from pph.c.
+	(pth_load_token): Moved from pph.c.
+	(pth_load_token_cache): Moved from pph.c. Made static.
+	* pph-streamer-out.c (pth_get_index_from_type): Moved from pph.c.
+	(pth_write_number): Moved from pph.c.
+	(pth_save_token_value): Moved from pph.c.
+	(pth_save_token): Moved from pph.c.
+	(pth_save_token_cache): Moved from pph.c. Made static.
+	* pph-streamer.h (struct cp_token_cache): 
+	Not declared in pph.c, but in parser.h, removed.
+	(pth_save_token_cache): Now static, removed.
+	(pth_load_token_cache): Now static, removed.
+
+2011-06-27  Gabriel Charette  <gchare@google.com>
+
 	* pph-streamer-in.c (pph_read_tree):
 	Stream in DECL_CHAIN of VAR_DECL.
 	Stream in DECL_CHAIN of FUNCTION_DECL.
