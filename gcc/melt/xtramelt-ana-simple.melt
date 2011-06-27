@@ -1309,9 +1309,28 @@
    )
   )
 
+
 (defun meltframe_exec (pass)
   (debug_msg pass "meltframe_exec pass at start")
-)
+  (each_bb_cfun 
+   ()
+   (:basic_block bb :tree fundecl)
+   (debugtree "meltframe_exec fundecl" fundecl)
+   (eachgimple_in_basicblock 
+    (bb)
+    (:gimple g)
+    (debuggimple "meltframe_exec g" g)
+    (match g
+	   ( ?(gimple_assign_single ?lhs ?rhs)
+	      (debugtree "meltframe_exec gimple_assign_single lhs" lhs)
+	      (debugtree "meltframe_exec gimple_assign_single rhs" rhs)
+	      )
+	   ( ?_ 
+	     ())
+	   )
+    )
+   )
+  )
 
 
 (defun meltframe_docmd (cmd moduldata)

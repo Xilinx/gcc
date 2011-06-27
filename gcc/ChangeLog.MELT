@@ -1,6 +1,13 @@
 
 2011-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* testsuite/melt/t-meltgcnewint.c: New file.
+
+	* melt/xtramelt-ana-simple.melt (meltframe_exec): More, still
+	incomplete.
+
+2011-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* Makefile.in (MELT_RUNTIME_CPPDEFS): New variable.
 	(melt-runtime.o): Use it.
 	(melt.encap): Do also check-melt-runtime; echo-s are made silent.
