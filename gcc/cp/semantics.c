@@ -4722,7 +4722,7 @@ finish_omp_barrier (void)
 void
 finish_omp_flush (void)
 {
-  tree fn = built_in_decls[BUILT_IN_SYNCHRONIZE];
+  tree fn = built_in_decls[BUILT_IN_SYNC_SYNCHRONIZE];
   VEC(tree,gc) *vec = make_tree_vector ();
   tree stmt = finish_call_expr (fn, &vec, false, false, tf_warning_or_error);
   release_tree_vector (vec);
@@ -6357,7 +6357,7 @@ cxx_eval_component_reference (const constexpr_call *call, tree t,
     }
   if (TREE_CODE (TREE_TYPE (whole)) == UNION_TYPE)
     {
-      /* FIXME Mike Miller wants this to be OK.  */
+      /* DR 1188 says we don't have to deal with this.  */
       if (!allow_non_constant)
 	error ("accessing %qD member instead of initialized %qD member in "
 	       "constant expression", part, CONSTRUCTOR_ELT (whole, 0)->index);
@@ -6881,7 +6881,7 @@ cxx_eval_indirect_ref (const constexpr_call *call, tree t,
 	{
 	  gcc_assert (!same_type_ignoring_top_level_qualifiers_p
 		      (TREE_TYPE (TREE_TYPE (sub)), TREE_TYPE (t)));
-	  /* FIXME Mike Miller wants this to be OK.  */
+	  /* DR 1188 says we don't have to deal with this.  */
 	  if (!allow_non_constant)
 	    error ("accessing value of %qE through a %qT glvalue in a "
 		   "constant expression", build_fold_indirect_ref (sub),
@@ -7020,6 +7020,15 @@ cxx_eval_constant_expression (const constexpr_call *call, tree t,
       break;
 
     case TARGET_EXPR:
+      if (!literal_type_p (TREE_TYPE (t)))
+	{
+	  if (!allow_non_constant)
+	    error ("temporary of non-literal type %qT in a "
+		   "constant expression", TREE_TYPE (t));
+	  *non_constant_p = true;
+	  break;
+	}
+      /* else fall through.  */
     case INIT_EXPR:
       /* Pass false for 'addr' because these codes indicate
 	 initialization of a temporary.  */
@@ -7840,8 +7849,15 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
       return potential_constant_expression_1 (TREE_OPERAND (t, 1),
 					      want_rval, flags);
 
-    case INIT_EXPR:
     case TARGET_EXPR:
+      if (!literal_type_p (TREE_TYPE (t)))
+	{
+	  if (flags & tf_error)
+	    error ("temporary of non-literal type %qT in a "
+		   "constant expression", TREE_TYPE (t));
+	  return false;
+	}
+    case INIT_EXPR:
       return potential_constant_expression_1 (TREE_OPERAND (t, 1),
 					      rval, flags);
 
@@ -8177,7 +8193,7 @@ lambda_return_type (tree expr)
       SET_TYPE_STRUCTURAL_EQUALITY (type);
     }
   else
-    type = type_decays_to (unlowered_expr_type (expr));
+    type = cv_unqualified (type_decays_to (unlowered_expr_type (expr)));
   return type;
 }
 
@@ -8780,7 +8796,10 @@ maybe_add_lambda_conv_op (tree type)
   argvec = make_tree_vector ();
   VEC_quick_push (tree, argvec, arg);
   for (arg = DECL_ARGUMENTS (statfn); arg; arg = DECL_CHAIN (arg))
-    VEC_safe_push (tree, gc, argvec, arg);
+    {
+      mark_exp_read (arg);
+      VEC_safe_push (tree, gc, argvec, arg);
+    }
   call = build_call_a (callop, VEC_length (tree, argvec),
 		       VEC_address (tree, argvec));
   CALL_FROM_THUNK_P (call) = 1;
