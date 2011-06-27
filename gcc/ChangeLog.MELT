@@ -1,6 +1,19 @@
 
 2011-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* Makefile.in (MELT_RUNTIME_CPPDEFS): New variable.
+	(melt-runtime.o): Use it.
+	(melt.encap): Do also check-melt-runtime; echo-s are made silent.
+	(check-melt-runtime): New phony target.
+
+	* melt/warmelt-base.melt (cstring_prefixed): New cmatcher.
+
+	* melt/xtramelt-ana-simple.melt (meltframe_gate, meltframe_exec)
+	(meltframe_docmd): New functions.
+	(meltframe_mode): New mode.
+
+2011-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (MELT_INITFRAME_AT_MACRO): New internal macro.
 	(MELT_INITFRAME): Use it.
 	(MELT_LOCATION_HERE_AT_MACRO, MELT_LOCATION_HERE): New internal macros.

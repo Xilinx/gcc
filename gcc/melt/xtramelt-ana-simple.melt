@@ -2,7 +2,7 @@
 ;; file ana-simple.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2009 Free Software Foundation, Inc.
+    Copyright 2009, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -1282,4 +1282,59 @@
 )
 (install_melt_mode justscan_mode "justscan")
 
-;; eof ana-simple.melt
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; a pass to help write MELT code in C.
+;; it checks that the meltfram__ structure is correctly dimensionned.
+
+(defun meltframe_gate (pass)
+  (debug_msg pass "meltframe_gate pass at start")
+  (with_cfun_decl
+   ()
+   (:tree cfundecl)
+   (match cfundecl
+	  ;; melt-runtime.c has has garbage collecting MELT functions starting with meltgc_
+	  ( ?(tree_function_decl ?(cstring_prefixed "meltgc_") ?_)
+	     )
+	  ;; MELT generated routines start with meltrout_
+	  ( ?(tree_function_decl ?(cstring_prefixed "meltrout_") ?_)
+	     )
+	  ( ?(tree_function_decl ?(cstring_same "start_module_melt") ?_)
+	     )
+	  (?_
+	   (return)
+	   )
+	  )
+   (inform_at_tree cfundecl "found MELT routine")
+   (return pass)
+   )
+  )
+
+(defun meltframe_exec (pass)
+  (debug_msg pass "meltframe_exec pass at start")
+)
+
+
+(defun meltframe_docmd (cmd moduldata)
+  (let ( (justscanpass
+	  (instance class_gcc_gimple_pass
+		    :named_name '"melt_frame_pass"
+		    :gccpass_gate meltframe_gate
+		    :gccpass_exec meltframe_exec
+		    :gccpass_data (make_maptree discr_map_trees 100)
+		    :gccpass_properties_required ()
+		    ))
+	 )
+    (install_melt_gcc_pass justscanpass "after" "cfg" 0)
+    (debug_msg justscanpass "meltframe_docmd installed pass")
+    (return cmd)	       ;return non-nil to continue compilation
+    ))
+
+(definstance meltframe_mode
+  class_melt_mode
+  :named_name '"meltframe"
+  :meltmode_help '"install a pass checking MELT frame accesses"
+  :meltmode_fun meltframe_docmd
+)
+(install_melt_mode meltframe_mode "meltframe")
+
+;; eof xtramelt-ana-simple.melt

@@ -2879,19 +2879,22 @@ common/common-targhooks.o : common/common-targhooks.c $(CONFIG_H) $(SYSTEM_H) \
 
 ## FIXME: melt_installed_cflags may vary from stage1 to stage2 so
 ## melt-runtime.o fails in the compare step.
-melt-runtime.o:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
-   $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
-	tree-pass.h $(MELT_H) \
-	$(srcdir)/melt/generated/meltrunsup.h $(srcdir)/melt/generated/meltrunsup-inc.c  \
-   gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
-	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/ \
+MELT_RUNTIME_CPPDEFS= \
 	  -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
 	  -DMELT_MODULE_DIR=\"$(melt_module_dir)\" \
 	  -DMELT_MODULE_MAKE_COMMAND=\"$(MAKE)\" \
 	  -DMELT_REVISION=\"$(shell echo -n $(REVISION_c) | tr -s [:space:] _)\" \
 	  '-DMELT_MODULE_CFLAGS="$(melt_installed_cflags)"' \
 	  -DMELT_MODULE_MAKEFILE=\"$(melt_installed_module_makefile)\" \
-	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modules_list)\" \
+	  -DMELT_DEFAULT_MODLIS=\"$(melt_default_modules_list)\" 
+
+melt-runtime.o:  $(MELT_RUNTIME_C) Makefile melt-run-md5.h  $(C_COMMON_H) \
+   $(CONFIG_H) $(SYSTEM_H) $(TIMEVAR_H) $(TM_H)  $(TREE_H)  $(GGC_H) $(BASIC_BLOCK_H) $(GIMPLE_H) $(CFGLOOP_H)  \
+	tree-pass.h $(MELT_H) \
+	$(srcdir)/melt/generated/meltrunsup.h $(srcdir)/melt/generated/meltrunsup-inc.c  \
+   gt-melt-runtime.h $(PLUGIN_H) $(TOPLEV_H) $(VERSION_H)
+	$(CC) $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/ \
+	  $(MELT_RUNTIME_CPPDEFS) \
 	  -c $(MELT_RUNTIME_C) $(OUTPUT_OPTION)
 
 
@@ -5422,23 +5425,26 @@ include $(srcdir)/melt-build.mk
 .PHONY: melt.encap
 
 melt.encap: cc1$(exeext) $(melt_make_cc1_dependency)
-	echo melt.encap making Makefile and melt-build.mk
+	@echo melt.encap making Makefile and melt-build.mk
 	$(MAKE) Makefile $(srcdir)/melt-build.mk
-	echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags)
+	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags)
 	$(MAKE) warmelt0
-	echo melt.encap making warmelt1 with melt_cflags= $(melt_cflags)
+	@echo melt.encap making warmelt1 with melt_cflags= $(melt_cflags)
 ##  melt_cflags are exported!
 	$(MAKE) warmelt1
-	echo melt.encap making warmelt2
+	@echo melt.encap making warmelt2
 	$(MAKE) warmelt2
-	echo melt.encap making warmelt
+	@echo melt.encap making warmelt
 	$(MAKE) warmelt
-	echo melt.encap making all-melt
-	$(MAKE) all-melt
-	echo making $(melt_default_modules_list).modlis
+	@echo making $(melt_default_modules_list).modlis
 	$(MAKE) $(melt_default_modules_list).modlis
+	@echo melt.encap making all-melt
+	$(MAKE) all-melt
+	@echo melt.encap making check-melt-runtime
+	$(MAKE) check-melt-runtime
+	@echo melt.encap made check-melt-runtime
 
-.PHONY: install-all-melt install-melt-includes install-melt-sources install-melt-modules install-melt-mk install-melt-default-modules-list 
+.PHONY: install-all-melt install-melt-includes install-melt-sources install-melt-modules install-melt-mk install-melt-default-modules-list check-melt-runtime
 
 install-all-melt: all-melt install-melt-includes install-melt-sources install-melt-modules  install-melt-mk install-melt-default-modules-list 
 
@@ -5449,6 +5455,19 @@ install-melt-includes: melt-runtime.h melt-predef.h melt-run.h melt-run-md5.h me
 	for f in $^; do \
 	   $(INSTALL_DATA) $$f $(DESTDIR)/$(plugin_includedir)/ ; \
 	done
+
+
+## phony target to compile the MELT runtime using MELT to exercise the
+## meltframe MELT pass
+check-melt-runtime: melt-runtime.o melt-runtime.c xgcc$(exeext) \
+	 melt-sources melt-all-sources melt-modules melt-all-modules
+	$(GCC_FOR_TARGET)  $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/	\
+	    $(MELT_RUNTIME_CPPDEFS)							\
+	    $(meltarg_module_path)=melt-modules 					\
+	    $(meltarg_source_path)=melt-sources 					\
+            $(meltarg_mode)=meltframe 							\
+	  -c $(MELT_RUNTIME_C) -o /dev/null
+
 
 ### notice that melt-sources is a directory, but melt-all-sources is a
 ### phony makefile target from melt-build.mk
@@ -5524,6 +5543,7 @@ upgrade-warmelt: gtyp-real-meltplugin-input.list
 	@echo upgrade-warmelt rebuilding warmelt1
 	$(MAKE)  warmelt1
 	@echo upgrade-warmelt complete
+
 
 
 upgrade-bigmelt: warmeltallbig

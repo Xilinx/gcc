@@ -905,13 +905,26 @@ limited by a small length $PREFLEN.}#
   (:cstring str cstr)
   ()
   strsam
-  :doc #{The $CSTRING_SAME c-matcher match a string $STR and test if
+  :doc #{The $CSTRING_SAME c-matcher matches a string $STR and test if
   it equals to the constant string $CSTR. The match fails if $STR is a
   null string or different from $CSTR.}# 
 
-#{/*$strsam test*/ ($str && $cstr && !strcmp($str, $cstr)) }#
+#{/*$strsam test*/ ($STR && $CSTR && !strcmp($STR, $CSTR)) }#
   ;; no fill or operator
 )
+;; cmatcher for a cstring starting with a given prefix
+(defcmatcher cstring_prefixed 
+  (:cstring str cstr)
+  ()
+  strprefixed
+  :doc #{The $CSTRING_PREFIX c-matcher matches a string $STR and test if
+  it starts with the constant string $CSTR. The match fails if $STR is a
+  null string or not prefixed by $CSTR.}# 
+
+#{/*$STRPREFIXED test*/ ($STR && $CSTR && !strncmp($STR, $CSTR, strlen ($CSTR))) }#
+  ;; no fill or operator
+)
+
 
 ;; primitive to compute the length of a cstring
 (defprimitive cstring_length
@@ -2254,6 +2267,7 @@ polyhedron values.}#
  checkval_dbg
  compare_named_alpha
  cstring_length
+ cstring_prefixed
  cstring_same
  debugcstring
  debuglong
