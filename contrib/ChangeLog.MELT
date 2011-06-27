@@ -1,3 +1,7 @@
+2011-06-27  Alexandre Lissy <alissy@mandriva.com>
+
+       * build-melt-plugin.sh: Adding -b and -i switches to separate
+         build from install.
 
 2011-04-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	    Pierre Vittet  <piervit@pvittet.com>

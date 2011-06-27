@@ -41,6 +41,8 @@ usage() {
     echo " -B buildpath  # sets the GCC build path, e.g. -B /tmp/gcc-build" 
     echo " -M meltpath   # sets the GCC-MELT source subtree, e.g. /usr/src/gcc-melt/gcc" 
     echo " -Y your/gt-melt-runtime.h  # force the gengtype generated gt-melt-runtime.h" 
+    echo " -b  # building MELT"
+    echo " -i  # installing MELT"
     echo "$progname is for building MELT as a plugin, not a branch."
     echo "run $progname -h to get help" >&2
     exit 1
@@ -86,6 +88,8 @@ set_default_variables() {
     gcc_target=""
     gcc_plugin_directory=""
     quiet=""
+    install=""
+    build=""
     timestamp_file=build-gccmelt-timestamp
     gtypelist_file=buildmelt-gtype-input.list
 }
@@ -121,10 +125,20 @@ verbose_sleep() {
 ################ parsing the shell program argument
 parse_args() {
     progname=$0
-    while getopts "hqs:S:B:Y:M:C:" opt ; do
+    while getopts "hqbis:S:B:Y:M:C:" opt ; do
 	case $opt in
 	    h) usage;;
 	    q) quiet=1;;
+            b) 
+		    echo build-melt-plugin: entering build mode
+		    build=1;
+		    install=""
+		;;
+            i) 
+		    echo build-melt-plugin: entering install mode
+		    build="";
+		    install=1
+		;;
 	    s) 
 		verbose_echo Evaluating $OPTARG;
 		eval "$OPTARG"
@@ -450,12 +464,16 @@ verbose_sleep
 #
 # here we go!
 sanity_checks_gcc_info
-get_gty_melt_header
-build_melt_run_headers
-build_melt_dot_so
-bootstrap_melt
-make_melt_documentation
-install_melt
+if [ ! -z "$build" ]; then
+	get_gty_melt_header
+	build_melt_run_headers
+	build_melt_dot_so
+	bootstrap_melt
+	make_melt_documentation
+fi
+if [ ! -z "$install" ]; then
+	install_melt
+fi
 
 verbose_echo MELT plugin building terminated
 if [ ! -z "$quiet" ]; then
