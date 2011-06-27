@@ -1084,7 +1084,6 @@ melt_minor_copying_garbage_collector (size_t wanted)
 void
 melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 {
-  int ix = 0;
   bool needfull = FALSE;
   struct meltspecial_st **prevspecptr = NULL;
   struct meltspecial_st *specp = NULL;
@@ -1134,7 +1133,7 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
   if (gckd > MELT_ONLY_MINOR && melt_kilowords_sincefull >
       (unsigned long) melt_fullthresholdkilow)
     {
-      melt_debuggc_eprintf ("melt_garbcoll need full threshold melt_kilowords_sincefull %ld melt_fullthresholdkilow %d", 
+      melt_debuggc_eprintf ("melt_garbcoll need full threshold melt_kilowords_sincefull %ld melt_fullthresholdkilow %ld", 
 			    melt_kilowords_sincefull, melt_fullthresholdkilow);
       needfull = TRUE;
     }

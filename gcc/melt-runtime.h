@@ -752,7 +752,7 @@ melt_allocatereserved (size_t basesz, size_t gap)
 
 /* we maintain a small cache hasharray of touched values - the touched
    cache size should be a small prime */
-#define MELT_TOUCHED_CACHE_SIZE 17
+#define MELT_TOUCHED_CACHE_SIZE 19
 extern void *melt_touched_cache[MELT_TOUCHED_CACHE_SIZE];
 /* the touching routine should be called on every melt value which
    has been touched (by mutating one of its internal pointers) - it
@@ -765,7 +765,8 @@ meltgc_touch (void *touchedptr)
      highend bits of the pointer but we don't care, since the 32
      lowest bits are enough (as hash); we need a double cast to avoid
      a warning */
-  unsigned pad = (unsigned) (HOST_WIDE_INT) touchedptr;
+  HOST_WIDE_INT widepad = (HOST_WIDE_INT) touchedptr;
+  unsigned pad = (unsigned) widepad;
   if ((char *) touchedptr >= (char *) melt_startalz
       && (char *) touchedptr <= (char *) melt_endalz)
     return;
