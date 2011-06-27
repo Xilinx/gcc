@@ -13,7 +13,7 @@
 (debug_msg some_integer_multiple "some_integer_multiple at top")
 (debug_msg some_integer_greater_than "some_integer_greater_than at top")
 
-(defun testmatchnumber (f x :long i j)
+(defun testmatchnumber (f g x :long i j)
   (match i
          (?(some_integer_multiple
             (+i 2 j)
@@ -23,6 +23,8 @@
            (debuglong "testmatchnumber k" k)
            (f x k)
            )
+         (?(some_integer_greater_than 10)
+	   (g y i))
          )
   )
 
