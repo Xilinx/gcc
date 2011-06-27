@@ -2497,17 +2497,25 @@ extern melt_ptr_t melt_jmpval;
   meltfram__.mcfr_clos = (CLOS);					\
   melt_topframe = ((struct callframe_melt_st*)&meltfram__);		\
 } while(0)
-#define MELT_INITFRAME(NBVAR,CLOS) MELT_INITFRAME_AT(NBVAR,CLOS,__FILE__,__LINE__)
+#define MELT_INITFRAME_AT_MACRO(NBVAR,CLOS,FIL,LIN) \
+  MELT_INITFRAME_AT(NBVAR,CLOS,FIL,LIN)
+#define MELT_INITFRAME(NBVAR,CLOS) \
+  MELT_INITFRAME_AT_MACRO(NBVAR,CLOS,__FILE__,__LINE__)
 #define MELT_LOCATION(LOCS) do{meltfram__.mcfr_flocs= LOCS;}while(0)
-
 #define MELT_LOCATION_HERE_AT(FIL,LIN,MSG) do {				\
   static char locbuf_##LIN[88];						\
   if (!locbuf_##LIN[0])							\
     snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d <%s>",	\
 	     basename(FIL), (int)LIN, MSG);				\
-  meltfram__.mcfr_flocs =  locbuf_##LIN;					\
+  meltfram__.mcfr_flocs =  locbuf_##LIN;			       	\
 } while(0)
-#define MELT_LOCATION_HERE(MSG)  MELT_LOCATION_HERE_AT(__FILE__,__LINE__,MSG)
+/* We need several indirections of macro to have the ##LIN trick above
+   working!  */
+#define MELT_LOCATION_HERE_AT_MACRO(FIL,LIN,MSG) \
+  MELT_LOCATION_HERE_AT(FIL,LIN,MSG)
+#define MELT_LOCATION_HERE_MACRO(MSG)  \
+  MELT_LOCATION_HERE_AT_MACRO(__FILE__,__LINE__,MSG)
+#define MELT_LOCATION_HERE(MSG)  MELT_LOCATION_HERE_MACRO(MSG)
 #else
 #define MELT_DECLFRAME(NBVAR) struct {		\
   int mcfr_nbvar;				\

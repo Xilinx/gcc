@@ -1,6 +1,13 @@
 
 2011-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.h (MELT_INITFRAME_AT_MACRO): New internal macro.
+	(MELT_INITFRAME): Use it.
+	(MELT_LOCATION_HERE_AT_MACRO, MELT_LOCATION_HERE): New internal macros.
+	(MELT_LOCATION): Use them.
+
+2011-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* Makefile.in (melt_source_dir, melt_module_dir): Remove trailing
 	slash in definition.
 
