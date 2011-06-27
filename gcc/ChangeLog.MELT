@@ -1,5 +1,11 @@
 
 2011-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_minor_copying_garbage_collector): New
+	routine.
+	(melt_garbcoll): Move the minor GC out of it.  Call
+	melt_minor_copying_garbage_collector.
+
+2011-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tmatch-7.melt: Enhance test.
 
 2011-06-24  Basile Starynkevitch  <basile@starynkevitch.net>

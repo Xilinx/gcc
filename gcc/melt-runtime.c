@@ -955,6 +955,128 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 }
 
 
+/* The minor MELT GC is a copying generational garbage collector whose
+   old space is the GGC heap.  */
+static void
+melt_minor_copying_garbage_collector (size_t wanted)
+{
+  struct callframe_melt_st *cfram = NULL;
+  melt_ptr_t *storp = NULL;
+  struct meltspecial_st *specp = NULL;
+  int ix = 0;
+  melt_check_call_frames (MELT_ANYWHERE, "before garbage collection");
+  melt_debuggc_eprintf ("melt_minor_copying_garbage_collector %ld begin alz=%p-%p *****************\n", 
+			melt_nb_garbcoll, melt_startalz, melt_endalz);
+  gcc_assert ((char *) melt_startalz < (char *) melt_endalz);
+  gcc_assert ((char *) melt_curalz >= (char *) melt_startalz
+	      && (char *) melt_curalz < (char *) melt_storalz);
+  gcc_assert ((char *) melt_storalz < (char *) melt_endalz);
+  melt_bscanvec = VEC_alloc (melt_ptr_t, gc, 1024 + 32 * melt_minorsizekilow);
+  wanted += wanted / 4 + melt_minorsizekilow * 1000;
+  wanted |= 0x3fff;
+  wanted++;
+  if (wanted < melt_minorsizekilow * sizeof (void *) * 1024)
+    wanted = melt_minorsizekilow * sizeof (void *) * 1024;
+
+  melt_is_forwarding = TRUE;
+  melt_forward_counter = 0;
+  for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
+    MELT_FORWARDED (melt_globarr[ix]);
+  for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev)
+    {
+      int varix = 0;
+      if (cfram->mcfr_nbvar < 0 && cfram->mcfr_forwmarkrout) {
+	melt_debuggc_eprintf ("melt_minor_copying_garbage_collector forwarding*frame %p thru routine", 
+			      (void*) cfram);
+	cfram->mcfr_forwmarkrout (cfram, 0);
+      }
+      else if (cfram->mcfr_nbvar >= 0) 
+	{
+	  melt_debuggc_eprintf ("melt_minor_copying_garbage_collector forwarding*frame %p-%p of %d nbvars", 
+				(void*) cfram, 
+				(void*) (cfram->mcfr_varptr + cfram->mcfr_nbvar),
+				cfram->mcfr_nbvar);
+	  MELT_FORWARDED (cfram->mcfr_closp);
+	  for (varix = 0; varix < cfram->mcfr_nbvar; varix ++)
+	    MELT_FORWARDED (cfram->mcfr_varptr[varix]);
+	};
+      melt_debuggc_eprintf ("melt_minor_copying_garbage_collector forwarding*frame %p done", 
+			    (void*)cfram);
+    };
+  melt_debuggc_eprintf ("melt_minor_copying_garbage_collector %ld done forwarding", 
+			melt_nb_garbcoll);
+  melt_is_forwarding = FALSE;
+
+  /* Scan the store list.  */
+  for (storp = (melt_ptr_t *) melt_storalz;
+       (char *) storp < (char *) melt_endalz; storp++)
+    {
+      if (*storp)
+	melt_scanning (*storp);
+    }
+  melt_debuggc_eprintf ("melt_minor_copying_garbage_collector %ld scanned store list", 
+			melt_nb_garbcoll);
+
+  memset (melt_touched_cache, 0, sizeof (melt_touched_cache));
+
+  /* Sort of Cheney loop; http://en.wikipedia.org/wiki/Cheney%27s_algorithm */
+  while (!VEC_empty (melt_ptr_t, melt_bscanvec))
+    {
+      melt_ptr_t p = VEC_pop (melt_ptr_t, melt_bscanvec);
+      if (!p)
+	continue;
+      melt_scanning (p);
+    }
+  VEC_free (melt_ptr_t, gc, melt_bscanvec);
+  melt_bscanvec = NULL;
+
+  /* Delete every unmarked special on the new list and clear it */
+  for (specp = melt_newspeclist; specp; specp = specp->nextspec)
+    {
+      gcc_assert (melt_is_young (specp));
+      melt_debuggc_eprintf ("melt_minor_copying_garbage_collector specp %p has mark %d", 
+			    (void*) specp, specp->mark);
+
+#if ENABLE_CHECKING
+      if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) 
+	{
+	  int mag = specp->discr->meltobj_magic;
+	  fprintf (stderr, "melt_minor_copying_garbage_collector  new special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
+	  fflush (stderr);
+	  melt_debuggc_eprintf("melt_minor_copying_garbage_collector #%ld new special alptr_1 %p mag %d", 
+			       melt_nb_garbcoll, melt_alptr_1, mag);
+	  melt_break_alptr_1 ("garbcoll new special alptr_1");
+	}
+      if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) 
+	{
+	  int mag = specp->discr->meltobj_magic;
+	  fprintf (stderr, "melt_minor_copying_garbage_collector new special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
+	  fflush (stderr);
+	  melt_debuggc_eprintf("melt_minor_copying_garbage_collector #%ld new special alptr_2 %p mag %d", 
+			       melt_nb_garbcoll, melt_alptr_2, mag);
+	  melt_break_alptr_2 ("garbcoll new special alptr_2");
+	}
+#endif /*ENABLE_CHECKING*/
+
+      if (!specp->mark)
+	{
+	  melt_debuggc_eprintf ("melt_minor_copying_garbage_collector deleting newspec %p", (void*)specp);
+	  delete_special (specp);
+	}
+    }
+  melt_newspeclist = NULL;
+
+  /* Free the previous young zone and allocate a new one.  */
+  melt_debuggc_eprintf ("melt_minor_copying_garbage_collector %ld freeing alz=%p-%p", 
+			melt_nb_garbcoll, melt_startalz, melt_endalz);
+  melt_free_young_gc_zone ();
+  melt_kilowords_sincefull += wanted / (1024 * sizeof (void *));
+  melt_allocate_young_gc_zone (wanted);
+  melt_debuggc_eprintf ("melt_minor_copying_garbage_collector ending %ld allocated alz=%p-%p", 
+			melt_nb_garbcoll, melt_startalz, melt_endalz);
+}
+
+
 
 /***
  * Our copying garbage collector, based upon GGC which does the full collection.
@@ -963,17 +1085,21 @@ void
 melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
 {
   int ix = 0;
-  struct callframe_melt_st *cfram = NULL;
-  melt_ptr_t *storp = NULL;
   bool needfull = FALSE;
-  struct meltspecial_st *specp = NULL;
   struct meltspecial_st **prevspecptr = NULL;
+  struct meltspecial_st *specp = NULL;
   struct meltspecial_st *nextspecp = NULL;
   if (melt_prohibit_garbcoll)
     fatal_error ("melt garbage collection prohibited");
   melt_nb_garbcoll++;
   if (gckd == MELT_NEED_FULL)
-    needfull = TRUE;
+    { 
+      melt_debuggc_eprintf ("melt_garbcoll explicitly needs full gckd#%d", 
+			    (int) gckd);
+      needfull = TRUE;
+    }
+
+  /* set some parameters if they are cleared.  Should happen once.  */
   if (melt_minorsizekilow == 0)
     {
       const char* minzstr = melt_argument ("minor-zone");
@@ -997,125 +1123,24 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
       if (melt_fullperiod < 32) melt_fullperiod = 32;
       else if (melt_fullperiod > 256) melt_fullperiod = 256;
     }
-  melt_check_call_frames (MELT_ANYWHERE, "before garbage collection");
-  melt_debuggc_eprintf ("melt_garbcoll %ld begin alz=%p-%p *****************\n", 
-			melt_nb_garbcoll, melt_startalz, melt_endalz);
-  gcc_assert ((char *) melt_startalz < (char *) melt_endalz);
-  gcc_assert ((char *) melt_curalz >= (char *) melt_startalz
-	      && (char *) melt_curalz < (char *) melt_storalz);
-  gcc_assert ((char *) melt_storalz < (char *) melt_endalz);
-  melt_bscanvec = VEC_alloc (melt_ptr_t, gc, 1024 + 32 * melt_minorsizekilow);
-  wanted += wanted / 4 + melt_minorsizekilow * 1000;
-  wanted |= 0x3fff;
-  wanted++;
-  if (wanted < melt_minorsizekilow * sizeof (void *) * 1024)
-    wanted = melt_minorsizekilow * sizeof (void *) * 1024;
 
   if (melt_nb_garbcoll % melt_fullperiod == 0) 
-    needfull = TRUE;
-
-
-  melt_is_forwarding = TRUE;
-  melt_forward_counter = 0;
-  for (ix = 0; ix < MELTGLOB__LASTGLOB; ix++)
-    MELT_FORWARDED (melt_globarr[ix]);
-  for (cfram = melt_topframe; cfram != NULL; cfram = cfram->mcfr_prev)
     {
-      int varix = 0;
-      if (cfram->mcfr_nbvar < 0 && cfram->mcfr_forwmarkrout) {
-	melt_debuggc_eprintf ("melt_garbcoll forwarding*frame %p thru routine", 
-			      (void*) cfram);
-	cfram->mcfr_forwmarkrout (cfram, 0);
-      }
-      else if (cfram->mcfr_nbvar >= 0) 
-	{
-	  melt_debuggc_eprintf ("melt_garbcoll forwarding*frame %p-%p of %d nbvars", 
-				(void*) cfram, 
-				(void*) (cfram->mcfr_varptr + cfram->mcfr_nbvar),
-				cfram->mcfr_nbvar);
-	  MELT_FORWARDED (cfram->mcfr_closp);
-	  for (varix = 0; varix < cfram->mcfr_nbvar; varix ++)
-	    MELT_FORWARDED (cfram->mcfr_varptr[varix]);
-	};
-      melt_debuggc_eprintf ("melt_garbcoll forwarding*frame %p done", 
-			    (void*)cfram);
-    };
-  melt_debuggc_eprintf ("melt_garbcoll %ld done forwarding", 
-			melt_nb_garbcoll);
-  melt_is_forwarding = FALSE;
-
-  /* Scan the store list.  */
-  for (storp = (melt_ptr_t *) melt_storalz;
-       (char *) storp < (char *) melt_endalz; storp++)
-    {
-      if (*storp)
-	melt_scanning (*storp);
+      melt_debuggc_eprintf ("melt_garbcoll peridically need full nbgarbcoll %ld fullperiod %d",
+			    melt_nb_garbcoll, melt_fullperiod);
+      needfull = TRUE;
     }
-  melt_debuggc_eprintf ("melt_garbcoll %ld scanned store list", 
-			melt_nb_garbcoll);
 
-  memset (melt_touched_cache, 0, sizeof (melt_touched_cache));
-
-
-
-  /* Sort of Cheney loop; http://en.wikipedia.org/wiki/Cheney%27s_algorithm */
-  while (!VEC_empty (melt_ptr_t, melt_bscanvec))
-    {
-      melt_ptr_t p = VEC_pop (melt_ptr_t, melt_bscanvec);
-      if (!p)
-	continue;
-      melt_scanning (p);
-    }
-  VEC_free (melt_ptr_t, gc, melt_bscanvec);
-  melt_bscanvec = NULL;
-
-  /* Delete every unmarked special on the new list and clear it */
-  for (specp = melt_newspeclist; specp; specp = specp->nextspec)
-    {
-      gcc_assert (melt_is_young (specp));
-      melt_debuggc_eprintf ("melt_garbcoll specp %p has mark %d", 
-			    (void*) specp, specp->mark);
-
-#if ENABLE_CHECKING
-      if (melt_alptr_1 && (void*)melt_alptr_1 == (void*)specp) 
-	{
-	  int mag = specp->discr->meltobj_magic;
-	  fprintf (stderr, "melt_garbcoll  new special alptr_1 %p mag %d\n",  melt_alptr_1, mag);
-	  fflush (stderr);
-	  melt_debuggc_eprintf("melt_garbcoll #%ld new special alptr_1 %p mag %d", 
-			       melt_nb_garbcoll, melt_alptr_1, mag);
-	  melt_break_alptr_1 ("garbcoll new special alptr_1");
-	}
-      if (melt_alptr_2 && (void*)melt_alptr_2 == (void*)specp) 
-	{
-	  int mag = specp->discr->meltobj_magic;
-	  fprintf (stderr, "melt_garbcoll new special alptr_2 %p mag %d\n",  melt_alptr_2, mag);
-	  fflush (stderr);
-	  melt_debuggc_eprintf("melt_garbcoll #%ld new special alptr_2 %p mag %d", 
-			       melt_nb_garbcoll, melt_alptr_2, mag);
-	  melt_break_alptr_2 ("garbcoll new special alptr_2");
-	}
-#endif /*ENABLE_CHECKING*/
-
-      if (!specp->mark)
-	{
-	  melt_debuggc_eprintf ("melt_garbcoll deleting newspec %p", (void*)specp);
-	  delete_special (specp);
-	}
-    }
-  melt_newspeclist = NULL;
-
-  /* Free the previous young zone and allocate a new one.  */
-  melt_debuggc_eprintf ("melt_garbcoll %ld freeing alz=%p-%p", 
-			melt_nb_garbcoll, melt_startalz, melt_endalz);
-  melt_free_young_gc_zone ();
-  melt_kilowords_sincefull += wanted / (1024 * sizeof (void *));
   if (gckd > MELT_ONLY_MINOR && melt_kilowords_sincefull >
       (unsigned long) melt_fullthresholdkilow)
-    needfull = TRUE;
-  melt_allocate_young_gc_zone (wanted);
-  melt_debuggc_eprintf ("melt_garbcoll %ld allocated alz=%p-%p", 
-			melt_nb_garbcoll, melt_startalz, melt_endalz);
+    {
+      melt_debuggc_eprintf ("melt_garbcoll need full threshold melt_kilowords_sincefull %ld melt_fullthresholdkilow %d", 
+			    melt_kilowords_sincefull, melt_fullthresholdkilow);
+      needfull = TRUE;
+    }
+
+  melt_minor_copying_garbage_collector (wanted);
+
   if (needfull)
     {
       melt_nb_full_garbcoll++;
