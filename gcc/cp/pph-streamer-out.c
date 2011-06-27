@@ -1071,6 +1071,9 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
       /* FIXME pph: Should we merge DECL_INITIAL into lang_specific? */
       pph_out_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
       pph_out_lang_specific (stream, expr, ref_p);
+      /* DECL_CHAIN is handled by generic code, except for VAR_DECLs.  */
+      if (TREE_CODE (expr) == VAR_DECL)
+	pph_out_tree_or_ref_1 (stream, DECL_CHAIN (expr), ref_p, 3);
       break;
 
     case FUNCTION_DECL:
@@ -1078,6 +1081,7 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
       pph_out_lang_specific (stream, expr, ref_p);
       pph_out_tree_or_ref_1 (stream, DECL_SAVED_TREE (expr), ref_p, 3);
       pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (expr), ref_p);
+      pph_out_tree_or_ref_1 (stream, DECL_CHAIN (expr), ref_p, 3);
       break;
 
     case TYPE_DECL:

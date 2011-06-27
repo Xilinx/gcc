@@ -1225,6 +1225,9 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
       /* FIXME pph: Should we merge DECL_INITIAL into lang_specific? */
       DECL_INITIAL (expr) = pph_in_tree (stream);
       pph_in_lang_specific (stream, expr);
+      /* DECL_CHAIN is handled by generic code, except for VAR_DECLs.  */
+      if (TREE_CODE (expr) == VAR_DECL)
+	DECL_CHAIN (expr) = pph_in_tree (stream);
       break;
 
     case FUNCTION_DECL:
@@ -1232,6 +1235,7 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
       pph_in_lang_specific (stream, expr);
       DECL_SAVED_TREE (expr) = pph_in_tree (stream);
       DECL_STRUCT_FUNCTION (expr) = pph_in_struct_function (stream);
+      DECL_CHAIN (expr) = pph_in_tree (stream);
       break;
 
     case TYPE_DECL:

@@ -1,3 +1,8 @@
+2011-06-27  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x1functions.cc: Fixed bogus, now asm diff.
+	* g++.dg/pph/x1variables.cc: Fixed bogus, now asm diff.
+
 2011-06-14  Lawrence Crowl <crowl@google.com>
 
 	* g++.dg/pph/x1tmplfunc.cc: Replace ICE xfail with an assembly diff

@@ -1,5 +1,4 @@
-// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "'mbr_decl_inline' was not declared in this scope" "" { xfail *-*-* } 0 }
+// pph asm xdiff
 
 #include "x1functions.h"
 

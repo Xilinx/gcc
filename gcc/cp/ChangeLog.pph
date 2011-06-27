@@ -1,3 +1,12 @@
+2011-06-27  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (pph_read_tree):
+	Stream in DECL_CHAIN of VAR_DECL.
+	Stream in DECL_CHAIN of FUNCTION_DECL.
+	* pph-streamer-out.c (pph_write_tree):
+	Stream out DECL_CHAIN of VAR_DECL.
+	Stream out DECL_CHAIN of FUNCTION_DECL.
+
 2011-06-22  Gabriel Charette  <gchare@google.com>
 
 	* name-lookup.h (cp_binding_level): Removed unused
