@@ -5402,10 +5402,10 @@ melt_default_modules_list=melt-default-modules
 
 ## this is the installation directory of melt sources (*.melt files
 ## in MELT dialect and the corresponding *.c files)
-melt_source_dir=$(libexecsubdir)/melt-source/
+melt_source_dir=$(libexecsubdir)/melt-source
 
 ## this is the installation directory of melt dynamic modules (*.so) and module list
-melt_module_dir=$(libexecsubdir)/melt-modules/
+melt_module_dir=$(libexecsubdir)/melt-modules
 
 ## this is the installed path of the MELT module makefile
 melt_installed_module_makefile=$(libexecsubdir)/melt-module.mk
