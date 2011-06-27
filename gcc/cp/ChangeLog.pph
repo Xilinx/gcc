@@ -1,5 +1,42 @@
 2011-06-27  Gabriel Charette  <gchare@google.com>
 
+	* pph-streamer-in.c (pph_get_type_from_index):
+	Rename from pth_get_type_from_index. Update all users.
+	(pph_in_number): Rename from pth_load_number.
+	Update all users.
+	(pph_in_token_value): Rename from pth_load_token_value. Change
+	signature to 'pph_stream*, cp_token*' from 'cp_token*, pph_stream*'.
+	Update all users.
+	(pph_in_token): Rename from pth_load_token.
+	Update all users.
+	(pph_in_token_cache): Rename from pth_load_token_cache.
+	Update all users.
+	(pph_in_identifiers): Rename from pth_load_identifiers. Change
+	signature to 'pph_stream*, cpp_idents_used*' from
+	'cpp_idents_used*, pph_stream*'.
+	from (cpp_idents_used*, pph_stream*).
+	Update all users.
+	* pph-streamer-out.c (pph_get_index_from_type):
+	Rename from pth_get_index_from_type.
+	Update all users.
+	(pph_out_number): Rename from pth_write_number.
+	Update all users.
+	(pph_out_token_value): Rename from pth_save_token_value.
+	Update all users.
+	(pph_out_token): Rename from pth_save_token. Change signature to
+	'pph_stream*, cp_token*' from 'cp_token*, pph_stream*'.
+	Update all users.
+	(pph_out_token_cache): Rename from pth_save_token_cache. Change
+	signature to 'pph_stream*, cp_token_cache*'
+	from 'cp_token_cache*, pph_stream*'.
+	Update all users.
+	(pph_out_identifiers): Rename from pth_save_identifiers. Change
+	signature to 'pph_stream*, cpp_idents_used*' from
+	'cpp_idents_used*, pph_stream*'.
+	Update all users.
+
+2011-06-27  Gabriel Charette  <gchare@google.com>
+
 	* pph-streamer-in.c (pth_get_type_from_index): Moved from pph.c.
 	(pth_load_number): Moved from pph.c.
 	(pth_load_token_value): Moved from pph.c.

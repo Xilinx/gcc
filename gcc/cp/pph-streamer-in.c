@@ -246,7 +246,7 @@ pph_register_shared_data (pph_stream *stream, void *data, unsigned ix)
    return a type from integer_types or global_trees.  */
 
 static tree
-pth_get_type_from_index (unsigned type_idx, unsigned type_kind)
+pph_get_type_from_index (unsigned type_idx, unsigned type_kind)
 {
   if (type_kind == CPP_N_INTEGER)
     return integer_types[type_idx];
@@ -266,7 +266,7 @@ pth_get_type_from_index (unsigned type_idx, unsigned type_kind)
 /* Load a numeric value from file F.  Return the corresponding tree.  */
 
 static tree
-pth_load_number (pph_stream *f)
+pph_in_number (pph_stream *f)
 {
   unsigned type_idx, type_kind;
   tree type, val;
@@ -274,7 +274,7 @@ pth_load_number (pph_stream *f)
   type_idx = pph_in_uint (f);
   type_kind = pph_in_uint (f);
 
-  type = pth_get_type_from_index (type_idx, type_kind);
+  type = pph_get_type_from_index (type_idx, type_kind);
 
   if (type_kind == CPP_N_INTEGER)
     {
@@ -296,8 +296,8 @@ pth_load_number (pph_stream *f)
     }
   else if (type_kind == CPP_N_IMAGINARY)
     {
-      tree r = pth_load_number (f);
-      tree i = pth_load_number (f);
+      tree r = pph_in_number (f);
+      tree i = pph_in_number (f);
       val = build_complex (NULL_TREE, r, i);
     }
   else
@@ -310,7 +310,7 @@ pth_load_number (pph_stream *f)
 /* Load the tree value associated with TOKEN to file F.  */
 
 static void
-pth_load_token_value (cp_token *token, pph_stream *f)
+pph_in_token_value (pph_stream *f, cp_token *token)
 {
   const char *str;
 
@@ -334,7 +334,7 @@ pth_load_token_value (cp_token *token, pph_stream *f)
       case CPP_CHAR16:
       case CPP_CHAR32:
       case CPP_NUMBER:
-	token->u.value = pth_load_number (f);
+	token->u.value = pph_in_number (f);
 	break;
 
       case CPP_STRING:
@@ -359,7 +359,7 @@ pth_load_token_value (cp_token *token, pph_stream *f)
 /* Read and return a token from STREAM.  */
 
 static cp_token *
-pth_load_token (pph_stream *stream)
+pph_in_token (pph_stream *stream)
 {
   cp_token *token = ggc_alloc_cleared_cp_token ();
 
@@ -373,8 +373,8 @@ pth_load_token (pph_stream *stream)
      confusing the rest of the compiler for now.  */
   token->location = input_location;
 
-  /* FIXME pph: verify that pth_load_token_value works with no tokens.  */
-  pth_load_token_value (token, stream);
+  /* FIXME pph: verify that pph_in_token_value works with no tokens.  */
+  pph_in_token_value (stream, token);
 
   return token;
 }
@@ -383,7 +383,7 @@ pth_load_token (pph_stream *stream)
 /* Read and return a cp_token_cache instance from STREAM.  */
 
 static cp_token_cache *
-pth_load_token_cache (pph_stream *stream)
+pph_in_token_cache (pph_stream *stream)
 {
   unsigned i, num;
   cp_token *first, *last;
@@ -391,7 +391,7 @@ pth_load_token_cache (pph_stream *stream)
   num = pph_in_uint (stream);
   for (last = first = NULL, i = 0; i < num; i++)
     {
-      last = pth_load_token (stream);
+      last = pph_in_token (stream);
       if (first == NULL)
 	first = last;
     }
@@ -761,7 +761,7 @@ pph_in_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
     gcc_unreachable ();
 
   if (ldf->pending_inline_p == 1)
-    ldf->u.pending_inline_info = pth_load_token_cache (stream);
+    ldf->u.pending_inline_info = pph_in_token_cache (stream);
   else if (ldf->pending_inline_p == 0)
     ldf->u.saved_language_function = pph_in_language_function (stream);
 }
@@ -1222,7 +1222,7 @@ report_validation_error (const char *filename,
 /* Load the IDENTIFERS for a hunk from a STREAM.  */
 
 static void
-pth_load_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
+pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 {
   unsigned int j;
   unsigned int max_ident_len, max_value_len, num_entries;
@@ -1302,7 +1302,7 @@ pph_read_file_contents (pph_stream *stream)
   const char *cur_def;
   cpp_idents_used idents_used;
 
-  pth_load_identifiers (&idents_used, stream);
+  pph_in_identifiers (stream, &idents_used);
 
   /* FIXME pph: This validation is weak.  */
   verified = cpp_lt_verify_1 (parse_in, &idents_used, &bad_use, &cur_def, true);
@@ -1529,7 +1529,7 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
 
     case DEFAULT_ARG:
       pph_in_tree_common (stream, expr);
-      DEFARG_TOKENS (expr) = pth_load_token_cache (stream);
+      DEFARG_TOKENS (expr) = pph_in_token_cache (stream);
       DEFARG_INSTANTIATIONS (expr) = pph_in_tree_vec (stream);
       break;
 

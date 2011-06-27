@@ -237,7 +237,7 @@ pph_out_start_record (pph_stream *stream, void *data)
    CPP_N_FLOATING, etc) is saved in CATEGORY_P.  */
 
 static void
-pth_get_index_from_type (tree type, unsigned *type_ix_p, unsigned *category_p)
+pph_get_index_from_type (tree type, unsigned *type_ix_p, unsigned *category_p)
 {
   void **val_p;
   static struct pointer_map_t *type_cache = NULL;
@@ -301,11 +301,11 @@ pth_get_index_from_type (tree type, unsigned *type_ix_p, unsigned *category_p)
 /* Save the number VAL to file F.  */
 
 static void
-pth_write_number (pph_stream *f, tree val)
+pph_out_number (pph_stream *f, tree val)
 {
   unsigned type_idx, type_kind;
 
-  pth_get_index_from_type (TREE_TYPE (val), &type_idx, &type_kind);
+  pph_get_index_from_type (TREE_TYPE (val), &type_idx, &type_kind);
 
   pph_out_uint (f, type_idx);
   pph_out_uint (f, type_kind);
@@ -330,8 +330,8 @@ pth_write_number (pph_stream *f, tree val)
     }
   else if (type_kind == CPP_N_IMAGINARY)
     {
-      pth_write_number (f, TREE_REALPART (val));
-      pth_write_number (f, TREE_IMAGPART (val));
+      pph_out_number (f, TREE_REALPART (val));
+      pph_out_number (f, TREE_IMAGPART (val));
     }
   else
     gcc_unreachable ();
@@ -341,7 +341,7 @@ pth_write_number (pph_stream *f, tree val)
 /* Save the tree associated with TOKEN to file F.  */
 
 static void
-pth_save_token_value (pph_stream *f, cp_token *token)
+pph_out_token_value (pph_stream *f, cp_token *token)
 {
   const char *str;
   unsigned len;
@@ -371,7 +371,7 @@ pth_save_token_value (pph_stream *f, cp_token *token)
       case CPP_CHAR16:
       case CPP_CHAR32:
       case CPP_NUMBER:
-	pth_write_number (f, val);
+	pph_out_number (f, val);
 	break;
 
       case CPP_STRING:
@@ -398,7 +398,7 @@ pth_save_token_value (pph_stream *f, cp_token *token)
 /* Save TOKEN on file F.  Return the number of bytes written on F.  */
 
 static void
-pth_save_token (cp_token *token, pph_stream *f)
+pph_out_token (pph_stream *f, cp_token *token)
 {
   /* Do not write out the final field in TOKEN.  It contains
      pointers that need to be pickled separately.
@@ -406,14 +406,14 @@ pth_save_token (cp_token *token, pph_stream *f)
      FIXME pph - Need to also emit the location_t table so we can
      reconstruct it when reading the PTH state.  */
   pph_out_bytes (f, token, sizeof (cp_token) - sizeof (void *));
-  pth_save_token_value (f, token);
+  pph_out_token_value (f, token);
 }
 
 
 /* Save all the tokens in CACHE to PPH stream F.  */
 
 static void
-pth_save_token_cache (cp_token_cache *cache, pph_stream *f)
+pph_out_token_cache (pph_stream *f, cp_token_cache *cache)
 {
   unsigned i, num;
   cp_token *tok;
@@ -429,7 +429,7 @@ pth_save_token_cache (cp_token_cache *cache, pph_stream *f)
 
   pph_out_uint (f, num);
   for (i = 0, tok = cache->first; i < num; tok++, i++)
-    pth_save_token (tok, f);
+    pph_out_token (f, tok);
 }
 
 /* Write all the fields in lang_decl_base instance LDB to OB.  */
@@ -789,7 +789,7 @@ pph_out_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf,
     gcc_unreachable ();
 
   if (ldf->pending_inline_p == 1)
-    pth_save_token_cache (ldf->u.pending_inline_info, stream);
+    pph_out_token_cache (stream, ldf->u.pending_inline_info);
   else if (ldf->pending_inline_p == 0)
     pph_out_language_function (stream, ldf->u.saved_language_function,
 					ref_p);
@@ -1144,7 +1144,7 @@ pph_out_scope_chain (pph_stream *stream, struct saved_scope *ss, bool ref_p)
 /* Save the IDENTIFIERS to the STREAM.  */
 
 static void
-pth_save_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
+pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 {
   unsigned int num_entries, active_entries, id;
 
@@ -1196,7 +1196,7 @@ pth_save_identifiers (cpp_idents_used *identifiers, pph_stream *stream)
 static void
 pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
 { 
-  pth_save_identifiers (idents_used, stream);
+  pph_out_identifiers (stream, idents_used);
   pph_out_scope_chain (stream, scope_chain, false);
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
@@ -1424,7 +1424,7 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
 
     case DEFAULT_ARG:
       pph_out_tree_common (stream, expr, ref_p);
-      pth_save_token_cache (DEFARG_TOKENS (expr), stream);
+      pph_out_token_cache (stream, DEFARG_TOKENS (expr));
       pph_out_tree_vec (stream, DEFARG_INSTANTIATIONS (expr), ref_p);
       break;
 
