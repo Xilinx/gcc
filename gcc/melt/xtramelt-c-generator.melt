@@ -1,8 +1,9 @@
 ;; -*- Lisp -*-
 ;; file xtramelt-c-generator.melt
 (comment "***
-    Copyright 2010 Free Software Foundation, Inc.
+    Copyright 2010, 2011 Free Software Foundation, Inc.
     Contributed by Jeremie Salvucci  <jeremie.salvucci@free.fr>
+                with improvements by  Basile Starynkevitch  <basile@starynkevitch.net>
 
     This file is part of GCC.
 
@@ -666,7 +667,7 @@
 	 (?(tree_address_expression ?_ ?expression)
 	   (add2sbuf_strconst buffer "&")
 	   (get_tree_value_rec function sets buffer expression))
-	 (?(tree_component_ref ?type ?arg0 ?arg1)
+	 (?(tree_component_ref_typed ?type ?arg0 ?arg1)
 	   (match type
 		  (?(tree_record_type ?_)
 		     (handle_structure_declaration datas function sets value type arg0 arg1))

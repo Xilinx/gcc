@@ -1561,6 +1561,96 @@
   #{ /*$treevarn !*/ }# )
 
 ;;;;;;;;;;;;;;;;
+;; pattern tree_array_ref matches an array reference with array and index
+(defcmatcher tree_array_ref
+  (:tree tr)				;input
+  (:tree trarr trindex)
+  treearrayref			 ;statesym
+  ;; test
+  #{ /*$TREEARRAYREF ?*/ (($TR) && TREE_CODE($TR) == ARRAY_REF) }#
+  ;; fill
+  #{ /*$TREEARRAYREF !*/ 
+    $TRARR = TREE_OPERAND ($TR, 0);
+    $TRINDEX = TREE_OPERAND ($TR, 1);
+  }#)
+
+;; pattern tree_array_ref_full
+(defcmatcher  tree_array_ref_full
+  (:tree tr)				;input
+  (:tree trarr trindex trmin trsize)
+  treearrayreffull			 ;statesym
+  ;; test
+  #{ /*$TREEARRAYREFFULL ?*/ (($TR) && TREE_CODE($TR) == ARRAY_REF) }#
+  ;; fill
+  #{ /*$TREEARRAYREFFULL !*/ 
+    int $TREEARRAYREFFULL#_len = TREE_OPERAND_LENGTH($TR);
+    $TRARR = TREE_OPERAND ($TR, 0);
+    $TRINDEX = TREE_OPERAND ($TR, 1);
+    $TRMIN = ($TREEARRAYREFFULL#_len >= 3) ? TREE_OPERAND ($TR, 2) : ((tree)0);
+    $TRSIZE = ($TREEARRAYREFFULL#_len >= 4) ? TREE_OPERAND ($TR, 3) : ((tree)0);
+  }#)
+
+;;;;;;;;;;;;;;;;
+;; pattern tree_component_ref matches an component reference with component and index
+(defcmatcher tree_component_ref
+  (:tree tr)				;input
+  ;; traggr is the aggregate (ie a struct or union)
+  (:tree traggr trfield)		;output
+  treecomponentref			 ;statesym
+  ;; test
+  #{ /*$TREECOMPONENTREF ?*/ (($TR) && TREE_CODE($TR) == COMPONENT_REF) }#
+  ;; fill
+  #{ /*$TREECOMPONENTREF !*/ 
+    $TRAGGR = TREE_OPERAND ($TR, 0);
+    $TRFIELD = TREE_OPERAND ($TR, 1);
+  }#)
+
+(defcmatcher tree_component_ref_full
+  (:tree tr)				;input
+  ;; traggr is the aggregate (ie a struct or union)
+  (:tree traggr trfield troff)
+  treecomponentreffull			 ;statesym
+  ;; test
+  #{ /*$TREECOMPONENTREFFULL ?*/ (($TR) && TREE_CODE($TR) == COMPONENT_REF) }#
+  ;; fill
+  #{ /*$TREECOMPONENTREFFULL !*/ 
+    int $TREECOMPONENTREFFULL#_len = TREE_OPERAND_LENGTH($TR);
+    $TRAGGR = TREE_OPERAND ($TR, 0);
+    $TRFIELD = TREE_OPERAND ($TR, 1);
+    $TROFF = ($TREECOMPONENTREFFULL#_len > 2) ? TREE_OPERAND ($TR, 2) : (tree)0;
+  }#)
+
+(defcmatcher tree_component_ref_typed
+  (:tree tr)
+  (:tree type
+   :tree arg0
+   :tree arg1)
+  treecr
+
+  #{
+       (($tr) && TREE_CODE ($tr) == COMPONENT_REF)
+  }#
+
+  #{
+       $type = TREE_TYPE ($tr);
+       $arg0 = TREE_OPERAND ($tr, 0);
+       $arg1 = TREE_OPERAND ($tr, 1);
+  }#)
+
+;; pattern tree_mem_ref matches a memory reference with pointer and offset
+(defcmatcher tree_mem_ref
+  (:tree tr)				;input
+  (:tree trptr troff)
+  treememref			 ;statesym
+  ;; test
+  #{ /*$TREEMEMREF ?*/ (($TR) && TREE_CODE($TR) == MEM_REF) }#
+  ;; fill
+  #{ /*$TREEMEMREF !*/ 
+    $TRPTR = TREE_OPERAND ($TR, 0);
+    $TROFF = TREE_OPERAND ($TR, 1);
+  }#)
+
+;;;;;;;;;;;;;;;;
 ;; pattern tree_block matches a block
 (defcmatcher tree_block 
   (:tree tr)
@@ -1816,23 +1906,6 @@
   #{
        $type = TREE_TYPE ($tr);
        $expression = TREE_OPERAND ($tr, 0);
-  }#)
-
-(defcmatcher tree_component_ref
-  (:tree tr)
-  (:tree type
-   :tree arg0
-   :tree arg1)
-  treecr
-
-  #{
-       (($tr) && TREE_CODE ($tr) == COMPONENT_REF)
-  }#
-
-  #{
-       $type = TREE_TYPE ($tr);
-       $arg0 = TREE_OPERAND ($tr, 0);
-       $arg1 = TREE_OPERAND ($tr, 1);
   }#)
 
 (defcmatcher tree_record_type
@@ -3490,8 +3563,12 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  raw_new_ppl_unsatisfiable_constraint_system
  reveach_in_gimpleseq
  tree_address_expression
+ tree_array_ref
+ tree_array_ref_full
  tree_block
  tree_component_ref
+ tree_component_ref_full
+ tree_component_ref_typed
  tree_content 
  tree_decl
  tree_field_declaration
@@ -3502,6 +3579,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_integer_cst
  tree_integer_type
  tree_list
+ tree_mem_ref
  tree_of_type
  tree_parm_decl
  tree_pointer_type_p
