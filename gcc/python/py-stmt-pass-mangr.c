@@ -241,18 +241,19 @@ gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t ** dot)
  **/
 void gpy_stmt_write_globals (void)
 {
-  VEC(tree,gc) * module_types = gpy_stmt_pass_generate_types (gpy_decls);
-  VEC(tree,gc) * dot2gen_trees = gpy_stmt_pass_lower (module_types, gpy_decls);
-
-  VEC(tree,gc) * globals = dot2gen_trees;
   int idx = 0;
+  VEC(gpydot,gc) * dot_decls = gpy_decls;
   while (gpy_stmt_pass_mngr[idx] != NULL)
     {
       DOT_stmt_pass x = gpy_stmt_pass_mngr[idx];
-      globals = x(module_types, globals);
-      idx++
+      dot_decls = x(dot_decls);
+      idx++;
     }
 
+  VEC(tree,gc) * module_types = gpy_stmt_pass_generate_types (dot_decls);
+  VEC(tree,gc) * dot2gen_trees = gpy_stmt_pass_lower (module_types, gpy_decls);
+  VEC(tree,gc) * globals = dot2gen_trees;
+  
   int global_vec_len = VEC_length (tree, globals);
   tree * global_vec = XNEWVEC (tree, global_vec_len);
   tree itx = NULL_TREE;
@@ -286,5 +287,8 @@ void gpy_stmt_write_globals (void)
   debug("finished passing to middle-end!\n\n");
 }
 
-typedef VEC(tree,gc) * (*DOT_stmt_pass__)(VEC(tree,gc) *, VEC(tree,gc) *);
-static DOT_stmt_pass gpy_stmt_pass_mngr[] = { NULL };
+typedef VEC(tree,gc) * (*DOT_stmt_pass__)(VEC(gpydot,gc) *);
+static DOT_stmt_pass gpy_stmt_pass_mngr[] = 
+{
+  NULL /* sentinal */
+};

@@ -52,6 +52,24 @@ along with GCC; see the file COPYING3.  If not see
 static VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t *, VEC(gpydot,gc) *);
 static tree gpy_stmt_pass_lower_get_module_type (const char *, gpy_hash_tab *);
 static void gpy_stmt_pass_lower_gen_toplevl_context (tree, gpy_hash_tab_t *);
+static tree gpy_stmt_pass_lower_gen_concat_identifier (char *, char *);
+
+static
+tree gpy_stmt_pass_lower_gen_concat_identifier (char * s1, char * s2)
+{
+  size_t s1len = strlen (s1);
+  size_t s2len = strlen (s2);
+  size_t tlen = s1len + s2len;
+
+  char buffer[len + 1];
+  strncpy (buffer,s1,s1len);
+  strncat (buffer,s2,s2len);
+  buffer[len] = '\0';
+
+  debug ("buffer = <%s>!\n", buffer);
+
+  return get_identifier (buffer);
+}
 
 static
 tree gpy_stmt_pass_lower_get_module_type (const char * s, 
@@ -278,6 +296,28 @@ tree gpy_stmt_decl_lower_expr (gpy_dot_tree_t * decl,
 tree gpy_stmt_pass_lower_functor (gpy_dot_tree_t * decl,
 				  gpy_hash_tab_t * modules)
 {
+  tree block = alloc_stmt_list ();
+  tree declvars = NULL_TREE;
+
+  gpy_hash_tab_t toplvl, topnxt;
+  gpy_dd_hash_init_table (&toplvl);
+  gpy_dd_hash_init_table (&topnxt);
+
+  tree main_init_module = gpy_stmt_pass_lower_get_module_type ("main.main",
+							       modules);
+  tree fntype = build_function_type_list (build_pointer_type (main_init_module),
+					  /* 
+					     handle function parameters
+					     ... 
+					   */
+					  NULL_TREE);
+  tree fndecl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL,
+			    gpy_stmt_pass_lower_gen_concat_identifier ("main.main",
+								       DOT_FIELD (decl)),
+			    fntype);
+
+  
+
   return error_mark_node;
 }
 
@@ -306,12 +346,13 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
   TREE_PUBLIC (main_init_fndecl) = 1;
   TREE_STATIC (main_init_fndecl) = 1;
 
+  SET_DECL_ASSEMBLER_NAME (main_init_fndecl, get_identifier("main.main.init"));
   tree self_parm_decl = build_decl (BUILTINS_LOCATION, PARM_DECL,
 				    get_identifier ("__self__"),
-				    TYPE_ARG_TYPES (TREE_TYPE (fndecl))
+				    TYPE_ARG_TYPES (TREE_TYPE (main_init_fndecl))
 				    );
   DECL_CONTEXT (self_parm_decl) = fndecl;
-  DECL_ARG_TYPE (self_parm_decl) = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (fndecl)));
+  DECL_ARG_TYPE (self_parm_decl) = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (main_init_fndecl)));
   TREE_READONLY (self_parm_decl) = 1;
 
   gpy_stmt_pass_lower_gen_toplevl_context (main_init_module, self_parm_decl,
@@ -320,6 +361,13 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
   VEC(gpy_ctx_t,gc) * toplevl_context = VEC_alloc (gpy_ctx_t, 0);
   VEC_safe_push (gpy_ctx_t, gc, toplevl_context, toplvl);
   VEC_safe_push (gpy_ctx_t, gc, toplevl_context, topnxt);
+
+  /*
+  DECL_CONTEXT(main_init_resdecl) = main_init_fndecl;
+  DECL_RESULT(main_init_fndecl) = resdecl;
+  */
+
+  DECL_INITIAL(main_init_fndecl) = block;
   
   int idx = 0;
   gpy_dot_tree_t * idtx = NULL_DOT;
@@ -366,7 +414,13 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
 	  break;
 	}
     }
-  
+
+  gimplify_function_tree (main_init_fndecl);
+
+  cgraph_add_new_function (main_init_fndecl, false);
+  cgraph_finalize_function (main_init_fndecl, true);
+
+  VEC_safe_push (tree,gc,retval, main_init_fndecl);
 
   return retval;
 }
