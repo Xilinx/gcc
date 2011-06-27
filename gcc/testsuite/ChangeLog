@@ -1,3 +1,94 @@
+2011-06-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49394
+	* g++.dg/torture/pr49394.C: New testcase.
+
+2011-06-27  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/optimize-bswapdi-2.c: New test.
+
+2011-06-27  Michael Hope  <michael.hope@linaro.org>
+	    Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR tree-optimization/49169
+	* gcc.dg/torture/pr49169.c: New test.
+
+2011-06-26  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/49529
+	* gcc.dg/ipa/ipa-pta-17.c: Use dg-require-alias.
+
+	* gcc.dg/debug/pr49294.c (dg-options): Add -fno-common to options on
+	hppa*-*-hpux*.
+
+2011-06-26  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-cleanup.C: Tweak error message.
+
+	PR c++/49528
+	* g++.dg/init/ref19.C: New.
+	* g++.dg/cpp0x/constexpr-cleanup.C: New.
+
+2011-06-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48377
+	* gcc.dg/vect/pr48377.c: Add dg-require-effective-target
+	non_strict_align.
+
+2011-06-26  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/49191
+	* lib/target-supports.exp (check_effective_target_non_strict_align):
+	New.
+	* gcc.dg/memcpy-3.c: Add dg-require-effective-target non_strict_align.
+
+2011-06-24  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimizations/49516
+	* g++.dg/tree-ssa/pr49516.C: New test.
+
+2011-06-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35255
+	* g++.dg/template/partial10.C: New.
+	* g++.dg/template/partial11.C: New.
+
+2011-06-23  Jeff Law <law@redhat.com>
+
+	PR middle-end/48770
+	* gcc.dg/pr48770.c: New test.
+
+2011-06-23  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/49373
+	* g++.dg/torture/pr43879-1_1.C: Revert the xfail introduced yesterday.
+
+2011-06-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/49512
+	* gcc.dg/tree-ssa/asm-1.c: Use -fdump-tree-optimized-nouid
+	instead of -fdump-tree-optimized.
+
+2011-06-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44625
+	* g++.dg/template/crash107.C: New.
+	* g++.dg/template/error17.C: Adjust.
+
+2011-06-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49507
+	* g++.dg/cpp0x/defaulted30.C: New.
+
+	PR c++/49440
+	* g++.dg/rtti/anon-ns1.C: New.
+
+	PR c++/49395
+	* g++.dg/init/ref18.C: New.
+
+	PR c++/36435
+	* g++.dg/template/partial9.C: New.
+
 2011-06-22  Hans-Peter Nilsson  <hp@axis.com>
 
 	PR middle-end/49373

@@ -1,3 +1,207 @@
+2011-06-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* dwarf2out.c (TYPE_DECL_IS_STUB): Extend mechanism to all types.
+
+2011-06-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR lto/48492
+	* dwarf2out.c (dwarf2out_finish): Do not attach a DIE on the limbo list
+	to a NULL parent.
+
+2011-06-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49394
+	* passes.c (execute_one_pass): Restore current_pass after
+	applying IPA transforms.
+
+2011-06-27  Kai Tietz  <ktietz@redhat.com>
+
+	* tree-ssa-math-opts.c (do_shift_rotate): Zero bits
+	out of type precision after operation.
+	(find_bswap): Take for limit value the integer auto-
+	promotion into account.
+
+2011-06-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* reorg.c (fill_simple_delay_slots): Use stop_search_p to stop the
+	forward scan as well.
+
+2011-06-27  Tristan Gingold  <gingold@adacore.com>
+
+	PR target/44241
+	* config/vms/vms-protos.h: New file.
+	* config/vms/vms-crtlmap.map: New file.
+	* config/vms/vms.c: New file.
+	* config/vms/make-crtlmap.awk: New file.
+	* config/vms/vms-crtl.h: File removed.
+	* config/vms/vms-crtl-64.h: File removed.
+	* config/vms/t-vms (vms-crtlmap.h, vms.o): New targets.
+	* config/alpha/vms64.h: Do not include vms-crtl-64.h
+	* config/alpha/alpha.c (alpha_init_builtins): Remove code to
+	clear some builtins on VMS.  Calls vms_patch_builtins.
+	(avms_asm_output_external): Remove.
+	* config/alpha/vms.h (ASM_OUTPUT_EXTERNAL): Remove.
+	(struct crtl_name_spec): Remove
+	(DO_CTRL_NAMES): Remove.
+	* config/ia64/vms.h (struct crtl_name_spec): Remove
+	(DO_CTRL_NAMES): Remove.
+	* config/ia64/ia64.c (alpha_init_builtins): Remove code to
+	clear some builtins on VMS.  Calls vms_patch_builtins.
+	(ia64_asm_output_external): Remove DO_CRTL_NAME.
+	* config/ia64/vms64.h: Do not include vms-crtl-64.h
+	* config.gcc (*-*-*vms*): Define extra_objs, target_gtfiles,
+	tm_p_file.
+
+2011-06-27  Tristan Gingold  <gingold@adacore.com>
+
+	* config/alpha/alpha.c (alpha_end_function): Always generate .end
+	directive on VMS.
+
+2011-06-27  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (sparc_frame_pointer_required): Return true if
+	the function receives nonlocal gotos.
+
+2011-06-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49536
+	* tree-vect-stmts.c (get_vectype_for_scalar_type_and_size):
+	For non-scalar inner types use a scalar type according to
+	the scalar inner mode.
+
+2011-06-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49365
+	* params.def (min-insn-to-prefetch-ratio): Reduce from 10 to 9.
+
+2011-06-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49169
+	* fold-const.c (get_pointer_modulus_and_residue): Don't rely on
+	the alignment of function decls.
+
+2011-06-26  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR target/47997
+	* config/darwin.c (darwin_mergeable_string_section): Place string
+	constants in '.cstring' rather than '.const' when CF/NSStrings are
+	active.
+
+2011-06-26  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* config/sparc/sparc.c (save_local_or_in_reg_p): Adjust comment.
+	(emit_save_register_window): Likewise.
+	(sparc_expand_prologue): Use SIZE_INT_RTX and SIZE_RTX variables.
+	(sparc_flat_expand_prologue): Add comment.  Always emit blockage.
+	Swap back %o7/%i7 in register naming.
+
+2011-06-25  Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR driver/49371
+	* config/darwin.c (darwin_override_options): Improve warning when
+	mdynamic-no-pic is given together with fPIC/fpic, also warn when it
+	is given with fpie/fPIE.
+	* config/darwin.h (PIE_SPEC): New, (LINK_SPEC): Use PIE_SPEC.
+	* config/darwin9.h (PIE_SPEC): New.
+
+2011-06-25  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* timevar.c (timevar_print): Increase width for display of timevar
+	name.
+
+2011-06-24  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/46400
+	* c-decl.c (union lang_tree_node): Use TYPE_NEXT_VARIANT
+	instead of TYPE_CHAIN for chain_next for types.
+
+2011-06-24  Richard Henderson  <rth@redhat.com>
+
+	* config/sparc/sparc.md (create_flat_frame_1<P:mode>): Remove.
+	(create_flat_frame_2<P:mode>, create_flat_frame_3<P:mode>): Remove.
+	* config/sparc/sparc.c (gen_create_flat_frame_1): Remove.
+	(gen_create_flat_frame_2, gen_create_flat_frame_3): Remove.
+	(sparc_flat_expand_prologue): Emit individual instructions
+	instead of one of the above.
+
+2011-06-24  Easwaran Raman  <eraman@google.com>
+
+	PR rtl-optimization/49429
+	PR target/49454
+	* expr.c (emit_block_move_hints):  Mark MEM_EXPR(x) and
+	MEM_EXPR(y) addressable if emit_block_move_via_libcall is
+	used to copy y into x.
+	* calls.c (initialize_argument_information): Mark
+	an argument addressable if it is passed by invisible reference.
+	(emit_library_call_value_1): Mark  MEM_EXPR (val) addressable
+	if it is passed by reference.
+
+2011-06-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR rtl-optimization/49504
+	* rtlanal.c (nonzero_bits1): Properly handle addition or
+	subtraction of a pointer in Pmode if pointers extend unsigned.
+	(num_sign_bit_copies1): Likewise.
+
+2011-06-24  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimizations/49516
+	* tree-sra.c (sra_modify_assign): Choose the safe path for
+	aggregate copies if we also did scalar replacements.
+
+2011-06-24  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	PR target/49335
+	* config/arm/predicates.md (add_operator): New.
+	* config/arm/arm.md ("*arith_shiftsi"): Fix for SP reg usage
+	in Thumb2.
+
+2011-06-24  Andi Kleen  <ak@linux.intel.com>
+
+	* tree-sra.c (type_internals_preclude_sra_p): Add msg
+	parameter. Split up ifs and report reason in *msg.
+	(reject): Add.
+	(find_var_candiate): Add msg variable.
+	Split up ifs and report reason to reject.
+	(find_param_candidates): Add msg variable.
+	Pass msg to type_internals_preclude_sra_p.
+
+2011-06-23  Jeff Law  <law@redhat.com>
+
+	PR middle-end/48770
+	* reload.h (reload): Change to return a bool.
+	* ira.c (ira): If requested by reload, run a fast DCE pass after
+	reload has completed.  Fix comment typo.
+	* reload1.c (need_dce): New file scoped static.
+	(reload): Set reload_completed here.  Return whether or not a DCE
+	pass after reload is needed.
+	(delete_dead_insn): Set need_dce as needed.
+
+	PR middle-end/49465
+	* tree-ssa-threadupate.c (fix_duplicate_block_edges): Fix condition
+	to detect threading through joiner block.  If there was already
+	an edge to the new target, then do not change the PHI nodes.
+
+2011-06-23  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-vect-data-refs.c (vect_compute_data_ref_alignment): Use
+	get_pointer_alignment to see if base isn't sufficiently aligned.
+
+2011-06-23  Jan Hubicka  <jh@suse.cz>
+
+	PR tree-optimize/49373
+	* tree-pass.h (all_late_ipa_passes): Declare.
+	* cgraphunit.c (init_lowered_empty_function): Fix properties.
+	(cgraph_optimize): Execute late passes; remove unreachable funcions after
+	materialization.
+	* ipa-inline.c (gate_ipa_inline): Enable only when optimizing or LTOing.
+	* passes.c (all_late_ipa_passes): Declare.
+	(dump_passes, register_pass): Handle late ipa passes.
+	(init_optimization_passes): Move ipa_pta to late passes; schedule fixup_cfg
+	at beggining of all_passes.
+	(apply_ipa_transforms): New function.
+	(execute_one_pass): When doing simple ipa pass, apply all transforms.
+
 2011-06-23  Joseph Myers  <joseph@codesourcery.com>
 
 	* params.c: Include common/common-target.h.  Don't include tm.h.
