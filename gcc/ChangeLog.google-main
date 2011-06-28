@@ -1,3 +1,31 @@
+2011-06-27   Doug Kwan  <dougkwan@google.com>
+
+	Google ref 41164-p2
+	Backport upstream patch under review.
+
+	2011-01-19   NNick Clifton  <nickc@redhat.com>
+       		     Matthias Klose <doko@debian.org>
+
+		* configure.ac (gcc_cv_gold_srcdir): New cached variable -
+		contains the location of the gold sources.
+		(ORIGINAL_GOLD_FOR_TARGET): New substituted variable - contains
+		the name of the locally built gold executable.
+		* configure: Regenerate.
+		* collect2.c (main): Detect the -use-gold and -use-ld switches
+		and select the appropriate linker, if found.
+		If a linker cannot be found and collect2 is executing in
+		verbose mode then report the search paths examined.
+		* exec-tool.in: Detect the -use-gold and -use-ld switches and
+		select the appropriate linker, if found.
+		Add support for -v switch.
+		Report problems locating linker executable.
+		* gcc.c (LINK_COMMAND_SPEC): Translate -fuse-ld=gold into
+		-use-gold and -fuse-ld=bfd into -use-ld.
+		* common.opt: Add fuse-ld=gold and fuse-ld=bfd.
+		* opts.c (comman_handle_option): Ignore -fuse-ld=gold and
+		-fuse-ld=bfd.
+		* doc/invoke.texi: Document the new options.
+
 2011-06-23   Sharad Singhai  <singhai@google.com>
 
 	* gcc/doc/invoke.texi: Document new pmu profile related options.

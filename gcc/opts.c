@@ -1741,8 +1741,9 @@ common_handle_option (struct gcc_options *opts,
       dc->max_errors = value;
       break;
 
+    case OPT_fuse_ld_:
     case OPT_fuse_linker_plugin:
-      /* No-op. Used by the driver and passed to us because it starts with f.*/
+      /* No-op. Used by the driver and passed to us because it starts with f.  */
       break;
 
     case OPT_Wuninitialized:

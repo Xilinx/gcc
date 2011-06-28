@@ -1075,17 +1075,19 @@ maybe_run_lto_and_relink (char **lto_ld_argv, char **object_lst,
 int
 main (int argc, char **argv)
 {
-  static const char *const ld_suffix	= "ld";
-  static const char *const plugin_ld_suffix = PLUGIN_LD;
-  static const char *const real_ld_suffix = "real-ld";
+  static const char *const ld_suffix	     = "ld";
+  static const char *const gold_suffix       = "ld.gold";
+  static const char *const bfd_ld_suffix     = "ld.bfd";
+  static const char *const plugin_ld_suffix  = PLUGIN_LD;
+  static const char *const real_ld_suffix    = "real-ld";
   static const char *const collect_ld_suffix = "collect-ld";
-  static const char *const nm_suffix	= "nm";
-  static const char *const gnm_suffix	= "gnm";
+  static const char *const nm_suffix	     = "nm";
+  static const char *const gnm_suffix	     = "gnm";
 #ifdef LDD_SUFFIX
-  static const char *const ldd_suffix	= LDD_SUFFIX;
+  static const char *const ldd_suffix	     = LDD_SUFFIX;
 #endif
-  static const char *const strip_suffix = "strip";
-  static const char *const gstrip_suffix = "gstrip";
+  static const char *const strip_suffix      = "strip";
+  static const char *const gstrip_suffix     = "gstrip";
 
 #ifdef CROSS_DIRECTORY_STRUCTURE
   /* If we look for a program in the compiler directories, we just use
@@ -1095,6 +1097,10 @@ main (int argc, char **argv)
 
   const char *const full_ld_suffix =
     concat(target_machine, "-", ld_suffix, NULL);
+  const char *const full_gold_suffix =
+    concat (target_machine, "-", gold_suffix, NULL);
+  const char *const full_bfd_ld_suffix =
+    concat (target_machine, "-", bfd_ld_suffix, NULL);
   const char *const full_plugin_ld_suffix =
     concat(target_machine, "-", plugin_ld_suffix, NULL);
   const char *const full_nm_suffix =
@@ -1110,15 +1116,17 @@ main (int argc, char **argv)
   const char *const full_gstrip_suffix =
     concat (target_machine, "-", gstrip_suffix, NULL);
 #else
-  const char *const full_ld_suffix	= ld_suffix;
+  const char *const full_ld_suffix	  = ld_suffix;
+  const char *const full_gold_suffix	  = gold_suffix;
+  const char *const full_bfd_ld_suffix	  = bfd_ld_suffix;
   const char *const full_plugin_ld_suffix = plugin_ld_suffix;
-  const char *const full_nm_suffix	= nm_suffix;
-  const char *const full_gnm_suffix	= gnm_suffix;
+  const char *const full_nm_suffix	  = nm_suffix;
+  const char *const full_gnm_suffix	  = gnm_suffix;
 #ifdef LDD_SUFFIX
-  const char *const full_ldd_suffix	= ldd_suffix;
+  const char *const full_ldd_suffix	  = ldd_suffix;
 #endif
-  const char *const full_strip_suffix	= strip_suffix;
-  const char *const full_gstrip_suffix	= gstrip_suffix;
+  const char *const full_strip_suffix	  = strip_suffix;
+  const char *const full_gstrip_suffix	  = gstrip_suffix;
 #endif /* CROSS_DIRECTORY_STRUCTURE */
 
   const char *arg;
@@ -1132,7 +1140,13 @@ main (int argc, char **argv)
   const char **c_ptr;
   char **ld1_argv;
   const char **ld1;
-  bool use_plugin = false;
+  enum linker_select
+  {
+    DFLT_LINKER,
+    PLUGIN_LINKER,
+    GOLD_LINKER,
+    BFD_LINKER
+  } selected_linker = DFLT_LINKER;
 
   /* The kinds of symbols we will have to consider when scanning the
      outcome of a first pass link.  This is ALL to start with, then might
@@ -1209,15 +1223,21 @@ main (int argc, char **argv)
         else if (! strcmp (argv[i], "-flto-partition=none"))
 	  no_partition = true;
         else if ((! strncmp (argv[i], "-flto=", 6)
-		  || ! strcmp (argv[i], "-flto")) && ! use_plugin)
+		  || ! strcmp (argv[i], "-flto"))
+		 && selected_linker != PLUGIN_LINKER)
 	  lto_mode = LTO_MODE_WHOPR;
 	else if (!strncmp (argv[i], "-fno-lto", 8))
 	  lto_mode = LTO_MODE_NONE;
         else if (! strcmp (argv[i], "-plugin"))
 	  {
-	    use_plugin = true;
+	    selected_linker =  PLUGIN_LINKER;
 	    lto_mode = LTO_MODE_NONE;
 	  }
+	else if (! strcmp (argv[i], "-use-gold"))
+	  selected_linker = GOLD_LINKER;
+	else if (! strcmp (argv[i], "-use-ld"))
+	  selected_linker = BFD_LINKER;
+
 #ifdef COLLECT_EXPORT_LIST
 	/* since -brtl, -bexport, -b64 are not position dependent
 	   also check for them here */
@@ -1299,35 +1319,108 @@ main (int argc, char **argv)
   /* Try to discover a valid linker/nm/strip to use.  */
 
   /* Maybe we know the right file to use (if not cross).  */
-  ld_file_name = 0;
+  ld_file_name = NULL;
 #ifdef DEFAULT_LINKER
   if (access (DEFAULT_LINKER, X_OK) == 0)
     ld_file_name = DEFAULT_LINKER;
-  if (ld_file_name == 0)
+  if (ld_file_name == NULL)
 #endif
 #ifdef REAL_LD_FILE_NAME
   ld_file_name = find_a_file (&path, REAL_LD_FILE_NAME);
-  if (ld_file_name == 0)
+  if (ld_file_name == NULL)
 #endif
   /* Search the (target-specific) compiler dirs for ld'.  */
   ld_file_name = find_a_file (&cpath, real_ld_suffix);
   /* Likewise for `collect-ld'.  */
-  if (ld_file_name == 0)
+  if (ld_file_name == NULL)
     ld_file_name = find_a_file (&cpath, collect_ld_suffix);
   /* Search the compiler directories for `ld'.  We have protection against
      recursive calls in find_a_file.  */
-  if (ld_file_name == 0)
-    ld_file_name = find_a_file (&cpath,
-				use_plugin
-				? plugin_ld_suffix
-				: ld_suffix);
+  if (ld_file_name == NULL)
+    switch (selected_linker)
+      {
+      default:
+      case DFLT_LINKER:
+	ld_file_name = find_a_file (&cpath, ld_suffix);
+	break;
+      case PLUGIN_LINKER:
+	ld_file_name = find_a_file (&cpath, plugin_ld_suffix);
+	break;
+      case GOLD_LINKER:
+	ld_file_name = find_a_file (&cpath, gold_suffix);
+	break;
+      case BFD_LINKER:
+	ld_file_name = find_a_file (&cpath, bfd_ld_suffix);
+	break;
+      }
   /* Search the ordinary system bin directories
      for `ld' (if native linking) or `TARGET-ld' (if cross).  */
-  if (ld_file_name == 0)
-    ld_file_name = find_a_file (&path,
-				use_plugin
-				? full_plugin_ld_suffix
-				: full_ld_suffix);
+  if (ld_file_name == NULL)
+    switch (selected_linker)
+      {
+      default:
+      case DFLT_LINKER:
+	ld_file_name = find_a_file (&path, full_ld_suffix);
+	break;
+      case PLUGIN_LINKER:
+	ld_file_name = find_a_file (&path, full_plugin_ld_suffix);
+	break;
+      case GOLD_LINKER:
+	ld_file_name = find_a_file (&path, full_gold_suffix);
+	break;
+      case BFD_LINKER:
+	ld_file_name = find_a_file (&path, full_bfd_ld_suffix);
+	break;
+      }
+  /* If we failed to find a plugin-capable linker, try the ordinary one.  */
+  if (ld_file_name == NULL && selected_linker == PLUGIN_LINKER)
+    ld_file_name = find_a_file (&cpath, ld_suffix);
+
+  if ((vflag || debug) && ld_file_name == NULL)
+    {
+      struct prefix_list * p;
+      const char * s;
+
+      notice ("collect2: warning: unable to find linker.\n");
+
+#ifdef DEFAULT_LINKER
+      notice (" Searched for this absolute executable:\n");
+      notice (" %s\n", DEFAULT_LINKER);
+#endif
+
+      notice (" Searched in these paths:\n");
+      for (p = cpath.plist; p != NULL; p = p->next)
+	notice ("  %s\n", p->prefix);
+      notice (" For these executables:\n");
+      notice ("  %s\n", real_ld_suffix);
+      notice ("  %s\n", collect_ld_suffix);
+      switch (selected_linker)
+      {
+      default:
+      case DFLT_LINKER:    s = ld_suffix; break;
+      case PLUGIN_LINKER:  s = plugin_ld_suffix; break;
+      case GOLD_LINKER:    s = gold_suffix; break;
+      case BFD_LINKER:     s = bfd_ld_suffix; break;
+      }
+      notice ("  %s\n", s);
+
+      notice (" And searched in these paths:\n");
+      for (p = path.plist; p != NULL; p = p->next)
+	notice ("  %s\n", p->prefix);
+      notice (" For these executables:\n");
+#ifdef REAL_LD_FILE_NAME
+      notice (" %s\n", REAL_LD_FILE_NAME);
+#endif
+      switch (selected_linker)
+      {
+      default:
+      case DFLT_LINKER:    s = full_ld_suffix; break;
+      case PLUGIN_LINKER:  s = full_plugin_ld_suffix; break;
+      case GOLD_LINKER:    s = full_gold_suffix; break;
+      case BFD_LINKER:     s = full_bfd_ld_suffix; break;
+      }
+      notice ("  %s\n", s);
+    }
 
 #ifdef REAL_NM_FILE_NAME
   nm_file_name = find_a_file (&path, REAL_NM_FILE_NAME);

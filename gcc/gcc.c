@@ -657,6 +657,9 @@ proper position among the other output files.  */
     }"PLUGIN_COND_CLOSE" \
     %{flto|flto=*:%<fcompare-debug*} \
     %{flto} %{flto=*} %l " LINK_PIE_SPEC \
+   "%{fuse-ld=gold:%{fuse-ld=bfd:%e-fuse-ld=gold and -fuse-ld=bfd may not be used together}} \
+    %{fuse-ld=gold:-use-gold} \
+    %{fuse-ld=bfd:-use-ld}" \
    "%X %{o*} %{e*} %{N} %{n} %{r}\
     %{s} %{t} %{u*} %{z} %{Z} %{!nostdlib:%{!nostartfiles:%S}}\
     %{static:} %{L*} %(mfwrap) %(link_libgcc) %o\
