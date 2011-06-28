@@ -313,12 +313,75 @@ tree gpy_stmt_pass_lower_functor (gpy_dot_tree_t * decl,
 					  NULL_TREE);
   tree fndecl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL,
 			    gpy_stmt_pass_lower_gen_concat_identifier ("main.main",
-								       DOT_FIELD (decl)),
+								       DOT_IDENTIFIER_POINTER (DOT_FIELD (decl))),
 			    fntype);
 
-  
+  DECL_EXTERNAL (fndecl) = 0;
+  TREE_PUBLIC (fndecl) = 1;
+  TREE_STATIC (fndecl) = 1;
 
-  return error_mark_node;
+  SET_DECL_ASSEMBLER_NAME (fndecl,
+			   gpy_stmt_pass_lower_gen_concat_identifier ("main.main",
+								      DOT_IDENTIFIER_POINTER (DOT_FIELD (decl))
+								      )
+			   );
+  tree self_parm_decl = build_decl (BUILTINS_LOCATION, PARM_DECL,
+				    get_identifier ("__self__"),
+				    TYPE_ARG_TYPES (TREE_TYPE (fndecl))
+				    );
+  DECL_CONTEXT (self_parm_decl) = fndecl;
+  DECL_ARG_TYPE (self_parm_decl) = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (fndecl)));
+  TREE_READONLY (self_parm_decl) = 1;
+
+  gpy_stmt_pass_lower_gen_toplevl_context (main_init_module, self_parm_decl,
+					   &toplvl);
+
+  VEC(gpy_ctx_t,gc) * toplevl_context = VEC_alloc (gpy_ctx_t, 0);
+  VEC_safe_push (gpy_ctx_t, gc, toplevl_context, toplvl);
+  VEC_safe_push (gpy_ctx_t, gc, toplevl_context, topnxt);
+  
+  DECL_INITIAL(fndecl) = block;
+  
+  int idx = 0;
+  gpy_dot_tree_t * idtx = NULL_DOT;
+  /*
+    Iterating over the DOT IL to lower/generate the GENERIC code
+    required to compile the stmts and decls
+   */
+  for (; VEC_iterate (gpydot, DOT_rhs_TT (decl), idx, idtx); ++idx)
+    {
+      if (DOT_FIELD (idtx) ==  D_D_EXPR)
+	{
+	  // append to stmt list as this goes into the module initilizer...
+	  tree stmt_chain = gpy_stmt_decl_lower_expr (idtx, toplevl_context);
+	  VEC(tree,gc) * stmt_vec = VEC_alloc (tree,gc,0);
+
+	  DECL_CHAIN_2_VEC_TREE (stmt_chain, stmt_vec);
+	  tree retaddr = VEC_pop (tree, stmt_chain);
+
+	  int idy; tree __itx = NULL_TREE;
+	  for (idy = 0; VEC_iterate (tree,stmt_vec,idy,__itx); ++idy)
+	    {
+	      DECL_CHAIN (__itx) = NULL_TREE; /* remove the chain just incase.. */
+	      append_to_statement_list (__itx, &block);
+	    }
+	  continue;
+	}
+
+      switch (DOT_TYPE (idtx))
+	{
+	default:
+	  fatal_error ("unhandled dot tree code <%i>!\n", DOT_TYPE (idtx));
+	  break;
+	}
+    }
+
+  gimplify_function_tree (fndecl);
+
+  cgraph_add_new_function (fndecl, false);
+  cgraph_finalize_function (fndecl, true);
+
+  return fndecl;
 }
 
 static
