@@ -1921,7 +1921,7 @@
        $type = TYPE_NAME ($tr);
   }#)
 
-(defcmatcher tree_field_declaration
+(defcmatcher tree_field_decl
   (:tree tr)
   (:tree name)
   treefd
@@ -3571,7 +3571,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_component_ref_typed
  tree_content 
  tree_decl
- tree_field_declaration
+ tree_field_decl
  tree_function_decl 
  tree_function_type
  tree_identifier

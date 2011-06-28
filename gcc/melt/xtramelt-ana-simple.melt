@@ -1321,6 +1321,17 @@
     (:gimple g)
     (debuggimple "meltframe_exec g" g)
     (match g
+	   ( ?(gimple_assign_single
+	       ?(tree_array_ref 
+		 ?(tree_component_ref 
+		   ?(tree_var_decl   ?vtyp ?(cstring_same "meltfram__") ?_)
+		   ?(tree_field_decl ?(tree_identifier ?(cstring_same "mcfr_varptr"))))
+		 ?(tree_integer_cst ?ixk))
+	       ?rhs)
+	      (debuglong "meltframe_exec gimple_assign_single varptr ixk" ixk)
+	      (debugtree "meltframe_exec gimple_assign_single varptr vtyp" vtyp)
+	      (debugtree "meltframe_exec gimple_assign_single varptr rhs" rhs)
+	      )
 	   ( ?(gimple_assign_single ?lhs ?rhs)
 	      (debugtree "meltframe_exec gimple_assign_single lhs" lhs)
 	      (debugtree "meltframe_exec gimple_assign_single rhs" rhs)

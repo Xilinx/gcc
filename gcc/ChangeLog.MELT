@@ -1,4 +1,13 @@
 
+2011-06-28  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (tree_var_declaration): Remove,
+	renaming it as
+	(tree_var_decl): new cmatcher {was tree_var_declaration}.
+	* melt/xtramelt-c-generator.melt (get_tree_value_rec): Correct for
+	above renaming.
+	* melt/xtramelt-ana-simple.melt (meltframe_exec): More complete
+	pattern.
+
 2011-06-27  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (tree_array_ref)
 	(tree_array_ref_full, tree_component_ref, tree_component_ref_full)
