@@ -1,3 +1,17 @@
+2011-06-27  Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/pph.map: Add missing PPH mappings.
+	* g++.dg/pph/c1funcstatic.cc: Add expected asm diff.
+	* g++.dg/pph/c1eabi1.cc: Add xfail-if; remove expected asm diff.
+	* g++.dg/pph/c2builtin2.cc: Add expected asm diff.
+	* g++.dg/pph/x1funcstatic.cc: Add expected asm diff.
+	* g++.dg/pph/x1template.h: Remove use of namespace.
+	* g++.dg/pph/x1template.cc: Remove use of namespace; now passing.
+	* g++.dg/pph/x1namespace.h: New, copy of old x1template.h.
+	* g++.dg/pph/x1namespace.cc: New, copy of old x1template.cc.
+	* g++.dg/pph/x1dynarray1.h: New executable program, but it fails.
+	* g++.dg/pph/x1dynarray1.cc: New executable program, but it fails.
+
 2011-06-27  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1ten-hellos.cc: New.

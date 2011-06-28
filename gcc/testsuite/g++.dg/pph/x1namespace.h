@@ -1,5 +1,6 @@
-#ifndef X1TEMPLATE_H
-#define X1TEMPLATE_H
+#ifndef X1NAMESPACE_H
+#define X1NAMESPACE_H
+namespace A {
 extern int x;
 struct B;
 template< typename T >
@@ -12,7 +13,8 @@ struct C {
 template< typename T >
 int C< T >::method()
 { return x; }
-struct D : C< int > {
+} // namespace A
+struct D : A::C< int > {
     int method();
     int another()
     { return *b; }
