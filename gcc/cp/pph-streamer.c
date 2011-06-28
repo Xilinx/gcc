@@ -91,6 +91,8 @@ pph_preload_common_nodes (struct lto_streamer_cache_d *cache)
     }
 
   lto_streamer_cache_append (cache, global_namespace);
+
+  lto_streamer_cache_append (cache, DECL_CONTEXT (global_namespace));
 }
 
 
