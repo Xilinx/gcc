@@ -1,5 +1,9 @@
 2011-06-28  Gabriel Charette  <gchare@google.com>
 
+	* g++.dg/pph/x1typerefs.cc: Remove xfail.
+
+2011-06-28  Gabriel Charette  <gchare@google.com>
+
 	* g++.dg/pph/c1limits-externalid.cc: Remove pph asm xdiff.
 	* g++.dg/pph/c1varorder.cc: New.
 	* g++.dg/pph/c1varorder.h: New.

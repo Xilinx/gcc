@@ -79,6 +79,17 @@ pph_preload_common_nodes (struct lto_streamer_cache_d *cache)
     if (c_global_trees[i])
       lto_streamer_cache_append (cache, c_global_trees[i]);
 
+  /* cp_global_trees[] can have NULL entries in it.  Skip them.  */
+  for (i = 0; i < CPTI_MAX; i++)
+    {
+      /* Also skip trees which are generated while parsing.  */
+      if (i == CPTI_KEYED_CLASSES)
+	continue;
+
+      if (cp_global_trees[i])
+	lto_streamer_cache_append (cache, cp_global_trees[i]);
+    }
+
   lto_streamer_cache_append (cache, global_namespace);
 }
 

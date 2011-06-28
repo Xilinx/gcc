@@ -1,5 +1,10 @@
 2011-06-28  Gabriel Charette  <gchare@google.com>
 
+	* pph-streamer.c (pph_preload_common_nodes):
+	Add cp_global_trees[] to cache.
+
+2011-06-28  Gabriel Charette  <gchare@google.com>
+
 	* pph-streamer-in.c (pph_add_bindings_to_namespace): Reverse names and
 	namespaces chains.
 
