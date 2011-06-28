@@ -1893,7 +1893,7 @@
        $reference = TREE_OPERAND ($tr, 0);
   }#)
 
-(defcmatcher tree_address_expression
+(defcmatcher tree_addr_expr
   (:tree tr)
   (:tree type
    :tree expression)
@@ -3562,7 +3562,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  raw_new_ppl_empty_constraint_system
  raw_new_ppl_unsatisfiable_constraint_system
  reveach_in_gimpleseq
- tree_address_expression
+ tree_addr_expr
  tree_array_ref
  tree_array_ref_full
  tree_block

@@ -1321,6 +1321,19 @@
     (:gimple g)
     (debuggimple "meltframe_exec g" g)
     (match g
+	   ( ?(gimple_call_3
+	       ?lhs ?(tree_function_decl ?(cstring_same "memset") ?_)
+	       ?(tree_addr_expr ?typ ?expr) ?arg2 ?arg3)
+	      (debugtree "meltframe_exec call3 memset typ" typ)
+	      (debugtree "meltframe_exec call3 memset expr" expr)
+	      (debugtree "meltframe_exec call3 memset arg2" arg2)
+	      (debugtree "meltframe_exec call3 memset arg3" arg3)
+	      )
+	   ( ?(gimple_assign_single
+		   ?(tree_var_decl   ?vtyp ?(cstring_same "meltfram__") ?_)
+		   ?rhs)
+	      (debugtree "meltframe_exec gimple_assign_single meltfram vtyp" vtyp)
+	      )
 	   ( ?(gimple_assign_single
 	       ?(tree_array_ref 
 		 ?(tree_component_ref 
