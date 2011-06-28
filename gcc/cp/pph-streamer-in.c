@@ -1141,6 +1141,11 @@ pph_add_bindings_to_namespace (struct cp_binding_level *bl, tree ns)
 {
   tree t, chain;
 
+  /* The chains are built backwards (ref: add_decl_to_level),
+     reverse them before putting them back in.  */
+  bl->names = nreverse (bl->names);
+  bl->namespaces = nreverse (bl->namespaces);
+
   for (t = bl->names; t; t = chain)
     {
       /* Pushing a decl into a scope clobbers its DECL_CHAIN.

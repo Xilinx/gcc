@@ -27,6 +27,7 @@ c1simple2.h	c1simple2.pph
 c1struct.h	c1struct.pph
 c1typerefs.h	c1typerefs.pph
 c1variables.h	c1variables.pph
+c1varorder.h	c1varorder.pph
 c2builtin1.h	c2builtin1.pph
 c2builtin2.h	c2builtin2.pph
 c2builtin3.h	c2builtin3.pph

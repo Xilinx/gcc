@@ -1,3 +1,10 @@
+2011-06-28  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/c1limits-externalid.cc: Remove pph asm xdiff.
+	* g++.dg/pph/c1varorder.cc: New.
+	* g++.dg/pph/c1varorder.h: New.
+	* g++.dg/pph/pph.map: Add c1varorder.h
+
 2011-06-27  Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/pph.map: Add missing PPH mappings.
