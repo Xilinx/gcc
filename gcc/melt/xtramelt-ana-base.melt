@@ -2948,17 +2948,18 @@
   ;;before expansion
   #{ /* start $EACHBBCFUN */ const $EACHBBCFUN#_line = __LINE__;
    if (cfun && cfun->cfg) {
-     basic_block  $eachbbcfun#_bb = NULL;
+     basic_block  $EACHBBCFUN#_bb = NULL;
      $cfundecl  = cfun->decl;
-    FOR_EACH_BB_FN($eachbbcfun#_bb, cfun) {
-      if (!$eachbbcfun#_bb) continue;
-      $cfunbb  = $eachbbcfun#_bb;
+    FOR_EACH_BB_FN($EACHBBCFUN#_bb, cfun) {
+      if (!$EACHBBCFUN#_bb) continue;
+      $cfunbb  = $EACHBBCFUN#_bb;
  }#
  ;;after expansion
- #{ }} else 
+ #{  } /* end FOR_EACH_BB_FN $EACHBBCFUN */ 
+   } else /* no cfg in $EACHBBCFUN */
       melt_fatal_error_at_line 
        ($EACHBBCFUN#_line,
-	"each_bb_cfun used with invalid cfun=%p [$eachbbcfun]", 
+	"each_bb_cfun used with invalid cfun=%p without cfg [$EACHBBCFUN]", 
 	cfun);
   /* end $eachbbcfun */  
  }# )

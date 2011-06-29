@@ -1312,48 +1312,82 @@
 
 (defun meltframe_exec (pass)
   (debug_msg pass "meltframe_exec pass at start")
-  (each_bb_cfun 
-   ()
-   (:basic_block bb :tree fundecl)
-   (debugtree "meltframe_exec fundecl" fundecl)
-   (eachgimple_in_basicblock 
-    (bb)
-    (:gimple g)
-    (debuggimple "meltframe_exec g" g)
-    (match g
-	   ( ?(gimple_call_3
-	       ?lhs ?(tree_function_decl ?(cstring_same "memset") ?_)
-	       ?(tree_addr_expr ?typ ?expr) ?arg2 ?arg3)
-	      (debugtree "meltframe_exec call3 memset typ" typ)
-	      (debugtree "meltframe_exec call3 memset expr" expr)
-	      (debugtree "meltframe_exec call3 memset arg2" arg2)
-	      (debugtree "meltframe_exec call3 memset arg3" arg3)
+  (let ( (:long declcnt 0)
+	 (:long bbcnt 0)
+	 (:long gimplecnt 0)
+	 (:tree tmeltframdecl (null_tree))
+	 (:tree tmeltframtype (null_tree))
+	 (:tree tfundecl (cfun_decl))
+	 )
+    (each_local_decl_cfun
+     ()
+     (:tree tlocdecl :long ix)
+     (debugtree "meltframe_exec tlocdecl" tlocdecl)
+     (match tlocdecl 
+	    (?(tree_var_decl
+	       ?(and ?tvtyp ?(tree_record_type ?tmeltframrecnam))
+	       ?(cstring_same "meltfram__") ?_)
+	      (setq tmeltframdecl tlocdecl)
+	      (setq tmeltframtype tvtyp)
+	      (debugtree "meltframe_exec tmeltframdecl" tmeltframdecl)
+	      (debugtree "meltframe_exec tmeltframtype" tmeltframtype)
+	      (debugtree "meltframe_exec tmeltframrecnam" tmeltframrecnam)
 	      )
-	   ( ?(gimple_assign_single
-		   ?(tree_var_decl   ?vtyp ?(cstring_same "meltfram__") ?_)
-		   ?rhs)
-	      (debugtree "meltframe_exec gimple_assign_single meltfram vtyp" vtyp)
-	      )
-	   ( ?(gimple_assign_single
-	       ?(tree_array_ref 
-		 ?(tree_component_ref 
-		   ?(tree_var_decl   ?vtyp ?(cstring_same "meltfram__") ?_)
-		   ?(tree_field_decl ?(tree_identifier ?(cstring_same "mcfr_varptr"))))
-		 ?(tree_integer_cst ?ixk))
-	       ?rhs)
-	      (debuglong "meltframe_exec gimple_assign_single varptr ixk" ixk)
-	      (debugtree "meltframe_exec gimple_assign_single varptr vtyp" vtyp)
-	      (debugtree "meltframe_exec gimple_assign_single varptr rhs" rhs)
-	      )
-	   ( ?(gimple_assign_single ?lhs ?rhs)
-	      (debugtree "meltframe_exec gimple_assign_single lhs" lhs)
-	      (debugtree "meltframe_exec gimple_assign_single rhs" rhs)
-	      )
-	   ( ?_ 
-	     ())
-	   )
+	    (?_ (void)))
+     (setq declcnt (+i declcnt 1))
+     )
+    (debuglong "meltframe_exec declcnt" declcnt)
+    (debugtree "meltframe_exec found tmeltframdecl" tmeltframdecl)
+    (if tmeltframdecl
+	(void)
+	(warning_at_tree tfundecl "MELT routine without meltfram__"))
+    (each_bb_cfun 
+     ()
+     (:basic_block bb :tree fundecl)
+     (debugtree "meltframe_exec fundecl" fundecl)
+     (setq bbcnt (+i bbcnt 1))
+     (eachgimple_in_basicblock 
+      (bb)
+      (:gimple g)
+      (debuggimple "meltframe_exec g" g)
+      (setq gimplecnt (+i gimplecnt 1))
+      (match g
+	     ( ?(gimple_call_3
+		 ?lhs ?(tree_function_decl ?(cstring_same "memset") ?_)
+		 ?(tree_addr_expr ?typ ?expr) ?arg2 ?arg3)
+		(debugtree "meltframe_exec call3 memset typ" typ)
+		(debugtree "meltframe_exec call3 memset expr" expr)
+		(debugtree "meltframe_exec call3 memset arg2" arg2)
+		(debugtree "meltframe_exec call3 memset arg3" arg3)
+		)
+	     ( ?(gimple_assign_single
+		 ?(tree_var_decl   ?vtyp ?(cstring_same "meltfram__") ?_)
+		 ?rhs)
+		(debugtree "meltframe_exec gimple_assign_single meltfram vtyp" vtyp)
+		)
+	     ( ?(gimple_assign_single
+		 ?(tree_array_ref 
+		   ?(tree_component_ref 
+		     ?(tree_var_decl   ?vtyp ?(cstring_same "meltfram__") ?_)
+		     ?(tree_field_decl ?(tree_identifier ?(cstring_same "mcfr_varptr"))))
+		   ?(tree_integer_cst ?ixk))
+		 ?rhs)
+		(debuglong "meltframe_exec gimple_assign_single varptr ixk" ixk)
+		(debugtree "meltframe_exec gimple_assign_single varptr vtyp" vtyp)
+		(debugtree "meltframe_exec gimple_assign_single varptr rhs" rhs)
+		)
+	     ( ?(gimple_assign_single ?lhs ?rhs)
+		(debugtree "meltframe_exec gimple_assign_single lhs" lhs)
+		(debugtree "meltframe_exec gimple_assign_single rhs" rhs)
+		)
+	     ( ?_ 
+	       ())
+	     )
+      )
+     )
+    (debuglong "meltframe_exec bbcnt" bbcnt)
+    (debuglong "meltframe_exec gimplecnt" gimplecnt)
     )
-   )
   )
 
 
@@ -1367,7 +1401,7 @@
 		    :gccpass_properties_required ()
 		    ))
 	 )
-    (install_melt_gcc_pass justscanpass "after" "cfg" 0)
+    (install_melt_gcc_pass justscanpass "after" "ssa" 0)
     (debug_msg justscanpass "meltframe_docmd installed pass")
     (return cmd)	       ;return non-nil to continue compilation
     ))

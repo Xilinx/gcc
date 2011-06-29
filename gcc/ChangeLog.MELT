@@ -1,5 +1,10 @@
 
 2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (each_bb_cfun): Improved message.
+
+	* melt/xtramelt-ana-simple.melt (melt_frame_exec): Improved.
+
+2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_fatal_error_at_line): New macro.
 	* melt-runtime.c (melt_fatal_info): display information about cfun
 	& current_pass.
