@@ -5563,54 +5563,6 @@ substitute (rtx *where, const_rtx what, rtx repl)
     }
 }
 
-/* Return TRUE if IN is a valid plus operation.  */
-
-static bool
-reload_plus_ok (rtx in)
-{
-  if (GET_CODE (in) == PLUS)
-    {
-      rtx op0 = XEXP (in, 0);
-      rtx op1 = XEXP (in, 1);
-      if ((REG_P (op0)
-	   || GET_CODE (op0) == SUBREG
-	   || MEM_P (op0))
-	  && (REG_P (op1)
-	      || GET_CODE (op1) == SUBREG
-	      || CONSTANT_P (op1)
-	      || MEM_P (op1)))
-	{
-	  rtx subreg, other;
-	  if (GET_CODE (op0) == SUBREG)
-	    {
-	      subreg = SUBREG_REG (op0);
-	      other = op1;
-	    }
-	  else if (GET_CODE (op1) == SUBREG)
-	    {
-	      subreg = SUBREG_REG (op1);
-	      other = op0;
-	    }
-	  else
-	    return true;
-
-	  /* Avoid
-	     (plus (subreg (plus (reg)
-				 (const_int NNN)))
-		   (const_int NNN))
-	   */
-	  if (GET_CODE (subreg) == PLUS
-	      && (CONSTANT_P (XEXP (subreg, 0))
-		  || CONSTANT_P (XEXP (subreg, 1)))
-	      && CONSTANT_P (other))
-	    return false;
-
-	  return true;
-	}
-    }
-  return false;
-}
-
 /* The function returns TRUE if chain of reload R1 and R2 (in any
    order) can be evaluated without usage of intermediate register for
    the reload containing another reload.  It is important to see
@@ -5663,7 +5615,14 @@ gen_reload_chain_without_interm_reg_p (int r1, int r2)
      opposite SUBREG on OUT.  Likewise for a paradoxical SUBREG on OUT.  */
   strip_paradoxical_subreg (&in, &out);
 
-  if (reload_plus_ok (in))
+  if (GET_CODE (in) == PLUS
+      && (REG_P (XEXP (in, 0))
+	  || GET_CODE (XEXP (in, 0)) == SUBREG
+	  || MEM_P (XEXP (in, 0)))
+      && (REG_P (XEXP (in, 1))
+	  || GET_CODE (XEXP (in, 1)) == SUBREG
+	  || CONSTANT_P (XEXP (in, 1))
+	  || MEM_P (XEXP (in, 1))))
     {
       insn = emit_insn (gen_rtx_SET (VOIDmode, out, in));
       code = recog_memoized (insn);
@@ -8509,7 +8468,14 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
 
      ??? At some point, this whole thing needs to be rethought.  */
 
-  if (reload_plus_ok (in))
+  if (GET_CODE (in) == PLUS
+      && (REG_P (XEXP (in, 0))
+	  || GET_CODE (XEXP (in, 0)) == SUBREG
+	  || MEM_P (XEXP (in, 0)))
+      && (REG_P (XEXP (in, 1))
+	  || GET_CODE (XEXP (in, 1)) == SUBREG
+	  || CONSTANT_P (XEXP (in, 1))
+	  || MEM_P (XEXP (in, 1))))
     {
       /* We need to compute the sum of a register or a MEM and another
 	 register, constant, or MEM, and put it into the reload
