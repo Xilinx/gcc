@@ -252,7 +252,7 @@ void* start_module_melt (void*);
 struct frame_start_module_melt_st;
 void MELT_MODULE_VISIBILITY warmelt_debug_initialmeltchunk_0 (struct frame_start_module_melt_st*, char*);
 void MELT_MODULE_VISIBILITY warmelt_debug_initialmeltchunk_1 (struct frame_start_module_melt_st*, char*);
-static void forward_or_mark_module_start_frame_warmelt_debug (struct callframe_melt_st* fp, int marking);
+static void forward_or_mark_module_start_frame_warmelt_debug (struct melt_callframe_st* fp, int marking);
 
 
 /**** melt-sources/warmelt-debug+02.c implementations ****/
@@ -281,7 +281,7 @@ meltrout_37_warmelt_debug_DBGOUT_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, 
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 10
   void* mcfr_varptr[10];
 #define MELTFRAM_NBVARNUM 4
@@ -302,8 +302,8 @@ meltrout_37_warmelt_debug_DBGOUT_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, 
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 10;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("DBGOUT_CLONED_SYMBOL_METHOD", meltcallcount);
 /*getargs*/
 
@@ -495,7 +495,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("DBGOUT_CLONED_SYMBOL_METHOD", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("DBGOUT_CLONED_SYMBOL_METHOD", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -528,7 +528,7 @@ meltrout_38_warmelt_debug_DBGOUTAGAIN_CLONED_SYMBOL_METHOD(meltclosure_ptr_t clo
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 7
   void* mcfr_varptr[7];
 #define MELTFRAM_NBVARNUM 3
@@ -549,8 +549,8 @@ meltrout_38_warmelt_debug_DBGOUTAGAIN_CLONED_SYMBOL_METHOD(meltclosure_ptr_t clo
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 7;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("DBGOUTAGAIN_CLONED_SYMBOL_METHOD", meltcallcount);
 /*getargs*/
 
@@ -646,7 +646,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("DBGOUTAGAIN_CLONED_SYMBOL_METHOD", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("DBGOUTAGAIN_CLONED_SYMBOL_METHOD", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -679,7 +679,7 @@ meltrout_39_warmelt_debug_DBGOUT_ENVIRONMENT_METHOD(meltclosure_ptr_t closp_, me
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 16
   void* mcfr_varptr[16];
 #define MELTFRAM_NBVARNUM 20
@@ -700,8 +700,8 @@ meltrout_39_warmelt_debug_DBGOUT_ENVIRONMENT_METHOD(meltclosure_ptr_t closp_, me
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 16;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("DBGOUT_ENVIRONMENT_METHOD", meltcallcount);
 /*getargs*/
 
@@ -1159,7 +1159,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("DBGOUT_ENVIRONMENT_METHOD", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("DBGOUT_ENVIRONMENT_METHOD", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -1192,7 +1192,7 @@ meltrout_40_warmelt_debug_DBGOUT_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 10
   void* mcfr_varptr[10];
 #define MELTFRAM_NBVARNUM 4
@@ -1213,8 +1213,8 @@ meltrout_40_warmelt_debug_DBGOUT_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 10;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("DBGOUT_CTYPE_METHOD", meltcallcount);
 /*getargs*/
 
@@ -1406,7 +1406,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("DBGOUT_CTYPE_METHOD", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("DBGOUT_CTYPE_METHOD", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -1439,7 +1439,7 @@ meltrout_41_warmelt_debug_DBGOUTAGAIN_CTYPE_METHOD(meltclosure_ptr_t closp_, mel
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 6
   void* mcfr_varptr[6];
 #define MELTFRAM_NBVARNUM 2
@@ -1460,8 +1460,8 @@ meltrout_41_warmelt_debug_DBGOUTAGAIN_CTYPE_METHOD(meltclosure_ptr_t closp_, mel
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 6;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("DBGOUTAGAIN_CTYPE_METHOD", meltcallcount);
 /*getargs*/
 
@@ -1537,7 +1537,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("DBGOUTAGAIN_CTYPE_METHOD", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("DBGOUTAGAIN_CTYPE_METHOD", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -1570,7 +1570,7 @@ meltrout_42_warmelt_debug_DBGOUT_ANYBINDING_METHOD(meltclosure_ptr_t closp_, mel
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 16
   void* mcfr_varptr[16];
 #define MELTFRAM_NBVARNUM 9
@@ -1591,8 +1591,8 @@ meltrout_42_warmelt_debug_DBGOUT_ANYBINDING_METHOD(meltclosure_ptr_t closp_, mel
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 16;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("DBGOUT_ANYBINDING_METHOD", meltcallcount);
 /*getargs*/
 
@@ -1900,7 +1900,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("DBGOUT_ANYBINDING_METHOD", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("DBGOUT_ANYBINDING_METHOD", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -1933,7 +1933,7 @@ meltrout_43_warmelt_debug_DISPLAY_DEBUG_MESSAGE(meltclosure_ptr_t closp_, melt_p
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 8
   void* mcfr_varptr[8];
 #define MELTFRAM_NBVARNUM 5
@@ -1955,8 +1955,8 @@ const char* loc_CSTRING__o0;
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 8;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("DISPLAY_DEBUG_MESSAGE", meltcallcount);
 /*getargs*/
 
@@ -2111,7 +2111,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("DISPLAY_DEBUG_MESSAGE", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("DISPLAY_DEBUG_MESSAGE", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__

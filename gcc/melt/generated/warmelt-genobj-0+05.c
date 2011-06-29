@@ -883,7 +883,7 @@ void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_14 (struct frame_sta
 void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_15 (struct frame_start_module_melt_st*, char*);
 void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_16 (struct frame_start_module_melt_st*, char*);
 void MELT_MODULE_VISIBILITY warmelt_genobj_initialmeltchunk_17 (struct frame_start_module_melt_st*, char*);
-static void forward_or_mark_module_start_frame_warmelt_genobj (struct callframe_melt_st* fp, int marking);
+static void forward_or_mark_module_start_frame_warmelt_genobj (struct melt_callframe_st* fp, int marking);
 
 
 /**** melt-sources/warmelt-genobj+05.c implementations ****/
@@ -912,7 +912,7 @@ meltrout_157_warmelt_genobj_COMPILTST_NORMTESTER_ORTRANSMIT(meltclosure_ptr_t cl
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 48
   void* mcfr_varptr[48];
 #define MELTFRAM_NBVARNUM 15
@@ -933,8 +933,8 @@ meltrout_157_warmelt_genobj_COMPILTST_NORMTESTER_ORTRANSMIT(meltclosure_ptr_t cl
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 48;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("COMPILTST_NORMTESTER_ORTRANSMIT", meltcallcount);
 /*getargs*/
 
@@ -1701,7 +1701,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILTST_NORMTESTER_ORTRANSMIT", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("COMPILTST_NORMTESTER_ORTRANSMIT", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -1734,7 +1734,7 @@ meltrout_158_warmelt_genobj_COMPILTST_NORMTESTER_DISJUNCTION(meltclosure_ptr_t c
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 40
   void* mcfr_varptr[40];
 #define MELTFRAM_NBVARNUM 11
@@ -1755,8 +1755,8 @@ meltrout_158_warmelt_genobj_COMPILTST_NORMTESTER_DISJUNCTION(meltclosure_ptr_t c
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 40;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("COMPILTST_NORMTESTER_DISJUNCTION", meltcallcount);
 /*getargs*/
 
@@ -2383,7 +2383,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILTST_NORMTESTER_DISJUNCTION", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("COMPILTST_NORMTESTER_DISJUNCTION", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -2416,7 +2416,7 @@ meltrout_159_warmelt_genobj_COMPILMATCHER_CMATCHER(meltclosure_ptr_t closp_, mel
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 98
   void* mcfr_varptr[98];
 #define MELTFRAM_NBVARNUM 29
@@ -2437,8 +2437,8 @@ meltrout_159_warmelt_genobj_COMPILMATCHER_CMATCHER(meltclosure_ptr_t closp_, mel
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 98;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("COMPILMATCHER_CMATCHER", meltcallcount);
 /*getargs*/
 
@@ -3987,7 +3987,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILMATCHER_CMATCHER", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("COMPILMATCHER_CMATCHER", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -4020,7 +4020,7 @@ meltrout_160_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 13
   void* mcfr_varptr[13];
 #define MELTFRAM_NBVARNUM 5
@@ -4041,8 +4041,8 @@ meltrout_160_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 13;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
@@ -4273,7 +4273,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -4306,7 +4306,7 @@ meltrout_161_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 13
   void* mcfr_varptr[13];
 #define MELTFRAM_NBVARNUM 5
@@ -4327,8 +4327,8 @@ meltrout_161_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 13;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
@@ -4559,7 +4559,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -4592,7 +4592,7 @@ meltrout_162_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 5
   void* mcfr_varptr[5];
 /*no varnum*/
@@ -4613,8 +4613,8 @@ meltrout_162_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 5;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
@@ -4674,7 +4674,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -4707,7 +4707,7 @@ meltrout_163_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 12
   void* mcfr_varptr[12];
 #define MELTFRAM_NBVARNUM 4
@@ -4728,8 +4728,8 @@ meltrout_163_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 12;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
@@ -4947,7 +4947,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -4980,7 +4980,7 @@ meltrout_164_warmelt_genobj_COMPILMATCHER_FUNMATCHER(meltclosure_ptr_t closp_, m
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 101
   void* mcfr_varptr[101];
 #define MELTFRAM_NBVARNUM 30
@@ -5001,8 +5001,8 @@ meltrout_164_warmelt_genobj_COMPILMATCHER_FUNMATCHER(meltclosure_ptr_t closp_, m
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 101;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("COMPILMATCHER_FUNMATCHER", meltcallcount);
 /*getargs*/
 
@@ -6046,7 +6046,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /32128a7d checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTCLOS__V69*/ meltfptr[68]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /12fcdd50 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTCLOS__V69*/ meltfptr[68]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.OTESTCLOS__V69*/ meltfptr[68]))->hd = (melt_ptr_t) (/*_.OTESTCLOS__V38*/ meltfptr[37]);
   ;
   /*^touch*/
@@ -6122,7 +6122,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /3f3347ff checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTRES__V74*/ meltfptr[73]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /2a05d237 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTRES__V74*/ meltfptr[73]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.OTESTRES__V74*/ meltfptr[73]))->hd = (melt_ptr_t) (/*_.OTESTRES__V37*/ meltfptr[36]);
   ;
   /*^touch*/
@@ -6690,7 +6690,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("COMPILMATCHER_FUNMATCHER", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("COMPILMATCHER_FUNMATCHER", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*noretval*/ NULL);
 #undef meltcallcount
 #undef meltfram__
@@ -6723,7 +6723,7 @@ meltrout_165_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 3
   void* mcfr_varptr[3];
 /*no varnum*/
@@ -6744,8 +6744,8 @@ meltrout_165_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 3;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
@@ -6783,7 +6783,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__
@@ -6816,7 +6816,7 @@ meltrout_166_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
 #endif
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
 #define MELTFRAM_NBVARPTR 3
   void* mcfr_varptr[3];
 /*no varnum*/
@@ -6837,8 +6837,8 @@ meltrout_166_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   memset(&meltfram__, 0, sizeof(meltfram__));
  meltfram__.mcfr_nbvar = 3;
   meltfram__.mcfr_clos = closp_;
- meltfram__.mcfr_prev = (struct callframe_melt_st *) melt_topframe;
- melt_topframe = (struct callframe_melt_st *) &meltfram__;
+ meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
+ melt_topframe = (struct melt_callframe_st *) &meltfram__;
 melt_trace_start("LAMBDA_", meltcallcount);
 /*getargs*/
 
@@ -6876,7 +6876,7 @@ lab_endgetargs:;
 ;
  goto labend_rout;
 labend_rout:
-melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct callframe_melt_st*) meltfram__.mcfr_prev;
+melt_trace_end("LAMBDA_", meltcallcount);  melt_topframe = (struct melt_callframe_st*) meltfram__.mcfr_prev;
  return (melt_ptr_t)(/*_.RETVAL___V1*/ meltfptr[0]);
 #undef meltcallcount
 #undef meltfram__

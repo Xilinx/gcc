@@ -1124,6 +1124,10 @@ extern void gt_ggc_mx_sequence_stack (void *);
   if (X != NULL) gt_ggc_mx_libfunc_entry (X);\
   } while (0)
 extern void gt_ggc_mx_libfunc_entry (void *);
+#define gt_ggc_m_12tree_vec_map(X) do { \
+  if (X != NULL) gt_ggc_mx_tree_vec_map (X);\
+  } while (0)
+extern void gt_ggc_mx_tree_vec_map (void *);
 #define gt_ggc_m_17tree_priority_map(X) do { \
   if (X != NULL) gt_ggc_mx_tree_priority_map (X);\
   } while (0)
@@ -1314,6 +1318,7 @@ extern void gt_ggc_m_P24constant_descriptor_tree4htab (void *);
 extern void gt_ggc_m_P12object_block4htab (void *);
 extern void gt_ggc_m_P7section4htab (void *);
 extern void gt_ggc_m_P17tree_priority_map4htab (void *);
+extern void gt_ggc_m_P12tree_vec_map4htab (void *);
 extern void gt_ggc_m_P13tree_decl_map4htab (void *);
 extern void gt_ggc_m_P9type_hash4htab (void *);
 extern void gt_ggc_m_P23temp_slot_address_entry4htab (void *);
@@ -1723,8 +1728,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Tue 21 Jun 2011 02:51:33 PM CEST
+/* gt-melt-runtime-plugin.h file generated Wed Jun 29 17:19:49 2011
 
-c25f6695a4ea25aa1b9199878c0f1169  melt-runtime.h
-277a2f66c0c92992ed92c63d526d9062  melt-runtime.c
+8dbb367baf3b71b0867e76642a0d17c7  melt-runtime.h
+fa2aa9a141bf6fdd23d5c93c8c67c68c  melt-runtime.c
 */
