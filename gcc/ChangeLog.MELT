@@ -1,5 +1,10 @@
 
 2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (callframe_melt_st): Rename as
+	(melt_callframe_st).
+	* melt-runtime.h (melt_callframe_st): Remove temporary macro.
+
+2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

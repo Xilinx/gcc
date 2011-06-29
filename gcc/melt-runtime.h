@@ -2455,8 +2455,6 @@ struct melt_callframe_st
   melt_ptr_t mcfr_varptr[FLEXIBLE_DIM];
 };
 
-/* for compoatibility */
-#define callframe_melt_st melt_callframe_st
 
 /* maximal number of local variables per frame */
 #define MELT_MAXNBLOCALVAR 16384

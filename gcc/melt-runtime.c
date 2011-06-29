@@ -203,7 +203,7 @@ DEF_VEC_ALLOC_O (melt_module_info_t, heap);
 
 static VEC (melt_module_info_t, heap) *modinfvec = 0;
 
-struct callframe_melt_st* melt_topframe;
+struct melt_callframe_st* melt_topframe;
 struct meltlocalsptr_st* melt_localtab;
 
 
@@ -749,7 +749,7 @@ melt_check_call_frames_at (int noyoungflag, const char *msg,
 {
   /* Don't call melt_fatal_error here, because if the MELT stack is
      corrupted we can't show it! */
-  struct callframe_melt_st *cfram = NULL;
+  struct melt_callframe_st *cfram = NULL;
   int nbfram = 0, nbvar = 0;
   nbcheckcallframes++;
   if (!msg)
@@ -889,11 +889,11 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 {
   int ix = 0;
   melt_ptr_t *storp = NULL;
-  struct callframe_melt_st *cf = 0;
+  struct melt_callframe_st *cf = 0;
   meltmarkingcount++;
   dbgprintf ("start of melt_marking_callback %ld", meltmarkingcount);
   /* Scan all the MELT call frames */
-  for (cf = (struct callframe_melt_st*) melt_topframe; cf != NULL;
+  for (cf = (struct melt_callframe_st*) melt_topframe; cf != NULL;
        cf = cf->mcfr_prev) {
     dbgprintf ("melt_marking_callback %ld cf=%p", meltmarkingcount, (void*) cf);
     if (cf->mcfr_closp && cf->mcfr_nbvar >= 0)
@@ -923,7 +923,7 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 	   special marking routine.  */
 	melt_debuggc_eprintf ("melt_marking_callback %ld marking*frame thru routine frame %p",
 			      meltmarkingcount, (void*) cf);
-	cf->mcfr_forwmarkrout ((struct callframe_melt_st*)cf, 1);
+	cf->mcfr_forwmarkrout ((struct melt_callframe_st*)cf, 1);
 	melt_debuggc_eprintf ("melt_marking_callback %ld called frame %p marking routine",
 			      meltmarkingcount, (void*)cf);
       }
@@ -960,7 +960,7 @@ melt_marking_callback (void *gcc_data ATTRIBUTE_UNUSED,
 static void
 melt_minor_copying_garbage_collector (size_t wanted)
 {
-  struct callframe_melt_st *cfram = NULL;
+  struct melt_callframe_st *cfram = NULL;
   melt_ptr_t *storp = NULL;
   struct meltspecial_st *specp = NULL;
   int ix = 0;
@@ -9872,7 +9872,7 @@ void
 melt_dbgbacktrace (int depth)
 {
   int curdepth = 1, totdepth = 0;
-  struct callframe_melt_st *fr = 0;
+  struct melt_callframe_st *fr = 0;
   fprintf (stderr, "    <{\n");
   for (fr = melt_topframe; fr != NULL && curdepth < depth;
        (fr = fr->mcfr_prev), (curdepth++))
@@ -9897,7 +9897,7 @@ void
 melt_dbgshortbacktrace (const char *msg, int maxdepth)
 {
   int curdepth = 1;
-  struct callframe_melt_st *fr = 0;
+  struct melt_callframe_st *fr = 0;
   if (maxdepth < 2)
     maxdepth = 2;
   fprintf (stderr, "\nSHORT BACKTRACE[#%ld] %s;", melt_dbgcounter,
