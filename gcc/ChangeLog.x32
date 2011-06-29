@@ -1,5 +1,11 @@
 2011-06-27  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR rtl-optimization/49114
+	* reload1.c (gen_reload): Don't handle
+	(set reg:X (plus:X (subreg:X (reg:Y) 0) (const_int))).
+
+2011-06-27  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR rtl-optimization/48155
 	* reload1.c (reload_plus_ok): Removed.
 	(gen_reload_chain_without_interm_reg_p): Updated.

@@ -8531,9 +8531,7 @@ gen_reload (rtx out, rtx in, int opnum, enum reload_type type)
 
       code = optab_handler (add_optab, GET_MODE (out));
 
-      if ((GET_CODE (op0) != SUBREG
-	   && (CONSTANT_P (op1) || MEM_P (op1)))
-	  || GET_CODE (op1) == SUBREG
+      if (CONSTANT_P (op1) || MEM_P (op1) || GET_CODE (op1) == SUBREG
 	  || (REG_P (op1)
 	      && REGNO (op1) >= FIRST_PSEUDO_REGISTER)
 	  || (code != CODE_FOR_nothing
