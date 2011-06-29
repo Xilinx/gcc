@@ -1,3 +1,22 @@
+2011-06-28  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/c1attr-warn-unused-result.cc: Expect an ICE.
+	* g++.dg/pph/x1template.cc: Likewise.
+	* g++.dg/pph/c1builtin-object-size-2.cc: Expect no asm difference.
+	* g++.dg/pph/c1funcstatic.cc: Likewise.
+	* g++.dg/pph/c1return-5.cc: Likewise.
+	* g++.dg/pph/c1simple.cc: Likewise.
+	* g++.dg/pph/x1autometh.cc: Likewise.
+	* g++.dg/pph/x1funcstatic.cc: Likewise.
+	* g++.dg/pph/x1struct1.cc: Likewise.
+	* g++.dg/pph/x1ten-hellos.cc: Likewise.
+	* g++.dg/pph/x1tmplfunc.cc: Likewise.
+	* g++.dg/pph/c1meteor-contest.cc: Adjust timeout.
+	* g++.dg/pph/x1dynarray1.cc: Adjust expected ICE.
+	* g++.dg/pph/x1namespace.cc: Likewise.
+	* lib/dg-pph.exp: Do not compare assembly output if the test
+	is marked 'dg-do run'.
+
 2011-06-28  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/x1typerefs.cc: Remove xfail.

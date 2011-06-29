@@ -767,17 +767,16 @@ pph_in_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
 }
 
 
-/* Read applicable fields of struct function instance FN from STREAM.  */
+/* Read applicable fields of struct function from STREAM.  Associate
+   the read structure to DECL.  */
 
 static struct function *
-pph_in_struct_function (pph_stream *stream)
+pph_in_struct_function (pph_stream *stream, tree decl)
 {
   size_t count, i;
   unsigned ix;
   enum pph_record_marker marker;
   struct function *fn;
-
-  gcc_assert (stream->data_in != NULL);
 
   marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
@@ -786,7 +785,8 @@ pph_in_struct_function (pph_stream *stream)
   /* Since struct function is embedded in every decl, fn cannot be shared.  */
   gcc_assert (marker != PPH_RECORD_SHARED);
 
-  fn = ggc_alloc_cleared_function ();
+  allocate_struct_function (decl, false);
+  fn = DECL_STRUCT_FUNCTION (decl);
 
   input_struct_function_base (fn, stream->data_in, stream->ib);
 
@@ -1355,6 +1355,35 @@ pph_read_file (const char *filename)
 }
 
 
+/* Read the attributes for a FUNCTION_DECL FNDECL.  If FNDECL had
+   a body, mark it for expansion.  */
+
+static void
+pph_in_function_decl (pph_stream *stream, tree fndecl)
+{
+  DECL_INITIAL (fndecl) = pph_in_tree (stream);
+  pph_in_lang_specific (stream, fndecl);
+  DECL_SAVED_TREE (fndecl) = pph_in_tree (stream);
+  DECL_STRUCT_FUNCTION (fndecl) = pph_in_struct_function (stream, fndecl);
+  DECL_CHAIN (fndecl) = pph_in_tree (stream);
+  if (DECL_SAVED_TREE (fndecl))
+    {
+      /* FIXME pph - This is somewhat gross.  When we generated the
+	 PPH image, the parser called expand_or_defer_fn on FNDECL,
+	 which marked it DECL_EXTERNAL (see expand_or_defer_fn_1 for
+	 details).
+
+	 However, this is not really an extern definition, so it was
+	 also marked not-really-extern (yes, I know...). If this
+	 happens, we need to unmark it, otherwise the code generator
+	 will toss it out.  */
+      if (DECL_NOT_REALLY_EXTERN (fndecl))
+	DECL_EXTERNAL (fndecl) = 0;
+      expand_or_defer_fn (fndecl);
+    }
+}
+
+
 /* Callback for reading ASTs from a stream.  This reads all the fields
    that are not processed by default by the common tree pickler.
    IB, DATA_IN are as in lto_read_tree.  EXPR is the partially materialized
@@ -1394,11 +1423,7 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
       break;
 
     case FUNCTION_DECL:
-      DECL_INITIAL (expr) = pph_in_tree (stream);
-      pph_in_lang_specific (stream, expr);
-      DECL_SAVED_TREE (expr) = pph_in_tree (stream);
-      DECL_STRUCT_FUNCTION (expr) = pph_in_struct_function (stream);
-      DECL_CHAIN (expr) = pph_in_tree (stream);
+      pph_in_function_decl (stream, expr);
       break;
 
     case TYPE_DECL:

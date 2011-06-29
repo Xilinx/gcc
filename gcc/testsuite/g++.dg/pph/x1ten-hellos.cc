@@ -1,6 +1,4 @@
 // { dg-do run }
-// { dg-xfail-if "LINK ERROR" { "*-*-*" } { "-fpph-map=pph.map" } }
-// pph asm xdiff
 #include "x1ten-hellos.h"
 
 int main(void)

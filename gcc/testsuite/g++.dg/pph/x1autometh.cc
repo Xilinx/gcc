@@ -1,5 +1,3 @@
-// pph asm xdiff
-
 #include "x1autometh.h"
 
 void function() {

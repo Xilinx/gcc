@@ -1,5 +1,3 @@
-// pph asm xdiff
-
 #include "x1struct1.h"
 
 type D::method()

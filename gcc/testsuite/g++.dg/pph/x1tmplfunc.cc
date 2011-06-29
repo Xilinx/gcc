@@ -1,5 +1,3 @@
-// pph asm xdiff
-
 #include "x1tmplfunc.h"
 
 type val = 3;

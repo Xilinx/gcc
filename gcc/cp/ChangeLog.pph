@@ -1,3 +1,13 @@
+2011-06-28   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_in_ld_fn): Instantiate
+	DECL_STRUCT_FUNCTION by calling allocate_struct_function.
+	Remove assertion for stream->data_in.
+	(pph_in_function_decl): Factor out of ...
+	(pph_read_tree): ... here.
+	* pph-streamer-out.c (pph_out_function_decl): Factor out of ...
+	(pph_write_tree): ... here.
+
 2011-06-28  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer.c (pph_preload_common_nodes):

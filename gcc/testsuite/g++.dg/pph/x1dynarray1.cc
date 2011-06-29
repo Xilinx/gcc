@@ -1,5 +1,5 @@
 // { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x1dynarray1.cc:1:0: internal compiler error: in pph_in_lang_specific, at cp/pph-streamer-in.c:887" "" { xfail *-*-* } 0 }
+// { dg-bogus "internal compiler error: Segmentation fault" "" { xfail *-*-* } 0 }
 
 #include "x1dynarray1.h"
 #include <iostream>

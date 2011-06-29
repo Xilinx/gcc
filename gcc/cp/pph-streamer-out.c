@@ -1241,6 +1241,19 @@ pph_out_tree_header (struct output_block *ob, tree expr)
 }
 
 
+/* Emit the fields of FUNCTION_DECL FNDECL to STREAM.  REF_P is as
+   in pph_write_tree.  */
+
+static void
+pph_out_function_decl (pph_stream *stream, tree fndecl, bool ref_p)
+{
+  pph_out_tree_or_ref_1 (stream, DECL_INITIAL (fndecl), ref_p, 3);
+  pph_out_lang_specific (stream, fndecl, ref_p);
+  pph_out_tree_or_ref_1 (stream, DECL_SAVED_TREE (fndecl), ref_p, 3);
+  pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (fndecl), ref_p);
+  pph_out_tree_or_ref_1 (stream, DECL_CHAIN (fndecl), ref_p, 3);
+}
+
 /* Callback for writing ASTs to a stream.  This writes all the fields
    that are not processed by default by the common tree pickler.
    OB and REF_P are as in lto_write_tree.  EXPR is the tree to write.  */
@@ -1278,11 +1291,7 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
       break;
 
     case FUNCTION_DECL:
-      pph_out_tree_or_ref_1 (stream, DECL_INITIAL (expr), ref_p, 3);
-      pph_out_lang_specific (stream, expr, ref_p);
-      pph_out_tree_or_ref_1 (stream, DECL_SAVED_TREE (expr), ref_p, 3);
-      pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (expr), ref_p);
-      pph_out_tree_or_ref_1 (stream, DECL_CHAIN (expr), ref_p, 3);
+      pph_out_function_decl (stream, expr, ref_p);
       break;
 
     case TYPE_DECL:
