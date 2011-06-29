@@ -11197,6 +11197,13 @@ melt_fatal_info (const char*filename, int lineno)
       };
   if (filename != NULL && lineno>0)
     error ("MELT got fatal failure from %s:%d", filename, lineno);
+  if (cfun && cfun->decl)
+    error ("MELT got fatal failure with cfun %p for %q+D", 
+	   (void*) cfun, cfun->decl);
+  if (current_pass) 
+    error ("MELT got fatal failure from current_pass %p #%d named %s",
+	   (void*) current_pass, 
+	   current_pass->static_pass_number, current_pass->name);
   fflush (NULL);
 }
 

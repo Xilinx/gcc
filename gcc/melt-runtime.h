@@ -78,6 +78,8 @@ extern void melt_fatal_info (const char*filename, int lineno);
 
 #define melt_fatal_error(Fmt,...) do{ melt_fatal_info (__FILE__,__LINE__); \
     fatal_error ((Fmt),##__VA_ARGS__); }while(0)
+#define melt_fatal_error_at_line(Lin,Fmt,...) do{ melt_fatal_info (__FILE__,(Lin)); \
+    fatal_error ((Fmt),##__VA_ARGS__); }while(0)
 
 #define dbgprintf_raw(Fmt,...) do{if (dump_file) \
       {fprintf(dump_file, Fmt, ##__VA_ARGS__); fflush(dump_file);}}while(0)

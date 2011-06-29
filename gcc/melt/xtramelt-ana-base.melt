@@ -2921,8 +2921,7 @@
    :basic_block curbb 
    )	
   ;;before expansion
-  #{
-   /* start $EACHBBCURFUN */
+  #{ /* start $EACHBBCURFUN */ const int $EACHBBCURFUN#_line = __LINE__;
    if (cfun && cfun->cfg) {
      basic_block  $EACHBBCURFUN#_bb = NULL;
     FOR_EACH_BB_FN($EACHBBCURFUN#_bb, cfun) {
@@ -2931,8 +2930,10 @@
  }#
  ;;after expansion
  #{ }} else 
-      melt_fatal_error ("each_bb_current_fun used with invalid cfun=%p [$EACHBBCURFUN]", 
-			cfun);
+      melt_fatal_error_at_line
+       ($EACHBBCURFUN#_line,
+	"each_bb_current_fun used with invalid cfun=%p [$EACHBBCURFUN]", 
+	cfun);
   /* end $EACHBBCURFUN */  
  }# )
 
@@ -2945,8 +2946,7 @@
    :tree cfundecl
    )	
   ;;before expansion
-  #{
-   /* start $eachbbcfun */
+  #{ /* start $EACHBBCFUN */ const $EACHBBCFUN#_line = __LINE__;
    if (cfun && cfun->cfg) {
      basic_block  $eachbbcfun#_bb = NULL;
      $cfundecl  = cfun->decl;
@@ -2956,8 +2956,10 @@
  }#
  ;;after expansion
  #{ }} else 
-      melt_fatal_error ("each_bb_cfun used with invalid cfun=%p [$eachbbcfun]", 
-			cfun);
+      melt_fatal_error_at_line 
+       ($EACHBBCFUN#_line,
+	"each_bb_cfun used with invalid cfun=%p [$eachbbcfun]", 
+	cfun);
   /* end $eachbbcfun */  
  }# )
 
@@ -2971,8 +2973,9 @@
   ;;before expansion
   #{ /* start $EACHLOCALCFUN */ const int $EACHLOCALCFUN#_line = __LINE__;
    if (!cfun)
-     melt_fatal_error ("each_local_decl_cfun called without cfun <%s:%d>",
- 		       basename(__FILE__), $EACHLOCALCFUN#_line);
+     melt_fatal_error_at_line
+      ($EACHLOCALCFUN#_line,
+       "each_local_decl_cfun [$EACHLOCALCFUN] called without cfun");
    if (cfun->local_decls) {
      unsigned $EACHLOCALCFUN#_ix = 0;
      tree $EACHLOCALCFUN#_tdcl = (tree)0;
