@@ -706,13 +706,7 @@ precompute_register_parameters (int num_actuals, struct arg_data *args,
 	   pseudo now.  TLS symbols sometimes need a call to resolve.  */
 	if (CONSTANT_P (args[i].value)
 	    && !targetm.legitimate_constant_p (args[i].mode, args[i].value))
-	  {
-	    if (GET_MODE (args[i].value) != args[i].mode)
-	      args[i].value = convert_to_mode (args[i].mode,
-					       args[i].value,
-					       args[i].unsignedp);
-	    args[i].value = force_reg (args[i].mode, args[i].value);
-	  }
+	  args[i].value = force_reg (args[i].mode, args[i].value);
 
 	/* If we are to promote the function arg to a wider mode,
 	   do it now.  */
