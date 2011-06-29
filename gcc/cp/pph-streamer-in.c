@@ -1488,7 +1488,7 @@ pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
         for (i = 0; i < num_trees; i++)
 	  {
 	    tree stmt = pph_in_tree (stream);
-	    append_to_statement_list (stmt, &expr);
+	    append_to_statement_list_force (stmt, &expr);
 	  }
       }
       break;
