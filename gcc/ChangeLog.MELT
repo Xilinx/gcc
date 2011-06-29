@@ -1,4 +1,11 @@
 
+2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (callframe_melt_st): Rename as
+	(melt_callframe_st), and use a temporary macro.
+
+	* melt/warmelt-outobj.melt: Emit melt_callframe_st not
+	callframe_melt_st.
+
 2011-06-28  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (tree_address_expression): Remove,
 	renaming it as

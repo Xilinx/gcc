@@ -571,7 +571,7 @@ melt_basicblock_phinodes(melt_ptr_t box)
  * copying garbage collector, which copies melt_ptr_t data into the
  * GGC heap from a young region.  This requires that every local
  * variable is known to our copying melt GC. For that purpose,
- * locals are copied (or used) inside a chain of callframe_melt_st
+ * locals are copied (or used) inside a chain of melt_callframe_st
  * structures. Since our copying GC change pointers, every allocation
  * or call may change all the frames. Also stores inside data should
  * be explicitly managed in a store list
@@ -2434,7 +2434,7 @@ melt_put_int (melt_ptr_t v, long x)
    ...-, and the MELT machinery generated code to mark each such
    frame. See http://gcc.gnu.org/wiki/memory%20management%20in%20MELT
    for more */
-struct callframe_melt_st
+struct melt_callframe_st
 {
   /* When mcfr_nbvar is positive or zero, it is the number of pointers
      in mcfr_varptr; when it is negative, the mcfr_forwmarkrout should
@@ -2445,25 +2445,28 @@ struct callframe_melt_st
 #endif
   union {
     struct meltclosure_st *mcfr_closp_; /* when mcfr_nbvar >= 0 */
-    void (*mcfr_forwmarkrout_) (struct callframe_melt_st*, int); /* when mcfr_nbvar < 0 */
+    void (*mcfr_forwmarkrout_) (struct melt_callframe_st*, int); /* when mcfr_nbvar < 0 */
   } mcfr_un_;
 #define mcfr_closp mcfr_un_.mcfr_closp_
 #define mcfr_forwmarkrout mcfr_un_.mcfr_forwmarkrout_ 
   /* Interface: void mcfr_forwmarkrout (void* frame, int marking) */
   struct excepth_melt_st *mcfr_exh;	/* for our exceptions - not implemented yet */
-  struct callframe_melt_st *mcfr_prev;
+  struct melt_callframe_st *mcfr_prev;
   melt_ptr_t mcfr_varptr[FLEXIBLE_DIM];
 };
+
+/* for compoatibility */
+#define callframe_melt_st melt_callframe_st
 
 /* maximal number of local variables per frame */
 #define MELT_MAXNBLOCALVAR 16384
 
 /* the topmost call frame */
-extern struct callframe_melt_st *melt_topframe;
+extern struct melt_callframe_st *melt_topframe;
 
 static inline int melt_curframdepth (void) {
   int cnt = 0;
-  struct callframe_melt_st* fr = melt_topframe;
+  struct melt_callframe_st* fr = melt_topframe;
   for (;fr;fr=fr->mcfr_prev) cnt++;
   return cnt;
 }
@@ -2481,7 +2484,7 @@ extern melt_ptr_t melt_jmpval;
   const char* mcfr_flocs;			\
   struct meltclosure_st* mcfr_clos;		\
   struct excepth_melt_st* mcfr_exh;		\
-  struct callframe_melt_st* mcfr_prev;		\
+  struct melt_callframe_st* mcfr_prev;		\
   void*  /* a melt_ptr_t */ mcfr_varptr[NBVAR];	\
 } meltfram__
 /* initialize the current callframe and link it at top */
@@ -2493,9 +2496,9 @@ extern melt_ptr_t melt_jmpval;
   memset(&meltfram__, 0, sizeof(meltfram__));				\
   meltfram__.mcfr_nbvar = (NBVAR);					\
   meltfram__.mcfr_flocs = locbuf_##LIN;					\
-  meltfram__.mcfr_prev = (struct callframe_melt_st*) melt_topframe;	\
+  meltfram__.mcfr_prev = (struct melt_callframe_st*) melt_topframe;	\
   meltfram__.mcfr_clos = (CLOS);					\
-  melt_topframe = ((struct callframe_melt_st*)&meltfram__);		\
+  melt_topframe = ((struct melt_callframe_st*)&meltfram__);		\
 } while(0)
 #define MELT_INITFRAME_AT_MACRO(NBVAR,CLOS,FIL,LIN) \
   MELT_INITFRAME_AT(NBVAR,CLOS,FIL,LIN)
@@ -2521,7 +2524,7 @@ extern melt_ptr_t melt_jmpval;
   int mcfr_nbvar;				\
   struct meltclosure_st* mcfr_clos;		\
   struct excepth_melt_st* mcfr_exh;		\
-  struct callframe_melt_st* mcfr_prev;		\
+  struct melt_callframe_st* mcfr_prev;		\
   void*  /* a melt_ptr_t */ mcfr_varptr[NBVAR];	\
 } meltfram__
 #define MELT_LOCATION(LOCS) do{}while(0)
@@ -2530,7 +2533,7 @@ extern melt_ptr_t melt_jmpval;
 #define MELT_INITFRAME(NBVAR,CLOS) do {					\
   memset(&meltfram__, 0, sizeof(meltfram__));				\
   meltfram__.mcfr_nbvar = (NBVAR);					\
-  meltfram__.mcfr_prev = (struct callframe_melt_st*)melt_topframe;	\
+  meltfram__.mcfr_prev = (struct melt_callframe_st*)melt_topframe;	\
   meltfram__.mcfr_clos = (CLOS);					\
   melt_topframe = ((void*)&meltfram__);					\
 } while(0)
@@ -2543,7 +2546,7 @@ extern melt_ptr_t melt_jmpval;
 
 /* exit the current frame and return */
 #define MELT_EXITFRAME() do {		\
-    melt_topframe = (struct callframe_melt_st*)(meltfram__.mcfr_prev);	\
+    melt_topframe = (struct melt_callframe_st*)(meltfram__.mcfr_prev);	\
 } while(0)
 
 /****
