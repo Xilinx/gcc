@@ -1,5 +1,11 @@
 2011-06-29  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR middle-end/47715
+	* calls.c (precompute_register_parameters): Promote the function
+	argument before checking non-legitimate constant.
+
+2011-06-29  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* calls.c (precompute_register_parameters): Don't convert pointer
 	to TLS symbol.
 
