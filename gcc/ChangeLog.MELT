@@ -1,3 +1,8 @@
+
+2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/xtramelt-ana-simple.melt (melt_frame_exec): Improved again.
+
 2011-06-29  Pierre Vittet  <piervit@pvittet.com>
 
 	* melt-runtime.c (struct reading_st): Add a boolean
