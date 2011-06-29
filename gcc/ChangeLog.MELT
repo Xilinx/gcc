@@ -1,3 +1,13 @@
+2011-06-29  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt-runtime.c (struct reading_st): Add a boolean
+	rhas_file_location field.
+	(melt_linemap_compute_current_location): Return immediately if no
+	file location.
+	(meltgc_read_file, meltgc_read_from_rawstring)
+	(meltgc_read_from_val): Set rhas_file_location accordingly
+	(meltgc_read_from_val): create seqv list, it was used without
+	being created.
 
 2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (each_bb_cfun): Improved message.

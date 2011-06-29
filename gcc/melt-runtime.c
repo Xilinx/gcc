@@ -6315,7 +6315,8 @@ struct reading_st
   int rlineno;			/* current line number */
   int rcol;			/* current column */
   source_location rsrcloc;	/* current source location */
-  melt_ptr_t *rpfilnam;	/* pointer to location of file name string */
+  melt_ptr_t *rpfilnam;	        /* pointer to location of file name string */
+  bool rhas_file_location;	/* true iff the string comes from a file */
 };
 
 #define MELT_READ_TABULATION_FACTOR 8
@@ -6350,7 +6351,7 @@ melt_linemap_compute_current_location (struct reading_st* rd)
 {
   int colnum = 1;
   int cix = 0;
-  if (!rd || !rd->rcurlin) 
+  if (!rd || !rd->rcurlin || !rd->rhas_file_location)
     return;
   for (cix=0; cix<rd->rcol; cix++) {
     char c = rd->rcurlin[cix];
@@ -8338,6 +8339,7 @@ meltgc_read_file (const char *filnam, const char *locnam)
   rd = &rds;
   locnamv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
   rds.rpfilnam = (melt_ptr_t *) & locnamv;
+  rds.rhas_file_location = true;
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   while (!rdeof ())
     {
@@ -8395,7 +8397,16 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
   rds.rsrcloc = loch;
   rd = &rds;
   if (locnam)
-    locnamv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
+    {
+      rds.rhas_file_location = true;
+      locnamv = meltgc_new_stringdup ((meltobject_ptr_t) MELT_PREDEF (DISCR_STRING), locnam);
+    }
+  else
+    {
+      rds.rhas_file_location = false;
+      locnamv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
+				   "stringBuffer");
+    }
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   rds.rpfilnam = (melt_ptr_t *) & locnamv;
   while (rdcurc ())
@@ -8439,6 +8450,7 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
   locnamv = locnam_p;
   rbuf = 0;
   strmagic = melt_magic_discr ((melt_ptr_t) strv);
+  seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   switch (strmagic)
     {
     case MELTOBMAG_STRING:
@@ -8465,7 +8477,15 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
   rds.rpath = 0;
   rds.rlineno = 0;
   rds.rcurlin = rbuf;
+  rds.rhas_file_location = true;
   rd = &rds;
+  if (locnamv == NULL)
+    {
+      rds.rhas_file_location = false;
+      locnamv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
+				   "<string>");
+      rd->rpfilnam = (melt_ptr_t *) &locnamv;
+    }
   rds.rpfilnam = (melt_ptr_t *) & locnamv;
   while (rdcurc ())
     {
