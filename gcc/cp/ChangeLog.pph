@@ -1,4 +1,10 @@
 2011-06-29   Diego Novillo  <dnovillo@google.com>
+	     Lawrence Crowl  <crowl@google.com>
+
+	* pph-streamer-in.c (pph_in_lang_specific): Expect shared
+	DECL_LANG_SPECIFIC fields.
+
+2011-06-29   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_read_tree): Call
 	append_to_statement_list_force instead of append_to_statement_list.

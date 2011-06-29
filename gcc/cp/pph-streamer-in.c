@@ -881,18 +881,23 @@ pph_in_lang_specific (pph_stream *stream, tree decl)
   marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return;
-
-  /* Since lang_decl is embedded in every decl, LD cannot
-     be shared.  */
-  gcc_assert (marker != PPH_RECORD_SHARED);
+  else if (marker == PPH_RECORD_SHARED)
+    {
+      DECL_LANG_SPECIFIC (decl) =
+	(struct lang_decl *) pph_in_shared_data (stream, ix);
+      return;
+    }
 
   /* Allocate a lang_decl structure for DECL.  */
   retrofit_lang_decl (decl);
-
   ld = DECL_LANG_SPECIFIC (decl);
-  ldb = &ld->u.base;
+
+  /* Now register it.  We would normally use ALLOC_AND_REGISTER,
+     but retrofit_lang_decl does not return a pointer.  */
+  pph_register_shared_data (stream, ld, ix);
 
   /* Read all the fields in lang_decl_base.  */
+  ldb = &ld->u.base;
   pph_in_ld_base (stream, ldb);
 
   if (ldb->selector == 0)
