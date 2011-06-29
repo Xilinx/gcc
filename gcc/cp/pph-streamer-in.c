@@ -1311,6 +1311,8 @@ pph_read_file_contents (pph_stream *stream)
   cpp_ident_use *bad_use;
   const char *cur_def;
   cpp_idents_used idents_used;
+  tree fndecl;
+  unsigned i;
 
   pph_in_identifiers (stream, &idents_used);
 
@@ -1333,6 +1335,23 @@ pph_read_file_contents (pph_stream *stream)
   /* FIXME pph: This call replaces the tinfo, we should merge instead.
      See pph_in_tree_vec.  */
   unemitted_tinfo_decls = pph_in_tree_vec (stream);
+
+  /* Expand all the functions with bodies that we read from STREAM.  */
+  for (i = 0; VEC_iterate (tree, stream->fns_to_expand, i, fndecl); i++)
+    {
+      /* FIXME pph - This is somewhat gross.  When we generated the
+	 PPH image, the parser called expand_or_defer_fn on FNDECL,
+	 which marked it DECL_EXTERNAL (see expand_or_defer_fn_1 for
+	 details).
+
+	 However, this is not really an extern definition, so it was
+	 also marked not-really-extern (yes, I know...). If this
+	 happens, we need to unmark it, otherwise the code generator
+	 will toss it out.  */
+      if (DECL_NOT_REALLY_EXTERN (fndecl))
+	DECL_EXTERNAL (fndecl) = 0;
+      expand_or_defer_fn (fndecl);
+    }
 }
 
 
@@ -1372,20 +1391,7 @@ pph_in_function_decl (pph_stream *stream, tree fndecl)
   DECL_STRUCT_FUNCTION (fndecl) = pph_in_struct_function (stream, fndecl);
   DECL_CHAIN (fndecl) = pph_in_tree (stream);
   if (DECL_SAVED_TREE (fndecl))
-    {
-      /* FIXME pph - This is somewhat gross.  When we generated the
-	 PPH image, the parser called expand_or_defer_fn on FNDECL,
-	 which marked it DECL_EXTERNAL (see expand_or_defer_fn_1 for
-	 details).
-
-	 However, this is not really an extern definition, so it was
-	 also marked not-really-extern (yes, I know...). If this
-	 happens, we need to unmark it, otherwise the code generator
-	 will toss it out.  */
-      if (DECL_NOT_REALLY_EXTERN (fndecl))
-	DECL_EXTERNAL (fndecl) = 0;
-      expand_or_defer_fn (fndecl);
-    }
+    VEC_safe_push (tree, gc, stream->fns_to_expand, fndecl);
 }
 
 
@@ -1396,7 +1402,7 @@ pph_in_function_decl (pph_stream *stream, tree fndecl)
 
 void
 pph_read_tree (struct lto_input_block *ib ATTRIBUTE_UNUSED,
-		      struct data_in *data_in, tree expr)
+	       struct data_in *data_in, tree expr)
 {
   pph_stream *stream = (pph_stream *) data_in->sdata;
 

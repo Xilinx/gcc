@@ -1,4 +1,13 @@
 2011-06-29   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_read_file_contents): Call
+	expand_or_defer_fn on every function in stream->fns_to_expand.
+	(pph_in_function_decl): If FNDECL has a body, add it to
+	stream->fns_to_expand.
+	(pph_read_tree): Tidy argument list.
+	* pph-streamer.h (struct pph_stream): Add field fns_to_expand.
+
+2011-06-29   Diego Novillo  <dnovillo@google.com>
 	     Lawrence Crowl  <crowl@google.com>
 
 	* pph-streamer-in.c (pph_in_lang_specific): Expect shared

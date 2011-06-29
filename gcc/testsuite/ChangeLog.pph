@@ -1,5 +1,11 @@
 2011-06-29  Diego Novillo  <dnovillo@google.com>
 
+	* g++.dg/pph/x1dynarray1.cc: Adjust xfail.
+	* g++.dg/pph/x1namespace.cc: Likewise.
+	* g++.dg/pph/x1template.cc: Mark fixed.
+
+2011-06-29  Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/pph/c1attr-warn-unused-result.cc: Remove xfail marker.
 
 2011-06-28  Diego Novillo  <dnovillo@google.com>

@@ -116,6 +116,10 @@ typedef struct pph_stream {
 
   /* Nonzero if the stream was opened for writing.  */
   unsigned int write_p : 1;
+
+  /* List of functions with bodies that need to be expanded after
+     reading the PPH file.  */
+  VEC(tree,gc) *fns_to_expand;
 } pph_stream;
 
 /* Filter values for pph_out_chain_filtered.  */
