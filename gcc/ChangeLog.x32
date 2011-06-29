@@ -1,3 +1,9 @@
+2011-06-28  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR target/48155
+	* config/i386/i386.md (*lea_0_x32): New.
+	* config/i386/predicates.md (pointer_register_operand): Likewise.
+
 2011-06-28  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
 
 	PR rtl-optimization/49114
