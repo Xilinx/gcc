@@ -1,5 +1,9 @@
 
 2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (cfun_local_decls): Removed.
+	(each_local_decl_cfun): New c-iterator.
+
+2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (callframe_melt_st): Rename as
 	(melt_callframe_st).
 	* melt-runtime.h (melt_callframe_st): Remove temporary macro.

@@ -2961,6 +2961,35 @@
   /* end $eachbbcfun */  
  }# )
 
+;;; iterate on evey local declaration of the current cfun
+(defciterator each_local_decl_cfun
+  ()					;startformals
+  eachlocalcfun				;state symbol
+  (					;local formals
+   :tree tlocdecl :long ix
+  )
+  ;;before expansion
+  #{ /* start $EACHLOCALCFUN */ const int $EACHLOCALCFUN#_line = __LINE__;
+   if (!cfun)
+     melt_fatal_error ("each_local_decl_cfun called without cfun <%s:%d>",
+ 		       basename(__FILE__), $EACHLOCALCFUN#_line);
+   if (cfun->local_decls) {
+     unsigned $EACHLOCALCFUN#_ix = 0;
+     tree $EACHLOCALCFUN#_tdcl = (tree)0;
+     FOR_EACH_LOCAL_DECL (cfun, $EACHLOCALCFUN#_ix, $EACHLOCALCFUN#_tdcl) {
+        $TLOCDECL = $EACHLOCALCFUN#_tdcl;
+        $IX = $EACHLOCALCFUN#_ix;
+  }#
+  ;; after expansion
+  #{ /* end $EACHLOCALCFUN */
+        $TLOCDECL = (tree)0;
+      }; /* end FOR_EACH_LOCAL_DECL $EACHLOCALCFUN */
+    $EACHLOCALCFUN#_tdcl = (tree)0;
+    $EACHLOCALCFUN#_ix = 0;
+    } /* end if cfun $EACHLOCALCFUN */ 
+  }#
+)
+
 ;; debug_tree is ok even for nil trees
 (defprimitive debugtree (:cstring msg :tree tr) :void
   #{ do {debugeprintfnonl("debugtree %s @%p /%s ", $msg, (void*)$tr, 
@@ -3303,8 +3332,6 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 (defprimitive cfun_nonlocal_goto_save_area () :tree
   #{ (cfun?(cfun->nonlocal_goto_save_area):NULL) }#)
 
-(defprimitive cfun_local_decls () :tree
-  #{ (cfun?(cfun->local_decls):NULL) }#)
 
 (defprimitive cfun_has_cfg () :long
   #{ (cfun?(cfun->cfg != NULL):0) }#)
@@ -3325,7 +3352,6 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  cfun_decl
  cfun_gimple_body
  cfun_has_cfg
- cfun_local_decls
  cfun_nonlocal_goto_save_area
  cfun_static_chain_decl
  clear_special 
@@ -3346,6 +3372,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  dominated_by_other
  dominated_by_other
  each_bb_cfun
+ each_local_decl_cfun
  each_bb_current_fun
  each_cgraph_decl
  each_cgraph_fun_body
