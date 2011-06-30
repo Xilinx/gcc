@@ -1,3 +1,8 @@
+
+2011-06-30   DeLesley Hutchins  <delesley@google.com>
+       * tree-threadsafe-analyze.c (handle_call_gs): Fixes case where
+       the virtual method callee has unknown type.
+
 2011-06-27   Doug Kwan  <dougkwan@google.com>
 
 	Google ref 41164-p2

@@ -2446,7 +2446,16 @@ handle_call_gs (gimple call, struct bb_threadsafe_info *current_bb_info)
       if (TREE_CODE (callee) == OBJ_TYPE_REF)
         {
           tree objtype = TREE_TYPE (TREE_TYPE (OBJ_TYPE_REF_OBJECT (callee)));
-          fdecl = lang_hooks.get_virtual_function_decl (callee, objtype);
+          /* Check to make sure objtype is a valid type.
+             OBJ_TYPE_REF_OBJECT does not always return the correct static type of the callee.   
+             For example:  Given  foo(void* ptr) { ((Foo*) ptr)->doSomething(); }
+             objtype will be void, not Foo.  Whether or not this happens depends on the details 
+             of how a particular call is lowered to GIMPLE, and there is no easy fix that works 
+             in all cases.  For now, we simply rely on gcc's type information; if that information 
+             is not accurate, then the analysis will be less precise.
+           */
+          if (TREE_CODE(objtype) == RECORD_TYPE)
+              fdecl = lang_hooks.get_virtual_function_decl (callee, objtype);                    
         }
     }
 
