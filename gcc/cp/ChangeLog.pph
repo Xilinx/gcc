@@ -1,3 +1,10 @@
+2011-06-30  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer.h (struct pph_stream): Fix comment of data_in field.
+	(pph_out_string_with_length): lto_output_string_with_length now handles
+	NULL strings, call it directly.
+	(pph_in_string): Fix comment.
+
 2011-06-29   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_read_file_contents): Call

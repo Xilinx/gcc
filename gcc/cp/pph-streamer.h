@@ -100,7 +100,7 @@ typedef struct pph_stream {
   struct lto_input_block *ib;
 
   /* String tables and other descriptors used by the LTO reading
-     routines.  NULL when the file is opened for reading.  */
+     routines.  NULL when the file is opened for writing.  */
   struct data_in *data_in;
 
   /* Array of sections in the PPH file.  */
@@ -250,21 +250,10 @@ static inline void
 pph_out_string_with_length (pph_stream *stream, const char *str,
 			       unsigned int len)
 {
-  if (str)
-    {
-      if (flag_pph_tracer >= 4)
-	pph_trace_string_with_length (stream, str, len);
-      lto_output_string_with_length (stream->ob, stream->ob->main_stream,
-				     str, len + 1, false);
-    }
-  else
-    {
-      /* lto_output_string_with_length does not handle NULL strings,
-	 but lto_output_string does.  */
-      if (flag_pph_tracer >= 4)
-	pph_trace_string (stream, str);
-      pph_out_string (stream, NULL);
-    }
+  if (flag_pph_tracer >= 4)
+    pph_trace_string_with_length (stream, str, len);
+  lto_output_string_with_length (stream->ob, stream->ob->main_stream,
+				  str, len + 1, false);
 }
 
 /* Output VEC V of ASTs to STREAM.
@@ -338,9 +327,7 @@ pph_in_bytes (pph_stream *stream, void *p, size_t n)
     pph_trace_bytes (stream, p, n);
 }
 
-/* Read and return a string of up to MAX characters from STREAM.
-   The caller is responsible for freeing the memory allocated
-   for the string.  */
+/* Read and return a string of up to MAX characters from STREAM.  */
 
 static inline const char *
 pph_in_string (pph_stream *stream)
