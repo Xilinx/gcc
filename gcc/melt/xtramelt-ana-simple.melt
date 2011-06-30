@@ -1317,7 +1317,9 @@
 	 (:long gimplecnt 0)
 	 (:tree tmeltframdecl (null_tree))
 	 (:tree tmeltframtype (null_tree))
+	 (:tree tmeltframvarptr (null_tree))
 	 (:tree tfundecl (cfun_decl))
+	 (:long nbvarptr 0)
 	 )
     (each_local_decl_cfun
      ()
@@ -1352,6 +1354,8 @@
 			 (debugtree "meltframe_exec tindextype" tindextype)
 			 (debugtree "meltframe_exec tsize" tsize)
 			 (debuglong "meltframe_exec lmax" lmax)
+			 (setq tmeltframvarptr tcurfield)
+			 (setq nbvarptr lmax)
 			 )
 		      (?_ 
 		       (void)))
@@ -1362,52 +1366,83 @@
      )
     (debuglong "meltframe_exec declcnt" declcnt)
     (debugtree "meltframe_exec found tmeltframdecl" tmeltframdecl)
+    (debugtree "meltframe_exec found tmeltframvarptr" tmeltframvarptr)
     (if tmeltframdecl
 	(void)
-	(warning_at_tree tfundecl "MELT routine without meltfram__"))
-    (each_bb_cfun 
-     ()
-     (:basic_block bb :tree fundecl)
-     (debugtree "meltframe_exec fundecl" fundecl)
-     (setq bbcnt (+i bbcnt 1))
-     (eachgimple_in_basicblock 
-      (bb)
-      (:gimple g)
-      (debuggimple "meltframe_exec g" g)
-      (setq gimplecnt (+i gimplecnt 1))
-      (match g
-	     ( ?(gimple_call_3
-		 ?lhs ?(tree_function_decl ?(cstring_same "memset") ?_)
-		 ?(tree_addr_expr tmeltframtype tmeltframdecl) ?arg2 ?arg3)
-		(debugtree "meltframe_exec call3 memset arg2" arg2)
-		(debugtree "meltframe_exec call3 memset arg3" arg3)
-		)
-	     ( ?(gimple_assign_single
-		 tmeltframdecl
-		 ?rhs)
-		(debugtree "meltframe_exec gimple_assign_single meltfram rhs" rhs)
-		)
-	     ( ?(gimple_assign_single
-		 ?(tree_array_ref 
-		   ?(tree_component_ref 
-		     tmeltframdecl
-		     ?(tree_field_decl ?(tree_identifier ?(cstring_same "mcfr_varptr")) ?_))
-		   ?(tree_integer_cst ?ixk))
-		 ?rhs)
-		(debuglong "meltframe_exec gimple_assign_single varptr ixk" ixk)
-		(debugtree "meltframe_exec gimple_assign_single varptr rhs" rhs)
-		)
-	     ( ?(gimple_assign_single ?lhs ?rhs)
-		(debugtree "meltframe_exec gimple_assign_single lhs" lhs)
-		(debugtree "meltframe_exec gimple_assign_single rhs" rhs)
-		)
-	     ( ?_ 
-	       ())
-	     )
+      (warning_at_tree tfundecl "MELT routine without meltfram__"))
+    (let ( (tupuseptr (make_multiple discr_multiple nbvarptr))
+	   (tupdefptr (make_multiple discr_multiple nbvarptr))
+	   )
+      (each_bb_cfun 
+       ()
+       (:basic_block bb :tree fundecl)
+       (debugtree "meltframe_exec fundecl" fundecl)
+       (setq bbcnt (+i bbcnt 1))
+       (eachgimple_in_basicblock 
+	(bb)
+	(:gimple g)
+	(debuggimple "meltframe_exec g" g)
+	(setq gimplecnt (+i gimplecnt 1))
+	(match g
+	       ( ?(gimple_call_3
+		   ?lhs ?(tree_function_decl ?(cstring_same "memset") ?_)
+		   ?(tree_addr_expr tmeltframtype tmeltframdecl) ?arg2 ?arg3)
+		  (debugtree "meltframe_exec call3 memset arg2" arg2)
+		  (debugtree "meltframe_exec call3 memset arg3" arg3)
+		  )
+	       ( ?(gimple_assign_single
+		   tmeltframdecl
+		   ?rhs)
+		  (debugtree "meltframe_exec gimple_assign_single meltfram rhs" rhs)
+		  )
+	       ( ?(gimple_assign_single
+		   ?(tree_array_ref 
+		     ?(tree_component_ref 
+		       tmeltframdecl
+		       tmeltframvarptr)
+		     ?(tree_integer_cst ?ixk))
+		   ?rhs)
+		  (debuglong "meltframe_exec gimple_assign_single varptrdest ixk" ixk)
+		  (debugtree "meltframe_exec gimple_assign_single varptrdest rhs" rhs)
+		  (cond
+		   ( (<i ixk 0)
+		     (warning_at_gimple g "negative melt destination pointer index")
+		     )
+		   ( (>i ixk nbvarptr)
+		     (warning_at_gimple g "too big melt destination pointer index")
+		     )
+		   (:else
+		    (let ( (curdestlist (multiple_nth tupdefptr ixk))
+			   )
+		      (if (is_list curdestlist)
+			  (list_append curdestlist (make_gimple discr_gimple g))
+			(let ( (newdestlist (list (make_gimple discr_gimple g))) 
+			       )
+			  (multiple_put_nth tupdefptr ixk newdestlist)
+			  )))))
+		  )
+	       ( ?(gimple_assign_single
+		   ?lhs
+		   ?(tree_array_ref 
+		     ?(tree_component_ref 
+		       tmeltframdecl
+		       tmeltframvarptr)
+		     ?(tree_integer_cst ?ixk)))
+		  (debugtree "meltframe_exec gimple_assign_single varptrsrc lhs" lhs)
+		  (debuglong "meltframe_exec gimple_assign_single varptrsrc ixk" ixk)
+		  )
+	       ( ?(gimple_assign_single ?lhs ?rhs)
+		  (debugtree "meltframe_exec gimple_assign_single lhs" lhs)
+		  (debugtree "meltframe_exec gimple_assign_single rhs" rhs)
+		  )
+	       ( ?_ 
+		 ())
+	       )
+	)
+       )
+      (debuglong "meltframe_exec bbcnt" bbcnt)
+      (debuglong "meltframe_exec gimplecnt" gimplecnt)
       )
-     )
-    (debuglong "meltframe_exec bbcnt" bbcnt)
-    (debuglong "meltframe_exec gimplecnt" gimplecnt)
     )
   )
 
