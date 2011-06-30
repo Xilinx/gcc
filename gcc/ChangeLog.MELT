@@ -1,5 +1,10 @@
 
 2011-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_multiple_put_nth, meltgc_send)
+	(meltgc_open_infix_file, meltgc_intern_keyword)
+	(meltgc_read_from_val): Remove useless slots in meltfram__.
+
+2011-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (warning_at_tree_decl_with_number):
 	New primitive.
 	* melt/xtramelt-ana-simple.melt (meltframe_exec): Work!

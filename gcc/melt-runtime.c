@@ -2577,11 +2577,10 @@ void
 meltgc_multiple_put_nth (melt_ptr_t mul_p, int n, melt_ptr_t val_p)
 {
   int ln = 0;
-  MELT_ENTERFRAME (3, NULL);
+  MELT_ENTERFRAME (2, NULL);
 #define mulv    meltfram__.mcfr_varptr[0]
 #define mult_mulv ((struct meltmultiple_st*)(mulv))
-#define discrv  meltfram__.mcfr_varptr[1]
-#define valv    meltfram__.mcfr_varptr[2]
+#define valv    meltfram__.mcfr_varptr[1]
   mulv = mul_p;
   valv = val_p;
   if (melt_magic_discr ((melt_ptr_t) (mulv)) != MELTOBMAG_MULTIPLE)
@@ -2598,7 +2597,6 @@ end:
   MELT_EXITFRAME ();
 #undef mulv
 #undef mult_mulv
-#undef discrv
 #undef valv
 }
 
@@ -4778,16 +4776,14 @@ meltgc_send (melt_ptr_t recv_p,
   static long sendcount;
   long sendnum = ++sendcount;
 #endif
-  MELT_ENTERFRAME (9, NULL);
+  MELT_ENTERFRAME (7, NULL);
 #define recv    meltfram__.mcfr_varptr[0]
 #define selv    meltfram__.mcfr_varptr[1]
-#define argv    meltfram__.mcfr_varptr[2]
-#define closv   meltfram__.mcfr_varptr[3]
-#define discrv  meltfram__.mcfr_varptr[4]
-#define mapv    meltfram__.mcfr_varptr[5]
-#define superv  meltfram__.mcfr_varptr[6]
-#define resv    meltfram__.mcfr_varptr[7]
-#define ancv    meltfram__.mcfr_varptr[8]
+#define closv   meltfram__.mcfr_varptr[2]
+#define discrv  meltfram__.mcfr_varptr[3]
+#define mapv    meltfram__.mcfr_varptr[4]
+#define resv    meltfram__.mcfr_varptr[5]
+#define ancv    meltfram__.mcfr_varptr[6]
 #define obj_discrv ((meltobject_ptr_t)(discrv))
 #define obj_selv ((meltobject_ptr_t)(selv))
 #define clo_closv ((meltclosure_ptr_t)(closv))
@@ -4883,9 +4879,7 @@ end:
 #undef selv
 #undef closv
 #undef discrv
-#undef argv
 #undef mapv
-#undef superv
 #undef resv
 #undef ancv
 #undef obj_discrv
@@ -6887,7 +6881,7 @@ meltgc_open_infix_file (const char* filnam)
   struct infixreading_st* previnfix = curinfixr;
   char* filnamdup = 0;
   FILE* fil = 0;
-  MELT_ENTERFRAME (4, NULL);
+  MELT_ENTERFRAME (0, NULL);
   gcc_assert (!previnfix || previnfix->infr_magic == MELT_INFIXREAD_MAGIC);
   curinfixr = (struct infixreading_st*) xcalloc (sizeof(struct infixreading_st), 1);
   memset (curinfixr, 0, sizeof(curinfixr));
@@ -7179,7 +7173,7 @@ void
 meltgc_close_infix_file (void)
 {
   struct infixreading_st* previnfix = curinfixr;
-  MELT_ENTERFRAME (4, NULL);
+  MELT_ENTERFRAME (0, NULL);
   if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
     melt_dbgshortbacktrace ("unexpected call to MELT close_infix_file" ,
 			    100);
@@ -7198,12 +7192,11 @@ meltgc_close_infix_file (void)
 melt_ptr_t
 meltgc_intern_keyword (melt_ptr_t keyw_p)
 {
-  MELT_ENTERFRAME (5, NULL);
+  MELT_ENTERFRAME (4, NULL);
 #define keywv    meltfram__.mcfr_varptr[0]
-#define dictv    meltfram__.mcfr_varptr[1]
-#define closv    meltfram__.mcfr_varptr[2]
-#define nstrv    meltfram__.mcfr_varptr[3]
-#define resv     meltfram__.mcfr_varptr[4]
+#define closv    meltfram__.mcfr_varptr[1]
+#define nstrv    meltfram__.mcfr_varptr[2]
+#define resv     meltfram__.mcfr_varptr[3]
 #define obj_keywv    ((meltobject_ptr_t)(keywv))
   keywv = keyw_p;
   if (melt_magic_discr ((melt_ptr_t) keywv) != MELTOBMAG_OBJECT
@@ -7235,7 +7228,6 @@ end:;
   MELT_EXITFRAME ();
   return (melt_ptr_t) resv;
 #undef symbv
-#undef dictv
 #undef closv
 #undef nstrv
 #undef resv
@@ -8426,6 +8418,7 @@ end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) seqv;
 #undef vecshv
+#undef valv
 #undef genv
 #undef locnamv
 #undef seqv
@@ -8439,12 +8432,11 @@ meltgc_read_from_val (melt_ptr_t strv_p, melt_ptr_t locnam_p)
   char *rbuf = 0;
   struct reading_st *rd = 0;
   int strmagic = 0;
-  MELT_ENTERFRAME (5, NULL);
-#define genv      meltfram__.mcfr_varptr[0]
-#define valv      meltfram__.mcfr_varptr[1]
-#define locnamv   meltfram__.mcfr_varptr[2]
-#define seqv      meltfram__.mcfr_varptr[3]
-#define strv      meltfram__.mcfr_varptr[4]
+  MELT_ENTERFRAME (4, NULL);
+#define valv      meltfram__.mcfr_varptr[0]
+#define locnamv   meltfram__.mcfr_varptr[1]
+#define seqv      meltfram__.mcfr_varptr[2]
+#define strv      meltfram__.mcfr_varptr[3]
   memset (&rds, 0, sizeof (rds));
   strv = strv_p;
   locnamv = locnam_p;
@@ -8504,7 +8496,6 @@ end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) seqv;
 #undef vecshv
-#undef genv
 #undef locnamv
 #undef seqv
 #undef strv
