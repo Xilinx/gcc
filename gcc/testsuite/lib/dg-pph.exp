@@ -74,29 +74,35 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     set dg-do-what-default compile
     dg-test -keep-output $test "$options -I." ""
 
-    # Quit if it did not compile successfully.
-    if { ![file_on_host exists "$bname.s"] } {
-	# All regular compiles should pass.
-	fail "$nshort $options (regular assembly missing)"
-	return
+    # Executables do not generate assembly.
+    if { ![string compare "dg-do-what" "run"] } {
+	# Not executable, so quit if it did not compile successfully.
+	if { ![file_on_host exists "$bname.s"] } {
+	    fail "$nshort $options (regular assembly missing)"
+	    return
+	}
+	# Rename the .s file into .s-pph to compare it after the second build.
+	remote_upload host "$bname.s" "$bname.s-pph"
+	remote_download host "$bname.s-pph"
+	file_on_host delete "$bname.s"
     }
-
-    # Rename the .s file into .s-pph to compare it after the second build.
-    remote_upload host "$bname.s" "$bname.s-pph"
-    remote_download host "$bname.s-pph"
-    file_on_host delete "$bname.s"
 
     verbose -log ""
 
     # Compile a second time using the pph files.
     dg-test -keep-output $test "$options $mapflag -I." ""
 
+    # Executables do not generate assembly,
+    if { [string compare "dg-do-what" "run"] } {
+	# and so we are done testing.
+	return
+    }
+
     # Quit if it did not compile successfully.
     if { ![file_on_host exists "$bname.s"] } {
 	# Expect assembly to be missing when the compile is an
-	# expected fail or when this was an executable test.
-	if { ![string compare "dg-do-what" "run"] \
-	     && ![llength [grep $test "dg-xfail-if.*-fpph-map"]] } {
+	# expected fail.
+	if { ![llength [grep $test "dg-xfail-if.*-fpph-map"]] } {
 	    fail "$nshort $options (pph assembly missing)"
 	}
 	return
@@ -117,17 +123,17 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 	fail "$nshort $options comparison failure"
     } elseif { $adiff == 1 } {
 	if { $xdiff } {
-	    xpass "$nshort $options (assembly identical)"
+	    xpass "$nshort $options (assembly comparison)"
 	} else {
-	    pass "$nshort $options (assembly identical)"
+	    pass "$nshort $options (assembly comparison)"
 	}
 	file_on_host delete "$bname.s-pph"
 	file_on_host delete "$bname.s+pph"
     } else {
 	if { $xdiff } {
-	    xfail "$nshort $options (assembly mismatch)"
+	    xfail "$nshort $options (assembly comparison)"
 	} else {
-	    fail "$nshort $options (assembly mismatch)"
+	    fail "$nshort $options (assembly comparison)"
 	}
     }
 }

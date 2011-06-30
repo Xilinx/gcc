@@ -1,10 +1,21 @@
-#ifndef X1DYNARRAY1_H
-#define X1DYNARRAY1_H
+// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "wchar.h:1:0: error: PPH file stdio.pph fails macro validation, _WCHAR_H is" "" { xfail *-*-* } 0 }
+// { dg-bogus "unistd.h:1144:34: error: declaration of .* has a different exception specifier" "" { xfail *-*-* } 0 }
+#ifndef X1DYNARRAY2_H
+#define X1DYNARRAY2_H
 
-extern "C" void *memcpy(void *dest, const void *src, unsigned long n);
-extern "C" void exit(int) throw();
+#include <stddef.h>
+#include <stdexcept>
+#include <memory>
+#include <new>
+#include <iterator>
 
-template< typename T >
+#define DefaultConstructible typename
+#define CPP0X( ignore )
+
+namespace std {
+
+template< DefaultConstructible T >
 struct dynarray
 {
     // types:
@@ -13,8 +24,10 @@ struct dynarray
     typedef const T&                              const_reference;
     typedef       T*                              iterator;
     typedef const T*                              const_iterator;
-    typedef unsigned long                         size_type;
-    typedef long                                  difference_type;
+    typedef std::reverse_iterator<iterator>       reverse_iterator;
+    typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+    typedef size_t                                size_type;
+    typedef ptrdiff_t                             difference_type;
 
     // fields:
 private:
@@ -23,24 +36,36 @@ private:
 
     // helper functions:
     void check(size_type n)
-        { if ( n >= count ) exit(1); }
+        { if ( n >= count ) throw out_of_range("dynarray"); }
     T* alloc(size_type n)
         { return reinterpret_cast<T*>( new char[ n*sizeof(T) ] ); }
 
 public:
     // construct and destruct:
-    dynarray(); // undefined
-    const dynarray operator=(const dynarray&); // undefined
+    dynarray() CPP0X( = delete ) ;
+    const dynarray operator=(const dynarray&) CPP0X( = delete ) ;
 
     explicit dynarray(size_type c)
-        : store( alloc( c ) ), count( c ) { }
+        : store( alloc( c ) ), count( c )
+        { size_type i;
+          try {
+              for ( size_type i = 0; i < count; ++i )
+                  new (store+i) T;
+          } catch ( ... ) {
+              for ( ; i > 0; --i )
+                 (store+(i-1))->~T();
+              throw;
+          } }
 
     dynarray(const dynarray& d)
         : store( alloc( d.count ) ), count( d.count )
-        { memcpy( store, d.store, count * sizeof(T) ); }
+        { try { uninitialized_copy( d.begin(), d.end(), begin() ); }
+          catch ( ... ) { delete store; throw; } }
 
     ~dynarray()
-        { delete[] store; }
+        { for ( size_type i = 0; i < count; ++i )
+              (store+i)->~T();
+          delete[] store; }
 
     // iterators:
     iterator       begin()        { return store; }
@@ -49,6 +74,15 @@ public:
     iterator       end()          { return store + count; }
     const_iterator end()    const { return store + count; }
     const_iterator cend()   const { return store + count; }
+
+    reverse_iterator       rbegin()       
+        { return reverse_iterator(end()); }
+    const_reverse_iterator rbegin()  const
+        { return reverse_iterator(end()); }
+    reverse_iterator       rend()         
+        { return reverse_iterator(begin()); }
+    const_reverse_iterator rend()    const
+        { return reverse_iterator(begin()); }
 
     // capacity:
     size_type size()     const { return count; }
@@ -71,5 +105,7 @@ public:
     T*       data()       { return store; }
     const T* data() const { return store; }
 };
+
+} // namespace std
 
 #endif

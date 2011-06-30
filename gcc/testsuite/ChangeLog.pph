@@ -1,3 +1,17 @@
+2011-06-29  Lawrence Crowl  <crowl@google.com>
+
+	* lib/dg-pph.exp: Run pph executables when normal executables run.
+	Change (assembly identical) and (assembly mismatch) to (assembly
+	comparison) to avoid false "disappeared" test
+	reports.
+	* g++.dg/pph/x1dynarray1.h: Simplfy test to avoid more complicated
+	language features: namespaces, exceptions, placement new, and explicit
+	destructor calls.
+	* g++.dg/pph/x1dynarray1.cc: Strip out namespaces.
+	* g++.dg/pph/x1dynarray0.cc: New.  An even simpler use.
+	* g++.dg/pph/x1dynarray2.h: New.  Add back the full test.
+	* g++.dg/pph/x1dynarray2.cc: New.  Add back the full test.
+
 2011-06-29  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x1dynarray1.cc: Adjust xfail.
