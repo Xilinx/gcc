@@ -37,12 +37,15 @@ extern tree gpy_stmt_decl_lower_binary_op (gpy_dot_tree_t *, VEC(gpy_ctx_t,gc) *
 
 extern gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t **);
 
+extern void gpy_initilize_types (void);
+extern void gpy_stmt_process_decl (gpy_dot_tree_t * const);
+
 #define DECL_CHAIN_2_VEC_TREE(x,y)		\
   do {						\
     tree __x = x;				\
     do {					\
       VEC_safe_push (tree,gc,y,__x);		\
-    } while (__x = DECL_CHAIN (__x));		\
+    } while ((__x = DECL_CHAIN (__x)));		\
   } while (0);
 
 #define VEC_TREE_2_DECL_CHAIN (x,y)			\

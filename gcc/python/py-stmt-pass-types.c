@@ -42,12 +42,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 
 #include "gpython.h"
-#include "py-dot-codes.def"
 #include "py-dot.h"
 #include "py-vec.h"
 #include "py-tree.h"
-#include "py-types.h"
-#include "py-runtime.h"
 
 static tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) *);
 
@@ -92,7 +89,7 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 
 	 We will let that be handled by the 2nd pass.
        */
-      if (DOT_FIELD (itx) == D_D_EXPR)
+      if (DOT_T_FIELD (itx) == D_D_EXPR)
 	{
 	  itx = gpy_stmt_process_AST_Align (&itx);
 
@@ -102,11 +99,11 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 			  && (DOT_rhs_T(itx) == D_TD_DOT)
 			  );
 
-	      gpy_dot_type_t * target = DOT_lhs_TT (itx);
+	      gpy_dot_tree_t * target = DOT_lhs_TT (itx);
 	      do {
 		gpy_hashval_t h = gpy_dd_hash_string (DOT_IDENTIFIER_POINTER (target));
 		gpy_dd_hash_insert (h, target, &context);
-	      } while (target = DOT_CHAIN (target));
+	      } while ((target = DOT_CHAIN (target)));
 	    }
 	}
     }
@@ -119,7 +116,7 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
       gpy_hash_entry_t *array = context.array;
       for (idx = 0; idx<context.size; ++idx)
 	{
-	  gpy_dot_tree_t * d = array[idx].data;
+	  gpy_dot_tree_t * d = (gpy_dot_tree_t *) array[idx].data;
 	  if (d)
 	    {
 	      field = build_decl (BUILTINS_LOCATION, FIELD_DECL,
@@ -184,9 +181,8 @@ VEC(tree,gc) * gpy_stmt_pass_generate_types (VEC(gpydot,gc) * decls)
 {
   VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
 
-  VEC_safe_push (tree, gc,
-		 gpy_stmt_pass_process_toplevel_decls (decls),
-		 retval);
+  VEC_safe_push (tree, gc, retval,
+		 gpy_stmt_pass_process_toplevel_decls (decls));
 
   /*
     now to iterate over the class declarations and generate their types...

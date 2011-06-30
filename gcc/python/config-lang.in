@@ -18,4 +18,4 @@ language="python"
 compilers="gpy1\$(exeext)"
 build_by_default="no"
 target_libs=target-libgpython
-gtfiles="\$(srcdir)/python/py-lang.c \$(srcdir)/python/py-dot.h \$(srcdir)/python/py-tree.h"
+gtfiles="\$(srcdir)/python/py-lang.c \$(srcdir)/python/py-dot.h \$(srcdir)/python/py-vec.h"

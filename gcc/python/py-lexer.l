@@ -39,11 +39,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 
 #include "gpython.h"
-#include "py-dot-codes.def"
 #include "py-dot.h"
 #include "py-vec.h"
 #include "py-tree.h"
-#include "py-runtime.h"
 
 #include "y.py.h"
 
@@ -232,7 +230,7 @@ else                    { LANG_TOKEN_ACTION; return ELSE; }
 {ID}                    {
                           LANG_TOKEN_ACTION;
                           // printf("IDENTIFIER!\n");
-                          yylval.string= xstrdup( yytext );
+                          yylval.string = xstrdup( yytext );
                           return IDENTIFIER;
                         }
 

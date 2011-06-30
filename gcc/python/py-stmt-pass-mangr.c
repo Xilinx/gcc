@@ -42,15 +42,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 
 #include "gpython.h"
-#include "py-dot-codes.def"
 #include "py-dot.h"
 #include "py-vec.h"
 #include "py-tree.h"
-#include "py-types.h"
-#include "py-runtime.h"
 
 static VEC(gpydot,gc) * gpy_decls;
 
+typedef VEC(gpydot,gc) * (*DOT_stmt_pass__)(VEC(gpydot,gc) *);
+static DOT_stmt_pass__ gpy_stmt_pass_mngr[] = 
+{
+  NULL /* sentinal */
+};
+
+/* Pushes each decl from the parser onto the current translation unit */
 void gpy_stmt_process_decl (gpy_dot_tree_t * const dot)
 {
   /* Push the declaration! */
@@ -100,16 +104,18 @@ void gpy_stmt_process_decl (gpy_dot_tree_t * const dot)
                     / \
                    2   2
  **/
-gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t ** dot)
+gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t ** d_dot)
 {
-  gpy_dot_tree_t *retval = NULL_DOT;
-  gpy_dot_tree_t *nn = NULL_DOT;
-  if (DECL_CHAIN(*dot))
+  gpy_dot_tree_t * retval = NULL_DOT;
+  gpy_dot_tree_t * nn = NULL_DOT;
+  gpy_dot_tree_t * dot = *d_dot;
+
+  if (DOT_CHAIN(dot))
     {
-      nn = DECL_CHAIN(*dot);
-      DECL_CHAIN(*dot) = NULL_DOT;
+      nn = DOT_CHAIN(dot);
+      DOT_CHAIN(dot) = NULL_DOT;
     }
-  retval = (*dot);
+  retval = (*d_dot);
 
   if (DOT_TYPE(retval) != D_MODIFY_EXPR)
     {
@@ -180,13 +186,10 @@ gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t ** dot)
   
   if (nn)
     DOT_CHAIN(retval) = nn;
-  (*dot) = retval;
+  (*d_dot) = retval;
 
   return retval;
 }
-
-
-
 
 /**
  * Things are quite complicated from here on and will change frequently
@@ -245,7 +248,7 @@ void gpy_stmt_write_globals (void)
   VEC(gpydot,gc) * dot_decls = gpy_decls;
   while (gpy_stmt_pass_mngr[idx] != NULL)
     {
-      DOT_stmt_pass x = gpy_stmt_pass_mngr[idx];
+      DOT_stmt_pass__ x = gpy_stmt_pass_mngr[idx];
       dot_decls = x(dot_decls);
       idx++;
     }
@@ -286,9 +289,3 @@ void gpy_stmt_write_globals (void)
 
   debug("finished passing to middle-end!\n\n");
 }
-
-typedef VEC(tree,gc) * (*DOT_stmt_pass__)(VEC(gpydot,gc) *);
-static DOT_stmt_pass gpy_stmt_pass_mngr[] = 
-{
-  NULL /* sentinal */
-};

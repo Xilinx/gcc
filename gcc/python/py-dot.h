@@ -20,7 +20,7 @@ along with GCC; see the file COPYING3.  If not see
 /*
   DOT tree codes...
 */
-enum gpy_dot_opcode_T {
+typedef enum {
   D_PRINT_STMT,
   D_IDENTIFIER,
   
@@ -39,14 +39,14 @@ enum gpy_dot_opcode_T {
   D_STRUCT_CLASS,
   D_STRUCT_METHOD,
 
+  D_D_EXPR,
   D_TD_COM,
   D_TD_DOT,
   D_TD_NULL,
 
   D_PRIMITIVE,
-} gpy_dot_code_T; 
+} opcode_t ; 
 
-typedef enum gpy_dot_code_T opcode_t;
 typedef struct GTY(()) gpy_tree_common_dot_t {
   opcode_t T;
   union {
@@ -57,17 +57,17 @@ typedef struct GTY(()) gpy_tree_common_dot_t {
 } gpy_dot_tree_common ;
 
 typedef struct GTY(()) gpy_tree_dot_t {
-  opcode_t T, opaT, opbT;
+  opcode_t T, FT, opaT, opbT;
   struct gpy_tree_dot_t * field;
   union {
-    struct dpy_tree_dot_t * t;
-    gpy_dot_tree_common tc;
+    struct gpy_tree_dot_t * t;
+    gpy_dot_tree_common * tc;
   } opa;
   union {
     struct gpy_tree_dot_t * t;
-    gpy_dot_tree_common tc;
+    gpy_dot_tree_common * tc;
   } opb;
-  struct cm_tree_dot_t * next;
+  struct gpy_tree_dot_t * next;
 } gpy_dot_tree_t ;
 
 #define DOT_TYPE_STRING(x)			\
@@ -75,6 +75,7 @@ typedef struct GTY(()) gpy_tree_dot_t {
 
 #define DOT_TYPE(x)      x->T
 #define DOT_CHAIN(x)     x->next
+#define DOT_T_FIELD(x)   x->FT
 #define DOT_FIELD(x)     x->field
 
 #define DOT_lhs_T(x)     x->opaT
@@ -88,9 +89,11 @@ typedef struct GTY(()) gpy_tree_dot_t {
 #define NULL_DOT         (gpy_dot_tree_t *)0
 #define DOT_alloc        (gpy_dot_tree_t *)	\
   xmalloc (sizeof (gpy_dot_tree_t));
+#define DOT_CM_alloc     (gpy_dot_tree_common *)	\
+  xmalloc (sizeof (gpy_dot_tree_common))
 
 #define DOT_IDENTIFIER_POINTER(x)		\
-  DOT_lhs_TC(x).o.string
+  DOT_lhs_TC(x)->o.string
 
 extern gpy_dot_tree_t * dot_build_class_decl (gpy_dot_tree_t *, gpy_dot_tree_t *);
 

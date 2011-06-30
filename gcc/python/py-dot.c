@@ -38,12 +38,9 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 
 #include "gpython.h"
-#include "py-dot-codes.def"
 #include "py-dot.h"
 #include "py-vec.h"
 #include "py-tree.h"
-#include "py-types.h"
-#include "py-runtime.h"
 
 gpy_dot_tree_t * dot_build_class_decl (gpy_dot_tree_t * ident,
 				       gpy_dot_tree_t  * suite)
@@ -51,6 +48,7 @@ gpy_dot_tree_t * dot_build_class_decl (gpy_dot_tree_t * ident,
   gpy_dot_tree_t * decl = DOT_alloc;
 
   DOT_TYPE(decl) = D_STRUCT_CLASS;
+  DOT_T_FIELD(decl) = D_TD_NULL;
   DOT_FIELD(decl) = ident;
   
   decl->opaT = D_TD_DOT;
@@ -68,6 +66,7 @@ gpy_dot_tree_t * dot_build_func_decl (gpy_dot_tree_t * ident, gpy_dot_tree_t * p
   gpy_dot_tree_t * decl = DOT_alloc;
 
   DOT_TYPE(decl) = D_STRUCT_METHOD;
+  DOT_T_FIELD(decl) = D_TD_NULL;
   DOT_FIELD(decl) = ident;
   
   decl->opaT = D_TD_DOT;
@@ -85,6 +84,7 @@ gpy_dot_tree_t * dot_build_decl1 (opcode_t o, gpy_dot_tree_t * t1)
   gpy_dot_tree_t * decl = DOT_alloc;
   
   DOT_TYPE(decl) = o;
+  DOT_T_FIELD(decl) = D_TD_NULL;
   DOT_FIELD(decl) = NULL_DOT;
   
   decl->opaT = D_TD_DOT;
@@ -108,9 +108,11 @@ gpy_dot_tree_t * dot_build_decl2 (opcode_t o, gpy_dot_tree_t * t1,
       || (o == D_MULT_EXPR)
       || (o == D_DIVD_EXPR)
       )
-    DOT_FIELD (decl) = D_D_EXPR;
+    DOT_T_FIELD(decl) = D_TD_NULL;
   else
-    DOT_FIELD (field) = NULL_DOT;
+    DOT_T_FIELD(decl) = D_TD_NULL;
+
+  DOT_FIELD (decl) = NULL_DOT;
   
   decl->opaT = D_TD_DOT;
   decl->opa.t = t1;
@@ -133,13 +135,17 @@ gpy_dot_tree_t * dot_build_integer (int i)
   // use the func pointer to find the function we need
   // instead of the current switch case
   DOT_FIELD(decl) = NULL_DOT;
+  DOT_T_FIELD(decl) = D_TD_NULL;
 
   decl->opaT = D_TD_COM;
-  decl->opa.tc = { D_T_INTEGER, o.integer = i };
+  decl->opa.tc = DOT_CM_alloc;
+
+  decl->opa.tc->T = D_T_INTEGER;
+  decl->opa.tc->o.integer = i;
 
   decl->opbT = D_TD_NULL;
   
-  DECL_CHAIN(decl) = NULL_DOT;
+  DOT_CHAIN(decl) = NULL_DOT;
 
   return decl;
 }
@@ -156,13 +162,16 @@ gpy_dot_tree_t * dot_build_identifier (char * s)
 
   DOT_TYPE(decl) = D_IDENTIFIER;
   DOT_FIELD(decl) = NULL_DOT;
+  DOT_T_FIELD(decl) = D_TD_NULL;
 
   decl->opaT = D_TD_COM;
-  decl->opa.tc = { D_T_STRING, o.string = s };
+  decl->opa.tc = DOT_CM_alloc;
+  decl->opa.tc->T = D_T_STRING;
+  decl->opa.tc->o.string = s;
 
   decl->opbT = D_TD_NULL;
   
-  DECL_CHAIN(decl) = NULL_DOT;
+  DOT_CHAIN(decl) = NULL_DOT;
 
   return decl;
 }

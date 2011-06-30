@@ -13,3 +13,6 @@ Wall
 Python
 ; Documented in c.opt
 
+fpy-dump-dot
+Python dump IL
+-fpy-dump-do dumps the pretty-printed DOT IL

@@ -42,16 +42,14 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 
 #include "gpython.h"
-#include "py-dot-codes.def"
 #include "py-dot.h"
 #include "py-vec.h"
 #include "py-tree.h"
-#include "py-types.h"
-#include "py-runtime.h"
+#include "py-builtins.h"
 
 static VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t *, VEC(gpydot,gc) *);
-static tree gpy_stmt_pass_lower_get_module_type (const char *, gpy_hash_tab *);
-static void gpy_stmt_pass_lower_gen_toplevl_context (tree, gpy_hash_tab_t *);
+static tree gpy_stmt_pass_lower_get_module_type (const char *, gpy_hash_tab_t *);
+static void gpy_stmt_pass_lower_gen_toplevl_context (tree, tree, gpy_hash_tab_t *);
 static tree gpy_stmt_pass_lower_gen_concat_identifier (char *, char *);
 
 static
@@ -61,10 +59,10 @@ tree gpy_stmt_pass_lower_gen_concat_identifier (char * s1, char * s2)
   size_t s2len = strlen (s2);
   size_t tlen = s1len + s2len;
 
-  char buffer[len + 1];
+  char buffer[tlen + 1];
   strncpy (buffer,s1,s1len);
   strncat (buffer,s2,s2len);
-  buffer[len] = '\0';
+  buffer[tlen-1] = '\0';
 
   debug ("buffer = <%s>!\n", buffer);
 
@@ -80,8 +78,11 @@ tree gpy_stmt_pass_lower_get_module_type (const char * s,
   debug ("looking for module type <%s>!\n", s);
   gpy_hashval_t h = gpy_dd_hash_string (s);
   gpy_hash_entry_t * e = gpy_dd_hash_lookup_table (modules, h);
-  if (e->data)
-    e = (tree) e->data;
+  if (e)
+    {
+      if (e->data)
+	retval = (tree) e->data;
+    }
 
   return retval;
 }
@@ -101,12 +102,12 @@ void gpy_stmt_pass_lower_gen_toplevl_context (tree module, tree param_decl,
 	gcc_assert (TREE_CODE (field) == FIELD_DECL);
 
 	gpy_hashval_t h = gpy_dd_hash_string (IDENTIFIER_POINTER(DECL_NAME (field)));
-	tree ref = build3 (COMPONENT_REF, TREE_TYPE (field), param_decl, field);
+	tree ref = build3 (COMPONENT_REF, TREE_TYPE (field), param_decl, field, NULL_TREE);
 	void ** e = gpy_dd_hash_insert (h, ref, context);
 
 	if (e)
 	  fatal_error ("problem inserting component reference into context!\n");
-      } while (field = DECL_CHAIN (field));
+      } while ((field = DECL_CHAIN (field)));
     }
 }
 
@@ -114,14 +115,14 @@ void gpy_stmt_pass_lower_gen_toplevl_context (tree module, tree param_decl,
    Creates a DECL_CHAIN of stmts to fold the scalar 
    with the last tree being the address of the primitive 
 */
-tree gpy_stmt_decl_lower_scalar (gpy_dot_tree  * decl)
+tree gpy_stmt_decl_lower_scalar (gpy_dot_tree_t * decl)
 {
   tree retval = error_mark_node;
 
   gcc_assert (DOT_TYPE (decl) == D_PRIMITIVE);
   gcc_assert (DOT_lhs_T (decl) == D_TD_COM);
 
-  switch (DOT_lhs_TC (decl).T)
+  switch (DOT_lhs_TC (decl)->T)
     {
     case D_T_INTEGER:
       {
@@ -129,7 +130,7 @@ tree gpy_stmt_decl_lower_scalar (gpy_dot_tree  * decl)
 				   create_tmp_var_name ("P"),
 				   gpy_object_type_ptr);
 	retval = build2 (MODIFY_EXPR, gpy_object_type_ptr, address,
-			 gpy_builtin_get_fold_int_call (DOT_lhs_TC (decl).o.integer));
+			 gpy_builtin_get_fold_int_call (DOT_lhs_TC (decl)->o.integer));
 	DECL_CHAIN (retval) = address;
       }
       break;
@@ -145,8 +146,8 @@ tree gpy_stmt_decl_lower_scalar (gpy_dot_tree  * decl)
 tree gpy_stmt_decl_lower_modify (gpy_dot_tree_t * decl,
 				 VEC(gpy_ctx_t,gc) * context)
 {
-  tree lhs = DOT_lhs_TT (decl);
-  tree rhs = DOT_rhs_TT (decl);
+  gpy_dot_tree_t * lhs = DOT_lhs_TT (decl);
+  gpy_dot_tree_t * rhs = DOT_rhs_TT (decl);
 
   /*
     We dont handle full target lists yet
@@ -188,8 +189,8 @@ tree gpy_stmt_decl_lower_modify (gpy_dot_tree_t * decl,
 		 build2 (MODIFY_EXPR, gpy_object_type_ptr, addr, eval_addr)
 		 );
   
-  VEC_safe_push (tree, gc, retval, gpy_builtin_get_incr_ref_call (addr));
-  VEC_safe_push (tree, gc, retval, addr);
+  VEC_safe_push (tree, gc, stmt_vec, gpy_builtin_get_incr_ref_call (addr));
+  VEC_safe_push (tree, gc, stmt_vec, addr);
   
   tree retval = NULL_TREE;
   VEC_TREE_2_DECL_CHAIN (stmt_vec, retval);
@@ -202,10 +203,10 @@ tree gpy_stmt_decl_lower_binary_op (gpy_dot_tree_t * decl,
 {
   tree retval;
 
-  gcc_assert (DECL_FIELD (decl) == D_D_EXPR);
+  gcc_assert (DOT_FIELD (decl) == D_D_EXPR);
 
-  tree lhs = DOT_lhs_TT (decl);
-  tree rhs = DOT_rhs_TT (decl);
+  gpy_dot_tree_t * lhs = DOT_lhs_TT (decl);
+  gpy_dot_tree_t * rhs = DOT_rhs_TT (decl);
 
   tree lhs_eval = gpy_stmt_decl_lower_expr (lhs);
   tree rhs_eval = gpy_stmt_decl_lower_expr (rhs);

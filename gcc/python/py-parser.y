@@ -35,7 +35,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks.h"
 #include "langhooks-def.h"
 #include "target.h"
-
 #include <gmp.h>
 #include <mpfr.h>
 
@@ -43,14 +42,11 @@ along with GCC; see the file COPYING3.  If not see
 #include "hashtab.h"
 
 #include "gpython.h"
-#include "py-dot-codes.def"
 #include "py-dot.h"
 #include "py-vec.h"
 #include "py-tree.h"
-#include "py-runtime.h"
 
 static VEC(gpydot,gc) * gpy_symbol_stack;
-
 extern int yylineno;
 //yydebug = 1;
 
@@ -59,10 +55,9 @@ extern void yyerror( const char * );
 %}
 
 %union {
-  char *string;
+  char * string;
   long int integer;
-  enum OPERATOR_T op;
-  gpy_symbol_obj *symbol;
+  gpy_dot_tree_t * symbol;
 }
 
 %error-verbose
@@ -296,7 +291,7 @@ expression_stmt: expression_list
 
 assignment_stmt: target_list '=' expression_list
                {
-		 gpy_dot_tree_t *dot = dot_build_decl2 (D_MODIFY_EXPR, $1, $2);
+		 gpy_dot_tree_t *dot = dot_build_decl2 (D_MODIFY_EXPR, $1, $3);
 		 $$ = dot;
 	       }
                ;
