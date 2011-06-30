@@ -93,17 +93,15 @@ LTLIBRARIES = $(toolexeclib_LTLIBRARIES)
 libitm_la_LIBADD =
 am__libitm_la_SOURCES_DIST = aatree.cc alloc.cc alloc_c.cc \
 	alloc_cpp.cc barrier.cc beginend.cc clone.cc cacheline.cc \
-	cachepage.cc eh_cpp.cc local.cc memcpy.cc memset.cc query.cc \
+	cachepage.cc eh_cpp.cc local.cc query.cc \
 	retry.cc rwlock.cc useraction.cc util.cc sjlj.S tls.cc \
-	method-serial.cc method-readonly.cc method-wbetl.cc x86_sse.cc \
-	x86_avx.cc
+	method-serial.cc x86_sse.cc 86_avx.cc
 @ARCH_X86_TRUE@am__objects_1 = x86_sse.lo x86_avx.lo
 am_libitm_la_OBJECTS = aatree.lo alloc.lo alloc_c.lo alloc_cpp.lo \
 	barrier.lo beginend.lo clone.lo cacheline.lo cachepage.lo \
-	eh_cpp.lo local.lo memcpy.lo memset.lo query.lo retry.lo \
+	eh_cpp.lo local.lo query.lo retry.lo \
 	rwlock.lo useraction.lo util.lo sjlj.lo tls.lo \
-	method-serial.lo method-readonly.lo method-wbetl.lo \
-	$(am__objects_1)
+	method-serial.lo $(am__objects_1)
 libitm_la_OBJECTS = $(am_libitm_la_OBJECTS)
 DEFAULT_INCLUDES = -I.@am__isrc@
 depcomp = $(SHELL) $(top_srcdir)/../depcomp
@@ -342,6 +340,7 @@ AM_CPPFLAGS = $(addprefix -I, $(search_path))
 AM_CFLAGS = $(XCFLAGS)
 AM_CXXFLAGS = -std=gnu++0x -funwind-tables -fno-exceptions -fno-rtti \
 	$(XCFLAGS) $(abi_version)
+
 AM_CCASFLAGS = $(XCFLAGS)
 AM_LDFLAGS = $(XLDFLAGS) $(SECTION_LDFLAGS) $(OPT_LDFLAGS)
 toolexeclib_LTLIBRARIES = libitm.la
@@ -358,9 +357,9 @@ libitm_la_LDFLAGS = $(libitm_version_info) $(libitm_version_script) \
 
 libitm_la_SOURCES = aatree.cc alloc.cc alloc_c.cc alloc_cpp.cc \
 	barrier.cc beginend.cc clone.cc cacheline.cc cachepage.cc \
-	eh_cpp.cc local.cc memcpy.cc memset.cc query.cc retry.cc \
+	eh_cpp.cc local.cc query.cc retry.cc \
 	rwlock.cc useraction.cc util.cc sjlj.S tls.cc method-serial.cc \
-	method-readonly.cc method-wbetl.cc $(am__append_1)
+	$(am__append_1)
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
@@ -470,11 +469,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/clone.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/eh_cpp.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/local.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memcpy.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/memset.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/method-readonly.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/method-serial.Plo@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/method-wbetl.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/query.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/retry.Plo@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rwlock.Plo@am__quote@

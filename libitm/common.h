@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -22,24 +22,22 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-#include "libitm_i.h"
+/* The following are internal implementation functions and definitions.
+   To distinguish them from those defined by the Intel ABI, they all
+   begin with GTM/gtm.  */
 
-using namespace GTM;
+#ifndef COMMON_H
+#define COMMON_H 1
 
-bool abi_dispatch::memmove_overlap_check(void *dst, const void *src,
-    size_t size, ls_modifier dst_mod, ls_modifier src_mod)
-{
-  if (dst_mod == NONTXNAL || src_mod == NONTXNAL)
-    {
-      if (((uintptr_t)dst <= (uintptr_t)src ?
-          (uintptr_t)dst + size > (uintptr_t)src :
-          (uintptr_t)src + size > (uintptr_t)dst))
-        GTM::GTM_fatal("_ITM_memmove overlapping and t/nt is not allowed");
-      return false;
-    }
-  return true;
-}
+#define UNUSED		__attribute__((unused))
+#define ALWAYS_INLINE	__attribute__((always_inline))
+#ifdef HAVE_ATTRIBUTE_VISIBILITY
+# define HIDDEN		__attribute__((visibility("hidden")))
+#else
+# define HIDDEN
+#endif
 
-CREATE_DISPATCH_FUNCTIONS(GTM::abi_disp()->_, )
-//CREATE_DISPATCH_FUNCTIONS(GTM::abi_dispatch::_, _static)
+#define likely(X)	__builtin_expect((X) != 0, 1)
+#define unlikely(X)	__builtin_expect((X), 0)
 
+#endif // COMMON_H

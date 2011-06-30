@@ -83,8 +83,8 @@ class wbetl_dispatch : public abi_dispatch
  public:
   wbetl_dispatch();
 
-  virtual const gtm_cacheline *read_lock(const gtm_cacheline *, lock_type);
-  virtual mask_pair write_lock(gtm_cacheline *, lock_type);
+  virtual const gtm_cacheline *read_lock(const gtm_cacheline *, ls_modifier);
+  virtual mask_pair write_lock(gtm_cacheline *, ls_modifier);
 
   virtual bool trycommit();
   virtual void rollback();
@@ -375,11 +375,11 @@ wbetl_dispatch::do_read_lock (const gtm_cacheline *addr, bool after_read)
 }
 
 const gtm_cacheline *
-wbetl_dispatch::read_lock (const gtm_cacheline *addr, lock_type ltype)
+wbetl_dispatch::read_lock (const gtm_cacheline *addr, ls_modifier ltype)
 {
   switch (ltype)
     {
-    case NOLOCK:
+    case NONTXNAL:
       return addr;
     case R:
       return do_read_lock (addr, false);
@@ -395,13 +395,13 @@ wbetl_dispatch::read_lock (const gtm_cacheline *addr, lock_type ltype)
 }
 
 abi_dispatch::mask_pair
-wbetl_dispatch::write_lock (gtm_cacheline *addr, lock_type ltype)
+wbetl_dispatch::write_lock (gtm_cacheline *addr, ls_modifier ltype)
 {
   gtm_cacheline *line;
 
   switch (ltype)
     {
-    case NOLOCK:
+    case NONTXNAL:
       return mask_pair (addr, &mask_sink);
     case W:
     case WaR:

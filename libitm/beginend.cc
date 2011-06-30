@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -128,13 +128,27 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 
   set_gtm_tx (tx);
 
+  // ??? pr_undoLogCode is not properly defined in the ABI. Are barriers
+  // omitted because they are not necessary (e.g., a transaction on thread-
+  // local data) or because the compiler thinks that some kind of global
+  // synchronization might perform better?
+  if (unlikely(prop & pr_undoLogCode))
+    GTM_fatal("pr_undoLogCode not supported");
+
   if ((prop & pr_doesGoIrrevocable) || !(prop & pr_instrumentedCode))
+    tx->state = (STATE_SERIAL | STATE_IRREVOCABLE);
+
+  else
+    disp = tx->decide_begin_dispatch ();
+
+  if (tx->state & STATE_SERIAL)
     {
       serial_lock.write_lock ();
 
-      tx->state = (STATE_SERIAL | STATE_IRREVOCABLE);
-
-      disp = dispatch_serial ();
+      if (tx->state & STATE_IRREVOCABLE)
+        disp = dispatch_serialirr ();
+      else
+        disp = dispatch_serial ();
 
       ret = a_runUninstrumentedCode;
       if ((prop & pr_multiwayCode) == pr_instrumentedCode)
@@ -143,14 +157,6 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
   else
     {
       serial_lock.read_lock ();
-
-      // ??? Probably want some environment variable to choose the default
-      // STM implementation once we have more than one implemented.
-      if (prop & pr_readOnly)
-	disp = dispatch_readonly ();
-      else
-	disp = dispatch_wbetl ();
-
       ret = a_runInstrumentedCode | a_saveLiveVariables;
     }
 

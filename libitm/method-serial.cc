@@ -24,24 +24,6 @@
 
 #include "libitm_i.h"
 
-namespace GTM HIDDEN {
-
-gtm_cacheline_mask abi_dispatch::mask_sink;
-
-const gtm_cacheline *
-abi_dispatch::read_lock(const gtm_cacheline *addr, lock_type)
-{
-  return addr;
-}
-
-abi_dispatch::mask_pair
-abi_dispatch::write_lock(gtm_cacheline *addr, lock_type)
-{
-  return mask_pair (addr, &mask_sink);
-}
-
-} // namespace GTM
-
 // Avoid a dependency on libstdc++ for the pure virtuals in abi_dispatch.
 extern "C" void HIDDEN
 __cxa_pure_virtual ()
@@ -58,23 +40,108 @@ class serial_dispatch : public abi_dispatch
  public:
   serial_dispatch() : abi_dispatch(false, true) { }
 
-  // The read_lock and write_lock methods are implented by the base class.
+ protected:
+  // Transactional loads and stores simply access memory directly.
+  // These methods are static to avoid indirect calls, and will be used by the
+  // virtual ABI dispatch methods or by static direct-access methods created
+  // below.
+  template <typename V> static V load(const V* addr, ls_modifier mod)
+  {
+    return *addr;
+  }
+  template <typename V> static void store(V* addr, const V value,
+      ls_modifier mod)
+  {
+    *addr = value;
+  }
 
+  static void _memtransfer_static(void *dst, const void* src, size_t size,
+      bool may_overlap, ls_modifier dst_mod, ls_modifier src_mod)
+  {
+    if (!may_overlap)
+      ::memcpy(dst, src, size);
+    else
+      ::memmove(dst, src, size);
+  }
+
+  static void _memset_static(void *dst, int c, size_t size, ls_modifier mod)
+  {
+    ::memset(dst, c, size);
+  }
+
+  CREATE_DISPATCH_METHODS(virtual, )
+  CREATE_DISPATCH_METHODS_MEM()
+
+ public:
   virtual bool trycommit() { return true; }
   virtual void rollback() { abort(); }
   virtual void reinit() { }
   virtual void fini() { }
-  virtual bool trydropreference (void *ptr, size_t size) { return true; }
+};
+
+class serial_dispatch_ul : public serial_dispatch
+{
+protected:
+  static void log(const void *addr, size_t len)
+  {
+    // TODO Ensure that this gets inlined: Use internal log interface and LTO.
+    GTM_LB(addr, len);
+  }
+
+  template <typename V> static V load(const V* addr, ls_modifier mod)
+  {
+    return *addr;
+  }
+  template <typename V> static void store(V* addr, const V value,
+      ls_modifier mod)
+  {
+    if (mod != WaW)
+      log(addr, sizeof(V));
+    *addr = value;
+  }
+
+public:
+  static void memtransfer_static(void *dst, const void* src, size_t size,
+      bool may_overlap, ls_modifier dst_mod, ls_modifier src_mod)
+  {
+    if (dst_mod != WaW && dst_mod != NONTXNAL)
+      log(dst, size);
+    if (!may_overlap)
+      memcpy(dst, src, size);
+    else
+      memmove(dst, src, size);
+  }
+
+  static void memset_static(void *dst, int c, size_t size, ls_modifier mod)
+  {
+    if (mod != WaW)
+      log(dst, size);
+    memset(dst, c, size);
+  }
+
+  // Local undo will handle this.
+  // trydropreference() need not be changed either.
+  virtual void rollback() { }
+
+  CREATE_DISPATCH_METHODS(virtual, )
+  CREATE_DISPATCH_METHODS_MEM()
 };
 
 } // anon namespace
 
 static const serial_dispatch o_serial_dispatch;
+static const serial_dispatch_ul o_serial_dispatch_ul;
+
+abi_dispatch *
+GTM::dispatch_serialirr ()
+{
+  return const_cast<serial_dispatch *>(&o_serial_dispatch);
+}
 
 abi_dispatch *
 GTM::dispatch_serial ()
 {
-  return const_cast<serial_dispatch *>(&o_serial_dispatch);
+  return const_cast<serial_dispatch_ul *>(&o_serial_dispatch_ul);
 }
 
 // Put the transaction into serial-irrevocable mode.

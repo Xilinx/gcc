@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -23,14 +23,16 @@
    <http://www.gnu.org/licenses/>.  */
 
 #include "libitm_i.h"
-#include "barrier.tpl"
+#include "dispatch.h"
 
-ITM_BARRIERS(M256)
+// ??? Use memcpy for now, until we have figured out how to best instantiate
+// these loads/stores.
+CREATE_DISPATCH_FUNCTIONS_T_MEMCPY(M256, GTM::abi_disp()->_, )
 
 void ITM_REGPARM
 _ITM_LM256 (const _ITM_TYPE_M256 *ptr)
 {
-  GTM_LB (ptr, sizeof (*ptr));
+  GTM::GTM_LB (ptr, sizeof (*ptr));
 }
 
 // Helpers for re-aligning two 128-bit values.

@@ -1,4 +1,4 @@
-/* Copyright (C) 2008, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2008, 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -38,16 +38,7 @@
 #include <unwind.h>
 #include <type_traits>
 
-#define UNUSED		__attribute__((unused))
-#define ALWAYS_INLINE	__attribute__((always_inline))
-#ifdef HAVE_ATTRIBUTE_VISIBILITY
-# define HIDDEN		__attribute__((visibility("hidden")))
-#else
-# define HIDDEN
-#endif
-
-#define likely(X)	__builtin_expect((X) != 0, 1)
-#define unlikely(X)	__builtin_expect((X), 0)
+#include "common.h"
 
 namespace GTM HIDDEN {
 
@@ -82,57 +73,12 @@ extern void * xrealloc (void *p, size_t s) __attribute__((malloc, nothrow));
 #include "cacheline.h"
 #include "cachepage.h"
 #include "stmlock.h"
+#include "dispatch.h"
 
 namespace GTM HIDDEN {
 
 // A dispatch table parameterizes the implementation of the STM.
-struct abi_dispatch
-{
- public:
-  enum lock_type { NOLOCK, R, RaR, RaW, RfW, W, WaR, WaW };
-
-  struct mask_pair
-  {
-    gtm_cacheline *line;
-    gtm_cacheline_mask *mask;
-
-    mask_pair() = default;
-    mask_pair(gtm_cacheline *l, gtm_cacheline_mask *m) : line(l), mask(m) { }
-  };
-
- private:
-  // Disallow copies
-  abi_dispatch(const abi_dispatch &) = delete;
-  abi_dispatch& operator=(const abi_dispatch &) = delete;
-
- public:
-  // The default version of these is pass-through.  This merely gives the
-  // a single location to instantiate the base class vtable.
-  virtual const gtm_cacheline *read_lock(const gtm_cacheline *, lock_type);
-  virtual mask_pair write_lock(gtm_cacheline *, lock_type);
-
-  virtual bool trycommit() = 0;
-  virtual void rollback() = 0;
-  virtual void reinit() = 0;
-  virtual bool trydropreference(void *, size_t) = 0;
-
-  // Use fini instead of dtor to support a static subclasses that uses
-  // a unique object and so we don't want to destroy it from common code.
-  virtual void fini() = 0;
-
-  bool read_only () const { return m_read_only; }
-  bool write_through() const { return m_write_through; }
-
-  static void *operator new(size_t s) { return xmalloc (s); }
-  static void operator delete(void *p) { free (p); }
-
- protected:
-  const bool m_read_only;
-  const bool m_write_through;
-  abi_dispatch(bool ro, bool wt) : m_read_only(ro), m_write_through(wt) { }
-
-  static gtm_cacheline_mask mask_sink;
-};
+struct abi_dispatch;
 
 // These values are given to GTM_restart_transaction and indicate the
 // reason for the restart.  The reason is used to decide what STM
@@ -256,6 +202,7 @@ struct gtm_transaction
 
   // In retry.cc
   void decide_retry_strategy (gtm_restart_reason);
+  abi_dispatch* decide_begin_dispatch ();
 
   // In method-serial.cc
   void serialirr_mode ();
@@ -287,9 +234,8 @@ extern void GTM_error (const char *fmt, ...)
 extern void GTM_fatal (const char *fmt, ...)
 	__attribute__((noreturn, format (printf, 1, 2)));
 
-extern abi_dispatch *dispatch_wbetl();
-extern abi_dispatch *dispatch_readonly();
 extern abi_dispatch *dispatch_serial();
+extern abi_dispatch *dispatch_serialirr();
 
 extern gtm_cacheline_mask gtm_mask_stack(gtm_cacheline *, gtm_cacheline_mask);
 

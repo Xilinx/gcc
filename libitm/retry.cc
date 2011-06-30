@@ -42,6 +42,10 @@ GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
       // write lock is not yet held, grab it.  Don't do this with
       // an upgrade, since we've no need to preserve the state we
       // acquired with the read.
+      // FIXME this might be dangerous if we use serial mode to change TM
+      // meta data (e.g., reallocate the lock array). Likewise, for
+      // privatization, we must get rid of old references (that is, abort)
+      // or let privatizers know we're still there by not releasing the lock.
       if ((this->state & STATE_SERIAL) == 0)
 	{
 	  this->state |= STATE_SERIAL;
@@ -65,17 +69,23 @@ GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
     }
   else
     {
-      if (r == RESTART_NOT_READONLY)
-	{
-	  assert ((this->prop & pr_readOnly) == 0);
-	  if (disp->read_only ())
-	    {
-	      disp->fini ();
-	      disp = dispatch_wbetl ();
-	      set_abi_disp (disp);
-	      return;
-	    }
-	}
-      disp->reinit ();
+      GTM_fatal("internal error: unsupported mode");
     }
+}
+
+
+// Decides which TM method should be used on the first attempt to run this
+// transaction, setting this->disp accordingly.
+// serial_lock will not have been acquired if this is the outer-most
+// transaction. If the state is set to STATE_SERIAL, the caller will set the
+// dispatch.
+GTM::abi_dispatch*
+GTM::gtm_transaction::decide_begin_dispatch ()
+{
+  // ??? Probably want some environment variable to choose the default
+  // STM implementation once we have more than one implemented.
+  state = STATE_SERIAL;
+  if (prop & pr_hasNoAbort)
+    state |= STATE_IRREVOCABLE;
+  return 0;
 }

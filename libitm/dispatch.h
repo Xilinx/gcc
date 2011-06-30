@@ -1,0 +1,283 @@
+/* Copyright (C) 2011 Free Software Foundation, Inc.
+   Contributed by Torvald Riegel <triegel@redhat.com>.
+
+   This file is part of the GNU Transactional Memory Library (libitm).
+
+   Libitm is free software; you can redistribute it and/or modify it
+   under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 3 of the License, or
+   (at your option) any later version.
+
+   Libitm is distributed in the hope that it will be useful, but WITHOUT ANY
+   WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+   FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+   more details.
+
+   Under Section 7 of GPL version 3, you are granted additional
+   permissions described in the GCC Runtime Library Exception, version
+   3.1, as published by the Free Software Foundation.
+
+   You should have received a copy of the GNU General Public License and
+   a copy of the GCC Runtime Library Exception along with this program;
+   see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+   <http://www.gnu.org/licenses/>.  */
+
+#ifndef DISPATCH_H
+#define DISPATCH_H 1
+
+#include "libitm.h"
+#include "common.h"
+
+// Creates ABI load/store methods (can be made virtual or static using M,
+// use M2 to create separate methods names for virtual and static)
+// The _PV variants are for the pure-virtual methods in the base class.
+#define ITM_READ_M(T, LSMOD, M, M2)                                         \
+  M _ITM_TYPE_##T ITM_REGPARM _ITM_##LSMOD##T##M2 (const _ITM_TYPE_##T *ptr)\
+  {                                                                         \
+    return load(ptr, abi_dispatch::LSMOD);                                  \
+  }
+
+#define ITM_READ_M_PV(T, LSMOD, M, M2)                                      \
+  M _ITM_TYPE_##T ITM_REGPARM _ITM_##LSMOD##T##M2 (const _ITM_TYPE_##T *ptr)\
+  = 0;
+
+#define ITM_WRITE_M(T, LSMOD, M, M2)                         \
+  M void ITM_REGPARM _ITM_##LSMOD##T##M2 (_ITM_TYPE_##T *ptr,\
+                                         _ITM_TYPE_##T val)  \
+  {                                                          \
+    store(ptr, val, abi_dispatch::LSMOD);                    \
+  }
+
+#define ITM_WRITE_M_PV(T, LSMOD, M, M2)                      \
+  M void ITM_REGPARM _ITM_##LSMOD##T##M2 (_ITM_TYPE_##T *ptr,\
+                                         _ITM_TYPE_##T val)  \
+  = 0;
+
+// Creates ABI load/store methods for all load/store modifiers for a particular
+// type.
+#define CREATE_DISPATCH_METHODS_T(T, M, M2) \
+  ITM_READ_M(T, R, M, M2)                \
+  ITM_READ_M(T, RaR, M, M2)              \
+  ITM_READ_M(T, RaW, M, M2)              \
+  ITM_READ_M(T, RfW, M, M2)              \
+  ITM_WRITE_M(T, W, M, M2)               \
+  ITM_WRITE_M(T, WaR, M, M2)             \
+  ITM_WRITE_M(T, WaW, M, M2)
+#define CREATE_DISPATCH_METHODS_T_PV(T, M, M2) \
+  ITM_READ_M_PV(T, R, M, M2)                \
+  ITM_READ_M_PV(T, RaR, M, M2)              \
+  ITM_READ_M_PV(T, RaW, M, M2)              \
+  ITM_READ_M_PV(T, RfW, M, M2)              \
+  ITM_WRITE_M_PV(T, W, M, M2)               \
+  ITM_WRITE_M_PV(T, WaR, M, M2)             \
+  ITM_WRITE_M_PV(T, WaW, M, M2)
+
+// Creates ABI load/store methods for all types.
+// See CREATE_DISPATCH_FUNCTIONS for comments.
+#define CREATE_DISPATCH_METHODS(M, M2)  \
+  CREATE_DISPATCH_METHODS_T (U1, M, M2) \
+  CREATE_DISPATCH_METHODS_T (U2, M, M2) \
+  CREATE_DISPATCH_METHODS_T (U4, M, M2) \
+  CREATE_DISPATCH_METHODS_T (U8, M, M2) \
+  CREATE_DISPATCH_METHODS_T (F, M, M2)  \
+  CREATE_DISPATCH_METHODS_T (D, M, M2)  \
+  CREATE_DISPATCH_METHODS_T (E, M, M2)  \
+  CREATE_DISPATCH_METHODS_T (CF, M, M2) \
+  CREATE_DISPATCH_METHODS_T (CD, M, M2) \
+  CREATE_DISPATCH_METHODS_T (CE, M, M2)
+#define CREATE_DISPATCH_METHODS_PV(M, M2)  \
+  CREATE_DISPATCH_METHODS_T_PV (U1, M, M2) \
+  CREATE_DISPATCH_METHODS_T_PV (U2, M, M2) \
+  CREATE_DISPATCH_METHODS_T_PV (U4, M, M2) \
+  CREATE_DISPATCH_METHODS_T_PV (U8, M, M2) \
+  CREATE_DISPATCH_METHODS_T_PV (F, M, M2)  \
+  CREATE_DISPATCH_METHODS_T_PV (D, M, M2)  \
+  CREATE_DISPATCH_METHODS_T_PV (E, M, M2)  \
+  CREATE_DISPATCH_METHODS_T_PV (CF, M, M2) \
+  CREATE_DISPATCH_METHODS_T_PV (CD, M, M2) \
+  CREATE_DISPATCH_METHODS_T_PV (CE, M, M2)
+
+// Creates memcpy/memmove/memset methods.
+#define CREATE_DISPATCH_METHODS_MEM()  \
+virtual void _memtransfer(void *dst, const void* src, size_t size,    \
+    bool may_overlap, ls_modifier dst_mod, ls_modifier src_mod)       \
+{                                                                     \
+  _memtransfer_static(dst, src, size, may_overlap, dst_mod, src_mod); \
+}                                                                     \
+virtual void _memset(void *dst, int c, size_t size, ls_modifier mod)  \
+{                                                                     \
+  _memset_static(dst, c, size, mod);                                  \
+}
+
+#define CREATE_DISPATCH_METHODS_MEM_PV()  \
+virtual void _memtransfer(void *dst, const void* src, size_t size,       \
+    bool may_overlap, ls_modifier dst_mod, ls_modifier src_mod) = 0;     \
+virtual void _memset(void *dst, int c, size_t size, ls_modifier mod) = 0;
+
+
+// Creates ABI load/store functions that can target either a class or an
+// object.
+#define ITM_READ(T, LSMOD, TARGET, M2)                                 \
+  _ITM_TYPE_##T ITM_REGPARM _ITM_##LSMOD##T (const _ITM_TYPE_##T *ptr) \
+  {                                                                    \
+    return TARGET##ITM_##LSMOD##T##M2(ptr);                            \
+  }
+
+#define ITM_WRITE(T, LSMOD, TARGET, M2)                                    \
+  void ITM_REGPARM _ITM_##LSMOD##T (_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val) \
+  {                                                                        \
+    TARGET##ITM_##LSMOD##T##M2(ptr, val);                                  \
+  }
+
+// Creates ABI load/store functions for all load/store modifiers for a
+// particular type.
+#define CREATE_DISPATCH_FUNCTIONS_T(T, TARGET, M2) \
+  ITM_READ(T, R, TARGET, M2)                \
+  ITM_READ(T, RaR, TARGET, M2)              \
+  ITM_READ(T, RaW, TARGET, M2)              \
+  ITM_READ(T, RfW, TARGET, M2)              \
+  ITM_WRITE(T, W, TARGET, M2)               \
+  ITM_WRITE(T, WaR, TARGET, M2)             \
+  ITM_WRITE(T, WaW, TARGET, M2)
+
+// Creates ABI memcpy/memmove/memset functions.
+#define ITM_MEMTRANSFER_DEF(TARGET, M2, NAME, READ, WRITE) \
+void ITM_REGPARM _ITM_memcpy##NAME(void *dst, const void *src, size_t size)  \
+{                                                                            \
+  TARGET##memtransfer##M2 (dst, src, size,                                   \
+             false, GTM::abi_dispatch::WRITE, GTM::abi_dispatch::READ);      \
+}                                                                            \
+void ITM_REGPARM _ITM_memmove##NAME(void *dst, const void *src, size_t size) \
+{                                                                            \
+  TARGET##memtransfer##M2 (dst, src, size,                                   \
+      GTM::abi_dispatch::memmove_overlap_check(dst, src, size,               \
+          GTM::abi_dispatch::WRITE, GTM::abi_dispatch::READ),                \
+      GTM::abi_dispatch::WRITE, GTM::abi_dispatch::READ);                    \
+}
+
+#define ITM_MEMSET_DEF(TARGET, M2, WRITE) \
+void ITM_REGPARM _ITM_memset##WRITE(void *dst, int c, size_t size) \
+{                                                                  \
+  TARGET##memset##M2 (dst, c, size, GTM::abi_dispatch::WRITE);     \
+}                                                                  \
+
+
+// ??? The number of virtual methods is large (7*4 for integers, 7*6 for FP,
+// 7*3 for vectors). Is the cache footprint so costly that we should go for
+// a small table instead (i.e., only have two virtual load/store methods for
+// each supported type)? Note that this doesn't affect custom code paths at
+// all because these use only direct calls.
+// A large cache footprint could especially decrease HTM performance (due
+// to HTM capacity). We could add the modifier (RaR etc.) as parameter, which
+// would give us just 4*2+6*2+3*2 functions (so we'd just need one line for
+// the integer loads/stores), but then the modifier can be checked only at
+// runtime.
+// For memcpy/memmove/memset, we just have two virtual methods (memtransfer
+// and memset).
+#define CREATE_DISPATCH_FUNCTIONS(TARGET, M2)  \
+  CREATE_DISPATCH_FUNCTIONS_T (U1, TARGET, M2) \
+  CREATE_DISPATCH_FUNCTIONS_T (U2, TARGET, M2) \
+  CREATE_DISPATCH_FUNCTIONS_T (U4, TARGET, M2) \
+  CREATE_DISPATCH_FUNCTIONS_T (U8, TARGET, M2) \
+  CREATE_DISPATCH_FUNCTIONS_T (F, TARGET, M2)  \
+  CREATE_DISPATCH_FUNCTIONS_T (D, TARGET, M2)  \
+  CREATE_DISPATCH_FUNCTIONS_T (E, TARGET, M2)  \
+  CREATE_DISPATCH_FUNCTIONS_T (CF, TARGET, M2) \
+  CREATE_DISPATCH_FUNCTIONS_T (CD, TARGET, M2) \
+  CREATE_DISPATCH_FUNCTIONS_T (CE, TARGET, M2) \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RnWt,     NONTXNAL, W)      \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RnWtaR,   NONTXNAL, WaR)    \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RnWtaW,   NONTXNAL, WaW)    \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtWn,     R,      NONTXNAL) \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtWt,     R,      W)        \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtWtaR,   R,      WaR)      \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtWtaW,   R,      WaW)      \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtaRWn,   RaR,    NONTXNAL) \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtaRWt,   RaR,    W)        \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtaRWtaR, RaR,    WaR)      \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtaRWtaW, RaR,    WaW)      \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtaWWn,   RaW,    NONTXNAL) \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtaWWt,   RaW,    W)        \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtaWWtaR, RaW,    WaR)      \
+  ITM_MEMTRANSFER_DEF(TARGET, M2, RtaWWtaW, RaW,    WaW)      \
+  ITM_MEMSET_DEF(TARGET, M2, W)   \
+  ITM_MEMSET_DEF(TARGET, M2, WaR) \
+  ITM_MEMSET_DEF(TARGET, M2, WaW)
+
+
+// Creates ABI load/store functions that delegate to a transactional memcpy.
+#define ITM_READ_MEMCPY(T, LSMOD, TARGET, M2)                         \
+  _ITM_TYPE_##T ITM_REGPARM _ITM_##LSMOD##T (const _ITM_TYPE_##T *ptr)\
+  {                                                                   \
+    _ITM_TYPE_##T v;                                                  \
+    TARGET##memtransfer##M2(&v, ptr, sizeof(_ITM_TYPE_##T), false,    \
+        GTM::abi_dispatch::NONTXNAL, GTM::abi_dispatch::LSMOD);       \
+    return v;                                                         \
+  }
+
+#define ITM_WRITE_MEMCPY(T, LSMOD, TARGET, M2)                            \
+  void ITM_REGPARM _ITM_##LSMOD##T (_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val)\
+  {                                                                       \
+    TARGET##memtransfer##M2(ptr, &val, sizeof(_ITM_TYPE_##T), false,      \
+        GTM::abi_dispatch::LSMOD, GTM::abi_dispatch::NONTXNAL);           \
+  }
+
+#define CREATE_DISPATCH_FUNCTIONS_T_MEMCPY(T, TARGET, M2) \
+  ITM_READ_MEMCPY(T, R, TARGET, M2)                \
+  ITM_READ_MEMCPY(T, RaR, TARGET, M2)              \
+  ITM_READ_MEMCPY(T, RaW, TARGET, M2)              \
+  ITM_READ_MEMCPY(T, RfW, TARGET, M2)              \
+  ITM_WRITE_MEMCPY(T, W, TARGET, M2)               \
+  ITM_WRITE_MEMCPY(T, WaR, TARGET, M2)             \
+  ITM_WRITE_MEMCPY(T, WaW, TARGET, M2)
+
+
+namespace GTM HIDDEN {
+
+// This pass-through method is the basis for other methods.
+// It can be used for serial-irrevocable mode.
+struct abi_dispatch
+{
+public:
+  enum ls_modifier { NONTXNAL, R, RaR, RaW, RfW, W, WaR, WaW };
+
+private:
+  // Disallow copies
+  abi_dispatch(const abi_dispatch &) = delete;
+  abi_dispatch& operator=(const abi_dispatch &) = delete;
+
+public:
+  virtual bool trycommit() = 0;
+  virtual void rollback() = 0;
+  virtual void reinit() = 0;
+
+  // Use fini instead of dtor to support a static subclasses that uses
+  // a unique object and so we don't want to destroy it from common code.
+  virtual void fini() = 0;
+
+  bool read_only () const { return m_read_only; }
+  bool write_through() const { return m_write_through; }
+
+  static void *operator new(size_t s) { return xmalloc (s); }
+  static void operator delete(void *p) { free (p); }
+
+public:
+  static bool memmove_overlap_check(void *dst, const void *src, size_t size,
+      ls_modifier dst_mod, ls_modifier src_mod);
+
+  // Creates the ABI dispatch methods for loads and stores.
+  // ??? Should the dispatch table instead be embedded in the dispatch object
+  // to avoid the indirect lookup in the vtable?
+  CREATE_DISPATCH_METHODS_PV(virtual, )
+  // Creates the ABI dispatch methods for memcpy/memmove/memset.
+  CREATE_DISPATCH_METHODS_MEM_PV()
+
+protected:
+  const bool m_read_only;
+  const bool m_write_through;
+  abi_dispatch(bool ro, bool wt) : m_read_only(ro), m_write_through(wt) { }
+};
+
+}
+
+#endif // DISPATCH_H
