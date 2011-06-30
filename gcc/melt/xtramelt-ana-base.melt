@@ -1478,6 +1478,11 @@
 		 $msg);
   }# )
 
+(defprimitive warning_at_tree_decl_with_number
+  (:tree trdecl :cstring msg :long num) :void
+  #{ warning (0, "MELT warning %s at %q+D - #%ld", $MSG, ($TRDECL), ($NUM));
+  }# )
+
 (defprimitive tree_type (:tree tr) :tree
   #{(($tr)?TREE_TYPE($tr):NULL)}#)
 
@@ -3674,6 +3679,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_void_type
  warning_at_gimple
  warning_at_tree
+ warning_at_tree_decl_with_number
  with_cfun_decl
  )
 

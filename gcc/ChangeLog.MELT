@@ -1,5 +1,12 @@
 
 2011-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (warning_at_tree_decl_with_number):
+	New primitive.
+	* melt/xtramelt-ana-simple.melt (meltframe_exec): Work!
+	It does find some "bugs" in melt-runtime.c, e.g. needless varptr
+	slots.
+
+2011-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-simple.melt (meltframe_exec): Find reference
 	to varptr....
 

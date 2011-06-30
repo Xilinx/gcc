@@ -1310,6 +1310,16 @@
   )
 
 
+(defun meltframe_update_tuple_ptr  (tup :long ix :gimple g)
+  (let ( (curlist (multiple_nth tup ix))
+	 )
+    (if (is_list curlist)
+	(list_append curlist (make_gimple discr_gimple g))
+      (let ( (newlist (list (make_gimple discr_gimple g))) 
+	     )
+	(multiple_put_nth tup ix newlist)
+	))))
+
 (defun meltframe_exec (pass)
   (debug_msg pass "meltframe_exec pass at start")
   (let ( (:long declcnt 0)
@@ -1400,26 +1410,55 @@
 		     ?(tree_component_ref 
 		       tmeltframdecl
 		       tmeltframvarptr)
-		     ?(tree_integer_cst ?ixk))
-		   ?rhs)
-		  (debuglong "meltframe_exec gimple_assign_single varptrdest ixk" ixk)
-		  (debugtree "meltframe_exec gimple_assign_single varptrdest rhs" rhs)
-		  (cond
-		   ( (<i ixk 0)
-		     (warning_at_gimple g "negative melt destination pointer index")
+		     ?(tree_integer_cst ?ixkdst))
+		   ?(tree_array_ref 
+		     ?(tree_component_ref 
+		       tmeltframdecl
+		       tmeltframvarptr)
+		     ?(tree_integer_cst ?ixksrc)))
+		  (debuglong "meltframe_exec gimple_assign_single varptrsrcdest ixkdst" ixkdst)
+		  (debuglong "meltframe_exec gimple_assign_single varptrsrcdest ixksrc" ixksrc)
+		  (cond 
+		   ( (<i ixkdst 0)
+		     (warning_at_gimple g "negative meltvarptr destination pointer index")
 		     )
-		   ( (>i ixk nbvarptr)
-		     (warning_at_gimple g "too big melt destination pointer index")
+		   ( (<i ixksrc 0)
+		     (warning_at_gimple g "negative meltvarptr source pointer index")
+		     )
+		   ( (>i ixkdst nbvarptr)
+		     (warning_at_gimple g "to big meltvarptr destination pointer index")
+		     )
+		   ( (>i ixksrc nbvarptr)
+		     (warning_at_gimple g "to big meltvarptr source pointer index")
+		     )
+		   ( (==i ixksrc ixkdst)
+		     (warning_at_gimple g "useless selfassign meltvarptr")
 		     )
 		   (:else
-		    (let ( (curdestlist (multiple_nth tupdefptr ixk))
-			   )
-		      (if (is_list curdestlist)
-			  (list_append curdestlist (make_gimple discr_gimple g))
-			(let ( (newdestlist (list (make_gimple discr_gimple g))) 
-			       )
-			  (multiple_put_nth tupdefptr ixk newdestlist)
-			  )))))
+		    (meltframe_update_tuple_ptr tupdefptr ixkdst g)
+		    (meltframe_update_tuple_ptr tupuseptr ixksrc g)
+		    )
+		   )
+		  )
+	       ( ?(gimple_assign_single
+		   ?(tree_array_ref 
+		     ?(tree_component_ref 
+		       tmeltframdecl
+		       tmeltframvarptr)
+		     ?(tree_integer_cst ?ixkdst))
+		   ?rhs)
+		  (debuglong "meltframe_exec gimple_assign_single varptrdest ixkdst" ixkdst)
+		  (debugtree "meltframe_exec gimple_assign_single varptrdest rhs" rhs)
+		  (cond
+		   ( (<i ixkdst 0)
+		     (warning_at_gimple g "negative meltvarptr destination pointer index")
+		     )
+		   ( (>i ixkdst nbvarptr)
+		     (warning_at_gimple g "too big meltvarptr destination pointer index")
+		     )
+		   (:else
+		    (meltframe_update_tuple_ptr tupdefptr ixkdst g)
+		    ))
 		  )
 	       ( ?(gimple_assign_single
 		   ?lhs
@@ -1427,9 +1466,19 @@
 		     ?(tree_component_ref 
 		       tmeltframdecl
 		       tmeltframvarptr)
-		     ?(tree_integer_cst ?ixk)))
+		     ?(tree_integer_cst ?ixksrc)))
 		  (debugtree "meltframe_exec gimple_assign_single varptrsrc lhs" lhs)
-		  (debuglong "meltframe_exec gimple_assign_single varptrsrc ixk" ixk)
+		  (debuglong "meltframe_exec gimple_assign_single varptrsrc ixksrc" ixksrc)
+		  (cond
+		   ( (<i ixksrc 0)
+		     (warning_at_gimple g "negative meltvarptr source pointer index")
+		     )
+		   ( (>i ixksrc nbvarptr)
+		     (warning_at_gimple g "too big meltvarptr source pointer index")
+		     )
+		   (:else
+		    (meltframe_update_tuple_ptr tupuseptr ixksrc g)
+		    ))
 		  )
 	       ( ?(gimple_assign_single ?lhs ?rhs)
 		  (debugtree "meltframe_exec gimple_assign_single lhs" lhs)
@@ -1440,11 +1489,31 @@
 	       )
 	)
        )
+      (foreach_in_multiple 
+       (tupuseptr)
+       (curuselist :long ix)
+       (if (is_non_empty_list curuselist)
+	   ()
+	 (warning_at_tree_decl_with_number
+	  tfundecl "meltvarptr not used at index" ix)
+	 )
+       )
+      (foreach_in_multiple 
+       (tupdefptr)
+       (curdeflist :long ix)
+       (if (is_non_empty_list curdeflist)
+	   ()
+	 (warning_at_tree_decl_with_number
+	  tfundecl "meltvarptr not assigned at index" ix)
+	 )
+       )
       (debuglong "meltframe_exec bbcnt" bbcnt)
       (debuglong "meltframe_exec gimplecnt" gimplecnt)
+     
       )
     )
   )
+
 
 
 (defun meltframe_docmd (cmd moduldata)
