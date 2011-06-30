@@ -721,6 +721,9 @@ case ${target} in
   extra_options="${extra_options} vms/vms.opt"
   xmake_file=vms/x-vms
   tmake_file="vms/t-vms"
+  extra_objs="vms.o"
+  target_gtfiles="$target_gtfiles \$(srcdir)/config/vms/vms.c"
+  tm_p_file="${tm_p_file} vms/vms-protos.h"
   if test x$gnu_ld != xyes; then
     # Build wrappers for native case.
     extra_programs="ld\$(exeext) ar\$(exeext)"
@@ -933,13 +936,13 @@ arm*-wince-pe*)
 	extra_objs="pe.o"
 	;;
 avr-*-rtems*)
-	tm_file="avr/avr.h dbxelf.h avr/rtems.h rtems.h newlib-stdint.h"
+	tm_file="elfos.h avr/elf.h avr/avr.h dbxelf.h avr/rtems.h rtems.h newlib-stdint.h"
 	tmake_file="avr/t-avr t-rtems avr/t-rtems"
 	extra_gcc_objs="driver-avr.o avr-devices.o"
 	extra_objs="avr-devices.o"
 	;;
 avr-*-*)
-	tm_file="avr/avr.h dbxelf.h newlib-stdint.h"
+	tm_file="elfos.h avr/elf.h avr/avr.h dbxelf.h newlib-stdint.h"
 	use_gcc_stdint=wrap
 	extra_gcc_objs="driver-avr.o avr-devices.o"
 	extra_objs="avr-devices.o"
@@ -2479,7 +2482,7 @@ sparc*-*-solaris2*)
 	tm_file="sparc/biarch64.h ${tm_file} ${sol2_tm_file} sol2-bi.h"
 	case ${target} in
 	    sparc64-*-* | sparcv9-*-*)
-		tm_file="${tm_file} sparc/sol2-64.h"
+		tm_file="sparc/sol2-64.h ${tm_file}"
 		;;
 	    *)
 		test x$with_cpu != x || with_cpu=v9

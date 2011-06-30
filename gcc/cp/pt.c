@@ -10138,12 +10138,11 @@ tsubst_decl (tree t, tree args, tsubst_flags_t complain)
 	       scope, such as for a lambda return type.  Don't add it to
 	       local_specializations, do perform auto deduction.  */
 	    tree auto_node = type_uses_auto (type);
-	    tree init
-	      = tsubst_expr (DECL_INITIAL (t), args, complain, in_decl,
-			     /*constant_expression_p=*/false);
-
-	    if (auto_node && init)
+	    if (auto_node)
 	      {
+		tree init
+		  = tsubst_expr (DECL_INITIAL (t), args, complain, in_decl,
+				 /*constant_expression_p=*/false);
 		init = resolve_nondeduced_context (init);
 		TREE_TYPE (r) = type
 		  = do_auto_deduction (type, init, auto_node);
@@ -11108,6 +11107,8 @@ tsubst (tree t, tree args, tsubst_flags_t complain, tree in_decl)
 	  type = lambda_capture_field_type (type);
 	else if (DECLTYPE_FOR_LAMBDA_RETURN (t))
 	  type = lambda_return_type (type);
+	else if (DECLTYPE_FOR_LAMBDA_PROXY (t))
+	  type = lambda_proxy_type (type);
 	else
 	  type = finish_decltype_type
 	    (type, DECLTYPE_TYPE_ID_EXPR_OR_MEMBER_ACCESS_P (t), complain);

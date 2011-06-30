@@ -6207,19 +6207,19 @@ skeleton_chain_node;
 #endif
 
 /* Define a macro which returns nonzero for a TYPE_DECL which was
-   implicitly generated for a tagged type.
+   implicitly generated for a type.
 
-   Note that unlike the gcc front end (which generates a NULL named
-   TYPE_DECL node for each complete tagged type, each array type, and
-   each function type node created) the g++ front end generates a
-   _named_ TYPE_DECL node for each tagged type node created.
+   Note that, unlike the C front-end (which generates a NULL named
+   TYPE_DECL node for each complete tagged type, each array type,
+   and each function type node created) the C++ front-end generates
+   a _named_ TYPE_DECL node for each tagged type node created.
    These TYPE_DECLs have DECL_ARTIFICIAL set, so we know not to
-   generate a DW_TAG_typedef DIE for them.  */
+   generate a DW_TAG_typedef DIE for them.  Likewise with the Ada
+   front-end, but for each type, tagged or not.  */
 
 #define TYPE_DECL_IS_STUB(decl)				\
   (DECL_NAME (decl) == NULL_TREE			\
    || (DECL_ARTIFICIAL (decl)				\
-       && is_tagged_type (TREE_TYPE (decl))		\
        && ((decl == TYPE_STUB_DECL (TREE_TYPE (decl)))	\
 	   /* This is necessary for stub decls that	\
 	      appear in nested inline functions.  */	\
@@ -11358,9 +11358,6 @@ output_abbrev_section (void)
 {
   unsigned long abbrev_id;
 
-  if (abbrev_die_table_in_use == 1)
-    return;
-
   for (abbrev_id = 1; abbrev_id < abbrev_die_table_in_use; ++abbrev_id)
     {
       dw_die_ref abbrev = abbrev_die_table[abbrev_id];
@@ -14762,7 +14759,8 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 
     case SIGN_EXTEND:
     case ZERO_EXTEND:
-      gcc_assert (GET_MODE_CLASS (mode) == MODE_INT);
+      if (GET_MODE_CLASS (mode) != MODE_INT)
+	break;
       op0 = mem_loc_descriptor (XEXP (rtl, 0), GET_MODE (XEXP (rtl, 0)),
 				mem_mode, VAR_INIT_STATUS_INITIALIZED);
       if (op0 == 0)
@@ -25017,7 +25015,7 @@ dwarf2out_finish (const char *filename)
 	{
 	  dw_die_ref origin = get_AT_ref (die, DW_AT_abstract_origin);
 
-	  if (origin)
+	  if (origin && origin->die_parent)
 	    add_child_die (origin->die_parent, die);
 	  else if (is_cu_die (die))
 	    ;
@@ -25225,9 +25223,12 @@ dwarf2out_finish (const char *filename)
   output_comp_unit (comp_unit_die (), debug_info_level >= DINFO_LEVEL_VERBOSE);
 
   /* Output the abbreviation table.  */
-  switch_to_section (debug_abbrev_section);
-  ASM_OUTPUT_LABEL (asm_out_file, abbrev_section_label);
-  output_abbrev_section ();
+  if (abbrev_die_table_in_use != 1)
+    {
+      switch_to_section (debug_abbrev_section);
+      ASM_OUTPUT_LABEL (asm_out_file, abbrev_section_label);
+      output_abbrev_section ();
+    }
 
   /* Output location list section if necessary.  */
   if (have_location_lists)
