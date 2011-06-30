@@ -1,4 +1,10 @@
 
+2011-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (tree_record_type_with_fields): New
+	c-matcher.
+
+	* melt/xtramelt-ana-simple.melt (meltframe_exec): Use it.
+
 2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/xtramelt-ana-simple.melt (melt_frame_exec): Improved again.

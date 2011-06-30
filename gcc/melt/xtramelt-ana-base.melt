@@ -1921,6 +1921,18 @@
        $type = TYPE_NAME ($tr);
   }#)
 
+(defcmatcher tree_record_type_with_fields
+  (:tree tr)
+  (:tree type tfields)
+  trectyfld
+  #{  /* $TRECTYFLD ? */
+       (($TR) && TREE_CODE ($TR) == RECORD_TYPE)
+  }#
+  #{ /* $TRECTYFLD ! */
+       $TYPE = TYPE_NAME ($TR);
+       $TFIELDS = TYPE_FIELDS ($TR);
+  }#)
+
 (defcmatcher tree_field_decl
   (:tree tr)
   (:tree name)
@@ -3167,7 +3179,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
   efirt
   (:tree field)
 
-  #{
+  #{   /* $EFIRT + */
        if ($first_field && TREE_CODE ($first_field) == FIELD_DECL)
        {
            tree $efirt#_current;
@@ -3178,7 +3190,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 	       $field = $efirt#_current;
   }#
 
-  #{
+  #{ /* $EFIRT - */
            }
        }
   }#)
@@ -3617,6 +3629,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_real_cst
  tree_real_type
  tree_record_type
+ tree_record_type_with_fields
  tree_ssa_name 
  tree_string_cst
  tree_type

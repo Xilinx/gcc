@@ -1325,13 +1325,21 @@
      (debugtree "meltframe_exec tlocdecl" tlocdecl)
      (match tlocdecl 
 	    (?(tree_var_decl
-	       ?(and ?tvtyp ?(tree_record_type ?tmeltframrecnam))
+	       ?(and ?tvtyp 
+		     ?(tree_record_type_with_fields ?tmeltframrecnam 
+						    ?tmeltframfields))
 	       ?(cstring_same "meltfram__") ?_)
 	      (setq tmeltframdecl tlocdecl)
 	      (setq tmeltframtype tvtyp)
 	      (debugtree "meltframe_exec tmeltframdecl" tmeltframdecl)
 	      (debugtree "meltframe_exec tmeltframtype" tmeltframtype)
 	      (debugtree "meltframe_exec tmeltframrecnam" tmeltframrecnam)
+	      (debugtree "meltframe_exec tmeltframfields" tmeltframfields)
+	      (foreach_field_in_record_type
+	       (tmeltframfields)
+	       (:tree tcurfield)
+	       (debugtree "meltframe_exec tcurfield" tcurfield)
+	       )
 	      )
 	    (?_ (void)))
      (setq declcnt (+i declcnt 1))
@@ -1359,19 +1367,18 @@
 		(debugtree "meltframe_exec call3 memset arg3" arg3)
 		)
 	     ( ?(gimple_assign_single
-		 ?(tree_var_decl   ?vtyp ?(cstring_same "meltfram__") ?_)
+		 tmeltframdecl
 		 ?rhs)
-		(debugtree "meltframe_exec gimple_assign_single meltfram vtyp" vtyp)
+		(debugtree "meltframe_exec gimple_assign_single meltfram rhs" rhs)
 		)
 	     ( ?(gimple_assign_single
 		 ?(tree_array_ref 
 		   ?(tree_component_ref 
-		     ?(tree_var_decl   ?vtyp ?(cstring_same "meltfram__") ?_)
+		     tmeltframdecl
 		     ?(tree_field_decl ?(tree_identifier ?(cstring_same "mcfr_varptr"))))
 		   ?(tree_integer_cst ?ixk))
 		 ?rhs)
 		(debuglong "meltframe_exec gimple_assign_single varptr ixk" ixk)
-		(debugtree "meltframe_exec gimple_assign_single varptr vtyp" vtyp)
 		(debugtree "meltframe_exec gimple_assign_single varptr rhs" rhs)
 		)
 	     ( ?(gimple_assign_single ?lhs ?rhs)
