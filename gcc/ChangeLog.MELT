@@ -1,5 +1,13 @@
 
 2011-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (tree_array_type): New c-matcher.
+	(tree_field_decl): Got new type output.
+
+	* melt/xtramelt-ana-simple.melt (meltframe_exec): Use it.
+
+	* melt/xtramelt-c-generator.melt (get_tree_value_rec): Ditto.
+
+2011-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (tree_record_type_with_fields): New
 	c-matcher.
 
@@ -7,7 +15,7 @@
 
 2011-06-29  Basile Starynkevitch  <basile@starynkevitch.net>
 
-	* melt/xtramelt-ana-simple.melt (melt_frame_exec): Improved again.
+	* melt/xtramelt-ana-simple.melt (meltframe_exec): Improved again.
 
 2011-06-29  Pierre Vittet  <piervit@pvittet.com>
 

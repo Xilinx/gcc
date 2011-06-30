@@ -675,7 +675,7 @@
 	   (get_tree_value_rec datas function sets buffer arg0)
 	   (add2sbuf_strconst buffer ".")
 	   (get_tree_value_rec datas function sets buffer arg1))
-	 (?(tree_field_decl ?(tree_identifier ?name))
+	 (?(tree_field_decl ?(tree_identifier ?name) ?_)
 	   (add2sbuf_strconst buffer name))
 	 (?_ 
 	  (debugtree "Unknown tree : " value))))

@@ -1339,6 +1339,16 @@
 	       (tmeltframfields)
 	       (:tree tcurfield)
 	       (debugtree "meltframe_exec tcurfield" tcurfield)
+	       (match tcurfield
+		      ( ?(tree_field_decl
+			  ?(tree_identifier 
+			    ?(cstring_same "mcfr_varptr"))
+			  ?(tree_array_type ?telemtype ?tdomaintype))
+			 (debugtree "meltframe_exec telemtype" telemtype)
+			 (debugtree "meltframe_exec tdomaintype" tdomaintype)
+			 )
+		      (?_ 
+		       (void)))
 	       )
 	      )
 	    (?_ (void)))
@@ -1375,7 +1385,7 @@
 		 ?(tree_array_ref 
 		   ?(tree_component_ref 
 		     tmeltframdecl
-		     ?(tree_field_decl ?(tree_identifier ?(cstring_same "mcfr_varptr"))))
+		     ?(tree_field_decl ?(tree_identifier ?(cstring_same "mcfr_varptr")) ?_))
 		   ?(tree_integer_cst ?ixk))
 		 ?rhs)
 		(debuglong "meltframe_exec gimple_assign_single varptr ixk" ixk)

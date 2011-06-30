@@ -1911,14 +1911,13 @@
 (defcmatcher tree_record_type
   (:tree tr)
   (:tree type)
-  treert
+  treerectyp
 
-  #{
-       (($tr) && TREE_CODE ($tr) == RECORD_TYPE)
+  #{ /* $TREERECTYP ? */
+       (($TR) && TREE_CODE ($TR) == RECORD_TYPE)
   }#
-
   #{
-       $type = TYPE_NAME ($tr);
+       $TYPE = TYPE_NAME ($TR);
   }#)
 
 (defcmatcher tree_record_type_with_fields
@@ -1933,17 +1932,29 @@
        $TFIELDS = TYPE_FIELDS ($TR);
   }#)
 
+(defcmatcher tree_array_type
+  (:tree tr)
+  (:tree telemtype tdomaintype)
+  treearrtyp
+  #{ /* $TREEARRTYP ? */
+  (($TR) && TREE_CODE ($TR) == ARRAY_TYPE)
+  }#
+  #{ /* $TREEARRTYP ! */
+  $TELEMTYPE = TREE_TYPE ($TR);
+  $TDOMAINTYPE = TYPE_DOMAIN ($TR);
+  }#)
+
+
 (defcmatcher tree_field_decl
   (:tree tr)
-  (:tree name)
-  treefd
-
-  #{
-       (($tr) && TREE_CODE ($tr) == FIELD_DECL)
+  (:tree name type)
+  treefield
+  #{ /* $TREEFIELD ? */
+       (($TR) && TREE_CODE ($TR) == FIELD_DECL)
   }#
-
-  #{
-       $name = DECL_NAME ($tr);
+  #{ /* $TREEFIELD ! */
+       $NAME = DECL_NAME ($TR);
+       $TYPE = TREE_TYPE ($TR);
   }#)
 
 ;;;; matcher for patter ssa_name
@@ -3608,6 +3619,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_addr_expr
  tree_array_ref
  tree_array_ref_full
+ tree_array_type
  tree_block
  tree_component_ref
  tree_component_ref_full
