@@ -1,0 +1,406 @@
+\input texinfo @c -*-texinfo-*-
+
+@c %**start of header
+@setfilename libitm.info
+@settitle GNU libitm
+@c %**end of header
+
+
+@copying
+Copyright @copyright{} 2011 Free Software Foundation, Inc.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.2 or
+any later version published by the Free Software Foundation; with the
+Invariant Sections being ``Funding Free Software'', the Front-Cover
+texts being (a) (see below), and with the Back-Cover Texts being (b)
+(see below).  A copy of the license is included in the section entitled
+``GNU Free Documentation License''.
+
+(a) The FSF's Front-Cover Text is:
+
+     A GNU Manual
+
+(b) The FSF's Back-Cover Text is:
+
+     You have freedom to copy and modify this GNU Manual, like GNU
+     software.  Copies published by the Free Software Foundation raise
+     funds for GNU development.
+@end copying
+
+@ifinfo
+@dircategory GNU Libraries
+@direntry
+* libitm: (libitm).                    GNU Transactional Memory Library
+@end direntry
+
+This manual documents the GNU Transactional Memory Library.
+
+Published by the Free Software Foundation
+51 Franklin Street, Fifth Floor
+Boston, MA 02110-1301 USA
+
+@insertcopying
+@end ifinfo
+
+
+@setchapternewpage odd
+
+@titlepage
+@title The GNU Transactional Memory Library
+@page
+@vskip 0pt plus 1filll
+@comment For the @value{version-GCC} Version*
+@sp 1
+Published by the Free Software Foundation @*
+51 Franklin Street, Fifth Floor@*
+Boston, MA 02110-1301, USA@*
+@sp 1
+@insertcopying
+@end titlepage
+
+@summarycontents
+@contents
+@page
+
+
+@node Top
+@top Introduction
+@cindex Introduction
+
+This manual documents the usage and internals of libitm, the GNU Transactional
+Memory Library. It provides transaction support for accesses to a process'
+memory, enabling easy-to-use synchronization of accesses to shared memory by
+several threads.
+
+
+@comment
+@comment  When you add a new menu item, please keep the right hand
+@comment  aligned to the same column.  Do not use tabs.  This provides
+@comment  better formatting.
+@comment
+@menu
+* Enabling libitm::            How to enable libitm for your applications.
+* C/C++ Language Constructs for TM::
+                               Notes on the language-level interface supported
+                               by gcc.
+* The libitm ABI::             Notes on the external ABI provided by libitm.
+* Internals::                  Notes on libitm's internal synchronization.
+* Copying::                    GNU general public license says
+                               how you can copy and share libgomp.
+* GNU Free Documentation License::
+                               How you can copy and share this manual.
+* Funding::                    How to help assure continued work for free 
+                               software.
+* Index::                      Index of this documentation.
+@end menu
+
+
+@c ---------------------------------------------------------------------
+@c Enabling libitm
+@c ---------------------------------------------------------------------
+
+@node Enabling libitm
+@chapter Enabling libitm
+
+To activate support for TM in C/C++, the compile-time flag @option{-fgnu-tm}
+must be specified. This enables TM language-level constructs such as
+transaction statements (@code{__transaction}, @pxref{C/C++ Language
+Constructs for TM} for details).
+
+@c ---------------------------------------------------------------------
+@c C/C++ Language Constructs for TM
+@c ---------------------------------------------------------------------
+
+@node C/C++ Language Constructs for TM
+@chapter C/C++ Language Constructs for TM
+
+TODO: link to the C++ TM spec. a few examples. how gcc's support differs. 
+
+@c ---------------------------------------------------------------------
+@c The libitm ABI
+@c ---------------------------------------------------------------------
+
+@node The libitm ABI
+@chapter The libitm ABI
+
+The ABI provided by libitm is basically equal to the Linux variant of Intel's
+current TM ABI specification document (Revision 1.1, May 6 2009) but with the
+differences listed in this chapter. It would be good if these changes would
+eventually be merged into a future version of this specification. To ease
+look-up, the following subsections mirror the structure of this specification.
+
+@section [No changes] Objectives
+@section [No changes] Non-objectives
+
+@section Library design principles
+@subsection [No changes] Calling conventions
+@subsection [No changes] TM library algorithms
+@subsection [No changes] Optimized load and store routines
+@subsection [No changes] Aligned load and store routines
+
+@subsection Data logging functions
+
+The memory locations accessed with transactional loads and stores and the
+memory locations whose values are logged must not overlap. This required
+separation only extends to the scope of the execution of one transaction
+including all the executions of all nested transactions.
+
+The compiler must be consistent (within the scope of a single transaction)
+about which memory locations are shared and which are not shared with other
+threads (i.e., data must be accessed either transactionally or
+nontransactionally). Otherwise, non-write-through TM algorithms would not work.
+
+@subsection [No changes] Scatter/gather calls
+@subsection [No changes] Serial and irrevocable mode
+@subsection [No changes] Transaction descriptor
+@subsection Store allocation
+
+There is no @code{getTransaction} function. 
+
+@subsection [No changes] Naming conventions
+
+@subsection Function pointer encryption
+
+Currently, this is not implemented.
+
+
+@section Types and macros list
+
+@code{_ITM_codeProperties} has changed, @pxref{txn-code-properties,,Starting a
+transaction}.
+@code{_ITM_srcLocation} is not used. 
+
+
+@section Function list
+
+@subsection Initialization and finalization functions
+These functions are not part of the ABI.
+
+@subsection [No changes] Version checking
+@subsection [No changes] Error reporting
+@subsection [No changes] inTransaction call
+
+@subsection State manipulation functions
+There is no @code{getTransaction} function. Transaction identifiers for
+nested transactions will be ordered but not necessarily sequential (i.e., for
+a nested transaction's identifier @var{IN} and its enclosing transaction's
+identifier @var{IE}, it is guaranteed that @math{IN >= IE}).
+
+@subsection [No changes] Source locations
+
+@subsection Starting a transaction
+
+@subsubsection Transaction code properties
+
+@anchor{txn-code-properties}
+The bit @code{hasNoXMMUpdate} is instead called @code{hasNoVectorUpdate}.
+Iff it is set, vector register save/restore is not necessary for any target
+machine.
+
+The @code{hasNoFloatUpdate} bit (@code{0x0010}) is new. Iff it is set, floating
+point register save/restore is not necessary for any target machine.
+
+@code{undoLogCode} is not supported and a fatal runtime error will be raised
+if this bit is set. It is not properly defined in the ABI why barriers
+other than undo logging are not present; Are they not necessary (e.g., a
+transaction operating purely on thread-local data) or have they been omitted by
+the compiler because it thinks that some kind of global synchronization
+(e.g., serial mode) might perform better? The specification suggests that the
+latter might be the case, but the former seems to be more useful.
+
+The @code{readOnly} bit (@code{0x4000}) is new. @strong{TODO} Lexical or dynamic
+scope?
+
+@code{hasNoRetry} is not supported. If this bit is not set, but
+@code{hasNoAbort} is set, the library can assume that transaction
+rollback will not be requested.
+
+It would be useful if the absence of externally-triggered rollbacks would be
+reported for the dynamic scope as well, not just for the lexical scope
+(@code{hasNoAbort}). Without this, a library cannot exploit this together
+with flat nesting.
+
+@strong{TODO} @code{exceptionBlock?}
+
+@subsubsection [No changes] Windows exception state
+@subsubsection [No changes] Other machine state
+
+@subsubsection Results from beginTransaction
+@strong{TODO} @code{abortTransaction} supported?
+
+@subsection Aborting a transaction
+@strong{TODO} make consistent with EH.
+
+@subsection Committing a transaction
+@strong{TODO} make consistent with EH.
+
+@subsection Exception handling support
+
+@strong{TODO} Document wrappers. Document code generated for commit, perhaps
+with examples similar to those in the specification. What can be removed from
+the ABI in turn? Document requirements on libstdc++ (@code{_cxa_tm_cleanup()}).
+
+@example
+void _ITM_commitTransactionEH(void *exc_ptr) ITM_REGPARM;
+void *_ITM_cxa_allocate_exception (size_t);
+void _ITM_cxa_throw (void *obj, void *tinfo, void *dest);
+void *_ITM_cxa_begin_catch (void *exc_ptr);
+void _ITM_cxa_end_catch (void);
+@end example
+
+
+@subsection [No changes] Transition to serial--irrevocable mode
+@subsection [No changes] Data transfer functions
+@subsection [No changes] Transactional memory copies
+
+@subsection Transactional versions of memmove
+
+If either the source or destination memory region is to be accessed
+nontransactionally, then source and destination regions must not be
+overlapping. The respective @code{_ITM_memmove} functions are still
+available but a fatal runtime error will be raised if such regions do overlap.
+To support this functionality, the ABI would have to specify how the
+intersection of the regions has to be accessed (i.e., transactionally or
+nontransactionally).
+
+@subsection [No changes] Transactional versions of memset
+@subsection [No changes] Logging functions
+
+@subsection User-registered commit and undo actions
+
+The order in which commit or undo actions are executed is undefined. It is also
+undefined whether privatization safety has been ensured by the time the
+transactions are executed. The ordering of undo actions and the roll-back of
+data transfers is undefined.
+
+However, the ABI should specify ordering guarantees where necessary (in
+particular, w.r.t. privatization safety).
+
+@code{_ITM_dropReferences} is not supported currently because its semantics and
+the intention behind it is not entirely clear. The
+specification suggests that this function is necessary because of certain
+orderings of data transfer undos and the releasing of memory regions (i.e.,
+privatization). However, this ordering is never defined, nor is the ordering of
+dropping references w.r.t. other events.
+
+@subsection [New] Transactional indirect calls
+
+Indirect calls (i.e., calls through a function pointer) within transactions
+should execute the transactional clone of the original function (i.e., a clone
+of the original that has been fully instrumented to use the TM runtime), if
+such a clone is available. The runtime provides two functions to
+register/deregister clone tables:
+
+@example
+struct clone_entry
+@{
+  void *orig, *clone;
+@};
+
+void _ITM_registerTMCloneTable (clone_entry *table, size_t entries);
+void _ITM_deregisterTMCloneTable (clone_entry *table);
+@end example
+
+Registered tables must be writable by the TM runtime, and must be live
+throughout the life-time of the TM runtime.
+
+@strong{TODO} The intention was always to drop the registration functions
+entirely, and create a new ELF Phdr describing the linker-sorted table.  Much
+like what currently happens for @code{PT_GNU_EH_FRAME}.
+This work kept getting bogged down in how to represent the @var{N} different
+code generation variants.  We clearly needed at least two---SW and HW
+transactional clones---but there was always a suggestion of more variants for
+different TM assumptions/invariants.
+
+The compiler can then use two TM runtime functions to perform indirect calls in
+transactions:
+@example
+void *_ITM_getTMCloneOrIrrevocable (void *function) ITM_REGPARM;
+void *_ITM_getTMCloneSafe (void *function) ITM_REGPARM;
+@end example
+
+If there is a registered clone for supplied function, both will return a
+pointer to the clone. If not, the first runtime function will attempt to switch
+to serial--irrevocable mode and return the original pointer, whereas the second
+will raise a fatal runtime error.
+
+@subsection [New] Transactional dynamic memory management
+
+@example
+void *_ITM_malloc (size_t)
+       __attribute__((__malloc__)) ITM_PURE;
+void *_ITM_calloc (size_t, size_t)
+       __attribute__((__malloc__)) ITM_PURE;
+void _ITM_free (void *) ITM_PURE;
+@end example
+
+These functions are essentially transactional wrappers for @code{malloc},
+@code{calloc}, and @code{free}. Within transactions, the compiler should
+replace calls to the original functions with calls to the wrapper functions.
+
+
+@section [No changes] Future Enhancements to the ABI
+
+@section Sample code 
+
+The code examples might not be correct w.r.t. the current version of the ABI,
+especially everything related to exception handling.
+
+
+@section [New] Memory model
+
+The ABI should define a memory model and the ordering that is guaranteed for
+data transfers and commit/undo actions, or at least refer to another memory
+model that needs to be preserved. Without that, the compiler cannot ensure the
+memory model specified on the level of the programming language (e.g., by the
+C++ TM specification).
+
+For example, if a transactional load is ordered before another load/store, then
+the TM runtime must also ensure this ordering when accessing shared state. If
+not, this might break the kind of publication safety used in the C++ TM
+specification. Likewise, the TM runtime must ensure privatization safety.
+
+
+
+@c ---------------------------------------------------------------------
+@c Internals
+@c ---------------------------------------------------------------------
+
+@node Internals
+@chapter Internals
+
+TODO: SI-mode implementation, method sets, ...
+
+@c ---------------------------------------------------------------------
+@c GNU General Public License
+@c ---------------------------------------------------------------------
+
+@include gpl.texi
+
+
+
+@c ---------------------------------------------------------------------
+@c GNU Free Documentation License
+@c ---------------------------------------------------------------------
+
+@include fdl.texi
+
+
+
+@c ---------------------------------------------------------------------
+@c Funding Free Software
+@c ---------------------------------------------------------------------
+
+@include funding.texi
+
+@c ---------------------------------------------------------------------
+@c Index
+@c ---------------------------------------------------------------------
+
+@node Index
+@unnumbered Index
+
+@printindex cp
+
+@bye

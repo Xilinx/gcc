@@ -1,3 +1,9 @@
+2011-06-30  Torvald Riegel  <triegel@redhat.com>
+
+	* libitm.texi: New file.
+	* Makefile.am: Add libitm.texi.
+	* Makefile.in: Rebuild.
+
 2011-05-25  Torvald Riegel  <triegel@redhat.com>
 
 	* libitm_i.h: Move parts to common.h and dispatch.h.

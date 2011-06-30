@@ -50,3 +50,46 @@ libitm_la_SOURCES += x86_sse.cc x86_avx.cc
 x86_sse.lo : XCFLAGS += -msse
 x86_avx.lo : XCFLAGS += -mavx
 endif
+
+
+# Automake Documentation:
+# If your package has Texinfo files in many directories, you can use the
+# variable TEXINFO_TEX to tell Automake where to find the canonical
+# `texinfo.tex' for your package. The value of this variable should be
+# the relative path from the current `Makefile.am' to `texinfo.tex'.
+TEXINFO_TEX   = ../gcc/doc/include/texinfo.tex
+
+# Defines info, dvi, pdf and html targets
+MAKEINFOFLAGS = -I $(srcdir)/../gcc/doc/include
+info_TEXINFOS = libitm.texi
+
+# AM_CONDITIONAL on configure option --generated-files-in-srcdir
+if GENINSRC
+STAMP_GENINSRC = stamp-geninsrc
+else
+STAMP_GENINSRC =
+endif
+
+# AM_CONDITIONAL on configure check ACX_CHECK_PROG_VER([MAKEINFO])
+if BUILD_INFO
+STAMP_BUILD_INFO = stamp-build-info
+else
+STAMP_BUILD_INFO =
+endif
+
+
+all-local: $(STAMP_GENINSRC)
+
+stamp-geninsrc: libitm.info
+	cp -p $(top_builddir)/libitm.info $(srcdir)/libitm.info
+	@touch $@
+
+libitm.info: $(STAMP_BUILD_INFO)
+
+stamp-build-info: libitm.texi
+	$(MAKEINFO) $(AM_MAKEINFOFLAGS) $(MAKEINFOFLAGS) -I $(srcdir) -o libitm.info $(srcdir)/libitm.texi
+	@touch $@
+
+
+CLEANFILES = $(STAMP_GENINSRC) $(STAMP_BUILD_INFO) libitm.info
+MAINTAINERCLEANFILES = $(srcdir)/libitm.info
