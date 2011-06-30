@@ -27,7 +27,7 @@
 void
 GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
 {
-  struct gtm_dispatch *disp = gtm_disp ();
+  struct abi_dispatch *disp = abi_disp ();
 
   this->restart_reason[r]++;
   this->restart_total++;
@@ -61,7 +61,7 @@ GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
       this->state = (STATE_SERIAL | STATE_IRREVOCABLE);
       disp->fini ();
       disp = dispatch_serial ();
-      set_gtm_disp (disp);
+      set_abi_disp (disp);
     }
   else
     {
@@ -72,7 +72,7 @@ GTM::gtm_transaction::decide_retry_strategy (gtm_restart_reason r)
 	    {
 	      disp->fini ();
 	      disp = dispatch_wbetl ();
-	      set_gtm_disp (disp);
+	      set_abi_disp (disp);
 	      return;
 	    }
 	}

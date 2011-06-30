@@ -88,14 +88,14 @@ static inline void set_gtm_tx(struct gtm_transaction *x)
   asm volatile (SEG_WRITE(11) : : "r"(x));
 }
 
-static inline struct gtm_dispatch *gtm_disp(void)
+static inline struct abi_dispatch *abi_disp(void)
 {
-  struct gtm_dispatch *r;
+  struct abi_dispatch *r;
   asm (SEG_DECODE_READ(12) : "=r"(r));
   return r;
 }
 
-static inline void set_gtm_disp(struct gtm_dispatch *x)
+static inline void set_abi_disp(struct abi_dispatch *x)
 {
   void *scratch;
   asm volatile (SEG_ENCODE_WRITE(12) : "=r"(scratch) : "0"(x));

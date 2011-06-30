@@ -86,7 +86,7 @@ extern void * xrealloc (void *p, size_t s) __attribute__((malloc, nothrow));
 namespace GTM HIDDEN {
 
 // A dispatch table parameterizes the implementation of the STM.
-struct gtm_dispatch
+struct abi_dispatch
 {
  public:
   enum lock_type { NOLOCK, R, RaR, RaW, RfW, W, WaR, WaW };
@@ -102,8 +102,8 @@ struct gtm_dispatch
 
  private:
   // Disallow copies
-  gtm_dispatch(const gtm_dispatch &) = delete;
-  gtm_dispatch& operator=(const gtm_dispatch &) = delete;
+  abi_dispatch(const abi_dispatch &) = delete;
+  abi_dispatch& operator=(const abi_dispatch &) = delete;
 
  public:
   // The default version of these is pass-through.  This merely gives the
@@ -129,7 +129,7 @@ struct gtm_dispatch
  protected:
   const bool m_read_only;
   const bool m_write_through;
-  gtm_dispatch(bool ro, bool wt) : m_read_only(ro), m_write_through(wt) { }
+  abi_dispatch(bool ro, bool wt) : m_read_only(ro), m_write_through(wt) { }
 
   static gtm_cacheline_mask mask_sink;
 };
@@ -287,9 +287,9 @@ extern void GTM_error (const char *fmt, ...)
 extern void GTM_fatal (const char *fmt, ...)
 	__attribute__((noreturn, format (printf, 1, 2)));
 
-extern gtm_dispatch *dispatch_wbetl();
-extern gtm_dispatch *dispatch_readonly();
-extern gtm_dispatch *dispatch_serial();
+extern abi_dispatch *dispatch_wbetl();
+extern abi_dispatch *dispatch_readonly();
+extern abi_dispatch *dispatch_serial();
 
 extern gtm_cacheline_mask gtm_mask_stack(gtm_cacheline *, gtm_cacheline_mask);
 

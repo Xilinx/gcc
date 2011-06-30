@@ -28,7 +28,7 @@ namespace {
 
 using namespace GTM;
 
-class wbetl_dispatch : public gtm_dispatch
+class wbetl_dispatch : public abi_dispatch
 {
  private:
   static const size_t RW_SET_SIZE = 4096;
@@ -394,7 +394,7 @@ wbetl_dispatch::read_lock (const gtm_cacheline *addr, lock_type ltype)
     }
 }
 
-gtm_dispatch::mask_pair
+abi_dispatch::mask_pair
 wbetl_dispatch::write_lock (gtm_cacheline *addr, lock_type ltype)
 {
   gtm_cacheline *line;
@@ -547,7 +547,7 @@ wbetl_dispatch::trydropreference (void *ptr, size_t size)
   gtm_cacheline *src
     = reinterpret_cast<gtm_cacheline *>(isrc & -CACHELINE_SIZE);
   unsigned char *dst = (unsigned char *)ptr;
-  gtm_dispatch::mask_pair pair;
+  abi_dispatch::mask_pair pair;
 
   // If we're trying to drop a reference, we should already have a
   // write lock on it.  If we don't have one, there's no work to do.
@@ -602,7 +602,7 @@ wbetl_dispatch::trydropreference (void *ptr, size_t size)
 
 
 wbetl_dispatch::wbetl_dispatch ()
-  : gtm_dispatch (false, false)
+  : abi_dispatch (false, false)
 {
   m_rset_entries = (r_entry *) xmalloc (RW_SET_SIZE * sizeof(r_entry));
   m_rset_nb_entries = 0;
@@ -621,7 +621,7 @@ wbetl_dispatch::wbetl_dispatch ()
 
 } // anon namespace
 
-gtm_dispatch *
+abi_dispatch *
 GTM::dispatch_wbetl ()
 {
   return new wbetl_dispatch ();

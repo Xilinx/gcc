@@ -1,3 +1,21 @@
+2011-06-30  Torvald Riegel  <triegel@redhat.com>
+
+	* config/generic/tls.h (gtm_disp): Rename to abi_disp.
+	* config/generic/tls.h (set_gtm_disp): Rename to set_abi_disp.
+	* libitm_i.h: Rename gtm_dispatch to abi_dispatch.
+	* alloc_c.cc: Same.
+	* barrier.tpl: Same.
+	* beginend.c: Same.
+	* config/generic/tls.h: Same.
+	* config/x86/tls.h: Same.
+	* libitm_i.h: Same.
+	* memcpy.cc: Same.
+	* memset.cc: Same.
+	* method-readonly.cc: Same.
+	* method-serial.cc: Same.
+	* method-wbetl.cc: Same.
+	* retry.cc: Same.
+
 2011-03-03  Richard Henderson  <rth@redhat.com>
 
 	* config/posix/rwlock.cc (write_upgrade): Add missing case.

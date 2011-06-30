@@ -64,7 +64,7 @@ void ITM_REGPARM
 _ITM_dropReferences (void *ptr, size_t len)
 {
   gtm_transaction *tx = gtm_tx();
-  if (!gtm_disp()->trydropreference (ptr, len))
+  if (!abi_disp()->trydropreference (ptr, len))
     tx->restart (RESTART_VALIDATE_READ);
   tx->drop_references_local (ptr, len);
   tx->drop_references_allocations (ptr);

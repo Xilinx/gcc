@@ -30,12 +30,12 @@ namespace {
 using namespace GTM;
 
 template<typename T>
-T do_read (const T *ptr, gtm_dispatch::lock_type lock)
+T do_read (const T *ptr, abi_dispatch::lock_type lock)
 {
   //
   // Find the cacheline that holds the current value of *PTR.
   //
-  gtm_dispatch *disp = gtm_disp();
+  abi_dispatch *disp = abi_disp();
   uintptr_t iptr = reinterpret_cast<uintptr_t>(ptr);
   // Normalize PTR by chopping off the bottom bits so we can search
   // for PTR in the cacheline hash.
@@ -95,19 +95,19 @@ T do_read (const T *ptr, gtm_dispatch::lock_type lock)
 }
 
 template<typename T>
-void do_write (T *ptr, T val, gtm_dispatch::lock_type lock)
+void do_write (T *ptr, T val, abi_dispatch::lock_type lock)
 {
   // Note: See comments for do_read() above for hints on this
   // function.  Ideally we should abstract out a lot out of these two
   // functions, and avoid all this duplication.
 
-  gtm_dispatch *disp = gtm_disp();
+  abi_dispatch *disp = abi_disp();
   uintptr_t iptr = reinterpret_cast<uintptr_t>(ptr);
   uintptr_t iline = iptr & -CACHELINE_SIZE;
   uintptr_t iofs = iptr & (CACHELINE_SIZE - 1);
   gtm_cacheline *pline = reinterpret_cast<gtm_cacheline *>(iline);
   gtm_cacheline_mask m = ((gtm_cacheline_mask)2 << (sizeof(T) - 1)) - 1;
-  gtm_dispatch::mask_pair pair = disp->write_lock(pline, lock);
+  abi_dispatch::mask_pair pair = disp->write_lock(pline, lock);
 
   ptr = reinterpret_cast<T *>(&pair.line->b[iofs]);
 
@@ -129,7 +129,7 @@ void do_write (T *ptr, T val, gtm_dispatch::lock_type lock)
   else
     {
       *pair.mask |= m << iofs;
-      gtm_dispatch::mask_pair pair2 = disp->write_lock(pline + 1, lock);
+      abi_dispatch::mask_pair pair2 = disp->write_lock(pline + 1, lock);
 
       uintptr_t ileft = CACHELINE_SIZE - iofs;
       *pair2.mask |= m >> ileft;
@@ -151,13 +151,13 @@ void do_write (T *ptr, T val, gtm_dispatch::lock_type lock)
 #define ITM_READ(T, LOCK)						\
   _ITM_TYPE_##T ITM_REGPARM _ITM_##LOCK##T (const _ITM_TYPE_##T *ptr)	\
   {									\
-    return do_read (ptr, gtm_dispatch::LOCK);				\
+    return do_read (ptr, abi_dispatch::LOCK);				\
   }
 
 #define ITM_WRITE(T, LOCK)						\
   void ITM_REGPARM _ITM_##LOCK##T (_ITM_TYPE_##T *ptr, _ITM_TYPE_##T val) \
   {									\
-    do_write (ptr, val, gtm_dispatch::LOCK);				\
+    do_write (ptr, val, abi_dispatch::LOCK);				\
   }
 
 #define ITM_BARRIERS(T)		\

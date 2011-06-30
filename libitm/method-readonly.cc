@@ -28,7 +28,7 @@ namespace {
 
 using namespace GTM;
 
-class readonly_dispatch : public gtm_dispatch
+class readonly_dispatch : public abi_dispatch
 {
  private:
   gtm_version m_start;
@@ -47,7 +47,7 @@ class readonly_dispatch : public gtm_dispatch
 
 inline
 readonly_dispatch::readonly_dispatch()
-  : gtm_dispatch(true, true), m_start(gtm_get_clock ())
+  : abi_dispatch(true, true), m_start(gtm_get_clock ())
 { }
 
 
@@ -70,14 +70,14 @@ readonly_dispatch::read_lock(const gtm_cacheline *line, lock_type lock)
     }
 }
 
-gtm_dispatch::mask_pair
+abi_dispatch::mask_pair
 readonly_dispatch::write_lock(gtm_cacheline *line, lock_type lock)
 {
   switch (lock)
     {
     case NOLOCK:
       {
-	gtm_dispatch::mask_pair pair;
+	abi_dispatch::mask_pair pair;
 	pair.line = line;
 	pair.mask = &mask_sink;
 	return pair;
@@ -117,7 +117,7 @@ readonly_dispatch::fini ()
 
 } // anon namespace
 
-gtm_dispatch *
+abi_dispatch *
 GTM::dispatch_readonly ()
 {
   return new readonly_dispatch();

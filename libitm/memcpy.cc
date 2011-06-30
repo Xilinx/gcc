@@ -28,9 +28,9 @@ using namespace GTM;
 
 static void
 do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
-	   gtm_dispatch::lock_type W, gtm_dispatch::lock_type R)
+	   abi_dispatch::lock_type W, abi_dispatch::lock_type R)
 {
-  gtm_dispatch *disp = gtm_disp();
+  abi_dispatch *disp = abi_disp();
   // The position in the destination cacheline where *IDST starts.
   uintptr_t dofs = idst & (CACHELINE_SIZE - 1);
   // The position in the source cacheline where *ISRC starts.
@@ -40,7 +40,7 @@ do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
   gtm_cacheline *dst
     = reinterpret_cast<gtm_cacheline *>(idst & -CACHELINE_SIZE);
   const gtm_cacheline *sline;
-  gtm_dispatch::mask_pair dpair;
+  abi_dispatch::mask_pair dpair;
 
   if (size == 0)
     return;
@@ -177,12 +177,12 @@ do_memcpy (uintptr_t idst, uintptr_t isrc, size_t size,
 
 static void
 do_memmove (uintptr_t idst, uintptr_t isrc, size_t size,
-	    gtm_dispatch::lock_type W, gtm_dispatch::lock_type R)
+	    abi_dispatch::lock_type W, abi_dispatch::lock_type R)
 {
-  gtm_dispatch *disp = gtm_disp();
+  abi_dispatch *disp = abi_disp();
   uintptr_t dleft, sleft, sofs, dofs;
   const gtm_cacheline *sline;
-  gtm_dispatch::mask_pair dpair;
+  abi_dispatch::mask_pair dpair;
   
   if (size == 0)
     return;
@@ -194,13 +194,13 @@ do_memmove (uintptr_t idst, uintptr_t isrc, size_t size,
   if (__builtin_expect (idst == isrc, 0))
     {
       /* If the write lock is already acquired, nothing to do.  */
-      if (W == gtm_dispatch::WaW)
+      if (W == abi_dispatch::WaW)
 	return;
       /* If the destination is protected, acquire a write lock.  */
-      if (W != gtm_dispatch::NOLOCK)
-	R = gtm_dispatch::RfW;
+      if (W != abi_dispatch::NOLOCK)
+	R = abi_dispatch::RfW;
       /* Notice serial mode, where we don't acquire locks at all.  */
-      if (R == gtm_dispatch::NOLOCK)
+      if (R == abi_dispatch::NOLOCK)
 	return;
 
       idst = isrc + size;
@@ -337,12 +337,12 @@ do_memmove (uintptr_t idst, uintptr_t isrc, size_t size,
 void ITM_REGPARM _ITM_memcpy##NAME(void *dst, const void *src, size_t size)  \
 {									     \
   do_memcpy ((uintptr_t)dst, (uintptr_t)src, size,			     \
-	     gtm_dispatch::WRITE, gtm_dispatch::READ);			     \
+	     abi_dispatch::WRITE, abi_dispatch::READ);			     \
 }									     \
 void ITM_REGPARM _ITM_memmove##NAME(void *dst, const void *src, size_t size) \
 {									     \
   do_memmove ((uintptr_t)dst, (uintptr_t)src, size,			     \
-	      gtm_dispatch::WRITE, gtm_dispatch::READ);			     \
+	      abi_dispatch::WRITE, abi_dispatch::READ);			     \
 }
 
 ITM_MEM_DEF(RnWt,	NOLOCK,		W)

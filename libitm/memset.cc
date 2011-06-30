@@ -27,11 +27,11 @@
 using namespace GTM;
 
 static void
-do_memset(uintptr_t idst, int c, size_t size, gtm_dispatch::lock_type W)
+do_memset(uintptr_t idst, int c, size_t size, abi_dispatch::lock_type W)
 {
-  gtm_dispatch *disp = gtm_disp();
+  abi_dispatch *disp = abi_disp();
   uintptr_t dofs = idst & (CACHELINE_SIZE - 1);
-  gtm_dispatch::mask_pair dpair;
+  abi_dispatch::mask_pair dpair;
   gtm_cacheline *dst
     = reinterpret_cast<gtm_cacheline *>(idst & -CACHELINE_SIZE);
 
@@ -70,7 +70,7 @@ do_memset(uintptr_t idst, int c, size_t size, gtm_dispatch::lock_type W)
 #define ITM_MEM_DEF(WRITE) \
 void ITM_REGPARM _ITM_memset##WRITE(void *dst, int c, size_t size)	\
 {									\
-  do_memset ((uintptr_t)dst, c, size, gtm_dispatch::WRITE);		\
+  do_memset ((uintptr_t)dst, c, size, abi_dispatch::WRITE);		\
 }
 
 ITM_MEM_DEF(W)

@@ -26,23 +26,23 @@
 
 namespace GTM HIDDEN {
 
-gtm_cacheline_mask gtm_dispatch::mask_sink;
+gtm_cacheline_mask abi_dispatch::mask_sink;
 
 const gtm_cacheline *
-gtm_dispatch::read_lock(const gtm_cacheline *addr, lock_type)
+abi_dispatch::read_lock(const gtm_cacheline *addr, lock_type)
 {
   return addr;
 }
 
-gtm_dispatch::mask_pair
-gtm_dispatch::write_lock(gtm_cacheline *addr, lock_type)
+abi_dispatch::mask_pair
+abi_dispatch::write_lock(gtm_cacheline *addr, lock_type)
 {
   return mask_pair (addr, &mask_sink);
 }
 
 } // namespace GTM
 
-// Avoid a dependency on libstdc++ for the pure virtuals in gtm_dispatch.
+// Avoid a dependency on libstdc++ for the pure virtuals in abi_dispatch.
 extern "C" void HIDDEN
 __cxa_pure_virtual ()
 {
@@ -53,10 +53,10 @@ using namespace GTM;
 
 namespace {
 
-class serial_dispatch : public gtm_dispatch
+class serial_dispatch : public abi_dispatch
 {
  public:
-  serial_dispatch() : gtm_dispatch(false, true) { }
+  serial_dispatch() : abi_dispatch(false, true) { }
 
   // The read_lock and write_lock methods are implented by the base class.
 
@@ -71,7 +71,7 @@ class serial_dispatch : public gtm_dispatch
 
 static const serial_dispatch o_serial_dispatch;
 
-gtm_dispatch *
+abi_dispatch *
 GTM::dispatch_serial ()
 {
   return const_cast<serial_dispatch *>(&o_serial_dispatch);
@@ -82,7 +82,7 @@ GTM::dispatch_serial ()
 void
 GTM::gtm_transaction::serialirr_mode ()
 {
-  struct gtm_dispatch *disp = gtm_disp ();
+  struct abi_dispatch *disp = abi_disp ();
   bool need_restart = true;
 
   if (this->state & STATE_SERIAL)
@@ -111,7 +111,7 @@ GTM::gtm_transaction::serialirr_mode ()
   else
     {
       this->state |= (STATE_SERIAL | STATE_IRREVOCABLE);
-      set_gtm_disp (dispatch_serial ());
+      set_abi_disp (dispatch_serial ());
     }
 }
 

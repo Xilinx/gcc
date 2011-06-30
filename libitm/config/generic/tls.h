@@ -38,7 +38,7 @@ struct gtm_thread
 #ifndef HAVE_ARCH_GTM_THREAD_DISP
   // The dispatch table for the STM implementation currently in use.  Elided
   // if the target provides some efficient mechanism for storing this.
-  gtm_dispatch *disp;
+  abi_dispatch *disp;
 #endif
 
   // The maximum number of free gtm_transaction structs to be kept.
@@ -87,8 +87,8 @@ static inline void set_gtm_tx(gtm_transaction *x) { gtm_thr()->tx = x; }
 #ifndef HAVE_ARCH_GTM_THREAD_DISP
 // If the target does not provide optimized access to the currently
 // active dispatch table, simply access via GTM_THR.
-static inline gtm_dispatch * gtm_disp() { return gtm_thr()->disp; }
-static inline void set_gtm_disp(gtm_dispatch *x) { gtm_thr()->disp = x; }
+static inline abi_dispatch * abi_disp() { return gtm_thr()->disp; }
+static inline void set_abi_disp(abi_dispatch *x) { gtm_thr()->disp = x; }
 #endif
 
 } // namespace GTM

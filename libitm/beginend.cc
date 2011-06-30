@@ -94,7 +94,7 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
   static const _ITM_transactionId_t tid_block_size = 1 << 16;
 
   gtm_transaction *tx;
-  gtm_dispatch *disp;
+  abi_dispatch *disp;
   uint32_t ret;
 
   gtm_thread *thr = setup_gtm_thr ();
@@ -154,7 +154,7 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
       ret = a_runInstrumentedCode | a_saveLiveVariables;
     }
 
-  set_gtm_disp (disp);
+  set_abi_disp (disp);
 
   return ret;
 }
@@ -162,7 +162,7 @@ GTM::gtm_transaction::begin_transaction (uint32_t prop, const gtm_jmpbuf *jb)
 void
 GTM::gtm_transaction::rollback ()
 {
-  gtm_disp()->rollback ();
+  abi_disp()->rollback ();
   rollback_local ();
 
   free_actions (&this->commit_actions);
@@ -202,7 +202,7 @@ _ITM_abortTransaction (_ITM_abortReason reason)
     abort ();
 
   tx->rollback ();
-  gtm_disp()->fini ();
+  abi_disp()->fini ();
 
   if (tx->state & gtm_transaction::STATE_SERIAL)
     gtm_transaction::serial_lock.write_unlock ();
@@ -218,7 +218,7 @@ _ITM_abortTransaction (_ITM_abortReason reason)
 bool
 GTM::gtm_transaction::trycommit ()
 {
-  if (gtm_disp()->trycommit ())
+  if (abi_disp()->trycommit ())
     {
       commit_local ();
       free_actions (&this->undo_actions);
@@ -234,7 +234,7 @@ GTM::gtm_transaction::trycommit_and_finalize ()
 {
   if ((this->state & gtm_transaction::STATE_ABORTING) || trycommit ())
     {
-      gtm_disp()->fini ();
+      abi_disp()->fini ();
       set_gtm_tx (this->prev);
       delete this;
       if (this->state & gtm_transaction::STATE_SERIAL)
