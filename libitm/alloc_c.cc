@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2009, 2011 Free Software Foundation, Inc.
    Contributed by Richard Henderson <rth@redhat.com>.
 
    This file is part of the GNU Transactional Memory Library (libitm).
@@ -63,11 +63,10 @@ __attribute__((transaction_pure))
 void ITM_REGPARM
 _ITM_dropReferences (void *ptr, size_t len)
 {
-  gtm_transaction *tx = gtm_tx();
-  if (!abi_disp()->trydropreference (ptr, len))
-    tx->restart (RESTART_VALIDATE_READ);
-  tx->drop_references_local (ptr, len);
-  tx->drop_references_allocations (ptr);
+  // The semantics of _ITM_dropReferences are not sufficiently defined in the
+  // ABI specification, so it does not make sense to support it right now. See
+  // the libitm documentation for details.
+  GTM_fatal("_ITM_dropReferences is not supported");
 }
 
 } // extern "C"

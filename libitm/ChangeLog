@@ -1,3 +1,35 @@
+2011-05-25  Torvald Riegel  <triegel@redhat.com>
+
+	* libitm_i.h: Move parts to common.h and dispatch.h.
+	* common.h: New file.
+	* dispatch.h: New file, new dispatch class.
+	Rename GTM::abi_dispatch::lock_type to ls_modifier.
+	RenameGTM::abi_dispatch::NOLOCK to NONTXNAL.
+	* beginend.cc (GTM::gtm_transaction::begin_transaction): Delegate mode
+	decision to retry.cc. 
+	* retry.cc (GTM::gtm_transaction::decide_retry_strategy): Use serial mode
+	only.
+	(GTM::gtm_transaction::decide_begin_dispatch): Same.
+	* method-serial.cc: Adapt to new dispatch. Add serial mode with undo
+	logging.
+	* barrier.cc: Use new barriers definitions.
+	(abi_dispatch::memmove_overlap_check): New.
+	* config/x86/x86_sse.cc: Same.
+	* config/x86/x86_avx.cc: Same.
+	* Makefile.am: Don't build readonly and wbetl methods, memset.cc and
+	memcpy.cc.
+	* Makefile.in: Rebuild.
+	* method-readonly.cc: Remove.
+	* method-wbetl.cc: Rename GTM::abi_dispatch::lock_type to ls_modifier.
+	Rename GTM::abi_dispatch::NOLOCK to NONTXNAL.
+	
+2011-06-30  Torvald Riegel  <triegel@redhat.com>
+
+	* alloc_c.cc (_ITM_dropReferences): Don't support it anymore.
+	* testsuite/libitm.c++/dropref.C: _ITM_dropReferences is expected to fail.
+	* testsuite/libitm.c/dropref-2.c: Same.
+	* testsuite/libitm.c/dropref.c: Same.
+
 2011-06-30  Torvald Riegel  <triegel@redhat.com>
 
 	* config/generic/tls.h (gtm_disp): Rename to abi_disp.

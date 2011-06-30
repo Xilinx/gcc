@@ -1,3 +1,4 @@
+/* { dg-xfail-run-if "unsupported" { *-*-* } } */
 #include <libitm.h>
 
 char *pp;
