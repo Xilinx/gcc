@@ -1789,6 +1789,26 @@
       mpz_clear ($treeinty#_maxz);
     }#)
 
+;;;;;;;;;;;;;;;;
+;;; pattern tree_integer_type_bounded, the bounds are trees
+(defcmatcher tree_integer_type_bounded
+  (:tree tr)
+  (					;output
+   :tree ttype
+   :tree tmin tmax
+   :tree tsize
+   )
+  treeintybnd				;statesym
+  ;; test expander
+   #{ /*$TREEINTYBND ?*/ (($TR) && TREE_CODE($TR) == INTEGER_TYPE) }#
+  ;; fill expander
+   #{ /*$TREEINTYBND !*/
+      $TTYPE = TYPE_NAME($TR);
+      $TSIZE = TYPE_SIZE($TR);
+      $TMIN = TYPE_MIN_VALUE ($TR);
+      $TMAX = TYPE_MAX_VALUE ($TR);
+    }#)
+
 ;; Pattern tree_type_declaration. 
 (defcmatcher tree_type_declaration
   (:tree tr)
@@ -1829,7 +1849,7 @@
    :long n )
   treeintk
   ;; test expander
-  #{ /*$treeintk ?*/ (($tr) && TREE_CODE($tr) == INTEGER_CST) }#
+  #{ /*$treeintk ?*/ (($TR) && TREE_CODE($TR) == INTEGER_CST && host_integerp($TR, 0)) }#
   ;; fill expander
   #{ /*$treeintk !*/ $n  = tree_low_cst(($tr), 0);
   }#  )
@@ -3633,6 +3653,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_indirect_reference
  tree_integer_cst
  tree_integer_type
+ tree_integer_type_bounded
  tree_list
  tree_mem_ref
  tree_of_type

@@ -1,5 +1,10 @@
 
 2011-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/xtramelt-ana-base.melt (tree_integer_type_bounded): New
+	cmatcher.
+	(tree_integer_cst): Use host_integerp to ensure the constant fits
+	on host.
+2011-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/xtramelt-ana-base.melt (tree_array_type): New c-matcher.
 	(tree_field_decl): Got new type output.
 

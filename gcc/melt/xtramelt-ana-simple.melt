@@ -1,5 +1,5 @@
 ;; -*- Lisp -*-
-;; file ana-simple.melt
+;; file xtramelt-ana-simple.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
     Copyright 2009, 2011 Free Software Foundation, Inc.
@@ -1343,9 +1343,15 @@
 		      ( ?(tree_field_decl
 			  ?(tree_identifier 
 			    ?(cstring_same "mcfr_varptr"))
-			  ?(tree_array_type ?telemtype ?tdomaintype))
+			  ?(tree_array_type ?telemtype 
+					    ?(tree_integer_type_bounded ?tindextype
+									?(tree_integer_cst 0)
+									?(tree_integer_cst ?lmax) 
+									?tsize)))
 			 (debugtree "meltframe_exec telemtype" telemtype)
-			 (debugtree "meltframe_exec tdomaintype" tdomaintype)
+			 (debugtree "meltframe_exec tindextype" tindextype)
+			 (debugtree "meltframe_exec tsize" tsize)
+			 (debuglong "meltframe_exec lmax" lmax)
 			 )
 		      (?_ 
 		       (void)))
