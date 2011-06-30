@@ -40,6 +40,5 @@ bool abi_dispatch::memmove_overlap_check(void *dst, const void *src,
   return true;
 }
 
-CREATE_DISPATCH_FUNCTIONS(GTM::abi_disp()->_, )
-//CREATE_DISPATCH_FUNCTIONS(GTM::abi_dispatch::_, _static)
+CREATE_DISPATCH_FUNCTIONS(GTM::abi_disp()->, )
 

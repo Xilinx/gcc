@@ -221,25 +221,34 @@ reported for the dynamic scope as well, not just for the lexical scope
 (@code{hasNoAbort}). Without this, a library cannot exploit this together
 with flat nesting.
 
-@strong{TODO} @code{exceptionBlock?}
+@code{exceptionBlock} is not supported because exception blocks are not used.
 
 @subsubsection [No changes] Windows exception state
 @subsubsection [No changes] Other machine state
 
-@subsubsection Results from beginTransaction
-@strong{TODO} @code{abortTransaction} supported?
+@subsubsection [No changes] Results from beginTransaction
 
 @subsection Aborting a transaction
-@strong{TODO} make consistent with EH.
+
+@code{_ITM_rollbackTransaction} is not supported. @code{_ITM_abortTransaction}
+is supported but the abort reason @code{exceptionBlockAbort} is not (and there
+are no exception blocks in general, so the related cases also do not have to
+be considered).
 
 @subsection Committing a transaction
-@strong{TODO} make consistent with EH.
 
-@subsection Exception handling support
-
-@strong{TODO} Document wrappers. Document code generated for commit, perhaps
-with examples similar to those in the specification. What can be removed from
-the ABI in turn? Document requirements on libstdc++ (@code{_cxa_tm_cleanup()}).
+The exception handling (EH) scheme is different. The Intel ABI requires the
+@code{_ITM_tryCommitTransaction} function that will return even when the
+commit failed and will have to be matched with calls to either
+@code{_ITM_abortTransaction} or @code{_ITM_commitTransaction}. In contrast,
+gcc relies on transactional wrappers for the functions of the Exception
+Handling ABI and on one additional commit function (shown below). This allows
+the TM to keep track of EH internally and thus it does not have to embed the
+cleanup of EH state into the existing EH code in the program.
+@code{_ITM_tryCommitTransaction} is not supported.
+@code{_ITM_commitTransactionToId} is also not supported because the
+propagation of thrown exceptions will not bypass commits of nested
+transactions.
 
 @example
 void _ITM_commitTransactionEH(void *exc_ptr) ITM_REGPARM;
@@ -248,6 +257,42 @@ void _ITM_cxa_throw (void *obj, void *tinfo, void *dest);
 void *_ITM_cxa_begin_catch (void *exc_ptr);
 void _ITM_cxa_end_catch (void);
 @end example
+
+@code{_ITM_commitTransactionEH} must be called to commit a transaction if an
+exception could be in flight at this position in the code. @code{exc_ptr} is
+the current exception or zero if there is no current exception.
+The @code{_ITM_cxa...} functions are transactional wrappers for the respective
+@code{__cxa...} functions and must be called instead of these in transactional
+code.
+
+To support this EH scheme, libstdc++ needs to provide one additional function
+(@code{_cxa_tm_cleanup}), which is used by the TM to clean up the exception
+handling state while rolling back a transaction:
+
+@example
+void __cxa_tm_cleanup (void *unthrown_obj, void *cleanup_exc,
+                       unsigned int caught_count);
+@end example
+
+@code{unthrown_obj} is non-null if the program called
+@code{__cxa_allocate_exception} for this exception but did not yet called
+@code{__cxa_throw} for it. @code{cleanup_exc} is non-null if the program is
+currently processing a cleanup along an exception path but has not caught this
+exception yet. @code{caught_count} is the nesting depth of
+@code{__cxa_begin_catch} within the transaction (which can be counted by the TM
+using @code{_ITM_cxa_begin_catch} and @code{_ITM_cxa_end_catch});
+@code{__cxa_tm_cleanup} then performs rollback by essentially performing
+@code{__cxa_end_catch} that many times.
+
+
+
+@subsection Exception handling support
+
+Currently, there is no support for functionality like
+@code{__transaction_cancel throw} as described in the C++ TM specification.
+Supporting this should be possible with the EH scheme explained previously
+because via the transactional wrappers for the EH ABI, the TM is able to
+observe and intercept EH.
 
 
 @subsection [No changes] Transition to serial--irrevocable mode

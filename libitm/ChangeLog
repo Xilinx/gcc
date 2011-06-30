@@ -1,10 +1,21 @@
 2011-06-30  Torvald Riegel  <triegel@redhat.com>
 
+	* libitm_i.h (STATE_ABORTING): Remove.
+	* beginend.cc (_ITM_abortTransaction): Same.
+	(GTM::gtm_transaction::trycommit_and_finalize): Same.
+	* libitm.h (_ITM_registerThrownObject, _ITM_tryCommitTransaction): Remove.
+	(_ITM_rollbackTransaction): Remove.
+	* beginend.cc: Same.
+	* libitm.map: Same.
+	* libitm.texi: Document these ABI changes.
+
+2011-06-30  Torvald Riegel  <triegel@redhat.com>
+
 	* libitm.texi: New file.
 	* Makefile.am: Add libitm.texi.
 	* Makefile.in: Rebuild.
 
-2011-05-25  Torvald Riegel  <triegel@redhat.com>
+2011-06-30  Torvald Riegel  <triegel@redhat.com>
 
 	* libitm_i.h: Move parts to common.h and dispatch.h.
 	* common.h: New file.

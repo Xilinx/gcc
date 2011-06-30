@@ -27,7 +27,7 @@
 
 // ??? Use memcpy for now, until we have figured out how to best instantiate
 // these loads/stores.
-CREATE_DISPATCH_FUNCTIONS_T_MEMCPY(M256, GTM::abi_disp()->_, )
+CREATE_DISPATCH_FUNCTIONS_T_MEMCPY(M256, GTM::abi_disp()->, )
 
 void ITM_REGPARM
 _ITM_LM256 (const _ITM_TYPE_M256 *ptr)

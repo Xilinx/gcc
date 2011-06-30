@@ -45,7 +45,7 @@ extern "C" {
 
 #define ITM_NORETURN	__attribute__((noreturn))
 #define ITM_PURE __attribute__((transaction_pure))
-
+
 /* The following are externally visible definitions and functions, though
    only very few of these should be called by user code.  */
 
@@ -91,6 +91,7 @@ typedef enum
    pr_RaRBarriersOmitted	= 0x0200,
    pr_undoLogCode		= 0x0400,
    pr_preferUninstrumented	= 0x0800,
+   /* Exception blocks are not used nor supported. */
    pr_exceptionBlock		= 0x1000,
    pr_readOnly			= 0x4000,
    pr_hasElse			= 0x200000,
@@ -138,12 +139,8 @@ extern _ITM_transactionId_t _ITM_getTransactionId(void) ITM_REGPARM;
 extern uint32_t _ITM_beginTransaction(uint32_t, ...) ITM_REGPARM;
 
 extern void _ITM_abortTransaction(_ITM_abortReason) ITM_REGPARM ITM_NORETURN;
-extern void _ITM_rollbackTransaction (void) ITM_REGPARM;
 
 extern void _ITM_commitTransaction (void) ITM_REGPARM;
-extern bool _ITM_tryCommitTransaction(void) ITM_REGPARM;
-
-extern void _ITM_registerThrownObject (const void *, size_t) ITM_REGPARM;
 
 extern void _ITM_changeTransactionMode (_ITM_transactionState) ITM_REGPARM;
 

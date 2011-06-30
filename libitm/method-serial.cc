@@ -55,7 +55,8 @@ class serial_dispatch : public abi_dispatch
     *addr = value;
   }
 
-  static void _memtransfer_static(void *dst, const void* src, size_t size,
+ public:
+  static void memtransfer_static(void *dst, const void* src, size_t size,
       bool may_overlap, ls_modifier dst_mod, ls_modifier src_mod)
   {
     if (!may_overlap)
@@ -64,7 +65,7 @@ class serial_dispatch : public abi_dispatch
       ::memmove(dst, src, size);
   }
 
-  static void _memset_static(void *dst, int c, size_t size, ls_modifier mod)
+  static void memset_static(void *dst, int c, size_t size, ls_modifier mod)
   {
     ::memset(dst, c, size);
   }
@@ -72,7 +73,6 @@ class serial_dispatch : public abi_dispatch
   CREATE_DISPATCH_METHODS(virtual, )
   CREATE_DISPATCH_METHODS_MEM()
 
- public:
   virtual bool trycommit() { return true; }
   virtual void rollback() { abort(); }
   virtual void reinit() { }
@@ -107,16 +107,16 @@ public:
     if (dst_mod != WaW && dst_mod != NONTXNAL)
       log(dst, size);
     if (!may_overlap)
-      memcpy(dst, src, size);
+      ::memcpy(dst, src, size);
     else
-      memmove(dst, src, size);
+      ::memmove(dst, src, size);
   }
 
   static void memset_static(void *dst, int c, size_t size, ls_modifier mod)
   {
     if (mod != WaW)
       log(dst, size);
-    memset(dst, c, size);
+    ::memset(dst, c, size);
   }
 
   // Local undo will handle this.

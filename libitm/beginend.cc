@@ -184,25 +184,12 @@ GTM::gtm_transaction::rollback ()
 }
 
 void ITM_REGPARM
-_ITM_rollbackTransaction (void)
-{
-  gtm_transaction *tx = gtm_tx();
-  
-  assert ((tx->prop & pr_hasNoAbort) == 0);
-  assert ((tx->state & gtm_transaction::STATE_ABORTING) == 0);
-
-  tx->rollback ();
-  tx->state |= gtm_transaction::STATE_ABORTING;
-}
-
-void ITM_REGPARM
 _ITM_abortTransaction (_ITM_abortReason reason)
 {
   gtm_transaction *tx = gtm_tx();
 
   assert (reason == userAbort);
   assert ((tx->prop & pr_hasNoAbort) == 0);
-  assert ((tx->state & gtm_transaction::STATE_ABORTING) == 0);
 
   if (tx->state & gtm_transaction::STATE_IRREVOCABLE)
     abort ();
@@ -238,7 +225,7 @@ GTM::gtm_transaction::trycommit ()
 bool
 GTM::gtm_transaction::trycommit_and_finalize ()
 {
-  if ((this->state & gtm_transaction::STATE_ABORTING) || trycommit ())
+  if (trycommit ())
     {
       abi_disp()->fini ();
       set_gtm_tx (this->prev);
@@ -250,14 +237,6 @@ GTM::gtm_transaction::trycommit_and_finalize ()
       return true;
     }
   return false;
-}
-
-bool ITM_REGPARM
-_ITM_tryCommitTransaction (void)
-{
-  gtm_transaction *tx = gtm_tx();
-  assert ((tx->state & gtm_transaction::STATE_ABORTING) == 0);
-  return tx->trycommit ();
 }
 
 void ITM_NORETURN

@@ -146,10 +146,6 @@ struct gtm_transaction
   // Set if the serial-irrevocable dispatch table is installed.
   // Implies that no logging is being done, and abort is not possible.
   static const uint32_t STATE_IRREVOCABLE	= 0x0002;
-  // Set if we're in the process of aborting the transaction.  This is
-  // used when _ITM_rollbackTransaction is called to begin the abort
-  // and ends with _ITM_commitTransaction.
-  static const uint32_t STATE_ABORTING		= 0x0004;
 
   // A bitmask of the above.
   uint32_t state;
