@@ -50,10 +50,11 @@ along with GCC; see the file COPYING3.  If not see
 static VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t *, VEC(gpydot,gc) *);
 static tree gpy_stmt_pass_lower_get_module_type (const char *, gpy_hash_tab_t *);
 static void gpy_stmt_pass_lower_gen_toplevl_context (tree, tree, gpy_hash_tab_t *);
-static tree gpy_stmt_pass_lower_gen_concat_identifier (char *, char *);
+static tree gpy_stmt_pass_lower_gen_concat_identifier (const char *, const char *);
 
 static
-tree gpy_stmt_pass_lower_gen_concat_identifier (char * s1, char * s2)
+tree gpy_stmt_pass_lower_gen_concat_identifier (const char * s1,
+						const char * s2)
 {
   size_t s1len = strlen (s1);
   size_t s2len = strlen (s2);
@@ -201,15 +202,15 @@ tree gpy_stmt_decl_lower_modify (gpy_dot_tree_t * decl,
 tree gpy_stmt_decl_lower_binary_op (gpy_dot_tree_t * decl,
 				    VEC(gpy_ctx_t,gc) * context)
 {
-  tree retval;
+  tree retval = error_mark_node;
 
-  gcc_assert (DOT_FIELD (decl) == D_D_EXPR);
+  gcc_assert (DOT_T_FIELD (decl) == D_D_EXPR);
 
   gpy_dot_tree_t * lhs = DOT_lhs_TT (decl);
   gpy_dot_tree_t * rhs = DOT_rhs_TT (decl);
 
-  tree lhs_eval = gpy_stmt_decl_lower_expr (lhs);
-  tree rhs_eval = gpy_stmt_decl_lower_expr (rhs);
+  tree lhs_eval = gpy_stmt_decl_lower_expr (lhs, context);
+  tree rhs_eval = gpy_stmt_decl_lower_expr (rhs, context);
 
   VEC(tree,gc) * lhs_vec = VEC_alloc (tree,gc,0);
   VEC(tree,gc) * rhs_vec = VEC_alloc (tree,gc,0);
@@ -226,7 +227,7 @@ tree gpy_stmt_decl_lower_binary_op (gpy_dot_tree_t * decl,
   switch (DOT_TYPE (decl))
     {
     case D_ADD_EXPR:
-      op = gpy_builtin_get_eval_expression_call (lhs_eval, rhs_eval,
+      op = gpy_builtin_get_eval_expression_call (lhs_addr, rhs_addr,
 						 DOT_TYPE (decl));
       break;
 
@@ -245,7 +246,7 @@ tree gpy_stmt_decl_lower_binary_op (gpy_dot_tree_t * decl,
 		 build2 (MODIFY_EXPR, gpy_object_type_ptr, retaddr, op)
 		 );
   VEC_safe_push (tree, gc, lhs_vec, retaddr);
-  VEC_TREE_2_DECL_CHAIN (lhs_vec_vec, retval); 
+  VEC_TREE_2_DECL_CHAIN (lhs_vec, retval); 
 
   return retval;
 }
@@ -298,7 +299,6 @@ tree gpy_stmt_pass_lower_functor (gpy_dot_tree_t * decl,
 				  gpy_hash_tab_t * modules)
 {
   tree block = alloc_stmt_list ();
-  tree declvars = NULL_TREE;
 
   gpy_hash_tab_t toplvl, topnxt;
   gpy_dd_hash_init_table (&toplvl);
@@ -337,28 +337,25 @@ tree gpy_stmt_pass_lower_functor (gpy_dot_tree_t * decl,
   gpy_stmt_pass_lower_gen_toplevl_context (main_init_module, self_parm_decl,
 					   &toplvl);
 
-  VEC(gpy_ctx_t,gc) * toplevl_context = VEC_alloc (gpy_ctx_t, 0);
-  VEC_safe_push (gpy_ctx_t, gc, toplevl_context, toplvl);
-  VEC_safe_push (gpy_ctx_t, gc, toplevl_context, topnxt);
+  VEC(gpy_ctx_t,gc) * toplevl_context = VEC_alloc (gpy_ctx_t, gc, 0);
+  VEC_safe_push (gpy_ctx_t, gc, toplevl_context, &toplvl);
+  VEC_safe_push (gpy_ctx_t, gc, toplevl_context, &topnxt);
   
   DECL_INITIAL(fndecl) = block;
-  
-  int idx = 0;
-  gpy_dot_tree_t * idtx = NULL_DOT;
-  /*
+  gpy_dot_tree_t * idtx = DOT_rhs_TT (decl);
+   /*
     Iterating over the DOT IL to lower/generate the GENERIC code
     required to compile the stmts and decls
    */
-  for (; VEC_iterate (gpydot, DOT_rhs_TT (decl), idx, idtx); ++idx)
-    {
-      if (DOT_FIELD (idtx) ==  D_D_EXPR)
+  do {
+    if (DOT_T_FIELD (idtx) ==  D_D_EXPR)
 	{
 	  // append to stmt list as this goes into the module initilizer...
 	  tree stmt_chain = gpy_stmt_decl_lower_expr (idtx, toplevl_context);
 	  VEC(tree,gc) * stmt_vec = VEC_alloc (tree,gc,0);
 
 	  DECL_CHAIN_2_VEC_TREE (stmt_chain, stmt_vec);
-	  tree retaddr = VEC_pop (tree, stmt_chain);
+	  VEC_pop (tree, stmt_vec); // we can ignore the retaddr since we just wont need it
 
 	  int idy; tree __itx = NULL_TREE;
 	  for (idy = 0; VEC_iterate (tree,stmt_vec,idy,__itx); ++idy)
@@ -375,7 +372,7 @@ tree gpy_stmt_pass_lower_functor (gpy_dot_tree_t * decl,
 	  fatal_error ("unhandled dot tree code <%i>!\n", DOT_TYPE (idtx));
 	  break;
 	}
-    }
+  } while ((idtx = DOT_CHAIN (idtx)));
 
   gimplify_function_tree (fndecl);
 
@@ -392,7 +389,7 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
   VEC(tree,gc) * retval = VEC_alloc (tree,gc,0);
   
   tree block = alloc_stmt_list ();
-  tree declvars = NULL_TREE;
+  // tree declvars = NULL_TREE;
 
   gpy_hash_tab_t toplvl, topnxt;
   gpy_dd_hash_init_table (&toplvl);
@@ -415,16 +412,16 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
 				    get_identifier ("__self__"),
 				    TYPE_ARG_TYPES (TREE_TYPE (main_init_fndecl))
 				    );
-  DECL_CONTEXT (self_parm_decl) = fndecl;
+  DECL_CONTEXT (self_parm_decl) = main_init_fndecl;
   DECL_ARG_TYPE (self_parm_decl) = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (main_init_fndecl)));
   TREE_READONLY (self_parm_decl) = 1;
 
   gpy_stmt_pass_lower_gen_toplevl_context (main_init_module, self_parm_decl,
 					   &toplvl);
 
-  VEC(gpy_ctx_t,gc) * toplevl_context = VEC_alloc (gpy_ctx_t, 0);
-  VEC_safe_push (gpy_ctx_t, gc, toplevl_context, toplvl);
-  VEC_safe_push (gpy_ctx_t, gc, toplevl_context, topnxt);
+  VEC(gpy_ctx_t,gc) * toplevl_context = VEC_alloc (gpy_ctx_t, gc, 0);
+  VEC_safe_push (gpy_ctx_t, gc, toplevl_context, &toplvl);
+  VEC_safe_push (gpy_ctx_t, gc, toplevl_context, &topnxt);
 
   /*
   DECL_CONTEXT(main_init_resdecl) = main_init_fndecl;
@@ -439,16 +436,16 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
     Iterating over the DOT IL to lower/generate the GENERIC code
     required to compile the stmts and decls
    */
-  for (; VEC_iterate (gpydot, decls, idx, idtx); ++idx)
+  for (idx = 0; VEC_iterate (gpydot, decls, idx, idtx); ++idx)
     {
-      if (DOT_FIELD (idtx) ==  D_D_EXPR)
+      if (DOT_T_FIELD (idtx) ==  D_D_EXPR)
 	{
 	  // append to stmt list as this goes into the module initilizer...
 	  tree stmt_chain = gpy_stmt_decl_lower_expr (idtx, toplevl_context);
 	  VEC(tree,gc) * stmt_vec = VEC_alloc (tree,gc,0);
 
 	  DECL_CHAIN_2_VEC_TREE (stmt_chain, stmt_vec);
-	  tree retaddr = VEC_pop (tree, stmt_chain);
+	  VEC_pop (tree, stmt_vec);
 
 	  int idy; tree __itx = NULL_TREE;
 	  for (idy = 0; VEC_iterate (tree,stmt_vec,idy,__itx); ++idy)
@@ -504,7 +501,6 @@ VEC(tree,gc) * gpy_stmt_pass_lower (VEC(tree,gc) *modules,
   gpy_dd_hash_init_table (&module_ctx);
 
   int idx = 0;
-  gpy_dot_tree_t * idtx = NULL_DOT;
   tree itx = NULL_TREE;
 
   for (; VEC_iterate (tree, modules, idx, itx); ++idx)
@@ -520,11 +516,13 @@ VEC(tree,gc) * gpy_stmt_pass_lower (VEC(tree,gc) *modules,
     }
 
   retval =  gpy_stmt_pass_lower_genericify (&module_ctx, decls);
+  /*
   VEC_safe_push (tree, gc, retval,
 		 gpy_stmt_pass_lower_gen_main (gpy_stmt_pass_lower_get_module_type ("main.main",
 										    module_ctx)
 					       )
 		 );
+  */
   // free (context.array);
 
   return retval;

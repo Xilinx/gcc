@@ -23,8 +23,6 @@ extern VEC(tree,gc) * gpy_builtin_types_vec;
 #define gpy_object_type_ptr_ptr VEC_index(tree,gpy_builtin_types_vec,1)
 #define gpy_const_char_ptr      VEC_index(tree,gpy_builtin_types_vec,2)
 
-extern void gpy_types_init (void);
-
 extern VEC(tree,gc) * gpy_stmt_pass_generate_types (VEC(gpydot,gc) *);
 extern VEC(tree,gc) * gpy_stmt_pass_lower (VEC(tree,gc) *, VEC(gpydot,gc) *);
 
@@ -34,8 +32,10 @@ extern tree gpy_stmt_decl_lower_scalar (gpy_dot_tree_t *);
 
 extern tree gpy_stmt_decl_lower_modify (gpy_dot_tree_t *, VEC(gpy_ctx_t,gc) *);
 extern tree gpy_stmt_decl_lower_binary_op (gpy_dot_tree_t *, VEC(gpy_ctx_t,gc) *);
+extern tree gpy_stmt_pass_lower_functor (gpy_dot_tree_t *, gpy_hash_tab_t *);
 
 extern gpy_dot_tree_t * gpy_stmt_process_AST_Align (gpy_dot_tree_t **);
+extern void gpy_types_init (void);
 
 extern void gpy_initilize_types (void);
 extern void gpy_stmt_process_decl (gpy_dot_tree_t * const);
@@ -48,13 +48,13 @@ extern void gpy_stmt_process_decl (gpy_dot_tree_t * const);
     } while ((__x = DECL_CHAIN (__x)));		\
   } while (0);
 
-#define VEC_TREE_2_DECL_CHAIN (x,y)			\
+#define VEC_TREE_2_DECL_CHAIN(x,y)			\
   do {							\
     int __x;						\
     tree __itx, __ct;					\
-    for (__x=0; VEC_iterate (tree,x,__x,__itx ); ++__x)	\
+    for (__x=0; VEC_iterate (tree,x,__x,__itx); ++__x)	\
       {							\
-	if (idx==0)					\
+	if (__x==0)					\
 	  y = __ct = __itx;				\
 	else						\
 	  {						\

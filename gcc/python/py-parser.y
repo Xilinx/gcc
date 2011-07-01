@@ -200,7 +200,7 @@ funcname: IDENTIFIER
 parameter_list_stmt:
                    { $$ = NULL; }
                    | parameter_list
-                   { $$ = VEC_pop (gpy_sym, gpy_symbol_stack); }
+                   { $$ = VEC_pop (gpydot, gpy_symbol_stack); }
 		   ;
 
 parameter_list: parameter_list ',' target
@@ -210,8 +210,8 @@ parameter_list: parameter_list ',' target
 	      }
               | target
               {
-		VEC_safe_push( gpy_sym, gc,
-			       gpy_symbol_stack, $1 );
+		VEC_safe_push (gpydot, gc,
+			       gpy_symbol_stack, $1);
 		$$ = $1;
 	      }
               ;
