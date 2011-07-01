@@ -3101,6 +3101,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	(mctxt (unsafe_get_field :mcase_mctxt mcase))
 	(ncx (get_field :mctx_normctxt mctxt))
 	(env (get_field :mctx_env mctxt))
+	(steplist (unsafe_get_field :mdata_steps mdata))
 	)
     (assert_msg "check ncx" (is_a ncx class_normalization_context))
     (assert_msg "check env" (is_a env class_environment))
@@ -3110,20 +3111,30 @@ the flags of the $STEP with an extra context $CTX.}#
      (normal_exp sconstx env ncx sloc)
      (debug_msg nconst "translpat_constpat nconst")
      (debug_msg nbindconst "translpat_constpat nbindconst")
-     (let ( (steptest (instance class_match_step_test_constant
-				:loca_location sloc
-				:mstep_data mdata
-				:mstep_then ()
-				:mstep_else ()
-				:msteptestconst_data nconst
-				:msteptestconst_bind nbindconst
-				))
+     (let (
+	   (mflag (make_match_flag recv mctxt
+				   (or (get_field :named_name nconst) '"constant_pattern")))
+	   (flagstep (instance class_match_step_flag_set
+				     :loca_location sloc
+				     :mstep_then ()
+				     :mstep_flag mflag))
+	   (steptest (instance class_match_step_test_constant
+			       :loca_location sloc
+			       :mstep_data mdata
+			       :mstep_then flagstep
+			       :mstep_else ()
+			       :msteptestconst_data nconst
+			       :msteptestconst_bind nbindconst
+			       ))
 	   )
-       (debug_msg steptest "translpat_constpat steptest")
-     ;;
-     (error_plain sloc "@@unimplemented translpat_constpat")
-     (assert_msg "$@$ translpat_constpat unimplemented")
-     ))))
+       (debug_msg flagstep "translpat_constpat flagstep")
+       (list_append steplist steptest)
+       (list_append steplist flagstep)
+       (debug_msg steptest "translpat_constpat return steptest")
+       (debug_msg mflag "translpat_constpat return mflag")
+       (return steptest mflag)
+       ;;
+       ))))
 (install_method class_source_pattern_constant translate_pattern translpat_constpat)
 
 
@@ -5760,24 +5771,30 @@ normalized expression.}#
 		(normstep (normalize_step freshmstep nmctxt sloc)) 
 		)
 	    (list_append bodyl freshlab)
+	    (debug_msg freshmstep "altmatch_normalize_match_context freshmstep after normalize_step")
 	    (debug_msg normstep "altmatch_normalize_match_context normstep")
 	    (debug_msg bodyl "altmatch_normalize_match_context bodyl after normalize_step")
-	    (cond ( (is_a normstep class_nrep_expression)
-		    (list_append bodyl normstep))
-		  ( (is_multiple normstep)
-		    (foreach_in_multiple
-		     (normstep)
-		     (curnstep :long curix)
-		     (assert_msg "check curnstep" (is_a curnstep class_nrep_expression))
-		     (list_append bodyl curnstep)))
-		  ( (is_list normstep)
-		    (foreach_in_list
-		     (normstep)
-		     (curpair curnstep)
-		     (assert_msg "check curnstep" (is_a curnstep class_nrep_expression))
-		     (list_append bodyl curnstep)))
-		  (:else
-		   (assert_msg "invalid normstep in altmatch_normalize_match_context" ())))
+	    (letrec ( (add_norm_step
+		       (lambda (ns)
+			 (cond 
+			  ( (is_a ns class_nrep_expression)
+			    (list_append bodyl ns))
+			  ( (is_list ns)
+			    (foreach_in_list
+			     (ns)
+			     (curpair curcomp)
+			     (add_norm_step curcomp)))
+			  ( (is_multiple ns)
+			    (foreach_in_multiple
+			     (ns)
+			     (curcomp :long ix)
+			     (add_norm_step curcomp)))
+			  (:else
+			   (debug_msg ns "add_norm_step bad ns")
+			   (assert_msg "add_norm_step invalid argument")
+			   ))))
+		      )
+	      (add_norm_step normstep))
 	    (debug_msg bodyl "altmatch_normalize_match_context final bodyl")
 	    )
 

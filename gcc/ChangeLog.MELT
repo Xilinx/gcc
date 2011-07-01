@@ -1,5 +1,9 @@
 
 2011-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (translpat_constpat): Complete.
+	(altmatch_normalize_match_context): Use a recursive add_norm_step.
+
+2011-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (class_match_step_test_constant): New
 	class.
 	(translpat_constpat): More.
