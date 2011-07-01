@@ -6876,12 +6876,11 @@ struct infixreading_st {
 static struct infixreading_st* curinfixr;
 
 void
-meltgc_open_infix_file (const char* filnam)
+melt_open_infix_file (const char* filnam)
 {
   struct infixreading_st* previnfix = curinfixr;
   char* filnamdup = 0;
   FILE* fil = 0;
-  MELT_ENTERFRAME (0, NULL);
   gcc_assert (!previnfix || previnfix->infr_magic == MELT_INFIXREAD_MAGIC);
   curinfixr = (struct infixreading_st*) xcalloc (sizeof(struct infixreading_st), 1);
   memset (curinfixr, 0, sizeof(curinfixr));
@@ -6916,7 +6915,6 @@ meltgc_open_infix_file (const char* filnam)
   (void) linemap_add (line_table, LC_RENAME, false, filnamdup, 0);
   curinfixr->infr_prev = previnfix;
   skipspace_getc (&curinfixr->infr_reading, COMMENT_INFIX);
-  MELT_EXITFRAME ();
 }
 
 
@@ -7170,10 +7168,9 @@ end:
 }
 
 void
-meltgc_close_infix_file (void)
+melt_close_infix_file (void)
 {
   struct infixreading_st* previnfix = curinfixr;
-  MELT_ENTERFRAME (0, NULL);
   if (!curinfixr || curinfixr->infr_magic != MELT_INFIXREAD_MAGIC) {
     melt_dbgshortbacktrace ("unexpected call to MELT close_infix_file" ,
 			    100);
@@ -7185,7 +7182,6 @@ meltgc_close_infix_file (void)
   memset (curinfixr, 0, sizeof (struct infixreading_st));
   free (curinfixr);
   curinfixr = previnfix;
-  MELT_EXITFRAME ();
 }
 
 

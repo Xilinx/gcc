@@ -1789,10 +1789,10 @@ scanning variables.}#
     (add2out_strconst nodout 
 		      "<font color=\"blue\" face=\"Times-Roman Bold\" point-size=\"10\">")
     (mg_out_node_name nodout ntest)
-    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "</font></td> ")
     (add2out_strconst nodout "<td><font face=\"Courier\" point-size=\"8\">#")
     (add2out_longhex nodout (obj_hash ntest))
-    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "</font></td> ")
     (add2out_strconst nodout "</tr>")
     (add2out_indentnl nodout 2)
     ;; if we have a location, it makes a row
@@ -1801,7 +1801,7 @@ scanning variables.}#
        (add2out_strconst nodout "<tr><td rowspan=\"2\">")
        (add2out_strconst nodout "<font face=\"Courier Italic\" point-size=\"8\">")
        (add2out_mixloc nodout nloc)
-       (add2out_strconst nodout "</font></td></tr>")
+       (add2out_strconst nodout "</font></td> </tr>")
        (add2out_indentnl nodout 2)
        )
      )
@@ -1822,9 +1822,9 @@ scanning variables.}#
 		(add2out_longhex nodout nmarank)
 		(add2out_strconst nodout " ")
 		))
-	  (add2out_strconst nodout "</font></td> <td><font point-size=\"8\">##")
+	  (add2out_strconst nodout "</font></td>  <td><font point-size=\"8\">##")
 	  (add2out_longhex nodout (obj_hash nmatched))
-	  (add2out_strconst nodout "</font></td></tr>")
+	  (add2out_strconst nodout "</font></td> </tr>")
 	  (add2out_indentnl nodout 2)
 	  ))
     (debug_msg ntest "mglabel_any_test end ntest")
@@ -1850,15 +1850,15 @@ scanning variables.}#
     (add2out_strconst nodout 
 		      "<font color=\"violet\" face=\"Times-Roman Bold\" point-size=\"10\">")
     (mg_out_node_name nodout ntest)
-    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "</font></td> ")
     (add2out_strconst nodout "<td><font face=\"Courier\" point-size=\"8\">#")
     (add2out_longhex nodout (obj_hash ntest))
-    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "</font></td> ")
     (add2out_strconst nodout "<td><font face=\"Courier Italic\" point-size=\"8\">")
     (add2out_string nodout (get_field :named_name
 				      (get_field :nocc_symb 
 						 (get_field :ntinst_class ntest))))
-    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "</font></td> ")
     (add2out_strconst nodout "</tr>")
     (add2out_indentnl nodout 2)
     ;; if we have a location, it makes a row
@@ -1867,7 +1867,7 @@ scanning variables.}#
        (add2out_strconst nodout "<tr><td rowspan=\"2\">")
        (add2out_strconst nodout "<font face=\"Courier Italic\" point-size=\"8\">")
        (add2out_mixloc nodout nloc)
-       (add2out_strconst nodout "</font></td></tr>")
+       (add2out_strconst nodout "</font></td> </tr>")
        (add2out_indentnl nodout 2)
        )
      )
@@ -1888,9 +1888,9 @@ scanning variables.}#
 		(add2out_longhex nodout nmarank)
 		(add2out_strconst nodout " ")
 		))
-	  (add2out_strconst nodout "</font></td> <td><font point-size=\"8\">##")
+	  (add2out_strconst nodout "</font></td>  <td><font point-size=\"8\">##")
 	  (add2out_longhex nodout (obj_hash nmatched))
-	  (add2out_strconst nodout "</font></td></tr>")
+	  (add2out_strconst nodout "</font></td> </tr>")
 	  (add2out_indentnl nodout 2)
 	  ))
     (debug_msg ntest "mglabel_instance_test end ntest")
@@ -1916,10 +1916,10 @@ scanning variables.}#
     (add2out_strconst nodout 
 		      "<font color=\"sienna\" face=\"Times-Roman Bold\" point-size=\"10\">")
     (mg_out_node_name nodout ntest)
-    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "</font></td> ")
     (add2out_strconst nodout "<td><font face=\"Courier\" point-size=\"8\">#")
     (add2out_longhex nodout (obj_hash ntest))
-    (add2out_strconst nodout "</font></td>")
+    (add2out_strconst nodout "</font></td> ")
     (add2out_strconst nodout "</tr>")
     (add2out_indentnl nodout 2)
     ;; if we have a location, it makes a row
@@ -1928,7 +1928,7 @@ scanning variables.}#
        (add2out_strconst nodout "<tr><td rowspan=\"2\">")
        (add2out_strconst nodout "<font face=\"Courier Italic\" point-size=\"8\">")
        (add2out_mixloc nodout nloc)
-       (add2out_strconst nodout "</font></td></tr>")
+       (add2out_strconst nodout "</font></td> </tr>")
        (add2out_indentnl nodout 2)
        )
      )
@@ -3821,10 +3821,10 @@ the flags of the $STEP with an extra context $CTX.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "</font></td> <td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font face=\"Time-Roman Italics\" point-size=\"7\" color=\"navy\">")
     (compile_warning "testdata is usually not a symbol but a matched data...")
@@ -3838,7 +3838,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	  (add2out_strconst nodebuf "$")
 	  (add2out_longdec nodebuf syrank)
 	  )))
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (if thenname
 	(progn
@@ -3888,14 +3888,14 @@ the flags of the $STEP with an extra context $CTX.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "</font></td> <td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font color=\"salmon\" face=\"Helvetica Oblique\" point-size=\"6\">")
     (add2out_string nodebuf (get_field :named_name testclass))
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (foreach_in_multiple
      (testslots)
@@ -3961,10 +3961,10 @@ the flags of the $STEP with an extra context $CTX.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "</font></td> <td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (if thenname
 	(progn
@@ -4013,14 +4013,14 @@ the flags of the $STEP with an extra context $CTX.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "</font></td> <td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td colspan=\"2\"><font color=\"peru\" face=\"Time-Roman Italics\" point-size=\"7\">")
     (add2out_string nodebuf (get_field :named_name smatcher))
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (foreach_in_multiple
      (souts)
@@ -4093,18 +4093,18 @@ the flags of the $STEP with an extra context $CTX.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "</font></td> <td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size=\"7\">flag#")
     (add2out_longdec nodebuf (get_int flagrank))
     (add2out_strconst nodebuf " ")
     (add2out_string nodebuf flagstring)
-    (add2out_strconst nodebuf "</font></td><td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">")
+    (add2out_strconst nodebuf "</font></td> <td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf flagloc)
-    (add2sbuf_strconst nodebuf "</font></td></tr>")
+    (add2sbuf_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (if thenname
 	(progn
@@ -4156,10 +4156,10 @@ the flags of the $STEP with an extra context $CTX.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "</font></td> <td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td><font color=\"LimeGreen\" face=\"Times-Roman Bold\" point-size=\"6\">")
     (foreach_in_multiple
@@ -4176,7 +4176,7 @@ the flags of the $STEP with an extra context $CTX.}#
        (add2out_strconst edgebuf " [ arrowhead=open,")
        (add2out_strconst edgebuf " color=violet, style=dotted ];")
      ))
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (if thenname
 	(progn
@@ -4216,18 +4216,18 @@ the flags of the $STEP with an extra context $CTX.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "</font></td> <td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size=\"7\">flag#")
     (add2out_longdec nodebuf (get_int flagrank))
     (add2out_strconst nodebuf " ")
     (add2out_string nodebuf flagstring)
-    (add2out_strconst nodebuf "</font></td><td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\"> ")
+    (add2out_strconst nodebuf "</font></td> <td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\"> ")
     (add2sbuf_short_mixloc nodebuf flagloc)
-    (add2sbuf_strconst nodebuf "</font></td></tr>")
+    (add2sbuf_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (if thenname
 	(progn
@@ -4269,10 +4269,10 @@ the flags of the $STEP with an extra context $CTX.}#
      meltgc_add_out ((melt_ptr_t) $NODEBUF,
 		     melt_string_str ((melt_ptr_t) $CLANAM) +6)	;
      }#)
-    (add2out_strconst nodebuf "</font></td><td>")
+    (add2out_strconst nodebuf "</font></td> <td>")
     (add2out_strconst nodebuf "<font face=\"Helvetica Italic\" color=\"darkgreen\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
-    (add2out_strconst nodebuf "</font></td></tr>")
+    (add2out_strconst nodebuf "</font></td> </tr>")
     (add2out_indentnl nodebuf 0)
     (add2out_strconst nodebuf "<tr><td><font color=\"turquoise4\" face=\"Times-Roman\" point-size=\"7\">flag#")
     (add2out_longdec nodebuf (get_int flagrank))
@@ -4281,9 +4281,9 @@ the flags of the $STEP with an extra context $CTX.}#
 	  (add2out_strconst nodebuf " ")
 	  (add2out_string nodebuf flagstring)
 	  ))
-    (add2out_strconst nodebuf "</font></td><td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">")
+    (add2out_strconst nodebuf "</font></td> <td><font face=\"Helvetiva Italic\" color=\"olivedrab\" point-size=\"6.5\">")
     (add2sbuf_short_mixloc nodebuf loca)
-    (add2sbuf_strconst nodebuf "</font></td></tr>")
+    (add2sbuf_strconst nodebuf "</font></td> </tr>")
     (if (is_multiple sflagargs)
 	(progn
 	  (add2out_indentnl nodebuf 0)
@@ -4315,7 +4315,7 @@ the flags of the $STEP with an extra context $CTX.}#
 		   (add2out_strconst edgebuf " [ arrowhead=olnormal, color=chartreuse2, style=dotted ];")
 		   ))
 	     ))
-	  (add2sbuf_strconst nodebuf " }</font></td></tr>")
+	  (add2sbuf_strconst nodebuf " }</font></td> </tr>")
 	  ))
     (if thenname
 	(progn
@@ -6166,9 +6166,9 @@ normalized expression.}#
 	   (add2out_indentnl nodebuf 0)
 	   (add2out_strconst nodebuf "<tr><td><font color=\"green\" face=\"Times-Roman Bold\" point-size=\"7\">")
 	   (add2out_string nodebuf curdataname)
-	   (add2out_strconst nodebuf "</font></td><td><font face=\"Courier\" point-size=\"6.5\">#")
+	   (add2out_strconst nodebuf "</font></td> <td><font face=\"Courier\" point-size=\"6.5\">#")
 	   (add2out_longhex nodebuf (obj_hash curdata))
-	   (add2out_strconst nodebuf "</font></td></tr>")
+	   (add2out_strconst nodebuf "</font></td> </tr>")
 	   (add2out_indentnl nodebuf 0)
 	   (add2out_strconst nodebuf "<tr><td><font color=\"darkgreen\" face=\"Times-Roman Italic\" point-size=\"7\">")
 	   (add2out_string nodebuf (get_field :named_name datasymb))
@@ -6179,10 +6179,10 @@ normalized expression.}#
 		 (add2out_longdec nodebuf clonum)
 		 (add2out_strconst nodebuf "</font>")
 		 ))
-	   (add2out_strconst nodebuf "</font></td><td><font color=\"brown\" face=\"Helvetica Oblique\" point-size=\"6\">")
+	   (add2out_strconst nodebuf "</font></td> <td><font color=\"brown\" face=\"Helvetica Oblique\" point-size=\"6\">")
 	   (add2out_string nodebuf (get_field :named_name (get_field :ctype_keyword datactype)))
 	   
-	   (add2out_strconst nodebuf "</font></td></tr>")
+	   (add2out_strconst nodebuf "</font></td> </tr>")
 	   (add2out_strconst nodebuf "</table>> ];")
 	   (add2out_indentnl nodebuf 0)
 					;;; output edges to the steps
@@ -6219,9 +6219,9 @@ normalized expression.}#
 	   (add2out_indentnl nodebuf 0)
 	   (add2out_strconst nodebuf "<tr><td><font color=\"blue\" face=\"Times-Roman Bold\" point-size=\"7\">")
 	   (add2out_string nodebuf curstepname)
-	   (add2out_strconst nodebuf "</font></td><td><font face=\"Courier\" point-size=\"6\">#")
+	   (add2out_strconst nodebuf "</font></td> <td><font face=\"Courier\" point-size=\"6\">#")
 	   (add2out_longhex nodebuf (obj_hash curstep))
-	   (add2out_strconst nodebuf "</font></td></tr>")
+	   (add2out_strconst nodebuf "</font></td> </tr>")
 	   (add2out_indentnl nodebuf 0)
 	   (matchgraphic_altstep curstep mg)
 	   (add2out_strconst nodebuf "</table>> ];")

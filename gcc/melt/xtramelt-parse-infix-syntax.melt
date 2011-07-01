@@ -1,7 +1,7 @@
 ;; file parse-infix-syntax.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2009, 2010 Free Software Foundation, Inc.
+    Copyright 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -74,9 +74,9 @@ meta-linguistic | is an infix binary alternative.
 ;;****************************************************************
 
 (defprimitive open_infix_file (:cstring filpath) :void
-#{meltgc_open_infix_file($filpath)}#)
+#{melt_open_infix_file($filpath)}#)
 (defprimitive close_infix_file (:cstring filpath) :void
-#{meltgc_close_infix_file($filpath)}#)
+#{melt_close_infix_file($filpath)}#)
 
 (defprimitive infix_lexeme (locnam delimap) :value
   #{meltgc_infix_lexeme((melt_ptr_t)($locnam), (melt_ptr_t)($delimap))}#)

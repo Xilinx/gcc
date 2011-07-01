@@ -1,4 +1,18 @@
 
+2011-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_open_infix_file): Remove MELT
+	frame. Rename as
+	(melt_open_infix_file).
+	(meltgc_close_infix_file): Remove MELT frame. Rename as
+	(melt_close_infix_file).
+	* melt-runtime.h (meltgc_open_infix_file): Rename as
+	(melt_open_infix_file).
+	(meltgc_close_infix_file): Rename as
+	(melt_close_infix_file).
+	* melt/warmelt-normatch.melt: Add space in dot files after </td>.
+	* melt/xtramelt-parse-infix-syntax.melt: Update copyright year.
+	(open_infix_file, close_infix_file): Update primitive.
+
 2011-06-30  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_multiple_put_nth, meltgc_send)
 	(meltgc_open_infix_file, meltgc_intern_keyword)

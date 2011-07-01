@@ -2093,9 +2093,9 @@ melt_ptr_t meltgc_read_from_val(melt_ptr_t strv_p, melt_ptr_t locnam_p);
 
 /***** low level routines for infix file parsing *****/
 /* open an infix filepath */
-void meltgc_open_infix_file (const char*filpath);
+void melt_open_infix_file (const char*filpath);
 /* close an infix file */
-void meltgc_close_infix_file (void);
+void melt_close_infix_file (void);
 /* get a lexeme, giving the location file name value and the delimiter
    hashtable */
 melt_ptr_t meltgc_infix_lexeme (melt_ptr_t locnam_p, melt_ptr_t delimtab_p);
