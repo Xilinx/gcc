@@ -1110,7 +1110,7 @@ scanning variables.}#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;
-;;; normalize a conjonction [and of subpatterns]
+;;; normalize a conjunction [and of subpatterns]
 (defun normpat_andpat (recv nmatch hdler pcn)
   (debug_msg recv "normpat_andpat recv")
   (debug_msg nmatch "normpat_andpat nmatch")
@@ -2545,17 +2545,17 @@ $MSTEP_FLAG.}#
   :doc #{The $CLASS_MATCH_STEP_FLAG_OPERATION sets the match flag according to flag arguments from the $MSTEP_FLAGARGS tuple.}#
   :fields (mstep_flagargs))
 
-(defclass class_match_step_flag_conjonction
+(defclass class_match_step_flag_conjunction
   :super class_match_step_flag_operation
-  :doc #{The $CLASS_MATCH_STEP_FLAG_CONJONCTION sets the match
-flag $MSTEP_FLAG to the conjonction of $MSTEP_FLAGARGS, which is a
+  :doc #{The $CLASS_MATCH_STEP_FLAG_CONJUNCTION sets the match
+flag $MSTEP_FLAG to the conjunction of $MSTEP_FLAGARGS, which is a
 tuple of match flags.}#
   :fields ())
 
-(defclass class_match_step_flag_disjonction
+(defclass class_match_step_flag_disjunction
   :super class_match_step_flag_operation
-  :doc #{The $CLASS_MATCH_STEP_FLAG_DISJONCTION sets the match
-flag $MSTEP_FLAG to the disjonction of $MSTEP_FLAGARGS, which is a
+  :doc #{The $CLASS_MATCH_STEP_FLAG_DISJUNCTION sets the match
+flag $MSTEP_FLAG to the disjunction of $MSTEP_FLAGARGS, which is a
 tuple of match flags.}#
   :fields ())
 
@@ -3286,7 +3286,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	  (let ( 
 		(stepsetflag
 		 (if (list_first_element flaglist)
-		     (instance class_match_step_flag_conjonction
+		     (instance class_match_step_flag_conjunction
 			       :loca_location sloc
 			       :mstep_then ()
 			       :mstep_flag mflag
@@ -3432,7 +3432,7 @@ the flags of the $STEP with an extra context $CTX.}#
 			     :mstgroup_else ()
 			     ))
 	(mflag (make_match_flag recv mctxt '"and"))
-	(flagstep (instance class_match_step_flag_conjonction
+	(flagstep (instance class_match_step_flag_conjunction
 			    :loca_location sloc
 			    :mstep_then ()
 			    :mstep_flag mflag
@@ -3477,7 +3477,7 @@ the flags of the $STEP with an extra context $CTX.}#
 		       :mstgroup_then (list_to_multiple thenlist discr_multiple)
 		       :mstgroup_else (list_to_multiple elselist discr_multiple))
     (cond ( (null firststep)
-	    ;; this happens only for degenerate conjonctions like ?(and ?_)
+	    ;; this happens only for degenerate conjunctions like ?(and ?_)
 	    (warning_plain sloc "degenerate ?(AND ...) pattern")
 	    (return)
 	  )
@@ -3514,7 +3514,7 @@ the flags of the $STEP with an extra context $CTX.}#
 			     :mstgroup_else ()
 			     ))
 	(mflag (make_match_flag recv mctxt '"or"))
-	(flagstep (instance class_match_step_flag_disjonction
+	(flagstep (instance class_match_step_flag_disjunction
 			    :loca_location sloc
 			    :mstep_then ()
 			    :mstep_flag mflag
@@ -3802,7 +3802,7 @@ the flags of the $STEP with an extra context $CTX.}#
 	       ))))
 	 (let ( (flagstep
 		 (if (list_first_element flaglist)
-		     (instance class_match_step_flag_conjonction
+		     (instance class_match_step_flag_conjunction
 			       :loca_location sloc
 			       :mstep_then ()
 			       :mstep_flag mflag
@@ -4811,7 +4811,7 @@ normalized expression.}#
 
 (defun normstep_mflagconj (step nmctxt sloc)
   (debug_msg step "normstep_mflagconj step")
-  (assert_msg "check step" (is_a step class_match_step_flag_conjonction))
+  (assert_msg "check step" (is_a step class_match_step_flag_conjunction))
   (assert_msg "check nmctxt" (is_a nmctxt  class_match_normalization_context))
   (let  ( (nsloc (or (unsafe_get_field :loca_location step) sloc))
 	  (matflag (unsafe_get_field :mstep_flag step))
@@ -4833,7 +4833,7 @@ normalized expression.}#
     (cond
      ( (<=i matflagnbargs 0)
        (put_fields nsetflag :nstq_exp '0))
-     ;; there are many conjonctions of flags with a single conjunct
+     ;; there are many conjunctions of flags with a single conjunct
      ;; flag argument, so we optimize it as a setq
      ( (==i matflagnbargs 1)
        (let ( (firstflag (multiple_nth matflagargs 0))
@@ -4868,7 +4868,7 @@ normalized expression.}#
       (debug_msg res "normstep_mflagconj return res")
       (return res)
       )))
-(install_method class_match_step_flag_conjonction normalize_step normstep_mflagconj)
+(install_method class_match_step_flag_conjunction normalize_step normstep_mflagconj)
 
 (defun normstep_mtestinstance (step nmctxt sloc)
   (debug_msg step "normstep_mtestinstance step")
@@ -6351,8 +6351,8 @@ normalized expression.}#
  class_match_step_with_flag
  class_match_step_flag_set
  class_match_step_flag_operation 
- class_match_step_flag_conjonction 
- class_match_step_flag_disjonction 
+ class_match_step_flag_conjunction 
+ class_match_step_flag_disjunction 
  class_match_step_success_when_flag
  class_match_step_test
  class_match_step_test_variable

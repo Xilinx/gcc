@@ -1,5 +1,17 @@
 
 2011-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-macro.melt: Correct spelling mistakes:: conjonction
+	-> conjunction & disjonction -> disjunction.
+
+	* melt/warmelt-normatch.melt: Ditto, so
+	(class_match_step_flag_conjonction) renamed as
+	(class_match_step_flag_conjunction) and
+	(class_match_step_flag_disjonction) renamed as
+	(class_match_step_flag_disjunction).
+
+	* gcc/testsuite/melt/tmatch-6.melt: Improved test.
+
+2011-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt (translpat_constpat): Complete.
 	(altmatch_normalize_match_context): Use a recursive add_norm_step.
 

@@ -4268,8 +4268,8 @@ condition is a string such as "4.5." or a list of strings.}#)
 (install_initial_patmacro 'and patexpand_and mexpand_and)
 (export_patmacro 
  and patexpand_and mexpand_and
- :doc #{The lispy $AND conjonction syntax is a short-circuit "and
- then" conjonction. Expression syntax is (AND
+ :doc #{The lispy $AND conjunction syntax is a short-circuit "and
+ then" conjunction. Expression syntax is (AND
  <conjunct-subexpression>...) and can evaluate to a :value or a thing
  such as a :long or a :gimple which is null/zero iff any conjunct is
  null or zero. Pattern syntax is ?(AND <conjunct-subpattern>...) and

@@ -16,7 +16,8 @@
 	  ?(instance class_symbol :named_name  ?synam)
 	   (f synam))
 	 (
-	  ?(instance class_container :container_value ?cval)
+	  ?(instance class_container :container_value 
+		     ?(and ?cval ?(integerbox_of ?_)))
 	   (g cval))
 	 ))
 #|
