@@ -2586,6 +2586,12 @@ is the tested data, and the inherited $MSTEP_INDEX is its index.}#
 data $MSTEPTESTVAR_DATA is the same as the matched data.}#
   :fields (msteptestvar_data))
 
+(defclass class_match_step_test_constant
+  :super class_match_step_test
+  :doc #{The $CLASS_MATCH_STEP_TEST_CONSTANT is for tests if the
+constant $MSTEPTESTCONST_DATA is the same as the matched data, using the $MSTEPTESTCONST_BIND bindinglist}#
+  :fields (msteptestconst_data msteptestconst_bind))
+
 (defclass class_match_step_test_group
   :super class_match_step_test
   :doc #{The $CLASS_MATCH_STEP_GROUP is used to redirect the then &
@@ -3081,13 +3087,46 @@ the flags of the $STEP with an extra context $CTX.}#
 (install_method class_source_pattern_joker_variable translate_pattern translpat_jokerpat)
 
 
-(defun translpat_constpat (recv mdata mcase varmap sloc)
-  (assert_msg "check recv" (is_a recv class_source_pattern_constant))
+(defun translpat_constpat (recv mdata mcase varmap psloc)
   (debug_msg recv "translpat_constpat recv")
-  (error_plain sloc "@@unimplemented translpat_constpat")
-  (assert_msg "$@$ translpat_constpat unimplemented")
-)
+  (assert_msg "check recv" (is_a recv class_source_pattern_constant))
+  (debug_msg mdata "translpat_constpat mdata")
+  (assert_msg "check mdata" (is_a mdata class_matched_data))
+  (debug_msg mcase "translpat_constpat mcase")
+  (assert_msg "check mcase" (is_a mcase class_match_case))
+  (let ( 
+	(sloc (or (unsafe_get_field :loca_location recv) psloc))
+	(spatweight (unsafe_get_field :pat_weight recv))
+	(sconstx (unsafe_get_field :spat_constx recv))
+	(mctxt (unsafe_get_field :mcase_mctxt mcase))
+	(ncx (get_field :mctx_normctxt mctxt))
+	(env (get_field :mctx_env mctxt))
+	)
+    (assert_msg "check ncx" (is_a ncx class_normalization_context))
+    (assert_msg "check env" (is_a env class_environment))
+    (debug_msg sconstx "translpat_constpat before normalization sconstx")
+    (multicall
+     (nconst nbindconst)
+     (normal_exp sconstx env ncx sloc)
+     (debug_msg nconst "translpat_constpat nconst")
+     (debug_msg nbindconst "translpat_constpat nbindconst")
+     (let ( (steptest (instance class_match_step_test_constant
+				:loca_location sloc
+				:mstep_data mdata
+				:mstep_then ()
+				:mstep_else ()
+				:msteptestconst_data nconst
+				:msteptestconst_bind nbindconst
+				))
+	   )
+       (debug_msg steptest "translpat_constpat steptest")
+     ;;
+     (error_plain sloc "@@unimplemented translpat_constpat")
+     (assert_msg "$@$ translpat_constpat unimplemented")
+     ))))
 (install_method class_source_pattern_constant translate_pattern translpat_constpat)
+
+
 
 
 (defun translpat_tuplepat (recv mdata mcase varmap sloc)

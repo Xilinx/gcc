@@ -1,5 +1,10 @@
 
 2011-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt (class_match_step_test_constant): New
+	class.
+	(translpat_constpat): More.
+
+2011-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_open_infix_file): Remove MELT
 	frame. Rename as
 	(melt_open_infix_file).
