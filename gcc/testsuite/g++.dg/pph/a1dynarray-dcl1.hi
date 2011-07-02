@@ -1,0 +1,6 @@
+    // parameter-based types:
+    typedef       T                               value_type;
+    typedef       T&                              reference;
+    typedef const T&                              const_reference;
+    typedef       T*                              iterator;
+    typedef const T*                              const_iterator;

@@ -1,9 +1,9 @@
 // { dg-do run }
-// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
 
-#include "x1dynarray1.h"
+#include "x1dynarray2.h"
 
 typedef int integer;
+using namespace tst;
 typedef dynarray< integer > integer_array;
 
 int main()

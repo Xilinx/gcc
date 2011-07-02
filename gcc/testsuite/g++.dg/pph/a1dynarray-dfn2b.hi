@@ -1,0 +1,15 @@
+template< typename T >
+dynarray<T>::dynarray(const dynarray& d)
+: store( alloc( d.count ) ), count( d.count )
+{
+    size_type i;
+    try {
+        for ( size_type i = 0; i < count; ++i )
+            new (store+i) T(d.store[i]);
+    }
+    catch ( ... ) {
+        for ( ; i > 0; --i )
+            (store+(i-1))->~T();
+        delete store; throw;
+    }
+}

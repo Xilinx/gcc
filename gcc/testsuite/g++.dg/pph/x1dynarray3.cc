@@ -1,15 +1,15 @@
 // { dg-do run }
-// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
 
-#include "x1dynarray1.h"
+#include "x1dynarray3.h"
 
-typedef int integer;
-typedef dynarray< integer > integer_array;
+#include "a1integer.h"
+typedef tst::dynarray< integer > integer_array;
 
 int main()
 {
     #include "a1dynarray-use1.cci"
     #include "a1dynarray-use2.cci"
+    #include "a1dynarray-use3a.cci"
     #include "a1dynarray-use4a.cci"
     return sum - 25;
 }

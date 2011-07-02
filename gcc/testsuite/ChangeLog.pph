@@ -1,3 +1,47 @@
+2011-07-01  Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/a1dynarray-dcl1.hi: New.
+	* g++.dg/pph/a1dynarray-dcl2a.hi: New.
+	* g++.dg/pph/a1dynarray-dcl2b.hi: New.
+	* g++.dg/pph/a1dynarray-dcl3.hi: New.
+	* g++.dg/pph/a1dynarray-dcl4.hi: New.
+	* g++.dg/pph/a1dynarray-dfn1a.hi: New.
+	* g++.dg/pph/a1dynarray-dfn1b.hi: New.
+	* g++.dg/pph/a1dynarray-dfn2a.hi: New.
+	* g++.dg/pph/a1dynarray-dfn2b.hi: New.
+	* g++.dg/pph/a1dynarray-dfn2c.hi: New.
+	* g++.dg/pph/a1dynarray-dfn3a.hi: New.
+	* g++.dg/pph/a1dynarray-dfn3b.hi: New.
+	* g++.dg/pph/a1dynarray-dfn3c.hi: New.
+	* g++.dg/pph/a1dynarray-hlp1.cci: New.
+	* g++.dg/pph/a1dynarray-use1.cci: New.
+	* g++.dg/pph/a1dynarray-use2.cci: New.
+	* g++.dg/pph/a1dynarray-use3a.cci: New.
+	* g++.dg/pph/a1dynarray-use3b.cci: New.
+	* g++.dg/pph/a1dynarray-use4a.cci: New.
+	* g++.dg/pph/a1dynarray-use4b.cci: New.
+	* g++.dg/pph/a1integer.h: New.
+	* g++.dg/pph/x1dynarray0.cc: Removed.
+	* g++.dg/pph/x1dynarray1.cc: Removed.
+	* g++.dg/pph/x1dynarray1.h: Removed.
+	* g++.dg/pph/x1dynarray2.cc: Removed.
+	* g++.dg/pph/x1dynarray2.h: Removed.
+	* g++.dg/pph/x1dynarray1.cc: New. (Name reused.)
+	* g++.dg/pph/x1dynarray1.h: New. (Name reused.)
+	* g++.dg/pph/x1dynarray2.h: New. (Name reused.)
+	* g++.dg/pph/x1dynarray2a.cc: New.
+	* g++.dg/pph/x1dynarray2b.cc: New.
+	* g++.dg/pph/x1dynarray3.cc: New.
+	* g++.dg/pph/x1dynarray3.h: New.
+	* g++.dg/pph/x1dynarray4.cc: New.
+	* g++.dg/pph/x1dynarray4.h: New.
+	* g++.dg/pph/x1dynarray5.cc: New.
+	* g++.dg/pph/x1dynarray5.h: New.
+	* g++.dg/pph/x1dynarray6.cc: New.
+	* g++.dg/pph/x1dynarray6.h: New.
+	* g++.dg/pph/x1dynarray7.cc: New.
+	* g++.dg/pph/x1dynarray7.h: New.
+
 2011-07-01  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/c1varorder.cc: Moved pph asm xdiff comment to top.

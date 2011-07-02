@@ -1,0 +1,10 @@
+    integer_array target(8);
+    integer_array::iterator tgt( target.begin() );
+    const integer* srt = &sorted.front();
+    for ( ; tgt != target.end(); ++tgt ) {
+        *tgt = *srt;
+        if ( srt == &sorted.back() )
+            srt = &sorted.front();
+        else
+            ++srt;
+    }

@@ -1,0 +1,3 @@
+template< typename T >
+void dynarray<T>::check(size_type n)
+{ if ( n >= count ) throw std::out_of_range("dynarray"); }

@@ -1,0 +1,5 @@
+    int sum = 0;
+    for ( integer_array::iterator it = target.begin();
+          it != target.end();
+          ++it )
+        sum += *it;

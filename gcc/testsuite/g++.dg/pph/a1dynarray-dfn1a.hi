@@ -1,0 +1,8 @@
+template< typename T >
+dynarray<T>::dynarray(size_type c)
+: store( alloc( c ) ), count( c )
+{ }
+
+template< typename T >
+dynarray<T>::~dynarray()
+{ delete[] store; }

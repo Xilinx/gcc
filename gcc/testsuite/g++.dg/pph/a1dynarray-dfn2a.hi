@@ -1,0 +1,4 @@
+template< typename T >
+dynarray<T>::dynarray(const dynarray& d)
+: store( alloc( d.count ) ), count( d.count )
+{ memcpy( store, d.store, count * sizeof(T) ); }

@@ -1,0 +1,11 @@
+template< typename T >
+dynarray<T>::dynarray(const dynarray& d)
+: store( alloc( d.count ) ), count( d.count )
+{
+    try {
+        std::uninitialized_copy( d.begin(), d.end(), begin() );
+    }
+    catch ( ... ) {
+        delete store; throw;
+    }
+}

@@ -1,0 +1,8 @@
+    try {
+        integer t = target.at(32);
+    }
+    catch ( std::out_of_range ) {
+    }
+    catch ( ... ) {
+        return 1;
+    }

@@ -1,0 +1,3 @@
+    // system-based types:
+    typedef unsigned long                         size_type;
+    typedef long                                  difference_type;

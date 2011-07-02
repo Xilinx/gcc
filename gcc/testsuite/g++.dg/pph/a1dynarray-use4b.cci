@@ -1,0 +1,5 @@
+    int sum = 0;
+    for ( integer_array::reverse_iterator it = target.rbegin();
+          it != target.rend();
+          ++it )
+        sum += *it;

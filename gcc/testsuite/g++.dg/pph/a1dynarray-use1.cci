@@ -1,0 +1,4 @@
+    integer_array source(3);
+    for ( integer_array::size_type ix = 0; ix < source.size(); ++ix )
+        source[ix] = integer(4 - ix);
+    integer_array sorted( source );

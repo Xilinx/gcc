@@ -1,0 +1,12 @@
+integer& operator<<(std::ostream& os, integer iv)
+{
+    os << (int)iv;
+}
+
+void dump( const integer_array& source )
+{
+    integer_array::const_iterator it = source.cbegin();
+    for ( ; it != source.end(); ++it )
+        std::cout << " " << *it;
+    std::cout << std::endl;
+}
