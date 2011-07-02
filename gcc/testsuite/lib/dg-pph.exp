@@ -74,8 +74,11 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     set dg-do-what-default compile
     dg-test -keep-output $test "$options -I." ""
 
+    # Determine whether this is an executable test
+    set is_exec [llength [grep $test "dg-do run"]]
+
     # Executables do not generate assembly.
-    if { ![string compare "dg-do-what" "run"] } {
+    if { !$is_exec } {
 	# Not executable, so quit if it did not compile successfully.
 	if { ![file_on_host exists "$bname.s"] } {
 	    fail "$nshort $options (regular assembly missing)"
@@ -93,7 +96,7 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     dg-test -keep-output $test "$options $mapflag -I." ""
 
     # Executables do not generate assembly,
-    if { [string compare "dg-do-what" "run"] } {
+    if { $is_exec } {
 	# and so we are done testing.
 	return
     }
