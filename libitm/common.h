@@ -40,4 +40,24 @@
 #define likely(X)	__builtin_expect((X) != 0, 1)
 #define unlikely(X)	__builtin_expect((X), 0)
 
+namespace GTM HIDDEN {
+
+// Locally defined protected allocation functions.
+//
+// To avoid dependency on libstdc++ new/delete, as well as to not
+// interfere with the wrapping of the global new/delete we wrap for
+// the user in alloc_cpp.cc, use class-local versions that defer
+// to malloc/free.  Recall that operator new/delete does not go through
+// normal lookup and so we cannot simply inject a version into the
+// GTM namespace.
+// If separate_cl is true, the allocator will try to return memory that is on
+// cache lines that are not shared with any object used by another thread.
+extern void * xmalloc (size_t s, bool separate_cl = false)
+  __attribute__((malloc, nothrow));
+extern void * xrealloc (void *p, size_t s, bool separate_cl = false)
+  __attribute__((malloc, nothrow));
+
+} // namespace GTM
+
+
 #endif // COMMON_H

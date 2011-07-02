@@ -53,18 +53,6 @@ template<> struct sized_integral<8> { typedef uint64_t type; };
 
 typedef unsigned int gtm_word __attribute__((mode (word)));
 
-// Locally defined protected allocation functions.
-//
-// To avoid dependency on libstdc++ new/delete, as well as to not
-// interfere with the wrapping of the global new/delete we wrap for
-// the user in alloc_cpp.cc, use class-local versions that defer
-// to malloc/free.  Recall that operator new/delete does not go through
-// normal lookup and so we cannot simply inject a version into the
-// GTM namespace.
-
-extern void * xmalloc (size_t s) __attribute__((malloc, nothrow));
-extern void * xrealloc (void *p, size_t s) __attribute__((malloc, nothrow));
-
 } // namespace GTM
 
 #include "target.h"
@@ -74,6 +62,7 @@ extern void * xrealloc (void *p, size_t s) __attribute__((malloc, nothrow));
 #include "cachepage.h"
 #include "stmlock.h"
 #include "dispatch.h"
+#include "containers.h"
 
 namespace GTM HIDDEN {
 
@@ -118,9 +107,7 @@ struct gtm_transaction
   gtm_jmpbuf jb;
 
   // Data used by local.c for the local memory undo log.
-  struct gtm_local_undo **local_undo;
-  size_t n_local_undo;
-  size_t size_local_undo;
+  vector<gtm_local_undo*> local_undo;
 
   // Data used by alloc.c for the malloc/free undo log.
   aa_tree<uintptr_t, gtm_alloc_action> alloc_actions;

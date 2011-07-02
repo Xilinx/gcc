@@ -1,3 +1,12 @@
+2011-07-02  Torvald Riegel  <triegel@redhat.com>
+
+	* containers.h: New file. 
+	* util.cc (xmalloc, xrealloc): Accept cacheline-alloc flag.
+	* libitm_i.h (xmalloc, xrealloc): Moved declarations from here ...
+	* common.h: ... to here.
+	(local_undo): Use GTM::vector for gtm_transaction::local_undo.
+	* local.cc: Same.
+
 2011-06-30  Torvald Riegel  <triegel@redhat.com>
 
 	* libitm_i.h (STATE_ABORTING): Remove.

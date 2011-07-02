@@ -37,28 +37,20 @@ struct gtm_local_undo
 void
 gtm_transaction::commit_local ()
 {
-  gtm_local_undo **local_undo = this->local_undo;
-  size_t i, n = this->n_local_undo;
+  size_t i, n = local_undo.size();
 
   if (n > 0)
     {
       for (i = 0; i < n; ++i)
 	free (local_undo[i]);
-      this->n_local_undo = 0;
-    }
-  if (local_undo)
-    {
-      free (local_undo);
-      this->local_undo = NULL;
-      this->size_local_undo = 0;
+      this->local_undo.clear();
     }
 }
 
 void
 gtm_transaction::rollback_local (void)
 {
-  gtm_local_undo **local_undo = this->local_undo;
-  size_t i, n = this->n_local_undo;
+  size_t i, n = local_undo.size();
 
   if (n > 0)
     {
@@ -71,7 +63,7 @@ gtm_transaction::rollback_local (void)
 	      free (u);
 	    }
 	}
-      this->n_local_undo = 0;
+      local_undo.clear();
     }
 }
 
@@ -80,8 +72,7 @@ gtm_transaction::rollback_local (void)
 void
 gtm_transaction::drop_references_local (const void *ptr, size_t len)
 {
-  gtm_local_undo **local_undo = this->local_undo;
-  size_t i, n = this->n_local_undo;
+  size_t i, n = local_undo.size();
 
   if (n > 0)
     {
@@ -110,19 +101,7 @@ GTM_LB (const void *ptr, size_t len)
   undo->addr = (void *) ptr;
   undo->len = len;
 
-  if (tx->local_undo == NULL)
-    {
-      tx->size_local_undo = 32;
-      tx->local_undo = (gtm_local_undo **)
-	xmalloc (sizeof (undo) * tx->size_local_undo);
-    }
-  else if (tx->n_local_undo == tx->size_local_undo)
-    {
-      tx->size_local_undo *= 2;
-      tx->local_undo = (gtm_local_undo **)
-	xrealloc (tx->local_undo, sizeof (undo) * tx->size_local_undo);
-    }
-  tx->local_undo[tx->n_local_undo++] = undo;
+  tx->local_undo.push()[0] = undo;
 
   memcpy (undo->saved, ptr, len);
 }

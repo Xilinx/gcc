@@ -59,8 +59,11 @@ GTM_fatal (const char *fmt, ...)
 }
 
 void *
-xmalloc (size_t size)
+xmalloc (size_t size, bool separate_cl)
 {
+  // TODO Use posix_memalign if separate_cl is true, or some other allocation
+  // method that will avoid sharing cache lines with data used by other
+  // threads.
   void *r = malloc (size);
   if (r == 0)
     GTM_fatal ("Out of memory allocating %lu bytes", (unsigned long) size);
@@ -68,8 +71,11 @@ xmalloc (size_t size)
 }
 
 void *
-xrealloc (void *old, size_t size)
+xrealloc (void *old, size_t size, bool separate_cl)
 {
+  // TODO Use posix_memalign if separate_cl is true, or some other allocation
+  // method that will avoid sharing cache lines with data used by other
+  // threads.
   void *r = realloc (old, size);
   if (r == 0)
     GTM_fatal ("Out of memory allocating %lu bytes", (unsigned long) size);
