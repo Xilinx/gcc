@@ -822,8 +822,8 @@ output_cfi (dw_cfi_ref cfi, dw_fde_ref fde, int for_eh)
 
 /* Similar, but do it via assembler directives instead.  */
 
-static void
-output_cfi_directive (dw_cfi_ref cfi)
+void
+output_cfi_directive (FILE *asm_out_file, dw_cfi_ref cfi)
 {
   unsigned long r, r2;
 
@@ -925,7 +925,7 @@ void
 dwarf2out_emit_cfi (dw_cfi_ref cfi)
 {
   if (dwarf2out_do_cfi_asm ())
-    output_cfi_directive (cfi);
+    output_cfi_directive (asm_out_file, cfi);
 }
 
 /* Output CFIs from VEC, up to index UPTO, to bring current FDE to the
@@ -1032,7 +1032,7 @@ output_cfis (cfi_vec vec, int upto, bool do_cfi_asm,
 		  && cfi2->dw_cfi_opc != DW_CFA_restore_extended)
 		{
 		  if (do_cfi_asm)
-		    output_cfi_directive (cfi2);
+		    output_cfi_directive (asm_out_file, cfi2);
 		  else
 		    output_cfi (cfi2, fde, for_eh);
 		}
@@ -1066,7 +1066,7 @@ output_cfis (cfi_vec vec, int upto, bool do_cfi_asm,
 	  if (cfi_cfa)
 	    {
 	      if (do_cfi_asm)
-		output_cfi_directive (cfi_cfa);
+		output_cfi_directive (asm_out_file, cfi_cfa);
 	      else
 		output_cfi (cfi_cfa, fde, for_eh);
 	    }
@@ -1076,7 +1076,7 @@ output_cfis (cfi_vec vec, int upto, bool do_cfi_asm,
 	      && cfi_args_size->dw_cfi_oprnd1.dw_cfi_offset)
 	    {
 	      if (do_cfi_asm)
-		output_cfi_directive (cfi_args_size);
+		output_cfi_directive (asm_out_file, cfi_args_size);
 	      else
 		output_cfi (cfi_args_size, fde, for_eh);
 	    }
@@ -1087,7 +1087,7 @@ output_cfis (cfi_vec vec, int upto, bool do_cfi_asm,
 	      return;
 	    }
 	  else if (do_cfi_asm)
-	    output_cfi_directive (cfi);
+	    output_cfi_directive (asm_out_file, cfi);
 	  else
 	    output_cfi (cfi, fde, for_eh);
 	  break;
