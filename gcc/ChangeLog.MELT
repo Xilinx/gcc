@@ -1,4 +1,9 @@
  
+2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: Removed all the #define ggc_alloc_* for GCC 4.5
+	support, since GCC 4.5 is obsolete for MELT.
+	(melt_reserved_allocation_failure): Improve message.
+
 2011-07-04  Pierre Vittet  <piervit@pvittet.com>
 
 	* melt-runtime.c: Include c-pragma.h.
