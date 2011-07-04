@@ -265,7 +265,7 @@ void gpy_stmt_write_globals (void)
   FILE *tu_stream = dump_begin (TDI_tu, NULL);
   for (idx=0; VEC_iterate (tree,globals,idx,itx); ++idx)
     {
-      // debug_tree (itx);
+      debug_tree (itx);
 
       if (tu_stream)
 	dump_node (itx, 0, tu_stream);

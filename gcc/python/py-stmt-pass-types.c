@@ -78,8 +78,6 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
   gpy_hash_tab_t context;
   gpy_dd_hash_init_table (&context);
 
-  debug ("SIT SON!\n");
-
   for (; VEC_iterate (gpydot, decls, idx, itx); ++idx)
     {
       /* 
@@ -93,7 +91,6 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
        */
       if (DOT_T_FIELD (itx) == D_D_EXPR)
 	{
-	  debug ("expr expr!!\n");
 	  itx = gpy_stmt_process_AST_Align (&itx);
 
 	  if (DOT_TYPE(itx) == D_MODIFY_EXPR)
@@ -101,8 +98,6 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 	      gcc_assert ((DOT_lhs_T(itx) == D_TD_DOT)
 			  && (DOT_rhs_T(itx) == D_TD_DOT)
 			  );
-
-	      debug ("modify expr!!!!!!!!!!!\n");
 
 	      gpy_dot_tree_t * target = DOT_lhs_TT (itx);
 	      // remember to handle target lists here with DOT_CHAIN
@@ -114,7 +109,6 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 	}
     }
 
-  debug ("context length = <%i>!\n", context.length);
   if (context.length > 0)
     {
       const char * ident = "main.main";
@@ -127,14 +121,15 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 	  gpy_dot_tree_t * d = (gpy_dot_tree_t *) array[idx].data;
 	  if (d)
 	    {
+	      debug ("generating field <%s>!\n", DOT_IDENTIFIER_POINTER (d));
 	      field = build_decl (BUILTINS_LOCATION, FIELD_DECL,
 				  get_identifier (DOT_IDENTIFIER_POINTER (d)),
 				  gpy_object_type_ptr);
-	      DECL_CONTEXT(field) = retval;
-	      if (idy>0)
-		DECL_CHAIN (last_field) = field;
-	      else
+	      DECL_CONTEXT (field) = retval;
+	      if (idy == 0)
 		TYPE_FIELDS (retval) = field;
+	      else
+		DECL_CHAIN (last_field) = field;
 	      last_field = field;
 	      idy++;
 	    }
@@ -142,14 +137,15 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 
       // free (context.array);
 
-      finish_builtin_struct (retval, ident, field, NULL_TREE);
-      TYPE_NAME (retval) = get_identifier (ident);
+      layout_type (retval);
+      tree name = get_identifier (ident);
+      tree type_decl = build_decl(BUILTINS_LOCATION, TYPE_DECL, name,
+				  retval);
+      DECL_ARTIFICIAL (type_decl) = 1;
+      TYPE_NAME (retval) = name;
 
-      /*
-	DECL_ARTIFICIAL (retval) = 1;
-	gpy_preserve_from_gc (retval);
-	rest_of_decl_compilation (retval, 1, 0);
-      */
+      gpy_preserve_from_gc (type_decl);
+      rest_of_decl_compilation(type_decl, 1, 0);
     }
   else
     retval = error_mark_node;
