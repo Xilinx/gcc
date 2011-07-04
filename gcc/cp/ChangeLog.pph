@@ -1,3 +1,8 @@
+2011-07-04  Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (pph_add_bindings_to_namespace):
+	Rebuild the varpool for global variables coming in from the pph.
+
 2011-06-30  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer.h (struct pph_stream): Fix comment of data_in field.

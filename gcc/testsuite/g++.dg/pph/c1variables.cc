@@ -1,5 +1,3 @@
-// pph asm xdiff
-
 #include "c1variables.h"
 
 int gbl_initial = 1;

@@ -1,5 +1,3 @@
-// pph asm xdiff
-
 #include "x1variables.h"
 
 int D::mbr_init_plain = 4;

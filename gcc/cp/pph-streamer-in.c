@@ -1157,6 +1157,9 @@ pph_add_bindings_to_namespace (struct cp_binding_level *bl, tree ns)
 	 Preserve it.  */
       chain = DECL_CHAIN (t);
       pushdecl_into_namespace (t, ns);
+
+      if (TREE_CODE (t) == VAR_DECL && TREE_STATIC (t) && !DECL_EXTERNAL (t))
+	varpool_finalize_decl (t);
     }
 
   for (t = bl->namespaces; t; t = chain)

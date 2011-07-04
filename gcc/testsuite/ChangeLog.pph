@@ -1,3 +1,14 @@
+2011-07-04  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/c120060625-1.cc: Expect no asm difference.
+	* g++.dg/pph/c1struct.cc: Likewise.
+	* g++.dg/pph/c1variables.cc: Likewise.
+	* g++.dg/pph/c1varorder.cc: Likewise.
+	* g++.dg/pph/c2builtin1.cc: Likewise.
+	* g++.dg/pph/c2builtin2.cc: Likewise.
+	* g++.dg/pph/x1struct2.cc: Likewise.
+	* g++.dg/pph/x1variables.cc: Likewise.
+
 2011-07-01  Lawrence Crowl  <crowl@google.com>
 
 	* g++.dg/pph/a1dynarray-dcl1.hi: New.

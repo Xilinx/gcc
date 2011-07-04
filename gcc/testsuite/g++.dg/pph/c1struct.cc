@@ -1,5 +1,3 @@
-// pph asm xdiff
-
 #include "c1struct.h"
 
 thing var1;
