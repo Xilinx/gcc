@@ -3968,9 +3968,9 @@ meltgc_raw_remove_mappointers (void *mappointer_p, const void *attr)
 {
   long ix = 0, len = 0, cnt = 0;
   const char *oldat = NULL;
-  MELT_ENTERFRAME (3, NULL);
-#define mappointerv meltfram__.mcfr_varptr[1]
-#define valuv meltfram__.mcfr_varptr[2]
+  MELT_ENTERFRAME (2, NULL);
+#define mappointerv meltfram__.mcfr_varptr[0]
+#define valuv meltfram__.mcfr_varptr[1]
 #define map_mappointerv ((struct meltmappointers_st*)(mappointerv))
   mappointerv = mappointer_p;
   valuv = NULL;
@@ -6566,12 +6566,11 @@ end:;
 melt_ptr_t
 meltgc_intern_symbol (melt_ptr_t symb_p)
 {
-  MELT_ENTERFRAME (5, NULL);
+  MELT_ENTERFRAME (4, NULL);
 #define symbv    meltfram__.mcfr_varptr[0]
-#define dictv    meltfram__.mcfr_varptr[1]
-#define closv    meltfram__.mcfr_varptr[2]
-#define nstrv    meltfram__.mcfr_varptr[3]
-#define resv     meltfram__.mcfr_varptr[4]
+#define closv    meltfram__.mcfr_varptr[1]
+#define nstrv    meltfram__.mcfr_varptr[2]
+#define resv     meltfram__.mcfr_varptr[3]
 #define obj_symbv    ((meltobject_ptr_t)(symbv))
   symbv = symb_p;
   if (melt_magic_discr ((melt_ptr_t) symbv) != MELTOBMAG_OBJECT
@@ -6603,7 +6602,6 @@ end:;
   MELT_EXITFRAME ();
   return (melt_ptr_t) resv;
 #undef symbv
-#undef dictv
 #undef closv
 #undef nstrv
 #undef resv
@@ -8112,10 +8110,9 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
   struct reading_st rds;
   char *rbuf = 0;
   struct reading_st *rd = 0;
-  MELT_ENTERFRAME (3, NULL);
-#define valv      meltfram__.mcfr_varptr[0]
+  MELT_ENTERFRAME (2, NULL);
+#define seqv      meltfram__.mcfr_varptr[0]
 #define locnamv   meltfram__.mcfr_varptr[1]
-#define seqv      meltfram__.mcfr_varptr[2]
   memset (&rds, 0, sizeof (rds));
   if (!rawstr)
     goto end;
@@ -8135,7 +8132,7 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
     {
       rds.rhas_file_location = false;
       locnamv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING),
-				   "stringBuffer");
+				   "<string-buffer>");
     }
   seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
   rds.rpfilnam = (melt_ptr_t *) & locnamv;
@@ -8156,9 +8153,8 @@ end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) seqv;
 #undef vecshv
-#undef valv
-#undef locnamv
 #undef seqv
+#undef locnamv
 }
 
 
@@ -8332,8 +8328,6 @@ do_initial_mode (melt_ptr_t modata_p, const char* modstr)
 			closv, resv);
 	}
 	exit_after_options = (resv == NULL);
-	/* force a minor GC to be sure nothing stays in young region */
-	melt_garbcoll (0, MELT_ONLY_MINOR);
       }
       if (comma)
 	curmodstr = comma+1;
@@ -9053,9 +9047,6 @@ melt_startunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
       (void) melt_apply ((meltclosure_ptr_t) staclosv,
 			 (melt_ptr_t) NULL, "", NULL, "", NULL);
     }
-  /* Always force a minor GC to be sure nothing stays in young region */
-  melt_garbcoll (0, MELT_ONLY_MINOR);
-  debugeprintf ("ending melt_startunit_callback meltnbgc %ld", melt_nb_garbcoll);
   MELT_EXITFRAME ();
 #undef staclosv
 }
@@ -11498,8 +11489,6 @@ meltgc_gimple_gate(void)
 	fflush (df);
       ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
     };
-  /* force a minor GC to be sure that nothing is in the young region */
-  melt_garbcoll (0, MELT_ONLY_MINOR);
  end:
   debugeprintf ("meltgc_gimple_gate pass %s ended ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
@@ -11593,8 +11582,6 @@ meltgc_gimple_execute (void)
     if (resvalv)
       res = (unsigned int) todol;
     meltgc_run_meltpass_after_hook ();
-    /* force a minor GC to be sure that nothing is in the young region */
-    melt_garbcoll (0, MELT_ONLY_MINOR);
   }
  end:
   debugeprintf ("meltgc_gimple_execute pass %s ended res=%ud", current_pass->name, res);
@@ -11671,8 +11658,6 @@ meltgc_rtl_gate(void)
       ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
     };
   ok = (resv != NULL);
-  /* force a minor GC to be sure that nothing is in the young region */
-  melt_garbcoll (0, MELT_ONLY_MINOR);
  end:
   debugeprintf ("meltgc_rtl_gate pass %s end ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
@@ -11758,8 +11743,6 @@ meltgc_rtl_execute(void)
     if (resvalv)
       res = (unsigned int) todol;
     meltgc_run_meltpass_after_hook ();
-    /* force a minor GC to be sure that nothing is in the young region */
-    melt_garbcoll (0, MELT_ONLY_MINOR);
   }
  end:
   debugeprintf ("meltgc_rtl_execute pass %s end res=%ud", current_pass->name, res);
@@ -11838,8 +11821,6 @@ meltgc_simple_ipa_gate(void)
 	fflush (df);
       ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
     };
-  /* force a minor GC to be sure that nothing is in the young region */
-  melt_garbcoll (0, MELT_ONLY_MINOR);
  end:
   debugeprintf ("meltgc_simple_ipa_gate pass %s end ok=%d", current_pass->name, ok);
   MELT_EXITFRAME();
@@ -11932,8 +11913,6 @@ meltgc_simple_ipa_execute(void)
     if (resvalv)
       res = (unsigned int) todol;
     meltgc_run_meltpass_after_hook ();
-    /* force a minor GC to be sure that nothing is in the young region */
-    melt_garbcoll (0, MELT_ONLY_MINOR);
   }
  end:
   MELT_EXITFRAME();

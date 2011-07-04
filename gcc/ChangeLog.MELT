@@ -11,6 +11,15 @@
 	comment.
 
 2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_raw_remove_mappointers)
+	(meltgc_intern_symbol, meltgc_read_from_rawstring): Remove
+	useless local slot in MELT frame.
+	(do_initial_mode): Remove forcing of MELT copying minor GC.
+	(meltgc_gimple_gate,meltgc_gimple_execute)
+	(meltgc_rtl_gate,meltgc_rtl_execute)
+	(meltgc_simple_ipa_gate,meltgc_simple_ipa_execute): Ditto.
+
+2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_ggcstart_callback): New routine.
 	(melt_really_initialize): Register it for PLUGIN_GGC_START.
 
