@@ -1,7 +1,7 @@
+/* { dg-timeout 2 { target *-*-* } }  */
+// { dg-xfail-if "INFINITE" { "*-*-*" } { "-fpph-map=pph.map" } }
 /* { dg-options "-w" }  */
-/* { dg-do run } */
-
-#include "c1meteor-contest.h"
+#include "c2meteor-contest.h"
 
 int main(int argc, char **argv) {
    if(argc > 1)

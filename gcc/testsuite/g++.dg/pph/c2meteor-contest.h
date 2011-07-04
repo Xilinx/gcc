@@ -36,16 +36,8 @@ POSSIBILITY OF SUCH DAMAGE.
  * contributed by Christian Vosteen
  */
 
-/* Simplified version of c2meteor-contest.h - Do not include other system
-   headers here.  Simply forward declare the library functions used
-   by this header.  */
-extern  "C" {
-  typedef __SIZE_TYPE__ size_t;
-  void qsort(void *, size_t, size_t, int (*)(const void *, const void *));
-  int printf(const char *, ...);
-  int atoi(const char *);
-}
-
+#include <stdlib.h>
+#include <stdio.h>
 #define TRUE 1
 #define FALSE 0
 

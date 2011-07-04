@@ -1,3 +1,14 @@
+2011-07-04  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/c1meteor-contest.cc: Make executable.
+	Move function main() from c1meteor-contest.h.
+	* g++.dg/pph/c1meteor-contest.h: Do not include stdlib.h nor
+	stdio.h.
+	Add prototype for system functions qsort, printf and atoi.
+	* g++.dg/pph/c2meteor-contest.cc: New.
+	* g++.dg/pph/c2meteor-contest.h: New.
+	* g++.dg/pph/pph.map: Add c2meteor-contest.h
+
 2011-07-04   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c1eabi1.h: Surround system function prototypes with
