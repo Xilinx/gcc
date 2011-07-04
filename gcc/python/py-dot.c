@@ -108,7 +108,7 @@ gpy_dot_tree_t * dot_build_decl2 (opcode_t o, gpy_dot_tree_t * t1,
       || (o == D_MULT_EXPR)
       || (o == D_DIVD_EXPR)
       )
-    DOT_T_FIELD(decl) = D_TD_NULL;
+    DOT_T_FIELD(decl) = D_D_EXPR;
   else
     DOT_T_FIELD(decl) = D_TD_NULL;
 

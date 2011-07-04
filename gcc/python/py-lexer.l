@@ -120,7 +120,6 @@ static bool gen_indentation = true;
 %}
 
 %option yylineno
-%option debug
 
 %x xLINE_CONT xINDENTATION
 

@@ -78,6 +78,8 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
   gpy_hash_tab_t context;
   gpy_dd_hash_init_table (&context);
 
+  debug ("SIT SON!\n");
+
   for (; VEC_iterate (gpydot, decls, idx, itx); ++idx)
     {
       /* 
@@ -91,6 +93,7 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
        */
       if (DOT_T_FIELD (itx) == D_D_EXPR)
 	{
+	  debug ("expr expr!!\n");
 	  itx = gpy_stmt_process_AST_Align (&itx);
 
 	  if (DOT_TYPE(itx) == D_MODIFY_EXPR)
@@ -99,7 +102,10 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 			  && (DOT_rhs_T(itx) == D_TD_DOT)
 			  );
 
+	      debug ("modify expr!!!!!!!!!!!\n");
+
 	      gpy_dot_tree_t * target = DOT_lhs_TT (itx);
+	      // remember to handle target lists here with DOT_CHAIN
 	      do {
 		gpy_hashval_t h = gpy_dd_hash_string (DOT_IDENTIFIER_POINTER (target));
 		gpy_dd_hash_insert (h, target, &context);
@@ -108,11 +114,13 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 	}
     }
 
+  debug ("context length = <%i>!\n", context.length);
   if (context.length > 0)
     {
       const char * ident = "main.main";
       tree field = NULL_TREE, last_field = NULL_TREE;
 
+      int idy = 0;
       gpy_hash_entry_t *array = context.array;
       for (idx = 0; idx<context.size; ++idx)
 	{
@@ -123,11 +131,12 @@ tree gpy_stmt_pass_process_toplevel_decls (VEC(gpydot,gc) * decls)
 				  get_identifier (DOT_IDENTIFIER_POINTER (d)),
 				  gpy_object_type_ptr);
 	      DECL_CONTEXT(field) = retval;
-	      if (idx>0)
+	      if (idy>0)
 		DECL_CHAIN (last_field) = field;
 	      else
 		TYPE_FIELDS (retval) = field;
 	      last_field = field;
+	      idy++;
 	    }
 	}
 

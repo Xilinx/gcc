@@ -96,7 +96,7 @@ void gpy_stmt_pass_lower_gen_toplevl_context (tree module, tree param_decl,
     return;
   else
     {
-      gcc_assert (TREE_CODE (module) == TYPE_DECL);
+      debug ("gen toplevel context!\n");
       tree field = TYPE_FIELDS (module);
 
       do {
@@ -395,11 +395,10 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
   gpy_dd_hash_init_table (&toplvl);
   gpy_dd_hash_init_table (&topnxt);
 
-  tree main_init_module = gpy_stmt_pass_lower_get_module_type ("main.main",
-							       modules);
-  
-  tree main_init_fntype = build_function_type_list (build_pointer_type (main_init_module),
-						    NULL_TREE);
+  tree main_init_module = gpy_stmt_pass_lower_get_module_type ("main.main", modules);
+  tree pdecl_t = build_pointer_type (main_init_module);
+
+  tree main_init_fntype = build_function_type_list (pdecl_t, NULL_TREE);
   tree main_init_fndecl = build_decl (BUILTINS_LOCATION, FUNCTION_DECL,
 				      get_identifier ("main.main.init"),
 				      main_init_fntype);
@@ -407,14 +406,21 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
   TREE_PUBLIC (main_init_fndecl) = 1;
   TREE_STATIC (main_init_fndecl) = 1;
 
+  debug ("1!\n");
+  tree arglist = NULL_TREE;
+
   SET_DECL_ASSEMBLER_NAME (main_init_fndecl, get_identifier("main.main.init"));
   tree self_parm_decl = build_decl (BUILTINS_LOCATION, PARM_DECL,
 				    get_identifier ("__self__"),
-				    TYPE_ARG_TYPES (TREE_TYPE (main_init_fndecl))
-				    );
+				    pdecl_t);
+  debug ("2!\n");
   DECL_CONTEXT (self_parm_decl) = main_init_fndecl;
   DECL_ARG_TYPE (self_parm_decl) = TREE_VALUE (TYPE_ARG_TYPES (TREE_TYPE (main_init_fndecl)));
   TREE_READONLY (self_parm_decl) = 1;
+  arglist = chainon (arglist, self_parm_decl);
+
+  TREE_USED (self_parm_decl) = 1;
+  DECL_ARGUMENTS (main_init_fndecl) = arglist;
 
   gpy_stmt_pass_lower_gen_toplevl_context (main_init_module, self_parm_decl,
 					   &toplvl);
@@ -464,9 +470,11 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
 	       They are self contained decls so we just pass them to the 
 	       return vector for gimplification
 	    */
+	    debug ("lowering function toplevel!\n");
 	    VEC_safe_push (tree, gc, retval, 
 			   gpy_stmt_pass_lower_functor (idtx, modules)
 			   );
+	    debug ("lowered function toplevel!\n");
 	  }
 	  break;
 
@@ -505,17 +513,22 @@ VEC(tree,gc) * gpy_stmt_pass_lower (VEC(tree,gc) *modules,
 
   for (; VEC_iterate (tree, modules, idx, itx); ++idx)
     {
+      /*
+      debug_tree (itx);
       gcc_assert (TREE_CODE (itx) == TYPE_DECL);
+      */
 
-      debug ("hashing module name <%s>!\n", IDENTIFIER_POINTER (DECL_NAME(itx)));
-      gpy_hashval_t h = gpy_dd_hash_string (IDENTIFIER_POINTER (DECL_NAME(itx)));
+      debug ("hashing module name <%s>!\n", IDENTIFIER_POINTER (TYPE_NAME(itx)));
+      gpy_hashval_t h = gpy_dd_hash_string (IDENTIFIER_POINTER (TYPE_NAME(itx)));
       void ** e = gpy_dd_hash_insert (h, itx, &module_ctx);
 
       if (e)
 	fatal_error ("module <%q+E> is already defined!\n", itx);
     }
 
+  debug ("lowering!\n");
   retval =  gpy_stmt_pass_lower_genericify (&module_ctx, decls);
+  debug ("lowered!\n");
   /*
   VEC_safe_push (tree, gc, retval,
 		 gpy_stmt_pass_lower_gen_main (gpy_stmt_pass_lower_get_module_type ("main.main",
