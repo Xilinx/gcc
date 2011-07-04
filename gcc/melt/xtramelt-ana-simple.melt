@@ -1542,6 +1542,17 @@
 		    ))
 	 )
     (install_melt_gcc_pass meltframepass "after" "ssa" 0)
+    (at_exit_first 
+     (lambda (x)
+       (debug_msg meltframedata "meltframedata at exit")
+       (let ( (:long nbmeltrout
+		     (get_int (get_field :meltfram_funcount meltframedata)))
+	      )
+	 (code_chunk 
+	  informnbmelt
+	  #{/* $INFORMNBMELT */ 
+	    inform(UNKNOWN_LOCATION, "melt_frame_pass found %ld MELT routines", $NBMELTROUT);
+	  }#))))
     (debug_msg meltframepass "meltframe_docmd installed pass")
     (return cmd)	       ;return non-nil to continue compilation
     ))

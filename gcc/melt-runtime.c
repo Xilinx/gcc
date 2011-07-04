@@ -1766,11 +1766,7 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 		 by the meltgc_reserve call above */
 	    strbuf_in_old_memory:
 	      gcc_assert (!melt_is_young (buf_outbufv));
-#if BUILDING_GCC_VERSION > 4005
 	      newb = (char *) ggc_alloc_atomic (newblen + 1);
-#else /*GCC 4.5*/
-	      newb = (char *) ggc_alloc_cleared (newblen + 1);
-#endif /*!GCC 4.5*/
 	      memcpy (newb, buf_outbufv->bufzn + buf_outbufv->bufstart, siz);
 	      strncpy (newb + siz, str, slen);
 	      memset (buf_outbufv->bufzn, 0, oldblen);
@@ -11370,10 +11366,6 @@ melt_val2passflag(melt_ptr_t val_p)
     WHENFLAG(TODO_verify_flow);
     WHENFLAG(TODO_verify_stmts);
     WHENFLAG(TODO_cleanup_cfg);
-#if BUILDING_GCC_VERSION < 4006
-    /* only in GCC 4.5! */
-    WHENFLAG(TODO_verify_loops);
-#endif
     WHENFLAG(TODO_dump_cgraph);
     WHENFLAG(TODO_remove_functions);
     WHENFLAG(TODO_rebuild_frequencies);

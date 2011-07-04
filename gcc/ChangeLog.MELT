@@ -1,5 +1,12 @@
 
 2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_add_out_raw_len): Removed GCC 4.5 code.
+	(melt_val2passflag): Removed GCC 4.5 specific code.
+
+	* melt/xtramelt-ana-simple.melt (meltframe_docmd): Notice the
+	number of handled MELT routines.
+
+2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_notify_sysdata_passexec_hook): Better
 	comment.
 
