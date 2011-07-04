@@ -1,3 +1,137 @@
+2011-07-03  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49610
+	* tree-vect-loop.c (vect_is_slp_reduction): Check that DEF_STMT has
+	a basic block.
+
+2011-07-02  Eric Botcazou  <ebotcazou@adacore.com>
+	    Olivier Hainque  <hainque@adacore.com>
+	    Nicolas Setton  <setton@adacore.com>
+
+	* tree.h (TYPE_ARTIFICIAL): New flag.
+	* dwarf2out.c (modified_type_die): Add a DW_AT_artificial attribute to
+	the DIE of the type if it is artificial.
+	(gen_array_type_die): Likewise.
+	(gen_enumeration_type_die): Likewise.
+	(gen_struct_or_union_type_die): Likewise.
+	* lto-streamer-in.c (unpack_ts_base_value_fields): Use TYPE_ARTIFICIAL.
+	* lto-streamer-out.c (pack_ts_base_value_fields): Likewise.
+
+2011-07-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-object-size.c (pass_through_call): Handle
+	BUILT_IN_ASSUME_ALIGNED.
+
+2011-07-01  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (tree_non_mode_aligned_mem_p): Also ignore MEM_REFs.
+
+2011-07-01  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/48016
+	* explow.c (update_nonlocal_goto_save_area): Use proper mode
+	for stack save area.
+	* function.c (expand_function_start): Likewise.
+
+2011-07-01  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/49596
+	* cgraph.h (varpool_all_refs_explicit_p): Not analyzed nodes
+	may have unknown refs.
+
+2011-07-01  Kai Tietz  <ktietz@redhat.com>
+
+	* tree-ssa-forwprop.c (simplify_bitwise_binary): Fix typo.
+
+2011-07-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.gcc: Obsolete alpha*-dec-osf5.1, mips-sgi-irix6.5.
+	* doc/install.texi (Specific, alpha*-dec-osf5.1): Document it.
+	(Specific, mips-sgi-irix6): Likewise.
+
+2011-07-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libmudflap/49549
+	* doc/sourcebuild.texi (Effective-Target Keywords): Document gld.
+
+2011-07-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* tree-pretty-print.c (dump_generic_code) <case CONSTRUCTOR>: Print
+	[idx]= and [idx1 ... idx2]= before initializers if needed for
+	array initializers.
+
+2011-07-01  Chen Liqin  <liqin.gcc@gmail.com>
+
+	* config.gcc (score-*-elf): Remove score7.o.
+	* config/score/t-score-elf: Likewise.
+	* config/score/score.c: Merge score7 to score.c and
+	remove forwarding functions.
+	* config/score/score7.c: Deleted.
+	* config/score/score7.h: Deleted.
+
+2011-07-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49603
+	* tree-vect-stmts.c (vectorizable_load): Remove unnecessary
+	assert.
+
+2011-06-30  Martin Jambor  <mjambor@suse.cz>
+
+	* tree-sra.c (struct access): Rename total_scalarization to
+	grp_total_scalarization
+	(completely_scalarize_var): New function.
+	(sort_and_splice_var_accesses): Set total_scalarization in the
+	representative access.
+	(analyze_access_subtree): Propagate total scalarization accross the
+	tree, no holes in totally scalarized trees, simplify coverage
+	computation.
+	(analyze_all_variable_accesses): Call completely_scalarize_var instead
+	of completely_scalarize_record.
+
+2011-06-30  Richard Henderson  <rth@redhat.com>
+
+	* config/i386/i386.h (X86_TUNE_DEEP_BRANCH_PREDICTION): Remove.
+	(TARGET_DEEP_BRANCH_PREDICTION): Remove.
+	* config/i386/i386.c: Don't include dwarf2out.h.
+	(initial_ix86_tune_features): Remove X86_TUNE_DEEP_BRANCH_PREDICTION.
+	(output_set_got): Don't test TARGET_DEEP_BRANCH_PREDICTION, delete
+	all code dead thereafter.  Don't do dwarf2out_flush_queued_reg_saves.
+	(ix86_expand_prologue): Set REG_CFA_FLUSH_QUEUE on set_got insn.
+	(machopic_output_stub): Don't test TARGET_DEEP_BRANCH_PREDICTION.
+
+2011-06-30  Richard Henderson  <rth@redhat.com>
+
+	* reg-notes.def (REG_CFA_FLUSH_QUEUE): New.
+	* dwarf2out.c (dwarf2out_frame_debug): Handle it.
+	* final.c (final_scan_insn): Look for it, and invoke
+	dwarf2out_frame_debug before the insn if found.
+
+2011-06-30  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2out.c (dwarf2out_frame_debug_cfa_offset): Allow PC_RTX
+	as a source, and interpret that as DWARF_FRAME_RETURN_COLUMN.
+
+2011-06-30  Richard Henderson  <rth@redhat.com>
+
+	* dwarf2out.c (struct reg_saved_in_data): Provide a typedef.
+	Define a vector of this type.
+	(regs_saved_in_regs): Use a VEC.
+	(num_regs_saved_in_regs): Remove.
+	(compare_reg_or_pc): New.
+	(record_reg_saved_in_reg): Split out from...
+	(dwarf2out_flush_queued_reg_saves): ... here.
+	(clobbers_queued_reg_save): Update for VEC.
+	(reg_saved_in): Likewise.
+	(dwarf2out_frame_debug_init): Likewise.
+	(dwarf2out_reg_save_reg): Use record_reg_saved_in_reg.
+	(dwarf2out_frame_debug_cfa_register): Likewise.
+
+2011-06-30  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR tree-optimization/49572
+	* tree-ssa-dom.c (initialize_hash_element) <GIMPLE_SINGLE_RHS>: Use the
+	type of the RHS instead of that of the LHS for the expression type.
+
 2011-06-30  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* df-scan.c (df_get_entry_block_def_set): Use INCOMING_REGNO macro

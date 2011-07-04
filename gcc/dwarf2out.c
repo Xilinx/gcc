@@ -1732,17 +1732,56 @@ struct GTY(()) queued_reg_save {
 static GTY(()) struct queued_reg_save *queued_reg_saves;
 
 /* The caller's ORIG_REG is saved in SAVED_IN_REG.  */
-struct GTY(()) reg_saved_in_data {
+typedef struct GTY(()) reg_saved_in_data {
   rtx orig_reg;
   rtx saved_in_reg;
-};
+} reg_saved_in_data;
 
-/* A list of registers saved in other registers.
-   The list intentionally has a small maximum capacity of 4; if your
-   port needs more than that, you might consider implementing a
-   more efficient data structure.  */
-static GTY(()) struct reg_saved_in_data regs_saved_in_regs[4];
-static GTY(()) size_t num_regs_saved_in_regs;
+DEF_VEC_O (reg_saved_in_data);
+DEF_VEC_ALLOC_O (reg_saved_in_data, gc);
+
+/* A set of registers saved in other registers.  This is implemented as
+   a flat array because it normally contains zero or 1 entry, depending
+   on the target.  IA-64 is the big spender here, using a maximum of
+   5 entries.  */
+static GTY(()) VEC(reg_saved_in_data, gc) *regs_saved_in_regs;
+
+/* Compare X and Y for equivalence.  The inputs may be REGs or PC_RTX.  */
+
+static bool
+compare_reg_or_pc (rtx x, rtx y)
+{
+  if (REG_P (x) && REG_P (y))
+    return REGNO (x) == REGNO (y);
+  return x == y;
+}
+
+/* Record SRC as being saved in DEST.  DEST may be null to delete an
+   existing entry.  SRC may be a register or PC_RTX.  */
+
+static void
+record_reg_saved_in_reg (rtx dest, rtx src)
+{
+  reg_saved_in_data *elt;
+  size_t i;
+
+  FOR_EACH_VEC_ELT (reg_saved_in_data, regs_saved_in_regs, i, elt)
+    if (compare_reg_or_pc (elt->orig_reg, src))
+      {
+	if (dest == NULL)
+	  VEC_unordered_remove(reg_saved_in_data, regs_saved_in_regs, i);
+	else
+	  elt->saved_in_reg = dest;
+	return;
+      }
+
+  if (dest == NULL)
+    return;
+
+  elt = VEC_safe_push(reg_saved_in_data, gc, regs_saved_in_regs, NULL);
+  elt->orig_reg = src;
+  elt->saved_in_reg = dest;
+}
 
 static const char *last_reg_save_label;
 
@@ -1784,22 +1823,9 @@ dwarf2out_flush_queued_reg_saves (void)
 
   for (q = queued_reg_saves; q; q = q->next)
     {
-      size_t i;
       unsigned int reg, sreg;
 
-      for (i = 0; i < num_regs_saved_in_regs; i++)
-	if (REGNO (regs_saved_in_regs[i].orig_reg) == REGNO (q->reg))
-	  break;
-      if (q->saved_reg && i == num_regs_saved_in_regs)
-	{
-	  gcc_assert (i != ARRAY_SIZE (regs_saved_in_regs));
-	  num_regs_saved_in_regs++;
-	}
-      if (i != num_regs_saved_in_regs)
-	{
-	  regs_saved_in_regs[i].orig_reg = q->reg;
-	  regs_saved_in_regs[i].saved_in_reg = q->saved_reg;
-	}
+      record_reg_saved_in_reg (q->saved_reg, q->reg);
 
       reg = DWARF_FRAME_REGNUM (REGNO (q->reg));
       if (q->saved_reg)
@@ -1826,11 +1852,14 @@ clobbers_queued_reg_save (const_rtx insn)
   for (q = queued_reg_saves; q; q = q->next)
     {
       size_t i;
+      reg_saved_in_data *rir;
+
       if (modified_in_p (q->reg, insn))
 	return true;
-      for (i = 0; i < num_regs_saved_in_regs; i++)
-	if (REGNO (q->reg) == REGNO (regs_saved_in_regs[i].orig_reg)
-	    && modified_in_p (regs_saved_in_regs[i].saved_in_reg, insn))
+
+      FOR_EACH_VEC_ELT (reg_saved_in_data, regs_saved_in_regs, i, rir)
+	if (compare_reg_or_pc (q->reg, rir->orig_reg)
+	    && modified_in_p (rir->saved_in_reg, insn))
 	  return true;
     }
 
@@ -1842,19 +1871,9 @@ clobbers_queued_reg_save (const_rtx insn)
 void
 dwarf2out_reg_save_reg (const char *label, rtx reg, rtx sreg)
 {
-  size_t i;
   unsigned int regno, sregno;
 
-  for (i = 0; i < num_regs_saved_in_regs; i++)
-    if (REGNO (regs_saved_in_regs[i].orig_reg) == REGNO (reg))
-      break;
-  if (i == num_regs_saved_in_regs)
-    {
-      gcc_assert (i != ARRAY_SIZE (regs_saved_in_regs));
-      num_regs_saved_in_regs++;
-    }
-  regs_saved_in_regs[i].orig_reg = reg;
-  regs_saved_in_regs[i].saved_in_reg = sreg;
+  record_reg_saved_in_reg (sreg, reg);
 
   regno = DWARF_FRAME_REGNUM (REGNO (reg));
   sregno = DWARF_FRAME_REGNUM (REGNO (sreg));
@@ -1867,17 +1886,17 @@ static rtx
 reg_saved_in (rtx reg)
 {
   unsigned int regn = REGNO (reg);
-  size_t i;
   struct queued_reg_save *q;
+  reg_saved_in_data *rir;
+  size_t i;
 
   for (q = queued_reg_saves; q; q = q->next)
     if (q->saved_reg && regn == REGNO (q->saved_reg))
       return q->reg;
 
-  for (i = 0; i < num_regs_saved_in_regs; i++)
-    if (regs_saved_in_regs[i].saved_in_reg
-	&& regn == REGNO (regs_saved_in_regs[i].saved_in_reg))
-      return regs_saved_in_regs[i].orig_reg;
+  FOR_EACH_VEC_ELT (reg_saved_in_data, regs_saved_in_regs, i, rir)
+    if (regn == REGNO (rir->saved_in_reg))
+      return rir->orig_reg;
 
   return NULL_RTX;
 }
@@ -1963,6 +1982,7 @@ dwarf2out_frame_debug_cfa_offset (rtx set, const char *label)
 {
   HOST_WIDE_INT offset;
   rtx src, addr, span;
+  unsigned int sregno;
 
   src = XEXP (set, 1);
   addr = XEXP (set, 0);
@@ -1984,12 +2004,21 @@ dwarf2out_frame_debug_cfa_offset (rtx set, const char *label)
       gcc_unreachable ();
     }
 
-  span = targetm.dwarf_register_span (src);
+  if (src == pc_rtx)
+    {
+      span = NULL;
+      sregno = DWARF_FRAME_RETURN_COLUMN;
+    }
+  else 
+    {
+      span = targetm.dwarf_register_span (src);
+      sregno = DWARF_FRAME_REGNUM (REGNO (src));
+    }
 
   /* ??? We'd like to use queue_reg_save, but we need to come up with
      a different flushing heuristic for epilogues.  */
   if (!span)
-    reg_save (label, DWARF_FRAME_REGNUM (REGNO (src)), INVALID_REGNUM, offset);
+    reg_save (label, sregno, INVALID_REGNUM, offset);
   else
     {
       /* We have a PARALLEL describing where the contents of SRC live.
@@ -2005,8 +2034,8 @@ dwarf2out_frame_debug_cfa_offset (rtx set, const char *label)
 	{
 	  rtx elem = XVECEXP (span, 0, par_index);
 
-	  reg_save (label, DWARF_FRAME_REGNUM (REGNO (elem)),
-		    INVALID_REGNUM, span_offset);
+	  sregno = DWARF_FRAME_REGNUM (REGNO (src));
+	  reg_save (label, sregno, INVALID_REGNUM, span_offset);
 	  span_offset += GET_MODE_SIZE (GET_MODE (elem));
 	}
     }
@@ -2026,7 +2055,10 @@ dwarf2out_frame_debug_cfa_register (rtx set, const char *label)
   if (src == pc_rtx)
     sregno = DWARF_FRAME_RETURN_COLUMN;
   else
-    sregno = DWARF_FRAME_REGNUM (REGNO (src));
+    {
+      record_reg_saved_in_reg (dest, src);
+      sregno = DWARF_FRAME_REGNUM (REGNO (src));
+    }
 
   dregno = DWARF_FRAME_REGNUM (REGNO (dest));
 
@@ -2800,6 +2832,7 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
   const char *label;
   rtx note, n;
   bool handled_one = false;
+  bool need_flush = false;
 
   if (!NONJUMP_INSN_P (insn) || clobbers_queued_reg_save (insn))
     dwarf2out_flush_queued_reg_saves ();
@@ -2822,7 +2855,7 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
       {
       case REG_FRAME_RELATED_EXPR:
 	insn = XEXP (note, 0);
-	goto found;
+	goto do_frame_expr;
 
       case REG_CFA_DEF_CFA:
 	dwarf2out_frame_debug_def_cfa (XEXP (note, 0), label);
@@ -2902,24 +2935,36 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
 	handled_one = true;
 	break;
 
+      case REG_CFA_FLUSH_QUEUE:
+	/* The actual flush happens below.  */
+	need_flush = true;
+	handled_one = true;
+	break;
+
       default:
 	break;
       }
+
   if (handled_one)
     {
-      if (any_cfis_emitted)
-	dwarf2out_flush_queued_reg_saves ();
-      return;
+      /* Minimize the number of advances by emitting the entire queue
+	 once anything is emitted.  */
+      need_flush |= any_cfis_emitted;
+    }
+  else
+    {
+      insn = PATTERN (insn);
+    do_frame_expr:
+      dwarf2out_frame_debug_expr (insn, label);
+
+      /* Check again.  A parallel can save and update the same register.
+         We could probably check just once, here, but this is safer than
+         removing the check at the start of the function.  */
+      if (any_cfis_emitted || clobbers_queued_reg_save (insn))
+	need_flush = true;
     }
 
-  insn = PATTERN (insn);
- found:
-  dwarf2out_frame_debug_expr (insn, label);
-
-  /* Check again.  A parallel can save and update the same register.
-     We could probably check just once, here, but this is safer than
-     removing the check above.  */
-  if (any_cfis_emitted || clobbers_queued_reg_save (insn))
+  if (need_flush)
     dwarf2out_flush_queued_reg_saves ();
 }
 
@@ -2928,8 +2973,6 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
 void
 dwarf2out_frame_debug_init (void)
 {
-  size_t i;
-
   /* Flush any queued register saves.  */
   dwarf2out_flush_queued_reg_saves ();
 
@@ -2943,12 +2986,7 @@ dwarf2out_frame_debug_init (void)
   cfa_temp.reg = -1;
   cfa_temp.offset = 0;
 
-  for (i = 0; i < num_regs_saved_in_regs; i++)
-    {
-      regs_saved_in_regs[i].orig_reg = NULL_RTX;
-      regs_saved_in_regs[i].saved_in_reg = NULL_RTX;
-    }
-  num_regs_saved_in_regs = 0;
+  regs_saved_in_regs = NULL;
 
   if (barrier_args_size)
     {
@@ -13151,6 +13189,8 @@ modified_type_die (tree type, int is_const_type, int is_volatile_type,
 	name = DECL_NAME (name);
       add_name_attribute (mod_type_die, IDENTIFIER_POINTER (name));
       add_gnat_descriptive_type_attribute (mod_type_die, type, context_die);
+      if (TYPE_ARTIFICIAL (type))
+	add_AT_flag (mod_type_die, DW_AT_artificial, 1);
     }
   /* This probably indicates a bug.  */
   else if (mod_type_die && mod_type_die->die_tag == DW_TAG_base_type)
@@ -19406,6 +19446,8 @@ gen_array_type_die (tree type, dw_die_ref context_die)
   array_die = new_die (DW_TAG_array_type, scope_die, type);
   add_name_attribute (array_die, type_tag (type));
   add_gnat_descriptive_type_attribute (array_die, type, context_die);
+  if (TYPE_ARTIFICIAL (type))
+    add_AT_flag (array_die, DW_AT_artificial, 1);
   equate_type_number_to_die (type, array_die);
 
   if (TREE_CODE (type) == VECTOR_TYPE)
@@ -19709,6 +19751,8 @@ gen_enumeration_type_die (tree type, dw_die_ref context_die)
       equate_type_number_to_die (type, type_die);
       add_name_attribute (type_die, type_tag (type));
       add_gnat_descriptive_type_attribute (type_die, type, context_die);
+      if (TYPE_ARTIFICIAL (type))
+	add_AT_flag (type_die, DW_AT_artificial, 1);
       if (dwarf_version >= 4 || !dwarf_strict)
 	{
 	  if (ENUM_IS_SCOPED (type))
@@ -21566,6 +21610,8 @@ gen_struct_or_union_type_die (tree type, dw_die_ref context_die,
 	{
 	  add_name_attribute (type_die, type_tag (type));
 	  add_gnat_descriptive_type_attribute (type_die, type, context_die);
+	  if (TYPE_ARTIFICIAL (type))
+	    add_AT_flag (type_die, DW_AT_artificial, 1);
 	}
     }
   else

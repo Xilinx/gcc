@@ -1,3 +1,69 @@
+2011-07-03  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49610
+	* gcc.dg/vect/pr49610.c: New test.
+
+2011-07-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/debug1.ads: New test.
+
+2011-07-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49562
+	* gfortran.dg/typebound_proc_23.f90: New.
+
+2011-07-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/49605
+	* g++.dg/warn/delete-non-virtual-dtor.C: Adjust.
+
+2011-07-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48261
+	* g++.dg/template/template-id-3.C: New.
+
+	PR c++/48593
+	* g++.dg/template/qualified-id4.C: New.
+
+	PR c++/48883
+	* g++.dg/template/explicit-args4.C: New.
+
+	PR c++/49085
+	* g++.dg/template/offsetof2.C: New.
+
+2011-07-01  Kai Tietz  <ktietz@redhat.com>
+
+        * gcc.dg/tree-ssa/bitwise-sink.c: New test.
+
+2011-07-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libmudflap/49549
+	* lib/target-supports.exp (check_effective_target_gld): New proc.
+
+2011-07-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49603
+	* gcc.dg/torture/pr49603.c: New testcase.
+
+2011-06-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49387
+	* g++.dg/rtti/template1.C: New.
+
+	PR c++/49569
+	* g++.dg/cpp0x/regress/ctor1.C: New.
+
+	PR c++/49355
+	* g++.dg/cpp0x/initlist54.C: New.
+
+2011-06-30  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/tree-ssa/sra-12.c: New test.
+
+2011-06-29  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/named.C: Test subobject of xvalue.
+
 2011-06-30  Richard Guenther  <rguenther@suse.de>
 
 	PR tree-optimization/46787
@@ -453,7 +519,7 @@
 
 2011-06-18  Janne Blomqvist  <jb@gcc.gnu.org>
 
-	PR libfortran/48296
+	PR libfortran/49296
 	* gfortran.dg/read_list_eof_1.f90: New test.
 
 2011-06-18  Jakub Jelinek  <jakub@redhat.com>

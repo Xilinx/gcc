@@ -1504,7 +1504,8 @@ finish_parenthesized_expr (tree expr)
     /* This inhibits warnings in c_common_truthvalue_conversion.  */
     TREE_NO_WARNING (expr) = 1;
 
-  if (TREE_CODE (expr) == OFFSET_REF)
+  if (TREE_CODE (expr) == OFFSET_REF
+      || TREE_CODE (expr) == SCOPE_REF)
     /* [expr.unary.op]/3 The qualified id of a pointer-to-member must not be
        enclosed in parentheses.  */
     PTRMEM_OK_P (expr) = 0;
@@ -3422,6 +3423,12 @@ finish_offsetof (tree expr)
     }
   if (REFERENCE_REF_P (expr))
     expr = TREE_OPERAND (expr, 0);
+  if (TREE_CODE (expr) == COMPONENT_REF)
+    {
+      tree object = TREE_OPERAND (expr, 0);
+      if (!complete_type_or_else (TREE_TYPE (object), object))
+	return error_mark_node;
+    }
   return fold_offsetof (expr, NULL_TREE);
 }
 

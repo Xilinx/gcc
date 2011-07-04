@@ -1,3 +1,55 @@
+2011-07-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/49605
+	* init.c (build_delete): Only warn for sfk_deleting_destructor.
+
+2011-07-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* Make-lang.in (cp/decl.o): Depend on pointer-set.h.
+	(cp/class.o): Likewise.
+	(cp/error.o): Likewise.
+	(cp/name-lookup.o): Likewise.
+	(cp/decl2.o): Likewise.  Don't depend on $(POINTER_SET_H).
+
+2011-07-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48261
+	* pt.c (lookup_template_function): Handle non-function.
+
+	PR c++/48593
+	* pt.c (tsubst_qualified_id): Check PTRMEM_OK_P.
+	* tree.c (build_qualified_name): Set PTRMEM_OK_P.
+	* semantics.c (finish_parenthesized_expr): Clear PTRMEM_OK_P on
+	SCOPE_REF, too.
+	* cp-tree.h (PTRMEM_OK_P): Apply to SCOPE_REF, too.
+	(QUALIFIED_NAME_IS_TEMPLATE): Switch to lang flag 1.
+
+	PR c++/48883
+	PR c++/49609
+	* pt.c (resolve_nondeduced_context): Call mark_used.
+
+	PR c++/49085
+	* semantics.c (finish_offsetof): Complain about incomplete type.
+
+2011-06-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49387
+	* rtti.c (get_tinfo_decl): Call complete_type.
+
+	PR c++/49569
+	* method.c (implicitly_declare_fn): Set DECL_PARM_LEVEL and
+	DECL_PARM_INDEX on rhs parm.
+
+	* pt.c (iterative_hash_template_arg): Use cp_tree_operand_length.
+
+	PR c++/49355
+	* tree.c (stabilize_init): Handle aggregate initialization.
+
+	PR c++/48481
+	* name-lookup.c (struct arg_lookup): Add fn_set.
+	(add_function): Check it.
+	(lookup_arg_dependent_1): Initialize it.
+
 2011-06-29  Jason Merrill  <jason@redhat.com>
 
 	PR c++/49216

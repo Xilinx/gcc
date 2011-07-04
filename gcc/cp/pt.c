@@ -1609,7 +1609,7 @@ iterative_hash_template_arg (tree arg, hashval_t val)
     default:
       gcc_assert (IS_EXPR_CODE_CLASS (tclass));
       {
-	unsigned n = TREE_OPERAND_LENGTH (arg);
+	unsigned n = cp_tree_operand_length (arg);
 	for (i = 0; i < n; ++i)
 	  val = iterative_hash_template_arg (TREE_OPERAND (arg, i), val);
 	return val;
@@ -6622,8 +6622,12 @@ lookup_template_function (tree fns, tree arglist)
     return error_mark_node;
 
   gcc_assert (!arglist || TREE_CODE (arglist) == TREE_VEC);
-  gcc_assert (fns && (is_overloaded_fn (fns)
-		      || TREE_CODE (fns) == IDENTIFIER_NODE));
+
+  if (!is_overloaded_fn (fns) && TREE_CODE (fns) != IDENTIFIER_NODE)
+    {
+      error ("%q#D is not a function template", fns);
+      return error_mark_node;
+    }
 
   if (BASELINK_P (fns))
     {
@@ -11344,7 +11348,7 @@ tsubst_qualified_id (tree qualified_id, tree args,
       expr = (adjust_result_of_qualified_name_lookup
 	      (expr, scope, current_class_type));
       expr = (finish_qualified_id_expr
-	      (scope, expr, done, address_p,
+	      (scope, expr, done, address_p && PTRMEM_OK_P (qualified_id),
 	       QUALIFIED_NAME_IS_TEMPLATE (qualified_id),
 	       /*template_arg_p=*/false));
     }
@@ -14679,6 +14683,7 @@ resolve_nondeduced_context (tree orig_expr)
 	}
       if (good == 1)
 	{
+	  mark_used (goodfn);
 	  expr = goodfn;
 	  if (baselink)
 	    expr = build_baselink (BASELINK_BINFO (baselink),
