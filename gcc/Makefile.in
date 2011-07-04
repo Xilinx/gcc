@@ -359,6 +359,9 @@ DECNUMFMT = $(srcdir)/../libdecnumber/$(enable_decimal_float)
 DECNUMINC = -I$(DECNUM) -I$(DECNUMFMT) -I../libdecnumber
 LIBDECNUMBER = ../libdecnumber/libdecnumber.a
 
+#c-family header
+CFAMILYINC=-I$(srcdir)/c-family
+
 # Target to use when installing include directory.  Either
 # install-headers-tar, install-headers-cpio or install-headers-cp.
 INSTALL_HEADERS_DIR = @build_install_headers_dir@
@@ -1104,8 +1107,8 @@ INCLUDES = -I. -I$(@D) -I$(srcdir) -I$(srcdir)/$(@D) \
 	   -I$(srcdir)/melt/generated \
 	   -I$(srcdir)/../include @INCINTL@ \
 	   $(CPPINC) $(GMPINC) $(DECNUMINC) \
-	   $(PPLINC) $(CLOOGINC)
-
+	   $(PPLINC) $(CLOOGINC) \
+	   $(CFAMILYINC)
 .c.o:
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) $< $(OUTPUT_OPTION)
 

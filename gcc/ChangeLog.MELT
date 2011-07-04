@@ -1,3 +1,13 @@
+ 
+2011-07-04  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt-runtime.c: Include c-pragma.h.
+	[__GNUC__>4.6] (melt_handle_melt_pragma, handle_melt_pragma,
+	melt_pragma_callback): Add functions for full pragma handling.
+	[__GNUC__<=4.6] (melt_handle_melt_pragma, handle_melt_pragma,
+	melt_pragma_callback): Add functions for limited pragma handling.
+	(melt_really_initialize): Register a callback for pragma.
+	* Makefile.in (CFAMILYINC): We need c-family header in include headers.
 
 2011-07-01  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-macro.melt: Correct spelling mistakes:: conjonction

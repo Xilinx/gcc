@@ -74,6 +74,7 @@ along with GCC; see the file COPYING3.   If not see
 #include "md5.h"
 #include "plugin.h"
 #include "cppdefault.h"
+#include "c-pragma.h"
 
 #if BUILDING_GCC_VERSION > 4005
 /* GCC 4.6 has realmpfr.h which includes <mpfr.h>  */
@@ -8969,6 +8970,333 @@ melt_attribute_callback(void *gcc_data ATTRIBUTE_UNUSED,
   register_attribute(&melt_attr_spec);
 }
 
+/* We declare weak functions because they cannot be linked when we use lto (it
+   loses langage specific informations).
+   If you use one of those functions you must check them to be not NULL.
+*/
+extern enum cpp_ttype __attribute__((weak)) pragma_lex (tree *);
+
+/* Test for GCC > 4.6.0.  */
+#if __GNUC__ > 4 || \
+    (__GNUC__ == 4 && (__GNUC_MINOR__ > 6))
+/* Full pragma with data support.   */
+
+/* Call the MELT function which handle pragma: it is one of the handler of the
+   list sysdata_meltpragmas.  First argument is a tree containing the operator
+   and the second argument contains a list of tree (the arguments of the
+   pragma).  Third argument is the index of the handler to use (in list
+   sysdata_meltpragmas).  */
+void melt_handle_melt_pragma (melt_ptr_t optreev, melt_ptr_t listargtreev,
+                              long i_handler);
+
+extern void __attribute__((weak)) c_register_pragma_with_expansion_and_data
+                                    (const char *space, const char *name,
+                                     pragma_handler_2arg handler, void *data);
+
+/* Handle a melt pragma: data contains the index of the pragma handler.  */
+static void
+handle_melt_pragma (cpp_reader *ARG_UNUSED(dummy), void *data)
+{
+  enum cpp_ttype token;
+  /* List containing the pragma arguments .  */
+  tree x;
+  long i_handler = (long) data;
+  MELT_ENTERFRAME (3, NULL);
+#define seqv      meltfram__.mcfr_varptr[0]
+#define treev     meltfram__.mcfr_varptr[1]
+#define optreev   meltfram__.mcfr_varptr[2]
+  if (!pragma_lex || !c_register_pragma_with_expansion_and_data)
+    fatal_error ("Cannot use pragma symbol at this level \
+                   (maybe you use -flto which is incompatible).");
+
+  token = pragma_lex (&x);
+  if (token != CPP_NAME)
+    {
+      error ("malformed #pragma melt, ignored");
+      goto end;
+    }
+  optreev = meltgc_new_tree ((meltobject_ptr_t) MELT_PREDEF (DISCR_TREE), x);
+  /* If the pragma has the form #pragma MELT name id (...) then optreev is the
+  tree containing "id".  */
+  /* Next element should be a parenthesis opening.  */
+  token = pragma_lex (&x);
+  if (token != CPP_OPEN_PAREN)
+    {
+      if (token != CPP_EOF)
+	{
+	  error ("malformed #pragma melt, ignored");
+	  goto end;
+	}
+      else{ /* We have a pragma of the type '#pragma MELT name instr'.  */
+	melt_handle_melt_pragma ((melt_ptr_t ) optreev, (melt_ptr_t ) NULL,
+				 i_handler);
+      }
+    }
+  else
+    {/* Opening parenthesis.  */
+      seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+      do
+	{
+	  token = pragma_lex (&x);
+	  if(token != CPP_NAME && token != CPP_STRING && token != CPP_NUMBER)
+	    {
+	      error ("malformed #pragma melt, ignored");
+	      goto end;
+	    }
+	  /* Convert gcc tree into a boxed tree.  */
+	  treev = meltgc_new_tree ((meltobject_ptr_t) MELT_PREDEF (DISCR_TREE),
+				   x);
+	  /* Put the arg in IDENTIFIER_POINTER (x) in a list.  */
+	  meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) treev);
+	  token = pragma_lex (&x);
+	} while (token == CPP_COMMA);
+      if (token == CPP_CLOSE_PAREN && pragma_lex (&x) == CPP_EOF)
+	melt_handle_melt_pragma ((melt_ptr_t ) optreev, (melt_ptr_t ) seqv,
+				 i_handler);
+      else
+	{
+	  error ("malformed #pragma melt, ignored");
+	  goto end;
+	}
+    }
+end: MELT_EXITFRAME ();
+#undef seqv
+#undef treev
+#undef optreev
+}
+
+/* We accept a full pragma handling, with the possibility of having the name
+  defined by the plugin. We use the data field of
+  c_register_pragma_with_expansion_and_data to give the index (as a long) of the
+  handler in the list of defined handler.
+
+  To be accepted the pragma must have the following form:
+    #pragma MELT plugin_name op
+        or
+    #pragma MELT plugin_name op (arg1, arg2 , ...)
+        with argX as a name, a string or a number.
+*/
+static void
+melt_pragma_callback (void *gcc_data ATTRIBUTE_UNUSED,
+                      void *user_data ATTRIBUTE_UNUSED)
+{
+  long i_handler, nb_pragma = 0;
+  /* Recover the sysdata_meltpragma_list.  */
+  MELT_ENTERFRAME (4, NULL);
+#define mulpragmav meltfram__.mcfr_varptr[0]
+#define cgccpragmav meltfram__.mcfr_varptr[1]
+#define pragmastrv meltfram__.mcfr_varptr[2]
+  mulpragmav = melt_get_inisysdata (FSYSDAT_MELTPRAGMAS);
+  if (melt_magic_discr ((melt_ptr_t) mulpragmav) != MELTOBMAG_MULTIPLE)
+    goto end;
+  nb_pragma = (long) (((meltmultiple_ptr_t) mulpragmav)->nbval);
+  for (i_handler = 0; i_handler < (long) nb_pragma; i_handler++)
+    {
+      cgccpragmav = (( struct meltmultiple_st *) mulpragmav)->tabval[i_handler];
+      if (!melt_is_instance_of ((melt_ptr_t) cgccpragmav ,
+				( melt_ptr_t) MELT_PREDEF (CLASS_GCC_PRAGMA)))
+        {
+          fatal_error("FSYSDAT_MELTPRAGMAS must contains only \
+          CLASS_GCC_PRAGMA object.");
+        }
+    pragmastrv = melt_object_nth_field ((melt_ptr_t) cgccpragmav, FNAMED_NAME);
+    /* Register a new pass with the name registered in gcc_pragma object.  We
+      give it as data too, in order to use it in the handler.  */
+    c_register_pragma_with_expansion_and_data ("MELT", melt_string_str
+                               ((melt_ptr_t) pragmastrv), handle_melt_pragma,
+                                ((void *) i_handler));
+    }
+
+end: MELT_EXITFRAME () ;
+#undef mulpragmav
+#undef cgccpragmav
+#undef pragmastrv
+}
+
+void melt_handle_melt_pragma (melt_ptr_t optreev, melt_ptr_t listargtreev,
+                              long i_handler)
+{
+MELT_ENTERFRAME (4, NULL);
+#define pragclov     meltfram__.mcfr_varptr[0]
+#define cgccpragmav  meltfram__.mcfr_varptr[1]
+#define seqv         meltfram__.mcfr_varptr[2]
+#define mulpragmav   meltfram__.mcfr_varptr[3]
+  seqv = listargtreev;
+  /* We first recover the list of the handler.  */
+  mulpragmav = melt_get_inisysdata (FSYSDAT_MELTPRAGMAS);
+  if (melt_magic_discr ((melt_ptr_t) mulpragmav) != MELTOBMAG_MULTIPLE)
+    {
+      error ("MELT error : invalid pragma handling : field FSYSDAT_MELTPRAGMAS \
+should contain a multiple!");
+      goto end;
+    }
+  /* We use the i_handler to find the good handler (index handler).  */
+  cgccpragmav = melt_multiple_nth ((melt_ptr_t) mulpragmav, i_handler);
+  if (cgccpragmav == NULL)
+    {
+      error ("MELT error : invalid pragma handling : Invalid index %ld for the \
+handler list defined in FSYSDAT_MELTPRAGMAS!", i_handler);
+      goto end;
+    }
+
+  pragclov = melt_object_nth_field((melt_ptr_t) cgccpragmav,
+                                   FGCCPRAGMA_HANDLER);
+  /* We have the good handler, so we apply it.  */
+  if (melt_magic_discr ((melt_ptr_t) pragclov) == MELTOBMAG_CLOSURE)
+    {
+      union meltparam_un pararg[1];
+      pararg[0].meltbp_aptr = (melt_ptr_t *) &seqv;
+
+      (void) melt_apply ((meltclosure_ptr_t) pragclov, (melt_ptr_t) optreev,
+			 MELTBPARSTR_PTR , pararg, "", NULL);
+      goto end;
+    }
+  else
+    {
+      error ("MELT error : invalid pragma handling : pragma_handler field not \
+found in class_gcc_pragma!");
+      goto end;
+    }
+end:
+  MELT_EXITFRAME ();
+#undef mulpragmav
+#undef pragclov
+#undef cgccpragmav
+#undef seqv
+}
+
+#else
+/* Limited pragma handling (only one pragma name which is always 'melt'.  */
+
+void melt_handle_melt_pragma (melt_ptr_t optreev, melt_ptr_t listargtreev);
+
+extern void __attribute__((weak)) c_register_pragma_with_expansion
+                                      (const char *, const char *,
+                                       pragma_handler_1arg);
+
+/* Handle a melt pragma.  */
+static void
+handle_melt_pragma (cpp_reader *ARG_UNUSED(dummy))
+{
+  enum cpp_ttype token;
+  /* List containing the pragma argument.  */
+  tree x;
+  MELT_ENTERFRAME (3, NULL);
+#define seqv      meltfram__.mcfr_varptr[0]
+#define treev     meltfram__.mcfr_varptr[1]
+#define optreev   meltfram__.mcfr_varptr[2]
+  if (! pragma_lex || ! c_register_pragma_with_expansion)
+    fatal_error("Cannot use pragma symbol at this level (maybe you use -flto \
+which is incompatible).");
+
+  token = pragma_lex (&x);
+  if (token != CPP_NAME)
+    {
+      error ("malformed #pragma melt, ignored");
+      goto end;
+    }
+  optreev = meltgc_new_tree ((meltobject_ptr_t) MELT_PREDEF (DISCR_TREE), x);
+  /* If the pragma has the form #pragma PLUGIN melt id (...) then optreev is the
+  tree containing "id".
+  Next element should be a parenthesis opening.  */
+  token = pragma_lex (&x);
+  if (token != CPP_OPEN_PAREN)
+    {
+      if (token != CPP_EOF)
+	{
+	  error ("malformed #pragma melt, ignored");
+	  goto end;
+	}
+      else{ /* We have a pragma of the type '#pragma PLUGIN melt instr'.  */
+	melt_handle_melt_pragma ((melt_ptr_t ) optreev, (melt_ptr_t ) NULL);
+      }
+    }
+  else /* Opening parenthesis.  */
+    {
+      seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+      do
+	{
+	  token = pragma_lex (&x);
+	  if(token != CPP_NAME && token != CPP_STRING && token != CPP_NUMBER)
+	    {
+	      error ("malformed #pragma melt, ignored");
+	      goto end;
+	    }
+	  /* Convert gcc tree into a boxed tree.  */
+	  treev = meltgc_new_tree ((meltobject_ptr_t) MELT_PREDEF (DISCR_TREE),
+				   x);
+	  /* Put the arg in IDENTIFIER_POINTER (x) in a list.  */
+	  meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) treev);
+	  token = pragma_lex (&x);
+	} while (token == CPP_COMMA);
+      if (token == CPP_CLOSE_PAREN && pragma_lex(&x) == CPP_EOF)
+	melt_handle_melt_pragma ((melt_ptr_t ) optreev, (melt_ptr_t ) seqv);
+      else
+	{
+	  error ("malformed #pragma melt, ignored");
+	  goto end;
+	}
+    }
+end: MELT_EXITFRAME () ;
+#undef seqv
+#undef treev
+#undef optreev
+}
+
+
+/*Call the MELT function which handle pragma (sysdata_meltpragmas) and
+give as first argument a tree containing the operator and a second argument
+containing a list of tree (the arguments of the pragma). */
+void melt_handle_melt_pragma (melt_ptr_t optreev, melt_ptr_t listargtreev)
+{
+MELT_ENTERFRAME (4, NULL);
+#define mulpragmav   meltfram__.mcfr_varptr[0]
+#define cgccpragmav  meltfram__.mcfr_varptr[1]
+#define pragclov     meltfram__.mcfr_varptr[2]
+#define seqv    meltfram__.mcfr_varptr[3]
+  seqv = listargtreev;
+  /* FSYSDAT_MELTPRAGMAS is a list containing only one pragma handler (as we
+are in GCC 4.6 support mode).  */
+  mulpragmav = melt_get_inisysdata (FSYSDAT_MELTPRAGMAS);
+  if (melt_magic_discr ((melt_ptr_t) mulpragmav) != MELTOBMAG_MULTIPLE)
+    {
+      error ("MELT error : invalid pragma handling : field FSYSDAT_MELTPRAGMAS \
+should contain a multiple!");
+      goto end;
+    }
+  cgccpragmav = melt_multiple_nth ((melt_ptr_t) mulpragmav, 0);
+  pragclov = melt_object_nth_field((melt_ptr_t) cgccpragmav,
+                                   FGCCPRAGMA_HANDLER);
+  if (melt_magic_discr ((melt_ptr_t) pragclov) == MELTOBMAG_CLOSURE)
+    {
+      union meltparam_un pararg[1];
+      pararg[0].meltbp_aptr = (melt_ptr_t *) & seqv;
+      (void) melt_apply ((meltclosure_ptr_t) pragclov, (melt_ptr_t) optreev,
+          MELTBPARSTR_PTR , pararg, "", NULL);
+      goto end;
+    }
+  else
+    {
+      error ("MELT error : invalid pragma handling : pragma_handler \
+field not found in class_gcc_pragma!");
+      goto end;
+    }
+end:
+  MELT_EXITFRAME ();
+#undef cgccpragmav
+#undef mulpragmav
+#undef pragclov
+#undef seqv
+}
+
+static void
+melt_pragma_callback (void *gcc_data ATTRIBUTE_UNUSED,
+                      void* user_data ATTRIBUTE_UNUSED)
+{
+  c_register_pragma_with_expansion ("GCCPLUGIN", "melt", handle_melt_pragma);
+}
+
+#endif  /*GCC >4.6 for handling pragma support*/
 
 /* the plugin callback when starting a compilation unit */
 static void
@@ -9225,6 +9553,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     NULL);
   register_callback (melt_plugin_name, PLUGIN_ATTRIBUTES,
     melt_attribute_callback,
+    NULL);
+  register_callback (melt_plugin_name, PLUGIN_PRAGMAS, melt_pragma_callback,
     NULL);
   register_callback (melt_plugin_name, PLUGIN_START_UNIT,
     melt_startunit_callback,
