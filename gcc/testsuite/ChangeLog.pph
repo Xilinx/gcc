@@ -1,3 +1,7 @@
+2011-07-04   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/pph.map: Sort.
+
 2011-07-04  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c1meteor-contest.cc: Make executable.
