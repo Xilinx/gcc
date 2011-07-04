@@ -11,6 +11,10 @@
 	comment.
 
 2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_ggcstart_callback): New routine.
+	(melt_really_initialize): Register it for PLUGIN_GGC_START.
+
+2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_raw_put_mappointers)
 	(meltgc_raw_remove_mappointers): Remove discrv local MELT pointer.
 	(meltgc_read_file, meltgc_read_from_rawstring): Remove genv local MELT pointer.

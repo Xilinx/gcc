@@ -1078,6 +1078,25 @@ melt_minor_copying_garbage_collector (size_t wanted)
 }
 
 
+/* Plugin callback started at beginning of GGC, to run a minor copying
+   MELT GC.  */
+static void
+melt_ggcstart_callback (void *gcc_data ATTRIBUTE_UNUSED,
+			  void* user_data ATTRIBUTE_UNUSED)
+{
+  if (melt_startalz != NULL && melt_curalz != NULL
+      && (char *) melt_curalz > (char *) melt_startalz)
+    {
+      if (melt_prohibit_garbcoll)
+	fatal_error ("melt minor garbage collection prohibited from GGC start callback");
+      melt_debuggc_eprintf 
+	("melt_ggcstart_callback need a minor copying GC with %ld young Kilobytes\n",
+	 (((char *) melt_curalz - (char *) melt_startalz))>>10);
+      melt_minor_copying_garbage_collector (0);
+    }
+}
+
+
 
 /***
  * Our copying garbage collector, based upon GGC which does the full collection.
@@ -9271,6 +9290,9 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
      as a plugin. */
   register_callback (melt_plugin_name, PLUGIN_GGC_MARKING, 
     melt_marking_callback,
+    NULL);
+  register_callback (melt_plugin_name, PLUGIN_GGC_START, 
+    melt_ggcstart_callback,
     NULL);
   register_callback (melt_plugin_name, PLUGIN_ATTRIBUTES,
     melt_attribute_callback,
