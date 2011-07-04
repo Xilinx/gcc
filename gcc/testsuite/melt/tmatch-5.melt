@@ -2,14 +2,24 @@
 ;; file tmatch-5.melt
 
 #| run in buildir/gcc
- ./cc1 -fmelt-mode=translatefile  -fmelt-module-path=.    -fmelt-source-path=.:$GCCMELTSOURCE/gcc/melt \
-    -fmelt-tempdir=/tmp -fmelt-init=@warmelt2 \
+ ln -sv $GCCMELTSOURCE/gcc/testsuite/melt/tmatch-5.melt
+ ./cc1 -fmelt-mode=translatefile  -fmelt-module-path=melt-stage3:.    -fmelt-source-path=melt-stage3:. \
+    -fmelt-tempdir=/tmp -fmelt-init=@warmelt-3 \
     -fmelt-option=match_graphic=/tmp/melt5graph,alternate_match \
-    -fmelt-arg=$GCCMELTSOURCE/gcc/testsuite/melt/tmatch-5.melt \
+    -fmelt-arg=tmatch-5.melt \
     -fmelt-debug empty-file-for-melt.c
 |#
 
 
+(defun ttinymicro5 (x g)
+  (match x
+   (
+    ?(instance class_container 
+	       :container_value ?xxx)
+     (g xxx))
+   ))
+
+#|	 
 (defun tmicro5 (x g)
   (match x
    (
@@ -20,7 +30,6 @@
       (g xx))
    ))
 
-#|	 
 (defun tmini5 (x g)
   (match 
    x

@@ -1,7 +1,7 @@
 ;; File warmelt-genobj.melt -*- Lisp -*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -665,8 +665,8 @@ $SBUF.}#
 ;; be separately compiled with its own method so this should never be
 ;; called
 (defun compilobj_catchall_nrep (recv gcx)
-  (debug_msg gcx "class_rep compile_obj gcx")
-  (debug_msg recv "class_rep compile_obj recv")
+  (debug_msg gcx "class_nrep compile_obj gcx")
+  (debug_msg recv "class_nrep compile_obj recv")
   (let ( (discr (discrim recv)) 
 	 (discrname  (unsafe_get_field :named_name discr))
 	 )
@@ -5076,6 +5076,7 @@ $SBUF.}#
 	(nbody (unsafe_get_field :namatch_body nmat))
 	(nflags (unsafe_get_field :namatch_flags nmat))
 	(obodyl (make_list discr_list))
+	(matmap (get_field :gncx_matchmap gcx))
 	)
 
     (debug_msg nmatched "compilobj_nrep_altmatch nmatched")
@@ -5083,6 +5084,7 @@ $SBUF.}#
     (debug_msg nflags "compilobj_nrep_altmatch nflags")
     (debug_msg nctyp "compilobj_nrep_altmatch nctyp")
     (debug_msg nbody "compilobj_nrep_altmatch nbody")
+    (debug_msg matmap "compilobj_nrep_altmatch matmap")
     (let (
 	  (nsymbres (get_field :nocc_symb nres))
 	  (obvares (get_free_objloctyped gcx nsymbres nctyp))
@@ -5120,6 +5122,55 @@ $SBUF.}#
       )))
 (install_method class_nrep_altmatch compile_obj compilobj_nrep_altmatch)
 
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_matchlabel (nmlab gcx)
+  (assert_msg "check nmlab" (is_a nmlab class_nrep_match_label))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (debug_msg nmlab "compilobj_nrep_matchlabel nmlab")
+  (debug_msg gcx "compilobj_nrep_matchlabel gcx")
+  (let (
+	(nloc (unsafe_get_field :nrep_loc nmlab))
+	(nstep (unsafe_get_field :nmlab_step nmlab))
+	(stepixv (get_field :mstep_index nstep))
+	)
+    (debug_msg stepixv "compilobj_nrep_matchlabel stepixv")
+    (debug_msg nstep "compilobj_nrep_matchlabel nstep")
+    (assert_msg "@$@unimplemented compilobj_nrep_matchlabel")
+    ))
+
+(install_method class_nrep_match_label compile_obj compilobj_nrep_matchlabel)
+
+
+;;;;;;;;;;;;;;;;
+(defun compilobj_nrep_matchdatainit (nmdat gcx)
+  (assert_msg "check nmdat" (is_a nmdat class_nrep_match_data_initializer))
+  (assert_msg "check gcx" (is_a gcx class_c_generation_context))
+  (debug_msg nmdat "compilobj_nrep_matchdatainit nmdat")
+  (debug_msg gcx "compilobj_nrep_matchdatainit gcx")
+  (let (
+	(nloc (unsafe_get_field :nrep_loc nmdat))
+	(ndata (get_field :nmdac_data nmdat))
+	(ndatatype (get_field :nrmatd_ctype ndata))
+	(ndatarank (get_field :nrmatd_rank ndata))
+	(matdata (get_field :nrmatd_mdata ndata))
+	(matchmap (get_field :gncx_matchmap gcx))
+	)
+    (debug_msg ndata "compilobj_nrep_matchdatainit ndata")
+    (debug_msg ndatatype "compilobj_nrep_matchdatainit ndatatype")
+    (debug_msg ndatarank "compilobj_nrep_matchdatainit ndatarank")
+    (debug_msg matdata "compilobj_nrep_matchdatainit matdata")
+    (debug_msg matchmap "compilobj_nrep_matchdatainit matchmap")
+    (assert_msg "@$@unimplemented compilobj_nrep_matchdatainit")
+    ))
+
+(install_method class_nrep_match_data_initializer compile_obj compilobj_nrep_matchdatainit)
+
+
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to return the label instr of a tester
 (defun normtester_labelinstr (nt gcx)
   (debug_msg nt "normtester_labelinstr start nt")

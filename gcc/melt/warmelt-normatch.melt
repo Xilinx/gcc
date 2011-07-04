@@ -5092,7 +5092,7 @@ normalized expression.}#
 	   (:else
 	    (debug_msg mgrthen "normstep_mgroup bad mgrthen")
 	    (assert_msg "invalid mgrthen")
-	   )))
+	    )))
 	 (nelsegr 
 	  (cond
 	   ( (is_object mgrelse)
@@ -5108,7 +5108,7 @@ normalized expression.}#
 	   (:else
 	    (debug_msg mgrelse "normstep_mgroup bad mgrelse")
 	    (assert_msg "invalid mgrelse")
-	   )))
+	    )))
 	 )
     (debug_msg ndata "normstep_mgroup ndata")
     (debug_msg matthen "normstep_mgroup matthen")
@@ -6338,30 +6338,40 @@ normalized expression.}#
  class_nrep_match
  ;;
  ;; for alternate matching
- class_matching_context
  class_match_case
- class_matched_data
- class_matched_normal_data
- class_matched_binding
- class_match_step
  class_match_flag
- class_match_step_then
+ class_match_normalization_context
+ class_match_step
  class_match_step_clear
- class_match_step_with_data
- class_match_step_with_flag
- class_match_step_flag_set
- class_match_step_flag_operation 
  class_match_step_flag_conjunction 
  class_match_step_flag_disjunction 
+ class_match_step_flag_operation 
+ class_match_step_flag_set
  class_match_step_success_when_flag
  class_match_step_test
- class_match_step_test_variable
  class_match_step_test_group
  class_match_step_test_instance
  class_match_step_test_matcher
+ class_match_step_test_variable
+ class_match_step_then
+ class_match_step_with_data
+ class_match_step_with_flag
+ class_matched_binding
+ class_matched_data
+ class_matched_normal_data
+ class_matching_context
  ;;
  class_nrep_altmatch
+ class_nrep_jump_when_is_a
+ class_nrep_match_data_action
+ class_nrep_match_data_clear
+ class_nrep_match_data_finalizer
+ class_nrep_match_data_initializer
  class_nrep_match_flag
+ class_nrep_match_jump
+ class_nrep_match_label
+ class_nrep_match_label_end
+ class_nrep_matched_data
  )
 
 ;;; export our values

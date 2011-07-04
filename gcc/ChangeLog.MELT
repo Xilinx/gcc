@@ -1,4 +1,14 @@
 
+
+2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normatch.melt: Exported more classes for altmatch.
+	* melt/warmelt-genobj.melt: Update copyright year.
+	(compilobj_nrep_matchlabel,compilobj_nrep_matchdatainit): New
+	methods.
+
+	* testsuite/melt/tmatch-5.melt: Even simpler.
+	* testsuite/melt/tmatch-6.melt: Better comment.
+
 2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_add_out_raw_len): Removed GCC 4.5 code.
 	(melt_val2passflag): Removed GCC 4.5 specific code.
