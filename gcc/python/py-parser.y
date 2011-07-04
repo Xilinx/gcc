@@ -62,7 +62,6 @@ extern void yyerror( const char * );
 
 %error-verbose
 %start declarations
-%debug
 
 %token CLASS "class"
 %token DEF "def"
@@ -151,8 +150,9 @@ extern void yyerror( const char * );
 %type<symbol> parameter_list
 %type<symbol> parameter_list_stmt
 %type<symbol> print_stmt
-%type<string> funcname
-%type<string> classname
+
+%type<symbol> funcname
+%type<symbol> classname
 
 %left '-' '+'
 %left '*' '/'
@@ -368,7 +368,9 @@ atom: target
 
 call: IDENTIFIER '(' argument_list_stmt ')'
     {
-      gpy_dot_tree_t *dot = dot_build_decl2 (D_CALL_EXPR, $1, $3);
+      gpy_dot_tree_t *dot = dot_build_decl2 (D_CALL_EXPR,
+					     dot_build_identifier($1),
+					     $3);
       $$ = dot;
     }
     ;

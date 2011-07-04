@@ -56,15 +56,22 @@ static
 tree gpy_stmt_pass_lower_gen_concat_identifier (const char * s1,
 						const char * s2)
 {
+  debug ("s1 = <%s> s2 = <%s>!\n", s1, s2);
   size_t s1len = strlen (s1);
   size_t s2len = strlen (s2);
   size_t tlen = s1len + s2len;
 
-  char buffer[tlen + 1];
+  size_t idx = 0, idy = 0;
+  char buffer[tlen+3];
   strncpy (buffer,s1,s1len);
-  strncat (buffer,s2,s2len);
-  buffer[tlen-1] = '\0';
 
+  buffer[s1len] = '.';
+  for (idx = s1len+1; idx<tlen+2; ++idx)
+    {
+      buffer[idx] = s2[idy];
+      ++idy;
+    }
+  buffer[tlen+1] = '\0';
   debug ("buffer = <%s>!\n", buffer);
 
   return get_identifier (buffer);
@@ -116,7 +123,7 @@ void gpy_stmt_pass_lower_gen_toplevl_context (tree module, tree param_decl,
    Creates a DECL_CHAIN of stmts to fold the scalar 
    with the last tree being the address of the primitive 
 */
-tree gpy_stmt_decl_lower_scalar (gpy_dot_tree_t * decl)
+tree gpy_stmt_decl_lower_scalar (gpy_dot_tree_t * decl, tree * cblock)
 {
   tree retval = error_mark_node;
 
@@ -127,12 +134,12 @@ tree gpy_stmt_decl_lower_scalar (gpy_dot_tree_t * decl)
     {
     case D_T_INTEGER:
       {
-	tree address = build_decl (UNKNOWN_LOCATION, VAR_DECL,
+	retval = build_decl (UNKNOWN_LOCATION, VAR_DECL,
 				   create_tmp_var_name ("P"),
 				   gpy_object_type_ptr);
-	retval = build2 (MODIFY_EXPR, gpy_object_type_ptr, address,
-			 gpy_builtin_get_fold_int_call (DOT_lhs_TC (decl)->o.integer));
-	DECL_CHAIN (retval) = address;
+	append_to_statement_list (build2 (MODIFY_EXPR, gpy_object_type_ptr, retval,
+					  gpy_builtin_get_fold_int_call (DOT_lhs_TC (decl)->o.integer)),
+				  cblock);
       }
       break;
 
@@ -144,9 +151,10 @@ tree gpy_stmt_decl_lower_scalar (gpy_dot_tree_t * decl)
   return retval;
 }
 
-tree gpy_stmt_decl_lower_modify (gpy_dot_tree_t * decl,
+tree gpy_stmt_decl_lower_modify (gpy_dot_tree_t * decl, tree * cblock,
 				 VEC(gpy_ctx_t,gc) * context)
 {
+  tree retval = error_mark_node;
   gpy_dot_tree_t * lhs = DOT_lhs_TT (decl);
   gpy_dot_tree_t * rhs = DOT_rhs_TT (decl);
 
@@ -181,25 +189,16 @@ tree gpy_stmt_decl_lower_modify (gpy_dot_tree_t * decl,
     }
   gcc_assert (addr != error_mark_node);
 
-  tree evaluated_rhs_tree  = gpy_stmt_decl_lower_expr (rhs, context);
-  VEC(tree,gc) * stmt_vec = VEC_alloc (tree,gc,0);
-  DECL_CHAIN_2_VEC_TREE (evaluated_rhs_tree, stmt_vec);
+  tree addr_rhs_tree  = gpy_stmt_decl_lower_expr (rhs, cblock, context);
 
-  tree eval_addr = VEC_pop (tree, stmt_vec);
-  VEC_safe_push (tree,gc,stmt_vec,
-		 build2 (MODIFY_EXPR, gpy_object_type_ptr, addr, eval_addr)
-		 );
-  
-  VEC_safe_push (tree, gc, stmt_vec, gpy_builtin_get_incr_ref_call (addr));
-  VEC_safe_push (tree, gc, stmt_vec, addr);
-  
-  tree retval = NULL_TREE;
-  VEC_TREE_2_DECL_CHAIN (stmt_vec, retval);
+  append_to_statement_list (build2 (MODIFY_EXPR, gpy_object_type_ptr, addr, addr_rhs_tree), cblock);
+  append_to_statement_list (gpy_builtin_get_incr_ref_call (addr), cblock);
+  retval = addr;
   
   return retval;
 }
 
-tree gpy_stmt_decl_lower_binary_op (gpy_dot_tree_t * decl,
+tree gpy_stmt_decl_lower_binary_op (gpy_dot_tree_t * decl, tree * cblock,
 				    VEC(gpy_ctx_t,gc) * context)
 {
   tree retval = error_mark_node;
@@ -209,61 +208,46 @@ tree gpy_stmt_decl_lower_binary_op (gpy_dot_tree_t * decl,
   gpy_dot_tree_t * lhs = DOT_lhs_TT (decl);
   gpy_dot_tree_t * rhs = DOT_rhs_TT (decl);
 
-  tree lhs_eval = gpy_stmt_decl_lower_expr (lhs, context);
-  tree rhs_eval = gpy_stmt_decl_lower_expr (rhs, context);
+  tree lhs_eval = gpy_stmt_decl_lower_expr (lhs, cblock, context);
+  tree rhs_eval = gpy_stmt_decl_lower_expr (rhs, cblock, context);
 
-  VEC(tree,gc) * lhs_vec = VEC_alloc (tree,gc,0);
-  VEC(tree,gc) * rhs_vec = VEC_alloc (tree,gc,0);
-
-  DECL_CHAIN_2_VEC_TREE (lhs_eval, lhs_vec);
-  DECL_CHAIN_2_VEC_TREE (rhs_eval, rhs_vec);
-
-  tree lhs_addr = VEC_pop (tree, lhs_vec);
-  tree rhs_addr = VEC_pop (tree, rhs_vec);
-
-  GPY_VEC_stmts_append (tree, lhs_vec, rhs_vec);
   tree op = error_mark_node;
-
   switch (DOT_TYPE (decl))
     {
     case D_ADD_EXPR:
-      op = gpy_builtin_get_eval_expression_call (lhs_addr, rhs_addr,
-						 DOT_TYPE (decl));
+      op = gpy_builtin_get_eval_expression_call (lhs_eval, rhs_eval, DOT_TYPE (decl));
       break;
 
       // ....
 
     default:
-      retval = error_mark_node;
       error ("unhandled binary operation type!\n");
       break;
     }
   gcc_assert (op != error_mark_node);
 
+  
   tree retaddr = build_decl (UNKNOWN_LOCATION, VAR_DECL, create_tmp_var_name("T"),
 			     gpy_object_type_ptr);
-  VEC_safe_push (tree, gc, lhs_vec,
-		 build2 (MODIFY_EXPR, gpy_object_type_ptr, retaddr, op)
-		 );
-  VEC_safe_push (tree, gc, lhs_vec, retaddr);
-  VEC_TREE_2_DECL_CHAIN (lhs_vec, retval); 
+  append_to_statement_list (build2 (MODIFY_EXPR, gpy_object_type_ptr, retaddr, op), cblock);
+  retval = retaddr;
 
   return retval;
 }
 
-tree gpy_stmt_decl_lower_expr (gpy_dot_tree_t * decl,
+tree gpy_stmt_decl_lower_expr (gpy_dot_tree_t * decl, tree * cblock,
 			       VEC(gpy_ctx_t,gc) * context)
 {
-  tree stmt_list = NULL_TREE;
+  tree retval = error_mark_node;
 
   switch (DOT_TYPE (decl))
     {
     case D_PRIMITIVE:
-      stmt_list = gpy_stmt_decl_lower_scalar (decl);
+      retval = gpy_stmt_decl_lower_scalar (decl, cblock);
       break;
 
     case D_IDENTIFIER:
-      stmt_list = gpy_ctx_lookup_decl (context,
+      retval = gpy_ctx_lookup_decl (context,
 				       DOT_IDENTIFIER_POINTER (decl));
       break;
 
@@ -272,27 +256,24 @@ tree gpy_stmt_decl_lower_expr (gpy_dot_tree_t * decl,
 	switch (DOT_TYPE (decl))
 	  {
 	  case D_MODIFY_EXPR:
-	    stmt_list = gpy_stmt_decl_lower_modify (decl, context);
+	    retval = gpy_stmt_decl_lower_modify (decl, cblock, context);
 	    break;
 
 	  case D_ADD_EXPR:
-	    stmt_list = gpy_stmt_decl_lower_binary_op (decl, context);
+	    retval = gpy_stmt_decl_lower_binary_op (decl, cblock, context);
 	    break;
 
 	    // ... the rest of the binary operators!
 
 	  default:
-	    {
-	      error ("unhandled operation type!\n");
-	      stmt_list = error_mark_node;
-	    }
+	    error ("unhandled operation type!\n");
 	    break;
 	  }
       }
       break;
     }
 
-  return stmt_list;
+  return retval;
 }
 
 tree gpy_stmt_pass_lower_functor (gpy_dot_tree_t * decl,
@@ -351,18 +332,7 @@ tree gpy_stmt_pass_lower_functor (gpy_dot_tree_t * decl,
     if (DOT_T_FIELD (idtx) ==  D_D_EXPR)
 	{
 	  // append to stmt list as this goes into the module initilizer...
-	  tree stmt_chain = gpy_stmt_decl_lower_expr (idtx, toplevl_context);
-	  VEC(tree,gc) * stmt_vec = VEC_alloc (tree,gc,0);
-
-	  DECL_CHAIN_2_VEC_TREE (stmt_chain, stmt_vec);
-	  VEC_pop (tree, stmt_vec); // we can ignore the retaddr since we just wont need it
-
-	  int idy; tree __itx = NULL_TREE;
-	  for (idy = 0; VEC_iterate (tree,stmt_vec,idy,__itx); ++idy)
-	    {
-	      DECL_CHAIN (__itx) = NULL_TREE; /* remove the chain just incase.. */
-	      append_to_statement_list (__itx, &block);
-	    }
+	  gpy_stmt_decl_lower_expr (idtx, &block, toplevl_context);
 	  continue;
 	}
 
@@ -447,18 +417,7 @@ VEC(tree,gc) * gpy_stmt_pass_lower_genericify (gpy_hash_tab_t * modules,
       if (DOT_T_FIELD (idtx) ==  D_D_EXPR)
 	{
 	  // append to stmt list as this goes into the module initilizer...
-	  tree stmt_chain = gpy_stmt_decl_lower_expr (idtx, toplevl_context);
-	  VEC(tree,gc) * stmt_vec = VEC_alloc (tree,gc,0);
-
-	  DECL_CHAIN_2_VEC_TREE (stmt_chain, stmt_vec);
-	  VEC_pop (tree, stmt_vec);
-
-	  int idy; tree __itx = NULL_TREE;
-	  for (idy = 0; VEC_iterate (tree,stmt_vec,idy,__itx); ++idy)
-	    {
-	      DECL_CHAIN (__itx) = NULL_TREE; /* remove the chain just incase.. */
-	      append_to_statement_list (__itx, &block);
-	    }
+	  gpy_stmt_decl_lower_expr (idtx, &block, toplevl_context);
 	  continue;
 	}
 
