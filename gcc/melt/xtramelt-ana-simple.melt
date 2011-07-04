@@ -1286,6 +1286,11 @@
 ;; a pass to help write MELT code in C.
 ;; it checks that the meltfram__ structure is correctly dimensionned.
 
+(defclass class_melt_frame_data 
+  :super class_root
+  :fields (meltfram_funcount
+	   ))
+
 (defun meltframe_gate (pass)
   (debug_msg pass "meltframe_gate pass at start")
   (with_cfun_decl
@@ -1304,7 +1309,13 @@
 	   (return)
 	   )
 	  )
-   (inform_at_tree cfundecl "found MELT routine")
+   (let ( (meltdata (get_field :gccpass_data pass))
+	  (:long meltfuncount (get_int (get_field :meltfram_funcount meltdata)))
+	  )
+     (put_fields meltdata 
+		 :meltfram_funcount (make_integerbox discr_integer 
+						     (+i meltfuncount 1)))
+     )
    (return pass)
    )
   )
@@ -1517,17 +1528,21 @@
 
 
 (defun meltframe_docmd (cmd moduldata)
-  (let ( (justscanpass
+  (let ( (meltframedata
+	  (instance class_melt_frame_data
+		    :meltfram_funcount (make_integerbox discr_integer 0)
+		    ))
+	(meltframepass
 	  (instance class_gcc_gimple_pass
 		    :named_name '"melt_frame_pass"
 		    :gccpass_gate meltframe_gate
 		    :gccpass_exec meltframe_exec
-		    :gccpass_data (make_maptree discr_map_trees 100)
+		    :gccpass_data meltframedata
 		    :gccpass_properties_required ()
 		    ))
 	 )
-    (install_melt_gcc_pass justscanpass "after" "ssa" 0)
-    (debug_msg justscanpass "meltframe_docmd installed pass")
+    (install_melt_gcc_pass meltframepass "after" "ssa" 0)
+    (debug_msg meltframepass "meltframe_docmd installed pass")
     (return cmd)	       ;return non-nil to continue compilation
     ))
 

@@ -1,4 +1,16 @@
- 
+
+2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_raw_put_mappointers)
+	(meltgc_raw_remove_mappointers): Remove discrv local MELT pointer.
+	(meltgc_read_file, meltgc_read_from_rawstring): Remove genv local MELT pointer.
+	(meltgc_clone_ppl_constraint_system): Cleanup and use discv.
+	(meltgc_gimple_execute): Use dumpv.
+	(meltgc_register_pass): Clean up local frame.
+
+	* melt/xtramelt-ana-simple.melt (class_melt_frame_data): New class.
+	(meltframe_docmd): Use it.
+	(meltframe_gate): Count using melfram_funcount slot.
+
 2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c: Removed all the #define ggc_alloc_* for GCC 4.5
 	support, since GCC 4.5 is obsolete for MELT.

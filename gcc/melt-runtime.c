@@ -3841,7 +3841,6 @@ meltgc_raw_put_mappointers (void *mappointer_p,
   MELT_ENTERFRAME (2, NULL);
 #define mappointerv meltfram__.mcfr_varptr[0]
 #define valuv meltfram__.mcfr_varptr[1]
-#define object_discrv ((meltobject_ptr_t)(discrv))
 #define map_mappointerv ((struct meltmappointers_st*)(mappointerv))
   mappointerv = mappointer_p;
   valuv = valu_p;
@@ -3955,10 +3954,8 @@ meltgc_raw_remove_mappointers (void *mappointer_p, const void *attr)
   long ix = 0, len = 0, cnt = 0;
   const char *oldat = NULL;
   MELT_ENTERFRAME (3, NULL);
-#define discrv meltfram__.mcfr_varptr[0]
 #define mappointerv meltfram__.mcfr_varptr[1]
 #define valuv meltfram__.mcfr_varptr[2]
-#define object_discrv ((meltobject_ptr_t)(discrv))
 #define map_mappointerv ((struct meltmappointers_st*)(mappointerv))
   mappointerv = mappointer_p;
   valuv = NULL;
@@ -4022,10 +4019,8 @@ meltgc_raw_remove_mappointers (void *mappointer_p, const void *attr)
 end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) valuv;
-#undef discrv
 #undef mappointerv
 #undef valuv
-#undef object_discrv
 #undef map_mappointerv
 }
 
@@ -7972,11 +7967,10 @@ meltgc_read_file (const char *filnam, const char *locnam)
   char *filnamdup = 0;
   const char* envpath = flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_SOURCE_PATH"));
   const char* srcpathstr = melt_argument ("source-path");
-  MELT_ENTERFRAME (4, NULL);
-#define genv      meltfram__.mcfr_varptr[0]
-#define valv      meltfram__.mcfr_varptr[1]
-#define locnamv   meltfram__.mcfr_varptr[2]
-#define seqv      meltfram__.mcfr_varptr[3]
+  MELT_ENTERFRAME (3, NULL);
+#define valv      meltfram__.mcfr_varptr[0]
+#define locnamv   meltfram__.mcfr_varptr[1]
+#define seqv      meltfram__.mcfr_varptr[2]
   memset (&rds, 0, sizeof (rds));
   debugeprintf ("meltgc_read_file filnam %s locnam %s", filnam, locnam);
   if (!filnam || !filnam[0])
@@ -8091,7 +8085,6 @@ meltgc_read_file (const char *filnam, const char *locnam)
   MELT_EXITFRAME ();
   return (melt_ptr_t) seqv;
 #undef vecshv
-#undef genv
 #undef locnamv
 #undef seqv
 }
@@ -8104,11 +8097,10 @@ meltgc_read_from_rawstring (const char *rawstr, const char *locnam,
   struct reading_st rds;
   char *rbuf = 0;
   struct reading_st *rd = 0;
-  MELT_ENTERFRAME (4, NULL);
-#define genv      meltfram__.mcfr_varptr[0]
-#define valv      meltfram__.mcfr_varptr[1]
-#define locnamv   meltfram__.mcfr_varptr[2]
-#define seqv      meltfram__.mcfr_varptr[3]
+  MELT_ENTERFRAME (3, NULL);
+#define valv      meltfram__.mcfr_varptr[0]
+#define locnamv   meltfram__.mcfr_varptr[1]
+#define seqv      meltfram__.mcfr_varptr[2]
   memset (&rds, 0, sizeof (rds));
   if (!rawstr)
     goto end;
@@ -8150,7 +8142,6 @@ end:
   return (melt_ptr_t) seqv;
 #undef vecshv
 #undef valv
-#undef genv
 #undef locnamv
 #undef seqv
 }
@@ -10568,16 +10559,16 @@ meltgc_clone_ppl_constraint_system (melt_ptr_t ppl_p)
   int err = 0;
   ppl_Constraint_System_t oldconsys = NULL, newconsys = NULL;
   MELT_ENTERFRAME(3, NULL);
-#define pplv   meltfram__.mcfr_varptr[0]
+#define pplv     meltfram__.mcfr_varptr[0]
+#define resv     meltfram__.mcfr_varptr[1]
+#define discrv   meltfram__.mcfr_varptr[2]
 #define spec_pplv ((struct meltspecial_st*)(pplv))
-#define discrv meltfram__.mcfr_varptr[1]
-#define object_discrv ((meltobject_ptr_t)(discrv))
-#define resv   meltfram__.mcfr_varptr[2]
 #define spec_resv ((struct meltspecial_st*)(resv))
   pplv = ppl_p;
   resv = NULL;
   if (melt_magic_discr ((melt_ptr_t) (pplv)) != MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM)
     goto end;
+  discrv = spec_pplv->discr;
   oldconsys =  spec_pplv->val.sp_constraint_system;
   resv = meltgc_make_special ((melt_ptr_t) discrv);
   if (oldconsys)
@@ -10588,12 +10579,11 @@ meltgc_clone_ppl_constraint_system (melt_ptr_t ppl_p)
  end:
   MELT_EXITFRAME();
   return (melt_ptr_t)resv;
-#undef discrv
-#undef object_discrv
 #undef resv
 #undef spec_resv
 #undef pplv
 #undef spec_pplv
+#undef discrv
 }
 
 /* insert a raw PPL constraint into a boxed constraint system */
@@ -11510,11 +11500,11 @@ meltgc_gimple_gate(void)
 
 /* the execute function of MELT gimple passes */
 static unsigned int
-meltgc_gimple_execute(void)
+meltgc_gimple_execute (void)
 {
   unsigned int res = 0;
   static const char* modstr;
-  MELT_ENTERFRAME(6, NULL);
+  MELT_ENTERFRAME(5, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
 #define closv        meltfram__.mcfr_varptr[2]
@@ -11524,6 +11514,7 @@ meltgc_gimple_execute(void)
     modstr = melt_argument ("mode");
   if (!modstr || !modstr[0])
     goto end;
+  dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
   gcc_assert (current_pass != NULL);
   gcc_assert (current_pass->name != NULL);
   gcc_assert (current_pass->type == GIMPLE_PASS);
@@ -11599,7 +11590,7 @@ meltgc_gimple_execute(void)
 #undef passdictv    
 #undef closv        
 #undef resvalv      
-#undef dumpv        
+#undef dumpv
 }
 
 
@@ -11959,7 +11950,7 @@ meltgc_register_pass (melt_ptr_t pass_p,
   struct register_pass_info plugpassinf = { NULL, NULL, 0, PASS_POS_INSERT_AFTER };
   enum pass_positioning_ops posop = PASS_POS_INSERT_AFTER;
   unsigned long propreq=0, propprov=0, propdest=0, todostart=0, todofinish=0;
-  MELT_ENTERFRAME (7, NULL);
+  MELT_ENTERFRAME (4, NULL);
 #define passv        meltfram__.mcfr_varptr[0]
 #define passdictv    meltfram__.mcfr_varptr[1]
 #define compv        meltfram__.mcfr_varptr[2]
