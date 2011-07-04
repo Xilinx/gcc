@@ -1,5 +1,14 @@
 2011-07-04   Diego Novillo  <dnovillo@google.com>
 
+	* g++.dg/pph/c1eabi1.h: Surround system function prototypes with
+	extern "C" {}.
+	* g++.dg/pph/x1ten-hellos.cc (main): Tidy.
+	Assert that i is 10 at the end of the loop.
+	Call exit instead of 'return 0'.
+	* g++.dg/pph/x1ten-hellos.h: Do not include stdio.h.
+
+2011-07-04   Diego Novillo  <dnovillo@google.com>
+
 	* g++.dg/pph/c1eabi1.cc: Move main from c1eabi1.h
 	Remove timeout.
 	Add expected asm difference.

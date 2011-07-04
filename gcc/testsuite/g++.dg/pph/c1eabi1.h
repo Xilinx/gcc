@@ -33,11 +33,13 @@
 /* Simplified version of c2eabi1.cc - Do not include other system
    headers here.  Simply forward declare the library functions used
    by this header.  */
-extern void abort(void);
-extern int abs(int);
-extern void exit(int);
-extern double fabs(double);
-extern int printf(const char *, ...);
+extern "C" {
+  extern void abort(void);
+  extern int abs(int);
+  extern void exit(int);
+  extern double fabs(double);
+  extern int printf(const char *, ...);
+}
 
 /* All these functions are defined to use the base ABI, so use the
    attribute to ensure the tests use the base ABI to call them even

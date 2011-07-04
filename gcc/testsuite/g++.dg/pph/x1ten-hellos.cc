@@ -1,10 +1,17 @@
 // { dg-do run }
+
 #include "x1ten-hellos.h"
 
 int main(void)
 {
   A a;
-  for (int i = 0; i < 10; i++)
+  int i;
+
+  for (i = 0; i < 10; i++)
     a.hello();
-  return 0;
+
+  if (i != 10)
+    abort ();
+
+  exit (0);
 }

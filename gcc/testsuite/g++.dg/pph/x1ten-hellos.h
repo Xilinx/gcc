@@ -1,6 +1,10 @@
 #ifndef A_H_
 #define A_H_
-#include <stdio.h>
+extern "C" {
+  int printf(const char*, ...);
+  void abort(void);
+  void exit(int);
+};
 
 class A
 {
