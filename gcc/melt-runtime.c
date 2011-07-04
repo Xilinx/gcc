@@ -12124,8 +12124,10 @@ meltgc_register_pass (melt_ptr_t pass_p,
  *****/
 
 /* Function to be called by MELT code when the :sysdata_passexec_hook
-   is changed. */
-void meltgc_notify_sysdata_passexec_hook (void)
+   is changed.  Called by code_chunk-s inside MELT file
+   melt/warmelt-base.melt.  */
+void 
+meltgc_notify_sysdata_passexec_hook (void)
 {
   MELT_ENTERFRAME (2, NULL);
 #define pxhookv      meltfram__.mcfr_varptr[0]

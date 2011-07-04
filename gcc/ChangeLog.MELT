@@ -1,5 +1,9 @@
 
 2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_notify_sysdata_passexec_hook): Better
+	comment.
+
+2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (meltgc_raw_put_mappointers)
 	(meltgc_raw_remove_mappointers): Remove discrv local MELT pointer.
 	(meltgc_read_file, meltgc_read_from_rawstring): Remove genv local MELT pointer.
