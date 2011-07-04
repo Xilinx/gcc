@@ -1,7 +1,8 @@
+// { dg-timeout 3 { target *-*-* } }
+// { dg-xfail-if "INFINITE" { "*-*-*" } { "-fpph-map=pph.map" } }
 // { dg-options "-w -fpermissive" }
-// pph asm xdiff
 
-#include "c1eabi1.h"
+#include "c2eabi1.h"
 
 int main () {
   unsigned char bytes[256];

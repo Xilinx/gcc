@@ -1,3 +1,14 @@
+2011-07-04   Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/c1eabi1.cc: Move main from c1eabi1.h
+	Remove timeout.
+	Add expected asm difference.
+	* g++.dg/pph/c1eabi1.h: Do not include stdio.h, stdlib.h nor math.h.
+	Declare abort, abs, exit, fabs and printf.
+	* g++.dg/pph/c2eabi1.cc: New.
+	* g++.dg/pph/c2eabi1.h: New.
+	* g++.dg/pph/pph.map: Add c2eabi1.h.
+
 2011-07-04  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/c120060625-1.cc: Expect no asm difference.

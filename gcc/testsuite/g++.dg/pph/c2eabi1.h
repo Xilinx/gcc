@@ -30,14 +30,9 @@
    There are also no tests for the "division by zero", "memory copying,
    clearing, and setting" functions.  */
 
-/* Simplified version of c2eabi1.cc - Do not include other system
-   headers here.  Simply forward declare the library functions used
-   by this header.  */
-extern void abort(void);
-extern int abs(int);
-extern void exit(int);
-extern double fabs(double);
-extern int printf(const char *, ...);
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 
 /* All these functions are defined to use the base ABI, so use the
    attribute to ensure the tests use the base ABI to call them even
@@ -103,8 +98,8 @@ extern long long __aeabi_uwrite8 (long long, void *);
     b1 = b;							\
     if (abs (a1 - b1) > epsilon)				\
     {								\
-      printf ("%d: Test %s == %s\n", __LINE__, #a, #b);	\
-      printf ("%d: " format " != " format "\n",	\
+      fprintf (stderr, "%d: Test %s == %s\n", __LINE__, #a, #b);	\
+      fprintf (stderr, "%d: " format " != " format "\n",	\
 	       __LINE__, a1, b1);				\
       abort ();							\
     }								\
@@ -162,4 +157,5 @@ static int signof(int i)
 
   return 1;
 }
+
 #endif

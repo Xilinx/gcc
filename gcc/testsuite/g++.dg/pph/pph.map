@@ -6,6 +6,7 @@ c1builtin-integral-1.h	c1builtin-integral-1.pph
 c1builtin-object-size-2.h	c1builtin-object-size-2.pph
 c1chained1.h	c1chained1.pph
 c1chained2.h	c1chained2.pph
+c2eabi1.h	c2eabi1.pph
 c1eabi1.h	c1eabi1.pph
 c1empty.h	c1empty.pph
 c1field.h	c1field.pph
