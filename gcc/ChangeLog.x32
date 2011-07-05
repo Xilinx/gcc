@@ -1,5 +1,11 @@
 2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR rtl-optimization/47449
+	* fwprop.c (forward_propagate_subreg): Don't propagate hard
+	register nor zero/sign extended hard register.
+
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_option_override_internal): Disallow
 	MS ABI in x32 mode.
 	(ix86_init_builtins): Call ix86_init_builtins_va_builtins_abi
