@@ -952,6 +952,10 @@ extern void gt_ggc_mx_dw_loc_list_struct (void *);
   if (X != NULL) gt_ggc_mx_dwarf_file_data (X);\
   } while (0)
 extern void gt_ggc_mx_dwarf_file_data (void *);
+#define gt_ggc_m_24VEC_reg_saved_in_data_gc(X) do { \
+  if (X != NULL) gt_ggc_mx_VEC_reg_saved_in_data_gc (X);\
+  } while (0)
+extern void gt_ggc_mx_VEC_reg_saved_in_data_gc (void *);
 #define gt_ggc_m_15queued_reg_save(X) do { \
   if (X != NULL) gt_ggc_mx_queued_reg_save (X);\
   } while (0)
@@ -1728,8 +1732,8 @@ EXPORTED_CONST struct ggc_root_tab gt_ggc_r_gt_melt_runtime_plugin_h[] = {
   LAST_GGC_ROOT_TAB
 };
 
-/* gt-melt-runtime-plugin.h file generated Wed Jun 29 17:19:49 2011
+/* gt-melt-runtime-plugin.h file generated Tue Jul  5 11:32:34 2011
 
-8dbb367baf3b71b0867e76642a0d17c7  melt-runtime.h
-fa2aa9a141bf6fdd23d5c93c8c67c68c  melt-runtime.c
+dafba6306cda0fdbd8d6fea151b5e69e  melt-runtime.h
+c7979b8de49b83e96cf6efb867db07ae  melt-runtime.c
 */
