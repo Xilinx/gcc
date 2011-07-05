@@ -1,5 +1,11 @@
 2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR middle-end/47715
+	* calls.c (precompute_register_parameters): Promote the function
+	argument before checking non-legitimate constant.
+
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR rtl-optimization/47449
 	* fwprop.c (forward_propagate_subreg): Don't propagate hard
 	register nor zero/sign extended hard register.

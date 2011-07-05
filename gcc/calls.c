@@ -683,12 +683,6 @@ precompute_register_parameters (int num_actuals, struct arg_data *args,
 	    pop_temp_slots ();
 	  }
 
-	/* If the value is a non-legitimate constant, force it into a
-	   pseudo now.  TLS symbols sometimes need a call to resolve.  */
-	if (CONSTANT_P (args[i].value)
-	    && !LEGITIMATE_CONSTANT_P (args[i].value))
-	  args[i].value = force_reg (args[i].mode, args[i].value);
-
 	/* If we are to promote the function arg to a wider mode,
 	   do it now.  */
 
@@ -697,6 +691,12 @@ precompute_register_parameters (int num_actuals, struct arg_data *args,
 	    = convert_modes (args[i].mode,
 			     TYPE_MODE (TREE_TYPE (args[i].tree_value)),
 			     args[i].value, args[i].unsignedp);
+
+	/* If the value is a non-legitimate constant, force it into a
+	   pseudo now.  TLS symbols sometimes need a call to resolve.  */
+	if (CONSTANT_P (args[i].value)
+	    && !LEGITIMATE_CONSTANT_P (args[i].value))
+	  args[i].value = force_reg (args[i].mode, args[i].value);
 
 	/* If we're going to have to load the value by parts, pull the
 	   parts into pseudos.  The part extraction process can involve
