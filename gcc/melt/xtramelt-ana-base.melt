@@ -1433,6 +1433,11 @@
    #{ warning_at(($g ? gimple_location($g) : UNKNOWN_LOCATION), 0, $msg); }#
 )
 
+(defprimitive warning_at_gimple_strbuf (:gimple g :value msg) :void
+   #{ melt_warning_at_strbuf(($g ? gimple_location($g) : UNKNOWN_LOCATION)
+    , $msg); }#
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defprimitive is_gimpleseq (v) :long
   #{(melt_magic_discr((melt_ptr_t)($v)) == MELTOBMAG_GIMPLESEQ)}# )
@@ -3678,6 +3683,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  tree_vec
  tree_void_type
  warning_at_gimple
+ warning_at_gimple_strbuf
  warning_at_tree
  warning_at_tree_decl_with_number
  with_cfun_decl

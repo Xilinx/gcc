@@ -1,4 +1,12 @@
 
+2011-07-05  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt-runtime.h (melt_warning_at_strbuf): New declaration.
+
+	* melt-runtime.c (melt_warning_at_strbuf): New function.
+
+	* melt/xtramelt-ana-base.melt (warning_at_gimple_strbuf): New
+	primitive.
 
 2011-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STR): becomes 0.8rc1

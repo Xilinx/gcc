@@ -1042,6 +1042,9 @@ void melt_inform_str(melt_ptr_t mixloc_p, const char* msg, melt_ptr_t str_p);
 int* melt_dynobjstruct_fieldoffset_at(const char*fldnam, const char*fil, int lin);
 int* melt_dynobjstruct_classlength_at(const char*clanam, const char* fil, int lin);
 
+/* Print a warning at location loc with message $msg (a strbfuf value). */
+void melt_warning_at_strbuf (location_t loc, melt_ptr_t msgbuf);
+
 #if MELTGCC_DYNAMIC_OBJSTRUCT
 
 static inline melt_ptr_t

@@ -7835,6 +7835,21 @@ melt_error_str (melt_ptr_t mixloc_p, const char *msg,
 #undef finamv
 
 
+void melt_warning_at_strbuf (location_t loc, melt_ptr_t msgbuf)
+{ 
+  char *str;
+  if (!msgbuf || melt_magic_discr (msgbuf) != MELTOBMAG_STRBUF) 
+    return;
+  str = xstrndup (melt_strbuf_str (msgbuf), 
+		  (size_t) melt_strbuf_usedlength(msgbuf));
+  if(str == NULL)
+    return;
+  warning_at (loc, /*no OPT_*/0, "Melt Warning[#%ld]: %s",  
+	      melt_dbgcounter, str);
+  free (str);
+}
+
+
 void
 melt_warning_str (int opt, melt_ptr_t mixloc_p, const char *msg,
 		     melt_ptr_t str_p)
