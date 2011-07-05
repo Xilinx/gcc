@@ -1,6 +1,14 @@
 
 
 2011-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt: Add gncx_altmatch field to
+	class_c_generation_context.
+
+	* melt/warmelt-genobj.melt (class_alternate_match_nrep_data): New.
+	(compilobj_nrep_altmatch): Set and restore gncx_altmatch field.
+	(compilobj_nrep_matchdatainit): Use it.
+
+2011-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_startalz, melt_endalz, melt_curalz)
 	(melt_storalz): Add comment.
 	(melt_initialstoralz): New variable.
