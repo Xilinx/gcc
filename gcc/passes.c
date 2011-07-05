@@ -332,7 +332,7 @@ struct rtl_opt_pass pass_postreload =
 
 /* The root of the compilation pass tree, once constructed.  */
 struct opt_pass *all_passes, *all_small_ipa_passes, *all_lowering_passes,
-  *all_regular_ipa_passes, *all_lto_gen_passes;
+  *all_regular_ipa_passes, *all_late_ipa_passes, *all_lto_gen_passes;
 
 /* This is used by plugins, and should also be used in register_pass.  */
 #define DEF_PASS_LIST(LIST) &LIST,
@@ -478,7 +478,7 @@ passr_eq (const void *p1, const void *p2)
   return !strcmp (s1->unique_name, s2->unique_name);
 }
 
-static htab_t pass_name_tab = NULL;
+static htab_t name_to_pass_map = NULL;
 
 /* Register PASS with NAME.  */
 
@@ -488,11 +488,11 @@ register_pass_name (struct opt_pass *pass, const char *name)
   struct pass_registry **slot;
   struct pass_registry pr;
 
-  if (!pass_name_tab)
-    pass_name_tab = htab_create (256, passr_hash, passr_eq, NULL);
+  if (!name_to_pass_map)
+    name_to_pass_map = htab_create (256, passr_hash, passr_eq, NULL);
 
   pr.unique_name = name;
-  slot = (struct pass_registry **) htab_find_slot (pass_name_tab, &pr, INSERT);
+  slot = (struct pass_registry **) htab_find_slot (name_to_pass_map, &pr, INSERT);
   if (!*slot)
     {
       struct pass_registry *new_pr;
@@ -506,6 +506,125 @@ register_pass_name (struct opt_pass *pass, const char *name)
     return; /* Ignore plugin passes.  */
 }
 
+/* Map from pass id to canonicalized pass name.  */
+
+typedef const char *char_ptr;
+DEF_VEC_P(char_ptr);
+DEF_VEC_ALLOC_P(char_ptr, heap);
+static VEC(char_ptr, heap) *pass_tab = NULL;
+
+/* Callback function for traversing NAME_TO_PASS_MAP.  */
+
+static int
+pass_traverse (void **slot, void *data ATTRIBUTE_UNUSED)
+{
+  struct pass_registry **p = (struct pass_registry **)slot;
+  struct opt_pass *pass = (*p)->pass;
+
+  gcc_assert (pass->static_pass_number > 0);
+  gcc_assert (pass_tab);
+
+  VEC_replace (char_ptr, pass_tab, pass->static_pass_number,
+               (*p)->unique_name);
+
+  return 1;
+}
+
+/* The function traverses NAME_TO_PASS_MAP and creates a pass info
+   table for dumping purpose.  */
+
+static void
+create_pass_tab (void)
+{
+  if (!flag_dump_passes)
+    return;
+
+  VEC_safe_grow_cleared (char_ptr, heap,
+                         pass_tab, passes_by_id_size + 1);
+  htab_traverse (name_to_pass_map, pass_traverse, NULL);
+}
+
+static bool override_gate_status (struct opt_pass *, tree, bool);
+
+/* Dump the instantiated name for PASS. IS_ON indicates if PASS
+   is turned on or not.  */
+
+static void
+dump_one_pass (struct opt_pass *pass, int pass_indent)
+{
+  int indent = 3 * pass_indent;
+  const char *pn;
+  bool is_on, is_really_on;
+
+  is_on = (pass->gate == NULL) ? true : pass->gate();
+  is_really_on = override_gate_status (pass, current_function_decl, is_on);
+
+  if (pass->static_pass_number <= 0)
+    pn = pass->name;
+  else
+    pn = VEC_index (char_ptr, pass_tab, pass->static_pass_number);
+
+  fprintf (stderr, "%*s%-40s%*s:%s%s\n", indent, " ", pn,
+           (15 - indent < 0 ? 0 : 15 - indent), " ",
+           is_on ? "  ON" : "  OFF",
+           ((!is_on) == (!is_really_on) ? ""
+            : (is_really_on ? " (FORCED_ON)" : " (FORCED_OFF)")));
+}
+
+/* Dump pass list PASS with indentation INDENT.  */
+
+static void
+dump_pass_list (struct opt_pass *pass, int indent)
+{
+  do
+    {
+      dump_one_pass (pass, indent);
+      if (pass->sub)
+        dump_pass_list (pass->sub, indent + 1);
+      pass = pass->next;
+    }
+  while (pass);
+}
+
+/* Dump all optimization passes.  */
+
+void
+dump_passes (void)
+{
+  struct cgraph_node *n, *node = NULL;
+  tree save_fndecl = current_function_decl;
+
+  create_pass_tab();
+
+  n = cgraph_nodes;
+  while (n)
+    {
+      if (DECL_STRUCT_FUNCTION (n->decl))
+        {
+          node = n;
+          break;
+        }
+      n = n->next;
+    }
+
+  if (!node)
+    return;
+
+  push_cfun (DECL_STRUCT_FUNCTION (node->decl));
+  current_function_decl = node->decl;
+
+  dump_pass_list (all_lowering_passes, 1);
+  dump_pass_list (all_small_ipa_passes, 1);
+  dump_pass_list (all_regular_ipa_passes, 1);
+  dump_pass_list (all_lto_gen_passes, 1);
+  dump_pass_list (all_late_ipa_passes, 1);
+  dump_pass_list (all_passes, 1);
+
+  pop_cfun ();
+  current_function_decl = save_fndecl;
+}
+
+
 /* Returns the pass with NAME.  */
 
 static struct opt_pass *
@@ -513,9 +632,8 @@ get_pass_by_name (const char *name)
 {
   struct pass_registry **slot, pr;
 
-  gcc_assert (pass_name_tab);
   pr.unique_name = name;
-  slot = (struct pass_registry **) htab_find_slot (pass_name_tab,
+  slot = (struct pass_registry **) htab_find_slot (name_to_pass_map,
                                                    &pr, NO_INSERT);
 
   if (!slot || !*slot)
@@ -986,6 +1104,8 @@ register_pass (struct register_pass_info *pass_info)
   if (!success || all_instances)
     success |= position_pass (pass_info, &all_lto_gen_passes);
   if (!success || all_instances)
+    success |= position_pass (pass_info, &all_late_ipa_passes);
+  if (!success || all_instances)
     success |= position_pass (pass_info, &all_passes);
   if (!success)
     fatal_error
@@ -1132,7 +1252,6 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_inline);
   NEXT_PASS (pass_ipa_pure_const);
   NEXT_PASS (pass_ipa_reference);
-  NEXT_PASS (pass_ipa_pta);
   *p = NULL;
 
   p = &all_lto_gen_passes;
@@ -1140,9 +1259,16 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_lto_finish_out);  /* This must be the last LTO pass.  */
   *p = NULL;
 
+  /* Simple IPA passes executed after the regular passes.  In WHOPR mode the
+     passes are executed after partitioning and thus see just parts of the
+     compiled unit.  */
+  p = &all_late_ipa_passes;
+  NEXT_PASS (pass_ipa_pta);
+  *p = NULL;
   /* These passes are run after IPA passes on every function that is being
      output to the assembler file.  */
   p = &all_passes;
+  NEXT_PASS (pass_fixup_cfg);
   NEXT_PASS (pass_lower_eh_dispatch);
   NEXT_PASS (pass_all_optimizations);
     {
@@ -1400,6 +1526,9 @@ init_optimization_passes (void)
   register_dump_files (all_lto_gen_passes,
 		       PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh
 		       | PROP_cfg);
+  register_dump_files (all_late_ipa_passes,
+		       PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh
+		       | PROP_cfg);
   register_dump_files (all_passes,
 		       PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh
 		       | PROP_cfg);
@@ -1485,6 +1614,37 @@ do_per_function_toporder (void (*callback) (void *data), void *data)
   nnodes = 0;
 }
 
+/* Helper function to perform function body dump.  */
+
+static void
+execute_function_dump (void *data ATTRIBUTE_UNUSED)
+{
+  if (dump_file && current_function_decl)
+    {
+      if (cfun->curr_properties & PROP_trees)
+        dump_function_to_file (current_function_decl, dump_file, dump_flags);
+      else
+	{
+	  if (dump_flags & TDF_SLIM)
+	    print_rtl_slim_with_bb (dump_file, get_insns (), dump_flags);
+	  else if ((cfun->curr_properties & PROP_cfg)
+		   && (dump_flags & TDF_BLOCKS))
+	    print_rtl_with_bb (dump_file, get_insns ());
+          else
+	    print_rtl (dump_file, get_insns ());
+
+	  if ((cfun->curr_properties & PROP_cfg)
+	      && graph_dump_format != no_graph
+	      && (dump_flags & TDF_GRAPH))
+	    print_rtl_graph_with_bb (dump_file_name, get_insns ());
+	}
+
+      /* Flush the file.  If verification fails, we won't be able to
+	 close the file before aborting.  */
+      fflush (dump_file);
+    }
+}
+
 /* Perform all TODO actions that ought to be done on each function.  */
 
 static void
@@ -1530,31 +1690,6 @@ execute_function_todo (void *data)
 
   if (flags & TODO_remove_unused_locals)
     remove_unused_locals ();
-
-  if ((flags & TODO_dump_func) && dump_file && current_function_decl)
-    {
-      if (cfun->curr_properties & PROP_trees)
-        dump_function_to_file (current_function_decl, dump_file, dump_flags);
-      else
-	{
-	  if (dump_flags & TDF_SLIM)
-	    print_rtl_slim_with_bb (dump_file, get_insns (), dump_flags);
-	  else if ((cfun->curr_properties & PROP_cfg)
-		   && (dump_flags & TDF_BLOCKS))
-	    print_rtl_with_bb (dump_file, get_insns ());
-          else
-	    print_rtl (dump_file, get_insns ());
-
-	  if ((cfun->curr_properties & PROP_cfg)
-	      && graph_dump_format != no_graph
-	      && (dump_flags & TDF_GRAPH))
-	    print_rtl_graph_with_bb (dump_file_name, get_insns ());
-	}
-
-      /* Flush the file.  If verification fails, we won't be able to
-	 close the file before aborting.  */
-      fflush (dump_file);
-    }
 
   if (flags & TODO_rebuild_frequencies)
     rebuild_frequencies ();
@@ -1781,6 +1916,7 @@ execute_one_ipa_transform_pass (struct cgraph_node *node,
   execute_todo (todo_after);
   verify_interpass_invariants ();
 
+  do_per_function (execute_function_dump, NULL);
   pass_fini_dump_file (pass);
 
   current_pass = NULL;
@@ -1808,6 +1944,20 @@ execute_all_ipa_transforms (void)
 						   i));
       VEC_free (ipa_opt_pass, heap, node->ipa_transforms_to_apply);
       node->ipa_transforms_to_apply = NULL;
+    }
+}
+
+/* Callback for do_per_function to apply all IPA transforms.  */
+
+static void
+apply_ipa_transforms (void *data)
+{
+  struct cgraph_node *node = cgraph_get_node (current_function_decl);
+  if (!node->global.inlined_to && node->ipa_transforms_to_apply)
+    {
+      *(bool *)data = true;
+      execute_all_ipa_transforms();
+      rebuild_cgraph_edges ();
     }
 }
 
@@ -1872,6 +2022,18 @@ execute_one_pass (struct opt_pass *pass)
      executed.  */
   invoke_plugin_callbacks (PLUGIN_PASS_EXECUTION, pass);
 
+  /* SIPLE IPA passes do not handle callgraphs with IPA transforms in it.
+     Apply all trnasforms first.  */
+  if (pass->type == SIMPLE_IPA_PASS)
+    {
+      bool applied = false;
+      do_per_function (apply_ipa_transforms, (void *)&applied);
+      if (applied)
+        cgraph_remove_unreachable_nodes (true, dump_file);
+      /* Restore current_pass.  */
+      current_pass = pass;
+    }
+
   if (!quiet_flag && !cfun)
     fprintf (stderr, " <%s>", pass->name ? pass->name : "");
 
@@ -1921,6 +2083,7 @@ execute_one_pass (struct opt_pass *pass)
   /* Run post-pass cleanup and verification.  */
   execute_todo (todo_after | pass->todo_flags_finish);
   verify_interpass_invariants ();
+  do_per_function (execute_function_dump, NULL);
   if (pass->type == IPA_PASS)
     {
       struct cgraph_node *node;
@@ -2065,7 +2228,7 @@ ipa_write_summaries (void)
   vset = varpool_node_set_new ();
 
   for (vnode = varpool_nodes; vnode; vnode = vnode->next)
-    if (vnode->needed && !vnode->alias)
+    if (vnode->needed && (!vnode->alias || vnode->alias_of))
       varpool_node_set_add (vset, vnode);
 
   ipa_write_summaries_1 (set, vset);

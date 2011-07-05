@@ -1,3 +1,16 @@
+2011-07-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config-list.mk (LIST): Append OPT-enable-obsolete to
+	alpha-dec-osf5.1, mips-sgi-irix6.5.
+
+2011-06-24  Diego Novillo  <dnovillo@google.com>
+
+	* repro_fail: New.
+
+2011-06-21  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc_update (gcc/config/avr/avr-tables.opt): New dependencies.
+
 2011-05-19  Joseph Myers  <joseph@codesourcery.com>
 
 	* gcc_update (gcc/config/arm/arm-tables.opt): Also depend on

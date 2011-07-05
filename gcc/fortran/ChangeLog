@@ -1,3 +1,118 @@
+2011-06-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/49540
+	* gfortran.h (gfc_constructor): Add repeat field.
+	* trans-array.c (gfc_conv_array_initializer): Handle repeat > 1.
+	* array.c (current_expand): Add repeat field.
+	(expand_constructor): Copy repeat.
+	* constructor.c (node_free, node_copy, gfc_constructor_get,
+	gfc_constructor_lookup): Handle repeat field.
+	(gfc_constructor_lookup_next, gfc_constructor_remove): New functions.
+	* data.h (gfc_assign_data_value): Add mpz_t * argument.
+	(gfc_assign_data_value_range): Removed.
+	* constructor.h (gfc_constructor_advance): Removed.
+	(gfc_constructor_lookup_next, gfc_constructor_remove): New prototypes.
+	* data.c (gfc_assign_data_value): Add REPEAT argument, handle it and
+	also handle overwriting a range with a single entry.
+	(gfc_assign_data_value_range): Removed.
+	* resolve.c (check_data_variable): Adjust gfc_assign_data_value
+	call.  Use gfc_assign_data_value instead of
+	gfc_assign_data_value_expr.
+
+2011-06-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49466
+	* trans-array.c (structure_alloc_comps): Make sure sub-components
+	and extended types are correctly deallocated.
+
+2011-06-21  Andrew MacLeod  <amacleod@redhat.com>
+
+	* trans-openmp.c: Add sync_ or SYNC__ to builtin names.
+	* trans-stmt.c: Add sync_ or SYNC__ to builtin names.
+	* trans-decl.c: Add sync_ or SYNC__ to builtin names.
+
+2011-06-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49112
+	* class.c (gfc_find_derived_vtab): Make vtab and default initialization
+	symbols SAVE_IMPLICIT.
+
+2011-06-20  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.h (gfc_check_vardef_context): Update prototype.
+	(iso_fortran_env_symbol): Handle derived types.
+	(symbol_attribute): Add lock_comp.
+	* expr.c (gfc_check_vardef_context): Add LOCK_TYPE check.
+	* interface.c (compare_parameter, gfc_procedure_use): Handle
+	LOCK_TYPE.
+	(compare_actual_formal): Update
+	gfc_check_vardef_context call.
+	* check.c (gfc_check_atomic_def, gfc_check_atomic_ref): Ditto.
+	* intrinsic.c (check_arglist): Ditto.
+	* io.c (resolve_tag, gfc_resolve_dt, gfc_resolve_inquire): Ditto.
+	* iso-fortran-env.def (ISOFORTRAN_LOCK_TYPE): Add.
+	* intrinsic.texi (ISO_FORTRAN_ENV): Document LOCK_TYPE.
+	* module.c (mio_symbol_attribute): Handle lock_comp.
+	(create_derived_type): New function.
+	(use_iso_fortran_env_module): Call it to handle LOCK_TYPE.
+	* parse.c (parse_derived): Add constraint check for LOCK_TYPE.
+	* resolve.c (resolve_symbol, resolve_lock_unlock): Add constraint
+	checks for LOCK_TYPE.
+	(gfc_resolve_iterator, resolve_deallocate_expr,
+	resolve_allocate_expr, resolve_code, resolve_transfer): Update
+	gfc_check_vardef_context call.
+	* trans-stmt.h (gfc_trans_lock_unlock): New prototype.
+	* trans-stmt.c (gfc_trans_lock_unlock): New function.
+	* trans.c (trans_code): Handle LOCK and UNLOCK.
+
+2011-06-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49400
+	* decl.c (gfc_match_procedure): Allow PROCEDURE declarations inside
+	BLOCK constructs.
+
+2011-06-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/48699
+	* check.c (gfc_check_move_alloc): If 'TO' argument is polymorphic,
+	make sure the vtab is present.
+
+2011-06-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49074
+	* interface.c (gfc_extend_assign): Propagate the locus from the
+	assignment to the type-bound procedure call.
+
+2011-06-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49417
+	* module.c (mio_component): Make sure the 'class_ok' attribute is set
+	for use-associated CLASS components.
+	* parse.c (parse_derived): Check for 'class_ok' attribute.
+	* resolve.c (resolve_fl_derived): Ditto.
+
+2011-06-13  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* frontend-passes.c (remove_trim):  New function.
+	(optimize_assignment):  Use it.
+	(optimize_comparison):  Likewise.  Return correct status
+	for previous change.
+
+2011-06-12  Tobias Burnus
+
+	PR fortran/49324
+	* trans-expr.c (gfc_trans_assignment_1): Tell
+	gfc_trans_scalar_assign to also deep-copy RHS nonvariables
+	with allocatable components.
+	* trans-array.c (gfc_conv_expr_descriptor): Ditto.
+
+2011-05-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* frontend-passes.c (optimize_assignment): Follow chains
+	of concatenation operators to the end for removing trailing
+	TRIMS for assignments.
+
 2011-06-10  Daniel Carrera  <dcarrera@gmail.com>
 
 	* trans-decl.c (gfc_build_builtin_function_decls):

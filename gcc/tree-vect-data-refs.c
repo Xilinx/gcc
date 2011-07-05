@@ -859,7 +859,9 @@ vect_compute_data_ref_alignment (struct data_reference *dr)
       || (TREE_CODE (base_addr) == SSA_NAME
 	  && tree_int_cst_compare (ssize_int (TYPE_ALIGN_UNIT (TREE_TYPE (
 						      TREE_TYPE (base_addr)))),
-				   alignment) >= 0))
+				   alignment) >= 0)
+      || (get_pointer_alignment (base_addr, TYPE_ALIGN (vectype))
+	  >= TYPE_ALIGN (vectype)))
     base_aligned = true;
   else
     base_aligned = false;
@@ -1248,7 +1250,9 @@ vect_peeling_hash_get_most_frequent (void **slot, void *data)
   vect_peel_info elem = (vect_peel_info) *slot;
   vect_peel_extended_info max = (vect_peel_extended_info) data;
 
-  if (elem->count > max->peel_info.count)
+  if (elem->count > max->peel_info.count
+      || (elem->count == max->peel_info.count
+          && max->peel_info.npeel > elem->npeel))
     {
       max->peel_info.npeel = elem->npeel;
       max->peel_info.count = elem->count;
@@ -2298,9 +2302,9 @@ vect_analyze_data_ref_access (struct data_reference *dr)
       return false;
     }
 
-  /* Don't allow invariant accesses in loops.  */
+  /* Allow invariant loads in loops.  */
   if (loop_vinfo && dr_step == 0)
-    return false;
+    return DR_IS_READ (dr);
 
   if (loop && nested_in_vect_loop_p (loop, stmt))
     {

@@ -1327,7 +1327,10 @@ build_anon_union_vars (tree type, tree object)
   /* Rather than write the code to handle the non-union case,
      just give an error.  */
   if (TREE_CODE (type) != UNION_TYPE)
-    error ("anonymous struct not inside named type");
+    {
+      error ("anonymous struct not inside named type");
+      return error_mark_node;
+    }
 
   for (field = TYPE_FIELDS (type);
        field != NULL_TREE;
@@ -3672,6 +3675,8 @@ cp_write_global_declarations (void)
   if (pch_file)
     c_common_write_pch ();
 
+  cgraph_process_same_body_aliases ();
+
   /* Handle -fdump-ada-spec[-slim] */
   if (dump_enabled_p (TDI_ada))
     {
@@ -3869,6 +3874,8 @@ cp_write_global_declarations (void)
 	      struct cgraph_node *node, *next;
 
 	      node = cgraph_get_node (decl);
+	      if (node->same_body_alias)
+		node = cgraph_alias_aliased_node (node);
 
 	      cgraph_for_node_and_aliases (node, clear_decl_external,
 					   NULL, true);
@@ -4293,6 +4300,9 @@ mark_used (tree decl)
   if (TREE_CODE (decl) == FUNCTION_DECL
       && DECL_NONSTATIC_MEMBER_FUNCTION_P (decl)
       && DECL_DEFAULTED_FN (decl)
+      /* A function defaulted outside the class is synthesized either by
+	 cp_finish_decl or instantiate_decl.  */
+      && !DECL_DEFAULTED_OUTSIDE_CLASS_P (decl)
       && ! DECL_INITIAL (decl))
     {
       /* Remember the current location for a function we will end up

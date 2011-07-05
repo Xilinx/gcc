@@ -830,7 +830,8 @@ merge_types (tree t1, tree t2)
 	gcc_assert (type_memfn_quals (t1) == type_memfn_quals (t2));
 	rval = apply_memfn_quals (rval, type_memfn_quals (t1));
 	raises = merge_exception_specifiers (TYPE_RAISES_EXCEPTIONS (t1),
-					     TYPE_RAISES_EXCEPTIONS (t2));
+					     TYPE_RAISES_EXCEPTIONS (t2),
+					     NULL_TREE);
 	t1 = build_exception_variant (rval, raises);
 	break;
       }
@@ -841,7 +842,8 @@ merge_types (tree t1, tree t2)
 	   is just the main variant of this.  */
 	tree basetype = class_of_this_parm (t2);
 	tree raises = merge_exception_specifiers (TYPE_RAISES_EXCEPTIONS (t1),
-						  TYPE_RAISES_EXCEPTIONS (t2));
+						  TYPE_RAISES_EXCEPTIONS (t2),
+						  NULL_TREE);
 	tree t3;
 
 	/* If this was a member function type, get back to the
@@ -2679,8 +2681,7 @@ build_x_indirect_ref (tree expr, ref_operator errorstring,
 
   if (processing_template_decl)
     {
-      /* Retain the type if we know the operand is a pointer so that
-	 describable_type doesn't make auto deduction break.  */
+      /* Retain the type if we know the operand is a pointer.  */
       if (TREE_TYPE (expr) && POINTER_TYPE_P (TREE_TYPE (expr)))
 	return build_min (INDIRECT_REF, TREE_TYPE (TREE_TYPE (expr)), expr);
       if (type_dependent_expression_p (expr))

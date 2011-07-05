@@ -126,7 +126,6 @@ static tree arm_handle_notshared_attribute (tree *, tree, tree, int, bool *);
 #endif
 static void arm_output_function_epilogue (FILE *, HOST_WIDE_INT);
 static void arm_output_function_prologue (FILE *, HOST_WIDE_INT);
-static void thumb1_output_function_prologue (FILE *, HOST_WIDE_INT);
 static int arm_comp_type_attributes (const_tree, const_tree);
 static void arm_set_default_type_attributes (tree);
 static int arm_adjust_cost (rtx, rtx, rtx, int);
@@ -166,11 +165,11 @@ static rtx arm_expand_builtin (tree, rtx, rtx, enum machine_mode, int);
 static tree arm_builtin_decl (unsigned, bool);
 static void emit_constant_insn (rtx cond, rtx pattern);
 static rtx emit_set_insn (rtx, rtx);
-static int arm_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
+static int arm_arg_partial_bytes (cumulative_args_t, enum machine_mode,
 				  tree, bool);
-static rtx arm_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx arm_function_arg (cumulative_args_t, enum machine_mode,
 			     const_tree, bool);
-static void arm_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+static void arm_function_arg_advance (cumulative_args_t, enum machine_mode,
 				      const_tree, bool);
 static unsigned int arm_function_arg_boundary (enum machine_mode, const_tree);
 static rtx aapcs_allocate_return_reg (enum machine_mode, const_tree,
@@ -188,9 +187,9 @@ static void arm_encode_section_info (tree, rtx, int);
 static void arm_file_end (void);
 static void arm_file_start (void);
 
-static void arm_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
+static void arm_setup_incoming_varargs (cumulative_args_t, enum machine_mode,
 					tree, int *, int);
-static bool arm_pass_by_reference (CUMULATIVE_ARGS *,
+static bool arm_pass_by_reference (cumulative_args_t,
 				   enum machine_mode, const_tree, bool);
 static bool arm_promote_prototypes (const_tree);
 static bool arm_default_short_enums (void);
@@ -204,7 +203,6 @@ static bool arm_output_ttype (rtx);
 static void arm_asm_emit_except_personality (rtx);
 static void arm_asm_init_sections (void);
 #endif
-static enum unwind_info_type arm_except_unwind_info (struct gcc_options *);
 static void arm_dwarf_handle_frame_unspec (const char *, rtx, int);
 static rtx arm_dwarf_register_span (rtx);
 
@@ -303,15 +301,6 @@ static const struct attribute_spec arm_attribute_table[] =
 #endif
   { NULL,           0, 0, false, false, false, NULL, false }
 };
-
-/* Set default optimization options.  */
-static const struct default_options arm_option_optimization_table[] =
-  {
-    /* Enable section anchors by default at -O1 or higher.  */
-    { OPT_LEVELS_1_PLUS, OPT_fsection_anchors, NULL, 1 },
-    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
-    { OPT_LEVELS_NONE, 0, NULL, 0 }
-  };
 
 /* Initialize the GCC target structure.  */
 #if TARGET_DLLIMPORT_DECL_ATTRIBUTES
@@ -351,12 +340,8 @@ static const struct default_options arm_option_optimization_table[] =
 #undef  TARGET_ASM_FUNCTION_EPILOGUE
 #define TARGET_ASM_FUNCTION_EPILOGUE arm_output_function_epilogue
 
-#undef  TARGET_DEFAULT_TARGET_FLAGS
-#define TARGET_DEFAULT_TARGET_FLAGS (TARGET_DEFAULT | MASK_SCHED_PROLOG)
 #undef  TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE arm_option_override
-#undef  TARGET_OPTION_OPTIMIZATION_TABLE
-#define TARGET_OPTION_OPTIMIZATION_TABLE arm_option_optimization_table
 
 #undef  TARGET_COMP_TYPE_ATTRIBUTES
 #define TARGET_COMP_TYPE_ATTRIBUTES arm_comp_type_attributes
@@ -515,9 +500,6 @@ static const struct default_options arm_option_optimization_table[] =
 #undef TARGET_ASM_INIT_SECTIONS
 #define TARGET_ASM_INIT_SECTIONS arm_asm_init_sections
 #endif /* ARM_UNWIND_INFO */
-
-#undef TARGET_EXCEPT_UNWIND_INFO
-#define TARGET_EXCEPT_UNWIND_INFO  arm_except_unwind_info
 
 #undef TARGET_DWARF_HANDLE_FRAME_UNSPEC
 #define TARGET_DWARF_HANDLE_FRAME_UNSPEC arm_dwarf_handle_frame_unspec
@@ -1026,7 +1008,8 @@ enum tls_reloc {
   TLS_LDM32,
   TLS_LDO32,
   TLS_IE32,
-  TLS_LE32
+  TLS_LE32,
+  TLS_DESCSEQ	/* GNU scheme */
 };
 
 /* The maximum number of insns to be used when loading a constant.  */
@@ -4406,9 +4389,10 @@ arm_needs_doubleword_align (enum machine_mode mode, const_tree type)
    indeed make it pass in the stack if necessary).  */
 
 static rtx
-arm_function_arg (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
+arm_function_arg (cumulative_args_t pcum_v, enum machine_mode mode,
 		  const_tree type, bool named)
 {
+  CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
   int nregs;
 
   /* Handle the special case quickly.  Pick an arbitrary value for op2 of
@@ -4466,9 +4450,10 @@ arm_function_arg_boundary (enum machine_mode mode, const_tree type)
 }
 
 static int
-arm_arg_partial_bytes (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
+arm_arg_partial_bytes (cumulative_args_t pcum_v, enum machine_mode mode,
 		       tree type, bool named)
 {
+  CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
   int nregs = pcum->nregs;
 
   if (pcum->pcs_variant <= ARM_PCS_AAPCS_LOCAL)
@@ -4493,9 +4478,11 @@ arm_arg_partial_bytes (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
    (TYPE is null for libcalls where that information may not be available.)  */
 
 static void
-arm_function_arg_advance (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
+arm_function_arg_advance (cumulative_args_t pcum_v, enum machine_mode mode,
 			  const_tree type, bool named)
 {
+  CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
+
   if (pcum->pcs_variant <= ARM_PCS_AAPCS_LOCAL)
     {
       aapcs_layout_arg (pcum, mode, type, named);
@@ -4529,7 +4516,7 @@ arm_function_arg_advance (CUMULATIVE_ARGS *pcum, enum machine_mode mode,
    extension to the ARM ABI.  */
 
 static bool
-arm_pass_by_reference (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
+arm_pass_by_reference (cumulative_args_t cum ATTRIBUTE_UNUSED,
 		       enum machine_mode mode ATTRIBUTE_UNUSED,
 		       const_tree type, bool named ATTRIBUTE_UNUSED)
 {
@@ -5894,6 +5881,7 @@ arm_call_tls_get_addr (rtx x, rtx reg, rtx *valuep, int reloc)
 {
   rtx insns, label, labelno, sum;
 
+  gcc_assert (reloc != TLS_DESCSEQ);
   start_sequence ();
 
   labelno = GEN_INT (pic_labelno++);
@@ -5908,18 +5896,40 @@ arm_call_tls_get_addr (rtx x, rtx reg, rtx *valuep, int reloc)
 
   if (TARGET_ARM)
     emit_insn (gen_pic_add_dot_plus_eight (reg, reg, labelno));
-  else if (TARGET_THUMB2)
+  else
     emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
-  else /* TARGET_THUMB1 */
-    emit_insn (gen_pic_add_dot_plus_four (reg, reg, labelno));
-
-  *valuep = emit_library_call_value (get_tls_get_addr (), NULL_RTX, LCT_PURE, /* LCT_CONST?  */
+  
+  *valuep = emit_library_call_value (get_tls_get_addr (), NULL_RTX,
+				     LCT_PURE, /* LCT_CONST?  */
 				     Pmode, 1, reg, Pmode);
-
+  
   insns = get_insns ();
   end_sequence ();
 
   return insns;
+}
+
+static rtx
+arm_tls_descseq_addr (rtx x, rtx reg)
+{
+  rtx labelno = GEN_INT (pic_labelno++);
+  rtx label = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, labelno), UNSPEC_PIC_LABEL);
+  rtx sum = gen_rtx_UNSPEC (Pmode,
+			    gen_rtvec (4, x, GEN_INT (TLS_DESCSEQ),
+				       gen_rtx_CONST (VOIDmode, label),
+				       GEN_INT (!TARGET_ARM)),
+			    UNSPEC_TLS);
+  rtx reg0 = load_tls_operand (sum, gen_rtx_REG (SImode, 0));
+  
+  emit_insn (gen_tlscall (x, labelno));
+  if (!reg)
+    reg = gen_reg_rtx (SImode);
+  else
+    gcc_assert (REGNO (reg) != 0);
+
+  emit_move_insn (reg, reg0);
+
+  return reg;
 }
 
 rtx
@@ -5931,26 +5941,51 @@ legitimize_tls_address (rtx x, rtx reg)
   switch (model)
     {
     case TLS_MODEL_GLOBAL_DYNAMIC:
-      insns = arm_call_tls_get_addr (x, reg, &ret, TLS_GD32);
-      dest = gen_reg_rtx (Pmode);
-      emit_libcall_block (insns, dest, ret, x);
+      if (TARGET_GNU2_TLS)
+	{
+	  reg = arm_tls_descseq_addr (x, reg);
+
+	  tp = arm_load_tp (NULL_RTX);
+	  
+	  dest = gen_rtx_PLUS (Pmode, tp, reg);
+	}
+      else
+	{
+	  /* Original scheme */
+	  insns = arm_call_tls_get_addr (x, reg, &ret, TLS_GD32);
+	  dest = gen_reg_rtx (Pmode);
+	  emit_libcall_block (insns, dest, ret, x);
+	}
       return dest;
 
     case TLS_MODEL_LOCAL_DYNAMIC:
-      insns = arm_call_tls_get_addr (x, reg, &ret, TLS_LDM32);
+      if (TARGET_GNU2_TLS)
+	{
+	  reg = arm_tls_descseq_addr (x, reg);
 
-      /* Attach a unique REG_EQUIV, to allow the RTL optimizers to
-	 share the LDM result with other LD model accesses.  */
-      eqv = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const1_rtx),
-			    UNSPEC_TLS);
-      dest = gen_reg_rtx (Pmode);
-      emit_libcall_block (insns, dest, ret, eqv);
-
-      /* Load the addend.  */
-      addend = gen_rtx_UNSPEC (Pmode, gen_rtvec (2, x, GEN_INT (TLS_LDO32)),
-			       UNSPEC_TLS);
-      addend = force_reg (SImode, gen_rtx_CONST (SImode, addend));
-      return gen_rtx_PLUS (Pmode, dest, addend);
+	  tp = arm_load_tp (NULL_RTX);
+	  
+	  dest = gen_rtx_PLUS (Pmode, tp, reg);
+	}
+      else
+	{
+	  insns = arm_call_tls_get_addr (x, reg, &ret, TLS_LDM32);
+	  
+	  /* Attach a unique REG_EQUIV, to allow the RTL optimizers to
+	     share the LDM result with other LD model accesses.  */
+	  eqv = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, const1_rtx),
+				UNSPEC_TLS);
+	  dest = gen_reg_rtx (Pmode);
+	  emit_libcall_block (insns, dest, ret, eqv);
+	  
+	  /* Load the addend.  */
+	  addend = gen_rtx_UNSPEC (Pmode, gen_rtvec (2, x,
+						     GEN_INT (TLS_LDO32)),
+				   UNSPEC_TLS);
+	  addend = force_reg (SImode, gen_rtx_CONST (SImode, addend));
+	  dest = gen_rtx_PLUS (Pmode, dest, addend);
+	}
+      return dest;
 
     case TLS_MODEL_INITIAL_EXEC:
       labelno = GEN_INT (pic_labelno++);
@@ -8572,6 +8607,66 @@ neon_immediate_valid_for_logic (rtx op, enum machine_mode mode, int inverse,
   return 1;
 }
 
+/* Return TRUE if rtx OP is legal for use in a VSHR or VSHL instruction.  If
+   the immediate is valid, write a constant suitable for using as an operand
+   to VSHR/VSHL to *MODCONST and the corresponding element width to
+   *ELEMENTWIDTH. ISLEFTSHIFT is for determine left or right shift,
+   because they have different limitations.  */
+
+int
+neon_immediate_valid_for_shift (rtx op, enum machine_mode mode,
+				rtx *modconst, int *elementwidth,
+				bool isleftshift)
+{
+  unsigned int innersize = GET_MODE_SIZE (GET_MODE_INNER (mode));
+  unsigned int n_elts = CONST_VECTOR_NUNITS (op), i;
+  unsigned HOST_WIDE_INT last_elt = 0;
+  unsigned HOST_WIDE_INT maxshift;
+
+  /* Split vector constant out into a byte vector.  */
+  for (i = 0; i < n_elts; i++)
+    {
+      rtx el = CONST_VECTOR_ELT (op, i);
+      unsigned HOST_WIDE_INT elpart;
+
+      if (GET_CODE (el) == CONST_INT)
+        elpart = INTVAL (el);
+      else if (GET_CODE (el) == CONST_DOUBLE)
+        return 0;
+      else
+        gcc_unreachable ();
+
+      if (i != 0 && elpart != last_elt)
+        return 0;
+
+      last_elt = elpart;
+    }
+
+  /* Shift less than element size.  */
+  maxshift = innersize * 8;
+
+  if (isleftshift)
+    {
+      /* Left shift immediate value can be from 0 to <size>-1.  */
+      if (last_elt >= maxshift)
+        return 0;
+    }
+  else
+    {
+      /* Right shift immediate value can be from 1 to <size>.  */
+      if (last_elt == 0 || last_elt > maxshift)
+	return 0;
+    }
+
+  if (elementwidth)
+    *elementwidth = innersize * 8;
+
+  if (modconst)
+    *modconst = CONST_VECTOR_ELT (op, 0);
+
+  return 1;
+}
+
 /* Return a string suitable for output of Neon immediate logic operation
    MNEM.  */
 
@@ -8590,6 +8685,28 @@ neon_output_logic_immediate (const char *mnem, rtx *op2, enum machine_mode mode,
     sprintf (templ, "%s.i%d\t%%q0, %%2", mnem, width);
   else
     sprintf (templ, "%s.i%d\t%%P0, %%2", mnem, width);
+
+  return templ;
+}
+
+/* Return a string suitable for output of Neon immediate shift operation
+   (VSHR or VSHL) MNEM.  */
+
+char *
+neon_output_shift_immediate (const char *mnem, char sign, rtx *op2,
+			     enum machine_mode mode, int quad,
+			     bool isleftshift)
+{
+  int width, is_valid;
+  static char templ[40];
+
+  is_valid = neon_immediate_valid_for_shift (*op2, mode, op2, &width, isleftshift);
+  gcc_assert (is_valid != 0);
+
+  if (quad)
+    sprintf (templ, "%s.%c%d\t%%q0, %%q1, %%2", mnem, sign, width);
+  else
+    sprintf (templ, "%s.%c%d\t%%P0, %%P1, %%2", mnem, sign, width);
 
   return templ;
 }
@@ -9397,6 +9514,11 @@ arm_note_pic_base (rtx *x, void *date ATTRIBUTE_UNUSED)
 static bool
 arm_cannot_copy_insn_p (rtx insn)
 {
+  /* The tls call insn cannot be copied, as it is paired with a data
+     word.  */
+  if (recog_memoized (insn) == CODE_FOR_tlscall)
+    return true;
+  
   return for_each_rtx (&PATTERN (insn), arm_note_pic_base, NULL);
 }
 
@@ -14448,11 +14570,9 @@ arm_output_function_prologue (FILE *f, HOST_WIDE_INT frame_size)
 {
   unsigned long func_type;
 
+  /* ??? Do we want to print some of the below anyway?  */
   if (TARGET_THUMB1)
-    {
-      thumb1_output_function_prologue (f, frame_size);
-      return;
-    }
+    return;
 
   /* Sanity check.  */
   gcc_assert (!arm_ccfsm_state && !arm_target_insn);
@@ -15750,7 +15870,7 @@ arm_expand_prologue (void)
 	  /* Interrupt functions must not corrupt any registers.
 	     Creating a frame pointer however, corrupts the IP
 	     register, so we must push it first.  */
-	  insn = emit_multi_reg_push (1 << IP_REGNUM);
+	  emit_multi_reg_push (1 << IP_REGNUM);
 
 	  /* Do not set RTX_FRAME_RELATED_P on this insn.
 	     The dwarf stack unwinding code only wants to see one
@@ -16119,8 +16239,17 @@ arm_print_operand (FILE *stream, rtx x, int code)
 	  output_addr_const (stream, x);
 	  break;
 
+	case CONST:
+	  if (GET_CODE (XEXP (x, 0)) == PLUS
+	      && GET_CODE (XEXP (XEXP (x, 0), 0)) == SYMBOL_REF)
+	    {
+	      output_addr_const (stream, x);
+	      break;
+	    }
+	  /* Fall through.  */
+
 	default:
-	  gcc_unreachable ();
+	  output_operand_lossage ("Unsupported operand for code '%c'", code);
 	}
       return;
 
@@ -19989,27 +20118,79 @@ arm_expand_builtin (tree exp,
 inline static int
 number_of_first_bit_set (unsigned mask)
 {
-  int bit;
+  return ctz_hwi (mask);
+}
 
-  for (bit = 0;
-       (mask & (1 << bit)) == 0;
-       ++bit)
-    continue;
+/* Like emit_multi_reg_push, but allowing for a different set of 
+   registers to be described as saved.  MASK is the set of registers
+   to be saved; REAL_REGS is the set of registers to be described as
+   saved.  If REAL_REGS is 0, only describe the stack adjustment.  */
 
-  return bit;
+static rtx
+thumb1_emit_multi_reg_push (unsigned long mask, unsigned long real_regs)
+{
+  unsigned long regno;
+  rtx par[10], tmp, reg, insn;
+  int i, j;
+
+  /* Build the parallel of the registers actually being stored.  */
+  for (i = 0; mask; ++i, mask &= mask - 1)
+    {
+      regno = ctz_hwi (mask);
+      reg = gen_rtx_REG (SImode, regno);
+
+      if (i == 0)
+	tmp = gen_rtx_UNSPEC (BLKmode, gen_rtvec (1, reg), UNSPEC_PUSH_MULT);
+      else
+	tmp = gen_rtx_USE (VOIDmode, reg);
+
+      par[i] = tmp;
+    }
+
+  tmp = plus_constant (stack_pointer_rtx, -4 * i);
+  tmp = gen_rtx_PRE_MODIFY (Pmode, stack_pointer_rtx, tmp);
+  tmp = gen_frame_mem (BLKmode, tmp);
+  tmp = gen_rtx_SET (VOIDmode, tmp, par[0]);
+  par[0] = tmp;
+
+  tmp = gen_rtx_PARALLEL (VOIDmode, gen_rtvec_v (i, par));
+  insn = emit_insn (tmp);
+
+  /* Always build the stack adjustment note for unwind info.  */
+  tmp = plus_constant (stack_pointer_rtx, -4 * i);
+  tmp = gen_rtx_SET (VOIDmode, stack_pointer_rtx, tmp);
+  par[0] = tmp;
+
+  /* Build the parallel of the registers recorded as saved for unwind.  */
+  for (j = 0; real_regs; ++j, real_regs &= real_regs - 1)
+    {
+      regno = ctz_hwi (real_regs);
+      reg = gen_rtx_REG (SImode, regno);
+
+      tmp = plus_constant (stack_pointer_rtx, j * 4);
+      tmp = gen_frame_mem (SImode, tmp);
+      tmp = gen_rtx_SET (VOIDmode, tmp, reg);
+      RTX_FRAME_RELATED_P (tmp) = 1;
+      par[j + 1] = tmp;
+    }
+
+  if (j == 0)
+    tmp = par[0];
+  else
+    {
+      RTX_FRAME_RELATED_P (par[0]) = 1;
+      tmp = gen_rtx_SEQUENCE (VOIDmode, gen_rtvec_v (j + 1, par));
+    }
+
+  add_reg_note (insn, REG_FRAME_RELATED_EXPR, tmp);
+
+  return insn;
 }
 
 /* Emit code to push or pop registers to or from the stack.  F is the
-   assembly file.  MASK is the registers to push or pop.  PUSH is
-   nonzero if we should push, and zero if we should pop.  For debugging
-   output, if pushing, adjust CFA_OFFSET by the amount of space added
-   to the stack.  REAL_REGS should have the same number of bits set as
-   MASK, and will be used instead (in the same order) to describe which
-   registers were saved - this is used to mark the save slots when we
-   push high registers after moving them to low registers.  */
+   assembly file.  MASK is the registers to pop.  */
 static void
-thumb_pushpop (FILE *f, unsigned long mask, int push, int *cfa_offset,
-	       unsigned long real_regs)
+thumb_pop (FILE *f, unsigned long mask)
 {
   int regno;
   int lo_mask = mask & 0xFF;
@@ -20017,7 +20198,7 @@ thumb_pushpop (FILE *f, unsigned long mask, int push, int *cfa_offset,
 
   gcc_assert (mask);
 
-  if (lo_mask == 0 && !push && (mask & (1 << PC_REGNUM)))
+  if (lo_mask == 0 && (mask & (1 << PC_REGNUM)))
     {
       /* Special case.  Do not generate a POP PC statement here, do it in
 	 thumb_exit() */
@@ -20025,22 +20206,7 @@ thumb_pushpop (FILE *f, unsigned long mask, int push, int *cfa_offset,
       return;
     }
 
-  if (push && arm_except_unwind_info (&global_options) == UI_TARGET)
-    {
-      fprintf (f, "\t.save\t{");
-      for (regno = 0; regno < 15; regno++)
-	{
-	  if (real_regs & (1 << regno))
-	    {
-	      if (real_regs & ((1 << regno) -1))
-		fprintf (f, ", ");
-	      asm_fprintf (f, "%r", regno);
-	    }
-	}
-      fprintf (f, "}\n");
-    }
-
-  fprintf (f, "\t%s\t{", push ? "push" : "pop");
+  fprintf (f, "\tpop\t{");
 
   /* Look at the low registers first.  */
   for (regno = 0; regno <= LAST_LO_REGNUM; regno++, lo_mask >>= 1)
@@ -20056,17 +20222,7 @@ thumb_pushpop (FILE *f, unsigned long mask, int push, int *cfa_offset,
 	}
     }
 
-  if (push && (mask & (1 << LR_REGNUM)))
-    {
-      /* Catch pushing the LR.  */
-      if (mask & 0xFF)
-	fprintf (f, ", ");
-
-      asm_fprintf (f, "%r", LR_REGNUM);
-
-      pushed_words++;
-    }
-  else if (!push && (mask & (1 << PC_REGNUM)))
+  if (mask & (1 << PC_REGNUM))
     {
       /* Catch popping the PC.  */
       if (TARGET_INTERWORK || TARGET_BACKTRACE
@@ -20090,23 +20246,6 @@ thumb_pushpop (FILE *f, unsigned long mask, int push, int *cfa_offset,
     }
 
   fprintf (f, "}\n");
-
-  if (push && pushed_words && dwarf2out_do_frame ())
-    {
-      char *l = dwarf2out_cfi_label (false);
-      int pushed_mask = real_regs;
-
-      *cfa_offset += pushed_words * 4;
-      dwarf2out_def_cfa (l, SP_REGNUM, *cfa_offset);
-
-      pushed_words = 0;
-      pushed_mask = real_regs;
-      for (regno = 0; regno <= 14; regno++, pushed_mask >>= 1)
-	{
-	  if (pushed_mask & 1)
-	    dwarf2out_reg_save (l, regno, 4 * pushed_words++ - *cfa_offset);
-	}
-    }
 }
 
 /* Generate code to return from a thumb function.
@@ -20252,8 +20391,7 @@ thumb_exit (FILE *f, int reg_containing_return_addr)
     }
 
   /* Pop as many registers as we can.  */
-  thumb_pushpop (f, regs_available_for_popping, FALSE, NULL,
-		 regs_available_for_popping);
+  thumb_pop (f, regs_available_for_popping);
 
   /* Process the registers we popped.  */
   if (reg_containing_return_addr == -1)
@@ -20334,8 +20472,7 @@ thumb_exit (FILE *f, int reg_containing_return_addr)
       int  popped_into;
       int  move_to;
 
-      thumb_pushpop (f, regs_available_for_popping, FALSE, NULL,
-		     regs_available_for_popping);
+      thumb_pop (f, regs_available_for_popping);
 
       /* We have popped either FP or SP.
 	 Move whichever one it is into the correct register.  */
@@ -20355,8 +20492,7 @@ thumb_exit (FILE *f, int reg_containing_return_addr)
     {
       int  popped_into;
 
-      thumb_pushpop (f, regs_available_for_popping, FALSE, NULL,
-		     regs_available_for_popping);
+      thumb_pop (f, regs_available_for_popping);
 
       popped_into = number_of_first_bit_set (regs_available_for_popping);
 
@@ -20688,7 +20824,7 @@ thumb_unexpanded_epilogue (void)
 	  mask &= (2 << regno) - 1;	/* A noop if regno == 8 */
 
 	  /* Pop the values into the low register(s).  */
-	  thumb_pushpop (asm_out_file, mask, 0, NULL, mask);
+	  thumb_pop (asm_out_file, mask);
 
 	  /* Move the value(s) into the high registers.  */
 	  for (regno = 0; regno <= LAST_LO_REGNUM; regno++)
@@ -20720,12 +20856,11 @@ thumb_unexpanded_epilogue (void)
 	 structure was created which includes an adjusted stack
 	 pointer, so just pop everything.  */
       if (live_regs_mask)
-	thumb_pushpop (asm_out_file, live_regs_mask, FALSE, NULL,
-		       live_regs_mask);
+	thumb_pop (asm_out_file, live_regs_mask);
 
       /* We have either just popped the return address into the
 	 PC or it is was kept in LR for the entire function.
-	 Note that thumb_pushpop has already called thumb_exit if the
+	 Note that thumb_pop has already called thumb_exit if the
 	 PC was in the list.  */
       if (!had_to_push_lr)
 	thumb_exit (asm_out_file, LR_REGNUM);
@@ -20734,8 +20869,7 @@ thumb_unexpanded_epilogue (void)
     {
       /* Pop everything but the return address.  */
       if (live_regs_mask)
-	thumb_pushpop (asm_out_file, live_regs_mask, FALSE, NULL,
-		       live_regs_mask);
+	thumb_pop (asm_out_file, live_regs_mask);
 
       if (had_to_push_lr)
 	{
@@ -20747,8 +20881,7 @@ thumb_unexpanded_epilogue (void)
 	    }
 
 	  /* Get the return address into a temporary register.  */
-	  thumb_pushpop (asm_out_file, 1 << LAST_ARG_REGNUM, 0, NULL,
-			 1 << LAST_ARG_REGNUM);
+	  thumb_pop (asm_out_file, 1 << LAST_ARG_REGNUM);
 
 	  if (size > 12)
 	    {
@@ -20872,17 +21005,20 @@ thumb_compute_initial_elimination_offset (unsigned int from, unsigned int to)
     }
 }
 
-/* Generate the rest of a function's prologue.  */
+/* Generate the function's prologue.  */
+
 void
 thumb1_expand_prologue (void)
 {
-  rtx insn, dwarf;
+  rtx insn;
 
   HOST_WIDE_INT amount;
   arm_stack_offsets *offsets;
   unsigned long func_type;
   int regno;
   unsigned long live_regs_mask;
+  unsigned long l_mask;
+  unsigned high_regs_pushed = 0;
 
   func_type = arm_current_func_type ();
 
@@ -20896,8 +21032,206 @@ thumb1_expand_prologue (void)
       return;
     }
 
+  if (is_called_in_ARM_mode (current_function_decl))
+    emit_insn (gen_prologue_thumb1_interwork ());
+
   offsets = arm_get_frame_offsets ();
   live_regs_mask = offsets->saved_regs_mask;
+
+  /* Extract a mask of the ones we can give to the Thumb's push instruction.  */
+  l_mask = live_regs_mask & 0x40ff;
+  /* Then count how many other high registers will need to be pushed.  */
+  high_regs_pushed = bit_count (live_regs_mask & 0x0f00);
+
+  if (crtl->args.pretend_args_size)
+    {
+      rtx x = GEN_INT (-crtl->args.pretend_args_size);
+
+      if (cfun->machine->uses_anonymous_args)
+	{
+	  int num_pushes = ARM_NUM_INTS (crtl->args.pretend_args_size);
+	  unsigned long mask;
+
+	  mask = 1ul << (LAST_ARG_REGNUM + 1);
+	  mask -= 1ul << (LAST_ARG_REGNUM + 1 - num_pushes);
+
+	  insn = thumb1_emit_multi_reg_push (mask, 0);
+	}
+      else
+	{
+	  insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
+					stack_pointer_rtx, x));
+	}
+      RTX_FRAME_RELATED_P (insn) = 1;
+    }
+
+  if (TARGET_BACKTRACE)
+    {
+      HOST_WIDE_INT offset = 0;
+      unsigned work_register;
+      rtx work_reg, x, arm_hfp_rtx;
+
+      /* We have been asked to create a stack backtrace structure.
+         The code looks like this:
+
+	 0   .align 2
+	 0   func:
+         0     sub   SP, #16         Reserve space for 4 registers.
+	 2     push  {R7}            Push low registers.
+         4     add   R7, SP, #20     Get the stack pointer before the push.
+         6     str   R7, [SP, #8]    Store the stack pointer
+					(before reserving the space).
+         8     mov   R7, PC          Get hold of the start of this code + 12.
+        10     str   R7, [SP, #16]   Store it.
+        12     mov   R7, FP          Get hold of the current frame pointer.
+        14     str   R7, [SP, #4]    Store it.
+        16     mov   R7, LR          Get hold of the current return address.
+        18     str   R7, [SP, #12]   Store it.
+        20     add   R7, SP, #16     Point at the start of the
+					backtrace structure.
+        22     mov   FP, R7          Put this value into the frame pointer.  */
+
+      work_register = thumb_find_work_register (live_regs_mask);
+      work_reg = gen_rtx_REG (SImode, work_register);
+      arm_hfp_rtx = gen_rtx_REG (SImode, ARM_HARD_FRAME_POINTER_REGNUM);
+
+      insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
+				    stack_pointer_rtx, GEN_INT (-16)));
+      RTX_FRAME_RELATED_P (insn) = 1;
+
+      if (l_mask)
+	{
+	  insn = thumb1_emit_multi_reg_push (l_mask, l_mask);
+	  RTX_FRAME_RELATED_P (insn) = 1;
+
+	  offset = bit_count (l_mask) * UNITS_PER_WORD;
+	}
+
+      x = GEN_INT (offset + 16 + crtl->args.pretend_args_size);
+      emit_insn (gen_addsi3 (work_reg, stack_pointer_rtx, x));
+
+      x = plus_constant (stack_pointer_rtx, offset + 4);
+      x = gen_frame_mem (SImode, x);
+      emit_move_insn (x, work_reg);
+
+      /* Make sure that the instruction fetching the PC is in the right place
+	 to calculate "start of backtrace creation code + 12".  */
+      /* ??? The stores using the common WORK_REG ought to be enough to
+	 prevent the scheduler from doing anything weird.  Failing that
+	 we could always move all of the following into an UNSPEC_VOLATILE.  */
+      if (l_mask)
+	{
+	  x = gen_rtx_REG (SImode, PC_REGNUM);
+	  emit_move_insn (work_reg, x);
+
+	  x = plus_constant (stack_pointer_rtx, offset + 12);
+	  x = gen_frame_mem (SImode, x);
+	  emit_move_insn (x, work_reg);
+
+	  emit_move_insn (work_reg, arm_hfp_rtx);
+
+	  x = plus_constant (stack_pointer_rtx, offset);
+	  x = gen_frame_mem (SImode, x);
+	  emit_move_insn (x, work_reg);
+	}
+      else
+	{
+	  emit_move_insn (work_reg, arm_hfp_rtx);
+
+	  x = plus_constant (stack_pointer_rtx, offset);
+	  x = gen_frame_mem (SImode, x);
+	  emit_move_insn (x, work_reg);
+
+	  x = gen_rtx_REG (SImode, PC_REGNUM);
+	  emit_move_insn (work_reg, x);
+
+	  x = plus_constant (stack_pointer_rtx, offset + 12);
+	  x = gen_frame_mem (SImode, x);
+	  emit_move_insn (x, work_reg);
+	}
+
+      x = gen_rtx_REG (SImode, LR_REGNUM);
+      emit_move_insn (work_reg, x);
+
+      x = plus_constant (stack_pointer_rtx, offset + 8);
+      x = gen_frame_mem (SImode, x);
+      emit_move_insn (x, work_reg);
+
+      x = GEN_INT (offset + 12);
+      emit_insn (gen_addsi3 (work_reg, stack_pointer_rtx, x));
+
+      emit_move_insn (arm_hfp_rtx, work_reg);
+    }
+  /* Optimization:  If we are not pushing any low registers but we are going
+     to push some high registers then delay our first push.  This will just
+     be a push of LR and we can combine it with the push of the first high
+     register.  */
+  else if ((l_mask & 0xff) != 0
+	   || (high_regs_pushed == 0 && l_mask))
+    {
+      unsigned long mask = l_mask;
+      mask |= (1 << thumb1_extra_regs_pushed (offsets, true)) - 1;
+      insn = thumb1_emit_multi_reg_push (mask, mask);
+      RTX_FRAME_RELATED_P (insn) = 1;
+    }
+
+  if (high_regs_pushed)
+    {
+      unsigned pushable_regs;
+      unsigned next_hi_reg;
+
+      for (next_hi_reg = 12; next_hi_reg > LAST_LO_REGNUM; next_hi_reg--)
+	if (live_regs_mask & (1 << next_hi_reg))
+	  break;
+
+      pushable_regs = l_mask & 0xff;
+
+      if (pushable_regs == 0)
+	pushable_regs = 1 << thumb_find_work_register (live_regs_mask);
+
+      while (high_regs_pushed > 0)
+	{
+	  unsigned long real_regs_mask = 0;
+
+	  for (regno = LAST_LO_REGNUM; regno >= 0; regno --)
+	    {
+	      if (pushable_regs & (1 << regno))
+		{
+		  emit_move_insn (gen_rtx_REG (SImode, regno),
+				  gen_rtx_REG (SImode, next_hi_reg));
+
+		  high_regs_pushed --;
+		  real_regs_mask |= (1 << next_hi_reg);
+
+		  if (high_regs_pushed)
+		    {
+		      for (next_hi_reg --; next_hi_reg > LAST_LO_REGNUM;
+			   next_hi_reg --)
+			if (live_regs_mask & (1 << next_hi_reg))
+			  break;
+		    }
+		  else
+		    {
+		      pushable_regs &= ~((1 << regno) - 1);
+		      break;
+		    }
+		}
+	    }
+
+	  /* If we had to find a work register and we have not yet
+	     saved the LR then add it to the list of regs to push.  */
+	  if (l_mask == (1 << LR_REGNUM))
+	    {
+	      pushable_regs |= l_mask;
+	      real_regs_mask |= l_mask;
+	      l_mask = 0;
+	    }
+
+	  insn = thumb1_emit_multi_reg_push (pushable_regs, real_regs_mask);
+	  RTX_FRAME_RELATED_P (insn) = 1;
+	}
+    }
+
   /* Load the pic register before setting the frame pointer,
      so we can use r7 as a temporary work register.  */
   if (flag_pic && arm_pic_register != INVALID_REGNUM)
@@ -20923,7 +21257,7 @@ thumb1_expand_prologue (void)
 	}
       else
 	{
-	  rtx reg;
+	  rtx reg, dwarf;
 
 	  /* The stack decrement is too big for an immediate value in a single
 	     insn.  In theory we could issue multiple subtracts, but after
@@ -20951,12 +21285,12 @@ thumb1_expand_prologue (void)
 
 	  insn = emit_insn (gen_addsi3 (stack_pointer_rtx,
 					stack_pointer_rtx, reg));
-	  RTX_FRAME_RELATED_P (insn) = 1;
+
 	  dwarf = gen_rtx_SET (VOIDmode, stack_pointer_rtx,
 			       plus_constant (stack_pointer_rtx,
 					      -amount));
-	  RTX_FRAME_RELATED_P (dwarf) = 1;
 	  add_reg_note (insn, REG_FRAME_RELATED_EXPR, dwarf);
+	  RTX_FRAME_RELATED_P (insn) = 1;
 	}
     }
 
@@ -21033,253 +21367,45 @@ thumb1_expand_epilogue (void)
     emit_use (gen_rtx_REG (SImode, LR_REGNUM));
 }
 
-static void
-thumb1_output_function_prologue (FILE *f, HOST_WIDE_INT size ATTRIBUTE_UNUSED)
+/* Implementation of insn prologue_thumb1_interwork.  This is the first
+   "instruction" of a function called in ARM mode.  Swap to thumb mode.  */
+
+const char *
+thumb1_output_interwork (void)
 {
-  arm_stack_offsets *offsets;
-  unsigned long live_regs_mask = 0;
-  unsigned long l_mask;
-  unsigned high_regs_pushed = 0;
-  int cfa_offset = 0;
-  int regno;
+  const char * name;
+  FILE *f = asm_out_file;
 
-  if (IS_NAKED (arm_current_func_type ()))
-    return;
+  gcc_assert (GET_CODE (DECL_RTL (current_function_decl)) == MEM);
+  gcc_assert (GET_CODE (XEXP (DECL_RTL (current_function_decl), 0))
+	      == SYMBOL_REF);
+  name = XSTR (XEXP (DECL_RTL (current_function_decl), 0), 0);
 
-  if (is_called_in_ARM_mode (current_function_decl))
-    {
-      const char * name;
+  /* Generate code sequence to switch us into Thumb mode.  */
+  /* The .code 32 directive has already been emitted by
+     ASM_DECLARE_FUNCTION_NAME.  */
+  asm_fprintf (f, "\torr\t%r, %r, #1\n", IP_REGNUM, PC_REGNUM);
+  asm_fprintf (f, "\tbx\t%r\n", IP_REGNUM);
 
-      gcc_assert (GET_CODE (DECL_RTL (current_function_decl)) == MEM);
-      gcc_assert (GET_CODE (XEXP (DECL_RTL (current_function_decl), 0))
-		  == SYMBOL_REF);
-      name = XSTR  (XEXP (DECL_RTL (current_function_decl), 0), 0);
-
-      /* Generate code sequence to switch us into Thumb mode.  */
-      /* The .code 32 directive has already been emitted by
-	 ASM_DECLARE_FUNCTION_NAME.  */
-      asm_fprintf (f, "\torr\t%r, %r, #1\n", IP_REGNUM, PC_REGNUM);
-      asm_fprintf (f, "\tbx\t%r\n", IP_REGNUM);
-
-      /* Generate a label, so that the debugger will notice the
-	 change in instruction sets.  This label is also used by
-	 the assembler to bypass the ARM code when this function
-	 is called from a Thumb encoded function elsewhere in the
-	 same file.  Hence the definition of STUB_NAME here must
-	 agree with the definition in gas/config/tc-arm.c.  */
+  /* Generate a label, so that the debugger will notice the
+     change in instruction sets.  This label is also used by
+     the assembler to bypass the ARM code when this function
+     is called from a Thumb encoded function elsewhere in the
+     same file.  Hence the definition of STUB_NAME here must
+     agree with the definition in gas/config/tc-arm.c.  */
 
 #define STUB_NAME ".real_start_of"
 
-      fprintf (f, "\t.code\t16\n");
+  fprintf (f, "\t.code\t16\n");
 #ifdef ARM_PE
-      if (arm_dllexport_name_p (name))
-        name = arm_strip_name_encoding (name);
+  if (arm_dllexport_name_p (name))
+    name = arm_strip_name_encoding (name);
 #endif
-      asm_fprintf (f, "\t.globl %s%U%s\n", STUB_NAME, name);
-      fprintf (f, "\t.thumb_func\n");
-      asm_fprintf (f, "%s%U%s:\n", STUB_NAME, name);
-    }
+  asm_fprintf (f, "\t.globl %s%U%s\n", STUB_NAME, name);
+  fprintf (f, "\t.thumb_func\n");
+  asm_fprintf (f, "%s%U%s:\n", STUB_NAME, name);
 
-  if (crtl->args.pretend_args_size)
-    {
-      /* Output unwind directive for the stack adjustment.  */
-      if (arm_except_unwind_info (&global_options) == UI_TARGET)
-	fprintf (f, "\t.pad #%d\n",
-		 crtl->args.pretend_args_size);
-
-      if (cfun->machine->uses_anonymous_args)
-	{
-	  int num_pushes;
-
-	  fprintf (f, "\tpush\t{");
-
-	  num_pushes = ARM_NUM_INTS (crtl->args.pretend_args_size);
-
-	  for (regno = LAST_ARG_REGNUM + 1 - num_pushes;
-	       regno <= LAST_ARG_REGNUM;
-	       regno++)
-	    asm_fprintf (f, "%r%s", regno,
-			 regno == LAST_ARG_REGNUM ? "" : ", ");
-
-	  fprintf (f, "}\n");
-	}
-      else
-	asm_fprintf (f, "\tsub\t%r, %r, #%d\n",
-		     SP_REGNUM, SP_REGNUM,
-		     crtl->args.pretend_args_size);
-
-      /* We don't need to record the stores for unwinding (would it
-	 help the debugger any if we did?), but record the change in
-	 the stack pointer.  */
-      if (dwarf2out_do_frame ())
-	{
-	  char *l = dwarf2out_cfi_label (false);
-
-	  cfa_offset = cfa_offset + crtl->args.pretend_args_size;
-	  dwarf2out_def_cfa (l, SP_REGNUM, cfa_offset);
-	}
-    }
-
-  /* Get the registers we are going to push.  */
-  offsets = arm_get_frame_offsets ();
-  live_regs_mask = offsets->saved_regs_mask;
-  /* Extract a mask of the ones we can give to the Thumb's push instruction.  */
-  l_mask = live_regs_mask & 0x40ff;
-  /* Then count how many other high registers will need to be pushed.  */
-  high_regs_pushed = bit_count (live_regs_mask & 0x0f00);
-
-  if (TARGET_BACKTRACE)
-    {
-      unsigned offset;
-      unsigned work_register;
-
-      /* We have been asked to create a stack backtrace structure.
-         The code looks like this:
-
-	 0   .align 2
-	 0   func:
-         0     sub   SP, #16         Reserve space for 4 registers.
-	 2     push  {R7}            Push low registers.
-         4     add   R7, SP, #20     Get the stack pointer before the push.
-         6     str   R7, [SP, #8]    Store the stack pointer (before reserving the space).
-         8     mov   R7, PC          Get hold of the start of this code plus 12.
-        10     str   R7, [SP, #16]   Store it.
-        12     mov   R7, FP          Get hold of the current frame pointer.
-        14     str   R7, [SP, #4]    Store it.
-        16     mov   R7, LR          Get hold of the current return address.
-        18     str   R7, [SP, #12]   Store it.
-        20     add   R7, SP, #16     Point at the start of the backtrace structure.
-        22     mov   FP, R7          Put this value into the frame pointer.  */
-
-      work_register = thumb_find_work_register (live_regs_mask);
-
-      if (arm_except_unwind_info (&global_options) == UI_TARGET)
-	asm_fprintf (f, "\t.pad #16\n");
-
-      asm_fprintf
-	(f, "\tsub\t%r, %r, #16\t%@ Create stack backtrace structure\n",
-	 SP_REGNUM, SP_REGNUM);
-
-      if (dwarf2out_do_frame ())
-	{
-	  char *l = dwarf2out_cfi_label (false);
-
-	  cfa_offset = cfa_offset + 16;
-	  dwarf2out_def_cfa (l, SP_REGNUM, cfa_offset);
-	}
-
-      if (l_mask)
-	{
-	  thumb_pushpop (f, l_mask, 1, &cfa_offset, l_mask);
-	  offset = bit_count (l_mask) * UNITS_PER_WORD;
-	}
-      else
-	offset = 0;
-
-      asm_fprintf (f, "\tadd\t%r, %r, #%d\n", work_register, SP_REGNUM,
-		   offset + 16 + crtl->args.pretend_args_size);
-
-      asm_fprintf (f, "\tstr\t%r, [%r, #%d]\n", work_register, SP_REGNUM,
-		   offset + 4);
-
-      /* Make sure that the instruction fetching the PC is in the right place
-	 to calculate "start of backtrace creation code + 12".  */
-      if (l_mask)
-	{
-	  asm_fprintf (f, "\tmov\t%r, %r\n", work_register, PC_REGNUM);
-	  asm_fprintf (f, "\tstr\t%r, [%r, #%d]\n", work_register, SP_REGNUM,
-		       offset + 12);
-	  asm_fprintf (f, "\tmov\t%r, %r\n", work_register,
-		       ARM_HARD_FRAME_POINTER_REGNUM);
-	  asm_fprintf (f, "\tstr\t%r, [%r, #%d]\n", work_register, SP_REGNUM,
-		       offset);
-	}
-      else
-	{
-	  asm_fprintf (f, "\tmov\t%r, %r\n", work_register,
-		       ARM_HARD_FRAME_POINTER_REGNUM);
-	  asm_fprintf (f, "\tstr\t%r, [%r, #%d]\n", work_register, SP_REGNUM,
-		       offset);
-	  asm_fprintf (f, "\tmov\t%r, %r\n", work_register, PC_REGNUM);
-	  asm_fprintf (f, "\tstr\t%r, [%r, #%d]\n", work_register, SP_REGNUM,
-		       offset + 12);
-	}
-
-      asm_fprintf (f, "\tmov\t%r, %r\n", work_register, LR_REGNUM);
-      asm_fprintf (f, "\tstr\t%r, [%r, #%d]\n", work_register, SP_REGNUM,
-		   offset + 8);
-      asm_fprintf (f, "\tadd\t%r, %r, #%d\n", work_register, SP_REGNUM,
-		   offset + 12);
-      asm_fprintf (f, "\tmov\t%r, %r\t\t%@ Backtrace structure created\n",
-		   ARM_HARD_FRAME_POINTER_REGNUM, work_register);
-    }
-  /* Optimization:  If we are not pushing any low registers but we are going
-     to push some high registers then delay our first push.  This will just
-     be a push of LR and we can combine it with the push of the first high
-     register.  */
-  else if ((l_mask & 0xff) != 0
-	   || (high_regs_pushed == 0 && l_mask))
-    {
-      unsigned long mask = l_mask;
-      mask |= (1 << thumb1_extra_regs_pushed (offsets, true)) - 1;
-      thumb_pushpop (f, mask, 1, &cfa_offset, mask);
-    }
-
-  if (high_regs_pushed)
-    {
-      unsigned pushable_regs;
-      unsigned next_hi_reg;
-
-      for (next_hi_reg = 12; next_hi_reg > LAST_LO_REGNUM; next_hi_reg--)
-	if (live_regs_mask & (1 << next_hi_reg))
-	  break;
-
-      pushable_regs = l_mask & 0xff;
-
-      if (pushable_regs == 0)
-	pushable_regs = 1 << thumb_find_work_register (live_regs_mask);
-
-      while (high_regs_pushed > 0)
-	{
-	  unsigned long real_regs_mask = 0;
-
-	  for (regno = LAST_LO_REGNUM; regno >= 0; regno --)
-	    {
-	      if (pushable_regs & (1 << regno))
-		{
-		  asm_fprintf (f, "\tmov\t%r, %r\n", regno, next_hi_reg);
-
-		  high_regs_pushed --;
-		  real_regs_mask |= (1 << next_hi_reg);
-
-		  if (high_regs_pushed)
-		    {
-		      for (next_hi_reg --; next_hi_reg > LAST_LO_REGNUM;
-			   next_hi_reg --)
-			if (live_regs_mask & (1 << next_hi_reg))
-			  break;
-		    }
-		  else
-		    {
-		      pushable_regs &= ~((1 << regno) - 1);
-		      break;
-		    }
-		}
-	    }
-
-	  /* If we had to find a work register and we have not yet
-	     saved the LR then add it to the list of regs to push.  */
-	  if (l_mask == (1 << LR_REGNUM))
-	    {
-	      thumb_pushpop (f, pushable_regs | (1 << LR_REGNUM),
-			     1, &cfa_offset,
-			     real_regs_mask | (1 << LR_REGNUM));
-	      l_mask = 0;
-	    }
-	  else
-	    thumb_pushpop (f, pushable_regs, 1, &cfa_offset, real_regs_mask);
-	}
-    }
+  return "";
 }
 
 /* Handle the case of a double word load into a low register from
@@ -21950,12 +22076,13 @@ arm_output_load_gr (rtx *operands)
    that way.  */
 
 static void
-arm_setup_incoming_varargs (CUMULATIVE_ARGS *pcum,
+arm_setup_incoming_varargs (cumulative_args_t pcum_v,
 			    enum machine_mode mode,
 			    tree type,
 			    int *pretend_size,
 			    int second_time ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *pcum = get_cumulative_args (pcum_v);
   int nregs;
   
   cfun->machine->uses_anonymous_args = 1;
@@ -22848,33 +22975,6 @@ arm_asm_init_sections (void)
 }
 #endif /* ARM_UNWIND_INFO */
 
-/* Implement TARGET_EXCEPT_UNWIND_INFO.  */
-
-static enum unwind_info_type
-arm_except_unwind_info (struct gcc_options *opts)
-{
-  /* Honor the --enable-sjlj-exceptions configure switch.  */
-#ifdef CONFIG_SJLJ_EXCEPTIONS
-  if (CONFIG_SJLJ_EXCEPTIONS)
-    return UI_SJLJ;
-#endif
-
-  /* If not using ARM EABI unwind tables... */
-  if (ARM_UNWIND_INFO)
-    {
-      /* For simplicity elsewhere in this file, indicate that all unwind
-	 info is disabled if we're not emitting unwind tables.  */
-      if (!opts->x_flag_exceptions && !opts->x_flag_unwind_tables)
-	return UI_NONE;
-      else
-	return UI_TARGET;
-    }
-
-  /* ... we use sjlj exceptions for backwards compatibility.  */
-  return UI_SJLJ;
-}
-
-
 /* Handle UNSPEC DWARF call frame instructions.  These are needed for dynamic
    stack alignment.  */
 
@@ -22951,6 +23051,9 @@ arm_emit_tls_decoration (FILE *fp, rtx x)
     case TLS_LE32:
       fputs ("(tpoff)", fp);
       break;
+    case TLS_DESCSEQ:
+      fputs ("(tlsdesc)", fp);
+      break;
     default:
       gcc_unreachable ();
     }
@@ -22960,9 +23063,11 @@ arm_emit_tls_decoration (FILE *fp, rtx x)
     case TLS_GD32:
     case TLS_LDM32:
     case TLS_IE32:
+    case TLS_DESCSEQ:
       fputs (" + (. - ", fp);
       output_addr_const (fp, XVECEXP (x, 0, 2));
-      fputs (" - ", fp);
+      /* For DESCSEQ the 3rd operand encodes thumbness, and is added */
+      fputs (reloc == TLS_DESCSEQ ? " + " : " - ", fp);
       output_addr_const (fp, XVECEXP (x, 0, 3));
       fputc (')', fp);
       break;
@@ -23838,6 +23943,9 @@ arm_attr_length_push_multi(rtx parallel_op, rtx first_op)
   /* ARM mode.  */
   if (TARGET_ARM)
     return 4;
+  /* Thumb1 mode.  */
+  if (TARGET_THUMB1)
+    return 2;
 
   /* Thumb2 mode.  */
   regno = REGNO (first_op);

@@ -837,7 +837,7 @@ struct rtl_opt_pass pass_compute_alignments =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func | TODO_verify_rtl_sharing
+  TODO_verify_rtl_sharing
   | TODO_ggc_collect                    /* todo_flags_finish */
  }
 };
@@ -2683,7 +2683,9 @@ final_scan_insn (rtx insn, FILE *file, int optimize_p ATTRIBUTE_UNUSED,
 
 	current_output_insn = debug_insn = insn;
 
-	if (CALL_P (insn) && dwarf2out_do_frame ())
+	if (dwarf2out_do_frame ()
+	    && (CALL_P (insn)
+		|| find_reg_note (insn, REG_CFA_FLUSH_QUEUE, NULL)))
 	  dwarf2out_frame_debug (insn, false);
 
 	/* Find the proper template for this insn.  */
@@ -4337,7 +4339,7 @@ struct rtl_opt_pass pass_shorten_branches =
   0,                                    /* properties_provided */
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
-  TODO_dump_func                        /* todo_flags_finish */
+  0                                     /* todo_flags_finish */
  }
 };
 

@@ -1,3 +1,759 @@
+2011-07-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49085
+	* g++.dg/template/offsetof2.C: New.
+
+2011-07-01  Kai Tietz  <ktietz@redhat.com>
+
+        * gcc.dg/tree-ssa/bitwise-sink.c: New test.
+
+2011-07-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libmudflap/49549
+	* lib/target-supports.exp (check_effective_target_gld): New proc.
+
+2011-07-01  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49603
+	* gcc.dg/torture/pr49603.c: New testcase.
+
+2011-06-30  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49387
+	* g++.dg/rtti/template1.C: New.
+
+	PR c++/49569
+	* g++.dg/cpp0x/regress/ctor1.C: New.
+
+	PR c++/49355
+	* g++.dg/cpp0x/initlist54.C: New.
+
+2011-06-30  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/tree-ssa/sra-12.c: New test.
+
+2011-06-29  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/named.C: Test subobject of xvalue.
+
+2011-06-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/46787
+	* gcc.dg/vect/vect-121.c: New testcase.
+
+2011-06-30  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/49094
+	* gcc.dg/tree-ssa/pr49094.c: New test.
+
+2011-06-30  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/49540
+	* gfortran.dg/pr49540-1.f90: New test.
+	* gfortran.dg/pr49540-2.f90: New test.
+
+2011-06-30  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR ada/49511
+	* ada/acats/run_acats (which): Use last field of type -p output.
+
+2011-06-30  Dominique d'Humieres  <dominiq@lps.ens.fr>
+	    Iain Sandoe  <iains@gcc.gnu.org>
+
+	PR libobjc/36610
+	* objc.dg/torture/forward-1.m: Remove dg-xfail-run-if.
+	Only skip on 64-bit *-*-darwin8* && !objc2.
+
+2011-06-30  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/38752
+	* gcc.c-torture/compile/pr38752.c: New testcase.
+
+2011-06-30  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/slp-widen-mult-half.c: New test.
+	* gcc.dg/vect/vect-widen-mult-half.c: New test.
+
+2011-06-29  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49216
+	* g++.dg/cpp0x/initlist53.C: Use placement new.
+	* g++.dg/cpp0x/initlist-value.C: Use placement new.
+	* g++.old-deja/g++.ext/arrnew2.C: Remove xfail.
+
+	PR c++/49003
+	* g++.dg/cpp0x/trailing6.C: New.
+	* g++.dg/cpp0x/pr45908.C: No error.
+
+	PR c++/49272
+	* g++.old-deja/g++.jason/rfg10.C: Accept other overflow error too.
+
+	PR c++/49520
+	* g++.dg/cpp0x/constexpr-using2.C: New.
+
+	* g++.dg/cpp0x/lambda/lambda-template3.C: New.
+
+	PR c++/45923
+	* g++.dg/cpp0x/constexpr-diag3.C: New.
+	* g++.dg/cpp0x/constexpr-diag1.C: Adjust error message.
+	* g++.dg/cpp0x/constexpr-ex1.C: Adjust error message.
+	* g++.dg/cpp0x/constexpr-friend.C: Adjust error message.
+	* g++.dg/cpp0x/constexpr-incomplete2.C: Adjust error message.
+
+2011-06-29  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-is_literal.C: Adjust.
+
+2011-06-29  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/loop-17.c: Adjust.
+
+2011-06-29  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/initlist-value2.C: New.
+
+	* g++.dg/cpp0x/constexpr-initlist4.C: New.
+	* g++.dg/cpp0x/initlist-value.C: New.
+
+2011-06-29  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* gcc.dg/torture/pr49169.c: Restrict to ARM and MIPS targets.
+
+2011-06-29  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/inline_1.c: Remove dg-excess-errors.
+	* gcc.dg/inline_2.c: Likewise.
+	* gcc.dg/unroll_1.c: Likewise.
+
+2011-06-29  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/49567
+	* gcc.target/i386/pr49567.c: New test.
+
+2011-06-28  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/opt17.ad[sb]: New test.
+
+2011-06-28  Janis Johnson  <janisjo@codesourcery.com>
+	    Tom de Vries  <tom@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_arm_nothumb)
+	(check_effective_target_arm_thumb2): New effective targets.
+	* gcc.target/arm/ivopts.c: Remove -mthumb/-marm.  Guard object-size
+	properly.  Clean up temporary files.
+	* gcc.target/arm/ivopts-2.c: Likewise.
+	* gcc.target/arm/ivopts-3.c: Likewise.
+	* gcc.target/arm/ivopts-4.c: Likewise.
+	* gcc.target/arm/ivopts-5.c: Likewise.
+	* gcc.target/arm/ivopts-6.c: Remove duplicate of ivopts.c.
+
+2011-06-28  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	PR fortran/49479
+	* gfortran.dg/reshape_zerosize_3.f90:  New test.
+
+2011-06-28  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/vfp-ldmdbs.c: Skip for soft float.
+	* gcc.target/arm/vfp-ldmias.c: Likewise.
+	* gcc.target/arm/vfp-ldmdbd.c: Likewise.
+	* gcc.target/arm/vfp-stmdbs.c: Likewise.
+	* gcc.target/arm/vfp-ldmiad.c: Likewise.
+	* gcc.target/arm/vfp-stmias.c: Likewise.
+	* gcc.target/arm/vfp-stmdbd.c: Likewise.
+	* gcc.target/arm/vfp-stmiad.c: Likewise.
+
+2011-06-27  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/pr45701-1.c: Don't specify -march; remove
+	dg-prune-output.
+	* gcc.target/arm/pr45701-2.c: Ditto.
+
+2011-06-27  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49466
+	* gfortran.dg/allocatable_scalar_9.f90: Modified.
+	* gfortran.dg/extends_14.f03: Modified.
+
+2011-06-27  Janis Johnson  <janisjo@codesourcery.com>
+
+	* lib/target-supports-dg.exp (dg-require-effective-target): Return
+	early if the test is already being skipped.
+
+	* lib/scanasm.exp (dg-scan, scan-assembler-times, scan-assembler-dem,
+	scan-assembler-dem-not): For missing file, report unresolved with
+	same message as for pass/fail, with reason reported in log file.
+
+	* lib/target-supports.exp (add_options_for_arm_fp16): Renamed
+	from add_options_for_arm_neon_fp16.
+	(check_effective_target_arm_fp16_ok_nocache): Renamed from
+	check_effective_target_arm_neon_fp16_ok_nocache.
+	Check -mfpu and -mfloat-abi options from current multilib.
+	Do not require neon support.
+	(check_effective_target_arm_fp16_ok): Renamed from
+	check_effecitve_target_arm_neon_fp16_ok.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops-5.C: Use new names for
+	arm_neon_fp16_ok and arm_fp16.
+	* g++.dg/ext/arm-fp16/arm-fp16-ops-6.C: Likewise.
+	* gcc.dg/torture/arm-fp16-ops-5.c: Likewise.
+	* gcc.dg/torture/arm-fp16-ops-6.c: Likewise.
+	* gcc.target/arm/fp16-compile-vcvt.c: Likewise.
+
+2011-06-27  Jakub Jelinek  <jakub@redhat.com>
+
+	* gcc.dg/builtin-assume-aligned-1.c: New test.
+	* gcc.dg/builtin-assume-aligned-2.c: New test.
+	* gcc.target/i386/builtin-assume-aligned-1.c: New test.
+
+	PR debug/49544
+	* gcc.dg/pr49544.c: New test.
+
+2011-06-27  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49394
+	* g++.dg/torture/pr49394.C: New testcase.
+
+2011-06-27  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/optimize-bswapdi-2.c: New test.
+
+2011-06-27  Michael Hope  <michael.hope@linaro.org>
+	    Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR tree-optimization/49169
+	* gcc.dg/torture/pr49169.c: New test.
+
+2011-06-26  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR testsuite/49529
+	* gcc.dg/ipa/ipa-pta-17.c: Use dg-require-alias.
+
+	* gcc.dg/debug/pr49294.c (dg-options): Add -fno-common to options on
+	hppa*-*-hpux*.
+
+2011-06-26  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/constexpr-cleanup.C: Tweak error message.
+
+	PR c++/49528
+	* g++.dg/init/ref19.C: New.
+	* g++.dg/cpp0x/constexpr-cleanup.C: New.
+
+2011-06-26  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/48377
+	* gcc.dg/vect/pr48377.c: Add dg-require-effective-target
+	non_strict_align.
+
+2011-06-26  Steve Ellcey  <sje@cup.hp.com>
+
+	PR middle-end/49191
+	* lib/target-supports.exp (check_effective_target_non_strict_align):
+	New.
+	* gcc.dg/memcpy-3.c: Add dg-require-effective-target non_strict_align.
+
+2011-06-24  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimizations/49516
+	* g++.dg/tree-ssa/pr49516.C: New test.
+
+2011-06-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/35255
+	* g++.dg/template/partial10.C: New.
+	* g++.dg/template/partial11.C: New.
+
+2011-06-23  Jeff Law <law@redhat.com>
+
+	PR middle-end/48770
+	* gcc.dg/pr48770.c: New test.
+
+2011-06-23  Jan Hubicka  <jh@suse.cz>
+
+	PR middle-end/49373
+	* g++.dg/torture/pr43879-1_1.C: Revert the xfail introduced yesterday.
+
+2011-06-23  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/49512
+	* gcc.dg/tree-ssa/asm-1.c: Use -fdump-tree-optimized-nouid
+	instead of -fdump-tree-optimized.
+
+2011-06-23  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR c++/44625
+	* g++.dg/template/crash107.C: New.
+	* g++.dg/template/error17.C: Adjust.
+
+2011-06-23  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49507
+	* g++.dg/cpp0x/defaulted30.C: New.
+
+	PR c++/49440
+	* g++.dg/rtti/anon-ns1.C: New.
+
+	PR c++/49395
+	* g++.dg/init/ref18.C: New.
+
+	PR c++/36435
+	* g++.dg/template/partial9.C: New.
+
+2011-06-22  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR middle-end/49373
+	* g++.dg/torture/pr43879-1_1.C: Xfail for -O1 and above, except -flto.
+
+2011-06-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/49496
+	* gcc.dg/pr49496.c: New test.
+
+2011-06-22  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/scd42-3.c: Allow -march-xscale; skip if -mcpu
+	is not xscale.
+
+	* gcc.target/arm/thumb-bitfld1.c: Don't specify -march, require thumb1.
+
+	* gcc.target/arm/ctz.c: Don't specify -march, require thumb2.
+	* gcc.target/arm/pr42879.c: Likewise.
+	* gcc.target/arm/pr45701-3.c: Likewise.
+
+	* gcc.target/arm/20031108-1.c: Require thumb1 or thumb2.
+	* gcc.target/arm/pr40482.c: Likewise.
+	* gcc.target/arm/stack-corruption.c: Likewise.
+
+2011-06-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49493
+	* gcc.dg/ipa/ipa-pta-17.c: New testcase.
+
+2011-06-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49260
+	* g++.dg/cpp0x/lambda/lambda-eh2.C: Change options.
+
+2011-06-22  Dmitry Plotnikov  <dplotnikov@ispras.ru>
+	    Dmitry Melnik  <dm@ispras.ru>
+
+	* gcc.target/arm/neon-vshr-imm-1.c: New testcase.
+	* gcc.target/arm/neon-vshl-imm-1.c: New testcase.
+	* gcc.target/arm/neon-vlshr-imm-1.c: New testcase.
+
+2011-06-22  Nathan Sidwell  <nathan@codesourcery.com>
+
+	* gcc.target/arm/tlscall.c: New.
+
+2011-06-21  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49172
+	* g++.dg/cpp0x/constexpr-ref1.C: New.
+	* g++.dg/cpp0x/constexpr-ref2.C: New.
+	* g++.dg/cpp0x/constexpr-ice2.C: Remove dg-error tag.
+
+	PR c++/49482
+	* g++.dg/cpp0x/lambda/lambda-warn3.C: New.
+
+	PR c++/49418
+	* g++.dg/template/param3.C: New.
+
+2011-06-21  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* gcc.c-torture/excute/builtin-bitops-1.c (MAKE_FUNS): Make
+	my_clrsb test functions.
+	(main): Test clrsb.
+	* gcc.dg/builtin-protos-1.c (test_s, test_u, test_sl, test_ul,
+	test_sll, test_ull): Add clrsb tests.
+	* gcc.dg/torture/builtin-attr-1.c: Add tests for clrsb, clrsbl,
+	clrsbll.
+
+2011-06-21  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49112
+	* gfortran.dg/class_44.f03: New.
+
+2011-06-21  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49478
+	* gcc.dg/vect/pr49478.c
+
+2011-06-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49483
+	* gcc.dg/vect/vect-120.c: New testcase.
+
+2011-06-21  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR testsuite/49443
+	* gcc.dg/vect/vect-peel-3.c: Expect to fail on vect_no_align targets.
+	* gcc.dg/vect/vect-peel-4.c: Likewise.
+
+2011-06-22  Christian Bruel  <christian.bruel@st.com>
+
+	PR middle-end/49139
+	* gcc.dg/always_inline.c: Removed -Winline. Update checks
+	* gcc.dg/always_inline2.c: Likewise.
+	* gcc.dg/always_inline3.c: Likewise.
+	* gcc.dg/debug/pr41264-1.c: Add -Wno-attributes.
+	* gcc.dg/inline_1.c: Likewise.
+	* gcc.dg/inline_2.c: Likewise.
+	* gcc.dg/inline_3.c: Likewise.
+	* gcc.dg/inline_4.c: Likewise.
+	* gcc.dg/20051201-1.c: Likewise.
+	* gcc.dg/pr40087.c: Likewise.
+	* gcc.dg/torture/pta-structcopy-1.c: Likewise.
+	* gcc.dg/inline-22.c: Likewise.
+	* gcc.dg/lto/20090218-1_0.c: Set inline keyword.
+	* gcc.dg/lto/20090218-1_1.c: Likewise.
+	* g++.dg/ipa/devirt-7.C: Likewise.
+	* gcc.dg/uninit-pred-5_a.c: Likewise.
+	* gcc.dg/uninit-pred-5_b.c: Likewise.
+	* gcc.dg/fail_always_inline.c: New.
+
+2011-06-21  Jakub Jelinek  <jakub@redhat.com>
+
+	* Make-lang.in (check_gfortran_parallelize): Parallelize dg.exp
+	into 6 jobs instead of 3.
+
+2011-06-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49216
+	* g++.dg/cpp0x/initlist53.C: New.
+
+2011-06-20  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/18918
+	* gfortran.dg/coarray_lock_1.f90: Update dg-error.
+	* gfortran.dg/coarray_lock_3.f90: New.
+	* gfortran.dg/coarray/lock_1.f90: New.
+
+2011-06-20  Janis Johnson  <janisjo@codesourcery.com>
+
+	* lib/scandump.exp (scan-dump, scan-dump-times, scan-dump-not,
+	scan-dump-dem, scan-dump-dem-not): Treat a missing dump file as
+	unresolved and report the reason to the log file.
+
+	* lib/scanasm.exp (object-size): Move argument processing earlier
+	to report errors before verifying that the file exists.  Report
+	problems detected at runtime as unresolved instead of error and
+	report their reasons to the log file.
+
+2011-06-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/47080
+	* g++.dg/cpp0x/explicit6.C: New.
+
+	PR c++/47635
+	* g++.dg/cpp0x/enum20.C: New.
+
+	PR c++/48138
+	* g++.dg/ext/attr-aligned01.C: New.
+
+	PR c++/49205
+	* g++.dg/cpp0x/variadic-default.C: New.
+
+	PR c++/43321
+	* g++.dg/cpp0x/auto26.C: New.
+
+	PR c++/43831
+	* g++.dg/cpp0x/lambda/lambda-capture-reduncancy.C: New.
+
+2011-06-20  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/binop-notand1.c: New test.
+	* gcc.dg/binop-notand2.c: New test.
+	* gcc.dg/binop-notand3.c: New test.
+	* gcc.dg/binop-notand4.c: New test.
+	* gcc.dg/binop-notand5.c: New test.
+	* gcc.dg/binop-notand6.c: New test.
+
+2011-06-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR testsuite/49432
+	* obj-c++.dg/invalid-type-1.mm: Adjust for new error wording.
+
+2011-06-18  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49400
+	* gfortran.dg/proc_ptr_31.f90: New.
+
+2011-06-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/volatile6.adb: New test.
+	* gnat.dg/volatile7.adb: Likewise.
+	* gnat.dg/volatile8.adb: Likewise.
+	* gnat.dg/volatile9.adb: Likewise.
+
+2011-06-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/constant3.adb: New test.
+
+2011-06-18  Janne Blomqvist  <jb@gcc.gnu.org>
+
+	PR libfortran/48296
+	* gfortran.dg/read_list_eof_1.f90: New test.
+
+2011-06-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR target/49411
+	* gcc.target/i386/testimm-1.c: New test.
+	* gcc.target/i386/testimm-2.c: New test.
+	* gcc.target/i386/testimm-3.c: New test.
+	* gcc.target/i386/testimm-4.c: New test.
+	* gcc.target/i386/testimm-5.c: New test.
+	* gcc.target/i386/testimm-6.c: New test.
+	* gcc.target/i386/testimm-7.c: New test.
+	* gcc.target/i386/testimm-8.c: New test.
+	* gcc.target/i386/xop-vpermil2px-2.c: New test.
+	* gcc.target/i386/xop-rotate1-int.c: New test.
+	* gcc.target/i386/xop-rotate2-int.c: New test.
+
+2011-06-17  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/rv-func2.C: New.
+
+	* g++.dg/debug/dwarf2/lambda1.C: New.
+	* g++.dg/warn/Wshadow-6.C: Adjust.
+
+2011-06-17  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/48699
+	* gfortran.dg/move_alloc_5.f90: New.
+
+2011-06-17  Hans-Peter Nilsson  <hp@axis.com>
+
+	PR rtl-optimization/48542
+	* gcc.dg/torture/pr48542.c: New test.
+
+2011-06-16  Jason Merrill  <jason@redhat.com>
+
+	PR c++/44160
+	* g++.dg/cpp0x/lambda/lambda-__func__.C: New.
+
+	PR c++/45378
+	* g++.dg/cpp0x/initlist52.C New.
+
+	PR c++/45399
+	* c-c++-common/raw-string-12.c: New.
+
+	PR c++/49229
+	* g++.dg/cpp0x/sfinae26.C: New.
+
+	PR c++/49251
+	* g++.dg/cpp0x/variadic113.C: New.
+
+	PR c++/49420
+	* g++.dg/cpp0x/variadic112.C: New.
+
+2011-06-16  Jeff Law <law@redhat.com>
+
+	* gcc.dg/builtin-object-size-1.c: Update to handle chances from
+	improved jump threading.
+	* gcc.dg/builtin-object-size-2.c: Likewise.
+	* gcc.dg/tree-ssa/20030728-1.c: Likewise.
+
+2011-06-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49074
+	* gfortran.dg/typebound_assignment_3.f03: New.
+
+2011-06-16  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/48727
+	* g++.dg/opt/devirt2.C: Change xfail rule to target.
+
+2011-06-16  Martin Jambor  <mjambor@suse.cz>
+
+	PR tree-optimization/49343
+	* gnat.dg/discr31.ad[sb]: New test.
+
+2011-06-16  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.dg/debug/pr49032.c: Prune mips-tfile warning.
+
+2011-06-16  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/45098
+	* gcc.target/arm/ivopts-3.c: Update test.
+	* gcc.target/arm/ivopts-5.c: Same.
+
+2011-06-16  Ramana Radhakrishnan  <ramana.radhakrishnan@linaro.org>
+
+	Revert:
+	2011-06-10  Wei Guozhi  <carrot@google.com>
+
+	PR target/45335
+	* gcc.target/arm/pr45335.c: New test.
+	* gcc.target/arm/pr45335-2.c: New test.
+	* gcc.target/arm/pr45335-3.c: New test.
+	* gcc.target/arm/pr40457-1.c: Add another possible output "ldrd".
+	* gcc.target/arm/pr40457-2.c: Changed to store 3 words.
+	* gcc.target/arm/pr40457-3.c: Changed to store 3 words.
+
+2011-06-16  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/vect-widen-mult-half-u8.c: New test.
+
+2011-06-16  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49417
+	* gfortran.dg/class_43.f03: New.
+
+2011-06-16  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49419
+	* gcc.c-torture/execute/pr49419.c: New test.
+
+2011-06-16  Revital Eres  <revital.eres@linaro.org>
+
+	* gcc.dg/sms-9.c: New file.
+
+2011-06-15  Easwaran Raman  <eraman@google.com>
+
+	PR rtl-optimization/49414
+	* gcc.dg/pr44194-1.c: Restrict test to 64-bit targets.
+
+2011-06-14  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/noexcept13.C: New.
+
+2011-06-14  Easwaran Raman  <eraman@google.com>
+
+	PR rtl-optimization/44194
+	* gcc.dg/pr44194-1.c: New test.
+	* gcc.dg/pr44194-2.c: New test.
+
+2011-06-14  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/pr45701-1.c: Ignore warnings about conflicting
+	switches.
+	* gcc.target/arm/pr45701-2.c: Likewise.
+	* gcc.target/arm/thumb-branch1.c: Likewise.
+
+2011-06-14  Steve Ellcey  <sje@cup.hp.com>
+
+	PR testsuite/48727
+	* g++.dg/opt/devirt2.C: Fix scan rules for ia64*-*-hpux* and hppa*-*-*.
+
+2011-06-14  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/pr45701-1.c: Require thumb support.
+	* gcc.target/arm/pr45701-2.c: Likewise.
+	* gcc.target/arm/thumb-branch1.c: Likewise.
+
+	* gcc.target/arm/mla-1.c: Ignore warnings about conflicting switches.
+	* gcc.target/arm/pr39839.c: Likewise.
+	* gcc.target/arm/pr40657-2.c: Likewise.
+	* gcc.target/arm/pr40956.c: Likewise.
+	* gcc.target/arm/pr41679.c: Likewise.
+	* gcc.target/arm/pr42235.c: Likewise.
+	* gcc.target/arm/pr42495.c: Likewise.
+	* gcc.target/arm/pr42505.c: Likewise.
+	* gcc.target/arm/pr42574.c: Likewise.
+	* gcc.target/arm/pr46883.c: Likewise.
+	* gcc.target/arm/pr46934.c: Likewise.
+	* gcc.target/arm/xor-and.c: Likewise.
+
+2011-06-14  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/other/error23.C: Adjust error message.
+	* g++.dg/other/error32.C: Likewise.
+
+	PR c++/49389
+	* g++.dg/cpp0x/rv-dotstar.C: New.
+
+	PR c++/49369
+	* g++.dg/cpp0x/decltype30.C: New.
+
+	* g++.dg/cpp0x/constexpr-array-ptr7.C: New.
+
+2011-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/49103
+	* gfortran.dg/pr49103.f90: New test.
+
+2011-06-14  Tom de Vries  <tom@codesourcery.com>
+
+	PR target/45098
+	* gcc.target/arm/ivopts-3.c: New test.
+	* gcc.target/arm/ivopts-4.c: New test.
+	* gcc.target/arm/ivopts-5.c: New test.
+
+2011-06-14  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/49390
+	* gcc.c-torture/execute/pr49390.c: New test.
+
+2011-06-14  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/torture/pr48954.C: Use dg-require-effective-target lto.
+
+2011-06-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.c-torture/execute/cmpsi-2.c: Undo 172757.
+	* gcc.c-torture/execute/cmpsi-2.x: New file.
+	* gcc.c-torture/execute/pr45262.c: Undo 172757.
+	* gcc.c-torture/execute/pr45262.x: New file.
+	* gcc.c-torture/compile/pr46534.c: Skip for AVR.
+	* gcc.c-torture/compile/pr49029.c: Add dg-require-effective-target
+	int32plus
+	* gcc.c-torture/compile/pr49163.c: Ditto.
+
+2011-06-14  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/vect-16.c: Rename to...
+	* gcc.dg/vect/no-fast-math-vect16.c: ...this.
+	* gcc.dg/vect/vect-peel-3.c: Adjust misalignment values
+	for double-word vectors.
+	* gcc.dg/vect/vect-peel-4.c: Likewise.
+	* gcc.dg/vect/bb-slp-10.c: Replace vect_hw_misalign with
+	vect_element_align.
+	* gcc.dg/vect/vect.exp: Run no-fast-math-* tests with
+	-fno-fast-math.
+
+2011-06-13  Edmar Wienskoski  <edmar@freescale.com>
+
+	PR target/44618
+	* gcc.target/powerpc/outofline_rnreg.c: New testcase.
+
+2011-06-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.dg/h8300-bit-insn-ice2.c: Remove duplicated lines.
+
+2011-06-13  Kaushik Phatak <kaushik.phatak@kpitcummins.com>
+
+	* gcc.dg/h8300-bit-insn-ice2.c: New testcase.
+
+2011-06-13  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* gfortran.dg/trim_optimize_8.f90:  New test case.
+
+2011-06-13 Jakub Jelinek  <jakub@redhat.com>
+	   Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49352
+	* gcc.dg/vect/pr49352.c: New test.
+
+2011-06-12  Tobias Burnus
+
+	PR fortran/49324
+	* gfortran.dg/alloc_comp_assign_11.f90: New.
+
+2011-05-11  Thomas Koenig  <tkoenig@gcc.gnu.org>
+
+	* gfortran.dg/trim_optimize_7.f90:  New test.
+
+2011-06-10  Wei Guozhi  <carrot@google.com>
+
+	PR target/45335
+	* gcc.target/arm/pr45335.c: New test.
+	* gcc.target/arm/pr45335-2.c: New test.
+	* gcc.target/arm/pr45335-3.c: New test.
+	* gcc.target/arm/pr40457-1.c: Add another possible output "ldrd".
+	* gcc.target/arm/pr40457-2.c: Changed to store 3 words.
+	* gcc.target/arm/pr40457-3.c: Changed to store 3 words.
+
 2011-06-10  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/41769
@@ -5,14 +761,14 @@
 
 2011-06-10  Janis Johnson  <janisjo@codesourcery.com>
 
-	* gcc/testsuite/gcc.target/arm/20090811-1.c: Skip for incompatible
+	* gcc.target/arm/20090811-1.c: Skip for incompatible
 	options, do not override other options.
-	* gcc/testsuite/gcc.target/arm/combine-cmp-shift.c: Skip for
+	* gcc.target/arm/combine-cmp-shift.c: Skip for
 	incompatible options.
-	* gcc/testsuite/gcc.target/arm/pr45094.c: Likewise.
-	* gcc/testsuite/gcc.target/arm/scd42-1.c: Likewise.
-	* gcc/testsuite/gcc.target/arm/scd42-3.c: Likewise.
-	* gcc/testsuite/gcc.target/arm/thumb-ltu.c: Likewise.
+	* gcc.target/arm/pr45094.c: Likewise.
+	* gcc.target/arm/scd42-1.c: Likewise.
+	* gcc.target/arm/scd42-3.c: Likewise.
+	* gcc.target/arm/thumb-ltu.c: Likewise.
 
 	* lib/target-supports.exp
 	(check_effective_target_arm_neon_fp16_ok_nocache): Return 0 if
@@ -107,7 +863,7 @@
 
 2011-06-09  David Li  <davidxl@google.com>
 
-	* testsuite/gcc.dg/dump-pass.c: New test.
+	* gcc.dg/dump-pass.c: New test.
 
 2011-06-09  Paolo Carlini  <paolo.carlini@oracle.com>
 
@@ -294,18 +1050,17 @@
 
 2011-06-07  Xinliang David Li  <davidxl@google.com>
 
-	* testsuite/gcc.dg/inline_2.c: New test.
-	* testsuite/gcc.dg/unroll_2.c: New test.
-	* testsuite/gcc.dg/inline_3.c: New test.
-	* testsuite/gcc.dg/unroll_3.c: New test.
-	* testsuite/gcc.dg/inline_4.c: New test.
-	* testsuite/gcc.dg/unroll_4.c: New test.
-	* testsuite/gcc.dg/inline_1.c: New test.
-	* testsuite/gcc.dg/unroll_1.c: New test.
+	* gcc.dg/inline_2.c: New test.
+	* gcc.dg/unroll_2.c: New test.
+	* gcc.dg/inline_3.c: New test.
+	* gcc.dg/unroll_3.c: New test.
+	* gcc.dg/inline_4.c: New test.
+	* gcc.dg/unroll_4.c: New test.
+	* gcc.dg/inline_1.c: New test.
+	* gcc.dg/unroll_1.c: New test.
 
 2011-06-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
-	gcc/testsuite:
 	PR tree-optimization/48497
 	* lib/gcc-defs.exp (dg-additional-options): New proc.
 	* gfortran.dg/graphite/vect-pr40979.f90: Use dg-additional-options
@@ -844,7 +1599,7 @@
 
 2011-06-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
-	* testsuite/g++.dg/warn/delete-non-virtual-dtor.C: New.
+	* g++.dg/warn/delete-non-virtual-dtor.C: New.
 
 2011-06-04  Jonathan Wakely  <jwakely.gcc@gmail.com>
 
@@ -877,8 +1632,7 @@
 2011-06-03  Richard Henderson  <rth@redhat.com>
 	    Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
-	* lib/target-supports.exp (check_sse_os_support_available): Use
-	movaps.
+	* lib/target-supports.exp (check_sse_os_support_available): Use movaps.
 
 2011-06-03  Nicola Pero  <nicola.pero@meta-innovation.com>
 
@@ -968,24 +1722,24 @@
 
 2011-06-01  David Li  <davidxl@google.com>
 
-	* testsuite/gcc.dg/profile-dir-1.c: Change pass name.
-	* testsuite/gcc.dg/profile-dir-2.c: Ditto.
-	* testsuite/gcc.dg/tree-ssa/dump-1.c: Ditto.
-	* testsuite/gcc.dg/tree-ssa/loop-25.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/stringop-1.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/update-loopch.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/stringop-2.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/ic-misattribution-1.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/ic-misattribution-1a.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/indir-call-prof.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/val-prof-1.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/val-prof-2.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/val-prof-3.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/val-prof-4.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/val-prof-5.c: Ditto.
-	* testsuite/gcc.dg/tree-prof/val-prof-7.c: Ditto.
-	* testsuite/gcc.dg/profile-dir-3.c: Ditto.
-	* testsuite/g++.dg/tree-prof/indir-call-prof.C: Ditto.
+	* gcc.dg/profile-dir-1.c: Change pass name.
+	* gcc.dg/profile-dir-2.c: Ditto.
+	* gcc.dg/tree-ssa/dump-1.c: Ditto.
+	* gcc.dg/tree-ssa/loop-25.c: Ditto.
+	* gcc.dg/tree-prof/stringop-1.c: Ditto.
+	* gcc.dg/tree-prof/update-loopch.c: Ditto.
+	* gcc.dg/tree-prof/stringop-2.c: Ditto.
+	* gcc.dg/tree-prof/ic-misattribution-1.c: Ditto.
+	* gcc.dg/tree-prof/ic-misattribution-1a.c: Ditto.
+	* gcc.dg/tree-prof/indir-call-prof.c: Ditto.
+	* gcc.dg/tree-prof/val-prof-1.c: Ditto.
+	* gcc.dg/tree-prof/val-prof-2.c: Ditto.
+	* gcc.dg/tree-prof/val-prof-3.c: Ditto.
+	* gcc.dg/tree-prof/val-prof-4.c: Ditto.
+	* gcc.dg/tree-prof/val-prof-5.c: Ditto.
+	* gcc.dg/tree-prof/val-prof-7.c: Ditto.
+	* gcc.dg/profile-dir-3.c: Ditto.
+	* g++.dg/tree-prof/indir-call-prof.C: Ditto.
 
 2011-06-01  Nicola Pero  <nicola.pero@meta-innovation.com>
 
@@ -1202,7 +1956,7 @@
 2011-05-27  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	PR c++/42056
-	* testsuite/g++.dg/cpp0x/auto25.C: New.
+	* g++.dg/cpp0x/auto25.C: New.
 
 2011-05-27  Richard Guenther  <rguenther@suse.de>
 
@@ -2385,8 +3139,8 @@
 
 2011-04-28  Xinliang David Li  <davidxl@google.com>
 
-	* testsuite/gcc.dg/tree-prof/prof-robust-1.c: New test.
-	* testsuite/g++.dg/prof-robust-1.C: New test.
+	* gcc.dg/tree-prof/prof-robust-1.c: New test.
+	* g++.dg/prof-robust-1.C: New test.
 
 2011-04-28  Ira Rosen  <ira.rosen@linaro.org>
 
@@ -3937,11 +4691,11 @@
 2011-03-16  Jason Merrill  <jason@redhat.com>
 
 	* g++.dg/cpp0x/sfinae6.C: New.
-	* gcc/testsuite/g++.dg/cpp0x/initlist38.C: Adjust expected error.
-	* gcc/testsuite/g++.dg/cpp0x/pr45908.C: Likewise.
-	* gcc/testsuite/g++.dg/cpp0x/sfinae6.C: Likewise.
-	* gcc/testsuite/g++.old-deja/g++.jason/conversion11.C: Likewise.
-	* gcc/testsuite/g++.old-deja/g++.law/arg11.C: Likewise.
+	* g++.dg/cpp0x/initlist38.C: Adjust expected error.
+	* g++.dg/cpp0x/pr45908.C: Likewise.
+	* g++.dg/cpp0x/sfinae6.C: Likewise.
+	* g++.old-deja/g++.jason/conversion11.C: Likewise.
+	* g++.old-deja/g++.law/arg11.C: Likewise.
 
 2011-03-16  Jason Merrill  <jason@redhat.com>
 
@@ -6466,8 +7220,8 @@
 
 	PR lto/45721
 	PR lto/45375
-	* testsuite/gcc.dg/lto/pr45721_1.c: New file.
-	* testsuite/gcc.dg/lto/pr45721_0.c: New file.
+	* gcc.dg/lto/pr45721_1.c: New file.
+	* gcc.dg/lto/pr45721_0.c: New file.
 
 2011-01-11  Richard Guenther  <rguenther@suse.de>
 
@@ -6763,8 +7517,8 @@
 
 2011-01-06  Jan Hubicka  <jh@suse.cz>
 
-	* testsuite/gcc.dg/lto/pr47188_0.c: New testcase.
-	* testsuite/gcc.dg/lto/pr47188_1.c: New testcase.
+	* gcc.dg/lto/pr47188_0.c: New testcase.
+	* gcc.dg/lto/pr47188_1.c: New testcase.
 
 2011-01-06  Daniel Franke  <franke.daniel@gmail.com>
 

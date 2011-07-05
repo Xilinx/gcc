@@ -149,8 +149,6 @@ char regs_ever_allocated[FIRST_PSEUDO_REGISTER];
 
 /*  Prototypes and external defs.  */
 static void spu_option_override (void);
-static void spu_option_init_struct (struct gcc_options *opts);
-static void spu_option_default_params (void);
 static void spu_init_builtins (void);
 static tree spu_builtin_decl (unsigned, bool);
 static bool spu_scalar_mode_supported_p (enum machine_mode mode);
@@ -188,11 +186,13 @@ static tree spu_handle_vector_attribute (tree * node, tree name, tree args,
 					 int flags,
 					 bool *no_add_attrs);
 static int spu_naked_function_p (tree func);
-static bool spu_pass_by_reference (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+static bool spu_pass_by_reference (cumulative_args_t cum,
+				   enum machine_mode mode,
 				   const_tree type, bool named);
-static rtx spu_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+static rtx spu_function_arg (cumulative_args_t cum, enum machine_mode mode,
 			     const_tree type, bool named);
-static void spu_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+static void spu_function_arg_advance (cumulative_args_t cum,
+				      enum machine_mode mode,
 				      const_tree type, bool named);
 static tree spu_build_builtin_va_list (void);
 static void spu_va_start (tree, rtx);
@@ -413,6 +413,10 @@ static const struct attribute_spec spu_attribute_table[] =
 #undef TARGET_EXPAND_BUILTIN_VA_START
 #define TARGET_EXPAND_BUILTIN_VA_START spu_va_start
 
+static void spu_setup_incoming_varargs (cumulative_args_t cum,
+					enum machine_mode mode,
+					tree type, int *pretend_size,
+					int no_rtl);
 #undef TARGET_SETUP_INCOMING_VARARGS
 #define TARGET_SETUP_INCOMING_VARARGS spu_setup_incoming_varargs
 
@@ -421,9 +425,6 @@ static const struct attribute_spec spu_attribute_table[] =
 
 #undef TARGET_GIMPLIFY_VA_ARG_EXPR
 #define TARGET_GIMPLIFY_VA_ARG_EXPR spu_gimplify_va_arg_expr
-
-#undef TARGET_DEFAULT_TARGET_FLAGS
-#define TARGET_DEFAULT_TARGET_FLAGS (TARGET_DEFAULT)
 
 #undef TARGET_INIT_LIBFUNCS
 #define TARGET_INIT_LIBFUNCS spu_init_libfuncs
@@ -485,15 +486,6 @@ static const struct attribute_spec spu_attribute_table[] =
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE spu_option_override
 
-#undef TARGET_OPTION_INIT_STRUCT
-#define TARGET_OPTION_INIT_STRUCT spu_option_init_struct
-
-#undef TARGET_OPTION_DEFAULT_PARAMS
-#define TARGET_OPTION_DEFAULT_PARAMS spu_option_default_params
-
-#undef TARGET_EXCEPT_UNWIND_INFO
-#define TARGET_EXCEPT_UNWIND_INFO  sjlj_except_unwind_info
-
 #undef TARGET_CONDITIONAL_REGISTER_USAGE
 #define TARGET_CONDITIONAL_REGISTER_USAGE spu_conditional_register_usage
 
@@ -511,22 +503,6 @@ static const struct attribute_spec spu_attribute_table[] =
 #define TARGET_DELAY_VARTRACK true
 
 struct gcc_target targetm = TARGET_INITIALIZER;
-
-static void
-spu_option_init_struct (struct gcc_options *opts)
-{
-  /* With so many registers this is better on by default. */
-  opts->x_flag_rename_registers = 1;
-}
-
-/* Implement TARGET_OPTION_DEFAULT_PARAMS.  */
-static void
-spu_option_default_params (void)
-{
-  /* Override some of the default param values.  With so many registers
-     larger values are better for these params.  */
-  set_default_param_value (PARAM_MAX_PENDING_LIST_LENGTH, 128);
-}
 
 /* Implement TARGET_OPTION_OVERRIDE.  */
 static void
@@ -4056,10 +4032,11 @@ spu_function_value (const_tree type, const_tree func ATTRIBUTE_UNUSED)
 }
 
 static rtx
-spu_function_arg (CUMULATIVE_ARGS *cum,
+spu_function_arg (cumulative_args_t cum_v,
 		  enum machine_mode mode,
 		  const_tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
   int byte_size;
 
   if (*cum >= MAX_REGISTER_ARGS)
@@ -4092,9 +4069,11 @@ spu_function_arg (CUMULATIVE_ARGS *cum,
 }
 
 static void
-spu_function_arg_advance (CUMULATIVE_ARGS * cum, enum machine_mode mode,
+spu_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
 			  const_tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   *cum += (type && TREE_CODE (TYPE_SIZE (type)) != INTEGER_CST
 	   ? 1
 	   : mode == BLKmode
@@ -4106,7 +4085,7 @@ spu_function_arg_advance (CUMULATIVE_ARGS * cum, enum machine_mode mode,
 
 /* Variable sized types are passed by reference.  */
 static bool
-spu_pass_by_reference (CUMULATIVE_ARGS * cum ATTRIBUTE_UNUSED,
+spu_pass_by_reference (cumulative_args_t cum ATTRIBUTE_UNUSED,
 		       enum machine_mode mode ATTRIBUTE_UNUSED,
 		       const_tree type, bool named ATTRIBUTE_UNUSED)
 {
@@ -4299,8 +4278,8 @@ spu_gimplify_va_arg_expr (tree valist, tree type, gimple_seq * pre_p,
    to the first unnamed parameters.  If the first unnamed parameter is
    in the stack then save no registers.  Set pretend_args_size to the
    amount of space needed to save the registers. */
-void
-spu_setup_incoming_varargs (CUMULATIVE_ARGS * cum, enum machine_mode mode,
+static void
+spu_setup_incoming_varargs (cumulative_args_t cum, enum machine_mode mode,
 			    tree type, int *pretend_size, int no_rtl)
 {
   if (!no_rtl)
@@ -4308,11 +4287,11 @@ spu_setup_incoming_varargs (CUMULATIVE_ARGS * cum, enum machine_mode mode,
       rtx tmp;
       int regno;
       int offset;
-      int ncum = *cum;
+      int ncum = *get_cumulative_args (cum);
 
       /* cum currently points to the last named argument, we want to
          start at the next argument. */
-      spu_function_arg_advance (&ncum, mode, type, true);
+      spu_function_arg_advance (pack_cumulative_args (&ncum), mode, type, true);
 
       offset = -STACK_POINTER_OFFSET;
       for (regno = ncum; regno < MAX_REGISTER_ARGS; regno++)

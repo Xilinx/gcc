@@ -1,3 +1,49 @@
+2011-07-01  Joel Brobecker  <brobecker@adacore.com>
+
+	* filename_cmp.c (filename_cmp, filename_ncmp): Add handling of
+	HAVE_CASE_INSENSITIVE_FILE_SYSTEM.
+
+2011-07-01  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	PR debug/49408
+	* cp-demangle.c (d_print_comp): Suppress argument list for function
+	references by the '&' unary operator.  Keep also already processed
+	variant without the argument list.  Suppress argument list types for
+	function call used in an expression.
+	* testsuite/demangle-expected: Fix excessive argument list types in
+	`test for typed function in decltype'.  New testcase for no argument
+	list types printed.  3 new testcases for function references by the
+	'&' unary operator..
+
+2011-06-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/37089
+	* cp-demangle.c (d_print_comp): Handle reference smashing.
+	* testsuite/demangle-expected: Test it.
+
+2011-06-13  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* cp-demangle.c (d_print_comp) <DEMANGLE_COMPONENT_FUNCTION_TYPE>:
+	Suppress d_print_mod for DMGL_RET_POSTFIX.
+	* testsuite/demangle-expected: New testcases for --ret-postfix.
+
+2011-06-13  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* cp-demangle.c (d_print_comp) <DEMANGLE_COMPONENT_FUNCTION_TYPE>: Do
+	not pass DMGL_RET_POSTFIX or DMGL_RET_DROP.  Support DMGL_RET_DROP.
+	* testsuite/demangle-expected: New testcases for --ret-drop.
+	* testsuite/test-demangle.c: Document --ret-drop in a comment.
+	(main): New variable ret_drop, fill it, call cplus_demangle with it.
+
+2011-06-13  Jan Kratochvil  <jan.kratochvil@redhat.com>
+
+	* cp-demangle.c (struct d_print_info): Remove field options.
+	(d_print_init): Remove parameter options.
+	(cplus_demangle_print_callback): Update all the callers.
+	(d_print_comp, d_print_mod_list, d_print_mod, d_print_function_type)
+	(d_print_array_type, d_print_expr_op, d_print_cast, d_print_subexpr):
+	Add parameter options, update all the callers.
+
 2011-04-20  Jim Meyering  <meyering@redhat.com>
 
 	* cp-demint.c (cplus_demangle_v3_components): Remove useless

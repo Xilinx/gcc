@@ -925,7 +925,7 @@ digest_init_r (tree type, tree init, bool nested, int flags,
 	{
 	  /* Allow the result of build_array_copy and of
 	     build_value_init_noctor.  */
-	  if ((TREE_CODE (init) == TARGET_EXPR
+	  if ((TREE_CODE (init) == VEC_INIT_EXPR
 	       || TREE_CODE (init) == CONSTRUCTOR)
 	      && (same_type_ignoring_top_level_qualifiers_p
 		  (type, TREE_TYPE (init))))
@@ -1051,14 +1051,9 @@ process_init_constructor_array (tree type, tree init,
 	if (type_build_ctor_call (TREE_TYPE (type)))
 	  {
 	    /* If this type needs constructors run for default-initialization,
-	      we can't rely on the back end to do it for us, so build up
-	      TARGET_EXPRs.  If the type in question is a class, just build
-	      one up; if it's an array, recurse.  */
-	    if (MAYBE_CLASS_TYPE_P (TREE_TYPE (type)))
-              next = build_functional_cast (TREE_TYPE (type), NULL_TREE,
-                                            complain);
-	    else
-	      next = build_constructor (init_list_type_node, NULL);
+	      we can't rely on the back end to do it for us, so make the
+	      initialization explicit by list-initializing from {}.  */
+	    next = build_constructor (init_list_type_node, NULL);
 	    next = digest_init (TREE_TYPE (type), next, complain);
 	  }
 	else if (!zero_init_p (TREE_TYPE (type)))
@@ -1551,6 +1546,7 @@ build_m_component_ref (tree datum, tree component)
 
   if (TYPE_PTRMEM_P (ptrmem_type))
     {
+      bool is_lval = real_lvalue_p (datum);
       tree ptype;
 
       /* Compute the type of the field, as described in [expr.ref].
@@ -1573,7 +1569,11 @@ build_m_component_ref (tree datum, tree component)
       datum = build2 (POINTER_PLUS_EXPR, ptype,
 		      fold_convert (ptype, datum),
 		      build_nop (sizetype, component));
-      return cp_build_indirect_ref (datum, RO_NULL, tf_warning_or_error);
+      datum = cp_build_indirect_ref (datum, RO_NULL, tf_warning_or_error);
+      /* If the object expression was an rvalue, return an rvalue.  */
+      if (!is_lval)
+	datum = move (datum);
+      return datum;
     }
   else
     return build2 (OFFSET_REF, type, datum, component);
@@ -1641,7 +1641,7 @@ build_functional_cast (tree exp, tree parms, tsubst_flags_t complain)
 	{
 	  if (VOID_TYPE_P (type))
 	    return void_zero_node;
-	  return build_value_init (type, complain);
+	  return build_value_init (cv_unqualified (type), complain);
 	}
 
       /* This must build a C cast.  */
@@ -1766,12 +1766,24 @@ add_exception_specifier (tree list, tree spec, int complain)
   return list;
 }
 
+/* Like nothrow_spec_p, but don't abort on deferred noexcept.  */
+
+static bool
+nothrow_spec_p_uninst (const_tree spec)
+{
+  if (DEFERRED_NOEXCEPT_SPEC_P (spec))
+    return false;
+  return nothrow_spec_p (spec);
+}
+
 /* Combine the two exceptions specifier lists LIST and ADD, and return
-   their union.  */
+   their union.  If FN is non-null, it's the source of ADD.  */
 
 tree
-merge_exception_specifiers (tree list, tree add)
+merge_exception_specifiers (tree list, tree add, tree fn)
 {
+  tree noex, orig_list;
+
   /* No exception-specifier or noexcept(false) are less strict than
      anything else.  Prefer the newer variant (LIST).  */
   if (!list || list == noexcept_false_spec)
@@ -1779,37 +1791,51 @@ merge_exception_specifiers (tree list, tree add)
   else if (!add || add == noexcept_false_spec)
     return add;
 
-  /* We need to instantiate deferred noexcept before we get here.  */
-  gcc_assert (!DEFERRED_NOEXCEPT_SPEC_P (list)
-	      && !DEFERRED_NOEXCEPT_SPEC_P (add));
-
-  /* For merging noexcept(true) and throw(), take the more recent one (LIST).
-     Any other noexcept-spec should only be merged with an equivalent one.
-     So the !TREE_VALUE code below is correct for all cases.  */
-  if (!TREE_VALUE (add))
+  /* noexcept(true) and throw() are stricter than anything else.
+     As above, prefer the more recent one (LIST).  */
+  if (nothrow_spec_p_uninst (add))
     return list;
-  else if (!TREE_VALUE (list))
+
+  noex = TREE_PURPOSE (list);
+  if (DEFERRED_NOEXCEPT_SPEC_P (add))
+    {
+      /* If ADD is a deferred noexcept, we must have been called from
+	 process_subob_fn.  For implicitly declared functions, we build up
+	 a list of functions to consider at instantiation time.  */
+      if (noex == boolean_true_node)
+	noex = NULL_TREE;
+      gcc_assert (fn && (!noex || is_overloaded_fn (noex)));
+      noex = build_overload (fn, noex);
+    }
+  else if (nothrow_spec_p_uninst (list))
     return add;
   else
+    gcc_checking_assert (!TREE_PURPOSE (add)
+			 || cp_tree_equal (noex, TREE_PURPOSE (add)));
+
+  /* Combine the dynamic-exception-specifiers, if any.  */
+  orig_list = list;
+  for (; add && TREE_VALUE (add); add = TREE_CHAIN (add))
     {
-      tree orig_list = list;
+      tree spec = TREE_VALUE (add);
+      tree probe;
 
-      for (; add; add = TREE_CHAIN (add))
+      for (probe = orig_list; probe && TREE_VALUE (probe);
+	   probe = TREE_CHAIN (probe))
+	if (same_type_p (TREE_VALUE (probe), spec))
+	  break;
+      if (!probe)
 	{
-	  tree spec = TREE_VALUE (add);
-	  tree probe;
-
-	  for (probe = orig_list; probe; probe = TREE_CHAIN (probe))
-	    if (same_type_p (TREE_VALUE (probe), spec))
-	      break;
-	  if (!probe)
-	    {
-	      spec = build_tree_list (NULL_TREE, spec);
-	      TREE_CHAIN (spec) = list;
-	      list = spec;
-	    }
+	  spec = build_tree_list (NULL_TREE, spec);
+	  TREE_CHAIN (spec) = list;
+	  list = spec;
 	}
     }
+
+  /* Keep the noexcept-specifier at the beginning of the list.  */
+  if (noex != TREE_PURPOSE (list))
+    list = tree_cons (noex, TREE_VALUE (list), TREE_CHAIN (list));
+
   return list;
 }
 

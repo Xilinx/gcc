@@ -1862,6 +1862,15 @@ proc check_effective_target_arm32 { } {
     }]
 }
 
+# Return 1 is this is an arm target not using Thumb
+proc check_effective_target_arm_nothumb { } {
+    return [check_no_compiler_messages arm_nothumb assembly {
+	#if (defined(__thumb__) || defined(__thumb2__))
+	#error FOO
+	#endif
+    }]
+}
+
 # Return 1 if this is an ARM target that only supports aligned vector accesses
 proc check_effective_target_arm_vect_no_misalign { } {
     return [check_no_compiler_messages arm_vect_no_misalign assembly {
@@ -1947,45 +1956,53 @@ proc check_effective_target_arm_neon_ok { } {
 # or -mfloat-abi=hard, but if one is already specified by the
 # multilib, use it.
 
-proc add_options_for_arm_neon_fp16 { flags } {
-    if { ! [check_effective_target_arm_neon_fp16_ok] } {
+proc add_options_for_arm_fp16 { flags } {
+    if { ! [check_effective_target_arm_fp16_ok] } {
 	return "$flags"
     }
-    global et_arm_neon_fp16_flags
-    return "$flags $et_arm_neon_fp16_flags"
+    global et_arm_fp16_flags
+    return "$flags $et_arm_fp16_flags"
 }
 
-# Return 1 if this is an ARM target supporting -mfpu=neon-fp16
-# -mfloat-abi=softfp or equivalent options.  Skip multilibs that are
-# incompatible with these options.  Also set et_arm_neon_flags to the
-# best options to add.
+# Return 1 if this is an ARM target that can support a VFP fp16 variant.
+# Skip multilibs that are incompatible with these options and set
+# et_arm_fp16_flags to the best options to add.
 
-proc check_effective_target_arm_neon_fp16_ok_nocache { } {
-    global et_arm_neon_fp16_flags
-    set et_arm_neon_fp16_flags ""
-    if { [check_effective_target_arm32] } {
-	if [check-flags [list "" { *-*-* } { "-mfpu=*" } { "-mfpu=neon-fp16*" } ]] {
-	    return 0
-	}
-	# Always add -mfpu=neon-fp16, since there is no preprocessor
-	# macro for FP16 support.
-	foreach flags {"-mfpu=neon-fp16" "-mfpu=neon-fp16 -mfloat-abi=softfp"} {
-	    if { [check_no_compiler_messages_nocache arm_neon_fp16_ok object {
-		#include "arm_neon.h"
-		int dummy;
-	    } "$flags"] } {
-		set et_arm_neon_fp16_flags $flags
-		return 1
-	    }
-	}
+proc check_effective_target_arm_fp16_ok_nocache { } {
+    global et_arm_fp16_flags
+    set et_arm_fp16_flags ""
+    if { ! [check_effective_target_arm32] } {
+	return 0;
+    }
+    if [check-flags [list "" { *-*-* } { "-mfpu=*" } { "-mfpu=*fp16*" "-mfpu=*fpv[4-9]*" "-mfpu=*fpv[1-9][0-9]*" } ]] {
+	# Multilib flags would override -mfpu.
+	return 0
+    }
+    if [check-flags [list "" { *-*-* } { "-mfloat-abi=soft" } { "" } ]] {
+	# Must generate floating-point instructions.
+	return 0
+    }
+    if [check-flags [list "" { *-*-* } { "-mfpu=*" } { "" } ]] {
+        # The existing -mfpu value is OK; use it, but add softfp.
+	set et_arm_fp16_flags "-mfloat-abi=softfp"
+	return 1;
+    }
+    # Add -mfpu for a VFP fp16 variant since there is no preprocessor
+    # macro to check for this support.
+    set flags "-mfpu=vfpv4 -mfloat-abi=softfp"
+    if { [check_no_compiler_messages_nocache arm_fp16_ok assembly {
+	int dummy;
+    } "$flags"] } {
+	set et_arm_fp16_flags "$flags"
+	return 1
     }
 
     return 0
 }
 
-proc check_effective_target_arm_neon_fp16_ok { } {
-    return [check_cached_effective_target arm_neon_fp16_ok \
-		check_effective_target_arm_neon_fp16_ok_nocache]
+proc check_effective_target_arm_fp16_ok { } {
+    return [check_cached_effective_target arm_fp16_ok \
+		check_effective_target_arm_fp16_ok_nocache]
 }
 
 # Return 1 is this is an ARM target where -mthumb causes Thumb-1 to be
@@ -2008,6 +2025,16 @@ proc check_effective_target_arm_thumb2_ok { } {
 	#error FOO
 	#endif
     } "-mthumb"]
+}
+
+# Return 1 is this is an ARM target where is Thumb-2 used.
+
+proc check_effective_target_arm_thumb2 { } {
+    return [check_no_compiler_messages arm_thumb2 assembly {
+	#if !defined(__thumb2__)
+	#error FOO
+	#endif
+    } ""]
 }
 
 # Return 1 if the target supports executing NEON instructions, 0
@@ -3816,6 +3843,26 @@ proc check_effective_target_gas { } {
     return $use_gas_saved
 }
 
+# Return 1 if GNU ld is used.
+
+proc check_effective_target_gld { } {
+    global use_gld_saved
+    global tool
+
+    if {![info exists use_gld_saved]} {
+	# Check if the ld used by gcc is GNU ld.
+	set gcc_ld [lindex [${tool}_target_compile "-print-prog-name=ld" "" "none" ""] 0]
+	set status [remote_exec host "$gcc_ld" "--version"]
+	set ld_output [lindex $status 1]
+	if { [ string first "GNU" $ld_output ] >= 0 } {
+	    set use_gld_saved 1
+	} else {
+	    set use_gld_saved 0
+	}
+    }
+    return $use_gld_saved
+}
+
 # Return 1 if the compiler has been configure with link-time optimization
 # (LTO) support.
 
@@ -3962,3 +4009,11 @@ proc check_vect_support_and_set_flags { } {
     return 1
 }
 
+proc check_effective_target_non_strict_align {} {
+    return [check_no_compiler_messages non_strict_align assembly {
+	char *y;
+	typedef char __attribute__ ((__aligned__(__BIGGEST_ALIGNMENT__))) c;
+	c *z;
+	void foo(void) { z = (c *) y; }
+    } "-Wcast-align"]
+}

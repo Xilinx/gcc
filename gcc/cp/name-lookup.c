@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "c-family/c-pragma.h"
 #include "params.h"
+#include "pointer-set.h"
 
 /* The bindings for a particular name in a particular scope.  */
 
@@ -541,7 +542,6 @@ add_decl_to_level (tree decl, cxx_scope *b)
 	 necessary.  */
       TREE_CHAIN (decl) = b->names;
       b->names = decl;
-      b->names_size++;
 
       /* If appropriate, add decl to separate list of statics.  We
 	 include extern variables because they might turn out to be
@@ -1022,11 +1022,6 @@ pushdecl_maybe_friend_1 (tree x, bool is_friend)
                        || (TREE_CODE (oldlocal) == TYPE_DECL
                            && (!DECL_ARTIFICIAL (oldlocal)
                                || TREE_CODE (x) == TYPE_DECL)))
-		   /* Don't check the `this' parameter or internally generated
-                      vars unless it's an implicit typedef (see
-                      create_implicit_typedef in decl.c).  */
-		   && (!DECL_ARTIFICIAL (oldlocal)
-                       || DECL_IMPLICIT_TYPEDEF_P (oldlocal))
                    /* Don't check for internally generated vars unless
                       it's an implicit typedef (see create_implicit_typedef
                       in decl.c).  */
@@ -1094,6 +1089,10 @@ pushdecl_maybe_friend_1 (tree x, bool is_friend)
 		  if (TREE_CODE (oldlocal) == PARM_DECL)
 		    warning_at (input_location, OPT_Wshadow,
 				"declaration of %q#D shadows a parameter", x);
+		  else if (is_capture_proxy (oldlocal))
+		    warning_at (input_location, OPT_Wshadow,
+				"declaration of %qD shadows a lambda capture",
+				x);
 		  else
 		    warning_at (input_location, OPT_Wshadow,
 				"declaration of %qD shadows a previous local",
@@ -2066,7 +2065,12 @@ push_using_decl (tree scope, tree name)
 }
 
 /* Same as pushdecl, but define X in binding-level LEVEL.  We rely on the
-   caller to set DECL_CONTEXT properly.  */
+   caller to set DECL_CONTEXT properly.
+
+   Note that this must only be used when X will be the new innermost
+   binding for its name, as we tack it onto the front of IDENTIFIER_BINDING
+   without checking to see if the current IDENTIFIER_BINDING comes from a
+   closer binding level than LEVEL.  */
 
 static tree
 pushdecl_with_scope_1 (tree x, cxx_scope *level, bool is_friend)
@@ -4002,13 +4006,8 @@ qualify_lookup (tree val, int flags)
     return true;
   if (flags & (LOOKUP_PREFER_NAMESPACES | LOOKUP_PREFER_TYPES))
     return false;
-  /* In unevaluated context, look past normal capture fields.  */
-  if (cp_unevaluated_operand && TREE_CODE (val) == FIELD_DECL
-      && DECL_NORMAL_CAPTURE_P (val))
-    return false;
-  /* None of the lookups that use qualify_lookup want the op() from the
-     lambda; they want the one from the enclosing class.  */
-  if (TREE_CODE (val) == FUNCTION_DECL && LAMBDA_FUNCTION_P (val))
+  /* Look through lambda things that we shouldn't be able to see.  */
+  if (is_lambda_ignored_entity (val))
     return false;
   return true;
 }
@@ -4866,6 +4865,7 @@ struct arg_lookup
   VEC(tree,gc) *namespaces;
   VEC(tree,gc) *classes;
   tree functions;
+  struct pointer_set_t *fn_set;
 };
 
 static bool arg_assoc (struct arg_lookup*, tree);
@@ -4885,16 +4885,11 @@ static bool arg_assoc_template_arg (struct arg_lookup*, tree);
 static bool
 add_function (struct arg_lookup *k, tree fn)
 {
-  /* We used to check here to see if the function was already in the list,
-     but that's O(n^2), which is just too expensive for function lookup.
-     Now we deal with the occasional duplicate in joust.  In doing this, we
-     assume that the number of duplicates will be small compared to the
-     total number of functions being compared, which should usually be the
-     case.  */
-
   if (!is_overloaded_fn (fn))
     /* All names except those of (possibly overloaded) functions and
        function templates are ignored.  */;
+  else if (k->fn_set && pointer_set_insert (k->fn_set, fn))
+    /* It's already in the list.  */;
   else if (!k->functions)
     k->functions = fn;
   else if (fn == k->functions)
@@ -5348,6 +5343,23 @@ lookup_arg_dependent_1 (tree name, tree fns, VEC(tree,gc) *args,
      picking up later definitions) in the second stage. */
   k.namespaces = make_tree_vector ();
 
+  /* We used to allow duplicates and let joust discard them, but
+     since the above change for DR 164 we end up with duplicates of
+     all the functions found by unqualified lookup.  So keep track
+     of which ones we've seen.  */
+  if (fns)
+    {
+      tree ovl;
+      /* We shouldn't be here if lookup found something other than
+	 namespace-scope functions.  */
+      gcc_assert (DECL_NAMESPACE_SCOPE_P (OVL_CURRENT (fns)));
+      k.fn_set = pointer_set_create ();
+      for (ovl = fns; ovl; ovl = OVL_NEXT (ovl))
+	pointer_set_insert (k.fn_set, OVL_CURRENT (ovl));
+    }
+  else
+    k.fn_set = NULL;
+
   if (include_std)
     arg_assoc_namespace (&k, std_node);
   arg_assoc_args_vec (&k, args);
@@ -5365,6 +5377,8 @@ lookup_arg_dependent_1 (tree name, tree fns, VEC(tree,gc) *args,
 
   release_tree_vector (k.classes);
   release_tree_vector (k.namespaces);
+  if (k.fn_set)
+    pointer_set_destroy (k.fn_set);
     
   return fns;
 }

@@ -334,14 +334,20 @@ build_value_init (tree type, tsubst_flags_t complain)
 
   if (CLASS_TYPE_P (type))
     {
-      if (type_has_user_provided_constructor (type))
+      /* Instead of the above, only consider the user-providedness of the
+	 default constructor itself so value-initializing a class with an
+	 explicitly defaulted default constructor and another user-provided
+	 constructor works properly (c++std-core-19883).  */
+      if (type_has_user_provided_default_constructor (type)
+	  || (!TYPE_HAS_DEFAULT_CONSTRUCTOR (type)
+	      && type_has_user_provided_constructor (type)))
 	return build_aggr_init_expr
 	  (type,
 	   build_special_member_call (NULL_TREE, complete_ctor_identifier,
 				      NULL, type, LOOKUP_NORMAL,
 				      complain),
 	   complain);
-      else if (type_build_ctor_call (type))
+      else if (TYPE_HAS_COMPLEX_DFLT (type))
 	{
 	  /* This is a class that needs constructing, but doesn't have
 	     a user-provided constructor.  So we need to zero-initialize
@@ -371,7 +377,7 @@ build_value_init_noctor (tree type, tsubst_flags_t complain)
      SFINAE-enabled.  */
   if (CLASS_TYPE_P (type))
     {
-      gcc_assert (!type_build_ctor_call (type));
+      gcc_assert (!TYPE_HAS_COMPLEX_DFLT (type));
 	
       if (TREE_CODE (type) != UNION_TYPE)
 	{
@@ -1443,6 +1449,17 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
   tree rval;
   VEC(tree,gc) *parms;
 
+  /* If we have direct-initialization from an initializer list, pull
+     it out of the TREE_LIST so the code below can see it.  */
+  if (init && TREE_CODE (init) == TREE_LIST
+      && BRACE_ENCLOSED_INITIALIZER_P (TREE_VALUE (init))
+      && CONSTRUCTOR_IS_DIRECT_INIT (TREE_VALUE (init)))
+    {
+      gcc_checking_assert ((flags & LOOKUP_ONLYCONVERTING) == 0
+			   && TREE_CHAIN (init) == NULL_TREE);
+      init = TREE_VALUE (init);
+    }
+
   if (init && BRACE_ENCLOSED_INITIALIZER_P (init)
       && CP_AGGREGATE_TYPE_P (type))
     {
@@ -1514,7 +1531,7 @@ expand_default_init (tree binfo, tree true_exp, tree exp, tree init, int flags,
       tree fn = get_callee_fndecl (rval);
       if (fn && DECL_DECLARED_CONSTEXPR_P (fn))
 	{
-	  tree e = maybe_constant_value (rval);
+	  tree e = maybe_constant_init (rval);
 	  if (TREE_CONSTANT (e))
 	    rval = build2 (INIT_EXPR, type, exp, e);
 	}
@@ -2379,24 +2396,31 @@ build_new_1 (VEC(tree,gc) **placement, tree type, tree nelts,
 	      && BRACE_ENCLOSED_INITIALIZER_P (VEC_index (tree, *init, 0))
 	      && CONSTRUCTOR_IS_DIRECT_INIT (VEC_index (tree, *init, 0)))
 	    {
-	      tree arraytype, domain;
 	      vecinit = VEC_index (tree, *init, 0);
-	      if (TREE_CONSTANT (nelts))
-		domain = compute_array_index_type (NULL_TREE, nelts, complain);
+	      if (CONSTRUCTOR_NELTS (vecinit) == 0)
+		/* List-value-initialization, leave it alone.  */;
 	      else
 		{
-		  domain = NULL_TREE;
-		  if (CONSTRUCTOR_NELTS (vecinit) > 0)
-		    warning (0, "non-constant array size in new, unable to "
-			     "verify length of initializer-list");
+		  tree arraytype, domain;
+		  if (TREE_CONSTANT (nelts))
+		    domain = compute_array_index_type (NULL_TREE, nelts,
+						       complain);
+		  else
+		    {
+		      domain = NULL_TREE;
+		      if (CONSTRUCTOR_NELTS (vecinit) > 0)
+			warning (0, "non-constant array size in new, unable "
+				 "to verify length of initializer-list");
+		    }
+		  arraytype = build_cplus_array_type (type, domain);
+		  vecinit = digest_init (arraytype, vecinit, complain);
 		}
-	      arraytype = build_cplus_array_type (type, domain);
-	      vecinit = digest_init (arraytype, vecinit, complain);
 	    }
 	  else if (*init)
             {
               if (complain & tf_error)
-                permerror (input_location, "ISO C++ forbids initialization in array new");
+                permerror (input_location,
+			   "parenthesized initializer in array new");
               else
                 return error_mark_node;
 	      vecinit = build_tree_list_vec (*init);
@@ -2600,8 +2624,7 @@ build_new (VEC(tree,gc) **placement, tree type, tree nelts,
 	{
 	  tree d_init = VEC_index (tree, *init, 0);
 	  d_init = resolve_nondeduced_context (d_init);
-	  if (describable_type (d_init))
-	    type = do_auto_deduction (type, d_init, auto_node);
+	  type = do_auto_deduction (type, d_init, auto_node);
 	}
     }
 
@@ -3074,17 +3097,32 @@ build_vec_init (tree base, tree maxindex, tree init,
       try_block = begin_try_block ();
     }
 
+  /* If the initializer is {}, then all elements are initialized from {}.
+     But for non-classes, that's the same as value-initialization.  */
+  if (init && BRACE_ENCLOSED_INITIALIZER_P (init)
+      && CONSTRUCTOR_NELTS (init) == 0)
+    {
+      if (CLASS_TYPE_P (type))
+	/* Leave init alone.  */;
+      else
+	{
+	  init = NULL_TREE;
+	  explicit_value_init_p = true;
+	}
+    }
+
   /* Maybe pull out constant value when from_array? */
 
-  if (init != NULL_TREE && TREE_CODE (init) == CONSTRUCTOR)
+  else if (init != NULL_TREE && TREE_CODE (init) == CONSTRUCTOR)
     {
       /* Do non-default initialization of non-trivial arrays resulting from
 	 brace-enclosed initializers.  */
       unsigned HOST_WIDE_INT idx;
       tree field, elt;
       /* Should we try to create a constant initializer?  */
-      bool try_const = (literal_type_p (inner_elt_type)
-			|| TYPE_HAS_CONSTEXPR_CTOR (inner_elt_type));
+      bool try_const = (TREE_CODE (atype) == ARRAY_TYPE
+			&& (literal_type_p (inner_elt_type)
+			    || TYPE_HAS_CONSTEXPR_CTOR (inner_elt_type)));
       bool saw_non_const = false;
       bool saw_const = false;
       /* If we're initializing a static array, we want to do static
@@ -3193,7 +3231,7 @@ build_vec_init (tree base, tree maxindex, tree init,
      We do need to keep going if we're copying an array.  */
 
   if (from_array
-      || ((type_build_ctor_call (type) || explicit_value_init_p)
+      || ((type_build_ctor_call (type) || init || explicit_value_init_p)
 	  && ! (host_integerp (maxindex, 0)
 		&& (num_initialized_elts
 		    == tree_low_cst (maxindex, 0) + 1))))
@@ -3259,8 +3297,16 @@ build_vec_init (tree base, tree maxindex, tree init,
 	}
       else
 	{
-	  gcc_assert (type_build_ctor_call (type));
-	  elt_init = build_aggr_init (to, init, 0, complain);
+	  gcc_assert (type_build_ctor_call (type) || init);
+	  if (CLASS_TYPE_P (type))
+	    elt_init = build_aggr_init (to, init, 0, complain);
+	  else
+	    {
+	      if (TREE_CODE (init) == TREE_LIST)
+		init = build_x_compound_expr_from_list (init, ELK_INIT,
+							complain);
+	      elt_init = build2 (INIT_EXPR, type, to, init);
+	    }
 	}
 
       if (elt_init == error_mark_node)

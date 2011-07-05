@@ -1,3 +1,46 @@
+2011-06-29  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc-interface/Makefile.in (TOOLS_LIBS): Add $(LIBINTL).
+
+2011-06-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/decl.c (gnat_to_gnu_component_type): Use GNAT_TYPE
+	local variable throughout.  Remove useless call to Base_Type.
+	(gnat_to_gnu_field): Use GNAT_FIELD_TYPE local variable throughout.
+	Take it also into account for the volatileness of the field.  Set the
+	TREE_SIDE_EFFECTS flag as well in this case.  Reorder some warnings.
+
+2011-06-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gcc-interface/trans.c (Identifier_to_gnu): Don't set TREE_THIS_NOTRAP
+	on a dereference built for a by-ref object if it has an address clause.
+
+2011-06-18  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* einfo.ads (Address_Taken): Document use for the second argument of
+	Asm_Input and Asm_Output attributes.
+	* sem_attr.adb (Analyze_Attribute) <Attribute_Asm_Input>: If the second
+	argument is an entity name, then set Address_Taken on it.
+	<Attribute_Asm_Output>: Likewise.
+	* gcc-interface/trans.c (lvalue_required_for_attribute_p): Handle the
+	Attr_Asm_Input and Attr_Asm_Output attributes explicitly.
+	(gnat_to_gnu) <N_Code_Statement>: If an operand is going to end up in
+	memory and is a CONST_DECL, retrieve its corresponding VAR_DECL.
+
+2011-06-16  Joern Rennecke  <joern.rennecke@embecosm.com>
+
+	PR middle-end/46500
+	* gcc-interface/decl.c (gnat_to_gnu_param): Use pack_cumulative_args.
+
+2011-06-14  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc-interface/Make-lang.in (gnatbind$(exeext)): Use ggc-none.o.
+	(ada/utils.o): Update dependencies.
+	* gcc-interface/Makefile.in (EXTRA_GNATTOOLS_OBJS): Add
+	../../../libcpp/libcpp.a.
+	* gcc-interface/utils.c: Include common/common-target.h.
+	(process_attributes): Use targetm_common.have_named_sections.
+
 2011-06-07  Richard Guenther  <rguenther@suse.de>
 
 	* gcc-interface/misc.c (gnat_init): Do not set size_type_node or call

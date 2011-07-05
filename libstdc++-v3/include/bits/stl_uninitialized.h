@@ -1,7 +1,7 @@
 // Raw memory manipulators -*- C++ -*-
 
 // Copyright (C) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-// 2009, 2010
+// 2009, 2010, 2011
 // Free Software Foundation, Inc.
 //
 // This file is part of the GNU ISO C++ Library.  This library is free
@@ -241,8 +241,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _ForwardIterator __cur = __result;
       __try
 	{
+	  typedef __gnu_cxx::__alloc_traits<_Allocator> __traits;
 	  for (; __first != __last; ++__first, ++__cur)
-	    __alloc.construct(std::__addressof(*__cur), *__first);
+	    __traits::construct(__alloc, std::__addressof(*__cur), *__first);
 	  return __cur;
 	}
       __catch(...)
@@ -290,8 +291,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _ForwardIterator __cur = __first;
       __try
 	{
+	  typedef __gnu_cxx::__alloc_traits<_Allocator> __traits;
 	  for (; __cur != __last; ++__cur)
-	    __alloc.construct(std::__addressof(*__cur), __x);
+	    __traits::construct(__alloc, std::__addressof(*__cur), __x);
 	}
       __catch(...)
 	{
@@ -315,8 +317,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _ForwardIterator __cur = __first;
       __try
 	{
+	  typedef __gnu_cxx::__alloc_traits<_Allocator> __traits;
 	  for (; __n > 0; --__n, ++__cur)
-	    __alloc.construct(std::__addressof(*__cur), __x);
+	    __traits::construct(__alloc, std::__addressof(*__cur), __x);
 	}
       __catch(...)
 	{
@@ -556,8 +559,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _ForwardIterator __cur = __first;
       __try
 	{
+	  typedef __gnu_cxx::__alloc_traits<_Allocator> __traits;
 	  for (; __cur != __last; ++__cur)
-	    __alloc.construct(std::__addressof(*__cur));
+	    __traits::construct(__alloc, std::__addressof(*__cur));
 	}
       __catch(...)
 	{
@@ -585,8 +589,9 @@ _GLIBCXX_BEGIN_NAMESPACE_VERSION
       _ForwardIterator __cur = __first;
       __try
 	{
+	  typedef __gnu_cxx::__alloc_traits<_Allocator> __traits;
 	  for (; __n > 0; --__n, ++__cur)
-	    __alloc.construct(std::__addressof(*__cur));
+	    __traits::construct(__alloc, std::__addressof(*__cur));
 	}
       __catch(...)
 	{

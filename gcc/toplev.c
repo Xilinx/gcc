@@ -62,6 +62,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "integrate.h"
 #include "debug.h"
 #include "target.h"
+#include "common/common-target.h"
 #include "langhooks.h"
 #include "cfglayout.h"
 #include "cfgloop.h"
@@ -124,13 +125,6 @@ unsigned int save_decoded_options_count;
 
 const struct gcc_debug_hooks *debug_hooks;
 
-/* True if this is the lto front end.  This is used to disable
-   gimple generation and lowering passes that are normally run on the
-   output of a front end.  These passes must be bypassed for lto since
-   they have already been done before the gimple was written.  */
-
-bool in_lto_p = false;
-
 /* The FUNCTION_DECL for the function currently being compiled,
    or 0 if between functions.  */
 tree current_function_decl;
@@ -182,24 +176,8 @@ struct target_flag_state *this_target_flag_state = &default_target_flag_state;
 #define this_target_flag_state (&default_target_flag_state)
 #endif
 
-typedef struct
-{
-  const char *const string;
-  int *const variable;
-  const int on_value;
-}
-lang_independent_options;
-
 /* The user symbol prefix after having resolved same.  */
 const char *user_label_prefix;
-
-static const param_info lang_independent_params[] = {
-#define DEFPARAM(ENUM, OPTION, HELP, DEFAULT, MIN, MAX) \
-  { OPTION, DEFAULT, MIN, MAX, HELP },
-#include "params.def"
-#undef DEFPARAM
-  { NULL, 0, 0, 0, NULL }
-};
 
 /* Output files for assembler code (real compiler output)
    and debugging dumps.  */
@@ -672,12 +650,6 @@ compile_file (void)
 
   timevar_stop (TV_PHASE_GENERATE);
 }
-
-/* Indexed by enum debug_info_type.  */
-const char *const debug_type_names[] =
-{
-  "none", "stabs", "coff", "dwarf-2", "xcoff", "vms"
-};
 
 /* Print version information to FILE.
    Each line begins with INDENT (for the case where FILE is the
@@ -1212,10 +1184,10 @@ general_init (const char *argv0)
   init_reg_sets ();
 
   /* Register the language-independent parameters.  */
-  add_params (lang_independent_params, LAST_PARAM);
-  targetm.target_option.default_params ();
+  global_init_params ();
 
-  /* This must be done after add_params but before argument processing.  */
+  /* This must be done after global_init_params but before argument
+     processing.  */
   init_ggc_heuristics();
   init_optimization_passes ();
   statistics_early_init ();
@@ -1512,7 +1484,7 @@ process_options (void)
 	fatal_error ("can%'t open %s: %m", aux_info_file_name);
     }
 
-  if (! targetm.have_named_sections)
+  if (!targetm_common.have_named_sections)
     {
       if (flag_function_sections)
 	{

@@ -2669,15 +2669,25 @@ exp_equiv_p (const_rtx x, const_rtx y, int validate, bool for_gcse)
     case MEM:
       if (for_gcse)
 	{
-	  /* Can't merge two expressions in different alias sets, since we
-	     can decide that the expression is transparent in a block when
-	     it isn't, due to it being set with the different alias set.  */
-	  if (MEM_ALIAS_SET (x) != MEM_ALIAS_SET (y))
-	    return 0;
-
 	  /* A volatile mem should not be considered equivalent to any
 	     other.  */
 	  if (MEM_VOLATILE_P (x) || MEM_VOLATILE_P (y))
+	    return 0;
+
+	  /* Can't merge two expressions in different alias sets, since we
+	     can decide that the expression is transparent in a block when
+	     it isn't, due to it being set with the different alias set.
+
+	     Also, can't merge two expressions with different MEM_ATTRS.
+	     They could e.g. be two different entities allocated into the
+	     same space on the stack (see e.g. PR25130).  In that case, the
+	     MEM addresses can be the same, even though the two MEMs are
+	     absolutely not equivalent.
+
+	     But because really all MEM attributes should be the same for
+	     equivalent MEMs, we just use the invariant that MEMs that have
+	     the same attributes share the same mem_attrs data structure.  */
+	  if (MEM_ATTRS (x) != MEM_ATTRS (y))
 	    return 0;
 	}
       break;
@@ -7414,7 +7424,6 @@ struct rtl_opt_pass pass_cse =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_ggc_collect |
   TODO_verify_flow,                     /* todo_flags_finish */
  }
@@ -7477,7 +7486,6 @@ struct rtl_opt_pass pass_cse2 =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_ggc_collect |
   TODO_verify_flow                      /* todo_flags_finish */
  }
@@ -7538,7 +7546,6 @@ struct rtl_opt_pass pass_cse_after_global_opts =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_ggc_collect |
   TODO_verify_flow                      /* todo_flags_finish */
  }

@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "obstack.h"
 #include "cpplib.h"
 #include "target.h"
+#include "common/common-target.h"
 #include "langhooks.h"
 #include "tree-inline.h"
 #include "toplev.h"
@@ -6563,7 +6564,7 @@ handle_section_attribute (tree *node, tree ARG_UNUSED (name), tree args,
 {
   tree decl = *node;
 
-  if (targetm.have_named_sections)
+  if (targetm_common.have_named_sections)
     {
       user_defined_section_attribute = true;
 
@@ -8165,6 +8166,18 @@ check_builtin_function_arguments (tree fndecl, int nargs, tree *args)
 	}
       return false;
 
+    case BUILT_IN_ASSUME_ALIGNED:
+      if (builtin_function_validate_nargs (fndecl, nargs, 2 + (nargs > 2)))
+	{
+	  if (nargs >= 3 && TREE_CODE (TREE_TYPE (args[2])) != INTEGER_TYPE)
+	    {
+	      error ("non-integer argument 3 in call to function %qE", fndecl);
+	      return false;
+	    }
+	  return true;
+	}
+      return false;
+
     default:
       return true;
     }
@@ -9043,22 +9056,22 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
   /* Handle BUILT_IN_NORMAL here.  */
   switch (orig_code)
     {
-    case BUILT_IN_FETCH_AND_ADD_N:
-    case BUILT_IN_FETCH_AND_SUB_N:
-    case BUILT_IN_FETCH_AND_OR_N:
-    case BUILT_IN_FETCH_AND_AND_N:
-    case BUILT_IN_FETCH_AND_XOR_N:
-    case BUILT_IN_FETCH_AND_NAND_N:
-    case BUILT_IN_ADD_AND_FETCH_N:
-    case BUILT_IN_SUB_AND_FETCH_N:
-    case BUILT_IN_OR_AND_FETCH_N:
-    case BUILT_IN_AND_AND_FETCH_N:
-    case BUILT_IN_XOR_AND_FETCH_N:
-    case BUILT_IN_NAND_AND_FETCH_N:
-    case BUILT_IN_BOOL_COMPARE_AND_SWAP_N:
-    case BUILT_IN_VAL_COMPARE_AND_SWAP_N:
-    case BUILT_IN_LOCK_TEST_AND_SET_N:
-    case BUILT_IN_LOCK_RELEASE_N:
+    case BUILT_IN_SYNC_FETCH_AND_ADD_N:
+    case BUILT_IN_SYNC_FETCH_AND_SUB_N:
+    case BUILT_IN_SYNC_FETCH_AND_OR_N:
+    case BUILT_IN_SYNC_FETCH_AND_AND_N:
+    case BUILT_IN_SYNC_FETCH_AND_XOR_N:
+    case BUILT_IN_SYNC_FETCH_AND_NAND_N:
+    case BUILT_IN_SYNC_ADD_AND_FETCH_N:
+    case BUILT_IN_SYNC_SUB_AND_FETCH_N:
+    case BUILT_IN_SYNC_OR_AND_FETCH_N:
+    case BUILT_IN_SYNC_AND_AND_FETCH_N:
+    case BUILT_IN_SYNC_XOR_AND_FETCH_N:
+    case BUILT_IN_SYNC_NAND_AND_FETCH_N:
+    case BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_N:
+    case BUILT_IN_SYNC_VAL_COMPARE_AND_SWAP_N:
+    case BUILT_IN_SYNC_LOCK_TEST_AND_SET_N:
+    case BUILT_IN_SYNC_LOCK_RELEASE_N:
       {
 	int n = sync_resolve_size (function, params);
 	tree new_function, first_param, result;
@@ -9072,8 +9085,8 @@ resolve_overloaded_builtin (location_t loc, tree function, VEC(tree,gc) *params)
 
 	first_param = VEC_index (tree, params, 0);
 	result = build_function_call_vec (loc, new_function, params, NULL);
-	if (orig_code != BUILT_IN_BOOL_COMPARE_AND_SWAP_N
-	    && orig_code != BUILT_IN_LOCK_RELEASE_N)
+	if (orig_code != BUILT_IN_SYNC_BOOL_COMPARE_AND_SWAP_N
+	    && orig_code != BUILT_IN_SYNC_LOCK_RELEASE_N)
 	  result = sync_resolve_return (first_param, result);
 
 	return result;

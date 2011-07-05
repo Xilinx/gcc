@@ -192,20 +192,19 @@ static rtx gen_fr_spill_x (rtx, rtx, rtx);
 static rtx gen_fr_restore_x (rtx, rtx, rtx);
 
 static void ia64_option_override (void);
-static void ia64_option_default_params (void);
 static bool ia64_can_eliminate (const int, const int);
 static enum machine_mode hfa_element_mode (const_tree, bool);
-static void ia64_setup_incoming_varargs (CUMULATIVE_ARGS *, enum machine_mode,
+static void ia64_setup_incoming_varargs (cumulative_args_t, enum machine_mode,
 					 tree, int *, int);
-static int ia64_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
+static int ia64_arg_partial_bytes (cumulative_args_t, enum machine_mode,
 				   tree, bool);
-static rtx ia64_function_arg_1 (const CUMULATIVE_ARGS *, enum machine_mode,
+static rtx ia64_function_arg_1 (cumulative_args_t, enum machine_mode,
 				const_tree, bool, bool);
-static rtx ia64_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx ia64_function_arg (cumulative_args_t, enum machine_mode,
 			      const_tree, bool);
-static rtx ia64_function_incoming_arg (CUMULATIVE_ARGS *,
+static rtx ia64_function_incoming_arg (cumulative_args_t,
 				       enum machine_mode, const_tree, bool);
-static void ia64_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+static void ia64_function_arg_advance (cumulative_args_t, enum machine_mode,
 				       const_tree, bool);
 static unsigned int ia64_function_arg_boundary (enum machine_mode,
 						const_tree);
@@ -221,8 +220,6 @@ static int ia64_memory_move_cost (enum machine_mode mode, reg_class_t,
 static bool ia64_rtx_costs (rtx, int, int, int *, bool);
 static int ia64_unspec_may_trap_p (const_rtx, unsigned);
 static void fix_range (const char *);
-static bool ia64_handle_option (struct gcc_options *, struct gcc_options *,
-				const struct cl_decoded_option *, location_t);
 static struct machine_function * ia64_init_machine_status (void);
 static void emit_insn_group_barriers (FILE *);
 static void emit_all_insn_group_barriers (FILE *);
@@ -253,7 +250,6 @@ static void ia64_asm_emit_except_personality (rtx);
 static void ia64_asm_init_sections (void);
 
 static enum unwind_info_type ia64_debug_unwind_info (void);
-static enum unwind_info_type ia64_except_unwind_info (struct gcc_options *);
 
 static struct bundle_state *get_free_bundle_state (void);
 static void free_bundle_state (struct bundle_state *);
@@ -348,16 +344,6 @@ static const struct attribute_spec ia64_attribute_table[] =
   { NULL,	       0, 0, false, false, false, NULL, false }
 };
 
-/* Implement overriding of the optimization options.  */
-static const struct default_options ia64_option_optimization_table[] =
-  {
-    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
-#ifdef SUBTARGET_OPTIMIZATION_OPTIONS
-    SUBTARGET_OPTIMIZATION_OPTIONS,
-#endif
-    { OPT_LEVELS_NONE, 0, NULL, 0 }
-  };
-
 /* Initialize the GCC target structure.  */
 #undef TARGET_ATTRIBUTE_TABLE
 #define TARGET_ATTRIBUTE_TABLE ia64_attribute_table
@@ -390,10 +376,6 @@ static const struct default_options ia64_option_optimization_table[] =
 
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE ia64_option_override
-#undef TARGET_OPTION_OPTIMIZATION_TABLE
-#define TARGET_OPTION_OPTIMIZATION_TABLE ia64_option_optimization_table
-#undef TARGET_OPTION_DEFAULT_PARAMS
-#define TARGET_OPTION_DEFAULT_PARAMS ia64_option_default_params
 
 #undef TARGET_ASM_FUNCTION_PROLOGUE
 #define TARGET_ASM_FUNCTION_PROLOGUE ia64_output_function_prologue
@@ -580,8 +562,6 @@ static const struct default_options ia64_option_optimization_table[] =
 
 #undef TARGET_DEBUG_UNWIND_INFO
 #define TARGET_DEBUG_UNWIND_INFO  ia64_debug_unwind_info
-#undef TARGET_EXCEPT_UNWIND_INFO
-#define TARGET_EXCEPT_UNWIND_INFO  ia64_except_unwind_info
 
 #undef TARGET_SCALAR_MODE_SUPPORTED_P
 #define TARGET_SCALAR_MODE_SUPPORTED_P ia64_scalar_mode_supported_p
@@ -592,11 +572,6 @@ static const struct default_options ia64_option_optimization_table[] =
    in an order different from the specified program order.  */
 #undef TARGET_RELAXED_ORDERING
 #define TARGET_RELAXED_ORDERING true
-
-#undef TARGET_DEFAULT_TARGET_FLAGS
-#define TARGET_DEFAULT_TARGET_FLAGS (TARGET_DEFAULT | TARGET_CPU_DEFAULT)
-#undef TARGET_HANDLE_OPTION
-#define TARGET_HANDLE_OPTION ia64_handle_option
 
 #undef TARGET_LEGITIMATE_CONSTANT_P
 #define TARGET_LEGITIMATE_CONSTANT_P ia64_legitimate_constant_p
@@ -4179,14 +4154,14 @@ ia64_trampoline_init (rtx m_tramp, tree fndecl, rtx static_chain)
    We generate the actual spill instructions during prologue generation.  */
 
 static void
-ia64_setup_incoming_varargs (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+ia64_setup_incoming_varargs (cumulative_args_t cum, enum machine_mode mode,
 			     tree type, int * pretend_size,
 			     int second_time ATTRIBUTE_UNUSED)
 {
-  CUMULATIVE_ARGS next_cum = *cum;
+  CUMULATIVE_ARGS next_cum = *get_cumulative_args (cum);
 
   /* Skip the current argument.  */
-  ia64_function_arg_advance (&next_cum, mode, type, 1);
+  ia64_function_arg_advance (pack_cumulative_args (&next_cum), mode, type, 1);
 
   if (next_cum.words < MAX_ARGUMENT_SLOTS)
     {
@@ -4334,9 +4309,11 @@ ia64_function_arg_offset (const CUMULATIVE_ARGS *cum,
    registers.  */
 
 static rtx
-ia64_function_arg_1 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
+ia64_function_arg_1 (cumulative_args_t cum_v, enum machine_mode mode,
 		     const_tree type, bool named, bool incoming)
 {
+  const CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   int basereg = (incoming ? GR_ARG_FIRST : AR_ARG_FIRST);
   int words = ia64_function_arg_words (type, mode);
   int offset = ia64_function_arg_offset (cum, type, words);
@@ -4527,7 +4504,7 @@ ia64_function_arg_1 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
 /* Implement TARGET_FUNCION_ARG target hook.  */
 
 static rtx
-ia64_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+ia64_function_arg (cumulative_args_t cum, enum machine_mode mode,
 		   const_tree type, bool named)
 {
   return ia64_function_arg_1 (cum, mode, type, named, false);
@@ -4536,7 +4513,7 @@ ia64_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 /* Implement TARGET_FUNCION_INCOMING_ARG target hook.  */
 
 static rtx
-ia64_function_incoming_arg (CUMULATIVE_ARGS *cum,
+ia64_function_incoming_arg (cumulative_args_t cum,
 			    enum machine_mode mode,
 			    const_tree type, bool named)
 {
@@ -4548,9 +4525,11 @@ ia64_function_incoming_arg (CUMULATIVE_ARGS *cum,
    in memory.  */
 
 static int
-ia64_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+ia64_arg_partial_bytes (cumulative_args_t cum_v, enum machine_mode mode,
 			tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   int words = ia64_function_arg_words (type, mode);
   int offset = ia64_function_arg_offset (cum, type, words);
 
@@ -4589,9 +4568,10 @@ ia64_arg_type (enum machine_mode mode)
    ia64_function_arg.  */
 
 static void
-ia64_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+ia64_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
 			   const_tree type, bool named)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
   int words = ia64_function_arg_words (type, mode);
   int offset = ia64_function_arg_offset (cum, type, words);
   enum machine_mode hfa_mode = VOIDmode;
@@ -5638,30 +5618,6 @@ fix_range (const char *const_str)
 
       *comma = ',';
       str = comma + 1;
-    }
-}
-
-/* Implement TARGET_HANDLE_OPTION.  */
-
-static bool
-ia64_handle_option (struct gcc_options *opts ATTRIBUTE_UNUSED,
-		    struct gcc_options *opts_set ATTRIBUTE_UNUSED,
-		    const struct cl_decoded_option *decoded,
-		    location_t loc)
-{
-  size_t code = decoded->opt_index;
-  const char *arg = decoded->arg;
-  int value = decoded->value;
-
-  switch (code)
-    {
-    case OPT_mtls_size_:
-      if (value != 14 && value != 22 && value != 64)
-	error_at (loc, "bad value %<%s%> for -mtls-size= switch", arg);
-      return true;
-
-    default:
-      return true;
     }
 }
 
@@ -10095,25 +10051,6 @@ ia64_debug_unwind_info (void)
 {
   return UI_TARGET;
 }
-
-/* Implement TARGET_EXCEPT_UNWIND_INFO.  */
-
-static enum unwind_info_type
-ia64_except_unwind_info (struct gcc_options *opts)
-{
-  /* Honor the --enable-sjlj-exceptions configure switch.  */
-#ifdef CONFIG_UNWIND_EXCEPTIONS
-  if (CONFIG_UNWIND_EXCEPTIONS)
-    return UI_SJLJ;
-#endif
-
-  /* For simplicity elsewhere in this file, indicate that all unwind
-     info is disabled if we're not emitting unwind tables.  */
-  if (!opts->x_flag_exceptions && !opts->x_flag_unwind_tables)
-    return UI_NONE;
-
-  return UI_TARGET;
-}
 
 enum ia64_builtins
 {
@@ -10194,11 +10131,9 @@ ia64_init_builtins (void)
 					       "__float128");
 
   /* Fwrite on VMS is non-standard.  */
-  if (TARGET_ABI_OPEN_VMS)
-    {
-      implicit_built_in_decls[(int) BUILT_IN_FWRITE] = NULL_TREE;
-      implicit_built_in_decls[(int) BUILT_IN_FWRITE_UNLOCKED] = NULL_TREE;
-    }
+#if TARGET_ABI_OPEN_VMS
+  vms_patch_builtins ();
+#endif
 
 #define def_builtin(name, type, code)					\
   add_builtin_function ((name), (type), (code), BUILT_IN_MD,	\
@@ -10325,10 +10260,6 @@ ia64_asm_output_external (FILE *file, tree decl, const char *name)
 	 visibility directive is output.  */
       int need_visibility = ((*targetm.binds_local_p) (decl)
 			     && maybe_assemble_visibility (decl));
-
-#ifdef DO_CRTL_NAMES
-      DO_CRTL_NAMES;
-#endif
 
       /* GNU as does not need anything here, but the HP linker does
 	 need something for external functions.  */
@@ -10917,20 +10848,6 @@ ia64_invalid_binary_op (int op ATTRIBUTE_UNUSED, const_tree type1, const_tree ty
   if (TYPE_MODE (type1) == RFmode || TYPE_MODE (type2) == RFmode)
     return N_("invalid operation on %<__fpreg%>");
   return NULL;
-}
-
-/* Implement TARGET_OPTION_DEFAULT_PARAMS.  */
-static void
-ia64_option_default_params (void)
-{
-  /* Let the scheduler form additional regions.  */
-  set_default_param_value (PARAM_MAX_SCHED_EXTEND_REGIONS_ITERS, 2);
-
-  /* Set the default values for cache-related parameters.  */
-  set_default_param_value (PARAM_SIMULTANEOUS_PREFETCHES, 6);
-  set_default_param_value (PARAM_L1_CACHE_LINE_SIZE, 32);
-
-  set_default_param_value (PARAM_SCHED_MEM_TRUE_DEP_COST, 4);
 }
 
 /* HP-UX version_id attribute.

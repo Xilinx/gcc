@@ -645,7 +645,7 @@ struct gimple_opt_pass pass_cse_reciprocals =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_update_ssa | TODO_verify_ssa
+  TODO_update_ssa | TODO_verify_ssa
     | TODO_verify_stmts                /* todo_flags_finish */
  }
 };
@@ -1491,7 +1491,7 @@ struct gimple_opt_pass pass_cse_sincos =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_update_ssa | TODO_verify_ssa
+  TODO_update_ssa | TODO_verify_ssa
     | TODO_verify_stmts                 /* todo_flags_finish */
  }
 };
@@ -1543,6 +1543,9 @@ do_shift_rotate (enum tree_code code,
     default:
       return false;
     }
+  /* Zero unused bits for size.  */
+  if (n->size < (int)sizeof (HOST_WIDEST_INT))
+    n->n &= ((unsigned HOST_WIDEST_INT)1 << (n->size * BITS_PER_UNIT)) - 1;
   return true;
 }
 
@@ -1740,15 +1743,16 @@ find_bswap (gimple stmt)
 
   struct symbolic_number n;
   tree source_expr;
+  int limit;
 
   /* The last parameter determines the depth search limit.  It usually
      correlates directly to the number of bytes to be touched.  We
-     increase that number by one here in order to also cover signed ->
-     unsigned conversions of the src operand as can be seen in
-     libgcc.  */
-  source_expr =  find_bswap_1 (stmt, &n,
-			       TREE_INT_CST_LOW (
-				 TYPE_SIZE_UNIT (gimple_expr_type (stmt))) + 1);
+     increase that number by three  here in order to also
+     cover signed -> unsigned converions of the src operand as can be seen
+     in libgcc, and for initial shift/and operation of the src operand.  */
+  limit = TREE_INT_CST_LOW (TYPE_SIZE_UNIT (gimple_expr_type (stmt)));
+  limit += 1 + (int) ceil_log2 ((unsigned HOST_WIDE_INT) limit);
+  source_expr =  find_bswap_1 (stmt, &n, limit);
 
   if (!source_expr)
     return NULL_TREE;
@@ -1817,7 +1821,11 @@ execute_optimize_bswap (void)
     {
       gimple_stmt_iterator gsi;
 
-      for (gsi = gsi_after_labels (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+      /* We do a reverse scan for bswap patterns to make sure we get the
+	 widest match. As bswap pattern matching doesn't handle
+	 previously inserted smaller bswap replacements as sub-
+	 patterns, the wider variant wouldn't be detected.  */
+      for (gsi = gsi_last_bb (bb); !gsi_end_p (gsi); gsi_prev (&gsi))
         {
 	  gimple stmt = gsi_stmt (gsi);
 	  tree bswap_src, bswap_type;
@@ -1918,7 +1926,7 @@ execute_optimize_bswap (void)
   statistics_counter_event (cfun, "64-bit bswap implementations found",
 			    bswap_stats.found_64bit);
 
-  return (changed ? TODO_dump_func | TODO_update_ssa | TODO_verify_ssa
+  return (changed ? TODO_update_ssa | TODO_verify_ssa
 	  | TODO_verify_stmts : 0);
 }
 
@@ -2471,7 +2479,6 @@ struct gimple_opt_pass pass_optimize_widening_mul =
   0,					/* todo_flags_start */
   TODO_verify_ssa
   | TODO_verify_stmts
-  | TODO_dump_func
   | TODO_update_ssa                     /* todo_flags_finish */
  }
 };

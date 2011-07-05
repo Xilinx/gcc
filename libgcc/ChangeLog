@@ -1,3 +1,36 @@
+2011-06-28  Nick Clifton  <nickc@redhat.com>
+
+	* config.host: Recognize all V850 variants.
+
+2011-06-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* enable-execute-stack-empty.c (__enable_execute_stack): Add prototype.
+
+2011-06-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* shared-object.mk (c_flags-$o): Save c_flags.
+	($(base)$(objext)): Use it.
+	($(base)_s$(objext)): Likewise.
+
+2011-06-21  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* Makefile.in (lib2funcs): Add _clrsbsi2 and _clrsbdi2.
+	* libgcc-std.ver.in (GCC_4.7.0): New section.
+
+2011-06-16  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49313
+	PR target/29524
+	* config/avr/t-avr: Fix line endings.
+	(intfuncs16): Remove _ffsXX2,  _clzXX2, _ctzXX2, _popcountXX2,
+	_parityXX2.
+
+2011-06-14  Olivier Hainque  <hainque@adacore.com>
+	    Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/mips/irix6-unwind.h: New file.
+	* config.host (mips-sgi-irix6.5*): Set md_unwind_header.
+
 2011-06-10  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* config/sparc/linux-unwind.h (STACK_BIAS): Define.
@@ -354,7 +387,7 @@
 2010-09-09  Gerald Pfeifer  <gerald@pfeifer.com>
 	    Andrew Pinski  <pinskia@gmail.com>
 
-	PR target/40959	
+	PR target/40959
 	* config.host (ia64*-*-freebsd*): Set extra_parts.  Set tmake_file.
 
 2010-09-06  H.J. Lu  <hongjiu.lu@intel.com>
