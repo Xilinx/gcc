@@ -1088,7 +1088,7 @@ an integer $I if $I is greater than $N.}#
 (defprimitive shortbacktrace_dbg (:cstring msg :long maxdepth) :void
   :doc #{Short debug backtrace with message $MSG up to $MAXDEPTH.}#
   #{ 
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   if (flag_melt_debug)
     melt_dbgshortbacktrace(($msg), ($maxdepth));
 #endif

@@ -5261,7 +5261,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 		  :sif_else aprim))
 	  (acppif (instance class_source_cppif
 			    :loca_location loc
-			    :sifp_cond 'ENABLE_CHECKING
+			    :sifp_cond 'MELT_HAVE_DEBUG
 			    :sifp_then atest
 			    :sifp_else ()
 			    )) 
@@ -5280,7 +5280,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 ;;; debug_msg macro is expanded into other src..
 ;;;;;; (debug_msg val msg [count]) 
 ;;; becomes
-;;;;;; (cppif ENABLE_CHECKING (debug_msg_fun val msg count filename lineno) ())
+;;;;;; (cppif MELT_HAVE_DEBUG (debug_msg_fun val msg count filename lineno) ())
 ;;; where count is (the_meltcallcount) if not given
 
 (defun mexpand_debug_msg (sexpr env mexpander)
@@ -5331,7 +5331,7 @@ condition is a string such as "4.5." or a list of strings.}#)
 				(make_integerbox discr_integer (get_int loc)))))
 	  (dcppif (instance class_source_cppif
 			    :loca_location loc
-			    :sifp_cond 'ENABLE_CHECKING
+			    :sifp_cond 'MELT_HAVE_DEBUG
 			    :sifp_then dcall
 			    :sifp_else ()
 			    )) 

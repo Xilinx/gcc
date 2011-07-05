@@ -90,10 +90,24 @@ extern void melt_fatal_info (const char*filename, int lineno);
 extern char* melt_gccversionstr;
 
 /* the version string of MELT */
-#define MELT_VERSION_STRING "0.7.1"
+#define MELT_VERSION_STRING "0.8rc1"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);
+
+#ifdef MELT_IS_PLUGIN
+#ifndef MELT_HAVE_DEBUG
+#define MELT_HAVE_DEBUG 1
+#endif /*MELT_HAVE_DEBUG*/
+#endif /*MELT_IS_PLUGIN*/
+
+#ifdef ENABLE_CHECKING
+#define MELT_HAVE_DEBUG 1
+#else
+#ifndef MELT_HAVE_DEBUG
+#define MELT_HAVE_DEBUG 0
+#endif /* undef MELT_HAVE_DEBUG */
+#endif /*ENABLE_CHECKING */
 
 extern long melt_dbgcounter;
 extern long melt_debugskipcount;
@@ -119,6 +133,7 @@ extern int flag_melt_debug;
 extern int flag_melt_bootstrapping;
 #endif
 
+#if MELT_HAVE_DEBUG
 #define debugeprintf_raw(Fmt,...) do{if (flag_melt_debug) \
       {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
 /* Sometimes we need to pass an explicit line number.  */
@@ -146,6 +161,29 @@ extern int flag_melt_bootstrapping;
       melt_dbgbacktrace((Depth)); }} while(0)
 /* the maximal debug depth - should be a parameter */
 #define MELTDBG_MAXDEPTH 7
+#else /* !MELT_HAVE_DEBUG*/
+#define debugeprintf_raw(Fmt,...) do{if (0) \
+      {fprintf(stderr, Fmt, ##__VA_ARGS__); fflush(stderr);}}while(0)
+/* The usual debugging macro.  */
+#define debugeprintf(Fmt,...) debugeprintfline(__LINE__,Fmt,##__VA_ARGS__)
+
+#define debugeprintflinenonl(Lin,Fmt,...)                       \
+  debugeprintf_raw("!@%s:%d:\n@! " Fmt,                         \
+                   basename(__FILE__), Lin, ##__VA_ARGS__)
+#define debugeprintfnonl(Fmt,...) \
+  debugeprintflinenonl(__LINE__, Fmt, ##__VA_ARGS__)
+
+#define debugeprintvalue(Msg,Val) do{if (0){	\
+      void* __val = (Val);					\
+      fprintf(stderr,"!@%s:%d:\n@! %s @%p= ",			\
+              basename(__FILE__), __LINE__, (Msg), __val);	\
+      melt_dbgeprint(__val); }} while(0)
+#define debugebacktrace(Msg,Depth)  do{if (0){	\
+      void* __val = (Val);					\
+      fprintf(stderr,"!@%s:%d: %s **backtrace** ",		\
+              basename(__FILE__), __LINE__, (Msg));		\
+      melt_dbgbacktrace((Depth)); }} while(0)
+#endif /*MELT_HAVE_DEBUG*/
 
 /* unspecified flexible dimension in structure */
 #if defined(__STDC__) &&  __STDC__VERSION >= 199901L
@@ -258,7 +296,7 @@ void melt_debug_out (struct debugprint_melt_st *dp, melt_ptr_t ptr,
 void melt_dbgeprint (void *p);
 void melt_dbgbacktrace (int depth);
 
-#ifdef ENABLE_CHECKING
+#ifdef ENABLE_GC_CHECKING
 extern int melt_debug_garbcoll;
 #define melt_debuggc_eprintf(Fmt,...) do {if (melt_debug_garbcoll > 0) \
       fprintf (stderr, "%s:%d:@$*" Fmt "\n",			       \
@@ -431,7 +469,7 @@ melt_magic_discr (melt_ptr_t p)
 	 (void*) p);
     }
 #endif /*ENABLE_GC_CHECKING */
-#if ENABLE_CHECKING 
+#if MELT_HAVE_DEBUG 
   if (!p->u_discr) 
     {
       /* This should never happen, we are asking the discriminant of a
@@ -441,7 +479,7 @@ melt_magic_discr (melt_ptr_t p)
 	 "(= a cleeared memory zone)", 
 	 (void*) p);
     }
-#endif /*ENABLE_CHECKING*/
+#endif /*MELT_HAVE_DEBUG*/
 #if ENABLE_GC_CHECKING
   if ((void*) (p->u_discr) == MELT_POISON_POINTER)
     {
@@ -2442,9 +2480,9 @@ struct melt_callframe_st
      in mcfr_varptr; when it is negative, the mcfr_forwmarkrout should
      be used for forwarding or marking the frame's pointers. */
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   union {
     struct meltclosure_st *mcfr_closp_; /* when mcfr_nbvar >= 0 */
     void (*mcfr_forwmarkrout_) (struct melt_callframe_st*, int); /* when mcfr_nbvar < 0 */
@@ -2478,7 +2516,7 @@ extern melt_ptr_t melt_jmpval;
 #endif
 
 /* declare the current callframe */
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
 #define MELT_DECLFRAME(NBVAR) struct {		\
   int mcfr_nbvar;				\
   const char* mcfr_flocs;			\
@@ -2519,7 +2557,7 @@ extern melt_ptr_t melt_jmpval;
 #define MELT_LOCATION_HERE_MACRO(MSG)  \
   MELT_LOCATION_HERE_AT_MACRO(__FILE__,__LINE__,MSG)
 #define MELT_LOCATION_HERE(MSG)  MELT_LOCATION_HERE_MACRO(MSG)
-#else
+#else /*!MELT_HAVE_DEBUG*/
 #define MELT_DECLFRAME(NBVAR) struct {		\
   int mcfr_nbvar;				\
   struct meltclosure_st* mcfr_clos;		\
@@ -2661,7 +2699,7 @@ melt_output_cfile_decl_impl(melt_ptr_t cfilnam,
    lists, tuples, strings, strbufs, but don't handle objects! */
 void meltgc_output_file (FILE* fil, melt_ptr_t val_p);
 
-#ifdef ENABLE_CHECKING
+#ifdef MELT_HAVE_DEBUG
 static inline void
 debugeputs_at (const char *fil, int lin, const char *msg)
 {
@@ -2671,7 +2709,7 @@ debugeputs_at (const char *fil, int lin, const char *msg)
 #define debugeputs(Msg) debugeputs_at(__FILE__,__LINE__,(Msg))
 #else
 #define debugeputs(Msg) ((void) 0)
-#endif /* ENABLE_CHECKING */
+#endif /* MELT_HAVE_DEBUG */
 
 static inline void
 debugvalue_at (const char *fil, int lin, const char *msg, void *val)

@@ -1,6 +1,25 @@
 
 
 2011-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STR): becomes 0.8rc1
+	(MELT_HAVE_DEBUG): New preprocessor flag, either 0 or 1
+	(debugeprintf,debugeprintfline,debugeprintf_raw)
+	(debugeprintfnonl,debugeprintvalue,debugebacktrace,debugeputs)
+	(melt_magic_discr,MELT_DECLFRAME,MELT_LOCATION,MELT_INITFRAME):
+	Conditionned on MELT_HAVE_DEBUG.
+	(melt_debug_garbcoll): Conditionned on ENABLE_GC_CHECKING.
+
+	* melt/warmelt-first.melt (shortbacktrace_dbg): Conditionned on
+	MELT_HAVE_DEBUG.
+
+	* melt/warmelt-macro.melt (mexpand_assert_msg,mexpand_debug_msg):
+	produce source exprs cppif-conditionned on MELT_HAVE_DEBUG.
+
+	* melt/warmelt-outobj.melt (output_curframe_declstruct)
+	(output_curframe_declstruct_init): Emit code conditionned on
+	MELT_HAVE_DEBUG.
+
+2011-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/gt-melt-runtime-plugin.h: Regenerate.
 	* melt/generated/meltrunsup-inc.c: Regenerate.

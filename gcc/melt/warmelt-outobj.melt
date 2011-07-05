@@ -1059,11 +1059,11 @@
     (add2sbuf_indentnl dsbuf 0)
     (add2sbuf_strconst dsbuf "  int mcfr_nbvar;")
     (add2sbuf_indentnl dsbuf 0)
-    (add2sbuf_strconst dsbuf "#if ENABLE_CHECKING")
+    (add2sbuf_strconst dsbuf "#if MELT_HAVE_DEBUG")
     (add2sbuf_indentnl dsbuf 0)
     (add2sbuf_strconst dsbuf "  const char* mcfr_flocs;")
     (add2sbuf_indentnl dsbuf 0)
-    (add2sbuf_strconst dsbuf "#endif")
+    (add2sbuf_strconst dsbuf "#endif /*MELT_HAVE_DEBUG*/")
     (add2sbuf_indentnl dsbuf 0)
     ;; we declare a mcfr_initforwmarkrout to be sure to never use clos in the
     ;; generated code; if we do, the generated code is invalid C
@@ -1202,7 +1202,7 @@
 	)       
     ;; output call counter for debugging
     (add2sbuf_indentnl implbuf 0)
-    (add2sbuf_strconst implbuf "#if ENABLE_CHECKING")
+    (add2sbuf_strconst implbuf "#if MELT_HAVE_DEBUG")
     (add2sbuf_indentnl implbuf 0)
     (add2sbuf_strconst implbuf " static long call_counter__;")
     (add2sbuf_indentnl implbuf 0)
