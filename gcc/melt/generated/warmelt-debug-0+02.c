@@ -264,7 +264,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_37_warmelt_debug_DBGOUT_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -276,9 +276,9 @@ meltrout_37_warmelt_debug_DBGOUT_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, 
 
  struct frame_meltrout_37_warmelt_debug_DBGOUT_CLONED_SYMBOL_METHOD_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -330,7 +330,7 @@ lab_endgetargs:;
 /*anyblock*/{
  
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-debug.melt:904:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -371,13 +371,13 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.IFELSE___V5*/ meltfptr[4] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V4*/ meltfptr[3] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-debug.melt:905:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -418,10 +418,10 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.IFELSE___V7*/ meltfptr[6] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V6*/ meltfptr[4] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  /*^compute*/
 
@@ -511,7 +511,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_38_warmelt_debug_DBGOUTAGAIN_CLONED_SYMBOL_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -523,9 +523,9 @@ meltrout_38_warmelt_debug_DBGOUTAGAIN_CLONED_SYMBOL_METHOD(meltclosure_ptr_t clo
 
  struct frame_meltrout_38_warmelt_debug_DBGOUTAGAIN_CLONED_SYMBOL_METHOD_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -662,7 +662,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_39_warmelt_debug_DBGOUT_ENVIRONMENT_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -674,9 +674,9 @@ meltrout_39_warmelt_debug_DBGOUT_ENVIRONMENT_METHOD(meltclosure_ptr_t closp_, me
 
  struct frame_meltrout_39_warmelt_debug_DBGOUT_ENVIRONMENT_METHOD_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -728,7 +728,7 @@ lab_endgetargs:;
 /*anyblock*/{
  
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-debug.melt:930:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -769,13 +769,13 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.IFELSE___V5*/ meltfptr[4] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V4*/ meltfptr[3] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-debug.melt:931:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -816,10 +816,10 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.IFELSE___V7*/ meltfptr[6] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V6*/ meltfptr[4] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  MELT_LOCATION("warmelt-debug.melt:932:/ quasiblock");
  
@@ -1175,7 +1175,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_40_warmelt_debug_DBGOUT_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -1187,9 +1187,9 @@ meltrout_40_warmelt_debug_DBGOUT_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr
 
  struct frame_meltrout_40_warmelt_debug_DBGOUT_CTYPE_METHOD_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -1241,7 +1241,7 @@ lab_endgetargs:;
 /*anyblock*/{
  
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-debug.melt:971:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1282,13 +1282,13 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.IFELSE___V5*/ meltfptr[4] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V4*/ meltfptr[3] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-debug.melt:972:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1329,10 +1329,10 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.IFELSE___V7*/ meltfptr[6] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V6*/ meltfptr[4] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  /*^compute*/
 
@@ -1422,7 +1422,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_41_warmelt_debug_DBGOUTAGAIN_CTYPE_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -1434,9 +1434,9 @@ meltrout_41_warmelt_debug_DBGOUTAGAIN_CTYPE_METHOD(meltclosure_ptr_t closp_, mel
 
  struct frame_meltrout_41_warmelt_debug_DBGOUTAGAIN_CTYPE_METHOD_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -1553,7 +1553,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_42_warmelt_debug_DBGOUT_ANYBINDING_METHOD(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -1565,9 +1565,9 @@ meltrout_42_warmelt_debug_DBGOUT_ANYBINDING_METHOD(meltclosure_ptr_t closp_, mel
 
  struct frame_meltrout_42_warmelt_debug_DBGOUT_ANYBINDING_METHOD_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -1619,7 +1619,7 @@ lab_endgetargs:;
 /*anyblock*/{
  
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-debug.melt:993:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1660,13 +1660,13 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.IFELSE___V5*/ meltfptr[4] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V4*/ meltfptr[3] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-debug.melt:994:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1707,10 +1707,10 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.IFELSE___V7*/ meltfptr[6] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V6*/ meltfptr[4] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  MELT_LOCATION("warmelt-debug.melt:995:/ quasiblock");
  
@@ -1916,7 +1916,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_43_warmelt_debug_DISPLAY_DEBUG_MESSAGE(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -1928,9 +1928,9 @@ meltrout_43_warmelt_debug_DISPLAY_DEBUG_MESSAGE(meltclosure_ptr_t closp_, melt_p
 
  struct frame_meltrout_43_warmelt_debug_DISPLAY_DEBUG_MESSAGE_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;

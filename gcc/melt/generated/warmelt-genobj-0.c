@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.7.0 20110704 (experimental) [melt-branch revision 175842] MELT_0.7.1";
+ "4.7.0 20110704 (experimental) [melt-branch revision 175850] MELT_0.8rc1";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[]="689f07bff3c09bae0a058d8c25899c1a";
+const char md5prepromeltrun_melt[]="02b5228d072df0bf66a51ed8fcd8f171";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/
 
@@ -916,7 +916,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_1_warmelt_genobj_COMPILOBJ_CATCHALL_NREP(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -928,9 +928,9 @@ meltrout_1_warmelt_genobj_COMPILOBJ_CATCHALL_NREP(meltclosure_ptr_t closp_, melt
 
  struct frame_meltrout_1_warmelt_genobj_COMPILOBJ_CATCHALL_NREP_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -977,7 +977,7 @@ lab_endgetargs:;
 /*anyblock*/{
  
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-genobj.melt:668:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1007,13 +1007,13 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V5*/ meltfptr[4] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V4*/ meltfptr[3] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-genobj.melt:669:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1043,10 +1043,10 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V7*/ meltfptr[6] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V6*/ meltfptr[4] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  MELT_LOCATION("warmelt-genobj.melt:670:/ quasiblock");
  
@@ -1064,7 +1064,7 @@ lab_endgetargs:;
 	  melt_string_str((melt_ptr_t)(/*_.DISCRNAME__V10*/ meltfptr[9])));}
  ;
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-genobj.melt:674:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1101,10 +1101,10 @@ lab_endgetargs:;
    MELT_LOCATION("warmelt-genobj.melt:674:/ clear");
    /*clear*/ /*_.IFELSE___V12*/ meltfptr[11] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V11*/ meltfptr[10] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  /*^compute*/
 
@@ -1151,7 +1151,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_2_warmelt_genobj_PUTOBJDEST_CATCHALL_OBJCODE(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -1163,9 +1163,9 @@ meltrout_2_warmelt_genobj_PUTOBJDEST_CATCHALL_OBJCODE(meltclosure_ptr_t closp_, 
 
  struct frame_meltrout_2_warmelt_genobj_PUTOBJDEST_CATCHALL_OBJCODE_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -1212,7 +1212,7 @@ lab_endgetargs:;
 /*anyblock*/{
  
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-genobj.melt:679:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1242,13 +1242,13 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V5*/ meltfptr[4] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V4*/ meltfptr[3] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-genobj.melt:680:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1278,10 +1278,10 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V7*/ meltfptr[6] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V6*/ meltfptr[4] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  MELT_LOCATION("warmelt-genobj.melt:681:/ quasiblock");
  
@@ -1299,7 +1299,7 @@ lab_endgetargs:;
 	  melt_string_str((melt_ptr_t)(/*_.DISCRNAME__V10*/ meltfptr[9])));}
  ;
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-genobj.melt:685:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1336,10 +1336,10 @@ lab_endgetargs:;
    MELT_LOCATION("warmelt-genobj.melt:685:/ clear");
    /*clear*/ /*_.IFELSE___V12*/ meltfptr[11] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V11*/ meltfptr[10] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  /*^compute*/
 
@@ -1386,7 +1386,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_3_warmelt_genobj_PUTOBJDEST_CATCHALL_ANYDISCR(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -1398,9 +1398,9 @@ meltrout_3_warmelt_genobj_PUTOBJDEST_CATCHALL_ANYDISCR(meltclosure_ptr_t closp_,
 
  struct frame_meltrout_3_warmelt_genobj_PUTOBJDEST_CATCHALL_ANYDISCR_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -1447,7 +1447,7 @@ lab_endgetargs:;
 /*anyblock*/{
  
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-genobj.melt:691:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1477,13 +1477,13 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V5*/ meltfptr[4] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V4*/ meltfptr[3] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-genobj.melt:692:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1513,10 +1513,10 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.DEBUG_MSG_FUN__V7*/ meltfptr[6] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V6*/ meltfptr[4] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  
  {
@@ -1539,7 +1539,7 @@ lab_endgetargs:;
 	  melt_string_str((melt_ptr_t)(/*_.DISCRNAME__V10*/ meltfptr[9])));}
  ;
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-genobj.melt:698:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1576,10 +1576,10 @@ lab_endgetargs:;
    MELT_LOCATION("warmelt-genobj.melt:698:/ clear");
    /*clear*/ /*_.IFELSE___V12*/ meltfptr[11] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V11*/ meltfptr[10] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  /*^compute*/
 
@@ -1626,7 +1626,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_4_warmelt_genobj_GETCTYPE_OBJVALUE(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -1638,9 +1638,9 @@ meltrout_4_warmelt_genobj_GETCTYPE_OBJVALUE(meltclosure_ptr_t closp_, melt_ptr_t
 
  struct frame_meltrout_4_warmelt_genobj_GETCTYPE_OBJVALUE_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -1687,7 +1687,7 @@ lab_endgetargs:;
 /*anyblock*/{
  
  
- #if ENABLE_CHECKING
+ #if MELT_HAVE_DEBUG
   MELT_LOCATION("warmelt-genobj.melt:703:/ cppif.then");
  /*^block*/
   /*anyblock*/{
@@ -1728,10 +1728,10 @@ lab_endgetargs:;
    /*^clear*/
    /*clear*/ /*_.IFELSE___V5*/ meltfptr[4] = 0 ;}
   
-  #else /*ENABLE_CHECKING*/
+  #else /*MELT_HAVE_DEBUG*/
   /*^cppif.else*/
  /*_.IFCPP___V4*/ meltfptr[3] = (/*nil*/NULL);
-  #endif /*ENABLE_CHECKING*/
+  #endif /*MELT_HAVE_DEBUG*/
   ;
  MELT_LOCATION("warmelt-genobj.melt:704:/ getslot");
  { melt_ptr_t slot=0;
@@ -1767,9 +1767,9 @@ melt_trace_end("GETCTYPE_OBJVALUE", meltcallcount);  melt_topframe = (struct mel
 typedef 
  struct frame_start_module_melt_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
  void (*mcfr_initforwmarkrout) ( struct melt_callframe_st*, int);
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -13173,7 +13173,7 @@ void* start_module_melt(void* modargp_) {
 
  char predefinited[MELTGLOB__LASTGLOB+8];
  
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount

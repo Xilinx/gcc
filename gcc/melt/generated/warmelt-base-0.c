@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[]=
- "4.7.0 20110704 (experimental) [melt-branch revision 175842] MELT_0.7.1";
+ "4.7.0 20110704 (experimental) [melt-branch revision 175850] MELT_0.8rc1";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[]="689f07bff3c09bae0a058d8c25899c1a";
+const char md5prepromeltrun_melt[]="02b5228d072df0bf66a51ed8fcd8f171";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/
 
@@ -140,7 +140,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_1_warmelt_base_COMPARE_NAMED_ALPHA(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -152,9 +152,9 @@ meltrout_1_warmelt_base_COMPARE_NAMED_ALPHA(meltclosure_ptr_t closp_, melt_ptr_t
 
  struct frame_meltrout_1_warmelt_base_COMPARE_NAMED_ALPHA_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -369,7 +369,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_2_warmelt_base_MAPSTRING_EVERY(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -381,9 +381,9 @@ meltrout_2_warmelt_base_MAPSTRING_EVERY(meltclosure_ptr_t closp_, melt_ptr_t fir
 
  struct frame_meltrout_2_warmelt_base_MAPSTRING_EVERY_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -534,7 +534,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_3_warmelt_base_MAPSTRING_ITERATE_TEST(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -546,9 +546,9 @@ meltrout_3_warmelt_base_MAPSTRING_ITERATE_TEST(meltclosure_ptr_t closp_, melt_pt
 
  struct frame_meltrout_3_warmelt_base_MAPSTRING_ITERATE_TEST_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -758,7 +758,7 @@ melt_ptr_t MELT_MODULE_VISIBILITY
 meltrout_4_warmelt_base_MULTIPLE_EVERY(meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[], union meltparam_un *xargtab_,
       const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_)
 {
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
@@ -770,9 +770,9 @@ meltrout_4_warmelt_base_MULTIPLE_EVERY(meltclosure_ptr_t closp_, melt_ptr_t firs
 
  struct frame_meltrout_4_warmelt_base_MULTIPLE_EVERY_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -898,9 +898,9 @@ melt_trace_end("MULTIPLE_EVERY", meltcallcount);  melt_topframe = (struct melt_c
 typedef 
  struct frame_start_module_melt_st {
   int mcfr_nbvar;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
-#endif
+#endif /*MELT_HAVE_DEBUG*/
  void (*mcfr_initforwmarkrout) ( struct melt_callframe_st*, int);
   struct excepth_melt_st *mcfr_exh;
   struct melt_callframe_st *mcfr_prev;
@@ -16630,7 +16630,7 @@ void* start_module_melt(void* modargp_) {
 
  char predefinited[MELTGLOB__LASTGLOB+8];
  
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
  static long call_counter__;
  long thiscallcounter__ ATTRIBUTE_UNUSED = ++ call_counter__;
 #undef meltcallcount
