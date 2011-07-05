@@ -4373,7 +4373,8 @@ gfc_build_intrinsic_call (const char* name, locus where, unsigned numarg, ...)
    and just the return status (SUCCESS / FAILURE) be requested.  */
 
 gfc_try
-gfc_check_vardef_context (gfc_expr* e, bool pointer, const char* context)
+gfc_check_vardef_context (gfc_expr* e, bool pointer, bool alloc_obj,
+			  const char* context)
 {
   gfc_symbol* sym = NULL;
   bool is_pointer;
@@ -4393,8 +4394,8 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, const char* context)
       sym = e->value.function.esym ? e->value.function.esym : e->symtree->n.sym;
     }
 
-  if (!pointer && e->expr_type == EXPR_FUNCTION
-      && sym->result->attr.pointer)
+  attr = gfc_expr_attr (e);
+  if (!pointer && e->expr_type == EXPR_FUNCTION && attr.pointer)
     {
       if (!(gfc_option.allow_std & GFC_STD_F2008))
 	{
@@ -4431,13 +4432,25 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, const char* context)
 
   /* Find out whether the expr is a pointer; this also means following
      component references to the last one.  */
-  attr = gfc_expr_attr (e);
   is_pointer = (attr.pointer || attr.proc_pointer);
   if (pointer && !is_pointer)
     {
       if (context)
 	gfc_error ("Non-POINTER in pointer association context (%s)"
 		   " at %L", context, &e->where);
+      return FAILURE;
+    }
+
+  /* F2008, C1303.  */
+  if (!alloc_obj
+      && (attr.lock_comp
+	  || (e->ts.type == BT_DERIVED
+	      && e->ts.u.derived->from_intmod == INTMOD_ISO_FORTRAN_ENV
+	      && e->ts.u.derived->intmod_sym_id == ISOFORTRAN_LOCK_TYPE)))
+    {
+      if (context)
+	gfc_error ("LOCK_TYPE in variable definition context (%s) at %L",
+		   context, &e->where);
       return FAILURE;
     }
 
@@ -4555,7 +4568,8 @@ gfc_check_vardef_context (gfc_expr* e, bool pointer, const char* context)
 	}
 
       /* Target must be allowed to appear in a variable definition context.  */
-      if (gfc_check_vardef_context (assoc->target, pointer, NULL) == FAILURE)
+      if (gfc_check_vardef_context (assoc->target, pointer, false, NULL)
+	  == FAILURE)
 	{
 	  if (context)
 	    gfc_error ("Associate-name '%s' can not appear in a variable"

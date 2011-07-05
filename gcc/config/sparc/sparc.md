@@ -164,7 +164,7 @@
 (define_attr "calls_eh_return" "false,true"
    (symbol_ref "(crtl->calls_eh_return != 0
 		 ? CALLS_EH_RETURN_TRUE : CALLS_EH_RETURN_FALSE)"))
-   
+
 (define_attr "leaf_function" "false,true"
   (symbol_ref "(current_function_uses_only_leaf_regs != 0
 		? LEAF_FUNCTION_TRUE : LEAF_FUNCTION_FALSE)"))
@@ -172,6 +172,10 @@
 (define_attr "delayed_branch" "false,true"
   (symbol_ref "(flag_delayed_branch != 0
 		? DELAYED_BRANCH_TRUE : DELAYED_BRANCH_FALSE)"))
+
+(define_attr "flat" "false,true"
+  (symbol_ref "(TARGET_FLAT != 0
+		? FLAT_TRUE : FLAT_FALSE)"))
 
 ;; Length (in # of insns).
 ;; Beware that setting a length greater or equal to 3 for conditional branches
@@ -6265,24 +6269,21 @@
   [(const_int 0)]
   ""
 {
-  sparc_expand_prologue ();
+  if (TARGET_FLAT)
+    sparc_flat_expand_prologue ();
+  else
+    sparc_expand_prologue ();
   DONE;
 })
 
-;; The "save register window" insn is modelled as follows so that the DWARF-2
-;; backend automatically emits the required call frame debugging information
-;; while it is parsing it.  Therefore, the pattern should not be modified
-;; without first studying the impact of the changes on the debug info.
-;; [(set (%fp) (%sp))
-;;  (set (%sp) (unspec_volatile [(%sp) (-frame_size)] UNSPECV_SAVEW))
-;;  (set (%i7) (%o7))]
+;; The "save register window" insn is modelled as follows.  The dwarf2
+;; information is manually added in emit_save_register_window in sparc.c.
 
-(define_insn "save_register_window<P:mode>"
-  [(set (reg:P 30) (reg:P 14))
-   (set (reg:P 14) (unspec_volatile:P [(reg:P 14)
-				       (match_operand:P 0 "arith_operand" "rI")] UNSPECV_SAVEW))
-   (set (reg:P 31) (reg:P 15))]
-  ""
+(define_insn "save_register_window_1"
+  [(unspec_volatile
+	[(match_operand 0 "arith_operand" "rI")]
+	UNSPECV_SAVEW)]
+  "!TARGET_FLAT"
   "save\t%%sp, %0, %%sp"
   [(set_attr "type" "savew")])
 
@@ -6290,15 +6291,44 @@
   [(return)]
   ""
 {
-  sparc_expand_epilogue ();
+  if (TARGET_FLAT)
+    sparc_flat_expand_epilogue (false);
+  else
+    sparc_expand_epilogue (false);
 })
 
 (define_expand "sibcall_epilogue"
   [(return)]
   ""
 {
-  sparc_expand_epilogue ();
+  if (TARGET_FLAT)
+    sparc_flat_expand_epilogue (false);
+  else
+    sparc_expand_epilogue (false);
   DONE;
+})
+
+(define_expand "eh_return"
+  [(use (match_operand 0 "general_operand" ""))]
+  ""
+{
+  emit_move_insn (gen_rtx_REG (Pmode, RETURN_ADDR_REGNUM), operands[0]);
+  emit_jump_insn (gen_eh_return_internal ());
+  emit_barrier ();
+  DONE;
+})
+
+(define_insn_and_split "eh_return_internal"
+  [(eh_return)]
+  ""
+  "#"
+  "epilogue_completed"
+  [(return)]
+{
+  if (TARGET_FLAT)
+    sparc_flat_expand_epilogue (true);
+  else
+    sparc_expand_epilogue (true);
 })
 
 (define_expand "return"
@@ -6312,18 +6342,19 @@
   "* return output_return (insn);"
   [(set_attr "type" "return")
    (set (attr "length")
-	(cond [(eq_attr "leaf_function" "true")
+	(cond [(eq_attr "calls_eh_return" "true")
+	         (if_then_else (eq_attr "delayed_branch" "true")
+				(if_then_else (ior (eq_attr "isa" "v9")
+						   (eq_attr "flat" "true"))
+					(const_int 2)
+					(const_int 3))
+				(if_then_else (eq_attr "flat" "true")
+					(const_int 3)
+					(const_int 4)))
+	       (ior (eq_attr "leaf_function" "true") (eq_attr "flat" "true"))
 		 (if_then_else (eq_attr "empty_delay_slot" "true")
 			       (const_int 2)
 			       (const_int 1))
-	       (eq_attr "calls_eh_return" "true")
-		 (if_then_else (eq_attr "delayed_branch" "true")
-			       (if_then_else (eq_attr "isa" "v9")
-					     (const_int 2)
-					     (const_int 3))
-			       (if_then_else (eq_attr "isa" "v9")
-					     (const_int 3)
-					     (const_int 4)))
 	       (eq_attr "empty_delay_slot" "true")
 		 (if_then_else (eq_attr "delayed_branch" "true")
 			       (const_int 2)
@@ -6369,8 +6400,7 @@
 
   if (! TARGET_ARCH64)
     {
-      rtx rtnreg = gen_rtx_REG (SImode, (current_function_uses_only_leaf_regs
-					 ? 15 : 31));
+      rtx rtnreg = gen_rtx_REG (SImode, RETURN_ADDR_REGNUM);
       rtx value = gen_reg_rtx (SImode);
 
       /* Fetch the instruction where we will return to and see if it's an unimp
@@ -6451,7 +6481,7 @@
 {
   operands[0] = adjust_address_nv (operands[0], Pmode, 0);
   operands[2] = adjust_address_nv (operands[0], Pmode, GET_MODE_SIZE (Pmode));
-  operands[3] = gen_rtx_REG (Pmode, 31); /* %i7 */
+  operands[3] = gen_rtx_REG (Pmode, RETURN_ADDR_REGNUM);
 })
 
 (define_expand "restore_stack_nonlocal"
@@ -6476,7 +6506,8 @@
 
   /* We need to flush all the register windows so that their contents will
      be re-synchronized by the restore insn of the target function.  */
-  emit_insn (gen_flush_register_windows ());
+  if (!TARGET_FLAT)
+    emit_insn (gen_flush_register_windows ());
 
   emit_clobber (gen_rtx_MEM (BLKmode, gen_rtx_SCRATCH (VOIDmode)));
   emit_clobber (gen_rtx_MEM (BLKmode, hard_frame_pointer_rtx));

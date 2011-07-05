@@ -24,6 +24,9 @@ a copy of the GCC Runtime Library Exception along with this program;
 see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 <http://www.gnu.org/licenses/>.  */
 
+#define GNU_USER_LINK_EMULATION32 "elf_i386"
+#define GNU_USER_LINK_EMULATION64 "elf_x86_64"
+
 #ifndef RUNTIME_ROOT_PREFIX
 #define RUNTIME_ROOT_PREFIX ""
 #endif

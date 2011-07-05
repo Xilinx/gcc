@@ -36,6 +36,7 @@
 #include "debug.h"
 #include "convert.h"
 #include "target.h"
+#include "common/common-target.h"
 #include "langhooks.h"
 #include "cgraph.h"
 #include "diagnostic.h"
@@ -613,6 +614,7 @@ record_builtin_type (const char *name, tree type, bool artificial_p)
   tree type_decl = build_decl (input_location,
 			       TYPE_DECL, get_identifier (name), type);
   DECL_ARTIFICIAL (type_decl) = artificial_p;
+  TYPE_ARTIFICIAL (type) = artificial_p;
   gnat_pushdecl (type_decl, Empty);
 
   if (debug_hooks->type_decl)
@@ -1296,6 +1298,7 @@ create_type_stub_decl (tree type_name, tree type)
   tree type_decl = build_decl (input_location,
 			       TYPE_DECL, type_name, type);
   DECL_ARTIFICIAL (type_decl) = 1;
+  TYPE_ARTIFICIAL (type) = 1;
   return type_decl;
 }
 
@@ -1328,6 +1331,7 @@ create_type_decl (tree type_name, tree type, struct attrib *attr_list,
 			    TYPE_DECL, type_name, type);
 
   DECL_ARTIFICIAL (type_decl) = artificial_p;
+  TYPE_ARTIFICIAL (type) = artificial_p;
 
   /* Add this decl to the current binding level.  */
   gnat_pushdecl (type_decl, gnat_node);
@@ -1720,7 +1724,7 @@ process_attributes (tree decl, struct attrib *attr_list)
 	break;
 
       case ATTR_LINK_SECTION:
-	if (targetm.have_named_sections)
+	if (targetm_common.have_named_sections)
 	  {
 	    DECL_SECTION_NAME (decl)
 	      = build_string (IDENTIFIER_LENGTH (attr_list->name),

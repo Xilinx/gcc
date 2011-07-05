@@ -1,3 +1,22 @@
+2011-07-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libmudflap/49549
+	* testsuite/lib/libmudflap.exp (load_gcc_lib): Load
+	target-supports.exp.
+	* testsuite/libmudflap.cth/cthfrags.exp: Only pass
+	--noinhibit-exec to GNU ld.
+
+2011-06-27  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libmudflap/38738
+	* configure.ac: Check for sys/mnttab.h.
+	Check for library containing connect.
+	* configure: Regenerate.
+	* config.h.in: Regenerate.
+	* mf-hooks2.c [HAVE_SYS_MNTTAB_H]: Include <sys/mnttab.h>.
+	* testsuite/libmudflap.c/pass-stratcliff.c (main) [__sun__ &&
+	__svr4__]: Disable rawmemchr, stpcpy, mempcpy tests.
+
 2011-02-13  Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
 
 	* configure: Regenerate.

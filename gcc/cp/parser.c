@@ -1960,7 +1960,7 @@ static cp_cv_quals cp_parser_cv_qualifier_seq_opt
 static cp_virt_specifiers cp_parser_virt_specifier_seq_opt
   (cp_parser *);
 static tree cp_parser_late_return_type_opt
-  (cp_parser *);
+  (cp_parser *, cp_cv_quals);
 static tree cp_parser_declarator_id
   (cp_parser *, bool);
 static tree cp_parser_type_id
@@ -6849,7 +6849,7 @@ cp_parser_binary_expression (cp_parser* parser, bool cast_p,
   cp_token *token;
   enum tree_code tree_type, lhs_type, rhs_type;
   enum cp_parser_prec new_prec, lookahead_prec;
-  bool overloaded_p;
+  tree overload;
 
   /* Parse the first expression.  */
   lhs = cp_parser_cast_expression (parser, /*address_p=*/false, cast_p, pidk);
@@ -6952,7 +6952,7 @@ cp_parser_binary_expression (cp_parser* parser, bool cast_p,
       else if (tree_type == TRUTH_ORIF_EXPR)
 	c_inhibit_evaluation_warnings -= lhs == truthvalue_true_node;
 
-      overloaded_p = false;
+      overload = NULL;
       /* ??? Currently we pass lhs_type == ERROR_MARK and rhs_type ==
 	 ERROR_MARK for everything that is not a binary expression.
 	 This makes warn_about_parentheses miss some warnings that
@@ -6967,7 +6967,7 @@ cp_parser_binary_expression (cp_parser* parser, bool cast_p,
 	lhs = build2 (tree_type, boolean_type_node, lhs, rhs);
       else
 	lhs = build_x_binary_op (tree_type, lhs, lhs_type, rhs, rhs_type,
-				 &overloaded_p, tf_warning_or_error);
+				 &overload, tf_warning_or_error);
       lhs_type = tree_type;
 
       /* If the binary operator required the use of an overloaded operator,
@@ -6976,7 +6976,7 @@ cp_parser_binary_expression (cp_parser* parser, bool cast_p,
 	 otherwise permissible in an integral constant-expression if at
 	 least one of the operands is of enumeration type.  */
 
-      if (overloaded_p
+      if (overload
 	  && cp_parser_non_integral_constant_expression (parser,
 							 NIC_OVERLOADED))
 	return error_mark_node;
@@ -7314,8 +7314,6 @@ cp_parser_constant_expression (cp_parser* parser,
     }
   if (allow_non_constant_p)
     *non_constant_p = parser->non_integral_constant_expression_p;
-  else if (parser->non_integral_constant_expression_p)
-    expression = error_mark_node;
   parser->non_integral_constant_expression_p
     = saved_non_integral_constant_expression_p;
 
@@ -7662,26 +7660,9 @@ cp_parser_lambda_expression (cp_parser* parser)
       for (elt = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr);
 	   elt; elt = next)
 	{
-	  tree field = TREE_PURPOSE (elt);
-	  char *buf;
-
 	  next = TREE_CHAIN (elt);
 	  TREE_CHAIN (elt) = newlist;
 	  newlist = elt;
-
-	  /* Also add __ to the beginning of the field name so that code
-	     outside the lambda body can't see the captured name.  We could
-	     just remove the name entirely, but this is more useful for
-	     debugging.  */
-	  if (field == LAMBDA_EXPR_THIS_CAPTURE (lambda_expr))
-	    /* The 'this' capture already starts with __.  */
-	    continue;
-
-	  buf = (char *) alloca (IDENTIFIER_LENGTH (DECL_NAME (field)) + 3);
-	  buf[1] = buf[0] = '_';
-	  memcpy (buf + 2, IDENTIFIER_POINTER (DECL_NAME (field)),
-		  IDENTIFIER_LENGTH (DECL_NAME (field)) + 1);
-	  DECL_NAME (field) = get_identifier (buf);
 	}
       LAMBDA_EXPR_CAPTURE_LIST (lambda_expr) = newlist;
     }
@@ -7695,6 +7676,14 @@ cp_parser_lambda_expression (cp_parser* parser)
   }
 
   pop_deferring_access_checks ();
+
+  /* This field is only used during parsing of the lambda.  */
+  LAMBDA_EXPR_THIS_CAPTURE (lambda_expr) = NULL_TREE;
+
+  /* This lambda shouldn't have any proxies left at this point.  */
+  gcc_assert (LAMBDA_EXPR_PENDING_PROXIES (lambda_expr) == NULL);
+  /* And now that we're done, push proxies for an enclosing lambda.  */
+  insert_pending_capture_proxies ();
 
   if (ok)
     return build_lambda_object (lambda_expr);
@@ -7760,9 +7749,13 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
       /* Possibly capture `this'.  */
       if (cp_lexer_next_token_is_keyword (parser->lexer, RID_THIS))
 	{
+	  location_t loc = cp_lexer_peek_token (parser->lexer)->location;
+	  if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) == CPLD_COPY)
+	    pedwarn (loc, 0, "explicit by-copy capture of %<this%> redundant "
+		     "with by-copy capture default");
 	  cp_lexer_consume_token (parser->lexer);
 	  add_capture (lambda_expr,
-		       /*id=*/get_identifier ("__this"),
+		       /*id=*/this_identifier,
 		       /*initializer=*/finish_this_expr(),
 		       /*by_reference_p=*/false,
 		       explicit_init_p);
@@ -7842,6 +7835,21 @@ cp_parser_lambda_introducer (cp_parser* parser, tree lambda_expr)
       if (TREE_CODE (capture_init_expr) == IDENTIFIER_NODE)
 	capture_init_expr
 	  = unqualified_name_lookup_error (capture_init_expr);
+
+      if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) != CPLD_NONE
+	  && !explicit_init_p)
+	{
+	  if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) == CPLD_COPY
+	      && capture_kind == BY_COPY)
+	    pedwarn (capture_token->location, 0, "explicit by-copy capture "
+		     "of %qD redundant with by-copy capture default",
+		     capture_id);
+	  if (LAMBDA_EXPR_DEFAULT_CAPTURE_MODE (lambda_expr) == CPLD_REFERENCE
+	      && capture_kind == BY_REFERENCE)
+	    pedwarn (capture_token->location, 0, "explicit by-reference "
+		     "capture of %qD redundant with by-reference capture "
+		     "default", capture_id);
+	}
 
       add_capture (lambda_expr,
 		   capture_id,
@@ -7964,6 +7972,8 @@ cp_parser_lambda_declarator_opt (cp_parser* parser, tree lambda_expr)
       {
 	DECL_INITIALIZED_IN_CLASS_P (fco) = 1;
 	DECL_ARTIFICIAL (fco) = 1;
+	/* Give the object parameter a different name.  */
+	DECL_NAME (DECL_ARGUMENTS (fco)) = get_identifier ("__closure");
       }
 
     finish_member_declaration (fco);
@@ -7997,6 +8007,8 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
     tree fco = lambda_function (lambda_expr);
     tree body;
     bool done = false;
+    tree compound_stmt;
+    tree cap;
 
     /* Let the front end know that we are going to be defining this
        function.  */
@@ -8006,6 +8018,16 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
 
     start_lambda_scope (fco);
     body = begin_function_body ();
+
+    if (!cp_parser_require (parser, CPP_OPEN_BRACE, RT_OPEN_BRACE))
+      goto out;
+
+    /* Push the proxies for any explicit captures.  */
+    for (cap = LAMBDA_EXPR_CAPTURE_LIST (lambda_expr); cap;
+	 cap = TREE_CHAIN (cap))
+      build_capture_proxy (TREE_PURPOSE (cap));
+
+    compound_stmt = begin_compound_stmt (0);
 
     /* 5.1.1.4 of the standard says:
          If a lambda-expression does not include a trailing-return-type, it
@@ -8023,11 +8045,9 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
        in the body.  Since we used void as the placeholder return type, parsing
        the body as usual will give such desired behavior.  */
     if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr)
-        && cp_lexer_next_token_is (parser->lexer, CPP_OPEN_BRACE)
-        && cp_lexer_peek_nth_token (parser->lexer, 2)->keyword == RID_RETURN
-        && cp_lexer_peek_nth_token (parser->lexer, 3)->type != CPP_SEMICOLON)
+        && cp_lexer_peek_nth_token (parser->lexer, 1)->keyword == RID_RETURN
+        && cp_lexer_peek_nth_token (parser->lexer, 2)->type != CPP_SEMICOLON)
       {
-	tree compound_stmt;
 	tree expr = NULL_TREE;
 	cp_id_kind idk = CP_ID_KIND_NONE;
 
@@ -8035,7 +8055,6 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
 	   statement.  */
 	cp_parser_parse_tentatively (parser);
 
-	cp_parser_require (parser, CPP_OPEN_BRACE, RT_OPEN_BRACE);
 	cp_parser_require_keyword (parser, RID_RETURN, RT_RETURN);
 
 	expr = cp_parser_expression (parser, /*cast_p=*/false, &idk);
@@ -8047,10 +8066,8 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
 	  {
 	    apply_lambda_return_type (lambda_expr, lambda_return_type (expr));
 
-	    compound_stmt = begin_compound_stmt (0);
 	    /* Will get error here if type not deduced yet.  */
 	    finish_return_stmt (expr);
-	    finish_compound_stmt (compound_stmt);
 
 	    done = true;
 	  }
@@ -8060,12 +8077,16 @@ cp_parser_lambda_body (cp_parser* parser, tree lambda_expr)
       {
 	if (!LAMBDA_EXPR_RETURN_TYPE (lambda_expr))
 	  LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (lambda_expr) = true;
-	/* TODO: does begin_compound_stmt want BCS_FN_BODY?
-	   cp_parser_compound_stmt does not pass it.  */
-	cp_parser_function_body (parser);
+	while (cp_lexer_next_token_is_keyword (parser->lexer, RID_LABEL))
+	  cp_parser_label_declaration (parser);
+	cp_parser_statement_seq_opt (parser, NULL_TREE);
+	cp_parser_require (parser, CPP_CLOSE_BRACE, RT_CLOSE_BRACE);
 	LAMBDA_EXPR_DEDUCE_RETURN_TYPE_P (lambda_expr) = false;
       }
 
+    finish_compound_stmt (compound_stmt);
+
+  out:
     finish_function_body (body);
     finish_lambda_scope ();
 
@@ -15223,7 +15244,7 @@ cp_parser_direct_declarator (cp_parser* parser,
 		  virt_specifiers = cp_parser_virt_specifier_seq_opt (parser);
 
 		  late_return
-		    = cp_parser_late_return_type_opt (parser);
+		    = cp_parser_late_return_type_opt (parser, cv_quals);
 
 		  /* Create the function-declarator.  */
 		  declarator = make_call_declarator (declarator,
@@ -15792,9 +15813,10 @@ cp_parser_virt_specifier_seq_opt (cp_parser* parser)
    Returns the type indicated by the type-id.  */
 
 static tree
-cp_parser_late_return_type_opt (cp_parser* parser)
+cp_parser_late_return_type_opt (cp_parser* parser, cp_cv_quals quals)
 {
   cp_token *token;
+  tree type;
 
   /* Peek at the next token.  */
   token = cp_lexer_peek_token (parser->lexer);
@@ -15805,7 +15827,23 @@ cp_parser_late_return_type_opt (cp_parser* parser)
   /* Consume the ->.  */
   cp_lexer_consume_token (parser->lexer);
 
-  return cp_parser_trailing_type_id (parser);
+  if (current_class_type)
+    {
+      /* DR 1207: 'this' is in scope in the trailing return type.  */
+      tree this_parm = build_this_parm (current_class_type, quals);
+      gcc_assert (current_class_ptr == NULL_TREE);
+      current_class_ref
+	= cp_build_indirect_ref (this_parm, RO_NULL, tf_warning_or_error);
+      /* Set this second to avoid shortcut in cp_build_indirect_ref.  */
+      current_class_ptr = this_parm;
+    }
+
+  type = cp_parser_trailing_type_id (parser);
+
+  if (current_class_type)
+    current_class_ptr = current_class_ref = NULL_TREE;
+
+  return type;
 }
 
 /* Parse a declarator-id.
@@ -16787,16 +16825,6 @@ cp_parser_initializer_clause (cp_parser* parser, bool* non_constant_p)
 	= cp_parser_constant_expression (parser,
 					/*allow_non_constant_p=*/true,
 					non_constant_p);
-      if (!*non_constant_p)
-	{
-	  /* We only want to fold if this is really a constant
-	     expression.  FIXME Actually, we don't want to fold here, but in
-	     cp_finish_decl.  */
-	  tree folded = fold_non_dependent_expr (initializer);
-	  folded = maybe_constant_value (folded);
-	  if (TREE_CONSTANT (folded))
-	    initializer = folded;
-	}
     }
   else
     initializer = cp_parser_braced_list (parser, non_constant_p);
@@ -23474,7 +23502,7 @@ cp_parser_objc_at_property_declaration (cp_parser *parser)
 		  break;
 		}
 	      cp_lexer_consume_token (parser->lexer); /* eat the = */
-	      if (cp_lexer_next_token_is_not (parser->lexer, CPP_NAME))
+	      if (!cp_parser_objc_selector_p (cp_lexer_peek_token (parser->lexer)->type))
 		{
 		  cp_parser_error (parser, "expected identifier");
 		  syntax_error = true;
@@ -23483,10 +23511,12 @@ cp_parser_objc_at_property_declaration (cp_parser *parser)
 	      if (keyword == RID_SETTER)
 		{
 		  if (property_setter_ident != NULL_TREE)
-		    cp_parser_error (parser, "the %<setter%> attribute may only be specified once");
+		    {
+		      cp_parser_error (parser, "the %<setter%> attribute may only be specified once");
+		      cp_lexer_consume_token (parser->lexer);
+		    }
 		  else
-		    property_setter_ident = cp_lexer_peek_token (parser->lexer)->u.value;
-		  cp_lexer_consume_token (parser->lexer);
+		    property_setter_ident = cp_parser_objc_selector (parser);
 		  if (cp_lexer_next_token_is_not (parser->lexer, CPP_COLON))
 		    cp_parser_error (parser, "setter name must terminate with %<:%>");
 		  else
@@ -23495,10 +23525,12 @@ cp_parser_objc_at_property_declaration (cp_parser *parser)
 	      else
 		{
 		  if (property_getter_ident != NULL_TREE)
-		    cp_parser_error (parser, "the %<getter%> attribute may only be specified once");
+		    {
+		      cp_parser_error (parser, "the %<getter%> attribute may only be specified once");
+		      cp_lexer_consume_token (parser->lexer);
+		    }
 		  else
-		    property_getter_ident = cp_lexer_peek_token (parser->lexer)->u.value;
-		  cp_lexer_consume_token (parser->lexer);
+		    property_getter_ident = cp_parser_objc_selector (parser);
 		}
 	      break;
 	    default:
@@ -24530,8 +24562,6 @@ cp_parser_omp_for_cond (cp_parser *parser, tree decl)
 {
   tree cond = cp_parser_binary_expression (parser, false, true,
 					   PREC_NOT_OPERATOR, NULL);
-  bool overloaded_p;
-
   if (cond == error_mark_node
       || cp_lexer_next_token_is_not (parser->lexer, CPP_SEMICOLON))
     {
@@ -24560,7 +24590,7 @@ cp_parser_omp_for_cond (cp_parser *parser, tree decl)
   return build_x_binary_op (TREE_CODE (cond),
 			    TREE_OPERAND (cond, 0), ERROR_MARK,
 			    TREE_OPERAND (cond, 1), ERROR_MARK,
-			    &overloaded_p, tf_warning_or_error);
+			    /*overload=*/NULL, tf_warning_or_error);
 }
 
 /* Helper function, to parse omp for increment expression.  */
@@ -24768,7 +24798,7 @@ cp_parser_omp_for_loop (cp_parser *parser, tree clauses, tree *par_clauses)
 						    &is_direct_init,
 						    &is_non_constant_init);
 
-		      if (auto_node && describable_type (init))
+		      if (auto_node)
 			{
 			  TREE_TYPE (decl)
 			    = do_auto_deduction (TREE_TYPE (decl), init,

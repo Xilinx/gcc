@@ -23,6 +23,7 @@
 #ifndef GCC_ARM_PROTOS_H
 #define GCC_ARM_PROTOS_H
 
+extern enum unwind_info_type arm_except_unwind_info (struct gcc_options *);
 extern int use_return_insn (int, rtx);
 extern enum reg_class arm_regno_class (int);
 extern void arm_load_pic_register (unsigned long);
@@ -65,8 +66,12 @@ extern int vfp3_const_double_rtx (rtx);
 extern int neon_immediate_valid_for_move (rtx, enum machine_mode, rtx *, int *);
 extern int neon_immediate_valid_for_logic (rtx, enum machine_mode, int, rtx *,
 					   int *);
+extern int neon_immediate_valid_for_shift (rtx, enum machine_mode, rtx *,
+					   int *, bool);
 extern char *neon_output_logic_immediate (const char *, rtx *,
 					  enum machine_mode, int, int);
+extern char *neon_output_shift_immediate (const char *, char, rtx *,
+					  enum machine_mode, int, bool);
 extern void neon_pairwise_reduce (rtx, rtx, enum machine_mode,
 				  rtx (*) (rtx, rtx, rtx));
 extern rtx neon_make_constant (rtx);
@@ -171,6 +176,7 @@ extern void arm_init_expanders (void);
 extern const char *thumb_unexpanded_epilogue (void);
 extern void thumb1_expand_prologue (void);
 extern void thumb1_expand_epilogue (void);
+extern const char *thumb1_output_interwork (void);
 #ifdef TREE_CODE
 extern int is_called_in_ARM_mode (tree);
 #endif

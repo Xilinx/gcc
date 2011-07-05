@@ -10519,7 +10519,8 @@ fold_binary_loc (location_t loc,
 		}
 
 	      /* Optimize x*x as pow(x,2.0), which is expanded as x*x.  */
-	      if (optimize_function_for_speed_p (cfun)
+	      if (!in_gimple_form
+		  && optimize_function_for_speed_p (cfun)
 		  && operand_equal_p (arg0, arg1, 0))
 		{
 		  tree powfn = mathfn_built_in (type, BUILT_IN_POW);
@@ -10865,13 +10866,19 @@ fold_binary_loc (location_t loc,
       if (operand_equal_p (arg0, arg1, 0))
 	return non_lvalue_loc (loc, fold_convert_loc (loc, type, arg0));
 
-      /* ~X & X is always zero.  */
-      if (TREE_CODE (arg0) == BIT_NOT_EXPR
+      /* ~X & X, (X == 0) & X, and !X & X are always zero.  */
+      if ((TREE_CODE (arg0) == BIT_NOT_EXPR
+	   || TREE_CODE (arg0) == TRUTH_NOT_EXPR
+	   || (TREE_CODE (arg0) == EQ_EXPR
+	       && integer_zerop (TREE_OPERAND (arg0, 1))))
 	  && operand_equal_p (TREE_OPERAND (arg0, 0), arg1, 0))
 	return omit_one_operand_loc (loc, type, integer_zero_node, arg1);
 
-      /* X & ~X is always zero.  */
-      if (TREE_CODE (arg1) == BIT_NOT_EXPR
+      /* X & ~X , X & (X == 0), and X & !X are always zero.  */
+      if ((TREE_CODE (arg1) == BIT_NOT_EXPR
+	   || TREE_CODE (arg1) == TRUTH_NOT_EXPR
+	   || (TREE_CODE (arg1) == EQ_EXPR
+	       && integer_zerop (TREE_OPERAND (arg1, 1))))
 	  && operand_equal_p (arg0, TREE_OPERAND (arg1, 0), 0))
 	return omit_one_operand_loc (loc, type, integer_zero_node, arg0);
 
@@ -10931,6 +10938,14 @@ fold_binary_loc (location_t loc,
 			      fold_build2_loc (loc, BIT_AND_EXPR, TREE_TYPE (tem), tem,
 					   build_int_cst (TREE_TYPE (tem), 1)),
 			      build_int_cst (TREE_TYPE (tem), 0));
+	}
+      /* Fold !X & 1 as X == 0.  */
+      if (TREE_CODE (arg0) == TRUTH_NOT_EXPR
+	  && integer_onep (arg1))
+	{
+	  tem = TREE_OPERAND (arg0, 0);
+	  return fold_build2_loc (loc, EQ_EXPR, type, tem,
+				  build_int_cst (TREE_TYPE (tem), 0));
 	}
 
       /* Fold (X ^ Y) & Y as ~X & Y.  */
@@ -12355,14 +12370,6 @@ fold_binary_loc (location_t loc,
 					 arg000);
 	    }
 	}
-
-      /* If this is an NE comparison of zero with an AND of one, remove the
-	 comparison since the AND will give the correct value.  */
-      if (code == NE_EXPR
-	  && integer_zerop (arg1)
-	  && TREE_CODE (arg0) == BIT_AND_EXPR
-	  && integer_onep (TREE_OPERAND (arg0, 1)))
-	return fold_convert_loc (loc, type, arg0);
 
       /* If we have (A & C) == C where C is a power of 2, convert this into
 	 (A & C) != 0.  Similarly for NE_EXPR.  */

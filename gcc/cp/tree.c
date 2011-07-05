@@ -541,9 +541,6 @@ build_vec_init_expr (tree type, tree init, tsubst_flags_t complain)
     VEC_INIT_EXPR_IS_CONSTEXPR (init) = true;
   VEC_INIT_EXPR_VALUE_INIT (init) = value_init;
 
-  init = build_target_expr (slot, init, complain);
-  TARGET_EXPR_IMPLICIT_P (init) = 1;
-
   return init;
 }
 
@@ -1167,6 +1164,16 @@ strip_typedefs (tree t)
 
   if (!result)
       result = TYPE_MAIN_VARIANT (t);
+  if (TYPE_USER_ALIGN (t) != TYPE_USER_ALIGN (result)
+      || TYPE_ALIGN (t) != TYPE_ALIGN (result))
+    {
+      gcc_assert (TYPE_USER_ALIGN (t));
+      if (TYPE_ALIGN (t) == TYPE_ALIGN (result))
+	result = build_variant_type_copy (result);
+      else
+	result = build_aligned_type (result, TYPE_ALIGN (t));
+      TYPE_USER_ALIGN (result) = true;
+    }
   if (TYPE_ATTRIBUTES (t))
     result = cp_build_type_attribute_variant (result, TYPE_ATTRIBUTES (t));
   return cp_build_qualified_type (result, cp_type_quals (t));
@@ -1404,6 +1411,7 @@ build_qualified_name (tree type, tree scope, tree name, bool template_p)
     return error_mark_node;
   t = build2 (SCOPE_REF, type, scope, name);
   QUALIFIED_NAME_IS_TEMPLATE (t) = template_p;
+  PTRMEM_OK_P (t) = true;
   if (type)
     t = convert_from_reference (t);
   return t;
@@ -2338,6 +2346,13 @@ cp_tree_equal (tree t1, tree t2)
       if (!same_type_p (TREE_TYPE (t1), TREE_TYPE (t2)))
 	return false;
       /* Now compare operands as usual.  */
+      break;
+
+    case DEFERRED_NOEXCEPT:
+      return (cp_tree_equal (DEFERRED_NOEXCEPT_PATTERN (t1),
+			     DEFERRED_NOEXCEPT_PATTERN (t2))
+	      && comp_template_args (DEFERRED_NOEXCEPT_ARGS (t1),
+				     DEFERRED_NOEXCEPT_ARGS (t2)));
       break;
 
     default:
@@ -3277,10 +3292,18 @@ stabilize_init (tree init, tree *initp)
     t = TARGET_EXPR_INITIAL (t);
   if (TREE_CODE (t) == COMPOUND_EXPR)
     t = expr_last (t);
-  if (TREE_CODE (t) == CONSTRUCTOR
-      && EMPTY_CONSTRUCTOR_P (t))
-    /* Default-initialization.  */
-    return true;
+  if (TREE_CODE (t) == CONSTRUCTOR)
+    {
+      /* Aggregate initialization: stabilize each of the field
+	 initializers.  */
+      unsigned i;
+      tree value;
+      bool good = true;
+      FOR_EACH_CONSTRUCTOR_VALUE (CONSTRUCTOR_ELTS (t), i, value)
+	if (!stabilize_init (value, initp))
+	  good = false;
+      return good;
+    }
 
   /* If the initializer is a COND_EXPR, we can't preevaluate
      anything.  */
@@ -3356,9 +3379,8 @@ cp_fix_function_decl_p (tree decl)
 
       /* Don't fix same_body aliases.  Although they don't have their own
 	 CFG, they share it with what they alias to.  */
-      if (!node
-	  || node->decl == decl
-	  || !node->same_body)
+      if (!node || !node->alias
+	  || !VEC_length (ipa_ref_t, node->ref_list.references))
 	return true;
     }
 

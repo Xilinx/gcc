@@ -1056,6 +1056,50 @@
   [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
+(define_expand "mulhisi3"
+  [(set (reg:HI 18)
+        (match_operand:HI 1 "register_operand" ""))
+   (set (reg:HI 20)
+        (match_operand:HI 2 "register_operand" ""))
+   (set (reg:SI 22) 
+        (mult:SI (sign_extend:SI (reg:HI 18))
+                 (sign_extend:SI (reg:HI 20))))
+   (set (match_operand:SI 0 "register_operand" "") 
+        (reg:SI 22))]
+  "AVR_HAVE_MUL"
+  "")
+
+(define_expand "umulhisi3"
+  [(set (reg:HI 18)
+        (match_operand:HI 1 "register_operand" ""))
+   (set (reg:HI 20)
+        (match_operand:HI 2 "register_operand" ""))
+   (set (reg:SI 22) 
+        (mult:SI (zero_extend:SI (reg:HI 18))
+                 (zero_extend:SI (reg:HI 20))))
+   (set (match_operand:SI 0 "register_operand" "") 
+        (reg:SI 22))]
+  "AVR_HAVE_MUL"
+  "")
+
+(define_insn "*mulhisi3_call"
+  [(set (reg:SI 22) 
+        (mult:SI (sign_extend:SI (reg:HI 18))
+                 (sign_extend:SI (reg:HI 20))))]
+  "AVR_HAVE_MUL"
+  "%~call __mulhisi3"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*umulhisi3_call"
+  [(set (reg:SI 22) 
+        (mult:SI (zero_extend:SI (reg:HI 18))
+                 (zero_extend:SI (reg:HI 20))))]
+  "AVR_HAVE_MUL"
+  "%~call __umulhisi3"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
 ; / % / % / % / % / % / % / % / % / % / % / % / % / % / % / % / % / % / % / %
 ; divmod
 
@@ -2763,8 +2807,7 @@
 (define_insn "*jcindirect_jump"
   [(set (pc) (match_operand:HI 0 "immediate_operand" "i"))]
   ""
-  "@
-  	%~jmp %x0"
+  "%~jmp %x0"
   [(set_attr "length" "2")
    (set_attr "cc" "none")])
 
@@ -3351,7 +3394,27 @@
    (set_attr "cc" "none")])
   
 ;; FMUL
-(define_insn "fmul"
+(define_expand "fmul"
+  [(set (reg:QI 24)
+        (match_operand:QI 1 "register_operand" ""))
+   (set (reg:QI 25)
+        (match_operand:QI 2 "register_operand" ""))
+   (parallel [(set (reg:HI 22)
+                   (unspec:HI [(reg:QI 24)
+                               (reg:QI 25)] UNSPEC_FMUL))
+              (clobber (reg:HI 24))])
+   (set (match_operand:HI 0 "register_operand" "")
+        (reg:HI 22))]
+  ""
+  {
+    if (AVR_HAVE_MUL)
+      {
+        emit_insn (gen_fmul_insn (operand0, operand1, operand2));
+        DONE;
+      }
+  })
+
+(define_insn "fmul_insn"
   [(set (match_operand:HI 0 "register_operand" "=r")
         (unspec:HI [(match_operand:QI 1 "register_operand" "a")
                     (match_operand:QI 2 "register_operand" "a")]
@@ -3363,8 +3426,38 @@
   [(set_attr "length" "3")
    (set_attr "cc" "clobber")])
 
+(define_insn "*fmul.call"
+  [(set (reg:HI 22)
+        (unspec:HI [(reg:QI 24)
+                    (reg:QI 25)] UNSPEC_FMUL))
+   (clobber (reg:HI 24))]
+  "!AVR_HAVE_MUL"
+  "%~call __fmul"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
 ;; FMULS
-(define_insn "fmuls"
+(define_expand "fmuls"
+  [(set (reg:QI 24)
+        (match_operand:QI 1 "register_operand" ""))
+   (set (reg:QI 25)
+        (match_operand:QI 2 "register_operand" ""))
+   (parallel [(set (reg:HI 22)
+                   (unspec:HI [(reg:QI 24)
+                               (reg:QI 25)] UNSPEC_FMULS))
+              (clobber (reg:HI 24))])
+   (set (match_operand:HI 0 "register_operand" "")
+        (reg:HI 22))]
+  ""
+  {
+    if (AVR_HAVE_MUL)
+      {
+        emit_insn (gen_fmuls_insn (operand0, operand1, operand2));
+        DONE;
+      }
+  })
+
+(define_insn "fmuls_insn"
   [(set (match_operand:HI 0 "register_operand" "=r")
         (unspec:HI [(match_operand:QI 1 "register_operand" "a")
                     (match_operand:QI 2 "register_operand" "a")]
@@ -3376,8 +3469,38 @@
   [(set_attr "length" "3")
    (set_attr "cc" "clobber")])
 
+(define_insn "*fmuls.call"
+  [(set (reg:HI 22)
+        (unspec:HI [(reg:QI 24)
+                    (reg:QI 25)] UNSPEC_FMULS))
+   (clobber (reg:HI 24))]
+  "!AVR_HAVE_MUL"
+  "%~call __fmuls"
+  [(set_attr "type" "xcall")
+   (set_attr "cc" "clobber")])
+
 ;; FMULSU
-(define_insn "fmulsu"
+(define_expand "fmulsu"
+  [(set (reg:QI 24)
+        (match_operand:QI 1 "register_operand" ""))
+   (set (reg:QI 25)
+        (match_operand:QI 2 "register_operand" ""))
+   (parallel [(set (reg:HI 22)
+                   (unspec:HI [(reg:QI 24)
+                               (reg:QI 25)] UNSPEC_FMULSU))
+              (clobber (reg:HI 24))])
+   (set (match_operand:HI 0 "register_operand" "")
+        (reg:HI 22))]
+  ""
+  {
+    if (AVR_HAVE_MUL)
+      {
+        emit_insn (gen_fmulsu_insn (operand0, operand1, operand2));
+        DONE;
+      }
+  })
+
+(define_insn "fmulsu_insn"
   [(set (match_operand:HI 0 "register_operand" "=r")
         (unspec:HI [(match_operand:QI 1 "register_operand" "a")
                     (match_operand:QI 2 "register_operand" "a")]
@@ -3387,6 +3510,16 @@
 	movw %0,r0
 	clr __zero_reg__"
   [(set_attr "length" "3")
+   (set_attr "cc" "clobber")])
+
+(define_insn "*fmulsu.call"
+  [(set (reg:HI 22)
+        (unspec:HI [(reg:QI 24)
+                    (reg:QI 25)] UNSPEC_FMULSU))
+   (clobber (reg:HI 24))]
+  "!AVR_HAVE_MUL"
+  "%~call __fmulsu"
+  [(set_attr "type" "xcall")
    (set_attr "cc" "clobber")])
 
 
@@ -3539,4 +3672,66 @@
   {
     int byteno = INTVAL(operands[2]) / BITS_PER_UNIT;
     operands[4] = simplify_gen_subreg (QImode, operands[0], <MODE>mode, byteno);
+  })
+
+(define_expand "extzv"
+  [(set (match_operand:QI 0 "register_operand" "")
+        (zero_extract:QI (match_operand:QI 1 "register_operand"  "")
+                         (match_operand:QI 2 "const1_operand" "")
+                         (match_operand:QI 3 "const_0_to_7_operand" "")))]
+  ""
+  "")
+
+(define_insn "*extzv"
+  [(set (match_operand:QI 0 "register_operand"                   "=*d,*d,*d,*d,r")
+        (zero_extract:QI (match_operand:QI 1 "register_operand"     "0,r,0,0,r")
+                         (const_int 1)
+                         (match_operand:QI 2 "const_0_to_7_operand" "L,L,P,C04,n")))]
+  ""
+  "@
+	andi %0,1
+	mov %0,%1\;andi %0,1
+	lsr %0\;andi %0,1
+	swap %0\;andi %0,1
+	bst %1,%2\;clr %0\;bld %0,0"
+  [(set_attr "length" "1,2,2,2,3")
+   (set_attr "cc" "set_zn,set_zn,set_zn,set_zn,clobber")])
+
+(define_insn_and_split "*extzv.qihi1"
+  [(set (match_operand:HI 0 "register_operand"                     "=r")
+        (zero_extract:HI (match_operand:QI 1 "register_operand"     "r")
+                         (const_int 1)
+                         (match_operand:QI 2 "const_0_to_7_operand" "n")))]
+  ""
+  "#"
+  ""
+  [(set (match_dup 3)
+        (zero_extract:QI (match_dup 1)
+                         (const_int 1)
+                         (match_dup 2)))
+   (set (match_dup 4)
+        (const_int 0))]
+  {
+    operands[3] = simplify_gen_subreg (QImode, operands[0], HImode, 0);
+    operands[4] = simplify_gen_subreg (QImode, operands[0], HImode, 1);
+  })
+
+(define_insn_and_split "*extzv.qihi2"
+  [(set (match_operand:HI 0 "register_operand"                      "=r")
+        (zero_extend:HI 
+         (zero_extract:QI (match_operand:QI 1 "register_operand"     "r")
+                          (const_int 1)
+                          (match_operand:QI 2 "const_0_to_7_operand" "n"))))]
+  ""
+  "#"
+  ""
+  [(set (match_dup 3)
+        (zero_extract:QI (match_dup 1)
+                         (const_int 1)
+                         (match_dup 2)))
+   (set (match_dup 4)
+        (const_int 0))]
+  {
+    operands[3] = simplify_gen_subreg (QImode, operands[0], HImode, 0);
+    operands[4] = simplify_gen_subreg (QImode, operands[0], HImode, 1);
   })

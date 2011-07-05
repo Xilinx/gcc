@@ -1,3 +1,7 @@
+2011-07-05  Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 175832.
+
 2011-06-14  Lawrence Crowl  <crowl@google.com>
 
 	* lto-streamer.h (extern output_struct_function_base): New.
