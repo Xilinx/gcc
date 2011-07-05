@@ -181,10 +181,19 @@ static const char melt_default_modlis[] = MELT_DEFAULT_MODLIS;
 
 melt_ptr_t melt_globarr[MELTGLOB__LASTGLOB]={0};
 
+/* The start and end of the birth region. */
 void* melt_startalz=NULL;
 void* melt_endalz=NULL;
+/* The current allocation pointer inside the birth region.  Move
+   upwards from start to end. */
 char* melt_curalz=NULL;
+/* The current store pointer inside the birth region.  Move downwards
+   from end to start.  */
 void** melt_storalz=NULL;
+/* The initial store pointer. Don't change, but should be cleared
+   outside of MELT.  */
+void** melt_initialstoralz = NULL;
+
 bool melt_is_forwarding=FALSE;
 long melt_forward_counter=0;
 
@@ -305,7 +314,7 @@ melt_allocate_young_gc_zone (long wantedbytes)
   melt_startalz = melt_curalz =
     (char *) xcalloc (sizeof (void *), wantedbytes / sizeof (void *));
   melt_endalz = (char *) melt_curalz + wantedbytes;
-  melt_storalz = ((void **) melt_endalz) - 2;
+  melt_storalz = melt_initialstoralz = ((void **) melt_endalz) - 2;
   melt_debuggc_eprintf("allocated young zone %p-%p", 
 		       (void*)melt_startalz, (void*)melt_endalz);
   /* You could put a breakpoint here under gdb! */
@@ -366,7 +375,7 @@ melt_free_young_gc_zone (void)
 #endif /*ENABLE_CHECKING*/
   free (melt_startalz);
   melt_startalz = melt_endalz = melt_curalz = NULL;
-  melt_storalz = NULL;
+  melt_storalz = melt_initialstoralz = NULL;
   /* You can put a gdb breakpoint here! */
   gcc_assert (melt_nb_garbcoll > 0);
   return;
@@ -1084,8 +1093,13 @@ static void
 melt_ggcstart_callback (void *gcc_data ATTRIBUTE_UNUSED,
 			  void* user_data ATTRIBUTE_UNUSED)
 {
-  if (melt_startalz != NULL && melt_curalz != NULL
-      && (char *) melt_curalz > (char *) melt_startalz)
+  /* Run the minor GC if the birth region has been used, or if its
+     store part is non empty (this covers the rare case when no MELT
+     values have been allocated, but some have been written into).  */
+  if (melt_startalz != NULL && melt_curalz != NULL 
+      && melt_storalz != NULL && melt_initialstoralz != NULL
+      && ((char *) melt_curalz > (char *) melt_startalz
+	  || melt_storalz < melt_initialstoralz))
     {
       if (melt_prohibit_garbcoll)
 	fatal_error ("melt minor garbage collection prohibited from GGC start callback");

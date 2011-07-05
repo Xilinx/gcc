@@ -1,5 +1,13 @@
 
 
+2011-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_startalz, melt_endalz, melt_curalz)
+	(melt_storalz): Add comment.
+	(melt_initialstoralz): New variable.
+	(melt_allocate_young_gc_zone): Initialize it.
+	(melt_ggcstart_callback): Also runs the minor MELT GC when the
+	store part of the birth region is non-empty.
+
 2011-07-04  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normatch.melt: Exported more classes for altmatch.
 	* melt/warmelt-genobj.melt: Update copyright year.
