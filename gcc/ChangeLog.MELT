@@ -1,4 +1,9 @@
 
+2011-07-05  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt-runtime.c (c_register_pragma_with_expansion): Protect with
+	BUILDING_GCC_VERSION > 4006, but still unsatisfactory.
+
 2011-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 

@@ -8739,8 +8739,9 @@ melt_attribute_callback(void *gcc_data ATTRIBUTE_UNUSED,
 */
 extern enum cpp_ttype __attribute__((weak)) pragma_lex (tree *);
 
-/* Test for GCC > 4.6.0.  */
-#if __GNUC__ > 4 || \
+/* Test for GCC > 4.6.0.  This should be better thought, we could
+   compile melt.so with a gcc-4.3 for gcc-4.7!  */
+#if BUILDING_GCC_VERSION > 4006 || __GNUC__ > 4 || \
     (__GNUC__ == 4 && (__GNUC_MINOR__ > 6))
 /* Full pragma with data support.   */
 
@@ -8935,7 +8936,7 @@ void melt_handle_melt_pragma (melt_ptr_t optreev, melt_ptr_t listargtreev);
 
 extern void __attribute__((weak)) c_register_pragma_with_expansion
                                       (const char *, const char *,
-                                       pragma_handler_1arg);
+                                       pragma_handler);
 
 /* Handle a melt pragma.  */
 static void
