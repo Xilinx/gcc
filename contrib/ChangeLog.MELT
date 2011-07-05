@@ -1,3 +1,8 @@
+
+2011-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
+	* build-melt-plugin.sh (build_melt_dot_so): Also pass
+	-I.../c-family for c-pragma.h.
+
 2011-06-27  Alexandre Lissy <alissy@mandriva.com>
 
        * build-melt-plugin.sh: Adding -b and -i switches to separate

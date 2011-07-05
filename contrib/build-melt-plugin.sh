@@ -289,7 +289,8 @@ build_melt_run_headers() {
 ################ build melt.so with appropriate default settings
 build_melt_dot_so() {
     # compile the melt.so file
-    host_full_cflags="$HOSTCFLAGS -fPIC -shared -DMELT_IS_PLUGIN -I. -I$PWD/melt/generated -I$GCCMELT_SOURCE_TREE -I$gcc_plugin_directory/include -Wall"
+    # the .../c-family subdirecty is needed for c-pragma.h
+    host_full_cflags="$HOSTCFLAGS -fPIC -shared -DMELT_IS_PLUGIN -I. -I$PWD/melt/generated -I$GCCMELT_SOURCE_TREE -I$gcc_plugin_directory/include -I$gcc_plugin_directory/include/c-family -Wall"
     verbose_echo Building melt.so with $HOSTCC $host_full_cflags
     verbose_echo our HOSTMELTCFLAGS are $HOSTMELTCFLAGS
     verbose_sleep
