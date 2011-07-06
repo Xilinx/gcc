@@ -1314,8 +1314,9 @@ pph_read_file_contents (pph_stream *stream)
   cpp_ident_use *bad_use;
   const char *cur_def;
   cpp_idents_used idents_used;
-  tree fndecl;
+  tree fndecl, t, file_keyed_classes;
   unsigned i;
+  VEC(tree,gc) *file_unemitted_tinfo_decls;
 
   pph_in_identifiers (stream, &idents_used);
 
@@ -1334,10 +1335,12 @@ pph_read_file_contents (pph_stream *stream)
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
 
-  keyed_classes = pph_in_tree (stream);
-  /* FIXME pph: This call replaces the tinfo, we should merge instead.
-     See pph_in_tree_vec.  */
-  unemitted_tinfo_decls = pph_in_tree_vec (stream);
+  file_keyed_classes = pph_in_tree (stream);
+  keyed_classes = chainon (file_keyed_classes, keyed_classes);
+
+  file_unemitted_tinfo_decls = pph_in_tree_vec (stream);
+  for (i = 0; VEC_iterate (tree, file_unemitted_tinfo_decls, i, t); i++)
+    VEC_safe_push (tree, gc, unemitted_tinfo_decls, t);
 
   /* Expand all the functions with bodies that we read from STREAM.  */
   for (i = 0; VEC_iterate (tree, stream->fns_to_expand, i, fndecl); i++)
