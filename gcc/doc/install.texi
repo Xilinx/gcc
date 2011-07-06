@@ -1049,8 +1049,10 @@ sysv, aix.
 @item --with-multilib-list=@var{list}
 @itemx --without-multilib-list
 Specify what multilibs to build.
-Currently only implemented for sh*-*-*.
+Currently only implemented for sh*-*-* and x86-64-*-linux*.
 
+@table @code
+@item sh*-*-*
 @var{list} is a comma separated list of CPU names.  These must be of the
 form @code{sh*} or @code{m*} (in which case they match the compiler option
 for that processor).  The list should not contain any endian options -
@@ -1081,6 +1083,12 @@ only little endian SH4AL:
 --with-cpu=sh4a --with-endian=little,big \
 --with-multilib-list=sh4al,!mb/m4al
 @end smallexample
+
+@item x86-64-*-linux*
+If @var{list} is @code{x32}, x32 run-time library will be enabled.  By
+default, x32 run-time library is disabled.
+
+@end table
 
 @item --with-endian=@var{endians}
 Specify what endians to use.
@@ -1160,11 +1168,6 @@ assumptions made by the configure test are incorrect.
 @item --disable-tls
 Specify that the target does not support TLS.
 This is an alias for @option{--enable-tls=no}.
-
-@item --enable-x32
-This option enables x32 library support for multiple ABIs. By
-default, x32 library support is disabled.  It is only supported for
-x86-64.
 
 @item --with-cpu=@var{cpu}
 @itemx --with-cpu-32=@var{cpu}

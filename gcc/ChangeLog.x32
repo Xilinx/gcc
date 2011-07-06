@@ -1,3 +1,13 @@
+2011-07-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Check with_multilib_list instead of enable_x32.
+
+	* configure.ac: Remove --enable-x32.
+	* configure: Regenerated.
+
+	* doc/install.texi: Document --with-multilib-list=x32.  Remove
+	--enable-x32.
+
 2011-07-05  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config.gcc: Remove --enable-ia32 support.

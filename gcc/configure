@@ -875,7 +875,6 @@ enable_gather_detailed_mem_stats
 enable_build_with_cxx
 with_stabs
 enable_multilib
-enable_x32
 enable___cxa_atexit
 enable_decimal_float
 enable_fixed_point
@@ -1578,7 +1577,6 @@ Optional Features:
                           enable detailed memory allocation stats gathering
   --enable-build-with-cxx build with C++ compiler instead of C compiler
   --enable-multilib       enable library support for multiple ABIs
-  --enable-x32            enable x32 library support for multiple ABIs
   --enable-__cxa_atexit   enable __cxa_atexit for C++
   --enable-decimal-float={no,yes,bid,dpd}
 			enable decimal float extension to C.  Selecting 'bid'
@@ -1657,7 +1655,7 @@ Optional Packages:
   --with-specs=SPECS      add SPECS to driver command-line processing
   --with-pkgversion=PKG   Use PKG in the version string in place of "GCC"
   --with-bugurl=URL       Direct users to URL to report a bug
-  --with-multilib-list    select multilibs (SH only)
+  --with-multilib-list    select multilibs (SH and x86-64 only)
   --with-gnu-ld           assume the C compiler uses GNU ld default=no
   --with-libiconv-prefix[=DIR]  search for libiconv in DIR/include and DIR/lib
   --without-libiconv-prefix     don't search for libiconv in includedir and libdir
@@ -6882,15 +6880,6 @@ else
   enable_multilib=yes
 fi
 
-
-
-# With x32 support
-# Check whether --enable-x32 was given.
-if test "${enable_x32+set}" = set; then :
-  enableval=$enable_x32;
-else
-  enable_x32=no
-fi
 
 
 # Enable __cxa_atexit for C++.
@@ -17634,7 +17623,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17637 "configure"
+#line 17626 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -17740,7 +17729,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 17743 "configure"
+#line 17732 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
