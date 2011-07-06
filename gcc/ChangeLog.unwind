@@ -1,3 +1,23 @@
+2011-06-30  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* unwind-dw2.c (_Unwind_Context_Reg_Val): New.
+	(_Unwind_Get_Unwind_Word): Likewise.
+	(_Unwind_Get_Unwind_Context_Reg_Val): Likewise.
+	(_Unwind_Context): Use _Unwind_Context_Reg_Val on the reg field.
+	(SIGNAL_FRAME_BIT): Define if REG_VALUE_IN_UNWIND_CONTEXT is
+	defined.
+	(_Unwind_IsExtendedContext): Likewise.
+	(EXTENDED_CONTEXT_BIT): Don't define if REG_VALUE_IN_UNWIND_CONTEXT
+	is defined.
+	(_Unwind_GetGR): Updated.
+	(_Unwind_SetGR): Likewise.
+	(_Unwind_GetGRPtr): Likewise.
+	(_Unwind_SetGRPtr): Likewise.
+	(_Unwind_SetGRValue): Likewise.
+	(_Unwind_GRByValue): Likewise.
+	(__frame_state_for): Likewise.
+	(uw_install_context_1): Likewise.
+
 2011-06-28  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config.gcc (libgcc_tm_file): Add i386/value-unwind.h for
