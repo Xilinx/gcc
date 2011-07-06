@@ -3701,10 +3701,11 @@ return @code{@var{regno}}.
 
 @end defmac
 
-@defmac UNIQUE_UNWIND_CONTEXT
+@defmac REG_VALUE_IN_UNWIND_CONTEXT
 
-Define this macro if the target only supports single unqiue unwind
-context.  The default is to support multiple unwind contexts.
+Define this macro if the target stores register values as
+@code{_Unwind_Word} type in unwind context.  The default is to
+store register values as @code{void *} type.
 
 @end defmac
 

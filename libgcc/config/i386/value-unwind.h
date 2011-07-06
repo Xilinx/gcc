@@ -1,4 +1,4 @@
-/* Support DWARF2 EH unwind with single unqiue unwind context.
+/* Store register values as _Unwind_Word type in DWARF2 EH unwind context.
    Copyright (C) 2011
    Free Software Foundation, Inc.
 
@@ -19,8 +19,8 @@
    see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
    <http://www.gnu.org/licenses/>.  */
 
-/* Define this macro if the target only supports single unqiue unwind
-   context.  Only enable it for x32.  */
+/* Define this macro if the target stores register values as _Unwind_Word
+   type in unwind context.  Only enable it for x32.  */
 #if defined __x86_64 && !defined __LP64__
-# define UNIQUE_UNWIND_CONTEXT
+# define REG_VALUE_IN_UNWIND_CONTEXT
 #endif

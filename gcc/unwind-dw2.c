@@ -69,24 +69,23 @@ struct _Unwind_Context
   void *ra;
   void *lsda;
   struct dwarf_eh_bases bases;
-#ifdef UNIQUE_UNWIND_CONTEXT
-  /* Used to check for unique _Unwind_Context.  */
-  void *dwarf_reg_size_table;
+#ifdef REG_VALUE_IN_UNWIND_CONTEXT
   /* Signal frame context.  */
 #define SIGNAL_FRAME_BIT ((_Unwind_Word) 1 >> 0)
-  _Unwind_Word flags;
-  _Unwind_Word args_size;
-  _Unwind_Word value[DWARF_FRAME_REGISTERS+1];
 #else
   /* Signal frame context.  */
 #define SIGNAL_FRAME_BIT ((~(_Unwind_Word) 0 >> 1) + 1)
   /* Context which has version/args_size/by_value fields.  */
 #define EXTENDED_CONTEXT_BIT ((~(_Unwind_Word) 0 >> 2) + 1)
+#endif
   _Unwind_Word flags;
   /* 0 for now, can be increased when further fields are added to
      struct _Unwind_Context.  */
   _Unwind_Word version;
   _Unwind_Word args_size;
+#ifdef REG_VALUE_IN_UNWIND_CONTEXT
+  _Unwind_Word value[DWARF_FRAME_REGISTERS+1];
+#else
   char by_value[DWARF_FRAME_REGISTERS+1];
 #endif
 };
@@ -154,7 +153,7 @@ _Unwind_SetSignalFrame (struct _Unwind_Context *context, int val)
     context->flags &= ~SIGNAL_FRAME_BIT;
 }
 
-#ifndef UNIQUE_UNWIND_CONTEXT
+#ifndef REG_VALUE_IN_UNWIND_CONTEXT
 static inline _Unwind_Word
 _Unwind_IsExtendedContext (struct _Unwind_Context *context)
 {
@@ -180,8 +179,7 @@ _Unwind_GetGR (struct _Unwind_Context *context, int index)
   size = dwarf_reg_size_table[index];
   ptr = context->reg[index];
 
-#ifdef UNIQUE_UNWIND_CONTEXT
-  gcc_assert (context->dwarf_reg_size_table == &dwarf_reg_size_table);
+#ifdef REG_VALUE_IN_UNWIND_CONTEXT
   if (context->reg[index] == &context->value[index])
     return context->value[index];
 #else
@@ -225,8 +223,7 @@ _Unwind_SetGR (struct _Unwind_Context *context, int index, _Unwind_Word val)
   gcc_assert (index < (int) sizeof(dwarf_reg_size_table));
   size = dwarf_reg_size_table[index];
 
-#ifdef UNIQUE_UNWIND_CONTEXT
-  gcc_assert (context->dwarf_reg_size_table == &dwarf_reg_size_table);
+#ifdef REG_VALUE_IN_UNWIND_CONTEXT
   if (context->reg[index] == &context->value[index])
     {
       context->value[index] = val;
@@ -257,7 +254,7 @@ static inline void *
 _Unwind_GetGRPtr (struct _Unwind_Context *context, int index)
 {
   index = DWARF_REG_TO_UNWIND_COLUMN (index);
-#ifndef UNIQUE_UNWIND_CONTEXT
+#ifndef REG_VALUE_IN_UNWIND_CONTEXT
   if (_Unwind_IsExtendedContext (context) && context->by_value[index])
     return &context->reg[index];
 #endif
@@ -270,7 +267,7 @@ static inline void
 _Unwind_SetGRPtr (struct _Unwind_Context *context, int index, void *p)
 {
   index = DWARF_REG_TO_UNWIND_COLUMN (index);
-#ifndef UNIQUE_UNWIND_CONTEXT
+#ifndef REG_VALUE_IN_UNWIND_CONTEXT
   if (_Unwind_IsExtendedContext (context))
     context->by_value[index] = 0;
 #endif
@@ -285,7 +282,7 @@ _Unwind_SetGRValue (struct _Unwind_Context *context, int index,
 {
   index = DWARF_REG_TO_UNWIND_COLUMN (index);
   gcc_assert (index < (int) sizeof(dwarf_reg_size_table));
-#ifdef UNIQUE_UNWIND_CONTEXT
+#ifdef REG_VALUE_IN_UNWIND_CONTEXT
   gcc_assert (dwarf_reg_size_table[index] == sizeof (_Unwind_Word));
   context->value[index] = val;
   context->reg[index] = &context->value[index];
@@ -303,7 +300,7 @@ static inline int
 _Unwind_GRByValue (struct _Unwind_Context *context, int index)
 {
   index = DWARF_REG_TO_UNWIND_COLUMN (index);
-#ifdef UNIQUE_UNWIND_CONTEXT
+#ifdef REG_VALUE_IN_UNWIND_CONTEXT
   return context->reg[index] == &context->value[index];
 #else
   return context->by_value[index];
@@ -1255,9 +1252,7 @@ __frame_state_for (void *pc_target, struct frame_state *state_in)
   int reg;
 
   memset (&context, 0, sizeof (struct _Unwind_Context));
-#ifdef UNIQUE_UNWIND_CONTEXT
-  context.dwarf_reg_size_table = &dwarf_reg_size_table;
-#else
+#ifndef REG_VALUE_IN_UNWIND_CONTEXT
   context.flags = EXTENDED_CONTEXT_BIT;
 #endif
   context.ra = pc_target + 1;
@@ -1497,9 +1492,7 @@ uw_init_context_1 (struct _Unwind_Context *context,
 
   memset (context, 0, sizeof (struct _Unwind_Context));
   context->ra = ra;
-#ifdef UNIQUE_UNWIND_CONTEXT
-  context->dwarf_reg_size_table = &dwarf_reg_size_table;
-#else
+#ifndef REG_VALUE_IN_UNWIND_CONTEXT
   context->flags = EXTENDED_CONTEXT_BIT;
 #endif
 
@@ -1583,7 +1576,7 @@ uw_install_context_1 (struct _Unwind_Context *current,
       void *c = current->reg[i];
       void *t = target->reg[i];
 
-#ifdef UNIQUE_UNWIND_CONTEXT
+#ifdef REG_VALUE_IN_UNWIND_CONTEXT
       gcc_assert (current->reg[i] != &current->value[i]);
       if (target->reg[i] == &target->value[i] && c)
 #else
