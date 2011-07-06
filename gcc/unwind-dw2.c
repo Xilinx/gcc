@@ -61,8 +61,6 @@
 
 #ifdef REG_VALUE_IN_UNWIND_CONTEXT
 typedef _Unwind_Word _Unwind_Context_Reg_Val;
-/* Signal frame context.  */
-#define SIGNAL_FRAME_BIT ((_Unwind_Word) 1 >> 0)
 
 #define _Unwind_IsExtendedContext(c) 1
 
@@ -79,10 +77,6 @@ _Unwind_Get_Unwind_Context_Reg_Val (_Unwind_Word val)
 }
 #else
 typedef void *_Unwind_Context_Reg_Val;
-/* Signal frame context.  */
-#define SIGNAL_FRAME_BIT ((~(_Unwind_Word) 0 >> 1) + 1)
-/* Context which has version/args_size/by_value fields.  */
-#define EXTENDED_CONTEXT_BIT ((~(_Unwind_Word) 0 >> 2) + 1)
 
 #define _Unwind_IsExtendedContext(c) ((c)->flags & EXTENDED_CONTEXT_BIT)
 
@@ -109,6 +103,10 @@ struct _Unwind_Context
   void *ra;
   void *lsda;
   struct dwarf_eh_bases bases;
+  /* Signal frame context.  */
+#define SIGNAL_FRAME_BIT ((~(_Unwind_Word) 0 >> 1) + 1)
+  /* Context which has version/args_size/by_value fields.  */
+#define EXTENDED_CONTEXT_BIT ((~(_Unwind_Word) 0 >> 2) + 1)
   _Unwind_Word flags;
   /* 0 for now, can be increased when further fields are added to
      struct _Unwind_Context.  */

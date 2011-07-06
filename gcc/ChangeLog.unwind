@@ -1,5 +1,9 @@
 2011-06-30  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* unwind-dw2.c (SIGNAL_FRAME_BIT): Don't redefine for x32.
+
+2011-06-30  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* unwind-dw2.c (_Unwind_Context_Reg_Val): New.
 	(_Unwind_Get_Unwind_Word): Likewise.
 	(_Unwind_Get_Unwind_Context_Reg_Val): Likewise.
