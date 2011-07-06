@@ -1,4 +1,22 @@
 
+2011-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* make-melt-source-tar.sh: Add more comments. Accept gengtype -r
+	gtype.state ... as optional 3rd and following arguments.
+
+	* build-melt-plugin.sh: Change invocation, so expecting different
+	program arguments. Remove (-S gccsourcedir) and (-B gccbuilddir)
+	arguments. Add (-G gengtype) and (-T gtype.state) arguments.
+	(usage): Update usage message.
+	(GCC_SOURCE_TREE, GCC_BUILD_TREE): Remove variable.
+	(GCCMELT_GENGTYPE_FLAGS): Add variable.
+	(gengtype_prog, gengtype_state): Add variable.
+	(parse_args): Update argument parsing.
+	(sanity_checks_gcc_info): Update function, remove checks with
+	$GCC_SOURCE_TREE or $GCC_BUILD_TREE.
+	(get_gty_melt_header): Run gengtype when needed.
+	(do_melt_make): Don't use $GCC_SOURCE_TREE or $GCC_BUILD_TREE.
+
 2011-07-05  Basile Starynkevitch  <basile@starynkevitch.net>
 	* build-melt-plugin.sh (build_melt_dot_so): Also pass
 	-I.../c-family for c-pragma.h.

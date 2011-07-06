@@ -1,7 +1,9 @@
-#! /bin/sh
+#! /bin/bash
 ## file contrib/make-melt-source-tar.sh of the MELT branch of GCC
+## building the plugin source distribution
 ## first argument is GCC MELT source tree
 ## second argument is the basename of the tar ball
+## following optional arguments are gengtype -r gengtype.state ...
 ##
 ##    Middle End Lisp Translator = MELT
 ##
@@ -24,9 +26,32 @@
 ## along with GCC; see the file COPYING3.   If not see
 ## <http://www.gnu.org/licenses/>.
 
-
+## the first argument of this script is the source tree of the GCC
+## MELT branch from which is extracted the MELT plugin source, for
+## instance /usr/src/Lang/gcc-melt
 gccmelt_source_tree=$1
+
+## the second argument of this script is a temporary directory
+## basename for the plugin source, for instance /tmp/gcc-melt-plugin
+## and this script will then make a directory /tmp/gcc-melt-plugin and
+## a gzipped tar archive /tmp/gcc-melt-plugin.tgz
 gccmelt_tarbase=$2
+
+shift 2
+## the optional other arguments are used to invoke gengtype, for instance
+## $(gcc-4.6 -print-file-name=gengtype) -v -r $(gcc-4.6 -print-file-name=gtype.state)
+gengtype_prog=$1
+
+if [ -n "$gengtype_prog" ]; then
+    case $gengtype_prog in
+	*gengtype*) 
+	    shift 1; 
+	    gengtype_args="$@";;
+	*) 
+	    echo $0: Bad optional gengtype $gengtype_prog >&2
+	    exit 1
+    esac
+fi
 
 if [ ! -f $gccmelt_source_tree/gcc/melt-runtime.h ]; then
     echo $0: Bad first argument for GCC MELT source tree $1 >&2
@@ -40,9 +65,7 @@ fi
 
 rm -rf $gccmelt_tarbase
 
-mkdir $gccmelt_tarbase
-mkdir $gccmelt_tarbase/melt
-mkdir $gccmelt_tarbase/melt/generated
+mkdir -p $gccmelt_tarbase/melt/generated
 
 date +"source tar timestamp %c" > $gccmelt_tarbase/GCCMELT-SOURCE-DATE
 
@@ -105,5 +128,10 @@ for cf in   $gccmelt_source_tree/contrib/gt*melt*.h ; do
 done
 copymelt INSTALL/README-MELT-PLUGIN
 copymelt libmeltopengpu/meltopengpu-runtime.c
+
+if [ -n "$gengtype_prog" ]; then
+    gengtype_version=$($gengtype_prog -V | head -1 | awk '{print $NF}' 2>/dev/null)
+    $gengtype_prog $gengtype_args -P $gccmelt_tarbase/gt-melt-runtime-$gengtype_version-plugin.h $gccmelt_tarbase/melt-runtime.h  $gccmelt_tarbase/melt/generated/meltrunsup.h
+fi
 
 tar czvf $gccmelt_tarbase.tgz -C $(dirname $gccmelt_tarbase) $(basename $gccmelt_tarbase)

@@ -25,7 +25,7 @@
 
 progname=$0
 
-## We need the Posix/C locale (ie programmer English), because we
+## We need the Posix/C locale (ie programmer's English), because we
 ## parse output of commands like gcc -v
 
 export LANG=C 
@@ -37,10 +37,10 @@ usage() {
     echo " -h # gives this help" 
     echo " -q # to be quiet unless errors" 
     echo " -s EXPR       # *unsafely* evaluate EXPR, e.g. -s MAKE=gmake sets the MAKE variable" 
-    echo " -S sourcepath # sets the GCC source tree, e.g. -S /usr/src/gcc" 
-    echo " -B buildpath  # sets the GCC build path, e.g. -B /tmp/gcc-build" 
     echo " -M meltpath   # sets the GCC-MELT source subtree, e.g. /usr/src/gcc-melt/gcc" 
     echo " -Y your/gt-melt-runtime.h  # force the gengtype generated gt-melt-runtime.h" 
+    echo ' -G gengtype     # gives the GCC gengtype utility, e.g. $(gcc-4.6 -print-file-name=gengtype)'
+    echo ' -T gtype.state  # gives the GCC gengtype state file, e.g. $(gcc-4.6 -print-file-name=gtype.state)'
     echo " -b  # building MELT"
     echo " -i  # installing MELT"
     echo "$progname is for building MELT as a plugin, not a branch."
@@ -72,12 +72,10 @@ set_default_variables() {
     GAWK=${GAWK:-$(which gawk || which awk)}
 # the GNU realpath command or else readlink
     REALPATH=${REALPATH:-$(which realpath || echo "readlink -m")}
-# source tree of the $GCC compiler for which MELT plugin is built
-    GCC_SOURCE_TREE=${GCC_SOURCE_TREE:-""}
 # source tree of the MELT plugin, containing melt-runtime.c etc..
     GCCMELT_SOURCE_TREE=${GCCMELT_SOURCE_TREE:-""}
-# filled build tree of $GCC
-    GCC_BUILD_TREE=${GCC_BUILD_TREE:=""}
+# gengtype flags
+    GCCMELT_GENGTYPE_FLAGS=${GCCMELT_GENGTYPE_FLAGS:-"-v"}
 # sleep delay between important steps
     MELTSLEEPDELAY=2
 # destination directory DESTDIR could be set
@@ -87,6 +85,8 @@ set_default_variables() {
     gcc_version=""
     gcc_target=""
     gcc_plugin_directory=""
+    gengtype_prog=""
+    gengtype_state=""
     quiet=""
     install=""
     build=""
@@ -125,17 +125,17 @@ verbose_sleep() {
 ################ parsing the shell program argument
 parse_args() {
     progname=$0
-    while getopts "hqbis:S:B:Y:M:C:" opt ; do
+    while getopts "hqbis:Y:M:C:G:T:" opt ; do
 	case $opt in
 	    h) usage;;
 	    q) quiet=1;;
             b) 
-		    echo build-melt-plugin: entering build mode
+		    verbose_echo build-melt-plugin: entering build mode
 		    build=1;
 		    install=""
 		;;
             i) 
-		    echo build-melt-plugin: entering install mode
+		    verbose_echo build-melt-plugin: entering install mode
 		    build="";
 		    install=1
 		;;
@@ -147,12 +147,6 @@ parse_args() {
               HOSTMELTCFLAGS+=" $OPTARG"
                verbose_echo using $OPTARG as host and melt compiler flags
                ;;
-	    S) GCC_SOURCE_TREE=$($REALPATH "$OPTARG");
-		verbose_echo GCC source tree is $GCC_SOURCE_TREE
-		;;
-	    B) GCC_BUILD_TREE=$($REALPATH "$OPTARG")
-		verbose_echo GCC build tree is $GCC_BUILD_TREE
-		;;
 	    M) GCCMELT_SOURCE_TREE=$($REALPATH "$OPTARG")
 		verbose_echo GCC-MELT source tree is $GCCMELT_SOURCE_TREE
 		;;
@@ -162,19 +156,20 @@ parse_args() {
 		    thru gengtype
 
 		;;
+	    G) gengtype_prog=$($REALPATH "$OPTARG")
+	       verbose_echo Using $gengtype_prog as the GCC gengtype utility for GTY and GCC garbage collector marking routines
+	       ;;
+	    T) gengtype_state=$($REALPATH "$OPTARG")
+	       verbose_echo Using $gengtype_state as the gengtype state file
+	       ;;
 	esac
     done
 }
 
+
 ################ sanity checks & retrieval of gcc info
 sanity_checks_gcc_info() {
     verbose_echo doing sanity checks
-    verbose_sleep
-##
-# the GCC source tree should have a gcc/gimple.h file
-    if [ ! -z "$GCC_SOURCE_TREE" -a ! -f "$GCC_SOURCE_TREE/gcc/gimple.h" ]; then
-	error_echo missing gcc/gimple.h file in GCC source tree $GCC_SOURCE_TREE
-    fi
 
 # the GCCMELT source tree should have a melt-runtime.h & a
 # melt/warmelt-first.melt file & a melt/generated/warmelt-first-0.c
@@ -187,12 +182,6 @@ sanity_checks_gcc_info() {
     fi
     if [ ! -f "$GCCMELT_SOURCE_TREE/melt/generated/warmelt-first-0.c" ]; then
 	error_echo missing melt/generated/warmelt-first-0.c file in GCCMELT source tree $GCCMELT_SOURCE_TREE
-    fi
-# unless $gt_melt_runtime_header exists, the GCC build tree should have
-# a gengtype
-    if [ ! -z "$gt_melt_runtime_header" -a ! -f "$gt_melt_runtime_header" \
-	-a ! -f "$GCC_BUILD_TREE/gcc/build/gengtype" ]; then
-	error_echo missing gcc/build/gengtype in GCC build tree $GCC_BUILD_TREE
     fi
 # if $gt_melt_runtime_header is given, it should contain melt_globarr
 # & ggc_root_tab strings
@@ -242,27 +231,18 @@ get_gty_melt_header() {
 	verbose_echo Copying GTY MELT header file $gt_melt_runtime_header
 	cp $gt_melt_runtime_header gt-melt-runtime.h
     else
-	## generating it
-	# generate at first a list of real file paths
-	verbose_echo Generating normalized file list for gengtype in $gtypelist_file
-	verbose_sleep
-	rm -f $gtypelist_file
-	(cd $GCC_BUILD_TREE/gcc; $GAWK "/^[^#[]/{fil=\$1; cmd=\"$REALPATH \"  fil; system(cmd); next}
-{print;}" < gtyp-input.list) > $gtypelist_file
-	verbose_echo Generated $(wc -l $gtypelist_file) lines in $gtypelist_file
-	# now generate the gt-melt-runtime.h file itself
-	if [ ! -x "$GCC_BUILD_TREE/gcc/build/gengtype" ] ; then
-	    error_echo Missing or non-executable $GCC_BUILD_TREE/gcc/build/gengtype
+	## generate it using gengtype
+	if [ ! -x "$gengtype_prog" ]; then
+	    error_echo "GCC Gengtype utility $gengtype_prog not executable"
 	fi
-	#
-	verbose_echo Generating $gtypelist_file with $GCC_BUILD_TREE/gcc/build/gengtype
-	
-	if $GCC_BUILD_TREE/gcc/build/gengtype -P gt-melt-runtime.h $GCC_SOURCE_TREE  $gtypelist_file \
-	    $GCCMELT_SOURCE_TREE/melt-runtime.h $GCCMELT_SOURCE_TREE/melt-runtime.c ;then
-	    verbose_echo Generated gt-melt-runtime.h with $(wc -l gt-melt-runtime.h) lines
-	else
-	    error_echo Failed to generate gt-melt-runtime.h using gengtype
+	if [ ! -r "$gengtype_state" ]; then
+	    error_echo "GCC Gengtype state file $gengtype_state not readable"
 	fi
+	verbose_echo Running $gengtype_prog with state  $gengtype_state to generate gt-melt-runtime.h
+	$gengtype_prog $GCCMELT_GENGTYPE_FLAGS -r $gengtype_state -P gt-melt-runtime.h melt-runtime.h melt/generated/meltrunsup.h melt-runtime.c
+    fi
+    if [ ! -s gt-melt-runtime.h ]; then
+	error_echo "failed to get or build gt-melt-runtime.h"
     fi
 }
 
@@ -341,7 +321,7 @@ do_melt_make () {
 	melt_installed_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include" \
 	melt_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include -I$GCCMELT_SOURCE_TREE -I. -Imelt/generated -I$PWD -I$PWD/melt/generated" \
 	melt_is_plugin=1 \
-	VPATH=.:$GCCMELT_SOURCE_TREE/melt:$GCCMELT_SOURCE_TREE:$GCC_BUILD_TREE:$GCC_SOURCE_TREE \
+	VPATH=.:$GCCMELT_SOURCE_TREE/melt:$GCCMELT_SOURCE_TREE \
 	$*
     if [ $? -ne 0 ]; then
 	error_echo doing melt make $* failed
