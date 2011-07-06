@@ -8719,10 +8719,21 @@ handle_melt_attribute(tree *node, tree name,
   return NULL_TREE;
 }
 
-static struct attribute_spec 
+static struct attribute_spec /* See tree.h for details.  */
 melt_attr_spec =
-  { "melt",                   1, 1, true, false, false,
-    handle_melt_attribute, false };
+  {                 
+    "melt"         	      /*=name*/,
+    1              	      /*=min_length*/, 
+    1              	      /*=max_length*/, 
+    true           	      /*=decl_required*/, 
+    false          	      /*=type_required*/, 
+    false          	      /*=function_type_required*/,
+    handle_melt_attribute     /*=handler*/, 
+#if BUILDING_GCC_VERSION > 4006 || __GNUC__ > 4 || \
+    (__GNUC__ == 4 && (__GNUC_MINOR__ > 6))
+    false                     /*=affects_type_identity*/,
+#endif
+  };
 
 
 /* the plugin callback to register melt attributes */

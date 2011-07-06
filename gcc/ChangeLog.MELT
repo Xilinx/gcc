@@ -1,4 +1,9 @@
 
+2011-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.c (melt_attr_spec): Add comment for each field, and
+	protect the affects_type_identity for 4.7
+
 2011-07-05  Pierre Vittet  <piervit@pvittet.com>
 
 	* melt-runtime.c (c_register_pragma_with_expansion): Protect with
