@@ -81,15 +81,15 @@ You might use that script from within the untarred MELT plugin source
 obtained (obtained by make-melt-source-tar.sh) with something like
 
 # building the plugin
- ./build-melt-plugin -v -b -s GCC=gcc-4.6 \
+ ./build-melt-plugin.sh -v -b -s GCC=gcc-4.6 \
     -G $(gcc-4.6 -print-file-name=gengtype) \
     -T $(gcc-4.6 -print-file-name=gtype.state) \
     -M $PWD
 
 # installing the plugin
- ./build-melt-plugin -v -i -s DESTDIR=/tmp/meltplugindestdir -M $PWD
+ ./build-melt-plugin.sh -v -i -s DESTDIR=/tmp/meltplugindestdir -M $PWD
 # or perhaps
- ./build-melt-plugin -v -i -s HOSTADMINCMD=sudo -M $PWD
+ ./build-melt-plugin.sh -v -i -s HOSTADMINCMD=sudo -M $PWD
 
 
 but don't run that command without understanding what that
@@ -108,3 +108,28 @@ contrib/make-melt-source-tar.sh from the GCC MELT branch.
 Comments about the MELT plugin (including its installation script) are
 welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
+
+#######################################################################
+NEWS for 0.8rc1 MELT plugin for gcc-4.6
+
+July 06th, 2011: Release candidate 1 of melt-0.8rc1-plugin-for-gcc-4.6
+
+New features:
+ * support for pragmas for MELT
+
+ * the MELT garbage collector is called less often, using the
+   PLUGIN_GGC_START hook.
+
+ * several new c-iterators and c-matchers.
+
+ * added static analyzing pass gccframe, useful for melt-runtime.c
+
+ * reject nested defun-s, you should use letrec or let...
+
+Many bugfixes
+  (but some bugs remain)
+
+#######################################################################
+NEWS for 0.7 MELT plugin for gcc-4.6
+
+April 29th, 2011: first release, melt-0.7-plugin-for-gcc-4.6
