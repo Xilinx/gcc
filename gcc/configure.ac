@@ -616,11 +616,6 @@ AC_ARG_ENABLE(x32,
 [  --enable-x32            enable x32 library support for multiple ABIs],
 [], [enable_x32=no])
 
-# With ia32 support
-AC_ARG_ENABLE(ia32,
-[  --enable-ia32           enable ia32 library support for multiple ABIs],
-[], [enable_ia32=yes])
-
 # Enable __cxa_atexit for C++.
 AC_ARG_ENABLE(__cxa_atexit,
 [AS_HELP_STRING([--enable-__cxa_atexit], [enable __cxa_atexit for C++])],

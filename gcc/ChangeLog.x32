@@ -1,5 +1,16 @@
 2011-07-05  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config.gcc: Remove --enable-ia32 support.
+
+	* configure.ac: Remove --enable-ia32.
+	* configure: Regenerated.
+
+	* config/i386/t-linux64-x32: Removed.
+
+	* doc/install.texi: Remove --enable-ia32.
+
+2011-07-05  H.J. Lu  <hongjiu.lu@intel.com>
+
 	PR middle-end/47383
 	* tree-ssa-address.c (addr_for_mem_ref): Use pointer_mode for
 	address computation and convert to address_mode if needed.

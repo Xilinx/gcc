@@ -1161,11 +1161,6 @@ assumptions made by the configure test are incorrect.
 Specify that the target does not support TLS.
 This is an alias for @option{--enable-tls=no}.
 
-@item --enable-ia32
-This option enables ia32 library support for multiple ABIs.  By
-default, ia32 library support is enabled.  It is only supported for
-x86-64.
-
 @item --enable-x32
 This option enables x32 library support for multiple ABIs. By
 default, x32 library support is disabled.  It is only supported for
