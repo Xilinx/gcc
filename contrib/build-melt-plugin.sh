@@ -215,6 +215,12 @@ sanity_checks_gcc_info() {
     if [ -z "$gcc_plugin_directory" -o ! -s "$gcc_plugin_directory/include/gcc-plugin.h" ] ; then
 	error_echo The GCC compiler $GCC has a bad plugin directory $gcc_plugin_directory
     fi
+    ### If MELT is already installed, there is a conflict between
+    ### generated MELT files.  We want the user to remove his previous
+    ### installation of MELT before installing the new one
+    if [ -s "$gcc_plugin_directory/melt.so" -o -f "$gcc_plugin_directory/include/melt-runtime.h" ] ; then
+	error_echo "There is already a MELT plugin installed for $GCC, you should uninstall it before installing this one."
+    fi    
     verbose_echo Generating a timestamp file $timestamp_file in $(pwd)
     rm -f $timestamp_file
     if date +"build-melt-plugin start %c%n" > $timestamp_file; then

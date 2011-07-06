@@ -1,4 +1,10 @@
 
+2011-07-06  Pierre Vittet  <piervit@pvittet.com>
+	    Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* build-melt-plugin.sh: Check that a previous MELT plugin is not
+	already installed.
+
 2011-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* make-melt-source-tar.sh: Add more comments. Accept gengtype -r
