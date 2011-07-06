@@ -184,7 +184,9 @@ rest_of_decl_compilation (tree decl,
 	  && !DECL_EXTERNAL (decl))
 	{
 	  /* When reading LTO unit, we also read varpool, so do not
-	     rebuild it.  */
+	     rebuild it.
+	     FIXME pph: This is also true for pph and we should not
+	     call varpool_finalize_decl when generating a pph image.  */
 	  if (in_lto_p && !at_end)
 	    ;
 	  else if (TREE_CODE (decl) != FUNCTION_DECL)
