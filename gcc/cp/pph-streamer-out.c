@@ -1123,9 +1123,14 @@ pph_out_scope_chain (pph_stream *stream, struct saved_scope *ss, bool ref_p)
   /* old_namespace should be global_namespace and all entries listed below
      should be NULL or 0; otherwise the header parsed was incomplete.  */
   gcc_assert (ss->old_namespace == global_namespace
-	      && !(ss->class_name || ss->class_type || ss->access_specifier
-		   || ss->function_decl || ss->template_parms
-		   || ss->x_saved_tree || ss->class_bindings || ss->prev
+	      && !(ss->class_name
+		   || ss->class_type
+		   || ss->access_specifier
+		   || ss->function_decl
+		   || ss->template_parms
+		   || ss->x_saved_tree
+		   || ss->class_bindings
+		   || ss->prev
 		   || ss->unevaluated_operand
 		   || ss->inhibit_evaluation_warnings
 		   || ss->x_processing_template_decl
