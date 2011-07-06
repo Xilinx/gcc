@@ -1202,6 +1202,7 @@ pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
     pph_dump_namespace (pph_logfile, global_namespace);
   pph_out_tree (stream, keyed_classes, false);
   pph_out_tree_vec (stream, unemitted_tinfo_decls, false);
+  pph_out_tree (stream, static_aggregates, false);
 }
 
 

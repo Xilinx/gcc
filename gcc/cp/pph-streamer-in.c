@@ -1167,11 +1167,9 @@ pph_add_bindings_to_namespace (struct cp_binding_level *bl, tree ns)
       /* Pushing a decl into a scope clobbers its DECL_CHAIN.
 	 Preserve it.  */
       chain = DECL_CHAIN (t);
-
-      /* FIXME pph: we should first check to see if it isn't already there.
-	 If it is, we should use this function recursively to merge
-	 the bindings in T in the corresponding namespace.  */
       pushdecl_into_namespace (t, ns);
+      if (NAMESPACE_LEVEL (t))
+	pph_add_bindings_to_namespace (NAMESPACE_LEVEL (t), t);
     }
 }
 
@@ -1314,7 +1312,7 @@ pph_read_file_contents (pph_stream *stream)
   cpp_ident_use *bad_use;
   const char *cur_def;
   cpp_idents_used idents_used;
-  tree fndecl, t, file_keyed_classes;
+  tree fndecl, t, file_keyed_classes, file_static_aggregates;
   unsigned i;
   VEC(tree,gc) *file_unemitted_tinfo_decls;
 
@@ -1341,6 +1339,9 @@ pph_read_file_contents (pph_stream *stream)
   file_unemitted_tinfo_decls = pph_in_tree_vec (stream);
   for (i = 0; VEC_iterate (tree, file_unemitted_tinfo_decls, i, t); i++)
     VEC_safe_push (tree, gc, unemitted_tinfo_decls, t);
+
+  file_static_aggregates = pph_in_tree (stream);
+  static_aggregates = chainon (file_static_aggregates, static_aggregates);
 
   /* Expand all the functions with bodies that we read from STREAM.  */
   for (i = 0; VEC_iterate (tree, stream->fns_to_expand, i, fndecl); i++)

@@ -1,3 +1,12 @@
+2011-07-05   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_add_bindings_to_namespace): Recurse into
+	each namespace bindings, if needed.
+	(pph_read_file_contents): Add static aggregates from STREAM into
+	static_aggregates.
+	* pph-streamer-out.c (pph_write_file_contents): Write
+	static_aggregates.
+
 2011-07-04  Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (pph_add_bindings_to_namespace):

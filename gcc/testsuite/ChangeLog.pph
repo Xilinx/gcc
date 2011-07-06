@@ -1,3 +1,7 @@
+2011-07-05  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/x2nontrivinit.cc: Mark fixed.
+
 2011-07-04   Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/pph.map: Sort.
