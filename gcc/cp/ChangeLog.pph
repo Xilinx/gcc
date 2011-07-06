@@ -1,3 +1,9 @@
+2011-07-05  Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_read_file_contents): Do not clobber
+	unemitted_tinfo_decls and keyed_classes.  Append new elements
+	from STREAM.
+
 2011-07-05   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_add_bindings_to_namespace): Recurse into
