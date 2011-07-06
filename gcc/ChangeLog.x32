@@ -1,5 +1,11 @@
 2011-07-05  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR middle-end/47383
+	* tree-ssa-address.c (addr_for_mem_ref): Use pointer_mode for
+	address computation and convert to address_mode if needed.
+
+2011-07-05  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* tree-ssa-address.c (addr_for_mem_ref): Use
 	targetm.addr_space.address_mode.
 
