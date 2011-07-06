@@ -264,8 +264,15 @@ called_as_built_in (tree node)
   return is_builtin_name (name);
 }
 
-/* Return the alignment in bits of EXP, an object.
-   Don't return more than MAX_ALIGN no matter what.  */
+/* Compute values M and N such that M divides (address of EXP - N) and
+   such that N < M.  Store N in *BITPOSP and return M.
+
+   Note that the address (and thus the alignment) computed here is based
+   on the address to which a symbol resolves, whereas DECL_ALIGN is based
+   on the address at which an object is actually located.  These two
+   addresses are not always the same.  For example, on ARM targets,
+   the address &foo of a Thumb function foo() has the lowest bit set,
+   whereas foo() itself starts on an even address.  */
 
 unsigned int
 get_object_alignment_1 (tree exp, unsigned HOST_WIDE_INT *bitposp)
@@ -287,7 +294,21 @@ get_object_alignment_1 (tree exp, unsigned HOST_WIDE_INT *bitposp)
     exp = DECL_INITIAL (exp);
   if (DECL_P (exp)
       && TREE_CODE (exp) != LABEL_DECL)
-    align = DECL_ALIGN (exp);
+    {
+      if (TREE_CODE (exp) == FUNCTION_DECL)
+	{
+	  /* Function addresses can encode extra information besides their
+	     alignment.  However, if TARGET_PTRMEMFUNC_VBIT_LOCATION
+	     allows the low bit to be used as a virtual bit, we know
+	     that the address itself must be 2-byte aligned.  */
+	  if (TARGET_PTRMEMFUNC_VBIT_LOCATION == ptrmemfunc_vbit_in_pfn)
+	    align = 2 * BITS_PER_UNIT;
+	  else
+	    align = BITS_PER_UNIT;
+	}
+      else
+	align = DECL_ALIGN (exp);
+    }
   else if (CONSTANT_CLASS_P (exp))
     {
       align = TYPE_ALIGN (TREE_TYPE (exp));
@@ -4604,6 +4625,23 @@ expand_builtin_expect (tree exp, rtx target)
   return target;
 }
 
+/* Expand a call to __builtin_assume_aligned.  We just return our first
+   argument as the builtin_assume_aligned semantic should've been already
+   executed by CCP.  */
+
+static rtx
+expand_builtin_assume_aligned (tree exp, rtx target)
+{
+  if (call_expr_nargs (exp) < 2)
+    return const0_rtx;
+  target = expand_expr (CALL_EXPR_ARG (exp, 0), target, VOIDmode,
+			EXPAND_NORMAL);
+  gcc_assert (!TREE_SIDE_EFFECTS (CALL_EXPR_ARG (exp, 1))
+	      && (call_expr_nargs (exp) < 3
+		  || !TREE_SIDE_EFFECTS (CALL_EXPR_ARG (exp, 2))));
+  return target;
+}
+
 void
 expand_builtin_trap (void)
 {
@@ -5823,6 +5861,8 @@ expand_builtin (tree exp, rtx target, rtx subtarget, enum machine_mode mode,
       return expand_builtin_va_copy (exp);
     case BUILT_IN_EXPECT:
       return expand_builtin_expect (exp, target);
+    case BUILT_IN_ASSUME_ALIGNED:
+      return expand_builtin_assume_aligned (exp, target);
     case BUILT_IN_PREFETCH:
       expand_builtin_prefetch (exp);
       return const0_rtx;
@@ -13461,6 +13501,7 @@ is_simple_builtin (tree decl)
       case BUILT_IN_OBJECT_SIZE:
       case BUILT_IN_UNREACHABLE:
 	/* Simple register moves or loads from stack.  */
+      case BUILT_IN_ASSUME_ALIGNED:
       case BUILT_IN_RETURN_ADDRESS:
       case BUILT_IN_EXTRACT_RETURN_ADDR:
       case BUILT_IN_FROB_RETURN_ADDR:

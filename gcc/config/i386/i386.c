@@ -55,7 +55,6 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "cselib.h"
 #include "debug.h"
-#include "dwarf2out.h"
 #include "sched-int.h"
 #include "sbitmap.h"
 #include "fibheap.h"
@@ -1847,10 +1846,6 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   m_486 | m_PENT | m_ATOM | m_PPRO | m_AMD_MULTIPLE | m_K6
   | m_CORE2I7 | m_GENERIC,
 
-  /* X86_TUNE_DEEP_BRANCH_PREDICTION */
-  m_ATOM | m_PPRO | m_K6_GEODE | m_AMD_MULTIPLE | m_PENT4
-  | m_CORE2I7 | m_GENERIC,
-
   /* X86_TUNE_BRANCH_PREDICTION_HINTS: Branch hints were put in P4 based
      on simulation result. But after P4 was made, no performance benefit
      was observed with branch hints.  It also increases the code size.
@@ -2089,7 +2084,11 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   /* X86_SOFTARE_PREFETCHING_BENEFICIAL: Enable software prefetching
      at -O3.  For the moment, the prefetching seems badly tuned for Intel
      chips.  */
-  m_K6_GEODE | m_AMD_MULTIPLE
+  m_K6_GEODE | m_AMD_MULTIPLE,
+
+  /* X86_TUNE_AVX128_OPTIMAL: Enable 128-bit AVX instruction generation for
+     the auto-vectorizer.  */
+  m_BDVER1
 };
 
 /* Feature tests against the various architecture variations.  */
@@ -2623,6 +2622,7 @@ ix86_target_string (int isa, int flags, const char *arch, const char *tune,
     { "-mvzeroupper",			MASK_VZEROUPPER },
     { "-mavx256-split-unaligned-load",	MASK_AVX256_SPLIT_UNALIGNED_LOAD},
     { "-mavx256-split-unaligned-store",	MASK_AVX256_SPLIT_UNALIGNED_STORE},
+    { "-mprefer-avx128",		MASK_PREFER_AVX128},
   };
 
   const char *opts[ARRAY_SIZE (isa_opts) + ARRAY_SIZE (flag_opts) + 6][2];
@@ -3681,6 +3681,9 @@ ix86_option_override_internal (bool main_args_p)
 	  if ((x86_avx256_split_unaligned_store & ix86_tune_mask)
 	      && !(target_flags_explicit & MASK_AVX256_SPLIT_UNALIGNED_STORE))
 	    target_flags |= MASK_AVX256_SPLIT_UNALIGNED_STORE;
+	  /* Enable 128-bit AVX instruction generation for the auto-vectorizer.  */
+	  if (TARGET_AVX128_OPTIMAL && !(target_flags_explicit & MASK_PREFER_AVX128))
+	    target_flags |= MASK_PREFER_AVX128;
 	}
     }
   else 
@@ -8349,31 +8352,11 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
 
   xops[1] = gen_rtx_SYMBOL_REF (Pmode, GOT_SYMBOL_NAME);
 
-  if (! TARGET_DEEP_BRANCH_PREDICTION || !flag_pic)
+  if (!flag_pic)
     {
       xops[2] = gen_rtx_LABEL_REF (Pmode, label ? label : gen_label_rtx ());
 
-      if (!flag_pic)
-	output_asm_insn ("mov%z0\t{%2, %0|%0, %2}", xops);
-      else
-	{
-	  output_asm_insn ("call\t%a2", xops);
-#ifdef DWARF2_UNWIND_INFO
-	  /* The call to next label acts as a push.  */
-	  if (dwarf2out_do_frame ())
-	    {
-	      rtx insn;
-	      start_sequence ();
-	      insn = emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-					     gen_rtx_PLUS (Pmode,
-							   stack_pointer_rtx,
-							   GEN_INT (-4))));
-	      RTX_FRAME_RELATED_P (insn) = 1;
-	      dwarf2out_frame_debug (insn, true);
-	      end_sequence ();
-	    }
-#endif
-	}
+      output_asm_insn ("mov%z0\t{%2, %0|%0, %2}", xops);
 
 #if TARGET_MACHO
       /* Output the Mach-O "canonical" label name ("Lxx$pb") here too.  This
@@ -8384,29 +8367,6 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
 
       targetm.asm_out.internal_label (asm_out_file, "L",
 				      CODE_LABEL_NUMBER (XEXP (xops[2], 0)));
-
-      if (flag_pic)
-	{
-	  output_asm_insn ("pop%z0\t%0", xops);
-#ifdef DWARF2_UNWIND_INFO
-	  /* The pop is a pop and clobbers dest, but doesn't restore it
-	     for unwind info purposes.  */
-	  if (dwarf2out_do_frame ())
-	    {
-	      rtx insn;
-	      start_sequence ();
-	      insn = emit_insn (gen_rtx_SET (VOIDmode, dest, const0_rtx));
-	      dwarf2out_frame_debug (insn, true);
-	      insn = emit_insn (gen_rtx_SET (VOIDmode, stack_pointer_rtx,
-					     gen_rtx_PLUS (Pmode,
-							   stack_pointer_rtx,
-							   GEN_INT (4))));
-	      RTX_FRAME_RELATED_P (insn) = 1;
-	      dwarf2out_frame_debug (insn, true);
-	      end_sequence ();
-	    }
-#endif
-	}
     }
   else
     {
@@ -8414,12 +8374,6 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
       get_pc_thunk_name (name, REGNO (dest));
       pic_labels_used |= 1 << REGNO (dest);
 
-#ifdef DWARF2_UNWIND_INFO
-      /* Ensure all queued register saves are flushed before the
-	 call.  */
-      if (dwarf2out_do_frame ())
-	dwarf2out_flush_queued_reg_saves ();
-#endif
       xops[2] = gen_rtx_SYMBOL_REF (Pmode, ggc_strdup (name));
       xops[2] = gen_rtx_MEM (QImode, xops[2]);
       output_asm_insn ("call\t%X2", xops);
@@ -8434,13 +8388,8 @@ output_set_got (rtx dest, rtx label ATTRIBUTE_UNUSED)
 #endif
     }
 
-  if (TARGET_MACHO)
-    return "";
-
-  if (!flag_pic || TARGET_DEEP_BRANCH_PREDICTION)
+  if (!TARGET_MACHO)
     output_asm_insn ("add%z0\t{%1, %0|%0, %1}", xops);
-  else
-    output_asm_insn ("add%z0\t{%1+[.-%a2], %0|%0, %1+(.-%a2)}", xops);
 
   return "";
 }
@@ -10164,7 +10113,11 @@ ix86_expand_prologue (void)
             insn = emit_insn (gen_set_got_rex64 (pic_offset_table_rtx));
 	}
       else
-        insn = emit_insn (gen_set_got (pic_offset_table_rtx));
+	{
+          insn = emit_insn (gen_set_got (pic_offset_table_rtx));
+	  RTX_FRAME_RELATED_P (insn) = 1;
+	  add_reg_note (insn, REG_CFA_FLUSH_QUEUE, NULL_RTX);
+	}
     }
 
   /* In the pic_reg_used case, make sure that the got load isn't deleted
@@ -29288,12 +29241,7 @@ machopic_output_stub (FILE *file, const char *symb, const char *stub)
   if (MACHOPIC_ATT_STUB)
     switch_to_section (darwin_sections[machopic_picsymbol_stub3_section]);
   else if (MACHOPIC_PURE)
-    {
-      if (TARGET_DEEP_BRANCH_PREDICTION)
-	switch_to_section (darwin_sections[machopic_picsymbol_stub2_section]);
-      else
-    switch_to_section (darwin_sections[machopic_picsymbol_stub_section]);
-    }
+    switch_to_section (darwin_sections[machopic_picsymbol_stub2_section]);
   else
     switch_to_section (darwin_sections[machopic_symbol_stub_section]);
 
@@ -29307,19 +29255,11 @@ machopic_output_stub (FILE *file, const char *symb, const char *stub)
   else if (MACHOPIC_PURE)
     {
       /* PIC stub.  */
-      if (TARGET_DEEP_BRANCH_PREDICTION)
-	{
-	  /* 25-byte PIC stub using "CALL get_pc_thunk".  */
-	  rtx tmp = gen_rtx_REG (SImode, 2 /* ECX */);
-	  output_set_got (tmp, NULL_RTX);	/* "CALL ___<cpu>.get_pc_thunk.cx".  */
-	  fprintf (file, "LPC$%d:\tmovl\t%s-LPC$%d(%%ecx),%%ecx\n", label, lazy_ptr_name, label);
-	}
-      else
-	{
-	  /* 26-byte PIC stub using inline picbase: "CALL L42 ! L42: pop %eax".  */
-	  fprintf (file, "\tcall LPC$%d\nLPC$%d:\tpopl %%ecx\n", label, label);
-	  fprintf (file, "\tmovl %s-LPC$%d(%%ecx),%%ecx\n", lazy_ptr_name, label);
-	}
+      /* 25-byte PIC stub using "CALL get_pc_thunk".  */
+      rtx tmp = gen_rtx_REG (SImode, 2 /* ECX */);
+      output_set_got (tmp, NULL_RTX);	/* "CALL ___<cpu>.get_pc_thunk.cx".  */
+      fprintf (file, "LPC$%d:\tmovl\t%s-LPC$%d(%%ecx),%%ecx\n",
+	       label, lazy_ptr_name, label);
       fprintf (file, "\tjmp\t*%%ecx\n");
     }
   else
@@ -29348,13 +29288,8 @@ machopic_output_stub (FILE *file, const char *symb, const char *stub)
      compatibility with existing dylibs.  */
   if (MACHOPIC_PURE)
     {
-      /* PIC stubs.  */
-      if (TARGET_DEEP_BRANCH_PREDICTION)
-	/* 25-byte PIC stub using "CALL get_pc_thunk".  */
-	switch_to_section (darwin_sections[machopic_lazy_symbol_ptr2_section]);
-      else
-	/* 26-byte PIC stub using inline picbase: "CALL L42 ! L42: pop %ebx".  */
-  switch_to_section (darwin_sections[machopic_lazy_symbol_ptr_section]);
+      /* 25-byte PIC stub using "CALL get_pc_thunk".  */
+      switch_to_section (darwin_sections[machopic_lazy_symbol_ptr2_section]);
     }
   else
     /* 16-byte -mdynamic-no-pic stub.  */
@@ -34924,7 +34859,7 @@ ix86_preferred_simd_mode (enum machine_mode mode)
       return V2DImode;
 
     case SFmode:
-      if (TARGET_AVX && !flag_prefer_avx128)
+      if (TARGET_AVX && !TARGET_PREFER_AVX128)
 	return V8SFmode;
       else
 	return V4SFmode;
@@ -34932,7 +34867,7 @@ ix86_preferred_simd_mode (enum machine_mode mode)
     case DFmode:
       if (!TARGET_VECTORIZE_DOUBLE)
 	return word_mode;
-      else if (TARGET_AVX && !flag_prefer_avx128)
+      else if (TARGET_AVX && !TARGET_PREFER_AVX128)
 	return V4DFmode;
       else if (TARGET_SSE2)
 	return V2DFmode;
@@ -34949,7 +34884,7 @@ ix86_preferred_simd_mode (enum machine_mode mode)
 static unsigned int
 ix86_autovectorize_vector_sizes (void)
 {
-  return (TARGET_AVX && !flag_prefer_avx128) ? 32 | 16 : 0;
+  return (TARGET_AVX && !TARGET_PREFER_AVX128) ? 32 | 16 : 0;
 }
 
 /* Initialize the GCC target structure.  */

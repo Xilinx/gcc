@@ -1627,15 +1627,11 @@ set_nonzero_bits_and_sign_copies (rtx x, const_rtx set, void *data)
 	     ??? For 2.5, try to tighten up the MD files in this regard
 	     instead of this kludge.  */
 
-	  if (GET_MODE_BITSIZE (GET_MODE (x)) < BITS_PER_WORD
+	  if (GET_MODE_PRECISION (GET_MODE (x)) < BITS_PER_WORD
 	      && CONST_INT_P (src)
 	      && INTVAL (src) > 0
-	      && 0 != (UINTVAL (src)
-		       & ((unsigned HOST_WIDE_INT) 1
-			  << (GET_MODE_BITSIZE (GET_MODE (x)) - 1))))
-	    src = GEN_INT (UINTVAL (src)
-			   | ((unsigned HOST_WIDE_INT) (-1)
-			      << GET_MODE_BITSIZE (GET_MODE (x))));
+	      && val_signbit_known_set_p (GET_MODE (x), INTVAL (src)))
+	    src = GEN_INT (INTVAL (src) | ~GET_MODE_MASK (GET_MODE (x)));
 #endif
 
 	  /* Don't call nonzero_bits if it cannot change anything.  */
@@ -5681,12 +5677,17 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest,
 	{
 	  /* Try to simplify the expression further.  */
 	  rtx tor = simplify_gen_binary (IOR, mode, XEXP (x, 0), XEXP (x, 1));
-	  temp = combine_simplify_rtx (tor, mode, in_dest, 0);
+	  temp = combine_simplify_rtx (tor, VOIDmode, in_dest, 0);
 
 	  /* If we could, great.  If not, do not go ahead with the IOR
 	     replacement, since PLUS appears in many special purpose
 	     address arithmetic instructions.  */
-	  if (GET_CODE (temp) != CLOBBER && temp != tor)
+	  if (GET_CODE (temp) != CLOBBER
+	      && (GET_CODE (temp) != IOR
+		  || ((XEXP (temp, 0) != XEXP (x, 0)
+		       || XEXP (temp, 1) != XEXP (x, 1))
+		      && (XEXP (temp, 0) != XEXP (x, 1)
+			  || XEXP (temp, 1) != XEXP (x, 0)))))
 	    return temp;
 	}
       break;
@@ -5882,8 +5883,7 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest,
 	     going to test the sign bit.  */
 	  if (new_code == NE && GET_MODE_CLASS (mode) == MODE_INT
 	      && GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-	      && ((STORE_FLAG_VALUE & GET_MODE_MASK (mode))
-		  == (unsigned HOST_WIDE_INT) 1 << (GET_MODE_BITSIZE (mode) - 1))
+	      && val_signbit_p (mode, STORE_FLAG_VALUE)
 	      && op1 == const0_rtx
 	      && mode == GET_MODE (op0)
 	      && (i = exact_log2 (nonzero_bits (op0, mode))) >= 0)
@@ -5941,9 +5941,7 @@ combine_simplify_rtx (rtx x, enum machine_mode op0_mode, int in_dest,
       else if (SHIFT_COUNT_TRUNCATED && !REG_P (XEXP (x, 1)))
 	SUBST (XEXP (x, 1),
 	       force_to_mode (XEXP (x, 1), GET_MODE (XEXP (x, 1)),
-			      ((unsigned HOST_WIDE_INT) 1
-			       << exact_log2 (GET_MODE_BITSIZE (GET_MODE (x))))
-			      - 1,
+			      targetm.shift_truncation_mask (GET_MODE (x)),
 			      0));
       break;
 
@@ -6548,10 +6546,8 @@ simplify_set (rtx x)
       enum machine_mode inner_mode = GET_MODE (inner);
 
       /* Here we make sure that we don't have a sign bit on.  */
-      if (GET_MODE_BITSIZE (inner_mode) <= HOST_BITS_PER_WIDE_INT
-	  && (nonzero_bits (inner, inner_mode)
-	      < ((unsigned HOST_WIDE_INT) 1
-		 << (GET_MODE_BITSIZE (GET_MODE (src)) - 1))))
+      if (val_signbit_known_clear_p (GET_MODE (src),
+				     nonzero_bits (inner, inner_mode)))
 	{
 	  SUBST (SET_SRC (x), inner);
 	  src = SET_SRC (x);
@@ -7150,8 +7146,7 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
 	   && !MEM_P (inner)
 	   && (inner_mode == tmode
 	       || !REG_P (inner)
-	       || TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (tmode),
-					 GET_MODE_BITSIZE (inner_mode))
+	       || TRULY_NOOP_TRUNCATION_MODES_P (tmode, inner_mode)
 	       || reg_truncated_to_mode (tmode, inner))
 	   && (! in_dest
 	       || (REG_P (inner)
@@ -7420,8 +7415,8 @@ make_extraction (enum machine_mode mode, rtx inner, HOST_WIDE_INT pos,
       /* On the LHS, don't create paradoxical subregs implicitely truncating
 	 the register unless TRULY_NOOP_TRUNCATION.  */
       if (in_dest
-	  && !TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE (inner)),
-				     GET_MODE_BITSIZE (wanted_inner_mode)))
+	  && !TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (inner),
+					     wanted_inner_mode))
 	return NULL_RTX;
 
       if (GET_MODE (inner) != wanted_inner_mode
@@ -8057,8 +8052,7 @@ gen_lowpart_or_truncate (enum machine_mode mode, rtx x)
 {
   if (!CONST_INT_P (x)
       && GET_MODE_SIZE (mode) < GET_MODE_SIZE (GET_MODE (x))
-      && !TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (mode),
-				 GET_MODE_BITSIZE (GET_MODE (x)))
+      && !TRULY_NOOP_TRUNCATION_MODES_P (mode, GET_MODE (x))
       && !(REG_P (x) && reg_truncated_to_mode (mode, x)))
     {
       /* Bit-cast X into an integer mode.  */
@@ -8442,9 +8436,7 @@ force_to_mode (rtx x, enum machine_mode mode, unsigned HOST_WIDE_INT mask,
     case ASHIFTRT:
       /* If we are just looking for the sign bit, we don't need this shift at
 	 all, even if it has a variable count.  */
-      if (GET_MODE_BITSIZE (GET_MODE (x)) <= HOST_BITS_PER_WIDE_INT
-	  && (mask == ((unsigned HOST_WIDE_INT) 1
-		       << (GET_MODE_BITSIZE (GET_MODE (x)) - 1))))
+      if (val_signbit_p (GET_MODE (x), mask))
 	return force_to_mode (XEXP (x, 0), mode, mask, next_select);
 
       /* If this is a shift by a constant, get a mask that contains those bits
@@ -9274,9 +9266,8 @@ apply_distributive_law (rtx x)
 	  || GET_MODE_SIZE (GET_MODE (SUBREG_REG (lhs))) > UNITS_PER_WORD
 	  /* Result might need to be truncated.  Don't change mode if
 	     explicit truncation is needed.  */
-	  || !TRULY_NOOP_TRUNCATION
-	       (GET_MODE_BITSIZE (GET_MODE (x)),
-		GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (lhs)))))
+	  || !TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (x),
+					     GET_MODE (SUBREG_REG (lhs))))
 	return x;
 
       tem = simplify_gen_binary (code, GET_MODE (SUBREG_REG (lhs)),
@@ -9586,15 +9577,11 @@ reg_nonzero_bits_for_combine (const_rtx x, enum machine_mode mode,
 	 ??? For 2.5, try to tighten up the MD files in this regard
 	 instead of this kludge.  */
 
-      if (GET_MODE_BITSIZE (GET_MODE (x)) < GET_MODE_BITSIZE (mode)
+      if (GET_MODE_PRECISION (GET_MODE (x)) < GET_MODE_PRECISION (mode)
 	  && CONST_INT_P (tem)
 	  && INTVAL (tem) > 0
-	  && 0 != (UINTVAL (tem)
-		   & ((unsigned HOST_WIDE_INT) 1
-		      << (GET_MODE_BITSIZE (GET_MODE (x)) - 1))))
-	tem = GEN_INT (UINTVAL (tem)
-		       | ((unsigned HOST_WIDE_INT) (-1)
-			  << GET_MODE_BITSIZE (GET_MODE (x))));
+	  && val_signbit_known_set_p (GET_MODE (x), INTVAL (tem)))
+	tem = GEN_INT (INTVAL (tem) | ~GET_MODE_MASK (GET_MODE (x)));
 #endif
       return tem;
     }
@@ -9896,7 +9883,7 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
      want to do this inside the loop as it makes it more difficult to
      combine shifts.  */
   if (SHIFT_COUNT_TRUNCATED)
-    orig_count &= GET_MODE_BITSIZE (mode) - 1;
+    orig_count &= targetm.shift_truncation_mask (mode);
 
   /* If we were given an invalid count, don't do anything except exactly
      what was requested.  */
@@ -9984,11 +9971,9 @@ simplify_shift_const_1 (enum rtx_code code, enum machine_mode result_mode,
 	 ASHIFTRT to LSHIFTRT if we know the sign bit is clear.
 	 `make_compound_operation' will convert it to an ASHIFTRT for
 	 those machines (such as VAX) that don't have an LSHIFTRT.  */
-      if (GET_MODE_BITSIZE (shift_mode) <= HOST_BITS_PER_WIDE_INT
-	  && code == ASHIFTRT
-	  && ((nonzero_bits (varop, shift_mode)
-	       & ((unsigned HOST_WIDE_INT) 1
-		  << (GET_MODE_BITSIZE (shift_mode) - 1))) == 0))
+      if (code == ASHIFTRT
+	  && val_signbit_known_clear_p (shift_mode,
+					nonzero_bits (varop, shift_mode)))
 	code = LSHIFTRT;
 
       if (((code == LSHIFTRT
@@ -11421,10 +11406,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  mode = GET_MODE (XEXP (op0, 0));
 	  if (mode != VOIDmode && GET_MODE_CLASS (mode) == MODE_INT
 	      && ! unsigned_comparison_p
-	      && (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
-	      && ((unsigned HOST_WIDE_INT) const_op
-		  < (((unsigned HOST_WIDE_INT) 1
-		      << (GET_MODE_BITSIZE (mode) - 1))))
+	      && val_signbit_known_clear_p (mode, const_op)
 	      && have_insn_for (COMPARE, mode))
 	    {
 	      op0 = XEXP (op0, 0);
@@ -11611,11 +11593,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 	  /* Check for the cases where we simply want the result of the
 	     earlier test or the opposite of that result.  */
 	  if (code == NE || code == EQ
-	      || (GET_MODE_BITSIZE (GET_MODE (op0)) <= HOST_BITS_PER_WIDE_INT
-		  && GET_MODE_CLASS (GET_MODE (op0)) == MODE_INT
-		  && (STORE_FLAG_VALUE
-		      & (((unsigned HOST_WIDE_INT) 1
-			  << (GET_MODE_BITSIZE (GET_MODE (op0)) - 1))))
+	      || (val_signbit_known_set_p (GET_MODE (op0), STORE_FLAG_VALUE)
 		  && (code == LT || code == GE)))
 	    {
 	      enum rtx_code new_code;
@@ -11718,8 +11696,7 @@ simplify_comparison (enum rtx_code code, rtx *pop0, rtx *pop1)
 				  + 1)) >= 0
 	      && const_op >> i == 0
 	      && (tmode = mode_for_size (i, MODE_INT, 1)) != BLKmode
-	      && (TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (tmode),
-					 GET_MODE_BITSIZE (GET_MODE (op0)))
+	      && (TRULY_NOOP_TRUNCATION_MODES_P (tmode, GET_MODE (op0))
 		  || (REG_P (XEXP (op0, 0))
 		      && reg_truncated_to_mode (tmode, XEXP (op0, 0)))))
 	    {
@@ -12532,8 +12509,7 @@ reg_truncated_to_mode (enum machine_mode mode, const_rtx x)
     return false;
   if (GET_MODE_SIZE (truncated) <= GET_MODE_SIZE (mode))
     return true;
-  if (TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (mode),
-			     GET_MODE_BITSIZE (truncated)))
+  if (TRULY_NOOP_TRUNCATION_MODES_P (mode, truncated))
     return true;
   return false;
 }
@@ -12558,8 +12534,7 @@ record_truncated_value (rtx *p, void *data ATTRIBUTE_UNUSED)
       if (GET_MODE_SIZE (original_mode) <= GET_MODE_SIZE (truncated_mode))
 	return -1;
 
-      if (TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (truncated_mode),
-				 GET_MODE_BITSIZE (original_mode)))
+      if (TRULY_NOOP_TRUNCATION_MODES_P (truncated_mode, original_mode))
 	return -1;
 
       x = SUBREG_REG (x);

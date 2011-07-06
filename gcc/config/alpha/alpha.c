@@ -198,6 +198,8 @@ static rtx alpha_emit_xfloating_compare (enum rtx_code *, rtx, rtx);
 #if TARGET_ABI_OPEN_VMS
 static void alpha_write_linkage (FILE *, const char *, tree);
 static bool vms_valid_pointer_mode (enum machine_mode);
+#else
+#define vms_patch_builtins()  gcc_unreachable()
 #endif
 
 #ifdef TARGET_ALTERNATE_LONG_DOUBLE_MANGLING
@@ -6367,12 +6369,6 @@ alpha_init_builtins (void)
 
   dimode_integer_type_node = lang_hooks.types.type_for_mode (DImode, 0);
 
-  /* Fwrite on VMS is non-standard.  */
-#if TARGET_ABI_OPEN_VMS
-  implicit_built_in_decls[(int) BUILT_IN_FWRITE] = NULL_TREE;
-  implicit_built_in_decls[(int) BUILT_IN_FWRITE_UNLOCKED] = NULL_TREE;
-#endif
-
   ftype = build_function_type_list (dimode_integer_type_node, NULL_TREE);
   alpha_add_builtins (zero_arg_builtins, ARRAY_SIZE (zero_arg_builtins),
 		      ftype);
@@ -6409,6 +6405,8 @@ alpha_init_builtins (void)
 					NULL_TREE);
       alpha_builtin_function ("__builtin_revert_vms_condition_handler", ftype,
 			      ALPHA_BUILTIN_REVERT_VMS_CONDITION_HANDLER, 0);
+
+      vms_patch_builtins ();
     }
 
   alpha_v8qi_u = build_vector_type (unsigned_intQI_type_node, 8);
@@ -8159,7 +8157,8 @@ alpha_end_function (FILE *file, const char *fnname, tree decl ATTRIBUTE_UNUSED)
 #endif
 
   /* End the function.  */
-  if (!flag_inhibit_size_directive)
+  if (TARGET_ABI_OPEN_VMS
+      || !flag_inhibit_size_directive)
     {
       fputs ("\t.end ", file);
       assemble_name (file, fnname);
@@ -8167,15 +8166,6 @@ alpha_end_function (FILE *file, const char *fnname, tree decl ATTRIBUTE_UNUSED)
     }
   inside_function = FALSE;
 }
-
-#if TARGET_ABI_OPEN_VMS
-void avms_asm_output_external (FILE *file, tree decl ATTRIBUTE_UNUSED, const char *name)
-{
-#ifdef DO_CRTL_NAMES
-  DO_CRTL_NAMES;
-#endif
-}
-#endif
 
 #if TARGET_ABI_OSF
 /* Emit a tail call to FUNCTION after adjusting THIS by DELTA.

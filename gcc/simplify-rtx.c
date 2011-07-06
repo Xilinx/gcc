@@ -1,7 +1,7 @@
 /* RTL simplification functions for GNU compiler.
    Copyright (C) 1987, 1988, 1989, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
-   Free Software Foundation, Inc.
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011  Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -82,7 +82,7 @@ mode_signbit_p (enum machine_mode mode, const_rtx x)
   if (GET_MODE_CLASS (mode) != MODE_INT)
     return false;
 
-  width = GET_MODE_BITSIZE (mode);
+  width = GET_MODE_PRECISION (mode);
   if (width == 0)
     return false;
 
@@ -102,6 +102,62 @@ mode_signbit_p (enum machine_mode mode, const_rtx x)
   if (width < HOST_BITS_PER_WIDE_INT)
     val &= ((unsigned HOST_WIDE_INT) 1 << width) - 1;
   return val == ((unsigned HOST_WIDE_INT) 1 << (width - 1));
+}
+
+/* Test whether VAL is equal to the most significant bit of mode MODE
+   (after masking with the mode mask of MODE).  Returns false if the
+   precision of MODE is too large to handle.  */
+
+bool
+val_signbit_p (enum machine_mode mode, unsigned HOST_WIDE_INT val)
+{
+  unsigned int width;
+
+  if (GET_MODE_CLASS (mode) != MODE_INT)
+    return false;
+
+  width = GET_MODE_PRECISION (mode);
+  if (width == 0 || width > HOST_BITS_PER_WIDE_INT)
+    return false;
+
+  val &= GET_MODE_MASK (mode);
+  return val == ((unsigned HOST_WIDE_INT) 1 << (width - 1));
+}
+
+/* Test whether the most significant bit of mode MODE is set in VAL.
+   Returns false if the precision of MODE is too large to handle.  */
+bool
+val_signbit_known_set_p (enum machine_mode mode, unsigned HOST_WIDE_INT val)
+{
+  unsigned int width;
+
+  if (GET_MODE_CLASS (mode) != MODE_INT)
+    return false;
+
+  width = GET_MODE_PRECISION (mode);
+  if (width == 0 || width > HOST_BITS_PER_WIDE_INT)
+    return false;
+
+  val &= (unsigned HOST_WIDE_INT) 1 << (width - 1);
+  return val != 0;
+}
+
+/* Test whether the most significant bit of mode MODE is clear in VAL.
+   Returns false if the precision of MODE is too large to handle.  */
+bool
+val_signbit_known_clear_p (enum machine_mode mode, unsigned HOST_WIDE_INT val)
+{
+  unsigned int width;
+
+  if (GET_MODE_CLASS (mode) != MODE_INT)
+    return false;
+
+  width = GET_MODE_PRECISION (mode);
+  if (width == 0 || width > HOST_BITS_PER_WIDE_INT)
+    return false;
+
+  val &= (unsigned HOST_WIDE_INT) 1 << (width - 1);
+  return val == 0;
 }
 
 /* Make a binary operation by properly ordering the operands and
@@ -686,13 +742,13 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 	  return simplify_gen_binary (MINUS, mode, temp, XEXP (op, 1));
 	}
 
-      /* (neg (mult A B)) becomes (mult (neg A) B).
+      /* (neg (mult A B)) becomes (mult A (neg B)).
 	 This works even for floating-point values.  */
       if (GET_CODE (op) == MULT
 	  && !HONOR_SIGN_DEPENDENT_ROUNDING (mode))
 	{
-	  temp = simplify_gen_unary (NEG, mode, XEXP (op, 0), mode);
-	  return simplify_gen_binary (MULT, mode, temp, XEXP (op, 1));
+	  temp = simplify_gen_unary (NEG, mode, XEXP (op, 1), mode);
+	  return simplify_gen_binary (MULT, mode, XEXP (op, 0), temp);
 	}
 
       /* NEG commutes with ASHIFT since it is multiplication.  Only do
@@ -796,8 +852,7 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
          truncation.  But don't do this for an (LSHIFTRT (MULT ...))
          since this will cause problems with the umulXi3_highpart
          patterns.  */
-      if ((TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (mode),
-				 GET_MODE_BITSIZE (GET_MODE (op)))
+      if ((TRULY_NOOP_TRUNCATION_MODES_P (mode, GET_MODE (op))
 	   ? (num_sign_bit_copies (op, GET_MODE (op))
 	      > (unsigned int) (GET_MODE_BITSIZE (GET_MODE (op))
 				- GET_MODE_BITSIZE (mode)))
@@ -908,12 +963,8 @@ simplify_unary_operation_1 (enum rtx_code code, enum machine_mode mode, rtx op)
 
       /* If operand is something known to be positive, ignore the ABS.  */
       if (GET_CODE (op) == FFS || GET_CODE (op) == ABS
-	  || ((GET_MODE_BITSIZE (GET_MODE (op))
-	       <= HOST_BITS_PER_WIDE_INT)
-	      && ((nonzero_bits (op, GET_MODE (op))
-		   & ((unsigned HOST_WIDE_INT) 1
-		      << (GET_MODE_BITSIZE (GET_MODE (op)) - 1)))
-		  == 0)))
+	  || val_signbit_known_clear_p (GET_MODE (op),
+					nonzero_bits (op, GET_MODE (op))))
 	return op;
 
       /* If operand is known to be only -1 or 0, convert ABS to NEG.  */
@@ -1425,8 +1476,7 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	      val = arg0;
 	    }
 	  else if (GET_MODE_BITSIZE (op_mode) < HOST_BITS_PER_WIDE_INT)
-	    val = arg0 & ~((unsigned HOST_WIDE_INT) (-1)
-			   << GET_MODE_BITSIZE (op_mode));
+	    val = arg0 & GET_MODE_MASK (op_mode);
 	  else
 	    return 0;
 	  break;
@@ -1444,13 +1494,9 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	    }
 	  else if (GET_MODE_BITSIZE (op_mode) < HOST_BITS_PER_WIDE_INT)
 	    {
-	      val
-		= arg0 & ~((unsigned HOST_WIDE_INT) (-1)
-			   << GET_MODE_BITSIZE (op_mode));
-	      if (val & ((unsigned HOST_WIDE_INT) 1
-			 << (GET_MODE_BITSIZE (op_mode) - 1)))
-		val
-		  -= (unsigned HOST_WIDE_INT) 1 << GET_MODE_BITSIZE (op_mode);
+	      val = arg0 & GET_MODE_MASK (op_mode);
+	      if (val_signbit_known_set_p (op_mode, val))
+		val |= ~GET_MODE_MASK (op_mode);
 	    }
 	  else
 	    return 0;
@@ -1602,10 +1648,8 @@ simplify_const_unary_operation (enum rtx_code code, enum machine_mode mode,
 	  else
 	    {
 	      lv = l1 & GET_MODE_MASK (op_mode);
-	      if (GET_MODE_BITSIZE (op_mode) < HOST_BITS_PER_WIDE_INT
-		  && (lv & ((unsigned HOST_WIDE_INT) 1
-			    << (GET_MODE_BITSIZE (op_mode) - 1))) != 0)
-		lv -= (unsigned HOST_WIDE_INT) 1 << GET_MODE_BITSIZE (op_mode);
+	      if (val_signbit_known_set_p (op_mode, lv))
+		lv |= ~GET_MODE_MASK (op_mode);
 
 	      hv = HWI_SIGN_EXTEND (lv);
 	    }
@@ -2271,12 +2315,34 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
       if (GET_CODE (op0) == NEG)
 	{
 	  rtx temp = simplify_unary_operation (NEG, mode, op1, mode);
+	  /* If op1 is a MULT as well and simplify_unary_operation
+	     just moved the NEG to the second operand, simplify_gen_binary
+	     below could through simplify_associative_operation move
+	     the NEG around again and recurse endlessly.  */
+	  if (temp
+	      && GET_CODE (op1) == MULT
+	      && GET_CODE (temp) == MULT
+	      && XEXP (op1, 0) == XEXP (temp, 0)
+	      && GET_CODE (XEXP (temp, 1)) == NEG
+	      && XEXP (op1, 1) == XEXP (XEXP (temp, 1), 0))
+	    temp = NULL_RTX;
 	  if (temp)
 	    return simplify_gen_binary (MULT, mode, XEXP (op0, 0), temp);
 	}
       if (GET_CODE (op1) == NEG)
 	{
 	  rtx temp = simplify_unary_operation (NEG, mode, op0, mode);
+	  /* If op0 is a MULT as well and simplify_unary_operation
+	     just moved the NEG to the second operand, simplify_gen_binary
+	     below could through simplify_associative_operation move
+	     the NEG around again and recurse endlessly.  */
+	  if (temp
+	      && GET_CODE (op0) == MULT
+	      && GET_CODE (temp) == MULT
+	      && XEXP (op0, 0) == XEXP (temp, 0)
+	      && GET_CODE (XEXP (temp, 1)) == NEG
+	      && XEXP (op0, 1) == XEXP (XEXP (temp, 1), 0))
+	    temp = NULL_RTX;
 	  if (temp)
 	    return simplify_gen_binary (MULT, mode, temp, XEXP (op1, 0));
 	}
@@ -2641,9 +2707,7 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 
       /* (xor (comparison foo bar) (const_int sign-bit))
 	 when STORE_FLAG_VALUE is the sign bit.  */
-      if (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-	  && ((STORE_FLAG_VALUE & GET_MODE_MASK (mode))
-	      == (unsigned HOST_WIDE_INT) 1 << (GET_MODE_BITSIZE (mode) - 1))
+      if (val_signbit_p (mode, STORE_FLAG_VALUE)
 	  && trueop1 == const_true_rtx
 	  && COMPARISON_P (op0)
 	  && (reversed = reversed_comparison (op0, mode)))
@@ -3006,8 +3070,7 @@ simplify_binary_operation_1 (enum rtx_code code, enum machine_mode mode,
 
     case SMIN:
       if (width <= HOST_BITS_PER_WIDE_INT
-	  && CONST_INT_P (trueop1)
-	  && UINTVAL (trueop1) == (unsigned HOST_WIDE_INT) 1 << (width -1)
+	  && mode_signbit_p (mode, trueop1)
 	  && ! side_effects_p (op0))
 	return op1;
       if (rtx_equal_p (trueop0, trueop1) && ! side_effects_p (op0))
@@ -3612,16 +3675,16 @@ simplify_const_binary_operation (enum rtx_code code, enum machine_mode mode,
 
       if (width < HOST_BITS_PER_WIDE_INT)
         {
-          arg0 &= ((unsigned HOST_WIDE_INT) 1 << width) - 1;
-          arg1 &= ((unsigned HOST_WIDE_INT) 1 << width) - 1;
+          arg0 &= GET_MODE_MASK (mode);
+          arg1 &= GET_MODE_MASK (mode);
 
           arg0s = arg0;
-          if (arg0s & ((unsigned HOST_WIDE_INT) 1 << (width - 1)))
-	    arg0s |= ((unsigned HOST_WIDE_INT) (-1) << width);
+	  if (val_signbit_known_set_p (mode, arg0s))
+	    arg0s |= ~GET_MODE_MASK (mode);
 
-	  arg1s = arg1;
-	  if (arg1s & ((unsigned HOST_WIDE_INT) 1 << (width - 1)))
-	    arg1s |= ((unsigned HOST_WIDE_INT) (-1) << width);
+          arg1s = arg1;
+	  if (val_signbit_known_set_p (mode, arg1s))
+	    arg1s |= ~GET_MODE_MASK (mode);
 	}
       else
 	{
@@ -3704,8 +3767,8 @@ simplify_const_binary_operation (enum rtx_code code, enum machine_mode mode,
 	     shift_truncation_mask, since the shift might not be part of an
 	     ashlM3, lshrM3 or ashrM3 instruction.  */
 	  if (SHIFT_COUNT_TRUNCATED)
-	    arg1 = (unsigned HOST_WIDE_INT) arg1 % width;
-	  else if (arg1 < 0 || arg1 >= GET_MODE_BITSIZE (mode))
+	    arg1 &= targetm.shift_truncation_mask (mode);
+	  else if (arg1 < 0 || arg1 >= GET_MODE_PRECISION (mode))
 	    return 0;
 
 	  val = (code == ASHIFT
@@ -4594,14 +4657,14 @@ simplify_const_relational_operation (enum rtx_code code,
 	 we have to sign or zero-extend the values.  */
       if (width != 0 && width < HOST_BITS_PER_WIDE_INT)
 	{
-	  l0u &= ((unsigned HOST_WIDE_INT) 1 << width) - 1;
-	  l1u &= ((unsigned HOST_WIDE_INT) 1 << width) - 1;
+	  l0u &= GET_MODE_MASK (mode);
+	  l1u &= GET_MODE_MASK (mode);
 
-	  if (l0s & ((unsigned HOST_WIDE_INT) 1 << (width - 1)))
-	    l0s |= ((unsigned HOST_WIDE_INT) (-1) << width);
+	  if (val_signbit_known_set_p (mode, l0s))
+	    l0s |= ~GET_MODE_MASK (mode);
 
-	  if (l1s & ((unsigned HOST_WIDE_INT) 1 << (width - 1)))
-	    l1s |= ((unsigned HOST_WIDE_INT) (-1) << width);
+	  if (val_signbit_known_set_p (mode, l1s))
+	    l1s |= ~GET_MODE_MASK (mode);
 	}
       if (width != 0 && width <= HOST_BITS_PER_WIDE_INT)
 	h0u = h1u = 0, h0s = HWI_SIGN_EXTEND (l0s), h1s = HWI_SIGN_EXTEND (l1s);
@@ -4905,15 +4968,6 @@ simplify_ternary_operation (enum rtx_code code, enum machine_mode mode,
 		     != 0)
 		val |= ~ (((unsigned HOST_WIDE_INT) 1 << INTVAL (op1)) - 1);
 	    }
-
-	  /* Clear the bits that don't belong in our mode,
-	     unless they and our sign bit are all one.
-	     So we get either a reasonable negative value or a reasonable
-	     unsigned value for this mode.  */
-	  if (width < HOST_BITS_PER_WIDE_INT
-	      && ((val & ((unsigned HOST_WIDE_INT) (-1) << (width - 1)))
-		  != ((unsigned HOST_WIDE_INT) (-1) << (width - 1))))
-	    val &= ((unsigned HOST_WIDE_INT) 1 << width) - 1;
 
 	  return gen_int_mode (val, mode);
 	}
