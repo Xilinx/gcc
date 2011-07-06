@@ -1,3 +1,8 @@
+2011-07-05  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* tree-ssa-address.c (addr_for_mem_ref): Use
+	targetm.addr_space.address_mode.
+
 2011-06-30  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* function.c (expand_function_start): Use proper mode for stack
