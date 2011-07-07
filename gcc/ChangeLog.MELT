@@ -1,6 +1,14 @@
 
 2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (compile_gencsrc_to_binmodule): Gives a fatal
+	error if the make command failed.
+
+	* melt-runtime.h (melt_dbgtracefile): Remove.
+	(melt_trace_start, melt_trace_end): Dummy macros.
+
+2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.h (melt_gcc_version): New declaration.
 
 	* melt-runtime.c (melt_gcc_version): New definition.

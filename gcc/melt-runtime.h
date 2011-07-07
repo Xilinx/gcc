@@ -2523,7 +2523,8 @@ extern melt_ptr_t melt_jmpval;
 #endif
 
 /* declare the current callframe */
-#if MELT_HAVE_DEBUG
+#if MELT_HAVE_DEBUG>0
+
 #define MELT_DECLFRAME(NBVAR) struct {		\
   int mcfr_nbvar;				\
   const char* mcfr_flocs;			\
@@ -2564,7 +2565,9 @@ extern melt_ptr_t melt_jmpval;
 #define MELT_LOCATION_HERE_MACRO(MSG)  \
   MELT_LOCATION_HERE_AT_MACRO(__FILE__,__LINE__,MSG)
 #define MELT_LOCATION_HERE(MSG)  MELT_LOCATION_HERE_MACRO(MSG)
+
 #else /*!MELT_HAVE_DEBUG*/
+
 #define MELT_DECLFRAME(NBVAR) struct {		\
   int mcfr_nbvar;				\
   struct meltclosure_st* mcfr_clos;		\
@@ -2582,7 +2585,8 @@ extern melt_ptr_t melt_jmpval;
   meltfram__.mcfr_clos = (CLOS);					\
   melt_topframe = ((void*)&meltfram__);					\
 } while(0)
-#endif
+
+#endif /*!MELT_HAVE_DEBUG*/
 
 
 /* declare and initialize the current callframe */
@@ -2775,7 +2779,7 @@ void melt_dbgshortbacktrace(const char* msg, int maxdepth);
 #if ENABLE_CHECKING
 extern void* melt_checkedp_ptr1;
 extern void* melt_checkedp_ptr2;
-extern FILE* melt_dbgtracefile;
+
 void melt_caught_assign_at(void*ptr, const char*fil, int lin, const char*msg);
 #define melt_checked_assignmsg_at(Assign,Fil,Lin,Msg) ({		\
       void* p_##Lin = (Assign);						\
@@ -2788,10 +2792,8 @@ void melt_caught_assign_at(void*ptr, const char*fil, int lin, const char*msg);
 #define melt_checked_assignmsg(Assign,Msg) melt_checked_assignmsg_at((Assign),__FILE__,__LINE__,Msg)
 void melt_cbreak_at(const char*msg, const char*fil, int lin);
 #define melt_cbreak(Msg) melt_cbreak_at((Msg),__FILE__,__LINE__)
-#define melt_trace_start(Msg,Cnt) do {if (melt_dbgtracefile) \
-   fprintf(melt_dbgtracefile, "+%s %ld\n", Msg, (long)(Cnt));} while(0)
-#define melt_trace_end(Msg,Cnt) do {if (melt_dbgtracefile) \
-   fprintf(melt_dbgtracefile, "-%s %ld\n", Msg, (long)(Cnt));} while(0)
+#define melt_trace_start(Msg,Cnt) do {} while(0)
+#define melt_trace_end(Msg,Cnt) do {} while(0)
 #else
 #define melt_checked_assign(Assign) Assign
 #define melt_checked_assignmsg(Assign,Msg) Assign

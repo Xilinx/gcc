@@ -5114,6 +5114,16 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
       melt_fatal_error
 	("failed to get time of melt dynamic compilation to dyl:  %s %s %s - %m",
 	 ourmakecommand, srcfile, fullbinfile);
+    if (cstatus) 
+      melt_fatal_error
+	("MELT failed (%s %d) to compile using %s, source %s, binary %s, target %s",
+	 WIFEXITED (cstatus)?"exit"
+	 : WIFSIGNALED(cstatus)? "got signal"
+	 : WIFSTOPPED(cstatus)?"stopped"
+	 : "crashed",
+	 WIFEXITED (cstatus) ? WEXITSTATUS(cstatus)
+	 : WIFSIGNALED(cstatus) ? WTERMSIG(cstatus)
+	 : cstatus, ourmakecommand, srcfile, fullbinfile, maketarget);
     pex_free (pex);
     myusrtime = (double) ptime.user_seconds
       + 1.0e-6*ptime.user_microseconds;
