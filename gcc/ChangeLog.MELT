@@ -1,6 +1,13 @@
 
 2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* Makefile.in (gtyp-real-meltplugin-input.list): Remove.
+	(gt-melt-runtime-plugin.h, REALGTMELTPLUGINFILES): Remove
+
+	* melt/generated/gt-melt-runtime-plugin.h: Remove file.
+
+2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (compile_gencsrc_to_binmodule): Gives a fatal
 	error if the make command failed.
 

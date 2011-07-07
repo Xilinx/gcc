@@ -3930,7 +3930,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
 ## automount-ed file systems).  This could be useful in plugin mode of
 ## gengtype.
 REALGTFILES = $(foreach f, $(GTFILES), $(if $(patsubst [%],,$f), $(realpath $f), $f))
-REALGTMELTPLUGINFILES = $(foreach f, $(filter-out $(MELT_RUNTIME_C) $(MELT_H) %melt-%.h %melt-%.c, $(GTFILES)), $(if $(patsubst [%],,$f), $(realpath $f), $f))
+
 
 # Compute the list of GT header files from the corresponding C sources,
 # possibly nested within config or language subdirectories.  Match gengtype's
@@ -3961,14 +3961,12 @@ $(ALL_GTFILES_H) gtype-desc.c gtype-desc.h : s-gtype ; @true
 ### Common flags to gengtype [e.g. -v or -B backupdir]
 GENGTYPE_FLAGS= -v
 
-gtyp-input.list gtyp-real-input.list gtyp-real-meltplugin-input.list: s-gtyp-input ; @true
+gtyp-input.list gtyp-real-input.list: s-gtyp-input ; @true
 s-gtyp-input: Makefile
 	@: $(call write_entries_to_file,$(GTFILES),tmp-gi.list)
 	$(SHELL) $(srcdir)/../move-if-change tmp-gi.list gtyp-input.list
 	@: $(call write_entries_to_file,$(REALGTFILES),tmp-realgi.list)
 	$(SHELL) $(srcdir)/../move-if-change tmp-realgi.list gtyp-real-input.list
-	@: $(call write_entries_to_file,$(REALGTMELTPLUGINFILES),tmp-realmeltgi.list)
-	$(SHELL) $(srcdir)/../move-if-change tmp-realmeltgi.list gtyp-real-meltplugin-input.list
 	$(STAMP) s-gtyp-input
 
 s-gtype: build/gengtype$(build_exeext) $(filter-out [%], $(GTFILES)) \
@@ -5507,31 +5505,8 @@ install-melt-default-modules-list: $(melt_default_modules_list).modlis
 #### explicitly given
 .PHONY: upgrade-warmelt upgrade-bigmelt
 
-#### generate gt-melt-runtime-plugin.h for ease of building MELT as a
-#### plugin.  gt-melt-runtime-plugin.h could be manually copied as the
-#### gt-melt-runtime.h file in plugin mode to avoid running gengtype
-#### in plugin mode, since gengtype requires both source and build
-#### tree of the GCC into which the plugin is made, which is a
-#### nuisance to e.g. distribution packagers. Having a dependency on
-#### the *build* tree is not common and painful .... See threads
-#### http://gcc.gnu.org/ml/gcc/2010-03/msg00129.html
-#### http://lists.debian.org/debian-gcc/2010/03/msg00047.html.
-#### this file is useless, except for packaging GCC MELT as a plugin for gcc
-#### Since 4.6 trunk december 2010, the gengtype utility is able to save its state.
-gt-melt-runtime-plugin.h: $(srcdir)/melt-runtime.c \
-    $(MELT_H) \
-    gtyp-real-meltplugin-input.list  build/gengtype$(build_exeext)
-	rm -f $@
-	$(RUN_GEN) build/gengtype$(build_exeext) -v -S $(srcdir) -I gtyp-real-meltplugin-input.list -w gtype-no-melt.state  
-	$(RUN_GEN) build/gengtype$(build_exeext) -v -r gtype-no-melt.state -P $@  $(srcdir)/melt-runtime.h $(srcdir)/melt/generated/meltrunsup.h $(srcdir)/melt-runtime.c
-# we add a comment containing various meta-information. 
-	date +"/* $@ file generated %c%n" >> $@
-	if [ -f REVISION ]; then (echo -n "GCC revision: " ; cat REVISION) >> $@ ; fi
-	if [ -f DATESTAMP ]; then (echo -n "GCC date stamp: " ; cat DATESTAMP) >> $@ ; fi
-	(cd $(srcdir); md5sum melt-runtime.h melt-runtime.c) >> $@
-	echo "*/" >> $@
 
-upgrade-warmelt: gtyp-real-meltplugin-input.list 
+upgrade-warmelt:  
 	$(MAKE) Makefile $(melt_default_modules_list).modlis
 #it is important to call the warmelt-upgrade-translator before the
 #meltrun-generate
@@ -5543,9 +5518,7 @@ upgrade-warmelt: gtyp-real-meltplugin-input.list
           $(SHELL) $(srcdir)/../move-if-change $$f-tmp $(srcdir)/melt/generated/$$f; \
         done
 	$(RM) melt-runtime.o s-gtype */warmelt*.o
-	$(MAKE) s-gtype gt-melt-runtime-plugin.h
-## copy gt-melt-runtime-plugin.h
-	cp gt-melt-runtime-plugin.h $(srcdir)/melt/generated/
+	$(MAKE) s-gtype
 ## rebuild warmelt1 to be sure
 	@echo upgrade-warmelt rebuilding warmelt1
 	$(MAKE)  warmelt1
