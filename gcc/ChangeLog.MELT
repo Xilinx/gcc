@@ -1,5 +1,19 @@
 
 2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (struct melt_callframe_st): Add forward
+	declaration.
+
+	* melt-module.mk
+	(MELTMODULE_QUICKLY,MELTMODULE_OBJQUIPICFILES)
+	(melt_module_quickly,%.quipic.o): New for quick compilation.
+
+	* melt/warmelt-base.melt (generate_quickly_melt_module)
+	(load_quickly_melt_module): New primitives.
+
+	* melt/warmelt-outobj.melt (translatequickly_docmd): New
+	translatequickly mode. runfile_docmd uses quick compilation.
+
+2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.

@@ -4147,8 +4147,9 @@
 (definstance translatetomodule_mode
   class_melt_mode
   :named_name '"translatetomodule"
-  :meltmode_help '"translate a .melt file to .so module;\n
-\t ARGUMENT= input file; OUTPUT= generated module *.so"
+  :meltmode_help '"translate a .melt file to .so module;\n \t
+ARGUMENT= input file; OUTPUT= generated module *.so; no debugging is
+enabled (no gdb, no debug_msg...)"
   :meltmode_fun translatetomodule_docmd
 )
 (install_melt_mode translatetomodule_mode)
@@ -4200,11 +4201,65 @@
 (definstance translatedebug_mode
   class_melt_mode
   :named_name '"translatedebug"
-  :meltmode_help '"translate a .melt file to .so module for debug;\n
-\t ARGUMENT= input file; OUTPUT= generated module *.so;\n
-\t generates also *.c and no MELT line number;\n
-\t Useful for running gdb on the module."
+  :meltmode_help '"translate a .melt file to .so module for low-level
+debug, including gdb;\n \t ARGUMENT= input file; OUTPUT= generated
+module *.so;\n \t generates also *.c and no MELT line number;\n \t
+Useful for running gdb on the module. MELT debugging (debug_msg,
+assert_msg) is enabled"
   :meltmode_fun translatedebug_docmd
+)
+(install_melt_mode translatedebug_mode)
+
+;;;;;;;;;;;;;;;;
+(defun translatequickly_docmd (cmd moduldata)
+  (message_dbg "starting translatequickly_docmd")
+  (debug_msg cmd "start translatequickly_docmd cmd")
+  (debug_msg moduldata "start translatequickly_docmd moduldata")
+  (let ( 
+	(parmodenv (parent_module_environment))
+	(curenv (if moduldata moduldata initial_environment))
+	(inarg (make_stringconst discr_string (melt_argument "arg")))
+	(outarg (make_stringconst discr_string (melt_argument "output")))
+	)
+    (debug_msg inarg "translatequickly_docmd inarg")
+    (debug_msg outarg "translatequickly_docmd outarg")
+    (debug_msg parmodenv "before read translatequickly_docmd parmodenv")
+    (debug_msg initial_environment "before read translatequickly_docmd initial_environment")
+    (assert_msg "check curenv" (is_a curenv class_environment))
+    (let ( (basnam (cond
+		    ( (is_string outarg) (make_string_nakedbasename discr_string outarg))
+		    ( (is_string inarg) (make_string_nakedbasename discr_string inarg))
+		    (:else
+		     (errormsg_plain "invalid translatequickly mode")
+		     (return)
+		     )))
+	   (srcnam
+	    (let ( (srcnambuf (make_strbuf discr_strbuf)) )
+	      (add2sbuf_string srcnambuf basnam)
+	      (add2sbuf_strconst srcnambuf ".c")
+	      (strbuf2string discr_string srcnambuf)))
+	   (dbgmodulnam
+	    (or outarg
+		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
+		  (add2sbuf_string dbgnambuf basnam)
+		  (add2sbuf_strconst dbgnambuf ".n.so")
+		  (strbuf2string discr_string dbgnambuf))))
+	   )
+      (debug_msg basnam "translatequickly_docmd basnam")
+      (debug_msg srcnam "translatequickly_docmd srcnam")
+      (compile_one_or_more_files inarg srcnam curenv)
+      (debug_msg dbgmodulnam "translatequickly_docmd dbgmodulnam")
+      (generate_quickly_melt_module srcnam dbgmodulnam)
+      )))
+
+
+(definstance translatequickly_mode
+  class_melt_mode
+  :named_name '"translatequickly"
+  :meltmode_help '"translate quickly a .melt file to .so module with MELT debuging enabld (debug_msg, assert_msg...);\n \t ARGUMENT= input file; OUTPUT= generated
+module *.so;\n \t generates also *.c and no MELT line number;\n \t
+Useful for running gdb on the module."
+  :meltmode_fun translatequickly_docmd
 )
 (install_melt_mode translatedebug_mode)
 
@@ -4240,14 +4295,15 @@
       (debug_msg modsrcname "after compilation runfile_mode modsrcname")
       (debug_msg modulnam "after compilation runfile_mode modulnam")
       ;; the new environment is silently discarded
-      (ignore (load_melt_module curenv modulnam))
+      (ignore (load_quickly_melt_module curenv modulnam))
       )))
 ;;;;
 (definstance runfile_mode
   class_melt_mode
   :named_name '"runfile"
-  :meltmode_help '"translate and run a .melt file.\n
-\t ARGUMENT= input file; [OUTPUT=generated C]."
+  :meltmode_help '"translate and run a .melt file.\n \t ARGUMENT=
+input file; [OUTPUT=generated C]. The module is quickly compiled and
+has basic debug support thru debug_msg, assert_msg..."
   :meltmode_fun runfile_docmd
 )
 (install_melt_mode runfile_mode)

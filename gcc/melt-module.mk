@@ -1,7 +1,7 @@
 ## file melt-module.mk
 ## a -*- Makefile -*- for GNU make. 
 
-# Copyright (C) 2009 Free Software Foundation, Inc.
+# Copyright (C) 2009, 2011 Free Software Foundation, Inc.
 # Contributed by Basile Starynkevitch  <basile@starynkevitch.net>
 # This file is part of GCC.
 
@@ -60,12 +60,16 @@ MELTMODULE_OPTIMIZED:= \
 MELTMODULE_NOLINE:= \
   $(patsubst %, %.n.so, $(GCCMELT_MODULE_BINARY))
 
+MELTMODULE_QUICKLY:= \
+  $(patsubst %, %.q.so, $(GCCMELT_MODULE_BINARY))
+
 MELTSTAMP:=$(GCCMELT_MODULE_WORKSPACE)/$(MELTMODULE_PLAIN)-stamp.c
 
 MELTMODULE_CFILES:=$(wildcard $(MELTMODULE_BASENAME).c $(MELTMODULE_BASENAME)+*.c)
 MELTMODULE_OBJPICFILES:=$(patsubst %.c, $(GCCMELT_MODULE_WORKSPACE)/%.pic.o, $(notdir $(MELTMODULE_CFILES)))
 MELTMODULE_OBJDYNPICFILES:=$(patsubst %.c, $(GCCMELT_MODULE_WORKSPACE)/%.dynpic.o, $(notdir $(MELTMODULE_CFILES)))
 MELTMODULE_OBJNOLPICFILES:=$(patsubst %.c, $(GCCMELT_MODULE_WORKSPACE)/%.nolpic.o, $(notdir $(MELTMODULE_CFILES)))
+MELTMODULE_OBJQUIPICFILES:=$(patsubst %.c, $(GCCMELT_MODULE_WORKSPACE)/%.quipic.o, $(notdir $(MELTMODULE_CFILES)))
 
 ifndef GCCMELT_CC
 GCCMELT_CC=gcc
@@ -81,8 +85,10 @@ MD5SUM=md5sum
 
 melt_module: $(MELTMODULE_OPTIMIZED)
 
+melt_module_quickly: $(MELTMODULE_QUICKLY)
+melt_module_quickly:  override GCCMELT_CFLAGS= -O0 -DMELT_HAVE_DEBUG=1
 melt_module_dynamic: $(MELTMODULE_DYNAMIC)
-melt_module_rawdynamic: $((MELTMODULE_DYNAMIC)
+melt_module_rawdynamic: $(MELTMODULE_DYNAMIC)
 # melt_module_rawdynamic: override GCCMELT_CFLAGS +=  -DMELTGCC_DYNAMIC_OBJSTRUCT
 
 melt_module_withoutline: $(MELTMODULE_NOLINE)
@@ -103,9 +109,16 @@ $(MELTMODULE_NOLINE): $(MELTMODULE_OBJNOLPICFILES) $(MELTSTAMP)
 	   -fPIC -shared $(MELTMODULE_OBJNOLPICFILES) $(MELTSTAMP) -o $@
 	$(RM) $(MELTSTAMP)
 
+$(MELTMODULE_QUICKLY): $(MELTMODULE_OBJQUIPICFILES) $(MELTSTAMP)
+	$(GCCMELT_CC) $(GCCMELT_CFLAGS) -O0 -DMELT_HAVE_DEBUG=1 -DMELTGCC_NOLINENUMBERING \
+	   -fPIC -shared $(MELTMODULE_OBJQUIPICFILES) $(MELTSTAMP) -o $@
+	$(RM) $(MELTSTAMP)
+
 $(GCCMELT_MODULE_WORKSPACE)/%.pic.o: $(MELTMODULE_SRCDIR)/%.c
 	$(GCCMELT_CC) $(GCCMELT_CFLAGS) -fPIC -c -o $@ $<
 $(GCCMELT_MODULE_WORKSPACE)/%.dynpic.o: $(MELTMODULE_SRCDIR)/%.c
+	$(GCCMELT_CC) $(GCCMELT_CFLAGS)   -DMELT_HAVE_DEBUG=1 -DMELTGCC_DYNAMIC_OBJSTRUCT -fPIC -c -o $@ $<
+$(GCCMELT_MODULE_WORKSPACE)/%.quipic.o: $(MELTMODULE_SRCDIR)/%.c
 	$(GCCMELT_CC) $(GCCMELT_CFLAGS)   -DMELT_HAVE_DEBUG=1 -DMELTGCC_DYNAMIC_OBJSTRUCT -fPIC -c -o $@ $<
 $(GCCMELT_MODULE_WORKSPACE)/%.nolpic.o: $(MELTMODULE_SRCDIR)/%.c
 	$(GCCMELT_CC) $(GCCMELT_CFLAGS) -g  -DMELT_HAVE_DEBUG=1 -DMELTGCC_NOLINENUMBERING -fPIC -c -o $@ $<

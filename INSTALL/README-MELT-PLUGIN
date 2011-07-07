@@ -151,6 +151,10 @@ New features:
    melt-runtime.c should be given MELT_GCC_VERSION preprocessor
    constant.
 
+* runfile mode compiles quickly (with debug_msg support). Add new mode
+  translatequickly to compile quickly (with debug_msg & assert_msg
+  support).
+
 Many bugfixes
   (but some bugs remain)
 

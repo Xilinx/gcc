@@ -99,6 +99,8 @@ extern const int melt_gcc_version;
 /* return a read only version string */
 extern const char* melt_version_str(void);
 
+struct melt_callframe_st /* forward declaration */;
+
 #ifdef MELT_IS_PLUGIN
 #ifndef MELT_HAVE_DEBUG
 #define MELT_HAVE_DEBUG 1
@@ -115,7 +117,6 @@ extern const char* melt_version_str(void);
 
 extern long melt_dbgcounter;
 extern long melt_debugskipcount;
-
 extern long melt_error_counter;
 
 #if ENABLE_GC_CHECKING 
@@ -2521,6 +2522,7 @@ static inline int melt_curframdepth (void) {
 extern jmp_buf *melt_jmpbuf;
 extern melt_ptr_t melt_jmpval;
 #endif
+
 
 /* declare the current callframe */
 #if MELT_HAVE_DEBUG>0
