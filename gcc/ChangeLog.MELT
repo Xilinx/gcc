@@ -7,6 +7,9 @@
 	* melt-runtime.h (melt_dbgtracefile): Remove.
 	(melt_trace_start, melt_trace_end): Dummy macros.
 
+	* melt-module.mk (melt_module_dynamic,melt_module_withoutline):
+	Pass -DMELT_HAVE_DEBUG=1
+
 2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt-runtime.h (melt_gcc_version): New declaration.
