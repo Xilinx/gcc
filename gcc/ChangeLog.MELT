@@ -1,3 +1,6 @@
+2011-07-07  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt/warmelt-base.melt (register_pragma_handler): new function.
 
 2011-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
 

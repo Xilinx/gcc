@@ -2,8 +2,9 @@
 ;; file warmelt-base.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2008, 2009, 2010 Free Software Foundation, Inc.
+    Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+               and Pierre Vittet  <piervit@pvittet.com>
 
     This file is part of GCC.
 
@@ -1134,6 +1135,42 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 		       meltgc_notify_sysdata_passexec_hook (); 
 		       }#)
 )))
+
+;;register a new pragma handler.
+(defun register_pragma_handler (lsthandler)
+  :doc #{register a list of new pragma handlers.  As :sysdata_meltpragmas must
+  be a tuple (we use an index to recognize handlers), we have to recreate this
+  tuple each time we call this function.  That why $LSTHANDLER is a list of
+  handlers (class_gcc_pragma) and not a single object.  }#
+  (assert_msg "register_pragma_handler takes a list as argument." 
+    (is_list lsthandler))
+  (let ((oldtuple (get_field :sysdata_meltpragmas initial_system_data))
+        (:long oldsize 0))
+    (if notnull oldtuple)
+      (setq oldsize (multiple_length oldtuple))
+    (let ((:long newsize (+i (multiple_length oldtuple)
+                          (list_length lsthandler)))
+          (newtuple (make_multiple discr_multiple newsize))
+          (:long i 0))
+    ;;copy in oldhandlers in the newtuple
+    (foreach_in_multiple
+    (oldtuple)
+    (curhander :long iunused)
+      (multiple_put_nth newtuple i curhander)
+      (setq i (+i i 1))
+    )
+    ;;add new handler from lsthandler
+    (foreach_in_list
+    (lsthandler)
+    (curpair curhandler)
+      (assert_msg "register_pragma_handler must be a list of class_gcc_pragma."
+        (is_a curhandler class_gcc_pragma))
+      (multiple_put_nth newtuple i curhandler)
+      (setq i (+i i 1))
+    )
+    (put_fields initial_system_data :sysdata_meltpragmas newtuple)
+    ))
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; the descriptions of values which are not ctype related.
@@ -2361,6 +2398,7 @@ polyhedron values.}#
  ppstrbuf_mixbigint
  read_file
  register_pass_execution_hook
+ register_pragma_handler
  retrieve_value_descriptor_list
  some_integer_greater_than
  some_integer_multiple
