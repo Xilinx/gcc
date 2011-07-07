@@ -2942,7 +2942,7 @@ finish_id_expression (tree id_expression,
 	  tree containing_function = current_function_decl;
 	  tree lambda_stack = NULL_TREE;
 	  tree lambda_expr = NULL_TREE;
-	  tree initializer = decl;
+	  tree initializer = convert_from_reference (decl);
 
 	  /* Core issue 696: "[At the July 2009 meeting] the CWG expressed
 	     support for an approach in which a reference to a local
@@ -3633,7 +3633,10 @@ expand_or_defer_fn_1 (tree fn)
 	   && !DECL_REALLY_EXTERN (fn))
 	  || (flag_keep_inline_dllexport
 	      && lookup_attribute ("dllexport", DECL_ATTRIBUTES (fn))))
-	mark_needed (fn);
+	{
+	  mark_needed (fn);
+	  DECL_EXTERNAL (fn) = 0;
+	}
     }
 
   /* There's no reason to do any of the work here if we're only doing
@@ -7791,7 +7794,8 @@ potential_constant_expression_1 (tree t, bool want_rval, tsubst_flags_t flags)
         STRIP_NOPS (x);
         if (is_this_parameter (x))
 	  {
-	    if (DECL_CONSTRUCTOR_P (DECL_CONTEXT (x)) && want_rval)
+	    if (want_rval && DECL_CONTEXT (x)
+		&& DECL_CONSTRUCTOR_P (DECL_CONTEXT (x)))
 	      {
 		if (flags & tf_error)
 		  sorry ("use of the value of the object being constructed "

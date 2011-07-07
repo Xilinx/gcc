@@ -120,6 +120,10 @@ along with GCC; see the file COPYING3.  If not see
 #define ASM_CPU_DEFAULT_SPEC ASM_CPU32_DEFAULT_SPEC
 #endif
 
+/* Both Sun as and GNU as understand -K PIC.  */
+#undef ASM_SPEC
+#define ASM_SPEC ASM_SPEC_BASE ASM_PIC_SPEC
+
 #undef CPP_CPU_SPEC
 #define CPP_CPU_SPEC "\
 %{mcpu=sparclet|mcpu=tsc701:-D__sparclet__} \
@@ -200,16 +204,6 @@ along with GCC; see the file COPYING3.  If not see
 %{!mcpu=niagara2:%{!mcpu=niagara:%{!mcpu=ultrasparc3:%{!mcpu=ultrasparc:%{!mcpu=v9:%{mcpu*:" DEF_ARCH32_SPEC("-xarch=v8") DEF_ARCH64_SPEC(AS_SPARC64_FLAG) "}}}}}} \
 %{!mcpu*:%(asm_cpu_default)} \
 "
-
-#undef ASM_CPU_DEFAULT_SPEC
-#define ASM_CPU_DEFAULT_SPEC \
-(DEFAULT_ARCH32_P ? "\
-%{m64:" ASM_CPU64_DEFAULT_SPEC "} \
-%{!m64:" ASM_CPU32_DEFAULT_SPEC "} \
-" : "\
-%{m32:" ASM_CPU32_DEFAULT_SPEC "} \
-%{!m32:" ASM_CPU64_DEFAULT_SPEC "} \
-")
 
 #undef ASM_ARCH32_SPEC
 #define ASM_ARCH32_SPEC ""

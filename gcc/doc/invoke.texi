@@ -808,7 +808,7 @@ See RS/6000 and PowerPC Options.
 -msdata=@var{opt}  -mvxworks  -G @var{num}  -pthread @gol
 -mrecip -mrecip=@var{opt} -mno-recip -mrecip-precision @gol
 -mno-recip-precision @gol
--mveclibabi=@var{type} -mfriz -mno-friz}
+-mveclibabi=@var{type} -mfriz -mno-friz -mr11 -mno-r11}
 
 @emph{RX Options}
 @gccoptlist{-m64bit-doubles  -m32bit-doubles  -fpu  -nofpu@gol
@@ -9032,6 +9032,11 @@ The maximum number of conditional stores paires that can be sunk.  Set to 0
 if either vectorization (@option{-ftree-vectorize}) or if-conversion
 (@option{-ftree-loop-if-convert}) is disabled.  The default is 2.
 
+@item case-values-threshold
+The smallest number of different values for which it is best to use a
+jump-table instead of a tree of conditional branches.  If the value is
+0, use the default for the machine.  The default is 0.
+
 @end table
 @end table
 
@@ -16326,6 +16331,19 @@ Generate (do not generate) the @code{friz} instruction when the
 rounding a floating point value to 64-bit integer and back to floating
 point.  The @code{friz} instruction does not return the same value if
 the floating point number is too large to fit in an integer.
+
+@item -mr11
+@itemx -mno-r11
+@opindex mr11
+Generate (do not generate) code to load up the static chain register
+(@var{r11}) when calling through a pointer on AIX and 64-bit Linux
+systems where a function pointer points to a 3 word descriptor giving
+the function address, TOC value to be loaded in register @var{r2}, and
+static chain value to be loaded in register @var{r11}.  The
+@option{-mr11} is on by default.  You will not be able to call through
+pointers to nested functions or pointers to functions compiled in
+other languages that use the static chain if you use the
+@option{-mno-r11}.
 @end table
 
 @node RX Options

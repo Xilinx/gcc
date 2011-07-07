@@ -143,6 +143,13 @@ New features:
  * the MELT plugin build-melt-plugin.sh has changed incompatibly
    (w.r.t. the previous 0.7 MELT plugin release).
 
+ * debug_msg, assert_msg ... should work, thanks to MELT_HAVE_DEBUG
+   preprocessor flag, even when melt.so is a plugin for a GCC without
+   checks enabled.
+
+ * melt-runtime.h has a melt_gcc_version integer variable and
+   melt-runtime.c should be given MELT_GCC_VERSION preprocessor
+   constant.
 
 Many bugfixes
   (but some bugs remain)

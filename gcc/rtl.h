@@ -1633,6 +1633,7 @@ extern rtx operand_subword (rtx, unsigned int, int, enum machine_mode);
 
 /* In emit-rtl.c */
 extern rtx operand_subword_force (rtx, unsigned int, enum machine_mode);
+extern bool paradoxical_subreg_p (const_rtx);
 extern int subreg_lowpart_p (const_rtx);
 extern unsigned int subreg_lowpart_offset (enum machine_mode,
 					   enum machine_mode);
@@ -1816,6 +1817,11 @@ extern rtx simplify_rtx (const_rtx);
 extern rtx avoid_constant_pool_reference (rtx);
 extern rtx delegitimize_mem_from_attrs (rtx);
 extern bool mode_signbit_p (enum machine_mode, const_rtx);
+extern bool val_signbit_p (enum machine_mode, unsigned HOST_WIDE_INT);
+extern bool val_signbit_known_set_p (enum machine_mode,
+				     unsigned HOST_WIDE_INT);
+extern bool val_signbit_known_clear_p (enum machine_mode,
+				       unsigned HOST_WIDE_INT);
 
 /* In reginfo.c  */
 extern enum machine_mode choose_hard_reg_mode (unsigned int, unsigned int,

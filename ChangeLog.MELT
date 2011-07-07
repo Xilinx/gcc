@@ -1,6 +1,15 @@
 
 2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	MELT branch merged with trunk rev 175963 using svnmerge.
+
+2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* INSTALL/README-MELT-PLUGIN: Mention that debug_msg & assert_msg
+	work thanks to MELT_HAVE_DEBUG, and the melt_gcc_version numbers.
+
+2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* INSTALL/README-MELT-PLUGIN: Preparing 0.8rc2 plugin. Comment
 	more on using the scripts.
 

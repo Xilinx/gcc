@@ -1,3 +1,141 @@
+2011-07-07  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/graphite/pr37485.c: Add -floop-block.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/39150
+	* gcc.misc-tests/linkage.exp: Handle x86_64-*-solaris2.1[0-9]*.
+
+2011-07-06  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/no-r11-1.c: New test for -mr11, -mno-r11.
+	* gcc.target/powerpc/no-r11-2.c: Ditto.
+	* gcc.target/powerpc/no-r11-3.c: Ditto.
+
+2011-07-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/stack-layout-2.c: Cleanup expand rtl dump.
+	* gfortran.dg/move_alloc_4.f90: Cleanup original tree dump.
+
+2011-07-06  Georg-Johann Lay  <avr@gjlay.de>
+
+	* lib/target-supports.exp (check_profiling_available): Disable
+	profiling with -fprofile-generate for target avr.
+
+2011-07-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49645
+	* g++.dg/tree-ssa/pr8781.C: Disable SRA.
+
+2011-07-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47383
+	* gcc.dg/pr47383.c: New.
+
+2011-07-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR tree-optimization/49647
+	* gcc.dg/tree-ssa/20030807-7.c: Remove xfail *-*-*.
+
+2011-07-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR testsuite/49542
+	* gcc.dg/vect/pr33804.c: XFAIL if vect_no_align unconditionally.
+	* gcc.dg/vect/slp-multitypes-3.c: XFAIL on SPARC unconditionally.
+
+2011-07-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48157
+	* g++.dg/template/template-id-4.C: New.
+
+2011-07-05  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/pr44023.c: Add dg-require-effective-target int32plus
+	* gcc.dg/pr43402.c: Ditto.
+
+2011-07-05  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/cpp/pragma-3.c: Add dg-require-effective-target fopenmp.
+
+2011-07-05  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-switch-1.c: New test for
+	--param case-values-threshold.
+	* gcc.target/powerpc/ppc-switch-2.c: Ditto.
+
+2011-07-05  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/pr42093.c: Use "-fno-reorder-blocks".
+
+2011-07-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/rtti/anon-ns1.C: Allow for null-termination.
+
+2011-07-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/47654
+	* gcc.dg/graphite/block-pr47654.c: New.
+
+2011-07-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-ref2.C: New.
+
+2011-07-05  Razya Ladelsky  <razya@il.ibm.com>
+
+	PR tree-optimization/49580
+	* gcc.dg/autopar/pr49580.c: New test.
+
+2011-07-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49518
+	PR tree-optimization/49628
+	* g++.dg/torture/pr49628.C: New testcase.
+	* gcc.dg/torture/pr49518.c: Likewise.
+
+2011-07-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* ada/acats/run_acats (which): Extract last field from type -p,
+	type output only if command succeeded.
+
+2011-07-04  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/mangle48.C: New.
+
+	* g++.dg/cpp0x/diag1.C: New.
+
+	* g++.dg/diagnostic/aka1.C: New.
+
+2011-07-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/49619
+	* gcc.dg/pr49619.c: New test.
+
+	PR rtl-optimization/49472
+	* gfortran.dg/pr49472.f90: New test.
+
+	PR debug/49602
+	* gcc.dg/pr49602.c: New test.
+
+2011-07-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/34734
+	PR target/44643
+	* gcc.target/avr/avr.exp: Run over cpp files, too.
+	* gcc.target/avr/torture/avr-torture.exp: Ditto.
+	* gcc.target/avr/progmem.h: New file.
+	* gcc.target/avr/exit-abort.h: New file.
+	* gcc.target/avr/progmem-error-1.c: New file.
+	* gcc.target/avr/progmem-error-1.cpp: New file.
+	* gcc.target/avr/progmem-warning-1.c: New file.
+	* gcc.target/avr/torture/progmem-1.c: New file.
+	* gcc.target/avr/torture/progmem-1.cpp: New file.
+
+2011-07-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49615
+	* g++.dg/torture/pr49615.C: New testcase.
+
 2011-07-03  Ira Rosen  <ira.rosen@linaro.org>
 
 	PR tree-optimization/49610
