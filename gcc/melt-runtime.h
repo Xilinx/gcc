@@ -89,6 +89,10 @@ extern void melt_fatal_info (const char*filename, int lineno);
 /* the version string of GCC when MELT was initialized */
 extern char* melt_gccversionstr;
 
+/* The version number of GCC, at MELT build time. So 4006 is for 4.6,
+   4007 is for 4.7.  Same as MELT_GCC_VERSION constant macro.  */
+extern const int melt_gcc_version;
+
 /* the version string of MELT */
 #define MELT_VERSION_STRING "0.8rc2"
 

@@ -200,15 +200,15 @@ sanity_checks_gcc_info() {
     eval $($GCC -v < /dev/null 2>&1 \
 	| $GAWK '/^Target:/{printf " gcc_target=%s", $2}
                  /^Configured with.*--enable-plugin/{print " gcc_has_plugins=yes"}
-                 /^gcc version/{printf " gcc_version=%s", $3}')
+                 /^gcc version/{printf " gcc_version=%s", $3; split($3,vertab,"."); printf " gcc_version_number=%d\n", strtonum(vertab[1])*1000+strtonum(vertab[2])}')
     if [ "$gcc_has_plugins" != yes ]; then
 	error_echo The GCC compiler $GCC does not have plugins enabled
     fi
     case $gcc_version in
-	# we only support 4.5 or 4.6
+	# we only support 4.6 or 4.7
 	4.[67].*) verbose_echo MELT supported GCC version $gcc_version
 	    ;;
-	*) error_echo The GCC compiler $GCC version $gcc_version is incompatible with MELT
+	*) error_echo The GCC compiler $GCC version $gcc_version is incompatible with this MELT release
 	    ;;
     esac
     gcc_plugin_directory=$($GCC -print-file-name=plugin)
@@ -282,6 +282,7 @@ build_melt_dot_so() {
     verbose_sleep
     rm -f melt.so
     $HOSTCC $host_full_cflags \
+	-DMELT_GCC_VERSION=$gcc_version_number \
 	-DMELT_SOURCE_DIR=\"$gcc_plugin_directory/melt-source\" \
 	-DMELT_MODULE_DIR=\"$gcc_plugin_directory/libexec/melt-modules\" \
 	-DMELT_MODULE_MAKE_COMMAND=\"$HOSTMELTMAKE\" \

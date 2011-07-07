@@ -1,6 +1,28 @@
+
+2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (melt_gcc_version): New declaration.
+
+	* melt-runtime.c (melt_gcc_version): New definition.
+	Use MELT_GCC_VERSION to test for GCC version number.
+	Make an #error for gcc <4.6.
+	(meltgc_add_out_raw_len, meltgc_put_mapobjects, meltgc_send):
+	Remove ENABLE_CHECKING code.
+	(melt_dbgtracefile): Remove declaration.
+	(melt_apply, meltgc_make_load_melt_module)
+	(meltgc_load_modulelist,load_melt_modules_and_do_mode)
+	(melt_passexec_callback, melt_dbgbacktrace, melt_fatal_info)
+	(meltgc_gimple_gate, meltgc_gimple_execute, meltgc_rtl_execute)
+	(meltgc_simple_ipa_gate, meltgc_simple_ipa_execute)
+	(melt_handle_melt_attribute): Use #if MELT_HAVE_DEBUG instead of
+	#if ENABLE_CHECKING
+	(melt_attribute_callback): Test on MELT_GCC_VERSION.
+
+	* Makefile.in (MELT_RUNTIME_CPPDEFS): Add -DMELT_GCC_VERSION.
+
 2011-07-07  Pierre Vittet  <piervit@pvittet.com>
 
-	* melt/warmelt-base.melt (register_pragma_handler): new function.
+	* melt/warmelt-base.melt (register_pragma_handler): New function.
 
 2011-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
 

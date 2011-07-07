@@ -76,7 +76,26 @@ along with GCC; see the file COPYING3.   If not see
 #include "cppdefault.h"
 #include "c-pragma.h"
 
-#if BUILDING_GCC_VERSION > 4005
+#if defined(MELT_GCC_VERSION) && (MELT_GCC_VERSION > 0)
+const int melt_gcc_version = MELT_GCC_VERSION;
+#else
+#error should be given a MELT_GCC_VERSION 
+#endif
+
+/* since 4.7, we have a GCCPLUGIN_VERSION in plugin-version.h. */
+#if defined(GCCPLUGIN_VERSION) && (GCCPLUGIN_VERSION != MELT_GCC_VERSION)
+#error MELT Gcc version and GCC plugin version does not match
+#endif /*GCCPLUGIN_VERSION != MELT_GCC_VERSION*/
+
+/* the MELT branch has a BUILDING_GCC_VERSION. */
+#if defined(BUILDING_GCC_VERSION) && (BUILDING_GCC_VERSION != MELT_GCC_VERSION)
+# MELT Gcc version and Building Gcc version does not match
+#endif /*BUILDING_GCC_VERSION != MELT_GCC_VERSION*/
+
+#if MELT_GCC_VERSION < 4006
+#error MELT is for GCC 4.6 or newer
+#endif
+
 /* GCC 4.6 has realmpfr.h which includes <mpfr.h>  */
 #include "realmpfr.h"
 
@@ -84,7 +103,6 @@ along with GCC; see the file COPYING3.   If not see
 #include "gimple-pretty-print.h"
 
 
-#endif /*GCC 4.6*/
 
 #if ENABLE_CHECKING
 /* For debugging purposes, used thru gdb.  */
@@ -521,8 +539,9 @@ melt_argument (const char* argname)
 }
 #endif /*MELT_IS_PLUGIN*/
 
-#if defined(__GNUC__) && __GNUC__>3
-/* in GCC 4.6, options are #define-ed macros, in GCC 4.5 they are variables!  */
+#if defined(__GNUC__) && __GNUC__>3 /* condition to have pragma GCC poison */
+
+/* in GCC 4.6, options are #define-ed macros!  */
 #ifdef melt_mode_string
 #undef melt_mode_string
 #else
@@ -712,9 +731,6 @@ delete_special (struct meltspecial_st *sp)
 #ifdef ENABLE_CHECKING
 /* only for debugging, to be set from the debugger */
 
-
-
-FILE *melt_dbgtracefile;
 void *melt_checkedp_ptr1;
 void *melt_checkedp_ptr2;
 #endif /*ENABLE_CHECKING */
@@ -1694,9 +1710,6 @@ melt_output_length (melt_ptr_t out_p)
 void
 meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
 {
-#ifdef ENABLE_CHECKING
-  static long addcount;
-#endif
   int blen = 0;
   MELT_ENTERFRAME (2, NULL);
 #define outbufv  meltfram__.mcfr_varptr[0]
@@ -1729,9 +1742,6 @@ meltgc_add_out_raw_len (melt_ptr_t outbuf_p, const char *str, int slen)
     gcc_assert (!melt_is_young (str));
     blen = melt_primtab[buf_outbufv->buflenix];
     gcc_assert (blen > 0);
-#ifdef ENABLE_CHECKING
-    addcount++;
-#endif
     gcc_assert (buf_outbufv->bufstart <= buf_outbufv->bufend
 		&& buf_outbufv->bufend < (unsigned) blen);
     if ((int) buf_outbufv->bufend + slen + 2 < blen)
@@ -3174,10 +3184,6 @@ meltgc_put_mapobjects (meltmapobjects_ptr_t
 			  melt_ptr_t valu_p)
 {
   long ix = 0, len = 0, cnt = 0;
-#if ENABLE_CHECKING
-  static long callcount;
-  long curcount = ++callcount;
-#endif
   MELT_ENTERFRAME (4, NULL);
 #define discrv meltfram__.mcfr_varptr[0]
 #define mapobjectv meltfram__.mcfr_varptr[1]
@@ -3269,13 +3275,6 @@ meltgc_put_mapobjects (meltmapobjects_ptr_t
     }
   ix =
     unsafe_index_mapobject (map_mapobjectv->entab, object_attrobjectv, len);
-#if ENABLE_CHECKING
-  if (ix < 0)
-    debugeprintf
-      ("put_mapobjects failed curcount %ld len %ld map %p count %d lenix %d",
-       curcount, len, mapobjectv, map_mapobjectv->count,
-       map_mapobjectv->lenix);
-#endif
   gcc_assert (ix >= 0);
   if (map_mapobjectv->entab[ix].e_at != attrobjectv)
     {
@@ -4451,7 +4450,7 @@ meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr_p)
 
 
 
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
 static long applcount_melt;
 static int appldepth_melt;
 #define MAXDEPTH_APPLY_MELT 256
@@ -4481,7 +4480,7 @@ melt_apply (meltclosure_ptr_t clos_p,
 {
   melt_ptr_t res = NULL;
   meltroutfun_t*routfun = 0;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   applcount_melt++;
   appldepth_melt++;
   if (appldepth_melt > MAXDEPTH_APPLY_MELT)
@@ -4501,7 +4500,7 @@ melt_apply (meltclosure_ptr_t clos_p,
     goto end;
   res = (*routfun) (clos_p, arg1_p, xargdescr_, xargtab_, xresdescr_, xrestab_);
  end:
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   appldepth_melt--;
 #endif
   return res;
@@ -4531,10 +4530,6 @@ meltgc_send (melt_ptr_t recv_p,
   meltclosure_ptr_t closure_dirtyptr = NULL;
   melt_ptr_t recv_dirtyptr = NULL;
 
-#ifdef ENABLE_CHECKING
-  static long sendcount;
-  long sendnum = ++sendcount;
-#endif
   MELT_ENTERFRAME (7, NULL);
 #define recv    meltfram__.mcfr_varptr[0]
 #define selv    meltfram__.mcfr_varptr[1]
@@ -4550,20 +4545,11 @@ meltgc_send (melt_ptr_t recv_p,
   recv = recv_p;
   selv = sel_p;
   /* the receiver can be null, using DISCR_NULL_RECEIVER */
-#ifdef ENABLE_CHECKING
-  (void) sendnum;		/* to use it */
-#endif
   if (melt_magic_discr ((melt_ptr_t) selv) != MELTOBMAG_OBJECT)
     goto end;
   if (!melt_is_instance_of
       ((melt_ptr_t) selv, (melt_ptr_t) MELT_PREDEF (CLASS_SELECTOR)))
     goto end;
-#if 0 && ENABLE_CHECKING
-  debugeprintf ("send #%ld recv %p", sendnum, (void *) recv);
-  debugeprintf ("send #%ld selv %p <%s>", sendnum,
-		(void *) obj_selv,
-		melt_string_str (obj_selv->obj_vartab[FNAMED_NAME]));
-#endif
   if (recv != NULL)
     {
       discrv = ((melt_ptr_t) recv)->u_discr;
@@ -4579,11 +4565,6 @@ meltgc_send (melt_ptr_t recv_p,
       gcc_assert (melt_magic_discr ((melt_ptr_t) discrv) ==
 		  MELTOBMAG_OBJECT);
       gcc_assert (obj_discrv->obj_len >= FDISC__LAST);
-#if 0 && ENABLE_CHECKING
-      debugeprintf ("send #%ld discrv %p <%s>",
-		    sendnum, discrv,
-		    melt_string_str (obj_discrv->obj_vartab[FNAMED_NAME]));
-#endif
       mapv = obj_discrv->obj_vartab[FDISC_METHODICT];
       if (melt_magic_discr ((melt_ptr_t) mapv) == MELTOBMAG_MAPOBJECTS)
 	{
@@ -4623,11 +4604,6 @@ meltgc_send (melt_ptr_t recv_p,
     }				/* end while discrv */
   resv = NULL;
 end:
-#if 0 && ENABLE_CHECKING
-  debugeprintf ("endsend #%ld recv %p resv %p selv %p <%s>",
-		sendnum, recv, resv, (void *) obj_selv,
-		melt_string_str (obj_selv->obj_vartab[FNAMED_NAME]));
-#endif
   MELT_EXITFRAME ();
   /* NAUGHTY TRICK  (see comments near start of function) */
   if (closure_dirtyptr)
@@ -5808,7 +5784,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
       oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   {
     static char locbuf[120];
     memset (locbuf, 0, sizeof (locbuf));
@@ -6025,7 +6001,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase, unsigned f
   if (!filmod)
     melt_fatal_error ("failed to open melt module list file %s - %m",
 		 modlistpath);
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   {
     static char locbuf[120];
     memset (locbuf, 0, sizeof (locbuf));
@@ -8426,24 +8402,6 @@ load_melt_modules_and_do_mode (void)
       dump_file = stderr;
       fflush (stderr);
     }
-#if ENABLE_CHECKING
-  if (dbgstr)
-    {
-      char *tracenam = getenv ("MELTTRACE");
-      if (tracenam)
-	melt_dbgtracefile = fopen (tracenam, "w");
-      if (melt_dbgtracefile)
-	{
-	  time_t now = 0;
-	  time (&now);
-	  debugeprintf ("load_melt_modules_and_do_mode dbgtracefile %s",
-			tracenam);
-	  fprintf (melt_dbgtracefile, "**MELT TRACE %s pid %d at %s",
-		   tracenam, (int) getpid (), ctime (&now));
-	  fflush (melt_dbgtracefile);
-	}
-    }
-#endif
 
   curmod = dupmodpath;
   modatv = NULL;
@@ -8671,14 +8629,6 @@ load_melt_modules_and_do_mode (void)
   debugeprintf
     ("load_melt_modules_and_do_mode ended with %ld GarbColl, %ld fullGc",
      melt_nb_garbcoll, melt_nb_full_garbcoll);
-#if ENABLE_CHECKING
-  if (melt_dbgtracefile)
-    {
-      fprintf (melt_dbgtracefile, "\n**END TRACE\n");
-      fclose (melt_dbgtracefile);
-      melt_dbgtracefile = NULL;
-    }
-#endif
   free (dupmodpath);
   debugeprintf
     ("load_melt_modules_and_do_mode done modules %s mode %s",
@@ -8729,8 +8679,7 @@ melt_attr_spec =
     false          	      /*=type_required*/, 
     false          	      /*=function_type_required*/,
     handle_melt_attribute     /*=handler*/, 
-#if BUILDING_GCC_VERSION > 4006 || __GNUC__ > 4 || \
-    (__GNUC__ == 4 && (__GNUC_MINOR__ > 6))
+#if MELT_GCC_VERSION >= 4007
     false                     /*=affects_type_identity*/,
 #endif
   };
@@ -8750,10 +8699,9 @@ melt_attribute_callback(void *gcc_data ATTRIBUTE_UNUSED,
 */
 extern enum cpp_ttype __attribute__((weak)) pragma_lex (tree *);
 
-/* Test for GCC > 4.6.0.  This should be better thought, we could
+/* Test for GCC > 4.6.0.  This should work even in the crazy cases, e.g. we
    compile melt.so with a gcc-4.3 for gcc-4.7!  */
-#if BUILDING_GCC_VERSION > 4006 || __GNUC__ > 4 || \
-    (__GNUC__ == 4 && (__GNUC_MINOR__ > 6))
+#if MELT_GCC_VERSION > 4006
 /* Full pragma with data support.   */
 
 /* Call the MELT function which handle pragma: it is one of the handler of the
@@ -9134,7 +9082,7 @@ melt_passexec_callback (void *gcc_data,
       if (pass->name)
 	passnamev = meltgc_new_stringdup 
 	  ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), pass->name);
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
       {
 	static char locbuf[80];
 	memset (locbuf, 0, sizeof (locbuf));
@@ -9990,7 +9938,7 @@ melt_dbgbacktrace (int depth)
        (fr = fr->mcfr_prev), (curdepth++))
     {
       fprintf (stderr, "frame#%d closure: ", curdepth);
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
       if (fr->mcfr_flocs)
 	fprintf (stderr, "{%s} ", fr->mcfr_flocs);
       else
@@ -10048,7 +9996,7 @@ melt_dbgshortbacktrace (const char *msg, int maxdepth)
 	}
       else
 	fprintf (stderr, "_ ");
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
       if (fr->mcfr_flocs)
 	fprintf (stderr, "{%s} ", fr->mcfr_flocs);
       else
@@ -11296,7 +11244,7 @@ melt_fatal_info (const char*filename, int lineno)
     error ("MELT fatal failure without location [MELT built %s]", 
 	   melt_runtime_build_date);
   fflush (NULL);
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   melt_dbgshortbacktrace ("MELT fatal failure", 100);
 #endif
   if (modinfvec) 
@@ -11505,7 +11453,7 @@ meltgc_gimple_gate(void)
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
   debugeprintf ("meltgc_gimple_gate pass %s before apply", current_pass->name);
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   {
     static char locbuf[80];
     memset (locbuf, 0, sizeof (locbuf));
@@ -11595,7 +11543,7 @@ meltgc_gimple_execute (void)
     debugeprintf ("gimple_execute passname %s before apply dbgcounter %ld",
 		  current_pass->name, passdbgcounter);
     /* apply with one extra long result */
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   {
     static char locbuf[80];
     memset (locbuf, 0, sizeof (locbuf));
@@ -11676,7 +11624,7 @@ meltgc_rtl_gate(void)
       oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   {
     static char locbuf[80];
     memset (locbuf, 0, sizeof (locbuf));
@@ -11757,7 +11705,7 @@ meltgc_rtl_execute(void)
     debugeprintf ("rtl_execute passname %s before apply",
 		  current_pass->name);
     /* apply with one extra long result */
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   {
     static char locbuf[80];
     memset (locbuf, 0, sizeof (locbuf));
@@ -11838,7 +11786,7 @@ meltgc_simple_ipa_gate(void)
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
   debugeprintf ("meltgc_simple_ipa_gate pass %s before apply", current_pass->name);
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   {
     static char locbuf[80];
     memset (locbuf, 0, sizeof (locbuf));
@@ -11926,7 +11874,7 @@ meltgc_simple_ipa_execute(void)
 	((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
       }
     debugeprintf ("meltgc_simple_ipa_execute pass %s before apply", current_pass->name);
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   {
     static char locbuf[80];
     memset (locbuf, 0, sizeof (locbuf));
@@ -12218,7 +12166,7 @@ melt_handle_melt_attribute (tree decl, tree name, const char *attrstr,
       memset (argtab, 0, sizeof (argtab));
       argtab[0].meltbp_aptr = (melt_ptr_t *) & namev;
       argtab[1].meltbp_aptr = (melt_ptr_t *) & seqv;
-#if ENABLE_CHECKING
+#if MELT_HAVE_DEBUG
   {
     static char locbuf[80];
     memset (locbuf, 0, sizeof (locbuf));
