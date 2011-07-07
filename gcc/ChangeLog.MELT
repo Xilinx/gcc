@@ -1,6 +1,10 @@
 
 2011-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* melt-runtime.c (MELT_VERSION_STRING): Change to 0.8rc2.
+
+2011-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt-runtime.c (melt_attr_spec): Add comment for each field, and
 	protect the affects_type_identity for 4.7
 

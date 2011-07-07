@@ -1,4 +1,9 @@
 
+2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* INSTALL/README-MELT-PLUGIN: Preparing 0.8rc2 plugin. Comment
+	more on using the scripts.
+
 2011-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* INSTALL/README-MELT-PLUGIN: Added NEWS section. Releasing

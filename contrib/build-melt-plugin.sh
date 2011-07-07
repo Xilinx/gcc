@@ -325,7 +325,7 @@ do_melt_make () {
 	melt_make_module_dir=. \
 	melt_make_move=mv \
 	melt_installed_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include" \
-	melt_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN -I$gcc_plugin_directory/include -I$GCCMELT_SOURCE_TREE -I. -Imelt/generated -I$PWD -I$PWD/melt/generated" \
+	melt_cflags="$HOSTMELTCFLAGS -DMELT_IS_PLUGIN  -I. -Imelt/generated -I$PWD -I$PWD/melt/generated -I$gcc_plugin_directory/include -I$GCCMELT_SOURCE_TREE" \
 	melt_is_plugin=1 \
 	VPATH=.:$GCCMELT_SOURCE_TREE/melt:$GCCMELT_SOURCE_TREE \
 	$*

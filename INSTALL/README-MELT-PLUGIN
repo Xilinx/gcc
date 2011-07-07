@@ -72,13 +72,15 @@ file is indeed the one related to your gcc-4.6:
 
 
 ################ step 3
-   Read carefully the build-melt-plugin.sh perhaps in contrib/
+
+   Read carefully the build-melt-plugin.sh perhaps in the MELT plugin
+   source directory
 
    Read it again. I mean it! The script is not bullet-proof. It could
    perhaps harm your system if improperly used.
 
-You might use that script from within the untarred MELT plugin source
-obtained (obtained by make-melt-source-tar.sh) with something like
+You might use that script from within your untarred MELT plugin source
+directory with something like
 
 # building the plugin
  ./build-melt-plugin.sh -v -b -s GCC=gcc-4.6 \
@@ -100,8 +102,20 @@ the MELT plugin), you could pass -s DESTDIR=/tmp/meltplugindestdir
 instead of -s HOSTADMINCMD=sudo
 
 ################
-To prepare a source tree of the MELT plugin, read and run
-contrib/make-melt-source-tar.sh from the GCC MELT branch.
+
+To prepare a source tree of the MELT plugin form the GCC MELT branch,
+read and run contrib/make-melt-source-tar.sh from the GCC MELT
+branch. For instance, I am running it with something similar to
+
+   /usr/src/Lang/gcc-melt-branch/contrib/make-melt-source-tar.sh \
+       /usr/src/Lang/gcc-melt-branch \
+       /tmp/gcc-melt-plugin  \
+        $(gcc-4.6 -print-file-name=gengtype) \ 
+        -v -r $(gcc-4.6 -print-file-name=gtype.state)
+
+If all goes well, you get a /tmp/gcc-melt-plugin.tgz gnuzipped tar
+archive for the MELT plugin. This is only needed to people making a
+new MELT plugin source archive.
 
 ################ 
 
@@ -110,9 +124,9 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
 
 #######################################################################
-NEWS for 0.8rc1 MELT plugin for gcc-4.6
+NEWS for 0.8rc2 MELT plugin for gcc-4.6
 
-July 06th, 2011: Release candidate 1 of melt-0.8rc1-plugin-for-gcc-4.6
+July 07th, 2011: Release candidate 2 of melt-0.8rc1-plugin-for-gcc-4.6
 
 New features:
  * support for pragmas for MELT
@@ -125,6 +139,10 @@ New features:
  * added static analyzing pass gccframe, useful for melt-runtime.c
 
  * reject nested defun-s, you should use letrec or let...
+
+ * the MELT plugin build-melt-plugin.sh has changed incompatibly
+   (w.r.t. the previous 0.7 MELT plugin release).
+
 
 Many bugfixes
   (but some bugs remain)
