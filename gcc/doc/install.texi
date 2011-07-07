@@ -1085,9 +1085,13 @@ only little endian SH4AL:
 @end smallexample
 
 @item x86-64-*-linux*
-If @var{list} is @code{x32}, x32 run-time library will be enabled.  By
-default, x32 run-time library is disabled.
+@var{list} is a comma separated list of @code{m32}, @code{m64} and
+@code{mx32} to enable 32-bit, 64-bit and x32 run-time libraries,
+respectively.  If @var{list} is empty, then there will be no multilibs
+and only the default run-time library will be enabled.
 
+If @option{--with-multilib-list} is not given, then only 32-bit and
+64-bit run-time libraries will be enabled.
 @end table
 
 @item --with-endian=@var{endians}

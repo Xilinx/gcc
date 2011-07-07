@@ -1,0 +1,9 @@
+2011-07-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Treat with_multilib_list as a list.
+
+	* config/i386/t-linux64: Support TM_MULTILIB_CONFIG.
+
+	* config/i386/t-linux-x32: Removed.
+
+	* doc/install.texi: Update --with-multilib-list=x32.
