@@ -1,3 +1,324 @@
+2011-07-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* config/i386/t-crtpic, config/i386/t-svr3dbx, config/pa/t-pa:
+	Remove.
+
+2011-07-07  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* hw-doloop.c: New file.
+	* hw-doloop.h: New file.
+	* Makefile.in (OBJS): Add hw-doloop.o.
+	(hw-doloop.o): New rule.
+	($(obj_out_file)): Add hw-doloop.h dependency.
+	* config/bfin/bfin.c: Include "hw-doloop.h".
+	(loop_info, DEF_VEC_P for loop_info, loop_info_d): Remove.
+	(bfin_dump_loops, bfin_bb_in_loop, bfin_scan_loop): Remove.
+	(hwloop_optimize): Renamed from bfin_optimize_loop.  Argument
+	type changed to hwloop_info.  Return bool, true if the loop was
+	successfully optimized.  Remove code that was moved to
+	hw-doloop.c, and adjust other parts.
+	(hwloop_fail): New static function, containing parts that used
+	to be in bfin_optimize_loop.
+	(bfin_discover_loop, bfin_discover_loops, free_loops,
+	bfin_reorder_loops): Remove.
+	(hwloop_pattern_reg): New static function.
+	(bfin_doloop_hooks): New variable.
+	(bfin_reorg_loops): Remove most code, call reorg_loops.
+	* config/bfin/bfin.md (doloop_end splitter): Also enable if
+	loop counter is a memory_operand.
+
+2011-07-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Support --with-multilib-list for x86 Linux
+	targets.
+
+	* configure.ac: Mention x86-64 for --with-multilib-list.
+	* configure: Regenerated.
+
+	* config/i386/gnu-user64.h (SPEC_64): Support x32.
+	(SPEC_32): Likewise.
+	(ASM_SPEC): Likewise.
+	(LINK_SPEC): Likewise.
+	(TARGET_THREAD_SSP_OFFSET): Likewise.
+	(TARGET_THREAD_SPLIT_STACK_OFFSET): Likewise.
+	(SPEC_X32): New.
+
+	* config/i386/i386.h (TARGET_X32): New.
+	(TARGET_LP64): New.
+	(LONG_TYPE_SIZE): Likewise.
+	(POINTER_SIZE): Likewise.
+	(POINTERS_EXTEND_UNSIGNED): Likewise.
+	(OPT_ARCH64): Support x32.
+	(OPT_ARCH32): Likewise.
+
+	* config/i386/i386.opt (mx32): New.
+
+	* config/i386/kfreebsd-gnu64.h (GNU_USER_LINK_EMULATIONX32): New.
+	(GLIBC_DYNAMIC_LINKERX32): Likewise.
+	* config/i386/linux64.h (GNU_USER_LINK_EMULATIONX32): Likewise.
+	(GLIBC_DYNAMIC_LINKERX32): Likewise.
+
+	* config/linux.h (UCLIBC_DYNAMIC_LINKERX32): New.
+	(BIONIC_DYNAMIC_LINKERX32): Likewise.
+	(GNU_USER_DYNAMIC_LINKERX32): Likewise.
+
+	* config/i386/t-linux64: Support TM_MULTILIB_CONFIG.
+
+	* doc/install.texi: Document --with-multilib-list for
+	Linux/x86-64.
+
+	* doc/invoke.texi: Document -mx32.
+
+2011-07-07  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* doc/invoke.texi (mwords-little-endian): Deprecate.
+	* config/arm/arm.opt (mwords-little-endian): Likewise.
+	* config/arm/arm.c (arm_option_override): Warn about the deprecation
+	of -mwords-little-endian.
+
+2011-07-07  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* reload1.c (choose_reload_regs): Use mode sizes to check whether
+	an old reload register completely defines the required value.
+
+2011-07-07  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (fold_unary_loc): Do not strip sign-changes
+	for NEGATE_EXPR.
+
+2011-07-07  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (simplify_conversion_using_ranges): New function.
+	(simplify_stmt_using_ranges): Call it.
+
+2011-07-07  Kai Tietz  <ktietz@redhat.com>
+
+	* tree-ssa-forwprop.c (truth_valued_ssa_name): New function.
+	(lookup_logical_inverted_value): Likewise.
+	(simplify_bitwise_binary_1): Likewise.
+	(simplify_bitwise_binary): Use simplify_bitwise_binary_1.
+
+2011-07-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* gcc.c (%[Spec]): Don't document.
+	(struct spec_list): Update comment.
+	(do_spec_1): Don't handle %[Spec].
+	* doc/invoke.texi (%[@var{name}]): Remove documentation of spec.
+
+2011-07-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* common/common-target-def.h (TARGET_HAVE_NAMED_SECTIONS): Don't
+	default based on TARGET_ASM_NAMED_SECTION.
+	* common/common-target.def (have_named_sections): Default to true.
+	* common/config/default-common.c: Don't include tm.h.
+	* common/config/picochip/picochip-common.c
+	(TARGET_HAVE_NAMED_SECTIONS): Don't define.
+	* common/config/m32c/m32c-common.c: Remove.
+	* config.gcc (m32c*-*-*): Set target_has_targetm_common=no.
+	* config/alpha/osf5.h (TARGET_HAVE_NAMED_SECTIONS): Define to
+	false.
+	* config/i386/openbsd.h (TARGET_HAVE_NAMED_SECTIONS): Define to
+	false.
+	* config/m68k/openbsd.h (TARGET_HAVE_NAMED_SECTIONS): Define to
+	false.
+	* config/pa/som.h (TARGET_HAVE_NAMED_SECTIONS): Define to false.
+	* config/pdp11/pdp11.h (TARGET_HAVE_NAMED_SECTIONS): Define to
+	false.
+	* config/vax/openbsd.h (TARGET_HAVE_NAMED_SECTIONS): Define to
+	false.
+
+2011-07-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49640
+	* gimplify.c (gimplify_compound_lval): For last 2 ARRAY_*REF
+	operands and last COMPONENT_REF operand call gimplify_expr on it
+	if non-NULL.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libmudflap/49550
+	* gcc.c (MFWRAP_SPEC): Also wrap mmap64.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/39150
+	* configure.ac (gcc_cv_as_hidden): Also accept
+	x86_64-*-solaris2.1[0-9]*.
+	(gcc_cv_as_cfi_directive): Likewise.
+	(gcc_cv_as_comdat_group_group): Likewise.
+	(set_have_as_tls): Likewise.
+	* configure: Regenerate.
+	* config.gcc (i[34567]86-*-solaris2*): Also handle
+	x86_64-*-solaris2.1[0-9]*.
+	* config.host (i[34567]86-*-solaris2*): Likewise.
+	* config/sparc/sol2.h (ASM_CPU_DEFAULT_SPEC): Remove.
+	* config/sol2-bi.h (ASM_CPU_DEFAULT_SPEC): Redefine.
+	[USE_GLD] (ARCH_DEFAULT_EMULATION): Define.
+	(TARGET_LD_EMULATION): Use it.
+	* config/i386/sol2.h (ASM_CPU_DEFAULT_SPEC): Define.
+	(SUBTARGET_CPU_EXTRA_SPECS): Add asm_cpu_default.
+	* config/i386/sol2-bi.h (ASM_CPU32_DEFAULT_SPEC): Define.
+	(ASM_CPU64_DEFAULT_SPEC): Define.
+	(ASM_CPU_SPEC): Use %(asm_cpu_default).
+	(ASM_SPEC): Redefine.
+	(DEFAULT_ARCH32_P): Define using TARGET_64BIT_DEFAULT.
+	* config/host-solaris.c [__x86_64__] (TRY_EMPTY_VM_SPACE): Reduce.
+	* doc/install.texi (Specific, amd64-*-solaris2.1[0-9]*):
+	Document.
+	(Specific, i?86-*-solaris2.10): Mention x86_64-*-solaris2.1[0-9]*
+	configuration.
+	(Specific, x86_64-*-solaris2.1[0-9]*): Document.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/sol2.h (ASM_SPEC): Split into ...
+	(ASM_SPEC_BASE, ASM_PIC_SPEC): ... this.
+	* config/i386/sol2.h (ASM_SPEC): Define using ASM_SPEC_BASE.
+	* config/i386/sol2-bi.h (ASM_CPU_SPEC): Redefine.
+	(ASM_SPEC): Use ASM_SPEC_BASE.
+	* config/sparc/sol2.h (ASM_SPEC): Redefine.
+
+2011-07-07  Georg-Johann Lay  <avr@gjlay.de>
+	
+	* config/avr/avr.md (*reload_insi): Change predicate #1 to
+	const_int_operand.  Ditto for peep2 producing this insn.
+	Add argument to output_reload_insisf call.
+	(*movsi,*movsf): Add argument to output_movsisf call.
+	(*reload_insf): New insn and new peep2 to produce it.
+	* config/avr/avr-protos.h (output_movsisf): Change prototype.
+	(output_reload_insisf): Change prototype.
+	* config/avr/avr.c (avr_asm_len): New function.
+	(output_reload_insisf): Rewrite.
+	(output_movsisf): Change prototype.  output_reload_insisf for
+	all CONST_INT and CONST_DOUBLE.  ALlow moving 0.0f to memory.
+	(adjust_insn_length): Add argument to output_movsisf and
+	output_reload_insisf call.
+
+2011-07-07  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* emit-rtl.c (paradoxical_subreg_p): New function.
+	* rtl.h (paradoxical_subreg_p): Declare.
+	* combine.c (set_nonzero_bits_and_sign_copies, get_last_value,
+	apply_distributive_law, simplify_comparison, simplify_set): Use it.
+	* cse.c (record_jump_cond, cse_insn): Likewise.
+	* expr.c (force_operand): Likewise.
+	* rtlanal.c (num_sign_bit_copies1): Likewise.
+	* reload1.c (eliminate_regs_1, strip_paradoxical_subreg): Likewise.
+	* reload.c (push_secondary_reload, find_reloads_toplev): Likewise.
+	(push_reload): Use precision to check for paradoxical subregs.
+	* expmed.c (extract_bit_field_1): Likewise.
+
+	* machmode.h (HWI_COMPUTABLE_MODE_P): New macro.
+	* combine.c (set_nonzero_bits_and_sign_copies): Use it.
+	(find_split-point, combine_simplify_rtx, simplify_if_then_else,
+	simplify_set, simplify_logical, expand_compound_operation,
+	make_extraction, force_to_mode, if_then_else_cond, extended_count,
+	try_widen_shift_mode, simplify_shift_const_1, simplify_comparison,
+	record_value_for_reg): Likewise.
+	* expmed.c (expand_widening_mult, expand_mult_highpart): Likewise.
+	* simplify-rtx. c (simplify_unary_operation_1,
+	simplify_binary_operation_1, simplify_const_relational_operation):
+	Likewise.
+
+	* explow.c (trunc_int_for_mode): Use GET_MODE_PRECISION
+	instead of GET_MODE_BITSIZE where appropriate.
+	* rtlanal.c (subreg_lsb_1, subreg_get_info, nonzero_bits1,
+	num_sign_bit_copies1, canonicalize_condition, low_bitmask_len,
+	init_num_sign_bit_copies_in_rep): Likewise.
+	* cse.c (fold_rtx, cse_insn): Likewise.
+	* loop-doloop.c (doloop_modify, doloop_optimize): Likewise.
+	* simplify-rtx.c (simplify_unary_operation_1,
+	simplify_const_unary_operation, simplify_binary_operation_1,
+	simplify_const_binary_operation, simplify_ternary_operation,
+	simplify_const_relational_operation, simplify_subreg): Likewise.
+	* combine.c (try_combine, find_split_point, combine_simplify_rtx,
+	simplify_if_then_else, simplify_set, expand_compound_operation,
+	expand_field_assignment, make_extraction, if_then_else_cond,
+	make_compound_operation, force_to_mode, make_field_assignment,
+	reg_nonzero_bits_for_combine, reg_num_sign_bit_copies_for_combine,
+	extended_count, try_widen_shift_mode, simplify_shift_const_1,
+	simplify_comparison, record_promoted_value, simplify_compare_const,
+	record_dead_and_set_regs_1): Likewise.
+
+	Revert:
+	* simplify-rtx.c (simplify_const_binary_operation): Use the
+	shift_truncation_mask hook instead of performing modulo by
+	width.  Compare against mode precision, not bitsize.
+	* combine.c (combine_simplify_rtx, simplify_shift_const_1):
+	Use shift_truncation_mask instead of constructing the value
+	manually.
+
+2011-07-06  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000-protos.h (rs6000_call_indirect_aix): New
+	declaration.
+	(rs6000_save_toc_in_prologue_p): Ditto.
+
+	* config/rs6000/rs6000.opt (-mr11): New switch to disable loading
+	up the static chain (r11) during indirect function calls.
+	(-msave-toc-indirect): New undocumented debug switch.
+
+	* config/rs6000/rs6000.c (struct machine_function): Add
+	save_toc_in_prologue field to note whether the prologue needs to
+	save the TOC value in the reserved stack location.
+	(rs6000_emit_prologue): Use TOC_REGNUM instead of 2.  If we need
+	to save the TOC in the prologue, do so.
+	(rs6000_trampoline_init): Don't allow creating AIX style
+	trampolines if -mno-r11 is in effect.
+	(rs6000_call_indirect_aix): New function to create AIX style
+	indirect calls, adding support for -mno-r11 to suppress loading
+	the static chain, and saving the TOC in the prologue instead of
+	the call body.
+	(rs6000_save_toc_in_prologue_p): Return true if we are saving the
+	TOC in the prologue.
+
+	* config/rs6000/rs6000.md (STACK_POINTER_REGNUM): Add more fixed
+	register numbers.
+	(TOC_REGNUM): Ditto.
+	(STATIC_CHAIN_REGNUM): Ditto.
+	(ARG_POINTER_REGNUM): Ditto.
+	(SFP_REGNO): Delete, unused.
+	(TOC_SAVE_OFFSET_32BIT): Add constants for AIX TOC save and
+	function descriptor offsets.
+	(TOC_SAVE_OFFSET_64BIT): Ditto.
+	(AIX_FUNC_DESC_TOC_32BIT): Ditto.
+	(AIX_FUNC_DESC_TOC_64BIT): Ditto.
+	(AIX_FUNC_DESC_SC_32BIT): Ditto.
+	(AIX_FUNC_DESC_SC_64BIT): Ditto.
+	(ptrload): New mode attribute for the appropriate load of a
+	pointer.
+	(call_indirect_aix32): Delete, rewrite AIX indirect function
+	calls.
+	(call_indirect_aix64): Ditto.
+	(call_value_indirect_aix32): Ditto.
+	(call_value_indirect_aix64): Ditto.
+	(call_indirect_nonlocal_aix32_internal): Ditto.
+	(call_indirect_nonlocal_aix32): Ditto.
+	(call_indirect_nonlocal_aix64_internal): Ditto.
+	(call_indirect_nonlocal_aix64): Ditto.
+	(call): Rewrite AIX indirect function calls.  Add support for
+	eliminating the static chain, and for moving the save of the TOC
+	to the function prologue.
+	(call_value): Ditto.
+	(call_indirect_aix<ptrsize>): Ditto.
+	(call_indirect_aix<ptrsize>_internal): Ditto.
+	(call_indirect_aix<ptrsize>_internal2): Ditto.
+	(call_indirect_aix<ptrsize>_nor11): Ditto.
+	(call_value_indirect_aix<ptrsize>): Ditto.
+	(call_value_indirect_aix<ptrsize>_internal): Ditto.
+	(call_value_indirect_aix<ptrsize>_internal2): Ditto.
+	(call_value_indirect_aix<ptrsize>_nor11): Ditto.
+	(call_nonlocal_aix32): Relocate in the rs6000.md file.
+	(call_nonlocal_aix64): Ditto.
+
+	* doc/invoke.texi (RS/6000 and PowerPC Options): Add -mr11 and
+	-mno-r11 documentation.
+
+2011-07-06  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR other/49658
+	* doc/extend.texi (Compound Literals): Fix typo.
+
 2011-07-06  James Greenhalgh  <james.greenhalgh@arm.com>
 
 	* config/arm/arm.h (TARGET_CPU_CPP_BUILTINS): Add
