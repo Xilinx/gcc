@@ -1,0 +1,37 @@
+2011-11-04  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.gcc: Support --with-multilib-list for x86 Linux
+	targets.
+
+	* configure.ac: Mention x86-64 for --with-multilib-list.
+	* configure: Regenerated.
+
+	* config/i386/i386.h (TARGET_X32): New.
+	(TARGET_LP64): New.
+	(LONG_TYPE_SIZE): Likewise.
+	(POINTER_SIZE): Likewise.
+	(POINTERS_EXTEND_UNSIGNED): Likewise.
+	(OPT_ARCH64): Support x32.
+	(OPT_ARCH32): Likewise.
+
+	* config/i386/i386.opt (mx32): New.
+
+	* config/i386/linux64.h (GLIBC_DYNAMIC_LINKERX32): New.
+	(SPEC_X32): Likewise.
+	(SPEC_64): Support x32.
+	(SPEC_32): Likewise.
+	(ASM_SPEC): Likewise.
+	(LINK_SPEC): Likewise.
+	(TARGET_THREAD_SSP_OFFSET): Likewise.
+	(TARGET_THREAD_SPLIT_STACK_OFFSET): Likewise.
+
+	* config/linux.h (UCLIBC_DYNAMIC_LINKERX32): New.
+	(BIONIC_DYNAMIC_LINKERX32): Likewise.
+	(LINUX_DYNAMIC_LINKERX32): Likewise.
+
+	* config/i386/t-linux64: Support TM_MULTILIB_CONFIG.
+
+	* doc/install.texi: Document --with-multilib-list for
+	Linux/x86-64.
+
+	* doc/invoke.texi: Document -mx32.

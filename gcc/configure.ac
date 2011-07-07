@@ -786,7 +786,7 @@ esac],
 [enable_languages=c])
 
 AC_ARG_WITH(multilib-list,
-[  --with-multilib-list    Select multilibs (SH only)],
+[  --with-multilib-list    Select multilibs (SH and x86-64 only)],
 :,
 with_multilib_list=default)
 
