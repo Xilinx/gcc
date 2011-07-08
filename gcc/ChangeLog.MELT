@@ -1,4 +1,14 @@
 
+2011-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_HAVE_DEBUG): Define it as 0 if undefined.
+
+	* melt-runtime.c (obstack_add_escaped_path): Always provided, even
+	without MELT_IS_PLUGIN.
+	(compile_gencsrc_to_binmodule): Show the failing command.
+
+	* melt/warmelt-outobj.melt (compile_one_or_more_files): Add
+	debug_msg.
+
 2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (struct melt_callframe_st): Add forward
 	declaration.

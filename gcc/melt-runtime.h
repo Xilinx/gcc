@@ -119,6 +119,10 @@ extern long melt_dbgcounter;
 extern long melt_debugskipcount;
 extern long melt_error_counter;
 
+#ifndef MELT_HAVE_DEBUG
+#define MELT_HAVE_DEBUG 0
+#endif /*MELT_HAVE_DEBUG*/
+
 #if ENABLE_GC_CHECKING 
 /* memory is poisoned by an 0xa5a5a5a5a5a5a5a5... pointer in ggc-zone.c or ggc-page.c */
 #if SIZEOF_VOID_P == 8

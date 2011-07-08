@@ -4734,7 +4734,6 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
 
 
 
-#if MELT_IS_PLUGIN
 /* utility to add an escaped file path into an obstack. Returns true if characters have been escaped */
 static bool
 obstack_add_escaped_path(struct obstack* obs, const char* path)
@@ -4754,7 +4753,6 @@ obstack_add_escaped_path(struct obstack* obs, const char* path)
   return warn;
 }
 
-#endif	/* MELT_IS_PLUGIN */
  
 
 
@@ -5114,9 +5112,23 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
       melt_fatal_error
 	("failed to get time of melt dynamic compilation to dyl:  %s %s %s - %m",
 	 ourmakecommand, srcfile, fullbinfile);
-    if (cstatus) 
+    if (cstatus) {
+      int i = 0;
+      char* cmdbuf = 0;
+      struct obstack cmd_obstack;
+      memset (&cmd_obstack, 0, sizeof(cmd_obstack));
+      obstack_init (&cmd_obstack);
+      for (i=0; i<argc; i++)
+	{ 
+	  if (i>0) 
+	    obstack_1grow (&cmd_obstack, ' ');
+	  obstack_add_escaped_path (&cmd_obstack, argv[i]);
+	}
+      obstack_1grow(&cmd_obstack, (char)0);
+      cmdbuf = XOBFINISH (&cmd_obstack, char *);
+      error ("MELT failed command: %s",  cmdbuf);
       melt_fatal_error
-	("MELT failed (%s %d) to compile using %s, source %s, binary %s, target %s",
+	("MELT failed (%s %d) to compile module using %s, source %s, binary %s, target %s",
 	 WIFEXITED (cstatus)?"exit"
 	 : WIFSIGNALED(cstatus)? "got signal"
 	 : WIFSTOPPED(cstatus)?"stopped"
@@ -5124,6 +5136,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
 	 WIFEXITED (cstatus) ? WEXITSTATUS(cstatus)
 	 : WIFSIGNALED(cstatus) ? WTERMSIG(cstatus)
 	 : cstatus, ourmakecommand, srcfile, fullbinfile, maketarget);
+    }
     pex_free (pex);
     myusrtime = (double) ptime.user_seconds
       + 1.0e-6*ptime.user_microseconds;
