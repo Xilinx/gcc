@@ -1,5 +1,9 @@
 
 2011-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt_make_cc1flags,melt_cflags): Use realpath for
+	include directories.
+
+2011-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_HAVE_DEBUG): Define it as 0 if undefined.
 
 	* melt-runtime.c (obstack_add_escaped_path): Always provided, even

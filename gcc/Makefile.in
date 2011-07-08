@@ -5399,8 +5399,8 @@ melt_make_move=$(SHELL) $(srcdir)/../move-if-change
 ## Don't use := definitions here!
 ## CC1 forbids -pipe and -Wp,-D_FORTIFY_SOURCE=2
 comma= ,
-melt_make_cc1flags= -I. 
-melt_cflags=  -I. -I $(srcdir)/melt/generated/ $(INCLUDES)
+melt_make_cc1flags= -I $(realpath .)
+melt_cflags=  -I $(realpath .) -I $(realpath $(srcdir)/melt/generated) $(INCLUDES)
 export melt_cflags
 ## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c
 melt_extra_cflags= -g
