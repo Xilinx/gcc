@@ -54,12 +54,12 @@ if [ -n "$gengtype_prog" ]; then
 fi
 
 if [ ! -f $gccmelt_source_tree/gcc/melt-runtime.h ]; then
-    echo $0: Bad first argument for GCC MELT source tree $1 >&2
+    echo $0: Bad first argument for GCC MELT source tree $gccmelt_source_tree >&2
     exit 1
 fi
 
 if [ -z $gccmelt_tarbase ]; then
-    echo $0 Bad second argument for GCC MELT tar ball base $2 >&2
+    echo $0 Bad second argument for GCC MELT tar ball base $gccmelt_tarbase >&2
     exit 1
 fi
 

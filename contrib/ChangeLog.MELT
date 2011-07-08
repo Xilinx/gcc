@@ -1,4 +1,8 @@
 
+2011-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* make-melt-source-tar.sh: Correct error message.
+
 2011-07-07  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* build-melt-plugin.sh (do_melt_make): Set MELT_GCC_VERSION.
