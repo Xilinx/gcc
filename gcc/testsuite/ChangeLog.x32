@@ -1,5 +1,9 @@
 2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.dg/lower-subreg-1.c: Use dg-skip-if for x32.
+
+2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.c-torture/compile/pr16566-2.c: Replace "x32 || lp64" with
 	"! { ia32 }".
 	* gcc.dg/torture/pr20314-2.c: Likewise.
