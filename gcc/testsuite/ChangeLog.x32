@@ -1,5 +1,9 @@
 2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.dg/pr25023.c: Remove ||.
+
+2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.dg/lower-subreg-1.c: Use dg-skip-if for x32.
 
 2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
