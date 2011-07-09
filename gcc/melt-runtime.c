@@ -4736,19 +4736,31 @@ melt_tempdir_path (const char *srcnam, const char* suffix)
 
 /* utility to add an escaped file path into an obstack. Returns true if characters have been escaped */
 static bool
-obstack_add_escaped_path(struct obstack* obs, const char* path)
+obstack_add_escaped_path (struct obstack* obs, const char* path)
 {
   bool warn = false;
   const char* pc;
   for (pc = path; *pc; pc++) 
     {
-      if (!ISALNUM(*pc) && *pc!='/' && *pc!='.' && *pc!='+'
-	  && *pc!='-' && *pc!='_' && *pc!=':') 
-	{
-	  warn = true;
-	  obstack_1grow (obs, '\\');
-	};
-      obstack_1grow (obs, *pc);
+      const char c = *pc;
+      /* Accept ordinary characters as is. */
+      if (ISALNUM(c) || c == '/' || c == '.' || c == '_' || c == '-' || c == '+') 
+	{ 
+	  obstack_1grow (obs, c);
+	  continue;
+	}
+      /* Accept characters as is if they are not first or last.  */
+      if (pc > path && pc[1] 
+	  && (c == '=' || c == ':'))
+	{ 
+	  obstack_1grow (obs, c);
+	  continue;
+	}
+      /* Escape other characters.  
+         FIXME:  this could be not enough with UTF8 special characters!  */
+      warn = true;
+      obstack_1grow (obs, '\\');
+      obstack_1grow (obs, c);
     };
   return warn;
 }
@@ -4870,7 +4882,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
       warning (0, "escaped character[s] in MELT module makefile %s", ourmakefile);
     obstack_1grow (&cmd_obstack, ' ');
     /* add the -C workdir argument if workdir is not the current directory */
-    if (workdir && strcmp(workdir, ".") && strcmp(workdir, mycwd)) {
+    if (workdir && strcmp(workdir, ".") && strcmp (workdir, "./") && strcmp(workdir, mycwd)) {
       debugeprintf ("compile_gencsrc_to_binmodule dochdir in workdir %s", workdir);
       obstack_grow (&cmd_obstack, MAKECHDIR_ARG, strlen (MAKECHDIR_ARG));
       obstack_1grow (&cmd_obstack, ' ');
@@ -4932,9 +4944,11 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
     /* add the cflag argument if needed */
     if (ourcflags && ourcflags[0])
       {
+	obstack_1grow (&cmd_obstack, ' ');
 	/* don't warn about escapes for cflags, they contain spaces...*/
 	obstack_grow (&cmd_obstack, CFLAGS_ARG, strlen (CFLAGS_ARG));
 	obstack_add_escaped_path (&cmd_obstack, ourcflags);
+	obstack_1grow (&cmd_obstack, ' ');
 	obstack_1grow (&cmd_obstack, ' ');
       };
 
@@ -4968,6 +4982,10 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
     obstack_1grow (&cmd_obstack, (char) 0);
     cmdstr = XOBFINISH (&cmd_obstack, char *);
     debugeprintf("compile_gencsrc_to_binmodule cmdstr= %s", cmdstr);
+    if (!quiet_flag || flag_melt_bootstrapping) 
+      inform (UNKNOWN_LOCATION, "MELT running: %s", cmdstr);
+    /* this is ugly, but we need to flush everything before calling system(3)! */
+    pp_flush (global_dc->printer)
     fflush (NULL);
     err = system (cmdstr);
     debugeprintf("compile_gencsrc_to_binmodule command got %d", err);
@@ -5009,7 +5027,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
     argv[argc++] = ourmakecommand;
     debugeprintf("compile_gencsrc_to_binmodule arg ourmakecommand %s", ourmakecommand);
     /* silent make if not debugging */
-    if (!flag_melt_debug)
+    if (!flag_melt_debug && quiet_flag)
       argv[argc++] = "-s";
 
     /* the -f argument, and then the makefile */
@@ -5017,7 +5035,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
     argv[argc++] = ourmakefile;
     debugeprintf("compile_gencsrc_to_binmodule arg ourmakefile %s", ourmakefile);
 
-    if (workdir && strcmp(workdir, ".") && strcmp(workdir, mycwd)) {
+    if (workdir && strcmp(workdir, ".") && strcmp(workdir, "./") && strcmp(workdir, mycwd)) {
       debugeprintf("compile_gencsrc_to_binmodule dochdir workdir %s", workdir);
       argv[argc++] = MAKECHDIR_ARG;
       argv[argc++] = workdir;

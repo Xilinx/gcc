@@ -1,8 +1,36 @@
 
+2011-07-09  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Emit a
+	forward declaration for melt_callframe_st.
+
+	* melt-module.mk: Add flags -DMELTGCC_MODULE_OPTIMIZED or
+	-DMELTGCC_MODULE_DYNAMIC or -DMELTGCC_MODULE_NOLINE, as
+	appropriate.
+
+	* melt-build.tpl (meltarg_modulecflags): New.
+	(MELTCCINIT1, MELTCCFILE1): Use it.
+	Generate intermediate modules with melt_module_quickly.
+
+	* melt-build.mk: Regenerate.
+
+	* Makefile.in (install-melt-source, install-melt-modules):
+	Add / after $(DESTDIR)
+
+	* melt-runtime.h (MELT_DECLFRAME, MELT_LOCATION, MELT_INITFRAME):
+	Add comments inside macros.
+
+	* melt-runtime.c (obstack_add_escaped_path): Don't escape always
+	some punctuation chars.
+	(compile_gencsrc_to_binmodule): Ignore ./ for make -C.
+	Flush diagnostics before system.
+	No silent make when quiet.
+
 2011-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* Makefile.in (melt_make_cc1flags,melt_cflags): Use realpath for
 	include directories.
-
+	Add inform MELT running: ...
+	
 2011-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_HAVE_DEBUG): Define it as 0 if undefined.
 

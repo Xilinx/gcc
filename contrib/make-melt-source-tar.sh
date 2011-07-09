@@ -93,6 +93,10 @@ copymelt gcc/doc/melt.texi
 copymelt contrib/meltplugin.texi 
 copymelt contrib/meltpluginapi.texi
 
+copymelt contrib/MELT-Plugin-Makefile
+(cd $gccmelt_tarbase/; ln -s MELT-Plugin-Makefile Makefile)
+
+
 ## copy the non MELT files which are in MISSINGMELT_PLUGIN_HEADERS, that is
 ## the files which really should be available in the plugin/include/
 ## directory but are not yet.  Keep in sync with gcc/Makefile.in

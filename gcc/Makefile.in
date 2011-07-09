@@ -5477,7 +5477,7 @@ check-melt-runtime: melt-runtime.o melt-runtime.c xgcc$(exeext) \
 ### notice that melt-sources is a directory, but melt-all-sources is a
 ### phony makefile target from melt-build.mk
 install-melt-source: melt-sources  melt-all-sources
-	$(mkinstalldirs) $(DESTDIR)$(melt_source_dir)
+	$(mkinstalldirs) $(DESTDIR)/$(melt_source_dir)
 	for f in melt-sources/*.c melt-sources/*.melt ; do \
 	   $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_source_dir) ; \
 	done
@@ -5485,7 +5485,7 @@ install-melt-source: melt-sources  melt-all-sources
 ### notice that melt-modules is a directory, but melt-all-modules is a
 ### phony makefile target from melt-build.mk
 install-melt-modules: melt-modules melt-all-modules
-	$(mkinstalldirs) $(DESTDIR)$(melt_module_dir)
+	$(mkinstalldirs) $(DESTDIR)/$(melt_module_dir)
 	for f in $</*.so ; do \
 	   $(INSTALL_PROGRAM)  -m 755 $$f $(DESTDIR)/$(melt_module_dir) ; \
 	done

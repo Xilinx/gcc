@@ -102,6 +102,7 @@ extern const char* melt_version_str(void);
 struct melt_callframe_st /* forward declaration */;
 
 #ifdef MELT_IS_PLUGIN
+
 #ifndef MELT_HAVE_DEBUG
 #define MELT_HAVE_DEBUG 1
 #endif /*MELT_HAVE_DEBUG*/
@@ -2574,17 +2575,19 @@ extern melt_ptr_t melt_jmpval;
 
 #else /*!MELT_HAVE_DEBUG*/
 
-#define MELT_DECLFRAME(NBVAR) struct {		\
-  int mcfr_nbvar;				\
-  struct meltclosure_st* mcfr_clos;		\
-  struct excepth_melt_st* mcfr_exh;		\
-  struct melt_callframe_st* mcfr_prev;		\
-  void*  /* a melt_ptr_t */ mcfr_varptr[NBVAR];	\
+#define MELT_DECLFRAME(NBVAR) struct { /*declframe without MELT_HAVE_DEBUG*/ \
+    int mcfr_nbvar;							\
+  struct meltclosure_st* mcfr_clos;					\
+  struct excepth_melt_st* mcfr_exh;					\
+  struct melt_callframe_st* mcfr_prev;					\
+  void*  /* a melt_ptr_t */ mcfr_varptr[NBVAR];				\
 } meltfram__
-#define MELT_LOCATION(LOCS) do{}while(0)
-#define MELT_LOCATION_HERE(MSG) do{}while(0)
+
+#define MELT_LOCATION(LOCS) do{/*location without MELT_HAVE_DEBUG*/}while(0)
+#define MELT_LOCATION_HERE(MSG) do{/*locationhere without MELT_HAVE_DEBUG*/}while(0)
+
 /* initialize the current callframe and link it at top */
-#define MELT_INITFRAME(NBVAR,CLOS) do {					\
+#define MELT_INITFRAME(NBVAR,CLOS) do {	 /*initframe without MELT_HAVE_DEBUG*/ \
   memset(&meltfram__, 0, sizeof(meltfram__));				\
   meltfram__.mcfr_nbvar = (NBVAR);					\
   meltfram__.mcfr_prev = (struct melt_callframe_st*)melt_topframe;	\

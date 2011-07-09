@@ -1,4 +1,8 @@
 
+2011-07-09  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* make-melt-source-tar.sh: Handle MELT-Plugin-Makefile.
+
 2011-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile: New file.

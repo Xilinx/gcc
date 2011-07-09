@@ -50,18 +50,20 @@ meltarg_makefile=$(if $(melt_is_plugin),-fplugin-arg-melt-module-makefile,-fmelt
 meltarg_makecmd=$(if $(melt_is_plugin),-fplugin-arg-melt-module-make-command,-fmelt-module-make-command)
 meltarg_arglist=$(if $(melt_is_plugin),-fplugin-arg-melt-arglist,-fmelt-arglist)
 meltarg_output=$(if $(melt_is_plugin),-fplugin-arg-melt-output,-fmelt-output)
-
+meltarg_modulecflags=$(if $(melt_is_plugin),-fplugin-arg-melt-module-cflags,-fmelt-module-cflags)
 ## MELT_DEBUG could be set to -fmelt-debug or -fplugin-arg-melt-debug
 ## the invocation to translate the very first initial MELT file
 MELTCCINIT1=$(melt_make_cc1) $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translateinit  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
+              "$(meltarg_modulecflags)=$(melt_cflags)" \
 	      $(meltarg_tempdir)=. $(meltarg_bootstrapping) $(MELT_DEBUG)
 
 ## the invocation to translate the other files
 MELTCCFILE1=$(melt_make_cc1)  $(melt_make_cc1flags) -Wno-shadow $(meltarg_mode)=translatefile  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
+              "$(meltarg_modulecflags)=$(melt_cflags)" \
 	      $(meltarg_tempdir)=. $(meltarg_bootstrapping)  $(MELT_DEBUG)
 
 ## the invocation to translate the application files -don't pass the -fmelt-bootstrap flag
@@ -168,7 +170,7 @@ MELT_GENERATED_OUTOBJ_BASE= \
 melt-stage0-static/warmelt-first-0.so: $(MELT_GENERATED_FIRST_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-first-0.c \
@@ -185,14 +187,17 @@ melt-stage0-dynamic/warmelt-first-0.d.so: $(MELT_GENERATED_FIRST_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-first-0
 
 melt-stage0-dynamic/warmelt-first-0.so: melt-stage0-dynamic/warmelt-first-0.d.so
-	cd melt-stage0-dynamic/ ; rm -f warmelt-first-0.so; $(LN_S) warmelt-first-0.d.so warmelt-first-0.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+
+melt-stage0-dynamic/warmelt-first-0.q.so: melt-stage0-dynamic/warmelt-first-0.d.so
+	cd $(dir $@) ;  rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 
 ## using static object fields offsets for warmelt-base
 melt-stage0-static/warmelt-base-0.so: $(MELT_GENERATED_BASE_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-base-0.c \
@@ -209,14 +214,17 @@ melt-stage0-dynamic/warmelt-base-0.d.so: $(MELT_GENERATED_BASE_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-base-0
 
 melt-stage0-dynamic/warmelt-base-0.so: melt-stage0-dynamic/warmelt-base-0.d.so
-	cd melt-stage0-dynamic/ ; rm -f warmelt-base-0.so; $(LN_S) warmelt-base-0.d.so warmelt-base-0.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+
+melt-stage0-dynamic/warmelt-base-0.q.so: melt-stage0-dynamic/warmelt-base-0.d.so
+	cd $(dir $@) ;  rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 
 ## using static object fields offsets for warmelt-debug
 melt-stage0-static/warmelt-debug-0.so: $(MELT_GENERATED_DEBUG_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-debug-0.c \
@@ -233,14 +241,17 @@ melt-stage0-dynamic/warmelt-debug-0.d.so: $(MELT_GENERATED_DEBUG_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-debug-0
 
 melt-stage0-dynamic/warmelt-debug-0.so: melt-stage0-dynamic/warmelt-debug-0.d.so
-	cd melt-stage0-dynamic/ ; rm -f warmelt-debug-0.so; $(LN_S) warmelt-debug-0.d.so warmelt-debug-0.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+
+melt-stage0-dynamic/warmelt-debug-0.q.so: melt-stage0-dynamic/warmelt-debug-0.d.so
+	cd $(dir $@) ;  rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 
 ## using static object fields offsets for warmelt-macro
 melt-stage0-static/warmelt-macro-0.so: $(MELT_GENERATED_MACRO_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-macro-0.c \
@@ -257,14 +268,17 @@ melt-stage0-dynamic/warmelt-macro-0.d.so: $(MELT_GENERATED_MACRO_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-macro-0
 
 melt-stage0-dynamic/warmelt-macro-0.so: melt-stage0-dynamic/warmelt-macro-0.d.so
-	cd melt-stage0-dynamic/ ; rm -f warmelt-macro-0.so; $(LN_S) warmelt-macro-0.d.so warmelt-macro-0.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+
+melt-stage0-dynamic/warmelt-macro-0.q.so: melt-stage0-dynamic/warmelt-macro-0.d.so
+	cd $(dir $@) ;  rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 
 ## using static object fields offsets for warmelt-normal
 melt-stage0-static/warmelt-normal-0.so: $(MELT_GENERATED_NORMAL_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normal-0.c \
@@ -281,14 +295,17 @@ melt-stage0-dynamic/warmelt-normal-0.d.so: $(MELT_GENERATED_NORMAL_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-normal-0
 
 melt-stage0-dynamic/warmelt-normal-0.so: melt-stage0-dynamic/warmelt-normal-0.d.so
-	cd melt-stage0-dynamic/ ; rm -f warmelt-normal-0.so; $(LN_S) warmelt-normal-0.d.so warmelt-normal-0.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+
+melt-stage0-dynamic/warmelt-normal-0.q.so: melt-stage0-dynamic/warmelt-normal-0.d.so
+	cd $(dir $@) ;  rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 
 ## using static object fields offsets for warmelt-normatch
 melt-stage0-static/warmelt-normatch-0.so: $(MELT_GENERATED_NORMATCH_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normatch-0.c \
@@ -305,14 +322,17 @@ melt-stage0-dynamic/warmelt-normatch-0.d.so: $(MELT_GENERATED_NORMATCH_C_FILES) 
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-normatch-0
 
 melt-stage0-dynamic/warmelt-normatch-0.so: melt-stage0-dynamic/warmelt-normatch-0.d.so
-	cd melt-stage0-dynamic/ ; rm -f warmelt-normatch-0.so; $(LN_S) warmelt-normatch-0.d.so warmelt-normatch-0.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+
+melt-stage0-dynamic/warmelt-normatch-0.q.so: melt-stage0-dynamic/warmelt-normatch-0.d.so
+	cd $(dir $@) ;  rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 
 ## using static object fields offsets for warmelt-genobj
 melt-stage0-static/warmelt-genobj-0.so: $(MELT_GENERATED_GENOBJ_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-genobj-0.c \
@@ -329,14 +349,17 @@ melt-stage0-dynamic/warmelt-genobj-0.d.so: $(MELT_GENERATED_GENOBJ_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-genobj-0
 
 melt-stage0-dynamic/warmelt-genobj-0.so: melt-stage0-dynamic/warmelt-genobj-0.d.so
-	cd melt-stage0-dynamic/ ; rm -f warmelt-genobj-0.so; $(LN_S) warmelt-genobj-0.d.so warmelt-genobj-0.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+
+melt-stage0-dynamic/warmelt-genobj-0.q.so: melt-stage0-dynamic/warmelt-genobj-0.d.so
+	cd $(dir $@) ;  rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 
 ## using static object fields offsets for warmelt-outobj
 melt-stage0-static/warmelt-outobj-0.so: $(MELT_GENERATED_OUTOBJ_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-outobj-0.c \
@@ -353,7 +376,10 @@ melt-stage0-dynamic/warmelt-outobj-0.d.so: $(MELT_GENERATED_OUTOBJ_C_FILES) \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/warmelt-outobj-0
 
 melt-stage0-dynamic/warmelt-outobj-0.so: melt-stage0-dynamic/warmelt-outobj-0.d.so
-	cd melt-stage0-dynamic/ ; rm -f warmelt-outobj-0.so; $(LN_S) warmelt-outobj-0.d.so warmelt-outobj-0.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+
+melt-stage0-dynamic/warmelt-outobj-0.q.so: melt-stage0-dynamic/warmelt-outobj-0.d.so
+	cd $(dir $@) ;  rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 
 
@@ -427,35 +453,35 @@ $(MELT_STAGE_ZERO):
 
 
 ################## warmelt-first for melt-stage1
-melt-stage1/warmelt-first-1.so: melt-stage1/warmelt-first-1.c \
+melt-stage1/warmelt-first-1.q.so: melt-stage1/warmelt-first-1.c \
               $(wildcard melt-stage1/warmelt-first-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-first-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-first-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-first-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-first-1
 
 melt-stage1/warmelt-first-1.n.so: melt-stage1/warmelt-first-1.c \
               $(wildcard melt-stage1/warmelt-first-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-first-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-first-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-first-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-first-1
 
 melt-stage1/warmelt-first-1.c: $(melt_make_source_dir)/warmelt-first.melt \
-                  $(MELT_STAGE_ZERO)/warmelt-first-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-base-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-debug-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-macro-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normal-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.so \
+                  $(MELT_STAGE_ZERO)/warmelt-first-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-base-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-debug-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-macro-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normal-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCINIT1) $(meltarg_init)=\
@@ -468,41 +494,41 @@ warmelt-normatch-0:\
 warmelt-genobj-0:\
 warmelt-outobj-0 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-base for melt-stage1
-melt-stage1/warmelt-base-1.so: melt-stage1/warmelt-base-1.c \
+melt-stage1/warmelt-base-1.q.so: melt-stage1/warmelt-base-1.c \
               $(wildcard melt-stage1/warmelt-base-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-base-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-base-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-base-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-base-1
 
 melt-stage1/warmelt-base-1.n.so: melt-stage1/warmelt-base-1.c \
               $(wildcard melt-stage1/warmelt-base-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-base-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-base-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-base-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-base-1
 
 melt-stage1/warmelt-base-1.c: $(melt_make_source_dir)/warmelt-base.melt \
-                  melt-stage1/warmelt-first-1.so \
-                  $(MELT_STAGE_ZERO)/warmelt-base-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-debug-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-macro-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normal-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.so \
+                  melt-stage1/warmelt-first-1.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-base-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-debug-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-macro-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normal-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -515,41 +541,41 @@ warmelt-normatch-0:\
 warmelt-genobj-0:\
 warmelt-outobj-0 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-debug for melt-stage1
-melt-stage1/warmelt-debug-1.so: melt-stage1/warmelt-debug-1.c \
+melt-stage1/warmelt-debug-1.q.so: melt-stage1/warmelt-debug-1.c \
               $(wildcard melt-stage1/warmelt-debug-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-debug-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-debug-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-debug-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-debug-1
 
 melt-stage1/warmelt-debug-1.n.so: melt-stage1/warmelt-debug-1.c \
               $(wildcard melt-stage1/warmelt-debug-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-debug-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-debug-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-debug-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-debug-1
 
 melt-stage1/warmelt-debug-1.c: $(melt_make_source_dir)/warmelt-debug.melt \
-                  melt-stage1/warmelt-first-1.so \
-                  melt-stage1/warmelt-base-1.so \
-                  $(MELT_STAGE_ZERO)/warmelt-debug-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-macro-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normal-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.so \
+                  melt-stage1/warmelt-first-1.q.so \
+                  melt-stage1/warmelt-base-1.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-debug-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-macro-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normal-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -562,41 +588,41 @@ warmelt-normatch-0:\
 warmelt-genobj-0:\
 warmelt-outobj-0 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-macro for melt-stage1
-melt-stage1/warmelt-macro-1.so: melt-stage1/warmelt-macro-1.c \
+melt-stage1/warmelt-macro-1.q.so: melt-stage1/warmelt-macro-1.c \
               $(wildcard melt-stage1/warmelt-macro-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-macro-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-macro-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-macro-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-macro-1
 
 melt-stage1/warmelt-macro-1.n.so: melt-stage1/warmelt-macro-1.c \
               $(wildcard melt-stage1/warmelt-macro-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-macro-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-macro-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-macro-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-macro-1
 
 melt-stage1/warmelt-macro-1.c: $(melt_make_source_dir)/warmelt-macro.melt \
-                  melt-stage1/warmelt-first-1.so \
-                  melt-stage1/warmelt-base-1.so \
-                  melt-stage1/warmelt-debug-1.so \
-                  $(MELT_STAGE_ZERO)/warmelt-macro-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normal-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.so \
+                  melt-stage1/warmelt-first-1.q.so \
+                  melt-stage1/warmelt-base-1.q.so \
+                  melt-stage1/warmelt-debug-1.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-macro-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normal-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -609,42 +635,42 @@ warmelt-normatch-0:\
 warmelt-genobj-0:\
 warmelt-outobj-0 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-normal for melt-stage1
-melt-stage1/warmelt-normal-1.so: melt-stage1/warmelt-normal-1.c \
+melt-stage1/warmelt-normal-1.q.so: melt-stage1/warmelt-normal-1.c \
               $(wildcard melt-stage1/warmelt-normal-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-normal-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-normal-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-normal-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-normal-1
 
 melt-stage1/warmelt-normal-1.n.so: melt-stage1/warmelt-normal-1.c \
               $(wildcard melt-stage1/warmelt-normal-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-normal-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-normal-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-normal-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-normal-1
 
 melt-stage1/warmelt-normal-1.c: $(melt_make_source_dir)/warmelt-normal.melt \
         warmelt-predef.melt \
-                  melt-stage1/warmelt-first-1.so \
-                  melt-stage1/warmelt-base-1.so \
-                  melt-stage1/warmelt-debug-1.so \
-                  melt-stage1/warmelt-macro-1.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normal-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.so \
+                  melt-stage1/warmelt-first-1.q.so \
+                  melt-stage1/warmelt-base-1.q.so \
+                  melt-stage1/warmelt-debug-1.q.so \
+                  melt-stage1/warmelt-macro-1.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normal-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -657,41 +683,41 @@ warmelt-normatch-0:\
 warmelt-genobj-0:\
 warmelt-outobj-0 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-normatch for melt-stage1
-melt-stage1/warmelt-normatch-1.so: melt-stage1/warmelt-normatch-1.c \
+melt-stage1/warmelt-normatch-1.q.so: melt-stage1/warmelt-normatch-1.c \
               $(wildcard melt-stage1/warmelt-normatch-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-normatch-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-normatch-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-normatch-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-normatch-1
 
 melt-stage1/warmelt-normatch-1.n.so: melt-stage1/warmelt-normatch-1.c \
               $(wildcard melt-stage1/warmelt-normatch-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-normatch-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-normatch-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-normatch-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-normatch-1
 
 melt-stage1/warmelt-normatch-1.c: $(melt_make_source_dir)/warmelt-normatch.melt \
-                  melt-stage1/warmelt-first-1.so \
-                  melt-stage1/warmelt-base-1.so \
-                  melt-stage1/warmelt-debug-1.so \
-                  melt-stage1/warmelt-macro-1.so \
-                  melt-stage1/warmelt-normal-1.so \
-                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.so \
+                  melt-stage1/warmelt-first-1.q.so \
+                  melt-stage1/warmelt-base-1.q.so \
+                  melt-stage1/warmelt-debug-1.q.so \
+                  melt-stage1/warmelt-macro-1.q.so \
+                  melt-stage1/warmelt-normal-1.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-normatch-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -704,41 +730,41 @@ warmelt-normatch-0:\
 warmelt-genobj-0:\
 warmelt-outobj-0 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-genobj for melt-stage1
-melt-stage1/warmelt-genobj-1.so: melt-stage1/warmelt-genobj-1.c \
+melt-stage1/warmelt-genobj-1.q.so: melt-stage1/warmelt-genobj-1.c \
               $(wildcard melt-stage1/warmelt-genobj-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-genobj-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-genobj-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-genobj-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-genobj-1
 
 melt-stage1/warmelt-genobj-1.n.so: melt-stage1/warmelt-genobj-1.c \
               $(wildcard melt-stage1/warmelt-genobj-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-genobj-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-genobj-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-genobj-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-genobj-1
 
 melt-stage1/warmelt-genobj-1.c: $(melt_make_source_dir)/warmelt-genobj.melt \
-                  melt-stage1/warmelt-first-1.so \
-                  melt-stage1/warmelt-base-1.so \
-                  melt-stage1/warmelt-debug-1.so \
-                  melt-stage1/warmelt-macro-1.so \
-                  melt-stage1/warmelt-normal-1.so \
-                  melt-stage1/warmelt-normatch-1.so \
-                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.so \
-                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.so \
+                  melt-stage1/warmelt-first-1.q.so \
+                  melt-stage1/warmelt-base-1.q.so \
+                  melt-stage1/warmelt-debug-1.q.so \
+                  melt-stage1/warmelt-macro-1.q.so \
+                  melt-stage1/warmelt-normal-1.q.so \
+                  melt-stage1/warmelt-normatch-1.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-genobj-0.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -751,41 +777,41 @@ warmelt-normatch-1:\
 warmelt-genobj-0:\
 warmelt-outobj-0 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-outobj for melt-stage1
-melt-stage1/warmelt-outobj-1.so: melt-stage1/warmelt-outobj-1.c \
+melt-stage1/warmelt-outobj-1.q.so: melt-stage1/warmelt-outobj-1.c \
               $(wildcard melt-stage1/warmelt-outobj-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-outobj-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-outobj-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-outobj-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-outobj-1
 
 melt-stage1/warmelt-outobj-1.n.so: melt-stage1/warmelt-outobj-1.c \
               $(wildcard melt-stage1/warmelt-outobj-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage1 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage1/warmelt-outobj-1.c \
-              GCCMELT_MODULE_BINARY=melt-stage1/warmelt-outobj-1
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-outobj-1.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage1)/warmelt-outobj-1
 
 melt-stage1/warmelt-outobj-1.c: $(melt_make_source_dir)/warmelt-outobj.melt \
-                  melt-stage1/warmelt-first-1.so \
-                  melt-stage1/warmelt-base-1.so \
-                  melt-stage1/warmelt-debug-1.so \
-                  melt-stage1/warmelt-macro-1.so \
-                  melt-stage1/warmelt-normal-1.so \
-                  melt-stage1/warmelt-normatch-1.so \
-                  melt-stage1/warmelt-genobj-1.so \
-                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.so \
+                  melt-stage1/warmelt-first-1.q.so \
+                  melt-stage1/warmelt-base-1.q.so \
+                  melt-stage1/warmelt-debug-1.q.so \
+                  melt-stage1/warmelt-macro-1.q.so \
+                  melt-stage1/warmelt-normal-1.q.so \
+                  melt-stage1/warmelt-normatch-1.q.so \
+                  melt-stage1/warmelt-genobj-1.q.so \
+                  $(MELT_STAGE_ZERO)/warmelt-outobj-0.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -798,20 +824,20 @@ warmelt-normatch-1:\
 warmelt-genobj-1:\
 warmelt-outobj-0 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage1:$(MELT_STAGE_ZERO):.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 melt-stage1/warmelt-1.modlis:  \
-             melt-stage1/warmelt-first-1.so \
-             melt-stage1/warmelt-base-1.so \
-             melt-stage1/warmelt-debug-1.so \
-             melt-stage1/warmelt-macro-1.so \
-             melt-stage1/warmelt-normal-1.so \
-             melt-stage1/warmelt-normatch-1.so \
-             melt-stage1/warmelt-genobj-1.so \
-             melt-stage1/warmelt-outobj-1.so
+             melt-stage1/warmelt-first-1.q.so \
+             melt-stage1/warmelt-base-1.q.so \
+             melt-stage1/warmelt-debug-1.q.so \
+             melt-stage1/warmelt-macro-1.q.so \
+             melt-stage1/warmelt-normal-1.q.so \
+             melt-stage1/warmelt-normatch-1.q.so \
+             melt-stage1/warmelt-genobj-1.q.so \
+             melt-stage1/warmelt-outobj-1.q.so
 	date  +"#$@ generated %F" > $@-tmp
 	echo warmelt-first-1 >> $@-tmp
 	echo warmelt-base-1 >> $@-tmp
@@ -825,14 +851,14 @@ melt-stage1/warmelt-1.modlis:  \
 
 
 melt-stage1/warmelt-1.n.modlis:  \
-             melt-stage1/warmelt-first-1.so \
-             melt-stage1/warmelt-base-1.so \
-             melt-stage1/warmelt-debug-1.so \
-             melt-stage1/warmelt-macro-1.so \
-             melt-stage1/warmelt-normal-1.so \
-             melt-stage1/warmelt-normatch-1.so \
-             melt-stage1/warmelt-genobj-1.so \
-             melt-stage1/warmelt-outobj-1.so
+             melt-stage1/warmelt-first-1.q.so \
+             melt-stage1/warmelt-base-1.q.so \
+             melt-stage1/warmelt-debug-1.q.so \
+             melt-stage1/warmelt-macro-1.q.so \
+             melt-stage1/warmelt-normal-1.q.so \
+             melt-stage1/warmelt-normatch-1.q.so \
+             melt-stage1/warmelt-genobj-1.q.so \
+             melt-stage1/warmelt-outobj-1.q.so
 	date  +"#$@ generated %F" > $@-tmp
 	echo warmelt-first-1.n >> $@-tmp
 	echo warmelt-base-1.n >> $@-tmp
@@ -860,35 +886,35 @@ melt-stage1:
 
 
 ################## warmelt-first for melt-stage2
-melt-stage2/warmelt-first-2.so: melt-stage2/warmelt-first-2.c \
+melt-stage2/warmelt-first-2.q.so: melt-stage2/warmelt-first-2.c \
               $(wildcard melt-stage2/warmelt-first-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-first-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-first-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-first-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-first-2
 
 melt-stage2/warmelt-first-2.n.so: melt-stage2/warmelt-first-2.c \
               $(wildcard melt-stage2/warmelt-first-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-first-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-first-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-first-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-first-2
 
 melt-stage2/warmelt-first-2.c: $(melt_make_source_dir)/warmelt-first.melt \
-                  melt-stage1/warmelt-first-1.so \
-                  melt-stage1/warmelt-base-1.so \
-                  melt-stage1/warmelt-debug-1.so \
-                  melt-stage1/warmelt-macro-1.so \
-                  melt-stage1/warmelt-normal-1.so \
-                  melt-stage1/warmelt-normatch-1.so \
-                  melt-stage1/warmelt-genobj-1.so \
-                  melt-stage1/warmelt-outobj-1.so \
+                  melt-stage1/warmelt-first-1.q.so \
+                  melt-stage1/warmelt-base-1.q.so \
+                  melt-stage1/warmelt-debug-1.q.so \
+                  melt-stage1/warmelt-macro-1.q.so \
+                  melt-stage1/warmelt-normal-1.q.so \
+                  melt-stage1/warmelt-normatch-1.q.so \
+                  melt-stage1/warmelt-genobj-1.q.so \
+                  melt-stage1/warmelt-outobj-1.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCINIT1) $(meltarg_init)=\
@@ -901,41 +927,41 @@ warmelt-normatch-1:\
 warmelt-genobj-1:\
 warmelt-outobj-1 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage2:melt-stage1:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage2:melt-stage1:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-base for melt-stage2
-melt-stage2/warmelt-base-2.so: melt-stage2/warmelt-base-2.c \
+melt-stage2/warmelt-base-2.q.so: melt-stage2/warmelt-base-2.c \
               $(wildcard melt-stage2/warmelt-base-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-base-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-base-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-base-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-base-2
 
 melt-stage2/warmelt-base-2.n.so: melt-stage2/warmelt-base-2.c \
               $(wildcard melt-stage2/warmelt-base-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-base-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-base-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-base-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-base-2
 
 melt-stage2/warmelt-base-2.c: $(melt_make_source_dir)/warmelt-base.melt \
-                  melt-stage2/warmelt-first-2.so \
-                  melt-stage1/warmelt-base-1.so \
-                  melt-stage1/warmelt-debug-1.so \
-                  melt-stage1/warmelt-macro-1.so \
-                  melt-stage1/warmelt-normal-1.so \
-                  melt-stage1/warmelt-normatch-1.so \
-                  melt-stage1/warmelt-genobj-1.so \
-                  melt-stage1/warmelt-outobj-1.so \
+                  melt-stage2/warmelt-first-2.q.so \
+                  melt-stage1/warmelt-base-1.q.so \
+                  melt-stage1/warmelt-debug-1.q.so \
+                  melt-stage1/warmelt-macro-1.q.so \
+                  melt-stage1/warmelt-normal-1.q.so \
+                  melt-stage1/warmelt-normatch-1.q.so \
+                  melt-stage1/warmelt-genobj-1.q.so \
+                  melt-stage1/warmelt-outobj-1.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -948,41 +974,41 @@ warmelt-normatch-1:\
 warmelt-genobj-1:\
 warmelt-outobj-1 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage2:melt-stage1:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage2:melt-stage1:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-debug for melt-stage2
-melt-stage2/warmelt-debug-2.so: melt-stage2/warmelt-debug-2.c \
+melt-stage2/warmelt-debug-2.q.so: melt-stage2/warmelt-debug-2.c \
               $(wildcard melt-stage2/warmelt-debug-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-debug-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-debug-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-debug-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-debug-2
 
 melt-stage2/warmelt-debug-2.n.so: melt-stage2/warmelt-debug-2.c \
               $(wildcard melt-stage2/warmelt-debug-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-debug-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-debug-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-debug-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-debug-2
 
 melt-stage2/warmelt-debug-2.c: $(melt_make_source_dir)/warmelt-debug.melt \
-                  melt-stage2/warmelt-first-2.so \
-                  melt-stage2/warmelt-base-2.so \
-                  melt-stage1/warmelt-debug-1.so \
-                  melt-stage1/warmelt-macro-1.so \
-                  melt-stage1/warmelt-normal-1.so \
-                  melt-stage1/warmelt-normatch-1.so \
-                  melt-stage1/warmelt-genobj-1.so \
-                  melt-stage1/warmelt-outobj-1.so \
+                  melt-stage2/warmelt-first-2.q.so \
+                  melt-stage2/warmelt-base-2.q.so \
+                  melt-stage1/warmelt-debug-1.q.so \
+                  melt-stage1/warmelt-macro-1.q.so \
+                  melt-stage1/warmelt-normal-1.q.so \
+                  melt-stage1/warmelt-normatch-1.q.so \
+                  melt-stage1/warmelt-genobj-1.q.so \
+                  melt-stage1/warmelt-outobj-1.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -995,41 +1021,41 @@ warmelt-normatch-1:\
 warmelt-genobj-1:\
 warmelt-outobj-1 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage2:melt-stage1:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage2:melt-stage1:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-macro for melt-stage2
-melt-stage2/warmelt-macro-2.so: melt-stage2/warmelt-macro-2.c \
+melt-stage2/warmelt-macro-2.q.so: melt-stage2/warmelt-macro-2.c \
               $(wildcard melt-stage2/warmelt-macro-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-macro-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-macro-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-macro-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-macro-2
 
 melt-stage2/warmelt-macro-2.n.so: melt-stage2/warmelt-macro-2.c \
               $(wildcard melt-stage2/warmelt-macro-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-macro-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-macro-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-macro-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-macro-2
 
 melt-stage2/warmelt-macro-2.c: $(melt_make_source_dir)/warmelt-macro.melt \
-                  melt-stage2/warmelt-first-2.so \
-                  melt-stage2/warmelt-base-2.so \
-                  melt-stage2/warmelt-debug-2.so \
-                  melt-stage1/warmelt-macro-1.so \
-                  melt-stage1/warmelt-normal-1.so \
-                  melt-stage1/warmelt-normatch-1.so \
-                  melt-stage1/warmelt-genobj-1.so \
-                  melt-stage1/warmelt-outobj-1.so \
+                  melt-stage2/warmelt-first-2.q.so \
+                  melt-stage2/warmelt-base-2.q.so \
+                  melt-stage2/warmelt-debug-2.q.so \
+                  melt-stage1/warmelt-macro-1.q.so \
+                  melt-stage1/warmelt-normal-1.q.so \
+                  melt-stage1/warmelt-normatch-1.q.so \
+                  melt-stage1/warmelt-genobj-1.q.so \
+                  melt-stage1/warmelt-outobj-1.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1042,42 +1068,42 @@ warmelt-normatch-1:\
 warmelt-genobj-1:\
 warmelt-outobj-1 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage2:melt-stage1:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage2:melt-stage1:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-normal for melt-stage2
-melt-stage2/warmelt-normal-2.so: melt-stage2/warmelt-normal-2.c \
+melt-stage2/warmelt-normal-2.q.so: melt-stage2/warmelt-normal-2.c \
               $(wildcard melt-stage2/warmelt-normal-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-normal-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-normal-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-normal-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-normal-2
 
 melt-stage2/warmelt-normal-2.n.so: melt-stage2/warmelt-normal-2.c \
               $(wildcard melt-stage2/warmelt-normal-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-normal-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-normal-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-normal-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-normal-2
 
 melt-stage2/warmelt-normal-2.c: $(melt_make_source_dir)/warmelt-normal.melt \
         warmelt-predef.melt \
-                  melt-stage2/warmelt-first-2.so \
-                  melt-stage2/warmelt-base-2.so \
-                  melt-stage2/warmelt-debug-2.so \
-                  melt-stage2/warmelt-macro-2.so \
-                  melt-stage1/warmelt-normal-1.so \
-                  melt-stage1/warmelt-normatch-1.so \
-                  melt-stage1/warmelt-genobj-1.so \
-                  melt-stage1/warmelt-outobj-1.so \
+                  melt-stage2/warmelt-first-2.q.so \
+                  melt-stage2/warmelt-base-2.q.so \
+                  melt-stage2/warmelt-debug-2.q.so \
+                  melt-stage2/warmelt-macro-2.q.so \
+                  melt-stage1/warmelt-normal-1.q.so \
+                  melt-stage1/warmelt-normatch-1.q.so \
+                  melt-stage1/warmelt-genobj-1.q.so \
+                  melt-stage1/warmelt-outobj-1.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1090,41 +1116,41 @@ warmelt-normatch-1:\
 warmelt-genobj-1:\
 warmelt-outobj-1 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage2:melt-stage1:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage2:melt-stage1:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-normatch for melt-stage2
-melt-stage2/warmelt-normatch-2.so: melt-stage2/warmelt-normatch-2.c \
+melt-stage2/warmelt-normatch-2.q.so: melt-stage2/warmelt-normatch-2.c \
               $(wildcard melt-stage2/warmelt-normatch-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-normatch-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-normatch-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-normatch-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-normatch-2
 
 melt-stage2/warmelt-normatch-2.n.so: melt-stage2/warmelt-normatch-2.c \
               $(wildcard melt-stage2/warmelt-normatch-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-normatch-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-normatch-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-normatch-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-normatch-2
 
 melt-stage2/warmelt-normatch-2.c: $(melt_make_source_dir)/warmelt-normatch.melt \
-                  melt-stage2/warmelt-first-2.so \
-                  melt-stage2/warmelt-base-2.so \
-                  melt-stage2/warmelt-debug-2.so \
-                  melt-stage2/warmelt-macro-2.so \
-                  melt-stage2/warmelt-normal-2.so \
-                  melt-stage1/warmelt-normatch-1.so \
-                  melt-stage1/warmelt-genobj-1.so \
-                  melt-stage1/warmelt-outobj-1.so \
+                  melt-stage2/warmelt-first-2.q.so \
+                  melt-stage2/warmelt-base-2.q.so \
+                  melt-stage2/warmelt-debug-2.q.so \
+                  melt-stage2/warmelt-macro-2.q.so \
+                  melt-stage2/warmelt-normal-2.q.so \
+                  melt-stage1/warmelt-normatch-1.q.so \
+                  melt-stage1/warmelt-genobj-1.q.so \
+                  melt-stage1/warmelt-outobj-1.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1137,41 +1163,41 @@ warmelt-normatch-1:\
 warmelt-genobj-1:\
 warmelt-outobj-1 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage2:melt-stage1:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage2:melt-stage1:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-genobj for melt-stage2
-melt-stage2/warmelt-genobj-2.so: melt-stage2/warmelt-genobj-2.c \
+melt-stage2/warmelt-genobj-2.q.so: melt-stage2/warmelt-genobj-2.c \
               $(wildcard melt-stage2/warmelt-genobj-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-genobj-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-genobj-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-genobj-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-genobj-2
 
 melt-stage2/warmelt-genobj-2.n.so: melt-stage2/warmelt-genobj-2.c \
               $(wildcard melt-stage2/warmelt-genobj-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-genobj-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-genobj-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-genobj-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-genobj-2
 
 melt-stage2/warmelt-genobj-2.c: $(melt_make_source_dir)/warmelt-genobj.melt \
-                  melt-stage2/warmelt-first-2.so \
-                  melt-stage2/warmelt-base-2.so \
-                  melt-stage2/warmelt-debug-2.so \
-                  melt-stage2/warmelt-macro-2.so \
-                  melt-stage2/warmelt-normal-2.so \
-                  melt-stage2/warmelt-normatch-2.so \
-                  melt-stage1/warmelt-genobj-1.so \
-                  melt-stage1/warmelt-outobj-1.so \
+                  melt-stage2/warmelt-first-2.q.so \
+                  melt-stage2/warmelt-base-2.q.so \
+                  melt-stage2/warmelt-debug-2.q.so \
+                  melt-stage2/warmelt-macro-2.q.so \
+                  melt-stage2/warmelt-normal-2.q.so \
+                  melt-stage2/warmelt-normatch-2.q.so \
+                  melt-stage1/warmelt-genobj-1.q.so \
+                  melt-stage1/warmelt-outobj-1.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1184,41 +1210,41 @@ warmelt-normatch-2:\
 warmelt-genobj-1:\
 warmelt-outobj-1 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage2:melt-stage1:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage2:melt-stage1:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-outobj for melt-stage2
-melt-stage2/warmelt-outobj-2.so: melt-stage2/warmelt-outobj-2.c \
+melt-stage2/warmelt-outobj-2.q.so: melt-stage2/warmelt-outobj-2.c \
               $(wildcard melt-stage2/warmelt-outobj-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-outobj-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-outobj-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-outobj-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-outobj-2
 
 melt-stage2/warmelt-outobj-2.n.so: melt-stage2/warmelt-outobj-2.c \
               $(wildcard melt-stage2/warmelt-outobj-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage2 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage2/warmelt-outobj-2.c \
-              GCCMELT_MODULE_BINARY=melt-stage2/warmelt-outobj-2
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-outobj-2.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage2)/warmelt-outobj-2
 
 melt-stage2/warmelt-outobj-2.c: $(melt_make_source_dir)/warmelt-outobj.melt \
-                  melt-stage2/warmelt-first-2.so \
-                  melt-stage2/warmelt-base-2.so \
-                  melt-stage2/warmelt-debug-2.so \
-                  melt-stage2/warmelt-macro-2.so \
-                  melt-stage2/warmelt-normal-2.so \
-                  melt-stage2/warmelt-normatch-2.so \
-                  melt-stage2/warmelt-genobj-2.so \
-                  melt-stage1/warmelt-outobj-1.so \
+                  melt-stage2/warmelt-first-2.q.so \
+                  melt-stage2/warmelt-base-2.q.so \
+                  melt-stage2/warmelt-debug-2.q.so \
+                  melt-stage2/warmelt-macro-2.q.so \
+                  melt-stage2/warmelt-normal-2.q.so \
+                  melt-stage2/warmelt-normatch-2.q.so \
+                  melt-stage2/warmelt-genobj-2.q.so \
+                  melt-stage1/warmelt-outobj-1.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1231,20 +1257,20 @@ warmelt-normatch-2:\
 warmelt-genobj-2:\
 warmelt-outobj-1 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage2:melt-stage1:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage2:melt-stage1:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 melt-stage2/warmelt-2.modlis:  \
-             melt-stage2/warmelt-first-2.so \
-             melt-stage2/warmelt-base-2.so \
-             melt-stage2/warmelt-debug-2.so \
-             melt-stage2/warmelt-macro-2.so \
-             melt-stage2/warmelt-normal-2.so \
-             melt-stage2/warmelt-normatch-2.so \
-             melt-stage2/warmelt-genobj-2.so \
-             melt-stage2/warmelt-outobj-2.so
+             melt-stage2/warmelt-first-2.q.so \
+             melt-stage2/warmelt-base-2.q.so \
+             melt-stage2/warmelt-debug-2.q.so \
+             melt-stage2/warmelt-macro-2.q.so \
+             melt-stage2/warmelt-normal-2.q.so \
+             melt-stage2/warmelt-normatch-2.q.so \
+             melt-stage2/warmelt-genobj-2.q.so \
+             melt-stage2/warmelt-outobj-2.q.so
 	date  +"#$@ generated %F" > $@-tmp
 	echo warmelt-first-2 >> $@-tmp
 	echo warmelt-base-2 >> $@-tmp
@@ -1258,14 +1284,14 @@ melt-stage2/warmelt-2.modlis:  \
 
 
 melt-stage2/warmelt-2.n.modlis:  \
-             melt-stage2/warmelt-first-2.so \
-             melt-stage2/warmelt-base-2.so \
-             melt-stage2/warmelt-debug-2.so \
-             melt-stage2/warmelt-macro-2.so \
-             melt-stage2/warmelt-normal-2.so \
-             melt-stage2/warmelt-normatch-2.so \
-             melt-stage2/warmelt-genobj-2.so \
-             melt-stage2/warmelt-outobj-2.so
+             melt-stage2/warmelt-first-2.q.so \
+             melt-stage2/warmelt-base-2.q.so \
+             melt-stage2/warmelt-debug-2.q.so \
+             melt-stage2/warmelt-macro-2.q.so \
+             melt-stage2/warmelt-normal-2.q.so \
+             melt-stage2/warmelt-normatch-2.q.so \
+             melt-stage2/warmelt-genobj-2.q.so \
+             melt-stage2/warmelt-outobj-2.q.so
 	date  +"#$@ generated %F" > $@-tmp
 	echo warmelt-first-2.n >> $@-tmp
 	echo warmelt-base-2.n >> $@-tmp
@@ -1293,35 +1319,35 @@ melt-stage2:
 
 
 ################## warmelt-first for melt-stage3
-melt-stage3/warmelt-first-3.so: melt-stage3/warmelt-first-3.c \
+melt-stage3/warmelt-first-3.q.so: melt-stage3/warmelt-first-3.c \
               $(wildcard melt-stage3/warmelt-first-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-first-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-first-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-first-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-first-3
 
 melt-stage3/warmelt-first-3.n.so: melt-stage3/warmelt-first-3.c \
               $(wildcard melt-stage3/warmelt-first-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-first-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-first-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-first-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-first-3
 
 melt-stage3/warmelt-first-3.c: $(melt_make_source_dir)/warmelt-first.melt \
-                  melt-stage2/warmelt-first-2.so \
-                  melt-stage2/warmelt-base-2.so \
-                  melt-stage2/warmelt-debug-2.so \
-                  melt-stage2/warmelt-macro-2.so \
-                  melt-stage2/warmelt-normal-2.so \
-                  melt-stage2/warmelt-normatch-2.so \
-                  melt-stage2/warmelt-genobj-2.so \
-                  melt-stage2/warmelt-outobj-2.so \
+                  melt-stage2/warmelt-first-2.q.so \
+                  melt-stage2/warmelt-base-2.q.so \
+                  melt-stage2/warmelt-debug-2.q.so \
+                  melt-stage2/warmelt-macro-2.q.so \
+                  melt-stage2/warmelt-normal-2.q.so \
+                  melt-stage2/warmelt-normatch-2.q.so \
+                  melt-stage2/warmelt-genobj-2.q.so \
+                  melt-stage2/warmelt-outobj-2.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCINIT1) $(meltarg_init)=\
@@ -1334,41 +1360,41 @@ warmelt-normatch-2:\
 warmelt-genobj-2:\
 warmelt-outobj-2 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage3:melt-stage2:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage3:melt-stage2:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-base for melt-stage3
-melt-stage3/warmelt-base-3.so: melt-stage3/warmelt-base-3.c \
+melt-stage3/warmelt-base-3.q.so: melt-stage3/warmelt-base-3.c \
               $(wildcard melt-stage3/warmelt-base-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-base-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-base-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-base-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-base-3
 
 melt-stage3/warmelt-base-3.n.so: melt-stage3/warmelt-base-3.c \
               $(wildcard melt-stage3/warmelt-base-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-base-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-base-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-base-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-base-3
 
 melt-stage3/warmelt-base-3.c: $(melt_make_source_dir)/warmelt-base.melt \
-                  melt-stage3/warmelt-first-3.so \
-                  melt-stage2/warmelt-base-2.so \
-                  melt-stage2/warmelt-debug-2.so \
-                  melt-stage2/warmelt-macro-2.so \
-                  melt-stage2/warmelt-normal-2.so \
-                  melt-stage2/warmelt-normatch-2.so \
-                  melt-stage2/warmelt-genobj-2.so \
-                  melt-stage2/warmelt-outobj-2.so \
+                  melt-stage3/warmelt-first-3.q.so \
+                  melt-stage2/warmelt-base-2.q.so \
+                  melt-stage2/warmelt-debug-2.q.so \
+                  melt-stage2/warmelt-macro-2.q.so \
+                  melt-stage2/warmelt-normal-2.q.so \
+                  melt-stage2/warmelt-normatch-2.q.so \
+                  melt-stage2/warmelt-genobj-2.q.so \
+                  melt-stage2/warmelt-outobj-2.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1381,41 +1407,41 @@ warmelt-normatch-2:\
 warmelt-genobj-2:\
 warmelt-outobj-2 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage3:melt-stage2:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage3:melt-stage2:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-debug for melt-stage3
-melt-stage3/warmelt-debug-3.so: melt-stage3/warmelt-debug-3.c \
+melt-stage3/warmelt-debug-3.q.so: melt-stage3/warmelt-debug-3.c \
               $(wildcard melt-stage3/warmelt-debug-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-debug-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-debug-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-debug-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-debug-3
 
 melt-stage3/warmelt-debug-3.n.so: melt-stage3/warmelt-debug-3.c \
               $(wildcard melt-stage3/warmelt-debug-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-debug-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-debug-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-debug-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-debug-3
 
 melt-stage3/warmelt-debug-3.c: $(melt_make_source_dir)/warmelt-debug.melt \
-                  melt-stage3/warmelt-first-3.so \
-                  melt-stage3/warmelt-base-3.so \
-                  melt-stage2/warmelt-debug-2.so \
-                  melt-stage2/warmelt-macro-2.so \
-                  melt-stage2/warmelt-normal-2.so \
-                  melt-stage2/warmelt-normatch-2.so \
-                  melt-stage2/warmelt-genobj-2.so \
-                  melt-stage2/warmelt-outobj-2.so \
+                  melt-stage3/warmelt-first-3.q.so \
+                  melt-stage3/warmelt-base-3.q.so \
+                  melt-stage2/warmelt-debug-2.q.so \
+                  melt-stage2/warmelt-macro-2.q.so \
+                  melt-stage2/warmelt-normal-2.q.so \
+                  melt-stage2/warmelt-normatch-2.q.so \
+                  melt-stage2/warmelt-genobj-2.q.so \
+                  melt-stage2/warmelt-outobj-2.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1428,41 +1454,41 @@ warmelt-normatch-2:\
 warmelt-genobj-2:\
 warmelt-outobj-2 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage3:melt-stage2:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage3:melt-stage2:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-macro for melt-stage3
-melt-stage3/warmelt-macro-3.so: melt-stage3/warmelt-macro-3.c \
+melt-stage3/warmelt-macro-3.q.so: melt-stage3/warmelt-macro-3.c \
               $(wildcard melt-stage3/warmelt-macro-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-macro-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-macro-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-macro-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-macro-3
 
 melt-stage3/warmelt-macro-3.n.so: melt-stage3/warmelt-macro-3.c \
               $(wildcard melt-stage3/warmelt-macro-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-macro-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-macro-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-macro-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-macro-3
 
 melt-stage3/warmelt-macro-3.c: $(melt_make_source_dir)/warmelt-macro.melt \
-                  melt-stage3/warmelt-first-3.so \
-                  melt-stage3/warmelt-base-3.so \
-                  melt-stage3/warmelt-debug-3.so \
-                  melt-stage2/warmelt-macro-2.so \
-                  melt-stage2/warmelt-normal-2.so \
-                  melt-stage2/warmelt-normatch-2.so \
-                  melt-stage2/warmelt-genobj-2.so \
-                  melt-stage2/warmelt-outobj-2.so \
+                  melt-stage3/warmelt-first-3.q.so \
+                  melt-stage3/warmelt-base-3.q.so \
+                  melt-stage3/warmelt-debug-3.q.so \
+                  melt-stage2/warmelt-macro-2.q.so \
+                  melt-stage2/warmelt-normal-2.q.so \
+                  melt-stage2/warmelt-normatch-2.q.so \
+                  melt-stage2/warmelt-genobj-2.q.so \
+                  melt-stage2/warmelt-outobj-2.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1475,42 +1501,42 @@ warmelt-normatch-2:\
 warmelt-genobj-2:\
 warmelt-outobj-2 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage3:melt-stage2:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage3:melt-stage2:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-normal for melt-stage3
-melt-stage3/warmelt-normal-3.so: melt-stage3/warmelt-normal-3.c \
+melt-stage3/warmelt-normal-3.q.so: melt-stage3/warmelt-normal-3.c \
               $(wildcard melt-stage3/warmelt-normal-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-normal-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-normal-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-normal-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-normal-3
 
 melt-stage3/warmelt-normal-3.n.so: melt-stage3/warmelt-normal-3.c \
               $(wildcard melt-stage3/warmelt-normal-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-normal-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-normal-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-normal-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-normal-3
 
 melt-stage3/warmelt-normal-3.c: $(melt_make_source_dir)/warmelt-normal.melt \
         warmelt-predef.melt \
-                  melt-stage3/warmelt-first-3.so \
-                  melt-stage3/warmelt-base-3.so \
-                  melt-stage3/warmelt-debug-3.so \
-                  melt-stage3/warmelt-macro-3.so \
-                  melt-stage2/warmelt-normal-2.so \
-                  melt-stage2/warmelt-normatch-2.so \
-                  melt-stage2/warmelt-genobj-2.so \
-                  melt-stage2/warmelt-outobj-2.so \
+                  melt-stage3/warmelt-first-3.q.so \
+                  melt-stage3/warmelt-base-3.q.so \
+                  melt-stage3/warmelt-debug-3.q.so \
+                  melt-stage3/warmelt-macro-3.q.so \
+                  melt-stage2/warmelt-normal-2.q.so \
+                  melt-stage2/warmelt-normatch-2.q.so \
+                  melt-stage2/warmelt-genobj-2.q.so \
+                  melt-stage2/warmelt-outobj-2.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1523,41 +1549,41 @@ warmelt-normatch-2:\
 warmelt-genobj-2:\
 warmelt-outobj-2 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage3:melt-stage2:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage3:melt-stage2:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-normatch for melt-stage3
-melt-stage3/warmelt-normatch-3.so: melt-stage3/warmelt-normatch-3.c \
+melt-stage3/warmelt-normatch-3.q.so: melt-stage3/warmelt-normatch-3.c \
               $(wildcard melt-stage3/warmelt-normatch-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-normatch-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-normatch-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-normatch-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-normatch-3
 
 melt-stage3/warmelt-normatch-3.n.so: melt-stage3/warmelt-normatch-3.c \
               $(wildcard melt-stage3/warmelt-normatch-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-normatch-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-normatch-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-normatch-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-normatch-3
 
 melt-stage3/warmelt-normatch-3.c: $(melt_make_source_dir)/warmelt-normatch.melt \
-                  melt-stage3/warmelt-first-3.so \
-                  melt-stage3/warmelt-base-3.so \
-                  melt-stage3/warmelt-debug-3.so \
-                  melt-stage3/warmelt-macro-3.so \
-                  melt-stage3/warmelt-normal-3.so \
-                  melt-stage2/warmelt-normatch-2.so \
-                  melt-stage2/warmelt-genobj-2.so \
-                  melt-stage2/warmelt-outobj-2.so \
+                  melt-stage3/warmelt-first-3.q.so \
+                  melt-stage3/warmelt-base-3.q.so \
+                  melt-stage3/warmelt-debug-3.q.so \
+                  melt-stage3/warmelt-macro-3.q.so \
+                  melt-stage3/warmelt-normal-3.q.so \
+                  melt-stage2/warmelt-normatch-2.q.so \
+                  melt-stage2/warmelt-genobj-2.q.so \
+                  melt-stage2/warmelt-outobj-2.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1570,41 +1596,41 @@ warmelt-normatch-2:\
 warmelt-genobj-2:\
 warmelt-outobj-2 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage3:melt-stage2:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage3:melt-stage2:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-genobj for melt-stage3
-melt-stage3/warmelt-genobj-3.so: melt-stage3/warmelt-genobj-3.c \
+melt-stage3/warmelt-genobj-3.q.so: melt-stage3/warmelt-genobj-3.c \
               $(wildcard melt-stage3/warmelt-genobj-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-genobj-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-genobj-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-genobj-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-genobj-3
 
 melt-stage3/warmelt-genobj-3.n.so: melt-stage3/warmelt-genobj-3.c \
               $(wildcard melt-stage3/warmelt-genobj-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-genobj-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-genobj-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-genobj-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-genobj-3
 
 melt-stage3/warmelt-genobj-3.c: $(melt_make_source_dir)/warmelt-genobj.melt \
-                  melt-stage3/warmelt-first-3.so \
-                  melt-stage3/warmelt-base-3.so \
-                  melt-stage3/warmelt-debug-3.so \
-                  melt-stage3/warmelt-macro-3.so \
-                  melt-stage3/warmelt-normal-3.so \
-                  melt-stage3/warmelt-normatch-3.so \
-                  melt-stage2/warmelt-genobj-2.so \
-                  melt-stage2/warmelt-outobj-2.so \
+                  melt-stage3/warmelt-first-3.q.so \
+                  melt-stage3/warmelt-base-3.q.so \
+                  melt-stage3/warmelt-debug-3.q.so \
+                  melt-stage3/warmelt-macro-3.q.so \
+                  melt-stage3/warmelt-normal-3.q.so \
+                  melt-stage3/warmelt-normatch-3.q.so \
+                  melt-stage2/warmelt-genobj-2.q.so \
+                  melt-stage2/warmelt-outobj-2.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1617,41 +1643,41 @@ warmelt-normatch-3:\
 warmelt-genobj-2:\
 warmelt-outobj-2 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage3:melt-stage2:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage3:melt-stage2:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 ################## warmelt-outobj for melt-stage3
-melt-stage3/warmelt-outobj-3.so: melt-stage3/warmelt-outobj-3.c \
+melt-stage3/warmelt-outobj-3.q.so: melt-stage3/warmelt-outobj-3.c \
               $(wildcard melt-stage3/warmelt-outobj-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-outobj-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-outobj-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-outobj-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-outobj-3
 
 melt-stage3/warmelt-outobj-3.n.so: melt-stage3/warmelt-outobj-3.c \
               $(wildcard melt-stage3/warmelt-outobj-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
-              GCCMELT_MODULE_WORKSPACE=melt-stage3 \
+              GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=melt-stage3/warmelt-outobj-3.c \
-              GCCMELT_MODULE_BINARY=melt-stage3/warmelt-outobj-3
+	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-outobj-3.c) \
+              GCCMELT_MODULE_BINARY=$(realpath melt-stage3)/warmelt-outobj-3
 
 melt-stage3/warmelt-outobj-3.c: $(melt_make_source_dir)/warmelt-outobj.melt \
-                  melt-stage3/warmelt-first-3.so \
-                  melt-stage3/warmelt-base-3.so \
-                  melt-stage3/warmelt-debug-3.so \
-                  melt-stage3/warmelt-macro-3.so \
-                  melt-stage3/warmelt-normal-3.so \
-                  melt-stage3/warmelt-normatch-3.so \
-                  melt-stage3/warmelt-genobj-3.so \
-                  melt-stage2/warmelt-outobj-2.so \
+                  melt-stage3/warmelt-first-3.q.so \
+                  melt-stage3/warmelt-base-3.q.so \
+                  melt-stage3/warmelt-debug-3.q.so \
+                  melt-stage3/warmelt-macro-3.q.so \
+                  melt-stage3/warmelt-normal-3.q.so \
+                  melt-stage3/warmelt-normatch-3.q.so \
+                  melt-stage3/warmelt-genobj-3.q.so \
+                  melt-stage2/warmelt-outobj-2.q.so \
              empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	$(MELTCCFILE1) $(meltarg_init)=\
@@ -1664,20 +1690,20 @@ warmelt-normatch-3:\
 warmelt-genobj-3:\
 warmelt-outobj-2 \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=melt-stage3:melt-stage2:.:$(melt_make_module_dir) \
-	      $(meltarg_source_path)=melt-stage3:melt-stage2:.:$(melt_make_source_dir):$(melt_make_source_dir)/generated:$(melt_source_dir) \
+	      $(meltarg_module_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@  empty-file-for-melt.c
 
 
 melt-stage3/warmelt-3.modlis:  \
-             melt-stage3/warmelt-first-3.so \
-             melt-stage3/warmelt-base-3.so \
-             melt-stage3/warmelt-debug-3.so \
-             melt-stage3/warmelt-macro-3.so \
-             melt-stage3/warmelt-normal-3.so \
-             melt-stage3/warmelt-normatch-3.so \
-             melt-stage3/warmelt-genobj-3.so \
-             melt-stage3/warmelt-outobj-3.so
+             melt-stage3/warmelt-first-3.q.so \
+             melt-stage3/warmelt-base-3.q.so \
+             melt-stage3/warmelt-debug-3.q.so \
+             melt-stage3/warmelt-macro-3.q.so \
+             melt-stage3/warmelt-normal-3.q.so \
+             melt-stage3/warmelt-normatch-3.q.so \
+             melt-stage3/warmelt-genobj-3.q.so \
+             melt-stage3/warmelt-outobj-3.q.so
 	date  +"#$@ generated %F" > $@-tmp
 	echo warmelt-first-3 >> $@-tmp
 	echo warmelt-base-3 >> $@-tmp
@@ -1691,14 +1717,14 @@ melt-stage3/warmelt-3.modlis:  \
 
 
 melt-stage3/warmelt-3.n.modlis:  \
-             melt-stage3/warmelt-first-3.so \
-             melt-stage3/warmelt-base-3.so \
-             melt-stage3/warmelt-debug-3.so \
-             melt-stage3/warmelt-macro-3.so \
-             melt-stage3/warmelt-normal-3.so \
-             melt-stage3/warmelt-normatch-3.so \
-             melt-stage3/warmelt-genobj-3.so \
-             melt-stage3/warmelt-outobj-3.so
+             melt-stage3/warmelt-first-3.q.so \
+             melt-stage3/warmelt-base-3.q.so \
+             melt-stage3/warmelt-debug-3.q.so \
+             melt-stage3/warmelt-macro-3.q.so \
+             melt-stage3/warmelt-normal-3.q.so \
+             melt-stage3/warmelt-normatch-3.q.so \
+             melt-stage3/warmelt-genobj-3.q.so \
+             melt-stage3/warmelt-outobj-3.q.so
 	date  +"#$@ generated %F" > $@-tmp
 	echo warmelt-first-3.n >> $@-tmp
 	echo warmelt-base-3.n >> $@-tmp
@@ -1796,8 +1822,8 @@ melt-sources/warmelt-first.c: melt-sources/warmelt-first.melt  \
 
 	$(MELTCCINIT1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
+	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -1814,6 +1840,15 @@ melt-modules/warmelt-first.n.so: melt-sources/warmelt-first.c \
         $(wildcard  melt-sources/warmelt-first+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/warmelt-first
+
+melt-modules/warmelt-first.q.so: melt-sources/warmelt-first.c \
+        $(wildcard  melt-sources/warmelt-first+*.c) \
+        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -1836,8 +1871,8 @@ melt-sources/warmelt-base.c: melt-sources/warmelt-base.melt  \
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
+	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -1854,6 +1889,15 @@ melt-modules/warmelt-base.n.so: melt-sources/warmelt-base.c \
         $(wildcard  melt-sources/warmelt-base+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/warmelt-base
+
+melt-modules/warmelt-base.q.so: melt-sources/warmelt-base.c \
+        $(wildcard  melt-sources/warmelt-base+*.c) \
+        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -1876,8 +1920,8 @@ melt-sources/warmelt-debug.c: melt-sources/warmelt-debug.melt  \
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
+	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -1894,6 +1938,15 @@ melt-modules/warmelt-debug.n.so: melt-sources/warmelt-debug.c \
         $(wildcard  melt-sources/warmelt-debug+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/warmelt-debug
+
+melt-modules/warmelt-debug.q.so: melt-sources/warmelt-debug.c \
+        $(wildcard  melt-sources/warmelt-debug+*.c) \
+        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -1916,8 +1969,8 @@ melt-sources/warmelt-macro.c: melt-sources/warmelt-macro.melt  \
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
+	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -1934,6 +1987,15 @@ melt-modules/warmelt-macro.n.so: melt-sources/warmelt-macro.c \
         $(wildcard  melt-sources/warmelt-macro+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/warmelt-macro
+
+melt-modules/warmelt-macro.q.so: melt-sources/warmelt-macro.c \
+        $(wildcard  melt-sources/warmelt-macro+*.c) \
+        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -1962,8 +2024,8 @@ melt-sources/warmelt-normal.c: melt-sources/warmelt-normal.melt melt-sources/war
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
+	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -1980,6 +2042,15 @@ melt-modules/warmelt-normal.n.so: melt-sources/warmelt-normal.c \
         $(wildcard  melt-sources/warmelt-normal+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/warmelt-normal
+
+melt-modules/warmelt-normal.q.so: melt-sources/warmelt-normal.c \
+        $(wildcard  melt-sources/warmelt-normal+*.c) \
+        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2002,8 +2073,8 @@ melt-sources/warmelt-normatch.c: melt-sources/warmelt-normatch.melt  \
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
+	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -2020,6 +2091,15 @@ melt-modules/warmelt-normatch.n.so: melt-sources/warmelt-normatch.c \
         $(wildcard  melt-sources/warmelt-normatch+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/warmelt-normatch
+
+melt-modules/warmelt-normatch.q.so: melt-sources/warmelt-normatch.c \
+        $(wildcard  melt-sources/warmelt-normatch+*.c) \
+        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2042,8 +2122,8 @@ melt-sources/warmelt-genobj.c: melt-sources/warmelt-genobj.melt  \
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
+	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -2060,6 +2140,15 @@ melt-modules/warmelt-genobj.n.so: melt-sources/warmelt-genobj.c \
         $(wildcard  melt-sources/warmelt-genobj+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/warmelt-genobj
+
+melt-modules/warmelt-genobj.q.so: melt-sources/warmelt-genobj.c \
+        $(wildcard  melt-sources/warmelt-genobj+*.c) \
+        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2082,8 +2171,8 @@ melt-sources/warmelt-outobj.c: melt-sources/warmelt-outobj.melt  \
 
 	$(MELTCCFILE1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=$(MELT_LAST_STAGE):melt-sources \
+	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -2100,6 +2189,15 @@ melt-modules/warmelt-outobj.n.so: melt-sources/warmelt-outobj.c \
         $(wildcard  melt-sources/warmelt-outobj+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/warmelt-outobj
+
+melt-modules/warmelt-outobj.q.so: melt-sources/warmelt-outobj.c \
+        $(wildcard  melt-sources/warmelt-outobj+*.c) \
+        melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2125,8 +2223,8 @@ melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-sy
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))): \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -2143,6 +2241,15 @@ melt-modules/xtramelt-parse-infix-syntax.n.so: melt-sources/xtramelt-parse-infix
         $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/xtramelt-parse-infix-syntax
+
+melt-modules/xtramelt-parse-infix-syntax.q.so: melt-sources/xtramelt-parse-infix-syntax.c \
+        $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
+        melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2166,8 +2273,8 @@ melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt  \
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -2184,6 +2291,15 @@ melt-modules/xtramelt-ana-base.n.so: melt-sources/xtramelt-ana-base.c \
         $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/xtramelt-ana-base
+
+melt-modules/xtramelt-ana-base.q.so: melt-sources/xtramelt-ana-base.c \
+        $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
+        melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2207,8 +2323,8 @@ melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt  \
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -2225,6 +2341,15 @@ melt-modules/xtramelt-ana-simple.n.so: melt-sources/xtramelt-ana-simple.c \
         $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/xtramelt-ana-simple
+
+melt-modules/xtramelt-ana-simple.q.so: melt-sources/xtramelt-ana-simple.c \
+        $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
+        melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2248,8 +2373,8 @@ melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt  \
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base:xtramelt-ana-simple \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -2266,6 +2391,15 @@ melt-modules/xtramelt-c-generator.n.so: melt-sources/xtramelt-c-generator.c \
         $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/xtramelt-c-generator
+
+melt-modules/xtramelt-c-generator.q.so: melt-sources/xtramelt-c-generator.c \
+        $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
+        melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2289,8 +2423,8 @@ melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt  \
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=melt-modules:$(MELT_LAST_STAGE) \
-	     $(meltarg_source_path)=melt-sources:$(MELT_LAST_STAGE) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base:xtramelt-ana-simple:xtramelt-c-generator \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
 
@@ -2307,6 +2441,15 @@ melt-modules/xtramelt-opengpu.n.so: melt-sources/xtramelt-opengpu.c \
         $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
+	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
+	      GCCMELT_MODULE_SOURCE=$< \
+              GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
+              GCCMELT_MODULE_BINARY=melt-modules/xtramelt-opengpu
+
+melt-modules/xtramelt-opengpu.q.so: melt-sources/xtramelt-opengpu.c \
+        $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
+        melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
+	+$(MELT_MAKE_MODULE) melt_module_quickly \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2523,8 +2666,8 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	      $(meltarg_makecmd)=$(MAKE) \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
-	      $(meltarg_module_path)=melt-modules:. \
-	      $(meltarg_source_path)=melt-sources:. \
+	      $(meltarg_module_path)=$(realpath melt-modules):. \
+	      $(meltarg_source_path)=$(realpath melt-sources):. \
 	      $(meltarg_output)=$@  \
               $(meltarg_arglist)=warmelt-first.melt,warmelt-base.melt,warmelt-debug.melt,warmelt-macro.melt,warmelt-normal.melt,warmelt-normatch.melt,warmelt-genobj.melt,warmelt-outobj.melt,\
 xtramelt-parse-infix-syntax.melt,xtramelt-ana-base.melt,xtramelt-ana-simple.melt,xtramelt-c-generator.melt,xtramelt-opengpu.melt \
