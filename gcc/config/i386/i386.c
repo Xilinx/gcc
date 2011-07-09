@@ -11054,6 +11054,17 @@ ix86_live_on_entry (bitmap regs)
 	    (const (plus:SI (symbol_ref:SI ("A.193.2210"))
 			    (const_int CONST))))
 
+   We also translate
+
+   (plus:SI (reg:SI 0 ax [orig:74 D.4067 ] [74])
+	    (subreg:SI (plus:DI (reg/f:DI 7 sp)
+				(const_int 64 [0x40])) 0))
+
+   into
+
+   (plus:SI (reg:SI 0 ax [orig:74 D.4067 ] [74])
+	    (plus:SI (reg/f:SI 7 sp) (const_int 64 [0x40])))
+
    If PLUS is true, we also translate
 
    (set (reg:SI 40 r11)
@@ -11072,10 +11083,11 @@ ix86_live_on_entry (bitmap regs)
  */
 
 static void
-ix86_simplify_base_disp (rtx *base_p, rtx *disp_p, bool plus)
+ix86_simplify_base_index_disp (rtx *base_p, rtx *index_p, rtx *disp_p,
+			       bool plus)
 {
   rtx base = *base_p;
-  rtx disp;
+  rtx disp, index, op0, op1;
 
   if (!base || GET_MODE (base) != ptr_mode)
     return;
@@ -11091,9 +11103,10 @@ ix86_simplify_base_disp (rtx *base_p, rtx *disp_p, bool plus)
 
   if (GET_CODE (base) == PLUS)
     {
-      rtx op0 = XEXP (base, 0);
-      rtx op1 = XEXP (base, 1);
       rtx addend;
+
+      op0 = XEXP (base, 0);
+      op1 = XEXP (base, 1);
 
       if ((REG_P (op0)
 	   || (!plus
@@ -11160,6 +11173,25 @@ ix86_simplify_base_disp (rtx *base_p, rtx *disp_p, bool plus)
 	    *base_p = base;
 	}
     }
+  else if (!plus
+	   && (disp == NULL_RTX || disp == const0_rtx)
+	   && index_p
+	   && (index = *index_p) != NULL_RTX
+	   && GET_CODE (index) == SUBREG
+	   && GET_MODE (index) == ptr_mode)
+    {
+      index = SUBREG_REG (index);
+      if (GET_CODE (index) == PLUS && GET_MODE (index) == Pmode)
+	{
+	  op0 = XEXP (index, 0);
+	  op1 = XEXP (index, 1);
+	  if (REG_P (op0) && CONST_INT_P (op1))
+	    {
+	      *index_p = gen_rtx_REG (ptr_mode, REGNO (op0));
+	      *disp_p = op1;
+	    }
+	}
+    }
 }
 
 /* Extract the parts of an RTL expression that is a valid memory address
@@ -11208,12 +11240,14 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 		{
 		  op = XEXP (op, 0);
 		  if (n == 1)
-		    ix86_simplify_base_disp (&op, &addends[0], false);
+		    ix86_simplify_base_index_disp (&op, NULL,
+						   &addends[0], false);
 		}
 	      else if (n == 1
 		       && GET_CODE (op) == PLUS
 		       && GET_MODE (op) == ptr_mode)
-		ix86_simplify_base_disp (&op, &addends[0], true);
+		ix86_simplify_base_index_disp (&op, NULL, &addends[0],
+					       true);
 	    }
 	}
       while (GET_CODE (op) == PLUS);
@@ -11308,14 +11342,14 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
       scale = INTVAL (scale_rtx);
     }
 
-  index_reg = index && GET_CODE (index) == SUBREG ? SUBREG_REG (index) : index;
+  if (TARGET_X32 && reload_completed)
+    ix86_simplify_base_index_disp (&base, &index, &disp, false);
 
   /* Avoid useless 0 displacement.  */
   if (disp == const0_rtx && (base || index))
     disp = NULL_RTX;
 
-  if (TARGET_X32 && reload_completed)
-    ix86_simplify_base_disp (&base, &disp, false);
+  index_reg = index && GET_CODE (index) == SUBREG ? SUBREG_REG (index) : index;
 
   base_reg = base && GET_CODE (base) == SUBREG ? SUBREG_REG (base) : base;
 

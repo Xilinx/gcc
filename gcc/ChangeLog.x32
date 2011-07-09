@@ -1,3 +1,14 @@
+2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_simplify_base_disp): Renamed to ...
+	(ix86_simplify_base_index_disp): This.  Handle index.
+	(ix86_simplify_base_disp): Updated.
+
+	* config/i386/i386.md (*lea_1_x32): Renamed to ...
+	(*lea_2_x32): This.
+	(*lea_2_zext_x32): New.
+	(X32 LEA zero-extend split): Likewise.
+
 2011-07-06  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config.gcc: Check with_multilib_list instead of enable_x32.
