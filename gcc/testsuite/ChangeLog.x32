@@ -1,5 +1,9 @@
 2011-07-07  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.dg/20020219-1.c: Use dg-skip-if for x32.
+
+2011-07-07  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.dg/20020103-1.c: Don't check ia32.
 
 2011-07-05  H.J. Lu  <hongjiu.lu@intel.com>

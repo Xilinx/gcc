@@ -14,9 +14,10 @@
 /* { dg-options "-O2" } */
 /* { dg-options "-O2 -mdisable-indexing" { target hppa*-*-hpux* } } */
 /* { dg-skip-if "" { "ia64-*-hpux*" } "*" "-mlp64" } */
+/* { dg-skip-if "" { { i?86-*-* x86_64-*-* } && x32 } { "*" } { "" } } */
 
-/* Disable the test entirely for 16-bit and x32 targets.  */
-#if __INT_MAX__ > 32767 && (!defined __x86_64__ || defined __LP64__)
+/* Disable the test entirely for 16-bit targets.  */
+#if __INT_MAX__ > 32767
 
 extern void abort (void);
 extern void exit (int);
