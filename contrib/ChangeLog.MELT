@@ -1,4 +1,8 @@
 
+2011-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* MELT-Plugin-Makefile: New file.
+
 2011-07-06  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* make-melt-source-tar.sh: Correct error message.

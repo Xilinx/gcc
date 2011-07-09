@@ -1,0 +1,246 @@
+## a GNU Makefile for building the MELT plugin
+##
+##    Middle End Lisp Translator = MELT
+##
+##    Copyright (C) 2011 Free Software Foundation, Inc.
+##    Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+## 
+## This file contrib/MELT-Plugin-Makefile is part of GCC.
+## 
+## GCC is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published by
+## the Free Software Foundation; either version 3, or (at your option)
+## any later version.
+## 
+## GCC is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+## 
+## You should have received a copy of the GNU General Public License
+## along with GCC; see the file COPYING3.   If not see
+## <http://www.gnu.org/licenses/>.
+
+### Notice that the MELT plugin should be rebuilt even for very minor
+### GCC changes, like a patchlevel upgrade, e.g. from GCC 4.6.0 to
+### 4.6.1
+
+## the command to remove files
+RM ?= rm -vf
+## the compiler used to build the melt.so plugin
+CC = gcc
+
+## the compiler with which melt.so is used
+MELTGCC ?= gcc
+
+## the gengtype for that GCC and its flag
+MELTGCC_GENGTYPE := $(shell $(MELTGCC) -print-file-name=gengtype)
+
+MELTGCC_GENGTYPEFLAGS = -v
+
+## its state file
+MELTGCC_GTYPESTATE  := $(shell $(MELTGCC) -print-file-name=gtype.state)
+
+### the GNU awk (cannot be a non GNU awk like nawk or mawk ...)
+GAWK= gawk
+
+### the GNU sed utility
+SED= sed
+
+### the GNU tr utility
+TR= tr 
+
+## the GNU autogen program
+AUTOGEN=autogen
+
+## the GNU install utility from coreutils
+INSTALL= install
+
+
+## an install driver, which could be sudo
+INSTALL_DRIVER=
+
+## the destination directory, where to install, useful e.g., for MELT packagers
+DESTDIR=
+
+INSTALL_DATA= $(INSTALL_DRIVER) $(INSTALL) -b -p -m 644
+INSTALL_PROGRAM= $(INSTALL_DRIVER) $(INSTALL) -b -p -m 755
+
+mkinstalldirs= $(INSTALL_DRIVER) mkdir -p
+## 
+## the existing GCC plugin directory
+MELTGCC_PLUGIN_DIR:= $(shell $(MELTGCC) -print-file-name=plugin)
+
+
+ifeq ($(wildcard $(MELTGCC_PLUGIN_DIR)/include/gimple*),)
+$(error incorrect MELT GCC plugin directory $(MELTGCC_PLUGIN_DIR))
+endif
+
+ifeq ($(wildcard $(MELTGCC_GTYPESTATE)),)
+$(error missing MELT GCC gengtype state file)
+endif
+
+## the version of our GCC getting melt.so
+MELTGCC_VERSION := $(shell env LANG=C LC_ALL=C $(MELTGCC) -v < /dev/null 2>&1 | $(GAWK) "/^gcc version/{print $$3}")
+
+## check that we have a gcc 4.6 or 4.7
+ifeq ($(filter 4.6.% 4.7.%, $(MELTGCC_VERSION)),)
+$(error bad version of MELT GCC $(MELTGCC_VERSION). Needs GCC 4.6 or 4.7)
+endif
+
+## our included files from melt-runtime.c
+MELTGCC_RUNTIME_INCLUDES= melt-runtime.h melt/generated/meltrunsup.h
+
+## the optimization flags for melt.so
+MELTGCC_OPTIMFLAGS= -O2
+
+## our include flags for melt.so and for MELT generated C code
+MELTGCC_INCLUDEFLAGS= -I $(MELTGCC_PLUGIN_DIR)/include -I $(MELTGCC_PLUGIN_DIR)/include/c-family
+
+## the make command started by make.so
+MELTGCC_MAKE= $(MAKE)
+
+.PHONY: all clean install bootstrap-melt  install-melt-includes install-melt-sources install-melt-modules  install-melt-mk install-melt-default-modules-list
+
+melt_make_cc1:=$(shell $(MELTGCC) -print-file-name=cc1)
+melt_make_cc1_dependency= $(melt_make_cc1) melt-runtime.h melt-run.h melt/generated/meltrunsup.h melt/generated/meltrunsup-inc.c melt.so
+melt_make_gencdeps= $(melt_make_cc1)
+melt_make_module_makefile= melt-module.mk
+melt_make_source_dir= melt
+melt_make_module_dir=
+melt_make_move= mv
+## Don't use := definitions here!
+## CC1 forbids -pipe and -Wp,-D_FORTIFY_SOURCE=2
+comma= ,
+melt_make_cc1flags= -fplugin=$(realpath melt.so) -I $(realpath .) -o /dev/null
+melt_cflags=  -I $(realpath .) -I $(realpath melt/generated)  -DIN_GCC -DMELT_IS_PLUGIN $(MELTGCC_INCLUDEFLAGS)
+export melt_cflags
+## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c
+melt_extra_cflags= -g
+export melt_extra_cflags
+melt_installed_cflags= $(MELTGCC_INCLUDEFLAGS) -DIN_GCC -DMELT_IS_PLUGIN -O
+melt_default_modules_list=melt-default-modules
+
+## this is the installation directory of melt sources (*.melt files
+## in MELT dialect and the corresponding *.c files)
+melt_source_dir=$(MELTGCC_PLUGIN_DIR)/melt-source
+
+## this is the installation directory of melt dynamic modules (*.so) and module list
+melt_module_dir=$(MELTGCC_PLUGIN_DIR)/melt-modules
+
+## this is the installed path of the MELT module makefile
+melt_installed_module_makefile=$(MELTGCC_PLUGIN_DIR)/melt-module.mk
+
+## should be 1 
+melt_is_plugin=1
+
+MELT_STAGE_ZERO ?= melt-stage0-dynamic
+all: melt-run.h melt.so bootstrap-melt
+
+
+gt-melt-runtime.h:  $(MELTGCC_RUNTIME_INCLUDES) $(MELTGCC_GTYPESTATE) \
+   melt-runtime.c melt/generated/meltrunsup-inc.c
+	$(MELTGCC_GENGTYPE) $(MELTGCC_GENGTYPEFLAGS) \
+	   -r  $(MELTGCC_GTYPESTATE) -P $@  $(MELTGCC_RUNTIME_INCLUDES) \
+	   melt-runtime.c melt/generated/meltrunsup-inc.c
+
+melt-predef.h:  make-melt-predefh.awk melt-predef.list
+	$(GAWK) -f $^ > $@-tmp
+	mv $@-tmp $@
+
+.INTERMEDIATE: gfmeltgcc_version_number gfmeltgcc_revision gfmeltgcc_run_md5
+
+
+melt-run.h melt-run-md5.h:
+
+# intermediate file for the version number
+gfmeltgcc_version_number: 
+	 echo "$(MELTGCC_VERSION)"  | $(GAWK) '{split($$3,vertab,"."); printf "%d", strtonum(vertab[1])*1000+strtonum(vertab[2])}' > $@
+
+# intermediate file for the revision string
+gfmeltgcc_revision: GCCMELT-REVISION
+	$(SED) 's/^ *//' < $< | $(SED) 's/ *$$//'  > $@-tmp
+	mv $@-tmp $@
+
+# intermediate file for the md5sum
+gfmeltgcc_run_md5: $(MELTGCC_RUNTIME_INCLUDES) melt-run.proto.h \
+                   $(wildcard $(MELTGCC_PLUGIN_DIR)/include/*.h) melt-runtime.h  melt/generated/meltrunsup.h
+	$(CC)  -C -E -DMELT_IS_PLUGIN -Imelt/generated -I. $(MELTGCC_INCLUDEFLAGS) \
+	 | grep -v '^#' | md5sum | cut -c 1-32 > $@-tmp
+	mv $@-tmp $@
+
+melt-run.h: melt-run.proto.h gfmeltgcc_run_md5
+	$(SED) -e 's,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$(shell cat gfmeltgcc_run_md5)\",' <  $< > $@-tmp
+	mv $@-tmp $@
+
+melt-run-md5.h:  gfmeltgcc_run_md5
+	echo const char melt_run_preprocessed_md5[]=\"$(shell cat gfmeltgcc_run_md5)\"; > $@-tmp
+	mv $@-tmp $@
+ 
+## the version number of our GCC getting melt.so, ie 4006 for 4.6 &
+## 4007 for 4.7
+MELTGCC_VERSION_NUMBER = $(shell cat gfmeltgcc_version_number)
+
+
+melt.so: melt-runtime.c $(MELTGCC_RUNTIME_INCLUDES) \
+   gt-melt-runtime.h $(wildcard $(MELTGCC_PLUGIN_DIR)/include/*.h) \
+   melt-predef.h melt-run.h melt-run-md5.h GCCMELT-REVISION \
+	gfmeltgcc_version_number gfmeltgcc_revision
+	$(CC) $(MELTGCC_INCLUDEFLAGS) -I $(realpath melt/generated) -I $(realpath .) \
+           -fPIC -DMELT_IS_PLUGIN -shared \
+	   $(MELTGCC_OPTIMFLAGS) \
+	   -DMELT_GCC_VERSION=$(MELTGCC_VERSION_NUMBER) \
+	   -DMELT_SOURCE_DIR=\"$(melt_source_dir)\" \
+	   -DMELT_MODULE_DIR=\"$(melt_module_dir)\" \
+	   -DMELT_MODULE_MAKE_COMMAND=\"$(MELTGCC_MAKE)\" \
+           '-DMELT_REVISION="$(shell cat gfmeltgcc_revision)"' \
+	   '-DMELT_MODULE_CFLAGS="$(melt_installed_cflags)"' \
+	   -DMELT_MODULE_MAKEFILE=\"$(melt_installed_module_makefile)\" \
+	   -DMELT_DEFAULT_MODLIS=\"melt-default-modules\" \
+	-o $@ $<
+
+clean:
+	$(RM) *.o *~ melt-predef.h gt-melt-runtime.h gfmelt* *tmp
+
+melt-build.mk: melt-build.def melt-build.tpl
+	$(AUTOGEN) melt-build.def
+
+include melt-build.mk
+
+bootstrap-melt: melt.so warmelt-predef.melt warmelt0 warmelt1 warmelt2 warmelt all-melt
+
+warmelt-predef.melt: make-warmelt-predef.awk melt-predef.list
+	$(GAWK) -f $^ > $@-tmp
+	mv $@-tmp $@
+
+install: all melt.so warmelt  install-melt-includes install-melt-sources install-melt-modules  install-melt-mk install-melt-default-modules-list
+
+install-melt-includes: melt-runtime.h melt-predef.h melt-run.h melt-run-md5.h melt/generated/meltrunsup.h
+	for f in $^; do \
+	   $(INSTALL_DATA) $$f $(DESTDIR)/$(MELTGCC_PLUGIN_DIR)/include/ ; \
+	done
+
+### notice that melt-sources is a directory, but melt-all-sources is a
+### phony makefile target from melt-build.mk
+install-melt-source: melt-sources  melt-all-sources
+	$(mkinstalldirs) $(DESTDIR)/$(melt_source_dir)
+	for f in melt-sources/*.c melt-sources/*.melt ; do \
+	   $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_source_dir) ; \
+	done
+
+### notice that melt-modules is a directory, but melt-all-modules is a
+### phony makefile target from melt-build.mk
+install-melt-modules: melt-modules melt-all-modules
+	$(mkinstalldirs) $(DESTDIR)/$(melt_module_dir)
+	for f in $</*.so ; do \
+	   $(INSTALL_PROGRAM) $$f $(DESTDIR)/$(melt_module_dir) ; \
+	done
+
+## install the makefile for MELT modules
+install-melt-mk: melt-module.mk
+	$(mkinstalldirs) $(DESTDIR)$(libexecsubdir)
+	$(INSTALL_DATA) $< $(DESTDIR)/$(melt_installed_module_makefile)
+
+## install the default modules list
+install-melt-default-modules-list: $(melt_default_modules_list).modlis 
+	$(INSTALL_DATA) $< $(DESTDIR)/$(melt_module_dir) 
