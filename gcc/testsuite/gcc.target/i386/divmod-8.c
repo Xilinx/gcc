@@ -1,4 +1,4 @@
-/* { dg-do compile { target { x32 || lp64 } } } */
+/* { dg-do compile { target { ! { ia32 } } } } */
 /* { dg-options "-O2 -m8bit-idiv" } */
 
 extern void foo (long long, long long, long long, long long,

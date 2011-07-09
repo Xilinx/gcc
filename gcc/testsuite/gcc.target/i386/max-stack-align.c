@@ -1,4 +1,4 @@
-/* { dg-do compile { target { x32 || lp64 } } } */
+/* { dg-do compile { target { ! { ia32 } } } } */
 /* { dg-options "-fomit-frame-pointer" } */
 
 void foo()

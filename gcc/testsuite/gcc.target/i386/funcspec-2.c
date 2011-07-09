@@ -1,5 +1,5 @@
 /* Test whether using target specific options, we can generate FMA4 code.  */
-/* { dg-do compile { target { x32 || lp64 } } } */
+/* { dg-do compile { target { ! { ia32 } } } } */
 /* { dg-options "-O2 -march=k8" } */
 
 extern void exit (int);

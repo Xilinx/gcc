@@ -2,7 +2,7 @@
    and add instructions into vfmaddss, vfmsubss, vfnmaddss,
    vfnmsubss on FMA4 systems.  */
 
-/* { dg-do compile { target { x32 || lp64 } } } */
+/* { dg-do compile { target { ! { ia32 } } } } */
 /* { dg-options "-O2 -funsafe-math-optimizations -mfma4" } */
 
 extern void exit (int);

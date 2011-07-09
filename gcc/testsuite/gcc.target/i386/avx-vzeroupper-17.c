@@ -1,4 +1,4 @@
-/* { dg-do compile { target { x32 || lp64 } } } */
+/* { dg-do compile { target { ! { ia32 } } } } */
 /* { dg-options "-O2 -mavx -mabi=ms -mtune=generic -dp" } */
 
 typedef float __m256 __attribute__ ((__vector_size__ (32), __may_alias__));

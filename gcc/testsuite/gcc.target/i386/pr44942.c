@@ -1,5 +1,5 @@
 /* PR target/44942 */
-/* { dg-do run { target { x32 || lp64 } } } */
+/* { dg-do run { target { ! { ia32 } } } } */
 
 #include <stdarg.h>
 #include <emmintrin.h>
