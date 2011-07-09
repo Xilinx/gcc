@@ -1,5 +1,4 @@
-! { dg-do compile { target i?86-*-* x86_64-*-* } }
-! { dg-require-effective-target ia32 }
+! { dg-do compile { target { { i?86-*-* x86_64-*-* } && ia32 } } }
 !
 ! PR fortran/34112
 !

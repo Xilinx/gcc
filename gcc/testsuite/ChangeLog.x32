@@ -1,5 +1,32 @@
 2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* g++.dg/abi/bitfield3.C: Use { { i?86-*-* x86_64-*-* } && ia32 }.
+	* g++.dg/ext/attrib8.C: Likewise.
+	* g++.dg/ext/tmplattr1.C: Likewise.
+	* g++.dg/inherit/override-attribs.C: Likewise.
+	* g++.dg/opt/life1.C: Likewise.
+	* g++.dg/opt/nrv12.C: Likewise.
+	* g++.old-deja/g++.ext/attrib1.C: Likewise.
+	* g++.old-deja/g++.ext/attrib2.C: Likewise.
+	* g++.old-deja/g++.ext/attrib3.C: Likewise.
+	* g++.old-deja/g++.pt/asm2.C: Likewise.
+	* gcc.dg/tree-ssa/loop-28.c: Likewise.
+	* gcc.dg/tree-ssa/prefetch-3.c: Likewise.
+	* gcc.dg/tree-ssa/prefetch-4.c: Likewise.
+	* gcc.dg/tree-ssa/prefetch-5.c: Likewise.
+	* gcc.dg/tree-ssa/prefetch-6.c: Likewise.
+	* gcc.dg/tree-ssa/prefetch-7.c: Likewise.
+	* gcc.dg/tree-ssa/prefetch-8.c: Likewise.
+	* gcc.dg/tree-ssa/prefetch-9.c: Likewise.
+	* gcc.dg/tree-ssa/update-unroll-1.c: Likewise.
+	* gcc.misc-tests/i386-pf-3dnow-1.c: Likewise.
+	* gcc.misc-tests/i386-pf-athlon-1.c: Likewise.
+	* gcc.misc-tests/i386-pf-none-1.c: Likewise.
+	* gcc.misc-tests/i386-pf-sse-1.c: Likewise.
+	* gfortran.dg/compiler-directive_2.f: Likewise.
+
+2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* gcc.dg/pr25023.c: Remove ||.
 
 2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
