@@ -1,4 +1,35 @@
 
+2011-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h (meltgc_load_modulelist): Add depth formal.
+	(struct melt_callframe_st): Add mcfr_unusedflocs field without
+	MELT_HAVE_DEBUG.
+	(MELT_DECLFRAME): Ditto.
+
+	* melt-runtime.c (compile_gencsrc_to_binmodule): Print a message
+	when the MELT plugin or branch is running a command.
+	(meltgc_make_load_melt_module): Also check for .q.so special suffix.
+	Permit / in module names, i.e. permit directories.
+	Don't run a command when bootstrapping.
+	(MODLIS_MAXDEPTH): New constant.
+	(meltgc_load_modulelist): Gets a depth formal. May recurse. Add
+	better location information thru curlocbuf.
+	(load_initial_melt_modules): Better location info. Call
+	melt_fatal_error if default module list loaded not at first.
+
+	* melt-build.tpl: Major improvements.
+
+	Have variants {quicklybuilt, optimized, debugnoline} for modules
+	and their directories.
+	The various melt stages use the quicklybuilt variant.
+
+	* melt-build.mk: Regenerate.
+
+	* Makefile.in: Install various variants of melt-modules.
+
+	* melt/warmelt-outobj.melt: Emit mcfr_unusedflocs without
+	MELT_HAVE_DEBUG in generated MELT call frames.
+
 2011-07-09  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Emit a
@@ -30,7 +61,7 @@
 	* Makefile.in (melt_make_cc1flags,melt_cflags): Use realpath for
 	include directories.
 	Add inform MELT running: ...
-	
+
 2011-07-08  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_HAVE_DEBUG): Define it as 0 if undefined.
 

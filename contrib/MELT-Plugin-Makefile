@@ -134,7 +134,9 @@ melt_installed_module_makefile=$(MELTGCC_PLUGIN_DIR)/melt-module.mk
 ## should be 1 
 melt_is_plugin=1
 
-MELT_STAGE_ZERO ?= melt-stage0-dynamic
+# we force the stage0 to be "static" i.e. with constant field offsets.
+MELT_STAGE_ZERO = melt-stage0-static
+
 all: melt-run.h melt.so bootstrap-melt
 
 

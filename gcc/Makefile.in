@@ -5486,8 +5486,11 @@ install-melt-source: melt-sources  melt-all-sources
 ### phony makefile target from melt-build.mk
 install-melt-modules: melt-modules melt-all-modules
 	$(mkinstalldirs) $(DESTDIR)/$(melt_module_dir)
-	for f in $</*.so ; do \
-	   $(INSTALL_PROGRAM)  -m 755 $$f $(DESTDIR)/$(melt_module_dir) ; \
+	for v in quicklybuilt debugnoline optimized ; do \
+	  $(mkinstalldirs) $(DESTDIR)/$(melt_module_dir)/$$v ; \
+	  for f in $</$$v/*.so ; do \
+	    $(INSTALL_PROGRAM)  -m 755 $$f $(DESTDIR)/$(melt_module_dir)/$$v/ ; \
+	  done ; \
 	done
 
 
@@ -5497,8 +5500,11 @@ install-melt-mk: melt-module.mk
 	$(INSTALL_DATA) $< $(DESTDIR)/$(melt_installed_module_makefile)
 
 ## install the default modules list
-install-melt-default-modules-list: $(melt_default_modules_list).modlis 
-	$(INSTALL_DATA) $< $(DESTDIR)/$(melt_module_dir) 
+install-melt-default-modules-list: $(melt_default_modules_list).modlis $(wildcard $(melt_default_modules_list)-*.modlis)
+	$(INSTALL_DATA) $(melt_default_modules_list) $(DESTDIR)/$(melt_module_dir) 
+	for f in  $(wildcard $(melt_default_modules_list)-*.modlis) ; do \
+	  $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_module_dir) \
+	done
 
 #### this phony target is given manually to copy the generated
 #### warmelt*.c into the source directory it should be only

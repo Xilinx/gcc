@@ -2100,7 +2100,7 @@ meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const char*maketarg
 /* load a list of modules from a file whose basename MODLISTBASE is
    given without its suffix '.modlis' */
 melt_ptr_t
-meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase, unsigned flags);
+meltgc_load_modulelist (melt_ptr_t modata_p, int depth, const char *modlistbase, unsigned flags);
 
 /* first_module_melt is the function start_module_melt in first-melt.c */
 melt_ptr_t first_module_melt (melt_ptr_t);
@@ -2494,7 +2494,11 @@ struct melt_callframe_st
      be used for forwarding or marking the frame's pointers. */
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
+  /* get the string location for the current call */
   const char* mcfr_flocs;
+#else
+  /* unused slot, but helps in mixing modules with and without MELT debug */
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   union {
     struct meltclosure_st *mcfr_closp_; /* when mcfr_nbvar >= 0 */
@@ -2575,12 +2579,14 @@ extern melt_ptr_t melt_jmpval;
 
 #else /*!MELT_HAVE_DEBUG*/
 
-#define MELT_DECLFRAME(NBVAR) struct { /*declframe without MELT_HAVE_DEBUG*/ \
-    int mcfr_nbvar;							\
-  struct meltclosure_st* mcfr_clos;					\
-  struct excepth_melt_st* mcfr_exh;					\
-  struct melt_callframe_st* mcfr_prev;					\
-  void*  /* a melt_ptr_t */ mcfr_varptr[NBVAR];				\
+#define MELT_DECLFRAME(NBVAR) struct {			\
+/*declframe without MELT_HAVE_DEBUG*/			\
+    int mcfr_nbvar;					\
+    const char* mcfr_unusedflocs;			\
+    struct meltclosure_st* mcfr_clos;			\
+    struct excepth_melt_st* mcfr_exh;			\
+    struct melt_callframe_st* mcfr_prev;		\
+    void*  /* a melt_ptr_t */ mcfr_varptr[NBVAR];	\
 } meltfram__
 
 #define MELT_LOCATION(LOCS) do{/*location without MELT_HAVE_DEBUG*/}while(0)

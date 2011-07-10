@@ -4983,9 +4983,7 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
     cmdstr = XOBFINISH (&cmd_obstack, char *);
     debugeprintf("compile_gencsrc_to_binmodule cmdstr= %s", cmdstr);
     if (!quiet_flag || flag_melt_bootstrapping) 
-      inform (UNKNOWN_LOCATION, "MELT running: %s", cmdstr);
-    /* this is ugly, but we need to flush everything before calling system(3)! */
-    pp_flush (global_dc->printer)
+      printf ("MELT plugin running: %s\n", cmdstr);
     fflush (NULL);
     err = system (cmdstr);
     debugeprintf("compile_gencsrc_to_binmodule command got %d", err);
@@ -5111,6 +5109,22 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
       debugeprintf("compile_gencsrc_to_binmodule before pex_run argc=%d", argc);
       for (i=0; i<argc; i++) 
 	debugeprintf ("compile_gencsrc_to_binmodule pex_run argv[%d]=%s", i, argv[i]);
+    }
+    if (!quiet_flag || flag_melt_bootstrapping) {
+      int i = 0;
+      char* cmdbuf = 0;
+      struct obstack cmd_obstack;
+      memset (&cmd_obstack, 0, sizeof(cmd_obstack));
+      obstack_init (&cmd_obstack);
+      for (i=0; i<argc; i++)
+	{ 
+	  if (i>0) 
+	    obstack_1grow (&cmd_obstack, ' ');
+	  obstack_add_escaped_path (&cmd_obstack, argv[i]);
+	}
+      obstack_1grow(&cmd_obstack, (char)0);
+      cmdbuf = XOBFINISH (&cmd_obstack, char *);
+      printf ("MELT branch running: %s\n", cmdbuf);
     }
     debugeprintf("compile_gencsrc_to_binmodule before pex_run ourmakecommand='%s'", ourmakecommand);
     fflush (NULL);
@@ -5484,12 +5498,14 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 	       modulnam);
     }
   modulnamlen = strlen(modulnam);
-#define CHECK_FOR_SPECIAL_SUFFIX_AT(Suffix,Modsuf,Lin) do {	\
-  int suffixlen_##Lin = strlen(Suffix);			\
-  int pos_##Lin = 0;					\
-  if ((pos_##Lin = modulnamlen - suffixlen_##Lin)>0     \
-      && !strcmp(modulnam+pos_##Lin, Suffix))	{	\
-    specialsuffixpos = pos_##Lin;			\
+
+  /* Check for special suffixes */
+#define CHECK_FOR_SPECIAL_SUFFIX_AT(Suffix,Modsuf,Lin) do {     \
+  int suffixlen_##Lin = strlen(Suffix);                         \
+  int pos_##Lin = 0;                                            \
+  if ((pos_##Lin = modulnamlen - suffixlen_##Lin)>0             \
+      && !strcmp(modulnam+pos_##Lin, Suffix))   {               \
+    specialsuffixpos = pos_##Lin;                               \
     modsuf = Modsuf; } } while(0)
 #define CHECK_FOR_SPECIAL_SUFFIX(Suffix,Modsuf)	\
   CHECK_FOR_SPECIAL_SUFFIX_AT(Suffix,Modsuf,__LINE__)
@@ -5497,6 +5513,8 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   CHECK_FOR_SPECIAL_SUFFIX(".n.so", ".n.so");
   CHECK_FOR_SPECIAL_SUFFIX(".d", ".d.so");
   CHECK_FOR_SPECIAL_SUFFIX(".d.so", ".d.so");
+  CHECK_FOR_SPECIAL_SUFFIX(".q", ".q.so");
+  CHECK_FOR_SPECIAL_SUFFIX(".q.so", ".q.so");
 #undef CHECK_FOR_SPECIAL_SUFFIX
 #undef CHECK_FOR_SPECIAL_SUFFIX_AT
   if (!modsuf) 
@@ -5517,7 +5535,8 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
       tmpath = NULL;
     }
 
-  /* always check the module name */
+  /* Always check the module name.  Accept / in module names if it is
+     not the last, to permit directories in them.   */
   {
     const char* p = 0;
     for (p=modulnam; *p; p++)
@@ -5527,7 +5546,8 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 	if (specialsuffixpos>0 && p==modulnam+specialsuffixpos)
 	  break;
 	if (!ISALNUM(*p) && *p != '-' && *p != '_'
-	    && (*p == '.' && !ISALNUM(p[1])))
+	    && (*p == '.' && !ISALNUM(p[1]))
+	    && (*p == '/' && !ISALNUM(p[1])))
 	  {
 	    error ("invalid MELT module name %s to load", modulnam);
 	    goto end;
@@ -5751,10 +5771,23 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
     }
   debugeprintf ("meltgc_make_load_melt_module srcpath %s dynpath %s", srcpath, dynpath);
   /* if we have the srcpath but did'nt found the binary module, try to
-     compile it using the temporary directory */
-  if (srcpath)
+     compile it using the temporary directory, unless we are
+     bootstrapping.  */
+  if (srcpath || !dynpath)
     {
       char* mytmpdir = melt_tempdir_path(NULL, NULL);
+      /* When bootstrapping, MELT should have found the dynpath */
+      if (flag_melt_bootstrapping) {
+	  inform (UNKNOWN_LOCATION, "MELT bootstrapping, given source path is %s",
+		  srcpathstr);
+	  inform (UNKNOWN_LOCATION, "MELT bootstrapping, given module path is %s",
+		  modpathstr);
+	inform (UNKNOWN_LOCATION, "MELT bootstrapping, current directory is %s", 
+		getpwd ());
+	melt_fatal_error
+	  ("MELT won't make a module while bootstrapping, srcpath %s, modulnam %s maketarget %s flags %u",
+	   srcpath, modulnam, maketarget, flags);
+      }
       debugeprintf ("meltgc_make_load_melt_module with modsuf %s", modsuf);
       tmpath = melt_tempdir_path (dupmodulnam, modsuf);
       debugeprintf ("meltgc_make_load_melt_module before compiling tmpath %s", tmpath);
@@ -5925,8 +5958,10 @@ meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const char*maketarg
 
 #define MODLIS_SUFFIX ".modlis"
 
+#define MODLIS_MAXDEPTH 8
+
 melt_ptr_t
-meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase, unsigned flags)
+meltgc_load_modulelist (melt_ptr_t modata_p, int depth, const char *modlistbase, unsigned flags)
 {
   char *modlistpath = 0;
   char* envpath = 0;
@@ -5935,11 +5970,19 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase, unsigned f
   const char* modpathstr = melt_argument ("module-path");
   /* @@@ ugly, we should have a getline function */
   char linbuf[1024];
+#if MELT_HAVE_DEBUG
+  /* The location buffer is local, since this function recurses!  */
+  char curlocbuf[200];
+#endif
   MELT_ENTERFRAME (1, NULL);
+#if MELT_HAVE_DEBUG
+  memset (curlocbuf, 0, sizeof (curlocbuf));
+#endif
   memset (linbuf, 0, sizeof (linbuf));
 #define mdatav meltfram__.mcfr_varptr[0]
   mdatav = modata_p;
-  debugeprintf ("meltgc_load_modulelist start modlistbase %s", modlistbase);
+  debugeprintf ("meltgc_load_modulelist start modlistbase %s depth %d",
+		modlistbase, depth);
   /* first check directly for the file */
   modlistpath = concat (modlistbase, MODLIS_SUFFIX, NULL);
   if (IS_ABSOLUTE_PATH (modlistpath) 
@@ -6043,14 +6086,11 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase, unsigned f
     melt_fatal_error ("failed to open melt module list file %s - %m",
 		 modlistpath);
 #if MELT_HAVE_DEBUG
-  {
-    static char locbuf[120];
-    memset (locbuf, 0, sizeof (locbuf));
-    snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:meltgc_load_modulelist before reading mod.list : %s",
-	      lbasename (__FILE__), __LINE__, modlistpath);
-    meltfram__.mcfr_flocs = locbuf;
-  }
+  memset (curlocbuf, 0, sizeof (curlocbuf));
+  snprintf (curlocbuf, sizeof (curlocbuf) - 1,
+	    "%s:%d:meltgc_load_modulelist reading mod.list : %s",
+	    lbasename (__FILE__), __LINE__, modlistpath);
+  meltfram__.mcfr_flocs = curlocbuf;
 #endif
   while (!feof (filmod))
     {
@@ -6065,9 +6105,22 @@ meltgc_load_modulelist (melt_ptr_t modata_p, const char *modlistbase, unsigned f
       for (pc = linbuf; *pc && ISSPACE (*pc); pc++);
       if (*pc == '#' || *pc == (char) 0)
 	continue;
-      dbgprintf ("in module list %s loading module '%s'", modlistbase, pc);
-      mdatav = meltgc_make_load_melt_module ((melt_ptr_t) mdatav, pc, NULL, flags);
+      dbgprintf ("in module list %s loading  '%s'", modlistbase, pc);
+      /* Handle nested module lists */
+      if (*pc == '@') 
+	{
+	  if (depth > MODLIS_MAXDEPTH)
+	    melt_fatal_error ("MELT has too nested [%d] module list %s with %s",
+			      depth, modlistbase, pc);
+	  mdatav = meltgc_load_modulelist ((melt_ptr_t) mdatav, depth+1, pc+1, flags);
+	}
+      else
+	mdatav = meltgc_make_load_melt_module ((melt_ptr_t) mdatav, pc, NULL, flags);
     }
+#if MELT_HAVE_DEBUG
+  memset (curlocbuf, 0, sizeof (curlocbuf));
+  meltfram__.mcfr_flocs = NULL;
+#endif
  end:
   MELT_EXITFRAME ();
   return (melt_ptr_t) mdatav;
@@ -8471,13 +8524,13 @@ load_melt_modules_and_do_mode (void)
       if (!strcmp(curmod, "@@")) {
 	/* the @@ notation means the initial module list; it should
 	   always be first. */
-	if (melt_nb_modules>0)
-	  /* Don't call melt_fatal_error, since nothing more to tell! */
-	  fatal_error ("MELT default module list should be loaded at first!");
 	MELT_LOCATION_HERE
 	  ("load_initial_melt_modules before loading default module list");
+	if (melt_nb_modules>0)
+	  melt_fatal_error ("MELT default module list should be loaded at first (melt_nb_modules=%d)!", 
+			    melt_nb_modules);
 	modatv =
-	  meltgc_load_modulelist ((melt_ptr_t) modatv, 
+	  meltgc_load_modulelist ((melt_ptr_t) modatv, 0,
 				  MELT_DEFAULT_MODLIS,
 				  MELTLOADFLAG_NONE);
 	MELT_LOCATION_HERE
@@ -8490,10 +8543,16 @@ load_melt_modules_and_do_mode (void)
 	{
 	  /* read the file which contains a list of modules, one per
 	     non empty, non comment line */
-	  MELT_LOCATION_HERE
-	    ("load_initial_melt_modules before loading a module list");
+#if MELT_HAVE_DEBUG
+	  char curlocbuf[200];
+	  memset (curlocbuf, 0, sizeof(curlocbuf));
+	  snprintf (curlocbuf, sizeof (curlocbuf) - 1,
+		    "%s:%d:load_initial_melt_modules before loading module list %s",
+		    lbasename (__FILE__), __LINE__, curmod+1);
+	  meltfram__.mcfr_flocs = curlocbuf;
+#endif
 	  modatv =
-	    meltgc_load_modulelist ((melt_ptr_t) modatv, curmod + 1, MELTLOADFLAG_NONE);
+	    meltgc_load_modulelist ((melt_ptr_t) modatv, 0, curmod + 1, MELTLOADFLAG_NONE);
 	  debugeprintf
 	    ("load_initial_melt_modules curmod %s loaded modulist %p",
 	     curmod, (void *) modatv);
@@ -8502,8 +8561,14 @@ load_melt_modules_and_do_mode (void)
 	}
       else
 	{
-	  MELT_LOCATION_HERE
-	    ("load_initial_melt_modules before loading a single module");
+#if MELT_HAVE_DEBUG
+	  char curlocbuf[200];
+	  memset (curlocbuf, 0, sizeof(curlocbuf));
+	  snprintf (curlocbuf, sizeof (curlocbuf) - 1,
+		    "%s:%d:load_initial_melt_modules before loading single module %s",
+		    lbasename (__FILE__), __LINE__, curmod);
+	  meltfram__.mcfr_flocs = curlocbuf;
+#endif
 	  modatv = meltgc_make_load_melt_module ((melt_ptr_t) modatv, curmod, NULL, MELTLOADFLAG_NONE);
 	  debugeprintf
 	    ("load_initial_melt_modules curmod %s loaded modatv %p",
@@ -8555,7 +8620,7 @@ load_melt_modules_and_do_mode (void)
 		("load_initial_melt_modules before loading curxtra #%d module list %s", 
 		 nbxtramod, curxtra);
 	      modatv =
-		meltgc_load_modulelist ((melt_ptr_t) modatv, curxtra + 1, MELTLOADFLAG_CURDIR);
+		meltgc_load_modulelist ((melt_ptr_t) modatv, 0, curxtra + 1, MELTLOADFLAG_CURDIR);
 	      debugeprintf
 		("load_initial_melt_modules #%d curxtra %s loaded extra modulist %p",
 		 nbxtramod, curxtra, (void *) modatv);
