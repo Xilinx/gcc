@@ -10,6 +10,9 @@ const char used_meltrun_md5_melt_f5[] = MELT_RUN_HASHMD5 /* from melt-run.h */;
 /**** melt-sources/warmelt-genobj+05.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
 
+struct melt_callframe_st; /*defined in melt-runtime.h*/
+
+
 /**!!** ***
     Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
@@ -919,6 +922,8 @@ meltrout_157_warmelt_genobj_COMPILTST_NORMTESTER_SUCCESS(meltclosure_ptr_t closp
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -1528,12 +1533,12 @@ lab_endgetargs:;
     
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /20e54a4 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))== MELTOBMAG_PAIR);
+    melt_assertmsg("putpairhead /16d368f7 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))== MELTOBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))->hd = (melt_ptr_t) (/*_.OSUCC__V33*/ meltfptr[32]);
     ;
     /*^putpairtail*/
     /*putpairtail*/
-    melt_assertmsg("putpairtail /2cc0dcf6 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))== MELTOBMAG_PAIR);
+    melt_assertmsg("putpairtail /a8dc4d6 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))== MELTOBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.OSUCC__V41*/ meltfptr[37]))->tl = (meltpair_ptr_t) (/*_.GOTOEND__V42*/ meltfptr[38]);
     ;
     /*^touch*/
@@ -1541,7 +1546,7 @@ lab_endgetargs:;
     ;
     /*^putpairhead*/
     /*putpairhead*/
-    melt_assertmsg("putpairhead /a8dc4d6 checkpair", melt_magic_discr((melt_ptr_t)(/*_.GOTOEND__V42*/ meltfptr[38]))== MELTOBMAG_PAIR);
+    melt_assertmsg("putpairhead /39679eb8 checkpair", melt_magic_discr((melt_ptr_t)(/*_.GOTOEND__V42*/ meltfptr[38]))== MELTOBMAG_PAIR);
     ((meltpair_ptr_t)(/*_.GOTOEND__V42*/ meltfptr[38]))->hd = (melt_ptr_t) (/*_.GOTOEND__V23*/ meltfptr[22]);
     ;
     /*^touch*/
@@ -1689,6 +1694,8 @@ meltrout_158_warmelt_genobj_COMPILTST_NORMTESTER_ORCLEAR(meltclosure_ptr_t closp
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -2477,6 +2484,8 @@ meltrout_159_warmelt_genobj_COMPILTST_NORMTESTER_ORTRANSMIT(meltclosure_ptr_t cl
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -3299,6 +3308,8 @@ meltrout_160_warmelt_genobj_COMPILTST_NORMTESTER_DISJUNCTION(meltclosure_ptr_t c
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -3981,6 +3992,8 @@ meltrout_161_warmelt_genobj_COMPILMATCHER_CMATCHER(meltclosure_ptr_t closp_, mel
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -5585,6 +5598,8 @@ meltrout_162_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -5871,6 +5886,8 @@ meltrout_163_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -6157,6 +6174,8 @@ meltrout_164_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -6272,6 +6291,8 @@ meltrout_165_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -6545,6 +6566,8 @@ meltrout_166_warmelt_genobj_COMPILMATCHER_FUNMATCHER(meltclosure_ptr_t closp_, m
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -7614,7 +7637,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /22e8c8aa checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTCLOS__V69*/ meltfptr[68]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /69ef7c5 checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTCLOS__V69*/ meltfptr[68]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.OTESTCLOS__V69*/ meltfptr[68]))->hd = (melt_ptr_t) (/*_.OTESTCLOS__V38*/ meltfptr[37]);
   ;
   /*^touch*/
@@ -7690,7 +7713,7 @@ lab_endgetargs:;
   
   /*^putpairhead*/
   /*putpairhead*/
-  melt_assertmsg("putpairhead /2de0261b checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTRES__V74*/ meltfptr[73]))== MELTOBMAG_PAIR);
+  melt_assertmsg("putpairhead /35b2cfee checkpair", melt_magic_discr((melt_ptr_t)(/*_.OTESTRES__V74*/ meltfptr[73]))== MELTOBMAG_PAIR);
   ((meltpair_ptr_t)(/*_.OTESTRES__V74*/ meltfptr[73]))->hd = (melt_ptr_t) (/*_.OTESTRES__V37*/ meltfptr[36]);
   ;
   /*^touch*/
@@ -8288,6 +8311,8 @@ meltrout_167_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -8381,6 +8406,8 @@ meltrout_168_warmelt_genobj_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;

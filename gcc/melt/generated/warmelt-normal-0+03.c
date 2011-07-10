@@ -10,6 +10,9 @@ const char used_meltrun_md5_melt_f3[] = MELT_RUN_HASHMD5 /* from melt-run.h */;
 /**** melt-sources/warmelt-normal+03.c declarations ****/
 #define MELT_HAS_INITIAL_ENVIRONMENT 1
 
+struct melt_callframe_st; /*defined in melt-runtime.h*/
+
+
 /**!!** ***
     Copyright 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
@@ -896,6 +899,8 @@ meltrout_102_warmelt_normal_BADMETH_NORMAL_LETREC_CONSTRUCTIVE(meltclosure_ptr_t
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -1214,6 +1219,8 @@ meltrout_103_warmelt_normal_PREPCONS_LAMBDA(meltclosure_ptr_t closp_, melt_ptr_t
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -1538,6 +1545,8 @@ meltrout_104_warmelt_normal_NORMLETREC_LAMBDA(meltclosure_ptr_t closp_, melt_ptr
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -2330,6 +2339,8 @@ meltrout_105_warmelt_normal_PREPCONS_TUPLE(meltclosure_ptr_t closp_, melt_ptr_t 
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -2710,6 +2721,8 @@ meltrout_106_warmelt_normal_NORMLETREC_TUPLE(meltclosure_ptr_t closp_, melt_ptr_
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -3744,6 +3757,8 @@ meltrout_107_warmelt_normal_PREPCONS_LIST(meltclosure_ptr_t closp_, melt_ptr_t f
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -4333,6 +4348,8 @@ meltrout_108_warmelt_normal_NRECLIST_FIND_LOCSYM(meltclosure_ptr_t closp_, melt_
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -4738,6 +4755,8 @@ meltrout_109_warmelt_normal_NORMLETREC_LIST(meltclosure_ptr_t closp_, melt_ptr_t
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -6596,6 +6615,8 @@ meltrout_110_warmelt_normal_PREPCONS_INSTANCE(meltclosure_ptr_t closp_, melt_ptr
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -7072,6 +7093,8 @@ meltrout_111_warmelt_normal_NORMLETREC_INSTANCE(meltclosure_ptr_t closp_, melt_p
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -7907,6 +7930,8 @@ meltrout_112_warmelt_normal_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -8249,6 +8274,8 @@ meltrout_113_warmelt_normal_NORMEXP_LETREC(meltclosure_ptr_t closp_, melt_ptr_t 
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -11296,6 +11323,8 @@ meltrout_114_warmelt_normal_NORMAL_PREDEF(meltclosure_ptr_t closp_, melt_ptr_t f
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -11702,6 +11731,8 @@ meltrout_115_warmelt_normal_NORMAL_SYMBOL_DATA(meltclosure_ptr_t closp_, melt_pt
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -12259,6 +12290,8 @@ meltrout_116_warmelt_normal_NORMAL_KEYWORD_DATA(meltclosure_ptr_t closp_, melt_p
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -12679,6 +12712,8 @@ meltrout_117_warmelt_normal_CREATE_DATA_SLOTS(meltclosure_ptr_t closp_, melt_ptr
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -12911,6 +12946,8 @@ meltrout_118_warmelt_normal_FILL_DATA_SLOT(meltclosure_ptr_t closp_, melt_ptr_t 
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -13117,6 +13154,8 @@ meltrout_119_warmelt_normal_NORMEXP_QUOTE(meltclosure_ptr_t closp_, melt_ptr_t f
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -13912,6 +13951,8 @@ meltrout_120_warmelt_normal_NORMEXP_COMMENT(meltclosure_ptr_t closp_, melt_ptr_t
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -14519,6 +14560,8 @@ meltrout_121_warmelt_normal_NORMEXP_KEYWORD(meltclosure_ptr_t closp_, melt_ptr_t
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -15101,6 +15144,8 @@ meltrout_122_warmelt_normal_FILL_NORMAL_FORMALBIND(meltclosure_ptr_t closp_, mel
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -15473,6 +15518,8 @@ meltrout_123_warmelt_normal_FILL_NORMAL_FORMALS(meltclosure_ptr_t closp_, melt_p
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -15696,6 +15743,8 @@ meltrout_124_warmelt_normal_FILL_NORMAL_EXPANSION(meltclosure_ptr_t closp_, melt
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -15838,6 +15887,8 @@ meltrout_125_warmelt_normal_LAMBDA_(meltclosure_ptr_t closp_, melt_ptr_t firstar
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -16093,6 +16144,8 @@ meltrout_126_warmelt_normal_NORMEXP_DEFPRIMITIVE(meltclosure_ptr_t closp_, melt_
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -16835,6 +16888,8 @@ meltrout_127_warmelt_normal_NORMEXP_DEFCITERATOR(meltclosure_ptr_t closp_, melt_
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
@@ -17982,6 +18037,8 @@ meltrout_128_warmelt_normal_NORMEXP_CITERATION(meltclosure_ptr_t closp_, melt_pt
   int mcfr_nbvar;
 #if MELT_HAVE_DEBUG
   const char* mcfr_flocs;
+#else /*!MELT_HAVE_DEBUG*/
+  const char* mcfr_unusedflocs;
 #endif /*MELT_HAVE_DEBUG*/
   struct meltclosure_st *mcfr_clos;
   struct excepth_melt_st *mcfr_exh;
