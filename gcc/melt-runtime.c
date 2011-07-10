@@ -5368,6 +5368,7 @@ load_checked_dynamic_module_index (const char *dypath, char *md5src)
     minf.modpath = dypathdup;
     minf.start_rout = PTR_UNION_AS_CAST_PTR (startrout_uf);
     ix = VEC_length (melt_module_info_t, modinfvec);
+    gcc_assert (ix > 0);
     VEC_safe_push (melt_module_info_t, heap, modinfvec, &minf);
     debugeprintf
       ("load_checked_dynamic_module_index dypathdup %s", dypathdup);
@@ -5394,7 +5395,8 @@ melt_dlsym_all (const char *nam)
 {
   int ix = 0;
   melt_module_info_t *mi = 0;
-  for (ix = 0; VEC_iterate (melt_module_info_t, modinfvec, ix, mi); ix++)
+  /* Index 0 is unused in modinfvec!  */
+  for (ix = 1; VEC_iterate (melt_module_info_t, modinfvec, ix, mi); ix++)
     {
       void *p = (void *) dlsym ((void *) mi->dlh, nam);
       if (p)
@@ -9338,7 +9340,7 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   else if (melt_minorsizekilow>16384) melt_minorsizekilow=16384;
 }
   modinfvec = VEC_alloc (melt_module_info_t, heap, 32);
-  /* don't use the index 0 so push a null */
+  /* don't use the index 0 so push a null at 0 in modinfvec.  */
   VEC_safe_push (melt_module_info_t, heap, modinfvec,
     (melt_module_info_t *) 0);
   proghandle = dlopen (NULL, RTLD_NOW | RTLD_GLOBAL);
@@ -11357,7 +11359,8 @@ melt_fatal_info (const char*filename, int lineno)
   melt_dbgshortbacktrace ("MELT fatal failure", 100);
 #endif
   if (modinfvec) 
-    for (ix = 0; VEC_iterate (melt_module_info_t, modinfvec, ix, mi); ix++)
+    /* Index 0 is unused in modinfvec!  */
+    for (ix = 1; VEC_iterate (melt_module_info_t, modinfvec, ix, mi); ix++)
       {
 	if (!mi || !mi->dlh || !mi->modpath)
 	  continue;

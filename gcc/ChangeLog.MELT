@@ -1,5 +1,14 @@
 
 2011-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{fix failure of MELT_STAGE_ZERO=melt-stage0-dynamic on 32 bits
+	x86/Linux}}
+	* melt-runtime.c (load_checked_dynamic_module_index): Check that
+	ix>0.
+	(melt_dlsym_all): Start from ix=1.
+	(melt_really_initialize): Better comment.
+	(melt_fatal_info): Display modules from ix=1.
+
+2011-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c: Remove second include of melt-run-md5.h near
 	eof.
 
