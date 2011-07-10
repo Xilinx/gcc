@@ -3504,6 +3504,9 @@ ix86_option_override_internal (bool main_args_p)
   SUBSUBTARGET_OVERRIDE_OPTIONS;
 #endif
 
+  if (TARGET_X32)
+    ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
+
   /* -fPIC is the default for x86_64.  */
   if (TARGET_MACHO && TARGET_64BIT)
     flag_pic = 2;
@@ -3619,6 +3622,20 @@ ix86_option_override_internal (bool main_args_p)
       else
 	error ("bad value (%s) for %scmodel=%s %s",
 	       ix86_cmodel_string, prefix, suffix, sw);
+
+      switch (ix86_cmodel)
+	{
+	case CM_MEDIUM:
+	case CM_MEDIUM_PIC:
+	case CM_LARGE:
+	case CM_LARGE_PIC:
+	  if (TARGET_X32)
+	    error ("code model %qs not supported in x32 mode",
+		   ix86_cmodel_string);
+	  break;
+	default:
+	  break;
+	}
     }
   else
     {
