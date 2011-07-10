@@ -1,6 +1,10 @@
 
 2011-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* MELT-Plugin-Makefile: Add .NOTPARALLEL.
+
+2011-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* MELT-Plugin-Makefile: Force MELT_STAGE_ZERO=melt-stage0-static.
 
 2011-07-09  Basile Starynkevitch  <basile@starynkevitch.net>
