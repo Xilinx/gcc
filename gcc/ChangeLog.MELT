@@ -1,6 +1,12 @@
 
 2011-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: Remove second include of melt-run-md5.h near
+	eof.
+
+2011-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (meltgc_touch): Use intptr_t when HAVE_STDINT_H.
+
+	* melt-runtime.c: include melt-run-md5.h.
 
 2011-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
 
