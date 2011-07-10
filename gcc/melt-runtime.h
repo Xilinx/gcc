@@ -25,6 +25,10 @@ along with GCC; see the file COPYING3.   If not see
 #ifndef MELT_INCLUDED_
 #define MELT_INCLUDED_
 
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+
 /* In the generated gtype-desc.c, file diagnostic.h is not included,
    so we declare these functions explicitly! */
 
@@ -815,8 +819,12 @@ meltgc_touch (void *touchedptr)
      highend bits of the pointer but we don't care, since the 32
      lowest bits are enough (as hash); we need a double cast to avoid
      a warning */
-  HOST_WIDE_INT widepad = (HOST_WIDE_INT) touchedptr;
-  unsigned pad = (unsigned) widepad;
+
+#ifdef HAVE_STDINT_H
+  unsigned pad = (unsigned) ((intptr_t) touchedptr);
+#else
+  unsigned pad = (unsigned) ((long) touchedptr);
+#endif
   if ((char *) touchedptr >= (char *) melt_startalz
       && (char *) touchedptr <= (char *) melt_endalz)
     return;

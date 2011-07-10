@@ -164,23 +164,27 @@ gfmeltgcc_version_number:
 	 echo "$(MELTGCC_VERSION)"  | $(GAWK) '{split($$3,vertab,"."); printf "%d", strtonum(vertab[1])*1000+strtonum(vertab[2])}' > $@
 
 # intermediate file for the revision string
-gfmeltgcc_revision: GCCMELT-REVISION
+gfmeltgcc_revision: GCCMELT-REVISION MELT-Plugin-Makefile 
 	$(SED) 's/^ *//' < $< | $(SED) 's/ *$$//'  > $@-tmp
 	mv $@-tmp $@
 
 # intermediate file for the md5sum
-gfmeltgcc_run_md5: $(MELTGCC_RUNTIME_INCLUDES) melt-run.proto.h \
+gfmeltgcc_run_md5: $(MELTGCC_RUNTIME_INCLUDES) MELT-Plugin-Makefile  melt-run.proto.h \
                    $(wildcard $(MELTGCC_PLUGIN_DIR)/include/*.h) melt-runtime.h  melt/generated/meltrunsup.h
 	$(CC)  -C -E -DMELT_IS_PLUGIN -Imelt/generated -I. $(MELTGCC_INCLUDEFLAGS) \
 	 | grep -v '^#' | md5sum | cut -c 1-32 > $@-tmp
 	mv $@-tmp $@
 
 melt-run.h: melt-run.proto.h gfmeltgcc_run_md5
+	rm -f $@-tmp
 	$(SED) -e 's,#define *MELT_RUN_HASHMD5 *XX,#define MELT_RUN_HASHMD5 \"$(shell cat gfmeltgcc_run_md5)\",' <  $< > $@-tmp
 	mv $@-tmp $@
 
 melt-run-md5.h:  gfmeltgcc_run_md5
-	echo const char melt_run_preprocessed_md5[]=\"$(shell cat gfmeltgcc_run_md5)\"; > $@-tmp
+	rm -f $@-tmp
+	(date +"/* $@ generated %c */"; \
+         echo const char melt_run_preprocessed_md5[] \
+         '=' \"$(shell cat gfmeltgcc_run_md5)\" ';') > $@-tmp
 	mv $@-tmp $@
 
 ## the version number of our GCC getting melt.so, ie 4006 for 4.6 &

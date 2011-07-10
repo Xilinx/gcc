@@ -73,15 +73,27 @@ file is indeed the one related to your gcc-4.6:
 
 ################ step 3
 
-   Read carefully the build-melt-plugin.sh perhaps in the MELT plugin
-   source directory
+Your plugin MELT directory should contain a Makefile which is a
+symlink to a MELT-Plugin-Makefile file. Please look into that file.
+(Most of the work is done in melt-build.mk, included from it).
 
-   Read it again. I mean it! The script is not bullet-proof. It could
-   perhaps harm your system if improperly used.
+Use
+    make all
+to build the MELT plugin which takes some time, because MELT is
+retranslating itself.
 
-You might use that script from within your untarred MELT plugin source
-directory with something like
+Use
+   make install
+to install the MELT plugin. The usual DESTDIR
 
+For packagers: notice that the MELT plugin should be entirely rebuilt
+even for small changes of the compiler (e.g. when upgrading gcc from
+4.6.0 to 4.6.1).
+
+
+###
+Previous releases of MELT plugin have been built with the
+built-melt-plugin.sh script, using
 # building the plugin
  ./build-melt-plugin.sh -v -b -s GCC=gcc-4.6 \
     -G $(gcc-4.6 -print-file-name=gengtype) \
@@ -93,13 +105,6 @@ directory with something like
 # or perhaps
  ./build-melt-plugin.sh -v -i -s HOSTADMINCMD=sudo -M $PWD
 
-
-but don't run that command without understanding what that
-build-melt-plugin.sh script is doing.
-
-If you want to avoid going root thru sudo (e.g. if you are packaging
-the MELT plugin), you could pass -s DESTDIR=/tmp/meltplugindestdir
-instead of -s HOSTADMINCMD=sudo
 
 ################
 
@@ -124,9 +129,11 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
 
 #######################################################################
-NEWS for 0.8rc2 MELT plugin for gcc-4.6
+NEWS for 0.8rc3 MELT plugin for gcc-4.6
 
-July 07th, 2011: Release candidate 2 of melt-0.8rc1-plugin-for-gcc-4.6
+July 10th, 2011: Release candidate 3 of MELT plugin 0.8 for GCC 4.6
+as melt-0.8rc3-plugin-for-gcc-4.6
+
 
 New features:
  * support for pragmas for MELT
@@ -140,8 +147,7 @@ New features:
 
  * reject nested defun-s, you should use letrec or let...
 
- * the MELT plugin build-melt-plugin.sh has changed incompatibly
-   (w.r.t. the previous 0.7 MELT plugin release).
+ * the MELT plugin is built with its MELT-Plugin-Makefile
 
  * debug_msg, assert_msg ... should work, thanks to MELT_HAVE_DEBUG
    preprocessor flag, even when melt.so is a plugin for a GCC without
@@ -151,9 +157,23 @@ New features:
    melt-runtime.c should be given MELT_GCC_VERSION preprocessor
    constant.
 
-* runfile mode compiles quickly (with debug_msg support). Add new mode
-  translatequickly to compile quickly (with debug_msg & assert_msg
-  support).
+ * runfile mode compiles quickly (with debug_msg support). Add new mode
+   translatequickly to compile quickly (with debug_msg & assert_msg
+   support).
+
+ * the MELT building procedure builds various variants of MELT modules,
+
+   The 'optimized' variant is built with -O2 but don't support
+   (debug_msg ...)  or (assert_msg ...). The 'quicklybuilt' variant is
+   built with -O0 and supports debug_msg & assert_msg.  The
+   'debugnoline' variant is mostly useful with gdb, and also supports
+   debug_msg & assert_msg. These variants should be interoperable, you
+   could have a warmelt* module with 'optimized' variant and an
+   xtramelt* module in 'quicklybuilt' bariant.
+
+ * use the MELT_STAGE_ZERO=melt-stage0-static workaround
+   (bug not yet really fixed for plugins on x86 i686, ie 32 bits
+    machines; but this workaround is a temporary fix.)
 
 Many bugfixes
   (but some bugs remain)

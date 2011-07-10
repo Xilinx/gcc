@@ -39,6 +39,7 @@ along with GCC; see the file COPYING3.   If not see
 #include "obstack.h"
 #include "tm.h"
 
+#include "melt-run-md5.h"
 
 /* some system or library headers needed to MELT */
 #include <dirent.h>
