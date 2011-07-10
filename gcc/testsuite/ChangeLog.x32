@@ -1,5 +1,11 @@
 2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.dg/vect/costmodel/x86_64/x86_64-costmodel-vect.exp: Check
+	ia32.
+	* go.test/go-test.exp (go-set-goarch): Likewise.
+
+2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* g++.dg/abi/bitfield3.C: Use { { i?86-*-* x86_64-*-* } && ia32 }.
 	* g++.dg/ext/attrib8.C: Likewise.
 	* g++.dg/ext/tmplattr1.C: Likewise.
