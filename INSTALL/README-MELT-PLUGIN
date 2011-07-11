@@ -5,7 +5,10 @@ See also http://gcc.gnu.org/wiki/MELT and http://gcc-melt.org/
 
 MELT is a plugin and domain specific language for extending GCC (the
 Gnu Compiler Collection), free software GPLv3+ licensed, FSF
-copyrighted.
+copyrighted. MELT is a lispy, high-level, language providing pattern
+matching and enabling functional/applicative/reflective programming
+styles, to ease development of GCC extensions.  MELT is translated to
+C code (and the MELT translator is implemented in MELT).
 
 If installing MELT as plugin to some existing gcc-4.6 installation
 tree, with the support of plugins enabled.
