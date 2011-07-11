@@ -5,7 +5,19 @@
 
 #include "thread_annot_common.h"
 
-class Foo {
+class FooBase1 {
+public:
+  int dummy; 
+};
+
+
+class FooBase2 : public FooBase1 {
+public:
+  virtual ~FooBase2();
+};
+
+
+class Foo : public FooBase2 {
 public:
   Mutex m;  
   
@@ -35,6 +47,18 @@ public:
 
 // reinterpret_cast
 void foo1(void* ptr) 
+{ 
+  reinterpret_cast<Foo*>(ptr)->doSomething(); 
+}
+
+// downcast from structure type with no virtuals
+void foo1(FooBase1* ptr) 
+{ 
+  reinterpret_cast<Foo*>(ptr)->doSomething(); 
+}
+
+// downcast from structure type with virtuals
+void foo1(FooBase2* ptr) 
 { 
   reinterpret_cast<Foo*>(ptr)->doSomething(); 
 }

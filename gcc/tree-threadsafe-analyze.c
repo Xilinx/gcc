@@ -2454,7 +2454,7 @@ handle_call_gs (gimple call, struct bb_threadsafe_info *current_bb_info)
              in all cases.  For now, we simply rely on gcc's type information; if that information 
              is not accurate, then the analysis will be less precise.
            */
-          if (TREE_CODE(objtype) == RECORD_TYPE)
+          if (TREE_CODE (objtype) == RECORD_TYPE)
               fdecl = lang_hooks.get_virtual_function_decl (callee, objtype);                    
         }
     }

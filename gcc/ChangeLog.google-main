@@ -1,4 +1,8 @@
 
+2011-07-11   DeLesley Hutchins  <delesley@google.com>
+      * cp/gc.class (cp_get_virtual_function_decl.c handle_call_gs): 
+      Changes function to return null if the method cannot be found.
+
 2011-06-30   DeLesley Hutchins  <delesley@google.com>
        * tree-threadsafe-analyze.c (handle_call_gs): Fixes case where
        the virtual method callee has unknown type.

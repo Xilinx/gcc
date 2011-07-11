@@ -8391,13 +8391,17 @@ cp_get_virtual_function_decl (tree ref, tree known_type)
   HOST_WIDE_INT i = 0;
   tree v = BINFO_VIRTUALS (TYPE_BINFO (known_type));
   tree fndecl;
-
-  while (i != index)
+  
+  while (v && i != index)
     {
       i += (TARGET_VTABLE_USES_DESCRIPTORS
 	    ? TARGET_VTABLE_USES_DESCRIPTORS : 1);
       v = TREE_CHAIN (v);
     }
+  
+  /* Return NULL_TREE if the method is not found.  */ 
+  if (!v) 
+    return NULL_TREE;   
 
   fndecl = BV_FN (v);
 

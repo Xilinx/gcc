@@ -1,3 +1,7 @@
+
+2011-07-11   DeLesley Hutchins  <delesley@google.com>
+      * thread_annot_lock-79.C: Additional annotalysis test cases
+
 2011-03-22  Le-Chun Wu  <lcwu@google.com>
 
         * g++.dg/README: Add an entry for the new thread-ann sub-directory.
