@@ -3,6 +3,10 @@ gcc-4.6 enabled for plugins.
 
 See also http://gcc.gnu.org/wiki/MELT and http://gcc-melt.org/
 
+MELT is a plugin and domain specific language for extending GCC (the
+Gnu Compiler Collection), free software GPLv3+ licensed, FSF
+copyrighted.
+
 If installing MELT as plugin to some existing gcc-4.6 installation
 tree, with the support of plugins enabled.
 
@@ -84,7 +88,7 @@ retranslating itself.
 
 Use
    make install
-to install the MELT plugin. The usual DESTDIR
+to install the MELT plugin. The usual DESTDIR behave as expected.
 
 For packagers: notice that the MELT plugin should be entirely rebuilt
 even for small changes of the compiler (e.g. when upgrading gcc from
@@ -129,10 +133,10 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
 
 #######################################################################
-NEWS for 0.8rc3 MELT plugin for gcc-4.6
+NEWS for 0.8 MELT plugin for gcc-4.6
 
-July 10th, 2011: Release candidate 3 of MELT plugin 0.8 for GCC 4.6
-as melt-0.8rc3-plugin-for-gcc-4.6
+July 11th, 2011: Release of MELT plugin 0.8 for GCC 4.6
+as melt-0.8-plugin-for-gcc-4.6 on http://gcc-melt.org/
 
 
 New features:
@@ -171,12 +175,14 @@ New features:
    could have a warmelt* module with 'optimized' variant and an
    xtramelt* module in 'quicklybuilt' bariant.
 
- * use the MELT_STAGE_ZERO=melt-stage0-static workaround
-   (bug not yet really fixed for plugins on x86 i686, ie 32 bits
-    machines; but this workaround is a temporary fix.)
-
 Many bugfixes
   (but some bugs remain)
+
+Thanks to Pierre Vittet for code contributions (notably thru Google
+Summer of Code), Alexandre Lissy and Allan McRae for bug reports.
+
+(MELT development is partly funded thru OpenGPU [FUI call] & GlobalGCC
+[ITEA call] projects by French GDCIS).
 
 #######################################################################
 NEWS for 0.7 MELT plugin for gcc-4.6
