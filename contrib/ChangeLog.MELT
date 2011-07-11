@@ -1,4 +1,11 @@
 
+2011-07-11  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* MELT-Plugin-Makefile (install)
+	(install-melt-includes,install-melt-modules): Better installation
+	procedure.
+	(install-melt-so): New phony target.
+
 2011-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* MELT-Plugin-Makefile: Generate correctly melt-run-md5.h.

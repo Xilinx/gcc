@@ -117,7 +117,7 @@ MELT_GENERATED_[+mkvarsuf+]_BASE= \
 melt-stage0-static/[+base+]-0.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+]-0.c \
@@ -198,7 +198,7 @@ $(MELT_STAGE_ZERO):
               $(wildcard [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+]+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath [+melt_stage+]) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c) \
@@ -361,7 +361,7 @@ melt-modules/debugnoline/[+base+].n.so: melt-sources/[+base+].c \
 melt-modules/quicklybuilt/[+base+].q.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -414,7 +414,7 @@ melt-modules/debugnoline/[+base+].n.so: melt-sources/[+base+].c \
 melt-modules/quicklybuilt/[+base+].q.so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -448,14 +448,14 @@ $(melt_default_modules_list).modlis: melt-all-modules \
 ### [+variant+] default module list
 $(melt_default_modules_list)-[+variant+].modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/[+variant+]/*.so)
 	@echo building [+variant+] module list $@
-	date  +"#$@ generated %F" > $@-tmp
+	date  +"# MELT module list $@ generated %F" > $@-tmp
 	echo "#  [+variant+] translator files" >> $@-tmp
 [+FOR melt_translator_file+]	echo [+variant+]/[+base+] >> $@-tmp
 [+ENDFOR melt_translator_file+]
 	echo "#  [+variant+] application files" >> $@-tmp
 [+FOR melt_application_file+]	echo [+variant+]/[+base+] >> $@-tmp
 [+ENDFOR melt_application_file+]
-	echo "#end $@" >> $@-tmp
+	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
 
 [+ENDFOR variant+]

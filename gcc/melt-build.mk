@@ -174,7 +174,7 @@ MELT_GENERATED_OUTOBJ_BASE= \
 melt-stage0-static/warmelt-first-0.so: $(MELT_GENERATED_FIRST_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-first-0.c \
@@ -201,7 +201,7 @@ melt-stage0-dynamic/warmelt-first-0.q.so: melt-stage0-dynamic/warmelt-first-0.d.
 melt-stage0-static/warmelt-base-0.so: $(MELT_GENERATED_BASE_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-base-0.c \
@@ -228,7 +228,7 @@ melt-stage0-dynamic/warmelt-base-0.q.so: melt-stage0-dynamic/warmelt-base-0.d.so
 melt-stage0-static/warmelt-debug-0.so: $(MELT_GENERATED_DEBUG_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-debug-0.c \
@@ -255,7 +255,7 @@ melt-stage0-dynamic/warmelt-debug-0.q.so: melt-stage0-dynamic/warmelt-debug-0.d.
 melt-stage0-static/warmelt-macro-0.so: $(MELT_GENERATED_MACRO_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-macro-0.c \
@@ -282,7 +282,7 @@ melt-stage0-dynamic/warmelt-macro-0.q.so: melt-stage0-dynamic/warmelt-macro-0.d.
 melt-stage0-static/warmelt-normal-0.so: $(MELT_GENERATED_NORMAL_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normal-0.c \
@@ -309,7 +309,7 @@ melt-stage0-dynamic/warmelt-normal-0.q.so: melt-stage0-dynamic/warmelt-normal-0.
 melt-stage0-static/warmelt-normatch-0.so: $(MELT_GENERATED_NORMATCH_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-normatch-0.c \
@@ -336,7 +336,7 @@ melt-stage0-dynamic/warmelt-normatch-0.q.so: melt-stage0-dynamic/warmelt-normatc
 melt-stage0-static/warmelt-genobj-0.so: $(MELT_GENERATED_GENOBJ_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-genobj-0.c \
@@ -363,7 +363,7 @@ melt-stage0-dynamic/warmelt-genobj-0.q.so: melt-stage0-dynamic/warmelt-genobj-0.
 melt-stage0-static/warmelt-outobj-0.so: $(MELT_GENERATED_OUTOBJ_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/warmelt-outobj-0.c \
@@ -465,7 +465,7 @@ melt-stage1/warmelt-first-1.q.so: melt-stage1/warmelt-first-1.c \
               $(wildcard melt-stage1/warmelt-first-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-first-1.c) \
@@ -512,7 +512,7 @@ melt-stage1/warmelt-base-1.q.so: melt-stage1/warmelt-base-1.c \
               $(wildcard melt-stage1/warmelt-base-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-base-1.c) \
@@ -559,7 +559,7 @@ melt-stage1/warmelt-debug-1.q.so: melt-stage1/warmelt-debug-1.c \
               $(wildcard melt-stage1/warmelt-debug-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-debug-1.c) \
@@ -606,7 +606,7 @@ melt-stage1/warmelt-macro-1.q.so: melt-stage1/warmelt-macro-1.c \
               $(wildcard melt-stage1/warmelt-macro-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-macro-1.c) \
@@ -653,7 +653,7 @@ melt-stage1/warmelt-normal-1.q.so: melt-stage1/warmelt-normal-1.c \
               $(wildcard melt-stage1/warmelt-normal-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-normal-1.c) \
@@ -701,7 +701,7 @@ melt-stage1/warmelt-normatch-1.q.so: melt-stage1/warmelt-normatch-1.c \
               $(wildcard melt-stage1/warmelt-normatch-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-normatch-1.c) \
@@ -748,7 +748,7 @@ melt-stage1/warmelt-genobj-1.q.so: melt-stage1/warmelt-genobj-1.c \
               $(wildcard melt-stage1/warmelt-genobj-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-genobj-1.c) \
@@ -795,7 +795,7 @@ melt-stage1/warmelt-outobj-1.q.so: melt-stage1/warmelt-outobj-1.c \
               $(wildcard melt-stage1/warmelt-outobj-1+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage1) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage1/warmelt-outobj-1.c) \
@@ -899,7 +899,7 @@ melt-stage2/warmelt-first-2.q.so: melt-stage2/warmelt-first-2.c \
               $(wildcard melt-stage2/warmelt-first-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-first-2.c) \
@@ -946,7 +946,7 @@ melt-stage2/warmelt-base-2.q.so: melt-stage2/warmelt-base-2.c \
               $(wildcard melt-stage2/warmelt-base-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-base-2.c) \
@@ -993,7 +993,7 @@ melt-stage2/warmelt-debug-2.q.so: melt-stage2/warmelt-debug-2.c \
               $(wildcard melt-stage2/warmelt-debug-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-debug-2.c) \
@@ -1040,7 +1040,7 @@ melt-stage2/warmelt-macro-2.q.so: melt-stage2/warmelt-macro-2.c \
               $(wildcard melt-stage2/warmelt-macro-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-macro-2.c) \
@@ -1087,7 +1087,7 @@ melt-stage2/warmelt-normal-2.q.so: melt-stage2/warmelt-normal-2.c \
               $(wildcard melt-stage2/warmelt-normal-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-normal-2.c) \
@@ -1135,7 +1135,7 @@ melt-stage2/warmelt-normatch-2.q.so: melt-stage2/warmelt-normatch-2.c \
               $(wildcard melt-stage2/warmelt-normatch-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-normatch-2.c) \
@@ -1182,7 +1182,7 @@ melt-stage2/warmelt-genobj-2.q.so: melt-stage2/warmelt-genobj-2.c \
               $(wildcard melt-stage2/warmelt-genobj-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-genobj-2.c) \
@@ -1229,7 +1229,7 @@ melt-stage2/warmelt-outobj-2.q.so: melt-stage2/warmelt-outobj-2.c \
               $(wildcard melt-stage2/warmelt-outobj-2+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage2) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage2/warmelt-outobj-2.c) \
@@ -1333,7 +1333,7 @@ melt-stage3/warmelt-first-3.q.so: melt-stage3/warmelt-first-3.c \
               $(wildcard melt-stage3/warmelt-first-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-first-3.c) \
@@ -1380,7 +1380,7 @@ melt-stage3/warmelt-base-3.q.so: melt-stage3/warmelt-base-3.c \
               $(wildcard melt-stage3/warmelt-base-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-base-3.c) \
@@ -1427,7 +1427,7 @@ melt-stage3/warmelt-debug-3.q.so: melt-stage3/warmelt-debug-3.c \
               $(wildcard melt-stage3/warmelt-debug-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-debug-3.c) \
@@ -1474,7 +1474,7 @@ melt-stage3/warmelt-macro-3.q.so: melt-stage3/warmelt-macro-3.c \
               $(wildcard melt-stage3/warmelt-macro-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-macro-3.c) \
@@ -1521,7 +1521,7 @@ melt-stage3/warmelt-normal-3.q.so: melt-stage3/warmelt-normal-3.c \
               $(wildcard melt-stage3/warmelt-normal-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-normal-3.c) \
@@ -1569,7 +1569,7 @@ melt-stage3/warmelt-normatch-3.q.so: melt-stage3/warmelt-normatch-3.c \
               $(wildcard melt-stage3/warmelt-normatch-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-normatch-3.c) \
@@ -1616,7 +1616,7 @@ melt-stage3/warmelt-genobj-3.q.so: melt-stage3/warmelt-genobj-3.c \
               $(wildcard melt-stage3/warmelt-genobj-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-genobj-3.c) \
@@ -1663,7 +1663,7 @@ melt-stage3/warmelt-outobj-3.q.so: melt-stage3/warmelt-outobj-3.c \
               $(wildcard melt-stage3/warmelt-outobj-3+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath melt-stage3) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$(realpath melt-stage3/warmelt-outobj-3.c) \
@@ -1863,7 +1863,7 @@ melt-modules/debugnoline/warmelt-first.n.so: melt-sources/warmelt-first.c \
 melt-modules/quicklybuilt/warmelt-first.q.so: melt-sources/warmelt-first.c \
         $(wildcard  melt-sources/warmelt-first+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -1913,7 +1913,7 @@ melt-modules/debugnoline/warmelt-base.n.so: melt-sources/warmelt-base.c \
 melt-modules/quicklybuilt/warmelt-base.q.so: melt-sources/warmelt-base.c \
         $(wildcard  melt-sources/warmelt-base+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -1963,7 +1963,7 @@ melt-modules/debugnoline/warmelt-debug.n.so: melt-sources/warmelt-debug.c \
 melt-modules/quicklybuilt/warmelt-debug.q.so: melt-sources/warmelt-debug.c \
         $(wildcard  melt-sources/warmelt-debug+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2013,7 +2013,7 @@ melt-modules/debugnoline/warmelt-macro.n.so: melt-sources/warmelt-macro.c \
 melt-modules/quicklybuilt/warmelt-macro.q.so: melt-sources/warmelt-macro.c \
         $(wildcard  melt-sources/warmelt-macro+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2069,7 +2069,7 @@ melt-modules/debugnoline/warmelt-normal.n.so: melt-sources/warmelt-normal.c \
 melt-modules/quicklybuilt/warmelt-normal.q.so: melt-sources/warmelt-normal.c \
         $(wildcard  melt-sources/warmelt-normal+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2119,7 +2119,7 @@ melt-modules/debugnoline/warmelt-normatch.n.so: melt-sources/warmelt-normatch.c 
 melt-modules/quicklybuilt/warmelt-normatch.q.so: melt-sources/warmelt-normatch.c \
         $(wildcard  melt-sources/warmelt-normatch+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2169,7 +2169,7 @@ melt-modules/debugnoline/warmelt-genobj.n.so: melt-sources/warmelt-genobj.c \
 melt-modules/quicklybuilt/warmelt-genobj.q.so: melt-sources/warmelt-genobj.c \
         $(wildcard  melt-sources/warmelt-genobj+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2219,7 +2219,7 @@ melt-modules/debugnoline/warmelt-outobj.n.so: melt-sources/warmelt-outobj.c \
 melt-modules/quicklybuilt/warmelt-outobj.q.so: melt-sources/warmelt-outobj.c \
         $(wildcard  melt-sources/warmelt-outobj+*.c) \
         melt-tempbuild melt-modules melt-sources melt-run.h melt-runtime.h 
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2271,7 +2271,7 @@ melt-modules/debugnoline/xtramelt-parse-infix-syntax.n.so: melt-sources/xtramelt
 melt-modules/quicklybuilt/xtramelt-parse-infix-syntax.q.so: melt-sources/xtramelt-parse-infix-syntax.c \
         $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2321,7 +2321,7 @@ melt-modules/debugnoline/xtramelt-ana-base.n.so: melt-sources/xtramelt-ana-base.
 melt-modules/quicklybuilt/xtramelt-ana-base.q.so: melt-sources/xtramelt-ana-base.c \
         $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2371,7 +2371,7 @@ melt-modules/debugnoline/xtramelt-ana-simple.n.so: melt-sources/xtramelt-ana-sim
 melt-modules/quicklybuilt/xtramelt-ana-simple.q.so: melt-sources/xtramelt-ana-simple.c \
         $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2421,7 +2421,7 @@ melt-modules/debugnoline/xtramelt-c-generator.n.so: melt-sources/xtramelt-c-gene
 melt-modules/quicklybuilt/xtramelt-c-generator.q.so: melt-sources/xtramelt-c-generator.c \
         $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2471,7 +2471,7 @@ melt-modules/debugnoline/xtramelt-opengpu.n.so: melt-sources/xtramelt-opengpu.c 
 melt-modules/quicklybuilt/xtramelt-opengpu.q.so: melt-sources/xtramelt-opengpu.c \
         $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
         melt-run.h melt-runtime.h  melt-tempbuild melt-sources melt-modules
-	+$(MELT_MAKE_MODULE) melt_module_quickly \
+	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
 	      GCCMELT_CFLAGS="$(melt_cflags) $(melt_extra_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_WORKSPACE=melt-tempbuild \
@@ -2535,7 +2535,7 @@ $(melt_default_modules_list).modlis: melt-all-modules \
 ### quicklybuilt default module list
 $(melt_default_modules_list)-quicklybuilt.modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/quicklybuilt/*.so)
 	@echo building quicklybuilt module list $@
-	date  +"#$@ generated %F" > $@-tmp
+	date  +"# MELT module list $@ generated %F" > $@-tmp
 	echo "#  quicklybuilt translator files" >> $@-tmp
 	echo quicklybuilt/warmelt-first >> $@-tmp
 	echo quicklybuilt/warmelt-base >> $@-tmp
@@ -2553,14 +2553,14 @@ $(melt_default_modules_list)-quicklybuilt.modlis:  melt-all-modules  melt-module
 	echo quicklybuilt/xtramelt-c-generator >> $@-tmp
 	echo quicklybuilt/xtramelt-opengpu >> $@-tmp
 
-	echo "#end $@" >> $@-tmp
+	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
 
 
 ### optimized default module list
 $(melt_default_modules_list)-optimized.modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/optimized/*.so)
 	@echo building optimized module list $@
-	date  +"#$@ generated %F" > $@-tmp
+	date  +"# MELT module list $@ generated %F" > $@-tmp
 	echo "#  optimized translator files" >> $@-tmp
 	echo optimized/warmelt-first >> $@-tmp
 	echo optimized/warmelt-base >> $@-tmp
@@ -2578,14 +2578,14 @@ $(melt_default_modules_list)-optimized.modlis:  melt-all-modules  melt-modules/ 
 	echo optimized/xtramelt-c-generator >> $@-tmp
 	echo optimized/xtramelt-opengpu >> $@-tmp
 
-	echo "#end $@" >> $@-tmp
+	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
 
 
 ### debugnoline default module list
 $(melt_default_modules_list)-debugnoline.modlis:  melt-all-modules  melt-modules/ $(wildcard melt-modules/debugnoline/*.so)
 	@echo building debugnoline module list $@
-	date  +"#$@ generated %F" > $@-tmp
+	date  +"# MELT module list $@ generated %F" > $@-tmp
 	echo "#  debugnoline translator files" >> $@-tmp
 	echo debugnoline/warmelt-first >> $@-tmp
 	echo debugnoline/warmelt-base >> $@-tmp
@@ -2603,7 +2603,7 @@ $(melt_default_modules_list)-debugnoline.modlis:  melt-all-modules  melt-modules
 	echo debugnoline/xtramelt-c-generator >> $@-tmp
 	echo debugnoline/xtramelt-opengpu >> $@-tmp
 
-	echo "#end $@" >> $@-tmp
+	echo "# end $@" >> $@-tmp
 	$(melt_make_move) $@-tmp $@
 
 

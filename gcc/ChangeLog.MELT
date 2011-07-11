@@ -1,4 +1,11 @@
 
+2011-07-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk: Replace quickly by quicklybuilt.
+
+	* melt-build.tpl: Ditto. Minor typos.
+
+	* melt-build.mk: Regenerate.
+
 2011-07-10  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{fix failure of MELT_STAGE_ZERO=melt-stage0-dynamic on 32 bits
 	x86/Linux}}
