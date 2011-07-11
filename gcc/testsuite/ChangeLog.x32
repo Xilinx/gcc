@@ -1,5 +1,11 @@
 2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* gcc.dg/vect/costmodel/x86_64/x86_64-costmodel-vect.exp: Check
+	ia32.
+	* go.test/go-test.exp (go-set-goarch): Likewise.
+
+2011-11-09  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* c-c++-common/dfp/func-vararg-alternate-d128-2.c: Support x32.
 	* c-c++-common/dfp/func-vararg-mixed-2.c: Likewise.
 	* g++.dg/abi/bitfield3.C: Likewise.
