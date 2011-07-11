@@ -1,3 +1,16 @@
+2011-07-11   Diego Novillo  <dnovillo@google.com>
+	     Gabriel Charette  <gchare@google.com>
+
+	* pph-streamer-in.c (ALLOC_AND_REGISTER_ALTERNATE): Define.
+	(pph_in_binding_level): Add argument TO_REGISTER.  Call
+	ALLOC_AND_REGISTER_ALTERNATE if set.
+	Update all users.
+	(pph_register_decls_in_symtab): Call varpool_finalize_decl
+	on all file-local symbols.
+	(pph_in_scope_chain): Call pph_in_binding_level with
+	scope_chain->bindings as the alternate pointer to
+	register in the streaming cache.
+
 2011-07-07   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_register_decls_in_symtab): Rename

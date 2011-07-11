@@ -42,6 +42,18 @@ along with GCC; see the file COPYING3.  If not see
       pph_register_shared_data (STREAM, DATA, IX);		\
     } while (0)
 
+/* Same as ALLOC_AND_REGISTER, but instead of registering DATA into the
+   cache at slot IX, it registers ALT_DATA.  Used to support mapping
+   pointers to global data in the original STREAM that need to point
+   to a different instance when aggregating individual PPH files into
+   the current translation unit (see pph_in_binding_level for an
+   example).  */
+#define ALLOC_AND_REGISTER_ALTERNATE(STREAM, IX, DATA, ALLOC_EXPR, ALT_DATA)\
+    do {								\
+      (DATA) = (ALLOC_EXPR);						\
+      pph_register_shared_data (STREAM, ALT_DATA, IX);			\
+    } while (0)
+
 /* Callback for unpacking value fields in ASTs.  BP is the bitpack 
    we are unpacking from.  EXPR is the tree to unpack.  */
 
@@ -482,7 +494,8 @@ pph_in_qual_use_vec (pph_stream *stream)
 
 
 /* Forward declaration to break cyclic dependencies.  */
-static struct cp_binding_level *pph_in_binding_level (pph_stream *);
+static struct cp_binding_level *pph_in_binding_level (pph_stream *,
+						    struct cp_binding_level *);
 
 /* Helper for pph_in_cxx_binding.  Read and return a cxx_binding
    instance from STREAM.  */
@@ -505,7 +518,7 @@ pph_in_cxx_binding_1 (pph_stream *stream)
   value = pph_in_tree (stream);
   type = pph_in_tree (stream);
   ALLOC_AND_REGISTER (stream, ix, cb, cxx_binding_make (value, type));
-  cb->scope = pph_in_binding_level (stream);
+  cb->scope = pph_in_binding_level (stream, NULL);
   bp = pph_in_bitpack (stream);
   cb->value_is_inherited = bp_unpack_value (&bp, 1);
   cb->is_local = bp_unpack_value (&bp, 1);
@@ -581,10 +594,26 @@ pph_in_label_binding (pph_stream *stream)
 }
 
 
-/* Read and return an instance of cp_binding_level from STREAM.  */
+/* Read and return an instance of cp_binding_level from STREAM.
+   TO_REGISTER is used when the caller wants to read a binding level,
+   but register a different binding level in the streaming cache.
+   This is needed when reading the binding for global_namespace.
+
+   When the file was created global_namespace was localized to that
+   particular file.  However, when instantiating a PPH file into
+   memory, we are now using the global_namespace for the current
+   translation unit.  Therefore, every reference to the
+   global_namespace and its bindings should be pointing to the
+   CURRENT global namespace, not the one in STREAM.
+
+   Therefore, if TO_REGISTER is set, and we read a binding level from
+   STREAM for the first time, instead of registering the newly
+   instantiated binding level into the cache, we register the binding
+   level given in TO_REGISTER.  This way, subsequent references to the
+   global binding level will be done to the one set in TO_REGISTER.  */
 
 static struct cp_binding_level *
-pph_in_binding_level (pph_stream *stream)
+pph_in_binding_level (pph_stream *stream, struct cp_binding_level *to_register)
 {
   unsigned i, num, ix;
   struct cp_binding_level *bl;
@@ -597,7 +626,14 @@ pph_in_binding_level (pph_stream *stream)
   else if (marker == PPH_RECORD_SHARED)
     return (struct cp_binding_level *) pph_in_shared_data (stream, ix);
 
-  ALLOC_AND_REGISTER (stream, ix, bl, ggc_alloc_cleared_cp_binding_level ());
+  /* If TO_REGISTER is set, register that binding level instead of the newly
+     allocated binding level into slot IX.  */
+  if (to_register == NULL)
+    ALLOC_AND_REGISTER (stream, ix, bl, ggc_alloc_cleared_cp_binding_level ());
+  else
+    ALLOC_AND_REGISTER_ALTERNATE (stream, ix, bl,
+				  ggc_alloc_cleared_cp_binding_level (),
+				  to_register);
 
   bl->names = pph_in_chain (stream);
   bl->namespaces = pph_in_chain (stream);
@@ -627,7 +663,7 @@ pph_in_binding_level (pph_stream *stream)
 
   bl->blocks = pph_in_chain (stream);
   bl->this_entity = pph_in_tree (stream);
-  bl->level_chain = pph_in_binding_level (stream);
+  bl->level_chain = pph_in_binding_level (stream, NULL);
   bl->dead_vars_from_for = pph_in_tree_vec (stream);
   bl->statement_list = pph_in_chain (stream);
   bl->binding_depth = pph_in_uint (stream);
@@ -713,7 +749,7 @@ pph_in_language_function (pph_stream *stream)
 
   /* FIXME pph.  We are not reading lf->x_named_labels.  */
 
-  lf->bindings = pph_in_binding_level (stream);
+  lf->bindings = pph_in_binding_level (stream, NULL);
   lf->x_local_names = pph_in_tree_vec (stream);
 
   /* FIXME pph.  We are not reading lf->extern_decl_map.  */
@@ -854,7 +890,7 @@ pph_in_struct_function (pph_stream *stream, tree decl)
 static void
 pph_in_ld_ns (pph_stream *stream, struct lang_decl_ns *ldns)
 {
-  ldns->level = pph_in_binding_level (stream);
+  ldns->level = pph_in_binding_level (stream, NULL);
 }
 
 
@@ -1140,10 +1176,10 @@ pph_in_lang_type (pph_stream *stream)
 
 
 /* Register all the symbols in binding level BL in the callgraph symbol
-   table.  NS is the namespace where all the symbols in BL live.  */
+   table.  */
 
 static void
-pph_register_decls_in_symtab (struct cp_binding_level *bl, tree ns)
+pph_register_decls_in_symtab (struct cp_binding_level *bl)
 {
   tree t;
 
@@ -1153,18 +1189,16 @@ pph_register_decls_in_symtab (struct cp_binding_level *bl, tree ns)
   bl->namespaces = nreverse (bl->namespaces);
 
   for (t = bl->names; t; t = DECL_CHAIN (t))
-    if (DECL_NAME (t) && IDENTIFIER_NAMESPACE_BINDINGS (DECL_NAME (t)))
-      {
-	cxx_binding *b = IDENTIFIER_NAMESPACE_BINDINGS (DECL_NAME (t));
-	b->scope = NAMESPACE_LEVEL (ns);
+    {
+      /* Add file-local symbols to the varpool.  */
+      if (TREE_CODE (t) == VAR_DECL && TREE_STATIC (t) && !DECL_EXTERNAL (t))
+	varpool_finalize_decl (t);
+    }
 
-	if (TREE_CODE (t) == VAR_DECL && TREE_STATIC (t) && !DECL_EXTERNAL (t))
-	  varpool_finalize_decl (t);
-      }
-
+  /* Recurse into the namespaces contained in BL.  */
   for (t = bl->namespaces; t; t = DECL_CHAIN (t))
     if (NAMESPACE_LEVEL (t))
-      pph_register_decls_in_symtab (NAMESPACE_LEVEL (t), t);
+      pph_register_decls_in_symtab (NAMESPACE_LEVEL (t));
 }
 
 
@@ -1173,18 +1207,21 @@ pph_register_decls_in_symtab (struct cp_binding_level *bl, tree ns)
 static void
 pph_in_scope_chain (pph_stream *stream)
 {
-  struct saved_scope *file_scope_chain;
   unsigned i;
   tree decl;
   cp_class_binding *cb;
   cp_label_binding *lb;
   struct cp_binding_level *cur_bindings, *new_bindings;
 
-  file_scope_chain = ggc_alloc_cleared_saved_scope ();
-  file_scope_chain->bindings = new_bindings = pph_in_binding_level (stream);
+  /* When reading the symbols in STREAM's global binding level, make
+     sure that references to the global binding level point to
+     scope_chain->bindings.  Otherwise, identifiers read from STREAM
+     will have the wrong bindings and will fail name lookups.  */
   cur_bindings = scope_chain->bindings;
+  new_bindings = pph_in_binding_level (stream, scope_chain->bindings);
 
-  pph_register_decls_in_symtab (new_bindings, global_namespace);
+  /* Register all the symbols in STREAM with the call graph.  */
+  pph_register_decls_in_symtab (new_bindings);
 
   /* Merge the bindings from STREAM into saved_scope->bindings.  */
   chainon (cur_bindings->names, new_bindings->names);
