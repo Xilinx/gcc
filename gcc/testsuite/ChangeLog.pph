@@ -1,3 +1,10 @@
+2011-07-07  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/c2eabi1.cc: Remove XFAIL markers.  Expect an
+	assembly difference.
+	* g++.dg/pph/c2meteor-contest.cc: Likewise.
+	* g++.dg/pph/x1namespace.cc: Mark fixed.
+
 2011-07-05  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/x2nontrivinit.cc: Mark fixed.

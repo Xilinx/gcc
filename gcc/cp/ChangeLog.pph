@@ -1,3 +1,13 @@
+2011-07-07   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_register_decls_in_symtab): Rename
+	from pph_add_bindings_to_namespace.
+	Do not call pushdecl_into_namespace for every symbol.  Just
+	reset the scope for its identifier's namespace binding.
+	(pph_in_scope_chain): Merge every field in struct
+	cp_binding_level from the scope_chain->bindings coming from
+	STREAM and the current scope_chain->bindings.
+
 2011-07-06   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-out.c (pph_out_scope_chain): Fix formatting.

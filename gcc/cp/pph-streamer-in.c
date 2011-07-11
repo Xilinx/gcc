@@ -1139,38 +1139,32 @@ pph_in_lang_type (pph_stream *stream)
 }
 
 
-/* Add all bindings declared in BL to NS.  */
+/* Register all the symbols in binding level BL in the callgraph symbol
+   table.  NS is the namespace where all the symbols in BL live.  */
 
 static void
-pph_add_bindings_to_namespace (struct cp_binding_level *bl, tree ns)
+pph_register_decls_in_symtab (struct cp_binding_level *bl, tree ns)
 {
-  tree t, chain;
+  tree t;
 
   /* The chains are built backwards (ref: add_decl_to_level),
      reverse them before putting them back in.  */
   bl->names = nreverse (bl->names);
   bl->namespaces = nreverse (bl->namespaces);
 
-  for (t = bl->names; t; t = chain)
-    {
-      /* Pushing a decl into a scope clobbers its DECL_CHAIN.
-	 Preserve it.  */
-      chain = DECL_CHAIN (t);
-      pushdecl_into_namespace (t, ns);
+  for (t = bl->names; t; t = DECL_CHAIN (t))
+    if (DECL_NAME (t) && IDENTIFIER_NAMESPACE_BINDINGS (DECL_NAME (t)))
+      {
+	cxx_binding *b = IDENTIFIER_NAMESPACE_BINDINGS (DECL_NAME (t));
+	b->scope = NAMESPACE_LEVEL (ns);
 
-      if (TREE_CODE (t) == VAR_DECL && TREE_STATIC (t) && !DECL_EXTERNAL (t))
-	varpool_finalize_decl (t);
-    }
+	if (TREE_CODE (t) == VAR_DECL && TREE_STATIC (t) && !DECL_EXTERNAL (t))
+	  varpool_finalize_decl (t);
+      }
 
-  for (t = bl->namespaces; t; t = chain)
-    {
-      /* Pushing a decl into a scope clobbers its DECL_CHAIN.
-	 Preserve it.  */
-      chain = DECL_CHAIN (t);
-      pushdecl_into_namespace (t, ns);
-      if (NAMESPACE_LEVEL (t))
-	pph_add_bindings_to_namespace (NAMESPACE_LEVEL (t), t);
-    }
+  for (t = bl->namespaces; t; t = DECL_CHAIN (t))
+    if (NAMESPACE_LEVEL (t))
+      pph_register_decls_in_symtab (NAMESPACE_LEVEL (t), t);
 }
 
 
@@ -1179,12 +1173,56 @@ pph_add_bindings_to_namespace (struct cp_binding_level *bl, tree ns)
 static void
 pph_in_scope_chain (pph_stream *stream)
 {
-  struct cp_binding_level *pph_bindings;
+  struct saved_scope *file_scope_chain;
+  unsigned i;
+  tree decl;
+  cp_class_binding *cb;
+  cp_label_binding *lb;
+  struct cp_binding_level *cur_bindings, *new_bindings;
 
-  pph_bindings = pph_in_binding_level (stream);
+  file_scope_chain = ggc_alloc_cleared_saved_scope ();
+  file_scope_chain->bindings = new_bindings = pph_in_binding_level (stream);
+  cur_bindings = scope_chain->bindings;
 
-  /* Merge the bindings obtained from STREAM in the global namespace.  */
-  pph_add_bindings_to_namespace (pph_bindings, global_namespace);
+  pph_register_decls_in_symtab (new_bindings, global_namespace);
+
+  /* Merge the bindings from STREAM into saved_scope->bindings.  */
+  chainon (cur_bindings->names, new_bindings->names);
+  chainon (cur_bindings->namespaces, new_bindings->namespaces);
+
+  for (i = 0; VEC_iterate (tree, new_bindings->static_decls, i, decl); i++)
+    VEC_safe_push (tree, gc, cur_bindings->static_decls, decl);
+
+  chainon (cur_bindings->usings, new_bindings->usings);
+  chainon (cur_bindings->using_directives, new_bindings->using_directives);
+
+  for (i = 0;
+       VEC_iterate (cp_class_binding, new_bindings->class_shadowed, i, cb);
+       i++)
+    VEC_safe_push (cp_class_binding, gc, cur_bindings->class_shadowed, cb);
+
+  chainon (cur_bindings->type_shadowed, new_bindings->type_shadowed);
+
+  for (i = 0;
+       VEC_iterate (cp_label_binding, new_bindings->shadowed_labels, i, lb);
+       i++)
+    VEC_safe_push (cp_label_binding, gc, cur_bindings->shadowed_labels, lb);
+
+  chainon (cur_bindings->blocks, new_bindings->blocks);
+
+  gcc_assert (cur_bindings->this_entity == new_bindings->this_entity);
+  gcc_assert (cur_bindings->level_chain == new_bindings->level_chain);
+  gcc_assert (cur_bindings->dead_vars_from_for
+	      == new_bindings->dead_vars_from_for);
+
+  chainon (cur_bindings->statement_list, new_bindings->statement_list);
+
+  gcc_assert (cur_bindings->binding_depth == new_bindings->binding_depth);
+  gcc_assert (cur_bindings->kind == new_bindings->kind);
+  gcc_assert (cur_bindings->explicit_spec_p == new_bindings->explicit_spec_p);
+  gcc_assert (cur_bindings->keep == new_bindings->keep);
+  gcc_assert (cur_bindings->more_cleanups_ok == new_bindings->more_cleanups_ok);
+  gcc_assert (cur_bindings->have_cleanups == new_bindings->have_cleanups);
 }
 
 

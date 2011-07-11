@@ -1,6 +1,5 @@
-// { dg-timeout 3 { target *-*-* } }
-// { dg-xfail-if "INFINITE" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-options "-w -fpermissive" }
+/* { dg-options "-w" } */
+// pph asm xdiff
 
 #include "c2eabi1.h"
 

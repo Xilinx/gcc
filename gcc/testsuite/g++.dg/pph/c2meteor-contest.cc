@@ -1,6 +1,7 @@
-/* { dg-timeout 2 { target *-*-* } }  */
-// { dg-xfail-if "INFINITE" { "*-*-*" } { "-fpph-map=pph.map" } }
 /* { dg-options "-w" }  */
+
+// pph asm xdiff
+
 #include "c2meteor-contest.h"
 
 int main(int argc, char **argv) {
