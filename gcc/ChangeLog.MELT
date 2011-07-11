@@ -1,5 +1,9 @@
 
 2011-07-11  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_garbcoll): Increase default values of
+	parameters above their minimal ones, used notably in plugin mode.
+
+2011-07-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk: Replace quickly by quicklybuilt.
 
 	* melt-build.tpl: Ditto. Minor typos.

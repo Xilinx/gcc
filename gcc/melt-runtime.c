@@ -1151,27 +1151,33 @@ melt_garbcoll (size_t wanted, enum melt_gckind_en gckd)
       needfull = TRUE;
     }
 
-  /* set some parameters if they are cleared.  Should happen once.  */
+  /* set some parameters if they are cleared.  Should happen once.
+     The default values (used in particular in plugin mode) are not
+     the minimal ones.  */
   if (melt_minorsizekilow == 0)
     {
       const char* minzstr = melt_argument ("minor-zone");
-      melt_minorsizekilow = minzstr? (atol (minzstr)):0;
-      if (melt_minorsizekilow<256) melt_minorsizekilow=256;
-      else if (melt_minorsizekilow>16384) melt_minorsizekilow=16384;
+      melt_minorsizekilow = minzstr? (atol (minzstr)) : 1024;
+      if (melt_minorsizekilow < 512) 
+	melt_minorsizekilow = 512;
+      else if (melt_minorsizekilow > 16384)
+	melt_minorsizekilow = 16384;
     }
   if (melt_fullthresholdkilow == 0)
     {
       const char* fullthstr = melt_argument ("full-threshold");
-      melt_fullthresholdkilow = fullthstr ? (atol (fullthstr)) : 0;
-      if (melt_fullthresholdkilow<512) melt_fullthresholdkilow=512;
-      if (melt_fullthresholdkilow<2*melt_minorsizekilow)
-	melt_fullthresholdkilow = 2*melt_minorsizekilow;
-      else if (melt_fullthresholdkilow>65536) melt_fullthresholdkilow=65536;
+      melt_fullthresholdkilow = fullthstr ? (atol (fullthstr)) : 2048;
+      if (melt_fullthresholdkilow < 1024) 
+	melt_fullthresholdkilow = 1024;
+      if (melt_fullthresholdkilow < 2*melt_minorsizekilow)
+	melt_fullthresholdkilow =  2*melt_minorsizekilow;
+      if (melt_fullthresholdkilow > 65536) 
+	melt_fullthresholdkilow  =65536;
     }
   if (melt_fullperiod == 0)
     {
       const char* fullperstr = melt_argument ("full-period");
-      melt_fullperiod = fullperstr ? (atoi (fullperstr)) : 0;
+      melt_fullperiod = fullperstr ? (atoi (fullperstr)) : 64;
       if (melt_fullperiod < 32) melt_fullperiod = 32;
       else if (melt_fullperiod > 256) melt_fullperiod = 256;
     }
