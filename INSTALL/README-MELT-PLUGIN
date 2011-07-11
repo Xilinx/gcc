@@ -28,6 +28,11 @@ Configured with: ../src/configure -v --with-pkgversion='Debian 4.6.1-2' --with-b
 Thread model: posix
 gcc version 4.6.1 (Debian 4.6.1-2) 
 
+Be sure that you have all the development packages for all libraries
+used by GCC (e.g. run 'apt-get build-dep gcc' on Debian). In
+particular, you'll need the headers of CLOOG, PPL, MPC, MPFR, GMP
+libraries.
+
 ################ step 2
 
 Then, be sure that the GCC plugin development support has been
