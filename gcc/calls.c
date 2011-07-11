@@ -702,12 +702,6 @@ precompute_register_parameters (int num_actuals, struct arg_data *args,
 	    pop_temp_slots ();
 	  }
 
-	/* If the value is a non-legitimate constant, force it into a
-	   pseudo now.  TLS symbols sometimes need a call to resolve.  */
-	if (CONSTANT_P (args[i].value)
-	    && !targetm.legitimate_constant_p (args[i].mode, args[i].value))
-	  args[i].value = force_reg (args[i].mode, args[i].value);
-
 	/* If we are to promote the function arg to a wider mode,
 	   do it now.  */
 
@@ -716,6 +710,12 @@ precompute_register_parameters (int num_actuals, struct arg_data *args,
 	    = convert_modes (args[i].mode,
 			     TYPE_MODE (TREE_TYPE (args[i].tree_value)),
 			     args[i].value, args[i].unsignedp);
+
+	/* If the value is a non-legitimate constant, force it into a
+	   pseudo now.  TLS symbols sometimes need a call to resolve.  */
+	if (CONSTANT_P (args[i].value)
+	    && !targetm.legitimate_constant_p (args[i].mode, args[i].value))
+	  args[i].value = force_reg (args[i].mode, args[i].value);
 
 	/* If we're going to have to load the value by parts, pull the
 	   parts into pseudos.  The part extraction process can involve
@@ -1591,6 +1591,10 @@ mem_overlaps_already_clobbered_arg_p (rtx addr, unsigned HOST_WIDE_INT size)
 	   && (XEXP (addr, 0) == crtl->args.internal_arg_pointer
 	       || XEXP (addr, 1) == crtl->args.internal_arg_pointer))
     return true;
+  /* If the address comes in a register, we have no idea of its origin so
+     give up and conservatively return true.  */
+  else if (REG_P(addr))
+    return true;
   else
     return false;
 
@@ -1830,6 +1834,10 @@ check_sibcall_argument_overlap_1 (rtx x)
     return 0;
 
   code = GET_CODE (x);
+
+  /* We need not check the operands of the CALL expression itself.  */
+  if (code == CALL)
+    return 0;
 
   if (code == MEM)
     return mem_overlaps_already_clobbered_arg_p (XEXP (x, 0),

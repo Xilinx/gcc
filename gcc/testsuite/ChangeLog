@@ -1,11 +1,342 @@
+2011-07-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45603
+	* g++.dg/abi/guard3.C: New.
+
+2011-07-08  Julian Brown  <julian@codesourcery.com>
+
+	* lib/target-supports.exp
+	(check_effective_target_arm_little_endian): New.
+	(check_effective_target_vect_pack_trunc): Use above.
+	(check_effective_target_vect_unpack): Likewise.
+	(check_effective_target_vect_element_align): Test
+	check_effective_target_arm_vect_no_misalign for ARM.
+
+2011-07-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49673
+	* g++.dg/cpp0x/constexpr-rom.C: New.
+
+2011-07-08  Kirill Yukhin  <kirill.yukhin@intel.com>
+
+	PR middle-end/49519
+	* g++.dg/torture/pr49519.C: New test.
+
+2011-07-08  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/tree-ssa/sra-12.c: Skip dump scan on avr targets.
+
+2011-07-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/48727
+	* g++.dg/opt/devirt2.C: Use specific pattern for sparc*-*-*.
+
+2011-07-08  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49662
+	* gcc.dg/graphite/interchange-14.c: XFAIL.
+	* gcc.dg/graphite/interchange-15.c: Likewise.
+	* gcc.dg/graphite/interchange-mvt.c: Likewise.
+
+2011-07-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49663
+	* g++.dg/cpp0x/regress/regress4.C: New.
+
+2011-07-07  Mikael Morin  <mikael.morin@sfr.fr>
+
+	PR fortran/49648
+	* gfortran.dg/result_in_spec_4.f90: New test.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* gcc.target/sparc/cas64.c: New test.
+
+2011-07-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/49644
+	* g++.dg/torture/pr49644.C: New test.
+
+	PR c/49644
+	* gcc.c-torture/execute/pr49644.c: New test.
+
+2011-07-07  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* lib/target-supports.exp (check_effective_target_ia32): New.
+	(check_effective_target_x32): Likewise.
+	(check_effective_target_vect_cmdline_needed): Also check x32.
+
+2011-07-07  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/pr40657-2.c: Remove -march option and unneeded
+	dg-prune-output.
+	* gcc.target/arm/pr42235.c: Likewise.
+	* gcc.target/arm/pr42495.c: Likewise.
+	* gcc.target/arm/pr42574.c: Likewise.
+	* gcc.target/arm/thumb-branch1.c: Likewise.
+
+	* gcc.target/arm/pr39839.c: Don't specify -mthumb or -march, remove
+	unneeded prune of possible warning.
+	* gcc.target/arm/pr40956.c: Likewise.
+	* gcc.target/arm/pr42505.c: Likewise.
+
+	* gcc.c-torture/compile/pr41679.c: Move from gcc.target/arm.
+	* gcc.c-torture/compile/pr46883.c: Likewise.
+	* gcc.c-torture/compile/pr46934.c: Likewise.
+
+	* gcc.target/arm/pr41679.c: Remove test directives in preparation
+	for move to ../../gcc.c-torture/compile.
+	* gcc.target/arm/pr46883.c: Likewise.
+	* gcc.target/arm/pr46934.c: Likewise.
+
+	* lib/target-supports.exp (check_effective_target_arm_dsp): New.
+	* gcc.target/arm/mla-2.c: Use it instead of specific -march.
+	* gcc.target/arm/wmul-1.c: Likewise.
+	* gcc.target/arm/wmul-2.c: Likewise.
+	* gcc.target/arm/wmul-3.c: Likewise.
+	* gcc.target/arm/wmul-4.c: Likewise.
+	* gcc.target/arm/smlaltb-1.c: Require arm_dsp, don't specify -march,
+	add tab after scan target.
+	* gcc.target/arm/smlaltt-1.c: Likewise.
+	* gcc.target/arm/smlatb-1.c: Likewise.
+	* gcc.target/arm/smlatt-1.c: Likewise.
+
+2011-07-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR debug/49522
+	* gcc.dg/debug/pr49522.c: New test.
+
+2011-07-07  Georg-Johann Lay  <avr@gjlay.de>
+	
+	* gcc.dg/pragma-align.c: Run only if target !default_packed.
+	* gcc.dg/pr46212.c: Run only if target int32plus.
+	* gcc.dg/torture/pr48146.c: Ditto.
+	* gcc.dg/tree-ssa/vrp51.c: Ditto.
+	* c-c++-common/pr44832.c: Ditto.
+	* gcc.dg/pr49544.c: Run only if target ptr32plus.
+	* gcc.dg/pr31490.c: Ditto.
+	* gcc.dg/torture/builtin-math-7.c: Run only if target
+	large_double.
+	* gcc.dg/torture/pr45764.c: Skip for AVR.
+	* gcc.dg/pr47893.c: Ditto.
+
+2011-07-07  Janis Johnson  <janisjo@codesourcery.com>
+
+	* lib/target-supports.exp (check_effective_target_arm_thumb1): New.
+	(check_effective_target_arm_thumb2): Clarify comment, add valid code.
+	*  gcc.target/arm/mla-1.c: Skip for arm_thumb1, don't specify -march,
+	add tab to scan target.
+
+2011-07-07  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* gcc.target/arm/neon-modes-3.c: New test.
+
+2011-07-07  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/graphite/pr37485.c (dg-options): Add -fno-loop-strip-mine
+	-fno-loop-interchange -ffast-math.
+
+2011-07-07  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/ftrapv-3.c: New testcase.
+
+2011-07-07  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/vrp58.c: New testcase.
+	* gcc.dg/tree-ssa/scev-cast.c: Adjust.
+
+2011-07-07  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/binop-notxor1.c: New test.
+	* gcc.dg/binop-notand4a.c: New test.
+	* gcc.dg/binop-notxor2.c: New test.
+	* gcc.dg/binop-notand3a.c: New test.
+	* gcc.dg/binop-notand2a.c: New test.
+	* gcc.dg/binop-notand6a.c: New test.
+	* gcc.dg/binop-notor1.c: New test.
+	* gcc.dg/binop-notand1a.c: New test.
+	* gcc.dg/binop-notand5a.c: New test.
+	* gcc.dg/binop-notor2.c: New test.
+
+2011-07-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49640
+	* gcc.dg/gomp/pr49640.c: New test.
+
+2011-07-07  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/graphite/pr37485.c: Add -floop-block.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/39150
+	* gcc.misc-tests/linkage.exp: Handle x86_64-*-solaris2.1[0-9]*.
+
+2011-07-06  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/no-r11-1.c: New test for -mr11, -mno-r11.
+	* gcc.target/powerpc/no-r11-2.c: Ditto.
+	* gcc.target/powerpc/no-r11-3.c: Ditto.
+
+2011-07-06  Uros Bizjak  <ubizjak@gmail.com>
+
+	* gcc.dg/stack-layout-2.c: Cleanup expand rtl dump.
+	* gfortran.dg/move_alloc_4.f90: Cleanup original tree dump.
+
+2011-07-06  Georg-Johann Lay  <avr@gjlay.de>
+
+	* lib/target-supports.exp (check_profiling_available): Disable
+	profiling with -fprofile-generate for target avr.
+
+2011-07-06  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49645
+	* g++.dg/tree-ssa/pr8781.C: Disable SRA.
+
+2011-07-06  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR middle-end/47383
+	* gcc.dg/pr47383.c: New.
+
+2011-07-06  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR tree-optimization/49647
+	* gcc.dg/tree-ssa/20030807-7.c: Remove xfail *-*-*.
+
+2011-07-06  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR testsuite/49542
+	* gcc.dg/vect/pr33804.c: XFAIL if vect_no_align unconditionally.
+	* gcc.dg/vect/slp-multitypes-3.c: XFAIL on SPARC unconditionally.
+
+2011-07-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48157
+	* g++.dg/template/template-id-4.C: New.
+
+2011-07-05  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/pr44023.c: Add dg-require-effective-target int32plus
+	* gcc.dg/pr43402.c: Ditto.
+
+2011-07-05  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/cpp/pragma-3.c: Add dg-require-effective-target fopenmp.
+
+2011-07-05  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-switch-1.c: New test for
+	--param case-values-threshold.
+	* gcc.target/powerpc/ppc-switch-2.c: Ditto.
+
+2011-07-05  Janis Johnson  <janisjo@codesourcery.com>
+
+	* gcc.target/arm/pr42093.c: Use "-fno-reorder-blocks".
+
+2011-07-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/rtti/anon-ns1.C: Allow for null-termination.
+
+2011-07-05  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR tree-optimization/47654
+	* gcc.dg/graphite/block-pr47654.c: New.
+
+2011-07-05  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/lambda/lambda-ref2.C: New.
+
+2011-07-05  Razya Ladelsky  <razya@il.ibm.com>
+
+	PR tree-optimization/49580
+	* gcc.dg/autopar/pr49580.c: New test.
+
+2011-07-05  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49518
+	PR tree-optimization/49628
+	* g++.dg/torture/pr49628.C: New testcase.
+	* gcc.dg/torture/pr49518.c: Likewise.
+
+2011-07-05  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* ada/acats/run_acats (which): Extract last field from type -p,
+	type output only if command succeeded.
+
+2011-07-04  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/abi/mangle48.C: New.
+
+	* g++.dg/cpp0x/diag1.C: New.
+
+	* g++.dg/diagnostic/aka1.C: New.
+
+2011-07-04  Jakub Jelinek  <jakub@redhat.com>
+
+	PR rtl-optimization/49619
+	* gcc.dg/pr49619.c: New test.
+
+	PR rtl-optimization/49472
+	* gfortran.dg/pr49472.f90: New test.
+
+	PR debug/49602
+	* gcc.dg/pr49602.c: New test.
+
+2011-07-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/34734
+	PR target/44643
+	* gcc.target/avr/avr.exp: Run over cpp files, too.
+	* gcc.target/avr/torture/avr-torture.exp: Ditto.
+	* gcc.target/avr/progmem.h: New file.
+	* gcc.target/avr/exit-abort.h: New file.
+	* gcc.target/avr/progmem-error-1.c: New file.
+	* gcc.target/avr/progmem-error-1.cpp: New file.
+	* gcc.target/avr/progmem-warning-1.c: New file.
+	* gcc.target/avr/torture/progmem-1.c: New file.
+	* gcc.target/avr/torture/progmem-1.cpp: New file.
+
+2011-07-04  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49615
+	* g++.dg/torture/pr49615.C: New testcase.
+
+2011-07-03  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49610
+	* gcc.dg/vect/pr49610.c: New test.
+
+2011-07-02  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* gnat.dg/specs/debug1.ads: New test.
+
+2011-07-02  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49562
+	* gfortran.dg/typebound_proc_23.f90: New.
+
+2011-07-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/49605
+	* g++.dg/warn/delete-non-virtual-dtor.C: Adjust.
+
 2011-07-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48261
+	* g++.dg/template/template-id-3.C: New.
+
+	PR c++/48593
+	* g++.dg/template/qualified-id4.C: New.
+
+	PR c++/48883
+	* g++.dg/template/explicit-args4.C: New.
 
 	PR c++/49085
 	* g++.dg/template/offsetof2.C: New.
 
 2011-07-01  Kai Tietz  <ktietz@redhat.com>
 
-        * gcc.dg/tree-ssa/bitwise-sink.c: New test.
+	* gcc.dg/tree-ssa/bitwise-sink.c: New test.
 
 2011-07-01  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
@@ -491,7 +822,7 @@
 
 2011-06-18  Janne Blomqvist  <jb@gcc.gnu.org>
 
-	PR libfortran/48296
+	PR libfortran/49296
 	* gfortran.dg/read_list_eof_1.f90: New test.
 
 2011-06-18  Jakub Jelinek  <jakub@redhat.com>

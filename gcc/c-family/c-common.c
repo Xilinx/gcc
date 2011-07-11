@@ -4058,14 +4058,11 @@ c_apply_type_quals_to_decl (int type_quals, tree decl)
   if (type == error_mark_node)
     return;
 
-  if (((type_quals & TYPE_QUAL_CONST)
-       || (type && TREE_CODE (type) == REFERENCE_TYPE))
-      /* An object declared 'const' is only readonly after it is
-	 initialized.  We don't have any way of expressing this currently,
-	 so we need to be conservative and unset TREE_READONLY for types
-	 with constructors.  Otherwise aliasing code will ignore stores in
-	 an inline constructor.  */
-      && !(type && TYPE_NEEDS_CONSTRUCTING (type)))
+  if ((type_quals & TYPE_QUAL_CONST)
+      || (type && TREE_CODE (type) == REFERENCE_TYPE))
+    /* We used to check TYPE_NEEDS_CONSTRUCTING here, but now a constexpr
+       constructor can produce constant init, so rely on cp_finish_decl to
+       clear TREE_READONLY if the variable has non-constant init.  */
     TREE_READONLY (decl) = 1;
   if (type_quals & TYPE_QUAL_VOLATILE)
     {
@@ -4576,6 +4573,8 @@ c_common_nodes_and_builtins (void)
   tree va_list_ref_type_node;
   tree va_list_arg_type_node;
 
+  build_common_tree_nodes (flag_signed_char, flag_short_double);
+
   /* Define `int' and `char' first so that dbx will output them first.  */
   record_builtin_type (RID_INT, NULL, integer_type_node);
   record_builtin_type (RID_CHAR, "char", char_type_node);
@@ -4674,8 +4673,6 @@ c_common_nodes_and_builtins (void)
 
   pid_type_node =
     TREE_TYPE (identifier_global_value (get_identifier (PID_TYPE)));
-
-  build_common_tree_nodes_2 (flag_short_double);
 
   record_builtin_type (RID_FLOAT, NULL, float_type_node);
   record_builtin_type (RID_DOUBLE, NULL, double_type_node);

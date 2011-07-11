@@ -4338,6 +4338,7 @@ cp_build_binary_op (location_t location,
 		{
 		case MULT_EXPR:
 		case TRUNC_DIV_EXPR:
+		  op1 = save_expr (op1);
 		  imag = build2 (resultcode, real_type, imag, op1);
 		  /* Fall through.  */
 		case PLUS_EXPR:
@@ -4356,6 +4357,7 @@ cp_build_binary_op (location_t location,
 	      switch (code)
 		{
 		case MULT_EXPR:
+		  op0 = save_expr (op0);
 		  imag = build2 (resultcode, real_type, op0, imag);
 		  /* Fall through.  */
 		case PLUS_EXPR:
@@ -8125,15 +8127,13 @@ cp_apply_type_quals_to_decl (int type_quals, tree decl)
 		&& type_quals != TYPE_UNQUALIFIED));
 
   /* Avoid setting TREE_READONLY incorrectly.  */
-  if (/* If the object has a constructor, the constructor may modify
-	 the object.  */
-      TYPE_NEEDS_CONSTRUCTING (type)
-      /* If the type isn't complete, we don't know yet if it will need
-	 constructing.  */
-      || !COMPLETE_TYPE_P (type)
-      /* If the type has a mutable component, that component might be
-	 modified.  */
-      || TYPE_HAS_MUTABLE_P (type))
+  /* We used to check TYPE_NEEDS_CONSTRUCTING here, but now a constexpr
+     constructor can produce constant init, so rely on cp_finish_decl to
+     clear TREE_READONLY if the variable has non-constant init.  */
+
+  /* If the type has a mutable component, that component might be
+     modified.  */
+  if (TYPE_HAS_MUTABLE_P (type))
     type_quals &= ~TYPE_QUAL_CONST;
 
   c_apply_type_quals_to_decl (type_quals, decl);

@@ -1,4 +1,107 @@
+2011-07-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45603
+	* decl.c (expand_static_init): Don't get confused by user
+	declaration of __cxa_guard_acquire.
+
+	* typeck.c (cp_apply_type_quals_to_decl): Don't check
+	COMPLETE_TYPE_P either.
+
+	PR c++/49673
+	* typeck.c (cp_apply_type_quals_to_decl): Don't check
+	TYPE_NEEDS_CONSTRUCTING.
+
+2011-07-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49663
+	* pt.c (push_deduction_access_scope): Preserve
+	processing_template_decl across push_to_top_level.
+	And revert:
+	* class.c (pushclass): Accept NULL argument.
+	(popclass): Deal with popping null class.
+	* pt.c (push_access_scope, pop_access_scope): Use them rather than
+	push_to_top_level/pop_from_top_level.
+	* name-lookup.c (lookup_name_real_1): Check current_class_type.
+
+2011-07-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/49644
+	* typeck.c (cp_build_binary_op): For MULT_EXPR and TRUNC_DIV_EXPR with
+	one non-complex and one complex argument, call save_expr on both
+	operands.
+
+2011-07-06  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49353
+	* semantics.c (expand_or_defer_fn_1): Clear DECL_EXTERNAL
+	on kept inlines.
+
+	PR c++/49568
+	* method.c (make_thunk, use_thunk): Copy DECL_COMDAT.
+
+2011-07-05  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48157
+	* pt.c (tsubst_qualified_id): Preserve TEMPLATE_ID_EXPR in
+	partial instantiation.
+
+	PR c++/49598
+	* semantics.c (finish_id_expression): convert_from_reference.
+
+2011-07-05  Richard Guenther  <rguenther@suse.de>
+
+	* decl.c (cxx_init_decl_processing): Defer building common
+	tree nodes to c_common_nodes_and_builtins.
+
+2011-07-04  Jason Merrill  <jason@redhat.com>
+
+	DR 1207
+	PR c++/49589
+	* mangle.c (write_expression): Handle 'this'.
+	* parser.c (cp_parser_postfix_dot_deref_expression): Allow
+	incomplete *this.
+	* semantics.c (potential_constant_expression_1): Check that
+	DECL_CONTEXT is set on 'this'.
+
+	* error.c (dump_template_bindings): Don't print typenames
+	for a partial instantiation.
+	(dump_function_decl): If we aren't printing function arguments,
+	print template arguments as <args> rather than [with ...].
+	(dump_expr): Don't print return type or template header.
+	[BASELINK]: Use BASELINK_FUNCTIONS rather than get_first_fn.
+	* pt.c (dependent_template_arg_p): Handle null arg.
+
+	* error.c (type_to_string): Avoid redundant akas.
+
+2011-07-01  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR c++/49605
+	* init.c (build_delete): Only warn for sfk_deleting_destructor.
+
+2011-07-01  Jakub Jelinek  <jakub@redhat.com>
+
+	* Make-lang.in (cp/decl.o): Depend on pointer-set.h.
+	(cp/class.o): Likewise.
+	(cp/error.o): Likewise.
+	(cp/name-lookup.o): Likewise.
+	(cp/decl2.o): Likewise.  Don't depend on $(POINTER_SET_H).
+
 2011-07-01  Jason Merrill  <jason@redhat.com>
+
+	PR c++/48261
+	* pt.c (lookup_template_function): Handle non-function.
+
+	PR c++/48593
+	* pt.c (tsubst_qualified_id): Check PTRMEM_OK_P.
+	* tree.c (build_qualified_name): Set PTRMEM_OK_P.
+	* semantics.c (finish_parenthesized_expr): Clear PTRMEM_OK_P on
+	SCOPE_REF, too.
+	* cp-tree.h (PTRMEM_OK_P): Apply to SCOPE_REF, too.
+	(QUALIFIED_NAME_IS_TEMPLATE): Switch to lang flag 1.
+
+	PR c++/48883
+	PR c++/49609
+	* pt.c (resolve_nondeduced_context): Call mark_used.
 
 	PR c++/49085
 	* semantics.c (finish_offsetof): Complain about incomplete type.

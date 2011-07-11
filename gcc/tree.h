@@ -699,6 +699,9 @@ struct GTY(()) tree_common {
            all expressions
            all decls
 
+       TYPE_ARTIFICIAL in
+           all types
+
    default_def_flag:
 
        TYPE_VECTOR_OPAQUE in
@@ -1242,6 +1245,9 @@ extern void omp_clause_range_check_failed (const_tree, const char *, int,
    least for used-before-set warnings, and it set after one warning is
    emitted.  */
 #define TREE_NO_WARNING(NODE) ((NODE)->base.nowarning_flag)
+
+/* Used to indicate that this TYPE represents a compiler-generated entity.  */
+#define TYPE_ARTIFICIAL(NODE) (TYPE_CHECK (NODE)->base.nowarning_flag)
 
 /* In an IDENTIFIER_NODE, this means that assemble_name was called with
    this string as an argument.  */
@@ -5390,8 +5396,7 @@ extern int real_onep (const_tree);
 extern int real_twop (const_tree);
 extern int real_minus_onep (const_tree);
 extern void init_ttree (void);
-extern void build_common_tree_nodes (bool);
-extern void build_common_tree_nodes_2 (int);
+extern void build_common_tree_nodes (bool, bool);
 extern void build_common_builtin_nodes (void);
 extern tree build_nonstandard_integer_type (unsigned HOST_WIDE_INT, int);
 extern tree build_range_type (tree, tree, tree);
@@ -5596,33 +5601,6 @@ extern tree tree_overlaps_hard_reg_set (tree, HARD_REG_SET *);
 #endif
 
 
-/* In dwarf2out.c */
-/* Interface of the DWARF2 unwind info support.  */
-
-/* Generate a new label for the CFI info to refer to.  */
-
-extern char *dwarf2out_cfi_label (bool);
-
-/* Entry point to update the canonical frame address (CFA).  */
-
-extern void dwarf2out_def_cfa (const char *, unsigned, HOST_WIDE_INT);
-
-/* Entry point for saving a register to the stack.  */
-
-extern void dwarf2out_reg_save (const char *, unsigned, HOST_WIDE_INT);
-
-/* Entry point for saving the return address in the stack.  */
-
-extern void dwarf2out_return_save (const char *, HOST_WIDE_INT);
-
-/* Entry point for saving the return address in a register.  */
-
-extern void dwarf2out_return_reg (const char *, unsigned);
-
-/* Entry point for saving the first register into the second.  */
-
-extern void dwarf2out_reg_save_reg (const char *, rtx, rtx);
-
 /* In tree-inline.c  */
 
 /* The type of a set of already-visited pointers.  Functions for creating

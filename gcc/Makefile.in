@@ -1263,6 +1263,7 @@ OBJS = \
 	double-int.o \
 	dse.o \
 	dwarf2asm.o \
+	dwarf2cfi.o \
 	dwarf2out.o \
 	ebitmap.o \
 	emit-rtl.o \
@@ -1300,6 +1301,7 @@ OBJS = \
 	graphite-sese-to-poly.o \
 	gtype-desc.o \
 	haifa-sched.o \
+	hw-doloop.o \
 	hwint.o \
 	ifcvt.o \
 	implicit-zee.o \
@@ -1538,14 +1540,6 @@ MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
 
 # Defined in libgcc2.c, included only in the static library.
 LIB2FUNCS_ST = _eprintf __gcc_bcmp
-
-# Defined in libgcov.c, included only in gcov library
-LIBGCOV = _gcov _gcov_merge_add _gcov_merge_single _gcov_merge_delta \
-    _gcov_fork _gcov_execl _gcov_execlp _gcov_execle \
-    _gcov_execv _gcov_execvp _gcov_execve \
-    _gcov_interval_profiler _gcov_pow2_profiler _gcov_one_value_profiler \
-    _gcov_indirect_call_profiler _gcov_average_profiler _gcov_ior_profiler \
-    _gcov_merge_ior
 
 FPBIT_FUNCS = _pack_sf _unpack_sf _addsub_sf _mul_sf _div_sf \
     _fpcmp_parts_sf _compare_sf _eq_sf _ne_sf _gt_sf _ge_sf \
@@ -1932,7 +1926,6 @@ libgcc.mvars: config.status Makefile $(LIB2ADD) $(LIB2ADD_ST) specs \
 	echo LIB1ASMSRC = '$(LIB1ASMSRC)' >> tmp-libgcc.mvars
 	echo LIB2FUNCS_ST = '$(LIB2FUNCS_ST)' >> tmp-libgcc.mvars
 	echo LIB2FUNCS_EXCLUDE = '$(LIB2FUNCS_EXCLUDE)' >> tmp-libgcc.mvars
-	echo LIBGCOV = '$(LIBGCOV)' >> tmp-libgcc.mvars
 	echo LIB2ADD = '$(call srcdirify,$(LIB2ADD))' >> tmp-libgcc.mvars
 	echo LIB2ADD_ST = '$(call srcdirify,$(LIB2ADD_ST))' >> tmp-libgcc.mvars
 	echo LIB2ADDEH = '$(call srcdirify,$(LIB2ADDEH) $(srcdir)/emutls.c)' >> tmp-libgcc.mvars
@@ -2922,7 +2915,8 @@ rtl.o : rtl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
 
 print-rtl.o : print-rtl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
     $(RTL_H) $(TREE_H) hard-reg-set.h $(BASIC_BLOCK_H) $(FLAGS_H) \
-    $(BCONFIG_H) $(DIAGNOSTIC_H) cselib.h $(TREE_PASS_H) tree-pretty-print.h
+    $(BCONFIG_H) $(DIAGNOSTIC_H) cselib.h $(TREE_PASS_H) tree-pretty-print.h \
+    dwarf2out.h
 rtlanal.o : rtlanal.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) toplev.h $(DIAGNOSTIC_CORE_H) \
    $(RTL_H) hard-reg-set.h $(TM_P_H) insn-config.h $(RECOG_H) \
    $(FLAGS_H) $(REGS_H) output.h $(TARGET_H) $(FUNCTION_H) $(TREE_H) \
@@ -2947,7 +2941,7 @@ stmt.o : stmt.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(LIBFUNCS_H) $(EXCEPT_H) $(RECOG_H) $(DIAGNOSTIC_CORE_H) \
    output.h $(GGC_H) $(TM_P_H) langhooks.h $(PREDICT_H) $(OPTABS_H) \
    $(TARGET_H) $(GIMPLE_H) $(MACHMODE_H) $(REGS_H) alloc-pool.h \
-   $(PRETTY_PRINT_H) $(BITMAP_H)
+   $(PRETTY_PRINT_H) $(BITMAP_H) $(PARAMS_H)
 except.o : except.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(TREE_H) $(FLAGS_H) $(EXCEPT_H) $(FUNCTION_H) $(EXPR_H) $(LIBFUNCS_H) \
    langhooks.h insn-config.h hard-reg-set.h $(BASIC_BLOCK_H) output.h \
@@ -3008,6 +3002,9 @@ dwarf2out.o : dwarf2out.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    gt-dwarf2out.h $(TARGET_H) $(CGRAPH_H) $(MD5_H) $(INPUT_H) $(FUNCTION_H) \
    $(GIMPLE_H) $(TREE_PASS_H) $(TREE_FLOW_H) $(CFGLAYOUT_H) \
    tree-pretty-print.h $(COMMON_TARGET_H)
+dwarf2cfi.o : dwarf2cfi.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+   version.h $(RTL_H) $(FUNCTION_H) $(DWARF2_H) dwarf2asm.h dwarf2out.h \
+   $(GGC_H) $(TM_P_H) $(TARGET_H) $(TREE_PASS_H)
 dwarf2asm.o : dwarf2asm.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(FLAGS_H) $(RTL_H) $(TREE_H) output.h dwarf2asm.h $(TM_P_H) $(GGC_H) \
    gt-dwarf2asm.h $(DWARF2_H) $(SPLAY_TREE_H) $(TARGET_H)
@@ -3559,13 +3556,16 @@ target-globals.o : target-globals.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TM_H) insn-config.h $(MACHMODE_H) $(GGC_H) toplev.h target-globals.h \
    $(FLAGS_H) $(REGS_H) $(RTL_H) reload.h expmed.h $(EXPR_H) $(OPTABS_H) \
    $(LIBFUNCS_H) $(CFGLOOP_H) $(IRA_INT_H) builtins.h gcse.h bb-reorder.h
-
+hw-doloop.o : hw-doloop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+   $(RTL_H) $(FLAGS_H) $(EXPR_H) hard-reg-set.h $(BASIC_BLOCK_H) $(TM_P_H) \
+   $(DF_H) $(CFGLAYOUT_H) $(CFGLOOP_H) output.h $(RECOG_H) $(TARGET_H) \
+   $(REGS_H) hw-doloop.h
 $(out_object_file): $(out_file) $(CONFIG_H) coretypes.h $(TM_H) $(TREE_H) \
    $(RTL_H) $(REGS_H) hard-reg-set.h insn-config.h conditions.h \
    output.h $(INSN_ATTR_H) $(SYSTEM_H) toplev.h $(DIAGNOSTIC_CORE_H) \
    $(TARGET_H) $(LIBFUNCS_H) $(TARGET_DEF_H) $(FUNCTION_H) $(SCHED_INT_H) \
    $(TM_P_H) $(EXPR_H) langhooks.h $(GGC_H) $(OPTABS_H) $(REAL_H) \
-   tm-constrs.h $(GIMPLE_H) $(DF_H) cselib.h $(COMMON_TARGET_H)
+   tm-constrs.h $(GIMPLE_H) $(DF_H) cselib.h $(COMMON_TARGET_H) hw-doloop.h
 	$(COMPILER) -c $(ALL_COMPILERFLAGS) $(ALL_CPPFLAGS) \
 		$(out_file) $(OUTPUT_OPTION)
 
@@ -3831,7 +3831,11 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/reload.h $(srcdir)/caller-save.c \
   $(srcdir)/alias.c $(srcdir)/bitmap.c $(srcdir)/cselib.c $(srcdir)/cgraph.c \
   $(srcdir)/ipa-prop.c $(srcdir)/ipa-cp.c $(srcdir)/matrix-reorg.c \
-  $(srcdir)/dbxout.c $(srcdir)/dwarf2out.c $(srcdir)/dwarf2asm.c \
+  $(srcdir)/dbxout.c \
+  $(srcdir)/dwarf2out.h \
+  $(srcdir)/dwarf2asm.c \
+  $(srcdir)/dwarf2cfi.c \
+  $(srcdir)/dwarf2out.c \
   $(srcdir)/tree-vect-generic.c \
   $(srcdir)/dojump.c \
   $(srcdir)/emit-rtl.c $(srcdir)/except.h $(srcdir)/explow.c $(srcdir)/expr.c \

@@ -307,7 +307,7 @@ gnat_init (void)
   /* Do little here, most of the standard declarations are set up after the
      front-end has been run.  Use the same `char' as C, this doesn't really
      matter since we'll use the explicit `unsigned char' for Character.  */
-  build_common_tree_nodes (flag_signed_char);
+  build_common_tree_nodes (flag_signed_char, false);
 
   /* In Ada, we use an unsigned 8-bit type for the default boolean type.  */
   boolean_type_node = make_unsigned_type (8);
@@ -315,11 +315,11 @@ gnat_init (void)
   SET_TYPE_RM_MAX_VALUE (boolean_type_node,
 			 build_int_cst (boolean_type_node, 1));
   SET_TYPE_RM_SIZE (boolean_type_node, bitsize_int (1));
+  boolean_true_node = TYPE_MAX_VALUE (boolean_type_node);
+  boolean_false_node = TYPE_MIN_VALUE (boolean_type_node);
 
-  build_common_tree_nodes_2 (0);
   sbitsize_one_node = sbitsize_int (1);
   sbitsize_unit_node = sbitsize_int (BITS_PER_UNIT);
-  boolean_true_node = TYPE_MAX_VALUE (boolean_type_node);
 
   ptr_void_type_node = build_pointer_type (void_type_node);
 
@@ -339,11 +339,6 @@ gnat_init (void)
 void
 gnat_init_gcc_eh (void)
 {
-#ifdef DWARF2_UNWIND_INFO
-  /* lang_dependent_init already called dwarf2out_frame_init if true.  */
-  int dwarf2out_frame_initialized = dwarf2out_do_frame ();
-#endif
-
   /* We shouldn't do anything if the No_Exceptions_Handler pragma is set,
      though. This could for instance lead to the emission of tables with
      references to symbols (such as the Ada eh personality routine) within
@@ -370,11 +365,6 @@ gnat_init_gcc_eh (void)
   flag_non_call_exceptions = 1;
 
   init_eh ();
-
-#ifdef DWARF2_UNWIND_INFO
-  if (!dwarf2out_frame_initialized && dwarf2out_do_frame ())
-    dwarf2out_frame_init ();
-#endif
 }
 
 /* Print language-specific items in declaration NODE.  */

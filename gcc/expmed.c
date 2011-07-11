@@ -635,9 +635,8 @@ store_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	 X) 0)) is (reg:N X).  */
       if (GET_CODE (xop0) == SUBREG
 	  && REG_P (SUBREG_REG (xop0))
-	  && (!TRULY_NOOP_TRUNCATION
-	      (GET_MODE_BITSIZE (GET_MODE (SUBREG_REG (xop0))),
-	       GET_MODE_BITSIZE (op_mode))))
+	  && (!TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (SUBREG_REG (xop0)),
+					      op_mode)))
 	{
 	  rtx tem = gen_reg_rtx (op_mode);
 	  emit_move_insn (tem, xop0);
@@ -1304,8 +1303,7 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	       ? bitpos + bitsize == BITS_PER_WORD
 	       : bitpos == 0)))
       && ((!MEM_P (op0)
-	   && TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (mode1),
-				     GET_MODE_BITSIZE (GET_MODE (op0)))
+	   && TRULY_NOOP_TRUNCATION_MODES_P (mode1, GET_MODE (op0))
 	   && GET_MODE_SIZE (mode1) != 0
 	   && byte_offset % GET_MODE_SIZE (mode1) == 0)
 	  || (MEM_P (op0)
@@ -1475,12 +1473,11 @@ extract_bit_field_1 (rtx str_rtx, unsigned HOST_WIDE_INT bitsize,
 	     mode.  Instead, create a temporary and use convert_move to set
 	     the target.  */
 	  if (REG_P (xtarget)
-	      && TRULY_NOOP_TRUNCATION (GET_MODE_BITSIZE (GET_MODE (xtarget)),
-					GET_MODE_BITSIZE (ext_mode)))
+	      && TRULY_NOOP_TRUNCATION_MODES_P (GET_MODE (xtarget), ext_mode))
 	    {
 	      xtarget = gen_lowpart (ext_mode, xtarget);
-	      if (GET_MODE_SIZE (ext_mode)
-		  > GET_MODE_SIZE (GET_MODE (xspec_target)))
+	      if (GET_MODE_PRECISION (ext_mode)
+		  > GET_MODE_PRECISION (GET_MODE (xspec_target)))
 		xspec_target_subreg = xtarget;
 	    }
 	  else
@@ -2093,7 +2090,7 @@ expand_shift_1 (enum tree_code code, enum machine_mode mode, rtx shifted,
   if (code == LSHIFT_EXPR
       && CONST_INT_P (op1)
       && INTVAL (op1) > 0
-      && INTVAL (op1) < GET_MODE_BITSIZE (mode)
+      && INTVAL (op1) < GET_MODE_PRECISION (mode)
       && INTVAL (op1) < MAX_BITS_PER_WORD
       && shift_cost[speed][mode][INTVAL (op1)] > INTVAL (op1) * add_cost[speed][mode]
       && shift_cost[speed][mode][INTVAL (op1)] != MAX_COST)
@@ -2149,7 +2146,7 @@ expand_shift_1 (enum tree_code code, enum machine_mode mode, rtx shifted,
 	      else
 		other_amount
 		  = simplify_gen_binary (MINUS, GET_MODE (op1),
-					 GEN_INT (GET_MODE_BITSIZE (mode)),
+					 GEN_INT (GET_MODE_PRECISION (mode)),
 					 op1);
 
 	      shifted = force_reg (mode, shifted);
@@ -3115,7 +3112,7 @@ expand_widening_mult (enum machine_mode mode, rtx op0, rtx op1, rtx target,
 				this_optab == umul_widen_optab))
       && CONST_INT_P (cop1)
       && (INTVAL (cop1) >= 0
-	  || GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT))
+	  || HWI_COMPUTABLE_MODE_P (mode)))
     {
       HOST_WIDE_INT coeff = INTVAL (cop1);
       int max_cost;
@@ -3462,7 +3459,7 @@ expand_mult_highpart (enum machine_mode mode, rtx op0, rtx op1,
 
   gcc_assert (!SCALAR_FLOAT_MODE_P (mode));
   /* We can't support modes wider than HOST_BITS_PER_INT.  */
-  gcc_assert (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT);
+  gcc_assert (HWI_COMPUTABLE_MODE_P (mode));
 
   cnst1 = INTVAL (op1) & GET_MODE_MASK (mode);
 
@@ -5039,10 +5036,8 @@ emit_cstore (rtx target, enum insn_code icode, enum rtx_code code,
   if (GET_MODE_SIZE (target_mode) > GET_MODE_SIZE (result_mode))
     {
       convert_move (target, subtarget,
-		    (GET_MODE_BITSIZE (result_mode) <= HOST_BITS_PER_WIDE_INT)
-		    && 0 == (STORE_FLAG_VALUE
-			     & ((HOST_WIDE_INT) 1
-				<< (GET_MODE_BITSIZE (result_mode) -1))));
+		    val_signbit_known_clear_p (result_mode,
+					       STORE_FLAG_VALUE));
       op0 = target;
       result_mode = target_mode;
     }
@@ -5066,9 +5061,7 @@ emit_cstore (rtx target, enum insn_code icode, enum rtx_code code,
   /* We don't want to use STORE_FLAG_VALUE < 0 below since this makes
      it hard to use a value of just the sign bit due to ANSI integer
      constant typing rules.  */
-  else if (GET_MODE_BITSIZE (result_mode) <= HOST_BITS_PER_WIDE_INT
-	   && (STORE_FLAG_VALUE
-	       & ((HOST_WIDE_INT) 1 << (GET_MODE_BITSIZE (result_mode) - 1))))
+  else if (val_signbit_known_set_p (result_mode, STORE_FLAG_VALUE))
     op0 = expand_shift (RSHIFT_EXPR, result_mode, op0,
 			GET_MODE_BITSIZE (result_mode) - 1, subtarget,
 			normalizep == 1);
@@ -5206,9 +5199,9 @@ emit_store_flag_1 (rtx target, enum rtx_code code, rtx op0, rtx op1,
 	    target = gen_reg_rtx (target_mode);
 
 	  convert_move (target, tem,
-			0 == ((normalizep ? normalizep : STORE_FLAG_VALUE)
-			      & ((HOST_WIDE_INT) 1
-				 << (GET_MODE_BITSIZE (word_mode) -1))));
+			!val_signbit_known_set_p (word_mode,
+						  (normalizep ? normalizep
+						   : STORE_FLAG_VALUE)));
 	  return target;
 	}
     }
@@ -5218,10 +5211,7 @@ emit_store_flag_1 (rtx target, enum rtx_code code, rtx op0, rtx op1,
   if (op1 == const0_rtx && (code == LT || code == GE)
       && GET_MODE_CLASS (mode) == MODE_INT
       && (normalizep || STORE_FLAG_VALUE == 1
-	  || (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-	      && ((STORE_FLAG_VALUE & GET_MODE_MASK (mode))
-		  == ((unsigned HOST_WIDE_INT) 1
-		      << (GET_MODE_BITSIZE (mode) - 1))))))
+	  || val_signbit_p (mode, STORE_FLAG_VALUE)))
     {
       subtarget = target;
 
@@ -5330,9 +5320,7 @@ emit_store_flag (rtx target, enum rtx_code code, rtx op0, rtx op1,
       if (STORE_FLAG_VALUE == 1 || STORE_FLAG_VALUE == -1)
 	normalizep = STORE_FLAG_VALUE;
 
-      else if (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT
-	       && ((STORE_FLAG_VALUE & GET_MODE_MASK (mode))
-		   == (unsigned HOST_WIDE_INT) 1 << (GET_MODE_BITSIZE (mode) - 1)))
+      else if (val_signbit_p (mode, STORE_FLAG_VALUE))
 	;
       else
 	return 0;

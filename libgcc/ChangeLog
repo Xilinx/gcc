@@ -1,3 +1,42 @@
+2011-07-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Makfile.in (LIBGCOV): New variable.
+	($(libgcov-objects)): Use $(srcdir) to refer to libgcov.c.
+	* libgcov.c: New file.
+
+2011-07-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* fixed-bit.c, fixed-bit.h: New files.
+	* fixed-obj.mk ($o$(objext), $(o)_s$(objext)): Use $(srcdir) to
+	refer to fixed-bit.c.
+
+2011-07-07  Joseph Myers  <joseph@codesourcery.com>
+
+	* config.host (*local*): Remove.
+
+2011-07-07  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/39150
+	* config.host (*-*-solaris2*): Handle x86_64-*-solaris2.1[0-9]*
+	like i?86-*-solaris2.1[0-9]*.
+	(i[34567]86-*-solaris2*): Also handle x86_64-*-solaris2.1[0-9]*.
+	* configure.ac (i?86-*-solaris2*): Likewise.
+	* configure: Regenerate.
+
+2011-07-06  Thomas Schwinge  <thomas@schwinge.name>
+
+	* config.host (i[34567]86-*-kfreebsd*-gnu, i[34567]86-*-knetbsd*-gnu)
+	(i[34567]86-*-gnu*, i[34567]86-*-kopensolaris*-gnu): Remove
+	md_unwind_header by splitting out of...
+	(i[34567]86-*-linux*): ... this.
+	* config.host (x86_64-*-kfreebsd*-gnu, x86_64-*-knetbsd*-gnu):
+	Remove md_unwind_header by splitting out of...
+	(x86_64-*-linux*): ... this.
+
+2011-07-04  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/t-avr (intfuncs16): Add _clrsbXX2.
+
 2011-06-28  Nick Clifton  <nickc@redhat.com>
 
 	* config.host: Recognize all V850 variants.

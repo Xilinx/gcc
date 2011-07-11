@@ -214,7 +214,7 @@ push_access_scope (tree t)
   else if (DECL_CLASS_SCOPE_P (t))
     push_nested_class (DECL_CONTEXT (t));
   else
-    pushclass (NULL_TREE);
+    push_to_top_level ();
 
   if (TREE_CODE (t) == FUNCTION_DECL)
     {
@@ -239,7 +239,7 @@ pop_access_scope (tree t)
   if (DECL_FRIEND_CONTEXT (t) || DECL_CLASS_SCOPE_P (t))
     pop_nested_class ();
   else
-    popclass ();
+    pop_from_top_level ();
 }
 
 /* Do any processing required when DECL (a member template
@@ -6622,8 +6622,12 @@ lookup_template_function (tree fns, tree arglist)
     return error_mark_node;
 
   gcc_assert (!arglist || TREE_CODE (arglist) == TREE_VEC);
-  gcc_assert (fns && (is_overloaded_fn (fns)
-		      || TREE_CODE (fns) == IDENTIFIER_NODE));
+
+  if (!is_overloaded_fn (fns) && TREE_CODE (fns) != IDENTIFIER_NODE)
+    {
+      error ("%q#D is not a function template", fns);
+      return error_mark_node;
+    }
 
   if (BASELINK_P (fns))
     {
@@ -11283,8 +11287,12 @@ tsubst_qualified_id (tree qualified_id, tree args,
     expr = name;
 
   if (dependent_scope_p (scope))
-    return build_qualified_name (NULL_TREE, scope, expr,
-				 QUALIFIED_NAME_IS_TEMPLATE (qualified_id));
+    {
+      if (is_template)
+	expr = build_min_nt (TEMPLATE_ID_EXPR, expr, template_args);
+      return build_qualified_name (NULL_TREE, scope, expr,
+				   QUALIFIED_NAME_IS_TEMPLATE (qualified_id));
+    }
 
   if (!BASELINK_P (name) && !DECL_P (expr))
     {
@@ -11344,7 +11352,7 @@ tsubst_qualified_id (tree qualified_id, tree args,
       expr = (adjust_result_of_qualified_name_lookup
 	      (expr, scope, current_class_type));
       expr = (finish_qualified_id_expr
-	      (scope, expr, done, address_p,
+	      (scope, expr, done, address_p && PTRMEM_OK_P (qualified_id),
 	       QUALIFIED_NAME_IS_TEMPLATE (qualified_id),
 	       /*template_arg_p=*/false));
     }
@@ -13835,7 +13843,13 @@ static void
 push_deduction_access_scope (tree tmpl)
 {
   if (cxx_dialect >= cxx0x)
-    push_access_scope (DECL_TEMPLATE_RESULT (tmpl));
+    {
+      int ptd = processing_template_decl;
+      push_access_scope (DECL_TEMPLATE_RESULT (tmpl));
+      /* Preserve processing_template_decl across push_to_top_level.  */
+      if (ptd && !processing_template_decl)
+	++processing_template_decl;
+    }
   else
     push_deferring_access_checks (dk_no_check);
 }
@@ -14679,6 +14693,7 @@ resolve_nondeduced_context (tree orig_expr)
 	}
       if (good == 1)
 	{
+	  mark_used (goodfn);
 	  expr = goodfn;
 	  if (baselink)
 	    expr = build_baselink (BASELINK_BINFO (baselink),
@@ -18843,7 +18858,7 @@ dependent_template_arg_p (tree arg)
      is dependent. This is consistent with what
      any_dependent_template_arguments_p [that calls this function]
      does.  */
-  if (arg == error_mark_node)
+  if (!arg || arg == error_mark_node)
     return true;
 
   if (TREE_CODE (arg) == ARGUMENT_PACK_SELECT)
