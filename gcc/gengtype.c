@@ -1560,7 +1560,8 @@ open_base_files (void)
       "tree-flow.h", "reload.h", "cpp-id-data.h", "tree-chrec.h",
       "cfglayout.h", "except.h", "output.h", "gimple.h", "cfgloop.h",
       "target.h", "ipa-prop.h", "lto-streamer.h", "target-globals.h",
-      "ipa-inline.h", 
+      "ipa-inline.h", "dwarf2out.h",
+
       /* Addition of melt-runtime.h should be the only change here
 	 w.r.t. ordinary (=trunk or gcc-4.7 ...) gengtype.c!  */
       "melt-runtime.h",

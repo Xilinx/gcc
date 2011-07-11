@@ -1049,8 +1049,10 @@ sysv, aix.
 @item --with-multilib-list=@var{list}
 @itemx --without-multilib-list
 Specify what multilibs to build.
-Currently only implemented for sh*-*-*.
+Currently only implemented for sh*-*-* and x86-64-*-linux*.
 
+@table @code
+@item sh*-*-*
 @var{list} is a comma separated list of CPU names.  These must be of the
 form @code{sh*} or @code{m*} (in which case they match the compiler option
 for that processor).  The list should not contain any endian options -
@@ -1081,6 +1083,16 @@ only little endian SH4AL:
 --with-cpu=sh4a --with-endian=little,big \
 --with-multilib-list=sh4al,!mb/m4al
 @end smallexample
+
+@item x86-64-*-linux*
+@var{list} is a comma separated list of @code{m32}, @code{m64} and
+@code{mx32} to enable 32-bit, 64-bit and x32 run-time libraries,
+respectively.  If @var{list} is empty, then there will be no multilibs
+and only the default run-time library will be enabled.
+
+If @option{--with-multilib-list} is not given, then only 32-bit and
+64-bit run-time libraries will be enabled.
+@end table
 
 @item --with-endian=@var{endians}
 Specify what endians to use.
@@ -1391,8 +1403,8 @@ useful when you want a bi-arch compiler that defaults to 32-bit, and
 you are building a bi-arch or multi-arch binutils in a combined tree.
 On mips-linux, this will build a tri-arch compiler (ABI o32/n32/64),
 defaulted to o32.
-Currently, this option only affects sparc-linux, powerpc-linux, x86-linux
-and mips-linux.
+Currently, this option only affects sparc-linux, powerpc-linux, x86-linux,
+mips-linux and s390-linux.
 
 @item --enable-secureplt
 This option enables @option{-msecure-plt} by default for powerpc-linux.
@@ -1955,6 +1967,10 @@ Adds aot-compile-rpm to the list of installed scripts.
 
 @item --enable-browser-plugin
 Build the gcjwebplugin web browser plugin.
+
+@item --enable-static-libjava
+Build static libraries in libjava. The default is to only build shared
+libraries.
 
 @table @code
 @item ansi

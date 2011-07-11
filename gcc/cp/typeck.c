@@ -4338,6 +4338,7 @@ cp_build_binary_op (location_t location,
 		{
 		case MULT_EXPR:
 		case TRUNC_DIV_EXPR:
+		  op1 = save_expr (op1);
 		  imag = build2 (resultcode, real_type, imag, op1);
 		  /* Fall through.  */
 		case PLUS_EXPR:
@@ -4356,6 +4357,7 @@ cp_build_binary_op (location_t location,
 	      switch (code)
 		{
 		case MULT_EXPR:
+		  op0 = save_expr (op0);
 		  imag = build2 (resultcode, real_type, op0, imag);
 		  /* Fall through.  */
 		case PLUS_EXPR:
@@ -6661,6 +6663,8 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 	}
       else
 	{
+	  tree init = NULL_TREE;
+
 	  /* A binary op has been requested.  Combine the old LHS
 	     value with the RHS producing the value we should actually
 	     store into the LHS.  */
@@ -6668,7 +6672,17 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 			 && MAYBE_CLASS_TYPE_P (TREE_TYPE (lhstype)))
 			|| MAYBE_CLASS_TYPE_P (lhstype)));
 
+	  /* Preevaluate the RHS to make sure its evaluation is complete
+	     before the lvalue-to-rvalue conversion of the LHS:
+
+	     [expr.ass] With respect to an indeterminately-sequenced
+	     function call, the operation of a compound assignment is a
+	     single evaluation. [ Note: Therefore, a function call shall
+	     not intervene between the lvalue-to-rvalue conversion and the
+	     side effect associated with any single compound assignment
+	     operator. -- end note ]  */
 	  lhs = stabilize_reference (lhs);
+	  rhs = stabilize_expr (rhs, &init);
 	  newrhs = cp_build_binary_op (input_location,
 				       modifycode, lhs, rhs,
 				       complain);
@@ -6679,6 +6693,9 @@ cp_build_modify_expr (tree lhs, enum tree_code modifycode, tree rhs,
 		       TREE_TYPE (lhs), TREE_TYPE (rhs));
 	      return error_mark_node;
 	    }
+
+	  if (init)
+	    newrhs = build2 (COMPOUND_EXPR, TREE_TYPE (newrhs), init, newrhs);
 
 	  /* Now it looks like a plain assignment.  */
 	  modifycode = NOP_EXPR;
@@ -8125,15 +8142,13 @@ cp_apply_type_quals_to_decl (int type_quals, tree decl)
 		&& type_quals != TYPE_UNQUALIFIED));
 
   /* Avoid setting TREE_READONLY incorrectly.  */
-  if (/* If the object has a constructor, the constructor may modify
-	 the object.  */
-      TYPE_NEEDS_CONSTRUCTING (type)
-      /* If the type isn't complete, we don't know yet if it will need
-	 constructing.  */
-      || !COMPLETE_TYPE_P (type)
-      /* If the type has a mutable component, that component might be
-	 modified.  */
-      || TYPE_HAS_MUTABLE_P (type))
+  /* We used to check TYPE_NEEDS_CONSTRUCTING here, but now a constexpr
+     constructor can produce constant init, so rely on cp_finish_decl to
+     clear TREE_READONLY if the variable has non-constant init.  */
+
+  /* If the type has a mutable component, that component might be
+     modified.  */
+  if (TYPE_HAS_MUTABLE_P (type))
     type_quals &= ~TYPE_QUAL_CONST;
 
   c_apply_type_quals_to_decl (type_quals, decl);

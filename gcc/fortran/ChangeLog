@@ -1,7 +1,29 @@
+2011-07-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49690
+	* intrinsic.c (add_functions): Use BT_VOID for 2nd argument of SIGNAL.
+
+2011-07-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR fortran/48926
+	* expr.c (gfc_get_corank): Change return value to int.
+	* gfortran.h (gfc_get_corank): Update function prototype.
+
+2011-07-07  Mikael Morin  <mikael.morin@sfr.fr>
+
+	PR fortran/49648
+	* resolve.c (resolve_symbol): Force resolution of function result's
+	array specification.
+
+2011-07-07  Tobias Burnus  <burnus@net-b.de>
+
+	* trans.c (gfc_allocate_with_status): Call _gfortran_caf_register
+	with NULL arguments for (new) stat=/errmsg= arguments.
+
 2011-07-06  Daniel Carrera <dcarrera@gmail.com>
 
 	* trans-array.c (gfc_array_allocate): Rename allocatable_array to
-	allocatable. Rename function gfc_allocate_array_with_status to 
+	allocatable. Rename function gfc_allocate_array_with_status to
 	gfc_allocate_allocatable_with_status. Update function call for
 	gfc_allocate_with_status.
 	* trans-opemp.c (gfc_omp_clause_default_ctor): Rename function

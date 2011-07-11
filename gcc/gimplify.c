@@ -2010,8 +2010,14 @@ gimplify_compound_lval (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 		  ret = MIN (ret, tret);
 		}
 	    }
+	  else
+	    {
+	      tret = gimplify_expr (&TREE_OPERAND (t, 2), pre_p, post_p,
+				    is_gimple_reg, fb_rvalue);
+	      ret = MIN (ret, tret);
+	    }
 
-	  if (!TREE_OPERAND (t, 3))
+	  if (TREE_OPERAND (t, 3) == NULL_TREE)
 	    {
 	      tree elmt_type = TREE_TYPE (TREE_TYPE (TREE_OPERAND (t, 0)));
 	      tree elmt_size = unshare_expr (array_ref_element_size (t));
@@ -2031,11 +2037,17 @@ gimplify_compound_lval (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 		  ret = MIN (ret, tret);
 		}
 	    }
+	  else
+	    {
+	      tret = gimplify_expr (&TREE_OPERAND (t, 3), pre_p, post_p,
+				    is_gimple_reg, fb_rvalue);
+	      ret = MIN (ret, tret);
+	    }
 	}
       else if (TREE_CODE (t) == COMPONENT_REF)
 	{
 	  /* Set the field offset into T and gimplify it.  */
-	  if (!TREE_OPERAND (t, 2))
+	  if (TREE_OPERAND (t, 2) == NULL_TREE)
 	    {
 	      tree offset = unshare_expr (component_ref_field_offset (t));
 	      tree field = TREE_OPERAND (t, 1);
@@ -2053,6 +2065,12 @@ gimplify_compound_lval (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 					fb_rvalue);
 		  ret = MIN (ret, tret);
 		}
+	    }
+	  else
+	    {
+	      tret = gimplify_expr (&TREE_OPERAND (t, 2), pre_p, post_p,
+				    is_gimple_reg, fb_rvalue);
+	      ret = MIN (ret, tret);
 	    }
 	}
     }
@@ -6433,6 +6451,13 @@ goa_stabilize_expr (tree *expr_p, gimple_seq *pre_p, tree lhs_addr,
 	  saw_lhs |= goa_stabilize_expr (&TREE_OPERAND (expr, 0), pre_p,
 					 lhs_addr, lhs_var);
 	  break;
+	case COMPOUND_EXPR:
+	  /* Break out any preevaluations from cp_build_modify_expr.  */
+	  for (; TREE_CODE (expr) == COMPOUND_EXPR;
+	       expr = TREE_OPERAND (expr, 1))
+	    gimplify_stmt (&TREE_OPERAND (expr, 0), pre_p);
+	  *expr_p = expr;
+	  return goa_stabilize_expr (expr_p, pre_p, lhs_addr, lhs_var);
 	default:
 	  break;
 	}
