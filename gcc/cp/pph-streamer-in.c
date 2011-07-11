@@ -1227,22 +1227,18 @@ pph_in_scope_chain (pph_stream *stream)
   chainon (cur_bindings->names, new_bindings->names);
   chainon (cur_bindings->namespaces, new_bindings->namespaces);
 
-  for (i = 0; VEC_iterate (tree, new_bindings->static_decls, i, decl); i++)
+  FOR_EACH_VEC_ELT (tree, new_bindings->static_decls, i, decl)
     VEC_safe_push (tree, gc, cur_bindings->static_decls, decl);
 
   chainon (cur_bindings->usings, new_bindings->usings);
   chainon (cur_bindings->using_directives, new_bindings->using_directives);
 
-  for (i = 0;
-       VEC_iterate (cp_class_binding, new_bindings->class_shadowed, i, cb);
-       i++)
+  FOR_EACH_VEC_ELT (cp_class_binding, new_bindings->class_shadowed, i, cb)
     VEC_safe_push (cp_class_binding, gc, cur_bindings->class_shadowed, cb);
 
   chainon (cur_bindings->type_shadowed, new_bindings->type_shadowed);
 
-  for (i = 0;
-       VEC_iterate (cp_label_binding, new_bindings->shadowed_labels, i, lb);
-       i++)
+  FOR_EACH_VEC_ELT (cp_label_binding, new_bindings->shadowed_labels, i, lb)
     VEC_safe_push (cp_label_binding, gc, cur_bindings->shadowed_labels, lb);
 
   chainon (cur_bindings->blocks, new_bindings->blocks);
@@ -1412,14 +1408,14 @@ pph_read_file_contents (pph_stream *stream)
   keyed_classes = chainon (file_keyed_classes, keyed_classes);
 
   file_unemitted_tinfo_decls = pph_in_tree_vec (stream);
-  for (i = 0; VEC_iterate (tree, file_unemitted_tinfo_decls, i, t); i++)
+  FOR_EACH_VEC_ELT (tree, file_unemitted_tinfo_decls, i, t)
     VEC_safe_push (tree, gc, unemitted_tinfo_decls, t);
 
   file_static_aggregates = pph_in_tree (stream);
   static_aggregates = chainon (file_static_aggregates, static_aggregates);
 
   /* Expand all the functions with bodies that we read from STREAM.  */
-  for (i = 0; VEC_iterate (tree, stream->fns_to_expand, i, fndecl); i++)
+  FOR_EACH_VEC_ELT (tree, stream->fns_to_expand, i, fndecl)
     {
       /* FIXME pph - This is somewhat gross.  When we generated the
 	 PPH image, the parser called expand_or_defer_fn on FNDECL,

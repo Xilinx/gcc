@@ -483,7 +483,7 @@ pph_out_tree_vec (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
   tree t;
 
   pph_out_uint (stream, VEC_length (tree, v));
-  for (i = 0; VEC_iterate (tree, v, i, t); i++)
+  FOR_EACH_VEC_ELT (tree, v, i, t)
     pph_out_tree_or_ref (stream, t, ref_p);
 }
 
@@ -499,7 +499,7 @@ pph_out_qual_use_vec (pph_stream *stream,
   qualified_typedef_usage_t *q;
 
   pph_out_uint (stream, VEC_length (qualified_typedef_usage_t, v));
-  for (i = 0; VEC_iterate (qualified_typedef_usage_t, v, i, q); i++)
+  FOR_EACH_VEC_ELT (qualified_typedef_usage_t, v, i, q)
     {
       pph_out_tree_or_ref (stream, q->typedef_decl, ref_p);
       pph_out_tree_or_ref (stream, q->context, ref_p);
@@ -657,13 +657,13 @@ pph_out_binding_level (pph_stream *stream, struct cp_binding_level *bl,
   pph_out_chain_filtered (stream, bl->using_directives, ref_p, NO_BUILTINS);
 
   pph_out_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
-  for (i = 0; VEC_iterate (cp_class_binding, bl->class_shadowed, i, cs); i++)
+  FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)
     pph_out_class_binding (stream, cs, ref_p);
 
   pph_out_tree_or_ref (stream, bl->type_shadowed, ref_p);
 
   pph_out_uint (stream, VEC_length (cp_label_binding, bl->shadowed_labels));
-  for (i = 0; VEC_iterate (cp_label_binding, bl->shadowed_labels, i, sl); i++)
+  FOR_EACH_VEC_ELT (cp_label_binding, bl->shadowed_labels, i, sl)
     pph_out_label_binding (stream, sl, ref_p);
 
   pph_out_chain (stream, bl->blocks, ref_p);
@@ -975,7 +975,7 @@ pph_out_tree_pair_vec (pph_stream *stream, VEC(tree_pair_s,gc) *v,
   tree_pair_s *p;
 
   pph_out_uint (stream, VEC_length (tree_pair_s, v));
-  for (i = 0; VEC_iterate (tree_pair_s, v, i, p); i++)
+  FOR_EACH_VEC_ELT (tree_pair_s, v, i, p)
     {
       pph_out_tree_or_ref (stream, p->purpose, ref_p);
       pph_out_tree_or_ref (stream, p->value, ref_p);

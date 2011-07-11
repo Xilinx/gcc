@@ -1,4 +1,15 @@
 2011-07-11   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_in_scope_chain): Replace VEC_iterate
+	loops with FOR_EACH_VEC_ELT.
+	(pph_read_file_contents): Likewise.
+	* pph-streamer-out.c (pph_out_tree_vec): Likewise.
+	(pph_out_qual_use_vec): Likewise.
+	(pph_out_binding_level): Likewise.
+	(pph_out_tree_pair_vec): Likewise.
+	* pph-streamer.h (pph_out_tree_VEC): Likewise.
+
+2011-07-11   Diego Novillo  <dnovillo@google.com>
 	     Gabriel Charette  <gchare@google.com>
 
 	* pph-streamer-in.c (ALLOC_AND_REGISTER_ALTERNATE): Define.

@@ -267,7 +267,7 @@ pph_out_tree_VEC (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
   size_t i;
   size_t c = VEC_length (tree, v);
   pph_out_uint (stream, c);
-  for (i = 0; VEC_iterate (tree, v, i, t); i++)
+  FOR_EACH_VEC_ELT (tree, v, i, t)
     {
       if (flag_pph_tracer >= 1)
         pph_trace_tree (stream, t, ref_p);
