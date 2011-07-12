@@ -1,7 +1,7 @@
 /* { dg-options "-w" }  */
 /* { dg-do run } */
 
-#include "c1meteor-contest.h"
+#include "c0meteor-contest.h"
 
 int main(int argc, char **argv) {
    if(argc > 1)

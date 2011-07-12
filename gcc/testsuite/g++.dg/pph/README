@@ -1,7 +1,8 @@
 The test names have the following convention on the prefix of their
 names.
 
-    [acdpxy][12]*
+    [acdpxy][0-9]*
+
     a - auxillary headers
     c - positive tests for c-level headers and sources
     d - negative tests for c-level headers and sources
@@ -10,8 +11,22 @@ names.
         tests.
     x - C++-level positive tests.
     y - C++-level negative tests.
-    1 - first priority feature tests
-    2 - second priority feature tests
+
+    0 - tests with no pph inclusions (usually headers)
+    1 - tests with a single leading pph file
+    2 - tests with a nested leading pph files
+    3 - tests non-leading pph files, but at most simple merging
+    4 - tests non-leading pph files, with significant merging
+
+    5 - tests with no pph inclusions plus C++stdlib merging
+    6 - tests with nested leading plus C++stdlib merging
+    7 - tests non-leading pph files plus C++stdlib merging
+
+    8 - tests for secondary diagnostic features we would like to have
+    9 - tests for tertiary diagnostic features we probably do not want
 
 These prefixes are in lexical order with respect to the compilations.
 That is, you must pick names in the right place in the build.
+
+Tests labeled [567] are heavy iff the C++ standard library has been
+built with PPH.

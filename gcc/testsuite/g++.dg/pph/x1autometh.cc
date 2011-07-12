@@ -1,4 +1,4 @@
-#include "x1autometh.h"
+#include "x0autometh.h"
 
 void function() {
     base var1;

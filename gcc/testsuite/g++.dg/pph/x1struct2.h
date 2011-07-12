@@ -1,6 +1,6 @@
 #ifndef X1STRUCT_H
 #define X1STRUCT_H
-#include "c1struct.h"
+#include "c0struct.h"
 struct D : thing {
     type method();
     type another()

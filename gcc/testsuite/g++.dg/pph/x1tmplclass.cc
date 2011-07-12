@@ -1,7 +1,7 @@
 // { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x1tmplclass.h:14:5: error: specializing member .wrapper<char>::cache. requires .template<>. syntax" "" { xfail *-*-* } 0 }
+// { dg-bogus "x0tmplclass.h:14:5: error: specializing member .wrapper<char>::cache. requires .template<>. syntax" "" { xfail *-*-* } 0 }
 
-#include "x1tmplclass.h"
+#include "x0tmplclass.h"
 
 int wrapper<char>::cache = 2;
 

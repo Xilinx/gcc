@@ -1,6 +1,6 @@
 // { dg-do run }
 
-#include "x1ten-hellos.h"
+#include "x0ten-hellos.h"
 
 int main(void)
 {

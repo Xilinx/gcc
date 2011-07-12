@@ -1,6 +1,6 @@
 #ifndef X1FUNCTIONS_H
 #define X1FUNCTIONS_H
-#include "c1functions.h"
+#include "c0functions.h"
 inline int extern_inline(int i)         // lazy body
 { return extern_then_body(i); }
 struct type {

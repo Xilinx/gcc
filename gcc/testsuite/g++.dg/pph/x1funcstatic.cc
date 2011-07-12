@@ -1,2 +1,2 @@
-#include "c1funcstatic.h"
+#include "c0funcstatic.h"
 int a = f();

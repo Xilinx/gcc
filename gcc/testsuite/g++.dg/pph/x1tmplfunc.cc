@@ -1,4 +1,4 @@
-#include "x1tmplfunc.h"
+#include "x0tmplfunc.h"
 
 type val = 3;
 

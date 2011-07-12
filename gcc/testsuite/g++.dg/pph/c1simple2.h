@@ -1,7 +1,7 @@
 #ifndef C1SIMPLE2_H
 #define C1SIMPLE2_H
 
-#include "c1simple1.h"
+#include "c0simple1.h"
 
 inline int foo()
 {

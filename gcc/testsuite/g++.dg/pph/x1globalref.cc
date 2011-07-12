@@ -1,6 +1,6 @@
 // pph asm xdiff
 
-#include "x1globalref.h"
+#include "x0globalref.h"
 
 type x = 2;
 type y = x;

@@ -1,6 +1,6 @@
 #ifndef X1TYPEREFS_H
 #define X1TYPEREFS_H
-#include "c1typerefs.h"
+#include "c0typerefs.h"
 struct derived : base {
     int method();
 };

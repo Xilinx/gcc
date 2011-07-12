@@ -1,3 +1,141 @@
+2011-07-11  Lawrence Crowl  <crowl@google.com>
+
+	* g++.dg/pph/README: Explain new naming scheme.
+	* g++.dg/pph/c120060625-1.cc: Rename to c1-20060625-1.cc.
+	* g++.dg/pph/c120060625-1.h: Rename to c0-20060625-1.h; edit deps.
+	* g++.dg/pph/c1altinc.cc: Rename to c3altinc.cc.
+	* g++.dg/pph/c1altinc1.h: Rename to c0altinc1.h; edit deps.
+	* g++.dg/pph/c1altinc2.h: Rename to c3altinc2.h; edit deps.
+	* g++.dg/pph/c1attr-warn-unused-result.cc: Rename to
+	c1attr-warn-unused.cc.
+	* g++.dg/pph/c1attr-warn-unused-result.h: Rename to
+	c0attr-warn-unused.h; edit deps.
+	* g++.dg/pph/x1autometh.h: Rename to x0autometh.h; edit deps.
+	* g++.dg/pph/c1builtin-integral-1.cc: Rename to c1builtin-integral.cc.
+	* g++.dg/pph/c1builtin-integral-1.h: Rename to c0builtin-integral.h;
+	edit deps.
+	* g++.dg/pph/c1builtin-object-size-2.cc: Rename to c1builtin-objsize.cc.
+	* g++.dg/pph/c1builtin-object-size-2.h: Rename to c0builtin-objsize.h;
+	edit deps.
+	* g++.dg/pph/c2builtin1.cc: Rename to c3builtin1.cc.
+	* g++.dg/pph/c2builtin1.h: Rename to c0builtin1.h; edit deps.
+	* g++.dg/pph/c2builtin2.cc: Rename to c3builtin2.cc.
+	* g++.dg/pph/c2builtin2.h: Rename to c1builtin2.h; edit deps.
+	* g++.dg/pph/c2builtin3.h: Rename to c1builtin3.h; edit deps.
+	* g++.dg/pph/a2builtin4.h: Rename to a0builtin4.h; edit deps.
+	* g++.dg/pph/c2builtin5.h: Rename to c0builtin5.h; edit deps.
+	* g++.dg/pph/c2builtin6.h: Rename to c0builtin6.h; edit deps.
+	* g++.dg/pph/c1chained1.h: Rename to c0chained1.h; edit deps.
+	* g++.dg/pph/c1chained2.h: Rename to c0chained2.h; edit deps.
+	* g++.dg/pph/d2dupguard.cc: Rename to d8dupguard.cc.
+	* g++.dg/pph/c2dupguard1.h: Rename to c0dupguard1.h; edit deps.
+	* g++.dg/pph/c2dupguard2.h: Rename to c0dupguard2.h; edit deps.
+	* g++.dg/pph/a1dynarray-dcl1.hi: Rename to a0dynarray-dcl1.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dcl2a.hi: Rename to a0dynarray-dcl2a.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dcl2b.hi: Rename to a0dynarray-dcl2b.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dcl3.hi: Rename to a0dynarray-dcl3.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dcl4.hi: Rename to a0dynarray-dcl4.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dfn1a.hi: Rename to a0dynarray-dfn1a.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dfn1b.hi: Rename to a0dynarray-dfn1b.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dfn2a.hi: Rename to a0dynarray-dfn2a.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dfn2b.hi: Rename to a0dynarray-dfn2b.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dfn2c.hi: Rename to a0dynarray-dfn2c.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dfn3a.hi: Rename to a0dynarray-dfn3a.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dfn3b.hi: Rename to a0dynarray-dfn3b.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-dfn3c.hi: Rename to a0dynarray-dfn3c.hi;
+	edit deps.
+	* g++.dg/pph/a1dynarray-hlp1.cci: Rename to a0dynarray-hlp1.cci.
+	* g++.dg/pph/a1dynarray-use1.cci: Rename to a0dynarray-use1.cci.
+	* g++.dg/pph/a1dynarray-use2.cci: Rename to a0dynarray-use2.cci.
+	* g++.dg/pph/a1dynarray-use3a.cci: Rename to a0dynarray-use3a.cci.
+	* g++.dg/pph/a1dynarray-use3b.cci: Rename to a0dynarray-use3b.cci.
+	* g++.dg/pph/a1dynarray-use4a.cci: Rename to a0dynarray-use4a.cci.
+	* g++.dg/pph/a1dynarray-use4b.cci: Rename to a0dynarray-use4b.cci.
+	* g++.dg/pph/x1dynarray1.h: Rename to x0dynarray1.h; edit deps.
+	* g++.dg/pph/x1dynarray2.h: Rename to x0dynarray2.h; edit deps.
+	* g++.dg/pph/x1dynarray3.cc: Rename to x6dynarray3.cc.
+	* g++.dg/pph/x1dynarray3.h: Rename to x5dynarray3.h; edit deps.
+	* g++.dg/pph/x1dynarray4.cc: Rename to x6dynarray4.cc.
+	* g++.dg/pph/x1dynarray4.h: Rename to x0dynarray4.h; edit deps.
+	* g++.dg/pph/x1dynarray5.cc: Rename to x7dynarray5.cc.
+	* g++.dg/pph/x1dynarray5.h: Rename to x6dynarray5.h; edit deps.
+	* g++.dg/pph/x1dynarray6.cc: Rename to x7dynarray6.cc.
+	* g++.dg/pph/x1dynarray6.h: Rename to x6dynarray6.h; edit deps.
+	* g++.dg/pph/x1dynarray7.cc: Rename to x7dynarray7.cc.
+	* g++.dg/pph/x1dynarray7.h: Rename to x5dynarray7.h; edit deps.
+	* g++.dg/pph/c1eabi1.h: Rename to c0eabi1.h; edit deps.
+	* g++.dg/pph/c2eabi1.cc: Rename to c4eabi1.cc.
+	* g++.dg/pph/c2eabi1.h: Rename to c4eabi1.h; edit deps.
+	* g++.dg/pph/c1empty.h: Rename to c0empty.h; edit deps.
+	* g++.dg/pph/c1field.h: Rename to c0field.h; edit deps.
+	* g++.dg/pph/c1funcmac.h: Rename to c0funcmac.h; edit deps.
+	* g++.dg/pph/c1funcstatic.h: Rename to c0funcstatic.h; edit deps.
+	* g++.dg/pph/x1functions.cc: Rename to x2functions.cc.
+	* g++.dg/pph/c1functions.h: Rename to c0functions.h; edit deps.
+	* g++.dg/pph/x1globalref.h: Rename to x0globalref.h; edit deps.
+	* g++.dg/pph/c1guarded.cc: Rename to c3guarded.cc.
+	* g++.dg/pph/c1guarded1.h: Rename to c0guarded1.h; edit deps.
+	* g++.dg/pph/x1hardlookup.h: Rename to x0hardlookup.h; edit deps.
+	* g++.dg/pph/a1integer.h: Rename to a0integer.h; edit deps.
+	* g++.dg/pph/c1limits-externalid.h: Rename to c0limits-externalid.h;
+	edit deps.
+	* g++.dg/pph/p1mean.cc: Rename to p4mean.cc.
+	* g++.dg/pph/c2meteor-contest.cc: Rename to c4meteor-contest.cc.
+	* g++.dg/pph/c1meteor-contest.h: Rename to c0meteor-contest.h;
+	edit deps.
+	* g++.dg/pph/c2meteor-contest.h: Rename to c4meteor-contest.h;
+	edit deps.
+	* g++.dg/pph/c1multinc.cc: Rename to c3multinc.cc.
+	* g++.dg/pph/c1multinc1.h: Rename to c0multinc1.h; edit deps.
+	* g++.dg/pph/c1multinc2.h: Rename to c3multinc2.h; edit deps.
+	* g++.dg/pph/x1namespace.h: Rename to x0namespace.h; edit deps.
+	* g++.dg/pph/x2nontrivinit.cc: Rename to x1nontrivinit.cc.
+	* g++.dg/pph/x2nontrivinit.h: Rename to x0nontrivinit.h; edit deps.
+	* g++.dg/pph/d2null.h: Rename to d0null.h; edit deps.
+	* g++.dg/pph/y2overload.cc: Rename to y9overload.cc.
+	* g++.dg/pph/x2overload1.h: Rename to x0overload1.h; edit deps.
+	* g++.dg/pph/x2overload2.h: Rename to x0overload2.h; edit deps.
+	* g++.dg/pph/x2overload3.h: Rename to x1overload3.h; edit deps.
+	* g++.dg/pph/c2paste.cc: Rename to c1paste.cc.
+	* g++.dg/pph/c2paste.h: Rename to c0paste.h; edit deps.
+	* g++.dg/pph/a0pr36533.h: New.
+	* g++.dg/pph/c1pr36533.cc: Rename to c2pr36533.cc.
+	* g++.dg/pph/c4pr36533.cc: New.
+	* g++.dg/pph/c4pr36533.h: New.
+	* g++.dg/pph/c1pr44948-1a.h: Rename to c0pr44948-1a.h; edit deps.
+	* g++.dg/pph/c1return-5.h: Rename to c0return-5.h; edit deps.
+	* g++.dg/pph/c1simple.cc: Rename to c2simple.cc.
+	* g++.dg/pph/c1simple1.h: Rename to c0simple1.h; edit deps.
+	* g++.dg/pph/y2smother.cc: Rename to y8inc-nmspc.cc.
+	* g++.dg/pph/x1special.h: Rename to x0special.h; edit deps.
+	* g++.dg/pph/c1struct.h: Rename to c0struct.h; edit deps.
+	* g++.dg/pph/x1struct0.h: Rename to x0struct0.h; edit deps.
+	* g++.dg/pph/x1struct1.cc: Rename to x2struct1.cc.
+	* g++.dg/pph/x1struct2.cc: Rename to x2struct2.cc.
+	* g++.dg/pph/d1symnotinc.h: Rename to d0symnotinc.h; edit deps.
+	* g++.dg/pph/x1template.h: Rename to x0template.h; edit deps.
+	* g++.dg/pph/x1ten-hellos.h: Rename to x0ten-hellos.h; edit deps.
+	* g++.dg/pph/x1tmplclass.h: Rename to x0tmplclass.h; edit deps.
+	* g++.dg/pph/x1tmplfunc.h: Rename to x0tmplfunc.h; edit deps.
+	* g++.dg/pph/x1typerefs.cc: Rename to x2typerefs.cc.
+	* g++.dg/pph/c1typerefs.h: Rename to c0typerefs.h; edit deps.
+	* g++.dg/pph/d1unguarded.h: Rename to d0unguarded.h; edit deps.
+	* g++.dg/pph/x1variables.cc: Rename to x2variables.cc.
+	* g++.dg/pph/c1variables.h: Rename to c0variables.h; edit deps.
+	* g++.dg/pph/c1varorder.h: Rename to c0varorder.h; edit deps.
+
 2011-07-07  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c2eabi1.cc: Remove XFAIL markers.  Expect an
