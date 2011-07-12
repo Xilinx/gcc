@@ -584,21 +584,44 @@ pph_out_label_binding (pph_stream *stream, cp_label_binding *lb, bool ref_p)
 }
 
 
+/* Outputs chained tree T by nulling out its chain first and restoring it
+   after the streaming is done. STREAM and REF_P are as in
+   pph_out_chain_filtered.  */
+
+static inline void
+pph_out_chained_tree (pph_stream *stream, tree t, bool ref_p)
+{
+  tree saved_chain;
+
+  saved_chain = TREE_CHAIN (t);
+  TREE_CHAIN (t) = NULL_TREE;
+
+  pph_out_tree_or_ref_1 (stream, t, ref_p, 2);
+
+  TREE_CHAIN (t) = saved_chain;
+}
+
+
 /* Output a chain of nodes to STREAM starting with FIRST.  Skip any
    nodes that do not match FILTER.  REF_P is true if nodes in the chain
-   should be emitted as references.  */
+   should be emitted as references.  Stream the chain in the reverse order
+   if REVERSE is true.*/
 
 static void
 pph_out_chain_filtered (pph_stream *stream, tree first, bool ref_p,
-			   enum chain_filter filter)
+			   enum chain_filter filter, bool reverse_p)
 {
   unsigned count;
+  int i;
   tree t;
+  VEC(tree,gc) *reverse_list = NULL;
 
   /* Special case.  If the caller wants no filtering, it is much
      faster to just call pph_out_chain directly.  */
   if (filter == NONE)
     {
+      if (reverse_p)
+	nreverse (first);
       pph_out_chain (stream, first, ref_p);
       return;
     }
@@ -612,24 +635,31 @@ pph_out_chain_filtered (pph_stream *stream, tree first, bool ref_p,
     }
   pph_out_uint (stream, count);
 
+  /* We cannot use the actual chain and simply reverse that before
+     streaming out below as there are other chains being streamed out
+     as part of streaming the trees in the current chain and this
+     creates conflicts. Thus, we will create an array containing all
+     the trees we want to stream out and stream that backwards without
+     altering the chain itself.  */
+  if (reverse_p && count > 0)
+    reverse_list = VEC_alloc (tree, gc, count);
+
   /* Output all the nodes that match the filter.  */
   for (t = first; t; t = TREE_CHAIN (t))
     {
-      tree saved_chain;
-
       /* Apply filters to T.  */
       if (filter == NO_BUILTINS && DECL_P (t) && DECL_IS_BUILTIN (t))
 	continue;
 
-      /* Clear TREE_CHAIN to avoid blindly recursing into the rest
-	 of the list.  */
-      saved_chain = TREE_CHAIN (t);
-      TREE_CHAIN (t) = NULL_TREE;
-
-      pph_out_tree_or_ref_1 (stream, t, ref_p, 2);
-
-      TREE_CHAIN (t) = saved_chain;
+      if (reverse_p)
+	VEC_quick_push (tree, reverse_list, t);
+      else
+	pph_out_chained_tree (stream, t, ref_p);
     }
+
+  if (reverse_p && count > 0)
+    FOR_EACH_VEC_ELT_REVERSE (tree, reverse_list, i, t)
+      pph_out_chained_tree (stream, t, ref_p);
 }
 
 
@@ -648,13 +678,14 @@ pph_out_binding_level (pph_stream *stream, struct cp_binding_level *bl,
   if (!pph_out_start_record (stream, bl))
     return;
 
-  pph_out_chain_filtered (stream, bl->names, ref_p, NO_BUILTINS);
-  pph_out_chain_filtered (stream, bl->namespaces, ref_p, NO_BUILTINS);
+  pph_out_chain_filtered (stream, bl->names, ref_p, NO_BUILTINS, true);
+  pph_out_chain_filtered (stream, bl->namespaces, ref_p, NO_BUILTINS, true);
 
   pph_out_tree_vec (stream, bl->static_decls, ref_p);
 
-  pph_out_chain_filtered (stream, bl->usings, ref_p, NO_BUILTINS);
-  pph_out_chain_filtered (stream, bl->using_directives, ref_p, NO_BUILTINS);
+  pph_out_chain_filtered (stream, bl->usings, ref_p, NO_BUILTINS, true);
+  pph_out_chain_filtered (stream, bl->using_directives, ref_p, NO_BUILTINS,
+			  true);
 
   pph_out_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
   FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)

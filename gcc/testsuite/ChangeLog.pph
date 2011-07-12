@@ -1,3 +1,9 @@
+2011-07-12  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/c1pr44948-1a.cc: Mark fixed.
+	* g++.dg/pph/c2pr36533.cc: Mark fixed.
+	* g++.dg/pph/x2functions.cc: Mark fixed.
+
 2011-07-12  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c4pr36533.cc: Mark fixed.

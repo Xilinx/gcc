@@ -1,3 +1,24 @@
+2011-07-12   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_register_decl_in_symtab): New.
+	(pph_register_binding_in_symtab): Rename from
+	pph_register_decls_in_symtab.  Update all users.
+	Do not call nreverse on bl->names and bl->namespaces.
+	Call pph_register_decl_in_symtab.
+	(pph_read_file_contents): Register decls in
+	FILE_STATIC_AGGREGATES.
+
+2011-07-12  Gabriel Charette  <gchare@google.com>
+	    Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-out.c (pph_out_chained_tree): New.
+	(pph_out_chain_filtered): Add REVERSE_P parameter.
+	If REVERSE_P is set, write the list in reverse order.
+	Update all users.
+	(pph_out_binding_level): Write out lists bl->names,
+	bl->namespaces, bl->usings and bl->using_directives in
+	reverse.
+
 2011-07-12  Gabriel Charette  <gchare@google.com>
 
        * pph-streamer-in.c (pph_add_bindings_to_namespace):

@@ -1175,29 +1175,33 @@ pph_in_lang_type (pph_stream *stream)
 }
 
 
+/* Register DECL with the middle end.  */
+
+static void
+pph_register_decl_in_symtab (tree decl)
+{
+  if (TREE_CODE (decl) == VAR_DECL
+      && TREE_STATIC (decl)
+      && !DECL_EXTERNAL (decl))
+    varpool_finalize_decl (decl);
+}
+
+
 /* Register all the symbols in binding level BL in the callgraph symbol
    table.  */
 
 static void
-pph_register_decls_in_symtab (struct cp_binding_level *bl)
+pph_register_binding_in_symtab (struct cp_binding_level *bl)
 {
   tree t;
 
-  /* The chains are built backwards (ref: add_decl_to_level),
-     reverse them before putting them back in.  */
-  bl->names = nreverse (bl->names);
-  bl->namespaces = nreverse (bl->namespaces);
-
+  /* Add file-local symbols to the varpool.  */
   for (t = bl->names; t; t = DECL_CHAIN (t))
-    {
-      /* Add file-local symbols to the varpool.  */
-      if (TREE_CODE (t) == VAR_DECL && TREE_STATIC (t) && !DECL_EXTERNAL (t))
-	varpool_finalize_decl (t);
-    }
+    pph_register_decl_in_symtab (t);
 
   /* Recurse into the namespaces contained in BL.  */
   for (t = bl->namespaces; t; t = DECL_CHAIN (t))
-    pph_register_decls_in_symtab (NAMESPACE_LEVEL (t));
+    pph_register_binding_in_symtab (NAMESPACE_LEVEL (t));
 }
 
 
@@ -1220,7 +1224,7 @@ pph_in_scope_chain (pph_stream *stream)
   new_bindings = pph_in_binding_level (stream, scope_chain->bindings);
 
   /* Register all the symbols in STREAM with the call graph.  */
-  pph_register_decls_in_symtab (new_bindings);
+  pph_register_binding_in_symtab (new_bindings);
 
   /* Merge the bindings from STREAM into saved_scope->bindings.  */
   chainon (cur_bindings->names, new_bindings->names);
@@ -1412,6 +1416,16 @@ pph_read_file_contents (pph_stream *stream)
 
   file_static_aggregates = pph_in_tree (stream);
   static_aggregates = chainon (file_static_aggregates, static_aggregates);
+
+  /* Register all symbols in FILE_STATIC_AGGREGATES with the middle end.
+     Each element of this list is an INIT_EXPR expression.  */
+  for (t = file_static_aggregates; t; t = TREE_CHAIN (t))
+    {
+      tree lhs = TREE_OPERAND (TREE_PURPOSE (t), 0);
+      tree rhs = TREE_OPERAND (TREE_PURPOSE (t), 1);
+      pph_register_decl_in_symtab (lhs);
+      pph_register_decl_in_symtab (rhs);
+    }
 
   /* Expand all the functions with bodies that we read from STREAM.  */
   FOR_EACH_VEC_ELT (tree, stream->fns_to_expand, i, fndecl)

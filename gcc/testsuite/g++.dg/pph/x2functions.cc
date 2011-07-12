@@ -1,5 +1,3 @@
-// pph asm xdiff
-
 #include "x1functions.h"
 
 int type::mbr_decl_then_def(int i)      // need body
