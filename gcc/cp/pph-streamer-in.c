@@ -1197,8 +1197,7 @@ pph_register_decls_in_symtab (struct cp_binding_level *bl)
 
   /* Recurse into the namespaces contained in BL.  */
   for (t = bl->namespaces; t; t = DECL_CHAIN (t))
-    if (NAMESPACE_LEVEL (t))
-      pph_register_decls_in_symtab (NAMESPACE_LEVEL (t));
+    pph_register_decls_in_symtab (NAMESPACE_LEVEL (t));
 }
 
 

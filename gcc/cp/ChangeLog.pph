@@ -1,3 +1,8 @@
+2011-07-12  Gabriel Charette  <gchare@google.com>
+
+       * pph-streamer-in.c (pph_add_bindings_to_namespace):
+       NAMESPACE_LEVEL should never be null for a namespace, removed check.
+
 2011-07-11   Diego Novillo  <dnovillo@google.com>
 
 	* pph-streamer-in.c (pph_in_scope_chain): Replace VEC_iterate
