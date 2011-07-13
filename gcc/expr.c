@@ -693,13 +693,16 @@ convert_to_mode (enum machine_mode mode, rtx x, int unsignedp)
    Both modes may be floating, or both integer.
    UNSIGNEDP is nonzero if X is an unsigned value.
 
+   If NO_EMIT is true, don't emit any instructions.
+
    This can be done by referring to a part of X in place
    or by copying to a new temporary with conversion.
 
    You can give VOIDmode for OLDMODE, if you are sure X has a nonvoid mode.  */
 
 rtx
-convert_modes (enum machine_mode mode, enum machine_mode oldmode, rtx x, int unsignedp)
+convert_modes_1 (enum machine_mode mode, enum machine_mode oldmode,
+		 rtx x, int unsignedp, bool no_emit)
 {
   rtx temp;
 
@@ -709,7 +712,12 @@ convert_modes (enum machine_mode mode, enum machine_mode oldmode, rtx x, int uns
   if (GET_CODE (x) == SUBREG && SUBREG_PROMOTED_VAR_P (x)
       && GET_MODE_SIZE (GET_MODE (SUBREG_REG (x))) >= GET_MODE_SIZE (mode)
       && SUBREG_PROMOTED_UNSIGNED_P (x) == unsignedp)
-    x = gen_lowpart (mode, x);
+    {
+      if (no_emit)
+	x = rtl_hooks.gen_lowpart_no_emit (mode, x);
+      else
+	x = gen_lowpart (mode, x);
+    }
 
   if (GET_MODE (x) != VOIDmode)
     oldmode = GET_MODE (x);
@@ -773,7 +781,10 @@ convert_modes (enum machine_mode mode, enum machine_mode oldmode, rtx x, int uns
 	  return gen_int_mode (val, mode);
 	}
 
-      return gen_lowpart (mode, x);
+      if (no_emit)
+	return rtl_hooks.gen_lowpart_no_emit (mode, x);
+      else
+	return gen_lowpart (mode, x);
     }
 
   /* Converting from integer constant into mode is always equivalent to an
@@ -784,9 +795,17 @@ convert_modes (enum machine_mode mode, enum machine_mode oldmode, rtx x, int uns
       return simplify_gen_subreg (mode, x, oldmode, 0);
     }
 
+  gcc_assert (!no_emit);
   temp = gen_reg_rtx (mode);
   convert_move (temp, x, unsignedp);
   return temp;
+}
+
+rtx
+convert_modes (enum machine_mode mode, enum machine_mode oldmode,
+	       rtx x, int unsignedp)
+{
+  return convert_modes_1 (mode, oldmode, x, unsignedp, false);
 }
 
 /* Return the largest alignment we can use for doing a move (or store)
