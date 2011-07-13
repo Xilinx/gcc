@@ -1,3 +1,29 @@
+2011-07-12  Lawrence Crowl  <crowl@google.com>
+
+	* lib/dg-pph.exp (dg-pph-pos): Add support for link tests.
+	(dg-pph-neg): Remove incorrect -fpph-gen option.
+	Delete unneeded assembly files.
+	(dg-pph-hdr): Delete unneeded assembly files.
+	* g++.dg/pph/pph.exp: Autogenerate pph.map instead of manual tracking.
+	Recognise headers with any prefix in [cdpxy].
+	* g++.dg/pph/pph.map: Remove.
+	* g++.dg/pph/c1pr36533.h: Rename to p1pr36533.h; edit deps.
+	* g++.dg/pph/c1pr36533.cc: Rename to p1pr36533.cc.
+	* g++.dg/pph/c4eabi1.h: Rename to p4eabi1.h; edit deps.
+	* g++.dg/pph/c4eabi1.cc: Rename to p4eabi1.cc.
+	* g++.dg/pph/c4meteor-contest.h: Rename to p4meteor-contest.h;
+	edit deps.
+	* g++.dg/pph/c4meteor-contest.cc: Rename to p4meteor-contest.cc.
+	* g++.dg/pph/c4pr36533.h: Rename to p4pr36533.h; edit deps.
+	* g++.dg/pph/c4pr36533.cc: Rename to p4pr36533.cc.
+	* g++.dg/pph/c1eabi1.cc: Correct test expectation.
+	* g++.dg/pph/x1dynarray1.cc: Make link test; correct test expectation.
+	* g++.dg/pph/x1dynarray2a.cc: Make link test; correct test expectation.
+	* g++.dg/pph/x1dynarray2b.cc: Make link test; correct test expectation.
+	* g++.dg/pph/x6dynarray3.cc: Correct test expectation.
+	* g++.dg/pph/x6dynarray4.cc: Correct test expectation.
+	* g++.dg/pph/x6dynarray5.cc: Correct test expectation.
+
 2011-07-12  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/c1pr44948-1a.cc: Mark fixed.

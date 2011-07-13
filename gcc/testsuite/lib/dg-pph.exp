@@ -35,6 +35,9 @@ proc dg-pph-hdr { subdir test options mapflag suffix } {
     set dg-do-what-default preparse
     dg-test -keep-output $test "-fpph-gen $options $mapflag -I." ""
 
+    if { [file_on_host exists "$bname.s"] } {
+	file_on_host delete "$bname.s"
+    }
 }
 
 proc dg-pph-neg { subdir test options mapflag suffix } {
@@ -51,8 +54,9 @@ proc dg-pph-neg { subdir test options mapflag suffix } {
     verbose -log "\nTesting $nshort, $options"
 
     set dg-do-what-default compile
-    dg-test -keep-output $test "-fpph-gen $options $mapflag -I." ""
-    if { ![file_on_host exists "$bname.s"] } {
+    dg-test -keep-output $test "$options $mapflag -I." ""
+
+    if { [file_on_host exists "$bname.s"] } {
 	file_on_host delete "$bname.s"
     }
 }
@@ -74,12 +78,17 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     set dg-do-what-default compile
     dg-test -keep-output $test "$options -I." ""
 
-    # Determine whether this is an executable test
+    # Determine whether this is an assembly comparison test
     set is_exec [llength [grep $test "dg-do run"]]
+    set is_link [llength [grep $test "dg-do link"]]
+    if { !$is_exec && !$is_link } {
+        set is_asm 1
+    } else {
+        set is_asm 0
+    }
 
-    # Executables do not generate assembly.
-    if { !$is_exec } {
-	# Not executable, so quit if it did not compile successfully.
+    if { $is_asm } {
+	# Wanted assembly, so quit if it did not compile successfully.
 	if { ![file_on_host exists "$bname.s"] } {
 	    fail "$nshort $options (regular assembly missing)"
 	    return
@@ -95,8 +104,8 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     # Compile a second time using the pph files.
     dg-test -keep-output $test "$options $mapflag -I." ""
 
-    # Executables do not generate assembly,
-    if { $is_exec } {
+    if { !$is_asm } {
+	# No assembly means we cannot compare them,
 	# and so we are done testing.
 	return
     }

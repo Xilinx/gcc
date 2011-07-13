@@ -1,7 +1,7 @@
 /* { dg-options "-w" }  */
 // pph asm xdiff
 
-#include "c4meteor-contest.h"
+#include "p4meteor-contest.h"
 
 int main(int argc, char **argv) {
    if(argc > 1)

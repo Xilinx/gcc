@@ -29,11 +29,17 @@ dg-init
 # FIXME set scenarios [list "" "-g" "-O"]
 set scenarios [list "" ]
 
-set hdr_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cdx\]*.h]]
+set hdr_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cdpxy\]*.h]]
 set neg_tests [lsort [glob -nocomplain $srcdir/$subdir/\[dy\]*.cc]]
 set pos_tests [lsort [glob -nocomplain $srcdir/$subdir/\[cpx\]*.cc]]
 
-gcc_copy_files $srcdir/$subdir/pph.map .
+exec ls $srcdir/$subdir | sed -e /^\[cpdxy\].*\.h$/!d -e s/.*/&\t&/ -e s/\.h$/\.pph/ > pph.map
+exec echo "math.h	math.pph" >> pph.map
+exec echo "stdio.h	stdio.pph" >> pph.map
+exec echo "stdlib.h	stdlib.pph" >> pph.map
+exec echo "string.h	string.pph" >> pph.map
+exec echo "sys/types.h	types.pph" >> pph.map
+
 set mapflag -fpph-map=pph.map
 
 foreach scenario $scenarios {

@@ -1,4 +1,5 @@
-// { dg-do run }
+// { dg-xfail-if "ICE" { "*-*-*" } { "-fpph-map=pph.map" } }
+// { dg-bogus "x6dynarray3.cc:1:0: internal compiler error: in chainon, at tree.c:2165" "" { xfail *-*-* } 0 }
 
 #include "x5dynarray3.h"
 

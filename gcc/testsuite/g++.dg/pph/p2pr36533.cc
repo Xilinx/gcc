@@ -1,2 +1,2 @@
 /* { dg-options "-w -fpermissive" } */
-#include "c4pr36533.h"
+#include "p1pr36533.h"

@@ -1,5 +1,6 @@
 // { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "cstdlib:42:0: error: PPH file stdlib.pph fails macro validation, __STDDEF_H__" "" { xfail *-*-* } 0 }
+// { dg-bogus "error: Cannot open PPH file for reading: x6dynarray5.pph: No such file or directory" "" { xfail *-*-* } 0 }
+// { dg-prune-output "In file included from" }
 
 #include "x6dynarray5.h"
 

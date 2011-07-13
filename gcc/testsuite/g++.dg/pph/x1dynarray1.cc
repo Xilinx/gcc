@@ -1,4 +1,4 @@
-// { dg-do run }
+// { dg-do link }
 // { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
 
 #include "x0dynarray1.h"

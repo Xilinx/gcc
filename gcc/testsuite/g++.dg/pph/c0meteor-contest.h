@@ -36,7 +36,7 @@ POSSIBILITY OF SUCH DAMAGE.
  * contributed by Christian Vosteen
  */
 
-/* Simplified version of c4meteor-contest.h
+/* Simplified version of p4meteor-contest.h
    - Do not include other system headers here.
    Simply forward declare the library functions used by this header.  */
 extern  "C" {

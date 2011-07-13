@@ -1,7 +1,7 @@
 // { dg-options "-w -fpermissive" }
 // pph asm xdiff
 
-#include "c4eabi1.h"
+#include "p4eabi1.h"
 
 int main () {
   unsigned char bytes[256];
