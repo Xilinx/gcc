@@ -1,3 +1,8 @@
+2011-07-10  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_promote_function_mode): Update
+	comments.
+
 2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_trampoline_init): Remove TARGET_X32

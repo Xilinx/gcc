@@ -7061,15 +7061,19 @@ ix86_function_value (const_tree valtype, const_tree fntype_or_decl,
   return ix86_function_value_1 (valtype, fntype_or_decl, orig_mode, mode);
 }
 
-/* Pointer function arguments and return values are promoted to
-   Pmode.  */
+/* Pointer function arguments and return values are promoted to Pmode.
+   If FOR_RETURN is 1, this function must behave in the same way with
+   regard to function returns as TARGET_FUNCTION_VALUE.  */
 
 static enum machine_mode
 ix86_promote_function_mode (const_tree type, enum machine_mode mode,
 			    int *punsignedp, const_tree fntype,
 			    int for_return)
 {
-  if (for_return != 1 && type != NULL_TREE && POINTER_TYPE_P (type))
+  if (for_return == 1)
+    /* Do not promote function return values.  */
+    ;
+  else if (type != NULL_TREE && POINTER_TYPE_P (type))
     {
       *punsignedp = POINTERS_EXTEND_UNSIGNED;
       return Pmode;
