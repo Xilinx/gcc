@@ -1,3 +1,73 @@
+2011-07-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49672
+	* pt.c (extract_fnparm_pack): Split out from...
+	(make_fnparm_pack): ...here.
+	(instantiate_decl): Handle non-pack parms after a pack.
+	* semantics.c (maybe_add_lambda_conv_op): Don't in a template.
+
+	* decl2.c (decl_constant_var_p): Use decl_maybe_constant_var_p.
+
+	PR c++/44609
+	* cp-tree.h (struct tinst_level): Add errors field.
+	* pt.c (neglectable_inst_p, limit_bad_template_recurson): New.
+	(push_tinst_level): Don't start another decl in that case.
+	(reopen_tinst_level): Adjust errors field.
+	* decl2.c (cp_write_global_declarations): Don't complain about
+	undefined inline if its template was defined.
+	* mangle.c (mangle_decl_string): Handle failure from push_tinst_level.
+
+2011-07-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49691
+	* parser.c (cp_parser_late_return_type_opt): Check quals parameter
+	rather than current_class_type to determine whether to set 'this'.
+	(cp_parser_direct_declarator): Pass -1 to quals if member_p is false.
+	(cp_parser_init_declarator): Pass down member_p.
+
+2011-07-09  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (build_vec_init_elt): Strip TARGET_EXPR.
+
+2011-07-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45437
+	* typeck.c (cp_build_modify_expr): Preevaluate RHS.
+
+	* method.c (use_thunk): Use cgraph_add_to_same_comdat_group.
+	* optimize.c (maybe_clone_body): Likewise.
+	* semantics.c (maybe_add_lambda_conv_op): Likewise.
+
+	PR c++/45603
+	* decl.c (expand_static_init): Don't get confused by user
+	declaration of __cxa_guard_acquire.
+
+	* typeck.c (cp_apply_type_quals_to_decl): Don't check
+	COMPLETE_TYPE_P either.
+
+	PR c++/49673
+	* typeck.c (cp_apply_type_quals_to_decl): Don't check
+	TYPE_NEEDS_CONSTRUCTING.
+
+2011-07-07  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49663
+	* pt.c (push_deduction_access_scope): Preserve
+	processing_template_decl across push_to_top_level.
+	And revert:
+	* class.c (pushclass): Accept NULL argument.
+	(popclass): Deal with popping null class.
+	* pt.c (push_access_scope, pop_access_scope): Use them rather than
+	push_to_top_level/pop_from_top_level.
+	* name-lookup.c (lookup_name_real_1): Check current_class_type.
+
+2011-07-07  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c/49644
+	* typeck.c (cp_build_binary_op): For MULT_EXPR and TRUNC_DIV_EXPR with
+	one non-complex and one complex argument, call save_expr on both
+	operands.
+
 2011-07-06  Jason Merrill  <jason@redhat.com>
 
 	PR c++/49353

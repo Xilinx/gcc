@@ -722,7 +722,6 @@ print_version (FILE *file, const char *indent)
   print_plugins_versions (file, indent);
 }
 
-#ifdef ASM_COMMENT_START
 static int
 print_to_asm_out_file (print_switch_type type, const char * text)
 {
@@ -755,7 +754,6 @@ print_to_asm_out_file (print_switch_type type, const char * text)
       return -1;
     }
 }
-#endif
 
 static int
 print_to_stderr (print_switch_type type, const char * text)
@@ -921,7 +919,6 @@ init_asm_output (const char *name)
 	    inform (input_location, "-frecord-gcc-switches is not supported by the current target");
 	}
 
-#ifdef ASM_COMMENT_START
       if (flag_verbose_asm)
 	{
 	  /* Print the list of switches in effect
@@ -930,7 +927,6 @@ init_asm_output (const char *name)
 	  print_switch_values (print_to_asm_out_file);
 	  putc ('\n', asm_out_file);
 	}
-#endif
     }
 }
 
@@ -1740,11 +1736,6 @@ lang_dependent_init (const char *name)
       /* If dbx symbol table desired, initialize writing it and output the
 	 predefined types.  */
       timevar_push (TV_SYMOUT);
-
-#if defined DWARF2_DEBUGGING_INFO || defined DWARF2_UNWIND_INFO
-      if (dwarf2out_do_frame ())
-	dwarf2out_frame_init ();
-#endif
 
       /* Now we have the correct original filename, we can initialize
 	 debug output.  */

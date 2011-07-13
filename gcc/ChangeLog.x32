@@ -1,5 +1,12 @@
 2011-07-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (x86_output_mi_thunk): Properly support x32.
+
+	* config/i386/i386.md (*addsi_1_zext): Renamed to ...
+	(addsi_1_zext): This.
+
+2011-07-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* explow.c (convert_memory_address_addr_space_1): New.
 	(convert_memory_address_addr_space): Use it.
 

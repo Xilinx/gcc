@@ -1263,6 +1263,7 @@ OBJS = \
 	double-int.o \
 	dse.o \
 	dwarf2asm.o \
+	dwarf2cfi.o \
 	dwarf2out.o \
 	ebitmap.o \
 	emit-rtl.o \
@@ -1539,14 +1540,6 @@ MOSTLYCLEANFILES = insn-flags.h insn-config.h insn-codes.h \
 # Defined in libgcc2.c, included only in the static library.
 LIB2FUNCS_ST = _eprintf __gcc_bcmp
 
-# Defined in libgcov.c, included only in gcov library
-LIBGCOV = _gcov _gcov_merge_add _gcov_merge_single _gcov_merge_delta \
-    _gcov_fork _gcov_execl _gcov_execlp _gcov_execle \
-    _gcov_execv _gcov_execvp _gcov_execve \
-    _gcov_interval_profiler _gcov_pow2_profiler _gcov_one_value_profiler \
-    _gcov_indirect_call_profiler _gcov_average_profiler _gcov_ior_profiler \
-    _gcov_merge_ior
-
 FPBIT_FUNCS = _pack_sf _unpack_sf _addsub_sf _mul_sf _div_sf \
     _fpcmp_parts_sf _compare_sf _eq_sf _ne_sf _gt_sf _ge_sf \
     _lt_sf _le_sf _unord_sf _si_to_sf _sf_to_si _negate_sf _make_sf \
@@ -1561,30 +1554,6 @@ TPBIT_FUNCS = _pack_tf _unpack_tf _addsub_tf _mul_tf _div_tf \
     _fpcmp_parts_tf _compare_tf _eq_tf _ne_tf _gt_tf _ge_tf \
     _lt_tf _le_tf _unord_tf _si_to_tf _tf_to_si _negate_tf _make_tf \
     _tf_to_df _tf_to_sf _thenan_tf _tf_to_usi _usi_to_tf
-
-D32PBIT_FUNCS = _addsub_sd _div_sd _mul_sd _plus_sd _minus_sd \
-	_eq_sd _ne_sd _lt_sd _gt_sd _le_sd _ge_sd \
-	_sd_to_si _sd_to_di _sd_to_usi _sd_to_udi \
-	_si_to_sd _di_to_sd _usi_to_sd _udi_to_sd \
-	_sd_to_sf _sd_to_df _sd_to_xf _sd_to_tf \
-	_sf_to_sd _df_to_sd _xf_to_sd _tf_to_sd \
-	_sd_to_dd _sd_to_td _unord_sd _conv_sd
-
-D64PBIT_FUNCS = _addsub_dd _div_dd _mul_dd _plus_dd _minus_dd \
-	_eq_dd _ne_dd _lt_dd _gt_dd _le_dd _ge_dd \
-	_dd_to_si _dd_to_di _dd_to_usi _dd_to_udi \
-	_si_to_dd _di_to_dd _usi_to_dd _udi_to_dd \
-	_dd_to_sf _dd_to_df _dd_to_xf _dd_to_tf \
-	_sf_to_dd _df_to_dd _xf_to_dd _tf_to_dd \
-	_dd_to_sd _dd_to_td _unord_dd _conv_dd
-
-D128PBIT_FUNCS = _addsub_td _div_td _mul_td _plus_td _minus_td \
-	_eq_td _ne_td _lt_td _gt_td _le_td _ge_td \
-	_td_to_si _td_to_di _td_to_usi _td_to_udi \
-	_si_to_td _di_to_td _usi_to_td _udi_to_td \
-	_td_to_sf _td_to_df _td_to_xf _td_to_tf \
-	_sf_to_td _df_to_td _xf_to_td _tf_to_td \
-	_td_to_sd _td_to_dd _unord_td _conv_td
 
 # These might cause a divide overflow trap and so are compiled with
 # unwinder info.
@@ -1932,7 +1901,6 @@ libgcc.mvars: config.status Makefile $(LIB2ADD) $(LIB2ADD_ST) specs \
 	echo LIB1ASMSRC = '$(LIB1ASMSRC)' >> tmp-libgcc.mvars
 	echo LIB2FUNCS_ST = '$(LIB2FUNCS_ST)' >> tmp-libgcc.mvars
 	echo LIB2FUNCS_EXCLUDE = '$(LIB2FUNCS_EXCLUDE)' >> tmp-libgcc.mvars
-	echo LIBGCOV = '$(LIBGCOV)' >> tmp-libgcc.mvars
 	echo LIB2ADD = '$(call srcdirify,$(LIB2ADD))' >> tmp-libgcc.mvars
 	echo LIB2ADD_ST = '$(call srcdirify,$(LIB2ADD_ST))' >> tmp-libgcc.mvars
 	echo LIB2ADDEH = '$(call srcdirify,$(LIB2ADDEH) $(srcdir)/emutls.c)' >> tmp-libgcc.mvars
@@ -1949,14 +1917,6 @@ libgcc.mvars: config.status Makefile $(LIB2ADD) $(LIB2ADD_ST) specs \
 	echo DPBIT_FUNCS = '$(DPBIT_FUNCS)' >> tmp-libgcc.mvars
 	echo TPBIT = '$(TPBIT)' >> tmp-libgcc.mvars
 	echo TPBIT_FUNCS = '$(TPBIT_FUNCS)' >> tmp-libgcc.mvars
-	echo DFP_ENABLE = '$(DFP_ENABLE)' >> tmp-libgcc.mvars
-	echo DFP_CFLAGS='$(DFP_CFLAGS)' >> tmp-libgcc.mvars
-	echo D32PBIT='$(D32PBIT)' >> tmp-libgcc.mvars
-	echo D32PBIT_FUNCS='$(D32PBIT_FUNCS)' >> tmp-libgcc.mvars
-	echo D64PBIT='$(D64PBIT)' >> tmp-libgcc.mvars
-	echo D64PBIT_FUNCS='$(D64PBIT_FUNCS)' >> tmp-libgcc.mvars
-	echo D128PBIT='$(D128PBIT)' >> tmp-libgcc.mvars
-	echo D128PBIT_FUNCS='$(D128PBIT_FUNCS)' >> tmp-libgcc.mvars
 	echo GCC_EXTRA_PARTS = '$(GCC_EXTRA_PARTS)' >> tmp-libgcc.mvars
 	echo SHLIB_LINK = '$(subst $(GCC_FOR_TARGET),$$(GCC_FOR_TARGET),$(SHLIB_LINK))' >> tmp-libgcc.mvars
 	echo SHLIB_INSTALL = '$(SHLIB_INSTALL)' >> tmp-libgcc.mvars
@@ -2922,7 +2882,8 @@ rtl.o : rtl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
 
 print-rtl.o : print-rtl.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
     $(RTL_H) $(TREE_H) hard-reg-set.h $(BASIC_BLOCK_H) $(FLAGS_H) \
-    $(BCONFIG_H) $(DIAGNOSTIC_H) cselib.h $(TREE_PASS_H) tree-pretty-print.h
+    $(BCONFIG_H) $(DIAGNOSTIC_H) cselib.h $(TREE_PASS_H) tree-pretty-print.h \
+    dwarf2out.h
 rtlanal.o : rtlanal.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) toplev.h $(DIAGNOSTIC_CORE_H) \
    $(RTL_H) hard-reg-set.h $(TM_P_H) insn-config.h $(RECOG_H) \
    $(FLAGS_H) $(REGS_H) output.h $(TARGET_H) $(FUNCTION_H) $(TREE_H) \
@@ -3008,6 +2969,9 @@ dwarf2out.o : dwarf2out.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    gt-dwarf2out.h $(TARGET_H) $(CGRAPH_H) $(MD5_H) $(INPUT_H) $(FUNCTION_H) \
    $(GIMPLE_H) $(TREE_PASS_H) $(TREE_FLOW_H) $(CFGLAYOUT_H) \
    tree-pretty-print.h $(COMMON_TARGET_H)
+dwarf2cfi.o : dwarf2cfi.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
+   version.h $(RTL_H) $(FUNCTION_H) $(DWARF2_H) dwarf2asm.h dwarf2out.h \
+   $(GGC_H) $(TM_P_H) $(TARGET_H) $(TREE_PASS_H)
 dwarf2asm.o : dwarf2asm.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(FLAGS_H) $(RTL_H) $(TREE_H) output.h dwarf2asm.h $(TM_P_H) $(GGC_H) \
    gt-dwarf2asm.h $(DWARF2_H) $(SPLAY_TREE_H) $(TARGET_H)
@@ -3828,7 +3792,11 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/reload.h $(srcdir)/caller-save.c \
   $(srcdir)/alias.c $(srcdir)/bitmap.c $(srcdir)/cselib.c $(srcdir)/cgraph.c \
   $(srcdir)/ipa-prop.c $(srcdir)/ipa-cp.c $(srcdir)/matrix-reorg.c \
-  $(srcdir)/dbxout.c $(srcdir)/dwarf2out.c $(srcdir)/dwarf2asm.c \
+  $(srcdir)/dbxout.c \
+  $(srcdir)/dwarf2out.h \
+  $(srcdir)/dwarf2asm.c \
+  $(srcdir)/dwarf2cfi.c \
+  $(srcdir)/dwarf2out.c \
   $(srcdir)/tree-vect-generic.c \
   $(srcdir)/dojump.c \
   $(srcdir)/emit-rtl.c $(srcdir)/except.h $(srcdir)/explow.c $(srcdir)/expr.c \
