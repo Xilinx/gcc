@@ -214,7 +214,7 @@ push_access_scope (tree t)
   else if (DECL_CLASS_SCOPE_P (t))
     push_nested_class (DECL_CONTEXT (t));
   else
-    pushclass (NULL_TREE);
+    push_to_top_level ();
 
   if (TREE_CODE (t) == FUNCTION_DECL)
     {
@@ -239,7 +239,7 @@ pop_access_scope (tree t)
   if (DECL_FRIEND_CONTEXT (t) || DECL_CLASS_SCOPE_P (t))
     pop_nested_class ();
   else
-    popclass ();
+    pop_from_top_level ();
 }
 
 /* Do any processing required when DECL (a member template
@@ -1791,7 +1791,7 @@ determine_specialization (tree template_id,
      with the signature of DECL.  */
   tree templates = NULL_TREE;
   int header_count;
-  struct cp_binding_level *b;
+  cp_binding_level *b;
 
   *targs_out = NULL_TREE;
 
@@ -7499,6 +7499,36 @@ uses_template_parms_level (tree t, int level)
 				 /*include_nondeduced_p=*/true);
 }
 
+/* Returns TRUE iff INST is an instantiation we don't need to do in an
+   ill-formed translation unit, i.e. a variable or function that isn't
+   usable in a constant expression.  */
+
+static inline bool
+neglectable_inst_p (tree d)
+{
+  return (DECL_P (d)
+	  && !(TREE_CODE (d) == FUNCTION_DECL ? DECL_DECLARED_CONSTEXPR_P (d)
+	       : decl_maybe_constant_var_p (d)));
+}
+
+/* Returns TRUE iff we should refuse to instantiate DECL because it's
+   neglectable and instantiated from within an erroneous instantiation.  */
+
+static bool
+limit_bad_template_recursion (tree decl)
+{
+  struct tinst_level *lev = current_tinst_level;
+  int errs = errorcount + sorrycount;
+  if (lev == NULL || errs == 0 || !neglectable_inst_p (decl))
+    return false;
+
+  for (; lev; lev = lev->next)
+    if (neglectable_inst_p (lev->decl))
+      break;
+
+  return (lev && errs > lev->errors);
+}
+
 static int tinst_depth;
 extern int max_tinst_depth;
 #ifdef GATHER_STATISTICS
@@ -7532,9 +7562,16 @@ push_tinst_level (tree d)
       return 0;
     }
 
+  /* If the current instantiation caused problems, don't let it instantiate
+     anything else.  Do allow deduction substitution and decls usable in
+     constant expressions.  */
+  if (limit_bad_template_recursion (d))
+    return 0;
+
   new_level = ggc_alloc_tinst_level ();
   new_level->decl = d;
   new_level->locus = input_location;
+  new_level->errors = errorcount+sorrycount;
   new_level->in_system_header_p = in_system_header;
   new_level->next = current_tinst_level;
   current_tinst_level = new_level;
@@ -7578,6 +7615,8 @@ reopen_tinst_level (struct tinst_level *level)
 
   current_tinst_level = level;
   pop_tinst_level ();
+  if (current_tinst_level)
+    current_tinst_level->errors = errorcount+sorrycount;
   return level->decl;
 }
 
@@ -8672,11 +8711,12 @@ tsubst_template_arg (tree t, tree args, tsubst_flags_t complain, tree in_decl)
   return r;
 }
 
-/* Give a chain SPEC_PARM of PARM_DECLs, pack them into a
-   NONTYPE_ARGUMENT_PACK.  */
+/* Given a function parameter pack TMPL_PARM and some function parameters
+   instantiated from it at *SPEC_P, return a NONTYPE_ARGUMENT_PACK of them
+   and set *SPEC_P to point at the next point in the list.  */
 
 static tree
-make_fnparm_pack (tree spec_parm)
+extract_fnparm_pack (tree tmpl_parm, tree *spec_p)
 {
   /* Collect all of the extra "packed" parameters into an
      argument pack.  */
@@ -8684,11 +8724,18 @@ make_fnparm_pack (tree spec_parm)
   tree parmtypevec;
   tree argpack = make_node (NONTYPE_ARGUMENT_PACK);
   tree argtypepack = cxx_make_type (TYPE_ARGUMENT_PACK);
-  int i, len = list_length (spec_parm);
+  tree spec_parm = *spec_p;
+  int i, len;
+
+  for (len = 0; spec_parm; ++len, spec_parm = TREE_CHAIN (spec_parm))
+    if (tmpl_parm
+	&& !function_parameter_expanded_from_pack_p (spec_parm, tmpl_parm))
+      break;
 
   /* Fill in PARMVEC and PARMTYPEVEC with all of the parameters.  */
   parmvec = make_tree_vec (len);
   parmtypevec = make_tree_vec (len);
+  spec_parm = *spec_p;
   for (i = 0; i < len; i++, spec_parm = DECL_CHAIN (spec_parm))
     {
       TREE_VEC_ELT (parmvec, i) = spec_parm;
@@ -8699,9 +8746,19 @@ make_fnparm_pack (tree spec_parm)
   SET_ARGUMENT_PACK_ARGS (argpack, parmvec);
   SET_ARGUMENT_PACK_ARGS (argtypepack, parmtypevec);
   TREE_TYPE (argpack) = argtypepack;
+  *spec_p = spec_parm;
 
   return argpack;
-}        
+}
+
+/* Give a chain SPEC_PARM of PARM_DECLs, pack them into a
+   NONTYPE_ARGUMENT_PACK.  */
+
+static tree
+make_fnparm_pack (tree spec_parm)
+{
+  return extract_fnparm_pack (NULL_TREE, &spec_parm);
+}
 
 /* Substitute ARGS into T, which is an pack expansion
    (i.e. TYPE_PACK_EXPANSION or EXPR_PACK_EXPANSION). Returns a
@@ -11287,8 +11344,12 @@ tsubst_qualified_id (tree qualified_id, tree args,
     expr = name;
 
   if (dependent_scope_p (scope))
-    return build_qualified_name (NULL_TREE, scope, expr,
-				 QUALIFIED_NAME_IS_TEMPLATE (qualified_id));
+    {
+      if (is_template)
+	expr = build_min_nt (TEMPLATE_ID_EXPR, expr, template_args);
+      return build_qualified_name (NULL_TREE, scope, expr,
+				   QUALIFIED_NAME_IS_TEMPLATE (qualified_id));
+    }
 
   if (!BASELINK_P (name) && !DECL_P (expr))
     {
@@ -13839,7 +13900,13 @@ static void
 push_deduction_access_scope (tree tmpl)
 {
   if (cxx_dialect >= cxx0x)
-    push_access_scope (DECL_TEMPLATE_RESULT (tmpl));
+    {
+      int ptd = processing_template_decl;
+      push_access_scope (DECL_TEMPLATE_RESULT (tmpl));
+      /* Preserve processing_template_decl across push_to_top_level.  */
+      if (ptd && !processing_template_decl)
+	++processing_template_decl;
+    }
   else
     push_deferring_access_checks (dk_no_check);
 }
@@ -17781,21 +17848,21 @@ instantiate_decl (tree d, int defer_ok,
 	  spec_parm = skip_artificial_parms_for (d, spec_parm);
 	  tmpl_parm = skip_artificial_parms_for (subst_decl, tmpl_parm);
 	}
-      while (tmpl_parm && !FUNCTION_PARAMETER_PACK_P (tmpl_parm))
+      for (; tmpl_parm; tmpl_parm = DECL_CHAIN (tmpl_parm))
 	{
-	  register_local_specialization (spec_parm, tmpl_parm);
-	  tmpl_parm = DECL_CHAIN (tmpl_parm);
-	  spec_parm = DECL_CHAIN (spec_parm);
+	  if (!FUNCTION_PARAMETER_PACK_P (tmpl_parm))
+	    {
+	      register_local_specialization (spec_parm, tmpl_parm);
+	      spec_parm = DECL_CHAIN (spec_parm);
+	    }
+	  else
+	    {
+	      /* Register the (value) argument pack as a specialization of
+		 TMPL_PARM, then move on.  */
+	      tree argpack = extract_fnparm_pack (tmpl_parm, &spec_parm);
+	      register_local_specialization (argpack, tmpl_parm);
+	    }
 	}
-      if (tmpl_parm && FUNCTION_PARAMETER_PACK_P (tmpl_parm))
-        {
-          /* Register the (value) argument pack as a specialization of
-             TMPL_PARM, then move on.  */
-	  tree argpack = make_fnparm_pack (spec_parm);
-          register_local_specialization (argpack, tmpl_parm);
-          tmpl_parm = DECL_CHAIN (tmpl_parm);
-	  spec_parm = NULL_TREE;
-        }
       gcc_assert (!spec_parm);
 
       /* Substitute into the body of the function.  */
@@ -18848,7 +18915,7 @@ dependent_template_arg_p (tree arg)
      is dependent. This is consistent with what
      any_dependent_template_arguments_p [that calls this function]
      does.  */
-  if (arg == error_mark_node)
+  if (!arg || arg == error_mark_node)
     return true;
 
   if (TREE_CODE (arg) == ARGUMENT_PACK_SELECT)

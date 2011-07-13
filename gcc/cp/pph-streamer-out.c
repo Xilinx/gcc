@@ -509,8 +509,7 @@ pph_out_qual_use_vec (pph_stream *stream,
 
 
 /* Forward declaration to break cyclic dependencies.  */
-static void pph_out_binding_level (pph_stream *,
-					    struct cp_binding_level *, bool);
+static void pph_out_binding_level (pph_stream *, cp_binding_level *, bool);
 
 
 /* Helper for pph_out_cxx_binding.  STREAM, CB and REF_P are as in
@@ -667,8 +666,7 @@ pph_out_chain_filtered (pph_stream *stream, tree first, bool ref_p,
    REF_P is true, tree fields will be written as references.  */
 
 static void
-pph_out_binding_level (pph_stream *stream, struct cp_binding_level *bl,
-				bool ref_p)
+pph_out_binding_level (pph_stream *stream, cp_binding_level *bl, bool ref_p)
 {
   unsigned i;
   cp_class_binding *cs;

@@ -1,5 +1,23 @@
 2011-07-12   Diego Novillo  <dnovillo@google.com>
 
+	* name-lookup.c (pushdecl_into_namespace): Replace references
+	to struct cp_binding_level with cp_binding_level.
+	(print_binding_level): Likewise.
+	(print_namespace): Likewise.
+	* pph-streamer-in.c (pph_in_qual_use_vec): Likewise.
+	(pph_in_label_binding): Likewise.
+	(pph_in_binding_level): Likewise.
+	(pph_register_decl_in_symtab): Likewise.
+	(pph_register_binding_in_symtab): Likewise.
+	(pph_in_scope_chain): Likewise.
+	* pph-streamer-out.c (pph_out_qual_use_vec): Likewise.
+	(pph_out_chain_filtered): Likewise.
+	(pph_out_binding_level): Likewise.
+	* pph.c (pph_dump_tree_name): Likewise.
+	(pph_dump_namespace): Likewise.
+
+2011-07-12   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-in.c (pph_register_decl_in_symtab): New.
 	(pph_register_binding_in_symtab): Rename from
 	pph_register_decls_in_symtab.  Update all users.

@@ -1,5 +1,6 @@
 /* This is a software decimal floating point library.
-   Copyright (C) 2005, 2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2011
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -37,7 +38,7 @@ extern long double strtold (const char *, char **);
 #include <string.h>
 #include <limits.h>
 
-#include "config/dfp-bit.h"
+#include "dfp-bit.h"
 
 /* Forward declarations.  */
 #if WIDTH == 32 || WIDTH_TO == 32

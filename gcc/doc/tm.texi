@@ -870,9 +870,16 @@ word has the lowest number.  This macro need not be a constant.
 @defmac WORDS_BIG_ENDIAN
 Define this macro to have the value 1 if, in a multiword object, the
 most significant word has the lowest number.  This applies to both
-memory locations and registers; GCC fundamentally assumes that the
-order of words in memory is the same as the order in registers.  This
+memory locations and registers; see @code{REG_WORDS_BIG_ENDIAN} if the
+order of words in memory is not the same as the order in registers.  This
 macro need not be a constant.
+@end defmac
+
+@defmac REG_WORDS_BIG_ENDIAN
+On some machines, the order of words in a multiword object differs between
+registers in memory.  In such a situation, define this macro to describe
+the order of words in a register.  The macro @code{WORDS_BIG_ENDIAN} controls
+the order of words in memory.
 @end defmac
 
 @defmac FLOAT_WORDS_BIG_ENDIAN
@@ -4173,9 +4180,9 @@ to pad out an argument with extra space.  The value should be of type
 @code{enum direction}: either @code{upward} to pad above the argument,
 @code{downward} to pad below, or @code{none} to inhibit padding.
 
-The @emph{amount} of padding is always just enough to reach the next
-multiple of @code{TARGET_FUNCTION_ARG_BOUNDARY}; this macro does not
-control it.
+The @emph{amount} of padding is not controlled by this macro, but by the
+target hook @code{TARGET_FUNCTION_ARG_ROUND_BOUNDARY}.  It is
+always just enough to reach the next multiple of that boundary. 
 
 This macro has a default definition which is right for most systems.
 For little-endian machines, the default is to pad upward.  For
@@ -4206,6 +4213,13 @@ required.
 This hook returns the alignment boundary, in bits, of an argument
 with the specified mode and type.  The default hook returns
 @code{PARM_BOUNDARY} for all arguments.
+@end deftypefn
+
+@deftypefn {Target Hook} {unsigned int} TARGET_FUNCTION_ARG_ROUND_BOUNDARY (enum machine_mode @var{mode}, const_tree @var{type})
+Normally, the size of an argument is rounded up to @code{PARM_BOUNDARY},
+which is the default value for this hook.  You can define this hook to
+return a different value if an argument size must be rounded to a larger
+value.
 @end deftypefn
 
 @defmac FUNCTION_ARG_REGNO_P (@var{regno})
@@ -10876,7 +10890,7 @@ instructions or prefetch instructions).
 To create a built-in function, call the function
 @code{lang_hooks.builtin_function}
 which is defined by the language front end.  You can use any type nodes set
-up by @code{build_common_tree_nodes} and @code{build_common_tree_nodes_2};
+up by @code{build_common_tree_nodes};
 only language front ends that use those two functions will call
 @samp{TARGET_INIT_BUILTINS}.
 @end deftypefn

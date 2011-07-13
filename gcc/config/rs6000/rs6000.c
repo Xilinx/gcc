@@ -130,6 +130,9 @@ typedef struct GTY(()) machine_function
   int ra_need_lr;
   /* Cache lr_save_p after expansion of builtin_eh_return.  */
   int lr_save_state;
+  /* Whether we need to save the TOC to the reserved stack location in the
+     function prologue.  */
+  bool save_toc_in_prologue;
   /* Offset from virtual_stack_vars_rtx to the start of the ABI_V4
      varargs save area.  */
   HOST_WIDE_INT varargs_save_offset;
@@ -16885,7 +16888,7 @@ rs6000_emit_vector_cond_expr (rtx dest, rtx op_true, rtx op_false,
       op_false = tmp;
     }
 
-  cond2 = gen_rtx_fmt_ee (NE, cc_mode, mask, const0_rtx);
+  cond2 = gen_rtx_fmt_ee (NE, cc_mode, mask, CONST0_RTX (dest_mode));
   emit_insn (gen_rtx_SET (VOIDmode,
 			  dest,
 			  gen_rtx_IF_THEN_ELSE (dest_mode,
@@ -20325,7 +20328,7 @@ rs6000_emit_prologue (void)
       JUMP_LABEL (jump) = toc_save_done;
       LABEL_NUSES (toc_save_done) += 1;
 
-      emit_frame_save (frame_reg_rtx, frame_ptr_rtx, reg_mode, 2,
+      emit_frame_save (frame_reg_rtx, frame_ptr_rtx, reg_mode, TOC_REGNUM,
 		       sp_offset + 5 * reg_size, info->total_size);
       emit_label (toc_save_done);
       if (using_static_chain_p)
@@ -20516,6 +20519,11 @@ rs6000_emit_prologue (void)
 	emit_move_insn (lr, gen_rtx_REG (Pmode, 0));
     }
 #endif
+
+  /* If we need to, save the TOC register after doing the stack setup.  */
+  if (rs6000_save_toc_in_prologue_p ())
+    emit_frame_save (sp_reg_rtx, sp_reg_rtx, reg_mode, TOC_REGNUM,
+		     5 * reg_size, info->total_size);
 }
 
 /* Write function prologue.  */
@@ -20560,39 +20568,6 @@ rs6000_output_function_prologue (FILE *file,
       fputs ("\t.extern __quoss\n", file);
       fputs ("\t.extern __quous\n", file);
       common_mode_defined = 1;
-    }
-
-  if (! HAVE_prologue)
-    {
-      rtx prologue;
-
-      start_sequence ();
-
-      /* A NOTE_INSN_DELETED is supposed to be at the start and end of
-	 the "toplevel" insn chain.  */
-      emit_note (NOTE_INSN_DELETED);
-      rs6000_emit_prologue ();
-      emit_note (NOTE_INSN_DELETED);
-
-      /* Expand INSN_ADDRESSES so final() doesn't crash.  */
-      {
-	rtx insn;
-	unsigned addr = 0;
-	for (insn = get_insns (); insn != 0; insn = NEXT_INSN (insn))
-	  {
-	    INSN_ADDRESSES_NEW (insn, addr);
-	    addr += 4;
-	  }
-      }
-
-      prologue = get_insns ();
-      end_sequence ();
-
-      if (TARGET_DEBUG_STACK)
-	debug_rtx_list (prologue, 100);
-
-      emit_insn_before_noloc (prologue, BB_HEAD (ENTRY_BLOCK_PTR->next_bb),
-			      ENTRY_BLOCK_PTR);
     }
 
   rs6000_pic_labelno++;
@@ -21405,43 +21380,6 @@ static void
 rs6000_output_function_epilogue (FILE *file,
 				 HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 {
-  if (! HAVE_epilogue)
-    {
-      rtx insn = get_last_insn ();
-      /* If the last insn was a BARRIER, we don't have to write anything except
-	 the trace table.  */
-      if (GET_CODE (insn) == NOTE)
-	insn = prev_nonnote_insn (insn);
-      if (insn == 0 ||  GET_CODE (insn) != BARRIER)
-	{
-	  /* This is slightly ugly, but at least we don't have two
-	     copies of the epilogue-emitting code.  */
-	  start_sequence ();
-
-	  /* A NOTE_INSN_DELETED is supposed to be at the start
-	     and end of the "toplevel" insn chain.  */
-	  emit_note (NOTE_INSN_DELETED);
-	  rs6000_emit_epilogue (FALSE);
-	  emit_note (NOTE_INSN_DELETED);
-
-	  /* Expand INSN_ADDRESSES so final() doesn't crash.  */
-	  {
-	    rtx insn;
-	    unsigned addr = 0;
-	    for (insn = get_insns (); insn != 0; insn = NEXT_INSN (insn))
-	      {
-		INSN_ADDRESSES_NEW (insn, addr);
-		addr += 4;
-	      }
-	  }
-
-	  if (TARGET_DEBUG_STACK)
-	    debug_rtx_list (get_insns (), 100);
-	  final (get_insns (), file, FALSE);
-	  end_sequence ();
-	}
-    }
-
 #if TARGET_MACHO
   macho_branch_islands ();
   /* Mach-O doesn't support labels at the end of objects, so if
@@ -24469,9 +24407,14 @@ rs6000_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
     /* Under AIX, just build the 3 word function descriptor */
     case ABI_AIX:
       {
-	rtx fnmem = gen_const_mem (Pmode, force_reg (Pmode, fnaddr));
-	rtx fn_reg = gen_reg_rtx (Pmode);
-	rtx toc_reg = gen_reg_rtx (Pmode);
+	rtx fnmem, fn_reg, toc_reg;
+
+	if (!TARGET_R11)
+	  error ("-mno-r11 must not be used if you have trampolines");
+
+	fnmem = gen_const_mem (Pmode, force_reg (Pmode, fnaddr));
+	fn_reg = gen_reg_rtx (Pmode);
+	toc_reg = gen_reg_rtx (Pmode);
 
   /* Macro to shorten the code expansions below.  */
 # define MEM_PLUS(MEM, OFFSET) adjust_address (MEM, Pmode, OFFSET)
@@ -27758,6 +27701,134 @@ rs6000_legitimate_constant_p (enum machine_mode mode, rtx x)
 	  || (TARGET_POWERPC64 && mode == DImode)
 	  || easy_fp_constant (x, mode)
 	  || easy_vector_constant (x, mode));
+}
+
+
+/* A function pointer under AIX is a pointer to a data area whose first word
+   contains the actual address of the function, whose second word contains a
+   pointer to its TOC, and whose third word contains a value to place in the
+   static chain register (r11).  Note that if we load the static chain, our
+   "trampoline" need not have any executable code.  */
+
+void
+rs6000_call_indirect_aix (rtx value, rtx func_desc, rtx flag)
+{
+  rtx func_addr;
+  rtx toc_reg;
+  rtx sc_reg;
+  rtx stack_ptr;
+  rtx stack_toc_offset;
+  rtx stack_toc_mem;
+  rtx func_toc_offset;
+  rtx func_toc_mem;
+  rtx func_sc_offset;
+  rtx func_sc_mem;
+  rtx insn;
+  rtx (*call_func) (rtx, rtx, rtx, rtx);
+  rtx (*call_value_func) (rtx, rtx, rtx, rtx, rtx);
+
+  stack_ptr = gen_rtx_REG (Pmode, STACK_POINTER_REGNUM);
+  toc_reg = gen_rtx_REG (Pmode, TOC_REGNUM);
+
+  /* Load up address of the actual function.  */
+  func_desc = force_reg (Pmode, func_desc);
+  func_addr = gen_reg_rtx (Pmode);
+  emit_move_insn (func_addr, gen_rtx_MEM (Pmode, func_desc));
+
+  if (TARGET_32BIT)
+    {
+
+      stack_toc_offset = GEN_INT (TOC_SAVE_OFFSET_32BIT);
+      func_toc_offset = GEN_INT (AIX_FUNC_DESC_TOC_32BIT);
+      func_sc_offset = GEN_INT (AIX_FUNC_DESC_SC_32BIT);
+      if (TARGET_R11)
+	{
+	  call_func = gen_call_indirect_aix32bit;
+	  call_value_func = gen_call_value_indirect_aix32bit;
+	}
+      else
+	{
+	  call_func = gen_call_indirect_aix32bit_nor11;
+	  call_value_func = gen_call_value_indirect_aix32bit_nor11;
+	}
+    }
+  else
+    {
+      stack_toc_offset = GEN_INT (TOC_SAVE_OFFSET_64BIT);
+      func_toc_offset = GEN_INT (AIX_FUNC_DESC_TOC_64BIT);
+      func_sc_offset = GEN_INT (AIX_FUNC_DESC_SC_64BIT);
+      if (TARGET_R11)
+	{
+	  call_func = gen_call_indirect_aix64bit;
+	  call_value_func = gen_call_value_indirect_aix64bit;
+	}
+      else
+	{
+	  call_func = gen_call_indirect_aix64bit_nor11;
+	  call_value_func = gen_call_value_indirect_aix64bit_nor11;
+	}
+    }
+
+  /* Reserved spot to store the TOC.  */
+  stack_toc_mem = gen_frame_mem (Pmode,
+				 gen_rtx_PLUS (Pmode,
+					       stack_ptr,
+					       stack_toc_offset));
+
+  gcc_assert (cfun);
+  gcc_assert (cfun->machine);
+
+  /* Can we optimize saving the TOC in the prologue or do we need to do it at
+     every call?  */
+  if (TARGET_SAVE_TOC_INDIRECT && !cfun->calls_alloca
+      && !cfun->calls_setjmp && !cfun->has_nonlocal_label
+      && !cfun->can_throw_non_call_exceptions
+      && ((flags_from_decl_or_type (cfun->decl) & ECF_NOTHROW) == ECF_NOTHROW))
+    cfun->machine->save_toc_in_prologue = true;
+
+  else
+    {
+      MEM_VOLATILE_P (stack_toc_mem) = 1;
+      emit_move_insn (stack_toc_mem, toc_reg);
+    }
+
+  /* Calculate the address to load the TOC of the called function.  We don't
+     actually load this until the split after reload.  */
+  func_toc_mem = gen_rtx_MEM (Pmode,
+			      gen_rtx_PLUS (Pmode,
+					    func_desc,
+					    func_toc_offset));
+
+  /* If we have a static chain, load it up.  */
+  if (TARGET_R11)
+    {
+      func_sc_mem = gen_rtx_MEM (Pmode,
+				 gen_rtx_PLUS (Pmode,
+					       func_desc,
+					       func_sc_offset));
+
+      sc_reg = gen_rtx_REG (Pmode, STATIC_CHAIN_REGNUM);
+      emit_move_insn (sc_reg, func_sc_mem);
+    }
+
+  /* Create the call.  */
+  if (value)
+    insn = call_value_func (value, func_addr, flag, func_toc_mem,
+			    stack_toc_mem);
+  else
+    insn = call_func (func_addr, flag, func_toc_mem, stack_toc_mem);
+
+  emit_call_insn (insn);
+  return;
+}
+
+/* Return whether we need to always update the saved TOC pointer when we update
+   the stack pointer.  */
+
+bool
+rs6000_save_toc_in_prologue_p (void)
+{
+  return (cfun && cfun->machine && cfun->machine->save_toc_in_prologue);
 }
 
 #include "gt-rs6000.h"

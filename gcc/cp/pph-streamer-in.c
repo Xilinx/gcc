@@ -494,8 +494,8 @@ pph_in_qual_use_vec (pph_stream *stream)
 
 
 /* Forward declaration to break cyclic dependencies.  */
-static struct cp_binding_level *pph_in_binding_level (pph_stream *,
-						    struct cp_binding_level *);
+static cp_binding_level *pph_in_binding_level (pph_stream *,
+					       cp_binding_level *);
 
 /* Helper for pph_in_cxx_binding.  Read and return a cxx_binding
    instance from STREAM.  */
@@ -612,11 +612,11 @@ pph_in_label_binding (pph_stream *stream)
    level given in TO_REGISTER.  This way, subsequent references to the
    global binding level will be done to the one set in TO_REGISTER.  */
 
-static struct cp_binding_level *
-pph_in_binding_level (pph_stream *stream, struct cp_binding_level *to_register)
+static cp_binding_level *
+pph_in_binding_level (pph_stream *stream, cp_binding_level *to_register)
 {
   unsigned i, num, ix;
-  struct cp_binding_level *bl;
+  cp_binding_level *bl;
   struct bitpack_d bp;
   enum pph_record_marker marker;
 
@@ -624,7 +624,7 @@ pph_in_binding_level (pph_stream *stream, struct cp_binding_level *to_register)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct cp_binding_level *) pph_in_shared_data (stream, ix);
+    return (cp_binding_level *) pph_in_shared_data (stream, ix);
 
   /* If TO_REGISTER is set, register that binding level instead of the newly
      allocated binding level into slot IX.  */
@@ -1191,7 +1191,7 @@ pph_register_decl_in_symtab (tree decl)
    table.  */
 
 static void
-pph_register_binding_in_symtab (struct cp_binding_level *bl)
+pph_register_binding_in_symtab (cp_binding_level *bl)
 {
   tree t;
 
@@ -1214,7 +1214,7 @@ pph_in_scope_chain (pph_stream *stream)
   tree decl;
   cp_class_binding *cb;
   cp_label_binding *lb;
-  struct cp_binding_level *cur_bindings, *new_bindings;
+  cp_binding_level *cur_bindings, *new_bindings;
 
   /* When reading the symbols in STREAM's global binding level, make
      sure that references to the global binding level point to

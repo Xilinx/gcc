@@ -71,7 +71,7 @@ pph_dump_tree_name (FILE *file, tree t, int flags)
 void
 pph_dump_namespace (FILE *file, tree ns)
 {
-  struct cp_binding_level *level;
+  cp_binding_level *level;
   tree t, chain;
   level = NAMESPACE_LEVEL (ns);
 

@@ -3323,7 +3323,7 @@ gfc_trans_pointer_assign_need_temp (gfc_expr * expr1, gfc_expr * expr2,
   count = gfc_create_var (gfc_array_index_type, "count");
   gfc_add_modify (block, count, gfc_index_zero_node);
 
-  inner_size = integer_one_node;
+  inner_size = gfc_index_one_node;
   lss = gfc_walk_expr (expr1);
   rss = gfc_walk_expr (expr2);
   if (lss == gfc_ss_terminator)
@@ -4847,10 +4847,10 @@ gfc_trans_allocate (gfc_code * code)
 
 	  /* Allocate - for non-pointers with re-alloc checking.  */
 	  if (gfc_expr_attr (expr).allocatable)
-	    tmp = gfc_allocate_array_with_status (&se.pre, se.expr, memsz,
-						  pstat, expr);
+	    tmp = gfc_allocate_allocatable_with_status (&se.pre, se.expr, memsz,
+							pstat, expr);
 	  else
-	    tmp = gfc_allocate_with_status (&se.pre, memsz, pstat);
+	    tmp = gfc_allocate_with_status (&se.pre, memsz, pstat, false);
 
 	  tmp = fold_build2_loc (input_location, MODIFY_EXPR, void_type_node,
 				 se.expr,

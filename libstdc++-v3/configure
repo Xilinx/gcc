@@ -639,6 +639,7 @@ DOT
 DOXYGEN
 BUILD_INFO_FALSE
 BUILD_INFO_TRUE
+baseline_subdir_switch
 baseline_dir
 GLIBCXX_LDBL_COMPAT_FALSE
 GLIBCXX_LDBL_COMPAT_TRUE
@@ -11503,7 +11504,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11506 "configure"
+#line 11507 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -11609,7 +11610,7 @@ else
   lt_dlunknown=0; lt_dlno_uscore=1; lt_dlneed_uscore=2
   lt_status=$lt_dlunknown
   cat > conftest.$ac_ext <<_LT_EOF
-#line 11612 "configure"
+#line 11613 "configure"
 #include "confdefs.h"
 
 #if HAVE_DLFCN_H
@@ -14967,7 +14968,7 @@ fi
     #
     # Fake what AC_TRY_COMPILE does.  XXX Look at redoing this new-style.
     cat > conftest.$ac_ext << EOF
-#line 14970 "configure"
+#line 14971 "configure"
 struct S { ~S(); };
 void bar();
 void foo()
@@ -15335,7 +15336,7 @@ $as_echo "$glibcxx_cv_atomic_long_long" >&6; }
   # Fake what AC_TRY_COMPILE does.
 
     cat > conftest.$ac_ext << EOF
-#line 15338 "configure"
+#line 15339 "configure"
 int main()
 {
   typedef bool atomic_type;
@@ -15372,7 +15373,7 @@ $as_echo "$glibcxx_cv_atomic_bool" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15375 "configure"
+#line 15376 "configure"
 int main()
 {
   typedef short atomic_type;
@@ -15409,7 +15410,7 @@ $as_echo "$glibcxx_cv_atomic_short" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15412 "configure"
+#line 15413 "configure"
 int main()
 {
   // NB: _Atomic_word not necessarily int.
@@ -15447,7 +15448,7 @@ $as_echo "$glibcxx_cv_atomic_int" >&6; }
     rm -f conftest*
 
     cat > conftest.$ac_ext << EOF
-#line 15450 "configure"
+#line 15451 "configure"
 int main()
 {
   typedef long long atomic_type;
@@ -15523,7 +15524,7 @@ $as_echo "$as_me: WARNING: Performance of certain classes will degrade as a resu
   # unnecessary for this test.
 
     cat > conftest.$ac_ext << EOF
-#line 15526 "configure"
+#line 15527 "configure"
 int main()
 {
   _Decimal32 d1;
@@ -65025,6 +65026,8 @@ done
 
   # Export file names for ABI checking.
   baseline_dir="$glibcxx_srcdir/config/abi/post/${abi_baseline_pair}"
+
+  baseline_subdir_switch="$abi_baseline_subdir_switch"
 
 
 

@@ -184,7 +184,7 @@ struct GTY((chain_next ("%h.next"))) named_label_use_entry {
   /* The binding level to which this entry is *currently* attached.
      This is initially the binding level in which the goto appeared,
      but is modified as scopes are closed.  */
-  struct cp_binding_level *binding_level;
+  cp_binding_level *binding_level;
   /* The head of the names list that was current when the goto appeared,
      or the inner scope popped.  These are the decls that will *not* be
      skipped when jumping to the label.  */
@@ -208,7 +208,7 @@ struct GTY(()) named_label_entry {
   /* The binding level to which the label is *currently* attached.
      This is initially set to the binding level in which the label
      is defined, but is modified as scopes are closed.  */
-  struct cp_binding_level *binding_level;
+  cp_binding_level *binding_level;
   /* The head of the names list that was current when the label was
      defined, or the inner scope popped.  These are the decls that will
      be skipped when jumping to the label.  */
@@ -270,7 +270,7 @@ current_tmpl_spec_kind (int n_class_scopes)
   int n_template_parm_scopes = 0;
   int seen_specialization_p = 0;
   int innermost_specialization_p = 0;
-  struct cp_binding_level *b;
+  cp_binding_level *b;
 
   /* Scan through the template parameter scopes.  */
   for (b = current_binding_level;
@@ -447,7 +447,7 @@ objc_get_current_scope (void)
 void
 objc_mark_locals_volatile (void *enclosing_blk)
 {
-  struct cp_binding_level *scope;
+  cp_binding_level *scope;
 
   for (scope = current_binding_level;
        scope && scope != enclosing_blk;
@@ -470,8 +470,8 @@ static int
 poplevel_named_label_1 (void **slot, void *data)
 {
   struct named_label_entry *ent = (struct named_label_entry *) *slot;
-  struct cp_binding_level *bl = (struct cp_binding_level *) data;
-  struct cp_binding_level *obl = bl->level_chain;
+  cp_binding_level *bl = (cp_binding_level *) data;
+  cp_binding_level *obl = bl->level_chain;
 
   if (ent->binding_level == bl)
     {
@@ -853,7 +853,7 @@ walk_namespaces (walk_namespaces_fn f, void* data)
 int
 wrapup_globals_for_namespace (tree name_space, void* data)
 {
-  struct cp_binding_level *level = NAMESPACE_LEVEL (name_space);
+  cp_binding_level *level = NAMESPACE_LEVEL (name_space);
   VEC(tree,gc) *statics = level->static_decls;
   tree *vec = VEC_address (tree, statics);
   int len = VEC_length (tree, statics);
@@ -2644,10 +2644,10 @@ identify_goto (tree decl, const location_t *locus)
    true if all is well.  */
 
 static bool
-check_previous_goto_1 (tree decl, struct cp_binding_level* level, tree names,
+check_previous_goto_1 (tree decl, cp_binding_level* level, tree names,
 		       bool exited_omp, const location_t *locus)
 {
-  struct cp_binding_level *b;
+  cp_binding_level *b;
   bool identified = false, saw_eh = false, saw_omp = false;
 
   if (exited_omp)
@@ -2719,7 +2719,7 @@ check_previous_goto (tree decl, struct named_label_use_entry *use)
 }
 
 static bool
-check_switch_goto (struct cp_binding_level* level)
+check_switch_goto (cp_binding_level* level)
 {
   return check_previous_goto_1 (NULL_TREE, level, level->names, false, NULL);
 }
@@ -2805,7 +2805,7 @@ check_goto (tree decl)
     error ("  enters OpenMP structured block");
   else if (flag_openmp)
     {
-      struct cp_binding_level *b;
+      cp_binding_level *b;
       for (b = current_binding_level; b ; b = b->level_chain)
 	{
 	  if (b == ent->binding_level)
@@ -2831,7 +2831,7 @@ check_goto (tree decl)
 bool
 check_omp_return (void)
 {
-  struct cp_binding_level *b;
+  cp_binding_level *b;
   for (b = current_binding_level; b ; b = b->level_chain)
     if (b->kind == sk_omp)
       {
@@ -2850,7 +2850,7 @@ static tree
 define_label_1 (location_t location, tree name)
 {
   struct named_label_entry *ent, dummy;
-  struct cp_binding_level *p;
+  cp_binding_level *p;
   tree decl;
 
   decl = lookup_label (name);
@@ -2909,7 +2909,7 @@ define_label (location_t location, tree name)
 
 struct cp_switch
 {
-  struct cp_binding_level *level;
+  cp_binding_level *level;
   struct cp_switch *next;
   /* The SWITCH_STMT being built.  */
   tree switch_stmt;
@@ -2990,7 +2990,7 @@ tree
 finish_case_label (location_t loc, tree low_value, tree high_value)
 {
   tree cond, r;
-  struct cp_binding_level *p;
+  cp_binding_level *p;
   tree type;
 
   if (processing_template_decl)
@@ -3518,8 +3518,6 @@ cxx_init_decl_processing (void)
   tree void_ftype;
   tree void_ftype_ptr;
 
-  build_common_tree_nodes (flag_signed_char);
-
   /* Create all the identifiers we need.  */
   initialize_predefined_identifiers ();
 
@@ -3535,8 +3533,6 @@ cxx_init_decl_processing (void)
   DECL_CONTEXT (global_namespace) = build_translation_unit_decl (NULL_TREE);
   TREE_PUBLIC (global_namespace) = 1;
   begin_scope (sk_namespace, global_namespace);
-
-  current_lang_name = NULL_TREE;
 
   if (flag_visibility_ms_compat)
     default_visibility = VISIBILITY_HIDDEN;
@@ -3762,7 +3758,7 @@ cp_make_fname_decl (location_t loc, tree id, int type_dep)
 
   if (current_function_decl)
     {
-      struct cp_binding_level *b = current_binding_level;
+      cp_binding_level *b = current_binding_level;
       if (b->kind == sk_function_parms)
 	return error_mark_node;
       while (b->level_chain->kind != sk_function_parms)
@@ -6650,7 +6646,6 @@ expand_static_init (tree decl, tree init)
       tree if_stmt = NULL_TREE, inner_if_stmt = NULL_TREE;
       tree then_clause = NULL_TREE, inner_then_clause = NULL_TREE;
       tree guard, guard_addr;
-      tree acquire_fn, release_fn, abort_fn;
       tree flag, begin;
 
       /* Emit code to perform this initialization but once.  This code
@@ -6700,29 +6695,31 @@ expand_static_init (tree decl, tree init)
 
       if (flag_threadsafe_statics)
 	{
+	  tree vfntype = NULL_TREE;
+	  tree acquire_name, release_name, abort_name;
+	  tree acquire_fn, release_fn, abort_fn;
 	  guard_addr = build_address (guard);
 
-	  acquire_fn = get_identifier ("__cxa_guard_acquire");
-	  release_fn = get_identifier ("__cxa_guard_release");
-	  abort_fn = get_identifier ("__cxa_guard_abort");
-	  if (!get_global_value_if_present (acquire_fn, &acquire_fn))
-	    {
-	      tree vfntype = build_function_type_list (void_type_node,
-						       TREE_TYPE (guard_addr),
-						       NULL_TREE);
-	      acquire_fn = push_library_fn
-		(acquire_fn, build_function_type_list (integer_type_node,
+	  acquire_name = get_identifier ("__cxa_guard_acquire");
+	  release_name = get_identifier ("__cxa_guard_release");
+	  abort_name = get_identifier ("__cxa_guard_abort");
+	  acquire_fn = identifier_global_value (acquire_name);
+	  release_fn = identifier_global_value (release_name);
+	  abort_fn = identifier_global_value (abort_name);
+	  if (!acquire_fn)
+	    acquire_fn = push_library_fn
+	      (acquire_name, build_function_type_list (integer_type_node,
 						       TREE_TYPE (guard_addr),
 						       NULL_TREE),
-		 NULL_TREE);
-	      release_fn = push_library_fn (release_fn, vfntype, NULL_TREE);
-	      abort_fn = push_library_fn (abort_fn, vfntype, NULL_TREE);
-	    }
-	  else
-	    {
-	      release_fn = identifier_global_value (release_fn);
-	      abort_fn = identifier_global_value (abort_fn);
-	    }
+	       NULL_TREE);
+	  if (!release_fn || !abort_fn)
+	    vfntype = build_function_type_list (void_type_node,
+						TREE_TYPE (guard_addr),
+						NULL_TREE);
+	  if (!release_fn)
+	    release_fn = push_library_fn (release_name, vfntype, NULL_TREE);
+	  if (!abort_fn)
+	    abort_fn = push_library_fn (abort_name, vfntype, NULL_TREE);
 
 	  inner_if_stmt = begin_if_stmt ();
 	  finish_if_stmt_cond (build_call_n (acquire_fn, 1, guard_addr),
@@ -8502,7 +8499,7 @@ grokdeclarator (const cp_declarator *declarator,
 
   if (decl_context == NORMAL && !toplevel_bindings_p ())
     {
-      struct cp_binding_level *b = current_binding_level;
+      cp_binding_level *b = current_binding_level;
       current_binding_level = b->level_chain;
       if (current_binding_level != 0 && toplevel_bindings_p ())
 	decl_context = PARM;
@@ -12439,7 +12436,7 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
   tree fntype;
   tree restype;
   int doing_friend = 0;
-  struct cp_binding_level *bl;
+  cp_binding_level *bl;
   tree current_function_parms;
   struct c_fileinfo *finfo
     = get_fileinfo (LOCATION_FILE (DECL_SOURCE_LOCATION (decl1)));

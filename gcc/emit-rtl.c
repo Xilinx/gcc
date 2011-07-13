@@ -1334,6 +1334,16 @@ subreg_lowpart_p (const_rtx x)
   return (subreg_lowpart_offset (GET_MODE (x), GET_MODE (SUBREG_REG (x)))
 	  == SUBREG_BYTE (x));
 }
+
+/* Return true if X is a paradoxical subreg, false otherwise.  */
+bool
+paradoxical_subreg_p (const_rtx x)
+{
+  if (GET_CODE (x) != SUBREG)
+    return false;
+  return (GET_MODE_PRECISION (GET_MODE (x))
+	  > GET_MODE_PRECISION (GET_MODE (SUBREG_REG (x))));
+}
 
 /* Return subword OFFSET of operand OP.
    The word number, OFFSET, is interpreted as the word number starting
@@ -5033,7 +5043,8 @@ push_to_sequence (rtx first)
 
   start_sequence ();
 
-  for (last = first; last && NEXT_INSN (last); last = NEXT_INSN (last));
+  for (last = first; last && NEXT_INSN (last); last = NEXT_INSN (last))
+    ;
 
   set_first_insn (first);
   set_last_insn (last);

@@ -1,3 +1,7 @@
+2011-07-12  Diego Novillo  <dnovillo@google.com>
+
+	Merge from trunk rev 176218.
+
 2011-07-06  Gabriel Charette  <gchare@google.com>
 
 	* passes.c (rest_of_decl_compilation): Add FIXME pph comment.
