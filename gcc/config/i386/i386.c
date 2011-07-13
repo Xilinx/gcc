@@ -23036,8 +23036,7 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 	 the shorter movl instead of movabs.  We may want to support
 	 movq for kernel mode, but kernel does not use trampolines at
 	 the moment.  */
-      if (TARGET_X32
-	  || x86_64_zext_immediate_operand (fnaddr, VOIDmode))
+      if (x86_64_zext_immediate_operand (fnaddr, VOIDmode))
 	{
 	  fnaddr = copy_to_mode_reg (DImode, fnaddr);
 
