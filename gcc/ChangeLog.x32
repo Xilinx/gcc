@@ -1,5 +1,13 @@
 2011-07-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	PR middle-end/47727
+	* explow.c (convert_memory_address_addr_space): Permute the
+	conversion and addition if one operand is a constant and we
+	are zero-extending.  Call convert_memory_address_addr_space_1
+	instead convert_memory_address_addr_space.
+
+2011-07-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (x86_output_mi_thunk): Properly support x32.
 
 	* config/i386/i386.md (*addsi_1_zext): Renamed to ...

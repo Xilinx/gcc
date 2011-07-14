@@ -379,27 +379,27 @@ convert_memory_address_addr_space_1 (enum machine_mode to_mode ATTRIBUTE_UNUSED,
 
     case CONST:
       return gen_rtx_CONST (to_mode,
-			    convert_memory_address_addr_space
-			      (to_mode, XEXP (x, 0), as));
+			    convert_memory_address_addr_space_1
+			      (to_mode, XEXP (x, 0), as, no_emit));
       break;
 
     case PLUS:
     case MULT:
       /* For addition we can safely permute the conversion and addition
-	 operation if one operand is a constant and converting the constant
-	 does not change it or if one operand is a constant and we are
-	 using a ptr_extend instruction  (POINTERS_EXTEND_UNSIGNED < 0).
-	 We can always safely permute them if we are making the address
-	 narrower.  */
+	 operation if one operand is a constant and converting the
+	 constant does not change it or if one operand is a constant
+	 and we are using a ptr_extend instruction or zero-extending
+	 (POINTERS_EXTEND_UNSIGNED != 0).  We can always safely permute
+	 them if we are making the address narrower.  */
       if (GET_MODE_SIZE (to_mode) < GET_MODE_SIZE (from_mode)
 	  || (GET_CODE (x) == PLUS
 	      && CONST_INT_P (XEXP (x, 1))
-	      && (XEXP (x, 1) == convert_memory_address_addr_space
-				   (to_mode, XEXP (x, 1), as)
-                 || POINTERS_EXTEND_UNSIGNED < 0)))
+	      && (POINTERS_EXTEND_UNSIGNED != 0
+		  || XEXP (x, 1) == convert_memory_address_addr_space_1
+				      (to_mode, XEXP (x, 1), as, no_emit))))
 	return gen_rtx_fmt_ee (GET_CODE (x), to_mode,
-			       convert_memory_address_addr_space
-				 (to_mode, XEXP (x, 0), as),
+			       convert_memory_address_addr_space_1
+				 (to_mode, XEXP (x, 0), as, no_emit),
 			       XEXP (x, 1));
       break;
 
