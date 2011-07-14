@@ -813,9 +813,6 @@ RUNTESTFLAGS =
 # Extra flags to use when compiling crt{begin,end}.o.
 CRTSTUFF_T_CFLAGS =
 
-# Extra flags to use when compiling [m]crt0.o.
-CRT0STUFF_T_CFLAGS =
-
 # "t" or nothing, for building multilibbed versions of, say, crtbegin.o.
 T =
 
@@ -1995,18 +1992,6 @@ $(T)crtbeginT.o: crtstuff.c $(GCC_PASSES) $(TCONFIG_H) auto-host.h \
 	$(GCC_FOR_TARGET) $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS) \
 	  -c $(srcdir)/crtstuff.c -DCRT_BEGIN -DCRTSTUFFT_O \
 	  -o $(T)crtbeginT$(objext)
-
-# Compile the start modules crt0.o and mcrt0.o that are linked with
-# every program
-$(T)crt0.o: s-crt0 ; @true
-$(T)mcrt0.o: s-crt0; @true
-
-s-crt0:	$(CRT0_S) $(MCRT0_S) $(GCC_PASSES) $(CONFIG_H)
-	$(GCC_FOR_TARGET) $(GCC_CFLAGS) $(CRT0STUFF_T_CFLAGS) \
-	  -o $(T)crt0.o -c $(CRT0_S)
-	$(GCC_FOR_TARGET) $(GCC_CFLAGS) $(CRT0STUFF_T_CFLAGS) \
-	  -o $(T)mcrt0.o -c $(MCRT0_S)
-	$(STAMP) s-crt0
 #
 # Compiling object files from source files.
 
@@ -3412,7 +3397,8 @@ modulo-sched.o : modulo-sched.c $(DDG_H) $(CONFIG_H) $(CONFIG_H) $(SYSTEM_H) \
 haifa-sched.o : haifa-sched.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(SCHED_INT_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) insn-config.h $(FUNCTION_H) \
    $(INSN_ATTR_H) $(DIAGNOSTIC_CORE_H) $(RECOG_H) $(EXCEPT_H) $(TM_P_H) $(TARGET_H) output.h \
-   $(PARAMS_H) $(DBGCNT_H) $(CFGLOOP_H) ira.h $(EMIT_RTL_H) $(COMMON_TARGET_H)
+   $(PARAMS_H) $(DBGCNT_H) $(CFGLOOP_H) ira.h $(EMIT_RTL_H) $(COMMON_TARGET_H) \
+   $(HASHTAB_H)
 sched-deps.o : sched-deps.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(RTL_H) $(SCHED_INT_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) insn-config.h \
    $(FUNCTION_H) $(INSN_ATTR_H) $(DIAGNOSTIC_CORE_H) $(RECOG_H) $(EXCEPT_H) cselib.h \
@@ -5033,7 +5019,7 @@ check_p_subdirs=$(wordlist 1,$(words $(check_$*_parallelize)),$(check_p_numbers)
 
 # For parallelized check-% targets, this decides whether parallelization
 # is desirable (if -jN is used and RUNTESTFLAGS doesn't contain anything
-# but optionally --target_board argument).  If it is desirable,
+# but optional --target_board or --tool_opts arguments).  If it is desirable,
 # recursive make is run with check-parallel-$lang{,1,2,3,4,5} etc. goals,
 # which can be executed in parallel, as they are run in separate directories.
 # check-parallel-$lang{1,2,3,4,5} etc. goals invoke runtest with the longest
@@ -5050,7 +5036,7 @@ check_p_subdirs=$(wordlist 1,$(words $(check_$*_parallelize)),$(check_p_numbers)
 # to lang_checks_parallelized variable and define check_$lang_parallelize
 # variable (see above check_gcc_parallelize description).
 $(lang_checks_parallelized): check-% : site.exp
-	@if [ -z "$(filter-out --target_board=%, $(RUNTESTFLAGS))" ] \
+	@if [ -z "$(filter-out --target_board=%,$(filter-out --tool_opts%,$(RUNTESTFLAGS)))" ] \
 	    && [ "$(filter -j, $(MFLAGS))" = "-j" ]; then \
 	  $(MAKE) TESTSUITEDIR="$(TESTSUITEDIR)" RUNTESTFLAGS="$(RUNTESTFLAGS)" \
 	    check-parallel-$* \

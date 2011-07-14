@@ -188,7 +188,6 @@ proc g++_init { args } {
     global TOOL_EXECUTABLE TOOL_OPTIONS
     global GXX_UNDER_TEST
     global TESTING_IN_BUILD_TREE
-    global target_triplet
     global gcc_warning_prefix
     global gcc_error_prefix
 
@@ -263,7 +262,7 @@ proc g++_init { args } {
     set gcc_warning_prefix "warning:"
     set gcc_error_prefix "error:"
 
-    if { [string match "*-*-darwin*" $target_triplet] } {
+    if { [istarget *-*-darwin*] } {
 	lappend ALWAYS_CXXFLAGS "ldflags=-multiply_defined suppress"
        }
 
@@ -307,29 +306,4 @@ proc g++_target_compile { source dest type options } {
     set result [target_compile $source $dest $type $options]
 
     return $result
-}
-
-#
-# ${tool}_option_help
-#
-
-proc ${tool}_option_help { } {
-    send_user " --additional_options,OPTIONS\t\tUse OPTIONS to compile the testcase files. OPTIONS should be comma-separated.\n"
-}
-
-#
-# ${tool}_option_proc
-#
-
-proc ${tool}_option_proc { option } {
-    if [regexp "^--additional_options," $option] {
-	global gpp_compile_options
-	regsub "--additional_options," $option "" option
-	foreach x [split $option ","] {
-	    lappend gpp_compile_options "additional_flags=$x"
-	}
-	return 1
-    } else {
-	return 0
-    }
 }

@@ -1,3 +1,63 @@
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/crtprec.c: New file.
+	* config/i386/t-crtpc: Use $(srcdir) to refer to crtprec.c.
+	* config.host (i[34567]86-*-darwin*): Add i386/t-crtpc to tmake_file.
+	Add crtprec32.o, crtprec64.o, crtprec80.o to extra_parts.
+	(x86_64-*-darwin*): Likewise.
+	(i[34567]86-*-solaris2*: Likewise.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/alpha/crtfastmath.c: New file.
+	* config/i386/crtfastmath.c: New file.
+	* config/ia64/crtfastmath.c: New file.
+	* config/mips/crtfastmath.c: New file.
+	* config/sparc/crtfastmath.c: New file.
+
+	* config/t-crtfm (crtfastmath.o): Use $(srcdir) to refer to
+	crtfastmath.c.
+	Add -frandom-seed=gcc-crtfastmath.
+	* config/alpha/t-crtfm: Remove.
+	* config/i386/t-crtfm: Use $(srcdir) to refer to crtfastmath.c.
+	* config/ia64/t-ia64 (crtfastmath.o): Remove.
+
+	* config.host (alpha*-*-linux*): Replace alpha/t-crtfm by t-crtfm.
+	(alpha*-dec-osf5.1*): Likewise.
+	(alpha*-*-freebsd*): Add t-crtfm to tmake_file.
+	Add crtfastmath.o to extra_parts.
+	(i[34567]86-*-darwin*): Add i386/t-crtfm to tmake_file.
+	Add crtfastmath.o to extra_parts.
+	(x86_64-*-darwin*): Likewise.
+	(x86_64-*-mingw*): Likewise.
+	(ia64*-*-elf*): Add t-crtfm to tmake_file.
+	(ia64*-*-freebsd*): Likewise.
+	(ia64*-*-linux*): Likewise.
+	(sparc64-*-freebsd*): Add t-crtfm to tmake_file.
+	Add crtfastmath.o to extra_parts.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/darwin-crt3.o: New file.
+	* config/rs6000/darwin-crt2.c: New file.
+	* config/t-darwin: New file.
+	* config/rs6000/t-darwin (DARWIN_EXTRA_CRT_BUILD_CFLAGS): New variable.
+	(crt2.o): New rule.
+	* config.host (*-*-darwin*): Add crt3.o to extra_parts.
+	(powerpc-*-darwin*): Add crt2.o to extra_parts.
+	(powerpc64-*-darwin*): Likewise.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/netware-crt0.c: New file.
+	* config/i386/t-nwld: Rename to ...
+	* config/i386/t-slibgcc-nwld: ... this.
+	* config/i386/t-nwld: New file.
+	* config.host (i[3456x]86-*-netware*): Add i386/t-slibgcc-nwld to
+	tmake_file.
+	Add crt0.o, libgcc.def, libc.def, libcpre.def, posixpre.def to
+	extra_parts.
+
 2011-07-11  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* configure.ac (i?86-*-solaris2*): Use libgcc copy of

@@ -3731,9 +3731,8 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
     case ARRAY_TYPE:
       {
 	struct gimplify_init_ctor_preeval_data preeval_data;
-	HOST_WIDE_INT num_type_elements, num_ctor_elements;
-	HOST_WIDE_INT num_nonzero_elements;
-	bool cleared, valid_const_initializer;
+	HOST_WIDE_INT num_ctor_elements, num_nonzero_elements;
+	bool cleared, complete_p, valid_const_initializer;
 
 	/* Aggregate types must lower constructors to initialization of
 	   individual elements.  The exception is that a CONSTRUCTOR node
@@ -3750,7 +3749,7 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	   can only do so if it known to be a valid constant initializer.  */
 	valid_const_initializer
 	  = categorize_ctor_elements (ctor, &num_nonzero_elements,
-				      &num_ctor_elements, &cleared);
+				      &num_ctor_elements, &complete_p);
 
 	/* If a const aggregate variable is being initialized, then it
 	   should never be a lose to promote the variable to be static.  */
@@ -3788,26 +3787,29 @@ gimplify_init_constructor (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	   parts in, then generate code for the non-constant parts.  */
 	/* TODO.  There's code in cp/typeck.c to do this.  */
 
-	num_type_elements = count_type_elements (type, true);
+	if (int_size_in_bytes (TREE_TYPE (ctor)) < 0)
+	  /* store_constructor will ignore the clearing of variable-sized
+	     objects.  Initializers for such objects must explicitly set
+	     every field that needs to be set.  */
+	  cleared = false;
+	else if (!complete_p)
+	  /* If the constructor isn't complete, clear the whole object
+	     beforehand.
 
-	/* If count_type_elements could not determine number of type elements
-	   for a constant-sized object, assume clearing is needed.
-	   Don't do this for variable-sized objects, as store_constructor
-	   will ignore the clearing of variable-sized objects.  */
-	if (num_type_elements < 0 && int_size_in_bytes (type) >= 0)
+	     ??? This ought not to be needed.  For any element not present
+	     in the initializer, we should simply set them to zero.  Except
+	     we'd need to *find* the elements that are not present, and that
+	     requires trickery to avoid quadratic compile-time behavior in
+	     large cases or excessive memory use in small cases.  */
 	  cleared = true;
-	/* If there are "lots" of zeros, then block clear the object first.  */
-	else if (num_type_elements - num_nonzero_elements
+	else if (num_ctor_elements - num_nonzero_elements
 		 > CLEAR_RATIO (optimize_function_for_speed_p (cfun))
-		 && num_nonzero_elements < num_type_elements/4)
+		 && num_nonzero_elements < num_ctor_elements / 4)
+	  /* If there are "lots" of zeros, it's more efficient to clear
+	     the memory and then set the nonzero elements.  */
 	  cleared = true;
-	/* ??? This bit ought not be needed.  For any element not present
-	   in the initializer, we should simply set them to zero.  Except
-	   we'd need to *find* the elements that are not present, and that
-	   requires trickery to avoid quadratic compile-time behavior in
-	   large cases or excessive memory use in small cases.  */
-	else if (num_ctor_elements < num_type_elements)
-	  cleared = true;
+	else
+	  cleared = false;
 
 	/* If there are "lots" of initialized elements, and all of them
 	   are valid address constants, then the entire initializer can
@@ -6785,21 +6787,19 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 
 	case TRUTH_NOT_EXPR:
 	  {
-	    tree org_type = TREE_TYPE (*expr_p);
-
+	    tree orig_type = TREE_TYPE (*expr_p);
 	    *expr_p = gimple_boolify (*expr_p);
-	    if (org_type != boolean_type_node)
+	    if (!useless_type_conversion_p (orig_type, TREE_TYPE (*expr_p)))
 	      {
-		*expr_p = fold_convert (org_type, *expr_p);
+		*expr_p = fold_convert_loc (saved_location, orig_type, *expr_p);
 		ret = GS_OK;
 		break;
 	      }
+	    ret = gimplify_expr (&TREE_OPERAND (*expr_p, 0), pre_p, post_p,
+				 is_gimple_val, fb_rvalue);
+	    recalculate_side_effects (*expr_p);
+	    break;
 	  }
-
-	  ret = gimplify_expr (&TREE_OPERAND (*expr_p, 0), pre_p, post_p,
-			       is_gimple_val, fb_rvalue);
-	  recalculate_side_effects (*expr_p);
-	  break;
 
 	case ADDR_EXPR:
 	  ret = gimplify_addr_expr (expr_p, pre_p, post_p);
@@ -7225,40 +7225,36 @@ gimplify_expr (tree *expr_p, gimple_seq *pre_p, gimple_seq *post_p,
 	case TRUTH_OR_EXPR:
 	case TRUTH_XOR_EXPR:
 	  {
-	    tree org_type = TREE_TYPE (*expr_p);
-	    
+	    tree orig_type = TREE_TYPE (*expr_p);
 	    *expr_p = gimple_boolify (*expr_p);
-
-	    /* This shouldn't happen, but due fold-const (and here especially
-	       fold_truth_not_expr) happily uses operand type and doesn't
-	       automatically uses boolean_type as result, we need to keep
-	       orignal type.  */
-	    if (org_type != boolean_type_node)
+	    if (!useless_type_conversion_p (orig_type, TREE_TYPE (*expr_p)))
 	      {
-		*expr_p = fold_convert (org_type, *expr_p);
+		*expr_p = fold_convert_loc (saved_location, orig_type, *expr_p);
 		ret = GS_OK;
 		break;
 	      }
-	  }
 
-	  /* With two-valued operand types binary truth expressions are
-	     semantically equivalent to bitwise binary expressions.  Canonicalize
-	     them to the bitwise variant.  */	switch (TREE_CODE (*expr_p))
-	  {
-	  case TRUTH_AND_EXPR:
-	    TREE_SET_CODE (*expr_p, BIT_AND_EXPR);
-	    break;
-	  case TRUTH_OR_EXPR:
-	    TREE_SET_CODE (*expr_p, BIT_IOR_EXPR);
-	    break;
-	  case TRUTH_XOR_EXPR:
-	    TREE_SET_CODE (*expr_p, BIT_XOR_EXPR);
-	    break;
-	  default:
-	    break;
+	  /* Boolified binary truth expressions are semantically equivalent
+	     to bitwise binary expressions.  Canonicalize them to the
+	     bitwise variant.  */
+	    switch (TREE_CODE (*expr_p))
+	      {
+	      case TRUTH_AND_EXPR:
+		TREE_SET_CODE (*expr_p, BIT_AND_EXPR);
+		break;
+	      case TRUTH_OR_EXPR:
+		TREE_SET_CODE (*expr_p, BIT_IOR_EXPR);
+		break;
+	      case TRUTH_XOR_EXPR:
+		TREE_SET_CODE (*expr_p, BIT_XOR_EXPR);
+		break;
+	      default:
+		break;
+	      }
+
+	    /* Continue classified as tcc_binary.  */
+	    goto expr_2;
 	  }
-	  /* Classified as tcc_expression.  */
-	  goto expr_2;
 
 	case FMA_EXPR:
 	  /* Classified as tcc_expression.  */

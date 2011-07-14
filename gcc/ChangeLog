@@ -1,3 +1,394 @@
+2011-07-14  Richard Guenther  <rguenther@suse.de>
+
+	* fold-const.c (fold_binary_loc): Convert the !bool_var result,
+	not bool_var when folding bool_var != 1 or bool_var == 0.
+
+2011-07-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* haifa-sched.c (schedule_insns): Remove outdated comment.
+	(schedule_block): When computing a known value for TODO_SPEC,
+	just set it rather than using logical operations.
+	(try_ready): Likewise.  Use a local variable rather than a
+	pointer to TODO_SPEC.  Reorder an if statement to move the
+	easy case to the then block.
+	* sched-deps.c (dep_spec_p): New static function.
+	(update_dep): Use it to decide whether to call
+	change_spec_dep_to_hard.
+	(get_back_and_forw_lists): Use it.
+	(sd_resolve_dep): Likewise.
+	(init_dep): If !USE_DEPS_LIST, use zero to initialize status.
+	(haifa_note_mem_dep): Likewise.
+	(check_dep): Likewise.
+	(sd_add_dep): Also clear SPECULATIVE bits if not DO_SPECULATION.
+	(sched_free_deps): Free in two passes.
+
+2011-07-14  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	PR middle-end/49736
+	* expr.c (all_zeros_p): Undo bogus part of last change.
+
+2011-07-14  Matthias Klose <doko@ubuntu.com>
+
+	* doc/extend.texi (optimize attribute): Fix typo.
+
+2011-07-14  Richard Guenther  <rguenther@suse.de>
+
+	* gimplify.c (gimplify_expr): Only do required conversions.
+
+2011-07-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/43746
+	* config/avr/elf.h (TARGET_ASM_SELECT_SECTION): Remove,
+	i.e. use default_elf_select_section.
+	(TARGET_HAVE_SWITCHABLE_BSS_SECTIONS): Remove.
+	(READONLY_DATA_SECTION_ASM_OP): Remove.
+	(TARGET_ASM_NAMED_SECTION): Move from here...
+	* config/avr/avr.c: ...to here.
+	(avr_asm_init_sections): Set unnamed callback of
+	readonly_data_section.
+	(avr_asm_named_section): Make static.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR bootstrap/49739
+	* config.gcc (extra_parts): Add crtprec32.o crtprec64.o crtp
+	rec80.o crtfastmath.o for Linux/x86.
+
+2011-07-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* haifa-sched.c: Include "hashtab.h"
+	(sched_no_dce): New global variable.
+	(INSN_EXACT_TICK, INSN_TICK_ESTIMATE, FEEDS_BACKTRACK_INSN,
+	SHADOW_P): New macros.
+	(last_clock_var, cycle_issued_insns): Move declarations.
+	(must_backtrack): New static variable.
+	(struct delay_pair): New structure.
+	(delay_htab, delay_htab_i2): New static variables.
+	(delay_hash_i1, delay_hash_i2, delay_i1_eq, delay_i2_eq,
+	record_delay_slot_pair, pair_delay, add_delay_dependencies): New
+	functions.
+	(dep_cost_1): If delay pairs exist, try to look up the insns and
+	use the correct pair delay if we find them.
+	(rank-for_schedule): Tweak priority for insns that must be scheduled
+	soon to avoid backtracking.
+	(queue_insn): Detect conditions which force backtracking.
+	(ready_add): Likewise.
+	(struct sched_block_state): Add member shadows_only_p.
+	(struct haifa_save_data): New structure.
+	(backtrack_queue): New static variable.
+	(mark_backtrack_feeds, copy_insn_list, save_backtrack_point,
+	unschedule_insns_until, restore_last_backtrack_point,
+	free_topmost_backtrack_point, free_backtrack_queue,
+	estimate_insn_tick, estimate_shadow_tick): New functions.
+	(prune_ready_list): New arg shadows_only_p.  All callers changed.
+	If true, remove everything that isn't SHADOW_P.  Look up delay
+	pairs and estimate ticks to avoid scheduling the first insn too
+	early.
+	(verify_shadows): New function.
+	(schedule_block): Add machinery to enable backtracking.
+	(sched_init): Take sched_no_dce into account when setting
+	DF_LR_RUN_DCE.
+	(free_delay_pairs): New function.
+	(init_h_i_d): Initialize INSN_EXACT_TICK.
+	* Makefile.in (haifa-sched.o): Add $(HASHTAB_H).
+	* sched-deps.c (sd_unresolve_dep): New function.
+	* sched-int. (struct haifa_sched_info): New fields save_state
+	and restore_state.
+	(struct _haifa_insn_data): New fields exact_tick, tick_estimate,
+	feeds_backtrack_insn and shadow_p.
+	(DO_BACKTRACKING): New value in enum SCHED_FLAGS.
+	(sched_no_dce): Declare variable.
+	(record_delay_slot_pair, free_delay_pairs, add_delay_dependencies,
+	sd_unresolve_dep): Declare functions.
+	* modulo-sched.c (sms_sched_info): Clear the two new fields.
+	* sched-rgn.c (rgn_const_sched_info): Likewise.
+	* sel-sched-ir.c (sched_sel_haifa_sched_info): Likewise.
+	* sched-ebb.c (save_ebb_state, restore_ebb_state): New functions.
+	(ebb_sched_info): Add them for the two new fields.
+	(add_deps_for_risky_insns): Call add_delay_dependencies.
+
+2011-07-13  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000.opt (-mpointers-to-nested-functions):
+	Rename -mr11.
+	* config/rs6000/rs6000.c (rs6000_trampoline_init): Ditto.
+	(rs6000_call_indirect_aix): Ditto.
+	* config/rs6000/rs6000.md (call_indirect_aix<ptrsize>): Ditto.
+	(call_indirect_aix<ptrsize>_internal): Ditto.
+	(call_indirect_aix<ptrsize>_nor11): Ditto.
+	(call_indirect_aix<ptrsize>_internal2): Ditto.
+	(call_value_indirect_aix<ptrsize>): Ditto.
+	(call_value_indirect_aix<ptrsize>_internal): Ditto.
+	(call_value_indirect_aix<ptrsize>_nor11): Ditto.
+	(call_value_indirect_aix<ptrsize>_internal2): Ditto.
+	* doc/invoke.texi (RS/6000 and PowerPC Options): Ditto.
+
+2011-07-13  Jason Merrill  <jason@redhat.com>
+
+	* Makefile.in ($(lang_checks_parallelized)): Allow --tool_opts.
+
+2011-07-13  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (spu_init_libfuncs): Install __clrsbdi2.
+	* config/spu/spu.md ("clrsb<mode>2"): New expander.
+
+2011-07-13  Thomas Schwinge  <thomas@schwinge.name>
+
+	* acinclude.m4 (gcc_GAS_CHECK_FEATURE): Use AS_ECHO instead of echo.
+	* configure: Regenerate.
+
+2011-07-13  Ulrich Weigand  <Ulrich.Weigand@de.ibm.com>
+
+	* config/spu/spu.c (TARGET_ASM_FILE_START): Do not define.
+	(asm_file_start): Remove.
+	(spu_machine_dependent_reorg): Call compute_bb_for_insn and
+	free_bb_for_insn around code that modifies insns before
+	restarting df analysis.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR target/49541
+	* config/sol2.h (LIB_SPEC): Simplify.
+	Move LIB_THREAD_LDFLAGS_SPEC ...
+	(LINK_SPEC): ... here.
+
+2011-07-13  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* haifa-sched.c (struct sched_block_state): New.
+	(schedule_block): Move some local variables into such a structure.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/i386/crtprec.c: Move to ../libgcc/config/i386.
+	* config/i386/t-crtpc: Remove.
+	* config/t-darwin (EXTRA_MULTILIB_PARTS): Remove.
+	* config.gcc (i[34567]86-*-darwin*): Remove i386/t-crtpc from
+	tmake_file.
+	(x86_64-*-darwin*): Likewise.
+	(i[34567]86-*-linux*): Likewise.
+	(x86_64-*-linux*): Likewise.
+
+	* config/i386/sol2.h (ENDFILE_SPEC): Redefine.
+	Handle -mpc32, -mpc64, -mpc80.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/alpha/crtfastmath.c: Move to ../libgcc/config/alpha.
+	* config/alpha/t-crtfm: Remove.
+	* config/i386/crtfastmath.c: Move to ../libgcc/config/i386.
+	* config/i386/t-crtfm: Remove.
+	* config/ia64/crtfastmath.c: Move to ../libgcc/config/ia64.
+	* config/mips/crtfastmath.c: Move to ../libgcc/config/mips.
+	* config/sparc/crtfastmath.c: Move to ../libgcc/config/sparc.
+	* config/sparc/t-crtfm: Remove.
+
+	* config.gcc (alpha*-*-linux*): Remove alpha/t-crtfm from tmake_file.
+	(alpha*-*-freebsd*): Likewise.
+	(i[34567]86-*-darwin*): Remove i386/t-crtfm from tmake_file.
+	(x86_64-*-darwin*): Likewise.
+	(i[34567]86-*-linux*): Likewise.
+	(x86_64-*-linux*): Likewise.
+	(x86_64-*-mingw*): Likewise.
+	(ia64*-*-elf*): Remove crtfastmath.o from extra_parts.
+	(ia64*-*-freebsd*): Likewise.
+	(ia64*-*-linux*): Likewise.
+	(mips64*-*-linux*): Likewise.
+	(mips*-*-linux*): Likewise.
+	(sparc-*-linux*): Remove sparc/t-crtfm from tmake_file.
+	(sparc64-*-linux*): Likewise.
+	(sparc64-*-freebsd*): Likewise.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config/darwin-crt2.c: Move to ../libgcc/config/rs6000.
+	* config/darwin-crt3.c: Move to ../libgcc/config.
+	* config/t-darwin (EXTRA_MULTILIB_PARTS): Remove.
+	($(T)crt3$(objext)): Remove.
+	* config/rs6000/t-darwin (DARWIN_EXTRA_CRT_BUILD_CFLAGS): Remove.
+	($(T)crt2$(objext)): Remove.
+	* config.gcc (powerpc-*-darwin*): Remove extra_parts.
+	(powerpc64-*-darwin*): Likewise.
+
+2011-07-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (x86_output_mi_thunk): Support ptr_mode
+	!= Pmode.
+
+	* config/i386/i386.md (*addsi_1_zext): Renamed to ...
+	(addsi_1_zext): This.
+
+2011-07-13  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* doc/tm.texi.in (TARGET_ASM_MERGEABLE_RODATA_PREFIX): Add hook.
+	* doc/tm.texi: Regenerate.
+	* target.def (mergeable_rodata_prefix: New defhookpod.
+	* varasm.c (mergeable_string_section, mergeable_constant_section):
+	Use it. Allocate name with alloca.
+
+2011-07-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* doc/invoke.texi (x86): Remove -mfused-madd and add -mfma.
+
+2011-07-13  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* tree-vect-loop-manip.c (vect_create_cond_for_alias_checks): Tighten
+	overlap check.
+
+2011-07-13  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* tree.h (categorize_ctor_elements): Remove comment.  Fix long line.
+	(count_type_elements): Delete.
+	(complete_ctor_at_level_p): Declare.
+	* expr.c (flexible_array_member_p): New function, split out from...
+	(count_type_elements): ...here.  Make static.  Replace allow_flexarr
+	parameter with for_ctor_p.  When for_ctor_p is true, return the
+	number of elements that should appear in the top-level constructor,
+	otherwise return an estimate of the number of scalars.
+	(categorize_ctor_elements): Replace p_must_clear with p_complete.
+	(categorize_ctor_elements_1): Likewise.  Use complete_ctor_at_level_p.
+	(complete_ctor_at_level_p): New function, borrowing union logic
+	from old categorize_ctor_elements_1.
+	(mostly_zeros_p): Return true if the constructor is not complete.
+	(all_zeros_p): Update call to categorize_ctor_elements.
+	* gimplify.c (gimplify_init_constructor): Update call to
+	categorize_ctor_elements.  Don't call count_type_elements.
+	Unconditionally prevent clearing for variable-sized types,
+	otherwise rely on categorize_ctor_elements to detect
+	incomplete initializers.
+
+2011-07-13  Richard Guenther  <rguenther@suse.de>
+
+	* tree-vrp.c (simplify_conversion_using_ranges): Make sure
+	the final type is integral.
+
+2011-07-13  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* sched-int.h (struct _dep): Add member cost.
+	(DEP_COST, UNKNOWN_DEP_COST): New macros.
+	* sched-deps.c (init_dep_1): Initialize DEP_COST.
+	* haifa-sched.c (dep_cost_1): Use and set DEP_COST.
+	(sched_change_pattern): Reset it for dependent insns.
+
+2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* Makefile.in (CRT0STUFF_T_CFLAGS): Remove.
+	($(T)crt0.o, $(T)mcrt0.o, s-crt0): Remove.
+	* config/i386/netware-crt0.c: Move to ../libgcc/config/i386.
+	* config/i386/t-nwld (CRTSTUFF_T_CFLAGS, CRT0STUFF_T_CFLAGS): Remove.
+	(CRT0_S, MCRT0_S): Remove.
+	($(T)libgcc.def, $(T)libc.def, $(T)libcpre.def, $(T)posixpre.def):
+	Remove.
+	(s-crt0): Remove.
+	* config.gcc (i[3456x]86-*-netware*): Remove extra_parts.
+
+2011-07-12  Eric Botcazou  <ebotcazou@adacore.com>
+
+	* cse.c (insert_with_costs): Put semi-colon after empty loop body
+	on the next line.
+	* emit-rtl.c (push_to_sequence): Likewise.
+	* haifa-sched.c (max_issue): Likewise.
+	* matrix-reorg.c (add_allocation_site): Likewise.
+	* postreload-gcse.c (eliminate_partially_redundant_load): Likewise.
+	* reload.c (alternative_allows_const_pool_ref): Likewise.
+	* sched-rgn.c (rgn_add_block): Likewise.
+	(rgn_fix_recovery_cfg): Likewise.
+	* tree.c (attribute_list_contained): Likewise.
+
+2011-07-12  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c: Tidy processor feature bitmasks.
+	(m_P4_NOCONA): New.
+
+2011-07-12  Andrew Pinski  <pinskia@gmail.com>
+
+	PR rtl-opt/49474
+	* cprop.c (find_implicit_sets): Correct the condition.
+
+2011-07-12  Richard Henderson  <rth@redhat.com>
+
+	PR target/49713
+	* dwarf2out.h (dwarf_frame_regnum): Remove.
+	* dwarf2out.c (based_loc_descr): Revert last change.  Initialize regno
+	earlier from DWARF_FRAME_REGNUM.  Never use dbx_reg_number.
+	* dwarf2cfi.c (dw_stack_pointer_regnum, dw_frame_pointer_regnum): New.
+	(execute_dwarf2_frame): Initialize them.
+	(DW_STACK_POINTER_REGNUM, DW_FRAME_POINTER_REGNUM): Remove; replace
+	users of the macros with the variables.
+	(expand_builtin_dwarf_sp_column): Revert last change.
+	(expand_builtin_init_dwarf_reg_sizes): Likewise.  Compute the
+	result of DWARF_FRAME_REGNUM into a local variable.
+
+2011-07-12  Richard Henderson  <rth@redhat.com>
+
+	PR target/49714
+	* config/i386/i386.c (x86_output_mi_thunk): Use
+	machopic_indirect_call_target instead of machopic_indirection_name
+	directly.
+
+2011-07-12  Laurent GUERBY  <laurent@guerby.net>
+	    Eric Botcazou  <ebotcazou@adacore.com>
+
+	* prefix.h: Wrap up in extern "C" block.
+
+2011-07-12  Harsha Jagasia  <harsha.jagasia@amd.com>
+
+	AMD bdver2 Enablement
+	* config.gcc (i[34567]86-*-linux* | ...): Add bdver2.
+	(case ${target}): Add bdver2.
+	* config/i386/driver-i386.c (host_detect_local_cpu): Let
+	-march=native recognize bdver2 processors.
+	* config/i386/i386-c.c (ix86_target_macros_internal): Add
+	bdver2 def_and_undef
+	* config/i386/i386.c (struct processor_costs bdver2_cost): New
+	bdver2 cost table.
+	(m_BDVER2): New definition.
+	(m_AMD_MULTIPLE): Includes m_BDVER2.
+	(initial_ix86_tune_features): Add bdver2 tuning.
+	(processor_target_table): Add bdver2 entry.
+	(static const char *const cpu_names): Add bdver2 entry.
+	(ix86_option_override_internal): Add bdver2 instruction sets.
+	(ix86_issue_rate): Add bdver2.
+	(ix86_adjust_cost): Add bdver2.
+	(has_dispatch): Add bdver2.
+	* config/i386/i386.h (TARGET_BDVER2): New definition.
+	(enum target_cpu_default): Add TARGET_CPU_DEFAULT_bdver2.
+	(enum processor_type): Add PROCESSOR_BDVER2.
+	* config/i386/i386.md (define_attr "cpu"): Add bdver2.
+	* config/i386/i386.opt ( mdispatch-scheduler): Add bdver2 to
+	description.
+
+2011-07-12  Richard Henderson  <rth@redhat.com>
+
+	PR target/49714
+	* config/i386/i386.c (x86_output_mi_thunk): Fix mode for
+	destination address in memory on some paths.
+
+2011-07-12  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* doc/tm.texi.in (FUNCTION_ARG_PADDING): Mention
+	TARGET_FUNCTION_ARG_ROUND_BOUNDARY.
+	(TARGET_FUNCTION_ARG_ROUND_BOUNDARY): Add hook.
+	* function.c (locate_and_pad_parm): Take it into account.
+	* target.def (function_arg_round_boundary): New hook.
+	* targhooks.c (default_function_arg_round_boundary): New function.
+	* targhooks.h (default_function_arg_round_boundary): Declare.
+	* doc/tm.texi: Regenerate.
+
+2011-07-12  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-copyrename.c (rename_ssa_copies): Zero statistics.
+	Do not perform no-op changes.
+
+2011-07-12  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* config/arm/predicates.md (neon_struct_operand): Make a normal
+	predicate.
+	(neon_struct_or_register_operand): New predicate.
+	* config/arm/neon.md (movmisalign<mode>): Replace predicates
+	with neon_struct_or_register_operand.
+	(*movmisalign<mode>_neon_store, *movmisalign<mode>_neon_load): Use
+	neon_struct_operand instead of memory_operand.
+
 2011-07-12  Martin Jambor  <mjambor@suse.cz>
 
 	* cgraph.h (cgraph_get_node_or_alias): Removed declaration.
