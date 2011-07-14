@@ -29697,8 +29697,8 @@ x86_output_mi_thunk (FILE *file,
       tmp = gen_rtx_REG (Pmode, tmp_regno);
 
       this_mem = gen_rtx_MEM (ptr_mode, this_reg);
-      if (Pmode == DImode && ptr_mode == SImode)
-	this_mem = gen_rtx_ZERO_EXTEND (DImode, this_mem);
+      if (Pmode != ptr_mode)
+	this_mem = gen_rtx_ZERO_EXTEND (Pmode, this_mem);
       emit_move_insn (tmp, this_mem);
 
       /* Adjust the this parameter.  */
@@ -29712,9 +29712,10 @@ x86_output_mi_thunk (FILE *file,
 	}
 
       vcall_mem = gen_rtx_MEM (ptr_mode, vcall_addr);
-      if (Pmode == DImode && ptr_mode == SImode)
+      if (Pmode != ptr_mode)
 	emit_insn (gen_addsi_1_zext (this_reg,
-				     gen_rtx_REG (SImode, REGNO (this_reg)),
+				     gen_rtx_REG (ptr_mode,
+						  REGNO (this_reg)),
 				     vcall_mem));
       else
 	emit_insn (ix86_gen_add3 (this_reg, this_reg, vcall_mem));

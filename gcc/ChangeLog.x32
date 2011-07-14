@@ -1,3 +1,8 @@
+2011-07-13  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (x86_output_mi_thunk): Check Pmode !=
+	ptr_mode for x32.
+
 2011-07-10  H.J. Lu  <hongjiu.lu@intel.com>
 
 	PR middle-end/47727
