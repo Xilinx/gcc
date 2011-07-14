@@ -8567,7 +8567,7 @@ set_up_extended_ref_temp (tree decl, tree expr, tree *cleanup, tree *initp)
     }
   else
     {
-      rest_of_decl_compilation (var, /*toplev=*/1, at_eof);
+      cp_rest_of_decl_compilation (var, /*toplev=*/1, at_eof);
       if (TYPE_HAS_NONTRIVIAL_DESTRUCTOR (type))
 	static_aggregates = tree_cons (NULL_TREE, var,
 				       static_aggregates);

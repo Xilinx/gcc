@@ -1,6 +1,7 @@
 #ifndef X0HARDLOOKUP_H
 #define X0HARDLOOKUP_H
 struct V { int a; static int b;};
+float X;
 namespace N {
    int V;
    struct C { };

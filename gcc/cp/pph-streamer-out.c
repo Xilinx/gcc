@@ -31,12 +31,19 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "version.h"
 #include "cppbuiltin.h"
+#include "cgraph.h"
 
 /* FIXME pph.  This holds the FILE handle for the current PPH file
    that we are writing.  It is necessary because the LTO callbacks do
    not allow passing a FILE handle to them.  */
 static FILE *current_pph_file = NULL;
 
+/* List of declarations to register with the middle end.  This is
+   collected as the compiler instantiates symbols and functions.  Once
+   we finish parsing the header file, this array is written out to the
+   PPH image.  This way, the reader will be able to instantiate these
+   symbols in the same order that they were instantiated originally.  */
+static VEC(tree,heap) *decls_to_register = NULL;
 
 /* Callback for packing value fields in ASTs.  BP is the bitpack 
    we are packing into.  EXPR is the tree to pack.  */
@@ -603,24 +610,19 @@ pph_out_chained_tree (pph_stream *stream, tree t, bool ref_p)
 
 /* Output a chain of nodes to STREAM starting with FIRST.  Skip any
    nodes that do not match FILTER.  REF_P is true if nodes in the chain
-   should be emitted as references.  Stream the chain in the reverse order
-   if REVERSE is true.*/
+   should be emitted as references.  */
 
 static void
 pph_out_chain_filtered (pph_stream *stream, tree first, bool ref_p,
-			   enum chain_filter filter, bool reverse_p)
+			   enum chain_filter filter)
 {
   unsigned count;
-  int i;
   tree t;
-  VEC(tree,gc) *reverse_list = NULL;
 
   /* Special case.  If the caller wants no filtering, it is much
      faster to just call pph_out_chain directly.  */
   if (filter == NONE)
     {
-      if (reverse_p)
-	nreverse (first);
       pph_out_chain (stream, first, ref_p);
       return;
     }
@@ -634,15 +636,6 @@ pph_out_chain_filtered (pph_stream *stream, tree first, bool ref_p,
     }
   pph_out_uint (stream, count);
 
-  /* We cannot use the actual chain and simply reverse that before
-     streaming out below as there are other chains being streamed out
-     as part of streaming the trees in the current chain and this
-     creates conflicts. Thus, we will create an array containing all
-     the trees we want to stream out and stream that backwards without
-     altering the chain itself.  */
-  if (reverse_p && count > 0)
-    reverse_list = VEC_alloc (tree, gc, count);
-
   /* Output all the nodes that match the filter.  */
   for (t = first; t; t = TREE_CHAIN (t))
     {
@@ -650,15 +643,8 @@ pph_out_chain_filtered (pph_stream *stream, tree first, bool ref_p,
       if (filter == NO_BUILTINS && DECL_P (t) && DECL_IS_BUILTIN (t))
 	continue;
 
-      if (reverse_p)
-	VEC_quick_push (tree, reverse_list, t);
-      else
-	pph_out_chained_tree (stream, t, ref_p);
-    }
-
-  if (reverse_p && count > 0)
-    FOR_EACH_VEC_ELT_REVERSE (tree, reverse_list, i, t)
       pph_out_chained_tree (stream, t, ref_p);
+    }
 }
 
 
@@ -676,14 +662,13 @@ pph_out_binding_level (pph_stream *stream, cp_binding_level *bl, bool ref_p)
   if (!pph_out_start_record (stream, bl))
     return;
 
-  pph_out_chain_filtered (stream, bl->names, ref_p, NO_BUILTINS, true);
-  pph_out_chain_filtered (stream, bl->namespaces, ref_p, NO_BUILTINS, true);
+  pph_out_chain_filtered (stream, bl->names, ref_p, NO_BUILTINS);
+  pph_out_chain_filtered (stream, bl->namespaces, ref_p, NO_BUILTINS);
 
   pph_out_tree_vec (stream, bl->static_decls, ref_p);
 
-  pph_out_chain_filtered (stream, bl->usings, ref_p, NO_BUILTINS, true);
-  pph_out_chain_filtered (stream, bl->using_directives, ref_p, NO_BUILTINS,
-			  true);
+  pph_out_chain_filtered (stream, bl->usings, ref_p, NO_BUILTINS);
+  pph_out_chain_filtered (stream, bl->using_directives, ref_p, NO_BUILTINS);
 
   pph_out_uint (stream, VEC_length (cp_class_binding, bl->class_shadowed));
   FOR_EACH_VEC_ELT (cp_class_binding, bl->class_shadowed, i, cs)
@@ -853,6 +838,7 @@ pph_out_struct_function (pph_stream *stream, struct function *fn, bool ref_p)
   if (!pph_out_start_record (stream, fn))
     return;
 
+  pph_out_tree (stream, fn->decl, ref_p);
   output_struct_function_base (stream->ob, fn);
 
   /* struct eh_status *eh;					-- ignored */
@@ -1225,18 +1211,70 @@ pph_out_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
+/* Emit symbol table MARKER to STREAM.  */
+
+static inline void
+pph_out_symtab_marker (pph_stream *stream, enum pph_symtab_marker marker)
+{
+  pph_out_uchar (stream, marker);
+}
+
+
+/* Emit the symbol table for STREAM.  When this image is read into
+   another translation unit, we want to guarantee that the IL
+   instances taken from this image are instantiated in the same order
+   that they were instantiated when we generated this image.
+
+   With this, we can generate code in the same order out of the
+   original header files and out of PPH images.
+
+   REF_P is as in pph_out_tree.  */
+
+static void
+pph_out_symtab (pph_stream *stream, bool ref_p)
+{
+  tree decl;
+  unsigned i;
+
+  pph_out_uint (stream, VEC_length (tree, decls_to_register));
+  FOR_EACH_VEC_ELT (tree, decls_to_register, i, decl)
+    if (TREE_CODE (decl) == FUNCTION_DECL && DECL_STRUCT_FUNCTION (decl))
+      {
+	if (DECL_SAVED_TREE (decl))
+	  pph_out_symtab_marker (stream, PPH_SYMTAB_FUNCTION_BODY);
+	else
+	  pph_out_symtab_marker (stream, PPH_SYMTAB_FUNCTION);
+	pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (decl), ref_p);
+      }
+    else
+      {
+	pph_out_symtab_marker (stream, PPH_SYMTAB_DECL);
+	pph_out_tree (stream, decl, ref_p);
+      }
+
+  VEC_free (tree, heap, decls_to_register);
+}
+
+
 /* Write PPH output symbols and IDENTS_USED to STREAM as an object.  */
 
 static void
 pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
 { 
+  /* Emit all the identifiers and symbols in the global namespace.  */
   pph_out_identifiers (stream, idents_used);
   pph_out_scope_chain (stream, scope_chain, false);
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
+
+  /* Emit other global state kept by the parser.  FIXME pph, these
+     globals should be fields in struct cp_parser.  */
   pph_out_tree (stream, keyed_classes, false);
   pph_out_tree_vec (stream, unemitted_tinfo_decls, false);
   pph_out_tree (stream, static_aggregates, false);
+
+  /* Emit the symbol table.  */
+  pph_out_symtab (stream, false);
 }
 
 
@@ -1282,12 +1320,18 @@ pph_out_tree_header (struct output_block *ob, tree expr)
 static void
 pph_out_function_decl (pph_stream *stream, tree fndecl, bool ref_p)
 {
+  /* Note that we do not output DECL_STRUCT_FUNCTION here.  This is
+     emitted at the end of the PPH file in pph_out_symtab.
+     This way, we will be able to re-instantiate them in the same
+     order when reading the image (the allocation of
+     DECL_STRUCT_FUNCTION has the side effect of generating function
+     sequence numbers (function.funcdef_no).  */
   pph_out_tree_or_ref_1 (stream, DECL_INITIAL (fndecl), ref_p, 3);
   pph_out_lang_specific (stream, fndecl, ref_p);
   pph_out_tree_or_ref_1 (stream, DECL_SAVED_TREE (fndecl), ref_p, 3);
-  pph_out_struct_function (stream, DECL_STRUCT_FUNCTION (fndecl), ref_p);
   pph_out_tree_or_ref_1 (stream, DECL_CHAIN (fndecl), ref_p, 3);
 }
+
 
 /* Callback for writing ASTs to a stream.  This writes all the fields
    that are not processed by default by the common tree pickler.
@@ -1611,4 +1655,15 @@ pph_write_tree (struct output_block *ob, tree expr, bool ref_p)
         fprintf (pph_logfile, "PPH: unrecognized tree node %s\n",
                  tree_code_name[TREE_CODE (expr)]);
     }
+}
+
+
+/* Add DECL to the list of symbols that need to be registered with the
+   middle end when reading current_pph_stream.  */
+
+void
+pph_add_decl_to_register (tree decl)
+{
+  if (decl)
+    VEC_safe_push (tree, heap, decls_to_register, decl);
 }

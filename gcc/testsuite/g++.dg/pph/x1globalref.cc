@@ -1,5 +1,3 @@
-// pph asm xdiff
-
 #include "x0globalref.h"
 
 type x = 2;

@@ -1,11 +1,9 @@
-// pph asm xdiff
-
 #include "x0hardlookup.h"
 
 D P;
 
 int I(int arg)
-{ return arg + V; }
+{ return arg + V - int(X); }
 
 int F() {
    return I(N::V + N::O);

@@ -271,7 +271,7 @@ cp/decl.o: cp/decl.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   cp/operators.def $(TM_P_H) $(TREE_INLINE_H) $(DIAGNOSTIC_H) $(C_PRAGMA_H) \
   debug.h gt-cp-decl.h $(TIMEVAR_H) $(TARGET_H) $(PLUGIN_H) \
   intl.h tree-iterator.h pointer-set.h $(SPLAY_TREE_H) \
-  c-family/c-objc.h
+  c-family/c-objc.h $(CXX_PPH_STREAMER_H)
 cp/decl2.o: cp/decl2.c $(CXX_TREE_H) $(TM_H) $(FLAGS_H) cp/decl.h \
   output.h toplev.h $(C_COMMON_H) gt-cp-decl2.h $(CGRAPH_H) \
   $(C_PRAGMA_H) $(TREE_DUMP_H) intl.h $(TARGET_H) $(GIMPLE_H) pointer-set.h \
@@ -351,8 +351,8 @@ cp/pph-streamer.o: cp/pph-streamer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 cp/pph-streamer-out.o: cp/pph-streamer-out.c $(CONFIG_H) $(SYSTEM_H) \
 	coretypes.h $(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) \
 	$(CXX_PPH_STREAMER_H) $(CXX_PPH_H) $(TREE_PASS_H) version.h \
-	cppbuiltin.h tree-iterator.h
+	cppbuiltin.h tree-iterator.h $(CGRAPH_H)
 cp/pph-streamer-in.o: cp/pph-streamer-in.c $(CONFIG_H) $(SYSTEM_H) \
 	coretypes.h $(TREE_H) tree-pretty-print.h $(LTO_STREAMER_H) \
 	$(CXX_PPH_STREAMER_H) $(CXX_PPH_H) $(TREE_PASS_H) version.h \
-	cppbuiltin.h tree-iterator.h
+	cppbuiltin.h tree-iterator.h toplev.h

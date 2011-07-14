@@ -54,6 +54,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "pointer-set.h"
 #include "splay-tree.h"
 #include "plugin.h"
+#include "pph-streamer.h"
 
 /* Possible cases of bad specifiers type used by bad_specifiers. */
 enum bad_spec_place {
@@ -5604,7 +5605,7 @@ make_rtl_for_nonlocal_decl (tree decl, tree init, const char* asmspec)
   /* Handle non-variables up front.  */
   if (TREE_CODE (decl) != VAR_DECL)
     {
-      rest_of_decl_compilation (decl, toplev, at_eof);
+      cp_rest_of_decl_compilation (decl, toplev, at_eof);
       return;
     }
 
@@ -5657,7 +5658,7 @@ make_rtl_for_nonlocal_decl (tree decl, tree init, const char* asmspec)
 
   /* If we're not deferring, go ahead and assemble the variable.  */
   if (!defer_p)
-    rest_of_decl_compilation (decl, toplev, at_eof);
+    cp_rest_of_decl_compilation (decl, toplev, at_eof);
 }
 
 /* walk_tree helper for wrap_temporary_cleanups, below.  */
@@ -5870,6 +5871,21 @@ value_dependent_init_p (tree init)
   return false;
 }
 
+/* Register DECL with the middle end.  TOP_LEVEL and AT_END are as in
+   rest_of_decl_compilation.  */
+
+void
+cp_rest_of_decl_compilation (tree decl, int top_level, int at_end)
+{
+  rest_of_decl_compilation (decl, top_level, at_end);
+
+  /* If we are generating a PPH image, add DECL to the list of
+     declarations that need to be registered when this image is read.  */
+  if (pph_out_file)
+    pph_add_decl_to_register (decl);
+}
+
+
 /* Finish processing of a declaration;
    install its line number and initial value.
    If the length of an array type is not known before,
@@ -6062,8 +6078,7 @@ cp_finish_decl (tree decl, tree init, bool init_const_expr_p,
 	  && !COMPLETE_TYPE_P (TREE_TYPE (decl)))
 	TYPE_DECL_SUPPRESS_DEBUG (decl) = 1;
 
-      rest_of_decl_compilation (decl, DECL_FILE_SCOPE_P (decl),
-				at_eof);
+      cp_rest_of_decl_compilation (decl, DECL_FILE_SCOPE_P (decl), at_eof);
       return;
     }
 
@@ -12799,6 +12814,11 @@ start_preparsed_function (tree decl1, tree attrs, int flags)
   start_fname_decls ();
 
   store_parm_decls (current_function_parms);
+
+  /* If we are generating a PPH image, add DECL1 to the list of
+     declarations that need to be registered when restoring the image.  */
+  if (pph_out_file)
+    pph_add_decl_to_register (decl1);
 }
 
 

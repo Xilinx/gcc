@@ -31,6 +31,19 @@ enum pph_record_marker {
   PPH_RECORD_SHARED
 };
 
+/* Symbol table markers.  These are all the symbols that need to be 
+   registered with the middle end.  */
+enum pph_symtab_marker {
+  /* A FUNCTION_DECL with DECL_STRUCT_FUNCTION but no body.  */
+  PPH_SYMTAB_FUNCTION = 0x01,
+
+  /* A FUNCTION_DECL with DECL_STRUCT_FUNCTION and a body.  */
+  PPH_SYMTAB_FUNCTION_BODY,
+
+  /* All other symbols.  */
+  PPH_SYMTAB_DECL
+};
+
 /* Number of sections in a PPH file.  FIXME, currently only one section
    is supported.  To add more, it will also be necessary to handle
    section names in pph_get_section_data and pph_free_section_data.  */
@@ -116,10 +129,6 @@ typedef struct pph_stream {
 
   /* Nonzero if the stream was opened for writing.  */
   unsigned int write_p : 1;
-
-  /* List of functions with bodies that need to be expanded after
-     reading the PPH file.  */
-  VEC(tree,gc) *fns_to_expand;
 } pph_stream;
 
 /* Filter values for pph_out_chain_filtered.  */
@@ -146,6 +155,7 @@ void pph_write_tree (struct output_block *, tree, bool ref_p);
 void pph_pack_value_fields (struct bitpack_d *, tree);
 void pph_out_tree_header (struct output_block *, tree);
 void pph_write_file (void);
+void pph_add_decl_to_register (tree);
 
 /* In name-lookup.c.  */
 struct binding_table_s;

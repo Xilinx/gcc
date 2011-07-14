@@ -1,5 +1,4 @@
 /* { dg-options "-w" }  */
-// pph asm xdiff
 
 #include "p4meteor-contest.h"
 

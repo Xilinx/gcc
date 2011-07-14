@@ -1,3 +1,12 @@
+2011-07-14  Diego Novillo  <dnovillo@google.com>
+
+	* g++.dg/pph/c1pr44948-1a.cc: Adjust expected failure.
+	* g++.dg/pph/x0hardlookup.h: Add new symbol in global namespace.
+	* g++.dg/pph/c4meteor-contest.cc: Mark fixed.
+	* g++.dg/pph/c1attr-warn-unused.cc: Likewise.
+	* g++.dg/pph/x1globalref.cc: Likewise.
+	* g++.dg/pph/x1hardlookup.cc: Likewise.
+
 2011-07-12  Lawrence Crowl  <crowl@google.com>
 
 	* lib/dg-pph.exp (dg-pph-pos): Add support for link tests.

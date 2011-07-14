@@ -1444,8 +1444,8 @@ finish_anon_union (tree anon_union_decl)
       && at_function_scope_p ())
     add_decl_expr (anon_union_decl);
   else if (!processing_template_decl)
-    rest_of_decl_compilation (anon_union_decl,
-			      toplevel_bindings_p (), at_eof);
+    cp_rest_of_decl_compilation (anon_union_decl,
+			         toplevel_bindings_p (), at_eof);
 }
 
 /* Auxiliary functions to make type signatures for
@@ -1875,7 +1875,7 @@ maybe_emit_vtables (tree ctype)
 
       /* Write it out.  */
       DECL_EXTERNAL (vtbl) = 0;
-      rest_of_decl_compilation (vtbl, 1, 1);
+      cp_rest_of_decl_compilation (vtbl, 1, 1);
 
       /* Because we're only doing syntax-checking, we'll never end up
 	 actually marking the variable as written.  */
@@ -3276,7 +3276,7 @@ write_out_vars (tree vars)
       if (!var_finalized_p (var))
 	{
 	  import_export_decl (var);
-	  rest_of_decl_compilation (var, 1, 1);
+	  cp_rest_of_decl_compilation (var, 1, 1);
 	}
     }
 }

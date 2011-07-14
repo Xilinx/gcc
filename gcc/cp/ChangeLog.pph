@@ -1,3 +1,49 @@
+2011-07-14   Diego Novillo  <dnovillo@google.com>
+
+	* Make-lang.in (cp/decl.o): Add dependency on CXX_PPH_STREAMER_H.
+	(cp/pph-streamer-out.o): Add dependency on CGRAPH_H.
+        (cp/pph-streamer-in.o): Add dependency on toplev.h
+
+	* cp-tree.h (cp_rest_of_decl_compilation): Declare.
+	* call.c (set_up_extended_ref_temp): Call cp_rest_of_decl_compilation
+        instead of rest_of_decl_compilation.
+	* class.c (build_clone): Likewise.
+	* decl2.c (finish_anon_union): Likewise.
+	(maybe_emit_vtables): Likewise.
+	(write_out_vars): Likewise.
+	* method.c (implicitly_declare_fn): Likewise.
+	* semantics.c (maybe_add_lambda_conv_op): Likewise.
+	* decl.c (make_rtl_for_nonlocal_decl): Likewise.
+	(cp_finish_decl): Likewise.
+	(start_preparsed_function): Likewise.
+	(cp_rest_of_decl_compilation): New.
+
+	* pph-streamer-in.c: Include toplev.h
+        (pph_in_language_function): Tidy.
+	(pph_in_struct_function): Remove parameter DECL.
+        Support reading shared struct functions.
+        Read FN->DECL.
+	(pph_register_decl_in_symtab): Remove.  Update all users.
+	(pph_register_binding_in_symtab): Remove.  Update all users.
+	(pph_in_symtab_marker): New.
+	(pph_in_symtab): New.
+	(pph_read_file_contents): Call it.
+	(pph_in_function_decl): Do not call pph_in_struct_function.
+	* pph-streamer-out.c: Include cgraph.h.
+        (decls_to_register): New.
+	(pph_out_chain_filtered): Remove argument REVERSE_P.  Update
+        all users.
+	(pph_out_struct_function): Write FN->DECL.
+	(pph_out_symtab_marker): New.
+	(pph_out_symtab): New.
+	(pph_write_file_contents): Call it.
+	(pph_out_function_decl): Do not call pph_out_struct_function.
+	(pph_add_decl_to_register): New.
+	* pph-streamer.h (enum pph_symtab_marker): New.
+        (struct pph_stream): Remove field FNS_TO_EXPAND.  Update all
+        users.
+        (pph_add_decl_to_register): Declare.
+
 2011-07-12   Diego Novillo  <dnovillo@google.com>
 
 	* name-lookup.c (pushdecl_into_namespace): Replace references

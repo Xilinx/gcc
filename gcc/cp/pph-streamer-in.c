@@ -31,6 +31,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tree-pass.h"
 #include "version.h"
 #include "cppbuiltin.h"
+#include "toplev.h"
 
 /* Wrapper for memory allocation calls that should have their results
    registered in the PPH streamer cache.  DATA is the pointer returned
@@ -726,8 +727,7 @@ pph_in_language_function (pph_stream *stream)
   if (marker == PPH_RECORD_END)
     return NULL;
   else if (marker == PPH_RECORD_SHARED)
-    return (struct language_function *) pph_in_shared_data (stream,
-								     ix);
+    return (struct language_function *) pph_in_shared_data (stream, ix);
 
   ALLOC_AND_REGISTER (stream, ix, lf, ggc_alloc_cleared_language_function ());
   memcpy (&lf->base, pph_in_c_language_function (stream),
@@ -804,25 +804,32 @@ pph_in_ld_fn (pph_stream *stream, struct lang_decl_fn *ldf)
 
 
 /* Read applicable fields of struct function from STREAM.  Associate
-   the read structure to DECL.  */
+   the read structure to its corresponding FUNCTION_DECL and return
+   it.  */
 
 static struct function *
-pph_in_struct_function (pph_stream *stream, tree decl)
+pph_in_struct_function (pph_stream *stream)
 {
   size_t count, i;
   unsigned ix;
   enum pph_record_marker marker;
   struct function *fn;
+  tree decl;
 
   marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
+  else if (marker == PPH_RECORD_SHARED)
+    return (struct function *) pph_in_shared_data (stream, ix);
 
-  /* Since struct function is embedded in every decl, fn cannot be shared.  */
-  gcc_assert (marker != PPH_RECORD_SHARED);
+  decl = pph_in_tree (stream);
 
   allocate_struct_function (decl, false);
   fn = DECL_STRUCT_FUNCTION (decl);
+
+  /* Now register it.  We would normally use ALLOC_AND_REGISTER,
+     but retrofit_lang_decl does not return a pointer.  */
+  pph_register_shared_data (stream, fn, ix);
 
   input_struct_function_base (fn, stream->data_in, stream->ib);
 
@@ -1175,37 +1182,10 @@ pph_in_lang_type (pph_stream *stream)
 }
 
 
-/* Register DECL with the middle end.  */
-
-static void
-pph_register_decl_in_symtab (tree decl)
-{
-  if (TREE_CODE (decl) == VAR_DECL
-      && TREE_STATIC (decl)
-      && !DECL_EXTERNAL (decl))
-    varpool_finalize_decl (decl);
-}
-
-
-/* Register all the symbols in binding level BL in the callgraph symbol
-   table.  */
-
-static void
-pph_register_binding_in_symtab (cp_binding_level *bl)
-{
-  tree t;
-
-  /* Add file-local symbols to the varpool.  */
-  for (t = bl->names; t; t = DECL_CHAIN (t))
-    pph_register_decl_in_symtab (t);
-
-  /* Recurse into the namespaces contained in BL.  */
-  for (t = bl->namespaces; t; t = DECL_CHAIN (t))
-    pph_register_binding_in_symtab (NAMESPACE_LEVEL (t));
-}
-
-
-/* Merge scope_chain bindings from STREAM into global_namespace. */
+/* Merge scope_chain bindings from STREAM into the scope_chain
+   bindings of the current translation unit.  This incorporates all
+   the symbols and types from the PPH image into the current TU so
+   name lookup can find identifiers brought from the image.  */
 
 static void
 pph_in_scope_chain (pph_stream *stream)
@@ -1222,9 +1202,6 @@ pph_in_scope_chain (pph_stream *stream)
      will have the wrong bindings and will fail name lookups.  */
   cur_bindings = scope_chain->bindings;
   new_bindings = pph_in_binding_level (stream, scope_chain->bindings);
-
-  /* Register all the symbols in STREAM with the call graph.  */
-  pph_register_binding_in_symtab (new_bindings);
 
   /* Merge the bindings from STREAM into saved_scope->bindings.  */
   chainon (cur_bindings->names, new_bindings->names);
@@ -1377,6 +1354,69 @@ pph_in_identifiers (pph_stream *stream, cpp_idents_used *identifiers)
 }
 
 
+/* Read a symbol table marker from STREAM.  */
+
+static inline enum pph_symtab_marker
+pph_in_symtab_marker (pph_stream *stream)
+{
+  enum pph_symtab_marker m = (enum pph_symtab_marker) pph_in_uchar (stream);
+  gcc_assert (m == PPH_SYMTAB_FUNCTION
+	      || m == PPH_SYMTAB_FUNCTION_BODY
+	      || m == PPH_SYMTAB_DECL);
+  return m;
+}
+
+
+/* Read the symbol table from STREAM.  When this image is read into
+   another translation unit, we want to guarantee that the IL
+   instances taken from this image are instantiated in the same order
+   that they were instantiated when we generated this image.
+
+   With this, we can generate code in the same order out of the
+   original header files and out of PPH images.  */
+
+static void
+pph_in_symtab (pph_stream *stream)
+{
+  unsigned i, num;
+
+  /* Register all the symbols in STREAM in the same order of the
+     original compilation for this header file.  */
+  num = pph_in_uint (stream);
+  for (i = 0; i < num; i++)
+    {
+      enum pph_symtab_marker kind = pph_in_symtab_marker (stream);
+      if (kind == PPH_SYMTAB_FUNCTION || kind == PPH_SYMTAB_FUNCTION_BODY)
+	{
+	  struct function *fn = pph_in_struct_function (stream);
+
+	  if (kind == PPH_SYMTAB_FUNCTION_BODY)
+	    {
+	      /* FIXME pph - This is somewhat gross.  When we
+		 generated the PPH image, the parser called
+		 expand_or_defer_fn on FN->DECL, which marked it
+		 DECL_EXTERNAL (see expand_or_defer_fn_1 for details).
+
+		 However, this is not really an extern definition, so
+		 it was also marked not-really-extern (yes, I
+		 know...). If this happens, we need to unmark it,
+		 otherwise the code generator will toss it out.  */
+	      if (DECL_NOT_REALLY_EXTERN (fn->decl))
+		DECL_EXTERNAL (fn->decl) = 0;
+	      expand_or_defer_fn (fn->decl);
+	    }
+	}
+      else if (kind == PPH_SYMTAB_DECL)
+	{
+	  tree t = pph_in_tree (stream);
+	  cp_rest_of_decl_compilation (t, decl_function_context (t) == NULL, 1);
+	}
+      else
+	gcc_unreachable ();
+    }
+}
+
+
 /* Read contents of PPH file in STREAM.  */
 
 static void
@@ -1386,7 +1426,7 @@ pph_read_file_contents (pph_stream *stream)
   cpp_ident_use *bad_use;
   const char *cur_def;
   cpp_idents_used idents_used;
-  tree fndecl, t, file_keyed_classes, file_static_aggregates;
+  tree t, file_keyed_classes, file_static_aggregates;
   unsigned i;
   VEC(tree,gc) *file_unemitted_tinfo_decls;
 
@@ -1407,6 +1447,8 @@ pph_read_file_contents (pph_stream *stream)
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
 
+  /* Read and merge the other global state collected during parsing of
+     the original header.  */
   file_keyed_classes = pph_in_tree (stream);
   keyed_classes = chainon (file_keyed_classes, keyed_classes);
 
@@ -1417,32 +1459,8 @@ pph_read_file_contents (pph_stream *stream)
   file_static_aggregates = pph_in_tree (stream);
   static_aggregates = chainon (file_static_aggregates, static_aggregates);
 
-  /* Register all symbols in FILE_STATIC_AGGREGATES with the middle end.
-     Each element of this list is an INIT_EXPR expression.  */
-  for (t = file_static_aggregates; t; t = TREE_CHAIN (t))
-    {
-      tree lhs = TREE_OPERAND (TREE_PURPOSE (t), 0);
-      tree rhs = TREE_OPERAND (TREE_PURPOSE (t), 1);
-      pph_register_decl_in_symtab (lhs);
-      pph_register_decl_in_symtab (rhs);
-    }
-
-  /* Expand all the functions with bodies that we read from STREAM.  */
-  FOR_EACH_VEC_ELT (tree, stream->fns_to_expand, i, fndecl)
-    {
-      /* FIXME pph - This is somewhat gross.  When we generated the
-	 PPH image, the parser called expand_or_defer_fn on FNDECL,
-	 which marked it DECL_EXTERNAL (see expand_or_defer_fn_1 for
-	 details).
-
-	 However, this is not really an extern definition, so it was
-	 also marked not-really-extern (yes, I know...). If this
-	 happens, we need to unmark it, otherwise the code generator
-	 will toss it out.  */
-      if (DECL_NOT_REALLY_EXTERN (fndecl))
-	DECL_EXTERNAL (fndecl) = 0;
-      expand_or_defer_fn (fndecl);
-    }
+  /* Read and process the symbol table.  */
+  pph_in_symtab (stream);
 }
 
 
@@ -1479,10 +1497,7 @@ pph_in_function_decl (pph_stream *stream, tree fndecl)
   DECL_INITIAL (fndecl) = pph_in_tree (stream);
   pph_in_lang_specific (stream, fndecl);
   DECL_SAVED_TREE (fndecl) = pph_in_tree (stream);
-  DECL_STRUCT_FUNCTION (fndecl) = pph_in_struct_function (stream, fndecl);
   DECL_CHAIN (fndecl) = pph_in_tree (stream);
-  if (DECL_SAVED_TREE (fndecl))
-    VEC_safe_push (tree, gc, stream->fns_to_expand, fndecl);
 }
 
 
