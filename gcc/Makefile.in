@@ -5362,14 +5362,13 @@ po/gcc.pot: force
 ################################# extra for MELT
 
 melt_make_cc1=./cc1$(exeext)
-melt_make_cc1_dependency=./cc1$(exeext) $(MELT_H)
+melt_make_cc1_dependency=$(melt_make_cc1) $(MELT_H)
 melt_make_gencdeps= ./cc1$(exeext)
 melt_make_module_makefile=$(srcdir)/melt-module.mk
 melt_make_source_dir=$(srcdir)/melt
 melt_make_module_dir=$(objdir)
 melt_make_move=$(SHELL) $(srcdir)/../move-if-change
 ## Don't use := definitions here!
-## CC1 forbids -pipe and -Wp,-D_FORTIFY_SOURCE=2
 comma= ,
 melt_make_cc1flags= -I $(realpath .)
 melt_cflags=  -I $(realpath .) -I $(realpath $(srcdir)/melt/generated) $(INCLUDES)
@@ -5377,12 +5376,12 @@ export melt_cflags
 ## extra cflags are for compiling applicative MELT files, e.g. xtramelt*.c
 melt_extra_cflags= -g
 export melt_extra_cflags
-melt_installed_cflags= -I $(plugin_includedir) -DIN_GCC -O
+melt_installed_cflags= -I $(plugin_includedir) -DIN_GCC -O $(GMPINC) $(PPLINC) $(CLOOGINC)
 melt_default_modules_list=melt-default-modules
 
 ## this is the installation directory of melt sources (*.melt files
 ## in MELT dialect and the corresponding *.c files)
-melt_source_dir=$(libexecsubdir)/melt-source
+melt_source_dir=$(libexecsubdir)/melt-sources
 
 ## this is the installation directory of melt dynamic modules (*.so) and module list
 melt_module_dir=$(libexecsubdir)/melt-modules
@@ -5401,7 +5400,7 @@ include $(srcdir)/melt-build.mk
 
 .PHONY: melt.encap
 
-melt.encap: cc1$(exeext) $(melt_make_cc1_dependency)
+melt.encap: $(melt_make_cc1_dependency)
 	@echo melt.encap making Makefile and melt-build.mk
 	$(MAKE) Makefile $(srcdir)/melt-build.mk
 	@echo melt.encap making warmelt0 with melt_cflags= $(melt_cflags)
@@ -5437,18 +5436,19 @@ install-melt-includes: melt-runtime.h melt-predef.h melt-run.h melt-run-md5.h me
 ## phony target to compile the MELT runtime using MELT to exercise the
 ## meltframe MELT pass
 check-melt-runtime: melt-runtime.o melt-runtime.c xgcc$(exeext) \
-	 melt-sources melt-all-sources melt-modules melt-all-modules
-	$(GCC_FOR_TARGET)  $(ALL_CFLAGS) $(ALL_CPPFLAGS) -I $(srcdir)/melt/generated/	\
+	melt-sources melt-all-sources melt-modules melt-all-modules
+	$(GCC_FOR_TARGET)  $(ALL_CFLAGS) $(ALL_CPPFLAGS) -Wno-error -I $(srcdir)/melt/generated/	\
 	    $(MELT_RUNTIME_CPPDEFS)							\
 	    $(meltarg_module_path)=melt-modules 					\
 	    $(meltarg_source_path)=melt-sources 					\
-            $(meltarg_mode)=meltframe 							\
+	        $(meltarg_mode)=meltframe 							\
+	        $(meltarg_bootstrapping) 							\
 	  -c $(MELT_RUNTIME_C) -o /dev/null
 
 
 ### notice that melt-sources is a directory, but melt-all-sources is a
 ### phony makefile target from melt-build.mk
-install-melt-source: melt-sources  melt-all-sources
+install-melt-sources: melt-sources  melt-all-sources
 	$(mkinstalldirs) $(DESTDIR)/$(melt_source_dir)
 	for f in melt-sources/*.c melt-sources/*.melt ; do \
 	   $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_source_dir) ; \

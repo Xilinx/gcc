@@ -1,3 +1,31 @@
+2011-07-15  Romain Geissler  <romain.geissler@gmail.com>
+
+	* contrib/MELT-Plugin-Makefile (LIBS_INCLUDEFLAGS):new variable
+	(CC): Allow environement overrinding
+	(GAWK): Likewise
+	(SED): Likewise
+	(TR): Likewise
+	(AUTOGEN): Likewise
+	(INSTALL): Likewise
+	(INSTALL_DRIVER): Likewise
+	(DESTDIR): Likewise
+	(melt_make_cc1): use gcc -c
+	(melt_make_cc1_dependency): remove $(melt_make_cc1)
+	Change source installation directory melt-source{,s}
+	Fix mispelled rule install-melt-source{,s}
+	* gcc/doc/melt.texi: gcc -c compilation works
+	* gcc/melt-runtime.c: Use module basename when
+	looking for module source
+	* gcc/melt-build.tpl: melt_make_cc1_* help
+	* gcc/melt-build.mk (*Regenerate)
+	* gcc/Makefile.in (melt_installed_cflags): Add library
+	includes
+	Change source installation directory melt-source{,s}
+	(check-melt-runtime): temporary use -Wno-error
+	(check-melt-runtime): use bootstrapping mode
+
+2011-07-15  Pierre Vittet  <piervit@pvittet.com>
+	* Makefile.in (install-melt-default-modules-list): Fix bad file call.
 
 2011-07-11  Basile Starynkevitch  <basile@starynkevitch.net>
 

@@ -1900,7 +1900,7 @@ A MELT file @file{@var{foo}.melt} [which can be viewed as defining the
 @var{foo} MELT module] is translated into a C source
 @file{@var{foo}.c} which is then compiled into a dynamically loadable
 shared library - usually @file{@var{foo}.so} on Linux. The translation
-to C is done using @code{cc1} (or @code{gcc}, not implemented yet)
+to C is done using @code{cc1} or @code{gcc -c}
 with the @code{-fmelt-mode=translatefile -fmelt-arg=@var{foo}.melt
 -fmelt-secondarg=@var{foo}.c} options. The generated file
 @var{foo}.c is usually quite big (and only @code{#include}-ing one

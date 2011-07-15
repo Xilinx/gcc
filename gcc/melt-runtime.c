@@ -5479,6 +5479,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   char md5srctab[16];
   char *md5src = NULL;
   char *tmpath = NULL;
+  const char *dupmodulbasnam = NULL;
   char *dupmodulnam = NULL;
   char *envpath = NULL;
   melt_module_info_t *moduptr = 0;
@@ -5533,7 +5534,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 
   if ((flags & MELTLOADFLAG_CURDIR) != 0) 
     {
-      tmpath = concat (modulnam, ".c", NULL);
+      tmpath = concat (lbasename (modulnam), ".c", NULL);
       debugeprintf ("meltgc_make_load_melt_module trying in current dir %s", tmpath);
       if (tmpath && !access (tmpath, R_OK))
 	{
@@ -5568,6 +5569,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   /* duplicate the module name for safety, i.e. because it was in MELT
      heap or whatever ... */
   dupmodulnam = xstrdup (modulnam);
+
   if (specialsuffixpos>0) 
     dupmodulnam[specialsuffixpos] = '\0';
   debugeprintf ("meltgc_make_load_melt_module specialsuffixpos=%d %s dupmodulnam=%s", 
@@ -5575,8 +5577,10 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 		dupmodulnam);
   /***** first find the source path if possible ******/
 
+  dupmodulbasnam = lbasename(dupmodulnam);
+
   /* look first in the temporary directory */
-  tmpath = melt_tempdir_path (dupmodulnam, ".c");
+  tmpath = melt_tempdir_path (dupmodulbasnam, ".c");
   debugeprintf ("meltgc_make_load_melt_module trying in tempdir %s", tmpath);
   if (tmpath && !access (tmpath, R_OK))
     {
@@ -5589,7 +5593,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   /* look in the source path if given */
   if (srcpathstr && srcpathstr[0]) {
     debugeprintf("meltgc_make_load_melt_module trying in MELT srcpath %s", srcpathstr);
-    tmpath = lookup_path (srcpathstr, dupmodulnam, ".c");
+    tmpath = lookup_path (srcpathstr, dupmodulbasnam, ".c");
     debugeprintf("meltgc_make_load_melt_module got in MELT srcpath %s", tmpath);
     if (tmpath) {
       srcpath = tmpath;
@@ -5604,7 +5608,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
     {
       debugeprintf("meltgc_make_load_melt_module trying in GCCMELT_SOURCE_PATH %s",
 		   envpath);
-      tmpath = lookup_path (envpath, dupmodulnam, ".c");
+      tmpath = lookup_path (envpath, dupmodulbasnam, ".c");
       debugeprintf("meltgc_make_load_melt_module got in  GCCMELT_SOURCE_PATH %s", tmpath);
       if (tmpath) {
 	srcpath = tmpath;
@@ -5613,7 +5617,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
     }
   /* perhaps use make_relative_prefix  for the melt source directory ... */
   /* look into the melt source dir */
-  tmpath = flag_melt_bootstrapping?NULL:(concat (melt_source_dir, "/", dupmodulnam, ".c", NULL));
+  tmpath = flag_melt_bootstrapping?NULL:(concat (melt_source_dir, "/", dupmodulbasnam, ".c", NULL));
   debugeprintf ("meltgc_make_load_melt_module trying in meltsrcdir %s", tmpath);
   if (tmpath && !access (tmpath, R_OK))
     {
@@ -5627,7 +5631,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
   debugeprintf ("meltgc_make_load_melt_module cannot find source for mudule %s", dupmodulnam);
   warning (0, "didn't find MELT module %s 's C source code; perhaps need -fmelt-source-path=...", dupmodulnam);
   inform (UNKNOWN_LOCATION, "MELT temporary source path tried %s for C source code", 
-	  melt_tempdir_path (dupmodulnam, ".c"));
+	  melt_tempdir_path (dupmodulbasnam, ".c"));
   {
     /* explain only once the path we searched the C source code in */
     static int nbexplain;

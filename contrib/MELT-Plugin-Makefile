@@ -28,7 +28,11 @@
 ## the command to remove files
 RM ?= rm -vf
 ## the compiler used to build the melt.so plugin
-CC = gcc
+CC ?= gcc
+
+# Custom includes to lib needed to built melt.so
+# ie: -I/path/to/gmp/include
+LIBS_INCLUDEFLAGS ?=
 
 ## the compiler with which melt.so is used
 MELTGCC ?= gcc
@@ -42,26 +46,26 @@ MELTGCC_GENGTYPEFLAGS = -v
 MELTGCC_GTYPESTATE  := $(shell $(MELTGCC) -print-file-name=gtype.state)
 
 ### the GNU awk (cannot be a non GNU awk like nawk or mawk ...)
-GAWK= gawk
+GAWK?= gawk
 
 ### the GNU sed utility
-SED= sed
+SED?= sed
 
 ### the GNU tr utility
-TR= tr 
+TR?= tr
 
 ## the GNU autogen program
-AUTOGEN=autogen
+AUTOGEN?=autogen
 
 ## the GNU install utility from coreutils
-INSTALL= install
+INSTALL?= install
 
 
 ## an install driver, which could be sudo
-INSTALL_DRIVER=
+INSTALL_DRIVER?=
 
 ## the destination directory, where to install, useful e.g., for MELT packagers
-DESTDIR=
+DESTDIR?=
 
 INSTALL_DATA= $(INSTALL_DRIVER) $(INSTALL) -b -p -m 644
 INSTALL_PROGRAM= $(INSTALL_DRIVER) $(INSTALL) -b -p -m 755
@@ -95,22 +99,21 @@ MELTGCC_RUNTIME_INCLUDES= melt-runtime.h melt/generated/meltrunsup.h
 MELTGCC_OPTIMFLAGS= -O2
 
 ## our include flags for melt.so and for MELT generated C code
-MELTGCC_INCLUDEFLAGS= -I $(MELTGCC_PLUGIN_DIR)/include -I $(MELTGCC_PLUGIN_DIR)/include/c-family
+MELTGCC_INCLUDEFLAGS= -I $(MELTGCC_PLUGIN_DIR)/include -I $(MELTGCC_PLUGIN_DIR)/include/c-family $(LIBS_INCLUDEFLAGS)
 
 ## the make command started by make.so
 MELTGCC_MAKE= $(MAKE)
 
 .PHONY: all clean install bootstrap-melt  install-melt-includes install-melt-sources install-melt-modules  install-melt-mk install-melt-default-modules-list install-melt-so
 
-melt_make_cc1:=$(shell $(MELTGCC) -print-file-name=cc1)
-melt_make_cc1_dependency= $(melt_make_cc1) melt-runtime.h melt-run.h melt/generated/meltrunsup.h melt/generated/meltrunsup-inc.c melt.so
+melt_make_cc1= $(MELTGCC) -c
+melt_make_cc1_dependency= melt-runtime.h melt-run.h melt/generated/meltrunsup.h melt/generated/meltrunsup-inc.c melt.so
 melt_make_gencdeps= $(melt_make_cc1)
 melt_make_module_makefile= melt-module.mk
 melt_make_source_dir= melt
 melt_make_module_dir=
 melt_make_move= mv
 ## Don't use := definitions here!
-## CC1 forbids -pipe and -Wp,-D_FORTIFY_SOURCE=2
 comma= ,
 melt_make_cc1flags= -fplugin=$(realpath melt.so) -I $(realpath .) -o /dev/null
 melt_cflags=  -I $(realpath .) -I $(realpath melt/generated)  -DIN_GCC -DMELT_IS_PLUGIN $(MELTGCC_INCLUDEFLAGS)
@@ -123,7 +126,7 @@ melt_default_modules_list=melt-default-modules
 
 ## this is the installation directory of melt sources (*.melt files
 ## in MELT dialect and the corresponding *.c files)
-melt_source_dir=$(MELTGCC_PLUGIN_DIR)/melt-source
+melt_source_dir=$(MELTGCC_PLUGIN_DIR)/melt-sources
 
 ## this is the installation directory of melt dynamic modules (*.so) and module list
 melt_module_dir=$(MELTGCC_PLUGIN_DIR)/melt-modules
@@ -240,7 +243,7 @@ install-melt-so: melt.so
 
 ### notice that melt-sources is a directory, but melt-all-sources is a
 ### phony makefile target from melt-build.mk
-install-melt-source: melt-sources  melt-all-sources
+install-melt-sources: melt-sources  melt-all-sources
 	$(mkinstalldirs) $(DESTDIR)/$(melt_source_dir)
 	for f in melt-sources/*.c melt-sources/*.melt ; do \
 	   $(INSTALL_DATA) $$f $(DESTDIR)/$(melt_source_dir) ; \

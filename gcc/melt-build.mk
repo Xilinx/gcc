@@ -23,8 +23,10 @@
 ### melt_make_source_dir - directory containing the *.melt files when making MELT
 ### melt_make_module_dir - directory containing the *.so files when making MELT
 ### melt_default_modules_list - basename of the default module list
-### melt_make_cc1 - cc1 program with MELT (or loading MELT plugin) or gcc -fplugin=melt.so
+### melt_make_cc1 - cc1 program with MELT (or loading MELT plugin) (better use gcc -c rather
+### than a direct call to cc1 when compiling as a plugin) or gcc -fplugin=melt.so
 ### melt_make_cc1_dependency - the make dependency for above i.e. cc1$(exeext) for MELT branch
+### (usually, melt_make_cc1_dependency = melt_make_cc1)
 ### melt_make_gencdeps is an extra make dependency of generated C files [leave empty usually]
 ### melt_is_plugin - should be non empty in plugin mode
 ### melt_make_move - a copy or move command for files
