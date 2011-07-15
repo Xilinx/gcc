@@ -128,12 +128,11 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
     verbose -log ""
 
     # Compare the two assembly files.  They should be identical.
-    set adiff [diff "$bname.s-pph" "$bname.s+pph"]
+    set adiff [catch {exec diff "$bname.s-pph" "$bname.s+pph"} diff_result]
     # The sources mark when they expect the comparison to differ.
-    set xdiff [llength [grep $test "pph asm xdiff"]]
+    set xdiff_entry [grep $test "pph asm xdiff( )*\[0-9\]*"]
+    set xdiff [llength $xdiff_entry]
     if { $adiff == 0 } {
-	fail "$nshort $options comparison failure"
-    } elseif { $adiff == 1 } {
 	if { $xdiff } {
 	    xpass "$nshort $options (assembly comparison)"
 	} else {
@@ -141,11 +140,20 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 	}
 	file_on_host delete "$bname.s-pph"
 	file_on_host delete "$bname.s+pph"
-    } else {
+    } elseif { $adiff == 1 } {
+        verbose -log "Diff obtained:\n$diff_result"
 	if { $xdiff } {
-	    xfail "$nshort $options (assembly comparison)"
+	    set expectedSum [exec tr -d \} << [exec cut -f 4 -d\  << $xdiff_entry]]
+	    set actualSum [exec cut -f 1 -d\  << [exec sum << $diff_result]]
+	    if { $expectedSum == $actualSum } {
+	        xfail "$nshort $options (assembly comparison)"
+	    } else {
+	        fail "$nshort $options (assembly comparison, sums $expectedSum=>$actualSum)"
+	    }
 	} else {
 	    fail "$nshort $options (assembly comparison)"
 	}
+    } else {
+	fail "$nshort $options comparison failure"
     }
 }

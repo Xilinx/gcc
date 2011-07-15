@@ -1,3 +1,10 @@
+2011-07-15  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/c1builtin-integral.cc: Add expected diff checksum.
+	* g++.dg/pph/c1eabi1.cc: Add expected diff checksum.
+	* g++.dg/pph/p4eabi1.cc: Add expected diff checksum.
+	* lib/dg-pph.exp (dg-pph-pos): Expect checksums for pph asm xdiff.
+
 2011-07-14  Diego Novillo  <dnovillo@google.com>
 
 	* g++.dg/pph/c1pr44948-1a.cc: Adjust expected failure.

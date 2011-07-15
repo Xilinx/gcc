@@ -1,5 +1,5 @@
 // { dg-options "-w -fpermissive" }
-// pph asm xdiff
+// pph asm xdiff 15662
 
 #include "p4eabi1.h"
 
