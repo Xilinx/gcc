@@ -146,6 +146,9 @@ sh[123456789lbe]*-*-*)
 v850*-*-*)
 	cpu_type=v850
 	;;
+tic6x-*-*)
+	cpu_type=c6x
+	;;
 esac
 
 # Common parts for widely ported systems.
@@ -153,6 +156,7 @@ case ${host} in
 *-*-darwin*)
   asm_hidden_op=.private_extern
   tmake_file="t-darwin ${cpu_type}/t-darwin t-slibgcc-darwin"
+  extra_parts=crt3.o
   ;;
 *-*-freebsd[12] | *-*-freebsd[12].* | *-*-freebsd*aout*)
   # This is the place-holder for the generic a.out configuration
@@ -223,18 +227,20 @@ esac
 
 case ${host} in
 alpha*-*-linux*)
-	tmake_file="${tmake_file} alpha/t-crtfm"
+	tmake_file="${tmake_file} t-crtfm"
 	extra_parts="$extra_parts crtfastmath.o"
 	md_unwind_header=alpha/linux-unwind.h
 	;;
 alpha*-*-freebsd*)
+	tmake_file="${tmake_file} t-crtfm"
+	extra_parts="$extra_parts crtfastmath.o"
 	;;
 alpha*-*-netbsd*)
 	;;
 alpha*-*-openbsd*)
 	;;
 alpha*-dec-osf5.1*)
-	tmake_file="${tmake_file} alpha/t-alpha alpha/t-ieee alpha/t-crtfm t-slibgcc alpha/t-slibgcc-osf"
+	tmake_file="${tmake_file} alpha/t-alpha alpha/t-ieee t-crtfm t-slibgcc alpha/t-slibgcc-osf"
 	case ${target_thread_file} in
 	  posix)
 	    tmake_file="${tmake_file} alpha/t-osf-pthread"
@@ -322,9 +328,12 @@ hppa[12]*-*-hpux11*)
 	md_unwind_header=pa/hpux-unwind.h
 	;;
 i[34567]86-*-darwin*)
+	tmake_file="$tmake_file i386/t-crtpc i386/t-crtfm"
+	extra_parts="$extra_parts crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
 	;;
 x86_64-*-darwin*)
-	tmake_file="t-darwin ${cpu_type}/t-darwin64 t-slibgcc-darwin"
+	tmake_file="t-darwin ${cpu_type}/t-darwin64 i386/t-crtpc i386/t-crtfm t-slibgcc-darwin"
+	extra_parts="$extra_parts crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
 	;;
 i[34567]86-*-elf*)
 	;;
@@ -369,7 +378,8 @@ i[34567]86-*-lynxos*)
 i[3456x]86-*-netware*)
 	case /${with_ld} in
 	*/nwld)
-	 	tmake_file="${tmake_file} i386/t-nwld"
+	 	tmake_file="${tmake_file} i386/t-nwld i386/t-slibgcc-nwld"
+		extra_parts="${extra_parts} crt0.o libgcc.def libc.def libcpre.def posixpre.def"
 		;;
 	esac
 	;;
@@ -380,8 +390,8 @@ i[34567]86-*-rtems*)
 	tmake_file="${tmake_file} t-crtin i386/t-softfp i386/t-crtstuff t-rtems"
 	;;
 i[34567]86-*-solaris2* | x86_64-*-solaris2.1[0-9]*)
-	tmake_file="$tmake_file i386/t-crtfm"
-	extra_parts="$extra_parts crtfastmath.o"
+	tmake_file="$tmake_file i386/t-crtpc i386/t-crtfm"
+	extra_parts="$extra_parts crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
 	md_unwind_header=i386/sol2-unwind.h
 	;;
 i[4567]86-wrs-vxworks|i[4567]86-wrs-vxworksae)
@@ -396,21 +406,22 @@ i[34567]86-*-mingw*)
 	md_unwind_header=i386/w32-unwind.h
 	;;
 x86_64-*-mingw*)
-	tmake_file=t-dfprules
+	tmake_file="t-dfprules i386/t-crtfm"
+	extra_parts="$extra_parts crtfastmath.o"
 	;;
 i[34567]86-*-interix3*)
 	;;
 ia64*-*-elf*)
 	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
-	tmake_file="ia64/t-ia64"
+	tmake_file="ia64/t-ia64 t-crtfm"
 	;;
 ia64*-*-freebsd*)
 	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
-	tmake_file="ia64/t-ia64"
+	tmake_file="ia64/t-ia64 t-crtfm"
 	;;
 ia64*-*-linux*)
 	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
-	tmake_file="ia64/t-ia64 t-softfp ia64/t-fprules-softfp ia64/t-softfp-compat"
+	tmake_file="ia64/t-ia64 t-crtfm t-softfp ia64/t-fprules-softfp ia64/t-softfp-compat"
 	md_unwind_header=ia64/linux-unwind.h
 	;;
 ia64*-*-hpux*)
@@ -527,8 +538,10 @@ powerpc-*-darwin*)
 	  md_unwind_header=rs6000/darwin-unwind.h
 	  ;;
 	esac
+	extra_parts="$extra_parts crt2.o"
 	;;
 powerpc64-*-darwin*)
+	extra_parts="$extra_parts crt2.o"
 	;;
 powerpc-*-freebsd*)
 	tmake_file="${tmake_file} rs6000/t-ppccomm rs6000/t-freebsd t-softfp"
@@ -640,6 +653,8 @@ sparc64-*-elf*)
 sparc-wrs-vxworks)
 	;;
 sparc64-*-freebsd*|ultrasparc-*-freebsd*)
+	tmake_file="$tmake_file t-crtfm"
+	extra_parts=crtfastmath.o
 	;;
 sparc64-*-linux*)		# 64-bit SPARC's running GNU/Linux
 	extra_parts="$extra_parts crtfastmath.o"
@@ -649,6 +664,9 @@ sparc64-*-linux*)		# 64-bit SPARC's running GNU/Linux
 sparc64-*-netbsd*)
 	;;
 spu-*-elf*)
+	;;
+tic6x-*-*)
+	tmake_file="${tmake_file} t-gnu-prefix"
 	;;
 v850*-*-*)
 	;;
