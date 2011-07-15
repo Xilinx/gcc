@@ -1,3 +1,108 @@
+2011-07-15  Bernd Schmidt  <bernds@codesourcery.com>
+
+	* doc/invoke.texi (C6X Options): New section.
+	* doc/md.texi (TI C6X family): New section.
+	* config.gcc: Handle tic6x, in particular tic6x-*-elf and
+	tic6x-*-uclinux.
+	* longlong.h (add_ssaaaa, __umulsidi3, umul_ppmm,
+	count_leading_zeros, count_trailing_zeros, UMUL_TIME, UDIV_TIME):
+	Provide C6X definitions.
+	* config/c6x/c6x.md: New file.
+	* config/c6x/constraints.md: New file.
+	* config/c6x/predicates.md: New file.
+	* config/c6x/c6x-sched.md.in: New file.
+	* config/c6x/c6x-sched.md: New file.
+	* config/c6x/gensched.sh: New file.
+	* config/c6x/c6x-mult.md.in: New file.
+	* config/c6x/genmult.sh: New file.
+	* config/c6x/c6x-mult.md: New file.
+	* config/c6x/sync.md: New file.
+	* config/c6x/c6x-protos.h: New file.
+	* config/c6x/sfp-machine.h: New file.
+	* config/c6x/c6x.c: New file.
+	* config/c6x/c6x.h: New file.
+	* config/c6x/crti.s: New file.
+	* config/c6x/crtn.s: New file.
+	* config/c6x/lib1funcs.asm: New file.
+	* config/c6x/c6x-modes.def: New file.
+	* config/c6x/genopt.sh: New file.
+	* config/c6x/c6x.opt: New file.
+	* config/c6x/c6x-tables.opt: New file.
+	* config/c6x/c6x-opts.h: New file.
+	* config/c6x/c6x-isas.def: New file.
+	* config/c6x/elf.h: New file.
+	* config/c6x/elf-common.h: New file.
+	* config/c6x/uclinux-elf.h: New file.
+	* config/c6x/t-c6x: New file.
+	* config/c6x/t-c6x-elf: New file.
+	* config/c6x/t-c6x-uclinux: New file.
+	* config/c6x/t-c6x-softfp: New file.
+	* config/c6x/gtd.c: New file.
+	* config/c6x/gtf.c: New file.
+	* config/c6x/ltd.c: New file.
+	* config/c6x/ltf.c: New file.
+	* config/c6x/ged.c: New file.
+	* config/c6x/gef.c: New file.
+	* config/c6x/led.c: New file.
+	* config/c6x/lef.c: New file.
+	* config/c6x/eqd.c: New file.
+	* config/c6x/eqf.c: New file.
+	* config/c6x/libgcc-c6xeabi.ver: New file.
+
+	Revert
+	2003-07-10  Eric Botcazou  <ebotcazou@libertysurf.fr>
+	PR rtl-optimization/11320
+	* sched-int.h (struct deps) [reg_conditional_sets]: New field.
+	(struct sched_info) [compute_jump_reg_dependencies]: New prototype.
+	* sched-deps.c (sched_analyze_insn) [JUMP_INSN]: Update call to
+	current_sched_info->compute_jump_reg_dependencies. Record which
+	registers are used and which registers are set by the jump.
+	Clear deps->reg_conditional_sets after a barrier.
+	Set deps->reg_conditional_sets if the insn is a COND_EXEC.
+	Clear deps->reg_conditional_sets if the insn is not a COND_EXEC.
+	(init_deps): Initialize reg_conditional_sets.
+	(free_deps): Clear reg_conditional_sets.
+	* sched-ebb.c (compute_jump_reg_dependencies): New prototype.
+	Mark registers live on entry of the fallthrough block and conditionally
+	set as set by the jump. Mark registers live on entry of non-fallthrough
+	blocks as used by the jump.
+	* sched-rgn.c (compute_jump_reg_dependencies): New prototype.
+	Mark new parameters as unused.
+
+2011-07-14  Andrew Pinski  <pinskia@gmail.com>
+
+	PR tree-opt/49309
+	* tree-mudflap.c (mf_xform_derefs_1 <case MEM_REF>):
+	Use fold_build2_loc instead of build2.
+	Use the correct type for the new tree.
+
+2011-07-14  Bernd Schmidt  <bernds@codesourcery.com>
+
+	PR rtl-optimization/11320
+	* config/ia64/ia64.md (load_symptr_low): Show a MEM.
+	* config/ia64/ia64.c (ia64_expand_load_address): Generate it.
+
+2011-07-14  Georg-Johann Lay  <avr@gjlay.de>
+
+	PR target/49487
+	* config/avr/avr.md (rotl<mode>3): Generate SCRATCH instead
+	of REG.
+	(*rotw<mode>): Use const_int_operand for operand2.
+	Use match_scatch for operand3.
+	(*rotb<mode>): Ditto
+	* config/avr/avr.c (avr_rotate_bytes): Treat SCRATCH.
+
+2011-07-14  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49651
+	* tree-ssa-structalias.c (get_constraint_for_1): Properly
+	handle dereferences with subvariables.
+
+2011-07-14  Richard Guenther  <rguenther@suse.de>
+
+	* gimple-fold.c (fold_gimple_assign): Remove operand swapping.
+	(fold_stmt_1): Do it here directly on gimple and as a first thing.
+
 2011-07-14  Richard Guenther  <rguenther@suse.de>
 
 	* fold-const.c (fold_binary_loc): Convert the !bool_var result,
