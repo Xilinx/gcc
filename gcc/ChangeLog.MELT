@@ -1,3 +1,6 @@
+2011-07-15  Pierre Vittet  <piervit@pvittet.com>
+	* Makefile.in (install-melt-default-modules-list): Fix bad file
+	call.
 
 2011-07-11  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_garbcoll): Increase default values of
