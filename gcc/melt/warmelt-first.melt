@@ -441,6 +441,8 @@ don't instanciate this class!}#
 	   sysdata_stdout		;raw file for stdout
 	   sysdata_stderr		;raw file for stderr
 	   sysdata_dumpfile		;raw file for dump_file
+	   sysdata_pre_genericize       ;closure to be called for PLUGIN_PRE_GENERICIZE:
+					;look at gcc/c-decl.c.
 	   sysdata_unit_starter		;closure to be called at
 					;compilation unit start
 	   sysdata_unit_finisher	;closure to be called at
