@@ -1,5 +1,13 @@
 2011-07-16  Pierre Vittet  <piervit@pvittet.com>
 
+	* melt-runtime.c (melt_really_initialize): Register a new Callback to
+        PLUGIN_PRE_GENERICIZE.
+	(melt_pre_genericize_callback): New function, use field
+	sysdata_pre_genericize to transmit the callbacks.
+	* melt/warmelt-base.melt (register_pre_genericize_hook): New function.
+
+2011-07-16  Pierre Vittet  <piervit@pvittet.com>
+
 	* melt-runtime.h (enum FSYDAT*): Add a FSYSDAT_PRE_GENERICIZE field.
 	* melt/warmelt-first.melt (class_system_data): add a
 	sysdata_pre_genericize field.

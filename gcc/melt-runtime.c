@@ -9142,6 +9142,35 @@ melt_pragma_callback (void *gcc_data ATTRIBUTE_UNUSED,
 
 #endif  /*GCC >4.6 for handling pragma support*/
 
+
+/* This function is used when PLUGIN_PRE_GENERICIZE callback is invoked.  It
+   calls the closure registered in field sydata_pre_genericize of
+   initial_system_data.  The first argument is the tree containing the function
+   declaration (as given in file gcc/c-decl.c).  */
+static void
+melt_pre_genericize_callback (void *ptr_fndecl,
+			      void *user_data ATTRIBUTE_UNUSED)
+{
+  MELT_ENTERFRAME (2, NULL);
+#define pregenclosv meltfram__.mcfr_varptr[0]
+#define fndeclv meltfram__.mcfr_varptr[1]
+  fndeclv = meltgc_new_tree ((meltobject_ptr_t) MELT_PREDEF (DISCR_TREE),
+			     ((tree) ptr_fndecl));
+  pregenclosv = melt_get_inisysdata (FSYSDAT_PRE_GENERICIZE);
+  if (melt_magic_discr ((melt_ptr_t) pregenclosv) == MELTOBMAG_CLOSURE)
+    {
+      MELT_LOCATION_HERE
+	("melt_pre_genericize befire applying pre_genericize closure");
+      (void) melt_apply ((meltclosure_ptr_t) pregenclosv, (melt_ptr_t) fndeclv,
+			 "", NULL, "", NULL);
+    }
+  MELT_EXITFRAME ();
+#undef fndeclv
+#undef pregenclosv
+}
+
+
+
 /* the plugin callback when starting a compilation unit */
 static void
 melt_startunit_callback(void *gcc_data ATTRIBUTE_UNUSED,
@@ -9400,6 +9429,8 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     NULL);
   register_callback (melt_plugin_name, PLUGIN_PRAGMAS, melt_pragma_callback,
     NULL);
+  register_callback (melt_plugin_name, PLUGIN_PRE_GENERICIZE,
+                     melt_pre_genericize_callback, NULL);
   register_callback (melt_plugin_name, PLUGIN_START_UNIT,
     melt_startunit_callback,
     NULL);

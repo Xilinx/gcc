@@ -1192,6 +1192,17 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     ))
 )
 
+;;register a new closure at PLUGIN_PRE_GENERCIZE callback.  If a closure was
+;;already attributed, we replace it with $clo.
+(defun register_pre_genericize_hook (clo)
+  (if (is_closure clo)
+    (put_fields initial_system_data :sysdata_pre_genericize clo)
+    (errormsg_strv
+    "Impossible to register pre_genericize_hook, argument should be a closure"
+    clo)
+  )
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; the descriptions of values which are not ctype related.
 (defclass class_value_descriptor
@@ -2421,6 +2432,7 @@ polyhedron values.}#
  read_file
  register_pass_execution_hook
  register_pragma_handler
+ register_pre_genericize_hook
  retrieve_value_descriptor_list
  some_integer_greater_than
  some_integer_multiple
