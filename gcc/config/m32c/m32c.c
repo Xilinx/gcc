@@ -1,5 +1,5 @@
 /* Target Code for R8C/M16C/M32C
-   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Red Hat.
 
@@ -73,15 +73,15 @@ static struct machine_function *m32c_init_machine_status (void);
 static void m32c_insert_attributes (tree, tree *);
 static bool m32c_legitimate_address_p (enum machine_mode, rtx, bool);
 static bool m32c_addr_space_legitimate_address_p (enum machine_mode, rtx, bool, addr_space_t);
-static rtx m32c_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx m32c_function_arg (cumulative_args_t, enum machine_mode,
 			      const_tree, bool);
-static bool m32c_pass_by_reference (CUMULATIVE_ARGS *, enum machine_mode,
+static bool m32c_pass_by_reference (cumulative_args_t, enum machine_mode,
 				    const_tree, bool);
-static void m32c_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+static void m32c_function_arg_advance (cumulative_args_t, enum machine_mode,
 				       const_tree, bool);
 static unsigned int m32c_function_arg_boundary (enum machine_mode, const_tree);
 static int m32c_pushm_popm (Push_Pop_Type);
-static bool m32c_strict_argument_naming (CUMULATIVE_ARGS *);
+static bool m32c_strict_argument_naming (cumulative_args_t);
 static rtx m32c_struct_value_rtx (tree, int);
 static rtx m32c_subreg (enum machine_mode, rtx, enum machine_mode, int);
 static int need_to_save (int);
@@ -407,24 +407,7 @@ class_can_hold_mode (reg_class_t rclass, enum machine_mode mode)
    Memregs are provided by m32c-lib1.S.
 */
 
-int target_memregs = 16;
-static bool target_memregs_set = FALSE;
 int ok_to_change_target_memregs = TRUE;
-
-#undef  TARGET_HANDLE_OPTION
-#define TARGET_HANDLE_OPTION m32c_handle_option
-static bool
-m32c_handle_option (size_t code,
-		    const char *arg ATTRIBUTE_UNUSED,
-		    int value ATTRIBUTE_UNUSED)
-{
-  if (code == OPT_memregs_)
-    {
-      target_memregs_set = TRUE;
-      target_memregs = atoi (arg);
-    }
-  return TRUE;
-}
 
 /* Implements TARGET_OPTION_OVERRIDE.  */
 
@@ -435,7 +418,7 @@ static void
 m32c_option_override (void)
 {
   /* We limit memregs to 0..16, and provide a default.  */
-  if (target_memregs_set)
+  if (global_options_set.x_target_memregs)
     {
       if (target_memregs < 0 || target_memregs > 16)
 	error ("invalid target memregs value '%d'", target_memregs);
@@ -1553,9 +1536,11 @@ m32c_push_rounding (int n)
 #undef TARGET_FUNCTION_ARG
 #define TARGET_FUNCTION_ARG m32c_function_arg
 static rtx
-m32c_function_arg (CUMULATIVE_ARGS * ca,
+m32c_function_arg (cumulative_args_t ca_v,
 		   enum machine_mode mode, const_tree type, bool named)
 {
+  CUMULATIVE_ARGS *ca = get_cumulative_args (ca_v);
+
   /* Can return a reg, parallel, or 0 for stack */
   rtx rv = NULL_RTX;
 #if DEBUG0
@@ -1604,7 +1589,7 @@ m32c_function_arg (CUMULATIVE_ARGS * ca,
 #undef TARGET_PASS_BY_REFERENCE
 #define TARGET_PASS_BY_REFERENCE m32c_pass_by_reference
 static bool
-m32c_pass_by_reference (CUMULATIVE_ARGS * ca ATTRIBUTE_UNUSED,
+m32c_pass_by_reference (cumulative_args_t ca ATTRIBUTE_UNUSED,
 			enum machine_mode mode ATTRIBUTE_UNUSED,
 			const_tree type ATTRIBUTE_UNUSED,
 			bool named ATTRIBUTE_UNUSED)
@@ -1634,11 +1619,13 @@ m32c_init_cumulative_args (CUMULATIVE_ARGS * ca,
 #undef TARGET_FUNCTION_ARG_ADVANCE
 #define TARGET_FUNCTION_ARG_ADVANCE m32c_function_arg_advance
 static void
-m32c_function_arg_advance (CUMULATIVE_ARGS * ca,
+m32c_function_arg_advance (cumulative_args_t ca_v,
 			   enum machine_mode mode ATTRIBUTE_UNUSED,
 			   const_tree type ATTRIBUTE_UNUSED,
 			   bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *ca = get_cumulative_args (ca_v);
+
   if (ca->force_mem)
     ca->force_mem = 0;
   else
@@ -1800,7 +1787,7 @@ m32c_epilogue_uses (int regno ATTRIBUTE_UNUSED)
 #undef TARGET_STRICT_ARGUMENT_NAMING
 #define TARGET_STRICT_ARGUMENT_NAMING m32c_strict_argument_naming
 static bool
-m32c_strict_argument_naming (CUMULATIVE_ARGS * ca ATTRIBUTE_UNUSED)
+m32c_strict_argument_naming (cumulative_args_t ca ATTRIBUTE_UNUSED)
 {
   return 1;
 }
@@ -2164,15 +2151,6 @@ m32c_legitimize_reload_address (rtx * x,
 
   return 0;
 }
-
-/* Implements LEGITIMATE_CONSTANT_P.  We split large constants anyway,
-   so we can allow anything.  */
-int
-m32c_legitimate_constant_p (rtx x ATTRIBUTE_UNUSED)
-{
-  return 1;
-}
-
 
 /* Return the appropriate mode for a named address pointer.  */
 #undef TARGET_ADDR_SPACE_POINTER_MODE
@@ -2574,11 +2552,6 @@ m32c_address_cost (rtx addr, bool speed ATTRIBUTE_UNUSED)
 }
 
 /* Defining the Output Assembler Language */
-
-/* The Overall Framework of an Assembler File */
-
-#undef TARGET_HAVE_NAMED_SECTIONS
-#define TARGET_HAVE_NAMED_SECTIONS true
 
 /* Output of Data */
 
@@ -3232,11 +3205,12 @@ current_function_special_page_vector (rtx x)
 #undef TARGET_ATTRIBUTE_TABLE
 #define TARGET_ATTRIBUTE_TABLE m32c_attribute_table
 static const struct attribute_spec m32c_attribute_table[] = {
-  {"interrupt", 0, 0, false, false, false, interrupt_handler},
-  {"bank_switch", 0, 0, false, false, false, interrupt_handler},
-  {"fast_interrupt", 0, 0, false, false, false, interrupt_handler},
-  {"function_vector", 1, 1, true,  false, false, function_vector_handler},
-  {0, 0, 0, 0, 0, 0, 0}
+  {"interrupt", 0, 0, false, false, false, interrupt_handler, false},
+  {"bank_switch", 0, 0, false, false, false, interrupt_handler, false},
+  {"fast_interrupt", 0, 0, false, false, false, interrupt_handler, false},
+  {"function_vector", 1, 1, true,  false, false, function_vector_handler,
+   false},
+  {0, 0, 0, 0, 0, 0, 0, false}
 };
 
 #undef TARGET_COMP_TYPE_ATTRIBUTES
@@ -4501,11 +4475,14 @@ m32c_emit_prologue (void)
 void
 m32c_emit_epilogue (void)
 {
+  int popm_count = m32c_pushm_popm (PP_justcount);
+
   /* This just emits a comment into the .s file for debugging.  */
-  if (m32c_pushm_popm (PP_justcount) > 0 || cfun->machine->is_interrupt)
+  if (popm_count > 0 || cfun->machine->is_interrupt)
     emit_insn (gen_epilogue_start ());
 
-  m32c_pushm_popm (PP_popm);
+  if (popm_count > 0)
+    m32c_pushm_popm (PP_popm);
 
   if (cfun->machine->is_interrupt)
     {
@@ -4562,7 +4539,6 @@ m32c_emit_epilogue (void)
     emit_jump_insn (gen_epilogue_exitd_16 ());
   else
     emit_jump_insn (gen_epilogue_exitd_24 ());
-  emit_barrier ();
 }
 
 void
@@ -4574,7 +4550,6 @@ m32c_emit_eh_epilogue (rtx ret_addr)
      assembler, so punt to libgcc.  */
   emit_jump_insn (gen_eh_epilogue (ret_addr, cfun->machine->eh_stack_adjust));
   /*  emit_clobber (gen_rtx_REG (HImode, R0L_REGNO)); */
-  emit_barrier ();
 }
 
 /* Indicate which flags must be properly set for a given conditional.  */

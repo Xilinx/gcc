@@ -23,11 +23,6 @@
 /* Run-time Target Specification */
 /*-------------------------------*/
 
-/* Print subsidiary information on the compiler version in use.  */
-#ifndef TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (LatticeMico32)")
-#endif
-
 /* Target CPU builtins.  */
 #define TARGET_CPU_CPP_BUILTINS()                       \
   do                                                    \
@@ -350,8 +345,6 @@ enum reg_class
 #else
 #define REG_OK_FOR_BASE_P(X) NONSTRICT_REG_OK_FOR_BASE_P(X)
 #endif
-
-#define LEGITIMATE_CONSTANT_P(X) lm32_legitimate_constant_p (X)
 
 /*-------------------------*/
 /* Condition Code Status.  */

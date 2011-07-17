@@ -43,7 +43,9 @@ compilation is specified by a string called a "spec".  */
 #include "diagnostic.h"
 #include "flags.h"
 #include "opts.h"
+#include "params.h"
 #include "vec.h"
+#include "filenames.h"
 
 /* By default there is no special suffix for target executables.  */
 /* FIXME: when autoconf is fixed, remove the host check - dj */
@@ -621,18 +623,36 @@ proper position among the other output files.  */
 # endif
 #endif
 
-/* Conditional to test whether plugin is used or not.
+/* Conditional to test whether the LTO plugin is used or not.
    FIXME: For slim LTO we will need to enable plugin unconditionally.  This
    still cause problems with PLUGIN_LD != LD and when plugin is built but
    not useable.  For GCC 4.6 we don't support slim LTO and thus we can enable
    plugin only when LTO is enabled.  We still honor explicit
-   -fuse-linker-plugin.  */
-#ifdef HAVE_LTO_PLUGIN
+   -fuse-linker-plugin if the linker used understands -plugin.  */
+
+/* The linker has some plugin support.  */
+#if HAVE_LTO_PLUGIN > 0
+/* The linker used has full plugin support, use LTO plugin by default.  */
+#if HAVE_LTO_PLUGIN == 2
 #define PLUGIN_COND "!fno-use-linker-plugin:%{flto|flto=*|fuse-linker-plugin"
 #define PLUGIN_COND_CLOSE "}"
 #else
+/* The linker used has limited plugin support, use LTO plugin with explicit
+   -fuse-linker-plugin.  */
 #define PLUGIN_COND "fuse-linker-plugin"
 #define PLUGIN_COND_CLOSE ""
+#endif
+#define LINK_PLUGIN_SPEC \
+    "%{"PLUGIN_COND": \
+    -plugin %(linker_plugin_file) \
+    -plugin-opt=%(lto_wrapper) \
+    -plugin-opt=-fresolution=%u.res \
+    %{!nostdlib:%{!nodefaultlibs:%:pass-through-libs(%(link_gcc_c_sequence))}} \
+    }"PLUGIN_COND_CLOSE
+#else
+/* The linker used doesn't support -plugin, reject -fuse-linker-plugin.  */
+#define LINK_PLUGIN_SPEC "%{fuse-linker-plugin:\
+    %e-fuse-linker-plugin is not supported in this configuration}"
 #endif
 
 
@@ -648,14 +668,9 @@ proper position among the other output files.  */
 #ifndef LINK_COMMAND_SPEC
 #define LINK_COMMAND_SPEC "\
 %{!fsyntax-only:%{!c:%{!M:%{!MM:%{!E:%{!S:\
-    %(linker) \
-    %{"PLUGIN_COND": \
-    -plugin %(linker_plugin_file) \
-    -plugin-opt=%(lto_wrapper) \
-    -plugin-opt=-fresolution=%u.res \
-    %{!nostdlib:%{!nodefaultlibs:%:pass-through-libs(%(link_gcc_c_sequence))}} \
-    }"PLUGIN_COND_CLOSE" \
-    %{flto|flto=*:%<fcompare-debug*} \
+    %(linker) " \
+    LINK_PLUGIN_SPEC \
+    "%{flto|flto=*:%<fcompare-debug*} \
     %{flto} %{flto=*} %l " LINK_PIE_SPEC \
    "%X %{o*} %{e*} %{N} %{n} %{r}\
     %{s} %{t} %{u*} %{z} %{Z} %{!nostdlib:%{!nostartfiles:%S}}\
@@ -1424,7 +1439,8 @@ init_spec (void)
   }
 #endif
 
-#if defined LINK_EH_SPEC || defined LINK_BUILDID_SPEC
+#if defined LINK_EH_SPEC || defined LINK_BUILDID_SPEC || \
+    defined LINKER_HASH_STYLE
 # ifdef LINK_BUILDID_SPEC
   /* Prepend LINK_BUILDID_SPEC to whatever link_spec we had before.  */
   obstack_grow (&obstack, LINK_BUILDID_SPEC, sizeof(LINK_BUILDID_SPEC) - 1);
@@ -1432,6 +1448,16 @@ init_spec (void)
 # ifdef LINK_EH_SPEC
   /* Prepend LINK_EH_SPEC to whatever link_spec we had before.  */
   obstack_grow (&obstack, LINK_EH_SPEC, sizeof(LINK_EH_SPEC) - 1);
+# endif
+# ifdef LINKER_HASH_STYLE
+  /* Prepend --hash-style=LINKER_HASH_STYLE to whatever link_spec we had
+     before.  */
+  {
+    static const char hash_style[] = "--hash-style=";
+    obstack_grow (&obstack, hash_style, sizeof(hash_style) - 1);
+    obstack_grow (&obstack, LINKER_HASH_STYLE, sizeof(LINKER_HASH_STYLE) - 1);
+    obstack_1grow (&obstack, ' ');
+  }
 # endif
   obstack_grow0 (&obstack, link_spec, strlen (link_spec));
   link_spec = XOBFINISH (&obstack, const char *);
@@ -1936,7 +1962,7 @@ record_temp_file (const char *filename, int always_delete, int fail_delete)
     {
       struct temp_file *temp;
       for (temp = always_delete_queue; temp; temp = temp->next)
-	if (! strcmp (name, temp->name))
+	if (! filename_cmp (name, temp->name))
 	  goto already1;
 
       temp = XNEW (struct temp_file);
@@ -1951,7 +1977,7 @@ record_temp_file (const char *filename, int always_delete, int fail_delete)
     {
       struct temp_file *temp;
       for (temp = failure_delete_queue; temp; temp = temp->next)
-	if (! strcmp (name, temp->name))
+	if (! filename_cmp (name, temp->name))
 	  goto already2;
 
       temp = XNEW (struct temp_file);
@@ -3067,16 +3093,24 @@ save_switch (const char *opt, size_t n_args, const char *const *args,
 }
 
 /* Handle an option DECODED that is unknown to the option-processing
-   machinery, but may be known to specs.  */
+   machinery.  */
 
 static bool
 driver_unknown_option_callback (const struct cl_decoded_option *decoded)
 {
-  save_switch (decoded->canonical_option[0],
-	       decoded->canonical_option_num_elements - 1,
-	       &decoded->canonical_option[1], false);
-
-  return false;
+  const char *opt = decoded->arg;
+  if (opt[1] == 'W' && opt[2] == 'n' && opt[3] == 'o' && opt[4] == '-'
+      && !(decoded->errors & CL_ERR_NEGATIVE))
+    {
+      /* Leave unknown -Wno-* options for the compiler proper, to be
+	 diagnosed only if there are warnings.  */
+      save_switch (decoded->canonical_option[0],
+		   decoded->canonical_option_num_elements - 1,
+		   &decoded->canonical_option[1], false);
+      return false;
+    }
+  else
+    return true;
 }
 
 /* Handle an option DECODED that is not marked as CL_DRIVER.
@@ -3093,11 +3127,13 @@ driver_wrong_lang_callback (const struct cl_decoded_option *decoded,
      options.  */
   const struct cl_option *option = &cl_options[decoded->opt_index];
 
-  if (option->flags & CL_REJECT_DRIVER)
+  if (option->cl_reject_driver)
     error ("unrecognized command line option %qs",
 	   decoded->orig_option_with_args_text);
   else
-    driver_unknown_option_callback (decoded);
+    save_switch (decoded->canonical_option[0],
+		 decoded->canonical_option_num_elements - 1,
+		 &decoded->canonical_option[1], false);
 }
 
 /* Note that an option (index OPT_INDEX, argument ARG, value VALUE)
@@ -3242,7 +3278,7 @@ driver_handle_option (struct gcc_options *opts,
     compare_debug_with_arg:
       gcc_assert (decoded->canonical_option_num_elements == 1);
       gcc_assert (arg != NULL);
-      if (arg)
+      if (*arg)
 	compare_debug = 1;
       else
 	compare_debug = -1;
@@ -3498,9 +3534,13 @@ set_option_handlers (struct cl_option_handlers *handlers)
   handlers->unknown_option_callback = driver_unknown_option_callback;
   handlers->wrong_lang_callback = driver_wrong_lang_callback;
   handlers->post_handling_callback = driver_post_handling_callback;
-  handlers->num_handlers = 1;
+  handlers->num_handlers = 3;
   handlers->handlers[0].handler = driver_handle_option;
   handlers->handlers[0].mask = CL_DRIVER;
+  handlers->handlers[1].handler = common_handle_option;
+  handlers->handlers[1].mask = CL_COMMON;
+  handlers->handlers[2].handler = target_handle_option;
+  handlers->handlers[2].mask = CL_TARGET;
 }
 
 /* Create the vector `switches' and its contents.
@@ -3612,9 +3652,9 @@ process_command (unsigned int decoded_options_count,
 	{
 	  temp = gcc_exec_prefix + len - sizeof ("/lib/gcc/") + 1;
 	  if (IS_DIR_SEPARATOR (*temp)
-	      && strncmp (temp + 1, "lib", 3) == 0
+	      && filename_ncmp (temp + 1, "lib", 3) == 0
 	      && IS_DIR_SEPARATOR (temp[4])
-	      && strncmp (temp + 5, "gcc", 3) == 0)
+	      && filename_ncmp (temp + 5, "gcc", 3) == 0)
 	    len -= sizeof ("/lib/gcc/") - 1;
 	}
 
@@ -4712,7 +4752,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 		    tmp[basename_length + suffix_length] = '\0';
 		    temp_filename = tmp;
 
-		    if (strcmp (temp_filename, gcc_input_filename) != 0)
+		    if (filename_cmp (temp_filename, gcc_input_filename) != 0)
 		      {
 #ifndef HOST_LACKS_INODE_NUMBERS
 			struct stat st_temp;
@@ -4738,7 +4778,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 			/* Just compare canonical pathnames.  */
 			char* input_realname = lrealpath (gcc_input_filename);
 			char* temp_realname = lrealpath (temp_filename);
-			bool files_differ = strcmp (input_realname, temp_realname);
+			bool files_differ = filename_cmp (input_realname, temp_realname);
 			free (input_realname);
 			free (temp_realname);
 			if (files_differ)
@@ -4788,8 +4828,7 @@ do_spec_1 (const char *spec, int inswitch, const char *soft_matched_part)
 		    t->filename_length = temp_filename_length;
 		  }
 
-		if (saved_suffix)
-		  free (saved_suffix);
+		free (saved_suffix);
 
 		obstack_grow (&obstack, t->filename, t->filename_length);
 		delete_this_arg = 1;
@@ -5917,11 +5956,11 @@ is_directory (const char *path1, bool linker)
   if (linker
       && IS_DIR_SEPARATOR (path[0])
       && ((cp - path == 6
-	   && strncmp (path + 1, "lib", 3) == 0)
+	   && filename_ncmp (path + 1, "lib", 3) == 0)
 	  || (cp - path == 10
-	      && strncmp (path + 1, "usr", 3) == 0
+	      && filename_ncmp (path + 1, "usr", 3) == 0
 	      && IS_DIR_SEPARATOR (path[4])
-	      && strncmp (path + 5, "lib", 3) == 0)))
+	      && filename_ncmp (path + 5, "lib", 3) == 0)))
     return 0;
 
   return (stat (path, &st) >= 0 && S_ISDIR (st.st_mode));
@@ -6128,7 +6167,11 @@ main (int argc, char **argv)
   if (argv != old_argv)
     at_file_supplied = true;
 
-  global_options = global_options_init;
+  /* Register the language-independent parameters.  */
+  global_init_params ();
+  finish_params ();
+
+  init_options_struct (&global_options, &global_options_set);
 
   decode_cmdline_options_to_array (argc, CONST_CAST2 (const char **, char **,
 						      argv),
@@ -6706,12 +6749,10 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	    {
 	      if (compare_debug)
 		{
-		  if (debug_check_temp_file[0])
-		    free (debug_check_temp_file[0]);
+		  free (debug_check_temp_file[0]);
 		  debug_check_temp_file[0] = NULL;
 
-		  if (debug_check_temp_file[1])
-		    free (debug_check_temp_file[1]);
+		  free (debug_check_temp_file[1]);
 		  debug_check_temp_file[1] = NULL;
 		}
 
@@ -6743,8 +6784,8 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 		    }
 
 		  gcc_assert (debug_check_temp_file[1]
-			      && strcmp (debug_check_temp_file[0],
-					 debug_check_temp_file[1]));
+			      && filename_cmp (debug_check_temp_file[0],
+					       debug_check_temp_file[1]));
 
 		  if (verbose_flag)
 		    inform (0, "comparing final insns dumps");
@@ -6755,12 +6796,10 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 
 	      if (compare_debug)
 		{
-		  if (debug_check_temp_file[0])
-		    free (debug_check_temp_file[0]);
+		  free (debug_check_temp_file[0]);
 		  debug_check_temp_file[0] = NULL;
 
-		  if (debug_check_temp_file[1])
-		    free (debug_check_temp_file[1]);
+		  free (debug_check_temp_file[1]);
 		  debug_check_temp_file[1] = NULL;
 		}
 	    }
@@ -6821,10 +6860,12 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
   if (num_linker_inputs > 0 && !seen_error () && print_subprocess_help < 2)
     {
       int tmp = execution_count;
-#ifdef HAVE_LTO_PLUGIN
+#if HAVE_LTO_PLUGIN > 0
+#if HAVE_LTO_PLUGIN == 2
       const char *fno_use_linker_plugin = "fno-use-linker-plugin";
 #else
       const char *fuse_linker_plugin = "fuse-linker-plugin";
+#endif
 #endif
 
       /* We'll use ld if we can't find collect2.  */
@@ -6835,7 +6876,8 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	    linker_name_spec = "ld";
 	}
 
-#ifdef HAVE_LTO_PLUGIN
+#if HAVE_LTO_PLUGIN > 0
+#if HAVE_LTO_PLUGIN == 2
       if (!switch_matches (fno_use_linker_plugin,
 			   fno_use_linker_plugin + strlen (fno_use_linker_plugin), 0))
 #else
@@ -6849,6 +6891,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 	  if (!linker_plugin_file_spec)
 	    fatal_error ("-fuse-linker-plugin, but " LTOPLUGINSONAME " not found");
 	}
+#endif
       lto_gcc_spec = argv[0];
 
       /* Rebuild the COMPILER_PATH and LIBRARY_PATH environment variables
@@ -7644,7 +7687,7 @@ print_multilib_info (void)
 	  /* If this is a duplicate, skip it.  */
 	  skip = (last_path != 0
 		  && (unsigned int) (p - this_path) == last_path_len
-		  && ! strncmp (last_path, this_path, last_path_len));
+		  && ! filename_ncmp (last_path, this_path, last_path_len));
 
 	  last_path = this_path;
 	  last_path_len = p - this_path;
@@ -7848,7 +7891,7 @@ replace_outfile_spec_function (int argc, const char **argv)
 
   for (i = 0; i < n_infiles; i++)
     {
-      if (outfiles[i] && !strcmp (outfiles[i], argv[0]))
+      if (outfiles[i] && !filename_cmp (outfiles[i], argv[0]))
 	outfiles[i] = xstrdup (argv[1]);
     }
   return NULL;
@@ -7869,7 +7912,7 @@ remove_outfile_spec_function (int argc, const char **argv)
 
   for (i = 0; i < n_infiles; i++)
     {
-      if (outfiles[i] && !strcmp (outfiles[i], argv[0]))
+      if (outfiles[i] && !filename_cmp (outfiles[i], argv[0]))
         outfiles[i] = NULL;
     }
   return NULL;

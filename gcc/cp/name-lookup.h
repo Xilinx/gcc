@@ -109,6 +109,8 @@ typedef enum scope_kind {
   sk_catch,	     /* A catch-block.  */
   sk_for,	     /* The scope of the variable declared in a
 			for-init-statement.  */
+  sk_cond,	     /* The scope of the variable declared in the condition
+			of an if or switch statement.  */
   sk_function_parms, /* The scope containing function parameters.  */
   sk_class,	     /* The scope containing the members of a class.  */
   sk_scoped_enum,    /* The scope containing the enumertors of a C++0x
@@ -140,7 +142,7 @@ typedef enum tag_scope {
 } tag_scope;
 
 typedef struct GTY(()) cp_class_binding {
-  cxx_binding base;
+  cxx_binding *base;
   /* The bound name.  */
   tree identifier;
 } cp_class_binding;
@@ -188,9 +190,6 @@ struct GTY(()) cp_binding_level {
        supplied.  There may be OVERLOADs on this list, too, but they
        are wrapped in TREE_LISTs; the TREE_VALUE is the OVERLOAD.  */
     tree names;
-
-    /* Count of elements in names chain.  */
-    size_t names_size;
 
     /* A chain of NAMESPACE_DECL nodes.  */
     tree namespaces;
@@ -290,7 +289,7 @@ extern GTY(()) tree global_type_node;
 
 extern cxx_scope *leave_scope (void);
 extern bool kept_level_p (void);
-extern int global_bindings_p (void);
+extern bool global_bindings_p (void);
 extern bool toplevel_bindings_p	(void);
 extern bool namespace_bindings_p (void);
 extern bool template_parm_scope_p (void);

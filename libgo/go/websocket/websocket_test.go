@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"http"
+	"http/httptest"
 	"io"
 	"log"
 	"net"
@@ -22,15 +23,11 @@ var once sync.Once
 func echoServer(ws *Conn) { io.Copy(ws, ws) }
 
 func startServer() {
-	l, e := net.Listen("tcp", "127.0.0.1:0") // any available address
-	if e != nil {
-		log.Exitf("net.Listen tcp :0 %v", e)
-	}
-	serverAddr = l.Addr().String()
-	log.Print("Test WebSocket server listening on ", serverAddr)
 	http.Handle("/echo", Handler(echoServer))
 	http.Handle("/echoDraft75", Draft75Handler(echoServer))
-	go http.Serve(l, nil)
+	server := httptest.NewServer(nil)
+	serverAddr = server.Listener.Addr().String()
+	log.Print("Test WebSocket server listening on ", serverAddr)
 }
 
 // Test the getChallengeResponse function with values from section
@@ -56,7 +53,7 @@ func TestEcho(t *testing.T) {
 	once.Do(startServer)
 
 	// websocket.Dial()
-	client, err := net.Dial("tcp", "", serverAddr)
+	client, err := net.Dial("tcp", serverAddr)
 	if err != nil {
 		t.Fatal("dialing", err)
 	}
@@ -87,7 +84,7 @@ func TestEchoDraft75(t *testing.T) {
 	once.Do(startServer)
 
 	// websocket.Dial()
-	client, err := net.Dial("tcp", "", serverAddr)
+	client, err := net.Dial("tcp", serverAddr)
 	if err != nil {
 		t.Fatal("dialing", err)
 	}
@@ -117,7 +114,7 @@ func TestEchoDraft75(t *testing.T) {
 func TestWithQuery(t *testing.T) {
 	once.Do(startServer)
 
-	client, err := net.Dial("tcp", "", serverAddr)
+	client, err := net.Dial("tcp", serverAddr)
 	if err != nil {
 		t.Fatal("dialing", err)
 	}
@@ -134,7 +131,7 @@ func TestWithQuery(t *testing.T) {
 func TestWithProtocol(t *testing.T) {
 	once.Do(startServer)
 
-	client, err := net.Dial("tcp", "", serverAddr)
+	client, err := net.Dial("tcp", serverAddr)
 	if err != nil {
 		t.Fatal("dialing", err)
 	}
@@ -189,11 +186,12 @@ func TestTrailingSpaces(t *testing.T) {
 	once.Do(startServer)
 	for i := 0; i < 30; i++ {
 		// body
-		_, err := Dial(fmt.Sprintf("ws://%s/echo", serverAddr), "",
-			"http://localhost/")
+		ws, err := Dial(fmt.Sprintf("ws://%s/echo", serverAddr), "", "http://localhost/")
 		if err != nil {
-			panic("Dial failed: " + err.String())
+			t.Error("Dial failed:", err.String())
+			break
 		}
+		ws.Close()
 	}
 }
 
@@ -203,7 +201,7 @@ func TestSmallBuffer(t *testing.T) {
 	once.Do(startServer)
 
 	// websocket.Dial()
-	client, err := net.Dial("tcp", "", serverAddr)
+	client, err := net.Dial("tcp", serverAddr)
 	if err != nil {
 		t.Fatal("dialing", err)
 	}

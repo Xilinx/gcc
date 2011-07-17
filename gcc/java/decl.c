@@ -566,13 +566,17 @@ java_init_decl_processing (void)
   pushlevel (0);	/* make the binding_level structure for global names */
   global_binding_level = current_binding_level;
 
-  /* The code here must be similar to build_common_tree_nodes{,_2} in
-     tree.c, especially as to the order of initializing common nodes.  */
-  error_mark_node = make_node (ERROR_MARK);
-  TREE_TYPE (error_mark_node) = error_mark_node;
+  /* Build common tree nodes, Java has an unsigned char.  */
+  build_common_tree_nodes (false);
 
-  /* Create sizetype first - needed for other types. */
-  initialize_sizetypes ();
+  /* Build the rest of the common tree nodes.  */
+  build_common_tree_nodes_2 (0);
+
+  /* ???  Now we continue and override some of the built types again
+     with Java specific types.  As the above generated types are
+     supposed to match the targets C ABI this isn't really the way
+     to go and any Java specifics should _not_ use those global types
+     if the Java ABI does not match the C one.  */
 
   byte_type_node = make_signed_type (8);
   pushdecl (build_decl (BUILTINS_LOCATION,
@@ -604,11 +608,6 @@ java_init_decl_processing (void)
 			TYPE_DECL, get_identifier ("unsigned long"),
 			unsigned_long_type_node));
 
-  /* This is not a java type, however tree-dfa requires a definition for
-     size_type_node.  */
-  size_type_node = make_unsigned_type (POINTER_SIZE);
-  set_sizetype (size_type_node);
-
   /* Define these next since types below may used them.  */
   integer_type_node = java_type_for_size (INT_TYPE_SIZE, 0);
   integer_zero_node = build_int_cst (NULL_TREE, 0);
@@ -624,39 +623,22 @@ java_init_decl_processing (void)
     = double_int_to_tree (unsigned_long_type_node,
 			  double_int_setbit (double_int_zero, 64));
 
-  size_zero_node = size_int (0);
-  size_one_node = size_int (1);
-  bitsize_zero_node = bitsize_int (0);
-  bitsize_one_node = bitsize_int (1);
-  bitsize_unit_node = bitsize_int (BITS_PER_UNIT);
-
   long_zero_node = build_int_cst (long_type_node, 0);
 
-  void_type_node = make_node (VOID_TYPE);
   pushdecl (build_decl (BUILTINS_LOCATION,
 			TYPE_DECL, get_identifier ("void"), void_type_node));
-  layout_type (void_type_node);	/* Uses size_zero_node */
-
-  ptr_type_node = build_pointer_type (void_type_node);
-  const_ptr_type_node
-    = build_pointer_type (build_type_variant (void_type_node, 1, 0));
 
   t = make_node (VOID_TYPE);
   layout_type (t); /* Uses size_zero_node */
   return_address_type_node = build_pointer_type (t);
 
-  null_pointer_node = build_int_cst (ptr_type_node, 0);
-
-  char_type_node = make_node (INTEGER_TYPE);
+  char_type_node = make_unsigned_type (16);
   TYPE_STRING_FLAG (char_type_node) = 1;
-  TYPE_PRECISION (char_type_node) = 16;
-  fixup_unsigned_type (char_type_node);
   pushdecl (build_decl (BUILTINS_LOCATION,
 			TYPE_DECL, get_identifier ("char"), char_type_node));
 
-  boolean_type_node = make_node (BOOLEAN_TYPE);
-  TYPE_PRECISION (boolean_type_node) = 1;
-  fixup_unsigned_type (boolean_type_node);
+  boolean_type_node = make_unsigned_type (1);
+  TREE_SET_CODE (boolean_type_node, BOOLEAN_TYPE);
   pushdecl (build_decl (BUILTINS_LOCATION,
 			TYPE_DECL, get_identifier ("boolean"),
 			boolean_type_node));
@@ -1302,9 +1284,9 @@ pushdecl_function_level (tree x)
   return t;
 }
 
-/* Nonzero if we are currently in the global binding level.  */
+/* Return true if we are in the global binding level.  */
 
-int
+bool
 global_bindings_p (void)
 {
   return current_binding_level == global_binding_level;
@@ -1425,10 +1407,7 @@ poplevel (int keep, int reverse, int functionbody)
 
   block = 0;
   if (keep || functionbody)
-    {
-      block = make_node (BLOCK);
-      TREE_TYPE (block) = void_type_node;
-    }
+    block = make_node (BLOCK);
 
   if (current_binding_level->exception_range)
     expand_end_java_handler (current_binding_level->exception_range);
@@ -1456,7 +1435,7 @@ poplevel (int keep, int reverse, int functionbody)
 	    }
 	  *var = NULL;
 	    
-	  bind = build3 (BIND_EXPR, TREE_TYPE (block), BLOCK_VARS (block), 
+	  bind = build3 (BIND_EXPR, void_type_node, BLOCK_VARS (block), 
 			 BLOCK_EXPR_BODY (block), block);
 	  BIND_EXPR_BODY (bind) = current_binding_level->stmts;
 	  
@@ -1481,7 +1460,7 @@ poplevel (int keep, int reverse, int functionbody)
 
   /* In each subblock, record that this is its superior.  */
 
-  for (link = subblocks; link; link = TREE_CHAIN (link))
+  for (link = subblocks; link; link = BLOCK_CHAIN (link))
     BLOCK_SUPERCONTEXT (link) = block;
 
   /* Clear out the meanings of the local variables of this level.  */
@@ -1545,7 +1524,7 @@ poplevel (int keep, int reverse, int functionbody)
       if (block)
 	{
 	  current_binding_level->blocks
-	    = chainon (current_binding_level->blocks, block);
+	    = block_chainon (current_binding_level->blocks, block);
 	}
       /* If we did not make a block for the level just exited,
 	 any blocks made for inner levels
@@ -1554,7 +1533,7 @@ poplevel (int keep, int reverse, int functionbody)
 	 of something else.  */
       else if (subblocks)
 	current_binding_level->blocks
-	  = chainon (current_binding_level->blocks, subblocks);
+	  = block_chainon (current_binding_level->blocks, subblocks);
 
       if (bind)
 	java_add_stmt (bind);
@@ -1928,7 +1907,10 @@ java_mark_decl_local (tree decl)
 #ifdef ENABLE_CHECKING
   /* Double check that we didn't pass the function to the callgraph early.  */
   if (TREE_CODE (decl) == FUNCTION_DECL)
-    gcc_assert (!cgraph_node (decl)->local.finalized);
+    {
+      struct cgraph_node *node = cgraph_get_node (decl);
+      gcc_assert (!node || !node->local.finalized);
+    }
 #endif
   gcc_assert (!DECL_RTL_SET_P (decl));
 }

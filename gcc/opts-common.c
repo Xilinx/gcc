@@ -1,5 +1,5 @@
 /* Command line option handling.
-   Copyright (C) 2006, 2007, 2008, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2010, 2011 Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -52,7 +52,7 @@ static void prune_options (struct cl_decoded_option **, unsigned int *);
    front end, the longest match for a different front end is returned
    (or N_OPTS if none) and the caller emits an error message.  */
 size_t
-find_opt (const char *input, int lang_mask)
+find_opt (const char *input, unsigned int lang_mask)
 {
   size_t mn, mn_orig, mx, md, opt_len;
   size_t match_wrong_lang;
@@ -212,6 +212,22 @@ enum_arg_to_value (const struct cl_enum_arg *enum_args,
   return false;
 }
 
+/* Look up ARG in the enum used by option OPT_INDEX for language
+   LANG_MASK, returning true and storing the value in *VALUE if found,
+   and returning false without modifying *VALUE if not found.  */
+
+bool
+opt_enum_arg_to_value (size_t opt_index, const char *arg, int *value,
+		       unsigned int lang_mask)
+{
+  const struct cl_option *option = &cl_options[opt_index];
+
+  gcc_assert (option->var_type == CLVC_ENUM);
+
+  return enum_arg_to_value (cl_enums[option->var_enum].values, arg,
+			    value, lang_mask);
+}
+
 /* Look of VALUE in ENUM_ARGS for language LANG_MASK and store the
    corresponding string in *ARGP, returning true if the found string
    was marked as canonical, false otherwise.  If VALUE is not found
@@ -257,7 +273,7 @@ generate_canonical_option (size_t opt_index, const char *arg, int value,
   const char *opt_text = option->opt_text;
 
   if (value == 0
-      && !(option->flags & CL_REJECT_NEGATIVE)
+      && !option->cl_reject_negative
       && (opt_text[1] == 'W' || opt_text[1] == 'f' || opt_text[1] == 'm'))
     {
       char *t = XNEWVEC (char, option->opt_len + 5);
@@ -276,7 +292,7 @@ generate_canonical_option (size_t opt_index, const char *arg, int value,
   if (arg)
     {
       if ((option->flags & CL_SEPARATE)
-	  && !(option->flags & CL_SEPARATE_ALIAS))
+	  && !option->cl_separate_alias)
 	{
 	  decoded->canonical_option[0] = opt_text;
 	  decoded->canonical_option[1] = arg;
@@ -412,7 +428,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 
   /* Reject negative form of switches that don't take negatives as
      unrecognized.  */
-  if (!value && (option->flags & CL_REJECT_NEGATIVE))
+  if (!value && option->cl_reject_negative)
     {
       opt_index = OPT_SPECIAL_unknown;
       errors |= CL_ERR_NEGATIVE;
@@ -424,18 +440,17 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
   warn_message = option->warn_message;
 
   /* Check to see if the option is disabled for this configuration.  */
-  if (option->flags & CL_DISABLED)
+  if (option->cl_disabled)
     errors |= CL_ERR_DISABLED;
 
   /* Determine whether there may be a separate argument based on
      whether this option is being processed for the driver, and, if
      so, how many such arguments.  */
   separate_arg_flag = ((option->flags & CL_SEPARATE)
-		       && !((option->flags & CL_NO_DRIVER_ARG)
+		       && !(option->cl_no_driver_arg
 			    && (lang_mask & CL_DRIVER)));
   separate_args = (separate_arg_flag
-		   ? ((option->flags & CL_SEPARATE_NARGS_MASK)
-		      >> CL_SEPARATE_NARGS_SHIFT) + 1
+		   ? option->cl_separate_nargs + 1
 		   : 0);
   joined_arg_flag = (option->flags & CL_JOINED) != 0;
 
@@ -447,7 +462,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 	 argument to be persistent until the program exits.  */
       arg = argv[extra_args] + cl_options[opt_index].opt_len + 1 + adjust_len;
 
-      if (*arg == '\0' && !(option->flags & CL_MISSING_OK))
+      if (*arg == '\0' && !option->cl_missing_ok)
 	{
 	  if (separate_arg_flag)
 	    {
@@ -483,7 +498,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
   /* Is this option an alias (or an ignored option, marked as an alias
      of OPT_SPECIAL_ignore)?  */
   if (option->alias_target != N_OPTS
-      && (!(option->flags & CL_SEPARATE_ALIAS) || have_separate_arg))
+      && (!option->cl_separate_alias || have_separate_arg))
     {
       size_t new_opt_index = option->alias_target;
 
@@ -501,12 +516,13 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 
 	  /* The new option must not be an alias itself.  */
 	  gcc_assert (new_option->alias_target == N_OPTS
-		      || (new_option->flags & CL_SEPARATE_ALIAS));
+		      || new_option->cl_separate_alias);
 
 	  if (option->neg_alias_arg)
 	    {
 	      gcc_assert (option->alias_arg != NULL);
 	      gcc_assert (arg == NULL);
+	      gcc_assert (!option->cl_negative_alias);
 	      if (value)
 		arg = option->alias_arg;
 	      else
@@ -517,31 +533,34 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 	    {
 	      gcc_assert (value == 1);
 	      gcc_assert (arg == NULL);
+	      gcc_assert (!option->cl_negative_alias);
 	      arg = option->alias_arg;
 	    }
+
+	  if (option->cl_negative_alias)
+	    value = !value;
 
 	  opt_index = new_opt_index;
 	  option = new_option;
 
 	  if (value == 0)
-	    gcc_assert (!(option->flags & CL_REJECT_NEGATIVE));
+	    gcc_assert (!option->cl_reject_negative);
 
 	  /* Recompute what arguments are allowed.  */
 	  separate_arg_flag = ((option->flags & CL_SEPARATE)
-			       && !((option->flags & CL_NO_DRIVER_ARG)
+			       && !(option->cl_no_driver_arg
 				    && (lang_mask & CL_DRIVER)));
 	  joined_arg_flag = (option->flags & CL_JOINED) != 0;
 
-	  if (separate_args > 1 || (option->flags & CL_SEPARATE_NARGS_MASK))
+	  if (separate_args > 1 || option->cl_separate_nargs)
 	    gcc_assert (separate_args
-			== ((option->flags & CL_SEPARATE_NARGS_MASK)
-			    >> CL_SEPARATE_NARGS_SHIFT) + 1);
+			== (unsigned int) option->cl_separate_nargs + 1);
 
 	  if (!(errors & CL_ERR_MISSING_ARG))
 	    {
 	      if (separate_arg_flag || joined_arg_flag)
 		{
-		  if ((option->flags & CL_MISSING_OK) && arg == NULL)
+		  if (option->cl_missing_ok && arg == NULL)
 		    arg = "";
 		  gcc_assert (arg != NULL);
 		}
@@ -555,7 +574,7 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
 	      gcc_assert (warn_message == NULL);
 	      warn_message = option->warn_message;
 	    }
-	  if (option->flags & CL_DISABLED)
+	  if (option->cl_disabled)
 	    errors |= CL_ERR_DISABLED;
 	}
     }
@@ -564,8 +583,21 @@ decode_cmdline_option (const char **argv, unsigned int lang_mask,
   if (!option_ok_for_language (option, lang_mask))
     errors |= CL_ERR_WRONG_LANG;
 
+  /* Convert the argument to lowercase if appropriate.  */
+  if (arg && option->cl_tolower)
+    {
+      size_t j;
+      size_t len = strlen (arg);
+      char *arg_lower = XNEWVEC (char, len + 1);
+
+      for (j = 0; j < len; j++)
+	arg_lower[j] = TOLOWER ((unsigned char) arg[j]);
+      arg_lower[len] = 0;
+      arg = arg_lower;
+    }
+
   /* If the switch takes an integer, convert it.  */
-  if (arg && (option->flags & CL_UINTEGER))
+  if (arg && option->cl_uinteger)
     {
       value = integral_argument (arg);
       if (value == -1)
@@ -677,7 +709,6 @@ decode_cmdline_options_to_array (unsigned int argc, const char **argv,
   unsigned int n, i;
   struct cl_decoded_option *opt_array;
   unsigned int num_decoded_options;
-  bool argv_copied = false;
 
   opt_array = XNEWVEC (struct cl_decoded_option, argc);
 
@@ -712,8 +743,6 @@ decode_cmdline_options_to_array (unsigned int argc, const char **argv,
       num_decoded_options++;
     }
 
-  if (argv_copied)
-    free (argv);
   *decoded_options = opt_array;
   *decoded_options_count = num_decoded_options;
   prune_options (decoded_options, decoded_options_count);

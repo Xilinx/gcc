@@ -19,10 +19,12 @@ type dirInfo struct {
 // On Unix-like systems, it is "/dev/null"; on Windows, "NUL".
 const DevNull = "/dev/null"
 
-// Open opens the named file with specified flag (O_RDONLY etc.) and perm, (0666 etc.)
-// if applicable.  If successful, methods on the returned File can be used for I/O.
+// OpenFile is the generalized open call; most users will use Open
+// or Create instead.  It opens the named file with specified flag
+// (O_RDONLY etc.) and perm, (0666 etc.) if applicable.  If successful,
+// methods on the returned File can be used for I/O.
 // It returns the File and an Error, if any.
-func Open(name string, flag int, perm uint32) (file *File, err Error) {
+func OpenFile(name string, flag int, perm uint32) (file *File, err Error) {
 	r, e := syscall.Open(name, flag|syscall.O_CLOEXEC, perm)
 	if e != 0 {
 		return nil, &PathError{"open", name, Errno(e)}
@@ -100,6 +102,39 @@ func (file *File) Readdir(count int) (fi []FileInfo, err Error) {
 	return
 }
 
+// read reads up to len(b) bytes from the File.
+// It returns the number of bytes read and an error, if any.
+func (f *File) read(b []byte) (n int, err int) {
+	return syscall.Read(f.fd, b)
+}
+
+// pread reads len(b) bytes from the File starting at byte offset off.
+// It returns the number of bytes read and the error, if any.
+// EOF is signaled by a zero count with err set to 0.
+func (f *File) pread(b []byte, off int64) (n int, err int) {
+	return syscall.Pread(f.fd, b, off)
+}
+
+// write writes len(b) bytes to the File.
+// It returns the number of bytes written and an error, if any.
+func (f *File) write(b []byte) (n int, err int) {
+	return syscall.Write(f.fd, b)
+}
+
+// pwrite writes len(b) bytes to the File starting at byte offset off.
+// It returns the number of bytes written and an error, if any.
+func (f *File) pwrite(b []byte, off int64) (n int, err int) {
+	return syscall.Pwrite(f.fd, b, off)
+}
+
+// seek sets the offset for the next Read or Write on file to offset, interpreted
+// according to whence: 0 means relative to the origin of the file, 1 means
+// relative to the current offset, and 2 means relative to the end.
+// It returns the new offset and an error, if any.
+func (f *File) seek(offset int64, whence int) (ret int64, err int) {
+	return syscall.Seek(f.fd, offset, whence)
+}
+
 // Truncate changes the size of the named file.
 // If the file is a symbolic link, it changes the size of the link's target.
 func Truncate(name string, size int64) Error {
@@ -107,4 +142,22 @@ func Truncate(name string, size int64) Error {
 		return &PathError{"truncate", name, Errno(e)}
 	}
 	return nil
+}
+
+// basename removes trailing slashes and the leading directory name from path name
+func basename(name string) string {
+	i := len(name) - 1
+	// Remove trailing slashes
+	for ; i > 0 && name[i] == '/'; i-- {
+		name = name[:i]
+	}
+	// Remove leading directory name
+	for i--; i >= 0; i-- {
+		if name[i] == '/' {
+			name = name[i+1:]
+			break
+		}
+	}
+
+	return name
 }

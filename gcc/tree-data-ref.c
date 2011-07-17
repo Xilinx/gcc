@@ -1,5 +1,5 @@
 /* Data references and dependences detectors.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Sebastian Pop <pop@cri.ensmp.fr>
 
@@ -123,7 +123,7 @@ tree_fold_divides_p (const_tree a, const_tree b)
 {
   gcc_assert (TREE_CODE (a) == INTEGER_CST);
   gcc_assert (TREE_CODE (b) == INTEGER_CST);
-  return integer_zerop (int_const_binop (TRUNC_MOD_EXPR, b, a, 0));
+  return integer_zerop (int_const_binop (TRUNC_MOD_EXPR, b, a));
 }
 
 /* Returns true iff A divides B.  */
@@ -686,7 +686,7 @@ split_constant_offset (tree exp, tree *var, tree *off)
   *off = ssize_int (0);
   STRIP_NOPS (exp);
 
-  if (automatically_generated_chrec_p (exp))
+  if (tree_is_chrec (exp))
     return;
 
   otype = TREE_TYPE (exp);
@@ -919,21 +919,6 @@ dr_analyze_alias (struct data_reference *dr)
     }
 }
 
-/* Returns true if the address of DR is invariant.  */
-
-static bool
-dr_address_invariant_p (struct data_reference *dr)
-{
-  unsigned i;
-  tree idx;
-
-  FOR_EACH_VEC_ELT (tree, DR_ACCESS_FNS (dr), i, idx)
-    if (tree_contains_chrecs (idx, NULL))
-      return false;
-
-  return true;
-}
-
 /* Frees data reference DR.  */
 
 void
@@ -989,6 +974,48 @@ create_data_ref (loop_p nest, loop_p loop, tree memref, gimple stmt,
     }
 
   return dr;
+}
+
+/* Check if OFFSET1 and OFFSET2 (DR_OFFSETs of some data-refs) are identical
+   expressions.  */
+static bool
+dr_equal_offsets_p1 (tree offset1, tree offset2)
+{
+  bool res;
+
+  STRIP_NOPS (offset1);
+  STRIP_NOPS (offset2);
+
+  if (offset1 == offset2)
+    return true;
+
+  if (TREE_CODE (offset1) != TREE_CODE (offset2)
+      || (!BINARY_CLASS_P (offset1) && !UNARY_CLASS_P (offset1)))
+    return false;
+
+  res = dr_equal_offsets_p1 (TREE_OPERAND (offset1, 0),
+                             TREE_OPERAND (offset2, 0));
+
+  if (!res || !BINARY_CLASS_P (offset1))
+    return res;
+
+  res = dr_equal_offsets_p1 (TREE_OPERAND (offset1, 1),
+                             TREE_OPERAND (offset2, 1));
+
+  return res;
+}
+
+/* Check if DRA and DRB have equal offsets.  */
+bool
+dr_equal_offsets_p (struct data_reference *dra,
+                    struct data_reference *drb)
+{
+  tree offset1, offset2;
+
+  offset1 = DR_OFFSET (dra);
+  offset2 = DR_OFFSET (drb);
+
+  return dr_equal_offsets_p1 (offset1, offset2);
 }
 
 /* Returns true if FNA == FNB.  */
@@ -1579,66 +1606,18 @@ analyze_ziv_subscript (tree chrec_a,
     fprintf (dump_file, ")\n");
 }
 
-/* Sets NIT to the estimated number of executions of the statements in
-   LOOP.  If CONSERVATIVE is true, we must be sure that NIT is at least as
-   large as the number of iterations.  If we have no reliable estimate,
-   the function returns false, otherwise returns true.  */
-
-bool
-estimated_loop_iterations (struct loop *loop, bool conservative,
-			   double_int *nit)
-{
-  estimate_numbers_of_iterations_loop (loop, true);
-  if (conservative)
-    {
-      if (!loop->any_upper_bound)
-	return false;
-
-      *nit = loop->nb_iterations_upper_bound;
-    }
-  else
-    {
-      if (!loop->any_estimate)
-	return false;
-
-      *nit = loop->nb_iterations_estimate;
-    }
-
-  return true;
-}
-
-/* Similar to estimated_loop_iterations, but returns the estimate only
-   if it fits to HOST_WIDE_INT.  If this is not the case, or the estimate
-   on the number of iterations of LOOP could not be derived, returns -1.  */
-
-HOST_WIDE_INT
-estimated_loop_iterations_int (struct loop *loop, bool conservative)
-{
-  double_int nit;
-  HOST_WIDE_INT hwi_nit;
-
-  if (!estimated_loop_iterations (loop, conservative, &nit))
-    return -1;
-
-  if (!double_int_fits_in_shwi_p (nit))
-    return -1;
-  hwi_nit = double_int_to_shwi (nit);
-
-  return hwi_nit < 0 ? -1 : hwi_nit;
-}
-
-/* Similar to estimated_loop_iterations, but returns the estimate as a tree,
+/* Similar to max_stmt_executions_int, but returns the bound as a tree,
    and only if it fits to the int type.  If this is not the case, or the
-   estimate on the number of iterations of LOOP could not be derived, returns
+   bound  on the number of iterations of LOOP could not be derived, returns
    chrec_dont_know.  */
 
 static tree
-estimated_loop_iterations_tree (struct loop *loop, bool conservative)
+max_stmt_executions_tree (struct loop *loop)
 {
   double_int nit;
   tree type;
 
-  if (!estimated_loop_iterations (loop, conservative, &nit))
+  if (!max_stmt_executions (loop, true, &nit))
     return chrec_dont_know;
 
   type = lang_hooks.types.type_for_size (INT_TYPE_SIZE, true);
@@ -1721,7 +1700,7 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 
 		      /* Perform weak-zero siv test to see if overlap is
 			 outside the loop bounds.  */
-		      numiter = estimated_loop_iterations_int (loop, false);
+		      numiter = max_stmt_executions_int (loop, true);
 
 		      if (numiter >= 0
 			  && compare_tree_int (tmp, numiter) > 0)
@@ -1799,7 +1778,7 @@ analyze_siv_subscript_cst_affine (tree chrec_a,
 
 		      /* Perform weak-zero siv test to see if overlap is
 			 outside the loop bounds.  */
-		      numiter = estimated_loop_iterations_int (loop, false);
+		      numiter = max_stmt_executions_int (loop, true);
 
 		      if (numiter >= 0
 			  && compare_tree_int (tmp, numiter) > 0)
@@ -1980,10 +1959,9 @@ compute_overlap_steps_for_affine_1_2 (tree chrec_a, tree chrec_b,
   step_z = int_cst_value (CHREC_RIGHT (chrec_b));
 
   niter_x =
-    estimated_loop_iterations_int (get_chrec_loop (CHREC_LEFT (chrec_a)),
-				   false);
-  niter_y = estimated_loop_iterations_int (get_chrec_loop (chrec_a), false);
-  niter_z = estimated_loop_iterations_int (get_chrec_loop (chrec_b), false);
+    max_stmt_executions_int (get_chrec_loop (CHREC_LEFT (chrec_a)), true);
+  niter_y = max_stmt_executions_int (get_chrec_loop (chrec_a), true);
+  niter_z = max_stmt_executions_int (get_chrec_loop (chrec_b), true);
 
   if (niter_x < 0 || niter_y < 0 || niter_z < 0)
     {
@@ -2308,10 +2286,8 @@ analyze_subscript_affine_affine (tree chrec_a,
 	  HOST_WIDE_INT niter, niter_a, niter_b;
 	  affine_fn ova, ovb;
 
-	  niter_a = estimated_loop_iterations_int (get_chrec_loop (chrec_a),
-						   false);
-	  niter_b = estimated_loop_iterations_int (get_chrec_loop (chrec_b),
-						   false);
+	  niter_a = max_stmt_executions_int (get_chrec_loop (chrec_a), true);
+	  niter_b = max_stmt_executions_int (get_chrec_loop (chrec_b), true);
 	  niter = MIN (niter_a, niter_b);
 	  step_a = int_cst_value (CHREC_RIGHT (chrec_a));
 	  step_b = int_cst_value (CHREC_RIGHT (chrec_b));
@@ -2418,10 +2394,10 @@ analyze_subscript_affine_affine (tree chrec_a,
 
 	  if (i1 > 0 && j1 > 0)
 	    {
-	      HOST_WIDE_INT niter_a = estimated_loop_iterations_int
-		(get_chrec_loop (chrec_a), false);
-	      HOST_WIDE_INT niter_b = estimated_loop_iterations_int
-		(get_chrec_loop (chrec_b), false);
+	      HOST_WIDE_INT niter_a = max_stmt_executions_int
+		(get_chrec_loop (chrec_a), true);
+	      HOST_WIDE_INT niter_b = max_stmt_executions_int
+		(get_chrec_loop (chrec_b), true);
 	      HOST_WIDE_INT niter = MIN (niter_a, niter_b);
 
 	      /* (X0, Y0) is a solution of the Diophantine equation:
@@ -2698,8 +2674,7 @@ analyze_miv_subscript (tree chrec_a,
 	 in the same order.  */
       *overlaps_a = conflict_fn (1, affine_fn_cst (integer_zero_node));
       *overlaps_b = conflict_fn (1, affine_fn_cst (integer_zero_node));
-      *last_conflicts = estimated_loop_iterations_tree
-				(get_chrec_loop (chrec_a), true);
+      *last_conflicts = max_stmt_executions_tree (get_chrec_loop (chrec_a));
       dependence_stats.num_miv_dependent++;
     }
 
@@ -3712,7 +3687,7 @@ init_omega_for_ddr_1 (struct data_reference *dra, struct data_reference *drb,
   for (i = 0; i <= DDR_INNER_LOOP (ddr)
 	 && VEC_iterate (loop_p, DDR_LOOP_NEST (ddr), i, loopi); i++)
     {
-      HOST_WIDE_INT nbi = estimated_loop_iterations_int (loopi, false);
+      HOST_WIDE_INT nbi = max_stmt_executions_int (loopi, true);
 
       /* 0 <= loop_x */
       ineq = omega_add_zero_geq (pb, omega_black);
@@ -4238,19 +4213,6 @@ find_data_references_in_stmt (struct loop *nest, gimple stmt,
       dr = create_data_ref (nest, loop_containing_stmt (stmt),
 			    *ref->pos, stmt, ref->is_read);
       gcc_assert (dr != NULL);
-
-      /* FIXME -- data dependence analysis does not work correctly for objects
-         with invariant addresses in loop nests.  Let us fail here until the
-	 problem is fixed.  */
-      if (dr_address_invariant_p (dr) && nest)
-	{
-	  free_data_ref (dr);
-	  if (dump_file && (dump_flags & TDF_DETAILS))
-	    fprintf (dump_file, "\tFAILED as dr address is invariant\n");
-	  ret = false;
-	  break;
-	}
-
       VEC_safe_push (data_reference_p, heap, *datarefs, dr);
     }
   VEC_free (data_ref_loc, heap, references);
@@ -4294,7 +4256,7 @@ graphite_find_data_references_in_stmt (loop_p nest, loop_p loop, gimple stmt,
    DATAREFS.  Returns chrec_dont_know when failing to analyze a
    difficult case, returns NULL_TREE otherwise.  */
 
-static tree
+tree
 find_data_references_in_bb (struct loop *loop, basic_block bb,
                             VEC (data_reference_p, heap) **datarefs)
 {
@@ -4975,7 +4937,7 @@ stmts_from_loop (struct loop *loop, VEC (gimple, heap) **stmts)
       for (bsi = gsi_start_bb (bb); !gsi_end_p (bsi); gsi_next (&bsi))
 	{
 	  stmt = gsi_stmt (bsi);
-	  if (gimple_code (stmt) != GIMPLE_LABEL)
+	  if (gimple_code (stmt) != GIMPLE_LABEL && !is_gimple_debug (stmt))
 	    VEC_safe_push (gimple, heap, *stmts, stmt);
 	}
     }
@@ -5085,11 +5047,9 @@ free_rdg (struct graph *rdg)
       struct graph_edge *e;
 
       for (e = v->succ; e; e = e->succ_next)
-	if (e->data)
-	  free (e->data);
+	free (e->data);
 
-      if (v->data)
-	free (v->data);
+      free (v->data);
     }
 
   htab_delete (rdg->indices);

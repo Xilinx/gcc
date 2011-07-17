@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This package implements an X11 backend for the exp/draw package.
+// Package x11 implements an X11 backend for the exp/draw package.
 //
 // The X protocol specification is at ftp://ftp.x.org/pub/X11R7.0/doc/PDF/proto.pdf.
 // A summary of the wire format can be found in XCB's xproto.xml.
@@ -122,10 +122,13 @@ func (c *conn) writeSocket() {
 func (c *conn) Screen() draw.Image { return c.img }
 
 func (c *conn) FlushImage() {
-	// We do the send (the <- operator) in an expression context, rather than in
-	// a statement context, so that it does not block, and fails if the buffered
-	// channel is full (in which case there already is a flush request pending).
-	_ = c.flush <- false
+	select {
+	case c.flush <- false:
+		// Flush notification sent.
+	default:
+		// Could not send.
+		// Flush notification must be pending already.
+	}
 }
 
 func (c *conn) Close() os.Error {
@@ -283,11 +286,11 @@ func connect(display string) (conn net.Conn, displayStr string, err os.Error) {
 	}
 	// Make the connection.
 	if socket != "" {
-		conn, err = net.Dial("unix", "", socket+":"+displayStr)
+		conn, err = net.Dial("unix", socket+":"+displayStr)
 	} else if host != "" {
-		conn, err = net.Dial(protocol, "", host+":"+strconv.Itoa(6000+displayInt))
+		conn, err = net.Dial(protocol, host+":"+strconv.Itoa(6000+displayInt))
 	} else {
-		conn, err = net.Dial("unix", "", "/tmp/.X11-unix/X"+displayStr)
+		conn, err = net.Dial("unix", "/tmp/.X11-unix/X"+displayStr)
 	}
 	if err != nil {
 		return nil, "", os.NewError("cannot connect to " + display + ": " + err.String())

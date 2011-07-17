@@ -6,29 +6,34 @@ package http
 
 import (
 	"bufio"
-	"container/list"
 	"io"
 	"net"
+	"net/textproto"
 	"os"
 	"sync"
 )
 
-var ErrPersistEOF = &ProtocolError{"persistent connection closed"}
+var (
+	ErrPersistEOF = &ProtocolError{"persistent connection closed"}
+	ErrPipeline   = &ProtocolError{"pipeline error"}
+)
 
 // A ServerConn reads requests and sends responses over an underlying
 // connection, until the HTTP keepalive logic commands an end. ServerConn
-// does not close the underlying connection. Instead, the user calls Close
-// and regains control over the connection. ServerConn supports pipe-lining,
+// also allows hijacking the underlying connection by calling Hijack
+// to regain control over the connection. ServerConn supports pipe-lining,
 // i.e. requests can be read out of sync (but in the same order) while the
 // respective responses are sent.
 type ServerConn struct {
+	lk              sync.Mutex // read-write protects the following fields
 	c               net.Conn
 	r               *bufio.Reader
-	clsd            bool     // indicates a graceful close
 	re, we          os.Error // read/write errors
-	lastBody        io.ReadCloser
+	lastbody        io.ReadCloser
 	nread, nwritten int
-	lk              sync.Mutex // protected read/write to re,we
+	pipereq         map[*Request]uint
+
+	pipe textproto.Pipeline
 }
 
 // NewServerConn returns a new ServerConn reading and writing c.  If r is not
@@ -37,14 +42,14 @@ func NewServerConn(c net.Conn, r *bufio.Reader) *ServerConn {
 	if r == nil {
 		r = bufio.NewReader(c)
 	}
-	return &ServerConn{c: c, r: r}
+	return &ServerConn{c: c, r: r, pipereq: make(map[*Request]uint)}
 }
 
-// Close detaches the ServerConn and returns the underlying connection as well
-// as the read-side bufio which may have some left over data. Close may be
+// Hijack detaches the ServerConn and returns the underlying connection as well
+// as the read-side bufio which may have some left over data. Hijack may be
 // called before Read has signaled the end of the keep-alive logic. The user
-// should not call Close while Read or Write is in progress.
-func (sc *ServerConn) Close() (c net.Conn, r *bufio.Reader) {
+// should not call Hijack while Read or Write is in progress.
+func (sc *ServerConn) Hijack() (c net.Conn, r *bufio.Reader) {
 	sc.lk.Lock()
 	defer sc.lk.Unlock()
 	c = sc.c
@@ -54,12 +59,36 @@ func (sc *ServerConn) Close() (c net.Conn, r *bufio.Reader) {
 	return
 }
 
+// Close calls Hijack and then also closes the underlying connection
+func (sc *ServerConn) Close() os.Error {
+	c, _ := sc.Hijack()
+	if c != nil {
+		return c.Close()
+	}
+	return nil
+}
+
 // Read returns the next request on the wire. An ErrPersistEOF is returned if
 // it is gracefully determined that there are no more requests (e.g. after the
 // first request on an HTTP/1.0 connection, or after a Connection:close on a
-// HTTP/1.1 connection). Read can be called concurrently with Write, but not
-// with another Read.
+// HTTP/1.1 connection).
 func (sc *ServerConn) Read() (req *Request, err os.Error) {
+
+	// Ensure ordered execution of Reads and Writes
+	id := sc.pipe.Next()
+	sc.pipe.StartRequest(id)
+	defer func() {
+		sc.pipe.EndRequest(id)
+		if req == nil {
+			sc.pipe.StartResponse(id)
+			sc.pipe.EndResponse(id)
+		} else {
+			// Remember the pipeline id of this request
+			sc.lk.Lock()
+			sc.pipereq[req] = id
+			sc.lk.Unlock()
+		}
+	}()
 
 	sc.lk.Lock()
 	if sc.we != nil { // no point receiving if write-side broken or closed
@@ -70,15 +99,21 @@ func (sc *ServerConn) Read() (req *Request, err os.Error) {
 		defer sc.lk.Unlock()
 		return nil, sc.re
 	}
+	if sc.r == nil { // connection closed by user in the meantime
+		defer sc.lk.Unlock()
+		return nil, os.EBADF
+	}
+	r := sc.r
+	lastbody := sc.lastbody
+	sc.lastbody = nil
 	sc.lk.Unlock()
 
 	// Make sure body is fully consumed, even if user does not call body.Close
-	if sc.lastBody != nil {
+	if lastbody != nil {
 		// body.Close is assumed to be idempotent and multiple calls to
 		// it should return the error that its first invokation
 		// returned.
-		err = sc.lastBody.Close()
-		sc.lastBody = nil
+		err = lastbody.Close()
 		if err != nil {
 			sc.lk.Lock()
 			defer sc.lk.Unlock()
@@ -87,10 +122,10 @@ func (sc *ServerConn) Read() (req *Request, err os.Error) {
 		}
 	}
 
-	req, err = ReadRequest(sc.r)
+	req, err = ReadRequest(r)
+	sc.lk.Lock()
+	defer sc.lk.Unlock()
 	if err != nil {
-		sc.lk.Lock()
-		defer sc.lk.Unlock()
 		if err == io.ErrUnexpectedEOF {
 			// A close from the opposing client is treated as a
 			// graceful close, even if there was some unparse-able
@@ -99,18 +134,16 @@ func (sc *ServerConn) Read() (req *Request, err os.Error) {
 			return nil, sc.re
 		} else {
 			sc.re = err
-			return
+			return req, err
 		}
 	}
-	sc.lastBody = req.Body
+	sc.lastbody = req.Body
 	sc.nread++
 	if req.Close {
-		sc.lk.Lock()
-		defer sc.lk.Unlock()
 		sc.re = ErrPersistEOF
 		return req, sc.re
 	}
-	return
+	return req, err
 }
 
 // Pending returns the number of unanswered requests
@@ -121,35 +154,51 @@ func (sc *ServerConn) Pending() int {
 	return sc.nread - sc.nwritten
 }
 
-// Write writes a repsonse. To close the connection gracefully, set the
+// Write writes resp in response to req. To close the connection gracefully, set the
 // Response.Close field to true. Write should be considered operational until
 // it returns an error, regardless of any errors returned on the Read side.
-// Write can be called concurrently with Read, but not with another Write.
-func (sc *ServerConn) Write(resp *Response) os.Error {
+func (sc *ServerConn) Write(req *Request, resp *Response) os.Error {
+
+	// Retrieve the pipeline ID of this request/response pair
+	sc.lk.Lock()
+	id, ok := sc.pipereq[req]
+	sc.pipereq[req] = 0, false
+	if !ok {
+		sc.lk.Unlock()
+		return ErrPipeline
+	}
+	sc.lk.Unlock()
+
+	// Ensure pipeline order
+	sc.pipe.StartResponse(id)
+	defer sc.pipe.EndResponse(id)
 
 	sc.lk.Lock()
 	if sc.we != nil {
 		defer sc.lk.Unlock()
 		return sc.we
 	}
-	sc.lk.Unlock()
+	if sc.c == nil { // connection closed by user in the meantime
+		defer sc.lk.Unlock()
+		return os.EBADF
+	}
+	c := sc.c
 	if sc.nread <= sc.nwritten {
+		defer sc.lk.Unlock()
 		return os.NewError("persist server pipe count")
 	}
-
 	if resp.Close {
 		// After signaling a keep-alive close, any pipelined unread
 		// requests will be lost. It is up to the user to drain them
 		// before signaling.
-		sc.lk.Lock()
 		sc.re = ErrPersistEOF
-		sc.lk.Unlock()
 	}
+	sc.lk.Unlock()
 
-	err := resp.Write(sc.c)
+	err := resp.Write(c)
+	sc.lk.Lock()
+	defer sc.lk.Unlock()
 	if err != nil {
-		sc.lk.Lock()
-		defer sc.lk.Unlock()
 		sc.we = err
 		return err
 	}
@@ -159,17 +208,21 @@ func (sc *ServerConn) Write(resp *Response) os.Error {
 }
 
 // A ClientConn sends request and receives headers over an underlying
-// connection, while respecting the HTTP keepalive logic. ClientConn is not
-// responsible for closing the underlying connection. One must call Close to
-// regain control of that connection and deal with it as desired.
+// connection, while respecting the HTTP keepalive logic. ClientConn
+// supports hijacking the connection calling Hijack to
+// regain control of the underlying net.Conn and deal with it as desired.
 type ClientConn struct {
+	lk              sync.Mutex // read-write protects the following fields
 	c               net.Conn
 	r               *bufio.Reader
 	re, we          os.Error // read/write errors
-	lastBody        io.ReadCloser
+	lastbody        io.ReadCloser
 	nread, nwritten int
-	reqm            list.List  // request methods in order of execution
-	lk              sync.Mutex // protects read/write to reqm,re,we
+	pipereq         map[*Request]uint
+
+	pipe     textproto.Pipeline
+	writeReq func(*Request, io.Writer) os.Error
+	readRes  func(buf *bufio.Reader, method string) (*Response, os.Error)
 }
 
 // NewClientConn returns a new ClientConn reading and writing c.  If r is not
@@ -178,22 +231,44 @@ func NewClientConn(c net.Conn, r *bufio.Reader) *ClientConn {
 	if r == nil {
 		r = bufio.NewReader(c)
 	}
-	return &ClientConn{c: c, r: r}
+	return &ClientConn{
+		c:        c,
+		r:        r,
+		pipereq:  make(map[*Request]uint),
+		writeReq: (*Request).Write,
+		readRes:  ReadResponse,
+	}
 }
 
-// Close detaches the ClientConn and returns the underlying connection as well
-// as the read-side bufio which may have some left over data. Close may be
+// NewProxyClientConn works like NewClientConn but writes Requests
+// using Request's WriteProxy method.
+func NewProxyClientConn(c net.Conn, r *bufio.Reader) *ClientConn {
+	cc := NewClientConn(c, r)
+	cc.writeReq = (*Request).WriteProxy
+	return cc
+}
+
+// Hijack detaches the ClientConn and returns the underlying connection as well
+// as the read-side bufio which may have some left over data. Hijack may be
 // called before the user or Read have signaled the end of the keep-alive
-// logic. The user should not call Close while Read or Write is in progress.
-func (cc *ClientConn) Close() (c net.Conn, r *bufio.Reader) {
+// logic. The user should not call Hijack while Read or Write is in progress.
+func (cc *ClientConn) Hijack() (c net.Conn, r *bufio.Reader) {
 	cc.lk.Lock()
+	defer cc.lk.Unlock()
 	c = cc.c
 	r = cc.r
 	cc.c = nil
 	cc.r = nil
-	cc.reqm.Init()
-	cc.lk.Unlock()
 	return
+}
+
+// Close calls Hijack and then also closes the underlying connection
+func (cc *ClientConn) Close() os.Error {
+	c, _ := cc.Hijack()
+	if c != nil {
+		return c.Close()
+	}
+	return nil
 }
 
 // Write writes a request. An ErrPersistEOF error is returned if the connection
@@ -201,8 +276,23 @@ func (cc *ClientConn) Close() (c net.Conn, r *bufio.Reader) {
 // keepalive connection is logically closed after this request and the opposing
 // server is informed. An ErrUnexpectedEOF indicates the remote closed the
 // underlying TCP connection, which is usually considered as graceful close.
-// Write can be called concurrently with Read, but not with another Write.
-func (cc *ClientConn) Write(req *Request) os.Error {
+func (cc *ClientConn) Write(req *Request) (err os.Error) {
+
+	// Ensure ordered execution of Writes
+	id := cc.pipe.Next()
+	cc.pipe.StartRequest(id)
+	defer func() {
+		cc.pipe.EndRequest(id)
+		if err != nil {
+			cc.pipe.StartResponse(id)
+			cc.pipe.EndResponse(id)
+		} else {
+			// Remember the pipeline id of this request
+			cc.lk.Lock()
+			cc.pipereq[req] = id
+			cc.lk.Unlock()
+		}
+	}()
 
 	cc.lk.Lock()
 	if cc.re != nil { // no point sending if read-side closed or broken
@@ -213,27 +303,26 @@ func (cc *ClientConn) Write(req *Request) os.Error {
 		defer cc.lk.Unlock()
 		return cc.we
 	}
-	cc.lk.Unlock()
-
+	if cc.c == nil { // connection closed by user in the meantime
+		defer cc.lk.Unlock()
+		return os.EBADF
+	}
+	c := cc.c
 	if req.Close {
 		// We write the EOF to the write-side error, because there
 		// still might be some pipelined reads
-		cc.lk.Lock()
 		cc.we = ErrPersistEOF
-		cc.lk.Unlock()
 	}
+	cc.lk.Unlock()
 
-	err := req.Write(cc.c)
+	err = cc.writeReq(req, c)
+	cc.lk.Lock()
+	defer cc.lk.Unlock()
 	if err != nil {
-		cc.lk.Lock()
-		defer cc.lk.Unlock()
 		cc.we = err
 		return err
 	}
 	cc.nwritten++
-	cc.lk.Lock()
-	cc.reqm.PushBack(req.Method)
-	cc.lk.Unlock()
 
 	return nil
 }
@@ -250,26 +339,42 @@ func (cc *ClientConn) Pending() int {
 // returned together with an ErrPersistEOF, which means that the remote
 // requested that this be the last request serviced. Read can be called
 // concurrently with Write, but not with another Read.
-func (cc *ClientConn) Read() (resp *Response, err os.Error) {
+func (cc *ClientConn) Read(req *Request) (resp *Response, err os.Error) {
+
+	// Retrieve the pipeline ID of this request/response pair
+	cc.lk.Lock()
+	id, ok := cc.pipereq[req]
+	cc.pipereq[req] = 0, false
+	if !ok {
+		cc.lk.Unlock()
+		return nil, ErrPipeline
+	}
+	cc.lk.Unlock()
+
+	// Ensure pipeline order
+	cc.pipe.StartResponse(id)
+	defer cc.pipe.EndResponse(id)
 
 	cc.lk.Lock()
 	if cc.re != nil {
 		defer cc.lk.Unlock()
 		return nil, cc.re
 	}
+	if cc.r == nil { // connection closed by user in the meantime
+		defer cc.lk.Unlock()
+		return nil, os.EBADF
+	}
+	r := cc.r
+	lastbody := cc.lastbody
+	cc.lastbody = nil
 	cc.lk.Unlock()
 
-	if cc.nread >= cc.nwritten {
-		return nil, os.NewError("persist client pipe count")
-	}
-
 	// Make sure body is fully consumed, even if user does not call body.Close
-	if cc.lastBody != nil {
+	if lastbody != nil {
 		// body.Close is assumed to be idempotent and multiple calls to
 		// it should return the error that its first invokation
 		// returned.
-		err = cc.lastBody.Close()
-		cc.lastBody = nil
+		err = lastbody.Close()
 		if err != nil {
 			cc.lk.Lock()
 			defer cc.lk.Unlock()
@@ -278,26 +383,29 @@ func (cc *ClientConn) Read() (resp *Response, err os.Error) {
 		}
 	}
 
+	resp, err = cc.readRes(r, req.Method)
 	cc.lk.Lock()
-	m := cc.reqm.Front()
-	cc.reqm.Remove(m)
-	cc.lk.Unlock()
-	resp, err = ReadResponse(cc.r, m.Value.(string))
+	defer cc.lk.Unlock()
 	if err != nil {
-		cc.lk.Lock()
-		defer cc.lk.Unlock()
 		cc.re = err
-		return
+		return resp, err
 	}
-	cc.lastBody = resp.Body
+	cc.lastbody = resp.Body
 
 	cc.nread++
 
 	if resp.Close {
-		cc.lk.Lock()
-		defer cc.lk.Unlock()
 		cc.re = ErrPersistEOF // don't send any more requests
 		return resp, cc.re
 	}
-	return
+	return resp, err
+}
+
+// Do is convenience method that writes a request and reads a response.
+func (cc *ClientConn) Do(req *Request) (resp *Response, err os.Error) {
+	err = cc.Write(req)
+	if err != nil {
+		return
+	}
+	return cc.Read(req)
 }

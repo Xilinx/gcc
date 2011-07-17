@@ -1,5 +1,5 @@
 /* Copyright (C) 1997, 1998, 1999, 2000, 2001, 2003, 2004, 2005, 2006, 2007,
-   2008, 2009, 2010  Free Software Foundation, Inc.
+   2008, 2009, 2010, 2011  Free Software Foundation, Inc.
    Contributed by Red Hat, Inc.
 
 This file is part of GCC.
@@ -255,12 +255,8 @@ enum reg_class regno_reg_class[FIRST_PSEUDO_REGISTER];
 /* Cached value of frv_stack_info.  */
 static frv_stack_t *frv_stack_cache = (frv_stack_t *)0;
 
-/* -mcpu= support */
-frv_cpu_t frv_cpu_type = CPU_TYPE;	/* value of -mcpu= */
-
 /* Forward references */
 
-static bool frv_handle_option			(size_t, const char *, int);
 static void frv_option_override			(void);
 static bool frv_legitimate_address_p		(enum machine_mode, rtx, bool);
 static int frv_default_flags_for_cpu		(void);
@@ -363,7 +359,7 @@ static void frv_init_libfuncs			(void);
 static bool frv_in_small_data_p			(const_tree);
 static void frv_asm_output_mi_thunk
   (FILE *, tree, HOST_WIDE_INT, HOST_WIDE_INT, tree);
-static void frv_setup_incoming_varargs		(CUMULATIVE_ARGS *,
+static void frv_setup_incoming_varargs		(cumulative_args_t,
 						 enum machine_mode,
 						 tree, int *, int);
 static rtx frv_expand_builtin_saveregs		(void);
@@ -376,20 +372,21 @@ static int frv_memory_move_cost			(enum machine_mode,
 static void frv_asm_out_constructor		(rtx, int);
 static void frv_asm_out_destructor		(rtx, int);
 static bool frv_function_symbol_referenced_p	(rtx);
-static bool frv_cannot_force_const_mem		(rtx);
+static bool frv_legitimate_constant_p		(enum machine_mode, rtx);
+static bool frv_cannot_force_const_mem		(enum machine_mode, rtx);
 static const char *unspec_got_name		(int);
 static void frv_output_const_unspec		(FILE *,
 						 const struct frv_unspec *);
 static bool frv_function_ok_for_sibcall		(tree, tree);
 static rtx frv_struct_value_rtx			(tree, int);
 static bool frv_must_pass_in_stack (enum machine_mode mode, const_tree type);
-static int frv_arg_partial_bytes (CUMULATIVE_ARGS *, enum machine_mode,
+static int frv_arg_partial_bytes (cumulative_args_t, enum machine_mode,
 				  tree, bool);
-static rtx frv_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx frv_function_arg (cumulative_args_t, enum machine_mode,
 			     const_tree, bool);
-static rtx frv_function_incoming_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx frv_function_incoming_arg (cumulative_args_t, enum machine_mode,
 				      const_tree, bool);
-static void frv_function_arg_advance (CUMULATIVE_ARGS *, enum machine_mode,
+static void frv_function_arg_advance (cumulative_args_t, enum machine_mode,
 				       const_tree, bool);
 static unsigned int frv_function_arg_boundary	(enum machine_mode,
 						 const_tree);
@@ -403,20 +400,6 @@ static bool frv_can_eliminate			(const int, const int);
 static void frv_conditional_register_usage	(void);
 static void frv_trampoline_init			(rtx, tree, rtx);
 static bool frv_class_likely_spilled_p 		(reg_class_t);
-
-/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
-static const struct default_options frv_option_optimization_table[] =
-  {
-    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
-    { OPT_LEVELS_NONE, 0, NULL, 0 }
-  };
-
-/* Allow us to easily change the default for -malloc-cc.  */
-#ifndef DEFAULT_NO_ALLOC_CC
-#define MASK_DEFAULT_ALLOC_CC	MASK_ALLOC_CC
-#else
-#define MASK_DEFAULT_ALLOC_CC	0
-#endif
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_PRINT_OPERAND
@@ -431,21 +414,8 @@ static const struct default_options frv_option_optimization_table[] =
 #define TARGET_ASM_FUNCTION_EPILOGUE frv_function_epilogue
 #undef  TARGET_ASM_INTEGER
 #define TARGET_ASM_INTEGER frv_assemble_integer
-#undef TARGET_DEFAULT_TARGET_FLAGS
-#define TARGET_DEFAULT_TARGET_FLAGS		\
-  (MASK_DEFAULT_ALLOC_CC			\
-   | MASK_COND_MOVE				\
-   | MASK_SCC					\
-   | MASK_COND_EXEC				\
-   | MASK_VLIW_BRANCH				\
-   | MASK_MULTI_CE				\
-   | MASK_NESTED_CE)
-#undef TARGET_HANDLE_OPTION
-#define TARGET_HANDLE_OPTION frv_handle_option
 #undef TARGET_OPTION_OVERRIDE
 #define TARGET_OPTION_OVERRIDE frv_option_override
-#undef TARGET_OPTION_OPTIMIZATION_TABLE
-#define TARGET_OPTION_OPTIMIZATION_TABLE frv_option_optimization_table
 #undef TARGET_INIT_BUILTINS
 #define TARGET_INIT_BUILTINS frv_init_builtins
 #undef TARGET_EXPAND_BUILTIN
@@ -478,6 +448,8 @@ static const struct default_options frv_option_optimization_table[] =
 
 #undef TARGET_FUNCTION_OK_FOR_SIBCALL
 #define TARGET_FUNCTION_OK_FOR_SIBCALL frv_function_ok_for_sibcall
+#undef TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P frv_legitimate_constant_p
 #undef TARGET_CANNOT_FORCE_CONST_MEM
 #define TARGET_CANNOT_FORCE_CONST_MEM frv_cannot_force_const_mem
 
@@ -609,7 +581,7 @@ frv_const_unspec_p (rtx x, struct frv_unspec *unspec)
    We never allow constants to be forced into memory for TARGET_FDPIC.
    This is necessary for several reasons:
 
-   1. Since LEGITIMATE_CONSTANT_P rejects constant pool addresses, the
+   1. Since frv_legitimate_constant_p rejects constant pool addresses, the
       target-independent code will try to force them into the constant
       pool, thus leading to infinite recursion.
 
@@ -622,46 +594,12 @@ frv_const_unspec_p (rtx x, struct frv_unspec *unspec)
    4. In many cases, it's more efficient to calculate the constant in-line.  */
 
 static bool
-frv_cannot_force_const_mem (rtx x ATTRIBUTE_UNUSED)
+frv_cannot_force_const_mem (enum machine_mode mode ATTRIBUTE_UNUSED,
+			    rtx x ATTRIBUTE_UNUSED)
 {
   return TARGET_FDPIC;
 }
 
-/* Implement TARGET_HANDLE_OPTION.  */
-
-static bool
-frv_handle_option (size_t code, const char *arg, int value ATTRIBUTE_UNUSED)
-{
-  switch (code)
-    {
-    case OPT_mcpu_:
-      if (strcmp (arg, "simple") == 0)
-	frv_cpu_type = FRV_CPU_SIMPLE;
-      else if (strcmp (arg, "tomcat") == 0)
-	frv_cpu_type = FRV_CPU_TOMCAT;
-      else if (strcmp (arg, "fr550") == 0)
-	frv_cpu_type = FRV_CPU_FR550;
-      else if (strcmp (arg, "fr500") == 0)
-	frv_cpu_type = FRV_CPU_FR500;
-      else if (strcmp (arg, "fr450") == 0)
-	frv_cpu_type = FRV_CPU_FR450;
-      else if (strcmp (arg, "fr405") == 0)
-	frv_cpu_type = FRV_CPU_FR405;
-      else if (strcmp (arg, "fr400") == 0)
-	frv_cpu_type = FRV_CPU_FR400;
-      else if (strcmp (arg, "fr300") == 0)
-	frv_cpu_type = FRV_CPU_FR300;
-      else if (strcmp (arg, "frv") == 0)
-	frv_cpu_type = FRV_CPU_GENERIC;
-      else
-	return false;
-      return true;
-
-    default:
-      return true;
-    }
-}
-
 static int
 frv_default_flags_for_cpu (void)
 {
@@ -2172,12 +2110,14 @@ frv_initial_elimination_offset (int from, int to)
 /* Worker function for TARGET_SETUP_INCOMING_VARARGS.  */
 
 static void
-frv_setup_incoming_varargs (CUMULATIVE_ARGS *cum,
+frv_setup_incoming_varargs (cumulative_args_t cum_v,
                             enum machine_mode mode,
                             tree type ATTRIBUTE_UNUSED,
                             int *pretend_size,
                             int second_time)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   if (TARGET_DEBUG_ARG)
     fprintf (stderr,
 	     "setup_vararg: words = %2d, mode = %4s, pretend_size = %d, second_time = %d\n",
@@ -3164,10 +3104,12 @@ frv_function_arg_boundary (enum machine_mode mode ATTRIBUTE_UNUSED,
 }
 
 static rtx
-frv_function_arg_1 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
+frv_function_arg_1 (cumulative_args_t cum_v, enum machine_mode mode,
 		    const_tree type ATTRIBUTE_UNUSED, bool named,
 		    bool incoming ATTRIBUTE_UNUSED)
 {
+  const CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   enum machine_mode xmode = (mode == BLKmode) ? SImode : mode;
   int arg_num = *cum;
   rtx ret;
@@ -3201,14 +3143,14 @@ frv_function_arg_1 (const CUMULATIVE_ARGS *cum, enum machine_mode mode,
 }
 
 static rtx
-frv_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+frv_function_arg (cumulative_args_t cum, enum machine_mode mode,
 		  const_tree type, bool named)
 {
   return frv_function_arg_1 (cum, mode, type, named, false);
 }
 
 static rtx
-frv_function_incoming_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+frv_function_incoming_arg (cumulative_args_t cum, enum machine_mode mode,
 			   const_tree type, bool named)
 {
   return frv_function_arg_1 (cum, mode, type, named, true);
@@ -3225,11 +3167,13 @@ frv_function_incoming_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
    for arguments without any special help.  */
 
 static void
-frv_function_arg_advance (CUMULATIVE_ARGS *cum,
+frv_function_arg_advance (cumulative_args_t cum_v,
                           enum machine_mode mode,
                           const_tree type ATTRIBUTE_UNUSED,
                           bool named)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   enum machine_mode xmode = (mode == BLKmode) ? SImode : mode;
   int bytes = GET_MODE_SIZE (xmode);
   int words = (bytes + UNITS_PER_WORD  - 1) / UNITS_PER_WORD;
@@ -3261,13 +3205,14 @@ frv_function_arg_advance (CUMULATIVE_ARGS *cum,
    the called function.  */
 
 static int
-frv_arg_partial_bytes (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+frv_arg_partial_bytes (cumulative_args_t cum, enum machine_mode mode,
 		       tree type ATTRIBUTE_UNUSED, bool named ATTRIBUTE_UNUSED)
 {
+
   enum machine_mode xmode = (mode == BLKmode) ? SImode : mode;
   int bytes = GET_MODE_SIZE (xmode);
   int words = (bytes + UNITS_PER_WORD - 1) / UNITS_PER_WORD;
-  int arg_num = *cum;
+  int arg_num = *get_cumulative_args (cum);
   int ret;
 
   ret = ((arg_num <= LAST_ARG_REGNUM && arg_num + words > LAST_ARG_REGNUM+1)
@@ -6408,7 +6353,6 @@ frv_secondary_reload_class (enum reg_class rclass,
       /* Accumulators/Accumulator guard registers need to go through floating
          point registers.  */
     case QUAD_REGS:
-    case EVEN_REGS:
     case GPR_REGS:
       ret = NO_REGS;
       if (x && GET_CODE (x) == REG)
@@ -6422,8 +6366,6 @@ frv_secondary_reload_class (enum reg_class rclass,
 
       /* Nonzero constants should be loaded into an FPR through a GPR.  */
     case QUAD_FPR_REGS:
-    case FEVEN_REGS:
-    case FPR_REGS:
       if (x && CONSTANT_P (x) && !ZERO_P (x))
 	ret = GPR_REGS;
       else
@@ -6443,8 +6385,6 @@ frv_secondary_reload_class (enum reg_class rclass,
       break;
 
       /* The accumulators need fpr registers.  */
-    case ACC_REGS:
-    case EVEN_ACC_REGS:
     case QUAD_ACC_REGS:
     case ACCG_REGS:
       ret = FPR_REGS;
@@ -6518,8 +6458,6 @@ frv_class_likely_spilled_p (reg_class_t rclass)
     case LR_REG:
     case SPR_REGS:
     case QUAD_ACC_REGS:
-    case EVEN_ACC_REGS:
-    case ACC_REGS:
     case ACCG_REGS:
       return true;
     }
@@ -6789,16 +6727,14 @@ frv_class_max_nregs (enum reg_class rclass, enum machine_mode mode)
    `CONSTANT_P', so you need not check this.  In fact, `1' is a suitable
    definition for this macro on machines where anything `CONSTANT_P' is valid.  */
 
-int
-frv_legitimate_constant_p (rtx x)
+static bool
+frv_legitimate_constant_p (enum machine_mode mode, rtx x)
 {
-  enum machine_mode mode = GET_MODE (x);
-
   /* frv_cannot_force_const_mem always returns true for FDPIC.  This
      means that the move expanders will be expected to deal with most
      kinds of constant, regardless of what we return here.
 
-     However, among its other duties, LEGITIMATE_CONSTANT_P decides whether
+     However, among its other duties, frv_legitimate_constant_p decides whether
      a constant can be entered into reg_equiv_constant[].  If we return true,
      reload can create new instances of the constant whenever it likes.
 
@@ -6815,7 +6751,7 @@ frv_legitimate_constant_p (rtx x)
     return TRUE;
 
   /* double integer constants are ok.  */
-  if (mode == VOIDmode || mode == DImode)
+  if (GET_MODE (x) == VOIDmode || mode == DImode)
     return TRUE;
 
   /* 0 is always ok.  */
@@ -6881,19 +6817,16 @@ frv_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
       break;
 
     case QUAD_REGS:
-    case EVEN_REGS:
     case GPR_REGS:
       switch (to)
 	{
 	default:
 	  break;
 
-	case QUAD_REGS:
-	case EVEN_REGS:
+	case QUAD_REGS:	
 	case GPR_REGS:
 	  return LOW_COST;
 
-	case FEVEN_REGS:
 	case FPR_REGS:
 	  return LOW_COST;
 
@@ -6903,24 +6836,19 @@ frv_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 	  return LOW_COST;
 	}
 
-    case FEVEN_REGS:
-    case FPR_REGS:
+    case QUAD_FPR_REGS:
       switch (to)
 	{
 	default:
 	  break;
 
 	case QUAD_REGS:
-	case EVEN_REGS:
 	case GPR_REGS:
-	case ACC_REGS:
-	case EVEN_ACC_REGS:
 	case QUAD_ACC_REGS:
 	case ACCG_REGS:
 	  return MEDIUM_COST;
 
-	case FEVEN_REGS:
-	case FPR_REGS:
+	case QUAD_FPR_REGS:
 	  return LOW_COST;
 	}
 
@@ -6933,13 +6861,10 @@ frv_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 	  break;
 
 	case QUAD_REGS:
-	case EVEN_REGS:
 	case GPR_REGS:
 	  return MEDIUM_COST;
 	}
 
-    case ACC_REGS:
-    case EVEN_ACC_REGS:
     case QUAD_ACC_REGS:
     case ACCG_REGS:
       switch (to)
@@ -6947,8 +6872,7 @@ frv_register_move_cost (enum machine_mode mode ATTRIBUTE_UNUSED,
 	default:
 	  break;
 
-	case FEVEN_REGS:
-	case FPR_REGS:
+	case QUAD_FPR_REGS:
 	  return MEDIUM_COST;
 
 	}
@@ -8431,7 +8355,6 @@ static struct builtin_description bdesc_stores[] =
 static void
 frv_init_builtins (void)
 {
-  tree endlink = void_list_node;
   tree accumulator = integer_type_node;
   tree integer = integer_type_node;
   tree voidt = void_type_node;
@@ -8446,24 +8369,18 @@ frv_init_builtins (void)
   tree iacc   = integer_type_node;
 
 #define UNARY(RET, T1) \
-  build_function_type (RET, tree_cons (NULL_TREE, T1, endlink))
+  build_function_type_list (RET, T1, NULL_TREE)
 
 #define BINARY(RET, T1, T2) \
-  build_function_type (RET, tree_cons (NULL_TREE, T1, \
-			    tree_cons (NULL_TREE, T2, endlink)))
+  build_function_type_list (RET, T1, T2, NULL_TREE)
 
 #define TRINARY(RET, T1, T2, T3) \
-  build_function_type (RET, tree_cons (NULL_TREE, T1, \
-			    tree_cons (NULL_TREE, T2, \
-			    tree_cons (NULL_TREE, T3, endlink))))
+  build_function_type_list (RET, T1, T2, T3, NULL_TREE)
 
 #define QUAD(RET, T1, T2, T3, T4) \
-  build_function_type (RET, tree_cons (NULL_TREE, T1, \
-			    tree_cons (NULL_TREE, T2, \
-			    tree_cons (NULL_TREE, T3, \
-			    tree_cons (NULL_TREE, T4, endlink)))))
+  build_function_type_list (RET, T1, T2, T3, NULL_TREE)
 
-  tree void_ftype_void = build_function_type (voidt, endlink);
+  tree void_ftype_void = build_function_type_list (voidt, NULL_TREE);
 
   tree void_ftype_acc = UNARY (voidt, accumulator);
   tree void_ftype_uw4_uw1 = BINARY (voidt, uword4, uword1);

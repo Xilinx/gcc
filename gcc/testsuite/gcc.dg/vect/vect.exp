@@ -75,15 +75,20 @@ lappend DEFAULT_VECTCFLAGS "-fdump-tree-vect-details"
 lappend VECT_SLP_CFLAGS "-fdump-tree-slp-details"
 
 # Main loop.
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/pr*.\[cS\]]]  \
-	"" $DEFAULT_VECTCFLAGS
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/vect-*.\[cS\]]]  \
-	"" $DEFAULT_VECTCFLAGS
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/slp-*.\[cS\]]]  \
-        "" $DEFAULT_VECTCFLAGS
-dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/bb-slp*.\[cS\]]]  \
-        "" $VECT_SLP_CFLAGS
-
+set VECT_ADDITIONAL_FLAGS [list ""]
+if { [check_effective_target_lto] } {
+    lappend VECT_ADDITIONAL_FLAGS "-flto"
+}
+foreach flags $VECT_ADDITIONAL_FLAGS {
+    dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/pr*.\[cS\]]]  \
+	$flags $DEFAULT_VECTCFLAGS
+    dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/vect-*.\[cS\]]]  \
+	$flags $DEFAULT_VECTCFLAGS
+    dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/slp-*.\[cS\]]]  \
+        $flags $DEFAULT_VECTCFLAGS
+    dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/bb-slp*.\[cS\]]]  \
+        $flags $VECT_SLP_CFLAGS
+}
 
 #### Tests with special options
 global SAVED_DEFAULT_VECTCFLAGS
@@ -101,6 +106,12 @@ set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-ffast-math"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/fast-math-*.\[cS\]]]  \
 	"" $DEFAULT_VECTCFLAGS
+
+# -fno-fast-math tests
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fno-fast-math"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-fast-math-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
 
 # -fno-math-errno tests
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
@@ -171,6 +182,12 @@ dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-scevccp-vect-*.\[cS\]]]  
 # -fno-tree-scev-cprop
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "-fno-tree-scev-cprop"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-scevccp-pr*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
+
+# -fno-tree-scev-cprop
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-fno-tree-scev-cprop"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/no-scevccp-outer-*.\[cS\]]]  \
         "" $DEFAULT_VECTCFLAGS
 
@@ -208,6 +225,12 @@ dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/Os-vect-*.\[cS\]]]  \
 set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
 lappend DEFAULT_VECTCFLAGS "--param" "ggc-min-expand=0" "--param" "ggc-min-heapsize=0"
 dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/ggc-*.\[cS\]]]  \
+        "" $DEFAULT_VECTCFLAGS
+
+# -ftree-loop-if-convert-stores
+set DEFAULT_VECTCFLAGS $SAVED_DEFAULT_VECTCFLAGS
+lappend DEFAULT_VECTCFLAGS "-ftree-loop-if-convert-stores"
+dg-runtest [lsort [glob -nocomplain $srcdir/$subdir/if-cvt-stores-vect-*.\[cS\]]]  \
         "" $DEFAULT_VECTCFLAGS
 
 # With -O3.

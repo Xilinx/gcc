@@ -1,3 +1,107 @@
+2011-06-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libgcj/49314
+	* gnu/gcj/convert/natIconv.cc (iconv_init): Pad in[] with NUL byte.
+
+2011-06-17  Jack Howarth <howarth@bromo.med.uc.edu>
+
+	PR target/49461
+	* libjava/configure.ac (SYSTEMSPEC): Pass -no_pie for darwin11.
+	* libjava/configure: Regenerate.
+
+2011-06-17  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR libgcj/49315
+	* include/solaris-signal.h: Rename to ...
+	* include/posix-signal.h: ... this.
+	(SA_FLAGS): Define.
+	(SIGNAL_HANDLER): Handle non-SA_SIGINFO case.
+	(sa_signal_handler): Define.
+	(_INIT_SIG_HANDLER): New macro.
+	(INIT_SEGV, INIT_FPE): Use it.
+	* configure.ac (SIGNAL_HANDLER): Use it on alpha*-dec-osf*,
+	mips-sgi-irix*, *-*-solaris2*
+	* configure: Regenerate.
+	* include/aix-signal.h: Refer to AIX.
+	* configure.host (alpha*-dec-osf*): Enable can_unwind_signal.
+	(mips-sgi-irix6*): Likewise.
+
+2011-05-31  H.J. Lu  <hongjiu.lu@intel.com>
+
+	PR libgcj/49193
+	* configure.host (sysdeps_dir): Set to i386 for x86_64.
+
+	* sysdep/i386/locks.h (compare_and_swap): Call
+	__sync_bool_compare_and_swap.
+	(release_set): Call write_barrier ().
+
+	* sysdep/x86-64/locks.h: Removed.
+
+2011-04-24  Gerald Pfeifer  <gerald@pfeifer.com>
+
+	* README: Refer to our generic bug reporting page.
+
+2011-04-19  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (THREADS): Remove decosf1, irix, mach, os2.
+	* configure: Regenerate
+
+2011-04-15  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* testsuite/libjava.jni/jni.exp (gcj_jni_get_cxxflags_invocation):
+	Add $libiconv to cxxflags for alpha*-dec-osf*.
+
+2011-04-12  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR testsuite/21164
+	* testsuite/lib/libjava.exp: Load dg.exp.
+	* testsuite/libjava.jar/jar.exp (gcj_jar_interpret): Strip srcdir
+	from jarfile.
+	Use result for messages.
+	* testsuite/libjava.loader/loader.exp (gcj_loader_test_one): Pass
+	errname to libjava_invoke, fix testname.
+
+2011-04-08  Kai Tietz  <ktietz@redhat.com>
+
+	* configure.ac (libgcj_ld_export_all): Set for windows
+	native targets to export-all-symbols.
+	(LIBGCJ_LD_EXPORT_ALL): Export libgcj_ld_export_all.
+	* Makefile.am (libgcj_la_LDFLAGS): Add LIBGCJ_LD_EXPORT_ALL.
+	* sysdep/i386/backtrace.h (MAIN_FUNC): Define for windows
+	native targets to DllMain.
+	* gcj/javaprims.h (JNICALL): Define it dependent
+	for different windows targets.
+	* include/jni_md.h: Likewise.
+	* headers.txt (_Jv_JNI_ToReflectedField): Mark
+	JNICALLS for friends.
+	(_Jv_JNI_ToReflectedMethod): Likewise.
+	* java/lang/Class.h: Regenerated.
+	* java/lang/reflect/Field.h: Regenerated.
+	* java/lang/reflect/Constructor.h: Regenerated.
+	* java/lang/reflect/Method.h: Regenerated.
+	* configure: Regenerated.
+	* Makefile.in: Regenerated.
+	* include/Makefile.in: Regenerated.
+	* testsuite/Makefile.in: Regenerated.
+	* gcj/Makefile.in: Regenerated.
+
+2011-04-04  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac: Redirect $JAR -cf@ output to /dev/null.
+	* configure: Regenerate.
+
+2011-03-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* configure.ac (THREADS): Remove solaris.
+	* configure: Regenerate.
+
+2011-03-21  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR bootstrap/48135
+	* configure.ac (libjava_cv_anon_version_script): Handle
+	--disable-symvers.
+	* configure: Regenerate.
+
 2011-02-14  Gary Benson  <gbenson@redhat.com>
 
 	* libjava/contrib/aot-compile.in: Add our module directory

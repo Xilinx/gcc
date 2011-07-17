@@ -39,16 +39,6 @@ along with GCC; see the file COPYING3.  If not see
 
    Be sure to add an entry to invoke.texi summarizing the parameter.  */
 
-/* The threshold ratio between current and hottest structure counts.
-   We say that if the ratio of the current structure count,
-   calculated by profiling, to the hottest structure count
-   in the program is less than this parameter, then structure
-   reorganization is not applied. The default is 10%.  */
-DEFPARAM (PARAM_STRUCT_REORG_COLD_STRUCT_RATIO,
-	  "struct-reorg-cold-struct-ratio",
-	  "The threshold ratio between current and hottest structure counts",
-	  10, 0, 100)
-
 /* When branch is predicted to be taken with probability lower than this
    threshold (in percent), then it is considered well predictable. */
 DEFPARAM (PARAM_PREDICTABLE_BRANCH_OUTCOME,
@@ -198,7 +188,7 @@ DEFPARAM(PARAM_IPCP_UNIT_GROWTH,
 DEFPARAM(PARAM_EARLY_INLINING_INSNS,
 	 "early-inlining-insns",
 	 "Maximal estimated growth of function body caused by early inlining of single call",
-	 10, 0, 0)
+	 11, 0, 0)
 DEFPARAM(PARAM_LARGE_STACK_FRAME,
 	 "large-stack-frame",
 	 "The size of stack frame to be considered large",
@@ -344,6 +334,11 @@ DEFPARAM(PARAM_SMS_MAX_II_FACTOR,
 	 "sms-max-ii-factor",
 	 "A factor for tuning the upper bound that swing modulo scheduler uses for scheduling a loop",
 	 100, 0, 0)
+/* The minimum value of stage count that swing modulo scheduler will generate.  */
+DEFPARAM(PARAM_SMS_MIN_SC,
+        "sms-min-sc",
+        "The minimum value of stage count that swing modulo scheduler will generate.",
+        2, 1, 1)
 DEFPARAM(PARAM_SMS_DFA_HISTORY,
 	 "sms-dfa-history",
 	 "The number of cycles the swing modulo scheduler considers when checking conflicts using DFA",
@@ -698,6 +693,12 @@ DEFPARAM(PARAM_MAX_SCHED_READY_INSNS,
 	 "The maximum number of instructions ready to be issued to be considered by the scheduler during the first scheduling pass",
 	 100, 0, 0)
 
+/* This is the maximum number of active local stores RTL DSE will consider.  */
+DEFPARAM (PARAM_MAX_DSE_ACTIVE_LOCAL_STORES,
+	  "max-dse-active-local-stores",
+	  "Maximum number of active local stores in RTL dead store elimination",
+	  5000, 0, 0)
+
 /* Prefetching and cache-optimizations related parameters.  Default values are
    usually set by machine description.  */
 
@@ -824,7 +825,7 @@ DEFPARAM (PARAM_MIN_INSN_TO_PREFETCH_RATIO,
 	  "min-insn-to-prefetch-ratio",
 	  "Min. ratio of insns to prefetches to enable prefetching for "
           "a loop with an unknown trip count",
-	  10, 0, 0)
+	  9, 0, 0)
 
 DEFPARAM (PARAM_PREFETCH_MIN_INSN_TO_MEM_RATIO,
 	  "prefetch-min-insn-to-mem-ratio",
@@ -837,6 +838,14 @@ DEFPARAM (PARAM_MAX_VARTRACK_SIZE,
 	  "max-vartrack-size",
 	  "Max. size of var tracking hash tables",
 	  50000000, 0, 0)
+
+/* Set maximum recursion depth for var tracking expression expansion
+   and resolution.  */
+
+DEFPARAM (PARAM_MAX_VARTRACK_EXPR_DEPTH,
+	  "max-vartrack-expr-depth",
+	  "Max. recursion depth for expanding var tracking expressions",
+	  20, 0, 0)
 
 /* Set minimum insn uid for non-debug insns.  */
 
@@ -861,12 +870,12 @@ DEFPARAM (PARAM_DEVIRT_TYPE_LIST_SIZE,
 
 DEFPARAM (PARAM_LTO_PARTITIONS,
 	  "lto-partitions",
-	  "Number of paritions program should be split to",
-	  32, 0, 0)
+	  "Number of partitions the program should be split to",
+	  32, 1, 0)
 
 DEFPARAM (MIN_PARTITION_SIZE,
 	  "lto-min-partition",
-	  "Size of minimal paritition for WHOPR (in estimated instructions)",
+	  "Minimal size of a partition for LTO (in estimated instructions)",
 	  1000, 0, 0)
 
 /* Diagnostic parameters.  */
@@ -876,6 +885,23 @@ DEFPARAM (CXX_MAX_NAMESPACES_FOR_DIAGNOSTIC_HELP,
 	  "Maximum number of namespaces to search for alternatives when "
 	  "name lookup fails",
 	  1000, 0, 0)
+
+/* Maximum number of conditional store pairs that can be sunk.  */
+DEFPARAM (PARAM_MAX_STORES_TO_SINK,
+          "max-stores-to-sink",
+          "Maximum number of conditional store pairs that can be sunk",
+          2, 0, 0)
+
+/* Override CASE_VALUES_THRESHOLD of when to switch from doing switch
+   statements via if statements to using a table jump operation.  If the value
+   is 0, the default CASE_VALUES_THRESHOLD will be used.  */
+DEFPARAM (PARAM_CASE_VALUES_THRESHOLD,
+          "case-values-threshold",
+          "The smallest number of different values for which it is best to "
+	  "use a jump-table instead of a tree of conditional branches, "
+	  "if 0, use the default for the machine",
+          0, 0, 0)
+
 
 /*
 Local variables:

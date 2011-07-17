@@ -32,17 +32,6 @@ __go_receive_nonblocking_acquire (struct __go_channel *channel)
 	  ? channel->next_store == 0
 	  : channel->next_fetch == channel->next_store))
     {
-      if (channel->saw_close)
-	{
-	  ++channel->closed_op_count;
-	  if (channel->closed_op_count >= MAX_CLOSED_OPERATIONS)
-	    {
-	      i = pthread_mutex_unlock (&channel->lock);
-	      __go_assert (i == 0);
-	      __go_panic_msg ("too many operations on closed channel");
-	    }
-	}
-      channel->saw_close = 1;
       __go_unlock_and_notify_selects (channel);
       return RECEIVE_NONBLOCKING_ACQUIRE_CLOSED;
     }
@@ -105,15 +94,18 @@ __go_receive_nonblocking_acquire (struct __go_channel *channel)
 struct __go_receive_nonblocking_small
 __go_receive_nonblocking_small (struct __go_channel *channel)
 {
+  uintptr_t element_size;
   struct __go_receive_nonblocking_small ret;
 
-  __go_assert (channel->element_size <= sizeof (uint64_t));
+  element_size = channel->element_type->__size;
+  __go_assert (element_size <= sizeof (uint64_t));
 
   int data = __go_receive_nonblocking_acquire (channel);
   if (data != RECEIVE_NONBLOCKING_ACQUIRE_DATA)
     {
       ret.__val = 0;
-      ret.__success = data == RECEIVE_NONBLOCKING_ACQUIRE_CLOSED;
+      ret.__success = 0;
+      ret.__closed = data == RECEIVE_NONBLOCKING_ACQUIRE_CLOSED;
       return ret;
     }
 
@@ -122,6 +114,7 @@ __go_receive_nonblocking_small (struct __go_channel *channel)
   __go_receive_release (channel);
 
   ret.__success = 1;
+  ret.__closed = 0;
 
   return ret;
 }

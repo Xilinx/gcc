@@ -1,6 +1,6 @@
 /* Instruction scheduling pass.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 1999, 2000,
-   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010
+   2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) Enhanced by,
    and currently maintained by, Jim Wilson (wilson@cygnus.com)
@@ -1762,29 +1762,18 @@ update_live_1 (int src, rtx x)
 
   regno = REGNO (reg);
 
-  if (regno >= FIRST_PSEUDO_REGISTER || !global_regs[regno])
+  if (! HARD_REGISTER_NUM_P (regno)
+      || !global_regs[regno])
     {
-      if (regno < FIRST_PSEUDO_REGISTER)
+      for (i = 0; i < candidate_table[src].update_bbs.nr_members; i++)
 	{
-	  int j = hard_regno_nregs[regno][GET_MODE (reg)];
-	  while (--j >= 0)
-	    {
-	      for (i = 0; i < candidate_table[src].update_bbs.nr_members; i++)
-		{
-		  basic_block b = candidate_table[src].update_bbs.first_member[i];
+	  basic_block b = candidate_table[src].update_bbs.first_member[i];
 
-		  SET_REGNO_REG_SET (df_get_live_in (b), regno + j);
-		}
-	    }
-	}
-      else
-	{
-	  for (i = 0; i < candidate_table[src].update_bbs.nr_members; i++)
-	    {
-	      basic_block b = candidate_table[src].update_bbs.first_member[i];
-
-	      SET_REGNO_REG_SET (df_get_live_in (b), regno);
-	    }
+	  if (HARD_REGISTER_NUM_P (regno))
+	    bitmap_set_range (df_get_live_in (b), regno,
+			      hard_regno_nregs[regno][GET_MODE (reg)]);
+	  else
+	    bitmap_set_bit (df_get_live_in (b), regno);
 	}
     }
 }
@@ -2068,7 +2057,7 @@ static int sched_n_insns;
 /* Implementations of the sched_info functions for region scheduling.  */
 static void init_ready_list (void);
 static int can_schedule_ready_p (rtx);
-static void begin_schedule_ready (rtx, rtx);
+static void begin_schedule_ready (rtx);
 static ds_t new_ready (rtx, ds_t);
 static int schedule_more_p (void);
 static const char *rgn_print_insn (const_rtx, int);
@@ -2163,7 +2152,7 @@ can_schedule_ready_p (rtx insn)
    can_schedule_ready_p () differs from the one passed to
    begin_schedule_ready ().  */
 static void
-begin_schedule_ready (rtx insn, rtx last ATTRIBUTE_UNUSED)
+begin_schedule_ready (rtx insn)
 {
   /* An interblock motion?  */
   if (INSN_BB (insn) != target_bb)
@@ -2380,6 +2369,7 @@ static const struct haifa_sched_info rgn_const_sched_info =
 
   rgn_add_remove_insn,
   begin_schedule_ready,
+  NULL,
   advance_target_bb,
   SCHED_RGN
 };
@@ -3518,7 +3508,7 @@ gate_handle_sched2 (void)
 {
 #ifdef INSN_SCHEDULING
   return optimize > 0 && flag_schedule_insns_after_reload
-    && dbg_cnt (sched2_func);
+    && !targetm.delay_sched2 && dbg_cnt (sched2_func);
 #else
   return 0;
 #endif
@@ -3561,7 +3551,6 @@ struct rtl_opt_pass pass_sched =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_verify_flow |
   TODO_ggc_collect                      /* todo_flags_finish */
  }
@@ -3583,7 +3572,6 @@ struct rtl_opt_pass pass_sched2 =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func |
   TODO_verify_flow |
   TODO_ggc_collect                      /* todo_flags_finish */
  }

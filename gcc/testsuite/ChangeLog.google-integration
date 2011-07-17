@@ -1,3 +1,15 @@
+2011-07-16   Diego Novillo  <dnovillo@google.com>
+
+	* gcc.target/i386/pr27827.c: Add -mtune=generic.
+	* gcc.target/i386/sse4_1-blendps.c: Compile with -O0.
+	* gfortran.dg/coarray_lock_3.f90: Remove expected error.
+
+2011-07-15   Diego Novillo  <dnovillo@google.com>
+
+	* gcc.c-torture/execute/builtins/strstr-asm.x: New.  XFAIL for -flto.
+	* gcc.dg/tree-ssa/vrp47.c: XFAIL.
+	* gfortran.dg/coarray_lock_3.f90: XFAIL.
+
 2011-05-27  Simon Baldwin  <simonb@google.com>
 
 	* testsuite/gcc.dg/plugin/selfassign.c (check_self_assign): Renamed

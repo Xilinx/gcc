@@ -257,7 +257,15 @@ promote_debug_loc (struct elt_loc_list *l)
     {
       n_debug_values--;
       l->setting_insn = cselib_current_insn;
-      gcc_assert (!l->next);
+      if (cselib_preserve_constants && l->next)
+	{
+	  gcc_assert (l->next->setting_insn
+		      && DEBUG_INSN_P (l->next->setting_insn)
+		      && !l->next->next);
+	  l->next->setting_insn = cselib_current_insn;
+	}
+      else
+	gcc_assert (!l->next);
     }
 }
 
@@ -305,7 +313,8 @@ cselib_clear_table (void)
   cselib_reset_table (1);
 }
 
-/* Remove from hash table all VALUEs except constants.  */
+/* Remove from hash table all VALUEs except constants
+   and function invariants.  */
 
 static int
 preserve_only_constants (void **x, void *info ATTRIBUTE_UNUSED)
@@ -329,6 +338,14 @@ preserve_only_constants (void **x, void *info ATTRIBUTE_UNUSED)
 	    return 1;
 	}
     }
+  /* Keep around VALUEs that forward function invariant ENTRY_VALUEs
+     to corresponding parameter VALUEs.  */
+  if (v->locs != NULL
+      && v->locs->next != NULL
+      && v->locs->next->next == NULL
+      && GET_CODE (v->locs->next->loc) == ENTRY_VALUE
+      && GET_CODE (v->locs->loc) == VALUE)
+    return 1;
 
   htab_clear_slot (cselib_hash_table, x);
   return 1;
@@ -803,6 +820,15 @@ rtx_equal_for_cselib_1 (rtx x, rtx y, enum machine_mode memmode)
       return DEBUG_IMPLICIT_PTR_DECL (x)
 	     == DEBUG_IMPLICIT_PTR_DECL (y);
 
+    case DEBUG_PARAMETER_REF:
+      return DEBUG_PARAMETER_REF_DECL (x)
+	     == DEBUG_PARAMETER_REF_DECL (y);
+
+    case ENTRY_VALUE:
+      /* ENTRY_VALUEs are function invariant, it is thus undesirable to
+	 use rtx_equal_for_cselib_1 to compare the operands.  */
+      return rtx_equal_p (ENTRY_VALUE_EXP (x), ENTRY_VALUE_EXP (y));
+
     case LABEL_REF:
       return XEXP (x, 0) == XEXP (y, 0);
 
@@ -948,6 +974,30 @@ cselib_hash_rtx (rtx x, int create, enum machine_mode memmode)
       hash += ((unsigned) DEBUG_IMPLICIT_PTR << 7)
 	      + DECL_UID (DEBUG_IMPLICIT_PTR_DECL (x));
       return hash ? hash : (unsigned int) DEBUG_IMPLICIT_PTR;
+
+    case DEBUG_PARAMETER_REF:
+      hash += ((unsigned) DEBUG_PARAMETER_REF << 7)
+	      + DECL_UID (DEBUG_PARAMETER_REF_DECL (x));
+      return hash ? hash : (unsigned int) DEBUG_PARAMETER_REF;
+
+    case ENTRY_VALUE:
+      /* ENTRY_VALUEs are function invariant, thus try to avoid
+	 recursing on argument if ENTRY_VALUE is one of the
+	 forms emitted by expand_debug_expr, otherwise
+	 ENTRY_VALUE hash would depend on the current value
+	 in some register or memory.  */
+      if (REG_P (ENTRY_VALUE_EXP (x)))
+	hash += (unsigned int) REG
+		+ (unsigned int) GET_MODE (ENTRY_VALUE_EXP (x))
+		+ (unsigned int) REGNO (ENTRY_VALUE_EXP (x));
+      else if (MEM_P (ENTRY_VALUE_EXP (x))
+	       && REG_P (XEXP (ENTRY_VALUE_EXP (x), 0)))
+	hash += (unsigned int) MEM
+		+ (unsigned int) GET_MODE (XEXP (ENTRY_VALUE_EXP (x), 0))
+		+ (unsigned int) REGNO (XEXP (ENTRY_VALUE_EXP (x), 0));
+      else
+	hash += cselib_hash_rtx (ENTRY_VALUE_EXP (x), create, memmode);
+      return hash ? hash : (unsigned int) ENTRY_VALUE;
 
     case CONST_INT:
       hash += ((unsigned) CONST_INT << 7) + INTVAL (x);
@@ -1686,6 +1736,12 @@ cselib_subst_to_values (rtx x, enum machine_mode memmode)
 	}
       return e->val_rtx;
 
+    case ENTRY_VALUE:
+      e = cselib_lookup (x, GET_MODE (x), 0, memmode);
+      if (! e)
+	break;
+      return e->val_rtx;
+
     case CONST_DOUBLE:
     case CONST_VECTOR:
     case CONST_INT:
@@ -1809,6 +1865,43 @@ cselib_lookup_1 (rtx x, enum machine_mode mode,
 	     register, or NULL.  */
 	  used_regs[n_used_regs++] = i;
 	  REG_VALUES (i) = new_elt_list (REG_VALUES (i), NULL);
+	}
+      else if (cselib_preserve_constants
+	       && GET_MODE_CLASS (mode) == MODE_INT)
+	{
+	  /* During var-tracking, try harder to find equivalences
+	     for SUBREGs.  If a setter sets say a DImode register
+	     and user uses that register only in SImode, add a lowpart
+	     subreg location.  */
+	  struct elt_list *lwider = NULL;
+	  l = REG_VALUES (i);
+	  if (l && l->elt == NULL)
+	    l = l->next;
+	  for (; l; l = l->next)
+	    if (GET_MODE_CLASS (GET_MODE (l->elt->val_rtx)) == MODE_INT
+		&& GET_MODE_SIZE (GET_MODE (l->elt->val_rtx))
+		   > GET_MODE_SIZE (mode)
+		&& (lwider == NULL
+		    || GET_MODE_SIZE (GET_MODE (l->elt->val_rtx))
+		       < GET_MODE_SIZE (GET_MODE (lwider->elt->val_rtx))))
+	      {
+		struct elt_loc_list *el;
+		if (i < FIRST_PSEUDO_REGISTER
+		    && hard_regno_nregs[i][GET_MODE (l->elt->val_rtx)] != 1)
+		  continue;
+		for (el = l->elt->locs; el; el = el->next)
+		  if (!REG_P (el->loc))
+		    break;
+		if (el)
+		  lwider = l;
+	      }
+	  if (lwider)
+	    {
+	      rtx sub = lowpart_subreg (mode, lwider->elt->val_rtx,
+					GET_MODE (lwider->elt->val_rtx));
+	      if (sub)
+		e->locs->next = new_elt_loc_list (e->locs->next, sub);
+	    }
 	}
       REG_VALUES (i)->next = new_elt_list (REG_VALUES (i)->next, e);
       slot = cselib_find_slot (x, e->hash, INSERT, memmode);
@@ -2429,8 +2522,7 @@ cselib_init (int record_what)
   if (!reg_values || reg_values_size < cselib_nregs
       || (reg_values_size > 10 && reg_values_size > cselib_nregs * 4))
     {
-      if (reg_values)
-	free (reg_values);
+      free (reg_values);
       /* Some space for newly emit instructions so we don't end up
 	 reallocating in between passes.  */
       reg_values_size = cselib_nregs + (63 + cselib_nregs) / 16;

@@ -208,8 +208,7 @@ struct gimple_opt_pass pass_cleanup_cfg_post_optimizing =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func			/* todo_flags_finish */
-    | TODO_remove_unused_locals
+  TODO_remove_unused_locals             /* todo_flags_finish */
  }
 };
 
@@ -247,12 +246,13 @@ execute_fixup_cfg (void)
   edge_iterator ei;
 
   if (ENTRY_BLOCK_PTR->count)
-    count_scale = (cgraph_node (current_function_decl)->count * REG_BR_PROB_BASE
-    		   + ENTRY_BLOCK_PTR->count / 2) / ENTRY_BLOCK_PTR->count;
+    count_scale = ((cgraph_get_node (current_function_decl)->count
+		    * REG_BR_PROB_BASE + ENTRY_BLOCK_PTR->count / 2)
+		   / ENTRY_BLOCK_PTR->count);
   else
     count_scale = REG_BR_PROB_BASE;
 
-  ENTRY_BLOCK_PTR->count = cgraph_node (current_function_decl)->count;
+  ENTRY_BLOCK_PTR->count = cgraph_get_node (current_function_decl)->count;
   EXIT_BLOCK_PTR->count = (EXIT_BLOCK_PTR->count * count_scale
   			   + REG_BR_PROB_BASE / 2) / REG_BR_PROB_BASE;
 
@@ -402,12 +402,6 @@ tree_rest_of_compilation (tree fndecl)
   input_location = DECL_SOURCE_LOCATION (fndecl);
   init_function_start (fndecl);
 
-  /* Even though we're inside a function body, we still don't want to
-     call expand_expr to calculate the size of a variable-sized array.
-     We haven't necessarily assigned RTL to all variables yet, so it's
-     not safe to try to expand expressions involving them.  */
-  cfun->dont_save_pending_sizes_p = 1;
-
   gimple_register_cfg_hooks ();
 
   bitmap_obstack_initialize (&reg_obstack); /* FIXME, only at RTL generation*/
@@ -457,7 +451,7 @@ tree_rest_of_compilation (tree fndecl)
 
   gimple_set_body (fndecl, NULL);
   if (DECL_STRUCT_FUNCTION (fndecl) == 0
-      && !cgraph_node (fndecl)->origin)
+      && !cgraph_get_node (fndecl)->origin)
     {
       /* Stop pointing to the local nodes about to be freed.
 	 But DECL_INITIAL must remain nonzero so we know this

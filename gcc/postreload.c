@@ -233,7 +233,7 @@ reload_cse_simplify_set (rtx set, rtx insn)
   int did_change = 0;
   int dreg;
   rtx src;
-  enum reg_class dclass;
+  reg_class_t dclass;
   int old_cost;
   cselib_val *val;
   struct elt_loc_list *l;
@@ -2287,6 +2287,6 @@ struct rtl_opt_pass pass_postreload_cse =
   0,                                    /* properties_destroyed */
   0,                                    /* todo_flags_start */
   TODO_df_finish | TODO_verify_rtl_sharing |
-  TODO_dump_func                        /* todo_flags_finish */
+  0                                     /* todo_flags_finish */
  }
 };

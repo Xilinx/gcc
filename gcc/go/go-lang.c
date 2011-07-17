@@ -35,6 +35,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "langhooks-def.h"
 #include "except.h"
 #include "target.h"
+#include "common/common-target.h"
 
 #include <mpfr.h>
 
@@ -65,7 +66,7 @@ struct GTY(()) lang_identifier
 /* The resulting tree type.  */
 
 union GTY((desc ("TREE_CODE (&%h.generic) == IDENTIFIER_NODE"),
-	   chain_next ("(union lang_tree_node *) TREE_CHAIN (&%h.generic)")))
+	   chain_next ("CODE_CONTAINS_STRUCT (TREE_CODE (&%h.generic), TS_COMMON) ? ((union lang_tree_node *) TREE_CHAIN (&%h.generic)) : NULL")))
 lang_tree_node
 {
   union tree_node GTY((tag ("0"),
@@ -86,15 +87,6 @@ static bool
 go_langhook_init (void)
 {
   build_common_tree_nodes (false);
-
-  /* The sizetype may be "unsigned long" or "unsigned long long".  */
-  if (TYPE_MODE (long_unsigned_type_node) == ptr_mode)
-    size_type_node = long_unsigned_type_node;
-  else if (TYPE_MODE (long_long_unsigned_type_node) == ptr_mode)
-    size_type_node = long_long_unsigned_type_node;
-  else
-    size_type_node = long_unsigned_type_node;
-  set_sizetype (size_type_node);
 
   build_common_tree_nodes_2 (0);
 
@@ -152,7 +144,7 @@ go_langhook_init_options_struct (struct gcc_options *opts)
   opts->frontend_set_flag_errno_math = true;
 
   /* We turn on stack splitting if we can.  */
-  if (targetm.supports_split_stack (false, opts))
+  if (targetm_common.supports_split_stack (false, opts))
     opts->x_flag_split_stack = 1;
 
   /* Exceptions are used to handle recovering from panics.  */
@@ -308,10 +300,12 @@ go_langhook_builtin_function (tree decl)
   return decl;
 }
 
-static int
+/* Return true if we are in the global binding level.  */
+
+static bool
 go_langhook_global_bindings_p (void)
 {
-  return current_function_decl == NULL ? 1 : 0;
+  return current_function_decl == NULL_TREE;
 }
 
 /* Push a declaration into the current binding level.  We can't

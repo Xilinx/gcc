@@ -1,5 +1,5 @@
 /* Single entry single exit control flow regions.
-   Copyright (C) 2008, 2009, 2010
+   Copyright (C) 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Jan Sjodin <jan.sjodin@amd.com> and
    Sebastian Pop <sebastian.pop@amd.com>.
@@ -449,8 +449,7 @@ set_rename (htab_t rename_map, tree old_name, tree expr)
   if (!slot)
     return;
 
-  if (*slot)
-    free (*slot);
+  free (*slot);
 
   *slot = new_rename_map_elt (old_name, expr);
 }
@@ -473,6 +472,8 @@ rename_uses (gimple copy, htab_t rename_map, gimple_stmt_iterator *gsi_tgt,
     {
       if (gimple_debug_bind_p (copy))
 	gimple_debug_bind_reset_value (copy);
+      else if (gimple_debug_source_bind_p (copy))
+	return false;
       else
 	gcc_unreachable ();
 
@@ -676,8 +677,7 @@ if_region_set_false_region (ifsese if_region, sese region)
 
   SESE_EXIT (region) = false_edge;
 
-  if (if_region->false_region)
-    free (if_region->false_region);
+  free (if_region->false_region);
   if_region->false_region = region;
 
   if (slot)

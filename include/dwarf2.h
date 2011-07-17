@@ -1,7 +1,7 @@
 /* Declarations and definitions of codes relating to the DWARF2 and
    DWARF3 symbolic debugging information formats.
    Copyright (C) 1992, 1993, 1995, 1996, 1997, 1999, 2000, 2001, 2002,
-   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
    Written by Gary Funck (gary@intrepid.com) The Ada Joint Program
@@ -141,6 +141,12 @@ enum dwarf_tag
        are properly part of DWARF 5.  */
     DW_TAG_GNU_template_parameter_pack = 0x4107,
     DW_TAG_GNU_formal_parameter_pack = 0x4108,
+    /* The GNU call site extension, specified at
+       http://www.dwarfstd.org/ShowIssue.php?issue=100909.2&type=open .
+       The values of these two TAGS are in the DW_TAG_GNU_* space until the tags
+       are properly part of DWARF 5.  */
+    DW_TAG_GNU_call_site = 0x4109,
+    DW_TAG_GNU_call_site_parameter = 0x410a,
     /* Extensions for UPC.  See: http://upc.gwu.edu/~upc.  */
     DW_TAG_upc_shared_type = 0x8765,
     DW_TAG_upc_strict_type = 0x8766,
@@ -183,7 +189,6 @@ enum dwarf_form
     DW_FORM_exprloc = 0x18,
     DW_FORM_flag_present = 0x19,
     DW_FORM_ref_sig8 = 0x20
-#define DW_FORM_sig8  DW_FORM_ref_sig8  /* Note: The use of DW_FORM_sig8 is deprecated.  */
   };
 
 /* Attribute names and codes.  */
@@ -351,6 +356,16 @@ enum dwarf_attribute
     /* Template template argument name.
        See http://gcc.gnu.org/wiki/TemplateParmsDwarf .  */
     DW_AT_GNU_template_name = 0x2110,
+    /* The GNU call site extension.
+       See http://www.dwarfstd.org/ShowIssue.php?issue=100909.2&type=open .  */
+    DW_AT_GNU_call_site_value = 0x2111,
+    DW_AT_GNU_call_site_data_value = 0x2112,
+    DW_AT_GNU_call_site_target = 0x2113,
+    DW_AT_GNU_call_site_target_clobbered = 0x2114,
+    DW_AT_GNU_tail_call = 0x2115,
+    DW_AT_GNU_all_tail_call_sites = 0x2116,
+    DW_AT_GNU_all_call_sites = 0x2117,
+    DW_AT_GNU_all_source_call_sites = 0x2118,
     /* VMS extensions.  */
     DW_AT_VMS_rtnbeg_pd_address = 0x2201,
     /* GNAT extensions.  */
@@ -535,7 +550,21 @@ enum dwarf_location_atom
     /* The following is for marking variables that are uninitialized.  */
     DW_OP_GNU_uninit     = 0xf0,
     DW_OP_GNU_encoded_addr = 0xf1,
+    /* The GNU implicit pointer extension.
+       See http://www.dwarfstd.org/ShowIssue.php?issue=100831.1&type=open .  */
     DW_OP_GNU_implicit_pointer = 0xf2,
+    /* The GNU entry value extension.
+       See http://www.dwarfstd.org/ShowIssue.php?issue=100909.1&type=open .  */
+    DW_OP_GNU_entry_value = 0xf3,
+    /* The GNU typed stack extension.
+       See http://www.dwarfstd.org/doc/040408.1.html .  */
+    DW_OP_GNU_const_type = 0xf4,
+    DW_OP_GNU_regval_type = 0xf5,
+    DW_OP_GNU_deref_type = 0xf6,
+    DW_OP_GNU_convert = 0xf7,
+    DW_OP_GNU_reinterpret = 0xf9,
+    /* The GNU parameter ref extension.  */
+    DW_OP_GNU_parameter_ref = 0xfa,
     /* HP extensions.  */
     DW_OP_HP_unknown     = 0xe0, /* Ouch, the same as GNU_push_tls_address.  */
     DW_OP_HP_is_value    = 0xe1,
@@ -735,6 +764,14 @@ enum dwarf_line_number_x_ops
 
     DW_LNE_lo_user = 0x80,
     DW_LNE_hi_user = 0xff
+  };
+
+/* Sub-opcodes for DW_LNE_HP_source_file_correlation.  */
+enum dwarf_line_number_hp_sfc_ops
+  {
+    DW_LNE_HP_SFC_formfeed = 1,
+    DW_LNE_HP_SFC_set_listing_line = 2,
+    DW_LNE_HP_SFC_associate = 3
   };
 
 /* Call frame information.  */

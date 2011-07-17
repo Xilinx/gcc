@@ -6,7 +6,7 @@
 --                                                                          --
 --                                 S p e c                                  --
 --                                                                          --
---          Copyright (C) 1992-2010, Free Software Foundation, Inc.         --
+--          Copyright (C) 1992-2011, Free Software Foundation, Inc.         --
 --                                                                         --
 -- GNAT is free software;  you can  redistribute it  and/or modify it under --
 -- terms of the  GNU General Public License as published  by the Free Soft- --
@@ -380,9 +380,11 @@ package Einfo is
 --    Address_Taken (Flag104)
 --       Present in all entities. Set if the Address or Unrestricted_Access
 --       attribute is applied directly to the entity, i.e. the entity is the
---       entity of the prefix of the attribute reference. Used by Gigi to
---       make sure that the address can be meaningfully taken, and also in
---       the case of subprograms to control output of certain warnings.
+--       entity of the prefix of the attribute reference. Also set if the
+--       entity is the second argument of an Asm_Input or Asm_Output attribute,
+--       as the construct may entail taking its address. Used by Gigi to make
+--       sure that the address can be meaningfully taken, and also in the case
+--       of subprograms to control output of certain warnings.
 
 --    Aft_Value (synthesized)
 --       Applies to fixed and decimal types. Computes a universal integer
@@ -3573,8 +3575,8 @@ package Einfo is
 --    Size_Depends_On_Discriminant (Flag177)
 --       Present in all entities for types and subtypes. Indicates that the
 --       size of the type depends on the value of one or more discriminants.
---       Currently, this flag is only set in front end layout mode for arrays
---       which have one or more bounds depending on a discriminant value.
+--       Currently, this flag is only set for arrays which have one or more
+--       bounds depending on a discriminant value.
 
 --    Size_Known_At_Compile_Time (Flag92)
 --       Present in all entities for types and subtypes. Indicates that the

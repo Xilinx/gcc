@@ -1,6 +1,6 @@
 /* Target definitions for PowerPC running Darwin (Mac OS X).
-   Copyright (C) 1997, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 1997, 2000, 2001, 2003, 2004, 2005, 2006, 2007, 2008, 2010,
+   2011 Free Software Foundation, Inc.
    Contributed by Apple Computer Inc.
 
    This file is part of GCC.
@@ -21,9 +21,6 @@
 
 #undef DARWIN_PPC
 #define DARWIN_PPC 1
-
-#undef  TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (Darwin/PowerPC)");
 
 /* The "Darwin ABI" is mostly like AIX, but with some key differences.  */
 
@@ -382,10 +379,6 @@ extern int darwin_emit_branch_islands;
 
 #ifdef IN_LIBGCC2
 #include <stdbool.h>
-#endif
-
-#if !defined(__LP64__) && !defined(DARWIN_LIBSYSTEM_HAS_UNWIND)
-#define MD_UNWIND_SUPPORT "config/rs6000/darwin-unwind.h"
 #endif
 
 /* True, iff we're generating fast turn around debugging code.  When

@@ -1201,9 +1201,11 @@ xstormy16_function_profiler (void)
    the word count.  */
 
 static void
-xstormy16_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+xstormy16_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
 				const_tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   /* If an argument would otherwise be passed partially in registers,
      and partially on the stack, the whole of it is passed on the
      stack.  */
@@ -1215,9 +1217,11 @@ xstormy16_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
 }
 
 static rtx
-xstormy16_function_arg (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+xstormy16_function_arg (cumulative_args_t cum_v, enum machine_mode mode,
 			const_tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   if (mode == VOIDmode)
     return const0_rtx;
   if (targetm.calls.must_pass_in_stack (mode, type)
@@ -2170,11 +2174,15 @@ static tree xstormy16_handle_below100_attribute
 
 static const struct attribute_spec xstormy16_attribute_table[] =
 {
-  /* name, min_len, max_len, decl_req, type_req, fn_type_req, handler.  */
-  { "interrupt", 0, 0, false, true,  true,  xstormy16_handle_interrupt_attribute },
-  { "BELOW100",  0, 0, false, false, false, xstormy16_handle_below100_attribute },
-  { "below100",  0, 0, false, false, false, xstormy16_handle_below100_attribute },
-  { NULL,        0, 0, false, false, false, NULL }
+  /* name, min_len, max_len, decl_req, type_req, fn_type_req, handler,
+     affects_type_identity.  */
+  { "interrupt", 0, 0, false, true,  true,
+    xstormy16_handle_interrupt_attribute , false },
+  { "BELOW100",  0, 0, false, false, false,
+    xstormy16_handle_below100_attribute, false },
+  { "below100",  0, 0, false, false, false,
+    xstormy16_handle_below100_attribute, false },
+  { NULL,        0, 0, false, false, false, NULL, false }
 };
 
 /* Handle an "interrupt" attribute;
@@ -2251,15 +2259,21 @@ static struct
 static void
 xstormy16_init_builtins (void)
 {
-  tree args, ret_type, arg;
-  int i, a;
+  tree args[2], ret_type, arg = NULL_TREE, ftype;
+  int i, a, n_args;
 
   ret_type = void_type_node;
 
   for (i = 0; s16builtins[i].name; i++)
     {
-      args = void_list_node;
-      for (a = strlen (s16builtins[i].arg_types) - 1; a >= 0; a--)
+      n_args = strlen (s16builtins[i].arg_types) - 1;
+
+      gcc_assert (n_args <= (int) ARRAY_SIZE (args));
+
+      for (a = n_args - 1; a >= 0; a--)
+	args[a] = NULL_TREE;
+
+      for (a = n_args; a >= 0; a--)
 	{
 	  switch (s16builtins[i].arg_types[a])
 	    {
@@ -2272,11 +2286,11 @@ xstormy16_init_builtins (void)
 	  if (a == 0)
 	    ret_type = arg;
 	  else
-	    args = tree_cons (NULL_TREE, arg, args);
+	    args[a-1] = arg;
 	}
-      add_builtin_function (s16builtins[i].name,
-			    build_function_type (ret_type, args),
-			    i, BUILT_IN_MD, NULL, NULL);
+      ftype = build_function_type_list (ret_type, args[0], args[1], NULL_TREE);
+      add_builtin_function (s16builtins[i].name, ftype,
+			    i, BUILT_IN_MD, NULL, NULL_TREE);
     }
 }
 
@@ -2397,7 +2411,8 @@ combine_bnp (rtx insn)
     {
       /* LT and GE conditionals should have a sign extend before
 	 them.  */
-      for (and_insn = prev_real_insn (insn); and_insn;
+      for (and_insn = prev_real_insn (insn);
+	   and_insn != NULL_RTX;
 	   and_insn = prev_real_insn (and_insn))
 	{
 	  int and_code = recog_memoized (and_insn);
@@ -2426,7 +2441,8 @@ combine_bnp (rtx insn)
   else
     {
       /* EQ and NE conditionals have an AND before them.  */
-      for (and_insn = prev_real_insn (insn); and_insn;
+      for (and_insn = prev_real_insn (insn);
+	   and_insn != NULL_RTX;
 	   and_insn = prev_real_insn (and_insn))
 	{
 	  if (recog_memoized (and_insn) == CODE_FOR_andhi3
@@ -2471,7 +2487,8 @@ combine_bnp (rtx insn)
 	    }
 	}
     }
-  if (!and_insn)
+
+  if (and_insn == NULL_RTX)
     return;
 
   for (load = shift ? prev_real_insn (shift) : prev_real_insn (and_insn);
@@ -2589,13 +2606,6 @@ xstormy16_return_in_memory (const_tree type, const_tree fntype ATTRIBUTE_UNUSED)
   return (size == -1 || size > UNITS_PER_WORD * NUM_ARGUMENT_REGISTERS);
 }
 
-/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
-static const struct default_options xstorym16_option_optimization_table[] =
-  {
-    { OPT_LEVELS_1_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
-    { OPT_LEVELS_NONE, 0, NULL, 0 }
-  };
-
 #undef  TARGET_ASM_ALIGNED_HI_OP
 #define TARGET_ASM_ALIGNED_HI_OP "\t.hword\t"
 #undef  TARGET_ASM_ALIGNED_SI_OP
@@ -2668,9 +2678,6 @@ static const struct default_options xstorym16_option_optimization_table[] =
 
 #undef TARGET_TRAMPOLINE_INIT
 #define TARGET_TRAMPOLINE_INIT xstormy16_trampoline_init
-
-#undef TARGET_OPTION_OPTIMIZATION_TABLE
-#define TARGET_OPTION_OPTIMIZATION_TABLE xstorym16_option_optimization_table
 
 struct gcc_target targetm = TARGET_INITIALIZER;
 

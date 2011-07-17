@@ -107,7 +107,7 @@ func (f *fmt) writePadding(n int, padding []byte) {
 }
 
 // Append b to f.buf, padded on left (w > 0) or right (w < 0 or f.minus)
-// clear flags aftewards.
+// clear flags afterwards.
 func (f *fmt) pad(b []byte) {
 	var padding []byte
 	var left, right int
@@ -124,7 +124,7 @@ func (f *fmt) pad(b []byte) {
 }
 
 // append s to buf, padded on left (w > 0) or right (w < 0 or f.minus).
-// clear flags aftewards.
+// clear flags afterwards.
 func (f *fmt) padString(s string) {
 	var padding []byte
 	var left, right int
@@ -235,13 +235,24 @@ func (f *fmt) integer(a int64, base uint64, signedness bool, digits string) {
 	f.pad(buf[i:])
 }
 
-// fmt_s formats a string.
-func (f *fmt) fmt_s(s string) {
-	if f.precPresent {
-		if f.prec < len(s) {
-			s = s[0:f.prec]
+// truncate truncates the string to the specified precision, if present.
+func (f *fmt) truncate(s string) string {
+	if f.precPresent && f.prec < utf8.RuneCountInString(s) {
+		n := f.prec
+		for i := range s {
+			if n == 0 {
+				s = s[:i]
+				break
+			}
+			n--
 		}
 	}
+	return s
+}
+
+// fmt_s formats a string.
+func (f *fmt) fmt_s(s string) {
+	s = f.truncate(s)
 	f.padString(s)
 }
 
@@ -275,6 +286,7 @@ func (f *fmt) fmt_sX(s string) {
 
 // fmt_q formats a string as a double-quoted, escaped Go string constant.
 func (f *fmt) fmt_q(s string) {
+	s = f.truncate(s)
 	var quoted string
 	if f.sharp && strconv.CanBackquote(s) {
 		quoted = "`" + s + "`"

@@ -1,6 +1,6 @@
 /* Subroutines for gcc2 for pdp11.
    Copyright (C) 1994, 1995, 1996, 1997, 1998, 1999, 2001, 2004, 2005,
-   2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+   2006, 2007, 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
    Contributed by Michael K. Gschwind (mike@vlsivie.tuwien.ac.at).
 
 This file is part of GCC.
@@ -40,6 +40,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "target.h"
 #include "target-def.h"
 #include "df.h"
+#include "opts.h"
 
 /* this is the current value returned by the macro FIRST_PARM_OFFSET 
    defined in tm.h */
@@ -138,8 +139,6 @@ decode_pdp11_d (const struct real_format *fmt ATTRIBUTE_UNUSED,
 /* This is where the condition code register lives.  */
 /* rtx cc0_reg_rtx; - no longer needed? */
 
-static bool pdp11_handle_option (size_t, const char *, int);
-static void pdp11_option_init_struct (struct gcc_options *);
 static const char *singlemove_string (rtx *);
 static bool pdp11_assemble_integer (rtx, unsigned int, int);
 static void pdp11_output_function_prologue (FILE *, HOST_WIDE_INT);
@@ -150,19 +149,12 @@ static rtx pdp11_function_value (const_tree, const_tree, bool);
 static rtx pdp11_libcall_value (enum machine_mode, const_rtx);
 static bool pdp11_function_value_regno_p (const unsigned int);
 static void pdp11_trampoline_init (rtx, tree, rtx);
-static rtx pdp11_function_arg (CUMULATIVE_ARGS *, enum machine_mode,
+static rtx pdp11_function_arg (cumulative_args_t, enum machine_mode,
 			       const_tree, bool);
-static void pdp11_function_arg_advance (CUMULATIVE_ARGS *,
+static void pdp11_function_arg_advance (cumulative_args_t,
 					enum machine_mode, const_tree, bool);
 static void pdp11_conditional_register_usage (void);
-
-/* Implement TARGET_OPTION_OPTIMIZATION_TABLE.  */
-
-static const struct default_options pdp11_option_optimization_table[] =
-  {
-    { OPT_LEVELS_3_PLUS, OPT_fomit_frame_pointer, NULL, 1 },
-    { OPT_LEVELS_NONE, 0, NULL, 0 }
-  };
+static bool pdp11_legitimate_constant_p (enum machine_mode, rtx);
 
 /* Initialize the GCC target structure.  */
 #undef TARGET_ASM_BYTE_OP
@@ -183,16 +175,6 @@ static const struct default_options pdp11_option_optimization_table[] =
 #define TARGET_ASM_OPEN_PAREN "["
 #undef TARGET_ASM_CLOSE_PAREN
 #define TARGET_ASM_CLOSE_PAREN "]"
-
-#undef TARGET_DEFAULT_TARGET_FLAGS
-#define TARGET_DEFAULT_TARGET_FLAGS \
-  (MASK_FPU | MASK_45 | TARGET_UNIX_ASM_DEFAULT)
-#undef TARGET_HANDLE_OPTION
-#define TARGET_HANDLE_OPTION pdp11_handle_option
-#undef TARGET_OPTION_OPTIMIZATION_TABLE
-#define TARGET_OPTION_OPTIMIZATION_TABLE pdp11_option_optimization_table
-#undef TARGET_OPTION_INIT_STRUCT
-#define TARGET_OPTION_INIT_STRUCT pdp11_option_init_struct
 
 #undef TARGET_RTX_COSTS
 #define TARGET_RTX_COSTS pdp11_rtx_costs
@@ -241,34 +223,10 @@ static const struct default_options pdp11_option_optimization_table[] =
 
 #undef  TARGET_PRINT_OPERAND_PUNCT_VALID_P
 #define TARGET_PRINT_OPERAND_PUNCT_VALID_P pdp11_asm_print_operand_punct_valid_p
+
+#undef  TARGET_LEGITIMATE_CONSTANT_P
+#define TARGET_LEGITIMATE_CONSTANT_P pdp11_legitimate_constant_p
 
-/* Implement TARGET_HANDLE_OPTION.  */
-
-static bool
-pdp11_handle_option (size_t code, const char *arg ATTRIBUTE_UNUSED,
-		     int value ATTRIBUTE_UNUSED)
-{
-  switch (code)
-    {
-    case OPT_m10:
-      target_flags &= ~(MASK_40 | MASK_45);
-      return true;
-
-    default:
-      return true;
-    }
-}
-
-/* Implement TARGET_OPTION_INIT_STRUCT.  */
-
-static void
-pdp11_option_init_struct (struct gcc_options *opts)
-{
-  opts->x_flag_finite_math_only = 0;
-  opts->x_flag_trapping_math = 0;
-  opts->x_flag_signaling_nans = 0;
-}
-
 /*
    stream is a stdio stream to output the code to.
    size is an int: how many units of temporary storage to allocate.
@@ -1855,7 +1813,7 @@ pdp11_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
     (otherwise it is an extra parameter matching an ellipsis).  */
 
 static rtx
-pdp11_function_arg (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
+pdp11_function_arg (cumulative_args_t cum ATTRIBUTE_UNUSED,
 		    enum machine_mode mode ATTRIBUTE_UNUSED,
 		    const_tree type ATTRIBUTE_UNUSED,
 		    bool named ATTRIBUTE_UNUSED)
@@ -1870,9 +1828,11 @@ pdp11_function_arg (CUMULATIVE_ARGS *cum ATTRIBUTE_UNUSED,
    may not be available.)  */
 
 static void
-pdp11_function_arg_advance (CUMULATIVE_ARGS *cum, enum machine_mode mode,
+pdp11_function_arg_advance (cumulative_args_t cum_v, enum machine_mode mode,
 			    const_tree type, bool named ATTRIBUTE_UNUSED)
 {
+  CUMULATIVE_ARGS *cum = get_cumulative_args (cum_v);
+
   *cum += (mode != BLKmode
 	   ? GET_MODE_SIZE (mode)
 	   : int_size_in_bytes (type));
@@ -1918,6 +1878,14 @@ pdp11_function_section (tree decl ATTRIBUTE_UNUSED,
 			bool exit ATTRIBUTE_UNUSED)
 {
   return NULL;
+}
+
+/* Implement TARGET_LEGITIMATE_CONSTANT_P.  */
+
+static bool
+pdp11_legitimate_constant_p (enum machine_mode mode ATTRIBUTE_UNUSED, rtx x)
+{
+  return GET_CODE (x) != CONST_DOUBLE || legitimate_const_double_p (x);
 }
 
 struct gcc_target targetm = TARGET_INITIALIZER;

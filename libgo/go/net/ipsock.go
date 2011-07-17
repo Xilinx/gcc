@@ -18,18 +18,46 @@ import (
 // Unfortunately, we need to run on kernels built without IPv6 support too.
 // So probe the kernel to figure it out.
 func kernelSupportsIPv6() bool {
-	// FreeBSD does not support this sort of interface.
-	if syscall.OS == "freebsd" {
+	s, err := syscall.Socket(syscall.AF_INET6, syscall.SOCK_STREAM, syscall.IPPROTO_TCP)
+	if err != 0 {
 		return false
 	}
-	fd, e := syscall.Socket(syscall.AF_INET6, syscall.SOCK_STREAM, syscall.IPPROTO_TCP)
-	if fd >= 0 {
-		closesocket(fd)
+	defer closesocket(s)
+
+	la := &TCPAddr{IP: IPv4(127, 0, 0, 1)}
+	sa, oserr := la.toAddr().sockaddr(syscall.AF_INET6)
+	if oserr != nil {
+		return false
 	}
-	return e == 0
+
+	return syscall.Bind(s, sa) == 0
 }
 
 var preferIPv4 = !kernelSupportsIPv6()
+
+func firstSupportedAddr(filter func(IP) IP, addrs []string) IP {
+	for _, s := range addrs {
+		if addr := filter(ParseIP(s)); addr != nil {
+			return addr
+		}
+	}
+	return nil
+}
+
+func anyaddr(x IP) IP  { return x }
+func ipv4only(x IP) IP { return x.To4() }
+
+func ipv6only(x IP) IP {
+	// Only return addresses that we can use
+	// with the kernel's IPv6 addressing modes.
+	// If preferIPv4 is set, it means the IPv6 stack
+	// cannot take IPv4 addresses directly (we prefer
+	// to use the IPv4 stack) so reject IPv4 addresses.
+	if x.To4() != nil && preferIPv4 {
+		return nil
+	}
+	return x
+}
 
 // TODO(rsc): if syscall.OS == "linux", we're supposd to read
 // /proc/sys/net/core/somaxconn,
@@ -116,7 +144,6 @@ func (e InvalidAddrError) String() string  { return string(e) }
 func (e InvalidAddrError) Timeout() bool   { return false }
 func (e InvalidAddrError) Temporary() bool { return false }
 
-
 func ipToSockaddr(family int, ip IP, port int) (syscall.Sockaddr, os.Error) {
 	switch family {
 	case syscall.AF_INET:
@@ -155,9 +182,10 @@ func ipToSockaddr(family int, ip IP, port int) (syscall.Sockaddr, os.Error) {
 	return nil, InvalidAddrError("unexpected socket family")
 }
 
-// Split "host:port" into "host" and "port".
-// Host cannot contain colons unless it is bracketed.
-func splitHostPort(hostport string) (host, port string, err os.Error) {
+// SplitHostPort splits a network address of the form
+// "host:port" or "[host]:port" into host and port.
+// The latter form must be used when host contains a colon.
+func SplitHostPort(hostport string) (host, port string, err os.Error) {
 	// The port starts after the last colon.
 	i := last(hostport, ':')
 	if i < 0 {
@@ -180,9 +208,9 @@ func splitHostPort(hostport string) (host, port string, err os.Error) {
 	return
 }
 
-// Join "host" and "port" into "host:port".
-// If host contains colons, will join into "[host]:port".
-func joinHostPort(host, port string) string {
+// JoinHostPort combines host and port into a network address
+// of the form "host:port" or, if host contains a colon, "[host]:port".
+func JoinHostPort(host, port string) string {
 	// If host has colons, have to bracket it.
 	if byteIndex(host, ':') >= 0 {
 		return "[" + host + "]:" + port
@@ -192,7 +220,7 @@ func joinHostPort(host, port string) string {
 
 // Convert "host:port" into IP address and port.
 func hostPortToIP(net, hostport string) (ip IP, iport int, err os.Error) {
-	host, port, err := splitHostPort(hostport)
+	host, port, err := SplitHostPort(hostport)
 	if err != nil {
 		goto Error
 	}
@@ -202,13 +230,31 @@ func hostPortToIP(net, hostport string) (ip IP, iport int, err os.Error) {
 		// Try as an IP address.
 		addr = ParseIP(host)
 		if addr == nil {
+			filter := anyaddr
+			if len(net) >= 4 && net[3] == '4' {
+				filter = ipv4only
+			} else if len(net) >= 4 && net[3] == '6' {
+				filter = ipv6only
+			}
 			// Not an IP address.  Try as a DNS name.
-			_, addrs, err1 := LookupHost(host)
+			addrs, err1 := LookupHost(host)
 			if err1 != nil {
 				err = err1
 				goto Error
 			}
-			addr = ParseIP(addrs[0])
+			if filter == anyaddr {
+				// We'll take any IP address, but since the dialing code
+				// does not yet try multiple addresses, prefer to use
+				// an IPv4 address if possible.  This is especially relevant
+				// if localhost resolves to [ipv6-localhost, ipv4-localhost].
+				// Too much code assumes localhost == ipv4-localhost.
+				addr = firstSupportedAddr(ipv4only, addrs)
+				if addr == nil {
+					addr = firstSupportedAddr(anyaddr, addrs)
+				}
+			} else {
+				addr = firstSupportedAddr(filter, addrs)
+			}
 			if addr == nil {
 				// should not happen
 				err = &AddrError{"LookupHost returned invalid address", addrs[0]}

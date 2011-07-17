@@ -4,31 +4,36 @@
 
 // HTTP Request reading and parsing.
 
-// The http package implements parsing of HTTP requests, replies,
-// and URLs and provides an extensible HTTP server and a basic
-// HTTP client.
+// Package http implements parsing of HTTP requests, replies, and URLs and
+// provides an extensible HTTP server and a basic HTTP client.
 package http
 
 import (
 	"bufio"
-	"bytes"
+	"crypto/tls"
 	"container/vector"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
+	"net/textproto"
 	"os"
 	"strconv"
 	"strings"
 )
 
 const (
-	maxLineLength  = 4096 // assumed <= bufio.defaultBufSize
-	maxValueLength = 4096
-	maxHeaderLines = 1024
-	chunkSize      = 4 << 10 // 4 KB chunks
+	maxLineLength    = 4096 // assumed <= bufio.defaultBufSize
+	maxValueLength   = 4096
+	maxHeaderLines   = 1024
+	chunkSize        = 4 << 10  // 4 KB chunks
+	defaultMaxMemory = 32 << 20 // 32 MB
 )
+
+// ErrMissingFile is returned by FormFile when the provided file field name
+// is either not present in the request or not a file field.
+var ErrMissingFile = os.ErrorString("http: no such file")
 
 // HTTP request parsing errors.
 type ProtocolError struct {
@@ -64,9 +69,12 @@ var reqExcludeHeader = map[string]bool{
 
 // A Request represents a parsed HTTP request header.
 type Request struct {
-	Method     string // GET, POST, PUT, etc.
-	RawURL     string // The raw URL given in the request.
-	URL        *URL   // Parsed URL.
+	Method string // GET, POST, PUT, etc.
+	RawURL string // The raw URL given in the request.
+	URL    *URL   // Parsed URL.
+
+	// The protocol version for incoming requests.
+	// Outgoing requests always use HTTP/1.1.
 	Proto      string // "HTTP/1.0"
 	ProtoMajor int    // 1
 	ProtoMinor int    // 0
@@ -90,7 +98,10 @@ type Request struct {
 	// The request parser implements this by canonicalizing the
 	// name, making the first character and any characters
 	// following a hyphen uppercase and the rest lowercase.
-	Header map[string]string
+	Header Header
+
+	// Cookie records the HTTP cookies sent with the request.
+	Cookie []*Cookie
 
 	// The message body.
 	Body io.ReadCloser
@@ -130,10 +141,30 @@ type Request struct {
 	// The parsed form. Only available after ParseForm is called.
 	Form map[string][]string
 
+	// The parsed multipart form, including file uploads.
+	// Only available after ParseMultipartForm is called.
+	MultipartForm *multipart.Form
+
 	// Trailer maps trailer keys to values.  Like for Header, if the
 	// response has multiple trailer lines with the same key, they will be
 	// concatenated, delimited by commas.
-	Trailer map[string]string
+	Trailer Header
+
+	// RemoteAddr allows HTTP servers and other software to record
+	// the network address that sent the request, usually for
+	// logging. This field is not filled in by ReadRequest and
+	// has no defined format. The HTTP server in this package
+	// sets RemoteAddr to an "IP:port" address before invoking a
+	// handler.
+	RemoteAddr string
+
+	// TLS allows HTTP servers and other software to record
+	// information about the TLS connection on which the request
+	// was received. This field is not filled in by ReadRequest.
+	// The HTTP server in this package sets the field for
+	// TLS-enabled connections before invoking a handler;
+	// otherwise it leaves the field nil.
+	TLS *tls.ConnectionState
 }
 
 // ProtoAtLeast returns whether the HTTP protocol used
@@ -143,11 +174,32 @@ func (r *Request) ProtoAtLeast(major, minor int) bool {
 		r.ProtoMajor == major && r.ProtoMinor >= minor
 }
 
+// multipartByReader is a sentinel value.
+// Its presence in Request.MultipartForm indicates that parsing of the request
+// body has been handed off to a MultipartReader instead of ParseMultipartFrom.
+var multipartByReader = &multipart.Form{
+	Value: make(map[string][]string),
+	File:  make(map[string][]*multipart.FileHeader),
+}
+
 // MultipartReader returns a MIME multipart reader if this is a
 // multipart/form-data POST request, else returns nil and an error.
+// Use this function instead of ParseMultipartForm to
+// process the request body as a stream.
 func (r *Request) MultipartReader() (multipart.Reader, os.Error) {
-	v, ok := r.Header["Content-Type"]
-	if !ok {
+	if r.MultipartForm == multipartByReader {
+		return nil, os.NewError("http: MultipartReader called twice")
+	}
+	if r.MultipartForm != nil {
+		return nil, os.NewError("http: multipart handled by ParseMultipartForm")
+	}
+	r.MultipartForm = multipartByReader
+	return r.multipartReader()
+}
+
+func (r *Request) multipartReader() (multipart.Reader, os.Error) {
+	v := r.Header.Get("Content-Type")
+	if v == "" {
 		return nil, ErrNotMultipart
 	}
 	d, params := mime.ParseMediaType(v)
@@ -179,11 +231,28 @@ const defaultUserAgent = "Go http package"
 //	UserAgent (defaults to defaultUserAgent)
 //	Referer
 //	Header
+//	Cookie
+//	ContentLength
+//	TransferEncoding
 //	Body
 //
-// If Body is present, Write forces "Transfer-Encoding: chunked" as a header
-// and then closes Body when finished sending it.
+// If Body is present but Content-Length is <= 0, Write adds
+// "Transfer-Encoding: chunked" to the header. Body is closed after
+// it is sent.
 func (req *Request) Write(w io.Writer) os.Error {
+	return req.write(w, false)
+}
+
+// WriteProxy is like Write but writes the request in the form
+// expected by an HTTP proxy.  It includes the scheme and host
+// name in the URI instead of using a separate Host: header line.
+// If req.RawURL is non-empty, WriteProxy uses it unchanged
+// instead of URL but still omits the Host: header.
+func (req *Request) WriteProxy(w io.Writer) os.Error {
+	return req.write(w, true)
+}
+
+func (req *Request) write(w io.Writer, usingProxy bool) os.Error {
 	host := req.Host
 	if host == "" {
 		host = req.URL.Host
@@ -195,12 +264,20 @@ func (req *Request) Write(w io.Writer) os.Error {
 		if req.URL.RawQuery != "" {
 			uri += "?" + req.URL.RawQuery
 		}
+		if usingProxy {
+			if uri == "" || uri[0] != '/' {
+				uri = "/" + uri
+			}
+			uri = req.URL.Scheme + "://" + host + uri
+		}
 	}
 
 	fmt.Fprintf(w, "%s %s HTTP/1.1\r\n", valueOrDefault(req.Method, "GET"), uri)
 
 	// Header lines
-	fmt.Fprintf(w, "Host: %s\r\n", host)
+	if !usingProxy {
+		fmt.Fprintf(w, "Host: %s\r\n", host)
+	}
 	fmt.Fprintf(w, "User-Agent: %s\r\n", valueOrDefault(req.UserAgent, defaultUserAgent))
 	if req.Referer != "" {
 		fmt.Fprintf(w, "Referer: %s\r\n", req.Referer)
@@ -223,8 +300,12 @@ func (req *Request) Write(w io.Writer) os.Error {
 	// from Request, and introduce Request methods along the lines of
 	// Response.{GetHeader,AddHeader} and string constants for "Host",
 	// "User-Agent" and "Referer".
-	err = writeSortedKeyValue(w, req.Header, reqExcludeHeader)
+	err = req.Header.WriteSubset(w, reqExcludeHeader)
 	if err != nil {
+		return err
+	}
+
+	if err = writeCookies(w, req.Cookie); err != nil {
 		return err
 	}
 
@@ -277,78 +358,6 @@ func readLine(b *bufio.Reader) (s string, err os.Error) {
 	return string(p), nil
 }
 
-var colon = []byte{':'}
-
-// Read a key/value pair from b.
-// A key/value has the form Key: Value\r\n
-// and the Value can continue on multiple lines if each continuation line
-// starts with a space.
-func readKeyValue(b *bufio.Reader) (key, value string, err os.Error) {
-	line, e := readLineBytes(b)
-	if e != nil {
-		return "", "", e
-	}
-	if len(line) == 0 {
-		return "", "", nil
-	}
-
-	// Scan first line for colon.
-	i := bytes.Index(line, colon)
-	if i < 0 {
-		goto Malformed
-	}
-
-	key = string(line[0:i])
-	if strings.Contains(key, " ") {
-		// Key field has space - no good.
-		goto Malformed
-	}
-
-	// Skip initial space before value.
-	for i++; i < len(line); i++ {
-		if line[i] != ' ' {
-			break
-		}
-	}
-	value = string(line[i:])
-
-	// Look for extension lines, which must begin with space.
-	for {
-		c, e := b.ReadByte()
-		if c != ' ' {
-			if e != os.EOF {
-				b.UnreadByte()
-			}
-			break
-		}
-
-		// Eat leading space.
-		for c == ' ' {
-			if c, e = b.ReadByte(); e != nil {
-				if e == os.EOF {
-					e = io.ErrUnexpectedEOF
-				}
-				return "", "", e
-			}
-		}
-		b.UnreadByte()
-
-		// Read the rest of the line and add to value.
-		if line, e = readLineBytes(b); e != nil {
-			return "", "", e
-		}
-		value += " " + string(line)
-
-		if len(value) >= maxValueLength {
-			return "", "", &badStringError{"value too long for key", key}
-		}
-	}
-	return key, value, nil
-
-Malformed:
-	return "", "", &badStringError{"malformed header line", string(line)}
-}
-
 // Convert decimal at s[i:len(s)] to integer,
 // returning value, string position where the digits stopped,
 // and whether there was a valid number (digits, not too big).
@@ -367,8 +376,9 @@ func atoi(s string, i int) (n, i1 int, ok bool) {
 	return n, i, true
 }
 
-// Parse HTTP version: "HTTP/1.2" -> (1, 2, true).
-func parseHTTPVersion(vers string) (int, int, bool) {
+// ParseHTTPVersion parses a HTTP version string.
+// "HTTP/1.0" returns (1, 0, true).
+func ParseHTTPVersion(vers string) (major, minor int, ok bool) {
 	if len(vers) < 5 || vers[0:5] != "HTTP/" {
 		return 0, 0, false
 	}
@@ -376,49 +386,11 @@ func parseHTTPVersion(vers string) (int, int, bool) {
 	if !ok || i >= len(vers) || vers[i] != '.' {
 		return 0, 0, false
 	}
-	var minor int
 	minor, i, ok = atoi(vers, i+1)
 	if !ok || i != len(vers) {
 		return 0, 0, false
 	}
 	return major, minor, true
-}
-
-// CanonicalHeaderKey returns the canonical format of the
-// HTTP header key s.  The canonicalization converts the first
-// letter and any letter following a hyphen to upper case;
-// the rest are converted to lowercase.  For example, the
-// canonical key for "accept-encoding" is "Accept-Encoding".
-func CanonicalHeaderKey(s string) string {
-	// canonicalize: first letter upper case
-	// and upper case after each dash.
-	// (Host, User-Agent, If-Modified-Since).
-	// HTTP headers are ASCII only, so no Unicode issues.
-	var a []byte
-	upper := true
-	for i := 0; i < len(s); i++ {
-		v := s[i]
-		if upper && 'a' <= v && v <= 'z' {
-			if a == nil {
-				a = []byte(s)
-			}
-			a[i] = v + 'A' - 'a'
-		}
-		if !upper && 'A' <= v && v <= 'Z' {
-			if a == nil {
-				a = []byte(s)
-			}
-			a[i] = v + 'a' - 'A'
-		}
-		upper = false
-		if v == '-' {
-			upper = true
-		}
-	}
-	if a != nil {
-		return string(a)
-	}
-	return s
 }
 
 type chunkedReader struct {
@@ -484,13 +456,41 @@ func (cr *chunkedReader) Read(b []uint8) (n int, err os.Error) {
 	return n, cr.err
 }
 
+// NewRequest returns a new Request given a method, URL, and optional body.
+func NewRequest(method, url string, body io.Reader) (*Request, os.Error) {
+	u, err := ParseURL(url)
+	if err != nil {
+		return nil, err
+	}
+	rc, ok := body.(io.ReadCloser)
+	if !ok && body != nil {
+		rc = ioutil.NopCloser(body)
+	}
+	req := &Request{
+		Method:     method,
+		URL:        u,
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header:     make(Header),
+		Body:       rc,
+		Host:       u.Host,
+	}
+	return req, nil
+}
+
 // ReadRequest reads and parses a request from b.
 func ReadRequest(b *bufio.Reader) (req *Request, err os.Error) {
+
+	tp := textproto.NewReader(b)
 	req = new(Request)
 
 	// First line: GET /index.html HTTP/1.0
 	var s string
-	if s, err = readLine(b); err != nil {
+	if s, err = tp.ReadLine(); err != nil {
+		if err == os.EOF {
+			err = io.ErrUnexpectedEOF
+		}
 		return nil, err
 	}
 
@@ -500,7 +500,7 @@ func ReadRequest(b *bufio.Reader) (req *Request, err os.Error) {
 	}
 	req.Method, req.RawURL, req.Proto = f[0], f[1], f[2]
 	var ok bool
-	if req.ProtoMajor, req.ProtoMinor, ok = parseHTTPVersion(req.Proto); !ok {
+	if req.ProtoMajor, req.ProtoMinor, ok = ParseHTTPVersion(req.Proto); !ok {
 		return nil, &badStringError{"malformed HTTP version", req.Proto}
 	}
 
@@ -509,32 +509,11 @@ func ReadRequest(b *bufio.Reader) (req *Request, err os.Error) {
 	}
 
 	// Subsequent lines: Key: value.
-	nheader := 0
-	req.Header = make(map[string]string)
-	for {
-		var key, value string
-		if key, value, err = readKeyValue(b); err != nil {
-			return nil, err
-		}
-		if key == "" {
-			break
-		}
-		if nheader++; nheader >= maxHeaderLines {
-			return nil, ErrHeaderTooLong
-		}
-
-		key = CanonicalHeaderKey(key)
-
-		// RFC 2616 says that if you send the same header key
-		// multiple times, it has to be semantically equivalent
-		// to concatenating the values separated by commas.
-		oldvalue, present := req.Header[key]
-		if present {
-			req.Header[key] = oldvalue + "," + value
-		} else {
-			req.Header[key] = value
-		}
+	mimeHeader, err := tp.ReadMIMEHeader()
+	if err != nil {
+		return nil, err
 	}
+	req.Header = Header(mimeHeader)
 
 	// RFC2616: Must treat
 	//	GET /index.html HTTP/1.1
@@ -545,18 +524,18 @@ func ReadRequest(b *bufio.Reader) (req *Request, err os.Error) {
 	// the same.  In the second case, any Host line is ignored.
 	req.Host = req.URL.Host
 	if req.Host == "" {
-		req.Host = req.Header["Host"]
+		req.Host = req.Header.Get("Host")
 	}
-	req.Header["Host"] = "", false
+	req.Header.Del("Host")
 
 	fixPragmaCacheControl(req.Header)
 
 	// Pull out useful fields as a convenience to clients.
-	req.Referer = req.Header["Referer"]
-	req.Header["Referer"] = "", false
+	req.Referer = req.Header.Get("Referer")
+	req.Header.Del("Referer")
 
-	req.UserAgent = req.Header["User-Agent"]
-	req.Header["User-Agent"] = "", false
+	req.UserAgent = req.Header.Get("User-Agent")
+	req.Header.Del("User-Agent")
 
 	// TODO: Parse specific header values:
 	//	Accept
@@ -588,6 +567,8 @@ func ReadRequest(b *bufio.Reader) (req *Request, err os.Error) {
 	if err != nil {
 		return nil, err
 	}
+
+	req.Cookie = readCookies(req.Header)
 
 	return req, nil
 }
@@ -627,7 +608,9 @@ func parseQuery(m map[string][]string, query string) (err os.Error) {
 	return err
 }
 
-// ParseForm parses the request body as a form for POST requests, or the raw query for GET requests.
+// ParseForm parses the raw query.
+// For POST requests, it also parses the request body as a form.
+// ParseMultipartForm calls ParseForm automatically.
 // It is idempotent.
 func (r *Request) ParseForm() (err os.Error) {
 	if r.Form != nil {
@@ -642,21 +625,26 @@ func (r *Request) ParseForm() (err os.Error) {
 		if r.Body == nil {
 			return os.ErrorString("missing form body")
 		}
-		ct := r.Header["Content-Type"]
+		ct := r.Header.Get("Content-Type")
 		switch strings.Split(ct, ";", 2)[0] {
 		case "text/plain", "application/x-www-form-urlencoded", "":
-			b, e := ioutil.ReadAll(r.Body)
+			const maxFormSize = int64(10 << 20) // 10 MB is a lot of text.
+			b, e := ioutil.ReadAll(io.LimitReader(r.Body, maxFormSize+1))
 			if e != nil {
 				if err == nil {
 					err = e
 				}
 				break
 			}
+			if int64(len(b)) > maxFormSize {
+				return os.NewError("http: POST too large")
+			}
 			e = parseQuery(r.Form, string(b))
 			if err == nil {
 				err = e
 			}
-		// TODO(dsymonds): Handle multipart/form-data
+		case "multipart/form-data":
+			// handled by ParseMultipartForm
 		default:
 			return &badStringError{"unknown Content-Type", ct}
 		}
@@ -664,11 +652,50 @@ func (r *Request) ParseForm() (err os.Error) {
 	return err
 }
 
+// ParseMultipartForm parses a request body as multipart/form-data.
+// The whole request body is parsed and up to a total of maxMemory bytes of
+// its file parts are stored in memory, with the remainder stored on
+// disk in temporary files.
+// ParseMultipartForm calls ParseForm if necessary.
+// After one call to ParseMultipartForm, subsequent calls have no effect.
+func (r *Request) ParseMultipartForm(maxMemory int64) os.Error {
+	if r.Form == nil {
+		err := r.ParseForm()
+		if err != nil {
+			return err
+		}
+	}
+	if r.MultipartForm != nil {
+		return nil
+	}
+	if r.MultipartForm == multipartByReader {
+		return os.NewError("http: multipart handled by MultipartReader")
+	}
+
+	mr, err := r.multipartReader()
+	if err == ErrNotMultipart {
+		return nil
+	} else if err != nil {
+		return err
+	}
+
+	f, err := mr.ReadForm(maxMemory)
+	if err != nil {
+		return err
+	}
+	for k, v := range f.Value {
+		r.Form[k] = append(r.Form[k], v...)
+	}
+	r.MultipartForm = f
+
+	return nil
+}
+
 // FormValue returns the first value for the named component of the query.
-// FormValue calls ParseForm if necessary.
+// FormValue calls ParseMultipartForm and ParseForm if necessary.
 func (r *Request) FormValue(key string) string {
 	if r.Form == nil {
-		r.ParseForm()
+		r.ParseMultipartForm(defaultMaxMemory)
 	}
 	if vs := r.Form[key]; len(vs) > 0 {
 		return vs[0]
@@ -676,18 +703,34 @@ func (r *Request) FormValue(key string) string {
 	return ""
 }
 
+// FormFile returns the first file for the provided form key.
+// FormFile calls ParseMultipartForm and ParseForm if necessary.
+func (r *Request) FormFile(key string) (multipart.File, *multipart.FileHeader, os.Error) {
+	if r.MultipartForm == multipartByReader {
+		return nil, nil, os.NewError("http: multipart handled by MultipartReader")
+	}
+	if r.MultipartForm == nil {
+		err := r.ParseMultipartForm(defaultMaxMemory)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	if r.MultipartForm != nil && r.MultipartForm.File != nil {
+		if fhs := r.MultipartForm.File[key]; len(fhs) > 0 {
+			f, err := fhs[0].Open()
+			return f, fhs[0], err
+		}
+	}
+	return nil, nil, ErrMissingFile
+}
+
 func (r *Request) expectsContinue() bool {
-	expectation, ok := r.Header["Expect"]
-	return ok && strings.ToLower(expectation) == "100-continue"
+	return strings.ToLower(r.Header.Get("Expect")) == "100-continue"
 }
 
 func (r *Request) wantsHttp10KeepAlive() bool {
 	if r.ProtoMajor != 1 || r.ProtoMinor != 0 {
 		return false
 	}
-	value, exists := r.Header["Connection"]
-	if !exists {
-		return false
-	}
-	return strings.Contains(strings.ToLower(value), "keep-alive")
+	return strings.Contains(strings.ToLower(r.Header.Get("Connection")), "keep-alive")
 }

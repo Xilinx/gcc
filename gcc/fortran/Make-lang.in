@@ -1,6 +1,6 @@
 # -*- makefile -*-
 # Top level makefile fragment for GNU gfortran, the GNU Fortran 95 compiler.
-# Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+# Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
 # Free Software Foundation, Inc.
 # Contributed by Paul Brook <paul@nowt.org
 # and Steven Bosscher <s.bosscher@student.tudelft.nl>
@@ -84,10 +84,11 @@ gfortranspec.o: $(srcdir)/fortran/gfortranspec.c $(SYSTEM_H) $(TM_H) $(GCC_H) \
 		$(INCLUDES) $(srcdir)/fortran/gfortranspec.c)
 
 # Create the compiler driver gfortran.
-GFORTRAN_D_OBJS = $(GCC_OBJS) gfortranspec.o version.o prefix.o intl.o
-gfortran$(exeext): $(GFORTRAN_D_OBJS) $(EXTRA_GCC_OBJS) $(LIBDEPS)
+GFORTRAN_D_OBJS = $(GCC_OBJS) gfortranspec.o
+gfortran$(exeext): $(GFORTRAN_D_OBJS) $(EXTRA_GCC_OBJS) libcommon-target.a \
+	$(LIBDEPS)
 	+$(LINKER) $(ALL_LINKERFLAGS) $(LDFLAGS) -o $@ \
-	  $(GFORTRAN_D_OBJS) $(EXTRA_GCC_OBJS) $(LIBS)
+	  $(GFORTRAN_D_OBJS) $(EXTRA_GCC_OBJS) libcommon-target.a $(LIBS)
 
 # Create a version of the gfortran driver which calls the cross-compiler.
 gfortran-cross$(exeext): gfortran$(exeext)
@@ -170,9 +171,12 @@ check-fortran-subtargets : check-gfortran-subtargets
 lang_checks += check-gfortran
 lang_checks_parallelized += check-gfortran
 # For description see comment above check_gcc_parallelize in gcc/Makefile.in.
-check_gfortran_parallelize = dg.exp=gfortran.dg/\[a-cA-C\]* \
-			     dg.exp=gfortran.dg/\[d-mD-M\]* \
-			     dg.exp=gfortran.dg/\[n-zN-Z0-9\]*
+check_gfortran_parallelize = dg.exp=gfortran.dg/\[adAD\]* \
+			     dg.exp=gfortran.dg/\[bcBC\]* \
+			     dg.exp=gfortran.dg/\[nopNOP\]* \
+			     dg.exp=gfortran.dg/\[isuvISUV\]* \
+			     dg.exp=gfortran.dg/\[efhkqrxzEFHKQRXZ\]* \
+			     dg.exp=gfortran.dg/\[0-9gjlmtwyGJLMTWY\]*
 
 # GFORTRAN documentation.
 GFORTRAN_TEXI = \
@@ -336,7 +340,8 @@ GFORTRAN_TRANS_DEPS = fortran/gfortran.h fortran/libgfortran.h \
 fortran/f95-lang.o: $(GFORTRAN_TRANS_DEPS) fortran/mathbuiltins.def \
   gt-fortran-f95-lang.h gtype-fortran.h $(CGRAPH_H) $(TARGET_H) fortran/cpp.h \
   $(BUILTINS_DEF) fortran/types.def \
-  libfuncs.h expr.h
+  $(TM_H) debug.h langhooks.h $(FLAGS_H) $(EXPR_H) $(LANGHOOKS_DEF_H) \
+  libfuncs.h expr.h $(DIAGNOSTIC_H)
 fortran/scanner.o: toplev.h fortran/cpp.h
 fortran/convert.o: $(GFORTRAN_TRANS_DEPS)
 fortran/frontend-passes.o: $(GFORTRAN_TRANS_DEPS)
@@ -352,7 +357,7 @@ fortran/trans-stmt.o: $(GFORTRAN_TRANS_DEPS) fortran/dependency.h
 fortran/trans-openmp.o: $(GFORTRAN_TRANS_DEPS)
 fortran/trans-io.o: $(GFORTRAN_TRANS_DEPS) gt-fortran-trans-io.h \
   fortran/ioparm.def
-fortran/trans-array.o: $(GFORTRAN_TRANS_DEPS)
+fortran/trans-array.o: $(GFORTRAN_TRANS_DEPS) $(GIMPLE_H)
 fortran/trans-intrinsic.o: $(GFORTRAN_TRANS_DEPS) fortran/mathbuiltins.def \
   gt-fortran-trans-intrinsic.h
 fortran/dependency.o: $(GFORTRAN_TRANS_DEPS) fortran/dependency.h

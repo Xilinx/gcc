@@ -139,7 +139,17 @@ var fmttests = []struct {
 	{"%5s", "abc", "  abc"},
 	{"%2s", "\u263a", " \u263a"},
 	{"%-5s", "abc", "abc  "},
+	{"%-8q", "abc", `"abc"   `},
 	{"%05s", "abc", "00abc"},
+	{"%08q", "abc", `000"abc"`},
+	{"%5s", "abcdefghijklmnopqrstuvwxyz", "abcdefghijklmnopqrstuvwxyz"},
+	{"%.5s", "abcdefghijklmnopqrstuvwxyz", "abcde"},
+	{"%.5s", "日本語日本語", "日本語日本"},
+	{"%.5s", []byte("日本語日本語"), "日本語日本"},
+	{"%.5q", "abcdefghijklmnopqrstuvwxyz", `"abcde"`},
+	{"%.3q", "日本語日本語", `"\u65e5\u672c\u8a9e"`},
+	{"%.3q", []byte("日本語日本語"), `"\u65e5\u672c\u8a9e"`},
+	{"%10.1q", "日本語日本語", `  "\u65e5"`},
 
 	// integers
 	{"%d", 12345, "12345"},
@@ -160,6 +170,7 @@ var fmttests = []struct {
 
 	// unicode format
 	{"%U", 0x1, "U+0001"},
+	{"%U", uint(0x1), "U+0001"},
 	{"%.8U", 0x2, "U+00000002"},
 	{"%U", 0x1234, "U+1234"},
 	{"%U", 0x12345, "U+12345"},
@@ -311,9 +322,9 @@ var fmttests = []struct {
 
 	// go syntax
 	{"%#v", A{1, 2, "a", []int{1, 2}}, `fmt_test.A{i:1, j:0x2, s:"a", x:[]int{1, 2}}`},
-	{"%#v", &b, "(*uint8)(PTR)"},
-	{"%#v", TestFmtInterface, "(func(*testing.T))(PTR)"},
-	{"%#v", make(chan int), "(chan int)(PTR)"},
+	{"%#v", &b, "(*uint8)(0xPTR)"},
+	{"%#v", TestFmtInterface, "(func(*testing.T))(0xPTR)"},
+	{"%#v", make(chan int), "(chan int)(0xPTR)"},
 	{"%#v", uint64(1<<64 - 1), "0xffffffffffffffff"},
 	{"%#v", 1000000000, "1000000000"},
 	{"%#v", map[string]int{"a": 1, "b": 2}, `map[string] int{"a":1, "b":2}`},
@@ -365,14 +376,15 @@ var fmttests = []struct {
 	{"%6T", &intVal, "  *int"},
 
 	// %p
-	{"p0=%p", new(int), "p0=PTR"},
+	{"p0=%p", new(int), "p0=0xPTR"},
 	{"p1=%s", &pValue, "p1=String(p)"}, // String method...
-	{"p2=%p", &pValue, "p2=PTR"},       // ... not called with %p
+	{"p2=%p", &pValue, "p2=0xPTR"},     // ... not called with %p
+	{"p4=%#p", new(int), "p4=PTR"},
 
 	// %p on non-pointers
-	{"%p", make(chan int), "PTR"},
-	{"%p", make(map[int]int), "PTR"},
-	{"%p", make([]int, 1), "PTR"},
+	{"%p", make(chan int), "0xPTR"},
+	{"%p", make(map[int]int), "0xPTR"},
+	{"%p", make([]int, 1), "0xPTR"},
 	{"%p", 27, "%!p(int=27)"}, // not a pointer at all
 
 	// erroneous things
@@ -388,8 +400,8 @@ var fmttests = []struct {
 func TestSprintf(t *testing.T) {
 	for _, tt := range fmttests {
 		s := Sprintf(tt.fmt, tt.val)
-		if i := strings.Index(s, "0x"); i >= 0 && strings.Contains(tt.out, "PTR") {
-			j := i + 2
+		if i := strings.Index(tt.out, "PTR"); i >= 0 {
+			j := i
 			for ; j < len(s); j++ {
 				c := s[j]
 				if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
@@ -441,6 +453,9 @@ func BenchmarkSprintfPrefixedInt(b *testing.B) {
 }
 
 func TestCountMallocs(t *testing.T) {
+	if testing.Short() {
+		return
+	}
 	mallocs := 0 - runtime.MemStats.Mallocs
 	for i := 0; i < 100; i++ {
 		Sprintf("")

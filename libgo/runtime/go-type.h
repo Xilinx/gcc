@@ -53,13 +53,17 @@
 #define GO_STRUCT 25
 #define GO_UNSAFE_POINTER 26
 
+#define GO_NO_POINTERS (1 << 7)
+
+#define GO_CODE_MASK 0x7f
+
 /* For each Go type the compiler constructs one of these structures.
    This is used for type reflectin, interfaces, maps, and reference
    counting.  */
 
 struct __go_type_descriptor
 {
-  /* The type code for this type, a value in enum __go_type_codes.
+  /* The type code for this type, one of the type kind values above.
      This is used by unsafe.Reflect and unsafe.Typeof to determine the
      type descriptor to return for this type itself.  It is also used
      by reflect.toType when mapping to a reflect Type structure.  */
@@ -94,6 +98,10 @@ struct __go_type_descriptor
 
   /* A pointer to fields which are only used for some types.  */
   const struct __go_uncommon_type *__uncommon;
+
+  /* The descriptor for the type which is a pointer to this type.
+     This may be NULL.  */
+  const struct __go_type_descriptor *__pointer_to_this;
 };
 
 /* The information we store for each method of a type.  */
@@ -144,6 +152,9 @@ struct __go_array_type
 
   /* The element type.  */
   struct __go_type_descriptor *__element_type;
+
+  /* The type of a slice of the same element type.  */
+  struct __go_type_descriptor *__slice_type;
 
   /* The length of the array.  */
   uintptr_t __len;
@@ -283,6 +294,15 @@ struct __go_struct_type
 
   /* An array of struct __go_struct_field.  */
   struct __go_open_array __fields;
+};
+
+/* If an empty interface has these bits set in its type pointer, it
+   was copied from a reflect.Value and is not a valid empty
+   interface.  */
+
+enum 
+{
+  reflectFlags = 3,
 };
 
 /* Whether a type descriptor is a pointer.  */

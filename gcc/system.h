@@ -1,7 +1,7 @@
 /* Get common system includes and various definitions and declarations based
    on autoconf macros.
    Copyright (C) 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2007, 2008,
-   2009, 2010
+   2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -598,15 +598,6 @@ extern int vsnprintf(char *, size_t, const char *, va_list);
 #define HOST_BIT_BUCKET "/dev/null"
 #endif
 
-/* Be conservative and only use enum bitfields with GCC.
-   FIXME: provide a complete autoconf test for buggy enum bitfields.  */
-
-#if (GCC_VERSION > 2000)
-#define ENUM_BITFIELD(TYPE) __extension__ enum TYPE
-#else
-#define ENUM_BITFIELD(TYPE) unsigned int
-#endif
-
 #ifndef offsetof
 #define offsetof(TYPE, MEMBER)	((size_t) &((TYPE *) 0)->MEMBER)
 #endif
@@ -768,7 +759,12 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	LABEL_ALIGN_MAX_SKIP LOOP_ALIGN_MAX_SKIP			\
 	LABEL_ALIGN_AFTER_BARRIER_MAX_SKIP JUMP_ALIGN_MAX_SKIP 		\
 	CAN_DEBUG_WITHOUT_FP UNLIKELY_EXECUTED_TEXT_SECTION_NAME	\
-	HOT_TEXT_SECTION_NAME
+	HOT_TEXT_SECTION_NAME LEGITIMATE_CONSTANT_P ALWAYS_STRIP_DOTDOT
+
+/* Target macros only used for code built for the target, that have
+   moved to libgcc-tm.h or have never been present elsewhere.  */
+ #pragma GCC poison DECLARE_LIBRARY_RENAMES LIBGCC2_GNU_PREFIX		\
+	MD_UNWIND_SUPPORT ENABLE_EXECUTE_STACK
 
 /* Other obsolete target macros, or macros that used to be in target
    headers and were not used, and may be obsolete or may never have
@@ -828,7 +824,10 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	TARGET_OPTION_TRANSLATE_TABLE HANDLE_PRAGMA_PACK_PUSH_POP	   \
 	HANDLE_SYSV_PRAGMA HANDLE_PRAGMA_WEAK CONDITIONAL_REGISTER_USAGE   \
 	FUNCTION_ARG_BOUNDARY MUST_USE_SJLJ_EXCEPTIONS US_SOFTWARE_GOFAST  \
-	USING_SVR4_H SVR4_ASM_SPEC
+	USING_SVR4_H SVR4_ASM_SPEC FUNCTION_ARG FUNCTION_ARG_ADVANCE	   \
+	FUNCTION_INCOMING_ARG IRA_COVER_CLASSES TARGET_VERSION		   \
+	MACHINE_TYPE TARGET_HAS_TARGETCM ASM_OUTPUT_BSS			   \
+	SETJMP_VIA_SAVE_AREA FORBIDDEN_INC_DEC_CLASSES
 
 /* Hooks that are no longer used.  */
  #pragma GCC poison LANG_HOOKS_FUNCTION_MARK LANG_HOOKS_FUNCTION_FREE	\
@@ -839,7 +838,8 @@ extern void fancy_abort (const char *, int, const char *) ATTRIBUTE_NORETURN;
 	LANG_HOOKS_POPLEVEL LANG_HOOKS_TRUTHVALUE_CONVERSION \
 	TARGET_PROMOTE_FUNCTION_ARGS TARGET_PROMOTE_FUNCTION_RETURN \
 	LANG_HOOKS_MISSING_ARGUMENT LANG_HOOKS_HASH_TYPES \
-	TARGET_HANDLE_OFAST TARGET_OPTION_OPTIMIZATION
+	TARGET_HANDLE_OFAST TARGET_OPTION_OPTIMIZATION \
+        TARGET_IRA_COVER_CLASSES TARGET_HELP
 
 /* Hooks into libgcc2.  */
  #pragma GCC poison LIBGCC2_DOUBLE_TYPE_SIZE LIBGCC2_WORDS_BIG_ENDIAN \
