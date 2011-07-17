@@ -1,3 +1,63 @@
+2011-07-16  Matthias Klose  <doko@ubuntu.com>
+
+	* doc/install.texi: Document --enable-static-libjava.
+
+2011-07-15  Richard Henderson  <rth@redhat.com>
+
+	* bb-reorder.c (find_rarely_executed_basic_blocks_and_crossing_edges):
+	Replace all three arguments by returning a VEC of edges.
+	(add_labels_and_missing_jumps): Accept a VEC of edges, not bare
+	pointers and counts.
+	(fix_edges_for_rarely_executed_code): Merge ...
+	(rest_of_handle_partition_blocks): ... into...
+	(partition_hot_cold_basic_blocks): ... here.  Return todo items if
+	any work was performed.
+	(pass_partition_blocks): Clear todo_flags_finish.
+
+2011-07-15  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+	    Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/49745
+	* gthr-posix.h: Do not include <unistd.h> unconditionally; use
+	_GTHREADS_USE_MUTEX_TIMEDLOCK instead of _POSIX_TIMEOUTS.
+
+2011-07-15  Jason Merrill  <jason@redhat.com>
+
+	PR testsuite/49741
+	* Makefile.in ($(lang_checks_parallelized)): Allow --extra_opts
+	rather than --tool_opts.
+
+2011-07-15  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* doc/plugins.texi (Building GCC plugins): gengtype needs its
+	corresponding gtype.state.
+
+2011-07-15  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/49723
+	* config/pa/pa.md (casesi): Use gen_int_mode instead of GEN_INT.
+
+2011-07-15  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR target/48220
+	* doc/md.texi (Standard Names): Document window_save.
+	* cfgexpand.c (expand_debug_parm_decl): New function extracted from
+	expand_debug_expr and expand_debug_source_expr.  If the target has
+	a window_save instruction, adjust the ENTRY_VALUE_EXP.
+	(expand_debug_expr) <SSA_NAME>: Call expand_debug_parm_decl if the
+	SSA_NAME_VAR is a parameter.
+	(expand_debug_source_expr) <PARM_DECL>: Call expand_debug_parm_decl.
+	* var-tracking.c (parm_reg_t): New type and associated vector type.
+	(windowed_parm_regs): New variable.
+	(adjust_insn): If the target has a window_save instruction and this
+	is the instruction, make its effect on parameter registers explicit.
+	(next_non_note_insn_var_location): New function.
+	(emit_notes_in_bb): Use it instead of NEXT_INSN throughout.
+	(vt_add_function_parameter): If the target has a window_save insn,
+	adjust the incoming RTL and record that in windowed_parm_regs.
+	(vt_finalize): Free windowed_parm_regs.
+
 2011-07-15  Bernd Schmidt  <bernds@codesourcery.com>
 
 	* doc/invoke.texi (C6X Options): New section.

@@ -316,6 +316,8 @@ HOST_CLOOGINC = @clooginc@
 HOST_LIBELFLIBS = @libelflibs@
 HOST_LIBELFINC = @libelfinc@
 
+EXTRA_CONFIGARGS_LIBJAVA = @EXTRA_CONFIGARGS_LIBJAVA@
+
 # ----------------------------------------------
 # Programs producing files for the BUILD machine
 # ----------------------------------------------
@@ -36891,7 +36893,7 @@ configure-target-libjava:
 	rm -f no-such-file || : ; \
 	CONFIG_SITE=no-such-file $(SHELL) $${libsrcdir}/configure \
 	  $(TARGET_CONFIGARGS) --build=${build_alias} --host=${target_alias} \
-	  --target=${target_alias} $${srcdiroption}  \
+	  --target=${target_alias} $${srcdiroption} $(EXTRA_CONFIGARGS_LIBJAVA) \
 	  || exit 1
 @endif target-libjava
 
@@ -40157,7 +40159,7 @@ check-gcc-c++0x:
 	s=`cd $(srcdir); ${PWD_COMMAND}`; export s; \
 	$(HOST_EXPORTS) \
 	(cd gcc && $(MAKE) $(GCC_FLAGS_TO_PASS) check-c++0x);
-check-c++: check-gcc-c++ check-gcc-c++0x check-target-libstdc++-v3
+check-c++: check-gcc-c++ check-target-libstdc++-v3 check-gcc-c++0x
 
 .PHONY: check-gcc-fortran check-fortran
 check-gcc-fortran:
