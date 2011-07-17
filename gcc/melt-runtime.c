@@ -9551,6 +9551,7 @@ do_finalize_melt (void)
    GPL compatible GCC plugin. */
 int plugin_is_GPL_compatible = 1;
 
+
 /* the plugin initialization code has to be exactly plugin_init */
 int
 plugin_init (struct plugin_name_args* plugin_info,
@@ -9577,7 +9578,7 @@ lispy domain specific language to extend GCC.  See http://gcc-melt.org/";
   melt_really_initialize (plugin_info->base_name, gccversionstr);
   free (gccversionstr);
   debugeprintf ("end of melt plugin_init");
-  return 0; /* success */
+  return 1; /* success */
 }
 
 #else /* !MELT_IS_PLUGIN*/

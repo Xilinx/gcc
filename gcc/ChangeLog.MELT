@@ -1,3 +1,6 @@
+2011-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (plugin_init): Return 1 because successful.
+
 2011-07-16  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
