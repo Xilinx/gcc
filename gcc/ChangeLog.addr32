@@ -1,5 +1,10 @@
 2011-07-17  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_fixup_binary_operands): Revert x32
+	change.
+
+2011-07-17  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (*lea_0_x32): Removed.
 	(*lea_2_x32): Likewise.
 	(*lea_2_zext_x32): Likewise.

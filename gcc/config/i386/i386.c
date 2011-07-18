@@ -15646,16 +15646,6 @@ ix86_fixup_binary_operands (enum rtx_code code, enum machine_mode mode,
       else
 	src2 = force_reg (mode, src2);
     }
-  else
-    {
-      /* Support 32bit address in x32 mode.  */
-      if (TARGET_X32
-	  && code == PLUS
-	  && !MEM_P (dst)
-	  && !MEM_P (src1)
-	  && MEM_P (src2) )
-	src2 = force_reg (mode, src2);
-    }
 
   /* If the destination is memory, and we do not have matching source
      operands, do things in registers.  */
