@@ -11116,13 +11116,6 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
   int retval = 1;
   enum ix86_address_seg seg = SEG_DEFAULT;
 
-  /* Support 32bit address in x32 mode.  */
-  if (TARGET_X32
-      && GET_CODE (addr) == ZERO_EXTEND
-      && GET_MODE (addr) == Pmode
-      && GET_CODE (XEXP (addr, 0)) == PLUS)
-    addr = XEXP (addr, 0);
-
   if (REG_P (addr) || GET_CODE (addr) == SUBREG)
     base = addr;
   else if (GET_CODE (addr) == PLUS)
