@@ -1192,14 +1192,25 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
     ))
 )
 
-;;register a new closure at PLUGIN_PRE_GENERCIZE callback.  If a closure was
+;; private pregenericize queue
+(definstance pregenericize_delayed_queue class_delayed_queue
+  :named_name '"pregenericize_delayed_queue"
+  :delqu_first (make_list discr_list)
+  :delqu_last (make_list discr_list)
+  )
+
+(compile_warning "should have register_pre_genericize_initial_first_hook like at_exit_first...")
+
+;;register a new closure at PLUGIN_PRE_GENERICIZE callback.  If a closure was
 ;;already attributed, we replace it with $clo.
 (defun register_pre_genericize_hook (clo)
+  :doc #{Register a closure for the PLUGIN_PRE_GENERICIZE event. The
+  closure is called with the boxed tree of the declaration.}#
+  (warning_plain "register_pre_genericize_hook will become obsolete, will have first & last variants like at_exit_first & at_exit_last")
   (if (is_closure clo)
     (put_fields initial_system_data :sysdata_pre_genericize clo)
-    (errormsg_strv
-    "Impossible to register pre_genericize_hook, argument should be a closure"
-    clo)
+    (errormsg_plain
+    "Bad hook passed to register_pre_genericize_hook")
   )
 )
 

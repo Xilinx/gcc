@@ -3,6 +3,13 @@
 	* melt-build.mk: Regenerate.
 
 2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_pre_genericize_callback): Typos.
+
+	* melt/warmelt-base.melt (pregenericize_delayed_queue): New instance.
+	(register_pre_genericize_hook): Should use the
+	pregenericize_delayed_queue...
+
+2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (MELT_VERSION_STRING): Update to 0.8.1
 
 	* melt-runtime.c (plugin_init): Return 0 because successful, so

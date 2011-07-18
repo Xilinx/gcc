@@ -9151,17 +9151,19 @@ static void
 melt_pre_genericize_callback (void *ptr_fndecl,
 			      void *user_data ATTRIBUTE_UNUSED)
 {
+  int pregenmagic = 0;
   MELT_ENTERFRAME (2, NULL);
-#define pregenclosv meltfram__.mcfr_varptr[0]
+#define pregenv meltfram__.mcfr_varptr[0]
 #define fndeclv meltfram__.mcfr_varptr[1]
   fndeclv = meltgc_new_tree ((meltobject_ptr_t) MELT_PREDEF (DISCR_TREE),
 			     ((tree) ptr_fndecl));
-  pregenclosv = melt_get_inisysdata (FSYSDAT_PRE_GENERICIZE);
-  if (melt_magic_discr ((melt_ptr_t) pregenclosv) == MELTOBMAG_CLOSURE)
+  pregenv = melt_get_inisysdata (FSYSDAT_PRE_GENERICIZE);
+  pregenmagic = melt_magic_discr ((melt_ptr_t) pregenv);
+  if (pregenmagic == MELTOBMAG_CLOSURE)
     {
       MELT_LOCATION_HERE
-	("melt_pre_genericize befire applying pre_genericize closure");
-      (void) melt_apply ((meltclosure_ptr_t) pregenclosv, (melt_ptr_t) fndeclv,
+	("melt_pre_genericize before applying pre_genericize closure");
+      (void) melt_apply ((meltclosure_ptr_t) pregenv, (melt_ptr_t) fndeclv,
 			 "", NULL, "", NULL);
     }
   MELT_EXITFRAME ();
