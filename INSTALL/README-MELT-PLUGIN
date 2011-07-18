@@ -141,6 +141,20 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
 
 #######################################################################
+NEWS for 0.8.1 MELT plugin for gcc-4.6
+
+July 2Xth, 2011: Release of MELT plugin 0.8.1 for gcc-4.6
+
+New features:
+
+    Documentation is generated
+
+    The PLUGIN_PRE_GENERICIZE event is interfaced.
+
+Bug fixes:
+
+
+#######################################################################
 NEWS for 0.8 MELT plugin for gcc-4.6
 
 July 11th, 2011: Release of MELT plugin 0.8 for GCC 4.6

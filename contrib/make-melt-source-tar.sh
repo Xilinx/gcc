@@ -84,6 +84,7 @@ copymelt gcc/REVISION GCCMELT-REVISION
 
 copymelt gcc/doc/include/fdl.texi 
 copymelt gcc/doc/include/funding.texi 
+copymelt gcc/doc/include/gnu.texi 
 copymelt gcc/doc/include/gpl.texi 
 copymelt gcc/doc/include/gpl_v3.texi 
 copymelt gcc/doc/include/texinfo.tex

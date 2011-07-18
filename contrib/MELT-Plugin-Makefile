@@ -80,6 +80,13 @@ mkinstalldirs= $(INSTALL_DRIVER) mkdir -p
 ## the existing GCC plugin directory
 MELTGCC_PLUGIN_DIR:= $(shell $(MELTGCC) -print-file-name=plugin)
 
+### distribution makers might want to override these....
+## the directory where *.info doc files are installed
+MELTGCC_DOC_INFO_DIR ?= /usr/share/info/gcc/
+## the directory where *.html doc files are installed
+MELTGCC_DOC_HTML_DIR ?=  /usr/share/doc/html/gcc/
+## the directory where *.pdf doc files are installed
+MELTGCC_DOC_PDF_DIR ?=  /usr/share/doc/pdf/gcc/
 
 ifeq ($(wildcard $(MELTGCC_PLUGIN_DIR)/include/gimple*),)
 $(error incorrect MELT GCC plugin directory $(MELTGCC_PLUGIN_DIR))
@@ -296,3 +303,12 @@ install-melt-mk: melt-module.mk
 ## install the default modules list
 install-melt-default-modules-list: $(melt_default_modules_list).modlis 
 	$(INSTALL_DATA) $< $(DESTDIR)/$(melt_module_dir) 
+
+### install the MELT documentation files
+install-melt-doc: doc doc-info doc-pdf doc-html
+	$(mkinstalldirs) $(DESTDIR)/$(MELTGCC_DOC_INFO_DIR)
+	$(INSTALL_DATA) *.info *.info-*[0-9] $(DESTDIR)/$(MELTGCC_DOC_INFO_DIR)
+	$(mkinstalldirs) $(DESTDIR)/$(MELTGCC_DOC_HTML_DIR)
+	$(INSTALL_DATA) *.html $(DESTDIR)/$(MELTGCC_DOC_HTML_DIR)
+	$(mkinstalldirs) $(DESTDIR)/$(MELTGCC_DOC_PDF_DIR)
+	$(INSTALL_DATA) *.pdf $(DESTDIR)/$(MELTGCC_DOC_PDF_DIR)

@@ -1,6 +1,10 @@
 
 2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* INSTALL/README-MELT-PLUGIN: Prepare plugin 0.8.1
+
+2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	MELT branch merged with trunk rev 176387 using svnmerge.
 
 2011-07-15  Basile Starynkevitch  <basile@starynkevitch.net>
