@@ -2744,8 +2744,10 @@ Keyword is :cstring.}#
       )))
 
 
-;; internal non-exported class for delayed queues.
+;;  class for delayed queues.
 (defclass class_delayed_queue
+  :doc #{A class for named queues of delayed tasks. $DELQU_FIRST is
+  the list of actions to do first, $DELQU_LAST those to do last.}#
   :super class_named
   :fields (delqu_first
 	   delqu_last
@@ -3909,6 +3911,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  class_ctype
  class_ctype_gty
  class_described_environment
+ class_delayed_queue
  class_discriminant 
  class_environment
  class_exported_binding

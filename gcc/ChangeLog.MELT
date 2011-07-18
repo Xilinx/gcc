@@ -1,3 +1,9 @@
+
+2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (class_delayed_queue): Export it.
+	* melt/warmelt-base.melt (register_pre_genericize_hook): Should be
+	obsoleted, and have first & last pre-genericize hooks.
+
 2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl: Use GCCMELT_MODULE_SOURCE=$<.
 	* melt-build.mk: Regenerate.

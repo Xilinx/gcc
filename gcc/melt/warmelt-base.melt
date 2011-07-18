@@ -1206,7 +1206,7 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 (defun register_pre_genericize_hook (clo)
   :doc #{Register a closure for the PLUGIN_PRE_GENERICIZE event. The
   closure is called with the boxed tree of the declaration.}#
-  (warning_plain "register_pre_genericize_hook will become obsolete, will have first & last variants like at_exit_first & at_exit_last")
+  (warningmsg_plain "register_pre_genericize_hook will become obsolete, will have first & last variants like at_exit_first & at_exit_last")
   (if (is_closure clo)
     (put_fields initial_system_data :sysdata_pre_genericize clo)
     (errormsg_plain
