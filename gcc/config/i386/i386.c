@@ -11100,190 +11100,6 @@ ix86_live_on_entry (bitmap regs)
     }
 }
 
-/* For TARGET_X32, IRA may generate
-
-   (set (reg:SI 40 r11)
-        (plus:SI (plus:SI (mult:SI (reg:SI 1 dx)
-				   (const_int 8))
-			  (subreg:SI (plus:DI (reg/f:DI 7 sp)
-					      (const_int CONST1)) 0))
-		 (const_int CONST2)))
-
-   We translate it into
-
-   (set (reg:SI 40 r11)
-        (plus:SI (plus:SI (mult:SI (reg:SI 1 dx)
-				   (const_int 8))
-			  (reg/f:SI 7 sp))
-		 (const_int [CONST1 + CONST2])))
-
-   We also translate
-
-   (plus:DI (zero_extend:DI (plus:SI (plus:SI (reg:SI 4 si [70])
-					      (reg:SI 2 cx [86]))
-				     (const_int CONST1)))
-	    (const_int CONST2))
-
-   into
-
-   (plus:DI (zero_extend:DI (plus:SI (reg:SI 4 si [70])
-				     (reg:SI 2 cx [86]))
-	    (const_int [CONST1 + CONST2])))
-
-   We also translate
-
-   (plus:SI (plus:SI (plus:SI (reg:SI 4 si [70])
-			      (reg:SI 2 cx [86]))
-		     (symbol_ref:SI ("A.193.2210")))
-	    (const_int CONST))
-
-   into
-
-   (plus:SI (plus:SI (reg:SI 4 si [70])
-		     (reg:SI 2 cx [86]))
-	    (const (plus:SI (symbol_ref:SI ("A.193.2210"))
-			    (const_int CONST))))
-
-   We also translate
-
-   (plus:SI (reg:SI 0 ax [orig:74 D.4067 ] [74])
-	    (subreg:SI (plus:DI (reg/f:DI 7 sp)
-				(const_int 64 [0x40])) 0))
-
-   into
-
-   (plus:SI (reg:SI 0 ax [orig:74 D.4067 ] [74])
-	    (plus:SI (reg/f:SI 7 sp) (const_int 64 [0x40])))
-
-   If PLUS is true, we also translate
-
-   (set (reg:SI 40 r11)
-        (plus:SI (plus:SI (reg:SI 1 dx)
-			  (subreg:SI (plus:DI (reg/f:DI 7 sp)
-					      (const_int CONST1)) 0))
-		 (const_int CONST2)))
-
-   into
-
-   (set (reg:SI 40 r11)
-        (plus:SI (plus:SI (reg:SI 1 dx)
-			  (reg/f:SI 7 sp))
-		 (const_int [CONST1 + CONST2])))
-
- */
-
-static void
-ix86_simplify_base_index_disp (rtx *base_p, rtx *index_p, rtx *disp_p,
-			       bool plus)
-{
-  rtx base = *base_p;
-  rtx disp, index, op0, op1;
-
-  if (!base || GET_MODE (base) != ptr_mode)
-    return;
-
-  disp = *disp_p;
-  if (disp != NULL_RTX
-      && disp != const0_rtx
-      && !CONST_INT_P (disp))
-    return;
-
-  if (GET_CODE (base) == SUBREG)
-    base = SUBREG_REG (base);
-
-  if (GET_CODE (base) == PLUS)
-    {
-      rtx addend;
-
-      op0 = XEXP (base, 0);
-      op1 = XEXP (base, 1);
-
-      if ((REG_P (op0)
-	   || (!plus
-	       && GET_CODE (op0) == PLUS
-	       && GET_MODE (op0) == ptr_mode
-	       && REG_P (XEXP (op0, 0))
-	       && REG_P (XEXP (op0, 1))))
-	  && (CONST_INT_P (op1)
-	      || GET_CODE (op1) == SYMBOL_REF
-	      || GET_CODE (op1) == LABEL_REF))
-	{
-	  base = op0;
-	  addend = op1;
-	}
-      else if (REG_P (op1)
-	       && (CONST_INT_P (op0)
-		   || GET_CODE (op0) == SYMBOL_REF
-		   || GET_CODE (op0) == LABEL_REF))
-	{
-	  base = op1;
-	  addend = op0;
-	}
-      else if (plus
-	       && GET_CODE (op1) == SUBREG
-	       && GET_MODE (op1) == ptr_mode)
-	{
-	  op1 = SUBREG_REG (op1);
-	  if (GET_CODE (op1) == PLUS)
-	    {
-	      addend = XEXP (op1, 1);
-	      op1 = XEXP (op1, 0);
-	      if (REG_P (op1) && CONST_INT_P (addend))
-		{
-		  op1 = gen_rtx_REG (ptr_mode, REGNO (op1));
-		  *base_p = gen_rtx_PLUS (ptr_mode, op0, op1);
-		}
-	      else
-		return;
-	    }
-	  else
-	    return;
-	}
-      else
-	return;
-
-      if (disp == NULL_RTX || disp == const0_rtx)
-	*disp_p = addend;
-      else
-	{
-	  if (CONST_INT_P (addend))
-	    *disp_p = GEN_INT (INTVAL (disp) + INTVAL (addend));
-	  else
-	    {
-	      disp = gen_rtx_PLUS (ptr_mode, addend, disp);
-	      *disp_p = gen_rtx_CONST (ptr_mode, disp);
-	    }
-	}
-
-      if (!plus)
-	{
-	  if (REG_P (base))
-	    *base_p = gen_rtx_REG (ptr_mode, REGNO (base));
-	  else
-	    *base_p = base;
-	}
-    }
-  else if (!plus
-	   && (disp == NULL_RTX || disp == const0_rtx)
-	   && index_p
-	   && (index = *index_p) != NULL_RTX
-	   && GET_CODE (index) == SUBREG
-	   && GET_MODE (index) == ptr_mode)
-    {
-      index = SUBREG_REG (index);
-      if (GET_CODE (index) == PLUS && GET_MODE (index) == Pmode)
-	{
-	  op0 = XEXP (index, 0);
-	  op1 = XEXP (index, 1);
-	  if (REG_P (op0) && CONST_INT_P (op1))
-	    {
-	      *index_p = gen_rtx_REG (ptr_mode, REGNO (op0));
-	      *disp_p = op1;
-	    }
-	}
-    }
-}
-
 /* Extract the parts of an RTL expression that is a valid memory address
    for an instruction.  Return 0 if the structure of the address is
    grossly off.  Return -1 if the address contains ASHIFT, so it is not
@@ -11321,24 +11137,6 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	    return 0;
 	  addends[n++] = XEXP (op, 1);
 	  op = XEXP (op, 0);
-	  /* Support 32bit address in x32 mode.  */
-	  if (TARGET_X32 && reload_completed)
-	    {
-	      if (GET_CODE (op) == ZERO_EXTEND
-		  && GET_MODE (op) == Pmode
-		  && GET_CODE (XEXP (op, 0)) == PLUS)
-		{
-		  op = XEXP (op, 0);
-		  if (n == 1)
-		    ix86_simplify_base_index_disp (&op, NULL,
-						   &addends[0], false);
-		}
-	      else if (n == 1
-		       && GET_CODE (op) == PLUS
-		       && GET_MODE (op) == ptr_mode)
-		ix86_simplify_base_index_disp (&op, NULL, &addends[0],
-					       true);
-	    }
 	}
       while (GET_CODE (op) == PLUS);
       if (n >= 4)
@@ -11379,8 +11177,12 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 		return 0;
 	      break;
 
-	    case REG:
 	    case SUBREG:
+	      if (TARGET_X32
+		  && !register_no_elim_operand (op, Pmode))
+		return 0;
+
+	    case REG:
 	      if (!base)
 		base = op;
 	      else if (!index)
@@ -11431,9 +11233,6 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	return 0;
       scale = INTVAL (scale_rtx);
     }
-
-  if (TARGET_X32 && reload_completed)
-    ix86_simplify_base_index_disp (&base, &index, &disp, false);
 
   /* Avoid useless 0 displacement.  */
   if (disp == const0_rtx && (base || index))

@@ -1,0 +1,10 @@
+2011-07-17  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/47744
+	* config/i386/i386.c (ix86_decompose_address): Properly handle
+	SUBREG for x32.
+
+2011-07-17  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_simplify_base_index_disp): Removed.
+	(ix86_decompose_address): Don't call it.
