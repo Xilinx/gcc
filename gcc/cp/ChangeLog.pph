@@ -1,3 +1,13 @@
+2011-07-18   Diego Novillo  <dnovillo@google.com>
+
+	* pph-streamer-in.c (pph_in_struct_function): Revert previous
+	change.  Do not allow shared struct functions.
+	* pph-streamer-out.c (decls_to_register_t): New type.
+	(decls_to_register): Change type to decls_to_register_t.
+	Update all users.
+	(pph_add_decl_to_register): Do not register the same DECL more
+	than once.
+
 2011-07-14   Diego Novillo  <dnovillo@google.com>
 
 	* Make-lang.in (cp/decl.o): Add dependency on CXX_PPH_STREAMER_H.

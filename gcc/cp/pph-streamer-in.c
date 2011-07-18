@@ -819,17 +819,13 @@ pph_in_struct_function (pph_stream *stream)
   marker = pph_in_start_record (stream, &ix);
   if (marker == PPH_RECORD_END)
     return NULL;
-  else if (marker == PPH_RECORD_SHARED)
-    return (struct function *) pph_in_shared_data (stream, ix);
+
+  /* Since struct function is embedded in every decl, fn cannot be shared.  */
+  gcc_assert (marker != PPH_RECORD_SHARED);
 
   decl = pph_in_tree (stream);
-
   allocate_struct_function (decl, false);
   fn = DECL_STRUCT_FUNCTION (decl);
-
-  /* Now register it.  We would normally use ALLOC_AND_REGISTER,
-     but retrofit_lang_decl does not return a pointer.  */
-  pph_register_shared_data (stream, fn, ix);
 
   input_struct_function_base (fn, stream->data_in, stream->ib);
 

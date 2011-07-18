@@ -43,7 +43,16 @@ static FILE *current_pph_file = NULL;
    we finish parsing the header file, this array is written out to the
    PPH image.  This way, the reader will be able to instantiate these
    symbols in the same order that they were instantiated originally.  */
-static VEC(tree,heap) *decls_to_register = NULL;
+typedef struct decls_to_register_t {
+  /* Table of all the declarations to register in declaration order.  */
+  VEC(tree,heap) *v;
+
+  /* Set of declarations to register used to avoid adding duplicate
+     entries to the table.  */
+  struct pointer_set_t *m;
+} decls_to_register_t;
+
+static decls_to_register_t decls_to_register = { NULL, NULL };
 
 /* Callback for packing value fields in ASTs.  BP is the bitpack 
    we are packing into.  EXPR is the tree to pack.  */
@@ -1236,8 +1245,8 @@ pph_out_symtab (pph_stream *stream, bool ref_p)
   tree decl;
   unsigned i;
 
-  pph_out_uint (stream, VEC_length (tree, decls_to_register));
-  FOR_EACH_VEC_ELT (tree, decls_to_register, i, decl)
+  pph_out_uint (stream, VEC_length (tree, decls_to_register.v));
+  FOR_EACH_VEC_ELT (tree, decls_to_register.v, i, decl)
     if (TREE_CODE (decl) == FUNCTION_DECL && DECL_STRUCT_FUNCTION (decl))
       {
 	if (DECL_SAVED_TREE (decl))
@@ -1252,7 +1261,12 @@ pph_out_symtab (pph_stream *stream, bool ref_p)
 	pph_out_tree (stream, decl, ref_p);
       }
 
-  VEC_free (tree, heap, decls_to_register);
+  if (decls_to_register.m)
+    {
+      VEC_free (tree, heap, decls_to_register.v);
+      pointer_set_destroy (decls_to_register.m);
+      decls_to_register.m = NULL;
+    }
 }
 
 
@@ -1263,6 +1277,8 @@ pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
 { 
   /* Emit all the identifiers and symbols in the global namespace.  */
   pph_out_identifiers (stream, idents_used);
+
+  /* Emit the bindings for the global namespace.  */
   pph_out_scope_chain (stream, scope_chain, false);
   if (flag_pph_dump_tree)
     pph_dump_namespace (pph_logfile, global_namespace);
@@ -1665,5 +1681,11 @@ void
 pph_add_decl_to_register (tree decl)
 {
   if (decl)
-    VEC_safe_push (tree, heap, decls_to_register, decl);
+    {
+      if (decls_to_register.m == NULL)
+	decls_to_register.m = pointer_set_create ();
+
+      if (!pointer_set_insert (decls_to_register.m, decl))
+	VEC_safe_push (tree, heap, decls_to_register.v, decl);
+    }
 }
