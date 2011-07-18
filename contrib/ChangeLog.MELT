@@ -1,6 +1,18 @@
+2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* meltplugin.texi: Add @settitle.
+	* meltpluginapi.texi: Improve explanation of copyright GPLv3+.
+
+	* MELT-Plugin-Makefile: Adding documentation generation.
+	(MAKEINFO,TEXI2PDF): New variables.
+	(.PHONY, all): Add doc.
+	(MELTDOCSRC, MELTDOCPDF, MELTDOCINFO, MELTDOCHTML): New variables.
+	(doc-pdf, doc-html, doc-info): New targets.
+	(%.pdf,%.html,%.info): New rules for documentation.
+
 2011-07-15  Romain Geissler  <romain.geissler@gmail.com>
 
-	* contrib/MELT-Plugin-Makefile (LIBS_INCLUDEFLAGS):new variable
+	* MELT-Plugin-Makefile (LIBS_INCLUDEFLAGS):new variable
 	(CC): Allow environement overrinding
 	(GAWK): Likewise
 	(SED): Likewise

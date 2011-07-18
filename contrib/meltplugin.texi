@@ -1,6 +1,7 @@
 \input texinfo  @c -*-texinfo-*-
 @c %**start of header
 @setfilename meltplugin.info
+@settitle MELT plugin for GCC
 @c don't need @include gcc-common.texi
 
 @c Common macros to support generating man pages copied from gcc-common.texi:

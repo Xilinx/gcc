@@ -1,3 +1,9 @@
+2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Update to 0.8.1
+
+	* melt-runtime.c (plugin_init): Return 0 because successful, so
+	revert previous change.
+
 2011-07-17  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (plugin_init): Return 1 because successful.
 

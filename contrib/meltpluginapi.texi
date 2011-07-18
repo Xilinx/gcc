@@ -17,7 +17,8 @@
 
 @copying
 Copyright @copyright{} 2011 Free Software Foundation, Inc.
-This document is generated from MELT source code so is under GPLv3+
+This document is generated from MELT source code (which is GPLv3+ licensed)
+so is under GPLv3+
 
     This file is part of the MELT plugin for GCC (GCC MELT)
 
@@ -47,7 +48,8 @@ This file documents the MELT plugin API. MELT is a plugin for
 GCC. This document is mostly generated from MELT source code (GPLv3+)
 so is under the same GPLv3+ license as the source code from which (and
 with which) it has been generated. This document was mostly generated
-by the MELT plugin run in a specific @code{makedoc} mode.
+by the MELT plugin (run in a specific @code{makedoc} mode) from its
+source code.
 
 @sp 1
 @insertcopying

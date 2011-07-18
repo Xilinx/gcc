@@ -60,8 +60,13 @@ AUTOGEN?=autogen
 ## the GNU install utility from coreutils
 INSTALL?= install
 
+## The GNU texinfo makeinfo command
+MAKEINFO?= makeinfo
 
-## an install driver, which could be sudo
+## the GNU texi2pdf utility from makeinfo 
+TEXI2PDF?= texi2pdf
+
+## an install driver, which could be sudo or echo, or stay empty
 INSTALL_DRIVER?=
 
 ## the destination directory, where to install, useful e.g., for MELT packagers
@@ -104,7 +109,7 @@ MELTGCC_INCLUDEFLAGS= -I $(MELTGCC_PLUGIN_DIR)/include -I $(MELTGCC_PLUGIN_DIR)/
 ## the make command started by make.so
 MELTGCC_MAKE= $(MAKE)
 
-.PHONY: all clean install bootstrap-melt  install-melt-includes install-melt-sources install-melt-modules  install-melt-mk install-melt-default-modules-list install-melt-so
+.PHONY: all clean doc doc-pdf doc-info doc-html install bootstrap-melt  install-melt-includes install-melt-sources install-melt-modules  install-melt-mk install-melt-default-modules-list install-melt-so
 
 melt_make_cc1= $(MELTGCC) -c
 melt_make_cc1_dependency= melt-runtime.h melt-run.h melt/generated/meltrunsup.h melt/generated/meltrunsup-inc.c melt.so
@@ -144,7 +149,7 @@ MELT_STAGE_ZERO = melt-stage0-static
 ## -j flag to make.
 .NOTPARALLEL:
 
-all: melt-run.h melt.so bootstrap-melt $(melt_default_modules_list).modlis
+all: melt-run.h melt.so bootstrap-melt $(melt_default_modules_list).modlis doc
 
 
 gt-melt-runtime.h:  $(MELTGCC_RUNTIME_INCLUDES) $(MELTGCC_GTYPESTATE) \
@@ -226,6 +231,37 @@ warmelt-predef.melt: make-warmelt-predef.awk melt-predef.list
 	$(GAWK) -f $^ > $@-tmp
 	mv $@-tmp $@
 
+################### documentation
+
+MELTDOCSRC= meltplugin.texi meltpluginapi.texi
+
+MELTDOCPDF= $(patsubst %.texi,%.pdf,$(MELTDOCSRC))
+MELTDOCINFO= $(patsubst %.texi,%.info,$(MELTDOCSRC))
+MELTDOCHTML= $(patsubst %.texi,%.html,$(MELTDOCSRC))
+
+doc: meltgendoc.texi meltplugin.texi meltpluginapi.texi doc-pdf doc-info doc-html
+
+doc-pdf: $(MELTDOCPDF)
+doc-info: $(MELTDOCINFO)
+doc-html: $(MELTDOCHTML)
+
+meltplugin.pdf: meltplugin.texi melt.texi
+meltplugin.html: meltplugin.texi melt.texi
+meltplugin.info: meltplugin.texi melt.texi
+
+meltpluginapi.pdf: meltpluginapi.texi meltgendoc.texi
+meltpluginapi.html: meltpluginapi.texi meltgendoc.texi
+meltpluginapi.info: meltpluginapi.texi meltgendoc.texi
+
+%.pdf: %.texi
+	$(TEXI2PDF) $^ -o $@
+
+%.html: %.texi
+	$(MAKEINFO) --html $^ -o $@
+
+%.info: %.texi
+	$(MAKEINFO) $^ -o $@
+################# installation
 install: all melt.so warmelt  \
     install-melt-includes install-melt-sources install-melt-modules \
     install-melt-mk install-melt-default-modules-list install-melt-so
