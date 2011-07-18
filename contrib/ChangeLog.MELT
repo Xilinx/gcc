@@ -1,4 +1,8 @@
 2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
+	* MELT-Plugin-Makefile (%.pdf,%.html,%.info): Remove rules because
+	GNU make knows them.
+
+2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* meltplugin.texi: Add @settitle.
 	* meltpluginapi.texi: Improve explanation of copyright GPLv3+.

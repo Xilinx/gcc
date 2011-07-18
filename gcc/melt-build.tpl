@@ -122,7 +122,7 @@ melt-stage0-static/[+base+]-0.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+]-0.c \
+	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-stage0-static/[+base+]-0
 
 ## using dynamic object fields offsets for [+base+]
@@ -132,7 +132,7 @@ melt-stage0-dynamic/[+base+]-0.d.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(melt_make_source_dir)/generated/[+base+]-0.c \
+	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=melt-stage0-dynamic/[+base+]-0
 
 melt-stage0-dynamic/[+base+]-0.so: melt-stage0-dynamic/[+base+]-0.d.so
@@ -203,7 +203,7 @@ $(MELT_STAGE_ZERO):
 	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath [+melt_stage+]) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(realpath [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c) \
+	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=$(realpath [+melt_stage+])/[+(. outbase)+]-[+(. stageindex)+]
 
 [+melt_stage+]/[+(. outbase)+]-[+(. stageindex)+].n.so: [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c \
@@ -213,7 +213,7 @@ $(MELT_STAGE_ZERO):
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
               GCCMELT_MODULE_WORKSPACE=$(realpath [+melt_stage+]) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
-	      GCCMELT_MODULE_SOURCE=$(realpath [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c) \
+	      GCCMELT_MODULE_SOURCE=$< \
               GCCMELT_MODULE_BINARY=$(realpath [+melt_stage+])/[+(. outbase)+]-[+(. stageindex)+]
 
 [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c: $(melt_make_source_dir)/[+ (. outbase)+].melt \

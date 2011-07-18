@@ -253,14 +253,6 @@ meltpluginapi.pdf: meltpluginapi.texi meltgendoc.texi
 meltpluginapi.html: meltpluginapi.texi meltgendoc.texi
 meltpluginapi.info: meltpluginapi.texi meltgendoc.texi
 
-%.pdf: %.texi
-	$(TEXI2PDF) $^ -o $@
-
-%.html: %.texi
-	$(MAKEINFO) --html $^ -o $@
-
-%.info: %.texi
-	$(MAKEINFO) $^ -o $@
 ################# installation
 install: all melt.so warmelt  \
     install-melt-includes install-melt-sources install-melt-modules \
