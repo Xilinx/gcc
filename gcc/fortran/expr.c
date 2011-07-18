@@ -3286,7 +3286,8 @@ gfc_check_pointer_assign (gfc_expr *lvalue, gfc_expr *rvalue)
 	     upper bounds are present, we may do rank remapping.  */
 	  for (dim = 0; dim < ref->u.ar.dimen; ++dim)
 	    {
-	      if (!ref->u.ar.start[dim])
+	      if (!ref->u.ar.start[dim]
+		  || ref->u.ar.dimen_type[dim] != DIMEN_RANGE)
 		{
 		  gfc_error ("Lower bound has to be present at %L",
 			     &lvalue->where);
@@ -4126,18 +4127,28 @@ gfc_expr_replace_comp (gfc_expr *expr, gfc_component *dest)
 
 
 bool
+gfc_ref_this_image (gfc_ref *ref)
+{
+  int n;
+
+  gcc_assert (ref->type == REF_ARRAY && ref->u.ar.codimen > 0);
+
+  for (n = ref->u.ar.dimen; n < ref->u.ar.dimen + ref->u.ar.codimen; n++)
+    if (ref->u.ar.dimen_type[n] != DIMEN_THIS_IMAGE)
+      return false;
+
+  return true;
+}
+
+
+bool
 gfc_is_coindexed (gfc_expr *e)
 {
   gfc_ref *ref;
 
   for (ref = e->ref; ref; ref = ref->next)
     if (ref->type == REF_ARRAY && ref->u.ar.codimen > 0)
-      {
-	int n;
-	for (n = ref->u.ar.dimen; n < ref->u.ar.dimen + ref->u.ar.codimen; n++)
-	  if (ref->u.ar.dimen_type[n] != DIMEN_THIS_IMAGE)
-	    return true;
-      }
+      return !gfc_ref_this_image (ref);
 
   return false;
 }
