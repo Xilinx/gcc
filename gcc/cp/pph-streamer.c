@@ -166,7 +166,6 @@ pph_stream_close (pph_stream *stream)
 enum pph_trace_type
 {
     PPH_TRACE_TREE,
-    PPH_TRACE_REF,
     PPH_TRACE_UINT,
     PPH_TRACE_BYTES,
     PPH_TRACE_STRING,
@@ -198,7 +197,6 @@ pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
   switch (type)
     {
     case PPH_TRACE_TREE:
-    case PPH_TRACE_REF:
       {
 	const_tree t = (const_tree) data;
 	if (t)
@@ -206,8 +204,7 @@ pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
             fprintf (pph_logfile, ", code=%s", tree_code_name[TREE_CODE (t)]);
             if (DECL_P (t))
               {
-                const char *label = type == PPH_TRACE_TREE ? "value" : "refer";
-                fprintf (pph_logfile, ", %s=", label );
+                fprintf (pph_logfile, ", value=");
                 print_generic_decl (pph_logfile,
                                     CONST_CAST (union tree_node *, t), 0);
               }
@@ -275,10 +272,9 @@ pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
 /* Show tracing information for T on STREAM.  */
 
 void
-pph_trace_tree (pph_stream *stream, tree t, bool ref_p)
+pph_trace_tree (pph_stream *stream, tree t)
 {
-  pph_trace (stream, t, t ? tree_code_size (TREE_CODE (t)) : 0,
-		    ref_p ? PPH_TRACE_REF : PPH_TRACE_TREE);
+  pph_trace (stream, t, t ? tree_code_size (TREE_CODE (t)) : 0, PPH_TRACE_TREE);
 }
 
 

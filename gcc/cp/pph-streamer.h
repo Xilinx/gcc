@@ -137,7 +137,7 @@ enum chain_filter { NONE, NO_BUILTINS };
 /* In pph-streamer.c.  */
 pph_stream *pph_stream_open (const char *, const char *);
 void pph_stream_close (pph_stream *);
-void pph_trace_tree (pph_stream *, tree, bool ref_p);
+void pph_trace_tree (pph_stream *, tree);
 void pph_trace_uint (pph_stream *, unsigned int);
 void pph_trace_bytes (pph_stream *, const void *, size_t);
 void pph_trace_string (pph_stream *, const char *);
@@ -151,7 +151,7 @@ void *pph_cache_get (pph_stream *, unsigned);
 /* In pph-streamer-out.c.  */
 void pph_flush_buffers (pph_stream *);
 void pph_init_write (pph_stream *);
-void pph_write_tree (struct output_block *, tree, bool ref_p);
+void pph_write_tree (struct output_block *, tree, bool);
 void pph_pack_value_fields (struct bitpack_d *, tree);
 void pph_out_tree_header (struct output_block *, tree);
 void pph_write_file (void);
@@ -159,8 +159,7 @@ void pph_add_decl_to_register (tree);
 
 /* In name-lookup.c.  */
 struct binding_table_s;
-void pph_out_binding_table (pph_stream *, struct binding_table_s *,
-				     bool);
+void pph_out_binding_table (pph_stream *, struct binding_table_s *);
 struct binding_table_s *pph_in_binding_table (pph_stream *);
 
 /* In pph-streamer-in.c.  */
@@ -168,55 +167,51 @@ void pph_init_read (pph_stream *);
 void pph_read_tree (struct lto_input_block *, struct data_in *, tree);
 void pph_unpack_value_fields (struct bitpack_d *, tree);
 tree pph_alloc_tree (enum tree_code, struct lto_input_block *,
-			    struct data_in *);
-void pph_read_file (const char *filename);
+	             struct data_in *);
+void pph_read_file (const char *);
 
 /* Inline functions.  */
 
-/* Output AST T to STREAM.  If REF_P is true, output all the leaves of T
-   as references.  This function is the primary interface.  */
+/* Output AST T to STREAM.  This function is the primary interface.  */
 static inline void
-pph_out_tree (pph_stream *stream, tree t, bool ref_p)
+pph_out_tree (pph_stream *stream, tree t)
 {
   if (flag_pph_tracer >= 1)
-    pph_trace_tree (stream, t, ref_p);
-  lto_output_tree (stream->ob, t, ref_p);
+    pph_trace_tree (stream, t);
+  lto_output_tree (stream->ob, t, false);
 }
 
-/* Output array A of cardinality C of ASTs to STREAM.
-   If REF_P is true, output all the leaves of T as references.  */
+/* Output array A of cardinality C of ASTs to STREAM.  */
 /* FIXME pph: hold for alternate routine. */
 #if 0
 static inline void
-pph_out_tree_array (pph_stream *stream, tree *a, size_t c, bool ref_p)
+pph_out_tree_array (pph_stream *stream, tree *a, size_t c)
 {
   size_t i;
   for (i = 0; i < c; ++i)
     {
       if (flag_pph_tracer >= 1)
-        pph_trace_tree (stream, a[i], ref_p);
-      lto_output_tree (stream->ob, a[i], ref_p);
+        pph_trace_tree (stream, a[i]);
+      lto_output_tree (stream->ob, a[i]);
     }
 }
 #endif
 
-/* Output AST T to STREAM.  If REF_P is true, output a reference to T.
-   If -fpph-tracer is set to TLEVEL or higher, T is sent to
-   pph_trace_tree.  */
+/* Output AST T to STREAM.  If -fpph-tracer is set to TLEVEL or
+   higher, T is sent to pph_trace_tree.  */
 static inline void
-pph_out_tree_or_ref_1 (pph_stream *stream, tree t, bool ref_p, int tlevel)
+pph_out_tree_or_ref_1 (pph_stream *stream, tree t, int tlevel)
 {
   if (flag_pph_tracer >= tlevel)
-    pph_trace_tree (stream, t, ref_p);
-  lto_output_tree_or_ref (stream->ob, t, ref_p);
+    pph_trace_tree (stream, t);
+  lto_output_tree (stream->ob, t, false);
 }
 
-/* Output AST T to STREAM.  If REF_P is true, output a reference to T.
-   Trigger tracing at -fpph-tracer=2.  */
+/* Output AST T to STREAM.  Trigger tracing at -fpph-tracer=2.  */
 static inline void
-pph_out_tree_or_ref (pph_stream *stream, tree t, bool ref_p)
+pph_out_tree_or_ref (pph_stream *stream, tree t)
 {
-  pph_out_tree_or_ref_1 (stream, t, ref_p, 2);
+  pph_out_tree_or_ref_1 (stream, t, 2);
 }
 
 /* Write an unsigned int VALUE to STREAM.  */
@@ -266,12 +261,11 @@ pph_out_string_with_length (pph_stream *stream, const char *str,
 				  str, len + 1, false);
 }
 
-/* Output VEC V of ASTs to STREAM.
-   If REF_P is true, output all the leaves of T as references.  */
+/* Output VEC V of ASTs to STREAM.  */
 /* FIXME pph: hold for alternate routine. */
 #if 0
 static inline void
-pph_out_tree_VEC (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
+pph_out_tree_VEC (pph_stream *stream, VEC(tree,gc) *v)
 {
   tree t;
   size_t i;
@@ -280,20 +274,19 @@ pph_out_tree_VEC (pph_stream *stream, VEC(tree,gc) *v, bool ref_p)
   FOR_EACH_VEC_ELT (tree, v, i, t)
     {
       if (flag_pph_tracer >= 1)
-        pph_trace_tree (stream, t, ref_p);
-      lto_output_tree (stream->ob, t, ref_p);
+        pph_trace_tree (stream, t);
+      lto_output_tree (stream->ob, t);
     }
 }
 #endif
 
-/* Write a chain of ASTs to STREAM starting with FIRST.  REF_P is true
-   if the nodes should be emitted as references.  */
+/* Write a chain of ASTs to STREAM starting with FIRST.  */
 static inline void
-pph_out_chain (pph_stream *stream, tree first, bool ref_p)
+pph_out_chain (pph_stream *stream, tree first)
 {
   if (flag_pph_tracer >= 2)
     pph_trace_chain (stream, first);
-  lto_output_chain (stream->ob, first, ref_p);
+  lto_output_chain (stream->ob, first, false);
 }
 
 /* Write a bitpack BP to STREAM.  */
@@ -354,7 +347,7 @@ pph_in_tree (pph_stream *stream)
 {
   tree t = lto_input_tree (stream->ib, stream->data_in);
   if (flag_pph_tracer >= 4)
-    pph_trace_tree (stream, t, false); /* FIXME pph: always false? */
+    pph_trace_tree (stream, t);
   return t;
 }
 

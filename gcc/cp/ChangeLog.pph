@@ -1,5 +1,55 @@
 2011-07-18   Diego Novillo  <dnovillo@google.com>
 
+	* name-lookup.c (pph_out_binding_table): Remove parameter
+	REF_P.  Update all users.
+	* pph-streamer-out.c (pph_out_ld_min): Likewise.
+	(pph_out_tree_vec): Likewise.
+	(pph_out_qual_use_vec): Likewise.
+	(pph_out_cxx_binding_1): Likewise.
+	(pph_out_cxx_binding): Likewise.
+	(pph_out_class_binding): Likewise.
+	(pph_out_label_binding): Likewise.
+	(pph_out_chained_tree): Likewise.
+	(pph_out_chain_filtered): Likewise.
+	(pph_out_binding_level): Likewise.
+	(pph_out_tree_common): Likewise.
+	(pph_out_c_language_function): Likewise.
+	(pph_out_language_function): Likewise.
+	(pph_out_ld_fn): Likewise.
+	(pph_out_used_types_slot): Likewise.
+	(pph_out_struct_function): Likewise.
+	(pph_out_ld_ns): Likewise.
+	(pph_out_ld_parm): Likewise.
+	(pph_out_lang_specific): Likewise.
+	(pph_out_lang_type_header): Likewise.
+	(pph_out_tree_pair_vec): Likewise.
+	(pph_out_sorted_fields_type): Likewise.
+	(pph_out_lang_type_class): Likewise.
+	(pph_out_lang_type_ptrmem): Likewise.
+	(pph_out_lang_type): Likewise.
+	(pph_out_scope_chain): Likewise.
+	(pph_out_symtab_marker): Likewise.
+	(pph_out_symtab): Likewise.
+	(pph_write_file_contents): Likewise.
+	(pph_out_tree_header): Likewise.
+	(pph_out_function_decl): Likewise.
+	(pph_write_tree): Mark REF_P unused.
+	* pph-streamer.c (enum pph_trace_type): Remove value
+	PPH_TRACE_REF.  Update all users.
+	* pph-streamer.h (pph_trace_tree): Remove last argument.
+	Update all users.
+	(pph_out_tree): Remove parameter REF_P.  Update all users.
+	(pph_out_tree_array): Likewise.
+	(pph_out_tree_or_ref_1): Likewise.
+	(pph_out_tree_or_ref): Likewise.
+	(pph_out_tree_VEC): Likewise.
+	(pph_out_chain): Likewise.
+	* pph-streamer-in.c (pph_in_tree_pair_vec): Update comment.
+	(pph_in_sorted_fields_type): Likewise.
+	(pph_in_lang_type_class): Likewise.
+
+2011-07-18   Diego Novillo  <dnovillo@google.com>
+
 	* pph-streamer-in.c (pph_in_struct_function): Revert previous
 	change.  Do not allow shared struct functions.
 	* pph-streamer-out.c (decls_to_register_t): New type.

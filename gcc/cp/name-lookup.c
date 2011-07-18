@@ -5958,12 +5958,10 @@ cp_emit_debug_info_for_using (tree t, tree context)
 }
 
 
-/* Write a binding_entry instance BT to STREAM.  If REF_P is true, all
-   tree nodes in the table are written as references.  */
+/* Write a binding_entry instance BT to STREAM.  */
 
 void
-pph_out_binding_table (pph_stream *stream, binding_table bt,
-				bool ref_p)
+pph_out_binding_table (pph_stream *stream, binding_table bt)
 {
   size_t i;
 
@@ -5973,8 +5971,8 @@ pph_out_binding_table (pph_stream *stream, binding_table bt,
       if (bt->chain[i])
 	{
 	  pph_out_uchar (stream, PPH_RECORD_START);
-	  pph_out_tree_or_ref (stream, bt->chain[i]->name, ref_p);
-	  pph_out_tree_or_ref (stream, bt->chain[i]->type, ref_p);
+	  pph_out_tree_or_ref (stream, bt->chain[i]->name);
+	  pph_out_tree_or_ref (stream, bt->chain[i]->type);
 	}
       else
 	pph_out_uchar (stream, PPH_RECORD_END);

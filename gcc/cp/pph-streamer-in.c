@@ -1026,8 +1026,7 @@ pph_in_tree_pair_vec (pph_stream *stream)
 }
 
 
-/* Read a struct sorted_fields_type instance SFT to STREAM.  REF_P is
-   true if the tree nodes should be written as references.  */
+/* Read a struct sorted_fields_type instance SFT to STREAM.  */
 
 static struct sorted_fields_type *
 pph_in_sorted_fields_type (pph_stream *stream)
@@ -1052,13 +1051,10 @@ pph_in_sorted_fields_type (pph_stream *stream)
 }
 
 
-/* Read all the fields in lang_type_class instance LTC to STREAM.
-   REF_P is true if all the trees in the structure should be written
-   as references.  */
+/* Read all the fields in lang_type_class instance LTC to STREAM.  */
 
 static void
-pph_in_lang_type_class (pph_stream *stream,
-				  struct lang_type_class *ltc)
+pph_in_lang_type_class (pph_stream *stream, struct lang_type_class *ltc)
 {
   struct bitpack_d bp;
   enum pph_record_marker marker;
