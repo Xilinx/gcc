@@ -1,3 +1,76 @@
+2011-07-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/47744
+	* config/i386/i386.c (ix86_decompose_address): Allow only subregs
+	of DImode hard registers in PLUS address chains.
+
+2011-07-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR bootstrap/49769
+	* config.gcc (alpha*-*-linux*): Add crtfastmath.o to extra_parts.
+	(alpha*-*-freebsd*): Likewise.
+	(i[34567]86-*-linux*, i[34567]86-*-kfreebsd*-gnu,
+	i[34567]86-*-knetbsd*-gnu, i[34567]86-*-gnu*,
+	i[34567]86-*-kopensolaris*-gnu): Add crtprec32.o, crtprec64.o,
+	crtprec80.o, crtfastmath.o to extra_parts for all targets.
+	(ia64*-*-elf*): Remove extra_parts.
+	(sparc-*-linux*): Add crtfastmath.o to extra_parts.
+	(sparc64-*-linux*): Likewise.
+	(sparc64-*-freebsd*): Likewise.
+
+	Revert:
+	* config.gcc (ia64*-*-freebsd*): Remove crtfastmath.o from extra_parts.
+	(ia64*-*-linux*): Likewise.
+	(mips64*-*-linux*): Likewise.
+	(mips*-*-linux*): Likewise.
+
+2011-07-18  David Edelsohn  <dje.gcc@gmail.com>
+
+	* doc/install.texi (Specific, *-ibm-aix*): AIX assembler bug.
+
+2011-07-18  Richard Guenther  <rguenther@suse.de>
+
+	* gimplify.c (gimplify_expr): Use input_location, not saved_location
+	when building new trees.
+
+2011-07-18  Richard Guenther  <rguenther@suse.de>
+
+	* expr.c (expand_expr_real_2): Properly truncate the BIT_NOT_EXPR
+	expansion result to bitfield precision if required.
+
+2011-07-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* config.gcc (i[3456x]86-*-netware*): Remove.
+
+	* gthr-nks.h: Remove.
+	* configure.ac (enable_threads): Remove nks.
+	* configure: Regenerate.
+
+	* config/i386/i386.c (ix86_encode_section_info): Remove netware
+	reference.
+	* config/i386/i386.h (KEEP_AGGREGATE_RETURN_POINTER): Remove
+	<netware.h> reference.
+
+	* config/i386/netware-libgcc.c,
+	gcc/config/i386/netware-libgcc.def,
+	gcc/config/i386/netware-libgcc.exp, gcc/config/i386/netware.c,
+	gcc/config/i386/netware.h, gcc/config/i386/netware.opt,
+	gcc/config/i386/nwld.c, gcc/config/i386/nwld.h,
+	gcc/config/i386/t-netware, gcc/config/i386/t-nwld: Remove
+
+	* doc/extend.texi (Function Attributes,
+	callee_pop_aggregate_return): Remove i?86-netware reference.
+	* doc/install.texi (Configuration, --enable-threads): Remove nks.
+
+2011-07-17  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	PR target/49746
+	Revert:
+	2010-12-30  John David Anglin  <dave.anglin@nrc-cnrc.gc.ca>
+
+	* config/pa/pa.md: Add ",*" condition to 64-bit add/subtract boolean
+	patterns.
+
 2011-07-17  Eric Botcazou  <ebotcazou@adacore.com>
 
 	PR middle-end/49732
@@ -214,15 +287,14 @@
 	(READONLY_DATA_SECTION_ASM_OP): Remove.
 	(TARGET_ASM_NAMED_SECTION): Move from here...
 	* config/avr/avr.c: ...to here.
-	(avr_asm_init_sections): Set unnamed callback of
-	readonly_data_section.
+	(avr_asm_init_sections): Set unnamed callback of readonly_data_section.
 	(avr_asm_named_section): Make static.
 
 2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	PR bootstrap/49739
-	* config.gcc (extra_parts): Add crtprec32.o crtprec64.o crtp
-	rec80.o crtfastmath.o for Linux/x86.
+	* config.gcc (extra_parts): Add crtprec32.o crtprec64.o crtprec80.o
+	and crtfastmath.o for Linux/x86.
 
 2011-07-14  Bernd Schmidt  <bernds@codesourcery.com>
 
@@ -252,8 +324,7 @@
 	estimate_insn_tick, estimate_shadow_tick): New functions.
 	(prune_ready_list): New arg shadows_only_p.  All callers changed.
 	If true, remove everything that isn't SHADOW_P.  Look up delay
-	pairs and estimate ticks to avoid scheduling the first insn too
-	early.
+	pairs and estimate ticks to avoid scheduling the first insn too early.
 	(verify_shadows): New function.
 	(schedule_block): Add machinery to enable backtracking.
 	(sched_init): Take sched_no_dce into account when setting
@@ -318,8 +389,7 @@
 2011-07-13  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	PR target/49541
-	* config/sol2.h (LIB_SPEC): Simplify.
-	Move LIB_THREAD_LDFLAGS_SPEC ...
+	* config/sol2.h (LIB_SPEC): Simplify.  Move LIB_THREAD_LDFLAGS_SPEC ...
 	(LINK_SPEC): ... here.
 
 2011-07-13  Bernd Schmidt  <bernds@codesourcery.com>
@@ -381,8 +451,7 @@
 
 2011-07-13  H.J. Lu  <hongjiu.lu@intel.com>
 
-	* config/i386/i386.c (x86_output_mi_thunk): Support ptr_mode
-	!= Pmode.
+	* config/i386/i386.c (x86_output_mi_thunk): Support ptr_mode != Pmode.
 
 	* config/i386/i386.md (*addsi_1_zext): Renamed to ...
 	(addsi_1_zext): This.
