@@ -11171,9 +11171,10 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	      break;
 
 	    case SUBREG:
-	      if (TARGET_X32
-		  && !register_no_elim_operand (op, Pmode))
+	      /* Allow only subregs of DImode hard regs in PLUS chains.  */
+	      if (!register_no_elim_operand (SUBREG_REG (op), DImode))
 		return 0;
+	      /* FALLTHRU */
 
 	    case REG:
 	      if (!base)

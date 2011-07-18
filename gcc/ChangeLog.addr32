@@ -1,3 +1,9 @@
+2011-07-18  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/47744
+	* config/i386/i386.c (ix86_decompose_address): Allow only subregs
+	of DImode hard regs in PLUS chains. 
+
 2011-07-17  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_decompose_address): Don't support
