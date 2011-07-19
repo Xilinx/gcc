@@ -194,8 +194,8 @@ static const struct attribute_spec avr_attribute_table[] =
 #undef TARGET_SECTION_TYPE_FLAGS
 #define TARGET_SECTION_TYPE_FLAGS avr_section_type_flags
 
-/* `TARGET_ASM_NAMED_SECTION' must be defined in avr.h.  */
-
+#undef TARGET_ASM_NAMED_SECTION
+#define TARGET_ASM_NAMED_SECTION avr_asm_named_section
 #undef TARGET_ASM_INIT_SECTIONS
 #define TARGET_ASM_INIT_SECTIONS avr_asm_init_sections
 #undef TARGET_ENCODE_SECTION_INFO
@@ -1479,9 +1479,8 @@ notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
 	    {
 	      rtx x = XEXP (src, 1);
 
-	      if (GET_CODE (x) == CONST_INT
-		  && INTVAL (x) > 0
-		  && INTVAL (x) != 6)
+	      if (CONST_INT_P (x)
+		  && IN_RANGE (INTVAL (x), 1, 5))
 		{
 		  cc_status.value1 = SET_DEST (set);
 		  cc_status.flags |= CC_OVERFLOW_UNUSABLE;
@@ -4439,7 +4438,9 @@ avr_rotate_bytes (rtx operands[])
     if (mode == DImode)
       move_mode = QImode;
     /* Make scratch smaller if needed.  */
-    if (GET_MODE (scratch) == HImode && move_mode == QImode)
+    if (SCRATCH != GET_CODE (scratch)
+        && HImode == GET_MODE (scratch)
+        && QImode == move_mode)
       scratch = simplify_gen_subreg (move_mode, scratch, HImode, 0); 
 
     move_size = GET_MODE_SIZE (move_mode);
@@ -4534,6 +4535,8 @@ avr_rotate_bytes (rtx operands[])
 		   Add move to put dst of blocked move into scratch.
 		   When this move occurs, it will break chain deadlock.
 		   The scratch register is substituted for real move.  */
+
+		gcc_assert (SCRATCH != GET_CODE (scratch));
 
 		move[size].src = move[blocked].dst;
 		move[size].dst =  scratch;
@@ -5092,8 +5095,11 @@ avr_asm_init_sections (void)
   progmem_section = get_unnamed_section (AVR_HAVE_JMP_CALL ? 0 : SECTION_CODE,
 					 avr_output_progmem_section_asm_op,
 					 NULL);
-  readonly_data_section = data_section;
 
+  /* Override section callbacks to keep track of `avr_need_clear_bss_p'
+     resp. `avr_need_copy_data_p'.  */
+  
+  readonly_data_section->unnamed.callback = avr_output_data_section_asm_op;
   data_section->unnamed.callback = avr_output_data_section_asm_op;
   bss_section->unnamed.callback = avr_output_bss_section_asm_op;
 }
@@ -5102,7 +5108,7 @@ avr_asm_init_sections (void)
 /* Implement `TARGET_ASM_NAMED_SECTION'.  */
 /* Track need of __do_clear_bss, __do_copy_data for named sections.  */
 
-void
+static void
 avr_asm_named_section (const char *name, unsigned int flags, tree decl)
 {
   if (!avr_need_copy_data_p)

@@ -122,17 +122,6 @@ int vms_file_stats_name (const char *, long long *, long *, char *, int *);
  #pragma GCC poison DWARF2_UNWIND_INFO DWARF2_FRAME_INFO
 #endif
 
-#ifndef INCOMING_RETURN_ADDR_RTX
-#define INCOMING_RETURN_ADDR_RTX  (gcc_unreachable (), NULL_RTX)
-#endif
-
-/* Map register numbers held in the call frame info that gcc has
-   collected using DWARF_FRAME_REGNUM to those that should be output in
-   .debug_frame and .eh_frame.  */
-#ifndef DWARF2_FRAME_REG_OUT
-#define DWARF2_FRAME_REG_OUT(REGNO, FOR_EH) (REGNO)
-#endif
-
 /* The size of the target's pointer type.  */
 #ifndef PTR_SIZE
 #define PTR_SIZE (POINTER_SIZE / BITS_PER_UNIT)
@@ -168,37 +157,8 @@ static GTY(()) section *debug_str_section;
 static GTY(()) section *debug_ranges_section;
 static GTY(()) section *debug_frame_section;
 
-/* How to start an assembler comment.  */
-#ifndef ASM_COMMENT_START
-#define ASM_COMMENT_START ";#"
-#endif
-
 /* Maximum size (in bytes) of an artificially generated label.  */
 #define MAX_ARTIFICIAL_LABEL_BYTES	30
-
-/* The size of addresses as they appear in the Dwarf 2 data.
-   Some architectures use word addresses to refer to code locations,
-   but Dwarf 2 info always uses byte addresses.  On such machines,
-   Dwarf 2 addresses need to be larger than the architecture's
-   pointers.  */
-#ifndef DWARF2_ADDR_SIZE
-#define DWARF2_ADDR_SIZE (POINTER_SIZE / BITS_PER_UNIT)
-#endif
-
-/* The size in bytes of a DWARF field indicating an offset or length
-   relative to a debug info section, specified to be 4 bytes in the
-   DWARF-2 specification.  The SGI/MIPS ABI defines it to be the same
-   as PTR_SIZE.  */
-
-#ifndef DWARF_OFFSET_SIZE
-#define DWARF_OFFSET_SIZE 4
-#endif
-
-/* The size in bytes of a DWARF 4 type signature.  */
-
-#ifndef DWARF_TYPE_SIGNATURE_SIZE
-#define DWARF_TYPE_SIGNATURE_SIZE 8
-#endif
 
 /* According to the (draft) DWARF 3 specification, the initial length
    should either be 4 or 12 bytes.  When it's 12 bytes, the first 4
@@ -215,15 +175,6 @@ static GTY(()) section *debug_frame_section;
 /* Round SIZE up to the nearest BOUNDARY.  */
 #define DWARF_ROUND(SIZE,BOUNDARY) \
   ((((SIZE) + (BOUNDARY) - 1) / (BOUNDARY)) * (BOUNDARY))
-
-/* Offsets recorded in opcodes are a multiple of this alignment factor.  */
-#ifndef DWARF_CIE_DATA_ALIGNMENT
-#ifdef STACK_GROWS_DOWNWARD
-#define DWARF_CIE_DATA_ALIGNMENT (-((int) UNITS_PER_WORD))
-#else
-#define DWARF_CIE_DATA_ALIGNMENT ((int) UNITS_PER_WORD)
-#endif
-#endif
 
 /* CIE identifier.  */
 #if HOST_BITS_PER_WIDE_INT >= 64
@@ -265,22 +216,12 @@ static GTY(()) section *cold_text_section;
 /* Forward declarations for functions defined in this file.  */
 
 static char *stripattributes (const char *);
-static void output_cfi (dw_cfi_ref, dw_fde_ref, int);
 static void output_call_frame_info (int);
 static void dwarf2out_note_section_used (void);
-
-/* Support for complex CFA locations.  */
-static void output_cfa_loc (dw_cfi_ref, int);
-static void output_cfa_loc_raw (dw_cfi_ref);
 
 /* Personality decl of current unit.  Used only when assembler does not support
    personality CFI.  */
 static GTY(()) rtx current_unit_personality;
-
-/* How to start an assembler comment.  */
-#ifndef ASM_COMMENT_START
-#define ASM_COMMENT_START ";#"
-#endif
 
 /* Data and reference forms for relocatable data.  */
 #define DW_FORM_data (DWARF_OFFSET_SIZE == 8 ? DW_FORM_data8 : DW_FORM_data4)
@@ -319,23 +260,6 @@ static GTY(()) rtx current_unit_personality;
 #define LN_PROLOG_AS_LABEL	"LASLTP"
 #define LN_PROLOG_END_LABEL	"LELTP"
 #define DIE_LABEL_PREFIX	"DW"
-
-/* The DWARF 2 CFA column which tracks the return address.  Normally this
-   is the column for PC, or the first column after all of the hard
-   registers.  */
-#ifndef DWARF_FRAME_RETURN_COLUMN
-#ifdef PC_REGNUM
-#define DWARF_FRAME_RETURN_COLUMN	DWARF_FRAME_REGNUM (PC_REGNUM)
-#else
-#define DWARF_FRAME_RETURN_COLUMN	DWARF_FRAME_REGISTERS
-#endif
-#endif
-
-/* The mapping from gcc register number to DWARF 2 CFA column number.  By
-   default, we just provide columns for all registers.  */
-#ifndef DWARF_FRAME_REGNUM
-#define DWARF_FRAME_REGNUM(REG) DBX_REGISTER_NUMBER (REG)
-#endif
 
 /* Match the base name of a file to the base name of a compilation unit. */
 
@@ -436,98 +360,6 @@ stripattributes (const char *s)
 
   *p = '\0';
   return stripped;
-}
-
-/* Divide OFF by DWARF_CIE_DATA_ALIGNMENT, asserting no remainder.  */
-
-static inline HOST_WIDE_INT
-div_data_align (HOST_WIDE_INT off)
-{
-  HOST_WIDE_INT r = off / DWARF_CIE_DATA_ALIGNMENT;
-  gcc_assert (r * DWARF_CIE_DATA_ALIGNMENT == off);
-  return r;
-}
-
-/* Return true if we need a signed version of a given opcode
-   (e.g. DW_CFA_offset_extended_sf vs DW_CFA_offset_extended).  */
-
-static inline bool
-need_data_align_sf_opcode (HOST_WIDE_INT off)
-{
-  return DWARF_CIE_DATA_ALIGNMENT < 0 ? off > 0 : off < 0;
-}
-
-/* Convert a DWARF call frame info. operation to its string name */
-
-static const char *
-dwarf_cfi_name (unsigned int cfi_opc)
-{
-  switch (cfi_opc)
-    {
-    case DW_CFA_advance_loc:
-      return "DW_CFA_advance_loc";
-    case DW_CFA_offset:
-      return "DW_CFA_offset";
-    case DW_CFA_restore:
-      return "DW_CFA_restore";
-    case DW_CFA_nop:
-      return "DW_CFA_nop";
-    case DW_CFA_set_loc:
-      return "DW_CFA_set_loc";
-    case DW_CFA_advance_loc1:
-      return "DW_CFA_advance_loc1";
-    case DW_CFA_advance_loc2:
-      return "DW_CFA_advance_loc2";
-    case DW_CFA_advance_loc4:
-      return "DW_CFA_advance_loc4";
-    case DW_CFA_offset_extended:
-      return "DW_CFA_offset_extended";
-    case DW_CFA_restore_extended:
-      return "DW_CFA_restore_extended";
-    case DW_CFA_undefined:
-      return "DW_CFA_undefined";
-    case DW_CFA_same_value:
-      return "DW_CFA_same_value";
-    case DW_CFA_register:
-      return "DW_CFA_register";
-    case DW_CFA_remember_state:
-      return "DW_CFA_remember_state";
-    case DW_CFA_restore_state:
-      return "DW_CFA_restore_state";
-    case DW_CFA_def_cfa:
-      return "DW_CFA_def_cfa";
-    case DW_CFA_def_cfa_register:
-      return "DW_CFA_def_cfa_register";
-    case DW_CFA_def_cfa_offset:
-      return "DW_CFA_def_cfa_offset";
-
-    /* DWARF 3 */
-    case DW_CFA_def_cfa_expression:
-      return "DW_CFA_def_cfa_expression";
-    case DW_CFA_expression:
-      return "DW_CFA_expression";
-    case DW_CFA_offset_extended_sf:
-      return "DW_CFA_offset_extended_sf";
-    case DW_CFA_def_cfa_sf:
-      return "DW_CFA_def_cfa_sf";
-    case DW_CFA_def_cfa_offset_sf:
-      return "DW_CFA_def_cfa_offset_sf";
-
-    /* SGI/MIPS specific */
-    case DW_CFA_MIPS_advance_loc8:
-      return "DW_CFA_MIPS_advance_loc8";
-
-    /* GNU extensions */
-    case DW_CFA_GNU_window_save:
-      return "DW_CFA_GNU_window_save";
-    case DW_CFA_GNU_args_size:
-      return "DW_CFA_GNU_args_size";
-    case DW_CFA_GNU_negative_offset_extended:
-      return "DW_CFA_GNU_negative_offset_extended";
-
-    default:
-      return "DW_CFA_<unknown>";
-    }
 }
 
 /* Switch [BACK] to eh_frame_section.  If we don't have an eh_frame_section,
@@ -677,454 +509,6 @@ dw_cfi_oprnd2_desc (enum dwarf_call_frame_info cfi)
     default:
       return dw_cfi_oprnd_unused;
     }
-}
-
-/* Output a Call Frame Information opcode and its operand(s).  */
-
-static void
-output_cfi (dw_cfi_ref cfi, dw_fde_ref fde, int for_eh)
-{
-  unsigned long r;
-  HOST_WIDE_INT off;
-
-  if (cfi->dw_cfi_opc == DW_CFA_advance_loc)
-    dw2_asm_output_data (1, (cfi->dw_cfi_opc
-			     | (cfi->dw_cfi_oprnd1.dw_cfi_offset & 0x3f)),
-			 "DW_CFA_advance_loc " HOST_WIDE_INT_PRINT_HEX,
-			 ((unsigned HOST_WIDE_INT)
-			  cfi->dw_cfi_oprnd1.dw_cfi_offset));
-  else if (cfi->dw_cfi_opc == DW_CFA_offset)
-    {
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
-      dw2_asm_output_data (1, (cfi->dw_cfi_opc | (r & 0x3f)),
-			   "DW_CFA_offset, column %#lx", r);
-      off = div_data_align (cfi->dw_cfi_oprnd2.dw_cfi_offset);
-      dw2_asm_output_data_uleb128 (off, NULL);
-    }
-  else if (cfi->dw_cfi_opc == DW_CFA_restore)
-    {
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
-      dw2_asm_output_data (1, (cfi->dw_cfi_opc | (r & 0x3f)),
-			   "DW_CFA_restore, column %#lx", r);
-    }
-  else
-    {
-      dw2_asm_output_data (1, cfi->dw_cfi_opc,
-			   "%s", dwarf_cfi_name (cfi->dw_cfi_opc));
-
-      switch (cfi->dw_cfi_opc)
-	{
-	case DW_CFA_set_loc:
-	  if (for_eh)
-	    dw2_asm_output_encoded_addr_rtx (
-		ASM_PREFERRED_EH_DATA_FORMAT (/*code=*/1, /*global=*/0),
-		gen_rtx_SYMBOL_REF (Pmode, cfi->dw_cfi_oprnd1.dw_cfi_addr),
-		false, NULL);
-	  else
-	    dw2_asm_output_addr (DWARF2_ADDR_SIZE,
-				 cfi->dw_cfi_oprnd1.dw_cfi_addr, NULL);
-	  fde->dw_fde_current_label = cfi->dw_cfi_oprnd1.dw_cfi_addr;
-	  break;
-
-	case DW_CFA_advance_loc1:
-	  dw2_asm_output_delta (1, cfi->dw_cfi_oprnd1.dw_cfi_addr,
-				fde->dw_fde_current_label, NULL);
-	  fde->dw_fde_current_label = cfi->dw_cfi_oprnd1.dw_cfi_addr;
-	  break;
-
-	case DW_CFA_advance_loc2:
-	  dw2_asm_output_delta (2, cfi->dw_cfi_oprnd1.dw_cfi_addr,
-				fde->dw_fde_current_label, NULL);
-	  fde->dw_fde_current_label = cfi->dw_cfi_oprnd1.dw_cfi_addr;
-	  break;
-
-	case DW_CFA_advance_loc4:
-	  dw2_asm_output_delta (4, cfi->dw_cfi_oprnd1.dw_cfi_addr,
-				fde->dw_fde_current_label, NULL);
-	  fde->dw_fde_current_label = cfi->dw_cfi_oprnd1.dw_cfi_addr;
-	  break;
-
-	case DW_CFA_MIPS_advance_loc8:
-	  dw2_asm_output_delta (8, cfi->dw_cfi_oprnd1.dw_cfi_addr,
-				fde->dw_fde_current_label, NULL);
-	  fde->dw_fde_current_label = cfi->dw_cfi_oprnd1.dw_cfi_addr;
-	  break;
-
-	case DW_CFA_offset_extended:
-	  r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
-	  dw2_asm_output_data_uleb128 (r, NULL);
-	  off = div_data_align (cfi->dw_cfi_oprnd2.dw_cfi_offset);
-	  dw2_asm_output_data_uleb128 (off, NULL);
-	  break;
-
-	case DW_CFA_def_cfa:
-	  r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
-	  dw2_asm_output_data_uleb128 (r, NULL);
-	  dw2_asm_output_data_uleb128 (cfi->dw_cfi_oprnd2.dw_cfi_offset, NULL);
-	  break;
-
-	case DW_CFA_offset_extended_sf:
-	  r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
-	  dw2_asm_output_data_uleb128 (r, NULL);
-	  off = div_data_align (cfi->dw_cfi_oprnd2.dw_cfi_offset);
-	  dw2_asm_output_data_sleb128 (off, NULL);
-	  break;
-
-	case DW_CFA_def_cfa_sf:
-	  r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
-	  dw2_asm_output_data_uleb128 (r, NULL);
-	  off = div_data_align (cfi->dw_cfi_oprnd2.dw_cfi_offset);
-	  dw2_asm_output_data_sleb128 (off, NULL);
-	  break;
-
-	case DW_CFA_restore_extended:
-	case DW_CFA_undefined:
-	case DW_CFA_same_value:
-	case DW_CFA_def_cfa_register:
-	  r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
-	  dw2_asm_output_data_uleb128 (r, NULL);
-	  break;
-
-	case DW_CFA_register:
-	  r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
-	  dw2_asm_output_data_uleb128 (r, NULL);
-	  r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd2.dw_cfi_reg_num, for_eh);
-	  dw2_asm_output_data_uleb128 (r, NULL);
-	  break;
-
-	case DW_CFA_def_cfa_offset:
-	case DW_CFA_GNU_args_size:
-	  dw2_asm_output_data_uleb128 (cfi->dw_cfi_oprnd1.dw_cfi_offset, NULL);
-	  break;
-
-	case DW_CFA_def_cfa_offset_sf:
-	  off = div_data_align (cfi->dw_cfi_oprnd1.dw_cfi_offset);
-	  dw2_asm_output_data_sleb128 (off, NULL);
-	  break;
-
-	case DW_CFA_GNU_window_save:
-	  break;
-
-	case DW_CFA_def_cfa_expression:
-	case DW_CFA_expression:
-	  output_cfa_loc (cfi, for_eh);
-	  break;
-
-	case DW_CFA_GNU_negative_offset_extended:
-	  /* Obsoleted by DW_CFA_offset_extended_sf.  */
-	  gcc_unreachable ();
-
-	default:
-	  break;
-	}
-    }
-}
-
-/* Similar, but do it via assembler directives instead.  */
-
-void
-output_cfi_directive (FILE *f, dw_cfi_ref cfi)
-{
-  unsigned long r, r2;
-
-  switch (cfi->dw_cfi_opc)
-    {
-    case DW_CFA_advance_loc:
-    case DW_CFA_advance_loc1:
-    case DW_CFA_advance_loc2:
-    case DW_CFA_advance_loc4:
-    case DW_CFA_MIPS_advance_loc8:
-    case DW_CFA_set_loc:
-      /* Should only be created by add_fde_cfi in a code path not
-	 followed when emitting via directives.  The assembler is
-	 going to take care of this for us.  But this routines is
-	 also used for debugging dumps, so print something.  */
-      gcc_assert (f != asm_out_file);
-      fprintf (f, "\t.cfi_advance_loc\n");
-      break;
-
-    case DW_CFA_offset:
-    case DW_CFA_offset_extended:
-    case DW_CFA_offset_extended_sf:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (f, "\t.cfi_offset %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
-	       r, cfi->dw_cfi_oprnd2.dw_cfi_offset);
-      break;
-
-    case DW_CFA_restore:
-    case DW_CFA_restore_extended:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (f, "\t.cfi_restore %lu\n", r);
-      break;
-
-    case DW_CFA_undefined:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (f, "\t.cfi_undefined %lu\n", r);
-      break;
-
-    case DW_CFA_same_value:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (f, "\t.cfi_same_value %lu\n", r);
-      break;
-
-    case DW_CFA_def_cfa:
-    case DW_CFA_def_cfa_sf:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (f, "\t.cfi_def_cfa %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
-	       r, cfi->dw_cfi_oprnd2.dw_cfi_offset);
-      break;
-
-    case DW_CFA_def_cfa_register:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (f, "\t.cfi_def_cfa_register %lu\n", r);
-      break;
-
-    case DW_CFA_register:
-      r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      r2 = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd2.dw_cfi_reg_num, 1);
-      fprintf (f, "\t.cfi_register %lu, %lu\n", r, r2);
-      break;
-
-    case DW_CFA_def_cfa_offset:
-    case DW_CFA_def_cfa_offset_sf:
-      fprintf (f, "\t.cfi_def_cfa_offset "
-	       HOST_WIDE_INT_PRINT_DEC"\n",
-	       cfi->dw_cfi_oprnd1.dw_cfi_offset);
-      break;
-
-    case DW_CFA_remember_state:
-      fprintf (f, "\t.cfi_remember_state\n");
-      break;
-    case DW_CFA_restore_state:
-      fprintf (f, "\t.cfi_restore_state\n");
-      break;
-
-    case DW_CFA_GNU_args_size:
-      if (f == asm_out_file)
-	{
-	  fprintf (f, "\t.cfi_escape %#x,", DW_CFA_GNU_args_size);
-	  dw2_asm_output_data_uleb128_raw (cfi->dw_cfi_oprnd1.dw_cfi_offset);
-	  if (flag_debug_asm)
-	    fprintf (f, "\t%s args_size "HOST_WIDE_INT_PRINT_DEC,
-		     ASM_COMMENT_START, cfi->dw_cfi_oprnd1.dw_cfi_offset);
-	  fputc ('\n', f);
-	}
-      else
-	{
-	  fprintf (f, "\t.cfi_GNU_args_size "HOST_WIDE_INT_PRINT_DEC "\n",
-		   cfi->dw_cfi_oprnd1.dw_cfi_offset);
-	}
-      break;
-
-    case DW_CFA_GNU_window_save:
-      fprintf (f, "\t.cfi_window_save\n");
-      break;
-
-    case DW_CFA_def_cfa_expression:
-      if (f != asm_out_file)
-	{
-	  fprintf (f, "\t.cfi_def_cfa_expression ...\n");
-	  break;
-	}
-      /* FALLTHRU */
-    case DW_CFA_expression:
-      if (f != asm_out_file)
-	{
-	  fprintf (f, "\t.cfi_cfa_expression ...\n");
-	  break;
-	}
-      fprintf (f, "\t.cfi_escape %#x,", cfi->dw_cfi_opc);
-      output_cfa_loc_raw (cfi);
-      fputc ('\n', f);
-      break;
-
-    default:
-      gcc_unreachable ();
-    }
-}
-
-void
-dwarf2out_emit_cfi (dw_cfi_ref cfi)
-{
-  if (dwarf2out_do_cfi_asm ())
-    output_cfi_directive (asm_out_file, cfi);
-}
-
-/* Output CFIs from VEC, up to index UPTO, to bring current FDE to the
-   same state as after executing CFIs in CFI chain.  DO_CFI_ASM is
-   true if .cfi_* directives shall be emitted, false otherwise.  If it
-   is false, FDE and FOR_EH are the other arguments to pass to
-   output_cfi.  */
-
-static void
-output_cfis (cfi_vec vec, int upto, bool do_cfi_asm,
-	     dw_fde_ref fde, bool for_eh)
-{
-  int ix;
-  struct dw_cfi_struct cfi_buf;
-  dw_cfi_ref cfi2;
-  dw_cfi_ref cfi_args_size = NULL, cfi_cfa = NULL, cfi_cfa_offset = NULL;
-  VEC(dw_cfi_ref, heap) *regs = VEC_alloc (dw_cfi_ref, heap, 32);
-  unsigned int len, idx;
-
-  for (ix = 0; ix < upto + 1; ix++)
-    {
-      dw_cfi_ref cfi = ix < upto ? VEC_index (dw_cfi_ref, vec, ix) : NULL;
-      switch (cfi ? cfi->dw_cfi_opc : DW_CFA_nop)
-	{
-	case DW_CFA_advance_loc:
-	case DW_CFA_advance_loc1:
-	case DW_CFA_advance_loc2:
-	case DW_CFA_advance_loc4:
-	case DW_CFA_MIPS_advance_loc8:
-	case DW_CFA_set_loc:
-	  /* All advances should be ignored.  */
-	  break;
-	case DW_CFA_remember_state:
-	  {
-	    dw_cfi_ref args_size = cfi_args_size;
-
-	    /* Skip everything between .cfi_remember_state and
-	       .cfi_restore_state.  */
-	    ix++;
-	    if (ix == upto)
-	      goto flush_all;
-
-	    for (; ix < upto; ix++)
-	      {
-		cfi2 = VEC_index (dw_cfi_ref, vec, ix);
-		if (cfi2->dw_cfi_opc == DW_CFA_restore_state)
-		  break;
-		else if (cfi2->dw_cfi_opc == DW_CFA_GNU_args_size)
-		  args_size = cfi2;
-		else
-		  gcc_assert (cfi2->dw_cfi_opc != DW_CFA_remember_state);
-	      }
-
-	    cfi_args_size = args_size;
-	    break;
-	  }
-	case DW_CFA_GNU_args_size:
-	  cfi_args_size = cfi;
-	  break;
-	case DW_CFA_GNU_window_save:
-	  goto flush_all;
-	case DW_CFA_offset:
-	case DW_CFA_offset_extended:
-	case DW_CFA_offset_extended_sf:
-	case DW_CFA_restore:
-	case DW_CFA_restore_extended:
-	case DW_CFA_undefined:
-	case DW_CFA_same_value:
-	case DW_CFA_register:
-	case DW_CFA_val_offset:
-	case DW_CFA_val_offset_sf:
-	case DW_CFA_expression:
-	case DW_CFA_val_expression:
-	case DW_CFA_GNU_negative_offset_extended:
-	  if (VEC_length (dw_cfi_ref, regs)
-	      <= cfi->dw_cfi_oprnd1.dw_cfi_reg_num)
-	    VEC_safe_grow_cleared (dw_cfi_ref, heap, regs,
-				   cfi->dw_cfi_oprnd1.dw_cfi_reg_num + 1);
-	  VEC_replace (dw_cfi_ref, regs, cfi->dw_cfi_oprnd1.dw_cfi_reg_num,
-		       cfi);
-	  break;
-	case DW_CFA_def_cfa:
-	case DW_CFA_def_cfa_sf:
-	case DW_CFA_def_cfa_expression:
-	  cfi_cfa = cfi;
-	  cfi_cfa_offset = cfi;
-	  break;
-	case DW_CFA_def_cfa_register:
-	  cfi_cfa = cfi;
-	  break;
-	case DW_CFA_def_cfa_offset:
-	case DW_CFA_def_cfa_offset_sf:
-	  cfi_cfa_offset = cfi;
-	  break;
-	case DW_CFA_nop:
-	  gcc_assert (cfi == NULL);
-	flush_all:
-	  len = VEC_length (dw_cfi_ref, regs);
-	  for (idx = 0; idx < len; idx++)
-	    {
-	      cfi2 = VEC_replace (dw_cfi_ref, regs, idx, NULL);
-	      if (cfi2 != NULL
-		  && cfi2->dw_cfi_opc != DW_CFA_restore
-		  && cfi2->dw_cfi_opc != DW_CFA_restore_extended)
-		{
-		  if (do_cfi_asm)
-		    output_cfi_directive (asm_out_file, cfi2);
-		  else
-		    output_cfi (cfi2, fde, for_eh);
-		}
-	    }
-	  if (cfi_cfa && cfi_cfa_offset && cfi_cfa_offset != cfi_cfa)
-	    {
-	      gcc_assert (cfi_cfa->dw_cfi_opc != DW_CFA_def_cfa_expression);
-	      cfi_buf = *cfi_cfa;
-	      switch (cfi_cfa_offset->dw_cfi_opc)
-		{
-		case DW_CFA_def_cfa_offset:
-		  cfi_buf.dw_cfi_opc = DW_CFA_def_cfa;
-		  cfi_buf.dw_cfi_oprnd2 = cfi_cfa_offset->dw_cfi_oprnd1;
-		  break;
-		case DW_CFA_def_cfa_offset_sf:
-		  cfi_buf.dw_cfi_opc = DW_CFA_def_cfa_sf;
-		  cfi_buf.dw_cfi_oprnd2 = cfi_cfa_offset->dw_cfi_oprnd1;
-		  break;
-		case DW_CFA_def_cfa:
-		case DW_CFA_def_cfa_sf:
-		  cfi_buf.dw_cfi_opc = cfi_cfa_offset->dw_cfi_opc;
-		  cfi_buf.dw_cfi_oprnd2 = cfi_cfa_offset->dw_cfi_oprnd2;
-		  break;
-		default:
-		  gcc_unreachable ();
-		}
-	      cfi_cfa = &cfi_buf;
-	    }
-	  else if (cfi_cfa_offset)
-	    cfi_cfa = cfi_cfa_offset;
-	  if (cfi_cfa)
-	    {
-	      if (do_cfi_asm)
-		output_cfi_directive (asm_out_file, cfi_cfa);
-	      else
-		output_cfi (cfi_cfa, fde, for_eh);
-	    }
-	  cfi_cfa = NULL;
-	  cfi_cfa_offset = NULL;
-	  if (cfi_args_size
-	      && cfi_args_size->dw_cfi_oprnd1.dw_cfi_offset)
-	    {
-	      if (do_cfi_asm)
-		output_cfi_directive (asm_out_file, cfi_args_size);
-	      else
-		output_cfi (cfi_args_size, fde, for_eh);
-	    }
-	  cfi_args_size = NULL;
-	  if (cfi == NULL)
-	    {
-	      VEC_free (dw_cfi_ref, heap, regs);
-	      return;
-	    }
-	  else if (do_cfi_asm)
-	    output_cfi_directive (asm_out_file, cfi);
-	  else
-	    output_cfi (cfi, fde, for_eh);
-	  break;
-	default:
-	  gcc_unreachable ();
-	}
-    }
-}
-
-/* Like output_cfis, but emit all CFIs in the vector.  */
-static void
-output_all_cfis (cfi_vec vec, bool do_cfi_asm,
-		 dw_fde_ref fde, bool for_eh)
-{
-  output_cfis (vec, VEC_length (dw_cfi_ref, vec), do_cfi_asm, fde, for_eh);
 }
 
 /* Output one FDE.  */
@@ -1799,14 +1183,17 @@ dwarf2out_switch_text_section (void)
     = (sect == text_section
        || (cold_text_section && sect == cold_text_section));
 
+  fde->dw_fde_switch_cfi_index = VEC_length (dw_cfi_ref, fde->dw_fde_cfi);
+
   if (dwarf2out_do_cfi_asm ())
     {
       dwarf2out_do_cfi_startproc (true);
       /* As this is a different FDE, insert all current CFI instructions
 	 again.  */
-      output_all_cfis (fde->dw_fde_cfi, true, fde, true);
+      output_cfis (fde->dw_fde_cfi, fde->dw_fde_switch_cfi_index,
+		   true, fde, true);
     }
-  fde->dw_fde_switch_cfi_index = VEC_length (dw_cfi_ref, fde->dw_fde_cfi);
+
   var_location_switch_text_section ();
 
   set_cur_line_info_table (sect);
@@ -2305,7 +1692,6 @@ loc_list_plus_const (dw_loc_list_ref list_head, HOST_WIDE_INT offset)
 #define DWARF_REF_SIZE	\
   (dwarf_version == 2 ? DWARF2_ADDR_SIZE : DWARF_OFFSET_SIZE)
 
-static unsigned long size_of_locs (dw_loc_descr_ref);
 static unsigned long int get_base_type_offset (dw_die_ref);
 
 /* Return the size of a location descriptor.  */
@@ -2489,7 +1875,7 @@ size_of_loc_descr (dw_loc_descr_ref loc)
 
 /* Return the size of a series of location descriptors.  */
 
-static unsigned long
+unsigned long
 size_of_locs (dw_loc_descr_ref loc)
 {
   dw_loc_descr_ref l;
@@ -2518,7 +1904,6 @@ size_of_locs (dw_loc_descr_ref loc)
 static HOST_WIDE_INT extract_int (const unsigned char *, unsigned);
 static void get_ref_die_offset_label (char *, dw_die_ref);
 static unsigned long int get_ref_die_offset (dw_die_ref);
-static void output_loc_sequence (dw_loc_descr_ref, int);
 
 /* Output location description stack opcode's operands (if any).
    The for_eh_or_skip parameter controls whether register numbers are
@@ -2888,7 +2273,7 @@ output_loc_operands (dw_loc_descr_ref loc, int for_eh_or_skip)
    info).  This should be suppressed for the cases that have not been converted
    (i.e. symbolic debug info), by setting the parameter < 0.  See PR47324.  */
 
-static void
+void
 output_loc_sequence (dw_loc_descr_ref loc, int for_eh_or_skip)
 {
   for (; loc != NULL; loc = loc->dw_loc_next)
@@ -3067,7 +2452,7 @@ output_loc_operands_raw (dw_loc_descr_ref loc)
     }
 }
 
-static void
+void
 output_loc_sequence_raw (dw_loc_descr_ref loc)
 {
   while (1)
@@ -3098,60 +2483,6 @@ output_loc_sequence_raw (dw_loc_descr_ref loc)
 
       fputc (',', asm_out_file);
     }
-}
-
-/* This routine will generate the correct assembly data for a location
-   description based on a cfi entry with a complex address.  */
-
-static void
-output_cfa_loc (dw_cfi_ref cfi, int for_eh)
-{
-  dw_loc_descr_ref loc;
-  unsigned long size;
-
-  if (cfi->dw_cfi_opc == DW_CFA_expression)
-    {
-      unsigned r = 
-	DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
-      dw2_asm_output_data (1, r, NULL);
-      loc = cfi->dw_cfi_oprnd2.dw_cfi_loc;
-    }
-  else
-    loc = cfi->dw_cfi_oprnd1.dw_cfi_loc;
-
-  /* Output the size of the block.  */
-  size = size_of_locs (loc);
-  dw2_asm_output_data_uleb128 (size, NULL);
-
-  /* Now output the operations themselves.  */
-  output_loc_sequence (loc, for_eh);
-}
-
-/* Similar, but used for .cfi_escape.  */
-
-static void
-output_cfa_loc_raw (dw_cfi_ref cfi)
-{
-  dw_loc_descr_ref loc;
-  unsigned long size;
-
-  if (cfi->dw_cfi_opc == DW_CFA_expression)
-    {
-      unsigned r = 
-	DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
-      fprintf (asm_out_file, "%#x,", r);
-      loc = cfi->dw_cfi_oprnd2.dw_cfi_loc;
-    }
-  else
-    loc = cfi->dw_cfi_oprnd1.dw_cfi_loc;
-
-  /* Output the size of the block.  */
-  size = size_of_locs (loc);
-  dw2_asm_output_data_uleb128_raw (size);
-  fputc (',', asm_out_file);
-
-  /* Now output the operations themselves.  */
-  output_loc_sequence_raw (loc);
 }
 
 /* This function builds a dwarf location descriptor sequence from a
@@ -3478,11 +2809,6 @@ typedef struct skeleton_chain_struct
   struct skeleton_chain_struct *parent;
 }
 skeleton_chain_node;
-
-/* How to start an assembler comment.  */
-#ifndef ASM_COMMENT_START
-#define ASM_COMMENT_START ";#"
-#endif
 
 /* Define a macro which returns nonzero for a TYPE_DECL which was
    implicitly generated for a type.
@@ -10809,6 +10135,21 @@ multiple_reg_loc_descriptor (rtx rtl, rtx regs,
   return loc_result;
 }
 
+static unsigned long size_of_int_loc_descriptor (HOST_WIDE_INT);
+
+/* Return a location descriptor that designates a constant i,
+   as a compound operation from constant (i >> shift), constant shift
+   and DW_OP_shl.  */
+
+static dw_loc_descr_ref
+int_shift_loc_descriptor (HOST_WIDE_INT i, int shift)
+{
+  dw_loc_descr_ref ret = int_loc_descriptor (i >> shift);
+  add_loc_descr (&ret, int_loc_descriptor (shift));
+  add_loc_descr (&ret, new_loc_descr (DW_OP_shl, 0, 0));
+  return ret;
+}
+
 /* Return a location descriptor that designates a constant.  */
 
 static dw_loc_descr_ref
@@ -10820,15 +10161,45 @@ int_loc_descriptor (HOST_WIDE_INT i)
      defaulting to the LEB encoding.  */
   if (i >= 0)
     {
+      int clz = clz_hwi (i);
+      int ctz = ctz_hwi (i);
       if (i <= 31)
 	op = (enum dwarf_location_atom) (DW_OP_lit0 + i);
       else if (i <= 0xff)
 	op = DW_OP_const1u;
       else if (i <= 0xffff)
 	op = DW_OP_const2u;
-      else if (HOST_BITS_PER_WIDE_INT == 32
-	       || i <= 0xffffffff)
+      else if (clz + ctz >= HOST_BITS_PER_WIDE_INT - 5
+	       && clz + 5 + 255 >= HOST_BITS_PER_WIDE_INT)
+	/* DW_OP_litX DW_OP_litY DW_OP_shl takes just 3 bytes and
+	   DW_OP_litX DW_OP_const1u Y DW_OP_shl takes just 4 bytes,
+	   while DW_OP_const4u is 5 bytes.  */
+	return int_shift_loc_descriptor (i, HOST_BITS_PER_WIDE_INT - clz - 5);
+      else if (clz + ctz >= HOST_BITS_PER_WIDE_INT - 8
+	       && clz + 8 + 31 >= HOST_BITS_PER_WIDE_INT)
+	/* DW_OP_const1u X DW_OP_litY DW_OP_shl takes just 4 bytes,
+	   while DW_OP_const4u is 5 bytes.  */
+	return int_shift_loc_descriptor (i, HOST_BITS_PER_WIDE_INT - clz - 8);
+      else if (HOST_BITS_PER_WIDE_INT == 32 || i <= 0xffffffff)
 	op = DW_OP_const4u;
+      else if (clz + ctz >= HOST_BITS_PER_WIDE_INT - 8
+	       && clz + 8 + 255 >= HOST_BITS_PER_WIDE_INT)
+	/* DW_OP_const1u X DW_OP_const1u Y DW_OP_shl takes just 5 bytes,
+	   while DW_OP_constu of constant >= 0x100000000 takes at least
+	   6 bytes.  */
+	return int_shift_loc_descriptor (i, HOST_BITS_PER_WIDE_INT - clz - 8);
+      else if (clz + ctz >= HOST_BITS_PER_WIDE_INT - 16
+	       && clz + 16 + (size_of_uleb128 (i) > 5 ? 255 : 31)
+		  >= HOST_BITS_PER_WIDE_INT)
+	/* DW_OP_const2u X DW_OP_litY DW_OP_shl takes just 5 bytes,
+	   DW_OP_const2u X DW_OP_const1u Y DW_OP_shl takes 6 bytes,
+	   while DW_OP_constu takes in this case at least 6 bytes.  */
+	return int_shift_loc_descriptor (i, HOST_BITS_PER_WIDE_INT - clz - 16);
+      else if (clz + ctz >= HOST_BITS_PER_WIDE_INT - 32
+	       && clz + 32 + 31 >= HOST_BITS_PER_WIDE_INT
+	       && size_of_uleb128 (i) > 6)
+	/* DW_OP_const4u X DW_OP_litY DW_OP_shl takes just 7 bytes.  */
+	return int_shift_loc_descriptor (i, HOST_BITS_PER_WIDE_INT - clz - 32);
       else
 	op = DW_OP_constu;
     }
@@ -10838,14 +10209,117 @@ int_loc_descriptor (HOST_WIDE_INT i)
 	op = DW_OP_const1s;
       else if (i >= -0x8000)
 	op = DW_OP_const2s;
-      else if (HOST_BITS_PER_WIDE_INT == 32
-	       || i >= -0x80000000)
-	op = DW_OP_const4s;
+      else if (HOST_BITS_PER_WIDE_INT == 32 || i >= -0x80000000)
+	{
+	  if (size_of_int_loc_descriptor (i) < 5)
+	    {
+	      dw_loc_descr_ref ret = int_loc_descriptor (-i);
+	      add_loc_descr (&ret, new_loc_descr (DW_OP_neg, 0, 0));
+	      return ret;
+	    }
+	  op = DW_OP_const4s;
+	}
       else
-	op = DW_OP_consts;
+	{
+	  if (size_of_int_loc_descriptor (i)
+	      < (unsigned long) 1 + size_of_sleb128 (i))
+	    {
+	      dw_loc_descr_ref ret = int_loc_descriptor (-i);
+	      add_loc_descr (&ret, new_loc_descr (DW_OP_neg, 0, 0));
+	      return ret;
+	    }
+	  op = DW_OP_consts;
+	}
     }
 
   return new_loc_descr (op, i, 0);
+}
+
+/* Return size_of_locs (int_shift_loc_descriptor (i, shift))
+   without actually allocating it.  */
+
+static unsigned long
+size_of_int_shift_loc_descriptor (HOST_WIDE_INT i, int shift)
+{
+  return size_of_int_loc_descriptor (i >> shift)
+	 + size_of_int_loc_descriptor (shift)
+	 + 1;
+}
+
+/* Return size_of_locs (int_loc_descriptor (i)) without
+   actually allocating it.  */
+
+static unsigned long
+size_of_int_loc_descriptor (HOST_WIDE_INT i)
+{
+  unsigned long s;
+
+  if (i >= 0)
+    {
+      int clz, ctz;
+      if (i <= 31)
+	return 1;
+      else if (i <= 0xff)
+	return 2;
+      else if (i <= 0xffff)
+	return 3;
+      clz = clz_hwi (i);
+      ctz = ctz_hwi (i);
+      if (clz + ctz >= HOST_BITS_PER_WIDE_INT - 5
+	  && clz + 5 + 255 >= HOST_BITS_PER_WIDE_INT)
+	return size_of_int_shift_loc_descriptor (i, HOST_BITS_PER_WIDE_INT
+						    - clz - 5);
+      else if (clz + ctz >= HOST_BITS_PER_WIDE_INT - 8
+	       && clz + 8 + 31 >= HOST_BITS_PER_WIDE_INT)
+	return size_of_int_shift_loc_descriptor (i, HOST_BITS_PER_WIDE_INT
+						    - clz - 8);
+      else if (HOST_BITS_PER_WIDE_INT == 32 || i <= 0xffffffff)
+	return 5;
+      s = size_of_uleb128 ((unsigned HOST_WIDE_INT) i);
+      if (clz + ctz >= HOST_BITS_PER_WIDE_INT - 8
+	  && clz + 8 + 255 >= HOST_BITS_PER_WIDE_INT)
+	return size_of_int_shift_loc_descriptor (i, HOST_BITS_PER_WIDE_INT
+						    - clz - 8);
+      else if (clz + ctz >= HOST_BITS_PER_WIDE_INT - 16
+	       && clz + 16 + (s > 5 ? 255 : 31) >= HOST_BITS_PER_WIDE_INT)
+	return size_of_int_shift_loc_descriptor (i, HOST_BITS_PER_WIDE_INT
+						    - clz - 16);
+      else if (clz + ctz >= HOST_BITS_PER_WIDE_INT - 32
+	       && clz + 32 + 31 >= HOST_BITS_PER_WIDE_INT
+	       && s > 6)
+	return size_of_int_shift_loc_descriptor (i, HOST_BITS_PER_WIDE_INT
+						    - clz - 32);
+      else
+	return 1 + s;
+    }
+  else
+    {
+      if (i >= -0x80)
+	return 2;
+      else if (i >= -0x8000)
+	return 3;
+      else if (HOST_BITS_PER_WIDE_INT == 32 || i >= -0x80000000)
+	{
+	  if (-(unsigned HOST_WIDE_INT) i != (unsigned HOST_WIDE_INT) i)
+	    {
+	      s = size_of_int_loc_descriptor (-i) + 1;
+	      if (s < 5)
+		return s;
+	    }
+	  return 5;
+	}
+      else
+	{
+	  unsigned long r = 1 + size_of_sleb128 (i);
+	  if (-(unsigned HOST_WIDE_INT) i != (unsigned HOST_WIDE_INT) i)
+	    {
+	      s = size_of_int_loc_descriptor (-i) + 1;
+	      if (s < r)
+		return s;
+	    }
+	  return r;
+	}
+    }
 }
 
 /* Return loc description representing "address" of integer value.
@@ -10860,32 +10334,7 @@ address_of_int_loc_descriptor (int size, HOST_WIDE_INT i)
   if (!(dwarf_version >= 4 || !dwarf_strict))
     return NULL;
 
-  if (i >= 0)
-    {
-      if (i <= 31)
-	litsize = 1;
-      else if (i <= 0xff)
-	litsize = 2;
-      else if (i <= 0xffff)
-	litsize = 3;
-      else if (HOST_BITS_PER_WIDE_INT == 32
-	       || i <= 0xffffffff)
-	litsize = 5;
-      else
-	litsize = 1 + size_of_uleb128 ((unsigned HOST_WIDE_INT) i);
-    }
-  else
-    {
-      if (i >= -0x80)
-	litsize = 2;
-      else if (i >= -0x8000)
-	litsize = 3;
-      else if (HOST_BITS_PER_WIDE_INT == 32
-	       || i >= -0x80000000)
-	litsize = 5;
-      else
-	litsize = 1 + size_of_sleb128 (i);
-    }
+  litsize = size_of_int_loc_descriptor (i);
   /* Determine if DW_OP_stack_value or DW_OP_implicit_value
      is more compact.  For DW_OP_stack_value we need:
      litsize + 1 (DW_OP_stack_value)
@@ -10957,10 +10406,11 @@ based_loc_descr (rtx reg, HOST_WIDE_INT offset,
 	  return new_loc_descr (DW_OP_fbreg, offset, 0);
 	}
     }
-  else if (!optimize
-	   && fde
-	   && (fde->drap_reg == REGNO (reg)
-	       || fde->vdrap_reg == REGNO (reg)))
+
+  regno = DWARF_FRAME_REGNUM (REGNO (reg));
+
+  if (!optimize && fde
+      && (fde->drap_reg == regno || fde->vdrap_reg == regno))
     {
       /* Use cfa+offset to represent the location of arguments passed
 	 on the stack when drap is used to align stack.
@@ -10971,7 +10421,6 @@ based_loc_descr (rtx reg, HOST_WIDE_INT offset,
       return new_loc_descr (DW_OP_fbreg, offset, 0);
     }
 
-  regno = dbx_reg_number (reg);
   if (regno <= 31)
     result = new_loc_descr ((enum dwarf_location_atom) (DW_OP_breg0 + regno),
 			    offset, 0);
@@ -11284,6 +10733,28 @@ scompare_loc_descriptor (enum dwarf_location_atom op, rtx rtl,
 		  && (unsigned HOST_WIDE_INT) INTVAL (XEXP (rtl, 1))
 		     == (INTVAL (XEXP (rtl, 1)) & GET_MODE_MASK (op_mode)))))
 	return compare_loc_descriptor (op, op0, op1);
+
+      /* EQ/NE comparison against constant in narrower type than
+	 DWARF2_ADDR_SIZE can be performed either as
+	 DW_OP_const1u <shift> DW_OP_shl DW_OP_const* <cst << shift>
+	 DW_OP_{eq,ne}
+	 or
+	 DW_OP_const*u <mode_mask> DW_OP_and DW_OP_const* <cst & mode_mask>
+	 DW_OP_{eq,ne}.  Pick whatever is shorter.  */
+      if (CONST_INT_P (XEXP (rtl, 1))
+	  && GET_MODE_BITSIZE (op_mode) < HOST_BITS_PER_WIDE_INT
+	  && (size_of_int_loc_descriptor (shift) + 1
+	      + size_of_int_loc_descriptor (INTVAL (XEXP (rtl, 1)) << shift)
+	      >= size_of_int_loc_descriptor (GET_MODE_MASK (op_mode)) + 1
+		 + size_of_int_loc_descriptor (INTVAL (XEXP (rtl, 1))
+					       & GET_MODE_MASK (op_mode))))
+	{
+	  add_loc_descr (&op0, int_loc_descriptor (GET_MODE_MASK (op_mode)));
+	  add_loc_descr (&op0, new_loc_descr (DW_OP_and, 0, 0));
+	  op1 = int_loc_descriptor (INTVAL (XEXP (rtl, 1))
+				    & GET_MODE_MASK (op_mode));
+	  return compare_loc_descriptor (op, op0, op1);
+	}
     }
   add_loc_descr (&op0, int_loc_descriptor (shift));
   add_loc_descr (&op0, new_loc_descr (DW_OP_shl, 0, 0));
@@ -12461,8 +11932,27 @@ mem_loc_descriptor (rtx rtl, enum machine_mode mode,
 	      || GET_MODE_BITSIZE (mode) == 2 * HOST_BITS_PER_WIDE_INT))
 	{
 	  dw_die_ref type_die = base_type_for_mode (mode, 1);
+	  enum machine_mode amode;
 	  if (type_die == NULL)
 	    return NULL;
+	  amode = mode_for_size (DWARF2_ADDR_SIZE * BITS_PER_UNIT,
+				 MODE_INT, 0);
+	  if (INTVAL (rtl) >= 0
+	      && amode != BLKmode
+	      && trunc_int_for_mode (INTVAL (rtl), amode) == INTVAL (rtl)
+	      /* const DW_OP_GNU_convert <XXX> vs.
+		 DW_OP_GNU_const_type <XXX, 1, const>.  */
+	      && size_of_int_loc_descriptor (INTVAL (rtl)) + 1 + 1
+		 < (unsigned long) 1 + 1 + 1 + GET_MODE_SIZE (mode))
+	    {
+	      mem_loc_result = int_loc_descriptor (INTVAL (rtl));
+	      op0 = new_loc_descr (DW_OP_GNU_convert, 0, 0);
+	      op0->dw_loc_oprnd1.val_class = dw_val_class_die_ref;
+	      op0->dw_loc_oprnd1.v.val_die_ref.die = type_die;
+	      op0->dw_loc_oprnd1.v.val_die_ref.external = 0;
+	      add_loc_descr (&mem_loc_result, op0);
+	      return mem_loc_result;
+	    }
 	  mem_loc_result = new_loc_descr (DW_OP_GNU_const_type, 0,
 					  INTVAL (rtl));
 	  mem_loc_result->dw_loc_oprnd1.val_class = dw_val_class_die_ref;
@@ -21604,6 +21094,19 @@ resolve_addr_in_expr (dw_loc_descr_ref loc)
 	if (loc->dtprel
 	    && resolve_one_addr (&loc->dw_loc_oprnd1.v.val_addr, NULL))
 	  return false;
+	break;
+      case DW_OP_plus_uconst:
+	if (size_of_loc_descr (loc)
+	    > size_of_int_loc_descriptor (loc->dw_loc_oprnd1.v.val_unsigned)
+	      + 1
+	    && loc->dw_loc_oprnd1.v.val_unsigned > 0)
+	  {
+	    dw_loc_descr_ref repl
+	      = int_loc_descriptor (loc->dw_loc_oprnd1.v.val_unsigned);
+	    add_loc_descr (&repl, new_loc_descr (DW_OP_plus, 0, 0));
+	    add_loc_descr (&repl, loc->dw_loc_next);
+	    *loc = *repl;
+	  }
 	break;
       case DW_OP_implicit_value:
 	if (loc->dw_loc_oprnd2.val_class == dw_val_class_addr

@@ -1,3 +1,53 @@
+2011-07-18  Tobias Burnus  <burnus@net-b.de>
+
+	* resolve.c (resolve_transfer): Mention defined I/O
+	in the diagnostic for alloc_comp/pointer_comp.
+
+2011-07-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/34657
+	* module.c (check_for_ambiguous): Check whether the name is matches
+	the current program unit.
+
+2011-07-17  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49624
+	* expr.c (gfc_check_pointer_assign): Fix checking for invalid
+	pointer bounds.
+
+2011-07-16  Tobias Burnus  <burnus@net-b.de>
+	
+	* expr.c (gfc_ref_this_image): New function.
+	(gfc_is_coindexed): Use it.
+	* gfortran.h (gfc_ref_this_image): New prototype.
+	* resolve.c (resolve_deallocate_expr,
+	resolve_allocate_expr): Support alloc scalar coarrays.
+	* trans-array.c (gfc_conv_array_ref, gfc_array_init_size,
+	gfc_conv_descriptor_cosize, gfc_array_allocate,
+	gfc_trans_deferred_array): Ditto.
+	* trans-expr.c (gfc_conv_variable) Ditto.:
+	* trans-stmt.c (gfc_trans_deallocate): Ditto.
+	* trans-types.c (gfc_get_element_type, gfc_get_array_type_bounds
+	gfc_get_array_descr_info): Ditto.
+	* trans-decl.c (gfc_get_symbol_decl): Ditto.
+
+2011-07-11  Jakub Jelinek  <jakub@redhat.com>
+
+	PR fortran/49698
+	* trans-stmt.c (gfc_trans_pointer_assign_need_temp): Initialize
+	inner_size to gfc_index_one_node instead of integer_one_node.
+
+2011-07-10  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49690
+	* intrinsic.c (add_functions): Use BT_VOID for 2nd argument of SIGNAL.
+
+2011-07-09  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR fortran/48926
+	* expr.c (gfc_get_corank): Change return value to int.
+	* gfortran.h (gfc_get_corank): Update function prototype.
+
 2011-07-07  Mikael Morin  <mikael.morin@sfr.fr>
 
 	PR fortran/49648
@@ -9,10 +59,10 @@
 	* trans.c (gfc_allocate_with_status): Call _gfortran_caf_register
 	with NULL arguments for (new) stat=/errmsg= arguments.
 
-2011-07-06  Daniel Carrera <dcarrera@gmail.com>
+2011-07-06  Daniel Carrera  <dcarrera@gmail.com>
 
 	* trans-array.c (gfc_array_allocate): Rename allocatable_array to
-	allocatable. Rename function gfc_allocate_array_with_status to 
+	allocatable. Rename function gfc_allocate_array_with_status to
 	gfc_allocate_allocatable_with_status. Update function call for
 	gfc_allocate_with_status.
 	* trans-opemp.c (gfc_omp_clause_default_ctor): Rename function

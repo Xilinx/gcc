@@ -70,6 +70,14 @@ along with GCC; see the file COPYING3.  If not see
 #undef ASM_SPEC
 #define ASM_SPEC ASM_SPEC_BASE
 
+#undef  ENDFILE_SPEC
+#define ENDFILE_SPEC \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+   %{mpc32:crtprec32.o%s} \
+   %{mpc64:crtprec64.o%s} \
+   %{mpc80:crtprec80.o%s} \
+   crtend.o%s crtn.o%s"
+
 #define SUBTARGET_CPU_EXTRA_SPECS \
   { "cpp_subtarget",	 CPP_SUBTARGET_SPEC },		\
   { "asm_cpu",		 ASM_CPU_SPEC },		\
@@ -151,6 +159,13 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef TARGET_ASM_NAMED_SECTION
 #define TARGET_ASM_NAMED_SECTION i386_solaris_elf_named_section
+
+/* Unlike GNU ld, Sun ld doesn't coalesce .ctors.N/.dtors.N sections, so
+   inhibit their creation.  Also cf. sparc/sysv4.h.  */
+#ifndef USE_GLD
+#define CTORS_SECTION_ASM_OP	"\t.section\t.ctors, \"aw\""
+#define DTORS_SECTION_ASM_OP	"\t.section\t.dtors, \"aw\""
+#endif
 
 /* We do not need NT_VERSION notes.  */
 #undef X86_FILE_START_VERSION_DIRECTIVE

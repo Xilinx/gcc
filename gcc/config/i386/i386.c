@@ -1338,6 +1338,93 @@ struct processor_costs bdver1_cost = {
   1,					/* cond_not_taken_branch_cost.  */
 };
 
+struct processor_costs bdver2_cost = {
+  COSTS_N_INSNS (1),			/* cost of an add instruction */
+  COSTS_N_INSNS (1),			/* cost of a lea instruction */
+  COSTS_N_INSNS (1),			/* variable shift costs */
+  COSTS_N_INSNS (1),			/* constant shift costs */
+  {COSTS_N_INSNS (4),			/* cost of starting multiply for QI */
+   COSTS_N_INSNS (4),			/*				 HI */
+   COSTS_N_INSNS (4),			/*				 SI */
+   COSTS_N_INSNS (6),			/*				 DI */
+   COSTS_N_INSNS (6)},			/*			      other */
+  0,					/* cost of multiply per each bit set */
+  {COSTS_N_INSNS (19),			/* cost of a divide/mod for QI */
+   COSTS_N_INSNS (35),			/*			    HI */
+   COSTS_N_INSNS (51),			/*			    SI */
+   COSTS_N_INSNS (83),			/*			    DI */
+   COSTS_N_INSNS (83)},			/*			    other */
+  COSTS_N_INSNS (1),			/* cost of movsx */
+  COSTS_N_INSNS (1),			/* cost of movzx */
+  8,					/* "large" insn */
+  9,					/* MOVE_RATIO */
+  4,				     /* cost for loading QImode using movzbl */
+  {5, 5, 4},				/* cost of loading integer registers
+					   in QImode, HImode and SImode.
+					   Relative to reg-reg move (2).  */
+  {4, 4, 4},				/* cost of storing integer registers */
+  2,					/* cost of reg,reg fld/fst */
+  {5, 5, 12},				/* cost of loading fp registers
+		   			   in SFmode, DFmode and XFmode */
+  {4, 4, 8},				/* cost of storing fp registers
+ 		   			   in SFmode, DFmode and XFmode */
+  2,					/* cost of moving MMX register */
+  {4, 4},				/* cost of loading MMX registers
+					   in SImode and DImode */
+  {4, 4},				/* cost of storing MMX registers
+					   in SImode and DImode */
+  2,					/* cost of moving SSE register */
+  {4, 4, 4},				/* cost of loading SSE registers
+					   in SImode, DImode and TImode */
+  {4, 4, 4},				/* cost of storing SSE registers
+					   in SImode, DImode and TImode */
+  2,					/* MMX or SSE register to integer */
+  					/* On K8:
+					    MOVD reg64, xmmreg Double FSTORE 4
+					    MOVD reg32, xmmreg Double FSTORE 4
+					   On AMDFAM10:
+					    MOVD reg64, xmmreg Double FADD 3
+							       1/1  1/1
+					    MOVD reg32, xmmreg Double FADD 3
+							       1/1  1/1 */
+  16,					/* size of l1 cache.  */
+  2048,					/* size of l2 cache.  */
+  64,					/* size of prefetch block */
+  /* New AMD processors never drop prefetches; if they cannot be performed
+     immediately, they are queued.  We set number of simultaneous prefetches
+     to a large constant to reflect this (it probably is not a good idea not
+     to limit number of prefetches at all, as their execution also takes some
+     time).  */
+  100,					/* number of parallel prefetches */
+  2,					/* Branch cost */
+  COSTS_N_INSNS (6),			/* cost of FADD and FSUB insns.  */
+  COSTS_N_INSNS (6),			/* cost of FMUL instruction.  */
+  COSTS_N_INSNS (42),			/* cost of FDIV instruction.  */
+  COSTS_N_INSNS (2),			/* cost of FABS instruction.  */
+  COSTS_N_INSNS (2),			/* cost of FCHS instruction.  */
+  COSTS_N_INSNS (52),			/* cost of FSQRT instruction.  */
+
+  /*  BDVER2 has optimized REP instruction for medium sized blocks, but for
+      very small blocks it is better to use loop. For large blocks, libcall
+      can do nontemporary accesses and beat inline considerably.  */
+  {{libcall, {{6, loop}, {14, unrolled_loop}, {-1, rep_prefix_4_byte}}},
+   {libcall, {{16, loop}, {8192, rep_prefix_8_byte}, {-1, libcall}}}},
+  {{libcall, {{8, loop}, {24, unrolled_loop},
+	      {2048, rep_prefix_4_byte}, {-1, libcall}}},
+   {libcall, {{48, unrolled_loop}, {8192, rep_prefix_8_byte}, {-1, libcall}}}},
+  6,					/* scalar_stmt_cost.  */
+  4,					/* scalar load_cost.  */
+  4,					/* scalar_store_cost.  */
+  6,					/* vec_stmt_cost.  */
+  0,					/* vec_to_scalar_cost.  */
+  2,					/* scalar_to_vec_cost.  */
+  4,					/* vec_align_load_cost.  */
+  4,					/* vec_unalign_load_cost.  */
+  4,					/* vec_store_cost.  */
+  2,					/* cond_taken_branch_cost.  */
+  1,					/* cond_not_taken_branch_cost.  */
+};
+
 struct processor_costs btver1_cost = {
   COSTS_N_INSNS (1),			/* cost of an add instruction */
   COSTS_N_INSNS (2),			/* cost of a lea instruction */
@@ -1793,28 +1880,31 @@ const struct processor_costs *ix86_cost = &pentium_cost;
 #define m_486 (1<<PROCESSOR_I486)
 #define m_PENT (1<<PROCESSOR_PENTIUM)
 #define m_PPRO (1<<PROCESSOR_PENTIUMPRO)
-#define m_PENT4  (1<<PROCESSOR_PENTIUM4)
-#define m_NOCONA  (1<<PROCESSOR_NOCONA)
-#define m_CORE2_32  (1<<PROCESSOR_CORE2_32)
-#define m_CORE2_64  (1<<PROCESSOR_CORE2_64)
-#define m_COREI7_32  (1<<PROCESSOR_COREI7_32)
-#define m_COREI7_64  (1<<PROCESSOR_COREI7_64)
-#define m_COREI7  (m_COREI7_32 | m_COREI7_64)
-#define m_CORE2I7_32  (m_CORE2_32 | m_COREI7_32)
-#define m_CORE2I7_64  (m_CORE2_64 | m_COREI7_64)
-#define m_CORE2I7  (m_CORE2I7_32 | m_CORE2I7_64)
-#define m_ATOM  (1<<PROCESSOR_ATOM)
+#define m_PENT4 (1<<PROCESSOR_PENTIUM4)
+#define m_NOCONA (1<<PROCESSOR_NOCONA)
+#define m_P4_NOCONA (m_PENT4 | m_NOCONA)
+#define m_CORE2_32 (1<<PROCESSOR_CORE2_32)
+#define m_CORE2_64 (1<<PROCESSOR_CORE2_64)
+#define m_COREI7_32 (1<<PROCESSOR_COREI7_32)
+#define m_COREI7_64 (1<<PROCESSOR_COREI7_64)
+#define m_COREI7 (m_COREI7_32 | m_COREI7_64)
+#define m_CORE2I7_32 (m_CORE2_32 | m_COREI7_32)
+#define m_CORE2I7_64 (m_CORE2_64 | m_COREI7_64)
+#define m_CORE2I7 (m_CORE2I7_32 | m_CORE2I7_64)
+#define m_ATOM (1<<PROCESSOR_ATOM)
 
-#define m_GEODE  (1<<PROCESSOR_GEODE)
-#define m_K6  (1<<PROCESSOR_K6)
-#define m_K6_GEODE  (m_K6 | m_GEODE)
-#define m_K8  (1<<PROCESSOR_K8)
-#define m_ATHLON  (1<<PROCESSOR_ATHLON)
-#define m_ATHLON_K8  (m_K8 | m_ATHLON)
-#define m_AMDFAM10  (1<<PROCESSOR_AMDFAM10)
-#define m_BDVER1  (1<<PROCESSOR_BDVER1)
-#define m_BTVER1  (1<<PROCESSOR_BTVER1)
-#define m_AMD_MULTIPLE  (m_K8 | m_ATHLON | m_AMDFAM10 | m_BDVER1 | m_BTVER1)
+#define m_GEODE (1<<PROCESSOR_GEODE)
+#define m_K6 (1<<PROCESSOR_K6)
+#define m_K6_GEODE (m_K6 | m_GEODE)
+#define m_K8 (1<<PROCESSOR_K8)
+#define m_ATHLON (1<<PROCESSOR_ATHLON)
+#define m_ATHLON_K8 (m_K8 | m_ATHLON)
+#define m_AMDFAM10 (1<<PROCESSOR_AMDFAM10)
+#define m_BDVER1 (1<<PROCESSOR_BDVER1)
+#define m_BDVER2 (1<<PROCESSOR_BDVER2)
+#define m_BDVER	(m_BDVER1 | m_BDVER2)
+#define m_BTVER1 (1<<PROCESSOR_BTVER1)
+#define m_AMD_MULTIPLE (m_ATHLON_K8 | m_AMDFAM10 | m_BDVER | m_BTVER1)
 
 #define m_GENERIC32 (1<<PROCESSOR_GENERIC32)
 #define m_GENERIC64 (1<<PROCESSOR_GENERIC64)
@@ -1833,18 +1923,16 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
      negatively, so enabling for Generic64 seems like good code size
      tradeoff.  We can't enable it for 32bit generic because it does not
      work well with PPro base chips.  */
-  m_386 | m_K6_GEODE | m_AMD_MULTIPLE | m_CORE2I7_64 | m_GENERIC64,
+  m_386 | m_CORE2I7_64 | m_K6_GEODE | m_AMD_MULTIPLE | m_GENERIC64,
 
   /* X86_TUNE_PUSH_MEMORY */
-  m_386 | m_K6_GEODE | m_AMD_MULTIPLE | m_PENT4
-  | m_NOCONA | m_CORE2I7 | m_GENERIC,
+  m_386 | m_P4_NOCONA | m_CORE2I7 | m_K6_GEODE | m_AMD_MULTIPLE | m_GENERIC,
 
   /* X86_TUNE_ZERO_EXTEND_WITH_AND */
   m_486 | m_PENT,
 
   /* X86_TUNE_UNROLL_STRLEN */
-  m_486 | m_PENT | m_ATOM | m_PPRO | m_AMD_MULTIPLE | m_K6
-  | m_CORE2I7 | m_GENERIC,
+  m_486 | m_PENT | m_PPRO | m_ATOM | m_CORE2I7 | m_K6 | m_AMD_MULTIPLE | m_GENERIC,
 
   /* X86_TUNE_BRANCH_PREDICTION_HINTS: Branch hints were put in P4 based
      on simulation result. But after P4 was made, no performance benefit
@@ -1856,13 +1944,11 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   ~m_386,
 
   /* X86_TUNE_USE_SAHF */
-  m_ATOM | m_PPRO | m_K6_GEODE | m_K8 | m_AMDFAM10 | m_BDVER1 | m_BTVER1
-  | m_PENT4 | m_NOCONA | m_CORE2I7 | m_GENERIC,
+  m_PPRO | m_P4_NOCONA | m_CORE2I7 | m_ATOM | m_K6_GEODE | m_K8 | m_AMDFAM10 | m_BDVER | m_BTVER1 | m_GENERIC,
 
   /* X86_TUNE_MOVX: Enable to zero extend integer registers to avoid
      partial dependencies.  */
-  m_AMD_MULTIPLE | m_ATOM | m_PPRO | m_PENT4 | m_NOCONA
-  | m_CORE2I7 | m_GENERIC | m_GEODE /* m_386 | m_K6 */,
+  m_PPRO | m_P4_NOCONA | m_CORE2I7 | m_ATOM | m_GEODE | m_AMD_MULTIPLE  | m_GENERIC,
 
   /* X86_TUNE_PARTIAL_REG_STALL: We probably ought to watch for partial
      register stalls on Generic32 compilation setting as well.  However
@@ -1881,13 +1967,13 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   m_386 | m_486 | m_K6_GEODE,
 
   /* X86_TUNE_USE_SIMODE_FIOP */
-  ~(m_PPRO | m_AMD_MULTIPLE | m_PENT | m_ATOM | m_CORE2I7 | m_GENERIC),
+  ~(m_PENT | m_PPRO | m_CORE2I7 | m_ATOM | m_AMD_MULTIPLE | m_GENERIC),
 
   /* X86_TUNE_USE_MOV0 */
   m_K6,
 
   /* X86_TUNE_USE_CLTD */
-  ~(m_PENT | m_ATOM | m_K6 | m_CORE2I7 | m_GENERIC),
+  ~(m_PENT | m_CORE2I7 | m_ATOM | m_K6 | m_GENERIC),
 
   /* X86_TUNE_USE_XCHGB: Use xchgb %rh,%rl instead of rolw/rorw $8,rx.  */
   m_PENT4,
@@ -1902,14 +1988,13 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   ~(m_PENT | m_PPRO),
 
   /* X86_TUNE_PROMOTE_QIMODE */
-  m_K6_GEODE | m_PENT | m_ATOM | m_386 | m_486 | m_AMD_MULTIPLE
-  | m_CORE2I7 | m_GENERIC /* | m_PENT4 ? */,
+  m_386 | m_486 | m_PENT | m_CORE2I7 | m_ATOM | m_K6_GEODE | m_AMD_MULTIPLE | m_GENERIC,
 
   /* X86_TUNE_FAST_PREFIX */
-  ~(m_PENT | m_486 | m_386),
+  ~(m_386 | m_486 | m_PENT),
 
   /* X86_TUNE_SINGLE_STRINGOP */
-  m_386 | m_PENT4 | m_NOCONA,
+  m_386 | m_P4_NOCONA,
 
   /* X86_TUNE_QIMODE_MATH */
   ~0,
@@ -1944,11 +2029,10 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
 
   /* X86_TUNE_INTEGER_DFMODE_MOVES: Enable if integer moves are preferred
      for DFmode copies */
-  ~(m_AMD_MULTIPLE | m_ATOM | m_PENT4 | m_NOCONA | m_PPRO | m_CORE2I7
-    | m_GENERIC | m_GEODE),
+  ~(m_PPRO | m_P4_NOCONA | m_CORE2I7 | m_ATOM | m_GEODE | m_AMD_MULTIPLE | m_ATOM | m_GENERIC),
 
   /* X86_TUNE_PARTIAL_REG_DEPENDENCY */
-  m_AMD_MULTIPLE | m_ATOM | m_PENT4 | m_NOCONA | m_CORE2I7 | m_GENERIC,
+  m_P4_NOCONA | m_CORE2I7 | m_ATOM | m_AMD_MULTIPLE | m_GENERIC,
 
   /* X86_TUNE_SSE_PARTIAL_REG_DEPENDENCY: In the Generic model we have a
      conflict here in between PPro/Pentium4 based chips that thread 128bit
@@ -1959,17 +2043,16 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
      shows that disabling this option on P4 brings over 20% SPECfp regression,
      while enabling it on K8 brings roughly 2.4% regression that can be partly
      masked by careful scheduling of moves.  */
-  m_ATOM | m_PENT4 | m_NOCONA | m_PPRO | m_CORE2I7 | m_GENERIC
-  | m_AMDFAM10 | m_BDVER1,
+  m_PPRO | m_P4_NOCONA | m_CORE2I7 | m_ATOM  | m_AMDFAM10 | m_BDVER | m_GENERIC,
 
   /* X86_TUNE_SSE_UNALIGNED_LOAD_OPTIMAL */
-  m_AMDFAM10 | m_BDVER1 | m_BTVER1 | m_COREI7,
+  m_COREI7 | m_AMDFAM10 | m_BDVER | m_BTVER1,
 
   /* X86_TUNE_SSE_UNALIGNED_STORE_OPTIMAL */
-  m_BDVER1 | m_COREI7,
+  m_COREI7 | m_BDVER,
 
   /* X86_TUNE_SSE_PACKED_SINGLE_INSN_OPTIMAL */
-  m_BDVER1,
+  m_BDVER ,
 
   /* X86_TUNE_SSE_SPLIT_REGS: Set for machines where the type and dependencies
      are resolved on SSE register parts instead of whole registers, so we may
@@ -1981,16 +2064,16 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   m_AMD_MULTIPLE,
 
   /* X86_TUNE_SSE_LOAD0_BY_PXOR */
-  m_PPRO | m_PENT4 | m_NOCONA,
+  m_PPRO | m_P4_NOCONA,
 
   /* X86_TUNE_MEMORY_MISMATCH_STALL */
-  m_AMD_MULTIPLE | m_ATOM | m_PENT4 | m_NOCONA | m_CORE2I7 | m_GENERIC,
+  m_P4_NOCONA | m_CORE2I7 | m_ATOM | m_AMD_MULTIPLE | m_GENERIC,
 
   /* X86_TUNE_PROLOGUE_USING_MOVE */
-  m_ATHLON_K8 | m_ATOM | m_PPRO | m_CORE2I7 | m_GENERIC,
+  m_PPRO | m_CORE2I7 | m_ATOM | m_ATHLON_K8 | m_GENERIC,
 
   /* X86_TUNE_EPILOGUE_USING_MOVE */
-  m_ATHLON_K8 | m_ATOM | m_PPRO | m_CORE2I7 | m_GENERIC,
+  m_PPRO | m_CORE2I7 | m_ATOM | m_ATHLON_K8 | m_GENERIC,
 
   /* X86_TUNE_SHIFT1 */
   ~m_486,
@@ -2002,38 +2085,35 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   ~(m_AMD_MULTIPLE | m_GENERIC),
 
   /* X86_TUNE_INTER_UNIT_CONVERSIONS */
-  ~(m_AMDFAM10 | m_BDVER1),
+  ~(m_AMDFAM10 | m_BDVER ),
 
   /* X86_TUNE_FOUR_JUMP_LIMIT: Some CPU cores are not able to predict more
      than 4 branch instructions in the 16 byte window.  */
-  m_ATOM | m_PPRO | m_AMD_MULTIPLE | m_PENT4 | m_NOCONA | m_CORE2I7
-  | m_GENERIC,
+  m_PPRO | m_P4_NOCONA | m_CORE2I7 | m_ATOM | m_AMD_MULTIPLE | m_GENERIC,
 
   /* X86_TUNE_SCHEDULE */
-  m_PPRO | m_AMD_MULTIPLE | m_K6_GEODE | m_PENT | m_ATOM | m_CORE2I7
-  | m_GENERIC,
+  m_PENT | m_PPRO | m_CORE2I7 | m_ATOM | m_K6_GEODE | m_AMD_MULTIPLE | m_GENERIC,
 
   /* X86_TUNE_USE_BT */
-  m_AMD_MULTIPLE | m_ATOM | m_CORE2I7 | m_GENERIC,
+  m_CORE2I7 | m_ATOM | m_AMD_MULTIPLE | m_GENERIC,
 
   /* X86_TUNE_USE_INCDEC */
-  ~(m_PENT4 | m_NOCONA | m_CORE2I7 | m_GENERIC | m_ATOM),
+  ~(m_P4_NOCONA | m_CORE2I7 | m_ATOM | m_GENERIC),
 
   /* X86_TUNE_PAD_RETURNS */
-  m_AMD_MULTIPLE | m_CORE2I7 | m_GENERIC,
+  m_CORE2I7 | m_AMD_MULTIPLE | m_GENERIC,
 
   /* X86_TUNE_PAD_SHORT_FUNCTION: Pad short funtion.  */
   m_ATOM,
 
   /* X86_TUNE_EXT_80387_CONSTANTS */
-  m_K6_GEODE | m_ATHLON_K8 | m_ATOM | m_PENT4 | m_NOCONA | m_PPRO
-  | m_CORE2I7 | m_GENERIC,
+  m_PPRO | m_P4_NOCONA | m_CORE2I7 | m_ATOM | m_K6_GEODE | m_ATHLON_K8 | m_GENERIC,
 
   /* X86_TUNE_SHORTEN_X87_SSE */
   ~m_K8,
 
   /* X86_TUNE_AVOID_VECTOR_DECODE */
-  m_K8 | m_CORE2I7_64 | m_GENERIC64,
+  m_CORE2I7_64 | m_K8 | m_GENERIC64,
 
   /* X86_TUNE_PROMOTE_HIMODE_IMUL: Modern CPUs have same latency for HImode
      and SImode multiply, but 386 and 486 do HImode multiply faster.  */
@@ -2041,11 +2121,11 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
 
   /* X86_TUNE_SLOW_IMUL_IMM32_MEM: Imul of 32-bit constant and memory is
      vector path on AMD machines.  */
-  m_K8 | m_CORE2I7_64 | m_GENERIC64 | m_AMDFAM10 | m_BDVER1 | m_BTVER1,
+  m_CORE2I7_64 | m_K8 | m_AMDFAM10 | m_BDVER | m_BTVER1 | m_GENERIC64,
 
   /* X86_TUNE_SLOW_IMUL_IMM8: Imul of 8-bit constant is vector path on AMD
      machines.  */
-  m_K8 | m_CORE2I7_64 | m_GENERIC64 | m_AMDFAM10 | m_BDVER1 | m_BTVER1,
+  m_CORE2I7_64 | m_K8 | m_AMDFAM10 | m_BDVER | m_BTVER1 | m_GENERIC64,
 
   /* X86_TUNE_MOVE_M1_VIA_OR: On pentiums, it is faster to load -1 via OR
      than a MOV.  */
@@ -2062,7 +2142,7 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
 
   /* X86_TUNE_USE_VECTOR_FP_CONVERTS: Prefer vector packed SSE conversion
      from FP to FP. */
-  m_AMDFAM10 | m_CORE2I7 | m_GENERIC,
+  m_CORE2I7 | m_AMDFAM10 | m_GENERIC,
 
   /* X86_TUNE_USE_VECTOR_CONVERTS: Prefer vector packed SSE conversion
      from integer to FP. */
@@ -2071,7 +2151,7 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
   /* X86_TUNE_FUSE_CMP_AND_BRANCH: Fuse a compare or test instruction
      with a subsequent conditional jump instruction into a single
      compare-and-branch uop.  */
-  m_BDVER1,
+  m_BDVER,
 
   /* X86_TUNE_OPT_AGU: Optimize for Address Generation Unit. This flag
      will impact LEA instruction selection. */
@@ -2088,7 +2168,7 @@ static unsigned int initial_ix86_tune_features[X86_TUNE_LAST] = {
 
   /* X86_TUNE_AVX128_OPTIMAL: Enable 128-bit AVX instruction generation for
      the auto-vectorizer.  */
-  m_BDVER1
+  m_BDVER 
 };
 
 /* Feature tests against the various architecture variations.  */
@@ -2114,18 +2194,16 @@ static unsigned int initial_ix86_arch_features[X86_ARCH_LAST] = {
 };
 
 static const unsigned int x86_accumulate_outgoing_args
-  = m_AMD_MULTIPLE | m_ATOM | m_PENT4 | m_NOCONA | m_PPRO | m_CORE2I7
-    | m_GENERIC;
+  = m_PPRO | m_P4_NOCONA | m_ATOM | m_CORE2I7 | m_AMD_MULTIPLE | m_GENERIC;
 
 static const unsigned int x86_arch_always_fancy_math_387
-  = m_PENT | m_ATOM | m_PPRO | m_AMD_MULTIPLE | m_PENT4
-    | m_NOCONA | m_CORE2I7 | m_GENERIC;
+  = m_PENT | m_PPRO | m_P4_NOCONA | m_CORE2I7 | m_ATOM | m_AMD_MULTIPLE | m_GENERIC;
 
 static const unsigned int x86_avx256_split_unaligned_load
   = m_COREI7 | m_GENERIC;
 
 static const unsigned int x86_avx256_split_unaligned_store
-  = m_COREI7 | m_BDVER1 | m_GENERIC;
+  = m_COREI7 | m_BDVER | m_GENERIC;
 
 /* In case the average insn count for single function invocation is
    lower than this constant, emit fast (but longer) prologue and
@@ -2508,6 +2586,7 @@ static const struct ptt processor_target_table[PROCESSOR_max] =
   {&generic64_cost, 16, 10, 16, 10, 16},
   {&amdfam10_cost, 32, 24, 32, 7, 32},
   {&bdver1_cost, 32, 24, 32, 7, 32},
+  {&bdver2_cost, 32, 24, 32, 7, 32},
   {&btver1_cost, 32, 24, 32, 7, 32},
   {&atom_cost, 16, 7, 16, 7, 16}
 };
@@ -2538,6 +2617,7 @@ static const char *const cpu_names[TARGET_CPU_DEFAULT_max] =
   "k8",
   "amdfam10",
   "bdver1",
+  "bdver2",
   "btver1"
 };
 
@@ -2939,6 +3019,12 @@ ix86_option_override_internal (bool main_args_p)
 	| PTA_SSE4A | PTA_CX16 | PTA_ABM | PTA_SSSE3 | PTA_SSE4_1
 	| PTA_SSE4_2 | PTA_AES | PTA_PCLMUL | PTA_AVX | PTA_FMA4
 	| PTA_XOP | PTA_LWP},
+      {"bdver2", PROCESSOR_BDVER2, CPU_BDVER2,
+	PTA_64BIT | PTA_MMX | PTA_SSE | PTA_SSE2 | PTA_SSE3
+	| PTA_SSE4A | PTA_CX16 | PTA_ABM | PTA_SSSE3 | PTA_SSE4_1
+	| PTA_SSE4_2 | PTA_AES | PTA_PCLMUL | PTA_AVX
+	| PTA_XOP | PTA_LWP | PTA_BMI | PTA_TBM | PTA_F16C
+	| PTA_FMA},
       {"btver1", PROCESSOR_BTVER1, CPU_GENERIC64,
         PTA_64BIT | PTA_MMX |  PTA_SSE  | PTA_SSE2 | PTA_SSE3
         | PTA_SSSE3 | PTA_SSE4A |PTA_ABM | PTA_CX16},
@@ -2972,6 +3058,9 @@ ix86_option_override_internal (bool main_args_p)
 #ifdef SUBSUBTARGET_OVERRIDE_OPTIONS
   SUBSUBTARGET_OVERRIDE_OPTIONS;
 #endif
+
+  if (TARGET_X32)
+    ix86_isa_flags |= OPTION_MASK_ISA_64BIT;
 
   /* -fPIC is the default for x86_64.  */
   if (TARGET_MACHO && TARGET_64BIT)
@@ -3064,6 +3153,9 @@ ix86_option_override_internal (bool main_args_p)
 	  if (!TARGET_64BIT)
 	    error ("code model %qs not supported in the %s bit mode",
 		   "medium", "32");
+	  else if (TARGET_X32)
+	    error ("code model %qs not supported in x32 mode",
+		   "medium");
 	  break;
 
 	case CM_LARGE:
@@ -3073,6 +3165,9 @@ ix86_option_override_internal (bool main_args_p)
 	  if (!TARGET_64BIT)
 	    error ("code model %qs not supported in the %s bit mode",
 		   "large", "32");
+	  else if (TARGET_X32)
+	    error ("code model %qs not supported in x32 mode",
+		   "medium");
 	  break;
 
 	case CM_32:
@@ -21869,6 +21964,7 @@ ix86_issue_rate (void)
     case PROCESSOR_GENERIC32:
     case PROCESSOR_GENERIC64:
     case PROCESSOR_BDVER1:
+    case PROCESSOR_BDVER2:
     case PROCESSOR_BTVER1:
       return 3;
 
@@ -22057,6 +22153,7 @@ ix86_adjust_cost (rtx insn, rtx link, rtx dep_insn, int cost)
     case PROCESSOR_K8:
     case PROCESSOR_AMDFAM10:
     case PROCESSOR_BDVER1:
+    case PROCESSOR_BDVER2:
     case PROCESSOR_BTVER1:
     case PROCESSOR_ATOM:
     case PROCESSOR_GENERIC32:
@@ -22674,54 +22771,14 @@ static void
 ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 {
   rtx mem, fnaddr;
+  int opcode;
+  int offset = 0;
 
   fnaddr = XEXP (DECL_RTL (fndecl), 0);
 
-  if (!TARGET_64BIT)
+  if (TARGET_64BIT)
     {
-      rtx disp, chain;
-      int opcode;
-
-      /* Depending on the static chain location, either load a register
-	 with a constant, or push the constant to the stack.  All of the
-	 instructions are the same size.  */
-      chain = ix86_static_chain (fndecl, true);
-      if (REG_P (chain))
-	{
-	  if (REGNO (chain) == CX_REG)
-	    opcode = 0xb9;
-	  else if (REGNO (chain) == AX_REG)
-	    opcode = 0xb8;
-	  else
-	    gcc_unreachable ();
-	}
-      else
-	opcode = 0x68;
-
-      mem = adjust_address (m_tramp, QImode, 0);
-      emit_move_insn (mem, gen_int_mode (opcode, QImode));
-
-      mem = adjust_address (m_tramp, SImode, 1);
-      emit_move_insn (mem, chain_value);
-
-      /* Compute offset from the end of the jmp to the target function.
-	 In the case in which the trampoline stores the static chain on
-	 the stack, we need to skip the first insn which pushes the
-	 (call-saved) register static chain; this push is 1 byte.  */
-      disp = expand_binop (SImode, sub_optab, fnaddr,
-			   plus_constant (XEXP (m_tramp, 0),
-					  MEM_P (chain) ? 9 : 10),
-			   NULL_RTX, 1, OPTAB_DIRECT);
-
-      mem = adjust_address (m_tramp, QImode, 5);
-      emit_move_insn (mem, gen_int_mode (0xe9, QImode));
-
-      mem = adjust_address (m_tramp, SImode, 6);
-      emit_move_insn (mem, disp);
-    }
-  else
-    {
-      int offset = 0;
+      int size;
 
       /* Load the function address to r11.  Try to load address using
 	 the shorter movl instead of movabs.  We may want to support
@@ -22748,22 +22805,80 @@ ix86_trampoline_init (rtx m_tramp, tree fndecl, rtx chain_value)
 	  offset += 10;
 	}
 
-      /* Load static chain using movabs to r10.  */
-      mem = adjust_address (m_tramp, HImode, offset);
-      emit_move_insn (mem, gen_int_mode (0xba49, HImode));
+      /* Load static chain using movabs to r10.  Use the
+	 shorter movl instead of movabs for x32.  */
+      if (TARGET_X32)
+	{
+	  opcode = 0xba41;
+	  size = 6;
+	}
+      else
+	{
+	  opcode = 0xba49;
+	  size = 10;
+	}
 
-      mem = adjust_address (m_tramp, DImode, offset + 2);
+      mem = adjust_address (m_tramp, HImode, offset);
+      emit_move_insn (mem, gen_int_mode (opcode, HImode));
+
+      mem = adjust_address (m_tramp, ptr_mode, offset + 2);
       emit_move_insn (mem, chain_value);
-      offset += 10;
+      offset += size;
 
       /* Jump to r11; the last (unused) byte is a nop, only there to
 	 pad the write out to a single 32-bit store.  */
       mem = adjust_address (m_tramp, SImode, offset);
       emit_move_insn (mem, gen_int_mode (0x90e3ff49, SImode));
       offset += 4;
-
-      gcc_assert (offset <= TRAMPOLINE_SIZE);
     }
+  else
+    {
+      rtx disp, chain;
+
+      /* Depending on the static chain location, either load a register
+	 with a constant, or push the constant to the stack.  All of the
+	 instructions are the same size.  */
+      chain = ix86_static_chain (fndecl, true);
+      if (REG_P (chain))
+	{
+	  switch (REGNO (chain))
+	    {
+	    case AX_REG:
+	      opcode = 0xb8; break;
+	    case CX_REG:
+	      opcode = 0xb9; break;	
+	    default:
+	      gcc_unreachable ();
+	    }
+	}
+      else
+	opcode = 0x68;
+
+      mem = adjust_address (m_tramp, QImode, offset);
+      emit_move_insn (mem, gen_int_mode (opcode, QImode));
+
+      mem = adjust_address (m_tramp, SImode, offset + 1);
+      emit_move_insn (mem, chain_value);
+      offset += 5;
+
+      mem = adjust_address (m_tramp, QImode, offset);
+      emit_move_insn (mem, gen_int_mode (0xe9, QImode));
+
+      mem = adjust_address (m_tramp, SImode, offset + 1);
+
+      /* Compute offset from the end of the jmp to the target function.
+	 In the case in which the trampoline stores the static chain on
+	 the stack, we need to skip the first insn which pushes the
+	 (call-saved) register static chain; this push is 1 byte.  */
+      offset += 5;
+      disp = expand_binop (SImode, sub_optab, fnaddr,
+			   plus_constant (XEXP (m_tramp, 0),
+					  offset - (MEM_P (chain) ? 1 : 0)),
+			   NULL_RTX, 1, OPTAB_DIRECT);
+      emit_move_insn (mem, disp);
+    }
+
+  gcc_assert (offset <= TRAMPOLINE_SIZE);
 
 #ifdef HAVE_ENABLE_EXECUTE_STACK
 #ifdef CHECK_EXECUTE_STACK_ENABLED
@@ -29287,12 +29402,10 @@ x86_output_mi_thunk (FILE *file,
 		     tree thunk ATTRIBUTE_UNUSED, HOST_WIDE_INT delta,
 		     HOST_WIDE_INT vcall_offset, tree function)
 {
-  rtx xops[3];
   rtx this_param = x86_this_parameter (function);
-  rtx this_reg, tmp;
+  rtx this_reg, tmp, fnaddr;
 
-  /* Make sure unwind info is emitted for the thunk if needed.  */
-  final_start_function (emit_barrier (), file, 1);
+  emit_note (NOTE_INSN_PROLOGUE_END);
 
   /* If VCALL_OFFSET, we'll need THIS in a register.  Might as well
      pull it in now and let DELTA benefit.  */
@@ -29301,9 +29414,8 @@ x86_output_mi_thunk (FILE *file,
   else if (vcall_offset)
     {
       /* Put the this parameter into %eax.  */
-      xops[0] = this_param;
-      xops[1] = this_reg = gen_rtx_REG (Pmode, AX_REG);
-      output_asm_insn ("mov%z1\t{%0, %1|%1, %0}", xops);
+      this_reg = gen_rtx_REG (Pmode, AX_REG);
+      emit_move_insn (this_reg, this_param);
     }
   else
     this_reg = NULL_RTX;
@@ -29311,116 +29423,126 @@ x86_output_mi_thunk (FILE *file,
   /* Adjust the this parameter by a fixed constant.  */
   if (delta)
     {
-      xops[0] = GEN_INT (delta);
-      xops[1] = this_reg ? this_reg : this_param;
+      rtx delta_rtx = GEN_INT (delta);
+      rtx delta_dst = this_reg ? this_reg : this_param;
+
       if (TARGET_64BIT)
 	{
-	  if (!x86_64_general_operand (xops[0], DImode))
+	  if (!x86_64_general_operand (delta_rtx, Pmode))
 	    {
-	      tmp = gen_rtx_REG (DImode, R10_REG);
-	      xops[1] = tmp;
-	      output_asm_insn ("mov{q}\t{%1, %0|%0, %1}", xops);
-	      xops[0] = tmp;
-	      xops[1] = this_param;
+	      tmp = gen_rtx_REG (Pmode, R10_REG);
+	      emit_move_insn (tmp, delta_rtx);
+	      delta_rtx = tmp;
 	    }
-	  if (x86_maybe_negate_const_int (&xops[0], DImode))
-	    output_asm_insn ("sub{q}\t{%0, %1|%1, %0}", xops);
-	  else
-	    output_asm_insn ("add{q}\t{%0, %1|%1, %0}", xops);
 	}
-      else if (x86_maybe_negate_const_int (&xops[0], SImode))
-	output_asm_insn ("sub{l}\t{%0, %1|%1, %0}", xops);
-      else
-	output_asm_insn ("add{l}\t{%0, %1|%1, %0}", xops);
+
+      emit_insn (ix86_gen_add3 (delta_dst, delta_dst, delta_rtx));
     }
 
   /* Adjust the this parameter by a value stored in the vtable.  */
   if (vcall_offset)
     {
+      rtx vcall_addr, vcall_mem, this_mem;
+      unsigned int tmp_regno;
+
       if (TARGET_64BIT)
-	tmp = gen_rtx_REG (DImode, R10_REG);
+	tmp_regno = R10_REG;
       else
 	{
-	  int tmp_regno = CX_REG;
 	  unsigned int ccvt = ix86_get_callcvt (TREE_TYPE (function));
 	  if ((ccvt & (IX86_CALLCVT_FASTCALL | IX86_CALLCVT_THISCALL)) != 0)
 	    tmp_regno = AX_REG;
-	  tmp = gen_rtx_REG (SImode, tmp_regno);
+	  else
+	    tmp_regno = CX_REG;
 	}
+      tmp = gen_rtx_REG (Pmode, tmp_regno);
 
-      xops[0] = gen_rtx_MEM (Pmode, this_reg);
-      xops[1] = tmp;
-      output_asm_insn ("mov%z1\t{%0, %1|%1, %0}", xops);
+      this_mem = gen_rtx_MEM (ptr_mode, this_reg);
+      if (Pmode != ptr_mode)
+	this_mem = gen_rtx_ZERO_EXTEND (Pmode, this_mem);
+      emit_move_insn (tmp, this_mem);
 
       /* Adjust the this parameter.  */
-      xops[0] = gen_rtx_MEM (Pmode, plus_constant (tmp, vcall_offset));
-      if (TARGET_64BIT && !memory_operand (xops[0], Pmode))
+      vcall_addr = plus_constant (tmp, vcall_offset);
+      if (TARGET_64BIT
+	  && !ix86_legitimate_address_p (ptr_mode, vcall_addr, true))
 	{
-	  rtx tmp2 = gen_rtx_REG (DImode, R11_REG);
-	  xops[0] = GEN_INT (vcall_offset);
-	  xops[1] = tmp2;
-	  output_asm_insn ("mov{q}\t{%0, %1|%1, %0}", xops);
-	  xops[0] = gen_rtx_MEM (Pmode, gen_rtx_PLUS (Pmode, tmp, tmp2));
+	  rtx tmp2 = gen_rtx_REG (Pmode, R11_REG);
+	  emit_move_insn (tmp2, GEN_INT (vcall_offset));
+	  vcall_addr = gen_rtx_PLUS (Pmode, tmp, tmp2);
 	}
-      xops[1] = this_reg;
-      output_asm_insn ("add%z1\t{%0, %1|%1, %0}", xops);
+
+      vcall_mem = gen_rtx_MEM (ptr_mode, vcall_addr);
+      if (Pmode != ptr_mode)
+	emit_insn (gen_addsi_1_zext (this_reg,
+				     gen_rtx_REG (ptr_mode,
+						  REGNO (this_reg)),
+				     vcall_mem));
+      else
+	emit_insn (ix86_gen_add3 (this_reg, this_reg, vcall_mem));
     }
 
   /* If necessary, drop THIS back to its stack slot.  */
   if (this_reg && this_reg != this_param)
-    {
-      xops[0] = this_reg;
-      xops[1] = this_param;
-      output_asm_insn ("mov%z1\t{%0, %1|%1, %0}", xops);
-    }
+    emit_move_insn (this_param, this_reg);
 
-  xops[0] = XEXP (DECL_RTL (function), 0);
+  fnaddr = XEXP (DECL_RTL (function), 0);
   if (TARGET_64BIT)
     {
       if (!flag_pic || targetm.binds_local_p (function)
-	  || DEFAULT_ABI == MS_ABI)
-	output_asm_insn ("jmp\t%P0", xops);
-      /* All thunks should be in the same object as their target,
-	 and thus binds_local_p should be true.  */
-      else if (TARGET_64BIT && cfun->machine->call_abi == MS_ABI)
-	gcc_unreachable ();
+	  || cfun->machine->call_abi == MS_ABI)
+	;
       else
 	{
-	  tmp = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, xops[0]), UNSPEC_GOTPCREL);
+	  tmp = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, fnaddr), UNSPEC_GOTPCREL);
 	  tmp = gen_rtx_CONST (Pmode, tmp);
-	  tmp = gen_rtx_MEM (QImode, tmp);
-	  xops[0] = tmp;
-	  output_asm_insn ("jmp\t%A0", xops);
+	  fnaddr = gen_rtx_MEM (Pmode, tmp);
 	}
     }
   else
     {
       if (!flag_pic || targetm.binds_local_p (function))
-	output_asm_insn ("jmp\t%P0", xops);
-      else
+	;
 #if TARGET_MACHO
-	if (TARGET_MACHO)
-	  {
-	    rtx sym_ref = XEXP (DECL_RTL (function), 0);
-	    if (TARGET_MACHO_BRANCH_ISLANDS)
-	      sym_ref = (gen_rtx_SYMBOL_REF
-		   (Pmode,
-		    machopic_indirection_name (sym_ref, /*stub_p=*/true)));
-	    tmp = gen_rtx_MEM (QImode, sym_ref);
-	    xops[0] = tmp;
-	    output_asm_insn ("jmp\t%0", xops);
-	  }
-	else
-#endif /* TARGET_MACHO */
+      else if (TARGET_MACHO)
 	{
-	  tmp = gen_rtx_REG (SImode, CX_REG);
+	  fnaddr = machopic_indirect_call_target (DECL_RTL (function));
+	  fnaddr = XEXP (fnaddr, 0);
+	}
+#endif /* TARGET_MACHO */
+      else
+	{
+	  tmp = gen_rtx_REG (Pmode, CX_REG);
 	  output_set_got (tmp, NULL_RTX);
 
-	  xops[1] = tmp;
-	  output_asm_insn ("mov{l}\t{%0@GOT(%1), %1|%1, %0@GOT[%1]}", xops);
-	  output_asm_insn ("jmp\t{*}%1", xops);
+	  fnaddr = gen_rtx_UNSPEC (Pmode, gen_rtvec (1, fnaddr), UNSPEC_GOT);
+	  fnaddr = gen_rtx_PLUS (Pmode, fnaddr, tmp);
+	  fnaddr = gen_rtx_MEM (Pmode, fnaddr);
 	}
     }
+
+  /* Our sibling call patterns do not allow memories, because we have no
+     predicate that can distinguish between frame and non-frame memory.
+     For our purposes here, we can get away with (ab)using a jump pattern,
+     because we're going to do no optimization.  */
+  if (MEM_P (fnaddr))
+    emit_jump_insn (gen_indirect_jump (fnaddr));
+  else
+    {
+      tmp = gen_rtx_MEM (QImode, fnaddr);
+      tmp = gen_rtx_CALL (VOIDmode, tmp, const0_rtx);
+      tmp = emit_call_insn (tmp);
+      SIBLING_CALL_P (tmp) = 1;
+    }
+  emit_barrier ();
+
+  /* Emit just enough of rest_of_compilation to get the insns emitted.
+     Note that use_thunk calls assemble_start_function et al.  */
+  tmp = get_insns ();
+  insn_locators_alloc ();
+  shorten_branches (tmp);
+  final_start_function (tmp, file, 1);
+  final (tmp, file, 1);
   final_end_function ();
 }
 
@@ -31309,8 +31431,7 @@ ix86_md_asm_clobbers (tree outputs ATTRIBUTE_UNUSED,
   return clobbers;
 }
 
-/* Implements target vector targetm.asm.encode_section_info.  This
-   is not used by netware.  */
+/* Implements target vector targetm.asm.encode_section_info.  */
 
 static void ATTRIBUTE_UNUSED
 ix86_encode_section_info (tree decl, rtx rtl, int first)
@@ -34505,7 +34626,8 @@ do_dispatch (rtx insn, int mode)
 static bool
 has_dispatch (rtx insn, int action)
 {
-  if (ix86_tune == PROCESSOR_BDVER1 && flag_dispatch_scheduler)
+  if ((ix86_tune == PROCESSOR_BDVER1 || ix86_tune == PROCESSOR_BDVER2)
+      && flag_dispatch_scheduler)
     switch (action)
       {
       default:

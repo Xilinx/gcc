@@ -813,9 +813,6 @@ RUNTESTFLAGS =
 # Extra flags to use when compiling crt{begin,end}.o.
 CRTSTUFF_T_CFLAGS =
 
-# Extra flags to use when compiling [m]crt0.o.
-CRT0STUFF_T_CFLAGS =
-
 # "t" or nothing, for building multilibbed versions of, say, crtbegin.o.
 T =
 
@@ -1556,30 +1553,6 @@ TPBIT_FUNCS = _pack_tf _unpack_tf _addsub_tf _mul_tf _div_tf \
     _lt_tf _le_tf _unord_tf _si_to_tf _tf_to_si _negate_tf _make_tf \
     _tf_to_df _tf_to_sf _thenan_tf _tf_to_usi _usi_to_tf
 
-D32PBIT_FUNCS = _addsub_sd _div_sd _mul_sd _plus_sd _minus_sd \
-	_eq_sd _ne_sd _lt_sd _gt_sd _le_sd _ge_sd \
-	_sd_to_si _sd_to_di _sd_to_usi _sd_to_udi \
-	_si_to_sd _di_to_sd _usi_to_sd _udi_to_sd \
-	_sd_to_sf _sd_to_df _sd_to_xf _sd_to_tf \
-	_sf_to_sd _df_to_sd _xf_to_sd _tf_to_sd \
-	_sd_to_dd _sd_to_td _unord_sd _conv_sd
-
-D64PBIT_FUNCS = _addsub_dd _div_dd _mul_dd _plus_dd _minus_dd \
-	_eq_dd _ne_dd _lt_dd _gt_dd _le_dd _ge_dd \
-	_dd_to_si _dd_to_di _dd_to_usi _dd_to_udi \
-	_si_to_dd _di_to_dd _usi_to_dd _udi_to_dd \
-	_dd_to_sf _dd_to_df _dd_to_xf _dd_to_tf \
-	_sf_to_dd _df_to_dd _xf_to_dd _tf_to_dd \
-	_dd_to_sd _dd_to_td _unord_dd _conv_dd
-
-D128PBIT_FUNCS = _addsub_td _div_td _mul_td _plus_td _minus_td \
-	_eq_td _ne_td _lt_td _gt_td _le_td _ge_td \
-	_td_to_si _td_to_di _td_to_usi _td_to_udi \
-	_si_to_td _di_to_td _usi_to_td _udi_to_td \
-	_td_to_sf _td_to_df _td_to_xf _td_to_tf \
-	_sf_to_td _df_to_td _xf_to_td _tf_to_td \
-	_td_to_sd _td_to_dd _unord_td _conv_td
-
 # These might cause a divide overflow trap and so are compiled with
 # unwinder info.
 LIB2_DIVMOD_FUNCS = _divdi3 _moddi3 _udivdi3 _umoddi3 _udiv_w_sdiv _udivmoddi4
@@ -1942,14 +1915,6 @@ libgcc.mvars: config.status Makefile $(LIB2ADD) $(LIB2ADD_ST) specs \
 	echo DPBIT_FUNCS = '$(DPBIT_FUNCS)' >> tmp-libgcc.mvars
 	echo TPBIT = '$(TPBIT)' >> tmp-libgcc.mvars
 	echo TPBIT_FUNCS = '$(TPBIT_FUNCS)' >> tmp-libgcc.mvars
-	echo DFP_ENABLE = '$(DFP_ENABLE)' >> tmp-libgcc.mvars
-	echo DFP_CFLAGS='$(DFP_CFLAGS)' >> tmp-libgcc.mvars
-	echo D32PBIT='$(D32PBIT)' >> tmp-libgcc.mvars
-	echo D32PBIT_FUNCS='$(D32PBIT_FUNCS)' >> tmp-libgcc.mvars
-	echo D64PBIT='$(D64PBIT)' >> tmp-libgcc.mvars
-	echo D64PBIT_FUNCS='$(D64PBIT_FUNCS)' >> tmp-libgcc.mvars
-	echo D128PBIT='$(D128PBIT)' >> tmp-libgcc.mvars
-	echo D128PBIT_FUNCS='$(D128PBIT_FUNCS)' >> tmp-libgcc.mvars
 	echo GCC_EXTRA_PARTS = '$(GCC_EXTRA_PARTS)' >> tmp-libgcc.mvars
 	echo SHLIB_LINK = '$(subst $(GCC_FOR_TARGET),$$(GCC_FOR_TARGET),$(SHLIB_LINK))' >> tmp-libgcc.mvars
 	echo SHLIB_INSTALL = '$(SHLIB_INSTALL)' >> tmp-libgcc.mvars
@@ -2028,18 +1993,6 @@ $(T)crtbeginT.o: crtstuff.c $(GCC_PASSES) $(TCONFIG_H) auto-host.h \
 	$(GCC_FOR_TARGET) $(CRTSTUFF_CFLAGS) $(CRTSTUFF_T_CFLAGS) \
 	  -c $(srcdir)/crtstuff.c -DCRT_BEGIN -DCRTSTUFFT_O \
 	  -o $(T)crtbeginT$(objext)
-
-# Compile the start modules crt0.o and mcrt0.o that are linked with
-# every program
-$(T)crt0.o: s-crt0 ; @true
-$(T)mcrt0.o: s-crt0; @true
-
-s-crt0:	$(CRT0_S) $(MCRT0_S) $(GCC_PASSES) $(CONFIG_H)
-	$(GCC_FOR_TARGET) $(GCC_CFLAGS) $(CRT0STUFF_T_CFLAGS) \
-	  -o $(T)crt0.o -c $(CRT0_S)
-	$(GCC_FOR_TARGET) $(GCC_CFLAGS) $(CRT0STUFF_T_CFLAGS) \
-	  -o $(T)mcrt0.o -c $(MCRT0_S)
-	$(STAMP) s-crt0
 #
 # Compiling object files from source files.
 
@@ -3451,7 +3404,8 @@ modulo-sched.o : modulo-sched.c $(DDG_H) $(CONFIG_H) $(CONFIG_H) $(SYSTEM_H) \
 haifa-sched.o : haifa-sched.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(SCHED_INT_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) insn-config.h $(FUNCTION_H) \
    $(INSN_ATTR_H) $(DIAGNOSTIC_CORE_H) $(RECOG_H) $(EXCEPT_H) $(TM_P_H) $(TARGET_H) output.h \
-   $(PARAMS_H) $(DBGCNT_H) $(CFGLOOP_H) ira.h $(EMIT_RTL_H) $(COMMON_TARGET_H)
+   $(PARAMS_H) $(DBGCNT_H) $(CFGLOOP_H) ira.h $(EMIT_RTL_H) $(COMMON_TARGET_H) \
+   $(HASHTAB_H)
 sched-deps.o : sched-deps.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(RTL_H) $(SCHED_INT_H) $(REGS_H) hard-reg-set.h $(FLAGS_H) insn-config.h \
    $(FUNCTION_H) $(INSN_ATTR_H) $(DIAGNOSTIC_CORE_H) $(RECOG_H) $(EXCEPT_H) cselib.h \
@@ -5072,7 +5026,7 @@ check_p_subdirs=$(wordlist 1,$(words $(check_$*_parallelize)),$(check_p_numbers)
 
 # For parallelized check-% targets, this decides whether parallelization
 # is desirable (if -jN is used and RUNTESTFLAGS doesn't contain anything
-# but optionally --target_board argument).  If it is desirable,
+# but optional --target_board or --extra_opts arguments).  If desirable,
 # recursive make is run with check-parallel-$lang{,1,2,3,4,5} etc. goals,
 # which can be executed in parallel, as they are run in separate directories.
 # check-parallel-$lang{1,2,3,4,5} etc. goals invoke runtest with the longest
@@ -5089,7 +5043,7 @@ check_p_subdirs=$(wordlist 1,$(words $(check_$*_parallelize)),$(check_p_numbers)
 # to lang_checks_parallelized variable and define check_$lang_parallelize
 # variable (see above check_gcc_parallelize description).
 $(lang_checks_parallelized): check-% : site.exp
-	@if [ -z "$(filter-out --target_board=%, $(RUNTESTFLAGS))" ] \
+	@if [ -z "$(filter-out --target_board=%,$(filter-out --extra_opts%,$(RUNTESTFLAGS)))" ] \
 	    && [ "$(filter -j, $(MFLAGS))" = "-j" ]; then \
 	  $(MAKE) TESTSUITEDIR="$(TESTSUITEDIR)" RUNTESTFLAGS="$(RUNTESTFLAGS)" \
 	    check-parallel-$* \

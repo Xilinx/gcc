@@ -5219,7 +5219,7 @@ check_host_association (gfc_expr *e)
 	    {
 	      /* Original was variable so convert array references into
 		 an actual arglist. This does not need any checking now
-		 since gfc_resolve_function will take care of it.  */
+		 since resolve_function will take care of it.  */
 	      e->value.function.actual = NULL;
 	      e->expr_type = EXPR_FUNCTION;
 	      e->symtree = st;
@@ -6460,7 +6460,9 @@ resolve_deallocate_expr (gfc_expr *e)
       switch (ref->type)
 	{
 	case REF_ARRAY:
-	  if (ref->u.ar.type != AR_FULL)
+	  if (ref->u.ar.type != AR_FULL
+	      && !(ref->u.ar.type == AR_ELEMENT && ref->u.ar.as->rank == 0
+	           && ref->u.ar.codimen && gfc_ref_this_image (ref)))
 	    allocatable = 0;
 	  break;
 
@@ -6980,13 +6982,6 @@ check_symbols:
 
       gfc_error ("Bad coarray specification in ALLOCATE statement at %L",
 		 &e->where);
-      goto failure;
-    }
-
-  if (codimension && ar->as->rank == 0)
-    {
-      gfc_error ("Sorry, allocatable scalar coarrays are not yet supported "
-		 "at %L", &e->where);
       goto failure;
     }
 
@@ -8144,8 +8139,9 @@ resolve_transfer (gfc_code *code)
 	 components.  */
       if (ts->u.derived->attr.pointer_comp)
 	{
-	  gfc_error ("Data transfer element at %L cannot have "
-		     "POINTER components", &code->loc);
+	  gfc_error ("Data transfer element at %L cannot have POINTER "
+		     "components unless it is processed by a defined "
+		     "input/output procedure", &code->loc);
 	  return;
 	}
 
@@ -8159,8 +8155,9 @@ resolve_transfer (gfc_code *code)
 
       if (ts->u.derived->attr.alloc_comp)
 	{
-	  gfc_error ("Data transfer element at %L cannot have "
-		     "ALLOCATABLE components", &code->loc);
+	  gfc_error ("Data transfer element at %L cannot have ALLOCATABLE "
+		     "components unless it is processed by a defined "
+		     "input/output procedure", &code->loc);
 	  return;
 	}
 

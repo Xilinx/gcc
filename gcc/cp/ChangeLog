@@ -1,4 +1,141 @@
+2011-07-16  Jason Merrill  <jason@redhat.com>
+
+	* pt.c (tinst_level_tick, last_template_error_tick): Replace with
+	last_error_tinst_level.
+	(push_tinst_level, pop_tinst_level): Adjust.
+	(problematic_instantiation_changed): Adjust.
+	(record_last_problematic_instantiation): Adjust.
+	* error.c (cp_print_error_function): Don't print
+	current_function_decl if we're in a template instantiation context.
+	(print_instantiation_full_context): Always print first line.
+
+2011-07-16  Nathan Froyd  <froydnj@codesourcery.com>
+	    Jason Merrill  <jason@redhat.com>
+
+	PR c++/45329
+	PR c++/48934
+	* cp-tree.h (fn_type_unification): Add `bool' parameter.
+	* pt.c (enum template_base_result): Define.
+	(unify_success, unify_unknown): Define.
+	(unify_parameter_deduction_failure): Define.
+	(unify_invalid, unify_cv_qual_mismatch, unify_type_mismatch): Define.
+	(unify_parameter_pack_mismatch): Define.
+	(unify_parameter_pack_inconsistent): Define.
+	(unify_ptrmem_cst_mismatch, unify_vla_arg): Define.
+	(unify_expression_unequal, unify_inconsistency): Define.
+	(unify_method_type_error, unify_arity): Likewise.
+	(unify_too_many_parameters, unify_too_few_parameters): Define.
+	(unify_arg_conversion, unify_no_common_base): Define.
+	(unify_illformed_ptrmem_cst_expr): Define.
+	(unify_substitution_failure): Define.
+	(unify_inconsistent_template_template_parameters): Define.
+	(unify_template_deduction_failure): Define.
+	(unify_template_argument_mismatch): Define.
+	(unify_overload_resolution_failure): Define.
+	(comp_template_args_with_info): New function, split out from...
+	(comp_template_args): ...here.	Call it.
+	(deduction_tsubst_fntype): Add `complain' parameter'.  Pass it
+	to tsubst.
+	(unify): Add `explain_p' parameter.  Pass to all relevant calls.
+	Call above status functions when appropriate.
+	(resolve_overloaded_unification, try_one_overload): Likewise.
+	(type_unification, type_unification_real): Likewise.
+	(unify_pack_expansion): Likewise.
+	(get_template_base, try_class_unification): Likewise.
+	(get_bindings, more_specialized_fn): Pass false to unification
+	calls.
+	(get_class_bindings, do_auto_deduction): Likewise.
+	(convert_nontype_argument): Likewise.
+	(fn_type_unification): Likewise.  Pass tf_warning_or_error if
+	explain_p.
+	(get_template_base): Add `explain_p' parameter and pass it to
+	try_class_unification.	Return an enum template_base_result.
+	* class.c (resolve_address_of_overloaded_function): Pass false to
+	fn_type_unification.
+	* call.c (enum rejection_reason_code): Add new codes.
+	(struct rejection_reason): Add template_unification field.
+	Add template_instantiation field.
+	(template_unification_rejection): Define.
+	(template_unification_error_rejection): Define.
+	(template_instantiation_rejection): Define.
+	(invalid_copy_with_fn_template_rejection): Define.
+	(add_template_candidate): Pass false to unify.
+	Provide more rejection reasons when possible.
+	(print_template_unification_rejection): Define.
+	(print_arity_rejection): Define, split out from...
+	(print_z_candidate): ...here.  Add cases for new rejection
+	reasons.
+
+2011-07-15  Jason Merrill  <jason@redhat.com>
+
+	* Make-lang.in (check-g++-strict-gc): New.
+	(cp/except.o): Depend on gt-cp-except.h
+	* except.c: Include gt-cp-except.h.
+	* config-lang.in (gtfiles): Add cp/except.c.
+	* decl2.c (mark_used): Adjust constexpr condition, set
+	function_depth around template instantiation.
+	* parser.c (cp_parser_lambda_body): Set function_depth.
+	* semantics.c (maybe_add_lambda_conv_op): Likewise.
+
+	PR testsuite/49741
+	* Make-lang.in (check-c++0x): Use --extra_opts instead of--tool_opts.
+
+2011-07-13  Jason Merrill  <jason@redhat.com>
+
+	* Make-lang.in (check-c++0x): New.
+
+2011-07-13  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* typeck2.c (split_nonconstant_init_1): Pass the initializer directly,
+	rather than a pointer to it.  Return true if the whole of the value
+	was initialized by the generated statements.  Use
+	complete_ctor_at_level_p instead of count_type_elements.
+
+2011-07-12   Diego Novillo  <dnovillo@google.com>
+
+	* name-lookup.h (cp_binding_level): Rename from cxx_scope.
+	Update all users.
+	(struct cp_binding_level): Fix indentation.
+
+2011-07-11  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49672
+	* pt.c (extract_fnparm_pack): Split out from...
+	(make_fnparm_pack): ...here.
+	(instantiate_decl): Handle non-pack parms after a pack.
+	* semantics.c (maybe_add_lambda_conv_op): Don't in a template.
+
+	* decl2.c (decl_constant_var_p): Use decl_maybe_constant_var_p.
+
+	PR c++/44609
+	* cp-tree.h (struct tinst_level): Add errors field.
+	* pt.c (neglectable_inst_p, limit_bad_template_recurson): New.
+	(push_tinst_level): Don't start another decl in that case.
+	(reopen_tinst_level): Adjust errors field.
+	* decl2.c (cp_write_global_declarations): Don't complain about
+	undefined inline if its template was defined.
+	* mangle.c (mangle_decl_string): Handle failure from push_tinst_level.
+
+2011-07-10  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49691
+	* parser.c (cp_parser_late_return_type_opt): Check quals parameter
+	rather than current_class_type to determine whether to set 'this'.
+	(cp_parser_direct_declarator): Pass -1 to quals if member_p is false.
+	(cp_parser_init_declarator): Pass down member_p.
+
+2011-07-09  Jason Merrill  <jason@redhat.com>
+
+	* tree.c (build_vec_init_elt): Strip TARGET_EXPR.
+
 2011-07-08  Jason Merrill  <jason@redhat.com>
+
+	PR c++/45437
+	* typeck.c (cp_build_modify_expr): Preevaluate RHS.
+
+	* method.c (use_thunk): Use cgraph_add_to_same_comdat_group.
+	* optimize.c (maybe_clone_body): Likewise.
+	* semantics.c (maybe_add_lambda_conv_op): Likewise.
 
 	PR c++/45603
 	* decl.c (expand_static_init): Don't get confused by user

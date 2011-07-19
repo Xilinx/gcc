@@ -16888,7 +16888,7 @@ rs6000_emit_vector_cond_expr (rtx dest, rtx op_true, rtx op_false,
       op_false = tmp;
     }
 
-  cond2 = gen_rtx_fmt_ee (NE, cc_mode, mask, const0_rtx);
+  cond2 = gen_rtx_fmt_ee (NE, cc_mode, mask, CONST0_RTX (dest_mode));
   emit_insn (gen_rtx_SET (VOIDmode,
 			  dest,
 			  gen_rtx_IF_THEN_ELSE (dest_mode,
@@ -20570,39 +20570,6 @@ rs6000_output_function_prologue (FILE *file,
       common_mode_defined = 1;
     }
 
-  if (! HAVE_prologue)
-    {
-      rtx prologue;
-
-      start_sequence ();
-
-      /* A NOTE_INSN_DELETED is supposed to be at the start and end of
-	 the "toplevel" insn chain.  */
-      emit_note (NOTE_INSN_DELETED);
-      rs6000_emit_prologue ();
-      emit_note (NOTE_INSN_DELETED);
-
-      /* Expand INSN_ADDRESSES so final() doesn't crash.  */
-      {
-	rtx insn;
-	unsigned addr = 0;
-	for (insn = get_insns (); insn != 0; insn = NEXT_INSN (insn))
-	  {
-	    INSN_ADDRESSES_NEW (insn, addr);
-	    addr += 4;
-	  }
-      }
-
-      prologue = get_insns ();
-      end_sequence ();
-
-      if (TARGET_DEBUG_STACK)
-	debug_rtx_list (prologue, 100);
-
-      emit_insn_before_noloc (prologue, BB_HEAD (ENTRY_BLOCK_PTR->next_bb),
-			      ENTRY_BLOCK_PTR);
-    }
-
   rs6000_pic_labelno++;
 }
 
@@ -21413,43 +21380,6 @@ static void
 rs6000_output_function_epilogue (FILE *file,
 				 HOST_WIDE_INT size ATTRIBUTE_UNUSED)
 {
-  if (! HAVE_epilogue)
-    {
-      rtx insn = get_last_insn ();
-      /* If the last insn was a BARRIER, we don't have to write anything except
-	 the trace table.  */
-      if (GET_CODE (insn) == NOTE)
-	insn = prev_nonnote_insn (insn);
-      if (insn == 0 ||  GET_CODE (insn) != BARRIER)
-	{
-	  /* This is slightly ugly, but at least we don't have two
-	     copies of the epilogue-emitting code.  */
-	  start_sequence ();
-
-	  /* A NOTE_INSN_DELETED is supposed to be at the start
-	     and end of the "toplevel" insn chain.  */
-	  emit_note (NOTE_INSN_DELETED);
-	  rs6000_emit_epilogue (FALSE);
-	  emit_note (NOTE_INSN_DELETED);
-
-	  /* Expand INSN_ADDRESSES so final() doesn't crash.  */
-	  {
-	    rtx insn;
-	    unsigned addr = 0;
-	    for (insn = get_insns (); insn != 0; insn = NEXT_INSN (insn))
-	      {
-		INSN_ADDRESSES_NEW (insn, addr);
-		addr += 4;
-	      }
-	  }
-
-	  if (TARGET_DEBUG_STACK)
-	    debug_rtx_list (get_insns (), 100);
-	  final (get_insns (), file, FALSE);
-	  end_sequence ();
-	}
-    }
-
 #if TARGET_MACHO
   macho_branch_islands ();
   /* Mach-O doesn't support labels at the end of objects, so if
@@ -24479,7 +24409,7 @@ rs6000_trampoline_init (rtx m_tramp, tree fndecl, rtx cxt)
       {
 	rtx fnmem, fn_reg, toc_reg;
 
-	if (!TARGET_R11)
+	if (!TARGET_POINTERS_TO_NESTED_FUNCTIONS)
 	  error ("-mno-r11 must not be used if you have trampolines");
 
 	fnmem = gen_const_mem (Pmode, force_reg (Pmode, fnaddr));
@@ -27811,7 +27741,7 @@ rs6000_call_indirect_aix (rtx value, rtx func_desc, rtx flag)
       stack_toc_offset = GEN_INT (TOC_SAVE_OFFSET_32BIT);
       func_toc_offset = GEN_INT (AIX_FUNC_DESC_TOC_32BIT);
       func_sc_offset = GEN_INT (AIX_FUNC_DESC_SC_32BIT);
-      if (TARGET_R11)
+      if (TARGET_POINTERS_TO_NESTED_FUNCTIONS)
 	{
 	  call_func = gen_call_indirect_aix32bit;
 	  call_value_func = gen_call_value_indirect_aix32bit;
@@ -27827,7 +27757,7 @@ rs6000_call_indirect_aix (rtx value, rtx func_desc, rtx flag)
       stack_toc_offset = GEN_INT (TOC_SAVE_OFFSET_64BIT);
       func_toc_offset = GEN_INT (AIX_FUNC_DESC_TOC_64BIT);
       func_sc_offset = GEN_INT (AIX_FUNC_DESC_SC_64BIT);
-      if (TARGET_R11)
+      if (TARGET_POINTERS_TO_NESTED_FUNCTIONS)
 	{
 	  call_func = gen_call_indirect_aix64bit;
 	  call_value_func = gen_call_value_indirect_aix64bit;
@@ -27870,7 +27800,7 @@ rs6000_call_indirect_aix (rtx value, rtx func_desc, rtx flag)
 					    func_toc_offset));
 
   /* If we have a static chain, load it up.  */
-  if (TARGET_R11)
+  if (TARGET_POINTERS_TO_NESTED_FUNCTIONS)
     {
       func_sc_mem = gen_rtx_MEM (Pmode,
 				 gen_rtx_PLUS (Pmode,

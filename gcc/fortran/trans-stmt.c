@@ -3323,7 +3323,7 @@ gfc_trans_pointer_assign_need_temp (gfc_expr * expr1, gfc_expr * expr2,
   count = gfc_create_var (gfc_array_index_type, "count");
   gfc_add_modify (block, count, gfc_index_zero_node);
 
-  inner_size = integer_one_node;
+  inner_size = gfc_index_one_node;
   lss = gfc_walk_expr (expr1);
   rss = gfc_walk_expr (expr2);
   if (lss == gfc_ss_terminator)
@@ -5104,7 +5104,7 @@ gfc_trans_deallocate (gfc_code *code)
       se.descriptor_only = 1;
       gfc_conv_expr (&se, expr);
 
-      if (expr->rank)
+      if (expr->rank || gfc_expr_attr (expr).codimension)
 	{
 	  if (expr->ts.type == BT_DERIVED && expr->ts.u.derived->attr.alloc_comp)
 	    {

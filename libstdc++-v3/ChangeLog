@@ -1,3 +1,115 @@
+2011-07-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* crossconfig.m4 (*-netware): Remove.
+	* configure: Regenerate.
+
+2011-07-15  Yufeng Zhang  <yufeng.zhang@arm.com>
+
+	* config/locale/newlib/ctype_members.cc: New file.
+	* acinclude.m4 (GLIBCXX_ENABLE_CLOCALE): Add a new C locale
+	kind: newlib.  Configure to use the newlib specific
+	ctype_members.cc when with_newlib is enabled.
+	* configure: Regenerate.
+
+2011-07-15  Paolo Carlini  <paolo.carlini@oracle.com>
+	    Jakub Jelinek  <jakub@redhat.com>
+
+	PR libstdc++/49745
+	* acinclude.m4 ([GLIBCXX_CHECK_GTHREADS]): Check separately for
+	_POSIX_TIMEOUTS and define _GTHREADS_USE_MUTEX_TIMEDLOCK.
+	* libsupc++/guard.cc: Include <unistd.h>.
+	* testsuite/17_intro/headers/c++1998/49745.cc: New.
+	* configure: Regenerate.
+	* config.h.in: Likewise.
+
+2011-07-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/49559
+	* include/bits/stl_algo.h (__move_merge_backward): Remove.
+	(__move_merge_adaptive, __move_merge_adaptive_backward): New.
+	(__merge_adaptive): Use the latter two.
+	(__rotate_adaptive): Avoid self move-assignment.
+	* include/bits/stl_algobase.h (move_backward): Fix comment.
+	* testsuite/25_algorithms/stable_sort/49559.cc: New.
+	* testsuite/25_algorithms/inplace_merge/49559.cc: Likewise.
+	* testsuite/25_algorithms/inplace_merge/moveable.cc: Extend.
+	* testsuite/25_algorithms/inplace_merge/moveable2.cc: Likewise.
+	* testsuite/util/testsuite_rvalref.h (rvalstruct::operator=
+	(rvalstruct&&)): Check for self move-assignment.
+
+2011-07-11  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* testsuite/util/testsuite_allocator.h (propagating_allocator<>::
+	operator=(const propagating_allocator<>&)): Retun *this.
+
+2011-07-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/Makefile.am: Add new header.
+	* include/Makefile.in: Regenerate.
+	* include/std/scoped_allocator: New.
+	* doc/xml/manual/status_cxx200x.xml: Update.
+	* testsuite/20_util/scoped_allocator/1.cc: New.
+	* testsuite/20_util/scoped_allocator/propagation.cc: New.
+	* testsuite/20_util/scoped_allocator/requirements/typedefs.cc: New.
+	* testsuite/20_util/scoped_allocator/requirements/
+	explicit_instantiation.cc: New.
+
+2011-07-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/bits/stl_vector.h: Use new allocator model in C++0x mode.
+	* include/bits/vector.tcc: Likewise.
+	* testsuite/util/testsuite_allocator.h (propagating_allocator): Define.
+	* testsuite/23_containers/vector/allocator/copy_assign.cc: New.
+	* testsuite/23_containers/vector/allocator/noexcept.cc: New.
+	* testsuite/23_containers/vector/allocator/copy.cc: New.
+	* testsuite/23_containers/vector/allocator/swap.cc: New.
+	* testsuite/23_containers/vector/allocator/move_assign.cc: New.
+	* testsuite/23_containers/vector/requirements/dr438/assign_neg.cc:
+	Adjust dg-error line numbers.
+	* testsuite/23_containers/vector/requirements/dr438/insert_neg.cc:
+	Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_1_neg.cc: Likewise.
+	* testsuite/23_containers/vector/requirements/dr438/
+	constructor_2_neg.cc: Likewise.
+
+2011-07-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/ext/alloc_traits.h (__allocator_always_compares_equal): New
+	trait, provide partial specializations for known allocators.
+	(__alloc_traits::construct, __alloc_traits::destroy): Overload for
+	non-standard pointer types.
+	(__alloc_traits::_S_always_equal): New trait for use with noexcept.
+	(__alloc_traits::_S_nothrow_move): Likewise.
+	(__alloc_traits::_S_nothrow_swap): Likewise.
+
+2011-07-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	* include/ext/cast.h: Fix typo in include guard.
+	* include/ext/pointer.h (_Unqualified_type): Remove redundant
+	partial specializations for volatile types. Fix typos in comments.
+	(pointer_traits<_Pointer_adaptor<Tp>>::pointer_to): Define.
+
+2011-07-09  Jonathan Wakely  <jwakely.gcc@gmail.com>
+
+	PR libstdc++/49668
+	* include/std/functional (__bind_simple): Define.
+	* include/std/future (_Task_setter): Parameterize by type of result
+	pointer instead of state object.
+	(_S_task_setter): Type deduction helper.
+	(_Task_state): Use _S_task_setter and __bind_simple.
+	(_Deferred_state, _Async_state): Store call wrapper directly not as
+	std::function. Use _S_task_setter and __bind_simple.
+	(_S_make_deferred_state, _S_make_async_state): Type deduction helpers.
+	(async): Use new functions and __bind_simple.
+	* include/std/mutex (call_once): Use __bind_simple.
+	* include/std/thread (thread): Likewise. Remove unused headers.
+	* src/thread.cc: Add header.
+	* testsuite/30_threads/async/49668.cc: New.
+	* testsuite/30_threads/call_once/49668.cc: New.
+	* testsuite/30_threads/thread/cons/49668.cc: New.
+	* testsuite/30_threads/thread/cons/moveable.cc: Remove unused bool.
+
 2011-07-08  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* configure.host (abi_baseline_subdir_switch): Describe.

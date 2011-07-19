@@ -496,6 +496,10 @@ Objective-C and Objective-C++ Dialects}.
 -mfast-fp -minline-plt -mmulticore  -mcorea  -mcoreb  -msdram @gol
 -micplb}
 
+@emph{C6X Options}
+@gccoptlist{-mbig-endian  -mlittle-endian -march=@var{cpu} @gol
+-msim -msdata=@var{sdata-type}}
+
 @emph{CRIS Options}
 @gccoptlist{-mcpu=@var{cpu}  -march=@var{cpu}  -mtune=@var{cpu} @gol
 -mmax-stack-frame=@var{n}  -melinux-stacksize=@var{n} @gol
@@ -600,7 +604,7 @@ Objective-C and Objective-C++ Dialects}.
 -mincoming-stack-boundary=@var{num} @gol
 -mcld -mcx16 -msahf -mmovbe -mcrc32 -mrecip -mvzeroupper @gol
 -mmmx  -msse  -msse2 -msse3 -mssse3 -msse4.1 -msse4.2 -msse4 -mavx @gol
--maes -mpclmul -mfsgsbase -mrdrnd -mf16c -mfused-madd @gol
+-maes -mpclmul -mfsgsbase -mrdrnd -mf16c -mfma @gol
 -msse4a -m3dnow -mpopcnt -mabm -mbmi -mtbm -mfma4 -mxop -mlwp @gol
 -mthreads  -mno-align-stringops  -minline-all-stringops @gol
 -minline-stringops-dynamically -mstringop-strategy=@var{alg} @gol
@@ -807,7 +811,8 @@ See RS/6000 and PowerPC Options.
 -msdata=@var{opt}  -mvxworks  -G @var{num}  -pthread @gol
 -mrecip -mrecip=@var{opt} -mno-recip -mrecip-precision @gol
 -mno-recip-precision @gol
--mveclibabi=@var{type} -mfriz -mno-friz -mr11 -mno-r11}
+-mveclibabi=@var{type} -mfriz -mno-friz @gol
+-mpointers-to-nested-functions -mno-pointers-to-nested-functions}
 
 @emph{RX Options}
 @gccoptlist{-m64bit-doubles  -m32bit-doubles  -fpu  -nofpu@gol
@@ -10090,6 +10095,7 @@ platform.
 * ARM Options::
 * AVR Options::
 * Blackfin Options::
+* C6X Options::
 * CRIS Options::
 * Darwin Options::
 * DEC Alpha Options::
@@ -10752,6 +10758,54 @@ into SDRAM. This option defines @code{__BFIN_SDRAM}.
 Assume that ICPLBs are enabled at runtime.  This has an effect on certain
 anomaly workarounds.  For Linux targets, the default is to assume ICPLBs
 are enabled; for standalone applications the default is off.
+@end table
+
+@node C6X Options
+@subsection C6X Options
+@cindex C6X Options
+
+@table @gcctabopt
+@item -march=@var{name}
+@opindex march
+This specifies the name of the target architecture.  GCC uses this
+name to determine what kind of instructions it can emit when generating
+assembly code.  Permissible names are: @samp{c62x},
+@samp{c64x}, @samp{c64x+}, @samp{c67x}, @samp{c67x+}, @samp{c674x}.
+
+@item -mbig-endian
+@opindex mbig-endian
+Generate code for a big endian target.
+
+@item -mlittle-endian
+@opindex mlittle-endian
+Generate code for a little endian target.  This is the default.
+
+@item -msim
+@opindex msim
+Choose startup files and linker script suitable for the simulator.
+
+@item -msdata=default
+@opindex msdata=default
+Put small global and static data in the @samp{.neardata} section,
+which is pointed to by register @code{B14}.  Put small uninitialized
+global and static data in the @samp{.bss} section, which is adjacent
+to the @samp{.neardata} section.  Put small read-only data into the
+@samp{.rodata} section.  The corresponding sections used for large
+pieces of data are @samp{.fardata}, @samp{.far} and @samp{.const}.
+
+@item -msdata=all
+@opindex msdata=all
+Put all data, not just small objets, into the sections reserved for
+small data, and use addressing relative to the @code{B14} register to
+access them.
+
+@item -msdata=none
+@opindex msdata=none
+Make no use of the sections reserved for small data, and use absolute
+addresses to access all data.  Put all initialized global and static
+data in the @samp{.fardata} section, and all uninitialized data in the
+@samp{.far} section.  Put all constant data into the @samp{.const}
+section.
 @end table
 
 @node CRIS Options
@@ -12587,6 +12641,8 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @itemx -mno-rdrnd
 @itemx -mf16c
 @itemx -mno-f16c
+@itemx -mfma
+@itemx -mno-fma
 @itemx -msse4a
 @itemx -mno-sse4a
 @itemx -mfma4
@@ -12612,9 +12668,9 @@ preferred alignment to @option{-mpreferred-stack-boundary=2}.
 @opindex mno-sse
 @opindex m3dnow
 @opindex mno-3dnow
-These switches enable or disable the use of instructions in the MMX,
-SSE, SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, FSGSBASE, RDRND,
-F16C, SSE4A, FMA4, XOP, LWP, ABM, BMI, or 3DNow!@: extended instruction sets.
+These switches enable or disable the use of instructions in the MMX, SSE,
+SSE2, SSE3, SSSE3, SSE4.1, AVX, AES, PCLMUL, FSGSBASE, RDRND, F16C, FMA,
+SSE4A, FMA4, XOP, LWP, ABM, BMI, or 3DNow!@: extended instruction sets.
 These extensions are also available as built-in functions: see
 @ref{X86 Built-in Functions}, for details of the functions enabled and
 disabled by these switches.
@@ -12632,13 +12688,6 @@ perform runtime CPU detection must compile separate files for each
 supported architecture, using the appropriate flags.  In particular,
 the file containing the CPU detection code should be compiled without
 these options.
-
-@item -mfused-madd
-@itemx -mno-fused-madd
-@opindex mfused-madd
-@opindex mno-fused-madd
-Do (don't) generate code that uses the fused multiply/add or multiply/subtract
-instructions.  The default is to use these instructions.
 
 @item -mcld
 @opindex mcld
@@ -16327,18 +16376,18 @@ rounding a floating point value to 64-bit integer and back to floating
 point.  The @code{friz} instruction does not return the same value if
 the floating point number is too large to fit in an integer.
 
-@item -mr11
-@itemx -mno-r11
-@opindex mr11
+@item -mpointers-to-nested-functions
+@itemx -mno-pointers-to-nested-functions
+@opindex mpointers-to-nested-functions
 Generate (do not generate) code to load up the static chain register
 (@var{r11}) when calling through a pointer on AIX and 64-bit Linux
 systems where a function pointer points to a 3 word descriptor giving
 the function address, TOC value to be loaded in register @var{r2}, and
 static chain value to be loaded in register @var{r11}.  The
-@option{-mr11} is on by default.  You will not be able to call through
-pointers to nested functions or pointers to functions compiled in
-other languages that use the static chain if you use the
-@option{-mno-r11}.
+@option{-mpointers-to-nested-functions} is on by default.  You will
+not be able to call through pointers to nested functions or pointers
+to functions compiled in other languages that use the static chain if
+you use the @option{-mno-pointers-to-nested-functions}.
 @end table
 
 @node RX Options
