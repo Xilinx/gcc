@@ -1,5 +1,12 @@
 2011-07-19  Pierre Vittet  <piervit@pvittet.com>
 
+	* melt/warmelt-base.melt (register_pre_genericize_hook): Remove
+	(register_pre_generize_hook_first, register_pre_generize_hook_last,
+	pre_genericize_hook_runner): New functions, allows to have a queue of
+	closure using PLUGIN_PRE_GENERICIZE callback.
+
+2011-07-19  Pierre Vittet  <piervit@pvittet.com>
+
 	* melt/warmelt-first.melt (at_end_melt_pass_first): Correct used queue:
 	end_melt_pass_execution_delayed_queue instead of final_delayed_queue.
 

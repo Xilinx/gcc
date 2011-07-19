@@ -1195,24 +1195,84 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
 ;; private pregenericize queue
 (definstance pregenericize_delayed_queue class_delayed_queue
   :named_name '"pregenericize_delayed_queue"
-  :delqu_first (make_list discr_list)
-  :delqu_last (make_list discr_list)
+  :delqu_first ()
+  :delqu_last ()
   )
 
-(compile_warning "should have register_pre_genericize_initial_first_hook like at_exit_first...")
-
-;;register a new closure at PLUGIN_PRE_GENERICIZE callback.  If a closure was
-;;already attributed, we replace it with $clo.
-(defun register_pre_genericize_hook (clo)
-  :doc #{Register a closure for the PLUGIN_PRE_GENERICIZE event. The
-  closure is called with the boxed tree of the declaration.}#
-  (warningmsg_plain "register_pre_genericize_hook will become obsolete, will have first & last variants like at_exit_first & at_exit_last")
-  (if (is_closure clo)
-    (put_fields initial_system_data :sysdata_pre_genericize clo)
-    (errormsg_plain
-    "Bad hook passed to register_pre_genericize_hook")
-  )
+(defun register_pre_genericize_hook_first (fun)
+  :doc #{Use $REGISTER_PRE_GENERICIZE_HOOK_FIRST to register a function $FUN to
+  be run at PLUGIN_PRE_GENERICIZE hook, in first place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of function declaration being parsed).}#
+  (let ( (firstlist (get_field :delqu_first pregenericize_delayed_queue))
+	     )
+    (if (null firstlist)
+	    (progn
+	      (setq firstlist (make_list discr_list))
+	      (put_fields
+	        pregenericize_delayed_queue
+	        :delqu_first firstlist
+	        :delqu_last (make_list discr_list))
+	      (put_fields
+	        initial_system_data
+	        :sysdata_pre_genericize pre_genericize_hook_runner)))
+    (if (is_closure fun)
+      (list_append firstlist fun)
+      (errormsg_plain
+        "Bad hook passed to register_pre_genericize_hook")
+    ))
 )
+
+(defun register_pre_genericize_hook_last (fun)
+  :doc #{Use $REGISTER_PRE_GENERICIZE_HOOK_LAST to register a function $FUN to
+  be run at PLUGIN_PRE_GENERICIZE hook, in last place.  $FUN must be a closure
+  which take 1 argument (the boxed tree of function declaration being parsed).}#
+  (let ( (lastlist (get_field :delqu_first pregenericize_delayed_queue))
+	     )
+    (if (null lastlist)
+	    (progn
+	      (setq lastlist (make_list discr_list))
+	      (put_fields
+	        pregenericize_delayed_queue
+	        :delqu_first lastlist
+	        :delqu_last (make_list discr_list))
+	      (put_fields
+	        initial_system_data
+	        :sysdata_pre_genericize pre_genericize_hook_runner)))
+    (if (is_closure fun)
+      (list_append lastlist fun)
+      (errormsg_plain
+        "Bad hook passed to register_pre_genericize_hook")
+    ))
+)
+
+(defun pre_genericize_hook_runner (fndeclv)
+  :doc #{Function to be runned when PLUGIN_PRE_GENERICIZE hook is invoked.  
+  For each closure registered in the list :sysdata_pre_genericize of
+  initial_system_data, call them with $fndeclv, the tree declaration of the
+  parsed function.   }#
+  (let ( (firstlist (get_field :delqu_first pregenericize_delayed_queue))
+	 (lastlist (get_field :delqu_last pregenericize_delayed_queue))
+	 (revlastlist (make_list discr_list))
+	 (rescont (instance class_container))
+	 )
+;;; call the first routines in natural order
+    (list_every 
+      firstlist
+      (lambda (firstproc)
+        (firstproc fndeclv)
+      ))
+;;; reverse the last list
+    (list_every 
+      lastlist 
+      (lambda (lastproc)
+        (if (is_closure lastproc) (list_prepend revlastlist lastproc))))
+;;; call the last routines in reverse order
+    (list_every
+      revlastlist
+      (lambda (lastproc)
+        (lastproc fndeclv)  
+      ))
+  ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; the descriptions of values which are not ctype related.
@@ -2443,7 +2503,9 @@ polyhedron values.}#
  read_file
  register_pass_execution_hook
  register_pragma_handler
- register_pre_genericize_hook
+ register_pre_genericize_hook_first
+ register_pre_genericize_hook_last
+ pre_genericize_hook_runner
  retrieve_value_descriptor_list
  some_integer_greater_than
  some_integer_multiple
