@@ -79,6 +79,7 @@ copymelt() {
 echo $0: You should have recently run in gcc/ of build tree: make upgrade-warmelt 
 
 copymelt COPYING3
+copymelt move-if-change
 copymelt gcc/DATESTAMP GCCMELT-DATESTAMP
 copymelt gcc/REVISION GCCMELT-REVISION
 
