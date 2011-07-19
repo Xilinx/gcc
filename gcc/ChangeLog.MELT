@@ -1,3 +1,7 @@
+2011-07-19  Romain Geissler  <romain.geissler@gmail.com>
+
+	* melt/warmelt-outobj.melt (translatequickly_docmd): Fix
+	installation.
 
 2011-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
 

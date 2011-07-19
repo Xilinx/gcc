@@ -4270,7 +4270,7 @@ module *.so;\n \t generates also *.c and no MELT line number;\n \t
 Useful for running gdb on the module."
   :meltmode_fun translatequickly_docmd
 )
-(install_melt_mode translatedebug_mode)
+(install_melt_mode translatequickly_mode)
 
 ;;;;;;;;;;;;;;;;
 ;;;;;
