@@ -1,3 +1,14 @@
+
+2011-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h:
+	(MELT_LOCATION_HERE_PRINTF)
+	(MELT_LOCATION_HERE_PRINTF_MACRO)
+	(MELT_LOCATION_HERE_PRINTF_AT_MACRO): Macros need an SBUF.
+	* melt-runtime.c (notsame_md5_hex_binary): New static function.
+	(load_checked_dynamic_module_index): Use it. Also try .n.so, .q.so
+	suffixes.
+	(meltgc_make_load_melt_module): Better debug & MELT_LOCATION...
+
 2011-07-19  Romain Geissler  <romain.geissler@gmail.com>
 
 	* melt/warmelt-outobj.melt (translatequickly_docmd): Fix

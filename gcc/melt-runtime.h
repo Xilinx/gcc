@@ -2586,21 +2586,22 @@ extern melt_ptr_t melt_jmpval;
   MELT_LOCATION_HERE_AT_MACRO(__FILE__,__LINE__,MSG)
 #define MELT_LOCATION_HERE(MSG)  MELT_LOCATION_HERE_MACRO(MSG)
 
-#define MELT_LOCATION_HERE_PRINTF_AT(FIL,LIN,FMT,...) do {	\
-  static char locbuf_##LIN[200];				\
-  snprintf (locbuf_##LIN, sizeof(locbuf_##LIN)-1,		\
+/* SBUF should be a local array of char */
+#define MELT_LOCATION_HERE_PRINTF_AT(SBUF,FIL,LIN,FMT,...) do {	\
+  memset (SBUF, 0, sizeof(SBUF));				\
+  snprintf (SBUF, sizeof(SBUF)-1,				\
 	    "%s:%d:: " FMT,					\
 	    lbasename (FIL), (int)LIN, __VA_ARGS__);		\
-  meltfram__.mcfr_flocs =  locbuf_##LIN;			\
+  meltfram__.mcfr_flocs = SBUF;			\
 } while(0)
 /* We need several indirections of macro to have the ##LIN trick above
    working!  */
-#define MELT_LOCATION_HERE_PRINTF_AT_MACRO(FIL,LIN,FMT,...)	\
-    MELT_LOCATION_HERE_PRINTF_AT(FIL,LIN,FMT,__VA_ARGS__)
-#define MELT_LOCATION_HERE_PRINTF_MACRO(FMT,...)		\
-  MELT_LOCATION_HERE_PRINTF_AT_MACRO(__FILE__,__LINE__,FMT,__VA_ARGS__)
-#define MELT_LOCATION_HERE_PRINTF(FMT,...) \
-  MELT_LOCATION_HERE_PRINTF_MACRO(FMT, __VA_ARGS__)
+#define MELT_LOCATION_HERE_PRINTF_AT_MACRO(SBUF,FIL,LIN,FMT,...)	\
+  MELT_LOCATION_HERE_PRINTF_AT(SBUF,FIL,LIN,FMT,__VA_ARGS__)
+#define MELT_LOCATION_HERE_PRINTF_MACRO(SBUF,FMT,...)			\
+  MELT_LOCATION_HERE_PRINTF_AT_MACRO(SBUF,__FILE__,__LINE__,FMT,__VA_ARGS__)
+#define MELT_LOCATION_HERE_PRINTF(SBUF,FMT,...)		\
+  MELT_LOCATION_HERE_PRINTF_MACRO(SBUF,FMT, __VA_ARGS__)
 
 #else /*!MELT_HAVE_DEBUG*/
 
@@ -2616,7 +2617,7 @@ extern melt_ptr_t melt_jmpval;
 
 #define MELT_LOCATION(LOCS) do{/*location without MELT_HAVE_DEBUG*/}while(0)
 #define MELT_LOCATION_HERE(MSG) do{/*locationhere without MELT_HAVE_DEBUG*/}while(0)
-#define MELT_LOCATION_HERE_PRINTF(FMT,...) do{/*locationhereprintf without MELT_HAVE_DEBUG*/}while(0)
+#define MELT_LOCATION_HERE_PRINTF(SBUF,FMT,...) do{/*locationhereprintf without MELT_HAVE_DEBUG*/}while(0)
 
 /* initialize the current callframe and link it at top */
 #define MELT_INITFRAME(NBVAR,CLOS) do {	 /*initframe without MELT_HAVE_DEBUG*/ \
