@@ -1,5 +1,10 @@
 2011-07-18  Gabriel Charette  <gchare@google.com>
 
+	* lib/dg-pph.exp (dg-pph-pos): Output actualSum on unexpected diff.
+	Use native TCL functions instead of exec calls to tr and cut.
+
+2011-07-18  Gabriel Charette  <gchare@google.com>
+
 	* g++.dg/pph/c1builtin-integral.cc: Don't expect asm diff.
 	Pass in -ffinite-math-only -fno-math-errno flags when compiling C file.
 
