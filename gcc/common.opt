@@ -934,6 +934,11 @@ fmelt-output=
 Common Report Var(melt_output_string) RejectNegative Joined
 Output argument for MELT
 
+; c-output string for melt
+fmelt-coutput=
+Common Report Var(melt_coutput_string) RejectNegative Joined
+C-output argument for MELT
+
 ; temporary directory for melt
 fmelt-tempdir=
 Common Report Var(melt_tempdir_string) RejectNegative Joined

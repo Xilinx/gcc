@@ -1,3 +1,12 @@
+2011-07-19  Romain Geissler  <romain.geissler@gmail.com>
+
+	* melt/warmelt-outobj (translatetomodule_docmd): Override default
+	C source filename if coutput argument is defined. Add this new argument
+	in the help text.
+	(translatedebug_docmd): Likewise.
+	(translatequickly_docmd): Likewise.
+	* melt-runtime.c (mlet_argument): Allow the new coutput argument.
+	* common.opt: Define a new coutput melt argument.
 
 2011-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h:

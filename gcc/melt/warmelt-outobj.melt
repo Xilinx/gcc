@@ -4130,6 +4130,7 @@
 	(curenv (if moduldata moduldata initial_environment))
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
+	(coutarg (make_stringconst discr_string (melt_argument "coutput")))
 	)
     (debug_msg inarg "translatetomodule_docmd inarg")
     (debug_msg outarg "translatetomodule_docmd outarg")
@@ -4144,7 +4145,7 @@
 		     (return)
 		     )))
 	   (outnam (or outarg basnam))
-	   (rawsrcnam (make_string_generated_c_filename discr_string outnam ()))
+	   (rawsrcnam (or coutarg (make_string_generated_c_filename discr_string outnam ())))
 	   )
       (debug_msg basnam "translatetomodule_docmd basnam")
       (debug_msg rawsrcnam "translatetomodule_docmd rawsrcnam")
@@ -4156,9 +4157,9 @@
 (definstance translatetomodule_mode
   class_melt_mode
   :named_name '"translatetomodule"
-  :meltmode_help '"translate a .melt file to .so module;\n \t
-ARGUMENT= input file; OUTPUT= generated module *.so; no debugging is
-enabled (no gdb, no debug_msg...)"
+  :meltmode_help '"translate a .melt file to .so module;\n
+\t ARGUMENT= input file; OUTPUT= generated module *.so; OUTPUTC= generated *.c file;\n
+\t no debugging is enabled (no gdb, no\n debug_msg...)"
   :meltmode_fun translatetomodule_docmd
 )
 (install_melt_mode translatetomodule_mode)
@@ -4174,6 +4175,7 @@ enabled (no gdb, no debug_msg...)"
 	(curenv (if moduldata moduldata initial_environment))
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
+	(coutarg (make_stringconst discr_string (melt_argument "coutput")))
 	)
     (debug_msg inarg "translatedebug_docmd inarg")
     (debug_msg outarg "translatedebug_docmd outarg")
@@ -4187,11 +4189,11 @@ enabled (no gdb, no debug_msg...)"
 		     (errormsg_plain "invalid translatedebug mode")
 		     (return)
 		     )))
-	   (srcnam
+	   (srcnam (or coutarg
 	    (let ( (srcnambuf (make_strbuf discr_strbuf)) )
 	      (add2sbuf_string srcnambuf basnam)
 	      (add2sbuf_strconst srcnambuf ".c")
-	      (strbuf2string discr_string srcnambuf)))
+	      (strbuf2string discr_string srcnambuf))))
 	   (dbgmodulnam
 	    (or outarg
 		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
@@ -4211,9 +4213,10 @@ enabled (no gdb, no debug_msg...)"
   class_melt_mode
   :named_name '"translatedebug"
   :meltmode_help '"translate a .melt file to .so module for low-level
-debug, including gdb;\n \t ARGUMENT= input file; OUTPUT= generated
-module *.so;\n \t generates also *.c and no MELT line number;\n \t
-Useful for running gdb on the module. MELT debugging (debug_msg,
+debug, including gdb;\n
+\t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n
+\t generates also *.c and no MELT line number;\n
+\t Useful for running gdb on the module. MELT debugging (debug_msg,
 assert_msg) is enabled"
   :meltmode_fun translatedebug_docmd
 )
@@ -4229,6 +4232,7 @@ assert_msg) is enabled"
 	(curenv (if moduldata moduldata initial_environment))
 	(inarg (make_stringconst discr_string (melt_argument "arg")))
 	(outarg (make_stringconst discr_string (melt_argument "output")))
+	(coutarg (make_stringconst discr_string (melt_argument "coutput")))
 	)
     (debug_msg inarg "translatequickly_docmd inarg")
     (debug_msg outarg "translatequickly_docmd outarg")
@@ -4242,11 +4246,11 @@ assert_msg) is enabled"
 		     (errormsg_plain "invalid translatequickly mode")
 		     (return)
 		     )))
-	   (srcnam
+	   (srcnam (or coutarg
 	    (let ( (srcnambuf (make_strbuf discr_strbuf)) )
 	      (add2sbuf_string srcnambuf basnam)
 	      (add2sbuf_strconst srcnambuf ".c")
-	      (strbuf2string discr_string srcnambuf)))
+	      (strbuf2string discr_string srcnambuf))))
 	   (dbgmodulnam
 	    (or outarg
 		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
@@ -4265,9 +4269,10 @@ assert_msg) is enabled"
 (definstance translatequickly_mode
   class_melt_mode
   :named_name '"translatequickly"
-  :meltmode_help '"translate quickly a .melt file to .so module with MELT debuging enabld (debug_msg, assert_msg...);\n \t ARGUMENT= input file; OUTPUT= generated
-module *.so;\n \t generates also *.c and no MELT line number;\n \t
-Useful for running gdb on the module."
+  :meltmode_help '"translate quickly a .melt file to .so module with MELT debuging enabld (debug_msg, assert_msg...);\n
+\t ARGUMENT= input file; OUTPUT= generated module *.so; COUTPUT= generated *.c file\n
+\t generates also *.c and no MELT line number;\n
+\t Useful for running gdb on the module."
   :meltmode_fun translatequickly_docmd
 )
 (install_melt_mode translatequickly_mode)

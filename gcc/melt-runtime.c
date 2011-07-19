@@ -507,6 +507,8 @@ melt_argument (const char* argname)
     return melt_extra_string;
   else if (!strcmp (argname, "output"))
     return melt_output_string;
+  else if (!strcmp (argname, "coutput"))
+    return melt_coutput_string;
   else if (!strcmp (argname, "option"))
     return melt_option_string;
   else if (!strcmp (argname, "secondarg"))
