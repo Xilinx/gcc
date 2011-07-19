@@ -1,3 +1,12 @@
+
+2011-07-19  DeLesley Hutchins <delesley@google.com>
+
+        * tree-threadsafe-analyze.c:  Changes lock_expr_tab to be 
+        allocated bythe garbage collector, and marked as a GC root.
+        * tree-threadsafe-analyze.c (get_canonical_lock_expr):  
+        Changed to force rewrite on MEM_REF
+ 
+
 2011-03-22  Le-Chun Wu  <lcwu@google.com>
 
 	* Makefile.in: Add new source file and headers in dependencies.

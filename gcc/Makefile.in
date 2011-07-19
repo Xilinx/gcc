@@ -3762,6 +3762,7 @@ GTFILES = $(CPP_ID_DATA_H) $(srcdir)/input.h $(srcdir)/coretypes.h \
   $(srcdir)/tree-iterator.c $(srcdir)/gimplify.c \
   $(srcdir)/tree-chrec.h \
   $(srcdir)/tree-scalar-evolution.c \
+  $(srcdir)/tree-threadsafe-analyze.c \
   $(srcdir)/tree-ssa-operands.h \
   $(srcdir)/tree-profile.c $(srcdir)/tree-nested.c \
   $(srcdir)/varpool.c \

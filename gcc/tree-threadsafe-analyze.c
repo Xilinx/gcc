@@ -239,11 +239,11 @@ static struct pointer_map_t *lock_locus_map;
 
 /* Each entry maps a lock to its canonicalized expression (see
    get_canonical_lock_expr()).  */
-static htab_t lock_expr_tab;
+static GTY((param_is (union tree_node))) htab_t lock_expr_tab = NULL;
 
 /* Each entry is a gimple call statement. Calls to the same function with
    symbolically identical arguments will hash to the same entry.  */
-static htab_t gimple_call_tab;
+static htab_t gimple_call_tab = NULL;
 
 /* Each entry maps a trylock call expr to its trylock_info.  */
 static struct pointer_map_t *trylock_info_map;
@@ -517,11 +517,8 @@ destroy_acquired_after_set (const void * ARG_UNUSED (lock),
 void
 clean_up_threadsafe_analysis (void)
 {
-  if (lock_expr_tab)
-    {
-      htab_delete (lock_expr_tab);
-      lock_expr_tab = NULL;
-    }
+  /* lock_expr_tab is garbage collected. */
+  lock_expr_tab = NULL;
 
   /* Free the lock acquired_after map and the sets */
   if (lock_acquired_after_map)
@@ -959,19 +956,17 @@ get_canonical_lock_expr (tree lock, tree base_obj, bool is_temp_expr,
           tree canon_base = get_canonical_lock_expr (base, base_obj,
                                                      true /* is_temp_expr */,
                                                      new_leftmost_base_var);
-          if (base != canon_base)
-            {
-              /* If CANON_BASE is an ADDR_EXPR (e.g. &a), doing an indirect or
-                 memory reference on top of it is equivalent to accessing the
-                 variable itself. That is, *(&a) == a. So if that's the case,
-                 simply return the variable. Otherwise, build an indirect ref
-                 expression.  */
-              if (TREE_CODE (canon_base) == ADDR_EXPR)
-                lock = TREE_OPERAND (canon_base, 0);
-              else
-                lock = build1 (INDIRECT_REF,
-                               TREE_TYPE (TREE_TYPE (canon_base)), canon_base);
-            }
+          
+          /* If CANON_BASE is an ADDR_EXPR (e.g. &a), doing an indirect or
+             memory reference on top of it is equivalent to accessing the
+             variable itself. That is, *(&a) == a. So if that's the case,
+             simply return the variable. Otherwise, build an indirect ref
+             expression.  */
+          if (TREE_CODE (canon_base) == ADDR_EXPR)
+            lock = TREE_OPERAND (canon_base, 0);
+          else
+            lock = build1 (INDIRECT_REF,
+                           TREE_TYPE (TREE_TYPE (canon_base)), canon_base);
           break;
         }
       default:
@@ -989,7 +984,7 @@ get_canonical_lock_expr (tree lock, tree base_obj, bool is_temp_expr,
      in the lock_expr_tab. If so, grab and return it. Otherwise, insert the
      new lock expr to the map.  */
   if (lock_expr_tab == NULL)
-    lock_expr_tab = htab_create (10, lock_expr_hash, lock_expr_eq, NULL);
+    lock_expr_tab = htab_create_ggc (10, lock_expr_hash, lock_expr_eq, NULL);
 
   canon_lock = (tree) htab_find_with_hash (lock_expr_tab, lock, hash);
   if (canon_lock)
@@ -3560,6 +3555,7 @@ execute_threadsafe_analyze (void)
   pointer_map_traverse (trylock_info_map, delete_trylock_info, NULL);
   pointer_map_destroy (trylock_info_map);
   htab_delete (gimple_call_tab);
+  gimple_call_tab = NULL;
 
   /* The flag that controls the warning of mismatched lock acquire/release
      could be turned off when we see an unlock primitive with an unsupported
@@ -3596,3 +3592,5 @@ struct gimple_opt_pass pass_threadsafe_analyze =
     TODO_dump_func                        /* todo_flags_finish */
   }
 };
+
+#include "gt-tree-threadsafe-analyze.h"

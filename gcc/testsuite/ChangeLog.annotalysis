@@ -1,6 +1,12 @@
 
+2011-07-19  DeLesley Hutchins <delesley@google.com>
+
+        * thread_annot_lock-80.C:  Additional test cases for handling 
+        MEM_REF expressions. 
+
 2011-07-11   DeLesley Hutchins  <delesley@google.com>
-      * thread_annot_lock-79.C: Additional annotalysis test cases
+
+        * thread_annot_lock-79.C:  Additional annotalysis test cases
 
 2011-03-22  Le-Chun Wu  <lcwu@google.com>
 
