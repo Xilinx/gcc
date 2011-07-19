@@ -88,7 +88,7 @@ extern void melt_fatal_info (const char*filename, int lineno);
 #define dbgprintf_raw(Fmt,...) do{if (dump_file) \
       {fprintf(dump_file, Fmt, ##__VA_ARGS__); fflush(dump_file);}}while(0)
 #define dbgprintf(Fmt,...) dbgprintf_raw("@%s:%d: " Fmt "\n", \
- basename(__FILE__), __LINE__, ##__VA_ARGS__)
+ lbasename(__FILE__), __LINE__, ##__VA_ARGS__)
 
 /* the version string of GCC when MELT was initialized */
 extern char* melt_gccversionstr;
@@ -153,25 +153,25 @@ extern int flag_melt_bootstrapping;
 /* Sometimes we need to pass an explicit line number.  */
 #define debugeprintfline(Lin,Fmt,...) \
    debugeprintf_raw("!@%s:%d:\n@! " Fmt "\n", \
-                    basename(__FILE__), Lin, ##__VA_ARGS__)
+                    lbasename(__FILE__), Lin, ##__VA_ARGS__)
 /* The usual debugging macro.  */
 #define debugeprintf(Fmt,...) debugeprintfline(__LINE__,Fmt,##__VA_ARGS__)
 
 #define debugeprintflinenonl(Lin,Fmt,...)                       \
   debugeprintf_raw("!@%s:%d:\n@! " Fmt,                         \
-                   basename(__FILE__), Lin, ##__VA_ARGS__)
+                   lbasename(__FILE__), Lin, ##__VA_ARGS__)
 #define debugeprintfnonl(Fmt,...) \
   debugeprintflinenonl(__LINE__, Fmt, ##__VA_ARGS__)
 
 #define debugeprintvalue(Msg,Val) do{if (flag_melt_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d:\n@! %s @%p= ",			\
-              basename(__FILE__), __LINE__, (Msg), __val);	\
+              lbasename(__FILE__), __LINE__, (Msg), __val);	\
       melt_dbgeprint(__val); }} while(0)
 #define debugebacktrace(Msg,Depth)  do{if (flag_melt_debug){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d: %s **backtrace** ",		\
-              basename(__FILE__), __LINE__, (Msg));		\
+              lbasename(__FILE__), __LINE__, (Msg));		\
       melt_dbgbacktrace((Depth)); }} while(0)
 /* the maximal debug depth - should be a parameter */
 #define MELTDBG_MAXDEPTH 7
@@ -183,19 +183,19 @@ extern int flag_melt_bootstrapping;
 
 #define debugeprintflinenonl(Lin,Fmt,...)                       \
   debugeprintf_raw("!@%s:%d:\n@! " Fmt,                         \
-                   basename(__FILE__), Lin, ##__VA_ARGS__)
+                   lbasename(__FILE__), Lin, ##__VA_ARGS__)
 #define debugeprintfnonl(Fmt,...) \
   debugeprintflinenonl(__LINE__, Fmt, ##__VA_ARGS__)
 
 #define debugeprintvalue(Msg,Val) do{if (0){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d:\n@! %s @%p= ",			\
-              basename(__FILE__), __LINE__, (Msg), __val);	\
+              lbasename(__FILE__), __LINE__, (Msg), __val);	\
       melt_dbgeprint(__val); }} while(0)
 #define debugebacktrace(Msg,Depth)  do{if (0){	\
       void* __val = (Val);					\
       fprintf(stderr,"!@%s:%d: %s **backtrace** ",		\
-              basename(__FILE__), __LINE__, (Msg));		\
+              lbasename(__FILE__), __LINE__, (Msg));		\
       melt_dbgbacktrace((Depth)); }} while(0)
 #endif /*MELT_HAVE_DEBUG*/
 
@@ -2558,7 +2558,7 @@ extern melt_ptr_t melt_jmpval;
   static char locbuf_##LIN[84];						\
   if (!locbuf_##LIN[0])							\
     snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d",		\
-	     basename(FIL), (int)LIN);					\
+	     basename (FIL), (int)LIN);					\
   memset(&meltfram__, 0, sizeof(meltfram__));				\
   meltfram__.mcfr_nbvar = (NBVAR);					\
   meltfram__.mcfr_flocs = locbuf_##LIN;					\
@@ -2575,7 +2575,7 @@ extern melt_ptr_t melt_jmpval;
   static char locbuf_##LIN[88];						\
   if (!locbuf_##LIN[0])							\
     snprintf(locbuf_##LIN, sizeof(locbuf_##LIN)-1, "%s:%d <%s>",	\
-	     basename(FIL), (int)LIN, MSG);				\
+	     basename (FIL), (int)LIN, MSG);				\
   meltfram__.mcfr_flocs =  locbuf_##LIN;			       	\
 } while(0)
 /* We need several indirections of macro to have the ##LIN trick above
@@ -2585,6 +2585,22 @@ extern melt_ptr_t melt_jmpval;
 #define MELT_LOCATION_HERE_MACRO(MSG)  \
   MELT_LOCATION_HERE_AT_MACRO(__FILE__,__LINE__,MSG)
 #define MELT_LOCATION_HERE(MSG)  MELT_LOCATION_HERE_MACRO(MSG)
+
+#define MELT_LOCATION_HERE_PRINTF_AT(FIL,LIN,FMT,...) do {	\
+  static char locbuf_##LIN[200];				\
+  snprintf (locbuf_##LIN, sizeof(locbuf_##LIN)-1,		\
+	    "%s:%d:: " FMT,					\
+	    lbasename (FIL), (int)LIN, __VA_ARGS__);		\
+  meltfram__.mcfr_flocs =  locbuf_##LIN;			\
+} while(0)
+/* We need several indirections of macro to have the ##LIN trick above
+   working!  */
+#define MELT_LOCATION_HERE_PRINTF_AT_MACRO(FIL,LIN,FMT,...)	\
+    MELT_LOCATION_HERE_PRINTF_AT(FIL,LIN,FMT,__VA_ARGS__)
+#define MELT_LOCATION_HERE_PRINTF_MACRO(FMT,...)		\
+  MELT_LOCATION_HERE_PRINTF_AT_MACRO(__FILE__,__LINE__,FMT,__VA_ARGS__)
+#define MELT_LOCATION_HERE_PRINTF(FMT,...) \
+  MELT_LOCATION_HERE_PRINTF_MACRO(FMT, __VA_ARGS__)
 
 #else /*!MELT_HAVE_DEBUG*/
 
@@ -2600,6 +2616,7 @@ extern melt_ptr_t melt_jmpval;
 
 #define MELT_LOCATION(LOCS) do{/*location without MELT_HAVE_DEBUG*/}while(0)
 #define MELT_LOCATION_HERE(MSG) do{/*locationhere without MELT_HAVE_DEBUG*/}while(0)
+#define MELT_LOCATION_HERE_PRINTF(FMT,...) do{/*locationhereprintf without MELT_HAVE_DEBUG*/}while(0)
 
 /* initialize the current callframe and link it at top */
 #define MELT_INITFRAME(NBVAR,CLOS) do {	 /*initframe without MELT_HAVE_DEBUG*/ \

@@ -1,3 +1,13 @@
+
+2011-07-19  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* melt-runtime.h: Use lbasename, not basename.
+	(MELT_LOCATION_HERE_PRINTF)
+	(MELT_LOCATION_HERE_PRINTF_MACRO)
+	(MELT_LOCATION_HERE_PRINTF_AT_MACRO): New macros.
+
+	* Makefile.in (melt-runtime.i): New target.
+
 2011-07-19  Pierre Vittet  <piervit@pvittet.com>
 
 	* melt/warmelt-base.melt (register_pre_genericize_hook): Remove
