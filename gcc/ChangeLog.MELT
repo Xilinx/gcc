@@ -1,3 +1,7 @@
+2011-07-19  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt/warmelt-first.melt (at_end_melt_pass_first): Correct used queue:
+	end_melt_pass_execution_delayed_queue instead of final_delayed_queue.
 
 2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt (class_delayed_queue): Export it.
