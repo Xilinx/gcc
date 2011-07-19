@@ -124,7 +124,7 @@ melt_make_gencdeps= $(melt_make_cc1)
 melt_make_module_makefile= melt-module.mk
 melt_make_source_dir= melt
 melt_make_module_dir=
-melt_make_move= mv
+melt_make_move= $(SHELL) move-if-change
 ## Don't use := definitions here!
 comma= ,
 melt_make_cc1flags= -fplugin=$(realpath melt.so) -I $(realpath .) -o /dev/null
