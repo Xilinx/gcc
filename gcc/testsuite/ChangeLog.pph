@@ -1,3 +1,8 @@
+2011-07-18  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/c1builtin-integral.cc: Don't expect asm diff.
+	Pass in -ffinite-math-only -fno-math-errno flags when compiling C file.
+
 2011-07-15  Gabriel Charette  <gchare@google.com>
 
 	* g++.dg/pph/c1builtin-integral.cc: Add expected diff checksum.
