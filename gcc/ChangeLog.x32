@@ -1,3 +1,9 @@
+2011-07-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/49780
+	* config/i386/i386.c (ix86_legitimate_address_p): Remove checks
+	that base and index registers are in Pmode.
+
 2011-07-19  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_legitimate_address_p): Don't support
