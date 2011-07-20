@@ -11116,8 +11116,16 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
   int retval = 1;
   enum ix86_address_seg seg = SEG_DEFAULT;
 
-  if (REG_P (addr) || GET_CODE (addr) == SUBREG)
+  if (REG_P (addr))
     base = addr;
+  else if (GET_CODE (addr) == SUBREG)
+    {
+      /* Allow only subregs of DImode hard regs.  */
+      if (register_no_elim_operand (SUBREG_REG (addr), DImode))
+	base = addr;
+      else
+	return 0;
+    }
   else if (GET_CODE (addr) == PLUS)
     {
       rtx addends[4], op;

@@ -1,6 +1,15 @@
 2011-07-19  Uros Bizjak  <ubizjak@gmail.com>
 
 	PR target/49780
+	* config/i386/i386.c (ix86_decompose_address): Allow only subregs
+	of DImode hard regs.
+
+	* config/i386/predicates.md (no_seg_address_operand): Use
+	define_predicate.
+
+2011-07-19  Uros Bizjak  <ubizjak@gmail.com>
+
+	PR target/49780
 	* config/i386/i386.c (ix86_legitimate_address_p): Remove checks
 	that base and index registers are in Pmode.
 
