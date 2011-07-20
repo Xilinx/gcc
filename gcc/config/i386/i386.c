@@ -11683,6 +11683,9 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	/* Base is not a register.  */
 	return false;
 
+      if (GET_MODE (base) != SImode && GET_MODE (base) != DImode)
+	return false;
+
       if ((strict && ! REG_OK_FOR_BASE_STRICT_P (reg))
 	  || (! strict && ! REG_OK_FOR_BASE_NONSTRICT_P (reg)))
 	/* Base is not valid.  */
@@ -11706,6 +11709,9 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
   	reg = SUBREG_REG (index);
       else
 	/* Index is not a register.  */
+	return false;
+
+      if (GET_MODE (index) != SImode && GET_MODE (index) != DImode)
 	return false;
 
       if ((strict && ! REG_OK_FOR_INDEX_STRICT_P (reg))
