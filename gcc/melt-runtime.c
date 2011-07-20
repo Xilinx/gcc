@@ -5255,7 +5255,7 @@ notsame_md5_hex_binary(const char*hexmd5, const char*binmd5)
    info of the modulinfo stack and return the positive index,
    otherwise return 0 */
 static int
-load_checked_dynamic_module_index (const char *dypath, char *md5src)
+load_checked_dynamic_module_index (const char *dypath, const char *md5src)
 {
   int ix = 0;
   int badfromline = 0;
@@ -5517,9 +5517,9 @@ struct melt_source_and_module_path_st {
 };
 
 
-/* static inline  */
+static 
 struct melt_source_and_module_path_st
-melt_find_source_and_module (const char*modulnam, unsigned flags)
+melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigned flags)
 {
   /* suffixes and melt-module.mk make targets for quickly built, and
      noline, and optimized flavors. */
@@ -5527,11 +5527,12 @@ melt_find_source_and_module (const char*modulnam, unsigned flags)
 #define MELTMODFLAV_QUICKLYBUILT_TARGET "melt_module_quicklybuilt"
 #define MELTMODFLAV_NOLINE_SUFFIX ".n"
 #define MELTMODFLAV_NOLINE_TARGET "melt_module_withoutline"
+#define MELTMODFLAV_DYNAMIC_SUFFIX ".n"
+#define MELTMODFLAV_DYNAMIC_TARGET "melt_module_dynamic"
 #define MELTMODFLAV_OPTIMIZED_SUFFIX ""
 #define MELTMODFLAV_OPTIMIZED_TARGET "melt_module"
 #define MELT_BINARYMODULE_SUFFIX ".so"
   struct melt_source_and_module_path_st res = {NULL, NULL};
-  const char* maketarget = NULL;
   int modulnamlen = 0;
   int suflen = 0;
   char* dupmodulnam = xstrdup(modulnam);
@@ -5564,9 +5565,15 @@ melt_find_source_and_module (const char*modulnam, unsigned flags)
     maketarget = MELTMODFLAV_NOLINE_TARGET;
     modulsuffix = MELTMODFLAV_NOLINE_SUFFIX MELT_BINARYMODULE_SUFFIX;
   }
+  else if (MODULNAM_ENDS(MELTMODFLAV_DYNAMIC_SUFFIX)) {
+    dupmodulnam[modulnamlen-suflen] = (char)0;
+    maketarget = MELTMODFLAV_DYNAMIC_TARGET;
+    modulsuffix = MELTMODFLAV_DYNAMIC_SUFFIX MELT_BINARYMODULE_SUFFIX;
+  }
   else 
     {
-      maketarget = MELTMODFLAV_OPTIMIZED_TARGET;
+      if (!maketarget)
+	maketarget = MELTMODFLAV_OPTIMIZED_TARGET;
       modulsuffix = MELTMODFLAV_OPTIMIZED_SUFFIX MELT_BINARYMODULE_SUFFIX;
     }
 #undef MODULNAM_ENDS
@@ -5813,19 +5820,43 @@ melt_find_source_and_module (const char*modulnam, unsigned flags)
 	if (workdir != NULL)
 	  inform (UNKNOWN_LOCATION,
 		  "MELT working directory %s", workdir);
-	if ((curenv=getenv("GCCMELT_MODULE_PATH")) != NULL)
+	if ((curenv=getenv ("GCCMELT_MODULE_PATH")) != NULL)
 	  inform (UNKNOWN_LOCATION,
 		  "MELT environment's GCCMELT_MODULE_PATH %s", curenv);
 	if (!flag_melt_bootstrapping)
 	  inform (UNKNOWN_LOCATION,
 		  "MELT builtin module directory %s", melt_module_dir);
+	melt_fatal_error ("MELT don't find binary module %s and won't build it",
+			  modulnam);
       }
+    else {
+      debugeprintf ("need to compile source %s for module %s with make %s",
+		    res.src_path, modulnam, maketarget);
+      if (workdir && workdir[0]) {
+	res.sho_path = concat (workdir, "/", modulbase, modulsuffix, NULL);
+	(void) remove (res.sho_path);
+	debugeprintf ("compiling in workdir %s to %s as %s", res.src_path, res.sho_path, maketarget);
+	compile_gencsrc_to_binmodule (res.src_path, res.sho_path, workdir, maketarget);
+      }
+      else {
+	char *tmpdir = melt_tempdir_path (NULL, NULL);
+	res.sho_path = melt_tempdir_path (modulbase, modulsuffix);
+	(void) remove (res.sho_path);
+	debugeprintf ("compiling in workdir %s to %s as %s", res.src_path, res.sho_path, maketarget);
+	compile_gencsrc_to_binmodule (res.src_path, res.sho_path, tmpdir, maketarget);
+	free ((void*) tmpdir), tmpdir=0;
+      }
+    }
   }
+  if (!res.sho_path)
+    melt_fatal_error ("MELT did not found shared object for module %s", modulnam);
+  debugeprintf("sharedobj bin module %s", res.sho_path);
+  if (access(res.sho_path, R_OK))
+    melt_fatal_error ("MELT cannot access shared object %s - %m", res.sho_path);
   /* The dlopen function wants /, otherwise it uses
      LD_LIBRARY_PATH, and we don't want that. */
   if (res.sho_path && !strchr(res.sho_path, '/'))
     res.sho_path = reconcat ((char*)res.sho_path, getpwd(), "/", res.sho_path, NULL);
-
   /* ending melt_find_source_and_module */
   debugeprintf ("melt_find_source_and_module return src %s sho %s",
 	        res.src_path?res.src_path:"*null*",
@@ -5841,102 +5872,46 @@ melt_find_source_and_module (const char*modulnam, unsigned flags)
     C code (or a dynamically loaded stuff) and dynamically load it;
     the C code should contain a function named start_module_melt; that
     function is called with the given modata and returns the module;
-    the modulnam should contain only letter, digits or one of +-_. The
-    maketarget is the topmost target for melt-module.mk. */
+    The maketarget is the topmost target for melt-module.mk. */
 melt_ptr_t
 meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const char*maketarget, 
 			      unsigned flags)
 {
-  char *srcpath = NULL;
-  char *dynpath = NULL;
-  FILE *srcfi = NULL;
-  FILE *oldf = NULL;
-  int dlix = 0;
-  int specialsuffixpos = 0; /* position set for .d.so or .n.so or .d or .n suffix */
-  int srcpathlen = 0;
+  struct melt_source_and_module_path_st sop = {NULL,NULL};
+#if MELT_HAVE_DEBUG
+  char curlocbuf[256];
+#endif
   char md5srctab[16];
-  char *md5src = NULL;
-  char *tmpath = NULL;
-  const char *dupmodulbasnam = NULL;
-  char *dupmodulnam = NULL;
-  char *envpath = NULL;
-  melt_module_info_t *moduptr = 0;
-  melt_ptr_t (*startroutp) (melt_ptr_t);	/* start routine */
-  int modulnamlen = 0;
-  const char* srcpathstr = melt_argument ("source-path");
-  const char* modpathstr = melt_argument ("module-path");
-  const char* modsuf = NULL;
-  MELT_ENTERFRAME (4, NULL);
+  const char*md5src = 0;
+  char md5hex[50];
+  char* dupmodulnam = NULL;
+  melt_module_info_t *moduptr = NULL;
+  FILE* srcfi = NULL;
+  FILE *oldfi = NULL;
+  int dlix = -1;
+  int ix = 0;
+  melt_ptr_t (*startroutp) (melt_ptr_t) = NULL;	/* start routine */
+  MELT_ENTERFRAME(3, NULL);
 #define modulv meltfram__.mcfr_varptr[0]
 #define mdatav meltfram__.mcfr_varptr[1]
 #define dumpv  meltfram__.mcfr_varptr[2]
+#if MELT_HAVE_DEBUG
+  memset (curlocbuf, 0, sizeof curlocbuf);
+#endif
+  memset (md5srctab, 0, sizeof(md5srctab));
+  memset (md5hex, 0, sizeof(md5hex));
   mdatav = modata_p;
-  melt_debuggc_eprintf ("meltgc_make_load_melt_module start frame %p - %p", 
-			(void*) &meltfram__, (void*)((&meltfram__)+1));
-  if (!modulnam || !modulnam[0]) {
-    error ("cannot load MELT module, no MELT module name given");
-    goto end;
-  }
-  debugeprintf ("meltgc_make_load_melt_module modulnam '%s' maketarget '%s'", 
-		modulnam?modulnam:"*null*", maketarget?maketarget:"*null*");
-  if (flag_melt_debug) 
-    melt_dbgshortbacktrace ("meltgc_make_load_melt_module", 50);
-  if ((flags & MELTLOADFLAG_CURDIR) == 0) 
-    {
-      if (!ISALNUM(modulnam[0]) && modulnam[0] != '_')
-	error ("bad MELT module name %s to load, should start with alphanumerical character", 
-	       modulnam);
-    }
-  modulnamlen = strlen(modulnam);
-
-  /* Check for special suffixes */
-#define CHECK_FOR_SPECIAL_SUFFIX_AT(Suffix,Modsuf,Lin) do {             \
-    int suffixlen_##Lin = strlen(Suffix);				\
-    int pos_##Lin = 0;							\
-    if ((pos_##Lin = modulnamlen - suffixlen_##Lin)>0			\
-	&& !strcmp(modulnam+pos_##Lin, Suffix))   {			\
-      specialsuffixpos = pos_##Lin;					\
-      debugeprintf ("meltgc_make_load_melt_module found special suffix %s", \
-		    Modsuf);						\
-      modsuf = Modsuf; } } while(0)
-#define CHECK_FOR_SPECIAL_SUFFIX(Suffix,Modsuf)		\
-  CHECK_FOR_SPECIAL_SUFFIX_AT(Suffix,Modsuf,__LINE__)
-  CHECK_FOR_SPECIAL_SUFFIX(".n", ".n.so");
-  CHECK_FOR_SPECIAL_SUFFIX(".n.so", ".n.so");
-  CHECK_FOR_SPECIAL_SUFFIX(".d", ".d.so");
-  CHECK_FOR_SPECIAL_SUFFIX(".d.so", ".d.so");
-  CHECK_FOR_SPECIAL_SUFFIX(".q", ".q.so");
-  CHECK_FOR_SPECIAL_SUFFIX(".q.so", ".q.so");
-#undef CHECK_FOR_SPECIAL_SUFFIX
-#undef CHECK_FOR_SPECIAL_SUFFIX_AT
-  if (!modsuf) 
-    modsuf = ".so";
-
-  if ((flags & MELTLOADFLAG_CURDIR) != 0 && !flag_melt_bootstrapping) 
-    {
-      tmpath = concat (lbasename (modulnam), ".c", NULL);
-      debugeprintf ("meltgc_make_load_melt_module trying in current dir %s", tmpath);
-      if (tmpath && !access (tmpath, R_OK))
-	{
-	  debugeprintf ("meltgc_make_load_melt_module found source in current %s", tmpath);
-	  srcpath = tmpath;
-	  dupmodulnam = xstrdup (modulnam);
-	  goto foundsrcpath;
-	}
-      free(tmpath);
-      tmpath = NULL;
-    }
-
+  if (!modulnam || !modulnam[0])
+    melt_fatal_error ("meltgc_make_load_melt_module without module name #%d", melt_nb_modules);
+  if (!maketarget)
+    maketarget = MELTMODFLAV_OPTIMIZED_TARGET;
+  debugeprintf ("meltgc_make_load_melt_module start modulnam '%s' maketarget '%s'", modulnam, maketarget);
   /* Always check the module name.  Accept / in module names if it is
      not the last, to permit directories in them.   */
   {
     const char* p = 0;
     for (p=modulnam; *p; p++)
       {
-	/* special hack for names like warmelt-first.0.d or
-	   warmelt-foo.1.n */
-	if (specialsuffixpos>0 && p==modulnam+specialsuffixpos)
-	  break;
 	if (!ISALNUM(*p) && *p != '-' && *p != '_'
 	    && (*p == '.' && !ISALNUM(p[1]))
 	    && (*p == '/' && !ISALNUM(p[1])))
@@ -5946,377 +5921,87 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 	  }
       }
   }
+  if (flag_melt_debug) 
+    melt_dbgshortbacktrace ("meltgc_make_load_melt_module", 50);
+  MELT_LOCATION_HERE_PRINTF(curlocbuf, "meltgc_make_load_melt_module modulnam %s", modulnam);
   /* duplicate the module name for safety, i.e. because it was in MELT
      heap or whatever ... */
   dupmodulnam = xstrdup (modulnam);
-
-  if (specialsuffixpos>0) 
-    dupmodulnam[specialsuffixpos] = '\0';
-  debugeprintf ("meltgc_make_load_melt_module specialsuffixpos=%d %s dupmodulnam=%s", 
-		specialsuffixpos, (specialsuffixpos>0)?modulnam+specialsuffixpos:" ", 
-		dupmodulnam);
-  /***** first find the source path if possible, unless bootstrapping ******/
-  if (flag_melt_bootstrapping)
-    goto finddynlibmodule;
-
-  dupmodulbasnam = lbasename(dupmodulnam);
-
-  /* look first in the temporary directory */
-  tmpath = melt_tempdir_path (dupmodulbasnam, ".c");
-  debugeprintf ("meltgc_make_load_melt_module trying in tempdir %s", tmpath);
-  if (tmpath && !access (tmpath, R_OK))
-    {
-      debugeprintf ("meltgc_make_load_melt_module found source in tempdir %s", tmpath);
-      srcpath = tmpath;
-      goto foundsrcpath;
-    }
-  free(tmpath);
-  tmpath = NULL;
-  /* look in the source path if given */
-  if (srcpathstr && srcpathstr[0]) {
-    debugeprintf("meltgc_make_load_melt_module trying in MELT srcpath %s", srcpathstr);
-    tmpath = lookup_path (srcpathstr, dupmodulbasnam, ".c");
-    debugeprintf("meltgc_make_load_melt_module got in MELT srcpath %s", tmpath);
-    if (tmpath) {
-      srcpath = tmpath;
-      goto foundsrcpath;
-    }
+  sop = melt_get_source_and_module (modulnam, maketarget, flags);
+  debugeprintf ("meltgc_make_load_melt_module sop src %s sho %s", sop.src_path, sop.sho_path);
+  if (!sop.src_path)
+    melt_fatal_error("MELT did not found source path for module %s", modulnam);
+  if (!sop.sho_path)
+    melt_fatal_error("MELT did not found binary path for module %s", modulnam);
+  /* Compute the md5 hash of the C source file.  */
+  srcfi = fopen(sop.src_path, "r");
+  if (!srcfi)
+    melt_fatal_error ("MELT failed to open C generated source file %s - %m", sop.src_path);
+  memset (md5srctab, 0, sizeof (md5srctab));
+  if (md5_stream (srcfi, &md5srctab))
+    melt_fatal_error
+      ("failed to compute md5sum of generated source file %s for MELT",
+       sop.src_path);
+  md5src = md5srctab;
+  fclose (srcfi);
+  srcfi = NULL;
+  memset (md5hex, 0, sizeof(md5hex));
+  for (ix=0; ix<16; ix++) {
+    char hexb[4] = {0,0,0,0};
+    int curbyt = md5src[ix] & 0xff;
+    snprintf (hexb, sizeof(hexb)-1, "%02x", curbyt);
+    md5hex[2*ix] = hexb[0];
+    md5hex[2*ix+1] = hexb[1];
   }
-  else 
-    envpath = flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_SOURCE_PATH"));
-  /* look into the GCCMELT_SOURCE_PATH environment variable if no
-     source path was given */
-  if (envpath && *envpath) 
-    {
-      debugeprintf("meltgc_make_load_melt_module trying in GCCMELT_SOURCE_PATH %s",
-		   envpath);
-      tmpath = lookup_path (envpath, dupmodulbasnam, ".c");
-      debugeprintf("meltgc_make_load_melt_module got in  GCCMELT_SOURCE_PATH %s", tmpath);
-      if (tmpath) {
-	srcpath = tmpath;
-	goto foundsrcpath;
-      }
-    }
-  /* perhaps use make_relative_prefix  for the melt source directory ... */
-  /* look into the melt source dir */
-  tmpath = flag_melt_bootstrapping?NULL:(concat (melt_source_dir, "/", dupmodulbasnam, ".c", NULL));
-  debugeprintf ("meltgc_make_load_melt_module trying in meltsrcdir %s", tmpath);
-  if (tmpath && !access (tmpath, R_OK))
-    {
-      debugeprintf ("meltgc_make_load_melt_module found source in meltsrcdir %s", tmpath);
-      srcpath = tmpath;
-      goto foundsrcpath;
-    }
-  free ((void*)tmpath);
-  tmpath = NULL;
-  /* we didn't found the source */
-  debugeprintf ("meltgc_make_load_melt_module cannot find source for mudule %s", dupmodulnam);
-  warning (0, "didn't find MELT module %s 's C source code; perhaps need -fmelt-source-path=...", dupmodulnam);
-  inform (UNKNOWN_LOCATION, "MELT temporary source path tried %s for C source code", 
-	  melt_tempdir_path (dupmodulbasnam, ".c"));
-  {
-    /* explain only once the path we searched the C source code in */
-    static int nbexplain;
-    if (nbexplain <= 0) 
-      {
-	if (srcpathstr && srcpathstr[0])
-	  inform (UNKNOWN_LOCATION, "MELT given source path is %s",
-		  srcpathstr);
-	if (envpath && envpath[0])
-	  inform (UNKNOWN_LOCATION, "MELT environment GCCMELT_SOURCE_PATH is %s", 
-		  envpath);
-	inform (UNKNOWN_LOCATION, "MELT builtin source directory is %s", 
-		melt_source_dir);
-	inform (UNKNOWN_LOCATION, "MELT current directory is %s", 
-		getpwd ());
-      };
-    nbexplain++;
-  }
-  if (srcpath) 
-    {
-    foundsrcpath:  /* we found the source file */
-      srcpathlen = strlen (srcpath);
-      debugeprintf ("meltgc_make_load_melt_module found srcpathlen %d srcpath %s", srcpathlen, srcpath);
-      /* compute the md5 hash of the source code */
-      srcfi = fopen (srcpath, "r");
-      if (!srcfi)
-	/* this really should not happen, we checked with access before
-	   that the source file existed! */
-	melt_fatal_error ("cannot open generated source file %s for MELT : %m",
-			  srcpath);
-      memset (md5srctab, 0, sizeof (md5srctab));
-      if (md5_stream (srcfi, &md5srctab))
-	melt_fatal_error
-	  ("failed to compute md5sum of generated source file %s for MELT",
-	   srcpath);
-      md5src = md5srctab;
-      fclose (srcfi);
-      srcfi = NULL;
-    }
-
- finddynlibmodule:
-  /**
-     We have to scan several dynlib directories to find the module;
-     when we find a module, we dynamically load it to check that it
-     has the right md5 sum (i.e. that its melt_md5 is correct); if no
-     dynlib is found, we have to compile the generated C source.  We
-     should really scan the module path incrementally, i.e. testing
-     the foo.so file in every element of the path. We don't do that yet.
-  **/
-
-  
-  if ((flags & MELTLOADFLAG_CURDIR) != 0) 
-    {
-#if MELT_HAVE_DEBUG
-      char locbuf[200];
-#endif
-      if (strchr (modulnam, DIR_SEPARATOR)) 
-	tmpath = concat (modulnam, modsuf, NULL);
-      else
-	{ 
-	  char dotdirstr[4] = { '.', DIR_SEPARATOR , 0};
-	  tmpath = concat (dotdirstr, modulnam, modsuf, NULL);
-	}
-      MELT_LOCATION_HERE_PRINTF
-	(locbuf, "meltgc_make_load_melt_module before load_checked_dylib tmpath %s", tmpath);
-      debugeprintf ("meltgc_make_load_melt_module extra tmpath %s", tmpath);
-      if (tmpath)
-	dlix = load_checked_dynamic_module_index (tmpath, md5src);
-      else
-	dlix = -1;
-      debugeprintf ("meltgc_make_load_melt_module dlix=%d extra tmpath=%s", dlix,
-		    tmpath);
-      if (dlix > 0)
-	{
-	  dynpath = tmpath;
-	  goto dylibfound;
-	};
-      free ((void*)tmpath);
-      tmpath = NULL;
-    }
-
-  /* if a dynlib directory is given, check it */
-  if (modpathstr && modpathstr[0])
-    {
-      dbgprintf("meltgc_make_load_melt_module before lookup_path modpathstr=%s dupmodulnam=%s modsuf=%s", 
-		modpathstr, dupmodulnam, modsuf);
-      tmpath = lookup_path (modpathstr, dupmodulnam, modsuf);
-      MELT_LOCATION_HERE
-	("meltgc_make_load_melt_module before load_checked_dylib path looked");
-      debugeprintf ("meltgc_make_load_melt_module tmpath %s", tmpath);
-      if (tmpath)
-	dlix = load_checked_dynamic_module_index (tmpath, md5src);
-      else
-	dlix = -1;
-      debugeprintf ("meltgc_make_load_melt_module dlix=%d dynlib tmpath=%s", dlix,
-		    tmpath);
-      if (dlix > 0)
-	{
-	  dynpath = tmpath;
-	  goto dylibfound;
-	};
-      free ((void*)tmpath);
-      tmpath = NULL;
-    }
-
-  if (flag_melt_bootstrapping)
-    {
-      /* we are bootstrapping, so check also the modulename */
-      char locbuf[200];
-      MELT_LOCATION_HERE_PRINTF
-	(locbuf, "meltgc_make_load_melt_module before load_checked_dylib bootstrapping %s", dupmodulnam);
-      dlix = load_checked_dynamic_module_index (dupmodulnam, md5src);
-      debugeprintf ("meltgc_make_load_melt_module dlix=%d bootstrapping dupmodulnam=%s", dlix,
-		    dupmodulnam);
-      MELT_LOCATION_HERE ("meltgc_make_load_melt_module after load_checked_dylib bootstrapping");
-      if (dlix > 0)
-	{
-	  dynpath = dupmodulnam;
-	  goto dylibfound;
-	}
-    }
-  else
-    {
-      char locbuf[200];
-      /* we are not bootstrapping, so check in the builtin melt module directory */
-      tmpath = concat (melt_module_dir, "/", dupmodulnam, NULL);
-      MELT_LOCATION_HERE_PRINTF
-	(locbuf, "meltgc_make_load_melt_module before load_checked_dylib builtin module %s", dupmodulnam);
-      dlix = load_checked_dynamic_module_index (tmpath, md5src);
-      MELT_LOCATION_HERE ("meltgc_make_load_melt_module after load_checked_dylib builtin");
-      debugeprintf ("meltgc_make_load_melt_module dlix=%d meltdynlib tmpath=%s", dlix,
-		    tmpath);
-      if (dlix > 0)
-	{
-	  dynpath = tmpath;
-	  goto dylibfound;
-	};
-      free ((void*)tmpath);
-    };
-  tmpath = NULL;
-  {
-#if MELT_HAVE_DEBUG
-    char locbuf[200];
-#endif
-    /* check in the temporary directory */
-    debugeprintf ("meltgc_make_load_melt_module modsuf %s", modsuf);
-    tmpath = melt_tempdir_path (dupmodulnam, modsuf);
-    debugeprintf ("meltgc_make_load_melt_module trying %s", tmpath);
-    MELT_LOCATION_HERE_PRINTF
-      (locbuf, "meltgc_make_load_melt_module before load_checked_dylib tmpath %s", tmpath);
-    dlix = tmpath ? load_checked_dynamic_module_index (tmpath, md5src) : 0;
-    MELT_LOCATION_HERE ("meltgc_make_load_melt_module after load_checked_dylib tmpath");
-    debugeprintf ("meltgc_make_load_melt_module dlix=%d tempdir tmpath=%s", dlix,
-		  tmpath);
-    if (dlix > 0)
-      {
-	dynpath = tmpath;
-	goto dylibfound;
-      };
-  }
-  free ((void*)tmpath);
-  tmpath = NULL;
-
-  debugeprintf ("meltgc_make_load_melt_module md5src %p", (void*)md5src);
-  /* If we really have the source, we can afford to check in the
-     current directory. */
-  if (md5src)
-    {
-#if MELT_HAVE_DEBUG
-      char locbuf[200];
-#endif
-      tmpath = concat ("./", dupmodulnam, ".so", NULL);
-      debugeprintf ("meltgc_make_load_melt_module tmpath %s", tmpath);
-      MELT_LOCATION_HERE_PRINTF
-	(locbuf, "meltgc_make_load_melt_module before load_checked_dynamic_module_index src tmpath %s", tmpath);
-      dlix = load_checked_dynamic_module_index (tmpath, md5src);
-      debugeprintf ("meltgc_make_load_melt_module dlix=%d curdir tmpath=%s", dlix,
-		    tmpath);
-      if (dlix > 0)
-	{
-	  dynpath = tmpath;
-	  goto dylibfound;
-	};
-      free ((void*)tmpath);
-    }
-  debugeprintf ("meltgc_make_load_melt_module srcpath %s dynpath %s", srcpath, dynpath);
-  /* if we have the srcpath but did'nt found the binary module, try to
-     compile it using the temporary directory, unless we are
-     bootstrapping.  */
-  if (srcpath || !dynpath)
-    {
-      char* mytmpdir = melt_tempdir_path(NULL, NULL);
-      /* When bootstrapping, MELT should have found the dynpath */
-      if (flag_melt_bootstrapping) {
-	inform (UNKNOWN_LOCATION, "MELT bootstrapping, given source path is %s",
-		srcpathstr);
-	inform (UNKNOWN_LOCATION, "MELT bootstrapping, given module path is %s",
-		modpathstr);
-	inform (UNKNOWN_LOCATION, "MELT bootstrapping, current directory is %s", 
-		getpwd ());
-	melt_fatal_error
-	  ("MELT won't make a module while bootstrapping, srcpath '%s', modulnam %s maketarget '%s' flags %u",
-	   srcpath?srcpath:"*null*", modulnam, maketarget?maketarget:"*null*", flags);
-      }
-      debugeprintf ("meltgc_make_load_melt_module with modsuf %s", modsuf);
-      tmpath = melt_tempdir_path (dupmodulnam, modsuf);
-      debugeprintf ("meltgc_make_load_melt_module before compiling tmpath %s", tmpath);
-      debugeprintf ("meltgc_make_load_melt_module before compiling mytmpdir %s", mytmpdir);
-      debugeprintf ("meltgc_make_load_melt_module before compiling maketarget %s", maketarget);
-      compile_gencsrc_to_binmodule (srcpath, tmpath, mytmpdir, maketarget);
-      debugeprintf ("meltgc_compile srcpath=%s compiled to tmpath=%s",
-		    srcpath, tmpath);
-      free ((void*)mytmpdir);
-      mytmpdir = NULL;
-      MELT_LOCATION_HERE
-	("meltgc_make_load_melt_module before load_checked_dylib compiled tmpath");
-      dlix = load_checked_dynamic_module_index (tmpath, md5src);
-      debugeprintf ("meltgc_make_load_melt_module dlix=%d tempdirpath tmpath=%s",
-		    dlix, tmpath);
-      if (dlix > 0)
-	{
-	  dynpath = tmpath;
-	  goto dylibfound;
-	}
-      else
-	error ("compilation & loading of MELT generated file %s to temporary module %s failed",
-	       srcpath, tmpath);
-    }
-  debugeprintf ("failed here dlix=%d", dlix);
-
-  /* if it had a special suffix, restore it */
-  if (specialsuffixpos>0)
-    {
-      dupmodulnam[specialsuffixpos] = '.';
-      debugeprintf ("meltgc_make_load_melt_module restored dupmodulnam %s specialsuffixpos %d", 
-		    dupmodulnam, specialsuffixpos);
-    }
-  /* catch all situation, failed to find the dynamic stuff */
-  /* give info to user */
-  error("failed to find dynamic stuff for MELT module %s (%s)",
-	dupmodulnam, dlerror ());
-  inform (UNKNOWN_LOCATION, 
-	  "not found dynamic stuff using tempdir %s", 
-	  melt_tempdir_path (dupmodulnam, NULL));
-  if (modpathstr)
-    inform (UNKNOWN_LOCATION,
-	    "not found dynamic stuff using module path %s",
-	    modpathstr);
-  inform (UNKNOWN_LOCATION,
-	  "not found dynamic stuff using builtin module directory %s",
-	  melt_module_dir);
-  if (srcpath)
-    inform (UNKNOWN_LOCATION, 
-	    "not found dynamic stuff using srcpath %s", 
-	    srcpath);
-  inform (UNKNOWN_LOCATION,
-	  "not found dynamic stuff for %s in current directory %s",
-	  dupmodulnam, getpwd());
-  melt_fatal_error ("unable to continue since failed to load MELT module %s", 
-		    dupmodulnam);
- dylibfound:
-  debugeprintf ("dylibfound dlix=%d", dlix);
+  MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+			     "meltgc_make_load_melt_module before load dynamic module %s", sop.sho_path);
+  debugeprintf ("meltgc_make_load_melt_module binpath %s srcpath %s md5hex %s", 
+		sop.sho_path, sop.src_path, md5hex);
+  dlix = load_checked_dynamic_module_index ((const char*) sop.sho_path, (const char*) md5src);
+  debugeprintf ("meltgc_make_load_melt_module dlix=%d binpath %s", dlix, sop.sho_path);
+  if (dlix <= 0)
+    melt_fatal_error ("MELT failed to load binary module %s of C source %s & md5sum %s", 
+		      sop.sho_path, sop.src_path, md5hex);
+  MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+			     "meltgc_make_load_melt_module after load dynamic module %s dlix#%d", 
+			     sop.sho_path, dlix);
   gcc_assert (dlix > 0
 	      && dlix < (int) VEC_length (melt_module_info_t, modinfvec));
   moduptr = VEC_index (melt_module_info_t, modinfvec, dlix);
-  debugeprintf ("dylibfound moduptr=%p", (void *) moduptr);
   gcc_assert (moduptr != 0);
   startroutp = moduptr->start_rout;
   dumpv = melt_get_inisysdata (FSYSDAT_DUMPFILE);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
     {
-      oldf = ((struct meltspecial_st*)dumpv)->val.sp_file;
+      oldfi = ((struct meltspecial_st*)dumpv)->val.sp_file;
       ((struct meltspecial_st*)dumpv)->val.sp_file = dump_file;
     }
-#if MELT_HAVE_DEBUG
-  {
-    static char locbuf[120];
-    memset (locbuf, 0, sizeof (locbuf));
-    snprintf (locbuf, sizeof (locbuf) - 1,
-	      "%s:%d:meltgc_make_load_melt_module before module %s",
-	      lbasename (__FILE__), __LINE__, dupmodulnam);
-    meltfram__.mcfr_flocs = locbuf;
-  }
-#endif
+  MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+			     "meltgc_make_load_melt_module before initialization of module %s", dupmodulnam);
+  debugeprintf("before initializing module %s", dupmodulnam);
   modulv = (*startroutp) ((melt_ptr_t) mdatav);
   melt_nb_modules ++;
-  MELT_LOCATION_HERE ("meltgc_make_load_melt_module after calling module");
+  MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+			     "meltgc_make_load_melt_module after initialization of module %s #%d", 
+			     dupmodulnam, melt_nb_modules);
+  debugeprintf ("after initializing module %s #%d src %s sho %s", 
+		dupmodulnam, melt_nb_modules, sop.src_path, sop.sho_path);
   if (melt_magic_discr ((melt_ptr_t) dumpv) == MELTOBMAG_SPEC_RAWFILE) 
     {
       FILE *df = melt_get_file ((melt_ptr_t) dumpv);
       if (df)
 	fflush (df);
-      ((struct meltspecial_st*)dumpv)->val.sp_file = oldf;
+      ((struct meltspecial_st*)dumpv)->val.sp_file = oldfi;
     };
+  /* We don't free sop.sho_path because it is stored in moduptr.  And
+     the shared object is never dlclose-d... */
+  free ((void*)sop.src_path), sop.src_path = 0;
  end:
-  debugeprintf ("meltgc_make_load_melt_module returns modulv %p", (void *) modulv);
-  /* we never free dynpath -since it is stored in moduptr- and we
-     never release the shared library with a dlclose or something! */
-  MELT_EXITFRAME ();
-  free(dupmodulnam);
+  MELT_EXITFRAME();
+  free (dupmodulnam);
   return (melt_ptr_t) modulv;
-#undef mdatav
 #undef modulv
+#undef mdatav
 #undef dumpv
 }
 
