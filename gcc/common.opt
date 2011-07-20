@@ -944,6 +944,12 @@ fmelt-tempdir=
 Common Report Var(melt_tempdir_string) RejectNegative Joined
 Temporary directory for melt (is not cleaned if specified)
 
+; work directory for melt
+fmelt-workdir=
+Common Report Var(melt_workdir_string) RejectNegative Joined
+Work directory for melt. Generated .c files and .so modules 
+go there if it is given.
+
 
 ; extra modules
 fmelt-extra=

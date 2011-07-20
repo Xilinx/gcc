@@ -2095,6 +2095,7 @@ enum {
   MELTLOADFLAG_NONE=0,		/* no flags is the default */
   MELTLOADFLAG_CURDIR= (1 << 0), /* search the source and module in
 				    current directory */
+  MELTLOADFLAG_DONTMAKE= (1 << 1), /* don't make the module if not found */
   MELTLOADFLAG_MASK= ~0
 };
 

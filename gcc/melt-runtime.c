@@ -515,6 +515,8 @@ melt_argument (const char* argname)
     return melt_secondargument_string;
   else if (!strcmp (argname, "tempdir"))
     return melt_tempdir_string;
+  else if (!strcmp (argname, "workdir"))
+    return melt_workdir_string;
   /* currently, minor-zone & full-threshold are parameters, so we make
      a string out of them */
   else if (!strcmp (argname, "minor-zone"))
@@ -5504,6 +5506,335 @@ lookup_path(const char*path, const char* base, const char* suffix)
   return NULL;
 }
 
+/* Utility function to find the source and the module of a given
+   name.  It may build the module if not found, unless given the flag
+   MELTLOADFLAG_DONTMAKE;  it returns the full malloc-ed paths of the .so
+   module and the main .c source; it signals an error if the module is
+   not found. */
+struct melt_source_and_module_path_st {
+  char* src_path;		/* a malloc-ed *.c path */
+  char* sho_path;		/* a malloc-ed *.so path */
+};
+
+
+/* static inline  */
+struct melt_source_and_module_path_st
+melt_find_source_and_module (const char*modulnam, unsigned flags)
+{
+  /* suffixes and melt-module.mk make targets for quickly built, and
+     noline, and optimized flavors. */
+#define MELTMODFLAV_QUICKLYBUILT_SUFFIX ".q"
+#define MELTMODFLAV_QUICKLYBUILT_TARGET "melt_module_quicklybuilt"
+#define MELTMODFLAV_NOLINE_SUFFIX ".n"
+#define MELTMODFLAV_NOLINE_TARGET "melt_module_withoutline"
+#define MELTMODFLAV_OPTIMIZED_SUFFIX ""
+#define MELTMODFLAV_OPTIMIZED_TARGET "melt_module"
+#define MELT_BINARYMODULE_SUFFIX ".so"
+  struct melt_source_and_module_path_st res = {NULL, NULL};
+  const char* maketarget = NULL;
+  int modulnamlen = 0;
+  int suflen = 0;
+  char* dupmodulnam = xstrdup(modulnam);
+  const char* modulbase = lbasename (dupmodulnam);
+  char *curpath = NULL;
+  char *curenv = NULL;
+  const char* modulsuffix = NULL;
+  const char* sourcepath = melt_argument ("source-path");
+  const char* modulepath = melt_argument ("module-path");
+  const char* workdir = melt_argument ("workdir");
+  gcc_assert (modulnam != NULL);
+  modulnamlen = strlen(modulnam);
+  debugeprintf ("melt_find_source_and_module start modulnam %s flags %u", 
+		modulnam, flags);
+#define MODULNAM_ENDS(Suf) ((suflen=strlen((Suf)))>0			\
+			    && modulnamlen>suflen			\
+			    && !strcmp(modulnam+modulnamlen-suflen, (Suf)))
+  res.src_path = NULL;
+  res.sho_path = NULL;
+  /* a common mistake is to give the explicit .so suffix */
+  if (MODULNAM_ENDS(".so")) 
+    melt_fatal_error ("MELT module name %s should not end with .so", modulnam);
+  if (MODULNAM_ENDS(MELTMODFLAV_QUICKLYBUILT_SUFFIX)) {
+    dupmodulnam[modulnamlen-suflen] = (char)0;
+    maketarget = MELTMODFLAV_QUICKLYBUILT_TARGET;
+    modulsuffix = MELTMODFLAV_QUICKLYBUILT_SUFFIX MELT_BINARYMODULE_SUFFIX;
+  }
+  else if (MODULNAM_ENDS(MELTMODFLAV_NOLINE_SUFFIX)) {
+    dupmodulnam[modulnamlen-suflen] = (char)0;
+    maketarget = MELTMODFLAV_NOLINE_TARGET;
+    modulsuffix = MELTMODFLAV_NOLINE_SUFFIX MELT_BINARYMODULE_SUFFIX;
+  }
+  else 
+    {
+      maketarget = MELTMODFLAV_OPTIMIZED_TARGET;
+      modulsuffix = MELTMODFLAV_OPTIMIZED_SUFFIX MELT_BINARYMODULE_SUFFIX;
+    }
+#undef MODULNAM_ENDS
+  debugeprintf ("dupmodulnam '%s' maketarget %s modulsuffix '%s'",
+		dupmodulnam, maketarget, modulsuffix);
+
+  /******************************************************
+   * First, find the C source code of the module! Several directories
+   * and paths are used. 
+   ******************************************************/
+  /* Look for the source in the current directory, or as an absolute
+     path when requested by flags. */
+  if (res.src_path == NULL && (flags & MELTLOADFLAG_CURDIR) != 0) 
+    {
+      curpath = concat (dupmodulnam, ".c", NULL);
+      debugeprintf ("trying with currentdir %s", curpath);
+      if (!access(curpath, R_OK)) 
+	{
+	  res.src_path = curpath;
+	  debugeprintf ("found source in current directory %s", curpath);
+	}
+      else
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the source in the temporary directory.  */
+  if (res.src_path == NULL && !flag_melt_bootstrapping) 
+    {
+      curpath = melt_tempdir_path (dupmodulnam, ".c");
+      debugeprintf ("trying with tempdir %s", curpath);
+      if (!access(curpath, R_OK)) {
+	res.src_path = curpath;
+	debugeprintf ("found source in temporary directory %s", curpath);
+      }
+      else
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the source in the working directory. */
+  if (res.src_path == NULL && workdir != NULL
+      && workdir[0]) 
+    {
+      curpath = concat (workdir, "/", dupmodulnam, ".c", NULL);
+      debugeprintf ("trying with workdir %s", curpath);
+      if (!access(curpath, R_OK)) {
+	res.src_path = curpath;
+	debugeprintf ("found source in working directory %s", curpath);
+      }
+      else
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the source in the source path.  */
+  if (res.src_path == NULL)
+    debugeprintf("looking %s in sourcepath %s", 
+		 modulbase, melt_argument("source-path"));
+  if (res.src_path == NULL 
+      && (curpath = lookup_path (melt_argument("source-path"), modulbase, ".c")) != NULL)  
+    {
+      if (!access(curpath, R_OK)) {
+	res.src_path = curpath;
+	debugeprintf ("found source in source path %s", curpath);
+      }
+      else 
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the source using GCCMELT_SOURCE_PATH environment
+     variable, unless we are bootstrapping. */
+  if (res.src_path == NULL 
+      && !flag_melt_bootstrapping
+      && (curenv = getenv ("GCCMELT_SOURCE_PATH")) != NULL
+      && curenv[0])
+    {
+      debugeprintf("looking %s in GCCMELT_SOURCE_PATH %s", modulbase, curenv);
+      if ((curpath = lookup_path (curenv, modulbase, ".c")) != NULL
+	  && !access(curpath, R_OK)) {
+	res.src_path = curpath;
+	debugeprintf ("found source in $GCCMELT_SOURCE_PATH %s", curpath);
+      }
+      else 
+	free ((void*)curpath), curpath = NULL;
+    };
+  /* At last, look using the builtin MELT source directory, unless we
+     are bootstrapping. */
+  if (res.src_path == NULL && !flag_melt_bootstrapping)
+    {
+      debugeprintf("looking %s in meltsrcdir %s", modulbase, melt_source_dir);
+      curpath = concat (melt_source_dir, "/", modulbase, ".c", NULL);
+      if (!access(curpath, R_OK)) 
+	{
+	  res.src_path = curpath;
+	  debugeprintf ("found source in builtin directory %s", curpath);
+	}
+      else
+	free ((void*)curpath), curpath = NULL;
+    };
+  /* Fail if no source found! It is not worth continuing, since we are
+     in deep trouble. */
+  if (res.src_path == NULL) 
+    {
+      error ("MELT failed to find the C source for module %s", modulnam);
+      if ((flags & MELTLOADFLAG_CURDIR) != 0 && !IS_ABSOLUTE_PATH(modulnam))
+	inform (UNKNOWN_LOCATION, 
+		"MELT C source for %s not found in current directory %s", 
+		modulnam, getpwd());
+      if (IS_ABSOLUTE_PATH(modulnam))
+	inform (UNKNOWN_LOCATION, 
+		"MELT C source not found for %s", modulnam);
+      inform (UNKNOWN_LOCATION, 
+	      "MELT C source for %s not found in temporary directory %s",
+	      modulnam, melt_tempdir_path(NULL, NULL));
+      if (workdir != NULL && workdir[0])
+	inform (UNKNOWN_LOCATION, 
+		"MELT C source for %s not found in working directory %s",
+		modulnam, workdir);
+      if (sourcepath != NULL)
+	inform (UNKNOWN_LOCATION, 
+		"MELT C source for %s not found in source path %s",
+		modulnam, sourcepath);
+      if (!flag_melt_bootstrapping 
+	  && (curenv = getenv ("GCCMELT_SOURCE_PATH")) != NULL
+	  && curenv[0])
+	inform (UNKNOWN_LOCATION, 
+		"MELT C source for %s not found using environment's GCCMELT_SOURCE_PATH %s",
+		modulnam, curenv);
+      if (!flag_melt_bootstrapping)
+	inform (UNKNOWN_LOCATION, 
+		"MELT C source for %s not found in builtin MELT source directory %s",
+		modulnam, melt_source_dir);
+      melt_fatal_error ("unable to find C source for module %s", modulnam);
+    };
+
+
+  /******************************************************
+   * Then, find the .so shared object binary of the module! Several
+   * directories and paths are used.
+   ******************************************************/
+  /* Look for the sharedobj in the current directory, or as an absolute
+     path when requested by flags. */
+  if (res.sho_path == NULL 
+      && ((flags & MELTLOADFLAG_CURDIR) != 0 || IS_ABSOLUTE_PATH(dupmodulnam))) 
+    {
+      /* dlopen wants a path with / */
+      if (IS_ABSOLUTE_PATH(dupmodulnam))
+	curpath = concat (dupmodulnam, modulsuffix, NULL);
+      else
+	curpath = concat (getpwd(), "/", dupmodulnam, modulsuffix, NULL);
+      debugeprintf("checking sharedobj currentdir curpath %s", curpath);
+      if (!access(curpath, R_OK)) 
+	{
+	  res.sho_path = curpath;
+	  debugeprintf ("found binary module using current directory %s", curpath);
+	}
+      else
+	free ((void*)curpath), curpath = NULL;
+    };
+  /* Look for the sharedobj in the temporary directory.  */
+  if (res.sho_path == NULL && !flag_melt_bootstrapping) 
+    {
+      curpath = melt_tempdir_path (modulbase, modulsuffix);
+      debugeprintf ("checking sharedobj tempdir %s", curpath);
+      if (!access(curpath, R_OK)) {
+	res.sho_path = curpath;
+	debugeprintf ("found binary module in temporary directory %s", curpath);
+      }
+      else
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the sharedobj in the working directory. */
+  if (res.sho_path == NULL && workdir != NULL
+      && workdir[0]) 
+    {
+      curpath = concat (workdir, "/", modulbase, modulsuffix, NULL);
+      debugeprintf ("checking sharedobj workdir %s", curpath);
+      if (!access(curpath, R_OK)) {
+	res.sho_path = curpath;
+	debugeprintf ("found binary module in working directory %s", curpath);
+      }
+      else
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the sharedobj in the module path.  */
+  if (res.sho_path == NULL)
+    debugeprintf("looking %s%s in modulepath %s", 
+		 modulbase, modulsuffix, melt_argument("module-path"));
+  if (res.sho_path == NULL 
+      && (curpath = lookup_path (melt_argument ("module-path"), 
+				 modulbase, modulsuffix)) != NULL)  
+    {
+      if (!access(curpath, R_OK)) {
+	res.src_path = curpath;
+	debugeprintf ("found binary module in module path %s", curpath);
+      }
+      else 
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the sharedobj using GCCMELT_MODULE_PATH environment
+     variable, unless we are bootstrapping. */
+  if (res.sho_path == NULL 
+      && !flag_melt_bootstrapping
+      && (curenv = getenv ("GCCMELT_MODULE_PATH")) != NULL
+      && curenv[0]) 
+    {
+      debugeprintf("looking %s%s in GCCMELT_MODULE_PATH %s", 
+		   modulbase, modulsuffix, curenv);
+      if ((curpath = lookup_path (curenv, modulbase, modulsuffix)) != NULL 
+	  && !access(curpath, R_OK)) {
+	res.src_path = curpath;
+	debugeprintf ("found binary module in $GCCMELT_MODULE_PATH %s", curpath);
+      }
+      else 
+	free ((void*)curpath), curpath = NULL;
+    };
+  /* At last, look using the builtin MELT module directory, unless we
+     are bootstrapping. */
+  if (res.sho_path == NULL && !flag_melt_bootstrapping)
+    {
+      curpath = concat (melt_module_dir, "/", modulbase, modulsuffix, NULL);
+      debugeprintf ("checking sharedobj builtin moduldir %s", curpath);
+      if (!access(curpath, R_OK)) 
+	{
+	  res.src_path = curpath;
+	  debugeprintf ("found source in builtin directory %s", curpath);
+	}
+      else
+	free ((void*)curpath), curpath = NULL;
+    };
+
+  /* If we didn't find the sharedobj, we should build it, unless asked
+     not to. */
+  if (res.sho_path == NULL) {
+    if (flag_melt_bootstrapping || (flags & MELTLOADFLAG_DONTMAKE))
+      {
+	error ("MELT failed to find the binary module %s, and not building it", 
+	       modulnam);
+	if (res.src_path)
+	  inform (UNKNOWN_LOCATION, 
+		  "MELT C source in %s", res.src_path);
+	if (res.src_path && !IS_ABSOLUTE_PATH(res.src_path))
+	  inform (UNKNOWN_LOCATION, 
+		  "MELT current directory %s", getpwd());
+	inform (UNKNOWN_LOCATION,
+		"MELT temporary directory %s", melt_tempdir_path(NULL, NULL));
+	if (modulepath != NULL)
+	  inform (UNKNOWN_LOCATION,
+		  "MELT module path %s", modulepath);
+	if (workdir != NULL)
+	  inform (UNKNOWN_LOCATION,
+		  "MELT working directory %s", workdir);
+	if ((curenv=getenv("GCCMELT_MODULE_PATH")) != NULL)
+	  inform (UNKNOWN_LOCATION,
+		  "MELT environment's GCCMELT_MODULE_PATH %s", curenv);
+	if (!flag_melt_bootstrapping)
+	  inform (UNKNOWN_LOCATION,
+		  "MELT builtin module directory %s", melt_module_dir);
+      }
+  }
+  /* The dlopen function wants /, otherwise it uses
+     LD_LIBRARY_PATH, and we don't want that. */
+  if (res.sho_path && !strchr(res.sho_path, '/'))
+    res.sho_path = reconcat ((char*)res.sho_path, getpwd(), "/", res.sho_path, NULL);
+
+  /* ending melt_find_source_and_module */
+  debugeprintf ("melt_find_source_and_module return src %s sho %s",
+	        res.src_path?res.src_path:"*null*",
+		res.sho_path?res.sho_path:"*null*");
+  return res;
+}
+
+
+
 
 
 /* Compile (as a dynamically loadable module) some (usually generated)
@@ -5546,7 +5877,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
     error ("cannot load MELT module, no MELT module name given");
     goto end;
   }
-  debugeprintf ("meltgc_make_load_melt_module modulnam %s maketarget %s", 
+  debugeprintf ("meltgc_make_load_melt_module modulnam '%s' maketarget '%s'", 
 		modulnam?modulnam:"*null*", maketarget?maketarget:"*null*");
   if (flag_melt_debug) 
     melt_dbgshortbacktrace ("meltgc_make_load_melt_module", 50);
@@ -5676,7 +6007,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
       srcpath = tmpath;
       goto foundsrcpath;
     }
-  free (tmpath);
+  free ((void*)tmpath);
   tmpath = NULL;
   /* we didn't found the source */
   debugeprintf ("meltgc_make_load_melt_module cannot find source for mudule %s", dupmodulnam);
@@ -5760,7 +6091,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 	  dynpath = tmpath;
 	  goto dylibfound;
 	};
-      free (tmpath);
+      free ((void*)tmpath);
       tmpath = NULL;
     }
 
@@ -5784,7 +6115,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 	  dynpath = tmpath;
 	  goto dylibfound;
 	};
-      free (tmpath);
+      free ((void*)tmpath);
       tmpath = NULL;
     }
 
@@ -5820,7 +6151,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 	  dynpath = tmpath;
 	  goto dylibfound;
 	};
-      free (tmpath);
+      free ((void*)tmpath);
     };
   tmpath = NULL;
   {
@@ -5843,7 +6174,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 	goto dylibfound;
       };
   }
-  free (tmpath);
+  free ((void*)tmpath);
   tmpath = NULL;
 
   debugeprintf ("meltgc_make_load_melt_module md5src %p", (void*)md5src);
@@ -5866,7 +6197,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 	  dynpath = tmpath;
 	  goto dylibfound;
 	};
-      free (tmpath);
+      free ((void*)tmpath);
     }
   debugeprintf ("meltgc_make_load_melt_module srcpath %s dynpath %s", srcpath, dynpath);
   /* if we have the srcpath but did'nt found the binary module, try to
@@ -5895,7 +6226,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
       compile_gencsrc_to_binmodule (srcpath, tmpath, mytmpdir, maketarget);
       debugeprintf ("meltgc_compile srcpath=%s compiled to tmpath=%s",
 		    srcpath, tmpath);
-      free (mytmpdir);
+      free ((void*)mytmpdir);
       mytmpdir = NULL;
       MELT_LOCATION_HERE
 	("meltgc_make_load_melt_module before load_checked_dylib compiled tmpath");
@@ -6045,10 +6376,10 @@ meltgc_make_melt_module (melt_ptr_t src_p, melt_ptr_t out_p, const char*maketarg
 	       outso, mycwd, xstrerror (errno));
     }
  end:
-  free (srcdup);
-  free (outdup);
-  free (outso);
-  free (mytmpdir);
+  free ((void*)srcdup);
+  free ((void*)outdup);
+  free ((void*)outso);
+  free ((void*)mytmpdir);
   MELT_EXITFRAME ();
 #undef srcv
 #undef outv
@@ -6088,7 +6419,7 @@ meltgc_load_modulelist (melt_ptr_t modata_p, int depth, const char *modlistbase,
       || (flags & MELTLOADFLAG_CURDIR) 
       || !access (modlistpath, R_OK))
     goto loadit;
-  free (modlistpath);
+  free ((void*)modlistpath);
   modlistpath = 0;
   /* check for module list in given melt source path */
   if (srcpathstr && srcpathstr[0]) 
@@ -8623,6 +8954,7 @@ load_melt_modules_and_do_mode (void)
       debugeprintf ("load_initial_melt_modules curmod %s before", curmod);
       MELT_LOCATION_HERE_PRINTF
 	(locbuf, "load_initial_melt_modules before loading curmod %s", curmod);
+      /* handle module lists */
       if (!strcmp(curmod, "@@")) {
 	/* the @@ notation means the initial module list; it should
 	   always be first. */
@@ -8647,11 +8979,9 @@ load_melt_modules_and_do_mode (void)
 	     non empty, non comment line */
 #if MELT_HAVE_DEBUG
 	  char curlocbuf[200];
-	  memset (curlocbuf, 0, sizeof(curlocbuf));
-	  snprintf (curlocbuf, sizeof (curlocbuf) - 1,
-		    "%s:%d:load_initial_melt_modules before loading module list %s",
-		    lbasename (__FILE__), __LINE__, curmod+1);
-	  meltfram__.mcfr_flocs = curlocbuf;
+	  MELT_LOCATION_HERE_PRINTF (curlocbuf, 
+				     "load_initial_melt_modules before loading module list %s",
+		    curmod+1);
 #endif
 	  modatv =
 	    meltgc_load_modulelist ((melt_ptr_t) modatv, 0, curmod + 1, MELTLOADFLAG_NONE);
@@ -8661,15 +8991,12 @@ load_melt_modules_and_do_mode (void)
 	  MELT_LOCATION_HERE
 	    ("load_initial_melt_modules after loading a module list");
 	}
-      else
+      else /* handle single module */
 	{
 #if MELT_HAVE_DEBUG
 	  char curlocbuf[200];
-	  memset (curlocbuf, 0, sizeof(curlocbuf));
-	  snprintf (curlocbuf, sizeof (curlocbuf) - 1,
-		    "%s:%d:load_initial_melt_modules before loading single module %s",
-		    lbasename (__FILE__), __LINE__, curmod);
-	  meltfram__.mcfr_flocs = curlocbuf;
+	  MELT_LOCATION_HERE_PRINTF(curlocbuf, "load_initial_melt_modules before loading single module %s",
+		    curmod);
 #endif
 	  debugeprintf
 	    ("load_initial_melt_modules curmod %s before meltgc_make_load_melt_module",
@@ -8722,24 +9049,35 @@ load_melt_modules_and_do_mode (void)
 
 	  if (curxtra[0] == '@' && curxtra[1])
 	    {
+#if MELT_HAVE_DEBUG
+	      char curlocbuf[200];
+	      MELT_LOCATION_HERE_PRINTF (curlocbuf, "load_initial_melt_modules before loading extra module list %s", curxtra);
+#endif
 	      /* load an extra module list */
 	      debugeprintf
 		("load_initial_melt_modules before loading curxtra #%d module list %s", 
 		 nbxtramod, curxtra);
 	      modatv =
 		meltgc_load_modulelist ((melt_ptr_t) modatv, 0, curxtra + 1, MELTLOADFLAG_CURDIR);
+	      MELT_LOCATION_HERE("load_initial_melt_modules after loading extra module list");
 	      debugeprintf
 		("load_initial_melt_modules #%d curxtra %s loaded extra modulist %p",
 		 nbxtramod, curxtra, (void *) modatv);
 	    }
 	  else 
 	    {
+#if MELT_HAVE_DEBUG
+	      char curlocbuf[200];
+	      MELT_LOCATION_HERE_PRINTF (curlocbuf, "load_initial_melt_modules before loading extra single module %s", curxtra);
+#endif
+
 	      /* load an extra single module */
 	      debugeprintf
 		("load_initial_melt_modules before loading curxtra #%d module %s", 
 		 nbxtramod, curxtra);
 	      modatv =
 		meltgc_make_load_melt_module ((melt_ptr_t) modatv, curxtra, NULL, MELTLOADFLAG_CURDIR);
+	      MELT_LOCATION_HERE("load_initial_melt_modules after loading extra single module");
 	      debugeprintf
 		("load_initial_melt_modules #%d curxtra %s loaded modatv %p",
 		 nbxtramod, curxtra, (void *) modatv);

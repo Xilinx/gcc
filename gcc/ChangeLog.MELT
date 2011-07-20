@@ -1,3 +1,15 @@
+
+2011-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELTLOADFLAG_DONTMAKE): New flag.
+
+	* melt-runtime.c (struct melt_source_and_module_path_st): New.
+	(melt_argument): Handle "workdir".
+	(melt_find_source_and_module): New function.
+	(meltgc_make_load_melt_module): Cast to void* when free-ing.
+	(load_melt_modules_and_do_mode): Use MELT_LOCATION_HERE_PRINTF.
+
+	* common.opt (-fmelt-workdir): New.
+
 2011-07-19  Romain Geissler  <romain.geissler@gmail.com>
 
 	* melt/warmelt-outobj (translatetomodule_docmd): Override default
