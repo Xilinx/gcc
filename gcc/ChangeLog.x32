@@ -1,3 +1,8 @@
+2011-07-19  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_legitimate_address_p): Don't support
+	32bit address in x32 mode.
+
 2011-07-13  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (x86_output_mi_thunk): Check Pmode !=

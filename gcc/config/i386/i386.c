@@ -11644,7 +11644,6 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
   struct ix86_address parts;
   rtx base, index, disp;
   HOST_WIDE_INT scale;
-  enum machine_mode base_mode;
 
   if (ix86_decompose_address (addr, &parts) <= 0)
     /* Decomposition failed.  */
@@ -11676,11 +11675,8 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	/* Base is not a register.  */
 	return false;
 
-      base_mode = GET_MODE (base);
-      if (base_mode != Pmode
-	  && !(TARGET_X32
-	       && base_mode == ptr_mode))
-	/* Base is not in Pmode nor ptr_mode.  */
+      if (GET_MODE (base) != Pmode)
+	/* Base is not in Pmode.  */
 	return false;
 
       if ((strict && ! REG_OK_FOR_BASE_STRICT_P (reg))
@@ -11688,8 +11684,6 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	/* Base is not valid.  */
 	return false;
     }
-  else
-    base_mode = VOIDmode;
 
   /* Validate index register.
 
@@ -11698,7 +11692,6 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
   if (index)
     {
       rtx reg;
-      enum machine_mode index_mode;
 
       if (REG_P (index))
   	reg = index;
@@ -11711,13 +11704,8 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	/* Index is not a register.  */
 	return false;
 
-      index_mode = GET_MODE (index);
-      if ((base_mode != VOIDmode
-	   && base_mode != index_mode)
-	   || (index_mode != Pmode
-	       && !(TARGET_X32
-		    && index_mode == ptr_mode)))
-	/* Index is not in Pmode nor ptr_mode.  */
+      if (GET_MODE (index) != Pmode)
+	/* Index is not in Pmode.  */
 	return false;
 
       if ((strict && ! REG_OK_FOR_INDEX_STRICT_P (reg))
