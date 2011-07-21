@@ -1,5 +1,9 @@
 
 2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_get_source_and_module): Use both the entire
+	modulname and its basename when searching.
+
+2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_really_initialize): Handle "print-settings".
 
 	* toplev.c (toplev_main): Call it when melt_print_settings_string.

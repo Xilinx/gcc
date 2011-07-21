@@ -5617,10 +5617,24 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
       else
 	free ((void*) curpath), curpath = NULL;
     };
+  /* Don't look for the source base in the current directory, since
+     this would facilitate unwanted name conflict. */
   /* Look for the source in the temporary directory.  */
   if (res.src_path == NULL && !flag_melt_bootstrapping) 
     {
       curpath = melt_tempdir_path (dupmodulnam, ".c");
+      debugeprintf ("trying with tempdir %s", curpath);
+      if (!access(curpath, R_OK)) {
+	res.src_path = curpath;
+	debugeprintf ("found source in temporary directory %s", curpath);
+      }
+      else
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the source base in the temporary directory.  */
+  if (res.src_path == NULL && !flag_melt_bootstrapping) 
+    {
+      curpath = melt_tempdir_path (modulbase, ".c");
       debugeprintf ("trying with tempdir %s", curpath);
       if (!access(curpath, R_OK)) {
 	res.src_path = curpath;
@@ -5642,7 +5656,34 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
       else
 	free ((void*) curpath), curpath = NULL;
     };
+  /* Look for the source base in the working directory. */
+  if (res.src_path == NULL && workdir != NULL
+      && workdir[0]) 
+    {
+      curpath = concat (workdir, "/", modulbase, ".c", NULL);
+      debugeprintf ("trying with workdir %s", curpath);
+      if (!access(curpath, R_OK)) {
+	res.src_path = curpath;
+	debugeprintf ("found source in working directory %s", curpath);
+      }
+      else
+	free ((void*) curpath), curpath = NULL;
+    };
   /* Look for the source in the source path.  */
+  if (res.src_path == NULL)
+    debugeprintf("looking %s in sourcepath %s", 
+		 modulbase, melt_argument("source-path"));
+  if (res.src_path == NULL 
+      && (curpath = lookup_path (melt_argument("source-path"), dupmodulnam, ".c")) != NULL)  
+    {
+      if (!access(curpath, R_OK)) {
+	res.src_path = curpath;
+	debugeprintf ("found source in source path %s", curpath);
+      }
+      else 
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the source base in the source path.  */
   if (res.src_path == NULL)
     debugeprintf("looking %s in sourcepath %s", 
 		 modulbase, melt_argument("source-path"));
@@ -5672,12 +5713,42 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
       else 
 	free ((void*)curpath), curpath = NULL;
     };
+  /* Look for the source using GCCMELT_SOURCE_PATH environment
+     variable, unless we are bootstrapping. */
+  if (res.src_path == NULL 
+      && !flag_melt_bootstrapping
+      && (curenv = getenv ("GCCMELT_SOURCE_PATH")) != NULL
+      && curenv[0])
+    {
+      debugeprintf("looking %s in GCCMELT_SOURCE_PATH %s", dupmodulnam, curenv);
+      if ((curpath = lookup_path (curenv, dupmodulnam, ".c")) != NULL
+	  && !access(curpath, R_OK)) {
+	res.src_path = curpath;
+	debugeprintf ("found source in $GCCMELT_SOURCE_PATH %s", curpath);
+      }
+      else 
+	free ((void*)curpath), curpath = NULL;
+    };
   /* At last, look using the builtin MELT source directory, unless we
      are bootstrapping. */
   if (res.src_path == NULL && !flag_melt_bootstrapping)
     {
       debugeprintf("looking %s in meltsrcdir %s", modulbase, melt_source_dir);
       curpath = concat (melt_source_dir, "/", modulbase, ".c", NULL);
+      if (!access(curpath, R_OK)) 
+	{
+	  res.src_path = curpath;
+	  debugeprintf ("found source in builtin directory %s", curpath);
+	}
+      else
+	free ((void*)curpath), curpath = NULL;
+    };
+  /* Look using the builtin MELT source directory, unless we
+     are bootstrapping. */
+  if (res.src_path == NULL && !flag_melt_bootstrapping)
+    {
+      debugeprintf("looking %s in meltsrcdir %s", dupmodulnam, melt_source_dir);
+      curpath = concat (melt_source_dir, "/", dupmodulnam, ".c", NULL);
       if (!access(curpath, R_OK)) 
 	{
 	  res.src_path = curpath;
@@ -5758,7 +5829,19 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
       else
 	free ((void*) curpath), curpath = NULL;
     };
-  /* Look for the sharedobj in the working directory. */
+  /* Look for the sharedobj in the temporary directory.  */
+  if (res.sho_path == NULL && !flag_melt_bootstrapping) 
+    {
+      curpath = melt_tempdir_path (dupmodulnam, modulsuffix);
+      debugeprintf ("checking sharedobj tempdir %s", curpath);
+      if (!access(curpath, R_OK)) {
+	res.sho_path = curpath;
+	debugeprintf ("found binary module in temporary directory %s", curpath);
+      }
+      else
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the sharedobj base in the working directory. */
   if (res.sho_path == NULL && workdir != NULL
       && workdir[0]) 
     {
@@ -5786,7 +5869,22 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
       else 
 	free ((void*) curpath), curpath = NULL;
     };
-  /* Look for the sharedobj using GCCMELT_MODULE_PATH environment
+  /* Look for the sharedobj in the module path.  */
+  if (res.sho_path == NULL)
+    debugeprintf("looking %s%s in modulepath %s", 
+		 dupmodulnam, modulsuffix, melt_argument("module-path"));
+  if (res.sho_path == NULL 
+      && (curpath = lookup_path (melt_argument ("module-path"), 
+				 dupmodulnam, modulsuffix)) != NULL)  
+    {
+      if (!access(curpath, R_OK)) {
+	res.sho_path = curpath;
+	debugeprintf ("found binary module in module path %s", curpath);
+      }
+      else 
+	free ((void*) curpath), curpath = NULL;
+    };
+  /* Look for the sharedobj base using GCCMELT_MODULE_PATH environment
      variable, unless we are bootstrapping. */
   if (res.sho_path == NULL 
       && !flag_melt_bootstrapping
@@ -5801,6 +5899,20 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
 	debugeprintf ("found binary module in $GCCMELT_MODULE_PATH %s", curpath);
       }
       else 
+	free ((void*)curpath), curpath = NULL;
+    };
+  /* Look using the builtin MELT module directory, unless we
+     are bootstrapping. */
+  if (res.sho_path == NULL && !flag_melt_bootstrapping)
+    {
+      curpath = concat (melt_module_dir, "/", dupmodulnam, modulsuffix, NULL);
+      debugeprintf ("checking sharedobj builtin moduldir %s", curpath);
+      if (!access(curpath, R_OK)) 
+	{
+	  res.src_path = curpath;
+	  debugeprintf ("found source in builtin directory %s", curpath);
+	}
+      else
 	free ((void*)curpath), curpath = NULL;
     };
   /* At last, look using the builtin MELT module directory, unless we
