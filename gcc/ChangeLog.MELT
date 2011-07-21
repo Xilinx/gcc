@@ -1,5 +1,13 @@
 
 2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-run.proto.h: Include c-pragma.h c-pretty-print.h
+	conditionally with c-family & cpplib.h & langhooks.h
+
+2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-built.tpl: Don't give melt-modules/optimized as module path.
+	* melt-built.mk: Regenerate.
+
+2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_get_source_and_module): Use both the entire
 	modulname and its basename when searching.
 

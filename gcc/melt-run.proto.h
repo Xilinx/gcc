@@ -76,6 +76,8 @@ along with GCC; see the file COPYING3.   If not see
 #include "prefix.h"
 #include "md5.h"
 #include "cppdefault.h"
+#include "cpplib.h"
+#include "langhooks.h"
 
 
 /* MELT specific includes */
