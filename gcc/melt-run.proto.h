@@ -3,7 +3,9 @@
    all include files for generated code
    
    Copyright (C) 2008,2009,2011 Free Software Foundation, Inc.
-   Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+   Contributed by Basile Starynkevitch  <basile@starynkevitch.net>
+   and Pierre Vittet  <piervit@pvittet.com>
+   and Romain Geissler  <romain.geissler@gmail.com>
 
 This file is part of GCC. It is produced from melt-run.proto.h
 
@@ -52,6 +54,19 @@ along with GCC; see the file COPYING3.   If not see
 #include "timevar.h"
 #include "ggc.h"
 #include "cgraph.h"
+
+
+/* Headers from c-family/ should be included directly with GCC4.6, but
+   not with GCC 4.7 or when compiling with a C++ compiler. And they
+   need to be include before diagnostics.h.  */
+#if defined(GCCPLUGIN_VERSION) || MELT_GCC_VERSION>4006 || defined(__cplusplus)
+#include "c-family/c-pragma.h"
+#include "c-family/c-pretty-print.h"
+#else
+#include "c-pragma.h"
+#include "c-pretty-print.h"
+#endif
+
 #include "diagnostic.h"
 #include "flags.h"
 #include "toplev.h"

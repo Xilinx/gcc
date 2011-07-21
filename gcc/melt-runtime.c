@@ -3,6 +3,10 @@
 
      Copyright (C) 2008, 2009, 2010, 2011 Free Software Foundation, Inc.
      Contributed by Basile Starynkevitch <basile@starynkevitch.net>
+     and Pierre Vittet  <piervit@pvittet.com>
+     and Romain Geissler  <romain.geissler@gmail.com>
+     and Jeremie Salvucci  <jeremie.salvucci@free.fr>
+
      Indented with GNU indent.
 
 This file is part of GCC.
@@ -33,6 +37,11 @@ along with GCC; see the file COPYING3.   If not see
 #endif	/* MELT_IS_PLUGIN */
 
 
+#if defined(MELT_GCC_VERSION) && (MELT_GCC_VERSION > 0)
+const int melt_gcc_version = MELT_GCC_VERSION;
+#else
+#error should be given a MELT_GCC_VERSION 
+#endif
 
 #include "bversion.h"
 #include "config.h"
@@ -69,7 +78,6 @@ along with GCC; see the file COPYING3.   If not see
 
 #include "ggc.h"
 #include "cgraph.h"
-#include "diagnostic.h"
 #include "flags.h"
 #include "toplev.h"
 #include "options.h"
@@ -79,13 +87,21 @@ along with GCC; see the file COPYING3.   If not see
 #include "md5.h"
 #include "plugin.h"
 #include "cppdefault.h"
-#include "c-pragma.h"
+#include "cpplib.h"
+#include "langhooks.h"
 
-#if defined(MELT_GCC_VERSION) && (MELT_GCC_VERSION > 0)
-const int melt_gcc_version = MELT_GCC_VERSION;
+/* Headers from c-family/ should be included directly with GCC4.6, but not with GCC 4.7
+   or when compiling with a C++ compiler. */
+#if defined(GCCPLUGIN_VERSION) || MELT_GCC_VERSION>4006 || defined(__cplusplus)
+#include "c-family/c-pragma.h"
+#include "c-family/c-pretty-print.h"
 #else
-#error should be given a MELT_GCC_VERSION 
+#include "c-pragma.h"
+#include "c-pretty-print.h"
 #endif
+
+/* Diagnostic related files need to be included after c-pretty-print.h!  */
+#include "diagnostic.h"
 
 /* since 4.7, we have a GCCPLUGIN_VERSION in plugin-version.h. */
 #if defined(GCCPLUGIN_VERSION) && (GCCPLUGIN_VERSION != MELT_GCC_VERSION)
@@ -5414,6 +5430,7 @@ load_checked_dynamic_module_index (const char *dypath, const char *md5src)
 	  warning (0, "md5 source mismatch in MELT module %s", dypath);
 	  inform (UNKNOWN_LOCATION, "recomputed md5 of MELT C code is %s", hexmd5src);
 	  inform (UNKNOWN_LOCATION, "MELT module contains registered md5sum %s", dynmd5);
+	  inform (UNKNOWN_LOCATION, "Consider removing MELT generated files.");
 	  FAIL_BAD ();
 	}
     }

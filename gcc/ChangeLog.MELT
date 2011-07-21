@@ -1,5 +1,13 @@
 
 2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c: Update contributors list. Include "c-pragma.h" &
+	"c-pretty-print.h", conditionally with "c-family/" directory.
+	Move "diagnostic.h" include.
+	(load_checked_dynamic_module_index): Add inform "Consider removing
+	MELT generated files."
+	* melt-run.proto.h: Update contributors list.
+
+2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{all melt/generated/warmelt*.c files don't have any -0 in their
 	name and have been regenerated.}}
 	* melt/generated/warmelt-base+01.c: Rename and generate.
