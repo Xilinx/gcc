@@ -1,3 +1,14 @@
+2011-07-21   Diego Novillo  <dnovillo@google.com>
+
+	* gcc.dg/inline_3.c: Remove dg-excess-errors.
+	* gcc.dg/inline_4.c: Likewise.
+	* gcc.dg/unroll_2.c: Likewise.
+	* gcc.dg/unroll_3.c: Likewise.
+	* gcc.dg/unroll_4.c: Likewise.
+	* gcc.dg/tree-ssa/20030807-7.c: Remove xfail.
+	* gcc.target/i386/sse4_1-blendps-2.c: Compile with -O0.  Add FIXME note.
+	* gcc.target/i386/sse4_1-blendps.c: Likewise.
+
 2011-07-16   Diego Novillo  <dnovillo@google.com>
 
 	* gcc.target/i386/pr27827.c: Add -mtune=generic.
