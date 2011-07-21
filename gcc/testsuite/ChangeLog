@@ -1,3 +1,83 @@
+2011-07-20  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/ext/desig2.C: New.
+
+2011-07-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-fma-1.c: Adjust to allow non-VSX fmas to
+	be generated.
+	* gcc.target/powerpc/ppc-fma-2.c: Ditto.
+	* gcc.target/powerpc/recip-3.c: Ditto.
+
+2011-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/6709 (DR 743)
+	PR c++/42603 (DR 950)
+	* g++.dg/cpp0x/decltype21.C: New.
+
+2011-07-20  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/18908
+	* gcc.dg/tree-ssa/pr18908.c: New testcase.
+	* gcc.dg/tree-ssa/bitwise-sink.c: Adjust.
+
+2011-07-20  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.target/arm/combine-movs.c: New.
+	* gcc.target/arm/unsigned-extend-2.c: New.
+
+2011-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49785
+	* g++.dg/cpp0x/variadic114.C: New.
+
+2011-07-19  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/coarray_args_1.f90: New.
+	* gfortran.dg/coarray_args_2.f90: New.
+
+2011-07-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49708
+	* gfortran.dg/allocate_error_3.f90: New.
+
+2011-07-19  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/bool-10.c: Adjust expected pattern.
+	* gcc.dg/tree-ssa/bool-11.c: Likewise.
+	* gcc.dg/torture/20110719-1.c: New testcase.
+
+2011-07-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49768
+	* gcc.c-torture/execute/pr49768.c: New test.
+
+2011-07-19  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49771
+	* gcc.dg/vect/pr49771.c: New test.
+
+2011-07-18  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/ipa/ipa-1.c: Updated testcase dump scan.
+	* gcc.dg/ipa/ipa-2.c: Likewise.
+	* gcc.dg/ipa/ipa-3.c: Likewise and made functions static.
+	* gcc.dg/ipa/ipa-4.c: Updated testcase dump scan.
+	* gcc.dg/ipa/ipa-5.c: Likewise.
+	* gcc.dg/ipa/ipa-7.c: Likewise.
+	* gcc.dg/ipa/ipa-8.c: Updated testcase dump scan.
+	* gcc.dg/ipa/ipacost-1.c: Likewise.
+	* gcc.dg/ipa/ipacost-2.c: Likewise and increased sizes of some
+	functions.
+	* gcc.dg/ipa/ipcp-1.c: New test.
+	* gcc.dg/ipa/ipcp-2.c: Likewise.
+	* gcc.dg/tree-ssa/ipa-cp-1.c: Updated testcase.
+
+2011-07-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49675
+	* gfortran.dg/pr49675.f90: New test.
+
 2011-07-18  Richard Guenther  <rguenther@suse.de>
 
 	* gcc.dg/torture/20110718-1.c: New testcase.

@@ -1491,15 +1491,6 @@ notice_update_cc (rtx body ATTRIBUTE_UNUSED, rtx insn)
     }
 }
 
-/* Return maximum number of consecutive registers of
-   class CLASS needed to hold a value of mode MODE.  */
-
-int
-class_max_nregs (enum reg_class rclass ATTRIBUTE_UNUSED,enum machine_mode mode)
-{
-  return ((GET_MODE_SIZE (mode) + UNITS_PER_WORD - 1) / UNITS_PER_WORD);
-}
-
 /* Choose mode for jump insn:
    1 - relative jump in range -63 <= x <= 62 ;
    2 - relative jump in range -2046 <= x <= 2045 ;
@@ -5341,6 +5332,7 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED, int *total,
     {
     case CONST_INT:
     case CONST_DOUBLE:
+    case SYMBOL_REF:
       /* Immediate constants are as cheap as registers.  */
       *total = 0;
       return true;
@@ -5348,7 +5340,6 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED, int *total,
     case MEM:
     case CONST:
     case LABEL_REF:
-    case SYMBOL_REF:
       *total = COSTS_N_INSNS (GET_MODE_SIZE (mode));
       return true;
 
@@ -5473,7 +5464,42 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED, int *total,
 
 	case HImode:
 	  if (AVR_HAVE_MUL)
-	    *total = COSTS_N_INSNS (!speed ? 7 : 10);
+            {
+              rtx op0 = XEXP (x, 0);
+              rtx op1 = XEXP (x, 1);
+              enum rtx_code code0 = GET_CODE (op0);
+              enum rtx_code code1 = GET_CODE (op1);
+              bool ex0 = SIGN_EXTEND == code0 || ZERO_EXTEND == code0;
+              bool ex1 = SIGN_EXTEND == code1 || ZERO_EXTEND == code1;
+
+              if (ex0
+                  && (u8_operand (op1, HImode)
+                      || s8_operand (op1, HImode)))
+                {
+                  *total = COSTS_N_INSNS (!speed ? 4 : 6);
+                  return true;
+                }
+              if (ex0
+                  && register_operand (op1, HImode))
+                {
+                  *total = COSTS_N_INSNS (!speed ? 5 : 8);
+                  return true;
+                }
+              else if (ex0 || ex1)
+                {
+                  *total = COSTS_N_INSNS (!speed ? 3 : 5);
+                  return true;
+                }
+              else if (register_operand (op0, HImode)
+                       && (u8_operand (op1, HImode)
+                           || s8_operand (op1, HImode)))
+                {
+                  *total = COSTS_N_INSNS (!speed ? 6 : 9);
+                  return true;
+                }
+              else
+                *total = COSTS_N_INSNS (!speed ? 7 : 10);
+            }
 	  else if (!speed)
 	    *total = COSTS_N_INSNS (AVR_HAVE_JMP_CALL ? 2 : 1);
 	  else
@@ -5556,6 +5582,17 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED, int *total,
 	  break;
 
 	case HImode:
+          if (AVR_HAVE_MUL)
+            {
+              if (const_2_to_7_operand (XEXP (x, 1), HImode)
+                  && (SIGN_EXTEND == GET_CODE (XEXP (x, 0))
+                      || ZERO_EXTEND == GET_CODE (XEXP (x, 0))))
+                {
+                  *total = COSTS_N_INSNS (!speed ? 4 : 6);
+                  return true;
+                }
+            }
+          
 	  if (GET_CODE (XEXP (x, 1)) != CONST_INT)
 	    {
 	      *total = COSTS_N_INSNS (!speed ? 5 : 41);

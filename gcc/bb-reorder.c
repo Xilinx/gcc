@@ -1249,6 +1249,15 @@ find_rarely_executed_basic_blocks_and_crossing_edges (void)
   return crossing_edges;
 }
 
+/* Emit a barrier into the footer of BB.  */
+
+static void
+emit_barrier_after_bb (basic_block bb)
+{
+  rtx barrier = emit_barrier_after (BB_END (bb));
+  bb->il.rtl->footer = unlink_insn_chain (barrier, barrier);
+}
+
 /* If any destination of a crossing edge does not have a label, add label;
    Convert any easy fall-through crossing edges to unconditional jumps.  */
 
@@ -1262,7 +1271,7 @@ add_labels_and_missing_jumps (VEC(edge, heap) *crossing_edges)
     {
       basic_block src = e->src;
       basic_block dest = e->dest;
-      rtx label, barrier, new_jump;
+      rtx label, new_jump;
 
       if (dest == EXIT_BLOCK_PTR)
 	continue;
@@ -1288,10 +1297,10 @@ add_labels_and_missing_jumps (VEC(edge, heap) *crossing_edges)
 
       new_jump = emit_jump_insn_after (gen_jump (label), BB_END (src));
       BB_END (src) = new_jump;
-      barrier = emit_barrier_after (new_jump);
       JUMP_LABEL (new_jump) = label;
       LABEL_NUSES (label) += 1;
-      src->il.rtl->footer = unlink_insn_chain (barrier, barrier);
+
+      emit_barrier_after_bb (src);
 
       /* Mark edge as non-fallthru.  */
       e->flags &= ~EDGE_FALLTHRU;
@@ -1321,7 +1330,6 @@ fix_up_fall_thru_edges (void)
   int invert_worked;
   rtx old_jump;
   rtx fall_thru_label;
-  rtx barrier;
 
   FOR_EACH_BB (cur_bb)
     {
@@ -1451,19 +1459,7 @@ fix_up_fall_thru_edges (void)
                     }
 
 		  /* Add barrier after new jump */
-
-		  if (new_bb)
-		    {
-		      barrier = emit_barrier_after (BB_END (new_bb));
-		      new_bb->il.rtl->footer = unlink_insn_chain (barrier,
-							       barrier);
-		    }
-		  else
-		    {
-		      barrier = emit_barrier_after (BB_END (cur_bb));
-		      cur_bb->il.rtl->footer = unlink_insn_chain (barrier,
-							       barrier);
-		    }
+		  emit_barrier_after_bb (new_bb ? new_bb : cur_bb);
 		}
 	    }
 	}
@@ -1526,7 +1522,6 @@ fix_crossing_conditional_branches (void)
 {
   basic_block cur_bb;
   basic_block new_bb;
-  basic_block last_bb;
   basic_block dest;
   edge succ1;
   edge succ2;
@@ -1536,10 +1531,6 @@ fix_crossing_conditional_branches (void)
   rtx set_src;
   rtx old_label = NULL_RTX;
   rtx new_label;
-  rtx new_jump;
-  rtx barrier;
-
- last_bb = EXIT_BLOCK_PTR->prev_bb;
 
   FOR_EACH_BB (cur_bb)
     {
@@ -1602,38 +1593,28 @@ fix_crossing_conditional_branches (void)
 		new_label = block_label (new_bb);
 	      else
 		{
+		  basic_block last_bb;
+		  rtx new_jump;
+
 		  /* Create new basic block to be dest for
 		     conditional jump.  */
 
-		  new_bb = create_basic_block (NULL, NULL, last_bb);
-		  new_bb->aux = last_bb->aux;
-		  last_bb->aux = new_bb;
-		  last_bb = new_bb;
 		  /* Put appropriate instructions in new bb.  */
 
 		  new_label = gen_label_rtx ();
-		  emit_label_before (new_label, BB_HEAD (new_bb));
-		  BB_HEAD (new_bb) = new_label;
+		  emit_label (new_label);
 
-		  if (GET_CODE (old_label) == LABEL_REF)
-		    {
-		      old_label = JUMP_LABEL (old_jump);
-		      new_jump = emit_jump_insn_after (gen_jump
-						       (old_label),
-						       BB_END (new_bb));
-		    }
-		  else
-		    {
-		      gcc_assert (HAVE_return
-				  && GET_CODE (old_label) == RETURN);
-		      new_jump = emit_jump_insn_after (gen_return (),
-						       BB_END (new_bb));
-		    }
-
-		  barrier = emit_barrier_after (new_jump);
+		  gcc_assert (GET_CODE (old_label) == LABEL_REF);
+		  old_label = JUMP_LABEL (old_jump);
+		  new_jump = emit_jump_insn (gen_jump (old_label));
 		  JUMP_LABEL (new_jump) = old_label;
-		  new_bb->il.rtl->footer = unlink_insn_chain (barrier,
-							   barrier);
+
+		  last_bb = EXIT_BLOCK_PTR->prev_bb;
+		  new_bb = create_basic_block (new_label, new_jump, last_bb);
+		  new_bb->aux = last_bb->aux;
+		  last_bb->aux = new_bb;
+
+		  emit_barrier_after_bb (new_bb);
 
 		  /* Make sure new bb is in same partition as source
 		     of conditional branch.  */

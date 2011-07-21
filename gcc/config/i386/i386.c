@@ -7666,8 +7666,7 @@ ix86_va_start (tree valist, rtx nextarg)
     ovf_rtx = cfun->machine->split_stack_varargs_pointer;
   t = make_tree (type, ovf_rtx);
   if (words != 0)
-    t = build2 (POINTER_PLUS_EXPR, type, t,
-	        size_int (words * UNITS_PER_WORD));
+    t = fold_build_pointer_plus_hwi (t, words * UNITS_PER_WORD);
   t = build2 (MODIFY_EXPR, type, ovf, t);
   TREE_SIDE_EFFECTS (t) = 1;
   expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -7679,8 +7678,7 @@ ix86_va_start (tree valist, rtx nextarg)
       type = TREE_TYPE (sav);
       t = make_tree (type, frame_pointer_rtx);
       if (!ix86_varargs_gpr_size)
-	t = build2 (POINTER_PLUS_EXPR, type, t,
-		    size_int (-8 * X86_64_REGPARM_MAX));
+	t = fold_build_pointer_plus_hwi (t, -8 * X86_64_REGPARM_MAX);
       t = build2 (MODIFY_EXPR, type, sav, t);
       TREE_SIDE_EFFECTS (t) = 1;
       expand_expr (t, const0_rtx, VOIDmode, EXPAND_NORMAL);
@@ -7836,15 +7834,13 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
       if (needed_intregs)
 	{
 	  /* int_addr = gpr + sav; */
-	  t = fold_convert (sizetype, gpr);
-	  t = build2 (POINTER_PLUS_EXPR, ptr_type_node, sav, t);
+	  t = fold_build_pointer_plus (sav, gpr);
 	  gimplify_assign (int_addr, t, pre_p);
 	}
       if (needed_sseregs)
 	{
 	  /* sse_addr = fpr + sav; */
-	  t = fold_convert (sizetype, fpr);
-	  t = build2 (POINTER_PLUS_EXPR, ptr_type_node, sav, t);
+	  t = fold_build_pointer_plus (sav, fpr);
 	  gimplify_assign (sse_addr, t, pre_p);
 	}
       if (need_temp)
@@ -7898,12 +7894,10 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
 		  src_offset = REGNO (reg) * 8;
 		}
 	      src_addr = fold_convert (addr_type, src_addr);
-	      src_addr = fold_build2 (POINTER_PLUS_EXPR, addr_type, src_addr,
-				      size_int (src_offset));
+	      src_addr = fold_build_pointer_plus_hwi (src_addr, src_offset);
 
 	      dest_addr = fold_convert (daddr_type, addr);
-	      dest_addr = fold_build2 (POINTER_PLUS_EXPR, daddr_type, dest_addr,
-				       size_int (prev_size));
+	      dest_addr = fold_build_pointer_plus_hwi (dest_addr, prev_size);
 	      if (cur_size == GET_MODE_SIZE (mode))
 		{
 		  src = build_va_arg_indirect_ref (src_addr);
@@ -7958,19 +7952,15 @@ ix86_gimplify_va_arg (tree valist, tree type, gimple_seq *pre_p,
  else
     {
       HOST_WIDE_INT align = arg_boundary / 8;
-      t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (ovf), ovf,
-		  size_int (align - 1));
-      t = fold_convert (sizetype, t);
+      t = fold_build_pointer_plus_hwi (ovf, align - 1);
       t = build2 (BIT_AND_EXPR, TREE_TYPE (t), t,
-		  size_int (-align));
-      t = fold_convert (TREE_TYPE (ovf), t);
+		  build_int_cst (TREE_TYPE (t), -align));
     }
 
   gimplify_expr (&t, pre_p, NULL, is_gimple_val, fb_rvalue);
   gimplify_assign (addr, t, pre_p);
 
-  t = build2 (POINTER_PLUS_EXPR, TREE_TYPE (t), t,
-	      size_int (rsize * UNITS_PER_WORD));
+  t = fold_build_pointer_plus_hwi (t, rsize * UNITS_PER_WORD);
   gimplify_assign (unshare_expr (ovf), t, pre_p);
 
   if (container)
@@ -11228,6 +11218,16 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
   else
     disp = addr;			/* displacement */
 
+  if (index)
+    {
+      if (REG_P (index))
+	;
+      /* Allow only subregs of DImode hard regs.  */
+      else if (GET_CODE (index) == SUBREG
+	       && !register_no_elim_operand (SUBREG_REG (index), DImode))
+	return 0;
+    }
+
   /* Extract the integral value of scale.  */
   if (scale_rtx)
     {
@@ -11662,23 +11662,18 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
   disp = parts.disp;
   scale = parts.scale;
 
-  /* Validate base register.
-
-     Don't allow SUBREG's that span more than a word here.  It can lead to spill
-     failures when the base is one word out of a two word structure, which is
-     represented internally as a DImode int.  */
-
+  /* Validate base register.  */
   if (base)
     {
       rtx reg;
 
       if (REG_P (base))
   	reg = base;
-      else if (GET_CODE (base) == SUBREG
-	       && REG_P (SUBREG_REG (base))
-	       && GET_MODE_SIZE (GET_MODE (SUBREG_REG (base)))
-		  <= UNITS_PER_WORD)
-  	reg = SUBREG_REG (base);
+      else if (GET_CODE (base) == SUBREG && REG_P (SUBREG_REG (base)))
+	{
+	  reg = SUBREG_REG (base);
+	  gcc_assert (register_no_elim_operand (reg, DImode));
+	}
       else
 	/* Base is not a register.  */
 	return false;
@@ -11692,21 +11687,18 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	return false;
     }
 
-  /* Validate index register.
-
-     Don't allow SUBREG's that span more than a word here -- same as above.  */
-
+  /* Validate index register.  */
   if (index)
     {
       rtx reg;
 
       if (REG_P (index))
   	reg = index;
-      else if (GET_CODE (index) == SUBREG
-	       && REG_P (SUBREG_REG (index))
-	       && GET_MODE_SIZE (GET_MODE (SUBREG_REG (index)))
-		  <= UNITS_PER_WORD)
-  	reg = SUBREG_REG (index);
+      else if (GET_CODE (index) == SUBREG && REG_P (SUBREG_REG (index)))
+	{
+	  reg = SUBREG_REG (index);
+	  gcc_assert (register_no_elim_operand (reg, DImode));
+	}
       else
 	/* Index is not a register.  */
 	return false;
@@ -11719,6 +11711,11 @@ ix86_legitimate_address_p (enum machine_mode mode ATTRIBUTE_UNUSED,
 	/* Index is not valid.  */
 	return false;
     }
+
+  /* Index and base should have the same mode.  */
+  if (base && index
+      && GET_MODE (base) != GET_MODE (index))
+    return false;
 
   /* Validate scale factor.  */
   if (scale != 1)
@@ -19772,6 +19769,7 @@ expand_movmem_via_rep_mov (rtx destmem, rtx srcmem,
   rtx destexp;
   rtx srcexp;
   rtx countreg;
+  HOST_WIDE_INT rounded_count;
 
   /* If the size is known, it is shorter to use rep movs.  */
   if (mode == QImode && CONST_INT_P (count)
@@ -19799,19 +19797,19 @@ expand_movmem_via_rep_mov (rtx destmem, rtx srcmem,
     }
   if (CONST_INT_P (count))
     {
-      count = GEN_INT (INTVAL (count)
+      rounded_count = (INTVAL (count)
 		       & ~((HOST_WIDE_INT) GET_MODE_SIZE (mode) - 1));
       destmem = shallow_copy_rtx (destmem);
       srcmem = shallow_copy_rtx (srcmem);
-      set_mem_size (destmem, count);
-      set_mem_size (srcmem, count);
+      set_mem_size (destmem, rounded_count);
+      set_mem_size (srcmem, rounded_count);
     }
   else
     {
-      if (MEM_SIZE (destmem))
-	set_mem_size (destmem, NULL_RTX);
-      if (MEM_SIZE (srcmem))
-	set_mem_size (srcmem, NULL_RTX);
+      if (MEM_SIZE_KNOWN_P (destmem))
+	clear_mem_size (destmem);
+      if (MEM_SIZE_KNOWN_P (srcmem))
+	clear_mem_size (srcmem);
     }
   emit_insn (gen_rep_mov (destptr, destmem, srcptr, srcmem, countreg,
 			  destexp, srcexp));
@@ -19826,6 +19824,7 @@ expand_setmem_via_rep_stos (rtx destmem, rtx destptr, rtx value,
 {
   rtx destexp;
   rtx countreg;
+  HOST_WIDE_INT rounded_count;
 
   if (destptr != XEXP (destmem, 0) || GET_MODE (destmem) != BLKmode)
     destmem = adjust_automodify_address_nv (destmem, BLKmode, destptr, 0);
@@ -19841,13 +19840,13 @@ expand_setmem_via_rep_stos (rtx destmem, rtx destptr, rtx value,
     destexp = gen_rtx_PLUS (Pmode, destptr, countreg);
   if (orig_value == const0_rtx && CONST_INT_P (count))
     {
-      count = GEN_INT (INTVAL (count)
+      rounded_count = (INTVAL (count)
 		       & ~((HOST_WIDE_INT) GET_MODE_SIZE (mode) - 1));
       destmem = shallow_copy_rtx (destmem);
-      set_mem_size (destmem, count);
+      set_mem_size (destmem, rounded_count);
     }
-  else if (MEM_SIZE (destmem))
-    set_mem_size (destmem, NULL_RTX);
+  else if (MEM_SIZE_KNOWN_P (destmem))
+    clear_mem_size (destmem);
   emit_insn (gen_rep_stos (destptr, countreg, destmem, value, destexp));
 }
 
@@ -20188,13 +20187,12 @@ expand_constant_movmem_prologue (rtx dst, rtx *srcp, rtx destreg, rtx srcreg,
 				 int desired_align, int align_bytes)
 {
   rtx src = *srcp;
-  rtx src_size, dst_size;
+  rtx orig_dst = dst;
+  rtx orig_src = src;
   int off = 0;
   int src_align_bytes = get_mem_align_offset (src, desired_align * BITS_PER_UNIT);
   if (src_align_bytes >= 0)
     src_align_bytes = desired_align - src_align_bytes;
-  src_size = MEM_SIZE (src);
-  dst_size = MEM_SIZE (dst);
   if (align_bytes & 1)
     {
       dst = adjust_automodify_address_nv (dst, QImode, destreg, 0);
@@ -20252,10 +20250,10 @@ expand_constant_movmem_prologue (rtx dst, rtx *srcp, rtx destreg, rtx srcreg,
       if (MEM_ALIGN (src) < src_align * BITS_PER_UNIT)
 	set_mem_align (src, src_align * BITS_PER_UNIT);
     }
-  if (dst_size)
-    set_mem_size (dst, GEN_INT (INTVAL (dst_size) - align_bytes));
-  if (src_size)
-    set_mem_size (dst, GEN_INT (INTVAL (src_size) - align_bytes));
+  if (MEM_SIZE_KNOWN_P (orig_dst))
+    set_mem_size (dst, MEM_SIZE (orig_dst) - align_bytes);
+  if (MEM_SIZE_KNOWN_P (orig_src))
+    set_mem_size (src, MEM_SIZE (orig_src) - align_bytes);
   *srcp = src;
   return dst;
 }
@@ -20303,7 +20301,7 @@ expand_constant_setmem_prologue (rtx dst, rtx destreg, rtx value,
 				 int desired_align, int align_bytes)
 {
   int off = 0;
-  rtx dst_size = MEM_SIZE (dst);
+  rtx orig_dst = dst;
   if (align_bytes & 1)
     {
       dst = adjust_automodify_address_nv (dst, QImode, destreg, 0);
@@ -20332,8 +20330,8 @@ expand_constant_setmem_prologue (rtx dst, rtx destreg, rtx value,
   dst = adjust_automodify_address_nv (dst, BLKmode, destreg, off);
   if (MEM_ALIGN (dst) < (unsigned int) desired_align * BITS_PER_UNIT)
     set_mem_align (dst, desired_align * BITS_PER_UNIT);
-  if (dst_size)
-    set_mem_size (dst, GEN_INT (INTVAL (dst_size) - align_bytes));
+  if (MEM_SIZE_KNOWN_P (orig_dst))
+    set_mem_size (dst, MEM_SIZE (orig_dst) - align_bytes);
   return dst;
 }
 
@@ -28363,6 +28361,32 @@ ix86_secondary_memory_needed (enum reg_class class1, enum reg_class class2,
   return inline_secondary_memory_needed (class1, class2, mode, strict);
 }
 
+/* Implement the TARGET_CLASS_MAX_NREGS hook.
+
+   On the 80386, this is the size of MODE in words,
+   except in the FP regs, where a single reg is always enough.  */
+
+static unsigned char
+ix86_class_max_nregs (reg_class_t rclass, enum machine_mode mode)
+{
+  if (MAYBE_INTEGER_CLASS_P (rclass))
+    {
+      if (mode == XFmode)
+	return (TARGET_64BIT ? 2 : 3);
+      else if (mode == XCmode)
+	return (TARGET_64BIT ? 4 : 6);
+      else
+	return ((GET_MODE_SIZE (mode) + UNITS_PER_WORD - 1) / UNITS_PER_WORD);
+    }
+  else
+    {
+      if (COMPLEX_MODE_P (mode))
+	return 2;
+      else
+	return 1;
+    }
+}
+
 /* Return true if the registers in CLASS cannot represent the change from
    modes FROM to TO.  */
 
@@ -28559,7 +28583,8 @@ ix86_register_move_cost (enum machine_mode mode, reg_class_t class1_i,
       /* In case of copying from general_purpose_register we may emit multiple
          stores followed by single load causing memory size mismatch stall.
          Count this as arbitrarily high cost of 20.  */
-      if (CLASS_MAX_NREGS (class1, mode) > CLASS_MAX_NREGS (class2, mode))
+      if (targetm.class_max_nregs (class1, mode)
+	  > targetm.class_max_nregs (class2, mode))
 	cost += 20;
 
       /* In the case of FP/MMX moves, the registers actually overlap, and we
@@ -35033,6 +35058,9 @@ ix86_autovectorize_vector_sizes (void)
 
 #undef TARGET_SECONDARY_RELOAD
 #define TARGET_SECONDARY_RELOAD ix86_secondary_reload
+
+#undef TARGET_CLASS_MAX_NREGS
+#define TARGET_CLASS_MAX_NREGS ix86_class_max_nregs
 
 #undef TARGET_PREFERRED_RELOAD_CLASS
 #define TARGET_PREFERRED_RELOAD_CLASS ix86_preferred_reload_class
