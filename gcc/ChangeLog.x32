@@ -1,5 +1,15 @@
 2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
 
+	Backport from mainline
+	2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (function_value_64): Always return pointers
+	in Pmode.
+	(ix86_promote_function_mode): New.
+	(TARGET_PROMOTE_FUNCTION_MODE): Likewise.
+
+2011-11-10  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (*lea_3_zext): New.
 	(*lea_general_1_zext): Removed.
 	(*lea_general_2_zext): Likewise.
