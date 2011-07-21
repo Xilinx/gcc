@@ -1,3 +1,8 @@
+2010-07-21  Jeff Law <law@redhat.com>
+
+	* ira-reload.c (emit_localizing_stores): Just delete stores
+	to readonly-memory.
+
 2010-04-14  Jeff Law <law@redhat.com>
 
 	* ira-reload.c (create_new_allocno_for_spilling): Remove code to set

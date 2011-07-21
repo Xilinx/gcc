@@ -483,6 +483,10 @@ emit_localizing_stores (rtx dest,
       /* We must copy the memory location to avoid incorrect RTL sharing.  */
       rtx mem = VEC_index (reg_equivs_t, reg_equivs, regno)->memory_loc;
 
+      /* If this is unchanging memory, then just remove this insn.  */
+      if (MEM_READONLY_P (mem))
+	return -1;
+	
       mem = copy_rtx (mem);
 
       /* If we're decomposing a SUBREG, then the memory address needs
