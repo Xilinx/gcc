@@ -2441,7 +2441,7 @@ melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-sy
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))): \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
@@ -2491,7 +2491,7 @@ melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt  \
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
@@ -2541,7 +2541,7 @@ melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt  \
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
@@ -2591,7 +2591,7 @@ melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt  \
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base:xtramelt-ana-simple \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
@@ -2641,7 +2641,7 @@ melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt  \
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base:xtramelt-ana-simple:xtramelt-c-generator \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
@@ -2677,6 +2677,8 @@ melt-modules/quicklybuilt/xtramelt-opengpu.q.so: melt-sources/xtramelt-opengpu.c
 # end application xtramelt-opengpu
 
 
+
+######
 
 melt-all-modules: \
     melt-modules/optimized/warmelt-first.so \
@@ -2980,7 +2982,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	      $(meltarg_makecmd)=$(MAKE) \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
-	      $(meltarg_module_path)=$(realpath melt-modules/optimized):$(realpath melt-modules):. \
+	      $(meltarg_module_path)=$(realpath melt-modules):. \
 	      $(meltarg_source_path)=$(realpath melt-sources):. \
 	      $(meltarg_output)=$@  \
               $(meltarg_arglist)=warmelt-first.melt,warmelt-base.melt,warmelt-debug.melt,warmelt-macro.melt,warmelt-normal.melt,warmelt-normatch.melt,warmelt-genobj.melt,warmelt-outobj.melt,\
@@ -3003,7 +3005,7 @@ meltrun-generate: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
 	      $(meltarg_mode)=runtypesupport  \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
-	      $(meltarg_module_path)=melt-modules/optimized:melt-modules:. \
+	      $(meltarg_module_path)=melt-modules:. \
 	      $(meltarg_source_path)=melt-sources:. \
 	      $(meltarg_output)=meltrunsup  \
 	      empty-file-for-melt.c

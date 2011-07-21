@@ -422,7 +422,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):[+ (. (join ":" (reverse prevapplbase)))+] \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
@@ -458,6 +458,8 @@ melt-modules/quicklybuilt/[+base+].q.so: melt-sources/[+base+].c \
 # end application [+base+]
 
 [+ENDFOR melt_application_file+]
+
+######
 
 melt-all-modules: \
 [+FOR melt_translator_file+]    melt-modules/optimized/[+base+].so \
@@ -535,7 +537,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	      $(meltarg_makecmd)=$(MAKE) \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
-	      $(meltarg_module_path)=$(realpath melt-modules/optimized):$(realpath melt-modules):. \
+	      $(meltarg_module_path)=$(realpath melt-modules):. \
 	      $(meltarg_source_path)=$(realpath melt-sources):. \
 	      $(meltarg_output)=$@  \
               $(meltarg_arglist)=[+FOR melt_translator_file+][+base+].melt,[+ENDFOR melt_translator_file+]\
@@ -558,7 +560,7 @@ meltrun-generate: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
 	      $(meltarg_mode)=runtypesupport  \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
-	      $(meltarg_module_path)=melt-modules/optimized:melt-modules:. \
+	      $(meltarg_module_path)=melt-modules:. \
 	      $(meltarg_source_path)=melt-sources:. \
 	      $(meltarg_output)=meltrunsup  \
 	      empty-file-for-melt.c

@@ -2554,6 +2554,13 @@ extern melt_ptr_t melt_jmpval;
   struct melt_callframe_st* mcfr_prev;		\
   void*  /* a melt_ptr_t */ mcfr_varptr[NBVAR];	\
 } meltfram__
+#define MELT_DECLEMPTYFRAME() struct {		\
+  int mcfr_nbvar;				\
+  const char* mcfr_flocs;			\
+  struct meltclosure_st* mcfr_clos;		\
+  struct excepth_melt_st* mcfr_exh;		\
+  struct melt_callframe_st* mcfr_prev;		\
+} meltfram__
 /* initialize the current callframe and link it at top */
 #define MELT_INITFRAME_AT(NBVAR,CLOS,FIL,LIN) do {			\
   static char locbuf_##LIN[84];						\
@@ -2615,6 +2622,14 @@ extern melt_ptr_t melt_jmpval;
     struct melt_callframe_st* mcfr_prev;		\
     void*  /* a melt_ptr_t */ mcfr_varptr[NBVAR];	\
 } meltfram__
+#define MELT_DECLEMPTYFRAME () struct {			\
+/*declframe without MELT_HAVE_DEBUG*/			\
+    int mcfr_nbvar;					\
+    const char* mcfr_unusedflocs;			\
+    struct meltclosure_st* mcfr_clos;			\
+    struct excepth_melt_st* mcfr_exh;			\
+    struct melt_callframe_st* mcfr_prev;		\
+} meltfram__
 
 #define MELT_LOCATION(LOCS) do{/*location without MELT_HAVE_DEBUG*/}while(0)
 #define MELT_LOCATION_HERE(MSG) do{/*locationhere without MELT_HAVE_DEBUG*/}while(0)
@@ -2635,6 +2650,10 @@ extern melt_ptr_t melt_jmpval;
 /* declare and initialize the current callframe */
 #define MELT_ENTERFRAME(NBVAR,CLOS) \
   MELT_DECLFRAME(NBVAR); MELT_INITFRAME(NBVAR,CLOS)
+
+/* declare and initialize the current callframe */
+#define MELT_ENTEREMPTYFRAME(CLOS) \
+  MELT_DECLEMPTYFRAME(); MELT_INITFRAME(0,CLOS)
 
 /* exit the current frame and return */
 #define MELT_EXITFRAME() do {		\

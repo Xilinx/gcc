@@ -1,5 +1,23 @@
 
 2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-built.tpl: Don't give melt-modules/optimized as module
+	path, except for application files.
+	* melt-build.mk: Regenerate.
+	* melt-runtime.h (MELT_DECLEMPTYFRAME, MELT_ENTEREMPTYFRAME): New
+	macros.
+	* melt-runtime.c (MODULE_SOURCE_ARG, MODULE_BINARY_ARG)
+	(WORKSPACE_ARG, CFLAGS_ARG, MAKECHDIR_ARG)
+	(MELTMODFLAV_QUICKLYBUILT_SUFFIX, MELTMODFLAV_QUICKLYBUILT_TARGET)
+	(MELTMODFLAV_NOLINE_SUFFIX, MELTMODFLAV_NOLINE_TARGET)
+	(MELTMODFLAV_DYNAMIC_SUFFIX, MELTMODFLAV_DYNAMIC_TARGET)
+	(MELTMODFLAV_OPTIMIZED_SUFFIX, MELTMODFLAV_OPTIMIZED_TARGET)
+	(MELT_BINARYMODULE_SUFFIX): Move or new macros.
+	(melt_run_make_for_plugin, melt_run_make_for_branch): New functions.
+	(compile_gencsrc_to_binmodule): Call them.
+	(melt_get_source_and_module): Refactor. Add assert on
+	src_path. Correct typos.
+
+2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-run.proto.h: Include c-pragma.h c-pretty-print.h
 	conditionally with c-family & cpplib.h & langhooks.h
 
