@@ -5432,15 +5432,19 @@ install-melt-includes: melt-runtime.h melt-predef.h melt-run.h melt-run-md5.h me
 
 
 ## phony target to compile the MELT runtime using MELT to exercise the
-## meltframe MELT pass
-check-melt-runtime: melt-runtime.o melt-runtime.c xgcc$(exeext) \
+## meltframe MELT pass, and to check that melt-runtime.c follows some
+## MELT coding rules.
+
+check-melt-runtime: melt-runtime.o melt-runtime.c xgcc$(exeext)		\
 	melt-sources melt-all-sources melt-modules melt-all-modules
-	$(GCC_FOR_TARGET)  $(ALL_CFLAGS) $(ALL_CPPFLAGS) -Wno-error -I $(srcdir)/melt/generated/	\
-	    $(MELT_RUNTIME_CPPDEFS)							\
-	    $(meltarg_module_path)=melt-modules 					\
-	    $(meltarg_source_path)=melt-sources 					\
-	        $(meltarg_mode)=meltframe 							\
-	        $(meltarg_bootstrapping) 							\
+	@echo checking melt-runtime.c with MELT
+	$(GCC_FOR_TARGET)  $(ALL_CFLAGS) $(ALL_CPPFLAGS) -Wno-error	\
+ -I $(srcdir)/melt/generated/						\
+	    $(MELT_RUNTIME_CPPDEFS)					\
+	    $(meltarg_module_path)=melt-modules/optimized:melt-modules	\
+	    $(meltarg_source_path)=melt-sources				\
+	        $(meltarg_mode)=meltframe				\
+	        $(meltarg_bootstrapping)				\
 	  -c $(MELT_RUNTIME_C) -o /dev/null
 
 

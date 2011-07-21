@@ -32,7 +32,7 @@ mk
 ### (usually, melt_make_cc1_dependency = melt_make_cc1)
 ### melt_make_gencdeps is an extra make dependency of generated C files [leave empty usually]
 ### melt_is_plugin - should be non empty in plugin mode
-### melt_make_move - a copy or move command for files
+### melt_make_move - a move if change command for files
 ### melt_cflags - the CFLAGS for compiling MELT generated C code
 ### melt_xtra_cflags - the CFLAGS for compiling extra (applicative)
 ###                    MELT generated C code
@@ -83,7 +83,7 @@ MELTCCAPPLICATION1=$(melt_make_cc1)  $(melt_make_cc1flags) -Wno-shadow $(meltarg
 
 
 vpath %.so $(melt_make_module_dir) . 
-vpath %.c $(melt_make_source_dir)/generated . $(melt_source_dir)
+#vpath %.c $(melt_make_source_dir)/generated . $(melt_source_dir)
 vpath %.h . $(melt_make_source_dir)/generated $(melt_source_dir)
 vpath %.melt $(melt_make_source_dir) . $(melt_source_dir)
 
@@ -96,17 +96,21 @@ MELT_MAKE_MODULE=$(MAKE) -f $(melt_make_module_makefile) $(MELT_MAKE_MODULE_XTRA
 MELT_TRANSLATOR_BASE= \
   [+FOR melt_translator_file " \\\n"+]  [+base+][+ENDFOR melt_translator_file+]
 
+## the MELT translator MELT source files
+MELT_TRANSLATOR_SOURCE= $(patsubst %,$(melt_make_source_dir)/%.melt,$(MELT_TRANSLATOR_BASE))
+
 ## The base name of the MELT application files
 MELT_APPLICATION_BASE= \
   [+FOR melt_application_file " \\\n"+]  [+base+][+ENDFOR melt_application_file+]
 
-
+## The MELT application source files
+MELT_APPLICATION_SOURCE= $(patsubst %,$(melt_make_source_dir)/%.melt,$(MELT_APPLICATION_BASE))
 
 ## The cold stage 0 of the translator
 [+FOR melt_translator_file +]
 MELT_GENERATED_[+mkvarsuf+]_C_FILES= \
-                  $(melt_make_source_dir)/generated/[+base+]-0.c \
-                  $(wildcard $(melt_make_source_dir)/generated/[+base+]-0+*.c)
+                  $(melt_make_source_dir)/generated/[+base+].c \
+                  $(wildcard $(melt_make_source_dir)/generated/[+base+]+*.c)
 MELT_GENERATED_[+mkvarsuf+]_BASE= \
                   $(basename $(notdir $(MELT_GENERATED_[+mkvarsuf+]_C_FILES)))
 
@@ -116,55 +120,65 @@ MELT_GENERATED_[+mkvarsuf+]_BASE= \
 ## is with static or dynamic field object offsets
 [+FOR melt_translator_file +]
 ## using static object fields offsets for [+base+]
-melt-stage0-static/[+base+]-0.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
+melt-stage0-static/[+base+].q.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-static \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_BINARY=melt-stage0-static/[+base+]-0
+              GCCMELT_MODULE_BINARY=melt-stage0-static/[+base+]
+
+melt-stage0-static/[+base+].so: melt-stage0-static//[+base+].q.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
 ## using dynamic object fields offsets for [+base+]
-melt-stage0-dynamic/[+base+]-0.d.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
+melt-stage0-dynamic/[+base+].d.so: $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) \
              melt-run.h melt-runtime.h melt-runtime.c \
              melt-predef.h $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_dynamic \
               GCCMELT_MODULE_WORKSPACE=melt-stage0-dynamic \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_BINARY=melt-stage0-dynamic/[+base+]-0
+              GCCMELT_MODULE_BINARY=melt-stage0-dynamic/[+base+]
 
-melt-stage0-dynamic/[+base+]-0.so: melt-stage0-dynamic/[+base+]-0.d.so
+melt-stage0-dynamic/[+base+].so: melt-stage0-dynamic/[+base+].d.so
 	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
 
-melt-stage0-dynamic/[+base+]-0.q.so: melt-stage0-dynamic/[+base+]-0.d.so
-	cd $(dir $@) ;  rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+melt-stage0-dynamic/[+base+].q.so: melt-stage0-dynamic/[+base+].d.so
+	cd $(dir $@) ; rm -f $(notdir $@); $(LN_S) $(notdir $<) $(notdir $@)
+
 
 [+ENDFOR melt_translator_file+]
 
 
-melt-stage0-static.timestamp:  melt-stage0-static melt-stage0-static/warmelt-0.modlis
-	date +"$@ %c" > $@
+melt-stage0-static.stamp:  melt-stage0-static melt-stage0-static/warmelt.modlis melt-run.h
+	date +"#$@ generated %F" > $@-tmp
+[+FOR melt_translator_file "\n"+]	md5sum melt-run.h $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) >> $@-tmp[+ENDFOR melt_translator_file+]
+	echo "# end $@" >> $@-tmp
+	$(melt_make_move) $@-tmp $@
 
-melt-stage0-dynamic.timestamp:  melt-stage0-dynamic melt-stage0-dynamic/warmelt-0.modlis
-	date +"$@ %c" > $@
+melt-stage0-dynamic.stamp:  melt-stage0-dynamic melt-stage0-dynamic/warmelt.modlis melt-run.h
+	date +"#$@ generated %F" > $@-tmp
+[+FOR melt_translator_file "\n"+]	md5sum melt-run.h $(MELT_GENERATED_[+mkvarsuf+]_C_FILES) >> $@-tmp[+ENDFOR melt_translator_file+]
+	echo "# end $@" >> $@-tmp
+	$(melt_make_move) $@-tmp $@
 
 
 
 
-melt-stage0-static/warmelt-0.modlis: \
-[+FOR melt_translator_file " \\\n" +]             melt-stage0-static/[+base+]-0.so[+
+melt-stage0-static/warmelt.modlis: \
+[+FOR melt_translator_file " \\\n" +]             melt-stage0-static/[+base+].q.so[+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
-[+FOR melt_translator_file+]	echo [+base+]-0 >> $@-tmp
+[+FOR melt_translator_file+]	echo [+base+].q >> $@-tmp
 [+ENDFOR melt_translator_file+]	$(melt_make_move) $@-tmp $@
 
-melt-stage0-dynamic/warmelt-0.modlis: \
-[+FOR melt_translator_file " \\\n" +]              melt-stage0-dynamic/[+base+]-0.so[+
+melt-stage0-dynamic/warmelt.modlis: \
+[+FOR melt_translator_file " \\\n" +]              melt-stage0-dynamic/[+base+].q.so[+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
-[+FOR melt_translator_file+]	echo [+base+]-0 >> $@-tmp
+[+FOR melt_translator_file+]	echo [+base+].q >> $@-tmp
 [+ENDFOR melt_translator_file+]
 	$(melt_make_move) $@-tmp $@
 
@@ -178,7 +192,7 @@ empty-file-for-melt.c:
 .PHONY: warmelt0
 ## the default stage0 melt-stage0-dynamic
 MELT_STAGE_ZERO?= melt-stage0-dynamic
-warmelt0: $(melt_make_cc1_dependency) $(MELT_STAGE_ZERO) $(MELT_STAGE_ZERO).timestamp 
+warmelt0: $(melt_make_cc1_dependency) $(MELT_STAGE_ZERO) $(MELT_STAGE_ZERO).stamp 
 $(MELT_STAGE_ZERO):
 	-test -d $(MELT_STAGE_ZERO)/ || mkdir $(MELT_STAGE_ZERO)
 
@@ -195,76 +209,94 @@ $(MELT_STAGE_ZERO):
 [+FOR melt_translator_file+][+ 
   (define outbase (get "base")) (define outindex (for-index)) +]
 
-################## [+ (. outbase)+] for [+melt_stage+]
-[+melt_stage+]/[+(. outbase)+]-[+(. stageindex)+].q.so: [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c \
-              $(wildcard [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+]+*.c) \
+
+### the C source of [+melt_stage+] for [+ (. outbase)+]
+[+melt_stage+]/[+ (. outbase)+].c:  $(melt_make_source_dir)/[+ (. outbase)+].melt \
+ $(MELT_TRANSLATOR_SOURCE) \
+ [+ (. prevstage)+].stamp [+ (. prevstage)+]/warmelt.modlis \
+[+FOR includeload+]        [+includeload+] \
+[+ENDFOR includeload
++][+FOR melt_translator_file+][+ (define inbase (get "base")) (define inindex (for-index)) 
+  (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
+  (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
++]      [+IF (< inindex outindex)+][+ (. depstage)+]/[+ (. inbase)+].q.so \
+[+ENDIF+][+ENDFOR melt_translator_file
++]  empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
+              $(melt_make_cc1_dependency)
+## 
+	@echo generating $< for [+melt_stage+]
+[+IF (= outindex 0)+]
+	$(MELTCCINIT1) $(meltarg_init)=\[+ELSE+]
+	$(MELTCCFILE1) $(meltarg_init)=\[+ENDIF+]
+[+FOR melt_translator_file ":\\\n"+][+ (define inbase (get "base")) (define inindex (for-index)) 
+  (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
+  (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
++][+ (. depstage)+]/[+ (. inbase)+].q[+ENDFOR melt_translator_file
++] \
+           $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
+	      $(meltarg_module_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath  $(melt_make_module_dir)) \
+	      $(meltarg_source_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
+	      $(meltarg_output)=$@  empty-file-for-melt.c
+
+################## quickmodule [+ (. outbase)+] for [+melt_stage+]
+[+melt_stage+]/[+(. outbase)+].q.so: [+melt_stage+]/[+ (. outbase)+].c \
+              $(wildcard [+melt_stage+]/[+ (. outbase)+]+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_quicklybuilt \
               GCCMELT_MODULE_WORKSPACE=$(realpath [+melt_stage+]) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_BINARY=$(realpath [+melt_stage+])/[+(. outbase)+]-[+(. stageindex)+]
+              GCCMELT_MODULE_BINARY=$(realpath [+melt_stage+])/[+(. outbase)+]
 
-[+melt_stage+]/[+(. outbase)+]-[+(. stageindex)+].n.so: [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c \
-              $(wildcard [+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+]+*.c) \
+[+melt_stage+]/[+(. outbase)+].n.so: [+melt_stage+]/[+ (. outbase)+].c \
+              $(wildcard [+melt_stage+]/[+ (. outbase)+]+*.c) \
               melt-run.h melt-runtime.h melt-predef.h \
               $(melt_make_cc1_dependency)
 	+$(MELT_MAKE_MODULE) melt_module_withoutline \
               GCCMELT_MODULE_WORKSPACE=$(realpath [+melt_stage+]) \
 	      GCCMELT_CFLAGS="$(melt_cflags)" \
 	      GCCMELT_MODULE_SOURCE=$< \
-              GCCMELT_MODULE_BINARY=$(realpath [+melt_stage+])/[+(. outbase)+]-[+(. stageindex)+]
+              GCCMELT_MODULE_BINARY=$(realpath [+melt_stage+])/[+(. outbase)+]
 
-[+melt_stage+]/[+ (. outbase)+]-[+(. stageindex)+].c: $(melt_make_source_dir)/[+ (. outbase)+].melt \
-[+FOR includeload+]        [+includeload+] \
-[+ENDFOR includeload
-+][+FOR melt_translator_file+][+ (define inbase (get "base")) (define inindex (for-index)) 
-  (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
-  (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
-+]                  [+ (. depstage)+]/[+ (. inbase)+]-[+(. depindex)+].q.so \
-[+ENDFOR melt_translator_file
-+]             empty-file-for-melt.c melt-run.h melt-runtime.h melt-predef.h \
-              $(melt_make_cc1_dependency)[+IF (= outindex 0)
-+]
-	$(MELTCCINIT1) $(meltarg_init)=\[+ELSE+]
-	$(MELTCCFILE1) $(meltarg_init)=\[+ENDIF+]
-[+FOR melt_translator_file ":\\\n"+][+ (define inbase (get "base")) (define inindex (for-index)) 
-  (define depstage (if (< inindex outindex) (get "melt_stage") prevstage))
-  (define depindex (if (< inindex outindex) stageindex (- stageindex 1)))
-+][+ (. inbase)+]-[+(. depindex)+].q[+ENDFOR melt_translator_file
-+] \
-           $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	      $(meltarg_module_path)=$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath  $(melt_make_module_dir)) \
-	      $(meltarg_source_path)=$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@  empty-file-for-melt.c
 [+ENDFOR melt_translator_file+]
 
+
 ## the module list in [+melt_stage+]
-[+melt_stage+]/warmelt-[+(. stageindex)+].modlis:  \
-[+FOR melt_translator_file " \\\n" +]             [+melt_stage+]/[+base+]-[+(. stageindex)+].q.so[+
+[+melt_stage+]/warmelt.modlis:  \
+[+FOR melt_translator_file " \\\n" +]             [+melt_stage+]/[+base+].q.so[+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
-[+FOR melt_translator_file+]	echo [+base+]-[+(. stageindex)+].q >> $@-tmp
+[+FOR melt_translator_file+]	echo [+base+].q >> $@-tmp
 [+ENDFOR melt_translator_file+]	$(melt_make_move) $@-tmp $@
 [+ (define laststage (get "melt_stage"))
    (define lastindex stageindex)
 +]
 
-[+melt_stage+]/warmelt-[+(. stageindex)+].n.modlis:  \
-[+FOR melt_translator_file " \\\n" +]             [+melt_stage+]/[+base+]-[+(. stageindex)+].n.so[+
+[+melt_stage+]/warmelt.n.modlis:  \
+[+FOR melt_translator_file " \\\n" +]             [+melt_stage+]/[+base+].n.so[+
 ENDFOR melt_translator_file+]
 	date  +"#$@ generated %F" > $@-tmp
-[+FOR melt_translator_file+]	echo [+base+]-[+(. stageindex)+].n >> $@-tmp
+[+FOR melt_translator_file+]	echo [+base+].n >> $@-tmp
 [+ENDFOR melt_translator_file+]	$(melt_make_move) $@-tmp $@
 [+ (define laststage (get "melt_stage"))
    (define lastindex stageindex)
 +]
 
+## the stamp for [+melt_stage+]
+[+melt_stage+].stamp: [+melt_stage+]/warmelt.modlis melt-run.h
+	date +"#$@ generated %F" > $@-tmp
+	md5sum melt-run.h >> $@-tmp
+[+FOR melt_translator_file "\n"+]	md5sum $(wildcard [+melt_stage+]/[+base+]*.c) < /dev/null >> $@-tmp[+ENDFOR melt_translator_file+]
+	echo "# end $@" >> $@-tmp
+	$(melt_make_move) $@-tmp $@
+
+
+### phony targets for  [+melt_stage+]
 .PHONY: warmelt[+(. stageindex)+] warmelt[+(. stageindex)+]n
-warmelt[+(. stageindex)+]:  [+melt_stage+] [+melt_stage+]/warmelt-[+(. stageindex)+].modlis
+warmelt[+(. stageindex)+]:  [+melt_stage+] [+melt_stage+]/warmelt.modlis
 	@echo MELT build made $@
-warmelt[+(. stageindex)+]n:  [+melt_stage+] [+melt_stage+]/warmelt-[+(. stageindex)+].n.modlis
+warmelt[+(. stageindex)+]n:  [+melt_stage+] [+melt_stage+]/warmelt.n.modlis
 	@echo MELT build made $@
 [+melt_stage+]:
 	if [ -d [+melt_stage+] ]; then true; else mkdir [+melt_stage+]; fi
@@ -276,7 +308,7 @@ warmelt[+(. stageindex)+]n:  [+melt_stage+] [+melt_stage+]/warmelt-[+(. stageind
 ######## last stage [+ (. laststage)+]
 MELT_LAST_STAGE=[+ (. laststage)+]
 WARMELT_LAST= warmelt[+ (. lastindex)+]
-WARMELT_LAST_MODLIS= [+ (. laststage)+]/warmelt-[+ (. lastindex)+].modlis
+WARMELT_LAST_MODLIS= [+ (. laststage)+]/warmelt.modlis
 
 .PHONY: warmelt
 warmelt: $(WARMELT_LAST)
@@ -317,7 +349,7 @@ melt-all-sources: $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 
 ## melt translator [+base+] # [+ (. transindex) +]
 melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt melt-sources
-	cd melt-sources; rm $(notdir $@); $(LN_S) $(realpath $^)
+	cd melt-sources; rm -f $(notdir $@); $(LN_S) $(realpath $^)
 
 ### melt included files with (load ...) macro
 [+FOR includeload+]
@@ -383,14 +415,14 @@ melt-sources/[+base+].melt: $(melt_make_source_dir)/[+base+].melt
 
 melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 +]melt-sources/[+includeload+] [+ENDFOR includeload+] \
- melt-sources melt-modules \
+ melt-sources melt-modules $(MELT_TRANSLATOR_SOURCE) \
  [+FOR melt_translator_file+] melt-modules/optimized/[+base+].so[+ENDFOR melt_translator_file+] \
 	                    $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) \
                     empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
 	$(MELTCCAPPLICATION1) \
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
-	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath $(MELT_LAST_STAGE)) \
+	     $(meltarg_module_path)=$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):[+ (. (join ":" (reverse prevapplbase)))+] \
 	     $(meltarg_output)=$@ empty-file-for-melt.c 
@@ -472,21 +504,23 @@ warmelt-upgrade-translator: \
 ENDFOR melt_translator_file+]
 	@echo upgrading the MELT translator
 	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
+	@which indent || (echo missing indent for warmelt-upgrade-translator; exit 1)
 [+FOR melt_translator_file+]
 	@echo upgrading MELT translator [+base+]	
 	for f in melt-sources/[+base+]*.c ; do \
-	  bf=`basename $$f | sed s/[+base+]/[+base+]-0/`; \
+	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
-            | unifdef -UMELTGCC_NOLINENUMBERING \
+            | unifdef -UMELTGCC_NOLINENUMBERING | indent \
                  > $(srcdir)/melt/generated/$$bf-tmp; \
 	  ls -l $(srcdir)/melt/generated/$$bf-tmp; \
 	  if [ -f $(srcdir)/melt/generated/$$bf ]; then \
-             mv -f $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
+             $(melt_make_move) $(srcdir)/melt/generated/$$bf $(srcdir)/melt/generated/$$bf~ ; \
 	  fi ; \
-	  mv -f $(srcdir)/melt/generated/$$bf-tmp \
+	  $(melt_make_move) $(srcdir)/melt/generated/$$bf-tmp \
                      $(srcdir)/melt/generated/$$bf ; \
         done
+	rm $(MELT_STAGE_ZERO)/[+base+]*.o
 [+ENDFOR melt_translator_file+]
 
 
@@ -501,7 +535,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	      $(meltarg_makecmd)=$(MAKE) \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
-	      $(meltarg_module_path)=$(realpath melt-modules):. \
+	      $(meltarg_module_path)=$(realpath melt-modules/optimized):$(realpath melt-modules):. \
 	      $(meltarg_source_path)=$(realpath melt-sources):. \
 	      $(meltarg_output)=$@  \
               $(meltarg_arglist)=[+FOR melt_translator_file+][+base+].melt,[+ENDFOR melt_translator_file+]\
@@ -524,7 +558,7 @@ meltrun-generate: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
 	      $(meltarg_mode)=runtypesupport  \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
-	      $(meltarg_module_path)=melt-modules:. \
+	      $(meltarg_module_path)=melt-modules/optimized:melt-modules:. \
 	      $(meltarg_source_path)=melt-sources:. \
 	      $(meltarg_output)=meltrunsup  \
 	      empty-file-for-melt.c
@@ -539,8 +573,8 @@ meltrun-generate: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
 .PHONY: melt-clean
 melt-clean:
 	rm -rf melt-stage0-static melt-stage0-dynamic \
-	       melt-stage0-static.timestamp melt-stage0-dynamic.timestamp \
-[+FOR melt_stage+]           [+melt_stage+]  [+melt_stage+].timestamp \
+	       melt-stage0-static.stamp melt-stage0-dynamic.stamp \
+[+FOR melt_stage+]           [+melt_stage+]  [+melt_stage+].stamp \
 [+ENDFOR melt_stage+]               melt-sources melt-modules
 
 ## eof melt-build.mk generated from melt-build.tpl & melt-melt-build.def
