@@ -1024,7 +1024,7 @@ function_and_variable_visibility (bool whole_program)
     {
       if (!vnode->finalized)
         continue;
-      if (vnode->needed
+      if ((vnode->needed || L_IPO_COMP_MODE)
 	  && varpool_externally_visible_p
 	      (vnode, 
 	       pointer_set_contains (aliased_vnodes, vnode)))

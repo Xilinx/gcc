@@ -2127,6 +2127,11 @@ varpool_do_link (void)
                          eq_node_assembler_name, NULL);
   for (node = varpool_nodes; node; node = node->next)
     varpool_link_node (node);
+
+  /* Merge the externally visible attribute.  */
+  for (node = varpool_nodes; node; node = node->next)
+    if (node->externally_visible)
+      (real_varpool_node (node->decl))->externally_visible = true;
 }
 
 /* Get the list of assembler name ids with reference bit set.  */

@@ -1,3 +1,10 @@
+2011-07-21   Rong Xu  <xur@google.com>
+
+        * ipa.c (function_and_variable_visibility): In LIPO mode, call 
+        varpool_externally_visible_p() to set the externally visible 
+        attribute even for varpool nodes that not marked as needed.
+        * l-ipo.c (varpool_do_link): Merge the externally visible 
+        attribute for varpool nodes.
 
 2011-07-11   DeLesley Hutchins  <delesley@google.com>
       * cp/gc.class (cp_get_virtual_function_decl.c handle_call_gs): 
