@@ -5761,7 +5761,7 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
 				 modulbase, modulsuffix)) != NULL)  
     {
       if (!access(curpath, R_OK)) {
-	res.src_path = curpath;
+	res.sho_path = curpath;
 	debugeprintf ("found binary module in module path %s", curpath);
       }
       else 
@@ -5778,7 +5778,7 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
 		   modulbase, modulsuffix, curenv);
       if ((curpath = lookup_path (curenv, modulbase, modulsuffix)) != NULL 
 	  && !access(curpath, R_OK)) {
-	res.src_path = curpath;
+	res.sho_path = curpath;
 	debugeprintf ("found binary module in $GCCMELT_MODULE_PATH %s", curpath);
       }
       else 
@@ -11288,16 +11288,17 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
   if (!cfil)
     melt_fatal_error ("failed to open melt generated file %s - %m", dotempnam);
   fprintf (cfil,
-	   "/* GCC MELT GENERATED FILE %s - DO NOT EDIT */\n", dotcnam);
+	   "/* GCC MELT GENERATED FILE %s - DO NOT EDIT */\n", 
+	   lbasename (dotcnam));
   if (filrank <= 0)
     {
       if (melt_magic_discr (optbuf) == MELTOBMAG_STRBUF)
 	{
 	  fprintf (cfil, "\n/***+ %s options +***\n",
-		   melt_string_str (unitnam));
+		   lbasename (melt_string_str (unitnam)));
 	  melt_putstrbuf (cfil, optbuf);
 	  fprintf (cfil, "\n***- end %s options -***/\n", 
-		   melt_string_str (unitnam));
+		   lbasename (melt_string_str (unitnam)));
 	}
       /* we protect genversionstr_melt with MELTGCC_DYNAMIC_OBJSTRUCT since
 	 for sure when compiling the warmelt*0.c it would mismatch, and we
@@ -11336,16 +11337,17 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
 	     "const char used_meltrun_md5_melt_f%d[] = MELT_RUN_HASHMD5 /* from melt-run.h */;\n\n", filrank);
 
   fprintf (cfil, "\n/**** %s declarations ****/\n",
-	   melt_string_str (unitnam));
+	   lbasename (melt_string_str (unitnam)));
   melt_putstrbuf (cfil, declbuf);
   putc ('\n', cfil);
   fflush (cfil);
   fprintf (cfil, "\n/**** %s implementations ****/\n",
-	   melt_string_str (unitnam));
+	   lbasename (melt_string_str (unitnam)));
   melt_putstrbuf (cfil, implbuf);
   putc ('\n', cfil);
   fflush (cfil);
-  fprintf (cfil, "\n/**** end of %s ****/\n", melt_string_str (unitnam));
+  fprintf (cfil, "\n/**** end of %s ****/\n", 
+	   lbasename (melt_string_str (unitnam)));
   fclose (cfil);
   cfil = 0;
   /* reopen the dotempnam and the dotcnam files to compare their content */

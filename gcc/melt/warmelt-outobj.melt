@@ -932,8 +932,8 @@
 		(add2sbuf_strconst implbuf "#")
 		(add2sbuf_strconst implbuf "line ")
 		(add2sbuf_longdec implbuf (mixloc_locline loc))
-		(add2sbuf_strconst implbuf " \"")
-		(add2sbuf_strconst implbuf (mixloc_locfile loc))
+		(add2sbuf_strconst implbuf "   \"")
+		(add2sbuf_strconst implbuf (mixloc_locbasefile loc))
 		(add2sbuf_strconst implbuf "\""))
 	      )
 	(if msg 

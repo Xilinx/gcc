@@ -1,5 +1,14 @@
 
 2011-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_get_source_and_module): Typos.
+	(melt_output_cfile_decl_impl_secondary_option): Output basename in
+	comments.
+
+	* melt/warmelt-base.melt (mixloc_locbasefile): New primitive.
+
+	* melt/warmelt-outobj.melt (output_raw_location): Use it.
+
+2011-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_find_source_and_module): Renamed as
 	(melt_get_source_and_module).
 	(meltgc_make_load_melt_module): Use it.

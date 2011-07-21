@@ -238,6 +238,9 @@ tail $TL or else null.}#
 (defprimitive mixloc_locfile (mi) :cstring
   :doc #{Retrieve the filename as a raw cstring of a mixed location value $MI.}#
   #{(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mi)))}#)
+(defprimitive mixloc_locbasefile (mi) :cstring
+  :doc #{Retrieve the base filename as a raw cstring of a mixed location value $MI.}#
+  #{(lbasename(LOCATION_FILE(melt_location_mixloc((melt_ptr_t)$mi))))}#)
 
 (defprimitive make_string_mixloc_file (mi dis) :value
   :doc #{Retrieve the filename as a boxed string of a mixed location value $MI.}#
@@ -2468,6 +2471,7 @@ polyhedron values.}#
  mixbigint_val
  mixint_val
  mixloc_location
+ mixloc_locbasefile 
  mixloc_locfile
  mixloc_locline
  mixloc_val
