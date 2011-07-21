@@ -1,5 +1,8 @@
 
-2011-07-20  Basile Starynkevitch  <basile@starynkevitch.net>
+2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* Makefile.in (melt_make_cc1_dependency): Add melt-runtime.c
+
+2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (melt_get_source_and_module): Typos.
 	(melt_output_cfile_decl_impl_secondary_option): Output basename in
 	comments.

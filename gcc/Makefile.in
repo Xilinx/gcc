@@ -5360,7 +5360,7 @@ po/gcc.pot: force
 ################################# extra for MELT
 
 melt_make_cc1=./cc1$(exeext)
-melt_make_cc1_dependency=$(melt_make_cc1) $(MELT_H)
+melt_make_cc1_dependency=$(melt_make_cc1) $(MELT_H) melt-runtime.c
 melt_make_gencdeps= ./cc1$(exeext)
 melt_make_module_makefile=$(srcdir)/melt-module.mk
 melt_make_source_dir=$(srcdir)/melt
