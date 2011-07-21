@@ -3760,7 +3760,7 @@ pointer_int_sum (location_t loc, enum tree_code resultcode,
   if (resultcode == MINUS_EXPR)
     intop = fold_build1_loc (loc, NEGATE_EXPR, sizetype, intop);
 
-  ret = fold_build2_loc (loc, POINTER_PLUS_EXPR, result_type, ptrop, intop);
+  ret = fold_build_pointer_plus_loc (loc, ptrop, intop);
 
   fold_undefer_and_ignore_overflow_warnings ();
 
@@ -8329,6 +8329,8 @@ c_parse_error (const char *gmsgid, enum cpp_ttype token_type,
     message = catenate_messages (gmsgid, " before %<#pragma%>");
   else if (token_type == CPP_PRAGMA_EOL)
     message = catenate_messages (gmsgid, " before end of line");
+  else if (token_type == CPP_DECLTYPE)
+    message = catenate_messages (gmsgid, " before %<decltype%>");
   else if (token_type < N_TTYPES)
     {
       message = catenate_messages (gmsgid, " before %qs token");

@@ -604,8 +604,7 @@ split_constant_offset_1 (tree type, tree op0, enum tree_code code, tree op1,
 	    split_constant_offset (poffset, &poffset, &off1);
 	    off0 = size_binop (PLUS_EXPR, off0, off1);
 	    if (POINTER_TYPE_P (TREE_TYPE (base)))
-	      base = fold_build2 (POINTER_PLUS_EXPR, TREE_TYPE (base),
-				  base, fold_convert (sizetype, poffset));
+	      base = fold_build_pointer_plus (base, poffset);
 	    else
 	      base = fold_build2 (PLUS_EXPR, TREE_TYPE (base), base,
 				  fold_convert (TREE_TYPE (base), poffset));
@@ -4158,33 +4157,37 @@ get_references_in_stmt (gimple stmt, VEC (data_ref_loc, heap) **references)
 	  ref->pos = op1;
 	  ref->is_read = true;
 	}
-
-      if (DECL_P (*op0)
-	  || (REFERENCE_CLASS_P (*op0) && get_base_address (*op0)))
-	{
-	  ref = VEC_safe_push (data_ref_loc, heap, *references, NULL);
-	  ref->pos = op0;
-	  ref->is_read = false;
-	}
     }
   else if (stmt_code == GIMPLE_CALL)
     {
-      unsigned i, n = gimple_call_num_args (stmt);
+      unsigned i, n;
 
+      op0 = gimple_call_lhs_ptr (stmt);
+      n = gimple_call_num_args (stmt);
       for (i = 0; i < n; i++)
 	{
-	  op0 = gimple_call_arg_ptr (stmt, i);
+	  op1 = gimple_call_arg_ptr (stmt, i);
 
-	  if (DECL_P (*op0)
-	      || (REFERENCE_CLASS_P (*op0) && get_base_address (*op0)))
+	  if (DECL_P (*op1)
+	      || (REFERENCE_CLASS_P (*op1) && get_base_address (*op1)))
 	    {
 	      ref = VEC_safe_push (data_ref_loc, heap, *references, NULL);
-	      ref->pos = op0;
+	      ref->pos = op1;
 	      ref->is_read = true;
 	    }
 	}
     }
+  else
+    return clobbers_memory;
 
+  if (*op0
+      && (DECL_P (*op0)
+	  || (REFERENCE_CLASS_P (*op0) && get_base_address (*op0))))
+    {
+      ref = VEC_safe_push (data_ref_loc, heap, *references, NULL);
+      ref->pos = op0;
+      ref->is_read = false;
+    }
   return clobbers_memory;
 }
 

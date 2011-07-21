@@ -1,6 +1,10 @@
 
 2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	MELT branch merged with trunk rev 176576 using svnmerge.
+
+2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* INSTALL/README-MELT-PLUGIN: Mention contrib/gcc_update before
 	contrib/make-melt-source-tar.sh
 

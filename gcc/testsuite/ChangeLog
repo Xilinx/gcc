@@ -1,3 +1,141 @@
+2011-07-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/target-supports.exp (check_avx_os_support_available): New.
+	(check_effective_target_avx_runtime): Use it.
+
+2011-07-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49770
+	* g++.dg/torture/pr49770.C: New testcase.
+
+2011-07-21  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/tree-ssa/pr30978.c: adjusted.
+	* gcc.dg/tree-ssa/ssa-fre-6.c: Likewise.
+
+2011-07-21  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/coarray_lib_token_1.f90: New.
+
+2011-07-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/pr32912-2.c: Skip for AVR.
+	* gcc.dg/pr44674.c: Add dg-require-profiling.
+
+2011-07-20  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/ext/desig2.C: New.
+
+2011-07-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-fma-1.c: Adjust to allow non-VSX fmas to
+	be generated.
+	* gcc.target/powerpc/ppc-fma-2.c: Ditto.
+	* gcc.target/powerpc/recip-3.c: Ditto.
+
+2011-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/6709 (DR 743)
+	PR c++/42603 (DR 950)
+	* g++.dg/cpp0x/decltype21.C: New.
+
+2011-07-20  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/18908
+	* gcc.dg/tree-ssa/pr18908.c: New testcase.
+	* gcc.dg/tree-ssa/bitwise-sink.c: Adjust.
+
+2011-07-20  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.target/arm/combine-movs.c: New.
+	* gcc.target/arm/unsigned-extend-2.c: New.
+
+2011-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49785
+	* g++.dg/cpp0x/variadic114.C: New.
+
+2011-07-19  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/coarray_args_1.f90: New.
+	* gfortran.dg/coarray_args_2.f90: New.
+
+2011-07-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49708
+	* gfortran.dg/allocate_error_3.f90: New.
+
+2011-07-19  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/bool-10.c: Adjust expected pattern.
+	* gcc.dg/tree-ssa/bool-11.c: Likewise.
+	* gcc.dg/torture/20110719-1.c: New testcase.
+
+2011-07-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49768
+	* gcc.c-torture/execute/pr49768.c: New test.
+
+2011-07-19  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49771
+	* gcc.dg/vect/pr49771.c: New test.
+
+2011-07-18  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/ipa/ipa-1.c: Updated testcase dump scan.
+	* gcc.dg/ipa/ipa-2.c: Likewise.
+	* gcc.dg/ipa/ipa-3.c: Likewise and made functions static.
+	* gcc.dg/ipa/ipa-4.c: Updated testcase dump scan.
+	* gcc.dg/ipa/ipa-5.c: Likewise.
+	* gcc.dg/ipa/ipa-7.c: Likewise.
+	* gcc.dg/ipa/ipa-8.c: Updated testcase dump scan.
+	* gcc.dg/ipa/ipacost-1.c: Likewise.
+	* gcc.dg/ipa/ipacost-2.c: Likewise and increased sizes of some
+	functions.
+	* gcc.dg/ipa/ipcp-1.c: New test.
+	* gcc.dg/ipa/ipcp-2.c: Likewise.
+	* gcc.dg/tree-ssa/ipa-cp-1.c: Updated testcase.
+
+2011-07-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49675
+	* gfortran.dg/pr49675.f90: New test.
+
+2011-07-18  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/20110718-1.c: New testcase.
+
+2011-07-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	* g++.dg/ext/bitfield2.C: Remove i?86-*-netware support.
+	* g++.dg/ext/bitfield3.C: Likewise.
+	* g++.dg/ext/bitfield4.C: Likewise.
+	* g++.dg/ext/bitfield5.C: Likewise.
+	* g++.dg/other/PR23205.C: Remove *-*-netware* support.
+	* g++.dg/other/pr23205-2.C: Likewise.
+	* gcc.c-torture/compile/20001109-1.c: Remove dg-xfail-if.
+	* gcc.c-torture/compile/20001109-2.c: Likewise.
+	* gcc.dg/20040813-1.c: Remove *-*-netware* support.
+	* gcc.dg/bitfld-15.c: Remove i?86-*-netware support.
+	* gcc.dg/bitfld-16.c: Likewise.
+	* gcc.dg/bitfld-17.c: Likewise.
+	* gcc.dg/bitfld-18.c: Likewise.
+	* gcc.dg/builtins-config.h: Remove Netware support.
+	* gcc.dg/cdce1.c: Remove *-*-netware* support.  Update line number.
+	* gcc.dg/cdce2.c: Likewise.
+	* gcc.dg/cpp/assert4.c: Remove netware support.
+	* gcc.dg/debug/pr35154.c: Remove *-*-netware* support.
+	* gfortran.dg/debug/pr35154-stabs.f: Remove *-*-netware* support.
+
+	* lib/target-supports.exp (check_visibility_available): Remove
+	NetWare support.
+	(check_profiling_available): Likewise.
+
+2011-07-18  Ira Rosen  <ira.rosen@linaro.org>
+
+	* gcc.dg/vect/pr49038.c: Run only on targets that support mmap.
+
 2011-07-17  Tobias Burnus  <burnus@net-b.de>
 	    Thomas Koenig  <tkoenig@gcc.gnu.org>
 

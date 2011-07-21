@@ -1759,9 +1759,7 @@ integer_all_onesp (const_tree expr)
   if (!uns)
     return 0;
 
-  /* Note that using TYPE_PRECISION here is wrong.  We care about the
-     actual bits, not the (arbitrary) range of the type.  */
-  prec = GET_MODE_BITSIZE (TYPE_MODE (TREE_TYPE (expr)));
+  prec = TYPE_PRECISION (TREE_TYPE (expr));
   if (prec >= HOST_BITS_PER_WIDE_INT)
     {
       HOST_WIDE_INT high_value;
@@ -9545,6 +9543,31 @@ build_common_builtin_nodes (void)
 			  == UI_SJLJ)
 			 ? "_Unwind_SjLj_Resume" : "_Unwind_Resume"),
 			ECF_NORETURN);
+
+  if (built_in_decls[BUILT_IN_RETURN_ADDRESS] == NULL_TREE)
+    {
+      ftype = build_function_type_list (ptr_type_node, integer_type_node,
+					NULL_TREE);
+      local_define_builtin ("__builtin_return_address", ftype,
+			    BUILT_IN_RETURN_ADDRESS,
+			    "__builtin_return_address",
+			    ECF_NOTHROW);
+    }
+
+  if (built_in_decls[BUILT_IN_PROFILE_FUNC_ENTER] == NULL_TREE
+      || built_in_decls[BUILT_IN_PROFILE_FUNC_EXIT] == NULL_TREE)
+    {
+      ftype = build_function_type_list (void_type_node, ptr_type_node,
+					ptr_type_node, NULL_TREE);
+      if (built_in_decls[BUILT_IN_PROFILE_FUNC_ENTER] == NULL_TREE)
+	local_define_builtin ("__cyg_profile_func_enter", ftype,
+			      BUILT_IN_PROFILE_FUNC_ENTER,
+			      "__cyg_profile_func_enter", 0);
+      if (built_in_decls[BUILT_IN_PROFILE_FUNC_EXIT] == NULL_TREE)
+	local_define_builtin ("__cyg_profile_func_exit", ftype,
+			      BUILT_IN_PROFILE_FUNC_EXIT,
+			      "__cyg_profile_func_exit", 0);
+    }
 
   /* The exception object and filter values from the runtime.  The argument
      must be zero before exception lowering, i.e. from the front end.  After
