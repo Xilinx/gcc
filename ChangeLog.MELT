@@ -1,4 +1,9 @@
 
+2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+
+	* INSTALL/README-MELT-PLUGIN: Mention contrib/gcc_update before
+	contrib/make-melt-source-tar.sh
+
 2011-07-18  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* INSTALL/README-MELT-PLUGIN: Prepare plugin 0.8.1

@@ -257,6 +257,27 @@ string subargument containing a comma.
 
 
 
+@item -fmelt-print-settings=
+@gccoptlist{-fplugin-arg-melt-print-settings=}
+@opindex fmelt-print-settings=
+@opindex fplugin-arg-melt-print-settings=
+The builtin settings (notably MELT builtin modules directory and MELT
+builtin source directory) used by MELT are output in the given file,
+which should be source-able by a Posix shell if you are lucky enough.
+This is mostly useful in configuration, building, or packaging scripts.
+
+@item -fmelt-coutput=
+@gccoptlist{-fplugin-arg-melt-coutput=}
+@opindex fmelt-coutput=
+@opindex fplugin-arg-melt-coutput=
+This flag gives the name of the generated C file.
+
+@item -fmelt-output=
+@gccoptlist{-fplugin-arg-melt-output=}
+@opindex fmelt-coutput=
+@opindex fplugin-arg-melt-output=
+This flag gives the name of the generated files.
+
 @item -fmelt-debug
 @gccoptlist{-fplugin-arg-melt-debug}
 @opindex fmelt-debug
@@ -383,6 +404,15 @@ followed by an equal sign and an option value. For example,
 @code{-fmelt-option=foo,bar=x} set the option @code{foo} and the option
 @code{bar} to @code{x}. An option name is case-insensitive and may
 appear several times.
+
+@item -fmelt-workdir=
+@gccoptlist{-fplugin-arg-melt-workdir=}
+@opindex fmelt-workdir=
+@opindex fplugin-arg-melt-melt-workdir=
+This flags sets the working MELT directory. If specified all generated
+files go inside, and MELT modules are also loaded from it. Use that
+flag if you don't want MELT related generated files to clobber your
+source tree.
 
 @end table
 

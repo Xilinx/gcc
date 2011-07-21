@@ -450,7 +450,7 @@ static int melt_plugin_argc;
 static struct plugin_argument* melt_plugin_argv;
 
 const char*
-melt_argument(const char* argname)
+melt_argument (const char* argname)
 {
   int argix=0;
   if (!argname || !argname[0])
@@ -533,6 +533,8 @@ melt_argument (const char* argname)
     return melt_tempdir_string;
   else if (!strcmp (argname, "workdir"))
     return melt_workdir_string;
+  else if (!strcmp (argname, "print-settings"))
+    return melt_print_settings_string;
   /* currently, minor-zone & full-threshold are parameters, so we make
      a string out of them */
   else if (!strcmp (argname, "minor-zone"))
@@ -5430,7 +5432,7 @@ load_checked_dynamic_module_index (const char *dypath, const char *md5src)
 	  warning (0, "md5 source mismatch in MELT module %s", dypath);
 	  inform (UNKNOWN_LOCATION, "recomputed md5 of MELT C code is %s", hexmd5src);
 	  inform (UNKNOWN_LOCATION, "MELT module contains registered md5sum %s", dynmd5);
-	  inform (UNKNOWN_LOCATION, "Consider removing MELT generated files.");
+	  inform (UNKNOWN_LOCATION, "Consider removing and regenerating MELT generated files.");
 	  FAIL_BAD ();
 	}
     }
@@ -9412,12 +9414,13 @@ static void
 melt_really_initialize (const char* pluginame, const char*versionstr)
 {
   static int inited;
-  long seed;
-  const char *pc;
-  const char *randomseed = 0;
-  const char *modstr = 0;
-  const char *inistr = 0;
-  const char *countdbgstr = 0;
+  long seed = 0;
+  const char *pc = NULL;
+  const char *randomseed = NULL;
+  const char *modstr = NULL;
+  const char *inistr = NULL;
+  const char *countdbgstr = NULL;
+  const char *printset = NULL;
   struct stat mystat;
   if (inited)
     return;
@@ -9458,25 +9461,25 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   debugeprintf ("melt_really_initialize builtin melt_module_dir %s", melt_module_dir);
   memset (&mystat, 0, sizeof(mystat));
   if (!flag_melt_bootstrapping
-    && ((errno=ENOTDIR), (stat(melt_source_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
+      && ((errno=ENOTDIR), (stat(melt_source_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
     warning (0, "MELT with bad builtin source directory %s : %s", 
-    melt_source_dir, xstrerror (errno));
+	     melt_source_dir, xstrerror (errno));
   memset (&mystat, 0, sizeof(mystat));
   if (!flag_melt_bootstrapping
-    && ((errno=ENOTDIR), (stat(melt_module_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
+      && ((errno=ENOTDIR), (stat(melt_module_dir, &mystat) || !S_ISDIR(mystat.st_mode))))
     warning (0, "MELT with bad builtin module directory %s : %s", 
-    melt_module_dir, xstrerror (errno));
+	     melt_module_dir, xstrerror (errno));
   /* Ensure that the module makefile exists.  */
   gcc_assert (melt_module_make_command[0]);
   gcc_assert (melt_module_makefile[0]);
   if (!flag_melt_bootstrapping && access(melt_module_makefile, R_OK))
     warning (0, "MELT cannot access module makefile %s : %s",
-    melt_module_makefile, xstrerror (errno));
+	     melt_module_makefile, xstrerror (errno));
   errno = 0;
 
   /* These are probably never freed! */
   melt_gccversionstr = concat (versionstr, " MELT_", 
-    MELT_VERSION_STRING, NULL);
+			       MELT_VERSION_STRING, NULL);
   melt_plugin_name = xstrdup (pluginame);
   modstr = melt_argument ("mode");
   inistr = melt_argument ("init");
@@ -9485,50 +9488,121 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
 
   if (flag_melt_bootstrapping) 
     {
-  char* envpath = NULL;
-  inform  (UNKNOWN_LOCATION,
-    "MELT is bootstrapping so ignore builtin source directory %s and module directory %s",
-    melt_source_dir, melt_module_dir);
-  if ((envpath = getenv ("GCCMELT_SOURCE_PATH")) != NULL)
-    inform  (UNKNOWN_LOCATION, 
-    "MELT is bootstrapping so ignore GCCMELT_SOURCE_PATH=%s", 
-    envpath);
-  if ((envpath = getenv ("GCCMELT_MODULE_PATH")) != NULL)
-    inform  (UNKNOWN_LOCATION,
-    "MELT is bootstrapping so ignore GCCMELT_MODULE_PATH=%s", 
-    envpath);
+      char* envpath = NULL;
+      inform  (UNKNOWN_LOCATION,
+	       "MELT is bootstrapping so ignore builtin source directory %s and module directory %s",
+	       melt_source_dir, melt_module_dir);
+      if ((envpath = getenv ("GCCMELT_SOURCE_PATH")) != NULL)
+	inform  (UNKNOWN_LOCATION, 
+		 "MELT is bootstrapping so ignore GCCMELT_SOURCE_PATH=%s", 
+		 envpath);
+      if ((envpath = getenv ("GCCMELT_MODULE_PATH")) != NULL)
+	inform  (UNKNOWN_LOCATION,
+		 "MELT is bootstrapping so ignore GCCMELT_MODULE_PATH=%s", 
+		 envpath);
         
-}
+    }
+
+  printset = melt_argument ("print-settings");
+  if (printset) {
+    /* If asked for print-settings, output the settings in a format
+       which should be sourcable by a Posix shell. */
+    FILE *setfil = NULL;
+    time_t now = 0;
+    char nowbuf[32];
+    char *curlocale = setlocale (LC_ALL, NULL);
+    time (&now);
+    memset (nowbuf, 0, sizeof nowbuf);
+    strncpy (nowbuf, ctime (&now), sizeof(nowbuf)-1);
+    {
+      char *pcnl = strchr(nowbuf, '\n');
+      if (pcnl) 
+	*pcnl = 0;
+    }
+    if (!printset[0] || !strcmp(printset, "-")) 
+      setfil = stdout;
+    else
+      setfil = fopen(printset, "w");
+    if (!setfil) 
+      fatal_error ("MELT cannot open print-settings file %s : %m",
+		   printset);
+    fprintf (setfil, "## MELT builtin settings %s\n", 
+	     printset[0]?printset:"-");
+    melt_print_version_info (setfil, "# ");
+    /* We don't quote or escape builtin directories path, since they
+       should not contain strange characters... */
+    fprintf (setfil, "MELTGCCBUILTIN_SOURCE_DIR='%s'\n", melt_source_dir);
+    fprintf (setfil, "MELTGCCBUILTIN_MODULE_DIR='%s'\n", melt_module_dir);
+    fprintf (setfil, "MELTGCCBUILTIN_MODULE_MAKE_COMMAND='%s'\n", 
+	     melt_module_make_command);
+    fprintf (setfil, "MELTGCCBUILTIN_MODULE_MAKEFILE='%s'\n", 
+	     melt_module_makefile);
+    fprintf (setfil, "MELTGCCBUILTIN_MODULE_CFLAGS='%s'\n", 
+	     melt_module_cflags);
+    fprintf (setfil, "MELTGCCBUILTIN_DEFAULT_MODLIS='%s'\n", 
+	     melt_default_modlis);
+    fprintf (setfil, "MELTGCCBUILTIN_GCC_VERSION=%d\n",
+	     melt_gcc_version);
+    fprintf (setfil, "MELTGCCBUILTIN_VERSION='%s'\n",
+	     MELT_VERSION_STRING);
+    fprintf (setfil, "MELTGCCBUILTIN_VERSION_STRING='%s'\n",
+	     melt_version_str ());
+    fprintf (setfil, "MELTGCCBUILTIN_RUNTIME_BUILD_DATE='%s'\n",
+	     melt_runtime_build_date);
+    fprintf (setfil, "MELTGCCBUILTIN_PLUGIN_NAME='%s'\n",
+	     pluginame);
+    fprintf (setfil, "MELTGCCBUILTIN_MELTRUN_PREPROCESSED_MD5='%s'\n",
+	     melt_run_preprocessed_md5);
+    fprintf (setfil, "MELTGCCBUILTIN_GENERATED='%s'\n",
+	     nowbuf);
+    fprintf (setfil, "MELTGCCBUILTIN_GCC_EXEC_PREFIX='%s'\n",
+	     gcc_exec_prefix);
+    fflush (setfil);
+    if (setfil == stdout)
+      inform (UNKNOWN_LOCATION,
+	      "MELT printed builtin settings on <stdout>");
+    else 
+      {
+	inform (UNKNOWN_LOCATION,
+		"MELT printed builtin settings in %s", printset);
+	fclose (setfil);
+	setfil = 0;
+      }
+    if (curlocale && curlocale[0] 
+	&& strcmp(curlocale, "C") && strcmp(curlocale, "POSIX"))
+      warning(0, "MELT printed settings in %s locale, better use C or POSIX locale!",
+	      curlocale);
+  }
   if (!modstr || *modstr=='\0')
     {
-  debugeprintf ("melt_really_initialize return immediately since no mode (inistr=%s)",
-    inistr);
-  return;
-}
+      debugeprintf ("melt_really_initialize return immediately since no mode (inistr=%s)",
+		    inistr);
+      return;
+    }
   if (melt_minorsizekilow == 0)
     {
-  const char* minzstr = melt_argument ("minor-zone");
-  melt_minorsizekilow = minzstr ? (atol (minzstr)) : 0;
-  if (melt_minorsizekilow<256) melt_minorsizekilow=256;
-  else if (melt_minorsizekilow>16384) melt_minorsizekilow=16384;
-}
+      const char* minzstr = melt_argument ("minor-zone");
+      melt_minorsizekilow = minzstr ? (atol (minzstr)) : 0;
+      if (melt_minorsizekilow<256) melt_minorsizekilow=256;
+      else if (melt_minorsizekilow>16384) melt_minorsizekilow=16384;
+    }
   modinfvec = VEC_alloc (melt_module_info_t, heap, 32);
   /* don't use the index 0 so push a null at 0 in modinfvec.  */
   VEC_safe_push (melt_module_info_t, heap, modinfvec,
-    (melt_module_info_t *) 0);
+		 (melt_module_info_t *) 0);
   proghandle = dlopen (NULL, RTLD_NOW | RTLD_GLOBAL);
   if (!proghandle)
     /* Don't call melt_fatal_error - we are initializing! */
     fatal_error ("melt failed to get whole program handle - %s",
-    dlerror ());
+		 dlerror ());
   if (countdbgstr != (char *) 0)
     melt_debugskipcount = atol (countdbgstr);
   seed = 0;
   randomseed = get_random_seed (false);
   gcc_assert (randomseed != (char *) 0);
   gcc_assert (MELT_ALIGN == sizeof (void *)
-    || MELT_ALIGN == 2 * sizeof (void *)
-    || MELT_ALIGN == 4 * sizeof (void *));
+	      || MELT_ALIGN == 2 * sizeof (void *)
+	      || MELT_ALIGN == 4 * sizeof (void *));
   inited = 1;
   ggc_collect ();
   obstack_init (&melt_bstring_obstack);
@@ -9538,42 +9612,42 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   srand48 (seed);
   gcc_assert (!melt_curalz);
   {
-  size_t wantedwords = melt_minorsizekilow * 4096;
-  if (wantedwords < (1 << 20))
-    wantedwords = (1 << 20);
-  gcc_assert (melt_startalz == NULL && melt_endalz == NULL);
-  gcc_assert (wantedwords * sizeof (void *) >
-    300 * MELTGLOB__LASTGLOB * sizeof (struct meltobject_st));
-  melt_allocate_young_gc_zone (wantedwords / sizeof(void*));
-  melt_newspeclist = NULL;
-  melt_oldspeclist = NULL;
-  debugeprintf ("melt_really_initialize alz %p-%p (%ld Kw)",
-    melt_startalz, melt_endalz, (long) wantedwords >> 10);
-}
+    size_t wantedwords = melt_minorsizekilow * 4096;
+    if (wantedwords < (1 << 20))
+      wantedwords = (1 << 20);
+    gcc_assert (melt_startalz == NULL && melt_endalz == NULL);
+    gcc_assert (wantedwords * sizeof (void *) >
+		300 * MELTGLOB__LASTGLOB * sizeof (struct meltobject_st));
+    melt_allocate_young_gc_zone (wantedwords / sizeof(void*));
+    melt_newspeclist = NULL;
+    melt_oldspeclist = NULL;
+    debugeprintf ("melt_really_initialize alz %p-%p (%ld Kw)",
+		  melt_startalz, melt_endalz, (long) wantedwords >> 10);
+  }
   /* We are using register_callback here, even if MELT is not compiled
      as a plugin. */
   register_callback (melt_plugin_name, PLUGIN_GGC_MARKING, 
-    melt_marking_callback,
-    NULL);
+		     melt_marking_callback,
+		     NULL);
   register_callback (melt_plugin_name, PLUGIN_GGC_START, 
-    melt_ggcstart_callback,
-    NULL);
+		     melt_ggcstart_callback,
+		     NULL);
   register_callback (melt_plugin_name, PLUGIN_ATTRIBUTES,
-    melt_attribute_callback,
-    NULL);
+		     melt_attribute_callback,
+		     NULL);
   register_callback (melt_plugin_name, PLUGIN_PRAGMAS, melt_pragma_callback,
-    NULL);
+		     NULL);
   register_callback (melt_plugin_name, PLUGIN_PRE_GENERICIZE,
                      melt_pre_genericize_callback, NULL);
   register_callback (melt_plugin_name, PLUGIN_START_UNIT,
-    melt_startunit_callback,
-    NULL);
+		     melt_startunit_callback,
+		     NULL);
   register_callback (melt_plugin_name, PLUGIN_FINISH_UNIT,
-    melt_finishunit_callback,
-    NULL);
+		     melt_finishunit_callback,
+		     NULL);
   register_callback (melt_plugin_name, PLUGIN_FINISH,
-    melt_finishall_callback,
-    NULL);
+		     melt_finishall_callback,
+		     NULL);
   debugeprintf ("melt_really_initialize cpp_PREFIX=%s", cpp_PREFIX);
   debugeprintf ("melt_really_initialize cpp_EXEC_PREFIX=%s", cpp_EXEC_PREFIX);
   debugeprintf ("melt_really_initialize gcc_exec_prefix=%s", gcc_exec_prefix);

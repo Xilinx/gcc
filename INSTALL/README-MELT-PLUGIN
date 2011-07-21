@@ -120,9 +120,10 @@ built-melt-plugin.sh script, using
 
 ################
 
-To prepare a source tree of the MELT plugin form the GCC MELT branch,
-read and run contrib/make-melt-source-tar.sh from the GCC MELT
-branch. For instance, I am running it with something similar to
+To prepare a source tree of the MELT plugin from the GCC MELT branch,
+run contrib/gcc_update then read and run
+contrib/make-melt-source-tar.sh from the GCC MELT branch. For
+instance, I am running it with something similar to
 
    /usr/src/Lang/gcc-melt-branch/contrib/make-melt-source-tar.sh \
        /usr/src/Lang/gcc-melt-branch \

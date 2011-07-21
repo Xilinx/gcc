@@ -1,5 +1,16 @@
 
 2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (melt_really_initialize): Handle "print-settings".
+
+	* toplev.c (toplev_main): Call it when melt_print_settings_string.
+
+	* common.opt (-fmelt-print-settings=): New option.
+
+	* doc/melt.texi (Invoking MELT): Document -fmelt-print-settings=,
+	-fmelt-coutput=, -fmelt-output=, -fmelt-workdir.
+
+2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
+	    Romain Geissler  <romain.geissler@gmail.com>
 	* melt-runtime.c: Update contributors list. Include "c-pragma.h" &
 	"c-pretty-print.h", conditionally with "c-family/" directory.
 	Move "diagnostic.h" include.
