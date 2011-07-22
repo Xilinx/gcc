@@ -11236,13 +11236,12 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
       scale = INTVAL (scale_rtx);
     }
 
+  base_reg = base && GET_CODE (base) == SUBREG ? SUBREG_REG (base) : base;
+  index_reg = index && GET_CODE (index) == SUBREG ? SUBREG_REG (index) : index;
+
   /* Avoid useless 0 displacement.  */
   if (disp == const0_rtx && (base || index))
     disp = NULL_RTX;
-
-  index_reg = index && GET_CODE (index) == SUBREG ? SUBREG_REG (index) : index;
-
-  base_reg = base && GET_CODE (base) == SUBREG ? SUBREG_REG (base) : base;
 
   /* Allow arg pointer and stack pointer as index if there is not scaling.  */
   if (base_reg && index_reg && scale == 1

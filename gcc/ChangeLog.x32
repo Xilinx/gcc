@@ -1,5 +1,10 @@
 2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_decompose_address): Don't move
+	base_reg nor index_reg.
+
+2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_expand_move): Move convert_to_mode
 	after force_operand.
 	(ix86_expand_call): Use force_reg after convert_to_mode.
