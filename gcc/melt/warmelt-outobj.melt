@@ -1569,8 +1569,8 @@
 	(foreach_in_multiple
 	 (bodtup)
 	 (curbody :long bodix)
-	 ;; the 256 is the size of each chunk...
-	 (if (==i (%iraw bodix 256) 0)
+	 ;; the 128 is the size of each chunk...
+	 (if (==i (%iraw bodix 128) 0)
 	     (let ( (:long chunkix (+i chunkcount 1))
 		    (newchunkbuf (make_strbuf discr_strbuf))
 		    )

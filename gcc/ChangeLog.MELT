@@ -1,5 +1,9 @@
 
 2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (outpucod_initialroutine): Reduce the
+	size of each initialmeltchunk generated function.
+
+2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* testsuite/melt/tcontent.melt: Improved comment. This test runs
 	ok.
 	* melt/warmelt-macro.melt (class_source_get_field): Improve doc &
