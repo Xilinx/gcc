@@ -494,8 +494,7 @@ static const char *
 lt_query_macro (cpp_reader *reader, cpp_hashnode *cpp_node)
 {
   const char *definition = NULL;
-  if ((cpp_node->flags & NODE_BUILTIN)
-      && cpp_node->value.builtin < BT_FIRST_USER)
+  if (cpp_is_builtin (cpp_node))
     {
       const char *str = (const char *)cpp_node->ident.str;
       if (   strcmp(str, "__DATE__") == 0
@@ -589,8 +588,14 @@ cpp_lt_capture (cpp_reader *reader)
       hashnode node = table_entry->node;
       if (node)
         {
-          cpp_ident_use *summary_entry = used.entries + summary_index++;
+          cpp_ident_use *summary_entry;
           cpp_hashnode *cpp_node = CPP_HASHNODE (node);
+
+          /* Filter out builtin identifiers.  */
+          if (cpp_is_builtin (cpp_node))
+            continue;
+
+          summary_entry = used.entries + summary_index++;
 
           summary_entry->used_by_directive = cpp_node->used_by_directive;
           summary_entry->expanded_to_text = cpp_node->expanded_to_text;

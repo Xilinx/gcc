@@ -667,6 +667,15 @@ struct GTY(()) cpp_hashnode {
   union _cpp_hashnode_value GTY ((desc ("CPP_HASHNODE_VALUE_IDX (%1)"))) value;
 };
 
+
+/* Return true if CHN has a builtin type.  */
+
+static inline bool
+cpp_is_builtin (cpp_hashnode *chn)
+{
+  return (chn->flags & NODE_BUILTIN) && chn->value.builtin < BT_FIRST_USER;
+}
+
 /* Call this first to get a handle to pass to other functions.
 
    If you want cpplib to manage its own hashtable, pass in a NULL

@@ -1,3 +1,9 @@
+2011-07-20  Gabriel Charette  <gchare@google.com>
+
+	* include/cpplib.h (cpp_is_builtin): New.
+	* symtab.c (lt_query_macro): Use cpp_is_builtin.
+	* symtab.c (cpp_lt_capture): Filter out builtin identifiers.
+
 2011-06-08  Lawrence Crowl  <crowl@google.com>
 
 	* symtab.c (lt_query_macro): Querying "user builtin" macros should not
