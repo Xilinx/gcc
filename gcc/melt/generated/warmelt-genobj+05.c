@@ -3200,7 +3200,7 @@ lab_endgetargs:;
 
 	    /*^putpairhead */
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /27ba3d3b checkpair",
+	    melt_assertmsg ("putpairhead /2567fa60 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OSUCC__V41*/
 					       meltfptr[37])) ==
@@ -3210,7 +3210,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairtail */
 	    /*putpairtail */
-	    melt_assertmsg ("putpairtail /aa73f6a checkpair",
+	    melt_assertmsg ("putpairtail /266b03c7 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OSUCC__V41*/
 					       meltfptr[37])) ==
@@ -3223,7 +3223,7 @@ lab_endgetargs:;
 	    ;
 	    /*^putpairhead */
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /f6060ac checkpair",
+	    melt_assertmsg ("putpairhead /32c3be43 checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.GOTOEND__V42*/
 					       meltfptr[38])) ==
@@ -11220,7 +11220,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /585d270 checkpair",
+      melt_assertmsg ("putpairhead /2144dde9 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.OTESTCLOS__V69*/ meltfptr[68]))
 		      == MELTOBMAG_PAIR);
@@ -11339,7 +11339,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /317535d0 checkpair",
+      melt_assertmsg ("putpairhead /10cfae8e checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.OTESTRES__V74*/ meltfptr[73]))
 		      == MELTOBMAG_PAIR);

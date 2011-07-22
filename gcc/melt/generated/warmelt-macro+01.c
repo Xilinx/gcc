@@ -1068,20 +1068,33 @@ meltrout_79_warmelt_macro_PATEXPAND_OR (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_80_warmelt_macro_MEXPAND_TUPLE (meltclosure_ptr_t closp_,
-					 melt_ptr_t firstargp_,
-					 const melt_argdescr_cell_t
-					 xargdescr_[],
-					 union meltparam_un *xargtab_,
-					 const melt_argdescr_cell_t
-					 xresdescr_[],
-					 union meltparam_un *xrestab_);
+meltrout_80_warmelt_macro_MEXPAND_CONTAINER (meltclosure_ptr_t closp_,
+					     melt_ptr_t firstargp_,
+					     const melt_argdescr_cell_t
+					     xargdescr_[],
+					     union meltparam_un *xargtab_,
+					     const melt_argdescr_cell_t
+					     xresdescr_[],
+					     union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_81_warmelt_macro_PATEXPAND_TUPLE (meltclosure_ptr_t closp_,
+meltrout_81_warmelt_macro_PATEXPAND_CONTAINER (meltclosure_ptr_t closp_,
+					       melt_ptr_t firstargp_,
+					       const melt_argdescr_cell_t
+					       xargdescr_[],
+					       union meltparam_un *xargtab_,
+					       const melt_argdescr_cell_t
+					       xresdescr_[],
+					       union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_82_warmelt_macro_MEXPAND_CONTENT (meltclosure_ptr_t closp_,
 					   melt_ptr_t firstargp_,
 					   const melt_argdescr_cell_t
 					   xargdescr_[],
@@ -1094,33 +1107,7 @@ meltrout_81_warmelt_macro_PATEXPAND_TUPLE (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_82_warmelt_macro_MEXPAND_LIST (meltclosure_ptr_t closp_,
-					melt_ptr_t firstargp_,
-					const melt_argdescr_cell_t
-					xargdescr_[],
-					union meltparam_un *xargtab_,
-					const melt_argdescr_cell_t
-					xresdescr_[],
-					union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_83_warmelt_macro_PATEXPAND_LIST (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
-					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
-					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_84_warmelt_macro_MEXPAND_MATCH (meltclosure_ptr_t closp_,
+meltrout_83_warmelt_macro_MEXPAND_TUPLE (meltclosure_ptr_t closp_,
 					 melt_ptr_t firstargp_,
 					 const melt_argdescr_cell_t
 					 xargdescr_[],
@@ -1133,38 +1120,53 @@ meltrout_84_warmelt_macro_MEXPAND_MATCH (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_85_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
-				   melt_ptr_t firstargp_,
-				   const melt_argdescr_cell_t xargdescr_[],
-				   union meltparam_un *xargtab_,
-				   const melt_argdescr_cell_t xresdescr_[],
-				   union meltparam_un *xrestab_);
+meltrout_84_warmelt_macro_PATEXPAND_TUPLE (meltclosure_ptr_t closp_,
+					   melt_ptr_t firstargp_,
+					   const melt_argdescr_cell_t
+					   xargdescr_[],
+					   union meltparam_un *xargtab_,
+					   const melt_argdescr_cell_t
+					   xresdescr_[],
+					   union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_86_warmelt_macro_MEXPAND_LETBINDING (meltclosure_ptr_t closp_,
-					      melt_ptr_t firstargp_,
-					      const melt_argdescr_cell_t
-					      xargdescr_[],
-					      union meltparam_un *xargtab_,
-					      const melt_argdescr_cell_t
-					      xresdescr_[],
-					      union meltparam_un *xrestab_);
+meltrout_85_warmelt_macro_MEXPAND_LIST (meltclosure_ptr_t closp_,
+					melt_ptr_t firstargp_,
+					const melt_argdescr_cell_t
+					xargdescr_[],
+					union meltparam_un *xargtab_,
+					const melt_argdescr_cell_t
+					xresdescr_[],
+					union meltparam_un *xrestab_);
 
 
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_87_warmelt_macro_MEXPAND_LET (meltclosure_ptr_t closp_,
-				       melt_ptr_t firstargp_,
-				       const melt_argdescr_cell_t
-				       xargdescr_[],
-				       union meltparam_un *xargtab_,
-				       const melt_argdescr_cell_t
-				       xresdescr_[],
-				       union meltparam_un *xrestab_);
+meltrout_86_warmelt_macro_PATEXPAND_LIST (meltclosure_ptr_t closp_,
+					  melt_ptr_t firstargp_,
+					  const melt_argdescr_cell_t
+					  xargdescr_[],
+					  union meltparam_un *xargtab_,
+					  const melt_argdescr_cell_t
+					  xresdescr_[],
+					  union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_87_warmelt_macro_MEXPAND_MATCH (meltclosure_ptr_t closp_,
+					 melt_ptr_t firstargp_,
+					 const melt_argdescr_cell_t
+					 xargdescr_[],
+					 union meltparam_un *xargtab_,
+					 const melt_argdescr_cell_t
+					 xresdescr_[],
+					 union meltparam_un *xrestab_);
 
 
 
@@ -1181,7 +1183,33 @@ meltrout_88_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_89_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_89_warmelt_macro_MEXPAND_LETBINDING (meltclosure_ptr_t closp_,
+					      melt_ptr_t firstargp_,
+					      const melt_argdescr_cell_t
+					      xargdescr_[],
+					      union meltparam_un *xargtab_,
+					      const melt_argdescr_cell_t
+					      xresdescr_[],
+					      union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_90_warmelt_macro_MEXPAND_LET (meltclosure_ptr_t closp_,
+				       melt_ptr_t firstargp_,
+				       const melt_argdescr_cell_t
+				       xargdescr_[],
+				       union meltparam_un *xargtab_,
+				       const melt_argdescr_cell_t
+				       xresdescr_[],
+				       union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_91_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 				   melt_ptr_t firstargp_,
 				   const melt_argdescr_cell_t xargdescr_[],
 				   union meltparam_un *xargtab_,
@@ -1192,7 +1220,7 @@ meltrout_89_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_90_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_92_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 				   melt_ptr_t firstargp_,
 				   const melt_argdescr_cell_t xargdescr_[],
 				   union meltparam_un *xargtab_,
@@ -1203,7 +1231,18 @@ meltrout_90_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_91_warmelt_macro_YES_RECURSIVELY_CONSTRUCTIBLE (meltclosure_ptr_t
+meltrout_93_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+				   melt_ptr_t firstargp_,
+				   const melt_argdescr_cell_t xargdescr_[],
+				   union meltparam_un *xargtab_,
+				   const melt_argdescr_cell_t xresdescr_[],
+				   union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_94_warmelt_macro_YES_RECURSIVELY_CONSTRUCTIBLE (meltclosure_ptr_t
 							 closp_,
 							 melt_ptr_t
 							 firstargp_,
@@ -1222,42 +1261,7 @@ meltrout_91_warmelt_macro_YES_RECURSIVELY_CONSTRUCTIBLE (meltclosure_ptr_t
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_92_warmelt_macro_MEXPAND_LETREC (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
-					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
-					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_93_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
-				   melt_ptr_t firstargp_,
-				   const melt_argdescr_cell_t xargdescr_[],
-				   union meltparam_un *xargtab_,
-				   const melt_argdescr_cell_t xresdescr_[],
-				   union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_94_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
-				   melt_ptr_t firstargp_,
-				   const melt_argdescr_cell_t xargdescr_[],
-				   union meltparam_un *xargtab_,
-				   const melt_argdescr_cell_t xresdescr_[],
-				   union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_95_warmelt_macro_MEXPAND_LAMBDA (meltclosure_ptr_t closp_,
+meltrout_95_warmelt_macro_MEXPAND_LETREC (meltclosure_ptr_t closp_,
 					  melt_ptr_t firstargp_,
 					  const melt_argdescr_cell_t
 					  xargdescr_[],
@@ -1292,14 +1296,14 @@ meltrout_97_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_98_warmelt_macro_MEXPAND_MULTICALL (meltclosure_ptr_t closp_,
-					     melt_ptr_t firstargp_,
-					     const melt_argdescr_cell_t
-					     xargdescr_[],
-					     union meltparam_un *xargtab_,
-					     const melt_argdescr_cell_t
-					     xresdescr_[],
-					     union meltparam_un *xrestab_);
+meltrout_98_warmelt_macro_MEXPAND_LAMBDA (meltclosure_ptr_t closp_,
+					  melt_ptr_t firstargp_,
+					  const melt_argdescr_cell_t
+					  xargdescr_[],
+					  union meltparam_un *xargtab_,
+					  const melt_argdescr_cell_t
+					  xresdescr_[],
+					  union meltparam_un *xrestab_);
 
 
 
@@ -1327,33 +1331,7 @@ meltrout_100_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_101_warmelt_macro_MEXPAND_QUOTE (meltclosure_ptr_t closp_,
-					  melt_ptr_t firstargp_,
-					  const melt_argdescr_cell_t
-					  xargdescr_[],
-					  union meltparam_un *xargtab_,
-					  const melt_argdescr_cell_t
-					  xresdescr_[],
-					  union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_102_warmelt_macro_MEXPAND_COMMENT (meltclosure_ptr_t closp_,
-					    melt_ptr_t firstargp_,
-					    const melt_argdescr_cell_t
-					    xargdescr_[],
-					    union meltparam_un *xargtab_,
-					    const melt_argdescr_cell_t
-					    xresdescr_[],
-					    union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_103_warmelt_macro_PAIRLIST_TO_PROGN (meltclosure_ptr_t closp_,
+meltrout_101_warmelt_macro_MEXPAND_MULTICALL (meltclosure_ptr_t closp_,
 					      melt_ptr_t firstargp_,
 					      const melt_argdescr_cell_t
 					      xargdescr_[],
@@ -1366,7 +1344,7 @@ meltrout_103_warmelt_macro_PAIRLIST_TO_PROGN (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_104_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_102_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 				    melt_ptr_t firstargp_,
 				    const melt_argdescr_cell_t xargdescr_[],
 				    union meltparam_un *xargtab_,
@@ -1377,20 +1355,7 @@ meltrout_104_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_105_warmelt_macro_PAIRLIST_TO_RETURN (meltclosure_ptr_t closp_,
-					       melt_ptr_t firstargp_,
-					       const melt_argdescr_cell_t
-					       xargdescr_[],
-					       union meltparam_un *xargtab_,
-					       const melt_argdescr_cell_t
-					       xresdescr_[],
-					       union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_106_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_103_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 				    melt_ptr_t firstargp_,
 				    const melt_argdescr_cell_t xargdescr_[],
 				    union meltparam_un *xargtab_,
@@ -1401,7 +1366,7 @@ meltrout_106_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_107_warmelt_macro_MEXPAND_PROGN (meltclosure_ptr_t closp_,
+meltrout_104_warmelt_macro_MEXPAND_QUOTE (meltclosure_ptr_t closp_,
 					  melt_ptr_t firstargp_,
 					  const melt_argdescr_cell_t
 					  xargdescr_[],
@@ -1414,20 +1379,7 @@ meltrout_107_warmelt_macro_MEXPAND_PROGN (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_108_warmelt_macro_MEXPAND_RETURN (meltclosure_ptr_t closp_,
-					   melt_ptr_t firstargp_,
-					   const melt_argdescr_cell_t
-					   xargdescr_[],
-					   union meltparam_un *xargtab_,
-					   const melt_argdescr_cell_t
-					   xresdescr_[],
-					   union meltparam_un *xrestab_);
-
-
-
-
-melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_109_warmelt_macro_MEXPAND_FOREVER (meltclosure_ptr_t closp_,
+meltrout_105_warmelt_macro_MEXPAND_COMMENT (meltclosure_ptr_t closp_,
 					    melt_ptr_t firstargp_,
 					    const melt_argdescr_cell_t
 					    xargdescr_[],
@@ -1440,7 +1392,20 @@ meltrout_109_warmelt_macro_MEXPAND_FOREVER (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_110_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_106_warmelt_macro_PAIRLIST_TO_PROGN (meltclosure_ptr_t closp_,
+					      melt_ptr_t firstargp_,
+					      const melt_argdescr_cell_t
+					      xargdescr_[],
+					      union meltparam_un *xargtab_,
+					      const melt_argdescr_cell_t
+					      xresdescr_[],
+					      union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_107_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 				    melt_ptr_t firstargp_,
 				    const melt_argdescr_cell_t xargdescr_[],
 				    union meltparam_un *xargtab_,
@@ -1451,7 +1416,81 @@ meltrout_110_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_111_warmelt_macro_MEXPAND_EXIT (meltclosure_ptr_t closp_,
+meltrout_108_warmelt_macro_PAIRLIST_TO_RETURN (meltclosure_ptr_t closp_,
+					       melt_ptr_t firstargp_,
+					       const melt_argdescr_cell_t
+					       xargdescr_[],
+					       union meltparam_un *xargtab_,
+					       const melt_argdescr_cell_t
+					       xresdescr_[],
+					       union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_109_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+				    melt_ptr_t firstargp_,
+				    const melt_argdescr_cell_t xargdescr_[],
+				    union meltparam_un *xargtab_,
+				    const melt_argdescr_cell_t xresdescr_[],
+				    union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_110_warmelt_macro_MEXPAND_PROGN (meltclosure_ptr_t closp_,
+					  melt_ptr_t firstargp_,
+					  const melt_argdescr_cell_t
+					  xargdescr_[],
+					  union meltparam_un *xargtab_,
+					  const melt_argdescr_cell_t
+					  xresdescr_[],
+					  union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_111_warmelt_macro_MEXPAND_RETURN (meltclosure_ptr_t closp_,
+					   melt_ptr_t firstargp_,
+					   const melt_argdescr_cell_t
+					   xargdescr_[],
+					   union meltparam_un *xargtab_,
+					   const melt_argdescr_cell_t
+					   xresdescr_[],
+					   union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_112_warmelt_macro_MEXPAND_FOREVER (meltclosure_ptr_t closp_,
+					    melt_ptr_t firstargp_,
+					    const melt_argdescr_cell_t
+					    xargdescr_[],
+					    union meltparam_un *xargtab_,
+					    const melt_argdescr_cell_t
+					    xresdescr_[],
+					    union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_113_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+				    melt_ptr_t firstargp_,
+				    const melt_argdescr_cell_t xargdescr_[],
+				    union meltparam_un *xargtab_,
+				    const melt_argdescr_cell_t xresdescr_[],
+				    union meltparam_un *xrestab_);
+
+
+
+
+melt_ptr_t MELT_MODULE_VISIBILITY
+meltrout_114_warmelt_macro_MEXPAND_EXIT (meltclosure_ptr_t closp_,
 					 melt_ptr_t firstargp_,
 					 const melt_argdescr_cell_t
 					 xargdescr_[],
@@ -1464,7 +1503,7 @@ meltrout_111_warmelt_macro_MEXPAND_EXIT (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_112_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_115_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 				    melt_ptr_t firstargp_,
 				    const melt_argdescr_cell_t xargdescr_[],
 				    union meltparam_un *xargtab_,
@@ -1475,7 +1514,7 @@ meltrout_112_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_113_warmelt_macro_MEXPAND_COMPILE_WARNING (meltclosure_ptr_t closp_,
+meltrout_116_warmelt_macro_MEXPAND_COMPILE_WARNING (meltclosure_ptr_t closp_,
 						    melt_ptr_t firstargp_,
 						    const melt_argdescr_cell_t
 						    xargdescr_[],
@@ -1490,7 +1529,7 @@ meltrout_113_warmelt_macro_MEXPAND_COMPILE_WARNING (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_114_warmelt_macro_MEXPAND_ASSERT_MSG (meltclosure_ptr_t closp_,
+meltrout_117_warmelt_macro_MEXPAND_ASSERT_MSG (meltclosure_ptr_t closp_,
 					       melt_ptr_t firstargp_,
 					       const melt_argdescr_cell_t
 					       xargdescr_[],
@@ -1503,7 +1542,7 @@ meltrout_114_warmelt_macro_MEXPAND_ASSERT_MSG (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_115_warmelt_macro_MEXPAND_DEBUG_MSG (meltclosure_ptr_t closp_,
+meltrout_118_warmelt_macro_MEXPAND_DEBUG_MSG (meltclosure_ptr_t closp_,
 					      melt_ptr_t firstargp_,
 					      const melt_argdescr_cell_t
 					      xargdescr_[],
@@ -1516,7 +1555,7 @@ meltrout_115_warmelt_macro_MEXPAND_DEBUG_MSG (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_116_warmelt_macro_MEXPAND_EXPORT_VALUES (meltclosure_ptr_t closp_,
+meltrout_119_warmelt_macro_MEXPAND_EXPORT_VALUES (meltclosure_ptr_t closp_,
 						  melt_ptr_t firstargp_,
 						  const melt_argdescr_cell_t
 						  xargdescr_[],
@@ -1531,7 +1570,7 @@ meltrout_116_warmelt_macro_MEXPAND_EXPORT_VALUES (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_117_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_120_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 				    melt_ptr_t firstargp_,
 				    const melt_argdescr_cell_t xargdescr_[],
 				    union meltparam_un *xargtab_,
@@ -1542,7 +1581,7 @@ meltrout_117_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_118_warmelt_macro_MEXPAND_EXPORT_MACRO (meltclosure_ptr_t closp_,
+meltrout_121_warmelt_macro_MEXPAND_EXPORT_MACRO (meltclosure_ptr_t closp_,
 						 melt_ptr_t firstargp_,
 						 const melt_argdescr_cell_t
 						 xargdescr_[],
@@ -1556,7 +1595,7 @@ meltrout_118_warmelt_macro_MEXPAND_EXPORT_MACRO (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_119_warmelt_macro_MEXPAND_EXPORT_PATMACRO (meltclosure_ptr_t closp_,
+meltrout_122_warmelt_macro_MEXPAND_EXPORT_PATMACRO (meltclosure_ptr_t closp_,
 						    melt_ptr_t firstargp_,
 						    const melt_argdescr_cell_t
 						    xargdescr_[],
@@ -1571,7 +1610,7 @@ meltrout_119_warmelt_macro_MEXPAND_EXPORT_PATMACRO (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_120_warmelt_macro_MEXPAND_EXPORT_CLASS (meltclosure_ptr_t closp_,
+meltrout_123_warmelt_macro_MEXPAND_EXPORT_CLASS (meltclosure_ptr_t closp_,
 						 melt_ptr_t firstargp_,
 						 const melt_argdescr_cell_t
 						 xargdescr_[],
@@ -1585,7 +1624,7 @@ meltrout_120_warmelt_macro_MEXPAND_EXPORT_CLASS (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_121_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
+meltrout_124_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 				    melt_ptr_t firstargp_,
 				    const melt_argdescr_cell_t xargdescr_[],
 				    union meltparam_un *xargtab_,
@@ -1596,7 +1635,7 @@ meltrout_121_warmelt_macro_LAMBDA_ (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_122_warmelt_macro_MEXPAND_EXPORT_SYNONYM (meltclosure_ptr_t closp_,
+meltrout_125_warmelt_macro_MEXPAND_EXPORT_SYNONYM (meltclosure_ptr_t closp_,
 						   melt_ptr_t firstargp_,
 						   const melt_argdescr_cell_t
 						   xargdescr_[],
@@ -1611,7 +1650,7 @@ meltrout_122_warmelt_macro_MEXPAND_EXPORT_SYNONYM (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_123_warmelt_macro_MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER
+meltrout_126_warmelt_macro_MEXPAND_CURRENT_MODULE_ENVIRONMENT_CONTAINER
 (meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
 union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
@@ -1619,7 +1658,7 @@ union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_124_warmelt_macro_MEXPAND_PARENT_MODULE_ENVIRONMENT
+meltrout_127_warmelt_macro_MEXPAND_PARENT_MODULE_ENVIRONMENT
 (meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
 union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
@@ -1627,7 +1666,7 @@ union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_125_warmelt_macro_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER
+meltrout_128_warmelt_macro_MEXPAND_UPDATE_CURRENT_MODULE_ENVIRONMENT_CONTAINER
 (meltclosure_ptr_t closp_, melt_ptr_t firstargp_, const melt_argdescr_cell_t xargdescr_[],
 union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union meltparam_un *xrestab_);
 
@@ -1635,7 +1674,7 @@ union meltparam_un *xargtab_, const melt_argdescr_cell_t xresdescr_[], union mel
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_126_warmelt_macro_MEXPAND_FETCH_PREDEFINED (meltclosure_ptr_t closp_,
+meltrout_129_warmelt_macro_MEXPAND_FETCH_PREDEFINED (meltclosure_ptr_t closp_,
 						     melt_ptr_t firstargp_,
 						     const
 						     melt_argdescr_cell_t
@@ -1652,7 +1691,7 @@ meltrout_126_warmelt_macro_MEXPAND_FETCH_PREDEFINED (meltclosure_ptr_t closp_,
 
 
 melt_ptr_t MELT_MODULE_VISIBILITY
-meltrout_127_warmelt_macro_MEXPAND_STORE_PREDEFINED (meltclosure_ptr_t closp_,
+meltrout_130_warmelt_macro_MEXPAND_STORE_PREDEFINED (meltclosure_ptr_t closp_,
 						     melt_ptr_t firstargp_,
 						     const
 						     melt_argdescr_cell_t
@@ -12711,8 +12750,8 @@ meltrout_17_warmelt_macro_PATMACEXPAND_FOR_MATCHER (meltclosure_ptr_t closp_,
     struct meltclosure_st *mcfr_clos;
     struct excepth_melt_st *mcfr_exh;
     struct melt_callframe_st *mcfr_prev;
-#define MELTFRAM_NBVARPTR 28
-    void *mcfr_varptr[28];
+#define MELTFRAM_NBVARPTR 29
+    void *mcfr_varptr[29];
 #define MELTFRAM_NBVARNUM 7
     long mcfr_varnum[7];
 /*others*/
@@ -12725,13 +12764,13 @@ meltrout_17_warmelt_macro_PATMACEXPAND_FOR_MATCHER (meltclosure_ptr_t closp_,
       int ix = 0;
       framptr_ = (void *) firstargp_;
       gt_ggc_mx_melt_un (framptr_->mcfr_clos);
-      for (ix = 0; ix < 28; ix++)
+      for (ix = 0; ix < 29; ix++)
 	if (framptr_->mcfr_varptr[ix])
 	  gt_ggc_mx_melt_un (framptr_->mcfr_varptr[ix]);
       return NULL;
     } /*end markggc */ ;
   memset (&meltfram__, 0, sizeof (meltfram__));
-  meltfram__.mcfr_nbvar = 28;
+  meltfram__.mcfr_nbvar = 29;
   meltfram__.mcfr_clos = closp_;
   meltfram__.mcfr_prev = (struct melt_callframe_st *) melt_topframe;
   melt_topframe = (struct melt_callframe_st *) &meltfram__;
@@ -12997,88 +13036,107 @@ lab_endgetargs:;
 
  /*_#NBOUTS__L5*/ meltfnum[4] =
       (melt_multiple_length ((melt_ptr_t) ( /*_.MOUTS__V15*/ meltfptr[14])));;
-    /*^compute */
+    MELT_LOCATION ("warmelt-macro.melt:1359:/ quasiblock");
 
- /*_.PAIRBOX__V17*/ meltfptr[16] =
-      meltgc_new_box ((meltobject_ptr_t)
-		      (( /*!DISCR_BOX */ meltfrout->tabval[3])),
-		      (melt_ptr_t) ( /*_.PAIRS__V2*/ meltfptr[1]));;
+
+    /*^rawallocobj */
+    /*rawallocobj */
+    {
+      melt_ptr_t newobj = 0;
+      melt_raw_object_create (newobj,
+			      (melt_ptr_t) (( /*!CLASS_CONTAINER */
+					     meltfrout->tabval[3])), (1),
+			      "CLASS_CONTAINER");
+  /*_.INST__V18*/ meltfptr[17] =
+	newobj;
+    };
+    ;
+    /*^putslot */
+    /*putslot */
+    melt_assertmsg ("putslot checkobj @CONTAINER_VALUE",
+		    melt_magic_discr ((melt_ptr_t)
+				      ( /*_.INST__V18*/ meltfptr[17])) ==
+		    MELTOBMAG_OBJECT);
+    melt_putfield_object (( /*_.INST__V18*/ meltfptr[17]), (0),
+			  ( /*_.PAIRS__V2*/ meltfptr[1]), "CONTAINER_VALUE");
+    ;
+    /*_.PAIRCONT__V17*/ meltfptr[16] = /*_.INST__V18*/ meltfptr[17];;
     MELT_LOCATION ("warmelt-macro.melt:1362:/ quasiblock");
 
 
     /*^newclosure */
-		 /*newclosure *//*_.LAMBDA___V19*/ meltfptr[18] =
+		 /*newclosure *//*_.LAMBDA___V20*/ meltfptr[19] =
       meltgc_new_closure ((meltobject_ptr_t)
 			  (((void *) (MELT_PREDEF (DISCR_CLOSURE)))),
-			  (meltroutine_ptr_t) (( /*!konst_8 */ meltfrout->
-						tabval[8])), (5));
+			  (meltroutine_ptr_t) (( /*!konst_9 */ meltfrout->
+						tabval[9])), (5));
     ;
     /*^putclosedv */
     /*putclosv */
     melt_assertmsg ("putclosv checkclo",
 		    melt_magic_discr ((melt_ptr_t)
-				      ( /*_.LAMBDA___V19*/ meltfptr[18])) ==
+				      ( /*_.LAMBDA___V20*/ meltfptr[19])) ==
 		    MELTOBMAG_CLOSURE);
     melt_assertmsg ("putclosv checkoff", 0 >= 0
 		    && 0 <
 		    melt_closure_size ((melt_ptr_t)
-				       ( /*_.LAMBDA___V19*/ meltfptr[18])));
-    ((meltclosure_ptr_t) /*_.LAMBDA___V19*/ meltfptr[18])->tabval[0] =
-      (melt_ptr_t) ( /*_.PAIRBOX__V17*/ meltfptr[16]);
+				       ( /*_.LAMBDA___V20*/ meltfptr[19])));
+    ((meltclosure_ptr_t) /*_.LAMBDA___V20*/ meltfptr[19])->tabval[0] =
+      (melt_ptr_t) ( /*_.PAIRCONT__V17*/ meltfptr[16]);
     ;
     /*^putclosedv */
     /*putclosv */
     melt_assertmsg ("putclosv checkclo",
 		    melt_magic_discr ((melt_ptr_t)
-				      ( /*_.LAMBDA___V19*/ meltfptr[18])) ==
+				      ( /*_.LAMBDA___V20*/ meltfptr[19])) ==
 		    MELTOBMAG_CLOSURE);
     melt_assertmsg ("putclosv checkoff", 1 >= 0
 		    && 1 <
 		    melt_closure_size ((melt_ptr_t)
-				       ( /*_.LAMBDA___V19*/ meltfptr[18])));
-    ((meltclosure_ptr_t) /*_.LAMBDA___V19*/ meltfptr[18])->tabval[1] =
+				       ( /*_.LAMBDA___V20*/ meltfptr[19])));
+    ((meltclosure_ptr_t) /*_.LAMBDA___V20*/ meltfptr[19])->tabval[1] =
       (melt_ptr_t) ( /*_.ENV__V4*/ meltfptr[3]);
     ;
     /*^putclosedv */
     /*putclosv */
     melt_assertmsg ("putclosv checkclo",
 		    melt_magic_discr ((melt_ptr_t)
-				      ( /*_.LAMBDA___V19*/ meltfptr[18])) ==
+				      ( /*_.LAMBDA___V20*/ meltfptr[19])) ==
 		    MELTOBMAG_CLOSURE);
     melt_assertmsg ("putclosv checkoff", 2 >= 0
 		    && 2 <
 		    melt_closure_size ((melt_ptr_t)
-				       ( /*_.LAMBDA___V19*/ meltfptr[18])));
-    ((meltclosure_ptr_t) /*_.LAMBDA___V19*/ meltfptr[18])->tabval[2] =
+				       ( /*_.LAMBDA___V20*/ meltfptr[19])));
+    ((meltclosure_ptr_t) /*_.LAMBDA___V20*/ meltfptr[19])->tabval[2] =
       (melt_ptr_t) ( /*_.MEXPANDER__V16*/ meltfptr[15]);
     ;
     /*^putclosedv */
     /*putclosv */
     melt_assertmsg ("putclosv checkclo",
 		    melt_magic_discr ((melt_ptr_t)
-				      ( /*_.LAMBDA___V19*/ meltfptr[18])) ==
+				      ( /*_.LAMBDA___V20*/ meltfptr[19])) ==
 		    MELTOBMAG_CLOSURE);
     melt_assertmsg ("putclosv checkoff", 3 >= 0
 		    && 3 <
 		    melt_closure_size ((melt_ptr_t)
-				       ( /*_.LAMBDA___V19*/ meltfptr[18])));
-    ((meltclosure_ptr_t) /*_.LAMBDA___V19*/ meltfptr[18])->tabval[3] =
+				       ( /*_.LAMBDA___V20*/ meltfptr[19])));
+    ((meltclosure_ptr_t) /*_.LAMBDA___V20*/ meltfptr[19])->tabval[3] =
       (melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4]);
     ;
     /*^putclosedv */
     /*putclosv */
     melt_assertmsg ("putclosv checkclo",
 		    melt_magic_discr ((melt_ptr_t)
-				      ( /*_.LAMBDA___V19*/ meltfptr[18])) ==
+				      ( /*_.LAMBDA___V20*/ meltfptr[19])) ==
 		    MELTOBMAG_CLOSURE);
     melt_assertmsg ("putclosv checkoff", 4 >= 0
 		    && 4 <
 		    melt_closure_size ((melt_ptr_t)
-				       ( /*_.LAMBDA___V19*/ meltfptr[18])));
-    ((meltclosure_ptr_t) /*_.LAMBDA___V19*/ meltfptr[18])->tabval[4] =
+				       ( /*_.LAMBDA___V20*/ meltfptr[19])));
+    ((meltclosure_ptr_t) /*_.LAMBDA___V20*/ meltfptr[19])->tabval[4] =
       (melt_ptr_t) ( /*_.MATCHER__V3*/ meltfptr[2]);
     ;
-    /*_.LAMBDA___V18*/ meltfptr[17] = /*_.LAMBDA___V19*/ meltfptr[18];;
+    /*_.LAMBDA___V19*/ meltfptr[18] = /*_.LAMBDA___V20*/ meltfptr[19];;
     MELT_LOCATION ("warmelt-macro.melt:1360:/ apply");
     /*apply */
     {
@@ -13086,8 +13144,8 @@ lab_endgetargs:;
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
       argtab[0].meltbp_aptr =
-	(melt_ptr_t *) & /*_.LAMBDA___V18*/ meltfptr[17];
-      /*_.INARGS__V20*/ meltfptr[19] =
+	(melt_ptr_t *) & /*_.LAMBDA___V19*/ meltfptr[18];
+      /*_.INARGS__V21*/ meltfptr[20] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!MULTIPLE_MAP */ meltfrout->tabval[4])),
 		    (melt_ptr_t) ( /*_.MINS__V14*/ meltfptr[13]),
@@ -13099,78 +13157,78 @@ lab_endgetargs:;
 
 
     /*^newclosure */
-		 /*newclosure *//*_.LAMBDA___V22*/ meltfptr[21] =
+		 /*newclosure *//*_.LAMBDA___V23*/ meltfptr[22] =
       meltgc_new_closure ((meltobject_ptr_t)
 			  (((void *) (MELT_PREDEF (DISCR_CLOSURE)))),
-			  (meltroutine_ptr_t) (( /*!konst_11 */ meltfrout->
-						tabval[11])), (5));
+			  (meltroutine_ptr_t) (( /*!konst_13 */ meltfrout->
+						tabval[13])), (5));
     ;
     /*^putclosedv */
     /*putclosv */
     melt_assertmsg ("putclosv checkclo",
 		    melt_magic_discr ((melt_ptr_t)
-				      ( /*_.LAMBDA___V22*/ meltfptr[21])) ==
+				      ( /*_.LAMBDA___V23*/ meltfptr[22])) ==
 		    MELTOBMAG_CLOSURE);
     melt_assertmsg ("putclosv checkoff", 0 >= 0
 		    && 0 <
 		    melt_closure_size ((melt_ptr_t)
-				       ( /*_.LAMBDA___V22*/ meltfptr[21])));
-    ((meltclosure_ptr_t) /*_.LAMBDA___V22*/ meltfptr[21])->tabval[0] =
-      (melt_ptr_t) ( /*_.PAIRBOX__V17*/ meltfptr[16]);
+				       ( /*_.LAMBDA___V23*/ meltfptr[22])));
+    ((meltclosure_ptr_t) /*_.LAMBDA___V23*/ meltfptr[22])->tabval[0] =
+      (melt_ptr_t) ( /*_.PAIRCONT__V17*/ meltfptr[16]);
     ;
     /*^putclosedv */
     /*putclosv */
     melt_assertmsg ("putclosv checkclo",
 		    melt_magic_discr ((melt_ptr_t)
-				      ( /*_.LAMBDA___V22*/ meltfptr[21])) ==
+				      ( /*_.LAMBDA___V23*/ meltfptr[22])) ==
 		    MELTOBMAG_CLOSURE);
     melt_assertmsg ("putclosv checkoff", 1 >= 0
 		    && 1 <
 		    melt_closure_size ((melt_ptr_t)
-				       ( /*_.LAMBDA___V22*/ meltfptr[21])));
-    ((meltclosure_ptr_t) /*_.LAMBDA___V22*/ meltfptr[21])->tabval[1] =
+				       ( /*_.LAMBDA___V23*/ meltfptr[22])));
+    ((meltclosure_ptr_t) /*_.LAMBDA___V23*/ meltfptr[22])->tabval[1] =
       (melt_ptr_t) ( /*_.ENV__V4*/ meltfptr[3]);
     ;
     /*^putclosedv */
     /*putclosv */
     melt_assertmsg ("putclosv checkclo",
 		    melt_magic_discr ((melt_ptr_t)
-				      ( /*_.LAMBDA___V22*/ meltfptr[21])) ==
+				      ( /*_.LAMBDA___V23*/ meltfptr[22])) ==
 		    MELTOBMAG_CLOSURE);
     melt_assertmsg ("putclosv checkoff", 2 >= 0
 		    && 2 <
 		    melt_closure_size ((melt_ptr_t)
-				       ( /*_.LAMBDA___V22*/ meltfptr[21])));
-    ((meltclosure_ptr_t) /*_.LAMBDA___V22*/ meltfptr[21])->tabval[2] =
+				       ( /*_.LAMBDA___V23*/ meltfptr[22])));
+    ((meltclosure_ptr_t) /*_.LAMBDA___V23*/ meltfptr[22])->tabval[2] =
       (melt_ptr_t) ( /*_.PCTX__V6*/ meltfptr[5]);
     ;
     /*^putclosedv */
     /*putclosv */
     melt_assertmsg ("putclosv checkclo",
 		    melt_magic_discr ((melt_ptr_t)
-				      ( /*_.LAMBDA___V22*/ meltfptr[21])) ==
+				      ( /*_.LAMBDA___V23*/ meltfptr[22])) ==
 		    MELTOBMAG_CLOSURE);
     melt_assertmsg ("putclosv checkoff", 3 >= 0
 		    && 3 <
 		    melt_closure_size ((melt_ptr_t)
-				       ( /*_.LAMBDA___V22*/ meltfptr[21])));
-    ((meltclosure_ptr_t) /*_.LAMBDA___V22*/ meltfptr[21])->tabval[3] =
+				       ( /*_.LAMBDA___V23*/ meltfptr[22])));
+    ((meltclosure_ptr_t) /*_.LAMBDA___V23*/ meltfptr[22])->tabval[3] =
       (melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4]);
     ;
     /*^putclosedv */
     /*putclosv */
     melt_assertmsg ("putclosv checkclo",
 		    melt_magic_discr ((melt_ptr_t)
-				      ( /*_.LAMBDA___V22*/ meltfptr[21])) ==
+				      ( /*_.LAMBDA___V23*/ meltfptr[22])) ==
 		    MELTOBMAG_CLOSURE);
     melt_assertmsg ("putclosv checkoff", 4 >= 0
 		    && 4 <
 		    melt_closure_size ((melt_ptr_t)
-				       ( /*_.LAMBDA___V22*/ meltfptr[21])));
-    ((meltclosure_ptr_t) /*_.LAMBDA___V22*/ meltfptr[21])->tabval[4] =
+				       ( /*_.LAMBDA___V23*/ meltfptr[22])));
+    ((meltclosure_ptr_t) /*_.LAMBDA___V23*/ meltfptr[22])->tabval[4] =
       (melt_ptr_t) ( /*_.MATCHER__V3*/ meltfptr[2]);
     ;
-    /*_.LAMBDA___V21*/ meltfptr[20] = /*_.LAMBDA___V22*/ meltfptr[21];;
+    /*_.LAMBDA___V22*/ meltfptr[21] = /*_.LAMBDA___V23*/ meltfptr[22];;
     MELT_LOCATION ("warmelt-macro.melt:1372:/ apply");
     /*apply */
     {
@@ -13178,8 +13236,8 @@ lab_endgetargs:;
       memset (&argtab, 0, sizeof (argtab));
       /*^apply.arg */
       argtab[0].meltbp_aptr =
-	(melt_ptr_t *) & /*_.LAMBDA___V21*/ meltfptr[20];
-      /*_.OUTPATS__V23*/ meltfptr[22] =
+	(melt_ptr_t *) & /*_.LAMBDA___V22*/ meltfptr[21];
+      /*_.OUTPATS__V24*/ meltfptr[23] =
 	melt_apply ((meltclosure_ptr_t)
 		    (( /*!MULTIPLE_MAP */ meltfrout->tabval[4])),
 		    (melt_ptr_t) ( /*_.MOUTS__V15*/ meltfptr[14]),
@@ -13190,12 +13248,29 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-macro.melt:1384:/ quasiblock");
 
 
- /*_.CURPAIR__V24*/ meltfptr[23] =
-      melt_box_content ((meltbox_ptr_t) ( /*_.PAIRBOX__V17*/ meltfptr[16]));;
+    /*^cond */
+    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) ( /*_.PAIRCONT__V17*/ meltfptr[16]), (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[3]))))	/*then */
+      {
+	/*^cond.then */
+	/*^getslot */
+	{
+	  melt_ptr_t slot = 0;
+	  melt_object_get_field (slot, (melt_ptr_t) ( /*_.PAIRCONT__V17*/ meltfptr[16]), 0, "CONTAINER_VALUE");
+												    /*_.CURPAIR__V25*/
+	  meltfptr[24] = slot;
+	};
+	;
+      }
+    else
+      {				/*^cond.else */
+
+  /*_.CURPAIR__V25*/ meltfptr[24] = NULL;;
+      }
+    ;
     /*^compute */
 
  /*_#IS_PAIR__L6*/ meltfnum[5] =
-      (melt_magic_discr ((melt_ptr_t) ( /*_.CURPAIR__V24*/ meltfptr[23])) ==
+      (melt_magic_discr ((melt_ptr_t) ( /*_.CURPAIR__V25*/ meltfptr[24])) ==
        MELTOBMAG_PAIR);;
     MELT_LOCATION ("warmelt-macro.melt:1385:/ cond");
     /*cond */ if ( /*_#IS_PAIR__L6*/ meltfnum[5])	/*then */
@@ -13228,47 +13303,47 @@ lab_endgetargs:;
 	      argtab[2].meltbp_cstring = "warmelt-macro.melt";
 	      /*^apply.arg */
 	      argtab[3].meltbp_long = 1387;
-	      /*_.DEBUG_MSG_FUN__V26*/ meltfptr[25] =
+	      /*_.DEBUG_MSG_FUN__V27*/ meltfptr[26] =
 		melt_apply ((meltclosure_ptr_t)
-			    (( /*!DEBUG_MSG_FUN */ meltfrout->tabval[12])),
-			    (melt_ptr_t) ( /*_.CURPAIR__V24*/ meltfptr[23]),
+			    (( /*!DEBUG_MSG_FUN */ meltfrout->tabval[14])),
+			    (melt_ptr_t) ( /*_.CURPAIR__V25*/ meltfptr[24]),
 			    (MELTBPARSTR_CSTRING MELTBPARSTR_LONG
 			     MELTBPARSTR_CSTRING MELTBPARSTR_LONG ""), argtab,
 			    "", (union meltparam_un *) 0);
 	    }
 	    ;
-	    /*_.IFCPP___V25*/ meltfptr[24] =
-	      /*_.DEBUG_MSG_FUN__V26*/ meltfptr[25];;
+	    /*_.IFCPP___V26*/ meltfptr[25] =
+	      /*_.DEBUG_MSG_FUN__V27*/ meltfptr[26];;
 	    /*epilog */
 
 	    MELT_LOCATION ("warmelt-macro.melt:1387:/ clear");
 	       /*clear *//*_#THE_MELTCALLCOUNT__L7*/ meltfnum[6] = 0;
 	    /*^clear */
-	       /*clear *//*_.DEBUG_MSG_FUN__V26*/ meltfptr[25] = 0;
+	       /*clear *//*_.DEBUG_MSG_FUN__V27*/ meltfptr[26] = 0;
 	  }
 
 #else /*MELT_HAVE_DEBUG */
 	  /*^cppif.else */
-	  /*_.IFCPP___V25*/ meltfptr[24] = ( /*nil */ NULL);
+	  /*_.IFCPP___V26*/ meltfptr[25] = ( /*nil */ NULL);
 #endif /*MELT_HAVE_DEBUG */
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:1389:/ cond");
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) ( /*_.MATCHER__V3*/ meltfptr[2]), (melt_ptr_t) (( /*!CLASS_NAMED */ meltfrout->tabval[13]))))	/*then */
+	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) ( /*_.MATCHER__V3*/ meltfptr[2]), (melt_ptr_t) (( /*!CLASS_NAMED */ meltfrout->tabval[15]))))	/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
 	      {
 		melt_ptr_t slot = 0;
 		melt_object_get_field (slot, (melt_ptr_t) ( /*_.MATCHER__V3*/ meltfptr[2]), 1, "NAMED_NAME");
-											      /*_.NAMED_NAME__V27*/
-		meltfptr[25] = slot;
+											      /*_.NAMED_NAME__V28*/
+		meltfptr[26] = slot;
 	      };
 	      ;
 	    }
 	  else
 	    {			/*^cond.else */
 
-    /*_.NAMED_NAME__V27*/ meltfptr[25] = NULL;;
+    /*_.NAMED_NAME__V28*/ meltfptr[26] = NULL;;
 	    }
 	  ;
 
@@ -13276,8 +13351,8 @@ lab_endgetargs:;
 	    MELT_LOCATION ("warmelt-macro.melt:1388:/ locexp");
 	    melt_error_str ((melt_ptr_t) ( /*_.PSLOC__V5*/ meltfptr[4]),
 			    ("ignored extra sub-{pattern | expression} in matcher"),
-			    (melt_ptr_t) ( /*_.NAMED_NAME__V27*/
-					  meltfptr[25]));
+			    (melt_ptr_t) ( /*_.NAMED_NAME__V28*/
+					  meltfptr[26]));
 	  }
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:1386:/ quasiblock");
@@ -13286,22 +13361,22 @@ lab_endgetargs:;
 	  /*epilog */
 
 	  MELT_LOCATION ("warmelt-macro.melt:1385:/ clear");
-	     /*clear *//*_.IFCPP___V25*/ meltfptr[24] = 0;
+	     /*clear *//*_.IFCPP___V26*/ meltfptr[25] = 0;
 	  /*^clear */
-	     /*clear *//*_.NAMED_NAME__V27*/ meltfptr[25] = 0;
+	     /*clear *//*_.NAMED_NAME__V28*/ meltfptr[26] = 0;
 	}
 	;
       }				/*noelse */
     ;
 
     MELT_LOCATION ("warmelt-macro.melt:1384:/ clear");
-	   /*clear *//*_.CURPAIR__V24*/ meltfptr[23] = 0;
+	   /*clear *//*_.CURPAIR__V25*/ meltfptr[24] = 0;
     /*^clear */
 	   /*clear *//*_#IS_PAIR__L6*/ meltfnum[5] = 0;
     MELT_LOCATION ("warmelt-macro.melt:1390:/ quasiblock");
 
 
-    /*_.RETVAL___V1*/ meltfptr[0] = /*_.INARGS__V20*/ meltfptr[19];;
+    /*_.RETVAL___V1*/ meltfptr[0] = /*_.INARGS__V21*/ meltfptr[20];;
     MELT_LOCATION ("warmelt-macro.melt:1390:/ putxtraresult");
     if (!xrestab_ || !xresdescr_)
       goto labend_rout;
@@ -13309,12 +13384,12 @@ lab_endgetargs:;
       goto labend_rout;
     if (xrestab_[0].meltbp_aptr)
       *(xrestab_[0].meltbp_aptr) =
-	(melt_ptr_t) ( /*_.OUTPATS__V23*/ meltfptr[22]);
+	(melt_ptr_t) ( /*_.OUTPATS__V24*/ meltfptr[23]);
     ;
     /*^finalreturn */
     ;
     /*finalret */ goto labend_rout;
-    /*_.LET___V13*/ meltfptr[11] = /*_.RETURN___V28*/ meltfptr[24];;
+    /*_.LET___V13*/ meltfptr[11] = /*_.RETURN___V29*/ meltfptr[25];;
 
     MELT_LOCATION ("warmelt-macro.melt:1354:/ clear");
 	   /*clear *//*_.MINS__V14*/ meltfptr[13] = 0;
@@ -13327,17 +13402,17 @@ lab_endgetargs:;
     /*^clear */
 	   /*clear *//*_#NBOUTS__L5*/ meltfnum[4] = 0;
     /*^clear */
-	   /*clear *//*_.PAIRBOX__V17*/ meltfptr[16] = 0;
+	   /*clear *//*_.PAIRCONT__V17*/ meltfptr[16] = 0;
     /*^clear */
-	   /*clear *//*_.LAMBDA___V18*/ meltfptr[17] = 0;
+	   /*clear *//*_.LAMBDA___V19*/ meltfptr[18] = 0;
     /*^clear */
-	   /*clear *//*_.INARGS__V20*/ meltfptr[19] = 0;
+	   /*clear *//*_.INARGS__V21*/ meltfptr[20] = 0;
     /*^clear */
-	   /*clear *//*_.LAMBDA___V21*/ meltfptr[20] = 0;
+	   /*clear *//*_.LAMBDA___V22*/ meltfptr[21] = 0;
     /*^clear */
-	   /*clear *//*_.OUTPATS__V23*/ meltfptr[22] = 0;
+	   /*clear *//*_.OUTPATS__V24*/ meltfptr[23] = 0;
     /*^clear */
-	   /*clear *//*_.RETURN___V28*/ meltfptr[24] = 0;
+	   /*clear *//*_.RETURN___V29*/ meltfptr[25] = 0;
     MELT_LOCATION ("warmelt-macro.melt:1350:/ quasiblock");
 
 
@@ -13508,9 +13583,25 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-macro.melt:1364:/ quasiblock");
 
 
- /*_.CURPAIR__V6*/ meltfptr[5] =
-      melt_box_content ((meltbox_ptr_t)
-			(( /*~PAIRBOX */ meltfclos->tabval[0])));;
+    /*^cond */
+    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*~PAIRCONT */ meltfclos->tabval[0])), (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[1]))))	/*then */
+      {
+	/*^cond.then */
+	/*^getslot */
+	{
+	  melt_ptr_t slot = 0;
+	  melt_object_get_field (slot, (melt_ptr_t) (( /*~PAIRCONT */ meltfclos->tabval[0])), 0, "CONTAINER_VALUE");
+													/*_.CURPAIR__V6*/
+	  meltfptr[5] = slot;
+	};
+	;
+      }
+    else
+      {				/*^cond.else */
+
+  /*_.CURPAIR__V6*/ meltfptr[5] = NULL;;
+      }
+    ;
     /*^compute */
 
  /*_#IS_PAIR__L3*/ meltfnum[1] =
@@ -13533,13 +13624,33 @@ lab_endgetargs:;
 
    /*_.PAIR_TAIL__V10*/ meltfptr[9] =
 	    (melt_pair_tail ((melt_ptr_t) ( /*_.CURPAIR__V6*/ meltfptr[5])));;
+	  MELT_LOCATION ("warmelt-macro.melt:1367:/ cond");
+	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*~PAIRCONT */ meltfclos->tabval[0])), (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[1]))))	/*then */
+	    {
+	      /*^cond.then */
+	      /*^block */
+	      /*anyblock */
+	      {
 
-	  {
-	    MELT_LOCATION ("warmelt-macro.melt:1367:/ locexp");
-	    meltgc_box_put ((melt_ptr_t)
-			    (( /*~PAIRBOX */ meltfclos->tabval[0])),
-			    (melt_ptr_t) ( /*_.PAIR_TAIL__V10*/ meltfptr[9]));
-	  }
+		/*^putslot */
+		/*putslot */
+		melt_assertmsg ("putslot checkobj @CONTAINER_VALUE",
+				melt_magic_discr ((melt_ptr_t)
+						  (( /*~PAIRCONT */
+						    meltfclos->tabval[0]))) ==
+				MELTOBMAG_OBJECT);
+		melt_putfield_object ((( /*~PAIRCONT */ meltfclos->
+					tabval[0])), (0),
+				      ( /*_.PAIR_TAIL__V10*/ meltfptr[9]),
+				      "CONTAINER_VALUE");
+		;
+		/*^touch */
+		meltgc_touch (( /*~PAIRCONT */ meltfclos->tabval[0]));
+		;
+		/*epilog */
+	      }
+	      ;
+	    }			/*noelse */
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:1368:/ apply");
 	  /*apply */
@@ -13554,7 +13665,7 @@ lab_endgetargs:;
 	      (melt_ptr_t *) & ( /*~MEXPANDER */ meltfclos->tabval[2]);
 	    /*_.MACROEXPAND_1__V11*/ meltfptr[10] =
 	      melt_apply ((meltclosure_ptr_t)
-			  (( /*!MACROEXPAND_1 */ meltfrout->tabval[1])),
+			  (( /*!MACROEXPAND_1 */ meltfrout->tabval[2])),
 			  (melt_ptr_t) ( /*_.CURIN__V9*/ meltfptr[8]),
 			  (MELTBPARSTR_PTR MELTBPARSTR_PTR ""), argtab, "",
 			  (union meltparam_un *) 0);
@@ -13584,7 +13695,7 @@ lab_endgetargs:;
 	{
 
 	  MELT_LOCATION ("warmelt-macro.melt:1370:/ cond");
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*~MATCHER */ meltfclos->tabval[4])), (melt_ptr_t) (( /*!CLASS_NAMED */ meltfrout->tabval[2]))))	/*then */
+	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*~MATCHER */ meltfclos->tabval[4])), (melt_ptr_t) (( /*!CLASS_NAMED */ meltfrout->tabval[3]))))	/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
@@ -13738,9 +13849,25 @@ lab_endgetargs:;
     MELT_LOCATION ("warmelt-macro.melt:1375:/ quasiblock");
 
 
- /*_.CURPAIR__V4*/ meltfptr[3] =
-      melt_box_content ((meltbox_ptr_t)
-			(( /*~PAIRBOX */ meltfclos->tabval[0])));;
+    /*^cond */
+    /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*~PAIRCONT */ meltfclos->tabval[0])), (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[0]))))	/*then */
+      {
+	/*^cond.then */
+	/*^getslot */
+	{
+	  melt_ptr_t slot = 0;
+	  melt_object_get_field (slot, (melt_ptr_t) (( /*~PAIRCONT */ meltfclos->tabval[0])), 0, "CONTAINER_VALUE");
+													/*_.CURPAIR__V4*/
+	  meltfptr[3] = slot;
+	};
+	;
+      }
+    else
+      {				/*^cond.else */
+
+  /*_.CURPAIR__V4*/ meltfptr[3] = NULL;;
+      }
+    ;
     /*^compute */
 
  /*_#IS_PAIR__L2*/ meltfnum[1] =
@@ -13763,13 +13890,33 @@ lab_endgetargs:;
 
    /*_.PAIR_TAIL__V8*/ meltfptr[7] =
 	    (melt_pair_tail ((melt_ptr_t) ( /*_.CURPAIR__V4*/ meltfptr[3])));;
+	  MELT_LOCATION ("warmelt-macro.melt:1378:/ cond");
+	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*~PAIRCONT */ meltfclos->tabval[0])), (melt_ptr_t) (( /*!CLASS_CONTAINER */ meltfrout->tabval[0]))))	/*then */
+	    {
+	      /*^cond.then */
+	      /*^block */
+	      /*anyblock */
+	      {
 
-	  {
-	    MELT_LOCATION ("warmelt-macro.melt:1378:/ locexp");
-	    meltgc_box_put ((melt_ptr_t)
-			    (( /*~PAIRBOX */ meltfclos->tabval[0])),
-			    (melt_ptr_t) ( /*_.PAIR_TAIL__V8*/ meltfptr[7]));
-	  }
+		/*^putslot */
+		/*putslot */
+		melt_assertmsg ("putslot checkobj @CONTAINER_VALUE",
+				melt_magic_discr ((melt_ptr_t)
+						  (( /*~PAIRCONT */
+						    meltfclos->tabval[0]))) ==
+				MELTOBMAG_OBJECT);
+		melt_putfield_object ((( /*~PAIRCONT */ meltfclos->
+					tabval[0])), (0),
+				      ( /*_.PAIR_TAIL__V8*/ meltfptr[7]),
+				      "CONTAINER_VALUE");
+		;
+		/*^touch */
+		meltgc_touch (( /*~PAIRCONT */ meltfclos->tabval[0]));
+		;
+		/*epilog */
+	      }
+	      ;
+	    }			/*noelse */
 	  ;
 	  MELT_LOCATION ("warmelt-macro.melt:1379:/ apply");
 	  /*apply */
@@ -13787,7 +13934,7 @@ lab_endgetargs:;
 	      (melt_ptr_t *) & ( /*~PSLOC */ meltfclos->tabval[3]);
 	    /*_.PATTERNEXPAND_1__V9*/ meltfptr[8] =
 	      melt_apply ((meltclosure_ptr_t)
-			  (( /*!PATTERNEXPAND_1 */ meltfrout->tabval[0])),
+			  (( /*!PATTERNEXPAND_1 */ meltfrout->tabval[1])),
 			  (melt_ptr_t) ( /*_.CUROUT__V7*/ meltfptr[6]),
 			  (MELTBPARSTR_PTR MELTBPARSTR_PTR MELTBPARSTR_PTR
 			   ""), argtab, "", (union meltparam_un *) 0);
@@ -13817,7 +13964,7 @@ lab_endgetargs:;
 	{
 
 	  MELT_LOCATION ("warmelt-macro.melt:1381:/ cond");
-	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*~MATCHER */ meltfclos->tabval[4])), (melt_ptr_t) (( /*!CLASS_NAMED */ meltfrout->tabval[1]))))	/*then */
+	  /*cond */ if ( /*ifisa */ melt_is_instance_of ((melt_ptr_t) (( /*~MATCHER */ meltfclos->tabval[4])), (melt_ptr_t) (( /*!CLASS_NAMED */ meltfrout->tabval[2]))))	/*then */
 	    {
 	      /*^cond.then */
 	      /*^getslot */
