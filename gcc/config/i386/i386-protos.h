@@ -1,6 +1,6 @@
 /* Definitions of target machine for GCC for IA-32.
    Copyright (C) 1988, 1992, 1994, 1995, 1996, 1996, 1997, 1998, 1999,
-   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
 
 This file is part of GCC.
@@ -18,6 +18,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GCC; see the file COPYING3.  If not see
 <http://www.gnu.org/licenses/>.  */
+
+/* In i386-common.c.  */
+extern bool ix86_handle_option (struct gcc_options *opts,
+				struct gcc_options *opts_set ATTRIBUTE_UNUSED,
+				const struct cl_decoded_option *decoded,
+				location_t loc);
 
 /* Functions in i386.c */
 extern bool ix86_target_stack_probe (void);
@@ -55,7 +61,6 @@ extern bool ix86_expand_movmem (rtx, rtx, rtx, rtx, rtx, rtx);
 extern bool ix86_expand_setmem (rtx, rtx, rtx, rtx, rtx, rtx);
 extern bool ix86_expand_strlen (rtx, rtx, rtx, rtx);
 
-extern bool legitimate_constant_p (rtx);
 extern bool constant_address_p (rtx);
 extern bool legitimate_pic_operand_p (rtx);
 extern bool legitimate_pic_address_disp_p (rtx);
@@ -68,8 +73,8 @@ extern void split_double_mode (enum machine_mode, rtx[], int, rtx[], rtx[]);
 extern const char *output_set_got (rtx, rtx);
 extern const char *output_387_binary_op (rtx, rtx*);
 extern const char *output_387_reg_move (rtx, rtx*);
-extern const char *output_fix_trunc (rtx, rtx*, int);
-extern const char *output_fp_compare (rtx, rtx*, int, int);
+extern const char *output_fix_trunc (rtx, rtx*, bool);
+extern const char *output_fp_compare (rtx, rtx*, bool, bool);
 extern const char *output_adjust_stack_and_probe (rtx);
 extern const char *output_probe_stack_range (rtx, rtx);
 
@@ -114,9 +119,8 @@ extern bool ix86_expand_fp_movcc (rtx[]);
 extern bool ix86_expand_fp_vcond (rtx[]);
 extern bool ix86_expand_int_vcond (rtx[]);
 extern void ix86_expand_sse_unpack (rtx[], bool, bool);
-extern void ix86_expand_sse4_unpack (rtx[], bool, bool);
 extern bool ix86_expand_int_addcc (rtx[]);
-extern rtx ix86_expand_call (rtx, rtx, rtx, rtx, rtx, int);
+extern rtx ix86_expand_call (rtx, rtx, rtx, rtx, rtx, bool);
 extern void ix86_split_call_vzeroupper (rtx, rtx);
 extern void x86_initialize_trampoline (rtx, rtx, rtx);
 extern rtx ix86_zero_extend_to_Pmode (rtx);
@@ -129,9 +133,9 @@ extern bool ix86_check_movabs (rtx, int);
 extern void ix86_split_idivmod (enum machine_mode, rtx[], bool);
 
 extern rtx assign_386_stack_local (enum machine_mode, enum ix86_stack_slot);
-extern int ix86_attr_length_immediate_default (rtx, int);
+extern int ix86_attr_length_immediate_default (rtx, bool);
 extern int ix86_attr_length_address_default (rtx);
-extern int ix86_attr_length_vex_default (rtx, int, int);
+extern int ix86_attr_length_vex_default (rtx, bool, bool);
 
 extern enum machine_mode ix86_fp_compare_mode (enum rtx_code);
 
@@ -191,9 +195,10 @@ extern tree ix86_handle_shared_attribute (tree *, tree, tree, int, bool *);
 extern tree ix86_handle_selectany_attribute (tree *, tree, tree, int, bool *);
 extern int x86_field_alignment (tree, int);
 extern tree ix86_valid_target_attribute_tree (tree);
+extern unsigned int ix86_get_callcvt (const_tree);
+
 #endif
 
-extern rtx ix86_tls_get_addr (void);
 extern rtx ix86_tls_module_base (void);
 
 extern void ix86_expand_vector_init (bool, rtx, rtx);
@@ -202,6 +207,7 @@ extern void ix86_expand_vector_extract (bool, rtx, rtx, int);
 extern void ix86_expand_reduc_v4sf (rtx (*)(rtx, rtx, rtx), rtx, rtx);
 
 extern void ix86_expand_vec_extract_even_odd (rtx, rtx, rtx, unsigned);
+extern bool ix86_expand_pinsr (rtx *);
 
 /* In i386-c.c  */
 extern void ix86_target_macros (void);
@@ -270,7 +276,7 @@ extern int asm_preferred_eh_data_format (int, int);
 extern enum attr_cpu ix86_schedule;
 #endif
 
-extern const char * ix86_output_call_insn (rtx insn, rtx call_op, int addr_op);
+extern const char * ix86_output_call_insn (rtx insn, rtx call_op);
 
 #ifdef RTX_CODE
 /* Target data for multipass lookahead scheduling.

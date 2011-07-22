@@ -22,7 +22,7 @@ along with GCC; see the file COPYING3.  If not see
 #define TARGET_OS_CPP_BUILTINS()		\
   do						\
     {						\
-      LINUX_TARGET_OS_CPP_BUILTINS();		\
+      GNU_USER_TARGET_OS_CPP_BUILTINS();	\
       if (TARGET_LONG_DOUBLE_128)       	\
 	builtin_define ("__LONG_DOUBLE_128__");	\
     }						\
@@ -37,15 +37,12 @@ along with GCC; see the file COPYING3.  If not see
 #undef  ENDFILE_SPEC
 #define ENDFILE_SPEC \
   "%{shared|pie:crtendS.o%s;:crtend.o%s} crtn.o%s\
-   %{ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
+   %{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s}"
 
 /* This is for -profile to use -lc_p instead of -lc.  */
 #undef	CC1_SPEC
 #define	CC1_SPEC "%{profile:-p} \
 "
-
-#undef TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (sparc GNU/Linux with ELF)");
 
 #undef SIZE_TYPE
 #define SIZE_TYPE "unsigned int"
@@ -79,7 +76,7 @@ along with GCC; see the file COPYING3.  If not see
   %{!shared: \
     %{!static: \
       %{rdynamic:-export-dynamic} \
-      -dynamic-linker " LINUX_DYNAMIC_LINKER "} \
+      -dynamic-linker " GNU_USER_DYNAMIC_LINKER "} \
       %{static:-static}}"
 
 /* It's safe to pass -s always, even if -g is not used.  */
@@ -143,8 +140,6 @@ do {									\
 
 /* Static stack checking is supported by means of probes.  */
 #define STACK_CHECK_STATIC_BUILTIN 1
-
-#define MD_UNWIND_SUPPORT "config/sparc/linux-unwind.h"
 
 /* Linux currently uses RMO in uniprocessor mode, which is equivalent to
    TMO, and TMO in multiprocessor mode.  But they reserve the right to

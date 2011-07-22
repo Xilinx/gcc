@@ -23,9 +23,6 @@ along with GCC; see the file COPYING3.  If not see
 #undef TARGET_IRIX6
 #define TARGET_IRIX6 1
 
-#undef MACHINE_TYPE
-#define MACHINE_TYPE "SGI running IRIX 6.5"
-
 /* Default to -mabi=n32 and -mips3.  */
 #undef MULTILIB_DEFAULTS
 #define MULTILIB_DEFAULTS { "mabi=n32" }
@@ -80,7 +77,7 @@ along with GCC; see the file COPYING3.  If not see
   while (0)
 
 #undef LOCAL_LABEL_PREFIX
-#define LOCAL_LABEL_PREFIX (TARGET_NEWABI ? "." : "$")
+#define LOCAL_LABEL_PREFIX "."
 
 #undef ASM_DECLARE_OBJECT_NAME
 #define ASM_DECLARE_OBJECT_NAME mips_declare_object_name
@@ -107,7 +104,7 @@ along with GCC; see the file COPYING3.  If not see
 #define WINT_TYPE (Pmode == DImode ? "int" : "long int")
 
 #undef WINT_TYPE_SIZE
-#define WINT_TYPE_SIZE 32
+#define WINT_TYPE_SIZE INT_TYPE_SIZE
 
 /* C99 stdint.h types.  */
 #define INT8_TYPE "signed char"
@@ -178,16 +175,15 @@ along with GCC; see the file COPYING3.  If not see
       /* IRIX 6.5.18 and above provide many ISO C99		\
 	 features protected by the __c99 macro.			\
 	 libstdc++ v3 needs them as well.  */			\
-      if (TARGET_IRIX6)						\
-	if (flag_isoc99 || c_dialect_cxx ())			\
-	  builtin_define ("__c99");				\
+      if (flag_isoc99 || c_dialect_cxx ())			\
+	builtin_define ("__c99");				\
 								\
       /* The GNU C++ standard library requires that		\
 	 __EXTENSIONS__ and _SGI_SOURCE be defined on at	\
 	 least IRIX 6.2 and probably all IRIX 6 prior to 6.5.	\
 	 We don't need this on IRIX 6.5 itself, but it		\
 	 shouldn't hurt other than the namespace pollution.  */	\
-      if (!flag_iso || (TARGET_IRIX6 && c_dialect_cxx ()))	\
+      if (!flag_iso || c_dialect_cxx ())			\
 	{							\
 	  builtin_define ("__EXTENSIONS__");			\
 	  builtin_define ("_SGI_SOURCE");			\
@@ -260,7 +256,8 @@ along with GCC; see the file COPYING3.  If not see
 
 #undef ENDFILE_SPEC
 #define ENDFILE_SPEC \
-  "crtend.o%s irix-crtn.o%s \
+  "%{Ofast|ffast-math|funsafe-math-optimizations:crtfastmath.o%s} \
+   crtend.o%s irix-crtn.o%s \
    %{!shared: \
      %{mabi=n32:%{mips4:/usr/lib32/mips4/crtn.o%s}\
        %{!mips4:/usr/lib32/mips3/crtn.o%s}}\

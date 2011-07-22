@@ -1,5 +1,5 @@
 /* Definitions for C++ name lookup routines.
-   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Gabriel Dos Reis <gdr@integrable-solutions.net>
 
@@ -33,6 +33,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "debug.h"
 #include "c-family/c-pragma.h"
 #include "params.h"
+#include "pointer-set.h"
 
 /* The bindings for a particular name in a particular scope.  */
 
@@ -319,33 +320,11 @@ new_class_binding (tree name, tree value, tree type, cxx_scope *scope)
   cp_class_binding *cb;
   cxx_binding *binding;
 
-  if (VEC_length (cp_class_binding, scope->class_shadowed))
-    {
-      cp_class_binding *old_base;
-      old_base = VEC_index (cp_class_binding, scope->class_shadowed, 0);
-      if (VEC_reserve (cp_class_binding, gc, scope->class_shadowed, 1))
-	{
-	  /* Fixup the current bindings, as they might have moved.  */
-	  size_t i;
-
-	  FOR_EACH_VEC_ELT (cp_class_binding, scope->class_shadowed, i, cb)
-	    {
-	      cxx_binding **b;
-	      b = &IDENTIFIER_BINDING (cb->identifier);
-	      while (*b != &old_base[i].base)
-		b = &((*b)->previous);
-	      *b = &cb->base;
-	    }
-	}
-      cb = VEC_quick_push (cp_class_binding, scope->class_shadowed, NULL);
-    }
-  else
     cb = VEC_safe_push (cp_class_binding, gc, scope->class_shadowed, NULL);
 
   cb->identifier = name;
-  binding = &cb->base;
+  cb->base = binding = cxx_binding_make (value, type);
   binding->scope = scope;
-  cxx_binding_init (binding, value, type);
   return binding;
 }
 
@@ -458,7 +437,9 @@ supplement_binding_1 (cxx_binding *binding, tree decl)
 	       && DECL_ANTICIPATED (bval)
 	       && !DECL_HIDDEN_FRIEND_P (bval)))
     binding->value = decl;
-  else if (TREE_CODE (bval) == TYPE_DECL && DECL_ARTIFICIAL (bval))
+  else if (TREE_CODE (bval) == TYPE_DECL && DECL_ARTIFICIAL (bval)
+	   && (TREE_CODE (decl) != TYPE_DECL
+	       || same_type_p (TREE_TYPE (decl), TREE_TYPE (bval))))
     {
       /* The old binding was a type name.  It was placed in
 	 VALUE field because it was thought, at the point it was
@@ -561,7 +542,6 @@ add_decl_to_level (tree decl, cxx_scope *b)
 	 necessary.  */
       TREE_CHAIN (decl) = b->names;
       b->names = decl;
-      b->names_size++;
 
       /* If appropriate, add decl to separate list of statics.  We
 	 include extern variables because they might turn out to be
@@ -961,8 +941,15 @@ pushdecl_maybe_friend_1 (tree x, bool is_friend)
       else
 	{
 	  /* Here to install a non-global value.  */
-	  tree oldlocal = innermost_non_namespace_value (name);
 	  tree oldglobal = IDENTIFIER_NAMESPACE_VALUE (name);
+	  tree oldlocal = NULL_TREE;
+	  cxx_scope *oldscope = NULL;
+	  cxx_binding *oldbinding = outer_binding (name, NULL, true);
+	  if (oldbinding)
+	    {
+	      oldlocal = oldbinding->value;
+	      oldscope = oldbinding->scope;
+	    }
 
 	  if (need_new_binding)
 	    {
@@ -1039,11 +1026,6 @@ pushdecl_maybe_friend_1 (tree x, bool is_friend)
                        || (TREE_CODE (oldlocal) == TYPE_DECL
                            && (!DECL_ARTIFICIAL (oldlocal)
                                || TREE_CODE (x) == TYPE_DECL)))
-		   /* Don't check the `this' parameter or internally generated
-                      vars unless it's an implicit typedef (see
-                      create_implicit_typedef in decl.c).  */
-		   && (!DECL_ARTIFICIAL (oldlocal)
-                       || DECL_IMPLICIT_TYPEDEF_P (oldlocal))
                    /* Don't check for internally generated vars unless
                       it's an implicit typedef (see create_implicit_typedef
                       in decl.c).  */
@@ -1091,6 +1073,20 @@ pushdecl_maybe_friend_1 (tree x, bool is_friend)
 		       }
 		   }
 		}
+	      /* Error if redeclaring a local declared in a
+		 for-init-statement or in the condition of an if or
+		 switch statement when the new declaration is in the
+		 outermost block of the controlled statement.
+		 Redeclaring a variable from a for or while condition is
+		 detected elsewhere.  */
+	      else if (TREE_CODE (oldlocal) == VAR_DECL
+		       && oldscope == current_binding_level->level_chain
+		       && (oldscope->kind == sk_cond
+			   || oldscope->kind == sk_for))
+		{
+		  error ("redeclaration of %q#D", x);
+		  error ("%q+#D previously declared here", oldlocal);
+		}
 
 	      if ((warn_shadow
 		   || warn_shadow_local
@@ -1116,6 +1112,10 @@ pushdecl_maybe_friend_1 (tree x, bool is_friend)
 		  if (TREE_CODE (oldlocal) == PARM_DECL)
 		    warning_at (input_location, warning_code,
 				"declaration of %q#D shadows a parameter", x);
+		  else if (is_capture_proxy (oldlocal))
+		    warning_at (input_location, OPT_Wshadow,
+				"declaration of %qD shadows a lambda capture",
+				x);
 		  else
 		    warning_at (input_location, warning_code,
 				"declaration of %qD shadows a previous local",
@@ -1472,6 +1472,7 @@ begin_scope (scope_kind kind, tree entity)
     case sk_try:
     case sk_catch:
     case sk_for:
+    case sk_cond:
     case sk_class:
     case sk_scoped_enum:
     case sk_function_parms:
@@ -1602,9 +1603,9 @@ maybe_push_cleanup_level (tree type)
     }
 }
 
-/* Nonzero if we are currently in the global binding level.  */
+/* Return true if we are in the global binding level.  */
 
-int
+bool
 global_bindings_p (void)
 {
   return global_scope_p (current_binding_level);
@@ -2090,7 +2091,12 @@ push_using_decl (tree scope, tree name)
 }
 
 /* Same as pushdecl, but define X in binding-level LEVEL.  We rely on the
-   caller to set DECL_CONTEXT properly.  */
+   caller to set DECL_CONTEXT properly.
+
+   Note that this must only be used when X will be the new innermost
+   binding for its name, as we tack it onto the front of IDENTIFIER_BINDING
+   without checking to see if the current IDENTIFIER_BINDING comes from a
+   closer binding level than LEVEL.  */
 
 static tree
 pushdecl_with_scope_1 (tree x, cxx_scope *level, bool is_friend)
@@ -2501,7 +2507,7 @@ do_local_using_decl (tree decl, tree scope, tree name)
   if (decl == NULL_TREE)
     return;
 
-  if (building_stmt_tree ()
+  if (building_stmt_list_p ()
       && at_function_scope_p ())
     add_decl_expr (decl);
 
@@ -2751,7 +2757,10 @@ poplevel_class (void)
   if (level->class_shadowed)
     {
       FOR_EACH_VEC_ELT (cp_class_binding, level->class_shadowed, i, cb)
-	IDENTIFIER_BINDING (cb->identifier) = cb->base.previous;
+	{
+	  IDENTIFIER_BINDING (cb->identifier) = cb->base->previous;
+	  cxx_binding_free (cb->base);
+	}
       ggc_free (level->class_shadowed);
       level->class_shadowed = NULL;
     }
@@ -3593,7 +3602,7 @@ do_namespace_alias (tree alias, tree name_space)
   pushdecl (alias);
 
   /* Emit debug info for namespace alias.  */
-  if (!building_stmt_tree ())
+  if (!building_stmt_list_p ())
     (*debug_hooks->global_decl) (alias);
 }
 
@@ -3741,7 +3750,7 @@ do_using_directive (tree name_space)
 
   gcc_assert (TREE_CODE (name_space) == NAMESPACE_DECL);
 
-  if (building_stmt_tree ())
+  if (building_stmt_list_p ())
     add_stmt (build_stmt (input_location, USING_STMT, name_space));
   name_space = ORIGINAL_NAMESPACE (name_space);
 
@@ -4023,13 +4032,8 @@ qualify_lookup (tree val, int flags)
     return true;
   if (flags & (LOOKUP_PREFER_NAMESPACES | LOOKUP_PREFER_TYPES))
     return false;
-  /* In unevaluated context, look past normal capture fields.  */
-  if (cp_unevaluated_operand && TREE_CODE (val) == FIELD_DECL
-      && DECL_NORMAL_CAPTURE_P (val))
-    return false;
-  /* None of the lookups that use qualify_lookup want the op() from the
-     lambda; they want the one from the enclosing class.  */
-  if (TREE_CODE (val) == FUNCTION_DECL && LAMBDA_FUNCTION_P (val))
+  /* Look through lambda things that we shouldn't be able to see.  */
+  if (is_lambda_ignored_entity (val))
     return false;
   return true;
 }
@@ -4302,10 +4306,10 @@ qualified_lookup_using_namespace (tree name, tree scope,
   /* Look through namespace aliases.  */
   scope = ORIGINAL_NAMESPACE (scope);
 
-  /* Algorithm: Starting with SCOPE, walk through the the set of used
+  /* Algorithm: Starting with SCOPE, walk through the set of used
      namespaces.  For each used namespace, look through its inline
-     namespace set for any bindings and usings.  If no bindings are found,
-     add any usings seen to the set of used namespaces.  */
+     namespace set for any bindings and usings.  If no bindings are
+     found, add any usings seen to the set of used namespaces.  */
   VEC_safe_push (tree, gc, todo, scope);
 
   while (VEC_length (tree, todo))
@@ -4495,7 +4499,7 @@ lookup_name_real_1 (tree name, int prefer_type, int nonclass, bool block_p,
   /* Conversion operators are handled specially because ordinary
      unqualified name lookup will not find template conversion
      operators.  */
-  if (IDENTIFIER_TYPENAME_P (name))
+  if (IDENTIFIER_TYPENAME_P (name) && current_class_type)
     {
       struct cp_binding_level *level;
 
@@ -4935,6 +4939,7 @@ struct arg_lookup
   VEC(tree,gc) *namespaces;
   VEC(tree,gc) *classes;
   tree functions;
+  struct pointer_set_t *fn_set;
 };
 
 static bool arg_assoc (struct arg_lookup*, tree);
@@ -4954,22 +4959,21 @@ static bool arg_assoc_template_arg (struct arg_lookup*, tree);
 static bool
 add_function (struct arg_lookup *k, tree fn)
 {
-  /* We used to check here to see if the function was already in the list,
-     but that's O(n^2), which is just too expensive for function lookup.
-     Now we deal with the occasional duplicate in joust.  In doing this, we
-     assume that the number of duplicates will be small compared to the
-     total number of functions being compared, which should usually be the
-     case.  */
-
   if (!is_overloaded_fn (fn))
     /* All names except those of (possibly overloaded) functions and
        function templates are ignored.  */;
+  else if (k->fn_set && pointer_set_insert (k->fn_set, fn))
+    /* It's already in the list.  */;
   else if (!k->functions)
     k->functions = fn;
   else if (fn == k->functions)
     ;
   else
-    k->functions = build_overload (fn, k->functions);
+    {
+      k->functions = build_overload (fn, k->functions);
+      if (TREE_CODE (k->functions) == OVERLOAD)
+	OVL_ARG_DEPENDENT (k->functions) = true;
+    }
 
   return false;
 }
@@ -5379,8 +5383,8 @@ arg_assoc (struct arg_lookup *k, tree n)
     }
   else if (TREE_CODE (n) == OVERLOAD)
     {
-      for (; n; n = OVL_CHAIN (n))
-	if (arg_assoc_type (k, TREE_TYPE (OVL_FUNCTION (n))))
+      for (; n; n = OVL_NEXT (n))
+	if (arg_assoc_type (k, TREE_TYPE (OVL_CURRENT (n))))
 	  return true;
     }
 
@@ -5413,6 +5417,23 @@ lookup_arg_dependent_1 (tree name, tree fns, VEC(tree,gc) *args,
      picking up later definitions) in the second stage. */
   k.namespaces = make_tree_vector ();
 
+  /* We used to allow duplicates and let joust discard them, but
+     since the above change for DR 164 we end up with duplicates of
+     all the functions found by unqualified lookup.  So keep track
+     of which ones we've seen.  */
+  if (fns)
+    {
+      tree ovl;
+      /* We shouldn't be here if lookup found something other than
+	 namespace-scope functions.  */
+      gcc_assert (DECL_NAMESPACE_SCOPE_P (OVL_CURRENT (fns)));
+      k.fn_set = pointer_set_create ();
+      for (ovl = fns; ovl; ovl = OVL_NEXT (ovl))
+	pointer_set_insert (k.fn_set, OVL_CURRENT (ovl));
+    }
+  else
+    k.fn_set = NULL;
+
   if (include_std)
     arg_assoc_namespace (&k, std_node);
   arg_assoc_args_vec (&k, args);
@@ -5430,6 +5451,8 @@ lookup_arg_dependent_1 (tree name, tree fns, VEC(tree,gc) *args,
 
   release_tree_vector (k.classes);
   release_tree_vector (k.namespaces);
+  if (k.fn_set)
+    pointer_set_destroy (k.fn_set);
     
   return fns;
 }
@@ -5957,7 +5980,7 @@ cp_emit_debug_info_for_using (tree t, tree context)
   for (t = OVL_CURRENT (t); t; t = OVL_NEXT (t))
     if (TREE_CODE (t) != TEMPLATE_DECL)
       {
-	if (building_stmt_tree ())
+	if (building_stmt_list_p ())
 	  add_stmt (build_stmt (input_location, USING_STMT, t));
 	else
 	  (*debug_hooks->imported_module_or_decl) (t, NULL_TREE, context, false);

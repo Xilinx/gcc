@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 /*
-The html package implements an HTML5-compliant tokenizer and parser.
+Package html implements an HTML5-compliant tokenizer and parser.
 
 Tokenization is done by creating a Tokenizer for an io.Reader r. It is the
 caller's responsibility to ensure that r provides UTF-8 encoded HTML.
@@ -68,6 +68,9 @@ call to Next. For example, to extract an HTML page's anchor text:
 			}
 		}
 	}
+
+A Tokenizer typically skips over HTML comments. To return comment tokens, set
+Tokenizer.ReturnComments to true before looping over calls to Next.
 
 Parsing is done by calling Parse with an io.Reader, which returns the root of
 the parse tree (the document element) as a *Node. It is the caller's

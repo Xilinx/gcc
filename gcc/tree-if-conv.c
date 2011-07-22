@@ -1,5 +1,5 @@
 /* If-conversion for vectorizer.
-   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Devang Patel <dpatel@apple.com>
 
@@ -464,8 +464,8 @@ struct ifc_dr {
 /* Returns true when the memory references of STMT are read or written
    unconditionally.  In other words, this function returns true when
    for every data reference A in STMT there exist other accesses to
-   the same data reference with predicates that add up (OR-up) to the
-   true predicate: this ensures that the data reference A is touched
+   a data reference with the same base with predicates that add up (OR-up) to
+   the true predicate: this ensures that the data reference A is touched
    (read or written) on every iteration of the if-converted loop.  */
 
 static bool
@@ -489,21 +489,38 @@ memrefs_read_or_written_unconditionally (gimple stmt,
 	  continue;
 
 	for (j = 0; VEC_iterate (data_reference_p, drs, j, b); j++)
-	  if (DR_STMT (b) != stmt
-	      && same_data_refs (a, b))
-	    {
-	      tree cb = bb_predicate (gimple_bb (DR_STMT (b)));
+          {
+            tree ref_base_a = DR_REF (a);
+            tree ref_base_b = DR_REF (b);
 
-	      if (DR_RW_UNCONDITIONALLY (b) == 1
-		  || is_true_predicate (cb)
-		  || is_true_predicate (ca = fold_or_predicates (EXPR_LOCATION (cb),
-								 ca, cb)))
-		{
-		  DR_RW_UNCONDITIONALLY (a) = 1;
-		  DR_RW_UNCONDITIONALLY (b) = 1;
-		  found = true;
-		  break;
-		}
+            if (DR_STMT (b) == stmt)
+              continue;
+
+            while (TREE_CODE (ref_base_a) == COMPONENT_REF
+                   || TREE_CODE (ref_base_a) == IMAGPART_EXPR
+                   || TREE_CODE (ref_base_a) == REALPART_EXPR)
+              ref_base_a = TREE_OPERAND (ref_base_a, 0);
+
+            while (TREE_CODE (ref_base_b) == COMPONENT_REF
+                   || TREE_CODE (ref_base_b) == IMAGPART_EXPR
+                   || TREE_CODE (ref_base_b) == REALPART_EXPR)
+              ref_base_b = TREE_OPERAND (ref_base_b, 0);
+
+  	    if (!operand_equal_p (ref_base_a, ref_base_b, 0))
+	      {
+	        tree cb = bb_predicate (gimple_bb (DR_STMT (b)));
+
+	        if (DR_RW_UNCONDITIONALLY (b) == 1
+		    || is_true_predicate (cb)
+		    || is_true_predicate (ca
+                        = fold_or_predicates (EXPR_LOCATION (cb), ca, cb)))
+		  {
+		    DR_RW_UNCONDITIONALLY (a) = 1;
+  		    DR_RW_UNCONDITIONALLY (b) = 1;
+		    found = true;
+		    break;
+		  }
+               }
 	    }
 
 	if (!found)
@@ -701,6 +718,22 @@ if_convertible_stmt_p (gimple stmt, VEC (data_reference_p, heap) *refs)
 
     case GIMPLE_ASSIGN:
       return if_convertible_gimple_assign_stmt_p (stmt, refs);
+
+    case GIMPLE_CALL:
+      {
+	tree fndecl = gimple_call_fndecl (stmt);
+	if (fndecl)
+	  {
+	    int flags = gimple_call_flags (stmt);
+	    if ((flags & ECF_CONST)
+		&& !(flags & ECF_LOOPING_CONST_OR_PURE)
+		/* We can only vectorize some builtins at the moment,
+		   so restrict if-conversion to those.  */
+		&& DECL_BUILT_IN (fndecl))
+	      return true;
+	  }
+	return false;
+      }
 
     default:
       /* Don't know what to do with 'em so don't do anything.  */
@@ -1604,6 +1637,7 @@ combine_blocks (struct loop *loop)
   for (i = 0; i < orig_loop_num_nodes; i++)
     {
       bb = ifc_bbs[i];
+      free_bb_predicate (bb);
       if (bb_with_exit_edge_p (loop, bb))
 	{
 	  exit_bb = bb;
@@ -1679,6 +1713,9 @@ combine_blocks (struct loop *loop)
       && exit_bb != loop->header
       && can_merge_blocks_p (loop->header, exit_bb))
     merge_blocks (loop->header, exit_bb);
+
+  free (ifc_bbs);
+  ifc_bbs = NULL;
 }
 
 /* If-convert LOOP when it is legal.  For the moment this pass has no
@@ -1771,7 +1808,7 @@ struct gimple_opt_pass pass_if_conversion =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_stmts | TODO_verify_flow
+  TODO_verify_stmts | TODO_verify_flow
                                         /* todo_flags_finish */
  }
 };

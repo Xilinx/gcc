@@ -74,6 +74,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "lto-streamer.h"
 #include "plugin.h"
 #include "l-ipo.h"
+#include "ipa-utils.h"
 #include "tree-pretty-print.h"
 
 #if defined (DWARF2_UNWIND_INFO) || defined (DWARF2_DEBUGGING_INFO)
@@ -339,7 +340,7 @@ struct rtl_opt_pass pass_postreload =
 
 /* The root of the compilation pass tree, once constructed.  */
 struct opt_pass *all_passes, *all_small_ipa_passes, *all_lowering_passes,
-  *all_regular_ipa_passes, *all_lto_gen_passes;
+  *all_regular_ipa_passes, *all_late_ipa_passes, *all_lto_gen_passes;
 
 /* This is used by plugins, and should also be used in register_pass.  */
 #define DEF_PASS_LIST(LIST) &LIST,
@@ -624,6 +625,7 @@ dump_passes (void)
   dump_pass_list (all_small_ipa_passes, 1);
   dump_pass_list (all_regular_ipa_passes, 1);
   dump_pass_list (all_lto_gen_passes, 1);
+  dump_pass_list (all_late_ipa_passes, 1);
   dump_pass_list (all_passes, 1);
 
   pop_cfun ();
@@ -1110,6 +1112,8 @@ register_pass (struct register_pass_info *pass_info)
   if (!success || all_instances)
     success |= position_pass (pass_info, &all_lto_gen_passes);
   if (!success || all_instances)
+    success |= position_pass (pass_info, &all_late_ipa_passes);
+  if (!success || all_instances)
     success |= position_pass (pass_info, &all_passes);
   if (!success)
     fatal_error
@@ -1220,6 +1224,7 @@ init_optimization_passes (void)
 	     locals into SSA form if possible.  */
 	  NEXT_PASS (pass_build_ealias);
 	  NEXT_PASS (pass_sra_early);
+	  NEXT_PASS (pass_fre);
 	  NEXT_PASS (pass_copy_prop);
 	  NEXT_PASS (pass_merge_phi);
 	  NEXT_PASS (pass_cd_dce);
@@ -1265,9 +1270,6 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_inline);
   NEXT_PASS (pass_ipa_pure_const);
   NEXT_PASS (pass_ipa_reference);
-  NEXT_PASS (pass_ipa_type_escape);
-  NEXT_PASS (pass_ipa_pta);
-  NEXT_PASS (pass_ipa_struct_reorg);
   *p = NULL;
 
   p = &all_lto_gen_passes;
@@ -1275,10 +1277,17 @@ init_optimization_passes (void)
   NEXT_PASS (pass_ipa_lto_finish_out);  /* This must be the last LTO pass.  */
   *p = NULL;
 
+  /* Simple IPA passes executed after the regular passes.  In WHOPR mode the
+     passes are executed after partitioning and thus see just parts of the
+     compiled unit.  */
+  p = &all_late_ipa_passes;
+  NEXT_PASS (pass_ipa_pta);
+  *p = NULL;
   /* These passes are run after IPA passes on every function that is being
      output to the assembler file.  */
   p = &all_passes;
   NEXT_PASS (pass_direct_call_profile);
+  NEXT_PASS (pass_fixup_cfg);
   NEXT_PASS (pass_lower_eh_dispatch);
   NEXT_PASS (pass_all_optimizations);
     {
@@ -1537,6 +1546,9 @@ init_optimization_passes (void)
   register_dump_files (all_lto_gen_passes,
 		       PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh
 		       | PROP_cfg);
+  register_dump_files (all_late_ipa_passes,
+		       PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh
+		       | PROP_cfg);
   register_dump_files (all_passes,
 		       PROP_gimple_any | PROP_gimple_lcf | PROP_gimple_leh
 		       | PROP_cfg);
@@ -1594,7 +1606,7 @@ do_per_function_toporder (void (*callback) (void *data), void *data)
     {
       gcc_assert (!order);
       order = ggc_alloc_vec_cgraph_node_ptr (cgraph_n_nodes);
-      nnodes = cgraph_postorder (order);
+      nnodes = ipa_reverse_postorder (order);
       for (i = nnodes - 1; i >= 0; i--)
         order[i]->process = 1;
       for (i = nnodes - 1; i >= 0; i--)
@@ -1604,7 +1616,7 @@ do_per_function_toporder (void (*callback) (void *data), void *data)
 	  /* Allow possibly removed nodes to be garbage collected.  */
 	  order[i] = NULL;
 	  node->process = 0;
-	  if (node->analyzed)
+	  if (cgraph_function_with_gimple_body_p (node))
 	    {
 	      push_cfun (DECL_STRUCT_FUNCTION (node->decl));
 	      current_function_decl = node->decl;
@@ -1620,6 +1632,37 @@ do_per_function_toporder (void (*callback) (void *data), void *data)
   ggc_free (order);
   order = NULL;
   nnodes = 0;
+}
+
+/* Helper function to perform function body dump.  */
+
+static void
+execute_function_dump (void *data ATTRIBUTE_UNUSED)
+{
+  if (dump_file && current_function_decl)
+    {
+      if (cfun->curr_properties & PROP_trees)
+        dump_function_to_file (current_function_decl, dump_file, dump_flags);
+      else
+	{
+	  if (dump_flags & TDF_SLIM)
+	    print_rtl_slim_with_bb (dump_file, get_insns (), dump_flags);
+	  else if ((cfun->curr_properties & PROP_cfg)
+		   && (dump_flags & TDF_BLOCKS))
+	    print_rtl_with_bb (dump_file, get_insns ());
+          else
+	    print_rtl (dump_file, get_insns ());
+
+	  if ((cfun->curr_properties & PROP_cfg)
+	      && graph_dump_format != no_graph
+	      && (dump_flags & TDF_GRAPH))
+	    print_rtl_graph_with_bb (dump_file_name, get_insns ());
+	}
+
+      /* Flush the file.  If verification fails, we won't be able to
+	 close the file before aborting.  */
+      fflush (dump_file);
+    }
 }
 
 /* Perform all TODO actions that ought to be done on each function.  */
@@ -1668,31 +1711,6 @@ execute_function_todo (void *data)
   if (flags & TODO_remove_unused_locals)
     remove_unused_locals ();
 
-  if ((flags & TODO_dump_func) && dump_file && current_function_decl)
-    {
-      if (cfun->curr_properties & PROP_trees)
-        dump_function_to_file (current_function_decl, dump_file, dump_flags);
-      else
-	{
-	  if (dump_flags & TDF_SLIM)
-	    print_rtl_slim_with_bb (dump_file, get_insns (), dump_flags);
-	  else if ((cfun->curr_properties & PROP_cfg)
-		   && (dump_flags & TDF_BLOCKS))
-	    print_rtl_with_bb (dump_file, get_insns ());
-          else
-	    print_rtl (dump_file, get_insns ());
-
-	  if ((cfun->curr_properties & PROP_cfg)
-	      && graph_dump_format != no_graph
-	      && (dump_flags & TDF_GRAPH))
-	    print_rtl_graph_with_bb (dump_file_name, get_insns ());
-	}
-
-      /* Flush the file.  If verification fails, we won't be able to
-	 close the file before aborting.  */
-      fflush (dump_file);
-    }
-
   if (flags & TODO_rebuild_frequencies)
     rebuild_frequencies ();
 
@@ -1710,7 +1728,7 @@ execute_function_todo (void *data)
   if (flags & TODO_verify_flow)
     verify_flow_info ();
   if (flags & TODO_verify_stmts)
-    verify_stmts ();
+    verify_gimple_in_cfg (cfun);
   if (current_loops && loops_state_satisfies_p (LOOP_CLOSED_SSA))
     verify_loop_closed_ssa (false);
   if (flags & TODO_verify_rtl_sharing)
@@ -1918,6 +1936,7 @@ execute_one_ipa_transform_pass (struct cgraph_node *node,
   execute_todo (todo_after);
   verify_interpass_invariants ();
 
+  do_per_function (execute_function_dump, NULL);
   pass_fini_dump_file (pass);
 
   current_pass = NULL;
@@ -1931,7 +1950,7 @@ execute_all_ipa_transforms (void)
   struct cgraph_node *node;
   if (!cfun)
     return;
-  node = cgraph_node (current_function_decl);
+  node = cgraph_get_node (current_function_decl);
 
   if (node->ipa_transforms_to_apply)
     {
@@ -1945,6 +1964,20 @@ execute_all_ipa_transforms (void)
 						   i));
       VEC_free (ipa_opt_pass, heap, node->ipa_transforms_to_apply);
       node->ipa_transforms_to_apply = NULL;
+    }
+}
+
+/* Callback for do_per_function to apply all IPA transforms.  */
+
+static void
+apply_ipa_transforms (void *data)
+{
+  struct cgraph_node *node = cgraph_get_node (current_function_decl);
+  if (!node->global.inlined_to && node->ipa_transforms_to_apply)
+    {
+      *(bool *)data = true;
+      execute_all_ipa_transforms();
+      rebuild_cgraph_edges ();
     }
 }
 
@@ -2009,6 +2042,18 @@ execute_one_pass (struct opt_pass *pass)
      executed.  */
   invoke_plugin_callbacks (PLUGIN_PASS_EXECUTION, pass);
 
+  /* SIPLE IPA passes do not handle callgraphs with IPA transforms in it.
+     Apply all trnasforms first.  */
+  if (pass->type == SIMPLE_IPA_PASS)
+    {
+      bool applied = false;
+      do_per_function (apply_ipa_transforms, (void *)&applied);
+      if (applied)
+        cgraph_remove_unreachable_nodes (true, dump_file);
+      /* Restore current_pass.  */
+      current_pass = pass;
+    }
+
   if (!quiet_flag && !cfun)
     fprintf (stderr, " <%s>", pass->name ? pass->name : "");
 
@@ -2058,13 +2103,13 @@ execute_one_pass (struct opt_pass *pass)
   /* Run post-pass cleanup and verification.  */
   execute_todo (todo_after | pass->todo_flags_finish);
   verify_interpass_invariants ();
+  do_per_function (execute_function_dump, NULL);
   if (pass->type == IPA_PASS)
     {
       struct cgraph_node *node;
-      for (node = cgraph_nodes; node; node = node->next)
-        if (node->analyzed)
-          VEC_safe_push (ipa_opt_pass, heap, node->ipa_transforms_to_apply,
-			 (struct ipa_opt_pass_d *)pass);
+      FOR_EACH_FUNCTION_WITH_GIMPLE_BODY (node)
+	VEC_safe_push (ipa_opt_pass, heap, node->ipa_transforms_to_apply,
+		       (struct ipa_opt_pass_d *)pass);
     }
 
   if (!current_function_decl)
@@ -2178,14 +2223,14 @@ ipa_write_summaries (void)
      since it causes the gimple file to be processed in the same order
      as the source code.  */
   order = XCNEWVEC (struct cgraph_node *, cgraph_n_nodes);
-  order_pos = cgraph_postorder (order);
+  order_pos = ipa_reverse_postorder (order);
   gcc_assert (order_pos == cgraph_n_nodes);
 
   for (i = order_pos - 1; i >= 0; i--)
     {
       struct cgraph_node *node = order[i];
 
-      if (node->analyzed)
+      if (cgraph_function_with_gimple_body_p (node))
 	{
 	  /* When streaming out references to statements as part of some IPA
 	     pass summary, the statements need to have uids assigned and the
@@ -2198,19 +2243,19 @@ ipa_write_summaries (void)
 	  pop_cfun ();
 	}
       if (node->analyzed)
-	cgraph_node_set_add (set, node);
+        cgraph_node_set_add (set, node);
     }
   vset = varpool_node_set_new ();
 
   for (vnode = varpool_nodes; vnode; vnode = vnode->next)
-    if (vnode->needed && !vnode->alias)
+    if (vnode->needed && (!vnode->alias || vnode->alias_of))
       varpool_node_set_add (vset, vnode);
 
   ipa_write_summaries_1 (set, vset);
 
   free (order);
-  ggc_free (set);
-  ggc_free (vset);
+  free_cgraph_node_set (set);
+  free_varpool_node_set (vset);
 }
 
 /* Same as execute_pass_list but assume that subpasses of IPA passes
@@ -2510,11 +2555,13 @@ bool
 function_called_by_processed_nodes_p (void)
 {
   struct cgraph_edge *e;
-  for (e = cgraph_node (current_function_decl)->callers; e; e = e->next_caller)
+  for (e = cgraph_get_node (current_function_decl)->callers;
+       e;
+       e = e->next_caller)
     {
       if (e->caller->decl == current_function_decl)
         continue;
-      if (!e->caller->analyzed)
+      if (!cgraph_function_with_gimple_body_p (e->caller))
         continue;
       if (TREE_ASM_WRITTEN (e->caller->decl))
         continue;

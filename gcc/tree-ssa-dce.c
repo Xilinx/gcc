@@ -1,5 +1,5 @@
 /* Dead code elimination pass for the GNU compiler.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   Copyright (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011
    Free Software Foundation, Inc.
    Contributed by Ben Elliston <bje@redhat.com>
    and Andrew MacLeod <amacleod@redhat.com>
@@ -271,8 +271,6 @@ mark_operand_necessary (tree op)
 static void
 mark_stmt_if_obviously_necessary (gimple stmt, bool aggressive)
 {
-  tree lhs = NULL_TREE;
-
   /* With non-call exceptions, we have to assume that all statements could
      throw.  If a statement may throw, it is inherently necessary.  */
   if (cfun->can_throw_non_call_exceptions && stmt_could_throw_p (stmt))
@@ -311,12 +309,6 @@ mark_stmt_if_obviously_necessary (gimple stmt, bool aggressive)
 	}
       if (!gimple_call_lhs (stmt))
         return;
-      lhs = gimple_call_lhs (stmt);
-      /* Fall through */
-
-    case GIMPLE_ASSIGN:
-      if (!lhs)
-        lhs = gimple_assign_lhs (stmt);
       break;
 
     case GIMPLE_DEBUG:
@@ -324,7 +316,8 @@ mark_stmt_if_obviously_necessary (gimple stmt, bool aggressive)
 	 easily locate the debug temp bind stmt for a use thereof,
 	 would could refrain from marking all debug temps here, and
 	 mark them only if they're used.  */
-      if (gimple_debug_bind_has_value_p (stmt)
+      if (!gimple_debug_bind_p (stmt)
+	  || gimple_debug_bind_has_value_p (stmt)
 	  || TREE_CODE (gimple_debug_bind_get_var (stmt)) != DEBUG_EXPR_DECL)
 	mark_stmt_necessary (stmt, false);
       return;
@@ -529,7 +522,14 @@ mark_aliased_reaching_defs_necessary_1 (ao_ref *ref, tree vdef, void *data)
 
   /* If the stmt lhs kills ref, then we can stop walking.  */
   if (gimple_has_lhs (def_stmt)
-      && TREE_CODE (gimple_get_lhs (def_stmt)) != SSA_NAME)
+      && TREE_CODE (gimple_get_lhs (def_stmt)) != SSA_NAME
+      /* The assignment is not necessarily carried out if it can throw
+         and we can catch it in the current function where we could inspect
+	 the previous value.
+         ???  We only need to care about the RHS throwing.  For aggregate
+	 assignments or similar calls and non-call exceptions the LHS
+	 might throw as well.  */
+      && !stmt_can_throw_internal (def_stmt))
     {
       tree base, lhs = gimple_get_lhs (def_stmt);
       HOST_WIDE_INT size, offset, max_size;
@@ -831,8 +831,14 @@ propagate_necessity (struct edge_list *el)
 	      if (callee != NULL_TREE
 		  && DECL_BUILT_IN_CLASS (callee) == BUILT_IN_NORMAL
 		  && (DECL_FUNCTION_CODE (callee) == BUILT_IN_MEMSET
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_MEMSET_CHK
 		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_MALLOC
-		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_FREE))
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_CALLOC
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_FREE
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_ALLOCA
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_STACK_SAVE
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_STACK_RESTORE
+		      || DECL_FUNCTION_CODE (callee) == BUILT_IN_ASSUME_ALIGNED))
 		continue;
 
 	      /* Calls implicitly load from memory, their arguments
@@ -869,7 +875,8 @@ propagate_necessity (struct edge_list *el)
 	    {
 	      tree rhs = gimple_return_retval (stmt);
 	      /* A return statement may perform a load.  */
-	      if (TREE_CODE (rhs) != SSA_NAME
+	      if (rhs
+		  && TREE_CODE (rhs) != SSA_NAME
 		  && !is_gimple_min_invariant (rhs))
 		{
 		  if (!ref_may_be_aliased (rhs))
@@ -1524,7 +1531,7 @@ struct gimple_opt_pass pass_dce =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_ssa	/* todo_flags_finish */
+  TODO_verify_ssa	                /* todo_flags_finish */
  }
 };
 
@@ -1543,7 +1550,7 @@ struct gimple_opt_pass pass_dce_loop =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_ssa	/* todo_flags_finish */
+  TODO_verify_ssa	                /* todo_flags_finish */
  }
 };
 
@@ -1562,7 +1569,7 @@ struct gimple_opt_pass pass_cd_dce =
   0,					/* properties_provided */
   0,					/* properties_destroyed */
   0,					/* todo_flags_start */
-  TODO_dump_func | TODO_verify_ssa
+  TODO_verify_ssa
   | TODO_verify_flow			/* todo_flags_finish */
  }
 };

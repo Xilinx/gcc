@@ -836,8 +836,7 @@ compute_value_histograms (histogram_values values, unsigned cfg_checksum,
     }
 
   for (t = 0; t < GCOV_N_VALUE_COUNTERS; t++)
-    if (histogram_counts[t])
-      free (histogram_counts[t]);
+    free (histogram_counts[t]);
 }
 
 /* The entry basic block will be moved around so that it has index=1,
@@ -861,7 +860,7 @@ output_location (char const *file_name, int line,
       return;
     }
 
-  name_differs = !prev_file_name || strcmp (file_name, prev_file_name);
+  name_differs = !prev_file_name || filename_cmp (file_name, prev_file_name);
   line_differs = prev_line != line;
 
   if (name_differs || line_differs)
@@ -1140,16 +1139,13 @@ branch_prob (void)
   /* Line numbers.  */
   if (coverage_begin_output (lineno_checksum, cfg_checksum))
     {
-      gcov_position_t offset;
-
       /* Initialize the output.  */
       output_location (NULL, 0, NULL, NULL);
 
       FOR_EACH_BB (bb)
 	{
 	  gimple_stmt_iterator gsi;
-
-	  offset = 0;
+	  gcov_position_t offset = 0;
 
 	  if (bb == ENTRY_BLOCK_PTR->next_bb)
 	    {
@@ -1167,15 +1163,14 @@ branch_prob (void)
 				 &offset, bb);
 	    }
 
-	  /* Notice GOTO expressions we eliminated while constructing the
-	     CFG.  */
+	  /* Notice GOTO expressions eliminated while constructing the CFG.  */
 	  if (single_succ_p (bb)
 	      && single_succ_edge (bb)->goto_locus != UNKNOWN_LOCATION)
 	    {
-	      location_t curr_location = single_succ_edge (bb)->goto_locus;
-	      /* ??? The FILE/LINE API is inconsistent for these cases.  */
-	      output_location (LOCATION_FILE (curr_location),
-			       LOCATION_LINE (curr_location), &offset, bb);
+	      expanded_location curr_location
+		= expand_location (single_succ_edge (bb)->goto_locus);
+	      output_location (curr_location.file, curr_location.line,
+			       &offset, bb);
 	    }
 
 	  if (offset)

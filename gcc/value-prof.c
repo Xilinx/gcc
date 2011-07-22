@@ -50,6 +50,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "params.h"
 #include "l-ipo.h"
 #include "profile.h"
+#include "ipa-inline.h"
 
 /* In this file value profile based optimizations are placed.  Currently the
    following optimizations are implemented (for more detailed descriptions
@@ -621,7 +622,8 @@ gimple_value_profile_transformations (void)
          negative when the promoted direct calls get promoted.  */
       /* Guard this for LIPO for now.  */
       if (L_IPO_COMP_MODE)
-        compute_inline_parameters (cgraph_node (current_function_decl));
+        compute_inline_parameters (cgraph_get_node (current_function_decl),
+				   false);
     }
 
   return changed;
@@ -1168,8 +1170,8 @@ init_node_map (void)
 void
 del_node_map (void)
 {
-  if (L_IPO_COMP_MODE)
-    return;
+   if (L_IPO_COMP_MODE)
+     return;
 
    VEC_free (cgraph_node_ptr, heap, cgraph_node_map);
    cgraph_node_map = NULL;
@@ -1256,7 +1258,7 @@ init_gid_map (void)
       if (!f || DECL_ABSTRACT (n->decl))
         continue;
       /* The global function id computed at profile-use time
-         is slightly different from the one computed in
+        is slightly different from the one computed in
          instrumentation runtime -- for the latter, the intra-
          module function ident is 1 based while in profile-use
          phase, it is zero based. See get_next_funcdef_no in
@@ -1302,6 +1304,7 @@ find_func_by_global_id (unsigned HOST_WIDE_INT gid)
   return NULL;
 }
 
+
 /* Perform sanity check on the indirect call target. Due to race conditions,
    false function target may be attributed to an indirect call site. If the
    call expression type mismatches with the target function's type, expand_call
@@ -1335,9 +1338,9 @@ gimple_ic (gimple icall_stmt, struct cgraph_node *direct_call,
 {
   gimple dcall_stmt, load_stmt, cond_stmt;
   tree tmp0, tmp1, tmpv, tmp;
-  basic_block cond_bb, dcall_bb, icall_bb, join_bb;
+  basic_block cond_bb, dcall_bb, icall_bb, join_bb = NULL;
   tree optype = build_pointer_type (void_type_node);
-  edge e_cd, e_ci, e_di, e_dj, e_ij;
+  edge e_cd, e_ci, e_di, e_dj = NULL, e_ij;
   gimple_stmt_iterator gsi;
   int lp_nr;
 
@@ -1384,12 +1387,19 @@ gimple_ic (gimple icall_stmt, struct cgraph_node *direct_call,
   else
     {
       e_ij = find_fallthru_edge (icall_bb->succs);
-      e_ij->probability = REG_BR_PROB_BASE;
-      e_ij->count = all - count;
-      e_ij = single_pred_edge (split_edge (e_ij));
+      /* The indirect call might be noreturn.  */
+      if (e_ij != NULL)
+	{
+	  e_ij->probability = REG_BR_PROB_BASE;
+	  e_ij->count = all - count;
+	  e_ij = single_pred_edge (split_edge (e_ij));
+	}
     }
-  join_bb = e_ij->dest;
-  join_bb->count = all;
+  if (e_ij != NULL)
+    {
+      join_bb = e_ij->dest;
+      join_bb->count = all;
+    }
 
   e_cd->flags = (e_cd->flags & ~EDGE_FALLTHRU) | EDGE_TRUE_VALUE;
   e_cd->probability = prob;
@@ -1401,12 +1411,15 @@ gimple_ic (gimple icall_stmt, struct cgraph_node *direct_call,
 
   remove_edge (e_di);
 
-  e_dj = make_edge (dcall_bb, join_bb, EDGE_FALLTHRU);
-  e_dj->probability = REG_BR_PROB_BASE;
-  e_dj->count = count;
+  if (e_ij != NULL)
+    {
+      e_dj = make_edge (dcall_bb, join_bb, EDGE_FALLTHRU);
+      e_dj->probability = REG_BR_PROB_BASE;
+      e_dj->count = count;
 
-  e_ij->probability = REG_BR_PROB_BASE;
-  e_ij->count = all - count;
+      e_ij->probability = REG_BR_PROB_BASE;
+      e_ij->count = all - count;
+    }
 
   /* Insert PHI node for the call result if necessary.  */
   if (gimple_call_lhs (icall_stmt)
@@ -1604,7 +1617,6 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
     {
       /* TODO: should mark the call edge. */
       DECL_DISREGARD_INLINE_LIMITS (direct_call1->decl) = 1;
-      direct_call1->local.disregard_inline_limits = 1;
     }
   if (dump_file)
     {
@@ -1643,7 +1655,6 @@ gimple_ic_transform_mult_targ (gimple stmt, histogram_value histogram)
         {
           /* TODO: should mark the call edge.  */
           DECL_DISREGARD_INLINE_LIMITS (direct_call2->decl) = 1;
-          direct_call2->local.disregard_inline_limits = 1;
         }
       if (dump_file)
         {
@@ -2047,6 +2058,7 @@ gimple_indirect_call_to_profile (gimple stmt, histogram_values *values)
   tree callee;
 
   if (gimple_code (stmt) != GIMPLE_CALL
+      || gimple_call_internal_p (stmt)
       || gimple_call_fndecl (stmt) != NULL_TREE)
     return;
 

@@ -135,6 +135,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "output.h"
 #include "vecprim.h"
 #include "gimple-pretty-print.h"
+#include "ipa-inline.h"
 
 typedef struct cgraph_node* NODEPTR;
 DEF_VEC_P (NODEPTR);
@@ -313,7 +314,7 @@ make_constructor_function (char *name, gimple constructor_body, int publik,
 
   DECL_NAME (decl) = get_identifier (name);
   SET_DECL_ASSEMBLER_NAME (decl, DECL_NAME (decl));
-  gcc_assert (cgraph_node (decl) != NULL);
+  gcc_assert (cgraph_get_create_node (decl) != NULL);
 
   TREE_USED (decl) = 1;
   DECL_ARTIFICIAL (decl) = 1;
@@ -373,8 +374,8 @@ make_constructor_function (char *name, gimple constructor_body, int publik,
   add_referenced_var (version_selector_var);
 
   cgraph_add_new_function (decl, true);
-  cgraph_call_function_insertion_hooks (cgraph_node (decl));
-  cgraph_mark_needed_node (cgraph_node (decl));
+  cgraph_call_function_insertion_hooks (cgraph_get_create_node (decl));
+  cgraph_mark_needed_node (cgraph_get_create_node (decl));
 
   if (dump_file)
     dump_function_to_file (decl, dump_file, TDF_BLOCKS);
@@ -897,8 +898,8 @@ clone_function (tree orig_fndecl, const char *name_suffix)
 
   /* Code adapted from cgraph_function_versioning in cgraphuinit.c */
 
-  new_version = cgraph_node (new_decl);
-  old_version = cgraph_node (orig_fndecl);
+  new_version = cgraph_get_create_node (new_decl);
+  old_version = cgraph_get_create_node (orig_fndecl);
 
   new_version->local = old_version->local;
   new_version->global = old_version->global;
@@ -1123,7 +1124,7 @@ specialize_call (tree clone_decl, int side)
 	  if (callee_decl == NULL)
             continue;
 
-	  callee_node = cgraph_node (callee_decl);
+	  callee_node = cgraph_get_create_node (callee_decl);
 
 	  /* For a __builtin_dispatch stmt, only specialize if
              version_selector attribute is set. Otherwise, it is
@@ -1281,7 +1282,7 @@ clone_and_dispatch_function (struct cgraph_node *orig_node, tree *clone_0,
      global. */
   update_ssa (TODO_update_ssa);
 
-  compute_inline_parameters (cgraph_node (orig_fndecl));
+  compute_inline_parameters (cgraph_get_create_node (orig_fndecl), false);
   DECL_DECLARED_INLINE_P (orig_fndecl) = 1;
   DECL_UNINLINABLE (orig_fndecl) = 0;
   current_function_decl = old_current_function_decl;
@@ -1731,7 +1732,8 @@ do_convert_builtin_dispatch (void)
        ++ix)
     convert_builtin_dispatch (builtin_stmt);
 
-  compute_inline_parameters (cgraph_node (current_function_decl));
+  compute_inline_parameters (cgraph_get_create_node (current_function_decl),
+			     false);
  
   VEC_free (gimple, heap, builtin_stmt_list); 
   

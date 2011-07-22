@@ -43,6 +43,8 @@ enum c_language_kind c_language = clk_c;
 #define LANG_HOOKS_NAME "GNU C"
 #undef LANG_HOOKS_INIT
 #define LANG_HOOKS_INIT c_objc_common_init
+#undef LANG_HOOKS_INIT_TS
+#define LANG_HOOKS_INIT_TS c_common_init_ts
 
 /* LIPO support.  */
 #undef LANG_HOOKS_ADD_BUILT_IN_DECL

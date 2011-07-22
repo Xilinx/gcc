@@ -61,7 +61,7 @@ struct GTY(()) gimple_df {
   struct pointer_map_t * GTY((skip(""))) decls_to_pointers;
 
   /* Free list of SSA_NAMEs.  */
-  tree free_ssanames;
+  VEC(tree,gc) *free_ssanames;
 
   /* Hashtable holding definition for symbol.  If this field is not NULL, it
      means that the first reference to this variable in the function is a
@@ -171,10 +171,6 @@ struct GTY(()) var_ann_d {
      See the enum's definition for more detailed information about the
      states.  */
   ENUM_BITFIELD (need_phi_state) need_phi_state : 2;
-
-  /* True for HEAP artificial variables.  These variables represent
-     the memory area allocated by a call to malloc.  */
-  unsigned is_heapvar : 1;
 
   /* Used by var_map for the base index of ssa base variables.  */
   unsigned base_index;
@@ -426,9 +422,8 @@ extern basic_block label_to_block_fn (struct function *, tree);
 #define label_to_block(t) (label_to_block_fn (cfun, t))
 extern void notice_special_calls (gimple);
 extern void clear_special_calls (void);
-extern void verify_stmts (void);
-extern void verify_gimple (void);
-extern void verify_types_in_gimple_seq (gimple_seq);
+extern void verify_gimple_in_seq (gimple_seq);
+extern void verify_gimple_in_cfg (struct function *);
 extern tree gimple_block_label (basic_block);
 extern void extract_true_false_edges_from_block (basic_block, edge *, edge *);
 extern bool gimple_duplicate_sese_region (edge, edge, basic_block *, unsigned,
@@ -559,6 +554,7 @@ extern void walk_use_def_chains (tree, walk_use_def_chains_fn, void *, bool);
 
 void insert_debug_temps_for_defs (gimple_stmt_iterator *);
 void insert_debug_temp_for_var_def (gimple_stmt_iterator *, tree);
+void reset_debug_uses (gimple);
 void release_defs_bitset (bitmap toremove);
 
 /* In tree-into-ssa.c  */
@@ -594,6 +590,7 @@ extern void ssanames_print_statistics (void);
 
 /* In tree-ssa-ccp.c  */
 tree fold_const_aggregate_ref (tree);
+tree gimple_fold_stmt_to_constant (gimple, tree (*)(tree));
 
 /* In tree-ssa-dom.c  */
 extern void dump_dominator_optimization_stats (FILE *);
@@ -811,7 +808,7 @@ bool may_be_nonaddressable_p (tree expr);
 
 /* In tree-ssa-threadupdate.c.  */
 extern bool thread_through_all_blocks (bool);
-extern void register_jump_thread (edge, edge);
+extern void register_jump_thread (edge, edge, edge);
 
 /* In gimplify.c  */
 tree force_gimple_operand_1 (tree, gimple_seq *, gimple_predicate, tree);

@@ -41,6 +41,13 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #include <errno.h>
 
 
+/* min macro that evaluates its arguments only once.  */
+#define min(a,b)		\
+  ({ typeof (a) _a = (a);	\
+    typeof (b) _b = (b);	\
+    _a < _b ? _a : _b; })
+
+
 /* For mingw, we don't identify files by their inode number, but by a
    64-bit identifier created from a BY_HANDLE_FILE_INFORMATION. */
 #ifdef __MINGW32__
@@ -48,10 +55,14 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
+#if !defined(_FILE_OFFSET_BITS) || _FILE_OFFSET_BITS != 64
+#undef lseek
 #define lseek _lseeki64
+#undef fstat
 #define fstat _fstati64
+#undef stat
 #define stat _stati64
-typedef struct _stati64 gfstat_t;
+#endif
 
 #ifndef HAVE_WORKING_STAT
 static uint64_t
@@ -96,9 +107,6 @@ id_from_fd (const int fd)
 }
 
 #endif
-
-#else
-typedef struct stat gfstat_t;
 #endif
 
 #ifndef PATH_MAX
@@ -156,7 +164,7 @@ fallback_access (const char *path, int mode)
 
   if (mode == F_OK)
     {
-      gfstat_t st;
+      struct stat st;
       return stat (path, &st);
     }
 
@@ -552,6 +560,11 @@ buf_write (unix_stream * s, const void * buf, ssize_t nbyte)
 static gfc_offset
 buf_seek (unix_stream * s, gfc_offset offset, int whence)
 {
+  if (s->file_length == -1)
+    {
+      errno = ESPIPE;
+      return -1;
+    }
   switch (whence)
     {
     case SEEK_SET:
@@ -577,7 +590,7 @@ buf_seek (unix_stream * s, gfc_offset offset, int whence)
 static gfc_offset
 buf_tell (unix_stream * s)
 {
-  return s->logical_offset;
+  return buf_seek (s, 0, SEEK_CUR);
 }
 
 static int
@@ -849,8 +862,7 @@ mem_flush (unix_stream * s __attribute__ ((unused)))
 static int
 mem_close (unix_stream * s)
 {
-  if (s != NULL)
-    free (s);
+  free (s);
 
   return 0;
 }
@@ -924,7 +936,7 @@ open_internal4 (char *base, int length, gfc_offset offset)
 static stream *
 fd_to_stream (int fd)
 {
-  gfstat_t statbuf;
+  struct stat statbuf;
   unix_stream *s;
 
   s = get_mem (sizeof (unix_stream));
@@ -945,15 +957,15 @@ fd_to_stream (int fd)
 
   if (S_ISREG (statbuf.st_mode))
     s->file_length = statbuf.st_size;
-  else if (S_ISBLK (statbuf.st_mode))
-    {
-      /* Hopefully more portable than ioctl(fd, BLKGETSIZE64, &size)?  */
-      gfc_offset cur = lseek (fd, 0, SEEK_CUR);
-      s->file_length = lseek (fd, 0, SEEK_END);
-      lseek (fd, cur, SEEK_SET);
-    }
   else
-    s->file_length = -1;
+    {
+      /* Some character special files are seekable but most are not,
+	 so figure it out by trying to seek.  On Linux, /dev/null is
+	 an example of such a special file.  */
+      s->file_length = lseek (fd, 0, SEEK_END);
+      if (s->file_length > 0)
+	lseek (fd, 0, SEEK_SET);
+    }
 
   if (!(S_ISREG (statbuf.st_mode) || S_ISBLK (statbuf.st_mode))
       || options.all_unbuffered
@@ -996,10 +1008,10 @@ int
 unpack_filename (char *cstring, const char *fstring, int len)
 {
   if (fstring == NULL)
-    return 1;
+    return EFAULT;
   len = fstrlen (fstring, len);
   if (len >= PATH_MAX)
-    return 1;
+    return ENAMETOOLONG;
 
   memmove (cstring, fstring, len);
   cstring[len] = '\0';
@@ -1022,6 +1034,12 @@ tempfile (st_parameter_open *opp)
   char *template;
   const char *slash = "/";
   int fd;
+  size_t tempdirlen;
+
+#ifndef HAVE_MKSTEMP
+  int count;
+  size_t slashlen;
+#endif
 
   tempdir = getenv ("GFORTRAN_TMPDIR");
 #ifdef __MINGW32__
@@ -1046,29 +1064,53 @@ tempfile (st_parameter_open *opp)
   if (tempdir == NULL)
     tempdir = DEFAULT_TEMPDIR;
 #endif
+
   /* Check for special case that tempdir contains slash
      or backslash at end.  */
-  if (*tempdir == 0 || tempdir[strlen (tempdir) - 1] == '/'
+  tempdirlen = strlen (tempdir);
+  if (*tempdir == 0 || tempdir[tempdirlen - 1] == '/'
 #ifdef __MINGW32__
-      || tempdir[strlen (tempdir) - 1] == '\\'
+      || tempdir[tempdirlen - 1] == '\\'
 #endif
      )
     slash = "";
 
-  template = get_mem (strlen (tempdir) + 20);
+  // Take care that the template is longer in the mktemp() branch.
+  template = get_mem (tempdirlen + 23);
 
 #ifdef HAVE_MKSTEMP
-  sprintf (template, "%s%sgfortrantmpXXXXXX", tempdir, slash);
+  snprintf (template, tempdirlen + 23, "%s%sgfortrantmpXXXXXX", 
+	    tempdir, slash);
 
   fd = mkstemp (template);
 
 #else /* HAVE_MKSTEMP */
   fd = -1;
+  count = 0;
+  slashlen = strlen (slash);
   do
     {
-      sprintf (template, "%s%sgfortrantmpXXXXXX", tempdir, slash);
+      snprintf (template, tempdirlen + 23, "%s%sgfortrantmpaaaXXXXXX", 
+		tempdir, slash);
+      if (count > 0)
+	{
+	  int c = count;
+	  template[tempdirlen + slashlen + 13] = 'a' + (c% 26);
+	  c /= 26;
+	  template[tempdirlen + slashlen + 12] = 'a' + (c % 26);
+	  c /= 26;
+	  template[tempdirlen + slashlen + 11] = 'a' + (c % 26);
+	  if (c >= 26)
+	    break;
+	}
+
       if (!mktemp (template))
-	break;
+      {
+	errno = EEXIST;
+	count++;
+	continue;
+      }
+
 #if defined(HAVE_CRLF) && defined(O_BINARY)
       fd = open (template, O_RDWR | O_CREAT | O_EXCL | O_BINARY,
 		 S_IREAD | S_IWRITE);
@@ -1094,15 +1136,17 @@ tempfile (st_parameter_open *opp)
 static int
 regular_file (st_parameter_open *opp, unit_flags *flags)
 {
-  char path[PATH_MAX + 1];
+  char path[min(PATH_MAX, opp->file_len + 1)];
   int mode;
   int rwflag;
   int crflag;
   int fd;
+  int err;
 
-  if (unpack_filename (path, opp->file, opp->file_len))
+  err = unpack_filename (path, opp->file, opp->file_len);
+  if (err)
     {
-      errno = ENOENT;		/* Fake an OS error */
+      errno = err;		/* Fake an OS error */
       return -1;
     }
 
@@ -1314,61 +1358,6 @@ error_stream (void)
 }
 
 
-/* st_vprintf()-- vprintf function for error output.  To avoid buffer
-   overruns, we limit the length of the buffer to ST_VPRINTF_SIZE.  2k
-   is big enough to completely fill a 80x25 terminal, so it shuld be
-   OK.  We use a direct write() because it is simpler and least likely
-   to be clobbered by memory corruption.  Writing an error message
-   longer than that is an error.  */
-
-#define ST_VPRINTF_SIZE 2048
-
-int
-st_vprintf (const char *format, va_list ap)
-{
-  static char buffer[ST_VPRINTF_SIZE];
-  int written;
-  int fd;
-
-  fd = options.use_stderr ? STDERR_FILENO : STDOUT_FILENO;
-#ifdef HAVE_VSNPRINTF
-  written = vsnprintf(buffer, ST_VPRINTF_SIZE, format, ap);
-#else
-  written = vsprintf(buffer, format, ap);
-
-  if (written >= ST_VPRINTF_SIZE-1)
-    {
-      /* The error message was longer than our buffer.  Ouch.  Because
-	 we may have messed up things badly, report the error and
-	 quit.  */
-#define ERROR_MESSAGE "Internal error: buffer overrun in st_vprintf()\n"
-      write (fd, buffer, ST_VPRINTF_SIZE-1);
-      write (fd, ERROR_MESSAGE, strlen(ERROR_MESSAGE));
-      sys_exit(2);
-#undef ERROR_MESSAGE
-
-    }
-#endif
-
-  written = write (fd, buffer, written);
-  return written;
-}
-
-/* st_printf()-- printf() function for error output.  This just calls
-   st_vprintf() to do the actual work.  */
-
-int
-st_printf (const char *format, ...)
-{
-  int written;
-  va_list ap;
-  va_start (ap, format);
-  written = st_vprintf(format, ap);
-  va_end (ap);
-  return written;
-}
-
-
 /* compare_file_filename()-- Given an open stream and a fortran string
  * that is a filename, figure out if the file is the same as the
  * filename. */
@@ -1376,8 +1365,8 @@ st_printf (const char *format, ...)
 int
 compare_file_filename (gfc_unit *u, const char *name, int len)
 {
-  char path[PATH_MAX + 1];
-  gfstat_t st;
+  char path[min(PATH_MAX, len + 1)];
+  struct stat st;
 #ifdef HAVE_WORKING_STAT
   unix_stream *s;
 #else
@@ -1418,7 +1407,7 @@ compare_file_filename (gfc_unit *u, const char *name, int len)
 
 
 #ifdef HAVE_WORKING_STAT
-# define FIND_FILE0_DECL gfstat_t *st
+# define FIND_FILE0_DECL struct stat *st
 # define FIND_FILE0_ARGS st
 #else
 # define FIND_FILE0_DECL uint64_t id, const char *file, gfc_charlen_type file_len
@@ -1476,8 +1465,8 @@ find_file0 (gfc_unit *u, FIND_FILE0_DECL)
 gfc_unit *
 find_file (const char *file, gfc_charlen_type file_len)
 {
-  char path[PATH_MAX + 1];
-  gfstat_t st[1];
+  char path[min(PATH_MAX, file_len + 1)];
+  struct stat st[1];
   gfc_unit *u;
 #if defined(__MINGW32__) && !HAVE_WORKING_STAT
   uint64_t id = 0ULL;
@@ -1595,11 +1584,12 @@ flush_all_units (void)
 int
 delete_file (gfc_unit * u)
 {
-  char path[PATH_MAX + 1];
+  char path[min(PATH_MAX, u->file_len + 1)];
+  int err = unpack_filename (path, u->file, u->file_len);
 
-  if (unpack_filename (path, u->file, u->file_len))
+  if (err)
     {				/* Shouldn't be possible */
-      errno = ENOENT;
+      errno = err;
       return 1;
     }
 
@@ -1613,7 +1603,7 @@ delete_file (gfc_unit * u)
 int
 file_exists (const char *file, gfc_charlen_type file_len)
 {
-  char path[PATH_MAX + 1];
+  char path[min(PATH_MAX, file_len + 1)];
 
   if (unpack_filename (path, file, file_len))
     return 0;
@@ -1627,8 +1617,8 @@ file_exists (const char *file, gfc_charlen_type file_len)
 GFC_IO_INT
 file_size (const char *file, gfc_charlen_type file_len)
 {
-  char path[PATH_MAX + 1];
-  gfstat_t statbuf;
+  char path[min(PATH_MAX, file_len + 1)];
+  struct stat statbuf;
 
   if (unpack_filename (path, file, file_len))
     return -1;
@@ -1648,8 +1638,8 @@ static const char yes[] = "YES", no[] = "NO", unknown[] = "UNKNOWN";
 const char *
 inquire_sequential (const char *string, int len)
 {
-  char path[PATH_MAX + 1];
-  gfstat_t statbuf;
+  char path[min(PATH_MAX, len + 1)];
+  struct stat statbuf;
 
   if (string == NULL ||
       unpack_filename (path, string, len) || stat (path, &statbuf) < 0)
@@ -1672,8 +1662,8 @@ inquire_sequential (const char *string, int len)
 const char *
 inquire_direct (const char *string, int len)
 {
-  char path[PATH_MAX + 1];
-  gfstat_t statbuf;
+  char path[min(PATH_MAX, len + 1)];
+  struct stat statbuf;
 
   if (string == NULL ||
       unpack_filename (path, string, len) || stat (path, &statbuf) < 0)
@@ -1696,8 +1686,8 @@ inquire_direct (const char *string, int len)
 const char *
 inquire_formatted (const char *string, int len)
 {
-  char path[PATH_MAX + 1];
-  gfstat_t statbuf;
+  char path[min(PATH_MAX, len + 1)];
+  struct stat statbuf;
 
   if (string == NULL ||
       unpack_filename (path, string, len) || stat (path, &statbuf) < 0)
@@ -1731,7 +1721,7 @@ inquire_unformatted (const char *string, int len)
 static const char *
 inquire_access (const char *string, int len, int mode)
 {
-  char path[PATH_MAX + 1];
+  char path[min(PATH_MAX, len + 1)];
 
   if (string == NULL || unpack_filename (path, string, len) ||
       access (path, mode) < 0)

@@ -37,6 +37,7 @@ along with Gcov; see the file COPYING3.  If not see
 #include "coretypes.h"
 #include "tm.h"
 #include "intl.h"
+#include "diagnostic.h"
 #include "version.h"
 #include "demangle.h"
 
@@ -373,7 +374,6 @@ static char *pmu_profile_filename = 0;
 static pmu_data_t pmu_global_info;
 
 /* Forward declarations.  */
-static void fnotice (FILE *, const char *, ...) ATTRIBUTE_PRINTF_2;
 static int process_args (int, char **);
 static void print_usage (int) ATTRIBUTE_NORETURN;
 static void print_version (void) ATTRIBUTE_NORETURN;
@@ -411,11 +411,21 @@ main (int argc, char **argv)
 {
   int argno;
   int first_arg;
+  const char *p;
+
+  p = argv[0] + strlen (argv[0]);
+  while (p != argv[0] && !IS_DIR_SEPARATOR (p[-1]))
+    --p;
+  progname = p;
+
+  xmalloc_set_program_name (progname);
 
   /* Unlock the stdio streams.  */
   unlock_std_streams ();
 
   gcc_init_libintl ();
+
+  diagnostic_initialize (global_dc, 0);
 
   /* Handle response files.  */
   expandargv (&argc, &argv);
@@ -451,16 +461,6 @@ main (int argc, char **argv)
   release_structures ();
 
   return 0;
-}
-
-static void
-fnotice (FILE *file, const char *cmsgid, ...)
-{
-  va_list ap;
-
-  va_start (ap, cmsgid);
-  vfprintf (file, _(cmsgid), ap);
-  va_end (ap);
 }
 
 /* Print a usage message and exit.  If ERROR_P is nonzero, this is an error,
@@ -899,13 +899,12 @@ release_structures (void)
     }
 }
 
-/* Generate the names of the graph and data files. If OBJECT_DIRECTORY
-   is not specified, these are looked for in the current directory,
-   and named from the basename of the FILE_NAME sans extension. If
-   OBJECT_DIRECTORY is specified and is a directory, the files are in
-   that directory, but named from the basename of the FILE_NAME, sans
-   extension. Otherwise OBJECT_DIRECTORY is taken to be the name of
-   the object *file*, and the data files are named from that.  */
+/* Generate the names of the graph and data files.  If OBJECT_DIRECTORY
+   is not specified, these are named from FILE_NAME sans extension.  If
+   OBJECT_DIRECTORY is specified and is a directory, the files are in that
+   directory, but named from the basename of the FILE_NAME, sans extension.
+   Otherwise OBJECT_DIRECTORY is taken to be the name of the object *file*
+   and the data files are named from that.  */
 
 static void
 create_file_names (const char *file_name)
@@ -916,10 +915,8 @@ create_file_names (const char *file_name)
   int base;
 
   /* Free previous file names.  */
-  if (bbg_file_name)
-    free (bbg_file_name);
-  if (da_file_name)
-    free (da_file_name);
+  free (bbg_file_name);
+  free (da_file_name);
   da_file_name = bbg_file_name = NULL;
   bbg_file_time = 0;
   bbg_stamp = 0;
@@ -940,8 +937,8 @@ create_file_names (const char *file_name)
   else
     {
       name = XNEWVEC (char, length + 1);
-      name[0] = 0;
-      base = 1;
+      strcpy (name, file_name);
+      base = 0;
     }
 
   if (base)
@@ -983,7 +980,7 @@ find_source (const char *file_name)
     file_name = "<unknown>";
 
   for (src = sources; src; src = src->next)
-    if (!strcmp (file_name, src->name))
+    if (!filename_cmp (file_name, src->name))
       break;
 
   if (!src)
@@ -1789,7 +1786,7 @@ make_gcov_file_name (const char *input_name, const char *src_name)
 
   if (flag_preserve_paths)
     {
-      /* Convert '/' and '\' to '#', remove '/./', convert '/../' to '/^/',
+      /* Convert '/' and '\' to '#', remove '/./', convert '/../' to '#^#',
 	 convert ':' to '~' on DOS based file system.  */
       char *pnew = name, *pold = name;
 
@@ -1797,32 +1794,41 @@ make_gcov_file_name (const char *input_name, const char *src_name)
 
       while (*pold != '\0')
 	{
-	  if (*pold == '/' || *pold == '\\')
-	    {
-	      *pnew++ = '#';
-	      pold++;
-	    }
 #if defined (HAVE_DOS_BASED_FILE_SYSTEM)
-	  else if (*pold == ':')
+	  if (*pold == ':')
 	    {
 	      *pnew++ = '~';
 	      pold++;
 	    }
+	  else
 #endif
-	  else if ((*pold == '/' && strstr (pold, "/./") == pold)
-		   || (*pold == '\\' && strstr (pold, "\\.\\") == pold))
+	  if ((*pold == '/'
+		    && (strstr (pold, "/./") == pold
+		        || strstr (pold, "/.\\") == pold))
+		   || (*pold == '\\'
+		       && (strstr (pold, "\\.\\") == pold
+		           || strstr (pold, "\\./") == pold)))
 	      pold += 3;
-	  else if (*pold == '/' && strstr (pold, "/../") == pold)
+	  else if (*pold == '/'
+		   && (strstr (pold, "/../") == pold
+		       || strstr (pold, "/..\\") == pold))
 	    {
-	      strcpy (pnew, "/^/");
+	      strcpy (pnew, "#^#");
 	      pnew += 3;
 	      pold += 4;
 	    }
-	  else if (*pold == '\\' && strstr (pold, "\\..\\") == pold)
+	  else if (*pold == '\\'
+		   && (strstr (pold, "\\..\\") == pold
+		       || strstr (pold, "\\../") == pold))
 	    {
-	      strcpy (pnew, "\\^\\");
+	      strcpy (pnew, "#^#");
 	      pnew += 3;
 	      pold += 4;
+	    }
+	  else if (*pold == '/' || *pold == '\\')
+	    {
+	      *pnew++ = '#';
+	      pold++;
 	    }
 	  else
 	    *pnew++ = *pold++;

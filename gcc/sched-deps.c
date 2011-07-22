@@ -1,7 +1,8 @@
 /* Instruction scheduling pass.  This file computes dependencies between
    instructions.
    Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010
+   1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+   2011
    Free Software Foundation, Inc.
    Contributed by Michael Tiemann (tiemann@cygnus.com) Enhanced by,
    and currently maintained by, Jim Wilson (wilson@cygnus.com)
@@ -487,13 +488,27 @@ deps_may_trap_p (const_rtx mem)
 
 /* Find the condition under which INSN is executed.  If REV is not NULL,
    it is set to TRUE when the returned comparison should be reversed
-   to get the actual condition.  */
+   to get the actual condition.
+   We only do actual work the first time we come here for an insn; the
+   results are cached in INSN_COND and INSN_REVERSE_COND.  */
 static rtx
 sched_get_condition_with_rev (const_rtx insn, bool *rev)
 {
   rtx pat = PATTERN (insn);
   rtx src;
 
+  if (INSN_COND (insn) == const_true_rtx)
+    return NULL_RTX;
+
+  if (INSN_COND (insn) != NULL_RTX)
+    {
+      if (rev)
+	*rev = INSN_REVERSE_COND (insn);
+      return INSN_COND (insn);
+    }
+
+  INSN_COND (insn) = const_true_rtx;
+  INSN_REVERSE_COND (insn) = false;
   if (pat == 0)
     return 0;
 
@@ -501,7 +516,10 @@ sched_get_condition_with_rev (const_rtx insn, bool *rev)
     *rev = false;
 
   if (GET_CODE (pat) == COND_EXEC)
-    return COND_EXEC_TEST (pat);
+    {
+      INSN_COND (insn) = COND_EXEC_TEST (pat);
+      return COND_EXEC_TEST (pat);
+    }
 
   if (!any_condjump_p (insn) || !onlyjump_p (insn))
     return 0;
@@ -509,7 +527,10 @@ sched_get_condition_with_rev (const_rtx insn, bool *rev)
   src = SET_SRC (pc_set (insn));
 
   if (XEXP (src, 2) == pc_rtx)
-    return XEXP (src, 0);
+    {
+      INSN_COND (insn) = XEXP (src, 0);
+      return XEXP (src, 0);
+    }
   else if (XEXP (src, 1) == pc_rtx)
     {
       rtx cond = XEXP (src, 0);
@@ -520,6 +541,8 @@ sched_get_condition_with_rev (const_rtx insn, bool *rev)
 
       if (rev)
 	*rev = true;
+      INSN_COND (insn) = cond;
+      INSN_REVERSE_COND (insn) = true;
       return cond;
     }
 
@@ -1821,10 +1844,10 @@ mark_insn_pseudo_birth (rtx insn, int regno, bool clobber_p, bool unused_p)
   enum reg_class cl;
 
   gcc_assert (regno >= FIRST_PSEUDO_REGISTER);
-  cl = sched_regno_cover_class[regno];
+  cl = sched_regno_pressure_class[regno];
   if (cl != NO_REGS)
     {
-      incr = ira_reg_class_nregs[cl][PSEUDO_REGNO_MODE (regno)];
+      incr = ira_reg_class_max_nregs[cl][PSEUDO_REGNO_MODE (regno)];
       if (clobber_p)
 	{
 	  new_incr = reg_pressure_info[cl].clobber_increase + incr;
@@ -1861,7 +1884,7 @@ mark_insn_hard_regno_birth (rtx insn, int regno, int nregs,
       gcc_assert (regno < FIRST_PSEUDO_REGISTER);
       if (! TEST_HARD_REG_BIT (ira_no_alloc_regs, regno))
 	{
-	  cl = sched_regno_cover_class[regno];
+	  cl = sched_regno_pressure_class[regno];
 	  if (cl != NO_REGS)
 	    {
 	      if (clobber_p)
@@ -1922,10 +1945,10 @@ mark_pseudo_death (int regno)
   enum reg_class cl;
 
   gcc_assert (regno >= FIRST_PSEUDO_REGISTER);
-  cl = sched_regno_cover_class[regno];
+  cl = sched_regno_pressure_class[regno];
   if (cl != NO_REGS)
     {
-      incr = ira_reg_class_nregs[cl][PSEUDO_REGNO_MODE (regno)];
+      incr = ira_reg_class_max_nregs[cl][PSEUDO_REGNO_MODE (regno)];
       reg_pressure_info[cl].change -= incr;
     }
 }
@@ -1943,7 +1966,7 @@ mark_hard_regno_death (int regno, int nregs)
       gcc_assert (regno < FIRST_PSEUDO_REGISTER);
       if (! TEST_HARD_REG_BIT (ira_no_alloc_regs, regno))
 	{
-	  cl = sched_regno_cover_class[regno];
+	  cl = sched_regno_pressure_class[regno];
 	  if (cl != NO_REGS)
 	    reg_pressure_info[cl].change -= 1;
 	}
@@ -1991,8 +2014,8 @@ mark_insn_reg_clobber (rtx reg, const_rtx setter, void *data)
 }
 
 /* Set up reg pressure info related to INSN.  */
-static void
-setup_insn_reg_pressure_info (rtx insn)
+void
+init_insn_reg_pressure_info (rtx insn)
 {
   int i, len;
   enum reg_class cl;
@@ -2004,9 +2027,9 @@ setup_insn_reg_pressure_info (rtx insn)
   if (! INSN_P (insn))
     return;
 
-  for (i = 0; i < ira_reg_class_cover_size; i++)
+  for (i = 0; i < ira_pressure_classes_num; i++)
     {
-      cl = ira_reg_class_cover[i];
+      cl = ira_pressure_classes[i];
       reg_pressure_info[cl].clobber_increase = 0;
       reg_pressure_info[cl].set_increase = 0;
       reg_pressure_info[cl].unused_set_increase = 0;
@@ -2027,14 +2050,14 @@ setup_insn_reg_pressure_info (rtx insn)
     if (REG_NOTE_KIND (link) == REG_DEAD)
       mark_reg_death (XEXP (link, 0));
 
-  len = sizeof (struct reg_pressure_data) * ira_reg_class_cover_size;
+  len = sizeof (struct reg_pressure_data) * ira_pressure_classes_num;
   pressure_info
     = INSN_REG_PRESSURE (insn) = (struct reg_pressure_data *) xmalloc (len);
-  INSN_MAX_REG_PRESSURE (insn) = (int *) xcalloc (ira_reg_class_cover_size
+  INSN_MAX_REG_PRESSURE (insn) = (int *) xcalloc (ira_pressure_classes_num
 						  * sizeof (int), 1);
-  for (i = 0; i < ira_reg_class_cover_size; i++)
+  for (i = 0; i < ira_pressure_classes_num; i++)
     {
-      cl = ira_reg_class_cover[i];
+      cl = ira_pressure_classes[i];
       pressure_info[i].clobber_increase
 	= reg_pressure_info[cl].clobber_increase;
       pressure_info[i].set_increase = reg_pressure_info[cl].set_increase;
@@ -2259,16 +2282,12 @@ sched_analyze_1 (struct deps_desc *deps, rtx x, rtx insn)
       /* Treat all writes to a stack register as modifying the TOS.  */
       if (regno >= FIRST_STACK_REG && regno <= LAST_STACK_REG)
 	{
-	  int nregs;
-
 	  /* Avoid analyzing the same register twice.  */
 	  if (regno != FIRST_STACK_REG)
 	    sched_analyze_reg (deps, FIRST_STACK_REG, mode, code, insn);
 
-	  nregs = hard_regno_nregs[FIRST_STACK_REG][mode];
-	  while (--nregs >= 0)
-	    SET_HARD_REG_BIT (implicit_reg_pending_uses,
-			      FIRST_STACK_REG + nregs);
+	  add_to_hard_reg_set (&implicit_reg_pending_uses, mode,
+			       FIRST_STACK_REG);
 	}
 #endif
     }
@@ -2774,7 +2793,7 @@ sched_analyze_insn (struct deps_desc *deps, rtx x, rtx insn)
   if (sched_pressure_p)
     {
       setup_insn_reg_uses (deps, insn);
-      setup_insn_reg_pressure_info (insn);
+      init_insn_reg_pressure_info (insn);
     }
 
   /* Add register dependencies for insn.  */
@@ -2821,6 +2840,8 @@ sched_analyze_insn (struct deps_desc *deps, rtx x, rtx insn)
     }
   else
     {
+      regset_head set_or_clobbered;
+
       EXECUTE_IF_SET_IN_REG_SET (reg_pending_uses, 0, i, rsi)
 	{
 	  struct deps_reg *reg_last = &deps->reg_last[i];
@@ -2850,6 +2871,25 @@ sched_analyze_insn (struct deps_desc *deps, rtx x, rtx insn)
 		reg_last->uses_length++;
 	      }
 	  }
+
+      if (targetm.sched.exposed_pipeline)
+	{
+	  INIT_REG_SET (&set_or_clobbered);
+	  bitmap_ior (&set_or_clobbered, reg_pending_clobbers,
+		      reg_pending_sets);
+	  EXECUTE_IF_SET_IN_REG_SET (&set_or_clobbered, 0, i, rsi)
+	    {
+	      struct deps_reg *reg_last = &deps->reg_last[i];
+	      rtx list;
+	      for (list = reg_last->uses; list; list = XEXP (list, 1))
+		{
+		  rtx other = XEXP (list, 0);
+		  if (INSN_COND (other) != const_true_rtx
+		      && refers_to_regno_p (i, i + 1, INSN_COND (other), NULL))
+		    INSN_COND (other) = const_true_rtx;
+		}
+	    }
+	}
 
       /* If the current insn is conditional, we can't free any
 	 of the lists.  */
@@ -3225,6 +3265,10 @@ deps_analyze_insn (struct deps_desc *deps, rtx insn)
   if (sched_deps_info->start_insn)
     sched_deps_info->start_insn (insn);
 
+  /* Record the condition for this insn.  */
+  if (NONDEBUG_INSN_P (insn))
+    sched_get_condition_with_rev (insn, NULL);
+
   if (NONJUMP_INSN_P (insn) || DEBUG_INSN_P (insn) || JUMP_P (insn))
     {
       /* Make each JUMP_INSN (but not a speculative check)
@@ -3550,8 +3594,7 @@ free_deps (struct deps_desc *deps)
 
   /* As we initialize reg_last lazily, it is possible that we didn't allocate
      it at all.  */
-  if (deps->reg_last)
-    free (deps->reg_last);
+  free (deps->reg_last);
   deps->reg_last = NULL;
 
   deps = NULL;

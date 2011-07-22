@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This package implements RSA encryption as specified in PKCS#1.
+// Package rsa implements RSA encryption as specified in PKCS#1.
 package rsa
 
 // TODO(agl): Add support for PSS padding.
@@ -89,35 +89,61 @@ type PublicKey struct {
 
 // A PrivateKey represents an RSA key
 type PrivateKey struct {
-	PublicKey          // public part.
-	D         *big.Int // private exponent
-	P, Q      *big.Int // prime factors of N
+	PublicKey            // public part.
+	D         *big.Int   // private exponent
+	Primes    []*big.Int // prime factors of N, has >= 2 elements.
+
+	// Precomputed contains precomputed values that speed up private
+	// operations, if availible.
+	Precomputed PrecomputedValues
+}
+
+type PrecomputedValues struct {
+	Dp, Dq *big.Int // D mod (P-1) (or mod Q-1) 
+	Qinv   *big.Int // Q^-1 mod Q
+
+	// CRTValues is used for the 3rd and subsequent primes. Due to a
+	// historical accident, the CRT for the first two primes is handled
+	// differently in PKCS#1 and interoperability is sufficiently
+	// important that we mirror this.
+	CRTValues []CRTValue
+}
+
+// CRTValue contains the precomputed chinese remainder theorem values.
+type CRTValue struct {
+	Exp   *big.Int // D mod (prime-1).
+	Coeff *big.Int // R·Coeff ≡ 1 mod Prime.
+	R     *big.Int // product of primes prior to this (inc p and q).
 }
 
 // Validate performs basic sanity checks on the key.
 // It returns nil if the key is valid, or else an os.Error describing a problem.
 
-func (priv PrivateKey) Validate() os.Error {
-	// Check that p and q are prime. Note that this is just a sanity
-	// check. Since the random witnesses chosen by ProbablyPrime are
-	// deterministic, given the candidate number, it's easy for an attack
-	// to generate composites that pass this test.
-	if !big.ProbablyPrime(priv.P, 20) {
-		return os.ErrorString("P is composite")
-	}
-	if !big.ProbablyPrime(priv.Q, 20) {
-		return os.ErrorString("Q is composite")
+func (priv *PrivateKey) Validate() os.Error {
+	// Check that the prime factors are actually prime. Note that this is
+	// just a sanity check. Since the random witnesses chosen by
+	// ProbablyPrime are deterministic, given the candidate number, it's
+	// easy for an attack to generate composites that pass this test.
+	for _, prime := range priv.Primes {
+		if !big.ProbablyPrime(prime, 20) {
+			return os.ErrorString("Prime factor is composite")
+		}
 	}
 
-	// Check that p*q == n.
-	modulus := new(big.Int).Mul(priv.P, priv.Q)
+	// Check that Πprimes == n.
+	modulus := new(big.Int).Set(bigOne)
+	for _, prime := range priv.Primes {
+		modulus.Mul(modulus, prime)
+	}
 	if modulus.Cmp(priv.N) != 0 {
 		return os.ErrorString("invalid modulus")
 	}
-	// Check that e and totient(p, q) are coprime.
-	pminus1 := new(big.Int).Sub(priv.P, bigOne)
-	qminus1 := new(big.Int).Sub(priv.Q, bigOne)
-	totient := new(big.Int).Mul(pminus1, qminus1)
+	// Check that e and totient(Πprimes) are coprime.
+	totient := new(big.Int).Set(bigOne)
+	for _, prime := range priv.Primes {
+		pminus1 := new(big.Int).Sub(prime, bigOne)
+		totient.Mul(totient, pminus1)
+	}
 	e := big.NewInt(int64(priv.E))
 	gcd := new(big.Int)
 	x := new(big.Int)
@@ -126,7 +152,7 @@ func (priv PrivateKey) Validate() os.Error {
 	if gcd.Cmp(bigOne) != 0 {
 		return os.ErrorString("invalid public exponent E")
 	}
-	// Check that de ≡ 1 (mod totient(p, q))
+	// Check that de ≡ 1 (mod totient(Πprimes))
 	de := new(big.Int).Mul(priv.D, e)
 	de.Mod(de, totient)
 	if de.Cmp(bigOne) != 0 {
@@ -135,8 +161,22 @@ func (priv PrivateKey) Validate() os.Error {
 	return nil
 }
 
-// GenerateKeyPair generates an RSA keypair of the given bit size.
+// GenerateKey generates an RSA keypair of the given bit size.
 func GenerateKey(rand io.Reader, bits int) (priv *PrivateKey, err os.Error) {
+	return GenerateMultiPrimeKey(rand, 2, bits)
+}
+
+// GenerateMultiPrimeKey generates a multi-prime RSA keypair of the given bit
+// size, as suggested in [1]. Although the public keys are compatible
+// (actually, indistinguishable) from the 2-prime case, the private keys are
+// not. Thus it may not be possible to export multi-prime private keys in
+// certain formats or to subsequently import them into other code.
+//
+// Table 1 in [2] suggests maximum numbers of primes for a given size.
+//
+// [1] US patent 4405829 (1972, expired)
+// [2] http://www.cacr.math.uwaterloo.ca/techreports/2006/cacr2006-16.pdf
+func GenerateMultiPrimeKey(rand io.Reader, nprimes int, bits int) (priv *PrivateKey, err os.Error) {
 	priv = new(PrivateKey)
 	// Smaller public exponents lead to faster public key
 	// operations. Since the exponent must be coprime to
@@ -148,29 +188,40 @@ func GenerateKey(rand io.Reader, bits int) (priv *PrivateKey, err os.Error) {
 	// [1] http://marc.info/?l=cryptography&m=115694833312008&w=2
 	priv.E = 3
 
-	pminus1 := new(big.Int)
-	qminus1 := new(big.Int)
-	totient := new(big.Int)
+	if nprimes < 2 {
+		return nil, os.ErrorString("rsa.GenerateMultiPrimeKey: nprimes must be >= 2")
+	}
 
+	primes := make([]*big.Int, nprimes)
+
+NextSetOfPrimes:
 	for {
-		p, err := randomPrime(rand, bits/2)
-		if err != nil {
-			return nil, err
+		todo := bits
+		for i := 0; i < nprimes; i++ {
+			primes[i], err = randomPrime(rand, todo/(nprimes-i))
+			if err != nil {
+				return nil, err
+			}
+			todo -= primes[i].BitLen()
 		}
 
-		q, err := randomPrime(rand, bits/2)
-		if err != nil {
-			return nil, err
+		// Make sure that primes is pairwise unequal.
+		for i, prime := range primes {
+			for j := 0; j < i; j++ {
+				if prime.Cmp(primes[j]) == 0 {
+					continue NextSetOfPrimes
+				}
+			}
 		}
 
-		if p.Cmp(q) == 0 {
-			continue
+		n := new(big.Int).Set(bigOne)
+		totient := new(big.Int).Set(bigOne)
+		pminus1 := new(big.Int)
+		for _, prime := range primes {
+			n.Mul(n, prime)
+			pminus1.Sub(prime, bigOne)
+			totient.Mul(totient, pminus1)
 		}
-
-		n := new(big.Int).Mul(p, q)
-		pminus1.Sub(p, bigOne)
-		qminus1.Sub(q, bigOne)
-		totient.Mul(pminus1, qminus1)
 
 		g := new(big.Int)
 		priv.D = new(big.Int)
@@ -180,14 +231,14 @@ func GenerateKey(rand io.Reader, bits int) (priv *PrivateKey, err os.Error) {
 
 		if g.Cmp(bigOne) == 0 {
 			priv.D.Add(priv.D, totient)
-			priv.P = p
-			priv.Q = q
+			priv.Primes = primes
 			priv.N = n
 
 			break
 		}
 	}
 
+	priv.Precompute()
 	return
 }
 
@@ -274,6 +325,14 @@ func EncryptOAEP(hash hash.Hash, rand io.Reader, pub *PublicKey, msg []byte, lab
 	m.SetBytes(em)
 	c := encrypt(new(big.Int), pub, m)
 	out = c.Bytes()
+
+	if len(out) < k {
+		// If the output is too small, we need to left-pad with zeros.
+		t := make([]byte, k)
+		copy(t[k-len(out):], out)
+		out = t
+	}
+
 	return
 }
 
@@ -313,6 +372,37 @@ func modInverse(a, n *big.Int) (ia *big.Int, ok bool) {
 	return x, true
 }
 
+// Precompute performs some calculations that speed up private key operations
+// in the future.
+func (priv *PrivateKey) Precompute() {
+	if priv.Precomputed.Dp != nil {
+		return
+	}
+
+	priv.Precomputed.Dp = new(big.Int).Sub(priv.Primes[0], bigOne)
+	priv.Precomputed.Dp.Mod(priv.D, priv.Precomputed.Dp)
+
+	priv.Precomputed.Dq = new(big.Int).Sub(priv.Primes[1], bigOne)
+	priv.Precomputed.Dq.Mod(priv.D, priv.Precomputed.Dq)
+
+	priv.Precomputed.Qinv = new(big.Int).ModInverse(priv.Primes[1], priv.Primes[0])
+
+	r := new(big.Int).Mul(priv.Primes[0], priv.Primes[1])
+	priv.Precomputed.CRTValues = make([]CRTValue, len(priv.Primes)-2)
+	for i := 2; i < len(priv.Primes); i++ {
+		prime := priv.Primes[i]
+		values := &priv.Precomputed.CRTValues[i-2]
+
+		values.Exp = new(big.Int).Sub(prime, bigOne)
+		values.Exp.Mod(priv.D, values.Exp)
+
+		values.R = new(big.Int).Set(r)
+		values.Coeff = new(big.Int).ModInverse(r, prime)
+
+		r.Mul(r, prime)
+	}
+}
+
 // decrypt performs an RSA decryption, resulting in a plaintext integer. If a
 // random source is given, RSA blinding is used.
 func decrypt(rand io.Reader, priv *PrivateKey, c *big.Int) (m *big.Int, err os.Error) {
@@ -347,11 +437,40 @@ func decrypt(rand io.Reader, priv *PrivateKey, c *big.Int) (m *big.Int, err os.E
 		}
 		bigE := big.NewInt(int64(priv.E))
 		rpowe := new(big.Int).Exp(r, bigE, priv.N)
-		c.Mul(c, rpowe)
-		c.Mod(c, priv.N)
+		cCopy := new(big.Int).Set(c)
+		cCopy.Mul(cCopy, rpowe)
+		cCopy.Mod(cCopy, priv.N)
+		c = cCopy
 	}
 
-	m = new(big.Int).Exp(c, priv.D, priv.N)
+	if priv.Precomputed.Dp == nil {
+		m = new(big.Int).Exp(c, priv.D, priv.N)
+	} else {
+		// We have the precalculated values needed for the CRT.
+		m = new(big.Int).Exp(c, priv.Precomputed.Dp, priv.Primes[0])
+		m2 := new(big.Int).Exp(c, priv.Precomputed.Dq, priv.Primes[1])
+		m.Sub(m, m2)
+		if m.Sign() < 0 {
+			m.Add(m, priv.Primes[0])
+		}
+		m.Mul(m, priv.Precomputed.Qinv)
+		m.Mod(m, priv.Primes[0])
+		m.Mul(m, priv.Primes[1])
+		m.Add(m, m2)
+
+		for i, values := range priv.Precomputed.CRTValues {
+			prime := priv.Primes[2+i]
+			m2.Exp(c, values.Exp, prime)
+			m2.Sub(m2, m)
+			m2.Mul(m2, values.Coeff)
+			m2.Mod(m2, prime)
+			if m2.Sign() < 0 {
+				m2.Add(m2, prime)
+			}
+			m2.Mul(m2, values.R)
+			m.Add(m, m2)
+		}
+	}
 
 	if ir != nil {
 		// Unblind.

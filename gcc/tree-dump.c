@@ -25,6 +25,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "tm.h"
 #include "tree.h"
 #include "splay-tree.h"
+#include "filenames.h"
 #include "diagnostic-core.h"
 #include "toplev.h"
 #include "tree-dump.h"
@@ -359,12 +360,7 @@ dequeue_and_dump (dump_info_p di)
       xloc = expand_location (DECL_SOURCE_LOCATION (t));
       if (xloc.file)
 	{
-	  const char *filename = strrchr (xloc.file, '/');
-	  if (!filename)
-	    filename = xloc.file;
-	  else
-	    /* Skip the slash.  */
-	    ++filename;
+	  const char *filename = lbasename (xloc.file);
 
 	  dump_maybe_newline (di);
 	  fprintf (di->stream, "srcp: %s:%-6d ", filename,
@@ -827,9 +823,10 @@ static const struct dump_option_value_info dump_options[] =
   {"alias", TDF_ALIAS},
   {"nouid", TDF_NOUID},
   {"enumerate_locals", TDF_ENUMERATE_LOCALS},
+  {"scev", TDF_SCEV},
   {"all", ~(TDF_RAW | TDF_SLIM | TDF_LINENO | TDF_TREE | TDF_RTL | TDF_IPA
 	    | TDF_STMTADDR | TDF_GRAPH | TDF_DIAGNOSTIC | TDF_VERBOSE
-	    | TDF_RHS_ONLY | TDF_NOUID | TDF_ENUMERATE_LOCALS)},
+	    | TDF_RHS_ONLY | TDF_NOUID | TDF_ENUMERATE_LOCALS | TDF_SCEV)},
   {NULL, 0}
 };
 

@@ -6,7 +6,7 @@
  *                                                                          *
  *                           C Implementation File                          *
  *                                                                          *
- *          Copyright (C) 1992-2010, Free Software Foundation, Inc.         *
+ *          Copyright (C) 1992-2011, Free Software Foundation, Inc.         *
  *                                                                          *
  * GNAT is free software;  you can  redistribute it  and/or modify it under *
  * terms of the  GNU General Public License as published  by the Free Soft- *
@@ -112,6 +112,7 @@ gnat_handle_option (size_t scode, const char *arg ATTRIBUTE_UNUSED, int value,
     case OPT_Wall:
       warn_unused = value;
       warn_uninitialized = value;
+      warn_maybe_uninitialized = value;
       break;
 
     case OPT_Wmissing_prototypes:
@@ -123,14 +124,6 @@ gnat_handle_option (size_t scode, const char *arg ATTRIBUTE_UNUSED, int value,
     case OPT_Wmissing_format_attribute:
     case OPT_Woverlength_strings:
       /* These are used in the GCC Makefile.  */
-      break;
-
-    case OPT_feliminate_unused_debug_types:
-      /* We arrange for post_option to be able to only set the corresponding
-	 flag to 1 when explicitly requested by the user.  We expect the
-	 default flag value to be either 0 or positive, and expose a positive
-	 -f as a negative value to post_option.  */
-      flag_eliminate_unused_debug_types = -value;
       break;
 
     case OPT_gant:
@@ -232,8 +225,7 @@ enum stack_check_type flag_stack_check = NO_STACK_CHECK;
 static bool
 gnat_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 {
-  /* Excess precision other than "fast" requires front-end
-     support.  */
+  /* Excess precision other than "fast" requires front-end support.  */
   if (flag_excess_precision_cmdline == EXCESS_PRECISION_STANDARD
       && TARGET_FLT_EVAL_METHOD_NON_DEFAULT)
     sorry ("-fexcess-precision=standard for Ada");
@@ -244,14 +236,6 @@ gnat_post_options (const char **pfilename ATTRIBUTE_UNUSED)
 
   /* No psABI change warnings for Ada.  */
   warn_psabi = 0;
-
-  /* Force eliminate_unused_debug_types to 0 unless an explicit positive
-     -f has been passed.  This forces the default to 0 for Ada, which might
-     differ from the common default.  */
-  if (flag_eliminate_unused_debug_types < 0)
-    flag_eliminate_unused_debug_types = 1;
-  else
-    flag_eliminate_unused_debug_types = 0;
 
   optimize = global_options.x_optimize;
   optimize_size = global_options.x_optimize_size;
@@ -324,17 +308,6 @@ gnat_init (void)
      front-end has been run.  Use the same `char' as C, this doesn't really
      matter since we'll use the explicit `unsigned char' for Character.  */
   build_common_tree_nodes (flag_signed_char);
-
-  /* In Ada, we use the unsigned type corresponding to the width of Pmode as
-     SIZETYPE.  In most cases when ptr_mode and Pmode differ, C will use the
-     width of ptr_mode for SIZETYPE, but we get better code using the width
-     of Pmode.  Note that, although we manipulate negative offsets for some
-     internal constructs and rely on compile time overflow detection in size
-     computations, using unsigned types for SIZETYPEs is fine since they are
-     treated specially by the middle-end, in particular sign-extended.  */
-  size_type_node = gnat_type_for_mode (Pmode, 1);
-  set_sizetype (size_type_node);
-  TYPE_NAME (sizetype) = get_identifier ("size_type");
 
   /* In Ada, we use an unsigned 8-bit type for the default boolean type.  */
   boolean_type_node = make_unsigned_type (8);
@@ -521,6 +494,17 @@ gnat_dwarf_name (tree decl, int verbosity ATTRIBUTE_UNUSED)
   return (const char *) IDENTIFIER_POINTER (DECL_NAME (decl));
 }
 
+/* Return the descriptive type associated with TYPE, if any.  */
+
+static tree
+gnat_descriptive_type (const_tree type)
+{
+  if (TYPE_STUB_DECL (type))
+    return DECL_PARALLEL_TYPE (TYPE_STUB_DECL (type));
+  else
+    return NULL_TREE;
+}
+
 /* Return true if types T1 and T2 are identical for type hashing purposes.
    Called only after doing all language independent checks.  At present,
    this function is only called when both types are FUNCTION_TYPE.  */
@@ -696,6 +680,23 @@ gnat_eh_personality (void)
   return gnat_eh_personality_decl;
 }
 
+/* Initialize language-specific bits of tree_contains_struct.  */
+
+static void
+gnat_init_ts (void)
+{
+  MARK_TS_COMMON (UNCONSTRAINED_ARRAY_TYPE);
+
+  MARK_TS_TYPED (UNCONSTRAINED_ARRAY_REF);
+  MARK_TS_TYPED (NULL_EXPR);
+  MARK_TS_TYPED (PLUS_NOMOD_EXPR);
+  MARK_TS_TYPED (MINUS_NOMOD_EXPR);
+  MARK_TS_TYPED (ATTR_ADDR_EXPR);
+  MARK_TS_TYPED (STMT_STMT);
+  MARK_TS_TYPED (LOOP_STMT);
+  MARK_TS_TYPED (EXIT_STMT);
+}
+
 /* Definitions for our language-specific hooks.  */
 
 #undef  LANG_HOOKS_NAME
@@ -746,6 +747,8 @@ gnat_eh_personality (void)
 #define LANG_HOOKS_TYPES_COMPATIBLE_P	gnat_types_compatible_p
 #undef  LANG_HOOKS_GET_SUBRANGE_BOUNDS
 #define LANG_HOOKS_GET_SUBRANGE_BOUNDS  gnat_get_subrange_bounds
+#undef  LANG_HOOKS_DESCRIPTIVE_TYPE
+#define LANG_HOOKS_DESCRIPTIVE_TYPE	gnat_descriptive_type
 #undef  LANG_HOOKS_ATTRIBUTE_TABLE
 #define LANG_HOOKS_ATTRIBUTE_TABLE	gnat_internal_attribute_table
 #undef  LANG_HOOKS_BUILTIN_FUNCTION
@@ -754,6 +757,8 @@ gnat_eh_personality (void)
 #define LANG_HOOKS_EH_PERSONALITY	gnat_eh_personality
 #undef  LANG_HOOKS_DEEP_UNSHARING
 #define LANG_HOOKS_DEEP_UNSHARING	true
+#undef  LANG_HOOKS_INIT_TS
+#define LANG_HOOKS_INIT_TS		gnat_init_ts
 
 struct lang_hooks lang_hooks = LANG_HOOKS_INITIALIZER;
 

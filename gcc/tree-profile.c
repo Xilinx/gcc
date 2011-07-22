@@ -629,7 +629,7 @@ gimple_gen_ic_profiler (histogram_value value, unsigned tag, unsigned base)
 void
 gimple_gen_ic_func_profiler (void)
 {
-  struct cgraph_node * c_node = cgraph_node (current_function_decl);
+  struct cgraph_node * c_node = cgraph_get_create_node (current_function_decl);
   gimple_stmt_iterator gsi;
   gimple stmt1, stmt2;
   tree tree_uid, cur_func, counter_ptr, ptr_var, void0;
@@ -739,7 +739,7 @@ gimple_gen_dc_profiler (unsigned base, gimple call_stmt)
 static void
 gimple_gen_dc_func_profiler (void)
 {
-  struct cgraph_node * c_node = cgraph_node (current_function_decl);
+  struct cgraph_node * c_node = cgraph_get_create_node (current_function_decl);
   gimple_stmt_iterator gsi;
   gimple stmt1;
   tree cur_func, gcov_info, cur_func_id;
@@ -1359,8 +1359,7 @@ tree_profiling (void)
   for (node = cgraph_nodes; node; node = node->next)
     {
       if (!node->analyzed
-	  || !gimple_has_body_p (node->decl)
-	  || !(!node->clone_of || node->decl != node->clone_of->decl))
+	  || !gimple_has_body_p (node->decl))
 	continue;
 
       /* Don't profile functions produced for builtin stuff.  */
@@ -1374,6 +1373,8 @@ tree_profiling (void)
       /* Re-set global shared temporary variable for edge-counters.  */
       gcov_type_tmp_var = NULL_TREE;
 
+      /* Local pure-const may imply need to fixup the cfg.  */
+      execute_fixup_cfg ();
       branch_prob ();
 
       if (! flag_branch_probabilities
@@ -1561,7 +1562,7 @@ struct simple_ipa_opt_pass pass_ipa_tree_profile =
   0,                                   /* properties_provided */
   0,                                   /* properties_destroyed */
   0,                                   /* todo_flags_start */
-  TODO_dump_func                       /* todo_flags_finish */
+  0                                    /* todo_flags_finish */
  }
 };
 

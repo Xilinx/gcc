@@ -62,6 +62,17 @@
   (and (match_code "const_int,const_double")
        (match_test "op == CONST0_RTX (mode)")))
 
+;; Return 1 if OP is the one constant integer for MODE.
+(define_predicate "const1_operand"
+  (and (match_code "const_int")
+       (match_test "op == CONST1_RTX (mode)")))
+
+
+;; Return 1 if OP is constant integer 0..7 for MODE.
+(define_predicate "const_0_to_7_operand"
+  (and (match_code "const_int")
+       (match_test "IN_RANGE (INTVAL (op), 0, 7)")))
+
 ;; Returns true if OP is either the constant zero or a register.
 (define_predicate "reg_or_0_operand"
   (ior (match_operand 0 "register_operand")
@@ -138,3 +149,10 @@
 (define_predicate "pseudo_register_operand"
   (and (match_code "reg")
        (match_test "!HARD_REGISTER_P (op)")))
+
+;; Return true if OP is a constant integer that is either
+;; 8 or 16 or 24.
+(define_predicate "const_8_16_24_operand"
+  (and (match_code "const_int")
+       (match_test "8 == INTVAL(op) || 16 == INTVAL(op) || 24 == INTVAL(op)")))
+

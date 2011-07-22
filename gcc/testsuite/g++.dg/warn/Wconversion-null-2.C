@@ -54,19 +54,19 @@ main ()
   float z = NULL;		// { dg-warning "" } converting NULL to non-pointer type
   int a[2];
 
-  i != NULL;			// { dg-warning "" } NULL used in arithmetic
-  NULL != z;			// { dg-warning "" } NULL used in arithmetic
-  k != NULL;			// No warning: decay conversion
-  NULL != a;			// Likewise.
-  -NULL;			// { dg-warning "" } converting NULL to non-pointer type
-  +NULL;			// { dg-warning "" } converting NULL to non-pointer type
-  ~NULL;			// { dg-warning "" } converting NULL to non-pointer type
-  a[NULL] = 3;			// { dg-warning "" } converting NULL to non-pointer-type
-  i = NULL;			// { dg-warning "" } converting NULL to non-pointer type
-  z = NULL;			// { dg-warning "" } converting NULL to non-pointer type
-  k (NULL);			// { dg-warning "" } converting NULL to int
-  g (NULL);			// { dg-warning "" } converting NULL to int
-  h < NULL > ();		// No warning: NULL bound to integer template parameter
-  l (NULL);			// No warning: NULL is used to implicitly instantiate the template
-  NULL && NULL;			// No warning: converting NULL to bool is OK
+  i != NULL; // { dg-warning "" } NULL used in arithmetic
+  NULL != z; // { dg-warning "" } NULL used in arithmetic
+  k != NULL; // No warning: decay conversion
+  NULL != a; // Likewise.
+  -NULL;     // { dg-warning "" } converting NULL to non-pointer type
+  +NULL;     // { dg-warning "" } converting NULL to non-pointer type
+  ~NULL;     // { dg-warning "" } converting NULL to non-pointer type
+  a[NULL] = 3; // { dg-warning "" } converting NULL to non-pointer-type
+  i = NULL;  // { dg-warning "" } converting NULL to non-pointer type
+  z = NULL;  // { dg-warning "" } converting NULL to non-pointer type
+  k(NULL);   // { dg-warning "" } converting NULL to int
+  g(NULL);   // { dg-warning "" } converting NULL to int
+  h<NULL>(); // No warning: NULL bound to integer template parameter
+  l(NULL);   // No warning: NULL is used to implicitly instantiate the template
+  NULL && NULL; // No warning: converting NULL to bool is OK
 }

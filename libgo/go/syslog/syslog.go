@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// The syslog package provides a simple interface to
-// the system log service. It can send messages to the
-// syslog daemon using UNIX domain sockets, UDP, or
+// Package syslog provides a simple interface to the system log service. It
+// can send messages to the syslog daemon using UNIX domain sockets, UDP, or
 // TCP connections.
 package syslog
 
@@ -67,7 +66,7 @@ func Dial(network, raddr string, priority Priority, prefix string) (w *Writer, e
 		conn, err = unixSyslog()
 	} else {
 		var c net.Conn
-		c, err = net.Dial(network, "", raddr)
+		c, err = net.Dial(network, raddr)
 		conn = netConn{c}
 	}
 	return &Writer{priority, prefix, conn}, err

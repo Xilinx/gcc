@@ -1378,7 +1378,7 @@ cgraph_lipo_get_resolved_node_1 (tree decl, bool do_assert)
   struct cgraph_sym **slot;
 
   /* Handle alias decl. */
-  slot = cgraph_sym (cgraph_node (decl)->decl);
+  slot = cgraph_sym (cgraph_get_create_node (decl)->decl);
 
   if (!slot || !*slot)
     {
@@ -1395,7 +1395,7 @@ cgraph_lipo_get_resolved_node_1 (tree decl, bool do_assert)
              is to modify the callgraph so that they are not eliminated
              in the first place -- this will allow inlining to happen.  */
 
-          struct cgraph_node *n = cgraph_node (decl);
+          struct cgraph_node *n = cgraph_get_create_node (decl);
           if (!n->analyzed)
             {
               gcc_assert (DECL_EXTERNAL (decl)
@@ -1438,7 +1438,7 @@ cgraph_lipo_get_resolved_node (tree decl)
          modules. Skip the real resolution here to avoid merging '__builtin_xxx'
          with 'xxx'.  */
       || DECL_BUILT_IN (decl))
-    return cgraph_node (decl);
+    return cgraph_get_create_node (decl);
 
   node = cgraph_lipo_get_resolved_node_1 (decl, true);
   return node;
@@ -1760,7 +1760,7 @@ promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
 
   if (DECL_ASSEMBLER_NAME_SET_P (decl)
       && TREE_CODE (decl) == FUNCTION_DECL)
-    cgraph_remove_assembler_hash_node (cgraph_node (decl));
+    cgraph_remove_assembler_hash_node (cgraph_get_create_node (decl));
 
   assemb_id = create_unique_name (decl, module_id);
   SET_DECL_ASSEMBLER_NAME (decl, assemb_id);
@@ -1770,7 +1770,7 @@ promote_static_var_func (unsigned module_id, tree decl, bool is_extern)
 
   if (TREE_CODE (decl) == FUNCTION_DECL)
     {
-      struct cgraph_node *node = cgraph_node (decl);
+      struct cgraph_node *node = cgraph_get_create_node (decl);
 
       node->resolution = LDPR_UNKNOWN;
       cgraph_add_assembler_hash_node (node);

@@ -420,7 +420,7 @@ remove_forwarder_block (basic_block bb)
 	}
     }
 
-  can_move_debug_stmts = single_pred_p (dest);
+  can_move_debug_stmts = MAY_HAVE_DEBUG_STMTS && single_pred_p (dest);
 
   /* Redirect the edges.  */
   for (ei = ei_start (bb->preds); (e = ei_safe_edge (ei)); )
@@ -476,8 +476,7 @@ remove_forwarder_block (basic_block bb)
 	gsi_next (&gsi);
     }
 
-  /* Move debug statements if the destination has just a single
-     predecessor.  */
+  /* Move debug statements if the destination has a single predecessor.  */
   if (can_move_debug_stmts)
     {
       gsi_to = gsi_after_labels (dest);
@@ -600,7 +599,7 @@ split_bbs_on_noreturn_calls (void)
 	   BB is present in the cfg.  */
 	if (bb == NULL
 	    || bb->index < NUM_FIXED_BLOCKS
-	    || bb->index >= n_basic_blocks
+	    || bb->index >= last_basic_block
 	    || BASIC_BLOCK (bb->index) != bb
 	    || !gimple_call_noreturn_p (stmt))
 	  continue;
@@ -1055,7 +1054,7 @@ struct gimple_opt_pass pass_merge_phi =
   0,				/* properties_provided */
   0,				/* properties_destroyed */
   0,				/* todo_flags_start */
-  TODO_dump_func | TODO_ggc_collect	/* todo_flags_finish */
+  TODO_ggc_collect      	/* todo_flags_finish */
   | TODO_verify_ssa
  }
 };

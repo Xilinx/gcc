@@ -62,6 +62,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "integrate.h"
 #include "debug.h"
 #include "target.h"
+#include "common/common-target.h"
 #include "langhooks.h"
 #include "cfglayout.h"
 #include "cfgloop.h"
@@ -125,13 +126,6 @@ unsigned int save_decoded_options_count;
 
 const struct gcc_debug_hooks *debug_hooks;
 
-/* True if this is the lto front end.  This is used to disable
-   gimple generation and lowering passes that are normally run on the
-   output of a front end.  These passes must be bypassed for lto since
-   they have already been done before the gimple was written.  */
-
-bool in_lto_p = false;
-
 /* The FUNCTION_DECL for the function currently being compiled,
    or 0 if between functions.  */
 tree current_function_decl;
@@ -183,24 +177,8 @@ struct target_flag_state *this_target_flag_state = &default_target_flag_state;
 #define this_target_flag_state (&default_target_flag_state)
 #endif
 
-typedef struct
-{
-  const char *const string;
-  int *const variable;
-  const int on_value;
-}
-lang_independent_options;
-
 /* The user symbol prefix after having resolved same.  */
 const char *user_label_prefix;
-
-static const param_info lang_independent_params[] = {
-#define DEFPARAM(ENUM, OPTION, HELP, DEFAULT, MIN, MAX) \
-  { OPTION, DEFAULT, MIN, MAX, HELP },
-#include "params.def"
-#undef DEFPARAM
-  { NULL, 0, 0, 0, NULL }
-};
 
 /* Output files for assembler code (real compiler output)
    and debugging dumps.  */
@@ -691,12 +669,6 @@ compile_file (void)
   timevar_stop (TV_PHASE_GENERATE);
 }
 
-/* Indexed by enum debug_info_type.  */
-const char *const debug_type_names[] =
-{
-  "none", "stabs", "coff", "dwarf-2", "xcoff", "vms"
-};
-
 /* Print version information to FILE.
    Each line begins with INDENT (for the case where FILE is the
    assembler output file).  */
@@ -909,7 +881,7 @@ print_switch_values (print_switch_fn_type print_fn)
 			     SWITCH_TYPE_DESCRIPTIVE, _("options enabled: "));
 
   for (j = 0; j < cl_options_count; j++)
-    if ((cl_options[j].flags & CL_REPORT)
+    if (cl_options[j].cl_report
 	&& option_enabled (j, &global_options) > 0)
       pos = print_single_switch (print_fn, pos,
 				 SWITCH_TYPE_ENABLED, cl_options[j].opt_text);
@@ -1066,14 +1038,12 @@ output_stack_usage (void)
   };
   HOST_WIDE_INT stack_usage = current_function_static_stack_size;
   enum stack_usage_kind_type stack_usage_kind;
-  expanded_location loc;
-  const char *raw_id, *id;
 
   if (stack_usage < 0)
     {
       if (!warning_issued)
 	{
-	  warning (0, "-fstack-usage not supported for this target");
+	  warning (0, "stack usage computation not supported for this target");
 	  warning_issued = true;
 	}
       return;
@@ -1100,24 +1070,44 @@ output_stack_usage (void)
       stack_usage += current_function_dynamic_stack_size;
     }
 
-  loc = expand_location (DECL_SOURCE_LOCATION (current_function_decl));
+  if (flag_stack_usage)
+    {
+      expanded_location loc
+	= expand_location (DECL_SOURCE_LOCATION (current_function_decl));
+      const char *raw_id, *id;
 
-  /* Strip the scope prefix if any.  */
-  raw_id = lang_hooks.decl_printable_name (current_function_decl, 2);
-  id = strrchr (raw_id, '.');
-  if (id)
-    id++;
-  else
-    id = raw_id;
+      /* Strip the scope prefix if any.  */
+      raw_id = lang_hooks.decl_printable_name (current_function_decl, 2);
+      id = strrchr (raw_id, '.');
+      if (id)
+	id++;
+      else
+	id = raw_id;
 
-  fprintf (stack_usage_file,
-	   "%s:%d:%d:%s\t"HOST_WIDE_INT_PRINT_DEC"\t%s\n",
-	   lbasename (loc.file),
-	   loc.line,
-	   loc.column,
-	   id,
-	   stack_usage,
-	   stack_usage_kind_str[stack_usage_kind]);
+      fprintf (stack_usage_file,
+	       "%s:%d:%d:%s\t"HOST_WIDE_INT_PRINT_DEC"\t%s\n",
+	       lbasename (loc.file),
+	       loc.line,
+	       loc.column,
+	       id,
+	       stack_usage,
+	       stack_usage_kind_str[stack_usage_kind]);
+    }
+
+  if (warn_stack_usage >= 0)
+    {
+      if (stack_usage_kind == DYNAMIC)
+	warning (OPT_Wstack_usage_, "stack usage might be unbounded");
+      else if (stack_usage > warn_stack_usage)
+	{
+	  if (stack_usage_kind == DYNAMIC_BOUNDED)
+	    warning (OPT_Wstack_usage_, "stack usage might be %wd bytes",
+		     stack_usage);
+	  else
+	    warning (OPT_Wstack_usage_, "stack usage is %wd bytes",
+		     stack_usage);
+	}
+    }
 }
 
 /* Open an auxiliary output file.  */
@@ -1212,10 +1202,10 @@ general_init (const char *argv0)
   init_reg_sets ();
 
   /* Register the language-independent parameters.  */
-  add_params (lang_independent_params, LAST_PARAM);
-  targetm.target_option.default_params ();
+  global_init_params ();
 
-  /* This must be done after add_params but before argument processing.  */
+  /* This must be done after global_init_params but before argument
+     processing.  */
   init_ggc_heuristics();
   init_optimization_passes ();
   statistics_early_init ();
@@ -1270,29 +1260,6 @@ process_options (void)
   debug_hooks = &do_nothing_debug_hooks;
 
   maximum_field_alignment = initial_max_fld_align * BITS_PER_UNIT;
-
-  /* This replaces set_Wunused.  */
-  if (warn_unused_function == -1)
-    warn_unused_function = warn_unused;
-  if (warn_unused_label == -1)
-    warn_unused_label = warn_unused;
-  /* Wunused-parameter is enabled if both -Wunused -Wextra are enabled.  */
-  if (warn_unused_parameter == -1)
-    warn_unused_parameter = (warn_unused && extra_warnings);
-  if (warn_unused_variable == -1)
-    warn_unused_variable = warn_unused;
-  /* Wunused-but-set-parameter is enabled if both -Wunused -Wextra are
-     enabled.  */
-  if (warn_unused_but_set_parameter == -1)
-    warn_unused_but_set_parameter = (warn_unused && extra_warnings);
-  if (warn_unused_but_set_variable == -1)
-    warn_unused_but_set_variable = warn_unused;
-  if (warn_unused_value == -1)
-    warn_unused_value = warn_unused;
-
-  /* This replaces set_Wextra.  */
-  if (warn_uninitialized == -1)
-    warn_uninitialized = extra_warnings;
 
   /* Allow the front end to perform consistency checks and do further
      initialization based on the command line options.  This hook also
@@ -1535,7 +1502,7 @@ process_options (void)
 	fatal_error ("can%'t open %s: %m", aux_info_file_name);
     }
 
-  if (! targetm.have_named_sections)
+  if (!targetm_common.have_named_sections)
     {
       if (flag_function_sections)
 	{
@@ -1770,11 +1737,14 @@ lang_dependent_init (const char *name)
     return 0;
   input_location = save_loc;
 
-  init_asm_output (name);
+  if (!flag_wpa)
+    {
+      init_asm_output (name);
 
-  /* If stack usage information is desired, open the output file.  */
-  if (flag_stack_usage)
-    stack_usage_file = open_auxiliary_file ("su");
+      /* If stack usage information is desired, open the output file.  */
+      if (flag_stack_usage)
+	stack_usage_file = open_auxiliary_file ("su");
+    }
 
   /* This creates various _DECL nodes, so needs to be called after the
      front end is initialized.  */
@@ -1783,20 +1753,23 @@ lang_dependent_init (const char *name)
   /* Do the target-specific parts of the initialization.  */
   lang_dependent_init_target ();
 
-  /* If dbx symbol table desired, initialize writing it and output the
-     predefined types.  */
-  timevar_push (TV_SYMOUT);
+  if (!flag_wpa)
+    {
+      /* If dbx symbol table desired, initialize writing it and output the
+	 predefined types.  */
+      timevar_push (TV_SYMOUT);
 
 #if defined DWARF2_DEBUGGING_INFO || defined DWARF2_UNWIND_INFO
-  if (dwarf2out_do_frame ())
-    dwarf2out_frame_init ();
+      if (dwarf2out_do_frame ())
+	dwarf2out_frame_init ();
 #endif
 
-  /* Now we have the correct original filename, we can initialize
-     debug output.  */
-  (*debug_hooks->init) (name);
+      /* Now we have the correct original filename, we can initialize
+	 debug output.  */
+      (*debug_hooks->init) (name);
 
-  timevar_pop (TV_SYMOUT);
+      timevar_pop (TV_SYMOUT);
+    }
 
   return 1;
 }
@@ -1875,8 +1848,6 @@ finalize (bool no_backend)
 	fatal_error ("error writing to %s: %m", asm_file_name);
       if (fclose (asm_out_file) != 0)
 	fatal_error ("error closing %s: %m", asm_file_name);
-      if (flag_wpa)
-	unlink_if_ordinary (asm_file_name);
     }
 
   if (stack_usage_file)

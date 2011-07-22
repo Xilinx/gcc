@@ -2,15 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This package parses OCSP responses as specified in RFC 2560. OCSP responses
+// Package ocsp parses OCSP responses as specified in RFC 2560. OCSP responses
 // are signed messages attesting to the validity of a certificate for a small
 // period of time. This is used to manage revocation for X.509 certificates.
 package ocsp
 
 import (
 	"asn1"
+	"crypto"
 	"crypto/rsa"
-	"crypto/sha1"
+	_ "crypto/sha1"
 	"crypto/x509"
 	"os"
 	"time"
@@ -168,8 +169,8 @@ func ParseResponse(bytes []byte) (*Response, os.Error) {
 		return nil, x509.UnsupportedAlgorithmError{}
 	}
 
-	h := sha1.New()
-	hashType := rsa.HashSHA1
+	hashType := crypto.SHA1
+	h := hashType.New()
 
 	pub := ret.Certificate.PublicKey.(*rsa.PublicKey)
 	h.Write(basicResp.TBSResponseData.Raw)

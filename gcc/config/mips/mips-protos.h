@@ -72,7 +72,7 @@ enum mips_symbol_context {
 
    SYMBOL_GOTOFF_DISP
        An UNSPEC wrapper around a SYMBOL_GOT_DISP.  It represents the
-       the offset from _gp of the symbol's GOT entry.
+       offset from _gp of the symbol's GOT entry.
 
    SYMBOL_GOTOFF_CALL
        Like SYMBOL_GOTOFF_DISP, but used when calling a global function.
@@ -277,7 +277,6 @@ extern void mips_expand_prologue (void);
 extern void mips_expand_before_return (void);
 extern void mips_expand_epilogue (bool);
 extern bool mips_can_use_return_insn (void);
-extern rtx mips_function_value (const_tree, const_tree, enum machine_mode);
 
 extern bool mips_cannot_change_mode_class (enum machine_mode,
 					   enum machine_mode, enum reg_class);

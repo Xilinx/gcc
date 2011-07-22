@@ -1561,6 +1561,7 @@ gfc_match_if (gfc_statement *if_type)
   match ("go to", gfc_match_goto, ST_GOTO)
   match ("if", match_arithmetic_if, ST_ARITHMETIC_IF)
   match ("inquire", gfc_match_inquire, ST_INQUIRE)
+  match ("lock", gfc_match_lock, ST_LOCK)
   match ("nullify", gfc_match_nullify, ST_NULLIFY)
   match ("open", gfc_match_open, ST_OPEN)
   match ("pause", gfc_match_pause, ST_NONE)
@@ -1573,6 +1574,7 @@ gfc_match_if (gfc_statement *if_type)
   match ("sync all", gfc_match_sync_all, ST_SYNC_CALL);
   match ("sync images", gfc_match_sync_images, ST_SYNC_IMAGES);
   match ("sync memory", gfc_match_sync_memory, ST_SYNC_MEMORY);
+  match ("unlock", gfc_match_unlock, ST_UNLOCK)
   match ("where", match_simple_where, ST_WHERE)
   match ("write", gfc_match_write, ST_WRITE)
 
@@ -1715,7 +1717,7 @@ gfc_free_iterator (gfc_iterator *iter, int flag)
   gfc_free_expr (iter->step);
 
   if (flag)
-    gfc_free (iter);
+    free (iter);
 }
 
 
@@ -1868,7 +1870,7 @@ gfc_match_associate (void)
       continue;
 
 assocListError:
-      gfc_free (newAssoc);
+      free (newAssoc);
       goto error;
     }
   if (gfc_match_char (')') != MATCH_YES)
@@ -2305,6 +2307,190 @@ gfc_match_error_stop (void)
 }
 
 
+/* Match LOCK/UNLOCK statement. Syntax:
+     LOCK ( lock-variable [ , lock-stat-list ] )
+     UNLOCK ( lock-variable [ , sync-stat-list ] )
+   where lock-stat is ACQUIRED_LOCK or sync-stat
+   and sync-stat is STAT= or ERRMSG=.  */
+
+static match
+lock_unlock_statement (gfc_statement st)
+{
+  match m;
+  gfc_expr *tmp, *lockvar, *acq_lock, *stat, *errmsg;
+  bool saw_acq_lock, saw_stat, saw_errmsg;
+
+  tmp = lockvar = acq_lock = stat = errmsg = NULL;
+  saw_acq_lock = saw_stat = saw_errmsg = false;
+
+  if (gfc_pure (NULL))
+    {
+      gfc_error ("Image control statement SYNC at %C in PURE procedure");
+      return MATCH_ERROR;
+    }
+
+  if (gfc_implicit_pure (NULL))
+    gfc_current_ns->proc_name->attr.implicit_pure = 0;
+
+  if (gfc_option.coarray == GFC_FCOARRAY_NONE)
+    {
+       gfc_fatal_error ("Coarrays disabled at %C, use -fcoarray= to enable");
+       return MATCH_ERROR;
+    }
+
+  if (gfc_find_state (COMP_CRITICAL) == SUCCESS)
+    {
+      gfc_error ("Image control statement SYNC at %C in CRITICAL block");
+      return MATCH_ERROR;
+    }
+
+  if (gfc_match_char ('(') != MATCH_YES)
+    goto syntax;
+
+  if (gfc_match ("%e", &lockvar) != MATCH_YES)
+    goto syntax;
+  m = gfc_match_char (',');
+  if (m == MATCH_ERROR)
+    goto syntax;
+  if (m == MATCH_NO)
+    {
+      m = gfc_match_char (')');
+      if (m == MATCH_YES)
+	goto done;
+      goto syntax;
+    }
+
+  for (;;)
+    {
+      m = gfc_match (" stat = %v", &tmp);
+      if (m == MATCH_ERROR)
+	goto syntax;
+      if (m == MATCH_YES)
+	{
+	  if (saw_stat)
+	    {
+	      gfc_error ("Redundant STAT tag found at %L ", &tmp->where);
+	      goto cleanup;
+	    }
+	  stat = tmp;
+	  saw_stat = true;
+
+	  m = gfc_match_char (',');
+	  if (m == MATCH_YES)
+	    continue;
+
+	  tmp = NULL;
+	  break;
+	}
+
+      m = gfc_match (" errmsg = %v", &tmp);
+      if (m == MATCH_ERROR)
+	goto syntax;
+      if (m == MATCH_YES)
+	{
+	  if (saw_errmsg)
+	    {
+	      gfc_error ("Redundant ERRMSG tag found at %L ", &tmp->where);
+	      goto cleanup;
+	    }
+	  errmsg = tmp;
+	  saw_errmsg = true;
+
+	  m = gfc_match_char (',');
+	  if (m == MATCH_YES)
+	    continue;
+
+	  tmp = NULL;
+	  break;
+	}
+
+      m = gfc_match (" acquired_lock = %v", &tmp);
+      if (m == MATCH_ERROR || st == ST_UNLOCK)
+	goto syntax;
+      if (m == MATCH_YES)
+	{
+	  if (saw_acq_lock)
+	    {
+	      gfc_error ("Redundant ACQUIRED_LOCK tag found at %L ",
+			 &tmp->where);
+	      goto cleanup;
+	    }
+	  acq_lock = tmp;
+	  saw_acq_lock = true;
+
+	  m = gfc_match_char (',');
+	  if (m == MATCH_YES)
+	    continue;
+
+	  tmp = NULL;
+	  break;
+	}
+
+      break;
+    }
+
+  if (m == MATCH_ERROR)
+    goto syntax;
+
+  if (gfc_match (" )%t") != MATCH_YES)
+    goto syntax;
+
+done:
+  switch (st)
+    {
+    case ST_LOCK:
+      new_st.op = EXEC_LOCK;
+      break;
+    case ST_UNLOCK:
+      new_st.op = EXEC_UNLOCK;
+      break;
+    default:
+      gcc_unreachable ();
+    }
+
+  new_st.expr1 = lockvar;
+  new_st.expr2 = stat;
+  new_st.expr3 = errmsg;
+  new_st.expr4 = acq_lock;
+
+  return MATCH_YES;
+
+syntax:
+  gfc_syntax_error (st);
+
+cleanup:
+  gfc_free_expr (tmp);
+  gfc_free_expr (lockvar);
+  gfc_free_expr (acq_lock);
+  gfc_free_expr (stat);
+  gfc_free_expr (errmsg);
+
+  return MATCH_ERROR;
+}
+
+
+match
+gfc_match_lock (void)
+{
+  if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: LOCK statement at %C")
+      == FAILURE)
+    return MATCH_ERROR;
+
+  return lock_unlock_statement (ST_LOCK);
+}
+
+
+match
+gfc_match_unlock (void)
+{
+  if (gfc_notify_std (GFC_STD_F2008, "Fortran 2008: UNLOCK statement at %C")
+      == FAILURE)
+    return MATCH_ERROR;
+
+  return lock_unlock_statement (ST_UNLOCK);
+}
+
+
 /* Match SYNC ALL/IMAGES/MEMORY statement. Syntax:
      SYNC ALL [(sync-stat-list)]
      SYNC MEMORY [(sync-stat-list)]
@@ -2345,7 +2531,7 @@ sync_statement (gfc_statement st)
       gfc_error ("Image control statement SYNC at %C in CRITICAL block");
       return MATCH_ERROR;
     }
-	
+
   if (gfc_match_eos () == MATCH_YES)
     {
       if (st == ST_SYNC_IMAGES)
@@ -2396,6 +2582,9 @@ sync_statement (gfc_statement st)
 
 	  if (gfc_match_char (',') == MATCH_YES)
 	    continue;
+
+	  tmp = NULL;
+	  break;
 	}
 
       m = gfc_match (" errmsg = %v", &tmp);
@@ -2413,15 +2602,16 @@ sync_statement (gfc_statement st)
 
 	  if (gfc_match_char (',') == MATCH_YES)
 	    continue;
+
+	  tmp = NULL;
+	  break;
 	}
 
-      gfc_gobble_whitespace ();
-
-      if (gfc_peek_char () == ')')
 	break;
-
-      goto syntax;
     }
+
+  if (m == MATCH_ERROR)
+    goto syntax;
 
   if (gfc_match (" )%t") != MATCH_YES)
     goto syntax;
@@ -2710,7 +2900,7 @@ gfc_free_alloc_list (gfc_alloc *p)
     {
       q = p->next;
       gfc_free_expr (p->expr);
-      gfc_free (p);
+      free (p);
     }
 }
 
@@ -3193,6 +3383,13 @@ gfc_match_nullify (void)
 
       if (gfc_check_do_variable (p->symtree))
 	goto cleanup;
+
+      /* F2008, C1242.  */
+      if (gfc_is_coindexed (p))
+	{
+	  gfc_error ("Pointer object at %C shall not be conindexed");
+	  goto cleanup;
+	}
 
       /* build ' => NULL() '.  */
       e = gfc_get_null_expr (&gfc_current_locus);
@@ -3967,7 +4164,7 @@ gfc_free_namelist (gfc_namelist *name)
   for (; name; name = n)
     {
       n = name->next;
-      gfc_free (name);
+      free (name);
     }
 }
 
@@ -4105,7 +4302,7 @@ gfc_free_equiv_until (gfc_equiv *eq, gfc_equiv *stop)
   gfc_free_equiv (eq->eq);
   gfc_free_equiv_until (eq->next, stop);
   gfc_free_expr (eq->expr);
-  gfc_free (eq);
+  free (eq);
 }
 
 
@@ -4368,7 +4565,7 @@ free_case (gfc_case *p)
     p->high = NULL;
   gfc_free_expr (p->low);
   gfc_free_expr (p->high);
-  gfc_free (p);
+  free (p);
 }
 
 
@@ -4533,7 +4730,11 @@ select_type_set_tmp (gfc_typespec *ts)
   gfc_get_sym_tree (name, gfc_current_ns, &tmp, false);
   gfc_add_type (tmp->n.sym, ts, NULL);
   gfc_set_sym_referenced (tmp->n.sym);
-  gfc_add_pointer (&tmp->n.sym->attr, NULL);
+  if (select_type_stack->selector->ts.type == BT_CLASS &&
+      CLASS_DATA (select_type_stack->selector)->attr.allocatable)
+    gfc_add_allocatable (&tmp->n.sym->attr, NULL);
+  else
+    gfc_add_pointer (&tmp->n.sym->attr, NULL);
   gfc_add_flavor (&tmp->n.sym->attr, FL_VARIABLE, name, NULL);
   if (ts->type == BT_CLASS)
     gfc_build_class_symbol (&tmp->n.sym->ts, &tmp->n.sym->attr,
@@ -5005,7 +5206,7 @@ gfc_free_forall_iterator (gfc_forall_iterator *iter)
       gfc_free_expr (iter->start);
       gfc_free_expr (iter->end);
       gfc_free_expr (iter->stride);
-      gfc_free (iter);
+      free (iter);
       iter = next;
     }
 }

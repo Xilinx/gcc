@@ -1,5 +1,6 @@
 /* Instruction scheduling pass.  Selective scheduler and pipeliner.
-   Copyright (C) 2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011
+   Free Software Foundation, Inc.
 
 This file is part of GCC.
 
@@ -580,8 +581,7 @@ fence_clear (fence_t f)
   gcc_assert ((s != NULL && dc != NULL && tc != NULL)
 	      || (s == NULL && dc == NULL && tc == NULL));
 
-  if (s != NULL)
-    free (s);
+  free (s);
 
   if (dc != NULL)
     delete_deps_context (dc);
@@ -1564,6 +1564,20 @@ free_history_vect (VEC (expr_history_def, heap) **pvect)
   *pvect = NULL;
 }
 
+/* Merge vector FROM to PVECT.  */
+static void
+merge_history_vect (VEC (expr_history_def, heap) **pvect,
+		    VEC (expr_history_def, heap) *from)
+{
+  expr_history_def *phist;
+  int i;
+
+  /* We keep this vector sorted.  */
+  for (i = 0; VEC_iterate (expr_history_def, from, i, phist); i++)
+    insert_in_history_vect (pvect, phist->uid, phist->type,
+                            phist->old_expr_vinsn, phist->new_expr_vinsn,
+                            phist->spec_ds);
+}
 
 /* Compare two vinsns as rhses if possible and as vinsns otherwise.  */
 bool
@@ -1796,9 +1810,6 @@ update_speculative_bits (expr_t to, expr_t from, insn_t split_point)
 void
 merge_expr_data (expr_t to, expr_t from, insn_t split_point)
 {
-  int i;
-  expr_history_def *phist;
-
   /* For now, we just set the spec of resulting expr to be minimum of the specs
      of merged exprs.  */
   if (EXPR_SPEC (to) > EXPR_SPEC (from))
@@ -1822,20 +1833,12 @@ merge_expr_data (expr_t to, expr_t from, insn_t split_point)
   EXPR_ORIG_SCHED_CYCLE (to) = MIN (EXPR_ORIG_SCHED_CYCLE (to),
                                     EXPR_ORIG_SCHED_CYCLE (from));
 
-  /* We keep this vector sorted.  */
-  for (i = 0;
-       VEC_iterate (expr_history_def, EXPR_HISTORY_OF_CHANGES (from),
-                    i, phist);
-       i++)
-    insert_in_history_vect (&EXPR_HISTORY_OF_CHANGES (to),
-                            phist->uid, phist->type,
-                            phist->old_expr_vinsn, phist->new_expr_vinsn,
-                            phist->spec_ds);
-
   EXPR_WAS_SUBSTITUTED (to) |= EXPR_WAS_SUBSTITUTED (from);
   EXPR_WAS_RENAMED (to) |= EXPR_WAS_RENAMED (from);
   EXPR_CANT_MOVE (to) |= EXPR_CANT_MOVE (from);
 
+  merge_history_vect (&EXPR_HISTORY_OF_CHANGES (to),
+		      EXPR_HISTORY_OF_CHANGES (from));
   update_target_availability (to, from, split_point);
   update_speculative_bits (to, from, split_point);
 }
@@ -2328,16 +2331,24 @@ av_set_split_usefulness (av_set_t av, int prob, int all_prob)
 }
 
 /* Leave in AVP only those expressions, which are present in AV,
-   and return it.  */
+   and return it, merging history expressions.  */
 void
-av_set_intersect (av_set_t *avp, av_set_t av)
+av_set_code_motion_filter (av_set_t *avp, av_set_t av)
 {
   av_set_iterator i;
-  expr_t expr;
+  expr_t expr, expr2;
 
   FOR_EACH_EXPR_1 (expr, i, avp)
-    if (av_set_lookup (av, EXPR_VINSN (expr)) == NULL)
+    if ((expr2 = av_set_lookup (av, EXPR_VINSN (expr))) == NULL)
       av_set_iter_remove (&i);
+    else
+      /* When updating av sets in bookkeeping blocks, we can add more insns
+	 there which will be transformed but the upper av sets will not
+	 reflect those transformations.  We then fail to undo those
+	 when searching for such insns.  So merge the history saved
+	 in the av set of the block we are processing.  */
+      merge_history_vect (&EXPR_HISTORY_OF_CHANGES (expr),
+			  EXPR_HISTORY_OF_CHANGES (expr2));
 }
 
 
@@ -2709,6 +2720,54 @@ deps_init_id (idata_t id, insn_t insn, bool force_unique_p)
 }
 
 
+struct sched_scan_info_def
+{
+  /* This hook notifies scheduler frontend to extend its internal per basic
+     block data structures.  This hook should be called once before a series of
+     calls to bb_init ().  */
+  void (*extend_bb) (void);
+
+  /* This hook makes scheduler frontend to initialize its internal data
+     structures for the passed basic block.  */
+  void (*init_bb) (basic_block);
+
+  /* This hook notifies scheduler frontend to extend its internal per insn data
+     structures.  This hook should be called once before a series of calls to
+     insn_init ().  */
+  void (*extend_insn) (void);
+
+  /* This hook makes scheduler frontend to initialize its internal data
+     structures for the passed insn.  */
+  void (*init_insn) (rtx);
+};
+
+/* A driver function to add a set of basic blocks (BBS) to the
+   scheduling region.  */
+static void
+sched_scan (const struct sched_scan_info_def *ssi, bb_vec_t bbs)
+{
+  unsigned i;
+  basic_block bb;
+
+  if (ssi->extend_bb)
+    ssi->extend_bb ();
+
+  if (ssi->init_bb)
+    FOR_EACH_VEC_ELT (basic_block, bbs, i, bb)
+      ssi->init_bb (bb);
+
+  if (ssi->extend_insn)
+    ssi->extend_insn ();
+
+  if (ssi->init_insn)
+    FOR_EACH_VEC_ELT (basic_block, bbs, i, bb)
+      {
+	rtx insn;
+
+	FOR_BB_INSNS (bb, insn)
+	  ssi->init_insn (insn);
+      }
+}
 
 /* Implement hooks for collecting fundamental insn properties like if insn is
    an ASM or is within a SCHED_GROUP.  */
@@ -2893,6 +2952,7 @@ init_global_and_expr_for_insn (insn_t insn)
       if (CANT_MOVE (insn)
           || INSN_ASM_P (insn)
           || SCHED_GROUP_P (insn)
+	  || CALL_P (insn)
           /* Exception handling insns are always unique.  */
           || (cfun->can_throw_non_call_exceptions && can_throw_internal (insn))
           /* TRAP_IF though have an INSN code is control_flow_insn_p ().  */
@@ -2932,7 +2992,7 @@ sel_init_global_and_expr (bb_vec_t bbs)
       init_global_and_expr_for_insn /* init_insn */
     };
 
-  sched_scan (&ssi, bbs, NULL, NULL, NULL);
+  sched_scan (&ssi, bbs);
 }
 
 /* Finalize region-scope data structures for basic blocks.  */
@@ -2989,7 +3049,7 @@ sel_finish_global_and_expr (void)
 	  finish_global_and_expr_insn /* init_insn */
 	};
 
-      sched_scan (&ssi, bbs, NULL, NULL, NULL);
+      sched_scan (&ssi, bbs);
     }
 
     VEC_free (basic_block, heap, bbs);
@@ -3978,9 +4038,6 @@ finish_region_bb_info (void)
 /* Data for each insn in current region.  */
 VEC (sel_insn_data_def, heap) *s_i_d = NULL;
 
-/* A vector for the insns we've emitted.  */
-static insn_vec_t new_insns = NULL;
-
 /* Extend data structures for insns from current region.  */
 static void
 extend_insn_data (void)
@@ -4119,7 +4176,10 @@ sel_init_new_insn (insn_t insn, int flags)
     }
 
   if (flags & INSN_INIT_TODO_LUID)
-    sched_init_luids (NULL, NULL, NULL, insn);
+    {
+      sched_extend_luids ();
+      sched_init_insn_luid (insn);
+    }
 
   if (flags & INSN_INIT_TODO_SSID)
     {
@@ -4461,7 +4521,7 @@ init_bb (basic_block bb)
 }
 
 void
-sel_init_bbs (bb_vec_t bbs, basic_block bb)
+sel_init_bbs (bb_vec_t bbs)
 {
   const struct sched_scan_info_def ssi =
     {
@@ -4471,7 +4531,7 @@ sel_init_bbs (bb_vec_t bbs, basic_block bb)
       NULL /* init_insn */
     };
 
-  sched_scan (&ssi, bbs, bb, new_insns, NULL);
+  sched_scan (&ssi, bbs);
 }
 
 /* Restore notes for the whole region.  */
@@ -5028,9 +5088,9 @@ static void
 sel_add_bb (basic_block bb)
 {
   /* Extend luids so that new notes will receive zero luids.  */
-  sched_init_luids (NULL, NULL, NULL, NULL);
+  sched_extend_luids ();
   sched_init_bbs ();
-  sel_init_bbs (last_added_blocks, NULL);
+  sel_init_bbs (last_added_blocks);
 
   /* When bb is passed explicitly, the vector should contain
      the only element that equals to bb; otherwise, the vector
@@ -5571,7 +5631,7 @@ create_insn_rtx_from_pattern (rtx pattern, rtx label)
 
   end_sequence ();
 
-  sched_init_luids (NULL, NULL, NULL, NULL);
+  sched_extend_luids ();
   sched_extend_target ();
   sched_deps_init (false);
 
@@ -5638,6 +5698,7 @@ static struct haifa_sched_info sched_sel_haifa_sched_info =
 
   NULL, /* add_remove_insn */
   NULL, /* begin_schedule_ready */
+  NULL, /* begin_move_insn */
   NULL, /* advance_target_bb */
   SEL_SCHED | NEW_BBS
 };
@@ -6080,11 +6141,11 @@ sel_find_rgns (void)
   bbs_in_loop_rgns = NULL;
 }
 
-/* Adds the preheader blocks from previous loop to current region taking
-   it from LOOP_PREHEADER_BLOCKS (current_loop_nest).
+/* Add the preheader blocks from previous loop to current region taking
+   it from LOOP_PREHEADER_BLOCKS (current_loop_nest) and record them in *BBS.
    This function is only used with -fsel-sched-pipelining-outer-loops.  */
 void
-sel_add_loop_preheaders (void)
+sel_add_loop_preheaders (bb_vec_t *bbs)
 {
   int i;
   basic_block bb;
@@ -6095,6 +6156,7 @@ sel_add_loop_preheaders (void)
        VEC_iterate (basic_block, preheader_blocks, i, bb);
        i++)
     {
+      VEC_safe_push (basic_block, heap, *bbs, bb);
       VEC_safe_push (basic_block, heap, last_added_blocks, bb);
       sel_add_bb (bb);
     }

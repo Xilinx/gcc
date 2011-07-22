@@ -31,6 +31,7 @@
 ;; Register numbers
 (define_constants
   [(R0_REGNUM        0)		; First CORE register
+   (R1_REGNUM	     1)		; Second CORE register
    (IP_REGNUM	    12)		; Scratch register
    (SP_REGNUM	    13)		; Stack pointer
    (LR_REGNUM       14)		; Return address register
@@ -51,104 +52,105 @@
 
 ;; UNSPEC Usage:
 ;; Note: sin and cos are no-longer used.
-;; Unspec constants for Neon are defined in neon.md.
+;; Unspec enumerators for Neon are defined in neon.md.
 
-(define_constants
-  [(UNSPEC_SIN       0)	; `sin' operation (MODE_FLOAT):
-			;   operand 0 is the result,
-			;   operand 1 the parameter.
-   (UNPSEC_COS	     1)	; `cos' operation (MODE_FLOAT):
-			;   operand 0 is the result,
-			;   operand 1 the parameter.
-   (UNSPEC_PUSH_MULT 2)	; `push multiple' operation:
-			;   operand 0 is the first register,
-			;   subsequent registers are in parallel (use ...)
-			;   expressions.
-   (UNSPEC_PIC_SYM   3) ; A symbol that has been treated properly for pic
-			;   usage, that is, we will add the pic_register
-			;   value to it before trying to dereference it.
-   (UNSPEC_PIC_BASE  4)	; Add PC and all but the last operand together,
-			;   The last operand is the number of a PIC_LABEL
-			;   that points at the containing instruction.
-   (UNSPEC_PRLG_STK  5) ; A special barrier that prevents frame accesses 
-			;   being scheduled before the stack adjustment insn.
-   (UNSPEC_PROLOGUE_USE 6) ; As USE insns are not meaningful after reload,
-   			; this unspec is used to prevent the deletion of
-   			; instructions setting registers for EH handling
-   			; and stack frame generation.  Operand 0 is the
-   			; register to "use".
-   (UNSPEC_CHECK_ARCH 7); Set CCs to indicate 26-bit or 32-bit mode.
-   (UNSPEC_WSHUFH    8) ; Used by the intrinsic form of the iWMMXt WSHUFH instruction.
-   (UNSPEC_WACC      9) ; Used by the intrinsic form of the iWMMXt WACC instruction.
-   (UNSPEC_TMOVMSK  10) ; Used by the intrinsic form of the iWMMXt TMOVMSK instruction.
-   (UNSPEC_WSAD     11) ; Used by the intrinsic form of the iWMMXt WSAD instruction.
-   (UNSPEC_WSADZ    12) ; Used by the intrinsic form of the iWMMXt WSADZ instruction.
-   (UNSPEC_WMACS    13) ; Used by the intrinsic form of the iWMMXt WMACS instruction.
-   (UNSPEC_WMACU    14) ; Used by the intrinsic form of the iWMMXt WMACU instruction.
-   (UNSPEC_WMACSZ   15) ; Used by the intrinsic form of the iWMMXt WMACSZ instruction.
-   (UNSPEC_WMACUZ   16) ; Used by the intrinsic form of the iWMMXt WMACUZ instruction.
-   (UNSPEC_CLRDI    17) ; Used by the intrinsic form of the iWMMXt CLRDI instruction.
-   (UNSPEC_WMADDS   18) ; Used by the intrinsic form of the iWMMXt WMADDS instruction.
-   (UNSPEC_WMADDU   19) ; Used by the intrinsic form of the iWMMXt WMADDU instruction.
-   (UNSPEC_TLS      20) ; A symbol that has been treated properly for TLS usage.
-   (UNSPEC_PIC_LABEL 21) ; A label used for PIC access that does not appear in the
-                         ; instruction stream.
-   (UNSPEC_STACK_ALIGN 22) ; Doubleword aligned stack pointer.  Used to
-			   ; generate correct unwind information.
-   (UNSPEC_PIC_OFFSET 23) ; A symbolic 12-bit OFFSET that has been treated
-			  ; correctly for PIC usage.
-   (UNSPEC_GOTSYM_OFF 24) ; The offset of the start of the the GOT from a
-			  ; a given symbolic address.
-   (UNSPEC_THUMB1_CASESI 25) ; A Thumb1 compressed dispatch-table call.
-   (UNSPEC_RBIT 26)       ; rbit operation.
-   (UNSPEC_SYMBOL_OFFSET 27) ; The offset of the start of the symbol from
-                             ; another symbolic address.
-   (UNSPEC_MEMORY_BARRIER 28) ; Represent a memory barrier.
-   (UNSPEC_GOT_PREL_SYM 29) ; Specify an R_ARM_GOT_PREL relocation of a symbol.
-  ]
-)
+(define_c_enum "unspec" [
+  UNSPEC_SIN            ; `sin' operation (MODE_FLOAT):
+                        ;   operand 0 is the result,
+                        ;   operand 1 the parameter.
+  UNPSEC_COS            ; `cos' operation (MODE_FLOAT):
+                        ;   operand 0 is the result,
+                        ;   operand 1 the parameter.
+  UNSPEC_PUSH_MULT      ; `push multiple' operation:
+                        ;   operand 0 is the first register,
+                        ;   subsequent registers are in parallel (use ...)
+                        ;   expressions.
+  UNSPEC_PIC_SYM        ; A symbol that has been treated properly for pic
+                        ; usage, that is, we will add the pic_register
+                        ; value to it before trying to dereference it.
+  UNSPEC_PIC_BASE       ; Add PC and all but the last operand together,
+                        ; The last operand is the number of a PIC_LABEL
+                        ; that points at the containing instruction.
+  UNSPEC_PRLG_STK       ; A special barrier that prevents frame accesses
+                        ; being scheduled before the stack adjustment insn.
+  UNSPEC_PROLOGUE_USE   ; As USE insns are not meaningful after reload,
+                        ; this unspec is used to prevent the deletion of
+                        ; instructions setting registers for EH handling
+                        ; and stack frame generation.  Operand 0 is the
+                        ; register to "use".
+  UNSPEC_CHECK_ARCH     ; Set CCs to indicate 26-bit or 32-bit mode.
+  UNSPEC_WSHUFH         ; Used by the intrinsic form of the iWMMXt WSHUFH instruction.
+  UNSPEC_WACC           ; Used by the intrinsic form of the iWMMXt WACC instruction.
+  UNSPEC_TMOVMSK        ; Used by the intrinsic form of the iWMMXt TMOVMSK instruction.
+  UNSPEC_WSAD           ; Used by the intrinsic form of the iWMMXt WSAD instruction.
+  UNSPEC_WSADZ          ; Used by the intrinsic form of the iWMMXt WSADZ instruction.
+  UNSPEC_WMACS          ; Used by the intrinsic form of the iWMMXt WMACS instruction.
+  UNSPEC_WMACU          ; Used by the intrinsic form of the iWMMXt WMACU instruction.
+  UNSPEC_WMACSZ         ; Used by the intrinsic form of the iWMMXt WMACSZ instruction.
+  UNSPEC_WMACUZ         ; Used by the intrinsic form of the iWMMXt WMACUZ instruction.
+  UNSPEC_CLRDI          ; Used by the intrinsic form of the iWMMXt CLRDI instruction.
+  UNSPEC_WMADDS         ; Used by the intrinsic form of the iWMMXt WMADDS instruction.
+  UNSPEC_WMADDU         ; Used by the intrinsic form of the iWMMXt WMADDU instruction.
+  UNSPEC_TLS            ; A symbol that has been treated properly for TLS usage.
+  UNSPEC_PIC_LABEL      ; A label used for PIC access that does not appear in the
+                        ; instruction stream.
+  UNSPEC_PIC_OFFSET     ; A symbolic 12-bit OFFSET that has been treated
+                        ; correctly for PIC usage.
+  UNSPEC_GOTSYM_OFF     ; The offset of the start of the GOT from a
+                        ; a given symbolic address.
+  UNSPEC_THUMB1_CASESI  ; A Thumb1 compressed dispatch-table call.
+  UNSPEC_RBIT           ; rbit operation.
+  UNSPEC_SYMBOL_OFFSET  ; The offset of the start of the symbol from
+                        ; another symbolic address.
+  UNSPEC_MEMORY_BARRIER ; Represent a memory barrier.
+  UNSPEC_GOT_PREL_SYM   ; Specify an R_ARM_GOT_PREL relocation of a symbol.
+])
 
 ;; UNSPEC_VOLATILE Usage:
 
-(define_constants
-  [(VUNSPEC_BLOCKAGE 0) ; `blockage' insn to prevent scheduling across an
-			;   insn in the code.
-   (VUNSPEC_EPILOGUE 1) ; `epilogue' insn, used to represent any part of the
-			;   instruction epilogue sequence that isn't expanded
-			;   into normal RTL.  Used for both normal and sibcall
-			;   epilogues.
-   (VUNSPEC_ALIGN    2) ; `align' insn.  Used at the head of a minipool table 
-			;   for inlined constants.
-   (VUNSPEC_POOL_END 3) ; `end-of-table'.  Used to mark the end of a minipool
-			;   table.
-   (VUNSPEC_POOL_1   4) ; `pool-entry(1)'.  An entry in the constant pool for
-			;   an 8-bit object.
-   (VUNSPEC_POOL_2   5) ; `pool-entry(2)'.  An entry in the constant pool for
-			;   a 16-bit object.
-   (VUNSPEC_POOL_4   6) ; `pool-entry(4)'.  An entry in the constant pool for
-			;   a 32-bit object.
-   (VUNSPEC_POOL_8   7) ; `pool-entry(8)'.  An entry in the constant pool for
-			;   a 64-bit object.
-   (VUNSPEC_POOL_16  8) ; `pool-entry(16)'.  An entry in the constant pool for
-			;   a 128-bit object.
-   (VUNSPEC_TMRC     9) ; Used by the iWMMXt TMRC instruction.
-   (VUNSPEC_TMCR     10) ; Used by the iWMMXt TMCR instruction.
-   (VUNSPEC_ALIGN8   11) ; 8-byte alignment version of VUNSPEC_ALIGN
-   (VUNSPEC_WCMP_EQ  12) ; Used by the iWMMXt WCMPEQ instructions
-   (VUNSPEC_WCMP_GTU 13) ; Used by the iWMMXt WCMPGTU instructions
-   (VUNSPEC_WCMP_GT  14) ; Used by the iwMMXT WCMPGT instructions
-   (VUNSPEC_EH_RETURN 20); Use to override the return address for exception
-			 ; handling.
-   (VUNSPEC_SYNC_COMPARE_AND_SWAP 21)	; Represent an atomic compare swap.
-   (VUNSPEC_SYNC_LOCK             22)	; Represent a sync_lock_test_and_set.
-   (VUNSPEC_SYNC_OP               23)	; Represent a sync_<op>
-   (VUNSPEC_SYNC_NEW_OP           24)	; Represent a sync_new_<op>
-   (VUNSPEC_SYNC_OLD_OP           25)	; Represent a sync_old_<op>
-  ]
-)
+(define_c_enum "unspecv" [
+  VUNSPEC_BLOCKAGE      ; `blockage' insn to prevent scheduling across an
+                        ;   insn in the code.
+  VUNSPEC_EPILOGUE      ; `epilogue' insn, used to represent any part of the
+                        ;   instruction epilogue sequence that isn't expanded
+                        ;   into normal RTL.  Used for both normal and sibcall
+                        ;   epilogues.
+  VUNSPEC_THUMB1_INTERWORK ; `prologue_thumb1_interwork' insn, used to swap
+			;   modes from arm to thumb.
+  VUNSPEC_ALIGN         ; `align' insn.  Used at the head of a minipool table
+                        ;   for inlined constants.
+  VUNSPEC_POOL_END      ; `end-of-table'.  Used to mark the end of a minipool
+                        ;   table.
+  VUNSPEC_POOL_1        ; `pool-entry(1)'.  An entry in the constant pool for
+                        ;   an 8-bit object.
+  VUNSPEC_POOL_2        ; `pool-entry(2)'.  An entry in the constant pool for
+                        ;   a 16-bit object.
+  VUNSPEC_POOL_4        ; `pool-entry(4)'.  An entry in the constant pool for
+                        ;   a 32-bit object.
+  VUNSPEC_POOL_8        ; `pool-entry(8)'.  An entry in the constant pool for
+                        ;   a 64-bit object.
+  VUNSPEC_POOL_16       ; `pool-entry(16)'.  An entry in the constant pool for
+                        ;   a 128-bit object.
+  VUNSPEC_TMRC          ; Used by the iWMMXt TMRC instruction.
+  VUNSPEC_TMCR          ; Used by the iWMMXt TMCR instruction.
+  VUNSPEC_ALIGN8        ; 8-byte alignment version of VUNSPEC_ALIGN
+  VUNSPEC_WCMP_EQ       ; Used by the iWMMXt WCMPEQ instructions
+  VUNSPEC_WCMP_GTU      ; Used by the iWMMXt WCMPGTU instructions
+  VUNSPEC_WCMP_GT       ; Used by the iwMMXT WCMPGT instructions
+  VUNSPEC_EH_RETURN     ; Use to override the return address for exception
+                        ; handling.
+  VUNSPEC_SYNC_COMPARE_AND_SWAP    ; Represent an atomic compare swap.
+  VUNSPEC_SYNC_LOCK                ; Represent a sync_lock_test_and_set.
+  VUNSPEC_SYNC_OP                  ; Represent a sync_<op>
+  VUNSPEC_SYNC_NEW_OP              ; Represent a sync_new_<op>
+  VUNSPEC_SYNC_OLD_OP              ; Represent a sync_old_<op>
+])
 
 ;;---------------------------------------------------------------------------
 ;; Attributes
+
+;; Processor type.  This is created automatically from arm-cores.def.
+(include "arm-tune.md")
 
 ; IS_THUMB is set to 'yes' when we are generating Thumb code, and 'no' when
 ; generating ARM code.  This is used to control the length of some insn
@@ -193,7 +195,7 @@
 ; for ARM or Thumb-2 with arm_arch6, and nov6 for ARM without
 ; arm_arch6.  This attribute is used to compute attribute "enabled",
 ; use type "any" to enable an alternative in all cases.
-(define_attr "arch" "any,a,t,32,t1,t2,v6,nov6"
+(define_attr "arch" "any,a,t,32,t1,t2,v6,nov6,onlya8,nota8"
   (const_string "any"))
 
 (define_attr "arch_enabled" "no,yes"
@@ -226,6 +228,14 @@
 
 	 (and (eq_attr "arch" "nov6")
 	      (ne (symbol_ref "(TARGET_32BIT && !arm_arch6)") (const_int 0)))
+	 (const_string "yes")
+
+	 (and (eq_attr "arch" "onlya8")
+	      (eq_attr "tune" "cortexa8"))
+	 (const_string "yes")
+
+	 (and (eq_attr "arch" "nota8")
+	      (not (eq_attr "tune" "cortexa8")))
 	 (const_string "yes")]
 	(const_string "no")))
 
@@ -486,12 +496,9 @@
 ;;---------------------------------------------------------------------------
 ;; Pipeline descriptions
 
-;; Processor type.  This is created automatically from arm-cores.def.
-(include "arm-tune.md")
-
 (define_attr "tune_cortexr4" "yes,no"
   (const (if_then_else
-	  (eq_attr "tune" "cortexr4,cortexr4f")
+	  (eq_attr "tune" "cortexr4,cortexr4f,cortexr5")
 	  (const_string "yes")
 	  (const_string "no"))))
 
@@ -792,7 +799,7 @@
   ""
 )
 
-(define_insn "*addsi3_compare0"
+(define_insn "addsi3_compare0"
   [(set (reg:CC_NOOV CC_REGNUM)
 	(compare:CC_NOOV
 	 (plus:SI (match_operand:SI 1 "s_register_operand" "r, r")
@@ -978,6 +985,17 @@
    (set (attr "type") (if_then_else (match_operand 4 "const_int_operand" "")
 		      (const_string "alu_shift")
 		      (const_string "alu_shift_reg")))]
+)
+
+(define_insn "*addsi3_carryin_clobercc_<optab>"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+	(plus:SI (plus:SI (match_operand:SI 1 "s_register_operand" "%r")
+			  (match_operand:SI 2 "arm_rhs_operand" "rI"))
+		 (LTUGEU:SI (reg:<cnb> CC_REGNUM) (const_int 0))))
+   (clobber (reg:CC CC_REGNUM))]
+   "TARGET_32BIT"
+   "adc%.\\t%0, %1, %2"
+   [(set_attr "conds" "set")]
 )
 
 (define_expand "incscc"
@@ -1810,6 +1828,36 @@
    (set_attr "predicable" "yes")]
 )
 
+;; Note: there is no maddhisi4ibt because this one is canonical form
+(define_insn "*maddhisi4tb"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+	(plus:SI (mult:SI (ashiftrt:SI
+			   (match_operand:SI 1 "s_register_operand" "r")
+			   (const_int 16))
+			  (sign_extend:SI
+			   (match_operand:HI 2 "s_register_operand" "r")))
+		 (match_operand:SI 3 "s_register_operand" "r")))]
+  "TARGET_DSP_MULTIPLY"
+  "smlatb%?\\t%0, %1, %2, %3"
+  [(set_attr "insn" "smlaxy")
+   (set_attr "predicable" "yes")]
+)
+
+(define_insn "*maddhisi4tt"
+  [(set (match_operand:SI 0 "s_register_operand" "=r")
+	(plus:SI (mult:SI (ashiftrt:SI
+			   (match_operand:SI 1 "s_register_operand" "r")
+			   (const_int 16))
+			  (ashiftrt:SI
+			   (match_operand:SI 2 "s_register_operand" "r")
+			   (const_int 16)))
+		 (match_operand:SI 3 "s_register_operand" "r")))]
+  "TARGET_DSP_MULTIPLY"
+  "smlatt%?\\t%0, %1, %2, %3"
+  [(set_attr "insn" "smlaxy")
+   (set_attr "predicable" "yes")]
+)
+
 (define_insn "*maddhidi4"
   [(set (match_operand:DI 0 "s_register_operand" "=r")
 	(plus:DI
@@ -1820,6 +1868,39 @@
 	  (match_operand:DI 3 "s_register_operand" "0")))]
   "TARGET_DSP_MULTIPLY"
   "smlalbb%?\\t%Q0, %R0, %1, %2"
+  [(set_attr "insn" "smlalxy")
+   (set_attr "predicable" "yes")])
+
+;; Note: there is no maddhidi4ibt because this one is canonical form
+(define_insn "*maddhidi4tb"
+  [(set (match_operand:DI 0 "s_register_operand" "=r")
+	(plus:DI
+	  (mult:DI (sign_extend:DI
+		    (ashiftrt:SI
+		     (match_operand:SI 1 "s_register_operand" "r")
+		     (const_int 16)))
+		   (sign_extend:DI
+		    (match_operand:HI 2 "s_register_operand" "r")))
+	  (match_operand:DI 3 "s_register_operand" "0")))]
+  "TARGET_DSP_MULTIPLY"
+  "smlaltb%?\\t%Q0, %R0, %1, %2"
+  [(set_attr "insn" "smlalxy")
+   (set_attr "predicable" "yes")])
+
+(define_insn "*maddhidi4tt"
+  [(set (match_operand:DI 0 "s_register_operand" "=r")
+	(plus:DI
+	  (mult:DI (sign_extend:DI
+		    (ashiftrt:SI
+		     (match_operand:SI 1 "s_register_operand" "r")
+		     (const_int 16)))
+		   (sign_extend:DI
+		    (ashiftrt:SI
+		     (match_operand:SI 2 "s_register_operand" "r")
+		     (const_int 16))))
+	  (match_operand:DI 3 "s_register_operand" "0")))]
+  "TARGET_DSP_MULTIPLY"
+  "smlaltt%?\\t%Q0, %R0, %1, %2"
   [(set_attr "insn" "smlalxy")
    (set_attr "predicable" "yes")])
 
@@ -3676,6 +3757,28 @@
    (set_attr "predicable" "yes")]
 )
 
+
+;; Division instructions
+(define_insn "divsi3"
+  [(set (match_operand:SI	  0 "s_register_operand" "=r")
+	(div:SI (match_operand:SI 1 "s_register_operand"  "r")
+		(match_operand:SI 2 "s_register_operand"  "r")))]
+  "TARGET_IDIV"
+  "sdiv%?\t%0, %1, %2"
+  [(set_attr "predicable" "yes")
+   (set_attr "insn" "sdiv")]
+)
+
+(define_insn "udivsi3"
+  [(set (match_operand:SI	   0 "s_register_operand" "=r")
+	(udiv:SI (match_operand:SI 1 "s_register_operand"  "r")
+		 (match_operand:SI 2 "s_register_operand"  "r")))]
+  "TARGET_IDIV"
+  "udiv%?\t%0, %1, %2"
+  [(set_attr "predicable" "yes")
+   (set_attr "insn" "udiv")]
+)
+
 
 ;; Unary arithmetic insns
 
@@ -3691,7 +3794,7 @@
 ;; The constraints here are to prevent a *partial* overlap (where %Q0 == %R1).
 ;; The first alternative allows the common case of a *full* overlap.
 (define_insn "*arm_negdi2"
-  [(set (match_operand:DI         0 "s_register_operand" "=&r,r")
+  [(set (match_operand:DI         0 "s_register_operand" "=r,&r")
 	(neg:DI (match_operand:DI 1 "s_register_operand"  "0,r")))
    (clobber (reg:CC CC_REGNUM))]
   "TARGET_ARM"
@@ -5941,8 +6044,8 @@
 
 
 (define_insn "*arm_movqi_insn"
-  [(set (match_operand:QI 0 "nonimmediate_operand" "=r,r,r,m")
-	(match_operand:QI 1 "general_operand" "rI,K,m,r"))]
+  [(set (match_operand:QI 0 "nonimmediate_operand" "=r,r,l,Uu,r,m")
+	(match_operand:QI 1 "general_operand" "rI,K,Uu,l,m,r"))]
   "TARGET_32BIT
    && (   register_operand (operands[0], QImode)
        || register_operand (operands[1], QImode))"
@@ -5950,10 +6053,14 @@
    mov%?\\t%0, %1
    mvn%?\\t%0, #%B1
    ldr%(b%)\\t%0, %1
+   str%(b%)\\t%1, %0
+   ldr%(b%)\\t%0, %1
    str%(b%)\\t%1, %0"
-  [(set_attr "type" "*,*,load1,store1")
-   (set_attr "insn" "mov,mvn,*,*")
-   (set_attr "predicable" "yes")]
+  [(set_attr "type" "*,*,load1,store1,load1,store1")
+   (set_attr "insn" "mov,mvn,*,*,*,*")
+   (set_attr "predicable" "yes")
+   (set_attr "arch" "any,any,t2,t2,any,any")
+   (set_attr "length" "4,4,2,2,4,4")]
 )
 
 (define_insn "*thumb1_movqi_insn"
@@ -6183,7 +6290,7 @@
   [(match_operand:DF 0 "arm_reload_memory_operand" "=o")
    (match_operand:DF 1 "s_register_operand" "r")
    (match_operand:SI 2 "s_register_operand" "=&r")]
-  "TARGET_32BIT"
+  "TARGET_THUMB2"
   "
   {
     enum rtx_code code = GET_CODE (XEXP (operands[0], 0));
@@ -7110,13 +7217,17 @@
 
 (define_insn "*arm_cmpsi_insn"
   [(set (reg:CC CC_REGNUM)
-	(compare:CC (match_operand:SI 0 "s_register_operand" "r,r")
-		    (match_operand:SI 1 "arm_add_operand"    "rI,L")))]
+	(compare:CC (match_operand:SI 0 "s_register_operand" "l,r,r,r")
+		    (match_operand:SI 1 "arm_add_operand"    "Py,r,rI,L")))]
   "TARGET_32BIT"
   "@
    cmp%?\\t%0, %1
+   cmp%?\\t%0, %1
+   cmp%?\\t%0, %1
    cmn%?\\t%0, #%n1"
-  [(set_attr "conds" "set")]
+  [(set_attr "conds" "set")
+   (set_attr "arch" "t2,t2,any,any")
+   (set_attr "length" "2,2,4,4")]
 )
 
 (define_insn "*cmpsi_shiftsi"
@@ -7287,7 +7398,14 @@
   return \"b%d1\\t%l0\";
   "
   [(set_attr "conds" "use")
-   (set_attr "type" "branch")]
+   (set_attr "type" "branch")
+   (set (attr "length")
+	(if_then_else
+	   (and (ne (symbol_ref "TARGET_THUMB2") (const_int 0))
+		(and (ge (minus (match_dup 0) (pc)) (const_int -250))
+		     (le (minus (match_dup 0) (pc)) (const_int 256))))
+	   (const_int 2)
+	   (const_int 4)))]
 )
 
 (define_insn "*arm_cond_branch_reversed"
@@ -7306,7 +7424,14 @@
   return \"b%D1\\t%l0\";
   "
   [(set_attr "conds" "use")
-   (set_attr "type" "branch")]
+   (set_attr "type" "branch")
+   (set (attr "length")
+	(if_then_else
+	   (and (ne (symbol_ref "TARGET_THUMB2") (const_int 0))
+		(and (ge (minus (match_dup 0) (pc)) (const_int -250))
+		     (le (minus (match_dup 0) (pc)) (const_int 256))))
+	   (const_int 2)
+	   (const_int 4)))]
 )
 
 
@@ -7758,7 +7883,14 @@
     return \"b%?\\t%l0\";
   }
   "
-  [(set_attr "predicable" "yes")]
+  [(set_attr "predicable" "yes")
+   (set (attr "length")
+	(if_then_else
+	   (and (ne (symbol_ref "TARGET_THUMB2") (const_int 0))
+		(and (ge (minus (match_dup 0) (pc)) (const_int -2044))
+		     (le (minus (match_dup 0) (pc)) (const_int 2048))))
+	   (const_int 2)
+	   (const_int 4)))]
 )
 
 (define_insn "*thumb_jump"
@@ -8355,7 +8487,8 @@
 	rtx reg = gen_reg_rtx (SImode);
 
 	emit_insn (gen_addsi3 (reg, operands[0],
-			       GEN_INT (-INTVAL (operands[1]))));
+			       gen_int_mode (-INTVAL (operands[1]),
+			       		     SImode)));
 	operands[0] = reg;
       }
 
@@ -8500,18 +8633,22 @@
 ;; Patterns to allow combination of arithmetic, cond code and shifts
 
 (define_insn "*arith_shiftsi"
-  [(set (match_operand:SI 0 "s_register_operand" "=r,r")
+  [(set (match_operand:SI 0 "s_register_operand" "=r,r,r,r")
         (match_operator:SI 1 "shiftable_operator"
           [(match_operator:SI 3 "shift_operator"
-             [(match_operand:SI 4 "s_register_operand" "r,r")
-              (match_operand:SI 5 "shift_amount_operand" "M,r")])
-           (match_operand:SI 2 "s_register_operand" "rk,rk")]))]
+             [(match_operand:SI 4 "s_register_operand" "r,r,r,r")
+              (match_operand:SI 5 "shift_amount_operand" "M,M,M,r")])
+           (match_operand:SI 2 "s_register_operand" "rk,rk,r,rk")]))]
   "TARGET_32BIT"
   "%i1%?\\t%0, %2, %4%S3"
   [(set_attr "predicable" "yes")
    (set_attr "shift" "4")
-   (set_attr "arch" "32,a")
-   ;; We have to make sure to disable the second alternative if
+   (set_attr "arch" "a,t2,t2,a")
+   ;; Thumb2 doesn't allow the stack pointer to be used for 
+   ;; operand1 for all operations other than add and sub. In this case 
+   ;; the minus operation is a candidate for an rsub and hence needs
+   ;; to be disabled.
+   ;; We have to make sure to disable the fourth alternative if
    ;; the shift_operator is MULT, since otherwise the insn will
    ;; also match a multiply_accumulate pattern and validate_change
    ;; will allow a replacement of the constant with a register
@@ -8519,9 +8656,13 @@
    (set_attr_alternative "insn_enabled"
 			 [(const_string "yes")
 			  (if_then_else
+			   (match_operand:SI 1 "add_operator" "")
+			   (const_string "yes") (const_string "no"))
+			  (const_string "yes")
+			  (if_then_else
 			   (match_operand:SI 3 "mult_operator" "")
 			   (const_string "no") (const_string "yes"))])
-   (set_attr "type" "alu_shift,alu_shift_reg")])
+   (set_attr "type" "alu_shift,alu_shift,alu_shift,alu_shift_reg")])
 
 (define_split
   [(set (match_operand:SI 0 "s_register_operand" "")
@@ -8753,14 +8894,19 @@
 	      (set (match_dup 0) (const_int 1)))
    (match_scratch:SI 3 "r")]
   "TARGET_32BIT"
-  [(set (match_dup 3) (minus:SI (match_dup 1) (match_dup 2)))
+  [(parallel
+    [(set (reg:CC CC_REGNUM)
+	  (compare:CC (match_dup 1) (match_dup 2)))
+     (set (match_dup 3) (minus:SI (match_dup 1) (match_dup 2)))])
    (parallel
     [(set (reg:CC CC_REGNUM)
 	  (compare:CC (const_int 0) (match_dup 3)))
      (set (match_dup 0) (minus:SI (const_int 0) (match_dup 3)))])
-   (set (match_dup 0)
-	(plus:SI (plus:SI (match_dup 0) (match_dup 3))
-		 (geu:SI (reg:CC CC_REGNUM) (const_int 0))))])
+   (parallel
+    [(set (match_dup 0)
+	  (plus:SI (plus:SI (match_dup 0) (match_dup 3))
+		   (geu:SI (reg:CC CC_REGNUM) (const_int 0))))
+     (clobber (reg:CC CC_REGNUM))])])
 
 (define_insn "*cond_move"
   [(set (match_operand:SI 0 "s_register_operand" "=r,r,r")
@@ -9971,11 +10117,16 @@
       DONE;
     }
   emit_jump_insn (gen_rtx_UNSPEC_VOLATILE (VOIDmode,
-	gen_rtvec (1,
-		gen_rtx_RETURN (VOIDmode)),
-	VUNSPEC_EPILOGUE));
+	gen_rtvec (1, ret_rtx), VUNSPEC_EPILOGUE));
   DONE;
   "
+)
+
+(define_insn "prologue_thumb1_interwork"
+  [(unspec_volatile [(const_int 0)] VUNSPEC_THUMB1_INTERWORK)]
+  "TARGET_THUMB1"
+  "* return thumb1_output_interwork ();"
+  [(set_attr "length" "8")]
 )
 
 ;; Note - although unspec_volatile's USE all hard registers,
@@ -10218,12 +10369,14 @@
 ;; Push multiple registers to the stack.  Registers are in parallel (use ...)
 ;; expressions.  For simplicity, the first register is also in the unspec
 ;; part.
+;; To avoid the usage of GNU extension, the length attribute is computed
+;; in a C function arm_attr_length_push_multi.
 (define_insn "*push_multi"
   [(match_parallel 2 "multi_register_push"
-    [(set (match_operand:BLK 0 "memory_operand" "=m")
+    [(set (match_operand:BLK 0 "push_mult_memory_operand" "")
 	  (unspec:BLK [(match_operand:SI 1 "s_register_operand" "")]
 		      UNSPEC_PUSH_MULT))])]
-  "TARGET_32BIT"
+  ""
   "*
   {
     int num_saves = XVECLEN (operands[2], 0);
@@ -10257,7 +10410,9 @@
 
     return \"\";
   }"
-  [(set_attr "type" "store4")]
+  [(set_attr "type" "store4")
+   (set (attr "length")
+	(symbol_ref "arm_attr_length_push_multi (operands[2], operands[1])"))]
 )
 
 (define_insn "stack_tie"
@@ -10581,13 +10736,36 @@
   [(set_attr "conds" "clob")]
 )
 
+;; tls descriptor call
+(define_insn "tlscall"
+  [(set (reg:SI R0_REGNUM)
+        (unspec:SI [(reg:SI R0_REGNUM)
+                    (match_operand:SI 0 "" "X")
+	            (match_operand 1 "" "")] UNSPEC_TLS))
+   (clobber (reg:SI R1_REGNUM))
+   (clobber (reg:SI LR_REGNUM))
+   (clobber (reg:SI CC_REGNUM))]
+  "TARGET_GNU2_TLS"
+  {
+    targetm.asm_out.internal_label (asm_out_file, "LPIC",
+				    INTVAL (operands[1]));
+    return "bl\\t%c0(tlscall)";
+  }
+  [(set_attr "conds" "clob")
+   (set_attr "length" "4")]
+)
+
+;;
+
+;; We only care about the lower 16 bits of the constant 
+;; being inserted into the upper 16 bits of the register.
 (define_insn "*arm_movtas_ze" 
   [(set (zero_extract:SI (match_operand:SI 0 "s_register_operand" "+r")
                    (const_int 16)
                    (const_int 16))
         (match_operand:SI 1 "const_int_operand" ""))]
   "arm_arch_thumb2"
-  "movt%?\t%0, %c1"
+  "movt%?\t%0, %L1"
  [(set_attr "predicable" "yes")
    (set_attr "length" "4")]
 )

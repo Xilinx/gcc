@@ -22,25 +22,17 @@ along with GCC; see the file COPYING3.  If not see
 
 #include "config.h"
 #include "system.h"
-#include "coretypes.h"
-#include "tm.h"
 #include "version.h"
 #ifdef index
 #undef index
 #endif
-#ifndef CROSS_DIRECTORY_STRUCTURE
 #include <a.out.h>
-#else
-#include "mips/a.out.h"
-#endif /* CROSS_DIRECTORY_STRUCTURE */
 
 /* Include getopt.h for the sake of getopt_long.  */
 #include "getopt.h"
 
-#ifndef MIPS_IS_STAB
 /* Macros for mips-tfile.c to encapsulate stabs in ECOFF, and for
-   and mips-tdump.c to print them out.  This is used on the Alpha,
-   which does not include mips.h.
+   mips-tdump.c to print them out.
 
    These must match the corresponding definitions in gdb/mipsread.c.
    Unfortunately, gcc and gdb do not currently share any directories.  */
@@ -49,7 +41,6 @@ along with GCC; see the file COPYING3.  If not see
 #define MIPS_IS_STAB(sym) (((sym)->index & 0xFFF00) == CODE_MASK)
 #define MIPS_MARK_STAB(code) ((code)+CODE_MASK)
 #define MIPS_UNMARK_STAB(code) ((code)-CODE_MASK)
-#endif
 
 #define uchar	unsigned char
 #define ushort	unsigned short
@@ -1425,13 +1416,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
     errors++;
 
   if (verbose || errors)
-    {
-      fprintf (stderr, "mips-tdump (GCC) %s", version_string);
-#ifdef TARGET_VERSION
-      TARGET_VERSION;
-#endif
-      fputc ('\n', stderr);
-    }
+    fprintf (stderr, "mips-tdump (GCC) %s\n", version_string);
 
   if (errors)
     {

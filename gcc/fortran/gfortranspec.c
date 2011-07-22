@@ -255,6 +255,9 @@ lang_specific_driver (struct cl_decoded_option **in_decoded_options,
 
   for (i = 1; i < argc; ++i)
     {
+      if (decoded_options[i].errors & CL_ERR_MISSING_ARG)
+	continue;
+
       switch (decoded_options[i].opt_index)
 	{
 	case OPT_SPECIAL_input_file:
@@ -472,9 +475,8 @@ For more information about these matters, see the file named COPYING\n\n"));
 int
 lang_specific_pre_link (void)
 {
-  if (spec_file)
-    free (spec_file);
-  else if (library)
+  free (spec_file);
+  if (spec_file == NULL && library)
     do_spec ("%:include(libgfortran.spec)");
 
   return 0;
