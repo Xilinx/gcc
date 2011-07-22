@@ -1,5 +1,9 @@
 
 2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-normal.melt (normexp_or): Don't use box, but
+	containers.
+
+2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk (GCCMELT_OPTIMIZED_FLAGS)
 	(GCCMELT_QUICKLYBUILT_FLAGS)
 	(GCCMELT_DYNAMIC_FLAGS)

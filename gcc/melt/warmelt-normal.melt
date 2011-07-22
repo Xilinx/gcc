@@ -2261,9 +2261,9 @@ source location.}#
 	(sdisj (unsafe_get_field :sor_disj recv))
 	(:long nbdisj (multiple_length sdisj))
 	(:long ix (-i nbdisj 1))
-	(norbox (make_box discr_box ()))
-	(nbindorbox (make_box discr_box (make_list discr_list)))
-	(ctyporbox (make_box discr_box ctype_void))
+	(norcont (container ()))
+	(nbindorcont (container (make_list discr_list)))
+	(ctyporcont (container ctype_void))
 	(newenv (fresh_env env))
 	)
     (multiple_backward_every 
@@ -2276,17 +2276,17 @@ source location.}#
 	(debug_msg ncur "normexp ncur" (get_int boxorcount))
 	(list_every ncur
 		    (lambda (bnd) (put_env newenv bnd)))
-	(if (null (box_content norbox))
+	(if (null (content norcont))
 	    (progn
-	      (box_put nbindorbox nbind)
-	      (box_put norbox ncur) 
-	      (box_put ctyporbox (get_ctype ncur newenv))
+	      (set_content nbindorcont nbind)
+	      (set_content norcont ncur) 
+	      (set_content ctyporcont (get_ctype ncur newenv))
 	      ()
 	      )
 	  (let ( (ctypcur (get_ctype ncur newenv))
 		 )
 	    (assert_msg "check ctypcur" (is_a ctypcur class_ctype))
-	    (if (!= ctypcur (box_content ctyporbox))
+	    (if (!= ctypcur (content ctyporcont))
 		(error_plain  sloc "disjuncts' type mismatch in OR | COND"))
 	    (let (
 		  ;; ncur is normal, so simple
@@ -2295,7 +2295,7 @@ source location.}#
 			  :nrep_loc sloc
 			  :nif_test ncur
 			  :nif_then ncur
-			  :nif_else (wrap_normal_let1 (box_content norbox) (box_content nbindorbox) sloc)
+			  :nif_else (wrap_normal_let1 (content norcont) (content nbindorcont) sloc)
 			  :nexpr_ctyp ctypcur
 			  )
 			 )
@@ -2313,10 +2313,10 @@ source location.}#
 			   :nocc_symb csymor
 			   :nocc_bind corbind))
 		  )
-	      (box_put nbindorbox (make_list discr_list))
-	      (list_append2list (box_content nbindorbox) nbind)
-	      (list_append (box_content nbindorbox) corbind)
-	      (box_put norbox corocc)
+	      (set_content nbindorcont (make_list discr_list))
+	      (list_append2list (content nbindorcont) nbind)
+	      (list_append (content nbindorcont) corbind)
+	      (set_content norcont corocc)
 	      ()
 	      )
 	    )
@@ -2324,9 +2324,9 @@ source location.}#
 	)
        )
      )
-    (debug_msg (box_content norbox) "normexp_or result nor")
-    (debug_msg (box_content nbindorbox) "normexp_or result nbindor")
-    (return (box_content norbox) (box_content nbindorbox))
+    (debug_msg (content norcont) "normexp_or result nor")
+    (debug_msg (content nbindorcont) "normexp_or result nbindor")
+    (return (content norcont) (content nbindorcont))
     )
   )
 (install_method class_source_or normal_exp normexp_or)
