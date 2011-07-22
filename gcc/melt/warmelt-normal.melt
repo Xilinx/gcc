@@ -2726,7 +2726,7 @@ source location.}#
 			   :nocc_ctyp ctype_void
 			   :nocc_symb csym
 			   :nocc_bind cbind))
-	 (clabox (make_box discr_box ()))
+	 (clacont (container ()))
 	 )
     (multicall
      (nobj nobjbind)
@@ -2736,7 +2736,7 @@ source location.}#
       (sfields)
       (fla :long ix) 
       (debug_msg fla "normexp_put_fields fla")
-      (debug_msg clabox "normexp_put_fields clabox")
+      (debug_msg clacont "normexp_put_fields clacont")
       (assert_msg "check fla" (is_a fla class_source_fieldassign))
       (let ( (fld (unsafe_get_field :sfla_field fla))
 	     (exp (unsafe_get_field :sfla_expr fla)) 
@@ -2744,10 +2744,10 @@ source location.}#
 	     )
 	(assert_msg "check fld" (is_a fld class_field))
 	(let ( (fcla (unsafe_get_field :fld_ownclass fld)) 
-	       (precla (box_content clabox))
+	       (precla (content clacont))
 	       )
 	  (cond ( (null precla)
-		  (box_put clabox fcla)
+		  (set_content clacont fcla)
 		  )
 		( (== precla fcla)
 		  ()
@@ -2756,7 +2756,7 @@ source location.}#
 		  ()
 		  )
 		( (subclass_of fcla precla)
-		  (box_put clabox fcla)
+		  (set_content clacont fcla)
 		  )
 		(:else
 		 (debug_msg fld "normexp_put_fields bad fld")
@@ -2788,7 +2788,7 @@ source location.}#
 	   (multiple_put_nth nfields ix nfla)
 	   ))))
      (let (
-	   (ncla (normal_exp (box_content clabox) env ncx sloc))
+	   (ncla (normal_exp (content clacont) env ncx sloc))
 	   (npuf (instance class_nrep_unsafe_put_fields
 			   :nrep_loc sloc
 			   :nuput_obj nobj
@@ -3460,7 +3460,7 @@ source location.}#
 ;;; whose binder is the nocc_symb of the ncall
      (assert_msg "normexp_multicall check ncall" (is_a ncall class_nrep_locsymocc))
      (let ( (ncallsym (unsafe_get_field :nocc_symb ncall)) 
-	    (nboxcall (make_box discr_box ())) ;box to contain the real normalized call
+	    (ncontcall (container ())) ;container to contain the real normalized call
 	    (nrealcall ())		       ;the real call
 	    (nincallbindings (make_list discr_list)) ;list of internal bindings to the call
 	    )
@@ -3470,10 +3470,10 @@ source location.}#
 	  (assert_msg "normexp_multicall check cbnd" (is_a cbnd class_normal_let_binding))
 	  (if (== ncallsym (unsafe_get_field :binder cbnd))
 	      (let ( (nrealcallex (unsafe_get_field :letbind_expr cbnd)) )
-		(box_put nboxcall nrealcallex)
+		(set_content ncontcall nrealcallex)
 		())
 	    (progn (list_append nincallbindings cbnd) cbnd))))
-       (setq nrealcall (box_content nboxcall))
+       (setq nrealcall (content ncontcall))
        (debug_msg nrealcall "normexp_multicall got nrealcall")
        (multiple_every
 	sresbind
@@ -5512,7 +5512,7 @@ source location.}#
 	 (sinstobjnum (unsafe_get_field :sinst_objnum recv))
 	 (sinstfields (unsafe_get_field :sinst_fields recv))
 	 (nbindlist (make_list discr_list))
-	 (nbindbox (make_box discr_box nbindlist))
+	 (nbindcont (container nbindlist))
 	 (bindins (find_env env sname))
 	 (namdata (normal_symbol_data sname ncx sloc))
 	 ;; data representing the class
@@ -5578,11 +5578,11 @@ source location.}#
 	    (debug_msg ncur "normexp_definstance field ncur")
 	    (multiple_put_nth slotup curoff ncur)
 	    (if (is_list nbindcur)
-		(let ( (thebindlist (box_content nbindbox)))
+		(let ( (thebindlist (content nbindcont)))
 		  (setq thebindlist (list_append2list thebindlist nbindcur))
-		  (box_put nbindbox thebindlist)))))))
+		  (set_content nbindcont thebindlist)))))))
 ;;; put the binding into the data
-      (let ( (thebindlist (box_content nbindbox)) 
+      (let ( (thebindlist (content nbindcont)) 
 	     (nbindtup (list_to_multiple thebindlist discr_multiple))
 	     )
 	(if (>i (multiple_length nbindtup) 0) 
@@ -5613,7 +5613,7 @@ source location.}#
 	(sinstfields (unsafe_get_field :sinst_fields recv))
 	(sformals (unsafe_get_field :sdefsel_formals recv))
 	(nbindlist (make_list discr_list))
-	(nbindbox (make_box discr_box nbindlist))
+	(nbindcont (container nbindlist))
 	(bindsel (find_env env sname))
 	(namdata (normal_symbol_data sname ncx sloc))
 	;; data representing the class
@@ -5688,11 +5688,11 @@ source location.}#
 	    (normal_exp curexp env ncx sloc)
 	    (multiple_put_nth slotup curoff ncur)
 	    (if (is_list nbindcur)
-		(let ( (thebindlist (box_content nbindbox)))
+		(let ( (thebindlist (content nbindcont)))
 		  (setq thebindlist (list_append2list thebindlist nbindcur))
-		  (box_put nbindbox thebindlist)))))))
+		  (set_content nbindcont thebindlist)))))))
 ;;; put the binding into the data
-      (let ( (thebindlist (box_content nbindbox)) 
+      (let ( (thebindlist (content nbindcont)) 
 	     (nbindtup (list_to_multiple thebindlist discr_multiple))
 	     )
 	(if (>i (multiple_length nbindtup) 0) 
