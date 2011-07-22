@@ -1,6 +1,13 @@
 
 2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
-	* testsuite/melt/tcontent.melt: New file.
+	* testsuite/melt/tcontent.melt: Improved comment. This test runs
+	ok.
+	* melt/warmelt-macro.melt (class_source_get_field): Improve doc &
+	comment.
+	(mexpand_content): Put the field container_value, not the keyword.
+
+2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* testsuite/melt/tcontent.melt: New file. Don't work yet.
 
 2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
