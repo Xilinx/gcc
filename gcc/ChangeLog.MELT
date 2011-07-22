@@ -1,5 +1,11 @@
 
 2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk (GCCMELT_OPTIMIZED_FLAGS)
+	(GCCMELT_QUICKLYBUILT_FLAGS)
+	(GCCMELT_DYNAMIC_FLAGS)
+	(GCCMELT_NOLINE_FLAGS): New flags.
+
+2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerate}}
 	* melt/generated/meltrunsup-inc.c: Regenerate.
 	* melt/generated/meltrunsup.h: Regenerate.
