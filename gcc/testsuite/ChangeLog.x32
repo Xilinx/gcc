@@ -1,3 +1,8 @@
+2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc.target/x86_64/abi/callabi/callabi.exp: Check ilp32
+	instead of ia32.
+
 2011-07-09  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* gcc.dg/vect/costmodel/x86_64/x86_64-costmodel-vect.exp: Check

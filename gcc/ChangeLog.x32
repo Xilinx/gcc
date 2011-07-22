@@ -1,5 +1,14 @@
 2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_option_override_internal): Disallow
+	MS ABI in x32 mode.
+	(ix86_init_builtins): Call ix86_init_builtins_va_builtins_abi
+	only for TARGET_LP64.
+	(ix86_handle_abi_attribute): Check TARGET_LP64 instead of
+	TARGET_64BIT.
+
+2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_expand_builtin): Use force_reg
 	in gen_rtx_MEM.
 
