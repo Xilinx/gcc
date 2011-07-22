@@ -27041,8 +27041,7 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 
       if (GET_MODE (op0) != Pmode)
 	op0 = convert_to_mode (Pmode, op0, 1);
-      op0 = force_reg (Pmode, op0);
-      op0 = gen_rtx_MEM (mode1, op0);
+      op0 = gen_rtx_MEM (mode1, force_reg (Pmode, op0));
 
       if (!insn_data[icode].operand[0].predicate (op0, mode0))
 	op0 = copy_to_mode_reg (mode0, op0);

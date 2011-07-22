@@ -1,5 +1,10 @@
 2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_expand_builtin): Use force_reg
+	in gen_rtx_MEM.
+
+2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (ix86_decompose_address): Don't move
 	base_reg nor index_reg.
 
