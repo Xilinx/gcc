@@ -15006,11 +15006,11 @@ ix86_expand_move (enum machine_mode mode, rtx operands[])
       if (model)
 	{
 	  op1 = legitimize_tls_address (op1, model, true);
-	  if (GET_MODE (op1) != mode)
-	    op1 = convert_to_mode (mode, op1, 1);
 	  op1 = force_operand (op1, op0);
 	  if (op1 == op0)
 	    return;
+	  if (GET_MODE (op1) != mode)
+	    op1 = convert_to_mode (mode, op1, 1);
 	}
       else if (TARGET_DLLIMPORT_DECL_ATTRIBUTES
 	       && SYMBOL_REF_DLLIMPORT_P (op1))
@@ -21541,8 +21541,7 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
       fnaddr = XEXP (fnaddr, 0);
       if (GET_MODE (fnaddr) != Pmode)
 	fnaddr = convert_to_mode (Pmode, fnaddr, 1);
-      fnaddr = copy_to_mode_reg (Pmode, fnaddr);
-      fnaddr = gen_rtx_MEM (QImode, fnaddr);
+      fnaddr = gen_rtx_MEM (QImode, force_reg (Pmode, fnaddr));
     }
 
   call = gen_rtx_CALL (VOIDmode, fnaddr, callarg1);
@@ -26769,7 +26768,7 @@ ix86_expand_special_args_builtin (const struct builtin_description *d,
 	{
 	  if (GET_MODE (op) != Pmode)
 	    op = convert_to_mode (Pmode, op, 1);
-	  target = gen_rtx_MEM (tmode, copy_to_mode_reg (Pmode, op));
+	  target = gen_rtx_MEM (tmode, force_reg (Pmode, op));
 	}
       else
 	target = force_reg (tmode, op);
@@ -26815,7 +26814,7 @@ ix86_expand_special_args_builtin (const struct builtin_description *d,
 	      /* This must be the memory operand.  */
 	      if (GET_MODE (op) != Pmode)
 		op = convert_to_mode (Pmode, op, 1);
-	      op = gen_rtx_MEM (mode, copy_to_mode_reg (Pmode, op));
+	      op = gen_rtx_MEM (mode, force_reg (Pmode, op));
 	      gcc_assert (GET_MODE (op) == mode
 			  || GET_MODE (op) == VOIDmode);
 	    }
@@ -27078,7 +27077,7 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 	  {
 	    if (GET_MODE (op0) != Pmode)
 	      op0 = convert_to_mode (Pmode, op0, 1);
-	    op0 = copy_to_mode_reg (Pmode, op0);
+	    op0 = force_reg (Pmode, op0);
 	  }
 
 	emit_insn (gen_sse2_clflush (op0));
@@ -27095,7 +27094,7 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 	{
 	  if (GET_MODE (op0) != Pmode)
 	    op0 = convert_to_mode (Pmode, op0, 1);
-	  op0 = copy_to_mode_reg (Pmode, op0);
+	  op0 = force_reg (Pmode, op0);
 	}
       if (!REG_P (op1))
 	op1 = copy_to_mode_reg (SImode, op1);
@@ -27179,7 +27178,7 @@ ix86_expand_builtin (tree exp, rtx target, rtx subtarget ATTRIBUTE_UNUSED,
 	{
 	  if (GET_MODE (op0) != Pmode)
 	    op0 = convert_to_mode (Pmode, op0, 1);
-	  op0 = copy_to_mode_reg (Pmode, op0);
+	  op0 = force_reg (Pmode, op0);
 	}
       emit_insn (gen_lwp_llwpcb (op0));
       return 0;

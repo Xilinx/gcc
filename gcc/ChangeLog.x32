@@ -1,5 +1,13 @@
 2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.c (ix86_expand_move): Move convert_to_mode
+	after force_operand.
+	(ix86_expand_call): Use force_reg after convert_to_mode.
+	(ix86_expand_special_args_builtin): Likewise.
+	(ix86_expand_builtin): Likewise.
+
+2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.c (function_value_64): Always return pointers
 	in Pmode.
 	(ix86_promote_function_mode): Likewise.
