@@ -2510,6 +2510,33 @@ void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_7 (struct
 void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_8 (struct
 							       frame_start_module_melt_st
 							       *, char *);
+void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_9 (struct
+							       frame_start_module_melt_st
+							       *, char *);
+void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_10 (struct
+								frame_start_module_melt_st
+								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_11 (struct
+								frame_start_module_melt_st
+								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_12 (struct
+								frame_start_module_melt_st
+								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_13 (struct
+								frame_start_module_melt_st
+								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_14 (struct
+								frame_start_module_melt_st
+								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_15 (struct
+								frame_start_module_melt_st
+								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_16 (struct
+								frame_start_module_melt_st
+								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_outobj_initialmeltchunk_17 (struct
+								frame_start_module_melt_st
+								*, char *);
 static void forward_or_mark_module_start_frame_warmelt_outobj (struct
 							       melt_callframe_st
 							       *fp,
@@ -9163,7 +9190,7 @@ lab_endgetargs:;
 
 
   /*_#IRAW__L13*/ meltfnum[12] =
-	    (( /*_#BODIX__L12*/ meltfnum[11]) % (256));;
+	    (( /*_#BODIX__L12*/ meltfnum[11]) % (128));;
 	  /*^compute */
 
   /*_#I__L14*/ meltfnum[13] =

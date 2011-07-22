@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[] =
-  "4.7.0 20110721 (experimental) [melt-branch revision 176632] MELT_0.9pre";
+  "4.7.0 20110721 (experimental) [melt-branch revision 176649] MELT_0.9pre";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[] = "4108f57cec2a154c447e2a07d1217e6d";
+const char md5prepromeltrun_melt[] = "ce4491a1e6e9915a305bd40cce3e1384";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT */
 
@@ -408,6 +408,57 @@ void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_16 (struct
 							      frame_start_module_melt_st
 							      *, char *);
 void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_17 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_18 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_19 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_20 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_21 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_22 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_23 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_24 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_25 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_26 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_27 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_28 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_29 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_30 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_31 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_32 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_33 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_base_initialmeltchunk_34 (struct
 							      frame_start_module_melt_st
 							      *, char *);
 static void forward_or_mark_module_start_frame_warmelt_base (struct
@@ -33620,7 +33671,24 @@ start_module_melt (void *modargp_)
   warmelt_base_initialmeltchunk_14 (&meltfram__, predefinited);
   warmelt_base_initialmeltchunk_15 (&meltfram__, predefinited);
   warmelt_base_initialmeltchunk_16 (&meltfram__, predefinited);
-  warmelt_base_initialmeltchunk_17 (&meltfram__, predefinited);;
+  warmelt_base_initialmeltchunk_17 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_18 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_19 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_20 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_21 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_22 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_23 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_24 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_25 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_26 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_27 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_28 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_29 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_30 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_31 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_32 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_33 (&meltfram__, predefinited);
+  warmelt_base_initialmeltchunk_34 (&meltfram__, predefinited);;
   goto labend_rout;
 labend_rout:;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -35127,6 +35195,17 @@ warmelt_base_initialmeltchunk_0 (struct frame_start_module_melt_st
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V95*/ meltfptr[94]);
 
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_0 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_1 (struct frame_start_module_melt_st
+				 *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
   MELT_LOCATION ("warmelt-base.melt:83:/ initchunk");
   /*^putslot */
   /*putslot */
@@ -36710,10 +36789,10 @@ warmelt_base_initialmeltchunk_0 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_0 */
+}				/*end of warmelt_base_initialmeltchunk_1 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_1 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_2 (struct frame_start_module_melt_st
 				 *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -38355,7 +38434,18 @@ warmelt_base_initialmeltchunk_1 (struct frame_start_module_melt_st
   ((meltmultiple_ptr_t) ( /*_.VALTUP___V235*/ meltfptr[234]))->tabval[0] =
     (melt_ptr_t) ( /*_.VALSTR___V232*/ meltfptr[231]);
 
-  /*putupl#97 */
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_2 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_3 (struct frame_start_module_melt_st
+				 *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*putupl#97*/
   melt_assertmsg ("putupl #97 checktup",
 		  melt_magic_discr ((melt_ptr_t)
 				    ( /*_.VALTUP___V235*/ meltfptr[234])) ==
@@ -39950,10 +40040,10 @@ warmelt_base_initialmeltchunk_1 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_1 */
+}				/*end of warmelt_base_initialmeltchunk_3 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_2 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_4 (struct frame_start_module_melt_st
 				 *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -41557,7 +41647,18 @@ warmelt_base_initialmeltchunk_2 (struct frame_start_module_melt_st
   ((meltmultiple_ptr_t) ( /*_.VALTUP___V376*/ meltfptr[375]))->tabval[2] =
     (melt_ptr_t) ( /*_.VALSTR___V375*/ meltfptr[374]);
 
-  /*touch:INITUP_ */
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_4 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_5 (struct frame_start_module_melt_st
+				 *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*touch:INITUP_*/
   meltgc_touch ( /*_.VALTUP___V376*/ meltfptr[375]);
 
   MELT_LOCATION ("warmelt-base.melt:183:/ initchunk");
@@ -43139,10 +43240,10 @@ warmelt_base_initialmeltchunk_2 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_2 */
+}				/*end of warmelt_base_initialmeltchunk_5 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_3 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_6 (struct frame_start_module_melt_st
 				 *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -44743,6 +44844,17 @@ warmelt_base_initialmeltchunk_3 (struct frame_start_module_melt_st
     (melt_ptr_t) (
   /*_.VALTUP___V519*/ meltfptr[518]);
 
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_6 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_7 (struct frame_start_module_melt_st
+				 *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
   MELT_LOCATION ("warmelt-base.melt:241:/ initchunk");
   /*^touch */
   /*touch:VALUEDATA_ */
@@ -46356,10 +46468,10 @@ warmelt_base_initialmeltchunk_3 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_3 */
+}				/*end of warmelt_base_initialmeltchunk_7 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_4 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_8 (struct frame_start_module_melt_st
 				 *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -48004,7 +48116,18 @@ warmelt_base_initialmeltchunk_4 (struct frame_start_module_melt_st
   ((meltmultiple_ptr_t) ( /*_.VALTUP___V654*/ meltfptr[653]))->tabval[0] =
     (melt_ptr_t) ( /*_.VALSTR___V652*/ meltfptr[651]);
 
-  /*putupl#313 */
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_8 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_9 (struct frame_start_module_melt_st
+				 *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*putupl#313*/
   melt_assertmsg ("putupl #313 checktup",
 		  melt_magic_discr ((melt_ptr_t)
 				    ( /*_.VALTUP___V654*/ meltfptr[653])) ==
@@ -49643,11 +49766,11 @@ warmelt_base_initialmeltchunk_4 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_4 */
+}				/*end of warmelt_base_initialmeltchunk_9 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_5 (struct frame_start_module_melt_st
-				 *meltframptr__, char predefinited[])
+warmelt_base_initialmeltchunk_10 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
 #undef meltcallcount
@@ -51297,6 +51420,17 @@ warmelt_base_initialmeltchunk_5 (struct frame_start_module_melt_st
     (melt_ptr_t) (
   /*_.VALTUP___V784*/ meltfptr[783]);
 
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_10 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_11 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
   MELT_LOCATION ("warmelt-base.melt:377:/ initchunk");
   /*^touch */
   /*touch:VALUEDATA_ */
@@ -52908,11 +53042,11 @@ warmelt_base_initialmeltchunk_5 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_5 */
+}				/*end of warmelt_base_initialmeltchunk_11 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_6 (struct frame_start_module_melt_st
-				 *meltframptr__, char predefinited[])
+warmelt_base_initialmeltchunk_12 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
 #undef meltcallcount
@@ -54536,6 +54670,17 @@ warmelt_base_initialmeltchunk_6 (struct frame_start_module_melt_st
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V919*/ meltfptr[918]);
 
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_12 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_13 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
   MELT_LOCATION ("warmelt-base.melt:457:/ initchunk");
   /*^putslot */
   /*putslot */
@@ -56141,11 +56286,11 @@ warmelt_base_initialmeltchunk_6 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_6 */
+}				/*end of warmelt_base_initialmeltchunk_13 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_7 (struct frame_start_module_melt_st
-				 *meltframptr__, char predefinited[])
+warmelt_base_initialmeltchunk_14 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
 #undef meltcallcount
@@ -57789,7 +57934,18 @@ warmelt_base_initialmeltchunk_7 (struct frame_start_module_melt_st
   ((meltmultiple_ptr_t) ( /*_.VALTUP___V1057*/ meltfptr[1056]))->tabval[0] =
     (melt_ptr_t) ( /*_.VALDATA___V1055*/ meltfptr[1054]);
 
-  /*putupl#561 */
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_14 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_15 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*putupl#561*/
   melt_assertmsg ("putupl #561 checktup",
 		  melt_magic_discr ((melt_ptr_t)
 				    ( /*_.VALTUP___V1057*/ meltfptr[1056])) ==
@@ -59424,11 +59580,11 @@ warmelt_base_initialmeltchunk_7 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_7 */
+}				/*end of warmelt_base_initialmeltchunk_15 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_8 (struct frame_start_module_melt_st
-				 *meltframptr__, char predefinited[])
+warmelt_base_initialmeltchunk_16 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
 #undef meltcallcount
@@ -61033,7 +61189,18 @@ warmelt_base_initialmeltchunk_8 (struct frame_start_module_melt_st
   ((meltmultiple_ptr_t) ( /*_.VALTUP___V1194*/ meltfptr[1193]))->tabval[1] =
     (melt_ptr_t) ( /*_.VALDATA___V1178*/ meltfptr[1177]);
 
-  /*putupl#638 */
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_16 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_17 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*putupl#638*/
   melt_assertmsg ("putupl #638 checktup",
 		  melt_magic_discr ((melt_ptr_t)
 				    ( /*_.VALTUP___V1194*/ meltfptr[1193])) ==
@@ -62638,11 +62805,11 @@ warmelt_base_initialmeltchunk_8 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_8 */
+}				/*end of warmelt_base_initialmeltchunk_17 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_9 (struct frame_start_module_melt_st
-				 *meltframptr__, char predefinited[])
+warmelt_base_initialmeltchunk_18 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
 #undef meltcallcount
@@ -64232,7 +64399,18 @@ warmelt_base_initialmeltchunk_9 (struct frame_start_module_melt_st
   ((meltmultiple_ptr_t) ( /*_.VALTUP___V1337*/ meltfptr[1336]))->tabval[1] =
     (melt_ptr_t) ( /*_.VALDATA___V1336*/ meltfptr[1335]);
 
-  /*touch:INITUP_ */
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_18 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_19 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*touch:INITUP_*/
   meltgc_touch ( /*_.VALTUP___V1337*/ meltfptr[1336]);
 
   MELT_LOCATION ("warmelt-base.melt:697:/ initchunk");
@@ -65875,10 +66053,10 @@ warmelt_base_initialmeltchunk_9 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_9 */
+}				/*end of warmelt_base_initialmeltchunk_19 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_10 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_20 (struct frame_start_module_melt_st
 				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -67505,7 +67683,18 @@ warmelt_base_initialmeltchunk_10 (struct frame_start_module_melt_st
   ((meltmultiple_ptr_t) ( /*_.VALTUP___V1469*/ meltfptr[1468]))->tabval[1] =
     (melt_ptr_t) ( /*_.VALDATA___V1466*/ meltfptr[1465]);
 
-  /*touch:INITUP_ */
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_20 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_21 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*touch:INITUP_*/
   meltgc_touch ( /*_.VALTUP___V1469*/ meltfptr[1468]);
 
   MELT_LOCATION ("warmelt-base.melt:772:/ initchunk");
@@ -69147,10 +69336,10 @@ warmelt_base_initialmeltchunk_10 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_10 */
+}				/*end of warmelt_base_initialmeltchunk_21 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_11 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_22 (struct frame_start_module_melt_st
 				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -70777,7 +70966,18 @@ warmelt_base_initialmeltchunk_11 (struct frame_start_module_melt_st
   /*touch:VALUEDATA_ */
   meltgc_touch ( /*_.VALDATA___V1600*/ meltfptr[1599]);
 
-  /*putupl#876 */
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_22 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_23 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*putupl#876*/
   melt_assertmsg ("putupl #876 checktup",
 		  melt_magic_discr ((melt_ptr_t)
 				    ( /*_.VALTUP___V1601*/ meltfptr[1600])) ==
@@ -72421,10 +72621,10 @@ warmelt_base_initialmeltchunk_11 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_11 */
+}				/*end of warmelt_base_initialmeltchunk_23 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_12 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_24 (struct frame_start_module_melt_st
 				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -74074,7 +74274,18 @@ warmelt_base_initialmeltchunk_12 (struct frame_start_module_melt_st
     obj_vartab[1] = (melt_ptr_t) (
   /*_.VALSTR___V1727*/ meltfptr[1726]);
 
-  /*touch:VALUEDATA_ */
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_24 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_25 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*touch:VALUEDATA_*/
   meltgc_touch ( /*_.VALDATA___V1726*/ meltfptr[1725]);
 
   MELT_LOCATION ("warmelt-base.melt:911:/ initchunk");
@@ -75732,10 +75943,10 @@ warmelt_base_initialmeltchunk_12 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_12 */
+}				/*end of warmelt_base_initialmeltchunk_25 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_13 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_26 (struct frame_start_module_melt_st
 				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -77342,6 +77553,17 @@ warmelt_base_initialmeltchunk_13 (struct frame_start_module_melt_st
     obj_vartab[4] = (melt_ptr_t) (
   /*_.VALTUP___V1860*/ meltfptr[1859]);
 
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_26 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_27 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
   MELT_LOCATION ("warmelt-base.melt:1019:/ initchunk");
   /*^touch */
   /*touch:VALUEDATA_ */
@@ -78740,10 +78962,10 @@ warmelt_base_initialmeltchunk_13 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_13 */
+}				/*end of warmelt_base_initialmeltchunk_27 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_14 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_28 (struct frame_start_module_melt_st
 				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -80354,6 +80576,17 @@ warmelt_base_initialmeltchunk_14 (struct frame_start_module_melt_st
     obj_vartab[7] = (melt_ptr_t) (
   /*_.VALSTR___V2008*/ meltfptr[2007]);
 
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_28 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_29 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
   MELT_LOCATION ("warmelt-base.melt:1396:/ initchunk");
   /*^putslot */
   /*putslot */
@@ -82300,10 +82533,10 @@ warmelt_base_initialmeltchunk_14 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_14 */
+}				/*end of warmelt_base_initialmeltchunk_29 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_15 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_30 (struct frame_start_module_melt_st
 				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -84253,6 +84486,17 @@ warmelt_base_initialmeltchunk_15 (struct frame_start_module_melt_st
     obj_vartab[9] = (melt_ptr_t) (
   /*_.VALSTR___V2264*/ meltfptr[2263]);
 
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_30 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_31 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
   MELT_LOCATION ("warmelt-base.melt:2303:/ initchunk");
   /*^touch */
   /*touch:VALUEDATA_ */
@@ -89801,10 +90045,10 @@ warmelt_base_initialmeltchunk_15 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_15 */
+}				/*end of warmelt_base_initialmeltchunk_31 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_16 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_32 (struct frame_start_module_melt_st
 				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -90361,7 +90605,18 @@ warmelt_base_initialmeltchunk_16 (struct frame_start_module_melt_st
     meltgc_intern_symbol ((melt_ptr_t)
 			  ( /*_.VALDATA___V1288*/ meltfptr[1287]));
 
-  /*internsym:CLASS_NAMED */
+
+#undef meltfram__
+}				/*end of warmelt_base_initialmeltchunk_32 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_base_initialmeltchunk_33 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*internsym:CLASS_NAMED*/
   (void)
     meltgc_intern_symbol ((melt_ptr_t)
 			  ( /*_.VALDATA___V1302*/ meltfptr[1301]));
@@ -91003,10 +91258,10 @@ warmelt_base_initialmeltchunk_16 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_16 */
+}				/*end of warmelt_base_initialmeltchunk_33 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_base_initialmeltchunk_17 (struct frame_start_module_melt_st
+warmelt_base_initialmeltchunk_34 (struct frame_start_module_melt_st
 				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -91051,7 +91306,7 @@ warmelt_base_initialmeltchunk_17 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_base_initialmeltchunk_17 */
+}				/*end of warmelt_base_initialmeltchunk_34 */
 
 static void
 forward_or_mark_module_start_frame_warmelt_base (struct melt_callframe_st *fp,

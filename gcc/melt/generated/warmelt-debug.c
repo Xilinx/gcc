@@ -3,11 +3,11 @@
 #ifndef MELTGCC_DYNAMIC_OBJSTRUCT
 /* version string of the gcc executable generating this file: */
 const char genversionstr_melt[] =
-  "4.7.0 20110721 (experimental) [melt-branch revision 176632] MELT_0.9pre";
+  "4.7.0 20110721 (experimental) [melt-branch revision 176649] MELT_0.9pre";
 
 
 /* hash of preprocessed melt-run.h generating this file: */
-const char md5prepromeltrun_melt[] = "4108f57cec2a154c447e2a07d1217e6d";
+const char md5prepromeltrun_melt[] = "ce4491a1e6e9915a305bd40cce3e1384";
 
 #endif /*MELTGCC_DYNAMIC_OBJSTRUCT */
 
@@ -654,6 +654,12 @@ void MELT_MODULE_VISIBILITY warmelt_debug_initialmeltchunk_0 (struct
 							      frame_start_module_melt_st
 							      *, char *);
 void MELT_MODULE_VISIBILITY warmelt_debug_initialmeltchunk_1 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_debug_initialmeltchunk_2 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_debug_initialmeltchunk_3 (struct
 							      frame_start_module_melt_st
 							      *, char *);
 static void forward_or_mark_module_start_frame_warmelt_debug (struct
@@ -7027,7 +7033,9 @@ start_module_melt (void *modargp_)
  /**initial routine body**/
 
   warmelt_debug_initialmeltchunk_0 (&meltfram__, predefinited);
-  warmelt_debug_initialmeltchunk_1 (&meltfram__, predefinited);;
+  warmelt_debug_initialmeltchunk_1 (&meltfram__, predefinited);
+  warmelt_debug_initialmeltchunk_2 (&meltfram__, predefinited);
+  warmelt_debug_initialmeltchunk_3 (&meltfram__, predefinited);;
   goto labend_rout;
 labend_rout:;
   melt_topframe = (struct melt_callframe_st *) meltfram__.mcfr_prev;
@@ -8418,7 +8426,18 @@ warmelt_debug_initialmeltchunk_0 (struct frame_start_module_melt_st
   /*touch:DATACLOSURE_ */
   meltgc_touch ( /*_.VALCLO___V114*/ meltfptr[113]);
 
-  /*putslot */
+
+#undef meltfram__
+}				/*end of warmelt_debug_initialmeltchunk_0 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_debug_initialmeltchunk_1 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
+/*putslot*/
   melt_assertmsg ("putslot checkobj",
 		  melt_magic_discr ((melt_ptr_t)
 				    ( /*_.VALDATA___V115*/ meltfptr[114])) ==
@@ -9704,10 +9723,10 @@ warmelt_debug_initialmeltchunk_0 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_debug_initialmeltchunk_0 */
+}				/*end of warmelt_debug_initialmeltchunk_1 */
 
 void MELT_MODULE_VISIBILITY
-warmelt_debug_initialmeltchunk_1 (struct frame_start_module_melt_st
+warmelt_debug_initialmeltchunk_2 (struct frame_start_module_melt_st
 				  *meltframptr__, char predefinited[])
 {
 #define meltfram__ (*meltframptr__)
@@ -10966,6 +10985,17 @@ warmelt_debug_initialmeltchunk_1 (struct frame_start_module_melt_st
   ((meltroutine_ptr_t) /*_.VALROUT___V240*/ meltfptr[239])->tabval[1] =
     (melt_ptr_t) ( /*_.CLASS_ANY_BINDING__V41*/ meltfptr[40]);
 
+
+#undef meltfram__
+}				/*end of warmelt_debug_initialmeltchunk_2 */
+
+void MELT_MODULE_VISIBILITY
+warmelt_debug_initialmeltchunk_3 (struct frame_start_module_melt_st
+				  *meltframptr__, char predefinited[])
+{
+#define meltfram__ (*meltframptr__)
+#undef meltcallcount
+#define meltcallcount 0L
   MELT_LOCATION ("warmelt-debug.melt:986:/ initchunk");
   /*^putroutconstnotnull */
   /*putroutconstnotnull */
@@ -12899,7 +12929,7 @@ warmelt_debug_initialmeltchunk_1 (struct frame_start_module_melt_st
 
 
 #undef meltfram__
-}				/*end of warmelt_debug_initialmeltchunk_1 */
+}				/*end of warmelt_debug_initialmeltchunk_3 */
 
 static void
 forward_or_mark_module_start_frame_warmelt_debug (struct melt_callframe_st

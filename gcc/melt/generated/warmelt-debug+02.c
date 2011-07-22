@@ -646,6 +646,12 @@ void MELT_MODULE_VISIBILITY warmelt_debug_initialmeltchunk_0 (struct
 void MELT_MODULE_VISIBILITY warmelt_debug_initialmeltchunk_1 (struct
 							      frame_start_module_melt_st
 							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_debug_initialmeltchunk_2 (struct
+							      frame_start_module_melt_st
+							      *, char *);
+void MELT_MODULE_VISIBILITY warmelt_debug_initialmeltchunk_3 (struct
+							      frame_start_module_melt_st
+							      *, char *);
 static void forward_or_mark_module_start_frame_warmelt_debug (struct
 							      melt_callframe_st
 							      *fp,

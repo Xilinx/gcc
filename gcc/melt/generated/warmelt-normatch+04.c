@@ -1788,6 +1788,48 @@ void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_12 (struct
 void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_13 (struct
 								  frame_start_module_melt_st
 								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_14 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_15 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_16 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_17 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_18 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_19 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_20 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_21 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_22 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_23 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_24 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_25 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_26 (struct
+								  frame_start_module_melt_st
+								  *, char *);
+void MELT_MODULE_VISIBILITY warmelt_normatch_initialmeltchunk_27 (struct
+								  frame_start_module_melt_st
+								  *, char *);
 static void forward_or_mark_module_start_frame_warmelt_normatch (struct
 								 melt_callframe_st
 								 *fp,

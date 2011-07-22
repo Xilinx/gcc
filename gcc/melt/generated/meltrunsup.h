@@ -1684,4 +1684,4 @@ static inline melt_ptr_t /* Map nth value for CTYPE_TREE*/ melt_nthval_maptrees 
 
 
 /*** End of declaration file meltrunsup.h generated on 2011 Jul 22
- * by GCC MELT 4.7.0 20110721 (experimental) [melt-branch revision 176632] MELT_0.9pre . ***/
+ * by GCC MELT 4.7.0 20110721 (experimental) [melt-branch revision 176649] MELT_0.9pre . ***/
