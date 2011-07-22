@@ -1,4 +1,8 @@
 
+2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (MELTMODFLAV_DYNAMIC_SUFFIX): Typo.
+	(melt_run_make_for_plugin): Compiles.
+
 2011-07-21  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-built.tpl: Don't give melt-modules/optimized as module
 	path, except for application files.

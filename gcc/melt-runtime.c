@@ -4818,11 +4818,14 @@ obstack_add_escaped_path (struct obstack* obs, const char* path)
 #define MELTMODFLAV_QUICKLYBUILT_TARGET "melt_module_quicklybuilt"
 #define MELTMODFLAV_NOLINE_SUFFIX ".n"
 #define MELTMODFLAV_NOLINE_TARGET "melt_module_withoutline"
-#define MELTMODFLAV_DYNAMIC_SUFFIX ".n"
+#define MELTMODFLAV_DYNAMIC_SUFFIX ".d"
 #define MELTMODFLAV_DYNAMIC_TARGET "melt_module_dynamic"
 #define MELTMODFLAV_OPTIMIZED_SUFFIX ""
 #define MELTMODFLAV_OPTIMIZED_TARGET "melt_module"
 #define MELT_BINARYMODULE_SUFFIX ".so"
+
+
+
 
 #if MELT_IS_PLUGIN
 static void 
@@ -4840,6 +4843,7 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
   bool warnescapedchar = false;
   char *cmdstr = NULL;
   const char*mycwd = getpwd ();
+  int fullbinfilelen = strlen (fullbinfile);
   struct obstack cmd_obstack;
   memset (&cmd_obstack, 0, sizeof(cmd_obstack));
   obstack_init (&cmd_obstack);
@@ -4859,7 +4863,7 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
   obstack_1grow (&cmd_obstack, ' ');
   /* add the -C workdir argument if workdir is not the current directory */
   if (workdir && strcmp(workdir, ".") && strcmp (workdir, "./") && strcmp(workdir, mycwd)) {
-    debugeprintf ("compile_gencsrc_to_binmodule dochdir in workdir %s", workdir);
+    debugeprintf ("melt_run_make_for_plugin  dochdir in workdir %s", workdir);
     obstack_grow (&cmd_obstack, MAKECHDIR_ARG, strlen (MAKECHDIR_ARG));
     obstack_1grow (&cmd_obstack, ' ');
     (void) obstack_add_escaped_path (&cmd_obstack, workdir);
@@ -4882,26 +4886,33 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
     char* binfile = xstrdup (fullbinfile);
     int truncated = 0;
 #define REMOVE_BINFILE_SUFFIX(Suff,Targ) do   {			\
-      int suflen = strlen (Suff);				\
+      int suflen = strlen (Suff  MELT_BINARYMODULE_SUFFIX);	\
       if (!truncated && fullbinfilelen > suflen			\
-	  && !strcmp(binfile + fullbinfilelen - suflen, Suff))	\
+	  && !strcmp(binfile + fullbinfilelen - suflen,		\
+		     Suff  MELT_BINARYMODULE_SUFFIX))		\
 	{							\
 	  binfile[fullbinfilelen - suflen] = 0;			\
 	  truncated = 1;					\
 	  maketarget = Targ;					\
-	  debugeprintf("binfile truncated %s target %s",	\
-		       binfile, maketarget);			\
+	  debugeprintf ("melt_run_make_for_plugin "		\
+                         "binfile truncated %s target %s",	\
+			binfile, maketarget);			\
 	}							\
     }   while (0)
-    REMOVE_BINFILE_SUFFIX (".d.so", "melt_module_dynamic");
-    REMOVE_BINFILE_SUFFIX (".n.so", "melt_module_withoutline");
-    REMOVE_BINFILE_SUFFIX (".so", "melt_module");
+    REMOVE_BINFILE_SUFFIX (MELTMODFLAV_DYNAMIC_SUFFIX, 
+			   MELTMODFLAV_DYNAMIC_TARGET);
+    REMOVE_BINFILE_SUFFIX (MELTMODFLAV_NOLINE_SUFFIX, 
+			   MELTMODFLAV_NOLINE_TARGET);
+    REMOVE_BINFILE_SUFFIX (MELTMODFLAV_QUICKLYBUILT_SUFFIX, 
+			   MELTMODFLAV_QUICKLYBUILT_TARGET);
+    REMOVE_BINFILE_SUFFIX (MELTMODFLAV_OPTIMIZED_SUFFIX, 
+			   MELTMODFLAV_OPTIMIZED_TARGET);
 #undef REMOVE_BINFILE_SUFFIX
-    if (!topmaketarget || !topmaketarget[0]) 
+    if (!maketarget || !maketarget[0]) 
       /* The default target for melt-module.mk is melt_module. */
-      topmaketarget=maketarget;
-    debugeprintf ("compile_gencsrc_to_binmodule topmaketarget %s",
-		  topmaketarget);
+      maketarget = MELTMODFLAV_OPTIMIZED_TARGET;
+    debugeprintf ("melt_run_make_for_plugin maketarget %s",
+		  maketarget);
     /* add the truncated binfile */
     obstack_grow (&cmd_obstack, MODULE_BINARY_ARG,
 		  strlen (MODULE_BINARY_ARG));
@@ -4934,7 +4945,7 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
     {
       struct stat workstat;
       memset (&workstat, 0, sizeof(workstat));
-      debugeprintf ("compile_gencsrc_to_binmodule handling workdir %s", workdir);
+      debugeprintf ("melt_run_make_for_plugin handling workdir %s", workdir);
       if (stat (workdir, &workstat))
 	melt_fatal_error ("bad MELT module workspace directory %s - stat failed %m", workdir);
       if (!S_ISDIR(workstat.st_mode))
@@ -4957,17 +4968,17 @@ melt_run_make_for_plugin (const char*ourmakecommand, const char*ourmakefile, con
     warning (0, "escaped character[s] in MELT top make target %s", maketarget);
   obstack_1grow (&cmd_obstack, (char) 0);
   cmdstr = XOBFINISH (&cmd_obstack, char *);
-  debugeprintf("compile_gencsrc_to_binmodule cmdstr= %s", cmdstr);
+  debugeprintf("melt_run_make_for_plugin cmdstr= %s", cmdstr);
   if (!quiet_flag || flag_melt_bootstrapping) 
     printf ("MELT plugin running: %s\n", cmdstr);
   fflush (NULL);
   err = system (cmdstr);
-  debugeprintf("compile_gencsrc_to_binmodule command got %d", err);
+  debugeprintf("melt_run_make_for_plugin command got %d", err);
   if (err)
     melt_fatal_error ("MELT module compilation failed for command %s", cmdstr);
   cmdstr = NULL;
   obstack_free (&cmd_obstack, NULL); /* free all the cmd_obstack */
-  debugeprintf ("compile_gencsrc_to_binmodule meltplugin did built fullbinfile %s", 
+  debugeprintf ("melt_run_make_for_plugin meltplugin did built fullbinfile %s", 
 		fullbinfile);
   if (IS_ABSOLUTE_PATH (fullbinfile))
     inform (UNKNOWN_LOCATION, "MELT plugin has built module %s", fullbinfile);
