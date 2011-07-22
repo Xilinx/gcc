@@ -1,5 +1,28 @@
 
 2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (MELT_VERSION_STRING): Bump to 0.9pre
+	(meltgc_new_box, melt_box_content, meltgc_box_put): Obsolete
+	functions.
+	(meltgc_new_container, meltgc_container_put): New function.
+
+	* melt-runtime.c
+	(meltgc_new_box, melt_box_content, meltgc_box_put): Give warning
+	once.
+	(meltgc_new_container, meltgc_container_put): New functions.
+	(readval): Add syntactic sugar for ! as exclaim, that is for the
+	content macro.
+
+	* melt/warmelt-base.melt (set_function): New function.
+	* melt/warmelt-debug.melt (dbgout_mapobject_method): Use
+	containers, not boxed values.
+	* melt/warmelt-macro.melt (mexpand_container, patexpand_container)
+	(mexpand_content): New functions for
+	(container, content, exclaim): New macros.
+
+	* melt/warmelt-normal.melt (normbind_anybind, normexp_symbol)
+	(normbind_fixbind): Likewise.
+
+2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c (MELTMODFLAV_DYNAMIC_SUFFIX): Typo.
 	(melt_run_make_for_plugin): Compiles.
 

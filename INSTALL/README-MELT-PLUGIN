@@ -142,9 +142,9 @@ welcome by email to <basile@starynkevitch.net> [please mention MELT in
 the subject line]
 
 #######################################################################
-NEWS for 0.8.1 MELT plugin for gcc-4.6
+NEWS for 0.9 MELT plugin for gcc-4.6
 
-July 2Xth, 2011: Release of MELT plugin 0.8.1 for gcc-4.6
+July 2Xth, 2011: Release of MELT plugin 0.9 for gcc-4.6
 
 New features:
 
@@ -152,7 +152,40 @@ New features:
 
     The PLUGIN_PRE_GENERICIZE event is interfaced.
 
-Bug fixes:
+    New option -fplugin-arg-melt-workdir= for the work directory,
+    where every .c or .so files are generated.
+
+    Boxed values using discr_box are obsolete.
+
+    Containers, that is instances of class_container having one single field 
+    :container_value, are supported by syntactic macros and sugar & function.
+       (container V)   
+          =equivalent=   (instance class_container :container_value V)
+       (content C)
+          =equivalent=   (get_field :container_value C)
+       (set_content C V)
+          =equivalent=   (put_fields C :container_value V)
+    You can write exclaim instead of content, and there is a new syntactic 
+    sugar
+       !X
+
+     is the same as (content X) - the exclamation mark should be
+     followed by spaces, letters, or left parenthesis to be parsed as
+     exclaim -that is as the content macro above.
+
+    In patterns, ?(container ?v) means 
+    ?(instance class_container :container_value ?v)
+
+    Fields can be accessed by their name, so
+      (:F C)
+   is the same as (get_field :F C)
+   Hence (:container_value foo) is the same as !foo or 
+   (get_field :container_value foo)
+
+Many bug fixes.
+
+The build system has been revamped. The generated .c files should be
+available when running MELT.
 
 
 #######################################################################

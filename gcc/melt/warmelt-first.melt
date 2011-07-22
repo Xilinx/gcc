@@ -49,6 +49,15 @@ class should be some indirect subclass of $CLASS_ROOT. And $CLASS_ROOT
 should be the only class without superclass. Actually its super
 discriminant is $DISCR_ANY_RECEIVER.}# )
 
+;; arbitrary container as class
+(defclass class_container
+  :super class_root
+  :predef CLASS_CONTAINER
+  :fields (container_value)
+  :doc #{The $CLASS_CONTAINER is a class for mutable containers (that
+is references). The contained value is $CONTAINER_VALUE. See also
+$CONTAINER and $CONTENT macros.}#)
+
 ;; class of everything with a property table
 (defclass class_proped 
   :super class_root 
@@ -58,14 +67,6 @@ discriminant is $DISCR_ANY_RECEIVER.}# )
 property table $PROP_TABLE (an object map associating property naming
 symbols to arbitrary value.}# )
 
-
-;; arbitrary container as class
-(defclass class_container
-  :super class_root
-  :predef CLASS_CONTAINER
-  :fields (container_value)
-  :doc #{The $CLASS_CONTAINER is a class for mutable containers (that is
-references). The contained value is $CONTAINER_VALUE.}#)
 
 ;; class of named objects
 (defclass class_named 

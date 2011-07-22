@@ -2,7 +2,7 @@
 ;; file warmelt-debug.melt
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (comment "***
-    Copyright 2009, 2010 Free Software Foundation, Inc.
+    Copyright 2009, 2010, 2011 Free Software Foundation, Inc.
     Contributed by Basile Starynkevitch <basile@starynkevitch.net>
 
     This file is part of GCC.
@@ -601,9 +601,6 @@ $TORANK}#
 	(let (
 	      (nextdepthbox (make_integerbox discr_integer (+i 2 depth)))
 	      (countbox (make_integerbox discr_integer 0))
-	      (boxedone (make_integerbox discr_integer 1))
-	      (boxedzero (make_integerbox discr_integer 0))
-	      (boxedminusone (make_integerbox discr_integer -1))
 	      (tupl (make_multiple discr_multiple mapcount))
 	      )
 	  ;; fill the tupl with (attribute value rank) entries
@@ -630,7 +627,7 @@ $TORANK}#
 			    (e2va (multiple_nth e2 1))
 			    (e2rk (multiple_nth e2 2))
 			    )
-		       (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone)
+		       (compare_obj_ranked e1at e1rk e2at e2rk '-1 '0 '1)
 		       ))
 		   discr_multiple
 		   ))
@@ -669,9 +666,6 @@ $TORANK}#
 	 (:long mapcount (mapstring_count self))
 	 (nextdepthbox (make_integerbox discr_integer (+i 2 depth)))
 	 (countbox (make_integerbox discr_integer 0))
-	 (boxedone (make_integerbox discr_integer 1))
-	 (boxedzero (make_integerbox discr_integer 0))
-	 (boxedminusone (make_integerbox discr_integer -1))
 	 (tupl (make_multiple discr_multiple mapcount))
 	 )
     (if (== dis DISCR_MAP_STRINGS)
@@ -707,7 +701,7 @@ $TORANK}#
 			    (e2va (multiple_nth e2 1))
 			    (e2rk (multiple_nth e2 2))
 			    )
-		       (compare_obj_ranked e1at e1rk e2at e2rk boxedminusone boxedzero boxedone)
+		       (compare_obj_ranked e1at e1rk e2at e2rk '-1 '0 '1)
 		       ))
 		   discr_multiple
 		   ))

@@ -1315,6 +1315,14 @@ registered with $REGISTER_PASS_EXECUTION_HOOK.}#
  class_value_descriptor 
  class_varisized_value_descriptor)
 
+
+;; maybe set_content should become a macro for performance reasons...
+(defun set_content (c v)
+  :doc #{Safely put in a container $C instance of $CLASS_CONTAINER 
+the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
+  (put_fields c :container_value v))
+
+
 ;;;;;;;;;;;;;;;;
 (definstance value_descriptor_list_container
   class_container
@@ -2511,6 +2519,7 @@ polyhedron values.}#
  register_pre_genericize_hook_last
  pre_genericize_hook_runner
  retrieve_value_descriptor_list
+ set_content
  some_integer_greater_than
  some_integer_multiple
  some_string_value

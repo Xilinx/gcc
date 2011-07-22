@@ -98,7 +98,7 @@ extern char* melt_gccversionstr;
 extern const int melt_gcc_version;
 
 /* the version string of MELT */
-#define MELT_VERSION_STRING "0.8.1"
+#define MELT_VERSION_STRING "0.9pre"
 
 /* return a read only version string */
 extern const char* melt_version_str(void);
@@ -585,25 +585,23 @@ melt_ptr_t
 meltgc_sort_multiple(melt_ptr_t mult_p, melt_ptr_t clo_p, melt_ptr_t discrm_p); 
 
 
+/* Boxes are obsolete; use containers instead. */
 /* allocate a new box of given DISCR & content VAL */
 melt_ptr_t meltgc_new_box (meltobject_ptr_t discr_p,
 				 melt_ptr_t val_p);
-
 /* return the content of a box */
-static inline melt_ptr_t
-melt_box_content (meltbox_ptr_t box)
-{
-  if (!box || box->discr->meltobj_magic != MELTOBMAG_BOX)
-    return NULL;
-  return box->val;
-}
-
+melt_ptr_t melt_box_content (meltbox_ptr_t box);
 void meltgc_box_put (melt_ptr_t box, melt_ptr_t val);
+
+
 
 /* safely return the calue inside a container - instance of CLASS_CONTAINER */
 melt_ptr_t
 melt_container_value  (melt_ptr_t cont);
-
+/* make a new container, instance of CLASS_CONTAINER */
+melt_ptr_t meltgc_new_container (melt_ptr_t val_p);
+/* put inside a container */
+void meltgc_container_put (melt_ptr_t cont, melt_ptr_t val);
 
 
 /* return the phinodes of a boxed basicblock */

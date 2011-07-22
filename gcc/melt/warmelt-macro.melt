@@ -1356,15 +1356,15 @@ the object-map for pattern variables.}#
 	 (mexpander (unsafe_get_field :pctx_mexpander pctx))
 	 (:long nbmins (multiple_length mins))
 	 (:long nbouts (multiple_length mouts))
-	 (pairbox (make_box discr_box pairs))
+	 (paircont (instance class_container :container_value pairs))
 	 (inargs (multiple_map 
 		  mins
 		  (lambda (curfbind :long inix)
 		    (assert_msg "check curfbind" (is_a curfbind class_formal_binding))
-		    (let ( (curpair (box_content pairbox)) )
+		    (let ( (curpair (get_field :container_value paircont)) )
 		      (if (is_pair curpair)
 			  (let ( (curin (pair_head curpair)) )
-			    (box_put pairbox (pair_tail curpair))
+			    (put_fields paircont :container_value (pair_tail curpair))
 			    (macroexpand_1 curin env mexpander))
 			(error_strv psloc "missing in argument for matcher"
 				    (get_field :named_name matcher))
@@ -1372,16 +1372,16 @@ the object-map for pattern variables.}#
 	 (outpats (multiple_map
 		   mouts 
 		   (lambda (curformal :long outix)
-		     (let ( (curpair (box_content pairbox)) )
+		     (let ( (curpair (get_field :container_value paircont)) )
 		       (if (is_pair curpair)
 			   (let ( (curout (pair_head curpair)) )
-			     (box_put pairbox (pair_tail curpair))
+			     (put_fields paircont :container_value (pair_tail curpair))
 			     (patternexpand_1 curout env pctx psloc))
 			 (error_strv psloc "missing out argument for matcher"
 				     (get_field :named_name matcher))
 			 )))))
 	 )
-    (let ( (curpair (box_content pairbox)) )
+    (let ( (curpair (get_field :container_value paircont)) )
       (if (is_pair curpair)
 	  (progn
 	    (debug_msg curpair "extra stuff in patmacexpand_for_matcher")
@@ -3098,6 +3098,9 @@ $CLASS_ROOT $CLASS_CLASS $CLASS_FIELD etc.}#)
  instance.}#)
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 ;; the defselector expanser
 (defun mexpand_defselector (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -3239,6 +3242,8 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
 <documentation>] [:formals ( <formals>...)]).}#)
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; the [make_]instance expander
 (defun mexpand_instance (sexpr env mexpander)
   (assert_msg "check sexpr" (is_a sexpr class_sexpr))
@@ -3356,7 +3361,7 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
   (assert_msg "check cla" (is_a cla class_class))
   (let (
 	(clafields (unsafe_get_field :class_fields cla))
-	(fldbox (make_box discr_box ())) 
+	(fldcont (instance class_container :container_value ())) 
 	(flpat (patternexpand_1 flpsexp env pctx psloc)) 
 	)
     (debug_msg clafields "parse_field_pattern clafields")
@@ -3368,12 +3373,12 @@ messages. Syntax is (DEFSELECTOR <symbol> <selector-class> [:doc
        (if (==s (unsafe_get_field :named_name cfld) 
 		(unsafe_get_field :named_name fkeyw))
 	   (progn 
-	     (box_put fldbox cfld)
+	     (put_fields fldcont :container_value cfld)
 	     ()				; nil to exit to iteration
 	     )
 	 cfld))
      )
-    (let ( (fld (box_content fldbox))
+    (let ( (fld (get_field :container_value fldcont))
 	   )
       (if (is_not_a fld class_field)
 	  (progn
@@ -4338,6 +4343,156 @@ condition is a string such as "4.5." or a list of strings.}#)
  null/zero. Pattern-syntax is ?(OR <disjunct-subpattern>...) and
  matches if one of the disjunct-subpattern matches. See also $COND
  $AND and $IF.}# )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; CONTENT & CONTAINER
+
+;; (container x) is a shorthand for 
+;; (instance class_container :container_value x)
+(defun mexpand_container (sexpr env mexpander)
+  (debug_msg sexpr "mexpand_container sexpr")
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check class_container has one field"
+	      (==i 1 (multiple_length
+		     (get_field :class_fields class_container))))
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(xargtup (expand_restlist_as_tuple cont env mexpander))
+	(:long nbarg (multiple_length xargtup))
+	(arg1 (multiple_nth xargtup 0))
+	(spredclasscont (instance class_source_fetch_predefined
+				  :loca_location loc
+				  :sfepd_predef 'CLASS_CONTAINER))
+	(clabind (find_env env 'class_container))
+	(flda (parse_field_assignment 
+	       class_container loc :container_value arg1 env mexpander))
+	(sinst (instance 
+		class_source_instance
+		:loca_location loc
+		:smins_class class_container
+		:smins_clabind clabind
+		:smins_fields (tuple flda)))
+	)
+    (if (!=i nbarg 1)
+	(progn
+	  (error_plain loc "(CONTAINER <value>) needs exactly one argument")
+	  (return)))
+    (if 
+	(or 
+	 (and
+	  (is_a clabind class_class_binding)
+	  (== (get_field :cbind_class clabind) class_container))
+	 (and
+	  (is_a clabind class_value_binding)
+	  (== (get_field :vbind_value clabind) class_container)))
+	(progn
+	  (debug_msg sinst "mexpand_container returns sinst")
+	  (return sinst)
+	  )
+      (error_plain loc "(CONTAINER <value>) where CLASS_CONTAINER is not visible"))
+    ))
+
+
+(defun patexpand_container (sexpr env pctx)
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check pctx" (is_a pctx class_pattern_expansion_context))
+  (debug_msg sexpr "patexpand_container sexpr")
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(curpair (pair_tail (list_first cont)))
+	(argsp (patternexpand_pairlist_as_tuple curpair env pctx loc))
+	(arg1 (multiple_nth argsp 0))
+	(fldp (parse_field_pattern :container_value class_container arg1 env pctx loc))
+	(res (instance class_source_pattern_instance
+		       :loca_location loc
+		       :pat_weight '1
+		       :spat_class class_container
+		       :spat_fields (tuple fldp)))
+	)
+    (if (!=i (multiple_length argsp) 1)
+	(progn
+	  (error_plain loc "(CONTAINER <subpattern>) pattern needs one argument")
+	  (return)))
+    (debug_msg res "patexpand_container res")
+    (return res)
+))
+(install_initial_patmacro 'container patexpand_container mexpand_container)
+(export_patmacro 
+ container patexpand_container mexpand_container
+ :doc #{The $CONTAINER syntax is a short-hand for making or matching
+ instances of $CLASS_CONTAINER. Expression syntax (CONTAINER
+ <subexpression>) is a short-hand for (INSTANCE
+ CLASS_CONTAINER :CONTAINER_VALUE <subexpression>) to make an instance
+ of $CLASS_CONTAINER with the given value as $CONTAINER_VALUE. Pattern
+ syntax is ?(CONTAINER <subpattern>) to match an instance of
+ $CLASS_CONTAINER with its $CONTAINER_VALUE matching
+ <subpattern>. $CONTAINER expressions are constructive, so can appear
+ in $LETREC bindings.}#)
+
+
+
+;; (content x) is a shorthand for 
+;; (get_field :container_value x)
+(defun mexpand_content (sexpr env mexpander)
+  (debug_msg sexpr "mexpand_content sexpr")
+  (assert_msg "check sexpr" (is_a sexpr class_sexpr))
+  (assert_msg "check env" (is_a env class_environment))
+  (assert_msg "check class_container has one field"
+	      (==i 1 (multiple_length
+		     (get_field :class_fields class_container))))
+  (let (
+	(cont (unsafe_get_field :sexp_contents sexpr))
+	(loc  (unsafe_get_field :loca_location sexpr))
+	(xargtup (expand_restlist_as_tuple cont env mexpander))
+	(:long nbarg (multiple_length xargtup))
+	(arg1 (multiple_nth xargtup 0))
+	(spredclasscont (instance class_source_fetch_predefined
+				  :loca_location loc
+				  :sfepd_predef 'CLASS_CONTAINER))
+	(clabind (find_env env 'class_container))
+	(sget (instance 
+		class_source_get_field
+		:loca_location loc
+		:suget_obj arg1
+		:suget_field ':container_value))
+	)
+    (if (!=i nbarg 1)
+	(progn
+	  (error_plain loc "(CONTENT <value>) needs exactly one argument")
+	  (return)))
+    (if 
+	(or 
+	 (and
+	  (is_a clabind class_class_binding)
+	  (== (get_field :cbind_class clabind) class_container))
+	 (and
+	  (is_a clabind class_value_binding)
+	  (== (get_field :vbind_value clabind) class_container)))
+	(progn
+	  (debug_msg sget "mexpand_content returns sget")
+	  (return sget)
+	  )
+      (error_plain loc "(CONTENT <value>) where CLASS_CONTAINER is not visible"))
+    ))
+
+(install_initial_macro 'content mexpand_content)
+(export_macro 
+ content mexpand_content
+ :doc #{The $CONTENT macro is a short-hand to retrieve values inside
+ instances of $CLASS_CONTAINER. So (CONTENT <value>)
+ means (GET_FIELD :CONTAINER_VALUE <value>), hence test that <value>
+ is indeed an instance of $CLASS_CONTAINER, or else gives null. The special syntax !<expr> is a syntactic sugar for (CONTENT <expr>).}#)
+
+
+;;; exclaim is the same as content, but export_synonym don't work for macros
+(install_initial_macro 'exclaim mexpand_content)
+(export_macro exclaim mexpand_content 
+ :doc #{$EXCLAIM [usually given thru the ! syntactic sugar] is a
+ synonym for $CONTENT, e.g. !(IF p c) means (CONTENT (IF P C))
+ hence (GET_FIELD :CONTAINER_VALUE (IF P C))}#)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TUPLE 
 ;;;; the TUPLE macro expander

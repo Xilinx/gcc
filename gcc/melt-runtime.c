@@ -2535,11 +2535,14 @@ end:
 }
 
 
+/***** boxes and DISCR_BOX is obsolete. Use containers of
+       CLASS_CONTAINER instead. *****/
 
 /* allocate a new box of given DISCR & content VAL */
 melt_ptr_t
 meltgc_new_box (meltobject_ptr_t discr_p, melt_ptr_t val_p)
 {
+  static int nbwarn;
   MELT_ENTERFRAME (3, NULL);
 #define boxv meltfram__.mcfr_varptr[0]
 #define discrv  meltfram__.mcfr_varptr[1]
@@ -2548,6 +2551,11 @@ meltgc_new_box (meltobject_ptr_t discr_p, melt_ptr_t val_p)
   discrv = (void *) discr_p;
   valv = (void *) val_p;
   boxv = NULL;
+  if (nbwarn <= 0) {
+    melt_dbgshortbacktrace ("meltgc_new_box called", 30);
+    warning (0, "MELT meltgc_new_box is obsolete");
+  }
+  nbwarn++;
   if (melt_magic_discr ((melt_ptr_t) discrv) != MELTOBMAG_OBJECT)
     goto end;
   if (object_discrv->meltobj_magic != MELTOBMAG_BOX)
@@ -2564,15 +2572,36 @@ end:
 #undef object_discrv
 }
 
+/* return the content of a box */
+melt_ptr_t 
+melt_box_content (meltbox_ptr_t box)
+{
+  static int nbwarn;
+  if (nbwarn <= 0) {
+    melt_dbgshortbacktrace ("melt_box_content called", 30);
+    warning (0, "MELT melt_box_content is obsolete");
+  }
+  nbwarn++;
+  if (!box || box->discr->meltobj_magic != MELTOBMAG_BOX)
+    return NULL;
+  return box->val;
+}
+
 /* put inside a box */
 void
 meltgc_box_put (melt_ptr_t box_p, melt_ptr_t val_p)
 {
+  static int nbwarn;
   MELT_ENTERFRAME (2, NULL);
 #define boxv meltfram__.mcfr_varptr[0]
 #define valv   meltfram__.mcfr_varptr[1]
   boxv = box_p;
   valv = val_p;
+  if (nbwarn <= 0) {
+    melt_dbgshortbacktrace ("meltgc_box_put called", 30);
+    warning (0, "MELT meltgc_box_put is obsolete");
+  }
+  nbwarn++;
   if (melt_magic_discr ((melt_ptr_t) boxv) != MELTOBMAG_BOX)
     goto end;
   ((meltbox_ptr_t) boxv)->val = (melt_ptr_t) valv;
@@ -2590,6 +2619,10 @@ melt_container_value (melt_ptr_t cont)
   if (melt_magic_discr (cont) != MELTOBMAG_OBJECT
       || ((meltobject_ptr_t) cont)->obj_len < FCONTAINER__LAST)
     return 0;
+  /* This case is so common that we handle it explicitly! */
+  if (((meltobject_ptr_t)cont)->discr
+      == (meltobject_ptr_t)MELT_PREDEF (CLASS_CONTAINER))
+    return  ((meltobject_ptr_t) cont)->obj_vartab[FCONTAINER_VALUE];
   if (!melt_is_instance_of
       ((melt_ptr_t) cont, (melt_ptr_t) MELT_PREDEF (CLASS_CONTAINER)))
     return 0;
@@ -2597,7 +2630,61 @@ melt_container_value (melt_ptr_t cont)
 }
 
 
+/* make a new container */
+melt_ptr_t 
+meltgc_new_container (melt_ptr_t val_p)
+{
+  MELT_ENTERFRAME(3, NULL);
+#define valv        meltfram__.mcfr_varptr[0]
+#define resv        meltfram__.mcfr_varptr[1]
+#define classcontv  meltfram__.mcfr_varptr[2]
+  valv = val_p;
+  classcontv = MELT_PREDEF (CLASS_CONTAINER);
+  gcc_assert (melt_magic_discr ((melt_ptr_t)classcontv) == MELTOBMAG_OBJECT); 
+  /* we really need that containers have one single field */
+  gcc_assert (FCONTAINER_VALUE == 0);
+  gcc_assert (FCONTAINER__LAST == 1);
+  resv = meltgc_new_raw_object ((meltobject_ptr_t) classcontv, 
+				FCONTAINER__LAST);
+  ((meltobject_ptr_t) (resv))->obj_vartab[FCONTAINER_VALUE] =
+    (melt_ptr_t) valv;
+  MELT_EXITFRAME();
+  return (melt_ptr_t)resv;
+#undef valv
+#undef resv
+#undef classcontv
+}
 
+/* put inside a container */
+void
+meltgc_container_put (melt_ptr_t cont_p, melt_ptr_t val_p)
+{
+  MELT_ENTERFRAME(3, NULL);
+#define contv    meltfram__.mcfr_varptr[0]
+#define valv     meltfram__.mcfr_varptr[1]
+#define classcontv  meltfram__.mcfr_varptr[2]
+  contv = cont_p;
+  valv  = val_p;
+  classcontv = MELT_PREDEF (CLASS_CONTAINER);
+  gcc_assert (melt_magic_discr ((melt_ptr_t)classcontv) == MELTOBMAG_OBJECT); 
+  /* we really need that containers have one single field */
+  gcc_assert (FCONTAINER_VALUE == 0);
+  if (melt_magic_discr((melt_ptr_t)contv) != MELTOBMAG_OBJECT)
+    goto end;
+  /* This case is so common that we handle it explicitly! */
+  if (((meltobject_ptr_t)contv)->discr != classcontv
+      && !melt_is_instance_of
+      ((melt_ptr_t) contv, (melt_ptr_t) classcontv))
+    goto end;
+  ((meltobject_ptr_t) (contv))->obj_vartab[FCONTAINER_VALUE] =
+    (melt_ptr_t) valv;
+  meltgc_touch_dest (contv, valv);
+ end:
+  MELT_EXITFRAME();
+#undef valv
+#undef contv
+#undef classcontv
+}
 
 /****** MULTIPLES ******/
 
@@ -8017,6 +8104,26 @@ readval (struct reading_st *rd, bool * pgot)
       *pgot = TRUE;
       goto end;
     }
+  else if (c == '!' 
+	   && (ISALPHA (rdfollowc (1)) || ISSPACE (rdfollowc (1))
+	       || rdfollowc (1) == '('))
+    {
+      bool got = false;
+      location_t loc = 0;
+      rdnext ();
+      compv = readval (rd, &got);
+      if (!got)
+	READ_ERROR ("MELT: expecting value after exclamation mark ! %.20s", &rdcurc ());
+      seqv = meltgc_new_list ((meltobject_ptr_t) MELT_PREDEF (DISCR_LIST));
+      altv = meltgc_named_symbol ("exclaim", MELT_CREATE);
+      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) altv);
+      meltgc_append_list ((melt_ptr_t) seqv, (melt_ptr_t) compv);
+      melt_linemap_compute_current_location (rd);
+      loc = rd->rsrcloc;
+      readv = makesexpr (rd, lineno, (melt_ptr_t) seqv, loc, 0);
+      *pgot = TRUE;
+      goto end;
+    }
   else if (c == '`')
     {
       bool got = false;
@@ -8761,7 +8868,7 @@ load_melt_modules_and_do_mode (void)
   const char *optstr = 0;
   const char *inistr = 0;
   const char* xtrastr = 0;
-  const char* dbgstr = melt_argument("debug");
+  const char* dbgstr = melt_argument ("debug");
   MELT_ENTERFRAME (7, NULL);
 #define modatv     meltfram__.mcfr_varptr[0]
 #define dumpv      meltfram__.mcfr_varptr[1]
