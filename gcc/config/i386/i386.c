@@ -3605,6 +3605,9 @@ ix86_option_override_internal (bool main_args_p)
   else
     ix86_abi = DEFAULT_ABI;
 
+  if (ix86_abi == MS_ABI && TARGET_X32)
+    error ("MS ABI not supported in x32 mode");
+
   if (ix86_cmodel_string != 0)
     {
       if (!strcmp (ix86_cmodel_string, "small"))
@@ -26085,7 +26088,7 @@ ix86_init_builtins (void)
 
   ix86_init_mmx_sse_builtins ();
 
-  if (TARGET_64BIT)
+  if (TARGET_LP64)
     ix86_init_builtins_va_builtins_abi ();
 
 #ifdef SUBTARGET_INIT_BUILTINS
@@ -29739,7 +29742,7 @@ ix86_handle_abi_attribute (tree *node, tree name,
       *no_add_attrs = true;
       return NULL_TREE;
     }
-  if (!TARGET_64BIT)
+  if (!TARGET_LP64)
     {
       warning (OPT_Wattributes, "%qE attribute only available for 64-bit",
 	       name);
