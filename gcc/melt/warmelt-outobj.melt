@@ -3712,16 +3712,12 @@
      ((meltobject_ptr_t) ($discr),
       melt_string_str(($base)), melt_string_str(($dir)), ($num))}#)
 
-;; internal primitive if we want a single C file
-(defprimitive wants_single_c_file () :long 
-  #{ melt_wants_single_c_file () }#)
 
 ;;; retrieve or create the nth secondary file in a module
 (defun nth_secundary_file (modctx modnamstr declbuf :long ix)
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check declbuf" (is_strbuf declbuf))
-  (if (wants_single_c_file) (return))
   (let ( (mofiles (get_field :mocx_filetuple modctx))
 	 (:long nbfiles (multiple_length mofiles))
 	 (nthfile (multiple_nth mofiles ix))
@@ -3820,8 +3816,8 @@
      check_errors_after_normalization
      #{ 
      if (melt_error_counter>0) 
-        melt_fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", 
-			  melt_string_str($MODNAMSTR), melt_error_counter) ;
+     melt_fatal_error ("MELT translation of %s halted after normalization: got %ld MELT errors", 
+		       melt_string_str($MODNAMSTR), melt_error_counter) ;
      }#)
     (let ( (prolist (unsafe_get_field :nctx_proclist ncx)) 
 	   (objlist (make_list discr_list))
@@ -3847,8 +3843,8 @@
        check_errors_after_compilation
        #{ /*$check_errors_after_compilation*/
        if (melt_error_counter>0) 
-         melt_fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",
-			   melt_string_str($modnamstr), melt_error_counter) ;
+       melt_fatal_error ("MELT translation of %s halted after MELT compilation: got %ld MELT errors",
+			 melt_string_str($modnamstr), melt_error_counter) ;
        }#)
       ;;
       (debug_msg objlist "compile_list_sexpr objlist")  
@@ -3888,35 +3884,34 @@
 						  (melt_ptr_t)($declbuf),
 						  (melt_ptr_t)($implbuf)) ;
 		      }#)
-					;(informsg_strv "warmelt generated module C file" modnamstr)
-	  (if (not (wants_single_c_file))
-	      (let ( (secfiles (get_field :mocx_filetuple modctx)) )
-		(debug_msg secfiles "compile_list_sexpr secfiles")
-		(foreach_in_multiple
-		 (secfiles)
-		 (curfil :long filix)
-		 (debug_msg curfil "compile_list_sexpr curfil")
-		 (if curfil
-		     (progn
-		       (assert_msg "check curfil" 
-				   (is_a curfil class_secondary_c_file))
-		       (assert_msg "check curfil index" 
-				   (==i (get_int curfil) filix))
-		       (let ( (secfilpath (get_field :secfil_path curfil))
-			      (secdeclbuf (get_field :secfil_declbuf curfil))
-			      (secimplbuf (get_field :secfil_implbuf curfil))
-			      )
-			 (code_chunk 
-			  secfilout 
-			  #{ /* $secfilout */
-			  melt_output_cfile_decl_impl_secondary((melt_ptr_t)($secfilpath),
-								(melt_ptr_t)($secdeclbuf),
-								(melt_ptr_t)($secimplbuf),
-								$filix) ;
-			  }#)
-					;(informsg_strv "warmelt generated secondary C file" secfilpath)
-			 ))
-		   ))))))))
+	  ;;(informsg_strv "warmelt generated module C file" modnamstr)
+	  (let ( (secfiles (get_field :mocx_filetuple modctx)) )
+	    (debug_msg secfiles "compile_list_sexpr secfiles")
+	    (foreach_in_multiple
+	     (secfiles)
+	     (curfil :long filix)
+	     (debug_msg curfil "compile_list_sexpr curfil")
+	     (if curfil
+		 (progn
+		   (assert_msg "check curfil" 
+			       (is_a curfil class_secondary_c_file))
+		   (assert_msg "check curfil index" 
+			       (==i (get_int curfil) filix))
+		   (let ( (secfilpath (get_field :secfil_path curfil))
+			  (secdeclbuf (get_field :secfil_declbuf curfil))
+			  (secimplbuf (get_field :secfil_implbuf curfil))
+			  )
+		     (code_chunk 
+		      secfilout 
+		      #{ /* $secfilout */
+		      melt_output_cfile_decl_impl_secondary((melt_ptr_t)($secfilpath),
+							    (melt_ptr_t)($secdeclbuf),
+							    (melt_ptr_t)($secimplbuf),
+							    $filix) ;
+		      }#)
+		     ;;(informsg_strv "warmelt generated secondary C file" secfilpath)
+		     ))
+	       )))))))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -5853,8 +5848,6 @@ typedef melt_ptr_t meltroutfun_t (struct meltclosure_st* closp_,
     ( (is_a curvaldesc class_varisized_value_descriptor)
       (assert_msg "check null valdescgty" 
 		  (null (get_field :valdesc_gty curvaldesc)))
-      (compile_warning 
-       "we should provide a user option to disable variable GTY for GCC 4.5")
       (add2sbuf_strconst outbuf "variable_size")
       )
     ( (is_a curvaldesc class_value_descriptor)

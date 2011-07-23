@@ -1,13 +1,31 @@
 
 2011-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 
+	* doc/melt.texi (Invoking MELT): Remove -fmelt-single-c-file.
+	* melt-runtime.h (melt_wants_single_c_file): Obsolete function,
+	always return false.
+	* melt-runtime.c (melt_argument): No more "single-c-file".
+	(melt_output_strbuf_to_file): Use random in temporary file name.
+	(melt_wants_single_c_file): Remove.
+	(meltgc_new_string_generated_c_filename): Use +00.c suffix for the
+	primary.
+	(melt_output_cfile_decl_impl_secondary_option): Reindent.
+
+	* melt/warmelt-normatch.melt (normpat_variablepat, normpat_orpat):
+	Don't use boxes.
+
+	* melt/warmelt-outobj.melt (wants_single_c_file): Remove primitive.
+	(compile_list_sexpr): Don't use it.
+
+2011-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
+
 	* melt/warmelt-normal.melt (normexp_fetch_predefined)
 	(normexp_store_predefined): Don't use boxes.
 
 2011-07-23  Pierre Vittet  <piervit@pvittet.com>
 
-	* melt/warmelt-outobj.melt (translatequickly_docmd): Generate .q.so suffix
-	instead of .n.so 
+	* melt/warmelt-outobj.melt (translatequickly_docmd): Generate
+	.q.so suffix instead of .n.so
 
 2011-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c:

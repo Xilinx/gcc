@@ -848,10 +848,10 @@ scanning variables.}#
 		)
 	      ;; the or-variable was already bound in a previous
 	      ;; disjunction
-	      ( (is_box realococc)
+	      ( (is_a realococc class_container)
 		(let ( 
 		      (ctyp (get_ctype nmatch env))
-		      (bxclocc (box_content realococc))
+		      (bxclocc (content realococc))
 		      )
 		  (debug_msg bxclocc "normpat_variablepat bxclocc")
 		  (assert_msg "check bxclocc" (is_a bxclocc class_nrep_locsymocc))
@@ -1243,8 +1243,8 @@ scanning variables.}#
 	(let ( (orvarlocc (unsafe_get_field :norvar_locsym curorvar))
 	       )
 	  (if (is_a orvarlocc class_nrep_locsymocc)
-	      (let ( (orvarbox (make_box discr_box orvarlocc)) )
-		(put_fields curorvar :norvar_locsym orvarbox)
+	      (let ( (orvarcont (container orvarlocc)) )
+		(put_fields curorvar :norvar_locsym orvarcont)
 		(list_append clearloclist orvarlocc)
 		))
 	  ))
@@ -1276,11 +1276,11 @@ scanning variables.}#
 	   (debug_msg prevcont "normpat_orpat prevcont with norclear")
 	   ;;
 	   (let (
-		 (subdisjbox (make_box discr_box ()))
+		 (subdisjcont (container ()))
 		 (subdisjhandler 
 		  (lambda (subtester)
 		    (debug_msg subtester "normpat_orpat.lambda subtester")
-		    (box_put subdisjbox subtester)
+		    (set_content subdisjcont subtester)
 		    (let (
 			  (prevtestsub (unsafe_get_field :container_value prevcont))
 			  )
@@ -1298,7 +1298,7 @@ scanning variables.}#
 			     subdisjhandler pcn)       
 	     (debug_msg curdisj "normpat_orpat curdisj after normalization")
 	     (let (
-		   (lastdisj (box_content subdisjbox))
+		   (lastdisj (content subdisjcont))
 		   (prevtestrans (unsafe_get_field :container_value prevcont))
 		   (nortransm (instance class_normtester_or_transmit
 					:nrep_loc sloc
@@ -1339,8 +1339,8 @@ scanning variables.}#
 		      (patvar (unsafe_get_field :norvar_patvar curorvar))
 		      (orsymb (get_field :spatvar_symb patvar))
 		      )
-		 (if (is_box orlocsy)
-		     (setq orlocsy (box_content orlocsy)))
+		 (if (is_a orlocsy class_container)
+		     (setq orlocsy (content orlocsy)))
 		 ;; the pvarlocmap should already have orsymb bound to orlocsy
 		 (debug_msg orsymb "normpat_orpat/finalambda orsymb")
 		 (debug_msg orlocsy "normpat_orpat/finalambda orlocsy")

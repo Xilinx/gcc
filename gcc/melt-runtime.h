@@ -1289,7 +1289,7 @@ melt_ptr_t meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
 
 /* Return true if we don't want to generate several C files for a
    given MELT module */
-bool melt_wants_single_c_file (void);
+static inline bool melt_wants_single_c_file (void) { return false; }
 
 /* split a [raw] string into a list of strings using a seperator. */
 melt_ptr_t meltgc_new_split_string (const char*str, int sep, melt_ptr_t discr);

@@ -373,17 +373,6 @@ options.  In practice, to use your own MELT module @code{foo} you
 should pass @code{-fmelt-extra=foo} because your module needs the
 default modules.
 
-@item -fmelt-single-c-file
-@gccoptlist{-fplugin-arg-melt-single-c-file=yes}
-@opindex fmelt-single-c-file
-@opindex fplugin-arg-melt-single-c-file=
-This flag (very rarely useful) forces the generation of a single C
-file per each MELT module. Otherwise, and by default, MELT source
-files like @file{foo.melt} are translated into one primary C file
-@file{foo.c} and some other secondary C files like @file{foo+1.c}
-@file{foo+2.c} etc. If the @code{GCCMELT_SINGLE_C_FILE} environment
-variable is set to a value such as @code{yes} or @code{1} which is not
-@code{0}, it forces the generation of a single C file.
 
 
 @item -fmelt-tempdir=

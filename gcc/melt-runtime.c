@@ -515,8 +515,6 @@ melt_argument (const char* argname)
     return melt_module_cflags_string;
   else if (!strcmp (argname, "source-path"))
     return melt_srcpath_string;
-  else if (!strcmp (argname, "single-c-file"))
-    return flag_melt_single_c_file?"yes":NULL;
   else if (!strcmp (argname, "init"))
     return melt_init_string;
   else if (!strcmp (argname, "extra"))
@@ -2243,8 +2241,9 @@ melt_output_strbuf_to_file (melt_ptr_t sbuf, const char*filnam)
      is invoked by a parallel make.  */
   memset (tmpsuffix, 0, sizeof(tmpsuffix));
   time (&now);
-  snprintf (tmpsuffix, sizeof(tmpsuffix)-1, ".%d-%d.tmp", 
-	    (int) getpid(), ((int) now) % 1000);
+  snprintf (tmpsuffix, sizeof(tmpsuffix)-1, ".%d-%d-%d.tmp", 
+	    (int) getpid(), ((int) now) % 1000, 
+	    (int) ((melt_lrand()) & 0xfffff));
   namdot = concat(filnam, tmpsuffix, NULL);
   fil = fopen(namdot, "w");
   if (!fil)
@@ -4325,7 +4324,7 @@ meltgc_new_string_generated_c_filename  (meltobject_ptr_t discr_p,
   discrv = discr_p;
   if (!basepath || !basepath[0]) 
     goto end;
-  if (num>0) 
+  if (num >= 0) 
     snprintf (numbuf, sizeof(numbuf)-1, "+%02d", num);
   if (!discrv) 
     discrv = MELT_PREDEF (DISCR_STRING);
@@ -11533,28 +11532,7 @@ static void melt_ppl_error_handler(enum ppl_enum_error_code err, const char* des
 }
 
 
-/******************************************************************/
 
-/* Return true if we don't want to generate several C files for a
-   given MELT module */
-bool melt_wants_single_c_file (void)
-{ 
-  bool want1 = false;
-  const char* singarg = melt_argument ("single-c-file");
-  if (!singarg) 
-    {
-      const char* singenv = 
-	flag_melt_bootstrapping?NULL:(getenv ("GCCMELT_SINGLE_C_FILE"));
-      want1 = singenv && singenv[0]!='0' 
-	&& singenv[0]!='N' && singenv[0]!='n';
-    }
-  else if (!singarg[0] || singarg[0]=='n' || singarg[0]=='N'  
-	   || singarg[0]=='0') 
-    want1 = false;
-  else want1 = true;
-  debugeprintf ("melt_wants_single_c_file return %s", want1?"true":"false");
-  return want1;
-}
 
 /***********************************************************
  * generate C code for a melt unit name; take care to avoid touching
@@ -11563,7 +11541,8 @@ bool melt_wants_single_c_file (void)
  ***********************************************************/
 void
 melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
-					      melt_ptr_t declbuf, melt_ptr_t implbuf,
+					      melt_ptr_t declbuf,
+					      melt_ptr_t implbuf,
 					      melt_ptr_t optbuf,
 					      int filrank)
 {
