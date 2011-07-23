@@ -1,5 +1,15 @@
 2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.md (LEA split): Replace
+	x32_lea_nonmemory_operand with si_lea_nonmemory_operand.
+	(*lea_general_2): Likewise.
+	(*lea_general_2_zext): Likewise.
+
+	* config/i386/predicates.md (x32_lea_nonmemory_operand): Removed.
+	(si_lea_nonmemory_operand): New.
+
+2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/predicates.md (pointer_register_operand): Removed.
 
 2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>

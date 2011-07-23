@@ -1220,9 +1220,9 @@
   return !TARGET_X32 || !SYMBOLIC_CONST (op);
 })
 
-;; Return nonzero if OP is nonmemory operand representable in lea on x32.
-(define_predicate "x32_lea_nonmemory_operand"
-  (match_operand 0 "nonmemory_operand")
-{
-  return !TARGET_X32 || !SYMBOLIC_CONST (op);
-})
+;; Test for a valid nonmemory operand for lea in SImode.
+(define_predicate "si_lea_nonmemory_operand"
+  (and (match_operand 0 "nonmemory_operand")
+       (ior (match_test "!TARGET_X32")
+	    (match_test "GET_MODE (op) != SImode")
+	    (match_test "!SYMBOLIC_CONST (op)"))))
