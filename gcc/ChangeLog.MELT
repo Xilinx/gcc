@@ -1,3 +1,7 @@
+2011-07-23  Pierre Vittet  <piervit@pvittet.com>
+
+	* melt/warmelt-outobj.melt (translatequickly_docmd): Generate .q.so suffix
+	instead of .n.so 
 
 2011-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.c:

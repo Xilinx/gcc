@@ -4255,7 +4255,7 @@ assert_msg) is enabled"
 	    (or outarg
 		(let ( (dbgnambuf (make_strbuf discr_strbuf)) )
 		  (add2sbuf_string dbgnambuf basnam)
-		  (add2sbuf_strconst dbgnambuf ".n.so")
+		  (add2sbuf_strconst dbgnambuf ".q.so")
 		  (strbuf2string discr_string dbgnambuf))))
 	   )
       (debug_msg basnam "translatequickly_docmd basnam")
