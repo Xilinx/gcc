@@ -11227,7 +11227,9 @@ ix86_decompose_address (rtx addr, struct ix86_address *out)
 	;
       /* Allow only subregs of DImode hard regs.  */
       else if (GET_CODE (index) == SUBREG
-	       && !register_no_elim_operand (SUBREG_REG (index), DImode))
+	       && register_no_elim_operand (SUBREG_REG (index), DImode))
+	;
+      else
 	return 0;
     }
 
@@ -21543,7 +21545,7 @@ ix86_expand_call (rtx retval, rtx fnaddr, rtx callarg1,
       fnaddr = XEXP (fnaddr, 0);
       if (GET_MODE (fnaddr) != Pmode)
 	fnaddr = convert_to_mode (Pmode, fnaddr, 1);
-      fnaddr = gen_rtx_MEM (QImode, force_reg (Pmode, fnaddr));
+      fnaddr = gen_rtx_MEM (QImode, copy_to_mode_reg (Pmode, fnaddr));
     }
 
   call = gen_rtx_CALL (VOIDmode, fnaddr, callarg1);

@@ -875,6 +875,8 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
 	    }
 	  *def_rhs_basep = build2 (MEM_REF, TREE_TYPE (*def_rhs_basep),
 				   new_base, new_offset);
+	  TREE_THIS_VOLATILE (*def_rhs_basep) = TREE_THIS_VOLATILE (lhs);
+	  TREE_THIS_NOTRAP (*def_rhs_basep) = TREE_THIS_NOTRAP (lhs);
 	  gimple_assign_set_lhs (use_stmt,
 				 unshare_expr (TREE_OPERAND (def_rhs, 0)));
 	  *def_rhs_basep = saved;
@@ -927,9 +929,9 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
 	  tidy_after_forward_propagate_addr (use_stmt);
 	  return res;
 	}
-      /* If the LHS is a plain dereference and the value type is the same as
+      /* If the RHS is a plain dereference and the value type is the same as
          that of the pointed-to type of the address we can put the
-	 dereferenced address on the LHS preserving the original alias-type.  */
+	 dereferenced address on the RHS preserving the original alias-type.  */
       else if (gimple_assign_rhs1 (use_stmt) == rhs
 	       && useless_type_conversion_p
 		    (TREE_TYPE (gimple_assign_lhs (use_stmt)),
@@ -954,6 +956,8 @@ forward_propagate_addr_expr_1 (tree name, tree def_rhs,
 	    }
 	  *def_rhs_basep = build2 (MEM_REF, TREE_TYPE (*def_rhs_basep),
 				   new_base, new_offset);
+	  TREE_THIS_VOLATILE (*def_rhs_basep) = TREE_THIS_VOLATILE (rhs);
+	  TREE_THIS_NOTRAP (*def_rhs_basep) = TREE_THIS_NOTRAP (rhs);
 	  gimple_assign_set_rhs1 (use_stmt,
 				  unshare_expr (TREE_OPERAND (def_rhs, 0)));
 	  *def_rhs_basep = saved;
@@ -1132,20 +1136,12 @@ forward_propagate_comparison (gimple stmt)
   if (!INTEGRAL_TYPE_P (TREE_TYPE (lhs)))
     return false;
 
-  /* We can propagate the condition into a conversion.  */
-  if (CONVERT_EXPR_CODE_P (code))
-    {
-      /* Avoid using fold here as that may create a COND_EXPR with
-	 non-boolean condition as canonical form.  */
-      tmp = build2 (gimple_assign_rhs_code (stmt), TREE_TYPE (lhs),
-		    gimple_assign_rhs1 (stmt), gimple_assign_rhs2 (stmt));
-    }
   /* We can propagate the condition into a statement that
      computes the logical negation of the comparison result.  */
-  else if ((code == BIT_NOT_EXPR
-	    && TYPE_PRECISION (TREE_TYPE (lhs)) == 1)
-	   || (code == BIT_XOR_EXPR
-	       && integer_onep (gimple_assign_rhs2 (use_stmt))))
+  if ((code == BIT_NOT_EXPR
+       && TYPE_PRECISION (TREE_TYPE (lhs)) == 1)
+      || (code == BIT_XOR_EXPR
+	  && integer_onep (gimple_assign_rhs2 (use_stmt))))
     {
       tree type = TREE_TYPE (gimple_assign_rhs1 (stmt));
       bool nans = HONOR_NANS (TYPE_MODE (type));
@@ -1750,6 +1746,7 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
 							arg2));
       tem = make_ssa_name (tem, newop);
       gimple_assign_set_lhs (newop, tem);
+      gimple_set_location (newop, gimple_location (stmt));
       gsi_insert_before (gsi, newop, GSI_SAME_STMT);
       gimple_assign_set_rhs_with_ops_1 (gsi, NOP_EXPR,
 					tem, NULL_TREE, NULL_TREE);
@@ -1779,6 +1776,7 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
       newop = gimple_build_assign_with_ops (code, tem, def1_arg1, def2_arg1);
       tem = make_ssa_name (tem, newop);
       gimple_assign_set_lhs (newop, tem);
+      gimple_set_location (newop, gimple_location (stmt));
       gsi_insert_before (gsi, newop, GSI_SAME_STMT);
       gimple_assign_set_rhs_with_ops_1 (gsi, NOP_EXPR,
 					tem, NULL_TREE, NULL_TREE);
@@ -1807,6 +1805,7 @@ simplify_bitwise_binary (gimple_stmt_iterator *gsi)
 					    tem, def1_arg1, arg2);
       tem = make_ssa_name (tem, newop);
       gimple_assign_set_lhs (newop, tem);
+      gimple_set_location (newop, gimple_location (stmt));
       /* Make sure to re-process the new stmt as it's walking upwards.  */
       gsi_insert_before (gsi, newop, GSI_NEW_STMT);
       gimple_assign_set_rhs1 (stmt, tem);
@@ -2144,9 +2143,10 @@ out:
 }
 
 /* Combine two conversions in a row for the second conversion at *GSI.
-   Returns true if there were any changes made.  */
+   Returns 1 if there were any changes made, 2 if cfg-cleanup needs to
+   run.  Else it returns 0.  */
  
-static bool
+static int
 combine_conversions (gimple_stmt_iterator *gsi)
 {
   gimple stmt = gsi_stmt (*gsi);
@@ -2163,15 +2163,15 @@ combine_conversions (gimple_stmt_iterator *gsi)
   if (useless_type_conversion_p (TREE_TYPE (lhs), TREE_TYPE (op0)))
     {
       gimple_assign_set_rhs_code (stmt, TREE_CODE (op0));
-      return true;
+      return 1;
     }
 
   if (TREE_CODE (op0) != SSA_NAME)
-    return false;
+    return 0;
 
   def_stmt = SSA_NAME_DEF_STMT (op0);
   if (!is_gimple_assign (def_stmt))
-    return false;
+    return 0;
 
   if (CONVERT_EXPR_CODE_P (gimple_assign_rhs_code (def_stmt)))
     {
@@ -2210,7 +2210,7 @@ combine_conversions (gimple_stmt_iterator *gsi)
 	  gimple_assign_set_rhs1 (stmt, unshare_expr (defop0));
 	  gimple_assign_set_rhs_code (stmt, TREE_CODE (defop0));
 	  update_stmt (stmt);
-	  return true;
+	  return remove_prop_source_from_use (op0) ? 2 : 1;
 	}
 
       /* Likewise, if the intermediate and initial types are either both
@@ -2232,7 +2232,7 @@ combine_conversions (gimple_stmt_iterator *gsi)
 	{
 	  gimple_assign_set_rhs1 (stmt, defop0);
 	  update_stmt (stmt);
-	  return true;
+	  return remove_prop_source_from_use (op0) ? 2 : 1;
 	}
 
       /* If we have a sign-extension of a zero-extended value, we can
@@ -2243,7 +2243,7 @@ combine_conversions (gimple_stmt_iterator *gsi)
 	{
 	  gimple_assign_set_rhs1 (stmt, defop0);
 	  update_stmt (stmt);
-	  return true;
+	  return remove_prop_source_from_use (op0) ? 2 : 1;
 	}
 
       /* Two conversions in a row are not needed unless:
@@ -2272,7 +2272,7 @@ combine_conversions (gimple_stmt_iterator *gsi)
 	{
 	  gimple_assign_set_rhs1 (stmt, defop0);
 	  update_stmt (stmt);
-	  return true;
+	  return remove_prop_source_from_use (op0) ? 2 : 1;
 	}
 
       /* A truncation to an unsigned type should be canonicalized as
@@ -2296,11 +2296,11 @@ combine_conversions (gimple_stmt_iterator *gsi)
 	  else
 	    gimple_assign_set_rhs_from_tree (gsi, tem);
 	  update_stmt (gsi_stmt (*gsi));
-	  return true;
+	  return 1;
 	}
     }
 
-  return false;
+  return 0;
 }
 
 /* Main entry point for the forward propagation and statement combine
@@ -2462,7 +2462,12 @@ ssa_forward_propagate_and_combine (void)
 		else if (CONVERT_EXPR_CODE_P (code)
 			 || code == FLOAT_EXPR
 			 || code == FIX_TRUNC_EXPR)
-		  changed = combine_conversions (&gsi);
+		  {
+		    int did_something = combine_conversions (&gsi);
+		    if (did_something == 2)
+		      cfg_changed = true;
+		    changed = did_something != 0;
+		  }
 		break;
 	      }
 

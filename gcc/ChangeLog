@@ -1,3 +1,284 @@
+2011-07-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/30112
+	* c-decl.c (c_linkage_bindings): Define.
+
+2011-07-22  Eric Botcazou  <ebotcazou@adacore.com>
+
+	PR debug/49815
+	* var-tracking.c (vt_finalize): Always free windowed_parm_regs.
+
+2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_option_override_internal): Disallow
+	MS ABI in x32 mode.
+	(ix86_init_builtins): Call ix86_init_builtins_va_builtins_abi
+	only for TARGET_LP64.
+	(ix86_handle_abi_attribute): Check TARGET_LP64 instead of
+	TARGET_64BIT.
+
+2011-07-22  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* config/rs6000/rs6000.c (rs6000_xcoff_strip_dollar): Rewrite to
+	avoid warnings when GCC is built with a C++ compiler.
+
+2011-07-22  Martin Jambor  <mjambor@suse.cz>
+
+	PR lto/49796
+	* cgraphunit.c (verify_edge_corresponds_to_fndecl): Return false
+	if decl node is in another partition, call cgraph_get_node only
+	once.
+
+2011-07-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config.gcc (x86_64-*-linux*): Set
+	default_gnu_indirect_function to yes.
+
+2011-07-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45819
+	* tree-ssa-forwprop.c (forward_propagate_addr_expr_1): Properly
+	preserve volatile and notrap flags.
+
+2011-07-22  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+	    Ralf Wildenhues  <Ralf.Wildenhues@gmx.de>
+
+	PR bootstrap/49794
+	* configure.ac: Test AM_ICONV with CXX.
+	* configure: Regenerate.
+	* config/sol2-c.c (solaris_format_types): Use EXPORTED_CONST.
+
+2011-07-22  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
+
+	PR bootstrap/49797
+	* graphite-clast-to-gimple.c (CLOOG_LANGUAGE_C): Provide if missing.
+	(set_cloog_options): Use it.
+
+2011-07-22  Jakub Jelinek  <jakub@redhat.com>
+
+	PR c++/49756
+	* gcc.c (main): Call stack_limit_increase (64MB).
+	* toplev.c (toplev_main): Likewise.
+
+2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_expand_call): Call copy_to_mode_reg
+	instead of force_reg.
+
+2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_expand_move): Convert to Pmode if
+	needed and use force_reg after convert.
+	(ix86_expand_call): Likewise.
+	(ix86_expand_special_args_builtin): Likewise.
+	(ix86_expand_builtin): Likewise.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/47654
+	PR middle-end/49649
+	* graphite-clast-to-gimple.c (type_for_clast_term): Pass v1 and v2
+	in parameter.  Initialize v1 and v2 based on the values returned
+	by clast_name_to_lb_ub.
+	(type_for_clast_red): Pass v1 and v2 in parameter, and set their
+	values.
+	(type_for_clast_bin): Same.
+	(type_for_clast_expr): Same.
+	(type_for_clast_eq): Update calls to type_for_clast_expr.
+	(type_for_clast_for): Same.
+	(build_iv_mapping): Same.
+	* graphite-ppl.h (value_min): New.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (type_for_interval): Generate signed
+	types whenever possible.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (struct clast_name_index): Add lb
+	and ub fields.
+	(new_clast_name_index): Add lb and ub parameters.
+	(free_clast_name_index): New.
+	(clast_name_to_lb_ub): New.
+	(save_clast_name_index): Add lb and ub parameters.
+	(compute_bounds_for_param): New.
+	(type_for_level): Removed.
+	(type_for_clast_for): Removed level parameter.  Do not call
+	type_for_level.
+	(graphite_create_new_loop): Store the lb and ub for the clast_name
+	of the iterator of the loop that has been generated.
+	(graphite_create_new_loop_guard): Remove parameter level.
+	(create_params_index): Store the lb and ub of each parameter.
+	(gloog): Use free_clast_name_index.  Pass to create_params_index
+	the current scop.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (max_signed_precision_type): Removed.
+	(max_precision_type): Inline max_signed_precision_type.
+	(type_for_clast_red): Use max_precision_type.
+	(type_for_clast_bin): Same.
+	(type_for_clast_for): Same.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (gcc_type_for_interval): Renamed
+	type_for_interval.
+	(gcc_type_for_value): Renamed type_for_value.
+	(gcc_type_for_clast_term): Renamed type_for_clast_term.
+	(gcc_type_for_clast_expr): Renamed type_for_clast_expr.
+	(gcc_type_for_clast_red): Renamed type_for_clast_red.
+	(gcc_type_for_clast_bin): Renamed type_for_clast_bin.
+	(gcc_type_for_clast_eq): Renamed type_for_clast_eq.
+	(graphite_translate_clast_equation): Update calls.
+	(compute_type_for_level): Renamed type_for_level.
+	(gcc_type_for_iv_of_clast_loop): Renamed type_for_clast_for.
+	(build_iv_mapping): Update calls.
+	(graphite_create_new_loop_guard): Same.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (clast_get_body_of_loop): Add fixme
+	comment.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (struct ivs_params): New.
+	(clast_name_to_gcc): Use ivs_params to pass around parameters.
+	(clast_to_gcc_expression): Same.
+	(clast_to_gcc_expression_red): Same.
+	(gcc_type_for_clast_term): Same.
+	(gcc_type_for_clast_expr): Same.
+	(gcc_type_for_clast_red): Same.
+	(gcc_type_for_clast_bin): Same.
+	(gcc_type_for_clast_eq): Same.
+	(graphite_translate_clast_equation): Same.
+	(graphite_create_guard_cond_expr): Same.
+	(graphite_create_new_guard): Same.
+	(graphite_create_new_loop): Same.
+	(build_iv_mapping): Same.
+	(translate_clast_user): Same.
+	(graphite_create_new_loop_guard): Same.
+	(translate_clast): Same.
+	(translate_clast_for_loop): Same.
+	(translate_clast_for): Same.
+	(translate_clast_guard): Same.
+	(initialize_cloog_names): Fix typo.
+	(gloog): Initialize an ivs_params struct, pass it to translate_clast.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (struct clast_name_index): Add level.
+	(new_clast_name_index): Add level parameter.
+	(clast_name_to_level): New.
+	(save_clast_name_index): Add level parameter.
+	(newivs_to_depth_to_newiv): Removed.
+	(clast_name_to_gcc): Inlined newivs_to_depth_to_newiv.
+	(graphite_create_new_loop): Add level parameter.  Pass level to
+	save_clast_name_index.
+	(translate_clast_for_loop): Pass level to graphite_create_new_loop.
+	(create_params_index): Pass level to save_clast_name_index.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (graphite_create_new_loop): Do not
+	recompute type, lb, and ub.  Get them from...
+	(graphite_create_new_loop_guard): ...here.  Pass in parameter
+	pointers to type, lb, and ub.
+	(translate_clast_for_loop): Update function calls.
+	(translate_clast_for): Same.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	* graphite-clast-to-gimple.c (compute_bounds_for_level): Call
+	psct_dynamic_dim.
+	(translate_clast_for_loop): Pass loop level to dependency_in_loop_p.
+	(gcc_type_for_iv_of_clast_loop): Update use of level.
+	(gloog): Start counting nesting level from 0.
+	* graphite-clast-to-gimple.h (get_scattering_level): Removed.
+	* graphite-dependences.c (graphite_carried_dependence_level_k): Call
+	psct_dynamic_dim on level.
+
+2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (ix86_legitimize_address): Convert to
+	Pmode if needed.
+
+2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.c (function_value_64): Always return pointers
+	in Pmode.
+	(ix86_promote_function_mode): New.
+	(TARGET_PROMOTE_FUNCTION_MODE): Likewise.
+
+2011-07-21  Bill Schmidt  <wschmidt@linux.vnet.ibm.com>
+
+	PR tree-optimization/49749
+	* tree-ssa-reassoc.c (get_rank): Fix operand scan conditions and
+	remove no-longer-used maxrank variable.
+
+2011-07-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (final_prescan_insn): Fix printing of rtx_costs.
+
+2011-07-21  Jason Merrill  <jason@redhat.com>
+
+	* system.h (HAVE_DESIGNATED_UNION_INITIALIZERS): New.
+	* recog.h (struct insn_data_d): Check it instead of
+	HAVE_DESIGNATED_INITIALIZERS.
+	* genoutput.c (output_insn_data): Likewise.
+
+2011-07-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49770
+	* tree-ssa-sccvn.c (valueize_refs_1): Return whether we
+	valueized any operand.  Renamed from ...
+	(valueize_refs): ... this.  New wrapper around valueize_refs_1.
+	(valueize_shared_reference_ops_from_ref): Return whether we
+	valueized any operand.
+	(vn_reference_lookup): Only when we valueized any operand
+	use the valueized reference for alias analysis.  Do not preserve
+	the original reference tree in this case.
+
+2011-07-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* config/i386/i386.c (ix86_decompose_address): Reject all but
+	register operands and subregs of DImode hard registers in index.
+
+2011-07-21  Kai Tietz  <ktietz@redhat.com>
+
+	* fold-const.c (fold_unary_loc): Preserve indirect
+	comparison cast to none-boolean type.
+	* tree-ssa.c (useless_type_conversion_p): Preserve cast
+	from/to boolean-type.
+	* gimplify.c (gimple_boolify): Handle boolification of comparisons.
+	(gimplify_expr): Boolifiy non aggregate-typed comparisons.
+	* tree-cfg.c (verify_gimple_comparison): Check result
+	type of comparison expression.
+	* tree-ssa-forwprop.c (forward_propagate_comparison): Adjust test
+	of condition result and disallow type-cast sinking into comparison.
+
+2011-07-21  Richard Guenther  <rguenther@suse.de>
+
+	* tree-ssa-forwprop.c (combine_conversions): Return whether
+	we have to run cfg-cleanup.  Properly remove dead stmts.
+	(ssa_forward_propagate_and_combine): Adjust.
+
+2011-07-21  Richard Sandiford  <richard.sandiford@linaro.org>
+
+	* regcprop.c (maybe_mode_change): Check HARD_REGNO_MODE_OK.
+
+2011-07-21  Kai Tietz  <ktietz@redhat.com>
+
+	* tree-ssa-propagate.c (substitute_and_fold): Use
+	do_dce flag to deside, if BB's statements are scanned
+	in last to first, or first to last order.
+
+2011-07-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	* config/avr/avr.c (avr_rtx_costs): Set cost of CONST, LABEL_REF to 0.
+
 2011-07-20  H.J. Lu  <hongjiu.lu@intel.com>
 	    Uros Bizjak  <ubizjak@gmail.com>
 	    Richard Henderson  <rth@redhat.com>
@@ -13,9 +294,8 @@
 	* config/i386/i386.md (indirect_jump): Replace
 	nonimmediate_operand with indirect_branch_operand.
 	(*indirect_jump): Likewise.  Replace constraint "m" with "w".
-	(tablejump): Replace nonimmediate_operand with
-	indirect_branch_operand.  Convert operand 0 to Pmode for x32 if
-	not PIC.
+	(tablejump): Replace nonimmediate_operand with indirect_branch_operand.
+	Convert operand 0 to Pmode for x32 if not PIC.
 	(*tablejump_1): Replace nonimmediate_operand with
 	indirect_branch_operand.  Replace constraint "m" with "w".
 	(*call_vzeroupper): Replace constraint "m" with "w".
@@ -26,8 +306,7 @@
 	(*call_value): Likewise.
 	(*call_value_rex64_ms_sysv_vzeroupper): Likewise.
 	(*call_value_rex64_ms_sysv): Likewise.
-	(set_got_offset_rex64): Check TARGET_LP64 instead of
-	TARGET_64BIT.
+	(set_got_offset_rex64): Check TARGET_LP64 instead of TARGET_64BIT.
 
 	* config/i386/predicates.md (indirect_branch_operand): New.
 	(call_insn_operand): Support x32.

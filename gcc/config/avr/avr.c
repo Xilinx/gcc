@@ -1629,12 +1629,18 @@ byte_immediate_operand (rtx op, enum machine_mode mode ATTRIBUTE_UNUSED)
 
 void
 final_prescan_insn (rtx insn, rtx *operand ATTRIBUTE_UNUSED,
-		    int num_operands ATTRIBUTE_UNUSED)
+                    int num_operands ATTRIBUTE_UNUSED)
 {
   if (TARGET_ALL_DEBUG)
     {
-      fprintf (asm_out_file, "/* DEBUG: cost = %d.  */\n",
-	       rtx_cost (PATTERN (insn), INSN, !optimize_size));
+      rtx set = single_set (insn);
+
+      if (set)
+        fprintf (asm_out_file, "/* DEBUG: cost = %d.  */\n",
+                 rtx_cost (SET_SRC (set), SET, optimize_insn_for_speed_p()));
+      else
+        fprintf (asm_out_file, "/* DEBUG: pattern-cost = %d.  */\n",
+                 rtx_cost (PATTERN (insn), INSN, optimize_insn_for_speed_p()));
     }
 }
 
@@ -5333,13 +5339,13 @@ avr_rtx_costs (rtx x, int codearg, int outer_code ATTRIBUTE_UNUSED, int *total,
     case CONST_INT:
     case CONST_DOUBLE:
     case SYMBOL_REF:
+    case CONST:
+    case LABEL_REF:
       /* Immediate constants are as cheap as registers.  */
       *total = 0;
       return true;
 
     case MEM:
-    case CONST:
-    case LABEL_REF:
       *total = COSTS_N_INSNS (GET_MODE_SIZE (mode));
       return true;
 
