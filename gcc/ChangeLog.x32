@@ -1,5 +1,17 @@
 2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/constraints.md (Yl): Replace
+	x32_lea_immediate_operand with si_lea_immediate_operand.
+	* config/i386/i386.md (*lea_general_1): Likewise.
+	(*lea_general_1_zext): Likewise.
+	(*lea_general_3): Likewise.
+	(*lea_general_3_zext): Likewise.
+
+	* config/i386/predicates.md (x32_lea_immediate_operand): Removed.
+	(si_lea_immediate_operand): New.
+
+2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (LEA split): Replace
 	x32_lea_nonmemory_operand with si_lea_nonmemory_operand.
 	(*lea_general_2): Likewise.

@@ -143,7 +143,7 @@
 (define_constraint "Yl"
   "Immediate constant for lea."
   (if_then_else (match_test "TARGET_X32")
-    (match_operand 0 "x32_lea_immediate_operand")
+    (match_operand 0 "si_lea_immediate_operand")
     (match_operand 0 "immediate_operand")))
 
 (define_constraint "z"
