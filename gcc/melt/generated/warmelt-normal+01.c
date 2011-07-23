@@ -2200,6 +2200,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_37 (struct
 void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_38 (struct
 								frame_start_module_melt_st
 								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_39 (struct
+								frame_start_module_melt_st
+								*, char *);
 static void forward_or_mark_module_start_frame_warmelt_normal (struct
 							       melt_callframe_st
 							       *fp,
@@ -18290,7 +18293,7 @@ lab_endgetargs:;
 
       /*^putpairhead */
       /*putpairhead */
-      melt_assertmsg ("putpairhead /d5aa82b checkpair",
+      melt_assertmsg ("putpairhead /3043f1e8 checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.CBIND__V39*/ meltfptr[38])) ==
 		      MELTOBMAG_PAIR);

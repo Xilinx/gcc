@@ -2200,6 +2200,9 @@ void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_37 (struct
 void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_38 (struct
 								frame_start_module_melt_st
 								*, char *);
+void MELT_MODULE_VISIBILITY warmelt_normal_initialmeltchunk_39 (struct
+								frame_start_module_melt_st
+								*, char *);
 static void forward_or_mark_module_start_frame_warmelt_normal (struct
 							       melt_callframe_st
 							       *fp,

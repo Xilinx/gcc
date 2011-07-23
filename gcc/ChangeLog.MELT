@@ -1,5 +1,29 @@
 
 2011-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{Regenerated}}
+	* melt/generated/warmelt-base.c: Regenerate.
+	* melt/generated/warmelt-debug.c: Regenerate.
+	* melt/generated/warmelt-first.c: Regenerate.
+	* melt/generated/warmelt-genobj+01.c: Regenerate.
+	* melt/generated/warmelt-genobj+04.c: Regenerate.
+	* melt/generated/warmelt-genobj+05.c: Regenerate.
+	* melt/generated/warmelt-genobj.c: Regenerate.
+	* melt/generated/warmelt-macro.c: Regenerate.
+	* melt/generated/warmelt-normal+01.c: Regenerate.
+	* melt/generated/warmelt-normal+02.c: Regenerate.
+	* melt/generated/warmelt-normal+03.c: Regenerate.
+	* melt/generated/warmelt-normal+04.c: Regenerate.
+	* melt/generated/warmelt-normal.c: Regenerate.
+	* melt/generated/warmelt-normatch+01.c: Regenerate.
+	* melt/generated/warmelt-normatch+02.c: Regenerate.
+	* melt/generated/warmelt-normatch+03.c: Regenerate.
+	* melt/generated/warmelt-normatch+04.c: Regenerate.
+	* melt/generated/warmelt-normatch.c: Regenerate.
+	* melt/generated/warmelt-outobj+04.c: Regenerate.
+	* melt/generated/warmelt-outobj+05.c: Regenerate.
+	* melt/generated/warmelt-outobj.c: Regenerate.
+
+2011-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 
 	* doc/melt.texi (Invoking MELT): Remove -fmelt-single-c-file.
 	* melt-runtime.h (melt_wants_single_c_file): Obsolete function,
