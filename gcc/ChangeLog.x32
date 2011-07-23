@@ -1,5 +1,9 @@
 2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/i386.md: Put back a blank line.
+
+2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/constraints.md (Ys): Rewritten.
 	(Ye): Updated.
 	(Yl): Likewise.
