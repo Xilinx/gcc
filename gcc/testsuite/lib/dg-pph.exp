@@ -142,13 +142,18 @@ proc dg-pph-pos { subdir test options mapflag suffix } {
 	file_on_host delete "$bname.s+pph"
     } elseif { $adiff == 1 } {
         verbose -log "Diff obtained:\n$diff_result"
-	set actualSum [lindex [split [exec sum << $diff_result] " "] 0]
+
+	#only checksum on the actual differences, ignore line numbers
+	set checksumed_diff [exec grep -E "^(<|>).*" << $diff_result]
+	verbose -log "Diff checksumed:\n$checksumed_diff"
+	set actualSum [lindex [split [exec sum << $checksumed_diff] " "] 0]
 	if { $xdiff } {
 	    set expectedSum [lindex [split $xdiff_entry " \}"] 3]
 	    if { $expectedSum == $actualSum } {
 	        xfail "$nshort $options (assembly comparison)"
 	    } else {
-	        fail "$nshort $options (assembly comparison, sums $expectedSum=>$actualSum)"
+		set sumMessage "sums $expectedSum=>$actualSum"
+	        fail "$nshort $options (assembly comparison, $sumMessage)"
 	    }
 	} else {
 	    fail "$nshort $options (assembly comparison, sum=$actualSum)"

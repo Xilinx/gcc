@@ -1,3 +1,10 @@
+2011-07-22  Gabriel Charette  <gchare@google.com>
+
+	* g++.dg/pph/c1eabi1.cc: Change expected diff checksum.
+	* g++.dg/pph/p4eabi1.cc: Change expected diff checksum.
+	* lib/dg-pph.exp (dg-pph-pos): Ignore line numbers in diff checksum.
+	Split long output message, using sumMessage, to respect 80 cols limit.
+
 2011-07-18  Gabriel Charette  <gchare@google.com>
 
 	* lib/dg-pph.exp (dg-pph-pos): Output actualSum on unexpected diff.
