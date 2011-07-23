@@ -1199,13 +1199,6 @@
   return true;
 })
 
-;; Return true when a constant operand can be stored into memory for x32.
-(define_predicate "x32_store_immediate_operand"
-  (match_operand 0 "immediate_operand")
-{
-  return !TARGET_X32 || !pic_32bit_operand (op, mode);
-})
-
 ;; Test for a valid general operand for SImode.
 (define_predicate "si_general_operand"
   (if_then_else (and (match_test "TARGET_X32")

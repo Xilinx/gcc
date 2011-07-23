@@ -1,5 +1,13 @@
 2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/constraints.md (Ys): Rewritten.
+	(Ye): Updated.
+	(Yl): Likewise.
+
+	* config/i386/predicates.md (x32_store_immediate_operand): Removed.
+
+2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/constraints.md (Yl): Replace
 	x32_lea_immediate_operand with si_lea_immediate_operand.
 	* config/i386/i386.md (*lea_general_1): Likewise.
