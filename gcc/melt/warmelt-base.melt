@@ -1568,32 +1568,6 @@ the field :CONTAINER_VALUE to $V. See also $CONTENT and $CONTAINER macros.}#
 )
 (install_value_descriptor valdesc_decay)
   
-;;;;;;;;;;;;;;;; boxed value (boxing another value)
-(definstance valdesc_box class_value_descriptor
-  :doc #{$VALDESC_BOX describes boxing values.}#
-  :named_name '"VALDESC_BOX"
-  :valdesc_objmagic '"MELTOBMAG_BOX"
-  :valdesc_struct '"meltbox_st"
-  :valdesc_unionmem '"u_box"
-  :valdesc_membchunk #{$' /* from VALDESC_BOX in warmelt-base.melt */
-  melt_ptr_t val;
-  }#
-  :valdesc_declchunk #{$' /* decl VALDESC_BOX in warmelt-base.melt */
-  typedef struct meltbox_st* meltbox_ptr_t;
-  }#
-  :valdesc_copychunk #{$' /* from VALDESC_BOX */
-/* ggc_alloc_meltbox_st should be gengtype generated for VALDESC_BOX */
-#ifndef ggc_alloc_meltbox_st
-#define ggc_alloc_meltbox_st() ((struct meltbox_st *)(ggc_internal_alloc_stat (sizeof (struct meltbox_st) MEM_STAT_INFO)))
-#endif
-     dst = ggc_alloc_meltbox_st ();
-     *dst = *src;
-  }#
-  :valdesc_forwchunk #{$' /* from VALDESC_BOX */
-     MELT_FORWARDED (src->val);
-  }#
-)
-(install_value_descriptor valdesc_box)
 
 ;;;;;;;;;;;;;;;; multiple value
 (definstance valdesc_multiple class_varisized_value_descriptor
@@ -2537,7 +2511,6 @@ polyhedron values.}#
  tuple_nth
  tuple_sized
  unregister_pass_execution_hook
- valdesc_box
  valdesc_closure
  valdesc_decay
  valdesc_int

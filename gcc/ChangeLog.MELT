@@ -1,4 +1,8 @@
 
+
+2011-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-base.melt (valdesc_box): Remove.
+
 2011-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated}}
 	* melt/generated/meltrunsup.h: Regenerate.
