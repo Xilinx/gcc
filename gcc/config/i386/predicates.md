@@ -1226,8 +1226,3 @@
 {
   return !TARGET_X32 || !SYMBOLIC_CONST (op);
 })
-
-;; Test for pointer register operand
-(define_predicate "pointer_register_operand"
-  (and (match_code "reg")
-       (match_test "REG_POINTER (op)")))

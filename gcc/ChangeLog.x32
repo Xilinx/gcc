@@ -1,5 +1,9 @@
 2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
 
+	* config/i386/predicates.md (pointer_register_operand): Removed.
+
+2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
+
 	* config/i386/i386.md (general_operand): Replace
 	x32_general_operand with si_general_operand.
 	(general_szext_operand): Likewise.
