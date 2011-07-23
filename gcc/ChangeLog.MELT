@@ -1,4 +1,13 @@
 
+2011-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c:
+	(load_checked_dynamic_module_index): Takes a struct
+	melt_source_and_module_path_st argument.
+	(melt_get_source_and_module): Calls accordingly.
+	(melt_really_initialize): Handles print-settings before.
+	* melt-module.mk (MELTSTAMPOLD): New variable.
+	Rename $(MELTSTAMP) as $(MELTSTAMPOLD) instead of removing it.
+
 2011-07-22  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-normal.melt (normexp_put_fields): Don't use box, but
 	containers.

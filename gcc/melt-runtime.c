@@ -5415,19 +5415,28 @@ notsame_md5_hex_binary(const char*hexmd5, const char*binmd5)
   return 0;
 }
 
-/* load a dynamic library using the filepath DYPATH; if MD5SRC is
+/* the duplicated C source and module shared object paths */
+struct melt_source_and_module_path_st {
+  char* src_path;		/* a malloc-ed *.c path */
+  char* sho_path;		/* a malloc-ed *.so path */
+};
+
+/* load a dynamic library using the paths inside SOP; if MD5SRC is
    given, check that the melt_md5 inside is indeed MD5SRC, fill the
    info of the modulinfo stack and return the positive index,
    otherwise return 0 */
 static int
-load_checked_dynamic_module_index (const char *dypath, const char *md5src)
+load_checked_dynamic_module_index (struct melt_source_and_module_path_st*sop, const char *md5src)
 {
   int ix = 0;
   int badfromline = 0;
+  /* the FAIL_BAD macro remember the originating line for debugging
+     purposes.  */
 #define FAIL_BAD() do {badfromline = __LINE__; goto bad;} while(0)
-  int dypathlen = 0;
   char *dynmd5 = NULL;
   char *dynversion = NULL;
+  char *dypath = NULL;
+  char *srcpath = NULL;
   char* dypathdup = NULL; /* the strdup-ed real path stored in the
 			     module info */
   void *dlh = NULL;
@@ -5437,78 +5446,28 @@ load_checked_dynamic_module_index (const char *dypath, const char *md5src)
   typedef melt_ptr_t startroutine_t (melt_ptr_t);
   typedef void markroutine_t (void *);
   PTR_UNION_TYPE(startroutine_t*) startrout_uf = {0};
-  dypathlen = dypath?strlen(dypath):0;
+  gcc_assert (sop != NULL);
+  gcc_assert (sop->src_path != NULL);
+  gcc_assert (sop->sho_path != NULL);
+  dypath = sop->sho_path;
+  srcpath = sop->src_path;
   if (flag_melt_bootstrapping)
     debugeprintf ("load_check_dynamic_module_index bootstrapping dypath=%s md5src=%s", dypath, md5src);
   else
     debugeprintf ("load_check_dynamic_module_index nonbootstrapping dypath=%s md5src=%s", dypath, md5src);
-  if (dypath && dypath[0])
+  if (dypath[0])
     dlh = (void *) dlopen (dypath, RTLD_NOW | RTLD_GLOBAL);
   debugeprintf ("load_check_dynamic_module_index dlh=%p dypath=%s", dlh, dypath);
   if (dlh) {
     dypathdup = lrealpath (dypath);
     if (verbose_flag || flag_melt_bootstrapping)
-      printf ("Loaded MELT module %s\n", dypathdup);
+      printf ("Loaded MELT module %s for source %s\n", dypathdup, srcpath);
   }
-  /* Try to append .so if needed ... */
-  else if (!dlh && dypathlen>3 
-	   && (dypath[dypathlen-3]!='.' || dypath[dypathlen-2]!='s' || dypath[dypathlen-1]!='o'))
-    {
-      char* dypathso = concat(dypath, ".so", NULL);
-      if (dypathso && dypathso[0])
-	dlh = (void *) dlopen (dypathso, RTLD_NOW | RTLD_GLOBAL);
-      if (dlh) {
-	dypathdup = lrealpath (dypathso);
-	if (!dypathdup) 
-	  dypathdup = xstrdup (dypathso);
-	if (verbose_flag || flag_melt_bootstrapping)
-	  printf ("Loaded MELT module %s\n", dypathdup);	
-      }
-      else
-	free (dypathso);
-    }
-  /* Try to append .q.so  */
-  if (!dlh && dypathlen>3
-      && (dypath[dypathlen-3]!='.' || dypath[dypathlen-2]!='s' || dypath[dypathlen-1]!='o')) {
-    char* dypathso = concat(dypath, ".q.so", NULL);
-    if (dypathso && dypathso[0])
-      dlh = (void *) dlopen (dypathso, RTLD_NOW | RTLD_GLOBAL);
-    if (dlh) {
-      dypathdup = lrealpath (dypathso);
-      if (!dypathdup) 
-	dypathdup = xstrdup (dypathso);
-      if (verbose_flag || flag_melt_bootstrapping)
-	printf ("Loaded quickly built MELT module %s\n", dypathdup);	
-    }
-    else
-      free (dypathso);
-  }
-  /* Try to append .n.so  */
-  if (!dlh && dypathlen>3
-      && (dypath[dypathlen-3]!='.' || dypath[dypathlen-2]!='s' || dypath[dypathlen-1]!='o')) {
-    char* dypathso = concat(dypath, ".n.so", NULL);
-    if (dypathso && dypathso[0])
-      dlh = (void *) dlopen (dypathso, RTLD_NOW | RTLD_GLOBAL);
-    if (dlh) {
-      dypathdup = lrealpath (dypathso);
-      if (!dypathdup) 
-	dypathdup = xstrdup (dypathso);
-      if (verbose_flag || flag_melt_bootstrapping)
-	printf ("Loaded MELT no-lined module %s\n", dypathdup);	
-    }
-    else
-      free (dypathso);
-  }
-  if (!dlh) 
-    {
-      debugeprintf ("load_check_dynamic_module_index dypath %s dlerror %s", dypath, dlerror());
-      return 0;
-    };
+  else 
+    FAIL_BAD ();
   /* we always check that a melt_md5 exists within the dynamically
      loaded stuff; otherwise it was not generated from MELT/melt */
   dynmd5 = (char *) dlsym ((void *) dlh, "melt_md5");
-  if (!dynmd5)
-    dynmd5 = (char *) dlsym ((void *) dlh, "melt_md5");
   debugeprintf ("dynmd5=%s", dynmd5);
   if (!dynmd5) 
     {
@@ -5556,9 +5515,6 @@ load_checked_dynamic_module_index (const char *dypath, const char *md5src)
   }
   PTR_UNION_AS_VOID_PTR(startrout_uf) =
     dlsym ((void *) dlh, "start_module_melt");
-  if (!PTR_UNION_AS_VOID_PTR(startrout_uf))
-    PTR_UNION_AS_VOID_PTR(startrout_uf) 
-      = dlsym ((void *) dlh, "start_module_melt");
   if (!PTR_UNION_AS_VOID_PTR(startrout_uf)) 
     {
       warning (0, "missing start_module_melt routine in MELT module %s", dypath);
@@ -5577,7 +5533,7 @@ load_checked_dynamic_module_index (const char *dypath, const char *md5src)
 	      hexmd5src[2*j+1] = "0123456789abcdef" [md5src[j]&0xf];
 	    }
 	  warning (0, "md5 source mismatch in MELT module %s", dypath);
-	  inform (UNKNOWN_LOCATION, "recomputed md5 of MELT C code is %s", hexmd5src);
+	  inform (UNKNOWN_LOCATION, "recomputed md5 of MELT C code %s is %s", srcpath, hexmd5src);
 	  inform (UNKNOWN_LOCATION, "MELT module contains registered md5sum %s", dynmd5);
 	  inform (UNKNOWN_LOCATION, "Consider removing and regenerating MELT generated files.");
 	  FAIL_BAD ();
@@ -5677,11 +5633,6 @@ lookup_path(const char*path, const char* base, const char* suffix)
    MELTLOADFLAG_DONTMAKE;  it returns the full malloc-ed paths of the .so
    module and the main .c source; it signals an error if the module is
    not found. */
-struct melt_source_and_module_path_st {
-  char* src_path;		/* a malloc-ed *.c path */
-  char* sho_path;		/* a malloc-ed *.so path */
-};
-
 
 static 
 struct melt_source_and_module_path_st
@@ -6226,7 +6177,7 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 			     "meltgc_make_load_melt_module before load dynamic module %s", sop.sho_path);
   debugeprintf ("meltgc_make_load_melt_module binpath %s srcpath %s md5hex %s", 
 		sop.sho_path, sop.src_path, md5hex);
-  dlix = load_checked_dynamic_module_index ((const char*) sop.sho_path, (const char*) md5src);
+  dlix = load_checked_dynamic_module_index (&sop, (const char*) md5src);
   debugeprintf ("meltgc_make_load_melt_module dlix=%d binpath %s", dlix, sop.sho_path);
   if (dlix <= 0)
     melt_fatal_error ("MELT failed to load binary module %s of C source %s & md5sum %s", 
@@ -9756,22 +9707,6 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
   countdbgstr = melt_argument ("debugskip");
   parsedmeltfilevect = VEC_alloc (meltchar_p, heap, 12);
 
-  if (flag_melt_bootstrapping) 
-    {
-      char* envpath = NULL;
-      inform  (UNKNOWN_LOCATION,
-	       "MELT is bootstrapping so ignore builtin source directory %s and module directory %s",
-	       melt_source_dir, melt_module_dir);
-      if ((envpath = getenv ("GCCMELT_SOURCE_PATH")) != NULL)
-	inform  (UNKNOWN_LOCATION, 
-		 "MELT is bootstrapping so ignore GCCMELT_SOURCE_PATH=%s", 
-		 envpath);
-      if ((envpath = getenv ("GCCMELT_MODULE_PATH")) != NULL)
-	inform  (UNKNOWN_LOCATION,
-		 "MELT is bootstrapping so ignore GCCMELT_MODULE_PATH=%s", 
-		 envpath);
-        
-    }
 
   printset = melt_argument ("print-settings");
   if (printset) {
@@ -9791,13 +9726,16 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
     }
     if (!printset[0] || !strcmp(printset, "-")) 
       setfil = stdout;
-    else
-      setfil = fopen(printset, "w");
-    if (!setfil) 
-      fatal_error ("MELT cannot open print-settings file %s : %m",
-		   printset);
+    else 
+      {
+	setfil = fopen (printset, "w");
+	if (!setfil) 
+	  fatal_error ("MELT cannot open print-settings file %s : %m",
+		       printset);
+      }
     fprintf (setfil, "## MELT builtin settings %s\n", 
 	     printset[0]?printset:"-");
+    /* Print the information with a # prefix, so a shell would ignore it.  */
     melt_print_version_info (setfil, "# ");
     /* We don't quote or escape builtin directories path, since they
        should not contain strange characters... */
@@ -9843,6 +9781,27 @@ melt_really_initialize (const char* pluginame, const char*versionstr)
       warning(0, "MELT printed settings in %s locale, better use C or POSIX locale!",
 	      curlocale);
   }
+
+  if (flag_melt_bootstrapping) 
+    {
+      char* envpath = NULL;
+      inform  (UNKNOWN_LOCATION,
+	       "MELT is bootstrapping so ignore builtin source directory %s",
+	       melt_source_dir);
+      inform  (UNKNOWN_LOCATION,
+	       "MELT is bootstrapping so ignore builtin module directory %s",
+	       melt_module_dir);
+      if ((envpath = getenv ("GCCMELT_SOURCE_PATH")) != NULL)
+	inform  (UNKNOWN_LOCATION, 
+		 "MELT is bootstrapping so ignore GCCMELT_SOURCE_PATH=%s", 
+		 envpath);
+      if ((envpath = getenv ("GCCMELT_MODULE_PATH")) != NULL)
+	inform  (UNKNOWN_LOCATION,
+		 "MELT is bootstrapping so ignore GCCMELT_MODULE_PATH=%s", 
+		 envpath);
+        
+    }
+
   if (!modstr || *modstr=='\0')
     {
       debugeprintf ("melt_really_initialize return immediately since no mode (inistr=%s)",
