@@ -2534,6 +2534,8 @@ end:
 }
 
 
+#warning MELT boxes are obsolete, we are removing them
+#if 0
 /***** boxes and DISCR_BOX is obsolete. Use containers of
        CLASS_CONTAINER instead. *****/
 
@@ -2610,6 +2612,7 @@ end:
 #undef boxv
 #undef valv
 }
+#endif
 
 /* safely return the content of a container - instance of CLASS_CONTAINER */
 melt_ptr_t

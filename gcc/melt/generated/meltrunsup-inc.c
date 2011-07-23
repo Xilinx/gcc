@@ -100,85 +100,82 @@ const char* melt_obmag_string (int i) {
  /*runtypesupport_mag2str no map magic */
  
 
- /*valdesc #1 VALDESC_BOX*/
- case MELTOBMAG_BOX: return "MELTOBMAG_BOX";
- 
- /*valdesc #2 VALDESC_CLOSURE*/
+ /*valdesc #1 VALDESC_CLOSURE*/
  case MELTOBMAG_CLOSURE: return "MELTOBMAG_CLOSURE";
  
- /*valdesc #3 VALDESC_DECAY*/
+ /*valdesc #2 VALDESC_DECAY*/
  case MELTOBMAG_DECAY: return "MELTOBMAG_DECAY";
  
- /*valdesc #4 VALDESC_INT*/
+ /*valdesc #3 VALDESC_INT*/
  case MELTOBMAG_INT: return "MELTOBMAG_INT";
  
- /*valdesc #5 VALDESC_LIST*/
+ /*valdesc #4 VALDESC_LIST*/
  case MELTOBMAG_LIST: return "MELTOBMAG_LIST";
  
- /*valdesc #6 VALDESC_MAPOBJECTS*/
+ /*valdesc #5 VALDESC_MAPOBJECTS*/
  case MELTOBMAG_MAPOBJECTS: return "MELTOBMAG_MAPOBJECTS";
  
- /*valdesc #7 VALDESC_MAPSTRINGS*/
+ /*valdesc #6 VALDESC_MAPSTRINGS*/
  case MELTOBMAG_MAPSTRINGS: return "MELTOBMAG_MAPSTRINGS";
  
- /*valdesc #8 VALDESC_MIXBIGINT*/
+ /*valdesc #7 VALDESC_MIXBIGINT*/
  case MELTOBMAG_MIXBIGINT: return "MELTOBMAG_MIXBIGINT";
  
- /*valdesc #9 VALDESC_MIXINT*/
+ /*valdesc #8 VALDESC_MIXINT*/
  case MELTOBMAG_MIXINT: return "MELTOBMAG_MIXINT";
  
- /*valdesc #10 VALDESC_MIXLOC*/
+ /*valdesc #9 VALDESC_MIXLOC*/
  case MELTOBMAG_MIXLOC: return "MELTOBMAG_MIXLOC";
  
- /*valdesc #11 VALDESC_MULTIPLE*/
+ /*valdesc #10 VALDESC_MULTIPLE*/
  case MELTOBMAG_MULTIPLE: return "MELTOBMAG_MULTIPLE";
  
- /*valdesc #12 VALDESC_OBJECT*/
+ /*valdesc #11 VALDESC_OBJECT*/
  case MELTOBMAG_OBJECT: return "MELTOBMAG_OBJECT";
  
- /*valdesc #13 VALDESC_PAIR*/
+ /*valdesc #12 VALDESC_PAIR*/
  case MELTOBMAG_PAIR: return "MELTOBMAG_PAIR";
  
- /*valdesc #14 VALDESC_REAL*/
+ /*valdesc #13 VALDESC_REAL*/
  case MELTOBMAG_REAL: return "MELTOBMAG_REAL";
  
- /*valdesc #15 VALDESC_ROUTINE*/
+ /*valdesc #14 VALDESC_ROUTINE*/
  case MELTOBMAG_ROUTINE: return "MELTOBMAG_ROUTINE";
  
- /*valdesc #16 VALDESC_SPECIAL_FILE*/
+ /*valdesc #15 VALDESC_SPECIAL_FILE*/
  case MELTOBMAG_SPEC_FILE: return "MELTOBMAG_SPEC_FILE";
  
- /*valdesc #17 VALDESC_SPECIAL_MPFR*/
+ /*valdesc #16 VALDESC_SPECIAL_MPFR*/
  case MELTOBMAG_SPEC_MPFR: return "MELTOBMAG_SPEC_MPFR";
  
- /*valdesc #18 VALDESC_SPECIAL_PPL_COEFFICIENT*/
+ /*valdesc #17 VALDESC_SPECIAL_PPL_COEFFICIENT*/
  case MELTOBMAG_SPECPPL_COEFFICIENT: return "MELTOBMAG_SPECPPL_COEFFICIENT";
  
- /*valdesc #19 VALDESC_SPECIAL_PPL_CONSTRAINT*/
+ /*valdesc #18 VALDESC_SPECIAL_PPL_CONSTRAINT*/
  case MELTOBMAG_SPECPPL_CONSTRAINT: return "MELTOBMAG_SPECPPL_CONSTRAINT";
  
- /*valdesc #20 VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM*/
+ /*valdesc #19 VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM*/
  case MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM: return "MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM";
  
- /*valdesc #21 VALDESC_SPECIAL_PPL_GENERATOR*/
+ /*valdesc #20 VALDESC_SPECIAL_PPL_GENERATOR*/
  case MELTOBMAG_SPECPPL_GENERATOR: return "MELTOBMAG_SPECPPL_GENERATOR";
  
- /*valdesc #22 VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM*/
+ /*valdesc #21 VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM*/
  case MELTOBMAG_SPECPPL_GENERATOR_SYSTEM: return "MELTOBMAG_SPECPPL_GENERATOR_SYSTEM";
  
- /*valdesc #23 VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION*/
+ /*valdesc #22 VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION*/
  case MELTOBMAG_SPECPPL_LINEAR_EXPRESSION: return "MELTOBMAG_SPECPPL_LINEAR_EXPRESSION";
  
- /*valdesc #24 VALDESC_SPECIAL_PPL_POLYHEDRON*/
+ /*valdesc #23 VALDESC_SPECIAL_PPL_POLYHEDRON*/
  case MELTOBMAG_SPECPPL_POLYHEDRON: return "MELTOBMAG_SPECPPL_POLYHEDRON";
  
- /*valdesc #25 VALDESC_SPECIAL_RAW_FILE*/
+ /*valdesc #24 VALDESC_SPECIAL_RAW_FILE*/
  case MELTOBMAG_SPEC_RAWFILE: return "MELTOBMAG_SPEC_RAWFILE";
  
- /*valdesc #26 VALDESC_STRBUF*/
+ /*valdesc #25 VALDESC_STRBUF*/
  case MELTOBMAG_STRBUF: return "MELTOBMAG_STRBUF";
  
- /*valdesc #27 VALDESC_STRING*/
+ /*valdesc #26 VALDESC_STRING*/
  case MELTOBMAG_STRING: return "MELTOBMAG_STRING";
  default:
   { int ix = (i & 0x3ffffff) % MELT_MAG2STR_CACHEBUF;
@@ -212,22 +209,7 @@ melt_forwarded_copy (melt_ptr_t p)
 
  /* value descriptor forward copy for melt_forwarded_copy  */
 
- /*valdesc #1 VALDESC_BOX*/
- case MELTOBMAG_BOX: {
-  struct meltbox_st*src = (struct meltbox_st*) p;
-  struct meltbox_st*dst = NULL;
-   /* from VALDESC_BOX */
-/* ggc_alloc_meltbox_st should be gengtype generated for VALDESC_BOX */
-#ifndef ggc_alloc_meltbox_st
-#define ggc_alloc_meltbox_st() ((struct meltbox_st *)(ggc_internal_alloc_stat (sizeof (struct meltbox_st) MEM_STAT_INFO)))
-#endif
-     dst = ggc_alloc_meltbox_st ();
-     *dst = *src;
-  
-  n = (melt_ptr_t) dst;
-  break; }
- 
- /*valdesc #2 VALDESC_CLOSURE*/
+ /*valdesc #1 VALDESC_CLOSURE*/
  case MELTOBMAG_CLOSURE: {
   struct meltclosure_st*src = (struct meltclosure_st*) p;
   struct meltclosure_st*dst = NULL;
@@ -251,7 +233,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #3 VALDESC_DECAY*/
+ /*valdesc #2 VALDESC_DECAY*/
  case MELTOBMAG_DECAY: {
   struct meltdecay_st*src = (struct meltdecay_st*) p;
   struct meltdecay_st*dst = NULL;
@@ -266,7 +248,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #4 VALDESC_INT*/
+ /*valdesc #3 VALDESC_INT*/
  case MELTOBMAG_INT: {
   struct meltint_st*src = (struct meltint_st*) p;
   struct meltint_st*dst = NULL;
@@ -283,7 +265,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #5 VALDESC_LIST*/
+ /*valdesc #4 VALDESC_LIST*/
  case MELTOBMAG_LIST: {
   struct meltlist_st*src = (struct meltlist_st*) p;
   struct meltlist_st*dst = NULL;
@@ -300,7 +282,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #6 VALDESC_MAPOBJECTS*/
+ /*valdesc #5 VALDESC_MAPOBJECTS*/
  case MELTOBMAG_MAPOBJECTS: {
   struct meltmapobjects_st*src = (struct meltmapobjects_st*) p;
   struct meltmapobjects_st*dst = NULL;
@@ -334,7 +316,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #7 VALDESC_MAPSTRINGS*/
+ /*valdesc #6 VALDESC_MAPSTRINGS*/
  case MELTOBMAG_MAPSTRINGS: {
   struct meltmapstrings_st*src = (struct meltmapstrings_st*) p;
   struct meltmapstrings_st*dst = NULL;
@@ -368,7 +350,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #8 VALDESC_MIXBIGINT*/
+ /*valdesc #7 VALDESC_MIXBIGINT*/
  case MELTOBMAG_MIXBIGINT: {
   struct meltmixbigint_st*src = (struct meltmixbigint_st*) p;
   struct meltmixbigint_st*dst = NULL;
@@ -391,7 +373,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #9 VALDESC_MIXINT*/
+ /*valdesc #8 VALDESC_MIXINT*/
  case MELTOBMAG_MIXINT: {
   struct meltmixint_st*src = (struct meltmixint_st*) p;
   struct meltmixint_st*dst = NULL;
@@ -408,7 +390,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #10 VALDESC_MIXLOC*/
+ /*valdesc #9 VALDESC_MIXLOC*/
  case MELTOBMAG_MIXLOC: {
   struct meltmixloc_st*src = (struct meltmixloc_st*) p;
   struct meltmixloc_st*dst = NULL;
@@ -425,7 +407,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #11 VALDESC_MULTIPLE*/
+ /*valdesc #10 VALDESC_MULTIPLE*/
  case MELTOBMAG_MULTIPLE: {
   struct meltmultiple_st*src = (struct meltmultiple_st*) p;
   struct meltmultiple_st*dst = NULL;
@@ -450,7 +432,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #12 VALDESC_OBJECT*/
+ /*valdesc #11 VALDESC_OBJECT*/
  case MELTOBMAG_OBJECT: {
   struct meltobject_st*src = (struct meltobject_st*) p;
   struct meltobject_st*dst = NULL;
@@ -477,7 +459,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #13 VALDESC_PAIR*/
+ /*valdesc #12 VALDESC_PAIR*/
  case MELTOBMAG_PAIR: {
   struct meltpair_st*src = (struct meltpair_st*) p;
   struct meltpair_st*dst = NULL;
@@ -493,7 +475,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #14 VALDESC_REAL*/
+ /*valdesc #13 VALDESC_REAL*/
  case MELTOBMAG_REAL: {
   struct meltreal_st*src = (struct meltreal_st*) p;
   struct meltreal_st*dst = NULL;
@@ -510,7 +492,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #15 VALDESC_ROUTINE*/
+ /*valdesc #14 VALDESC_ROUTINE*/
  case MELTOBMAG_ROUTINE: {
   struct meltroutine_st*src = (struct meltroutine_st*) p;
   struct meltroutine_st*dst = NULL;
@@ -537,7 +519,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #16 VALDESC_SPECIAL_FILE*/
+ /*valdesc #15 VALDESC_SPECIAL_FILE*/
  case MELTOBMAG_SPEC_FILE: {
   struct meltspecialfile_st*src = (struct meltspecialfile_st*) p;
   struct meltspecialfile_st*dst = NULL;
@@ -557,7 +539,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #17 VALDESC_SPECIAL_MPFR*/
+ /*valdesc #16 VALDESC_SPECIAL_MPFR*/
  case MELTOBMAG_SPEC_MPFR: {
   struct meltspecialmpfr_st*src = (struct meltspecialmpfr_st*) p;
   struct meltspecialmpfr_st*dst = NULL;
@@ -577,7 +559,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #18 VALDESC_SPECIAL_PPL_COEFFICIENT*/
+ /*valdesc #17 VALDESC_SPECIAL_PPL_COEFFICIENT*/
  case MELTOBMAG_SPECPPL_COEFFICIENT: {
   struct meltspecialpplcoefficient_st*src = (struct meltspecialpplcoefficient_st*) p;
   struct meltspecialpplcoefficient_st*dst = NULL;
@@ -597,7 +579,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #19 VALDESC_SPECIAL_PPL_CONSTRAINT*/
+ /*valdesc #18 VALDESC_SPECIAL_PPL_CONSTRAINT*/
  case MELTOBMAG_SPECPPL_CONSTRAINT: {
   struct meltspecialpplconstraint_st*src = (struct meltspecialpplconstraint_st*) p;
   struct meltspecialpplconstraint_st*dst = NULL;
@@ -617,7 +599,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #20 VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM*/
+ /*valdesc #19 VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM*/
  case MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM: {
   struct meltspecialpplconstraintsystem_st*src = (struct meltspecialpplconstraintsystem_st*) p;
   struct meltspecialpplconstraintsystem_st*dst = NULL;
@@ -637,7 +619,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #21 VALDESC_SPECIAL_PPL_GENERATOR*/
+ /*valdesc #20 VALDESC_SPECIAL_PPL_GENERATOR*/
  case MELTOBMAG_SPECPPL_GENERATOR: {
   struct meltspecialpplgenerator_st*src = (struct meltspecialpplgenerator_st*) p;
   struct meltspecialpplgenerator_st*dst = NULL;
@@ -657,7 +639,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #22 VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM*/
+ /*valdesc #21 VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM*/
  case MELTOBMAG_SPECPPL_GENERATOR_SYSTEM: {
   struct meltspecialpplgeneratorsystem_st*src = (struct meltspecialpplgeneratorsystem_st*) p;
   struct meltspecialpplgeneratorsystem_st*dst = NULL;
@@ -677,7 +659,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #23 VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION*/
+ /*valdesc #22 VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION*/
  case MELTOBMAG_SPECPPL_LINEAR_EXPRESSION: {
   struct meltspecialppllinearexpression_st*src = (struct meltspecialppllinearexpression_st*) p;
   struct meltspecialppllinearexpression_st*dst = NULL;
@@ -697,7 +679,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #24 VALDESC_SPECIAL_PPL_POLYHEDRON*/
+ /*valdesc #23 VALDESC_SPECIAL_PPL_POLYHEDRON*/
  case MELTOBMAG_SPECPPL_POLYHEDRON: {
   struct meltspecialpplpolyhedron_st*src = (struct meltspecialpplpolyhedron_st*) p;
   struct meltspecialpplpolyhedron_st*dst = NULL;
@@ -717,7 +699,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #25 VALDESC_SPECIAL_RAW_FILE*/
+ /*valdesc #24 VALDESC_SPECIAL_RAW_FILE*/
  case MELTOBMAG_SPEC_RAWFILE: {
   struct meltspecialrawfile_st*src = (struct meltspecialrawfile_st*) p;
   struct meltspecialrawfile_st*dst = NULL;
@@ -737,7 +719,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #26 VALDESC_STRBUF*/
+ /*valdesc #25 VALDESC_STRBUF*/
  case MELTOBMAG_STRBUF: {
   struct meltstrbuf_st*src = (struct meltstrbuf_st*) p;
   struct meltstrbuf_st*dst = NULL;
@@ -770,7 +752,7 @@ melt_forwarded_copy (melt_ptr_t p)
   n = (melt_ptr_t) dst;
   break; }
  
- /*valdesc #27 VALDESC_STRING*/
+ /*valdesc #26 VALDESC_STRING*/
  case MELTOBMAG_STRING: {
   struct meltstring_st*src = (struct meltstring_st*) p;
   struct meltstring_st*dst = NULL;
@@ -1143,15 +1125,7 @@ melt_scanning (melt_ptr_t p)
     {
 /* end of header from generate_runtypesupport_scanning*/
 
- /*valdesc #1 VALDESC_BOX*/
- case MELTOBMAG_BOX: {
-  struct meltbox_st*src = (struct meltbox_st*) p;
-   /* from VALDESC_BOX */
-     MELT_FORWARDED (src->val);
-  
-  break; }
- 
- /*valdesc #2 VALDESC_CLOSURE*/
+ /*valdesc #1 VALDESC_CLOSURE*/
  case MELTOBMAG_CLOSURE: {
   struct meltclosure_st*src = (struct meltclosure_st*) p;
    /* from VALDESC_CLOSURE */
@@ -1163,7 +1137,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #3 VALDESC_DECAY*/
+ /*valdesc #2 VALDESC_DECAY*/
  case MELTOBMAG_DECAY: {
   struct meltdecay_st*src = (struct meltdecay_st*) p;
    /* from VALDESC_DECAY */
@@ -1171,11 +1145,11 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #4 VALDESC_INT*/
+ /*valdesc #3 VALDESC_INT*/
  case MELTOBMAG_INT: {
   break; }
  
- /*valdesc #5 VALDESC_LIST*/
+ /*valdesc #4 VALDESC_LIST*/
  case MELTOBMAG_LIST: {
   struct meltlist_st*src = (struct meltlist_st*) p;
    /* from VALDESC_LIST */
@@ -1184,7 +1158,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #6 VALDESC_MAPOBJECTS*/
+ /*valdesc #5 VALDESC_MAPOBJECTS*/
  case MELTOBMAG_MAPOBJECTS: {
   struct meltmapobjects_st*src = (struct meltmapobjects_st*) p;
    /* from VALDESC_MAPOBJECTS */
@@ -1217,7 +1191,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #7 VALDESC_MAPSTRINGS*/
+ /*valdesc #6 VALDESC_MAPSTRINGS*/
  case MELTOBMAG_MAPSTRINGS: {
   struct meltmapstrings_st*src = (struct meltmapstrings_st*) p;
    /* from VALDESC_MAPSTRINGS */
@@ -1250,7 +1224,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #8 VALDESC_MIXBIGINT*/
+ /*valdesc #7 VALDESC_MIXBIGINT*/
  case MELTOBMAG_MIXBIGINT: {
   struct meltmixbigint_st*src = (struct meltmixbigint_st*) p;
    /* from VALDESC_MIXBIGINT */
@@ -1258,7 +1232,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #9 VALDESC_MIXINT*/
+ /*valdesc #8 VALDESC_MIXINT*/
  case MELTOBMAG_MIXINT: {
   struct meltmixint_st*src = (struct meltmixint_st*) p;
    /* from VALDESC_MIXINT */
@@ -1266,7 +1240,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #10 VALDESC_MIXLOC*/
+ /*valdesc #9 VALDESC_MIXLOC*/
  case MELTOBMAG_MIXLOC: {
   struct meltmixloc_st*src = (struct meltmixloc_st*) p;
    /* from VALDESC_MIXLOC */
@@ -1274,7 +1248,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #11 VALDESC_MULTIPLE*/
+ /*valdesc #10 VALDESC_MULTIPLE*/
  case MELTOBMAG_MULTIPLE: {
   struct meltmultiple_st*src = (struct meltmultiple_st*) p;
    /* from VALDESC_MULTIPLE */
@@ -1285,7 +1259,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #12 VALDESC_OBJECT*/
+ /*valdesc #11 VALDESC_OBJECT*/
  case MELTOBMAG_OBJECT: {
   struct meltobject_st*src = (struct meltobject_st*) p;
    /* from VALDESC_OBJECT */
@@ -1296,7 +1270,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #13 VALDESC_PAIR*/
+ /*valdesc #12 VALDESC_PAIR*/
  case MELTOBMAG_PAIR: {
   struct meltpair_st*src = (struct meltpair_st*) p;
    /* forward VALDESC_PAIR in warmelt-base.melt */
@@ -1305,11 +1279,11 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #14 VALDESC_REAL*/
+ /*valdesc #13 VALDESC_REAL*/
  case MELTOBMAG_REAL: {
   break; }
  
- /*valdesc #15 VALDESC_ROUTINE*/
+ /*valdesc #14 VALDESC_ROUTINE*/
  case MELTOBMAG_ROUTINE: {
   struct meltroutine_st*src = (struct meltroutine_st*) p;
    /* from VALDESC_ROUTINE */
@@ -1320,7 +1294,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #16 VALDESC_SPECIAL_FILE*/
+ /*valdesc #15 VALDESC_SPECIAL_FILE*/
  case MELTOBMAG_SPEC_FILE: {
   struct meltspecialfile_st*src = (struct meltspecialfile_st*) p;
    /* from VALDESC_SPECIAL_FILE */
@@ -1328,7 +1302,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #17 VALDESC_SPECIAL_MPFR*/
+ /*valdesc #16 VALDESC_SPECIAL_MPFR*/
  case MELTOBMAG_SPEC_MPFR: {
   struct meltspecialmpfr_st*src = (struct meltspecialmpfr_st*) p;
    /* from VALDESC_SPECIAL_MPFR */
@@ -1336,7 +1310,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #18 VALDESC_SPECIAL_PPL_COEFFICIENT*/
+ /*valdesc #17 VALDESC_SPECIAL_PPL_COEFFICIENT*/
  case MELTOBMAG_SPECPPL_COEFFICIENT: {
   struct meltspecialpplcoefficient_st*src = (struct meltspecialpplcoefficient_st*) p;
    /* from VALDESC_SPECIAL_PPL_COEFFICIENT */
@@ -1344,7 +1318,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #19 VALDESC_SPECIAL_PPL_CONSTRAINT*/
+ /*valdesc #18 VALDESC_SPECIAL_PPL_CONSTRAINT*/
  case MELTOBMAG_SPECPPL_CONSTRAINT: {
   struct meltspecialpplconstraint_st*src = (struct meltspecialpplconstraint_st*) p;
    /* from VALDESC_SPECIAL_PPL_CONSTRAINT */
@@ -1352,7 +1326,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #20 VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM*/
+ /*valdesc #19 VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM*/
  case MELTOBMAG_SPECPPL_CONSTRAINT_SYSTEM: {
   struct meltspecialpplconstraintsystem_st*src = (struct meltspecialpplconstraintsystem_st*) p;
    /* from VALDESC_SPECIAL_PPL_CONSTRAINT_SYSTEM */
@@ -1360,7 +1334,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #21 VALDESC_SPECIAL_PPL_GENERATOR*/
+ /*valdesc #20 VALDESC_SPECIAL_PPL_GENERATOR*/
  case MELTOBMAG_SPECPPL_GENERATOR: {
   struct meltspecialpplgenerator_st*src = (struct meltspecialpplgenerator_st*) p;
    /* from VALDESC_SPECIAL_PPL_GENERATOR */
@@ -1368,7 +1342,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #22 VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM*/
+ /*valdesc #21 VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM*/
  case MELTOBMAG_SPECPPL_GENERATOR_SYSTEM: {
   struct meltspecialpplgeneratorsystem_st*src = (struct meltspecialpplgeneratorsystem_st*) p;
    /* from VALDESC_SPECIAL_PPL_GENERATOR_SYSTEM */
@@ -1376,7 +1350,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #23 VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION*/
+ /*valdesc #22 VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION*/
  case MELTOBMAG_SPECPPL_LINEAR_EXPRESSION: {
   struct meltspecialppllinearexpression_st*src = (struct meltspecialppllinearexpression_st*) p;
    /* from VALDESC_SPECIAL_PPL_LINEAR_EXPRESSION */
@@ -1384,7 +1358,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #24 VALDESC_SPECIAL_PPL_POLYHEDRON*/
+ /*valdesc #23 VALDESC_SPECIAL_PPL_POLYHEDRON*/
  case MELTOBMAG_SPECPPL_POLYHEDRON: {
   struct meltspecialpplpolyhedron_st*src = (struct meltspecialpplpolyhedron_st*) p;
    /* from VALDESC_SPECIAL_PPL_POLYHEDRON */
@@ -1392,7 +1366,7 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #25 VALDESC_SPECIAL_RAW_FILE*/
+ /*valdesc #24 VALDESC_SPECIAL_RAW_FILE*/
  case MELTOBMAG_SPEC_RAWFILE: {
   struct meltspecialrawfile_st*src = (struct meltspecialrawfile_st*) p;
    /* from VALDESC_SPECIAL_RAW_FILE */
@@ -1400,11 +1374,11 @@ melt_scanning (melt_ptr_t p)
   
   break; }
  
- /*valdesc #26 VALDESC_STRBUF*/
+ /*valdesc #25 VALDESC_STRBUF*/
  case MELTOBMAG_STRBUF: {
   break; }
  
- /*valdesc #27 VALDESC_STRING*/
+ /*valdesc #26 VALDESC_STRING*/
  case MELTOBMAG_STRING: {
   break; }
  
@@ -1930,4 +1904,4 @@ end: MELT_EXITFRAME ();
 
 
 /*** End of code file meltrunsup-inc.c generated on 2011 Jul 23
- * by GCC MELT 4.7.0 20110721 (experimental) [melt-branch revision 176692] MELT_0.9pre . ***/
+ * by GCC MELT 4.7.0 20110721 (experimental) [melt-branch revision 176695] MELT_0.9pre . ***/

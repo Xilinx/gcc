@@ -51,7 +51,7 @@ MELTMODULE_SRCDIR:=$(patsubst %/, %, $(dir $(GCCMELT_MODULE_SOURCE)))
 
 ## these flags should only affect the quality of the generated
 ## binaries. No preprocessor flags please here!
-GCCMELT_OPTIMIZED_FLAGS ?= -O2
+GCCMELT_OPTIMIZED_FLAGS ?= -O1
 GCCMELT_QUICKLYBUILT_FLAGS ?= -O0
 GCCMELT_DYNAMIC_FLAGS ?= -O0
 GCCMELT_NOLINE_FLAGS ?= -g

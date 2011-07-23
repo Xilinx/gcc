@@ -1619,14 +1619,6 @@ and $CLASS_CLASS.}#
   :disc_super discr_multiple
   )
 
-;;; the discriminant for boxes
-(definstance discr_box class_discriminant
-  :doc #{The $DISCR_BOX is the discriminant of box values, containing
-a single mutable value. See also $CLASS_CONTAINER.}#
-  :predef DISCR_BOX
-  :obj_num MELTOBMAG_BOX
-  :disc_super discr_any_receiver
-  :named_name '"DISCR_BOX")
 
 ;;; the discriminant for tree-s
 (definstance discr_tree class_discriminant
@@ -4093,8 +4085,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  ctype_void  
  discr_any_receiver                        
  discr_basic_block   
- discr_bitmap                       
- discr_box 
+ discr_bitmap 
  discr_character_integer                    
  discr_class_sequence                       
  discr_closure                        

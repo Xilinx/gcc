@@ -586,12 +586,14 @@ meltgc_sort_multiple(melt_ptr_t mult_p, melt_ptr_t clo_p, melt_ptr_t discrm_p);
 
 
 /* Boxes are obsolete; use containers instead. */
+#warning MELT boxes are obsolete
+#define MELTOBMAG_BOX 0
 /* allocate a new box of given DISCR & content VAL */
-melt_ptr_t meltgc_new_box (meltobject_ptr_t discr_p,
-				 melt_ptr_t val_p);
+static inline melt_ptr_t meltgc_new_box (meltobject_ptr_t discr_p,
+					 melt_ptr_t val_p) {return NULL;}
 /* return the content of a box */
-melt_ptr_t melt_box_content (meltbox_ptr_t box);
-void meltgc_box_put (melt_ptr_t box, melt_ptr_t val);
+static inline melt_ptr_t melt_box_content (melt_ptr_t box) {return NULL;}
+static inline void meltgc_box_put (melt_ptr_t box, melt_ptr_t val) {}
 
 
 
