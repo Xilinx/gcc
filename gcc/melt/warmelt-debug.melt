@@ -562,23 +562,7 @@ $TORANK}#
     (add2sbuf_strconst sbuf ".)")))
 
 (install_method discr_pair dbg_output dbgout_pair_method)      
-
-;; box debug output
-(defun dbgout_box_method (self dbgi :long depth)
-  (assert_msg "check dbgi" (is_a dbgi class_debug_information))
-  (let ( (dis (discrim self)) 
-	 (sbuf  (unsafe_get_field :dbgi_out dbgi)) )
-    (if (== dis DISCR_BOX)
-	(add2sbuf_strconst sbuf " *box[<")
-      (progn
-	(add2sbuf_strconst sbuf " |")
-	(add2sbuf_string sbuf (unsafe_get_field :named_name dis))
-	(add2sbuf_strconst sbuf "[<")))
-    (if (need_dbglim depth (get_int (unsafe_get_field :dbgi_maxdepth dbgi)))
-	(dbg_out (box_content self) dbgi (+i depth 1)))
-    (add2sbuf_strconst sbuf ">]")))
-
-(install_method discr_box dbg_output dbgout_box_method)      
+  
 
 
 ;; mapobject debug output
