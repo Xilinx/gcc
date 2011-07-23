@@ -6382,12 +6382,12 @@ source location.}#
 	)
     (cond ( (is_a spred class_symbol)
 	    ;; if the spred is a symbol, check that it is a value in the predefmap
-	    (let ( (boxk (make_box discr_box ())) 
+	    (let ( (contk (container ())) 
 		   )
 	      (mapobject_every predefmap
 			       (lambda (key val)
-				 (if (== val spred) (box_put boxk key))))
-	      (if (null (box_content boxk))
+				 (if (== val spred) (set_content contk key))))
+	      (if (null (content contk))
 		  (warning_strv sloc "FETCH_PREDEFINED unknown predef name"
 				(unsafe_get_field :named_name spred)))
 	      )
@@ -6429,12 +6429,12 @@ source location.}#
 	)
     (cond ( (is_a spred class_symbol)
 	    ;; if the spred is a symbol, check that it is a value in the predefmap
-	    (let ( (boxk (make_box discr_box ())) 
+	    (let ( (contk (container ())) 
 		   )
 	      (mapobject_every predefmap
 			       (lambda (key val)
-				 (if (== val spred) (box_put boxk key))))
-	      (if (null (box_content boxk))
+				 (if (== val spred) (set_content contk key))))
+	      (if (null (content contk))
 		  (warning_strv sloc "STORE_PREDEFINED unknown predef name"
 				(unsafe_get_field :named_name spred)))
 	      )
