@@ -1,3 +1,23 @@
+2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config/i386/i386.md (general_operand): Replace
+	x32_general_operand with si_general_operand.
+	(general_szext_operand): Likewise.
+	(addsi_1_zext): Likewise.
+	(*addsi_2_zext): Likewise.
+	(*subsi_1_zext): Likewise.
+	(*subsi_2_zext): Likewise.
+	(*subsi_3_zext): Likewise.
+	(*addsi3_carry_zext): Likewise.
+	(*subsi3_carry_zext): Likewise.
+	(*andsi_1): Likewise.
+	(*andsi_1_zext): Likewise.
+	(*andsi_2_zext): Likewise.
+
+	* config/i386/predicates.md (x32_general_operand): Renamed to
+	...
+	(si_general_operand): This.
+
 2011-07-21  H.J. Lu  <hongjiu.lu@intel.com>
 
 	* config/i386/i386.c (ix86_option_override_internal): Disallow

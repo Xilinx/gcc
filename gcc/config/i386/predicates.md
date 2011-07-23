@@ -1206,8 +1206,8 @@
   return !TARGET_X32 || !pic_32bit_operand (op, mode);
 })
 
-;; Return nonzero if OP is general operand representable on x32.
-(define_predicate "x32_general_operand"
+;; Test for a valid general operand for SImode.
+(define_predicate "si_general_operand"
   (if_then_else (and (match_test "TARGET_X32")
 		     (match_test "flag_pic"))
     (match_operand 0 "x86_64_general_operand")
