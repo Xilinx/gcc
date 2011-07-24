@@ -1,5 +1,16 @@
 
 
+2011-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{reverting to rev.176695}}
+	* melt/generated/warmelt-first.c: Revert.
+	* melt/generated/warmelt-normal.c: Revert.
+	* melt/generated/warmelt-first+01.c: Revert.
+	* melt/generated/warmelt-first+02.c: Revert.
+	* melt/generated/warmelt-normal+01.c: Revert.
+	* melt/generated/warmelt-normal+02.c: Revert.
+	* melt/generated/warmelt-normal+03.c: Revert.
+	* melt/generated/warmelt-normal+04.c: Revert.
+
 2011-07-23  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{partly regenerated. removing DISCR_BOX is painful. Still instable.}}
 	* melt/generated/warmelt-normal.c: Regenerate.
