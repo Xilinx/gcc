@@ -1,3 +1,24 @@
+
+2011-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (melt_store_predefined): Do nothing when ix<0.
+
+	* melt-runtime.c (readval) rename as
+	(meltgc_readval).
+	(readstring) rename as
+	(meltgc_readstring).
+	(readmacrostringsequence) rename as
+	(meltgc_readmacrostringsequence).
+	(readseqlist) rename as
+	(meltgc_readseqlist).
+	(makesexpr) rename as
+	(meltgc_makesexpr).
+	(melt_output_cfile_decl_impl_secondary_option): Output a comment, even without options.
+
+	* melt/warmelt-outobj.melt (outcinitfill_objinitobject): Output indentation.
+	(outcinitfill_objinitstring): Ditto.
+	(compile_list_sexpr): Always generate several files.
+	(translate_macroexpanded_list): Add comments in codechunks.
+
 2011-07-25  Romain Geissler  <romain.geissler@gmail.com>
 
 	* melt/xtramelt-ana-base.melt (foreach_edge_bb_precs): Rename for

@@ -137,6 +137,7 @@
 			  0)))
 	   )
       (if odloc (output_location odloc sbuf depthp1 "iniobj"))
+      (add2sbuf_indentnl sbuf depth)
       (add2sbuf_strconst sbuf "/*iniobj ")
       (add2sbuf_string sbuf oname)
       (add2sbuf_strconst sbuf "*/")
@@ -579,10 +580,11 @@
 	 (strdata (unsafe_get_field :oie_data recv))
 	 (:long datalen (string_length strdata))
 	 )
+    (add2sbuf_indentnl sbuf depth)
     (add2sbuf_strconst sbuf "/*inistring ")
     (add2sbuf_string sbuf cnam)
     (add2sbuf_strconst sbuf "*/")
-    (add2sbuf_indentnl sbuf 1)
+    (add2sbuf_indentnl sbuf (+i depth 1))
     (if olocvar
 	(progn
 	  (output_c_code olocvar () sbuf 1)
@@ -3863,7 +3865,7 @@
 	   (objlist)
 	   (pairel obel)
 	   (debug_msg obel "compile_list_sexpr obel")
-	   ;; we may want to generate several C files...
+	   ;; we do want to generate several C files...
 	   (let ( (:long filnum
 			 (if (is_a obel class_procroutineobj)
 			     (get_int (get_field :oprout_filenum obel))))
@@ -3879,10 +3881,11 @@
 	  (output_c_code iniobj declbuf implbuf 0)
 	  (output_exported_offsets modctx declbuf implbuf)
 	  (code_chunk outputcfile
-		      #{ /* $outputcfile: */
-		      melt_output_cfile_decl_impl((melt_ptr_t)($modnamstr),
-						  (melt_ptr_t)($declbuf),
-						  (melt_ptr_t)($implbuf)) ;
+		      #{ /* translate_macroexpanded_list $OUTPUTCFILE: */
+		      melt_output_cfile_decl_impl
+		        ((melt_ptr_t)($MODNAMSTR),
+			 (melt_ptr_t)($DECLBUF),
+			 (melt_ptr_t)($IMPLBUF)) ;
 		      }#)
 	  ;;(informsg_strv "warmelt generated module C file" modnamstr)
 	  (let ( (secfiles (get_field :mocx_filetuple modctx)) )
@@ -3903,11 +3906,12 @@
 			  )
 		     (code_chunk 
 		      secfilout 
-		      #{ /* $secfilout */
-		      melt_output_cfile_decl_impl_secondary((melt_ptr_t)($secfilpath),
-							    (melt_ptr_t)($secdeclbuf),
-							    (melt_ptr_t)($secimplbuf),
-							    $filix) ;
+		      #{ /* translate_macroexpanded_list $SECFILOUT: */
+		      melt_output_cfile_decl_impl_secondary 
+                          ((melt_ptr_t)($SECFILPATH),
+			   (melt_ptr_t)($SECDECLBUF),
+			   (melt_ptr_t)($SECIMPLBUF),
+			   $FILIX) ;
 		      }#)
 		     ;;(informsg_strv "warmelt generated secondary C file" secfilpath)
 		     ))

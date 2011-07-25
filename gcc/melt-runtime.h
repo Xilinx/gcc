@@ -2399,6 +2399,8 @@ melt_fetch_predefined(int ix)
 
 static inline void melt_store_predefined(int ix, melt_ptr_t p)
 {
+  if (ix < 0)
+    return;
   gcc_assert (ix>0 && ix<MELTGLOB__LASTWIRED);
   gcc_assert (melt_globarr[ix] == NULL);
   melt_globarr[ix] = p;
