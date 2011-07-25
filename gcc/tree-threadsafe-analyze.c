@@ -3571,7 +3571,8 @@ execute_threadsafe_analyze (void)
 static bool
 gate_threadsafe_analyze (void)
 {
-  return warn_thread_safety != 0;
+  /* FIXME google/main - Annotalysis is currently broken.  */
+  return false;
 }
 
 struct gimple_opt_pass pass_threadsafe_analyze =

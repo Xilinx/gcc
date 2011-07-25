@@ -1,3 +1,8 @@
+2011-07-25  Diego Novillo  <dnovillo@google.com>
+
+	* tree-threadsafe-analyze.c (gate_threadsafe_analyze): Always
+	return false.
+
 2011-07-21   Rong Xu  <xur@google.com>
 
         * ipa.c (function_and_variable_visibility): In LIPO mode, call 
