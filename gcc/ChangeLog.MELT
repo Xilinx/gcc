@@ -521,6 +521,7 @@
 
 
 2011-07-15  Romain Geissler  <romain.geissler@gmail.com>
+	[[Romain Geissler is covered by copyright assignment RT211150]]
 	* doc/melt.texi: gcc -c compilation works
 	* melt-runtime.c: Use module basename when
 	looking for module source
