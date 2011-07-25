@@ -3172,6 +3172,19 @@ arm_canonicalize_comparison (enum rtx_code code, rtx *op0, rtx *op1)
       return code;
     }
 
+  /* If *op0 is (zero_extend:SI (subreg:QI (reg:SI) 0)) and comparing
+     with const0_rtx, change it to (and:SI (reg:SI) (const_int 255)),
+     to facilitate possible combining with a cmp into 'ands'.  */
+  if (mode == SImode
+      && GET_CODE (*op0) == ZERO_EXTEND
+      && GET_CODE (XEXP (*op0, 0)) == SUBREG
+      && GET_MODE (XEXP (*op0, 0)) == QImode
+      && GET_MODE (SUBREG_REG (XEXP (*op0, 0))) == SImode
+      && subreg_lowpart_p (XEXP (*op0, 0))
+      && *op1 == const0_rtx)
+    *op0 = gen_rtx_AND (SImode, SUBREG_REG (XEXP (*op0, 0)),
+			GEN_INT (255));
+
   /* Comparisons smaller than DImode.  Only adjust comparisons against
      an out-of-range constant.  */
   if (GET_CODE (*op1) != CONST_INT
@@ -3983,7 +3996,7 @@ aapcs_vfp_allocate_return_reg (enum arm_pcs pcs_variant ATTRIBUTE_UNUSED,
 			       const_tree type ATTRIBUTE_UNUSED)
 {
   if (!use_vfp_abi (pcs_variant, false))
-    return false;
+    return NULL;
 
   if (mode == BLKmode || (mode == TImode && !TARGET_NEON))
     {
@@ -16713,7 +16726,7 @@ arm_print_operand (FILE *stream, rtx x, int code)
 	   instruction (for some alignments) as an aid to the memory subsystem
 	   of the target.  */
 	align = MEM_ALIGN (x) >> 3;
-	memsize = INTVAL (MEM_SIZE (x));
+	memsize = MEM_SIZE (x);
 	
 	/* Only certain alignment specifiers are supported by the hardware.  */
 	if (memsize == 16 && (align % 32) == 0)

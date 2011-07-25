@@ -1,3 +1,172 @@
+2011-07-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49793
+	* g++.dg/cpp0x/initlist55.C: New.
+
+2011-07-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49791
+	* gfortran.dg/namelist_72.f: New.
+
+2011-07-23  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/coarray_25.f90: New.
+
+2011-07-22  Ville Voutilainen  <ville.voutilainen@gmail.com>
+
+	* override1.C: This test should use c++0x mode.
+	* override3.C: New. Test the diagnostics in c++98 mode.
+
+2011-07-22  Jason Merrill  <jason@redhat.com>
+	    Mark Glisse  <marc.glisse@normalesup.org>
+
+	PR c++/30112
+	* g++.dg/other/pragma-re-1.C: Add namespace cases.
+
+	PR c++/49813
+	* g++.dg/opt/builtins2.C: New.
+	* g++.dg/other/error27.C: Don't rely on __builtin.
+
+2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc/testsuite/gcc.target/i386/avx-vzeroupper-16.c: Only run
+	on lp64 targets.
+	* gcc/testsuite/gcc.target/i386/avx-vzeroupper-17.c: Likewise.
+	* gcc/testsuite/gcc.target/i386/avx-vzeroupper-18.c: Likewise.
+	* gcc/testsuite/gcc.target/i386/pr43662.c: Likewise.
+	* gcc/testsuite/gcc.target/i386/pr43869.c: Likewise.
+
+	* gcc.target/x86_64/abi/callabi/callabi.exp: Check ilp32
+	instead of ia32.
+
+2011-07-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45819
+	* gcc.dg/pr45819.c: New testcase.
+
+2011-07-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/target-supports.exp (check_ifunc_available): Rewrite.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/47654
+	PR middle-end/49649
+	* gcc.dg/graphite/run-id-pr47654.c: New.
+
+2011-07-21  Ian Lance Taylor  <iant@google.com>
+
+	PR middle-end/49705
+	* gcc.dg/pr49705.c: New test.
+
+2011-07-21  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/target-supports.exp (check_avx_os_support_available): New.
+	(check_effective_target_avx_runtime): Use it.
+
+2011-07-21  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/49770
+	* g++.dg/torture/pr49770.C: New testcase.
+
+2011-07-21  Kai Tietz  <ktietz@redhat.com>
+
+	* gcc.dg/tree-ssa/pr30978.c: adjusted.
+	* gcc.dg/tree-ssa/ssa-fre-6.c: Likewise.
+
+2011-07-21  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/coarray_lib_token_1.f90: New.
+
+2011-07-21  Georg-Johann Lay  <avr@gjlay.de>
+
+	* gcc.dg/pr32912-2.c: Skip for AVR.
+	* gcc.dg/pr44674.c: Add dg-require-profiling.
+
+2011-07-20  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/ext/desig2.C: New.
+
+2011-07-20  Michael Meissner  <meissner@linux.vnet.ibm.com>
+
+	* gcc.target/powerpc/ppc-fma-1.c: Adjust to allow non-VSX fmas to
+	be generated.
+	* gcc.target/powerpc/ppc-fma-2.c: Ditto.
+	* gcc.target/powerpc/recip-3.c: Ditto.
+
+2011-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/6709 (DR 743)
+	PR c++/42603 (DR 950)
+	* g++.dg/cpp0x/decltype21.C: New.
+
+2011-07-20  Richard Guenther  <rguenther@suse.de>
+
+	PR middle-end/18908
+	* gcc.dg/tree-ssa/pr18908.c: New testcase.
+	* gcc.dg/tree-ssa/bitwise-sink.c: Adjust.
+
+2011-07-20  Chung-Lin Tang  <cltang@codesourcery.com>
+
+	* gcc.target/arm/combine-movs.c: New.
+	* gcc.target/arm/unsigned-extend-2.c: New.
+
+2011-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49785
+	* g++.dg/cpp0x/variadic114.C: New.
+
+2011-07-19  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/coarray_args_1.f90: New.
+	* gfortran.dg/coarray_args_2.f90: New.
+
+2011-07-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49708
+	* gfortran.dg/allocate_error_3.f90: New.
+
+2011-07-19  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/tree-ssa/bool-10.c: Adjust expected pattern.
+	* gcc.dg/tree-ssa/bool-11.c: Likewise.
+	* gcc.dg/torture/20110719-1.c: New testcase.
+
+2011-07-19  Jakub Jelinek  <jakub@redhat.com>
+
+	PR tree-optimization/49768
+	* gcc.c-torture/execute/pr49768.c: New test.
+
+2011-07-19  Ira Rosen  <ira.rosen@linaro.org>
+
+	PR tree-optimization/49771
+	* gcc.dg/vect/pr49771.c: New test.
+
+2011-07-18  Martin Jambor  <mjambor@suse.cz>
+
+	* gcc.dg/ipa/ipa-1.c: Updated testcase dump scan.
+	* gcc.dg/ipa/ipa-2.c: Likewise.
+	* gcc.dg/ipa/ipa-3.c: Likewise and made functions static.
+	* gcc.dg/ipa/ipa-4.c: Updated testcase dump scan.
+	* gcc.dg/ipa/ipa-5.c: Likewise.
+	* gcc.dg/ipa/ipa-7.c: Likewise.
+	* gcc.dg/ipa/ipa-8.c: Updated testcase dump scan.
+	* gcc.dg/ipa/ipacost-1.c: Likewise.
+	* gcc.dg/ipa/ipacost-2.c: Likewise and increased sizes of some
+	functions.
+	* gcc.dg/ipa/ipcp-1.c: New test.
+	* gcc.dg/ipa/ipcp-2.c: Likewise.
+	* gcc.dg/tree-ssa/ipa-cp-1.c: Updated testcase.
+
+2011-07-18  Jakub Jelinek  <jakub@redhat.com>
+
+	PR middle-end/49675
+	* gfortran.dg/pr49675.f90: New test.
+
+2011-07-18  Richard Guenther  <rguenther@suse.de>
+
+	* gcc.dg/torture/20110718-1.c: New testcase.
+
 2011-07-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* g++.dg/ext/bitfield2.C: Remove i?86-*-netware support.

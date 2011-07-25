@@ -1,3 +1,72 @@
+2011-07-23  Tobias Burnus  <burnus@net-b.de>
+
+	* resolve.c (resolve_symbol): Fix coarray var decl check.
+
+2011-07-21  Daniel Carrera  <dcarrera@gmail.com>
+
+	* trans.c (gfc_allocate_with_status): Split into two functions
+	gfc_allocate_using_malloc and gfc_allocate_usig_lib.
+	(gfc_allocate_using_malloc): The status parameter is now the
+	actual status rather than a pointer. Code cleanup.
+	(gfc_allocate_using_lib): Ditto. Add new parametrs errmsg and
+	errlen. Pass these to the coarray lib.
+	* trans-openmp.c (gfc_omp_clause_default_ctor): Update calls to
+	gfc_allocate_allocatable.
+	(gfc_omp_clause_copy_ctor): Ditto.
+	(gfc_trans_omp_array_reduction): Ditto.
+	* trans-stmt.c (gfc_trans_allocate): Ditto. Update call to
+	gfc_allocate_using_malloc. Pass stat rather than pstat to the allocate
+	fuctions. If using coarray lib, pass errmsg and errlen to the allocate
+	functions. Move error checking outside the if (!gfc_array_allocate)
+	block so that it also affects trees produced by gfc_array_allocate.
+	* trans-array.c (gfc_array_allocate): Add new parameters errmsg
+	and errlen. Replace parameter pstat by status. Code cleanup. Update
+	calls to gfc_allocate_allocatable and gfc_allocate_using_malloc.
+	* trans-array.h (gfc_array_allocate): Update signature of
+	gfc_array_allocate.
+
+2011-07-21  Steven G. Kargl  <kargl@gcc.gnu.org>
+
+	* gfortran.texi: Remove a duplicate word.
+
+2011-07-21  Tobias Burnus  <burnus@net-b.de>
+
+	* check.c (gfc_check_present): Allow coarrays.
+	* trans-array.c (gfc_conv_array_ref): Avoid casting
+	when a pointer is wanted.
+	* trans-decl.c (create_function_arglist): For -fcoarray=lib,
+	handle hidden token and offset arguments for nondescriptor
+	coarrays.
+	* trans-expr.c (get_tree_for_caf_expr): New function.
+	(gfc_conv_procedure_call): For -fcoarray=lib pass the
+	token and offset for nondescriptor coarray dummies.
+	* trans.h (lang_type): Add caf_offset tree.
+	(GFC_TYPE_ARRAY_CAF_OFFSET): New macro.
+
+2011-07-19  Tobias Burnus  <burnus@net-b.de>
+
+	* expr.c (gfc_is_coarray): New function.
+	* gfortran.h (gfc_is_coarray): New prototype.
+	* interface.c (compare_parameter): Use it.
+
+2011-07-19  Richard Guenther  <rguenther@suse.de>
+
+	* trans-expr.c (fill_with_spaces): Use fold_build_pointer_plus.
+	(gfc_trans_string_copy): Likewise.
+	* trans-intrinsic.c (gfc_conv_intrinsic_repeat): Likewise.
+	* trans-types.c (gfc_get_array_descr_info): Likewise.
+	* trans.c (gfc_build_array_ref): Likewise.
+
+2011-07-19  Janus Weil  <janus@gcc.gnu.org>
+
+	PR fortran/49708
+	* resolve.c (resolve_allocate_expr): Fix diagnostics for pointers.
+
+2011-07-18  Tobias Burnus  <burnus@net-b.de>
+
+	* trans-decl.c (gfc_build_qualified_array): Make coarray's
+	token TYPE_QUAL_RESTRICT.
+
 2011-07-18  Tobias Burnus  <burnus@net-b.de>
 
 	* resolve.c (resolve_transfer): Mention defined I/O
@@ -1075,7 +1144,7 @@
 
 	* f95-lang.c (build_builtin_fntypes): Swap frexp parameter types.
 
-2010-04-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
+2011-04-04  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	* frontend-passes: (optimize_lexical_comparison): New function.
 	(optimize_expr): Call it.
@@ -1211,7 +1280,7 @@
 	* trans-types.c (gfc_get_function_type): Don't use varargs if the
 	procedure is known to have no arguments.
 
-2010-03-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
+2011-03-21  Thomas Koenig  <tkoenig@gcc.gnu.org>
 
 	PR fortran/22572
 	* gfortran.h (gfc_option_t) : Add

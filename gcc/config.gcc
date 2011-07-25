@@ -762,13 +762,14 @@ alpha*-*-linux*)
 	extra_options="${extra_options} alpha/elf.opt"
 	target_cpu_default="MASK_GAS"
 	tmake_file="${tmake_file} alpha/t-alpha alpha/t-ieee alpha/t-linux"
+	extra_parts="${extra_parts} crtfastmath.o"
 	;;
 alpha*-*-freebsd*)
 	tm_file="${tm_file} ${fbsd_tm_file} alpha/elf.h alpha/freebsd.h"
 	extra_options="${extra_options} alpha/elf.opt"
 	target_cpu_default="MASK_GAS"
 	tmake_file="${tmake_file} alpha/t-alpha alpha/t-ieee"
-	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtbeginT.o"
+	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtbeginT.o crtfastmath.o"
 	;;
 alpha*-*-netbsd*)
 	tm_file="${tm_file} netbsd.h alpha/elf.h netbsd-elf.h alpha/netbsd.h"
@@ -1309,27 +1310,41 @@ i[34567]86-*-linux* | i[34567]86-*-kfreebsd*-gnu | i[34567]86-*-knetbsd*-gnu | i
 			esac
 		else
 			tm_file="${tm_file} i386/gnu-user.h i386/linux.h"
-			# This is a hack to avoid a configuration mismatch
-			# until the toplevel libgcc move is complete.
-			extra_parts="${extra_parts} crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
 		fi
 		;;
-	i[34567]86-*-knetbsd*-gnu) tm_file="${tm_file} i386/gnu-user.h knetbsd-gnu.h i386/knetbsd-gnu.h" ;;
-	i[34567]86-*-kfreebsd*-gnu) tm_file="${tm_file} i386/gnu-user.h kfreebsd-gnu.h i386/kfreebsd-gnu.h" ;;
-	i[34567]86-*-kopensolaris*-gnu) tm_file="${tm_file} i386/gnu-user.h kopensolaris-gnu.h i386/kopensolaris-gnu.h" ;;
-	i[34567]86-*-gnu*) tm_file="$tm_file i386/gnu-user.h gnu.h i386/gnu.h";;
+	i[34567]86-*-knetbsd*-gnu)
+		tm_file="${tm_file} i386/gnu-user.h knetbsd-gnu.h i386/knetbsd-gnu.h"
+		;;
+	i[34567]86-*-kfreebsd*-gnu)
+		tm_file="${tm_file} i386/gnu-user.h kfreebsd-gnu.h i386/kfreebsd-gnu.h"
+		;;
+	i[34567]86-*-kopensolaris*-gnu)
+		tm_file="${tm_file} i386/gnu-user.h kopensolaris-gnu.h i386/kopensolaris-gnu.h"
+		;;
+	i[34567]86-*-gnu*)
+		tm_file="$tm_file i386/gnu-user.h gnu.h i386/gnu.h"
+		;;
 	esac
 	tmake_file="${tmake_file} i386/t-crtstuff"
+	# This is a hack to avoid a configuration mismatch
+	# until the toplevel libgcc move is complete.
+	extra_parts="${extra_parts} crtprec32.o crtprec64.o crtprec80.o crtfastmath.o"
 	;;
 x86_64-*-linux* | x86_64-*-kfreebsd*-gnu | x86_64-*-knetbsd*-gnu)
 	tm_file="${tm_file} i386/unix.h i386/att.h dbxelf.h elfos.h gnu-user.h glibc-stdint.h \
 		 i386/x86-64.h i386/gnu-user64.h"
 	case ${target} in
 	x86_64-*-linux*)
-	  tm_file="${tm_file} linux.h i386/linux64.h"
-	  default_gnu_indirect_function=glibc-2011 ;;
-	x86_64-*-kfreebsd*-gnu) tm_file="${tm_file} kfreebsd-gnu.h i386/kfreebsd-gnu64.h" ;;
-	x86_64-*-knetbsd*-gnu) tm_file="${tm_file} knetbsd-gnu.h" ;;
+		tm_file="${tm_file} linux.h i386/linux64.h"
+		# Assume modern glibc
+		default_gnu_indirect_function=yes
+	  	;;
+	x86_64-*-kfreebsd*-gnu)
+		tm_file="${tm_file} kfreebsd-gnu.h i386/kfreebsd-gnu64.h"
+		;;
+	x86_64-*-knetbsd*-gnu)
+		tm_file="${tm_file} knetbsd-gnu.h"
+		;;
 	esac
 	tmake_file="${tmake_file} i386/t-linux64 i386/t-crtstuff"
 	x86_multilibs="${with_multilib_list}"
@@ -1580,13 +1595,13 @@ ia64*-*-elf*)
 	then
 		target_cpu_default="${target_cpu_default}|MASK_GNU_LD"
 	fi
-	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o"
+	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
 	;;
 ia64*-*-freebsd*)
 	tm_file="${tm_file} dbxelf.h elfos.h ${fbsd_tm_file} ia64/sysv4.h ia64/freebsd.h"
 	target_cpu_default="MASK_GNU_AS|MASK_GNU_LD"
 	tmake_file="${tmake_file} ia64/t-ia64"
-	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o"
+	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
 	;;
 ia64*-*-linux*)
 	tm_file="${tm_file} dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ia64/sysv4.h ia64/linux.h"
@@ -1595,7 +1610,7 @@ ia64*-*-linux*)
 		tmake_file="${tmake_file} t-libunwind-elf ia64/t-glibc-libunwind"
 	fi
 	target_cpu_default="MASK_GNU_AS|MASK_GNU_LD"
-	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o"
+	extra_parts="crtbegin.o crtend.o crtbeginS.o crtendS.o crtfastmath.o"
 	;;
 ia64*-*-hpux*)
 	tm_file="${tm_file} dbxelf.h elfos.h ia64/sysv4.h ia64/hpux.h"
@@ -1819,7 +1834,7 @@ mips*-*-netbsd*)			# NetBSD/mips, either endian.
 	extra_options="${extra_options} netbsd.opt netbsd-elf.opt"
 	;;
 mips64*-*-linux* | mipsisa64*-*-linux*)
-	tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} mips/linux.h mips/linux64.h"
+	tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} mips/gnu-user.h mips/gnu-user64.h mips/linux64.h"
 	tmake_file="${tmake_file} mips/t-linux64 mips/t-libgcc-mips16"
 	tm_defines="${tm_defines} MIPS_ABI_DEFAULT=ABI_N32"
 	case ${target} in
@@ -1835,15 +1850,16 @@ mips64*-*-linux* | mipsisa64*-*-linux*)
 			tm_defines="${tm_defines} MIPS_ISA_DEFAULT=65"
 			;;
 	esac
+	extra_parts="$extra_parts crtfastmath.o"
 	gnu_ld=yes
 	gas=yes
 	test x$with_llsc != x || with_llsc=yes
 	;;
 mips*-*-linux*)				# Linux MIPS, either endian.
-        tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} mips/linux.h"
+        tm_file="dbxelf.h elfos.h gnu-user.h linux.h glibc-stdint.h ${tm_file} mips/gnu-user.h mips/linux.h"
 	tmake_file="${tmake_file} mips/t-libgcc-mips16"
 	if test x$enable_targets = xall; then
-		tm_file="${tm_file} mips/linux64.h"
+		tm_file="${tm_file} mips/gnu-user64.h mips/linux64.h"
 		tmake_file="${tmake_file} mips/t-linux64"
 		tm_defines="${tm_defines} MIPS_ABI_DEFAULT=ABI_32"
 	fi
@@ -1854,6 +1870,7 @@ mips*-*-linux*)				# Linux MIPS, either endian.
         mipsisa32*)
 		tm_defines="${tm_defines} MIPS_ISA_DEFAULT=32"
         esac
+	extra_parts="$extra_parts crtfastmath.o"
 	test x$with_llsc != x || with_llsc=yes
 	;;
 mips*-*-openbsd*)
@@ -2479,6 +2496,7 @@ sparc-*-linux*)
 	else
 		tm_file="${tm_file} sparc/linux.h"
 	fi
+	extra_parts="${extra_parts} crtfastmath.o"
 	;;
 sparc-*-netbsdelf*)
 	tm_file="${tm_file} dbxelf.h elfos.h sparc/sysv4.h netbsd.h netbsd-elf.h sparc/netbsd-elf.h"
@@ -2514,6 +2532,7 @@ sparc64-*-linux*)
 	tm_file="sparc/biarch64.h ${tm_file} dbxelf.h elfos.h sparc/sysv4.h gnu-user.h linux.h glibc-stdint.h sparc/linux64.h"
 	extra_options="${extra_options} sparc/long-double-switch.opt"
 	tmake_file="${tmake_file} sparc/t-linux sparc/t-linux64"
+	extra_parts="${extra_parts} crtfastmath.o"
 	;;
 sparc64-*-freebsd*|ultrasparc-*-freebsd*)
 	tm_file="${tm_file} ${fbsd_tm_file} dbxelf.h elfos.h sparc/sysv4.h sparc/freebsd.h"
@@ -2523,6 +2542,7 @@ sparc64-*-freebsd*|ultrasparc-*-freebsd*)
 		x) with_cpu=ultrasparc ;;
 		*) echo "$with_cpu not supported for freebsd target"; exit 1 ;;
 	esac
+	extra_parts="${extra_parts} crtfastmath.o"
 	;;
 sparc64-*-netbsd*)
 	tm_file="sparc/biarch64.h ${tm_file}"

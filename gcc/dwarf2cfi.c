@@ -27,6 +27,7 @@ along with GCC; see the file COPYING3.  If not see
 #include "flags.h"
 #include "rtl.h"
 #include "function.h"
+#include "basic-block.h"
 #include "dwarf2.h"
 #include "dwarf2out.h"
 #include "dwarf2asm.h"
@@ -58,19 +59,142 @@ along with GCC; see the file COPYING3.  If not see
 /* Maximum size (in bytes) of an artificially generated label.  */
 #define MAX_ARTIFICIAL_LABEL_BYTES	30
 
+/* A collected description of an entire row of the abstract CFI table.  */
+typedef struct GTY(()) dw_cfi_row_struct
+{
+  /* The expression that computes the CFA, expressed in two different ways.
+     The CFA member for the simple cases, and the full CFI expression for
+     the complex cases.  The later will be a DW_CFA_cfa_expression.  */
+  dw_cfa_location cfa;
+  dw_cfi_ref cfa_cfi;
+
+  /* The expressions for any register column that is saved.  */
+  cfi_vec reg_save;
+
+  /* The value of any DW_CFA_GNU_args_size.  */
+  HOST_WIDE_INT args_size;
+} dw_cfi_row;
+
+/* The caller's ORIG_REG is saved in SAVED_IN_REG.  */
+typedef struct GTY(()) reg_saved_in_data_struct {
+  rtx orig_reg;
+  rtx saved_in_reg;
+} reg_saved_in_data;
+
+DEF_VEC_O (reg_saved_in_data);
+DEF_VEC_ALLOC_O (reg_saved_in_data, heap);
+
+/* Since we no longer have a proper CFG, we're going to create a facsimile
+   of one on the fly while processing the frame-related insns.
+
+   We create dw_trace_info structures for each extended basic block beginning
+   and ending at a "save point".  Save points are labels, barriers, certain
+   notes, and of course the beginning and end of the function.
+
+   As we encounter control transfer insns, we propagate the "current"
+   row state across the edges to the starts of traces.  When checking is
+   enabled, we validate that we propagate the same data from all sources.
+
+   All traces are members of the TRACE_INFO array, in the order in which
+   they appear in the instruction stream.
+
+   All save points are present in the TRACE_INDEX hash, mapping the insn
+   starting a trace to the dw_trace_info describing the trace.  */
+
+typedef struct
+{
+  /* The insn that begins the trace.  */
+  rtx head;
+
+  /* The row state at the beginning and end of the trace.  */
+  dw_cfi_row *beg_row, *end_row;
+
+  /* True if this trace immediately follows NOTE_INSN_SWITCH_TEXT_SECTIONS.  */
+  bool switch_sections;
+
+  /* The following variables contain data used in interpreting frame related
+     expressions.  These are not part of the "real" row state as defined by
+     Dwarf, but it seems like they need to be propagated into a trace in case
+     frame related expressions have been sunk.  */
+  /* ??? This seems fragile.  These variables are fragments of a larger
+     expression.  If we do not keep the entire expression together, we risk
+     not being able to put it together properly.  Consider forcing targets
+     to generate self-contained expressions and dropping all of the magic
+     interpretation code in this file.  Or at least refusing to shrink wrap
+     any frame related insn that doesn't contain a complete expression.  */
+
+  /* The register used for saving registers to the stack, and its offset
+     from the CFA.  */
+  dw_cfa_location cfa_store;
+
+  /* A temporary register holding an integral value used in adjusting SP
+     or setting up the store_reg.  The "offset" field holds the integer
+     value, not an offset.  */
+  dw_cfa_location cfa_temp;
+
+  /* A set of registers saved in other registers.  This is the inverse of
+     the row->reg_save info, if the entry is a DW_CFA_register.  This is
+     implemented as a flat array because it normally contains zero or 1
+     entry, depending on the target.  IA-64 is the big spender here, using
+     a maximum of 5 entries.  */
+  VEC(reg_saved_in_data, heap) *regs_saved_in_regs;
+
+} dw_trace_info;
+
+DEF_VEC_O (dw_trace_info);
+DEF_VEC_ALLOC_O (dw_trace_info, heap);
+
+typedef dw_trace_info *dw_trace_info_ref;
+
+DEF_VEC_P (dw_trace_info_ref);
+DEF_VEC_ALLOC_P (dw_trace_info_ref, heap);
+
+/* The variables making up the pseudo-cfg, as described above.  */
+static VEC (dw_trace_info, heap) *trace_info;
+static VEC (dw_trace_info_ref, heap) *trace_work_list;
+static htab_t trace_index;
+
 /* A vector of call frame insns for the CIE.  */
 cfi_vec cie_cfi_vec;
+
+/* The state of the first row of the FDE table, which includes the
+   state provided by the CIE.  */
+static GTY(()) dw_cfi_row *cie_cfi_row;
+
+static GTY(()) reg_saved_in_data *cie_return_save;
 
 static GTY(()) unsigned long dwarf2out_cfi_label_num;
 
 /* The insn after which a new CFI note should be emitted.  */
-static rtx cfi_insn;
+static rtx add_cfi_insn;
 
 /* When non-null, add_cfi will add the CFI to this vector.  */
 static cfi_vec *add_cfi_vec;
 
-/* True if remember_state should be emitted before following CFI directive.  */
-static bool emit_cfa_remember;
+/* The current instruction trace.  */
+static dw_trace_info *cur_trace;
+
+/* The current, i.e. most recently generated, row of the CFI table.  */
+static dw_cfi_row *cur_row;
+
+/* We delay emitting a register save until either (a) we reach the end
+   of the prologue or (b) the register is clobbered.  This clusters
+   register saves so that there are fewer pc advances.  */
+
+typedef struct {
+  rtx reg;
+  rtx saved_reg;
+  HOST_WIDE_INT cfa_offset;
+} queued_reg_save;
+
+DEF_VEC_O (queued_reg_save);
+DEF_VEC_ALLOC_O (queued_reg_save, heap);
+
+static VEC(queued_reg_save, heap) *queued_reg_saves;
+
+/* The (really) current value for DW_CFA_GNU_args_size.  We delay actually
+   emitting this data, i.e. updating CUR_ROW, without async unwind.  */
+static HOST_WIDE_INT queued_args_size;
 
 /* True if any CFI directives were emitted at the current insn.  */
 static bool any_cfis_emitted;
@@ -78,11 +202,6 @@ static bool any_cfis_emitted;
 /* Short-hand for commonly used register numbers.  */
 static unsigned dw_stack_pointer_regnum;
 static unsigned dw_frame_pointer_regnum;
-
-
-static void dwarf2out_cfi_begin_epilogue (rtx insn);
-static void dwarf2out_frame_debug_restore_state (void);
-
 
 /* Hook used by __throw.  */
 
@@ -153,6 +272,59 @@ expand_builtin_init_dwarf_reg_sizes (tree address)
   targetm.init_dwarf_reg_sizes_extra (address);
 }
 
+
+static hashval_t
+dw_trace_info_hash (const void *ptr)
+{
+  const dw_trace_info *ti = (const dw_trace_info *) ptr;
+  return INSN_UID (ti->head);
+}
+
+static int
+dw_trace_info_eq (const void *ptr_a, const void *ptr_b)
+{
+  const dw_trace_info *a = (const dw_trace_info *) ptr_a;
+  const dw_trace_info *b = (const dw_trace_info *) ptr_b;
+  return a->head == b->head;
+}
+
+static unsigned
+get_trace_index (dw_trace_info *trace)
+{
+  return trace - VEC_address (dw_trace_info, trace_info);
+}
+
+static dw_trace_info *
+get_trace_info (rtx insn)
+{
+  dw_trace_info dummy;
+  dummy.head = insn;
+  return (dw_trace_info *)
+    htab_find_with_hash (trace_index, &dummy, INSN_UID (insn));
+}
+
+static bool
+save_point_p (rtx insn)
+{
+  /* Labels, except those that are really jump tables.  */
+  if (LABEL_P (insn))
+    return inside_basic_block_p (insn);
+
+  /* We split traces at the prologue/epilogue notes because those
+     are points at which the unwind info is usually stable.  This
+     makes it easier to find spots with identical unwind info so
+     that we can use remember/restore_state opcodes.  */
+  if (NOTE_P (insn))
+    switch (NOTE_KIND (insn))
+      {
+      case NOTE_INSN_PROLOGUE_END:
+      case NOTE_INSN_EPILOGUE_BEG:
+	return true;
+      }
+
+  return false;
+}
+
 /* Divide OFF by DWARF_CIE_DATA_ALIGNMENT, asserting no remainder.  */
 
 static inline HOST_WIDE_INT
@@ -185,6 +357,31 @@ new_cfi (void)
   return cfi;
 }
 
+/* Return a newly allocated CFI row, with no defined data.  */
+
+static dw_cfi_row *
+new_cfi_row (void)
+{
+  dw_cfi_row *row = ggc_alloc_cleared_dw_cfi_row ();
+
+  row->cfa.reg = INVALID_REGNUM;
+
+  return row;
+}
+
+/* Return a copy of an existing CFI row.  */
+
+static dw_cfi_row *
+copy_cfi_row (dw_cfi_row *src)
+{
+  dw_cfi_row *dst = ggc_alloc_dw_cfi_row ();
+
+  *dst = *src;
+  dst->reg_save = VEC_copy (dw_cfi_ref, gc, src->reg_save);
+
+  return dst;
+}
+
 /* Generate a new label for the CFI info to refer to.  */
 
 static char *
@@ -203,25 +400,49 @@ dwarf2out_cfi_label (void)
 static void
 add_cfi (dw_cfi_ref cfi)
 {
-  if (emit_cfa_remember)
-    {
-      dw_cfi_ref cfi_remember;
-
-      /* Emit the state save.  */
-      emit_cfa_remember = false;
-      cfi_remember = new_cfi ();
-      cfi_remember->dw_cfi_opc = DW_CFA_remember_state;
-      add_cfi (cfi_remember);
-    }
-
   any_cfis_emitted = true;
-  if (cfi_insn != NULL)
+
+  if (add_cfi_insn != NULL)
     {
-      cfi_insn = emit_note_after (NOTE_INSN_CFI, cfi_insn);
-      NOTE_CFI (cfi_insn) = cfi;
+      add_cfi_insn = emit_note_after (NOTE_INSN_CFI, add_cfi_insn);
+      NOTE_CFI (add_cfi_insn) = cfi;
     }
+
   if (add_cfi_vec != NULL)
     VEC_safe_push (dw_cfi_ref, gc, *add_cfi_vec, cfi);
+}
+
+static void
+add_cfi_args_size (HOST_WIDE_INT size)
+{
+  dw_cfi_ref cfi = new_cfi ();
+
+  cfi->dw_cfi_opc = DW_CFA_GNU_args_size;
+  cfi->dw_cfi_oprnd1.dw_cfi_offset = size;
+
+  add_cfi (cfi);
+}
+
+static void
+add_cfi_restore (unsigned reg)
+{
+  dw_cfi_ref cfi = new_cfi ();
+
+  cfi->dw_cfi_opc = (reg & ~0x3f ? DW_CFA_restore_extended : DW_CFA_restore);
+  cfi->dw_cfi_oprnd1.dw_cfi_reg_num = reg;
+
+  add_cfi (cfi);
+}
+
+/* Perform ROW->REG_SAVE[COLUMN] = CFI.  CFI may be null, indicating
+   that the register column is no longer saved.  */
+
+static void
+update_row_reg_save (dw_cfi_row *row, unsigned column, dw_cfi_ref cfi)
+{
+  if (VEC_length (dw_cfi_ref, row->reg_save) <= column)
+    VEC_safe_grow_cleared (dw_cfi_ref, gc, row->reg_save, column + 1);
+  VEC_replace (dw_cfi_ref, row->reg_save, column, cfi);
 }
 
 /* This function fills in aa dw_cfa_location structure from a dwarf location
@@ -371,28 +592,6 @@ lookup_cfa_1 (dw_cfi_ref cfi, dw_cfa_location *loc, dw_cfa_location *remember)
     }
 }
 
-/* The current rule for calculating the DWARF2 canonical frame address.  */
-static dw_cfa_location cfa;
-
-/* A copy of the CFA, for comparison purposes.  */
-static dw_cfa_location old_cfa;
-
-/* The register used for saving registers to the stack, and its offset
-   from the CFA.  */
-static dw_cfa_location cfa_store;
-
-/* The current save location around an epilogue.  */
-static dw_cfa_location cfa_remember;
-
-/* Like cfa_remember, but a copy of old_cfa.  */
-static dw_cfa_location old_cfa_remember;
-
-/* The running total of the size of arguments pushed onto the stack.  */
-static HOST_WIDE_INT args_size;
-
-/* The last args_size we actually output.  */
-static HOST_WIDE_INT old_args_size;
-
 /* Determine if two dw_cfa_location structures define the same data.  */
 
 bool
@@ -405,67 +604,147 @@ cfa_equal_p (const dw_cfa_location *loc1, const dw_cfa_location *loc2)
 	      || loc1->base_offset == loc2->base_offset));
 }
 
-/* This routine does the actual work.  The CFA is now calculated from
-   the dw_cfa_location structure.  */
+/* Determine if two CFI operands are identical.  */
 
-static void
-def_cfa_1 (dw_cfa_location *loc_p)
+static bool
+cfi_oprnd_equal_p (enum dw_cfi_oprnd_type t, dw_cfi_oprnd *a, dw_cfi_oprnd *b)
+{
+  switch (t)
+    {
+    case dw_cfi_oprnd_unused:
+      return true;
+    case dw_cfi_oprnd_reg_num:
+      return a->dw_cfi_reg_num == b->dw_cfi_reg_num;
+    case dw_cfi_oprnd_offset:
+      return a->dw_cfi_offset == b->dw_cfi_offset;
+    case dw_cfi_oprnd_addr:
+      return (a->dw_cfi_addr == b->dw_cfi_addr
+	      || strcmp (a->dw_cfi_addr, b->dw_cfi_addr) == 0);
+    case dw_cfi_oprnd_loc:
+      return loc_descr_equal_p (a->dw_cfi_loc, b->dw_cfi_loc);
+    }
+  gcc_unreachable ();
+}
+
+/* Determine if two CFI entries are identical.  */
+
+static bool
+cfi_equal_p (dw_cfi_ref a, dw_cfi_ref b)
+{
+  enum dwarf_call_frame_info opc;
+
+  /* Make things easier for our callers, including missing operands.  */
+  if (a == b)
+    return true;
+  if (a == NULL || b == NULL)
+    return false;
+
+  /* Obviously, the opcodes must match.  */
+  opc = a->dw_cfi_opc;
+  if (opc != b->dw_cfi_opc)
+    return false;
+
+  /* Compare the two operands, re-using the type of the operands as
+     already exposed elsewhere.  */
+  return (cfi_oprnd_equal_p (dw_cfi_oprnd1_desc (opc),
+			     &a->dw_cfi_oprnd1, &b->dw_cfi_oprnd1)
+	  && cfi_oprnd_equal_p (dw_cfi_oprnd2_desc (opc),
+				&a->dw_cfi_oprnd2, &b->dw_cfi_oprnd2));
+}
+
+/* Determine if two CFI_ROW structures are identical.  */
+
+static bool
+cfi_row_equal_p (dw_cfi_row *a, dw_cfi_row *b)
+{
+  size_t i, n_a, n_b, n_max;
+
+  if (a->cfa_cfi)
+    {
+      if (!cfi_equal_p (a->cfa_cfi, b->cfa_cfi))
+	return false;
+    }
+  else if (!cfa_equal_p (&a->cfa, &b->cfa))
+    return false;
+
+  if (a->args_size != b->args_size)
+    return false;
+
+  n_a = VEC_length (dw_cfi_ref, a->reg_save);
+  n_b = VEC_length (dw_cfi_ref, b->reg_save);
+  n_max = MAX (n_a, n_b);
+
+  for (i = 0; i < n_max; ++i)
+    {
+      dw_cfi_ref r_a = NULL, r_b = NULL;
+
+      if (i < n_a)
+	r_a = VEC_index (dw_cfi_ref, a->reg_save, i);
+      if (i < n_b)
+	r_b = VEC_index (dw_cfi_ref, b->reg_save, i);
+
+      if (!cfi_equal_p (r_a, r_b))
+        return false;
+    }
+
+  return true;
+}
+
+/* The CFA is now calculated from NEW_CFA.  Consider OLD_CFA in determining
+   what opcode to emit.  Returns the CFI opcode to effect the change, or
+   NULL if NEW_CFA == OLD_CFA.  */
+
+static dw_cfi_ref
+def_cfa_0 (dw_cfa_location *old_cfa, dw_cfa_location *new_cfa)
 {
   dw_cfi_ref cfi;
-  dw_cfa_location loc;
-
-  cfa = *loc_p;
-  loc = *loc_p;
-
-  if (cfa_store.reg == loc.reg && loc.indirect == 0)
-    cfa_store.offset = loc.offset;
 
   /* If nothing changed, no need to issue any call frame instructions.  */
-  if (cfa_equal_p (&loc, &old_cfa))
-    return;
+  if (cfa_equal_p (old_cfa, new_cfa))
+    return NULL;
 
   cfi = new_cfi ();
 
-  if (loc.reg == old_cfa.reg && !loc.indirect && !old_cfa.indirect)
+  if (new_cfa->reg == old_cfa->reg && !new_cfa->indirect && !old_cfa->indirect)
     {
       /* Construct a "DW_CFA_def_cfa_offset <offset>" instruction, indicating
 	 the CFA register did not change but the offset did.  The data
 	 factoring for DW_CFA_def_cfa_offset_sf happens in output_cfi, or
 	 in the assembler via the .cfi_def_cfa_offset directive.  */
-      if (loc.offset < 0)
+      if (new_cfa->offset < 0)
 	cfi->dw_cfi_opc = DW_CFA_def_cfa_offset_sf;
       else
 	cfi->dw_cfi_opc = DW_CFA_def_cfa_offset;
-      cfi->dw_cfi_oprnd1.dw_cfi_offset = loc.offset;
+      cfi->dw_cfi_oprnd1.dw_cfi_offset = new_cfa->offset;
     }
 
 #ifndef MIPS_DEBUGGING_INFO  /* SGI dbx thinks this means no offset.  */
-  else if (loc.offset == old_cfa.offset
-	   && old_cfa.reg != INVALID_REGNUM
-	   && !loc.indirect
-	   && !old_cfa.indirect)
+  else if (new_cfa->offset == old_cfa->offset
+	   && old_cfa->reg != INVALID_REGNUM
+	   && !new_cfa->indirect
+	   && !old_cfa->indirect)
     {
       /* Construct a "DW_CFA_def_cfa_register <register>" instruction,
 	 indicating the CFA register has changed to <register> but the
 	 offset has not changed.  */
       cfi->dw_cfi_opc = DW_CFA_def_cfa_register;
-      cfi->dw_cfi_oprnd1.dw_cfi_reg_num = loc.reg;
+      cfi->dw_cfi_oprnd1.dw_cfi_reg_num = new_cfa->reg;
     }
 #endif
 
-  else if (loc.indirect == 0)
+  else if (new_cfa->indirect == 0)
     {
       /* Construct a "DW_CFA_def_cfa <register> <offset>" instruction,
 	 indicating the CFA register has changed to <register> with
 	 the specified offset.  The data factoring for DW_CFA_def_cfa_sf
 	 happens in output_cfi, or in the assembler via the .cfi_def_cfa
 	 directive.  */
-      if (loc.offset < 0)
+      if (new_cfa->offset < 0)
 	cfi->dw_cfi_opc = DW_CFA_def_cfa_sf;
       else
 	cfi->dw_cfi_opc = DW_CFA_def_cfa;
-      cfi->dw_cfi_oprnd1.dw_cfi_reg_num = loc.reg;
-      cfi->dw_cfi_oprnd2.dw_cfi_offset = loc.offset;
+      cfi->dw_cfi_oprnd1.dw_cfi_reg_num = new_cfa->reg;
+      cfi->dw_cfi_oprnd2.dw_cfi_offset = new_cfa->offset;
     }
   else
     {
@@ -475,12 +754,32 @@ def_cfa_1 (dw_cfa_location *loc_p)
       struct dw_loc_descr_struct *loc_list;
 
       cfi->dw_cfi_opc = DW_CFA_def_cfa_expression;
-      loc_list = build_cfa_loc (&loc, 0);
+      loc_list = build_cfa_loc (new_cfa, 0);
       cfi->dw_cfi_oprnd1.dw_cfi_loc = loc_list;
     }
 
-  add_cfi (cfi);
-  old_cfa = loc;
+  return cfi;
+}
+
+/* Similarly, but take OLD_CFA from CUR_ROW, and update it after the fact.  */
+
+static void
+def_cfa_1 (dw_cfa_location *new_cfa)
+{
+  dw_cfi_ref cfi;
+
+  if (cur_trace->cfa_store.reg == new_cfa->reg && new_cfa->indirect == 0)
+    cur_trace->cfa_store.offset = new_cfa->offset;
+
+  cfi = def_cfa_0 (&cur_row->cfa, new_cfa);
+  if (cfi)
+    {
+      cur_row->cfa = *new_cfa;
+      if (cfi->dw_cfi_opc == DW_CFA_def_cfa_expression)
+        cur_row->cfa_cfi = cfi;
+
+      add_cfi (cfi);
+    }
 }
 
 /* Add the CFI for saving a register.  REG is the CFA column number.
@@ -503,7 +802,8 @@ reg_save (unsigned int reg, unsigned int sreg, HOST_WIDE_INT offset)
       cfi->dw_cfi_opc = DW_CFA_expression;
       cfi->dw_cfi_oprnd1.dw_cfi_reg_num = reg;
       cfi->dw_cfi_oprnd2.dw_cfi_loc
-	= build_cfa_aligned_loc (&cfa, offset, fde->stack_realignment);
+	= build_cfa_aligned_loc (&cur_row->cfa, offset,
+				 fde->stack_realignment);
     }
   else if (sreg == INVALID_REGNUM)
     {
@@ -516,7 +816,13 @@ reg_save (unsigned int reg, unsigned int sreg, HOST_WIDE_INT offset)
       cfi->dw_cfi_oprnd2.dw_cfi_offset = offset;
     }
   else if (sreg == reg)
-    cfi->dw_cfi_opc = DW_CFA_same_value;
+    {
+      /* While we could emit something like DW_CFA_same_value or
+	 DW_CFA_restore, we never expect to see something like that
+	 in a prologue.  This is more likely to be a bug.  A backend
+	 can always bypass this by using REG_CFA_RESTORE directly.  */
+      gcc_unreachable ();
+    }
   else
     {
       cfi->dw_cfi_opc = DW_CFA_register;
@@ -524,6 +830,7 @@ reg_save (unsigned int reg, unsigned int sreg, HOST_WIDE_INT offset)
     }
 
   add_cfi (cfi);
+  update_row_reg_save (cur_row, reg, cfi);
 }
 
 /* Given a SET, calculate the amount of stack adjustment it
@@ -616,196 +923,17 @@ stack_adjust_offset (const_rtx pattern, HOST_WIDE_INT cur_args_size,
   return offset;
 }
 
-/* Precomputed args_size for CODE_LABELs and BARRIERs preceeding them,
-   indexed by INSN_UID.  */
-
-static HOST_WIDE_INT *barrier_args_size;
-
-/* Helper function for compute_barrier_args_size.  Handle one insn.  */
-
-static HOST_WIDE_INT
-compute_barrier_args_size_1 (rtx insn, HOST_WIDE_INT cur_args_size,
-			     VEC (rtx, heap) **next)
-{
-  HOST_WIDE_INT offset = 0;
-  int i;
-
-  if (! RTX_FRAME_RELATED_P (insn))
-    {
-      if (prologue_epilogue_contains (insn))
-	/* Nothing */;
-      else if (GET_CODE (PATTERN (insn)) == SET)
-	offset = stack_adjust_offset (PATTERN (insn), cur_args_size, 0);
-      else if (GET_CODE (PATTERN (insn)) == PARALLEL
-	       || GET_CODE (PATTERN (insn)) == SEQUENCE)
-	{
-	  /* There may be stack adjustments inside compound insns.  Search
-	     for them.  */
-	  for (i = XVECLEN (PATTERN (insn), 0) - 1; i >= 0; i--)
-	    if (GET_CODE (XVECEXP (PATTERN (insn), 0, i)) == SET)
-	      offset += stack_adjust_offset (XVECEXP (PATTERN (insn), 0, i),
-					     cur_args_size, offset);
-	}
-    }
-  else
-    {
-      rtx expr = find_reg_note (insn, REG_FRAME_RELATED_EXPR, NULL_RTX);
-
-      if (expr)
-	{
-	  expr = XEXP (expr, 0);
-	  if (GET_CODE (expr) == PARALLEL
-	      || GET_CODE (expr) == SEQUENCE)
-	    for (i = 1; i < XVECLEN (expr, 0); i++)
-	      {
-		rtx elem = XVECEXP (expr, 0, i);
-
-		if (GET_CODE (elem) == SET && !RTX_FRAME_RELATED_P (elem))
-		  offset += stack_adjust_offset (elem, cur_args_size, offset);
-	      }
-	}
-    }
-
-#ifndef STACK_GROWS_DOWNWARD
-  offset = -offset;
-#endif
-
-  cur_args_size += offset;
-  if (cur_args_size < 0)
-    cur_args_size = 0;
-
-  if (JUMP_P (insn))
-    {
-      rtx dest = JUMP_LABEL (insn);
-
-      if (dest)
-	{
-	  if (barrier_args_size [INSN_UID (dest)] < 0)
-	    {
-	      barrier_args_size [INSN_UID (dest)] = cur_args_size;
-	      VEC_safe_push (rtx, heap, *next, dest);
-	    }
-	}
-    }
-
-  return cur_args_size;
-}
-
-/* Walk the whole function and compute args_size on BARRIERs.  */
-
-static void
-compute_barrier_args_size (void)
-{
-  int max_uid = get_max_uid (), i;
-  rtx insn;
-  VEC (rtx, heap) *worklist, *next, *tmp;
-
-  barrier_args_size = XNEWVEC (HOST_WIDE_INT, max_uid);
-  for (i = 0; i < max_uid; i++)
-    barrier_args_size[i] = -1;
-
-  worklist = VEC_alloc (rtx, heap, 20);
-  next = VEC_alloc (rtx, heap, 20);
-  insn = get_insns ();
-  barrier_args_size[INSN_UID (insn)] = 0;
-  VEC_quick_push (rtx, worklist, insn);
-  for (;;)
-    {
-      while (!VEC_empty (rtx, worklist))
-	{
-	  rtx prev, body, first_insn;
-	  HOST_WIDE_INT cur_args_size;
-
-	  first_insn = insn = VEC_pop (rtx, worklist);
-	  cur_args_size = barrier_args_size[INSN_UID (insn)];
-	  prev = prev_nonnote_insn (insn);
-	  if (prev && BARRIER_P (prev))
-	    barrier_args_size[INSN_UID (prev)] = cur_args_size;
-
-	  for (; insn; insn = NEXT_INSN (insn))
-	    {
-	      if (INSN_DELETED_P (insn) || NOTE_P (insn))
-		continue;
-	      if (BARRIER_P (insn))
-		break;
-
-	      if (LABEL_P (insn))
-		{
-		  if (insn == first_insn)
-		    continue;
-		  else if (barrier_args_size[INSN_UID (insn)] < 0)
-		    {
-		      barrier_args_size[INSN_UID (insn)] = cur_args_size;
-		      continue;
-		    }
-		  else
-		    {
-		      /* The insns starting with this label have been
-			 already scanned or are in the worklist.  */
-		      break;
-		    }
-		}
-
-	      body = PATTERN (insn);
-	      if (GET_CODE (body) == SEQUENCE)
-		{
-		  HOST_WIDE_INT dest_args_size = cur_args_size;
-		  for (i = 1; i < XVECLEN (body, 0); i++)
-		    if (INSN_ANNULLED_BRANCH_P (XVECEXP (body, 0, 0))
-			&& INSN_FROM_TARGET_P (XVECEXP (body, 0, i)))
-		      dest_args_size
-			= compute_barrier_args_size_1 (XVECEXP (body, 0, i),
-						       dest_args_size, &next);
-		    else
-		      cur_args_size
-			= compute_barrier_args_size_1 (XVECEXP (body, 0, i),
-						       cur_args_size, &next);
-
-		  if (INSN_ANNULLED_BRANCH_P (XVECEXP (body, 0, 0)))
-		    compute_barrier_args_size_1 (XVECEXP (body, 0, 0),
-						 dest_args_size, &next);
-		  else
-		    cur_args_size
-		      = compute_barrier_args_size_1 (XVECEXP (body, 0, 0),
-						     cur_args_size, &next);
-		}
-	      else
-		cur_args_size
-		  = compute_barrier_args_size_1 (insn, cur_args_size, &next);
-	    }
-	}
-
-      if (VEC_empty (rtx, next))
-	break;
-
-      /* Swap WORKLIST with NEXT and truncate NEXT for next iteration.  */
-      tmp = next;
-      next = worklist;
-      worklist = tmp;
-      VEC_truncate (rtx, next, 0);
-    }
-
-  VEC_free (rtx, heap, worklist);
-  VEC_free (rtx, heap, next);
-}
-
 /* Add a CFI to update the running total of the size of arguments
    pushed onto the stack.  */
 
 static void
 dwarf2out_args_size (HOST_WIDE_INT size)
 {
-  dw_cfi_ref cfi;
-
-  if (size == old_args_size)
+  if (size == cur_row->args_size)
     return;
 
-  old_args_size = size;
-
-  cfi = new_cfi ();
-  cfi->dw_cfi_opc = DW_CFA_GNU_args_size;
-  cfi->dw_cfi_oprnd1.dw_cfi_offset = size;
-  add_cfi (cfi);
+  cur_row->args_size = size;
+  add_cfi_args_size (size);
 }
 
 /* Record a stack adjustment of OFFSET bytes.  */
@@ -813,26 +941,33 @@ dwarf2out_args_size (HOST_WIDE_INT size)
 static void
 dwarf2out_stack_adjust (HOST_WIDE_INT offset)
 {
-  if (cfa.reg == dw_stack_pointer_regnum)
-    cfa.offset += offset;
+  dw_cfa_location loc = cur_row->cfa;
 
-  if (cfa_store.reg == dw_stack_pointer_regnum)
-    cfa_store.offset += offset;
+  if (loc.reg == dw_stack_pointer_regnum)
+    loc.offset += offset;
 
-  if (ACCUMULATE_OUTGOING_ARGS)
-    return;
+  if (cur_trace->cfa_store.reg == dw_stack_pointer_regnum)
+    cur_trace->cfa_store.offset += offset;
 
 #ifndef STACK_GROWS_DOWNWARD
   offset = -offset;
 #endif
 
-  args_size += offset;
-  if (args_size < 0)
-    args_size = 0;
+  queued_args_size += offset;
+  if (queued_args_size < 0)
+    queued_args_size = 0;
 
-  def_cfa_1 (&cfa);
+  /* ??? The assumption seems to be that if A_O_A, the only CFA adjustments
+     involving the stack pointer are inside the prologue and marked as
+     RTX_FRAME_RELATED_P.  That said, should we not verify this assumption
+     by *asserting* A_O_A at this point?  Why else would we have a change
+     to the stack pointer?  */
+  if (ACCUMULATE_OUTGOING_ARGS)
+    return;
+
+  def_cfa_1 (&loc);
   if (flag_asynchronous_unwind_tables)
-    dwarf2out_args_size (args_size);
+    dwarf2out_args_size (queued_args_size);
 }
 
 /* Check INSN to see if it looks like a push or a stack adjustment, and
@@ -862,7 +997,8 @@ dwarf2out_notice_stack_adjust (rtx insn, bool after_p)
 
   /* If only calls can throw, and we have a frame pointer,
      save up adjustments until we see the CALL_INSN.  */
-  if (!flag_asynchronous_unwind_tables && cfa.reg != dw_stack_pointer_regnum)
+  if (!flag_asynchronous_unwind_tables
+      && cur_row->cfa.reg != dw_stack_pointer_regnum)
     {
       if (CALL_P (insn) && !after_p)
 	{
@@ -873,7 +1009,8 @@ dwarf2out_notice_stack_adjust (rtx insn, bool after_p)
 	  if (GET_CODE (insn) == SET)
 	    insn = SET_SRC (insn);
 	  gcc_assert (GET_CODE (insn) == CALL);
-	  dwarf2out_args_size (INTVAL (XEXP (insn, 1)));
+	  gcc_assert (queued_args_size == INTVAL (XEXP (insn, 1)));
+	  dwarf2out_args_size (queued_args_size);
 	}
       return;
     }
@@ -881,31 +1018,13 @@ dwarf2out_notice_stack_adjust (rtx insn, bool after_p)
   if (CALL_P (insn) && !after_p)
     {
       if (!flag_asynchronous_unwind_tables)
-	dwarf2out_args_size (args_size);
+	dwarf2out_args_size (queued_args_size);
       return;
     }
   else if (BARRIER_P (insn))
-    {
-      /* Don't call compute_barrier_args_size () if the only
-	 BARRIER is at the end of function.  */
-      if (barrier_args_size == NULL && next_nonnote_insn (insn))
-	compute_barrier_args_size ();
-      if (barrier_args_size == NULL)
-	offset = 0;
-      else
-	{
-	  offset = barrier_args_size[INSN_UID (insn)];
-	  if (offset < 0)
-	    offset = 0;
-	}
-
-      offset -= args_size;
-#ifndef STACK_GROWS_DOWNWARD
-      offset = -offset;
-#endif
-    }
+    return;
   else if (GET_CODE (PATTERN (insn)) == SET)
-    offset = stack_adjust_offset (PATTERN (insn), args_size, 0);
+    offset = stack_adjust_offset (PATTERN (insn), queued_args_size, 0);
   else if (GET_CODE (PATTERN (insn)) == PARALLEL
 	   || GET_CODE (PATTERN (insn)) == SEQUENCE)
     {
@@ -914,7 +1033,7 @@ dwarf2out_notice_stack_adjust (rtx insn, bool after_p)
       for (offset = 0, i = XVECLEN (PATTERN (insn), 0) - 1; i >= 0; i--)
 	if (GET_CODE (XVECEXP (PATTERN (insn), 0, i)) == SET)
 	  offset += stack_adjust_offset (XVECEXP (PATTERN (insn), 0, i),
-					 args_size, offset);
+					 queued_args_size, offset);
     }
   else
     return;
@@ -924,36 +1043,6 @@ dwarf2out_notice_stack_adjust (rtx insn, bool after_p)
 
   dwarf2out_stack_adjust (offset);
 }
-
-/* We delay emitting a register save until either (a) we reach the end
-   of the prologue or (b) the register is clobbered.  This clusters
-   register saves so that there are fewer pc advances.  */
-
-struct GTY(()) queued_reg_save {
-  struct queued_reg_save *next;
-  rtx reg;
-  HOST_WIDE_INT cfa_offset;
-  rtx saved_reg;
-};
-
-static GTY(()) struct queued_reg_save *queued_reg_saves;
-
-/* The caller's ORIG_REG is saved in SAVED_IN_REG.  */
-typedef struct GTY(()) reg_saved_in_data {
-  rtx orig_reg;
-  rtx saved_in_reg;
-} reg_saved_in_data;
-
-DEF_VEC_O (reg_saved_in_data);
-DEF_VEC_ALLOC_O (reg_saved_in_data, gc);
-
-/* A set of registers saved in other registers.  This is implemented as
-   a flat array because it normally contains zero or 1 entry, depending
-   on the target.  IA-64 is the big spender here, using a maximum of
-   5 entries.  */
-static GTY(()) VEC(reg_saved_in_data, gc) *regs_saved_in_regs;
-
-static GTY(()) reg_saved_in_data *cie_return_save;
 
 /* Short-hand inline for the very common D_F_R (REGNO (x)) operation.  */
 /* ??? This ought to go into dwarf2out.h, except that dwarf2out.h is
@@ -984,11 +1073,12 @@ record_reg_saved_in_reg (rtx dest, rtx src)
   reg_saved_in_data *elt;
   size_t i;
 
-  FOR_EACH_VEC_ELT (reg_saved_in_data, regs_saved_in_regs, i, elt)
+  FOR_EACH_VEC_ELT (reg_saved_in_data, cur_trace->regs_saved_in_regs, i, elt)
     if (compare_reg_or_pc (elt->orig_reg, src))
       {
 	if (dest == NULL)
-	  VEC_unordered_remove(reg_saved_in_data, regs_saved_in_regs, i);
+	  VEC_unordered_remove (reg_saved_in_data,
+			        cur_trace->regs_saved_in_regs, i);
 	else
 	  elt->saved_in_reg = dest;
 	return;
@@ -997,7 +1087,8 @@ record_reg_saved_in_reg (rtx dest, rtx src)
   if (dest == NULL)
     return;
 
-  elt = VEC_safe_push(reg_saved_in_data, gc, regs_saved_in_regs, NULL);
+  elt = VEC_safe_push (reg_saved_in_data, heap,
+		       cur_trace->regs_saved_in_regs, NULL);
   elt->orig_reg = src;
   elt->saved_in_reg = dest;
 }
@@ -1008,24 +1099,21 @@ record_reg_saved_in_reg (rtx dest, rtx src)
 static void
 queue_reg_save (rtx reg, rtx sreg, HOST_WIDE_INT offset)
 {
-  struct queued_reg_save *q;
+  queued_reg_save *q;
+  size_t i;
 
   /* Duplicates waste space, but it's also necessary to remove them
      for correctness, since the queue gets output in reverse order.  */
-  for (q = queued_reg_saves; q != NULL; q = q->next)
+  FOR_EACH_VEC_ELT (queued_reg_save, queued_reg_saves, i, q)
     if (compare_reg_or_pc (q->reg, reg))
-      break;
+      goto found;
 
-  if (q == NULL)
-    {
-      q = ggc_alloc_queued_reg_save ();
-      q->next = queued_reg_saves;
-      queued_reg_saves = q;
-    }
+  q = VEC_safe_push (queued_reg_save, heap, queued_reg_saves, NULL);
 
+ found:
   q->reg = reg;
-  q->cfa_offset = offset;
   q->saved_reg = sreg;
+  q->cfa_offset = offset;
 }
 
 /* Output all the entries in QUEUED_REG_SAVES.  */
@@ -1033,9 +1121,10 @@ queue_reg_save (rtx reg, rtx sreg, HOST_WIDE_INT offset)
 static void
 dwarf2out_flush_queued_reg_saves (void)
 {
-  struct queued_reg_save *q;
+  queued_reg_save *q;
+  size_t i;
 
-  for (q = queued_reg_saves; q; q = q->next)
+  FOR_EACH_VEC_ELT (queued_reg_save, queued_reg_saves, i, q)
     {
       unsigned int reg, sreg;
 
@@ -1052,7 +1141,7 @@ dwarf2out_flush_queued_reg_saves (void)
       reg_save (reg, sreg, q->cfa_offset);
     }
 
-  queued_reg_saves = NULL;
+  VEC_truncate (queued_reg_save, queued_reg_saves, 0);
 }
 
 /* Does INSN clobber any register which QUEUED_REG_SAVES lists a saved
@@ -1063,17 +1152,19 @@ dwarf2out_flush_queued_reg_saves (void)
 static bool
 clobbers_queued_reg_save (const_rtx insn)
 {
-  struct queued_reg_save *q;
+  queued_reg_save *q;
+  size_t iq;
 
-  for (q = queued_reg_saves; q; q = q->next)
+  FOR_EACH_VEC_ELT (queued_reg_save, queued_reg_saves, iq, q)
     {
-      size_t i;
+      size_t ir;
       reg_saved_in_data *rir;
 
       if (modified_in_p (q->reg, insn))
 	return true;
 
-      FOR_EACH_VEC_ELT (reg_saved_in_data, regs_saved_in_regs, i, rir)
+      FOR_EACH_VEC_ELT (reg_saved_in_data,
+			cur_trace->regs_saved_in_regs, ir, rir)
 	if (compare_reg_or_pc (q->reg, rir->orig_reg)
 	    && modified_in_p (rir->saved_in_reg, insn))
 	  return true;
@@ -1088,54 +1179,50 @@ static rtx
 reg_saved_in (rtx reg)
 {
   unsigned int regn = REGNO (reg);
-  struct queued_reg_save *q;
+  queued_reg_save *q;
   reg_saved_in_data *rir;
   size_t i;
 
-  for (q = queued_reg_saves; q; q = q->next)
+  FOR_EACH_VEC_ELT (queued_reg_save, queued_reg_saves, i, q)
     if (q->saved_reg && regn == REGNO (q->saved_reg))
       return q->reg;
 
-  FOR_EACH_VEC_ELT (reg_saved_in_data, regs_saved_in_regs, i, rir)
+  FOR_EACH_VEC_ELT (reg_saved_in_data, cur_trace->regs_saved_in_regs, i, rir)
     if (regn == REGNO (rir->saved_in_reg))
       return rir->orig_reg;
 
   return NULL_RTX;
 }
 
-
-/* A temporary register holding an integral value used in adjusting SP
-   or setting up the store_reg.  The "offset" field holds the integer
-   value, not an offset.  */
-static dw_cfa_location cfa_temp;
-
 /* A subroutine of dwarf2out_frame_debug, process a REG_DEF_CFA note.  */
 
 static void
 dwarf2out_frame_debug_def_cfa (rtx pat)
 {
-  memset (&cfa, 0, sizeof (cfa));
+  dw_cfa_location loc;
+
+  memset (&loc, 0, sizeof (loc));
 
   switch (GET_CODE (pat))
     {
     case PLUS:
-      cfa.reg = dwf_regno (XEXP (pat, 0));
-      cfa.offset = INTVAL (XEXP (pat, 1));
+      loc.reg = dwf_regno (XEXP (pat, 0));
+      loc.offset = INTVAL (XEXP (pat, 1));
       break;
 
     case REG:
-      cfa.reg = dwf_regno (pat);
+      loc.reg = dwf_regno (pat);
       break;
 
     case MEM:
-      cfa.indirect = 1;
+      loc.indirect = 1;
       pat = XEXP (pat, 0);
       if (GET_CODE (pat) == PLUS)
 	{
-	  cfa.base_offset = INTVAL (XEXP (pat, 1));
+	  loc.base_offset = INTVAL (XEXP (pat, 1));
 	  pat = XEXP (pat, 0);
 	}
-      cfa.reg = dwf_regno (pat);
+      loc.reg = dwf_regno (pat);
       break;
 
     default:
@@ -1143,7 +1230,7 @@ dwarf2out_frame_debug_def_cfa (rtx pat)
       gcc_unreachable ();
     }
 
-  def_cfa_1 (&cfa);
+  def_cfa_1 (&loc);
 }
 
 /* A subroutine of dwarf2out_frame_debug, process a REG_ADJUST_CFA note.  */
@@ -1151,6 +1238,7 @@ dwarf2out_frame_debug_def_cfa (rtx pat)
 static void
 dwarf2out_frame_debug_adjust_cfa (rtx pat)
 {
+  dw_cfa_location loc = cur_row->cfa;
   rtx src, dest;
 
   gcc_assert (GET_CODE (pat) == SET);
@@ -1160,8 +1248,8 @@ dwarf2out_frame_debug_adjust_cfa (rtx pat)
   switch (GET_CODE (src))
     {
     case PLUS:
-      gcc_assert (dwf_regno (XEXP (src, 0)) == cfa.reg);
-      cfa.offset -= INTVAL (XEXP (src, 1));
+      gcc_assert (dwf_regno (XEXP (src, 0)) == loc.reg);
+      loc.offset -= INTVAL (XEXP (src, 1));
       break;
 
     case REG:
@@ -1171,10 +1259,10 @@ dwarf2out_frame_debug_adjust_cfa (rtx pat)
 	gcc_unreachable ();
     }
 
-  cfa.reg = dwf_regno (dest);
-  gcc_assert (cfa.indirect == 0);
+  loc.reg = dwf_regno (dest);
+  gcc_assert (loc.indirect == 0);
 
-  def_cfa_1 (&cfa);
+  def_cfa_1 (&loc);
 }
 
 /* A subroutine of dwarf2out_frame_debug, process a REG_CFA_OFFSET note.  */
@@ -1195,12 +1283,12 @@ dwarf2out_frame_debug_cfa_offset (rtx set)
   switch (GET_CODE (addr))
     {
     case REG:
-      gcc_assert (dwf_regno (addr) == cfa.reg);
-      offset = -cfa.offset;
+      gcc_assert (dwf_regno (addr) == cur_row->cfa.reg);
+      offset = -cur_row->cfa.offset;
       break;
     case PLUS:
-      gcc_assert (dwf_regno (XEXP (addr, 0)) == cfa.reg);
-      offset = INTVAL (XEXP (addr, 1)) - cfa.offset;
+      gcc_assert (dwf_regno (XEXP (addr, 0)) == cur_row->cfa.reg);
+      offset = INTVAL (XEXP (addr, 1)) - cur_row->cfa.offset;
       break;
     default:
       gcc_unreachable ();
@@ -1211,7 +1299,7 @@ dwarf2out_frame_debug_cfa_offset (rtx set)
       span = NULL;
       sregno = DWARF_FRAME_RETURN_COLUMN;
     }
-  else 
+  else
     {
       span = targetm.dwarf_register_span (src);
       sregno = dwf_regno (src);
@@ -1274,6 +1362,7 @@ dwarf2out_frame_debug_cfa_expression (rtx set)
 {
   rtx src, dest, span;
   dw_cfi_ref cfi = new_cfi ();
+  unsigned regno;
 
   dest = SET_DEST (set);
   src = SET_SRC (set);
@@ -1284,8 +1373,10 @@ dwarf2out_frame_debug_cfa_expression (rtx set)
   span = targetm.dwarf_register_span (src);
   gcc_assert (!span);
 
+  regno = dwf_regno (src);
+
   cfi->dw_cfi_opc = DW_CFA_expression;
-  cfi->dw_cfi_oprnd1.dw_cfi_reg_num = dwf_regno (src);
+  cfi->dw_cfi_oprnd1.dw_cfi_reg_num = regno;
   cfi->dw_cfi_oprnd2.dw_cfi_loc
     = mem_loc_descriptor (XEXP (dest, 0), get_address_mode (dest),
 			  GET_MODE (dest), VAR_INIT_STATUS_INITIALIZED);
@@ -1293,6 +1384,7 @@ dwarf2out_frame_debug_cfa_expression (rtx set)
   /* ??? We'd like to use queue_reg_save, were the interface different,
      and, as above, we could manage flushing for epilogues.  */
   add_cfi (cfi);
+  update_row_reg_save (cur_row, regno, cfi);
 }
 
 /* A subroutine of dwarf2out_frame_debug, process a REG_CFA_RESTORE note.  */
@@ -1300,13 +1392,10 @@ dwarf2out_frame_debug_cfa_expression (rtx set)
 static void
 dwarf2out_frame_debug_cfa_restore (rtx reg)
 {
-  dw_cfi_ref cfi = new_cfi ();
   unsigned int regno = dwf_regno (reg);
 
-  cfi->dw_cfi_opc = (regno & ~0x3f ? DW_CFA_restore_extended : DW_CFA_restore);
-  cfi->dw_cfi_oprnd1.dw_cfi_reg_num = regno;
-
-  add_cfi (cfi);
+  add_cfi_restore (regno);
+  update_row_reg_save (cur_row, regno, NULL);
 }
 
 /* A subroutine of dwarf2out_frame_debug, process a REG_CFA_WINDOW_SAVE.
@@ -1366,7 +1455,9 @@ dwarf2out_frame_debug_cfa_window_save (void)
   Invariants / Summaries of Rules
 
   cfa	       current rule for calculating the CFA.  It usually
-	       consists of a register and an offset.
+	       consists of a register and an offset.  This is
+	       actually stored in cur_row->cfa, but abbreviated
+	       for the purposes of this documentation.
   cfa_store    register used by prologue code to save things to the stack
 	       cfa_store.offset is the offset from the value of
 	       cfa_store.reg to the actual CFA
@@ -1520,6 +1611,7 @@ dwarf2out_frame_debug_cfa_window_save (void)
 static void
 dwarf2out_frame_debug_expr (rtx expr)
 {
+  dw_cfa_location cfa = cur_row->cfa;
   rtx src, dest, span;
   HOST_WIDE_INT offset;
   dw_fde_ref fde;
@@ -1563,7 +1655,8 @@ dwarf2out_frame_debug_expr (rtx expr)
 	    {
 	      /* Stack adjustment combining might combine some post-prologue
 		 stack adjustment into a prologue stack adjustment.  */
-	      HOST_WIDE_INT offset = stack_adjust_offset (elem, args_size, 0);
+	      HOST_WIDE_INT offset
+		= stack_adjust_offset (elem, queued_args_size, 0);
 
 	      if (offset != 0)
 		dwarf2out_stack_adjust (offset);
@@ -1604,8 +1697,8 @@ dwarf2out_frame_debug_expr (rtx expr)
 		 FP.  So we just rely on the backends to only set
 		 RTX_FRAME_RELATED_P on appropriate insns.  */
 	      cfa.reg = dwf_regno (dest);
-	      cfa_temp.reg = cfa.reg;
-	      cfa_temp.offset = cfa.offset;
+	      cur_trace->cfa_temp.reg = cfa.reg;
+	      cur_trace->cfa_temp.offset = cfa.offset;
 	    }
 	  else
 	    {
@@ -1642,8 +1735,9 @@ dwarf2out_frame_debug_expr (rtx expr)
 		  offset = INTVAL (XEXP (src, 1));
 		  break;
 		case REG:
-		  gcc_assert (dwf_regno (XEXP (src, 1)) == cfa_temp.reg);
-		  offset = cfa_temp.offset;
+		  gcc_assert (dwf_regno (XEXP (src, 1))
+			      == cur_trace->cfa_temp.reg);
+		  offset = cur_trace->cfa_temp.offset;
 		  break;
 		default:
 		  gcc_unreachable ();
@@ -1665,8 +1759,8 @@ dwarf2out_frame_debug_expr (rtx expr)
 		offset = -offset;
 	      if (cfa.reg == dw_stack_pointer_regnum)
 		cfa.offset += offset;
-	      if (cfa_store.reg == dw_stack_pointer_regnum)
-		cfa_store.offset += offset;
+	      if (cur_trace->cfa_store.reg == dw_stack_pointer_regnum)
+		cur_trace->cfa_store.offset += offset;
 	    }
 	  else if (dest == hard_frame_pointer_rtx)
 	    {
@@ -1699,28 +1793,29 @@ dwarf2out_frame_debug_expr (rtx expr)
 		  cfa.offset += offset;
 		  cfa.reg = dwf_regno (dest);
 		  /* Or used to save regs to the stack.  */
-		  cfa_temp.reg = cfa.reg;
-		  cfa_temp.offset = cfa.offset;
+		  cur_trace->cfa_temp.reg = cfa.reg;
+		  cur_trace->cfa_temp.offset = cfa.offset;
 		}
 
 	      /* Rule 5 */
 	      else if (REG_P (XEXP (src, 0))
-		       && dwf_regno (XEXP (src, 0)) == cfa_temp.reg
+		       && dwf_regno (XEXP (src, 0)) == cur_trace->cfa_temp.reg
 		       && XEXP (src, 1) == stack_pointer_rtx)
 		{
 		  /* Setting a scratch register that we will use instead
 		     of SP for saving registers to the stack.  */
 		  gcc_assert (cfa.reg == dw_stack_pointer_regnum);
-		  cfa_store.reg = dwf_regno (dest);
-		  cfa_store.offset = cfa.offset - cfa_temp.offset;
+		  cur_trace->cfa_store.reg = dwf_regno (dest);
+		  cur_trace->cfa_store.offset
+		    = cfa.offset - cur_trace->cfa_temp.offset;
 		}
 
 	      /* Rule 9 */
 	      else if (GET_CODE (src) == LO_SUM
 		       && CONST_INT_P (XEXP (src, 1)))
 		{
-		  cfa_temp.reg = dwf_regno (dest);
-		  cfa_temp.offset = INTVAL (XEXP (src, 1));
+		  cur_trace->cfa_temp.reg = dwf_regno (dest);
+		  cur_trace->cfa_temp.offset = INTVAL (XEXP (src, 1));
 		}
 	      else
 		gcc_unreachable ();
@@ -1729,18 +1824,18 @@ dwarf2out_frame_debug_expr (rtx expr)
 
 	  /* Rule 6 */
 	case CONST_INT:
-	  cfa_temp.reg = dwf_regno (dest);
-	  cfa_temp.offset = INTVAL (src);
+	  cur_trace->cfa_temp.reg = dwf_regno (dest);
+	  cur_trace->cfa_temp.offset = INTVAL (src);
 	  break;
 
 	  /* Rule 7 */
 	case IOR:
 	  gcc_assert (REG_P (XEXP (src, 0))
-		      && dwf_regno (XEXP (src, 0)) == cfa_temp.reg
+		      && dwf_regno (XEXP (src, 0)) == cur_trace->cfa_temp.reg
 		      && CONST_INT_P (XEXP (src, 1)));
 
-	  cfa_temp.reg = dwf_regno (dest);
-	  cfa_temp.offset |= INTVAL (XEXP (src, 1));
+	  cur_trace->cfa_temp.reg = dwf_regno (dest);
+	  cur_trace->cfa_temp.offset |= INTVAL (XEXP (src, 1));
 	  break;
 
 	  /* Skip over HIGH, assuming it will be followed by a LO_SUM,
@@ -1767,10 +1862,11 @@ dwarf2out_frame_debug_expr (rtx expr)
 		 Thus we must flush whatever we have queued first.  */
 	      dwarf2out_flush_queued_reg_saves ();
 
-              gcc_assert (cfa_store.reg == dwf_regno (XEXP (src, 0)));
+              gcc_assert (cur_trace->cfa_store.reg
+			  == dwf_regno (XEXP (src, 0)));
               fde->stack_realign = 1;
               fde->stack_realignment = INTVAL (XEXP (src, 1));
-              cfa_store.offset = 0;
+              cur_trace->cfa_store.offset = 0;
 
 	      if (cfa.reg != dw_stack_pointer_regnum
 		  && cfa.reg != dw_frame_pointer_regnum)
@@ -1801,16 +1897,16 @@ dwarf2out_frame_debug_expr (rtx expr)
 	  offset = -INTVAL (XEXP (XEXP (XEXP (dest, 0), 1), 1));
 
 	  gcc_assert (REGNO (XEXP (XEXP (dest, 0), 0)) == STACK_POINTER_REGNUM
-		      && cfa_store.reg == dw_stack_pointer_regnum);
+		      && cur_trace->cfa_store.reg == dw_stack_pointer_regnum);
 
-	  cfa_store.offset += offset;
+	  cur_trace->cfa_store.offset += offset;
 	  if (cfa.reg == dw_stack_pointer_regnum)
-	    cfa.offset = cfa_store.offset;
+	    cfa.offset = cur_trace->cfa_store.offset;
 
 	  if (GET_CODE (XEXP (dest, 0)) == POST_MODIFY)
-	    offset -= cfa_store.offset;
+	    offset -= cur_trace->cfa_store.offset;
 	  else
-	    offset = -cfa_store.offset;
+	    offset = -cur_trace->cfa_store.offset;
 	  break;
 
 	  /* Rule 11 */
@@ -1823,9 +1919,9 @@ dwarf2out_frame_debug_expr (rtx expr)
 
 	  gcc_assert ((REGNO (XEXP (XEXP (dest, 0), 0))
 		       == STACK_POINTER_REGNUM)
-		      && cfa_store.reg == dw_stack_pointer_regnum);
+		      && cur_trace->cfa_store.reg == dw_stack_pointer_regnum);
 
-	  cfa_store.offset += offset;
+	  cur_trace->cfa_store.offset += offset;
 
           /* Rule 18: If stack is aligned, we will use FP as a
 	     reference to represent the address of the stored
@@ -1835,16 +1931,16 @@ dwarf2out_frame_debug_expr (rtx expr)
               && src == hard_frame_pointer_rtx)
 	    {
 	      gcc_assert (cfa.reg != dw_frame_pointer_regnum);
-	      cfa_store.offset = 0;
+	      cur_trace->cfa_store.offset = 0;
 	    }
 
 	  if (cfa.reg == dw_stack_pointer_regnum)
-	    cfa.offset = cfa_store.offset;
+	    cfa.offset = cur_trace->cfa_store.offset;
 
 	  if (GET_CODE (XEXP (dest, 0)) == POST_DEC)
-	    offset += -cfa_store.offset;
+	    offset += -cur_trace->cfa_store.offset;
 	  else
-	    offset = -cfa_store.offset;
+	    offset = -cur_trace->cfa_store.offset;
 	  break;
 
 	  /* Rule 12 */
@@ -1865,12 +1961,12 @@ dwarf2out_frame_debug_expr (rtx expr)
 
 	    if (cfa.reg == regno)
 	      offset -= cfa.offset;
-	    else if (cfa_store.reg == regno)
-	      offset -= cfa_store.offset;
+	    else if (cur_trace->cfa_store.reg == regno)
+	      offset -= cur_trace->cfa_store.offset;
 	    else
 	      {
-		gcc_assert (cfa_temp.reg == regno);
-		offset -= cfa_temp.offset;
+		gcc_assert (cur_trace->cfa_temp.reg == regno);
+		offset -= cur_trace->cfa_temp.offset;
 	      }
 	  }
 	  break;
@@ -1883,21 +1979,22 @@ dwarf2out_frame_debug_expr (rtx expr)
 
 	    if (cfa.reg == regno)
 	      offset = -cfa.offset;
-	    else if (cfa_store.reg == regno)
-	      offset = -cfa_store.offset;
+	    else if (cur_trace->cfa_store.reg == regno)
+	      offset = -cur_trace->cfa_store.offset;
 	    else
 	      {
-		gcc_assert (cfa_temp.reg == regno);
-		offset = -cfa_temp.offset;
+		gcc_assert (cur_trace->cfa_temp.reg == regno);
+		offset = -cur_trace->cfa_temp.offset;
 	      }
 	  }
 	  break;
 
 	  /* Rule 14 */
 	case POST_INC:
-	  gcc_assert (cfa_temp.reg == dwf_regno (XEXP (XEXP (dest, 0), 0)));
-	  offset = -cfa_temp.offset;
-	  cfa_temp.offset -= GET_MODE_SIZE (GET_MODE (dest));
+	  gcc_assert (cur_trace->cfa_temp.reg
+		      == dwf_regno (XEXP (XEXP (dest, 0), 0)));
+	  offset = -cur_trace->cfa_temp.offset;
+	  cur_trace->cfa_temp.offset -= GET_MODE_SIZE (GET_MODE (dest));
 	  break;
 
 	default:
@@ -2149,6 +2246,48 @@ dwarf2out_frame_debug (rtx insn, bool after_p)
     dwarf2out_flush_queued_reg_saves ();
 }
 
+/* Emit CFI info to change the state from OLD_ROW to NEW_ROW.  */
+
+static void
+change_cfi_row (dw_cfi_row *old_row, dw_cfi_row *new_row)
+{
+  size_t i, n_old, n_new, n_max;
+  dw_cfi_ref cfi;
+
+  if (new_row->cfa_cfi && !cfi_equal_p (old_row->cfa_cfi, new_row->cfa_cfi))
+    add_cfi (new_row->cfa_cfi);
+  else
+    {
+      cfi = def_cfa_0 (&old_row->cfa, &new_row->cfa);
+      if (cfi)
+	add_cfi (cfi);
+    }
+
+  if (old_row->args_size != new_row->args_size)
+    add_cfi_args_size (new_row->args_size);
+
+  n_old = VEC_length (dw_cfi_ref, old_row->reg_save);
+  n_new = VEC_length (dw_cfi_ref, new_row->reg_save);
+  n_max = MAX (n_old, n_new);
+
+  for (i = 0; i < n_max; ++i)
+    {
+      dw_cfi_ref r_old = NULL, r_new = NULL;
+
+      if (i < n_old)
+	r_old = VEC_index (dw_cfi_ref, old_row->reg_save, i);
+      if (i < n_new)
+	r_new = VEC_index (dw_cfi_ref, new_row->reg_save, i);
+
+      if (r_old == r_new)
+	;
+      else if (r_new == NULL)
+	add_cfi_restore (i);
+      else if (!cfi_equal_p (r_old, r_new))
+        add_cfi (r_new);
+    }
+}
+
 /* Examine CFI and return true if a cfi label and set_loc is needed
    beforehand.  Even when generating CFI assembler instructions, we
    still have to add the cfi to the list so that lookup_cfa_1 works
@@ -2202,6 +2341,8 @@ add_cfis_to_fde (void)
 
       if (NOTE_P (insn) && NOTE_KIND (insn) == NOTE_INSN_SWITCH_TEXT_SECTIONS)
 	{
+	  fde->dw_fde_switch_cfi_index
+	    = VEC_length (dw_cfi_ref, fde->dw_fde_cfi);
 	  /* Don't attempt to advance_loc4 between labels
 	     in different sections.  */
 	  first = true;
@@ -2244,176 +2385,357 @@ add_cfis_to_fde (void)
     }
 }
 
-/* Scan the function and create the initial set of CFI notes.  */
- 
-static void
-create_cfi_notes (void)
-{
-  rtx insn;
+/* If LABEL is the start of a trace, then initialize the state of that
+   trace from CUR_TRACE and CUR_ROW.  */
 
-  for (insn = get_insns (); insn ; insn = NEXT_INSN (insn))
+static void
+maybe_record_trace_start (rtx start, rtx origin)
+{
+  dw_trace_info *ti;
+
+  /* Sync queued data before propagating to a destination,
+     lest we propagate out-of-date data.  */
+  dwarf2out_flush_queued_reg_saves ();
+  dwarf2out_args_size (queued_args_size);
+
+  ti = get_trace_info (start);
+  gcc_assert (ti != NULL);
+
+  if (dump_file)
+    {
+      fprintf (dump_file, "   saw edge from trace %u to %u (via %s %d)\n",
+	       get_trace_index (cur_trace), get_trace_index (ti),
+	       (origin ? rtx_name[(int) GET_CODE (origin)] : "fallthru"),
+	       (origin ? INSN_UID (origin) : 0));
+    }
+
+  if (ti->beg_row == NULL)
+    {
+      /* This is the first time we've encountered this trace.  Propagate
+	 state across the edge and push the trace onto the work list.  */
+      ti->beg_row = copy_cfi_row (cur_row);
+      ti->cfa_store = cur_trace->cfa_store;
+      ti->cfa_temp = cur_trace->cfa_temp;
+      ti->regs_saved_in_regs = VEC_copy (reg_saved_in_data, heap,
+					 cur_trace->regs_saved_in_regs);
+
+      VEC_safe_push (dw_trace_info_ref, heap, trace_work_list, ti);
+
+      if (dump_file)
+	fprintf (dump_file, "\tpush trace %u to worklist\n",
+		 get_trace_index (ti));
+    }
+  else
+    {
+      /* We ought to have the same state incoming to a given trace no
+	 matter how we arrive at the trace.  Anything else means we've
+	 got some kind of optimization error.  */
+      gcc_checking_assert (cfi_row_equal_p (cur_row, ti->beg_row));
+    }
+}
+
+/* Propagate CUR_TRACE state to the destinations implied by INSN.  */
+/* ??? Sadly, this is in large part a duplicate of make_edges.  */
+
+static void
+create_trace_edges (rtx insn)
+{
+  rtx tmp, lab;
+  int i, n;
+
+  if (JUMP_P (insn))
+    {
+      if (find_reg_note (insn, REG_NON_LOCAL_GOTO, NULL_RTX))
+	;
+      else if (tablejump_p (insn, NULL, &tmp))
+	{
+	  rtvec vec;
+
+	  tmp = PATTERN (tmp);
+	  vec = XVEC (tmp, GET_CODE (tmp) == ADDR_DIFF_VEC);
+
+	  n = GET_NUM_ELEM (vec);
+	  for (i = 0; i < n; ++i)
+	    {
+	      lab = XEXP (RTVEC_ELT (vec, i), 0);
+	      maybe_record_trace_start (lab, insn);
+	    }
+	}
+      else if (computed_jump_p (insn))
+	{
+	  for (lab = forced_labels; lab; lab = XEXP (lab, 1))
+	    maybe_record_trace_start (XEXP (lab, 0), insn);
+	}
+      else if (returnjump_p (insn))
+	;
+      else if ((tmp = extract_asm_operands (PATTERN (insn))) != NULL)
+	{
+	  n = ASM_OPERANDS_LABEL_LENGTH (tmp);
+	  for (i = 0; i < n; ++i)
+	    {
+	      lab = XEXP (ASM_OPERANDS_LABEL (tmp, i), 0);
+	      maybe_record_trace_start (lab, insn);
+	    }
+	}
+      else
+	{
+	  lab = JUMP_LABEL (insn);
+	  gcc_assert (lab != NULL);
+	  maybe_record_trace_start (lab, insn);
+	}
+    }
+  else if (CALL_P (insn))
+    {
+      /* Sibling calls don't have edges inside this function.  */
+      if (SIBLING_CALL_P (insn))
+	return;
+
+      /* Process non-local goto edges.  */
+      if (can_nonlocal_goto (insn))
+	for (lab = nonlocal_goto_handler_labels; lab; lab = XEXP (lab, 1))
+	  maybe_record_trace_start (XEXP (lab, 0), insn);
+    }
+
+  /* Process EH edges.  */
+  if (CALL_P (insn) || cfun->can_throw_non_call_exceptions)
+    {
+      eh_landing_pad lp = get_eh_landing_pad_from_rtx (insn);
+      if (lp)
+	maybe_record_trace_start (lp->landing_pad, insn);
+    }
+}
+
+/* Scan the trace beginning at INSN and create the CFI notes for the
+   instructions therein.  */
+
+static void
+scan_trace (dw_trace_info *trace)
+{
+  rtx insn = trace->head;
+
+  if (dump_file)
+    fprintf (dump_file, "Processing trace %u : start at %s %d\n",
+	     get_trace_index (trace), rtx_name[(int) GET_CODE (insn)],
+	     INSN_UID (insn));
+
+  trace->end_row = copy_cfi_row (trace->beg_row);
+
+  cur_trace = trace;
+  cur_row = trace->end_row;
+  queued_args_size = cur_row->args_size;
+
+  for (insn = NEXT_INSN (insn); insn ; insn = NEXT_INSN (insn))
     {
       rtx pat;
 
-      cfi_insn = PREV_INSN (insn);
+      add_cfi_insn = PREV_INSN (insn);
 
-      if (BARRIER_P (insn))
+      /* Notice the end of a trace.  */
+      if (BARRIER_P (insn) || save_point_p (insn))
 	{
-	  dwarf2out_frame_debug (insn, false);
-	  continue;
-        }
+	  dwarf2out_flush_queued_reg_saves ();
+	  dwarf2out_args_size (queued_args_size);
 
-      if (NOTE_P (insn))
-	{
-	  switch (NOTE_KIND (insn))
-	    {
-	    case NOTE_INSN_PROLOGUE_END:
-	      dwarf2out_flush_queued_reg_saves ();
-	      break;
-
-	    case NOTE_INSN_EPILOGUE_BEG:
-#if defined(HAVE_epilogue)
-	      dwarf2out_cfi_begin_epilogue (insn);
-#endif
-	      break;
-
-	    case NOTE_INSN_CFA_RESTORE_STATE:
-	      cfi_insn = insn;
-	      dwarf2out_frame_debug_restore_state ();
-	      break;
-	    }
-	  continue;
+	  /* Propagate across fallthru edges.  */
+	  if (!BARRIER_P (insn))
+	    maybe_record_trace_start (insn, NULL);
+	  break;
 	}
 
-      if (!NONDEBUG_INSN_P (insn))
+      if (DEBUG_INSN_P (insn) || !inside_basic_block_p (insn))
 	continue;
 
       pat = PATTERN (insn);
       if (asm_noperands (pat) >= 0)
 	{
 	  dwarf2out_frame_debug (insn, false);
-	  continue;
+	  add_cfi_insn = insn;
 	}
-
-      if (GET_CODE (pat) == SEQUENCE)
+      else
 	{
-	  int i, n = XVECLEN (pat, 0);
-	  for (i = 1; i < n; ++i)
-	    dwarf2out_frame_debug (XVECEXP (pat, 0, i), false);
+	  if (GET_CODE (pat) == SEQUENCE)
+	    {
+	      int i, n = XVECLEN (pat, 0);
+	      for (i = 1; i < n; ++i)
+		dwarf2out_frame_debug (XVECEXP (pat, 0, i), false);
+	    }
+
+          if (CALL_P (insn))
+	    dwarf2out_frame_debug (insn, false);
+          else if (find_reg_note (insn, REG_CFA_FLUSH_QUEUE, NULL)
+		   || (cfun->can_throw_non_call_exceptions
+		       && can_throw_internal (insn)))
+	    dwarf2out_flush_queued_reg_saves ();
+
+	  /* Do not separate tablejump insns from their ADDR_DIFF_VEC.
+	     Putting the note after the VEC should be ok.  */
+	  if (!tablejump_p (insn, NULL, &add_cfi_insn))
+	    add_cfi_insn = insn;
+
+	  dwarf2out_frame_debug (insn, true);
 	}
 
-      if (CALL_P (insn)
-	  || find_reg_note (insn, REG_CFA_FLUSH_QUEUE, NULL))
-	dwarf2out_frame_debug (insn, false);
-
-      /* Do not separate tablejump insns from their ADDR_DIFF_VEC.
-	 Putting the note after the VEC should be ok.  */
-      if (!tablejump_p (insn, NULL, &cfi_insn))
-	cfi_insn = insn;
-
-      dwarf2out_frame_debug (insn, true);
+      /* Note that a test for control_flow_insn_p does exactly the
+	 same tests as are done to actually create the edges.  So
+	 always call the routine and let it not create edges for
+	 non-control-flow insns.  */
+      create_trace_edges (insn);
     }
 
-  cfi_insn = NULL;
+  add_cfi_insn = NULL;
+  cur_row = NULL;
+  cur_trace = NULL;
 }
 
-/* Determine if we need to save and restore CFI information around this
-   epilogue.  If SIBCALL is true, then this is a sibcall epilogue.  If
-   we do need to save/restore, then emit the save now, and insert a
-   NOTE_INSN_CFA_RESTORE_STATE at the appropriate place in the stream.  */
+/* Scan the function and create the initial set of CFI notes.  */
 
 static void
-dwarf2out_cfi_begin_epilogue (rtx insn)
+create_cfi_notes (void)
 {
-  bool saw_frp = false;
-  rtx i;
+  dw_trace_info *ti;
 
-  /* Scan forward to the return insn, noticing if there are possible
-     frame related insns.  */
-  for (i = NEXT_INSN (insn); i ; i = NEXT_INSN (i))
+  gcc_checking_assert (queued_reg_saves == NULL);
+  gcc_checking_assert (trace_work_list == NULL);
+
+  /* Always begin at the entry trace.  */
+  ti = VEC_index (dw_trace_info, trace_info, 0);
+  scan_trace (ti);
+
+  while (!VEC_empty (dw_trace_info_ref, trace_work_list))
     {
-      if (!INSN_P (i))
-	continue;
-
-      /* Look for both regular and sibcalls to end the block.  */
-      if (returnjump_p (i))
-	break;
-      if (CALL_P (i) && SIBLING_CALL_P (i))
-	break;
-
-      if (GET_CODE (PATTERN (i)) == SEQUENCE)
-	{
-	  int idx;
-	  rtx seq = PATTERN (i);
-
-	  if (returnjump_p (XVECEXP (seq, 0, 0)))
-	    break;
-	  if (CALL_P (XVECEXP (seq, 0, 0))
-	      && SIBLING_CALL_P (XVECEXP (seq, 0, 0)))
-	    break;
-
-	  for (idx = 0; idx < XVECLEN (seq, 0); idx++)
-	    if (RTX_FRAME_RELATED_P (XVECEXP (seq, 0, idx)))
-	      saw_frp = true;
-	}
-
-      if (RTX_FRAME_RELATED_P (i))
-	saw_frp = true;
+      ti = VEC_pop (dw_trace_info_ref, trace_work_list);
+      scan_trace (ti);
     }
 
-  /* If the port doesn't emit epilogue unwind info, we don't need a
-     save/restore pair.  */
-  if (!saw_frp)
-    return;
-
-  /* Otherwise, search forward to see if the return insn was the last
-     basic block of the function.  If so, we don't need save/restore.  */
-  gcc_assert (i != NULL);
-  i = next_real_insn (i);
-  if (i == NULL)
-    return;
-
-  /* Insert the restore before that next real insn in the stream, and before
-     a potential NOTE_INSN_EPILOGUE_BEG -- we do need these notes to be
-     properly nested.  This should be after any label or alignment.  This
-     will be pushed into the CFI stream by the function below.  */
-  while (1)
-    {
-      rtx p = PREV_INSN (i);
-      if (!NOTE_P (p))
-	break;
-      if (NOTE_KIND (p) == NOTE_INSN_BASIC_BLOCK)
-	break;
-      i = p;
-    }
-  emit_note_before (NOTE_INSN_CFA_RESTORE_STATE, i);
-
-  emit_cfa_remember = true;
-
-  /* And emulate the state save.  */
-  gcc_assert (!cfa_remember.in_use);
-  cfa_remember = cfa;
-  old_cfa_remember = old_cfa;
-  cfa_remember.in_use = 1;
+  VEC_free (queued_reg_save, heap, queued_reg_saves);
+  VEC_free (dw_trace_info_ref, heap, trace_work_list);
 }
 
-/* A "subroutine" of dwarf2out_cfi_begin_epilogue.  Emit the restore
-   required.  */
+/* Insert CFI notes between traces to properly change state between them.  */
+/* ??? TODO: Make use of remember/restore_state.  */
 
 static void
-dwarf2out_frame_debug_restore_state (void)
+connect_traces (void)
 {
-  dw_cfi_ref cfi = new_cfi ();
+  unsigned i, n = VEC_length (dw_trace_info, trace_info);
+  dw_trace_info *prev_ti, *ti;
 
-  cfi->dw_cfi_opc = DW_CFA_restore_state;
-  add_cfi (cfi);
+  prev_ti = VEC_index (dw_trace_info, trace_info, 0);
 
-  gcc_assert (cfa_remember.in_use);
-  cfa = cfa_remember;
-  old_cfa = old_cfa_remember;
-  cfa_remember.in_use = 0;
+  for (i = 1; i < n; ++i, prev_ti = ti)
+    {
+      dw_cfi_row *old_row;
+
+      ti = VEC_index (dw_trace_info, trace_info, i);
+
+      /* We must have both queued and processed every trace.  */
+      gcc_assert (ti->beg_row && ti->end_row);
+
+      /* In dwarf2out_switch_text_section, we'll begin a new FDE
+	 for the portion of the function in the alternate text
+	 section.  The row state at the very beginning of that
+	 new FDE will be exactly the row state from the CIE.  */
+      if (ti->switch_sections)
+	old_row = cie_cfi_row;
+      else
+	old_row = prev_ti->end_row;
+
+      add_cfi_insn = ti->head;
+      change_cfi_row (old_row, ti->beg_row);
+
+      if (dump_file && add_cfi_insn != ti->head)
+	{
+	  rtx note;
+
+	  fprintf (dump_file, "Fixup between trace %u and %u:\n", i - 1, i);
+
+	  note = ti->head;
+	  do
+	    {
+	      note = NEXT_INSN (note);
+	      gcc_assert (NOTE_P (note) && NOTE_KIND (note) == NOTE_INSN_CFI);
+	      output_cfi_directive (dump_file, NOTE_CFI (note));
+	    }
+	  while (note != add_cfi_insn);
+	}
+    }
 }
-
+
+/* Set up the pseudo-cfg of instruction traces, as described at the
+   block comment at the top of the file.  */
+
+static void
+create_pseudo_cfg (void)
+{
+  bool saw_barrier, switch_sections;
+  dw_trace_info *ti;
+  rtx insn;
+  unsigned i;
+
+  /* The first trace begins at the start of the function,
+     and begins with the CIE row state.  */
+  trace_info = VEC_alloc (dw_trace_info, heap, 16);
+  ti = VEC_quick_push (dw_trace_info, trace_info, NULL);
+
+  memset (ti, 0, sizeof (*ti));
+  ti->head = get_insns ();
+  ti->beg_row = cie_cfi_row;
+  ti->cfa_store = cie_cfi_row->cfa;
+  ti->cfa_temp.reg = INVALID_REGNUM;
+  if (cie_return_save)
+    VEC_safe_push (reg_saved_in_data, heap,
+		   ti->regs_saved_in_regs, cie_return_save);
+
+  /* Walk all the insns, collecting start of trace locations.  */
+  saw_barrier = false;
+  switch_sections = false;
+  for (insn = get_insns (); insn; insn = NEXT_INSN (insn))
+    {
+      if (BARRIER_P (insn))
+	saw_barrier = true;
+      else if (NOTE_P (insn)
+	       && NOTE_KIND (insn) == NOTE_INSN_SWITCH_TEXT_SECTIONS)
+	{
+	  /* We should have just seen a barrier.  */
+	  gcc_assert (saw_barrier);
+	  switch_sections = true;
+	}
+      /* Watch out for save_point notes between basic blocks.
+	 In particular, a note after a barrier.  Do not record these,
+	 delaying trace creation until the label.  */
+      else if (save_point_p (insn)
+	       && (LABEL_P (insn) || !saw_barrier))
+	{
+	  ti = VEC_safe_push (dw_trace_info, heap, trace_info, NULL);
+	  memset (ti, 0, sizeof (*ti));
+	  ti->head = insn;
+	  ti->switch_sections = switch_sections;
+
+	  saw_barrier = false;
+	  switch_sections = false;
+	}
+    }
+
+  /* Create the trace index after we've finished building trace_info,
+     avoiding stale pointer problems due to reallocation.  */
+  trace_index = htab_create (VEC_length (dw_trace_info, trace_info),
+			     dw_trace_info_hash, dw_trace_info_eq, NULL);
+  FOR_EACH_VEC_ELT (dw_trace_info, trace_info, i, ti)
+    {
+      void **slot;
+
+      if (dump_file)
+	fprintf (dump_file, "Creating trace %u : start at %s %d%s\n", i,
+		 rtx_name[(int) GET_CODE (ti->head)], INSN_UID (ti->head),
+		 ti->switch_sections ? " (section switch)" : "");
+
+      slot = htab_find_slot_with_hash (trace_index, ti,
+				       INSN_UID (ti->head), INSERT);
+      gcc_assert (*slot == NULL);
+      *slot = (void *) ti;
+    }
+}
+
 /* Record the initial position of the return address.  RTL is
    INCOMING_RETURN_ADDR_RTX.  */
 
@@ -2472,8 +2794,62 @@ initial_return_save (rtx rtl)
     {
       if (reg != INVALID_REGNUM)
         record_reg_saved_in_reg (rtl, pc_rtx);
-      reg_save (DWARF_FRAME_RETURN_COLUMN, reg, offset - cfa.offset);
+      reg_save (DWARF_FRAME_RETURN_COLUMN, reg, offset - cur_row->cfa.offset);
     }
+}
+
+static void
+create_cie_data (void)
+{
+  dw_cfa_location loc;
+  dw_trace_info cie_trace;
+
+  dw_stack_pointer_regnum = DWARF_FRAME_REGNUM (STACK_POINTER_REGNUM);
+  dw_frame_pointer_regnum = DWARF_FRAME_REGNUM (HARD_FRAME_POINTER_REGNUM);
+
+  memset (&cie_trace, 0, sizeof(cie_trace));
+  cur_trace = &cie_trace;
+
+  add_cfi_vec = &cie_cfi_vec;
+  cie_cfi_row = cur_row = new_cfi_row ();
+
+  /* On entry, the Canonical Frame Address is at SP.  */
+  memset(&loc, 0, sizeof (loc));
+  loc.reg = dw_stack_pointer_regnum;
+  loc.offset = INCOMING_FRAME_SP_OFFSET;
+  def_cfa_1 (&loc);
+
+  if (targetm.debug_unwind_info () == UI_DWARF2
+      || targetm_common.except_unwind_info (&global_options) == UI_DWARF2)
+    {
+      initial_return_save (INCOMING_RETURN_ADDR_RTX);
+
+      /* For a few targets, we have the return address incoming into a
+	 register, but choose a different return column.  This will result
+	 in a DW_CFA_register for the return, and an entry in
+	 regs_saved_in_regs to match.  If the target later stores that
+	 return address register to the stack, we want to be able to emit
+	 the DW_CFA_offset against the return column, not the intermediate
+	 save register.  Save the contents of regs_saved_in_regs so that
+	 we can re-initialize it at the start of each function.  */
+      switch (VEC_length (reg_saved_in_data, cie_trace.regs_saved_in_regs))
+	{
+	case 0:
+	  break;
+	case 1:
+	  cie_return_save = ggc_alloc_reg_saved_in_data ();
+	  *cie_return_save = *VEC_index (reg_saved_in_data,
+					 cie_trace.regs_saved_in_regs, 0);
+	  VEC_free (reg_saved_in_data, heap, cie_trace.regs_saved_in_regs);
+	  break;
+	default:
+	  gcc_unreachable ();
+	}
+    }
+
+  add_cfi_vec = NULL;
+  cur_row = NULL;
+  cur_trace = NULL;
 }
 
 /* Annotate the function with NOTE_INSN_CFI notes to record the CFI
@@ -2485,82 +2861,29 @@ execute_dwarf2_frame (void)
 {
   /* The first time we're called, compute the incoming frame state.  */
   if (cie_cfi_vec == NULL)
-    {
-      dw_cfa_location loc;
-
-      dw_stack_pointer_regnum = DWARF_FRAME_REGNUM (STACK_POINTER_REGNUM);
-      dw_frame_pointer_regnum = DWARF_FRAME_REGNUM (HARD_FRAME_POINTER_REGNUM);
-
-      add_cfi_vec = &cie_cfi_vec;
-
-      memset (&old_cfa, 0, sizeof (old_cfa));
-      old_cfa.reg = INVALID_REGNUM;
-
-      /* On entry, the Canonical Frame Address is at SP.  */
-      memset(&loc, 0, sizeof (loc));
-      loc.reg = dw_stack_pointer_regnum;
-      loc.offset = INCOMING_FRAME_SP_OFFSET;
-      def_cfa_1 (&loc);
-
-      if (targetm.debug_unwind_info () == UI_DWARF2
-          || targetm_common.except_unwind_info (&global_options) == UI_DWARF2)
-	{
-	  initial_return_save (INCOMING_RETURN_ADDR_RTX);
-
-	  /* For a few targets, we have the return address incoming into a
-	     register, but choose a different return column.  This will result
-	     in a DW_CFA_register for the return, and an entry in
-	     regs_saved_in_regs to match.  If the target later stores that
-	     return address register to the stack, we want to be able to emit
-	     the DW_CFA_offset against the return column, not the intermediate
-	     save register.  Save the contents of regs_saved_in_regs so that
-	     we can re-initialize it at the start of each function.  */
-	  switch (VEC_length (reg_saved_in_data, regs_saved_in_regs))
-	    {
-	    case 0:
-	      break;
-	    case 1:
-	      cie_return_save = ggc_alloc_reg_saved_in_data ();
-	      *cie_return_save = *VEC_index (reg_saved_in_data,
-					     regs_saved_in_regs, 0);
-	      regs_saved_in_regs = NULL;
-	      break;
-	    default:
-	      gcc_unreachable ();
-	    }
-	}
-
-      add_cfi_vec = NULL;
-    }
-
-  /* Set up state for generating call frame debug info.  */
-  gcc_checking_assert (queued_reg_saves == NULL);
-  gcc_checking_assert (regs_saved_in_regs == NULL);
-
-  memset (&cfa, 0, sizeof(cfa));
-  cfa.reg = dw_stack_pointer_regnum;
-  cfa.offset = INCOMING_FRAME_SP_OFFSET;
-
-  old_cfa = cfa;
-  cfa_store = cfa;
-
-  memset (&cfa_temp, 0, sizeof(cfa_temp));
-  cfa_temp.reg = INVALID_REGNUM;
-
-  if (cie_return_save)
-    VEC_safe_push (reg_saved_in_data, gc, regs_saved_in_regs, cie_return_save);
+    create_cie_data ();
 
   dwarf2out_alloc_current_fde ();
 
+  create_pseudo_cfg ();
+
   /* Do the work.  */
   create_cfi_notes ();
+  connect_traces ();
   add_cfis_to_fde ();
 
-  /* Reset all function-specific information, particularly for GC.  */
-  XDELETEVEC (barrier_args_size);
-  barrier_args_size = NULL;
-  regs_saved_in_regs = NULL;
-  queued_reg_saves = NULL;
+  /* Free all the data we allocated.  */
+  {
+    size_t i;
+    dw_trace_info *ti;
+
+    FOR_EACH_VEC_ELT (dw_trace_info, trace_info, i, ti)
+      VEC_free (reg_saved_in_data, heap, ti->regs_saved_in_regs);
+  }
+  VEC_free (dw_trace_info, heap, trace_info);
+
+  htab_delete (trace_index);
+  trace_index = NULL;
 
   return 0;
 }
@@ -2649,7 +2972,7 @@ output_cfa_loc (dw_cfi_ref cfi, int for_eh)
 
   if (cfi->dw_cfi_opc == DW_CFA_expression)
     {
-      unsigned r = 
+      unsigned r =
 	DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, for_eh);
       dw2_asm_output_data (1, r, NULL);
       loc = cfi->dw_cfi_oprnd2.dw_cfi_loc;
@@ -2675,7 +2998,7 @@ output_cfa_loc_raw (dw_cfi_ref cfi)
 
   if (cfi->dw_cfi_opc == DW_CFA_expression)
     {
-      unsigned r = 
+      unsigned r =
 	DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
       fprintf (asm_out_file, "%#x,", r);
       loc = cfi->dw_cfi_oprnd2.dw_cfi_loc;
@@ -2961,175 +3284,6 @@ dwarf2out_emit_cfi (dw_cfi_ref cfi)
 {
   if (dwarf2out_do_cfi_asm ())
     output_cfi_directive (asm_out_file, cfi);
-}
-
-/* Output CFIs from VEC, up to index UPTO, to bring current FDE to the
-   same state as after executing CFIs in CFI chain.  DO_CFI_ASM is
-   true if .cfi_* directives shall be emitted, false otherwise.  If it
-   is false, FDE and FOR_EH are the other arguments to pass to
-   output_cfi.  */
-
-void
-output_cfis (cfi_vec vec, int upto, bool do_cfi_asm,
-	     dw_fde_ref fde, bool for_eh)
-{
-  int ix;
-  struct dw_cfi_struct cfi_buf;
-  dw_cfi_ref cfi2;
-  dw_cfi_ref cfi_args_size = NULL, cfi_cfa = NULL, cfi_cfa_offset = NULL;
-  VEC(dw_cfi_ref, heap) *regs = VEC_alloc (dw_cfi_ref, heap, 32);
-  unsigned int len, idx;
-
-  for (ix = 0; ix < upto + 1; ix++)
-    {
-      dw_cfi_ref cfi = ix < upto ? VEC_index (dw_cfi_ref, vec, ix) : NULL;
-      switch (cfi ? cfi->dw_cfi_opc : DW_CFA_nop)
-	{
-	case DW_CFA_advance_loc:
-	case DW_CFA_advance_loc1:
-	case DW_CFA_advance_loc2:
-	case DW_CFA_advance_loc4:
-	case DW_CFA_MIPS_advance_loc8:
-	case DW_CFA_set_loc:
-	  /* All advances should be ignored.  */
-	  break;
-	case DW_CFA_remember_state:
-	  {
-	    dw_cfi_ref args_size = cfi_args_size;
-
-	    /* Skip everything between .cfi_remember_state and
-	       .cfi_restore_state.  */
-	    ix++;
-	    if (ix == upto)
-	      goto flush_all;
-
-	    for (; ix < upto; ix++)
-	      {
-		cfi2 = VEC_index (dw_cfi_ref, vec, ix);
-		if (cfi2->dw_cfi_opc == DW_CFA_restore_state)
-		  break;
-		else if (cfi2->dw_cfi_opc == DW_CFA_GNU_args_size)
-		  args_size = cfi2;
-		else
-		  gcc_assert (cfi2->dw_cfi_opc != DW_CFA_remember_state);
-	      }
-
-	    cfi_args_size = args_size;
-	    break;
-	  }
-	case DW_CFA_GNU_args_size:
-	  cfi_args_size = cfi;
-	  break;
-	case DW_CFA_GNU_window_save:
-	  goto flush_all;
-	case DW_CFA_offset:
-	case DW_CFA_offset_extended:
-	case DW_CFA_offset_extended_sf:
-	case DW_CFA_restore:
-	case DW_CFA_restore_extended:
-	case DW_CFA_undefined:
-	case DW_CFA_same_value:
-	case DW_CFA_register:
-	case DW_CFA_val_offset:
-	case DW_CFA_val_offset_sf:
-	case DW_CFA_expression:
-	case DW_CFA_val_expression:
-	case DW_CFA_GNU_negative_offset_extended:
-	  if (VEC_length (dw_cfi_ref, regs)
-	      <= cfi->dw_cfi_oprnd1.dw_cfi_reg_num)
-	    VEC_safe_grow_cleared (dw_cfi_ref, heap, regs,
-				   cfi->dw_cfi_oprnd1.dw_cfi_reg_num + 1);
-	  VEC_replace (dw_cfi_ref, regs, cfi->dw_cfi_oprnd1.dw_cfi_reg_num,
-		       cfi);
-	  break;
-	case DW_CFA_def_cfa:
-	case DW_CFA_def_cfa_sf:
-	case DW_CFA_def_cfa_expression:
-	  cfi_cfa = cfi;
-	  cfi_cfa_offset = cfi;
-	  break;
-	case DW_CFA_def_cfa_register:
-	  cfi_cfa = cfi;
-	  break;
-	case DW_CFA_def_cfa_offset:
-	case DW_CFA_def_cfa_offset_sf:
-	  cfi_cfa_offset = cfi;
-	  break;
-	case DW_CFA_nop:
-	  gcc_assert (cfi == NULL);
-	flush_all:
-	  len = VEC_length (dw_cfi_ref, regs);
-	  for (idx = 0; idx < len; idx++)
-	    {
-	      cfi2 = VEC_replace (dw_cfi_ref, regs, idx, NULL);
-	      if (cfi2 != NULL
-		  && cfi2->dw_cfi_opc != DW_CFA_restore
-		  && cfi2->dw_cfi_opc != DW_CFA_restore_extended)
-		{
-		  if (do_cfi_asm)
-		    output_cfi_directive (asm_out_file, cfi2);
-		  else
-		    output_cfi (cfi2, fde, for_eh);
-		}
-	    }
-	  if (cfi_cfa && cfi_cfa_offset && cfi_cfa_offset != cfi_cfa)
-	    {
-	      gcc_assert (cfi_cfa->dw_cfi_opc != DW_CFA_def_cfa_expression);
-	      cfi_buf = *cfi_cfa;
-	      switch (cfi_cfa_offset->dw_cfi_opc)
-		{
-		case DW_CFA_def_cfa_offset:
-		  cfi_buf.dw_cfi_opc = DW_CFA_def_cfa;
-		  cfi_buf.dw_cfi_oprnd2 = cfi_cfa_offset->dw_cfi_oprnd1;
-		  break;
-		case DW_CFA_def_cfa_offset_sf:
-		  cfi_buf.dw_cfi_opc = DW_CFA_def_cfa_sf;
-		  cfi_buf.dw_cfi_oprnd2 = cfi_cfa_offset->dw_cfi_oprnd1;
-		  break;
-		case DW_CFA_def_cfa:
-		case DW_CFA_def_cfa_sf:
-		  cfi_buf.dw_cfi_opc = cfi_cfa_offset->dw_cfi_opc;
-		  cfi_buf.dw_cfi_oprnd2 = cfi_cfa_offset->dw_cfi_oprnd2;
-		  break;
-		default:
-		  gcc_unreachable ();
-		}
-	      cfi_cfa = &cfi_buf;
-	    }
-	  else if (cfi_cfa_offset)
-	    cfi_cfa = cfi_cfa_offset;
-	  if (cfi_cfa)
-	    {
-	      if (do_cfi_asm)
-		output_cfi_directive (asm_out_file, cfi_cfa);
-	      else
-		output_cfi (cfi_cfa, fde, for_eh);
-	    }
-	  cfi_cfa = NULL;
-	  cfi_cfa_offset = NULL;
-	  if (cfi_args_size
-	      && cfi_args_size->dw_cfi_oprnd1.dw_cfi_offset)
-	    {
-	      if (do_cfi_asm)
-		output_cfi_directive (asm_out_file, cfi_args_size);
-	      else
-		output_cfi (cfi_args_size, fde, for_eh);
-	    }
-	  cfi_args_size = NULL;
-	  if (cfi == NULL)
-	    {
-	      VEC_free (dw_cfi_ref, heap, regs);
-	      return;
-	    }
-	  else if (do_cfi_asm)
-	    output_cfi_directive (asm_out_file, cfi);
-	  else
-	    output_cfi (cfi, fde, for_eh);
-	  break;
-	default:
-	  gcc_unreachable ();
-	}
-    }
 }
 
 

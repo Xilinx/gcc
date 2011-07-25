@@ -1,3 +1,204 @@
+2011-07-24  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/bits/hashtable_policy.h (_Prime_rehash_policy::_M_next_bkt,
+	_M_bkt_for_elements, _M_need_rehash): Fix typos in the last commit.
+
+2011-07-24  François Dumont  <francois.cppdevs@free.fr>
+
+	* include/bits/hashtable_policy.h (_Prime_rehash_policy): Use
+	__builtin_floor rather than __builtin_ceil to compute next resize
+	value.
+	* testsuite/23_containers/unordered_set/hash_policy/load_factor.cc:
+	New.
+
+2011-07-22  Benjamin Kosnik  <bkoz@redhat.com>
+	    Daniel Krugler  <daniel.kruegler@googlemail.com>
+
+	* include/bits/move.h (move, forward): Mark constexpr.
+	* include/bits/stl_pair.h (pair): Mark move ctors constexpr.
+	* testsuite/20_util/pair/make_pair/constexpr.cc: New.
+	* testsuite/20_util/pair/cons/constexpr.cc: Add tests.
+
+2011-07-22  Ian Lance Taylor  <iant@google.com>
+
+	* fragment.am (CONFIG_CXXFLAGS): Add -frandom-seed.
+	* Makefile.in: Rebuild.
+	* doc/Makefile.in: Rebuild.
+	* include/Makefile.in: Rebuild.
+	* libsupc++/Makefile.in: Rebuild.
+	* po/Makefile.in: Rebuild.
+	* python/Makefile.in: Rebuild.
+	* src/Makefile.in: Rebuild.
+	* testsuite/Makefile.in: Rebuild.
+
+2011-07-21  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* testsuite/ext/pb_ds/regression/tree_no_data_map_rand.cc: Move...
+	* testsuite/ext/pb_ds/regression/tree_set_rand.cc: ... here.
+	* testsuite/ext/pb_ds/regression/tree_no_data_map_rand_debug.cc: Move...
+	* testsuite/ext/pb_ds/regression/tree_set_rand_debug.cc: ... here.
+	* testsuite/ext/pb_ds/regression/tree_data_map_rand.cc: Move...
+	* testsuite/ext/pb_ds/regression/tree_map_rand.cc: ... here.
+	* testsuite/ext/pb_ds/regression/tree_data_map_rand_debug.cc: Move...
+	* testsuite/ext/pb_ds/regression/tree_map_rand_debug.cc: ... here.
+
+	* testsuite/ext/pb_ds/regression/trie_no_data_map_rand.cc: Move...
+	* testsuite/ext/pb_ds/regression/trie_set_rand.cc: ... here.
+	* testsuite/ext/pb_ds/regression/trie_no_data_map_rand_debug.cc: Move...
+	* testsuite/ext/pb_ds/regression/trie_set_rand_debug.cc: ... here.
+	* testsuite/ext/pb_ds/regression/trie_data_map_rand.cc: Move...
+	* testsuite/ext/pb_ds/regression/trie_map_rand.cc: ... here.
+	* testsuite/ext/pb_ds/regression/trie_data_map_rand_debug.cc: Move...
+	* testsuite/ext/pb_ds/regression/trie_map_rand_debug.cc: ... here.
+
+	* testsuite/ext/pb_ds/regression/list_update_no_data_map_rand.cc: Move.
+	* testsuite/ext/pb_ds/regression/list_update_set_rand.cc: ...here.
+	* testsuite/ext/pb_ds/regression/list_update_no_data_map_rand_debug.cc:
+	Move...
+	* testsuite/ext/pb_ds/regression/list_update_set_rand_debug.cc: ...here.
+	* testsuite/ext/pb_ds/regression/list_update_data_map_rand.cc: Move...
+	* testsuite/ext/pb_ds/regression/list_update_map_rand.cc: ...here.
+	* testsuite/ext/pb_ds/regression/list_update_data_map_rand_debug.cc:
+	Move...
+	* testsuite/ext/pb_ds/regression/list_update_map_rand_debug.cc: ...here.
+
+	* testsuite/ext/pb_ds/regression/hash_no_data_map_rand.cc: Move...
+	* testsuite/ext/pb_ds/regression/hash_set_rand.cc: ...here.
+	* testsuite/ext/pb_ds/regression/hash_no_data_map_rand_debug.cc: Move...
+	* testsuite/ext/pb_ds/regression/hash_set_rand_debug.cc: ...here.
+
+	* testsuite/ext/pb_ds/regression/hash_data_map_rand.cc: Move...
+	* testsuite/ext/pb_ds/regression/hash_map_rand.cc: ...here.
+	* testsuite/ext/pb_ds/regression/hash_data_map_rand_debug.cc: Move...
+	* testsuite/ext/pb_ds/regression/hash_map_rand_debug.cc: ...here.
+
+2011-07-21  François Dumont  <francois.cppdevs@free.fr>
+
+	* include/debug/safe_unordered_sequence.h,
+	safe_unordered_sequence.tcc: Rename respectively in...
+	* include/debug/safe_unordered_container.h,
+	safe_unordered_container.tcc: ...those. _Safe_unordered_sequence
+	rename _Safe_unordered_container.
+	* include/debug/safe_unordered_base.h: _Safe_unordered_sequence_base
+	rename _Safe_unordered_container_base.
+	* include/debug/unordered_map, unordered_set: Adapt to previous
+	modifications.
+	* config/abi/pre/gnu.ver: Likewise.
+	* src/debug.cc: Likewise.
+	* include/Makefile.am: Likewise.
+	* include/Makefile.in: Regenerate.
+
+2011-07-21  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/mutex (timed_mutex, recursive_timed_mutex): Update
+	to use steady_clock instead of monotonic_clock.
+	* config/abi/pre/gnu.ver: Export steady_clock::now.
+
+2011-07-20  Benjamin Kosnik  <bkoz@redhat.com>
+	    Daniel Krugler  <daniel.kruegler@googlemail.com>
+
+	* include/std/array (array::at, array::operator[]): Mark constexpr.
+	* testsuite/23_containers/array/requirements/
+	constexpr_element_access.cc: Add.
+
+2011-07-20  Benjamin Kosnik  <bkoz@redhat.com>
+	    Daniel Krugler  <daniel.kruegler@googlemail.com>
+
+	* include/std/chrono: (system_clock::is_steady): Update to N3291
+	from is_monotonic.
+	(time_point): Mark nonmember arithmetic operators constexpr.
+	* src/chrono.cc: Modify for above.
+	* src/compatibility-c++0x.cc: Same.
+	* testsuite/20_util/time_point/nonmember/constexpr.cc: New.
+	* testsuite/20_util/time_point/1.cc: Modify.
+	* testsuite/20_util/system_clock/constexpr_data.cc: Modify.
+	* testsuite/20_util/system_clock/1.cc: Modify.
+	* testsuite/20_util/monotonic_clock/constexpr_data.cc: Move to...
+	* testsuite/20_util/steady_clock/constexpr_data.cc: ...here.
+	* testsuite/30_threads/condition_variable/members/2.cc: Modify.
+	* testsuite/30_threads/condition_variable_any/members/2.cc: Modify.
+
+2011-07-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/std/system_error: Use noexcept.
+	* src/system_error.cc: Likewise.
+	* testsuite/19_diagnostics/error_condition/modifiers/39881.cc: Adjust.
+	* testsuite/19_diagnostics/error_condition/cons/39881.cc: Likewise.
+	* testsuite/19_diagnostics/error_code/modifiers/39882.cc: Likewise.
+	* testsuite/19_diagnostics/error_code/cons/39882.cc: Likewise.
+	* testsuite/util/testsuite_error.h: Likewise.
+
+	* include/std/system_error (error_code::error_code(_ErrorCodeEnum)):
+	Use enable_if on template parameter default.
+	(error_condition::error_condition(_ErrorConditionEnum)): Likewise.
+
+2011-07-20  Ed Smith-Rowland  <3dw4rd@verizon.net>
+
+	* include/precompiled/stdc++.h: Add scoped_allocator.
+
+2011-07-20  Benjamin Kosnik  <bkoz@redhat.com>
+
+	* include/std/bitset (operator[]): Make constexpr.
+	* testsuite/23_containers/bitset/operations/constexpr.cc: New.
+
+2011-07-20  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	* include/debug/safe_local_iterator.h (_Safe_local_iterator<>::
+	_Safe_local_iterator(const _Iterator&, size_type, const _Sequence*)):
+	Fix typo.
+
+2011-07-19  François Dumont  <francois.cppdevs@free.fr>
+
+	* include/debug/safe_unordered_base.h, safe_unordered_sequence.h,
+	safe_unordered_sequence.tcc, safe_local_iterator.h,
+	safe_local_iterator.tcc: New, support for unordered sequence safe
+	local iterators.
+	* include/Makefile.am: Add previous files.
+	* include/Makefile.in: Regenerate.
+	* include/debug/unordered_map, unordered_set: Implement
+	_Safe_unordered_sequence and expose _Safe_local_iterator.
+	* include/debug/safe_iterator.h, safe_iterator.tcc: Refactor
+	_Safe_iterator::_M_get_distance static method to expose it as
+	__get_distance function and use it in _Safe_local_iterator type.
+	* include/debug/formatter.h: Add __msg_local_iter_compare_bad
+	_Debug_msg_id enum entry to notify invalid comparison between local
+	iterators from different buckets. Add _Parameter constructor from
+	_Safe_local_iterator.
+	* include/debug/functions.h: Add __valid_range overload for
+	_Safe_local_iterator.
+	* src/debug.cc: Add _Safe_unordered_sequence_base and
+	_Safe_local_iterator_base methods implementations.
+	* config/abi/pre/gnu.ver: Add export of some
+	_Safe_unordered_sequence_base and _Safe_local_iterator_base methods.
+	* testsuite/util/debug/checks.h: Add use_invalid_iterator function to
+	simulate use of a singular iterator.
+	* testsuite/util/debug/unordered_checks.h: New, several functions
+	to simulate classic invalid usage of unordered sequence local
+	iterators.
+	* testsuite/23_containers/unordered_map/debug/
+	use_erased_local_iterator_neg.cc, invalid_local_iterator_range_neg.cc,
+	use_invalid_local_iterator_neg.cc, use_invalid_iterator_neg.cc,
+	invalid_local_iterator_compare_neg.cc: New.
+	* testsuite/23_containers/unordered_multimap/debug/
+	use_erased_local_iterator_neg.cc, invalid_local_iterator_range_neg.cc,
+	use_invalid_local_iterator_neg.cc, use_invalid_iterator_neg.cc,
+	invalid_local_iterator_compare_neg.cc: New.
+	* testsuite/23_containers/unordered_set/debug/
+	use_erased_local_iterator_neg.cc, invalid_local_iterator_range_neg.cc,
+	use_invalid_local_iterator_neg.cc, use_invalid_iterator_neg.cc,
+	invalid_local_iterator_compare_neg.cc: New.
+	* testsuite/23_containers/unordered_multiset/debug/
+	use_erased_local_iterator_neg.cc, invalid_local_iterator_range_neg.cc,
+	use_invalid_local_iterator_neg.cc, use_invalid_iterator_neg.cc,
+	invalid_local_iterator_compare_neg.cc: New.
+
+2011-07-18  Paolo Carlini  <paolo.carlini@oracle.com>
+
+	PR libstdc++/48430
+	* include/bits/shared_ptr.h (struct hash<shared_ptr<>>): Use
+	__hash_base.
+	* include/bits/unique_ptr.h (struct hash<unique_ptr<>>): Likewise.
+
 2011-07-18  Rainer Orth  <ro@CeBiTec.Uni-Bielefeld.DE>
 
 	* crossconfig.m4 (*-netware): Remove.
@@ -1463,7 +1664,7 @@
 2011-05-19  Paolo Carlini  <paolo.carlini@oracle.com>
 
 	* include/std/tuple (tuple<>::operator=(tuple&&)): Specify as
-        noexcept.
+	noexcept.
 	(__get_helper): Likewise.
 	(_Head_base<>::_M_head, _Tuple_impl<>::_M_head, _M_tail): Likewise.
 	* include/bits/move.h (swap): Likewise.
@@ -2156,8 +2357,8 @@
 
 2011-03-31  Jeffrey Yasskin  <jyasskin@google.com>
 
-        * libsupc++/exception_ptr.h: Forward-declare std::type_info.
-        * libsupc++/nested_exception.h (__throw_with_nested): Remove a
+	* libsupc++/exception_ptr.h: Forward-declare std::type_info.
+	* libsupc++/nested_exception.h (__throw_with_nested): Remove a
 	redundant default argument from std::__throw_with_nested.
 
 2011-03-31  Paolo Carlini  <paolo.carlini@oracle.com>

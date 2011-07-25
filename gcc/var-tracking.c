@@ -365,7 +365,7 @@ typedef const struct value_chain_def *const_value_chain;
 #define VTI(BB) ((variable_tracking_info) (BB)->aux)
 
 /* Macro to access MEM_OFFSET as an HOST_WIDE_INT.  Evaluates MEM twice.  */
-#define INT_MEM_OFFSET(mem) (MEM_OFFSET (mem) ? INTVAL (MEM_OFFSET (mem)) : 0)
+#define INT_MEM_OFFSET(mem) (MEM_OFFSET_KNOWN_P (mem) ? MEM_OFFSET (mem) : 0)
 
 /* Alloc pool for struct attrs_def.  */
 static alloc_pool attrs_pool;
@@ -4674,8 +4674,8 @@ track_expr_p (tree expr, bool need_rtl)
       if (GET_MODE (decl_rtl) == BLKmode
 	  || AGGREGATE_TYPE_P (TREE_TYPE (realdecl)))
 	return 0;
-      if (MEM_SIZE (decl_rtl)
-	  && INTVAL (MEM_SIZE (decl_rtl)) > MAX_VAR_PARTS)
+      if (MEM_SIZE_KNOWN_P (decl_rtl)
+	  && MEM_SIZE (decl_rtl) > MAX_VAR_PARTS)
 	return 0;
     }
 
@@ -9135,8 +9135,9 @@ vt_finalize (void)
       cselib_finish ();
       BITMAP_FREE (scratch_regs);
       scratch_regs = NULL;
-      VEC_free (parm_reg_t, gc, windowed_parm_regs);
     }
+
+  VEC_free (parm_reg_t, gc, windowed_parm_regs);
 
   if (vui_vec)
     XDELETEVEC (vui_vec);

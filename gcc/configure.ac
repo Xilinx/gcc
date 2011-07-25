@@ -222,7 +222,7 @@ fi
 AC_ARG_WITH(demangler-in-ld,
 [AS_HELP_STRING([--with-demangler-in-ld], [try to use demangler in GNU ld])],
 demangler_in_ld="$with_demangler_in_ld",
-demangler_in_ld=no)
+demangler_in_ld=yes)
 
 # ----------------------
 # Find default assembler
@@ -1041,7 +1041,14 @@ case "${host}" in
 esac
 AC_FUNC_FORK
 
-AM_ICONV
+# g++ on Solaris 10+ defines _XOPEN_SOURCE=600, which exposes a different
+# iconv() prototype.
+AS_IF([test "$ENABLE_BUILD_WITH_CXX" = "yes"],
+  [AC_LANG_PUSH([C++])
+   AM_ICONV
+   AC_LANG_POP([C++])],
+  [AM_ICONV])
+
 # Until we have in-tree GNU iconv:
 LIBICONV_DEP=
 AC_SUBST(LIBICONV_DEP)

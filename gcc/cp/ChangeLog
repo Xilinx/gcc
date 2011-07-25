@@ -1,3 +1,77 @@
+2011-07-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49793
+	* typeck2.c (check_narrowing): Downgrade permerror to pedwarn.
+	Make conditional on -Wnarrowing.
+
+2011-07-22  Ville Voutilainen  <ville.voutilainen@gmail.com>
+
+	Warn about the use of final/override in non-c++0x mode, and
+	add __final for non-c++0x mode.
+	* cp-tree.h (cpp0x_warn_str): Add CPP0X_OVERRIDE_CONTROLS.
+	* error.c (maybe_warn_cpp0x): Adjust.
+	* parser.c (cp_parser_virt_specifier_seq_opt): Use it. Add
+	'__final' as a non-c++0x alternative for 'final'.
+
+2011-07-22  Jason Merrill  <jason@redhat.com>
+	    Mark Glisse  <marc.glisse@normalesup.org>
+
+	PR c++/30112
+	* decl.c (cp_finish_decl): Apply pragma redefine_extname in
+	other namespaces as well.
+	* name-lookup.c (c_linkage_bindings): Define.
+	(lookup_extern_c_fun_in_all_ns): Rename from
+	lookup_extern_c_fun_binding_in_all_ns.  Return tree.
+	(pushdecl_maybe_friend_1): Adjust.  Copy DECL_ASSEMBLER_NAME.
+
+2011-07-20  Jason Merrill  <jason@redhat.com>
+
+	* parser.c (cp_parser_initializer_list): Handle C99 .id= and [N]=
+	designated initializer syntax.
+	* decl.c (check_array_designated_initializer): Add index parm.
+	(maybe_deduce_size_from_array_init): Pass it.
+	(reshape_init_array_1): Likewise.
+
+	PR c++/6709 (DR 743)
+	PR c++/42603 (DR 950)
+	* parser.c (token_is_decltype, cp_lexer_next_token_is_decltype): New.
+	(cp_parser_nested_name_specifier_opt): Allow decltype.
+	(cp_parser_qualifying_entity): Likewise.
+	(cp_parser_decltype): Replace source tokens with CPP_DECLTYPE.
+	(cp_parser_simple_type_specifier): Handle decltype as scope.
+	(cp_parser_base_specifier): Allow decltype.
+	(cp_parser_base_clause): Don't crash on null base.
+	* parser.h (CPP_KEYWORD, CPP_TEMPLATE_ID): Move to c-common.h.
+	(CPP_NESTED_NAME_SPECIFIER, N_CP_TTYPES): Likewise.
+
+2011-07-19  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49785
+	* pt.c (coerce_template_parms): Handle non-pack after pack.
+
+2011-07-19  Richard Guenther  <rguenther@suse.de>
+
+	* call.c (build_special_member_call): Use fold_build_pointer_plus.
+	* class.c (build_base_path): Likewise.
+	(convert_to_base_statically): Likewise.
+	(dfs_accumulate_vtbl_inits): Likewise.
+	* cp-gimplify.c (cxx_omp_clause_apply_fn): Likewise.
+	* except.c (expand_start_catch_block): Likewise.
+	* init.c (expand_virtual_init): Likewise.
+	(build_new_1): Likewise.
+	(build_vec_delete_1): Likewise.
+	(build_vec_delete): Likewise.
+	* rtti.c (build_headof): Likewise.
+	(tinfo_base_init): Likewise.
+	* typeck.c (get_member_function_from_ptrfunc): Likewise.
+	(cp_build_addr_expr_1): Likewise.
+	* typeck2.c (build_m_component_ref): Likewise.
+
+2011-07-18  Martin Jambor  <mjambor@suse.cz>
+
+	* parser.c (cp_parser_parameter_declaration_list): Initialize
+	parenthesized_p.
+
 2011-07-16  Jason Merrill  <jason@redhat.com>
 
 	* pt.c (tinst_level_tick, last_template_error_tick): Replace with

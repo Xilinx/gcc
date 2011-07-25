@@ -1,3 +1,41 @@
+2011-07-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49793
+	* c.opt (Wnarrowing): New.
+
+	PR c++/30112
+	* c-common.h: Declare c_linkage_bindings.
+	* c-pragma.c (handle_pragma_redefine_extname): Use it.
+
+	PR c++/49813
+	* c-opts.c (set_std_cxx0x): Set flag_isoc94 and flag_isoc99.
+	* c-pretty-print.c (pp_c_cv_qualifiers): Check c_dialect_cxx as well
+	as flag_isoc99 for 'restrict'.
+	(pp_c_specifier_qualifier_list): Likewise for _Complex.
+
+2011-07-21  Ian Lance Taylor  <iant@google.com>
+
+	PR middle-end/49705
+	* c-common.c (c_disable_warnings): New static function.
+	(c_enable_warnings): New static function.
+	(c_fully_fold_internal): Change local unused_p to bool.  Call
+	c_disable_warnings and c_enable_warnings rather than change
+	c_inhibit_evaluation_warnings.
+
+2011-07-20  Jason Merrill  <jason@redhat.com>
+
+	PR c++/6709 (DR 743)
+	PR c++/42603 (DR 950)
+	* c-common.h (CPP_KEYWORD, CPP_TEMPLATE_ID): Move from cp/parser.h.
+	(CPP_NESTED_NAME_SPECIFIER, N_CP_TTYPES): Likewise.
+	(CPP_DECLTYPE): New.
+	* c-common.c (c_parse_error): Handle CPP_DECLTYPE.
+
+2011-07-19  Richard Guenther  <rguenther@suse.de>
+
+	* c-common.c (pointer_int_sum): Use fold_build_pointer_plus.
+	* c-omp.c (c_finish_omp_for): Likewise.
+
 2011-07-12  Eric Botcazou  <ebotcazou@adacore.com>
 
 	* c-ada-spec.c (dump_nested_types): Put semi-colon after empty loop

@@ -2631,10 +2631,11 @@ gfc_conv_array_ref (gfc_se * se, gfc_array_ref * ar, gfc_symbol * sym,
 	  if (GFC_ARRAY_TYPE_P (TREE_TYPE (se->expr))
 	      && TREE_CODE (TREE_TYPE (se->expr)) == POINTER_TYPE)
 	    se->expr = build_fold_indirect_ref_loc (input_location, se->expr);
-	
+
 	  /* Use the actual tree type and not the wrapped coarray. */
-	  se->expr = fold_convert (TYPE_MAIN_VARIANT (TREE_TYPE (se->expr)),
-				   se->expr);
+	  if (!se->want_pointer)
+	    se->expr = fold_convert (TYPE_MAIN_VARIANT (TREE_TYPE (se->expr)),
+				     se->expr);
 	}
 
       return;
@@ -4382,7 +4383,8 @@ gfc_array_init_size (tree descriptor, int rank, int corank, tree * poffset,
 /*GCC ARRAYS*/
 
 bool
-gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree pstat)
+gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree status, tree errmsg,
+		    tree errlen)
 {
   tree tmp;
   tree pointer;
@@ -4477,22 +4479,15 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree pstat)
 				   1, msg);
     }
 
-  if (pstat != NULL_TREE && !integer_zerop (pstat))
+  if (status != NULL_TREE)
     {
-      /* Set the status variable if it's present.  */
+      tree status_type = TREE_TYPE (status);
       stmtblock_t set_status_block;
-      tree status_type = pstat ? TREE_TYPE (TREE_TYPE (pstat)) : NULL_TREE;
 
       gfc_start_block (&set_status_block);
-      gfc_add_modify (&set_status_block,
-  		      fold_build1_loc (input_location, INDIRECT_REF,
-  				       status_type, pstat),
-  			   build_int_cst (status_type, LIBERROR_ALLOCATION));
-
-      tmp = fold_build2_loc (input_location, EQ_EXPR, boolean_type_node,
-  			     pstat, build_int_cst (TREE_TYPE (pstat), 0));
-      error = fold_build3_loc (input_location, COND_EXPR, void_type_node, tmp,
-  			       error, gfc_finish_block (&set_status_block));
+      gfc_add_modify (&set_status_block, status,
+		      build_int_cst (status_type, LIBERROR_ALLOCATION));
+      error = gfc_finish_block (&set_status_block);
     }
 
   gfc_start_block (&elseblock);
@@ -4501,14 +4496,15 @@ gfc_array_allocate (gfc_se * se, gfc_expr * expr, tree pstat)
   pointer = gfc_conv_descriptor_data_get (se->expr);
   STRIP_NOPS (pointer);
 
-  /* The allocate_array variants take the old pointer as first argument.  */
+  /* The allocatable variant takes the old pointer as first argument.  */
   if (allocatable)
-    tmp = gfc_allocate_allocatable_with_status (&elseblock,
-						pointer, size, pstat, expr);
+    tmp = gfc_allocate_allocatable (&elseblock, pointer, size,
+				    status, errmsg, errlen, expr);
   else
-    tmp = gfc_allocate_with_status (&elseblock, size, pstat, false);
-  tmp = fold_build2_loc (input_location, MODIFY_EXPR, void_type_node, pointer,
-			 tmp);
+    tmp = gfc_allocate_using_malloc (&elseblock, size, status);
+
+  tmp = fold_build2_loc (input_location, MODIFY_EXPR, void_type_node,
+			 pointer, tmp);
 
   gfc_add_expr_to_block (&elseblock, tmp);
 

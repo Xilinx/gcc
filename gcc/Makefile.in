@@ -1006,7 +1006,7 @@ LTO_STREAMER_H = lto-streamer.h $(LINKER_PLUGIN_API_H) $(TARGET_H) \
 		$(CGRAPH_H) $(VEC_H) vecprim.h $(TREE_H) $(GIMPLE_H) \
 		$(GCOV_IO_H)
 TREE_VECTORIZER_H = tree-vectorizer.h $(TREE_DATA_REF_H)
-IPA_PROP_H = ipa-prop.h $(TREE_H) $(VEC_H) $(CGRAPH_H) $(GIMPLE_H)
+IPA_PROP_H = ipa-prop.h $(TREE_H) $(VEC_H) $(CGRAPH_H) $(GIMPLE_H) alloc-pool.h
 GSTAB_H = gstab.h stab.def
 BITMAP_H = bitmap.h $(HASHTAB_H) statistics.h
 GCC_PLUGIN_H = gcc-plugin.h highlev-plugin-common.h $(CONFIG_H) $(SYSTEM_H) \
@@ -2421,7 +2421,8 @@ tree-ssa-dse.o : tree-ssa-dse.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
 tree-ssa-forwprop.o : tree-ssa-forwprop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TM_H) $(TREE_H) $(TM_P_H) $(BASIC_BLOCK_H) \
    $(TREE_FLOW_H) $(TREE_PASS_H) $(TREE_DUMP_H) $(DIAGNOSTIC_H) $(TIMEVAR_H) \
-   langhooks.h $(FLAGS_H) $(GIMPLE_H) tree-pretty-print.h $(EXPR_H)
+   langhooks.h $(FLAGS_H) $(GIMPLE_H) tree-pretty-print.h \
+   gimple-pretty-print.h $(EXPR_H)
 tree-ssa-phiprop.o : tree-ssa-phiprop.c $(CONFIG_H) $(SYSTEM_H) coretypes.h \
    $(TM_H) $(TREE_H) $(TM_P_H) $(BASIC_BLOCK_H) \
    $(TREE_FLOW_H) $(TREE_PASS_H) $(TREE_DUMP_H) $(DIAGNOSTIC_H) $(TIMEVAR_H) \
@@ -2954,10 +2955,10 @@ dwarf2out.o : dwarf2out.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(GGC_H) $(EXCEPT_H) dwarf2asm.h $(TM_P_H) langhooks.h $(HASHTAB_H) \
    gt-dwarf2out.h $(TARGET_H) $(CGRAPH_H) $(MD5_H) $(INPUT_H) $(FUNCTION_H) \
    $(GIMPLE_H) $(TREE_PASS_H) $(TREE_FLOW_H) $(CFGLAYOUT_H) \
-   tree-pretty-print.h $(COMMON_TARGET_H)
+   tree-pretty-print.h $(COMMON_TARGET_H) $(OPTS_H)
 dwarf2cfi.o : dwarf2cfi.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    version.h $(RTL_H) $(FUNCTION_H) $(DWARF2_H) dwarf2asm.h dwarf2out.h \
-   $(GGC_H) $(TM_P_H) $(TARGET_H) $(TREE_PASS_H)
+   $(GGC_H) $(TM_P_H) $(TARGET_H) $(TREE_PASS_H) $(BASIC_BLOCK_H)
 dwarf2asm.o : dwarf2asm.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(FLAGS_H) $(RTL_H) $(TREE_H) output.h dwarf2asm.h $(TM_P_H) $(GGC_H) \
    gt-dwarf2asm.h $(DWARF2_H) $(SPLAY_TREE_H) $(TARGET_H)
@@ -3470,7 +3471,7 @@ bb-reorder.o : bb-reorder.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) \
    $(RTL_H) $(FLAGS_H) $(TIMEVAR_H) output.h $(CFGLAYOUT_H) $(FIBHEAP_H) \
    $(TARGET_H) $(FUNCTION_H) $(TM_P_H) $(OBSTACK_H) $(EXPR_H) $(REGS_H) \
    $(PARAMS_H) toplev.h $(DIAGNOSTIC_CORE_H) $(TREE_PASS_H) $(DF_H) \
-   bb-reorder.h
+   $(EXCEPT_H) bb-reorder.h
 tracer.o : tracer.c $(CONFIG_H) $(SYSTEM_H) coretypes.h $(TM_H) $(RTL_H) \
    $(TREE_H) $(BASIC_BLOCK_H) hard-reg-set.h output.h $(CFGLAYOUT_H) \
    $(FLAGS_H) $(TIMEVAR_H) $(PARAMS_H) $(COVERAGE_H) $(FIBHEAP_H) \
