@@ -1,4 +1,10 @@
 
+2011-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-build.tpl (warmelt-upgrade-translator, meltrun-generate):
+	Use $(WARMELT_LAST).
+	* melt-built.mk: Regenerate.
+	* Makefile.in (upgrade-warmelt): Depend upon $(WARMELT_LAST).
+	Merged with trunk.
 
 2011-07-24  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{reverting to rev.176695}}

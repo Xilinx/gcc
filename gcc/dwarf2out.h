@@ -118,7 +118,7 @@ dw_fde_node;
    It can now be either REG + CFA_OFFSET or *(REG + BASE_OFFSET) + CFA_OFFSET.
    Instead of passing around REG and OFFSET, we pass a copy
    of this structure.  */
-typedef struct cfa_loc {
+typedef struct GTY(()) cfa_loc {
   HOST_WIDE_INT offset;
   HOST_WIDE_INT base_offset;
   /* REG is in DWARF_FRAME_REGNUM space, *not* normal REGNO space.  */
@@ -134,6 +134,7 @@ typedef struct cfa_loc {
 
 enum dw_val_class
 {
+  dw_val_class_none,
   dw_val_class_addr,
   dw_val_class_offset,
   dw_val_class_loc,
@@ -226,6 +227,7 @@ extern struct dw_loc_descr_struct *build_cfa_aligned_loc
 extern struct dw_loc_descr_struct *mem_loc_descriptor
   (rtx, enum machine_mode mode, enum machine_mode mem_mode,
    enum var_init_status);
+extern bool loc_descr_equal_p (dw_loc_descr_ref, dw_loc_descr_ref);
 extern enum machine_mode get_address_mode (rtx mem);
 extern dw_fde_ref dwarf2out_alloc_current_fde (void);
 
@@ -239,7 +241,6 @@ extern void lookup_cfa_1 (dw_cfi_ref cfi, dw_cfa_location *loc,
 extern bool cfa_equal_p (const dw_cfa_location *, const dw_cfa_location *);
 
 extern void output_cfi (dw_cfi_ref, dw_fde_ref, int);
-extern void output_cfis (cfi_vec, int, bool, dw_fde_ref, bool);
 
 extern GTY(()) cfi_vec cie_cfi_vec;
 

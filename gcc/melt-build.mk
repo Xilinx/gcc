@@ -2809,29 +2809,29 @@ $(melt_default_modules_list)-debugnoline.modlis:  melt-all-modules  melt-modules
 ### MELT upgrade
 .PHONY: warmelt-upgrade-translator
 
-warmelt-upgrade-translator: \
-   melt-sources/warmelt-first.c \
-         $(wildcard  melt-sources/warmelt-first+*.c) \
-   melt-sources/warmelt-base.c \
-         $(wildcard  melt-sources/warmelt-base+*.c) \
-   melt-sources/warmelt-debug.c \
-         $(wildcard  melt-sources/warmelt-debug+*.c) \
-   melt-sources/warmelt-macro.c \
-         $(wildcard  melt-sources/warmelt-macro+*.c) \
-   melt-sources/warmelt-normal.c \
-         $(wildcard  melt-sources/warmelt-normal+*.c) \
-   melt-sources/warmelt-normatch.c \
-         $(wildcard  melt-sources/warmelt-normatch+*.c) \
-   melt-sources/warmelt-genobj.c \
-         $(wildcard  melt-sources/warmelt-genobj+*.c) \
-   melt-sources/warmelt-outobj.c \
-         $(wildcard  melt-sources/warmelt-outobj+*.c)
+warmelt-upgrade-translator: $(WARMELT_LAST) \
+   $(MELT_LAST_STAGE)/warmelt-first.c \
+         $(wildcard  $(MELT_LAST_STAGE)/warmelt-first+*.c) \
+   $(MELT_LAST_STAGE)/warmelt-base.c \
+         $(wildcard  $(MELT_LAST_STAGE)/warmelt-base+*.c) \
+   $(MELT_LAST_STAGE)/warmelt-debug.c \
+         $(wildcard  $(MELT_LAST_STAGE)/warmelt-debug+*.c) \
+   $(MELT_LAST_STAGE)/warmelt-macro.c \
+         $(wildcard  $(MELT_LAST_STAGE)/warmelt-macro+*.c) \
+   $(MELT_LAST_STAGE)/warmelt-normal.c \
+         $(wildcard  $(MELT_LAST_STAGE)/warmelt-normal+*.c) \
+   $(MELT_LAST_STAGE)/warmelt-normatch.c \
+         $(wildcard  $(MELT_LAST_STAGE)/warmelt-normatch+*.c) \
+   $(MELT_LAST_STAGE)/warmelt-genobj.c \
+         $(wildcard  $(MELT_LAST_STAGE)/warmelt-genobj+*.c) \
+   $(MELT_LAST_STAGE)/warmelt-outobj.c \
+         $(wildcard  $(MELT_LAST_STAGE)/warmelt-outobj+*.c)
 	@echo upgrading the MELT translator
 	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
 	@which indent || (echo missing indent for warmelt-upgrade-translator; exit 1)
 
 	@echo upgrading MELT translator warmelt-first	
-	for f in melt-sources/warmelt-first*.c ; do \
+	for f in $(MELT_LAST_STAGE)/warmelt-first*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
@@ -2847,7 +2847,7 @@ warmelt-upgrade-translator: \
 	rm $(MELT_STAGE_ZERO)/warmelt-first*.o
 
 	@echo upgrading MELT translator warmelt-base	
-	for f in melt-sources/warmelt-base*.c ; do \
+	for f in $(MELT_LAST_STAGE)/warmelt-base*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
@@ -2863,7 +2863,7 @@ warmelt-upgrade-translator: \
 	rm $(MELT_STAGE_ZERO)/warmelt-base*.o
 
 	@echo upgrading MELT translator warmelt-debug	
-	for f in melt-sources/warmelt-debug*.c ; do \
+	for f in $(MELT_LAST_STAGE)/warmelt-debug*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
@@ -2879,7 +2879,7 @@ warmelt-upgrade-translator: \
 	rm $(MELT_STAGE_ZERO)/warmelt-debug*.o
 
 	@echo upgrading MELT translator warmelt-macro	
-	for f in melt-sources/warmelt-macro*.c ; do \
+	for f in $(MELT_LAST_STAGE)/warmelt-macro*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
@@ -2895,7 +2895,7 @@ warmelt-upgrade-translator: \
 	rm $(MELT_STAGE_ZERO)/warmelt-macro*.o
 
 	@echo upgrading MELT translator warmelt-normal	
-	for f in melt-sources/warmelt-normal*.c ; do \
+	for f in $(MELT_LAST_STAGE)/warmelt-normal*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
@@ -2911,7 +2911,7 @@ warmelt-upgrade-translator: \
 	rm $(MELT_STAGE_ZERO)/warmelt-normal*.o
 
 	@echo upgrading MELT translator warmelt-normatch	
-	for f in melt-sources/warmelt-normatch*.c ; do \
+	for f in $(MELT_LAST_STAGE)/warmelt-normatch*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
@@ -2927,7 +2927,7 @@ warmelt-upgrade-translator: \
 	rm $(MELT_STAGE_ZERO)/warmelt-normatch*.o
 
 	@echo upgrading MELT translator warmelt-genobj	
-	for f in melt-sources/warmelt-genobj*.c ; do \
+	for f in $(MELT_LAST_STAGE)/warmelt-genobj*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
@@ -2943,7 +2943,7 @@ warmelt-upgrade-translator: \
 	rm $(MELT_STAGE_ZERO)/warmelt-genobj*.o
 
 	@echo upgrading MELT translator warmelt-outobj	
-	for f in melt-sources/warmelt-outobj*.c ; do \
+	for f in $(MELT_LAST_STAGE)/warmelt-outobj*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
@@ -2998,15 +2998,15 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 .PHONY: meltrun-generate
-meltrun-generate: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
-                  melt-all-sources melt-all-modules  $(melt_make_cc1_dependency)
+meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
+                   $(melt_make_cc1_dependency)
 	rm -f $(wildcard meltrunsup*)
 	$(melt_make_cc1)  $(melt_make_cc1flags) \
 	      $(meltarg_mode)=runtypesupport  \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
-	      $(meltarg_init)=@$(melt_default_modules_list) \
-	      $(meltarg_module_path)=melt-modules:. \
-	      $(meltarg_source_path)=melt-sources:. \
+	      $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS))) \
+	      $(meltarg_module_path)=$(MELT_LAST_STAGE):. \
+	      $(meltarg_source_path)=$(MELT_LAST_STAGE):$(melt_source_dir):. \
 	      $(meltarg_output)=meltrunsup  \
 	      empty-file-for-melt.c
 	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then \

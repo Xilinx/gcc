@@ -499,17 +499,17 @@ $(melt_default_modules_list)-[+variant+].modlis:  melt-all-modules  melt-modules
 ### MELT upgrade
 .PHONY: warmelt-upgrade-translator
 
-warmelt-upgrade-translator: \
+warmelt-upgrade-translator: $(WARMELT_LAST) \
 [+FOR melt_translator_file " \\\n"
-+]   melt-sources/[+base+].c \
-         $(wildcard  melt-sources/[+base+]+*.c)[+
++]   $(MELT_LAST_STAGE)/[+base+].c \
+         $(wildcard  $(MELT_LAST_STAGE)/[+base+]+*.c)[+
 ENDFOR melt_translator_file+]
 	@echo upgrading the MELT translator
 	@which unifdef || (echo missing unifdef for warmelt-upgrade-translator; exit 1)
 	@which indent || (echo missing indent for warmelt-upgrade-translator; exit 1)
 [+FOR melt_translator_file+]
 	@echo upgrading MELT translator [+base+]	
-	for f in melt-sources/[+base+]*.c ; do \
+	for f in $(MELT_LAST_STAGE)/[+base+]*.c ; do \
 	  bf=`basename $$f`; \
 	  rm -f $(srcdir)/melt/generated/$$bf-tmp; \
           grep -v '^#line' < $$f \
@@ -553,15 +553,15 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 
 
 .PHONY: meltrun-generate
-meltrun-generate: $(melt_default_modules_list).modlis  empty-file-for-melt.c \
-                  melt-all-sources melt-all-modules  $(melt_make_cc1_dependency)
+meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
+                   $(melt_make_cc1_dependency)
 	rm -f $(wildcard meltrunsup*)
 	$(melt_make_cc1)  $(melt_make_cc1flags) \
 	      $(meltarg_mode)=runtypesupport  \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
-	      $(meltarg_init)=@$(melt_default_modules_list) \
-	      $(meltarg_module_path)=melt-modules:. \
-	      $(meltarg_source_path)=melt-sources:. \
+	      $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS))) \
+	      $(meltarg_module_path)=$(MELT_LAST_STAGE):. \
+	      $(meltarg_source_path)=$(MELT_LAST_STAGE):$(melt_source_dir):. \
 	      $(meltarg_output)=meltrunsup  \
 	      empty-file-for-melt.c
 	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then \

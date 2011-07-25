@@ -1,3 +1,68 @@
+2011-07-23  Jason Merrill  <jason@redhat.com>
+
+	* g++.dg/cpp0x/decltype21.C: Add 49823 examples.
+
+2011-07-22  Jason Merrill  <jason@redhat.com>
+
+	PR c++/49793
+	* g++.dg/cpp0x/initlist55.C: New.
+
+2011-07-23  Tobias Burnus  <burnus@net-b.de>
+
+	PR fortran/49791
+	* gfortran.dg/namelist_72.f: New.
+
+2011-07-23  Tobias Burnus  <burnus@net-b.de>
+
+	* gfortran.dg/coarray_25.f90: New.
+
+2011-07-22  Ville Voutilainen  <ville.voutilainen@gmail.com>
+
+	* override1.C: This test should use c++0x mode.
+	* override3.C: New. Test the diagnostics in c++98 mode.
+
+2011-07-22  Jason Merrill  <jason@redhat.com>
+	    Mark Glisse  <marc.glisse@normalesup.org>
+
+	PR c++/30112
+	* g++.dg/other/pragma-re-1.C: Add namespace cases.
+
+	PR c++/49813
+	* g++.dg/opt/builtins2.C: New.
+	* g++.dg/other/error27.C: Don't rely on __builtin.
+
+2011-07-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* gcc/testsuite/gcc.target/i386/avx-vzeroupper-16.c: Only run
+	on lp64 targets.
+	* gcc/testsuite/gcc.target/i386/avx-vzeroupper-17.c: Likewise.
+	* gcc/testsuite/gcc.target/i386/avx-vzeroupper-18.c: Likewise.
+	* gcc/testsuite/gcc.target/i386/pr43662.c: Likewise.
+	* gcc/testsuite/gcc.target/i386/pr43869.c: Likewise.
+
+	* gcc.target/x86_64/abi/callabi/callabi.exp: Check ilp32
+	instead of ia32.
+
+2011-07-22  Richard Guenther  <rguenther@suse.de>
+
+	PR tree-optimization/45819
+	* gcc.dg/pr45819.c: New testcase.
+
+2011-07-22  Uros Bizjak  <ubizjak@gmail.com>
+
+	* lib/target-supports.exp (check_ifunc_available): Rewrite.
+
+2011-07-21  Sebastian Pop  <sebastian.pop@amd.com>
+
+	PR middle-end/47654
+	PR middle-end/49649
+	* gcc.dg/graphite/run-id-pr47654.c: New.
+
+2011-07-21  Ian Lance Taylor  <iant@google.com>
+
+	PR middle-end/49705
+	* gcc.dg/pr49705.c: New test.
+
 2011-07-21  Uros Bizjak  <ubizjak@gmail.com>
 
 	* lib/target-supports.exp (check_avx_os_support_available): New.
