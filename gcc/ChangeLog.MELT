@@ -1,3 +1,7 @@
+2011-07-25  Romain Geissler  <romain.geissler@gmail.com>
+
+	* melt/xtramelt-ana-base.melt (foreach_edge_bb_precs): Rename for
+	foreach_edge_bb_preds. Fix structure field access typo.
 
 2011-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-build.tpl (warmelt-upgrade-translator, meltrun-generate):

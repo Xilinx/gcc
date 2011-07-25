@@ -2300,26 +2300,26 @@
 )
 
 ;;;;;;;;;;;;;;;; iterating on edges preceding a given basic_block
-(defciterator foreach_edge_bb_precs
+(defciterator foreach_edge_bb_preds
   (:basic_block bb)			;the input formal
-  eachedgebbprec			;the state symbol
+  eachedgebbpred			;the state symbol
   (:edge edg)				;the local formal
   ;;
   ;; before expansion
-  #{ /* $EACHEDGEBBPREC++ */		
+  #{ /* $EACHEDGEBBPRED++ */		
   if ($BB) {
-    edge_iterator $EACHEDGEBBPREC#_iter = {};
-    edge $EACHEDGEBBPREC#_edge = NULL;
-    FOR_EACH_EDGE($EACHEDGEBBPREC#_edge, $EACHEDGEBBPREC#_iter, ($BB)->precs) 
+    edge_iterator $EACHEDGEBBPRED#_iter = {};
+    edge $EACHEDGEBBPRED#_edge = NULL;
+    FOR_EACH_EDGE($EACHEDGEBBPRED#_edge, $EACHEDGEBBPRED#_iter, ($BB)->preds) 
       {
-        if (!$EACHEDGEBBPREC#_edge) continue;
-	$EDG = $EACHEDGEBBPREC#_edge;
+        if (!$EACHEDGEBBPRED#_edge) continue;
+	$EDG = $EACHEDGEBBPRED#_edge;
   }#
   ;;
   ;; after expansion 
-  #{ /* $EACHEDGEBBPREC-- */
-     }; /* end FOR_EACH_EDGE $EACHEDGEBBPREC */
-   } /* end if $EACHEDGEBBPREC */
+  #{ /* $EACHEDGEBBPRED-- */
+     }; /* end FOR_EACH_EDGE $EACHEDGEBBPRED */
+   } /* end if $EACHEDGEBBPRED */
    }#
 )
 
@@ -3448,7 +3448,7 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  foreach_argument_of_gimple_call
  foreach_basicblock_succ_edge
  foreach_case_of_gimple_switch
- foreach_edge_bb_precs
+ foreach_edge_bb_preds
  foreach_edge_bb_succs
  foreach_field_in_record_type
  foreach_loop_exit_edges
