@@ -1687,7 +1687,8 @@
 	* melt-runtime.c (ggc_force_collect): Remove extern declaration.
 	(melt_garbcoll): Update comment.
 
-2011-05-09  Pierre Vittet  <piervit@pvittet.com>
+2011-05-09  Pierre Vittet  <piervit@pvittet.com> 
+	[Pierre's GNU copyright agreement RT634276]
 
 	* melt-runtime.c (melt_garbcoll): Don't force collection by
 	gcc_collect.
