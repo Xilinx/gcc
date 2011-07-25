@@ -11603,8 +11603,8 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
     debugeprintf ("melt_output_cfile_decl_impl_secondary s=%s", s);
     /* generate in bufpid a unique file suffix from the pid and the time */
     memset (bufpid, 0, sizeof(bufpid));
-    snprintf (bufpid, sizeof(bufpid)-1, "_%d_%d",
-	      (int) getpid(), (int) (now%10000));
+    snprintf (bufpid, sizeof(bufpid)-1, "_%d_%d_%x",
+	      (int) getpid(), (int) (now%10000), (int)((melt_lrand()) & 0xffff));
     if (slen>2 && (s[slen-2]!='.' || s[slen-1]!='c')) 
       {
 	dotcnam = concat (s, ".c", NULL);
@@ -11642,7 +11642,7 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
 	 for sure when compiling the warmelt*0.c it would mismatch, and we
 	 want to avoid a useless warning */
       fprintf (cfil, "\n#ifndef MELTGCC_DYNAMIC_OBJSTRUCT\n"
-	       "/* version string of the gcc executable generating this file: */\n"
+	       "/* version string of the gcc compiler generating this file: */\n"
 	       "const char genversionstr_melt[]=\n ");
       {
 	const char* pc;

@@ -1,5 +1,14 @@
 
 2011-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list): Inform
+	about translation CPU time.
+	(runtypesupport_docmd): Reindent.
+	* melt-build.tpl (MELTCCINIT1): Replace by (MELTCCINIT1ARGS)
+	(MELTCCFILE1): Replace by (MELTCCFILE1ARGS)
+	Use $@.args file to have the long argument list.
+
+
+2011-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_store_predefined): Do nothing when ix<0.
 
 	* melt-runtime.c (readval) rename as

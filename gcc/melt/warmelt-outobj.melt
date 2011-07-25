@@ -3754,6 +3754,8 @@
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
   (let (
+	(:long startclock 0)
+	(:long endclock 0)
 	(inienv (unsafe_get_field :mocx_initialenv modctx))
 	(firstx (pair_head (list_first xlist)))
 	(firstloc (if (is_a firstx class_source) (unsafe_get_field :loca_location firstx)))
@@ -3766,6 +3768,15 @@
 			  :sucme_comment '"at very start"
 			  ))
 	)
+    (code_chunk startmodnam
+		#{ /* translate_macroexpanded_list $STARTMODNAM */
+		#if HAVE_CLOCK
+		$STARTCLOCK = (long) clock () ;
+		#endif /*HAVE_CLOCK */
+		inform  (UNKNOWN_LOCATION, 
+			 "MELT generating C code of module %s", 
+			 melt_string_str ($MODNAMSTR)) ;
+		}#)
     (if (== inienv initial_environment)
 	(add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 0")
       (add2sbuf_strconst declbuf "#define MELT_HAS_INITIAL_ENVIRONMENT 1")
@@ -3883,12 +3894,14 @@
 	  (code_chunk outputcfile
 		      #{ /* translate_macroexpanded_list $OUTPUTCFILE: */
 		      melt_output_cfile_decl_impl
-		        ((melt_ptr_t)($MODNAMSTR),
-			 (melt_ptr_t)($DECLBUF),
-			 (melt_ptr_t)($IMPLBUF)) ;
+		      ((melt_ptr_t)($MODNAMSTR),
+		       (melt_ptr_t)($DECLBUF),
+		       (melt_ptr_t)($IMPLBUF)) ;
 		      }#)
 	  ;;(informsg_strv "warmelt generated module C file" modnamstr)
-	  (let ( (secfiles (get_field :mocx_filetuple modctx)) )
+	  (let ( (secfiles (get_field :mocx_filetuple modctx)) 
+		 (:long nbsecfiles (multiple_length secfiles))
+		 )
 	    (debug_msg secfiles "compile_list_sexpr secfiles")
 	    (foreach_in_multiple
 	     (secfiles)
@@ -3908,14 +3921,31 @@
 		      secfilout 
 		      #{ /* translate_macroexpanded_list $SECFILOUT: */
 		      melt_output_cfile_decl_impl_secondary 
-                          ((melt_ptr_t)($SECFILPATH),
-			   (melt_ptr_t)($SECDECLBUF),
-			   (melt_ptr_t)($SECIMPLBUF),
-			   $FILIX) ;
+		      ((melt_ptr_t)($SECFILPATH),
+		       (melt_ptr_t)($SECDECLBUF),
+		       (melt_ptr_t)($SECIMPLBUF),
+		       $FILIX)		;
 		      }#)
 		     ;;(informsg_strv "warmelt generated secondary C file" secfilpath)
 		     ))
-	       )))))))
+	       ))
+	    (code_chunk 
+	     endmodnam
+	     #{ /* translate_macroexpanded_list $ENDMODNAM */
+	     #if HAVE_CLOCK && defined (CLOCKS_PER_SEC)
+	       $ENDCLOCK = (long) clock () ;
+	       inform (UNKNOWN_LOCATION, 
+		       "MELT generated C code of module %s with %ld secondary files in %ld CPU millisec.", 
+		       melt_string_str ($MODNAMSTR), $NBSECFILES,
+		       ($ENDCLOCK - $STARTCLOCK) / (CLOCKS_PER_SEC/1000)) ;
+	     #else /* no clock */
+	       inform (UNKNOWN_LOCATION, 
+		       "MELT generated C code of module %s with %ld secondary files", 
+		       melt_string_str ($MODNAMSTR), $NBSECFILES) ;
+	     #endif /* HAVE_CLOCK && CLOCKS_PER_SEC */
+	     /* end translate_macroexpanded_list $ENDMODNAM */ }#)
+	    (shortbacktrace_dbg "translate_macroexpanded_list ended" 25)
+	    )))))
   )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -7291,20 +7321,21 @@ melt_scanning (melt_ptr_t p)
       (output_sbuf_strval outdeclbuf outdeclname)
       (informsg_strv "generated runtype support declaration file" outdeclname)
       ;;; generated code
-      (code_chunk termcommentcodechk 
-		  #{ /* $TERMCOMMENTCODECHK */
-		  time_t nowcode = 0;
-		  char codedatebuf[48];
-		  memset (codedatebuf, 0, sizeof(codedatebuf));
-		  time(&nowcode);
-		  strftime (codedatebuf, sizeof(codedatebuf)-1,
-			    "%Y %b %d", localtime(&nowcode));
-		  meltgc_out_printf ($OUTCODEBUF,
-				     "\n/*** End of code file %s generated on %s\n"
-				     " * by GCC MELT %s . ***/\n",
-				     melt_string_str($OUTCODENAME),
-				     codedatebuf, melt_gccversionstr);
-		  /* end  $TERMCOMMENTCODECHK */}#)
+      (code_chunk 
+       termcommentcodechk 
+       #{ /* $TERMCOMMENTCODECHK */
+       time_t nowcode = 0;
+       char codedatebuf[48];
+       memset (codedatebuf, 0, sizeof(codedatebuf));
+       time(&nowcode);
+       strftime (codedatebuf, sizeof(codedatebuf)-1,
+			      "%Y %b %d", localtime(&nowcode));
+       meltgc_out_printf ($OUTCODEBUF,
+			  "\n/*** End of code file %s generated on %s\n"
+			  " * by GCC MELT %s . ***/\n",
+			  melt_string_str($OUTCODENAME),
+			  codedatebuf, melt_gccversionstr);
+       /* end  $TERMCOMMENTCODECHK */}#)
       (output_sbuf_strval outcodebuf outcodename)
       (informsg_strv "generated runtype support implementation file" outcodename)
       ;;
