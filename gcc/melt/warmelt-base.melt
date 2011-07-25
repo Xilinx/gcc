@@ -489,6 +489,22 @@ an integer $I if $I is greater than $N.}#
   :doc #{Test that value strings $S1 and $S2 are not equal as strings.}#
   #{!melt_string_same(($s1), ($s2))}#)
 
+(defprimitive string_suffixed (sv :cstring cs) :long
+  :doc #{Test that the string value $SV ends with the suffix $CS.}#
+  #{(melt_string_is_ending ((melt_ptr_t)$SV, $CS))}#)
+
+(defprimitive string_prefixed (sv :cstring cs) :long
+  :doc #{Test that the string value $SV starts with the suffix $CS.}#
+  #{(melt_string_is_starting ((melt_ptr_t)$SV, $CS))}#)
+
+(defprimitive string_starts (sv1 sv2) :long
+  :doc #{Test that the string value $SV1 starts with the string value $SV2.}#
+  #{(melt_string_is_starting ((melt_ptr_t)$SV1, melt_string_str ((melt_ptr_t)$SV2)))}#)
+
+(defprimitive string_ends (sv1 sv2) :long
+  :doc #{Test that the string value $SV1 ends with the string value $SV2.}#
+  #{(melt_string_is_ending ((melt_ptr_t)$SV1, melt_string_str ((melt_ptr_t)$SV2)))}#)
+
 
 (defprimitive split_string_space (dis :cstring cs) :value
   :doc #{Split a cstring $CS into a list of space separated strings of
@@ -2504,7 +2520,11 @@ polyhedron values.}#
  strbuf_usedlength
  string!=
  string=
+ string_ends
  string_length
+ string_prefixed
+ string_starts
+ string_suffixed
  subclass_of
  subclass_or_eq
  subseq_multiple

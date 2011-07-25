@@ -1313,6 +1313,31 @@ melt_string_length (melt_ptr_t v)
   return 0;
 }
 
+static inline int
+melt_string_is_ending (melt_ptr_t v, const char *s)
+{
+  if (s && melt_magic_discr (v) == MELTOBMAG_STRING) {
+    const char* str = ((struct meltstring_st *) v)->val;
+    int lenstr = strlen (str);
+    int lens = strlen (s);
+    return (lens <= lenstr && !strncmp(str+lenstr-lens, s, lens));
+  }
+  return 0;
+}
+
+static inline int
+melt_string_is_starting  (melt_ptr_t v, const char *s)
+{
+  if (s && melt_magic_discr (v) == MELTOBMAG_STRING) {
+    const char* str = ((struct meltstring_st *) v)->val;
+    int lenstr = strlen (str);
+    int lens = strlen (s);
+    return (lens <= lenstr && !strncmp(str, s, lens));
+  }
+  return 0;
+}
+
+
 static inline bool
 melt_string_same (melt_ptr_t v1, melt_ptr_t v2)
 {
