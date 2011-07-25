@@ -37740,6 +37740,7 @@ lab_endgetargs:;
 	(struct meltletrec_1_st *)
 	meltgc_allocate (sizeof (struct meltletrec_1_st), 0);
       /*^blockmultialloc.initfill */
+
       /*iniobj rinst_0__CONSTUPBIND */
   /*_.CONSTUPBIND__V30*/ meltfptr[29] =
 	(void *) &meltletrec_1_ptr->rinst_0__CONSTUPBIND;
@@ -37757,6 +37758,7 @@ lab_endgetargs:;
 			     meltfrout->tabval[10]));
       meltletrec_1_ptr->rinst_0__CONSTUPBIND.obj_hash = melt_nonzerohash ();
       meltletrec_1_ptr->rinst_0__CONSTUPBIND.obj_len = 5;
+
 
       /*iniobj rinst_1__CLOCC */
   /*_.CLOCC__V31*/ meltfptr[30] =
@@ -37794,6 +37796,7 @@ lab_endgetargs:;
       meltletrec_1_ptr->rtup_4__NBDY.discr =
 	(meltobject_ptr_t) (((void *) (MELT_PREDEF (DISCR_MULTIPLE))));
       meltletrec_1_ptr->rtup_4__NBDY.nbval = 1;
+
       /*iniobj rinst_5__NLETREC */
   /*_.NLETREC__V35*/ meltfptr[34] =
 	(void *) &meltletrec_1_ptr->rinst_5__NLETREC;
@@ -37811,6 +37814,7 @@ lab_endgetargs:;
 	(meltobject_ptr_t) (( /*!CLASS_NREP_LETREC */ meltfrout->tabval[12]));
       meltletrec_1_ptr->rinst_5__NLETREC.obj_hash = melt_nonzerohash ();
       meltletrec_1_ptr->rinst_5__NLETREC.obj_len = 6;
+
 
       /*iniobj rinst_6__CTUPBIND */
   /*_.CTUPBIND__V36*/ meltfptr[35] =
@@ -37830,6 +37834,7 @@ lab_endgetargs:;
 			     tabval[13]));
       meltletrec_1_ptr->rinst_6__CTUPBIND.obj_hash = melt_nonzerohash ();
       meltletrec_1_ptr->rinst_6__CTUPBIND.obj_len = 4;
+
 
       /*iniobj rinst_7__CTUPLOCC */
   /*_.CTUPLOCC__V37*/ meltfptr[36] =
@@ -38151,7 +38156,7 @@ lab_endgetargs:;
       ;
       MELT_LOCATION ("warmelt-normal.melt:3617:/ putpairhead");
       /*putpairhead */
-      melt_assertmsg ("putpairhead /1d2f24b8 checkpair",
+      melt_assertmsg ("putpairhead /3b609f checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.CTUPBIND__V38*/ meltfptr[37]))
 		      == MELTOBMAG_PAIR);
@@ -39538,6 +39543,7 @@ lab_endgetargs:;
 	(struct meltletrec_1_st *)
 	meltgc_allocate (sizeof (struct meltletrec_1_st), 0);
       /*^blockmultialloc.initfill */
+
       /*iniobj rinst_0__CRECLOCC */
   /*_.CRECLOCC__V50*/ meltfptr[49] =
 	(void *) &meltletrec_1_ptr->rinst_0__CRECLOCC;
@@ -39562,6 +39568,7 @@ lab_endgetargs:;
       meltletrec_1_ptr->rtup_1__NBDY.discr =
 	(meltobject_ptr_t) (((void *) (MELT_PREDEF (DISCR_MULTIPLE))));
       meltletrec_1_ptr->rtup_1__NBDY.nbval = 1;
+
       /*iniobj rinst_2__NLETREC */
   /*_.NLETREC__V52*/ meltfptr[51] =
 	(void *) &meltletrec_1_ptr->rinst_2__NLETREC;
@@ -39579,6 +39586,7 @@ lab_endgetargs:;
 	(meltobject_ptr_t) (( /*!CLASS_NREP_LETREC */ meltfrout->tabval[23]));
       meltletrec_1_ptr->rinst_2__NLETREC.obj_hash = melt_nonzerohash ();
       meltletrec_1_ptr->rinst_2__NLETREC.obj_len = 6;
+
 
       /*iniobj rinst_3__CLISTBIND */
   /*_.CLISTBIND__V53*/ meltfptr[52] =
@@ -39598,6 +39606,7 @@ lab_endgetargs:;
 			     tabval[24]));
       meltletrec_1_ptr->rinst_3__CLISTBIND.obj_hash = melt_nonzerohash ();
       meltletrec_1_ptr->rinst_3__CLISTBIND.obj_len = 4;
+
 
       /*iniobj rinst_4__CLISTLOCC */
   /*_.CLISTLOCC__V54*/ meltfptr[53] =
@@ -39834,7 +39843,7 @@ lab_endgetargs:;
       ;
       MELT_LOCATION ("warmelt-normal.melt:3702:/ putpairhead");
       /*putpairhead */
-      melt_assertmsg ("putpairhead /29022bb0 checkpair",
+      melt_assertmsg ("putpairhead /16e4223b checkpair",
 		      melt_magic_discr ((melt_ptr_t)
 					( /*_.CLISTBIND__V55*/ meltfptr[54]))
 		      == MELTOBMAG_PAIR);

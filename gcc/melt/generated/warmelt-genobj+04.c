@@ -14341,7 +14341,7 @@ lab_endgetargs:;
 
 	    /*^putpairhead */
 	    /*putpairhead */
-	    melt_assertmsg ("putpairhead /2a9d2bb5 checkpair",
+	    melt_assertmsg ("putpairhead /1efa8e2b checkpair",
 			    melt_magic_discr ((melt_ptr_t)
 					      ( /*_.OCONTENVLOC__V11*/
 					       meltfptr[10])) ==

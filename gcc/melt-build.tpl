@@ -233,12 +233,12 @@ $(MELT_STAGE_ZERO):
 +] \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath  $(melt_make_module_dir)) \
-	      $(meltarg_source_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $@.args-tmp
-	@mv $@.args-tmp $@.args
-	@echo -n $@.args: ; cat $@.args ; echo "***** doing " $@
-	$(melt_make_cc1) @$@.args
-	@rm $@.args; echo
+	      $(meltarg_sourcue_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
+	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	@mv $(basename $@).args-tmp $(basename $@).args
+	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
+	$(melt_make_cc1) @$(basename $@).args
+	@rm $(basename $@).args; echo
 
 ################## quickmodule [+ (. outbase)+] for [+melt_stage+]
 [+melt_stage+]/[+(. outbase)+].q.so: [+melt_stage+]/[+ (. outbase)+].c \
@@ -372,11 +372,11 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ empty-file-for-melt.c > $@.args-tmp
-	@mv $@.args-tmp $@.args
-	@echo -n $@.args: ; cat $@.args ; echo "***** doing " $@
-	$(melt_make_cc1) @$@.args
-	@rm $@.args; echo
+	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	@mv $(basename $@).args-tmp $(basename $@).args
+	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
+	$(melt_make_cc1) @$(basename $@).args
+	@rm $(basename $@).args; echo
 
 
 melt-modules/optimized/[+base+].so: melt-sources/[+base+].c \
@@ -537,7 +537,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 [+ENDFOR melt_translator_file+][+FOR melt_application_file+]                    melt-sources/[+base+].melt \
 [+ENDFOR melt_application_file+]                    empty-file-for-melt.c melt-run.h melt-runtime.h \
                     $(melt_make_cc1_dependency)
-	$(melt_make_cc1)  $(melt_make_cc1flags) $(meltarg_mode)=makedoc  \
+	echo $(melt_make_cc1flags) $(meltarg_mode)=makedoc  \
 	      $(meltarg_makefile)=$(melt_make_module_makefile) \
 	      $(meltarg_makecmd)=$(MAKE) \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
@@ -547,7 +547,10 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	      $(meltarg_output)=$@  \
               $(meltarg_arglist)=[+FOR melt_translator_file+][+base+].melt,[+ENDFOR melt_translator_file+]\
 [+FOR melt_application_file "," +][+base+].melt[+ENDFOR melt_application_file+] \
-              empty-file-for-melt.c
+              empty-file-for-melt.c > $(basename $@).args-tmp
+	mv  $(basename $@).args-tmp  $(basename $@).args
+	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
+	$(melt_make_cc1flags) @$(basename $@).args
 
 
 vpath %.so $(melt_make_module_dir) . 
@@ -561,14 +564,17 @@ vpath %.h $(melt_make_source_dir)/generated . $(melt_source_dir)
 meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
                    $(melt_make_cc1_dependency)
 	rm -f $(wildcard meltrunsup*)
-	$(melt_make_cc1)  $(melt_make_cc1flags) \
+	@echo  \
 	      $(meltarg_mode)=runtypesupport  \
 	      $(meltarg_tempdir)=.  $(meltarg_bootstrapping)  $(MELT_DEBUG) \
-	      $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS))) \
+	      $(meltarg_init)=@$(basename $(WARMELT_LAST_MODLIS)) \
 	      $(meltarg_module_path)=$(MELT_LAST_STAGE):. \
 	      $(meltarg_source_path)=$(MELT_LAST_STAGE):$(melt_source_dir):. \
 	      $(meltarg_output)=meltrunsup  \
-	      empty-file-for-melt.c
+	      empty-file-for-melt.c > $(basename $@).args-tmp
+	@mv $(basename $@).args-tmp $(basename $@).args
+	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
+	 $(melt_make_cc1flags) @$(basename $@).args
 	if [ -n "$(GCCMELTRUNGEN_DEST)" ]; then \
 	   for f in $(GCCMELTRUNGEN_DEST)/meltrunsup*.[ch]; \
 	     do mv $$f $$f.bak; \
@@ -579,7 +585,7 @@ meltrun-generate: $(WARMELT_LAST) $(WARMELT_LAST_MODLIS) empty-file-for-melt.c \
 ### MELT cleanup
 .PHONY: melt-clean
 melt-clean:
-	rm -rf melt-stage0-static melt-stage0-dynamic \
+	rm -rf *melt*.args melt-stage0-static melt-stage0-dynamic \
 	       melt-stage0-static.stamp melt-stage0-dynamic.stamp \
 [+FOR melt_stage+]           [+melt_stage+]  [+melt_stage+].stamp \
 [+ENDFOR melt_stage+]               melt-sources melt-modules
