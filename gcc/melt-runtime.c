@@ -6870,8 +6870,11 @@ meltgc_readseqlist (struct reading_st *rd, int endc)
       rdnext ();
       goto end;
     }
-  else if (c == '#' && rdfollowc(c) == '{') 
+  /* The lexing ##{ ... }# is to insert a macrostring inside the
+     current sequence. */
+  else if (c == '#' && rdfollowc(1) == '#' && rdfollowc(2) == '{') 
     {
+      rdnext ();
       rdnext ();
       rdnext ();
       got = FALSE;

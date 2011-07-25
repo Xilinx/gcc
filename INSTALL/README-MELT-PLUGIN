@@ -182,6 +182,10 @@ New features:
    Hence (:container_value foo) is the same as !foo or 
    (get_field :container_value foo)
 
+   Experimental syntactic sugar: inside an s-expr, a macro string
+   written ##{...}# is expanded as several components, not a single
+   list.
+
 Many bug fixes.
 
 The build system has been revamped. The generated .c files should be

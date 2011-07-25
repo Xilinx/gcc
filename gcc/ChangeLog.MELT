@@ -1,5 +1,12 @@
 
 2011-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.c (meltgc_readseqlist): Expand ##{...}# macro
+	string inside sequence as several components, not as a single
+	sexpr.
+	* Makefile.in (check-melt-runtime): Use both
+	melt-modules/quicklybuilt && melt-modules/optimized.
+
+2011-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-runtime.h (melt_string_is_ending, melt_string_is_starting): New inline functions.
 
 	* melt/warmelt-base.melt (string_ends, string_prefixed)
