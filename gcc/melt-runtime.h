@@ -1276,6 +1276,10 @@ melt_ptr_t meltgc_new_string_nakedbasename (meltobject_ptr_t discr,
 melt_ptr_t meltgc_new_string_tempname_suffixed (meltobject_ptr_t discr,
 						const char *namstr, const char*suffix);
 
+/* compute the hexadecimal encoded md5sum string of a file */
+melt_ptr_t 
+meltgc_string_hex_md5sum_file (const char* path);
+
 /* Return as string value the name of a generated C file; if dirname
    is given and non-empty, it is used as the directory name using the
    basename of basepath, otherwise basepath is used. Any .melt or .so

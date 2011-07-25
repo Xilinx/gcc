@@ -5375,7 +5375,47 @@ compile_gencsrc_to_binmodule (const char *srcfile, const char *fullbinfile, cons
   MELT_EXITFRAME ();
 }
 
-
+/* compute the hexadecimal encoded md5sum string of a file */
+melt_ptr_t 
+meltgc_string_hex_md5sum_file (const char* path)
+{
+  int ix = 0;
+  char md5srctab[16];
+  char md5hex[50];
+  FILE *fil = NULL;
+  MELT_ENTERFRAME(1, NULL);
+#define resv meltfram__.mcfr_varptr[0]
+  memset (md5srctab, 0, sizeof (md5srctab));
+  memset (md5hex, 0, sizeof (md5hex));
+  if (!path || !path[0]) 
+    goto end;
+  fil = fopen(path, "r");
+  if (!fil)
+    goto end;
+  if (md5_stream (fil, &md5srctab))
+    melt_fatal_error
+      ("failed to compute md5sum of file %s - %m",
+       path);
+  fclose (fil);
+  fil = NULL;
+  path = NULL;
+  /* We forgot the path, so a GC could move it later! */
+  memset (md5hex, 0, sizeof(md5hex));
+  for (ix=0; ix<16; ix++) {
+    char hexb[4] = {0,0,0,0};
+    int curbyt = md5srctab[ix] & 0xff;
+    snprintf (hexb, sizeof(hexb)-1, "%02x", curbyt);
+    md5hex[2*ix] = hexb[0];
+    md5hex[2*ix+1] = hexb[1];
+  }
+  /* We don't care if a GC happens bellow and if the incoming path has
+     been moved, since we forgot it.  */
+  resv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), md5hex);
+ end:
+  MELT_EXITFRAME();
+  return (melt_ptr_t)resv;
+#undef resv
+}
 
 /* following code and comment is taken from the gcc/plugin.c file of
    the plugins branch */
@@ -5652,12 +5692,19 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
   const char* modulepath = melt_argument ("module-path");
   const char* workdir = melt_argument ("workdir");
   gcc_assert (modulnam != NULL);
-  modulnamlen = strlen(modulnam);
+  modulnamlen = strlen (modulnam);
   debugeprintf ("melt_find_source_and_module start modulnam %s flags %u", 
 		modulnam, flags);
-#define MODULNAM_ENDS(Suf) ((suflen=strlen((Suf)))>0			\
-			    && modulnamlen>suflen			\
-			    && !strcmp(modulnam+modulnamlen-suflen, (Suf)))
+  debugeprintf ("melt_find_source_and_module sourcepath %s", sourcepath);
+  debugeprintf ("melt_find_source_and_module modulepath %s", modulepath);
+  if (flag_melt_bootstrapping && !sourcepath)
+    melt_fatal_error ("no explicit soure path given when bootstrapping for module %s", modulnam);
+  if (flag_melt_bootstrapping && !modulepath)
+    melt_fatal_error ("no explicit module path given when bootstrapping for module %s", modulnam);
+#define MODULNAM_ENDS(Suf)				\
+  ((suflen=strlen((Suf)))>0				\
+   && modulnamlen>suflen				\
+   && !strcmp (modulnam+modulnamlen-suflen, (Suf)))
   res.src_path = NULL;
   res.sho_path = NULL;
   /* a common mistake is to give the explicit .so suffix */
@@ -5667,16 +5714,19 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
     dupmodulnam[modulnamlen-suflen] = (char)0;
     maketarget = MELTMODFLAV_QUICKLYBUILT_TARGET;
     modulsuffix = MELTMODFLAV_QUICKLYBUILT_SUFFIX MELT_BINARYMODULE_SUFFIX;
+    debugeprintf ("quickly dupmodulnam %s", dupmodulnam);
   }
   else if (MODULNAM_ENDS(MELTMODFLAV_NOLINE_SUFFIX)) {
     dupmodulnam[modulnamlen-suflen] = (char)0;
     maketarget = MELTMODFLAV_NOLINE_TARGET;
     modulsuffix = MELTMODFLAV_NOLINE_SUFFIX MELT_BINARYMODULE_SUFFIX;
+    debugeprintf ("no-line dupmodulnam %s", dupmodulnam);
   }
   else if (MODULNAM_ENDS(MELTMODFLAV_DYNAMIC_SUFFIX)) {
     dupmodulnam[modulnamlen-suflen] = (char)0;
     maketarget = MELTMODFLAV_DYNAMIC_TARGET;
     modulsuffix = MELTMODFLAV_DYNAMIC_SUFFIX MELT_BINARYMODULE_SUFFIX;
+    debugeprintf ("optim dupmodulnam %s", dupmodulnam);
   }
   else 
     {
@@ -5685,8 +5735,8 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
       modulsuffix = MELTMODFLAV_OPTIMIZED_SUFFIX MELT_BINARYMODULE_SUFFIX;
     }
 #undef MODULNAM_ENDS
-  debugeprintf ("dupmodulnam '%s' maketarget %s modulsuffix '%s'",
-		dupmodulnam, maketarget, modulsuffix);
+  debugeprintf ("dupmodulnam '%s' maketarget %s modulsuffix '%s' modulbase '%s'",
+		dupmodulnam, maketarget, modulsuffix, modulbase);
 
   /******************************************************
    * First, find the C source code of the module! Several directories
@@ -5761,9 +5811,9 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
   /* Look for the source in the source path.  */
   if (res.src_path == NULL)
     debugeprintf("looking %s in sourcepath %s", 
-		 modulbase, melt_argument("source-path"));
+		 modulbase, sourcepath);
   if (res.src_path == NULL 
-      && (curpath = lookup_path (melt_argument("source-path"), dupmodulnam, ".c")) != NULL)  
+      && (curpath = lookup_path (sourcepath, dupmodulnam, ".c")) != NULL)  
     {
       if (!access(curpath, R_OK)) {
 	res.src_path = curpath;
@@ -5775,9 +5825,9 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
   /* Look for the source base in the source path.  */
   if (res.src_path == NULL)
     debugeprintf("looking %s in sourcepath %s", 
-		 modulbase, melt_argument("source-path"));
+		 modulbase, sourcepath);
   if (res.src_path == NULL 
-      && (curpath = lookup_path (melt_argument("source-path"), modulbase, ".c")) != NULL)  
+      && (curpath = lookup_path (sourcepath, modulbase, ".c")) != NULL)  
     {
       if (!access(curpath, R_OK)) {
 	res.src_path = curpath;
@@ -5786,7 +5836,7 @@ melt_get_source_and_module (const char*modulnam, const char*maketarget,  unsigne
       else 
 	free ((void*) curpath), curpath = NULL;
     };
-  /* Look for the source using GCCMELT_SOURCE_PATH environment
+  /* Look for the source base using GCCMELT_SOURCE_PATH environment
      variable, unless we are bootstrapping. */
   if (res.src_path == NULL 
       && !flag_melt_bootstrapping
@@ -11856,6 +11906,7 @@ melt_fatal_info (const char*filename, int lineno)
   else
     error ("MELT fatal failure without location [MELT built %s]", 
 	   melt_runtime_build_date);
+  error ("MELT failed at %s:%d in directory %s", filename, lineno, getpwd());
   fflush (NULL);
 #if MELT_HAVE_DEBUG
   melt_dbgshortbacktrace ("MELT fatal failure", 100);

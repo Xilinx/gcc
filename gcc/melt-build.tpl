@@ -233,7 +233,7 @@ $(MELT_STAGE_ZERO):
 +] \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath  $(melt_make_module_dir)) \
-	      $(meltarg_sourcue_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath $(melt_make_source_dir)):$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
+	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
 	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
@@ -370,7 +370,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 	@echo [+IF (= transindex 0)+] $(MELTCCINIT1ARGS) \[+ELSE+] $(MELTCCFILE1) \[+ENDIF+]
 	     $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
-	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources) \
+	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
 	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args

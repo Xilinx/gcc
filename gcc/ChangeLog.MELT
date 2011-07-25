@@ -1,5 +1,13 @@
 
 2011-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
+	{{unstable build machinery}}
+	* melt-runtime.h (meltgc_string_hex_md5sum_file): New declaration.
+	* melt-runtime.c (meltgc_string_hex_md5sum_file): New function.
+	* melt/warmelt-base.melt (string_hex_md5sum_constpath)
+	(string_hex_md5sum_pathstrv): New primitives.
+	* melt-build.tpl: Typo in source dir.
+
+2011-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{Regenerated, except the runtime}}
 	* melt/generated/warmelt-base+01.c: Regenerate.
 	* melt/generated/warmelt-base.c: Regenerate.

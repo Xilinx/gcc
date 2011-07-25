@@ -505,6 +505,14 @@ an integer $I if $I is greater than $N.}#
   :doc #{Test that the string value $SV1 ends with the string value $SV2.}#
   #{(melt_string_is_ending ((melt_ptr_t)$SV1, melt_string_str ((melt_ptr_t)$SV2)))}#)
 
+(defprimitive string_hex_md5sum_constpath (:cstring path) :value
+  :doc #{Return a boxed string contained the hexadecimal md5sum of raw $PATH, or null.}#
+  #{(meltgc_string_hex_md5sum_file($PATH))}#)
+
+(defprimitive string_hex_md5sum_pathstrv (pathv) :value
+  :doc #{Return a boxed string contained the hexadecimal md5sum of the string value  $PATHV, or null.}#
+  #{(meltgc_string_hex_md5sum_file( melt_string_str((melt_ptr_t)$PATHV)))}#)
+
 
 (defprimitive split_string_space (dis :cstring cs) :value
   :doc #{Split a cstring $CS into a list of space separated strings of
@@ -2521,6 +2529,8 @@ polyhedron values.}#
  string!=
  string=
  string_ends
+ string_hex_md5sum_constpath 
+ string_hex_md5sum_pathstrv
  string_length
  string_prefixed
  string_starts
