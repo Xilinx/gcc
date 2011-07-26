@@ -6231,9 +6231,21 @@ meltgc_make_load_melt_module (melt_ptr_t modata_p, const char *modulnam, const c
 		sop.sho_path, sop.src_path, md5hex);
   dlix = load_checked_dynamic_module_index (&sop, (const char*) md5src);
   debugeprintf ("meltgc_make_load_melt_module dlix=%d binpath %s", dlix, sop.sho_path);
-  if (dlix <= 0)
-    melt_fatal_error ("MELT failed to load binary module %s of C source %s & md5sum %s", 
-		      sop.sho_path, sop.src_path, md5hex);
+  if (dlix <= 0) 
+    {
+      const char* sourcepath = melt_argument ("source-path");
+      const char* modulepath = melt_argument ("module-path");
+      if (!flag_melt_bootstrapping) 
+	inform (UNKNOWN_LOCATION, "MELT builtin source directory %s", melt_source_dir);
+      if (!flag_melt_bootstrapping) 
+	inform (UNKNOWN_LOCATION, "MELT builtin module directory %s", melt_module_dir);
+      if (sourcepath)
+	inform(UNKNOWN_LOCATION, "MELT source path %s", sourcepath);
+      if (modulepath)
+	inform(UNKNOWN_LOCATION, "MELT module path %s", modulepath);
+      melt_fatal_error ("MELT failed to load binary module %s of C source %s & md5sum %s", 
+			sop.sho_path, sop.src_path, md5hex);
+    }
   MELT_LOCATION_HERE_PRINTF (curlocbuf, 
 			     "meltgc_make_load_melt_module after load dynamic module %s dlix#%d", 
 			     sop.sho_path, dlix);

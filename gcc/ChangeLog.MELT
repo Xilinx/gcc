@@ -1,4 +1,9 @@
 
+2011-07-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-module.mk (MELTMODULE_CFILES): Sort correctly.
+	* melt-runtime.c (meltgc_make_load_melt_module): Inform about the
+	current source & module paths when failing.
+
 2011-07-25  Basile Starynkevitch  <basile@starynkevitch.net>
 	{{unstable build machinery}}
 	* melt-runtime.h (meltgc_string_hex_md5sum_file): New declaration.
