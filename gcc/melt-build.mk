@@ -539,7 +539,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -590,7 +590,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -642,7 +642,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -695,7 +695,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -750,7 +750,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -805,7 +805,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -861,7 +861,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -918,7 +918,7 @@ $(MELT_STAGE_ZERO)/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage1):$(realpath $(MELT_STAGE_ZERO)):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1043,7 +1043,7 @@ melt-stage1/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1094,7 +1094,7 @@ melt-stage1/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1146,7 +1146,7 @@ melt-stage1/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1199,7 +1199,7 @@ melt-stage1/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1254,7 +1254,7 @@ melt-stage1/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1309,7 +1309,7 @@ melt-stage1/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1365,7 +1365,7 @@ melt-stage1/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1422,7 +1422,7 @@ melt-stage1/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage2):$(realpath melt-stage1):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1547,7 +1547,7 @@ melt-stage2/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1598,7 +1598,7 @@ melt-stage2/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1650,7 +1650,7 @@ melt-stage2/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1703,7 +1703,7 @@ melt-stage2/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1758,7 +1758,7 @@ melt-stage2/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1813,7 +1813,7 @@ melt-stage2/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1869,7 +1869,7 @@ melt-stage2/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -1926,7 +1926,7 @@ melt-stage2/warmelt-outobj.q \
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath melt-stage3):$(realpath melt-stage2):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -2107,7 +2107,7 @@ melt-sources/warmelt-first.c: melt-sources/warmelt-first.melt  \
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -2161,7 +2161,7 @@ melt-sources/warmelt-base.c: melt-sources/warmelt-base.melt  \
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -2215,7 +2215,7 @@ melt-sources/warmelt-debug.c: melt-sources/warmelt-debug.melt  \
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -2269,7 +2269,7 @@ melt-sources/warmelt-macro.c: melt-sources/warmelt-macro.melt  \
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -2329,7 +2329,7 @@ melt-sources/warmelt-normal.c: melt-sources/warmelt-normal.melt melt-sources/war
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -2383,7 +2383,7 @@ melt-sources/warmelt-normatch.c: melt-sources/warmelt-normatch.melt  \
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -2437,7 +2437,7 @@ melt-sources/warmelt-genobj.c: melt-sources/warmelt-genobj.melt  \
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -2491,7 +2491,7 @@ melt-sources/warmelt-outobj.c: melt-sources/warmelt-outobj.melt  \
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -2548,7 +2548,7 @@ melt-sources/xtramelt-parse-infix-syntax.c: melt-sources/xtramelt-parse-infix-sy
 	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))): \
-	     $(meltarg_output)=$@ empty-file-for-melt.c 
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c 
 
 melt-modules/optimized/xtramelt-parse-infix-syntax.so: melt-sources/xtramelt-parse-infix-syntax.c \
         $(wildcard  melt-sources/xtramelt-parse-infix-syntax+*.c) \
@@ -2598,7 +2598,7 @@ melt-sources/xtramelt-ana-base.c: melt-sources/xtramelt-ana-base.melt  \
 	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax \
-	     $(meltarg_output)=$@ empty-file-for-melt.c 
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c 
 
 melt-modules/optimized/xtramelt-ana-base.so: melt-sources/xtramelt-ana-base.c \
         $(wildcard  melt-sources/xtramelt-ana-base+*.c) \
@@ -2648,7 +2648,7 @@ melt-sources/xtramelt-ana-simple.c: melt-sources/xtramelt-ana-simple.melt  \
 	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base \
-	     $(meltarg_output)=$@ empty-file-for-melt.c 
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c 
 
 melt-modules/optimized/xtramelt-ana-simple.so: melt-sources/xtramelt-ana-simple.c \
         $(wildcard  melt-sources/xtramelt-ana-simple+*.c) \
@@ -2698,7 +2698,7 @@ melt-sources/xtramelt-c-generator.c: melt-sources/xtramelt-c-generator.melt  \
 	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base:xtramelt-ana-simple \
-	     $(meltarg_output)=$@ empty-file-for-melt.c 
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c 
 
 melt-modules/optimized/xtramelt-c-generator.so: melt-sources/xtramelt-c-generator.c \
         $(wildcard  melt-sources/xtramelt-c-generator+*.c) \
@@ -2748,7 +2748,7 @@ melt-sources/xtramelt-opengpu.c: melt-sources/xtramelt-opengpu.melt  \
 	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):xtramelt-parse-infix-syntax:xtramelt-ana-base:xtramelt-ana-simple:xtramelt-c-generator \
-	     $(meltarg_output)=$@ empty-file-for-melt.c 
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c 
 
 melt-modules/optimized/xtramelt-opengpu.so: melt-sources/xtramelt-opengpu.c \
         $(wildcard  melt-sources/xtramelt-opengpu+*.c) \
@@ -3088,7 +3088,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
 	      $(meltarg_module_path)=$(realpath melt-modules):. \
 	      $(meltarg_source_path)=$(realpath melt-sources):. \
-	      $(meltarg_output)=$@  \
+	      $(meltarg_output)=$(basename $@)  \
               $(meltarg_arglist)=warmelt-first.melt,warmelt-base.melt,warmelt-debug.melt,warmelt-macro.melt,warmelt-normal.melt,warmelt-normatch.melt,warmelt-genobj.melt,warmelt-outobj.melt,\
 xtramelt-parse-infix-syntax.melt,xtramelt-ana-base.melt,xtramelt-ana-simple.melt,xtramelt-c-generator.melt,xtramelt-opengpu.melt \
               empty-file-for-melt.c > $(basename $@).args-tmp

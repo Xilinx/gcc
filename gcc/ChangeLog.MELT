@@ -1,5 +1,15 @@
 
 2011-07-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (translate_macroexpanded_list)
+	(compile_list_sexpr, translatefile_docmd, translateinit_docmd):
+	Check that the generated output has no .melt .c .so suffixes.
+
+	* melt-build.tpl: Generate output names without suffixes.
+	* melt-build.mk: Regenerate.
+
+	* Makefile.in (check-melt-runtime): Adjust module path.
+
+2011-07-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt-module.mk (MELTMODULE_CFILES): Sort correctly.
 	* melt-runtime.c (meltgc_make_load_melt_module): Inform about the
 	current source & module paths when failing.

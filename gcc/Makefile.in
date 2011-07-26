@@ -5443,7 +5443,7 @@ check-melt-runtime: melt-runtime.o melt-runtime.c xgcc$(exeext)		\
  -I $(srcdir)/melt/generated/						\
 	    $(MELT_RUNTIME_CPPDEFS)					\
 	    $(meltarg_module_path)=melt-modules/optimized:melt-modules/quicklybuilt:melt-modules	\
-	    $(meltarg_source_path)=melt-sources				\
+	    $(meltarg_source_path)=$(realpath melt-sources)		\
 	        $(meltarg_mode)=meltframe				\
 	        $(meltarg_bootstrapping)				\
 	  -c $(MELT_RUNTIME_C) -o /dev/null

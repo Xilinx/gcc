@@ -3749,10 +3749,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
 (defun translate_macroexpanded_list (xlist modnamstr modctx ncx)
+  (debug_msg modnamstr "translate_macroexpanded_list modnamstr")
   (assert_msg "check xlist" (is_list xlist))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check modctx" (is_a modctx class_module_context))
   (assert_msg "check ncx" (is_a ncx class_normalization_context))
+  (assert_msg "translate_macroexpanded_list modulename not ended with .so"
+	      (not (string_suffixed modnamstr ".so")))
+  (assert_msg "translate_macroexpanded_list modulename not ended with .melt"
+	      (not (string_suffixed modnamstr ".melt")))
+  (assert_msg "translate_macroexpanded_list modulename not ended with .c"
+	      (not (string_suffixed modnamstr ".c")))
   (let (
 	(:long startclock 0)
 	(:long endclock 0)
@@ -3958,6 +3965,12 @@
   (assert_msg "check lsexp" (is_list lsexp))
   (assert_msg "check modnamstr" (is_string modnamstr))
   (assert_msg "check inienv" (is_a inienv class_environment))
+  (assert_msg "compile_list_sexpr modulename not ended with .so"
+	      (not (string_suffixed modnamstr ".so")))
+  (assert_msg "compile_list_sexpr modulename not ended with .melt"
+	      (not (string_suffixed modnamstr ".melt")))
+  (assert_msg "compile_list_sexpr modulename not ended with .c"
+	      (not (string_suffixed modnamstr ".c")))
   (let (
 	(modctx (instance class_module_context
 			  :mocx_modulename  (make_string_nakedbasename discr_string modnamstr)
@@ -4136,6 +4149,15 @@
 		     (return)
 		     )))
 	   )
+    (debug_msg basnam "translatefile_mode basnam")
+    (if (or (string_suffixed basnam ".so")
+	    (string_suffixed basnam ".melt")
+	    (string_suffixed basnam ".c"))
+	(progn 
+	  (errormsg_strv "tranlatefile mode needs a base name without suffix" 
+		       basnam)
+	  (return)
+	  ))
       (compile_one_or_more_files inarg basnam curenv)
       )))
 
@@ -4436,6 +4458,15 @@ has basic debug support thru debug_msg, assert_msg..."
 		   (return)
 		   )))
 	 )
+    (debug_msg basnam "translateinit_mode basnam")
+    (if (or (string_suffixed basnam ".so")
+	    (string_suffixed basnam ".melt")
+	    (string_suffixed basnam ".c"))
+	(progn 
+	  (errormsg_strv "tranlateinit mode needs a base name without suffix" 
+		       basnam)
+	  (return)
+	  ))
     (cond 
      ((is_string inarg) 
       (list_append2list rlist (read_file inarg)))

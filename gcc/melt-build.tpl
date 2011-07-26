@@ -234,7 +234,7 @@ $(MELT_STAGE_ZERO):
            $(meltarg_arg)=$<  -frandom-seed=$(shell md5sum $< | cut -b-24) \
 	      $(meltarg_module_path)=$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath  $(melt_make_module_dir)) \
 	      $(meltarg_source_path)=$(realpath $(melt_make_source_dir)):$(realpath .):$(realpath [+melt_stage+]):$(realpath [+ (. prevstage)+]):.:$(realpath $(melt_make_source_dir)/generated):$(realpath $(melt_source_dir)) \
-	      $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	      $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -372,7 +372,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 	     $(meltarg_module_path)=$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath $(MELT_LAST_STAGE)):$(realpath melt-sources):$(realpath $(melt_source_dir)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))) \
-	     $(meltarg_output)=$@ empty-file-for-melt.c > $(basename $@).args-tmp
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c > $(basename $@).args-tmp
 	@mv $(basename $@).args-tmp $(basename $@).args
 	@echo -n $(basename $@).args: ; cat $(basename $@).args ; echo "***** doing " $@
 	$(melt_make_cc1) @$(basename $@).args
@@ -430,7 +430,7 @@ melt-sources/[+base+].c: melt-sources/[+base+].melt [+FOR includeload
 	     $(meltarg_module_path)=$(realpath melt-modules):$(realpath melt-modules/optimized):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_source_path)=$(realpath melt-sources):$(realpath $(MELT_LAST_STAGE)) \
 	     $(meltarg_init)=@$(notdir $(basename $(WARMELT_LAST_MODLIS))):[+ (. (join ":" (reverse prevapplbase)))+] \
-	     $(meltarg_output)=$@ empty-file-for-melt.c 
+	     $(meltarg_output)=$(basename $@) empty-file-for-melt.c 
 
 melt-modules/optimized/[+base+].so: melt-sources/[+base+].c \
         $(wildcard  melt-sources/[+base+]+*.c) \
@@ -544,7 +544,7 @@ meltgendoc.texi: $(melt_default_modules_list).modlis \
 	      $(meltarg_init)=@$(melt_default_modules_list) \
 	      $(meltarg_module_path)=$(realpath melt-modules):. \
 	      $(meltarg_source_path)=$(realpath melt-sources):. \
-	      $(meltarg_output)=$@  \
+	      $(meltarg_output)=$(basename $@)  \
               $(meltarg_arglist)=[+FOR melt_translator_file+][+base+].melt,[+ENDFOR melt_translator_file+]\
 [+FOR melt_application_file "," +][+base+].melt[+ENDFOR melt_application_file+] \
               empty-file-for-melt.c > $(basename $@).args-tmp
