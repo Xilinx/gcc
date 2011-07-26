@@ -1,5 +1,3 @@
-// { dg-xfail-if "BOGUS" { "*-*-*" } { "-fpph-map=pph.map" } }
-// { dg-bogus "x0tmplclass.h:14:5: error: specializing member .wrapper<char>::cache. requires .template<>. syntax" "" { xfail *-*-* } 0 }
 
 #include "x0tmplclass.h"
 

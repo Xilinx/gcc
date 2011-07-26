@@ -142,6 +142,7 @@ void pph_trace_uint (pph_stream *, unsigned int);
 void pph_trace_bytes (pph_stream *, const void *, size_t);
 void pph_trace_string (pph_stream *, const char *);
 void pph_trace_string_with_length (pph_stream *, const char *, unsigned);
+void pph_trace_location (pph_stream *, location_t);
 void pph_trace_chain (pph_stream *, tree);
 void pph_trace_bitpack (pph_stream *, struct bitpack_d *);
 void pph_cache_insert_at (pph_stream *, void *, unsigned);
@@ -169,6 +170,13 @@ void pph_unpack_value_fields (struct bitpack_d *, tree);
 tree pph_alloc_tree (enum tree_code, struct lto_input_block *,
 	             struct data_in *);
 void pph_read_file (const char *);
+
+/* In pt.c.  */
+extern void pph_out_pending_templates_list (pph_stream *stream);
+extern void pph_in_pending_templates_list (pph_stream *stream);
+extern void pph_out_spec_entry_tables (pph_stream *stream);
+extern void pph_in_spec_entry_tables (pph_stream *stream);
+
 
 /* Inline functions.  */
 
@@ -280,6 +288,15 @@ pph_out_tree_VEC (pph_stream *stream, VEC(tree,gc) *v)
 }
 #endif
 
+/* Write location LOC of length to STREAM.  */
+static inline void
+pph_out_location (pph_stream *stream, location_t loc)
+{
+  if (flag_pph_tracer >= 4)
+    pph_trace_location (stream, loc);
+  lto_output_location (stream->ob, loc);
+}
+
 /* Write a chain of ASTs to STREAM starting with FIRST.  */
 static inline void
 pph_out_chain (pph_stream *stream, tree first)
@@ -339,6 +356,16 @@ pph_in_string (pph_stream *stream)
   if (flag_pph_tracer >= 4)
     pph_trace_string (stream, s);
   return s;
+}
+
+/* Read and return a location_t from STREAM.  */
+static inline location_t
+pph_in_location (pph_stream *stream)
+{
+  location_t loc = lto_input_location (stream->ib, stream->data_in);
+  if (flag_pph_tracer >= 4)
+    pph_trace_location (stream, loc);
+  return loc;
 }
 
 /* Load an AST from STREAM.  Return the corresponding tree.  */

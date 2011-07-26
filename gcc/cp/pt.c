@@ -45,6 +45,8 @@ along with GCC; see the file COPYING3.  If not see
 #include "timevar.h"
 #include "tree-iterator.h"
 #include "vecprim.h"
+#include "pph.h"
+#include "pph-streamer.h"
 
 /* The type of functions taking a tree, and some additional data, and
    returning an int.  */
@@ -19680,5 +19682,253 @@ print_template_statistics (void)
 	   (long) htab_elements (type_specializations),
 	   htab_collisions (type_specializations));
 }
+
+
+/* PPH write/read */
+
+
+/* Emit a tinst_level list TINST to STREAM.  */
+
+static void
+pph_out_tinst_level (pph_stream *stream, struct tinst_level *tinst)
+{
+  int count = 0;
+  struct tinst_level *cur;
+
+  /* Count the number of items.  */
+  for (cur = tinst; cur != NULL;  cur = cur->next )
+    ++count;
+
+  /* Now emit them.  */
+  pph_out_uint (stream, count);
+  for (cur = tinst; cur != NULL;  cur = cur->next )
+    {
+      pph_out_tree (stream, cur->decl);
+      pph_out_location (stream, cur->locus);
+      pph_out_uint (stream, cur->errors);
+      pph_out_uint (stream, cur->in_system_header_p);
+    }
+}
+
+/* Dump a tinst_level list TINST to STREAM.  */
+
+static void
+pph_dump_tinst_level (FILE *stream, struct tinst_level *tinst)
+{
+  int count = 0;
+  struct tinst_level *cur;
+
+  /* Count the number of items.  */
+  for (cur = tinst; cur != NULL;  cur = cur->next )
+    ++count;
+
+  /* Now dump them.  */
+  fprintf (stream, "%d tinst_levels\n", count );
+  for (cur = tinst; cur != NULL;  cur = cur->next )
+    {
+      pph_dump_tree_name (stream, cur->decl, 0);
+      /* pph_dump_location (stream, cur->locus); */
+      fprintf (stream, "%d errors, ", cur->errors );
+      fprintf (stream, "%d in system header\n", cur->in_system_header_p );
+    }
+}
+
+/* Load a tinst_level list.  */
+
+static struct tinst_level *
+pph_in_tinst_level (pph_stream *stream)
+{
+  struct tinst_level *last = NULL;
+  unsigned count = pph_in_uint (stream);
+  /* FIXME pph: This leaves the list in reverse order.  Issue?  */
+  for (; count > 0; --count)
+    {
+      struct tinst_level *cur = ggc_alloc_tinst_level ();
+      cur->next = last;
+      cur->decl = pph_in_tree (stream);
+      cur->locus = pph_in_location (stream);
+      cur->errors = pph_in_uint (stream);
+      cur->in_system_header_p = pph_in_uint (stream);
+      last = cur;
+    }
+  return last;
+}
+
+
+/* Dump the pending_templates list to STREAM.  */
+
+static void
+pph_dump_pending_templates_list (FILE *stream)
+{
+  int count = 0;
+  struct pending_template *cur;
+
+  /* Count the number of items.  */
+  for (cur = pending_templates; cur != NULL;  cur = cur->next )
+    ++count;
+
+  /* Now dump them.  */
+  fprintf (stream, "%d pending templates\n", count );
+  for (cur = pending_templates; cur != NULL;  cur = cur->next )
+    pph_dump_tinst_level (stream, cur->tinst);
+}
+
+/* Emit the pending_templates list to STREAM.  */
+
+void
+pph_out_pending_templates_list (pph_stream *stream)
+{
+  int count = 0;
+  struct pending_template *cur;
+
+  if (flag_pph_dump_tree)
+    pph_dump_pending_templates_list (stderr);
+
+  /* Count the number of items.  */
+  for (cur = pending_templates; cur != NULL;  cur = cur->next )
+    ++count;
+
+  /* Now emit them.  */
+  pph_out_uint (stream, count);
+  for (cur = pending_templates; cur != NULL;  cur = cur->next )
+    pph_out_tinst_level (stream, cur->tinst);
+}
+
+/* Load and merge the pending_templates list from STREAM.  */
+
+void
+pph_in_pending_templates_list (pph_stream *stream)
+{ 
+  unsigned count = pph_in_uint (stream);
+  for (; count > 0; --count)
+    {
+      struct pending_template *pt;
+      if (flag_pph_debug >= 2)
+        fprintf (stderr, "loading %d pending templates\n", count );
+      pt = ggc_alloc_pending_template ();
+      pt->next = NULL;
+      pt->tinst = pph_in_tinst_level (stream);
+      /* FIXME pph:  This just appends.  We should merge. */
+      if (last_pending_template)
+        last_pending_template->next = pt;
+      else
+        pending_templates = pt;
+      last_pending_template = pt;
+    }
+
+  if (flag_pph_dump_tree)
+    pph_dump_pending_templates_list (stderr);
+}
+
+
+/* A callback of htab_traverse. Just extracts a (type) tree from SLOT
+   and writes it out for PPH using the AUXillary information. */
+
+static int
+pph_out_spec_entry_slot (void **slot, void *aux)
+{
+  pph_stream *stream = (pph_stream *)aux;
+  struct spec_entry *entry = (struct spec_entry *) *slot;
+  pph_out_tree_or_ref (stream, entry->tmpl);
+  pph_out_tree_or_ref (stream, entry->args);
+  pph_out_tree_or_ref (stream, entry->spec);
+  return 1;
+}
+
+/* Emit a spec_entry TABLE to STREAM.  */
+
+static void
+pph_out_spec_entry_htab (pph_stream *stream, htab_t *table)
+{
+  if (*table)
+    {
+      /*FIXME pph: This write may be unstable.  */
+      pph_out_uint (stream, htab_elements (*table));
+      htab_traverse_noresize (*table, pph_out_spec_entry_slot, stream);
+    }
+  else
+    pph_out_uint (stream, 0);
+}
+
+
+/* A callback of htab_traverse. Just extracts a (type) tree from SLOT
+   and writes it out for PPH using the AUXillary information. */
+
+static int
+pph_dump_spec_entry_slot (void **slot, void *aux)
+{
+  FILE *stream = (FILE *)aux;
+  struct spec_entry *entry = (struct spec_entry *) *slot;
+  fprintf (stream, "dumping a spec_entry\n" );
+  pph_dump_tree_name (stream, entry->tmpl, 0);
+  pph_dump_tree_name (stream, entry->args, 0);
+  pph_dump_tree_name (stream, entry->spec, 0);
+  return 1;
+}
+
+/* Dump a spec_entry TABLE to STREAM.  */
+
+static void
+pph_dump_spec_entry_htab (FILE *stream, const char *name, htab_t *table)
+{
+  if (*table)
+    {
+      fprintf (stream, "%d %s spec_entry elements\n",
+               (int) htab_elements (*table), name);
+      htab_traverse_noresize (*table, pph_dump_spec_entry_slot, stream);
+    }
+  else
+    fprintf (stream, "NULL %s spec_entry elements\n", name);
+}
+
+/* Load and merge a spec_entry TABLE from STREAM.  */
+
+static void
+pph_in_spec_entry_htab (pph_stream *stream, htab_t *table)
+{
+  unsigned count = pph_in_uint (stream);
+  if (flag_pph_debug >= 2)
+    fprintf (stderr, "loading %d spec_entries\n", count );
+  for (; count > 0; --count)
+    {
+      hashval_t hash;
+      spec_entry **slot = NULL;
+      struct spec_entry *se = ggc_alloc_spec_entry ();
+      se->tmpl = pph_in_tree (stream);
+      se->args = pph_in_tree (stream);
+      se->spec = pph_in_tree (stream);
+      hash = hash_specialization (se);
+      slot = (spec_entry **)htab_find_slot_with_hash (*table, se, hash, INSERT);
+      *slot = se;
+    }
+}
+
+
+/* Emit all spec_entry tables to STREAM. */
+
+void
+pph_out_spec_entry_tables (pph_stream *stream)
+{
+  pph_out_spec_entry_htab (stream, &decl_specializations);
+  if (flag_pph_dump_tree)
+    pph_dump_spec_entry_htab (stderr, "decl", &decl_specializations);
+  pph_out_spec_entry_htab (stream, &type_specializations);
+  if (flag_pph_dump_tree)
+    pph_dump_spec_entry_htab (stderr, "type", &type_specializations);
+}
+
+/* Load and merge all spec_entry tables from STREAM.  */
+
+void
+pph_in_spec_entry_tables (pph_stream *stream)
+{
+  pph_in_spec_entry_htab (stream, &decl_specializations);
+  if (flag_pph_dump_tree)
+    pph_dump_spec_entry_htab (stderr, "decl", &decl_specializations);
+  pph_in_spec_entry_htab (stream, &type_specializations);
+  if (flag_pph_dump_tree)
+    pph_dump_spec_entry_htab (stderr, "type", &type_specializations);
+}
+
 
 #include "gt-cp-pt.h"

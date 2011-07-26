@@ -46,7 +46,7 @@ FILE *pph_logfile = NULL;
 /* Dump a complicated name for tree T to FILE using FLAGS.
    See TDF_* in tree-pass.h for flags.  */
 
-static void
+void
 pph_dump_tree_name (FILE *file, tree t, int flags)
 {
   enum tree_code code = TREE_CODE (t);

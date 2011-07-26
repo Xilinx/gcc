@@ -644,7 +644,7 @@ lto_output_location_bitpack (struct bitpack_d *bp,
    When bitpack is handy, it is more space effecient to call
    lto_output_location_bitpack with existing bitpack.  */
 
-static void
+void
 lto_output_location (struct output_block *ob, location_t loc)
 {
   struct bitpack_d bp = bitpack_create (ob->main_stream);

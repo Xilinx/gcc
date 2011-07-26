@@ -1,3 +1,39 @@
+2011-07-25   Lawrence Crowl  <crowl@google.com>
+
+	* pph.c (pph_dump_tree_name): Make extern.
+	* pph.h (pph_dump_tree_name): Make extern.
+	* pph-streamer-in.c (pph_read_file_contents): Load pending templates
+	list and tables of decl and type template specializations.
+	* pph-streamer.c (enum pph_trace_type): Add PPH_TRACE_LOCATION
+	enumeration.
+	(pph_trace): Add trace for locations.
+	(pph_trace_location): New.
+	* pph-streamer.h (pph_trace_location): New.
+	(pph_out_pending_templates_list): New.
+	(pph_in_pending_templates_list): New.
+	(pph_out_spec_entry_tables): New.
+	(pph_in_spec_entry_tables): New.
+	(pph_out_location): New.
+	(pph_in_location): New.
+	* pph-streamer-out.c (pph_write_file_contents): Save template pending
+	instantiation list, decl specialization table, and type specialization
+	table.
+	* pt.c (pph_out_tinst_level): New.
+	(pph_dump_tinst_level): New.
+	(pph_in_tinst_level): New.
+	(pph_dump_pending_templates_list): New.
+	(pph_out_pending_templates_list): New.
+	(pph_in_pending_templates_list): New.
+	(pph_out_spec_entry_slot): New.
+	(pph_out_spec_entry_htab): New.
+	(pph_dump_spec_entry_slot): New.
+	(pph_dump_spec_entry_htab): New.
+	(pph_in_spec_entry_htab): New.
+	(pph_out_spec_entry_tables): New.
+	(pph_in_spec_entry_tables): New.
+	* parser.c (cp_debug_parser): Factor out printing of token list.
+	(cp_debug_parser_tokens): New.
+
 2011-07-18   Diego Novillo  <dnovillo@google.com>
 
 	* name-lookup.c (pph_out_binding_table): Remove parameter

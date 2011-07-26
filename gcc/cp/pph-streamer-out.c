@@ -1245,6 +1245,10 @@ pph_write_file_contents (pph_stream *stream, cpp_idents_used *idents_used)
      globals should be fields in struct cp_parser.  */
   pph_out_tree (stream, keyed_classes);
   pph_out_tree_vec (stream, unemitted_tinfo_decls);
+
+  pph_out_pending_templates_list (stream);
+  pph_out_spec_entry_tables (stream);
+
   pph_out_tree (stream, static_aggregates);
 
   /* Emit the symbol table.  */

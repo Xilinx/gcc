@@ -333,7 +333,7 @@ lto_input_location_bitpack (struct data_in *data_in, struct bitpack_d *bp)
 
 /* Read a location from input block IB.  */
 
-static location_t
+location_t
 lto_input_location (struct lto_input_block *ib, struct data_in *data_in)
 {
   struct bitpack_d bp;

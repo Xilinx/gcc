@@ -1,3 +1,10 @@
+2011-07-25  Lawrence Crowl  <crowl@google.com>
+
+	* lto-streamer-out.c (lto_output_location): Make external.
+	* lto-streamer-in.c (lto_input_location): Make external.
+	* lto-streamer.h (lto_output_location): Make external.
+	(lto_input_location): Make external.
+
 2011-07-12  Diego Novillo  <dnovillo@google.com>
 
 	Merge from trunk rev 176218.

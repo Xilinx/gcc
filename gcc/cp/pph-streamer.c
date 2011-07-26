@@ -169,6 +169,7 @@ enum pph_trace_type
     PPH_TRACE_UINT,
     PPH_TRACE_BYTES,
     PPH_TRACE_STRING,
+    PPH_TRACE_LOCATION,
     PPH_TRACE_CHAIN,
     PPH_TRACE_BITPACK
 };
@@ -244,6 +245,14 @@ pph_trace (pph_stream *stream, const void *data, unsigned int nbytes,
 	fprintf (pph_logfile, ", NULL_STRING");
       break;
 
+    case PPH_TRACE_LOCATION:
+      if (data)
+	fprintf (pph_logfile, ", value=%.*s",
+                              (int) nbytes, (const char *) data);
+      else
+	fprintf (pph_logfile, ", NULL_LOCATION");
+      break;
+
     case PPH_TRACE_CHAIN:
       {
 	const_tree t = (const_tree) data;
@@ -313,6 +322,25 @@ pph_trace_string_with_length (pph_stream *stream, const char *s,
 				     unsigned int len)
 {
   pph_trace (stream, s, len, PPH_TRACE_STRING);
+}
+
+
+/* Show tracing information for location_t LOC on STREAM.  */
+
+void
+pph_trace_location (pph_stream *stream, location_t loc)
+{
+  expanded_location xloc = expand_location (loc);
+  size_t flen = strlen (xloc.file);
+  size_t mlen = flen + 12; /* for : and 10 digits and \n */
+  size_t llen;
+  char *str = (char *)xmalloc (mlen);
+
+  strcpy (str, xloc.file);
+  str[flen] = ':';
+  sprintf (str + flen + 1, "%d", xloc.line);
+  llen = strlen (str);
+  pph_trace (stream, str, llen, PPH_TRACE_LOCATION);
 }
 
 

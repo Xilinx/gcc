@@ -435,13 +435,33 @@ cp_debug_print_unparsed_queues (FILE *file,
 }
 
 
+/* Dump the tokens in a window of size WINDOW_SIZE around the next_token for
+   the given PARSER.  If FILE is NULL, the output is printed on stderr. */
+
+static void
+cp_debug_parser_tokens (FILE *file, cp_parser *parser, int window_size)
+{
+  cp_token *next_token, *first_token, *start_token;
+
+  if (file == NULL)
+    file = stderr;
+
+  next_token = parser->lexer->next_token;
+  first_token = VEC_address (cp_token, parser->lexer->buffer);
+  start_token = (next_token > first_token + window_size / 2)
+		? next_token - window_size / 2
+		: first_token;
+  cp_lexer_dump_tokens (file, parser->lexer->buffer, start_token, window_size,
+			next_token);
+}
+
+
 /* Dump debugging information for the given PARSER.  If FILE is NULL,
    the output is printed on stderr.  */
 
 void
 cp_debug_parser (FILE *file, cp_parser *parser)
 {
-  cp_token *start_token, *first_token, *next_token;
   const size_t window_size = 200;
 
   if (file == NULL)
@@ -507,14 +527,7 @@ cp_debug_parser (FILE *file, cp_parser *parser)
 	   parser->num_classes_being_defined);
   fprintf (file, "Number of template parameter lists for the current "
 	   "declaration: %u\n", parser->num_template_parameter_lists);
-
-  next_token = parser->lexer->next_token;
-  first_token = VEC_address (cp_token, parser->lexer->buffer);
-  start_token = (next_token > first_token + window_size / 2)
-		? next_token - window_size / 2
-		: first_token;
-  cp_lexer_dump_tokens (file, parser->lexer->buffer, start_token, window_size,
-			next_token);
+  cp_debug_parser_tokens (file, parser, window_size);
 }
 
 

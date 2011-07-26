@@ -1448,6 +1448,9 @@ pph_read_file_contents (pph_stream *stream)
   FOR_EACH_VEC_ELT (tree, file_unemitted_tinfo_decls, i, t)
     VEC_safe_push (tree, gc, unemitted_tinfo_decls, t);
 
+  pph_in_pending_templates_list (stream);
+  pph_in_spec_entry_tables (stream);
+
   file_static_aggregates = pph_in_tree (stream);
   static_aggregates = chainon (file_static_aggregates, static_aggregates);
 

@@ -52,6 +52,7 @@ extern FILE *pph_logfile;
 /* In pph.c  */
 extern void pph_init (void);
 extern void pph_finish (void);
+extern void pph_dump_tree_name (FILE *file, tree t, int flags);
 extern void pph_dump_namespace (FILE *, tree ns);
 
 #endif  /* GCC_CP_PPH_H  */
