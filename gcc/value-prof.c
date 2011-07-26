@@ -613,18 +613,7 @@ gimple_value_profile_transformations (void)
     }
 
   if (changed)
-    {
-      counts_to_freqs ();
-      /* Value profile transformations may change inline parameters
-         a lot (e.g., indirect call promotion introduces new direct calls).
-         The update is also needed to avoid compiler ICE -- when MULTI
-         target icall promotion happens, the caller's size may become
-         negative when the promoted direct calls get promoted.  */
-      /* Guard this for LIPO for now.  */
-      if (L_IPO_COMP_MODE)
-        compute_inline_parameters (cgraph_get_node (current_function_decl),
-				   false);
-    }
+    counts_to_freqs ();
 
   return changed;
 }

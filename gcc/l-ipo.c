@@ -390,6 +390,7 @@ pop_module_scope (void)
     primary_module_last_loc = input_location;
 
   at_eof = 1;
+  cgraph_process_same_body_aliases ();
   lang_hooks.l_ipo.process_pending_decls (input_location);
   lang_hooks.l_ipo.clear_deferred_fns ();
   at_eof = 0;
@@ -1067,7 +1068,8 @@ cgraph_unify_type_alias_sets (void)
         {
           push_cfun (DECL_STRUCT_FUNCTION (node->decl));
           current_function_decl = node->decl;
-          cgraph_collect_type_referenced ();
+          if (gimple_has_body_p (current_function_decl))
+            cgraph_collect_type_referenced ();
           current_function_decl = NULL;
           pop_cfun ();
         }

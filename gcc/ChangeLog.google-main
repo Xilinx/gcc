@@ -1,3 +1,11 @@
+2011-07-26  David Li  <davidxl@google.com>
+
+	* value-prof.c (gimple_value_profile_transformations): Remove redundant code.
+	* cgraphunit.c (cgraph_mark_functions_to_output): Fix assertion in lipo mode.
+	* ipa-inline.c (early_inliner): Check fake edge.
+	* l-ipo.c (pop_module_scope): Process alias node.
+	(cgraph_unify_type_alias_sets): Skip empty function.
+
 2011-07-25  Diego Novillo  <dnovillo@google.com>
 
 	* tree-threadsafe-analyze.c (gate_threadsafe_analyze): Always

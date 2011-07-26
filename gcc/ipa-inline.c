@@ -2008,6 +2008,9 @@ early_inliner (void)
 	  for (edge = node->callees; edge; edge = edge->next_callee)
 	    {
 	      struct inline_edge_summary *es = inline_edge_summary (edge);
+
+	      if (!edge->call_stmt)
+	        continue;
 	      es->call_stmt_size
 		= estimate_num_insns (edge->call_stmt, &eni_size_weights);
 	      es->call_stmt_time

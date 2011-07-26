@@ -1531,7 +1531,8 @@ cgraph_mark_functions_to_output (void)
 	  gcc_assert (node->global.inlined_to
 		      || !gimple_has_body_p (decl)
 		      || node->in_other_partition
-		      || DECL_EXTERNAL (decl));
+		      || DECL_EXTERNAL (decl)
+                      || cgraph_is_auxiliary (node->decl));
 
 	}
 
