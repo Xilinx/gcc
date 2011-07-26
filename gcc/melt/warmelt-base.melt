@@ -387,6 +387,42 @@ matches the subpattern $Q.}#
   #{ /*$INTMULT !*/ $Q = ($I) / ($N); }#
   )
 
+;;; match an integer i different from a given number n
+(defcmatcher some_integer_different_from
+  (:long i n)
+  ()
+  intdiffrom
+  :doc #{The $SOME_INTEGER_DIFFRERENT_FROM matcher with input number $N matches
+an integer $I if $I is different from $N.}#
+  ;; test expansion
+  #{ /*$INTDIFFROM ?*/ ($I != $N) }#
+  ;; no fill expansion
+)
+
+;;; match an integer i equal to a given number n
+(defcmatcher some_integer_equal_to
+  (:long i n)
+  ()
+  intequalto
+  :doc #{The $SOME_INTEGER_EQUAL_TO matcher with input number $N matches
+an integer $I if $I is or equal to $N.}#
+  ;; test expansion
+  #{ /*$INTEQUALTO ?*/ ($I == $N) }#
+  ;; no fill expansion
+)
+
+;;; match an integer i greater or equal to a given number n
+(defcmatcher some_integer_greater_or_equal_to
+  (:long i n)
+  ()
+  intgreatorequal
+  :doc #{The $SOME_INTEGER_GREATER_OR_EQUAL_TO matcher with input number $N matches
+an integer $I if $I is greater or equal to $N.}#
+  ;; test expansion
+  #{ /*$INTGREATOREQUAL ?*/ ($I >= $N) }#
+  ;; no fill expansion
+)
+
 ;;; match an integer i greater than a given number n
 (defcmatcher some_integer_greater_than
   (:long i n)
@@ -396,6 +432,30 @@ matches the subpattern $Q.}#
 an integer $I if $I is greater than $N.}#
   ;; test expansion
   #{ /*$INTGREATHAN ?*/ ($I > $N) }#
+  ;; no fill expansion
+)
+
+;;; match an integer i lower or equal to a given number n
+(defcmatcher some_integer_lower_or_equal_to
+  (:long i n)
+  ()
+  intloworequal
+  :doc #{The $SOME_INTEGER_LOWER_OR_EQUAL_TO matcher with input number $N matches
+an integer $I if $I is lower or equal to $N.}#
+  ;; test expansion
+  #{ /*$INTLOWOREQUAL ?*/ ($I <= $N) }#
+  ;; no fill expansion
+)
+
+;;; match an integer i lower than a given number n
+(defcmatcher some_integer_lower_than
+  (:long i n)
+  ()
+  intlowthan
+  :doc #{The $SOME_INTEGER_LOWER_THAN matcher with input number $N matches
+an integer $I if $I is lower than $N.}#
+  ;; test expansion
+  #{ /*$INTLOWTHAN ?*/ ($I < $N) }#
   ;; no fill expansion
 )
 
@@ -480,15 +540,6 @@ an integer $I if $I is greater than $N.}#
   :doc #{Give the length of string value $STR.}#
   #{melt_string_length((melt_ptr_t)($str))}#)
 
-(defprimitive string= (s1 s2) :long 
-  :doc #{Test that value strings $S1 and $S2 are equal as strings.}#
-  #{melt_string_same(($s1), ($s2))}#)
-
-
-(defprimitive string!= (s1 s2) :long 
-  :doc #{Test that value strings $S1 and $S2 are not equal as strings.}#
-  #{!melt_string_same(($s1), ($s2))}#)
-
 (defprimitive string_suffixed (sv :cstring cs) :long
   :doc #{Test that the string value $SV ends with the suffix $CS.}#
   #{(melt_string_is_ending ((melt_ptr_t)$SV, $CS))}#)
@@ -528,6 +579,11 @@ discriminant $DIS.}#
   :doc #{Split a cstring $CS into a list of colon separated strings of
 discriminant $DIS.}#
 #{meltgc_new_split_string($cs, ':', (melt_ptr_t)$dis)}#)
+
+(defprimitive split_string_equal (dis :cstring cs) :value
+  :doc #{Split a cstring $CS into a list of equal separated strings of
+discriminant $DIS.}#
+#{meltgc_new_split_string($cs, '=', (melt_ptr_t)$dis)}#)
 
 ;;; convert a strbuf into a string
 (defprimitive strbuf2string (dis sbuf) :value
@@ -2518,16 +2574,20 @@ polyhedron values.}#
  pre_genericize_hook_runner
  retrieve_value_descriptor_list
  set_content
+ some_integer_different_from
+ some_integer_equal_to
+ some_integer_greater_or_equal_to
  some_integer_greater_than
+ some_integer_lower_or_equal_to
+ some_integer_lower_than
  some_integer_multiple
  some_string_value
  split_string_colon
  split_string_comma
+ split_string_equal
  split_string_space
  strbuf2string
  strbuf_usedlength
- string!=
- string=
  string_ends
  string_hex_md5sum_constpath 
  string_hex_md5sum_pathstrv

@@ -985,7 +985,7 @@ $SPAC_OUTARGS are the output sub-patterns.}#
 	    (return)))
       (assert_msg "check operexp" (is_a operexp class_keyword))
       (assert_msg "same oper as field"
-		  (string= (get_field :named_name fld) (get_field :named_name operexp)))
+		  (==s (get_field :named_name fld) (get_field :named_name operexp)))
       (let ( 
 	    (mexp (macroexpand_1 subsexp env mexpander))
 	    (res (instance class_source_get_field
@@ -2841,7 +2841,7 @@ outside its module.}#)
 	       ;; this test avoids warnings when recompiling
 	       ;; warmelt-*.melt files
 	       (if (or (is_not_a prevalue class_field)
-		       (string!= (get_field :named_name (get_field :fld_ownclass prevalue))
+		       (!=s (get_field :named_name (get_field :fld_ownclass prevalue))
 				 (get_field :named_name symb)))
 		   (warning_strv fieldsloc "field name already bound to a value in DEFCLASS"_ fldstr)
 		 )))

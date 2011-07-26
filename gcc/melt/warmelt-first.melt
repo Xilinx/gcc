@@ -1113,6 +1113,12 @@ an integer $I if $I is greater than $N.}#
 (defprimitive is_string (str) :long
   :doc #{Test that $STR is a string values.}#
   #{(melt_magic_discr((melt_ptr_t)($str)) == MELTOBMAG_STRING)}#)
+
+(defprimitive get_string (string) :cstring
+  :doc #{Safely gets the string pointer inside $STRING, a boxed string
+  or an object.}#
+  #{(melt_string_str((melt_ptr_t)($string)))}#)
+
 ;; string equal
 (defprimitive ==s (s1 s2) :long
   :doc #{Test that $S1 and $S2 are both string values and are equal.}#
@@ -1120,6 +1126,16 @@ an integer $I if $I is greater than $N.}#
 (defprimitive !=s (s1 s2) :long
   :doc #{Test that $S1 and $S2 are not both string equal values.}#
   #{!melt_string_same((melt_ptr_t)($s1), (melt_ptr_t)($s2))}#)
+
+(defun is_empty_string (string)
+  :doc #{Test that value string is empty}#
+  (==s string '"")
+)
+
+(defun is_non_empty_string (string)
+  :doc #{Test that value string is not empty}#
+  (!=s string '"")
+)
 
 (defprimitive make_stringconst (dis :cstring cstr) :value
   :doc #{Make a new string of distriminant $DIS from raw string constant $CSTR.}#
@@ -3991,6 +4007,7 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discrim
  get_int
  get_keywordstr
+ get_string
  get_symbolstr
  get_raw_symbol
  informsg_long
@@ -4151,6 +4168,8 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  fresh_env				
  install_ctype_descr				
  install_method	
+ is_empty_string
+ is_non_empty_string
  list_append2list			
  list_every				
  list_iterate_test			

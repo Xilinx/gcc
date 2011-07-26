@@ -1,3 +1,22 @@
+2011-07-26  Romain Geissler  <romain.geissler@gmail.com>
+
+	* melt/warmelt-base.melt (some_integer_different_from): New exported
+	iterator.
+	(some_integer_equal_to): Likewise.
+	(some_integer_greater_or_equal_to): Likewise.
+	(some_integer_lower_or_equal_to): Likewise.
+	(some_integer_lower_than): Likewise.
+	(string=): Removed primitive.
+	(string!=): Likewise.
+	(split_string_equal): New exported primitive.
+	* melt/warmelt-first.melt (get_string): New exported primitive.
+	(is_empty_string): New exported function.
+	(is_non_empty_string): Likewise.
+	* melt/xtramelt-ana-base.melt (cfun_cfg_entry_block): Export primitive.
+	(cfun_cfg_exit_block): New exported primitive.
+	* melt/warmelt-macro.melt (expand_fieldexpr): Replace "string=" calls
+	by "==s" calls.
+	(mexpand_defclass): Replace "string!=" calls by "==s" calls.
 
 2011-07-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (output_melt_descriptor): New function.

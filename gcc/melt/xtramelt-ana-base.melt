@@ -3396,6 +3396,9 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
 (defprimitive cfun_cfg_entry_block () :basic_block
   #{ ((cfun && cfun->cfg)? ENTRY_BLOCK_PTR_FOR_FUNCTION(cfun):NULL) }#)
 
+(defprimitive cfun_cfg_exit_block () :basic_block
+  #{ ((cfun && cfun->cfg)? EXIT_BLOCK_PTR_FOR_FUNCTION(cfun):NULL) }#)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (export_values
  ==e
@@ -3409,6 +3412,8 @@ and discriminant $DIS, usually $DISCR_MIXED_LOCATION.}#
  cfun_decl
  cfun_gimple_body
  cfun_has_cfg
+ cfun_cfg_entry_block
+ cfun_cfg_exit_block
  cfun_nonlocal_goto_save_area
  cfun_static_chain_decl
  clear_special 
