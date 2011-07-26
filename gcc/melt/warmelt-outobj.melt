@@ -3746,6 +3746,176 @@
   )))
 
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; utility to output the melt descriptor file
+(defun output_melt_descriptor (modnamstr secfiles)
+  (debug_msg modnamstr "output_melt_descriptor modnamstr")
+  (debug_msg secfiles "output_melt_descriptor secfiles")
+  (let ( 
+	(:long nbsecfiles (multiple_length secfiles))
+	(debuf (make_strbuf discr_strbuf))
+	)
+    (add2sbuf_strconst debuf "/** GENERATED MELT DESCRIPTOR FILE ")
+    (add2sbuf_ccomstring debuf modnamstr)
+    (add2sbuf_strconst debuf "+meltdesc.c - ** NEVER EDIT OR MOVE THIS, IT IS GENERATED & PARSED! **/")
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "/* version of the GCC compiler & MELT runtime generating this */")
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "const char melt_genversionstr[]=\"")
+    (code_chunk 
+     genversch
+     #{ /* translate_macroexpanded_list $GENVERSCH + */
+     meltgc_add_strbuf_cstr ($DEBUF, melt_gccversionstr) ;
+     }#)
+    (add2sbuf_strconst debuf "\";")
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "const char melt_versionmeltstr[]=\"")
+    (code_chunk 
+     genvmeltch
+     #{ /* translate_macroexpanded_list $GENVMELTCH + */
+     meltgc_add_strbuf_cstr ($DEBUF, MELT_VERSION_STRING) ;
+     }#)
+    (add2sbuf_strconst debuf "\";")
+    (add2sbuf_indentnl debuf 0)
+    ;;
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "/* source name & real path of the module */")
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "const char melt_modulename[]=\"")
+    (add2sbuf_cencstring  debuf modnamstr)
+    (add2sbuf_strconst debuf "\";")
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "const char melt_modulerealpath[]=\"")
+    (code_chunk 
+     genrpathch
+     #{ /* translate_macroexpanded_list $GENRPATHCH + */
+     char* lrp = lrealpath (melt_string_str ($MODNAMSTR)) ;
+     if (!IS_ABSOLUTE_PATH(lrp)) {
+     meltgc_add_strbuf_cstr ($DEBUF, getpwd()) ;
+     meltgc_add_strbuf ($DEBUF, "/")	       ;
+     }
+     meltgc_add_strbuf_cstr ($DEBUF, lrp) ;
+     free (lrp)				  ;
+     }#)
+    (add2sbuf_strconst debuf "\";")
+    (add2sbuf_indentnl debuf 0)
+    ;;
+    ;;
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "/* MELT generation timestamp */")
+    (add2sbuf_indentnl debuf 0)
+    (code_chunk 
+     gentimch
+     #{ /* translate_macroexpanded_list $GENTIMCH + */
+     time_t now = 0						   ;
+     char nowbuf[64]						   ;
+     time (&now)						   ;
+     memset (nowbuf, 0, sizeof(nowbuf))				   ;
+     strftime (nowbuf, sizeof(nowbuf)-1, "%c %Z", localtime(&now)) ;
+     meltgc_add_strbuf ($DEBUF, 
+			"const char melt_gentimestamp[]=\"") ;
+     meltgc_add_strbuf_cstr ($DEBUF, nowbuf)		     ;
+     meltgc_add_strbuf ($DEBUF, "\";\n")		     ;
+     /*  $GENTIMCH don't use time_t, it is not a predefined C type! */
+     meltgc_strbuf_printf ($DEBUF, 
+			   "const long long melt_gentimenum=%lld;\n",
+			   (long long) now) ;	       
+     /* translate_macroexpanded_list $GENTIMCH - */}#)
+    (add2sbuf_indentnl debuf 0)
+    ;;
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "/* hash of preprocessed melt-run.h generating this */")
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "const char melt_prepromd5meltrun[]=\"")
+    (code_chunk 
+     genversch
+     #{ /* translate_macroexpanded_list $GENVERSCH */
+     meltgc_add_strbuf_cstr ($DEBUF, MELT_RUN_HASHMD5) ;
+     }#)
+    (add2sbuf_strconst debuf "\";")
+    (add2sbuf_indentnl debuf 0)
+    ;;
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "/* number of secondary files */")
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "const int melt_nbsecfiles=")
+    (add2sbuf_longdec  debuf nbsecfiles)
+    (add2sbuf_strconst debuf ";")
+    (add2sbuf_indentnl debuf 0)
+    ;;
+    (add2sbuf_strconst debuf "/* hexmd5checksum of primary C file */")
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "const char melt_primaryhexmd5[]=\"")
+    (let ( (primpathbuf (make_strbuf discr_strbuf)) 
+	   )
+      (add2sbuf_string primpathbuf modnamstr)
+      (add2sbuf_strconst primpathbuf ".c")
+      (let ( (primpath (strbuf2string discr_string primpathbuf)) 
+	     )
+	(debug_msg primpath "output_melt_descriptor primpath")
+	(add2sbuf_cencstring debuf (string_hex_md5sum_pathstrv primpath))
+	))
+    (add2sbuf_strconst debuf "\";")
+    (add2sbuf_indentnl debuf 0) 
+    ;;
+    (add2sbuf_strconst debuf "/* hexmd5checksum of secondary C files */")
+    (add2sbuf_indentnl debuf 0)
+    (add2sbuf_strconst debuf "const char* const melt_secondaryhexmd5tab[]={")
+    (foreach_in_multiple
+     (secfiles)
+     (curfil :long filix)
+     (debug_msg curfil " curfil")
+     (add2sbuf_indentnl debuf 1)
+     (if curfil
+	 (progn
+	   (assert_msg "output_melt_descriptor check curfil" 
+		       (is_a curfil class_secondary_c_file))
+	   (let ( (secpath (get_field :secfil_path curfil)) 
+		  )
+	     (add2sbuf_strconst debuf "/*hexmd5checksum ")
+	     (add2sbuf_ccomstring debuf secpath)
+	     (add2sbuf_strconst debuf " #")
+	     (add2sbuf_longdec debuf (get_int curfil))
+	     (add2sbuf_strconst debuf " */ \"")
+	     (add2sbuf_cencstring debuf (string_hex_md5sum_pathstrv secpath))
+	     (add2sbuf_strconst debuf "\",")
+	     ))
+       (add2sbuf_strconst debuf "/*nosecfile*/ (const char*)0,")
+       ))
+    (add2sbuf_indentnl debuf 1)
+    (add2sbuf_strconst debuf "(const char*)0 };")
+    (add2sbuf_indentnl debuf 1)
+    ;;
+    (add2sbuf_indentnl debuf 0)	      
+    (add2sbuf_strconst debuf "/* end of melt descriptor file */")
+    (add2sbuf_indentnl debuf 0)
+    ;;
+    (code_chunk 
+     writdescrfilech
+     #{ /* translate_macroexpanded_list $WRITDESCRFILECH+ */
+     char *descfilpath
+     = concat (melt_string_str ((melt_ptr_t)$MODNAMSTR),
+			       "+meltdesc.c", NULL) ;
+     FILE *descfil = fopen (descfilpath, "w")	    ;
+     debugeprintf ("translate_macroexpanded_list descfilpath %s", 
+		   descfilpath)		;
+     if (!descfil)
+     melt_fatal_error ("failed to open descriptor file %s - %m",
+		       descfilpath)	;
+     melt_putstrbuf (descfil, $DEBUF)	;
+     if (fclose (descfil))
+     melt_fatal_error ("failed to close descriptor file %s - %m",
+		       descfilpath)	;
+     if (flag_melt_bootstrapping)
+     inform (UNKNOWN_LOCATION, "MELT generated descriptor file %s",
+			       descfilpath) ;
+     free (descfilpath)			    ;
+     /* translate_macroexpanded_list $WRITDESCRFILECH- */ }#)
+    )
+  )
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; utility function to translate a macroexpanded list
 (defun translate_macroexpanded_list (xlist modnamstr modctx ncx)
@@ -3936,6 +4106,10 @@
 		     ;;(informsg_strv "warmelt generated secondary C file" secfilpath)
 		     ))
 	       ))
+	    ;;
+	    ;; output the descriptive C file 
+	    (output_melt_descriptor modnamstr secfiles)
+	    ;;
 	    (code_chunk 
 	     endmodnam
 	     #{ /* translate_macroexpanded_list $ENDMODNAM */
@@ -4098,7 +4272,14 @@
 ;;; modsrcname is the string for the module source file path
 (defun compile_one_or_more_files (files modsrcname curenv)
   (assert_msg "check curenv" (is_a curenv class_environment))
+  (debug_msg modsrcname "compile_one_or_more_files modsrcname")
   (assert_msg "check modsrcname" (is_string modsrcname))
+  (assert_msg "compile_one_or_more_files modsrcname not ended with .so"
+	      (not (string_suffixed modsrcname ".so")))
+  (assert_msg "compile_one_or_more_files modulename not ended with .melt"
+	      (not (string_suffixed modsrcname ".melt")))
+  (assert_msg "compile_one_or_more_files modulename not ended with .c"
+	      (not (string_suffixed modsrcname ".c")))
   (let ( (rlist (make_list discr_list)) 
 	 )
     (cond 

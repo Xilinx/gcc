@@ -5505,8 +5505,11 @@ load_checked_dynamic_module_index (struct melt_source_and_module_path_st*sop, co
     if (verbose_flag || flag_melt_bootstrapping)
       printf ("Loaded MELT module %s for source %s\n", dypathdup, srcpath);
   }
-  else 
+  else {
+    if (verbose_flag || flag_melt_bootstrapping)
+      printf ("Failed to load MELT module %s {%s}\n", dypath, dlerror ());
     FAIL_BAD ();
+  }
   /* we always check that a melt_md5 exists within the dynamically
      loaded stuff; otherwise it was not generated from MELT/melt */
   dynmd5 = (char *) dlsym ((void *) dlh, "melt_md5");

@@ -1,5 +1,12 @@
 
 2011-07-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (output_melt_descriptor): New function.
+	(translate_macroexpanded_list): Call it.
+
+	* melt-runtime.c (load_checked_dynamic_module_index): Display
+	dlerror sometimes.
+
+2011-07-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-outobj.melt (translate_macroexpanded_list)
 	(compile_list_sexpr, translatefile_docmd, translateinit_docmd):
 	Check that the generated output has no .melt .c .so suffixes.
