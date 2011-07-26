@@ -1114,10 +1114,12 @@ an integer $I if $I is greater than $N.}#
   :doc #{Test that $STR is a string values.}#
   #{(melt_magic_discr((melt_ptr_t)($str)) == MELTOBMAG_STRING)}#)
 
-(defprimitive get_string (string) :cstring
-  :doc #{Safely gets the string pointer inside $STRING, a boxed string
-  or an object.}#
-  #{(melt_string_str((melt_ptr_t)($string)))}#)
+;; it is impossible to safely retrieve, in a MELT primitive, a
+;; :cstring stuff from a string value, because MELT values are moved
+;; by its copying collector, so the char* pointer returned as :cstring
+;; will become bogus. So melt_string_str cannot be made a primitive,
+;; but can be used inside other primitives, when you are sure they
+;; don't trigger GC.
 
 ;; string equal
 (defprimitive ==s (s1 s2) :long
@@ -4007,7 +4009,6 @@ also $CLASS_ANY_BINDING and $CLASS_ENVIRONMENT.}#
  discrim
  get_int
  get_keywordstr
- get_string
  get_symbolstr
  get_raw_symbol
  informsg_long

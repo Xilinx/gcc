@@ -1,3 +1,10 @@
+
+2011-07-26  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-first.melt (get_string): Remove primitive, and add
+	a comment explaining why. It is not possible to safely retrieve
+	the :cstring stuff pointing inside a string value, since that
+	value will be moved by the garbage collector.
+
 2011-07-26  Romain Geissler  <romain.geissler@gmail.com>
 
 	* melt/warmelt-base.melt (some_integer_different_from): New exported
