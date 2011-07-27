@@ -4318,13 +4318,14 @@
      const char* modsrcstr = melt_string_str ($MODSRCNAME);
      const char* modsrcbase = modsrcstr ? (lbasename (modsrcstr)) : NULL;
      if (modsrcbase)
-       $ISVALIDMODSRC = (strchr(modsrcbase,'.') == NULL);
+       $ISVALIDMODSRC =
+       (strchr(modsrcbase,'.') == NULL) && (strchr(modsrcbase,'+') == NULL);
      }#)
     (if (not isvalidmodsrc)
 	(progn
 	  (debug_msg modsrcname "compile_one_or_more_files bad generated modsrcname")
 	  (errormsg_strv 
-	   "invalid generated source name [basename should have no dots]" 
+	   "invalid generated source name [basename should have no dot or plus]" 
 	   modsrcname)
 	  (return)
 	  ))

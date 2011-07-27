@@ -1,3 +1,8 @@
+
+2011-07-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt/warmelt-outobj.melt (compile_one_or_more_files): Check the
+	modsrcname for lack of + and .
+
 2011-07-27  Pierre Vittet  <piervit@vpittet.com>
 
 	* melt-runtime.c (meltgc_string_hex_md5sum_file_sequence):
