@@ -1,4 +1,17 @@
 
+2011-07-27  Basile Starynkevitch  <basile@starynkevitch.net>
+	* melt-runtime.h (meltgc_string_hex_md5sum_file_sequence): New
+	declaration.
+	* melt-runtime.c (meltgc_string_hex_md5sum_file_sequence): New
+	function.
+	(melt_output_cfile_decl_impl_secondary_option): Don't emit
+	genversionstr_melt, md5prepromeltrun_melt anymore.
+	* melt/warmelt-base.melt (string_hex_md5sum_path_sequence): New
+	primitive.
+	* melt/warmelt-outobj.melt (compile_one_or_more_files): Check that
+	the basename has no dots.
+	(output_melt_descriptor): Emit the cumulated md5sum.
+
 2011-07-26  Basile Starynkevitch  <basile@starynkevitch.net>
 	* melt/warmelt-first.melt (get_string): Remove primitive, and add
 	a comment explaining why. It is not possible to safely retrieve

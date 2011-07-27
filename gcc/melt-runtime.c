@@ -5408,13 +5408,87 @@ meltgc_string_hex_md5sum_file (const char* path)
     md5hex[2*ix] = hexb[0];
     md5hex[2*ix+1] = hexb[1];
   }
-  /* We don't care if a GC happens bellow and if the incoming path has
-     been moved, since we forgot it.  */
   resv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), md5hex);
  end:
   MELT_EXITFRAME();
   return (melt_ptr_t)resv;
 #undef resv
+}
+
+/* compute the hexadecimal encoded md5sum string of a tuple of file
+   paths, or NULL on failure */
+melt_ptr_t 
+meltgc_string_hex_md5sum_file_sequence (melt_ptr_t pathtup_p)
+{
+  int ix = 0;
+  char md5srctab[16];
+  char md5hex[50];
+  char bufblock[1024]; /* size should be multiple of 64 for md5_process_block */
+  FILE *fil = NULL;
+  int nbtup = 0;
+  struct md5_ctx ctx = {};
+  MELT_ENTERFRAME(3, NULL);
+#define resv       meltfram__.mcfr_varptr[0]
+#define pathtupv   meltfram__.mcfr_varptr[1]
+#define pathv   meltfram__.mcfr_varptr[2]
+  pathtupv = pathtup_p;
+  memset (&ctx, 0, sizeof(ctx));
+  memset (md5srctab, 0, sizeof (md5srctab));
+  memset (md5hex, 0, sizeof (md5hex));
+  memset (bufblock, 0, sizeof (bufblock));
+  if (melt_magic_discr ((melt_ptr_t)pathtupv) != MELTOBMAG_MULTIPLE)
+    goto end;
+  md5_init_ctx (&ctx);
+  nbtup = melt_multiple_length ((melt_ptr_t)pathtupv);
+  /* this loop does not garbage collect! */
+  for (ix=0; ix < nbtup; ix++) 
+    {
+      char *curpath = NULL;
+      pathv = melt_multiple_nth ((melt_ptr_t)pathtupv, ix);
+      if (melt_magic_discr ((melt_ptr_t)pathv) != MELTOBMAG_STRING)
+	goto end;
+      curpath = melt_string_str ((melt_ptr_t) pathv);
+      if (!curpath || !curpath[0])
+	goto end;
+      fil = fopen(curpath, "r");
+      if (!fil)
+	goto end;
+      while (!feof (fil))
+	{
+	  memset (bufblock, 0, sizeof (bufblock));
+	  if (fread (bufblock, sizeof(bufblock), 1, fil)==1)
+	    {
+	      /* an entire block has been read. */
+	      md5_process_block (bufblock, sizeof(bufblock), &ctx);
+	    }
+	  else
+	    {
+	      int cnt = fread (bufblock, 1, sizeof(bufblock), fil);
+	      if (cnt <= 0) 
+		break;
+	      md5_process_bytes (bufblock, (size_t) cnt, &ctx);
+	    }
+	}
+      fclose (fil);
+      fil = NULL;
+      curpath = NULL;
+    }
+  md5_finish_ctx (&ctx, md5srctab);
+  memset (md5hex, 0, sizeof(md5hex));
+  for (ix=0; ix<16; ix++) {
+    char hexb[4] = {0,0,0,0};
+    int curbyt = md5srctab[ix] & 0xff;
+    snprintf (hexb, sizeof(hexb)-1, "%02x", curbyt);
+    md5hex[2*ix] = hexb[0];
+    md5hex[2*ix+1] = hexb[1];
+  }
+  resv = meltgc_new_string ((meltobject_ptr_t) MELT_PREDEF(DISCR_STRING), md5hex);
+ end:
+  MELT_EXITFRAME();
+  return (melt_ptr_t)resv;
+#undef resv
+#undef pathtupv
+#undef pathv
 }
 
 /* following code and comment is taken from the gcc/plugin.c file of
@@ -5513,17 +5587,15 @@ load_checked_dynamic_module_index (struct melt_source_and_module_path_st*sop, co
   /* we always check that a melt_md5 exists within the dynamically
      loaded stuff; otherwise it was not generated from MELT/melt */
   dynmd5 = (char *) dlsym ((void *) dlh, "melt_md5");
-  debugeprintf ("dynmd5=%s", dynmd5);
+  debugeprintf ("dynmd5 melt_md5=%s", dynmd5);
   if (!dynmd5) 
     {
-      warning (0, "missing md5 signature in MELT module %s", dypath);
+      warning (0, "missing md5 signature in MELT module %s with source %s", 
+	       dypath, srcpath);
       FAIL_BAD ();
     }
   dyncomptimstamp =
     (char *) dlsym ((void *) dlh, "melt_compiled_timestamp");
-  if (!dyncomptimstamp)
-    dyncomptimstamp =
-      (char *) dlsym ((void *) dlh, "melt_compiled_timestamp");
   debugeprintf ("dyncomptimstamp=%s", dyncomptimstamp);
   if (!dyncomptimstamp) 
     {
@@ -5532,7 +5604,7 @@ load_checked_dynamic_module_index (struct melt_source_and_module_path_st*sop, co
     };
   /* check the version of the generating compiler with current */
   dynversion  =
-    (char *) dlsym ((void *) dlh, "genversionstr_melt");
+    (char *) dlsym ((void *) dlh, "melt_genversionstr");
   if (dynversion && strcmp (dynversion, melt_gccversionstr))
     {
       warning(0, "loaded MELT module %s with a version mismatch!", dypath);
@@ -11706,30 +11778,6 @@ melt_output_cfile_decl_impl_secondary_option (melt_ptr_t unitnam,
       else
 	fprintf (cfil, "\n/***+ %s without options +***/\n",
 		   lbasename (melt_string_str (unitnam)));
-      /* we protect genversionstr_melt with MELTGCC_DYNAMIC_OBJSTRUCT since
-	 for sure when compiling the warmelt*0.c it would mismatch, and we
-	 want to avoid a useless warning */
-      fprintf (cfil, "\n#ifndef MELTGCC_DYNAMIC_OBJSTRUCT\n"
-	       "/* version string of the gcc compiler generating this file: */\n"
-	       "const char genversionstr_melt[]=\n ");
-      {
-	const char* pc;
-	fputc ('\"', cfil);
-	for (pc = melt_gccversionstr; *pc; pc++)
-	  {
-	    if (*pc == ' ' || ISALNUM(*pc) || strchr("(){}[]<>@.,+-*/_", *pc))
-	      fputc (*pc, cfil);
-	    else
-	      fprintf (cfil, "\\%03o", (int) 0xff & pc[0]);
-	  };    
-	fputc ('\"', cfil);
-      };
-      fprintf (cfil, ";\n" "\n");
-
-      fprintf (cfil, "\n/* hash of preprocessed melt-run.h generating this file: */\n");
-      fprintf (cfil, "const char md5prepromeltrun_melt[]=\"%s\";\n", melt_run_preprocessed_md5);
-
-      fprintf (cfil, "\n" "#endif /*MELTGCC_DYNAMIC_OBJSTRUCT*/\n" "\n");
     }
   else
     fprintf (cfil, "/* secondary MELT generated C file of rank #%d */\n",

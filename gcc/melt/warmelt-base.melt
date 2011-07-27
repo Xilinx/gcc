@@ -562,7 +562,12 @@ an integer $I if $I is lower than $N.}#
 
 (defprimitive string_hex_md5sum_pathstrv (pathv) :value
   :doc #{Return a boxed string contained the hexadecimal md5sum of the string value  $PATHV, or null.}#
-  #{(meltgc_string_hex_md5sum_file( melt_string_str((melt_ptr_t)$PATHV)))}#)
+  #{(meltgc_string_hex_md5sum_file (melt_string_str((melt_ptr_t)$PATHV)))}#)
+
+(defprimitive string_hex_md5sum_path_sequence (pathseq) :value
+  :doc #{Return a boxed string contained the cumulated hexadecimal
+  md5sum on paths inside tuple $PATHSEQ, or null.}#
+  #{(meltgc_string_hex_md5sum_file_sequence ((melt_ptr_t) $PATHSEQ))}#)
 
 
 (defprimitive split_string_space (dis :cstring cs) :value
@@ -2591,6 +2596,7 @@ polyhedron values.}#
  string_ends
  string_hex_md5sum_constpath 
  string_hex_md5sum_pathstrv
+ string_hex_md5sum_path_sequence
  string_length
  string_prefixed
  string_starts

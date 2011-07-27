@@ -1263,22 +1263,29 @@ melt_ptr_t meltgc_new_string_raw_len (meltobject_ptr_t discr,
 melt_ptr_t meltgc_new_string (meltobject_ptr_t discr,
 				    const char *str);
 
-/* allocate a new string (or null if bad DISCR or null STR) initialized from
+/* Allocate a new string (or null if bad DISCR or null STR) initialized from
    a memory STR which is temporarily duplicated (so can be in gc-ed) */
 melt_ptr_t meltgc_new_stringdup (meltobject_ptr_t discr,
 				       const char *str);
 
-/* get the naked basename of a path, ie from "/foo/bar.gyz" return
+/* Get the naked basename of a path, ie from "/foo/bar.gyz" return
    "bar"; argument is duplicated */
 melt_ptr_t meltgc_new_string_nakedbasename (meltobject_ptr_t discr,
 						  const char *str);
-/* get the basename of a path inside the temporary directory with an optional suffix */
+/* Get the basename of a path inside the temporary directory with an optional suffix */
 melt_ptr_t meltgc_new_string_tempname_suffixed (meltobject_ptr_t discr,
 						const char *namstr, const char*suffix);
 
-/* compute the hexadecimal encoded md5sum string of a file */
+/* Compute the hexadecimal encoded md5sum string of a file, or NULL on
+   failure.  */
 melt_ptr_t 
 meltgc_string_hex_md5sum_file (const char* path);
+
+/* Compute the hexadecimal encoded md5sum string of a tuple of file
+   paths, or NULL on failure */
+melt_ptr_t 
+meltgc_string_hex_md5sum_file_sequence (melt_ptr_t pathtup_p);
+
 
 /* Return as string value the name of a generated C file; if dirname
    is given and non-empty, it is used as the directory name using the
