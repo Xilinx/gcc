@@ -1,3 +1,20 @@
+2011-07-27  Andrew MacLeod  <amacleod@redhat.com>
+
+	* gcc.dg/sync-mem-{1-5}.c: Remove.
+	* gcc.dg/sync-mem.h: Remove.
+	* gcc.dg/sync-mem-exchange-{1-5}.c: New functional tests.
+	* gcc.dg/sync-mem-fence.c: New functional tests.
+	* gcc.dg/sync-mem-fetch-*-{1-5}.c: New functional tests.
+	* gcc.dg/sync-mem-flag.c: New functional tests.
+	* gcc.dg/sync-mem-invalid.c: Add new invalid combinations.
+	* gcc.dg/sync-mem-load-{1-5}.c: New functional tests.
+	* gcc.dg/sync-mem-store-{1-5}.c: New functional tests.
+
+2011-06-23  Andrew MacLeod  <amacleod@redhat.com>
+
+	* gcc.dg/sync-mem-invalid.c: Add invalid load tests.
+	* gcc.dg/sync-mem.h: Add load executable tests.
+
 2011-06-23  Andrew MacLeod  <amacleod@redhat.com>
 
 	* lib/target-support.exp (check_effective_target_sync_int_128,
